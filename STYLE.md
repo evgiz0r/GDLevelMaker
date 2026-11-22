@@ -171,4 +171,4 @@ triggers -- right for the physics, since a faded object still collides in GD.
 `tools/corpus.js` reads the install's `Resources/levels/<n>.txt` and the save
 (`%LOCALAPPDATA%/GeometryDash/CCLocalLevels.dat`), in memory only. Classification is
 `lib/objects.js` (which falls back to OpenGD's data in `lib/objects_extra.js`; ids in neither
-have no hitbox and count as decoration). Reading all 42 levels takes ~30 s and ~1 GB: run one at a time.
+have no hitbox and count as decoration). `all` reads 42 levels (well under a minute): run one such job at a time.
