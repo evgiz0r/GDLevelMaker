@@ -28,12 +28,34 @@ function loadPlan(n) {
   return ev;
 }
 
+// GD reads the button 2 ticks late in ship and UFO mode and 1 tick late in the others (gdsolver's
+// latOf, read off GD). loadPlan's events (already t-1) are the 1-tick case; in ship/UFO the button the
+// body sees is the plan's one tick earlier. Ship plans got further with it (PHYSICS.md).
+const LATE = { ship: 1, ufo: 1 };
+function playLatent(w, ev) {
+  const level = [];  // button level per step, by the 1-tick convention
+  let held = false, k = 0;
+  const sorted = ev.slice().sort((a, b) => a.tick - b.tick);
+  const end = Math.ceil((w.endX / (GD.SPEEDS[0].x * 60) + 5) * GD.PHYS.TPS);
+  for (let t = 0; t <= end; t++) { while (k < sorted.length && sorted[k].tick <= t) held = sorted[k++].type === "press"; level.push(held); }
+  const s = GD.startState(w), path = [Object.assign({}, s, { used: s.used.slice() })];
+  let prev = false;
+  while (!s.dead && !s.done && s.tick < end) {
+    const i = s.tick - (process.env.NOLATE ? 0 : (LATE[s.mode] || 0));
+    const h = i >= 0 ? level[i] : false;
+    GD.step(w, s, { press: h && !prev, held: h });
+    prev = h;
+    path.push(Object.assign({}, s, { used: s.used.slice() }));
+  }
+  return { path, dead: s.dead, done: s.done, why: s.why, killer: s.killer, end: path[path.length - 1] };
+}
+
 function replay(n, shift) {
   const level = unpack(fs.readFileSync(path.join(SRC, n + ".txt"), "utf8"));
   const L = GD.parseLevel(level);
   const w = GD.makeWorld(L.objects, L.header);
   const ev = loadPlan(n).map(e => ({ tick: e.tick + shift, type: e.type }));
-  const r = GD.run(w, ev);
+  const r = playLatent(w, ev);
   const e = r.end;
   return { n, w, r, ev, x: e.x, done: r.done, why: r.why, killer: r.killer, tick: e.tick, mode: e.mode };
 }

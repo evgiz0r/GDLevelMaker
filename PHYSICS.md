@@ -13,6 +13,7 @@ this file is the map per mode and per trigger. Last full update 2026-11-22.
 | why a plan dies | killer, the last second of orbs/pads/landings, presses | `node tools/tas_why.js n` |
 | is this id really a hazard/solid? | replays all plans with ids re-kinded | `node tools/tas_kind.js solid 661,662` |
 | which triggers levels use | counts per id over official + example levels | `node tools/triggers.js [files]` |
+| solve the rest from a state | `GD.solveFrom(w, state, {held})`: the sweep from any state, events in absolute ticks (for hand-made stretches, e.g. lib/natural.js) | - |
 | our own levels still solve | solver on every level | `node tools/check.js examples/*.gdlvl levels/*.gdlvl` (heavy: one at a time) |
 
 Sources (read before reinventing): camila314/gdp (2.2 decompiled physics functions), iArtie
@@ -21,7 +22,7 @@ OpenGD (2.1 hitboxes, via `tools/import_opengd.js`). Plans: copy gdsolver's `dat
 to `local/gdsolver/` (shared local folder, never committed).
 
 A plan's tick t is our step t-1 (`tools/tas.js` shifts it). Plans reach, in blocks (2026-11-22):
-1: 328, 2: 493, 3: 909, 4: 415, 5: 175, 6: 303, 7: 210, 8: 333, 9: 343, 10: 109, 11: 288, 12: 33,
+1: 328, 2: 493, 3: 909, 4: 415, 5: 175, 6: 303, 7: 210, 8: 333, 9: 382, 10: 167, 11: 288, 12: 33,
 13: 116, 14: 30, 15: 267, 16: 141, 17: 295, 18: 105, 19: 100, 20: 32, 21: 54, 22: 81.
 
 ## Modes
@@ -31,12 +32,41 @@ A plan's tick t is our step t-1 (`tools/tas.js` shifts it). Plans reach, in bloc
 | cube | jump 11.18, gravity 0.958/tick*0.9, fall clamp 15, landing snap 15, inner kill box 9 | gdp | video: whole jump arc 1.3 px rms; gravity 0.78 u/frame^2 |
 | ship | hold +0.108/+0.086, release -0.069/-0.103, switch at 2g (world terms, also upside down), limits +8/-6.4 | gdsolver | video: hold +0.40, release -0.25 u/frame^2 |
 | ball | tap = jump, flip (halves) x0.6; gravity 0.6x0.958 | gdsolver | video: +-0.47 u/frame^2 |
-| UFO | flap to 7, gravity 0.086 / 0.129 | gdsolver | plans only |
-| wave | vy = +-speed; contact half 5, dies on a solid with half 1.5, band clamp 10 | gdsolver | plans only (Blast Processing) |
+| UFO | flap to 7, gravity 0.086 / 0.129 (see UFO below) | gdsolver | plans only |
+| wave | 1 unit up per unit forward (mini 2); contact half 5 (mini 3), dies on a solid with half 1.5, band clamp 10 (mini 6) | gdsolver + video | video: mini wave trail 2.00:1 |
 | robot | jump 0.5x, gravity 0.9x, hover 67 ticks while held | gdsolver | plans only |
 | spider | half 13.5, teleports to the facing surface | gdsolver | plans only |
 | swing | flips gravity a tick after a press, vy x0.8, gravity 0.086, limit 8 | gdsolver | plans only |
 | mini (portals 99/101) | half 9 (spider 8.1, wave 3); jumps, orbs, pads x0.8; on foot gravity unchanged; ship/UFO gravity and limits /0.85; mini UFO flap 6.8; mini swing gravity x1.5 | gdsolver (lv11) | video: mini cube turns 90 deg per 10 frames, falls at 0.78; plan lv11 through its mini part |
+
+### Ball (sections from the decompile, gdsolver and the user's Clutterfunk video)
+- Tap on a surface: vy = jump speed, gravity flips (halving it), then x0.6 -> 3.354 at 1x. Gravity
+  0.6 x 0.958 per tick, both ways. Band 240 from its portal.
+- Orbs x0.7 after the orb's own value (pink 0.77 base); pads from GD's table x0.6: yellow 9.6,
+  pink 6.72, blue 3.84 (gdsolver measured lv9/lv22). Red pad 1.25 x 16 x 0.6.
+- Checked: video gravity +-0.47 units/frame^2 (`tests/modes_video.js`); plans lv9 (Cycles) to 382,
+  lv10 (xStep) to 167 (the pad table took lv10 from 109).
+- Open: lv9 at 382 grazes a turned small spike by 0.8 unit after an upside-down roll.
+
+### UFO
+- A press flaps vy up to 7 (mini 6.8) if it is lower; gravity 0.086 while falling or slow, 0.129
+  while rising faster than 2g (the ship's switch, in world terms); limits +8/-6.4 (mini /0.85).
+  Pink orb 0.42, pink pad 0.4 x 16, red pad 0.6 x 16 (mini 0.98). Band 300.
+- Ship and UFO read the button a tick later than other modes (gdsolver latOf; `tools/tas.js`).
+- Checked: nothing in the user's footage yet (Deadlocked's 48-58 s stretch is a cube with
+  gravity portals, not a UFO). Needs a recording: any UFO part with hitboxes on (Theory of
+  Everything's UFO, official 12, is the earliest).
+
+### Wave
+- Moves in straight lines: up while held, down when not, 1 unit of height per unit forward (45
+  degrees), mini 2 (63.4 degrees); y is moved by the line, and the stored vy (what the next mode
+  inherits) is +-speed with no mini factor. Contact box half 5 (mini 3), dies when its 1.5 half box
+  enters a solid, slides along solid faces, keeps 10 (mini 6) off the band's floor and roof.
+- Checked: the user's Deadlocked video, mini wave trail 2.00:1 in 7 frames (`tests/modes_video.js`);
+  plans: Blast Processing's wave part (blocks 147-295) survives.
+- Open: Deadlocked's plan dies at 32 in the mini wave on a spike turned -63 degrees, threaded with
+  2-4 tick taps (gdsolver notes GD's shape for a turned spike vs the wave is not its plain turned
+  box either); the full-size 1:1 slope is not yet seen in a recording.
 
 Bands: a flying mode's portal sets floor/ceiling 300 apart (ball 240, spider 270). Entering or
 leaving a flying mode halves vy. Velocities sit on a 0.001 grid.
