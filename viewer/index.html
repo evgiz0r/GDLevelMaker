@@ -65,9 +65,18 @@ async function gunzipB64(b64) {
 }
 function load(name, levelStr) {
   const level = GD.parseLevel(levelStr);
-  const world = GD.makeWorld(level.objects);
-  const sol = GD.solve(world);
-  const path = GD.run(world, sol.ok ? sol.clicks : []).path;
+  const world = GD.makeWorld(level.objects, level.header);
+  let sol;
+  try { sol = GD.solve(world); } catch (e) { sol = { ok: false, clicks: [], trail: [], dieAt: GD.startState(world), why: e.message }; }
+  // a level that cannot be beaten replays the run that got furthest
+  let events = sol.events;
+  if (!sol.ok) {
+    events = [];
+    (sol.trail || []).forEach((e, i, a) => { events.push(e); if (e.type === "press" && !(a[i + 1] && a[i + 1].type === "release")) events.push({ tick: e.tick + 1, type: "release" }); });
+    sol.clicks = (sol.trail || []).filter(e => e.type === "press").map(e => ({ type: "press", tick: e.tick, lo: e.tick, hi: e.tick, ms: 0, act: "" }));
+  }
+  const path = GD.run(world, events).path;
+  sol.clicks.forEach(c => { if (c.type === "press") c.act = path[Math.min(c.tick + 1, path.length - 1)].act || c.act; c.x = path[c.tick].x; });
   L = { name, level, world, sol, path };
   t = 0; lastTick = -1; playing = false; setPlay();
   summary(); clickTable(); draw();
@@ -89,21 +98,21 @@ addEventListener("drop", e => { e.preventDefault(); drop.style.display = "none";
 function summary() {
   const counts = {};
   for (const o of L.level.objects) { const d = GD.objInfo(o.id); counts[d.name] = (counts[d.name] || 0) + 1; }
-  const unsim = L.level.objects.filter(o => ["orb", "pad", "unknown"].includes(GD.objInfo(o.id).kind)).length;
+  const unsim = L.level.objects.filter(o => GD.objInfo(o.id).kind === "unknown").length;
   const s = L.sol;
   let h = `<b>${esc(L.name)}</b><br><span class="muted">${L.level.objects.length} objects · ${(L.world.endX / 30).toFixed(0)} blocks · ${(L.world.endX / P.SPEED).toFixed(1)} s at 1×</span><br>`;
   h += s.ok ? `<p class="ok">Beatable in ${s.clicks.length} click${s.clicks.length === 1 ? "" : "s"}` +
               (s.clicks.length ? ` · tightest window ${Math.min(...s.clicks.map(c => c.ms))} ms` : "") + `</p>`
-            : `<p class="bad">Not beatable with cube physics. The furthest run dies at block ${(s.dieAt.x / 30).toFixed(1)} (${(s.dieAt.tick / P.TPS).toFixed(2)} s) on a ${s.why}. The replay shows a run with no clicks.</p>`;
-  if (unsim) h += `<p class="muted">${unsim} objects (orbs, pads, unknown ids) are drawn but not simulated yet.</p>`;
+            : `<p class="bad">Not beatable in the simulation. The furthest run dies at block ${(s.dieAt.x / 30).toFixed(1)} (${(s.dieAt.tick / P.TPS).toFixed(2)} s): ${s.why}. The replay shows that furthest run.</p>`;
+  if (unsim) h += `<p class="muted">${unsim} objects have unknown ids: drawn grey, ignored by the physics.</p>`;
   h += `<p class="muted">` + Object.entries(counts).map(([k, v]) => `${esc(k)} ×${v}`).join(" · ") + `</p>`;
   document.getElementById("summary").innerHTML = h;
 }
 function clickTable() {
   const el = document.getElementById("clicks");
-  if (!L.sol.ok || !L.sol.clicks.length) { el.innerHTML = `<span class="muted">none</span>`; return; }
-  el.innerHTML = `<table><tr><th>#</th><th>time</th><th>block</th><th>window</th></tr>` +
-    L.sol.clicks.map((c, i) => `<tr id="c${i}"><td>${i + 1}</td><td>${(c.tick / P.TPS).toFixed(3)} s</td><td>${(c.x / 30).toFixed(1)}</td><td>${c.ms} ms</td></tr>`).join("") + `</table>`;
+  if (!L.sol.clicks.length) { el.innerHTML = `<span class="muted">none</span>`; return; }
+  el.innerHTML = `<table><tr><th>#</th><th>time</th><th>block</th><th>what</th><th>window</th></tr>` +
+    L.sol.clicks.map((c, i) => `<tr id="c${i}"><td>${i + 1}</td><td>${(c.tick / P.TPS).toFixed(3)} s</td><td>${(c.x / 30).toFixed(1)}</td><td>${c.type === "release" ? "release" : esc(c.act || "press")}</td><td>${c.ms ? c.ms + " ms" : ""}</td></tr>`).join("") + `</table>`;
 }
 function esc(s) { return String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]); }
 
@@ -138,7 +147,7 @@ function beep() {
 
 // ---------- drawing ----------
 function tick() { return Math.min(L.path.length - 1, Math.floor(t * P.TPS)); }
-let W = 0, H = 0, scale = 1, camX = 0, groundY = 0;
+let W = 0, H = 0, scale = 1, camX = 0, camY = 0, groundY = 0;
 function resize() {
   const r = cv.getBoundingClientRect(), d = devicePixelRatio || 1;
   cv.width = r.width * d; cv.height = r.height * d; W = cv.width; H = cv.height;
@@ -146,28 +155,30 @@ function resize() {
   if (L) draw();
 }
 addEventListener("resize", resize);
-const sx = x => (x - camX) * scale, sy = y => groundY - y * scale;
+const sx = x => (x - camX) * scale, sy = y => groundY - (y - camY) * scale;
 
 function draw() {
   if (!L) return;
   const k = tick(), s = L.path[k];
   camX = s.x - W / scale * 0.3;
+  const want = Math.max(0, s.y - 30 * 4.5); camY += (want - camY) * 0.15;
   ctx.fillStyle = "#0e0828"; ctx.fillRect(0, 0, W, H);
   // grid
   ctx.strokeStyle = "rgba(120,100,220,.10)"; ctx.lineWidth = 1;
   for (let gx = Math.floor(camX / 30) * 30; sx(gx) < W; gx += 30) { ctx.beginPath(); ctx.moveTo(sx(gx), 0); ctx.lineTo(sx(gx), groundY); ctx.stroke(); }
   for (let gy = 0; sy(gy) > 0; gy += 30) { ctx.beginPath(); ctx.moveTo(0, sy(gy)); ctx.lineTo(W, sy(gy)); ctx.stroke(); }
   // click windows + click lines (behind objects)
-  if (L.sol.ok) for (const c of L.sol.clicks) {
-    const x0 = P.START_X + P.SPEED * c.lo / P.TPS, x1 = P.START_X + P.SPEED * (c.hi + 1) / P.TPS;
+  for (const c of L.sol.clicks) {
+    const x0 = L.path[Math.min(c.lo, L.path.length - 1)].x, x1 = L.path[Math.min(c.hi + 1, L.path.length - 1)].x;
     ctx.fillStyle = "rgba(255,225,77,.13)"; ctx.fillRect(sx(x0), 0, (x1 - x0) * scale, groundY);
     ctx.strokeStyle = "rgba(255,225,77,.7)"; ctx.setLineDash([6, 6]); ctx.lineWidth = 2;
     ctx.beginPath(); ctx.moveTo(sx(c.x), 0); ctx.lineTo(sx(c.x), groundY); ctx.stroke(); ctx.setLineDash([]);
   }
   // ground
-  ctx.fillStyle = "#1b1046"; ctx.fillRect(0, groundY, W, H - groundY);
+  const gy = sy(0);
+  ctx.fillStyle = "#1b1046"; ctx.fillRect(0, gy, W, H - gy);
   ctx.strokeStyle = "#7d6bff"; ctx.lineWidth = 3; ctx.shadowColor = "#7d6bff"; ctx.shadowBlur = 12;
-  ctx.beginPath(); ctx.moveTo(0, groundY); ctx.lineTo(W, groundY); ctx.stroke(); ctx.shadowBlur = 0;
+  ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke(); ctx.shadowBlur = 0;
   // end line
   ctx.strokeStyle = "rgba(61,255,176,.5)"; ctx.beginPath(); ctx.moveTo(sx(L.world.endX), 0); ctx.lineTo(sx(L.world.endX), groundY); ctx.stroke();
   // objects
@@ -185,13 +196,13 @@ function draw() {
   drawCube(s);
   if (showHit) { ctx.strokeStyle = "#fff"; rectW({ x0: s.x - 15, x1: s.x + 15, y0: s.y - 15, y1: s.y + 15 }); ctx.strokeStyle = "#f0f"; rectW({ x0: s.x - 4.5, x1: s.x + 4.5, y0: s.y - 4.5, y1: s.y + 4.5 }); }
   // click flash
-  if (L.sol.ok) L.sol.clicks.forEach((c, i) => {
+  L.sol.clicks.forEach((c, i) => {
     const age = (k - c.tick) / P.TPS;
     if (age >= 0 && age < 0.35) {
       const p = L.path[c.tick];
       ctx.strokeStyle = `rgba(255,225,77,${1 - age / 0.35})`; ctx.lineWidth = 3;
       ctx.beginPath(); ctx.arc(sx(p.x), sy(p.y), (20 + age * 140) * scale / 2, 0, 7); ctx.stroke();
-      ctx.fillStyle = `rgba(255,225,77,${1 - age / 0.35})`; ctx.font = `${16 * scale / 2.2 + 10}px system-ui`; ctx.fillText("CLICK " + (i + 1), sx(p.x) - 30, sy(p.y) - 30 * scale);
+      ctx.fillStyle = `rgba(255,225,77,${1 - age / 0.35})`; ctx.font = `${16 * scale / 2.2 + 10}px system-ui`; ctx.fillText((c.type === "release" ? "RELEASE " : "CLICK ") + (i + 1), sx(p.x) - 30, sy(p.y) - 30 * scale);
     }
     const row = document.getElementById("c" + i); if (row) row.classList.toggle("now", age >= 0 && age < 0.35);
   });
@@ -225,6 +236,11 @@ function drawObj(o) {
       ctx.beginPath(); ctx.arc(0, 0, 13, 0, 7); ctx.stroke();
       ctx.beginPath(); ctx.arc(0, 0, 7, 0, 7); ctx.fillStyle = d.color; ctx.globalAlpha = .6; ctx.fill(); ctx.globalAlpha = 1;
       if (d.dash) { ctx.beginPath(); ctx.moveTo(-6, -6); ctx.lineTo(8, 0); ctx.lineTo(-6, 6); ctx.stroke(); }
+    } else if (d.kind === "slope") {
+      ctx.beginPath(); ctx.moveTo(-15, -15); ctx.lineTo(15, -15); ctx.lineTo(15, 15); ctx.closePath();
+      ctx.fillStyle = "rgba(61,123,255,.18)"; ctx.fill(); glow("#3d7bff", 10); ctx.strokeStyle = "#5b8fff"; ctx.stroke();
+    } else if (d.kind === "speed") {
+      glow(d.color, 12); ctx.strokeStyle = d.color; ctx.lineWidth = 3 / scale; ctx.strokeRect(-12, -22, 24, 44);
     } else if (d.kind === "pad") {
       glow(d.color, 12); ctx.fillStyle = d.color;
       ctx.beginPath(); ctx.ellipse(0, -1, 13, 4, 0, 0, 7); ctx.fill();
@@ -250,7 +266,7 @@ function frame(now) {
   if (L && playing) {
     t += dt * speed;
     const k = tick();
-    if (L.sol.ok) for (const c of L.sol.clicks) if (c.tick > lastTick && c.tick <= k) beep();
+    for (const c of L.sol.clicks) if (c.type === "press" && c.tick > lastTick && c.tick <= k) beep();
     lastTick = k;
     if (k >= L.path.length - 1) { playing = false; setPlay(); }
     draw();

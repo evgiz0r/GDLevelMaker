@@ -43,26 +43,51 @@ Keep it that way: one copy of the physics, used by the checker and the viewer al
 - `node tools/roundtrip.js examples/*.gdlvl` must print `ok` -- re-serialising a real level
   gives back the same record and the same objects.
 
-## Calibration -- what is confirmed in the user's game
+## Physics sources
 
-The physics numbers are community reverse-engineering, not measured here. Until a line moves
-from "assumed" to "confirmed", a level that is tight in the sim may be impossible in the game
-or easy. Write each confirmation here with how it was checked.
+- camila314/gdp (branch 2.2): hand decompilations of GD 2.2 physics functions -- speeds, gravity,
+  jump, landing snap (15), fall clamp (15), orbs, pads.
+- iArtie/GD-2.2081-Decompiled: full 2.2081 decompile (some decompiler errors).
+- Open-GD/OpenGD: a 2.1 reimplementation -- hitbox sizes, the 0.9 slow factor on vertical motion.
+- gdsolver/gdsolver: an existing 2.2 "is it beatable" solver with measured constants; worth
+  reading before reinventing anything.
+Values live in `lib/physics.js` (SPEEDS) and `lib/objects.js`.
 
-Assumed (not yet checked in the game):
-- 1x speed 311.58 units/s; cube jump 2.17 blocks high, 0.43 s long.
-- Spike hitbox 6x12 centred; cube 30x30 outer (lands), 9x9 inner (dies on blocks).
-- A triple spike at 1x has a ~48 ms window in the sim (the user's own level has one at the
-  start, and they beat it, so it is possible in the game: consistent).
+## Calibration -- checked against the user's game
+
+How: the user records a run with Win+Alt+R (Game Bar, lands in VideosCaptures, ~30 fps),
+ideally in practice mode with "Show Hitboxes" on. Track the lime cube by colour per frame with
+real frame times (the capture is variable frame rate: read pts with ffprobe, never assume 60).
+At 1080p one unit is exactly 3.375 px (a block is 101 px). GD's camera moves up and down, so
+measure heights against something in the level (ground line, a ceiling), never the screen.
 
 Confirmed:
-- (none yet)
+- Cube jump: matches the recording to 1.8 px rms (0.5 unit) over a whole arc
+  (`node tests/jump_video.js`). So 1x speed timing, yStart, gravity and the 240 Hz / 0.9
+  stepping hold.
+- Spike hitbox 6x12 centred, orb box 36x36: seen in a hitbox-on frame.
+- Object 1338 is a 45-degree slope (its hitbox outline is the staircase in the recording).
+- Flipping gravity halves vertical speed (blue orb and ceiling blue pad in the recording move at
+  half the decompile's velocity). The decompile's ringJump alone does not show this.
 
-## Not simulated yet
+Assumed (not yet checked):
+- Going 300 units above the highest object counts as a death (otherwise the solver "wins" by
+  falling up into the sky). Ask the user whether GD kills you up there.
+- Spider teleport searches a 9-unit strip above/below the cube.
+- Red orb (1333) at 1.38 x yStart: in "cube timings" the user, upside down on the ceiling, dives
+  under a wall at block 83 that the sim cannot get under. Either the multiplier is wrong for an
+  upside-down cube or something else differs. Open: measure the dive at 109.5-110.1 s of the
+  first recording against the ceiling line.
+- Dash orbs: horizontal at the orb's angle while held; the props 586/588 on them are unknown.
+- "Click Between Steps" is OFF in the user's settings: presses land on a frame boundary, not any
+  240 Hz step. The solver still allows any step.
 
-Orbs, pads, portals, speed changes, other game modes, slopes. The viewer draws orbs and pads
-and greys out unknown ids; the solver ignores them, so a level that uses them reports
-"not beatable". Add one at a time, each with a test level the user plays to confirm it.
+## Status of the solver on "cube timings" (examples/)
+
+Gets to block 82.9 of 111: triple spike, blue orb + ceiling blue pad, slope, dash orb, red orb,
+spider orb + pad all work. Stuck at the red orb under the ceiling (see above). The user beats it
+(the end of their first recording is a full practice run). The viewer replays the furthest run
+when a level cannot be beaten.
 
 ## Rules
 
