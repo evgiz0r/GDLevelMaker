@@ -51,7 +51,11 @@ Keep it that way: one copy of the physics, used by the checker and the viewer al
 - Open-GD/OpenGD: a 2.1 reimplementation -- hitbox sizes, the 0.9 slow factor on vertical motion.
 - gdsolver/gdsolver: an existing 2.2 "is it beatable" solver with measured constants; worth
   reading before reinventing anything.
-Values live in `lib/physics.js` (SPEEDS) and `lib/objects.js`.
+Values live in `lib/physics.js` (SPEEDS) and `lib/objects.js`. Every other object's kind and hitbox
+comes from OpenGD's object data via `tools/import_opengd.js` -> `lib/objects_extra.js` (facts only;
+OpenGD is GPL, so its file is not copied in). Rule there: hitbox + not solid + not trigger = hazard,
+so anything with a hitbox that is NOT a hazard (portals, coins, toggle orbs) must have its own entry
+in `lib/objects.js`. Missing that once let the sim pass through Stereo Madness's pit spikes (id 9).
 
 ## Calibration -- checked against the user's game
 
