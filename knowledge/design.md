@@ -53,4 +53,6 @@ official levels, or a playtest remark). A single playtest remark is evidence, no
 ## Reference levels
 - The low-tier ramp: `levels/official_01-08.md` (one new idea per level; density goes up and rests down).
 - Good community levels per tier, with IDs: `levels/good_low_tier.md` (why each is good is still to study).
+- 91 rated levels in numbers: `levels/low_tier_stats.md`. Hard is the big step; many modes at every
+  tier; fast speeds are short and empty; ball/spider/robot are the dense modes.
 - Memory / invisible / repeating / synced: Pattern Seeker. Also named: Deathmoon, Clutterfunk, Deadlocked.
