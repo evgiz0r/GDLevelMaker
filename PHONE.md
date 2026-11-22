@@ -21,7 +21,15 @@ Link: in `local/phone/url.txt` (shared folder; also in Claude's memory). Not in 
   phone itself, in sync, remembered in that browser (IndexedDB). A file named like the game's copy
   (`StereoMadness.mp3`, `343707.mp3`) goes to every level on that song. `node tools/songs.js --phone`
   copies the songs the repo's levels use into the user's OneDrive folder `GD songs/`, which the
-  phone's file picker can open. Playing straight from Newgrounds is not possible: the Artifact
+  phone's file picker can open.
+  The picker is a real `<input type=file accept="audio/*,...">` laid invisibly over the button, so
+  the tap lands on the input itself (no input clicked from code, no `capture`). Nov 23: on the
+  user's Android phone (S23+) "add song" opened nothing, most likely because the page was open
+  inside the Claude app, whose built-in browser may not offer a file picker. So: if neither the page
+  blurs/hides nor a file arrives within 2.5 s of the tap, the page says the picker did not open and
+  to open the page in Chrome (⋮ -> Open in browser), or to drop or paste the file onto the page
+  (both also work). Every outcome shows a line: a file that does not decode, or a level with no
+  song (the file is then not used). Playing straight from Newgrounds is not possible: the Artifact
   frame blocks media from other sites (CSP), and the asset store takes no audio.
 - **Never solves on the page's thread.** A level with a saved `solution` (rows from `wip.js put`
   carry one, solved on the PC) only replays. One without (the pushed levels in `levels.js`, an
@@ -57,10 +65,17 @@ update tools/web.js"). Keep the phone page a build of the viewer, never a fork.
 - The background solver (browser pane, phone width): a level without a solution shows at once,
   solves in the worker with the page's thread never blocked over 75 ms; a worker that never
   answers is stopped at 60 s with the "too big" note, the level still scrubbable.
+- Add song (Nov 23, phone width): a tap at the button's centre hits the input; a click with no
+  picker shows the "open in Chrome" line after 2.5 s; a dropped WAV and a pasted file go through
+  the same path (a good file plays, a junk one gets "could not be played"); no sideways scroll.
 - Not tested by Claude: the page itself on the phone (the browser pane is not signed in to
   claude.ai). The user is the first to see the live list and save a mark from the phone.
 
 ## Open
+
+- Whether the Claude app's built-in browser ever opens a file picker for an Artifact (unconfirmed;
+  the user is to try Chrome). If it never does, a song could come another way: a phone-side
+  upload into the page's store (the asset store takes no audio) is not possible today.
 
 - A session forgetting the ArtifactData call leaves the phone a version behind; nothing checks it.
   A check could compare `local/wip/` versions with the rows (one `list`).
