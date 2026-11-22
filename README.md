@@ -34,6 +34,20 @@ close the game and copy a backup back over `CCLocalLevels.dat`. `--dry` checks w
 
 The game must be closed because it rewrites the save when it exits.
 
+## Letting the bot play it
+
+To check in the real game that a level is beatable, without playing it yourself:
+
+```
+node tools/bot.js levels/gdlm_01_one_jump.gdlvl
+```
+
+Open the level's page in the game, run this, press Play and take your hands off. The bot watches
+the screen for the start of each attempt and presses Space at the solver's click times; after a
+death it tries again (`--attempts 3`). It needs nothing installed (Windows PowerShell compiles
+`tools/keybot.cs` on the fly), presses only Space, and only while the game is the active window.
+Normal mode only. `node tools/bot.js --probe` just checks it can see the game.
+
 ## Writing a level
 
 Specs are short JSON files in grid squares -- see the top of `tools/make.js`.

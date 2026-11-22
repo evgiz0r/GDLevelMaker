@@ -14,6 +14,11 @@ The user plays it and tells us what was off. Read this fully first.
 4. With the game closed, `node tools/install.js levels/<name>.gdlvl` puts it at the top of
    My Levels (backs the save up first; refuses while GeometryDash.exe runs). The user plays it
    and reports. The user's game is plain GD 2.2 on Windows, no Geode: there is no in-game import.
+   Or the bot plays it: `node tools/bot.js levels/<name>.gdlvl` presses Space at the solver's
+   click times in the real game (no mod; it syncs to each attempt's start on screen and measures
+   its own lag from ground jumps). A clear confirms the sim; a death is where they disagree --
+   unless the window there is under ~30 ms (the bot is good to about a frame). Ask the user
+   before running it: it takes over their keyboard while GD is in front.
 5. What they report that the sim got wrong is a calibration fact: write it below.
 
 Every level the tool makes is named `GDLM NN ...` so it is easy to find (and delete) in the
