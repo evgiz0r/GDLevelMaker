@@ -105,6 +105,11 @@ Confirmed:
 - Flipping gravity halves vertical speed (blue orb and ceiling blue pad in the recording move at
   half the decompile's velocity). The decompile's ringJump alone does not show this.
 
+- Mode accelerations in the user's Clutterfunk recording (60 fps): cube +-0.78, ship hold +0.40 /
+  release -0.25, ball +-0.47 units/frame^2 -- the sim gives 0.778 / 0.389 / -0.248 / 0.464
+  (`node tests/modes_video.js`). So the ship's per-tick physics is right; the Stereo Madness
+  ship-height mismatch lies elsewhere (a ship seated on a block keeping its fall speed would fix
+  Back On Track's case, but gdsolver's model zeroes it, so that is not in). No clean UFO stretch yet.
 - Vertical speed lives on a 0.001 grid (every velocity step is rounded). Took the jump-vs-video
   fit from 1.8 to 1.3 px rms.
 

@@ -13,7 +13,13 @@ official levels, or a playtest remark). A single playtest remark is evidence, no
   (Real-game deaths, GDLM 42 v3; score.js recovery gate.)
 
 ## Difficulty
-- A per-level choice, not a house style. Hard levels with tight timings are wanted by players.
+- A per-level choice, not a house style. Good hard levels are wanted by players.
+- **For now: start at the lower tiers** (Easy -> Normal -> Hard -> Harder, then up), not jumping
+  high. Reason: the levels have to be playtested in the real game, and the harder tiers can't be
+  playtested yet. A practical limit for this stage, not a taste (2026-11-22).
+
+## What to study
+- Learn mostly from **good levels** (what makes them work), much less from bad ones (2026-11-22).
 
 ## Music
 - Levels follow their song; how closely varies. Official levels put portals on bar starts and
