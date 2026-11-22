@@ -9,8 +9,8 @@ if (!fs.existsSync(PLANS) || !fs.existsSync(SRC)) { console.log("tas_progress: s
 const { replay } = require("../tools/tas.js");
 
 // block reached (or "clear") per level, with the physics/object table as of this commit
-const REACHED = { 1: 328, 2: 493, 3: 909, 4: 415, 5: 175, 6: 303, 7: 210, 8: 333, 9: 83, 10: 75,
-  11: 28, 12: 31, 13: 67, 14: 20, 15: 229, 16: 69, 17: 146, 18: 10, 19: 8, 20: 15, 21: 32, 22: 11 };
+const REACHED = { 1: 328, 2: 493, 3: 909, 4: 415, 5: 175, 6: 303, 7: 210, 8: 333, 9: 83, 10: 109,
+  11: 28, 12: 31, 13: 67, 14: 20, 15: 229, 16: 69, 17: 295, 18: 10, 19: 31, 20: 23, 21: 32, 22: 17 };
 let bad = 0;
 for (const [n, want] of Object.entries(REACHED)) {
   const r = replay(+n, 0);
