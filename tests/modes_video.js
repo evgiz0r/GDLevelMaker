@@ -35,4 +35,17 @@ for (const [name, mode, held, want, tol] of MEASURED) {
   if (!ok) bad++;
   console.log(`${ok ? "ok  " : "BAD "} mini cube: 90 deg in ${per90.toFixed(2)} frames (video 10), gravity ${a.toFixed(3)} (video -0.78)`);
 }
+// Wave: the user's Deadlocked recording (Game Bar, "Geometry Dash 2026-11-22 17-45-34.mp4", 124.4-125.1 s,
+// hitboxes on, a mini wave): its trail -- fixed in the world, so camera moves do not bend it -- runs
+// at 2.00:1 in every frame (the slope histogram of the trail's white core, 7 frames). gdsolver: 1:1
+// full size, 2:1 mini. The full-size 1:1 is gdsolver's only, not yet seen in a recording.
+for (const [mini, want, src] of [[true, 2.0, "video"], [false, 1.0, "gdsolver"]]) {
+  const s = GD.startState(w);
+  Object.assign(s, { mode: "wave", mini, y: 1500, grounded: false, floorY: 0, ceilY: 3000 });
+  const x0 = s.x, y0 = s.y;
+  for (let t = 0; t < 20; t++) GD.step(w, s, { press: false, held: true });
+  const got = (s.y - y0) / (s.x - x0), ok = Math.abs(got - want) <= 0.03;
+  if (!ok) bad++;
+  console.log(`${ok ? "ok  " : "BAD "} ${mini ? "mini " : ""}wave slope: sim ${got.toFixed(3)}, ${src} ${want}`);
+}
 process.exit(bad ? 1 : 0);
