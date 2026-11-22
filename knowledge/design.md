@@ -17,6 +17,10 @@ official levels, or a playtest remark). A single playtest remark is evidence, no
 - **For now: start at the lower tiers** (Easy -> Normal -> Hard -> Harder, then up), not jumping
   high. Reason: the levels have to be playtested in the real game, and the harder tiers can't be
   playtested yet. A practical limit for this stage, not a taste (2026-11-22).
+- Targets per tier (inputs/s, windows under 150/100 ms, tightest window): DIFFICULTY.md,
+  section "Tier ladder (targets for making levels)" -- the one copy, not repeated here.
+- Land-and-jump chains are fine when rhythmic (60-90 in every early official level), a wall
+  when unexpected (GDLM 42) (difficulty session, measured).
 
 ## What to study
 - Learn mostly from **good levels** (what makes them work), much less from bad ones (2026-11-22).
