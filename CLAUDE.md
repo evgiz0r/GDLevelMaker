@@ -85,7 +85,8 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 
 - `lib/gd.js` -- the format: base64url + gzip layers, the record (plist) and the level string.
 - `lib/objects.js` -- object ids: name, kind, hitbox. `sure:false` = from memory, unconfirmed.
-- `lib/physics.js` -- cube physics + solver (fewest clicks, each in the middle of its window).
+- `lib/physics.js` -- physics of every mode, triggers + solver (fewest clicks, each in the middle of its window).
+  PHYSICS.md: per mode and trigger, its constants, sources, checks and what is open.
 - `lib/difficulty.js` -- difficulty score from a solution: the human route (one tap per jump), per-input
   timing windows, a timing-error + lapse model fitted on the user's real runs; see DIFFICULTY.md
   (also the tier ladder for making levels, and what is open). Its tools: `difficulty` (score a level,
