@@ -21,7 +21,7 @@ function barSeries(video) {
     // the fill grows from the bar's left end: count only that, so lime-coloured level art
     // around the bar does not count (the stripes in the fill are a darker lime)
     const px = x => { const i = f * row + x * 3; return [buf[i], buf[i + 1], buf[i + 2]]; };
-    const isLime = ([R, G, B]) => G > 140 && B < 110 && G > R + 20;
+    const isLime = ([R, G, B]) => G > 180 && B < 90 && R < 180; // fill (122,255,0), stripes (116,236,2); not olive art (95,145,13)
     const isCyan = ([R, G, B]) => G > 150 && B > 150 && R < 140;
     let white = 0;
     for (let x = 0; x < BAR.w; x++) { const [R, G, B] = px(x); if (R > 225 && G > 225 && B > 225) white++; }
@@ -37,11 +37,21 @@ function barSeries(video) {
 
 // attempts: rising % runs; the end of each is a death (drop to ~0) or a clear (reached ~99+)
 function attempts(series) {
+  // median of 7 frames: one-frame misreads (lime level art touching the bar) go away
+  series = series.map((x, i) => {
+    if (x.pct === null) return x;
+    const win = series.slice(Math.max(0, i - 3), i + 4).map(y => y.pct).filter(v => v !== null).sort((a, b) => a - b);
+    return Object.assign({}, x, { pct: win[win.length >> 1] });
+  });
   const runs = [];
   let cur = null, last = null;
   for (const s of series) {
     if (s.pct === null) continue;
     if (cur && last !== null && s.pct < last - 0.8 && s.pct < 1.5) { runs.push(cur); cur = null; }
+    // in play the bar only grows smoothly; a jump up is another screen (the level's menu page shows
+    // the best %): the run ended there, and nothing counts until a bar starts again from 0
+    if (cur && last !== null && s.pct > last + 8) { runs.push(cur); cur = null; last = s.pct; continue; }
+    if (!cur && s.pct >= 1.5) { last = s.pct; continue; }
     if (!cur && s.pct < 1.5) cur = { start: s.t, end: s.t, pct: s.pct, mode: s.bar };
     if (cur) { cur.end = s.t; if (s.pct >= cur.pct) { cur.pct = s.pct; if (s.bar !== "empty") cur.mode = s.bar; } }
     last = s.pct;
