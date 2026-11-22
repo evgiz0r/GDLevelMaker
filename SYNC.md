@@ -274,6 +274,12 @@ asked them (Nov 22) to grade portals and drops instead, per the user's "not forc
 
 ## Open
 
+- **Press numbers to redo** (Nov 22, physics change dd9a6fe: orb timing, scale, slabs, mini,
+  triggers, ceiling slopes). The press rows in section 3 (levels 1-8: R 0.07, per-level kappa) came
+  from solutions made before it. The difficulty session is re-solving official levels into the
+  shared `local/` one at a time; when 1-8 are in, rerun `node tools/sync.js --official --repo`
+  (light, ~20 s) and update section 3. Do not solve them here (one heavy job at a time).
+
 - Presses for official levels 9-22 need solutions (other game modes in the physics).
 - Not yet felt in the game: whether "on the beat" by this measure feels on the beat to the
   user (the official portals say the time mapping is right; GD's audio latency on the user's
