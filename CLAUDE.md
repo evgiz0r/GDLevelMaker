@@ -24,6 +24,7 @@ user's created-levels list.
 - `lib/gd.js` -- the format: base64url + gzip layers, the record (plist) and the level string.
 - `lib/objects.js` -- object ids: name, kind, hitbox. `sure:false` = from memory, unconfirmed.
 - `lib/physics.js` -- cube physics + solver (fewest clicks, each in the middle of its window).
+- `lib/difficulty.js` -- difficulty score from a solution (per-input timing windows); see DIFFICULTY.md.
 - `tools/` -- node CLIs: `make`, `check`, `roundtrip`, `index_levels`, `serve`.
 - `viewer/index.html` -- the replay viewer; `viewer/levels.js` is generated, do not edit.
 - `examples/` -- levels the user made in the game, for reference and as format ground truth.

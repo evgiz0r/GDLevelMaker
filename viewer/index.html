@@ -100,7 +100,11 @@ function load(name, levelStr, saved, info) {
   const path = GD.run(world, events).path;
   if (saved && saved.ok) sol.clicks = saved.events.map(e => ({ type: e.type, tick: e.tick, lo: e.tick, hi: e.tick, ms: 0 }));
   sol.clicks.forEach(c => { if (c.type === "press") c.act = path[Math.min(c.tick + 1, path.length - 1)].act || c.act; c.x = path[c.tick].x; });
-  L = { name, level, world, sol, path };
+  // button state at every step, for the hold strip and the button light
+  const held = new Uint8Array(path.length);
+  { const ev = (events || []).slice().sort((a, b) => a.tick - b.tick); let h = 0, j = 0;
+    for (let k = 0; k < path.length; k++) { while (j < ev.length && ev[j].tick <= k) { h = ev[j].type === "press" ? 1 : 0; j++; } held[k] = h; } }
+  L = { name, level, world, sol, path, held };
   t = 0; lastTick = -1; playing = false; setPlay();
   summary(); clickTable(); draw();
 }
@@ -194,13 +198,6 @@ function draw() {
   ctx.strokeStyle = "rgba(120,100,220,.10)"; ctx.lineWidth = 1;
   for (let gx = Math.floor(camX / 30) * 30; sx(gx) < W; gx += 30) { ctx.beginPath(); ctx.moveTo(sx(gx), 0); ctx.lineTo(sx(gx), groundY); ctx.stroke(); }
   for (let gy = 0; sy(gy) > 0; gy += 30) { ctx.beginPath(); ctx.moveTo(0, sy(gy)); ctx.lineTo(W, sy(gy)); ctx.stroke(); }
-  // click windows + click lines (behind objects)
-  for (const c of L.sol.clicks) {
-    const x0 = L.path[Math.min(c.lo, L.path.length - 1)].x, x1 = L.path[Math.min(c.hi + 1, L.path.length - 1)].x;
-    ctx.fillStyle = "rgba(255,225,77,.13)"; ctx.fillRect(sx(x0), 0, (x1 - x0) * scale, groundY);
-    ctx.strokeStyle = "rgba(255,225,77,.7)"; ctx.setLineDash([6, 6]); ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(sx(c.x), 0); ctx.lineTo(sx(c.x), groundY); ctx.stroke(); ctx.setLineDash([]);
-  }
   // ground
   const gy = sy(0);
   ctx.fillStyle = "#1b1046"; ctx.fillRect(0, gy, W, H - gy);
@@ -215,10 +212,14 @@ function draw() {
     for (const b of L.world.solids) { ctx.strokeStyle = "#00e5ff"; rectW(b); }
     for (const b of L.world.hazards) { ctx.strokeStyle = "#ff2050"; rectW(b); }
   }
-  // trail
-  ctx.strokeStyle = "rgba(61,255,176,.35)"; ctx.lineWidth = 4; ctx.beginPath();
-  for (let i = Math.max(0, k - 60); i <= k; i += 2) { const p = L.path[i]; i === Math.max(0, k - 60) ? ctx.moveTo(sx(p.x), sy(p.y)) : ctx.lineTo(sx(p.x), sy(p.y)); }
-  ctx.stroke();
+  // trail: yellow where the button is held
+  ctx.lineWidth = 4;
+  for (let i = Math.max(0, k - 120); i < k; i += 2) {
+    const p = L.path[i], q = L.path[Math.min(i + 2, k)];
+    ctx.strokeStyle = L.held[i] ? "rgba(255,225,77,.8)" : "rgba(61,255,176,.35)";
+    ctx.beginPath(); ctx.moveTo(sx(p.x), sy(p.y)); ctx.lineTo(sx(q.x), sy(q.y)); ctx.stroke();
+  }
+  drawInput(k);
   // ship corridor
   if (s.mode === "ship") {
     ctx.strokeStyle = "rgba(255,90,210,.6)"; ctx.lineWidth = 3;
@@ -245,6 +246,41 @@ function draw() {
   }
   document.getElementById("clock").textContent = `${(k / P.TPS).toFixed(2)} s · block ${(s.x / 30).toFixed(1)} · ${speed}×`;
   scrub.value = Math.round(k / Math.max(1, L.path.length - 1) * 1000);
+}
+// the input: a strip under the ground (lit where the button is held, a tick at each press,
+// the past brighter than the future) and a button light in the corner
+function drawInput(k) {
+  const y0 = groundY + 30 * 0.45 * scale, h = 30 * 0.5 * scale;
+  ctx.fillStyle = "rgba(0,0,0,.45)"; ctx.fillRect(0, y0 - 6, W, h + 12);
+  const n = L.path.length;
+  // each click's timing window: a faint band around its mark
+  for (const c of L.sol.clicks) {
+    if (c.hi <= c.lo) continue;
+    const x0 = sx(L.path[Math.min(c.lo, n - 1)].x), x1 = sx(L.path[Math.min(c.hi + 1, n - 1)].x);
+    if (x1 < 0 || x0 > W) continue;
+    ctx.fillStyle = "rgba(120,200,255,.35)"; ctx.fillRect(x0, y0 - 6, Math.max(2, x1 - x0), h + 12);
+  }
+  let a = 0; while (a < n - 1 && sx(L.path[a].x) < 0) a += 8;
+  for (let i = Math.max(0, a - 8); i < n - 1 && sx(L.path[i].x) < W; i++) {
+    if (!L.held[i]) continue;
+    let j = i; while (j + 1 < n && L.held[j + 1]) j++;
+    const xa = sx(L.path[i].x), xb = Math.max(xa + 3, sx(L.path[Math.min(j + 1, n - 1)].x));
+    ctx.fillStyle = i <= k ? "rgba(255,225,77,.95)" : "rgba(255,225,77,.35)"; ctx.fillRect(xa, y0, xb - xa, h);
+    ctx.fillStyle = "#fff"; ctx.fillRect(xa, y0 - 4, 2, h + 8); // the press
+    i = j;
+  }
+  ctx.fillStyle = "#fff"; ctx.fillRect(sx(L.path[k].x) - 1, y0 - 6, 2, h + 12); // now
+  ctx.fillStyle = "rgba(255,255,255,.55)"; ctx.font = "12px system-ui"; ctx.fillText("button", 6, y0 - 6);
+  // button light
+  const on = L.held[k], bx = W - 70, by = 16;
+  let since = k; while (since > 0 && L.held[since - 1] === on) since--;
+  ctx.fillStyle = on ? "#ffe14d" : "rgba(255,255,255,.08)"; if (on) glow("#ffe14d", 18);
+  ctx.beginPath(); ctx.arc(bx, by + 22, 20, 0, 7); ctx.fill(); ctx.shadowBlur = 0;
+  ctx.strokeStyle = "rgba(255,255,255,.5)"; ctx.lineWidth = 2; ctx.stroke();
+  ctx.fillStyle = on ? "#0e0828" : "rgba(255,255,255,.6)"; ctx.font = "bold 12px system-ui"; ctx.textAlign = "center";
+  ctx.fillText(on ? "HOLD" : "up", bx, by + 26);
+  ctx.fillStyle = "rgba(255,255,255,.7)"; ctx.font = "11px system-ui";
+  ctx.fillText((on ? "held " : "up ") + ((k - since) / P.TPS).toFixed(2) + " s", bx, by + 56); ctx.textAlign = "left";
 }
 function rectW(b) { ctx.strokeRect(sx(b.x0), sy(b.y1), (b.x1 - b.x0) * scale, (b.y1 - b.y0) * scale); }
 function local(o, fn) {

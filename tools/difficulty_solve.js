@@ -21,7 +21,17 @@ function solveOfficial(n, opts) {
   };
   fs.mkdirSync(OUT, { recursive: true });
   fs.writeFileSync(path.join(OUT, String(n).padStart(2, "0") + (opts.sweep ? "_sweep" : "") + ".json"), JSON.stringify(res));
+  toViewer(n, level, res);
   return res;
+}
+
+// also show it in the viewer (local/official_NN.json, the format tools/official.js writes)
+function toViewer(n, level, res) {
+  const NAMES = require("./difficulty.js").RATED;
+  const solution = res.ok ? { ok: true, events: res.events } : { ok: false, events: res.events, dieX: res.dieX, why: res.why };
+  fs.writeFileSync(path.join(OUT, "..", `official_${String(n).padStart(2, "0")}.json`),
+    JSON.stringify({ n, name: NAMES[n] ? NAMES[n][0] : "level " + n, level, solution }));
+  require("./index_levels.js").buildIndex();
 }
 
 if (require.main === module) {
@@ -29,4 +39,4 @@ if (require.main === module) {
   const r = solveOfficial(n, { sweep: process.argv.includes("--sweep") });
   console.log(`${n}: ${r.ok ? "beaten" : "stops at block " + (r.dieX / 30).toFixed(1) + " (" + r.why + ")"}, ${r.events.length} events, ${r.secs.toFixed(0)} s`);
 }
-module.exports = { solveOfficial, SRC, OUT };
+module.exports = { solveOfficial, toViewer, SRC, OUT };

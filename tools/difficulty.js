@@ -1,0 +1,88 @@
+// node tools/difficulty.js [n ...] [--sigma 30]       -- scores the official levels and compares
+//   with their in-game ratings. Needs their solutions in local/difficulty/ (make them with
+//   `node tools/difficulty_solve.js n`, ONE AT A TIME: a solve takes ~800 MB).
+// node tools/difficulty.js some.gdlvl [...]             -- scores your own levels (solves them first).
+// Levels the sim cannot finish are scored on the part it gets through ("per minute" compares them).
+const fs = require("fs"), path = require("path");
+const { GD, unpack, readGdlvl } = require("./io.js");
+const DF = require("../lib/difficulty.js");
+const SRC = process.env.GD_LEVELS || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash/Resources/levels/";
+const OUT = path.join(__dirname, "..", "local", "difficulty");
+
+// In-game ratings of the official levels (GD 2.2): face and stars. From memory of the game's
+// level list -- check against the user's game if one looks off.
+const RATED = {
+  1: ["Stereo Madness", "Easy", 1], 2: ["Back On Track", "Easy", 2], 3: ["Polargeist", "Normal", 3],
+  4: ["Dry Out", "Normal", 4], 5: ["Base After Base", "Hard", 5], 6: ["Cant Let Go", "Hard", 6],
+  7: ["Jumper", "Harder", 7], 8: ["Time Machine", "Harder", 8], 9: ["Cycles", "Harder", 9],
+  10: ["xStep", "Insane", 10], 11: ["Clutterfunk", "Insane", 11], 12: ["Theory of Everything", "Insane", 12],
+  13: ["Electroman Adventures", "Insane", 10], 14: ["Clubstep", "Demon", 14], 15: ["Electrodynamix", "Insane", 12],
+  16: ["Hexagon Force", "Insane", 12], 17: ["Blast Processing", "Harder", 10], 18: ["Theory of Everything 2", "Demon", 14],
+  19: ["Geometrical Dominator", "Harder", 10], 20: ["Deadlocked", "Demon", 15], 21: ["Fingerdash", "Insane", 12],
+  22: ["Dash", "Harder", 10],
+};
+
+function spearman(a, b) {
+  const rank = v => { const idx = v.map((x, i) => [x, i]).sort((p, q) => p[0] - q[0]); const r = new Array(v.length);
+    for (let i = 0; i < idx.length;) { let j = i; while (j + 1 < idx.length && idx[j + 1][0] === idx[i][0]) j++;
+      for (let k = i; k <= j; k++) r[idx[k][1]] = (i + j) / 2; i = j + 1; } return r; };
+  const ra = rank(a), rb = rank(b), n = a.length, ma = ra.reduce((s, x) => s + x, 0) / n, mb = rb.reduce((s, x) => s + x, 0) / n;
+  let num = 0, da = 0, db = 0;
+  for (let i = 0; i < n; i++) { num += (ra[i] - ma) * (rb[i] - mb); da += (ra[i] - ma) ** 2; db += (rb[i] - mb) ** 2; }
+  return num / Math.sqrt(da * db);
+}
+
+const f1 = x => x === null || x === undefined ? "-" : x.toFixed(1);
+const f0 = x => x === null || x === undefined ? "-" : x.toFixed(0);
+
+function scoreOfficial(n, sigma) {
+  const file = path.join(OUT, String(n).padStart(2, "0") + ".json");
+  if (!fs.existsSync(file)) return null;
+  const sol = JSON.parse(fs.readFileSync(file, "utf8"));
+  const L = GD.parseLevel(unpack(fs.readFileSync(path.join(SRC, n + ".txt"), "utf8")));
+  const w = GD.makeWorld(L.objects, L.header);
+  const d = DF.difficulty(w, sol, { sigma });
+  return Object.assign(d, { n, sol, levelBlocks: w.endX / 30 });
+}
+
+function main() {
+  const args = process.argv.slice(2);
+  const si = args.indexOf("--sigma"), sigma = si >= 0 ? +args.splice(si, 2)[1] : DF.DIFF.SIGMA;
+  const files = args.filter(a => a.endsWith(".gdlvl"));
+  if (files.length) {
+    for (const f of files) {
+      const L = readGdlvl(f), w = GD.makeWorld(L.level.objects, L.level.header);
+      const r = GD.solveAny(w);
+      const d = DF.difficulty(w, r.ok ? r : { events: r.trail || [] }, { sigma });
+      console.log(`== ${L.name}: ${d.complete ? "" : "PARTIAL (sim stops at block " + f1(d.blocks) + "), "}score ${d.logAttempts.toFixed(2)} (~${Math.round(10 ** d.logAttempts)} attempts, ${DF.difficultyLabel(d.logAttempts)}); practice mode: ~${f0(d.practiceDeaths)} deaths`);
+      console.log(`   ${d.inputs} inputs in ${f1(d.seconds)} s, tightest ${f0(d.tightest)} ms, median ${f0(d.medianMs)} ms, ${d.tight} under ${DF.DIFF.TIGHT} ms, longest tight streak ${d.streak}, busiest 5 s ${f1(d.peak5s)}/s`);
+      for (const a of d.actions) console.log(`     ${(a.tick / 240).toFixed(2)} s  block ${f1(a.x / 30)}  ${a.type.padEnd(7)} ${a.mode.padEnd(4)} window ${f0(a.ms)}${a.open ? "+" : ""} ms  p=${a.p.toFixed(2)}`);
+    }
+    return;
+  }
+  const ns = args.length ? args.map(Number) : Object.keys(RATED).map(Number);
+  const rows = [];
+  for (const n of ns) {
+    const t0 = Date.now(), d = scoreOfficial(n, sigma);
+    if (!d) { console.log(`${n}: no solution cached, run: node tools/difficulty_solve.js ${n}`); continue; }
+    d.secsTaken = (Date.now() - t0) / 1000;
+    rows.push(d);
+  }
+  console.log(`sigma ${sigma} ms. score = log10(expected attempts) over the part the sim gets through.`);
+  console.log("  # level                   rating      sim covers        inputs  /s  tight streak  min ms  med ms  score  /min  ship gap  hiding");
+  for (const d of rows) {
+    const [name, face, stars] = RATED[d.n];
+    const cover = `${Math.round(100 * d.blocks / d.levelBlocks)}%${d.complete ? "" : " " + (d.sol.why || "")}`.slice(0, 17);
+    console.log(`${String(d.n).padStart(3)} ${name.padEnd(23)} ${(face + " " + stars).padEnd(11)} ${cover.padEnd(17)} ${String(d.inputs).padStart(6)} ${f1(d.perSecond).padStart(3)} ${String(d.tight).padStart(5)} ${String(d.streak).padStart(6)} ${f0(d.tightest).padStart(7)} ${f0(d.medianMs).padStart(7)} ${d.logAttempts.toFixed(2).padStart(6)} ${d.perMinute.toFixed(2).padStart(5)} ${(d.shipGap ? f0(d.shipGap.min) + "/" + f0(d.shipGap.median) : "-").padStart(9)} ${String(d.hiddenTriggers).padStart(7)}`);
+  }
+  const full = rows.filter(d => d.blocks / d.levelBlocks >= 0.1); // under 10% the sim died on something it lacks
+  if (rows.length >= 4) {
+    const st = rows.map(d => RATED[d.n][2]);
+    console.log(`\nSpearman vs stars, all ${rows.length}: score ${spearman(rows.map(d => d.logAttempts), st).toFixed(2)}, per minute ${spearman(rows.map(d => d.perMinute), st).toFixed(2)}, tightest(-) ${spearman(rows.map(d => -(d.tightest || 999)), st).toFixed(2)}, inputs/s ${spearman(rows.map(d => d.perSecond), st).toFixed(2)}`);
+    if (full.length >= 4) { const sf = full.map(d => RATED[d.n][2]);
+      console.log(`Spearman vs stars, the ${full.length} the sim covers at least 10% of: score ${spearman(full.map(d => d.logAttempts), sf).toFixed(2)}, per minute ${spearman(full.map(d => d.perMinute), sf).toFixed(2)}`); }
+  }
+}
+
+if (require.main === module) main();
+module.exports = { RATED, spearman, scoreOfficial };
