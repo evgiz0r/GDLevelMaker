@@ -1,10 +1,13 @@
-// node tools/web.js  -- builds local/web/: the replay viewer as one folder that works on a phone
-// (published as a private claude.ai Artifact, so levels can be watched away from the PC).
+// node tools/web.js [--out <dir>]  -- builds the phone page (default local/web/): the replay viewer
+// as one folder, published as the user's private claude.ai Artifact (PHONE.md has the link file,
+// the publish call and the live data). Publish from a folder inside the session's own directories:
+// local/ is a link in worktrees, which the Artifact tool refuses, so pass --out <scratchpad>/web.
 // Only the repo's own levels (viewer/levels.js) go in: never levels.local.js (RobTop's official
-// levels) and never songs. The beat grids (numbers measured from the songs) do go in, so the
-// beat lines show; the music button is hidden, since there is no song to play.
+// levels) and never songs ("add song" plays a file from the phone). The beat grids (numbers
+// measured from the songs) do go in, so the beat lines show.
 const fs = require("fs"), path = require("path");
-const ROOT = path.join(__dirname, ".."), OUT = path.join(ROOT, "local", "web");
+const ROOT = path.join(__dirname, ".."), oi = process.argv.indexOf("--out");
+const OUT = oi > 0 ? path.resolve(process.argv[oi + 1]) : path.join(ROOT, "local", "web");
 fs.rmSync(OUT, { recursive: true, force: true });
 fs.mkdirSync(path.join(OUT, "lib"), { recursive: true });
 
@@ -103,6 +106,73 @@ document.addEventListener("DOMContentLoaded", () => {
 "use strict";
 const P = GD.PHYS;`);
 swap("<label class=\"btn\">open .gdlvl", "<label class=\"btn\" hidden>open .gdlvl");
+
+// ---- live data on the phone: the page's own database (Artifact `db` capability) ----
+// Collections: "wip" = the sessions' work-in-progress levels, one doc per level, the same shape as
+// serve.js's /wip/list (written by sessions with ArtifactData from the files tools/wip.js put
+// leaves in local/phone/wip/); "marks" = the user's marks made on the phone, the same fields as
+// local/marks.jsonl (read back by a session into local/phone/marks/, merged by tools/marks.js).
+// Without the database (signed out, or the page opened from disk) the phone page still replays the
+// pushed levels, and marks stay in that browser. See PHONE.md.
+swap(`  if (!location.protocol.startsWith("http")) return;
+  let list = [];
+  try { const r = await fetch("/wip/list", { cache: "no-store" }); if (r.ok) list = await r.json(); } catch (e) { return; }`,
+`  const db = await phoneDb(); if (!db) return;
+  let list = [];
+  try { list = (await db.collection("wip").get()).docs.map(d => Object.assign({}, d.data(), { wip: true })); } catch (e) { return; }
+  list.sort((a, b) => String(b.updated).localeCompare(String(a.updated)));`);
+swap(`  if (location.protocol.startsWith("http")) {
+    try { const r = await fetch("../local/marks.jsonl", { cache: "no-store" }); if (r.ok) lines = (await r.text()).split("\\n").filter(Boolean).map(l => JSON.parse(l)); } catch (e) {}
+  }`,
+`  const db = await phoneDb();
+  if (db) try { lines = (await db.collection("marks").get()).docs.map(d => Object.assign({}, d.data())); } catch (e) {}`);
+swap(`    const r = await fetch("/marks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(m) });
+    if (!r.ok) throw new Error(r.status);`,
+`    const db = await phoneDb(); if (!db) throw new Error("no database");
+    const ref = db.collection("marks").doc(m.id);
+    if (m.note != null) await ref.set(Object.assign({ from: "phone" }, m)); else await ref.update(m);`);
+// prompt() does not work inside an Artifact: an in-page box instead
+swap(`cv.addEventListener("click", e => {
+  if (!marking || !L) return;`, `cv.addEventListener("click", async e => {
+  if (!marking || !L) return;`);
+swap("const note = prompt(`What should change here? (block ${(x / 30).toFixed(1)}, ${(tick() / P.TPS).toFixed(2)} s)`);",
+  "const note = await askNote(`What should change here? (block ${(x / 30).toFixed(1)}, ${(tick() / P.TPS).toFixed(2)} s)`);");
+// a published page's address can't carry #lv=...&t=...: no link button, no hash writes
+swap('<button id="linkBtn"', '<button id="linkBtn" hidden');
+swap("setInterval(() => { if (L && !playing) writeHash(); }, 1000);", "");
+swap('<script>\n"use strict";\nconst P = GD.PHYS;', `<script>
+// the page's database, or null (memoized; null after 10 s when no viewer answers)
+let _db;
+function phoneDb() {
+  if (_db === undefined) _db = (window.claude && window.claude.use)
+    ? Promise.race([window.claude.use("db").catch(() => null), new Promise(r => setTimeout(() => r(null), 10000))]) : Promise.resolve(null);
+  return _db;
+}
+// a small note box (prompt() is refused inside an Artifact)
+function askNote(title) {
+  return new Promise(done => {
+    const box = document.getElementById("noteBox"), ta = document.getElementById("noteText");
+    document.getElementById("noteTitle").textContent = title; ta.value = ""; box.hidden = false; ta.focus();
+    const close = v => { box.hidden = true; done(v); };
+    document.getElementById("noteSave").onclick = () => close(ta.value);
+    document.getElementById("noteCancel").onclick = () => close(null);
+  });
+}
+// new levels from the sessions arrive while the page is open: refresh the list on any change
+phoneDb().then(db => { if (!db) return; let first = true;
+  try { db.collection("wip").onSnapshot(() => { if (first) { first = false; return; } loadWip(true); }, () => {}); } catch (e) {} });
+</script>
+<div id="noteBox" hidden><div class="card"><h2 id="noteTitle"></h2><textarea id="noteText" rows="4"></textarea>
+<div class="row"><button id="noteSave" class="on">save mark</button><button id="noteCancel">cancel</button></div></div></div>
+<script>
+"use strict";
+const P = GD.PHYS;`);
+swap("</style>", `  #noteBox { position:fixed; inset:0; z-index:20; display:grid; place-items:center; background:rgba(11,6,32,.8); padding:16px; }
+  #noteBox[hidden] { display:none; }
+  #noteBox .card { width:min(100%, 420px); }
+  #noteBox textarea { width:100%; box-sizing:border-box; background:#0e0828; color:var(--ink); border:1px solid #3b2d78; border-radius:6px; padding:8px; font:inherit; font-size:16px; }
+  #noteBox .row { display:flex; gap:8px; margin-top:8px; }
+</style>`);
 // phone: bigger touch targets, the header wraps, the canvas keeps a usable height
 swap("</style>", `  @media (max-width: 700px) {
     header { padding:8px max(12px, env(safe-area-inset-left, 0px)); gap:6px; }
@@ -117,4 +187,8 @@ swap("</style>", `  @media (max-width: 700px) {
 </style>`);
 html = `<!-- built by tools/web.js from viewer/index.html; do not edit -->\n` + html;
 fs.writeFileSync(path.join(OUT, "index.html"), html);
-console.log("local/web/: index.html, levels.js, beats.js, lib/" + libs.join(" lib/"));
+// the Artifact publish call, ready to use (files map = everything beside index.html)
+const files = { "levels.js": "levels.js", "beats.js": "beats.js" };
+for (const f of libs) files["lib/" + f] = "lib/" + f;
+fs.writeFileSync(path.join(OUT, "publish.json"), JSON.stringify({ file_path: path.join(OUT, "index.html"), root: OUT, files, capabilities: { db: {} } }, null, 1));
+console.log(`${OUT}: index.html + ${Object.keys(files).length} files; publish.json has the Artifact call's file_path, root, files and capabilities`);
