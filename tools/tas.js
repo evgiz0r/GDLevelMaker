@@ -18,7 +18,11 @@ function loadPlan(n) {
     const m = /^input=(\d+),(\d+)/.exec(line);
     if (!m) continue;
     const h = (+m[2] & 1) === 1;
-    if (h !== held) ev.push({ tick: +m[1], type: h ? "press" : "release" });
+    // the plan's tick t is our step t-1: run() applies an event at s.tick before stepping, so
+    // path[t] is the state after t steps, while the plans number the first update 1. Ground jumps
+    // forgive a tick either way; orbs at the edge of their reach do not (lv11, 14, 16, 18, 19 get
+    // much further with t-1 and no level gets less far).
+    if (h !== held) ev.push({ tick: +m[1] - 1, type: h ? "press" : "release" });
     held = h;
   }
   return ev;
