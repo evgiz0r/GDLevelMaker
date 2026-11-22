@@ -1,0 +1,32 @@
+// node tools/difficulty_solve.js <n> [--sweep]  -- solves official level n and caches the answer
+// (inputs only) in local/difficulty/NN.json for tools/difficulty.js. Run by tools/difficulty.js in
+// parallel child processes; local/ is gitignored (RobTop's levels are never committed).
+const fs = require("fs"), path = require("path");
+const { GD, unpack } = require("./io.js");
+const SRC = process.env.GD_LEVELS || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash/Resources/levels/";
+const OUT = path.join(__dirname, "..", "local", "difficulty");
+
+function solveOfficial(n, opts) {
+  const level = unpack(fs.readFileSync(path.join(SRC, n + ".txt"), "utf8"));
+  const L = GD.parseLevel(level);
+  const w = GD.makeWorld(L.objects, L.header);
+  const t0 = Date.now();
+  const r = opts.sweep ? GD.solveSweep(w) : GD.solveAny(w);
+  const res = {
+    n, ok: r.ok, sweep: !!r.sweep, secs: (Date.now() - t0) / 1000,
+    events: r.ok ? r.events : (r.trail || []),
+    clicks: r.ok ? r.clicks : [],
+    dieX: r.ok ? null : r.dieAt && r.dieAt.x, why: r.ok ? null : r.why,
+    endX: w.endX,
+  };
+  fs.mkdirSync(OUT, { recursive: true });
+  fs.writeFileSync(path.join(OUT, String(n).padStart(2, "0") + (opts.sweep ? "_sweep" : "") + ".json"), JSON.stringify(res));
+  return res;
+}
+
+if (require.main === module) {
+  const n = +process.argv[2];
+  const r = solveOfficial(n, { sweep: process.argv.includes("--sweep") });
+  console.log(`${n}: ${r.ok ? "beaten" : "stops at block " + (r.dieX / 30).toFixed(1) + " (" + r.why + ")"}, ${r.events.length} events, ${r.secs.toFixed(0)} s`);
+}
+module.exports = { solveOfficial, SRC, OUT };
