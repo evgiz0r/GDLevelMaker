@@ -54,7 +54,7 @@ function attempts(series) {
 }
 
 if (require.main === module) {
-  const args = process.argv.slice(2), li = args.indexOf("--level"), level = li >= 0 ? +args.splice(li, 2)[1] : null;
+  const args = process.argv.slice(2), li = args.indexOf("--level"), level = li >= 0 ? args.splice(li, 2)[1] : null; // an official level number, or a name like gdlm42
   fs.mkdirSync(OUT, { recursive: true });
   // --join: the files are one session cut into pieces (the capture restarts on fullscreen switches)
   const ji = args.indexOf("--join"), join = ji >= 0 && args.splice(ji, 1);
@@ -68,8 +68,8 @@ if (require.main === module) {
     let runs = attempts(series);
     // --len lo-hi: keep the attempts on a level of that length (s), e.g. 80-110
     if (lenRange) runs = runs.filter(r => r.length === null ? r.secs < 3 && false : r.length >= lenRange[0] && r.length <= lenRange[1]);
-    const file = path.join(OUT, path.basename(v).replace(/\.[^.]+$/, "") + ".json");
-    fs.writeFileSync(file, JSON.stringify({ video: path.basename(v), files: g.map(x => path.basename(x)), level, device, runs }, null, 1));
+    const file = path.join(OUT, path.basename(v).replace(/\.[^.]+$/, "") + (level ? "_L" + level : "") + ".json");
+    fs.writeFileSync(file, JSON.stringify({ video: path.basename(v), files: g.map(x => path.basename(x)), level: level && /^\d+$/.test(level) ? +level : level, device, runs }, null, 1));
     console.log(`${path.basename(v)}${g.length > 1 ? " + " + (g.length - 1) + " more" : ""}${level ? " (level " + level + ")" : ""}: ${runs.length} attempts`);
     for (const r of runs) console.log(`  at ${r.start.toFixed(1)} s: ${r.beaten ? "BEATEN" : "died at " + r.pct.toFixed(1) + "%"} after ${r.secs.toFixed(1)} s (${r.mode}${r.length ? ", level ~" + r.length + " s long" : ""})`);
   }
