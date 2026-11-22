@@ -37,6 +37,7 @@
   <button data-speed="0.25">¼×</button><button data-speed="0.5">½×</button><button data-speed="1" class="on">1×</button>
   <button id="hit">hitboxes</button>
   <button id="sound" class="on">click sound</button>
+  <button id="music" class="on">music</button>
   <span id="clock" class="muted"></span>
 </header>
 <div id="wrap"><canvas id="cv"></canvas><div id="drop">drop a .gdlvl here</div></div>
@@ -64,7 +65,25 @@ async function gunzipB64(b64) {
   const buf = await new Response(new Blob([bytes]).stream().pipeThrough(ds)).arrayBuffer();
   return new TextDecoder().decode(buf);
 }
-function load(name, levelStr, saved) {
+let song = null, songInfo = null, music = true;
+function setSong(info) {
+  if (song) { song.pause(); song = null; }
+  songInfo = info || null;
+  if (!info || location.protocol === "file:") return; // songs come from tools/serve.js
+  song = new Audio(info.url); song.preload = "auto";
+  song.onerror = () => { song = null; };
+}
+// keep the song where the replay is: level time t plays song second offset + t
+function syncSong(force) {
+  if (!song) return;
+  if (!playing || !music) { if (!song.paused) song.pause(); return; }
+  const want = songInfo.offset + t;
+  song.playbackRate = speed;
+  if (force || Math.abs(song.currentTime - want) > 0.08) song.currentTime = want;
+  if (song.paused) song.play().catch(() => {});
+}
+function load(name, levelStr, saved, info) {
+  setSong(info);
   const level = GD.parseLevel(levelStr);
   const world = GD.makeWorld(level.objects, level.header);
   let sol;
@@ -91,7 +110,7 @@ async function loadFile(f) {
 const pick = document.getElementById("pick");
 const ALL = (window.GD_LEVELS || []).concat(window.GD_LEVELS_LOCAL || []);
 ALL.forEach((l, i) => pick.add(new Option(l.name + "  —  " + l.file, i)));
-pick.onchange = () => { const l = ALL[pick.value]; load(l.name, l.level, l.solution); };
+pick.onchange = () => { const l = ALL[pick.value]; load(l.name, l.level, l.solution, l.song); };
 document.getElementById("file").onchange = e => e.target.files[0] && loadFile(e.target.files[0]);
 const drop = document.getElementById("drop");
 addEventListener("dragover", e => { e.preventDefault(); drop.style.display = "grid"; });
@@ -123,15 +142,16 @@ function esc(s) { return String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": 
 // ---------- controls ----------
 const playBtn = document.getElementById("play");
 function setPlay() { playBtn.textContent = playing ? "❚❚ pause" : "▶ play"; }
-playBtn.onclick = () => { if (!L) return; if (tick() >= L.path.length - 1) t = 0; playing = !playing; setPlay(); };
-document.getElementById("restart").onclick = () => { if (!L) return; t = 0; lastTick = -1; playing = true; setPlay(); };
+playBtn.onclick = () => { if (!L) return; if (tick() >= L.path.length - 1) t = 0; playing = !playing; setPlay(); syncSong(true); };
+document.getElementById("restart").onclick = () => { if (!L) return; t = 0; lastTick = -1; playing = true; setPlay(); syncSong(true); };
 document.querySelectorAll("[data-speed]").forEach(b => b.onclick = () => {
-  speed = +b.dataset.speed; document.querySelectorAll("[data-speed]").forEach(x => x.classList.toggle("on", x === b));
+  speed = +b.dataset.speed; document.querySelectorAll("[data-speed]").forEach(x => x.classList.toggle("on", x === b)); syncSong(true);
 });
 document.getElementById("hit").onclick = e => { showHit = !showHit; e.target.classList.toggle("on", showHit); draw(); };
 document.getElementById("sound").onclick = e => { sound = !sound; e.target.classList.toggle("on", sound); };
+document.getElementById("music").onclick = e => { music = !music; e.target.classList.toggle("on", music); syncSong(true); };
 const scrub = document.getElementById("scrub");
-scrub.oninput = () => { t = scrub.value / 1000 * (L.path.length - 1) / P.TPS; lastTick = tick(); playing = false; setPlay(); draw(); };
+scrub.oninput = () => { t = scrub.value / 1000 * (L.path.length - 1) / P.TPS; lastTick = tick(); playing = false; setPlay(); syncSong(); draw(); };
 addEventListener("keydown", e => {
   if (e.code === "Space") { e.preventDefault(); playBtn.onclick(); }
   if (e.key === "r") document.getElementById("restart").onclick();
@@ -288,6 +308,7 @@ function frame(now) {
     for (const c of L.sol.clicks) if (c.type === "press" && c.tick > lastTick && c.tick <= k) beep();
     lastTick = k;
     if (k >= L.path.length - 1) { playing = false; setPlay(); }
+    syncSong(false);
     draw();
   }
   requestAnimationFrame(frame);
