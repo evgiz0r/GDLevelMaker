@@ -50,6 +50,13 @@ update tools/web.js"). Keep the phone page a build of the viewer, never a fork.
 - Not tested by Claude: the page itself on the phone (the browser pane is not signed in to
   claude.ai). The user is the first to see the live list and save a mark from the phone.
 
+## Solutions travel with the level
+
+A work-in-progress row carries its solution (`solution: {ok, events}`, the natural replay of
+`lib/natural.js`), solved on the PC by `node tools/wip.js put` (`--no-solve` skips it). The page
+then only replays. Without it the phone solved the level itself: GDLM 45 (61 s with ship and wave)
+takes ~5 min to solve on the PC, and the page looked hung on the phone (user, Nov 22).
+
 ## Open
 
 - A session forgetting the ArtifactData call leaves the phone a version behind; nothing checks it.

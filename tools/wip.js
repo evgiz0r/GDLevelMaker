@@ -1,4 +1,4 @@
-// node tools/wip.js put <level.gdlvl> --session <name> [--note "what changed"]
+// node tools/wip.js put <level.gdlvl> --session <name> [--note "what changed"] [--no-solve]
 // node tools/wip.js list
 // node tools/wip.js phone                     -- rows for the phone page for every current level (PHONE.md)
 //
@@ -8,6 +8,9 @@
 // anything is pushed. Put the level again after every change: same file name = the newer version.
 // The user's marks on it land in local/marks.jsonl with the file name and the session, so the
 // session can find them with `node tools/marks.js`.
+// The level is solved HERE (with lib/natural.js's natural replay) and the solution goes with it, so
+// the viewer and the phone only replay it: solving a 60 s level with modes in a phone's browser took
+// so long the page looked hung. --no-solve skips that (the viewer then solves it itself).
 const fs = require("fs");
 const path = require("path");
 const { readGdlvl } = require("./io.js");
@@ -28,13 +31,14 @@ if (args[0] === "put") {
   const history = meta.history || [];
   history.push({ at: new Date().toISOString(), note: opt("--note") || "" });
   fs.copyFileSync(file, path.join(dir, base));
+  const solution = args.includes("--no-solve") ? undefined : solveFor(L);
   fs.writeFileSync(metaFile, JSON.stringify({ name: L.name, session, file: base, from: path.relative(path.join(__dirname, ".."), path.resolve(file)).replace(/\\/g, "/"),
-    updated: new Date().toISOString(), note: opt("--note") || "", version: history.length, history: history.slice(-20) }, null, 1));
+    updated: new Date().toISOString(), note: opt("--note") || "", version: history.length, history: history.slice(-20), solution }, null, 1));
   console.log(`wip: ${session}/${base} v${history.length} ("${L.name}") -- refresh the viewer to see it`);
-  phoneRow(session, base, L, history.length, opt("--note") || "");
+  phoneRow(session, base, L, history.length, opt("--note") || "", solution);
 } else if (args[0] === "phone") {
   // rows for every current work-in-progress level (e.g. after the page's database was emptied)
-  for (const m of list()) phoneRow(m.session, m.file, readGdlvl(path.join(WIP, m.session, m.file)), m.version, m.note || "");
+  for (const m of list()) phoneRow(m.session, m.file, readGdlvl(path.join(WIP, m.session, m.file)), m.version, m.note || "", m.solution);
 } else if (args[0] === "list" || !args.length) {
   for (const l of list()) console.log(`${l.session.padEnd(14)} ${l.name.padEnd(28)} v${l.version}  ${l.updated}  ${l.note || ""}`);
 } else console.log("usage: node tools/wip.js put|list");
@@ -51,12 +55,28 @@ function list() {
 // own database. Each put leaves the row, the same shape as serve.js's /wip/list, in
 // local/phone/wip/<doc>.json; the session then sends it with ONE ArtifactData call (printed here),
 // and the open phone page shows it at once: no republish.
-function phoneRow(session, base, L, version, note) {
+// the solution the viewer replays: {ok, events} (the natural plan when it works), or the furthest run
+function solveFor(L) {
+  const { GD } = require("./io.js");
+  Object.assign(GD, require("../lib/natural.js"));
+  const t0 = Date.now();
+  const w = GD.makeWorld(L.level.objects, L.level.header);
+  const r = GD.solveAny(w);
+  let sol;
+  if (r.ok) {
+    let events = r.events;
+    try { const n = GD.naturalPlan(w, r, L.level.objects); if (n && n.path[n.path.length - 1].done) events = n.events; } catch (e) {}
+    sol = { ok: true, events };
+  } else sol = { ok: false, events: r.trail || [], dieX: r.dieAt && r.dieAt.x, why: r.why };
+  console.log(`solved for the viewer and the phone in ${((Date.now() - t0) / 1000).toFixed(0)} s (${sol.ok ? "beaten" : "not beaten"})`);
+  return sol;
+}
+function phoneRow(session, base, L, version, note, solution) {
   const ROOT = path.join(__dirname, ".."), PH = path.join(ROOT, "local", "phone");
   const { songOf } = require("./index_levels.js");
   const doc = (session + "__" + base.replace(/\.gdlvl$/, "")).replace(/[^A-Za-z0-9_\-.]/g, "_");
   const row = { name: L.name, session, file: "local/wip/" + session + "/" + base, level: L.levelStr, song: songOf(L.rec, L.level.header),
-    version, note, updated: new Date().toISOString() };
+    version, note, updated: new Date().toISOString(), solution };
   const json = JSON.stringify(row);
   if (json.length > 250000) { console.log(`phone: level too big for one database row (${(json.length / 1024).toFixed(0)} KB > 250 KB); not sent`); return; }
   fs.mkdirSync(path.join(PH, "wip"), { recursive: true });
