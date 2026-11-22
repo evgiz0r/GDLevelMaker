@@ -229,12 +229,27 @@ The viewer draws hidden objects normally (it does not run alpha triggers), and t
 triggers -- right for the physics, since a faded object still collides in GD.
 
 - `briefs/44_hellgate.json` + `specs/44_hellgate.json` -> `levels/gdlm_44_hellgate.gdlvl`: the
-  user's first idea through the loop. "Hellish, on the song of Ragnarok (343707, 145 BPM), the first
-  10 s with their clear ups". The intro's one clear hit is beat 4 (1.72 s, +6 dB); the level opens
-  there (bg flares red), then one idea per bar, every jump on an even beat 4-22, a red pulse on
-  each bar start, dark again on beat 24 (10.0 s). Style "hell": outlined blocks, no ground deco,
-  black/red/orange colours, ceiling "teeth" (gates). All gates pass, 10/10 presses on beats, Easy.
-  Written by hand in beats (compose.js does not place by beats yet).
+  user's first idea: "hellish, on the song of Ragnarok (343707, 145 BPM), the first 10 s".
+  **v1 failed with the user**: one jump every 2 beats on flat ground, the hell only in the
+  colours -- "very bland, very old style, no variety in gameplay, all same height, very weak".
+  Lesson: a modern level changes something **every bar** -- height, mode, gravity, orbs -- and
+  the look must come from the shapes as much as the colours. (v1 also flashed one beat early:
+  make.js's b1 is the first beat, so the song's hit at 1.72 s is b5, not b4.)
+  **v2**: a new idea per bar, mode changes on bar starts (as official levels do, SYNC.md): climb
+  pillars -> yellow-orb ladder starting on the hit -> ship through a toothed tunnel -> wave
+  zigzag -> cube drops down pillars -> red pad, a single, a toothed gate on the last beat (b25 =
+  10 s). 14 inputs, tightest measured window 125 ms, sight-readable, Easy.
+  New patterns for it: `climb`, `descend`, `orb-ladder`, `ship-tunnel`, `wave-zigzag`; portals by
+  name in specs (`ship portal`, `wave portal`, `gravity down`, ...).
+
+Checks learnt on the way (in `tools/sightread.js`, `tools/score.js`):
+- A press that fires an orb is cued by that orb.
+- Flying modes (ship, UFO, wave, swing) turn slowly: up to 3 blocks of lead is not a prejump.
+- Levels with modes are solved by the sweep solver, which gives no windows: the timing gate then
+  uses lib/difficulty.js's measured window of every input (press and release).
+- Pillars must be wide enough (3) that one long jump cannot skip one -- the solver takes the
+  fewest clicks, which is not how a person climbs.
+- Ship teeth on both floor and roof need 5+ rows of tunnel, else 2 rows of air (29 ms).
 
 ## 4. Checked in the user's game (recording of the first 41 and 42, 2026-11-22)
 

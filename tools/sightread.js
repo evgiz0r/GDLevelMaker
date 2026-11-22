@@ -9,8 +9,11 @@
 // block to land on, an orb), is the press's CUE. The LEAD is how far ahead of the cube's
 // front edge the cue still is at the LATEST moment the press works (the end of its window).
 // Small lead = you jump when the obstacle is in your face = reactable. Big lead = a prejump.
-// Flagged: lead > LIMIT blocks (default 1.5; --limit n).
+// Flagged: lead > LIMIT blocks (default 1.5; --limit n; 3 in ship/UFO/wave/swing). A press that
+// fires an orb counts as cued.
 const { GD, readGdlvl } = require("./io.js");
+// flying modes turn slowly, so steering starts further ahead of what it is for: allow 3 blocks
+const FLYING = new Set(["ship", "ufo", "wave", "swing"]), FLY_LIMIT = 3;
 
 function sightread(level, limit = 1.5) {
   const w = GD.makeWorld(level.objects, level.header);
@@ -39,8 +42,10 @@ function sightread(level, limit = 1.5) {
       const l = (c.hb.x0 - (xHi + 15)) / 30;
       if (lead == null || l < lead) { lead = l; cue = c.o; }
     }
-    out.push({ block: c.x / 30, from: xLo / 30, to: xHi / 30, ms: c.ms, cue: cue && GD.objInfo(cue.id).name, cueAt: cue && cue.x / 30,
-      lead, flag: lead != null && lead > limit });
+    // a press that fires an orb is cued by that orb: the cube is touching it
+    if (c.act && GD.objInfo && /orb/.test(c.act)) { lead = 0; cue = null; }
+    out.push({ act: c.act, block: c.x / 30, from: xLo / 30, to: xHi / 30, ms: c.ms, cue: cue && GD.objInfo(cue.id).name, cueAt: cue && cue.x / 30,
+      mode: hiState && hiState.mode, lead, flag: lead != null && lead > (FLYING.has(hiState && hiState.mode) ? FLY_LIMIT : limit) });
   }
   return { ok: true, presses: out };
 }

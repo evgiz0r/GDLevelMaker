@@ -1,16 +1,70 @@
 {
   "name": "GDLM 44 hellgate",
-  "idea": "the first 10 s of song 343707 (the song of the user's favourite level Ragnarok): the gate of hell opens on the hit at beat 4, then one bar per idea, jumps on the beat, ending on beat 24 = 10.0 s",
-  "story": "dark corridor -> the hit: everything flares red -> teeth from the ceiling -> a fiery climax -> silence",
-  "difficulty": { "label": "Easy", "minWindowMs": 60 },
+  "idea": "the first 10 s of song 343707 (the song of the user's favourite level Ragnarok): the hit at 1.72 s (make.js beat b5) opens hell; a new idea every bar, modes switching on bar starts",
+  "story": "v1 (one jump per 2 beats, flat ground) was 'very bland, old style, no variety, all same height, very weak' (the user). v2: climb pillars -> orb ladder on the hit -> ship through a toothed tunnel -> wave zigzag -> cube drops down pillars -> red pad, single, last gate on the final beat",
+  "difficulty": {
+    "label": "Easy",
+    "minWindowMs": 60
+  },
   "style": "hell",
-  "song": { "custom": 343707 }, "offset": 0, "grid": { "bpm": 145.012, "t0": 0.0662 },
+  "song": {
+    "custom": 343707
+  },
+  "offset": 0,
+  "grid": {
+    "bpm": 145.012,
+    "t0": 0.0662
+  },
   "sections": [
-    { "name": "dark run", "beats": "0-4", "bg": [25, 0, 0], "ground": [12, 0, 0] },
-    { "name": "the hit", "beats": "4-12", "bg": [220, 30, 0], "then": [90, 0, 0] },
-    { "name": "teeth", "beats": "12-20", "bg": [150, 10, 0], "then": [70, 0, 0] },
-    { "name": "climax", "beats": "20-24", "bg": [255, 80, 0], "then": [110, 10, 0] },
-    { "name": "silence", "beats": "24-28", "bg": [10, 0, 0] }
+    {
+      "name": "climb",
+      "beats": "1-5"
+    },
+    {
+      "name": "orb ladder on the hit",
+      "beats": "5-9",
+      "bg": [
+        220,
+        30,
+        0
+      ]
+    },
+    {
+      "name": "ship teeth",
+      "beats": "9-13",
+      "bg": [
+        170,
+        15,
+        0
+      ]
+    },
+    {
+      "name": "wave zigzag",
+      "beats": "13-17",
+      "bg": [
+        200,
+        40,
+        0
+      ]
+    },
+    {
+      "name": "drop",
+      "beats": "17-21",
+      "bg": [
+        170,
+        15,
+        0
+      ]
+    },
+    {
+      "name": "red pad climax",
+      "beats": "21-25",
+      "bg": [
+        255,
+        80,
+        0
+      ]
+    }
   ],
-  "note": "beats-based sections are written by hand into specs/44_hellgate.json for now; compose.js places by columns (songs in compose: next step)"
+  "note": "beats are make.js's: b1 = the first beat (0.066 s). Written by hand; compose.js does not place by beats or use modes yet"
 }

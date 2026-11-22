@@ -68,6 +68,59 @@ def("pad-launch", "yellow pad on the floor, a spike run after it, a platform to 
   return { objects: o, width: 2 + n };
 });
 
+// --- height and modes (after the user's "all same height, no variety" on GDLM 44 v1) ---
+def("climb", "pillars rising 1, 2, 3... high (w wide) with spike pits (gap) between: jump up each one", (a) => {
+  const n = a.n || 3, w = a.w || 2, gap = a.gap ?? 2, o = [];
+  let c = 0;
+  for (let i = 0; i < n; i++) {
+    for (let k = 0; k < w; k++) for (let r = 0; r <= i; r++) o.push(["block", c + k, r]);
+    c += w;
+    if (i < n - 1) { for (let k = 0; k < gap; k++) o.push(["spike", c + k, 0]); c += gap; }
+  }
+  return { objects: o, width: c };
+});
+def("descend", "pillars falling n, n-1, ... 1 high with spike pits: drop down each one", (a) => {
+  const n = a.n || 3, w = a.w || 2, gap = a.gap ?? 2, o = [];
+  let c = 0;
+  for (let i = 0; i < n; i++) {
+    const h = n - i;
+    for (let k = 0; k < w; k++) for (let r = 0; r < h; r++) o.push(["block", c + k, r]);
+    c += w;
+    if (i < n - 1) { for (let k = 0; k < gap; k++) o.push(["spike", c + k, 0]); c += gap; }
+  }
+  return { objects: o, width: c };
+});
+def("orb-ladder", "yellow orbs climbing over a spike floor; rows = orb heights, dx = columns between orbs", (a) => {
+  const rows = a.rows || [2, 3, 4], dx = a.dx || 4, o = [];
+  const width = dx * rows.length + 1;
+  for (let c = 0; c < width; c++) o.push(["spike", c, 0]);
+  rows.forEach((r, i) => o.push([a.orb || "yellow orb", 1 + i * dx, r]));
+  return { objects: o, width };
+});
+def("ship-tunnel", "a ship corridor (band rows 0-9): floor and roof follow a wave, `gap` rows of air, teeth on the bends", (a) => {
+  const w = a.w || 16, gap = a.gap || 4, amp = a.amp ?? 2, base = a.base ?? 2, o = [];
+  for (let c = 0; c < w; c++) {
+    const f = Math.round(base + amp * Math.sin(c / w * 2 * Math.PI)); // floor top row (blocks 0..f-1)
+    const roof = f + gap;                                              // first roof row
+    for (let r = 0; r < f; r++) o.push(["block", c, r]);
+    for (let r = roof; r < 10; r++) o.push(["block", c, r]);
+    if (a.teeth && c % 4 === 2) { o.push(["spike", c, f]); o.push(["spike", c, roof - 1, { rot: 180 }]); }
+  }
+  return { objects: o, width: w };
+});
+def("wave-zigzag", "a wave corridor (band rows 0-9): the path climbs and falls 45 degrees, `seg` columns per leg, `gap` rows", (a) => {
+  const seg = a.seg || 4, legs = a.legs || 4, gap = a.gap || 3, low = a.low ?? 1, o = [];
+  const w = seg * legs;
+  for (let c = 0; c < w; c++) {
+    const leg = Math.floor(c / seg), k = c % seg;
+    const mid = low + (leg % 2 === 0 ? k : seg - k);  // path row at this column
+    const bottom = mid - Math.floor(gap / 2), top = bottom + gap;
+    for (let r = 0; r < bottom; r++) o.push(["block", c, r]);
+    for (let r = top; r < 10; r++) o.push(["block", c, r]);
+  }
+  return { objects: o, width: w };
+});
+
 // expand one spec entry ["pattern", name, col, row, args] into plain entries
 function expand(name, col, row, args, extra) {
   const p = P[name];
