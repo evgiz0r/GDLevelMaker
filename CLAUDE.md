@@ -67,6 +67,11 @@ Confirmed:
   stepping hold.
 - Spike hitbox 6x12 centred, orb box 36x36: seen in a hitbox-on frame.
 - Object 1338 is a 45-degree slope (its hitbox outline is the staircase in the recording).
+- Red orb 1.38 x yStart: the user's upside-down dive in the recording bottoms out 122 units below
+  the ceiling; the sim gives 124. Measured against the ceiling row's top edge per frame (the
+  camera drops during the dive).
+- The cube has no head bump: its outer box grazing a block's corner from the head side does
+  nothing, only the 9x9 inner box kills (the same dive clips a ledge corner and carries on).
 - Flipping gravity halves vertical speed (blue orb and ceiling blue pad in the recording move at
   half the decompile's velocity). The decompile's ringJump alone does not show this.
 
@@ -74,20 +79,15 @@ Assumed (not yet checked):
 - Going 300 units above the highest object counts as a death (otherwise the solver "wins" by
   falling up into the sky). Ask the user whether GD kills you up there.
 - Spider teleport searches a 9-unit strip above/below the cube.
-- Red orb (1333) at 1.38 x yStart: in "cube timings" the user, upside down on the ceiling, dives
-  under a wall at block 83 that the sim cannot get under. Either the multiplier is wrong for an
-  upside-down cube or something else differs. Open: measure the dive at 109.5-110.1 s of the
-  first recording against the ceiling line.
 - Dash orbs: horizontal at the orb's angle while held; the props 586/588 on them are unknown.
 - "Click Between Steps" is OFF in the user's settings: presses land on a frame boundary, not any
   240 Hz step. The solver still allows any step.
 
 ## Status of the solver on "cube timings" (examples/)
 
-Gets to block 82.9 of 111: triple spike, blue orb + ceiling blue pad, slope, dash orb, red orb,
-spider orb + pad all work. Stuck at the red orb under the ceiling (see above). The user beats it
-(the end of their first recording is a full practice run). The viewer replays the furthest run
-when a level cannot be beaten.
+Beaten: 11 presses plus a dash release, tightest window 21 ms (the blue orb). Every part of
+the level is in the sim: triple spikes, blue orb + ceiling blue pad, slope, dash orb, red orb,
+spider orb + pad, the upside-down red-orb dive under a hanging column.
 
 ## Not simulated yet
 
