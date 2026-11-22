@@ -26,7 +26,7 @@
     ["colour", "b17", { "ch": "bg", "rgb": [170, 15, 0], "secs": 0 }],
     ["colour", "b17.5", { "ch": "bg", "rgb": [70, 0, 0], "secs": 0.6 }],
     ["cube portal", "b17", 5],
-    ["pattern", "descend", "b17+2", 0, { "n": 3, "w": 3, "gap": 2 }],
+    ["pattern", "descend", "b17+2", 0, { "n": 3, "w": 2, "gap": 3 }],
 
     ["colour", "b21", { "ch": "bg", "rgb": [255, 80, 0], "secs": 0 }],
     ["colour", "b21", { "ch": "ground", "rgb": [90, 10, 0], "secs": 0 }],

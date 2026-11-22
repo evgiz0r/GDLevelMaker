@@ -10,7 +10,7 @@
 // front edge the cue still is at the LATEST moment the press works (the end of its window).
 // Small lead = you jump when the obstacle is in your face = reactable. Big lead = a prejump.
 // Flagged: lead > LIMIT blocks (default 1.5; --limit n; 3 in ship/UFO/wave/swing). A press that
-// fires an orb counts as cued.
+// fires an orb counts as cued, and so does jumping off the end of a ledge.
 const { GD, readGdlvl } = require("./io.js");
 // flying modes turn slowly, so steering starts further ahead of what it is for: allow 3 blocks
 const FLYING = new Set(["ship", "ufo", "wave", "swing"]), FLY_LIMIT = 3;
@@ -41,6 +41,30 @@ function sightread(level, limit = 1.5) {
       if (!c.hb) continue;
       const l = (c.hb.x0 - (xHi + 15)) / 30;
       if (lead == null || l < lead) { lead = l; cue = c.o; }
+    }
+    // jumping at the end of a ledge is cued by the ledge: at the latest moment the cube stands on a
+    // solid whose far edge is within half a block of its front, and walking off it kills in the fall
+    // (before landing anywhere). If walking off lands safely and the death comes later, that is
+    // still a prejump (GDLM 41 v1's stairs).
+    if (hiState && hiState.grounded && lead != null && lead > 0) {
+      const foot = (hiState.grav || 1) > 0 ? hiState.y - 15 : hiState.y + 15;
+      // without this press: does the cube die in the fall, before landing anywhere?
+      let diesInFall = false;
+      if (res.dead) {
+        let left = false; diesInFall = true;
+        for (let t = c.hi; t < res.path.length; t++) {
+          const st = res.path[t];
+          // a "landing" that dies within 1/8 s is the crash itself (into the next pillar's side)
+          if (!st.grounded) left = true; else if (left) { diesInFall = res.path.length - 1 - t <= 30; break; }
+        }
+      }
+      const ledge = diesInFall && level.objects.some(o => {
+        const k = GD.objInfo(o.id).kind; if (k !== "solid") return false;
+        const hb = GD.hitbox(o); if (!hb) return false;
+        const onIt = Math.abs(((hiState.grav || 1) > 0 ? hb.y1 : hb.y0) - foot) < 2 && hb.x0 <= hiState.x && hb.x1 >= hiState.x - 15;
+        return onIt && hb.x1 <= hiState.x + 15 + 15 && !level.objects.some(n => { if (n === o || GD.objInfo(n.id).kind !== "solid") return false; const h2 = GD.hitbox(n); return h2 && Math.abs(h2.x0 - hb.x1) < 1 && Math.abs(h2.y1 - hb.y1) < 1; });
+      });
+      if (ledge) { lead = 0; cue = null; }
     }
     // a press that fires an orb is cued by that orb: the cube is touching it
     if (c.act && GD.objInfo && /orb/.test(c.act)) { lead = 0; cue = null; }

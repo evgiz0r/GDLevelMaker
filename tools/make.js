@@ -23,6 +23,8 @@
 //            (e.g. "hell") -> skins only, the look comes from its colours
 //   "colours": {"bg": [r,g,b], "ground": [r,g,b], ...}   start colours in the header
 //   "art": {"bg": n, "ground": n}                        background / ground art numbers
+//   "indicators": {"id": N}   a jump indicator (chevron) above every cube jump from the ground,
+//                          placed from the solver's run (tools/decorate.js jumpIndicators)
 //
 // Music (optional; see SYNC.md):
 //   "song": {"custom": 233860} or {"official": 1} (1 = Stereo Madness ... 22 = Dash)
@@ -193,7 +195,15 @@ function make(specFile, specObj) {
   const { level, rec, ctx, objects, header } = build(spec, specFile);
   const out = path.join(__dirname, "..", "levels", slug(spec.name) + ".gdlvl");
   writeGdlvl(out, rec, level);
-  const r = report(out);
+  let r = report(out);
+  if (spec.indicators && r.ok) {
+    // jump indicators come from the solved run, so they go in after the first check (no hitbox:
+    // the solution does not change); then the file is written again
+    const ind = deco.jumpIndicators(GD.makeWorld(level.objects, header), r, (spec.indicators.id || deco.INDICATOR.id), GD);
+    level.objects.push(...ind);
+    writeGdlvl(out, rec, level);
+    console.log(`   ${ind.length} jump indicators (object ${spec.indicators.id || deco.INDICATOR.id})`);
+  }
   if (ctx.grid && r.ok) beatReport(objects, header, r, ctx);
   if (r.ok) { // the user's fairness rule: no prejumps (see tools/sightread.js)
     const s = sightread(level);

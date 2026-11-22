@@ -250,6 +250,20 @@ Checks learnt on the way (in `tools/sightread.js`, `tools/score.js`):
 - Pillars must be wide enough (3) that one long jump cannot skip one -- the solver takes the
   fewest clicks, which is not how a person climbs.
 - Ship teeth on both floor and roof need 5+ rows of tunnel, else 2 rows of air (29 ms).
+- A held button re-jumps on every landing: the solver climbs pillars with one long press. Count
+  jumps by takeoffs, not presses.
+- Jumping at the end of a ledge is cued by the ledge when walking off kills in the fall (pits,
+  the next pillar's side). When walking off lands safely and the death comes later, it is still a
+  prejump. (This now passes GDLM 41 v1's stairs-to-hops jump: a visible floating block ahead, and
+  walking off crashed into it. The pad prejump there is still caught.)
+- A pattern that needs no input is a dead bar: "descend" with 2-wide pits let the cube fall
+  across by itself; 3-wide pits make each drop a jump.
+
+**Jump indicators** (the user: common in modern levels, and they show Claude's intent): spec
+`"indicators": {"id": N}` puts a small mark just above the surface at every cube/robot takeoff
+(upside down: under the ceiling, pointing down), from the solved run (`tools/decorate.js`). Orb
+and pad launches get none. The chevron's object id is not confirmed yet -- asked; until then
+specs leave indicators off.
 
 ## 4. Checked in the user's game (recording of the first 41 and 42, 2026-11-22)
 
