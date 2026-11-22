@@ -132,6 +132,19 @@ def("wave-zigzag", "a wave corridor (band rows 0-9): the path climbs and falls 4
   const w = seg * legs;
   const midAt = c => { const leg = Math.floor(c / seg), k = c % seg; return low + (leg % 2 === 0 ? k : seg - k); };
   for (let c = 0; c < w; c++) {
+    if (a.slopes) {
+      // walls of 45-degree slopes along the legs, so the corridor is a straight diagonal (square
+      // blocks made it a staircase: "the wave looks like cube", playtest GDLM 44 v3). The sim models
+      // floor slopes and treats ceiling slopes as full blocks, so it checks with less room than the game.
+      const m0 = midAt(c), m1 = c + 1 < w ? midAt(c + 1) : m0, up = m1 > m0;
+      const fl = Math.min(m0, m1) - Math.floor(gap / 2);       // floor slope row
+      const cl = Math.max(m0, m1) - Math.floor(gap / 2) + gap - 1; // ceiling slope row
+      for (let r = 0; r < fl; r++) o.push(["block", c, r]);
+      if (fl >= 0) o.push(["slope", c, fl, up ? {} : { flipX: true }]);
+      if (cl <= 9) o.push(["slope", c, cl, up ? { flipY: true } : { flipX: true, flipY: true }]);
+      for (let r = cl + 1; r < 10; r++) o.push(["block", c, r]);
+      continue;
+    }
     // the room is measured around the path over this column and its neighbours, so the turns do
     // not pinch (square blocks at an apex left 2 rows where the legs had 4)
     const ms = [midAt(Math.max(0, c - 1)), midAt(c), midAt(Math.min(w - 1, c + 1))];

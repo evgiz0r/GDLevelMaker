@@ -26,7 +26,9 @@ const SKIN = {
 function skinBlocks(objects) {
   const cell = o => Math.round((o.x - 15) / 30) + "," + Math.round((o.y - 15) / 30);
   const blocks = objects.filter(o => o.id === 1 && !o.rot);
-  const has = new Set(blocks.map(cell));
+  // slopes count as neighbours too: a block under a slope has no outline on top (else a slope
+  // wall shows a staircase of lines under it)
+  const has = new Set(blocks.map(cell).concat(objects.filter(o => o.id === 1338 || o.id === 1339).map(cell)));
   const at = (c, r) => has.has(c + "," + r);
   for (const o of blocks) {
     const c = Math.round((o.x - 15) / 30), r = Math.round((o.y - 15) / 30);

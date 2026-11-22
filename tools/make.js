@@ -52,7 +52,7 @@ const { buildIndex } = require("./index_levels.js");
 const { expand } = require("./patterns.js");
 const deco = require("./decorate.js");
 
-const TYPES = { block: 1, spike: 8, "small spike": 39, "yellow orb": 36, "blue orb": 84, "yellow pad": 35, "blue pad": 67,
+const TYPES = { block: 1, spike: 8, slope: 1338, "small spike": 39, "yellow orb": 36, "blue orb": 84, "yellow pad": 35, "blue pad": 67,
   "pink orb": 141, "red orb": 1333, "pink pad": 140, "mirror portal": 45, "mirror off": 46,
   "red pad": 1332, "spider orb": 3004, "spider pad": 3005, "green dash orb": 1704,
   "cube portal": 12, "ship portal": 13, "ball portal": 47, "ufo portal": 111, "wave portal": 660,
