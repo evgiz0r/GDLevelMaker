@@ -25,6 +25,16 @@
   td, th { text-align:left; padding:3px 6px; border-bottom:1px solid #2a1f57; }
   tr.now td { color:var(--click); }
   .muted { color:var(--dim); }
+  canvas.marking { cursor:crosshair; }
+  tr.done td { color:var(--dim); text-decoration:line-through; }
+  #views.split { display:grid; grid-template-columns:1fr 1fr; }
+  #views.split canvas, #views.split #cmpImg { height:auto; aspect-ratio:16/9; }
+  #cmp { background:#000; display:flex; flex-direction:column; }
+  #cmp[hidden] { display:none; }
+  .cmpbar { display:flex; flex-wrap:wrap; gap:6px; align-items:center; padding:4px 6px; background:var(--panel); }
+  .cmpbar input { background:#24184f; color:var(--ink); border:1px solid #3b2d78; border-radius:6px; padding:4px; }
+  #cmpImg { width:100%; height:min(60vh, 460px); object-fit:contain; object-position:center top; }
+  @media (max-width: 700px) { #views.split { grid-template-columns:1fr; } }
   #drop { position:absolute; inset:0; display:none; place-items:center; background:rgba(11,6,32,.85); font-size:18px; border:2px dashed var(--cube); }
 </style>
 </head>
@@ -32,22 +42,33 @@
 <header>
   <h1>GD LEVEL VIEWER</h1>
   <select id="pick"></select>
+  <button id="refresh" title="get the newest version of the sessions' levels">⟳ refresh</button>
+  <button id="linkBtn" title="copy a link to this level at this moment">🔗 link</button>
   <label class="btn">open .gdlvl<input id="file" type="file" accept=".gdlvl,.txt" hidden></label>
   <button id="play">▶ play</button>
   <button id="restart">⟲</button>
   <button data-speed="0.25">¼×</button><button data-speed="0.5">½×</button><button data-speed="1" class="on">1×</button>
+  <button id="lookBtn" class="on" title="colours, triggers, block skins as in the game (off: the schematic view)">game look</button>
   <button id="hit">hitboxes</button>
+  <button id="cmpBtn" hidden title="a frame of your recording next to the replay (needs tools/serve.js)">compare</button>
+  <button id="markBtn" title="pause, then click where something should change (key M)">✎ mark</button>
   <button id="sound" class="on">click sound</button>
   <button id="music" class="on">music</button>
   <button id="beatsBtn" class="on" title="beat grid of the level's song (songs on this PC, from tools/beats.js)">beats</button>
   <span id="clock" class="muted"></span>
 </header>
-<div id="wrap"><canvas id="cv"></canvas><div id="drop">drop a .gdlvl here</div></div>
+<div id="views"><div id="wrap"><canvas id="cv"></canvas><div id="drop">drop a .gdlvl here</div></div>
+<div id="cmp" hidden><div class="cmpbar"><select id="cmpRec"></select>
+  <label title="where this level's attempt starts in the video: replay time t shows video second (start + t)">level starts at <input id="cmpT0" type="number" step="0.1" value="0" style="width:5em"> s</label>
+  <button data-dt="-1">-1 s</button><button data-dt="-0.1">-0.1</button><button data-dt="0.1">+0.1</button><button data-dt="1">+1 s</button>
+  <button id="cmpShot" title="replay + game frame as one PNG in local/shots/">save comparison</button>
+  <span id="cmpAt" class="muted"></span></div><img id="cmpImg" alt="game frame"></div></div>
 <canvas id="strip"></canvas>
 <input id="scrub" type="range" min="0" max="1000" value="0">
 <main>
   <div class="card"><h2>Level</h2><div id="summary"></div></div>
   <div class="card"><h2>Clicks</h2><div id="clicks"></div></div>
+  <div class="card" style="grid-column:1/-1"><h2>Marks — what to change</h2><div id="marks"></div></div>
 </main>
 <script src="../lib/gd.js"></script>
 <script src="../lib/objects_extra.js"></script>
@@ -55,6 +76,7 @@
 <script src="../lib/objects.js"></script>
 <script src="../lib/physics.js"></script>
 <script src="../lib/sync.js"></script>
+<script src="../lib/look.js"></script>
 <script src="levels.js"></script>
 <script src="levels.local.js" onerror="window.GD_LEVELS_LOCAL = []"></script>
 <script src="beats.local.js" onerror="window.GD_BEATS = {}"></script>
@@ -111,11 +133,18 @@ function load(name, levelStr, saved, info) {
   { const ev = (events || []).slice().sort((a, b) => a.tick - b.tick); let h = 0, j = 0;
     for (let k = 0; k < path.length; k++) { while (j < ev.length && ev[j].tick <= k) { h = ev[j].type === "press" ? 1 : 0; j++; } held[k] = h; } }
   L = { name, level, world, sol, path, held };
+  // colour / alpha / zoom triggers fire when the replayed run passes their x
+  L.look = GD.LOOK.timeline(level, x => {
+    let lo = 0, hi = path.length - 1;
+    if (path[hi].x < x) return Infinity;
+    while (lo < hi) { const m = (lo + hi) >> 1; if (path[m].x >= x) hi = m; else lo = m + 1; }
+    return lo / P.TPS;
+  });
   // the song's beat grid, when tools/beats.js has analysed it on this PC
   const grid = info && (window.GD_BEATS || {})[info.url];
   L.beats = grid ? { grid, offset: info.offset || 0, tl: GD.SYNC.timeline(world) } : null;
   t = 0; lastTick = -1; playing = false; setPlay();
-  summary(); clickTable(); draw();
+  summary(); clickTable(); markTable(); if (cmpOn) cmpLoadSetting(); draw();
 }
 async function loadFile(f) {
   const rec = GD.parseRecord(await gunzipB64(await f.text()));
@@ -171,6 +200,10 @@ document.getElementById("restart").onclick = () => { if (!L) return; t = 0; last
 document.querySelectorAll("[data-speed]").forEach(b => b.onclick = () => {
   speed = +b.dataset.speed; document.querySelectorAll("[data-speed]").forEach(x => x.classList.toggle("on", x === b)); syncSong(true);
 });
+let look = true;
+try { look = localStorage.getItem("gdlm.look") !== "0"; } catch (e) {}
+document.getElementById("lookBtn").classList.toggle("on", look);
+document.getElementById("lookBtn").onclick = e => { look = !look; e.target.classList.toggle("on", look); try { localStorage.setItem("gdlm.look", look ? "1" : "0"); } catch (err) {} draw(); };
 document.getElementById("hit").onclick = e => { showHit = !showHit; e.target.classList.toggle("on", showHit); draw(); };
 document.getElementById("sound").onclick = e => { sound = !sound; e.target.classList.toggle("on", sound); };
 document.getElementById("music").onclick = e => { music = !music; e.target.classList.toggle("on", music); syncSong(true); };
@@ -195,13 +228,132 @@ function beep() {
   o.connect(g).connect(actx.destination); o.start(); o.stop(actx.currentTime + 0.07);
 }
 
+// ---------- marks: the user's notes on a spot of a level, for the next round ----------
+// Saved by tools/serve.js to marks/marks.jsonl (one JSON line each; a later line with the same id
+// updates it, e.g. {id, done:true, reply}). Without the server (file:// or the phone page) they
+// stay in this browser only.
+let MARKS = [], marking = false;
+const markKey = "gdlm.marks.local";
+function foldMarks(lines) {
+  const by = new Map();
+  for (const m of lines) by.set(m.id, Object.assign(by.get(m.id) || {}, m));
+  return [...by.values()].filter(m => m.note != null);
+}
+function localMarks() { try { return JSON.parse(localStorage.getItem(markKey) || "[]"); } catch (e) { return []; } }
+async function loadMarks() {
+  let lines = [];
+  if (location.protocol.startsWith("http")) {
+    try { const r = await fetch("../local/marks.jsonl", { cache: "no-store" }); if (r.ok) lines = (await r.text()).split("\n").filter(Boolean).map(l => JSON.parse(l)); } catch (e) {}
+  }
+  MARKS = foldMarks(lines.concat(localMarks().map(m => Object.assign({ localOnly: true }, m))));
+  if (L) { markTable(); draw(); }
+}
+async function saveMark(m) {
+  try {
+    const r = await fetch("/marks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(m) });
+    if (!r.ok) throw new Error(r.status);
+  } catch (e) {
+    m.localOnly = true;
+    try { const a = localMarks(); a.push(m); localStorage.setItem(markKey, JSON.stringify(a)); } catch (err) {}
+  }
+  MARKS = foldMarks(MARKS.concat([m])); markTable(); draw();
+}
+const levelMarks = () => L ? MARKS.filter(m => m.level === L.name) : [];
+function markTable() {
+  const el = document.getElementById("marks"), ms = levelMarks();
+  el.innerHTML = (ms.length ? `<table><tr><th>#</th><th>time</th><th>block</th><th>note</th><th></th></tr>` + ms.map((m, i) =>
+    `<tr class="${m.done ? "done" : ""}"><td>${i + 1}</td><td>${m.t.toFixed(2)} s</td><td>${(m.x / 30).toFixed(1)}</td><td>${esc(m.note)}${m.reply ? `<br><span class="muted">↳ ${esc(m.reply)}</span>` : ""}${m.localOnly ? ` <span class="muted">(this browser only)</span>` : ""}</td>` +
+    `<td><button data-go="${esc(m.id)}">go</button> <button data-done="${esc(m.id)}">${m.done ? "reopen" : "done"}</button></td></tr>`).join("") + `</table>` : `<span class="muted">none yet</span>`) +
+    `<p class="muted">✎ mark (or M), then click the spot in the view and say what should change. Saved to local/marks.jsonl for Claude's next round${ALL[pick.value] && ALL[pick.value].session ? " (goes to the " + esc(ALL[pick.value].session) + " session)" : ""}.</p>`;
+  el.querySelectorAll("[data-go]").forEach(b => b.onclick = () => { const m = MARKS.find(q => q.id === b.dataset.go); t = m.t; lastTick = tick(); playing = false; setPlay(); syncSong(); draw(); });
+  el.querySelectorAll("[data-done]").forEach(b => b.onclick = () => { const m = MARKS.find(q => q.id === b.dataset.done); saveMark({ id: m.id, done: !m.done, at: new Date().toISOString() }); });
+}
+const markBtn = document.getElementById("markBtn");
+function setMarking(on) { marking = on; markBtn.classList.toggle("on", on); cv.classList.toggle("marking", on); if (on) { playing = false; setPlay(); syncSong(); } }
+markBtn.onclick = () => setMarking(!marking);
+addEventListener("keydown", e => { if ((e.key === "m" || e.key === "M") && e.target.tagName !== "INPUT") setMarking(!marking); });
+cv.addEventListener("click", e => {
+  if (!marking || !L) return;
+  const r = cv.getBoundingClientRect(), d = devicePixelRatio || 1;
+  const px = (e.clientX - r.left) * d, py = (e.clientY - r.top) * d;
+  const x = px / scale + camX, y = camY + (groundY - py) / scale;
+  setMarking(false);
+  const note = prompt(`What should change here? (block ${(x / 30).toFixed(1)}, ${(tick() / P.TPS).toFixed(2)} s)`);
+  if (!note || !note.trim()) return;
+  const lv = ALL[pick.value];
+  saveMark({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), level: L.name, file: lv && lv.name === L.name ? lv.file : "", session: lv && lv.session || "", version: lv && lv.version || 0, t: +(tick() / P.TPS).toFixed(3),
+    x: +x.toFixed(1), y: +y.toFixed(1), note: note.trim(), view: look ? "game look" : "schematic", zoom: LS ? +LS.zoom.toFixed(2) : 1, made: new Date().toISOString() });
+});
+function drawMarks() {
+  const d = devicePixelRatio || 1;
+  levelMarks().forEach((m, i) => {
+    const x = sx(m.x), y = sy(m.y);
+    if (x < -20 || x > W + 20) return;
+    ctx.globalAlpha = m.done ? 0.35 : 1;
+    ctx.fillStyle = "#ffe14d"; ctx.strokeStyle = "#000"; ctx.lineWidth = 2 * d;
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - 7 * d, y - 14 * d); ctx.arc(x, y - 18 * d, 8 * d, Math.PI * 0.8, Math.PI * 2.2); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "#000"; ctx.font = `bold ${10 * d}px system-ui`; ctx.textAlign = "center"; ctx.fillText(String(i + 1), x, y - 14.5 * d); ctx.textAlign = "left";
+    if (Math.abs(tick() / P.TPS - m.t) < 1.5) { ctx.font = `${12 * d}px system-ui`; ctx.fillStyle = "rgba(0,0,0,.7)"; const w = ctx.measureText(m.note).width; ctx.fillRect(x + 10 * d, y - 30 * d, w + 10 * d, 18 * d); ctx.fillStyle = "#ffe14d"; ctx.fillText(m.note, x + 15 * d, y - 17 * d); }
+    ctx.globalAlpha = 1;
+  });
+}
+
+// ---------- compare: a frame of the user's recording beside the replay ----------
+// The video second shown = "level starts at" + replay time, so once the start is lined up the frame
+// follows the scrubber. Frames come from tools/serve.js (ffmpeg, one at a time, never saved).
+const cmpBtn = document.getElementById("cmpBtn"), cmp = document.getElementById("cmp"), cmpRec = document.getElementById("cmpRec"),
+  cmpT0 = document.getElementById("cmpT0"), cmpImg = document.getElementById("cmpImg");
+let cmpOn = false, cmpWant = "", cmpBusy = false;
+if (location.protocol.startsWith("http")) fetch("/rec/list").then(r => r.ok ? r.json() : []).then(list => {
+  if (!list.length) return;
+  list.forEach(f => cmpRec.add(new Option(f, f)));
+  cmpBtn.hidden = false;
+}).catch(() => {});
+const cmpKey = () => "gdlm.cmp." + (L ? L.name : "");
+function cmpLoadSetting() {
+  try { const v = JSON.parse(localStorage.getItem(cmpKey()) || "null"); if (v) { if ([...cmpRec.options].some(o => o.value === v.rec)) cmpRec.value = v.rec; cmpT0.value = v.t0; } } catch (e) {}
+}
+function cmpSave() { try { localStorage.setItem(cmpKey(), JSON.stringify({ rec: cmpRec.value, t0: +cmpT0.value })); } catch (e) {} }
+function cmpUpdate() {
+  if (!cmpOn || !L || playing) return;
+  const at = Math.max(0, +cmpT0.value + tick() / P.TPS);
+  const url = `/rec/frame?f=${encodeURIComponent(cmpRec.value)}&t=${at.toFixed(3)}`;
+  document.getElementById("cmpAt").textContent = `video ${at.toFixed(2)} s`;
+  if (url === cmpWant) return;
+  cmpWant = url;
+  if (cmpBusy) return;
+  cmpBusy = true; cmpImg.src = url;
+}
+cmpImg.onload = cmpImg.onerror = () => { cmpBusy = false; if (cmpImg.src.endsWith(cmpWant)) return; cmpBusy = true; cmpImg.src = cmpWant; };
+cmpBtn.onclick = () => { cmpOn = !cmpOn; cmpBtn.classList.toggle("on", cmpOn); cmp.hidden = !cmpOn; document.getElementById("views").classList.toggle("split", cmpOn); if (cmpOn) cmpLoadSetting(); resize(); cmpUpdate(); };
+// one PNG: the replay on the left, the game frame on the right, the level / times written under it
+async function cmpShot() {
+  if (!cmpImg.naturalWidth) return null;
+  const w = cmpImg.naturalWidth, h = cmpImg.naturalHeight, c = document.createElement("canvas");
+  c.width = w * 2; c.height = h + 28;
+  const x = c.getContext("2d");
+  x.fillStyle = "#000"; x.fillRect(0, 0, c.width, c.height);
+  x.drawImage(cv, 0, 0, cv.width, Math.min(cv.height, cv.width * h / w), 0, 0, w, Math.min(h, cv.height * w / cv.width));
+  x.drawImage(cmpImg, w, 0);
+  x.fillStyle = "#fff"; x.font = "16px system-ui";
+  x.fillText(`viewer: ${L.name}  t=${(tick() / P.TPS).toFixed(2)} s  block ${(L.path[tick()].x / 30).toFixed(1)}`, 8, h + 20);
+  x.fillText(`game: ${cmpRec.value}  at ${(+cmpT0.value + tick() / P.TPS).toFixed(2)} s`, w + 8, h + 20);
+  const r = await fetch("/shots", { method: "POST", body: c.toDataURL("image/png") });
+  const out = r.ok ? (await r.json()).file : null;
+  document.getElementById("cmpAt").textContent = out ? "saved " + out : "not saved";
+  return out;
+}
+document.getElementById("cmpShot").onclick = cmpShot;
+cmpRec.onchange = cmpT0.oninput = () => { cmpSave(); cmpUpdate(); };
+cmp.querySelectorAll("[data-dt]").forEach(b => b.onclick = () => { cmpT0.value = (+cmpT0.value + +b.dataset.dt).toFixed(2); cmpSave(); cmpUpdate(); });
+
 // ---------- drawing ----------
 function tick() { return Math.min(L.path.length - 1, Math.floor(t * P.TPS)); }
-let W = 0, H = 0, scale = 1, camX = 0, camY = 0, groundY = 0;
+let W = 0, H = 0, scale = 1, baseScale = 1, camX = 0, camY = 0, groundY = 0, LS = null;
 function resize() {
   const r = cv.getBoundingClientRect(), d = devicePixelRatio || 1;
   cv.width = r.width * d; cv.height = r.height * d; W = cv.width; H = cv.height;
-  scale = H / (30 * 9.5); groundY = H - 30 * 1.6 * scale;
+  baseScale = scale = H / (30 * 9.5); groundY = H - 30 * 1.6 * scale;
   if (L) draw();
 }
 addEventListener("resize", resize);
@@ -210,18 +362,24 @@ const sx = x => (x - camX) * scale, sy = y => groundY - (y - camY) * scale;
 function draw() {
   if (!L) return;
   const k = tick(), s = L.path[k];
-  camX = s.x - W / scale * 0.3;
+  // the game look: colours and zoom at this moment (zoom 0.7 = see more, everything smaller)
+  LS = look ? GD.LOOK.stateAt(L.look, k / P.TPS) : null;
+  // the game look frames like GD at 16:9: 10.67 blocks tall, ground 3.1 blocks up, player 36% across
+  if (LS) { scale = H / (30 * 10.67) * LS.zoom; groundY = H - 30 * 3.1 * scale; camX = s.x - W / scale * 0.36; }
+  else { scale = baseScale; groundY = H - 30 * 1.6 * scale; camX = s.x - W / scale * 0.3; }
   // flying modes: keep the player in view inside its corridor (the corridor is taller than the view)
   const viewH = groundY / scale;
   const want = isFinite(s.ceilY) && s.mode !== "cube"
     ? Math.max(s.floorY - 15, Math.min(s.y - viewH * 0.5, s.ceilY + 15 - viewH))
     : Math.max(0, s.y - 30 * 4.5);
   camY += (want - camY) * 0.15;
-  ctx.fillStyle = "#0e0828"; ctx.fillRect(0, 0, W, H);
+  const view = { W, H, scale, camX, sx, sy };
+  if (LS) { GD.LOOK.drawBackground(ctx, view, LS); GD.LOOK.drawMiddleground(ctx, view, LS); }
+  else { ctx.fillStyle = "#0e0828"; ctx.fillRect(0, 0, W, H); }
   // grid
-  ctx.strokeStyle = "rgba(120,100,220,.10)"; ctx.lineWidth = 1;
+  if (!LS) for (const _ of [0]) { ctx.strokeStyle = "rgba(120,100,220,.10)"; ctx.lineWidth = 1;
   for (let gx = Math.floor(camX / 30) * 30; sx(gx) < W; gx += 30) { ctx.beginPath(); ctx.moveTo(sx(gx), 0); ctx.lineTo(sx(gx), groundY); ctx.stroke(); }
-  for (let gy = 0; sy(gy) > 0; gy += 30) { ctx.beginPath(); ctx.moveTo(0, sy(gy)); ctx.lineTo(W, sy(gy)); ctx.stroke(); }
+  for (let gy = 0; sy(gy) > 0; gy += 30) { ctx.beginPath(); ctx.moveTo(0, sy(gy)); ctx.lineTo(W, sy(gy)); ctx.stroke(); } }
   // beat lines: one per beat, brighter on the first beat of a bar, numbered
   if (L.beats && showBeats) {
     const bA = beatOf(Math.max(0, tOfScreenX(0))), bB = beatOf(tOfScreenX(W)), d = devicePixelRatio || 1;
@@ -233,15 +391,34 @@ function draw() {
       ctx.fillStyle = down ? "rgba(150,230,255,.9)" : "rgba(150,230,255,.5)"; ctx.fillText(String(b), x + 3 * d, 14 * d);
     }
   }
+  if (LS) {
+    // objects as the game draws them: decoration, then blocks (fills, then outlines), then the rest;
+    // the ground goes over anything below it
+    const on = L.level.objects.filter(o => sx(o.x) > -90 && sx(o.x) < W + 90), blocks = [];
+    for (const o of on) {
+      const a = GD.LOOK.objAlpha(o, LS.alpha); if (a <= 0.01) continue;
+      if (GD.LOOK.isSkin(o.id)) blocks.push([o, a]);
+      else if (GD.objInfo(o.id).kind === "decoration") { ctx.globalAlpha = a * 0.85; local(o, () => GD.LOOK.drawDeco(ctx, o, LS)); }
+    }
+    ctx.globalAlpha = 1;
+    GD.LOOK.drawBlocks(ctx, view, LS, blocks, local);
+    for (const o of on) {
+      const d = GD.objInfo(o.id); if (GD.LOOK.isSkin(o.id) || d.kind === "decoration" || d.kind === "trigger") continue;
+      const a = GD.LOOK.objAlpha(o, LS.alpha); if (a <= 0.01) continue;
+      ctx.globalAlpha = a; drawObj(o); ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+    }
+    GD.LOOK.drawGround(ctx, view, LS);
+  } else {
   // ground
   const gy = sy(0);
   ctx.fillStyle = "#1b1046"; ctx.fillRect(0, gy, W, H - gy);
   ctx.strokeStyle = "#7d6bff"; ctx.lineWidth = 3; ctx.shadowColor = "#7d6bff"; ctx.shadowBlur = 12;
   ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke(); ctx.shadowBlur = 0;
-  // end line
-  ctx.strokeStyle = "rgba(61,255,176,.5)"; ctx.beginPath(); ctx.moveTo(sx(L.world.endX), 0); ctx.lineTo(sx(L.world.endX), groundY); ctx.stroke();
   // objects
   for (const o of L.level.objects) if (sx(o.x) > -60 && sx(o.x) < W + 60) drawObj(o);
+  }
+  // end line
+  ctx.strokeStyle = "rgba(61,255,176,.5)"; ctx.beginPath(); ctx.moveTo(sx(L.world.endX), 0); ctx.lineTo(sx(L.world.endX), groundY); ctx.stroke();
   if (showHit) {
     ctx.lineWidth = 1.5;
     for (const b of L.world.solids) { ctx.strokeStyle = "#00e5ff"; rectW(b); }
@@ -255,6 +432,7 @@ function draw() {
     ctx.beginPath(); ctx.moveTo(sx(p.x), sy(p.y)); ctx.lineTo(sx(q.x), sy(q.y)); ctx.stroke();
   }
   drawDeaths();
+  drawMarks();
   drawInput(k);
   // ship corridor
   if (s.mode === "ship") {
@@ -262,7 +440,7 @@ function draw() {
     for (const yy of [s.floorY, s.ceilY]) { ctx.beginPath(); ctx.moveTo(0, sy(yy)); ctx.lineTo(W, sy(yy)); ctx.stroke(); }
   }
   // the player
-  if (s.mode === "ship") drawShip(s); else drawCube(s);
+  if (s.mode === "ship") drawShip(s); else if (LS) local({ x: s.x, y: s.y, rot: s.rot }, () => GD.LOOK.drawPlayerCube(ctx)); else drawCube(s);
   if (showHit) { ctx.strokeStyle = "#fff"; rectW({ x0: s.x - 15, x1: s.x + 15, y0: s.y - 15, y1: s.y + 15 }); ctx.strokeStyle = "#f0f"; rectW({ x0: s.x - 4.5, x1: s.x + 4.5, y0: s.y - 4.5, y1: s.y + 4.5 }); }
   // the click table row of the input just made (the button strip shows it in the view)
   L.sol.clicks.forEach((c, i) => {
@@ -276,6 +454,7 @@ function draw() {
   }
   document.getElementById("clock").textContent = `${(k / P.TPS).toFixed(2)} s · block ${(s.x / 30).toFixed(1)}` + (L.beats ? ` · beat ${beatOf(k / P.TPS).toFixed(1)}` : "") + ` · ${speed}×`;
   drawStrip(k);
+  cmpUpdate();
   scrub.value = Math.round(k / Math.max(1, L.path.length - 1) * 1000);
 }
 // the input: a strip under the ground (lit where the button is held, a tick at each press,
@@ -371,6 +550,16 @@ function glow(c, b) { ctx.shadowColor = c; ctx.shadowBlur = b; }
 function drawObj(o) {
   const d = GD.objInfo(o.id);
   if (d.kind === "decoration" || d.kind === "trigger") return;
+  if (LS && d.kind === "hazard" && !d.shape.match(/saw|box/)) return local(o, () => GD.LOOK.drawSpike(ctx, null, LS, o, d, scale));
+  if (LS && (d.kind === "solid" || d.kind === "slope" || (d.kind === "hazard" && d.shape === "saw"))) return local(o, () => {
+    const c = GD.LOOK.css(LS.col[+(o.props && o.props[21])] || LS.col[1004]), hb = d.hit || { w: 30, h: 30 };
+    ctx.beginPath();
+    if (d.kind === "slope") { ctx.moveTo(-15, -15); ctx.lineTo(15, -15); ctx.lineTo(15, 15); ctx.closePath(); }
+    else if (d.kind === "hazard") ctx.arc(0, 0, d.r, 0, 7);
+    else ctx.rect((hb.ox || 0) - hb.w / 2, (hb.oy || 0) - hb.h / 2, hb.w, hb.h);
+    ctx.fillStyle = "rgba(0,0,0,.85)"; ctx.fill();
+    ctx.strokeStyle = c; ctx.lineWidth = 2; glow(c, 8 * scale / 3); ctx.stroke(); ctx.shadowBlur = 0;
+  });
   local(o, () => {
     ctx.lineWidth = 2 / scale;
     if (d.kind === "solid") {
@@ -440,7 +629,45 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 resize();
-if (ALL.length) { pick.value = 0; pick.onchange(); }
+// ---------- work in progress: the levels the sessions are working on, live from local/wip ----------
+// Listed first under "in progress"; ⟳ refresh fetches the newest versions without reloading the page.
+// The address bar keeps #lv=<file>&t=<seconds>, so a link opens that level at that moment.
+async function loadWip(keep) {
+  if (!location.protocol.startsWith("http")) return;
+  let list = [];
+  try { const r = await fetch("/wip/list", { cache: "no-store" }); if (r.ok) list = await r.json(); } catch (e) { return; }
+  const cur = ALL[pick.value];
+  for (let i = ALL.length - 1; i >= 0; i--) if (ALL[i].wip) ALL.splice(i, 1);
+  ALL.unshift(...list.map(l => Object.assign(l, { name: l.name })));
+  pick.innerHTML = "";
+  const groups = new Map();
+  ALL.forEach((l, i) => {
+    const g = l.wip ? "in progress" : /^official/.test(l.name) ? "official (this PC only)" : "levels";
+    if (!groups.has(g)) { const og = document.createElement("optgroup"); og.label = g; groups.set(g, og); pick.appendChild(og); }
+    const label = l.wip ? `${l.name}  —  ${l.session} v${l.version}, ${new Date(l.updated).toLocaleTimeString()}${l.note ? " · " + l.note : ""}` : l.name + "  —  " + l.file;
+    groups.get(g).appendChild(new Option(label, i));
+  });
+  const again = keep && cur ? ALL.findIndex(l => l.file === cur.file) : -1;
+  if (again >= 0) { const tt = t; pick.value = again; pick.onchange(); t = Math.min(tt, (L.path.length - 1) / P.TPS); draw(); }
+  else if (cur) pick.value = Math.max(0, ALL.findIndex(l => l.file === cur.file));
+}
+document.getElementById("refresh").onclick = () => loadWip(true);
+function hashParams() { return new URLSearchParams(location.hash.slice(1)); }
+function writeHash() { const l = ALL[pick.value]; if (!l || !L) return; history.replaceState(null, "", "#lv=" + encodeURIComponent(l.file) + "&t=" + (tick() / P.TPS).toFixed(2)); }
+document.getElementById("linkBtn").onclick = async () => {
+  writeHash();
+  try { await navigator.clipboard.writeText(location.href); document.getElementById("linkBtn").textContent = "✓ copied"; } catch (e) { prompt("Link to this moment:", location.href); }
+  setTimeout(() => document.getElementById("linkBtn").textContent = "🔗 link", 1500);
+};
+setInterval(() => { if (L && !playing) writeHash(); }, 1000);
+(async () => {
+  await loadWip(false);
+  const h = hashParams(), want = h.get("lv");
+  const i = want ? ALL.findIndex(l => l.file === want) : -1;
+  if (i >= 0) { pick.value = i; pick.onchange(); t = +h.get("t") || 0; draw(); }
+  else if (ALL.length) { pick.value = 0; pick.onchange(); }
+})();
+loadMarks();
 requestAnimationFrame(frame);
 </script>
 </body>
