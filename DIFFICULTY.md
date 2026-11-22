@@ -60,9 +60,17 @@ takes about 6 s for 3 minutes of video. Runs from 2026-11-22:
 | Geometrical Dominator | mouse | 1 | 72.0 % |
 | GDLM 42 (style session) | mouse | 8 | all 7-14 %, not beaten |
 
-The fit (maximum likelihood over cube timings, Base After Base, Stereo Madness and Time
-Machine) gives **SIGMA = 10.5 ms, LAPSE = 0.65 %**. That predicts 5.2, 2.3, 2.2 and 2.5 attempts
-against the real 5, 5, 1 and 1. Earlier, with no lapse term, Base After Base came out at
+`node tools/difficulty_fit.js` fits both numbers by maximum likelihood on every recorded attempt
+(19 attempts on 9 levels; an attempt that died at x% passed every input before x% and failed the
+next). It gives **SIGMA = 13 ms, LAPSE = 0.75 %**, which predicts cube timings 5.6 attempts
+(real 5), Jumper 2.8 (2), Base After Base 2.6 (5), Stereo Madness 2.5 (1) and Time Machine 2.9 (1).
+
+Tight inputs get the widest working moment, not the solver's. The sweep's route can be needlessly
+tight: at Jumper's 76% it lands on a slab corner past a spike, an 8 ms window, while the usual
+route has about 117 ms (found by the physics session). An input under 60 ms is rescanned over
+±200 ms. A moment counts only if the press there jumps or uses an orb, since a press that does
+nothing plus a re-press is not a route. The widest stretch that lives becomes the window.
+Jumper went from 25 expected attempts to 2.4. Earlier, with no lapse term, Base After Base came out at
 1 attempt: all four deaths there were where the windows are 108-400 ms. They were lapses, not
 timing misses.
 
@@ -71,7 +79,7 @@ timing misses.
 Deadlocked 3951. The others took 39-560. The game writes the save only now and then, so a
 session's attempts show up there late.
 
-## Against the official levels (new physics, human route, SIGMA 10.5, LAPSE 0.65 %)
+## Against the official levels (new physics, human route, SIGMA 10.5, LAPSE 0.65 %; before the widest-moment fix, rerun pending)
 
 | # | level | rating | covers | inputs | min ms | score | /min | your attempts |
 |---|---|---|---|---|---|---|---|---|
@@ -118,8 +126,8 @@ What it gets wrong:
   - quick land-and-jump chains (`quickRecoveries`). These were where all 8 of the player's deaths
     on GDLM 42 happened. But Jumper has 81 of them, rhythmic staircases, and the player cleared it
     in 2 attempts, so a chain is only hard when it is unexpected.
-- **Jumper's two 8 ms inputs (76% and 94%) are probably sim errors.** The player passed both on
-  the clean run, and half a frame is not a real window. Reported to the physics session.
+- **Jumper's 8 ms inputs were the solver's route, not the level.** Fixed with the widest-moment
+  scan above. The table still shows the old numbers (1.39 / 0.98).
 - **Partial coverage.** 6 of 22 levels are under 10% in the sim, and many more stop at a mode or
   hazard it gets wrong, so the ranks rest on fragments of the harder levels.
 - **Few runs.** SIGMA and LAPSE rest on four levels, two of them on the keyboard. Mouse and
