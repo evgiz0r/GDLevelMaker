@@ -30,3 +30,22 @@ Levels index (add a line per level file):
 | Pattern Seeker | ? | memory, invisible, repeating, synced | `levels/pattern_seeker.md` |
 
 Never commit level data or songs -- notes, opinions and facts about levels only.
+
+## Hand-off: how the community-level numbers are made (keeper: the knowledge session)
+
+    node tools/community.js list        # most-liked Featured/Epic/Legendary per tier -> local/community/list.json
+    node tools/community.js fetch       # download them (tools/fetch_level.js, from GD's server)
+    node tools/community.js measure     # per-tier / era / rating medians  -> levels/low_tier_stats.md
+    node tools/community.js sections    # by speed and by mode              -> levels/low_tier_stats.md
+    node tools/community.js modes       # easy-section anatomy per mode     -> levels/modes_low_tier.md
+    node tools/community.js comments    # top 60 comments per level
+    node tools/community.js themes      # theme counts                      -> players_say.md
+
+- Everything downloaded stays in `local/community/` (git-ignored, shared between worktrees). Other
+  people's levels and comments are never committed: only numbers and paraphrases go into `knowledge/`.
+- Each step is light (minutes), but `measure` runs one node process per level. Run it as the one
+  heavy job, not next to a solver.
+- Limits: static layout only (2.2 levels move their gameplay with triggers); hazard and orb
+  classes come from `lib/objects.js`; the most-liked sample favours old, famous levels.
+- Open: sync of these levels (only 4 of 87 songs are on this PC); why each level is good (top
+  comments rarely say); 2.2 levels need trigger-aware measuring.
