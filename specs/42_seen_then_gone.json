@@ -1,0 +1,43 @@
+{
+  "name": "GDLM 42 seen then gone",
+  "desc": "fair memory: learn the phrase, then play it as a faint ghost; only its last chunk ever goes fully blind",
+  "colours": { "bg": [40, 125, 255], "ground": [0, 102, 255], "ground2": [0, 102, 255] },
+  "objects": [
+    ["zoom", 2, { "to": 0.7 }],
+
+    ["pattern", "single", 14, 0, {}, { "group": 1 }],
+    ["pattern", "double", 20, 0, {}, { "group": 1 }],
+    ["pattern", "platform", 26, 0, { "w": 3, "h": 1 }, { "group": 1 }],
+    ["pattern", "double", 33, 0, {}, { "group": 1 }],
+
+    ["fade", 40, { "group": 2, "to": 0.35, "secs": 0.4 }],
+    ["pattern", "single", 44, 0, {}, { "group": 2 }],
+    ["pattern", "double", 50, 0, {}, { "group": 2 }],
+    ["pattern", "platform", 56, 0, { "w": 3, "h": 1 }, { "group": 2 }],
+    ["pattern", "double", 63, 0, {}, { "group": 2 }],
+
+    ["colour", 68, { "ch": "bg", "rgb": [20, 20, 60], "secs": 0.5 }],
+    ["fade", 6, { "group": 3, "to": 0.35, "secs": 0 }],
+    ["fade", 6, { "group": 6, "to": 0, "secs": 0 }],
+    ["pattern", "single", 74, 0, {}, { "group": 3 }],
+    ["pattern", "double", 80, 0, {}, { "group": 3 }],
+    ["pattern", "platform", 86, 0, { "w": 3, "h": 1 }, { "group": 3 }],
+    ["pattern", "double", 93, 0, {}, { "group": 6 }],
+
+    ["colour", 97, { "ch": "bg", "rgb": [205, 36, 36], "secs": 0.3 }],
+    ["pattern", "double", 104, 0, {}, { "group": 4 }],
+    ["pattern", "platform", 110, 0, { "w": 3, "h": 1 }, { "group": 4 }],
+    ["pattern", "single", 117, 0, {}, { "group": 4 }],
+    ["pattern", "double", 122, 0, {}, { "group": 4 }],
+
+    ["colour", 126, { "ch": "bg", "rgb": [20, 20, 60], "secs": 0.5 }],
+    ["fade", 6, { "group": 5, "to": 0.35, "secs": 0 }],
+    ["pattern", "double", 134, 0, {}, { "group": 5 }],
+    ["pattern", "platform", 140, 0, { "w": 3, "h": 1 }, { "group": 5 }],
+    ["pattern", "single", 147, 0, {}, { "group": 5 }],
+    ["pattern", "double", 152, 0, {}, { "group": 5 }],
+
+    ["colour", 156, { "ch": "bg", "rgb": [40, 125, 255], "secs": 1 }],
+    ["block", 170, 6]
+  ]
+}
