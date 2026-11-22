@@ -14,6 +14,7 @@ this file is the map per mode and per trigger. Last full update 2026-11-22.
 | is this id really a hazard/solid? | replays all plans with ids re-kinded | `node tools/tas_kind.js solid 661,662` |
 | which triggers levels use | counts per id over official + example levels | `node tools/triggers.js [files]` |
 | solve the rest from a state | `GD.solveFrom(w, state, {held})`: the sweep from any state, events in absolute ticks (for hand-made stretches, e.g. lib/natural.js) | - |
+| the model's own rules | small worlds: teleport, pad table, move/rotate/stop, mini, one-way | `node tests/mechanics.js` |
 | our own levels still solve | solver on every level | `node tools/check.js examples/*.gdlvl levels/*.gdlvl` (heavy: one at a time) |
 
 Sources (read before reinventing): camila314/gdp (2.2 decompiled physics functions), iArtie
@@ -71,7 +72,7 @@ A plan's tick t is our step t-1 (`tools/tas.js` shifts it). Plans reach, in bloc
 Bands: a flying mode's portal sets floor/ceiling 300 apart (ball 240, spider 270). Entering or
 leaving a flying mode halves vy. Velocities sit on a 0.001 grid.
 
-Open: ship ~0.5 unit low (Stereo Madness 328, Hexagon Force 141); a cube that walks off a ledge and
+Open: Fingerdash (lv21, 54): a black orb drops the cube at -15 beside a column of turned thorns (458) and it touches one by 1.3 units on the tick it reaches the column -- one tick earlier drop (or GD firing the orb in a different phase of the tick) clears it; the sim's own solver cannot pass there either. Ship ~0.5 unit low (Stereo Madness 328, Hexagon Force 141); a cube that walks off a ledge and
 presses just before landing jumps in the game, not in the sim; Theory of Everything 1 and 2 pink-orb
 sections ~30 units low; UFO, wave, robot, spider, swing want a recording of the user's own play.
 
@@ -110,11 +111,11 @@ colour 29/30/899/105/221/744/915/900, pulse 1006, alpha 1007 (still collides), e
 Firing: x passing the trigger's x; touch-triggered (11) when the player's box meets its 30x30;
 spawn-triggered (62) only from a spawn trigger. Not modelled: move "lock to player" (58/59) and
 "move to target" (100), the player carried sideways by a moving block, multi-trigger (87).
-The viewer draws moving objects where they start.
+The viewer draws moved, turned and switched-off objects where they are at each moment (GD.posedObjects).
 
 ## Not in the sim yet (the game has it)
 
-Modes/portals: dual (286/287), mirror, teleport portals (747/749). Triggers: count/pickup items,
+Modes/portals: dual (286/287), mirror. Teleport portals (747) are in, unchecked: same x, portal y + key 54, speed kept (no rotated exits, smooth teleport or the 2.2 options 345+); first used by Deadlocked at block 77, Fingerdash 205, Dash 435. Triggers: count/pickup items,
 scale, follow, on death, collision blocks, area triggers, gravity trigger, time warp. Others:
 keys and user coins (collectables only), start positions (levels always start at x 0), practice
 checkpoints, speed portals touched mid-air at a slant, force blocks, platformer mode, dash orbs'

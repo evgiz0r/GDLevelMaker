@@ -77,6 +77,7 @@
 <script src="../lib/physics.js"></script>
 <script src="../lib/sync.js"></script>
 <script src="../lib/look.js"></script>
+<script src="../lib/natural.js"></script>
 <script src="levels.js"></script>
 <script src="levels.local.js" onerror="window.GD_LEVELS_LOCAL = []"></script>
 <script src="beats.local.js" onerror="window.GD_BEATS = {}"></script>
@@ -118,6 +119,20 @@ function load(name, levelStr, saved, info) {
   let sol;
   if (saved) sol = saved.ok ? { ok: true, events: saved.events, clicks: [] } : { ok: false, trail: saved.events, clicks: [], dieAt: { x: saved.dieX || 0, tick: 0 }, why: saved.why || "" };
   else try { sol = GD.solveAny(world); } catch (e) { sol = { ok: false, clicks: [], trail: [], dieAt: GD.startState(world), why: e.message }; }
+  // the replay shows a natural way to play it (lib/natural.js: a tap per jump, no empty jumps, the
+  // ship and wave flown along the middle of their corridor), not the solver's fewest-presses run
+  // ("the path is unnatural ... empty clicks ... the ship looks like a wave", playtest). The
+  // "solver run" button shows the solver's own. Timing windows in the table stay the solver's.
+  if (sol.ok && !saved && GD.naturalPlan && !window.SOLVER_RUN) {
+    try {
+      const n = GD.naturalPlan(world, sol, level.objects);
+      if (n && n.path[n.path.length - 1].done) {
+        const ms = sol.clicks.filter(c => c.type === "press").map(c => c.ms);
+        sol = Object.assign({}, sol, { events: n.events, natural: true,
+          clicks: n.events.map(e => ({ type: e.type, tick: e.tick, lo: e.tick, hi: e.tick, ms: 0 })) });
+      }
+    } catch (e) { console.warn("natural plan failed:", e); }
+  }
   // a level that cannot be beaten replays the run that got furthest
   let events = sol.events;
   if (!sol.ok) {
@@ -168,8 +183,10 @@ function summary() {
   const unsim = L.level.objects.filter(o => ["unknown", "unsupported"].includes(GD.objInfo(o.id).kind)).length;
   const s = L.sol;
   let h = `<b>${esc(L.name)}</b><br><span class="muted">${L.level.objects.length} objects · ${(L.world.endX / 30).toFixed(0)} blocks · ${(L.world.endX / P.SPEED).toFixed(1)} s at 1×</span><br>`;
-  h += s.ok ? `<p class="ok">Beatable in ${s.clicks.length} click${s.clicks.length === 1 ? "" : "s"}` +
-              (s.clicks.length ? ` · tightest window ${Math.min(...s.clicks.map(c => c.ms))} ms` : "") + `</p>`
+  // presses only (a saved solution lists releases too); windows only where known (saved ones have none)
+  const nP = s.clicks.filter(c => c.type !== "release").length, ws = s.clicks.map(c => c.ms).filter(ms => ms > 0);
+  h += s.ok ? `<p class="ok">Beatable in ${nP} click${nP === 1 ? "" : "s"}` +
+              (ws.length ? ` · tightest window ${Math.min(...ws)} ms` : "") + `</p>`
             : `<p class="bad">Not beatable in the simulation. The furthest run dies at block ${(s.dieAt.x / 30).toFixed(1)} (${(s.dieAt.tick / P.TPS).toFixed(2)} s): ${s.why}. The replay shows that furthest run.</p>`;
   if (L.deaths && L.deaths.length) h += `<p class="bad">Your real deaths (normal mode, from recordings): ${L.deaths.length} at ${L.deaths.slice().sort((a, b) => a - b).map(p => p.toFixed(0) + "%").join(", ")} (red marks).</p>`;
   if (unsim) h += `<p class="muted">${unsim} objects are not simulated yet (unsupported portals or unknown ids).</p>`;
@@ -362,6 +379,8 @@ const sx = x => (x - camX) * scale, sy = y => groundY - (y - camY) * scale;
 function draw() {
   if (!L) return;
   const k = tick(), s = L.path[k];
+  // objects that triggers move, turn or switch off: drawn where they are at this moment
+  const objsNow = posedNow(s);
   // the game look: colours and zoom at this moment (zoom 0.7 = see more, everything smaller)
   LS = look ? GD.LOOK.stateAt(L.look, k / P.TPS) : null;
   // the game look frames like GD at 16:9: 10.67 blocks tall, ground 3.1 blocks up, player 36% across
@@ -394,7 +413,7 @@ function draw() {
   if (LS) {
     // objects as the game draws them: decoration, then blocks (fills, then outlines), then the rest;
     // the ground goes over anything below it
-    const on = L.level.objects.filter(o => sx(o.x) > -90 && sx(o.x) < W + 90), blocks = [];
+    const on = objsNow.filter(o => sx(o.x) > -90 && sx(o.x) < W + 90), blocks = [];
     for (const o of on) {
       const a = GD.LOOK.objAlpha(o, LS.alpha); if (a <= 0.01) continue;
       if (GD.LOOK.isSkin(o.id)) blocks.push([o, a]);
@@ -415,7 +434,7 @@ function draw() {
   ctx.strokeStyle = "#7d6bff"; ctx.lineWidth = 3; ctx.shadowColor = "#7d6bff"; ctx.shadowBlur = 12;
   ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke(); ctx.shadowBlur = 0;
   // objects
-  for (const o of L.level.objects) if (sx(o.x) > -60 && sx(o.x) < W + 60) drawObj(o);
+  for (const o of objsNow) if (sx(o.x) > -60 && sx(o.x) < W + 60) drawObj(o);
   }
   // end line
   ctx.strokeStyle = "rgba(61,255,176,.5)"; ctx.beginPath(); ctx.moveTo(sx(L.world.endX), 0); ctx.lineTo(sx(L.world.endX), groundY); ctx.stroke();
@@ -440,7 +459,12 @@ function draw() {
     for (const yy of [s.floorY, s.ceilY]) { ctx.beginPath(); ctx.moveTo(0, sy(yy)); ctx.lineTo(W, sy(yy)); ctx.stroke(); }
   }
   // the player
-  if (s.mode === "ship") drawShip(s); else if (LS) local({ x: s.x, y: s.y, rot: s.rot }, () => GD.LOOK.drawPlayerCube(ctx)); else drawCube(s);
+  // the player, drawn by its mode (a cube in every mode read wrong: "the wave looks like cube")
+  if (s.mode === "ship") drawShip(s);
+  else if (s.mode === "wave") drawWave(s);
+  else if (s.mode === "ball") drawBall(s);
+  else if (s.mode === "ufo") drawUfo(s);
+  else if (LS) local({ x: s.x, y: s.y, rot: s.rot }, () => GD.LOOK.drawPlayerCube(ctx)); else drawCube(s);
   if (showHit) { const hh = s.mini ? 9 : 15; ctx.strokeStyle = "#fff"; rectW({ x0: s.x - hh, x1: s.x + hh, y0: s.y - hh, y1: s.y + hh }); ctx.strokeStyle = "#f0f"; rectW({ x0: s.x - 4.5, x1: s.x + 4.5, y0: s.y - 4.5, y1: s.y + 4.5 }); }
   // the click table row of the input just made (the button strip shows it in the view)
   L.sol.clicks.forEach((c, i) => {
@@ -547,6 +571,13 @@ function local(o, fn) {
   ctx.scale(scale * (o.flipX ? -1 : 1), -scale * (o.flipY ? -1 : 1)); fn(); ctx.restore();
 }
 function glow(c, b) { ctx.shadowColor = c; ctx.shadowBlur = b; }
+function posedNow(s) {
+  const P0 = L.world.posed;
+  if (!P0 || !P0.length || !GD.posedObjects) return L.level.objects;
+  const out = L.level.objects.slice();
+  for (const p of GD.posedObjects(L.world, s)) out[p.i] = p.off ? null : p.o;
+  return out.filter(Boolean);
+}
 function drawObj(o) {
   const d = GD.objInfo(o.id);
   if (d.kind === "decoration" || d.kind === "trigger") return;
@@ -583,7 +614,7 @@ function drawObj(o) {
     } else if (d.kind === "slope") {
       ctx.beginPath(); ctx.moveTo(-15, -15); ctx.lineTo(15, -15); ctx.lineTo(15, 15); ctx.closePath();
       ctx.fillStyle = "rgba(61,123,255,.18)"; ctx.fill(); glow("#3d7bff", 10); ctx.strokeStyle = "#5b8fff"; ctx.stroke();
-    } else if (d.kind === "mode" || d.kind === "gravity" || d.kind === "size") {
+    } else if (d.kind === "mode" || d.kind === "gravity" || d.kind === "size" || d.kind === "teleport") {
       glow(d.color, 12); ctx.strokeStyle = d.color; ctx.lineWidth = 3 / scale;
       ctx.beginPath(); ctx.ellipse(0, 0, d.kind === "mode" ? 12 : 9, d.kind === "mode" ? 42 : 36, 0, 0, 7); ctx.stroke();
     } else if (d.kind === "speed") {
@@ -602,6 +633,30 @@ function drawShip(s) {
     glow("#3dffb0", 18); ctx.fillStyle = "#3dffb0";
     ctx.beginPath(); ctx.moveTo(-17, -8); ctx.lineTo(17, -2); ctx.lineTo(-17, 9); ctx.closePath(); ctx.fill();
     ctx.shadowBlur = 0; ctx.fillStyle = "#0e0828"; ctx.fillRect(-8, -1, 8, 7);
+  });
+}
+// wave: a small dart pointing where it is going (45 degrees up while held, down when not)
+function drawWave(s) {
+  const sp = (P.SPEEDS[s.sp] || P.SPEEDS[1]).x, a = Math.atan2(s.vy, sp);
+  local({ x: s.x, y: s.y, rot: 0 }, () => {
+    ctx.rotate(a); // local() flips y, so a positive angle points up
+    glow("#3dffb0", 18); ctx.fillStyle = "#3dffb0";
+    ctx.beginPath(); ctx.moveTo(14, 0); ctx.lineTo(-10, -10); ctx.lineTo(-5, 0); ctx.lineTo(-10, 10); ctx.closePath(); ctx.fill();
+    ctx.shadowBlur = 0; ctx.fillStyle = "#0e0828"; ctx.beginPath(); ctx.moveTo(6, 0); ctx.lineTo(-4, -4); ctx.lineTo(-4, 4); ctx.closePath(); ctx.fill();
+  });
+}
+function drawBall(s) {
+  local({ x: s.x, y: s.y, rot: s.rot }, () => {
+    glow("#3dffb0", 18); ctx.fillStyle = "#3dffb0"; ctx.beginPath(); ctx.arc(0, 0, 15, 0, 2 * Math.PI); ctx.fill();
+    ctx.shadowBlur = 0; ctx.fillStyle = "#0e0828"; ctx.beginPath(); ctx.arc(0, 0, 8, 0, 2 * Math.PI); ctx.fill();
+    ctx.fillStyle = "#3dffb0"; ctx.fillRect(-2, -15, 4, 30);
+  });
+}
+function drawUfo(s) {
+  local({ x: s.x, y: s.y, rot: 0 }, () => {
+    glow("#3dffb0", 18); ctx.fillStyle = "#3dffb0";
+    ctx.beginPath(); ctx.ellipse(0, 4, 17, 7, 0, 0, 2 * Math.PI); ctx.fill();
+    ctx.beginPath(); ctx.arc(0, 2, 9, 0, Math.PI); ctx.fill(); // y is up here: 0..pi is the top half
   });
 }
 function drawCube(s) {
