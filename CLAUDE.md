@@ -4,6 +4,28 @@ Claude writes Geometry Dash levels from a description, checks they can be beaten
 replaying with their clicks, and hands back a file the user imports into their real game.
 The user plays it and tells us what was off. Read this fully first.
 
+## Every session builds the project, not just its own task
+
+The user's standing rule: **no work is done only for its local goal.** Each session's job is its
+task AND leaving the project's knowledge, tools and structure better for every later session --
+which starts knowing nothing but what is written in this repo. Concretely, as part of the task,
+not after it:
+
+- **Findings go where the next session looks.** A measured number, a game rule, a gotcha, a
+  method that worked: into the right doc (`CLAUDE.md` for how to work here; `DIFFICULTY.md`,
+  `SYNC.md`, `STYLE.md` for those areas; `knowledge/` for GD knowledge and the user's critiques;
+  Calibration below for physics facts). Not only in a chat reply or a commit message.
+- **Scripts become tools.** Anything you ran twice, or that found a bug, goes into `tools/` (or
+  `tests/` if it checks something) with a usage line at the top -- never left in a scratchpad.
+- **Docs stay true.** When you find a note wrong or stale, fix it in the same change. A stale
+  note is worse than none.
+- **Structure is part of the work.** If something has no obvious home, make one and link it from
+  here (the "Files" list) so it can be found. Keep this file the map of the project.
+- **Hand off.** Before a long pause or when your area changes hands, write where you stopped,
+  what is open and the good numbers into your area's doc.
+- **Share, don't duplicate.** Results go into the shared `local/` (see below) so no session redoes
+  another's work; tell the session that owns an area when you learn something about it.
+
 ## Before making or judging a level: read knowledge/
 
 `knowledge/` is a general GD knowledge base (not the user's personal taste): `design.md` (what
