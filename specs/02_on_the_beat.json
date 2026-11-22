@@ -1,0 +1,27 @@
+{
+  "name": "GDLM 02 on the beat",
+  "desc": "every click on a beat of Stereo Madness's song",
+  "song": {"official": 1},
+  "speed": "1x",
+  "grid": {"bpm": 160.0, "t0": 0.2443},
+  "objects": [
+    ["spike", "j9", 0],
+    ["spike", "j11", 0],
+    ["spike", "j13", 0],
+    ["spike", "j15", 0], ["spike", "j15+1", 0],
+
+    ["spike", "j17", 0],
+    ["yellow orb", "b18", 1],
+    ["spike", "b18-1", 0], ["spike", "b18", 0], ["spike", "b18+1", 0], ["spike", "b18+2", 0], ["spike", "b18+3", 0],
+
+    ["spike", "j21", 0],
+    ["spike", "j23", 0], ["spike", "j23+1", 0],
+
+    ["yellow pad", "b27", 0],
+    ["spike", "b27+2", 0], ["spike", "b27+3", 0], ["spike", "b27+4", 0], ["spike", "b27+5", 0],
+
+    ["spike", "j31", 0],
+    ["spike", "j33", 0],
+    ["spike", "j35", 0], ["spike", "j35+1", 0], ["spike", "j35+2", 0]
+  ]
+}

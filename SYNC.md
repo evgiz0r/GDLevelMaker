@@ -1,0 +1,209 @@
+# Music sync
+
+How the levels follow their songs: beat detection, a sync score per level, what the official
+levels do, and how to write a synced level. The numbers come from the songs and levels on the
+user's PC; the per-level data lives in `local/` (gitignored) because it is about RobTop's levels
+and songs.
+
+## Commands
+
+| step | command | time |
+|---|---|---|
+| beat grids of every song on this PC | `node tools/beats.js` (`--force` to redo) | ~1 s per song, 45 s for all 41 |
+| check the beat finder on made-up songs | `node tests/beats_synth.js` | ~50 s |
+| sync of the official + repo levels | `node tools/sync.js` | ~7 s |
+| ... of the user's own levels in the save | `node tools/sync.js --save` | ~5 s (positions only, no solving) |
+| a level written in beats | `node tools/make.js specs/02_on_the_beat.json` | a few s |
+
+`tools/beats.js` writes `local/beats/<song>.json` and `viewer/beats.local.js` (the viewer's
+beat lines). `tools/sync.js` writes `local/sync/*.json`. All are gitignored.
+
+## 1. Finding the beat
+
+No dependencies (librosa could not be installed here, and the repo has none): ffmpeg decodes
+to mono 22050 Hz, the rest is plain JS in `tools/beats.js`:
+
+1. 2048-point FFT every 11.6 ms, 40 log-spaced bands, log-compressed; onset envelope = summed
+   positive change (spectral flux) minus its 1 s moving average. The bands under 150 Hz give a
+   second, kick-drum envelope.
+2. Tempo candidates from the envelope's autocorrelation (60-240 BPM). Each candidate and its
+   3/2, 2/3, 2 and 1/2 is fitted as one fixed grid `t0 + k*period` over the whole song (period
+   to 0.002%, phase to 0.6 ms). The winner is the grid whose beats carry the most onset energy
+   compared with the song overall ("ratio"). A slow grid wins that too easily, so a grid whose
+   half-beats are also strong counts as its double. A mild 140 BPM preference breaks near-ties.
+3. Downbeat = the beat (mod 4) with the most kick-drum flux. Section changes = beats where the
+   next 8 beats are 3 dB or more louder or quieter than the previous 8.
+4. Confidence: high = ratio >= 3 and the best local phase never strays more than 25 ms from
+   the grid in any 15 s piece; medium = ratio >= 2.3 and drift <= 60 ms; else low.
+
+**Checks.** On made-up songs (kick per beat, accented downbeat, off-beat hi-hats, noise;
+100-174 BPM) the tempo is within 0.004 BPM, the phase within 4 ms and the downbeat right
+(5/5). The flux peak comes 28 ms before the true onset (the onset is in the second half of the
+window); that is corrected (`LAG`). On the 22 official songs it finds whole-number tempos (a
+good sign for electronic music made on a grid): Stereo Madness 160, Back On Track 142,
+Polargeist 163, Dry Out 145, Base After Base 141, Can't Let Go 170, Jumper 178, Time Machine
+143, Cycles 140, xStep 130, Clutterfunk 140, Theory of Everything 130, Electroman 170,
+Clubstep 128, Electrodynamix 127, Hexagon Force 163, Blast Processing 135, ToE 2 132,
+Geometrical Dominator 148, Deadlocked 135, Fingerdash 112, Dash 128. 21 high, Clubstep low
+(its grid drifts ~120 ms in places). The levels then agree with these grids (section 3), which
+checks the tempos and the time mapping together. Picking by the z-score instead chose 3/2
+tempos (ToE 195, Deadlocked 202) whose grids the levels do not follow; the ratio rule fixed
+that.
+
+**Not checked:** custom songs with tempo changes. `drift` flags them: custom songs 10000912,
+10007496, 10010007, 685746 and 850364 drift 70-170 ms from one fixed grid somewhere in the song
+(low confidence). A level on such a song needs local grids, which are not built.
+
+## 2. Measuring sync
+
+`lib/sync.js` (node and browser), driven by `tools/sync.js`:
+
+- **Level time to song time.** Song second = level offset (`kA13`) + level time; level time
+  comes from x through the speed portals (`timeline`), as the physics moves the cube. It
+  matches the replayed run exactly (0 units off) on every solved level. A scan of an "effective
+  speed" factor 0.8-1.2 over all 22 official levels peaks at exactly 1.000, and the portals sit
+  0.03 beat (~12 ms) before the beat by their centres: the mapping has no hidden offset.
+- **Events:** presses (from a solution), orbs, pads, portals, spike runs (hazards less than a
+  block apart are one obstacle, timed at the first). Objects are timed when the cube's centre
+  passes the object's centre. That is how the official levels line up: by first contact the
+  portals would sit 0.3 beat early.
+- **Windows, not ticks.** For each press of a known solution, `pressWindows` shifts it (and its
+  release) one 240 Hz step at a time and replays; the window is every shift that still beats
+  the level. An orb's window is the time the cube overlaps it. "On the beat" = the window
+  comes within 35 ms of a beat line.
+- **Scores per level and kind:** `kappa = (hit - chance) / (1 - chance)`, where chance = the
+  hit rate with the beat grid slid to 48 other phases (a wide window hits by luck; this says how
+  often). 1 = everything on the beat, 0 = no better than luck. `p` = share of slid grids doing
+  at least as well. `R` = how tightly the events cluster at one phase of the beat (1 = all
+  together; about 1/sqrt(n) by luck), with that phase in ms.
+
+Presses exist only where the physics can beat the level: official 1-3 (from `tools/official.js`)
+and the repo's levels. Levels 4-22 are measured by object positions.
+
+## 3. Findings: what the official levels put on the beat
+
+Pooled over all 22 official levels:
+
+| kind | n | beat R | vs luck | phase | on the 1st beat of a bar |
+|---|---|---|---|---|---|
+| speed portals | 67 | 0.37 | x3.0 | +0.11 beat | **78%** |
+| mode portals | 178 | 0.27 | x3.6 | -0.04 beat | **61%** |
+| gravity portals | 248 | 0.14 | x2.2 | -0.03 beat | 31% |
+| orbs | 730 | 0.08 | x2.0 | -0.03 beat | 22% |
+| pads | 504 | 0.05 | x1.0 | - | 24% |
+| spike runs | 1214 | 0.03 | x1.0 | - | 26% |
+| presses (levels 1-3) | 88 | 0.10 | x0.9 | - | 18% |
+
+(25% = luck for the bar column.)
+
+- **Transitions are synced, obstacles are not.** RobTop puts a portal's centre on the beat,
+  most often the first beat of a bar. 49% of those bar-start portals open a 4-bar (16-beat)
+  phrase (luck: 25%). The gaps between mode portals are most often 16 beats (37 times), then 8
+  (28) and 32 (13): a new section of the level comes with a new 4- or 8-bar phrase.
+- **Spikes and presses keep the rhythm locally, not the phase.** Over 6 events in a row,
+  orbs agree on a phase at the song's tempo (R 0.44 vs 0.34 +- 0.03 at unrelated tempos, about
+  3.7 sigma) and spike runs weakly (0.39 vs 0.34, about 2 sigma). Over a whole level the phase
+  is lost. One reason: GD's block grid does not divide the beat (at 1x and 160 BPM a beat is
+  3.9 blocks), so a pattern spaced in whole blocks drifts against the music.
+- **Song section changes** (my loudness-based detector) have a portal within 2 beats 39% of
+  the time against 32% by luck: weak. The detector is crude; the bar and phrase result is the
+  solid one.
+
+Per level (mode + speed portals within 0.15 beat of a beat (luck 30%) and of a bar start
+(luck 7.5%); gravity portals on a beat; orb kappa; spike-run R; press kappa where solved):
+
+| level | BPM | portals | on beat | on bar | grav. on beat | orb kappa | spike R | press kappa |
+|---|---|---|---|---|---|---|---|---|
+| xStep | 130 | 7 | 86% | 86% | 65% of 20 | 0.53 | 0.10 | |
+| Hexagon Force | 163 | 16 | 81% | 81% | 55% of 11 | -0.12 | | |
+| Blast Processing | 135 | 11 | 73% | 73% | 20% of 5 | 0.21 | | |
+| Deadlocked | 135 | 40 | 63% | 60% | 41% of 32 | 0.17 | | |
+| Theory of Everything 2 | 132 | 29 | 45% | 45% | 41% of 29 | 0.12 | | |
+| Fingerdash | 112 | 21 | 48% | 43% | 25% of 4 | 0.05 | 0.04 | |
+| Electrodynamix | 127 | 13 | 46% | 38% | 36% of 14 | 0.44 | 0.33 | |
+| Theory of Everything | 130 | 11 | 36% | 18% | 29% of 21 | 0.13 | 0.21 | |
+| Time Machine | 143 | 3 | 33% | 0% | 40% of 10 | **0.84** | 0.21 | |
+| Electroman Adventures | 170 | 11 | 36% | 0% | 50% of 6 | **0.79** | 0.18 | |
+| Clubstep | 128 | 13 | 38% | 8% | 35% of 23 | -0.11 | 0.04 | |
+| Geometrical Dominator | 148 | 19 | 21% | 11% | 0% of 4 | 0.10 | | |
+| Dash | 128 | 25 | 16% | 4% | 25% of 8 | 0.03 | 0.18 | |
+| Stereo Madness | 160 | 4 | 25% | 0% | | | **0.39** of 50 | -0.12 |
+| Back On Track | 142 | 2 | 50% | 50% | | | 0.17 | 0.12 |
+| Polargeist | 163 | 2 | 0% | 0% | | 0.11 | 0.05 | -0.07 |
+| Clutterfunk | 140 | 4 | 0% | 0% | 18% of 17 | -0.16 | 0.09 | |
+
+(Levels with 2-4 portals say little either way.)
+
+- **Most synced:** xStep, Hexagon Force, Blast Processing, Deadlocked. Their portals and
+  section changes land on bar starts. Time Machine and Electroman put their orbs on beats
+  (kappa 0.8). Stereo Madness is the only one whose spikes keep one phase across the level.
+- **Least synced:** Clutterfunk, Polargeist, Dash, Geometrical Dominator, Clubstep (whose own
+  beat grid is the least certain).
+- **The user's levels** (`--save`, 22 levels, 5 on songs not on this PC): mostly short tests
+  with too few events to score. "cube timings" puts all 5 of its orbs on beats (kappa 1.0); its
+  presses are loose (0.23). No user level is synced at the official levels' bar level.
+
+How GD makers place sync, from this: build a section per 4- or 8-bar phrase and start it with
+a portal (or a speed change) whose centre is on that bar's first beat; put orbs on beats when
+the music has a clear hit; let spikes follow the rhythm loosely (the block grid makes exact
+phase impossible at most tempos). Clicks on the beat are a choice of the level maker, not
+something the official levels do throughout.
+
+## 4. Writing levels in beats
+
+`tools/make.js` specs take a song and beat positions (full syntax at the top of the file):
+
+```json
+{ "name": "GDLM 02 on the beat", "song": {"official": 1}, "speed": "1x",
+  "grid": {"bpm": 160.0, "t0": 0.2443},
+  "objects": [ ["spike", "j9", 0], ["yellow orb", "b18", 1], ["spike", "b18+1", 0] ] }
+```
+
+- `"bN"`: where the cube's centre is on level beat N (beat 1 = the first beat at or after the
+  level start, `kA13`). Orbs, pads and portals placed there are hit on the beat, as the
+  official levels do it. `"b16.5"` is the half-beat; `"b16+2"` is two blocks later.
+- `"jN"`: a spike placed so that the jump over it is pressed on beat N. It starts from the
+  one-spike jump lead (below). Then make.js solves the level, finds the press that clears each
+  jN group (all objects with the same jN) and slides the group until that press's window is
+  centred on the beat (up to 6 rounds). Spike runs, double spikes and orbs then still land on
+  the beat.
+- Speed portals placed by beat are placed first and change the timing after them.
+- `"grid"` pins the beat grid so the spec works without the song; without it, make.js takes
+  `local/beats` and prints the grid to paste in.
+- After building, make.js prints each press's window in beats and how many can land on a beat
+  or half-beat. `specs/02_on_the_beat.json` gets 12/12.
+
+Cube limits (from the physics, one jump on flat ground):
+
+| speed | jump lead (blocks) | in the air | press window | fastest tempo for a jump on every beat | blocks per beat at 140 BPM |
+|---|---|---|---|---|---|
+| 0.5x | 1.74 | 0.417 s | 192 ms | 144 BPM | 3.59 |
+| 1x | 2.22 | 0.429 s | 238 ms | 140 BPM | 4.45 |
+| 2x | 2.88 | 0.442 s | 275 ms | 136 BPM | 5.53 |
+| 3x | 3.35 | 0.408 s | 279 ms | 147 BPM | 6.69 |
+| 4x | 4.16 | 0.375 s | 292 ms | 160 BPM | 8.23 |
+
+So at most GD tempos (130-180 BPM) a cube jumps on every other beat. Steps on every beat or
+half-beat need orbs, pads or ship/ball modes. make.js warns when two jN are closer than a jump
+lasts.
+
+## 5. In the viewer
+
+With `node tools/serve.js` and the song on this PC, the viewer shows:
+
+- a line per beat in the level (brighter and numbered on bar starts);
+- a strip under the level with every beat, the song's section changes (orange = louder,
+  violet = quieter), the presses and the playhead; click it to seek;
+- the beat in the clock and in the click table.
+
+The "beats" button hides them. Levels whose song has no grid say so in the Level card.
+
+## Open
+
+- Presses for official levels 4-22 need the other game modes in the physics.
+- Not yet felt in the game: whether "on the beat" by this measure feels on the beat to the
+  user (the official portals say the time mapping is right; GD's audio latency on the user's
+  PC is not measured).
+- Section detection is loudness only; a spectral-change detector would test "portal on the
+  drop" properly.
+- Songs with tempo changes need local grids.

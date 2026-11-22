@@ -3,3 +3,4 @@ node_modules/
 *.ogg
 local/
 viewer/levels.local.js
+viewer/beats.local.js
