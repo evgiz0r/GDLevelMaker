@@ -120,8 +120,8 @@ function toCol(col, ctx, tl) {
 }
 const colAt = entry => entry[0] === "pattern" ? 2 : 1;
 
-function make(specFile) {
-  const spec = JSON.parse(fs.readFileSync(specFile, "utf8"));
+// spec (already parsed) -> { level, rec, ctx, objects, header }: everything but writing and checking
+function build(spec, specFile = "spec") {
   const song = songOf(spec);
   const kA4 = spec.speed ? SPEED_NAMES[spec.speed] : 0;
   if (kA4 === undefined) throw new Error("speed must be one of " + Object.keys(SPEED_NAMES).join(" "));
@@ -178,6 +178,13 @@ function make(specFile) {
   const rec = GD.newRecord(spec.name, spec.desc || "made by GDLevelMaker");
   if (song && song.k45) GD.setField(rec, "k45", "i", song.k45);
   if (song && song.k8) GD.setField(rec, "k8", "i", song.k8);
+  return { level, rec, ctx, objects, header };
+}
+
+// spec file (or an already parsed spec) -> levels/<name>.gdlvl, checked, added to the viewer
+function make(specFile, specObj) {
+  const spec = specObj || JSON.parse(fs.readFileSync(specFile, "utf8"));
+  const { level, rec, ctx, objects, header } = build(spec, specFile);
   const out = path.join(__dirname, "..", "levels", slug(spec.name) + ".gdlvl");
   writeGdlvl(out, rec, level);
   const r = report(out);
@@ -242,4 +249,4 @@ if (require.main === module) {
   if (!specs.length) { console.log("usage: node tools/make.js specs/<name>.json [...]"); process.exit(1); }
   for (const s of specs) make(s);
 }
-module.exports = { make, TYPES };
+module.exports = { make, build, slug, TYPES };

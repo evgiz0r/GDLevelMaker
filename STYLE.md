@@ -134,6 +134,15 @@ Hard levels with tight triples are fine and wanted (players want hard levels). T
 GDLM 41/42 are kept easy (windows 60 ms+) only because the user is testing the tools, not
 training for difficulty.
 
+**Recovery** (real-game data, GDLM 42 v3 in normal mode on the mouse, read by the difficulty
+session from recording 19:45): 8 attempts, every death in the first ~14%, at the first double and
+the platform after it. In the sim the first phrase made you land and jump again within 0-130 ms
+(single -> double -> platform). The solver does that, a person does not, unless they hold the
+button. `score.js` now has a **recovery** gate: time from landing to the next press window, at
+least 150 ms for Easy, 100 ms for Normal (`minRecoveryMs` in the brief). GDLM 42 v4 spaces the
+phrase so every press is 200+ ms after landing. With the gate on, GDLM 43's brief can no longer
+reach Normal (its "Normal" came from those chains): the loop says so and keeps a fair Easy (0.20).
+
 Shapes that cause prejumps: a jump that must start on a higher step to reach something far off;
 a pad or orb that does not clear its hazards by itself; a hazard hidden under a floating block.
 
@@ -169,7 +178,41 @@ So the default is **fair memory**: memory helps, it is never the only way to see
 8. "Unfair memory" (whole phrases blind, off-grid spacing like spikes 1.1 squares apart) only
    when the user asks for a deliberately unfair level.
 
+## 2b. The loop: idea -> finished level, before the user sees it
+
+The user's wish: the whole loop settled before a person looks for the first time. They give an
+idea (a picture, a sketch, words); what they get back has already passed every gate.
+
+1. **Brief** (`briefs/NN_name.json`, written by Claude from the idea): name, idea, story,
+   difficulty target (`label` on lib/difficulty.js's scale, `minWindowMs`), style, colours, song,
+   and **sections** -- `{"name", "blocks", "use": [patterns], "gaps", "args", "bg", "ground",
+   "rest", "objects"}`. Full format at the top of `tools/compose.js`.
+2. **Compose** (`node tools/compose.js briefs/NN_name.json`, ~20-60 s for a 30 s level): fills
+   each section from its patterns (a new pattern first gets room on both sides, then mixes in),
+   colour per section, rests where the brief has them; writes `specs/NN_name.json` and builds it.
+3. **Score** (`node tools/score.js level.gdlvl --brief briefs/NN.json`): one report, every gate:
+   beatable, prejumps, timing floor, difficulty vs target, pacing, variety, readability of
+   decoration, colour per section, beat sync (with a song), unconfirmed hitboxes.
+4. **Repair**, in the same command: a failing gate is traced to the chunk that causes it, which
+   gets 2 more columns before it, then an easier pattern. Off the difficulty target, chunks are
+   made harder (or easier) a few at a time, later sections first, and a change is kept only if
+   no gate breaks. Every round goes to `briefs/NN_name.log.md`: what failed, what was changed, what
+   was kept or undone. If the target cannot be reached, it says why (patterns, floor, length) --
+   then Claude rethinks the brief (GDLM 43: Normal was out of reach at 24 s; at 33 s it got there).
+5. **Look** (Claude): viewer screenshots, and later the real game (bot replay, physics session).
+6. **Hand over**: installed level + the brief + the log. The user plays and reports; what they say
+   becomes a gate or a rule here.
+
+Still to build: screenshot strips for step 5, a one-page design note for step 6, songs in
+briefs end to end (score.js has the sync gate; compose places by columns, not beats yet).
+
 ## 3. The examples
+
+- `briefs/43_climb.json` -> `levels/gdlm_43_climb.gdlvl`: the first level made by the loop.
+  Brief: classic cube, ground spikes -> platforms/stairs -> orbs/pads/gate, blue -> violet -> red,
+  target Normal with a 40 ms floor. First run: Normal (0.33) in 16 rounds. With the recovery gate
+  (no land-and-jump-at-once), Normal is out of reach: 28 rounds, 89 s, kept Easy (0.20),
+  26 presses, tightest 46 ms. Log: `briefs/43_climb.log.md`.
 
 - `specs/41_classic.json` -> `levels/gdlm_41_classic.gdlvl`: 3 sections (blue, purple, red),
   spikes -> stairs/hops/gate/orb -> pad/triple/platform, back to blue for the ending.
