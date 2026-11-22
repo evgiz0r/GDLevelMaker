@@ -275,6 +275,22 @@ Checks learnt on the way (in `tools/sightread.js`, `tools/score.js`):
 - A pattern that needs no input is a dead bar: "descend" with 2-wide pits let the cube fall
   across by itself; 3-wide pits make each drop a jump.
 
+Playtest of GDLM 44 v2 ("more patterns, not too bad of a draft"), and what changed for v3:
+- **Portals sit at the corridor's entrance, centred on the path** -- the wave portal was off.
+  `ship-tunnel` / `wave-zigzag` now place their own portal (`portal: true`) and a framed exit
+  portal (`exit: "cube"`).
+- **Block unwanted paths** (general practice: avoid "secret ways" past parts of the level). The
+  solver flew the ship over the unframed exit, skipped the orbs and played the rest as a ship.
+  New `skips` gate: the solved run must touch every portal (FAIL) and every orb (WARN).
+- **Balance**: the wave was harder than the rest. Not by timing (its windows were 133-217 ms like
+  everything else) but by room: 3 rows free (2 at the turns) against the ship's 5. Corridors now
+  keep the room even at the turns; Easy = 4 rows. (Room is a difficulty measure the window model
+  misses -- for the difficulty session.)
+- **A big hit in the song needs a big change in the play**: v2 started an orb ladder on the hit
+  and it read as "the same play". v3 switches to the ship on the hit.
+- Prejumps are exact only for cube levels (exact solver). On levels with modes the check is
+  approximate (later inputs fixed in time) and the gate is a WARN.
+
 **Jump indicators** (common in modern levels; they also show what the level intends): spec
 `"indicators": {"id": N}` puts a small mark just above the surface at every cube/robot takeoff
 (upside down: under the ceiling, pointing down), from the solved run (`tools/decorate.js`). Orb

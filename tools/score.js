@@ -15,6 +15,8 @@
 //   readability  spike-like decoration (18-21) never within 2 columns of a hazard
 //   colour       a colour change per section (when the brief has sections)
 //   sync         presses that can land on a beat (only with a song; WARN only)
+//   skips        the solved run goes through every mode/gravity/speed portal (FAIL) and uses every
+//                orb (WARN): a "secret way" past part of the level means a path should be blocked
 //   objects      gameplay objects with unconfirmed hitboxes (sure:false; WARN only)
 // Cost: two solves of the level (a few seconds for a 30 s cube level). One at a time.
 const fs = require("fs");
@@ -43,7 +45,8 @@ function scoreLevel(level, brief, opts = {}) {
   if (r.ok) {
     const s = sightread(level);
     bad = s.ok ? s.presses.filter(p => p.flag) : [];
-    gate("prejumps", bad.length ? "FAIL" : "PASS", bad.length ? bad.map(p => `block ${p.to.toFixed(0)} (${p.lead.toFixed(1)} ahead of ${p.cue} at ${p.cueAt.toFixed(0)})`).join("; ") : "none");
+    // approximate on levels with modes (sweep solver, fixed later inputs): a WARN, not a FAIL
+    gate("prejumps", bad.length ? (s.approx ? "WARN" : "FAIL") : "PASS", bad.length ? bad.map(p => `block ${p.to.toFixed(0)} (${p.lead.toFixed(1)} ahead of ${p.cue} at ${p.cueAt.toFixed(0)})`).join("; ") + (s.approx ? " (approximate: level with modes)" : "") : "none");
   }
 
   // windows: the exact solver gives them per press; the sweep solver (ship, wave ... levels) does
@@ -136,6 +139,21 @@ function scoreLevel(level, brief, opts = {}) {
       const share = on / Math.max(1, pw.windows.length);
       gate("sync", share >= (brief.syncShare ?? 0.6) ? "PASS" : "WARN", `${on}/${pw.windows.length} presses can land on a beat or half-beat`);
     }
+  }
+
+  // skips: which portals and orbs the solved run never touched
+  if (r.ok) {
+    const path = runPath();
+    const touched = o => {
+      const hb = GD.hitbox(o); if (!hb) return true;
+      for (let t = 0; t < path.length; t += 2) { const p = path[t]; if (p.x + 15 >= hb.x0 && p.x - 15 <= hb.x1 && p.y + 15 >= hb.y0 && p.y - 15 <= hb.y1) return true; }
+      return false;
+    };
+    const portals = level.objects.filter(o => ["mode", "gravity", "speed"].includes(GD.objInfo(o.id).kind));
+    const orbs = level.objects.filter(o => GD.objInfo(o.id).kind === "orb");
+    const missedP = portals.filter(o => !touched(o)), missedO = orbs.filter(o => !touched(o));
+    gate("skips", missedP.length ? "FAIL" : missedO.length ? "WARN" : "PASS",
+      missedP.length || missedO.length ? [...missedP, ...missedO].map(o => `${GD.objInfo(o.id).name} at block ${((o.x - 15) / 30).toFixed(0)}`).join("; ") + " not touched by the solved run: block that way past it" : `all ${portals.length} portals and ${orbs.length} orbs on the path`);
   }
 
   const unsure = level.objects.filter(o => { const d = GD.objInfo(o.id); return ["solid", "hazard", "orb", "pad", "slope"].includes(d.kind) && d.sure === false; });

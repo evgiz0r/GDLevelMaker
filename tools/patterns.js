@@ -97,28 +97,50 @@ def("orb-ladder", "yellow orbs climbing over a spike floor; rows = orb heights, 
   rows.forEach((r, i) => o.push([a.orb || "yellow orb", 1 + i * dx, r]));
   return { objects: o, width };
 });
-def("ship-tunnel", "a ship corridor (band rows 0-9): floor and roof follow a wave, `gap` rows of air, teeth on the bends", (a) => {
-  const w = a.w || 16, gap = a.gap || 4, amp = a.amp ?? 2, base = a.base ?? 2, o = [];
+// Flying corridors are placed at row 0 (their band is rows 0-9: GD sets a ship/wave band's floor
+// from the portal's height, and any portal at row 5 or lower gives floor 0). `portal: true` puts
+// the mode's portal one column before the corridor, centred on the path's first row -- a portal
+// off the path reads wrong (playtest, GDLM 44 v2). `exit: "cube"` puts a cube portal after it,
+// centred on the last row of the path.
+// The exit portal gets a frame (blocks above and below it, rows 0-9) so the only way out of the
+// corridor is through it: without one the solver flew over GDLM 44's exit and played on as a ship.
+function portals(o, mode, entryRow, exitRow, w, a) {
+  if (a.portal) o.push([mode + " portal", -1, entryRow]);
+  if (a.exit) {
+    o.push([a.exit + " portal", w, exitRow]);
+    for (let r = 0; r < 10; r++) if (r < exitRow - 1 || r > exitRow + 1) o.push(["block", w, r]);
+  }
+}
+def("ship-tunnel", "a ship corridor (band rows 0-9): floor and roof follow a wave, `gap` rows of air, teeth on the bends; portal/exit options", (a) => {
+  const w = a.w || 16, gap = a.gap || 5, amp = a.amp ?? 1.5, base = a.base ?? 1, o = [];
+  const floorAt = c => Math.max(0, Math.round(base + amp * Math.sin(c / w * 2 * Math.PI)));
   for (let c = 0; c < w; c++) {
-    const f = Math.round(base + amp * Math.sin(c / w * 2 * Math.PI)); // floor top row (blocks 0..f-1)
-    const roof = f + gap;                                              // first roof row
+    const f = floorAt(c);              // floor top row (blocks 0..f-1)
+    const roof = f + gap;              // first roof row
     for (let r = 0; r < f; r++) o.push(["block", c, r]);
     for (let r = roof; r < 10; r++) o.push(["block", c, r]);
-    if (a.teeth && c % 4 === 2) { o.push(["spike", c, f]); o.push(["spike", c, roof - 1, { rot: 180 }]); }
+    // teeth alternate floor / roof, never both in one column (both at once left 3 rows: 42 ms)
+    if (a.teeth && c % 8 === 2) o.push(["spike", c, f]);
+    if (a.teeth && c % 8 === 6) o.push(["spike", c, roof - 1, { rot: 180 }]);
   }
-  return { objects: o, width: w };
+  const mid = c => floorAt(c) + (gap - 1) / 2;
+  portals(o, "ship", Math.min(5, Math.round(mid(0))), Math.round(mid(w - 1)), w, a);
+  return { objects: o, width: w + (a.exit ? 1 : 0) };
 });
-def("wave-zigzag", "a wave corridor (band rows 0-9): the path climbs and falls 45 degrees, `seg` columns per leg, `gap` rows", (a) => {
-  const seg = a.seg || 4, legs = a.legs || 4, gap = a.gap || 3, low = a.low ?? 1, o = [];
+def("wave-zigzag", "a wave corridor (band rows 0-9): the path climbs and falls 45 degrees, `seg` columns per leg, `gap` rows of room (4 = Easy); portal/exit options", (a) => {
+  const seg = a.seg || 4, legs = a.legs || 4, gap = a.gap || 4, low = a.low ?? 2, o = [];
   const w = seg * legs;
+  const midAt = c => { const leg = Math.floor(c / seg), k = c % seg; return low + (leg % 2 === 0 ? k : seg - k); };
   for (let c = 0; c < w; c++) {
-    const leg = Math.floor(c / seg), k = c % seg;
-    const mid = low + (leg % 2 === 0 ? k : seg - k);  // path row at this column
-    const bottom = mid - Math.floor(gap / 2), top = bottom + gap;
+    // the room is measured around the path over this column and its neighbours, so the turns do
+    // not pinch (square blocks at an apex left 2 rows where the legs had 4)
+    const ms = [midAt(Math.max(0, c - 1)), midAt(c), midAt(Math.min(w - 1, c + 1))];
+    const bottom = Math.min(...ms) - Math.floor(gap / 2), top = Math.max(...ms) - Math.floor(gap / 2) + gap;
     for (let r = 0; r < bottom; r++) o.push(["block", c, r]);
     for (let r = top; r < 10; r++) o.push(["block", c, r]);
   }
-  return { objects: o, width: w };
+  portals(o, "wave", Math.min(5, midAt(0)), midAt(w - 1) + (legs % 2 === 0 ? 0 : 0), w, a);
+  return { objects: o, width: w + (a.exit ? 1 : 0) };
 });
 
 // expand one spec entry ["pattern", name, col, row, args] into plain entries
