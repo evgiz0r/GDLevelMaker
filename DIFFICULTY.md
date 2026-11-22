@@ -159,6 +159,53 @@ Read it as rough guide rails, not a classifier:
 On the player's mouse runs: up to Harder they clear first try or in 2-5 attempts, and Insane
 gets 70-90% on the first try.
 
+## Telling Easy, Normal, Hard and Harder apart: layout
+
+The timing score puts every tier up to Harder at about 0.3 per minute, so the tiers are told apart
+by layout: `layout(w)` and `tierFromLayout()` in lib/difficulty.js. They read the level's objects
+only, with no solving, so they are cheap.
+
+`node tools/difficulty_tiers.js` measures 113 levels into `local/difficulty/layout.json`:
+- official 1-22;
+- the 91 rated community levels (`tools/community.js`, `local/community/`).
+
+It then fits a linear model of the tier on 81 of them: official 1-8 and the community levels from
+before 2.2. 2.2 levels move their gameplay with triggers, so their static layout is not what a
+player meets.
+
+Leave-one-out over those 81:
+- Spearman **0.55**;
+- exact tier **37 %**;
+- **within one tier 89 %**.
+
+Per tier, the medians:
+
+| tier | n | lead-in after a portal (blocks) | columns with a hazard | hazards /10 blocks | orbs+pads /min | rests /min | s per section | portals /min |
+|---|---|---|---|---|---|---|---|---|
+| Easy | 20 | 9.6 | 49% | 9.4 | 25 | 8.7 | 6.4 | 17.3 |
+| Normal | 20 | 8.7 | 46% | 7.3 | 25 | 14.4 | 9.2 | 8.6 |
+| Hard | 21 | 2.3 | 79% | 21.3 | 39 | 5.0 | 5.1 | 18.4 |
+| Harder | 16 | 2.8 | 78% | 18.0 | 66 | 5.0 | 4.1 | 25.4 |
+
+**What it shows:**
+- **There are two bands, not four.** Easy/Normal have room after portals (~9 blocks), hazards in
+  under half the columns, and long sections. Hard/Harder start hazards at the portal (~2-3
+  blocks), fill ~80% of the columns, and have twice the hazards. That is the step the model sees
+  clearly.
+- **Within a band the layout barely differs.** The predicted medians are Easy 2.14 vs Normal 2.31,
+  and Hard 2.84 vs Harder 2.90. Harder adds orbs and pads (66 vs 39 per minute) and portals, and
+  shortens sections.
+- **Normal has more rests than Easy** (14 vs 9 per minute). Stars between Easy and Normal seem to
+  follow length, song and taste as much as layout.
+- **Not in the fit:** official 9-22 (Insane/Demon) all predict ~3. Layout alone does not see the
+  upper tiers; the timing score does (xStep, Clubstep, ToE 2, Hexagon Force at 0.6-1.0 per minute).
+
+**So for making levels:**
+- Use the layout rows above to land in a band.
+- Use the timing ladder below (windows under 100/150 ms per minute, the tightest window) to place
+  the level within it.
+- For Insane and up, use the timing score.
+
 ## Check on community levels
 
 `node tools/difficulty_community.js <id>:<tier> ...` scores levels fetched by
@@ -179,6 +226,16 @@ On the first pass Dreamland's tightest input came out at 4 ms: a ship release th
 widest-moment scan skipped. Flying presses and releases are now scanned too.
 
 ## Open (hand-off)
+
+0. **Route choice like a player** (the user, 2026-11-22): "when there is a hard timing, we avoid
+   it, e.g. the jump in Polargeist (avoiding the orb); if the orb's timing is easier it should
+   usually be the path. And if a human can buffer an orb or a jump, we usually buffer slightly."
+   - Buffering slightly is modelled: taps stay down ~100 ms, so a slightly early press still
+     jumps on landing or triggers the orb on entry.
+   - Route choice is only partly modelled: a tight input looks ±200 ms for a wider moment. Looking
+     further (600 ms) found fake routes, an early jump rescued by a free extra jump.
+   - The real fix is a solver objective that maximises Σ log p (the easiest route) instead of the
+     fewest presses, charging every input.
 
 1. **Separate Easy to Harder.** They all score about 0.3 per minute. Next: put density
    (`touchesPerMin`, `switchesPerMin`, `restsPerMin`), `room` and surprise (an input that
