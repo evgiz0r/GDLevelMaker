@@ -234,15 +234,29 @@ With `node tools/serve.js` and the song on this PC, the viewer shows:
 
 The "beats" button hides them. Levels whose song has no grid say so in the Level card.
 
-**On the phone** (`node tools/web.js`, published as the user's private Artifact; the link is in
-Claude's memory, see CLAUDE.md "The loop"): the same viewer for the repo's levels, with the beat
-grids but no songs (songs are never published). Its **add song** button plays an mp3 from the
-phone itself, decoded with Web Audio, in sync with the replay, and kept in that browser's
-IndexedDB. A file named like the game's copy (`StereoMadness.mp3`, `343707.mp3`) goes to every
-level on that song; another name goes to the level on screen. The songs the repo's levels use
-were copied to the user's OneDrive folder `GD songs/` so the phone's file picker finds them;
-copy a new level's song there too (official: `<GD>/Resources/<Name>.mp3`, custom:
-`%LOCALAPPDATA%/GeometryDash/<id>.mp3`). Republish the page after any level change.
+**On the phone**: PHONE.md (the page, its live data, songs added from the phone).
+
+## 6. Songs: where they come from
+
+Official songs are in the game install (`Resources/<Name>.mp3`). Custom songs are looked up by
+id: first the game's own save folder (`%LOCALAPPDATA%/GeometryDash/<id>.mp3|ogg`, what the user
+downloaded in GD), then the shared cache `local/songs/` (never committed). `tools/songs.js` fills
+the cache the way GD does: it asks GD's server for the song's info (`getGJSongInfo.php`: name,
+artist, size, the Newgrounds mp3 url) and downloads it; ids from 10000000 up are GD 2.2's music
+library, `.ogg` from RobTop's CDN (`geometrydashfiles.b-cdn.net/music/<id>.ogg`, checked: 200,
+audio/ogg). One request at a time, 3 s apart. `tools/serve.js` and `tools/beats.js` use both
+places (`songFile` in songs.js), so a fetched song gets beat lines and a beat grid like any other.
+
+| step | command |
+|---|---|
+| what is used and where it is | `node tools/songs.js --list` |
+| name, artist, size, url only (downloads nothing) | `node tools/songs.js --info <id>...` or `--levels --info` |
+| fetch the missing songs of the repo's levels, examples/ and local/community/ | `node tools/songs.js --levels`, then `node tools/beats.js` |
+| songs for the phone page | `node tools/songs.js --phone` (into OneDrive `GD songs/`) |
+
+On Nov 22 2026 the levels used 85 custom songs; 6 were on the PC. Of the 79 missing, 72 have a
+Newgrounds url (608 MB in all), 5 are library songs, and 2 (628806, 1268427) the server refuses
+("-2": removed or not allowed in GD). Meta (name, artist, url) is in `local/songs/<id>.json`.
 
 ## Status and hand-off (Nov 22 2026, music sync session, branch claude/sync-6e196a)
 
@@ -259,6 +273,12 @@ Asked of others: the style session's `score.js` sync gate warns below 60% of pre
 asked them (Nov 22) to grade portals and drops instead, per the user's "not forced" rule.
 
 ## Open
+
+- **Press numbers to redo** (Nov 22, physics change dd9a6fe: orb timing, scale, slabs, mini,
+  triggers, ceiling slopes). The press rows in section 3 (levels 1-8: R 0.07, per-level kappa) came
+  from solutions made before it. The difficulty session is re-solving official levels into the
+  shared `local/` one at a time; when 1-8 are in, rerun `node tools/sync.js --official --repo`
+  (light, ~20 s) and update section 3. Do not solve them here (one heavy job at a time).
 
 - Presses for official levels 9-22 need solutions (other game modes in the physics).
 - Not yet felt in the game: whether "on the beat" by this measure feels on the beat to the

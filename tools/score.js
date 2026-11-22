@@ -14,7 +14,12 @@
 //   variety      not one chunk over and over (unless the brief says "repeat": true)
 //   readability  spike-like decoration (18-21) never within 2 columns of a hazard
 //   colour       a colour change per section (when the brief has sections)
-//   sync         presses that can land on a beat (only with a song; WARN only)
+//   sync         with a song: portals on bar starts, and not too many presses pinned to beats (WARN only)
+//   lead-in      Easy/Normal: blocks from each mode portal to the first hazard after it, against
+//                the medians of 63 rated 2.0-2.1 levels (knowledge/levels/modes_low_tier.md): cube 6,
+//                ship 8, wave/robot 3, UFO 2 (Hard and up: 0). WARN under 60% of it.
+//   skips        the solved run goes through every mode/gravity/speed portal (FAIL) and uses every
+//                orb (WARN): a "secret way" past part of the level means a path should be blocked
 //   objects      gameplay objects with unconfirmed hitboxes (sure:false; WARN only)
 // Cost: two solves of the level (a few seconds for a 30 s cube level). One at a time.
 const fs = require("fs");
@@ -43,7 +48,8 @@ function scoreLevel(level, brief, opts = {}) {
   if (r.ok) {
     const s = sightread(level);
     bad = s.ok ? s.presses.filter(p => p.flag) : [];
-    gate("prejumps", bad.length ? "FAIL" : "PASS", bad.length ? bad.map(p => `block ${p.to.toFixed(0)} (${p.lead.toFixed(1)} ahead of ${p.cue} at ${p.cueAt.toFixed(0)})`).join("; ") : "none");
+    // approximate on levels with modes (sweep solver, fixed later inputs): a WARN, not a FAIL
+    gate("prejumps", bad.length ? (s.approx ? "WARN" : "FAIL") : "PASS", bad.length ? bad.map(p => `block ${p.to.toFixed(0)} (${p.lead.toFixed(1)} ahead of ${p.cue} at ${p.cueAt.toFixed(0)})`).join("; ") + (s.approx ? " (approximate: level with modes)" : "") : "none");
   }
 
   // windows: the exact solver gives them per press; the sweep solver (ship, wave ... levels) does
@@ -124,18 +130,56 @@ function scoreLevel(level, brief, opts = {}) {
     gate("colour", colourT >= need ? "PASS" : "WARN", `${colourT} colour triggers for ${need} coloured sections`);
   }
 
+  // sync, loosely (the user: "too synced may sound forced", not every click is on the beat; the
+  // official levels put portals on bar starts and barely lean presses to the beat -- SYNC.md
+  // "How much to sync"). PASS when the mode/speed portals sit on bar starts and at most 60% of the
+  // presses are pinned to a beat; WARN otherwise. Never a FAIL.
   if (brief.grid && r.ok) {
     const grid = Object.assign({}, brief.grid, { period: brief.grid.period || 60 / brief.grid.bpm, t0: brief.grid.t0 || 0 });
+    const off = brief.offset || 0, down = brief.grid.downbeat || 0;
+    const beatAt = sec => GD.SYNC.timeToBeat(grid, off, sec);        // 1 = the first beat
+    const path = runPath();
+    const tickAtX = x => { for (let t = 0; t < path.length; t++) if (path[t].x >= x) return t; return path.length - 1; };
+    const portals = level.objects.filter(o => ["mode", "speed"].includes(GD.objInfo(o.id).kind));
+    const onBar = portals.filter(o => { const b0 = beatAt(tickAtX(o.x) / GD.PHYS.TPS) - 1 - down; const m = ((b0 % 4) + 4) % 4; return Math.min(m, 4 - m) < 0.25; }).length;
     const pw = GD.SYNC.pressWindows(w, r.events);
-    if (pw) {
-      let on = 0;
-      for (const p of pw.windows) {
-        const b0 = GD.SYNC.timeToBeat(grid, brief.offset || 0, p.lo / GD.PHYS.TPS), b1 = GD.SYNC.timeToBeat(grid, brief.offset || 0, (p.hi + 1) / GD.PHYS.TPS);
-        if (Math.floor(b1 * 2) >= Math.ceil(b0 * 2)) on++;
-      }
-      const share = on / Math.max(1, pw.windows.length);
-      gate("sync", share >= (brief.syncShare ?? 0.6) ? "PASS" : "WARN", `${on}/${pw.windows.length} presses can land on a beat or half-beat`);
+    let pinned = 0, n = 0;
+    if (pw) for (const p of pw.windows) { n++; const mid = beatAt((p.lo + p.hi) / 2 / GD.PHYS.TPS); if (Math.abs(mid - Math.round(mid)) * grid.period < 0.035) pinned++; }
+    const portalsOk = portals.length < 2 || onBar / portals.length >= 0.5, pinOk = !n || pinned / n <= 0.6;
+    gate("sync", portalsOk && pinOk ? "PASS" : "WARN",
+      `${onBar}/${portals.length} portals on a bar start, ${pinned}/${n} presses centred on a beat`,
+      [!portalsOk ? "portals off the bars: put mode/speed changes on bar starts" : "", !pinOk ? "most presses pinned to beats: can sound forced, loosen some" : ""].filter(Boolean).join("; "));
+  }
+
+  // lead-in after mode portals (low tiers only)
+  if (["Easy", "Normal"].includes(want.label || "Easy")) {
+    const LEAD = { cube: 6, ship: 8, wave: 3, robot: 3, ufo: 2, ball: 3, spider: 3, swing: 3 };
+    const ports = level.objects.filter(o => GD.objInfo(o.id).kind === "mode").sort((a, b) => a.x - b.x);
+    const hx = level.objects.filter(o => GD.objInfo(o.id).kind === "hazard").map(o => GD.hitbox(o)).filter(Boolean).map(h => h.x0).sort((a, b) => a - b);
+    const short = [];
+    for (const p of ports) {
+      const m = GD.objInfo(p.id).mode, need = LEAD[m] || 3;
+      const first = hx.find(x => x > p.x);
+      if (first == null) continue;
+      const lead = (first - p.x) / 30;
+      if (lead < 0.6 * need) short.push(`${m} at block ${((p.x - 15) / 30).toFixed(0)}: ${lead.toFixed(1)} blocks (typical ${need})`);
     }
+    if (ports.length) gate("lead-in", short.length ? "WARN" : "PASS", short.length ? short.join("; ") : `${ports.length} mode portals with a calm lead-in`);
+  }
+
+  // skips: which portals and orbs the solved run never touched
+  if (r.ok) {
+    const path = runPath();
+    const touched = o => {
+      const hb = GD.hitbox(o); if (!hb) return true;
+      for (let t = 0; t < path.length; t += 2) { const p = path[t]; if (p.x + 15 >= hb.x0 && p.x - 15 <= hb.x1 && p.y + 15 >= hb.y0 && p.y - 15 <= hb.y1) return true; }
+      return false;
+    };
+    const portals = level.objects.filter(o => ["mode", "gravity", "speed"].includes(GD.objInfo(o.id).kind));
+    const orbs = level.objects.filter(o => GD.objInfo(o.id).kind === "orb");
+    const missedP = portals.filter(o => !touched(o)), missedO = orbs.filter(o => !touched(o));
+    gate("skips", missedP.length ? "FAIL" : missedO.length ? "WARN" : "PASS",
+      missedP.length || missedO.length ? [...missedP, ...missedO].map(o => `${GD.objInfo(o.id).name} at block ${((o.x - 15) / 30).toFixed(0)}`).join("; ") + " not touched by the solved run: block that way past it" : `all ${portals.length} portals and ${orbs.length} orbs on the path`);
   }
 
   const unsure = level.objects.filter(o => { const d = GD.objInfo(o.id); return ["solid", "hazard", "orb", "pad", "slope"].includes(d.kind) && d.sure === false; });
