@@ -110,4 +110,10 @@ slopes other than plain floor slopes (rotated or ceiling ones act as blocks); tr
 
 ## Later (said, not built)
 
+- Music sync is a must (the user: levels "try to sync", some more, some less). The songs are on
+  the PC: official ones in the game folder (Resources/*.mp3), custom ones in
+  %LOCALAPPDATA%/GeometryDash/<songid>.mp3; a level names its song and start offset. Plan: the
+  viewer plays the song with the replay (local only, never commit songs); measure how close the
+  official levels put clicks on beats; generate levels with presses on beats. Recordings have no
+  sound: the PC has no loopback device (only the headset mic).
 - Playing on the phone too: how to get an updated level onto the phone while away from the PC.
