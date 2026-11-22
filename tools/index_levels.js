@@ -55,4 +55,4 @@ function buildIndex() {
 }
 
 if (require.main === module) console.log(buildIndex().map(l => l.file).join("\n"));
-module.exports = { buildIndex };
+module.exports = { buildIndex, songOf };

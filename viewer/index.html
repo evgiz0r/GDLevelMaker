@@ -42,6 +42,8 @@
 <header>
   <h1>GD LEVEL VIEWER</h1>
   <select id="pick"></select>
+  <button id="refresh" title="get the newest version of the sessions' levels">⟳ refresh</button>
+  <button id="linkBtn" title="copy a link to this level at this moment">🔗 link</button>
   <label class="btn">open .gdlvl<input id="file" type="file" accept=".gdlvl,.txt" hidden></label>
   <button id="play">▶ play</button>
   <button id="restart">⟲</button>
@@ -241,7 +243,7 @@ function localMarks() { try { return JSON.parse(localStorage.getItem(markKey) ||
 async function loadMarks() {
   let lines = [];
   if (location.protocol.startsWith("http")) {
-    try { const r = await fetch("../marks/marks.jsonl", { cache: "no-store" }); if (r.ok) lines = (await r.text()).split("\n").filter(Boolean).map(l => JSON.parse(l)); } catch (e) {}
+    try { const r = await fetch("../local/marks.jsonl", { cache: "no-store" }); if (r.ok) lines = (await r.text()).split("\n").filter(Boolean).map(l => JSON.parse(l)); } catch (e) {}
   }
   MARKS = foldMarks(lines.concat(localMarks().map(m => Object.assign({ localOnly: true }, m))));
   if (L) { markTable(); draw(); }
@@ -262,7 +264,7 @@ function markTable() {
   el.innerHTML = (ms.length ? `<table><tr><th>#</th><th>time</th><th>block</th><th>note</th><th></th></tr>` + ms.map((m, i) =>
     `<tr class="${m.done ? "done" : ""}"><td>${i + 1}</td><td>${m.t.toFixed(2)} s</td><td>${(m.x / 30).toFixed(1)}</td><td>${esc(m.note)}${m.reply ? `<br><span class="muted">↳ ${esc(m.reply)}</span>` : ""}${m.localOnly ? ` <span class="muted">(this browser only)</span>` : ""}</td>` +
     `<td><button data-go="${esc(m.id)}">go</button> <button data-done="${esc(m.id)}">${m.done ? "reopen" : "done"}</button></td></tr>`).join("") + `</table>` : `<span class="muted">none yet</span>`) +
-    `<p class="muted">✎ mark (or M), then click the spot in the view and say what should change. Saved to marks/marks.jsonl for Claude's next round.</p>`;
+    `<p class="muted">✎ mark (or M), then click the spot in the view and say what should change. Saved to local/marks.jsonl for Claude's next round${ALL[pick.value] && ALL[pick.value].session ? " (goes to the " + esc(ALL[pick.value].session) + " session)" : ""}.</p>`;
   el.querySelectorAll("[data-go]").forEach(b => b.onclick = () => { const m = MARKS.find(q => q.id === b.dataset.go); t = m.t; lastTick = tick(); playing = false; setPlay(); syncSong(); draw(); });
   el.querySelectorAll("[data-done]").forEach(b => b.onclick = () => { const m = MARKS.find(q => q.id === b.dataset.done); saveMark({ id: m.id, done: !m.done, at: new Date().toISOString() }); });
 }
@@ -279,7 +281,7 @@ cv.addEventListener("click", e => {
   const note = prompt(`What should change here? (block ${(x / 30).toFixed(1)}, ${(tick() / P.TPS).toFixed(2)} s)`);
   if (!note || !note.trim()) return;
   const lv = ALL[pick.value];
-  saveMark({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), level: L.name, file: lv && lv.name === L.name ? lv.file : "", t: +(tick() / P.TPS).toFixed(3),
+  saveMark({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), level: L.name, file: lv && lv.name === L.name ? lv.file : "", session: lv && lv.session || "", version: lv && lv.version || 0, t: +(tick() / P.TPS).toFixed(3),
     x: +x.toFixed(1), y: +y.toFixed(1), note: note.trim(), view: look ? "game look" : "schematic", zoom: LS ? +LS.zoom.toFixed(2) : 1, made: new Date().toISOString() });
 });
 function drawMarks() {
@@ -627,7 +629,44 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 resize();
-if (ALL.length) { pick.value = 0; pick.onchange(); }
+// ---------- work in progress: the levels the sessions are working on, live from local/wip ----------
+// Listed first under "in progress"; ⟳ refresh fetches the newest versions without reloading the page.
+// The address bar keeps #lv=<file>&t=<seconds>, so a link opens that level at that moment.
+async function loadWip(keep) {
+  if (!location.protocol.startsWith("http")) return;
+  let list = [];
+  try { const r = await fetch("/wip/list", { cache: "no-store" }); if (r.ok) list = await r.json(); } catch (e) { return; }
+  const cur = ALL[pick.value];
+  for (let i = ALL.length - 1; i >= 0; i--) if (ALL[i].wip) ALL.splice(i, 1);
+  ALL.unshift(...list.map(l => Object.assign(l, { name: l.name })));
+  pick.innerHTML = "";
+  const groups = new Map();
+  ALL.forEach((l, i) => {
+    const g = l.wip ? "in progress" : /^official/.test(l.name) ? "official (this PC only)" : "levels";
+    if (!groups.has(g)) { const og = document.createElement("optgroup"); og.label = g; groups.set(g, og); pick.appendChild(og); }
+    const label = l.wip ? `${l.name}  —  ${l.session} v${l.version}, ${new Date(l.updated).toLocaleTimeString()}${l.note ? " · " + l.note : ""}` : l.name + "  —  " + l.file;
+    groups.get(g).appendChild(new Option(label, i));
+  });
+  const again = keep && cur ? ALL.findIndex(l => l.file === cur.file) : -1;
+  if (again >= 0) { const tt = t; pick.value = again; pick.onchange(); t = Math.min(tt, (L.path.length - 1) / P.TPS); draw(); }
+  else if (cur) pick.value = Math.max(0, ALL.findIndex(l => l.file === cur.file));
+}
+document.getElementById("refresh").onclick = () => loadWip(true);
+function hashParams() { return new URLSearchParams(location.hash.slice(1)); }
+function writeHash() { const l = ALL[pick.value]; if (!l || !L) return; history.replaceState(null, "", "#lv=" + encodeURIComponent(l.file) + "&t=" + (tick() / P.TPS).toFixed(2)); }
+document.getElementById("linkBtn").onclick = async () => {
+  writeHash();
+  try { await navigator.clipboard.writeText(location.href); document.getElementById("linkBtn").textContent = "✓ copied"; } catch (e) { prompt("Link to this moment:", location.href); }
+  setTimeout(() => document.getElementById("linkBtn").textContent = "🔗 link", 1500);
+};
+setInterval(() => { if (L && !playing) writeHash(); }, 1000);
+(async () => {
+  await loadWip(false);
+  const h = hashParams(), want = h.get("lv");
+  const i = want ? ALL.findIndex(l => l.file === want) : -1;
+  if (i >= 0) { pick.value = i; pick.onchange(); t = +h.get("t") || 0; draw(); }
+  else if (ALL.length) { pick.value = 0; pick.onchange(); }
+})();
 loadMarks();
 requestAnimationFrame(frame);
 </script>

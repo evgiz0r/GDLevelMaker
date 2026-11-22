@@ -1,9 +1,9 @@
 // node tools/marks.js [level-name-part]      -- the open marks (the user's notes from the viewer)
 // node tools/marks.js all [level-name-part]  -- every mark, done ones too
 // node tools/marks.js done <id> "reply"      -- close a mark, saying what was changed
-// Marks live in marks/marks.jsonl (see marks/README.md).
+// Marks live in local/marks.jsonl -- the shared folder every session sees (tools/link_local.js; see marks/README.md).
 const fs = require("fs"), path = require("path");
-const F = path.join(__dirname, "..", "marks", "marks.jsonl");
+const F = path.join(__dirname, "..", "local", "marks.jsonl");
 const lines = fs.existsSync(F) ? fs.readFileSync(F, "utf8").split("\n").filter(Boolean).map(l => JSON.parse(l)) : [];
 const by = new Map();
 for (const m of lines) by.set(m.id, Object.assign(by.get(m.id) || {}, m));

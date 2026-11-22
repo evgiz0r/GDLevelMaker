@@ -37,6 +37,23 @@ reading before writing a spec; `levels/`, `glossary.md`, `demonlist.md` for the 
 Every level the tool makes is named `GDLM NN ...` so it is easy to find (and delete) in the
 user's created-levels list.
 
+## Shared folder, work in progress, the user's marks
+
+Every session works in its own git worktree, but `local/` (never committed) is ONE shared folder:
+- **Once per worktree, between jobs: `node tools/link_local.js`.** It merges your `local/` into the
+  main checkout's (newest file wins), keeps yours as `local.before-share/`, and links `local/` to
+  the shared one. From then on solved levels, beat grids, recordings notes and marks are shared --
+  don't re-solve what another session already solved (check the file; one heavy job at a time).
+- **The level you are working on: `node tools/wip.js put <level.gdlvl> --session <your name>
+  --note "what changed"` after every change.** It goes to `local/wip/<session>/`, and the viewer
+  (`node tools/serve.js`, http://localhost:8765/viewer/) lists it under "in progress" with its
+  version; the user presses ⟳ refresh to see the newest, before anything is pushed.
+- **The user's marks** (✎ in the viewer, pinned to a moment and a spot) go to `local/marks.jsonl`
+  with the level's file and `session`. `node tools/marks.js` lists open ones: handle the ones with
+  your session, then `node tools/marks.js done <id> "what changed"`.
+- **Links:** the viewer's address keeps `#lv=<file>&t=<seconds>` (🔗 copies it), so a link the
+  user sends opens that level at that moment.
+
 ## Files
 
 - `lib/gd.js` -- the format: base64url + gzip layers, the record (plist) and the level string.

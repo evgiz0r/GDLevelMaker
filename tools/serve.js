@@ -1,10 +1,10 @@
 // node tools/serve.js [port]  -- serves the repo so the viewer works at http://localhost:8765/viewer/
 // (opening viewer/index.html straight from disk also works in a normal browser)
-// POST /marks appends one JSON line to marks/marks.jsonl: the user's notes from the viewer
+// POST /marks appends one JSON line to local/marks.jsonl (shared by all sessions): the user's notes from the viewer
 // ("ground too dark here"), which Claude reads to make the next round. See marks/README.md.
 const http = require("http"), fs = require("fs"), path = require("path");
 const root = path.join(__dirname, ".."), port = +(process.argv[2] || 8765);
-const MARKS = path.join(root, "marks", "marks.jsonl");
+const MARKS = path.join(root, "local", "marks.jsonl");
 const types = { ".html": "text/html", ".js": "text/javascript", ".json": "application/json", ".jsonl": "text/plain", ".gdlvl": "text/plain", ".mp3": "audio/mpeg", ".ogg": "audio/ogg", ".png": "image/png", ".jpg": "image/jpeg" };
 // songs are served straight from the user's game install and save folder (never copied into the repo)
 const GAME = process.env.GD_GAME || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash";
@@ -43,6 +43,19 @@ http.createServer((req, res) => {
   }
   // the user's recordings (never copied anywhere): a list, and one frame at a time via ffmpeg,
   // for the viewer's "compare" panel
+  // GET /wip/list: every session's work-in-progress level (local/wip/<session>/, tools/wip.js), with the
+  // decoded level and its song, newest first. Read fresh on every request: refresh = latest.
+  if (p === "/wip/list") {
+    let out = [];
+    try {
+      const { list } = require("./wip.js"), { readGdlvl } = require("./io.js"), { songOf } = require("./index_levels.js");
+      for (const m of list()) {
+        try { const L = readGdlvl(path.join(root, "local", "wip", m.session, m.file));
+              out.push(Object.assign({}, m, { name: m.name, file: "local/wip/" + m.session + "/" + m.file, level: L.levelStr, song: songOf(L.rec, L.level.header), wip: true })); } catch (e) {}
+      }
+    } catch (e) {}
+    res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify(out));
+  }
   if (p === "/rec/list") {
     let files = [];
     try { files = fs.readdirSync(RECS).filter(f => /\.(mkv|mp4)$/i.test(f)).sort().reverse(); } catch (e) {}
