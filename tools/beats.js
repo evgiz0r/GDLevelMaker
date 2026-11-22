@@ -266,9 +266,11 @@ const OFFICIAL = ["StereoMadness", "BackOnTrack", "Polargeist", "DryOut", "BaseA
 function allSongs() {
   const list = [];
   for (const n of OFFICIAL) { const f = path.join(GAME, "Resources", n + ".mp3"); if (fs.existsSync(f)) list.push({ key: "official_" + n, url: "/song/official/" + n + ".mp3", file: f }); }
-  if (fs.existsSync(SAVE)) for (const f of fs.readdirSync(SAVE).sort()) {
+  // custom songs: the game's save folder, then the shared cache from tools/songs.js
+  const seen = new Set();
+  for (const dir of [SAVE, path.join(ROOT, "local", "songs")]) if (fs.existsSync(dir)) for (const f of fs.readdirSync(dir).sort()) {
     const m = /^(\d+)\.(mp3|ogg)$/.exec(f);
-    if (m) list.push({ key: "custom_" + m[1], url: "/song/custom/" + f, file: path.join(SAVE, f) });
+    if (m && !seen.has(m[1])) { seen.add(m[1]); list.push({ key: "custom_" + m[1], url: "/song/custom/" + f, file: path.join(dir, f) }); }
   }
   return list;
 }

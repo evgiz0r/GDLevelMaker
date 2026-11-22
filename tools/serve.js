@@ -76,7 +76,8 @@ http.createServer((req, res) => {
   if (p.endsWith("/")) p += "index.html";
   let f = path.join(root, p);
   const song = /^\/song\/(official|custom)\/([A-Za-z0-9]+)\.(mp3|ogg)$/.exec(p);
-  if (song) f = song[1] === "official" ? path.join(GAME, "Resources", song[2] + "." + song[3]) : path.join(SAVE, song[2] + "." + song[3]);
+  // custom songs: the game's save folder, else the shared cache tools/songs.js fills (either extension)
+  if (song) f = song[1] === "official" ? path.join(GAME, "Resources", song[2] + "." + song[3]) : (require("./songs.js").songFile(song[2]) || path.join(SAVE, song[2] + "." + song[3]));
   else if (!f.startsWith(root)) { res.writeHead(403); return res.end(); }
   fs.readFile(f, (e, data) => {
     if (e) { res.writeHead(404); return res.end("not found"); }
