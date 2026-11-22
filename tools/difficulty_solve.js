@@ -28,7 +28,10 @@ function solveOfficial(n, opts) {
 // also show it in the viewer (local/official_NN.json, the format tools/official.js writes)
 function toViewer(n, level, res) {
   const NAMES = require("./difficulty.js").RATED;
-  const solution = res.ok ? { ok: true, events: res.events } : { ok: false, events: res.events, dieX: res.dieX, why: res.why };
+  // the viewer shows the route a person would play: one tap per cube jump instead of long holds
+  const L = GD.parseLevel(level), w = GD.makeWorld(L.objects, L.header);
+  const events = require("../lib/difficulty.js").humanize(w, res.events).events;
+  const solution = res.ok ? { ok: true, events } : { ok: false, events, dieX: res.dieX, why: res.why };
   fs.writeFileSync(path.join(OUT, "..", `official_${String(n).padStart(2, "0")}.json`),
     JSON.stringify({ n, name: NAMES[n] ? NAMES[n][0] : "level " + n, level, solution }));
   require("./index_levels.js").buildIndex();

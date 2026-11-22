@@ -1,135 +1,158 @@
 # Difficulty: what it means here and how it is measured
 
 `lib/difficulty.js` scores a level from a solution (its inputs). `tools/difficulty.js` prints the
-score for your own `.gdlvl` files, or for the official levels next to their in-game ratings.
+score for your own `.gdlvl` files, or for the official levels next to their in-game ratings and
+the player's own attempts. `tools/runs.js` reads the player's real deaths from a screen recording.
 
 ```
 node tools/difficulty.js levels/gdlm_05_x.gdlvl      # one level: score, then every input's window
 node tools/difficulty_solve.js 7                      # cache a solution of official level 7 (ONE at a time, ~800 MB)
-node tools/difficulty.js                              # all cached official levels vs their ratings
+node tools/difficulty.js                              # all cached official levels vs ratings and your attempts
+node tools/save_stats.js                              # your lifetime attempts per official level (save, read-only)
+node tools/runs.js <rec.mkv> [...] --join --level 7 --device mouse   # your deaths in a recording
 ```
 
 ## The measure
 
-A level is hard when you have to get many inputs right in one go, and some of them leave very
-little room. So the score is a timing model:
+A level is hard when you must get many inputs right in one go and some leave little room.
 
-1. **Window per input.** How much earlier or later than the solver's moment the input can come and
-   the run still lives. On cube-only levels the exact solver gives this already: the run of steps
-   where the same number of presses still beats the level. For everything else (ship, and any
-   level the sweep solver does) `measureWindows` shifts one input at a time by d steps and replays.
-   After a mistimed input the player holds it for at least 67 ms (no superhuman correction). Then a
-   short look-ahead search tries every input at 60 fps frame boundaries. If any continuation lives
-   0.5 s past the next input, d is inside the window. The search goes up to 200 ms each way, so
-   the widest window it reports is 400 ms.
-2. **Chance per input.** A player's timing error is normal with spread `SIGMA`. Hitting a window of
-   w ms has chance p = erf(w/2 / (SIGMA·√2)).
-3. **Score** = log10 of the expected attempts to beat the level in one go, -Σ log10 p.
-   1.0 ≈ 10 attempts, 2.0 ≈ 100. Tight inputs dominate it; many loose ones add a little; length
-   adds through the number of inputs. Also reported: `practiceDeaths` = Σ (1/p - 1), the expected
-   deaths to clear the level in practice mode, where each input is retried from just before it.
+1. **The route a person plays.** The solver finds the fewest presses, which often means holding
+   through a whole staircase (the cube jumps again on each landing). `humanize()` turns every
+   cube-mode hold into one tap per jump or orb it caused. A tap keeps the button down about
+   100 ms (assumed), so a press a little before landing still jumps. Each change is kept only if
+   a replay gets as far. Ship and dash-orb holds stay. The viewer shows this route.
+2. **Window per input.** How much earlier or later the input can come and the run still lives.
+   It is measured by shifting the input and replaying. After a mistimed input the player holds
+   it at least 67 ms. A short look-ahead then tries any inputs at 60 fps frame boundaries, and
+   the shift is inside the window if some continuation lives 0.5 s past the next input. The
+   search goes up to 200 ms each way. On cube-only levels this matches the exact solver's
+   windows, or is narrower.
+3. **Chance per input** = (1 - LAPSE) · erf(w/2 / (SIGMA·√2)). SIGMA is the spread of the
+   player's timing error. LAPSE is the chance of fluffing an input whatever its window: a
+   misread, a slip, a late reaction.
+4. **Score** = log10 of the expected attempts to beat the level in one go, -Σ log10 p
+   (1.0 ≈ 10 attempts). `/min` is the same per minute of the part the sim covers.
+   `practiceDeaths` = Σ (1/p - 1).
 
-The tool also reports, as context next to the score:
+Reported beside the score:
+- inputs and inputs/s;
+- tight inputs (under 60 ms) and the longest streak of them;
+- ship gap (free height around the ship's path);
+- hiding triggers (move, alpha, toggle and spawn triggers the sim ignores: memory parts);
+- `quickRecoveries`: presses whose window closes under 150 ms after a landing.
 
-- **inputs, inputs/s, busiest 5 s.** Clicks per second and input changes. On their own they
-  measure effort, not difficulty: a ship hold is one input that can last seconds.
-- **tight, streak.** Inputs under 60 ms, and the longest run of them less than 0.6 s apart
-  (consistency).
-- **ship gap.** The free height around the ship's path (nearest hazard above plus below), min
-  and median, in units (30 = one block). Blocks do not count: the ship slides on them.
-- **look-ahead.** Seconds between an obstacle coming on screen and reaching the player, at the
-  speeds the inputs happen at. This assumes 420 units visible ahead, which is not measured yet.
-  Reaction time is almost the same for every level at a given speed, so it is a constant, not a
-  separate score.
-- **hiding.** Move, alpha, toggle, spawn, rotate and follow triggers in the part played. The sim
-  ignores triggers, so these are the parts a player cannot read in time, or that the sim gets
-  wrong. Memory levels show up here, not in the score.
+## Calibration on the player's own runs
 
-## Calibration: SIGMA = 12 ms
+`tools/runs.js` reads GD's progress bar from a recording. It finds every normal-mode attempt and
+the % where it ended, tells levels apart by how fast the % rises, and ignores other windows. It
+takes about 6 s for 3 minutes of video. Runs from 2026-11-22:
 
-The user's recording `Geometry Dash 2026-11-22 17-26-36.mp4` shows "cube timings" (examples/)
-beaten in **normal mode on attempt 5**. The exact solver gives its 12 inputs windows of 21-279 ms
-(median 46). The score matches 5 attempts at SIGMA = 12 ms:
+| level | device | attempts | ended at |
+|---|---|---|---|
+| cube timings (examples/) | keyboard | 5 | ~57, 15, 45, 12 blocks; beaten |
+| Base After Base | keyboard | 5 | 21.4, 19.1, 67.4, 2.9 %; beaten |
+| Stereo Madness | mouse | 1 | beaten |
+| Time Machine | mouse | 1 | beaten |
+| Electroman Adventures | mouse | 1 | beaten |
+| Jumper | mouse | 2 | 58.8 %; beaten |
+| Hexagon Force | mouse | 2 | 44.6, 89.6 % |
+| Blast Processing | mouse | 1 | 79.4 % |
+| Geometrical Dominator | mouse | 1 | 72.0 % |
+| GDLM 42 (style session) | mouse | 8 | all 7-14 %, not beaten |
 
-| SIGMA ms | 10 | 12 | 13 | 15 | 17 | 20 | 30 |
-|---|---|---|---|---|---|---|---|
-| expected attempts | 3 | **5** | 7 | 13 | 26 | 72 | 1764 |
+`node tools/difficulty_fit.js` fits both numbers by maximum likelihood on every recorded attempt
+(19 attempts on 9 levels; an attempt that died at x% passed every input before x% and failed the
+next). It gives **SIGMA = 13 ms, LAPSE = 0.75 %**, which predicts cube timings 5.6 attempts
+(real 5), Jumper 2.8 (2), Base After Base 2.6 (5), Stereo Madness 2.5 (1) and Time Machine 2.9 (1).
 
-12 ms is in the range of how far skilled tappers' presses stray from a beat they know. The user
-made the level and had seen it, so a player new to it would be slower: first tries add learning
-deaths, which this model does not have. One data point. More runs in normal mode with the attempt
-counter visible would pin it down.
+Tight inputs get the widest working moment, not the solver's. The sweep's route can be needlessly
+tight: at Jumper's 76% it lands on a slab corner past a spike, an 8 ms window, while the usual
+route has about 117 ms (found by the physics session). An input under 60 ms is rescanned over
+±200 ms. A moment counts only if the press there jumps or uses an orb, since a press that does
+nothing plus a re-press is not a route. The widest stretch that lives becomes the window.
+Jumper went from 25 expected attempts to 2.4. Earlier, with no lapse term, Base After Base came out at
+1 attempt: all four deaths there were where the windows are 108-400 ms. They were lapses, not
+timing misses.
 
-## Against the official levels (2026-11-22, after the object table update)
+`tools/save_stats.js` reads the player's lifetime attempts per official level from the save
+(read-only, kept in `local/`). All 22 are beaten; Clubstep took 1886 attempts, ToE 2 3258 and
+Deadlocked 3951. The others took 39-560. The game writes the save only now and then, so a
+session's attempts show up there late.
 
-`node tools/difficulty.js`, SIGMA 12. "Covers" is how far the sim gets. Most levels stop at a mode
-it does not simulate yet (ball, UFO, wave), or at a hazard it gets wrong. "/min" is the score per
-minute of the part covered, so a partial level can be compared with a whole one.
+## Against the official levels (new physics, human route, widest moment, SIGMA 13, LAPSE 0.75 %)
 
-| # | level | rating | covers | inputs | tight | min ms | score | /min |
+| # | level | rating | covers | inputs | min ms | score | /min | your attempts |
 |---|---|---|---|---|---|---|---|---|
-| 1 | Stereo Madness | Easy 1 | 100% | 46 | 0 | 63 | 0.00 | 0.00 |
-| 2 | Back On Track | Easy 2 | 35% | 18 | 1 | 38 | 0.05 | 0.12 |
-| 3 | Polargeist | Normal 3 | 100% | 94 | 4 | 25 | 0.38 | 0.26 |
-| 4 | Dry Out | Normal 4 | 100% | 69 | 0 | 121 | 0.00 | 0.00 |
-| 5 | Base After Base | Hard 5 | 100% | 80 | 3 | 33 | 0.13 | 0.09 |
-| 6 | Cant Let Go | Hard 6 | 23% | 27 | 2 | 38 | 0.07 | 0.21 |
-| 7 | Jumper | Harder 7 | 100% | 101 | 3 | 21 | 0.37 | 0.26 |
-| 8 | Time Machine | Harder 8 | 100% | 101 | 4 | 17 | 0.39 | 0.25 |
-| 9 | Cycles | Harder 9 | 36% | 29 | 0 | 63 | 0.01 | 0.03 |
-| 12 | Theory of Everything | Insane 12 | 26% | 29 | 1 | 38 | 0.06 | 0.16 |
-| 14 | Clubstep | Demon 14 | 16% | 27 | 4 | 8 | 0.67 | 2.86 |
-| 15 | Electrodynamix | Insane 12 | 24% | 25 | 3 | 21 | 0.40 | 1.12 |
-| 16 | Hexagon Force | Insane 12 | 18% | 24 | 1 | 13 | 0.40 | 1.45 |
-| 17 | Blast Processing | Harder 10 | 13% | 16 | 1 | 38 | 0.05 | 0.25 |
-| 18 | Theory of Everything 2 | Demon 14 | 15% | 25 | 6 | 21 | 0.46 | 2.05 |
+| 1 | Stereo Madness | Easy 1 | 100% | 119 | 63 | 0.40 | 0.29 | 353 |
+| 2 | Back On Track | Easy 2 | 100% | 111 | 100 | 0.36 | 0.27 | 39 |
+| 3 | Polargeist | Normal 3 | 100% | 143 | 100 | 0.47 | 0.32 | 47 |
+| 4 | Dry Out | Normal 4 | 100% | 127 | 100 | 0.42 | 0.31 | 64 |
+| 5 | Base After Base | Hard 5 | 100% | 126 | 67 | 0.42 | 0.30 | 58 |
+| 6 | Cant Let Go | Hard 6 | 100% | 127 | 71 | 0.42 | 0.32 | 150 |
+| 7 | Jumper | Harder 7 | 100% | 131 | 58 | 0.45 | 0.31 | 173 |
+| 8 | Time Machine | Harder 8 | 100% | 136 | 54 | 0.46 | 0.29 | 204 |
+| 9 | Cycles | Harder 9 | 48% | 57 | 71 | 0.20 | 0.32 | 127 |
+| 10 | xStep | Insane 10 | 64% | 71 | 17 | 0.83 | 0.97 | 114 |
+| 12 | Theory of Everything | Insane 12 | 87% | 106 | 58 | 0.38 | 0.32 | 170 |
+| 14 | Clubstep | Demon 14 | 16% | 29 | 42 | 0.15 | 0.64 | 1886 |
+| 15 | Electrodynamix | Insane 12 | 24% | 33 | 100 | 0.11 | 0.30 | 560 |
+| 16 | Hexagon Force | Insane 12 | 64% | 96 | 21 | 0.56 | 0.61 | 249 |
+| 17 | Blast Processing | Harder 10 | 37% | 47 | 50 | 0.18 | 0.29 | 203 |
+| 18 | Theory of Everything 2 | Demon 14 | 22% | 40 | 33 | 0.27 | 0.84 | 3258 |
 
-Left out: 10, 11, 13 and 19-22. The sim covers under 10% of each, dying early on something it
-does not model yet, so there is nothing to score.
+Not listed: 11, 13 and 19-22. The sim covers under 10% of each (it dies early on things it gets
+wrong). Where each stops is in `local/difficulty/NN.json`.
 
-**Rank agreement with the stars (Spearman) over these 15: 0.71 for score per minute, 0.66 for the
-score.** Inputs per second alone gets 0.28 over all 22, and the tightest window alone gets about 0.
-The demons and the hard insanes (Clubstep, ToE 2, Hexagon Force, Electrodynamix) stand clearly
-apart, at 1.1-2.9 per minute against 0.3 or less for everything up to Harder.
+**Rank agreement over these 16:** score per minute vs stars **0.59**, vs your attempts 0.17. Stars
+and your attempts agree with each other at 0.66, which is the bar.
 
 What it gets right:
-- Easy and Normal score near zero, and the step up to demon is large, as it is in the game.
-- It finds where a level is hard. Clubstep's first part has an 8 ms window and ToE 2's has six
-  tight inputs in a row-ish (streak 3). Per-input windows are listed by
-  `node tools/difficulty.js x.gdlvl`.
-- On the user's own level it predicts the attempts they took, once SIGMA is fitted to that.
+- **Insane and Demon stand apart.** xStep 0.97, ToE 2 0.84, Clubstep 0.64 and Hexagon Force
+  0.61 per minute, against 0.27-0.32 for everything rated up to Harder. They have inputs with
+  17-42 ms windows even after the widest-moment scan, and several tight ones in a minute.
+- **It fits the player's attempts** on the levels they played (see the calibration above),
+  including Jumper once the solver's needless 8 ms route was replaced.
 
-What it gets wrong, and why:
-- **Dry Out scores 0 (rated 4), Cycles 0.01 (rated 9), Blast Processing 0.05 (rated 10).** The
-  solver finds the route with the fewest presses, and it is often not the route people play. It
-  holds the button through whole sections, letting the cube jump again on each landing, skips
-  orbs, and rides ceilings. When such a route has wide windows, the level scores easy. The user
-  flagged Cycles at 7.89 s as looking wrong, and it is one of these held routes. Scoring the route
-  a person plays would need a solver that prefers clicks on orbs and beats. A "human route" option
-  is not built yet.
-- **Reading and memory are not in the score.** The sim ignores triggers, and hidden or moving
-  parts only show up as the "hiding" count (Fingerdash 17, Dash 15, in the first few percent
-  alone). Pattern Seeker-style memory levels would score as easy.
-- **Ship difficulty is under-scored.** The look-ahead lets a mistimed ship input be corrected
-  after 67 ms, which is generous. Ship gaps are reported (Jumper's narrowest is 37 units, about
-  1.2 blocks) but are not part of the score.
-- **Practice versus attempts.** The model assumes each input is independent, with no learning
-  and no nerves late in a run. In practice mode the user's Clutterfunk took about 10 deaths and
-  Deadlocked about 33, mostly in wave parts. The sim cannot score those parts yet, so they are
-  not a check of the model.
-- **SIGMA rests on one data point** (cube timings in 5 attempts). The ratings themselves are
-  from memory of the game's level list.
+What it gets wrong:
+- **Easy to Harder all score about 0.3 per minute.** The official early levels are all about 120
+  fair inputs at 1x, so lapses dominate and the timing term barely moves. They differ in how many
+  inputs are fairly tight (100-150 ms; see the ladder below), and in reading and rhythm, which
+  are not modelled.
+  - `quickRecoveries` does not separate them either: every early level has 60-90 fast
+    landing-to-press chains, all rhythmic. On GDLM 42 the chains were where all 8 of the
+    player's deaths happened, so a chain is only hard when it is unexpected.
+- **ToE (12) and Electrodynamix (12) look easy** in the covered part. ToE's hard parts are
+  probably ones the sim mis-solves; Electrodynamix's sim stops at 24%.
+- **Partial coverage and few runs.** The upper tiers rest on fragments. SIGMA and LAPSE rest on
+  19 attempts, mostly on the mouse.
 
-## Where each official level stops in the sim
+## Tier ladder (targets for making levels)
 
-These stops are physics work, not difficulty work: 2 Back On Track spike at block 306, 6 Cant
-Let Go spike at 204, 11 Clutterfunk block at ~100, 12 ToE spike, 13 Electroman block, 14 Clubstep
-"sky", 15 Electrodynamix saw, 19 Geometrical Dominator, 20 Deadlocked, 21 Fingerdash and 22 Dash
-all spike at 1-3%. The rest stop at a mode that is not simulated yet. The solutions are cached in
-`local/difficulty/` and show in the viewer as "official N".
+From the official levels the sim covers fully (1-8) or in good part (10, 16, 18), on the human
+route. The player cannot yet playtest above Harder, so make levels low first. Each row is what
+that tier's official levels look like, per minute of play, at 1x:
+
+| tier | official | inputs/s | windows < 150 ms per min | windows < 100 ms per min | tightest window | tight (< 60 ms) | score per min |
+|---|---|---|---|---|---|---|---|
+| Easy | 1, 2 | 1.4 | ~19-20 | 0-2 | 63-100 ms | 0 | ~0.28 |
+| Normal | 3, 4 | 1.6 | ~21-29 | 0 | 100 ms | 0 | ~0.31 |
+| Hard | 5, 6 | 1.5-1.6 | ~25-32 | 2-3 | 67-71 ms | 0 | ~0.31 |
+| Harder | 7, 8 | 1.4-1.5 | ~23-28 | 2-5 | 54-58 ms | 1 | ~0.30 |
+| Insane | 10, 16 | 1.4-1.7 | (partial) | (partial) | 17-21 ms | 1-6 | 0.6-1.0 |
+| Demon | 14, 18 | 2.0-2.1 | (partial) | (partial) | 33-42 ms | 1-4 | 0.6-0.9 |
+
+Read it as rough guide rails, not a classifier:
+- **Easy:** no window under ~60 ms, almost none under 100 ms.
+- **Harder:** a few under 60 ms is fine.
+- **Insane and up:** windows of 15-40 ms, several per minute, and a score of about 0.6+ per
+  minute.
+
+On the player's mouse runs: up to Harder they clear first try or in 2-5 attempts, and Insane
+gets 70-90% on the first try.
 
 ## Viewer
 
-The viewer draws the input under the ground, like morse: a lit bar while the button is held, a
-white tick at each press, and a blue band for each click's timing window. A light in the top
-right shows HOLD/up and for how long. The trail turns yellow while the button is held.
+The input shows under the ground like morse code: a lit bar while the button is held, a tick at
+each press, a blue band for each click's window, and a HOLD/up light with how long. The player's
+real deaths (from `tools/runs.js --level N`) are red ✖ marks with their %. The camera follows a
+flying player inside its corridor.

@@ -105,7 +105,7 @@ function load(name, levelStr, saved, info) {
   }
   const path = GD.run(world, events).path;
   if (saved && saved.ok) sol.clicks = saved.events.map(e => ({ type: e.type, tick: e.tick, lo: e.tick, hi: e.tick, ms: 0 }));
-  sol.clicks.forEach(c => { if (c.type === "press") c.act = path[Math.min(c.tick + 1, path.length - 1)].act || c.act; c.x = path[c.tick].x; });
+  sol.clicks.forEach(c => { if (c.type === "press") c.act = path[Math.min(c.tick + 1, path.length - 1)].act || c.act; c.x = path[Math.min(c.tick, path.length - 1)].x; });
   // button state at every step, for the hold strip and the button light
   const held = new Uint8Array(path.length);
   { const ev = (events || []).slice().sort((a, b) => a.tick - b.tick); let h = 0, j = 0;
@@ -124,7 +124,7 @@ async function loadFile(f) {
 const pick = document.getElementById("pick");
 const ALL = (window.GD_LEVELS || []).concat(window.GD_LEVELS_LOCAL || []);
 ALL.forEach((l, i) => pick.add(new Option(l.name + "  —  " + l.file, i)));
-pick.onchange = () => { const l = ALL[pick.value]; load(l.name, l.level, l.solution, l.song); };
+pick.onchange = () => { const l = ALL[pick.value]; load(l.name, l.level, l.solution, l.song); L.deaths = l.deaths || []; summary(); draw(); };
 document.getElementById("file").onchange = e => e.target.files[0] && loadFile(e.target.files[0]);
 const drop = document.getElementById("drop");
 addEventListener("dragover", e => { e.preventDefault(); drop.style.display = "grid"; });
@@ -142,6 +142,7 @@ function summary() {
   h += s.ok ? `<p class="ok">Beatable in ${s.clicks.length} click${s.clicks.length === 1 ? "" : "s"}` +
               (s.clicks.length ? ` · tightest window ${Math.min(...s.clicks.map(c => c.ms))} ms` : "") + `</p>`
             : `<p class="bad">Not beatable in the simulation. The furthest run dies at block ${(s.dieAt.x / 30).toFixed(1)} (${(s.dieAt.tick / P.TPS).toFixed(2)} s): ${s.why}. The replay shows that furthest run.</p>`;
+  if (L.deaths && L.deaths.length) h += `<p class="bad">Your real deaths (normal mode, from recordings): ${L.deaths.length} at ${L.deaths.slice().sort((a, b) => a - b).map(p => p.toFixed(0) + "%").join(", ")} (red marks).</p>`;
   if (unsim) h += `<p class="muted">${unsim} objects are not simulated yet (unsupported portals or unknown ids).</p>`;
   if (deco) h += `<p class="muted">${deco} decoration and trigger objects (no physics).</p>`;
   if (L.beats) { const g = L.beats.grid; h += `<p class="muted">song ${g.bpm.toFixed(1)} BPM (${g.conf} confidence) · level starts at song ${L.beats.offset} s · beat 1 = first beat after the start</p>`; }
@@ -210,7 +211,12 @@ function draw() {
   if (!L) return;
   const k = tick(), s = L.path[k];
   camX = s.x - W / scale * 0.3;
-  const want = s.mode === "ship" ? Math.max(0, s.floorY - 15) : Math.max(0, s.y - 30 * 4.5); camY += (want - camY) * 0.15;
+  // flying modes: keep the player in view inside its corridor (the corridor is taller than the view)
+  const viewH = groundY / scale;
+  const want = isFinite(s.ceilY) && s.mode !== "cube"
+    ? Math.max(s.floorY - 15, Math.min(s.y - viewH * 0.5, s.ceilY + 15 - viewH))
+    : Math.max(0, s.y - 30 * 4.5);
+  camY += (want - camY) * 0.15;
   ctx.fillStyle = "#0e0828"; ctx.fillRect(0, 0, W, H);
   // grid
   ctx.strokeStyle = "rgba(120,100,220,.10)"; ctx.lineWidth = 1;
@@ -248,6 +254,7 @@ function draw() {
     ctx.strokeStyle = L.held[i] ? "rgba(255,225,77,.8)" : "rgba(61,255,176,.35)";
     ctx.beginPath(); ctx.moveTo(sx(p.x), sy(p.y)); ctx.lineTo(sx(q.x), sy(q.y)); ctx.stroke();
   }
+  drawDeaths();
   drawInput(k);
   // ship corridor
   if (s.mode === "ship") {
@@ -257,15 +264,9 @@ function draw() {
   // the player
   if (s.mode === "ship") drawShip(s); else drawCube(s);
   if (showHit) { ctx.strokeStyle = "#fff"; rectW({ x0: s.x - 15, x1: s.x + 15, y0: s.y - 15, y1: s.y + 15 }); ctx.strokeStyle = "#f0f"; rectW({ x0: s.x - 4.5, x1: s.x + 4.5, y0: s.y - 4.5, y1: s.y + 4.5 }); }
-  // click flash
+  // the click table row of the input just made (the button strip shows it in the view)
   L.sol.clicks.forEach((c, i) => {
     const age = (k - c.tick) / P.TPS;
-    if (age >= 0 && age < 0.35) {
-      const p = L.path[c.tick];
-      ctx.strokeStyle = `rgba(255,225,77,${1 - age / 0.35})`; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.arc(sx(p.x), sy(p.y), (20 + age * 140) * scale / 2, 0, 7); ctx.stroke();
-      ctx.fillStyle = `rgba(255,225,77,${1 - age / 0.35})`; ctx.font = `${16 * scale / 2.2 + 10}px system-ui`; ctx.fillText((c.type === "release" ? "RELEASE " : "CLICK ") + (i + 1), sx(p.x) - 30, sy(p.y) - 30 * scale);
-    }
     const row = document.getElementById("c" + i); if (row) row.classList.toggle("now", age >= 0 && age < 0.35);
   });
   if (s.dead) {
@@ -279,6 +280,21 @@ function draw() {
 }
 // the input: a strip under the ground (lit where the button is held, a tick at each press,
 // the past brighter than the future) and a button light in the corner
+// where the player really died (tools/runs.js): GD's % is of the level's length (last object x)
+function deathX(pct) { return pct / 100 * (L.world.endX - 90); }
+function drawDeaths() {
+  if (!L.deaths || !L.deaths.length) return;
+  const y0 = groundY + 30 * 0.45 * scale;
+  ctx.strokeStyle = "rgba(255,59,107,.85)"; ctx.fillStyle = "rgba(255,59,107,.95)"; ctx.lineWidth = 2;
+  ctx.font = "bold 13px system-ui"; ctx.textAlign = "center";
+  for (const pct of L.deaths) {
+    const x = sx(deathX(pct));
+    if (x < -20 || x > W + 20) continue;
+    ctx.setLineDash([3, 5]); ctx.beginPath(); ctx.moveTo(x, 18); ctx.lineTo(x, y0 - 8); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillText("✖ " + pct.toFixed(0) + "%", x, 14);
+  }
+  ctx.textAlign = "left";
+}
 function drawInput(k) {
   const y0 = groundY + 30 * 0.45 * scale, h = 30 * 0.5 * scale;
   ctx.fillStyle = "rgba(0,0,0,.45)"; ctx.fillRect(0, y0 - 6, W, h + 12);
@@ -302,15 +318,16 @@ function drawInput(k) {
   ctx.fillStyle = "#fff"; ctx.fillRect(sx(L.path[k].x) - 1, y0 - 6, 2, h + 12); // now
   ctx.fillStyle = "rgba(255,255,255,.55)"; ctx.font = "12px system-ui"; ctx.fillText("button", 6, y0 - 6);
   // button light
-  const on = L.held[k], bx = W - 70, by = 16;
+  const on = L.held[k], bx = W - 28 * (devicePixelRatio || 1), by = y0 + h / 2 - 22;
   let since = k; while (since > 0 && L.held[since - 1] === on) since--;
   ctx.fillStyle = on ? "#ffe14d" : "rgba(255,255,255,.08)"; if (on) glow("#ffe14d", 18);
-  ctx.beginPath(); ctx.arc(bx, by + 22, 20, 0, 7); ctx.fill(); ctx.shadowBlur = 0;
+  ctx.fillStyle = "rgba(0,0,0,.8)"; ctx.fillRect(bx - 110, y0 - 6, 140, h + 12); ctx.fillStyle = on ? "#ffe14d" : "rgba(255,255,255,.08)"; if (on) glow("#ffe14d", 18);
+  ctx.beginPath(); ctx.arc(bx, by + 22, Math.min(20, h / 2 + 4), 0, 7); ctx.fill(); ctx.shadowBlur = 0;
   ctx.strokeStyle = "rgba(255,255,255,.5)"; ctx.lineWidth = 2; ctx.stroke();
   ctx.fillStyle = on ? "#0e0828" : "rgba(255,255,255,.6)"; ctx.font = "bold 12px system-ui"; ctx.textAlign = "center";
   ctx.fillText(on ? "HOLD" : "up", bx, by + 26);
   ctx.fillStyle = "rgba(255,255,255,.7)"; ctx.font = "11px system-ui";
-  ctx.fillText((on ? "held " : "up ") + ((k - since) / P.TPS).toFixed(2) + " s", bx, by + 56); ctx.textAlign = "left";
+  ctx.textAlign = "right"; ctx.fillText((on ? "held " : "up ") + ((k - since) / P.TPS).toFixed(2) + " s", bx - 28, by + 26); ctx.textAlign = "left";
 }
 // screen x -> level time (through the speed portals)
 function tOfScreenX(px) { return L.beats ? GD.SYNC.tOfX(L.beats.tl, px / scale + camX) : 0; }

@@ -4,6 +4,12 @@ Claude writes Geometry Dash levels from a description, checks they can be beaten
 replaying with their clicks, and hands back a file the user imports into their real game.
 The user plays it and tells us what was off. Read this fully first.
 
+## Before making or judging a level: read knowledge/
+
+`knowledge/` is a general GD knowledge base (not the user's personal taste): `design.md` (what
+makes a level good or unfair) and `critiques.md` (playtest feedback on GDLM levels) are required
+reading before writing a spec; `levels/`, `glossary.md`, `demonlist.md` for the rest.
+
 ## The loop
 
 1. Write a spec in `specs/NN_name.json` (grid squares, see the top of `tools/make.js`).
@@ -37,7 +43,7 @@ user's created-levels list.
 - `lib/sync.js` -- music sync: level time <-> x through speed portals, beat grid <-> level beats,
   press timing windows from a solution, sync scores. See SYNC.md.
 - `tools/` -- node CLIs: `make`, `check`, `roundtrip`, `index_levels`, `serve`, `beats` (beat grid
-  of every song on this PC, ffmpeg + JS), `sync` (how well levels follow their song's beat), `difficulty` (score vs the official ratings).
+  of every song on this PC, ffmpeg + JS), `sync` (how well levels follow their song's beat), `fetch_level` (online levels by ID into local/community/, for measuring only, never committed), `difficulty` (score vs the official ratings).
 - `viewer/index.html` -- the replay viewer; `viewer/levels.js` is generated, do not edit.
 - `examples/` -- levels the user made in the game, for reference and as format ground truth.
 
@@ -99,6 +105,11 @@ Confirmed:
 - Flipping gravity halves vertical speed (blue orb and ceiling blue pad in the recording move at
   half the decompile's velocity). The decompile's ringJump alone does not show this.
 
+- Mode accelerations in the user's Clutterfunk recording (60 fps): cube +-0.78, ship hold +0.40 /
+  release -0.25, ball +-0.47 units/frame^2 -- the sim gives 0.778 / 0.389 / -0.248 / 0.464
+  (`node tests/modes_video.js`). So the ship's per-tick physics is right; the Stereo Madness
+  ship-height mismatch lies elsewhere (a ship seated on a block keeping its fall speed would fix
+  Back On Track's case, but gdsolver's model zeroes it, so that is not in). No clean UFO stretch yet.
 - Vertical speed lives on a 0.001 grid (every velocity step is rounded). Took the jump-vs-video
   fit from 1.8 to 1.3 px rms.
 
