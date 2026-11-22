@@ -1,0 +1,8 @@
+{
+  "name": "GDLM 01 one jump",
+  "desc": "one spike, one click",
+  "objects": [
+    ["spike", 15, 0],
+    ["block", 30, 4]
+  ]
+}
