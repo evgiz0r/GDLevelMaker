@@ -24,9 +24,84 @@ swap("<title>GD Level Viewer</title>", "<title>GDLM Level Replays</title>");
 swap('src="../lib/', 'src="lib/');
 swap('<script src="levels.local.js" onerror="window.GD_LEVELS_LOCAL = []"></script>', "<script>window.GD_LEVELS_LOCAL = [];</script>");
 swap('<script src="beats.local.js" onerror="window.GD_BEATS = {}"></script>', '<script src="beats.js" onerror="window.GD_BEATS = {}"></script>');
-swap('<button id="music" class="on">music</button>', "");
-swap('document.getElementById("music").onclick', "if (0) document.body.onclick");
-swap("if (!info || location.protocol === \"file:\") return;", "if (true) return;");
+// Songs: none are published. The viewer picks mp3s from their own device ("add song"); they are
+// decoded with Web Audio (no media URLs, which the Artifact frame may refuse) and kept in this
+// browser's IndexedDB so each song is picked once. A file named like the game's own copy
+// (StereoMadness.mp3, 343707.mp3) goes to every level on that song; any other name goes to the
+// level on screen.
+swap('<button id="music" class="on">music</button>',
+  '<button id="music" class="on">music</button><label class="btn" id="addSong">add song<input id="songFile" type="file" accept="audio/*,.mp3,.ogg" multiple hidden></label>');
+swap("if (!info || location.protocol === \"file:\") return;", "if (!info) return; updateSongBtn();");
+swap('song = new Audio(info.url); song.preload = "auto";\n  song.onerror = () => { song = null; };', "song = songPlayer(info);");
+swap('<script>\n"use strict";\nconst P = GD.PHYS;', `<script>
+const SONGBUF = {};                       // song key -> decoded AudioBuffer
+const songKey = info => decodeURIComponent(String(info.url).split("/").pop()).toLowerCase();
+function audio() { actx = actx || new AudioContext(); return actx; }
+// an Audio-like player over an AudioBuffer: currentTime, playbackRate, play(), pause(), paused
+function songPlayer(info) {
+  const buf = SONGBUF[songKey(info)];
+  if (!buf) return null;
+  let src = null, off = 0, rate = 1, t0 = 0;
+  const p = { paused: true };
+  const now = () => p.paused ? off : off + (audio().currentTime - t0) * rate;
+  const stop = () => { if (src) { try { src.stop(); } catch (e) {} src.disconnect(); src = null; } };
+  const start = () => {
+    const a = audio(); if (a.resume) a.resume();
+    src = a.createBufferSource(); src.buffer = buf; src.playbackRate.value = rate; src.connect(a.destination);
+    t0 = a.currentTime;
+    if (off >= 0) src.start(0, Math.min(off, buf.duration)); else src.start(a.currentTime - off / rate, 0);
+  };
+  Object.defineProperty(p, "currentTime", { get: now, set(v) { const playing = !p.paused; stop(); off = v; if (playing) start(); } });
+  Object.defineProperty(p, "playbackRate", { get: () => rate, set(v) { if (v === rate) return; const c = now(); const playing = !p.paused; stop(); off = c; rate = v; if (playing) start(); } });
+  p.play = () => { if (p.paused) { p.paused = false; start(); } return Promise.resolve(); };
+  p.pause = () => { if (!p.paused) { off = now(); stop(); p.paused = true; } };
+  return p;
+}
+function updateSongBtn() {
+  const b = document.getElementById("addSong"); if (!b || !b.firstChild) return;
+  const have = songInfo && SONGBUF[songKey(songInfo)];
+  b.firstChild.nodeValue = have ? "song ✓" : "add song";
+  b.classList.toggle("on", !!have);
+}
+// per-browser memory of picked songs (a convenience: everything works without it)
+function songDb() {
+  return new Promise((ok, no) => { try { const r = indexedDB.open("gdlm-songs", 1);
+    r.onupgradeneeded = () => r.result.createObjectStore("songs"); r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); } catch (e) { no(e); } });
+}
+async function keepSong(key, bytes) { try { const db = await songDb(); db.transaction("songs", "readwrite").objectStore("songs").put(bytes, key); } catch (e) {} }
+async function addSongBytes(key, bytes) {
+  try { SONGBUF[key] = await audio().decodeAudioData(bytes.slice(0)); return true; } catch (e) { return false; }
+}
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("songFile").onchange = async e => {
+    const known = new Set((window.GD_LEVELS || []).filter(l => l.song).map(l => songKey(l.song)));
+    const b = document.getElementById("addSong"); b.firstChild.nodeValue = "loading…";
+    let bad = 0;
+    for (const f of e.target.files) {
+      const key = known.has(f.name.toLowerCase()) ? f.name.toLowerCase() : songInfo ? songKey(songInfo) : null;
+      if (!key) continue;
+      const bytes = await f.arrayBuffer();
+      if (await addSongBytes(key, bytes)) keepSong(key, bytes); else bad++;
+    }
+    e.target.value = "";
+    if (songInfo) { const was = playing; setSong(songInfo); syncSong(true); playing = was; }
+    updateSongBtn();
+    if (bad) { b.firstChild.nodeValue = "not a song file"; setTimeout(updateSongBtn, 2500); }
+  };
+});
+(async () => { try {
+  const db = await songDb(), st = db.transaction("songs").objectStore("songs");
+  const keys = await new Promise(ok => { const r = st.getAllKeys(); r.onsuccess = () => ok(r.result); r.onerror = () => ok([]); });
+  for (const k of keys) {
+    const bytes = await new Promise(ok => { const r = db.transaction("songs").objectStore("songs").get(k); r.onsuccess = () => ok(r.result); r.onerror = () => ok(null); });
+    if (bytes) await addSongBytes(k, bytes);
+  }
+  if (songInfo) setSong(songInfo);
+} catch (e) {} })();
+</script>
+<script>
+"use strict";
+const P = GD.PHYS;`);
 swap("<label class=\"btn\">open .gdlvl", "<label class=\"btn\" hidden>open .gdlvl");
 // phone: bigger touch targets, the header wraps, the canvas keeps a usable height
 swap("</style>", `  @media (max-width: 700px) {
