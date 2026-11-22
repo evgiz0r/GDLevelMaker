@@ -141,7 +141,9 @@ def("wave-zigzag", "a wave corridor (band rows 0-9): the path climbs and falls 4
       const cl = Math.max(m0, m1) - Math.floor(gap / 2) + gap - 1; // ceiling slope row
       for (let r = 0; r < fl; r++) o.push(["block", c, r]);
       if (fl >= 0) o.push(["slope", c, fl, up ? {} : { flipX: true }]);
-      if (cl <= 9) o.push(["slope", c, cl, up ? { flipY: true } : { flipX: true, flipY: true }]);
+      // ceiling: a rising roof is the slope turned over both ways (solid top-left), a falling roof
+      // only upside down (solid top-right)
+      if (cl <= 9) o.push(["slope", c, cl, up ? { flipX: true, flipY: true } : { flipY: true }]);
       for (let r = cl + 1; r < 10; r++) o.push(["block", c, r]);
       continue;
     }

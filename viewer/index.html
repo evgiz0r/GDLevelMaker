@@ -440,7 +440,12 @@ function draw() {
     for (const yy of [s.floorY, s.ceilY]) { ctx.beginPath(); ctx.moveTo(0, sy(yy)); ctx.lineTo(W, sy(yy)); ctx.stroke(); }
   }
   // the player
-  if (s.mode === "ship") drawShip(s); else if (LS) local({ x: s.x, y: s.y, rot: s.rot }, () => GD.LOOK.drawPlayerCube(ctx)); else drawCube(s);
+  // the player, drawn by its mode (a cube in every mode read wrong: "the wave looks like cube")
+  if (s.mode === "ship") drawShip(s);
+  else if (s.mode === "wave") drawWave(s);
+  else if (s.mode === "ball") drawBall(s);
+  else if (s.mode === "ufo") drawUfo(s);
+  else if (LS) local({ x: s.x, y: s.y, rot: s.rot }, () => GD.LOOK.drawPlayerCube(ctx)); else drawCube(s);
   if (showHit) { const hh = s.mini ? 9 : 15; ctx.strokeStyle = "#fff"; rectW({ x0: s.x - hh, x1: s.x + hh, y0: s.y - hh, y1: s.y + hh }); ctx.strokeStyle = "#f0f"; rectW({ x0: s.x - 4.5, x1: s.x + 4.5, y0: s.y - 4.5, y1: s.y + 4.5 }); }
   // the click table row of the input just made (the button strip shows it in the view)
   L.sol.clicks.forEach((c, i) => {
@@ -602,6 +607,30 @@ function drawShip(s) {
     glow("#3dffb0", 18); ctx.fillStyle = "#3dffb0";
     ctx.beginPath(); ctx.moveTo(-17, -8); ctx.lineTo(17, -2); ctx.lineTo(-17, 9); ctx.closePath(); ctx.fill();
     ctx.shadowBlur = 0; ctx.fillStyle = "#0e0828"; ctx.fillRect(-8, -1, 8, 7);
+  });
+}
+// wave: a small dart pointing where it is going (45 degrees up while held, down when not)
+function drawWave(s) {
+  const sp = (P.SPEEDS[s.sp] || P.SPEEDS[1]).x, a = Math.atan2(s.vy, sp);
+  local({ x: s.x, y: s.y, rot: 0 }, () => {
+    ctx.rotate(a); // local() flips y, so a positive angle points up
+    glow("#3dffb0", 18); ctx.fillStyle = "#3dffb0";
+    ctx.beginPath(); ctx.moveTo(14, 0); ctx.lineTo(-10, -10); ctx.lineTo(-5, 0); ctx.lineTo(-10, 10); ctx.closePath(); ctx.fill();
+    ctx.shadowBlur = 0; ctx.fillStyle = "#0e0828"; ctx.beginPath(); ctx.moveTo(6, 0); ctx.lineTo(-4, -4); ctx.lineTo(-4, 4); ctx.closePath(); ctx.fill();
+  });
+}
+function drawBall(s) {
+  local({ x: s.x, y: s.y, rot: s.rot }, () => {
+    glow("#3dffb0", 18); ctx.fillStyle = "#3dffb0"; ctx.beginPath(); ctx.arc(0, 0, 15, 0, 2 * Math.PI); ctx.fill();
+    ctx.shadowBlur = 0; ctx.fillStyle = "#0e0828"; ctx.beginPath(); ctx.arc(0, 0, 8, 0, 2 * Math.PI); ctx.fill();
+    ctx.fillStyle = "#3dffb0"; ctx.fillRect(-2, -15, 4, 30);
+  });
+}
+function drawUfo(s) {
+  local({ x: s.x, y: s.y, rot: 0 }, () => {
+    glow("#3dffb0", 18); ctx.fillStyle = "#3dffb0";
+    ctx.beginPath(); ctx.ellipse(0, 4, 17, 7, 0, 0, 2 * Math.PI); ctx.fill();
+    ctx.beginPath(); ctx.arc(0, 2, 9, 0, Math.PI); ctx.fill(); // y is up here: 0..pi is the top half
   });
 }
 function drawCube(s) {
