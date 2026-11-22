@@ -57,18 +57,9 @@ function list() {
 // and the open phone page shows it at once: no republish.
 // the solution the viewer replays: {ok, events} (the natural plan when it works), or the furthest run
 function solveFor(L) {
-  const { GD } = require("./io.js");
-  Object.assign(GD, require("../lib/natural.js"));
   const t0 = Date.now();
-  const w = GD.makeWorld(L.level.objects, L.level.header);
-  const r = GD.solveAny(w);
-  let sol;
-  if (r.ok) {
-    let events = r.events;
-    try { const n = GD.naturalPlan(w, r, L.level.objects); if (n && n.path[n.path.length - 1].done) events = n.events; } catch (e) {}
-    sol = { ok: true, events };
-  } else sol = { ok: false, events: r.trail || [], dieX: r.dieAt && r.dieAt.x, why: r.why };
-  console.log(`solved for the viewer and the phone in ${((Date.now() - t0) / 1000).toFixed(0)} s (${sol.ok ? "beaten" : "not beaten"})`);
+  const sol = require("./solutions.js").solve(L.level, L.levelStr);  // cached when make.js already solved it
+  console.log(`solution for the viewer and the phone: ${sol.ok ? "beaten" : "not beaten"} (${((Date.now() - t0) / 1000).toFixed(0)} s)`);
   return sol;
 }
 function phoneRow(session, base, L, version, note, solution) {

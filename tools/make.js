@@ -211,6 +211,8 @@ function make(specFile, specObj) {
     for (const p of bad) console.log(`   PREJUMP at block ${p.from.toFixed(1)}-${p.to.toFixed(1)}: jump ${p.lead.toFixed(1)} blocks before ${p.cue} at ${p.cueAt.toFixed(1)}`);
     console.log(bad.length ? `   NOT sight-readable: ${bad.length} prejump(s)` : "   sight-readable: every press is cued by what is right in front");
   }
+  // save the solution (natural replay) so the viewer and the phone replay it, not solve it again
+  try { const L2 = require("./io.js").readGdlvl(out); require("./solutions.js").fromRun(L2.level, L2.levelStr, r); // r: the check's solve (indicators have no hitbox) } catch (e) { console.log("   (solution not saved: " + e.message + ")"); }
   buildIndex();
   return { out, r };
 }

@@ -8,6 +8,21 @@ window.GD_LEVELS = [
    "url": "/song/official/StereoMadness.mp3",
    "official": 0,
    "offset": 0
+  },
+  "solution": {
+   "ok": true,
+   "events": [
+    {
+     "tick": 307,
+     "type": "press"
+    },
+    {
+     "tick": 308,
+     "type": "release"
+    }
+   ],
+   "physics": "c39a889",
+   "solvedAt": "2026-11-22T21:27:39.837Z"
   }
  },
  {
@@ -18,6 +33,101 @@ window.GD_LEVELS = [
    "url": "/song/official/StereoMadness.mp3",
    "official": 0,
    "offset": 0
+  },
+  "solution": {
+   "ok": true,
+   "events": [
+    {
+     "tick": 778,
+     "type": "press"
+    },
+    {
+     "tick": 779,
+     "type": "release"
+    },
+    {
+     "tick": 958,
+     "type": "press"
+    },
+    {
+     "tick": 959,
+     "type": "release"
+    },
+    {
+     "tick": 1138,
+     "type": "press"
+    },
+    {
+     "tick": 1139,
+     "type": "release"
+    },
+    {
+     "tick": 1318,
+     "type": "press"
+    },
+    {
+     "tick": 1319,
+     "type": "release"
+    },
+    {
+     "tick": 1495,
+     "type": "press"
+    },
+    {
+     "tick": 1496,
+     "type": "release"
+    },
+    {
+     "tick": 1576,
+     "type": "press"
+    },
+    {
+     "tick": 1577,
+     "type": "release"
+    },
+    {
+     "tick": 1858,
+     "type": "press"
+    },
+    {
+     "tick": 1859,
+     "type": "release"
+    },
+    {
+     "tick": 2038,
+     "type": "press"
+    },
+    {
+     "tick": 2039,
+     "type": "release"
+    },
+    {
+     "tick": 2758,
+     "type": "press"
+    },
+    {
+     "tick": 2759,
+     "type": "release"
+    },
+    {
+     "tick": 2938,
+     "type": "press"
+    },
+    {
+     "tick": 2939,
+     "type": "release"
+    },
+    {
+     "tick": 3118,
+     "type": "press"
+    },
+    {
+     "tick": 3119,
+     "type": "release"
+    }
+   ],
+   "physics": "c39a889",
+   "solvedAt": "2026-11-22T21:27:39.836Z"
   }
  },
  {
@@ -28,6 +138,141 @@ window.GD_LEVELS = [
    "url": "/song/official/StereoMadness.mp3",
    "official": 0,
    "offset": 0
+  },
+  "solution": {
+   "ok": true,
+   "events": [
+    {
+     "tick": 307,
+     "type": "press"
+    },
+    {
+     "tick": 308,
+     "type": "release"
+    },
+    {
+     "tick": 526,
+     "type": "press"
+    },
+    {
+     "tick": 527,
+     "type": "release"
+    },
+    {
+     "tick": 676,
+     "type": "press"
+    },
+    {
+     "tick": 677,
+     "type": "release"
+    },
+    {
+     "tick": 872,
+     "type": "press"
+    },
+    {
+     "tick": 873,
+     "type": "release"
+    },
+    {
+     "tick": 1061,
+     "type": "press"
+    },
+    {
+     "tick": 1062,
+     "type": "release"
+    },
+    {
+     "tick": 1253,
+     "type": "press"
+    },
+    {
+     "tick": 1254,
+     "type": "release"
+    },
+    {
+     "tick": 1358,
+     "type": "press"
+    },
+    {
+     "tick": 1359,
+     "type": "release"
+    },
+    {
+     "tick": 1457,
+     "type": "press"
+    },
+    {
+     "tick": 1458,
+     "type": "release"
+    },
+    {
+     "tick": 1650,
+     "type": "press"
+    },
+    {
+     "tick": 1651,
+     "type": "release"
+    },
+    {
+     "tick": 2074,
+     "type": "press"
+    },
+    {
+     "tick": 2075,
+     "type": "release"
+    },
+    {
+     "tick": 2253,
+     "type": "press"
+    },
+    {
+     "tick": 2254,
+     "type": "release"
+    },
+    {
+     "tick": 2332,
+     "type": "press"
+    },
+    {
+     "tick": 2333,
+     "type": "release"
+    },
+    {
+     "tick": 2906,
+     "type": "press"
+    },
+    {
+     "tick": 2907,
+     "type": "release"
+    },
+    {
+     "tick": 3096,
+     "type": "press"
+    },
+    {
+     "tick": 3097,
+     "type": "release"
+    },
+    {
+     "tick": 3278,
+     "type": "press"
+    },
+    {
+     "tick": 3279,
+     "type": "release"
+    },
+    {
+     "tick": 3363,
+     "type": "press"
+    },
+    {
+     "tick": 3364,
+     "type": "release"
+    }
+   ],
+   "physics": "c39a889",
+   "solvedAt": "2026-11-22T21:27:39.836Z"
   }
  },
  {
@@ -38,6 +283,173 @@ window.GD_LEVELS = [
    "url": "/song/official/StereoMadness.mp3",
    "official": 0,
    "offset": 0
+  },
+  "solution": {
+   "ok": true,
+   "events": [
+    {
+     "tick": 283,
+     "type": "press"
+    },
+    {
+     "tick": 284,
+     "type": "release"
+    },
+    {
+     "tick": 480,
+     "type": "press"
+    },
+    {
+     "tick": 481,
+     "type": "release"
+    },
+    {
+     "tick": 679,
+     "type": "press"
+    },
+    {
+     "tick": 680,
+     "type": "release"
+    },
+    {
+     "tick": 896,
+     "type": "press"
+    },
+    {
+     "tick": 897,
+     "type": "release"
+    },
+    {
+     "tick": 1115,
+     "type": "press"
+    },
+    {
+     "tick": 1116,
+     "type": "release"
+    },
+    {
+     "tick": 1311,
+     "type": "press"
+    },
+    {
+     "tick": 1312,
+     "type": "release"
+    },
+    {
+     "tick": 1511,
+     "type": "press"
+    },
+    {
+     "tick": 1512,
+     "type": "release"
+    },
+    {
+     "tick": 1727,
+     "type": "press"
+    },
+    {
+     "tick": 1728,
+     "type": "release"
+    },
+    {
+     "tick": 1947,
+     "type": "press"
+    },
+    {
+     "tick": 1948,
+     "type": "release"
+    },
+    {
+     "tick": 2143,
+     "type": "press"
+    },
+    {
+     "tick": 2144,
+     "type": "release"
+    },
+    {
+     "tick": 2343,
+     "type": "press"
+    },
+    {
+     "tick": 2344,
+     "type": "release"
+    },
+    {
+     "tick": 2559,
+     "type": "press"
+    },
+    {
+     "tick": 2560,
+     "type": "release"
+    },
+    {
+     "tick": 2790,
+     "type": "press"
+    },
+    {
+     "tick": 2791,
+     "type": "release"
+    },
+    {
+     "tick": 2990,
+     "type": "press"
+    },
+    {
+     "tick": 2991,
+     "type": "release"
+    },
+    {
+     "tick": 3195,
+     "type": "press"
+    },
+    {
+     "tick": 3196,
+     "type": "release"
+    },
+    {
+     "tick": 3368,
+     "type": "press"
+    },
+    {
+     "tick": 3369,
+     "type": "release"
+    },
+    {
+     "tick": 3622,
+     "type": "press"
+    },
+    {
+     "tick": 3623,
+     "type": "release"
+    },
+    {
+     "tick": 3822,
+     "type": "press"
+    },
+    {
+     "tick": 3823,
+     "type": "release"
+    },
+    {
+     "tick": 4027,
+     "type": "press"
+    },
+    {
+     "tick": 4028,
+     "type": "release"
+    },
+    {
+     "tick": 4200,
+     "type": "press"
+    },
+    {
+     "tick": 4201,
+     "type": "release"
+    }
+   ],
+   "physics": "c39a889",
+   "solvedAt": "2026-11-22T21:27:39.834Z"
   }
  },
  {
@@ -48,6 +460,221 @@ window.GD_LEVELS = [
    "url": "/song/official/StereoMadness.mp3",
    "official": 0,
    "offset": 0
+  },
+  "solution": {
+   "ok": true,
+   "events": [
+    {
+     "tick": 376,
+     "type": "press"
+    },
+    {
+     "tick": 377,
+     "type": "release"
+    },
+    {
+     "tick": 561,
+     "type": "press"
+    },
+    {
+     "tick": 562,
+     "type": "release"
+    },
+    {
+     "tick": 723,
+     "type": "press"
+    },
+    {
+     "tick": 724,
+     "type": "release"
+    },
+    {
+     "tick": 930,
+     "type": "press"
+    },
+    {
+     "tick": 931,
+     "type": "release"
+    },
+    {
+     "tick": 1103,
+     "type": "press"
+    },
+    {
+     "tick": 1104,
+     "type": "release"
+    },
+    {
+     "tick": 1311,
+     "type": "press"
+    },
+    {
+     "tick": 1312,
+     "type": "release"
+    },
+    {
+     "tick": 1485,
+     "type": "press"
+    },
+    {
+     "tick": 1486,
+     "type": "release"
+    },
+    {
+     "tick": 1693,
+     "type": "press"
+    },
+    {
+     "tick": 1694,
+     "type": "release"
+    },
+    {
+     "tick": 1855,
+     "type": "press"
+    },
+    {
+     "tick": 1856,
+     "type": "release"
+    },
+    {
+     "tick": 2287,
+     "type": "press"
+    },
+    {
+     "tick": 2288,
+     "type": "release"
+    },
+    {
+     "tick": 2644,
+     "type": "press"
+    },
+    {
+     "tick": 2645,
+     "type": "release"
+    },
+    {
+     "tick": 2990,
+     "type": "press"
+    },
+    {
+     "tick": 2991,
+     "type": "release"
+    },
+    {
+     "tick": 3291,
+     "type": "press"
+    },
+    {
+     "tick": 3292,
+     "type": "release"
+    },
+    {
+     "tick": 3614,
+     "type": "press"
+    },
+    {
+     "tick": 3615,
+     "type": "release"
+    },
+    {
+     "tick": 3915,
+     "type": "press"
+    },
+    {
+     "tick": 3916,
+     "type": "release"
+    },
+    {
+     "tick": 4656,
+     "type": "press"
+    },
+    {
+     "tick": 4657,
+     "type": "release"
+    },
+    {
+     "tick": 4735,
+     "type": "press"
+    },
+    {
+     "tick": 4736,
+     "type": "release"
+    },
+    {
+     "tick": 5101,
+     "type": "press"
+    },
+    {
+     "tick": 5102,
+     "type": "release"
+    },
+    {
+     "tick": 5257,
+     "type": "press"
+    },
+    {
+     "tick": 5258,
+     "type": "release"
+    },
+    {
+     "tick": 5336,
+     "type": "press"
+    },
+    {
+     "tick": 5337,
+     "type": "release"
+    },
+    {
+     "tick": 5679,
+     "type": "press"
+    },
+    {
+     "tick": 5680,
+     "type": "release"
+    },
+    {
+     "tick": 5853,
+     "type": "press"
+    },
+    {
+     "tick": 5854,
+     "type": "release"
+    },
+    {
+     "tick": 6002,
+     "type": "press"
+    },
+    {
+     "tick": 6003,
+     "type": "release"
+    },
+    {
+     "tick": 6153,
+     "type": "press"
+    },
+    {
+     "tick": 6154,
+     "type": "release"
+    },
+    {
+     "tick": 6505,
+     "type": "press"
+    },
+    {
+     "tick": 6506,
+     "type": "release"
+    },
+    {
+     "tick": 6583,
+     "type": "press"
+    },
+    {
+     "tick": 6584,
+     "type": "release"
+    }
+   ],
+   "physics": "c39a889",
+   "solvedAt": "2026-11-22T21:27:39.833Z"
   }
  },
  {
@@ -58,6 +685,141 @@ window.GD_LEVELS = [
    "url": "/song/custom/343707.mp3",
    "id": 343707,
    "offset": 0
+  },
+  "solution": {
+   "ok": true,
+   "events": [
+    {
+     "tick": 120,
+     "type": "press"
+    },
+    {
+     "tick": 121,
+     "type": "release"
+    },
+    {
+     "tick": 209,
+     "type": "press"
+    },
+    {
+     "tick": 210,
+     "type": "release"
+    },
+    {
+     "tick": 389,
+     "type": "press"
+    },
+    {
+     "tick": 490,
+     "type": "release"
+    },
+    {
+     "tick": 652,
+     "type": "press"
+    },
+    {
+     "tick": 756,
+     "type": "release"
+    },
+    {
+     "tick": 908,
+     "type": "press"
+    },
+    {
+     "tick": 909,
+     "type": "release"
+    },
+    {
+     "tick": 976,
+     "type": "press"
+    },
+    {
+     "tick": 977,
+     "type": "release"
+    },
+    {
+     "tick": 1064,
+     "type": "press"
+    },
+    {
+     "tick": 1065,
+     "type": "release"
+    },
+    {
+     "tick": 1136,
+     "type": "press"
+    },
+    {
+     "tick": 1137,
+     "type": "release"
+    },
+    {
+     "tick": 1253,
+     "type": "press"
+    },
+    {
+     "tick": 1255,
+     "type": "release"
+    },
+    {
+     "tick": 1264,
+     "type": "press"
+    },
+    {
+     "tick": 1348,
+     "type": "release"
+    },
+    {
+     "tick": 1441,
+     "type": "press"
+    },
+    {
+     "tick": 1533,
+     "type": "release"
+    },
+    {
+     "tick": 1614,
+     "type": "press"
+    },
+    {
+     "tick": 1645,
+     "type": "release"
+    },
+    {
+     "tick": 1652,
+     "type": "press"
+    },
+    {
+     "tick": 1653,
+     "type": "release"
+    },
+    {
+     "tick": 1788,
+     "type": "press"
+    },
+    {
+     "tick": 1789,
+     "type": "release"
+    },
+    {
+     "tick": 2180,
+     "type": "press"
+    },
+    {
+     "tick": 2181,
+     "type": "release"
+    },
+    {
+     "tick": 2424,
+     "type": "press"
+    },
+    {
+     "tick": 2425,
+     "type": "release"
+    }
+   ],
+   "physics": "c39a889",
+   "solvedAt": "2026-11-22T21:27:39.836Z"
   }
  },
  {
@@ -68,6 +830,797 @@ window.GD_LEVELS = [
    "url": "/song/custom/134270.mp3",
    "id": 134270,
    "offset": 0
+  },
+  "solution": {
+   "ok": true,
+   "events": [
+    {
+     "tick": 408,
+     "type": "press"
+    },
+    {
+     "tick": 409,
+     "type": "release"
+    },
+    {
+     "tick": 614,
+     "type": "press"
+    },
+    {
+     "tick": 615,
+     "type": "release"
+    },
+    {
+     "tick": 820,
+     "type": "press"
+    },
+    {
+     "tick": 821,
+     "type": "release"
+    },
+    {
+     "tick": 980,
+     "type": "press"
+    },
+    {
+     "tick": 981,
+     "type": "release"
+    },
+    {
+     "tick": 1144,
+     "type": "press"
+    },
+    {
+     "tick": 1145,
+     "type": "release"
+    },
+    {
+     "tick": 1247,
+     "type": "press"
+    },
+    {
+     "tick": 1248,
+     "type": "release"
+    },
+    {
+     "tick": 1350,
+     "type": "press"
+    },
+    {
+     "tick": 1351,
+     "type": "release"
+    },
+    {
+     "tick": 1532,
+     "type": "press"
+    },
+    {
+     "tick": 1533,
+     "type": "release"
+    },
+    {
+     "tick": 1790,
+     "type": "press"
+    },
+    {
+     "tick": 1874,
+     "type": "release"
+    },
+    {
+     "tick": 2037,
+     "type": "press"
+    },
+    {
+     "tick": 2134,
+     "type": "release"
+    },
+    {
+     "tick": 2224,
+     "type": "press"
+    },
+    {
+     "tick": 2264,
+     "type": "release"
+    },
+    {
+     "tick": 2344,
+     "type": "press"
+    },
+    {
+     "tick": 2388,
+     "type": "release"
+    },
+    {
+     "tick": 2408,
+     "type": "press"
+    },
+    {
+     "tick": 2433,
+     "type": "release"
+    },
+    {
+     "tick": 2481,
+     "type": "press"
+    },
+    {
+     "tick": 2502,
+     "type": "release"
+    },
+    {
+     "tick": 2534,
+     "type": "press"
+    },
+    {
+     "tick": 2557,
+     "type": "release"
+    },
+    {
+     "tick": 2594,
+     "type": "press"
+    },
+    {
+     "tick": 2618,
+     "type": "release"
+    },
+    {
+     "tick": 2655,
+     "type": "press"
+    },
+    {
+     "tick": 2686,
+     "type": "release"
+    },
+    {
+     "tick": 2746,
+     "type": "press"
+    },
+    {
+     "tick": 2758,
+     "type": "release"
+    },
+    {
+     "tick": 2777,
+     "type": "press"
+    },
+    {
+     "tick": 2825,
+     "type": "release"
+    },
+    {
+     "tick": 3048,
+     "type": "press"
+    },
+    {
+     "tick": 3049,
+     "type": "release"
+    },
+    {
+     "tick": 3151,
+     "type": "press"
+    },
+    {
+     "tick": 3152,
+     "type": "release"
+    },
+    {
+     "tick": 3357,
+     "type": "press"
+    },
+    {
+     "tick": 3358,
+     "type": "release"
+    },
+    {
+     "tick": 3560,
+     "type": "press"
+    },
+    {
+     "tick": 3561,
+     "type": "release"
+    },
+    {
+     "tick": 3766,
+     "type": "press"
+    },
+    {
+     "tick": 3767,
+     "type": "release"
+    },
+    {
+     "tick": 4012,
+     "type": "press"
+    },
+    {
+     "tick": 4013,
+     "type": "release"
+    },
+    {
+     "tick": 4332,
+     "type": "press"
+    },
+    {
+     "tick": 4355,
+     "type": "release"
+    },
+    {
+     "tick": 4363,
+     "type": "press"
+    },
+    {
+     "tick": 4428,
+     "type": "release"
+    },
+    {
+     "tick": 4520,
+     "type": "press"
+    },
+    {
+     "tick": 4612,
+     "type": "release"
+    },
+    {
+     "tick": 4705,
+     "type": "press"
+    },
+    {
+     "tick": 4797,
+     "type": "release"
+    },
+    {
+     "tick": 4889,
+     "type": "press"
+    },
+    {
+     "tick": 4982,
+     "type": "release"
+    },
+    {
+     "tick": 5063,
+     "type": "press"
+    },
+    {
+     "tick": 5102,
+     "type": "release"
+    },
+    {
+     "tick": 5348,
+     "type": "press"
+    },
+    {
+     "tick": 5349,
+     "type": "release"
+    },
+    {
+     "tick": 5436,
+     "type": "press"
+    },
+    {
+     "tick": 5437,
+     "type": "release"
+    },
+    {
+     "tick": 5903,
+     "type": "press"
+    },
+    {
+     "tick": 5904,
+     "type": "release"
+    },
+    {
+     "tick": 5972,
+     "type": "press"
+    },
+    {
+     "tick": 5973,
+     "type": "release"
+    },
+    {
+     "tick": 6180,
+     "type": "press"
+    },
+    {
+     "tick": 6181,
+     "type": "release"
+    },
+    {
+     "tick": 6283,
+     "type": "press"
+    },
+    {
+     "tick": 6284,
+     "type": "release"
+    },
+    {
+     "tick": 6372,
+     "type": "press"
+    },
+    {
+     "tick": 6373,
+     "type": "release"
+    },
+    {
+     "tick": 6486,
+     "type": "press"
+    },
+    {
+     "tick": 6487,
+     "type": "release"
+    },
+    {
+     "tick": 6589,
+     "type": "press"
+    },
+    {
+     "tick": 6590,
+     "type": "release"
+    },
+    {
+     "tick": 6596,
+     "type": "press"
+    },
+    {
+     "tick": 6619,
+     "type": "release"
+    },
+    {
+     "tick": 6723,
+     "type": "press"
+    },
+    {
+     "tick": 6754,
+     "type": "release"
+    },
+    {
+     "tick": 6792,
+     "type": "press"
+    },
+    {
+     "tick": 6815,
+     "type": "release"
+    },
+    {
+     "tick": 6850,
+     "type": "press"
+    },
+    {
+     "tick": 6873,
+     "type": "release"
+    },
+    {
+     "tick": 6910,
+     "type": "press"
+    },
+    {
+     "tick": 6938,
+     "type": "release"
+    },
+    {
+     "tick": 6990,
+     "type": "press"
+    },
+    {
+     "tick": 7010,
+     "type": "release"
+    },
+    {
+     "tick": 7030,
+     "type": "press"
+    },
+    {
+     "tick": 7057,
+     "type": "release"
+    },
+    {
+     "tick": 7143,
+     "type": "press"
+    },
+    {
+     "tick": 7195,
+     "type": "release"
+    },
+    {
+     "tick": 7215,
+     "type": "press"
+    },
+    {
+     "tick": 7229,
+     "type": "release"
+    },
+    {
+     "tick": 7274,
+     "type": "press"
+    },
+    {
+     "tick": 7307,
+     "type": "release"
+    },
+    {
+     "tick": 7367,
+     "type": "press"
+    },
+    {
+     "tick": 7380,
+     "type": "release"
+    },
+    {
+     "tick": 7400,
+     "type": "press"
+    },
+    {
+     "tick": 7447,
+     "type": "release"
+    },
+    {
+     "tick": 7479,
+     "type": "press"
+    },
+    {
+     "tick": 7492,
+     "type": "release"
+    },
+    {
+     "tick": 7554,
+     "type": "press"
+    },
+    {
+     "tick": 7565,
+     "type": "release"
+    },
+    {
+     "tick": 7579,
+     "type": "press"
+    },
+    {
+     "tick": 7630,
+     "type": "release"
+    },
+    {
+     "tick": 8007,
+     "type": "press"
+    },
+    {
+     "tick": 8008,
+     "type": "release"
+    },
+    {
+     "tick": 8096,
+     "type": "press"
+    },
+    {
+     "tick": 8097,
+     "type": "release"
+    },
+    {
+     "tick": 8185,
+     "type": "press"
+    },
+    {
+     "tick": 8186,
+     "type": "release"
+    },
+    {
+     "tick": 8274,
+     "type": "press"
+    },
+    {
+     "tick": 8275,
+     "type": "release"
+    },
+    {
+     "tick": 8406,
+     "type": "press"
+    },
+    {
+     "tick": 8407,
+     "type": "release"
+    },
+    {
+     "tick": 8509,
+     "type": "press"
+    },
+    {
+     "tick": 8510,
+     "type": "release"
+    },
+    {
+     "tick": 8612,
+     "type": "press"
+    },
+    {
+     "tick": 8613,
+     "type": "release"
+    },
+    {
+     "tick": 8701,
+     "type": "press"
+    },
+    {
+     "tick": 8702,
+     "type": "release"
+    },
+    {
+     "tick": 8790,
+     "type": "press"
+    },
+    {
+     "tick": 8791,
+     "type": "release"
+    },
+    {
+     "tick": 9104,
+     "type": "press"
+    },
+    {
+     "tick": 9187,
+     "type": "release"
+    },
+    {
+     "tick": 9280,
+     "type": "press"
+    },
+    {
+     "tick": 9372,
+     "type": "release"
+    },
+    {
+     "tick": 9465,
+     "type": "press"
+    },
+    {
+     "tick": 9557,
+     "type": "release"
+    },
+    {
+     "tick": 9650,
+     "type": "press"
+    },
+    {
+     "tick": 9742,
+     "type": "release"
+    },
+    {
+     "tick": 9823,
+     "type": "press"
+    },
+    {
+     "tick": 9854,
+     "type": "release"
+    },
+    {
+     "tick": 9858,
+     "type": "press"
+    },
+    {
+     "tick": 9862,
+     "type": "release"
+    },
+    {
+     "tick": 10088,
+     "type": "press"
+    },
+    {
+     "tick": 10089,
+     "type": "release"
+    },
+    {
+     "tick": 10177,
+     "type": "press"
+    },
+    {
+     "tick": 10178,
+     "type": "release"
+    },
+    {
+     "tick": 10389,
+     "type": "press"
+    },
+    {
+     "tick": 10390,
+     "type": "release"
+    },
+    {
+     "tick": 10820,
+     "type": "press"
+    },
+    {
+     "tick": 10821,
+     "type": "release"
+    },
+    {
+     "tick": 10923,
+     "type": "press"
+    },
+    {
+     "tick": 10924,
+     "type": "release"
+    },
+    {
+     "tick": 11394,
+     "type": "press"
+    },
+    {
+     "tick": 11453,
+     "type": "release"
+    },
+    {
+     "tick": 11543,
+     "type": "press"
+    },
+    {
+     "tick": 11583,
+     "type": "release"
+    },
+    {
+     "tick": 11627,
+     "type": "press"
+    },
+    {
+     "tick": 11652,
+     "type": "release"
+    },
+    {
+     "tick": 11678,
+     "type": "press"
+    },
+    {
+     "tick": 11698,
+     "type": "release"
+    },
+    {
+     "tick": 11754,
+     "type": "press"
+    },
+    {
+     "tick": 11770,
+     "type": "release"
+    },
+    {
+     "tick": 11790,
+     "type": "press"
+    },
+    {
+     "tick": 11830,
+     "type": "release"
+    },
+    {
+     "tick": 11920,
+     "type": "press"
+    },
+    {
+     "tick": 11963,
+     "type": "release"
+    },
+    {
+     "tick": 11975,
+     "type": "press"
+    },
+    {
+     "tick": 11998,
+     "type": "release"
+    },
+    {
+     "tick": 12048,
+     "type": "press"
+    },
+    {
+     "tick": 12070,
+     "type": "release"
+    },
+    {
+     "tick": 12103,
+     "type": "press"
+    },
+    {
+     "tick": 12126,
+     "type": "release"
+    },
+    {
+     "tick": 12161,
+     "type": "press"
+    },
+    {
+     "tick": 12183,
+     "type": "release"
+    },
+    {
+     "tick": 12218,
+     "type": "press"
+    },
+    {
+     "tick": 12252,
+     "type": "release"
+    },
+    {
+     "tick": 12319,
+     "type": "press"
+    },
+    {
+     "tick": 12325,
+     "type": "release"
+    },
+    {
+     "tick": 12339,
+     "type": "press"
+    },
+    {
+     "tick": 12394,
+     "type": "release"
+    },
+    {
+     "tick": 12651,
+     "type": "press"
+    },
+    {
+     "tick": 12652,
+     "type": "release"
+    },
+    {
+     "tick": 12754,
+     "type": "press"
+    },
+    {
+     "tick": 12755,
+     "type": "release"
+    },
+    {
+     "tick": 12904,
+     "type": "press"
+    },
+    {
+     "tick": 12905,
+     "type": "release"
+    },
+    {
+     "tick": 12964,
+     "type": "press"
+    },
+    {
+     "tick": 12965,
+     "type": "release"
+    },
+    {
+     "tick": 13088,
+     "type": "press"
+    },
+    {
+     "tick": 13089,
+     "type": "release"
+    },
+    {
+     "tick": 13252,
+     "type": "press"
+    },
+    {
+     "tick": 13253,
+     "type": "release"
+    },
+    {
+     "tick": 13455,
+     "type": "press"
+    },
+    {
+     "tick": 13456,
+     "type": "release"
+    },
+    {
+     "tick": 13544,
+     "type": "press"
+    },
+    {
+     "tick": 13545,
+     "type": "release"
+    },
+    {
+     "tick": 13658,
+     "type": "press"
+    },
+    {
+     "tick": 13659,
+     "type": "release"
+    }
+   ],
+   "physics": "c39a889",
+   "solvedAt": "2026-11-22T21:27:39.835Z"
   }
  },
  {
@@ -78,6 +1631,109 @@ window.GD_LEVELS = [
    "url": "/song/custom/233860.mp3",
    "id": 233860,
    "offset": 120
+  },
+  "solution": {
+   "ok": true,
+   "events": [
+    {
+     "tick": 237,
+     "type": "press"
+    },
+    {
+     "tick": 238,
+     "type": "release"
+    },
+    {
+     "tick": 450,
+     "type": "press"
+    },
+    {
+     "tick": 451,
+     "type": "release"
+    },
+    {
+     "tick": 541,
+     "type": "press"
+    },
+    {
+     "tick": 542,
+     "type": "release"
+    },
+    {
+     "tick": 760,
+     "type": "press"
+    },
+    {
+     "tick": 761,
+     "type": "release"
+    },
+    {
+     "tick": 877,
+     "type": "press"
+    },
+    {
+     "tick": 1042,
+     "type": "release"
+    },
+    {
+     "tick": 1064,
+     "type": "press"
+    },
+    {
+     "tick": 1065,
+     "type": "release"
+    },
+    {
+     "tick": 1259,
+     "type": "press"
+    },
+    {
+     "tick": 1260,
+     "type": "release"
+    },
+    {
+     "tick": 1578,
+     "type": "press"
+    },
+    {
+     "tick": 1579,
+     "type": "release"
+    },
+    {
+     "tick": 1778,
+     "type": "press"
+    },
+    {
+     "tick": 1779,
+     "type": "release"
+    },
+    {
+     "tick": 1873,
+     "type": "press"
+    },
+    {
+     "tick": 1874,
+     "type": "release"
+    },
+    {
+     "tick": 2225,
+     "type": "press"
+    },
+    {
+     "tick": 2226,
+     "type": "release"
+    },
+    {
+     "tick": 2386,
+     "type": "press"
+    },
+    {
+     "tick": 2387,
+     "type": "release"
+    }
+   ],
+   "physics": "c39a889",
+   "solvedAt": "2026-11-22T21:27:39.835Z"
   }
  }
 ];

@@ -52,8 +52,11 @@ update tools/web.js"). Keep the phone page a build of the viewer, never a fork.
 
 ## Solutions travel with the level
 
-A work-in-progress row carries its solution (`solution: {ok, events}`, the natural replay of
-`lib/natural.js`), solved on the PC by `node tools/wip.js put` (`--no-solve` skips it). The page
+A work-in-progress row carries its solution (`solution: {ok, events, physics}`, the natural replay
+of `lib/natural.js`), solved on the PC by `node tools/wip.js put` (`--no-solve` skips it). Pushed
+levels carry theirs in `viewer/levels.js` (from `local/solutions/`, see `tools/solutions.js`; solve
+any missing with `node tools/solutions.js --all`). `physics` = the commit of lib/physics.js /
+lib/objects*.js it was solved on; older ones are stale and get solved again. The page
 then only replays. Without it the phone solved the level itself: GDLM 45 (61 s with ship and wave)
 takes ~5 min to solve on the PC, and the page looked hung on the phone (user, Nov 22).
 

@@ -112,6 +112,9 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   user sees it), `tools/sightread.js` (prejumps), `tools/inputs.js` (a solution's inputs with
   modes), `lib/natural.js` (a natural replay plan: taps, no empty jumps). Test:
   `node tests/style_gates.js`.
+- `tools/solutions.js` -- solve each level ONCE on the PC (`--all` for every repo level missing one);
+  the viewer and the phone replay the saved solution (natural replay, stamped with the physics
+  commit; stale ones are re-solved). make.js and wip.js save one whenever they solve.
 - `viewer/index.html` -- the replay viewer; `viewer/levels.js` is generated, do not edit.
 - `lib/look.js` -- how a level LOOKS (viewer's "game look", on by default): header colours, colour
   899 / alpha 1007 / zoom 1913 triggers over time, block skins 1-7 outlined by their own edges,
