@@ -6,9 +6,9 @@ The user plays it and tells us what was off. Read this fully first.
 
 ## Before making or judging a level: read knowledge/
 
-`knowledge/` holds what the user thinks about GD: `opinions.md` (their taste) and `critiques.md`
-(what they said about GDLM levels) are required reading before writing a spec; `levels/`,
-`glossary.md`, `demonlist.md` for the rest. New user feedback goes there too (in their words).
+`knowledge/` is a general GD knowledge base (not the user's personal taste): `design.md` (what
+makes a level good or unfair) and `critiques.md` (playtest feedback on GDLM levels) are required
+reading before writing a spec; `levels/`, `glossary.md`, `demonlist.md` for the rest.
 
 ## The loop
 

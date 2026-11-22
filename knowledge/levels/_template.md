@@ -8,7 +8,7 @@
 - Length, modes:
 - Source(s), date read:
 
-## The user's opinion (their words, dated)
+## Reception (community, sourced; playtest remarks, dated)
 -
 
 ## What to learn from it (for GDLM levels)
