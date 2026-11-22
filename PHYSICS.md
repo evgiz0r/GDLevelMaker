@@ -110,7 +110,7 @@ colour 29/30/899/105/221/744/915/900, pulse 1006, alpha 1007 (still collides), e
 Firing: x passing the trigger's x; touch-triggered (11) when the player's box meets its 30x30;
 spawn-triggered (62) only from a spawn trigger. Not modelled: move "lock to player" (58/59) and
 "move to target" (100), the player carried sideways by a moving block, multi-trigger (87).
-The viewer draws moving objects where they start.
+The viewer draws moved, turned and switched-off objects where they are at each moment (GD.posedObjects).
 
 ## Not in the sim yet (the game has it)
 
