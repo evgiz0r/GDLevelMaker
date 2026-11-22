@@ -101,7 +101,8 @@ def("orb-ladder", "yellow orbs climbing over a spike floor; rows = orb heights, 
 // from the portal's height, and any portal at row 5 or lower gives floor 0). `portal: true` puts
 // the mode's portal one column before the corridor, centred on the path's first row -- a portal
 // off the path reads wrong (playtest, GDLM 44 v2). `exit: "cube"` puts a cube portal after it,
-// centred on the last row of the path.
+// centred on the last row of the path. `portalRow` overrides the entry portal's row (1 = reached by a
+// cube running on the ground).
 // The exit portal gets a frame (blocks above and below it, rows 0-9) so the only way out of the
 // corridor is through it: without one the solver flew over GDLM 44's exit and played on as a ship.
 function portals(o, mode, entryRow, exitRow, w, a) {
@@ -126,7 +127,7 @@ def("ship-tunnel", "a ship corridor (band rows 0-9): floor and roof follow a wav
     if (a.teeth && c >= lead && (c - lead) % 8 === 4) o.push(["spike", c, roof - 1, { rot: 180 }]);
   }
   const mid = c => floorAt(c) + (gap - 1) / 2;
-  portals(o, "ship", Math.min(5, Math.round(mid(0))), Math.round(mid(w - 1)), w, a);
+  portals(o, "ship", a.portalRow ?? Math.min(5, Math.round(mid(0))), Math.round(mid(w - 1)), w, a);
   return { objects: o, width: w + (a.exit ? 1 : 0) };
 });
 def("wave-zigzag", "a wave corridor (band rows 0-9): the path climbs and falls 45 degrees, `seg` columns per leg, `gap` rows of room (4 = Easy); portal/exit options", (a) => {
@@ -156,7 +157,7 @@ def("wave-zigzag", "a wave corridor (band rows 0-9): the path climbs and falls 4
     for (let r = 0; r < bottom; r++) o.push(["block", c, r]);
     for (let r = top; r < 10; r++) o.push(["block", c, r]);
   }
-  portals(o, "wave", Math.min(5, midAt(0)), midAt(w - 1) + (legs % 2 === 0 ? 0 : 0), w, a);
+  portals(o, "wave", a.portalRow ?? Math.min(5, midAt(0)), midAt(w - 1), w, a);
   return { objects: o, width: w + (a.exit ? 1 : 0) };
 });
 

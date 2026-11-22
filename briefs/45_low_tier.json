@@ -1,0 +1,25 @@
+{
+  "name": "GDLM 45 first flight",
+  "idea": "a modern low-tier level built from the knowledge base's numbers (knowledge/levels/low_tier_stats.md, modes_low_tier.md): rated template A, 'a new mode every ~7 s' -- cube sections that each add one idea, alternating with ship and wave corridors; every section forgiving",
+  "story": "dusk to night and back: blue -> teal -> violet -> magenta, calm end",
+  "difficulty": { "label": "Easy", "minWindowMs": 60 },
+  "style": "classic",
+  "song": { "custom": 134270 }, "offset": 0,
+  "seed": 5,
+  "sections": [
+    { "name": "intro", "blocks": 16, "rest": true, "bg": [30, 80, 200], "ground": [15, 50, 170] },
+    { "name": "spikes", "blocks": 62, "use": ["single", "double"] },
+    { "name": "first ship", "blocks": 48, "mode": "ship", "bg": [20, 120, 160], "ground": [10, 80, 120] },
+    { "name": "platforms", "blocks": 62, "use": ["spike-block", "platform", "double"], "args": { "platform": { "w": 4, "h": 1 } } },
+    { "name": "first wave", "blocks": 36, "mode": "wave", "bg": [90, 60, 200], "ground": [60, 30, 160] },
+    { "name": "orbs and pads", "blocks": 62, "use": ["orb-pit", "pad-launch", "single"], "args": { "pad-launch": { "n": 3 } } },
+    { "name": "second ship", "blocks": 48, "mode": "ship", "bg": [130, 40, 190], "ground": [90, 20, 150] },
+    { "name": "breather", "blocks": 10, "rest": true },
+    { "name": "stairs", "blocks": 50, "use": ["stairs", "spike-block", "double"], "args": { "stairs": { "n": 3, "w": 4 } } },
+    { "name": "second wave", "blocks": 36, "mode": "wave", "bg": [170, 40, 160], "ground": [120, 20, 120] },
+    { "name": "climb", "blocks": 62, "use": ["climb", "hops", "double"], "args": { "climb": { "n": 2, "w": 3, "gap": 2 }, "hops": { "n": 3, "w": 3, "gap": 2, "rise": 0 } } },
+    { "name": "last ship", "blocks": 48, "mode": "ship", "bg": [200, 40, 120], "ground": [150, 20, 90] },
+    { "name": "finale", "blocks": 62, "use": ["gate", "orb-pit", "spike-block", "double"] },
+    { "name": "end", "blocks": 22, "rest": true, "bg": [30, 80, 200], "ground": [15, 50, 170] }
+  ]
+}

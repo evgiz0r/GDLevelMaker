@@ -22,6 +22,9 @@
 // appears in the level it gets room on both sides (introduce, then repeat, then mix -- STYLE.md).
 // `gaps` = [min, max] empty columns between chunks (default: calmer early, tighter later).
 // `objects` = extra hand-placed spec entries, columns counted from the section start.
+// `mode`: "ship" or "wave" makes the section one corridor (ship-tunnel / wave-zigzag) with its
+// portal on the ground and a framed cube portal at its end; `args` {"ship-tunnel": {...}} tune it.
+// The cube section after it starts with a 6-block lead-in.
 const fs = require("fs"), path = require("path");
 const { make, build, slug } = require("./make.js");
 const { PATTERNS } = require("./patterns.js");
@@ -42,17 +45,34 @@ function compose(brief, tweaks = {}) {
   const rnd = rng(brief.seed || 1);
   const objects = [], placed = [];
   const seen = new Set();
-  let col = 0;
+  let col = 0, prevFlying = false;
   const total = brief.sections.reduce((a, s) => a + s.blocks, 0);
   for (const [si, sec] of brief.sections.entries()) {
     const start = col, end = col + sec.blocks;
     if (sec.bg) objects.push(["colour", Math.max(0, start - 2), { ch: "bg", rgb: sec.bg, secs: sec.secs || 1 }]);
     if (sec.ground) objects.push(["colour", Math.max(0, start - 2), { ch: "ground", rgb: sec.ground, secs: sec.secs || 1 }]);
     for (const e of sec.objects || []) { const c = e.slice(); c[c[0] === "pattern" ? 2 : 1] += start; objects.push(c); }
+    // a flying section: one corridor with its own portal (entered from the ground) and a framed
+    // cube portal at its end (tools/patterns.js). Repairs widen its room.
+    if (sec.mode === "ship" || sec.mode === "wave") {
+      const key = `${si}:0`, t = tweaks[key] || {};
+      const name = sec.mode === "ship" ? "ship-tunnel" : "wave-zigzag";
+      const base = sec.mode === "ship"
+        ? { w: sec.blocks - 3, gap: 5, amp: 1.5, base: 0, teeth: true, lead: 6 }
+        : { seg: 4, legs: Math.max(2, Math.floor((sec.blocks - 3) / 4)), gap: 4, low: 1, slopes: true };
+      const args = Object.assign(base, (sec.args || {})[name] || {}, { portal: true, exit: "cube", portalRow: 1 });
+      if (t.room) args.gap = (args.gap || 4) + t.room;
+      objects.push(["pattern", name, start + 1, 0, args]);
+      placed.push({ key, name, from: start + 1, to: start + 1 + widthOf(name, args), section: sec.name, flying: true });
+      col = end; prevFlying = true;
+      continue;
+    }
     if (!sec.rest && sec.use && sec.use.length) {
       const early = start / total < 0.5;
       const [gMin, gMax] = sec.gaps || (early ? [4, 7] : [3, 5]);
-      let c = start + 3, k = 0, last = null;
+      // after a flying section the cube lands from its exit portal: a calm lead-in first
+      // (rated low-tier levels: ~6 blocks after a cube portal, knowledge/levels/modes_low_tier.md)
+      let c = start + (prevFlying ? 6 : 3), k = 0, last = null;
       // draw every random choice up front so a tweak to one chunk does not reshuffle the others
       const draws = Array.from({ length: 64 }, () => [rnd(), rnd()]);
       while (k < 64) {
@@ -81,7 +101,7 @@ function compose(brief, tweaks = {}) {
         c += wdt; k++;
       }
     }
-    col = end;
+    col = end; prevFlying = false;
   }
   objects.push(["block", col + 2, 6]); // marks the end; out of the cube's way
   const spec = { name: brief.name, desc: brief.desc || brief.idea || "", objects };
@@ -134,6 +154,7 @@ function loop(briefFile, rounds = 8) {
         if (!ch || fixes.some(f => f.key === ch.key)) continue;
         const t = tweaks[ch.key] || (tweaks[ch.key] = {});
         blocked.add(ch.key);
+        if (ch.flying) { if ((t.room || 0) < 2) { t.room = (t.room || 0) + 1; fixes.push({ key: ch.key, what: `1 more row of room in the ${ch.name} at ${ch.from} (${b.why})` }); } continue; }
         t.tries = (t.tries || 0) + 1;
         if (t.tries <= 2) { t.gap = (t.gap || 0) + 2; fixes.push({ key: ch.key, what: `2 more columns before ${t.swap || ch.name} at ${ch.from} (${b.why})` }); }
         else if (EASIER[t.swap || ch.name]) { t.swap = EASIER[t.swap || ch.name]; t.tries = 0; fixes.push({ key: ch.key, what: `${ch.name} at ${ch.from} -> ${t.swap} (${b.why})` }); }
@@ -148,7 +169,7 @@ function loop(briefFile, rounds = 8) {
     const have = LABELS.indexOf(labelOf(s)), want = LABELS.indexOf(target);
     for (const ch of cur.placed.slice().reverse()) {
       if (fixes.length >= (brief.stepsPerRound || 4)) break;
-      if (blocked.has(ch.key)) continue;
+      if (blocked.has(ch.key) || ch.flying) continue;
       const t = tweaks[ch.key] || (tweaks[ch.key] = {});
       const name = t.swap || ch.name;
       if (have < want) {
