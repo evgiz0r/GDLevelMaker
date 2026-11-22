@@ -14,7 +14,7 @@
 //   variety      not one chunk over and over (unless the brief says "repeat": true)
 //   readability  spike-like decoration (18-21) never within 2 columns of a hazard
 //   colour       a colour change per section (when the brief has sections)
-//   sync         presses that can land on a beat (only with a song; WARN only)
+//   sync         with a song: portals on bar starts, and not too many presses pinned to beats (WARN only)
 //   skips        the solved run goes through every mode/gravity/speed portal (FAIL) and uses every
 //                orb (WARN): a "secret way" past part of the level means a path should be blocked
 //   objects      gameplay objects with unconfirmed hitboxes (sure:false; WARN only)
@@ -127,18 +127,25 @@ function scoreLevel(level, brief, opts = {}) {
     gate("colour", colourT >= need ? "PASS" : "WARN", `${colourT} colour triggers for ${need} coloured sections`);
   }
 
+  // sync, loosely (the user: "too synced may sound forced", not every click is on the beat; the
+  // official levels put portals on bar starts and barely lean presses to the beat -- SYNC.md
+  // "How much to sync"). PASS when the mode/speed portals sit on bar starts and at most 60% of the
+  // presses are pinned to a beat; WARN otherwise. Never a FAIL.
   if (brief.grid && r.ok) {
     const grid = Object.assign({}, brief.grid, { period: brief.grid.period || 60 / brief.grid.bpm, t0: brief.grid.t0 || 0 });
+    const off = brief.offset || 0, down = brief.grid.downbeat || 0;
+    const beatAt = sec => GD.SYNC.timeToBeat(grid, off, sec);        // 1 = the first beat
+    const path = runPath();
+    const tickAtX = x => { for (let t = 0; t < path.length; t++) if (path[t].x >= x) return t; return path.length - 1; };
+    const portals = level.objects.filter(o => ["mode", "speed"].includes(GD.objInfo(o.id).kind));
+    const onBar = portals.filter(o => { const b0 = beatAt(tickAtX(o.x) / GD.PHYS.TPS) - 1 - down; const m = ((b0 % 4) + 4) % 4; return Math.min(m, 4 - m) < 0.25; }).length;
     const pw = GD.SYNC.pressWindows(w, r.events);
-    if (pw) {
-      let on = 0;
-      for (const p of pw.windows) {
-        const b0 = GD.SYNC.timeToBeat(grid, brief.offset || 0, p.lo / GD.PHYS.TPS), b1 = GD.SYNC.timeToBeat(grid, brief.offset || 0, (p.hi + 1) / GD.PHYS.TPS);
-        if (Math.floor(b1 * 2) >= Math.ceil(b0 * 2)) on++;
-      }
-      const share = on / Math.max(1, pw.windows.length);
-      gate("sync", share >= (brief.syncShare ?? 0.6) ? "PASS" : "WARN", `${on}/${pw.windows.length} presses can land on a beat or half-beat`);
-    }
+    let pinned = 0, n = 0;
+    if (pw) for (const p of pw.windows) { n++; const mid = beatAt((p.lo + p.hi) / 2 / GD.PHYS.TPS); if (Math.abs(mid - Math.round(mid)) * grid.period < 0.035) pinned++; }
+    const portalsOk = portals.length < 2 || onBar / portals.length >= 0.5, pinOk = !n || pinned / n <= 0.6;
+    gate("sync", portalsOk && pinOk ? "PASS" : "WARN",
+      `${onBar}/${portals.length} portals on a bar start, ${pinned}/${n} presses centred on a beat`,
+      [!portalsOk ? "portals off the bars: put mode/speed changes on bar starts" : "", !pinOk ? "most presses pinned to beats: can sound forced, loosen some" : ""].filter(Boolean).join("; "));
   }
 
   // skips: which portals and orbs the solved run never touched

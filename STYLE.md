@@ -301,6 +301,13 @@ Playtest of GDLM 44 v2 ("more patterns, not too bad of a draft"), and what chang
 - Prejumps are exact only for cube levels (exact solver). On levels with modes the check is
   approximate (later inputs fixed in time) and the gate is a WARN.
 
+**Sync, loosely** (the user via the sync session: "too synced may sound forced"; some music is a
+vibe, not beats; not everything is clicked on the beat). Official levels put portals on bar starts
+and barely lean presses to the beat (SYNC.md "How much to sync"). So: mode/speed changes and big
+moments on bar starts and section changes; jumps where the gameplay wants them. GDLM 44 put every
+jump on a beat -- a test of the tools, not a rule. `score.js` warns on portals off the bars and on
+more than 60% of presses pinned to beats.
+
 **Jump indicators** (common in modern levels; they also show what the level intends): spec
 `"indicators": {"id": N}` puts a small mark just above the surface at every cube/robot takeoff
 (upside down: under the ceiling, pointing down), from the solved run (`tools/decorate.js`). Orb
