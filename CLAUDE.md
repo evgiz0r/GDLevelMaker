@@ -71,7 +71,8 @@ on a paused screen -- and the file was deleted on that wrong guess, losing their
 delete a recording; to check one, look at frames all through it, not just the first and last.
 Game Bar (Win+Alt+R) also works, at ~30 fps, but records whatever window is active -- the user
 got clips of the Claude app. Best runs: practice mode with "Show Hitboxes" on. Track the lime cube by colour per frame with
-real frame times (the capture is variable frame rate: read pts with ffprobe, never assume 60).
+real frame times (`python tools/track.py VIDEO --from S --to S`: pts from ffprobe, never an
+assumed rate; `--rows` gives ground/ceiling lines, `--sheet` a contact sheet).
 At 1080p one unit is exactly 3.375 px (a block is 101 px). GD's camera moves up and down, so
 measure heights against something in the level (ground line, a ceiling), never the screen.
 
@@ -89,7 +90,31 @@ Confirmed:
 - Flipping gravity halves vertical speed (blue orb and ceiling blue pad in the recording move at
   half the decompile's velocity). The decompile's ringJump alone does not show this.
 
+- Vertical speed lives on a 0.001 grid (every velocity step is rounded). Took the jump-vs-video
+  fit from 1.8 to 1.3 px rms.
+
+Second ground truth: real-game input plans. gdsolver publishes, per official level, inputs that
+clear it in GD 2.2 (240 Hz ticks). `node tools/tas.js [n]` plays them through our sim: where we
+die and the game did not, we are wrong right there. Plans go in `local/gdsolver/` (copy from
+gdsolver's `data/`, never committed). `node tests/tas_progress.js` is a ratchet of how far each
+level gets -- raise its numbers when a fix gets further, never lower them. Facts found this way:
+slab (40) hitbox is centred; ids 5/73/80 are scenery; every slope skin is a slope; GD 2.2's own
+decoration list (`lib/objects_gd22.js`) beats OpenGD's 2.1 table; an upside-down cube that walks
+off a ledge can still jump until it falls faster than 2g (GD bug). Polargeist gets to 909/925.
+
+Open mismatches the plans show (not understood yet, do not paper over them):
+- Stereo Madness's ship hovers ~0.5 unit lower than the game's (dies on floor spikes at 328).
+- Back On Track's ship ends ~1 block high after a slide (493).
+- A cube that walked off a ledge and presses shortly before landing: the game jumps, we do not
+  (Dry Out, Can't Let Go, Jumper, Time Machine, Polargeist's end). A 19-38 tick "landing buffer"
+  would fit every case, but gdsolver's model has no such rule, so it is not in the sim.
+
+Modes beyond cube/ship come from gdsolver's measured model and the gdp decompile, checked only
+by the plans so far (xStep's ball, Blast Processing's wave): ball, UFO, wave, robot, spider,
+swing. Each still wants a recording of the user's own play.
+
 Assumed (not yet checked):
+- Object keys 121 = No Touch and 134 = Passable (both make an object not collide).
 - Going 300 units above the highest object counts as a death (otherwise the solver "wins" by
   falling up into the sky). Ask the user whether GD kills you up there.
 - Spider teleport searches a 9-unit strip above/below the cube.
@@ -105,8 +130,9 @@ spider orb + pad, the upside-down red-orb dive under a hanging column.
 
 ## Not simulated yet
 
-Ship, ball, UFO, wave, robot, spider and swing modes; mini size; mirror and dual portals;
-slopes other than plain floor slopes (rotated or ceiling ones act as blocks); triggers.
+Mini size; mirror, dual and teleport portals; slopes other than plain floor slopes (rotated or
+ceiling ones act as blocks); triggers (move, rotate, alpha/toggle); speed-dependent ring scaling
+for ball/UFO; spike slopes (any slope skin that kills is treated as a plain slope -- unchecked).
 
 ## Rules
 
