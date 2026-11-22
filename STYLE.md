@@ -134,6 +134,15 @@ Hard levels with tight triples are fine and wanted (players want hard levels). T
 GDLM 41/42 are kept easy (windows 60 ms+) only because the user is testing the tools, not
 training for difficulty.
 
+**Recovery** (real-game data, GDLM 42 v3 in normal mode on the mouse, read by the difficulty
+session from recording 19:45): 8 attempts, every death in the first ~14%, at the first double and
+the platform after it. In the sim the first phrase made you land and jump again within 0-130 ms
+(single -> double -> platform). The solver does that, a person does not, unless they hold the
+button. `score.js` now has a **recovery** gate: time from landing to the next press window, at
+least 150 ms for Easy, 100 ms for Normal (`minRecoveryMs` in the brief). GDLM 42 v4 spaces the
+phrase so every press is 200+ ms after landing. With the gate on, GDLM 43's brief can no longer
+reach Normal (its "Normal" came from those chains): the loop says so and keeps a fair Easy (0.20).
+
 Shapes that cause prejumps: a jump that must start on a higher step to reach something far off;
 a pad or orb that does not clear its hazards by itself; a hazard hidden under a floating block.
 
@@ -201,8 +210,9 @@ briefs end to end (score.js has the sync gate; compose places by columns, not be
 
 - `briefs/43_climb.json` -> `levels/gdlm_43_climb.gdlvl`: the first level made by the loop.
   Brief: classic cube, ground spikes -> platforms/stairs -> orbs/pads/gate, blue -> violet -> red,
-  target Normal with a 40 ms floor. 16 rounds, 48 s: 33 presses, 31 s, tightest 46 ms,
-  Normal (0.33), sight-readable. Log: `briefs/43_climb.log.md`.
+  target Normal with a 40 ms floor. First run: Normal (0.33) in 16 rounds. With the recovery gate
+  (no land-and-jump-at-once), Normal is out of reach: 28 rounds, 89 s, kept Easy (0.20),
+  26 presses, tightest 46 ms. Log: `briefs/43_climb.log.md`.
 
 - `specs/41_classic.json` -> `levels/gdlm_41_classic.gdlvl`: 3 sections (blue, purple, red),
   spikes -> stairs/hops/gate/orb -> pad/triple/platform, back to blue for the ending.

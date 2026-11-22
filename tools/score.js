@@ -5,6 +5,10 @@
 //   beatable     the solver beats it (cube/ship/... physics, lib/physics.js)
 //   prejumps     no press is committed far ahead of its cue (tools/sightread.js; the user's rule)
 //   timing       tightest press window >= the brief's minWindowMs (default 60)
+//   recovery     time from landing to the next press window >= minRecoveryMs (default Easy 150,
+//                Normal 100, harder: none). Land-and-jump-at-once chains were the wall in GDLM 42
+//                (the user's normal-mode deaths, mouse, recording 19:45): fine for the solver, hard
+//                for a person without holding the button.
 //   difficulty   lib/difficulty.js label vs the brief's target (one step off = WARN)
 //   pacing       calm start and end, rests, a rising curve (numbers from the official levels)
 //   variety      not one chunk over and over (unless the brief says "repeat": true)
@@ -46,6 +50,24 @@ function scoreLevel(level, brief, opts = {}) {
   if (r.ok) gate("timing", tight.length ? "FAIL" : "PASS",
     presses.length ? `tightest ${Math.min(...presses.map(c => c.ms))} ms, want >= ${minMs}` : "no presses",
     tight.map(c => `block ${(c.x / 30).toFixed(0)} ${c.ms} ms`).join("; "));
+
+  // recovery: landing -> next press window
+  const RECOVERY = { Easy: 150, Normal: 100 };
+  const minRec = want.minRecoveryMs ?? RECOVERY[want.label] ?? null;
+  let chains = [];
+  if (r.ok && presses.length > 1) {
+    const path = GD.run(w, r.events).path;
+    for (let i = 1; i < presses.length; i++) {
+      let t = presses[i - 1].tick + 2;
+      while (t < path.length && !path[t].grounded) t++;
+      if (t > presses[i].lo) continue; // pressed in the air (orbs): not a landing
+      const ms = (presses[i].lo - t) / GD.PHYS.TPS * 1000;
+      if (minRec != null ? ms < minRec : ms < 100) chains.push({ x: path[presses[i].tick].x, ms: Math.round(ms) });
+    }
+    gate("recovery", chains.length && minRec != null ? "FAIL" : chains.length ? "WARN" : "PASS",
+      chains.length ? `${chains.length} press(es) right after landing` + (minRec != null ? ` (< ${minRec} ms)` : " (< 100 ms)") : `every press >= ${minRec ?? 100} ms after landing`,
+      chains.map(c => `block ${(c.x / 30).toFixed(0)} ${c.ms} ms`).join("; "));
+  }
 
   let diff = null;
   if (r.ok) {
@@ -114,7 +136,7 @@ function scoreLevel(level, brief, opts = {}) {
   gate("objects", unsure.length ? "WARN" : "PASS", unsure.length ? `${unsure.length} gameplay objects with unconfirmed hitboxes (ids ${ids.join(", ")})` : "all hitboxes confirmed");
 
   const fails = gates.filter(g => g.status === "FAIL").length, warns = gates.filter(g => g.status === "WARN").length;
-  return { ok: fails === 0, fails, warns, gates, solution: r, prejumps: bad, tight, difficulty: diff };
+  return { ok: fails === 0, fails, warns, gates, solution: r, prejumps: bad, tight, chains, difficulty: diff };
 }
 
 function print(name, s) {

@@ -127,6 +127,8 @@ function loop(briefFile, rounds = 8) {
       if (!s.solution.ok) blame.push({ col: s.solution.dieAt.x / 30, why: "dies here" });
       for (const p of s.prejumps) blame.push({ col: p.cueAt, why: `prejump (${p.lead.toFixed(1)} blocks ahead)` });
       for (const c of s.tight) blame.push({ col: c.x / 30 + 1.5, why: `${c.ms} ms window` });
+      if ((s.gates.find(g => g.name === "recovery") || {}).status === "FAIL")
+        for (const c of s.chains) blame.push({ col: c.x / 30 + 1.5, why: `jump ${c.ms} ms after landing` });
       for (const b of blame) {
         const ch = chunkAt(cur.placed, b.col);
         if (!ch || fixes.some(f => f.key === ch.key)) continue;
