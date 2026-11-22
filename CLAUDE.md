@@ -55,8 +55,12 @@ Values live in `lib/physics.js` (SPEEDS) and `lib/objects.js`.
 
 ## Calibration -- checked against the user's game
 
-How: the user records a run with Win+Alt+R (Game Bar, lands in VideosCaptures, ~30 fps),
-ideally in practice mode with "Show Hitboxes" on. Track the lime cube by colour per frame with
+How: the user says "record", "reshoot" (close the current file, start a new one) or "stop".
+Run `tools/record.sh start` in the background (whole screen, 60 fps, Desktop Duplication, to
+Videos/Captures/GD claude-rec <time>.mkv) and `tools/record.sh stop`. Capturing the GD window
+by its title freezes on one frame (the game draws with the GPU): a whole run was lost that way.
+Game Bar (Win+Alt+R) also works, at ~30 fps, but records whatever window is active -- the user
+got clips of the Claude app. Best runs: practice mode with "Show Hitboxes" on. Track the lime cube by colour per frame with
 real frame times (the capture is variable frame rate: read pts with ffprobe, never assume 60).
 At 1080p one unit is exactly 3.375 px (a block is 101 px). GD's camera moves up and down, so
 measure heights against something in the level (ground line, a ceiling), never the screen.
