@@ -344,8 +344,14 @@ State on 2026-11-22. What a new session should know before touching this area:
   text label) the user opens and screenshots; then style deco sets (hell, classic ...).
 - **GDLM 44** (Easy, 10 s, song 343707): v5 under "in progress" in the viewer, all gates pass (the
   ship tunnel's teeth now start 6 columns in: `ship-tunnel` "lead").
-- **Low-tier level from the knowledge base** (the user agreed, via the knowledge session): >= 60 s,
-  Easy/Normal, sight-readable, no fakes; templates in "What good low-tier levels do". Not started.
+- **GDLM 45 first flight** (`briefs/45_low_tier.json`): the low-tier level from the knowledge base
+  (template A, a new mode every ~7 s): 61 s, Easy, cube sections with one idea each between ship
+  and wave corridors (compose.js `mode` sections), all gates pass in round 1 (~8 min per round on
+  this PC). Under "in progress" and on the phone; not pushed, not played. Its 3 prejump WARNs
+  (stairs, spike-block, finale) are the approximate check on chains of jumps, not seen as real.
+- The approximate prejump check (mode levels) is noisy on chains of jumps: it shifts one press
+  with the later ones fixed in time. A fix: re-solve the rest with `GD.solveFrom` for each shifted
+  press (exact, but costs a sweep per try).
 - Prejumps are exact only on cube levels; on mode levels approximate (WARN).
 
 Tests: `node tests/style_gates.js` (~1-2 min): the gates still agree with what the user found
