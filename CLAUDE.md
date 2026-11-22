@@ -44,9 +44,9 @@ reading before writing a spec; `levels/`, `glossary.md`, `demonlist.md` for the 
 3. Look at it: `node tools/serve.js` and open http://localhost:8765/viewer/ (or open
    `viewer/index.html` straight from disk in a normal browser). It replays the solver's clicks
    with a click sound, the timing window of each click, and hitboxes on request.
-   For the phone: `node tools/web.js` builds `local/web/` (repo levels and beat grids only,
-   no songs, no official levels), published as the user's private Artifact. Republish it after
-   every new or changed level (the link is in Claude's memory), so the user can watch from anywhere.
+   For the phone: the same viewer as the user's private Artifact (PHONE.md): pushed levels,
+   every session's work in progress live, marks from the phone. Republish it when the viewer or
+   the pushed levels change (`node tools/web.js --out <scratchpad>/web`, link in local/phone/url.txt).
 4. With the game closed, `node tools/install.js levels/<name>.gdlvl` puts it at the top of
    My Levels (backs the save up first; refuses while GeometryDash.exe runs). The user plays it
    and reports. The user's game is plain GD 2.2 on Windows, no Geode: there is no in-game import.
@@ -74,10 +74,12 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 - **The level you are working on: `node tools/wip.js put <level.gdlvl> --session <your name>
   --note "what changed"` after every change.** It goes to `local/wip/<session>/`, and the viewer
   (`node tools/serve.js`, http://localhost:8765/viewer/) lists it under "in progress" with its
-  version; the user presses ⟳ refresh to see the newest, before anything is pushed.
+  version; the user presses ⟳ refresh to see the newest, before anything is pushed. **Then run
+  the ArtifactData call it prints**, so the phone page shows it too (PHONE.md).
 - **The user's marks** (✎ in the viewer, pinned to a moment and a spot) go to `local/marks.jsonl`
   with the level's file and `session`. `node tools/marks.js` lists open ones: handle the ones with
-  your session, then `node tools/marks.js done <id> "what changed"`.
+  your session, then `node tools/marks.js done <id> "what changed"`. Marks from the phone: fetch
+  them first with one ArtifactData `list` (PHONE.md); marks.js then shows them with the rest.
 - **Links:** the viewer's address keeps `#lv=<file>&t=<seconds>` (🔗 copies it), so a link the
   user sends opens that level at that moment.
 
@@ -85,12 +87,31 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 
 - `lib/gd.js` -- the format: base64url + gzip layers, the record (plist) and the level string.
 - `lib/objects.js` -- object ids: name, kind, hitbox. `sure:false` = from memory, unconfirmed.
-- `lib/physics.js` -- cube physics + solver (fewest clicks, each in the middle of its window).
-- `lib/difficulty.js` -- difficulty score from a solution (per-input timing windows); see DIFFICULTY.md.
+- `lib/physics.js` -- physics of every mode, triggers + solver (fewest clicks, each in the middle of its window).
+  PHYSICS.md: per mode and trigger, its constants, sources, checks and what is open.
+- `lib/difficulty.js` -- difficulty score from a solution: the human route (one tap per jump), per-input
+  timing windows, a timing-error + lapse model fitted on the user's real runs; see DIFFICULTY.md
+  (also the tier ladder for making levels, and what is open). Its tools: `difficulty` (score a level,
+  or all official levels vs ratings and the user's attempts), `difficulty_solve` (cache an official
+  solution, one at a time), `difficulty_fit` (refit on the user's runs), `difficulty_community`
+  (score downloaded community levels), `runs` (the user's deaths from a recording, via the progress
+  bar), `save_stats` (the user's lifetime attempts per official level, read-only from the save).
 - `lib/sync.js` -- music sync: level time <-> x through speed portals, beat grid <-> level beats,
-  press timing windows from a solution, sync scores. See SYNC.md.
+  press timing windows from a solution, sync scores. See SYNC.md (also where songs come from).
+- **The phone page** (PHONE.md: what is on it, what a session does after `wip.js put`, phone
+  marks, how it was tested, what is open): `tools/web.js` builds it from the viewer.
 - `tools/` -- node CLIs: `make`, `check`, `roundtrip`, `index_levels`, `serve`, `beats` (beat grid
-  of every song on this PC, ffmpeg + JS), `sync` (how well levels follow their song's beat), `frames` (timing windows with 60 fps presses, as the user's game has them), `web` (the viewer as a phone page), `fetch_level` (online levels by ID into local/community/, for measuring only, never committed), `community` (study rated community levels: list, fetch, measure, modes, comments; see knowledge/README.md), `difficulty` (score vs the official ratings).
+  of every song on this PC, ffmpeg + JS), `sync` (how well levels follow their song's beat), `frames` (timing windows with 60 fps presses, as the user's game has them), `web` (the viewer as a phone page, PHONE.md), `songs` (custom songs by id into local/songs/, as GD gets them; SYNC.md section 6), `fetch_level` (online levels by ID into local/community/, for measuring only, never committed), `community` (study rated community levels: list, fetch, measure, modes, comments; see knowledge/README.md), `difficulty` (score vs the official ratings).
+- **Level style and the idea -> level loop** (STYLE.md: findings, style vocabulary, the loop, every
+  playtest lesson, what is open): `tools/style.js` (measure style: deco share, triggers, sections,
+  rests, motifs, recurring chunks) + `tools/corpus.js` (official levels and the user's save, in
+  memory), `tools/patterns.js` (named gameplay chunks incl. ship tunnel / wave zigzag with their
+  portals), `tools/decorate.js` (block skins, ground deco, colour / alpha / zoom triggers, jump
+  indicators), `tools/compose.js` (brief with sections -> spec -> build -> score -> repair rounds,
+  briefs in `briefs/`, a log per level), `tools/score.js` (every gate a level must pass before the
+  user sees it), `tools/sightread.js` (prejumps), `tools/inputs.js` (a solution's inputs with
+  modes), `lib/natural.js` (a natural replay plan: taps, no empty jumps). Test:
+  `node tests/style_gates.js`.
 - `viewer/index.html` -- the replay viewer; `viewer/levels.js` is generated, do not edit.
 - `lib/look.js` -- how a level LOOKS (viewer's "game look", on by default): header colours, colour
   899 / alpha 1007 / zoom 1913 triggers over time, block skins 1-7 outlined by their own edges,
@@ -249,5 +270,5 @@ The viewer draws moving objects where they start.
   songs with tempo changes, checking in the user's game that "on the beat" feels on the beat. Recordings have no sound: the PC has no
   loopback device (only the headset mic).
 - Playing on the phone too: how to get an updated level onto the phone while away from the PC.
-  Watching is built: the phone page (`tools/web.js`, with songs added from the phone, SYNC.md
-  section 5). Playing it in the phone's game: `tools/export_gmd.js` (.gmd for GDShare).
+  Watching is built: the phone page (PHONE.md: live work in progress, marks, songs added from
+  the phone). Playing it in the phone's game: `tools/export_gmd.js` (.gmd for GDShare).

@@ -161,6 +161,16 @@ a pad or orb that does not clear its hazards by itself; a hazard hidden under a 
   bland and old style for exactly this.)
 - Many Easy/Normal Epics are 58-65 s. "One idea for the whole level" is also a rated design.
 - Official 1-8: one new idea per level, introduced calmly; no fakes at Easy or Normal.
+- 91 rated Easy-Harder levels (`knowledge/levels/low_tier_stats.md`): **Hard is the big step**
+  (sections ~7 s -> 3.4 s, orbs+pads 28 -> 53 per minute, 2-4x the hazards, ~5 rests per minute);
+  4-6 modes even at Easy; 3x/4x sections short (1-1.5 s) and nearly empty, 0.5x the most common
+  speed and carrying the busy modes (ball, spider, robot: 15-22 hazards per 10 blocks); median
+  length 66-72 s at every tier. Two rated templates for a brief:
+  - **a new mode every ~7 s, one speed-up** (an Easy Epic: cube, robot, ship, UFO at 0.5x, then
+    ball, robot, spider, UFO, cube, robot at 1x);
+  - **long calm sections + 2-3 bursts of very short switches** (a Normal and a Hard Epic, 0.5x).
+  The sim checks cube and ship best; other modes only through gdsolver's plans so far, so GDLM
+  briefs stay mostly cube/ship with one or two other modes until the bot confirms them.
 
 ### Style: classic (official 1-8 feel)
 
@@ -275,6 +285,29 @@ Checks learnt on the way (in `tools/sightread.js`, `tools/score.js`):
 - A pattern that needs no input is a dead bar: "descend" with 2-wide pits let the cube fall
   across by itself; 3-wide pits make each drop a jump.
 
+Playtest of GDLM 44 v2 ("more patterns, not too bad of a draft"), and what changed for v3:
+- **Portals sit at the corridor's entrance, centred on the path** -- the wave portal was off.
+  `ship-tunnel` / `wave-zigzag` now place their own portal (`portal: true`) and a framed exit
+  portal (`exit: "cube"`).
+- **Block unwanted paths** (general practice: avoid "secret ways" past parts of the level). The
+  solver flew the ship over the unframed exit, skipped the orbs and played the rest as a ship.
+  New `skips` gate: the solved run must touch every portal (FAIL) and every orb (WARN).
+- **Balance**: the wave was harder than the rest. Not by timing (its windows were 133-217 ms like
+  everything else) but by room: 3 rows free (2 at the turns) against the ship's 5. Corridors now
+  keep the room even at the turns; Easy = 4 rows. (Room is a difficulty measure the window model
+  misses -- for the difficulty session.)
+- **A big hit in the song needs a big change in the play**: v2 started an orb ladder on the hit
+  and it read as "the same play". v3 switches to the ship on the hit.
+- Prejumps are exact only for cube levels (exact solver). On levels with modes the check is
+  approximate (later inputs fixed in time) and the gate is a WARN.
+
+**Sync, loosely** (the user via the sync session: "too synced may sound forced"; some music is a
+vibe, not beats; not everything is clicked on the beat). Official levels put portals on bar starts
+and barely lean presses to the beat (SYNC.md "How much to sync"). So: mode/speed changes and big
+moments on bar starts and section changes; jumps where the gameplay wants them. GDLM 44 put every
+jump on a beat -- a test of the tools, not a rule. `score.js` warns on portals off the bars and on
+more than 60% of presses pinned to beats.
+
 **Jump indicators** (common in modern levels; they also show what the level intends): spec
 `"indicators": {"id": N}` puts a small mark just above the surface at every cube/robot takeoff
 (upside down: under the ceiling, pointing down), from the solved run (`tools/decorate.js`). Orb
@@ -293,6 +326,30 @@ specs leave indicators off.
 Still open:
 - Opacity 0.35 ghosts (the v2 42) -- not seen in the game yet.
 - Trigger key 36 on every trigger is unexplained; deco 41 not seen yet.
+
+## 5. Open / next (hand-off)
+
+State on 2026-11-22. What a new session should know before touching this area:
+- **Natural replay** (`lib/natural.js`, the viewer's default replay): one tap per cube jump, empty
+  jumps dropped, ship / wave stretches flown by a controller along the middle of the free space,
+  the rest re-solved from there with `GD.solveFrom` (physics session). Every change is kept only if
+  the run still finishes. The click table shows these inputs; timing windows stay the solver's
+  (in `score.js`). Open: the solver's own run is still what `score.js` judges for prejumps.
+- **compose.js** places by columns, cube-only patterns by default; not yet: beats in briefs, modes
+  in sections, the low-tier recipe (lead-ins per mode, hazard share per mode, section lengths 4-6 s,
+  `knowledge/levels/modes_low_tier.md`). GDLM 44 was written by hand in beats.
+- **Jump indicators**: code ready (`"indicators": {"id": N}`), the arrow's object id unknown --
+  the user places the three arrows in an empty level, then read the ids from the save.
+- **Art**: decoration ids have no names. Plan: a generated catalogue level (every deco id with a
+  text label) the user opens and screenshots; then style deco sets (hell, classic ...).
+- **GDLM 44** (Easy, 10 s, song 343707): v5 under "in progress" in the viewer, all gates pass (the
+  ship tunnel's teeth now start 6 columns in: `ship-tunnel` "lead").
+- **Low-tier level from the knowledge base** (the user agreed, via the knowledge session): >= 60 s,
+  Easy/Normal, sight-readable, no fakes; templates in "What good low-tier levels do". Not started.
+- Prejumps are exact only on cube levels; on mode levels approximate (WARN).
+
+Tests: `node tests/style_gates.js` (~1-2 min): the gates still agree with what the user found
+(GDLM 41 v1's pad prejump flagged, 42's chains gone, 44 without skips).
 
 ## How the numbers were got
 

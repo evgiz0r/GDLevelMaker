@@ -15,12 +15,54 @@ const { GD, readGdlvl } = require("./io.js");
 // flying modes turn slowly, so steering starts further ahead of what it is for: allow 3 blocks
 const FLYING = new Set(["ship", "ufo", "wave", "swing"]), FLY_LIMIT = 3;
 
-function sightread(level, limit = 1.5) {
+// A cube hold that re-jumps on landing -> one press per jump (press on the jump's tick, release
+// the tick after). Returned only if the run is unchanged; else the original events.
+function humanize(w, events) {
+  const path = GD.run(w, events).path;
+  if (!path[path.length - 1].done) return events;
+  const ev = events.slice().sort((a, b) => a.tick - b.tick);
+  // the button state the solver used, per tick
+  const held = new Array(path.length).fill(false);
+  { let h = false, i = 0; for (let t = 0; t < path.length; t++) { while (i < ev.length && ev[i].tick === t) { h = ev[i].type === "press"; i++; } held[t] = h; } }
+  // the button state a person would use: in cube mode, down only on the tick a jump or an orb fires;
+  // elsewhere (ship, wave, ...) as the solver held it
+  const want = held.slice();
+  for (let t = 0; t + 1 < path.length; t++) {
+    if (path[t].mode !== "cube") continue;
+    const b = path[t + 1], g = path[t].grav || 1;
+    const fires = held[t] && ((b.act === "jump" && b.vy * g > 5 && path[t].vy * g <= 0.5) || (/orb/.test(b.act || "") && b.act !== path[t].act));
+    want[t] = fires;
+  }
+  const out = [];
+  for (let t = 0; t < path.length; t++) if (want[t] !== (t ? want[t - 1] : false)) out.push({ tick: t, type: want[t] ? "press" : "release" });
+  if (out.length === ev.length && out.every((e, i) => e.tick === ev[i].tick && e.type === ev[i].type)) return events;
+  const p2 = GD.run(w, out).path;
+  const same = p2.length === path.length && p2[p2.length - 1].done && Math.abs(p2[p2.length - 1].y - path[path.length - 1].y) < 1e-6;
+  return same ? out : events;
+}
+
+function sightread(level, limit = 1.5, opts = {}) {
   const w = GD.makeWorld(level.objects, level.header);
   const r = GD.solveAny(w);
   if (!r.ok) return { ok: false };
-  const presses = r.clicks.filter(c => c.type === "press");
-  const base = r.events;
+  let presses = r.clicks.filter(c => c.type === "press");
+  let base = r.events;
+  // The solver takes the fewest presses, so it climbs with one long hold (a held cube re-jumps on
+  // landing) -- a person taps once per jump. Judge the tapped version: every cube jump its own
+  // press. And the sweep solver (levels with modes) gives no windows: measure each press's window
+  // by shifting it (lib/sync.js pressWindows), so "the latest moment the press works" is real.
+  // (Taps: opts.taps. Off by default: shifting one tap with every later input fixed in time makes
+  // windows look tiny on mode levels -- a person adapts the next jump, the replay cannot.)
+  const tapped = opts.taps ? humanize(w, r.events) : r.events;
+  const approx = presses.some(c => c.lo == null || c.lo === c.hi);
+  if (tapped !== r.events || approx) {
+    const sync = require("../lib/sync.js");
+    const pw = (sync.SYNC || GD.SYNC).pressWindows(w, tapped);
+    if (pw) {
+      base = tapped;
+      presses = pw.windows.map(p => ({ type: "press", tick: p.tick, lo: p.lo, hi: p.hi, x: pw.path[p.tick].x, act: p.act, ms: Math.round((p.hi - p.lo + 1) / GD.PHYS.TPS * 1000) }));
+    }
+  }
   const out = [];
   for (const c of presses) {
     // events strictly before this press (with their auto releases)
@@ -71,7 +113,7 @@ function sightread(level, limit = 1.5) {
     out.push({ act: c.act, block: c.x / 30, from: xLo / 30, to: xHi / 30, ms: c.ms, cue: cue && GD.objInfo(cue.id).name, cueAt: cue && cue.x / 30,
       mode: hiState && hiState.mode, lead, flag: lead != null && lead > (FLYING.has(hiState && hiState.mode) ? FLY_LIMIT : limit) });
   }
-  return { ok: true, presses: out };
+  return { ok: true, presses: out, approx };
 }
 
 if (require.main === module) {
