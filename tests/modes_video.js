@@ -21,4 +21,18 @@ for (const [name, mode, held, want, tol] of MEASURED) {
   if (!ok) bad++;
   console.log(`${ok ? "ok  " : "BAD "} ${name}: sim ${got.toFixed(3)}, video ${want} +- ${tol}`);
 }
+// Mini cube (the same recording, 22.9-23.1 s, a lime box of 58 px = 0.6 of a block): it turns 90
+// degrees every 10 frames (square boxes at 22.900 and 23.067 s), gdsolver's mini rate (2.25 deg/tick;
+// full size 1.73), and its fall from an apex goes at the same 0.78 units/frame^2 as a full cube.
+{
+  const s = GD.startState(w);
+  Object.assign(s, { mini: true, y: 1500, grounded: false, vy: 0 });
+  const r0 = s.rot, ys = [];
+  for (let t = 0; t < 40; t++) { GD.step(w, s, { press: false, held: false }); if (t % 4 === 3) ys.push(s.y); }
+  const per90 = 90 / (Math.abs(s.rot - r0) / 40) / 4;
+  const a = (ys[6] - 2 * ys[5] + ys[4]);
+  const ok = Math.abs(per90 - 10) <= 0.7 && Math.abs(a + 0.78) <= 0.04;
+  if (!ok) bad++;
+  console.log(`${ok ? "ok  " : "BAD "} mini cube: 90 deg in ${per90.toFixed(2)} frames (video 10), gravity ${a.toFixed(3)} (video -0.78)`);
+}
 process.exit(bad ? 1 : 0);
