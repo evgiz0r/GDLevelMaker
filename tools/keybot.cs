@@ -1,7 +1,8 @@
 // The key bot: plays a level's solver clicks in the user's real, unmodded game by pressing Space.
 // Started by tools/bot.js (through Windows PowerShell's Add-Type, so nothing has to be installed).
 //
-// How it keeps time: it watches the game window (GDI screen grabs of a strip at the ground), sees
+// How it keeps time: it watches the game window (ffmpeg's Desktop Duplication grabber, a strip at the
+// ground -- plain GDI grabs of fullscreen GD come back frozen), sees
 // the lime cube slide in from the left at the start of each attempt -- the camera stands still for
 // the first ~0.2 s, so the cube's screen x is a straight line in time -- and fits that line to get
 // the attempt's tick 0. It then presses and releases Space at tick/240 s after it. The lag between
@@ -50,7 +51,7 @@ public static class KeyBot {
     }
 
     // ---- watching the screen ----
-    static IntPtr hwnd, memDC, bmp, bits; static int gx, gy, gw, gh, stripY, stripH; static double ppu;
+    static IntPtr hwnd; static int gx, gy, gw, gh, stripY, stripH; static double ppu;
     // the game's window: by process, waiting up to `wait` seconds for the game to start
     static IntPtr FindGame(double wait) {
         double until = Now() + wait; bool said = false;
@@ -61,47 +62,63 @@ public static class KeyBot {
             Thread.Sleep(500);
         }
     }
+    // Screen frames come from ffmpeg's Desktop Duplication grabber (the same as tools/record.sh):
+    // plain GDI grabs of a fullscreen GD come back frozen. ffmpeg crops to a strip at the ground and
+    // pipes raw frames; a reader thread notes each frame's arrival time and where the cube is.
+    static Process ff; static Thread reader; static byte[] buf;
+    static readonly object qlock = new object(); static Queue<double[]> q = new Queue<double[]>();
     static void SetupCapture() {
         RECT r; GetClientRect(hwnd, out r); var p = new POINT(); ClientToScreen(hwnd, ref p);
         gx = p.X; gy = p.Y; gw = r.R - r.L; gh = r.B - r.T; ppu = gh / 320.0;
         if (gw < 100 || gh < 100) throw new Exception("the Geometry Dash window is minimised or too small (" + gw + "x" + gh + "); bring it up first");
         // a strip around the ground line, where the cube starts (ground at ~67% of the height)
-        stripY = (int)(gh * 0.52); stripH = (int)(gh * 0.24);
-        var bmi = new BITMAPINFO { size = 40, w = gw, h = -stripH, planes = 1, bits = 32 };
-        IntPtr screen = GetDC(IntPtr.Zero); memDC = CreateCompatibleDC(screen);
-        bmp = CreateDIBSection(screen, ref bmi, 0, out bits, IntPtr.Zero, 0); SelectObject(memDC, bmp); ReleaseDC(IntPtr.Zero, screen);
+        stripY = (int)(gh * 0.52); stripH = (int)(gh * 0.24) & ~1; gw &= ~1;
+        string exe = Environment.GetEnvironmentVariable("GDLM_FFMPEG") ?? "ffmpeg";
+        var si = new ProcessStartInfo(exe, string.Format("-hide_banner -loglevel error -f lavfi -i ddagrab=output_idx=0:framerate=240:dup_frames=0:offset_x={0}:offset_y={1}:video_size={2}x{3} -vf hwdownload,format=bgra -f rawvideo -pix_fmt bgra pipe:1", gx, gy + stripY, gw, stripH));
+        si.UseShellExecute = false; si.RedirectStandardOutput = true; si.CreateNoWindow = true;
+        ff = Process.Start(si);
+        int len = gw * stripH * 4; buf = new byte[len];
+        reader = new Thread(() => {
+            var st = ff.StandardOutput.BaseStream; var f = new byte[len];
+            while (true) {
+                int got = 0; while (got < len) { int k = st.Read(f, got, len - got); if (k <= 0) return; got += k; }
+                double t = Now(); long sx = 0; int cnt = 0, minY = int.MaxValue;
+                for (int y = 0; y < stripH; y += 2) for (int x = 0; x < gw; x += 2) {
+                    int i = (y * gw + x) * 4; int bb = f[i], g = f[i + 1], rr = f[i + 2];
+                    if (g > 200 && rr > 70 && rr < 185 && bb < 70) { sx += x; cnt++; if (y < minY) minY = y; }
+                }
+                lock (qlock) { Buffer.BlockCopy(f, 0, buf, 0, len); q.Enqueue(new double[] { t, cnt > 20 ? sx / (double)cnt : -1, cnt > 20 ? minY : -1, cnt }); while (q.Count > 64) q.Dequeue(); }
+            }
+        });
+        reader.IsBackground = true; reader.Start();
     }
-    static byte[] buf;
-    // lime cube: centre x, top y (screen px inside the strip) and pixel count; x = -1 when not seen
-    static void Grab(out double cx, out double topY, out int n) {
-        IntPtr screen = GetDC(IntPtr.Zero);
-        BitBlt(memDC, 0, 0, gw, stripH, screen, gx, gy + stripY, 0x00CC0020);
-        ReleaseDC(IntPtr.Zero, screen);
-        int len = gw * stripH * 4; if (buf == null || buf.Length != len) buf = new byte[len];
-        Marshal.Copy(bits, buf, 0, len);
-        long sx = 0; int cnt = 0, minY = int.MaxValue;
-        for (int y = 0; y < stripH; y += 2) for (int x = 0; x < gw; x += 2) {
-            int i = (y * gw + x) * 4; int b = buf[i], g = buf[i + 1], rr = buf[i + 2];
-            if (g > 200 && rr > 70 && rr < 185 && b < 70) { sx += x; cnt++; if (y < minY) minY = y; }
+    static void StopCapture() { try { if (ff != null && !ff.HasExited) ff.Kill(); } catch (Exception) { } }
+    // the next new frame: its arrival time, the lime cube's centre x and top y in the strip (-1 when
+    // not seen) and pixel count. waitS = 0 returns at once; false when no new frame came.
+    static bool Grab(double waitS, out double t, out double cx, out double topY, out int n) {
+        double until = Now() + waitS;
+        while (true) {
+            lock (qlock) if (q.Count > 0) { var v = q.Dequeue(); t = v[0]; cx = v[1]; topY = v[2]; n = (int)v[3]; return true; }
+            if (Now() >= until) { t = Now(); cx = -1; topY = -1; n = 0; return false; }
+            Thread.Sleep(1);
         }
-        n = cnt; cx = cnt > 20 ? sx / (double)cnt : -1; topY = cnt > 20 ? minY : -1;
     }
 
     // Look only, never press: reports what the grabs see for a few seconds (tools/bot.js --probe).
     public static int Probe(double seconds) {
         SetProcessDPIAware();
-        hwnd = FindGame(0);
+        hwnd = FindGame(600);
         if (hwnd == IntPtr.Zero) { Console.WriteLine("Geometry Dash is not running."); return 2; }
-        SetupCapture();
-        Console.WriteLine(string.Format("GD window {0}x{1} at {2},{3}; strip y {4}..{5}; active: {6}", gw, gh, gx, gy, stripY, stripY + stripH, GetForegroundWindow() == hwnd));
-        double t1 = Now() + seconds, last = 0; int frames = 0;
+        while (true) { try { SetupCapture(); break; } catch (Exception) { Thread.Sleep(1000); } }
+        Console.WriteLine(string.Format("GD window {0}x{1} at {2},{3}; strip y {4}..{5}", gw, gh, gx, gy, stripY, stripY + stripH));
+        double t1 = Now() + seconds, last = 0; int frames = 0, inHalf = 0;
         while (Now() < t1) {
-            double cx, ty; int n; Grab(out cx, out ty, out n); frames++;
-            long sum = 0; for (int i = 0; i < buf.Length; i += 4 * 97) sum += buf[i] + buf[i + 1] + buf[i + 2];
-            if (Now() - last > 0.5) { last = Now(); Console.WriteLine(string.Format("  lime px {0}, cube x {1:F0}, top {2:F0}, strip brightness {3}", n, cx, ty, sum * 97 * 4 / buf.Length / 3)); }
+            double t, cx, ty; int n; if (!Grab(0.05, out t, out cx, out ty, out n)) { cx = -1; n = 0; ty = -1; } else { frames++; inHalf++; }
+            if (Now() - last > 0.5) { long sum = 0; lock (qlock) for (int i = 0; i < buf.Length; i += 4 * 97) sum += buf[i] + buf[i + 1] + buf[i + 2];
+                last = Now(); Console.WriteLine(string.Format("  active {0}  new frames {1}, lime px {2}, cube x {3:F0}, top {4:F0}, brightness {5}", GetForegroundWindow() == hwnd, inHalf, n, cx, ty, sum * 97 * 4 / buf.Length / 3)); inHalf = 0; }
         }
-        Console.WriteLine(string.Format("{0} grabs in {1:F1} s ({2:F1} ms each)", frames, seconds, seconds * 1000 / frames));
-        DeleteObject(bmp); DeleteDC(memDC);
+        Console.WriteLine(string.Format("{0} new frames in {1:F1} s", frames, seconds));
+        StopCapture();
         return 0;
     }
 
@@ -120,7 +137,7 @@ public static class KeyBot {
             var ts = new List<double>(); var xs = new List<double>(); double lastSeen = -1;
             while (true) {
                 if (GetForegroundWindow() != hwnd) { Thread.Sleep(50); continue; }
-                double cx, ty; int n; double t = Now(); Grab(out cx, out ty, out n);
+                double t, cx, ty; int n; if (!Grab(0.1, out t, out cx, out ty, out n)) continue;
                 double unit = 30 * ppu; // the cube is one block wide
                 // fully on screen (centre past half a block) and before the camera starts to follow
                 if (cx >= 0 && cx > unit * 0.55 && cx < unit * 1.9) { ts.Add(t); xs.Add(cx); lastSeen = t; }
@@ -151,8 +168,7 @@ public static class KeyBot {
                     if (now >= due) { Key(downs[k]); held = downs[k]; k++; continue; }
                     if (due - now < 0.004) continue; // busy-wait the last few ms
                 }
-                double cx, ty; int n; Grab(out cx, out ty, out n);
-                double tt = Now();
+                double tt, cx, ty; int n; if (!Grab(0.002, out tt, out cx, out ty, out n)) continue;
                 // a restart: the cube is back at the far left
                 if (cx >= 0 && cx < 30 * ppu * 0.9 && tt - t0 > 0.6) { restarted = true; break; }
                 // first jumps: the cube's top rises 3+ px above where it sat
@@ -174,7 +190,7 @@ public static class KeyBot {
             else { Console.WriteLine(string.Format("   CLEARED (no restart within the level's length + 1 s). Measured lag: {0:F1} ms", lag * 1000)); cleared = true; }
             if (logPath != null) System.IO.File.AppendAllText(logPath, string.Format("{0}\tattempt {1}\t{2}\tlag_ms {3:F1}\n", DateTime.Now.ToString("s"), a, restarted ? "died" : "cleared", lag * 1000));
         }
-        DeleteObject(bmp); DeleteDC(memDC);
+        StopCapture();
         return cleared ? 0 : 1;
     }
 }
