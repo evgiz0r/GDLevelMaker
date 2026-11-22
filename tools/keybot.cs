@@ -51,6 +51,16 @@ public static class KeyBot {
 
     // ---- watching the screen ----
     static IntPtr hwnd, memDC, bmp, bits; static int gx, gy, gw, gh, stripY, stripH; static double ppu;
+    // the game's window: by process, waiting up to `wait` seconds for the game to start
+    static IntPtr FindGame(double wait) {
+        double until = Now() + wait; bool said = false;
+        while (true) {
+            foreach (var pr in Process.GetProcessesByName("GeometryDash")) if (pr.MainWindowHandle != IntPtr.Zero) return pr.MainWindowHandle;
+            if (Now() > until) return IntPtr.Zero;
+            if (!said) { Console.WriteLine("Waiting for Geometry Dash to start..."); said = true; }
+            Thread.Sleep(500);
+        }
+    }
     static void SetupCapture() {
         RECT r; GetClientRect(hwnd, out r); var p = new POINT(); ClientToScreen(hwnd, ref p);
         gx = p.X; gy = p.Y; gw = r.R - r.L; gh = r.B - r.T; ppu = gh / 320.0;
@@ -80,7 +90,7 @@ public static class KeyBot {
     // Look only, never press: reports what the grabs see for a few seconds (tools/bot.js --probe).
     public static int Probe(double seconds) {
         SetProcessDPIAware();
-        hwnd = FindWindow(null, "Geometry Dash");
+        hwnd = FindGame(0);
         if (hwnd == IntPtr.Zero) { Console.WriteLine("Geometry Dash is not running."); return 2; }
         SetupCapture();
         Console.WriteLine(string.Format("GD window {0}x{1} at {2},{3}; strip y {4}..{5}; active: {6}", gw, gh, gx, gy, stripY, stripY + stripH, GetForegroundWindow() == hwnd));
@@ -99,9 +109,9 @@ public static class KeyBot {
     // events: tick (240 Hz) and down/up. jumpTicks: ticks of presses the sim says are ground jumps.
     public static int Run(int[] ticks, bool[] downs, int[] jumpTicks, double endTick, int attempts, double offsetMs, string logPath) {
         SetProcessDPIAware(); timeBeginPeriod(1);
-        hwnd = FindWindow(null, "Geometry Dash");
-        if (hwnd == IntPtr.Zero) { Console.WriteLine("Geometry Dash is not running."); return 2; }
-        SetupCapture();
+        hwnd = FindGame(600);
+        if (hwnd == IntPtr.Zero) { Console.WriteLine("Geometry Dash did not start within 10 minutes."); return 2; }
+        while (true) { try { SetupCapture(); break; } catch (Exception) { Thread.Sleep(1000); } } // wait while minimised
         Console.WriteLine(string.Format("GD window {0}x{1}, {2:F3} px per unit. Open the level and press Play; I start at the first attempt.", gw, gh, ppu));
         double lag = -offsetMs / 1000.0; // seconds to press EARLY by
         bool cleared = false;
