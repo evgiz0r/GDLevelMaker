@@ -3,6 +3,11 @@
 Style, difficulty and sync sessions: read this before making a level. Newest first.
 Format: date, level + version, the user's words, what it means, what was done (commit/session).
 
+## GDLM 44 hellgate
+- 2026-11-22, v1: called "bland" (reported by the style session; the user's exact words are not here yet).
+  Likely cause per knowledge/levels/good_low_tier.md: rated low-tier levels change mode/speed every 3-7 s
+  with forgiving sections; v1 did not. Style session is acting on it (STYLE.md, style branch).
+
 ## GDLM 42 seen then gone
 - 2026-11-22, v1: whole phrases invisible -> "practically very hard, tons of learning, pure memory
   without visuals -- usually not fair unless you want it unfair". Done: ghosts (opacity 0.35) by default,
