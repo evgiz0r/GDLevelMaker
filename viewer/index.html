@@ -105,7 +105,7 @@ function load(name, levelStr, saved, info) {
   }
   const path = GD.run(world, events).path;
   if (saved && saved.ok) sol.clicks = saved.events.map(e => ({ type: e.type, tick: e.tick, lo: e.tick, hi: e.tick, ms: 0 }));
-  sol.clicks.forEach(c => { if (c.type === "press") c.act = path[Math.min(c.tick + 1, path.length - 1)].act || c.act; c.x = path[c.tick].x; });
+  sol.clicks.forEach(c => { if (c.type === "press") c.act = path[Math.min(c.tick + 1, path.length - 1)].act || c.act; c.x = path[Math.min(c.tick, path.length - 1)].x; });
   // button state at every step, for the hold strip and the button light
   const held = new Uint8Array(path.length);
   { const ev = (events || []).slice().sort((a, b) => a.tick - b.tick); let h = 0, j = 0;
