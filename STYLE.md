@@ -127,6 +127,11 @@ press, the lead = how far ahead the cue still is at the latest moment the press 
 of a staircase onto hops 2 blocks away; jumping 2.4 blocks before a yellow pad because the pad
 alone did not clear its spike run) and passes the fixed version.
 
+**Timing** (the user, second playtest): triple spikes are "a bit hard in the timings" -- a
+triple at 1x is a 46 ms window. For a normal level keep every window at 60 ms or more: doubles
+(~140 ms) instead of triples, and 4+ free squares after a platform before the next spike (a
+single 3 squares after a platform edge was 54 ms; 4 squares, 150 ms). Triples only when asked.
+
 Shapes that cause prejumps: a jump that must start on a higher step to reach something far off;
 a pad or orb that does not clear its hazards by itself; a hazard hidden under a floating block.
 
@@ -136,9 +141,9 @@ a pad or orb that does not clear its hazards by itself; a hazard hidden under a 
 2. 3-4 sections of ~50 blocks, each with its own bg/ground colour (trigger 2-4 squares before).
 3. Each section adds **one** idea: spikes -> platforms/stairs -> orbs/pads/gate.
 4. Within a section: introduce a shape alone, repeat it, then combine it with the last idea.
-5. Mostly singles and pairs; at most one triple per section. Gaps of 3-6 squares between chunks;
+5. Singles and pairs; no triples unless asked (46 ms windows, too tight for the user). Gaps of 3-6 squares between chunks;
    a rest of 6+ squares between sections.
-6. Hardest part last. Tightest window ~40-50 ms (a triple) is the ceiling for "easy classic".
+6. Hardest part last. Tightest window 60 ms or more (see Timing above).
 7. `"style": "classic"` for skins and decoration.
 
 ### Style: memory / invisible (the user's style, Pattern Seeker feel)
@@ -166,12 +171,13 @@ So the default is **fair memory**: memory helps, it is never the only way to see
 
 - `specs/41_classic.json` -> `levels/gdlm_41_classic.gdlvl`: 3 sections (blue, purple, red),
   spikes -> stairs/hops/gate/orb -> pad/triple/platform, back to blue for the ending.
-  15 presses, tightest window 42 ms, 17 s, sight-readable (v2: hops moved off the stairs, pad
-  run 4 -> 3 spikes, sparser decoration).
+  16 presses, tightest window 63 ms, 17 s, sight-readable. v2: hops moved off the stairs, pad
+  run 4 -> 3 spikes, sparser decoration. v3: no triples, wider stairs and hops.
 - `specs/42_seen_then_gone.json` -> `levels/gdlm_42_seen_then_gone.gdlvl`: the phrase
-  single-double-platform-triple: seen, then ghosted at its door, then ghosted from afar with
-  only its triple fully hidden; then the reversed phrase, seen once (red), then ghosted.
-  20 presses, tightest window 46 ms, 17 s, sight-readable. (v1 made whole phrases invisible:
+  single-double-platform-double: seen, then ghosted at its door, then ghosted from afar with
+  only its last double fully hidden; then the reversed phrase, seen once (red), then ghosted.
+  20 presses, tightest window 129 ms, 17 s, sight-readable (v3: no triples, more room after
+  platforms). (v1 made whole phrases invisible:
   the user found that too hard and unfair.)
 
 The viewer draws hidden objects normally (it does not run alpha triggers), and the sim ignores
