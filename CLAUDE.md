@@ -89,6 +89,11 @@ spider orb + pad all work. Stuck at the red orb under the ceiling (see above). T
 (the end of their first recording is a full practice run). The viewer replays the furthest run
 when a level cannot be beaten.
 
+## Not simulated yet
+
+Ship, ball, UFO, wave, robot, spider and swing modes; mini size; mirror and dual portals;
+slopes other than plain floor slopes (rotated or ceiling ones act as blocks); triggers.
+
 ## Rules
 
 - Never commit songs (Newgrounds songs belong to their artists) or other people's levels
