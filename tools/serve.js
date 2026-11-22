@@ -1,13 +1,64 @@
 // node tools/serve.js [port]  -- serves the repo so the viewer works at http://localhost:8765/viewer/
 // (opening viewer/index.html straight from disk also works in a normal browser)
+// POST /marks appends one JSON line to marks/marks.jsonl: the user's notes from the viewer
+// ("ground too dark here"), which Claude reads to make the next round. See marks/README.md.
 const http = require("http"), fs = require("fs"), path = require("path");
 const root = path.join(__dirname, ".."), port = +(process.argv[2] || 8765);
-const types = { ".html": "text/html", ".js": "text/javascript", ".json": "application/json", ".gdlvl": "text/plain", ".mp3": "audio/mpeg", ".ogg": "audio/ogg" };
+const MARKS = path.join(root, "marks", "marks.jsonl");
+const types = { ".html": "text/html", ".js": "text/javascript", ".json": "application/json", ".jsonl": "text/plain", ".gdlvl": "text/plain", ".mp3": "audio/mpeg", ".ogg": "audio/ogg", ".png": "image/png", ".jpg": "image/jpeg" };
 // songs are served straight from the user's game install and save folder (never copied into the repo)
 const GAME = process.env.GD_GAME || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash";
 const SAVE = process.env.GD_SAVE || path.join(process.env.LOCALAPPDATA || "", "GeometryDash");
+const RECS = process.env.GD_RECS || path.join(process.env.USERPROFILE || "", "Videos", "Captures"); // tools/record.sh writes here
 http.createServer((req, res) => {
   let p = decodeURIComponent(req.url.split("?")[0]);
+  if (req.method === "POST" && p === "/marks") {
+    let body = "";
+    req.on("data", c => { body += c; if (body.length > 1e5) req.destroy(); });
+    req.on("end", () => {
+      try {
+        const m = JSON.parse(body);
+        if (typeof m !== "object" || !m || !m.id) throw new Error("not a mark");
+        fs.mkdirSync(path.dirname(MARKS), { recursive: true });
+        fs.appendFileSync(MARKS, JSON.stringify(m) + "\n");
+        res.writeHead(200, { "Content-Type": "application/json" }); res.end('{"ok":true}');
+      } catch (e) { res.writeHead(400); res.end(String(e.message)); }
+    });
+    return;
+  }
+  // POST /shots: a PNG (data URL) from the viewer's "save comparison" -> local/shots/ (never committed:
+  // it holds frames of the user's game)
+  if (req.method === "POST" && p === "/shots") {
+    const chunks = [];
+    req.on("data", c => chunks.push(c));
+    req.on("end", () => {
+      const body = Buffer.concat(chunks).toString(), m = /^data:image\/png;base64,(.+)$/.exec(body);
+      if (!m) { res.writeHead(400); return res.end("not a png"); }
+      const dir = path.join(root, "local", "shots"); fs.mkdirSync(dir, { recursive: true });
+      const name = "cmp " + new Date().toISOString().replace(/[:.]/g, "-") + ".png";
+      fs.writeFileSync(path.join(dir, name), Buffer.from(m[1], "base64"));
+      res.writeHead(200, { "Content-Type": "application/json" }); res.end(JSON.stringify({ file: "local/shots/" + name }));
+    });
+    return;
+  }
+  // the user's recordings (never copied anywhere): a list, and one frame at a time via ffmpeg,
+  // for the viewer's "compare" panel
+  if (p === "/rec/list") {
+    let files = [];
+    try { files = fs.readdirSync(RECS).filter(f => /\.(mkv|mp4)$/i.test(f)).sort().reverse(); } catch (e) {}
+    res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify(files));
+  }
+  if (p === "/rec/frame") {
+    const q = new URLSearchParams(req.url.split("?")[1] || ""), name = path.basename(q.get("f") || ""), at = Math.max(0, +q.get("t") || 0);
+    const file = path.join(RECS, name);
+    if (!/\.(mkv|mp4)$/i.test(name) || !fs.existsSync(file)) { res.writeHead(404); return res.end("no such recording"); }
+    const ff = require("child_process").spawn("ffmpeg", ["-v", "error", "-ss", String(at), "-i", file, "-frames:v", "1", "-vf", "scale=960:-1", "-f", "image2pipe", "-vcodec", "png", "-"]);
+    const out = [];
+    ff.stdout.on("data", c => out.push(c));
+    ff.on("error", () => { res.writeHead(500); res.end("ffmpeg not found"); });
+    ff.on("close", () => { if (res.headersSent) return; if (!out.length) { res.writeHead(404); return res.end("no frame"); } res.writeHead(200, { "Content-Type": "image/png", "Cache-Control": "no-store" }); res.end(Buffer.concat(out)); });
+    return;
+  }
   if (p === "/" || p === "/viewer") { res.writeHead(302, { Location: "/viewer/" }); return res.end(); }
   if (p.endsWith("/")) p += "index.html";
   let f = path.join(root, p);

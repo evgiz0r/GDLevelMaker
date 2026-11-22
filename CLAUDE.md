@@ -48,6 +48,15 @@ user's created-levels list.
 - `tools/` -- node CLIs: `make`, `check`, `roundtrip`, `index_levels`, `serve`, `beats` (beat grid
   of every song on this PC, ffmpeg + JS), `sync` (how well levels follow their song's beat), `fetch_level` (online levels by ID into local/community/, for measuring only, never committed), `difficulty` (score vs the official ratings).
 - `viewer/index.html` -- the replay viewer; `viewer/levels.js` is generated, do not edit.
+- `lib/look.js` -- how a level LOOKS (viewer's "game look", on by default): header colours, colour
+  899 / alpha 1007 / zoom 1913 triggers over time, block skins 1-7 outlined by their own edges,
+  spikes, ground, bg, hills. Drawn to match frames of the user's play, no game art. Toggle off for
+  the schematic view; "hitboxes" still overlays.
+- Iterating on a level's look or play: the viewer's **✎ mark** (key M) saves the user's notes at a
+  spot to `marks/marks.jsonl` (via `tools/serve.js`); read them with `node tools/marks.js`, close
+  them with `node tools/marks.js done <id> "what changed"`. **compare** puts a frame of one of the
+  user's recordings (Videos/Captures, read by ffmpeg, never copied) beside the replay;
+  "save comparison" writes both as one PNG to `local/shots/`.
 - `examples/` -- levels the user made in the game, for reference and as format ground truth.
 
 All the library code runs in both node and the browser (no build step, no dependencies).
