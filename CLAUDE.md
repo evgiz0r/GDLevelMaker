@@ -21,6 +21,11 @@ not after it:
   note is worse than none.
 - **Structure is part of the work.** If something has no obvious home, make one and link it from
   here (the "Files" list) so it can be found. Keep this file the map of the project.
+- **A new topic gets set up by the AI, unasked.** When work opens a topic that is more than a
+  small local fix (a new game mode, a new kind of measurement, a new data source, a new workflow
+  with the user), setting up its knowledge is the AI's job, not the user's: its own doc (or
+  section) with what is known, the sources, how to test it and what is open; a line here pointing
+  to it; and, if a session owns it, who that is. Don't wait to be asked.
 - **Hand off.** Before a long pause or when your area changes hands, write where you stopped,
   what is open and the good numbers into your area's doc.
 - **Share, don't duplicate.** Results go into the shared `local/` (see below) so no session redoes
