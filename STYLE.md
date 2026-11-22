@@ -161,6 +161,16 @@ a pad or orb that does not clear its hazards by itself; a hazard hidden under a 
   bland and old style for exactly this.)
 - Many Easy/Normal Epics are 58-65 s. "One idea for the whole level" is also a rated design.
 - Official 1-8: one new idea per level, introduced calmly; no fakes at Easy or Normal.
+- 91 rated Easy-Harder levels (`knowledge/levels/low_tier_stats.md`): **Hard is the big step**
+  (sections ~7 s -> 3.4 s, orbs+pads 28 -> 53 per minute, 2-4x the hazards, ~5 rests per minute);
+  4-6 modes even at Easy; 3x/4x sections short (1-1.5 s) and nearly empty, 0.5x the most common
+  speed and carrying the busy modes (ball, spider, robot: 15-22 hazards per 10 blocks); median
+  length 66-72 s at every tier. Two rated templates for a brief:
+  - **a new mode every ~7 s, one speed-up** (an Easy Epic: cube, robot, ship, UFO at 0.5x, then
+    ball, robot, spider, UFO, cube, robot at 1x);
+  - **long calm sections + 2-3 bursts of very short switches** (a Normal and a Hard Epic, 0.5x).
+  The sim checks cube and ship best; other modes only through gdsolver's plans so far, so GDLM
+  briefs stay mostly cube/ship with one or two other modes until the bot confirms them.
 
 ### Style: classic (official 1-8 feel)
 
