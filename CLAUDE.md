@@ -19,6 +19,10 @@ The user plays it and tells us what was off. Read this fully first.
    its own lag from ground jumps). A clear confirms the sim; a death is where they disagree --
    unless the window there is under ~30 ms (the bot is good to about a frame). Ask the user
    before running it: it takes over their keyboard while GD is in front.
+   STATUS (2026-11-22): NOT TRUSTED YET. First real run (GDLM 42) printed CLEARED, but the user
+   saw it jump off the beat and die -- its death detection missed it and its jumps came ~36 ms
+   early (default offset since moved +20 ms). Next try: run tools/record.sh during it, compare
+   the video's jump times with the plan, then fix detection before believing a "CLEARED".
 5. What they report that the sim got wrong is a calibration fact: write it below.
 
 Every level the tool makes is named `GDLM NN ...` so it is easy to find (and delete) in the
