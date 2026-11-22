@@ -169,7 +169,40 @@ So the default is **fair memory**: memory helps, it is never the only way to see
 8. "Unfair memory" (whole phrases blind, off-grid spacing like spikes 1.1 squares apart) only
    when the user asks for a deliberately unfair level.
 
+## 2b. The loop: idea -> finished level, before the user sees it
+
+The user's wish: the whole loop settled before a person looks for the first time. They give an
+idea (a picture, a sketch, words); what they get back has already passed every gate.
+
+1. **Brief** (`briefs/NN_name.json`, written by Claude from the idea): name, idea, story,
+   difficulty target (`label` on lib/difficulty.js's scale, `minWindowMs`), style, colours, song,
+   and **sections** -- `{"name", "blocks", "use": [patterns], "gaps", "args", "bg", "ground",
+   "rest", "objects"}`. Full format at the top of `tools/compose.js`.
+2. **Compose** (`node tools/compose.js briefs/NN_name.json`, ~20-60 s for a 30 s level): fills
+   each section from its patterns (a new pattern first gets room on both sides, then mixes in),
+   colour per section, rests where the brief has them; writes `specs/NN_name.json` and builds it.
+3. **Score** (`node tools/score.js level.gdlvl --brief briefs/NN.json`): one report, every gate:
+   beatable, prejumps, timing floor, difficulty vs target, pacing, variety, readability of
+   decoration, colour per section, beat sync (with a song), unconfirmed hitboxes.
+4. **Repair**, in the same command: a failing gate is traced to the chunk that causes it, which
+   gets 2 more columns before it, then an easier pattern. Off the difficulty target, chunks are
+   made harder (or easier) a few at a time, later sections first, and a change is kept only if
+   no gate breaks. Every round goes to `briefs/NN_name.log.md`: what failed, what was changed, what
+   was kept or undone. If the target cannot be reached, it says why (patterns, floor, length) --
+   then Claude rethinks the brief (GDLM 43: Normal was out of reach at 24 s; at 33 s it got there).
+5. **Look** (Claude): viewer screenshots, and later the real game (bot replay, physics session).
+6. **Hand over**: installed level + the brief + the log. The user plays and reports; what they say
+   becomes a gate or a rule here.
+
+Still to build: screenshot strips for step 5, a one-page design note for step 6, songs in
+briefs end to end (score.js has the sync gate; compose places by columns, not beats yet).
+
 ## 3. The examples
+
+- `briefs/43_climb.json` -> `levels/gdlm_43_climb.gdlvl`: the first level made by the loop.
+  Brief: classic cube, ground spikes -> platforms/stairs -> orbs/pads/gate, blue -> violet -> red,
+  target Normal with a 40 ms floor. 16 rounds, 48 s: 33 presses, 31 s, tightest 46 ms,
+  Normal (0.33), sight-readable. Log: `briefs/43_climb.log.md`.
 
 - `specs/41_classic.json` -> `levels/gdlm_41_classic.gdlvl`: 3 sections (blue, purple, red),
   spikes -> stairs/hops/gate/orb -> pad/triple/platform, back to blue for the ending.

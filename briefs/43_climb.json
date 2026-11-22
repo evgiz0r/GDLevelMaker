@@ -1,0 +1,19 @@
+{
+  "name": "GDLM 43 climb",
+  "idea": "a classic cube level that climbs: ground spikes, then platforms and stairs, then orbs and pads, each section one new idea, warmer colours as it gets harder",
+  "story": "dusk to night: blue -> violet -> red, calm again at the end",
+  "difficulty": { "label": "Normal", "minWindowMs": 40 },
+  "style": "classic",
+  "seed": 3,
+  "sections": [
+    { "name": "intro", "blocks": 14, "rest": true, "bg": [40, 90, 230], "ground": [20, 60, 200] },
+    { "name": "ground", "blocks": 75, "use": ["single", "double", "triple"] },
+    { "name": "breath 1", "blocks": 8, "rest": true },
+    { "name": "platforms", "blocks": 95, "use": ["spike-block", "stairs", "block-spike-block", "double"],
+      "args": { "stairs": { "n": 3, "w": 4 } }, "bg": [120, 50, 210], "ground": [80, 30, 170] },
+    { "name": "breath 2", "blocks": 8, "rest": true },
+    { "name": "air", "blocks": 95, "use": ["orb-pit", "pad-launch", "gate", "triple"],
+      "args": { "pad-launch": { "n": 3 } }, "bg": [210, 40, 60], "ground": [160, 20, 40] },
+    { "name": "end", "blocks": 18, "rest": true, "bg": [40, 90, 230], "ground": [20, 60, 200] }
+  ]
+}
