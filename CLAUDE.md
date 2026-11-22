@@ -4,6 +4,12 @@ Claude writes Geometry Dash levels from a description, checks they can be beaten
 replaying with their clicks, and hands back a file the user imports into their real game.
 The user plays it and tells us what was off. Read this fully first.
 
+## Before making or judging a level: read knowledge/
+
+`knowledge/` holds what the user thinks about GD: `opinions.md` (their taste) and `critiques.md`
+(what they said about GDLM levels) are required reading before writing a spec; `levels/`,
+`glossary.md`, `demonlist.md` for the rest. New user feedback goes there too (in their words).
+
 ## The loop
 
 1. Write a spec in `specs/NN_name.json` (grid squares, see the top of `tools/make.js`).
