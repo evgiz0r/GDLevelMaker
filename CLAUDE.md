@@ -86,7 +86,13 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 - `lib/gd.js` -- the format: base64url + gzip layers, the record (plist) and the level string.
 - `lib/objects.js` -- object ids: name, kind, hitbox. `sure:false` = from memory, unconfirmed.
 - `lib/physics.js` -- cube physics + solver (fewest clicks, each in the middle of its window).
-- `lib/difficulty.js` -- difficulty score from a solution (per-input timing windows); see DIFFICULTY.md.
+- `lib/difficulty.js` -- difficulty score from a solution: the human route (one tap per jump), per-input
+  timing windows, a timing-error + lapse model fitted on the user's real runs; see DIFFICULTY.md
+  (also the tier ladder for making levels, and what is open). Its tools: `difficulty` (score a level,
+  or all official levels vs ratings and the user's attempts), `difficulty_solve` (cache an official
+  solution, one at a time), `difficulty_fit` (refit on the user's runs), `difficulty_community`
+  (score downloaded community levels), `runs` (the user's deaths from a recording, via the progress
+  bar), `save_stats` (the user's lifetime attempts per official level, read-only from the save).
 - `lib/sync.js` -- music sync: level time <-> x through speed portals, beat grid <-> level beats,
   press timing windows from a solution, sync scores. See SYNC.md.
 - `tools/` -- node CLIs: `make`, `check`, `roundtrip`, `index_levels`, `serve`, `beats` (beat grid

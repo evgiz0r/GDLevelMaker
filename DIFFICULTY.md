@@ -40,6 +40,15 @@ Reported beside the score:
 - ship gap (free height around the ship's path);
 - hiding triggers (move, alpha, toggle and spawn triggers the sim ignores: memory parts);
 - `quickRecoveries`: presses whose window closes under 150 ms after a landing.
+- `room`: free height per flying mode, counting blocks AND hazards, min and median in units
+  (30 = a row). The user found GDLM 44's wave "slightly too difficult" with the same windows as the
+  rest. It had 2 rows of room where the ship had 5.
+- `touchesPerMin` (orbs, pads, portals the path touches), `switchesPerMin` (mode, gravity or
+  speed changes) and `restsPerMin` (gaps of 1.5 s or more with no input). The knowledge session's
+  91 community levels (knowledge/levels/low_tier_stats.md) say Hard differs from Normal mostly by
+  this kind of density, not by tighter timing.
+
+None of the extras are in the score yet; each rests on a level or two.
 
 ## Calibration on the player's own runs
 
@@ -149,6 +158,50 @@ Read it as rough guide rails, not a classifier:
 
 On the player's mouse runs: up to Harder they clear first try or in 2-5 attempts, and Insane
 gets 70-90% on the first try.
+
+## Check on community levels
+
+`node tools/difficulty_community.js <id>:<tier> ...` scores levels fetched by
+`tools/fetch_level.js` into `local/community/` (never committed). Four classic-era ones, cube/ship
+at 1x:
+
+| level | rated | windows < 150 ms /min | < 100 ms /min | tightest | score /min |
+|---|---|---|---|---|---|
+| Level Easy (11940) | Normal 3 | 26.3 | 2.1 | 50 ms | 0.30 |
+| Back on Track RM (1244147) | Normal 3 | 26.9 | 3.0 | 67 ms | 0.29 |
+| End Of Line (215705) | Normal 3 | 13.8 | 0 | 100 ms | 0.30 |
+| Dreamland (150245) | Hard 4 | 22.3 | 0 | 100 ms | 0.21 |
+
+The Normals sit in the ladder's Normal row. Dreamland, rated Hard, is no tighter than they are,
+which fits "Hard = density, not tightness".
+
+On the first pass Dreamland's tightest input came out at 4 ms: a ship release that the
+widest-moment scan skipped. Flying presses and releases are now scanned too.
+
+## Open (hand-off)
+
+1. **Separate Easy to Harder.** They all score about 0.3 per minute. Next: put density
+   (`touchesPerMin`, `switchesPerMin`, `restsPerMin`), `room` and surprise (an input that
+   breaks the rhythm before it) into the score, and fit them on the player's runs and the
+   community tiers.
+2. **More real runs, on levels the sim covers fully.** Polargeist, Dry Out, Cant Let Go and
+   Back On Track are the best. Keep mouse and keyboard apart (`--device`).
+   - Loop: record → `node tools/runs.js <files> --join --level N --device mouse` →
+     `node tools/difficulty_fit.js` → update SIGMA and LAPSE.
+3. **Unexpected land-and-jump chains.** These were all 8 of the player's GDLM 42 deaths, but
+   rhythmic chains are fine (every early official level has 60-90). Needs a rhythm or surprise
+   measure to tell them apart.
+4. **Coverage.** 6 official levels are under 10% in the sim (`local/difficulty/NN.json` says
+   where each stops). Each physics fix: re-run `node tools/difficulty_solve.js N`, one at a time.
+5. **One copy of the window code.** `lib/sync.js` has its own (stricter) press windows; merge them.
+6. **Ratings are from memory** (tools/difficulty.js RATED). Check them against the game.
+
+Data: everything is in the shared `local/`:
+- `difficulty/NN.json`: cached official solutions;
+- `difficulty/report*.txt`: reports;
+- `difficulty/user_stats.json`: save stats;
+- `runs/*.json`: the player's attempts;
+- `difficulty/community.jsonl`: community scores.
 
 ## Viewer
 
