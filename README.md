@@ -21,9 +21,18 @@ In the viewer: space plays/pauses, R restarts, arrow keys step (shift = bigger s
 
 ## Putting a level into the game
 
-Levels are `.gdlvl` files in `levels/`. Import one with the same Geode mod you use to
-export levels (the exported "cube timings" in `examples/` came from it), from the
-Create -> My Levels screen. Each level shows up under its name, starting `GDLM`.
+On Windows, with the game **closed**:
+
+```
+node tools/install.js levels/gdlm_01_one_jump.gdlvl
+```
+
+This writes the level into the game's save (`%LOCALAPPDATA%\GeometryDash\CCLocalLevels.dat`),
+at the top of Create -> My Levels. Installing a level again replaces the copy already there
+(matched by name). Each run backs the save up first to `GeometryDash\gdlm_backups\`; to undo,
+close the game and copy a backup back over `CCLocalLevels.dat`. `--dry` checks without writing.
+
+The game must be closed because it rewrites the save when it exits.
 
 ## Writing a level
 

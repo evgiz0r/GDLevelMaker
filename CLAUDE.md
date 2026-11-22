@@ -11,7 +11,9 @@ The user plays it and tells us what was off. Read this fully first.
 3. Look at it: `node tools/serve.js` and open http://localhost:8765/viewer/ (or open
    `viewer/index.html` straight from disk in a normal browser). It replays the solver's clicks
    with a click sound, the timing window of each click, and hitboxes on request.
-4. The user imports the `.gdlvl` into GD (see README), plays it, reports.
+4. With the game closed, `node tools/install.js levels/<name>.gdlvl` puts it at the top of
+   My Levels (backs the save up first; refuses while GeometryDash.exe runs). The user plays it
+   and reports. The user's game is plain GD 2.2 on Windows, no Geode: there is no in-game import.
 5. What they report that the sim got wrong is a calibration fact: write it below.
 
 Every level the tool makes is named `GDLM NN ...` so it is easy to find (and delete) in the
@@ -69,3 +71,7 @@ and greys out unknown ids; the solver ignores them, so a level that uses them re
 - Not affiliated with RobTop; do not use GD's art or name the repo/tool as if it were official.
 - Unknown object ids: never guess silently. Mark `sure:false`, and ask the user what the object
   is in the editor.
+
+## Later (said, not built)
+
+- Playing on the phone too: how to get an updated level onto the phone while away from the PC.
