@@ -330,10 +330,11 @@ Still open:
 ## 5. Open / next (hand-off)
 
 State on 2026-11-22. What a new session should know before touching this area:
-- **Natural replay** (`lib/natural.js`): taps per cube jump and dropping empty jumps work; re-flying
-  ship/wave stretches does not splice back into the solver's later inputs. Asked the physics
-  session for `solveFrom(state)` or a "natural" solver option. Until then the viewer replays the
-  solver's run (long holds, sliding), which the user called unnatural.
+- **Natural replay** (`lib/natural.js`, the viewer's default replay): one tap per cube jump, empty
+  jumps dropped, ship / wave stretches flown by a controller along the middle of the free space,
+  the rest re-solved from there with `GD.solveFrom` (physics session). Every change is kept only if
+  the run still finishes. The click table shows these inputs; timing windows stay the solver's
+  (in `score.js`). Open: the solver's own run is still what `score.js` judges for prejumps.
 - **compose.js** places by columns, cube-only patterns by default; not yet: beats in briefs, modes
   in sections, the low-tier recipe (lead-ins per mode, hazard share per mode, section lengths 4-6 s,
   `knowledge/levels/modes_low_tier.md`). GDLM 44 was written by hand in beats.
@@ -341,8 +342,8 @@ State on 2026-11-22. What a new session should know before touching this area:
   the user places the three arrows in an empty level, then read the ids from the save.
 - **Art**: decoration ids have no names. Plan: a generated catalogue level (every deco id with a
   text label) the user opens and screenshots; then style deco sets (hell, classic ...).
-- **GDLM 44** (Easy, 10 s, song 343707): v4 under "in progress" in the viewer; lead-in after the
-  ship portal is 2.9 blocks (rated Easy ~8): move the first tooth later.
+- **GDLM 44** (Easy, 10 s, song 343707): v5 under "in progress" in the viewer, all gates pass (the
+  ship tunnel's teeth now start 6 columns in: `ship-tunnel` "lead").
 - **Low-tier level from the knowledge base** (the user agreed, via the knowledge session): >= 60 s,
   Easy/Normal, sight-readable, no fakes; templates in "What good low-tier levels do". Not started.
 - Prejumps are exact only on cube levels; on mode levels approximate (WARN).

@@ -77,6 +77,7 @@
 <script src="../lib/physics.js"></script>
 <script src="../lib/sync.js"></script>
 <script src="../lib/look.js"></script>
+<script src="../lib/natural.js"></script>
 <script src="levels.js"></script>
 <script src="levels.local.js" onerror="window.GD_LEVELS_LOCAL = []"></script>
 <script src="beats.local.js" onerror="window.GD_BEATS = {}"></script>
@@ -118,6 +119,20 @@ function load(name, levelStr, saved, info) {
   let sol;
   if (saved) sol = saved.ok ? { ok: true, events: saved.events, clicks: [] } : { ok: false, trail: saved.events, clicks: [], dieAt: { x: saved.dieX || 0, tick: 0 }, why: saved.why || "" };
   else try { sol = GD.solveAny(world); } catch (e) { sol = { ok: false, clicks: [], trail: [], dieAt: GD.startState(world), why: e.message }; }
+  // the replay shows a natural way to play it (lib/natural.js: a tap per jump, no empty jumps, the
+  // ship and wave flown along the middle of their corridor), not the solver's fewest-presses run
+  // ("the path is unnatural ... empty clicks ... the ship looks like a wave", playtest). The
+  // "solver run" button shows the solver's own. Timing windows in the table stay the solver's.
+  if (sol.ok && !saved && GD.naturalPlan && !window.SOLVER_RUN) {
+    try {
+      const n = GD.naturalPlan(world, sol, level.objects);
+      if (n && n.path[n.path.length - 1].done) {
+        const ms = sol.clicks.filter(c => c.type === "press").map(c => c.ms);
+        sol = Object.assign({}, sol, { events: n.events, natural: true,
+          clicks: n.events.map(e => ({ type: e.type, tick: e.tick, lo: e.tick, hi: e.tick, ms: 0 })) });
+      }
+    } catch (e) { console.warn("natural plan failed:", e); }
+  }
   // a level that cannot be beaten replays the run that got furthest
   let events = sol.events;
   if (!sol.ok) {

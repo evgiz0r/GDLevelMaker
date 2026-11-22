@@ -120,8 +120,10 @@ def("ship-tunnel", "a ship corridor (band rows 0-9): floor and roof follow a wav
     for (let r = 0; r < f; r++) o.push(["block", c, r]);
     for (let r = roof; r < 10; r++) o.push(["block", c, r]);
     // teeth alternate floor / roof, never both in one column (both at once left 3 rows: 42 ms)
-    if (a.teeth && c % 8 === 2) o.push(["spike", c, f]);
-    if (a.teeth && c % 8 === 6) o.push(["spike", c, roof - 1, { rot: 180 }]);
+    // and not before `lead` columns: a calm lead-in after the portal (rated Easy ships ~8 blocks)
+    const lead = a.lead ?? 6;
+    if (a.teeth && c >= lead && (c - lead) % 8 === 0) o.push(["spike", c, f]);
+    if (a.teeth && c >= lead && (c - lead) % 8 === 4) o.push(["spike", c, roof - 1, { rot: 180 }]);
   }
   const mid = c => floorAt(c) + (gap - 1) / 2;
   portals(o, "ship", Math.min(5, Math.round(mid(0))), Math.round(mid(w - 1)), w, a);
