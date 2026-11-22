@@ -18,7 +18,7 @@
     ["spike", "j23", 0], ["spike", "j23+1", 0],
 
     ["yellow pad", "b27", 0],
-    ["spike", "b27+2", 0], ["spike", "b27+3", 0], ["spike", "b27+4", 0], ["spike", "b27+5", 0],
+    ["spike", "b27+2", 0], ["spike", "b27+3", 0], ["spike", "b27+4", 0],
 
     ["spike", "j31", 0],
     ["spike", "j33", 0],

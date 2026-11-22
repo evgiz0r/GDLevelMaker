@@ -13,6 +13,16 @@
 // }
 // type is a name from TYPES below or a raw object id number.
 //
+// Style (see STYLE.md; tools/patterns.js, tools/decorate.js):
+//   extra may also hold "group": n (fade/move target) and "ch": n (colour channel).
+//   ["pattern", name, col, row, {args}, {extra for every object}]   a named chunk
+//   ["colour", col, {"ch": "bg"|"ground"|"obj"|n, "rgb": [r,g,b], "secs": 0.5}]
+//   ["fade", col, {"group": n, "to": 0, "secs": 0.2}]   alpha trigger: hide (or show) a group
+//   ["zoom", col, {"to": 0.7}]                             camera zoom (0.7 = see more)
+//   "style": "classic" -> outlined block skins + ground decoration
+//   "colours": {"bg": [r,g,b], "ground": [r,g,b], ...}   start colours in the header
+//   "art": {"bg": n, "ground": n}                        background / ground art numbers
+//
 // Music (optional; see SYNC.md):
 //   "song": {"custom": 233860} or {"official": 1} (1 = Stereo Madness ... 22 = Dash)
 //   "offset": 120          // the song second the level starts at (GD's kA13)
@@ -20,11 +30,12 @@
 //   "grid": {"bpm": 165.01, "t0": 0.064}  // the song's beat grid; left out = taken from
 //                          // local/beats (node tools/beats.js) and printed, so it can be pinned here
 //   "snap": 0              // round beat positions to this many units (0 = exact, 15 = half a block)
-// With a song, a column can be a beat instead of a number:
+// With a song, any column (also a pattern's or a trigger's) can be a beat instead of a number:
 //   "b12"     the column where the player's centre is on beat 12 (beat 1 = the first beat at or
 //             after the level start; "b12.5" = halfway to beat 13). Orbs, pads and portals put
 //             here are hit on the beat: that is how the official levels place them (SYNC.md).
-//   "j12"     where a spike on the ground must go for the jump over it to be pressed on beat 12
+//   "j12"     where a spike on the ground must go for the jump over it to be pressed on beat 12;
+//             everything placed at "j12..." moves together until the press is on the beat
 //   "b12+3"   three columns after that ("j12-0.5" etc. also work)
 // Speed portals placed by beat change the timing of everything after them; they are placed first.
 // After building, make.js prints where each press's timing window falls in beats.
@@ -33,14 +44,28 @@ const path = require("path");
 const { GD, writeGdlvl } = require("./io.js");
 Object.assign(GD, require("../lib/sync.js"));
 const { report } = require("./check.js");
+const { sightread } = require("./sightread.js");
 const { buildIndex } = require("./index_levels.js");
+const { expand } = require("./patterns.js");
+const deco = require("./decorate.js");
 
-const TYPES = { block: 1, spike: 8, "small spike": 39, "yellow orb": 36, "blue orb": 84, "pink orb": 141, "red orb": 1333,
-  "yellow pad": 35, "blue pad": 67, "pink pad": 140,
+const TYPES = { block: 1, spike: 8, "small spike": 39, "yellow orb": 36, "blue orb": 84, "yellow pad": 35, "blue pad": 67,
+  "pink orb": 141, "red orb": 1333, "pink pad": 140, "mirror portal": 45, "mirror off": 46,
   "0.5x speed": 200, "1x speed": 201, "2x speed": 202, "3x speed": 203, "4x speed": 1334 };
 const SPEED_NAMES = { "0.5x": 1, "1x": 0, "2x": 2, "3x": 3, "4x": 4 }; // -> kA4
+const SPECIAL = ["pattern", "colour", "fade", "zoom"];
 
 function slug(s) { return s.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, ""); }
+
+function toObj([type, col, row, extra], specFile) {
+  const id = typeof type === "number" ? type : TYPES[type];
+  if (!id) throw new Error(`unknown type "${type}" in ${specFile}`);
+  const e = extra || {};
+  const props = { 155: "1" };
+  if (e.group != null) props[57] = String(e.group);
+  if (e.ch != null) props[21] = String(e.ch);
+  return { id, x: +(col * 30 + 15).toFixed(3), y: row * 30 + 15, rot: e.rot || 0, flipX: !!e.flipX, flipY: !!e.flipY, props };
+}
 
 // how far ahead of the press a lone ground spike sits when the press is in the middle of its
 // window, and how long a jump stays in the air, at each speed (found by solving a one-spike level)
@@ -57,7 +82,6 @@ function jumpAt(kA4) {
   while (land < path.length - 1 && !path[land].grounded) land++;
   return (jumpInfo[kA4] = { lead: x - r.clicks[0].x, air: (land - t) / GD.PHYS.TPS });
 }
-const leadFor = kA4 => jumpAt(kA4).lead;
 
 function songOf(spec) {
   const s = spec.song;
@@ -79,20 +103,22 @@ function gridOf(spec, song) {
   return { period: b.period, t0: b.t0, bpm: b.bpm };
 }
 
-// "b12", "j12.5+2", or a plain number -> x in units. tl = the timeline so far.
-function columnX(col, ctx, tl) {
-  if (typeof col === "number") return col * 30 + 15;
+// a spec column -> a (possibly fractional) column number. Numbers pass through; "b12", "j12.5+2"
+// are beats. tl = the speed timeline so far.
+function toCol(col, ctx, tl) {
+  if (typeof col === "number") return col;
   const m = /^([bj])(-?\d+(?:\.\d+)?)([+-]\d+(?:\.\d+)?)?$/.exec(String(col).trim());
   if (!m) throw new Error(`bad column "${col}": use a number, "b12", "j12" or "b12+3"`);
   if (!ctx.grid) throw new Error(`column "${col}" needs a "song" in the spec`);
   const t = GD.SYNC.beatToTime(ctx.grid, ctx.offset, +m[2]);
   if (t < 0) throw new Error(`beat ${m[2]} is before the level starts`);
   let x = GD.SYNC.xOfT(tl, t);
-  if (m[1] === "j") x += leadFor(ctx.kA4);
+  if (m[1] === "j") x += jumpAt(ctx.kA4).lead;
   if (m[3]) x += +m[3] * 30;
   if (ctx.snap) x = Math.round(x / ctx.snap) * ctx.snap;
-  return x;
+  return (x - 15) / 30;
 }
+const colAt = entry => entry[0] === "pattern" ? 2 : 1;
 
 function make(specFile) {
   const spec = JSON.parse(fs.readFileSync(specFile, "utf8"));
@@ -101,41 +127,53 @@ function make(specFile) {
   if (kA4 === undefined) throw new Error("speed must be one of " + Object.keys(SPEED_NAMES).join(" "));
   let header = GD.DEFAULT_HEADER.replace(/(^|,)kA4,\d+/, "$1kA4," + kA4);
   if (spec.offset) header = header.replace(/(^|,)kA13,[-0-9.]+/, "$1kA13," + spec.offset);
+  if (spec.colours) header = deco.setHeaderColours(header, spec.colours);
+  if (spec.art) header = deco.setHeaderArt(header, spec.art.bg, spec.art.ground);
   const ctx = { grid: song ? gridOf(spec, song) : null, offset: spec.offset || 0, kA4, snap: spec.snap || 0 };
 
-  const ids = spec.objects.map(([type]) => {
-    const id = typeof type === "number" ? type : TYPES[type];
-    if (!id) throw new Error(`unknown type "${type}" in ${specFile}`);
-    return id;
-  });
-  const objects = new Array(spec.objects.length);
-  const build = (i, x) => {
-    const [, , row, extra] = spec.objects[i];
-    const e = extra || {};
-    return { id: ids[i], x: +x.toFixed(3), y: row * 30 + 15, rot: e.rot || 0, flipX: !!e.flipX, flipY: !!e.flipY, props: { 155: "1" } };
-  };
   // speed portals first, in order along the level, each one updating the timeline
-  const isSpeed = i => GD.objInfo(ids[i]).kind === "speed";
-  const timelineOf = objs => GD.SYNC.timeline(GD.makeWorld(objs.filter(Boolean), header));
-  const order = spec.objects.map((_, i) => i).filter(isSpeed);
-  const placed = [];
-  for (const i of order.sort((a, b) => columnX(spec.objects[a][1], ctx, timelineOf(placed)) - columnX(spec.objects[b][1], ctx, timelineOf(placed)))) {
-    objects[i] = build(i, columnX(spec.objects[i][1], ctx, timelineOf(placed)));
-    placed.push(objects[i]);
+  const timelineOf = objs => GD.SYNC.timeline(GD.makeWorld(objs, header));
+  const idOf = e => SPECIAL.includes(e[0]) ? null : typeof e[0] === "number" ? e[0] : TYPES[e[0]];
+  const isSpeed = e => { const id = idOf(e); return !!id && GD.objInfo(id).kind === "speed"; };
+  const speedObj = new Map(), placed = [];
+  const speeds = spec.objects.filter(isSpeed);
+  while (speeds.length) {
+    const tl0 = timelineOf(placed);
+    speeds.sort((a, b) => toCol(a[1], ctx, tl0) - toCol(b[1], ctx, tl0));
+    const e = speeds.shift(), o = toObj([e[0], toCol(e[1], ctx, tl0), e[2], e[3]], specFile);
+    speedObj.set(e, o); placed.push(o);
   }
   const tl = timelineOf(placed);
-  spec.objects.forEach((o, i) => { if (!objects[i]) objects[i] = build(i, columnX(o[1], ctx, tl)); });
 
-  // jumps (j) closer together than a jump lasts cannot all be pressed on their beats
-  const js = spec.objects.map(o => /^j(-?[\d.]+)$/.exec(String(o[1]))).filter(Boolean).map(m => +m[1]).sort((a, b) => a - b);
-  if (ctx.grid && js.length) {
+  const objects = [], jGroups = new Map();
+  for (const entry of spec.objects) {
+    const start = objects.length;
+    const col = toCol(entry[colAt(entry)], ctx, tl);
+    const [type, , row] = entry;
+    if (speedObj.has(entry)) objects.push(speedObj.get(entry));
+    else if (type === "pattern") { for (const e of expand(entry[1], col, entry[3], entry[4], entry[5])) objects.push(toObj(e, specFile)); }
+    else if (type === "colour") { const a = entry[2]; objects.push(deco.colourTrigger(col, a.ch, a.rgb, a.secs ?? 0.5)); }
+    else if (type === "fade") { const a = entry[2]; objects.push(deco.fadeTrigger(col, a.group, a.to ?? 0, a.secs ?? 0.2)); }
+    else if (type === "zoom") { const a = entry[2] || {}; objects.push(deco.zoomTrigger(col, a.to ?? 0.7, a.secs ?? 0.5)); }
+    else objects.push(toObj([type, col, row, entry[3]], specFile));
+    const jm = /^j(-?\d+(?:\.\d+)?)/.exec(String(entry[colAt(entry)]));
+    if (jm) { if (!jGroups.has(jm[1])) jGroups.set(jm[1], []); for (let i = start; i < objects.length; i++) jGroups.get(jm[1]).push(i); }
+  }
+
+  if (ctx.grid && jGroups.size) {
+    // jumps closer together than a jump lasts cannot all be pressed on their beats
+    const js = [...jGroups.keys()].map(Number).sort((a, b) => a - b);
     const air = jumpAt(kA4).air, need = air / ctx.grid.period;
     for (let i = 1; i < js.length; i++) if (js[i] - js[i - 1] < need)
       console.log(`   NOTE jumps on beats ${js[i - 1]} and ${js[i]} are closer than a jump lasts (${air.toFixed(2)} s = ${need.toFixed(2)} beats here): the second cannot be on its beat`);
+    nudgeJumps(jGroups, objects, header, ctx, tl);
   }
 
-  if (ctx.grid) nudgeJumps(spec, objects, header, ctx, tl);
-
+  if (spec.style === "classic") {
+    deco.skinBlocks(objects);
+    const end = Math.max(...objects.map(o => o.x)) / 30 + 4;
+    objects.push(...deco.groundDeco(objects, end, spec.seed || 7));
+  }
   const level = { header, objects };
   const rec = GD.newRecord(spec.name, spec.desc || "made by GDLevelMaker");
   if (song && song.k45) GD.setField(rec, "k45", "i", song.k45);
@@ -144,17 +182,21 @@ function make(specFile) {
   writeGdlvl(out, rec, level);
   const r = report(out);
   if (ctx.grid && r.ok) beatReport(objects, header, r, ctx);
+  if (r.ok) { // the user's fairness rule: no prejumps (see tools/sightread.js)
+    const s = sightread(level);
+    const bad = s.ok ? s.presses.filter(p => p.flag) : [];
+    for (const p of bad) console.log(`   PREJUMP at block ${p.from.toFixed(1)}-${p.to.toFixed(1)}: jump ${p.lead.toFixed(1)} blocks before ${p.cue} at ${p.cueAt.toFixed(1)}`);
+    console.log(bad.length ? `   NOT sight-readable: ${bad.length} prejump(s)` : "   sight-readable: every press is cued by what is right in front");
+  }
   buildIndex();
   return { out, r };
 }
 
-// "jN" was placed for a lone spike. Runs of spikes, blocks and orbs change where the press goes,
-// so solve, find the press that clears each jN group (the objects sharing that "jN"), and slide
+// "jN" is placed for a lone spike. Runs of spikes, blocks and orbs change where the press goes,
+// so solve, find the press that clears each jN group (the objects placed at "jN..."), and slide
 // the group until the middle of that press's window is on beat N. A few rounds settle it.
-function nudgeJumps(spec, objects, header, ctx, tl) {
-  const groups = new Map();
-  spec.objects.forEach((o, i) => { const m = /^j(-?\d+(?:\.\d+)?)/.exec(String(o[1])); if (m) { if (!groups.has(m[1])) groups.set(m[1], []); groups.get(m[1]).push(i); } });
-  if (!groups.size) return;
+function nudgeJumps(groups, objects, header, ctx, tl) {
+  const beatUnits = GD.SYNC.xOfT(tl, ctx.grid.period * 1.5) - GD.SYNC.xOfT(tl, 0);
   for (let round = 0; round < 6; round++) {
     const w = GD.makeWorld(objects, header), r = GD.solveAny(w);
     if (!r.ok) return;
@@ -164,14 +206,13 @@ function nudgeJumps(spec, objects, header, ctx, tl) {
     for (const [beat, idx] of groups) {
       const x0 = Math.min(...idx.map(i => objects[i].x));
       const want = GD.SYNC.xOfT(tl, GD.SYNC.beatToTime(ctx.grid, ctx.offset, +beat));
-      // the press that clears this group: the last one before it, if it comes after the beat-1.5 mark
+      // the press that clears this group: the last one before it, if it is near the beat
       const before = pw.windows.filter(p => pw.path[p.tick].x < x0);
       const p = before[before.length - 1];
       if (!p) continue;
       const mid = pw.path[Math.round((p.lo + p.hi) / 2)].x;
-      if (want - mid > GD.SYNC.xOfT(tl, ctx.grid.period * 1.5) - GD.SYNC.xOfT(tl, 0)) continue; // not this group's press
       const d = want - mid;
-      if (Math.abs(d) < 1) continue;
+      if (d > beatUnits || Math.abs(d) < 1) continue;
       for (const i of idx) objects[i].x = +(objects[i].x + d).toFixed(3);
       moved++;
     }

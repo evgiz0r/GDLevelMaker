@@ -50,6 +50,7 @@
   <div class="card"><h2>Clicks</h2><div id="clicks"></div></div>
 </main>
 <script src="../lib/gd.js"></script>
+<script src="../lib/objects_extra.js"></script>
 <script src="../lib/objects.js"></script>
 <script src="../lib/physics.js"></script>
 <script src="../lib/sync.js"></script>
@@ -128,17 +129,19 @@ addEventListener("drop", e => { e.preventDefault(); drop.style.display = "none";
 // ---------- panels ----------
 function summary() {
   const counts = {};
-  for (const o of L.level.objects) { const d = GD.objInfo(o.id); counts[d.name] = (counts[d.name] || 0) + 1; }
-  const unsim = L.level.objects.filter(o => GD.objInfo(o.id).kind === "unknown").length;
+  let deco = 0;
+  for (const o of L.level.objects) { const d = GD.objInfo(o.id); if (d.kind === "decoration" || d.kind === "trigger") { deco++; continue; } counts[d.name] = (counts[d.name] || 0) + 1; }
+  const unsim = L.level.objects.filter(o => ["unknown", "unsupported"].includes(GD.objInfo(o.id).kind)).length;
   const s = L.sol;
   let h = `<b>${esc(L.name)}</b><br><span class="muted">${L.level.objects.length} objects · ${(L.world.endX / 30).toFixed(0)} blocks · ${(L.world.endX / P.SPEED).toFixed(1)} s at 1×</span><br>`;
   h += s.ok ? `<p class="ok">Beatable in ${s.clicks.length} click${s.clicks.length === 1 ? "" : "s"}` +
               (s.clicks.length ? ` · tightest window ${Math.min(...s.clicks.map(c => c.ms))} ms` : "") + `</p>`
             : `<p class="bad">Not beatable in the simulation. The furthest run dies at block ${(s.dieAt.x / 30).toFixed(1)} (${(s.dieAt.tick / P.TPS).toFixed(2)} s): ${s.why}. The replay shows that furthest run.</p>`;
-  if (unsim) h += `<p class="muted">${unsim} objects have unknown ids: drawn grey, ignored by the physics.</p>`;
+  if (unsim) h += `<p class="muted">${unsim} objects are not simulated yet (unsupported portals or unknown ids).</p>`;
+  if (deco) h += `<p class="muted">${deco} decoration and trigger objects (no physics).</p>`;
   if (L.beats) { const g = L.beats.grid; h += `<p class="muted">song ${g.bpm.toFixed(1)} BPM (${g.conf} confidence) · level starts at song ${L.beats.offset} s · beat 1 = first beat after the start</p>`; }
   else if (songInfo) h += `<p class="muted">no beat grid for this song (run <code>node tools/beats.js</code>; the song must be on this PC)</p>`;
-  h += `<p class="muted">` + Object.entries(counts).map(([k, v]) => `${esc(k)} ×${v}`).join(" · ") + `</p>`;
+  h += `<p class="muted">` + Object.entries(Object.fromEntries(Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 14))).map(([k, v]) => `${esc(k)} ×${v}`).join(" · ") + `</p>`;
   document.getElementById("summary").innerHTML = h;
 }
 function clickTable() {
@@ -313,11 +316,18 @@ function local(o, fn) {
 function glow(c, b) { ctx.shadowColor = c; ctx.shadowBlur = b; }
 function drawObj(o) {
   const d = GD.objInfo(o.id);
+  if (d.kind === "decoration" || d.kind === "trigger") return;
   local(o, () => {
     ctx.lineWidth = 2 / scale;
     if (d.kind === "solid") {
       ctx.fillStyle = "rgba(61,123,255,.18)"; ctx.fillRect(-15, -15, 30, 30);
       glow("#3d7bff", 10); ctx.strokeStyle = "#5b8fff"; ctx.strokeRect(-14, -14, 28, 28);
+    } else if (d.kind === "hazard" && d.shape === "saw") {
+      glow("#ff3b6b", 10); ctx.strokeStyle = "#ff3b6b"; ctx.fillStyle = "rgba(255,59,107,.2)";
+      ctx.beginPath(); ctx.arc(0, 0, d.r, 0, 7); ctx.fill(); ctx.stroke();
+    } else if (d.kind === "hazard" && d.shape === "box") {
+      const hb = d.hit; glow("#ff3b6b", 8); ctx.fillStyle = "rgba(255,59,107,.35)"; ctx.strokeStyle = "#ff3b6b";
+      ctx.fillRect((hb.ox || 0) - hb.w / 2, (hb.oy || 0) - hb.h / 2, hb.w, hb.h); ctx.strokeRect((hb.ox || 0) - hb.w / 2, (hb.oy || 0) - hb.h / 2, hb.w, hb.h);
     } else if (d.kind === "hazard") {
       const top = d.shape === "smallspike" ? 0 : d.shape === "midspike" ? 4 : 15;
       ctx.beginPath(); ctx.moveTo(-14, -15); ctx.lineTo(14, -15); ctx.lineTo(0, top); ctx.closePath();

@@ -78,7 +78,11 @@ that.
   together; about 1/sqrt(n) by luck), with that phase in ms.
 
 Presses exist only where the physics can beat the level: official 1-3 (from `tools/official.js`)
-and the repo's levels. Levels 4-22 are measured by object positions.
+and the repo's levels. Levels 4-22 are measured by object positions. A saved solution only
+counts while it still replays: the press numbers for official 1-3 below were measured with the
+physics before the November 22 physics update; after it the saved solutions no longer finish,
+and `tools/sync.js` leaves their presses out until `node tools/official.js 1 2 3` is rerun
+(a heavy job: one at a time).
 
 ## 3. Findings: what the official levels put on the beat
 
@@ -91,7 +95,7 @@ Pooled over all 22 official levels:
 | gravity portals | 248 | 0.14 | x2.2 | -0.03 beat | 31% |
 | orbs | 730 | 0.08 | x2.0 | -0.03 beat | 22% |
 | pads | 504 | 0.05 | x1.0 | - | 24% |
-| spike runs | 1214 | 0.03 | x1.0 | - | 26% |
+| spike runs | 1207 | 0.04 | x1.3 | - | 26% |
 | presses (levels 1-3) | 88 | 0.10 | x0.9 | - | 18% |
 
 (25% = luck for the bar column.)
@@ -171,7 +175,7 @@ something the official levels do throughout.
 - `"grid"` pins the beat grid so the spec works without the song; without it, make.js takes
   `local/beats` and prints the grid to paste in.
 - After building, make.js prints each press's window in beats and how many can land on a beat
-  or half-beat. `specs/02_on_the_beat.json` gets 12/12.
+  or half-beat. `specs/02_on_the_beat.json` gets 11/11 and passes the sight-read check (no prejumps).
 
 Cube limits (from the physics, one jump on flat ground):
 

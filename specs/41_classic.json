@@ -1,0 +1,28 @@
+{
+  "name": "GDLM 41 classic",
+  "desc": "classic style: build-up, a rest, three sections that each add one idea, colour per section",
+  "style": "classic",
+  "colours": {"bg": [40, 90, 230], "ground": [20, 60, 200], "ground2": [20, 60, 200]},
+  "objects": [
+    ["pattern", "single", 15, 0],
+    ["pattern", "double", 24, 0],
+    ["pattern", "single", 31, 0],
+    ["pattern", "triple", 39, 0],
+    ["pattern", "spike-block", 47, 0],
+    ["colour", 52, {"ch": "bg", "rgb": [130, 50, 210], "secs": 1}],
+    ["colour", 52, {"ch": "ground", "rgb": [90, 30, 170], "secs": 1}],
+    ["pattern", "stairs", 56, 0, {"n": 3, "w": 3}],
+    ["pattern", "hops", 70, 0, {"n": 3, "w": 2, "gap": 2, "rise": 0}],
+    ["pattern", "gate", 86, 0, {"w": 2, "open": 4}],
+    ["pattern", "orb-pit", 96, 0, {"n": 5}],
+    ["colour", 108, {"ch": "bg", "rgb": [210, 40, 60], "secs": 1}],
+    ["colour", 108, {"ch": "ground", "rgb": [160, 20, 40], "secs": 1}],
+    ["pattern", "pad-launch", 113, 0, {"n": 3}],
+    ["pattern", "triple", 127, 0],
+    ["pattern", "block-spike-block", 135, 0],
+    ["pattern", "platform", 144, 0, {"w": 5, "h": 2, "spike": 3}],
+    ["colour", 152, {"ch": "bg", "rgb": [40, 90, 230], "secs": 2}],
+    ["colour", 152, {"ch": "ground", "rgb": [20, 60, 200], "secs": 2}],
+    ["block", 170, 6]
+  ]
+}
