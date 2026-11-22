@@ -15,6 +15,9 @@
 //   readability  spike-like decoration (18-21) never within 2 columns of a hazard
 //   colour       a colour change per section (when the brief has sections)
 //   sync         with a song: portals on bar starts, and not too many presses pinned to beats (WARN only)
+//   lead-in      Easy/Normal: blocks from each mode portal to the first hazard after it, against
+//                the medians of 63 rated 2.0-2.1 levels (knowledge/levels/modes_low_tier.md): cube 6,
+//                ship 8, wave/robot 3, UFO 2 (Hard and up: 0). WARN under 60% of it.
 //   skips        the solved run goes through every mode/gravity/speed portal (FAIL) and uses every
 //                orb (WARN): a "secret way" past part of the level means a path should be blocked
 //   objects      gameplay objects with unconfirmed hitboxes (sure:false; WARN only)
@@ -146,6 +149,22 @@ function scoreLevel(level, brief, opts = {}) {
     gate("sync", portalsOk && pinOk ? "PASS" : "WARN",
       `${onBar}/${portals.length} portals on a bar start, ${pinned}/${n} presses centred on a beat`,
       [!portalsOk ? "portals off the bars: put mode/speed changes on bar starts" : "", !pinOk ? "most presses pinned to beats: can sound forced, loosen some" : ""].filter(Boolean).join("; "));
+  }
+
+  // lead-in after mode portals (low tiers only)
+  if (["Easy", "Normal"].includes(want.label || "Easy")) {
+    const LEAD = { cube: 6, ship: 8, wave: 3, robot: 3, ufo: 2, ball: 3, spider: 3, swing: 3 };
+    const ports = level.objects.filter(o => GD.objInfo(o.id).kind === "mode").sort((a, b) => a.x - b.x);
+    const hx = level.objects.filter(o => GD.objInfo(o.id).kind === "hazard").map(o => GD.hitbox(o)).filter(Boolean).map(h => h.x0).sort((a, b) => a - b);
+    const short = [];
+    for (const p of ports) {
+      const m = GD.objInfo(p.id).mode, need = LEAD[m] || 3;
+      const first = hx.find(x => x > p.x);
+      if (first == null) continue;
+      const lead = (first - p.x) / 30;
+      if (lead < 0.6 * need) short.push(`${m} at block ${((p.x - 15) / 30).toFixed(0)}: ${lead.toFixed(1)} blocks (typical ${need})`);
+    }
+    if (ports.length) gate("lead-in", short.length ? "WARN" : "PASS", short.length ? short.join("; ") : `${ports.length} mode portals with a calm lead-in`);
   }
 
   // skips: which portals and orbs the solved run never touched
