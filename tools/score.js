@@ -46,10 +46,18 @@ function scoreLevel(level, brief, opts = {}) {
     gate("prejumps", bad.length ? "FAIL" : "PASS", bad.length ? bad.map(p => `block ${p.to.toFixed(0)} (${p.lead.toFixed(1)} ahead of ${p.cue} at ${p.cueAt.toFixed(0)})`).join("; ") : "none");
   }
 
-  const tight = presses.filter(c => c.ms && c.ms < minMs);
+  // windows: the exact solver gives them per press; the sweep solver (ship, wave ... levels) does
+  // not, so take lib/difficulty.js's measured windows for every input (press and release)
+  let diff = null, pathCache = null;
+  const runPath = () => pathCache || (pathCache = GD.run(w, r.events).path);
+  if (r.ok) diff = GD.difficulty(w, r);
+  const exact = presses.length && presses.every(c => c.ms > 0);
+  const inputs = exact ? presses.map(c => ({ x: c.x, ms: c.ms, kind: "press" }))
+    : (diff ? diff.actions.map(a => ({ x: (runPath()[a.tick] || {}).x || 0, ms: a.ms, kind: a.type || "input" })) : []);
+  const tight = inputs.filter(c => c.ms < minMs);
   if (r.ok) gate("timing", tight.length ? "FAIL" : "PASS",
-    presses.length ? `tightest ${Math.min(...presses.map(c => c.ms))} ms, want >= ${minMs}` : "no presses",
-    tight.map(c => `block ${(c.x / 30).toFixed(0)} ${c.ms} ms`).join("; "));
+    inputs.length ? `tightest ${Math.min(...inputs.map(c => c.ms))} ms over ${inputs.length} inputs, want >= ${minMs}` + (exact ? "" : " (measured windows)") : "no inputs",
+    tight.map(c => `block ${(c.x / 30).toFixed(0)} ${c.kind} ${c.ms} ms`).join("; "));
 
   // recovery: landing -> next press window
   const RECOVERY = { Easy: 150, Normal: 100 };
@@ -69,9 +77,7 @@ function scoreLevel(level, brief, opts = {}) {
       chains.map(c => `block ${(c.x / 30).toFixed(0)} ${c.ms} ms`).join("; "));
   }
 
-  let diff = null;
   if (r.ok) {
-    diff = GD.difficulty(w, r);
     const lab = GD.difficultyLabel(diff.logAttempts);
     const off = want.label ? Math.abs(LABELS.indexOf(lab) - LABELS.indexOf(want.label)) : 0;
     gate("difficulty", off >= 2 ? "FAIL" : off === 1 ? "WARN" : "PASS",

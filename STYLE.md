@@ -1,5 +1,11 @@
 # Style in GD levels -- what it is, and how Claude writes a level with one
 
+GDLM levels follow general GD design, not one person's taste: what makes levels good and fair
+in general (see `knowledge/design.md`, sourced). Playtest remarks below are evidence about
+fairness and readability, not preferences to build around. Levels are made **low tier first**
+(Easy -> Normal -> Hard) only because that is what can be playtested now; hard levels are just
+as wanted.
+
 Measured with `node tools/style.js` on the 22 official levels (from the game install) and the
 user's own levels (from their save). Raw numbers below are from that tool; rerun it to check.
 Nothing from those levels is copied into this repo: only counts and generic shapes.
@@ -78,7 +84,7 @@ Recurring chunks across official levels (`--patterns`):
     ^#      spikes beside a pillar                                   ^^
     ^#      (4-5 levels)
 
-### The user's own levels
+### Levels from one player's save (a data set, not a taste to copy)
 
 20 levels in the save (one is a copy of an official level, two are empty). Short: 4-50 s, most
 under 25 s. Three groups:
@@ -116,7 +122,7 @@ A level spec (see `tools/make.js`) can now say:
 Patterns: `single double triple spikes(n) spike-block block-spike-block stairs platform hops
 gate pillar orb-pit pad-launch`.
 
-### Fairness first: sight-readable (the user's rule, from playing 41 and 42)
+### Fairness first: sight-readable (general GD design; evidence: playtests of GDLM 41 and 42)
 
 "Not sightreadable" = you have to **prejump**: commit to a jump in the middle of nothing, while
 the thing it is for is still far ahead, so you only get it right by knowing the level. Levels do
@@ -131,8 +137,8 @@ alone did not clear its spike run) and passes the fixed version.
 is: a triple at 1x is ~46 ms, a double ~140 ms, a single ~240 ms; a spike 3 squares after a
 platform edge ~54 ms, 4 squares ~150 ms. Pick the target per level from what the level is for.
 Hard levels with tight triples are fine and wanted (players want hard levels). The test levels
-GDLM 41/42 are kept easy (windows 60 ms+) only because the user is testing the tools, not
-training for difficulty.
+GDLM 41/42 are kept easy (windows 60 ms+) only because the playtester tests the tools at low
+tiers first (a playtest limit, see below), not because easy is a style.
 
 **Recovery** (real-game data, GDLM 42 v3 in normal mode on the mouse, read by the difficulty
 session from recording 19:45): 8 attempts, every death in the first ~14%, at the first double and
@@ -146,6 +152,16 @@ reach Normal (its "Normal" came from those chains): the loop says so and keeps a
 Shapes that cause prejumps: a jump that must start on a higher step to reach something far off;
 a pad or orb that does not clear its hazards by itself; a hazard hidden under a floating block.
 
+### What good low-tier levels do (34 rated community levels, `knowledge/levels/good_low_tier.md`)
+
+- Classic (2013-14) rated levels look like official 1-8: 2-4 long sections, 1x, cube/ship, many rests.
+- 1.9-2.1 Featured/Epic Easies use **4-7 modes**, a mode or speed change every **3-7 s**
+  (sections 30-70 blocks), 0.5x-4x, 2-12 rests. They stay easy because each section is
+  forgiving, not because they use few modes. (GDLM 44 v1 -- one idea, flat -- was called
+  bland and old style for exactly this.)
+- Many Easy/Normal Epics are 58-65 s. "One idea for the whole level" is also a rated design.
+- Official 1-8: one new idea per level, introduced calmly; no fakes at Easy or Normal.
+
 ### Style: classic (official 1-8 feel)
 
 1. Open with 12-15 empty squares. Close with 15+ empty squares.
@@ -157,9 +173,9 @@ a pad or orb that does not clear its hazards by itself; a hazard hidden under a 
 6. Hardest part last. Choose the tightest window for the level (see Timing above).
 7. `"style": "classic"` for skins and decoration.
 
-### Style: memory / invisible (the user's style, Pattern Seeker feel)
+### Style: memory / invisible (a general GD style: levels built on memory and hidden or repeating parts)
 
-The user, after playing the first GDLM 42: fully invisible parts are "practically very hard,
+Playtest evidence (the first GDLM 42): fully invisible parts are "practically very hard,
 tons of learning, pure memory without visuals -- usually not fair unless you want it unfair".
 So the default is **fair memory**: memory helps, it is never the only way to see.
 
@@ -176,11 +192,11 @@ So the default is **fair memory**: memory helps, it is never the only way to see
 7. Keep it short (15-30 s), cube 1x, few objects, and sight-readable (above) -- a memory level
    should test memory, not reactions to hidden prejumps.
 8. "Unfair memory" (whole phrases blind, off-grid spacing like spikes 1.1 squares apart) only
-   when the user asks for a deliberately unfair level.
+   when a deliberately unfair level is asked for.
 
-## 2b. The loop: idea -> finished level, before the user sees it
+## 2b. The loop: idea -> finished level, before a person sees it
 
-The user's wish: the whole loop settled before a person looks for the first time. They give an
+Goal: the whole loop settled before a person looks for the first time. A person gives an
 idea (a picture, a sketch, words); what they get back has already passed every gate.
 
 1. **Brief** (`briefs/NN_name.json`, written by Claude from the idea): name, idea, story,
@@ -229,14 +245,43 @@ The viewer draws hidden objects normally (it does not run alpha triggers), and t
 triggers -- right for the physics, since a faded object still collides in GD.
 
 - `briefs/44_hellgate.json` + `specs/44_hellgate.json` -> `levels/gdlm_44_hellgate.gdlvl`: the
-  user's first idea through the loop. "Hellish, on the song of Ragnarok (343707, 145 BPM), the first
-  10 s with their clear ups". The intro's one clear hit is beat 4 (1.72 s, +6 dB); the level opens
-  there (bg flares red), then one idea per bar, every jump on an even beat 4-22, a red pulse on
-  each bar start, dark again on beat 24 (10.0 s). Style "hell": outlined blocks, no ground deco,
-  black/red/orange colours, ceiling "teeth" (gates). All gates pass, 10/10 presses on beats, Easy.
-  Written by hand in beats (compose.js does not place by beats yet).
+  user's first idea: "hellish, on the song of Ragnarok (343707, 145 BPM), the first 10 s".
+  **v1 failed with the user**: one jump every 2 beats on flat ground, the hell only in the
+  colours -- "very bland, very old style, no variety in gameplay, all same height, very weak".
+  Lesson: a modern level changes something **every bar** -- height, mode, gravity, orbs -- and
+  the look must come from the shapes as much as the colours. (v1 also flashed one beat early:
+  make.js's b1 is the first beat, so the song's hit at 1.72 s is b5, not b4.)
+  **v2**: a new idea per bar, mode changes on bar starts (as official levels do, SYNC.md): climb
+  pillars -> yellow-orb ladder starting on the hit -> ship through a toothed tunnel -> wave
+  zigzag -> cube drops down pillars -> red pad, a single, a toothed gate on the last beat (b25 =
+  10 s). 14 inputs, tightest measured window 125 ms, sight-readable, Easy.
+  New patterns for it: `climb`, `descend`, `orb-ladder`, `ship-tunnel`, `wave-zigzag`; portals by
+  name in specs (`ship portal`, `wave portal`, `gravity down`, ...).
 
-## 4. Checked in the user's game (recording of the first 41 and 42, 2026-11-22)
+Checks learnt on the way (in `tools/sightread.js`, `tools/score.js`):
+- A press that fires an orb is cued by that orb.
+- Flying modes (ship, UFO, wave, swing) turn slowly: up to 3 blocks of lead is not a prejump.
+- Levels with modes are solved by the sweep solver, which gives no windows: the timing gate then
+  uses lib/difficulty.js's measured window of every input (press and release).
+- Pillars must be wide enough (3) that one long jump cannot skip one -- the solver takes the
+  fewest clicks, which is not how a person climbs.
+- Ship teeth on both floor and roof need 5+ rows of tunnel, else 2 rows of air (29 ms).
+- A held button re-jumps on every landing: the solver climbs pillars with one long press. Count
+  jumps by takeoffs, not presses.
+- Jumping at the end of a ledge is cued by the ledge when walking off kills in the fall (pits,
+  the next pillar's side). When walking off lands safely and the death comes later, it is still a
+  prejump. (This now passes GDLM 41 v1's stairs-to-hops jump: a visible floating block ahead, and
+  walking off crashed into it. The pad prejump there is still caught.)
+- A pattern that needs no input is a dead bar: "descend" with 2-wide pits let the cube fall
+  across by itself; 3-wide pits make each drop a jump.
+
+**Jump indicators** (common in modern levels; they also show what the level intends): spec
+`"indicators": {"id": N}` puts a small mark just above the surface at every cube/robot takeoff
+(upside down: under the ceiling, pointing down), from the solved run (`tools/decorate.js`). Orb
+and pad launches get none. The chevron's object id is not confirmed yet -- asked; until then
+specs leave indicators off.
+
+## 4. Checked in the real game (recording of the first 41 and 42, 2026-11-22)
 
 - Alpha fade (1007) works: to 0 at a door, and to 0 from the level start for a copy far ahead.
   In practice mode with Show Hitboxes the hidden spikes still show their red boxes.
