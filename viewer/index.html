@@ -441,7 +441,7 @@ function draw() {
   }
   // the player
   if (s.mode === "ship") drawShip(s); else if (LS) local({ x: s.x, y: s.y, rot: s.rot }, () => GD.LOOK.drawPlayerCube(ctx)); else drawCube(s);
-  if (showHit) { ctx.strokeStyle = "#fff"; rectW({ x0: s.x - 15, x1: s.x + 15, y0: s.y - 15, y1: s.y + 15 }); ctx.strokeStyle = "#f0f"; rectW({ x0: s.x - 4.5, x1: s.x + 4.5, y0: s.y - 4.5, y1: s.y + 4.5 }); }
+  if (showHit) { const hh = s.mini ? 9 : 15; ctx.strokeStyle = "#fff"; rectW({ x0: s.x - hh, x1: s.x + hh, y0: s.y - hh, y1: s.y + hh }); ctx.strokeStyle = "#f0f"; rectW({ x0: s.x - 4.5, x1: s.x + 4.5, y0: s.y - 4.5, y1: s.y + 4.5 }); }
   // the click table row of the input just made (the button strip shows it in the view)
   L.sol.clicks.forEach((c, i) => {
     const age = (k - c.tick) / P.TPS;
@@ -583,7 +583,7 @@ function drawObj(o) {
     } else if (d.kind === "slope") {
       ctx.beginPath(); ctx.moveTo(-15, -15); ctx.lineTo(15, -15); ctx.lineTo(15, 15); ctx.closePath();
       ctx.fillStyle = "rgba(61,123,255,.18)"; ctx.fill(); glow("#3d7bff", 10); ctx.strokeStyle = "#5b8fff"; ctx.stroke();
-    } else if (d.kind === "mode" || d.kind === "gravity") {
+    } else if (d.kind === "mode" || d.kind === "gravity" || d.kind === "size") {
       glow(d.color, 12); ctx.strokeStyle = d.color; ctx.lineWidth = 3 / scale;
       ctx.beginPath(); ctx.ellipse(0, 0, d.kind === "mode" ? 12 : 9, d.kind === "mode" ? 42 : 36, 0, 0, 7); ctx.stroke();
     } else if (d.kind === "speed") {

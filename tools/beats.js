@@ -317,4 +317,11 @@ function line(key, b) {
   return `${key.padEnd(34)} ${b.bpm.toFixed(2).padStart(7)} BPM  first beat ${b.t0.toFixed(3)} s  downbeat ${b.downbeat} (x${b.downbeatConf})  ` +
     `ratio ${b.ratio.toFixed(2)}  z ${String(b.z).padStart(5)}  on-grid ${Math.round(b.onGrid * 100)}%  drift ${b.maxDriftMs} ms  ${b.conf}` + (b.alternatives.length ? `  (alt ${b.alternatives.map(a => a[0] + " r" + a[1]).join(", ")})` : "");
 }
-module.exports = { analyse, loadBeats, keyOfUrl, allSongs, writeViewerIndex, OFFICIAL };
+// fit one fixed grid near a given tempo (to test a claimed BPM against the audio): the fit may
+// slide up to 3% to the tempo the song really has. Returns {bpm, ratio, z, half, maxDriftMs}.
+function fitAtBpm(file, bpm) {
+  const { env } = envelopes(decode(file));
+  const g = fitGrid(env, 60 * FPS / bpm);
+  return { bpm: 60 * FPS / g.P, ratio: g.ratio, z: g.z, half: g.half, maxDriftMs: Math.max(...g.drift.map(d => Math.abs(d.ms))) };
+}
+module.exports = { analyse, loadBeats, keyOfUrl, allSongs, writeViewerIndex, fitAtBpm, OFFICIAL, GAME };
