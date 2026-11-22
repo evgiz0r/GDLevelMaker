@@ -45,7 +45,7 @@ function compose(brief, tweaks = {}) {
   const rnd = rng(brief.seed || 1);
   const objects = [], placed = [];
   const seen = new Set();
-  let col = 0, prevFlying = false;
+  let col = 0, prevFlying = false, flyEnd = -99;
   const total = brief.sections.reduce((a, s) => a + s.blocks, 0);
   for (const [si, sec] of brief.sections.entries()) {
     const start = col, end = col + sec.blocks;
@@ -64,7 +64,7 @@ function compose(brief, tweaks = {}) {
       if (t.room) args.gap = (args.gap || 4) + t.room;
       objects.push(["pattern", name, start + 1, 0, args]);
       placed.push({ key, name, from: start + 1, to: start + 1 + widthOf(name, args), section: sec.name, flying: true });
-      col = end; prevFlying = true;
+      col = end; prevFlying = true; flyEnd = end;
       continue;
     }
     if (!sec.rest && sec.use && sec.use.length) {
@@ -72,7 +72,8 @@ function compose(brief, tweaks = {}) {
       const [gMin, gMax] = sec.gaps || (early ? [4, 7] : [3, 5]);
       // after a flying section the cube lands from its exit portal: a calm lead-in first
       // (rated low-tier levels: ~6 blocks after a cube portal, knowledge/levels/modes_low_tier.md)
-      let c = start + (prevFlying ? 6 : 3), k = 0, last = null;
+      // (8 here: the cube first falls out of the exit portal, ~0.3 s)
+      let c = start + (prevFlying ? Math.max(3, 8 - (start - flyEnd)) : 3), k = 0, last = null;
       // draw every random choice up front so a tweak to one chunk does not reshuffle the others
       const draws = Array.from({ length: 64 }, () => [rnd(), rnd()]);
       while (k < 64) {
@@ -100,8 +101,9 @@ function compose(brief, tweaks = {}) {
         seen.add(name); last = name;
         c += wdt; k++;
       }
+      prevFlying = false;
     }
-    col = end; prevFlying = false;
+    col = end;
   }
   objects.push(["block", col + 2, 6]); // marks the end; out of the cube's way
   const spec = { name: brief.name, desc: brief.desc || brief.idea || "", objects };
