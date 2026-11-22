@@ -166,6 +166,22 @@ the music has a clear hit; let spikes follow the rhythm loosely (the block grid 
 phase impossible at most tempos). Clicks on the beat are a choice of the level maker, not
 something the official levels do throughout.
 
+### How much to sync (the user, Nov 22)
+
+Sync does not have to be perfect: too synced sounds forced, and not everything in the game is
+clicked on the beat. Some music has no beat to follow, just a vibe; that suits ship and wave
+parts. The official levels agree (above). So:
+
+- **Sync the moments**: portals and speed changes on bar starts, the drop and section changes,
+  orbs on the clear hits. These are what a player hears as "synced".
+- **Leave most clicks free.** Pin a click to a beat (`"jN"`) where the music has an accent
+  worth hitting, not everywhere. make.js prints `sync: k/n presses centred on a beat` and a note
+  when more than 60% are pinned (GDLM 02 is 10/11 on purpose: it was a test of the sync itself).
+- **Beatless parts follow the vibe**: a pad, a build-up, an ambient intro has no grid worth
+  matching (low-confidence grids, quiet sections). Match intensity instead: calm and open where the
+  song is quiet, dense where it gets loud (`loud` and `sections` in `local/beats/`). make.js says
+  so when the grid is low-confidence.
+
 ## 4. Writing levels in beats
 
 `tools/make.js` specs take a song and beat positions (full syntax at the top of the file):

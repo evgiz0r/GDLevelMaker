@@ -107,7 +107,7 @@ function gridOf(spec, song) {
   const b = require("./beats.js").loadBeats(song.url);
   if (!b || !b.ok) throw new Error(`no beat grid for ${song.url}: run "node tools/beats.js" (the song must be on this PC) or put "grid": {"bpm", "t0"} in the spec`);
   console.log(`   grid from local/beats: "grid": {"bpm": ${b.bpm}, "t0": ${b.t0}}  (${b.conf} confidence; paste it into the spec to pin it)`);
-  return { period: b.period, t0: b.t0, bpm: b.bpm };
+  return { period: b.period, t0: b.t0, bpm: b.bpm, conf: b.conf };
 }
 
 // a spec column -> a (possibly fractional) column number. Numbers pass through; "b12", "j12.5+2"
@@ -258,6 +258,20 @@ function beatReport(objects, header, r, ctx) {
     console.log(`     press at beat ${mid.toFixed(2)}  window ${b0.toFixed(2)}-${b1.toFixed(2)}  ${hit}`);
   }
   console.log(`   ${on}/${pw.windows.length} presses can land on a beat or half-beat`);
+  // How much is pinned. The official levels sync transitions, not clicks: portals on bar starts
+  // (61-78%), orbs loosely, presses barely (pooled R 0.07; most levels' press kappa near 0). Every
+  // click on the beat sounds forced (the user). SYNC.md "How much to sync".
+  const n = pw.windows.length, P = ctx.grid.period;
+  const pinned = pw.windows.filter(p => { const m = b(p.tick / GD.PHYS.TPS); return Math.abs(m - Math.round(m)) * P < 0.035; }).length;
+  const PORTALS = new Set([12, 13, 47, 111, 660, 745, 1331, 1933, 10, 11, 200, 201, 202, 203, 1334]);
+  const tl = GD.SYNC.timeline(w), ports = objects.filter(o => PORTALS.has(o.id));
+  const portOn = ports.filter(o => { const m = b(GD.SYNC.tOfX(tl, o.x)); return Math.abs(m - Math.round(m)) * P < 0.035; }).length;
+  console.log(`   sync: ${pinned}/${n} presses centred on a beat` + (ports.length ? `, ${portOn}/${ports.length} portals on a beat` : ""));
+  if (n >= 6 && pinned / n > 0.6) console.log(`   note: most clicks are pinned to beats; that can sound forced. Official levels sync portals,
+         drops and some orbs, and leave most clicks free (fine for a test of the sync itself).`);
+  if (ports.length >= 2 && portOn / ports.length < 0.5) console.log(`   note: under half the portals are on a beat; official levels put them on bar starts.`);
+  if (ctx.grid.conf === "low") console.log(`   note: low-confidence beat grid (no steady beat, or the tempo moves): follow the song's
+         sections and loudness here, not the beat lines.`);
 }
 
 if (require.main === module) {
