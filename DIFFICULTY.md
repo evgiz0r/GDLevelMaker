@@ -79,59 +79,76 @@ timing misses.
 Deadlocked 3951. The others took 39-560. The game writes the save only now and then, so a
 session's attempts show up there late.
 
-## Against the official levels (new physics, human route, SIGMA 10.5, LAPSE 0.65 %; before the widest-moment fix, rerun pending)
+## Against the official levels (new physics, human route, widest moment, SIGMA 13, LAPSE 0.75 %)
 
 | # | level | rating | covers | inputs | min ms | score | /min | your attempts |
 |---|---|---|---|---|---|---|---|---|
-| 1 | Stereo Madness | Easy 1 | 100% | 119 | 63 | 0.34 | 0.24 | 353 |
-| 2 | Back On Track | Easy 2 | 100% | 111 | 100 | 0.31 | 0.23 | 39 |
-| 3 | Polargeist | Normal 3 | 100% | 143 | 100 | 0.40 | 0.27 | 47 |
-| 4 | Dry Out | Normal 4 | 100% | 127 | 100 | 0.36 | 0.27 | 64 |
-| 5 | Base After Base | Hard 5 | 100% | 126 | 67 | 0.36 | 0.26 | 58 |
-| 6 | Cant Let Go | Hard 6 | 100% | 127 | 71 | 0.36 | 0.27 | 150 |
-| 7 | Jumper | Harder 7 | 100% | 131 | 8 | 1.39 | 0.98 | 173 |
-| 8 | Time Machine | Harder 8 | 100% | 136 | 54 | 0.39 | 0.25 | 204 |
-| 9 | Cycles | Harder 9 | 48% | 57 | 71 | 0.16 | 0.26 | 127 |
-| 10 | xStep | Insane 10 | 64% | 71 | 8 | 1.04 | 1.22 | 114 |
-| 12 | Theory of Everything | Insane 12 | 87% | 106 | 17 | 0.56 | 0.47 | 170 |
-| 14 | Clubstep | Demon 14 | 16% | 29 | 8 | 0.67 | 2.86 | 1886 |
-| 15 | Electrodynamix | Insane 12 | 24% | 33 | 100 | 0.09 | 0.26 | 560 |
-| 16 | Hexagon Force | Insane 12 | 64% | 96 | 21 | 0.44 | 0.48 | 249 |
-| 17 | Blast Processing | Harder 10 | 37% | 47 | 50 | 0.14 | 0.23 | 203 |
-| 18 | Theory of Everything 2 | Demon 14 | 22% | 40 | 13 | 0.55 | 1.69 | 3258 |
+| 1 | Stereo Madness | Easy 1 | 100% | 119 | 63 | 0.40 | 0.29 | 353 |
+| 2 | Back On Track | Easy 2 | 100% | 111 | 100 | 0.36 | 0.27 | 39 |
+| 3 | Polargeist | Normal 3 | 100% | 143 | 100 | 0.47 | 0.32 | 47 |
+| 4 | Dry Out | Normal 4 | 100% | 127 | 100 | 0.42 | 0.31 | 64 |
+| 5 | Base After Base | Hard 5 | 100% | 126 | 67 | 0.42 | 0.30 | 58 |
+| 6 | Cant Let Go | Hard 6 | 100% | 127 | 71 | 0.42 | 0.32 | 150 |
+| 7 | Jumper | Harder 7 | 100% | 131 | 58 | 0.45 | 0.31 | 173 |
+| 8 | Time Machine | Harder 8 | 100% | 136 | 54 | 0.46 | 0.29 | 204 |
+| 9 | Cycles | Harder 9 | 48% | 57 | 71 | 0.20 | 0.32 | 127 |
+| 10 | xStep | Insane 10 | 64% | 71 | 17 | 0.83 | 0.97 | 114 |
+| 12 | Theory of Everything | Insane 12 | 87% | 106 | 58 | 0.38 | 0.32 | 170 |
+| 14 | Clubstep | Demon 14 | 16% | 29 | 42 | 0.15 | 0.64 | 1886 |
+| 15 | Electrodynamix | Insane 12 | 24% | 33 | 100 | 0.11 | 0.30 | 560 |
+| 16 | Hexagon Force | Insane 12 | 64% | 96 | 21 | 0.56 | 0.61 | 249 |
+| 17 | Blast Processing | Harder 10 | 37% | 47 | 50 | 0.18 | 0.29 | 203 |
+| 18 | Theory of Everything 2 | Demon 14 | 22% | 40 | 33 | 0.27 | 0.84 | 3258 |
 
-Not listed: 11, 13 and 19-22, where the sim covers under 10% (it dies early on things it gets
-wrong). Where each one stops is in `local/difficulty/NN.json`.
+Not listed: 11, 13 and 19-22. The sim covers under 10% of each (it dies early on things it gets
+wrong). Where each stops is in `local/difficulty/NN.json`.
 
-**Rank agreement over these 16:** score per minute vs stars **0.57**, and vs your attempts 0.28.
-For comparison, the stars vs your attempts agree at 0.66. Earlier, on the old physics without
-the human route or lapse, it was 0.71 vs stars on 15 levels. That number was flattered by solver
-routes that skipped parts.
+**Rank agreement over these 16:** score per minute vs stars **0.59**, vs your attempts 0.17. Stars
+and your attempts agree with each other at 0.66, which is the bar.
 
 What it gets right:
-- The demons stand apart, as they do in the game: Clubstep 2.9 per minute, ToE 2 1.7, and xStep
-  1.2, against about 0.25 for everything up to Harder.
-- It locates hard spots. Clubstep's and xStep's 8 ms inputs are listed with their time by
-  `node tools/difficulty.js x.gdlvl`.
-- On the player's runs, both terms are needed and fit: timing alone for cube timings, lapses for
-  long fair levels.
+- **Insane and Demon stand apart.** xStep 0.97, ToE 2 0.84, Clubstep 0.64 and Hexagon Force
+  0.61 per minute, against 0.27-0.32 for everything rated up to Harder. They have inputs with
+  17-42 ms windows even after the widest-moment scan, and several tight ones in a minute.
+- **It fits the player's attempts** on the levels they played (see the calibration above),
+  including Jumper once the solver's needless 8 ms route was replaced.
 
 What it gets wrong:
-- **Easy to Harder all score the same (~0.25/min).** With the human route, every early level is
-  about 120 fair inputs, and the lapse term just counts inputs. What separates Stereo Madness
-  from Time Machine for a person is speed, reading and rhythm, and none of that is modelled yet.
-  Candidates:
-  - look-ahead time (blocks on screen ÷ speed);
-  - surprise (an input that breaks the beat or the pattern before it);
-  - quick land-and-jump chains (`quickRecoveries`). These were where all 8 of the player's deaths
-    on GDLM 42 happened. But Jumper has 81 of them, rhythmic staircases, and the player cleared it
-    in 2 attempts, so a chain is only hard when it is unexpected.
-- **Jumper's 8 ms inputs were the solver's route, not the level.** Fixed with the widest-moment
-  scan above. The table still shows the old numbers (1.39 / 0.98).
-- **Partial coverage.** 6 of 22 levels are under 10% in the sim, and many more stop at a mode or
-  hazard it gets wrong, so the ranks rest on fragments of the harder levels.
-- **Few runs.** SIGMA and LAPSE rest on four levels, two of them on the keyboard. Mouse and
-  keyboard should get their own fits once there are enough runs.
+- **Easy to Harder all score about 0.3 per minute.** The official early levels are all about 120
+  fair inputs at 1x, so lapses dominate and the timing term barely moves. They differ in how many
+  inputs are fairly tight (100-150 ms; see the ladder below), and in reading and rhythm, which
+  are not modelled.
+  - `quickRecoveries` does not separate them either: every early level has 60-90 fast
+    landing-to-press chains, all rhythmic. On GDLM 42 the chains were where all 8 of the
+    player's deaths happened, so a chain is only hard when it is unexpected.
+- **ToE (12) and Electrodynamix (12) look easy** in the covered part. ToE's hard parts are
+  probably ones the sim mis-solves; Electrodynamix's sim stops at 24%.
+- **Partial coverage and few runs.** The upper tiers rest on fragments. SIGMA and LAPSE rest on
+  19 attempts, mostly on the mouse.
+
+## Tier ladder (targets for making levels)
+
+From the official levels the sim covers fully (1-8) or in good part (10, 16, 18), on the human
+route. The player cannot yet playtest above Harder, so make levels low first. Each row is what
+that tier's official levels look like, per minute of play, at 1x:
+
+| tier | official | inputs/s | windows < 150 ms per min | windows < 100 ms per min | tightest window | tight (< 60 ms) | score per min |
+|---|---|---|---|---|---|---|---|
+| Easy | 1, 2 | 1.4 | ~19-20 | 0-2 | 63-100 ms | 0 | ~0.28 |
+| Normal | 3, 4 | 1.6 | ~21-29 | 0 | 100 ms | 0 | ~0.31 |
+| Hard | 5, 6 | 1.5-1.6 | ~25-32 | 2-3 | 67-71 ms | 0 | ~0.31 |
+| Harder | 7, 8 | 1.4-1.5 | ~23-28 | 2-5 | 54-58 ms | 1 | ~0.30 |
+| Insane | 10, 16 | 1.4-1.7 | (partial) | (partial) | 17-21 ms | 1-6 | 0.6-1.0 |
+| Demon | 14, 18 | 2.0-2.1 | (partial) | (partial) | 33-42 ms | 1-4 | 0.6-0.9 |
+
+Read it as rough guide rails, not a classifier:
+- **Easy:** no window under ~60 ms, almost none under 100 ms.
+- **Harder:** a few under 60 ms is fine.
+- **Insane and up:** windows of 15-40 ms, several per minute, and a score of about 0.6+ per
+  minute.
+
+On the player's mouse runs: up to Harder they clear first try or in 2-5 attempts, and Insane
+gets 70-90% on the first try.
 
 ## Viewer
 

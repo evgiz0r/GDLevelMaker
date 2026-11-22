@@ -43,7 +43,7 @@ user's created-levels list.
 - `lib/sync.js` -- music sync: level time <-> x through speed portals, beat grid <-> level beats,
   press timing windows from a solution, sync scores. See SYNC.md.
 - `tools/` -- node CLIs: `make`, `check`, `roundtrip`, `index_levels`, `serve`, `beats` (beat grid
-  of every song on this PC, ffmpeg + JS), `sync` (how well levels follow their song's beat), `difficulty` (score vs the official ratings).
+  of every song on this PC, ffmpeg + JS), `sync` (how well levels follow their song's beat), `fetch_level` (online levels by ID into local/community/, for measuring only, never committed), `difficulty` (score vs the official ratings).
 - `viewer/index.html` -- the replay viewer; `viewer/levels.js` is generated, do not edit.
 - `examples/` -- levels the user made in the game, for reference and as format ground truth.
 

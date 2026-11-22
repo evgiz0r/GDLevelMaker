@@ -22,6 +22,8 @@ Levels index (add a line per level file):
 
 | level | ID | known for | file |
 |---|---|---|---|
+| Official 1-8 | 1-8 | the Easy -> Harder ramp, measured + wiki | `levels/official_01-08.md` |
+| ~35 community levels, Easy -> Harder | various | Map Packs, Featured/Epic/Legendary/Mythic | `levels/good_low_tier.md` |
 | Pattern Seeker | ? | memory, invisible, repeating, synced | `levels/pattern_seeker.md` |
 
 Never commit level data or songs -- notes, opinions and facts about levels only.
