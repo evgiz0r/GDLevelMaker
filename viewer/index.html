@@ -124,7 +124,7 @@ async function loadFile(f) {
 const pick = document.getElementById("pick");
 const ALL = (window.GD_LEVELS || []).concat(window.GD_LEVELS_LOCAL || []);
 ALL.forEach((l, i) => pick.add(new Option(l.name + "  —  " + l.file, i)));
-pick.onchange = () => { const l = ALL[pick.value]; load(l.name, l.level, l.solution, l.song); };
+pick.onchange = () => { const l = ALL[pick.value]; load(l.name, l.level, l.solution, l.song); L.deaths = l.deaths || []; summary(); draw(); };
 document.getElementById("file").onchange = e => e.target.files[0] && loadFile(e.target.files[0]);
 const drop = document.getElementById("drop");
 addEventListener("dragover", e => { e.preventDefault(); drop.style.display = "grid"; });
@@ -142,6 +142,7 @@ function summary() {
   h += s.ok ? `<p class="ok">Beatable in ${s.clicks.length} click${s.clicks.length === 1 ? "" : "s"}` +
               (s.clicks.length ? ` · tightest window ${Math.min(...s.clicks.map(c => c.ms))} ms` : "") + `</p>`
             : `<p class="bad">Not beatable in the simulation. The furthest run dies at block ${(s.dieAt.x / 30).toFixed(1)} (${(s.dieAt.tick / P.TPS).toFixed(2)} s): ${s.why}. The replay shows that furthest run.</p>`;
+  if (L.deaths && L.deaths.length) h += `<p class="bad">Your real deaths (normal mode, from recordings): ${L.deaths.length} at ${L.deaths.slice().sort((a, b) => a - b).map(p => p.toFixed(0) + "%").join(", ")} (red marks).</p>`;
   if (unsim) h += `<p class="muted">${unsim} objects are not simulated yet (unsupported portals or unknown ids).</p>`;
   if (deco) h += `<p class="muted">${deco} decoration and trigger objects (no physics).</p>`;
   if (L.beats) { const g = L.beats.grid; h += `<p class="muted">song ${g.bpm.toFixed(1)} BPM (${g.conf} confidence) · level starts at song ${L.beats.offset} s · beat 1 = first beat after the start</p>`; }
@@ -253,6 +254,7 @@ function draw() {
     ctx.strokeStyle = L.held[i] ? "rgba(255,225,77,.8)" : "rgba(61,255,176,.35)";
     ctx.beginPath(); ctx.moveTo(sx(p.x), sy(p.y)); ctx.lineTo(sx(q.x), sy(q.y)); ctx.stroke();
   }
+  drawDeaths();
   drawInput(k);
   // ship corridor
   if (s.mode === "ship") {
@@ -278,6 +280,21 @@ function draw() {
 }
 // the input: a strip under the ground (lit where the button is held, a tick at each press,
 // the past brighter than the future) and a button light in the corner
+// where the player really died (tools/runs.js): GD's % is of the level's length (last object x)
+function deathX(pct) { return pct / 100 * (L.world.endX - 90); }
+function drawDeaths() {
+  if (!L.deaths || !L.deaths.length) return;
+  const y0 = groundY + 30 * 0.45 * scale;
+  ctx.strokeStyle = "rgba(255,59,107,.85)"; ctx.fillStyle = "rgba(255,59,107,.95)"; ctx.lineWidth = 2;
+  ctx.font = "bold 13px system-ui"; ctx.textAlign = "center";
+  for (const pct of L.deaths) {
+    const x = sx(deathX(pct));
+    if (x < -20 || x > W + 20) continue;
+    ctx.setLineDash([3, 5]); ctx.beginPath(); ctx.moveTo(x, 18); ctx.lineTo(x, y0 - 8); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillText("✖ " + pct.toFixed(0) + "%", x, 14);
+  }
+  ctx.textAlign = "left";
+}
 function drawInput(k) {
   const y0 = groundY + 30 * 0.45 * scale, h = 30 * 0.5 * scale;
   ctx.fillStyle = "rgba(0,0,0,.45)"; ctx.fillRect(0, y0 - 6, W, h + 12);

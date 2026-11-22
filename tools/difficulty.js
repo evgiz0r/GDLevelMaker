@@ -68,19 +68,24 @@ function main() {
     d.secsTaken = (Date.now() - t0) / 1000;
     rows.push(d);
   }
-  console.log(`sigma ${sigma} ms. score = log10(expected attempts) over the part the sim gets through.`);
-  console.log("  # level                   rating      sim covers        inputs  /s  tight streak  min ms  med ms  score  /min  ship gap  hiding");
+  // the player's own lifetime attempts per level (node tools/save_stats.js), when there
+  const uf = path.join(OUT, "user_stats.json"), user = fs.existsSync(uf) ? JSON.parse(fs.readFileSync(uf, "utf8")) : null;
+  console.log(`sigma ${sigma} ms, lapse ${DF.DIFF.LAPSE * 100}%. score = log10(expected attempts) over the part the sim gets through.`);
+  console.log("  # level                   rating      sim covers        inputs  /s  tight streak  min ms  med ms  score  /min  ship gap  hiding  yours");
   for (const d of rows) {
     const [name, face, stars] = RATED[d.n];
     const cover = `${Math.round(100 * d.blocks / d.levelBlocks)}%${d.complete ? "" : " " + (d.sol.why || "")}`.slice(0, 17);
-    console.log(`${String(d.n).padStart(3)} ${name.padEnd(23)} ${(face + " " + stars).padEnd(11)} ${cover.padEnd(17)} ${String(d.inputs).padStart(6)} ${f1(d.perSecond).padStart(3)} ${String(d.tight).padStart(5)} ${String(d.streak).padStart(6)} ${f0(d.tightest).padStart(7)} ${f0(d.medianMs).padStart(7)} ${d.logAttempts.toFixed(2).padStart(6)} ${d.perMinute.toFixed(2).padStart(5)} ${(d.shipGap ? f0(d.shipGap.min) + "/" + f0(d.shipGap.median) : "-").padStart(9)} ${String(d.hiddenTriggers).padStart(7)}`);
+    console.log(`${String(d.n).padStart(3)} ${name.padEnd(23)} ${(face + " " + stars).padEnd(11)} ${cover.padEnd(17)} ${String(d.inputs).padStart(6)} ${f1(d.perSecond).padStart(3)} ${String(d.tight).padStart(5)} ${String(d.streak).padStart(6)} ${f0(d.tightest).padStart(7)} ${f0(d.medianMs).padStart(7)} ${d.logAttempts.toFixed(2).padStart(6)} ${d.perMinute.toFixed(2).padStart(5)} ${(d.shipGap ? f0(d.shipGap.min) + "/" + f0(d.shipGap.median) : "-").padStart(9)} ${String(d.hiddenTriggers).padStart(7)} ${String(user && user[d.n] ? user[d.n].attempts : "-").padStart(6)}`);
   }
   const full = rows.filter(d => d.blocks / d.levelBlocks >= 0.1); // under 10% the sim died on something it lacks
   if (rows.length >= 4) {
     const st = rows.map(d => RATED[d.n][2]);
     console.log(`\nSpearman vs stars, all ${rows.length}: score ${spearman(rows.map(d => d.logAttempts), st).toFixed(2)}, per minute ${spearman(rows.map(d => d.perMinute), st).toFixed(2)}, tightest(-) ${spearman(rows.map(d => -(d.tightest || 999)), st).toFixed(2)}, inputs/s ${spearman(rows.map(d => d.perSecond), st).toFixed(2)}`);
     if (full.length >= 4) { const sf = full.map(d => RATED[d.n][2]);
-      console.log(`Spearman vs stars, the ${full.length} the sim covers at least 10% of: score ${spearman(full.map(d => d.logAttempts), sf).toFixed(2)}, per minute ${spearman(full.map(d => d.perMinute), sf).toFixed(2)}`); }
+      console.log(`Spearman vs stars, the ${full.length} the sim covers at least 10% of: score ${spearman(full.map(d => d.logAttempts), sf).toFixed(2)}, per minute ${spearman(full.map(d => d.perMinute), sf).toFixed(2)}`);
+      const fu = user ? full.filter(d => user[d.n]) : [];
+      if (fu.length >= 4) { const ua = fu.map(d => user[d.n].attempts);
+        console.log(`Spearman vs YOUR attempts, the same ${fu.length}: score ${spearman(fu.map(d => d.logAttempts), ua).toFixed(2)}, per minute ${spearman(fu.map(d => d.perMinute), ua).toFixed(2)}; stars vs your attempts ${spearman(fu.map(d => RATED[d.n][2]), ua).toFixed(2)}`); } }
   }
 }
 
