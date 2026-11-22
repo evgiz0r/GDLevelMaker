@@ -1,7 +1,7 @@
 # What players say in level comments
 
 Source: the top 60 comments (by likes) of each of the 91 rated levels in `levels/low_tier_stats.md`,
-from the GDBrowser API (`https://gdbrowser.com/api/comments/<id>?top&count=60`), read 2026-11-22.
+from the GDBrowser API (`node tools/community.js comments`, then `themes`), read 2026-11-22.
 They are stored only in `local/community/comments/` (not committed). Here are counts and paraphrases,
 not the comments themselves. These are players' opinions, not facts.
 

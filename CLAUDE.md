@@ -90,7 +90,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 - `lib/sync.js` -- music sync: level time <-> x through speed portals, beat grid <-> level beats,
   press timing windows from a solution, sync scores. See SYNC.md.
 - `tools/` -- node CLIs: `make`, `check`, `roundtrip`, `index_levels`, `serve`, `beats` (beat grid
-  of every song on this PC, ffmpeg + JS), `sync` (how well levels follow their song's beat), `frames` (timing windows with 60 fps presses, as the user's game has them), `web` (the viewer as a phone page), `fetch_level` (online levels by ID into local/community/, for measuring only, never committed), `difficulty` (score vs the official ratings).
+  of every song on this PC, ffmpeg + JS), `sync` (how well levels follow their song's beat), `frames` (timing windows with 60 fps presses, as the user's game has them), `web` (the viewer as a phone page), `fetch_level` (online levels by ID into local/community/, for measuring only, never committed), `community` (study rated community levels: list, fetch, measure, modes, comments; see knowledge/README.md), `difficulty` (score vs the official ratings).
 - `viewer/index.html` -- the replay viewer; `viewer/levels.js` is generated, do not edit.
 - `lib/look.js` -- how a level LOOKS (viewer's "game look", on by default): header colours, colour
   899 / alpha 1007 / zoom 1913 triggers over time, block skins 1-7 outlined by their own edges,

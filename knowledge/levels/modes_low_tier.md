@@ -2,7 +2,7 @@
 
 From the 63 rated 2.0-2.1 levels in `low_tier_stats.md` (static layout; 2.2 levels left out
 because their gameplay moves). Sections are cut at mode and speed portals and must be 8+ blocks long.
-Medians, measured 2026-11-22 by a script over `tools/style.js analyse()`.
+Medians, made by `node tools/community.js modes` (2026-11-22).
 
 Column meanings:
 - **lead-in**: blocks from the portal to the first hazard.
@@ -15,10 +15,10 @@ Column meanings:
 
 | mode | sections | median blocks | median s | lead-in blocks | haz/10 | cols with hazard | orbs+pads/10 | ground: gap / run (cols) | fly: opening (blocks) |
 |---|---|---|---|---|---|---|---|---|---|
-| cube | 135 | 41 | 4.2 | 6.0 | 4.9 | 33% | 0.7 | 3 / 3 | - |
+| cube | 135 | 41 | 4.2 | 6.0 | 4.7 | 30% | 0.7 | 3 / 3 | - |
 | ship | 95 | 53 | 4.2 | 8.0 | 1.5 | 12% | 0.0 | - | 7.4 |
 | ufo | 52 | 54 | 4.8 | 2.0 | 7.4 | 37% | 0.0 | - | 6.3 |
-| robot | 33 | 57 | 6.2 | 3.0 | 11.1 | 53% | 0.1 | 2 / 5 | - |
+| robot | 33 | 57 | 6.2 | 3.0 | 11.1 | 49% | 0.1 | 2 / 5 | - |
 | wave | 30 | 42 | 3.7 | 3.0 | 6.4 | 29% | 0.0 | - | 6.0 |
 | ball | 27 | 52 | 5.0 | 0.3 | 11.3 | 60% | 0.6 | 4 / 7 | - |
 | spider | 11 | 35 | 4.2 | 0.0 | 18.4 | 86% | 0.6 | 3 / 16 | - |
@@ -27,7 +27,7 @@ Column meanings:
 
 | mode | sections | median blocks | median s | lead-in blocks | haz/10 | cols with hazard | orbs+pads/10 | ground: gap / run (cols) | fly: opening (blocks) |
 |---|---|---|---|---|---|---|---|---|---|
-| cube | 219 | 28 | 2.7 | 0.0 | 16.1 | 82% | 1.0 | 2 / 8 | - |
+| cube | 219 | 28 | 2.7 | 0.0 | 15.9 | 82% | 1.0 | 2 / 8 | - |
 | ship | 121 | 22 | 1.7 | 0.0 | 18.3 | 85% | 0.0 | - | 6.2 |
 | ball | 49 | 43 | 3.4 | 0.0 | 22.7 | 98% | 1.0 | 2 / 25 | - |
 | wave | 49 | 21 | 1.7 | 0.0 | 10.9 | 43% | 0.0 | - | 5.0 |
