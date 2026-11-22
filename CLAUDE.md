@@ -57,8 +57,10 @@ Values live in `lib/physics.js` (SPEEDS) and `lib/objects.js`.
 
 How: the user says "record", "reshoot" (close the current file, start a new one) or "stop".
 Run `tools/record.sh start` in the background (whole screen, 60 fps, Desktop Duplication, to
-Videos/Captures/GD claude-rec <time>.mkv) and `tools/record.sh stop`. Capturing the GD window
-by its title freezes on one frame (the game draws with the GPU): a whole run was lost that way.
+Videos/Captures/GD claude-rec <time>.mkv) and `tools/record.sh stop`. Whole screen rather than
+the GD window by title: a window capture looked "frozen" once, but the user had only tabbed out
+on a paused screen -- and the file was deleted on that wrong guess, losing their run. Never
+delete a recording; to check one, look at frames all through it, not just the first and last.
 Game Bar (Win+Alt+R) also works, at ~30 fps, but records whatever window is active -- the user
 got clips of the Claude app. Best runs: practice mode with "Show Hitboxes" on. Track the lime cube by colour per frame with
 real frame times (the capture is variable frame rate: read pts with ffprobe, never assume 60).
