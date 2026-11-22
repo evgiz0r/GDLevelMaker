@@ -38,6 +38,19 @@ Link: in `local/phone/url.txt` (shared folder; also in Claude's memory). Not in 
   after 60 s with "not solved yet: too big to solve on the phone". The page opens on a level that
   has a saved solution. Why: on Nov 22 the page solved GDLM 45 (ship + wave, ~5 min even on the
   PC) on its own thread and the user's phone hung on opening it.
+- **The look** (Nov 23, after the user called the phone view "so-so, bit crude"): the game look
+  (lib/look.js) is on by default, and the player is drawn as in GD: an icon per mode (cube, ship
+  and UFO with a small cube inside, ball, wave dart; GD's default green/cyan, shapes drawn here, no
+  game art), a soft glow, the wave's solid trail, a fading streak in flying modes and after an orb
+  or pad, ground particles under the cube, exhaust from the ship and UFO. The cube turns with the
+  physics in the air and eases onto its side in ~0.1 s on landing (`visualRot` in the viewer; the
+  physics' own `rot` snaps in one step and is left alone). Upright phones frame by width: GD's 19
+  blocks across, the canvas 4:3, more sky above. These live in the shared viewer, so the PC viewer
+  has them too.
+- **Smooth**: the player and camera move between the 240 Hz steps at the screen's own rate, the
+  camera's vertical easing no longer depends on the frame rate, the canvas is capped at 2x pixels,
+  and with a song playing the replay clock follows the song's (a fifth of the gap each frame) instead of
+  the song being re-seeked.
 - Not on the phone: official RobTop levels (`levels.local.js`), recordings and "compare", the
   `#lv=...&t=...` links (a published page's address keeps only a plain `#name`).
 
@@ -68,6 +81,11 @@ update tools/web.js"). Keep the phone page a build of the viewer, never a fork.
 - Add song (Nov 23, phone width): a tap at the button's centre hits the input; a click with no
   picker shows the "open in Chrome" line after 2.5 s; a dropped WAV and a pasted file go through
   the same path (a good file plays, a junk one gets "could not be played"); no sideways scroll.
+- The look and smoothness (Nov 23, phone width, GDLM 44 with a test tone as its song): cube,
+  ship, orb streak and wave trail checked in screenshots; draw() costs 1.0-1.1 ms a frame (2.4 ms
+  worst) at 2x; at the moment a frame is drawn the picture is 3 ms from the song (median), 8 ms at most; replay speed
+  0.97-1.02x frame to frame. The browser pane was hidden (about 17 fps), so 60/120 Hz on the phone
+  is untested.
 - Not tested by Claude: the page itself on the phone (the browser pane is not signed in to
   claude.ai). The user is the first to see the live list and save a mark from the phone.
 

@@ -259,7 +259,7 @@ swap("</style>", `  @media (max-width: 700px) {
     header h1 { width:100%; }
     select { flex:1 1 100%; min-width:0; }
     select, button { padding:9px 12px; font-size:15px; }
-    canvas#cv { height:min(52vh, 420px); }
+    canvas#cv { height:auto; aspect-ratio:4/3; max-height:70vh; } /* the game look frames by width here (viewer draw) */
     #strip { height:40px; }
     main { padding:12px max(16px, env(safe-area-inset-left, 0px)) 24px; }
     .card { overflow-x:auto; }

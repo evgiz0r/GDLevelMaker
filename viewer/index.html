@@ -148,6 +148,7 @@ function load(name, levelStr, saved, info) {
   { const ev = (events || []).slice().sort((a, b) => a.tick - b.tick); let h = 0, j = 0;
     for (let k = 0; k < path.length; k++) { while (j < ev.length && ev[j].tick <= k) { h = ev[j].type === "press" ? 1 : 0; j++; } held[k] = h; } }
   L = { name, level, world, sol, path, held };
+  L.vrot = visualRot(path);
   // colour / alpha / zoom triggers fire when the replayed run passes their x
   L.look = GD.LOOK.timeline(level, x => {
     let lo = 0, hi = path.length - 1;
@@ -291,7 +292,7 @@ markBtn.onclick = () => setMarking(!marking);
 addEventListener("keydown", e => { if ((e.key === "m" || e.key === "M") && e.target.tagName !== "INPUT") setMarking(!marking); });
 cv.addEventListener("click", e => {
   if (!marking || !L) return;
-  const r = cv.getBoundingClientRect(), d = devicePixelRatio || 1;
+  const r = cv.getBoundingClientRect(), d = DPR();
   const px = (e.clientX - r.left) * d, py = (e.clientY - r.top) * d;
   const x = px / scale + camX, y = camY + (groundY - py) / scale;
   setMarking(false);
@@ -302,7 +303,7 @@ cv.addEventListener("click", e => {
     x: +x.toFixed(1), y: +y.toFixed(1), note: note.trim(), view: look ? "game look" : "schematic", zoom: LS ? +LS.zoom.toFixed(2) : 1, made: new Date().toISOString() });
 });
 function drawMarks() {
-  const d = devicePixelRatio || 1;
+  const d = DPR();
   levelMarks().forEach((m, i) => {
     const x = sx(m.x), y = sy(m.y);
     if (x < -20 || x > W + 20) return;
@@ -366,9 +367,10 @@ cmp.querySelectorAll("[data-dt]").forEach(b => b.onclick = () => { cmpT0.value =
 
 // ---------- drawing ----------
 function tick() { return Math.min(L.path.length - 1, Math.floor(t * P.TPS)); }
+const DPR = () => Math.min(2, devicePixelRatio || 1);
 let W = 0, H = 0, scale = 1, baseScale = 1, camX = 0, camY = 0, groundY = 0, LS = null;
 function resize() {
-  const r = cv.getBoundingClientRect(), d = devicePixelRatio || 1;
+  const r = cv.getBoundingClientRect(), d = DPR();
   cv.width = r.width * d; cv.height = r.height * d; W = cv.width; H = cv.height;
   baseScale = scale = H / (30 * 9.5); groundY = H - 30 * 1.6 * scale;
   if (L) draw();
@@ -378,20 +380,25 @@ const sx = x => (x - camX) * scale, sy = y => groundY - (y - camY) * scale;
 
 function draw() {
   if (!L) return;
-  const k = tick(), s = L.path[k];
+  const k = tick(), s0 = L.path[k];
+  // between two 240 Hz steps: the player and the camera move on smoothly at the screen's own rate
+  const f = playing ? Math.min(1, Math.max(0, t * P.TPS - k)) : 0, s1 = L.path[Math.min(k + 1, L.path.length - 1)];
+  const s = Object.assign({}, s0, { x: s0.x + (s1.x - s0.x) * f, y: s0.y + (s1.y - s0.y) * f,
+    rot: L.vrot ? L.vrot[k] + ((L.vrot[Math.min(k + 1, L.path.length - 1)] - L.vrot[k]) * f) : s0.rot });
   // objects that triggers move, turn or switch off: drawn where they are at this moment
-  const objsNow = posedNow(s);
+  const objsNow = posedNow(s0);
   // the game look: colours and zoom at this moment (zoom 0.7 = see more, everything smaller)
   LS = look ? GD.LOOK.stateAt(L.look, k / P.TPS) : null;
   // the game look frames like GD at 16:9: 10.67 blocks tall, ground 3.1 blocks up, player 36% across
-  if (LS) { scale = H / (30 * 10.67) * LS.zoom; groundY = H - 30 * 3.1 * scale; camX = s.x - W / scale * 0.36; }
+  // (a screen narrower than 16:9, like a phone held upright, shows GD's 19 blocks across and more sky)
+  if (LS) { scale = Math.min(H / (30 * 10.67), W / (30 * 19)) * LS.zoom; groundY = H - 30 * 3.1 * scale; camX = s.x - W / scale * 0.36; }
   else { scale = baseScale; groundY = H - 30 * 1.6 * scale; camX = s.x - W / scale * 0.3; }
   // flying modes: keep the player in view inside its corridor (the corridor is taller than the view)
   const viewH = groundY / scale;
   const want = isFinite(s.ceilY) && s.mode !== "cube"
     ? Math.max(s.floorY - 15, Math.min(s.y - viewH * 0.5, s.ceilY + 15 - viewH))
     : Math.max(0, s.y - 30 * 4.5);
-  camY += (want - camY) * 0.15;
+  camY += (want - camY) * (1 - Math.exp(-9.75 * drawDt)); // 0.15 a frame at 60 fps, at any rate
   const view = { W, H, scale, camX, sx, sy };
   if (LS) { GD.LOOK.drawBackground(ctx, view, LS); GD.LOOK.drawMiddleground(ctx, view, LS); }
   else { ctx.fillStyle = "#0e0828"; ctx.fillRect(0, 0, W, H); }
@@ -401,7 +408,7 @@ function draw() {
   for (let gy = 0; sy(gy) > 0; gy += 30) { ctx.beginPath(); ctx.moveTo(0, sy(gy)); ctx.lineTo(W, sy(gy)); ctx.stroke(); } }
   // beat lines: one per beat, brighter on the first beat of a bar, numbered
   if (L.beats && showBeats) {
-    const bA = beatOf(Math.max(0, tOfScreenX(0))), bB = beatOf(tOfScreenX(W)), d = devicePixelRatio || 1;
+    const bA = beatOf(Math.max(0, tOfScreenX(0))), bB = beatOf(tOfScreenX(W)), d = DPR();
     ctx.font = `${11 * d}px system-ui`;
     for (let b = Math.max(1, Math.ceil(bA)); b <= bB; b++) {
       const x = sx(GD.SYNC.xOfT(L.beats.tl, timeOfBeat(b))), down = isDownbeat(b);
@@ -443,13 +450,14 @@ function draw() {
     for (const b of L.world.solids) { ctx.strokeStyle = "#00e5ff"; rectW(b); }
     for (const b of L.world.hazards) { ctx.strokeStyle = "#ff2050"; rectW(b); }
   }
-  // trail: yellow where the button is held
-  ctx.lineWidth = 4;
+  // trail: in the game look, GD's own kind (lib/look.js drawTrail); otherwise yellow where the button is held
+  if (LS) GD.LOOK.drawTrail(ctx, view, L.path, k, f, s);
+  else { ctx.lineWidth = 4;
   for (let i = Math.max(0, k - 120); i < k; i += 2) {
     const p = L.path[i], q = L.path[Math.min(i + 2, k)];
     ctx.strokeStyle = L.held[i] ? "rgba(255,225,77,.8)" : "rgba(61,255,176,.35)";
     ctx.beginPath(); ctx.moveTo(sx(p.x), sy(p.y)); ctx.lineTo(sx(q.x), sy(q.y)); ctx.stroke();
-  }
+  } }
   drawDeaths();
   drawMarks();
   drawInput(k);
@@ -460,11 +468,12 @@ function draw() {
   }
   // the player
   // the player, drawn by its mode (a cube in every mode read wrong: "the wave looks like cube")
-  if (s.mode === "ship") drawShip(s);
+  if (LS) GD.LOOK.drawPlayer(ctx, view, s, L.held[k], local, (P.SPEEDS[s.sp] || P.SPEEDS[1]).x);
+  else if (s.mode === "ship") drawShip(s);
   else if (s.mode === "wave") drawWave(s);
   else if (s.mode === "ball") drawBall(s);
   else if (s.mode === "ufo") drawUfo(s);
-  else if (LS) local({ x: s.x, y: s.y, rot: s.rot }, () => GD.LOOK.drawPlayerCube(ctx)); else drawCube(s);
+  else drawCube(s);
   if (showHit) { const hh = s.mini ? 9 : 15; ctx.strokeStyle = "#fff"; rectW({ x0: s.x - hh, x1: s.x + hh, y0: s.y - hh, y1: s.y + hh }); ctx.strokeStyle = "#f0f"; rectW({ x0: s.x - 4.5, x1: s.x + 4.5, y0: s.y - 4.5, y1: s.y + 4.5 }); }
   // the click table row of the input just made (the button strip shows it in the view)
   L.sol.clicks.forEach((c, i) => {
@@ -521,7 +530,7 @@ function drawInput(k) {
   ctx.fillStyle = "#fff"; ctx.fillRect(sx(L.path[k].x) - 1, y0 - 6, 2, h + 12); // now
   ctx.fillStyle = "rgba(255,255,255,.55)"; ctx.font = "12px system-ui"; ctx.fillText("button", 6, y0 - 6);
   // button light
-  const on = L.held[k], bx = W - 28 * (devicePixelRatio || 1), by = y0 + h / 2 - 22;
+  const on = L.held[k], bx = W - 28 * (DPR()), by = y0 + h / 2 - 22;
   let since = k; while (since > 0 && L.held[since - 1] === on) since--;
   ctx.fillStyle = on ? "#ffe14d" : "rgba(255,255,255,.08)"; if (on) glow("#ffe14d", 18);
   ctx.fillStyle = "rgba(0,0,0,.8)"; ctx.fillRect(bx - 110, y0 - 6, 140, h + 12); ctx.fillStyle = on ? "#ffe14d" : "rgba(255,255,255,.08)"; if (on) glow("#ffe14d", 18);
@@ -538,7 +547,7 @@ function tOfScreenX(px) { return L.beats ? GD.SYNC.tOfX(L.beats.tl, px / scale +
 // song section changes (orange = gets louder, violet = quieter), the presses and where we are
 const strip = document.getElementById("strip"), sctx = strip.getContext("2d");
 function drawStrip(k) {
-  const d = devicePixelRatio || 1, r = strip.getBoundingClientRect();
+  const d = DPR(), r = strip.getBoundingClientRect();
   if (strip.width !== Math.round(r.width * d)) { strip.width = Math.round(r.width * d); strip.height = Math.round(r.height * d); }
   const SW = strip.width, SH = strip.height, total = Math.max(1e-6, (L.path.length - 1) / P.TPS), X = t => t / total * SW;
   sctx.fillStyle = "#120a2e"; sctx.fillRect(0, 0, SW, SH);
@@ -668,12 +677,34 @@ function drawCube(s) {
   });
 }
 
+// how the icon turns on screen (the physics' own rot snaps flat on landing, in one step): in the air it
+// turns as the physics turns, on the ground it eases onto the nearest side in ~0.1 s, as in GD; the
+// ship eases to its pitch
+function visualRot(path) {
+  const v = new Float32Array(path.length); let r = 0;
+  const near = (a, b) => b + ((((a - b) % 360) + 540) % 360) - 180; // a, moved by turns of 360 to be closest to b
+  for (let i = 0; i < path.length; i++) {
+    const s = path[i], p = path[i - 1];
+    if (s.mode === "ship" || s.mode === "wave") { r = near(r, s.rot); r += (s.rot - r) * 0.12; }
+    else if (s.grounded || s.dashing || !p || p.mode !== s.mode) { const T = Math.round(r / 90) * 90; r += (T - r) * 0.12; }
+    else { const d = s.rot - p.rot; if (Math.abs(d) < 30) r += d; }
+    v[i] = r;
+  }
+  return v;
+}
 // ---------- loop ----------
-let prev = performance.now();
+let prev = performance.now(), drawDt = 1 / 60;
 function frame(now) {
-  const dt = Math.min(0.05, (now - prev) / 1000); prev = now;
+  const dt = Math.min(0.1, (now - prev) / 1000); prev = now; drawDt = dt || 1 / 60;
   if (L && playing) {
     t += dt * speed;
+    // with the song playing, the replay follows the song's clock: a fifth of the gap each frame, so
+    // the picture stays smooth and in step (seeking the song makes it skip; syncSong only does that
+    // past 80 ms)
+    if (song && !song.paused && music && songInfo) {
+      const err = (song.currentTime - (songInfo.offset || 0)) - t;
+      if (Math.abs(err) < 0.25) t = Math.max(0, t + err * 0.2);
+    }
     const k = tick();
     for (const c of L.sol.clicks) if (c.type === "press" && c.tick > lastTick && c.tick <= k) beep();
     lastTick = k;

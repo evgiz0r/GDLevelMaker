@@ -115,7 +115,8 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 - `viewer/index.html` -- the replay viewer; `viewer/levels.js` is generated, do not edit.
 - `lib/look.js` -- how a level LOOKS (viewer's "game look", on by default): header colours, colour
   899 / alpha 1007 / zoom 1913 triggers over time, block skins 1-7 outlined by their own edges,
-  spikes, ground, bg, hills. Drawn to match frames of the user's play, no game art. Toggle off for
+  spikes, ground, bg, hills; the player per mode with glow, trail and particles (smoothed between
+  steps, PHONE.md). Drawn to match frames of the user's play, no game art. Toggle off for
   the schematic view; "hitboxes" still overlays.
 - Iterating on a level's look or play: the viewer's **✎ mark** (key M) saves the user's notes at a
   spot to `marks/marks.jsonl` (via `tools/serve.js`); read them with `node tools/marks.js`, close
