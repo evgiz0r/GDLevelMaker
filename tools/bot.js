@@ -1,4 +1,4 @@
-// node tools/bot.js levels/<name>.gdlvl [--attempts 3] [--offset -16]
+// node tools/bot.js levels/<name>.gdlvl [--attempts 3] [--offset 20]
 // node tools/bot.js --probe      (look only: checks the bot can see the game; presses nothing)
 //
 // Plays the solver's clicks for a level in the user's real game, by pressing Space -- no mod, no
@@ -19,15 +19,22 @@ const { GD, readGdlvl } = require("./io.js");
 
 const args = process.argv.slice(2);
 const opt = (name, def) => { const i = args.indexOf("--" + name); return i >= 0 ? args.splice(i, 2)[1] : def; };
-const attempts = +opt("attempts", 3), offset = +opt("offset", -16);
+const attempts = +opt("attempts", 3), offset = +opt("offset", 20); // measured on the first real run (GDLM 42, 2026-11-22)
 const cs = path.join(__dirname, "keybot.cs").replace(/'/g, "''");
+// the bot sees the screen through ffmpeg (Desktop Duplication), as tools/record.sh does
+if (!process.env.GDLM_FFMPEG) {
+  const w = spawnSync("where", ["ffmpeg"], { encoding: "utf8" });
+  const found = w.status === 0 && w.stdout.split(/\r?\n/)[0].trim();
+  const winget = path.join(process.env.LOCALAPPDATA || "", "Microsoft/WinGet/Packages/Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe/ffmpeg-8.0.1-full_build/bin/ffmpeg.exe");
+  process.env.GDLM_FFMPEG = found || (fs.existsSync(winget) ? winget : "ffmpeg");
+}
 if (args.includes("--probe")) {
   // look only: is the game window found, and do the screen grabs see the cube? Presses nothing.
-  const res = spawnSync("powershell.exe", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", `Add-Type -Path '${cs}'; exit [KeyBot]::Probe(3)`], { stdio: "inherit" });
+  const res = spawnSync("powershell.exe", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", `Add-Type -Path '${cs}'; exit [KeyBot]::Probe(30)`], { stdio: "inherit" });
   process.exit(res.status === null ? 1 : res.status);
 }
 const file = args[0];
-if (!file) { console.log("usage: node tools/bot.js levels/<name>.gdlvl [--attempts 3] [--offset -16]"); process.exit(1); }
+if (!file) { console.log("usage: node tools/bot.js levels/<name>.gdlvl [--attempts 3] [--offset 20]"); process.exit(1); }
 
 const L = readGdlvl(file);
 const w = GD.makeWorld(L.level.objects, L.level.header);
