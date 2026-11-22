@@ -11,7 +11,7 @@ function report(file) {
   console.log("   " + Object.entries(counts).map(([k, v]) => `${k} x${v}`).join(", "));
   const unsim = L.level.objects.filter(o => GD.objInfo(o.id).kind === "unknown");
   if (unsim.length) console.log(`   NOTE ${unsim.length} objects have unknown ids and are ignored: ${[...new Set(unsim.map(o => o.id))].join(", ")}`);
-  const r = GD.solve(w);
+  const r = GD.solveAny(w);
   if (!r.ok) {
     console.log(`   NOT BEATABLE with cube physics: the furthest run dies at x=${r.dieAt.x.toFixed(0)} (block ${(r.dieAt.x / 30).toFixed(1)}, ${(r.dieAt.tick / GD.PHYS.TPS).toFixed(2)} s), hit a ${r.why} at x=${r.killer.x}`);
     return r;

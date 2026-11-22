@@ -1,3 +1,5 @@
 node_modules/
 *.mp3
 *.ogg
+local/
+viewer/levels.local.js
