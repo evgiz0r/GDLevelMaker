@@ -10,12 +10,8 @@ const { GD } = require("./io.js");
 const corpus = require("./corpus.js");
 
 // ---------- what an object is, for style purposes ----------
-// lib/objects.js wins; then lib/objects_extra.js (OpenGD's 2.1 data, if present); anything else
-// with an id the 2.1 data covers is decoration (no hitbox). Ids past 2.1 are "new" (unknown).
-let EXTRA = {};
-for (const p of [path.join(__dirname, "../lib/objects_extra.js"), process.env.GD_EXTRA].filter(Boolean)) {
-  try { EXTRA = require(p).EXTRA || EXTRA; if (Object.keys(EXTRA).length) break; } catch (e) { /* not there yet */ }
-}
+// lib/objects.js says (it falls back to OpenGD's 2.1 data in lib/objects_extra.js; ids in
+// neither have no hitbox = decoration). Here we only regroup its kinds and name the triggers.
 // Trigger and special ids by name. sure:false throughout: names from memory of the editor.
 const TRIG = {
   29: "bg colour", 30: "ground colour", 104: "line colour", 105: "obj colour", 221: "col 1", 717: "col 2",
@@ -35,27 +31,17 @@ const TRIG = {
 };
 const COLOUR_TRIGGERS = new Set([29, 30, 104, 105, 221, 717, 718, 743, 744, 899, 900, 915, 1006]);
 const PORTALS = { 45: "mirror", 46: "mirror off", 99: "mini", 101: "big", 286: "dual", 287: "dual off", 747: "teleport", 2902: "teleport" };
-// ids the user's game knows that 2.1 did not have (2.2 objects)
-const NEW_AFTER = 1950;
 
 function classify(id) {
   const d = GD.objInfo(id);
-  if (d.kind && d.kind !== "unknown") {
-    if (d.kind === "mode" || d.kind === "speed" || d.kind === "gravity") return { cat: "portal", name: d.name };
-    if (d.kind === "slope") return { cat: "solid", name: d.name };
-    return { cat: d.kind, name: d.name }; // solid hazard orb pad
+  switch (d.kind) {
+    case "mode": case "speed": case "gravity": case "unsupported": return { cat: "portal", name: d.name };
+    case "slope": return { cat: "solid", name: d.name };
+    case "special": return { cat: PORTALS[id] ? "portal" : "special", name: d.name };
+    case "trigger": return { cat: "trigger", name: TRIG[id] || d.name };
+    case "decoration": return { cat: "deco", name: d.name };
+    default: return { cat: d.kind, name: d.name }; // solid hazard orb pad
   }
-  if (PORTALS[id]) return { cat: "portal", name: PORTALS[id] };
-  if (TRIG[id]) return { cat: "trigger", name: TRIG[id] };
-  const e = EXTRA[id];
-  if (e) {
-    if (e[0] === "trigger") return { cat: "trigger", name: "trigger " + id };
-    // OpenGD files orbs/pads/portals under "hazard"; real hazards are the rest
-    return { cat: e[0], name: (e[0] === "solid" ? "solid " : "hazard ") + id };
-  }
-  if (id >= NEW_AFTER && !Object.keys(EXTRA).length) return { cat: "unknown", name: "object " + id };
-  if (id >= NEW_AFTER) return { cat: "new", name: "object " + id }; // 2.2: unknown, often deco or triggers
-  return { cat: "deco", name: "deco " + id };
 }
 const GAMEPLAY = new Set(["solid", "hazard", "orb", "pad", "portal"]);
 
@@ -89,7 +75,7 @@ const LEVELS = new Map();
 function analyse(L) {
   LEVELS.set(L.name, L);
   const objs = L.objects;
-  const by = { solid: 0, hazard: 0, orb: 0, pad: 0, portal: 0, trigger: 0, deco: 0, new: 0, unknown: 0 };
+  const by = { solid: 0, hazard: 0, orb: 0, pad: 0, portal: 0, special: 0, trigger: 0, deco: 0 };
   const trig = {}, ids = {};
   let maxX = 0, colourTrig = 0, hidden = 0, groups = 0, alphaZero = 0, glow = 0;
   const chUse = {};
@@ -97,7 +83,7 @@ function analyse(L) {
     const c = classify(o.id);
     by[c.cat] = (by[c.cat] || 0) + 1;
     ids[o.id] = (ids[o.id] || 0) + 1;
-    if (c.cat === "trigger" || (c.cat === "new" && TRIG[o.id])) { trig[c.name] = (trig[c.name] || 0) + 1; if (COLOUR_TRIGGERS.has(o.id)) colourTrig++; }
+    if (c.cat === "trigger") { trig[c.name] = (trig[c.name] || 0) + 1; if (COLOUR_TRIGGERS.has(o.id)) colourTrig++; }
     if (GAMEPLAY.has(c.cat)) maxX = Math.max(maxX, o.x);
     const p = o.props;
     if (p[135] === "1") hidden++;            // "hide" checkbox (unconfirmed key)
@@ -150,7 +136,7 @@ function analyse(L) {
 
   return {
     name: L.name, short: L.short, source: L.source, objects: objs.length, blocks: Math.round(maxX / 30), secs: +secs.toFixed(1),
-    by, decoShare: +((by.deco + by.trigger + (by.new || 0)) / total).toFixed(2), gameplayShare: +((by.solid + by.hazard + by.orb + by.pad + by.portal) / total).toFixed(2),
+    by, decoShare: +((by.deco + by.trigger) / total).toFixed(2), gameplayShare: +((by.solid + by.hazard + by.orb + by.pad + by.portal + by.special) / total).toFixed(2),
     triggers: trig, colourTriggers: colourTrig, hidden, grouped: groups, alphaZero, noGlow: glow,
     channels: Object.keys(chUse).length, header: hd, sections, rests, ids,
   };

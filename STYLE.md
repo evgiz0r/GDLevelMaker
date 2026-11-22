@@ -8,7 +8,7 @@ Nothing from those levels is copied into this repo: only counts and generic shap
 
 ### Decoration vs gameplay
 
-`play` = solids, hazards, orbs, pads, portals; `deco` = no hitbox (decoration and triggers).
+`play` = solids, hazards, orbs, pads, portals; `deco` = no hitbox (decoration and triggers); coins, mirror portals and the like count as play.
 
 | level | objects | play | deco | colour triggers | sections |
 |---|---:|---:|---:|---:|---:|
