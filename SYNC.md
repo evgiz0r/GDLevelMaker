@@ -88,9 +88,10 @@ the fit slides to 178.00 with no drift.
   at least as well. `R` = how tightly the events cluster at one phase of the beat (1 = all
   together; about 1/sqrt(n) by luck), with that phase in ms.
 
-Presses exist only where the physics can beat the level: official 1-8 (solved with the
-physics of November 22 by the difficulty session's `tools/difficulty_solve.js`, copied into
-`local/`) and the repo's levels. Levels 9-22 are measured by object positions only. A saved
+Presses exist only where the physics can beat the level: the official levels the difficulty and
+physics sessions have solved into the shared `local/` (each file names the physics commit; on
+Nov 22, after physics 1503b03: levels 2-17; the files carry the human route, one tap per jump)
+and the repo's levels. The rest are measured by object positions only. A saved
 solution only counts while it still replays; `tools/sync.js` checks that and leaves the presses
 out otherwise.
 
@@ -100,13 +101,13 @@ Pooled over all 22 official levels:
 
 | kind | n | beat R | vs luck | phase | on the 1st beat of a bar |
 |---|---|---|---|---|---|
-| speed portals | 67 | 0.37 | x3.0 | +0.11 beat | **78%** |
-| mode portals | 178 | 0.27 | x3.6 | -0.04 beat | **61%** |
+| speed portals | 67 | 0.36 | x2.9 | +0.10 beat | **76%** |
+| mode portals | 178 | 0.27 | x3.6 | -0.04 beat | **60%** |
 | gravity portals | 248 | 0.14 | x2.2 | -0.03 beat | 31% |
 | orbs | 730 | 0.08 | x2.0 | -0.03 beat | 22% |
 | pads | 504 | 0.05 | x1.0 | - | 24% |
 | spike runs | 1207 | 0.04 | x1.3 | - | 26% |
-| presses (levels 1-8) | 962 | 0.07 | x2.2 | +0.04 beat | 27% |
+| presses (levels 2-17) | 1785 | 0.04 | x1.7 | +0.01 beat | 26% |
 
 (25% = luck for the bar column.)
 
@@ -119,11 +120,12 @@ Pooled over all 22 official levels:
   3.7 sigma) and spike runs weakly (0.39 vs 0.34, about 2 sigma). Over a whole level the phase
   is lost. One reason: GD's block grid does not divide the beat (at 1x and 160 BPM a beat is
   3.9 blocks), so a pattern spaced in whole blocks drifts against the music.
-- **Presses (levels 1-8, 962 presses): a slight lean, not a rule.** Pooled R 0.07, 2.2 times
-  luck, a little after the beat (+0.04 beat). Per level the press kappa (window within 35 ms of
-  a beat) is Jumper 0.50 (p 0.08), Time Machine 0.37 (p 0.10), Can't Let Go 0.25, and about 0
-  or below for Stereo Madness (-0.29), Back On Track, Polargeist, Dry Out and Base After Base.
-  No level's presses beat luck at p < 0.05. GDLM 02 (every press on a beat) is therefore more
+- **Presses (levels 2-17, 1785 presses, physics 1503b03): barely a lean.** Pooled R 0.04, 1.7
+  times luck, on the beat's phase (+0.01 beat), bar positions flat (26/25/25/24%). Per level the
+  press kappa (window within 35 ms of a beat): Jumper 0.50 (p 0.06), Time Machine 0.39 (p 0.12),
+  Can't Let Go 0.27; every other level near 0 or below (Clutterfunk -0.21). No level's presses
+  beat luck at p < 0.05. (With the earlier physics, levels 1-8 gave R 0.07; Stereo Madness was
+  -0.29.) GDLM 02 (every press on a beat) is therefore more
   on the beat than any official level.
 - **Song section changes** (my loudness-based detector) have a portal within 2 beats 39% of
   the time against 32% by luck: weak. The detector is crude; the bar and phrase result is the
@@ -265,8 +267,8 @@ published tempos; 20 Newgrounds), sync scores for the 22 official levels (presse
 the difficulty session's solutions with the current physics) and the repo's levels, specs in
 beats, beat lines in the viewer and on the phone page, the "how much to sync" rule in make.js.
 
-Good numbers: portals on bar starts 61-78% (luck 25%); orbs R 0.08 (x2 luck); presses R 0.07
-(x2.2 luck, no level p < 0.05); cube airtime at 1x 0.43 s, so a jump on every beat only up to
+Good numbers: portals on bar starts 60-76% (luck 25%); orbs R 0.08 (x2 luck); presses R 0.04
+(x1.7 luck, levels 2-17, no level p < 0.05); cube airtime at 1x 0.43 s, so a jump on every beat only up to
 ~140 BPM; beat phase error <= 4 ms on synthetic songs.
 
 Asked of others: the style session's `score.js` sync gate warns below 60% of presses on a beat;
@@ -274,11 +276,10 @@ asked them (Nov 22) to grade portals and drops instead, per the user's "not forc
 
 ## Open
 
-- **Press numbers to redo** (Nov 22, physics change dd9a6fe: orb timing, scale, slabs, mini,
-  triggers, ceiling slopes). The press rows in section 3 (levels 1-8: R 0.07, per-level kappa) came
-  from solutions made before it. The difficulty session is re-solving official levels into the
-  shared `local/` one at a time; when 1-8 are in, rerun `node tools/sync.js --official --repo`
-  (light, ~20 s) and update section 3. Do not solve them here (one heavy job at a time).
+- **Presses, more levels**: redone after the physics change (Nov 22, 1503b03) for 2-17. Stereo
+  Madness's file (6f10058) no longer replays and the difficulty session re-solves it last; 18-22
+  are being solved. When they land: `node tools/sync.js --official --repo` (light, ~20 s), update
+  section 3. Never solve them here (one heavy job at a time).
 
 - Presses for official levels 9-22 need solutions (other game modes in the physics).
 - Not yet felt in the game: whether "on the beat" by this measure feels on the beat to the
