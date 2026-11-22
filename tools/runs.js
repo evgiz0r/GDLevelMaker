@@ -1,4 +1,4 @@
-// node tools/runs.js <recording.mkv> [...] [--level N]  -- where the player died, from a screen
+// node tools/runs.js <recording.mkv> [...] [--level N] [--join] [--device mouse|keyboard]  -- where the player died, from a screen
 // recording of the real game: reads GD's progress bar (top centre) on every frame. Each attempt
 // is a run of rising %, ending in a drop back to 0 (a death, at the % before the drop) or 100
 // (beaten). Lime bar = normal mode, so practice runs (cyan bar) are left out.
@@ -28,7 +28,7 @@ function barSeries(video) {
     const left = BAR.x0 - BAR.from + 4, right = BAR.x1 - BAR.from;
     const fillEnd = test => { let x = left, gap = 0, end = -1; for (; x < right; x++) { if (test(px(x))) { end = x; gap = 0; } else if (++gap > 3) break; } return end; };
     const lime = isLime(px(left)) ? fillEnd(isLime) : -1, cyan = lime < 0 && isCyan(px(left)) ? fillEnd(isCyan) : -1;
-    const bar = white >= 2 ? (lime >= 0 ? "normal" : cyan >= 0 ? "practice" : "empty") : null;
+    const bar = white >= 2 && white <= 30 ? (lime >= 0 ? "normal" : cyan >= 0 ? "practice" : "empty") : null;
     const fill = lime >= 0 ? lime : cyan;
     out.push({ t: f / FPS, bar, pct: bar && fill >= 0 ? Math.max(0, Math.min(100, (fill + BAR.from - BAR.x0) / (BAR.x1 - BAR.x0) * 100)) : bar ? 0 : null });
   }
@@ -54,11 +54,18 @@ function attempts(series) {
 if (require.main === module) {
   const args = process.argv.slice(2), li = args.indexOf("--level"), level = li >= 0 ? +args.splice(li, 2)[1] : null;
   fs.mkdirSync(OUT, { recursive: true });
-  for (const v of args) {
-    const runs = attempts(barSeries(v));
+  // --join: the files are one session cut into pieces (the capture restarts on fullscreen switches)
+  const ji = args.indexOf("--join"), join = ji >= 0 && args.splice(ji, 1);
+  const mi = args.indexOf("--device"), device = mi >= 0 ? args.splice(mi, 2)[1] : null;
+  const groups = join ? [args] : args.map(a => [a]);
+  for (const g of groups) {
+    let series = [], t0 = 0;
+    for (const v of g) { const sr = barSeries(v); series = series.concat(sr.map(x => Object.assign(x, { t: x.t + t0 }))); t0 += sr.length / FPS; }
+    const v = g[0];
+    const runs = attempts(series);
     const file = path.join(OUT, path.basename(v).replace(/\.[^.]+$/, "") + ".json");
-    fs.writeFileSync(file, JSON.stringify({ video: path.basename(v), level, runs }, null, 1));
-    console.log(`${path.basename(v)}${level ? " (level " + level + ")" : ""}: ${runs.length} attempts`);
+    fs.writeFileSync(file, JSON.stringify({ video: path.basename(v), files: g.map(x => path.basename(x)), level, device, runs }, null, 1));
+    console.log(`${path.basename(v)}${g.length > 1 ? " + " + (g.length - 1) + " more" : ""}${level ? " (level " + level + ")" : ""}: ${runs.length} attempts`);
     for (const r of runs) console.log(`  at ${r.start.toFixed(1)} s: ${r.beaten ? "BEATEN" : "died at " + r.pct.toFixed(1) + "%"} after ${r.secs.toFixed(1)} s (${r.mode})`);
   }
 }
