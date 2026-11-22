@@ -25,7 +25,10 @@ user's created-levels list.
 - `lib/objects.js` -- object ids: name, kind, hitbox. `sure:false` = from memory, unconfirmed.
 - `lib/physics.js` -- cube physics + solver (fewest clicks, each in the middle of its window).
 - `lib/difficulty.js` -- difficulty score from a solution (per-input timing windows); see DIFFICULTY.md.
-- `tools/` -- node CLIs: `make`, `check`, `roundtrip`, `index_levels`, `serve`.
+- `lib/sync.js` -- music sync: level time <-> x through speed portals, beat grid <-> level beats,
+  press timing windows from a solution, sync scores. See SYNC.md.
+- `tools/` -- node CLIs: `make`, `check`, `roundtrip`, `index_levels`, `serve`, `beats` (beat grid
+  of every song on this PC, ffmpeg + JS), `sync` (how well levels follow their song's beat), `difficulty` (score vs the official ratings).
 - `viewer/index.html` -- the replay viewer; `viewer/levels.js` is generated, do not edit.
 - `examples/` -- levels the user made in the game, for reference and as format ground truth.
 
@@ -107,6 +110,11 @@ slopes other than plain floor slopes (rotated or ceiling ones act as blocks); tr
 
 ## Rules
 
+- Levels must be sight-readable unless the user asks otherwise: no "prejumps" (a jump you must
+  start while what it is for is still far ahead). `make.js` prints it; `tools/sightread.js`.
+  Invisible parts: ghost (faint) by default, fully hidden only for a chunk already seen; whole
+  blind phrases are "unfair" in the user's words. See STYLE.md.
+
 - Never commit songs (Newgrounds songs belong to their artists) or other people's levels
   without their OK. The user's own levels in `examples/` are fine.
 - Not affiliated with RobTop; do not use GD's art or name the repo/tool as if it were official.
@@ -115,10 +123,11 @@ slopes other than plain floor slopes (rotated or ceiling ones act as blocks); tr
 
 ## Later (said, not built)
 
-- Music sync is a must (the user: levels "try to sync", some more, some less). The songs are on
-  the PC: official ones in the game folder (Resources/*.mp3), custom ones in
-  %LOCALAPPDATA%/GeometryDash/<songid>.mp3; a level names its song and start offset. Plan: the
-  viewer plays the song with the replay (local only, never commit songs); measure how close the
-  official levels put clicks on beats; generate levels with presses on beats. Recordings have no
-  sound: the PC has no loopback device (only the headset mic).
+- Music sync is a must (the user: levels "try to sync", some more, some less). Built: beat grids
+  (`tools/beats.js`), sync scores (`tools/sync.js`), specs in beats (`"b12"`, `"j12"` in
+  `tools/make.js`), beat lines in the viewer. Method, findings and limits: SYNC.md. In short:
+  the official levels put portals (by their centre) on bar starts and phrases, orbs loosely on
+  beats, spikes and clicks not on the beat. Not yet: songs with tempo changes, checking in the
+  user's game that "on the beat" feels on the beat. Recordings have no sound: the PC has no
+  loopback device (only the headset mic).
 - Playing on the phone too: how to get an updated level onto the phone while away from the PC.
