@@ -13,6 +13,7 @@ this file is the map per mode and per trigger. Last full update 2026-11-22.
 | why a plan dies | killer, the last second of orbs/pads/landings, presses | `node tools/tas_why.js n` |
 | is this id really a hazard/solid? | replays all plans with ids re-kinded | `node tools/tas_kind.js solid 661,662` |
 | which triggers levels use | counts per id over official + example levels | `node tools/triggers.js [files]` |
+| solve the rest from a state | `GD.solveFrom(w, state, {held})`: the sweep from any state, events in absolute ticks (for hand-made stretches, e.g. lib/natural.js) | - |
 | our own levels still solve | solver on every level | `node tools/check.js examples/*.gdlvl levels/*.gdlvl` (heavy: one at a time) |
 
 Sources (read before reinventing): camila314/gdp (2.2 decompiled physics functions), iArtie
