@@ -119,11 +119,12 @@ function scoreLevel(level, brief, opts = {}) {
   }
 
   if (brief.grid && r.ok) {
+    const grid = Object.assign({}, brief.grid, { period: brief.grid.period || 60 / brief.grid.bpm, t0: brief.grid.t0 || 0 });
     const pw = GD.SYNC.pressWindows(w, r.events);
     if (pw) {
       let on = 0;
       for (const p of pw.windows) {
-        const b0 = GD.SYNC.timeToBeat(brief.grid, brief.offset || 0, p.lo / GD.PHYS.TPS), b1 = GD.SYNC.timeToBeat(brief.grid, brief.offset || 0, (p.hi + 1) / GD.PHYS.TPS);
+        const b0 = GD.SYNC.timeToBeat(grid, brief.offset || 0, p.lo / GD.PHYS.TPS), b1 = GD.SYNC.timeToBeat(grid, brief.offset || 0, (p.hi + 1) / GD.PHYS.TPS);
         if (Math.floor(b1 * 2) >= Math.ceil(b0 * 2)) on++;
       }
       const share = on / Math.max(1, pw.windows.length);

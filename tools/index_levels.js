@@ -33,11 +33,18 @@ function buildIndex() {
   }
   const local = [];
   const ld = path.join(root, "local");
+  // the player's real deaths (tools/runs.js --level N): % where each normal-mode attempt ended
+  const deaths = {}, rd = path.join(ld, "runs");
+  if (fs.existsSync(rd)) for (const f of fs.readdirSync(rd)) {
+    if (!f.endsWith(".json")) continue;
+    const r = JSON.parse(fs.readFileSync(path.join(rd, f), "utf8"));
+    if (r.level) for (const a of r.runs) if (a.mode === "normal" && !a.beaten) (deaths[r.level] = deaths[r.level] || []).push(a.pct);
+  }
   if (fs.existsSync(ld)) for (const f of fs.readdirSync(ld).sort()) {
     if (!f.endsWith(".json")) continue;
     const o = JSON.parse(fs.readFileSync(path.join(ld, f), "utf8"));
     const header = o.level.split(";")[0];
-    local.push({ name: "official " + o.n + ": " + o.name, file: "local/" + f, level: o.level, solution: o.solution,
+    local.push({ name: "official " + o.n + ": " + o.name, file: "local/" + f, level: o.level, solution: o.solution, deaths: deaths[o.n] || [],
                  song: { url: "/song/official/" + OFFICIAL_SONGS[o.n - 1] + ".mp3", official: o.n - 1, offset: offsetOf(header) } });
   }
   fs.writeFileSync(path.join(root, "viewer", "levels.local.js"),
