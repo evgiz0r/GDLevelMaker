@@ -50,6 +50,14 @@ checks the tempos and the time mapping together. Picking by the z-score instead 
 tempos (ToE 195, Deadlocked 202) whose grids the levels do not follow; the ratio rule fixed
 that.
 
+**Against published tempos.** A player-made BPM list (gdforum.freeforums.net thread 59158,
+"List of BPM of Geometry Dash Songs", 2018) gives 21 of the 22 (not Dash). 19 agree within
+1 BPM (Hexagon Force is listed as 81, half of 163; ToE is 130 there and 132 in a second list
+in the same thread). Two disagree, and the audio sides with the grid both times:
+Polargeist is listed as "~175": a fixed grid at 175 does not fit (ratio 1.2, drifts 85 ms),
+at 163 it fits to 4 ms over the whole song (z 94). Jumper is listed as 175: started at 175,
+the fit slides to 178.00 with no drift.
+
 **Not checked:** custom songs with tempo changes. `drift` flags them: custom songs 10000912,
 10007496, 10010007, 685746 and 850364 drift 70-170 ms from one fixed grid somewhere in the song
 (low confidence). A level on such a song needs local grids, which are not built.
@@ -77,12 +85,11 @@ that.
   at least as well. `R` = how tightly the events cluster at one phase of the beat (1 = all
   together; about 1/sqrt(n) by luck), with that phase in ms.
 
-Presses exist only where the physics can beat the level: official 1-3 (from `tools/official.js`)
-and the repo's levels. Levels 4-22 are measured by object positions. A saved solution only
-counts while it still replays: the press numbers for official 1-3 below were measured with the
-physics before the November 22 physics update; after it the saved solutions no longer finish,
-and `tools/sync.js` leaves their presses out until `node tools/official.js 1 2 3` is rerun
-(a heavy job: one at a time).
+Presses exist only where the physics can beat the level: official 1-8 (solved with the
+physics of November 22 by the difficulty session's `tools/difficulty_solve.js`, copied into
+`local/`) and the repo's levels. Levels 9-22 are measured by object positions only. A saved
+solution only counts while it still replays; `tools/sync.js` checks that and leaves the presses
+out otherwise.
 
 ## 3. Findings: what the official levels put on the beat
 
@@ -96,7 +103,7 @@ Pooled over all 22 official levels:
 | orbs | 730 | 0.08 | x2.0 | -0.03 beat | 22% |
 | pads | 504 | 0.05 | x1.0 | - | 24% |
 | spike runs | 1207 | 0.04 | x1.3 | - | 26% |
-| presses (levels 1-3) | 88 | 0.10 | x0.9 | - | 18% |
+| presses (levels 1-8) | 962 | 0.07 | x2.2 | +0.04 beat | 27% |
 
 (25% = luck for the bar column.)
 
@@ -109,6 +116,12 @@ Pooled over all 22 official levels:
   3.7 sigma) and spike runs weakly (0.39 vs 0.34, about 2 sigma). Over a whole level the phase
   is lost. One reason: GD's block grid does not divide the beat (at 1x and 160 BPM a beat is
   3.9 blocks), so a pattern spaced in whole blocks drifts against the music.
+- **Presses (levels 1-8, 962 presses): a slight lean, not a rule.** Pooled R 0.07, 2.2 times
+  luck, a little after the beat (+0.04 beat). Per level the press kappa (window within 35 ms of
+  a beat) is Jumper 0.50 (p 0.08), Time Machine 0.37 (p 0.10), Can't Let Go 0.25, and about 0
+  or below for Stereo Madness (-0.29), Back On Track, Polargeist, Dry Out and Base After Base.
+  No level's presses beat luck at p < 0.05. GDLM 02 (every press on a beat) is therefore more
+  on the beat than any official level.
 - **Song section changes** (my loudness-based detector) have a portal within 2 beats 39% of
   the time against 32% by luck: weak. The detector is crude; the bar and phrase result is the
   solid one.
@@ -126,14 +139,14 @@ Per level (mode + speed portals within 0.15 beat of a beat (luck 30%) and of a b
 | Fingerdash | 112 | 21 | 48% | 43% | 25% of 4 | 0.05 | 0.04 | |
 | Electrodynamix | 127 | 13 | 46% | 38% | 36% of 14 | 0.44 | 0.33 | |
 | Theory of Everything | 130 | 11 | 36% | 18% | 29% of 21 | 0.13 | 0.21 | |
-| Time Machine | 143 | 3 | 33% | 0% | 40% of 10 | **0.84** | 0.21 | |
+| Time Machine | 143 | 3 | 33% | 0% | 40% of 10 | **0.84** | 0.21 | 0.37 |
 | Electroman Adventures | 170 | 11 | 36% | 0% | 50% of 6 | **0.79** | 0.18 | |
 | Clubstep | 128 | 13 | 38% | 8% | 35% of 23 | -0.11 | 0.04 | |
 | Geometrical Dominator | 148 | 19 | 21% | 11% | 0% of 4 | 0.10 | | |
 | Dash | 128 | 25 | 16% | 4% | 25% of 8 | 0.03 | 0.18 | |
-| Stereo Madness | 160 | 4 | 25% | 0% | | | **0.39** of 50 | -0.12 |
-| Back On Track | 142 | 2 | 50% | 50% | | | 0.17 | 0.12 |
-| Polargeist | 163 | 2 | 0% | 0% | | 0.11 | 0.05 | -0.07 |
+| Stereo Madness | 160 | 4 | 25% | 0% | | | **0.39** of 50 | -0.29 |
+| Back On Track | 142 | 2 | 50% | 50% | | | 0.17 | 0.07 |
+| Polargeist | 163 | 2 | 0% | 0% | | 0.11 | 0.05 | 0.08 |
 | Clutterfunk | 140 | 4 | 0% | 0% | 18% of 17 | -0.16 | 0.09 | |
 
 (Levels with 2-4 portals say little either way.)
@@ -152,6 +165,22 @@ a portal (or a speed change) whose centre is on that bar's first beat; put orbs 
 the music has a clear hit; let spikes follow the rhythm loosely (the block grid makes exact
 phase impossible at most tempos). Clicks on the beat are a choice of the level maker, not
 something the official levels do throughout.
+
+### How much to sync (the user, Nov 22)
+
+Sync does not have to be perfect: too synced sounds forced, and not everything in the game is
+clicked on the beat. Some music has no beat to follow, just a vibe; that suits ship and wave
+parts. The official levels agree (above). So:
+
+- **Sync the moments**: portals and speed changes on bar starts, the drop and section changes,
+  orbs on the clear hits. These are what a player hears as "synced".
+- **Leave most clicks free.** Pin a click to a beat (`"jN"`) where the music has an accent
+  worth hitting, not everywhere. make.js prints `sync: k/n presses centred on a beat` and a note
+  when more than 60% are pinned (GDLM 02 is 10/11 on purpose: it was a test of the sync itself).
+- **Beatless parts follow the vibe**: a pad, a build-up, an ambient intro has no grid worth
+  matching (low-confidence grids, quiet sections). Match intensity instead: calm and open where the
+  song is quiet, dense where it gets loud (`loud` and `sections` in `local/beats/`). make.js says
+  so when the grid is low-confidence.
 
 ## 4. Writing levels in beats
 
@@ -204,7 +233,7 @@ The "beats" button hides them. Levels whose song has no grid say so in the Level
 
 ## Open
 
-- Presses for official levels 4-22 need the other game modes in the physics.
+- Presses for official levels 9-22 need solutions (other game modes in the physics).
 - Not yet felt in the game: whether "on the beat" by this measure feels on the beat to the
   user (the official portals say the time mapping is right; GD's audio latency on the user's
   PC is not measured).

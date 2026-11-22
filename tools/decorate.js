@@ -97,4 +97,25 @@ function setHeaderArt(header, bg, ground) {
   return header;
 }
 
-module.exports = { CH, SKIN, skinBlocks, groundDeco, colourTrigger, fadeTrigger, zoomTrigger, setHeaderColours, setHeaderArt };
+// --- jump indicators: a small "^" just above the surface where a jump starts (modern levels use
+// them; the user asked for them, also to read Claude's intent). Placed from the solver's run: one
+// per cube/robot takeoff from a surface (a held button re-jumps on landing, so a press can mean
+// several jumps). Orb and pad launches get none (the orb or pad is the cue). Upside down, the mark hangs under the ceiling and points down.
+// The chevron's object id is not confirmed yet: INDICATOR.id, overridable per spec.
+const INDICATOR = { id: null, lift: 12 }; // lift: units from the surface to the mark's centre
+function jumpIndicators(w, r, id, GD) {
+  if (!id) throw new Error("jump indicators need the chevron's object id: spec \"indicators\": {\"id\": N}");
+  // every takeoff, not every press: a held button re-jumps on each landing
+  const path = GD.run(w, r.events).path, out = [];
+  for (let t = 1; t < path.length; t++) {
+    const a = path[t - 1], s = path[t];
+    if (!a.grounded || s.grounded || !(a.mode === "cube" || a.mode === "robot")) continue;
+    if (s.act !== "jump" || s.vy * (s.grav || 1) <= 0) continue;
+    const up = (a.grav || 1) > 0;
+    const surface = up ? a.y - 15 : a.y + 15;
+    out.push({ id, x: +a.x.toFixed(1), y: up ? surface + INDICATOR.lift : surface - INDICATOR.lift, rot: up ? 0 : 180, flipX: false, flipY: false, props: { 155: "1" } });
+  }
+  return out;
+}
+
+module.exports = { INDICATOR, jumpIndicators, CH, SKIN, skinBlocks, groundDeco, colourTrigger, fadeTrigger, zoomTrigger, setHeaderColours, setHeaderArt };

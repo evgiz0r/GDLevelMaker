@@ -23,6 +23,8 @@
 //            (e.g. "hell") -> skins only, the look comes from its colours
 //   "colours": {"bg": [r,g,b], "ground": [r,g,b], ...}   start colours in the header
 //   "art": {"bg": n, "ground": n}                        background / ground art numbers
+//   "indicators": {"id": N}   a jump indicator (chevron) above every cube jump from the ground,
+//                          placed from the solver's run (tools/decorate.js jumpIndicators)
 //
 // Music (optional; see SYNC.md):
 //   "song": {"custom": 233860} or {"official": 1} (1 = Stereo Madness ... 22 = Dash)
@@ -52,6 +54,10 @@ const deco = require("./decorate.js");
 
 const TYPES = { block: 1, spike: 8, "small spike": 39, "yellow orb": 36, "blue orb": 84, "yellow pad": 35, "blue pad": 67,
   "pink orb": 141, "red orb": 1333, "pink pad": 140, "mirror portal": 45, "mirror off": 46,
+  "red pad": 1332, "spider orb": 3004, "spider pad": 3005, "green dash orb": 1704,
+  "cube portal": 12, "ship portal": 13, "ball portal": 47, "ufo portal": 111, "wave portal": 660,
+  "robot portal": 745, "spider portal": 1331, "swing portal": 1933,
+  "gravity down": 11, "gravity up": 10,
   "0.5x speed": 200, "1x speed": 201, "2x speed": 202, "3x speed": 203, "4x speed": 1334 };
 const SPEED_NAMES = { "0.5x": 1, "1x": 0, "2x": 2, "3x": 3, "4x": 4 }; // -> kA4
 const SPECIAL = ["pattern", "colour", "fade", "zoom"];
@@ -101,7 +107,7 @@ function gridOf(spec, song) {
   const b = require("./beats.js").loadBeats(song.url);
   if (!b || !b.ok) throw new Error(`no beat grid for ${song.url}: run "node tools/beats.js" (the song must be on this PC) or put "grid": {"bpm", "t0"} in the spec`);
   console.log(`   grid from local/beats: "grid": {"bpm": ${b.bpm}, "t0": ${b.t0}}  (${b.conf} confidence; paste it into the spec to pin it)`);
-  return { period: b.period, t0: b.t0, bpm: b.bpm };
+  return { period: b.period, t0: b.t0, bpm: b.bpm, conf: b.conf };
 }
 
 // a spec column -> a (possibly fractional) column number. Numbers pass through; "b12", "j12.5+2"
@@ -189,7 +195,15 @@ function make(specFile, specObj) {
   const { level, rec, ctx, objects, header } = build(spec, specFile);
   const out = path.join(__dirname, "..", "levels", slug(spec.name) + ".gdlvl");
   writeGdlvl(out, rec, level);
-  const r = report(out);
+  let r = report(out);
+  if (spec.indicators && r.ok) {
+    // jump indicators come from the solved run, so they go in after the first check (no hitbox:
+    // the solution does not change); then the file is written again
+    const ind = deco.jumpIndicators(GD.makeWorld(level.objects, header), r, (spec.indicators.id || deco.INDICATOR.id), GD);
+    level.objects.push(...ind);
+    writeGdlvl(out, rec, level);
+    console.log(`   ${ind.length} jump indicators (object ${spec.indicators.id || deco.INDICATOR.id})`);
+  }
   if (ctx.grid && r.ok) beatReport(objects, header, r, ctx);
   if (r.ok) { // the user's fairness rule: no prejumps (see tools/sightread.js)
     const s = sightread(level);
@@ -244,6 +258,20 @@ function beatReport(objects, header, r, ctx) {
     console.log(`     press at beat ${mid.toFixed(2)}  window ${b0.toFixed(2)}-${b1.toFixed(2)}  ${hit}`);
   }
   console.log(`   ${on}/${pw.windows.length} presses can land on a beat or half-beat`);
+  // How much is pinned. The official levels sync transitions, not clicks: portals on bar starts
+  // (61-78%), orbs loosely, presses barely (pooled R 0.07; most levels' press kappa near 0). Every
+  // click on the beat sounds forced (the user). SYNC.md "How much to sync".
+  const n = pw.windows.length, P = ctx.grid.period;
+  const pinned = pw.windows.filter(p => { const m = b(p.tick / GD.PHYS.TPS); return Math.abs(m - Math.round(m)) * P < 0.035; }).length;
+  const PORTALS = new Set([12, 13, 47, 111, 660, 745, 1331, 1933, 10, 11, 200, 201, 202, 203, 1334]);
+  const tl = GD.SYNC.timeline(w), ports = objects.filter(o => PORTALS.has(o.id));
+  const portOn = ports.filter(o => { const m = b(GD.SYNC.tOfX(tl, o.x)); return Math.abs(m - Math.round(m)) * P < 0.035; }).length;
+  console.log(`   sync: ${pinned}/${n} presses centred on a beat` + (ports.length ? `, ${portOn}/${ports.length} portals on a beat` : ""));
+  if (n >= 6 && pinned / n > 0.6) console.log(`   note: most clicks are pinned to beats; that can sound forced. Official levels sync portals,
+         drops and some orbs, and leave most clicks free (fine for a test of the sync itself).`);
+  if (ports.length >= 2 && portOn / ports.length < 0.5) console.log(`   note: under half the portals are on a beat; official levels put them on bar starts.`);
+  if (ctx.grid.conf === "low") console.log(`   note: low-confidence beat grid (no steady beat, or the tempo moves): follow the song's
+         sections and loudness here, not the beat lines.`);
 }
 
 if (require.main === module) {
