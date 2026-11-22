@@ -169,6 +169,6 @@ triggers -- right for the physics, since a faded object still collides in GD.
     node tools/style.js official --json local/style.json
 
 `tools/corpus.js` reads the install's `Resources/levels/<n>.txt` and the save
-(`%LOCALAPPDATA%/GeometryDash/CCLocalLevels.dat`), in memory only. Classification uses
-`lib/objects.js`, then `lib/objects_extra.js` when present (OpenGD's object data; set `GD_EXTRA`
-to its path otherwise); without it every non-gameplay id counts as decoration.
+(`%LOCALAPPDATA%/GeometryDash/CCLocalLevels.dat`), in memory only. Classification is
+`lib/objects.js` (which falls back to OpenGD's data in `lib/objects_extra.js`; ids in neither
+have no hitbox and count as decoration). Reading all 42 levels takes ~30 s and ~1 GB: run one at a time.
