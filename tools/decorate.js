@@ -39,7 +39,9 @@ function skinBlocks(objects) {
 // --- ground decoration: small plants/rocks on the floor and on platform tops, never on a
 // column that has a hazard or an orb/pad near it (decoration must not hide gameplay) ---
 // Official levels 1-8: 18, 19, 20, 21 sit on the ground (y offsets below); 16 sits on block tops.
-// What they look like is not checked (sure:false) -- they have no hitbox either way.
+// Seen in the user's game (GDLM 41): 18-21 are pale icy crystal spikes up to ~1 block tall --
+// they read like hazards, so keep them sparse and 3+ squares from any real spike. 16 is a thin
+// antenna with a ball on top. No hitbox either way.
 const GROUND_DECO = [[18, 4], [19, 4], [20, -2], [21, -8]]; // id, y offset in units from the row centre
 const TOP_DECO = [[16, -1]];
 function groundDeco(objects, endCol, seed = 1) {
@@ -49,11 +51,11 @@ function groundDeco(objects, endCol, seed = 1) {
   for (const o of objects) {
     const c = Math.round((o.x - 15) / 30), r = Math.round((o.y - 15) / 30);
     if ([1, 2, 3, 4, 5, 6, 7].includes(o.id)) solid.add(c + "," + r);
-    else for (let d = -1; d <= 1; d++) busy.add(c + d);
+    else for (let d = -3; d <= 3; d++) busy.add(c + d);
   }
   const out = [];
   for (let c = 0; c < endCol; c++) {
-    if (busy.has(c) || rnd() > 0.45) continue;
+    if (busy.has(c) || rnd() > 0.25) continue;
     // the top of this column: ground or the highest block
     let top = -1;
     for (let r = 0; r < 20; r++) if (solid.has(c + "," + r)) top = r;

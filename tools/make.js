@@ -26,6 +26,7 @@ const fs = require("fs");
 const path = require("path");
 const { GD, writeGdlvl } = require("./io.js");
 const { report } = require("./check.js");
+const { sightread } = require("./sightread.js");
 const { buildIndex } = require("./index_levels.js");
 const { expand } = require("./patterns.js");
 const deco = require("./decorate.js");
@@ -69,6 +70,12 @@ function make(specFile) {
   const out = path.join(__dirname, "..", "levels", slug(spec.name) + ".gdlvl");
   writeGdlvl(out, rec, level);
   const r = report(out);
+  if (r.ok) { // the user's fairness rule: no prejumps (see tools/sightread.js)
+    const s = sightread(level);
+    const bad = s.ok ? s.presses.filter(p => p.flag) : [];
+    for (const p of bad) console.log(`   PREJUMP at block ${p.from.toFixed(1)}-${p.to.toFixed(1)}: jump ${p.lead.toFixed(1)} blocks before ${p.cue} at ${p.cueAt.toFixed(1)}`);
+    console.log(bad.length ? `   NOT sight-readable: ${bad.length} prejump(s)` : "   sight-readable: every press is cued by what is right in front");
+  }
   buildIndex();
   return { out, r };
 }

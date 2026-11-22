@@ -106,6 +106,11 @@ slopes other than plain floor slopes (rotated or ceiling ones act as blocks); tr
 
 ## Rules
 
+- Levels must be sight-readable unless the user asks otherwise: no "prejumps" (a jump you must
+  start while what it is for is still far ahead). `make.js` prints it; `tools/sightread.js`.
+  Invisible parts: ghost (faint) by default, fully hidden only for a chunk already seen; whole
+  blind phrases are "unfair" in the user's words. See STYLE.md.
+
 - Never commit songs (Newgrounds songs belong to their artists) or other people's levels
   without their OK. The user's own levels in `examples/` are fine.
 - Not affiliated with RobTop; do not use GD's art or name the repo/tool as if it were official.

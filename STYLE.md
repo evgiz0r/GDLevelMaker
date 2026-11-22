@@ -116,6 +116,20 @@ A level spec (see `tools/make.js`) can now say:
 Patterns: `single double triple spikes(n) spike-block block-spike-block stairs platform hops
 gate pillar orb-pit pad-launch`.
 
+### Fairness first: sight-readable (the user's rule, from playing 41 and 42)
+
+"Not sightreadable" = you have to **prejump**: commit to a jump in the middle of nothing, while
+the thing it is for is still far ahead, so you only get it right by knowing the level. Levels do
+it, players call it unfair. So every press must be cued by something right in front of the cube.
+`node tools/sightread.js <level>` measures it (and `make.js` prints it for every level): for each
+press, the lead = how far ahead the cue still is at the latest moment the press works; more than
+1.5 blocks = PREJUMP. It flags both spots the user hit in the first GDLM 41 (jumping off the top
+of a staircase onto hops 2 blocks away; jumping 2.4 blocks before a yellow pad because the pad
+alone did not clear its spike run) and passes the fixed version.
+
+Shapes that cause prejumps: a jump that must start on a higher step to reach something far off;
+a pad or orb that does not clear its hazards by itself; a hazard hidden under a floating block.
+
 ### Style: classic (official 1-8 feel)
 
 1. Open with 12-15 empty squares. Close with 15+ empty squares.
@@ -129,36 +143,52 @@ gate pillar orb-pit pad-launch`.
 
 ### Style: memory / invisible (the user's style, Pattern Seeker feel)
 
-1. Zoom out (0.7) at the start so phrases are seen early.
-2. Write one **phrase** (4-6 chunks, ~25 squares). Play it visible, play it again visible but
-   faded at its door, then play it fully hidden (fade its group at the start of the level).
-3. Each repeat gets its own group, so fades are per copy.
-4. **Twist**: change the phrase (reverse its order, move one chunk) and show it once visible
-   before its blind copy. Never make a blind part that was not shown first -- fair memory, not
-   guessing.
-5. Mark the blind parts with colour: bg goes dark when blind, red to announce a twist.
-6. Keep it short (15-30 s), cube 1x, few objects -- the user's memory levels are 7-111 objects.
-7. Off-grid spacing (spikes 1.1 squares apart) is a later, nastier tool: the eye cannot
-   snap them to the grid.
+The user, after playing the first GDLM 42: fully invisible parts are "practically very hard,
+tons of learning, pure memory without visuals -- usually not fair unless you want it unfair".
+So the default is **fair memory**: memory helps, it is never the only way to see.
+
+1. Zoom out (0.7) at the start so phrases are seen early (confirmed in the game: ~74 px per
+   block instead of 101 at 1080p).
+2. Write one **phrase** (4-6 chunks, ~25 squares). Play it visible first.
+3. Repeats go **ghost**, not invisible: fade the copy to opacity ~0.35 (`"to": 0.35`). You still
+   see it, faintly; knowing the phrase makes it easy, not knowing it is still fair.
+4. Fully hidden (`"to": 0`) only for **one chunk** the player has already seen 2-3 times in the
+   same place in the phrase, with visible things right before it (its cue).
+5. **Twist**: change the phrase (reverse it, move one chunk), show it once fully visible, then
+   ghost it. Never ghost or hide anything that was not shown first.
+6. Colour tells the player what is going on: bg dark = ghost/hidden part, red = a twist is shown.
+7. Keep it short (15-30 s), cube 1x, few objects, and sight-readable (above) -- a memory level
+   should test memory, not reactions to hidden prejumps.
+8. "Unfair memory" (whole phrases blind, off-grid spacing like spikes 1.1 squares apart) only
+   when the user asks for a deliberately unfair level.
 
 ## 3. The examples
 
 - `specs/41_classic.json` -> `levels/gdlm_41_classic.gdlvl`: 3 sections (blue, purple, red),
   spikes -> stairs/hops/gate/orb -> pad/triple/platform, back to blue for the ending.
-  16 presses, tightest window 42 ms, 17 s.
+  15 presses, tightest window 42 ms, 17 s, sight-readable (v2: hops moved off the stairs, pad
+  run 4 -> 3 spikes, sparser decoration).
 - `specs/42_seen_then_gone.json` -> `levels/gdlm_42_seen_then_gone.gdlvl`: the phrase
-  single-double-platform-triple, seen, seen then faded, blind; then the reversed phrase,
-  seen once (red), blind. 20 presses, tightest window 46 ms, 17 s.
+  single-double-platform-triple: seen, then ghosted at its door, then ghosted from afar with
+  only its triple fully hidden; then the reversed phrase, seen once (red), then ghosted.
+  20 presses, tightest window 46 ms, 17 s, sight-readable. (v1 made whole phrases invisible:
+  the user found that too hard and unfair.)
 
 The viewer draws hidden objects normally (it does not run alpha triggers), and the sim ignores
 triggers -- right for the physics, since a faded object still collides in GD.
 
-## 4. Not sure yet (ask the user / check in the game)
+## 4. Checked in the user's game (recording of the first 41 and 42, 2026-11-22)
 
-- What deco ids 16, 18, 19, 20, 21, 41 look like (taken from where official levels put them).
-- Block skin ids 2-7 assumed full 30x30 hitboxes (OpenGD agrees; not seen in a recording).
-- Trigger keys copied from the user's own triggers; key 36 on every trigger is unexplained.
-- Whether position triggers fire at the trigger's x when the player crosses it (assumed).
+- Alpha fade (1007) works: to 0 at a door, and to 0 from the level start for a copy far ahead.
+  In practice mode with Show Hitboxes the hidden spikes still show their red boxes.
+- Colour triggers (899) on bg work, fade time as set. Camera zoom (1913, 0.7) zooms out.
+- Block skins 2-7 render as the outlined grid set, and the cube stood and landed on them.
+- Deco 18-21 = icy crystal spikes (look like hazards: keep them away from real spikes);
+  16 = thin antenna with a ball.
+
+Still open:
+- Opacity 0.35 ghosts (the v2 42) -- not seen in the game yet.
+- Trigger key 36 on every trigger is unexplained; deco 41 not seen yet.
 
 ## How the numbers were got
 
