@@ -228,6 +228,14 @@ briefs end to end (score.js has the sync gate; compose places by columns, not be
 The viewer draws hidden objects normally (it does not run alpha triggers), and the sim ignores
 triggers -- right for the physics, since a faded object still collides in GD.
 
+- `briefs/44_hellgate.json` + `specs/44_hellgate.json` -> `levels/gdlm_44_hellgate.gdlvl`: the
+  user's first idea through the loop. "Hellish, on the song of Ragnarok (343707, 145 BPM), the first
+  10 s with their clear ups". The intro's one clear hit is beat 4 (1.72 s, +6 dB); the level opens
+  there (bg flares red), then one idea per bar, every jump on an even beat 4-22, a red pulse on
+  each bar start, dark again on beat 24 (10.0 s). Style "hell": outlined blocks, no ground deco,
+  black/red/orange colours, ceiling "teeth" (gates). All gates pass, 10/10 presses on beats, Easy.
+  Written by hand in beats (compose.js does not place by beats yet).
+
 ## 4. Checked in the user's game (recording of the first 41 and 42, 2026-11-22)
 
 - Alpha fade (1007) works: to 0 at a door, and to 0 from the level start for a copy far ahead.
