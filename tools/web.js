@@ -140,6 +140,50 @@ swap("const note = prompt(`What should change here? (block ${(x / 30).toFixed(1)
 // a published page's address can't carry #lv=...&t=...: no link button, no hash writes
 swap('<button id="linkBtn"', '<button id="linkBtn" hidden');
 swap("setInterval(() => { if (L && !playing) writeHash(); }, 1000);", "");
+// Never solve on the page's thread: a phone froze for minutes solving GDLM 45 (ship + wave, ~5 min
+// even on the PC). Rows from `wip.js put` carry {solution}; a level without one is solved in a Web
+// Worker (solve_worker.js, written below) with a seconds counter and a time limit, and shown
+// meanwhile without its run. The page opens on a level that already has a solution.
+swap("pick.onchange = () => { const l = ALL[pick.value]; load(l.name, l.level, l.solution, l.song); L.deaths = l.deaths || []; summary(); draw(); };",
+`pick.onchange = () => {
+  const l = ALL[pick.value];
+  const sol = l.solution || SOLVED.get(solveKey(l)) || { ok: false, events: [], why: "not solved yet", pending: true };
+  load(l.name, l.level, sol, l.song); L.deaths = l.deaths || []; L.pending = !!sol.pending; summary(); draw();
+  if (sol.pending) solveInWorker(l);
+};
+// ---- background solving (phone page) ----
+const SOLVED = new Map(), SOLVE_LIMIT_S = 60;
+const solveKey = l => (l.file || l.name) + "|" + (l.version || 0) + "|" + String(l.level || "").length;
+let solver = null;
+function solveInWorker(l) {
+  const key = solveKey(l);
+  if (solver && solver.key === key) return;
+  if (solver) { solver.w.terminate(); clearInterval(solver.tick); }
+  let w;
+  try { w = new Worker("solve_worker.js"); } catch (e) { setPending("not solved yet (this browser cannot solve in the background): open it on the PC, or ask the session to put it again"); solver = null; return; }
+  const t0 = Date.now();
+  solver = { key, w, tick: setInterval(() => {
+    const s = Math.round((Date.now() - t0) / 1000);
+    if (s >= SOLVE_LIMIT_S) { w.terminate(); clearInterval(solver.tick); solver = null; setPending("not solved yet: too big to solve on the phone (stopped after " + SOLVE_LIMIT_S + " s). Open it on the PC, or ask the session to put it again (wip.js put now saves the solution)."); return; }
+    setPending("solving on this phone in the background… " + s + " s (the page stays usable)");
+  }, 1000) };
+  setPending("solving on this phone in the background… 0 s (the page stays usable)");
+  w.onmessage = e => {
+    clearInterval(solver.tick); w.terminate(); solver = null;
+    SOLVED.set(key, e.data);
+    const cur = ALL[pick.value];
+    if (cur && solveKey(cur) === key) { const tt = t; pick.onchange(); t = Math.min(tt, (L.path.length - 1) / P.TPS); draw(); }
+  };
+  w.onerror = () => { clearInterval(solver.tick); w.terminate(); solver = null; setPending("not solved yet (the solver failed here): open it on the PC, or ask the session"); };
+  w.postMessage({ level: l.level });
+}
+function setPending(msg) { if (L && L.pending) { L.sol.why = msg; summary(); } }`);
+swap("            : `<p class=\"bad\">Not beatable in the simulation.",
+  "            : s.pending ? `<p class=\"muted\">${esc(s.why)}</p>` : `<p class=\"bad\">Not beatable in the simulation.");
+swap("if (saved) sol = saved.ok ? { ok: true, events: saved.events, clicks: [] } : { ok: false, trail: saved.events, clicks: [], dieAt: { x: saved.dieX || 0, tick: 0 }, why: saved.why || \"\" };",
+  "if (saved) sol = saved.ok ? { ok: true, events: saved.events, clicks: [] } : { ok: false, trail: saved.events, clicks: [], dieAt: { x: saved.dieX || 0, tick: 0 }, why: saved.why || \"\", pending: !!saved.pending };");
+swap("  else if (ALL.length) { pick.value = 0; pick.onchange(); }",
+  "  else if (ALL.length) { const s = ALL.findIndex(l => l.solution); pick.value = Math.max(0, s); pick.onchange(); }");
 swap('<script>\n"use strict";\nconst P = GD.PHYS;', `<script>
 // the page's database, or null (memoized; null after 10 s when no viewer answers)
 let _db;
@@ -188,7 +232,18 @@ swap("</style>", `  @media (max-width: 700px) {
 html = `<!-- built by tools/web.js from viewer/index.html; do not edit -->\n` + html;
 fs.writeFileSync(path.join(OUT, "index.html"), html);
 // the Artifact publish call, ready to use (files map = everything beside index.html)
-const files = { "levels.js": "levels.js", "beats.js": "beats.js" };
+// the background solver: the same lib/ files, in a Web Worker (the libs attach to `window`)
+fs.writeFileSync(path.join(OUT, "solve_worker.js"), `// built by tools/web.js: solves one level off the page's thread
+self.window = self;
+importScripts(${libs.map(f => JSON.stringify("lib/" + f)).join(", ")});
+onmessage = e => {
+  try {
+    const level = GD.parseLevel(e.data.level), w = GD.makeWorld(level.objects, level.header), r = GD.solveAny(w);
+    postMessage(r.ok ? { ok: true, events: r.events } : { ok: false, events: r.trail || [], dieX: r.dieAt && r.dieAt.x, why: r.why || "" });
+  } catch (err) { postMessage({ ok: false, events: [], why: "the solver failed: " + err.message }); }
+};
+`);
+const files = { "levels.js": "levels.js", "beats.js": "beats.js", "solve_worker.js": "solve_worker.js" };
 for (const f of libs) files["lib/" + f] = "lib/" + f;
 fs.writeFileSync(path.join(OUT, "publish.json"), JSON.stringify({ file_path: path.join(OUT, "index.html"), root: OUT, files, capabilities: { db: {} } }, null, 1));
 console.log(`${OUT}: index.html + ${Object.keys(files).length} files; publish.json has the Artifact call's file_path, root, files and capabilities`);

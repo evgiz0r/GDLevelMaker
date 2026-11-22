@@ -23,6 +23,13 @@ Link: in `local/phone/url.txt` (shared folder; also in Claude's memory). Not in 
   copies the songs the repo's levels use into the user's OneDrive folder `GD songs/`, which the
   phone's file picker can open. Playing straight from Newgrounds is not possible: the Artifact
   frame blocks media from other sites (CSP), and the asset store takes no audio.
+- **Never solves on the page's thread.** A level with a saved `solution` (rows from `wip.js put`
+  carry one, solved on the PC) only replays. One without (the pushed levels in `levels.js`, an
+  old row) is solved in a Web Worker (`solve_worker.js`, built by web.js) while the page stays
+  usable, with "solving on this phone in the background… N s" in the Level card, and stopped
+  after 60 s with "not solved yet: too big to solve on the phone". The page opens on a level that
+  has a saved solution. Why: on Nov 22 the page solved GDLM 45 (ship + wave, ~5 min even on the
+  PC) on its own thread and the user's phone hung on opening it.
 - Not on the phone: official RobTop levels (`levels.local.js`), recordings and "compare", the
   `#lv=...&t=...` links (a published page's address keeps only a plain `#name`).
 
@@ -47,6 +54,9 @@ update tools/web.js"). Keep the phone page a build of the viewer, never a fork.
 - The database round trip through the published page's store: a `wip` row written by ArtifactData;
   a mark row written, read back with `out_dir`, listed by `node tools/marks.js` as from the phone;
   both deleted again.
+- The background solver (browser pane, phone width): a level without a solution shows at once,
+  solves in the worker with the page's thread never blocked over 75 ms; a worker that never
+  answers is stopped at 60 s with the "too big" note, the level still scrubbable.
 - Not tested by Claude: the page itself on the phone (the browser pane is not signed in to
   claude.ai). The user is the first to see the live list and save a mark from the phone.
 
