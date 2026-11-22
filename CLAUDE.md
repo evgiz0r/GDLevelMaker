@@ -96,7 +96,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 - `lib/sync.js` -- music sync: level time <-> x through speed portals, beat grid <-> level beats,
   press timing windows from a solution, sync scores. See SYNC.md.
 - `tools/` -- node CLIs: `make`, `check`, `roundtrip`, `index_levels`, `serve`, `beats` (beat grid
-  of every song on this PC, ffmpeg + JS), `sync` (how well levels follow their song's beat), `fetch_level` (online levels by ID into local/community/, for measuring only, never committed), `difficulty` (score vs the official ratings).
+  of every song on this PC, ffmpeg + JS), `sync` (how well levels follow their song's beat), `frames` (timing windows with 60 fps presses, as the user's game has them), `web` (the viewer as a phone page), `fetch_level` (online levels by ID into local/community/, for measuring only, never committed), `community` (study rated community levels: list, fetch, measure, modes, comments; see knowledge/README.md), `difficulty` (score vs the official ratings).
 - `viewer/index.html` -- the replay viewer; `viewer/levels.js` is generated, do not edit.
 - `lib/look.js` -- how a level LOOKS (viewer's "game look", on by default): header colours, colour
   899 / alpha 1007 / zoom 1913 triggers over time, block skins 1-7 outlined by their own edges,
@@ -183,9 +183,19 @@ level gets -- raise its numbers when a fix gets further, never lower them. Facts
 slab (40) hitbox is centred; ids 5/73/80 are scenery; every slope skin is a slope; GD 2.2's own
 decoration list (`lib/objects_gd22.js`) beats OpenGD's 2.1 table; an upside-down cube that walks
 off a ledge can still jump until it falls faster than 2g (GD bug). Polargeist gets to 909/925.
+More facts from the plans (2026-11-22): a plan's tick t is our step t-1 (orbs at the edge of their
+reach decide it); an orb touched at the end of either of the last two ticks takes a press (GD's
+touched-orb list carries over a tick); hitboxes and saw radii grow with the object's scale (keys
+32, 128/129); id 143 is a one-way platform (land on it, never dies); 661-664 and 1903-1905 are
+slabs, not hazards; a blue pad flipped with key 5 faces down; move triggers move by 30 units a
+block. Plans now reach (blocks): 9: 343, 11: 288 (mini), 13: 116, 19: 100, 22: 81 (it jumps off
+blocks a move trigger raises).
 
 Open mismatches the plans show (not understood yet, do not paper over them):
-- Stereo Madness's ship hovers ~0.5 unit lower than the game's (dies on floor spikes at 328).
+- Stereo Madness's ship hovers ~0.5 unit lower than the game's (dies on floor spikes at 328). Hexagon Force's
+  ship (lv16, 141) grazes a saw by the same 0.5 unit after riding a ceiling slope.
+- Theory of Everything (lv12, 34) and its sequel (lv18, 106): after a pink orb the cube is ~30 units
+  too low to land on a block with a blue pad; every orb and pad value matches gdsolver's.
 - Back On Track's ship ends ~1 block high after a slide (493).
 - A cube that walked off a ledge and presses shortly before landing: the game jumps, we do not
   (Dry Out, Can't Let Go, Jumper, Time Machine, Polargeist's end). A 19-38 tick "landing buffer"
@@ -212,9 +222,13 @@ spider orb + pad, the upside-down red-orb dive under a hanging column.
 
 ## Not simulated yet
 
-Mini size; mirror, dual and teleport portals; slopes other than plain floor slopes (rotated or
-ceiling ones act as blocks); triggers (move, rotate, alpha/toggle); speed-dependent ring scaling
-for ball/UFO; spike slopes (any slope skin that kills is treated as a plain slope -- unchecked).
+Mirror, dual and teleport portals; slopes turned a quarter turn (walls act as blocks); rotate,
+follow and "move to target"/"lock to player" triggers, and a player carried sideways by a moving
+block; speed-dependent ring scaling for ball/UFO; spike slopes (any slope skin that kills is
+treated as a plain slope -- unchecked).
+Simulated but checked only by the plans: mini size (gdsolver's measured values), move/toggle/spawn
+triggers (x-crossing, touch and spawn firing, GD's easings), ceiling slopes, turned hazard boxes.
+The viewer draws moving objects where they start.
 
 ## Rules
 
@@ -235,7 +249,11 @@ for ball/UFO; spike slopes (any slope skin that kills is treated as a plain slop
   (`tools/beats.js`), sync scores (`tools/sync.js`), specs in beats (`"b12"`, `"j12"` in
   `tools/make.js`), beat lines in the viewer. Method, findings and limits: SYNC.md. In short:
   the official levels put portals (by their centre) on bar starts and phrases, orbs loosely on
-  beats, spikes and clicks not on the beat. Not yet: songs with tempo changes, checking in the
-  user's game that "on the beat" feels on the beat. Recordings have no sound: the PC has no
+  beats, spikes and clicks not on the beat. The user's rule: sync loosely, not forced -- sync
+  portals, drops and some orbs, leave most clicks free; beatless parts (ship, wave) follow the
+  song's loudness, not a grid (SYNC.md "How much to sync"; make.js notes over-sync). Not yet:
+  songs with tempo changes, checking in the user's game that "on the beat" feels on the beat. Recordings have no sound: the PC has no
   loopback device (only the headset mic).
 - Playing on the phone too: how to get an updated level onto the phone while away from the PC.
+  Watching is built: the phone page (`tools/web.js`, with songs added from the phone, SYNC.md
+  section 5). Playing it in the phone's game: `tools/export_gmd.js` (.gmd for GDShare).

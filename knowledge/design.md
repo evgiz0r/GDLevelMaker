@@ -42,6 +42,17 @@ official levels, or a playtest remark). A single playtest remark is evidence, no
   before decorating, playtest. Sharp shapes read as danger.
 - **No fakes at low tiers**: Back On Track's fake pads are why it is "controversial" as an Easy (wiki).
 
+## From players' comments (91 rated levels, `players_say.md`)
+- Strongest complaint: beautiful levels with weak gameplay. Gameplay first.
+- Late difficulty spikes make a rating feel wrong. Keep it even.
+- Named annoyances: random speed changes, rapid gravity flips, long mini wave, short dual parts,
+  hazards that look like orbs.
+
+## Easy sections, per mode (`levels/modes_low_tier.md`)
+- Start each new mode or speed with an empty lead-in (cube ~6 blocks, ship ~8, others 2-3). Hard has none.
+- Hazards in at most ~1/3 of the columns (cube/ship/wave), ~1/2 (ball/robot); cube groups of up to 3,
+  with 3+ empty columns between them.
+
 ## Music
 - Levels follow their song; how closely varies. Official levels put portals on bar starts and
   phrases, orbs loosely on beats (SYNC.md, measured).

@@ -16,46 +16,52 @@ user OK'd downloading for measuring), then `tools/style.js` measures it. Only nu
 
 ## Per tier, per era, per rating (medians)
 
-Column meanings:
+Made by `node tools/community.js measure`. Column meanings:
 - **sections**: runs between mode or speed portals.
 - **0.5x / 3x+**: share of levels that use that speed at all.
 - **rests/min**: runs of 6+ columns with no hazard, per minute.
 - **haz/10**: hazards per 10 blocks.
 
-| group | n | s | sections (IQR) | s per section | modes | 0.5x / 3x+ | play% | rests/min | haz/10 | move | alpha-to-0 |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| Easy | 25 | 66 | 10 (4-17) | 6.3 | 4 | 68% / 48% | 10 | 6.4 | 6.8 | 185 | 41 |
-| Normal | 23 | 74 | 10 (5-15) | 7.4 | 4 | 60% / 43% | 10 | 14.3 | 5.0 | 392 | 34 |
-| Hard | 24 | 72 | 18 (11-26) | 4.1 | 5 | 91% / 62% | 14 | 5.9 | 17.5 | 256 | 57 |
-| Harder | 19 | 72 | 21 (16-41) | 3.6 | 6 | 84% / 78% | 16 | 6.3 | 17.0 | 276 | 45 |
-|  |  |  |  |  |  |  |  |  |  |  |  |
-| era 1.x | 6 | 80 | 3 (3-4) | 23.9 | 2 | 16% / 0% | 56 | 12.7 | 7.2 | 0 | 0 |
-| era 2.0-2.1 | 63 | 68 | 16 (10-24) | 4.1 | 5 | 88% / 58% | 14 | 7.0 | 15.2 | 213 | 34 |
-| era 2.2 | 22 | 87 | 14 (4-23) | 6.0 | 4 | 54% / 68% | 3 | 13.3 | 2.5 | 565 | 234 |
-| rating featured | 33 | 69 | 12 (5-19) | 5.6 | 4 | 78% / 39% | 24 | 6.4 | 14.3 | 58 | 14 |
-| rating epic | 40 | 67 | 16 (10-30) | 3.8 | 5 | 85% / 67% | 12 | 7.6 | 16.8 | 322 | 52 |
-| rating legendary | 18 | 87 | 13 (4-19) | 6.5 | 4 | 50% / 66% | 2 | 15.0 | 2.3 | 565 | 304 |
+The "(2.0-2.1)" rows are the fairest: those levels don't move their gameplay.
 
-The bulk, 2.0-2.1 only (static numbers are fair here), medians:
+| group | n | s | sections | s per section | modes | 0.5x / 3x+ | play% | rests/min | haz/10 | orbs+pads/min | move | alpha-to-0 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Easy | 25 | 66 | 10 | 6.3 | 4 | 68% / 48% | 10 | 6.4 | 6.7 | 13 | 185 | 41 |
+| Normal | 23 | 74 | 10 | 7.4 | 4 | 61% / 43% | 10 | 14.3 | 5.0 | 25 | 392 | 34 |
+| Hard | 24 | 72 | 18 | 4.0 | 5 | 92% / 63% | 14 | 6.7 | 17.9 | 39 | 311 | 58 |
+| Harder | 19 | 72 | 21 | 3.6 | 6 | 84% / 79% | 16 | 6.3 | 17.0 | 58 | 276 | 45 |
+| Easy (2.0-2.1) | 17 | 66 | 12 | 4.3 | 5 | 82% / 53% | 13 | 6.4 | 12.7 | 25 | 162 | 27 |
+| Normal (2.0-2.1) | 17 | 69 | 10 | 7.4 | 4 | 76% / 35% | 12 | 14.3 | 6.1 | 28 | 270 | 24 |
+| Hard (2.0-2.1) | 16 | 70 | 20 | 3.4 | 5 | 100% / 63% | 14 | 5.0 | 24.1 | 54 | 201 | 58 |
+| Harder (2.0-2.1) | 13 | 72 | 24 | 3.1 | 6 | 100% / 92% | 17 | 5.4 | 18.8 | 69 | 267 | 43 |
+| era 1.x | 6 | 80 | 3 | 26.8 | 2 | 17% / 0% | 67 | 15.7 | 7.3 | 16 | 0 | 0 |
+| era 2.0-2.1 | 63 | 68 | 16 | 4.0 | 5 | 89% / 59% | 14 | 7.0 | 15.2 | 40 | 213 | 34 |
+| era 2.2 | 22 | 89 | 14 | 6.2 | 4 | 55% / 68% | 3 | 16.3 | 2.5 | 26 | 594 | 251 |
+| rating featured | 33 | 69 | 12 | 5.6 | 4 | 79% / 39% | 24 | 6.4 | 14.3 | 28 | 58 | 14 |
+| rating epic | 40 | 70 | 17 | 3.8 | 5 | 85% / 68% | 12 | 7.7 | 16.9 | 53 | 335 | 56 |
+| rating legendary | 18 | 89 | 13 | 6.8 | 4 | 50% / 67% | 3 | 16.4 | 2.4 | 25 | 594 | 351 |
 
-| tier | n | s | sections | s per section | modes | rests/min | haz/10 | densest section | orbs+pads/min |
-|---|---|---|---|---|---|---|---|---|---|
-| Easy | 17 | 66 | 12 | 4.3 | 5 | 6.4 | 12.7 | 31 | 25 |
-| Normal | 17 | 69 | 10 | 7.4 | 4 | 14.3 | 6.1 | 14 | 28 |
-| Hard | 16 | 69 | 20 | 3.4 | 5 | 5.0 | 23.3 | 57 | 53 |
-| Harder | 13 | 72 | 24 | 3.1 | 6 | 5.4 | 18.8 | 47 | 69 |
+## Sections by speed and by mode (2.0-2.1, sections of 8+ blocks)
 
-## Sections by speed and by mode (2.0-2.1, 1057 sections of 8+ blocks)
+Made by `node tools/community.js sections`.
 
-| speed | sections | median blocks | median s | haz/10 | | mode | sections | median blocks | haz/10 |
-|---|---|---|---|---|---|---|---|---|---|
-| 0.5x | 274 | 45 | 5.4 | 13.4 | | cube | 356 | 31 | 11.3 |
-| 1x | 259 | 38 | 3.7 | 14.8 | | ship | 216 | 31 | 11.7 |
-| 2x | 223 | 31 | 2.4 | 14.9 | | ufo | 97 | 33 | 10.1 |
-| 3x | 111 | 24 | 1.5 | 6.0 | | wave | 80 | 22 | 9.1 |
-| 4x | 72 | 18 | 0.9 | 2.1 | | ball | 77 | 45 | 20.5 |
-| | | | | | | robot | 71 | 39 | 15.3 |
-| | | | | | | spider | 42 | 35 | 22.4 |
+| speed | sections | median blocks | median s | haz/10 |
+|---|---|---|---|---|
+| 0.5x | 272 | 45 | 5.4 | 12.5 |
+| 1x | 258 | 39 | 3.7 | 15.1 |
+| 2x | 222 | 32 | 2.5 | 14.8 |
+| 3x | 111 | 24 | 1.5 | 6.0 |
+| 4x | 72 | 18 | 0.9 | 2.5 |
+
+| mode | sections | median blocks | haz/10 |
+|---|---|---|---|
+| cube | 354 | 31 | 11.1 |
+| ship | 216 | 31 | 11.3 |
+| ufo | 97 | 33 | 10.1 |
+| wave | 79 | 22 | 9.3 |
+| ball | 76 | 45 | 19.4 |
+| robot | 71 | 39 | 12.4 |
+| spider | 42 | 35 | 22.8 |
 
 ## Five levels section by section (idea 2)
 
@@ -82,19 +88,19 @@ Each row is one section: mode, speed, blocks, then hazards per 10 blocks (h) and
 ## What it says (for GDLM)
 
 1. **Hard is the big step, not Normal.** In 2.0-2.1, Easy and Normal look alike, and Normal is even
-   calmer in this sample. At Hard, sections halve (7 s to 3.4 s), orbs and pads double (28 to 53
+   calmer in this sample. At Hard, sections halve (7 s to 3.4 s), orbs and pads double (28 to 54
    per minute), hazards go up 2-4x, and rests drop to ~5 per minute.
 2. **Many modes at every tier.** A median of 4-6 modes even at Easy. Low tiers stay easy through
    each section being forgiving, not through using few modes.
-3. **Speed and density trade off.** 3x and 4x sections are short (~1-1.5 s) and nearly empty (2-6 per
-   10): a fast burst is a reward or a transition. 0.5x is the most common speed (274 sections) and
+3. **Speed and density trade off.** 3x and 4x sections are short (~1-1.5 s) and nearly empty (2.5-6 per
+   10): a fast burst is a reward or a transition. 0.5x is the most common speed (272 sections) and
    carries the busiest modes (IZnite's robot, Mind Control).
-4. **Hard modes get room.** Ball, spider and robot sections are the densest (15-22 per 10) and get
+4. **Hard modes get room.** Ball, spider and robot sections are the densest (12-23 per 10) and get
    longer sections (35-45 blocks). Wave sections are the shortest (22 blocks).
 5. **Length**: 66-72 s median at every tier, just past the 60 s "Long" mark. 2.2 Legendaries run
-   longer (87 s).
+   longer (89 s).
 6. **Rating tiers** (all tiers together): Featured 24% gameplay objects and ~60 move triggers;
-   Epic 12% and ~320; Legendary 2% and ~560, with ~300 hide triggers. A higher rating means more
+   Epic 12% and ~335; Legendary 3% and ~590, with ~350 hide triggers. A higher rating means more
    decoration and effects, not different gameplay numbers.
 7. **Two shapes of a "modern" low-tier level**, both rated:
    - **switch-every-section** (Candescent): ~7 s per mode, one speed-up.
