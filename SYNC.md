@@ -11,6 +11,9 @@ and songs.
 |---|---|---|
 | beat grids of every song on this PC | `node tools/beats.js` (`--force` to redo) | ~1 s per song, 45 s for all 41 |
 | check the beat finder on made-up songs | `node tests/beats_synth.js` | ~50 s |
+| check the official grids against published tempos | `node tests/beats_published.js` | ~10 s |
+| windows as the game sees them (60 fps presses) | `node tools/frames.js levels/<name>.gdlvl` | a few s per level |
+| songs on this PC and their grids | `ls local/beats/` (`official_<Name>`, `custom_<Newgrounds id>`) | |
 | sync of the official + repo levels | `node tools/sync.js` | ~7 s |
 | ... of the user's own levels in the save | `node tools/sync.js --save` | ~5 s (positions only, no solving) |
 | a level written in beats | `node tools/make.js specs/02_on_the_beat.json` | a few s |
@@ -231,6 +234,30 @@ With `node tools/serve.js` and the song on this PC, the viewer shows:
 
 The "beats" button hides them. Levels whose song has no grid say so in the Level card.
 
+**On the phone** (`node tools/web.js`, published as the user's private Artifact; the link is in
+Claude's memory, see CLAUDE.md "The loop"): the same viewer for the repo's levels, with the beat
+grids but no songs (songs are never published). Its **add song** button plays an mp3 from the
+phone itself, decoded with Web Audio, in sync with the replay, and kept in that browser's
+IndexedDB. A file named like the game's copy (`StereoMadness.mp3`, `343707.mp3`) goes to every
+level on that song; another name goes to the level on screen. The songs the repo's levels use
+were copied to the user's OneDrive folder `GD songs/` so the phone's file picker finds them;
+copy a new level's song there too (official: `<GD>/Resources/<Name>.mp3`, custom:
+`%LOCALAPPDATA%/GeometryDash/<id>.mp3`). Republish the page after any level change.
+
+## Status and hand-off (Nov 22 2026, music sync session, branch claude/sync-6e196a)
+
+Done and on main: beat grids for all 42 songs on the PC (22 official, all checked against
+published tempos; 20 Newgrounds), sync scores for the 22 official levels (presses for 1-8, from
+the difficulty session's solutions with the current physics) and the repo's levels, specs in
+beats, beat lines in the viewer and on the phone page, the "how much to sync" rule in make.js.
+
+Good numbers: portals on bar starts 61-78% (luck 25%); orbs R 0.08 (x2 luck); presses R 0.07
+(x2.2 luck, no level p < 0.05); cube airtime at 1x 0.43 s, so a jump on every beat only up to
+~140 BPM; beat phase error <= 4 ms on synthetic songs.
+
+Asked of others: the style session's `score.js` sync gate warns below 60% of presses on a beat;
+asked them (Nov 22) to grade portals and drops instead, per the user's "not forced" rule.
+
 ## Open
 
 - Presses for official levels 9-22 need solutions (other game modes in the physics).
@@ -239,4 +266,8 @@ The "beats" button hides them. Levels whose song has no grid say so in the Level
   PC is not measured).
 - Section detection is loudness only; a spectral-change detector would test "portal on the
   drop" properly.
-- Songs with tempo changes need local grids.
+- Songs with tempo changes need local grids. Low-confidence songs: custom 343707 (GDLM 44
+  hellgate, 145 BPM, drifts 100 ms), 685746, 850364, 10000912, 10007496, 10010007, and Clubstep.
+- Beatless or ambient parts: the rule is "follow loudness and sections", but nothing yet places
+  objects by loudness; a spec key for it (e.g. density per section) would make that writable.
+- Not felt in the game yet: GDLM 02 (built as a test of "on the beat", not as a style).

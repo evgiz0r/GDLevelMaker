@@ -90,7 +90,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 - `lib/sync.js` -- music sync: level time <-> x through speed portals, beat grid <-> level beats,
   press timing windows from a solution, sync scores. See SYNC.md.
 - `tools/` -- node CLIs: `make`, `check`, `roundtrip`, `index_levels`, `serve`, `beats` (beat grid
-  of every song on this PC, ffmpeg + JS), `sync` (how well levels follow their song's beat), `fetch_level` (online levels by ID into local/community/, for measuring only, never committed), `difficulty` (score vs the official ratings).
+  of every song on this PC, ffmpeg + JS), `sync` (how well levels follow their song's beat), `frames` (timing windows with 60 fps presses, as the user's game has them), `web` (the viewer as a phone page), `fetch_level` (online levels by ID into local/community/, for measuring only, never committed), `difficulty` (score vs the official ratings).
 - `viewer/index.html` -- the replay viewer; `viewer/levels.js` is generated, do not edit.
 - `lib/look.js` -- how a level LOOKS (viewer's "game look", on by default): header colours, colour
   899 / alpha 1007 / zoom 1913 triggers over time, block skins 1-7 outlined by their own edges,
@@ -243,7 +243,11 @@ The viewer draws moving objects where they start.
   (`tools/beats.js`), sync scores (`tools/sync.js`), specs in beats (`"b12"`, `"j12"` in
   `tools/make.js`), beat lines in the viewer. Method, findings and limits: SYNC.md. In short:
   the official levels put portals (by their centre) on bar starts and phrases, orbs loosely on
-  beats, spikes and clicks not on the beat. Not yet: songs with tempo changes, checking in the
-  user's game that "on the beat" feels on the beat. Recordings have no sound: the PC has no
+  beats, spikes and clicks not on the beat. The user's rule: sync loosely, not forced -- sync
+  portals, drops and some orbs, leave most clicks free; beatless parts (ship, wave) follow the
+  song's loudness, not a grid (SYNC.md "How much to sync"; make.js notes over-sync). Not yet:
+  songs with tempo changes, checking in the user's game that "on the beat" feels on the beat. Recordings have no sound: the PC has no
   loopback device (only the headset mic).
 - Playing on the phone too: how to get an updated level onto the phone while away from the PC.
+  Watching is built: the phone page (`tools/web.js`, with songs added from the phone, SYNC.md
+  section 5). Playing it in the phone's game: `tools/export_gmd.js` (.gmd for GDShare).
