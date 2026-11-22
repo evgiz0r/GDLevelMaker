@@ -19,7 +19,8 @@
 //   ["colour", col, {"ch": "bg"|"ground"|"obj"|n, "rgb": [r,g,b], "secs": 0.5}]
 //   ["fade", col, {"group": n, "to": 0, "secs": 0.2}]   alpha trigger: hide (or show) a group
 //   ["zoom", col, {"to": 0.7}]                             camera zoom (0.7 = see more)
-//   "style": "classic" -> outlined block skins + ground decoration
+//   "style": "classic" -> outlined block skins + ground decoration; any other style name
+//            (e.g. "hell") -> skins only, the look comes from its colours
 //   "colours": {"bg": [r,g,b], "ground": [r,g,b], ...}   start colours in the header
 //   "art": {"bg": n, "ground": n}                        background / ground art numbers
 //
@@ -169,6 +170,7 @@ function build(spec, specFile = "spec") {
     nudgeJumps(jGroups, objects, header, ctx, tl);
   }
 
+  if (spec.style && spec.style !== "classic") deco.skinBlocks(objects); // e.g. "hell": outlined blocks, no ground decoration
   if (spec.style === "classic") {
     deco.skinBlocks(objects);
     const end = Math.max(...objects.map(o => o.x)) / 30 + 4;

@@ -4,6 +4,12 @@ Claude writes Geometry Dash levels from a description, checks they can be beaten
 replaying with their clicks, and hands back a file the user imports into their real game.
 The user plays it and tells us what was off. Read this fully first.
 
+## Before making or judging a level: read knowledge/
+
+`knowledge/` holds what the user thinks about GD: `opinions.md` (their taste) and `critiques.md`
+(what they said about GDLM levels) are required reading before writing a spec; `levels/`,
+`glossary.md`, `demonlist.md` for the rest. New user feedback goes there too (in their words).
+
 ## The loop
 
 1. Write a spec in `specs/NN_name.json` (grid squares, see the top of `tools/make.js`).
@@ -19,6 +25,10 @@ The user plays it and tells us what was off. Read this fully first.
    its own lag from ground jumps). A clear confirms the sim; a death is where they disagree --
    unless the window there is under ~30 ms (the bot is good to about a frame). Ask the user
    before running it: it takes over their keyboard while GD is in front.
+   STATUS (2026-11-22): NOT TRUSTED YET. First real run (GDLM 42) printed CLEARED, but the user
+   saw it jump off the beat and die -- its death detection missed it and its jumps came ~36 ms
+   early (default offset since moved +20 ms). Next try: run tools/record.sh during it, compare
+   the video's jump times with the plan, then fix detection before believing a "CLEARED".
 5. What they report that the sim got wrong is a calibration fact: write it below.
 
 Every level the tool makes is named `GDLM NN ...` so it is easy to find (and delete) in the
