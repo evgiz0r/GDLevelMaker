@@ -14,6 +14,7 @@ this file is the map per mode and per trigger. Last full update 2026-11-22.
 | is this id really a hazard/solid? | replays all plans with ids re-kinded | `node tools/tas_kind.js solid 661,662` |
 | which triggers levels use | counts per id over official + example levels | `node tools/triggers.js [files]` |
 | solve the rest from a state | `GD.solveFrom(w, state, {held})`: the sweep from any state, events in absolute ticks (for hand-made stretches, e.g. lib/natural.js) | - |
+| the model's own rules | small worlds: teleport, pad table, move/rotate/stop, mini, one-way | `node tests/mechanics.js` |
 | our own levels still solve | solver on every level | `node tools/check.js examples/*.gdlvl levels/*.gdlvl` (heavy: one at a time) |
 
 Sources (read before reinventing): camila314/gdp (2.2 decompiled physics functions), iArtie
@@ -114,7 +115,7 @@ The viewer draws moved, turned and switched-off objects where they are at each m
 
 ## Not in the sim yet (the game has it)
 
-Modes/portals: dual (286/287), mirror, teleport portals (747/749). Triggers: count/pickup items,
+Modes/portals: dual (286/287), mirror. Teleport portals (747) are in, unchecked: same x, portal y + key 54, speed kept (no rotated exits, smooth teleport or the 2.2 options 345+); first used by Deadlocked at block 77, Fingerdash 205, Dash 435. Triggers: count/pickup items,
 scale, follow, on death, collision blocks, area triggers, gravity trigger, time warp. Others:
 keys and user coins (collectables only), start positions (levels always start at x 0), practice
 checkpoints, speed portals touched mid-air at a slant, force blocks, platformer mode, dash orbs'

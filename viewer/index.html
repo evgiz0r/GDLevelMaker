@@ -592,7 +592,7 @@ function drawObj(o) {
     } else if (d.kind === "slope") {
       ctx.beginPath(); ctx.moveTo(-15, -15); ctx.lineTo(15, -15); ctx.lineTo(15, 15); ctx.closePath();
       ctx.fillStyle = "rgba(61,123,255,.18)"; ctx.fill(); glow("#3d7bff", 10); ctx.strokeStyle = "#5b8fff"; ctx.stroke();
-    } else if (d.kind === "mode" || d.kind === "gravity" || d.kind === "size") {
+    } else if (d.kind === "mode" || d.kind === "gravity" || d.kind === "size" || d.kind === "teleport") {
       glow(d.color, 12); ctx.strokeStyle = d.color; ctx.lineWidth = 3 / scale;
       ctx.beginPath(); ctx.ellipse(0, 0, d.kind === "mode" ? 12 : 9, d.kind === "mode" ? 42 : 36, 0, 0, 7); ctx.stroke();
     } else if (d.kind === "speed") {
