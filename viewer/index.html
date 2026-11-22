@@ -377,6 +377,8 @@ const sx = x => (x - camX) * scale, sy = y => groundY - (y - camY) * scale;
 function draw() {
   if (!L) return;
   const k = tick(), s = L.path[k];
+  // objects that triggers move, turn or switch off: drawn where they are at this moment
+  const objsNow = posedNow(s);
   // the game look: colours and zoom at this moment (zoom 0.7 = see more, everything smaller)
   LS = look ? GD.LOOK.stateAt(L.look, k / P.TPS) : null;
   // the game look frames like GD at 16:9: 10.67 blocks tall, ground 3.1 blocks up, player 36% across
@@ -409,7 +411,7 @@ function draw() {
   if (LS) {
     // objects as the game draws them: decoration, then blocks (fills, then outlines), then the rest;
     // the ground goes over anything below it
-    const on = L.level.objects.filter(o => sx(o.x) > -90 && sx(o.x) < W + 90), blocks = [];
+    const on = objsNow.filter(o => sx(o.x) > -90 && sx(o.x) < W + 90), blocks = [];
     for (const o of on) {
       const a = GD.LOOK.objAlpha(o, LS.alpha); if (a <= 0.01) continue;
       if (GD.LOOK.isSkin(o.id)) blocks.push([o, a]);
@@ -430,7 +432,7 @@ function draw() {
   ctx.strokeStyle = "#7d6bff"; ctx.lineWidth = 3; ctx.shadowColor = "#7d6bff"; ctx.shadowBlur = 12;
   ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke(); ctx.shadowBlur = 0;
   // objects
-  for (const o of L.level.objects) if (sx(o.x) > -60 && sx(o.x) < W + 60) drawObj(o);
+  for (const o of objsNow) if (sx(o.x) > -60 && sx(o.x) < W + 60) drawObj(o);
   }
   // end line
   ctx.strokeStyle = "rgba(61,255,176,.5)"; ctx.beginPath(); ctx.moveTo(sx(L.world.endX), 0); ctx.lineTo(sx(L.world.endX), groundY); ctx.stroke();
@@ -567,6 +569,13 @@ function local(o, fn) {
   ctx.scale(scale * (o.flipX ? -1 : 1), -scale * (o.flipY ? -1 : 1)); fn(); ctx.restore();
 }
 function glow(c, b) { ctx.shadowColor = c; ctx.shadowBlur = b; }
+function posedNow(s) {
+  const P0 = L.world.posed;
+  if (!P0 || !P0.length || !GD.posedObjects) return L.level.objects;
+  const out = L.level.objects.slice();
+  for (const p of GD.posedObjects(L.world, s)) out[p.i] = p.off ? null : p.o;
+  return out.filter(Boolean);
+}
 function drawObj(o) {
   const d = GD.objInfo(o.id);
   if (d.kind === "decoration" || d.kind === "trigger") return;
@@ -603,7 +612,7 @@ function drawObj(o) {
     } else if (d.kind === "slope") {
       ctx.beginPath(); ctx.moveTo(-15, -15); ctx.lineTo(15, -15); ctx.lineTo(15, 15); ctx.closePath();
       ctx.fillStyle = "rgba(61,123,255,.18)"; ctx.fill(); glow("#3d7bff", 10); ctx.strokeStyle = "#5b8fff"; ctx.stroke();
-    } else if (d.kind === "mode" || d.kind === "gravity" || d.kind === "size") {
+    } else if (d.kind === "mode" || d.kind === "gravity" || d.kind === "size" || d.kind === "teleport") {
       glow(d.color, 12); ctx.strokeStyle = d.color; ctx.lineWidth = 3 / scale;
       ctx.beginPath(); ctx.ellipse(0, 0, d.kind === "mode" ? 12 : 9, d.kind === "mode" ? 42 : 36, 0, 0, 7); ctx.stroke();
     } else if (d.kind === "speed") {
