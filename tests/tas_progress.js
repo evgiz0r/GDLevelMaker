@@ -10,7 +10,7 @@ const { replay } = require("../tools/tas.js");
 
 // block reached (or "clear") per level, with the physics/object table as of this commit
 const REACHED = { 1: 328, 2: 493, 3: 909, 4: 415, 5: 175, 6: 303, 7: 210, 8: 333, 9: 343, 10: 109,
-  11: 288, 12: 33, 13: 116, 14: 30, 15: 267, 16: 134, 17: 295, 18: 105, 19: 100, 20: 32, 21: 54, 22: 81 };
+  11: 288, 12: 33, 13: 116, 14: 30, 15: 267, 16: 141, 17: 295, 18: 105, 19: 100, 20: 32, 21: 54, 22: 81 };
 let bad = 0;
 for (const [n, want] of Object.entries(REACHED)) {
   const r = replay(+n, 0);

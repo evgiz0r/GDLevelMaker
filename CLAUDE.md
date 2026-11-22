@@ -177,9 +177,19 @@ level gets -- raise its numbers when a fix gets further, never lower them. Facts
 slab (40) hitbox is centred; ids 5/73/80 are scenery; every slope skin is a slope; GD 2.2's own
 decoration list (`lib/objects_gd22.js`) beats OpenGD's 2.1 table; an upside-down cube that walks
 off a ledge can still jump until it falls faster than 2g (GD bug). Polargeist gets to 909/925.
+More facts from the plans (2026-11-22): a plan's tick t is our step t-1 (orbs at the edge of their
+reach decide it); an orb touched at the end of either of the last two ticks takes a press (GD's
+touched-orb list carries over a tick); hitboxes and saw radii grow with the object's scale (keys
+32, 128/129); id 143 is a one-way platform (land on it, never dies); 661-664 and 1903-1905 are
+slabs, not hazards; a blue pad flipped with key 5 faces down; move triggers move by 30 units a
+block. Plans now reach (blocks): 9: 343, 11: 288 (mini), 13: 116, 19: 100, 22: 81 (it jumps off
+blocks a move trigger raises).
 
 Open mismatches the plans show (not understood yet, do not paper over them):
-- Stereo Madness's ship hovers ~0.5 unit lower than the game's (dies on floor spikes at 328).
+- Stereo Madness's ship hovers ~0.5 unit lower than the game's (dies on floor spikes at 328). Hexagon Force's
+  ship (lv16, 141) grazes a saw by the same 0.5 unit after riding a ceiling slope.
+- Theory of Everything (lv12, 34) and its sequel (lv18, 106): after a pink orb the cube is ~30 units
+  too low to land on a block with a blue pad; every orb and pad value matches gdsolver's.
 - Back On Track's ship ends ~1 block high after a slide (493).
 - A cube that walked off a ledge and presses shortly before landing: the game jumps, we do not
   (Dry Out, Can't Let Go, Jumper, Time Machine, Polargeist's end). A 19-38 tick "landing buffer"
@@ -206,9 +216,13 @@ spider orb + pad, the upside-down red-orb dive under a hanging column.
 
 ## Not simulated yet
 
-Mini size; mirror, dual and teleport portals; slopes other than plain floor slopes (rotated or
-ceiling ones act as blocks); triggers (move, rotate, alpha/toggle); speed-dependent ring scaling
-for ball/UFO; spike slopes (any slope skin that kills is treated as a plain slope -- unchecked).
+Mirror, dual and teleport portals; slopes turned a quarter turn (walls act as blocks); rotate,
+follow and "move to target"/"lock to player" triggers, and a player carried sideways by a moving
+block; speed-dependent ring scaling for ball/UFO; spike slopes (any slope skin that kills is
+treated as a plain slope -- unchecked).
+Simulated but checked only by the plans: mini size (gdsolver's measured values), move/toggle/spawn
+triggers (x-crossing, touch and spawn firing, GD's easings), ceiling slopes, turned hazard boxes.
+The viewer draws moving objects where they start.
 
 ## Rules
 
