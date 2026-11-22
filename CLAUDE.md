@@ -17,6 +17,9 @@ reading before writing a spec; `levels/`, `glossary.md`, `demonlist.md` for the 
 3. Look at it: `node tools/serve.js` and open http://localhost:8765/viewer/ (or open
    `viewer/index.html` straight from disk in a normal browser). It replays the solver's clicks
    with a click sound, the timing window of each click, and hitboxes on request.
+   For the phone: `node tools/web.js` builds `local/web/` (repo levels and beat grids only,
+   no songs, no official levels), published as the user's private Artifact. Republish it after
+   every new or changed level (the link is in Claude's memory), so the user can watch from anywhere.
 4. With the game closed, `node tools/install.js levels/<name>.gdlvl` puts it at the top of
    My Levels (backs the save up first; refuses while GeometryDash.exe runs). The user plays it
    and reports. The user's game is plain GD 2.2 on Windows, no Geode: there is no in-game import.
