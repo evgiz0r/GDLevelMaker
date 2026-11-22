@@ -72,7 +72,7 @@ A plan's tick t is our step t-1 (`tools/tas.js` shifts it). Plans reach, in bloc
 Bands: a flying mode's portal sets floor/ceiling 300 apart (ball 240, spider 270). Entering or
 leaving a flying mode halves vy. Velocities sit on a 0.001 grid.
 
-Open: ship ~0.5 unit low (Stereo Madness 328, Hexagon Force 141); a cube that walks off a ledge and
+Open: Fingerdash (lv21, 54): a black orb drops the cube at -15 beside a column of turned thorns (458) and it touches one by 1.3 units on the tick it reaches the column -- one tick earlier drop (or GD firing the orb in a different phase of the tick) clears it; the sim's own solver cannot pass there either. Ship ~0.5 unit low (Stereo Madness 328, Hexagon Force 141); a cube that walks off a ledge and
 presses just before landing jumps in the game, not in the sim; Theory of Everything 1 and 2 pink-orb
 sections ~30 units low; UFO, wave, robot, spider, swing want a recording of the user's own play.
 
