@@ -388,7 +388,7 @@ function make(specFile, specObj) {
   const spec = specObj || JSON.parse(fs.readFileSync(specFile, "utf8"));
   const { level, rec, ctx, objects, header } = build(spec, specFile);
   const out = path.join(__dirname, "..", "levels", slug(spec.name) + ".gdlvl");
-  if (LOOK_ONLY && lookOnly(out, rec, level)) return { out, r: { ok: true } };
+  if (LOOK_ONLY && lookOnly(out, rec, level, spec)) return { out, r: { ok: true } };
   writeGdlvl(out, rec, level);
   let r = report(out);
   if (spec.indicators && r.ok) {
@@ -427,16 +427,28 @@ function make(specFile, specObj) {
 // checks that the saved plan still clears the level with one replay (seconds, not a solve), and writes
 // the file. Falls back to a full build when there is no previous build or the gameplay differs.
 const LOOK_ONLY = process.argv.includes("--look");
-function lookOnly(out, rec, level) {
+function lookOnly(out, rec, level, spec) {
   const io = require("./io.js"), sols = require("./solutions.js");
   if (!fs.existsSync(out)) { console.log("   --look: no previous build, solving"); return false; }
   const old = io.readGdlvl(out), sol = sols.get(old.levelStr, true);
   const sig = (objs, h) => JSON.stringify(GD.makeWorld(objs, h).items.map(b => [b.kind, Math.round(b.x), Math.round(b.y)]));
   if (!sol || !sol.ok) { console.log("   --look: no saved solution (none yet, or lib/physics.js changed since: saved solves go stale), solving"); return false; }
   if (sig(old.level.objects, old.level.header) !== sig(level.objects, level.header)) { console.log("   --look: gameplay changed, solving"); return false; }
-  // the jump marks of the last build (group 990 and the alpha trigger that fades them)
+  // the jump marks: placed again from the saved route (the rules in tools/decorate.js may have changed
+  // since the last build), else the last build's (group 990 and the alpha trigger that fades them)
   const IG = String(deco.INDICATOR.group);
-  level.objects.push(...old.level.objects.filter(o => o.props && (o.props[57] === IG || (o.id === 1007 && o.props[51] === IG))));
+  let placed = false;
+  if (spec && spec.indicators) try {
+    const wI = GD.makeWorld(level.objects, level.header);
+    let plan = { ok: true, events: sol.events };
+    const n = require("../lib/natural.js").naturalPlan(wI, plan, level.objects); if (n && n.path[n.path.length - 1].done) plan = { ok: true, events: n.events };
+    const ind = deco.jumpIndicators(wI, plan, spec.indicators.id || deco.INDICATOR.id, GD, spec.indicators);
+    level.objects.push(...ind.map(o => { const c = Object.assign({}, o); delete c.why; return c; }));
+    if (ind.length) level.objects.push(deco.indicatorFade(spec.indicators));
+    console.log(`   --look: ${ind.length} jump indicators placed again from the saved route`);
+    placed = true;
+  } catch (e) { console.log("   --look: could not place the jump indicators again (" + e.message + "), keeping the old ones"); }
+  if (!placed) level.objects.push(...old.level.objects.filter(o => o.props && (o.props[57] === IG || (o.id === 1007 && o.props[51] === IG))));
   const q = GD.run(GD.makeWorld(level.objects, level.header), sol.events);
   if (!(q.done || (q.end && !q.dead))) { console.log("   --look: the saved plan no longer clears it, solving"); return false; }
   writeGdlvl(out, rec, level);

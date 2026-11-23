@@ -21,7 +21,7 @@ const fs = require("fs"), path = require("path"), cp = require("child_process");
 const ROOT = path.join(__dirname, ".."), { headless } = require("./headless.js"), { levelOf } = require("./shoot.js");
 const GDL = require("../lib/gd.js"), O = require("../lib/objects.js");
 const args = process.argv.slice(2), opt = n => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] : null; };
-if (!args[0] || args[0].startsWith("--")) { console.log(fs.readFileSync(__filename, "utf8").split("\n").filter(l => l.startsWith("//")).join("\n")); process.exit(1); }
+if (require.main === module && (!args[0] || args[0].startsWith("--"))) { console.log(fs.readFileSync(__filename, "utf8").split("\n").filter(l => l.startsWith("//")).join("\n")); process.exit(1); }
 
 // thresholds of the gate (calibrated on official levels vs hellgate round 1, POLISH.md "Readability")
 const TH = { contrastMin: 3, contrastMedian: 4.5, weakMax: 0.35, clutterMax: 0.04, flashPerSec: 0.5, jumpMax: 0.12 };
@@ -60,7 +60,7 @@ function frameStats(A, B) {
 }
 const meanLum = A => { let s = 0; for (let i = 0; i < A.length; i += 3 * 7) s += lumOf(A, i); return s / (A.length / 21); };
 
-(async () => {
+if (require.main === module) (async () => {
   const lv = levelOf(args[0]);
   if (!lv.solution) { try { const s = require("./solutions.js").get(lv.levelStr, true); if (s && s.events) lv.solution = s; } catch (e) {} }
   if (!lv.solution) { console.log("no saved solution: run node tools/solutions.js <level> first (the camera must follow the same run twice)"); process.exit(1); }

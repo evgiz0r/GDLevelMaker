@@ -25,7 +25,7 @@
     ["yellow pad",177,0], ["spike",178,0], ["spike",179,0], ["spike",180,0], ["spike",181,0], ["spike",182,0], ["spike",183,0], ["spike",184,0], ["spike",185,0], ["spike",186,0], ["spike",187,0], ["spike",188,0], ["spike",189,0], ["spike",190,0], ["block",177,8], ["block",178,8], ["block",179,8], ["block",180,8], ["block",181,8], ["block",182,8], ["block",183,8], ["block",184,8], ["block",185,8], ["block",186,8], ["block",187,8], ["block",188,8], ["block",189,8], ["block",190,8], ["block",191,8], [1022,181,4], [1022,188,6],
     ["spike", 199, 0],
 
-    ["pattern", "wave-zigzag", 210, 0, { "seg": 4, "legs": 10, "gap": 4, "low": 1, "flat": 2, "lead": 8, "slopes": true, "portal": true, "exit": "cube", "portalRow": 1 }],
+    ["pattern", "wave-zigzag", 210, 0, { "seg": 4, "legs": 10, "gap": 4, "low": 2, "flat": 2, "lead": 8, "slopes": true, "portal": true, "exit": "cube", "portalRow": 1 }],
 
     ["spike", 287, 0],
     ["pattern", "double", 291, 0, {}],

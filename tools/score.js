@@ -13,6 +13,7 @@
 //   pacing       calm start and end, rests, a rising curve (numbers from the official levels)
 //   variety      not one chunk over and over (unless the brief says "repeat": true)
 //   readability  spike-like decoration (18-21) never within 2 columns of a hazard
+//   arrows       every jump indicator a block in front of its hazard: over one FAIL, within a block WARN
 //   craft        how objects are used vs the official 1.x levels (tools/craft.js, CRAFT.md): pieces per
 //                100 blocks, hazard floor, armed undersides, dressed tops, attached rods/chains, pillar
 //                heights, loose deco, hazards per 100 blocks. WARN when 3+ targets are missed.
@@ -216,6 +217,10 @@ function scoreLevel(level, brief, opts = {}) {
   const hazCols = new Set(haz);
   const near = level.objects.filter(o => SPIKY_DECO.has(o.id)).filter(o => { const c = Math.floor(o.x / 30); return [-2, -1, 0, 1, 2].some(d => hazCols.has(c + d)); });
   gate("readability", near.length ? "FAIL" : "PASS", near.length ? `${near.length} spike-like decorations within 2 columns of a hazard` : "decoration clear of hazards");
+
+  // arrows: every jump indicator a block in front of its hazard, never over it (FAIL) or next to it (WARN):
+  // the user on GDLM 50 v2, "arrow into the spike", "too close to the spike" (tools/softrules.js)
+  { const ar = require("./softrules.js").arrows(level, w); if (ar.n) gate("arrows", ar.status, ar.text); }
 
   if (brief.sections) {
     const colourT = level.objects.filter(o => o.id === 899 || o.id === 29 || o.id === 30).length;
