@@ -5,6 +5,8 @@
 //     (the real path, so every worktree sees the same folder); a slot whose pid is dead is cleared
 //   - at most 1 heavy job at a time on this 16 GB PC; 2 while more than 6 GB is free
 //   - and never starting while under 1.5 GB is free (it waits for memory too)
+//   - while the user plays (GeometryDash.exe runs): 1 slot whatever is free, none under 2 GB free
+//   - every heavy job runs at the lowest CPU priority (idle), so the game and the desktop always win
 //   - while waiting it prints "waiting for <cmd> (<session>), ~N min" (N from local/timings.jsonl)
 //   - a child process of a holder (env GDLM_HEAVY_HELD) runs in its parent's slot: no deadlock when
 //     a heavy tool runs another one (loop.js -> make.js, difficulty_solve.js all -> one level)
@@ -14,7 +16,7 @@
 // sessions at once, while the rule was only written down. Test: node tests/heavy.js
 const fs = require("fs"), path = require("path"), os = require("os");
 const ROOT = path.join(__dirname, "..");
-const MIN_FREE_MB = 1500, TWO_SLOTS_MB = 6000;
+const MIN_FREE_MB = 1500, TWO_SLOTS_MB = 6000, GAME_MIN_FREE_MB = 2000;
 
 function lockDir() {
   if (process.env.GDLM_LOCKDIR) return process.env.GDLM_LOCKDIR;
@@ -44,11 +46,23 @@ function holders(dir = lockDir()) {
   return out.sort((a, b) => a.start.localeCompare(b.start));
 }
 // may a new job start? (pure: tested)
-function decide(nHolders, free) {
-  const slots = free > TWO_SLOTS_MB ? 2 : 1;
+function decide(nHolders, free, gameOn) {
+  const slots = free > TWO_SLOTS_MB && !gameOn ? 2 : 1;
   if (nHolders >= slots) return "busy";
-  if (free < MIN_FREE_MB) return "memory";
+  if (free < (gameOn ? GAME_MIN_FREE_MB : MIN_FREE_MB)) return "memory";
   return "go";
+}
+// is the user playing? (GeometryDash.exe running; GDLM_GAME=1/0 forces it, for tests)
+function gameRunning() {
+  if (process.env.GDLM_GAME) return process.env.GDLM_GAME === "1";
+  try {
+    const cmd = process.platform === "win32" ? ["tasklist", ["/FI", "IMAGENAME eq GeometryDash.exe", "/NH"]] : ["ps", ["-A"]];
+    return /GeometryDash/i.test(require("child_process").execFileSync(cmd[0], cmd[1], { encoding: "utf8", timeout: 10000, windowsHide: true }));
+  } catch (e) { return false; }
+}
+// lowest CPU priority for this process (Windows: Idle class via libuv), so the game never stutters
+function lowPriority() {
+  try { os.setPriority(process.pid, 19); } catch (e) { try { os.setPriority(process.pid, 10); } catch (e2) {} }
 }
 // rough minutes left for a holder, from the time table
 function minutesLeft(h) {
@@ -68,6 +82,7 @@ const describe = h => `${(/tools[\\/].*/.exec(h.cmd) || [h.cmd])[0]} (${h.sessio
 let held = null;
 function claim(label) {
   if (process.env.GDLM_HEAVY === "off" || held) return;
+  lowPriority();   // first of all, also while waiting and in a parent's slot
   if (process.env.GDLM_HEAVY_HELD && alive(+process.env.GDLM_HEAVY_HELD)) return;   // in the parent's slot
   const dir = lockDir(), mutex = path.join(dir, "_mutex");
   fs.mkdirSync(dir, { recursive: true });
@@ -81,13 +96,13 @@ function claim(label) {
     try {
       const fd = fs.openSync(mutex, "wx");
       try {
-        const hs = holders(dir), free = freeMB(), d = decide(hs.length, free);
+        const hs = holders(dir), free = freeMB(), game = gameRunning(), d = decide(hs.length, free, game);
         if (d === "go") {
           held = path.join(dir, process.pid + ".json");
           fs.writeFileSync(held, JSON.stringify({ pid: process.pid, session: sessionName(), cmd, start: new Date().toISOString(), freeMB: free }));
           got = true;
         } else {
-          const msg = d === "busy" ? `waiting for ${hs.map(describe).join("; ")}` : `waiting for memory: ${free} MB free, need ${MIN_FREE_MB} MB`;
+          const msg = d === "busy" ? `waiting for ${hs.map(describe).join("; ")}${game ? " (the game runs: one job at a time)" : ""}` : `waiting for memory: ${free} MB free, need ${game ? GAME_MIN_FREE_MB + " MB while the game runs" : MIN_FREE_MB + " MB"}`;
           if (msg.replace(/\d+ min in.*$/, "") !== lastMsg || Date.now() - lastAt > 120000) { console.log(`heavy: ${msg}`); lastMsg = msg.replace(/\d+ min in.*$/, ""); lastAt = Date.now(); }
         }
       } finally { fs.closeSync(fd); fs.unlinkSync(mutex); }
@@ -108,8 +123,8 @@ function claim(label) {
 }
 const release = () => { if (held) { try { fs.unlinkSync(held); } catch (e) {} held = null; delete process.env.GDLM_HEAVY_HELD; } };
 
-module.exports = { claim, release, holders, decide, lockDir, freeMB, describe, MIN_FREE_MB, TWO_SLOTS_MB };
+module.exports = { claim, release, holders, decide, gameRunning, lowPriority, lockDir, freeMB, describe, MIN_FREE_MB, TWO_SLOTS_MB, GAME_MIN_FREE_MB };
 if (require.main === module) {
   const hs = holders();
-  console.log(`${freeMB()} MB free; ${hs.length ? hs.length + " heavy job(s): " + hs.map(describe).join("; ") : "no heavy job running"}  (lock dir ${lockDir()})`);
+  console.log(`${freeMB()} MB free${gameRunning() ? ", the game runs" : ""}; ${hs.length ? hs.length + " heavy job(s): " + hs.map(describe).join("; ") : "no heavy job running"}  (lock dir ${lockDir()})`);
 }

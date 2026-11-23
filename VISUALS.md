@@ -21,10 +21,14 @@ only with GD art: the shapes look draws them in `lib/look.js` `drawMark` (own sh
 alpha), the schematic view soft white. Other decoration stays out of the shapes look.
 
 The button strip under the ground (viewer and phone) shades each input's whole timing window, from the
-earliest to the latest tick that still clears (presses cyan, releases pink, a tap's release moves with its
-press), with its length in ms under it; the white mark inside is where the replay presses. Saved and natural
-replays carry no windows, so the page works them out after the level shows (`lib/windows.js`, a slice at a
-time; ~7 s for GDLM 45 on the PC, slower on a phone) and fills the click table's window column then.
+earliest to the latest tick that works (presses cyan, releases pink, a tap's release moves with its press),
+with its length in ms under it; the white mark inside is where the replay presses. The window is a player's
+(`lib/windows.js` -> lib/difficulty.js measureWindows: later inputs re-planned, the one definition score.js and
+difficulty use too). Saved and natural replays carry no windows, so the page works them out after the level
+shows, in a Web Worker (`viewer/windows_worker.js`, shipped on the phone page too): one input can take 3.7 s,
+which froze the page when it ran there. ~40 s for GDLM 45 on the PC, filling in as it goes; the click table's
+window column fills when it is done. A level with no saved solution in viewer/levels.js is solved in the page
+first (minutes, page frozen): `node tools/solutions.js <level>`, then `node tools/index_levels.js`.
 `node tools/shoot.js <level> --input` draws the strip in headless shots.
 
 ## What is built
