@@ -63,6 +63,9 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   visible landing) or room. (PHYSICS.md "GDLM 60 physics lab")
 - [ ] **A dash ends in open space**, or where it must end is telegraphed: a solid post right after a dash
   orb's run killed the user 5 times holding the dash into it (GDLM 60). (structures: dash-orb-pit)
+- [ ] **Orbs can be buffered**: a press held a little before an orb fires it on first contact; an orb only a
+  precise mid-orb click takes is a warning. **No jumps over nothing**: stairs and step-downs are walked off.
+  score.js gates "orb buffer" / "pointless jumps" (lib/natural.js; the user via physics, 2026-11-24)
 - [ ] **Every hazard matters**: none walked over without a jump (slabs at one height 2 apart over
   spikes are crossed on foot: the spikes are pointless and leave a "do I jump?" doubt). Make it a real
   jump (gap 3+, or rising slabs) or keep the spikes out of the way. score.js gate "hazards matter".

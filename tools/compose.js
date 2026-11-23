@@ -49,7 +49,7 @@ if (require.main === module) require("./heavy.js").claim();   // one heavy job a
 const fs = require("fs"), path = require("path");
 const { make, build, slug } = require("./make.js");
 const { PATTERNS, expand, mirrorUp } = require("./patterns.js");
-const PH = require("../lib/physics.js"), SY = require("../lib/sync.js");
+const PH = require("../lib/physics.js"), SY = require("../lib/sync.js"), { GD } = require("./io.js");
 const { scoreLevel, print } = require("./score.js");
 
 // an easier pattern to fall back to when one keeps failing a gate
@@ -359,6 +359,7 @@ function compose(brief, tweaks = {}) {
   // the signature at the end (tools/signature.js, the visuals session's): in the last rest section
   // on by default; make.js puts it 3 blocks after the last gameplay object and ends the level ~5 blocks after it
   spec.signature = brief.signature === false ? false : {};
+  if (brief.scene) spec.scene = brief.scene;   // a scene script (tools/scenes/<name>.js, SHOWCASE.md): the look by hand, run by make.js
   if (brief.craft) spec.craft = brief.craft;   // craft pass (tools/craftkit.js, CRAFT.md): rods, chains, lanterns on the structures
   if (brief.modern !== false) spec.modern = { sections: looks.map(({ bg, ...l }) => l), title: brief.name, end: "thanks for playing", seed: brief.seed || 3, light: brief.palette === "light" };
   // jump indicators (tools/decorate.js): on jumps that cannot be read in time, and the first jump of
@@ -531,6 +532,20 @@ function loop(briefFile, rounds = 8) {
     fs.appendFileSync(lf, head + `## ${brief.name} (${new Date().toISOString().slice(0, 10)})\n` + vlog.map(l => "- " + l).join("\n") + "\n\n");
   }
   const failRounds = {};
+  // ---- build stages for the viewer (the user: "partial steps like song/layout/path/deco available in the
+  // process"; visuals' tools/stages.js): song now, layout after the first compose, path when the layout is
+  // kept, deco and final after make. Failures here never stop a build.
+  const STG = (() => { try { return require("./stages.js"); } catch (e) { return null; } })();
+  const stage = (st, extra) => { if (!STG) return; try { STG.put(Object.assign({ session: brief.session || "style", base: slug(brief.name), name: brief.name, stage: st }, extra)); } catch (e) { console.log("   (stage " + st + " not saved: " + e.message + ")"); } };
+  const gameplayOnly = spec => { const g = JSON.parse(JSON.stringify(spec)); delete g.scene; delete g.craft; delete g.modern; delete g.indicators; delete g.decoDensity; g.signature = false; g.objects = g.objects.filter(o => !Array.isArray(o) || !["colour", "fade", "zoom"].includes(o[0])); return g; };
+  const levelStrOf = spec => { const log0 = console.log; console.log = () => {}; try { const { level } = build(spec, briefFile); return GD.serializeLevel(level); } finally { console.log = log0; } };
+  {
+    const { songOf, gridOf } = require("./make.js");
+    let grid = null; try { grid = brief._grid || (brief.grid ? gridOf(brief) : gridOf(brief, songOf(brief))); } catch (e) {}
+    let b = 1; const secs = brief.sections.map(s => { const from = grid ? SY.SYNC.beatToTime(grid, brief.offset || 0, b) : null; b += s.beats || 0; const to = grid ? SY.SYNC.beatToTime(grid, brief.offset || 0, b) : null; return { name: s.name, from, to }; });
+    stage("song", { data: { song: { id: brief.song && brief.song.custom, offset: brief.offset || 0 }, grid: grid ? { bpm: brief.grid && brief.grid.bpm, period: grid.period, t0: grid.t0 } : null, sections: secs }, note: "song and its sections" });
+    try { stage("layout", { levelStr: levelStrOf(gameplayOnly(compose(brief, start0).spec)), note: "gameplay only, first plan" }); } catch (e) {}
+  }
   let cur = evaluate(start0), best = null;
   for (let round = 1; round <= rounds; round++) {
     const s = cur.s;
@@ -638,7 +653,17 @@ function loop(briefFile, rounds = 8) {
   fs.writeFileSync(specFile, JSON.stringify(best.spec, null, 0).replace(/,\["/g, ',\n  ["').replace('"objects":[', '"objects": [\n  ') + "\n");
   fs.writeFileSync(path.join(path.dirname(briefFile), base + ".log.md"), log.join(""));
   console.log(`spec: ${path.relative(process.cwd(), specFile)}  log: ${path.relative(process.cwd(), path.join(path.dirname(briefFile), base + ".log.md"))}`);
+  // the path stage: the kept layout with its planned presses (tools/intent.js: each pattern's intended inputs)
+  try {
+    const g = gameplayOnly(best.spec), log0 = console.log; console.log = () => {};
+    let built; try { built = build(g, briefFile); } finally { console.log = log0; }
+    const I = require("./intent.js"), wg = GD.makeWorld(built.level.objects, built.level.header), tl = SY.SYNC.timeline(wg);
+    const { intents } = I.intents(built.ctx.placements || [], tl);
+    stage("path", { levelStr: GD.serializeLevel(built.level), data: { planned: intents.map(i => ({ t: +SY.SYNC.tOfX(tl, i.x).toFixed(3), what: i.type === "press" ? "jump" : "release" })) }, note: "the kept layout and its planned presses" });
+  } catch (e) { console.log("   (path stage skipped: " + e.message + ")"); }
   make(specFile);
+  try { const L = require("./io.js").readGdlvl(path.join(__dirname, "..", "levels", slug(brief.name) + ".gdlvl"));
+    stage("deco", { levelStr: L.levelStr, note: "with the look" }); stage("final", { levelStr: L.levelStr, note: best.s.ok ? "READY" : "not ready" }); } catch (e) {}
   print(brief.name, best.s);
   return best;
 }
