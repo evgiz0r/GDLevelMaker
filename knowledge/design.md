@@ -82,6 +82,12 @@ official levels, or a playtest remark). A single playtest remark is evidence, no
 - Rated Easy/Normal levels bring in a new kind of thing every ~2 s until ~85% of the level, each shown
   once or twice before moving on. Official 1-8 do it every ~4.6 s.
 
+## The modern look (`levels/modern_look.md`)
+- 2.2 rated levels have 20-50 objects per block (GDLM: 1), half behind the play and a quarter in
+  front. Every object has a colour channel, HSV on ~40%, and ~24 triggers per second of play.
+- Dense opening, quiet transitions, the biggest effects at the drops, a new look per section.
+  Gameplay stays readable.
+
 ## Getting rated (`rating.md`)
 - RobTop has no fixed criteria. His tips: 60 s+ (30 s minimum), "clear gameplay and decent
   visuals", and good performance. Higher tiers mean he likes the level more, and in our sample
