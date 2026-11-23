@@ -30,7 +30,25 @@ A level is hard when you must get many inputs right in one go and some leave lit
 3. **Chance per input** = (1 - LAPSE) · erf(w/2 / (SIGMA·√2)). SIGMA is the spread of the
    player's timing error. LAPSE is the chance of fluffing an input whatever its window: a
    misread, a slip, a late reaction.
-4. **Score** = log10 of the expected attempts to beat the level in one go, -Σ log10 p
+4. **The route a player picks** (`easierRoute()`, the user: "when there is a hard timing, we
+   avoid it ... if the timing is easier (the orb), it should usually be the path"). Around every
+   tight input (under 60 ms; cube, ball, UFO, robot, spider -- not the steering modes) it tries
+   about 2300 other routes over 1.5 s before to 1.2 s after:
+   - drop the input, or move it up to 600 ms;
+   - add one tap anywhere (an orb the solver skipped);
+   - drop it and tap once or twice in its place (a jump and an orb onto a platform).
+   A route counts only if every new tap does something (a jump or an orb) and the run lands back
+   on the original path within 2 s. One candidate per distinct sequence of jumps and orbs is then
+   judged by its **joint chance**: every input on the stretch gets its own timing error at once
+   (normal, SIGMA), none is re-planned, 200 seeded samples, the same draws for every route. It
+   must beat the original by 0.02 in log10 attempts, and so must the usual windows. The joint
+   chance is what stops fake routes. An early jump, then a held press that jumps again on landing,
+   has a wide window for each input alone, but the landing spot hangs on the first jump, so
+   together they are as tight as the jump they replace. `tests/route_choice.js` has that case, a
+   real orb route over a triple spike (0.039 -> 0.007) and a lone spike that keeps its jump.
+   `node tools/difficulty_route.js <n | file | community id>` shows a level with and without it.
+   The report writes the chosen route into `local/official_NN.json`, so the viewer replays it.
+5. **Score** = log10 of the expected attempts to beat the level in one go, -Σ log10 p
    (1.0 ≈ 10 attempts). `/min` is the same per minute of the part the sim covers.
    `practiceDeaths` = Σ (1/p - 1).
 
@@ -40,6 +58,14 @@ Reported beside the score:
 - ship gap (free height around the ship's path);
 - hiding triggers (move, alpha, toggle and spawn triggers the sim ignores: memory parts);
 - `quickRecoveries`: presses whose window closes under 150 ms after a landing.
+- `forcedAfterSwitch`: inputs whose window closes under 250 ms (`SETTLE`, assumed) after a mode,
+  gravity or speed change; `afterSwitchMs` per input. From the physics session: in GDLM 44 the
+  user died 2 of 2 at a wave entrance whose window is 92 ms. The cube lands on a block and takes
+  the portal at its end, and unless the wave is held within ~13 ticks it slides off and dies. The
+  window is not small; it starts at the mode change, before the player has settled. (The GDLM 44
+  in levels/ now, 2026-11-23, has a 279 ms wave press closing 363 ms after the portal: forced 0.)
+  `node tools/press_window.js <level> --x X --y Y --hold-to X2 --to X3` (physics session) gives the
+  press window from any spot.
 - `room`: free height per flying mode, counting blocks AND hazards, min and median in units
   (30 = a row). The user found GDLM 44's wave "slightly too difficult" with the same windows as the
   rest. It had 2 rows of room where the ship had 5.
@@ -88,7 +114,7 @@ timing misses.
 Deadlocked 3951. The others took 39-560. The game writes the save only now and then, so a
 session's attempts show up there late.
 
-## Against the official levels (physics 1503b03 with triggers, human route, SIGMA 13, LAPSE 0.75 %)
+## Against the official levels (physics 1503b03 with triggers, the player's route, SIGMA 13, LAPSE 0.75 %)
 
 Solved into the shared `local/` and tagged with their physics commit (`tools/difficulty_solve.js`);
 9, 10, 17, 19, 20 and 22 come from the physics session's runs. 18 of 22 are now beaten in the sim.
@@ -105,42 +131,46 @@ Solved into the shared `local/` and tagged with their physics commit (`tools/dif
 | 8 | Time Machine | Harder 8 | 100% | 136 | 1 | 54 | 0.46 | 0.29 | 204 |
 | 9 | Cycles | Harder 9 | 100% | 108 | 0 | 63 | 0.37 | 0.28 | 127 |
 | 10 | xStep | Insane 10 | 100% | 115 | 6 | 17 | 0.88 | 0.66 | 114 |
-| 11 | Clutterfunk | Insane 11 | 100% | 158 | 2 | 42 | 0.60 | 0.38 | 456 |
+| 11 | Clutterfunk | Insane 11 | 100% | 159 | 1 | 42 | 0.58 | 0.37 | 456 |
 | 12 | Theory of Everything | Insane 12 | 100% | 112 | 3 | 58 | 0.40 | 0.29 | 170 |
-| 13 | Electroman Adventures | Insane 10 | 100% | 137 | 2 | 8 | 1.08 | 0.77 | 285 |
+| 13 | Electroman Adventures | Insane 10 | 100% | 137 | 1 | 54 | 0.48 | 0.34 | 285 |
 | 14 | Clubstep | Demon 14 | 100% | 161 | 5 | 33 | 0.78 | 0.55 | 1886 |
 | 15 | Electrodynamix | Insane 12 | 100% | 132 | 3 | 25 | 0.73 | 0.51 | 560 |
 | 16 | Hexagon Force | Insane 12 | 100% | 136 | 0 | 63 | 0.46 | 0.32 | 249 |
 | 17 | Blast Processing | Harder 10 | 100% | 120 | 2 | 25 | 0.67 | 0.41 | 203 |
 | 18 | Theory of Everything 2 | Demon 14 | 56% | 92 | 7 | 13 | 1.07 | 1.26 | 3258 |
 | 19 | Geometrical Dominator | Harder 10 | 89% | 115 | 3 | 33 | 0.53 | 0.37 | 191 |
-| 20 | Deadlocked | Demon 15 | 31% | 55 | 3 | 25 | 0.51 | 0.87 | 3951 |
+| 20 | Deadlocked | Demon 15 | 30% | 55 | 3 | 25 | 0.51 | 0.89 | 3951 |
 | 21 | Fingerdash | Insane 12 | 5% | - | - | - | - | - | 296 |
 | 22 | Dash | Harder 10 | 24% | 24 | 3 | 21 | 0.44 | 1.79 | 477 |
 
 Fingerdash is left out: a sim bug stops it at block 55, being fixed by the physics session.
 
 **Rank agreement over the other 21:**
-- score per minute vs stars **0.66**;
-- total score vs stars **0.61**;
-- score per minute vs your attempts **0.66**.
+- score per minute vs stars **0.70**;
+- total score vs stars **0.63**;
+- score per minute vs your attempts **0.64**.
+
+Route choice (`easierRoute`, report6, 2026-11-23) changed two levels. Electroman's 8 ms UFO
+tap became an extra flap 0.9 s later, which makes up for an off-time first one (1.08 -> 0.48).
+Clutterfunk's 50 ms cube jump became two taps (0.60 -> 0.58). Before route choice it was 0.66 /
+0.61 / 0.66. Every other tight input is ship, wave or swing steering, or had no easier route.
 
 Stars vs your attempts is 0.73, the bar. Before the physics update, with most upper levels
 partial, it was 0.59.
 
 What it gets right:
 - **The Insane and Demon levels score highest**, now over whole levels: xStep 0.88,
-  Electroman 1.08, Clubstep 0.78, Electrodynamix 0.73, ToE 2 1.07 (56%). Their tight inputs (under
-  60 ms) number 2-7 per level, against 0-1 up to Harder.
+  Clubstep 0.78, Electrodynamix 0.73, ToE 2 1.07 (56%). Their tight inputs (under 60 ms) number
+  3-7 per level, against 0-1 up to Harder.
 - **It fits the player's attempts** on the levels they played (calibration above).
 
 What it gets wrong:
 - **Easy to Harder all score 0.36-0.46,** about 0.3 per minute. The layout model above separates
   them into two bands; timing does not.
-- **Hexagon Force (Insane) and ToE (Insane) score like Harder.** Their difficulty may be in parts
-  the sim plays more easily than people do (dual, reading), or in route choice (Open 0).
-- **Electroman's 8 ms input is probably a needless solver route** that the ±200 ms scan doesn't
-  reach. See Open 0.
+- **Hexagon Force, ToE and now Electroman (Insane) score like Harder.** Route choice found easy
+  routes in them, so their difficulty is elsewhere: parts the sim plays more easily than people
+  do (dual, reading the UFO), surprise (Open 3) or density (Open 1).
 - **Dash (24%) and Deadlocked (31%) per minute** rest on short covered fragments.
 
 ## Tier ladder (targets for making levels)
@@ -155,7 +185,7 @@ that tier's official levels look like, per minute of play, at 1x:
 | Normal | 3, 4 | 1.6 | ~21-29 | 0 | 100 ms | 0 | ~0.31 |
 | Hard | 5, 6 | 1.5-1.6 | ~25-32 | 2-3 | 67-71 ms | 0 | ~0.31 |
 | Harder | 7, 8 | 1.4-1.5 | ~23-28 | 2-5 | 54-58 ms | 1 | ~0.30 |
-| Insane | 10, 11, 13, 15 | 1.4-1.7 | - | - | 8-42 ms | 2-6 | 0.4-0.8 |
+| Insane | 10, 11, 13, 15 | 1.4-1.7 | - | - | 17-54 ms | 1-6 | 0.34-0.66 |
 | Demon | 14, 18, 20 | 1.6-1.9 | - | - | 13-33 ms | 3-7 | 0.55-1.3 |
 
 Read it as rough guide rails, not a classifier:
@@ -208,6 +238,12 @@ Per tier, the medians:
 - **Not in the fit:** official 9-22 (Insane/Demon) all predict ~3. Layout alone does not see the
   upper tiers; the timing score does (xStep, Clubstep, ToE 2, Hexagon Force at 0.6-1.0 per minute).
 
+Per section rather than per level: `node tools/tiercheck.js` (knowledge session) calls each
+section, or ~40-block window, Easy/Normal-like or Hard/Harder-like per mode against deciles in
+`knowledge/levels/tier_ref.json`. It prints `tierFromLayout()` beside it. In-sample Spearman
+0.46 against this model's 0.72 on the same 63 levels; it is for finding which part of a level
+sits in the wrong band.
+
 **So for making levels:**
 - Use the layout rows above to land in a band.
 - Use the timing ladder below (windows under 100/150 ms per minute, the tightest window) to place
@@ -235,15 +271,14 @@ widest-moment scan skipped. Flying presses and releases are now scanned too.
 
 ## Open (hand-off)
 
-0. **Route choice like a player** (the user, 2026-11-22): "when there is a hard timing, we avoid
-   it, e.g. the jump in Polargeist (avoiding the orb); if the orb's timing is easier it should
-   usually be the path. And if a human can buffer an orb or a jump, we usually buffer slightly."
-   - Buffering slightly is modelled: taps stay down ~100 ms, so a slightly early press still
-     jumps on landing or triggers the orb on entry.
-   - Route choice is only partly modelled: a tight input looks ±200 ms for a wider moment. Looking
-     further (600 ms) found fake routes, an early jump rescued by a free extra jump.
-   - The real fix is a solver objective that maximises Σ log p (the easiest route) instead of the
-     fewest presses, charging every input.
+0. **Route choice: done for the jumping modes** (The measure, item 4). Open:
+   - Steering modes (ship, wave, swing) are skipped: they never land back on the same state. Their
+     window search already re-plans the steering, but that lets later inputs rescue for free.
+   - A route counts only if it rejoins within 2 s. A different path that stays apart longer (an
+     upper and a lower path through a whole section) is not compared yet.
+   - The joint chance uses no reaction at all; within 1-2 s a player does correct a bit.
+   - "Buffer slightly" (the user) is in through the 100 ms taps; where in the window a player
+     aims is not modelled.
 
 1. **Separate Easy to Harder.** They all score about 0.3 per minute. Next: put density
    (`touchesPerMin`, `switchesPerMin`, `restsPerMin`), `room` and surprise (an input that
@@ -253,7 +288,9 @@ widest-moment scan skipped. Flying presses and releases are now scanned too.
    Back On Track are the best. Keep mouse and keyboard apart (`--device`).
    - Loop: record → `node tools/runs.js <files> --join --level N --device mouse` →
      `node tools/difficulty_fit.js` → update SIGMA and LAPSE.
-3. **Unexpected land-and-jump chains.** These were all 8 of the player's GDLM 42 deaths, but
+3. **Surprise: unexpected land-and-jump chains and inputs forced right after a switch.** Both
+   are reported (`quickRecoveries`, `forcedAfterSwitch`), neither is in the score. The GDLM 44
+   wave entrance (2 of 2 deaths) is the first case of the second kind. **Unexpected land-and-jump chains.** These were all 8 of the player's GDLM 42 deaths, but
    rhythmic chains are fine (every early official level has 60-90). Needs a rhythm or surprise
    measure to tell them apart.
 4. **Coverage.** 6 official levels are under 10% in the sim (`local/difficulty/NN.json` says

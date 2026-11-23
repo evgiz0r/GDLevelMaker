@@ -42,6 +42,14 @@ function scoreOfficial(n, sigma) {
   const L = GD.parseLevel(unpack(fs.readFileSync(path.join(SRC, n + ".txt"), "utf8")));
   const w = GD.makeWorld(L.objects, L.header);
   const d = DF.difficulty(w, sol, { sigma });
+  // the viewer shows the route that was scored: when a tight input was swapped for an easier way
+  // through (lib/difficulty.js easierRoute), write that route into local/official_NN.json
+  const vf = path.join(OUT, "..", `official_${String(n).padStart(2, "0")}.json`);
+  if (d.rerouted.length && fs.existsSync(vf)) {
+    const v = JSON.parse(fs.readFileSync(vf, "utf8"));
+    v.solution = Object.assign({}, v.solution, { events: d.events, rerouted: d.rerouted });
+    fs.writeFileSync(vf, JSON.stringify(v));
+  }
   return Object.assign(d, { n, sol, levelBlocks: w.endX / 30 });
 }
 
@@ -56,6 +64,7 @@ function main() {
       const d = DF.difficulty(w, r.ok ? r : { events: r.trail || [] }, { sigma });
       console.log(`== ${L.name}: ${d.complete ? "" : "PARTIAL (sim stops at block " + f1(d.blocks) + "), "}score ${d.logAttempts.toFixed(2)} (~${Math.round(10 ** d.logAttempts)} attempts, ${DF.difficultyLabel(d.logAttempts)}); practice mode: ~${f0(d.practiceDeaths)} deaths`);
       console.log(`   ${d.inputs} inputs in ${f1(d.seconds)} s, tightest ${f0(d.tightest)} ms, median ${f0(d.medianMs)} ms, ${d.tight} under ${DF.DIFF.TIGHT} ms, longest tight streak ${d.streak}, busiest 5 s ${f1(d.peak5s)}/s`);
+      for (const r of d.rerouted) console.log(`   easier route at block ${f1(r.x / 30)}: the ${f0(r.was)} ms input -> ${r.why} (-${r.gain} log10 attempts)`);
       for (const a of d.actions) console.log(`     ${(a.tick / 240).toFixed(2)} s  block ${f1(a.x / 30)}  ${a.type.padEnd(7)} ${a.mode.padEnd(4)} window ${f0(a.ms)}${a.open ? "+" : ""} ms  p=${a.p.toFixed(2)}`);
     }
     return;
@@ -67,6 +76,7 @@ function main() {
     if (!d) { console.log(`${n}: no solution cached, run: node tools/difficulty_solve.js ${n}`); continue; }
     d.secsTaken = (Date.now() - t0) / 1000;
     rows.push(d);
+    for (const r of d.rerouted) console.log(`  ${n}: easier route at block ${f1(r.x / 30)}: the ${f0(r.was)} ms input -> ${r.why} (-${r.gain} log10 attempts)`);
   }
   // the player's own lifetime attempts per level (node tools/save_stats.js), when there
   const uf = path.join(OUT, "user_stats.json"), user = fs.existsSync(uf) ? JSON.parse(fs.readFileSync(uf, "utf8")) : null;

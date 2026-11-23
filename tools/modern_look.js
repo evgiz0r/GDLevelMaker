@@ -5,8 +5,8 @@
 //   objects / s, objects per block, share by catalogue group (knowledge/objects/catalogue.tsv: blocks,
 //   deco-blocks, deco-shapes, deco-scenery, deco-spikes, pixel, effects, triggers...)
 //   layers      z-layer of every object: key 24 when set, else the id's default layer from the catalogue
-//               (B5 -5, B4 -3, B3 -1, B2 1, B1 3, T1 5, T2 7, T3 9, T4 11; key-24 values: GD's ZLayer
-//               enum, from memory, sure:false)
+//               (B5 -5, B4 -3, B3 -1, B2 1, B1 3, T1 5, T2 7, T3 9, T4 11: as lib/art.js; -3..9 from
+//               OpenGD's renderer, B5/T4 from memory of 2.2; none checked in the game)
 //   colour      distinct colour channels objects use (keys 21/22), header channels (kS38), how many
 //               blend (field 5), have opacity < 1 (field 7) or copy another channel (field 9); share of
 //               objects with HSV on (keys 41/42)
