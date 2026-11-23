@@ -170,4 +170,4 @@ function markProps(id, opts) {
 // the alpha trigger that makes the marks soft, at the level's start
 function indicatorFade(opts = {}) { return fadeTrigger(0, opts.group ?? INDICATOR.group, opts.alpha ?? INDICATOR.alpha, 0, 11); }
 
-module.exports = { INDICATOR, jumpIndicators, indicatorFade, CH, SKIN, skinBlocks, groundDeco, colourTrigger, fadeTrigger, zoomTrigger, setHeaderColours, setHeaderArt };
+module.exports = { INDICATOR, jumpIndicators, markProps, indicatorFade, CH, SKIN, skinBlocks, groundDeco, colourTrigger, fadeTrigger, zoomTrigger, setHeaderColours, setHeaderArt };

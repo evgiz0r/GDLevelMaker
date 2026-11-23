@@ -13,7 +13,7 @@ smallest changes that fix what is unfair, unreadable, off the music or bare. Own
 | polish | `node tools/polish.js <level.gdlvl>` -> `local/polish/<slug>_polished.gdlvl` + `.compare.json` | same |
 | some passes only | `--passes fair,read,sync,deco` | |
 | how fair | `--min-ms 34` (default: 2 frames at 60 fps) | |
-| a deco arrow instead of the text "v" | `--indicator <id>[:rot]` | |
+| another indicator than INDICATOR | `--indicator <id>[:rot]` | |
 | before / after | `node tools/serve.js`, http://localhost:8765/viewer/polish.html (lists every compare file) | |
 | show it to the user | `node tools/wip.js put local/polish/<slug>_polished.gdlvl --session polish --note "..."`, then the ArtifactData call it prints (phone page) | |
 | test | `node tests/polish.js` | ~35 s |
@@ -28,7 +28,9 @@ Every change is kept only if the level still clears with the edited plan, and no
 within two inputs drops below min(its old window, the limit). At the end a fresh `solveAny` on the
 current physics must beat the polished level, or polish.js refuses to write it.
 
-1. **fair** -- inputs whose timing window is under `--min-ms`. Windows are measured by moving each
+1. **fair** -- inputs whose timing window is under `--min-ms`. Windows are measured on the natural plan
+   (lib/natural.js, a tap per jump; the solver's fewest-presses plan holds through cube runs, and GDLM 44
+   read a "4 ms" press no player meets), by moving each
    input tick by tick and replaying the whole plan (like `tools/windows.js`), but a cube **tap**
    (press + release 1-3 ticks later) moves as a pair: windows.js moves the press alone, runs into its
    own release and prints 8 ms where the window is really 17-25 ms. A window that runs into the
@@ -44,7 +46,7 @@ current physics must beat the polished level, or polish.js refuses to write it.
    (-4 ms at most). Loosely: nothing else is pinned (SYNC.md "How much to sync").
 3. **read** -- `tools/sightread.js` prejumps, plus `tools/decorate.js` jumpIndicators' rule (far cue,
    ledge, first jump after a mode/gravity change), get a jump indicator where none is within 4 blocks:
-   the faded text "v" (914, 45% via an alpha trigger on group 990) as compose.js uses, or `--indicator`.
+   gd-style's INDICATOR from tools/decorate.js (since 2026-11-23 deco 460, the chevron, rot 90 so it points down, scale 0.7, white channel 1011, group 990 faded to 45% by an alpha trigger), or `--indicator id[:rot]`.
    A prejump is not removed (that would be a redesign), it is marked.
 4. **deco** -- only when < 30% of the objects are decoration (a decorated level is left alone):
    block skins 1-7 on plain blocks (decorate.js skinBlocks, the classic outlined set), the classic
@@ -81,6 +83,6 @@ add only no-collision objects, so they cannot break what came before (the final 
   rated levels (knowledge/objects/README.md "Open": deco relative to blocks). Colours are left as the
   level has them.
 - Difficulty before/after (lib/difficulty.js tier) is not in the report yet.
-- Which indicator: the text "v" until gd-style / the user pick a deco arrow (GDLM 46 catalogue).
+- The indicator (deco 460 chevron) is not yet seen in the user's game.
 - Polishing levels from the user's save: read them like tools/install.js does, into local/ only, and
   ask the user first for each one.

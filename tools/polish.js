@@ -1,5 +1,5 @@
 // node tools/polish.js <level.gdlvl> [--dry] [--passes fair,read,sync,deco] [--min-ms 34] [--out file.gdlvl]
-//                      [--name "new name"] [--indicator id[:rot]]
+//                      [--name "new name"] [--indicator id[:rot]] [--lift 22]
 // Polish a level that already exists WITHOUT redesigning it (POLISH.md): keep its layout, fix the
 // smallest things, in this order, each change kept only if the level still clears on the current
 // physics and no other input's window gets worse:
@@ -8,9 +8,9 @@
 //          moves of what is near the input (an orb or pad by half a block or a block, a portal off a
 //          block edge, a spike along its surface, a small block group by a row -- with what sits on
 //          it), keep the move that widens the window most.
-//   read   prejumps (tools/sightread.js) and jumps that cannot be read in time
-//          (tools/decorate.js jumpIndicators: far cue, ledge, first jump after a portal): add a small,
-//          soft jump indicator (default a faded text "v", like compose.js) where none is near.
+//   read   a small soft jump indicator (tools/decorate.js INDICATOR, the chevron) low over the surface
+//          at every NEEDED jump off a surface (the plan without it dies), none within 3 blocks of
+//          another; the level's old indicators (group 990) are replaced. Prejumps are marked, not removed.
 //   sync   portals onto bar starts (within 1.5 blocks), orbs onto beats (within half a block),
 //          loosely: only a move that keeps every window as it was (SYNC.md "How much to sync").
 //   deco   only on a level with little decoration (< 30% of objects): block skins 1-7 on plain blocks,
@@ -26,7 +26,7 @@ Object.assign(GD, require("../lib/sync.js"), require("../lib/natural.js"));
 const DECO = require("./decorate.js");
 const { sightread } = require("./sightread.js");
 
-const TPS = GD.PHYS.TPS, FRAME = 1000 / 60;
+const TPS = GD.PHYS.TPS, FRAME = 1000 / 60, SETTLE = 250; // SETTLE: lib/difficulty.js forcedAfterSwitch
 const GAMEPLAY = new Set(["solid", "hazard", "slope", "orb", "pad", "mode", "gravity", "speed"]);
 const kindOf = o => GD.objInfo(o.id).kind;
 const isGameplay = o => GAMEPLAY.has(kindOf(o));
@@ -84,8 +84,11 @@ function allWindows(w, ev, path) {
     const t = ins[k].tick, p = path[Math.min(t, path.length - 1)];
     while (changeAt.length && changeAt[0] <= t) lastChange = changeAt.shift();
     const win = windowOf(w, ev, ins, k);
+    // closesAfterSwitchMs: how long after the last mode / gravity / speed change the window CLOSES
+    // (lib/difficulty.js forcedAfterSwitch: under 250 ms the input is forced before the player settles)
     out.push(Object.assign({ k, type: ins[k].type, tick: t, x: p.x, y: p.y, mode: p.mode, act: (path[Math.min(t + 1, path.length - 1)] || {}).act || "",
-      afterSwitchMs: lastChange ? Math.round((t - lastChange) * 1000 / TPS) : null }, win || { ms: 0, dead: true }));
+      afterSwitchMs: lastChange ? Math.round((t - lastChange) * 1000 / TPS) : null,
+      closesAfterSwitchMs: lastChange && win ? Math.round((win.hi - lastChange) * 1000 / TPS) : null }, win || { ms: 0, dead: true }));
   }
   return out;
 }
@@ -164,7 +167,8 @@ function fairPass(objs, header, ev, MIN, log) {
   let S = state(objs, header, ev);
   const tried = new Set();
   for (let round = 0; round < 12; round++) {
-    const tight = S.wins.filter(x => !x.dead && x.ms < MIN && !x.bounded && !tried.has(x.k)).sort((a, b) => a.ms - b.ms);
+    const forced = x => x.closesAfterSwitchMs != null && x.closesAfterSwitchMs < SETTLE && !x.bounded;
+    const tight = S.wins.filter(x => !x.dead && (x.ms < MIN && !x.bounded || forced(x)) && !tried.has(x.k)).sort((a, b) => a.ms - b.ms);
     if (!tight.length) break;
     const T = tight[0]; tried.add(T.k);
     const ins = inputs(ev), prevT = T.k > 0 ? ins[T.k - 1].tick : 0, nextT = T.k + 1 < ins.length ? ins[T.k + 1].tick : T.tick + 120;
@@ -176,7 +180,10 @@ function fairPass(objs, header, ev, MIN, log) {
       const w2 = GD.makeWorld(o2, header);
       const ev2 = retime(w2, ev, T.k); if (!ev2) continue;
       const lw = localWins(w2, ev2, T.k); if (!lw) continue;
-      if (lw[T.k] < old[T.k] + 8) continue;
+      const better = lw[T.k] >= old[T.k] + 8;
+      let settles = false;
+      if (forced(T)) { const S2 = allWindows(w2, ev2, GD.run(w2, ev2).path)[T.k]; settles = S2 && S2.closesAfterSwitchMs != null && S2.closesAfterSwitchMs >= Math.min(SETTLE, T.closesAfterSwitchMs + 40) && lw[T.k] >= old[T.k] - 4; }
+      if (!better && !settles) continue;
       if (Object.keys(old).some(j => +j !== T.k && lw[j] < Math.min(old[j], MIN) - 1)) continue;
       const score = Math.min(...Object.values(lw).filter((v, i) => true)) * 0 + lw[T.k] - c.moves.length * 0.5 - Math.abs(c.moves[0][1] + c.moves[0][2]) / 30;
       if (!best || score > best.score) best = { c, o2, ev2, lw, score };
@@ -194,27 +201,39 @@ function fairPass(objs, header, ev, MIN, log) {
   return { objs, ev };
 }
 
+// Indicators (the user on GDLM 46 v2, 2026-11-23: "too high above the ground", one "where no jump is
+// needed", "some jumps have none"): every jump off a surface that is NEEDED -- the plan without that tap
+// dies -- gets one, LOW over the surface (centre `lift` units up, default 22: the chevron's bottom just
+// above the ground), none within 3 blocks of another. Marks the level already has in the indicator group
+// (990) are replaced; other arrows nearby count as marks and are left alone.
 function readPass(level, objs, header, ev, opts, log) {
-  const lv = { header, objects: objs };
-  const sr = sightread(lv, 1.5);
-  const w = GD.makeWorld(objs, header), path = GD.run(w, ev).path;
-  const already = objs.filter(o => o.id === 914 || [132, 460, 494, 3630, 3631, 3632].includes(o.id) || (opts.id && o.id === opts.id));
-  const marks = DECO.jumpIndicators(w, { events: ev }, opts.id || DECO.INDICATOR.id, GD, opts.id ? { rot: opts.rot } : {});
-  // a prejump the indicator rule missed gets one at its takeoff
+  const sr = sightread({ header, objects: objs }, 1.5);
   const pre = sr.ok ? sr.presses.filter(p => p.flag) : [];
-  for (const p of pre) {
-    const x = p.to * 30;
-    if (marks.some(m => Math.abs(m.x - x) < 60)) { marks.find(m => Math.abs(m.x - x) < 60).why += ",prejump"; continue; }
-    const t = path.findIndex(s => s.x >= x); const s = path[Math.max(0, t)];
-    if (!s || !(s.grounded || s.mode !== "cube")) continue;
-    const up = (s.grav || 1) > 0, surface = up ? s.y - 15 : s.y + 15;
-    marks.push({ id: opts.id || DECO.INDICATOR.id, x: Math.round(x / 15) * 15, y: up ? surface + DECO.INDICATOR.lift : surface - DECO.INDICATOR.lift,
-      rot: ((opts.rot || 0) + (up ? 0 : 180)) % 360, flipX: false, flipY: false, props: { 155: "1", 57: String(DECO.INDICATOR.group), 31: Buffer.from("v").toString("base64"), 32: "0.8" }, why: "prejump" });
+  const grp = String(DECO.INDICATOR.group), inGroup = o => String((o.props || {})[57] || "").split(".").includes(grp);
+  const old = objs.filter(o => inGroup(o) || (o.id === 1007 && String((o.props || {})[51]) === grp));
+  if (old.length) { objs = objs.filter(o => !old.includes(o)); log.push({ pass: "read", what: `${old.filter(inGroup).length} old indicators`, change: "removed, re-placed by the rule below", before: `${old.filter(inGroup).length}`, after: "see below" }); }
+  const w = GD.makeWorld(objs, header), path = GD.run(w, ev).path;
+  const id = opts.id || DECO.INDICATOR.id, mo = opts.id ? { rot: opts.rot || 0 } : {}, lift = opts.lift ?? 22;
+  const other = objs.filter(o => o.id === 914 || [132, 460, 494, 3630, 3631, 3632].includes(o.id) || o.id === id);
+  const ins = inputs(ev), marks = [];
+  for (const m of DECO.jumpIndicators(w, { events: ev }, id, GD, Object.assign({ all: true }, mo))) {
+    // the tap that makes this jump: the input nearest the takeoff
+    let best = -1, bd = Infinity;
+    ins.forEach((inp, k) => { if (inp.type === "release") return; const d = Math.abs(path[Math.min(inp.tick, path.length - 1)].x - m.x); if (d < bd) { bd = d; best = k; } });
+    if (best < 0 || bd > 45) continue;
+    const without = ev.filter((e, i) => !ins[best].idx.includes(i));
+    if (clears(w, without)) continue;                       // not needed: no mark
+    if (marks.length && m.x - marks[marks.length - 1].x < 90) continue;
+    const up = m.rot % 360 !== (((mo.rot ?? DECO.INDICATOR.rot ?? 0) + 180) % 360);
+    m.y += up ? lift - DECO.INDICATOR.lift : DECO.INDICATOR.lift - lift;
+    const isPre = pre.some(p => Math.abs(p.to * 30 - m.x) < 60);
+    m.why = (m.why || "needed jump") + (isPre ? ",prejump" : "");
+    marks.push(m);
   }
-  const add = marks.filter(m => !already.some(a => Math.abs(a.x - m.x) < 120));
-  if (!add.length) { log.push({ pass: "read", kept: true, what: `${pre.length} prejump(s)`, why: already.length ? "indicators already there" : "no jump needs one" }); return { objs, prejumps: pre.length }; }
-  if (!opts.id) add.push(DECO.indicatorFade());
-  for (const m of add) { const why = m.why; delete m.why; objs.push(m); if (why) log.push({ pass: "read", x: m.x, what: `jump at block ${(m.x / 30).toFixed(1)}`, change: `indicator added (${why})`, before: "none", after: opts.id ? `deco ${opts.id}` : `"v" at 45%` }); }
+  const add = marks.filter(m => !other.some(a => Math.abs(a.x - m.x) < 60));
+  if (!add.length) { log.push({ pass: "read", kept: true, what: `${pre.length} prejump(s)`, why: other.length ? "indicators already there" : "no jump needs one" }); return { objs, prejumps: pre.length }; }
+  objs = objs.concat([DECO.indicatorFade()]);
+  for (const m of add) { const why = m.why; delete m.why; objs.push(m); log.push({ pass: "read", x: m.x, what: `jump at block ${(m.x / 30).toFixed(1)}`, change: `indicator (${why})`, before: "none", after: `deco ${id}, ${lift} units over the surface` }); }
   return { objs, prejumps: pre.length };
 }
 
@@ -294,7 +313,8 @@ function numbers(objs, header, ev, MIN) {
   const S = state(objs, header, ev), ms = S.wins.filter(x => !x.dead && (x.type === "tap" || x.type === "press")).map(x => x.ms);
   const s = ms.slice().sort((a, b) => a - b);
   return { inputs: S.wins.length, tightestMs: s[0], medianMs: s[Math.floor(s.length / 2)], under: ms.filter(m => m < MIN).length, under1frame: ms.filter(m => m < FRAME).length,
-    deco: objs.filter(o => !isGameplay(o)).length, objects: objs.length, wins: S.wins.map(x => ({ x: Math.round(x.x), ms: x.ms, type: x.type, mode: x.mode, bounded: !!x.bounded, afterSwitchMs: x.afterSwitchMs })) };
+    forced: S.wins.filter(x => x.closesAfterSwitchMs != null && x.closesAfterSwitchMs < SETTLE && !x.bounded).length,
+    deco: objs.filter(o => !isGameplay(o)).length, objects: objs.length, wins: S.wins.map(x => ({ x: Math.round(x.x), ms: x.ms, type: x.type, mode: x.mode, bounded: !!x.bounded, afterSwitchMs: x.afterSwitchMs, closesAfterSwitchMs: x.closesAfterSwitchMs })) };
 }
 
 function polish(file, opt = {}) {
@@ -304,7 +324,11 @@ function polish(file, opt = {}) {
   const cached = require("./solutions.js").get(L.levelStr);
   const r0 = GD.solveAny(w0);
   if (!r0.ok) throw new Error(`${L.name}: not beatable on the current physics (dies at block ${(r0.dieAt.x / 30).toFixed(1)}: ${r0.why}); fix the level or the physics first`);
-  let objs = L.level.objects.map(clone), ev = sorted(r0.events);
+  // windows are measured on the NATURAL plan (lib/natural.js: a tap per jump, ship and wave flown along
+  // the middle): the solver's fewest-presses plan holds through whole cube runs, and a hold's press
+  // timing sets every jump after it -- GDLM 44 read "4 ms" at block 5 that no player meets
+  let objs = L.level.objects.map(clone), ev = sorted(r0.events), plan = "solver";
+  try { const n = GD.naturalPlan(w0, r0, objs); if (n && clears(w0, n.events)) { ev = sorted(n.events); plan = "natural"; } } catch (e) {}
   const log = [], before = numbers(objs, header, ev, MIN);
   const beforeSR = sightread({ header, objects: objs }, 1.5);
   before.prejumps = beforeSR.ok ? beforeSR.presses.filter(p => p.flag).length : null;
@@ -319,20 +343,21 @@ function polish(file, opt = {}) {
   const after = numbers(objs, header, sorted(ev), MIN);
   const afterSR = sightread({ header, objects: objs }, 1.5);
   after.prejumps = afterSR.ok ? afterSR.presses.filter(p => p.flag).length : null;
-  return { L, objs, header, log, before, after, sync, r0, r1, cached };
+  return { L, objs, header, log, before, after, sync, r0, r1, cached, plan };
 }
 
 function print(res) {
   const { L, log, before: b, after: a, sync } = res;
-  console.log(`== ${L.name}: ${b.objects} -> ${a.objects} objects`);
+  console.log(`== ${L.name}: ${b.objects} -> ${a.objects} objects (windows on the ${res.plan} plan)`);
   console.log(`   windows: tightest ${b.tightestMs} -> ${a.tightestMs} ms, median ${b.medianMs} -> ${a.medianMs} ms, under the limit ${b.under} -> ${a.under}, under 1 frame ${b.under1frame} -> ${a.under1frame}`);
+  console.log(`   forced right after a mode change (window closes < ${SETTLE} ms after it): ${b.forced} -> ${a.forced}`);
   console.log(`   prejumps ${b.prejumps} -> ${a.prejumps} (indicators mark the rest), deco ${b.deco} -> ${a.deco}`);
   if (sync) console.log(`   sync (${sync.bpm.toFixed(1)} BPM): portals on a beat ${sync.before.portals}/${sync.before.nPortals} -> ${sync.after.portals}/${sync.after.nPortals}, orbs ${sync.before.orbs}/${sync.before.nOrbs} -> ${sync.after.orbs}/${sync.after.nOrbs}`);
   console.log(`   inputs: before -> after (ms; + = bounded by the next input, at least this)${b.wins.length !== a.wins.length ? "  [input count changed: " + b.wins.length + " -> " + a.wins.length + "]" : ""}`);
   for (let k = 0; k < Math.max(b.wins.length, a.wins.length); k++) {
     const x = b.wins[k], y = a.wins[k], f = v => v ? `${String(v.ms).padStart(4)} ms${v.bounded ? "+" : " "}` : "   -    ";
     const z = x || y;
-    console.log(`     block ${(z.x / 30).toFixed(1).padStart(6)} ${z.type.padEnd(7)} ${z.mode.padEnd(6)} ${f(x)} -> ${f(y)}${z.afterSwitchMs != null && z.afterSwitchMs < 400 ? `  ${z.afterSwitchMs} ms after a switch` : ""}${x && y && y.ms < x.ms ? "  (tighter)" : ""}`);
+    console.log(`     block ${(z.x / 30).toFixed(1).padStart(6)} ${z.type.padEnd(7)} ${z.mode.padEnd(6)} ${f(x)} -> ${f(y)}${x && x.closesAfterSwitchMs != null && x.closesAfterSwitchMs < 500 ? `  closes ${x.closesAfterSwitchMs}${y && y.closesAfterSwitchMs != null ? " -> " + y.closesAfterSwitchMs : ""} ms after a switch${x.closesAfterSwitchMs < SETTLE ? " FORCED" : ""}` : ""}${x && y && y.ms < x.ms ? "  (tighter)" : ""}`);
   }
   console.log("   changes:");
   for (const l of log) console.log(l.kept ? `     [${l.pass}] kept: ${l.what} -- ${l.why}` : `     [${l.pass}] ${l.what}: ${l.change} (${l.before} -> ${l.after})`);
@@ -344,7 +369,7 @@ if (require.main === module) {
   if (!file) { console.log(fs.readFileSync(__filename, "utf8").split("\n").slice(0, 24).join("\n")); process.exit(1); }
   const ind = val("indicator");
   const res = polish(file, { minMs: val("min-ms") ? +val("min-ms") : 34, passes: val("passes") ? val("passes").split(",") : undefined,
-    indicator: ind ? { id: +ind.split(":")[0], rot: +(ind.split(":")[1] || 0) } : {} });
+    indicator: Object.assign(ind ? { id: +ind.split(":")[0], rot: +(ind.split(":")[1] || 0) } : {}, val("lift") ? { lift: +val("lift") } : {}) });
   print(res);
   if (a.includes("--dry")) process.exit(0);
   const slug = GD.getField(res.L.rec, "k2").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
