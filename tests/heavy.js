@@ -3,6 +3,7 @@
 // 2. a second job waits ("waiting for ...") while the first holds the slot, and runs after it exits
 // 3. a claimed job runs at idle priority; a slot whose pid is dead is cleared; a child of a holder (GDLM_HEAVY_HELD) runs in its slot
 // 4. every heavy tool claims the lock itself
+// 6. freshness: a clean worktree behind origin/main is fast-forwarded; a dirty one gets a warning naming what it lacks
 // 5. priority: a free slot goes to the highest-priority waiter (GDLM_HEAVY_PRIORITY), first come within one
 const assert = require("assert"), fs = require("fs"), path = require("path"), os = require("os"), cp = require("child_process");
 const H = require("../tools/heavy.js");
@@ -22,7 +23,7 @@ assert.strictEqual(H.firstInLine([{ pid: 4, prio: "normal", since: 9 }, { pid: 5
 
 // 2
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), "gdlm-heavy-test-"));
-const env = Object.assign({}, process.env, { GDLM_LOCKDIR: dir, GDLM_HEAVY_FREE_MB: "4000", GDLM_SESSION: "test", GDLM_GAME: "0" });
+const env = Object.assign({}, process.env, { GDLM_HEAVY_NOSYNC: "1", GDLM_LOCKDIR: dir, GDLM_HEAVY_FREE_MB: "4000", GDLM_SESSION: "test", GDLM_GAME: "0" });
 delete env.GDLM_HEAVY_HELD; delete env.GDLM_HEAVY;
 const job = (ms, tag) => `require(${JSON.stringify(path.join(__dirname, "..", "tools", "heavy.js"))}).claim(${JSON.stringify(tag)}); console.log("RUN ${tag} " + Date.now()); Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ${ms}); console.log("END ${tag} " + Date.now());`;
 const outOf = ch => new Promise(res => { let o = ""; ch.stdout.on("data", d => o += d); ch.on("close", () => res(o)); });
@@ -71,5 +72,24 @@ fs.rmSync(dir, { recursive: true, force: true });
 for (const t of ["make", "compose", "score", "solutions", "shoot", "levelmap", "difficulty_solve", "windows", "fairness", "polish", "structures", "tas"])
   assert(/require\("\.\/heavy\.js"\)\.claim\(\)/.test(fs.readFileSync(path.join(__dirname, "..", "tools", t + ".js"), "utf8")), t + ".js claims the lock");
 assert(/heavy\.js"\)\.claim\(\)/.test(fs.readFileSync(path.join(__dirname, "..", "tools", "wip.js"), "utf8")), "wip.js put claims the lock");
+// 6 (throwaway repos: an origin, a clone that falls behind, another clone that pushes)
+{
+  const g = (cwd, ...a) => cp.execFileSync("git", a, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), "gdlm-heavy-sync-")), origin = path.join(base, "o.git"), a = path.join(base, "a"), b = path.join(base, "b");
+  g(base, "init", "-q", "--bare", "-b", "main", origin);
+  g(base, "clone", "-q", origin, b);
+  for (const r of [b]) { g(r, "config", "user.email", "t@t"); g(r, "config", "user.name", "t"); }
+  fs.mkdirSync(path.join(b, "tools")); fs.writeFileSync(path.join(b, "tools", "x.js"), "1\n");
+  g(b, "add", "."); g(b, "commit", "-q", "-m", "first"); g(b, "push", "-q", "origin", "HEAD:main");
+  g(base, "clone", "-q", origin, a);
+  fs.writeFileSync(path.join(b, "tools", "x.js"), "2\n"); g(b, "commit", "-qam", "tools: the new rule"); g(b, "push", "-q", "origin", "HEAD:main");
+  let r = H.syncTree(a);
+  assert(r.ff && r.behind === 1 && fs.readFileSync(path.join(a, "tools", "x.js"), "utf8").trim() === "2","a clean tree behind is fast-forwarded: " + JSON.stringify(r));
+  fs.writeFileSync(path.join(b, "tools", "x.js"), "3\n"); g(b, "commit", "-qam", "tools: another rule"); g(b, "push", "-q", "origin", "HEAD:main");
+  fs.writeFileSync(path.join(a, "tools", "x.js"), "mine\n");   // uncommitted work
+  r = H.syncTree(a);
+  assert(!r.ff && /1 commit\(s\) behind main/.test(r.warn) && /another rule/.test(r.warn) && fs.readFileSync(path.join(a, "tools", "x.js"), "utf8").trim() === "mine","a dirty tree is warned, not moved: " + JSON.stringify(r));
+  fs.rmSync(base, { recursive: true, force: true });
+}
 console.log("heavy: ok");
 })().catch(e => { console.error(e); process.exit(1); });
