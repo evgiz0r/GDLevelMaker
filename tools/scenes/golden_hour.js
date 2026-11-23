@@ -107,6 +107,19 @@ module.exports = function ({ objects, header, beatX }) {
   const PR = require("../../lib/props.js"), alloc = PR.allocator(600);
   const tint = i => ({ bg: P[i][C.glow], ground: P[i][C.far], fill: P[i][C.fill], edge: P[i][C.edge], accent: P[i][C.sun] });
   const PROPS = [[1, "tree", 1.2, 1.4], [1, "bush", 2, 1], [2, "house", 0.8, 1], [3, "house", 1, 1], [3, "windmill", 0.12, 1], [4, "dead tree", 1, 1.3], [6, "lamp post", 1.5, 1], [7, "bush", 1.5, 1]];
+  // set pieces (gd-art, ab45937): mountains and hills far behind the town in every scene (bg props: B5,
+  // never over the play), a ruin and a tower behind the play at dusk and in the night
+  for (let i = 0; i < S.length; i++) {
+    for (const [name, dens, sc, y] of [["mountains", 0.25, 1.6, -10], ["hills", 0.3, 1.3, 0]]) {
+      const r = PR.place(name, S[i][0], S[i][1], { alloc, density: dens, scale: sc, layer: "B5", y, palette: tint(i), seed: 60 + i * 3 + (name === "hills" ? 1 : 0), gap: 0 });
+      out.push(...r.objects); header = PR.header(header, r.colours);
+    }
+  }
+  for (const [i, name] of [[4, "ruin"], [6, "tower"], [5, "tower"]]) {
+    const r = PR.place(name, S[i][0], S[i][1], { alloc, density: 0.5, scale: 1, layer: "B3", avoid: objects, clear: 2, palette: tint(i), seed: 70 + i });
+    out.push(...r.objects); header = PR.header(header, r.colours);
+  }
+  // (gd-art's cloud bands were tried as a top frame: the kit's cloudFrame already frames the top; over budget)
   for (const [i, name, density, scale] of PROPS) {
     const r = PR.place(name, S[i][0], S[i][1], { alloc, density, scale, layer: "B3", avoid: objects, clear: 2, palette: tint(i), seed: 40 + i, groups: [G.far + 20] });
     out.push(...r.objects); header = PR.header(header, r.colours);
