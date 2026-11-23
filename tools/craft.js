@@ -17,6 +17,7 @@
 // "structural deco" = fill + top + hang + side: deco that belongs to a structure.
 // Also: block skins -- the share of solid cells whose outlined sides are exactly its open sides (skins
 // 1-7, lib/look.js), and hazards by where they sit (floor / on a block / under a block / side / free).
+//   --tier=Hard   Hard and up: hazards per 100 blocks may go to 180 (Easy/Normal: 110)
 //   <level>  a .gdlvl, local/official_NN.json or official:N (RobTop's data: output stays on screen)
 // Library: roles(objects) -> { counts, perScreen, hazards, skins } for score.js / make.js.
 const fs = require("fs"), path = require("path");
@@ -177,9 +178,12 @@ function lookOf(objects) {
   const deco = objects.filter(o => kindOf(o) === "decoration" && !isSignature(o));
   return deco.length && deco.filter(o => o.id >= 1000).length / deco.length > 0.33 ? "2.2" : "1.x";
 }
-function check(objects, look) {
+// tier: the brief's difficulty label; Hard and up get the Hard/Harder hazard cap (featured ~140, xStep 191)
+const HARD = /^(hard|harder|insane|demon)/i;
+function check(objects, look, tier) {
   look = look || lookOf(objects);
   const N = numbers(objects), out = [], T = Object.assign({}, TARGETS, LOOK[look] || {});
+  if (tier && HARD.test(tier)) T.hazards100 = Object.assign({}, T.hazards100, { max: 180 });
   for (const [k, t] of Object.entries(T)) {
     const v = N[k]; if (!t || !Number.isFinite(v)) continue;
     const bad = (t.min != null && v < t.min) || (t.max != null && v > t.max);
@@ -223,7 +227,7 @@ if (require.main === module) {
     process.exit(0);
   }
   if (cmd === "check") {
-    const C = check(level.objects, (rest.find(a => a.startsWith("--look=")) || "").slice(7) || null);
+    const C = check(level.objects, (rest.find(a => a.startsWith("--look=")) || "").slice(7) || null, (rest.find(a => a.startsWith("--tier=")) || "").slice(7) || null);
     console.log(`look: ${C.look} (targets for it; --look=1.x | --look=2.2)`);
     for (const c of C.checks) console.log(`${c.ok ? "ok  " : "WARN"} ${c.key.padEnd(12)} ${(c.value < 2 && c.key !== "pieces100" ? Math.round(100 * c.value) + "%" : c.value.toFixed(1)).padStart(6)}  (${c.target}) ${c.doc}`);
     console.log(`     hazards/100 blocks ${C.numbers.hazards100.toFixed(0)}, piece median ${C.numbers.pieceCells} cells`);
