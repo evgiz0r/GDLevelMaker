@@ -13,7 +13,13 @@ const dir = fs.mkdtempSync(path.join(os.tmpdir(), "gdlm-queue-test-"));
 const copy = path.join(dir, "CCLocalLevels.dat"), marker = path.join(dir, "gd_running");
 fs.copyFileSync(save, copy); fs.writeFileSync(marker, "");
 const env = { ...process.env, GDLM_INSTALL_QUEUE: path.join(dir, "q.json"), GDLM_INSTALL_REPORTS: path.join(dir, "reports") };
-execFileSync(process.execPath, [T, "add", ...lv, "--by", "test"], { env, stdio: "pipe" });
+// queued from ANOTHER checkout by a relative path, and that file gone before the watcher runs here:
+// the watcher must install from the queue's own copy (2026-11-23: "file missing" across worktrees)
+const other = path.join(dir, "other_checkout"); fs.mkdirSync(path.join(other, "levels"), { recursive: true });
+fs.copyFileSync(lv[0], path.join(other, "levels", "only_there.gdlvl"));
+execFileSync(process.execPath, [T, "add", "levels/only_there.gdlvl", "--by", "test"], { env, cwd: other, stdio: "pipe" });
+fs.rmSync(other, { recursive: true, force: true });
+execFileSync(process.execPath, [T, "add", lv[1], "--by", "test"], { env, stdio: "pipe" });
 const w = spawn(process.execPath, [T, "watch", "--every", "0.3", "--save", copy, "--pretend-running", marker, "--exit-after-install"], { env });
 let out = ""; w.stdout.on("data", d => out += d);
 setTimeout(() => {
@@ -21,7 +27,7 @@ setTimeout(() => {
   fs.unlinkSync(marker);   // "GD closes"
   w.on("exit", code => {
     const q = JSON.parse(fs.readFileSync(env.GDLM_INSTALL_QUEUE, "utf8")).queue;
-    const ok = before && code === 0 && q.length === 0 && /ok\s+GDLM 43 climb/.test(out) && /ok\s+GDLM 44 hellgate/.test(out);
+    const ok = before && code === 0 && q.length === 0 && fs.readdirSync(path.join(dir, "install_queue_files")).length === 0 && /ok\s+GDLM 43 climb/.test(out) && /ok\s+GDLM 44 hellgate/.test(out);
     console.log(ok ? "ok: waits while GD runs, installs when it closes, read-back matches, queue emptied" : "FAIL\n" + out + " exit " + code + " untouched-while-running " + before);
     if (!ok) { fs.rmSync(dir, { recursive: true, force: true }); process.exit(1); }
     guard();
