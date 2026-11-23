@@ -128,8 +128,12 @@ colour 29/30/899/105/221/744/915/900, pulse 1006, alpha 1007 (still collides), e
 | collision block / trigger, area triggers | 1815/1816, 3006+ | | no (no official level uses them) | - |
 
 Firing: x passing the trigger's x; touch-triggered (11) when the player's box meets its 30x30;
-spawn-triggered (62) only from a spawn trigger. Not modelled: move "lock to player" (58/59) and
-"move to target" (100), the player carried sideways by a moving block, multi-trigger (87).
+spawn-triggered (62) only from a spawn trigger. Move "lock to player" X/Y (58/59): for its duration
+the group moves by the player's own motion since the trigger fired, then stays (plus any dx/dy);
+UNCHECKED against the game, added 2026-11-23 for Spire (community 128630430), whose upside-down
+cube rides under a roof locked to the player: its solve went from block 112.7 to 327.6 (the next
+stop is another "sky" death near the ball part, not looked at). Not modelled: "move to target"
+(100), the player carried sideways by a moving block, multi-trigger (87).
 The viewer draws moved, turned and switched-off objects where they are at each moment (GD.posedObjects).
 
 ## Not in the sim yet (the game has it)

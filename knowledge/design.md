@@ -107,6 +107,13 @@ official levels, or a playtest remark). A single playtest remark is evidence, no
 - **The floor right before a mode portal: flat and readable.** (See also the section below.)
 - Deaths should be the player's fault: the user accepts a hard first click, not layout traps.
 
+## Orb chains, measured (`levels/obstacles.md` section 5)
+- In rated Easy/Normal levels 3/4 of the orbs stand alone; chains of 3+ are ~8% of the orb groups.
+  Chains climb ~1 block in all, ~3 blocks apart, with a safe surface ~1 block after the last orb.
+  GDLM 46 v2's triple climbed 4.3 blocks with no landing for 5: "cant adjust".
+
+All the targets in one list: `checklist.md`.
+
 ## Getting rated (`rating.md`)
 - RobTop has no fixed criteria. His tips: 60 s+ (30 s minimum), "clear gameplay and decent
   visuals", and good performance. Higher tiers mean he likes the level more, and in our sample

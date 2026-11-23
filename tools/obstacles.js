@@ -1,6 +1,7 @@
 // node tools/obstacles.js catalogue [--tiers Easy,Normal] [--top 12] [--gdlm]
 // node tools/obstacles.js intro     [--tiers Easy,Normal] [--gdlm] [--official]
 // node tools/obstacles.js structure [--tiers Easy,Normal] [--gdlm] [--official]
+// node tools/obstacles.js orbchains [--tiers ...] [--gdlm] [--official] [--file x.gdlvl] [--list]   (orbs in a row: length, climb, room to fall, landing)
 // node tools/obstacles.js indicators [--tiers Easy,Normal,Hard,Harder] [--gdlm] [--official]   (jump arrows: height, turn, hazard ahead)
 //
 // What rated levels are built from, as a stock for GDLM (which mostly uses lone spikes and few kinds
@@ -50,6 +51,7 @@ function levels() {
       out.push({ group: "GDLM 4x", name: fn, L: corpus.file(path.join(ROOT, "levels", fn)) });
   if (args.includes("--official"))
     for (let n = 1; n <= 8; n++) out.push({ group: "official 1-8", name: corpus.NAMES[n - 1], L: corpus.official(n) });
+  args.forEach((a, i) => { if (a === "--file") out.push({ group: path.basename(args[i + 1]), name: args[i + 1], L: corpus.file(args[i + 1]) }); });
   return out;
 }
 // section (mode, speed, start time) at a column; time at an x
@@ -212,8 +214,59 @@ function indicators() {
   }
 }
 
+// orbchains: orbs in a row, as in GDLM 46 v2's "triple orb ... if you just click normal you fall and die,
+// cant adjust". A chain = jump orbs (not dash/spider/toggle) in a ground mode, each within 4 blocks
+// sideways of the last. Per chain: how many, spacing, total climb, the orb kinds, and what is around it:
+//   net under   share of the chain's columns whose floor (the top solid under the orbs, else the
+//               ground) has no hazard: can you fall out of the chain and live?
+//   landing     blocks from the last orb to the first hazard-free surface at or below it: where the
+//               chain puts you down
+//   by edge     the chain climbs more than 4 blocks above its start (the cube heads for the top of the
+//               screen in a level that keeps the camera low; a rough sign of "carried to the edge")
+const CHAIN_ORBS = new Set([36, 84, 141, 1022, 1330, 1333]);
+function orbchains() {
+  const G = {};
+  for (const { group, L } of levels()) {
+    const loc = locator(style.analyse(L));
+    const orbs = L.objects.filter(o => CHAIN_ORBS.has(o.id) && !["ship", "ufo", "wave", "swing"].includes(loc.mode(o.x / 30))).sort((p, q) => p.x - q.x);
+    const solids = L.objects.filter(o => cat(o) === "solid"), haz = L.objects.filter(o => cat(o) === "hazard");
+    const hazCol = new Map(); for (const h of haz) { const c = Math.floor(h.x / 30); (hazCol.get(c) || hazCol.set(c, []).get(c)).push(h); }
+    const floorAt = (c, below) => { let top = 0; for (const s of solids) if (Math.floor(s.x / 30) === c && s.y + 15 <= below) top = Math.max(top, s.y + 15); return top; };
+    const safe = (c, below) => { const top = floorAt(c, below); return !(hazCol.get(c) || []).some(h => h.y >= top - 15 && h.y <= top + 45); };
+    const chains = [];
+    let cur = [];
+    for (const o of orbs) {
+      if (cur.length && o.x - cur[cur.length - 1].x > 120) { chains.push(cur); cur = []; }
+      cur.push(o);
+    }
+    if (cur.length) chains.push(cur);
+    const g = (G[group] ||= { levels: new Set(), chains: [] });
+    g.levels.add(L.name);
+    for (const ch of chains) {
+      const c0 = Math.floor(ch[0].x / 30), c1 = Math.floor(ch[ch.length - 1].x / 30), lowY = Math.min(...ch.map(o => o.y));
+      let safeCols = 0;
+      for (let c = c0; c <= c1; c++) if (safe(c, lowY)) safeCols++;
+      let land = NaN;
+      const last = ch[ch.length - 1];
+      for (let c = c1 + 1; c <= c1 + 12; c++) if (safe(c, last.y)) { land = c - c1; break; }
+      chains.push && g.chains.push({ n: ch.length, gap: ch.length > 1 ? (ch[ch.length - 1].x - ch[0].x) / 30 / (ch.length - 1) : NaN,
+        climb: (ch[ch.length - 1].y - ch[0].y) / 30, net: safeCols / (c1 - c0 + 1), land, kinds: [...new Set(ch.map(o => o.id))].length });
+    }
+  }
+  const q = (a, p) => { a = a.filter(Number.isFinite).sort((x, y) => x - y); return a.length ? a[Math.floor(p * a.length)] : NaN; };
+  console.log("| group | levels | orb groups | single orbs | chains of 2 / 3 / 4+ | spacing in a chain (median blocks) | climb (median, p90 blocks) | net under (median) | landing found within 12 | landing (median blocks) | mixed kinds |");
+  console.log("|---|---|---|---|---|---|---|---|---|---|---|");
+  for (const [group, g] of Object.entries(G)) {
+    const C = g.chains, multi = C.filter(c => c.n >= 2), n = C.length || 1;
+    console.log(`| ${group} | ${g.levels.size} | ${C.length} | ${pc(C.filter(c => c.n === 1).length / n)} | ${pc(C.filter(c => c.n === 2).length / n)} / ${pc(C.filter(c => c.n === 3).length / n)} / ${pc(C.filter(c => c.n >= 4).length / n)} | ` +
+      `${f(med(multi.map(c => c.gap)))} | ${f(med(multi.map(c => c.climb)))}, ${f(q(multi.map(c => c.climb), .9))} | ${pc(med(multi.map(c => c.net)))} | ${pc(multi.filter(c => Number.isFinite(c.land)).length / (multi.length || 1))} | ${f(med(multi.map(c => c.land)))} | ${pc(multi.filter(c => c.kinds > 1).length / (multi.length || 1))} |`);
+    if (args.includes("--list")) for (const c of multi) console.log(`    ${group}: ${c.n} orbs, gap ${f(c.gap)}, climb ${f(c.climb)}, net ${pc(c.net)}, landing ${f(c.land)}`);
+  }
+}
+
 if (args[0] === "catalogue") catalogue();
 else if (args[0] === "intro") intro();
 else if (args[0] === "structure") structure();
 else if (args[0] === "indicators") indicators();
+else if (args[0] === "orbchains") orbchains();
 else console.log(fs.readFileSync(__filename, "utf8").split("\n").filter(l => l.startsWith("//")).join("\n"));

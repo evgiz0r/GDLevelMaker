@@ -36,6 +36,8 @@ not after it:
 `knowledge/` is a general GD knowledge base (not the user's personal taste): `design.md` (what
 makes a level good or unfair) and `critiques.md` (playtest feedback on GDLM levels) are required
 reading before writing a spec; `levels/`, `glossary.md`, `demonlist.md` for the rest.
+**Before a level goes to the user, go through `knowledge/checklist.md`**: every target in one page
+(fairness, orbs, arrows, structure, variety, the 2.2 look, length), each with the tool that checks it.
 
 ## The loop
 
@@ -138,6 +140,10 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   `lib/objects_frames.js` (`tools/import_frames.js`, GD 2.2's own id -> frame table from the exe).
   Test: `node tests/art_tables.js`. **See your level as the game draws it:** `node tools/shoot.js
   <level.gdlvl | save:<name> | official:N> [--at 2,5] [--rec <video> --t0 <s>]` -> PNGs in `local/shots/`.
+  **The whole level as one picture with its path:** `node tools/levelmap.js <level> [--brief briefs/NN.json]`
+  -> `local/maps/<name>.jpg` (viewer: "level map").
+  **Every level ends with the signature** (robot + human, "Made by Claude (and some humans)"):
+  `tools/signature.js` (signature() objects, describe() for the description).
 - **Deco catalogue** (knowledge/objects/README.md): `tools/catalogue.js index | sheets | usage` --
   every id with its picture on contact sheets (`local/catalogue/`, or browse `viewer/catalogue.html`),
   the searchable `knowledge/objects/catalogue.tsv`, and which deco families rated levels use together.
@@ -272,8 +278,8 @@ spider orb + pad, the upside-down red-orb dive under a hanging column.
 
 ## Not simulated yet
 
-Mirror, dual and teleport portals; slopes turned a quarter turn (walls act as blocks); rotate,
-follow and "move to target"/"lock to player" triggers, and a player carried sideways by a moving
+Mirror and dual portals, teleport portal variants 2902/2064 and the teleport trigger 3022; slopes turned
+a quarter turn (walls act as blocks); follow and "move to target" triggers, and a player carried sideways by a moving
 block; speed-dependent ring scaling for ball/UFO; spike slopes (any slope skin that kills is
 treated as a plain slope -- unchecked).
 Simulated but checked only by the plans: mini size (gdsolver's measured values), move/toggle/spawn

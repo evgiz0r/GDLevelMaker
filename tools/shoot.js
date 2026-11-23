@@ -16,7 +16,7 @@ const fs = require("fs"), path = require("path");
 const ROOT = path.join(__dirname, ".."), { headless } = require("./headless.js"), { readGdlvl } = require("./io.js");
 const args = process.argv.slice(2), opt = n => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] : null; };
 const what = args[0];
-if (!what || what.startsWith("--")) { console.log(fs.readFileSync(__filename, "utf8").split("\n").filter(l => l.startsWith("//")).join("\n")); process.exit(1); }
+if (require.main === module && (!what || what.startsWith("--"))) { console.log(fs.readFileSync(__filename, "utf8").split("\n").filter(l => l.startsWith("//")).join("\n")); process.exit(1); }
 
 function levelOf(w) {
   let m;
@@ -31,7 +31,8 @@ function levelOf(w) {
   const L = readGdlvl(w);
   return { name: L.name, levelStr: L.levelStr };
 }
-(async () => {
+module.exports = { levelOf };
+if (require.main === module) (async () => {
   const lv = levelOf(what);
   if (!lv.solution) {
     try { const s = require("./solutions.js").get(lv.levelStr, true); if (s && s.events) lv.solution = s; } catch (e) {}
