@@ -2,6 +2,7 @@
 // Replays every real-game plan (tools/tas.js) with the ids re-kinded (solid, hazard, decoration...)
 // and prints the levels whose reach changes. How 661-664 and 1903-1905 were found to be slabs,
 // not the hazards OpenGD's table calls them. Cheap: 44 plain runs, no search.
+if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const GD = require("../lib/objects.js");
 const { replay } = require("./tas.js");
 const [kind, list] = process.argv.slice(2);

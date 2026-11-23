@@ -15,6 +15,7 @@
 //   thirds  whether the orbs of one hazard run sit on its halves or thirds (within half a block; the user:
 //           symmetry over the spike row)
 // --gate exits 1 when an orb is off its natural arc. POLISH.md "Orbs at the natural arc".
+if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const fs = require("fs"), path = require("path");
 const { GD, readGdlvl } = require("./io.js");
 Object.assign(GD, require("../lib/natural.js"));

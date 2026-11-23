@@ -6,6 +6,7 @@
 // Example (GDLM 44's wave entrance, the cube landed on the block, 2026-11-23):
 //   node tools/press_window.js local/wip/style/gdlm_44_hellgate.gdlvl --x 1590 --y 105 --hold-to 1665 --to 1700
 // The solution comes from the level's .json beside it (wip) or a fresh solve.
+if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const fs = require("fs");
 const { GD, readGdlvl } = require("./io.js");
 const a = process.argv.slice(2), file = a[0];

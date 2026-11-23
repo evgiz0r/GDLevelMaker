@@ -6,6 +6,7 @@
 // A window with 1-2 frames (under ~50 ms) is a triple-spike-level squeeze: fine for hard levels,
 // too tight for easy/test ones (STYLE.md: timing is a per-level difficulty knob).
 // Found on Nov 22 2026: GDLM 02's last triple had 2 frames (46 ms); it became a double (8 frames).
+if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const path = require("path");
 const { GD, readGdlvl } = require("./io.js");
 const files = process.argv.slice(2);

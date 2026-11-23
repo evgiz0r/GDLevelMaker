@@ -13,6 +13,7 @@
 //   --input     the viewer's button strip under the ground: presses, holds, each input's timing window
 // Uses a saved solution when there is one (tools/solutions.js); otherwise the page solves the level.
 // One heavy job at a time (a headless browser with the sheets is ~1 GB).
+if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const fs = require("fs"), path = require("path");
 const ROOT = path.join(__dirname, ".."), { headless } = require("./headless.js"), { readGdlvl } = require("./io.js");
 const args = process.argv.slice(2), opt = n => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] : null; };

@@ -32,6 +32,7 @@
 //                that is not needed; the user on GDLM 44 v12, "some places mark to jump but no need").
 //   objects      gameplay objects with unconfirmed hitboxes (sure:false; WARN only)
 // Cost: two solves of the level (a few seconds for a 30 s cube level). One at a time.
+if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const fs = require("fs");
 const { GD, readGdlvl } = require("./io.js");
 Object.assign(GD, require("../lib/difficulty.js"), require("../lib/sync.js"));

@@ -11,6 +11,7 @@
 // Each also carries `plan` (the commit of lib/natural.js). When only the plan is older, or the physics
 // is older but the saved inputs still finish the level, solve() re-plans from them (a few seconds)
 // instead of solving again; --all does that for every repo level.
+if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const fs = require("fs"), path = require("path"), crypto = require("crypto");
 const { GD, readGdlvl } = require("./io.js");
 Object.assign(GD, require("../lib/natural.js"));

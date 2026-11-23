@@ -22,7 +22,7 @@ function lockDir() {
   try { local = fs.realpathSync(local); } catch (e) {}
   return path.join(local, "locks", "heavy");
 }
-const freeMB = () => Math.round(os.freemem() / 1048576);   // Windows: available (free + standby)
+const freeMB = () => process.env.GDLM_HEAVY_FREE_MB ? +process.env.GDLM_HEAVY_FREE_MB : Math.round(os.freemem() / 1048576);   // Windows: available (free + standby); the env is for tests
 const sleepSync = ms => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 const alive = pid => { try { process.kill(pid, 0); return true; } catch (e) { return e.code === "EPERM"; } };
 function sessionName() {
@@ -74,6 +74,7 @@ function claim(label) {
   const cmd = label || process.argv.slice(1).map(a => path.relative(ROOT, a).startsWith("..") ? a : path.relative(ROOT, a).replace(/\\/g, "/")).join(" ");
   const limit = Date.now() + (+(process.env.GDLM_HEAVY_WAIT || 120)) * 60000;
   let lastMsg = "", lastAt = 0;
+  const waitStart = Date.now();
   for (;;) {
     // check-and-take under a short mutex (exclusive create), so two starting at once cannot both get in
     let got = false;
@@ -96,8 +97,10 @@ function claim(label) {
     }
     if (got) break;
     if (Date.now() > limit) { console.log(`heavy: gave up after ${process.env.GDLM_HEAVY_WAIT || 120} min waiting; try later`); process.exit(75); }
-    sleepSync(got ? 0 : 3000 + Math.random() * 2000);
+    sleepSync(3000 + Math.random() * 2000);
   }
+  const waited = (Date.now() - waitStart) / 1000;
+  if (waited > 2) console.log(`heavy: got the slot after waiting ${waited.toFixed(0)} s`);   // tools/loop.js leaves this out of the step's time
   process.env.GDLM_HEAVY_HELD = String(process.pid);   // children run in this slot
   const release = () => { if (held) { try { fs.unlinkSync(held); } catch (e) {} held = null; } };
   process.on("exit", release);

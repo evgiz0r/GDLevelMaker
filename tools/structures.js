@@ -14,6 +14,7 @@
 // on entry and what it leaves (mode, gravity, size, speed, the row the player is on), so they chain.
 // STRUCTURES.md: the format, the checks, the ranking and what is open. Shapes are generic GD
 // vocabulary, nothing copied from a particular level.
+if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 "use strict";
 const fs = require("fs"), path = require("path");
 const ROOT = path.join(__dirname, "..");

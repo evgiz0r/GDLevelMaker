@@ -1,13 +1,13 @@
 // node tools/loop.js <specs/NN.json | briefs/NN.json | level.gdlvl> [--look] [--brief briefs/NN.json]
-//                    [--render] [--map] [--session <name> [--note "..."]] [--wait <min>] [--force] [--eta]
+//                    [--render] [--map] [--session <name> [--note "..."]] [--wait <min>] [--eta]
 // node tools/loop.js --times            -- the time table: how long each step took on this PC (local/timings.jsonl)
 // node tools/loop.js --time <step> <command ...>   -- time any other job into the same table, e.g.
 //      --time push git push origin HEAD:main   |   --time install node tools/install.js <lvl>  (publisher only)
 //
 // The whole make-or-iterate loop in ONE command, wrapping the existing tools (it forks none of their logic):
-//   guard   one heavy job at a time on this 16 GB PC: counts other running solve/make/render jobs (any
-//           session) and free RAM; waits (up to --wait minutes, default 15) while 2+ run or < 1.2 GB is
-//           free, warns when one other runs. --force skips the wait.
+//   slot    one heavy job at a time on this 16 GB PC: every step's tool takes the shared lock itself
+//           (tools/heavy.js) and waits for a free slot (--wait minutes, default 120); loop.js shows who
+//           holds it, echoes the "heavy: waiting for ..." lines, and leaves the wait out of the step's time
 //   eta     prints how long each step should take, from earlier runs of the same step on similar-length
 //           levels (local/timings.jsonl, shared by every session; built-in guesses until there are some)
 //   make    tools/make.js <spec> [--look]  (a brief: tools/compose.js, which runs its own score/repair rounds)
@@ -30,9 +30,6 @@ const LOGDIR = process.env.GDLM_LOOPLOGS || path.join(ROOT, "local", "loop");
 
 // built-in guesses (seconds) until timings.jsonl has real runs of a step: [fixed, per level-second]
 const GUESS = { make: [5, 1.5], "make --look": [3, 0.05], compose: [60, 10], score: [10, 2.5], render: [25, 0.3], map: [30, 0.5], wip: [3, 0.1] };
-// tools whose runs count as heavy jobs (a solve, a headless browser, a big scan); serve.js and loop.js do not
-const HEAVY = /tools[\\/](make|compose|score|solutions|wip|shoot|levelmap|difficulty\w*|fairness\w*|tas\w*|polish|structures|catalogue|stop|windows|press_window|community|style|variety|obstacles|modern_look|tiercheck)\.js/;
-const NEED_MB = 1200, MAX_OTHERS = 1;   // allow one other heavy job (two at most across sessions)
 
 // ---------- pure helpers (tested in tests/loop.js) ----------
 const median = a => { const s = a.slice().sort((x, y) => x - y); return s.length ? (s.length % 2 ? s[s.length >> 1] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2) : NaN; };
@@ -48,15 +45,6 @@ function eta(step, levelSecs, rows) {
   return { secs: median(near.map(({ r }) => r.secs * Math.min(4, Math.max(0.25, L / r.levelSecs)))), from: near.length };
 }
 const fmt = s => s < 90 ? `${Math.round(s)} s` : s < 5400 ? `${(s / 60).toFixed(s < 600 ? 1 : 0)} min` : `${(s / 3600).toFixed(1)} h`;
-// other heavy node jobs from a process list [{pid, cmd, mb}]
-function heavyJobs(procs, selfPids) {
-  return procs.filter(p => !selfPids.includes(p.pid) && HEAVY.test(p.cmd || "") && !/tools[\\/](loop|serve)\.js/.test(p.cmd));
-}
-// what the guard does: "go" | "warn" | "wait"
-function guardDecision(others, freeMB) {
-  if (others.length > MAX_OTHERS || freeMB < NEED_MB) return "wait";
-  return others.length ? "warn" : "go";
-}
 function readTimings(file = TIMINGS) {
   try { return fs.readFileSync(file, "utf8").split("\n").filter(Boolean).map(l => { try { return JSON.parse(l); } catch (e) { return null; } }).filter(Boolean); } catch (e) { return []; }
 }
@@ -70,35 +58,12 @@ function table(rows) {
 }
 
 // ---------- the machine ----------
-function processes() {
-  try {
-    if (process.platform === "win32") {
-      const out = cp.execFileSync("powershell", ["-NoProfile", "-Command",
-        "Get-CimInstance Win32_Process -Filter \"name='node.exe'\" | ForEach-Object { \"$($_.ProcessId)`t$([math]::Round($_.WorkingSetSize/1MB))`t$($_.CommandLine)\" }"],
-        { encoding: "utf8", timeout: 30000, windowsHide: true });
-      return out.split(/\r?\n/).filter(Boolean).map(l => { const [pid, mb, ...c] = l.split("\t"); return { pid: +pid, mb: +mb, cmd: c.join("\t") }; });
-    }
-    return cp.execFileSync("ps", ["-eo", "pid=,rss=,args="], { encoding: "utf8" }).split("\n").filter(Boolean)
-      .map(l => { const m = /^\s*(\d+)\s+(\d+)\s+(.*)$/.exec(l); return m && { pid: +m[1], mb: Math.round(m[2] / 1024), cmd: m[3] }; }).filter(Boolean);
-  } catch (e) { return []; }
-}
-const freeMB = () => Math.round(os.freemem() / 1048576);   // Windows: available memory (free + standby)
-const sleep = ms => new Promise(r => setTimeout(r, ms));
-
-async function guard(waitMin, force) {
-  const t0 = Date.now();
-  for (;;) {
-    const others = heavyJobs(processes(), [process.pid]), free = freeMB();
-    const d = guardDecision(others, free);
-    const what = others.map(o => `${(o.cmd.match(/tools[\\/].*/) || [o.cmd])[0].replace(/"/g, "").trim()} (${o.mb} MB)`).join("; ");
-    if (d === "go") { console.log(`guard: no other heavy job, ${free} MB free`); return { others: 0, free }; }
-    if (d === "warn") { console.log(`guard: WARN one other heavy job runs (${what}); ${free} MB free -- going ahead (two at most)`); return { others: others.length, free }; }
-    const why = `${others.length} other heavy job(s)${what ? ": " + what : ""}; ${free} MB free (want <= ${MAX_OTHERS} and >= ${NEED_MB} MB)`;
-    if (force) { console.log(`guard: WARN ${why} -- --force, going ahead`); return { others: others.length, free }; }
-    if ((Date.now() - t0) / 60000 >= waitMin) { console.log(`STOP guard: still busy after ${waitMin} min: ${why}. Try later, or --force.`); return null; }
-    console.log(`guard: waiting -- ${why}`);
-    await sleep(30000);
-  }
+const heavy = require("./heavy.js"), freeMB = heavy.freeMB;
+function slotStatus() {
+  const hs = heavy.holders(), free = freeMB();
+  console.log(hs.length ? `slot: ${hs.length} heavy job(s) running: ${hs.map(heavy.describe).join("; ")}; ${free} MB free -- each step waits its turn`
+    : `slot: free, ${free} MB free`);
+  return { others: hs.length, free };
 }
 
 // run one tool as a child (its own memory), full output to the step's log; resolves {code, out, secs}
@@ -106,10 +71,13 @@ function run(step, args, logBase) {
   return new Promise(res => {
     const t0 = Date.now();
     const ch = cp.spawn(process.execPath, args, { cwd: ROOT, windowsHide: true });
-    let out = "";
-    ch.stdout.on("data", d => out += d); ch.stderr.on("data", d => out += d);
+    let out = "", shown = 0;
+    // echo the lock's waiting lines live (the rest goes to the log)
+    const echo = () => { const lines = out.split(/\r?\n/); for (; shown < lines.length - 1; shown++) if (lines[shown].startsWith("heavy:")) console.log("   " + lines[shown]); };
+    ch.stdout.on("data", d => { out += d; echo(); }); ch.stderr.on("data", d => out += d);
     ch.on("close", code => {
-      const secs = (Date.now() - t0) / 1000;
+      const waited = +((out.match(/heavy: got the slot after waiting (\d+) s/) || [])[1] || 0);
+      const secs = (Date.now() - t0) / 1000 - waited;   // the step's own time, without the wait for a slot
       fs.mkdirSync(LOGDIR, { recursive: true });
       fs.writeFileSync(path.join(LOGDIR, `${logBase}.${step.replace(/\W+/g, "_")}.log`), `$ node ${args.join(" ")}\n${out}\n(exit ${code}, ${secs.toFixed(1)} s)\n`);
       res({ code, out, secs });
@@ -173,7 +141,7 @@ async function main() {
     // time any other job into the same table (install, an upload, a push, an official solve): the rest is the command
     const step = args[1], cmd = args.slice(2);
     if (!step || !cmd.length) { console.log("usage: node tools/loop.js --time <step name> <command ...>"); return 1; }
-    if (HEAVY.test(cmd.join(" ")) && !(await guard(60, false))) return 3;   // a heavy tool waits for its turn
+    slotStatus();   // a heavy tool takes the lock itself (tools/heavy.js); a plain command just runs
     const t0 = Date.now(), r = cp.spawnSync(cmd[0], cmd.slice(1), { cwd: process.cwd(), stdio: "inherit", shell: process.platform === "win32" });
     const secs = (Date.now() - t0) / 1000;
     logTiming({ at: new Date().toISOString(), step, secs: +secs.toFixed(1), ok: r.status === 0, cmd: cmd.join(" ").slice(0, 200), freeMB: freeMB() });
@@ -218,8 +186,8 @@ async function main() {
     return 4;
   }
   for (const b of busy) console.log(`WARN ${b} (--anyway)`);
-  const g = await guard(+(opt("--wait") || 15), args.includes("--force"));
-  if (!g) return 3;
+  if (opt("--wait")) process.env.GDLM_HEAVY_WAIT = opt("--wait");
+  const g = slotStatus();
   const T1 = Date.now(), waited = (T1 - T0) / 1000;
   const result = { name: info.name, ready: false, steps: [] };
   const stamp = (step, r, ok, extra) => {
@@ -300,5 +268,5 @@ function summary(r) {
   console.log("   (never installed or uploaded: that is the coordinator's / publisher's, on the user's yes)");
 }
 
-module.exports = { othersAtWork, eta, heavyJobs, guardDecision, table, readTimings, median, fmt, lengthOf, HEAVY };
+module.exports = { othersAtWork, eta, table, readTimings, median, fmt, lengthOf };
 if (require.main === module) main().then(c => process.exit(c || 0), e => { console.error(e); process.exit(1); });

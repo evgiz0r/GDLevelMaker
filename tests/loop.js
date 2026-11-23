@@ -1,7 +1,6 @@
 // node tests/loop.js  -- checks for tools/loop.js (the one-command loop), ~2 s
 // 1. ETA: built-in guess with no runs; nearest-length runs scaled (capped at 4x); the time table buckets
-// 2. guard: heavy jobs are found by tool name (serve.js / loop.js / this process are not), and the
-//    decision is go / warn (one other) / wait (two others, or under 1.2 GB free)
+// 2. (the one-heavy-job lock is tools/heavy.js, tested in tests/heavy.js)
 // 3. end to end on a tiny level (one spike) in a temp folder: score runs, READY, one timing row written
 //    (to a temp timings file, not the shared one); --eta runs nothing
 // 5. owners: another session's recent wip of the level stops the run, one's own does not
@@ -21,25 +20,16 @@ const t = L.table(rows);
 assert(t.find(r => r.step === "score" && r.len === "30-75 s").median === 40, "table buckets by level length");
 assert.strictEqual(L.fmt(45), "45 s"); assert.strictEqual(L.fmt(150), "2.5 min");
 
-// 2
-const procs = [{ pid: 1, cmd: '"node" tools/make.js specs/50_eclipse.json' }, { pid: 2, cmd: "node tools/serve.js 8765" },
-  { pid: 3, cmd: "node C:\\x\\tools\\score.js levels/a.gdlvl" }, { pid: 4, cmd: "node tools/loop.js specs/x.json" }, { pid: 5, cmd: "node tools/shoot.js a" }];
-assert.deepStrictEqual(L.heavyJobs(procs, [5]).map(p => p.pid), [1, 3]);
-assert.strictEqual(L.guardDecision([], 4000), "go");
-assert.strictEqual(L.guardDecision([{}], 4000), "warn");
-assert.strictEqual(L.guardDecision([{}, {}], 4000), "wait");
-assert.strictEqual(L.guardDecision([], 500), "wait");
-
 // 3
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "gdlm-loop-test-"));
 const { GD, writeGdlvl } = require("../tools/io.js");
 const lv = path.join(tmp, "one_spike.gdlvl");
 writeGdlvl(lv, GD.newRecord("GDLM test one spike", ""), { header: "kA4,0", objects: [{ id: 8, x: 12 * 30 + 15, y: 15 }] });
-const env = Object.assign({}, process.env, { GDLM_TIMINGS: path.join(tmp, "timings.jsonl"), GDLM_LOOPLOGS: path.join(tmp, "logs") });
+const env = Object.assign({}, process.env, { GDLM_TIMINGS: path.join(tmp, "timings.jsonl"), GDLM_LOOPLOGS: path.join(tmp, "logs"), GDLM_LOCKDIR: path.join(tmp, "locks"), GDLM_HEAVY_FREE_MB: "8000" });
 const loop = a => cp.spawnSync(process.execPath, [path.join(__dirname, "..", "tools", "loop.js")].concat(a), { env, encoding: "utf8" });
 const dry = loop([lv, "--eta"]);
 assert.strictEqual(dry.status, 0, dry.stdout + dry.stderr); assert(/ETA/.test(dry.stdout)); assert(!fs.existsSync(env.GDLM_TIMINGS), "--eta runs nothing");
-const real = loop([lv, "--force"]);   // tiny level: --force so a busy PC does not make the test wait
+const real = loop([lv]);   // its own lock folder: a busy PC does not make the test wait
 assert.strictEqual(real.status, 0, real.stdout + real.stderr);
 assert(/READY/.test(real.stdout) && /presses/.test(real.stdout), real.stdout);
 const logged = L.readTimings(env.GDLM_TIMINGS);

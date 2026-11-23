@@ -45,6 +45,7 @@
 // structure from the ranked library (tools/structures.js, STRUCTURES.md) as its newest idea, a
 // different one per section, best-ranked first within the brief's difficulty label, skipping what the
 // level already uses; a section names its own with `use: ["s:<id>"]`, or "structures": false for none.
+if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const fs = require("fs"), path = require("path");
 const { make, build, slug } = require("./make.js");
 const { PATTERNS, expand, mirrorUp } = require("./patterns.js");
