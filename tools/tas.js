@@ -6,6 +6,7 @@
 // game did not, our physics or object table is wrong right there. Cheap: one run, no search.
 // Plans are read from local/gdsolver/solution_lv<N>_dp.txt (gitignored; copy them from gdsolver's
 // data/). Levels from the user's install, like tools/official.js. Nothing here is committed.
+if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const fs = require("fs"), path = require("path");
 const { GD, unpack } = require("./io.js");
 const SRC = process.env.GD_LEVELS || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash/Resources/levels/";

@@ -11,6 +11,7 @@
 // block 39.86, and a whole group shifted together reads fine.)
 // Prints each spot with its block; --gate exits 1 when any is found. Static: no solve, milliseconds.
 // POLISH.md "Soft rules from the user's notes".
+if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const fs = require("fs");
 const { readGdlvl } = require("./io.js");
 const O = require("../lib/objects.js");

@@ -8,6 +8,7 @@
 //            community levels from before 2.2 (2.2 ones move their gameplay with triggers, so their
 //            static layout is not what a player meets) plus official 1-8; leave-one-out ranks and
 //            accuracy; prints the weights to paste into lib/difficulty.js TIER_MODEL.
+if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const fs = require("fs"), path = require("path"), { execFileSync } = require("child_process");
 const { GD, readGdlvl, unpack } = require("./io.js");
 const DF = require("../lib/difficulty.js");

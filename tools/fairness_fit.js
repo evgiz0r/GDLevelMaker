@@ -4,6 +4,7 @@
 // Rows labelled by the physics session (`fair`), plus GDLM 44 v5's deaths that the physics session
 // called forced / a 75 ms zigzag (no `fair` field then; counted as unfair, marked "inferred").
 // Also lists flags with no death after them in attempts that got past them (false alarms).
+if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const fs = require("fs"), path = require("path"), { execSync } = require("child_process");
 const F = require("./fairness.js");
 const ROOT = path.join(__dirname, ".."), CACHE = path.join(ROOT, "local", "difficulty", "fairness");
