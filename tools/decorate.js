@@ -105,13 +105,17 @@ function setHeaderArt(header, bg, ground) {
 // user: "a small arrow pointing to the ground, in the area vaguely you have to jump"). Modern levels
 // put them where a jump cannot be read in time, not on every click (that is clutter). Placed from the
 // solver's run, at cube/robot takeoffs from a surface, and kept only where the jump is NOT obvious:
-//   far cue   the hazard or block it is for is more than 2.5 blocks ahead of the takeoff (the jump
+//   far cue   the hazard or block it is for is more than 2 blocks ahead of the takeoff (the jump
 //             looks early: the GDLM 45 v4 death spot, a jump off a 3-high stair over a spike past
 //             the landing, died there 3 times in a row)
 //   ledge     the takeoff is the last column of a raised surface (jumping off an edge)
 //   portal    the first jump within 12 blocks after a mode / gravity change
 //   new       the first jump at or after a column in opts.at (compose.js: a pattern's first use)
-// No two within 4 blocks; orb and pad launches get none (the orb or pad is the cue). Upside down
+// Placed from the NATURAL plan (lib/natural.js: one tap per jump, no empty jumps; the solver's held
+// button re-jumps on landings, and the user: "the second indicator is wrong, dont need to jump there").
+// Every real jump gets one (the user, GDLM 46 v2: "no indicator in some of the jumps" -- a filter for
+// only the unreadable ones dropped 10 of 13); `why` says what makes it hard to read; opts.only keeps
+// just those. No two within 2 blocks; orb and pad launches get none (the orb or pad is the cue). Upside down
 // the arrow hangs under the ceiling and points up at it. opts.all: every takeoff (the old rule).
 // What the mark is: anything small and softer than the level, never like a hazard (the user: "dont
 // have to be arrows but thats the usual usage, something small bit softer than the level so not to
@@ -120,7 +124,7 @@ function setHeaderArt(header, bg, ground) {
 // to point at the ground, scale 0.7, on white (1011: its own channel 1006 is the player's colour) in
 // its own group, faded to `alpha` by an alpha trigger at the start. Any id works per spec:
 // "indicators": {"id": N, "rot": n, "ch": n}; id 914 = a text object showing `text` (e.g. "v").
-const INDICATOR = { id: 460, rot: 90, ch: 1011, scale: 0.7, text: "v", group: 990, alpha: 0.45, lift: 45 }; // lift: surface -> mark centre
+const INDICATOR = { id: 460, rot: 90, ch: 1011, scale: 0.7, text: "v", group: 990, alpha: 0.45, lift: 24 }; // lift: surface -> mark centre (45 read 'a bit too high', GDLM 44 v8)
 function jumpIndicators(w, r, id, GD, opts = {}) {
   const path = GD.run(w, r.events).path, out = [], marks = [];
   const boxes = w.items || [];
@@ -146,13 +150,13 @@ function jumpIndicators(w, r, id, GD, opts = {}) {
       cue = Math.min(cue, b.x0 - (a.x + 15));
     }
     const why = [];
-    if (cue > 75 && cue !== Infinity) why.push("far cue");
+    if (cue > 60 && cue !== Infinity) why.push("far cue");
     const under = up ? surface - 5 : surface + 5;
     if (Math.abs(surface) > 2 && solidAt(a.x, under) && !solidAt(a.x + 30, under)) why.push("ledge");
     if (a.x - lastChange < 360) { why.push("portal"); lastChange = -1e9; }
     while (atI < at.length && at[atI] <= a.x + 90) { atI++; if (at[atI - 1] > a.x - 60) why.push("new"); } // the jump for a chunk starts ~1-3 blocks before it
-    if (!opts.all && !why.length) continue;
-    if (marks.length && a.x - marks[marks.length - 1] < 120) continue;
+    if (opts.only && !why.length) continue;   // opts.only: just the jumps that cannot be read in time
+    if (marks.length && a.x - marks[marks.length - 1] < 60) continue;
     marks.push(a.x);
     const x = Math.round(a.x / 15) * 15;  // loosely: the area, not the tick
     out.push({ id, x, y: up ? surface + INDICATOR.lift : surface - INDICATOR.lift,
@@ -170,4 +174,70 @@ function markProps(id, opts) {
 // the alpha trigger that makes the marks soft, at the level's start
 function indicatorFade(opts = {}) { return fadeTrigger(0, opts.group ?? INDICATOR.group, opts.alpha ?? INDICATOR.alpha, 0, 11); }
 
-module.exports = { INDICATOR, jumpIndicators, indicatorFade, CH, SKIN, skinBlocks, groundDeco, colourTrigger, fadeTrigger, zoomTrigger, setHeaderColours, setHeaderArt };
+// --- the modern pass (knowledge/levels/modern_look.md; ids from knowledge/objects/catalogue.tsv) ---
+// The user: GDLM looks "like 1.0 graphics". 2.0+ levels decorate every block (the designed-block kit:
+// a lit fill behind the outline, a soft gradient on its lit side), put a backdrop shape set per section,
+// a motif that runs through every section, frames of clouds around the play, a title and an end card,
+// every deco object on its own colour channel and z-layer (key 24: B5..B1 = -5,-3,-1,1,3; T1..T4 =
+// 5,7,9,11). The example the user picked (Fall Out) does it with ~13 objects per block; this pass
+// stays near 5-6 (the phone page carries a level in one 250 KB database row). Hazards keep their
+// own white look; nothing solid goes in front of the play.
+// sections: [{from, to, kind: "cube"|"ship"|"wave"|"ball"|"upside"|"rest"|"break", fill:[r,g,b], light:[r,g,b]}]
+const LAYER = { B5: -5, B4: -3, B3: -1, B2: 1, B1: 3, T1: 5, T2: 7, T3: 9, T4: 11 };
+const KITS = {   // backdrop shapes per kind of section: [id, scale]
+  cube: [[997, 1.2], [999, 1.6], [1000, 2]],          // ring segments
+  upside: [[180, 1.4], [181, 1.8], [182, 2.2]],      // cartwheels
+  ship: [[936, 1.6], [937, 1.4], [938, 2]],          // art clouds
+  ball: [[1058, 2], [1059, 2.4], [1060, 2.8]],       // spirals
+  wave: [[394, 1.2], [395, 1.6], [396, 2.2]],        // geometric hexagons
+};
+function modernPass(objects, sections, opts = {}) {
+  let sd = opts.seed || 3;
+  const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+  const out = [], CH0 = opts.ch0 || 20;
+  const o = (id, x, y, ch, z, extra = {}) => ({ id, x, y, rot: extra.rot || 0, flipX: !!extra.flipX, flipY: false,
+    props: Object.assign({ 155: "1", 21: String(ch), 24: String(z) }, extra.scale ? { 32: String(extra.scale) } : {}) });
+  const blocks = objects.filter(b => b.id >= 1 && b.id <= 7);
+  const solidAt = new Set(blocks.map(b => Math.round((b.x - 15) / 30) + "," + Math.round((b.y - 15) / 30)));
+  sections.forEach((sec, i) => {
+    const fill = CH0 + 2 * i, light = fill + 1, x0 = sec.from * 30, x1 = sec.to * 30;
+    out.push(colourTrigger(0, fill, sec.fill, 0, 12), colourTrigger(0, light, sec.light, 0, 13));
+    const calm = sec.kind === "rest" || sec.kind === "break";
+    // designed blocks: a lit fill behind every block, a soft light on the ones with open tops
+    for (const b of blocks) {
+      if (b.x < x0 || b.x >= x1) continue;
+      out.push(o(207, b.x, b.y, fill, LAYER.B1));
+      const c = Math.round((b.x - 15) / 30), r = Math.round((b.y - 15) / 30);
+      if (!solidAt.has(c + "," + (r + 1))) out.push(o(505, b.x, b.y, light, LAYER.B1, { rot: 0 }));
+    }
+    if (calm) return;   // breaks stay bare: the sparse part is the striking one
+    // backdrop shapes, every 6-10 columns, high and faint
+    const kit = KITS[sec.kind] || KITS.cube;
+    for (let x = x0 + 60; x < x1 - 60; x += 180 + rnd() * 120) {
+      const [id, sc] = kit[Math.floor(rnd() * kit.length)];
+      out.push(o(id, x, 150 + rnd() * 150, light, LAYER.B3, { scale: sc, rot: Math.round(rnd() * 360) }));
+    }
+  });
+  // the motif through every section: small dots drifting at all heights, behind the play
+  const endX = Math.max(...sections.map(s => s.to)) * 30;
+  for (let x = 45; x < endX; x += 45 + rnd() * 60) {
+    const sec = sections.find(s => x >= s.from * 30 && x < s.to * 30);
+    if (!sec || sec.kind === "break") continue;
+    const i = sections.indexOf(sec);
+    // 725: a plain small circle (the d_small_ball ids 1764-1766 draw as crosses and little triangles:
+    // spike-like next to the play, seen in a shoot.js render)
+    out.push(o(725, x, 40 + rnd() * 250, CH0 + 2 * i + 1, LAYER.B2, { scale: 0.5 + rnd() * 0.7 }));
+  }
+  // cloud bands framing the top of the play
+  for (let x = 30; x < endX; x += 70 + rnd() * 40) {
+    const sec = sections.find(s => x >= s.from * 30 && x < s.to * 30); if (!sec) continue;
+    out.push(o([936, 937, 938][Math.floor(rnd() * 3)], x, 390 + rnd() * 30, CH0 + 2 * sections.indexOf(sec) + 1, LAYER.B2, { scale: 1.2 + rnd() * 0.6 }));
+  }
+  // a title at the start and an end card
+  const text = (t, x, y, sc) => ({ id: 914, x, y, rot: 0, flipX: false, flipY: false, props: { 155: "1", 31: Buffer.from(t).toString("base64"), 32: String(sc), 24: String(LAYER.B1) } });
+  if (opts.title) out.push(text(opts.title, 300, 150, 0.9));
+  if (opts.end) out.push(text(opts.end, endX - 240, 150, 0.8));
+  return out;
+}
+
+module.exports = { INDICATOR, jumpIndicators, indicatorFade, modernPass, LAYER, KITS, CH, SKIN, skinBlocks, groundDeco, colourTrigger, fadeTrigger, zoomTrigger, setHeaderColours, setHeaderArt };

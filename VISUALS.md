@@ -42,6 +42,33 @@ object id -> frame names, offsets, colour roles, layers.
 - **Deco catalogue**: `tools/catalogue.js` + `viewer/catalogue.html` + `lib/catalogue.js` (group, family,
   note per id) -> `knowledge/objects/` (catalogue.tsv, usage.json, README.md) and `local/catalogue/*.png`.
 
+- **`lib/vfx.js` -- GD 2.2's visual triggers** (viewer with GD art, and shoot.js): fires every trigger
+  from the replay path (x crossing, spawn chains with delays, multi-activate loops) and gives, at any
+  time: colour (spawn-fired too; copy colour + HSV; player colours), pulse on channels and groups (fade
+  in / hold / fade out, HSV mode, main / detail only), alpha per group, moves with all easings and the
+  lock-to-player x / y parallax moves (58 / 59, multipliers 143 / 144), rotations about a centre group,
+  toggles, camera zoom and offset. Objects' own HSV (keys 41-44) in lib/art.js. 30-50 ms to build for
+  a 15-75k object rated level. Not yet: area triggers (3006-3024), static camera (1914), camera rotate
+  (2015), follow / advanced follow (1347 / 3016), particles (2065, key 145 holds the emitter settings),
+  shaders (2904-2924), animated objects (1585), counters / events / collision triggers, stop (1616).
+- **Trigger ids by GD's own button frames** (catalogue.tsv, group "triggers"): 899 colour, 1006 pulse,
+  1007 alpha, 901 move, 1346 rotate, 1049 toggle, 1268 spawn, 1585 animate, 1913 zoom, 1914 static,
+  1916 offset, 2015 camera rotate, 2062 edge, 2065 particles, 2903 gradient, 2904-2924 shaders (shock
+  wave, shock line, glitch, chromatic, chromatic glitch, pixelate, lens circle, radial / motion blur,
+  bulge, pinch, grayscale, sepia, invert, hue, edit colour, split screen), 3006-3024 area / enter
+  triggers, 3016 advanced follow, 3022 teleport, 3029 change bg, 3031 change mg, 3600 end, 3602 SFX,
+  3604 event, 3610 damage square, 3642 BPM guide, 1612 hide player, 1520 shake.
+
+- **Deco kit for composing: `tools/vfxkit.js`** (gd-style calls it from make.js; this session owns it):
+  `parallax(sections, opts)` -> two background layers per section (far: art clouds / clouds / hexagons /
+  cartwheels / spirals by the section's kind, 3x, B4, darkened by object HSV; near: 1.8x, B3), each a
+  group moved by a lock-to-player-x trigger (0.9 / 0.6 of the player's motion) and faded in / out at its
+  section's edges; `beatPulses(sections, grid, opts)` -> pulse triggers on bar starts in the section's
+  light channel, a strong background + light flash on `flash` sections and `opts.drops`. ~0.6 objects
+  per block on GDLM 45's look test. Try it on any level: `node tools/vfxkit.js <level.gdlvl>` (sections
+  from its portals) -> local/tmp/<name>_kit.gdlvl, then shoot.js. Checked in our render only, not yet
+  in the user's game (lock-to-player duration and multiplier semantics are from the rated levels' data).
+
 ## Facts (checked against the user's recordings)
 
 How: viewer "compare" panel, level start offset set by eye, "save comparison" -> `local/shots/`.
@@ -71,6 +98,18 @@ Driven from the browser console: load a level (`load(name, levelStr, solution)` 
   `kS33..36` colours 1-4, `kS37` 3DL; `kS38` field 4 is read as "player colour 1/2" (not verified).
 
 ## Open (not done or not sure)
+
+- **Rated 2.2 levels can't be compared further yet: the sim loses them.** Recording 2026-11-23_03-23-46
+  (Spire from video 14.3 s, Dash Tower 146.6 s, CHAOTIC, Sunset Aurorae 397 s; levels in
+  local/community: 128630430, 128619650, 151677971, 152663636). Spire matches the game until the
+  user's death at ~7.5 s (shots `local/shots/spire_vs_rec*`), but our sim's run flies off ("sky") at
+  block 112. Sunset Aurorae: the sim does the start teleport (747, +730 units; gd-physics c39a889), but the
+  fewest-clicks solution drops off the bricks at block 12.6 and runs the rest on GD's ground at y 15,
+  under the whole level (nothing kills it there in our sim), so the camera sees nothing; the user
+  stays on the bricks. Needs a route like the player's (or a reason the game kills you down there); Dash Tower also starts off the level (static camera 1914,
+  area moves). Sent to gd-physics 2026-11-23. Until then compare only where sim and recording agree,
+  and use shoot.js's ghost run (after a sim death it keeps the speed and holds the height).
+- Sunset Aurorae plays in a narrowed frame (black bars): a 2.2 camera / edge setting, not drawn.
 
 - **Lime flashes in GDLM 41** (measured, not understood): the block edges (channel 1004, white) and
   the P1 crystals switch between WHITE and solid player LIME (126,255,0) from one frame to the next
