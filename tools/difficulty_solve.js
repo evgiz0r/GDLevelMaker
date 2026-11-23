@@ -28,7 +28,7 @@ const SRC = process.env.GD_LEVELS || "C:/Program Files (x86)/Steam/steamapps/com
 const OUT = path.join(__dirname, "..", "local", "difficulty");
 
 function physicsCommit() {
-  try { return execSync("git log -1 --format=%h -- lib/physics.js lib/objects.js lib/objects_extra.js", { cwd: path.join(__dirname, ".."), encoding: "utf8" }).trim(); }
+  try { return execSync("git log -1 --format=%h -- lib/physics.js lib/dual.js lib/objects.js lib/objects_extra.js", { cwd: path.join(__dirname, ".."), encoding: "utf8" }).trim(); }
   catch (e) { return null; }
 }
 

@@ -98,7 +98,7 @@ function levels() {
   return out;
 }
 
-function physicsStamp() { try { return cp.execSync("git log -1 --format=%h -- lib/physics.js lib/objects.js lib/difficulty.js lib/natural.js", { cwd: ROOT }).toString().trim(); } catch (e) { return "x"; } }
+function physicsStamp() { try { return cp.execSync("git log -1 --format=%h -- lib/physics.js lib/dual.js lib/objects.js lib/difficulty.js lib/natural.js", { cwd: ROOT }).toString().trim(); } catch (e) { return "x"; } }
 
 function main() {
   const args = process.argv.slice(2), only = args.includes("--only") ? args[args.indexOf("--only") + 1] : null;

@@ -32,7 +32,7 @@ const keyOf = levelStr => crypto.createHash("sha1").update(levelStr).digest("hex
 let PHYS = null;
 function physicsCommit() {
   if (PHYS === null) {
-    try { PHYS = require("child_process").execSync("git log -1 --format=%h -- lib/physics.js lib/objects.js lib/objects_extra.js lib/objects_gd22.js", { cwd: path.join(__dirname, ".."), encoding: "utf8" }).trim(); } catch (e) { PHYS = ""; }
+    try { PHYS = require("child_process").execSync("git log -1 --format=%h -- lib/physics.js lib/dual.js lib/objects.js lib/objects_extra.js lib/objects_gd22.js", { cwd: path.join(__dirname, ".."), encoding: "utf8" }).trim(); } catch (e) { PHYS = ""; }
   }
   return PHYS;
 }
