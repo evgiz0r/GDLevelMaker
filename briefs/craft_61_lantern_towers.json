@@ -1,0 +1,258 @@
+{
+ "name": "GDLM 61 lantern towers",
+ "desc": "Hop the towers, ride the lanterns, mind the pits.",
+ "notes": "CRAFT.md step 3: built with the Jumper/xStep craft rules (many small pieces over pit floors, rods and chains on the pieces, one hue per section). Song: Waterflame - Thumper (575768), from song bar 8 (13.95 s); the drop (song bar 16) is the ship.",
+ "song": {
+  "custom": 575768
+ },
+ "offset": 13.95,
+ "grid": {
+  "bpm": 137.987,
+  "t0": 0.0358
+ },
+ "seed": 61,
+ "lead": 10,
+ "sections": [
+  {
+   "bars": 8,
+   "mode": "cube",
+   "hue": [
+    120,
+    30,
+    230
+   ],
+   "build": 2,
+   "chunks": [
+    "pillar-hop",
+    "stepped-pyramid",
+    "capped-hop",
+    "lantern-orb",
+    "slab-steps"
+   ]
+  },
+  {
+   "bars": 6,
+   "mode": "ship",
+   "hue": [
+    20,
+    90,
+    255
+   ],
+   "chunks": [
+    "ship-weave",
+    "ship-lanterns",
+    {
+     "s": "ship-weave",
+     "args": {
+      "line": [
+       4,
+       3,
+       4,
+       5,
+       6,
+       5
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "bars": 8,
+   "mode": "cube",
+   "hue": [
+    0,
+    200,
+    90
+   ],
+   "build": 1,
+   "chunks": [
+    {
+     "rest": 6
+    },
+    "ceiling-hop",
+    "blue-orb-ceiling",
+    "pillar-climb",
+    "gravity-pad-gap",
+    "red-pad-tower",
+    "pink-orb-pit"
+   ]
+  },
+  {
+   "bars": 6,
+   "mode": "ball",
+   "hue": [
+    255,
+    90,
+    10
+   ],
+   "chunks": [
+    {
+     "rest": 5
+    },
+    "ball-pillars",
+    "ball-orb",
+    "ball-flips",
+    {
+     "raw": [
+      [
+       "block",
+       0,
+       5
+      ],
+      [
+       "block",
+       1,
+       5
+      ],
+      [
+       "block",
+       2,
+       5
+      ],
+      [
+       "block",
+       3,
+       5
+      ],
+      [
+       "block",
+       4,
+       5
+      ],
+      [
+       "block",
+       5,
+       5
+      ],
+      [
+       "block",
+       6,
+       5
+      ],
+      [
+       "block",
+       7,
+       5
+      ],
+      [
+       "block",
+       8,
+       5
+      ],
+      [
+       "block",
+       9,
+       5
+      ],
+      [
+       "block",
+       10,
+       5
+      ],
+      [
+       "block",
+       11,
+       5
+      ],
+      [
+       "block",
+       12,
+       5
+      ],
+      [
+       "block",
+       13,
+       5
+      ]
+     ],
+     "w": 14
+    }
+   ]
+  },
+  {
+   "bars": 8,
+   "mode": "cube",
+   "hue": [
+    230,
+    0,
+    150
+   ],
+   "build": 2,
+   "chunks": [
+    {
+     "rest": 6
+    },
+    {
+     "s": "pillar-hop",
+     "args": {
+      "heights": [
+       1,
+       3,
+       2,
+       3,
+       1
+      ]
+     }
+    },
+    "dash-orb-pit",
+    {
+     "s": "capped-hop",
+     "args": {
+      "heights": [
+       1,
+       2,
+       3,
+       2,
+       3
+      ],
+      "cap": 4
+     }
+    },
+    "lantern-orb",
+    {
+     "s": "slab-steps",
+     "args": {
+      "n": 2,
+      "gap": 3
+     }
+    }
+   ]
+  },
+  {
+   "bars": 4,
+   "mode": "ship",
+   "hue": [
+    255,
+    20,
+    40
+   ],
+   "chunks": [
+    {
+     "s": "ship-lanterns",
+     "args": {
+      "rows": [
+       6,
+       3,
+       6,
+       4,
+       7
+      ]
+     }
+    },
+    {
+     "s": "ship-weave",
+     "args": {
+      "line": [
+       3,
+       4,
+       5,
+       6,
+       5,
+       4
+      ]
+     }
+    }
+   ]
+  }
+ ]
+}

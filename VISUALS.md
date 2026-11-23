@@ -20,7 +20,9 @@ Jump indicators (arrows 132/460/494 and 2.2's 3630-3632) and text (914) are draw
 only with GD art: the shapes look draws them in `lib/look.js` `drawMark` (own shape, channel 21, group
 alpha), the schematic view soft white. Other decoration stays out of the shapes look.
 
-The button strip under the ground (viewer and phone) shades each input's whole timing window, from the
+The button band -- its own canvas under the level (`#inbar`), never over the playfield (the user: "the timings
+again are part of the ui and are annoying. put the timings below the level"; soft rule: UI never draws over the
+playfield) -- shades each input's whole timing window, from the
 earliest to the latest tick that works (presses cyan, releases pink, a tap's release moves with its press),
 with its length in ms under it; the white mark inside is where the replay presses. The window is a player's
 (`lib/windows.js` -> lib/difficulty.js measureWindows: later inputs re-planned, the one definition score.js and
@@ -29,7 +31,11 @@ shows, in a Web Worker (`viewer/windows_worker.js`, shipped on the phone page to
 which froze the page when it ran there. ~40 s for GDLM 45 on the PC, filling in as it goes; the click table's
 window column fills when it is done. A level with no saved solution in viewer/levels.js is solved in the page
 first (minutes, page frozen): `node tools/solutions.js <level>`, then `node tools/index_levels.js`.
-`node tools/shoot.js <level> --input` draws the strip in headless shots.
+`node tools/shoot.js <level> --input` stamps the band under headless shots.
+
+Beat lines (viewer, every look): from `local/beats.local.js`, built by `node tools/beats.js` (or `--index` from
+the analysed songs in local/beats/). It used to be written into viewer/ of whichever worktree ran it, so the
+user's viewer (main checkout) had no beat lines at all; the phone build reads the same file.
 
 ## What is built
 
@@ -117,6 +123,29 @@ first (minutes, page frozen): `node tools/solutions.js <level>`, then `node tool
   Not checked yet: the v2 look in the editor and the game (GD's font size and the 1293 / 497 light).
   Try: `node tools/signature.js <level>` -> local/tmp/<name>_sig.gdlvl (replaces an older signature),
   then `node tools/shoot.js` on it.
+
+## Player motion and icons (soft rule: match the game, checked against a recording)
+
+Each mode is drawn with its own icon: GD art -- the user's icon sheets (/gdres/icons); robot and spider built
+from their parts as GD's own `Robot_AnimDesc.plist` / `Spider_AnimDesc.plist` place them (run on the ground,
+jump going up, fall coming down; 24 frames a second; read at run time, never copied). Shapes look: a drawn shape
+per mode in lib/look.js (cube, ship, UFO, ball, wave, robot with striding legs, spider with four legs, swing
+with fins). Mini: 0.6 size. Upside down: every icon but the wave's mirrored top to bottom.
+Rotation as drawn (viewer visualRot; the sim's own s.rot spins every mode but the ship in the air, which its
+hitbox needs, not what the game shows):
+
+| mode | drawn | checked against the game |
+|---|---|---|
+| cube | spins in the air, lands square | yes (jump arc, PHYSICS.md) |
+| ship | tilts with its velocity | by eye in recordings |
+| wave | points along its velocity | by eye |
+| ball | rolls with distance (one turn per 2 pi x 15 units), direction by gravity | no |
+| UFO | nearly level: a quarter of the ship's tilt | no -- the user missed a tilt, then noticed half of it as too much; set from a clean UFO clip when one exists |
+| swing | tilts with its velocity | no |
+| robot, spider | upright; the legs move | no |
+
+Open: measure the UFO, swing and ball rotation in a recording (track.py on a clean stretch) and set the
+factors from it.
 
 ## Facts (checked against the user's recordings)
 
