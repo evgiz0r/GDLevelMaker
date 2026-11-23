@@ -48,6 +48,13 @@ reading before writing a spec; `levels/`, `glossary.md`, `demonlist.md` for the 
 
 ## The loop
 
+**One command for steps 2-3 and the wip:** `node tools/loop.js <spec | brief | level.gdlvl> [--look]
+[--render] [--map] [--session <name> --note "..."]` -- waits for a free slot (one heavy job at a time),
+prints an ETA, runs make (or compose) -> score (every gate) -> pictures -> `wip.js put`, stops at the first
+failure with the reason, and ends with READY / NOT READY, presses, tightest window, picture paths and the
+wip version. It never installs or uploads. Each step's time goes to `local/timings.jsonl` (see "How long
+things take" below). The tools below still work one by one.
+
 1. Write a spec in `specs/NN_name.json` (grid squares, see the top of `tools/make.js`).
 2. `node tools/make.js specs/NN_name.json` -> `levels/<name>.gdlvl`, solved, added to the viewer.
 3. Look at it: `node tools/serve.js` and open http://localhost:8765/viewer/ (or open
@@ -146,6 +153,9 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   parallax, beat pulses, text), a level's scene script `tools/scenes/<name>.js` (spec key `"scene"`).
   `node tools/make.js <spec> --look` rebuilds a decoration-only change in a second (keeps the solve when
   the gameplay is the same). Owner: the showcase session.
+- **`tools/loop.js` -- the whole make/iterate loop in one command** (guard, ETA, make/compose, score,
+  shoot, levelmap, wip; logs under `local/loop/`), `--times` prints the measured time table, `--time <step>
+  <cmd>` times any other job into it. Test: `node tests/loop.js`.
 - `tools/solutions.js` -- solve each level ONCE on the PC (`--all` for every repo level missing one);
   the viewer and the phone replay the saved solution (natural replay, stamped with the physics
   commit; stale ones are re-solved). make.js and wip.js save one whenever they solve.
