@@ -46,7 +46,10 @@ function parallax(sections, opts = {}) {
   const speed = opts.speed || SPEED_1X, g0 = opts.group0 || 100, out = [];
   const layers = [
     { m: opts.farMul || 0.9, z: -3, zo: -20, scale: 3, v: 0.45, gap: 330, rows: [5, 8, 6, 9] },   // far: big, dark, slow
-    { m: opts.nearMul || 0.6, z: -1, zo: -10, scale: 1.8, v: 0.7, gap: 230, rows: [3, 5, 4, 6] }, // near
+    // near: smaller and darker than first made -- at 1.8x / 70% its round clouds crossed hanging spikes in
+    // cube timings and hurt hazard readability (gd-polish, 2026-11-23); shapes stay well below the hazards'
+    // white outlines in brightness
+    { m: opts.nearMul || 0.6, z: -1, zo: -10, scale: 1.3, v: 0.5, gap: 260, rows: [2, 4, 3, 5] }, // near
   ];
   sections.forEach((sec, i) => {
     const [x0, x1] = xr(sec), dur = (x1 - x0) / speed, shapes = SHAPES[sec.kind] || SHAPES.cube;
