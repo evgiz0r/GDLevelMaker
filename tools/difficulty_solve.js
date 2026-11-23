@@ -14,6 +14,8 @@
 //   then solves from the start. --from X: resume at x X (units) instead. Limit: the route before the
 //   resume point is the old one, so a change that opens a better route earlier is not seen; run
 //   a full solve (no --resume) now and then. `all ... --resume` passes it on.
+// node tools/difficulty_solve.js <n> --replan  -- only the viewer's route again (natural plan + humanCost) from
+//   the saved run, when it still finishes and skips nothing; else it says to solve again.
 // Checkpoints: every 30 s a sweep writes its best route so far to local/difficulty/NN.part.json (with
 //   its physics commit). Stopping a solve (another session needs the PC) costs nothing: the next
 //   run of the same level on the same physics carries on from the checkpoint, whatever its flags.
@@ -137,9 +139,14 @@ function continueFrom(n, events, trouble, backs, opts, old) {
 function toViewer(n, level, res) {
   if (isCommunity(n)) return;   // other people's levels: numbers only, not in the viewer's official list
   const NAMES = require("./difficulty.js").RATED;
-  // the viewer shows the route a person would play: one tap per cube jump instead of long holds
+  // the viewer shows the route a person would play: the natural plan judged by humanCost (lib/natural.js:
+  // no unneeded press, short taps, early in each window, wave/ship lines off the walls; PHYSICS.md "How the
+  // route is chosen"), as the GDLM levels get; difficulty's humanize when the natural plan fails
   const L = GD.parseLevel(level), w = GD.makeWorld(L.objects, L.header);
-  const events = require("../lib/difficulty.js").humanize(w, res.events).events;
+  let events = null;
+  try { const n = require("../lib/natural.js").naturalPlan(w, { ok: res.ok, events: res.events }, L.objects, { cost: true });
+    if (n && (res.ok ? n.path[n.path.length - 1].done : true)) events = n.events; } catch (e) {}
+  if (!events) events = require("../lib/difficulty.js").humanize(w, res.events).events;
   const solution = res.ok ? { ok: true, events } : { ok: false, events, dieX: res.dieX, why: res.why };
   fs.writeFileSync(path.join(OUT, "..", `official_${String(n).padStart(2, "0")}.json`),
     JSON.stringify({ n, name: NAMES[n] ? NAMES[n][0] : "level " + n, level, solution, physics: res.physics || null }));
@@ -164,6 +171,15 @@ if (require.main === module) {
     }
   } else {
     const n = isCommunity(args[0]) ? args[0] : +args[0];
+    if (args.includes("--replan")) {   // the viewer's route again from the saved run, no solve (it must still finish and skip nothing)
+      const file = path.join(OUT, tag(n) + ".json"), r = JSON.parse(fs.readFileSync(file, "utf8")), level = levelText(n);
+      const L = GD.parseLevel(level), w = GD.makeWorld(L.objects, L.header), q = GD.run(w, r.events);
+      const sk = r.ok && GD.skipCheck(w, q.path, r.events);
+      if (r.ok && (q.dead || !(q.done || q.end.x >= w.endX))) { console.log(`${n}: the saved run no longer finishes: solve it again (--resume)`); process.exit(1); }
+      if (sk) { console.log(`${n}: the saved run skips ${sk.skipped}: a secret way, solve it again`); process.exit(1); }
+      toViewer(n, level, r); const v = JSON.parse(fs.readFileSync(path.join(OUT, "..", `official_${tag(n)}.json`), "utf8"));
+      console.log(`${n}: viewer route re-planned: ${r.events.filter(e => e.type === "press").length} raw presses -> ${v.solution.events.filter(e => e.type === "press").length}`); return;
+    }
     const fi = args.indexOf("--from"), o = { sweep: args.includes("--sweep"), fresh: args.includes("--fresh"), from: fi < 0 ? null : +args[fi + 1] };
     const r = args.includes("--resume") || fi >= 0 ? resumeOfficial(n, o) : solveOfficial(n, o);
     console.log(`${n}: ${r.ok ? "beaten" : "stops at block " + (r.dieX / 30).toFixed(1) + " (" + r.why + ")"}, ${r.events.length} events, ${r.secs.toFixed(0)} s, physics ${r.physics}` +
