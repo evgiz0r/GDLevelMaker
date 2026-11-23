@@ -481,6 +481,9 @@ The viewer draws moving objects where they start.
 
 ## Rules
 
+- **In the viewer, everything that exists can be seen at once; nothing waits on a solve to be visible.** A level or
+  build stage with no route runs as a ghost (the camera at the level's speed, portals honoured), and its level map is
+  drawn in the page from the layout; solving for the route is an option, never the price of seeing it.
 - **No native dialogs in the viewer pages** (alert / confirm / prompt): the app's built-in browser and the phone page's
   frame suppress them, so the button just did nothing. Use the viewer's notice(), askNote(), showMap();
   `node tests/no_dialogs.js` checks.

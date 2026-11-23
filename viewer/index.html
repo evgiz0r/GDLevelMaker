@@ -403,6 +403,8 @@ function load(name, levelStr, saved, info) {
   L = { name, level, world, sol, path, held };
   L.vrot = visualRot(path);
   L.routeKind = routeKindOf(saved, sol, world);
+  // no route yet (a level or build stage still being made): the camera runs through it at the level's speed
+  if (sol.pending && !SHOOT) { L.path.length = 1; ghostExtend(L, null, true); L.noRoute = true; }
   // colour / alpha / zoom triggers fire when the replayed run passes their x
   L.look = GD.LOOK.timeline(level, x => {
     let lo = 0, hi = path.length - 1;
@@ -835,7 +837,31 @@ if (document.getElementById("mapBtn")) document.getElementById("mapBtn").onclick
   const l = ALL[pick.value]; if (!l) return;
   const name = String(l.file || "").split("/").pop().replace(/\.(gdlvl|json)$/, ""), url = "../local/maps/" + name + ".jpg";
   let ok = false; try { ok = (await fetch(url, { method: "HEAD", cache: "no-store" })).ok; } catch (e) {}
-  if (ok) showMap(url); else makeMap(l, name, url);
+  if (ok) return showMap(url);
+  // no map file: draw it here, now, from what exists (the layout; the route too when there is one). Solving for a
+  // route is offered beside it, never needed to see the level ("nothing waits on a solve to be visible")
+  const hasRoute = L && !L.noRoute && L.sol && (L.sol.ok || (L.path || []).length > 10);
+  const pcOk = location.protocol.startsWith("http") && !window.GD_PAGES && !window.GD_PHONE;
+  const ans = await taskAsk({ title: "Level map of " + l.name,
+    what: hasRoute ? "Draw the whole level as one long picture, here and now, with its route over it (presses, modes, portals)."
+      : "Draw the whole level as one long picture, here and now: its blocks, hazards, orbs, pads and portals. It has no route yet, so none is drawn.",
+    after: "It opens over the page in a few seconds." + (pcOk && !hasRoute ? " Or let the PC solve the route first and draw the map with it (that can take long on a big level)." : ""),
+    etaText: "Drawn in this page: no waiting on the PC.", go: "Draw it now", alt: pcOk && !hasRoute ? "Solve and add the route (PC)" : null });
+  if (ans === "alt") return makeMap(l, name, url);
+  if (ans !== "go") return;
+  drawMapHere(l);
+};
+// the level map drawn in this page (the shots' mapRender), for the level on screen; the view is restored after
+async function drawMapHere(l) {
+  if (!L) return;
+  notice("drawing the level map…", 0);
+  const keep = { t, playing, W, H };
+  playing = false; setPlay();
+  if (L.path[L.path.length - 1].x < L.world.endX - 30 && !L.noRoute) ghostExtend(L, null, true);   // a run that stops early: the rest as a ghost
+  let url = null; try { url = await mapRender({ scale: 0.5 }); } catch (e) { console.warn(e); }
+  resize(); t = keep.t; draw();
+  const n = document.getElementById("notice"); if (n) n.hidden = true;
+  if (url) showMap(url); else notice("The map could not be drawn here.");
 };
 // no map yet: explain, then the PC's tools/serve.js makes it (tools/levelmap.js under the heavy lock, high priority)
 async function makeMap(l, name, url) {
@@ -1156,6 +1182,8 @@ function draw() {
   // the player, drawn by its mode (a cube in every mode read wrong: "the wave looks like cube")
   // dual (lib/dual.js): player 2's own fields are in s.p2; it is drawn the same way, at its own height
   for (const ps of s.p2 ? [s, Object.assign({}, s, s.p2)] : [s]) {
+  if (s0.ghost && !MAPCAM) { const gx = sx(ps.x); ctx.strokeStyle = "rgba(255,255,255,.35)"; ctx.setLineDash([6, 6]); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, groundY); ctx.stroke(); ctx.setLineDash([]);
+    if (L.noRoute) { ctx.fillStyle = "rgba(255,255,255,.6)"; ctx.font = `${12 * DPR()}px system-ui`; ctx.fillText("no route yet: the camera runs at the level's speed", gx + 8, 18 * DPR()); } continue; }
   if (MAPCAM) {} else if (LS) GD.LOOK.drawPlayer(ctx, view, ps, L.held[k], local, (P.SPEEDS[ps.sp] || P.SPEEDS[1]).x, sc ? GD.ART_LIB.drawIcon : null);
   else if (ps.mode === "ship") drawShip(ps);
   else if (ps.mode === "wave") drawWave(ps);
@@ -1622,32 +1650,8 @@ async function shootRun() {
   // a run the sim cannot finish (2.2 levels it does not model yet) goes on as a ghost: same speed, height
   // held, so the camera keeps moving through the level as in the game (job.ghost false: stop at the death)
   if (job.ghost !== false) {
-    const last = L.path[L.path.length - 1];
-    // a map wants the whole level (colours keep changing past a sim stop); shots their latest time
-    // the ghost keeps to the level's speed portals after the stop (it ran at the death's speed before, and
-    // look47's 0.5x / 2x portals put frames at the wrong x: gd-style, 2026-11-23). SPEEDS: units per 60 fps frame
-    const portals = L.level.objects.filter(o => GD.objInfo(o.id).kind === "speed").sort((a, b) => a.x - b.x);
     const vOf = sp => ((P.SPEEDS[sp] || P.SPEEDS[1]).x) * 60 / P.TPS;
-    const want = job.map ? Math.ceil(L.world.endX / vOf(0)) + 2 : Math.max(...job.times) * P.TPS + 2;
-    if (last.dead || L.path.length < want) {
-      let k = L.path.length - 1; while (k > 0 && L.path[k].dead) k--;
-      const base = L.path[k];
-      let x = base.x, sp = base.sp, pi = portals.findIndex(o => o.x > x); if (pi < 0) pi = portals.length;
-      L.path.length = k + 1;
-      for (let j = k + 1; j < want; j++) {
-        x += vOf(sp);
-        while (pi < portals.length && portals[pi].x <= x) { sp = GD.objInfo(portals[pi].id).speed; pi++; }
-        if (job.map && x > L.world.endX + 60) break;
-        L.path.push(Object.assign({}, base, { x, sp, tick: j, dead: false, ghost: true }));
-      }
-      L.held = new Uint8Array(L.path.length);
-      // load() already drew once, building the colour timeline and the trigger runtime on the short path:
-      // triggers past the stop never fired (look47 stayed lavender). Rebuild both on the extended path.
-      const path = L.path;
-      L.look = GD.LOOK.timeline(L.level, x => { let lo = 0, hi = path.length - 1; if (path[hi].x < x) return Infinity;
-        while (lo < hi) { const m = (lo + hi) >> 1; if (path[m].x >= x) hi = m; else lo = m + 1; } return lo / P.TPS; });
-      L.vfx = null;
-    }
+    ghostExtend(L, job.map ? Math.ceil(L.world.endX / vOf(0)) + 2 : Math.max(...job.times) * P.TPS + 2, !!job.map);
   }
   const post = (name, url) => fetch("/shoot/" + SHOOT + "/" + name, { method: "POST", body: url });
   if (job.map) { await post("000.png", await mapRender(job)); return post("done", "1"); }
@@ -1675,6 +1679,33 @@ async function shootRun() {
 // camera -- each chunk at the moment the player passes it, so colour changes and moved objects are where
 // they are then -- and the replayed path over it: mode colours, presses, releases, orb / pad hits,
 // portals, seconds and % ticks, section names, where a run the sim cannot finish stops ----------
+// A run the sim cannot finish, or a level / build stage with no route yet, goes on as a ghost: the camera moves at
+// the level's speed (its speed portals honoured), height held, so everything that exists can be seen and scrubbed
+// at once ("where is the layout", the user on GDLM 64's layout stage: play and the timeline stayed at 0).
+// The look timeline and the trigger runtime are rebuilt on the longer path (triggers past the stop never fired).
+function ghostExtend(LL, want, toEnd) {
+  const portals = LL.level.objects.filter(o => GD.objInfo(o.id).kind === "speed").sort((a, b) => a.x - b.x);
+  const vOf = sp => ((P.SPEEDS[sp] || P.SPEEDS[1]).x) * 60 / P.TPS;
+  want = want || Math.ceil(LL.world.endX / vOf(0)) + 2;
+  const last = LL.path[LL.path.length - 1];
+  if (!(last.dead || LL.path.length < want)) return false;
+  let k = LL.path.length - 1; while (k > 0 && LL.path[k].dead) k--;
+  const base = LL.path[k];
+  let x = base.x, sp = base.sp, pi = portals.findIndex(o => o.x > x); if (pi < 0) pi = portals.length;
+  LL.path.length = k + 1;
+  for (let j = k + 1; j < want; j++) {
+    x += vOf(sp);
+    while (pi < portals.length && portals[pi].x <= x) { sp = GD.objInfo(portals[pi].id).speed; pi++; }
+    if (toEnd && x > LL.world.endX + 60) break;
+    LL.path.push(Object.assign({}, base, { x, sp, tick: j, dead: false, ghost: true }));
+  }
+  LL.held = new Uint8Array(LL.path.length);
+  const path = LL.path;
+  LL.look = GD.LOOK.timeline(LL.level, x => { let lo = 0, hi = path.length - 1; if (path[hi].x < x) return Infinity;
+    while (lo < hi) { const m = (lo + hi) >> 1; if (path[m].x >= x) hi = m; else lo = m + 1; } return lo / P.TPS; });
+  LL.vfx = null; LL.vrot = visualRot(path);
+  return true;
+}
 const MODE_COL = { cube: "#7dff00", ship: "#ff5ad2", wave: "#00e5ff", ball: "#ffa500", ufo: "#ffe14d", robot: "#c8c8ff", spider: "#b48cff", swing: "#ffffff" };
 async function mapRender(job) {
   const S = job.scale || 0.5, path = L.path, endX = Math.max(L.world.endX, path[path.length - 1].x + 60);
@@ -1760,8 +1791,8 @@ async function mapRender(job) {
     const x = pc / 100 * (L.world.endX - 90), yb = HEAD + rowOf(x) * (rowH + GAP) + TOP + sceneH;
     X.fillStyle = "#ffe14d"; X.fillRect(mx(x), yb, 2, 10); X.fillText(pc + "%", mx(x), yb + 29);
   }
-  // where a run the sim cannot finish stops
-  if (!ok || stopK >= 0) {
+  // where a run the sim cannot finish stops (a level without a route has no run to stop)
+  if ((!ok || stopK >= 0) && !L.noRoute) {
     const p = path[lastK], cx = mx(p.x), cy = my(p.x, p.y);
     X.strokeStyle = "#ff3b6b"; X.lineWidth = 4; X.beginPath(); X.moveTo(cx - 9, cy - 9); X.lineTo(cx + 9, cy + 9); X.moveTo(cx + 9, cy - 9); X.lineTo(cx - 9, cy + 9); X.stroke();
     // the label on a dark plate: red text vanished on red sections (Deadlocked's 59% stop)
@@ -1775,7 +1806,8 @@ async function mapRender(job) {
   X.textAlign = "left"; X.fillStyle = "#fff"; X.font = "bold 22px system-ui"; X.fillText(L.name, 12, 28);
   let presses = 0; for (let k = 1; k <= lastK; k++) if (L.held[k] && !L.held[k - 1]) presses++;
   X.font = "14px system-ui"; X.fillStyle = "#bbb";
-  X.fillText(`${(L.world.endX / 30).toFixed(0)} blocks · ${total.toFixed(1)} s · ${presses} presses · ${ok ? (L.sol.natural ? "natural replay" : "solver run") : "not beaten in the simulation"} · ${job.art === false ? "shapes" : "GD art"}`, 12, 52);
+  X.fillText(L.noRoute ? `${(L.world.endX / 30).toFixed(0)} blocks · the layout only: no route yet · ${job.art === false || !artOn() ? "shapes" : "GD art"}`
+    : `${(L.world.endX / 30).toFixed(0)} blocks · ${total.toFixed(1)} s · ${presses} presses · ${ok ? (L.sol.natural ? "natural replay" : "solver run") : "not beaten in the simulation"} · ${job.art === false ? "shapes" : "GD art"}`, 12, 52);
   let lx = Math.max(640, Math.min(out.width - 560, 900));
   X.font = "13px system-ui";
   for (const [m, c] of Object.entries(MODE_COL)) {
