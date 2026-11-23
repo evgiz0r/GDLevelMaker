@@ -10,6 +10,11 @@
 const quick = process.argv.includes("--quick");
 if (!quick) require("../tools/heavy.js").claim();
 const fs = require("fs"), path = require("path"), crypto = require("crypto");
+// the saved routes these tests use (local/ is not in git: a fresh checkout or a cloud session has none)
+{ const fsx = require("fs"), px = require("path"), src = px.join(__dirname, "fixtures", "edit_routes"), dst = px.join(__dirname, "..", "local", "solutions");
+  fsx.mkdirSync(dst, { recursive: true });
+  for (const f of fsx.readdirSync(src)) if (!fsx.existsSync(px.join(dst, f))) fsx.copyFileSync(px.join(src, f), px.join(dst, f)); }
+
 const E = require("../tools/edit.js"), FAM = require("../tools/families.js");
 const ROOT = path.join(__dirname, "..");
 let bad = 0, n = 0;
