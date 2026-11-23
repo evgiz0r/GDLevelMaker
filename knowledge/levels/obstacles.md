@@ -130,6 +130,32 @@ When each kind first appears in rated Easy/Normal levels (median):
   first use is over a spike, since that is what they are for. Measuring how gentle an
   introduction is would need timing (the difficulty tools), not layout.
 
+## 4. Indicators: where rated levels put their jump arrows
+
+`node tools/obstacles.js indicators --tiers Easy,Normal,Hard,Harder --gdlm` (2026-11-23), asked for
+after the user said GDLM 46's arrows sit "a bit too high over the ground".
+
+Method:
+- Arrows are the `d_arrow` deco (ids 132, 460, 494, 3630-3632).
+- Most arrows in rated levels are decoration: 3,656 in 52 levels, in patterns and signs, at a median
+  of 4 blocks up.
+- A **hint** is counted as a single arrow (no other within 3 blocks), at most 3 blocks above the
+  surface under it, with a hazard within 6 blocks ahead. That is a heuristic, not a label.
+
+| levels | levels with hints | hints | height of the arrow's centre above the surface (p25 / median / p75) | nearest hazard ahead (median) |
+|---|---|---|---|---|
+| rated Easy-Harder 2.0-2.1 | 30 | 240 | 0.5 / **1.0** / 2.0 blocks | **0.5 blocks** |
+| rated Easy+Normal only | 9 | 84 | 0.6 / 1.4 / 1.9 | 0.8 |
+| GDLM 46 v2 | 1 | 5 | 1.5 | 2.5 |
+
+- Rated levels put a hint arrow **about 1 block above the surface** (Easy/Normal alone: 1.4, on fewer
+  levels). That agrees with the user's "about one block, not 1.5".
+- They put it **right at the jump**: the hazard is half a block ahead. GDLM's sit 2.5 blocks before
+  the hazard. A hint marks where to press, not the obstacle.
+- Hints are used sparingly: 30 of 63 rated 2.0-2.1 levels use any, ~8 per level. Many levels cue
+  with structure and orbs instead.
+- Turns vary (90 40%, 0 32%, 270 21%). Which way the sprite points at each turn is not checked.
+
 ## Targets for GDLM (Easy/Normal)
 
 - **Build cube parts on blocks**: blocks in ~45-50% of the columns; most spikes on or next to a
@@ -139,3 +165,5 @@ When each kind first appears in rated Easy/Normal levels (median):
   by ~15-20 s, gravity and a speed change by a third of the way in, ~15 kinds by the end.
 - Show each new thing once or twice, then move on, while staying fair: the first use in plain
   sight, cued, no prejump (`design.md`).
+- Jump arrows, if any: ~1 block above the surface, right at the press (the hazard ~0.5 block ahead),
+  only on real inputs, and consistently.

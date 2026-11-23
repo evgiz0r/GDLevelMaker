@@ -78,6 +78,7 @@
 <script src="../lib/physics.js"></script>
 <script src="../lib/sync.js"></script>
 <script src="../lib/look.js"></script>
+<script src="../lib/vfx.js"></script>
 <script src="../lib/objects_art.js"></script>
 <script src="../lib/objects_frames.js"></script>
 <script src="../lib/art.js"></script>
@@ -415,19 +416,30 @@ function draw() {
   const s = Object.assign({}, s0, { x: s0.x + (s1.x - s0.x) * f, y: s0.y + (s1.y - s0.y) * f,
     rot: L.vrot ? L.vrot[k] + ((L.vrot[Math.min(k + 1, L.path.length - 1)] - L.vrot[k]) * f) : s0.rot });
   // objects that triggers move, turn or switch off: drawn where they are at this moment
-  const objsNow = posedNow(s0);
+  let objsNow = posedNow(s0);
   // the game look: colours and zoom at this moment (zoom 0.7 = see more, everything smaller)
   LS = look ? GD.LOOK.stateAt(L.look, k / P.TPS) : null;
+  // GD art: every visual trigger (lib/vfx.js) -- spawn-fired colours, pulses, alpha, moves incl. the
+  // parallax ones locked to the player, rotations, toggles, camera offset; objects posed by it
+  if (LS && artOn() && GD.VFX) {
+    if (!L.vfx) { L.vfx = GD.VFX.build(L.level, L.path, L.look); L.vfxDyn = new Set(L.vfx.dynamic); }
+    const V = L.vfx;
+    LS = GD.VFX.stateAt(V, k / P.TPS, LS);
+    LS.tint = (o, m, d) => o._i === undefined ? null : GD.VFX.groupTint(V, LS, o, o._i, m, d);
+    const objs = L.level.objects, out = [];
+    for (let i = 0; i < objs.length; i++) { const o = L.vfxDyn.has(i) ? GD.VFX.pose(V, LS, objs[i], i) : objs[i]; if (o) out.push(o); }
+    objsNow = out;
+  }
   // the game look frames like GD at 16:9: 10.67 blocks tall, ground 3.1 blocks up, player 36% across
   // (a screen narrower than 16:9, like a phone held upright, shows GD's 19 blocks across and more sky)
-  if (LS) { scale = Math.min(H / (30 * 10.67), W / (30 * 19)) * LS.zoom; groundY = H - 30 * 3.1 * scale; camX = s.x - W / scale * 0.36; }
+  if (LS) { scale = Math.min(H / (30 * 10.67), W / (30 * 19)) * LS.zoom; groundY = H - 30 * 3.1 * scale; camX = s.x - W / scale * 0.36 + (LS.camOff ? LS.camOff[0] : 0); }
   else { scale = baseScale; groundY = H - 30 * 1.6 * scale; camX = s.x - W / scale * 0.3; }
   // flying modes: keep the player in view inside its corridor (the corridor is taller than the view)
   const viewH = groundY / scale;
   const want = isFinite(s.ceilY) && s.mode !== "cube"
     ? Math.max(s.floorY - 15, Math.min(s.y - viewH * 0.5, s.ceilY + 15 - viewH))
     : Math.max(0, s.y - 30 * 4.5);
-  if (SHOOT) camY = want; else
+  if (SHOOT) camY = want + (LS && LS.camOff ? LS.camOff[1] : 0); else
   camY += (want - camY) * (1 - Math.exp(-9.75 * drawDt)); // 0.15 a frame at 60 fps, at any rate
   const view = { W, H, scale, camX, sx, sy };
   const AR = GD.ART_LIB, sc = artOn() ? (L.scenery = L.scenery || AR.scenery(L.level.header)) : null;
@@ -807,6 +819,18 @@ async function shootRun() {
   resize();
   const lv = job.level;
   load(lv.name, lv.levelStr, lv.solution || null, null);
+  // a run the sim cannot finish (2.2 levels it does not model yet) goes on as a ghost: same speed, height
+  // held, so the camera keeps moving through the level as in the game (job.ghost false: stop at the death)
+  if (job.ghost !== false) {
+    const last = L.path[L.path.length - 1], want = Math.max(...job.times) * P.TPS + 2;
+    if (last.dead || L.path.length < want) {
+      let k = L.path.length - 1; while (k > 0 && L.path[k].dead) k--;
+      const base = L.path[k], v = ((P.SPEEDS[base.sp] || P.SPEEDS[1]).x) * 60 / P.TPS; // SPEEDS: units per 60 fps frame
+      L.path.length = k + 1;
+      for (let j = k + 1; j < want; j++) L.path.push(Object.assign({}, base, { x: base.x + v * (j - k), tick: j, dead: false, ghost: true }));
+      L.held = new Uint8Array(L.path.length);
+    }
+  }
   const post = (name, url) => fetch("/shoot/" + SHOOT + "/" + name, { method: "POST", body: url });
   for (let i = 0; i < job.times.length; i++) {
     t = Math.max(0, Math.min(job.times[i], (L.path.length - 1) / P.TPS)); playing = false;
