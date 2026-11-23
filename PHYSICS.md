@@ -63,6 +63,17 @@ A plan's tick t is our step t-1 (`tools/tas.js` shifts it). Plans reach, in bloc
   degrees), mini 2 (63.4 degrees); y is moved by the line, and the stored vy (what the next mode
   inherits) is +-speed with no mini factor. Contact box half 5 (mini 3), dies when its 1.5 half box
   enters a solid, slides along solid faces, keeps 10 (mini 6) off the band's floor and roof.
+- Sliding off a block's end kills: once the wave has slid on a block, the tick its centre passes
+  that face's end (no block of the same face continuing under it) is a death, not a fall. Measured:
+  the user's GDLM 44 runs (2026-11-23_02-51-50.mkv): the cube lands on a block, takes the wave
+  portal at the block's end, the wave sinks onto the top (3 frames of flat trail), and dies on the
+  frame its centre passes the corner (game x 1638-1643; sim now 1643). Two of two attempts. The
+  rule's exact shape (centre vs box, does it apply on a ceiling face or a ground row) is not seen
+  yet; `tests/mechanics.js` pins it. Not hit by any official plan (none slides on a block).
+- Design consequence: a wave portal right at a block's end that a cube can land on is a trap --
+  the habit (enter the wave without holding) slides into the corner. `tools/press_window.js`
+  measured GDLM 44's entrance: press-and-hold from 8 ticks before the portal to 13 after (92 ms)
+  passes; not pressing by then dies.
 - Checked: the user's Deadlocked video, mini wave trail 2.00:1 in 7 frames (`tests/modes_video.js`);
   plans: Blast Processing's wave part (blocks 147-295) survives.
 - Open: Deadlocked's plan dies at 32 in the mini wave on a spike turned -63 degrees, threaded with
