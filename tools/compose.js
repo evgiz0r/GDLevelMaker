@@ -113,10 +113,6 @@ function compose(brief, tweaks = {}) {
         objects.push(["colour", at + 0.5, { ch: "bg", rgb: sec.bg, secs: 0.6 }]);
       } else objects.push(["colour", at, { ch, rgb: sec[ch], secs: sec.secs ?? (sec0.beats ? 0.4 : 1) }]);
     }
-    if (speeds[si] !== lastSpeed) {   // a speed portal on the section's first column (above a corridor's own portal)
-      objects.push([speeds[si] + " speed", start, sec.mode && sec.mode !== "upside" ? 5 : 1]);
-      lastSpeed = speeds[si];
-    }
     if (sec.deco != null) deco.push([start, sec.deco]);
     // the modern pass's section (tools/decorate.js modernPass): kind, and colours from the section's bg
     { const bg = sec.bg || (looks.length ? looks[looks.length - 1].bg : [40, 60, 160]);
@@ -127,6 +123,14 @@ function compose(brief, tweaks = {}) {
     // portal comes `land` columns later, once the cube is down (GDLM 45 v5 round 2: the cube fell past
     // the ball portal that stood right after the ship's exit, and skipped the ball)
     const land = prevFlying && start - flyEnd < 4 ? 4 : 0;
+    // a speed portal where the player passes: on the ground row, before this section's own portal (and
+    // after the landing room). Above a corridor (row 5) the wave flew under it and the speed never
+    // changed (GDLM 47 round 1: a 0.5x section ran on into the next three).
+    if (speeds[si] !== lastSpeed) {
+      const flying = sec.mode && sec.mode !== "upside";
+      objects.push([speeds[si] + " speed", flying || sec.mode === "upside" ? start + land - 1 : start, 1]);
+      lastSpeed = speeds[si];
+    }
     if (sec.mode === "ball") {
       const key = `${si}:0`, t = tweaks[key] || {};
       const args = Object.assign({ w: sec.blocks - 3 - land, gap: 5, every: 9, lead: 6 }, (sec.args || {})["ball-run"] || {}, { portal: true, exit: "cube", portalRow: 1 });
@@ -171,7 +175,8 @@ function compose(brief, tweaks = {}) {
       // (rated low-tier levels: ~6 blocks after a cube portal, knowledge/levels/modes_low_tier.md)
       // (8 here: the cube first falls out of the exit portal, ~0.3 s)
       // upside down: the cube first falls up to the ceiling (~0.3 s), so 8 columns after its portal
-      let c = upside ? start + 10 + land : start + (prevFlying ? Math.max(3, 8 - (start - flyEnd)) : 3), k = 0, last = null;
+      // the level's first section: a calm start (pacing gate: 10+ blocks before the first hazard)
+      let c = upside ? start + 10 + land : start + (prevFlying ? Math.max(3, 8 - (start - flyEnd)) : si === 0 ? 10 : 3), k = 0, last = null;
       const stop = upside ? end - 9 : end - 3;   // upside: room to read and take the exit portal
       // draw every random choice up front so a tweak to one chunk does not reshuffle the others
       const draws = Array.from({ length: 64 }, () => [rnd(), rnd()]);
@@ -207,7 +212,10 @@ function compose(brief, tweaks = {}) {
         // jump before it has landed and seen it (GDLM 45 v4: a spike-block right past a 3-high stair,
         // the user died there 3 times "cant tell where to jump")
         const drop = last ? endHeight(last, (sec.args || {})[last]) : 0;
-        let gap = gMin + Math.floor(r2 * (gMax - gMin + 1)) + (intro && k > 0 ? 2 : 0) + (t.gap || 0) + (drop >= 2 ? drop + 1 : 0);
+        // after an orb or pad launch the cube comes down from high up: room to land and look (GDLM 47:
+        // an orb chain at 2x landed 3 blocks before a step with a double on it)
+        const launched = last && /orb|pad/.test(last) ? 3 : 0;
+        let gap = gMin + Math.floor(r2 * (gMax - gMin + 1)) + (intro && k > 0 ? 2 : 0) + (t.gap || 0) + (drop >= 2 ? drop + 1 : 0) + launched;
         let newH = h, stepAt = null, ledge = false;
         if (terrain) {
           const [t1, t2] = tdraws[k];
@@ -249,7 +257,7 @@ function compose(brief, tweaks = {}) {
   // the modern look (STYLE.md: knowledge/levels/modern_look.md); "modern": false in the brief turns it off
   // the signature at the end (tools/signature.js, the visuals session's): in the last rest section
   if (brief.signature !== false) { const r = ranges[ranges.length - 1]; spec.signature = { col: r[2] + 3 }; }
-  if (brief.modern !== false) spec.modern = { sections: looks.map(({ bg, ...l }) => l), title: brief.name, end: "thanks for playing", seed: brief.seed || 3 };
+  if (brief.modern !== false) spec.modern = { sections: looks.map(({ bg, ...l }) => l), title: brief.name, end: "thanks for playing", seed: brief.seed || 3, light: brief.palette === "light" };
   // jump indicators (tools/decorate.js): on jumps that cannot be read in time, and the first jump of
   // each new pattern. Default on; "indicators": false in the brief turns them off.
   if (brief.indicators !== false) spec.indicators = Object.assign({ at: firsts }, brief.indicators || {});
@@ -258,9 +266,26 @@ function compose(brief, tweaks = {}) {
   return { spec, placed, ranges };
 }
 // the spec of one section alone (the rest of the level left out), for sectionwise scoring
-function sectionSpec(spec, range) {
-  const [i0, i1, , end] = range;
-  return Object.assign({}, spec, { objects: spec.objects.slice(i0, i1).concat([["block", end + 2, 6]]) });
+// Moved to the level's start (12 columns in), with the speed in force there, and without the
+// decoration passes: solving from the real start walked up to 90 s of empty ground first (~80 of a
+// section's ~100 s, GDLM 47). `shift` (columns) maps the results back.
+function sectionSpec(spec, range, speed) {
+  const [i0, i1, start, end] = range, shift = Math.max(0, start - 12);
+  const mv = e => { const c = e.slice(); const k = c[0] === "pattern" ? 2 : 1; if (typeof c[k] === "number") c[k] -= shift; return c; };
+  const objs = spec.objects.slice(i0, i1).map(mv).concat([["block", end - shift + 2, 6]]);
+  if (speed && speed !== (spec.speed || "1x")) objs.unshift([speed + " speed", 2, 1]);
+  const sub = Object.assign({}, spec, { objects: objs });
+  delete sub.modern; delete sub.signature; delete sub.indicators; delete sub.decoDensity;
+  return { sub, shift };
+}
+// a section's score, back in the level's columns
+function unshift(sc, shift) {
+  const u = shift * 30;
+  if (sc.solution && sc.solution.dieAt) sc.solution.dieAt = Object.assign({}, sc.solution.dieAt, { x: sc.solution.dieAt.x + u });
+  for (const p of sc.prejumps || []) { p.cueAt += shift; if (p.to != null) p.to += shift; if (p.from != null) p.from += shift; }
+  for (const c of sc.tight || []) c.x += u;
+  for (const c of sc.chains || []) c.x += u;
+  return sc;
 }
 
 // which placed chunk a column belongs to (or the next one after it)
@@ -290,8 +315,8 @@ function loop(briefFile, rounds = 8) {
     const { spec, placed, ranges } = compose(brief, tweaks);
     const parts = [];
     for (const [si, rg] of ranges.entries()) {
-      const sub = sectionSpec(spec, rg);
-      if (!sub.objects.some(o => !["colour", "fade", "zoom"].includes(o[0]))) continue;
+      const { sub, shift } = sectionSpec(spec, rg, speedsOf(brief)[si]);
+      if (!sub.objects.some(o => !["colour", "fade", "zoom", "block"].includes(o[0]) || (o[0] === "block" && o[2] !== 6))) continue;
       const key = JSON.stringify(sub.objects);
       if (!cache.has(key)) {
         const t0 = Date.now();
@@ -300,6 +325,7 @@ function loop(briefFile, rounds = 8) {
         const sc = scoreLevel(level, Object.assign({}, brief, { sections: undefined }));
         sc.gates = sc.gates.filter(g => BLOCKING.has(g.name));
         sc.ok = !sc.gates.some(g => g.status === "FAIL");
+        unshift(sc, shift);
         console.log(`   section ${si} ${brief.sections[si].name}: ${sc.ok ? "ok" : "FAIL " + sc.gates.filter(g => g.status === "FAIL").map(g => g.name).join(",")} (${((Date.now() - t0) / 1000).toFixed(0)} s)`);
         cache.set(key, sc);
       }
@@ -434,7 +460,7 @@ if (require.main === module) {
       console.log(`${String(i).padStart(2)} ${sec.name.padEnd(20)} col ${String(rg[2]).padStart(5)}-${String(rg[3]).padEnd(5)} ${(rg[2] / 10.39).toFixed(1).padStart(6)} s  ${sec.mode || (sec.rest ? "rest" : "cube")}  ` +
         placed.filter(p => p.key.startsWith(i + ":")).map(p => p.name).join(" "));
       if (si >= 0) {
-        const sub = sectionSpec(spec, rg);
+        const { sub } = sectionSpec(spec, rg, speedsOf(brief)[i]);
         sub.name = `${brief.name} s${i}`;
         const { level, rec } = build(sub, file);
         const out = path.join(__dirname, "..", "local", "sections", slug(sub.name) + ".gdlvl");

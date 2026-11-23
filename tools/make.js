@@ -252,7 +252,7 @@ function build(spec, specFile = "spec") {
     // on bar starts and a strong one on each section's drop ("flash"); speed from the header
     const kit = require("./vfxkit.js");
     const speed = tl[0].v;   // units per second at the start (the timeline's first segment)
-    objects.push(...kit.parallax(secs, { speed }));
+    objects.push(...kit.parallax(secs, Object.assign({ speed }, spec.modern.light ? { value: [0.95, 1] } : {})));  // light palette: no darkened layers
     if (ctx.grid) objects.push(...kit.beatPulses(secs, ctx.grid, { speed, songOffset: spec.offset || 0, xOfT: t => GD.SYNC.xOfT(tl, t) }));
   }
   if (spec.signature) {   // tools/signature.js: robot + human, "Made by Claude (and some humans)"
