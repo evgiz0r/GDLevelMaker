@@ -24,6 +24,10 @@ function check(objs) {
   const haz = objs.filter(o => (O.objInfo(o.id) || {}).kind === "hazard" && !(o.props && (o.props[121] === "1" || o.props[134] === "1")));
   // surfaces: by the hazard's base height (rounded to half a block) and rotation (floor / ceiling)
   const key = o => Math.round(o.y / 15) + ":" + (Math.round((o.rot || 0) / 90) % 4 + 4) % 4;
+  // columns a solid stands in, near each hazard's height: a gap filled by a pillar is not a ragged gap
+  // (the craft pit floors: low spikes between pillars, CRAFT.md -- found on GDLM 61)
+  const solidAt = new Set(objs.filter(o => ["solid", "slope"].includes((O.objInfo(o.id) || {}).kind)).map(o => Math.floor(o.x / 30) + ":" + Math.floor(o.y / 30)));
+  const filled = (x0, x1, y) => { const r = Math.floor(y / 30); for (let c = Math.floor(x0 / 30) + 1; c < Math.floor(x1 / 30); c++) if (solidAt.has(c + ":" + r) || solidAt.has(c + ":" + (r + 1))) return true; return false; };
   const bySurf = new Map();
   for (const o of haz) { const k = key(o); if (!bySurf.has(k)) bySurf.set(k, []); bySurf.get(k).push(o); }
   for (const list of bySurf.values()) {
@@ -31,7 +35,7 @@ function check(objs) {
     for (let i = 1; i < list.length; i++) {
       const d = (list[i].x - list[i - 1].x) / 30;
       if (d < 0.8) out.push({ kind: "overlap", x: list[i].x, note: `hazards ${d.toFixed(2)} block apart (ids ${list[i - 1].id}, ${list[i].id})` });
-      else if (d > 1.2 && d < 3.2 && list[i].id === list[i - 1].id) {
+      else if (d > 1.2 && d < 3.2 && list[i].id === list[i - 1].id && !filled(list[i - 1].x, list[i].x, list[i].y)) {
         // a gap of 1-2 empty columns between two hazards: ragged unless it repeats (a steady pattern)
         const prev = i > 1 ? (list[i - 1].x - list[i - 2].x) / 30 : null, next = i + 1 < list.length ? (list[i + 1].x - list[i].x) / 30 : null;
         const steady = (prev && Math.abs(prev - d) < 0.3) || (next && Math.abs(next - d) < 0.3);
