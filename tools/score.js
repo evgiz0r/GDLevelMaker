@@ -5,7 +5,7 @@
 //   beatable     the solver beats it (cube/ship/... physics, lib/physics.js)
 //   prejumps     no press is committed far ahead of its cue (tools/sightread.js; the user's rule)
 //   timing       tightest press window >= the brief's minWindowMs (default 60)
-//   recovery     time from landing to the next press window >= minRecoveryMs (default Easy 150,
+//   recovery     time from landing to the END of the next press's window >= minRecoveryMs (default Easy 150,
 //                Normal 100, harder: none). Land-and-jump-at-once chains were the wall in GDLM 42
 //                (the user's normal-mode deaths, mouse, recording 19:45): fine for the solver, hard
 //                for a person without holding the button.
@@ -82,7 +82,10 @@ function scoreLevel(level, brief, opts = {}) {
       // only jumping modes land and jump again: a wave or ship touching a floor is not a landing (GDLM
       // 47's wave turns read as land-and-jump chains)
       if (!/^(cube|robot)$/.test((path[presses[i].tick] || {}).mode || "cube")) continue;
-      const ms = (presses[i].lo - t) / GD.PHYS.TPS * 1000;
+      // from landing to the LAST moment the next press still works: a window that opens on landing but
+      // stays open is no chain (GDLM 47: a step 2 blocks past the landing read as "0 ms"); what kills is
+      // having to press within ~100 ms of touching down (GDLM 42 v3)
+      const ms = ((presses[i].hi ?? presses[i].lo) - t) / GD.PHYS.TPS * 1000;
       if (minRec != null ? ms < minRec : ms < 100) chains.push({ x: path[presses[i].tick].x, ms: Math.round(ms) });
     }
     gate("recovery", chains.length && minRec != null ? "FAIL" : chains.length ? "WARN" : "PASS",

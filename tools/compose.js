@@ -101,7 +101,7 @@ function compose(brief, tweaks = {}) {
   let col = 0, prevFlying = false, flyEnd = -99;
   const lens = sectionBlocks(brief), speeds = speedsOf(brief);
   const total = lens.reduce((a, n) => a + n, 0);
-  let lastSpeed = brief.speed || "1x", h = 0;
+  let lastSpeed = brief.speed || "1x", h = 0, prevUpside = false;
   for (const [si, sec0] of brief.sections.entries()) {
     const sec = Object.assign({}, sec0, { blocks: lens[si] });
     const start = col, end = col + sec.blocks, i0 = objects.length;
@@ -122,13 +122,18 @@ function compose(brief, tweaks = {}) {
     // a mode section right after a corridor: the cube leaves the exit portal in the air, so its own
     // portal comes `land` columns later, once the cube is down (GDLM 45 v5 round 2: the cube fell past
     // the ball portal that stood right after the ship's exit, and skipped the ball)
-    const land = prevFlying && start - flyEnd < 4 ? 4 : 0;
+    // (8 after an upside-down part: the cube falls from the ceiling first; 4 left it mid-air at the next
+    // portal, fairness gate, GDLM 47)
+    let land = prevFlying && start - flyEnd < 4 ? (prevUpside ? 8 : 4) : 0;
     // a speed portal where the player passes: on the ground row, before this section's own portal (and
     // after the landing room). Above a corridor (row 5) the wave flew under it and the speed never
     // changed (GDLM 47 round 1: a 0.5x section ran on into the next three).
     if (speeds[si] !== lastSpeed) {
       const flying = sec.mode && sec.mode !== "upside";
       objects.push([speeds[si] + " speed", flying || sec.mode === "upside" ? start + land - 1 : start, 1]);
+      // the section's own portal 3 columns later: a speed change is a "switch" too, and the next mode's
+      // first input closed 192 ms after it (fairness gate, GDLM 47's 1x speed + wave portal)
+      if (flying) land += 3;
       lastSpeed = speeds[si];
     }
     if (sec.mode === "ball") {
@@ -138,7 +143,7 @@ function compose(brief, tweaks = {}) {
       objects.push(["pattern", "ball-run", start + 1 + land, 0, args]);
       placed.push({ key, name: "ball-run", from: start + 1 + land, to: start + 1 + land + widthOf("ball-run", args), section: sec.name, flying: true });
       ranges.push([i0, objects.length, start, end]);
-      col = end; prevFlying = true; flyEnd = end;
+      col = end; prevFlying = true; flyEnd = end; prevUpside = false;
       continue;
     }
     // a flying section: one corridor with its own portal (entered from the ground) and a framed
@@ -153,14 +158,16 @@ function compose(brief, tweaks = {}) {
           // 1 above) and 2 at the entry -- with pure 45-degree legs a turn was 13-88 ms (GDLM 44, physics
           // 2026-11-23); aim: every wave input >= ~150 ms at Normal (tools/windows.js)
           const easy = ["Easy", "Normal"].includes((brief.difficulty || {}).label || "Easy"), flat = easy ? 2 : 1, seg = 4;
-          return { seg, flat, lead: 3, legs: Math.max(2, Math.floor((sec.blocks - 5 - land) / (seg + flat))), gap: easy ? 5 : 4, low: 2, slopes: true };
+          // entry: 4 level columns with 8 rows of room (leadGap, gd-polish): a wave entering with the
+          // button held or not has ~300 ms before roof or floor (fairness gate: wave deadline 300 ms)
+          return { seg, flat, lead: 4, leadGap: 8, legs: Math.max(2, Math.floor((sec.blocks - 5 - land) / (seg + flat))), gap: easy ? 5 : 4, low: 2, slopes: true };
         })();
       const args = Object.assign(base, (sec.args || {})[name] || {}, { portal: true, exit: "cube", portalRow: 1 });
       if (t.room) args.gap = (args.gap || 4) + t.room;
       objects.push(["pattern", name, start + 1 + land, 0, args]);
       placed.push({ key, name, from: start + 1 + land, to: start + 1 + land + widthOf(name, args), section: sec.name, flying: true });
       ranges.push([i0, objects.length, start, end]);
-      col = end; prevFlying = true; flyEnd = end;
+      col = end; prevFlying = true; flyEnd = end; prevUpside = false;
       continue;
     }
     const upside = sec.mode === "upside", ceil = (sec.args && sec.args.ceil) || 6;
@@ -224,8 +231,13 @@ function compose(brief, tweaks = {}) {
           if (newH !== h) {
             // the step 3 columns after the last chunk, then 5 (up) or 6 (down, a drop) on the new level
             // before the next: steps mid-gap left 3 columns and chained the jumps (GDLM 47 round 1)
-            gap = Math.max(gap, newH > h ? 8 : 9);
-            stepAt = c + 3;
+            // a step up 5 columns after the chunk (its jump lands ~2 past the chunk's end: then a run, then
+            // the jump onto the step; at +3 it was a land-and-jump chain), a step down 3 (no input)
+            gap = Math.max(gap, newH > h ? 10 : 9);
+            stepAt = c + (newH > h ? 5 : 3);
+            // a chunk that already ends up high (a platform): the new level continues from its end, no
+            // 3-wide pit between them to drop into and jump straight out of (GDLM 47: 50 ms, block 57)
+            if (newH > h && last && endHeight(last, (sec.args || {})[last]) >= newH - h) { stepAt = c; gap = Math.max(gap, 6); }
             ledge = newH > h && t2 < 0.35 && k > 0 && !["Easy", "Normal"].includes((brief.difficulty || {}).label);   // a spike at the step's foot: Hard and up
           }
         }
@@ -250,10 +262,13 @@ function compose(brief, tweaks = {}) {
       prevFlying = false;
     }
     if (upside) { prevFlying = true; flyEnd = end; }   // the cube drops from the ceiling: a lead-in next
+    prevUpside = upside;
     ranges.push([i0, objects.length, start, end]);
     col = end;
   }
-  objects.push(["block", col + 2, 6]); // marks the end; out of the cube's way
+  // marks the end (the level ends at its last object): an alpha trigger on an unused group, invisible
+  // in the game (a block up at row 6 showed as a stray black square, GDLM 47)
+  objects.push(["fade", col + 2, { group: 999, to: 1, secs: 0 }]);
   const spec = { name: brief.name, desc: brief.desc || brief.idea || "", objects };
   if (deco.length) spec.decoDensity = deco;
   // the modern look (STYLE.md: knowledge/levels/modern_look.md); "modern": false in the brief turns it off
@@ -353,7 +368,9 @@ function loop(briefFile, rounds = 8) {
   // An approximate prejump (WARN, levels with modes) counts too: GDLM 45 v4's WARN at its stairs was
   // the spot the user died at three times.
   const sound = s => !s.gates.some(g => (g.status === "FAIL" && g.name !== "difficulty") || (g.name === "prejumps" && g.status !== "PASS"));
-  const better = (a, b) => !b || (sound(a.s) && !sound(b.s)) || (sound(a.s) === sound(b.s) && dist(a) < dist(b));
+  const nFails = r => r.s.gates.filter(g => g.status === "FAIL" && g.name !== "difficulty").length;
+  // when none is sound yet: fewer failing gates first (GDLM 47 kept round 1 of 6 for want of this)
+  const better = (a, b) => !b || (sound(a.s) && !sound(b.s)) || (!sound(a.s) && !sound(b.s) && nFails(a) < nFails(b)) || (sound(a.s) === sound(b.s) && nFails(a) === nFails(b) && dist(a) < dist(b));
   const list = fixes => fixes.map(f => `- ${f.what}${NL}`).join("");
   const blocked = new Set();
   let cur = evaluate({}), best = null;
