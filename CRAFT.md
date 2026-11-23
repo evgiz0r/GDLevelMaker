@@ -63,6 +63,11 @@ from few long masses on a safe floor, with decoration floating in the background
   5 / 6 -- the "set piece" (a symmetric stepped pyramid with fill and a rod on every step, a fortress).
 - **Pillar runs climb and fall**: neighbouring pillars sit 2-3 blocks apart (gap 2: 27, gap 3: 19 of 69 in
   Jumper) and differ in height by 1-2 blocks (only 7 of 69 the same). Every jump changes height.
+- **At Easy/Normal, tap-able pillars** (the user on GDLM 61 v1, blocks 15-60, 2-wide pillars 2 apart:
+  "these clicks very unnatural ... the timings seem reallllly awkward"; the saved route was one long hold).
+  Jumper's 1-2-wide pillars are a Harder rhythm: they work only as a held bounce. Ours: tops 3-4 wide, a
+  RISE over a 1-column pit (over 2 columns the take-off must come late: ~1 block, ~100 ms of window), a
+  DROP over a 3-column pit (over 2 the cube walks across without a jump and the pit means nothing).
 - **Hanging columns cap the jump**: a ceiling of columns from the top, their ends 2-4 blocks over the
   pillar tops, so the arc is framed above and below (Jumper's whole opening).
 - **Symmetric set pieces**: stepped pyramids, a block with spikes on every side, rows of `^#^` (a 1-wide

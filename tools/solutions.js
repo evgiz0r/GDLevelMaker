@@ -10,7 +10,7 @@
 // Each carries `physics` (the commit of lib/physics.js / lib/objects*.js it was solved on): after a
 // physics change, get() treats older ones as stale and they are solved again.
 // --all: solve every repo level that has none yet (one at a time; heavy levels take minutes).
-// Each also carries `plan` (the commit of lib/natural.js). When only the plan is older, or the physics
+// Each also carries `plan` (the last commit of lib/natural.js or lib/difficulty.js: the route planner and its humanCost judge). When only the plan is older, or the physics
 // is older but the saved inputs still finish the level, solve() re-plans from them (a few seconds)
 // instead of solving again; --all does that for every repo level.
 // Each beaten one also carries `windows` -- every input's timing window (lib/windows.js, a player's window):
@@ -32,14 +32,14 @@ const keyOf = levelStr => crypto.createHash("sha1").update(levelStr).digest("hex
 let PHYS = null;
 function physicsCommit() {
   if (PHYS === null) {
-    try { PHYS = require("child_process").execSync("git log -1 --format=%h -- lib/physics.js lib/objects.js lib/objects_extra.js lib/objects_gd22.js", { cwd: path.join(__dirname, ".."), encoding: "utf8" }).trim(); } catch (e) { PHYS = ""; }
+    try { PHYS = require("child_process").execSync("git log -1 --format=%h -- lib/physics.js lib/dual.js lib/objects.js lib/objects_extra.js lib/objects_gd22.js", { cwd: path.join(__dirname, ".."), encoding: "utf8" }).trim(); } catch (e) { PHYS = ""; }
   }
   return PHYS;
 }
 let PLAN = null;
 function planCommit() {
   if (PLAN === null) {
-    try { PLAN = require("child_process").execSync("git log -1 --format=%h -- lib/natural.js", { cwd: path.join(__dirname, ".."), encoding: "utf8" }).trim(); } catch (e) { PLAN = ""; }
+    try { PLAN = require("child_process").execSync("git log -1 --format=%h -- lib/natural.js lib/difficulty.js", { cwd: path.join(__dirname, ".."), encoding: "utf8" }).trim(); } catch (e) { PLAN = ""; }
   }
   return PLAN;
 }
@@ -68,21 +68,44 @@ function get(levelStr, any) {
   return s;
 }
 function put(levelStr, sol, level) {
-  sol.physics = physicsCommit(); sol.plan = planCommit(); sol.solvedAt = new Date().toISOString();
+  // the plan stamp says which lib/natural.js made this route: only fromRun (which runs the natural plan) sets
+  // it; a copied route keeps its own, so it shows up stale and is re-planned (make.js --look once copied an
+  // old one-long-hold route and stamped it current: GDLM 45 wip v8, 2026-11-23)
+  sol.physics = physicsCommit(); if (sol.plan === undefined) sol.plan = null; sol.solvedAt = new Date().toISOString();
   if (level) { try { measureWindows(level, sol); } catch (e) { delete sol.windows; } }
+  if (level) incSave(levelStr, sol, level);
   fs.mkdirSync(DIR, { recursive: true });
   fs.writeFileSync(path.join(DIR, keyOf(levelStr) + ".json"), JSON.stringify(sol));
   return sol;
+}
+// incremental solving (PHYSICS.md "Incremental solving"): a beaten route keeps checkpoints (its exact state about
+// every second, ~10-30 KB), its level is kept by hash (local/solutions/lv/) and its sections go into the section
+// cache, so an edit, a cut or a join of this level later re-solves only what changed (tools/incsolve.js)
+function incSave(levelStr, sol, level) {
+  try {
+    const INC = require("../lib/incsolve.js").incsolve, ST = require("./inc_store.js");
+    ST.saveLevel(keyOf(levelStr), levelStr, sol.name);
+    if (!sol.ok || !sol.events || !sol.events.length) return;
+    const w = GD.makeWorld(level.objects, level.header), p = GD.run(w, sol.events).path;
+    sol.checkpoints = INC.checkpoints(w, sol.events, p);
+    if (INC.finishes(w, { done: p[p.length - 1].done, end: p[p.length - 1] })) INC.cacheRoute(w, sol.events, p, ST.sections(), { stamp: physicsCommit() + "/" + planCommit() });
+  } catch (e) { delete sol.checkpoints; }
 }
 // from a solver result already in hand (make.js has one): natural plan, saved
 function fromRun(level, levelStr, r) {
   const w = GD.makeWorld(level.objects, level.header);
   let sol;
+  // THE DEFAULT (the user, 2026-11-23: "let's by default solve with the human route, then in the limits we
+  // will see"): every saved route is the human route -- lib/natural.js with humanCost (no skips, no unneeded
+  // presses, short taps, holds only where the mode needs them, early in each window, flying the safe line).
+  // kind "human"; "limit" when no human route finishes (the raw solver route is kept, with why);
+  // "unbeaten" when the solver itself is stuck.
   if (r && r.ok) {
-    let events = r.events;
-    try { const n = GD.naturalPlan(w, r, level.objects, { cost: true }); if (n && n.path[n.path.length - 1].done) events = n.events; } catch (e) {}
-    sol = { ok: true, events };
-  } else sol = { ok: false, events: (r && r.trail) || [], dieX: r && r.dieAt && r.dieAt.x, why: r && r.why };
+    let events = r.events, kind = "limit", why = "the natural plan could not finish the level: the solver's raw route";
+    try { const n = GD.naturalPlan(w, r, level.objects, { cost: true });
+      if (n && n.path[n.path.length - 1].done) { events = n.events; kind = "human"; why = undefined; } } catch (e) { why = "natural plan failed: " + e.message; }
+    sol = { ok: true, events, kind, why, plan: planCommit() };
+  } else sol = { ok: false, kind: "unbeaten", events: (r && r.trail) || [], dieX: r && r.dieAt && r.dieAt.x, why: r && r.why, skipped: r && r.skipped, plan: planCommit() };
   return put(levelStr, sol, level);
 }
 // a saved solution's windows, measured and saved when missing or from older window code (no re-solving)

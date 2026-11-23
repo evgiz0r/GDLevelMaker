@@ -45,11 +45,17 @@ function scoreOfficial(n, sigma) {
   const sol = JSON.parse(fs.readFileSync(file, "utf8"));
   const L = GD.parseLevel(unpack(fs.readFileSync(path.join(SRC, n + ".txt"), "utf8")));
   const w = GD.makeWorld(L.objects, L.header);
-  const d = DF.difficulty(w, sol, { sigma });
-  // the viewer shows the route that was scored: when a tight input was swapped for an easier way
-  // through (lib/difficulty.js easierRoute), write that route into local/official_NN.json
+  // score the route the viewer shows: since main fd26076 that is the human route (difficulty_solve.js toViewer:
+  // lib/natural.js + humanCost, PHYSICS.md "How the route is chosen"), so it is scored as it is -- no humanize,
+  // no route choice of our own (humanCost already chose) -- and never written back over
   const vf = path.join(OUT, "..", `official_${String(n).padStart(2, "0")}.json`);
-  if (d.rerouted.length && fs.existsSync(vf)) {
+  const viewer = fs.existsSync(vf) ? JSON.parse(fs.readFileSync(vf, "utf8")).solution : null;
+  const human = viewer && viewer.events && viewer.kind;
+  const d = human ? DF.difficulty(w, { ok: viewer.ok !== false, events: viewer.events }, { sigma, raw: true, route: false })
+    : DF.difficulty(w, sol, { sigma });
+  // an older viewer file (no route kind): the scored route, rerouted where a tight input had an easier way
+  // (lib/difficulty.js easierRoute), goes into local/official_NN.json as before
+  if (!human && d.rerouted.length && fs.existsSync(vf)) {
     const v = JSON.parse(fs.readFileSync(vf, "utf8"));
     v.solution = Object.assign({}, v.solution, { events: d.events, rerouted: d.rerouted });
     fs.writeFileSync(vf, JSON.stringify(v));
@@ -57,7 +63,7 @@ function scoreOfficial(n, sigma) {
   // cache what was scored (local/difficulty/scored_NN.json), so a change to the chance model (SIGMA,
   // LAPSE, SETTLE) can be re-checked without re-measuring windows: node tools/difficulty.js --cached
   fs.writeFileSync(path.join(OUT, `scored_${String(n).padStart(2, "0")}.json`), JSON.stringify({
-    n, physics: sol.physics || null, scoredAt: new Date().toISOString(), seconds: d.seconds, complete: d.complete, blocks: d.blocks,
+    n, physics: sol.physics || null, route: human ? "human (viewer)" : "solver + humanize", scoredAt: new Date().toISOString(), seconds: d.seconds, complete: d.complete, blocks: d.blocks,
     actions: d.actions.map(a => ({ tick: a.tick, type: a.type, ms: a.ms, x: Math.round(a.x), mode: a.mode, afterSwitchMs: a.afterSwitchMs })) }));
   return Object.assign(d, { n, sol, levelBlocks: w.endX / 30 });
 }

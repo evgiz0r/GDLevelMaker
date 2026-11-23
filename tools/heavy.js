@@ -105,9 +105,9 @@ function claim(label) {
           const msg = d === "busy" ? `waiting for ${hs.map(describe).join("; ")}${game ? " (the game runs: one job at a time)" : ""}` : `waiting for memory: ${free} MB free, need ${game ? GAME_MIN_FREE_MB + " MB while the game runs" : MIN_FREE_MB + " MB"}`;
           if (msg.replace(/\d+ min in.*$/, "") !== lastMsg || Date.now() - lastAt > 120000) { console.log(`heavy: ${msg}`); lastMsg = msg.replace(/\d+ min in.*$/, ""); lastAt = Date.now(); }
         }
-      } finally { fs.closeSync(fd); fs.unlinkSync(mutex); }
+      } finally { fs.closeSync(fd); try { fs.unlinkSync(mutex); } catch (e) { /* removed by a waiter that took it for stale (OneDrive/Windows can be slow): fine */ } }
     } catch (e) {
-      if (e.code !== "EEXIST") throw e;
+      if (e.code !== "EEXIST" && e.code !== "EPERM" && e.code !== "EBUSY" && e.code !== "ENOENT") throw e;   // EPERM/EBUSY: Windows while another process deletes it
       try { if (Date.now() - fs.statSync(mutex).mtimeMs > 15000) fs.unlinkSync(mutex); } catch (e2) {}   // a crashed holder of the mutex
     }
     if (got) break;

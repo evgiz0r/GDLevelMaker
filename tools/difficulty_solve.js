@@ -28,7 +28,7 @@ const SRC = process.env.GD_LEVELS || "C:/Program Files (x86)/Steam/steamapps/com
 const OUT = path.join(__dirname, "..", "local", "difficulty");
 
 function physicsCommit() {
-  try { return execSync("git log -1 --format=%h -- lib/physics.js lib/objects.js lib/objects_extra.js", { cwd: path.join(__dirname, ".."), encoding: "utf8" }).trim(); }
+  try { return execSync("git log -1 --format=%h -- lib/physics.js lib/dual.js lib/objects.js lib/objects_extra.js", { cwd: path.join(__dirname, ".."), encoding: "utf8" }).trim(); }
   catch (e) { return null; }
 }
 
@@ -129,6 +129,10 @@ function continueFrom(n, events, trouble, backs, opts, old) {
     const r = GD.solveFrom(w, start, { held: rp.helds[t], onCheckpoint: checkpointer(n, prefix, physics) });
     const evs = prefix.concat(r.ok ? r.events : r.trail || []);
     const dieX = r.ok ? null : r.dieAt && r.dieAt.x;
+    // the kept prefix comes from the old run: if it went around a portal (made before the no-skip rule, or before
+    // dual portals counted), the stitched route is a secret way. Check the whole route; then a full solve.
+    if (r.ok) { const q = GD.run(w, evs), sk = GD.skipCheck(w, q.path, evs);
+      if (sk) { if (!opts.quiet) console.log(`  (the kept old run skips ${sk.skipped}: solving from the start)`); return null; } }
     if (r.ok || dieX > trouble + 60) return save({ ok: r.ok, clicks: r.clicks, dieX, why: r.why }, evs, +start.x.toFixed(1));
     if (!opts.quiet) console.log(`  (stuck at block ${dieX && (dieX / 30).toFixed(1)}, backing off)`);
   }
@@ -146,8 +150,9 @@ function toViewer(n, level, res) {
   let events = null;
   try { const n = require("../lib/natural.js").naturalPlan(w, { ok: res.ok, events: res.events }, L.objects, { cost: true });
     if (n && (res.ok ? n.path[n.path.length - 1].done : true)) events = n.events; } catch (e) {}
+  const kind = events ? "human" : "humanize";   // tools/difficulty.js scores a "human" route as it is
   if (!events) events = require("../lib/difficulty.js").humanize(w, res.events).events;
-  const solution = res.ok ? { ok: true, events } : { ok: false, events, dieX: res.dieX, why: res.why };
+  const solution = res.ok ? { ok: true, events, kind } : { ok: false, events, dieX: res.dieX, why: res.why, kind };
   fs.writeFileSync(path.join(OUT, "..", `official_${String(n).padStart(2, "0")}.json`),
     JSON.stringify({ n, name: NAMES[n] ? NAMES[n][0] : "level " + n, level, solution, physics: res.physics || null }));
   require("./index_levels.js").buildIndex();

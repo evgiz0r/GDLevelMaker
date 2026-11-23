@@ -13,12 +13,12 @@
 const fs = require("fs"), path = require("path");
 const { GD, readGdlvl } = require("./io.js");
 const ROOT = path.join(__dirname, "..");
-const PORTAL = ["mode", "gravity", "speed", "size", "teleport"];
+const PORTAL = ["mode", "gravity", "speed", "size", "teleport", "dual"];
 
 function skipsOf(objects, header, events) {
   const w = GD.makeWorld(objects, header), run = GD.run(w, events), P = run.path, end = run.end;
   // every object the run fired: the union over the whole run (a state's used list is trimmed to the last 80 units)
-  const reach = end.x, used = new Set(); for (const p of P) for (const i of p.used || []) used.add(i);
+  const reach = end.x, used = new Set(); for (const p of P) { for (const i of p.used || []) used.add(i); if (p.p2) for (const i of p.p2.used || []) used.add(i); }  // dual: player 2 takes portals too
   const moved = new Set();
   for (const o of objects) if (o.id === 901 && o.props && o.props[51]) moved.add(String(o.props[51]));
   const movesOf = o => o.props && o.props[57] && String(o.props[57]).split(".").some(g => moved.has(g));
@@ -29,10 +29,10 @@ function skipsOf(objects, header, events) {
   const at = x => { let best = P[0]; for (const p of P) { if (p.x > x) break; best = p; } return best; };
   // a no-op: the route there already has what the portal sets (same mode / gravity / speed / size), shown by
   // the run's own state at the portal; a twin: a portal with the same effect within 30 units that fired
-  const eff = b => b.kind + ":" + (b.d.mode || "") + ":" + (b.d.grav != null ? b.d.grav : "") + ":" + (b.d.speed != null ? b.d.speed : "") + ":" + (b.d.mini != null ? b.d.mini : "");
+  const eff = b => b.kind + ":" + (b.d.mode || "") + ":" + (b.d.grav != null ? b.d.grav : "") + ":" + (b.d.speed != null ? b.d.speed : "") + ":" + (b.d.mini != null ? b.d.mini : "") + ":" + (b.d.dual != null ? b.d.dual : "");
   const cx = b => (b.x0 + b.x1) / 2;
   const noop = b => { const d = b.d, s = at(cx(b));
-    return b.kind === "mode" ? d.mode === s.mode : b.kind === "gravity" ? d.grav === s.grav : b.kind === "speed" ? d.speed === s.sp : b.kind === "size" ? !!d.mini === !!s.mini : false; };
+    return b.kind === "mode" ? d.mode === s.mode : b.kind === "gravity" ? d.grav === s.grav : b.kind === "speed" ? d.speed === s.sp : b.kind === "size" ? !!d.mini === !!s.mini : b.kind === "dual" ? !!d.dual === !!s.p2 : false; };
   // within reach: the route came within 60 units of it (physics' rule, lib/physics.js 14449b0: a portal far
   // off the play is decoration, not a requirement -- ClockWood's ball portal at y 675)
   const REACH = 60, near = b => P.some(p => p.x + 15 > b.x0 - REACH && p.x - 15 < b.x1 + REACH && p.y + 15 > b.y0 - REACH && p.y - 15 < b.y1 + REACH);
