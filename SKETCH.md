@@ -27,9 +27,10 @@ input's window and how long after a mode change it closes):
 |---|---|---|
 | wave turns met head-on, "slope/block problems" at the exit | wave windows 71-121 ms | wave-zigzag `"flat": 2` (two level columns at every turn, ~95 ms each at 1x), `"lead": 2` |
 | ship has to dive to reach the wave portal | ship release 4 ms | wave-zigzag `"low": 3`: the portal one row below the last gate's centre |
-| cube forced to jump right after the wave exit | window closes 176 ms after the portal | the parts after the wave moved right (runway) |
-| orb chain: "if you just click normal you fall and die, cant adjust" | 46 / 29 / 4 ms | the landing platform starts right where the spikes end (an early landing hit its wall) |
-| indicators too high, one where no jump is needed, some jumps without one | -- | polish.js read pass: one per NEEDED jump, 22 units over the surface |
+| cube forced to jump right after the wave exit: it came out over the 2-high exit frame, rolled off and hit a 1-high block (2 real deaths) | window closes 176 ms after the portal | the parts after the wave moved right, and a 1-high floor starts right after the exit frame and runs to the orb chain |
+| end orb chain: "if you just click normal you fall and die, cant adjust" (3 real deaths; arc-placed orbs climbed rows 2 -> 4 -> 7, toward the screen's top) | 46 / 29 / 4 ms | 2 orbs at row 2, 3 columns apart, the landing block 2 columns after the last orb, right where the spikes end (`tools/orbchain_try.js`: 196 / 154 ms; the best 3-orb chain had 58 ms) |
+| opening orb over spikes: pressed early, the cube lands short in the spikes before the block (3 real deaths) | 17 ms opener | the spike row ends 2 columns sooner and the block starts there |
+| indicators too high, one where no jump is needed, some jumps without one | -- | polish.js read pass: one per NEEDED jump, 24 units over the surface (decorate.js INDICATOR.lift) |
 
 Targets for a Normal-Hard sketch (the main session's brief, 2026-11-23):
 - no input forced within ~250 ms after a mode change (`closes ... ms after a switch` in the report);
@@ -49,3 +50,5 @@ tell the main session (it installs).
 - The window of an orb press is measured with the later inputs fixed in time, which is pessimistic
   for a chain where a player adjusts the next click; a "window with the next input re-timed" measure
   is not built yet.
+- Real-game deaths per level come from the physics session (`node tools/real_stats.js sketch`); they
+  were the best guide for v3 -- ask for them after every playtest.

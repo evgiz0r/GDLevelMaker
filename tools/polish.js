@@ -1,5 +1,5 @@
 // node tools/polish.js <level.gdlvl> [--dry] [--passes fair,read,sync,deco] [--min-ms 34] [--out file.gdlvl]
-//                      [--name "new name"] [--indicator id[:rot]] [--lift 22]
+//                      [--name "new name"] [--indicator id[:rot]] [--lift 24]
 // Polish a level that already exists WITHOUT redesigning it (POLISH.md): keep its layout, fix the
 // smallest things, in this order, each change kept only if the level still clears on the current
 // physics and no other input's window gets worse:
@@ -203,7 +203,7 @@ function fairPass(objs, header, ev, MIN, log) {
 
 // Indicators (the user on GDLM 46 v2, 2026-11-23: "too high above the ground", one "where no jump is
 // needed", "some jumps have none"): every jump off a surface that is NEEDED -- the plan without that tap
-// dies -- gets one, LOW over the surface (centre `lift` units up, default 22: the chevron's bottom just
+// dies -- gets one, LOW over the surface (centre `lift` units up, default INDICATOR.lift = 24: the chevron's bottom just
 // above the ground), none within 3 blocks of another. Marks the level already has in the indicator group
 // (990) are replaced; other arrows nearby count as marks and are left alone.
 function readPass(level, objs, header, ev, opts, log) {
@@ -213,7 +213,7 @@ function readPass(level, objs, header, ev, opts, log) {
   const old = objs.filter(o => inGroup(o) || (o.id === 1007 && String((o.props || {})[51]) === grp));
   if (old.length) { objs = objs.filter(o => !old.includes(o)); log.push({ pass: "read", what: `${old.filter(inGroup).length} old indicators`, change: "removed, re-placed by the rule below", before: `${old.filter(inGroup).length}`, after: "see below" }); }
   const w = GD.makeWorld(objs, header), path = GD.run(w, ev).path;
-  const id = opts.id || DECO.INDICATOR.id, mo = opts.id ? { rot: opts.rot || 0 } : {}, lift = opts.lift ?? 22;
+  const id = opts.id || DECO.INDICATOR.id, mo = opts.id ? { rot: opts.rot || 0 } : {}, lift = opts.lift ?? DECO.INDICATOR.lift;
   const other = objs.filter(o => o.id === 914 || [132, 460, 494, 3630, 3631, 3632].includes(o.id) || o.id === id);
   const ins = inputs(ev), marks = [];
   for (const m of DECO.jumpIndicators(w, { events: ev }, id, GD, Object.assign({ all: true }, mo))) {
@@ -308,6 +308,76 @@ function decoPass(objs, header, ev, log) {
   return { objs };
 }
 
+// ---------- look: the modern decoration (knowledge/levels/modern_look.md, knowledge/checklist.md) ----------
+// The user (2026-11-23): "By polish i mean make it prettier. More visuals. Maybe more gameplay. More synced.
+// Fix visual issues. Maybe to extend if possible". Sections are cut where the run changes mode or gravity
+// (at least MINSEC columns each, short ones merged); each gets a palette from the level's own background
+// colour turned round the hue wheel, so the level keeps its colours as the first scene. Then:
+// tools/decorate.js modernPass (a lit fill behind every block, a soft light on open tops, backdrop shapes
+// per kind of section, a dot motif, cloud bands framing the top, a title), tools/vfxkit.js parallax (two
+// slow background layers per section) and beatPulses (a pulse on every bar start, a flash at each new
+// section) on the song's grid. Only no-collision objects; all behind the play except the pulses.
+const MINSEC = 15;
+function hsv2rgb(h, s, v) { const f = n => { const k = (n + h / 60) % 6; return Math.round(255 * (v - v * s * Math.max(0, Math.min(k, 4 - k, 1)))); }; return [f(5), f(3), f(1)]; }
+function rgb2hsv([r, g, b]) { r /= 255; g /= 255; b /= 255; const M = Math.max(r, g, b), m = Math.min(r, g, b), d = M - m;
+  let h = 0; if (d) h = M === r ? ((g - b) / d) % 6 : M === g ? (b - r) / d + 2 : (r - g) / d + 4; return [(h * 60 + 360) % 360, M ? d / M : 0, M]; }
+function headerColour(header, ch) { const m = new RegExp("(?:^|\|)1_(\d+)_2_(\d+)_3_(\d+)[^|]*_6_" + ch + "(?:_|\||$)").exec((/kS38,([^,]*)/.exec(header) || [])[1] || ""); return m ? [+m[1], +m[2], +m[3]] : null; }
+function sectionsOf(path, endX) {
+  const cuts = [0];
+  for (let t = 1; t < path.length; t++) { const a = path[t - 1], b = path[t]; if (b.mode !== a.mode || (b.grav || 1) !== (a.grav || 1)) cuts.push(Math.round(b.x / 30)); }
+  const secs = [];
+  for (let k = 0; k < cuts.length; k++) {
+    const from = cuts[k], to = k + 1 < cuts.length ? cuts[k + 1] : Math.ceil(endX / 30) + 4;
+    const p = path.find(q => q.x >= from * 30 + 15) || path[path.length - 1];
+    const kind = (p.grav || 1) < 0 && p.mode === "cube" ? "upside" : p.mode;
+    if (secs.length && (to - from < MINSEC || secs[secs.length - 1].to - secs[secs.length - 1].from < MINSEC)) { secs[secs.length - 1].to = to; continue; }
+    secs.push({ from, to, kind });
+  }
+  return secs;
+}
+function lookPass(L, objs, header, ev, log) {
+  const w = GD.makeWorld(objs, header), path = GD.run(w, ev).path, blocks = Math.ceil(w.endX / 30);
+  const perBlock = objs.length / blocks;
+  if (perBlock > 8) { log.push({ pass: "look", kept: true, what: "decoration", why: `${perBlock.toFixed(1)} objects per block already` }); return { objs }; }
+  // channels: modernPass and vfxkit use 20 + 2i (fill) and 21 + 2i (light); refuse if the level uses them
+  const used = new Set(objs.flatMap(o => [o.props && o.props[21], o.props && o.props[22], o.props && o.props[23]].filter(Boolean).map(Number)));
+  const secs = sectionsOf(path, w.endX);
+  if ([...used].some(c => c >= 20 && c < 20 + 2 * secs.length)) { log.push({ pass: "look", kept: true, what: "decoration", why: "the level uses colour channels 20+ (modernPass's)" }); return { objs }; }
+  const base = rgb2hsv(headerColour(header, 1000) || [40, 60, 160]);
+  secs.forEach((sc, i) => {
+    const h = (base[0] + i * 47) % 360, sat = Math.max(0.45, base[1]), v = Math.max(0.35, Math.min(0.75, base[2]));
+    sc.fill = hsv2rgb(h, sat * 0.8, Math.min(1, v + 0.15)); sc.light = hsv2rgb(h, sat * 0.35, 1); sc.flash = i > 0;
+  });
+  const n0 = objs.length;
+  const add = [];
+  const o2 = objs.map(clone);
+  const plain = o2.filter(o => o.id === 1 && !o.rot).length, skinned = o2.filter(o => [2, 3, 4, 6, 7].includes(o.id)).length;
+  add.push(...DECO.modernPass(o2, secs, { title: L.name.replace(/^GDLM (polished )?/, ""), seed: 5 }));
+  // no reskinning: the outlined classic skins over modernPass's lit fill drew the user's glowing black
+  // blocks (cube timings) as a checkered grid in the GD-art render -- the level's own block look stays
+  const kit = require("./vfxkit.js");
+  add.push(...kit.parallax(secs, { speed: GD.SPEEDS[w.startSpeed || 1] ? GD.SPEEDS[w.startSpeed || 1].x * 60 : undefined }));
+  const song = require("./index_levels.js").songOf(L.rec, header), grid = song && require("./beats.js").loadBeats(song.url);
+  let pulses = 0;
+  if (grid && grid.ok) { const tl = GD.SYNC.timeline(w), pl = kit.beatPulses(secs, grid, { xOfT: t => GD.SYNC.xOfT(tl, t), songOffset: song.offset || 0 }); pulses = pl.length; add.push(...pl); }
+  // nothing decorative may sit on the player's path in front of it: drop front-layer objects (key 24 > 3) near the path
+  const front = d => +(d.props && d.props[24] || 0) > 3;
+  const near = (x, y) => { for (let t = 0; t < path.length; t += 3) { const p = path[t]; if (Math.abs(p.x - x) < 40 && Math.abs(p.y - y) < 40) return true; } return false; };
+  // and no shape over a hazard, orb or pad (knowledge/checklist.md "Readable"): a cloud band crossed cube
+  // timings' hanging spikes in the GD-art render. Radius from the object's scale; triggers and the block
+  // fills (207 / 505, on the blocks by design) are exempt; parallax layers move, so their spot says little
+  const hot = objs.filter(o => ["hazard", "orb", "pad"].includes(kindOf(o)));
+  const overHazard = d => { if (kindOf(d) === "trigger" || d.id === 207 || d.id === 505 || +(d.props && d.props[57]) >= 100 && +(d.props && d.props[57]) < 200) return false;
+    const r = 30 * Math.max(0.5, +(d.props && d.props[32]) || 1) + 15; return hot.some(h => Math.abs(h.x - d.x) < r && Math.abs(h.y - d.y) < r); };
+  const keep = add.filter(d => !(front(d) && near(d.x, d.y)) && !overHazard(d));
+  const out = o2.concat(keep);
+  if (!clears(GD.makeWorld(out, header), ev)) { log.push({ pass: "look", kept: true, what: "decoration", why: "the decorated level no longer clears with the same plan: not added" }); return { objs }; }
+  log.push({ pass: "look", what: `${secs.length} sections (${secs.map(sc => sc.kind + " " + sc.from + "-" + sc.to).join(", ")})`,
+    change: `modern decoration: lit block fills, backdrops, motif, cloud frame, title; parallax; ${pulses} beat pulses`,
+    before: `${perBlock.toFixed(1)} objects/block`, after: `${(out.length / blocks).toFixed(1)} objects/block (+${out.length - n0})` });
+  return { objs: out, sections: secs };
+}
+
 // ---------- the level's numbers ----------
 function numbers(objs, header, ev, MIN) {
   const S = state(objs, header, ev), ms = S.wins.filter(x => !x.dead && (x.type === "tap" || x.type === "press")).map(x => x.ms);
@@ -319,7 +389,7 @@ function numbers(objs, header, ev, MIN) {
 
 function polish(file, opt = {}) {
   const L = readGdlvl(file), header = L.level.header, MIN = opt.minMs || 34;
-  const passes = opt.passes || ["fair", "read", "sync", "deco"];
+  const passes = opt.passes || ["fair", "sync", "read", "look"];
   const w0 = GD.makeWorld(L.level.objects, header);
   const cached = require("./solutions.js").get(L.levelStr);
   const r0 = GD.solveAny(w0);
@@ -336,7 +406,8 @@ function polish(file, opt = {}) {
   if (passes.includes("fair")) ({ objs, ev } = fairPass(objs, header, ev, MIN, log));
   if (passes.includes("sync")) ({ objs, ev, sync } = syncPass(L, objs, header, ev, MIN, log));
   if (passes.includes("read")) ({ objs } = readPass(L.level, objs, header, ev, opt.indicator || {}, log));
-  if (passes.includes("deco")) ({ objs } = decoPass(objs, header, ev, log));
+  if (passes.includes("look")) ({ objs } = lookPass(L, objs, header, ev, log));
+  if (passes.includes("deco")) ({ objs } = decoPass(objs, header, ev, log)); // the old classic kit, by request only
   // the final check: a fresh solve on the current physics, not just our edited plan
   const w1 = GD.makeWorld(objs, header), r1 = GD.solveAny(w1);
   if (!r1.ok) throw new Error(`polished level does not solve (dies at block ${(r1.dieAt.x / 30).toFixed(1)}: ${r1.why}) -- a pass is wrong`);
