@@ -460,6 +460,15 @@ Still open:
 
 ## 5. Open / next (hand-off)
 
+- **Section variants and edits** (2026-11-24): compose builds A/B/C versions of the opening, drops and finale
+  (tweaks "reseed:<si>"), scores each section alone, keeps the best, saves all to
+  local/wip/<session>/<level>.variants/ (index.json; the viewer shows them, visuals 0fd7643) and logs the
+  winner in knowledge/variants.md; a section failing 2 repair rounds is rebuilt from another plan. The
+  user's pick arrives as a "variant-pick" mark (tools/marks.js): apply it by setting that section's reseed to
+  the picked key (A=0, B=1, C=2) and rebuilding. For spot changes use the edit path's tools (EDITING.md):
+  tools/edit.js edit()/apply()/quickChecks(), tools/review.js, tools/fix.js, tools/families.js -- do not
+  duplicate them. Section rebuilds should use lib/incsolve.js (fromBase) to cost seconds: not wired in yet.
+
 - **Compose targets from rated-level data** (taste session, TASTE_DATA.md, knowledge/taste_model.json
   "targets"; score.js gate "taste"): Easy/Normal featured levels have ~75-81 hazards per 100 blocks (aim
   60-90; unrated 155-235, Hard/Harder featured ~140), and LONGER sections: fewer mode/speed swaps per

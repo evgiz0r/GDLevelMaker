@@ -215,10 +215,7 @@ function solveInWorker(l) {
   w.postMessage({ level: l.level });
 }
 function setPending(msg) { if (L && L.pending) { L.sol.why = msg; summary(); } }`);
-swap("            : `<p class=\"bad\">${kind} Not beatable in the simulation.",
-  "            : s.pending ? `<p class=\"muted\">${esc(s.why)}</p>` : `<p class=\"bad\">${kind} Not beatable in the simulation.");
-swap("if (saved) sol = saved.ok ? { ok: true, events: saved.events, clicks: [] } : { ok: false, trail: saved.events, clicks: [], dieAt: { x: saved.dieX || 0, tick: 0 }, why: saved.why || \"\" };",
-  "if (saved) sol = saved.ok ? { ok: true, events: saved.events, clicks: [] } : { ok: false, trail: saved.events, clicks: [], dieAt: { x: saved.dieX || 0, tick: 0 }, why: saved.why || \"\", pending: !!saved.pending };");
+// (a pending solution and its muted summary line are the viewer's own now)
 swap("  else if (ALL.length) { pick.value = 0; pick.onchange(); }",
   "  else if (ALL.length) { const s = ALL.findIndex(l => l.solution); pick.value = Math.max(0, s); pick.onchange(); }");
 swap('<script>\n"use strict";\nconst P = GD.PHYS;', `<script>
