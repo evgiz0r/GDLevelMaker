@@ -17,6 +17,9 @@ const FROM = opt("from", -Infinity), TO = opt("to", Infinity), SPAN = opt("span"
 const L = readGdlvl(file), w = GD.makeWorld(L.level.objects);
 const side = file.replace(/\.gdlvl$/, ".json");
 let sol = fs.existsSync(side) && JSON.parse(fs.readFileSync(side, "utf8")).solution;
+// else the level's saved natural solution (tools/solutions.js: one tap per jump, as a player plays;
+// a solver's held button makes every later auto-jump move with the press, and its windows look ~0)
+if (!(sol && sol.events)) { const c = require("./solutions.js").get(L.levelStr, true); if (c && c.ok) sol = c; }
 let ev = (sol && sol.events) || GD.solveAny(w).events;
 const clears = list => { const q = GD.run(w, list); return !q.dead && (q.done || q.end.x >= w.endX); };
 if (!clears(ev)) { console.log("the saved solution does not clear with this physics: re-solve first"); ev = GD.solveAny(w).events; }

@@ -372,6 +372,18 @@ through the orb's centre and is slowest there, so a press in the middle or a hel
 A yellow-orb ladder then climbs 2 rows per orb, 2.3 blocks apart; the pit ends a column before
 the landing. Harder levels can still place orbs off the arc on purpose (`fixed`).
 
+**Wave turns** (GDLM 44 v7, physics 2026-11-23: a wave flying head-on into a slope dies, as in the
+game): with pure 45-degree slope walls the wave flies parallel to them and every turn meets the next
+leg's slope head-on, so a turn was 13-88 ms ("i still couldnt fit into the gap in 44"). `wave-zigzag`
+`flat` puts level floor and roof at each peak and valley (the wave meets them at 45 degrees and
+slides, so it can turn anywhere along them, ~95 ms per column), `lead` level columns at the entry,
+and its exit portal covers the floor the wave slides on (in the path's middle it let only a late
+release through). GDLM 44: 3 flat at the peak, 2 at the entry, gap 5 -> wave inputs 308 / 225 ms.
+Rule: every wave input >= ~150 ms at Normal; compose's wave sections use flat 2 (Easy/Normal) or
+1, gap 5 or 4. Check with `node tools/windows.js level --from X --to X` (moves one input with the
+rest fixed: in chains -- jump, orb, orb -- it reads far too small; judge those by the solver's own
+inputs or by press_window.js from a placed state).
+
 **Landing room** (compose.js): after a chunk that ends h >= 2 rows up, h+1 more empty columns
 before the next one, so the cube lands and sees the next hazard before it must jump. Approximate
 prejump WARNs (levels with modes) now count as defects in compose's loop: v4's WARN at its stairs
