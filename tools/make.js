@@ -25,8 +25,9 @@
 //   "art": {"bg": n, "ground": n}                        background / ground art numbers
 //   "decoDensity": [[fromCol, share], ...]   classic style: share of free columns with ground
 //                          decoration from that column on (default 0.25; compose.js sets it per section)
-//   "indicators": {"id": N}   a jump indicator (chevron) above every cube jump from the ground,
-//                          placed from the solver's run (tools/decorate.js jumpIndicators)
+//   "indicators": {"id": N, "rot": n, "at": [cols], "all": false}   a small arrow pointing down over
+//                          the jumps a player cannot read in time (far cue, ledge, after a portal,
+//                          first of a new pattern), from the solver's run (tools/decorate.js)
 //
 // Music (optional; see SYNC.md):
 //   "song": {"custom": 233860} or {"official": 1} (1 = Stereo Madness ... 22 = Dash)
@@ -73,6 +74,7 @@ function toObj([type, col, row, extra], specFile) {
   const props = { 155: "1" };
   if (e.group != null) props[57] = String(e.group);
   if (e.ch != null) props[21] = String(e.ch);
+  if (e.props) Object.assign(props, e.props);   // raw object keys, e.g. a text object's 31
   return { id, x: +(col * 30 + 15).toFixed(3), y: row * 30 + 15, rot: e.rot || 0, flipX: !!e.flipX, flipY: !!e.flipY, props };
 }
 
@@ -202,11 +204,16 @@ function make(specFile, specObj) {
   let r = report(out);
   if (spec.indicators && r.ok) {
     // jump indicators come from the solved run, so they go in after the first check (no hitbox:
-    // the solution does not change); then the file is written again
-    const ind = deco.jumpIndicators(GD.makeWorld(level.objects, header), r, (spec.indicators.id || deco.INDICATOR.id), GD);
-    level.objects.push(...ind);
-    writeGdlvl(out, rec, level);
-    console.log(`   ${ind.length} jump indicators (object ${spec.indicators.id || deco.INDICATOR.id})`);
+    // the solution does not change); then the file is written again. Without the arrow's id yet,
+    // only say where they would go.
+    const iid = spec.indicators.id || deco.INDICATOR.id;
+    const ind = deco.jumpIndicators(GD.makeWorld(level.objects, header), r, iid || 0, GD, spec.indicators);
+    if (iid) {
+      level.objects.push(...ind.map(o => { const c = Object.assign({}, o); delete c.why; return c; }));
+      if (ind.length) level.objects.push(deco.indicatorFade(spec.indicators));  // soft: faded group
+      writeGdlvl(out, rec, level);
+      console.log(`   ${ind.length} jump indicators (object ${iid}): ` + ind.map(o => `${(o.x / 30).toFixed(0)} ${o.why}`).join("; "));
+    } else console.log(`   ${ind.length} jump indicators planned (arrow object id not known yet): ` + ind.map(o => `${(o.x / 30).toFixed(0)} ${o.why}`).join("; "));
   }
   if (ctx.grid && r.ok) beatReport(objects, header, r, ctx);
   if (r.ok) { // the user's fairness rule: no prejumps (see tools/sightread.js)

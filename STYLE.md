@@ -346,11 +346,27 @@ moments on bar starts and section changes; jumps where the gameplay wants them. 
 jump on a beat -- a test of the tools, not a rule. `score.js` warns on portals off the bars and on
 more than 60% of presses pinned to beats.
 
-**Jump indicators** (common in modern levels; they also show what the level intends): spec
-`"indicators": {"id": N}` puts a small mark just above the surface at every cube/robot takeoff
-(upside down: under the ceiling, pointing down), from the solved run (`tools/decorate.js`). Orb
-and pad launches get none. The chevron's object id is not confirmed yet -- asked; until then
-specs leave indicators off.
+**Jump indicators** (common in modern levels; they also show what the level intends): a small
+arrow over the area where a jump starts, pointing down at it -- only where the jump cannot be read
+in time, not on every click (`tools/decorate.js` jumpIndicators, from the solved run):
+far cue (what the jump is for is more than 2.5 blocks past the takeoff), ledge (jumping off the
+end of a raised surface), portal (first jump within 12 blocks after a mode or gravity change), new
+(the first jump of a pattern's first use, from compose.js). No two within 4 blocks; none for orbs
+and pads. Upside down they hang from the ceiling. compose.js turns them on by default
+(`"indicators": false` in a brief turns them off). On GDLM 45 v4 the rule marks 7 jumps in 60 s,
+among them the stair-top jump the user died at 3 times.
+What the mark is (the user): anything **small and softer than the level, never like a hazard** --
+arrows are the usual choice, but circles, dots, any small deco, even smileys are used. Default
+here: a GD text object (914) showing "v" (scale 0.8) in group 990, faded to 45% by an alpha trigger
+at the start: an arrow pointing at the ground whose look is certain. A deco arrow per level style:
+`"indicators": {"id": N, "rot": n}` once its id is known -- `levels/gdlm_46_arrow_catalogue.gdlvl`
+shows 20 candidate decoration ids (enriched over takeoffs in 97 community levels, none singled
+out) under their numbers for the user to point at.
+
+**Landing room** (compose.js): after a chunk that ends h >= 2 rows up, h+1 more empty columns
+before the next one, so the cube lands and sees the next hazard before it must jump. Approximate
+prejump WARNs (levels with modes) now count as defects in compose's loop: v4's WARN at its stairs
+was that death spot.
 
 ## 4. Checked in the real game (recording of the first 41 and 42, 2026-11-22)
 
@@ -378,8 +394,22 @@ State on 2026-11-22. What a new session should know before touching this area:
   (orbs on beats), UFO/robot/spider/swing (not checked in the user's game), gravity flips inside
   ship/ball parts, the difficulty hill-climb for sectionwise levels (they are scored whole once at
   the end, not tuned toward the target).
-- **Jump indicators**: code ready (`"indicators": {"id": N}`), the arrow's object id unknown --
-  the user places the three arrows in an empty level, then read the ids from the save.
+- **Next for compose (from music sync, 2026-11-23):** `node tools/songmap.js --songs` gives each
+  song's sections and drops by bar (spectral novelty) and its beatless share, cached in
+  `local/songmap/<song>.json`. Official levels: mode/speed portals sit on those section changes
+  (4 sigma), hazards per bar rise with the bar's loudness (16 of 22), no mode in the calm bars
+  (SYNC.md section 7). So: take section starts from songmap snapped to 4-bar lines instead of
+  hand-reading `local/beats` sections, and scale each section's gaps with its loudness.
+- **Variety, not density (knowledge, 2026-11-23, `node tools/variety.js`, knowledge/levels/variety.md):**
+  GDLM 41-45 have enough obstacles (0.7-1.0 hazard groups/s, rated Easy 0.34, Normal 0.66) but 1-6
+  kinds of gameplay thing against 15-17 in rated Easy/Normal levels, one speed (rated: 2-3), 10-28%
+  new chunks (rated: 90-96%), few orbs/pads (rated ~25/min), lone spikes (hazards in 12-23% of
+  columns, rated ~40%; `tools/tiercheck.js` per section). For compose: speed portals on section
+  changes, orb/pad chunks in every cube section, a chunk never twice in a level unless it is a
+  motif, wider chunks (spike runs on blocks, not lone spikes). RobTop's tips (knowledge/rating.md):
+  30 s at least, 60 s+ the rated standard.
+- **Jump indicators**: on by default in compose (a faded text "v"); a deco arrow needs its id (GDLM 46
+  catalogue for the user). Not yet checked in the game: how the text "v" looks at 45% and scale 0.8.
 - **Art**: decoration ids have no names. Plan: a generated catalogue level (every deco id with a
   text label) the user opens and screenshots; then style deco sets (hell, classic ...).
 - **GDLM 44** (Easy, 10 s, song 343707): v5 under "in progress" in the viewer, all gates pass (the
