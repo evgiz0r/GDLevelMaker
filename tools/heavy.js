@@ -16,6 +16,11 @@
 //   come first within one priority. A running job is never stopped, so a long low-priority job (batch
 //   re-solves, measuring runs) holds a high one back by at most itself. High: what the user asked for now;
 //   low: batches and measuring that can wait.
+// Freshness: once a job has its slot, its worktree is compared with origin/main (git fetch at most once a minute,
+//   cached in the lock folder's fetch.json). Behind and clean (no changes to tracked files, nothing of its own
+//   unmerged): fast-forward, then run the same command again in this slot, so the tool, lib/ and the rules are
+//   all the latest. Behind and not clean (or diverged): a loud warning with the subjects of the tools/lib commits
+//   it lacks, and it runs as it is. GDLM_HEAVY_NOSYNC=1 skips it.
 // GDLM_HEAVY=off skips all of it (only when the user says so). Status: node tools/heavy.js
 // Why: 2026-11-23 the PC hung with 0.2 GB of 16 GB free -- five heavy node jobs from different
 // sessions at once, while the rule was only written down. Test: node tests/heavy.js
@@ -108,6 +113,31 @@ function minutesLeft(h) {
 const describe = h => `${(/tools[\\/].*/.exec(h.cmd) || [h.cmd])[0]} (${h.session}, ${h.prio && h.prio !== "normal" ? h.prio + " priority, " : ""}pid ${h.pid}, ${Math.round((Date.now() - Date.parse(h.start)) / 60000)} min in` +
   (minutesLeft(h) ? `, ~${minutesLeft(h)} min left)` : ")");
 
+// is the worktree at root behind origin/main? fast-forward when it is clean. Returns
+// { behind, ff: true when moved, warn: the message when it could not, subjects }
+function syncTree(root, opts = {}) {
+  const git = args => require("child_process").execFileSync("git", args, { cwd: root, encoding: "utf8", timeout: 60000, windowsHide: true, stdio: ["ignore", "pipe", "pipe"] }).trim();
+  const out = { behind: 0, ff: false, warn: null, subjects: [] };
+  try {
+    const stamp = opts.stamp, now = Date.now();
+    let last = 0; try { last = JSON.parse(fs.readFileSync(stamp, "utf8")).at || 0; } catch (e) {}
+    if (!stamp || now - last > 60000) {
+      try { git(["fetch", "-q", "origin", "main"]); } catch (e) {}
+      if (stamp) try { fs.writeFileSync(stamp, JSON.stringify({ at: now })); } catch (e) {}
+    }
+    out.behind = +git(["rev-list", "--count", "HEAD..origin/main"]) || 0;
+    if (!out.behind) return out;
+    out.subjects = git(["log", "--format=%s", "HEAD..origin/main", "--", "tools", "lib"]).split("\n").filter(Boolean);
+    const dirty = git(["status", "--porcelain", "--untracked-files=no"]) !== "";
+    if (!dirty) {
+      try { git(["merge", "-q", "--ff-only", "origin/main"]); out.ff = true; return out; } catch (e) {}
+    }
+    out.warn = `this job runs on code ${out.behind} commit(s) behind main (${dirty ? "uncommitted changes" : "the branch has its own commits"}: merge origin/main)` +
+      (out.subjects.length ? "; tools/lib changes it lacks:\n    " + out.subjects.slice(0, 8).map(s => s.slice(0, 110)).join("\n    ") : "");
+  } catch (e) {}
+  return out;
+}
+
 let held = null;
 function claim(label) {
   if (process.env.GDLM_HEAVY === "off" || held) return;
@@ -155,13 +185,23 @@ function claim(label) {
   const waited = (Date.now() - waitStart) / 1000;
   if (waited > 2) console.log(`heavy: got the slot after waiting ${waited.toFixed(0)} s`);   // tools/loop.js leaves this out of the step's time
   process.env.GDLM_HEAVY_HELD = String(process.pid);   // children run in this slot
+  if (process.env.GDLM_HEAVY_NOSYNC !== "1" && !label) {
+    const r = syncTree(ROOT, { stamp: path.join(dir, "fetch.json") });
+    if (r.warn) console.log("\n!!! heavy: " + r.warn + "\n");
+    else if (r.ff) {
+      // the code changed under this process: run the same command again, new code, in this slot
+      console.log(`heavy: fast-forwarded ${r.behind} commit(s) from origin/main; running again on the new code`);
+      const ch = require("child_process").spawnSync(process.execPath, process.argv.slice(1), { stdio: "inherit", env: Object.assign({}, process.env, { GDLM_HEAVY_NOSYNC: "1" }) });
+      process.exit(ch.status === null ? 1 : ch.status);
+    }
+  }
   const release = () => { if (held) { try { fs.unlinkSync(held); } catch (e) {} held = null; } };
   process.on("exit", release);
   for (const sig of ["SIGINT", "SIGTERM", "SIGHUP", "SIGBREAK"]) process.on(sig, () => { release(); process.exit(130); });
 }
 const release = () => { if (held) { try { fs.unlinkSync(held); } catch (e) {} held = null; delete process.env.GDLM_HEAVY_HELD; } };
 
-module.exports = { claim, release, holders, waiters, firstInLine, myPriority, decide, gameRunning, lowPriority, lockDir, freeMB, describe, MIN_FREE_MB, TWO_SLOTS_MB, GAME_MIN_FREE_MB };
+module.exports = { claim, release, syncTree, holders, waiters, firstInLine, myPriority, decide, gameRunning, lowPriority, lockDir, freeMB, describe, MIN_FREE_MB, TWO_SLOTS_MB, GAME_MIN_FREE_MB };
 if (require.main === module) {
   const hs = holders();
   console.log(`${freeMB()} MB free${gameRunning() ? ", the game runs" : ""}; ${hs.length ? hs.length + " heavy job(s): " + hs.map(describe).join("; ") : "no heavy job running"}  (lock dir ${lockDir()})`);

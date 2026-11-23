@@ -120,6 +120,9 @@ at once and the PC hung (0.2 GB free), so the rule is now a lock every heavy too
   priority waiting, first come within one. Running jobs are never stopped, so a long low job delays a high one by
   itself at most. High = what the user asked for now; low = batch re-solves and measuring runs (put them at low);
   `node tools/heavy.js` lists the waiters in order;
+- **freshness**: with its slot, a job checks its worktree against origin/main (fetch at most once a minute): clean
+  and behind -> fast-forward and run again on the new code; dirty or diverged -> a loud `!!! heavy: ... behind main`
+  warning listing the tools/lib commits it lacks. `GDLM_HEAVY_NOSYNC=1` skips it;
 - the slot is a file in the shared `local/locks/heavy/` (real path, all worktrees); a dead pid's slot is
   cleared, a child of a holder runs in its parent's slot. `node tools/heavy.js` shows who holds it.
 - **A new heavy tool adds the line** `if (require.main === module) require("./heavy.js").claim();` after
