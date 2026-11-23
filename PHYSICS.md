@@ -183,6 +183,26 @@ keys and user coins (collectables only), start positions (levels always start at
 checkpoints, speed portals touched mid-air at a slant, force blocks, platformer mode, dash orbs'
 unknown props 586/588, spike slopes.
 
+## No secret ways (the user's rule, 2026-11-23, firm)
+
+"we need to stop accepting those secret ways by the solvers. especially in official levels. if the solver
+skips something, its 99% wrong. and will cause trouble. and anyway not the human way."
+- A route that passes a **portal** (mode, gravity, speed, size, teleport) without taking it is REJECTED in
+  every solver (lib/physics.js solveSweep: dropped from the search; solveAny: an exact cube route that skips
+  falls back to the ranked sweep). Portals of the same effect stacked within 30 units of x count as one: any
+  of them is enough.
+- An **orb or pad** is "clearly meant to be taken" when the route's player box comes within 15 units of it
+  (on the route's own line). The sweep already takes as many orbs as any route can, so a finished route that
+  still leaves one like that is reported stuck: `why: "skipped an orb/pad"`, `skipped: "<name> at x <x>"`.
+  An orb far off the line (above a corridor, a decoration orb) is not required. Optional orbs a level means
+  as optional: none marked yet (a spec key "optional" on the object would be the way; not built).
+- On official and rated levels a stuck like that is a **physics bug at that object**: our sim cannot take
+  what the game's players take. Never report a % or "beaten" that came from a skip.
+- Not yet covered: leaving the intended space without skipping anything (over a ceiling, outside a
+  corridor); the sky limit (300 above the highest object) is the only guard.
+- `opts.allowSkips` brings back the old ranking for debugging only. Tests: tests/mechanics.js "no-skip".
+- The shared check is `GD.skipCheck(w, path, events)` (null = clean; else the stuck result).
+
 ## The intended route (solver ranking)
 
 The sweep solver (solveSweep, used for every level with modes) does not just find the fewest presses:
