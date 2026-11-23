@@ -41,6 +41,10 @@
 // (the rest of the level left out; every section starts and ends as a cube on the ground) and keeps
 // the scores of unchanged sections, so a repair round re-solves only what it changed; the whole
 // level is scored once at the end.
+// "structures" (default on; false = off): every plain cube section (not rest, no mode) also gets ONE
+// structure from the ranked library (tools/structures.js, STRUCTURES.md) as its newest idea, a
+// different one per section, best-ranked first within the brief's difficulty label, skipping what the
+// level already uses; a section names its own with `use: ["s:<id>"]`, or "structures": false for none.
 const fs = require("fs"), path = require("path");
 const { make, build, slug } = require("./make.js");
 const { PATTERNS, expand, mirrorUp } = require("./patterns.js");
@@ -94,6 +98,30 @@ function sectionBlocks(brief) {
   });
 }
 
+// one library structure per plain cube section (see the header: "structures")
+function structurePicks(brief) {
+  const out = {};
+  if (brief.structures === false) return out;
+  let pool;
+  try { pool = require("./structures.js").ranked({ registered: true, maxTier: (brief.difficulty || {}).label || "Normal" }); } catch (e) { return out; }
+  const used = new Set(brief.sections.flatMap(s => s.use || []));
+  // checked at 1x only: sections at another speed get none, and speed-changing ones (they end on a 1x
+  // portal) are never placed automatically
+  const sp = speedsOf(brief);
+  pool = pool.filter(r => !r.tags.includes("speed"));
+  const want = brief.sections.map((s, i) => [s, i]).filter(([s, i]) => !s.rest && !s.mode && s.use && s.use.length && s.structures !== false && sp[i] === "1x");
+  // spread the mechanics: a mode or tag not yet in the level first
+  const tagsUsed = new Set();
+  for (const [, i] of want) {
+    const fresh = pool.filter(r => !used.has("s:" + r.id));
+    const pick = fresh.find(r => ![r.mode, ...r.tags].some(t => tagsUsed.has(t))) || fresh[0];
+    if (!pick) break;
+    out[i] = "s:" + pick.id; used.add(out[i]);
+    [pick.mode, ...pick.tags].forEach(t => t !== "cube" && tagsUsed.add(t));
+  }
+  return out;
+}
+
 function compose(brief, tweaks = {}) {
   const rnd = rng(brief.seed || 1);
   const objects = [], placed = [], ranges = [], deco = [], firsts = [], looks = [];
@@ -102,8 +130,10 @@ function compose(brief, tweaks = {}) {
   const lens = sectionBlocks(brief), speeds = speedsOf(brief);
   const total = lens.reduce((a, n) => a + n, 0);
   let lastSpeed = brief.speed || "1x", h = 0, prevUpside = false;
+  const extra = structurePicks(brief);
   for (const [si, sec0] of brief.sections.entries()) {
     const sec = Object.assign({}, sec0, { blocks: lens[si] });
+    if (extra[si]) sec.use = [...sec.use, extra[si]];
     const start = col, end = col + sec.blocks, i0 = objects.length;
     const at = si === 0 ? 0 : (sec0.beats ? start : Math.max(0, start - 2));  // on the beat when in beats
     for (const ch of ["bg", "ground", "line", "obj"]) if (sec[ch]) {
@@ -269,7 +299,8 @@ function compose(brief, tweaks = {}) {
   // marks the end (the level ends at its last object): an alpha trigger on an unused group, invisible
   // in the game (a block up at row 6 showed as a stray black square, GDLM 47)
   objects.push(["fade", col + 2, { group: 999, to: 1, secs: 0 }]);
-  const spec = { name: brief.name, desc: brief.desc || brief.idea || "", objects };
+  // "desc" is what players read in the game (short, flavour; make.js checks it); the idea is a note for us
+  const spec = { name: brief.name, desc: brief.desc || "", notes: brief.idea || "", objects };
   if (deco.length) spec.decoDensity = deco;
   // the modern look (STYLE.md: knowledge/levels/modern_look.md); "modern": false in the brief turns it off
   // the signature at the end (tools/signature.js, the visuals session's): in the last rest section
