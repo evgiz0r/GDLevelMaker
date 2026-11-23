@@ -100,6 +100,7 @@
   <div class="card"><h2>Clicks</h2><div id="clicks"></div></div>
   <div class="card" style="grid-column:1/-1"><h2>Marks — what to change</h2><div id="marks"></div></div>
 </main>
+<div id="ver" class="muted" style="font-size:12px;padding:6px 16px 14px"></div>
 <script src="../lib/gd.js"></script>
 <script src="../lib/objects_extra.js"></script>
 <script src="../lib/objects_gd22.js"></script>
@@ -1064,6 +1065,11 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 resize();
+// the footer: which commit this page is (tools/serve.js keeps its checkout current; GET /version)
+if (location.protocol.startsWith("http") && !window.GD_PHONE) fetch("/version", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(v => {
+  if (!v || !v.commit) return;
+  document.getElementById("ver").textContent = `viewer ${v.note === "up to date" || /^updated/.test(v.note || "") ? "up to date" : "at"}: ${v.commit} -- ${v.subject}` + (v.note && !/^up to date|^updated/.test(v.note) ? ` (${v.note})` : "");
+}).catch(() => {});
 // ?perf=<id>&secs=8&art=1&beats=1&light=0 (tools/perf.js): play the level in the hash from its t for `secs`
 // seconds with real animation frames and POST the frame and draw times to /perf/<id>
 (() => {
