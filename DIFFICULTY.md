@@ -30,7 +30,25 @@ A level is hard when you must get many inputs right in one go and some leave lit
 3. **Chance per input** = (1 - LAPSE) · erf(w/2 / (SIGMA·√2)). SIGMA is the spread of the
    player's timing error. LAPSE is the chance of fluffing an input whatever its window: a
    misread, a slip, a late reaction.
-4. **Score** = log10 of the expected attempts to beat the level in one go, -Σ log10 p
+4. **The route a player picks** (`easierRoute()`, the user: "when there is a hard timing, we
+   avoid it ... if the timing is easier (the orb), it should usually be the path"). Around every
+   tight input (under 60 ms; cube, ball, UFO, robot, spider -- not the steering modes) it tries
+   about 2300 other routes over 1.5 s before to 1.2 s after:
+   - drop the input, or move it up to 600 ms;
+   - add one tap anywhere (an orb the solver skipped);
+   - drop it and tap once or twice in its place (a jump and an orb onto a platform).
+   A route counts only if every new tap does something (a jump or an orb) and the run lands back
+   on the original path within 2 s. One candidate per distinct sequence of jumps and orbs is then
+   judged by its **joint chance**: every input on the stretch gets its own timing error at once
+   (normal, SIGMA), none is re-planned, 200 seeded samples, the same draws for every route. It
+   must beat the original by 0.02 in log10 attempts, and so must the usual windows. The joint
+   chance is what stops fake routes. An early jump, then a held press that jumps again on landing,
+   has a wide window for each input alone, but the landing spot hangs on the first jump, so
+   together they are as tight as the jump they replace. `tests/route_choice.js` has that case, a
+   real orb route over a triple spike (0.039 -> 0.007) and a lone spike that keeps its jump.
+   `node tools/difficulty_route.js <n | file | community id>` shows a level with and without it.
+   The report writes the chosen route into `local/official_NN.json`, so the viewer replays it.
+5. **Score** = log10 of the expected attempts to beat the level in one go, -Σ log10 p
    (1.0 ≈ 10 attempts). `/min` is the same per minute of the part the sim covers.
    `practiceDeaths` = Σ (1/p - 1).
 
