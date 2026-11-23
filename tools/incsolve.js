@@ -63,7 +63,7 @@ function incremental(oldLevel, oldEvents, level, opts) {
     if (n && n.path[n.path.length - 1].done) { events = n.events; kind = "human"; } } catch (e) { /* spliced route as it is */ }
   const inNatural = JSON.parse(JSON.stringify(prof)), cost = GD.humanCost(w, events).cost;
   return { ok: true, events, kind, cost, presses: events.filter(e => e.type === "press").length, ms: Date.now() - t0, resolveMs: tr, inNatural,
-    from: r.from, to: r.to, rejoined: r.rejoined, reused: r.reused, backoff: r.backoff, inf };
+    from: r.from, to: r.to, rejoined: r.rejoined, reused: r.reused, backoff: r.backoff, tries: r.tries, inf };
 }
 
 // a seeded random one-spot edit of a level: move a hazard/solid/orb a block, or delete one
@@ -89,7 +89,7 @@ function study(file, opts) {
     const e = randomEdit(L.level, rand); if (!e) break;
     const inc = incremental(L.level, base.events, e.level, { noFallback: opts.noFull });
     const fu = opts.noFull ? null : full(e.level);
-    const row = { level: path.basename(file), edit: e.what, inc: { ok: inc.ok, cost: inc.cost, presses: inc.presses, ms: inc.ms, resolveMs: inc.resolveMs, inNatural: inc.inNatural, from: inc.from, to: inc.to, rejoined: inc.rejoined, reused: inc.reused, fallback: inc.fallback, kind: inc.kind },
+    const row = { level: path.basename(file), edit: e.what, inc: { ok: inc.ok, cost: inc.cost, presses: inc.presses, ms: inc.ms, resolveMs: inc.resolveMs, inNatural: inc.inNatural, from: inc.from, to: inc.to, rejoined: inc.rejoined, reused: inc.reused, fallback: inc.fallback, kind: inc.kind, tries: inc.tries },
       full: fu && { ok: fu.ok, cost: fu.cost, presses: fu.presses, ms: fu.ms, solveMs: fu.solveMs, naturalMs: fu.naturalMs, inNatural: fu.inNatural, kind: fu.kind }, at: new Date().toISOString() };
     fs.appendFileSync(path.join(out, "study.jsonl"), JSON.stringify(row) + "\n");
     console.log(JSON.stringify(row));
