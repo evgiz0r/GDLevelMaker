@@ -183,5 +183,9 @@ a ship takes a plain teleport (20887, 54 = -94) into a low corridor and its box 
 spike (421) at the corridor's mouth by 1.6 units. Tried and ruled out (sweeps of
 2400 units from just before, scratch flags): moving the player by 54 relative to its own height (same
 death); firing the teleport at the portal's centre instead of first touch (passes only by skipping 3
-portals, and kills the -53 degree portal at block 76 that fits now). Still open: the ship's hazard box,
-spike 421's turned box, or the exit's x.
+portals, and kills the -53 degree portal at block 76 that fits now). Also ruled out: skipping the rest of the
+tick's collisions after a teleport (the death is on the next tick: at x 20862.3 the ship's box overlaps
+the spike by 1.3 units in x and 4 in y). The exit at the corridor's left mouth looks intended (the
+corridor runs right to two gravity portals and the next teleport at 21561). Still open, unmeasured:
+the teleport's trigger width (25, sure:false; ~22 would clear it), the ship's hazard box, spike 421's
+box. Wants a hitbox-on recording of this spot (Deadlocked ~58.5 s).
