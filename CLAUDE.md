@@ -330,3 +330,8 @@ The viewer draws moving objects where they start.
 - Playing on the phone too: how to get an updated level onto the phone while away from the PC.
   Watching is built: the phone page (PHONE.md: live work in progress, marks, songs added from
   the phone). Playing it in the phone's game: `tools/export_gmd.js` (.gmd for GDShare).
+- An in-game GD list of all the Claude levels (the user, 2026-11-23: "making a new gd list ingame,
+  with all claude levels. Maybe later"). GD 2.2 lists hold online level IDs, so every level in it
+  must be uploaded first -- which clashes with the user's rule of not putting many AI levels on the
+  server yet (today only the phone slot, ID 152848491, is used). Names are final once uploaded
+  (PUBLISH.md), so settle names first. Not started; no owner yet.
