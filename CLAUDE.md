@@ -114,6 +114,32 @@ at once and the PC hung (0.2 GB free), so the rule is now a lock every heavy too
   `tools/loop.js` stops when another worktree has uncommitted changes to the spec or level, or another
   session put it in work in progress in the last 3 hours.
 
+## How long things take (this PC: 16 GB, other sessions' jobs running)
+
+The user wants to know how long a wait will be. **Before a job over ~30 s, tell the user roughly how long
+it takes** (from this table, or the ETA `tools/loop.js` prints). When a run is far off (over 2x, or under
+half), correct the row here in the same change. Real numbers pile up in `local/timings.jsonl` (every
+`loop.js` step; any other job with `node tools/loop.js --time <step> <command>`); `node tools/loop.js
+--times` prints them by level length. Wait for the heavy-job slot comes on top of all of these.
+
+| job | how long | source |
+|---|---|---|
+| make, short cube level (15-20 s) | 15-30 s | loop.js, GDLM 02 / 41, 2026-11-23 |
+| make `--look` (decoration only, gameplay unchanged) | ~1 s | showcase notes, GDLM 50 |
+| make (= the solve), 40-100 s level with ship / wave / ball | 5-7 min | PHONE.md (GDLM 45 ~5 min), SHOWCASE.md (GDLM 50 ~7 min) |
+| score.js, every gate, short cube level | 10-20 s | loop.js, GDLM 02 / 41 |
+| score.js, level with modes | ~2 solves + ~1 min fairness: 10-15 min | score.js header; not timed yet |
+| compose.js (brief, repair rounds) | one make + score per round | not timed yet |
+| solve an official level (`difficulty_solve.js`) | minutes to an hour+ (checkpoints every 30 s) | not timed yet: use `--time solve-official` |
+| render frames (`shoot.js`, 8 frames) | ~10 s; ~1 min with before/after | SHOWCASE.md, POLISH.md |
+| level map (`levelmap.js`), with a saved solution | ~5 s (without one the page solves: minutes) | loop.js, GDLM 41 |
+| polish report (`polish.js --dry`) | 1-3 min | POLISH.md |
+| readability check | ~8 min for a 12 s level | POLISH.md |
+| wip put (solution cached by make) | a few s | wip.js |
+| install into the game (`install.js`, game closed) | not timed yet (publisher: `--time install`) | |
+| a server upload | not timed yet (publisher: `--time upload`) | |
+| git pull + push | ~10 s | 2026-11-23 |
+
 ## Shared folder, work in progress, the user's marks
 
 Every session works in its own git worktree, but `local/` (never committed) is ONE shared folder:

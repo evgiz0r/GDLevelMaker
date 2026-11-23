@@ -52,7 +52,7 @@ function readTimings(file = TIMINGS) {
 function table(rows) {
   const bucket = r => !(r.levelSecs > 0) ? "-" : r.levelSecs < 30 ? "< 30 s" : r.levelSecs < 75 ? "30-75 s" : "> 75 s";
   const g = {};
-  for (const r of rows) if (r.secs > 0) (g[r.step + "|" + bucket(r)] = g[r.step + "|" + bucket(r)] || []).push(r.secs);
+  for (const r of rows) if (r.secs > 0 && r.ok !== false) (g[r.step + "|" + bucket(r)] = g[r.step + "|" + bucket(r)] || []).push(r.secs);
   return Object.entries(g).map(([k, v]) => { const [step, len] = k.split("|"); return { step, len, n: v.length, median: median(v), min: Math.min(...v), max: Math.max(...v) }; })
     .sort((a, b) => a.step.localeCompare(b.step) || a.len.localeCompare(b.len));
 }
