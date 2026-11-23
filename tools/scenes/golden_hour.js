@@ -101,6 +101,16 @@ module.exports = function ({ objects, header, beatX }) {
   out.push(K.text(26 * 30, 190, "golden hour", 1.1, { ch: C.edge, z: "B1", groups: [G.title] }));
   out.push(K.text(S[7][0] + 90, 200, "Golden Haze - Detious / DeadRewind", 0.45, { ch: C.edge, z: "B1", groups: [G.credit] }));
 
+  // ---- props from gd-art's library (lib/props.js, ART.md): ground props behind the play (B3), kept 2 blocks
+  // clear of every gameplay column so they never read as obstacles, tinted toward each scene; their own
+  // channels from 600 up (never 20-31, this script's, nor 988-999, the signature's)
+  const PR = require("../../lib/props.js"), alloc = PR.allocator(600);
+  const tint = i => ({ bg: P[i][C.glow], ground: P[i][C.far], fill: P[i][C.fill], edge: P[i][C.edge], accent: P[i][C.sun] });
+  const PROPS = [[1, "tree", 1.2, 1.4], [1, "bush", 2, 1], [2, "house", 0.8, 1], [3, "house", 1, 1], [3, "windmill", 0.12, 1], [4, "dead tree", 1, 1.3], [6, "lamp post", 1.5, 1], [7, "bush", 1.5, 1]];
+  for (const [i, name, density, scale] of PROPS) {
+    const r = PR.place(name, S[i][0], S[i][1], { alloc, density, scale, layer: "B3", avoid: objects, clear: 2, palette: tint(i), seed: 40 + i, groups: [G.far + 20] });
+    out.push(...r.objects); header = PR.header(header, r.colours);
+  }
   // ---- the 2.2 numbers (Fall Out: ~38% of the deco in front, HSV on ~half): the lit block edges go to the
   // first see-through front layer (T2; the fills stay behind the play), and half of the rest get a slight
   // hue / brightness shift so one channel reads as many shades
