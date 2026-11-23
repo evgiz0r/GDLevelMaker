@@ -93,8 +93,10 @@ Driven from the browser console: load a level (`load(name, levelStr, solution)` 
   (Spire from video 14.3 s, Dash Tower 146.6 s, CHAOTIC, Sunset Aurorae 397 s; levels in
   local/community: 128630430, 128619650, 151677971, 152663636). Spire matches the game until the
   user's death at ~7.5 s (shots `local/shots/spire_vs_rec*`), but our sim's run flies off ("sky") at
-  block 112. Sunset Aurorae starts with a teleport portal (747, key 54 = +730 units) the sim does not
-  do, so the player never meets the level; Dash Tower also starts off the level (static camera 1914,
+  block 112. Sunset Aurorae: the sim does the start teleport (747, +730 units; gd-physics c39a889), but the
+  fewest-clicks solution drops off the bricks at block 12.6 and runs the rest on GD's ground at y 15,
+  under the whole level (nothing kills it there in our sim), so the camera sees nothing; the user
+  stays on the bricks. Needs a route like the player's (or a reason the game kills you down there); Dash Tower also starts off the level (static camera 1914,
   area moves). Sent to gd-physics 2026-11-23. Until then compare only where sim and recording agree,
   and use shoot.js's ghost run (after a sim death it keeps the speed and holds the height).
 - Sunset Aurorae plays in a narrowed frame (black bars): a 2.2 camera / edge setting, not drawn.
