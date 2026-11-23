@@ -151,7 +151,7 @@ Driven from the browser console: load a level (`load(name, levelStr, solution)` 
 The phone page must not carry RobTop's art. Options (not built): (a) the user picks the sheets from the
 phone's own GD install once ("add art", like "add song"), kept in that browser's IndexedDB; (b) the PC
 renders per-level preview frames into `local/` and the phone page fetches them only from the user's own
-machine (needs the PC on). Until then the phone page stays shape-drawn (PHONE.md).
+machine (needs the PC on). Until then the phone page stays shape-drawn (PHONE.md). Level maps go there only as `--shapes` maps (PHONE.md "Level map").
 
 ## How to update
 

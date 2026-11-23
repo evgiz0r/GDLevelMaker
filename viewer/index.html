@@ -417,7 +417,8 @@ function draw() {
   if (!L) return;
   // a canvas with no size yet (a hidden pane, an iframe before layout) made scale 0, the camera NaN,
   // and the smoothed camY stayed NaN for good: every later draw threw in drawPlayer
-  if (!W || !H) { resize(); if (!W || !H) return; }
+  // (resize() draws again only once the canvas has a size: with none, the two called each other forever)
+  if (!W || !H) { const r = cv.getBoundingClientRect(); if (r.width && r.height) resize(); return; }
   if (!isFinite(camY)) camY = 0;
   const k = tick(), s0 = L.path[k];
   // between two 240 Hz steps: the player and the camera move on smoothly at the screen's own rate

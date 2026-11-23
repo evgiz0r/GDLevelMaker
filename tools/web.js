@@ -12,8 +12,9 @@ fs.rmSync(OUT, { recursive: true, force: true });
 fs.mkdirSync(path.join(OUT, "lib"), { recursive: true });
 
 let html = fs.readFileSync(path.join(ROOT, "viewer", "index.html"), "utf8").replace(/\r\n/g, "\n");
-const libs = [...html.matchAll(/<script src="\.\.\/lib\/([\w.]+)"><\/script>/g)].map(m => m[1]);
-for (const f of libs.filter(f => !/^(art|objects_art|objects_frames)\.js$/.test(f))) fs.copyFileSync(path.join(ROOT, "lib", f), path.join(OUT, "lib", f));
+const libs = [...html.matchAll(/<script src="\.\.\/lib\/([\w.]+)"><\/script>/g)].map(m => m[1])
+  .filter(f => !/^(art|objects_art|objects_frames)\.js$/.test(f)); // never the GD-art libs (page, worker, publish list)
+for (const f of libs) fs.copyFileSync(path.join(ROOT, "lib", f), path.join(OUT, "lib", f));
 fs.copyFileSync(path.join(ROOT, "viewer", "levels.js"), path.join(OUT, "levels.js"));
 const beats = path.join(ROOT, "viewer", "beats.local.js");
 fs.writeFileSync(path.join(OUT, "beats.js"), fs.existsSync(beats) ? fs.readFileSync(beats) : "window.GD_BEATS = {};\n");
@@ -27,7 +28,34 @@ swap("<title>GD Level Viewer</title>", "<title>GDLM Level Replays</title>");
 swap('src="../lib/', 'src="lib/');
 swap('<script src="levels.local.js" onerror="window.GD_LEVELS_LOCAL = []"></script>', "<script>window.GD_LEVELS_LOCAL = [];</script>");
 // no GD art on the published page: RobTop's sprites never leave the user's PC (VISUALS.md "Phone")
-swap('<button id="mapBtn" title="the whole level as one picture with its path (make it with node tools/levelmap.js <level>)">level map</button>\n', ""); // maps carry GD art (VISUALS.md)
+// Level maps: only the art-free shape drawings (tools/levelmap.js <level> --shapes ->
+// local/maps/<name>_shapes.jpg) of our own levels (gdlm_*) go out; the GD-art maps and official
+// levels never do (VISUALS.md "Level map"). The button shows only for levels that have one and
+// opens it over the page (a new tab may be blocked inside the Artifact frame).
+const MAPS = path.join(ROOT, "local", "maps"), maps = [];
+if (fs.existsSync(MAPS)) for (const f of fs.readdirSync(MAPS)) { const m = /^(gdlm_[\w-]+)_shapes\.jpg$/.exec(f); if (m) maps.push(m[1]); }
+if (maps.length) fs.mkdirSync(path.join(OUT, "maps"), { recursive: true });
+for (const m of maps) fs.copyFileSync(path.join(MAPS, m + "_shapes.jpg"), path.join(OUT, "maps", m + "_shapes.jpg"));
+swap('<button id="mapBtn" title="the whole level as one picture with its path (make it with node tools/levelmap.js <level>)">level map</button>\n',
+  maps.length ? '<button id="mapBtn" title="the whole level as one picture with its path">level map</button>\n' : "");
+swap('  let ok = false; try { ok = (await fetch(url, { method: "HEAD", cache: "no-store" })).ok; } catch (e) {}\n' +
+  '  if (ok) window.open(url, "_blank"); else alert("No map yet for " + name + ". Make it with:\\n  node tools/levelmap.js " + l.file);',
+  '  if (!GD_MAPS.includes(name)) { alert("No map of " + name + " on this page yet."); return; }\n  showMap("maps/" + name + "_shapes.jpg");');
+swap("const artOn = () =>", `const GD_MAPS = ${JSON.stringify(maps)};
+function mapName() { const l = ALL[pick.value]; return l ? String(l.file || "").split("/").pop().replace(/\\.(gdlvl|json)$/, "") : ""; }
+function mapBtnShow() { const b = document.getElementById("mapBtn"); if (b) b.style.display = GD_MAPS.includes(mapName()) ? "" : "none"; }
+pick.addEventListener("change", mapBtnShow); setTimeout(mapBtnShow, 0);
+function showMap(src) {
+  const o = document.createElement("div");
+  o.style.cssText = "position:fixed;inset:0;z-index:50;background:#0b0820;overflow:auto;-webkit-overflow-scrolling:touch";
+  o.innerHTML = '<div style="position:sticky;top:0;left:0;display:flex;gap:8px;align-items:center;padding:6px;background:#0b0820cc"><span style="flex:1;font-size:12px;opacity:.7">tap the map to zoom</span><button>✕ close</button></div><img style="display:block;width:100%;max-width:none;height:auto" alt="level map">';
+  const img = o.querySelector("img"); img.src = src; o.querySelector("button").onclick = () => o.remove();
+  // tap: fit the width <-> 3x (scroll sideways), keeping the tapped spot under the finger
+  img.onclick = e => { const big = img.style.width !== "300%", fx = e.offsetX / img.clientWidth, fy = e.offsetY / img.clientHeight;
+    img.style.width = big ? "300%" : "100%"; o.scrollLeft = fx * img.clientWidth - e.clientX; o.scrollTop = fy * img.clientHeight + img.offsetTop - e.clientY; };
+  document.body.appendChild(o);
+}
+const artOn = () =>`);
 swap('<script src="lib/objects_art.js"></script>\n<script src="lib/objects_frames.js"></script>\n<script src="lib/art.js"></script>\n', "<script>window.GD_PHONE = true;</script>\n");
 swap('<script src="beats.local.js" onerror="window.GD_BEATS = {}"></script>', '<script src="beats.js" onerror="window.GD_BEATS = {}"></script>');
 // Songs: none are published. The viewer picks mp3s from their own device ("add song"); they are
@@ -283,6 +311,7 @@ onmessage = e => {
 };
 `);
 const files = { "levels.js": "levels.js", "beats.js": "beats.js", "solve_worker.js": "solve_worker.js" };
+for (const m of maps) files["maps/" + m + "_shapes.jpg"] = "maps/" + m + "_shapes.jpg";
 for (const f of libs) files["lib/" + f] = "lib/" + f;
 fs.writeFileSync(path.join(OUT, "publish.json"), JSON.stringify({ file_path: path.join(OUT, "index.html"), root: OUT, files, capabilities: { db: {} } }, null, 1));
 console.log(`${OUT}: index.html + ${Object.keys(files).length} files; publish.json has the Artifact call's file_path, root, files and capabilities`);
