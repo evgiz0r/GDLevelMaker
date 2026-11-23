@@ -267,6 +267,10 @@ search starts, the button over the span it can see, the input and where the run 
 differs in a few inputs re-measures only those. GDLM 44 (17 s, a ship part): 32 s cold, 0.15 s again, 1.9 s with
 one input moved (57 s without the cache; same cost to the last digit). `opts.fast` skips the tight-input scan
 (~10% cheaper here, and a needlessly tight solver timing then reads tight).
+After an edit: `GD.carryWindowCache(wOld, wNew, ranges, aToB)` copies every cached window whose look-ahead span
+misses the edited x ranges into the new level's cache, renaming the object / trigger indices its state holds
+(aToB from the incremental solver's diffObjects). GDLM 45: a moved spike or an inserted decoration re-measures in
+0.1 s instead of 38 s, every window equal to a fresh measuring (`node tests/carry_windows.js`, heavy).
 Test: `node tests/human_cost.js`. Open: the weights are set by hand; fit `centre` on where the user really
 presses in a window (physics brings those from the recordings).
 
