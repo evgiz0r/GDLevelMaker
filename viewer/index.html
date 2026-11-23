@@ -89,6 +89,8 @@
 "use strict";
 const P = GD.PHYS;
 const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
+// shoot mode (tools/shoot.js): ?shoot=<job> renders a level's frames headless, without the overlays
+const SHOOT = new URLSearchParams(location.search).get("shoot");
 let L = null;          // {name, objects, world, sol, path}
 let t = 0, playing = false, speed = 1, showHit = false, sound = true, lastTick = -1;
 
@@ -228,11 +230,11 @@ document.getElementById("lookBtn").classList.toggle("on", look);
 document.getElementById("lookBtn").onclick = e => { look = !look; e.target.classList.toggle("on", look); try { localStorage.setItem("gdlm.look", look ? "1" : "0"); } catch (err) {} draw(); };
 // GD's own sprites (lib/art.js), loaded from the game install through tools/serve.js; off on file:// and
 // on the phone page, which must not carry RobTop's art
-let art = false, artTried = false;
+let art = false, artTried = null;
 const artBtn = document.getElementById("artBtn");
 try { art = localStorage.getItem("gdlm.art") !== "0"; } catch (e) {}
-async function artLoad() {
-  if (artTried) return; artTried = true;
+function artLoad() { return artTried || (artTried = artLoad1()); } // one load, shared by every caller
+async function artLoad1() {
   if (!location.protocol.startsWith("http") || window.GD_PHONE) { art = false; artBtn.hidden = true; return; }
   artBtn.textContent = "GD art …";
   const ok = await GD.ART_LIB.load("/gdres/", () => draw());
@@ -421,6 +423,7 @@ function draw() {
   const want = isFinite(s.ceilY) && s.mode !== "cube"
     ? Math.max(s.floorY - 15, Math.min(s.y - viewH * 0.5, s.ceilY + 15 - viewH))
     : Math.max(0, s.y - 30 * 4.5);
+  if (SHOOT) camY = want; else
   camY += (want - camY) * (1 - Math.exp(-9.75 * drawDt)); // 0.15 a frame at 60 fps, at any rate
   const view = { W, H, scale, camX, sx, sy };
   const AR = GD.ART_LIB, sc = artOn() ? (L.scenery = L.scenery || AR.scenery(L.level.header)) : null;
@@ -432,7 +435,7 @@ function draw() {
   for (let gx = Math.floor(camX / 30) * 30; sx(gx) < W; gx += 30) { ctx.beginPath(); ctx.moveTo(sx(gx), 0); ctx.lineTo(sx(gx), groundY); ctx.stroke(); }
   for (let gy = 0; sy(gy) > 0; gy += 30) { ctx.beginPath(); ctx.moveTo(0, sy(gy)); ctx.lineTo(W, sy(gy)); ctx.stroke(); } }
   // beat lines: one per beat, brighter on the first beat of a bar, numbered
-  if (L.beats && showBeats) {
+  if (L.beats && showBeats && !SHOOT) {
     const bA = beatOf(Math.max(0, tOfScreenX(0))), bB = beatOf(tOfScreenX(W)), d = DPR();
     ctx.font = `${11 * d}px system-ui`;
     for (let b = Math.max(1, Math.ceil(bA)); b <= bB; b++) {
@@ -479,7 +482,7 @@ function draw() {
   for (const o of objsNow) if (sx(o.x) > -60 && sx(o.x) < W + 60) drawObj(o);
   }
   // end line
-  ctx.strokeStyle = "rgba(61,255,176,.5)"; ctx.beginPath(); ctx.moveTo(sx(L.world.endX), 0); ctx.lineTo(sx(L.world.endX), groundY); ctx.stroke();
+  if (!SHOOT) { ctx.strokeStyle = "rgba(61,255,176,.5)"; ctx.beginPath(); ctx.moveTo(sx(L.world.endX), 0); ctx.lineTo(sx(L.world.endX), groundY); ctx.stroke(); }
   if (showHit) {
     ctx.lineWidth = 1.5;
     for (const b of L.world.solids) { ctx.strokeStyle = "#00e5ff"; rectW(b); }
@@ -493,11 +496,9 @@ function draw() {
     ctx.strokeStyle = L.held[i] ? "rgba(255,225,77,.8)" : "rgba(61,255,176,.35)";
     ctx.beginPath(); ctx.moveTo(sx(p.x), sy(p.y)); ctx.lineTo(sx(q.x), sy(q.y)); ctx.stroke();
   } }
-  drawDeaths();
-  drawMarks();
-  drawInput(k);
+  if (!SHOOT) { drawDeaths(); drawMarks(); drawInput(k); }
   // ship corridor
-  if (s.mode === "ship") {
+  if (s.mode === "ship" && !SHOOT) {
     ctx.strokeStyle = "rgba(255,90,210,.6)"; ctx.lineWidth = 3;
     for (const yy of [s.floorY, s.ceilY]) { ctx.beginPath(); ctx.moveTo(0, sy(yy)); ctx.lineTo(W, sy(yy)); ctx.stroke(); }
   }
@@ -515,7 +516,7 @@ function draw() {
     const age = (k - c.tick) / P.TPS;
     const row = document.getElementById("c" + i); if (row) row.classList.toggle("now", age >= 0 && age < 0.35);
   });
-  if (s.dead) {
+  if (SHOOT) {} else if (s.dead) {
     ctx.fillStyle = "rgba(255,59,107,.9)"; ctx.font = "bold 22px system-ui"; ctx.fillText("✖ died on a " + s.why, sx(s.x) - 60, sy(s.y) - 50);
   } else if (s.done) {
     ctx.fillStyle = "rgba(61,255,176,.95)"; ctx.font = "bold 22px system-ui"; ctx.fillText("LEVEL COMPLETE", W / 2 - 90, 40);
@@ -782,12 +783,46 @@ document.getElementById("linkBtn").onclick = async () => {
 };
 setInterval(() => { if (L && !playing) writeHash(); }, 1000);
 (async () => {
+  if (SHOOT) return shootRun();
   await loadWip(false);
   const h = hashParams(), want = h.get("lv");
   const i = want ? ALL.findIndex(l => l.file === want) : -1;
   if (i >= 0) { pick.value = i; pick.onchange(); t = +h.get("t") || 0; draw(); }
   else if (ALL.length) { pick.value = 0; pick.onchange(); }
 })();
+// ---------- shoot mode: tools/shoot.js writes local/shoot/<job>.json {level:{name, levelStr, solution,
+// song}, times:[s], rec, t0, width, height}; each frame goes back as POST /shoot/<job>/<n>.png (the
+// GD-art render, or render | recording frame side by side when rec is given), then /shoot/<job>/done ----------
+async function shootRun() {
+  const job = await (await fetch("/shoot/job/" + SHOOT + ".json", { cache: "no-store" })).json();
+  document.body.style.margin = "0";
+  Object.assign(cv.style, { position: "fixed", left: "0", top: "0", width: (job.width || 1920) + "px", height: (job.height || 1080) + "px", zIndex: 999 });
+  look = job.look !== false; art = job.art !== false; showHit = !!job.hitboxes;
+  if (art) { await artLoad(); await GD.ART_LIB.preload(); }
+  resize();
+  const lv = job.level;
+  load(lv.name, lv.levelStr, lv.solution || null, null);
+  const post = (name, url) => fetch("/shoot/" + SHOOT + "/" + name, { method: "POST", body: url });
+  for (let i = 0; i < job.times.length; i++) {
+    t = Math.max(0, Math.min(job.times[i], (L.path.length - 1) / P.TPS)); playing = false;
+    // draw until every lazily loaded picture (background, ground, tinted frames) is in
+    for (let k = 0; k < 6; k++) { draw(); await new Promise(r => setTimeout(r, k < 2 ? 150 : 60)); }
+    let url = cv.toDataURL("image/png");
+    if (job.rec) {
+      const im = new Image(); im.src = "/rec/frame?f=" + encodeURIComponent(job.rec) + "&t=" + (job.t0 + job.times[i]).toFixed(3);
+      await new Promise(r => { im.onload = im.onerror = r; });
+      const c = document.createElement("canvas"); c.width = 1920; c.height = 1080 / 2 + 28;
+      const x = c.getContext("2d"); x.fillStyle = "#000"; x.fillRect(0, 0, c.width, c.height);
+      x.drawImage(cv, 0, 0, 960, 540); if (im.naturalWidth) x.drawImage(im, 960, 0, 960, 540);
+      x.fillStyle = "#fff"; x.font = "16px system-ui";
+      x.fillText(`viewer: ${L.name}  t=${t.toFixed(2)} s  block ${(L.path[tick()].x / 30).toFixed(1)}`, 8, 560);
+      x.fillText(`game: ${job.rec} at ${(job.t0 + job.times[i]).toFixed(2)} s`, 968, 560);
+      url = c.toDataURL("image/png");
+    }
+    await post(String(i).padStart(3, "0") + ".png", url);
+  }
+  await post("done", String(job.times.length));
+}
 loadMarks();
 requestAnimationFrame(frame);
 </script>

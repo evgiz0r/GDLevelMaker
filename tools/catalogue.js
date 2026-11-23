@@ -10,7 +10,7 @@
 //   usage            what decoration good levels use: per family, how many levels / objects (local/community
 //                    rated levels + official + the user's examples), by tier and era; which families appear
 //                    together; layers and colour keys -> knowledge/objects/usage.json (numbers only)
-const fs = require("fs"), path = require("path"), http = require("http"), cp = require("child_process");
+const fs = require("fs"), path = require("path");
 const ROOT = path.join(__dirname, ".."), C = require("../lib/catalogue.js").CATALOGUE, O = require("../lib/objects.js");
 const ART = require("../lib/art.js").ART_LIB;
 const OUT = path.join(ROOT, "knowledge", "objects");
@@ -40,26 +40,11 @@ if (step === "index") {
   const g = {}; for (const id of C.ids()) g[C.group(id)] = (g[C.group(id)] || 0) + 1;
   console.log("wrote knowledge/objects/catalogue.tsv,", rows.length - 1, "ids", g);
 } else if (step === "sheets") {
-  const port = +(process.argv[3] || 8767), url = `http://localhost:${port}/viewer/catalogue.html?save=1`;
-  const dir = path.join(ROOT, "local", "catalogue"), done = path.join(dir, ".done");
-  fs.mkdirSync(dir, { recursive: true }); try { fs.unlinkSync(done); } catch (e) {}
-  const up = () => new Promise(res => http.get(`http://localhost:${port}/viewer/`, r => { r.resume(); res(true); }).on("error", () => res(false)));
-  (async () => {
-    let server = null;
-    if (!(await up())) { server = cp.spawn(process.execPath, [path.join(__dirname, "serve.js"), String(port)], { stdio: "ignore" }); await new Promise(r => setTimeout(r, 1200)); }
-    const browsers = ["C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe", "C:/Program Files/Microsoft/Edge/Application/msedge.exe",
-      "C:/Program Files/Google/Chrome/Application/chrome.exe", "/usr/bin/chromium", "/usr/bin/google-chrome"];
-    const exe = process.env.BROWSER || browsers.find(b => fs.existsSync(b));
-    if (!exe) { console.log("no Edge/Chrome found: open " + url + " in a browser instead (set BROWSER=path)"); if (server) server.kill(); return; }
-    const prof = fs.mkdtempSync(path.join(require("os").tmpdir(), "gdlm-cat-"));
-    const br = cp.spawn(exe, ["--headless=new", "--disable-gpu", "--no-first-run", "--user-data-dir=" + prof, "--window-size=1900,1200", url], { stdio: "ignore" });
-    const t0 = Date.now();
-    while (!fs.existsSync(done) && Date.now() - t0 < 10 * 60e3) await new Promise(r => setTimeout(r, 1000));
-    br.kill(); if (server) server.kill();
-    try { fs.rmSync(prof, { recursive: true, force: true }); } catch (e) {}
+  const dir = path.join(ROOT, "local", "catalogue"); fs.mkdirSync(dir, { recursive: true });
+  require("./headless.js").headless("viewer/catalogue.html?save=1", path.join(dir, ".done"), { port: +(process.argv[3] || 8767) }).then(r => {
     const pngs = fs.readdirSync(dir).filter(f => f.endsWith(".png"));
-    console.log(fs.existsSync(done) ? `done: ${pngs.length} sheets in local/catalogue/ (${((Date.now() - t0) / 1000).toFixed(0)} s)` : "timed out; sheets so far: " + pngs.length);
-  })();
+    console.log(r.ok ? `done: ${pngs.length} sheets in local/catalogue/ (${r.seconds.toFixed(0)} s)` : "timed out; sheets so far: " + pngs.length);
+  }, e => console.log(e.message));
 } else if (step === "usage") {
   const { readGdlvl } = require("./io.js");
   const levels = [];
