@@ -6,6 +6,7 @@
 // {
 //   "name": "01 one jump",            // the name shown in GD's level list
 //   "desc": "one spike",              // optional
+//   (a plain string in "objects", e.g. "// S2 the ship", is a comment and is skipped)
 //   "objects": [                      // [type, column, row, {extra}] -- extra: rot, flipX, flipY
 //     ["spike", 12, 0],
 //     ["block", 20, 0],
@@ -65,7 +66,9 @@ const TYPES = { block: 1, spike: 8, slope: 1338, "small spike": 39, "yellow orb"
   "red pad": 1332, "spider orb": 3004, "spider pad": 3005, "green dash orb": 1704,
   "cube portal": 12, "ship portal": 13, "ball portal": 47, "ufo portal": 111, "wave portal": 660,
   "robot portal": 745, "spider portal": 1331, "swing portal": 1933,
-  "gravity down": 11, "gravity up": 10,
+  // careful: "gravity down" is 11, the YELLOW portal that turns the player upside down (it then falls up);
+  // "gravity up" is 10, the blue one back to normal. The plain names below say what they do.
+  "gravity down": 11, "gravity up": 10, "upside down": 11, "normal gravity": 10,
   "0.5x speed": 200, "1x speed": 201, "2x speed": 202, "3x speed": 203, "4x speed": 1334 };
 const SPEED_NAMES = { "0.5x": 1, "1x": 0, "2x": 2, "3x": 3, "4x": 4 }; // -> kA4
 const SPECIAL = ["pattern", "colour", "fade", "zoom"];
@@ -203,6 +206,7 @@ function checkDesc(desc, name) {
 }
 
 function build(spec, specFile = "spec") {
+  spec = Object.assign({}, spec, { objects: spec.objects.filter(e => Array.isArray(e)) });   // a string entry is a comment
   const song = songOf(spec);
   const kA4 = spec.speed ? SPEED_NAMES[spec.speed] : 0;
   if (kA4 === undefined) throw new Error("speed must be one of " + Object.keys(SPEED_NAMES).join(" "));
@@ -363,7 +367,8 @@ function lookOnly(out, rec, level) {
   if (!fs.existsSync(out)) { console.log("   --look: no previous build, solving"); return false; }
   const old = io.readGdlvl(out), sol = sols.get(old.levelStr, true);
   const sig = (objs, h) => JSON.stringify(GD.makeWorld(objs, h).items.map(b => [b.kind, Math.round(b.x), Math.round(b.y)]));
-  if (!sol || !sol.ok || sig(old.level.objects, old.level.header) !== sig(level.objects, level.header)) { console.log("   --look: gameplay changed (or no saved solution), solving"); return false; }
+  if (!sol || !sol.ok) { console.log("   --look: no saved solution (none yet, or lib/physics.js changed since: saved solves go stale), solving"); return false; }
+  if (sig(old.level.objects, old.level.header) !== sig(level.objects, level.header)) { console.log("   --look: gameplay changed, solving"); return false; }
   // the jump marks of the last build (group 990 and the alpha trigger that fades them)
   const IG = String(deco.INDICATOR.group);
   level.objects.push(...old.level.objects.filter(o => o.props && (o.props[57] === IG || (o.id === 1007 && o.props[51] === IG))));

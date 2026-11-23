@@ -7,6 +7,9 @@ the player's own attempts. `tools/runs.js` reads the player's real deaths from a
 ```
 node tools/difficulty.js levels/gdlm_05_x.gdlvl      # one level: score, then every input's window
 node tools/difficulty_solve.js 7                      # cache a solution of official level 7 (ONE at a time, ~800 MB)
+node tools/difficulty_solve.js 7 --resume             # after a physics change: keep the saved run up to a bit before
+                                                      # where the change matters, solve only the rest (minutes, not 15)
+# a stopped solve carries on from its 30 s checkpoint (local/difficulty/NN.part.json); --fresh starts over
 node tools/difficulty.js                              # all cached official levels vs ratings and your attempts
 node tools/save_stats.js                              # your lifetime attempts per official level (save, read-only)
 node tools/runs.js <rec.mkv> [...] --join --level 7 --device mouse   # your deaths in a recording
@@ -405,7 +408,8 @@ widest-moment scan skipped. Flying presses and releases are now scanned too.
    rhythmic chains are fine (every early official level has 60-90). Needs a rhythm or surprise
    measure to tell them apart.
 4. **Coverage.** 6 official levels are under 10% in the sim (`local/difficulty/NN.json` says
-   where each stops). Each physics fix: re-run `node tools/difficulty_solve.js N`, one at a time.
+   where each stops). Each physics fix: re-run `node tools/difficulty_solve.js N --resume`, one at a time (a full solve without
+   --resume now and then: a resume keeps the old route before the change).
 5. **One copy of the window code.** `lib/sync.js` has its own (stricter) press windows; merge them.
 6. **Ratings are from memory** (tools/difficulty.js RATED). Check them against the game.
 

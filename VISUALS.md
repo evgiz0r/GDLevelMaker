@@ -11,6 +11,22 @@ of the art is copied into the repo, onto the phone page or into an Artifact. Ren
 (`local/shots/`, `local/catalogue/`) live in the never-committed `local/`. Committed are only facts:
 object id -> frame names, offsets, colour roles, layers.
 
+"GD art (not found)" in the viewer: the page could not fetch `/gdres/`. Seen 2026-11-23: the user's
+`serve.js` on 8765 had run since before `/gdres/` existed (a node server keeps the code it started with),
+so every sprite was a 404. Check `curl -s -o /dev/null -w "%{http_code}" localhost:8765/gdres/GJ_GameSheet-uhd.plist`;
+404 -> restart serve.js from the main checkout. The button's tooltip names the file that failed.
+
+Jump indicators (arrows 132/460/494 and 2.2's 3630-3632) and text (914) are drawn in every view, not
+only with GD art: the shapes look draws them in `lib/look.js` `drawMark` (own shape, channel 21, group
+alpha), the schematic view soft white. Other decoration stays out of the shapes look.
+
+The button strip under the ground (viewer and phone) shades each input's whole timing window, from the
+earliest to the latest tick that still clears (presses cyan, releases pink, a tap's release moves with its
+press), with its length in ms under it; the white mark inside is where the replay presses. Saved and natural
+replays carry no windows, so the page works them out after the level shows (`lib/windows.js`, a slice at a
+time; ~7 s for GDLM 45 on the PC, slower on a phone) and fills the click table's window column then.
+`node tools/shoot.js <level> --input` draws the strip in headless shots.
+
 ## What is built
 
 - **Viewer "GD art" button** (on by default when served by `tools/serve.js`, with "game look" on):
