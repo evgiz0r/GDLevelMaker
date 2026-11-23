@@ -33,7 +33,11 @@ turned into levels: SKETCH.md.
 | test | `node tests/polish.js` | ~35 s |
 
 Output stays in `local/` (never committed): the input may be the user's level. A polished level is
-named `GDLM polished <name>` (or keeps its GDLM name) so it is easy to find and delete in the game.
+keeps its GDLM name **exactly** (no " polished", no "v3"): a level's name is fixed once it is uploaded
+(the user, 2026-11-23: "We use the same name once uploaded, no rename"; the GD server refuses a renamed
+shared level, PUBLISH.md), and a polished version is an update of the same level. Any other level gets
+the working name `GDLM polished <name>`; before its first upload give it a proper final name with
+`--name` (pick it with care: it stays for good).
 Installing it into the save is the main session's job (GD must be closed; `tools/install.js`).
 Real-game results come back from the physics session (`node tools/real_stats.js <name>`,
 `local/real_stats.jsonl`: every death with a fair / unfair verdict).
