@@ -459,6 +459,9 @@ The viewer draws moving objects where they start.
 
 ## Rules
 
+- **No native dialogs in the viewer pages** (alert / confirm / prompt): the app's built-in browser and the phone page's
+  frame suppress them, so the button just did nothing. Use the viewer's notice(), askNote(), showMap();
+  `node tests/no_dialogs.js` checks.
 - **Never pop a window on the user's screen.** Every child process (spawn, spawnSync, exec*, execFile*, fork) passes
   `windowsHide: true`: on Windows a console child without it flashes a console window (serve.js's self-update did,
   every minute, 2026-11-23). `node tests/no_console_windows.js` fails on any call without it (`--fix` adds it).
