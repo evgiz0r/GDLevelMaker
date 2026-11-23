@@ -26,6 +26,9 @@ number there, then here. Last updated 2026-11-23.
   all, one orb kind, and a hazard-free surface ~1 block after the last orb. Never a chain where a
   normal click falls to death or that carries the cube toward the screen's edge.
   `node tools/obstacles.js orbchains --file <level>`. (levels/obstacles.md section 5; GDLM 46 v2)
+- [ ] **A landing you can stay on**: after an orb, pad or obstacle, the cube lands on one surface across
+  every early/late press; never a gap in front of a wall that needs an instant jump (a dead end).
+  `node tools/polish.js <level> --dry --passes none` (two 4 ms jumps there). (critiques.md GDLM 44 v12)
 - [ ] **Orbs where the arc already goes**, not grazed at the arc's edge. (design.md; GDLM 44 orb ladder)
 - [ ] **Jump arrows only on real inputs**, ~1 block above the surface, right at the press (the hazard
   ~0.5 block ahead). Used where a jump can't be read in time (after a drop, after a portal, the first of
@@ -69,7 +72,9 @@ number there, then here. Last updated 2026-11-23.
 - [ ] **Shape of the level**: a dense opening, quiet 1-2 s transitions, the biggest effects at the
   drops. A title at the start and credits at the end. Don't copy any one level's art.
 - [ ] **Readable**: hazards stand out (white, grey or their own colour against the scene); no deco
-  that looks like an orb, pad or hazard. (design.md; players_say.md: saws taken for orbs)
+  that looks like an orb, pad or hazard: fires only far back, small and dim. Hazards keep their contrast
+  on the drop's brightest frame (one sky flash, not two). Behind a portal a dark disc, never a lit one.
+  `node tools/shoot.js` the drop. (design.md; players_say.md: saws taken for orbs; POLISH.md hellgate)
 
 ## Ratable (rating.md)
 
