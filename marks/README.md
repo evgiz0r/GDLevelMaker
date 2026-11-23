@@ -15,3 +15,10 @@ Without the server (viewer opened from disk, or the phone page) marks stay in th
 
 Each round, Claude: `node tools/marks.js` (open marks), fixes what they say (the level's spec, or
 `lib/look.js` for how the viewer draws things), then `node tools/marks.js done <id> "what changed"`.
+
+## Testing the mark flow
+
+A session that tests marking gives the mark an id starting `test-` (or `test: true`): tools/serve.js then
+writes it to `local/marks.test.jsonl`, which the viewer never reads, so no test pin shows to the user. On
+the phone page, delete a test row from the `marks` collection when done. (2026-11-23: a "TEST mark from
+Claude" pin sat on hellgate in the user's viewer; it is now in marks.test.jsonl.)

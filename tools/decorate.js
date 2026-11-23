@@ -162,6 +162,8 @@ function jumpIndicators(w, r, id, GD, opts = {}) {
     // ... but never on or next to the hazard it is for (the user, hellgate round 2: "indicator inside spike"):
     // its centre stays INDICATOR.clear units in front of the hazard's hitbox (tools/indicators.js checks it)
     if (cue !== Infinity) { const hz0 = a.x + 15 + cue; if (x > hz0 - INDICATOR.clear) x = Math.floor((hz0 - INDICATOR.clear) / 15) * 15; }
+    const hazNear = xx => boxes.find(b => b.kind === "hazard" && b.x0 - INDICATOR.clear < xx && b.x1 + INDICATOR.clear > xx && (up ? b.y0 <= surface + 60 && b.y1 >= surface - 5 : b.y1 >= surface - 60 && b.y0 <= surface + 5));
+    for (let k = 0, h; k < 6 && (h = hazNear(x)); k++) x = Math.floor((h.x0 - INDICATOR.clear) / 15) * 15;
     out.push({ id, x, y: up ? surface + INDICATOR.lift : surface - INDICATOR.lift,
       rot: ((opts.rot ?? INDICATOR.rot) + (up ? 0 : 180)) % 360, flipX: false, flipY: false, props: markProps(id, opts), why: why.join(",") });
   }

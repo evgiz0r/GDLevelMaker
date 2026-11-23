@@ -4,6 +4,10 @@ Claude writes Geometry Dash levels from a description, checks they can be beaten
 replaying with their clicks, and hands back a file the user imports into their real game.
 The user plays it and tells us what was off. Read this fully first.
 
+**What the project is for:** USE_CASES.md lists every use case the user wants (prompt -> level, fix a
+level, issue report, difficulty, design in chat, combine/cut, track + level...) with its status and
+what is missing. Update its row when your work moves one.
+
 ## Every session builds the project, not just its own task
 
 The user's standing rule: **no work is done only for its local goal.** Each session's job is its
@@ -47,6 +51,13 @@ not after it:
   patching: run a study (take real levels apart, measure, write the rules down -- CRAFT.md is one) or
   an experiment (several variants, measured and shown side by side), then change the generator.
   Owning a level means caring for all of it -- play, look, sync, fairness -- not only your one area.
+- **Git is the source of truth: everything goes in the repo, and it gets pushed.** (The user,
+  2026-11-23.) Commit and push to `main` as each piece of work lands (merge `origin/main`, run the
+  quick checks, push) -- never sit on local-only commits or uncommitted work between turns. Tools,
+  docs, specs, our levels, tests, measured numbers: in git. The only things that stay out are what
+  must not be published: other people's levels and RobTop's data/art, songs, the user's recordings
+  and save, and private details (`local/`). If something can't be pushed (a blocked permission, a
+  failing check), say so in your report instead of leaving it local.
 - **Hand off.** Before a long pause or when your area changes hands, write where you stopped,
   what is open and the good numbers into your area's doc.
 - **Share, don't duplicate.** Results go into the shared `local/` (see below) so no session redoes
@@ -184,7 +195,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   solution, one at a time; `--resume` after a physics change solves only from a bit before where it matters), `difficulty_fit` (refit on the user's runs), `difficulty_community`
   (score downloaded community levels), `runs` (the user's deaths from a recording, via the progress
   bar), `save_stats` (the user's lifetime attempts per official level, read-only from the save),
-  `stop` (where a level's saved solution dies in the sim and what killed it), `difficulty_route` (a level with and without route choice: a player avoids a hard timing when the
+  `difficulty_parts` (how much windows and CPS alone explain the stars), `skips` (does a saved route skip a portal: then no number from it), `quality` (the scorecard: official 1-10 vs every GDLM level, QUALITY.md), `stop` (where a level's saved solution dies in the sim and what killed it), `difficulty_route` (a level with and without route choice: a player avoids a hard timing when the
   level has an easier way), **`fairness`** (deaths that are not the player's fault: forced input after
   a portal, misleading marks, sloped portal exits, orb chains with nothing to correct; fitted on the
   user's labelled deaths, `fairness fit`; tools/score.js gates on it; DIFFICULTY.md "Fairness").
@@ -218,7 +229,19 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   skylines, the eclipse set piece, stars, designed blocks, motes, light rays, a top frame, lock-to-player
   parallax, beat pulses, text), a level's scene script `tools/scenes/<name>.js` (spec key `"scene"`).
   `node tools/make.js <spec> --look` rebuilds a decoration-only change in a second (keeps the solve when
-  the gameplay is the same). Owner: the showcase session.
+  the gameplay is the same; the jump arrows are placed again from the saved route). Owner: the showcase session.
+- **Taste, learned one level at a time** (TASTE.md: the taste loop's rounds -- one new approach per level,
+  compared with rated levels in GD art -- and every rule of taste with the note it came from; read it
+  before making or judging a level). Round 1: GDLM 51 adrift (`tools/scenes/adrift.js`: depth as the
+  story, looping motion -- scenekit `bob`, `sway`, jellyfish, fish, kelp, water surface, rocks).
+  **The user's notes as soft rules, swept over every level**: `node tools/softrules.js [level ...]`
+  (jump arrows a block in front of hazards, corridor mouths flush, flash rate; score.js gate `arrows`).
+  Owner: the showcase session.
+- **The section planner: a song -> a journey of little places** (SCENES.md: the rules, theme packs,
+  what a rated illustrated level does): `node tools/scenes.js <song> [--theme ...] [--brief ...]` -- per
+  section its role (intro/groove/build/drop/ride/breather/outro), place, palette, mode, transition,
+  camera, props; `--brief` writes a compose brief. Owner: the showcase session; props from the gd-art
+  session's `tools/props.js`.
 - **`tools/heavy.js` -- the one-heavy-job lock** every heavy tool takes on start (see "One heavy job at
   a time"). Test: `node tests/heavy.js`.
 - **`tools/loop.js` -- the whole make/iterate loop in one command** (owner check, ETA, make/compose, score,

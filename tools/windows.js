@@ -1,4 +1,6 @@
 // node tools/windows.js <level.gdlvl> [--from X] [--to X] [--strict [--span 60]]
+// node tools/windows.js --cache [--all | <level.gdlvl> ...] -- measure and SAVE the windows with each level's saved
+//   solution (tools/solutions.js --windows), so the viewer and the phone show them at once instead of measuring
 // Timing window of every input of a level's solution, in any mode (ship, wave too), by lib/windows.js:
 // a PLAYER's window (each input moved tick by tick, the next inputs re-planned around it as a player
 // corrects; the one definition the viewer, score.js and difficulty share). --strict: the old rule,
@@ -11,6 +13,10 @@
 // "pressed N% in": where the plan's press sits in its window (0 = earliest, 100 = last safe tick); a
 // natural plan puts taps ~40% in (lib/natural.js step 4), never at the edge.
 // Found 2026-11-23: GDLM 44's wave zigzag ("i still couldnt fit into the gap in 44").
+if (process.argv.includes("--cache")) {   // the saved windows: tools/solutions.js does it (one heavy job, shared cache)
+  const r = require("child_process").spawnSync(process.execPath, [require("path").join(__dirname, "solutions.js"), ...process.argv.slice(2).filter(a => a !== "--cache"), "--windows"], { stdio: "inherit" });
+  process.exit(r.status || 0);
+}
 if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const fs = require("fs");
 const { GD, readGdlvl } = require("./io.js");

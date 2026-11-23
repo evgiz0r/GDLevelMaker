@@ -130,6 +130,11 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 - [ ] **Sync loosely**: portals, speed changes and the drop on the music's moments; most clicks free.
   `node tools/sync.js`. (SYNC.md "How much to sync")
 
+- [ ] **Crafted like RobTop's** (the user: "nothing at the level of ... Jumper or xStep"): many small
+  pieces (>= 12 per 100 blocks) over a floor that is a hazard >= 35% of the columns, neighbouring pillars
+  of different heights, rods and chains attached to pieces, <= 20% loose deco. `node tools/craft.js check
+  <level>` (score.js gate "craft"); generate with `"craft": true` and the craft structures. (CRAFT.md)
+
 ## Looks like 2.2, not 1.0 (levels/modern_look.md)
 
 - [ ] **Budget**: ~10-50 objects per block. Fall Out, the user's own example, has 13; the levels the
@@ -175,6 +180,10 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 - [ ] **The description is for players**: one or two short sentences with some flavour, ending with
   " -- Made by Claude (and some humans)", ~150 characters at most. Notes (beats, dB, song ids,
   versions) go in the spec's `"notes"`. make.js stops over 180 and warns over 150 or on note-like text.
+- [ ] **The level ends right after the last input**: the sign ~3 blocks after the last gameplay object, the
+  level over ~5 blocks after the sign (make.js clips scenery and triggers past it: GD ends a level at its
+  furthest object). ~1.5 s from the last input to the end; official median 0.8 s, rated community 0.9 s.
+  score.js gate "ending" (WARN over 2.5 s). (the user on 45 v7: "ending still bit too long")
 - [ ] **The signature ends every GDLM level** (robot + human): make.js adds it by default; opt out
   only with `"signature": false`.
 
