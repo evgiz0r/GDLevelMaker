@@ -50,7 +50,7 @@ for (const dir of dirs) {
       // one hold from 1.7 s to 6.4 s, auto-jumping on every landing, "why does it jump there?")
       if (!what) what = longHold(L, s.events, q.path);
     }
-    const stale = s && s.physics !== sols.physicsCommit();
+    const stale = s && (s.physics !== sols.physicsCommit() || s.plan !== sols.planCommit());   // old physics or an old route planner
     if (FIX && (what || stale)) {
       // a long hold: re-plan the same run (the human-route pass); a skip or a death: solve again from scratch
       const t0 = Date.now(), r = what && /^HOLD/.test(what) ? sols.fromRun(L.level, L.levelStr, { ok: true, events: s.events })
