@@ -6,6 +6,7 @@
 // {
 //   "name": "01 one jump",            // the name shown in GD's level list
 //   "desc": "one spike",              // optional
+//   (a plain string in "objects", e.g. "// S2 the ship", is a comment and is skipped)
 //   "objects": [                      // [type, column, row, {extra}] -- extra: rot, flipX, flipY
 //     ["spike", 12, 0],
 //     ["block", 20, 0],
@@ -190,6 +191,7 @@ function arcOrbs(name, col, args, header, specFile, speedPortals = []) {
 
 // spec (already parsed) -> { level, rec, ctx, objects, header }: everything but writing and checking
 function build(spec, specFile = "spec") {
+  spec = Object.assign({}, spec, { objects: spec.objects.filter(e => Array.isArray(e)) });   // a string entry is a comment
   const song = songOf(spec);
   const kA4 = spec.speed ? SPEED_NAMES[spec.speed] : 0;
   if (kA4 === undefined) throw new Error("speed must be one of " + Object.keys(SPEED_NAMES).join(" "));
