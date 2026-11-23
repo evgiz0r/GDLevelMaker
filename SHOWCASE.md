@@ -7,6 +7,11 @@ The level: **GDLM 50 eclipse** (`specs/50_eclipse.json` + `tools/scenes/eclipse.
 ship / cube / wave / cube on Uxvellda's "Eclipse" (Newgrounds 1086693, 143 BPM, high-confidence beat grid;
 the level starts at song second 40.45 = bar 24, so the song's drop at bar 32 lands on the level's bar 8).
 
+**Names are final from the first upload** (the user: "We use the same name once uploaded, no rename";
+the GD server refuses a renamed shared level -- PUBLISH.md). So a scene level gets its proper name in the
+spec before it is ever pushed or uploaded, and the in-level title text matches it. This one is final:
+`GDLM 50 eclipse` (title text "ECLIPSE" / "GDLM 50"). A new version of an uploaded level keeps the name.
+
 ## The idea: one motif, five scenes
 
 A sun and a moon stay fixed on the screen all level (one group locked to the player's x). The moon slides

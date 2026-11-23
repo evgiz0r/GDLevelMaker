@@ -273,7 +273,7 @@ function compose(brief, tweaks = {}) {
   if (deco.length) spec.decoDensity = deco;
   // the modern look (STYLE.md: knowledge/levels/modern_look.md); "modern": false in the brief turns it off
   // the signature at the end (tools/signature.js, the visuals session's): in the last rest section
-  if (brief.signature !== false) { const r = ranges[ranges.length - 1]; spec.signature = { col: r[2] + 3 }; }
+  if (brief.signature !== false) { const r = ranges[ranges.length - 1]; spec.signature = { col: r[2] + 3 }; } else spec.signature = false;   // on by default (make.js)
   if (brief.modern !== false) spec.modern = { sections: looks.map(({ bg, ...l }) => l), title: brief.name, end: "thanks for playing", seed: brief.seed || 3, light: brief.palette === "light" };
   // jump indicators (tools/decorate.js): on jumps that cannot be read in time, and the first jump of
   // each new pattern. Default on; "indicators": false in the brief turns them off.

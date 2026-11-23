@@ -25,6 +25,8 @@ How the main session read GDLM 46's drawing (its own account, 2026-11-23):
    sizes (ship gates 1.2 -> 3 blocks), sections spaced about a bar of the song apart.
 8. **Then** solve, test each orb by removing it (it must be needed), fix prejumps.
 
+Name it properly from the start (`GDLM NN <name>`): a level's name is fixed once it is uploaded (the
+user, 2026-11-23: "We use the same name once uploaded, no rename"; PUBLISH.md), and polish.js keeps it.
 Also: keep every drawn element and add no ideas that are not drawn (decoration and colours excepted);
 the spec's `desc` lists them in the user's words ("orb over spikes, slabs over a pit, ship through four
 gates, a wave zigzag, an orb chain"). Song, colours ("style": "hell" ...) and a colour change at each

@@ -213,6 +213,17 @@ idea (a picture, a sketch, words); what they get back has already passed every g
    difficulty target (`label` on lib/difficulty.js's scale, `minWindowMs`), style, colours, song,
    and **sections** -- `{"name", "blocks", "use": [patterns], "gaps", "args", "bg", "ground",
    "rest", "objects"}`. Full format at the top of `tools/compose.js`.
+   **The name is final from the first upload** (the user, 2026-11-23: "We use the same name once
+   uploaded, no rename. Thats why we need pick proper names as well"; the GD server refuses a
+   renamed shared level; PUBLISH.md). So the brief's `name` is the level's real name from the
+   start: `GDLM NN <words that fit what it is>` (the song, the mood, the scene -- "sunny side"),
+   never a working label ("low tier", "test", "v2"). A test level that is never to be uploaded says
+   so in its name ("catalogue", "test"). Uploaded so far: "GDLM 44 hellgate" (the phone slot).
+   **Every GDLM level ends with the signature** (robot + human, "Made by Claude (and some humans)",
+   tools/signature.js; the user approved it for all levels, 2026-11-23): make.js adds it to any spec
+   named "GDLM ..." 3 blocks after its last object, plus the line in the description. Opt out only
+   with `"signature": false` (spec or brief). It is deco after the end: `make.js <spec> --look` adds
+   it to an existing level without a new solve (GDLM 44 v12: 126 objects, gameplay identical).
 2. **Compose** (`node tools/compose.js briefs/NN_name.json`, ~20-60 s for a 30 s level): fills
    each section from its patterns (a new pattern first gets room on both sides, then mixes in),
    colour per section, rests where the brief has them; writes `specs/NN_name.json` and builds it.

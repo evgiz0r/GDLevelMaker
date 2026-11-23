@@ -1,5 +1,5 @@
 // node tools/polish.js <level.gdlvl> [--dry] [--passes fair,read,sync,deco] [--min-ms 34] [--out file.gdlvl]
-//                      [--name "new name"] [--indicator id[:rot]] [--lift 24] [--force]
+//                      [--name "final name"] [--indicator id[:rot]] [--lift 24] [--force]
 // Polish a level that already exists WITHOUT redesigning it (POLISH.md): keep its layout, fix the
 // smallest things, in this order, each change kept only if the level still clears on the current
 // physics and no other input's window gets worse:
@@ -460,7 +460,10 @@ if (require.main === module) {
   const slug = GD.getField(res.L.rec, "k2").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
   const out = val("out") || path.join(__dirname, "..", "local", "polish", slug + "_polished.gdlvl");
   fs.mkdirSync(path.dirname(out), { recursive: true });
-  const rec = res.L.rec, name = val("name") || (/^GDLM /.test(res.L.name) ? res.L.name + " polished" : "GDLM polished " + res.L.name);
+  // names are fixed at the first upload (PUBLISH.md: the server refuses a renamed shared level), so a
+  // GDLM level keeps its name exactly; anything else needs a proper final name (--name) before it is uploaded
+  const rec = res.L.rec, name = val("name") || (/^GDLM /.test(res.L.name) ? res.L.name : "GDLM polished " + res.L.name);
+  if (!val("name") && !/^GDLM /.test(res.L.name)) console.log(`note: "${name}" is a working name; give it its final name with --name before it is ever uploaded (names never change after)`);
   GD.setField(rec, "k2", "s", name);
   writeGdlvl(out, rec, { header: res.header, objects: res.objs });
   // before/after for viewer/polish.html: both levels with their (natural) solutions

@@ -255,10 +255,16 @@ function build(spec, specFile = "spec") {
     objects.push(...kit.parallax(secs, Object.assign({ speed }, spec.modern.light ? { value: [0.95, 1] } : {})));  // light palette: no darkened layers
     if (ctx.grid) objects.push(...kit.beatPulses(secs, ctx.grid, { speed, songOffset: spec.offset || 0, xOfT: t => GD.SYNC.xOfT(tl, t) }));
   }
-  if (spec.signature) {   // tools/signature.js: robot + human, "Made by Claude (and some humans)"
+  // The signature (tools/signature.js): robot + human, "Made by Claude (and some humans)", after the end.
+  // On by default for every "GDLM ..." level (the user approved it for all, 2026-11-23); a spec opts out
+  // with "signature": false. Its column: spec.signature.col, else 3 blocks after the last object.
+  const signed = spec.signature !== false && (spec.signature || /^GDLM /.test(spec.name || ""));
+  if (signed) {
     const sig = require("./signature.js"), secs = (spec.modern && spec.modern.sections) || [];
     const li = secs.length - 1, CH0 = 20;
-    objects.push(...sig.signature(Object.assign({ col: spec.signature.col, floorY: 0 },
+    const col = spec.signature && spec.signature.col != null ? spec.signature.col
+      : Math.ceil(Math.max(...objects.map(o => o.x)) / 30) + 3;
+    objects.push(...sig.signature(Object.assign({ col, floorY: 0 },
       li >= 0 ? { channels: { accent: CH0 + 2 * li, light: CH0 + 2 * li + 1 } } : {})));
   }
   if (spec.style && spec.style !== "classic") deco.skinBlocks(objects); // e.g. "hell": outlined blocks, no ground decoration
@@ -271,7 +277,7 @@ function build(spec, specFile = "spec") {
   }
   const level = { header, objects };
   let desc = spec.desc || "made by GDLevelMaker";
-  if (spec.signature) desc = require("./signature.js").describe(desc);
+  if (signed) desc = require("./signature.js").describe(desc);
   const rec = GD.newRecord(spec.name, desc);
   if (song && song.k45) GD.setField(rec, "k45", "i", song.k45);
   if (song && song.k8) GD.setField(rec, "k8", "i", song.k8);
