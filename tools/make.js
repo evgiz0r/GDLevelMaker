@@ -261,11 +261,21 @@ function build(spec, specFile = "spec") {
   const signed = spec.signature !== false && (spec.signature || /^GDLM /.test(spec.name || ""));
   if (signed) {
     const sig = require("./signature.js"), secs = (spec.modern && spec.modern.sections) || [];
-    const li = secs.length - 1, CH0 = 20;
     const col = spec.signature && spec.signature.col != null ? spec.signature.col
       : Math.ceil(Math.max(...objects.map(o => o.x)) / 30) + 3;
-    objects.push(...sig.signature(Object.assign({ col, floorY: 0 },
-      li >= 0 ? { channels: { accent: CH0 + 2 * li, light: CH0 + 2 * li + 1 } } : {})));
+    // the shirt takes the last section's accent colour (a fixed rgb: the editor shows header colours only)
+    const last = secs.length ? secs[secs.length - 1] : null, acc = last && (last.light || last.fill);   // compose.js looks: light = the section bg brightened
+    const sopts = { col, floorY: 0 };
+    if (Array.isArray(acc) && acc.length === 3) sopts.shirt = acc;
+    // its colours go in the header: the editor runs no colour triggers (hellgate v12 showed placeholder colours)
+    header = sig.header(header, sopts);
+    // bob / flash on the song's beats the player hears while running up to it
+    if (ctx.grid) {
+      const xOfT = t => GD.SYNC.xOfT(tl, t), tOfX = x => GD.SYNC.tOfX(tl, x), beats = [];
+      for (let b = 1; b < 4000; b++) { const t = GD.SYNC.beatToTime(ctx.grid, ctx.offset, b); if (xOfT(t) > col * 30 + 300) break; if (t > 0) beats.push(t); }
+      Object.assign(sopts, { beats, period: ctx.grid.period, xOfT, tOfX });
+    }
+    objects.push(...sig.signature(sopts));
   }
   if (spec.style && spec.style !== "classic") deco.skinBlocks(objects); // e.g. "hell": outlined blocks, no ground decoration
   if (spec.style === "classic") {
