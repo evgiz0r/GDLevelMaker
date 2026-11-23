@@ -556,7 +556,21 @@ function loop(briefFile, rounds = 8, phase = {}) {
       let planned = [];
       try { const I = require("./intent.js"), wg = GD.makeWorld(built.level.objects, built.level.header), tl = SY.SYNC.timeline(wg);
         planned = I.intents(built.ctx.placements || [], tl, { cacheOnly: true }).intents.map(i => ({ t: +SY.SYNC.tOfX(tl, i.x).toFixed(3), what: i.type === "press" ? "jump" : "release" })); } catch (e) {}
-      stage("layout", Object.assign({ levelStr: GD.serializeLevel(built.level), data: { planned }, note: "gameplay and its planned presses" + (phase.until === "layout" ? " -- waiting for the user" : "") }, phase.until === "layout" ? { gate: true } : {}));
+      // a complete plan the viewer can replay at once (the user: playable "the moment it exists, not almost"):
+      // the intended inputs driven by position through one replay; a spot the plan cannot pass is a gap in the
+      // intent cache, patched by a short local search and named in the note
+      let events = null, vnote = "";
+      try {
+        const I = require("./intent.js"), wg = GD.makeWorld(built.level.objects, built.level.header), tl = SY.SYNC.timeline(wg);
+        const { intents, missing } = I.intents(built.ctx.placements || [], tl, { raw: built.ctx.raw });
+        planned = intents.map(i => ({ t: +SY.SYNC.tOfX(tl, i.x).toFixed(3), what: i.type === "press" ? "jump" : "release" }));
+        const v = I.verify(wg, built.level, intents, { maxRepairs: 6 });
+        events = v.events;
+        vnote = v.ok ? (v.repairs ? `; plays to the end with ${v.repairs} local repair(s) (cache gaps: ${v.log.join("; ")})` : "; plays to the end from the plan alone") : `; the plan stops at block ${((v.dieX || 0) / 30).toFixed(0)} (${v.log.join("; ")})`;
+        if (missing.length) vnote += `; no intent yet for ${missing.join(", ")}`;
+        console.log("   layout plan" + vnote);
+      } catch (e) { vnote = "; plan not driven: " + e.message; }
+      stage("layout", Object.assign({ levelStr: GD.serializeLevel(built.level), data: { planned, events, kind: "planned" }, note: "gameplay and its planned presses" + vnote + (phase.until === "layout" ? " -- waiting for the user" : "") }, phase.until === "layout" ? { gate: true } : {}));
     } catch (e) {}
   }
   if (phase.until === "layout") {

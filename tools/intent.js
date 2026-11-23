@@ -58,6 +58,14 @@ function relInputs(name, args, speed, opts = {}) {
 // placements: [{name, col, row, args}] (make.js build -> ctx.placements); tl: the speed timeline
 function intents(placements, tl, opts = {}) {
   const out = [], missing = [];
+  // terrain rises (raw blocks, compose's block terrain): each column whose top is one row above the column
+  // before it on the cube's floor is a "step-up" placement (opts.raw: make.js ctx.raw)
+  if (opts.raw && opts.raw.length) {
+    const top = new Map();
+    for (const b of opts.raw) if (b.type === "block") { const c = Math.round(b.col); top.set(c, Math.max(top.get(c) ?? -1, b.row)); }
+    const cols = [...top.keys()].sort((a, b) => a - b);
+    for (const c of cols) { const t = top.get(c), prev = top.has(c - 1) ? top.get(c - 1) : -1; if (t >= 0 && t - prev === 1 && t < 4) placements = placements.concat([{ name: "step-up", col: c, row: prev + 1, args: {} }]); }
+  }
   for (const p of placements) {
     const sp = speedAt(tl, p.col * 30), rel = relInputs(p.name, p.args, sp, opts);
     if (!rel || rel.fail || !rel.inputs) { missing.push(`${p.name}@${p.col}${rel && rel.fail ? " (" + rel.fail + ")" : ""}`); continue; }
@@ -142,7 +150,7 @@ if (require.main === module) {
   const t0 = Date.now(), log0 = console.log; console.log = () => {};
   const b = build(spec, file); console.log = log0;
   const w = GD.makeWorld(b.level.objects, b.level.header), tl = GD.SYNC ? GD.SYNC.timeline(w) : require("../lib/sync.js").SYNC.timeline(w);
-  const t1 = Date.now(), { intents: list, missing } = intents(b.ctx.placements || [], tl);
+  const t1 = Date.now(), { intents: list, missing } = intents(b.ctx.placements || [], tl, { raw: b.ctx.raw });
   const t2 = Date.now(), v = verify(w, b.level, list);
   console.log(`${spec.name}: ${list.length} intended inputs from ${(b.ctx.placements || []).length} patterns (inputs ready in ${((t2 - t1) / 1000).toFixed(1)} s${missing.length ? "; no intent for " + missing.join(", ") : ""})`);
   console.log(`   verify: ${v.ok ? "PASSES" : "does not pass"} with ${v.repairs} local repair(s) in ${(v.ms / 1000).toFixed(1)} s` + (v.log.length ? "\n   " + v.log.join("\n   ") : ""));

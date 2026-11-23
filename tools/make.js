@@ -289,6 +289,7 @@ function build(spec, specFile = "spec") {
     const [type, , row] = entry;
     // where each pattern lands: its intended inputs come with it (tools/intent.js)
     if (type === "pattern") ctx.placements.push({ name: entry[1], col, row: entry[3] || 0, args: entry[4] || {} });
+    else if (type === "block" || type === "spike") (ctx.raw || (ctx.raw = [])).push({ type, col, row: row || 0 });   // terrain: intents from its rises (tools/intent.js)
     if (speedObj.has(entry)) objects.push(speedObj.get(entry));
     else if (type === "pattern" && /^orb-(ladder|pit)$/.test(entry[1]) && !(entry[4] || {}).fixed && !entry[3]) objects.push(...arcOrbs(entry[1], col, entry[4] || {}, header, specFile, placed));
     else if (type === "pattern") { for (const e of expand(entry[1], col, entry[3], entry[4], entry[5])) objects.push(toObj(e, specFile)); }
