@@ -56,6 +56,26 @@ http.createServer((req, res) => {
     });
     return;
   }
+  // tools/shoot.js: GET /shoot/job/<id>.json (local/shoot/), POST /shoot/<id>/<n>.png | done -> local/shoot/<id>/
+  const sj = /^\/shoot\/job\/([\w\-]+)\.json$/.exec(p);
+  if (sj && req.method === "GET") {
+    return fs.readFile(path.join(root, "local", "shoot", sj[1] + ".json"), (e, d) => {
+      if (e) { res.writeHead(404); return res.end("no such job"); }
+      res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); res.end(d);
+    });
+  }
+  const sp = req.method === "POST" && /^\/shoot\/([\w\-]+)\/(\d+\.png|done)$/.exec(p);
+  if (sp) {
+    const chunks = [];
+    req.on("data", c => chunks.push(c));
+    req.on("end", () => {
+      const dir = path.join(root, "local", "shoot", sp[1]); fs.mkdirSync(dir, { recursive: true });
+      const body = Buffer.concat(chunks).toString(), m = /^data:image\/png;base64,(.+)$/.exec(body);
+      fs.writeFileSync(path.join(dir, sp[2] === "done" ? ".done" : sp[2]), m ? Buffer.from(m[1], "base64") : body);
+      res.writeHead(200, { "Content-Type": "application/json" }); res.end('{"ok":true}');
+    });
+    return;
+  }
   // the user's recordings (never copied anywhere): a list, and one frame at a time via ffmpeg,
   // for the viewer's "compare" panel
   // GET /wip/list: every session's work-in-progress level (local/wip/<session>/, tools/wip.js), with the
@@ -70,6 +90,12 @@ http.createServer((req, res) => {
       }
     } catch (e) {}
     res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify(out));
+  }
+  // GET /polish/list: the before/after files tools/polish.js wrote (local/polish/*.compare.json), newest first
+  if (p === "/polish/list") {
+    let files = [];
+    try { const d = path.join(root, "local", "polish"); files = fs.readdirSync(d).filter(f => f.endsWith(".compare.json")).sort((a, b) => fs.statSync(path.join(d, b)).mtimeMs - fs.statSync(path.join(d, a)).mtimeMs).map(f => "local/polish/" + f); } catch (e) {}
+    res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify(files));
   }
   if (p === "/rec/list") {
     let files = [];

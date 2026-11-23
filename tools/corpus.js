@@ -45,7 +45,7 @@ function mine() {
     try { text = unpack(k4); } catch (e) { continue; }
     const L = GD.parseLevel(text);
     const name = GD.getField(rec, "k2") || "?";
-    out.push({ name: "mine: " + name, short: name, source: "mine", header: L.header, objects: L.objects, rec });
+    out.push({ name: "mine: " + name, short: name, source: "mine", header: L.header, objects: L.objects, rec, levelStr: text });
   }
   return out;
 }

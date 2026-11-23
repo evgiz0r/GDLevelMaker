@@ -136,7 +136,8 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   ground and icons with the sprite sheets of the user's install, served by `tools/serve.js` at `/gdres/`
   ("GD art" button). Tables: `lib/objects_art.js` (`tools/import_art.js`, OpenGD) and
   `lib/objects_frames.js` (`tools/import_frames.js`, GD 2.2's own id -> frame table from the exe).
-  Test: `node tests/art_tables.js`.
+  Test: `node tests/art_tables.js`. **See your level as the game draws it:** `node tools/shoot.js
+  <level.gdlvl | save:<name> | official:N> [--at 2,5] [--rec <video> --t0 <s>]` -> PNGs in `local/shots/`.
 - **Deco catalogue** (knowledge/objects/README.md): `tools/catalogue.js index | sheets | usage` --
   every id with its picture on contact sheets (`local/catalogue/`, or browse `viewer/catalogue.html`),
   the searchable `knowledge/objects/catalogue.tsv`, and which deco families rated levels use together.
@@ -145,6 +146,11 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   them with `node tools/marks.js done <id> "what changed"`. **compare** puts a frame of one of the
   user's recordings (Videos/Captures, read by ffmpeg, never copied) beside the replay;
   "save comparison" writes both as one PNG to `local/shots/`.
+- **Polishing existing levels** (POLISH.md: the passes, results, tests, what is open; owner: the polish
+  session, wip `local/wip/polish/`): `tools/polish.js <level.gdlvl>` keeps the layout and fixes tight
+  windows (small moves near the input), syncs portals/orbs loosely, adds jump indicators at prejumps,
+  decorates a bare level; output in `local/polish/` only. Before/after side by side in GD art:
+  `viewer/polish.html` (via tools/serve.js). Test: `node tests/polish.js`.
 - `examples/` -- levels the user made in the game, for reference and as format ground truth.
 
 All the library code runs in both node and the browser (no build step, no dependencies).
@@ -301,8 +307,3 @@ The viewer draws moving objects where they start.
 - Playing on the phone too: how to get an updated level onto the phone while away from the PC.
   Watching is built: the phone page (PHONE.md: live work in progress, marks, songs added from
   the phone). Playing it in the phone's game: `tools/export_gmd.js` (.gmd for GDShare).
-- Polishing existing levels (the user, 2026-11-23): take a level that already exists -- one of
-  the user's own, a GDLM level, later maybe a community one (kept in local/ only) -- and make it
-  better without redesigning it: fix unfair spots (tools/windows.js, press_window.js), add jump
-  indicators, sync portals and drops to the song, decorate (once the real-art viewer and the deco
-  catalogue exist, VISUALS.md), and show before/after side by side. Not started; no owner yet.
