@@ -38,6 +38,15 @@ A plan's tick t is our step t-1 (`tools/tas.js` shifts it). Plans reach, in bloc
 | robot | jump 0.5x, gravity 0.9x, hover 67 ticks while held | gdsolver | plans only |
 | spider | half 13.5, teleports to the facing surface | gdsolver | plans only |
 | swing | flips gravity a tick after a press, vy x0.8, gravity 0.086, limit 8 | gdsolver | plans only |
+
+Swing and the solver (2026-11-23, style's report): the sweep's state key left out the pending flip, so a
+swing pressed this tick merged with one still holding from an earlier press, and the cheaper one (no
+flip) won: no swing past any wall. Fixed (key has `swingPend`); `tests/mechanics.js` builds style's
+swing-wiggle (floor wall, roof wall, floor wall) and solves it in 7 presses.
+
+Green orb (1022, sure:false): flips gravity, then vy = jump speed in the NEW gravity, so from normal
+gravity it throws the cube down, away from its new floor (the roof). From gdp's ringJump and gdsolver,
+not seen in the user's game yet.
 | mini (portals 99/101) | half 9 (spider 8.1, wave 3); jumps, orbs, pads x0.8; on foot gravity unchanged; ship/UFO gravity and limits /0.85; mini UFO flap 6.8; mini swing gravity x1.5 | gdsolver (lv11) | video: mini cube turns 90 deg per 10 frames, falls at 0.78; plan lv11 through its mini part |
 
 ### Ball (sections from the decompile, gdsolver and the user's Clutterfunk video)
@@ -138,7 +147,7 @@ The viewer draws moved, turned and switched-off objects where they are at each m
 
 ## Not in the sim yet (the game has it)
 
-Modes/portals: dual (286/287), mirror. Teleport portals (747) are in, unchecked: same x, speed kept, exit height = portal y + key 54 along the portal's turned axis (54 x cos(rotation)), but straight up/down when key 55 is set (fitted on Deadlocked, 2026-11-23: its -53 degree portal at block 76.5 needs the turned offset to pass under a spike; its -46 degree portal with 55 at 360.8 lands exactly on the gravity + speed portals 224 below; whether GD also moves x is not known; smooth teleport and the 2.2 options 345+ not modelled); first used by Deadlocked at block 77, Fingerdash 205, Dash 435. Triggers: count/pickup items,
+Modes/portals: dual (286/287), mirror. Teleport portals (747) are in, unchecked: same x, speed kept, exit height = portal y + key 54 along the portal's turned axis (54 x cos(rotation)), but the full 54 straight up/down when key 55 is set or the portal is turned a quarter (90/-90/270: cos would make it a no-op; Deadlocked's ball part 441-561 passes only so, neither "no move" nor "x moves by 54" does -- "angle mod 90" fits the same cases) (fitted on Deadlocked, 2026-11-23: its -53 degree portal at block 76.5 needs the turned offset to pass under a spike; its -46 degree portal with 55 at 360.8 lands exactly on the gravity + speed portals 224 below; whether GD also moves x is not known; smooth teleport and the 2.2 options 345+ not modelled); first used by Deadlocked at block 77, Fingerdash 205, Dash 435. Triggers: count/pickup items,
 scale, follow, on death, collision blocks, area triggers, gravity trigger, time warp. Others:
 keys and user coins (collectables only), start positions (levels always start at x 0), practice
 checkpoints, speed portals touched mid-air at a slant, force blocks, platformer mode, dash orbs'
@@ -160,7 +169,30 @@ band's floor/roof ("he waves way too close to the border"); this works on unbeat
 lib/natural.js's mid-corridor re-fly (beaten levels only, and all-or-nothing per stretch: on Deadlocked
 it died inside every stretch) cannot. GDLM 44: 8 presses instead of 6.
 
-Open (2026-11-23): Deadlocked stops at block 436 in the mini ball part (three lanes; the middle one is a
-row of id 1202 -- a 30x3 piece with spikes hanging under it -- that the sim calls a hazard by OpenGD's
-"hitbox and not solid" rule). As a solid platform the solve gets to 456.6; no real-game plan reaches a
-1202 to settle it. Waiting on the user to check 1202 in the editor (platform or hazard).
+Deadlocked's ball lanes (2026-11-23): the solve stopped at block 436 on a row of id 1202 (a 30x3 piece
+with spikes hanging under it) that the sim called a hazard. Settled without the editor: OpenGD's own
+object table gives 1202 GameObjectType 0 (solid: block 1 and slab 40 are 0, spikes 2, decoration 7);
+only tools/import_opengd.js's fallback ("a hitbox that is not in the solids list is a hazard") made it
+a hazard. 37 ids have that mismatch, all block-outline, plank and outline pieces, among them 661-664
+and 1903-1905 that real-game plans had already shown solid. lib/objects.js's SOLID0 makes them all
+solid (sure:false). Check for the next import: `node -e` over lib/objects_art.js (type = field 5)
+vs lib/objects_extra.js lists any id whose type is 0 but kind is hazard.
+The same misfire hit the editor's lettered helper blocks D 1755, J 1813, S 1829, H 1859 (OpenGD type
+40, "Special" in Geode's GameObjectType enum; invisible in play): 30x30 killers in the sim, Fingerdash's
+6% stop (found by the difficulty session, 2026-11-23). Now decoration (sure:false: what each letter does
+to other objects is not simulated). The real-game plans for 21 and 22 die earlier and are unchanged, so
+they neither confirm nor refute it. tests/art_tables.js fails if a type-0 or type-40 id kills. Every
+other hazard is type 2, except 1304 (type 7, decoration in OpenGD, but GD 2.2's decoration list leaves it
+out too: left a hazard, unchecked).
+
+With that and the quarter-turned teleports, Deadlocked's solve reaches block 695.4 (59%, physics 119344c):
+a ship takes a plain teleport (20887, 54 = -94) into a low corridor and its box overlaps a sideways
+spike (421) at the corridor's mouth by 1.6 units. Tried and ruled out (sweeps of
+2400 units from just before, scratch flags): moving the player by 54 relative to its own height (same
+death); firing the teleport at the portal's centre instead of first touch (passes only by skipping 3
+portals, and kills the -53 degree portal at block 76 that fits now). Also ruled out: skipping the rest of the
+tick's collisions after a teleport (the death is on the next tick: at x 20862.3 the ship's box overlaps
+the spike by 1.3 units in x and 4 in y). The exit at the corridor's left mouth looks intended (the
+corridor runs right to two gravity portals and the next teleport at 21561). Still open, unmeasured:
+the teleport's trigger width (25, sure:false; ~22 would clear it), the ship's hazard box, spike 421's
+box. Wants a hitbox-on recording of this spot (Deadlocked ~58.5 s).

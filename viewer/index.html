@@ -977,8 +977,12 @@ async function mapRender(job) {
   if (!ok || stopK >= 0) {
     const p = path[lastK], cx = mx(p.x), cy = my(p.x, p.y);
     X.strokeStyle = "#ff3b6b"; X.lineWidth = 4; X.beginPath(); X.moveTo(cx - 9, cy - 9); X.lineTo(cx + 9, cy + 9); X.moveTo(cx + 9, cy - 9); X.lineTo(cx - 9, cy + 9); X.stroke();
-    X.fillStyle = "#ff3b6b"; X.font = "bold 15px system-ui"; X.textAlign = "left";
-    X.fillText(`the simulation stops here (${(p.x / (L.world.endX - 90) * 100).toFixed(0)}%): ${p.why || L.sol.why || "dies"}`, Math.max(10, Math.min(cx + 12, out.width - 470)), Math.max(HEAD + 14, cy - 14));
+    // the label on a dark plate: red text vanished on red sections (Deadlocked's 59% stop)
+    const msg = `the simulation stops here (${(p.x / (L.world.endX - 90) * 100).toFixed(0)}%): ${p.why || L.sol.why || "dies"}`;
+    X.font = "bold 15px system-ui"; X.textAlign = "left";
+    const tw = X.measureText(msg).width, tx = Math.max(10, Math.min(cx + 12, out.width - tw - 14)), ty = Math.max(HEAD + 14, cy - 14);
+    X.fillStyle = "rgba(10,10,18,.82)"; X.fillRect(tx - 5, ty - 15, tw + 10, 21);
+    X.fillStyle = "#ff5c82"; X.fillText(msg, tx, ty);
   }
   // header: name, numbers, legend
   X.textAlign = "left"; X.fillStyle = "#fff"; X.font = "bold 22px system-ui"; X.fillText(L.name, 12, 28);

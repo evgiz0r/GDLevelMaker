@@ -26,6 +26,13 @@ not after it:
   with the user), setting up its knowledge is the AI's job, not the user's: its own doc (or
   section) with what is known, the sources, how to test it and what is open; a line here pointing
   to it; and, if a session owns it, who that is. Don't wait to be asked.
+- **Use what others learned, every round.** (The user, 2026-11-23: "if we gain knowledge on the fly,
+  I do want sessions to use it.") A long session reads the docs once and then misses what the
+  others learn. So before each new level or round: `git pull`, then re-read
+  `knowledge/checklist.md`, `TASTE.md`, `STRUCTURES.md` and your own area's doc (what changed since
+  your last round). A new lesson goes in as one line of the checklist in the same commit, and as a
+  `make.js`/`score.js` check where possible -- code beats docs. `tools/wip.js` stamps each note
+  with the checklist commit it was built against.
 - **Hand off.** Before a long pause or when your area changes hands, write where you stopped,
   what is open and the good numbers into your area's doc.
 - **Share, don't duplicate.** Results go into the shared `local/` (see below) so no session redoes
@@ -108,7 +115,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   solution, one at a time), `difficulty_fit` (refit on the user's runs), `difficulty_community`
   (score downloaded community levels), `runs` (the user's deaths from a recording, via the progress
   bar), `save_stats` (the user's lifetime attempts per official level, read-only from the save),
-  `difficulty_route` (a level with and without route choice: a player avoids a hard timing when the
+  `stop` (where a level's saved solution dies in the sim and what killed it), `difficulty_route` (a level with and without route choice: a player avoids a hard timing when the
   level has an easier way), **`fairness`** (deaths that are not the player's fault: forced input after
   a portal, misleading marks, sloped portal exits, orb chains with nothing to correct; fitted on the
   user's labelled deaths, `fairness fit`; tools/score.js gates on it; DIFFICULTY.md "Fairness").
@@ -118,6 +125,11 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   marks, how it was tested, what is open): `tools/web.js` builds it from the viewer.
 - `tools/` -- node CLIs: `make`, `check`, `roundtrip`, `index_levels`, `serve`, `beats` (beat grid
   of every song on this PC, ffmpeg + JS), `sync` (how well levels follow their song's beat), `frames` (timing windows with 60 fps presses, as the user's game has them), `press_window` (which press ticks get the player through one spot, from a given position: the human window there), `windows` (every input's timing window in any mode, by moving it and replaying), `real_stats` (the user's real-game attempts on our levels, local/real_stats.jsonl), `web` (the viewer as a phone page, PHONE.md), `songs` (custom songs by id into local/songs/, as GD gets them; SYNC.md section 6), `songmap` (songs' beat clarity, sections, drops, and how levels follow them; SYNC.md section 7), `fetch_level` (online levels by ID into local/community/, for measuring only, never committed), `community` (study rated community levels: list, fetch, measure, modes, comments; see knowledge/README.md), `tiercheck` (does each section look like rated Easy/Normal or Hard/Harder sections of its mode; `--tier Easy`), `variety` (kinds of thing, portals, modes, speeds, repeated chunks vs rated levels; knowledge/levels/variety.md), `obstacles` (block structure per mode, obstacle shapes, when new kinds come in; knowledge/levels/obstacles.md), `modern_look` (how 2.2 rated levels are decorated: objects per block, layers, colour, triggers per section; knowledge/levels/modern_look.md), `difficulty` (score vs the official ratings).
+- **Structures: a ranked library of 1-3 s layouts** (STRUCTURES.md: format, how each is checked, the
+  ranking rules, results, what is open; owner: the style session): `tools/structures.js` (`list`,
+  `check`, `build <id>`, `rank`, `page`), results in `knowledge/structures.json`, a picture page for the
+  phone (link in local/phone/structures_url.txt). Every cube-in/cube-out one is the pattern `"s:<id>"`,
+  and compose.js puts one in every plain cube section by default (`"structures": false` = off).
 - **Level style and the idea -> level loop** (STYLE.md: findings, style vocabulary, the loop, every
   playtest lesson, what is open): `tools/style.js` (measure style: deco share, triggers, sections,
   rests, motifs, recurring chunks) + `tools/corpus.js` (official levels and the user's save, in
@@ -205,6 +217,9 @@ comes from OpenGD's object data via `tools/import_opengd.js` -> `lib/objects_ext
 OpenGD is GPL, so its file is not copied in). Rule there: hitbox + not solid + not trigger = hazard,
 so anything with a hitbox that is NOT a hazard (portals, coins, toggle orbs) must have its own entry
 in `lib/objects.js`. Missing that once let the sim pass through Stereo Madness's pit spikes (id 9).
+The rule also misfires the other way: OpenGD gives 37 block-outline / plank pieces type 0 (solid) but
+leaves them out of its solids list, so the import called them hazards; `SOLID0` in lib/objects.js
+fixes them (Deadlocked's 1202 ball lanes); the lettered helper blocks (type 40) were made killers the same way. Check OpenGD's type column (lib/objects_art.js) after an import.
 
 ## Calibration -- checked against the user's game
 
@@ -333,3 +348,8 @@ The viewer draws moving objects where they start.
   the phone). Playing it in the phone's game: unlisted uploads from the PC game, found
   on the phone by ID (PUBLISH.md; IDs in `local/phone_ids.json`); `tools/export_gmd.js` (.gmd for
   GDShare) where file import works.
+- An in-game GD list of all the Claude levels (the user, 2026-11-23: "making a new gd list ingame,
+  with all claude levels. Maybe later"). GD 2.2 lists hold online level IDs, so every level in it
+  must be uploaded first -- which clashes with the user's rule of not putting many AI levels on the
+  server yet (today only the phone slot, ID 152848491, is used). Names are final once uploaded
+  (PUBLISH.md), so settle names first. Not started; no owner yet.

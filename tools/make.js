@@ -27,7 +27,7 @@
 //   "modern": {"sections": [{from, to, kind, fill, light}], "title": "...", "end": "..."}   the modern
 //                          decoration pass (tools/decorate.js modernPass; compose.js fills it in)
 //   "scene": "tools/scenes/<name>.js"   a scene script: fn({objects, header, spec, ctx, tl, beatX, xOfT, GD})
-//                          -> {objects (deco + triggers to add), header}; tools/scenekit.js recipes (SHOWCASE.md)
+//                          -> {objects (deco + triggers to add), header, signature?: {col, shirt}}; tools/scenekit.js recipes (SHOWCASE.md)
 //   "decoDensity": [[fromCol, share], ...]   classic style: share of free columns with ground
 //                          decoration from that column on (default 0.25; compose.js sets it per section)
 //   "indicators": {"id": N, "rot": n, "at": [cols], "all": false}   a small arrow pointing down over
@@ -189,6 +189,19 @@ function arcOrbs(name, col, args, header, specFile, speedPortals = []) {
 }
 
 // spec (already parsed) -> { level, rec, ctx, objects, header }: everything but writing and checking
+// The in-game description is for players (the user, 2026-11-23): one or two short sentences with a bit
+// of flavour, ending with the signature line, at most ~150 characters (GD's limit is about 180). Notes
+// for us (beats, dB, song ids, versions, who asked) go in the spec's "notes", never in "desc".
+// Over 180: the build stops. Over 150, or anything that reads like an internal note: a warning.
+const DESC_MAX = 180, DESC_TARGET = 150;
+const INTERNAL = /\b\d{5,}\b|\bdB\b|\bBPM\b|\bb\d+\b|\bv\d+\b|\(the user\)|\bbeats?\b|\bsections?\b|\bspec\b|\bbrief\b/i;
+function checkDesc(desc, name) {
+  if (desc.length > DESC_MAX) throw new Error(`description of "${name}" is ${desc.length} characters (GD's limit is about ${DESC_MAX}): write one or two short sentences for players in "desc", move notes to "notes"`);
+  if (desc.length > DESC_TARGET) console.log(`   WARN description is ${desc.length} characters; aim for ${DESC_TARGET} or less (STYLE.md "Name and description")`);
+  const m = INTERNAL.exec(desc.replace(/Made by Claude \(and some humans\)/, ""));
+  if (m) console.log(`   WARN description reads like an internal note ("${m[0]}"): it is shown to players; notes go in "notes"`);
+}
+
 function build(spec, specFile = "spec") {
   const song = songOf(spec);
   const kA4 = spec.speed ? SPEED_NAMES[spec.speed] : 0;
@@ -238,12 +251,14 @@ function build(spec, specFile = "spec") {
     nudgeJumps(jGroups, objects, header, ctx, tl);
   }
 
+  let sceneSig = null;  // a scene may place the signature itself (its scenery runs on past the end): {col, shirt}
   if (spec.scene) { // a scene script (tools/scenes/<name>.js, SHOWCASE.md): deco + triggers + header channels
     const scene = require(path.resolve(__dirname, "..", spec.scene));
     const beatX = b => GD.SYNC.xOfT(tl, GD.SYNC.beatToTime(ctx.grid, ctx.offset, b));
     const r = scene({ objects, header, spec, ctx, tl, beatX, xOfT: t => GD.SYNC.xOfT(tl, t), GD });
     objects.push(...r.objects);
     if (r.header) header = r.header;
+    if (r.signature) sceneSig = r.signature;
   }
   if (spec.modern) {
     const secs = spec.modern.sections || [];
@@ -257,15 +272,29 @@ function build(spec, specFile = "spec") {
   }
   // The signature (tools/signature.js): robot + human, "Made by Claude (and some humans)", after the end.
   // On by default for every "GDLM ..." level (the user approved it for all, 2026-11-23); a spec opts out
-  // with "signature": false. Its column: spec.signature.col, else 3 blocks after the last object.
+  // with "signature": false. Its column: spec.signature.col, a scene's, else 3 blocks after the last gameplay object.
   const signed = spec.signature !== false && (spec.signature || /^GDLM /.test(spec.name || ""));
   if (signed) {
     const sig = require("./signature.js"), secs = (spec.modern && spec.modern.sections) || [];
-    const li = secs.length - 1, CH0 = 20;
     const col = spec.signature && spec.signature.col != null ? spec.signature.col
-      : Math.ceil(Math.max(...objects.map(o => o.x)) / 30) + 3;
-    objects.push(...sig.signature(Object.assign({ col, floorY: 0 },
-      li >= 0 ? { channels: { accent: CH0 + 2 * li, light: CH0 + 2 * li + 1 } } : {})));
+      : sceneSig && sceneSig.col != null ? sceneSig.col
+      // 3 blocks after the last gameplay object (scenery and triggers may run on past the end: hellgate's
+      // parallax put it 25 blocks late)
+      : Math.ceil(Math.max(...objects.filter(o => !["decoration", "trigger"].includes(GD.objInfo(o.id).kind)).map(o => o.x)) / 30) + 3;
+    // the shirt takes the last section's accent colour (a fixed rgb: the editor shows header colours only)
+    const last = secs.length ? secs[secs.length - 1] : null, acc = last && (last.light || last.fill);   // compose.js looks: light = the section bg brightened
+    const sopts = { col, floorY: 0 };
+    if (Array.isArray(acc) && acc.length === 3) sopts.shirt = acc;
+    if (sceneSig && sceneSig.shirt) sopts.shirt = sceneSig.shirt;
+    // its colours go in the header: the editor runs no colour triggers (hellgate v12 showed placeholder colours)
+    header = sig.header(header, sopts);
+    // bob / flash on the song's beats the player hears while running up to it
+    if (ctx.grid) {
+      const xOfT = t => GD.SYNC.xOfT(tl, t), tOfX = x => GD.SYNC.tOfX(tl, x), beats = [];
+      for (let b = 1; b < 4000; b++) { const t = GD.SYNC.beatToTime(ctx.grid, ctx.offset, b); if (xOfT(t) > col * 30 + 300) break; if (t > 0) beats.push(t); }
+      Object.assign(sopts, { beats, period: ctx.grid.period, xOfT, tOfX });
+    }
+    objects.push(...sig.signature(sopts));
   }
   if (spec.style && spec.style !== "classic") deco.skinBlocks(objects); // e.g. "hell": outlined blocks, no ground decoration
   if (spec.style === "classic") {
@@ -276,8 +305,9 @@ function build(spec, specFile = "spec") {
     objects.push(...deco.groundDeco(objects, end, spec.seed || 7, densityAt));
   }
   const level = { header, objects };
-  let desc = spec.desc || "made by GDLevelMaker";
+  let desc = spec.desc || "";
   if (signed) desc = require("./signature.js").describe(desc);
+  checkDesc(desc, spec.name);
   const rec = GD.newRecord(spec.name, desc);
   if (song && song.k45) GD.setField(rec, "k45", "i", song.k45);
   if (song && song.k8) GD.setField(rec, "k8", "i", song.k8);
@@ -411,4 +441,4 @@ if (require.main === module) {
   if (!specs.length) { console.log("usage: node tools/make.js specs/<name>.json [...]"); process.exit(1); }
   for (const s of specs) make(s);
 }
-module.exports = { make, build, slug, TYPES, songOf, gridOf };
+module.exports = { make, build, slug, TYPES, songOf, gridOf, checkDesc };

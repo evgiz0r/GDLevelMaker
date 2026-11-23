@@ -13,6 +13,12 @@ const first = (r, act) => r.path.find(p => p.act === act);
   const p = first(GD.run(w, []), "teleport portal");
   check("teleport to portal y + offset", p && p.y === 165, p && p.y);
 }
+// a teleport turned a quarter moves the full offset straight up, like an unturned one (Deadlocked's ball part)
+{
+  const w = GD.makeWorld([{ id: 747, x: 300, y: 15, rot: 90, props: { "54": "150" } }, { id: 1, x: 330, y: 150 }, { id: 1, x: 600, y: 15 }]);
+  const p = first(GD.run(w, []), "teleport portal");
+  check("quarter-turned teleport: full offset", p && p.y === 165, p && p.y);
+}
 // pad table: a ball's yellow pad gives 16 x 0.6 = 9.6; a cube's 16
 for (const [mode, want] of [["cube", 16], ["ball", 9.6]]) {
   const w = GD.makeWorld([{ id: 35, x: 300, y: 2 }, { id: 1, x: 900, y: 15 }]);
@@ -94,5 +100,13 @@ for (const hold of [true, false]) {
   const r = GD.solveAny(w), c = r.clicks[0], badT = [];
   for (let t = c.lo; t <= c.hi; t++) if (GD.run(w, [{ tick: t, type: "press" }, { tick: t + 1, type: "release" }]).dead) badT.push(t);
   check("every tick of a solver window clears", r.ok && !badT.length && !GD.run(w, r.events).dead, `${c.lo}-${c.hi}${badT.length ? " bad " + badT.join(",") : ""}`);
+}
+// the sweep plans the swing: a press flips gravity one tick later, so a just-pressed swing must not
+// merge with one still holding from before (style's swing-wiggle: floor wall, roof wall, floor wall)
+{
+  const B = (c, r0, r1) => Array.from({ length: r1 - r0 }, (_, i) => ({ id: 1, x: c * 30 + 15, y: (r0 + i) * 30 + 15 }));
+  const w = GD.makeWorld([{ id: 1933, x: 255, y: 45 }, ...B(20, 0, 5), ...B(26, 5, 10), ...B(32, 0, 5), { id: 1, x: 1515, y: 15 }]);
+  const r = GD.solveAny(w);
+  check("the sweep flips the swing past floor and roof walls", r.ok && !GD.run(w, r.events).dead, r.ok ? `${r.clicks.filter(c => c.type === "press").length} presses` : `dies at ${r.dieAt && r.dieAt.x.toFixed(0)}`);
 }
 process.exit(bad ? 1 : 0);

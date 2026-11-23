@@ -5,6 +5,14 @@ tool that checks it, and where it comes from. Targets are for an **Easy/Normal**
 the user can playtest now) unless a line says otherwise. Each line points to its source: change a
 number there, then here. Last updated 2026-11-23.
 
+**Use what others learned** (the user, 2026-11-23: "if we gain knowledge on the fly, I do want sessions
+to use it"). Before each new level or round: `git pull`, then re-read this page, TASTE.md,
+STRUCTURES.md and your own area's doc (`git log` since your last round shows what changed). A new
+lesson goes in here as one line **in the same commit as the fix**, and where it can, it also becomes a
+check in make.js / score.js, so a level cannot miss it even when nobody reads this page: code beats
+docs. `tools/wip.js put` adds `[checklist <commit>]` to every wip note, so each version says which
+checklist it was built against.
+
 ## Fair (the user's playtests: a death must be the player's fault)
 
 - [ ] **`node tools/fairness.js <level>` passes** (also `tools/score.js` gate "fairness"). It
@@ -26,13 +34,19 @@ number there, then here. Last updated 2026-11-23.
   all, one orb kind, and a hazard-free surface ~1 block after the last orb. Never a chain where a
   normal click falls to death or that carries the cube toward the screen's edge.
   `node tools/obstacles.js orbchains --file <level>`. (levels/obstacles.md section 5; GDLM 46 v2)
+- [ ] **A landing you can stay on**: after an orb, pad or obstacle, the cube lands on one surface across
+  every early/late press; never a gap in front of a wall that needs an instant jump (a dead end).
+  `node tools/polish.js <level> --dry --passes none` (two 4 ms jumps there). (critiques.md GDLM 44 v12)
 - [ ] **Orbs where the arc already goes**, not grazed at the arc's edge. (design.md; GDLM 44 orb ladder)
 - [ ] **Jump arrows only on real inputs**, ~1 block above the surface, right at the press (the hazard
   ~0.5 block ahead). Used where a jump can't be read in time (after a drop, after a portal, the first of
   a pattern), consistently, small and softer than the level. `node tools/obstacles.js indicators --file <level>`.
   (levels/obstacles.md section 4, design.md "Telegraph"; GDLM 45 v4, GDLM 46 v2)
-- [ ] **Wave**: zigzag turns wider than ~100 ms apart; no head-on slopes at a portal exit.
+- [ ] **Wave**: zigzag turns wider than ~100 ms apart; no head-on slopes at a portal exit; the exit
+  portal over a flat floor, level stretches at the turns (patterns.js wave-zigzag `flat`, `leadGap`).
   (design.md; GDLM 44/46 real-game deaths)
+- [ ] **Jump marks sit low**: about 1 block over the surface (make.js lifts them 30 units), and none
+  where no jump is needed (placed from the natural replay's real jumps only). (GDLM 45 v5, the user)
 - [ ] **Invisible parts**: ghosted (faint), fully hidden only for a chunk already seen. No fakes at
   Easy/Normal. (design.md, STYLE.md; GDLM 42; official_01-08.md)
 - [ ] **Even difficulty**: no late spike. Timing per tier: DIFFICULTY.md "Tier ladder" (Easy: no window
@@ -43,6 +57,9 @@ number there, then here. Last updated 2026-11-23.
 - [ ] **Built on blocks**: a block, slab or slope in ~45-50% of the cube columns; most spikes on
   ledges, steps, pit edges and under overhangs, not lone on the floor. `node tools/obstacles.js structure --file <level>`.
   (levels/obstacles.md section 1; GDLM 41-45 had 13%)
+- [ ] **Structures from the library**: compose.js puts a ranked structure (STRUCTURES.md) in every
+  plain 1x cube section by default; a hand-made spec names them as `"s:<id>"`. Mechanics our levels
+  never had rank first. `node tools/structures.js rank`.
 - [ ] **Variety**: ~15 kinds of gameplay thing; 4-5 modes and 2-3 speeds; a portal every ~2-3 s;
   ~25 orbs and pads per minute; at least ~90% of the chunks new. `node tools/variety.js <level>`.
   (levels/variety.md)
@@ -60,6 +77,9 @@ number there, then here. Last updated 2026-11-23.
   user played have a median 46. GDLM was at 1. `node tools/modern_look.js <level>`.
 - [ ] **Layers**: ~40-60% behind the play (B5-B1), ~15-40% in front (T2-T4: glow, dots, particles,
   see-through set pieces), never a solid fill over the play.
+- [ ] **Colours that must show from the first frame live in the header**, not only in colour triggers:
+  the editor runs no triggers (the signature looked pale in the phone editor). Channels 988-999 are the
+  signature's. (VISUALS.md "Signature")
 - [ ] **Colour**: every deco object on a colour channel, ~30-60 channels with a third blending, HSV on
   ~40-50% of objects.
 - [ ] **A theme with one motif through the level, and a new scene per section**: palette, frame and
@@ -69,7 +89,19 @@ number there, then here. Last updated 2026-11-23.
 - [ ] **Shape of the level**: a dense opening, quiet 1-2 s transitions, the biggest effects at the
   drops. A title at the start and credits at the end. Don't copy any one level's art.
 - [ ] **Readable**: hazards stand out (white, grey or their own colour against the scene); no deco
-  that looks like an orb, pad or hazard. (design.md; players_say.md: saws taken for orbs)
+  that looks like an orb, pad or hazard: fires only far back, small and dim. Hazards keep their contrast
+  on the drop's brightest frame (one sky flash, not two). Behind a portal a dark disc, never a lit one.
+  `node tools/shoot.js` the drop. (design.md; players_say.md: saws taken for orbs; POLISH.md hellgate)
+
+## Name, description, signature (the user, 2026-11-23)
+
+- [ ] **The name is final from the first upload**: the GD server refuses a renamed shared level, so the
+  name is `GDLM NN <words that fit the level>` from the start, never a working label. (PUBLISH.md, STYLE.md 2b)
+- [ ] **The description is for players**: one or two short sentences with some flavour, ending with
+  " -- Made by Claude (and some humans)", ~150 characters at most. Notes (beats, dB, song ids,
+  versions) go in the spec's `"notes"`. make.js stops over 180 and warns over 150 or on note-like text.
+- [ ] **The signature ends every GDLM level** (robot + human): make.js adds it by default; opt out
+  only with `"signature": false`.
 
 ## Ratable (rating.md)
 

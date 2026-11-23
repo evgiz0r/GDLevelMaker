@@ -29,13 +29,18 @@ if (args[0] === "put") {
   const metaFile = path.join(dir, base.replace(/\.gdlvl$/, ".json"));
   let meta = {}; try { meta = JSON.parse(fs.readFileSync(metaFile, "utf8")); } catch (e) {}
   const history = meta.history || [];
-  history.push({ at: new Date().toISOString(), note: opt("--note") || "" });
+  // which checklist the level was built against (the user: sessions must use what others learned;
+  // knowledge/checklist.md's last commit, added to the note so the viewer and the phone show it)
+  let checklist = "";
+  try { checklist = require("child_process").execSync("git log -1 --format=%h -- knowledge/checklist.md", { cwd: path.join(__dirname, ".."), encoding: "utf8" }).trim(); } catch (e) {}
+  const note = (opt("--note") || "") + (checklist ? ` [checklist ${checklist}]` : "");
+  history.push({ at: new Date().toISOString(), note, checklist });
   fs.copyFileSync(file, path.join(dir, base));
   const solution = args.includes("--no-solve") ? undefined : solveFor(L);
   fs.writeFileSync(metaFile, JSON.stringify({ name: L.name, session, file: base, from: path.relative(path.join(__dirname, ".."), path.resolve(file)).replace(/\\/g, "/"),
-    updated: new Date().toISOString(), note: opt("--note") || "", version: history.length, history: history.slice(-20), solution }, null, 1));
+    updated: new Date().toISOString(), note, checklist, version: history.length, history: history.slice(-20), solution }, null, 1));
   console.log(`wip: ${session}/${base} v${history.length} ("${L.name}") -- refresh the viewer to see it`);
-  phoneRow(session, base, L, history.length, opt("--note") || "", solution);
+  phoneRow(session, base, L, history.length, note, solution);
 } else if (args[0] === "phone") {
   // rows for every current work-in-progress level (e.g. after the page's database was emptied)
   for (const m of list()) phoneRow(m.session, m.file, readGdlvl(path.join(WIP, m.session, m.file)), m.version, m.note || "", m.solution);
