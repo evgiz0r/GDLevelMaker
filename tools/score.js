@@ -79,6 +79,9 @@ function scoreLevel(level, brief, opts = {}) {
       let t = presses[i - 1].tick + 2;
       while (t < path.length && !path[t].grounded) t++;
       if (t > presses[i].lo) continue; // pressed in the air (orbs): not a landing
+      // only jumping modes land and jump again: a wave or ship touching a floor is not a landing (GDLM
+      // 47's wave turns read as land-and-jump chains)
+      if (!/^(cube|robot)$/.test((path[presses[i].tick] || {}).mode || "cube")) continue;
       const ms = (presses[i].lo - t) / GD.PHYS.TPS * 1000;
       if (minRec != null ? ms < minRec : ms < 100) chains.push({ x: path[presses[i].tick].x, ms: Math.round(ms) });
     }

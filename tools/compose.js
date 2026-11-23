@@ -222,9 +222,11 @@ function compose(brief, tweaks = {}) {
           if (/orb|pad/.test(name)) newH = 0;
           else if (k > 0 && t1 < 0.55) newH = h === 0 ? 1 : h === 2 ? 1 : (t1 < 0.3 ? 2 : 0);
           if (newH !== h) {
-            gap = Math.max(gap, newH > h ? 6 : 5) + (newH < h ? 2 : 0);   // room to read the step and land
-            stepAt = c + Math.ceil(gap / 2);                               // the step, mid-gap
-            ledge = newH > h && t2 < 0.35 && k > 0;
+            // the step 3 columns after the last chunk, then 5 (up) or 6 (down, a drop) on the new level
+            // before the next: steps mid-gap left 3 columns and chained the jumps (GDLM 47 round 1)
+            gap = Math.max(gap, newH > h ? 8 : 9);
+            stepAt = c + 3;
+            ledge = newH > h && t2 < 0.35 && k > 0 && !["Easy", "Normal"].includes((brief.difficulty || {}).label);   // a spike at the step's foot: Hard and up
           }
         }
         if (k > 0) c += gap; else if (stepAt != null) { stepAt = c + 2; c += 5; }
@@ -303,7 +305,8 @@ function loop(briefFile, rounds = 8) {
   const NL = "\n";
   const log = [`# ${brief.name}${NL}`, `Idea: ${brief.idea || "-"}${NL}`, brief.story ? `Story: ${brief.story}${NL}` : "", `Target: ${JSON.stringify(brief.difficulty || {})}${NL}`];
   const clone = o => JSON.parse(JSON.stringify(o));
-  const whole = (tweaks) => { const { spec, placed } = compose(brief, tweaks); const { level } = build(spec, briefFile); return { tweaks, spec, placed, s: scoreLevel(level, brief) }; };
+  // the fairness gate (tools/fairness.js, ~1 min a level) runs once, on the finished level, not in the rounds
+  const whole = (tweaks, opts = { fairness: false }) => { const { spec, placed } = compose(brief, tweaks); const { level } = build(spec, briefFile); return { tweaks, spec, placed, s: scoreLevel(level, brief, opts) }; };
   // sectionwise: each section scored alone, unchanged sections from the cache (see the top)
   const lens = sectionBlocks(brief);
   const secs = lens.reduce((a, n) => a + n, 0) / 10.4;
@@ -322,7 +325,7 @@ function loop(briefFile, rounds = 8) {
         const t0 = Date.now();
         const { level } = build(sub, briefFile);
         // section-local gates only: pacing / colour / difficulty are for the whole level
-        const sc = scoreLevel(level, Object.assign({}, brief, { sections: undefined }));
+        const sc = scoreLevel(level, Object.assign({}, brief, { sections: undefined }), { fairness: false });
         sc.gates = sc.gates.filter(g => BLOCKING.has(g.name));
         sc.ok = !sc.gates.some(g => g.status === "FAIL");
         unshift(sc, shift);
@@ -424,11 +427,21 @@ function loop(briefFile, rounds = 8) {
       log.push(`${NL}Tried and undone (` + cand.s.gates.filter(g => g.status === "FAIL").map(g => g.name).join(", ") + `):${NL}` + list(fixes));
     }
   }
-  if (sectionwise) {
-    // the whole level once: difficulty, pacing, colour, sync, lead-in over all of it
+  {
+    // the whole level once more, with every gate: difficulty, pacing, colour, sync, lead-in, fairness
     console.log("whole level: one full score (slow for long levels)");
     const t0 = Date.now();
-    const full = whole(best.tweaks);
+    const full = whole(best.tweaks, {});
+    if (sectionwise) {
+      // In a level with modes the whole run is solved by the sweep, whose cube windows read far too small
+      // (16 ms where the exact solver on the section alone gives 100+, GDLM 47): timing, recovery and
+      // prejumps come from the sections (exact where they are cube-only); the rest from the whole level.
+      const secs = bySection(best.tweaks).s;
+      full.s.gates = full.s.gates.map(g => (["timing", "recovery", "prejumps"].includes(g.name) && secs.gates.find(x => x.name === g.name))
+        ? Object.assign({}, secs.gates.find(x => x.name === g.name), { note: "from the sections" }) : g);
+      full.s.fails = full.s.gates.filter(g => g.status === "FAIL").length; full.s.warns = full.s.gates.filter(g => g.status === "WARN").length;
+      full.s.ok = !full.s.fails;
+    }
     log.push(`${NL}## Whole level (${((Date.now() - t0) / 1000).toFixed(0)} s to score): ${full.s.ok ? "READY" : "not ready"}${NL}`);
     for (const g of full.s.gates) log.push(`- ${g.status} ${g.name}: ${g.value}${g.note ? " -- " + g.note : ""}${NL}`);
     best = full;
@@ -466,7 +479,7 @@ if (require.main === module) {
         const out = path.join(__dirname, "..", "local", "sections", slug(sub.name) + ".gdlvl");
         fs.mkdirSync(path.dirname(out), { recursive: true });
         require("./io.js").writeGdlvl(out, rec, level);
-        const sc = scoreLevel(level, Object.assign({}, brief, { sections: undefined }));
+        const sc = scoreLevel(level, Object.assign({}, brief, { sections: undefined }), { fairness: false });
         print(sub.name, sc);
         console.log("written " + path.relative(process.cwd(), out));
       }

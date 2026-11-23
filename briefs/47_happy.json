@@ -12,7 +12,7 @@
     { "name": "morning", "beats": 38, "use": ["single", "spike-block", "platform"], "args": { "platform": { "w": 4, "h": 1 } }, "gaps": [5, 8], "bg": [255, 214, 90], "ground": [240, 170, 60], "line": [255, 255, 255], "deco": 0.2 },
     { "name": "first drop", "beats": 32, "use": ["double", "spike-block", "platform", "hops"], "args": { "platform": { "w": 4, "h": 1 }, "hops": { "n": 3, "w": 3, "gap": 2, "rise": 0 } }, "bg": [255, 190, 70], "ground": [245, 150, 50], "line": [255, 255, 255], "flash": true, "deco": 0.3 },
     { "name": "blue sky", "beats": 20, "mode": "ship", "bg": [90, 185, 255], "ground": [60, 150, 230], "args": { "ship-tunnel": { "waves": 2, "gap": 5 } } },
-    { "name": "mint meadow", "beats": 16, "mode": "upside", "speed": "0.5x", "use": ["single", "double", "spike-block"], "bg": [110, 230, 185], "ground": [70, 200, 150], "line": [255, 255, 255] },
+    { "name": "mint meadow", "beats": 16, "mode": "upside", "speed": "0.5x", "use": ["single", "double"], "bg": [110, 230, 185], "ground": [70, 200, 150], "line": [255, 255, 255] },
     { "name": "coral wave", "beats": 24, "mode": "wave", "speed": "1x", "bg": [255, 140, 120], "ground": [240, 110, 95], "flash": true },
     { "name": "pink bounce", "beats": 32, "mode": "ball", "bg": [255, 150, 205], "ground": [240, 115, 180] },
     { "name": "lavender jumps", "beats": 32, "speed": "2x", "use": ["orb-pit", "pad-launch", "double", "orb-ladder"], "args": { "orb-ladder": { "n": 2 }, "pad-launch": { "n": 3 } }, "gaps": [4, 6], "bg": [185, 160, 255], "ground": [150, 125, 240], "line": [255, 255, 255] },
