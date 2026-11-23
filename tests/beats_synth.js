@@ -16,7 +16,7 @@ function song(bpm, t0, dur, down, swingMs) {
     if (k % 4 === down) add(t, u => 0.2 * Math.sin(2 * Math.PI * 110 * u) * Math.exp(-u * 3));
   }
   const f = path.join(os.tmpdir(), `gdlm_synth_${bpm}.wav`);
-  const r = spawnSync("ffmpeg", ["-v", "error", "-y", "-f", "f32le", "-ar", String(SR), "-ac", "1", "-i", "-", f], { input: Buffer.from(x.buffer) });
+  const r = spawnSync("ffmpeg", ["-v", "error", "-y", "-f", "f32le", "-ar", String(SR), "-ac", "1", "-i", "-", f], { windowsHide: true, input: Buffer.from(x.buffer) });
   if (r.status) throw new Error(String(r.stderr));
   return f;
 }

@@ -32,7 +32,7 @@ if (require.main === module) {
 fs.rmSync(OUT, { recursive: true, force: true }); fs.mkdirSync(path.join(OUT, "lib"), { recursive: true });
 let html = fs.readFileSync(path.join(ROOT, "viewer", "index.html"), "utf8");
 const swap = (a, b) => { if (!html.includes(a)) throw new Error("viewer changed, update tools/pages.js: " + a.slice(0, 80)); html = html.split(a).join(b); };
-let sha = ""; try { sha = cp.execSync("git rev-parse --short HEAD", { cwd: ROOT, encoding: "utf8" }).trim(); } catch (e) {}
+let sha = ""; try { sha = cp.execSync("git rev-parse --short HEAD", { windowsHide: true, cwd: ROOT, encoding: "utf8" }).trim(); } catch (e) {}
 
 // libraries: every ../lib/*.js the viewer loads, copied as they are (facts and code; the art tables name GD's
 // sprite frames but hold no art)

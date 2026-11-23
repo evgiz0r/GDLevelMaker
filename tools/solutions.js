@@ -32,21 +32,21 @@ const keyOf = levelStr => crypto.createHash("sha1").update(levelStr).digest("hex
 let PHYS = null;
 function physicsCommit() {
   if (PHYS === null) {
-    try { PHYS = require("child_process").execSync("git log -1 --format=%h -- lib/physics.js lib/dual.js lib/objects.js lib/objects_extra.js lib/objects_gd22.js", { cwd: path.join(__dirname, ".."), encoding: "utf8" }).trim(); } catch (e) { PHYS = ""; }
+    try { PHYS = require("child_process").execSync("git log -1 --format=%h -- lib/physics.js lib/dual.js lib/objects.js lib/objects_extra.js lib/objects_gd22.js", { windowsHide: true, cwd: path.join(__dirname, ".."), encoding: "utf8" }).trim(); } catch (e) { PHYS = ""; }
   }
   return PHYS;
 }
 let PLAN = null;
 function planCommit() {
   if (PLAN === null) {
-    try { PLAN = require("child_process").execSync("git log -1 --format=%h -- lib/natural.js lib/difficulty.js", { cwd: path.join(__dirname, ".."), encoding: "utf8" }).trim(); } catch (e) { PLAN = ""; }
+    try { PLAN = require("child_process").execSync("git log -1 --format=%h -- lib/natural.js lib/difficulty.js", { windowsHide: true, cwd: path.join(__dirname, ".."), encoding: "utf8" }).trim(); } catch (e) { PLAN = ""; }
   }
   return PLAN;
 }
 let WINC = null;
 function windowsCommit() {
   if (WINC === null) {
-    try { WINC = require("child_process").execSync("git log -1 --format=%h -- lib/windows.js lib/difficulty.js", { cwd: path.join(__dirname, ".."), encoding: "utf8" }).trim(); } catch (e) { WINC = ""; }
+    try { WINC = require("child_process").execSync("git log -1 --format=%h -- lib/windows.js lib/difficulty.js", { windowsHide: true, cwd: path.join(__dirname, ".."), encoding: "utf8" }).trim(); } catch (e) { WINC = ""; }
   }
   return WINC;
 }

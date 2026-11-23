@@ -16,7 +16,7 @@ const GAME = process.env.GD_GAME || "C:/Program Files (x86)/Steam/steamapps/comm
 const SAVE = process.env.GD_SAVE || path.join(process.env.LOCALAPPDATA || "", "GeometryDash");
 const RECS = process.env.GD_RECS || path.join(process.env.USERPROFILE || "", "Videos", "Captures"); // tools/record.sh writes here
 const cp = require("child_process");
-const git = args => cp.execFileSync("git", args, { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+const git = args => cp.execFileSync("git", args, { windowsHide: true, cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
 const UPD = { checked: 0, note: "", busy: false, off: process.argv.includes("--no-update") };
 function selfUpdate() {
   if (UPD.off || UPD.busy) return; UPD.busy = true; UPD.checked = Date.now();
@@ -39,7 +39,7 @@ function selfUpdate() {
       // and leave. (The first version started the new one only after close() -- which waits for every open
       // browser connection -- and its 3 s exit came first: the server just stopped, 2026-11-23.)
       SERVER.close(); if (SERVER.closeAllConnections) SERVER.closeAllConnections();
-      cp.spawn(process.execPath, process.argv.slice(1), { cwd: process.cwd(), detached: true, stdio: "ignore", env: Object.assign({}, process.env, { GDLM_RESTART: "1" }) }).unref();
+      cp.spawn(process.execPath, process.argv.slice(1), { windowsHide: true, cwd: process.cwd(), detached: true, stdio: "ignore", env: Object.assign({}, process.env, { GDLM_RESTART: "1" }) }).unref();
       setTimeout(() => process.exit(0), 500).unref();
     }
   } catch (e) { UPD.note = "self-update failed: " + String(e.message).split("\n")[0]; console.log(UPD.note); }
@@ -56,7 +56,7 @@ function solveLater(file) {
 function solveNext() {
   const f = SOLVE.queue.shift(); if (!f) { SOLVE.running = false; return; }
   SOLVE.running = true; console.log("solving variant " + path.relative(root, f));
-  const ch = cp.spawn(process.execPath, [path.join(__dirname, "solutions.js"), f], { cwd: root, stdio: "ignore" });
+  const ch = cp.spawn(process.execPath, [path.join(__dirname, "solutions.js"), f], { windowsHide: true, cwd: root, stdio: "ignore" });
   ch.on("exit", () => solveNext()); ch.on("error", () => solveNext());
 }
 // The public viewer (GitHub Pages, tools/pages.js) may READ songs, GD's art and /version from this server on the
@@ -208,7 +208,7 @@ const SERVER = http.createServer((req, res) => {
     const q = new URLSearchParams(req.url.split("?")[1] || ""), name = path.basename(q.get("f") || ""), at = Math.max(0, +q.get("t") || 0);
     const file = path.join(RECS, name);
     if (!/\.(mkv|mp4)$/i.test(name) || !fs.existsSync(file)) { res.writeHead(404); return res.end("no such recording"); }
-    const ff = require("child_process").spawn("ffmpeg", ["-v", "error", "-ss", String(at), "-i", file, "-frames:v", "1", "-vf", "scale=960:-1", "-f", "image2pipe", "-vcodec", "png", "-"]);
+    const ff = require("child_process").spawn("ffmpeg", ["-v", "error", "-ss", String(at), "-i", file, "-frames:v", "1", "-vf", "scale=960:-1", "-f", "image2pipe", "-vcodec", "png", "-"], { windowsHide: true });
     const out = [];
     ff.stdout.on("data", c => out.push(c));
     ff.on("error", () => { res.writeHead(500); res.end("ffmpeg not found"); });

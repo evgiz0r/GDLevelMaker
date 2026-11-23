@@ -7,7 +7,7 @@ const ROOT = path.join(__dirname, ".."), { checkDir } = require("../tools/pages.
 let bad = 0; const check = (ok, what) => { console.log((ok ? "ok   " : "FAIL ") + what); if (!ok) bad++; };
 let dir = process.argv[2];
 const own = !dir;
-if (own) { dir = fs.mkdtempSync(path.join(os.tmpdir(), "gdlm-pages-")); cp.execFileSync(process.execPath, [path.join(ROOT, "tools", "pages.js"), "--out", dir], { stdio: "inherit" }); }
+if (own) { dir = fs.mkdtempSync(path.join(os.tmpdir(), "gdlm-pages-")); cp.execFileSync(process.execPath, [path.join(ROOT, "tools", "pages.js"), "--out", dir], { windowsHide: true, stdio: "inherit" }); }
 check(checkDir(dir).length === 0, "the build passes its own check: " + (checkDir(dir).join("; ") || "nothing forbidden"));
 const w = {}; new Function("window", fs.readFileSync(path.join(dir, "levels.js"), "utf8"))(w);
 check((w.GD_LEVELS || []).length > 0 && w.GD_LEVELS.every(l => /^(levels|examples)\//.test(String(l.file))), `only our levels (${(w.GD_LEVELS || []).length})`);

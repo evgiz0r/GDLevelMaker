@@ -90,7 +90,7 @@ async function userLevel(id) {
   u.plays.push({ date: new Date().toISOString().slice(0, 10), note: opt("--note") || "", finished: args.includes("--finished"), attempts: +opt("--attempts") || null,
     verdict: opt("--verdict") || (args.includes("--liked") ? "liked" : args.includes("--disliked") ? "disliked" : null) });
   fs.writeFileSync(CORPUS, JSON.stringify(L, null, 1));
-  if (!fs.existsSync(path.join(COMM, r.id + ".gdlvl"))) cp.execFileSync(process.execPath, [path.join(__dirname, "fetch_level.js"), r.id, "--out", COMM], { stdio: "inherit" });
+  if (!fs.existsSync(path.join(COMM, r.id + ".gdlvl"))) cp.execFileSync(process.execPath, [path.join(__dirname, "fetch_level.js"), r.id, "--out", COMM], { windowsHide: true, stdio: "inherit" });
   console.log(r.name, RANK[r.rank], r.tier, "->", u.plays.length, "play(s) recorded");
 }
 function fetch() {
@@ -98,7 +98,7 @@ function fetch() {
   const miss = L.filter(l => !fs.existsSync(path.join(COMM, l.id + ".gdlvl"))).map(l => l.id);
   console.log(miss.length, "to download, ~" + Math.round(miss.length * 2.5 / 60) + " min");
   for (let i = 0; i < miss.length; i += 20)
-    cp.execFileSync(process.execPath, [path.join(__dirname, "fetch_level.js"), ...miss.slice(i, i + 20), "--out", COMM], { stdio: "inherit" });
+    cp.execFileSync(process.execPath, [path.join(__dirname, "fetch_level.js"), ...miss.slice(i, i + 20), "--out", COMM], { windowsHide: true, stdio: "inherit" });
 }
 
 // ---------------- measures of one level (static) ----------------
@@ -270,7 +270,7 @@ function measure() {
     const out = path.join(FEAT, j.id + ".json");
     if (!fresh && fs.existsSync(out) && JSON.parse(fs.readFileSync(out, "utf8")).v === VERSION) continue;
     try {
-      const r = cp.execFileSync(process.execPath, ["--max-old-space-size=1200", __filename, "one", j.file], { encoding: "utf8", maxBuffer: 1 << 26, timeout: 300000, env: Object.assign({}, process.env, { GDLM_HEAVY_HELD: "1" }) });
+      const r = cp.execFileSync(process.execPath, ["--max-old-space-size=1200", __filename, "one", j.file], { windowsHide: true, encoding: "utf8", maxBuffer: 1 << 26, timeout: 300000, env: Object.assign({}, process.env, { GDLM_HEAVY_HELD: "1" }) });
       fs.writeFileSync(out, r); done++;
       if (done % 20 === 0) console.log(done, "measured");
     } catch (e) { failed++; console.log(j.id, "failed:", String(e.message).split("\n")[0].slice(0, 120)); }
@@ -457,7 +457,7 @@ function taste(F, band = "EN|2.2", model) {
   return { score: Math.round(100 / (1 + Math.exp(-z))), band, parts, rules, heldOutAuc: model.heldOut.auc };
 }
 function scoreCli(file) {
-  const r = JSON.parse(cp.execFileSync(process.execPath, ["--max-old-space-size=1200", __filename, "one", file], { encoding: "utf8", maxBuffer: 1 << 26, env: Object.assign({}, process.env, { GDLM_HEAVY_HELD: "1" }) }));
+  const r = JSON.parse(cp.execFileSync(process.execPath, ["--max-old-space-size=1200", __filename, "one", file], { windowsHide: true, encoding: "utf8", maxBuffer: 1 << 26, env: Object.assign({}, process.env, { GDLM_HEAVY_HELD: "1" }) }));
   const band = opt("--band") || "EN|2.2", t = taste(r.F, band);
   if (args.includes("--json")) { console.log(JSON.stringify(t)); return; }
   console.log(`${r.name}: taste ${t.score}/100 (band ${band}; model held-out AUC ${t.heldOutAuc})`);

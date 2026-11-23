@@ -191,7 +191,7 @@ function claim(label) {
     else if (r.ff) {
       // the code changed under this process: run the same command again, new code, in this slot
       console.log(`heavy: fast-forwarded ${r.behind} commit(s) from origin/main; running again on the new code`);
-      const ch = require("child_process").spawnSync(process.execPath, process.argv.slice(1), { stdio: "inherit", env: Object.assign({}, process.env, { GDLM_HEAVY_NOSYNC: "1" }) });
+      const ch = require("child_process").spawnSync(process.execPath, process.argv.slice(1), { windowsHide: true, stdio: "inherit", env: Object.assign({}, process.env, { GDLM_HEAVY_NOSYNC: "1" }) });
       process.exit(ch.status === null ? 1 : ch.status);
     }
   }

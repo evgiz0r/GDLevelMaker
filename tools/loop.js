@@ -113,12 +113,12 @@ function specInfo(file) {
 function othersAtWork(files, session, wipHours = 3, wipDir = path.join(ROOT, "local", "wip")) {
   const why = [], here = path.resolve(ROOT).toLowerCase();
   let wts = [];
-  try { wts = cp.execFileSync("git", ["worktree", "list", "--porcelain"], { cwd: ROOT, encoding: "utf8" }).split(/\r?\n/).filter(l => l.startsWith("worktree ")).map(l => l.slice(9).trim()); } catch (e) {}
+  try { wts = cp.execFileSync("git", ["worktree", "list", "--porcelain"], { windowsHide: true, cwd: ROOT, encoding: "utf8" }).split(/\r?\n/).filter(l => l.startsWith("worktree ")).map(l => l.slice(9).trim()); } catch (e) {}
   const rel = files.filter(Boolean).map(f => path.relative(ROOT, path.resolve(f)).replace(/\\/g, "/")).filter(f => !f.startsWith(".."));
   for (const wt of wts) {
     if (path.resolve(wt).toLowerCase() === here || !rel.length || !fs.existsSync(wt)) continue;
     try {
-      const st = cp.execFileSync("git", ["-C", wt, "status", "--porcelain", "--", ...rel], { encoding: "utf8", timeout: 30000 }).trimEnd();
+      const st = cp.execFileSync("git", ["-C", wt, "status", "--porcelain", "--", ...rel], { windowsHide: true, encoding: "utf8", timeout: 30000 }).trimEnd();
       if (st) why.push(`uncommitted changes in worktree ${path.basename(wt)}: ${st.split(/\r?\n/).map(l => l.slice(3)).join(", ")}`);
     } catch (e) {}
   }
@@ -142,7 +142,7 @@ async function main() {
     const step = args[1], cmd = args.slice(2);
     if (!step || !cmd.length) { console.log("usage: node tools/loop.js --time <step name> <command ...>"); return 1; }
     slotStatus();   // a heavy tool takes the lock itself (tools/heavy.js); a plain command just runs
-    const t0 = Date.now(), r = cp.spawnSync(cmd[0], cmd.slice(1), { cwd: process.cwd(), stdio: "inherit" });
+    const t0 = Date.now(), r = cp.spawnSync(cmd[0], cmd.slice(1), { windowsHide: true, cwd: process.cwd(), stdio: "inherit" });
     const secs = (Date.now() - t0) / 1000;
     logTiming({ at: new Date().toISOString(), step, secs: +secs.toFixed(1), ok: r.status === 0, cmd: cmd.join(" ").slice(0, 200), freeMB: freeMB() });
     console.log(`time: ${step} took ${fmt(secs)} (exit ${r.status}) -> ${path.relative(ROOT, TIMINGS)}`);

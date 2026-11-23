@@ -446,6 +446,10 @@ The viewer draws moving objects where they start.
 
 ## Rules
 
+- **Never pop a window on the user's screen.** Every child process (spawn, spawnSync, exec*, execFile*, fork) passes
+  `windowsHide: true`: on Windows a console child without it flashes a console window (serve.js's self-update did,
+  every minute, 2026-11-23). `node tests/no_console_windows.js` fails on any call without it (`--fix` adds it).
+
 - Levels must be sight-readable unless the user asks otherwise: no "prejumps" (a jump you must
   start while what it is for is still far ahead). `make.js` prints it; `tools/sightread.js`.
   Invisible parts: ghost (faint) by default, fully hidden only for a chunk already seen; whole
