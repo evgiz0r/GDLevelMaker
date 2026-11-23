@@ -4,6 +4,8 @@
 //                                                        -- random one-spot edits: incremental re-solve vs a full
 //                                                           solve of the edited level (passes, humanCost, time);
 //                                                           a row per edit to local/incsolve/study.jsonl
+// node tools/incsolve.js cutjoin <level.gdlvl>          -- the level cut in the middle, and joined with a copy of
+//                                                           itself: section cache vs full solve (same rows)
 // Incremental solving (PHYSICS.md "Incremental solving"; the work is lib/incsolve.js).
 if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const PH = require("../lib/physics.js"), DF = require("../lib/difficulty.js");
@@ -40,28 +42,27 @@ function full(level) {
   const r = GD.solveAny(w), ts = Date.now() - t0;
   if (!r.ok) return { ok: false, ms: Date.now() - t0, solveMs: ts, why: r.why };
   let events = r.events, kind = "limit";
+  for (const k in prof) delete prof[k]; const tn = Date.now();
   try { const n = GD.naturalPlan(w, r, level.objects, { cost: true }); if (n && n.path[n.path.length - 1].done) { events = n.events; kind = "human"; } } catch (e) { /* raw route */ }
+  const naturalMs = Date.now() - tn, inNatural = JSON.parse(JSON.stringify(prof));
   const cost = GD.humanCost(w, events).cost;
-  return { ok: true, events, kind, cost, presses: events.filter(e => e.type === "press").length, ms: Date.now() - t0, solveMs: ts };
+  return { ok: true, events, kind, cost, presses: events.filter(e => e.type === "press").length, ms: Date.now() - t0, solveMs: ts, naturalMs, inNatural };
 }
 // the incremental pipeline: diff against the old level and its route, re-solve the changed stretch, re-plan it
 function incremental(oldLevel, oldEvents, level, opts) {
   opts = opts || {};
   const t0 = Date.now();
-  const wOld = GD.makeWorld(oldLevel.objects, oldLevel.header), w = GD.makeWorld(level.objects, level.header);
-  const diff = I.diffObjects(oldLevel.objects, level.objects), inf = I.influence(wOld, w, diff, oldLevel.header, level.header);
-  const pOld = GD.run(wOld, oldEvents).path;
-  const base = { events: oldEvents, path: pOld, wOld, checkpoints: I.checkpoints(wOld, oldEvents, pOld) };
-  const r = I.resolve(w, base, inf);
+  const r = I.fromBase(oldLevel, oldEvents, level), w = r.w || GD.makeWorld(level.objects, level.header), inf = r.inf;
   if (r.fallback) { if (opts.noFallback) return { ok: false, fallback: r.fallback, ms: Date.now() - t0 };
     const f = full(level); return Object.assign(f, { fallback: r.fallback, ms: Date.now() - t0 }); }
   const tr = Date.now() - t0;
   let events = r.events, kind = "limit";
+  for (const k in prof) delete prof[k];
   if (r.reused) kind = "human";
   else try { const n = GD.naturalPlan(w, { ok: true, events }, level.objects, { cost: true, window: [r.from, r.to] });
     if (n && n.path[n.path.length - 1].done) { events = n.events; kind = "human"; } } catch (e) { /* spliced route as it is */ }
-  const cost = GD.humanCost(w, events).cost;
-  return { ok: true, events, kind, cost, presses: events.filter(e => e.type === "press").length, ms: Date.now() - t0, resolveMs: tr,
+  const inNatural = JSON.parse(JSON.stringify(prof)), cost = GD.humanCost(w, events).cost;
+  return { ok: true, events, kind, cost, presses: events.filter(e => e.type === "press").length, ms: Date.now() - t0, resolveMs: tr, inNatural,
     from: r.from, to: r.to, rejoined: r.rejoined, reused: r.reused, backoff: r.backoff, inf };
 }
 
@@ -88,18 +89,48 @@ function study(file, opts) {
     const e = randomEdit(L.level, rand); if (!e) break;
     const inc = incremental(L.level, base.events, e.level, { noFallback: opts.noFull });
     const fu = opts.noFull ? null : full(e.level);
-    const row = { level: path.basename(file), edit: e.what, inc: { ok: inc.ok, cost: inc.cost, presses: inc.presses, ms: inc.ms, resolveMs: inc.resolveMs, from: inc.from, to: inc.to, rejoined: inc.rejoined, reused: inc.reused, fallback: inc.fallback, kind: inc.kind },
-      full: fu && { ok: fu.ok, cost: fu.cost, presses: fu.presses, ms: fu.ms, solveMs: fu.solveMs, kind: fu.kind }, at: new Date().toISOString() };
+    const row = { level: path.basename(file), edit: e.what, inc: { ok: inc.ok, cost: inc.cost, presses: inc.presses, ms: inc.ms, resolveMs: inc.resolveMs, inNatural: inc.inNatural, from: inc.from, to: inc.to, rejoined: inc.rejoined, reused: inc.reused, fallback: inc.fallback, kind: inc.kind },
+      full: fu && { ok: fu.ok, cost: fu.cost, presses: fu.presses, ms: fu.ms, solveMs: fu.solveMs, naturalMs: fu.naturalMs, inNatural: fu.inNatural, kind: fu.kind }, at: new Date().toISOString() };
     fs.appendFileSync(path.join(out, "study.jsonl"), JSON.stringify(row) + "\n");
     console.log(JSON.stringify(row));
   }
 }
 
-module.exports = { profile, full, incremental, randomEdit, study, rng };
+// cut and join: the level cut after its middle section boundary, and the level followed by a copy of itself
+// (moved by whole blocks), each solved with the section cache (seeded from the level's own route) and whole
+function cutjoin(file) {
+  const L = readGdlvl(file), SOL = require("./solutions.js"), ST = require("./inc_store.js");
+  const w = GD.makeWorld(L.level.objects, L.level.header);
+  let base = SOL.get(L.levelStr, true);
+  if (!base || !base.ok || !I.finishes(w, GD.run(w, base.events))) { const f = full(L.level); if (!f.ok) return; base = f; }
+  const p = GD.run(w, base.events).path, store = ST.sections(), stamp = SOL.physicsCommit() + "/" + SOL.planCommit();
+  I.cacheRoute(w, base.events, p, store, { stamp });
+  const secs = I.sectionsOf(w, base.events, p), cutX = p[secs[Math.floor(secs.length / 2)].from].x + 150;
+  const deco = o => GD.objInfo(o.id).kind === "decoration";
+  const cut = { header: L.level.header, objects: L.level.objects.filter(o => o.x < cutX || deco(o)) };
+  const xs = L.level.objects.map(o => o.x), dx = Math.ceil((Math.max(...xs) + 300) / 30) * 30;
+  const join = { header: L.level.header, objects: L.level.objects.concat(L.level.objects.filter(o => !deco(o)).map(o => Object.assign({}, o, { x: o.x + dx, props: Object.assign({}, o.props, { 2: String(o.x + dx) }) }))) };
+  const out = path.join(__dirname, "..", "local", "incsolve"); fs.mkdirSync(out, { recursive: true });
+  for (const [what, lv] of [["cut at x " + Math.round(cutX), cut], ["joined with itself (+" + dx + ")", join]]) {
+    const wl = GD.makeWorld(lv.objects, lv.header), t0 = Date.now();
+    const c = I.solveWithCache(wl, store, { stamp });
+    let cost = null, kind = "limit";
+    if (c.ok) { let ev = c.events; try { const n = GD.naturalPlan(wl, { ok: true, events: ev }, lv.objects, { cost: true, window: c.seams.length ? [c.seams[0][0], Math.max(...c.seams.map(s => s[1] == null ? Infinity : s[1]))] : [0, -1] });
+        if (n && n.path[n.path.length - 1].done) { ev = n.events; kind = "human"; } } catch (e) { /* as it is */ }
+      c.events = ev; cost = GD.humanCost(wl, ev).cost; }
+    const cms = Date.now() - t0, fu = full(lv);
+    const row = { level: path.basename(file), edit: what, inc: { ok: c.ok, cost, ms: cms, reused: c.reused, seams: c.seams, why: c.why, kind }, full: { ok: fu.ok, cost: fu.cost, ms: fu.ms, kind: fu.kind }, at: new Date().toISOString() };
+    fs.appendFileSync(path.join(out, "study.jsonl"), JSON.stringify(row) + "\n");
+    console.log(JSON.stringify(row));
+  }
+}
+
+module.exports = { cutjoin, profile, full, incremental, randomEdit, study, rng };
 if (require.main === module) {
   const [cmd, ...rest] = process.argv.slice(2);
   const arg = (n, d) => { const i = rest.indexOf(n); return i >= 0 ? +rest[i + 1] : d; };
   if (cmd === "profile") for (const f of rest) profile(f);
+  else if (cmd === "cutjoin") for (const f of rest.filter(a => a.endsWith(".gdlvl"))) cutjoin(f);
   else if (cmd === "study") for (const f of rest.filter(a => a.endsWith(".gdlvl"))) study(f, { edits: arg("--edits", 3), seed: arg("--seed", 1), noFull: rest.includes("--no-full") });
   else console.log("usage: node tools/incsolve.js profile <level.gdlvl> ...");
 }
