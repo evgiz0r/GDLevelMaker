@@ -5,19 +5,23 @@
 // same level). Columns, all measured on the route a person plays (lib/natural.js; tools/fairness.js analyse):
 //   gameplay  length s, modes used, mode changes / min, presses / s (CPS), tightest and median input window
 //             (lenient: lib/difficulty.js measureWindows), the difficulty score (log10 attempts) and stars
-//   flow      surface changes / 10 s (landing on a new height), height range (5-95%, blocks), % of the time on the
-//             bare floor (grounded at ground level), repeats: share of 4-input runs (mode + gap to the next input,
-//             50 ms steps) that already happened in the 10 s before
+//   flow      style's tools/flow.js on the same route, jumping modes only: seconds in them, floor changes / 10 s,
+//             height range (blocks), share of 10 s windows with no floor change, share of standing time on the
+//             bare floor, share of 4-move patterns repeated within 10 s (STRUCTURES.md "Height and repetition")
+//   rules     soft rules broken (tools/rules.js --fast: reactive, hazards matter, symmetry, deco coverage,
+//             jump marks, height, repetition, clusters...); GDLM levels only
 //   look      objects / block, distinct ids, shares by catalogue group (knowledge/objects/catalogue.tsv):
 //             gameplay (blocks, slopes, hazards, orbs...), structural deco (deco-blocks, deco-spikes: outlines,
 //             corners, attached), background (scenery, shapes, pixel, effects); triggers / min
-//   fair      tools/fairness.js flags: FAIL / WARN counts
+//   fair      tools/fairness.js flags: FAIL / WARN counts (GDLM only; official windows and score come from
+//             the cached official report local/difficulty/scored_NN.json, the solver's route)
 // A row is cached in local/quality/<name>_<hash>_<physics>.json (official numbers stay in local/), so a re-run is
 // seconds; a new or changed level gets measured (each in its own child process, one at a time; a level with no
 // saved solution is solved first: heavy, check free memory). Prints narrow tables; --md writes the table block
 // that QUALITY.md holds to local/quality/table.md. tools/loop.js can call it after a level changes.
 const fs = require("fs"), path = require("path"), cp = require("child_process"), crypto = require("crypto");
 const ROOT = path.join(__dirname, ".."), OUT = path.join(ROOT, "local", "quality");
+const VERSION = 2; // bump when a column changes: older cached rows are measured again
 const STARS = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 9, 10: 10 };
 
 // ---------- one level (child process) ----------
@@ -34,29 +38,24 @@ function measure(spec) {
   const w = GD.makeWorld(objects, header); w.name = name;
   if (!sol) sol = GD.solveAny(w);
   sol = Object.assign({ ok: sol.ok !== false && !!sol.events }, sol);
-  const A = FA.analyse(w, sol), fl = FA.flags(A);
+  // official levels: the windows and score the official report cached (local/difficulty/scored_NN.json, the
+  // solver's route with route choice), no fairness pass -- re-measuring them is ~5 min each
+  let A, fl = null;
+  const cached = /^official:/.test(spec) && path.join(ROOT, "local", "difficulty", `scored_${String(+spec.split(":")[1]).padStart(2, "0")}.json`);
+  if (cached && fs.existsSync(cached)) {
+    const c = JSON.parse(fs.readFileSync(cached, "utf8")), DF = require("../lib/difficulty.js"), ms = c.actions.map(a => a.ms).sort((a, b) => a - b);
+    let la = 0; for (const a of c.actions) { const k = a.afterSwitchMs != null && a.afterSwitchMs < DF.DIFF.SETTLE ? Math.max(0.02, a.afterSwitchMs / DF.DIFF.SETTLE) : 1; la -= Math.log10(Math.max(DF.hitChance(a.ms, DF.DIFF.SIGMA) * k, 1e-9)); }
+    A = { events: sol.events, complete: c.complete, seconds: c.seconds, tightest: ms[0], medianMs: ms[Math.floor(ms.length / 2)], logAttempts: la };
+  } else { A = FA.analyse(w, sol); fl = FA.flags(A); }
   const run = GD.run(w, A.events), P = run.path, TPS = 240, secs = P.length / TPS;
   // gameplay
   const modes = new Set(P.map(s => s.mode)); let changes = 0;
   for (let t = 1; t < P.length; t++) if (P[t].mode !== P[t - 1].mode) changes++;
   const presses = A.events.filter(e => e.type === "press");
-  // flow
-  let surf = 0, lastY = null, floorTicks = 0;
-  for (let t = 0; t < P.length; t++) {
-    const s = P[t];
-    if (!s.grounded) continue;
-    if (s.grav > 0 && s.y < 16) floorTicks++;
-    if (lastY !== null && Math.abs(s.y - lastY) >= 15 && (t === 0 || P[t - 1].grounded === false)) surf++;
-    lastY = s.y;
-  }
-  const ys = P.map(s => s.y).sort((a, b) => a - b), q = f => ys[Math.min(ys.length - 1, Math.floor(f * ys.length))];
-  const tok = presses.map((e, i) => (P[Math.min(e.tick, P.length - 1)] || {}).mode + Math.round(((presses[i + 1] ? presses[i + 1].tick : e.tick + 240) - e.tick) / TPS * 20));
-  let rep = 0, grams = 0;
-  for (let i = 4; i + 4 <= tok.length; i++) {
-    grams++;
-    const g = tok.slice(i, i + 4).join(" ");
-    for (let j = i - 4; j >= 0 && (presses[i].tick - presses[j].tick) / TPS <= 10; j--) if (tok.slice(j, j + 4).join(" ") === g) { rep++; break; }
-  }
+  // flow: style's tools/flow.js over the same route (jumping modes only)
+  const FL = require("./flow.js").measure({ objects, header }, A.events);
+  let rules = null;
+  if (!/^official:/.test(spec)) { try { const R = require("./rules.js").rulesOf(spec, { fast: true }).rules; rules = Object.keys(R).filter(k => R[k] && R[k].length); } catch (e) { rules = ["(rules.js failed)"]; } }
   // look
   const cat = {};
   for (const l of fs.readFileSync(path.join(ROOT, "knowledge", "objects", "catalogue.tsv"), "utf8").split("\n").slice(1)) { const f = l.split("\t"); if (f[0]) cat[f[0]] = f[1]; }
@@ -74,11 +73,11 @@ function measure(spec) {
     name, complete: !!A.complete, secs: A.seconds || secs,
     modes: [...modes].join("/"), modeChangesPerMin: changes / secs * 60, cps: presses.length / secs,
     tightest: A.tightest, median: A.medianMs, score: A.logAttempts,
-    surfPer10s: surf / secs * 10, heightRange: (q(0.95) - q(0.05)) / 30, bareFloor: floorTicks / P.length, repeats: grams ? rep / grams : 0,
+    jumpS: FL.jumpS, changesPer10s: FL.changesPer10s, range: FL.range, flat10: FL.flat10, ground: FL.ground, repeat: FL.repeat, rules,
     objPerBlock: objects.length / blocks, distinctIds: new Set(objects.map(o => o.id)).size,
     gameplayShare: groups.gameplay / nonTrig, structuralShare: groups.structural / nonTrig, backgroundShare: groups.background / nonTrig,
     triggersPerMin: groups.triggers / secs * 60,
-    fails: fl.filter(f => f.severity === "FAIL").length, warns: fl.filter(f => f.severity === "WARN").length,
+    fails: fl ? fl.filter(f => f.severity === "FAIL").length : null, warns: fl ? fl.filter(f => f.severity === "WARN").length : null,
   };
 }
 
@@ -104,15 +103,16 @@ function physicsStamp() { try { return cp.execSync("git log -1 --format=%h -- li
 function main() {
   const args = process.argv.slice(2), only = args.includes("--only") ? args[args.indexOf("--only") + 1] : null;
   fs.mkdirSync(OUT, { recursive: true });
-  const ph = physicsStamp(), rows = [];
+  const ph = physicsStamp(), rows = []; let claimed = false;
   for (const L of levels()) {
     if (only && !L.key.includes(only)) continue;
     if (!fs.existsSync(L.file)) { console.error(`(skip ${L.key}: ${L.file} missing)`); continue; }
     const h = crypto.createHash("md5").update(fs.readFileSync(L.file)).digest("hex").slice(0, 8);
-    const cf = path.join(OUT, `${L.key.replace(/[^\w@.-]/g, "_")}_${h}_${ph}.json`);
+    const cf = path.join(OUT, `${L.key.replace(/[^\w@.-]/g, "_")}_${h}_${ph}_v${VERSION}.json`);
     let r = null;
     if (fs.existsSync(cf) && !args.includes("--fresh")) r = JSON.parse(fs.readFileSync(cf, "utf8"));
     else {
+      if (!claimed) { require("./heavy.js").claim(); claimed = true; } // one heavy job at a time on the PC (tools/heavy.js)
       process.stderr.write(`measuring ${L.key} ... `);
       const t0 = Date.now();
       try { r = JSON.parse(cp.execFileSync(process.execPath, ["--max-old-space-size=1500", __filename, "--one", L.spec], { cwd: ROOT, maxBuffer: 1 << 26, stdio: ["ignore", "pipe", "ignore"] }).toString()); }
@@ -142,13 +142,17 @@ function render(rows) {
   const g = withRange(table(all, ["s", "modes", "chg/min", "CPS", "min ms", "med ms", "score", "stars"],
     [r => f0(r.secs), r => r.modes.split("/").length, r => f1(r.modeChangesPerMin), r => f1(r.cps), r => f0(r.tightest), r => f0(r.median), r => f2(r.score), r => r.stars || "-"]),
     ["secs", null, "modeChangesPerMin", "cps", "tightest", "median", "score", null], [f0, f0, f1, f1, f0, f0, f2, f0]);
-  const fl = withRange(table(all, ["surf/10s", "height", "floor", "repeat"],
-    [r => f1(r.surfPer10s), r => f1(r.heightRange), r => pc(r.bareFloor), r => pc(r.repeats)]),
-    ["surfPer10s", "heightRange", "bareFloor", "repeats"], [f1, f1, pc, pc]);
+  const fl = withRange(table(all, ["jump s", "chg/10s", "range", "flat", "floor", "repeat"],
+    [r => f0(r.jumpS), r => f1(r.changesPer10s), r => f1(r.range), r => pc(r.flat10), r => pc(r.ground), r => pc(r.repeat)]),
+    ["jumpS", "changesPer10s", "range", "flat10", "ground", "repeat"], [f0, f1, f1, pc, pc, pc]);
   const lk = withRange(table(all, ["obj/blk", "ids", "play", "struct", "bg", "trig/min", "fair"],
-    [r => f0(r.objPerBlock), r => r.distinctIds, r => pc(r.gameplayShare), r => pc(r.structuralShare), r => pc(r.backgroundShare), r => f0(r.triggersPerMin), r => (r.fails ? r.fails + " FAIL" : "ok") + (r.warns ? " " + r.warns + "W" : "")]),
+    [r => f0(r.objPerBlock), r => r.distinctIds, r => pc(r.gameplayShare), r => pc(r.structuralShare), r => pc(r.backgroundShare), r => f0(r.triggersPerMin), r => r.fails == null ? "-" : (r.fails ? r.fails + " FAIL" : "ok") + (r.warns ? " " + r.warns + "W" : "")]),
     ["objPerBlock", "distinctIds", "gameplayShare", "structuralShare", "backgroundShare", "triggersPerMin", null], [f0, f0, pc, pc, pc, f0, f0]);
-  return `Gameplay\n\n${g}\n\nFlow\n\n${fl}\n\nLook and fairness\n\n${lk}\n\n* = a work-in-progress copy newer than levels/; (part) = the sim does not finish it`;
+  return `Gameplay\n\n${g}\n\nFlow\n\n${fl}\n\nLook and fairness\n\n${lk}\n\nSoft rules broken (tools/rules.js --fast; official levels not swept)
+
+${ru}
+
+* = a work-in-progress copy newer than levels/; (part) = the sim does not finish it`;
 }
 
 if (require.main === module) main();
