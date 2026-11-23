@@ -43,11 +43,15 @@ if (fs.existsSync(path.join(R, "GJ_GameSheet-uhd.plist"))) {
 } else console.log("(no game install: sheet checks skipped)");
 // OpenGD's object type (field 4 of ART) against the sim's kind: a type-0 (solid) object must never be a
 // hazard. tools/import_opengd.js's fallback once made 37 outline/plank pieces hazards (Deadlocked's 1202
-// ball lanes); lib/objects.js's SOLID0 fixes them -- a new import must keep that true.
+// ball lanes); lib/objects.js's SOLID0 fixes them -- a new import must keep that true. Type 40 ("Special":
+// the editor's lettered helper blocks D/J/S/H) got the same treatment (Fingerdash's 6% stop) and must not
+// kill either. (1304, type 7 in OpenGD, stays a hazard: GD 2.2's decoration list leaves it out too.)
 {
   const info = require("../lib/objects.js").objInfo, wrong = [];
   for (const [id, v] of Object.entries(OG)) if (v[4] === 0 && info(+id).kind === "hazard") wrong.push(id);
   check(!wrong.length, "OpenGD type 0 (solid) but the sim calls them hazards: " + wrong.join(","));
+  const special = Object.entries(OG).filter(([id, v]) => v[4] === 40 && info(+id).kind === "hazard").map(e => e[0]);
+  check(!special.length, "OpenGD type 40 (special helper blocks) but the sim calls them hazards: " + special.join(","));
 }
 console.log(bad ? bad + " failed" : "ok");
 process.exit(bad ? 1 : 0);
