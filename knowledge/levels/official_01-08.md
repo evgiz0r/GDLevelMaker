@@ -63,3 +63,5 @@ Songs come from GDBrowser song fields unless marked "unverified".
 - **A level with nothing new gets called "forgettable"** (Base After Base): every level needs an
   idea of its own. [wiki, reporting community opinion]
 - Numbers per tier for making levels: the "Tier ladder" section of DIFFICULTY.md.
+- Next: `official_09-22.md` (Harder to Demon). Per-section check of a level against the community
+  data: `node tools/tiercheck.js` (knowledge/README.md).
