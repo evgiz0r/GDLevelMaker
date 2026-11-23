@@ -483,6 +483,7 @@ at the rejoin), the natural plan (window only) and humanCost (windows carried ov
 | GDLM 41, cut (section cache) | cut at x 2662 | 0.5 s (4 sections reused, 1 seam) | 0.7 s | 0.153 / 0.153 |
 | GDLM 41, joined with itself | +5430 | 1.6 s (7 reused) | 5.4 s | 0.566 / 0.556 |
 | GDLM 61, cut | cut at x 11060 | 10 s (12 reused) | 68 s | 1.624 / 1.667 |
+| GDLM 61, joined with itself | +22800 | 206 s (36 reused; 4 seams, the first 10 000 ticks: the ship and ball stretches have no cut point) | 253 s | 1.858 / 1.935 |
 
 **Speed-ups (2026-11-23, the cloud session; every solver gains, not only re-solves):**
 - **State copies were 90x too slow.** On V8 (node 22) `Object.assign({}, state)` of a 20+ field state makes a
@@ -538,10 +539,13 @@ cost at most full + 0.01 (most cost less: the old human route is kept outside th
 1. Flying-stretch edits (GDLM 45's ship 25 s, GDLM 61's 63 s): fewer humanCost calls in a window re-plan
    (natural.js `fly`/`plan` cost 4 routes; ask physics), a cheaper window measure in flying modes (ask difficulty),
    a height-diverse beam in solveSweep (ask physics) so the 100-state first try works in corridors.
-2. Widen the study: `node tools/incsolve.js study <level> --edits 3 --seed N` over every level in levels/ and
+2. Joins of mode levels: sections are only cut in plain modes, so a join re-searches each ship/ball stretch whole
+   (GDLM 61 joined: 206 s vs 253 s). Cut flying stretches too, at a state the search can re-enter (a portal exit,
+   a wall-touch), or key a flying section by its entry state and replay it.
+3. Widen the study: `node tools/incsolve.js study <level> --edits 3 --seed N` over every level in levels/ and
    examples/ (cube ones are seconds now; mode ones ~2 min each for the base solve, then the full solve per edit).
-3. Fill the time table in CLAUDE.md as rows come in (done for what is measured).
-4. Use the rejoin goal in tools/difficulty_solve.js --resume (physics' suggestion) -- agree with gd-difficulty /
+4. Fill the time table in CLAUDE.md as rows come in (done for what is measured).
+5. Use the rejoin goal in tools/difficulty_solve.js --resume (physics' suggestion) -- agree with gd-difficulty /
    gd-physics first.
 
 **Cloud notes:** local/ is not there, so no saved solutions, checkpoints, sections or window caches: `study` and
