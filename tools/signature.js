@@ -22,8 +22,8 @@
 // our header template lists as white: now a channel of its own.
 //
 // opts.col      column where the signature starts (default 0); it is ~8 blocks wide
-// opts.floorY   y the stage stands on (default 0, the ground; a block top: its y + 15)
-// opts.ch0      first of its 12 channels (default 988: 988 .. 999)
+// opts.floorY   the ground / block top under it (default 0); the stage floats opts.lift (default 90) above it
+// opts.ch0      first of its 14 channels (default 976: 976 .. 989)
 // opts.shirt    [r,g,b] of the human's shirt (e.g. the level's accent colour; default orange)
 // opts.beats    level times (s) of the beats near the end, with opts.xOfT(t) -> x and opts.tOfX(x) -> t:
 //               the animation follows the beats the player hears while running up to the signature
@@ -59,63 +59,69 @@ const PART = { d: "glow", e: "glow", c: "glow", y: "spark", h: "metal", b: "meta
   r: "hair", s: "skin", o: "dark", t: "shirt", p: "trousers", f: "dark" };
 const ROBOT = new Set("deckyhbal".split("").filter(c => c !== "y")), SPARK = "y";
 
+// The figures come from the prop library (lib/props.js "robot" / "human", ART.md; v3, 2026-11-23): 3-unit
+// pixels, outlined, both colour keys 21 + 22 set (the v2 pixels had only 21 and showed WHITE in the game --
+// the colour question is still open, ART.md "Colour"). PAIR above is v2's drawing, kept for reference.
+// Its channels: one per colour name from ch0 (default 976 .. 989), all written by props.header().
+const P = require("../lib/props.js");
+const NAMES = ["text", "spot", "stage", "spark", "outline", "metal", "metal2", "light", "dark", "glow", "skin", "hair", "shirt", "trousers"];
 function channelsOf(opts = {}) {
-  const C0 = opts.ch0 || 988;
-  const names = ["text", "spot", "metal", "metalDark", "glow", "skin", "hair", "shirt", "trousers", "dark", "stage", "spark"];
-  const CH = {}; names.forEach((n, i) => CH[n] = C0 + i);
-  const RGB = { text: [255, 214, 92], spot: [255, 236, 190], metal: [196, 204, 220], metalDark: [104, 112, 132], glow: [64, 226, 255],
-    skin: [255, 204, 160], hair: [96, 56, 30], shirt: opts.shirt || [255, 122, 48], trousers: [40, 64, 150], dark: [18, 18, 26],
-    stage: [34, 30, 46], spark: [255, 246, 160] };
+  const C0 = opts.ch0 || 976, CH = {};
+  NAMES.forEach((n, i) => CH[n] = C0 + i);
+  CH.eye = CH.glow; CH.roof = CH.dark;            // the robot's chest light and the human's mouth share channels
+  const RGB = { text: [255, 214, 92], spot: [255, 236, 190], stage: [34, 30, 46], spark: [255, 246, 160], outline: [14, 12, 20],
+    metal: [196, 204, 220], metal2: [118, 126, 146], light: [236, 242, 255], dark: [18, 18, 26], glow: [64, 226, 255],
+    skin: [255, 204, 160], hair: [96, 56, 30], shirt: opts.shirt || [255, 122, 48], trousers: [40, 64, 150] };
+  RGB.eye = RGB.glow; RGB.roof = RGB.dark;
   return { CH, RGB, blend: { spot: true, spark: true } };
 }
+// {channel: rgb} of every channel the signature uses
+function colours(opts = {}) { const { CH, RGB } = channelsOf(opts), c = {}; for (const n of NAMES) c[CH[n]] = RGB[n]; return c; }
 
-// the signature's channels written into a level header (kS38): base colour, full opacity, the spotlight
-// and spark blending (additive light). Replaces those channels when the header has them already.
+// the signature's channels into a level header (kS38), through props.header (one channel scheme); the
+// spotlight and the spark blend (additive light)
 function header(h, opts = {}) {
-  const { CH, RGB, blend } = channelsOf(opts);
-  return h.replace(/kS38,([^,]*)/, (all, list) => {
-    const mine = new Set(Object.values(CH).map(String));
-    const keep = list.split("|").filter(c => c && !mine.has((/(?:^|_)6_(\d+)(?:_|$)/.exec(c) || [])[1]));
-    for (const n in CH) { const [r, g, b] = RGB[n]; keep.push(`1_${r}_2_${g}_3_${b}_11_255_12_255_13_255_4_-1_6_${CH[n]}` + (blend[n] ? "_5_1" : "") + "_7_1_15_1_18_0_8_1"); }
-    return "kS38," + keep.join("|") + "|";
-  });
+  const { CH, blend } = channelsOf(opts);
+  h = P.header(h, colours(opts));
+  for (const n of Object.keys(blend)) h = h.replace(new RegExp(`(_6_${CH[n]})(_7_)`), "$1_5_1$2");
+  return h;
 }
 
+// opts.lift  how high the stage floats over opts.floorY (default 90 = 3 blocks): the level's end line lies
+//            past the signature, so the player runs on under it -- the figures stand clear of the path
+//            (GDLM 60: the cube ran through v2's figures standing on the ground)
 function signature(opts = {}) {
   const { CH, RGB } = channelsOf(opts);
-  const col = opts.col != null ? opts.col : 0, floorY = opts.floorY || 0, g0 = opts.group0 || 960;
+  const col = opts.col != null ? opts.col : 0, floorY = (opts.floorY || 0) + (opts.lift == null ? 90 : opts.lift), g0 = opts.group0 || 960;
   const G = { robot: g0, human: g0 + 1, spark: g0 + 2, spot: g0 + 3, stageEdge: g0 + 4 };
   const out = [], r3 = v => String(+(+v).toFixed(3));
   const o = (id, x, y, p) => out.push({ id, x: +x.toFixed(2), y: +y.toFixed(2), rot: 0, flipX: false, flipY: false, props: Object.assign({ 155: "1" }, p) });
-  // the colours again as triggers just before it (0 s): only a safety net when a caller forgot header();
-  // the header is what the editor and the first frame show
-  Object.keys(CH).forEach((n, i) => o(899, col * 30 - 600, floorY + 390 + 30 * (i % 6), { 7: String(RGB[n][0]), 8: String(RGB[n][1]), 9: String(RGB[n][2]),
+  const both = ch => ({ 21: String(ch), 22: String(ch) });
+  // the colours again as triggers just before it (0 s): only a safety net when a caller forgot header()
+  NAMES.forEach((n, i) => o(899, col * 30 - 600, floorY + 300 + 30 * (i % 7), { 7: String(RGB[n][0]), 8: String(RGB[n][1]), 9: String(RGB[n][2]),
     10: "0", 23: String(CH[n]), 35: "1", 36: "1" }));
-  const W = PAIR[0].length, rows = PAIR.length;
-  // stage: a plinth 15 units high, 3 px wider than the pair on each side, a lit top edge
-  const stageH = 15, sx0 = col * 30, sw = (W + 6) * PX, top = floorY + stageH;
-  o(BLOCK, sx0 + sw / 2, floorY + stageH / 2, { 21: String(CH.stage), 24: "3", 25: "1", 128: r3(sw / 30), 129: r3(stageH / 30) });
-  o(BLOCK, sx0 + sw / 2, top - 1.5, { 21: String(CH.glow), 24: "3", 25: "2", 128: r3(sw / 30), 129: r3(3 / 30), 57: String(G.stageEdge) });
-  // halo behind the pair (circle, spotlight colour, blending) and the spotlight from above: two gradients
-  // (1293, bright at the top) leaning in from both sides onto the stage
-  const cx = sx0 + sw / 2, x0 = sx0 + 3 * PX + PX / 2;
-  o(497, cx, top + rows * PX * 0.55, { 21: String(CH.spot), 24: "-1", 25: "0", 32: "1.5", 57: String(G.spot), 41: "1", 43: "0a1a0.28a0a0" });
-  for (const s of [-1, 1]) { o(1293, cx + s * 22, top + 150, { 21: String(CH.spot), 24: "-1", 25: "1", 128: "2.6", 129: "9", 57: String(G.spot), 41: "1", 43: "0a1a0.6a0a0" }); Object.assign(out[out.length - 1], { rot: s * 9, flipY: true }); }
-  // the pair
-  PAIR.forEach((row, r) => [...row].forEach((c, i) => {
-    if (c === ".") return;
-    const part = PART[c], x = x0 + i * PX, y = top + (rows - 1 - r) * PX + PX / 2;
-    const groups = c === SPARK ? [G.spark] : ROBOT.has(c) ? [G.robot] : [G.human];
-    o(BLOCK, x, y, { 21: String(CH[part]), 24: "3", 25: part === "dark" || part === "glow" ? "6" : "5", 32: r3(PX / 30), 57: groups.join(".") });
-  }));
+  // stage: a floating plinth 12 units high, 6 blocks wide, a lit top edge
+  const stageH = 12, sx0 = col * 30, sw = 180, top = floorY + stageH, cx = sx0 + sw / 2;
+  o(211, cx, floorY + stageH / 2, Object.assign(both(CH.stage), { 24: "3", 25: "1", 128: r3(sw / 30), 129: r3(stageH / 30) }));
+  o(211, cx, top - 1.5, Object.assign(both(CH.glow), { 24: "3", 25: "2", 128: r3(sw / 30), 129: r3(3 / 30), 57: String(G.stageEdge) }));
+  // the spotlight from above: two gradients (1293) leaning in onto the stage (no halo ring: rings read as orbs)
+  for (const s of [-1, 1]) { o(1293, cx + s * 22, top + 150, Object.assign(both(CH.spot), { 24: "-1", 25: "1", 128: "2.6", 129: "9", 57: String(G.spot), 41: "1", 43: "0a1a0.6a0a0" })); Object.assign(out[out.length - 1], { rot: s * 9, flipY: true }); }
+  // the pair from the prop library, side by side, facing each other
+  const alloc = P.allocator(CH.text, Object.assign({}, CH));
+  const robot = P.put("robot", cx - 27, top, { alloc, colours: RGB, groups: [G.robot], zo: 4, layer: "B1" });
+  const human = P.put("human", cx + 27, top, { alloc, colours: RGB, groups: [G.human], zo: 4, layer: "B1", flipX: true });
+  out.push(...robot.objects, ...human.objects);
+  // a small spark between their heads
+  const headY = top + 2.2 * 30;
+  for (const [dx, dy] of [[0, 0], [-4, 4], [4, 4], [0, 8]]) o(211, cx + dx, headY + dy, Object.assign(both(CH.spark), { 24: "3", 25: "9", 32: r3(4 / 30), 57: String(G.spark) }));
   // two lines above: the name big in gold, the humans smaller in white
-  const ty = top + rows * PX + 26;
-  const txt = (s, y, scale, ch) => o(914, cx, y, { 21: String(ch), 24: "5", 25: "8", 32: r3(scale),
-    31: Buffer.from(s).toString("base64").replace(/\+/g, "-").replace(/\//g, "_") });
+  const ty = top + 2.8 * 30 + 26;
+  const txt = (s, y, scale, ch) => o(914, cx, y, Object.assign(both(ch), { 24: "5", 25: "8", 32: r3(scale),
+    31: Buffer.from(s).toString("base64").replace(/\+/g, "-").replace(/\//g, "_") }));
   txt(opts.text || "MADE BY CLAUDE", ty + 20, 0.62, CH.text);
   txt(opts.text2 || "(and some humans)", ty, 0.4, 1011);
-  // on the beat: both hop 4 units and land, the spark and the stage edge flash white, the spotlight
-  // breathes (a pulse up on every other beat). Only the beats heard in the last ~26 blocks before it.
+  // on the beat: both hop 4 units and land, the spark and the stage edge flash, the spotlight breathes
+  // (every other beat). Only the beats heard in the last ~26 blocks before it.
   if (opts.beats && opts.xOfT) {
     const per = opts.period || 0.5, half = Math.max(0.08, per / 2);
     let k = 0;
@@ -141,7 +147,7 @@ function describe(desc) {
   desc = String(desc || "").trim();
   return desc.includes(SIGN) ? desc : (desc ? desc + " -- " : "") + SIGN;
 }
-module.exports = { signature, header, describe, channelsOf, SIGN, PAIR };
+module.exports = { signature, header, describe, channelsOf, colours, SIGN, PAIR };
 
 // node tools/signature.js <level.gdlvl> [--out file]  -- add the signature to a copy of a level (end of
 // the level, on the ground, beats from local/beats when the song has them) -> local/tmp/<name>_sig.gdlvl,
@@ -151,8 +157,8 @@ if (require.main === module) {
   const args = process.argv.slice(2), opt = n => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] : null; };
   const L = readGdlvl(args[0]), maxX = Math.max(...L.level.objects.map(o => o.x));
   // drop an older signature (its groups 960+ / channels 988-999) so the copy shows only the new one
-  const objs = L.level.objects.filter(o => !(o.x > maxX - 1200 && (/^9[6-6]\d/.test((o.props || {})[57] || "") || +(o.props || {})[21] >= 988 && +(o.props || {})[21] <= 999
-    || (o.id === 899 && +(o.props || {})[23] >= 988 && +(o.props || {})[23] <= 999) || o.id === 914)));
+  const objs = L.level.objects.filter(o => !(o.x > maxX - 1200 && (/^9[6-6]\d/.test((o.props || {})[57] || "") || +(o.props || {})[21] >= 976 && +(o.props || {})[21] <= 999
+    || (o.id === 899 && +(o.props || {})[23] >= 976 && +(o.props || {})[23] <= 999) || o.id === 914)));
   const lastCol = Math.ceil(Math.max(...objs.map(o => o.x)) / 30);
   let beats = null, period = 0.5;
   const speed = 311.58, xOfT = t => t * speed, tOfX = x => x / speed;
