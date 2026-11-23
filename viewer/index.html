@@ -70,6 +70,21 @@
   #cmpImg { width:100%; height:min(60vh, 460px); object-fit:contain; object-position:center top; }
   @media (max-width: 700px) { #views.split { grid-template-columns:1fr; } }
   #drop { position:absolute; inset:0; display:none; place-items:center; background:rgba(11,6,32,.85); font-size:18px; border:2px dashed var(--cube); }
+  #workBox { position:fixed; inset:0; z-index:50; background:rgba(6,3,20,.72); display:flex; justify-content:center; align-items:flex-start; padding:4vh 12px; }
+  #workBox[hidden] { display:none; }
+  #wk { width:min(860px,100%); max-height:92vh; display:flex; flex-direction:column; background:#160d3a; border:1px solid #3b2d78; border-radius:10px; overflow:hidden; }
+  #wkTop { display:flex; gap:10px; align-items:center; padding:10px; border-bottom:1px solid #2b2060; }
+  #wkTop b { font-size:15px; } #wkTop .muted { flex:1; font-size:12px; }
+  #wkList { overflow-y:auto; padding:8px 12px 14px; font-size:13px; }
+  #wkList h3 { font-size:12px; color:#9c8ee0; text-transform:uppercase; letter-spacing:.06em; margin:12px 0 6px; }
+  .wkCard { border:1px solid #3b2d78; border-radius:8px; padding:8px 10px; margin:6px 0; background:#1b1145; }
+  .wkCard.open { border-color:#ffb020; }
+  .wkCard .opts { display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
+  .wkRow { display:flex; gap:8px; align-items:center; padding:6px 4px; border-bottom:1px solid #241a52; cursor:pointer; }
+  .wkRow:hover { background:#24184f; }
+  .wkRow .nm { font-weight:600; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #stagebar .rev { padding:3px 8px; font-size:12px; }
+  #stagebar .gate { color:#ffd58a; }
   #picker { position:fixed; inset:0; z-index:50; background:rgba(6,3,20,.72); display:flex; justify-content:center; align-items:flex-start; padding:4vh 12px; }
   #picker[hidden] { display:none; }
   #pk { width:min(860px,100%); max-height:92vh; display:flex; flex-direction:column; background:#160d3a; border:1px solid #3b2d78; border-radius:10px; overflow:hidden; }
@@ -94,6 +109,9 @@
 </style>
 </head>
 <body>
+<div id="workBox" hidden><div id="wk" role="dialog" aria-label="work">
+  <div id="wkTop"><b>Work</b><span class="muted" id="wkWhen"></span><button id="wkClose" title="close (Esc)">✕</button></div>
+  <div id="wkList"></div></div></div>
 <div id="picker" hidden><div id="pk" role="dialog" aria-label="choose a level">
   <div id="pkTop"><input id="pkQ" type="search" placeholder="search levels…" autocomplete="off">
     <button data-f="main" class="on" title="official levels, the levels being worked on and ours">main</button><button data-f="recent">recent</button><button data-f="pinned">★ pinned</button><button data-f="wip">in progress</button><button data-f="ours">ours</button><button data-f="official">official</button><button data-f="community">community</button><button data-f="all">all</button>
@@ -101,7 +119,7 @@
   <div id="pkList"></div></div></div>
 <header>
   <h1>GD LEVEL VIEWER</h1>
-  <select id="pick" hidden></select><button id="pickBtn" title="choose a level (key L)">📂 <span id="pickName">levels</span></button>
+  <select id="pick" hidden></select><button id="workBtn" title="what the sessions are building, what waits for you, the PC's queue (key W)">work <span id="workBadge" class="pkBadge wip" hidden></span></button><button id="pickBtn" title="choose a level (key L)">📂 <span id="pickName">levels</span></button>
   <button id="refresh" title="get the newest version of the sessions' levels">⟳ refresh</button>
   <button id="linkBtn" title="copy a link to this level at this moment">🔗 link</button>
   <label class="btn">open .gdlvl<input id="file" type="file" accept=".gdlvl,.txt" hidden></label>
@@ -529,6 +547,57 @@ function routeKindOf(saved, sol, world) {
 }
 
 
+
+// ---------- Work (key W): the place to steer the sessions (VIEWER.md) ----------
+// What each build has reached and whether it waits for you (a gated stage), the decision cards sessions ask you
+// (tools/ask.js), and the PC's heavy-job queue -- refreshed every 5 s while open; the badge on the button counts
+// what waits for you (open cards + gates), checked every 20 s. Every answer goes to the actions feed
+// (tools/actions.js), which the coordinator forwards to the owning session at once.
+const WK = { open: false, timer: null, data: null };
+async function workFetch() {
+  if (!location.protocol.startsWith("http") || window.GD_PAGES || window.GD_PHONE) return null;
+  const j = async u => { try { const r = await fetch(u, { cache: "no-store" }); return r.ok ? r.json() : null; } catch (e) { return null; } };
+  const [asks, wip, heavy] = await Promise.all([j("/asks"), j("/wip/list"), j("/heavy/status")]);
+  return (WK.data = { asks: asks || [], wip: (wip || []).filter(l => l.stage || l.wip), heavy, at: Date.now() });
+}
+function workBadge() {
+  const d = WK.data, b = document.getElementById("workBadge"); if (!d || !b) return;
+  const n = d.asks.filter(c => !c.answer).length + d.wip.filter(l => l.waiting).length;
+  b.hidden = !n; b.textContent = n;
+}
+function workRender() {
+  const d = WK.data, el = document.getElementById("wkList"); if (!d) { el.innerHTML = "<p class='muted'>Needs the PC's tools/serve.js.</p>"; return; }
+  document.getElementById("wkWhen").textContent = "updated " + new Date(d.at).toLocaleTimeString();
+  const open = d.asks.filter(c => !c.answer), done = d.asks.filter(c => c.answer).slice(0, 5);
+  const ago = iso => { const m = (Date.now() - Date.parse(iso)) / 60000; return !isFinite(m) ? "" : m < 60 ? Math.max(1, Math.round(m)) + " min ago" : Math.round(m / 60) + " h ago"; };
+  let h = `<h3>Decisions for you · ${open.length}</h3>` + (open.length ? open.map(c => `<div class="wkCard open"><b>${esc(c.question)}</b><div class="muted">${esc(c.session)}${c.level ? " · " + esc(c.level) : ""} · ${ago(c.at)}</div>
+    <div class="opts">${c.options.map(o => `<button data-card="${esc(c.id)}" data-ans="${esc(o)}">${esc(o)}</button>`).join("")}<button data-card="${esc(c.id)}" data-other="1" title="answer in your own words">other…</button></div></div>`).join("") : "<p class='muted'>Nothing waits for your answer.</p>");
+  if (done.length) h += done.map(c => `<div class="wkCard"><span class="muted">${esc(c.session)}:</span> ${esc(c.question)} → <b>${esc(c.answer)}</b>${c.note ? " (" + esc(c.note) + ")" : ""}</div>`).join("");
+  h += `<h3>Builds · ${d.wip.length}</h3>` + d.wip.sort((a, b) => (!!b.waiting - !!a.waiting) || String(b.updated || "").localeCompare(String(a.updated || ""))).map(l =>
+    `<div class="wkRow" data-file="${esc(l.file)}"><span class="nm">${esc(l.name)}</span><span class="pkBadge">${esc(l.session || "")}</span>${l.stage ? `<span class="pkBadge" style="background:#2b3a66;color:#cfe0ff">stage: ${esc(l.stage)}</span>` : ""}${l.waiting ? `<span class="pkBadge wip">waits for your ✓ on ${esc(l.waiting)}</span>` : ""}<span class="muted">${ago(l.updated || l.made)}</span></div>`).join("");
+  const q = d.heavy;
+  h += `<h3>The PC's queue</h3>` + (!q ? "<p class='muted'>not readable</p>" : (q.holders.length ? q.holders.map(x => `<div>▶ <b>${esc(x.cmd.slice(0, 90))}</b> <span class="muted">${esc(x.session)} · ${x.min} min in${x.left ? ", ~" + x.left + " min left" : ""}</span></div>`).join("") : "<p class='muted'>nothing running</p>") +
+    q.waiting.map((x, i) => `<div class="muted">${i + 1}. ${esc(x.cmd.slice(0, 90))} · ${esc(x.session)}${x.prio && x.prio !== "normal" ? " · " + esc(x.prio) : ""}</div>`).join("") + (q.free ? `<div class="muted">${q.free} MB free</div>` : ""));
+  el.innerHTML = h;
+  el.querySelectorAll("[data-card]").forEach(b => b.onclick = async () => {
+    let ans = b.dataset.ans, note;
+    if (b.dataset.other) { const r = await askNote("Your answer"); if (!r) return; ans = r.note; }
+    try { const r = await fetch("/asks/answer", { method: "POST", body: JSON.stringify({ id: b.dataset.card, answer: ans, note }) }); if (!r.ok) throw new Error(); notice("✓ Answer sent: " + esc(ans), 4000); }
+    catch (e) { notice("The answer could not be saved (is tools/serve.js running?)."); return; }
+    await workFetch(); workRender(); workBadge();
+  });
+  el.querySelectorAll("[data-file]").forEach(r => r.onclick = () => { const i = ALL.findIndex(l => l.file === r.dataset.file); if (i < 0) return notice("Refresh (⟳) to list it."); workClose(); pick.value = i; pick.dispatchEvent(new Event("change")); });
+}
+async function workShow() { WK.open = true; document.getElementById("workBox").hidden = false; document.getElementById("wkList").innerHTML = "<p class='muted'>loading…</p>"; await workFetch(); if (WK.open) { workRender(); workBadge(); }
+  clearInterval(WK.timer); WK.timer = setInterval(async () => { if (!WK.open) return; await workFetch(); workRender(); workBadge(); }, 5000); }
+function workClose() { WK.open = false; clearInterval(WK.timer); document.getElementById("workBox").hidden = true; }
+document.getElementById("workBtn").onclick = workShow;
+document.getElementById("wkClose").onclick = workClose;
+document.getElementById("workBox").onclick = e => { if (e.target.id === "workBox") workClose(); };
+addEventListener("keydown", e => { if (/INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName || "")) return;
+  if (e.key === "Escape" && WK.open) workClose(); else if ((e.key === "w" || e.key === "W") && !WK.open && document.getElementById("picker").hidden) workShow(); });
+if (location.protocol.startsWith("http") && !window.GD_PAGES && !window.GD_PHONE) { setTimeout(async () => { await workFetch(); workBadge(); }, 1500); setInterval(async () => { if (!WK.open) { await workFetch(); workBadge(); } }, 20000); }
+else document.getElementById("workBtn").hidden = true;
 // ---------- build stages (tools/stages.js: local/wip/<session>/<level>.stages/, served by /wip/stages) ----------
 // A level being made shows each stage as soon as it exists: song > layout > path > deco > final (the user: "i want even
 // partial steps like song/layout/path/deco to be available in the process"). The latest stage is lit; an earlier one
@@ -556,10 +625,33 @@ function stageRender() {
     ? `<button data-stage="${n}" class="${lit === n ? "cur" : ""}" title="${esc((have.get(n).note || "") + " · " + new Date(have.get(n).at).toLocaleString())}">${n}${n === last ? " ●" : ""}</button>`
     : `<span class="todo" title="not made yet">${n}</span>`)).join("") +
     (STG.cur && !STG.base.stagesOnly ? `<button id="stageBack" title="back to the level as it is now">current level</button>` : "") +
-    (STG.cur && have.get(STG.cur) && !have.get(STG.cur).solution && have.get(STG.cur).file ? `<button id="stageSolve" title="find this stage's route on the PC">find the route</button>` : "");
+    (STG.cur && have.get(STG.cur) && !have.get(STG.cur).solution && have.get(STG.cur).file ? `<button id="stageSolve" title="find this stage's route on the PC">find the route</button>` : "") +
+    stageReviewHtml(have.get(lit || last), lit || last);
   bar.querySelectorAll("[data-stage]").forEach(b => b.onclick = () => stageOpen(b.dataset.stage));
   const back = document.getElementById("stageBack"); if (back) back.onclick = () => { STG.cur = null; const tt = t; pick.dispatchEvent(new Event("change")); t = Math.min(tt, (L.path.length - 1) / P.TPS); draw(); };
   const sv = document.getElementById("stageSolve"); if (sv) sv.onclick = () => stageSolve(have.get(STG.cur));
+  bar.querySelectorAll("[data-review]").forEach(b => b.onclick = () => stageReview(have.get(b.dataset.stage), b.dataset.review));
+}
+// the user's answer on the stage shown: ✓ ok, or redo with a note (and the moment / spot on screen); a gated stage
+// says the build waits for it
+function stageReviewHtml(st, name) {
+  if (!st || !STG.base) return "";
+  const r = st.review, gate = st.gate && !r ? `<span class="gate">⏸ the build waits for you on ${esc(name)}</span>` : "";
+  const state = r ? `<span class="muted">${r.verdict === "ok" ? "✓ approved" : "↺ redo asked" + (r.note ? ": " + esc(r.note.slice(0, 40)) : "")}</span>` : "";
+  return `<span class="sep">|</span>${gate}${state}<button class="rev" data-review="ok" data-stage="${esc(name)}" title="this stage is good: the build goes on">✓ ok</button><button class="rev" data-review="redo" data-stage="${esc(name)}" title="send it back with a note (the moment on screen goes with it)">redo…</button>`;
+}
+async function stageReview(st, verdict) {
+  if (!st || !STG.base) return;
+  let note;
+  if (verdict === "redo") { const a = await askNote("What should change in the " + st.stage + "?"); if (!a) return; note = a.note + (a.kind && a.kind !== a.note ? " (" + a.kind + ")" : ""); }
+  const spot = L && L.path.length ? { t: +(tick() / P.TPS).toFixed(2), x: Math.round(L.path[tick()].x) } : undefined;
+  try {
+    const r = await fetch("/stages/review", { method: "POST", body: JSON.stringify({ file: STG.base.file, level: STG.base.name, stage: st.stage, verdict, note, spot }) });
+    if (!r.ok) throw new Error(await r.text());
+    st.review = await r.json();
+    notice(verdict === "ok" ? `✓ ${esc(st.stage)} approved: ${esc(STG.base.session || "the session")} hears it now.` : `↺ ${esc(st.stage)} sent back to ${esc(STG.base.session || "the session")} with your note.`, 5000);
+    stageRender(); workFetch().then(workBadge);
+  } catch (e) { notice("Could not send it (is tools/serve.js running?)."); }
 }
 function stageOpen(name) {
   const st = STG.data && STG.data.stages.find(x => x.stage === name); if (!st) return;

@@ -33,5 +33,6 @@ path), **not yet**. Update the status when a use case moves; add new ones as the
 | 25 | **Learn my skill**: personalised difficulty from my recordings | parts | real_stats, the taste rows | a per-user difficulty curve that picks what's right for them |
 | 26 | **Verify in the real game automatically** (the PC plays the level itself) | not yet | computer use, the publisher | inputs from the route sent to GD, recorded, compared -- the strongest fidelity check |
 | 27 | **Platformer mode** levels | not yet | -- | the 2.2 platformer physics and controls |
+| 28 | **Steer the work from the viewer**: see every build and its stage, approve or send back each stage, answer the sessions' questions, every answer reaching its session at once | works (first version) | VIEWER.md: the Work panel (builds, cards, the PC's queue), ✓ ok / redo on the stage bar with gates (`tools/stages.js waitApproval`), decision cards (`tools/ask.js`), the actions feed (`tools/actions.js tail`) | builders using gates (Golden Haze first); the coordinator's monitor forwarding the feed; cards from more sessions |
 
 When a session builds one of these, it updates this row in the same commit.

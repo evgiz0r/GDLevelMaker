@@ -99,6 +99,9 @@ const SERVER = http.createServer((req, res) => {
         // user (a "TEST mark from Claude" pin sat on hellgate in the user's viewer, 2026-11-23)
         const testMark = m.test === true || /^test-/.test(String(m.id));
         fs.appendFileSync(testMark ? MARKS.replace(/\.jsonl$/, ".test.jsonl") : MARKS, JSON.stringify(m) + "\n");
+        // the actions feed (tools/actions.js): a real mark or variant pick reaches its session at once
+        if (!testMark && m.note != null) try { require("./actions.js").append({ type: m.type || "mark", session: m.session || "", level: m.level || "", file: m.file || "",
+          text: m.note + (m.kind ? " (" + m.kind + ")" : ""), mark: m.id, t: m.t, x: m.x, section: m.section, key: m.key }); } catch (e) {}
         res.writeHead(200, { "Content-Type": "application/json" }); res.end('{"ok":true}');
       } catch (e) { res.writeHead(400); res.end(String(e.message)); }
     });
@@ -206,6 +209,37 @@ const SERVER = http.createServer((req, res) => {
     } catch (e) {}
     res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify(out));
   }
+  // POST /stages/review {file: local/wip/<s>/<base>.gdlvl, stage, verdict: ok | redo, note?, spot?}: the user's answer
+  // on a build stage (tools/stages.js approve; a gated build waits for it), also to the actions feed
+  if (req.method === "POST" && p === "/stages/review") {
+    let body = ""; req.on("data", c => { body += c; if (body.length > 1e5) req.destroy(); });
+    req.on("end", () => {
+      try {
+        const j = JSON.parse(body), m = /^local\/wip\/([\w-]+)\/([\w.-]+)\.gdlvl$/.exec(String(j.file || ""));
+        if (!m) throw new Error("bad file");
+        const r = require("./stages.js").approve(m[1], m[2], String(j.stage), { verdict: j.verdict, note: j.note, spot: j.spot });
+        require("./actions.js").append({ type: j.verdict === "ok" ? "approve" : "redo", session: m[1], level: j.level || m[2], file: j.file, stage: j.stage, text: j.note || (j.verdict === "ok" ? "ok" : ""), spot: j.spot });
+        res.writeHead(200, { "Content-Type": "application/json" }); res.end(JSON.stringify(r));
+      } catch (e) { res.writeHead(400); res.end(String(e.message)); }
+    });
+    return;
+  }
+  // decision cards (tools/ask.js): GET /asks -> every card, open first; POST /asks/answer {id, answer, note?}
+  if (p === "/asks" && req.method === "GET") {
+    let out = []; try { out = require("./ask.js").list(); } catch (e) {}
+    res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify(out));
+  }
+  if (req.method === "POST" && p === "/asks/answer") {
+    let body = ""; req.on("data", c => { body += c; if (body.length > 1e5) req.destroy(); });
+    req.on("end", () => {
+      try {
+        const j = JSON.parse(body), c = require("./ask.js").answer(j.id, j.answer, j.note);
+        require("./actions.js").append({ type: "answer", session: c.session, level: c.level, file: c.file, card: c.id, question: c.question, answer: c.answer, text: c.question + " -> " + c.answer + (c.note ? " (" + c.note + ")" : "") });
+        res.writeHead(200, { "Content-Type": "application/json" }); res.end(JSON.stringify(c));
+      } catch (e) { res.writeHead(400); res.end(String(e.message)); }
+    });
+    return;
+  }
   // GET /heavy/status?match=<text>: the heavy-job queue (tools/heavy.js) for the viewer's task modal and chip: who
   // runs, who waits in order, and for the job whose command line holds `match`: its place and a rough ETA (minutes)
   if (p === "/heavy/status") {
@@ -277,13 +311,14 @@ const SERVER = http.createServer((req, res) => {
       for (const b of ST.list()) {
         const last = b.index.stages[b.index.stages.length - 1]; if (!last) continue;
         const file = "local/wip/" + b.session + "/" + b.base + ".gdlvl", have = out.find(o => o.file === file);
-        if (have) { have.stage = last.stage; continue; }
+        const waiting = b.index.stages.filter(s => s.gate && !s.review).map(s => s.stage)[0];   // a gate the user has not answered
+        if (have) { have.stage = last.stage; have.waiting = waiting; continue; }
         const withLevel = b.index.stages.filter(s => s.file).pop(), songSt = b.index.stages.find(s => s.stage === "song");
         let level = ST.emptyLevel(songSt && songSt.data), solution = { ok: true, events: [] };
         if (withLevel) try { level = readGdlvl(path.join(b.dir, withLevel.file)).levelStr; solution = require("./solutions.js").get(level) || undefined; } catch (e) {}
         out.push({ name: b.index.name, session: b.session, file, wip: true, stagesOnly: true, stage: last.stage, level, solution,
           song: songSt && ST.songOf(songSt.data), version: 0, note: "building: " + b.index.stages.map(s => s.stage).join(" > "),
-          made: b.index.stages[0].at, updated: last.at });
+          made: b.index.stages[0].at, updated: last.at, waiting });
       }
     } catch (e) {}
     res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify(out));
