@@ -12,6 +12,7 @@
 // both never committed (GD art is RobTop's; official levels are RobTop's). The viewer's "level map"
 // button opens local/maps/<file name>.jpg. Shapes maps (--shapes) are art-free: <name>_shapes.*
 // VISUALS.md "Level map".
+if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const fs = require("fs"), path = require("path"), cp = require("child_process");
 const ROOT = path.join(__dirname, ".."), { headless } = require("./headless.js"), { levelOf } = require("./shoot.js");
 const args = process.argv.slice(2), opt = n => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] : null; };

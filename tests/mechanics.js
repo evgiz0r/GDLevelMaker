@@ -19,6 +19,26 @@ const first = (r, act) => r.path.find(p => p.act === act);
   const p = first(GD.run(w, []), "teleport portal");
   check("quarter-turned teleport: full offset", p && p.y === 165, p && p.y);
 }
+// a slope turned a quarter is still a slope: 1338 flipped up and turned 90 rises to the right, so a cube
+// walks up it onto a block (the old rule made it a wall: death); turned 90 unflipped it walks down
+{
+  const objs = [{ id: 1338, x: 315, y: 15, rot: 90, flipY: true }, { id: 1, x: 345, y: 15 }, { id: 1, x: 375, y: 15 },
+    { id: 1338, x: 405, y: 15, rot: 90 }, { id: 1, x: 900, y: 15 }];
+  const q = GD.run(GD.makeWorld(objs), []), top = q.path.find(s => s.x >= 360 && s.x <= 365);
+  check("quarter-turned slopes: walk up and down", !q.dead || q.end.x > 500, (q.dead ? "dies " + q.why + " at " + q.end.x.toFixed(0) : "") + " y at step " + (top && top.y.toFixed(1)));
+}
+// no secret ways (the user, 2026-11-23: "if the solver skips something, its 99% wrong"): a portal the route
+// can reach must be taken; one it cannot reach makes the level stuck there, never a pass that goes around it
+{
+  const lvl = row => [{ id: 202, x: 400, y: row * 30 + 15 }, { id: 1, x: 1500, y: 15 }];
+  const a = GD.solveAny(GD.makeWorld(lvl(1.5)));
+  const took = a.ok && GD.run(GD.makeWorld(lvl(1.5)), a.events).end.used.length > 0;
+  check("no-skip: a reachable floating portal is taken", a.ok && took, a.ok ? (took ? "taken" : "skipped") : a.why);
+  const b = GD.solveAny(GD.makeWorld(lvl(9)));
+  check("no-skip: an unreachable portal makes the level stuck", !b.ok && /skipped/.test(b.why || ""), b.ok ? "passed around it" : b.why + " " + (b.skipped || ""));
+  const c = GD.solveAny(GD.makeWorld(lvl(9)), { allowSkips: true });
+  check("no-skip: allowSkips (debugging) still finds the way around", c.ok, c.ok ? "ok" : c.why);
+}
 // pad table: a ball's yellow pad gives 16 x 0.6 = 9.6; a cube's 16
 for (const [mode, want] of [["cube", 16], ["ball", 9.6]]) {
   const w = GD.makeWorld([{ id: 35, x: 300, y: 2 }, { id: 1, x: 900, y: 15 }]);
@@ -97,7 +117,9 @@ for (const hold of [true, false]) {
 // triple spike with a yellow orb above, the merged-state solver claimed 429-450, real 440-450)
 {
   const w = GD.makeWorld(GD.parseLevel("kA4,0;1,8,2,615,3,15;1,8,2,645,3,15;1,8,2,675,3,15;1,36,2,645,3,105;1,1,2,1215,3,-15;").objects);
-  const r = GD.solveAny(w), c = r.clicks[0], badT = [];
+  // allowSkips: this checks the exact solver's windows; its route clears the spikes without the orb, which
+  // the no-skip rule (orb on the arc) would hand to the sweep
+  const r = GD.solveAny(w, { allowSkips: true }), c = r.clicks[0], badT = [];
   for (let t = c.lo; t <= c.hi; t++) if (GD.run(w, [{ tick: t, type: "press" }, { tick: t + 1, type: "release" }]).dead) badT.push(t);
   check("every tick of a solver window clears", r.ok && !badT.length && !GD.run(w, r.events).dead, `${c.lo}-${c.hi}${badT.length ? " bad " + badT.join(",") : ""}`);
 }

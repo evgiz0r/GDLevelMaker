@@ -1,4 +1,4 @@
-// node tools/shoot.js <level> [--at 2,5.5,10 | --every 2] [--rec <video> --t0 <s>] [--out <dir>] [--shapes] [--hitboxes] [--port 8767]
+// node tools/shoot.js <level> [--at 2,5.5,10 | --every 2] [--rec <video> --t0 <s>] [--out <dir>] [--shapes] [--hitboxes] [--input] [--port 8767]
 //
 // Pictures of a level as GD draws it (the viewer's "GD art", lib/art.js), with no browser to drive:
 // headless Edge renders 1920x1080 frames at the given level times (seconds) into local/shots/<level>/
@@ -10,8 +10,10 @@
 //   --rec, --t0 a recording in ~/Videos/Captures and the video second where this attempt starts:
 //               each frame becomes render | game side by side (VISUALS.md "Facts" for how to find t0)
 //   --shapes    the shape drawing instead of GD art; --hitboxes overlays hitboxes
+//   --input     the viewer's button strip under the ground: presses, holds, each input's timing window
 // Uses a saved solution when there is one (tools/solutions.js); otherwise the page solves the level.
 // One heavy job at a time (a headless browser with the sheets is ~1 GB).
+if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const fs = require("fs"), path = require("path");
 const ROOT = path.join(__dirname, ".."), { headless } = require("./headless.js"), { readGdlvl } = require("./io.js");
 const args = process.argv.slice(2), opt = n => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] : null; };
@@ -44,7 +46,7 @@ if (require.main === module) (async () => {
   else { const step = +(opt("--every") || 2); times = []; for (let s = 0; s <= lenS && times.length < 30; s += step) times.push(+s.toFixed(2)); }
   const id = "j" + Date.now().toString(36);
   const dir = path.join(ROOT, "local", "shoot"); fs.mkdirSync(dir, { recursive: true });
-  const job = { level: lv, times, art: !args.includes("--shapes"), hitboxes: args.includes("--hitboxes"), rec: opt("--rec"), t0: +(opt("--t0") || 0) };
+  const job = { level: lv, times, art: !args.includes("--shapes"), hitboxes: args.includes("--hitboxes"), input: args.includes("--input"), rec: opt("--rec"), t0: +(opt("--t0") || 0) };
   fs.writeFileSync(path.join(dir, id + ".json"), JSON.stringify(job));
   if (!lv.solution) console.log("(no saved solution: the page solves it, which can take a while for long levels)");
   const r = await headless(`viewer/?shoot=${id}`, path.join(dir, id, ".done"), { port: +(opt("--port") || 8767) });

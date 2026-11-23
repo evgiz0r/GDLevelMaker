@@ -28,6 +28,9 @@ turned into levels: SKETCH.md.
 | renders | `node tools/shoot.js <level> --at 1.5,4,7 --out local/shots/<name>` for before and after (it may not exit after writing: the PNGs are there), then `ffmpeg -i before.png -i after.png -filter_complex "[0]scale=960:-1[a];[1]scale=960:-1[b];[a][b]vstack" ba.png` | ~1 min |
 | before / after live | `node tools/serve.js`, http://localhost:8765/viewer/polish.html (every compare file; GD art; numbers, changes, every window) | |
 | the level as text | `node tools/textmap.js <level> --from C --to C` (blocks, spikes, orbs, portals, the path, presses) | seconds |
+| readability | `node tools/readability.js <level> [--gate]` (hazard contrast, clutter, flashing; renders) | ~8 min for 12 s |
+| orbs at the natural arc | `node tools/orbarc.js <level> [--gate]` | ~1 min |
+| spike groups | `node tools/clusters.js <level ...> [--gate]` | instant |
 | orb chains | `node tools/orbchain_try.js [--n 2,3] [--row 2,3] ...`: orb-chain layouts ranked by their tightest window | ~6 s a layout |
 | show it to the user | `node tools/wip.js put local/polish/<slug>_polished.gdlvl --session polish --note "..."`, then the ArtifactData call it prints (phone page); tell the main session (it installs) | |
 | test | `node tests/polish.js` | ~35 s |
@@ -142,6 +145,39 @@ platform now starts where the spikes end, 1 high and 5 long (2 high failed the f
 exit). Tightest window 208 ms over the human route, score.js READY (warns: v12's prejump at block 6, an
 empty last third -- next round's gameplay).
 
+Round 2 (2026-11-23), the user on round 1 in the game: "waaaay too flashy. the contrast between the
+objects is bad, hard to tell what kills you what not"; on the orbs (v12): "hard to time the orb ... the
+timing is unnatural and small"; on block ~85 (v13): "this looks like very bad jump".
+- **Calm look**: no per-beat pulses (a soft edge swell on bars in the drop zones and at each mode change
+  only), no blending glow (five blending channels washed the spikes out), the haze dim and fading up
+  from the ground, deco dark and desaturated (rocks far only, no near layer, no fires, few embers
+  behind), the spec's full-screen orange sky flashes made short shifts of a dark sky.
+  Measured (`tools/readability.js`): hazard contrast 1.05-1.48 -> 4.7-6.0, clutter 9.2% -> 2.1%,
+  flashes 0.27/s -> 0.
+- **Orbs on the natural arc**: 9 spikes from b10+2, yellow orbs at b10+4 row 2 and b10+7 row 3,
+  the landing platform right where the spikes end (b10+11). Take-off 54 -> 192 ms (with the orbs
+  clicked on reach), orb presses 196 / 217 ms. The orbs sit 0.5-0.6 block off the spike row's exact
+  thirds (an 8-spike row with them on the thirds does not solve with one press per orb): kept, stated.
+- **The jump before the red pad**: the j19 single and j20.5 double were nudged into each other and
+  against the pad (13 ms with later inputs fixed; 63 ms in the shared player window, lib/windows.js since main 05abaf7, which re-plans the next input -- tight either way, the user's "very bad jump"); now one single at b20, 6 blocks after the
+  wave exit, 2 blocks of run before the pad.
+What made it better: readability first. A dark, calm scene with white hazards reads at a glance and still
+looks like hell (dim warm haze, dark rocks, lava-edged blocks). What did not: everything that pulsed.
+
+## Soft rules from the user's notes (CLAUDE.md: each note is a rule, checked everywhere)
+
+| family | check | sweep (2026-11-23) |
+|---|---|---|
+| too flashy, hazards not readable | `tools/readability.js <level> --gate`: renders each moment with and without hazards (same run), hazard contrast (WCAG) vs what is behind, bright clutter, flash rate | hellgate v13 fails (1.05), round 2 passes (4.7); the other levels: see below |
+| orbs off the natural arc / off-centre | `tools/orbarc.js <level> --gate`: the free arc from the press before each orb, its apex vs the orb; the take-off window with the orbs clicked on reach (`adaptiveTakeoff`); halves / thirds of the hazard row | see below |
+| jump mark on a hazard ("indicator inside spike") | `tools/indicators.js <level ...> [--fix]` = decorate.js indicatorIssues; placement: jumpIndicators keeps INDICATOR.clear (40) in front of the hazard | 13 GDLM levels: 44 v4 1 (fixed), 45 9, 47 20, 50 7, 51 6, polished cube timings 4, the rest clean |
+| uneven spike clusters | `tools/clusters.js <level ...> --gate`: overlap, ragged gaps, a hazard just before a pad (static) | 13 GDLM levels: v13 3 spots (the user's), GDLM 45 1 ragged (block 63), all others clean; round 2 clean |
+
+Windows: a jump's window should be measured with the NEXT input re-timed (a player reacts), not fixed
+in time: fixed, a take-off before an orb chain read 13-21 ms in a test world where a player has 96-196
+ms. tools/orbarc.js adaptiveTakeoff and style's score.js "player timing" gate do this; told visuals for
+lib/windows.js (the viewer's window bars).
+
 ## How it was tested
 
 - `tests/polish.js`: tap pairing; the window of cube timings' 13 ms input; read + deco add only
@@ -161,6 +197,9 @@ empty last third -- next round's gameplay).
 - Look: 3.8 objects per block (the checklist's target is 10-50; modernPass stays near 5-6 by design).
   No front-layer glow or particles yet, no shaders, colours of hazards untouched.
 - Fair pass moves one thing at a time and re-times only the input it fixes.
+- polish.js's own windowOf still holds later inputs fixed (pessimistic); the shared measure is now
+  lib/windows.js (difficulty's re-planned measureWindows, used by the viewer, score.js and tools/windows.js):
+  polish.js should switch to it so every tool gives one number.
 - Sync: drops and section changes (`tools/songmap.js`) are not used yet; only beats and bars.
 - Difficulty before/after (lib/difficulty.js tier) is not in the report yet.
 - The viewer's GD art draws the title text object (914) as an editor "Start pos" label (visuals session).

@@ -5,6 +5,7 @@
 //   full report cached (local/difficulty/scored_NN.json), with another chance model: seconds, not an hour
 // node tools/difficulty.js some.gdlvl [...]             -- scores your own levels (solves them first).
 // Levels the sim cannot finish are scored on the part it gets through ("per minute" compares them).
+if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const fs = require("fs"), path = require("path");
 const { GD, unpack, readGdlvl } = require("./io.js");
 const DF = require("../lib/difficulty.js");
