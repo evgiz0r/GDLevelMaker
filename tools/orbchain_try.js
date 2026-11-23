@@ -1,5 +1,5 @@
 // node tools/orbchain_try.js [--n 2,3] [--dx 3] [--row 2,3] [--climb 0,1] [--first 1] [--gap 2] [--run 4] [--plat 4] [--plat-h 1] [--land-h 2]
-// (~6 s per layout: keep the lists short)
+// (~6 s per layout: keep the lists short). The take-off window is the adaptive one (orbs clicked on reach).
 // Try orb-chain layouts in a small world of their own and rank them by their tightest orb window:
 // a ground run, a takeoff platform (`--plat` columns, `--plat-h` rows), a spike pit with the orbs over
 // it, and a landing platform that starts right where the spikes end (an early landing must not hit a
@@ -40,6 +40,10 @@ for (const n of NS) for (const dx of DXS) for (const r0 of R0S) for (const climb
     const path = GD.run(w, ev).path, wins = P.allWindows(w, ev, path).filter(x => x.type !== "release");
     if (wins.length !== n + 1) continue;  // the takeoff jump + one press per orb, nothing else
     const top = Math.max(...path.map(p => p.y)) / 30;
+    // the take-off as a player does it: the orbs clicked whenever reached (tools/orbarc.js), not fixed in time
+    const objsO = objs.filter(o => o.id === 36).sort((p, q) => p.x - q.x);
+    const takeoff = require("./orbarc.js").adaptiveTakeoff(w, ev, ev.find(e => e.type === "press" || e.down).tick, objsO);
+    if (takeoff) wins[0].ms = takeoff.ms;
     const min = Math.min(...wins.map(x => x.ms));
     if (!best || min > best.min) best = { n, dx, rows: orbs.map(o => o[1]), first, gap, min, wins: wins.map(x => x.ms), top: +top.toFixed(1), climb: orbs[n - 1][1] - orbs[0][1] };
   }

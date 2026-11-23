@@ -24,6 +24,12 @@
 //                a portal, a mark with no jump, a sloped floor at a portal exit, an orb chain with
 //                nothing to correct, too-fast wave turns: FAIL; a blind two-step opener: WARN).
 //                Fitted on the user's labelled deaths (DIFFICULTY.md "Fairness"). ~1 min more.
+//   route        the shown (natural) route flies cleanly: a wave leg that takes more than one press
+//                (inputs under 100 ms apart: FAIL, the corridor can't be flown in its native zigzag), or
+//                flying ticks within 12 units of a wall (WARN). The user on GDLM 45: "way too many clicks
+//                in these wave corridors. and way too close to the borders" (lib/natural.js routeCheck).
+//                Also WARN: a press the route can drop and still finish (an arrow would mark a jump
+//                that is not needed; the user on GDLM 44 v12, "some places mark to jump but no need").
 //   objects      gameplay objects with unconfirmed hitboxes (sure:false; WARN only)
 // Cost: two solves of the level (a few seconds for a 30 s cube level). One at a time.
 const fs = require("fs");
@@ -281,6 +287,18 @@ function scoreLevel(level, brief, opts = {}) {
     const fail = fl.filter(f => f.severity === "FAIL");
     gate("fairness", fail.length ? "FAIL" : fl.length ? "WARN" : "PASS",
       fl.length ? fl.map(f => `${f.family} at block ${(f.x0 / 30).toFixed(0)}: ${f.note}`).join("; ") : "no unfair spots found");
+  }
+
+  if (r.ok && opts.route !== false) {
+    const N = require("../lib/natural.js");
+    let ev = r.events;
+    try { const n = N.naturalPlan(w, r, level.objects); if (n && n.path[n.path.length - 1].done) ev = n.events; } catch (e) {}
+    const st = N.routeCheck(w, ev, level.objects), jit = st.filter(x => x.shortLegs), close = st.filter(x => x.closeTicks);
+    const extra = N.extraPresses(w, ev);
+    if (extra.length) st.push({ mode: "presses not needed", from: extra[0].x, to: extra[extra.length - 1].x, presses: extra.length, closeTicks: 0, shortLegs: 0 });
+    gate("route", jit.length ? "FAIL" : close.length || extra.length ? "WARN" : "PASS",
+      st.length ? st.map(x => `${x.mode} ${(x.from / 30).toFixed(0)}-${(x.to / 30).toFixed(0)}: ${x.presses} presses` + (x.shortLegs ? `, ${x.shortLegs} legs under 100 ms` : "") + (x.closeTicks ? `, ${(x.closeTicks / 2.4).toFixed(0)} cs within 12 of a wall` : "")).join("; ") : "no flying parts",
+      jit.length ? "a wave corridor that needs extra presses per leg: widen it or straighten it (tell style)" : "");
   }
 
   const unsure = level.objects.filter(o => { const d = GD.objInfo(o.id); return ["solid", "hazard", "orb", "pad", "slope"].includes(d.kind) && d.sure === false; });
