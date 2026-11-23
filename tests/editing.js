@@ -75,6 +75,18 @@ const r3 = E.apply(L.level, P("extend this block 2 right"), sp), d3 = E.diff(L.l
 ok(d3.added.length >= 2 && d3.removed.length === 0, "extend adds the edge column twice");
 ok(hash(F61) === h0, "the original file is untouched by dry edits");
 
+// 3b. retarget (13): targets, and candidate edits at an input without solving
+const RT = require("../tools/retarget.js");
+ok(RT.target("easier", 0.365).name === "Easy" && RT.target("harder", 0.365).name === "Hard", "easier / harder = one tier");
+ok(RT.target("3", 2).name === "Normal" && RT.target("Harder", 0).name === "Harder" && RT.target("0.5", 0).lo === 0.45, "stars, tier names, a score");
+ok(RT.tierOf(0.2) === "Easy" && RT.tierOf(1.0) === "Hard", "tier cuts as DIFFICULTY.md");
+{ const pth = route.path, i = pth.findIndex(q => q.x >= 37 * 30), a = { x: pth[i].x - 60, y: 15, tick: i, mode: "cube" };
+  const ce = RT.candidates(L.level.objects, a, -1, pth), ch = RT.candidates(L.level.objects, a, 1, pth);
+  ok(ce.some(c => /shorter/.test(c.why)) && ce.some(c => /later/.test(c.why)), "easier candidates at the pit before b37: " + ce.map(c => c.why).join("; "));
+  ok(ch.some(c => /longer/.test(c.why)), "harder candidates: " + ch.map(c => c.why).join("; "));
+  const r = E.apply(L.level, ce.find(c => /shorter/.test(c.why)).ops, { x: a.x, col: 36, block: 36, y: null, playerY: 15 });
+  ok(E.diff(L.level.objects, r.objects).removed.length === 1, "a row one shorter removes one hazard"); }
+
 // 4. one real edit end to end (heavy: a route re-plan)
 if (!quick) {
   const out = path.join(ROOT, "local", "tmp", "test_edit_61.gdlvl");
