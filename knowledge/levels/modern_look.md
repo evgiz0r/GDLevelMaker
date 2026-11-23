@@ -109,8 +109,9 @@ Share of non-trigger objects per z-layer (key 24, or the id's default layer):
 - Modern levels use **all 9 layers**. Sunset Aurorae has 29% in B5 and 49% in T3/T4; Harpuia 36%
   in T3. The 2.0-2.1 levels use B2, B1 and T1 only.
 - **Front layers (T2-T4) carry a quarter of the objects in 2.2**: light, glow, particles and
-  frames over the play. That is new since 2.1. The key-24 values (B5 -5 ... T4 11) are from memory
-  (sure:false) and the T1/B-split matches the catalogue defaults.
+  frames over the play. That is new since 2.1. The key-24 values (B5 -5 ... T4 11) are the ones `lib/art.js` uses:
+  -3..9 from OpenGD's renderer, B5/T4 from memory of 2.2. None is checked in the game yet. The
+  T1/B-split matches the catalogue defaults.
 
 ## 3. Which decoration
 
@@ -234,8 +235,11 @@ Keep in mind:
 
 ## Open
 
-- No in-game check yet that the key-24 layer numbers mean what is assumed here, or what key 96
-  (no glow?) does.
+- No in-game check yet of the key-24 layer numbers (OpenGD plus memory, as in `lib/art.js`), or of
+  key 96 = no glow (the same reading as `lib/art.js`; unconfirmed).
+- Comparing frames of the user's recording with the viewer works for Spire's first ~7.5 s
+  (`local/shots/spire_vs_rec*`). Past that, and for Sunset Aurorae and Dash Tower, the sim's route
+  leaves the user's path (VISUALS.md "Open").
 - 2.2-only ids have no default layer in the catalogue ("T1?": up to 25% of CHAOTIC's objects).
 - Particles, shaders and moving groups only show in play. Comparing frames of the user's
   recording `GD claude-rec 2026-11-23_03-23-46.mkv` with the viewer would show what the numbers
