@@ -61,5 +61,5 @@ if (require.main === module) (async () => {
   try { fs.rmSync(path.join(dir, id), { recursive: true, force: true }); fs.unlinkSync(path.join(dir, id + ".json")); } catch (e) {}
   console.log(r.ok ? `${files.length} frames in ${r.seconds.toFixed(0)} s:` : `timed out after ${r.seconds.toFixed(0)} s; got ${files.length} frames:`);
   for (const f of files) console.log("  " + f);
-  if (!r.ok) process.exit(1);
+  process.exit(r.ok ? 0 : 1);
 })().catch(e => { console.error(e.message); process.exit(1); });

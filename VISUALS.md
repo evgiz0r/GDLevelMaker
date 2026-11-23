@@ -80,6 +80,18 @@ object id -> frame names, offsets, colour roles, layers.
   "level map" button opens the .jpg. GD-art maps and official levels stay local; `_shapes` maps are
   art-free (for the phone page, gd-sync). Drawn by the viewer's map mode (`mapRender`, `MAPCAM`).
 
+- **Signature: `tools/signature.js`** (the user's idea, 2026-11-23: a robot and a human side by side,
+  "Made by Claude (and some humans)", at the end of every level). `signature({col, floorY, channels:
+  {accent|shirt, light|text}, beats, period, xOfT, tOfX, group0=960, ch0=990})` -> ~156 objects: 118
+  pixels (id 211 squares at 6-unit pixels, ~2.4 blocks tall), the text (914), colour triggers for its
+  own channels 990-996 (grey metal, cyan eyes, peach skin, brown hair, navy trousers; the shirt copies
+  the level's accent when given), and per beat in the last ~26 blocks a hop (901) and the robot's arm
+  waving about its shoulder (1346, object rotation locked). `describe(desc)` adds the line to the
+  description. Try: `node tools/signature.js <level>` -> local/tmp/<name>_sig.gdlvl. Renders:
+  local/shots/signature/. Player colours 1005/1006 were tried first: they blend, the human went
+  see-through. Text objects are drawn by lib/art.js in a heavy system font -- GD's bigFont and the
+  text's real size are not checked in the game yet (install one and look).
+
 ## Facts (checked against the user's recordings)
 
 How: viewer "compare" panel, level start offset set by eye, "save comparison" -> `local/shots/`.
@@ -99,6 +111,9 @@ Driven from the browser console: load a level (`load(name, levelStr, solution)` 
   old header has no flag and its ground spikes and chains show lime added over purple (yellowish).
 - **Ground spikes 18-21, chains, antennas' balls default to 1005** (OpenGD), confirmed by the colours above.
 - **Background**: the 2048 px tile is drawn at natural size (512 units), bottom on the ground line.
+- **Background 13 (`game_bg_13`) is a flat white texture** (mean grey 255; the others 140-166), so with it
+  the background shows channel 1000 exactly as set -- the one to use for bright / pastel levels (gd-style,
+  GDLM 47).
 - **Middleground**: only the top ~40 units of the `fg` pictures show above the ground; the rest is under it.
 - **Glow** takes the object's main colour (OpenGD; Cycles' white blocks glow white).
 - **Rotated frames**: the plist `textureRect` size is the upright size; the sheet holds it turned 90

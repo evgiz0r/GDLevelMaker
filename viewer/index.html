@@ -478,7 +478,9 @@ function draw() {
     const on = objsNow.filter(o => sx(o.x) > -150 && sx(o.x) < W + 150);
     const skip = o => { const d = GD.objInfo(o.id); if (d.kind === "trigger") return true; const i = AR.info(o.id); return !!i && /^edit_/.test(i.frame); };
     const res = AR.drawObjects(ctx, on, LS, local, o => GD.LOOK.objAlpha(o, LS.alpha), skip);
-    for (const o of res.rest) { const d = GD.objInfo(o.id); if (d.kind === "decoration" || d.kind === "trigger") continue;
+    for (const o of res.rest) { const d = GD.objInfo(o.id);
+      if (o.id === 914) { const a = GD.LOOK.objAlpha(o, LS.alpha); if (a > 0.01) { ctx.globalAlpha = a; local(o, () => GD.LOOK.drawDeco(ctx, o, LS)); ctx.globalAlpha = 1; } continue; } // text: GD's font, drawn by lib/look.js
+      if (d.kind === "decoration" || d.kind === "trigger") continue;
       const a = GD.LOOK.objAlpha(o, LS.alpha); if (a <= 0.01) continue; ctx.globalAlpha = a; drawObj(o); ctx.globalAlpha = 1; ctx.shadowBlur = 0; }
     res.after();
     if (!AR.drawGround(ctx, view, LS, sc)) GD.LOOK.drawGround(ctx, view, LS);
@@ -835,13 +837,29 @@ async function shootRun() {
   if (job.ghost !== false) {
     const last = L.path[L.path.length - 1];
     // a map wants the whole level (colours keep changing past a sim stop); shots their latest time
-    const want = job.map ? Math.ceil(L.world.endX / (((P.SPEEDS[last.sp] || P.SPEEDS[1]).x) * 60 / P.TPS)) + 2 : Math.max(...job.times) * P.TPS + 2;
+    // the ghost keeps to the level's speed portals after the stop (it ran at the death's speed before, and
+    // look47's 0.5x / 2x portals put frames at the wrong x: gd-style, 2026-11-23). SPEEDS: units per 60 fps frame
+    const portals = L.level.objects.filter(o => GD.objInfo(o.id).kind === "speed").sort((a, b) => a.x - b.x);
+    const vOf = sp => ((P.SPEEDS[sp] || P.SPEEDS[1]).x) * 60 / P.TPS;
+    const want = job.map ? Math.ceil(L.world.endX / vOf(0)) + 2 : Math.max(...job.times) * P.TPS + 2;
     if (last.dead || L.path.length < want) {
       let k = L.path.length - 1; while (k > 0 && L.path[k].dead) k--;
-      const base = L.path[k], v = ((P.SPEEDS[base.sp] || P.SPEEDS[1]).x) * 60 / P.TPS; // SPEEDS: units per 60 fps frame
+      const base = L.path[k];
+      let x = base.x, sp = base.sp, pi = portals.findIndex(o => o.x > x); if (pi < 0) pi = portals.length;
       L.path.length = k + 1;
-      for (let j = k + 1; j < want; j++) L.path.push(Object.assign({}, base, { x: base.x + v * (j - k), tick: j, dead: false, ghost: true }));
+      for (let j = k + 1; j < want; j++) {
+        x += vOf(sp);
+        while (pi < portals.length && portals[pi].x <= x) { sp = GD.objInfo(portals[pi].id).speed; pi++; }
+        if (job.map && x > L.world.endX + 60) break;
+        L.path.push(Object.assign({}, base, { x, sp, tick: j, dead: false, ghost: true }));
+      }
       L.held = new Uint8Array(L.path.length);
+      // load() already drew once, building the colour timeline and the trigger runtime on the short path:
+      // triggers past the stop never fired (look47 stayed lavender). Rebuild both on the extended path.
+      const path = L.path;
+      L.look = GD.LOOK.timeline(L.level, x => { let lo = 0, hi = path.length - 1; if (path[hi].x < x) return Infinity;
+        while (lo < hi) { const m = (lo + hi) >> 1; if (path[m].x >= x) hi = m; else lo = m + 1; } return lo / P.TPS; });
+      L.vfx = null;
     }
   }
   const post = (name, url) => fetch("/shoot/" + SHOOT + "/" + name, { method: "POST", body: url });

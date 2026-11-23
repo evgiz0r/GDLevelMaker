@@ -64,4 +64,5 @@ if (!args[0] || args[0].startsWith("--")) { console.log(fs.readFileSync(__filena
   try { fs.rmSync(path.join(dir, id), { recursive: true, force: true }); fs.unlinkSync(path.join(dir, id + ".json")); } catch (e) {}
   const mb = f => fs.existsSync(f) ? (fs.statSync(f).size / 1e6).toFixed(1) + " MB" : "-";
   console.log(`map of ${lv.name} in ${r.seconds.toFixed(0)} s:\n  ${path.relative(ROOT, png)} (${mb(png)})\n  ${path.relative(ROOT, jpg)} (${mb(jpg)}, phone)`);
+  process.exit(0);
 })().catch(e => { console.error(e.message); process.exit(1); });
