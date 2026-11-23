@@ -49,6 +49,13 @@ const first = (r, act) => r.path.find(p => p.act === act);
   const c = GD.solveAny(GD.makeWorld(lvl(5)), { allowSkips: true });
   check("no-skip: allowSkips (debugging) still finds the way around", c.ok, c.ok ? "ok" : c.why);
 }
+// solveFrom from a state already past a portal (the resume tool and the natural plan's flying stretches)
+{
+  const w = GD.makeWorld([{ id: 202, x: 300, y: 15 }, { id: 8, x: 900, y: 15 }, { id: 1, x: 1500, y: 15 }]);
+  const s = GD.startState(w); while (s.x < 600) GD.step(w, s, { press: false, held: false });
+  let r; try { r = GD.solveFrom(w, s, {}); } catch (e) { r = { ok: false, why: "threw: " + e.message }; }
+  check("solveFrom from past a portal", r.ok, r.ok ? "ok" : r.why);
+}
 // pad table: a ball's yellow pad gives 16 x 0.6 = 9.6; a cube's 16
 for (const [mode, want] of [["cube", 16], ["ball", 9.6]]) {
   const w = GD.makeWorld([{ id: 35, x: 300, y: 2 }, { id: 1, x: 900, y: 15 }]);
