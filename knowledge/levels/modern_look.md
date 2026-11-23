@@ -22,9 +22,65 @@ families, groups and default layers come from the visuals session's catalogue
 - **legendary**: the 18 rated 2.2 Legendary levels of `low_tier_stats.md` (Easy to Harder).
 - **featured**: 16 rated Featured Easy/Normal levels from 2.0-2.1, the "previous generation".
 - **GDLM 41-46**: ours.
+- **Fall Out** (152339714): the user's own pick of a good modern level, the worked example below.
 
 Levels are downloaded to `local/community/` only (never committed). The numbers describe the static
 layout: 2.2 levels move objects with triggers, and particles and shaders only show in play.
+
+## Worked example 1: Fall Out, the user's pick (learn from it, don't copy it)
+
+The user, 2026-11-23, about the last level they played: "the last level is a good example of a modern
+level (dont need to copy style and everything) but this does display some of the[m]". That level is
+**Fall Out** (152339714, by DestTM, with Schnid in the credits; Hard 5, Featured, 2.2, 60 s, song
+"fallout" by tsubiclub). It is the newest online level in the user's save. The user beat it on the
+2nd attempt (best 12% on the 1st) in `GD claude-rec 2026-11-23_03-45-43.mkv`. The level's data is
+only in `local/community/152339714.gdlvl`; this section describes what it does and never reproduces
+it.
+
+**The whole level is light by 2.2 standards**: 9,372 objects, **13 per block** (the other played
+levels have 46). Yet it reads as fully modern. The look comes from a few strong choices, not from
+mass:
+
+| | Fall Out | played median | GDLM |
+|---|---|---|---|
+| objects per block | 13 | 46 | 1 |
+| in front of the play (T2-T4) | **38%** | 17% | 0% |
+| objects with HSV | **52%** | 40% | 0% |
+| header channels / blending | 32 / 6 | 54 / 18 | 10 / 3 |
+| deco mix | pixel art 31%, leaf art (`d_grassArt`) 28%, particles 19%, fills 12% | | spikes, rods |
+| shaders | hue, lens circle, radial blur, grayscale, chromatic glitch, pinch | 3/5 levels | none |
+
+Section by section (`node tools/modern_look.js 152339714 --sections`; the look is from the frames
+of the recording):
+
+| s | part | objects/block | front | what it shows | modern things in it |
+|---|---|---|---|---|---|
+| 0-12 | cube 1x | 21 | **70%** | An autumn forest: tall pixel-art trees with orange leaves in front of the play, snow-capped cream blocks on stone-brick pillars, grey spike "mountains" as a background silhouette, a pixel dirt ground, leaves falling everywhere, leaf piles. A big "FALL" title. Orbs with glowing rings. | One theme; set pieces in front; falling-leaf particles; a title; lens-circle shader; camera zoom and rotation; area triggers |
+| 12-22 | ship 1x | 23 | 6% | Opens with an iris (a circle opening on white). A ship tunnel of orange pixel staircases and grey framed blocks over a pale, prism-like shard background, with leaf clusters at the edges. | A transition effect; a new palette; radial blur; pulses |
+| 22-23 | ship 0.5x | 18 | 35% | A short black-and-white moment with leaves and chevrons. | Grayscale and chromatic-glitch shaders as a 1-second break |
+| 23-35 | cube 2x | 14 | 40% | A wide sky: blue-purple mountains, a soft cloud band framing the top and bottom (yellow, then orange), an orange leaf hill, white flat houses with arched doors, white spikes, white gears floating. | A new palette and frame; 63 moves and 50 alphas (things slide and fade in); hue shader; HSV on 79% |
+| 35-46 | ship 2x | 12 | 31% | Red-coral clouds now frame the left and right; a sunburst of light rays behind; white towers with doors; white gears; a vignette closing in at the end. | Light rays; a vertical frame; camera zoom; hue and pinch shaders |
+| 46-58 | cube 2x | **2** | 48% | Black silhouette: white spikes, gears and blocks on black, a grey chain pillar. Then the credits: "FALL OUT" in an arc with the creators' names, over pale leaves. | Contrast by subtraction: the sparsest part is the most striking; an end screen with credits |
+
+**What GDLM can learn from it** (the ideas, not its art):
+- **A theme carried by one motif in every section**: falling leaves (particles) and leaf colours
+  tie six very different scenes together.
+- **Every section is a new scene**: forest, prism tunnel, sky with mountains, light rays, silhouette.
+  The palette, the frame and the background change at each portal. Mode changes and look changes
+  happen together.
+- **Frames around the play**: cloud bands top and bottom, or left and right, and a vignette. They
+  shape the screen cheaply.
+- **The front layers are used boldly but stay transparent**: trees and leaves in front of the play
+  (70% of the first part), but thin and see-through, so hazards stay readable. Spikes and gears are
+  white or grey on coloured scenes.
+- **Transitions are effects**: an iris, a 1-second grayscale glitch, a vignette. Shaders mark the
+  changes and are not left on.
+- **Few objects, many tricks**: HSV on half the objects, a few big set pieces, particles, slide-in
+  and fade-in moves (~100 moves, ~77 alphas per minute). A 60 s level can look modern with ~10,000
+  objects. That budget is reachable for a composer, unlike the 30,000-75,000 of Dash Tower or CHAOTIC.
+- **A title at the start and credits at the end.**
+- **Don't copy**: not its leaves, trees, houses or palette. GDLM levels need their own theme per
+  song.
 
 ## 1. How much
 
@@ -135,7 +191,8 @@ targets) and pixel art came in. Hand-built 3D outlines and plain block skins wen
 ## Recipe for a composer (per section, Easy/Normal 2.2 look)
 
 Budget:
-- **20-50 objects per block** (aim ~35). Ground modes ~40, flying ~25, an opening and the drops
+- **20-50 objects per block** (aim ~35). A lighter level works too: Fall Out (worked example 1) has 13
+  per block, with strong themes, particles, HSV and front layers. Ground modes ~40, flying ~25, an opening and the drops
   ~50, transitions under 5. A 60 s level is 15,000-30,000 objects. Mind performance: RobTop's
   rating tips warn about lag (`rating.md`).
 
