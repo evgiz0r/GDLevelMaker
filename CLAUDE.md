@@ -62,6 +62,10 @@ not after it:
   level or version goes to the viewer (in-progress list, and the phone page) first. Never install into GD,
   queue an install or upload until the user has seen it there and says "install" (or "upload") for it. When
   you report a build, name what to look at in the viewer.
+- **Every build shows its steps.** The user (2026-11-24): "i want even partial steps like song/layout/path/deco
+  to be available in the process, not just the end result". Every build puts its stages (song, layout, path,
+  deco, final) to local/wip/<session>/<base>.stages/ via tools/stages.js; compose and make.js do it themselves.
+  A new builder calls stages.put too. The viewer's in-progress list shows each build at its latest stage.
 - **Hand off.** Before a long pause or when your area changes hands, write where you stopped,
   what is open and the good numbers into your area's doc.
 - **Share, don't duplicate.** Results go into the shared `local/` (see below) so no session redoes
