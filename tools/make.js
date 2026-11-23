@@ -364,6 +364,20 @@ function build(spec, specFile = "spec") {
   // the craft pass (CRAFT.md, tools/craftkit.js): rods on pillar tops, chains holding floating pieces
   // and orbs -- deco that belongs to the structures; "craft": true or an options object
   if (spec.craft) objects.push(...require("./craftkit.js").craftPass(objects, Object.assign({ seed: spec.seed || 1 }, spec.craft === true ? {} : spec.craft)));
+  // the level ends right after the signature: GD ends a level at its FURTHEST object, so scenery and
+  // triggers past the sign (parallax, clouds, the end card, an end marker) are clipped ~5 blocks after it.
+  // The user on 45 v7: "ending still bit too long". Official levels: 0.8 s from the last input to the end
+  // (median of 16); 281 rated community levels: 0.9 s from the last hazard/orb/pad. With the sign 3 blocks
+  // after the last gameplay object (7 wide) this ends ~1.5 s after the last input at 1x.
+  // spec.endRun: blocks of run after the sign (default 5); "signature": false levels are not clipped.
+  if (signed) {
+    const sigEnd = Math.max(...objects.filter(o => o.props && String(o.props[57] || "").split(".").some(g => +g >= 960 && +g <= 964)).map(o => o.x), 0);
+    const limit = (sigEnd || 0) + (spec.endRun ?? 5) * 30;
+    if (sigEnd) for (let i = objects.length - 1; i >= 0; i--) {
+      const k = GD.objInfo(objects[i].id).kind;
+      if (objects[i].x > limit && (k === "decoration" || k === "trigger")) objects.splice(i, 1);
+    }
+  }
   const level = { header, objects };
   let desc = spec.desc || "";
   if (signed) desc = require("./signature.js").describe(desc);

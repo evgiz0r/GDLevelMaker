@@ -135,6 +135,18 @@ function scoreLevel(level, brief, opts = {}) {
     gate("repetition", F.jumpS >= 10 && F.repeat > 0.05 ? "WARN" : "PASS", F.repeat == null ? "no move patterns" : `${Math.round(F.repeat * 100)}% of 4-move patterns repeat within 10 s (want 5% or less)`);
   }
 
+  // ending: the level ends soon after the last input (the user on 45 v7: "ending still bit too long"). GD
+  // ends a level at its furthest object. Official levels: 0.8 s from the last input to the end (median of
+  // 16); rated community levels: 0.9 s from the last hazard. WARN over 2.5 s on the player's route.
+  if (r.ok) {
+    const ev = (natural() || r).events, p = GD.run(w, ev).path, lastP = ev.filter(e => e.type === "press").pop();
+    const endX = Math.max(...level.objects.map(o => o.x)), tEnd = p.findIndex(q => q.x >= endX);
+    if (lastP) {
+      const s = ((tEnd < 0 ? p.length : tEnd) - lastP.tick) / GD.PHYS.TPS;
+      gate("ending", s > 2.5 ? "WARN" : "PASS", `${s.toFixed(1)} s from the last input to the end (official median 0.8 s; want 2.5 s or less)`);
+    }
+  }
+
   // hazards matter: every hazard either needs an action or clearly reads as scenery (the user on GDLM 47
   // ~18.7 s, slabs over spike pairs crossed without a jump: "dunno if we have to jump or not, simulation
   // says we don't but then there is no point in those spikes"). On the player's route (lib/natural.js):

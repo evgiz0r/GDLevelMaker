@@ -21,7 +21,7 @@ const { GD, readGdlvl } = require("./io.js");
 Object.assign(GD, require("../lib/natural.js"));
 const P = require("./polish.js"), O = require("../lib/objects.js");
 const args = process.argv.slice(2);
-if (!args[0]) { console.log(fs.readFileSync(__filename, "utf8").split("\n").filter(l => l.startsWith("//")).join("\n")); process.exit(1); }
+if (require.main === module && !args[0]) { console.log(fs.readFileSync(__filename, "utf8").split("\n").filter(l => l.startsWith("//")).join("\n")); process.exit(1); }
 
 const ORBS = new Set([36, 84, 141, 1022, 1333, 1594, 3004, 1330, 1704, 1751]);
 const TH = { dxMin: -0.5, dxMax: 1.5, dyMax: 0.6, takeoffMs: 100 };
