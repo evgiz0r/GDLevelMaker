@@ -162,11 +162,15 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   them with `node tools/marks.js done <id> "what changed"`. **compare** puts a frame of one of the
   user's recordings (Videos/Captures, read by ffmpeg, never copied) beside the replay;
   "save comparison" writes both as one PNG to `local/shots/`.
-- **Polishing existing levels** (POLISH.md: the passes, results, tests, what is open; owner: the polish
-  session, wip `local/wip/polish/`): `tools/polish.js <level.gdlvl>` keeps the layout and fixes tight
-  windows (small moves near the input), syncs portals/orbs loosely, adds jump indicators at prejumps,
-  decorates a bare level; output in `local/polish/` only. Before/after side by side in GD art:
-  `viewer/polish.html` (via tools/serve.js). Test: `node tests/polish.js`.
+- **Polishing existing levels** (POLISH.md: what polish means to the user -- prettier, more synced,
+  visual fixes, more gameplay, extended, fair as the floor -- the passes, results, tests, what is open;
+  owner: the polish session, wip `local/wip/polish/`): `tools/polish.js <level.gdlvl>` (fair windows and
+  no input forced after a mode change, loose sync, chevrons on needed jumps, the modern look with
+  parallax and beat pulses); output in `local/polish/` only. Before/after in GD art: `viewer/polish.html`
+  (via tools/serve.js) and shoot.js renders. Helpers: `tools/textmap.js` (a level as text with the
+  path), `tools/orbchain_try.js` (forgiving orb chains). Test: `node tests/polish.js`.
+- **The user's drawings -> levels** (SKETCH.md: reading a drawing into a spec, then making it fair;
+  the GDLM 46 lessons).
 - `examples/` -- levels the user made in the game, for reference and as format ground truth.
 
 All the library code runs in both node and the browser (no build step, no dependencies).
