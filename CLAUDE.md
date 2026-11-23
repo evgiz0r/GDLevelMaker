@@ -62,6 +62,13 @@ reading before writing a spec; `levels/`, `glossary.md`, `demonlist.md` for the 
 
 ## The loop
 
+**One command for steps 2-3 and the wip:** `node tools/loop.js <spec | brief | level.gdlvl> [--look]
+[--render] [--map] [--session <name> --note "..."]` -- stops if another session is changing that level,
+prints an ETA, waits for the heavy-job slot (tools/heavy.js), runs make (or compose) -> score (every gate) -> pictures -> `wip.js put`, stops at the first
+failure with the reason, and ends with READY / NOT READY, presses, tightest window, picture paths and the
+wip version. It never installs or uploads. Each step's time goes to `local/timings.jsonl` (see "How long
+things take" below). The tools below still work one by one.
+
 1. Write a spec in `specs/NN_name.json` (grid squares, see the top of `tools/make.js`).
 2. `node tools/make.js specs/NN_name.json` -> `levels/<name>.gdlvl`, solved, added to the viewer.
 3. Look at it: `node tools/serve.js` and open http://localhost:8765/viewer/ (or open
@@ -87,6 +94,25 @@ reading before writing a spec; `levels/`, `glossary.md`, `demonlist.md` for the 
 
 Every level the tool makes is named `GDLM NN ...` so it is easy to find (and delete) in the
 user's created-levels list.
+
+## One heavy job at a time -- in code (tools/heavy.js)
+
+The PC has 16 GB; a solve takes ~0.8-1.5 GB. On 2026-11-23 five heavy jobs from different sessions ran
+at once and the PC hung (0.2 GB free), so the rule is now a lock every heavy tool takes ITSELF on start
+(`make`, `compose`, `score`, `solutions`, `wip put`, `shoot`, `levelmap`, the `difficulty*` / `fairness*` /
+`tas*` solvers, `windows`, `press_window`, `stop`, `polish`, `structures`, `check`, `sightread`, ...):
+- one heavy job at a time (two while more than 6 GB is free), and none starts under 1.5 GB free;
+- while the user plays (GeometryDash.exe runs): one job whatever is free, and none starts under 2 GB free;
+- every heavy job lowers itself to idle CPU priority at start, so the game and the desktop always win;
+- the others wait and say so: `heavy: waiting for tools/make.js ... (<session>, pid, N min in, ~M min left)`;
+- the slot is a file in the shared `local/locks/heavy/` (real path, all worktrees); a dead pid's slot is
+  cleared, a child of a holder runs in its parent's slot. `node tools/heavy.js` shows who holds it.
+- **A new heavy tool adds the line** `if (require.main === module) require("./heavy.js").claim();` after
+  its header (tests/heavy.js checks the main ones). Never run heavy work outside a tool that claims it
+  (`node -e` solves, scratch scripts); `GDLM_HEAVY=off` only when the user says so.
+- Measuring or testing runs work on copies (`local/tmp/`), never on a level another session is changing:
+  `tools/loop.js` stops when another worktree has uncommitted changes to the spec or level, or another
+  session put it in work in progress in the last 3 hours.
 
 ## Shared folder, work in progress, the user's marks
 
@@ -157,12 +183,21 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   user sees it), `tools/sightread.js` (prejumps), `tools/inputs.js` (a solution's inputs with
   modes), `lib/natural.js` (a natural replay plan: taps, no empty jumps). Test:
   `node tests/style_gates.js`.
+- **Craft: how RobTop builds and dresses a level** (CRAFT.md: Jumper and xStep studied object by object;
+  many small pieces over a hazard floor, deco attached to structures, black-and-white playfield on one
+  hue; the numbers vs ours; owner: the craft session): `tools/craft.js` (`roles`, `map` -- a text picture
+  with the deco --, `check` -- the craft targets).
 - **Scene levels, decorated by hand** (SHOWCASE.md: GDLM 50 eclipse, what made it look good, numbers,
   what is unchecked in the game): `tools/scenekit.js` (recipes: own colour channels, palettes per section,
   skylines, the eclipse set piece, stars, designed blocks, motes, light rays, a top frame, lock-to-player
   parallax, beat pulses, text), a level's scene script `tools/scenes/<name>.js` (spec key `"scene"`).
   `node tools/make.js <spec> --look` rebuilds a decoration-only change in a second (keeps the solve when
   the gameplay is the same). Owner: the showcase session.
+- **`tools/heavy.js` -- the one-heavy-job lock** every heavy tool takes on start (see "One heavy job at
+  a time"). Test: `node tests/heavy.js`.
+- **`tools/loop.js` -- the whole make/iterate loop in one command** (owner check, ETA, make/compose, score,
+  shoot, levelmap, wip; logs under `local/loop/`), `--times` prints the measured time table, `--time <step>
+  <cmd>` times any other job into it. Test: `node tests/loop.js`.
 - `tools/solutions.js` -- solve each level ONCE on the PC (`--all` for every repo level missing one);
   the viewer and the phone replay the saved solution (natural replay, stamped with the physics
   commit; stale ones are re-solved). make.js and wip.js save one whenever they solve.

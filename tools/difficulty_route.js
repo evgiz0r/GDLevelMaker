@@ -3,6 +3,7 @@
 // an easier way through when the level has one), and every swap it made. Official n reads the saved
 // solution local/difficulty/NN.json (tools/difficulty_solve.js); a community id reads
 // local/community/<id>.gdlvl and its solution from local/difficulty/community/<id>.json if saved.
+if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const fs = require("fs"), path = require("path");
 const { GD, readGdlvl, unpack } = require("./io.js");
 const DF = require("../lib/difficulty.js");

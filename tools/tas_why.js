@@ -1,5 +1,6 @@
 // node tools/tas_why.js <n> [...]  -- where and why the sim dies on official level n's real-game plan:
 // the killer, the last state changes (orbs, pads, portals, landings), the presses around it.
+if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const { replay } = require("./tas.js");
 const H = require("../lib/objects.js");
 for (const n of process.argv.slice(2).map(Number)) {

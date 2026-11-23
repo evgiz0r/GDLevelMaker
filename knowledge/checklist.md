@@ -13,6 +13,14 @@ check in make.js / score.js, so a level cannot miss it even when nobody reads th
 docs. `tools/wip.js put` adds `[checklist <commit>]` to every wip note, so each version says which
 checklist it was built against.
 
+**Run the loop with one command:** `node tools/loop.js <spec | brief | level> [--look] [--render]
+[--session <name> --note "..."]` (make -> every score.js gate -> pictures -> wip, stops at the first
+failure, prints an ETA first and waits while the PC is busy). A level is ready for the user when it says
+READY and the items below that no gate checks are gone through by eye.
+**One heavy job at a time is enforced** (tools/heavy.js): every solve / score / render tool waits for the
+shared slot by itself and prints whom it waits for. Don't get around it with `node -e` solves or scratch
+scripts, and build timing or test runs from copies in `local/tmp/`, never another session's level.
+
 ## Fair (the user's playtests: a death must be the player's fault)
 
 - [ ] **`node tools/fairness.js <level>` passes** (also `tools/score.js` gate "fairness"). It
@@ -37,6 +45,12 @@ checklist it was built against.
 - [ ] **A landing you can stay on**: after an orb, pad or obstacle, the cube lands on one surface across
   every early/late press; never a gap in front of a wall that needs an instant jump (a dead end).
   `node tools/polish.js <level> --dry --passes none` (two 4 ms jumps there). (critiques.md GDLM 44 v12)
+- [ ] **Orbs at the natural arc**: the first orb of a chain where a normal take-off jump tops out (at the
+  apex or up to 1.5 blocks after), each next orb where the previous orb's arc tops out; the take-off has
+  >= 100 ms with the orbs clicked when reached; orbs on the hazard row's halves or thirds.
+  `node tools/orbarc.js <level>`. (critiques.md GDLM 44 v12/v13: "unnatural and small")
+- [ ] **Clean spike groups**: no overlapping or doubled hazards, no 1-2 column gap inside a group, no
+  hazard within 1.5 blocks before a pad. `node tools/clusters.js <level>`. (critiques.md GDLM 44 v13)
 - [ ] **Orbs where the arc already goes**, not grazed at the arc's edge. (design.md; GDLM 44 orb ladder)
 - [ ] **Jump arrows only on real inputs**, ~1 block above the surface, right at the press (the hazard
   ~0.5 block ahead). Used where a jump can't be read in time (after a drop, after a portal, the first of
@@ -48,6 +62,9 @@ checklist it was built against.
 - [ ] **Wave**: zigzag turns wider than ~100 ms apart; no head-on slopes at a portal exit; the exit
   portal over a flat floor, level stretches at the turns (patterns.js wave-zigzag `flat`, `leadGap`).
   (design.md; GDLM 44/46 real-game deaths)
+- [ ] **Jump marks clear of hazards**: a mark shows the take-off, its centre >= ~1 block in front of the
+  hazard's hitbox, never on or touching one. Placed by decorate.js jumpIndicators (INDICATOR.clear);
+  `node tools/indicators.js <level> [--fix]`. (the user, hellgate round 2: "indicator inside spike")
 - [ ] **Jump marks sit low**: about 1 block over the surface (make.js lifts them 30 units), and none
   where no jump is needed (placed from the natural replay's real jumps only). (GDLM 45 v5, the user)
 - [ ] **Invisible parts**: ghosted (faint), fully hidden only for a chunk already seen. No fakes at
@@ -91,6 +108,10 @@ checklist it was built against.
   sections. Shaders only at transitions and drops.
 - [ ] **Shape of the level**: a dense opening, quiet 1-2 s transitions, the biggest effects at the
   drops. A title at the start and credits at the end. Don't copy any one level's art.
+- [ ] **Readable, measured**: hazard contrast against what is behind it >= 3 in every frame (median
+  >= 4.5), at most 4% of a frame as bright as the hazards, no flashing (< 0.5 per second, no frame-to-
+  frame brightness jump over 0.12). `node tools/readability.js <level> --gate` (renders, ~8 min).
+  GDLM 44 v13: contrast 1.05-1.48 ("waaaay too flashy ... hard to tell what kills you"); round 2: 4.7-6.
 - [ ] **Readable**: hazards stand out (white, grey or their own colour against the scene); no deco
   that looks like an orb, pad or hazard: fires only far back, small and dim. Hazards keep their contrast
   on the drop's brightest frame (one sky flash, not two). Behind a portal a dark disc, never a lit one.

@@ -51,6 +51,7 @@
 //   "b12+3"   three columns after that ("j12-0.5" etc. also work)
 // Speed portals placed by beat change the timing of everything after them; they are placed first.
 // After building, make.js prints where each press's timing window falls in beats.
+if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const fs = require("fs");
 const path = require("path");
 const { GD, writeGdlvl } = require("./io.js");

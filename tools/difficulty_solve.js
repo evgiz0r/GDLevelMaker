@@ -18,6 +18,7 @@
 //   run of the same level on the same physics carries on from the checkpoint, whatever its flags.
 //   The file goes when the solve finishes. --fresh ignores (and deletes) it.
 // RobTop's levels: local/ is gitignored and nothing from it is ever committed.
+if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const fs = require("fs"), path = require("path"), { execFileSync, execSync } = require("child_process");
 const { GD, unpack } = require("./io.js");
 const SRC = process.env.GD_LEVELS || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash/Resources/levels/";

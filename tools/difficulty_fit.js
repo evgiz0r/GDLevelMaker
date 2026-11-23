@@ -3,6 +3,7 @@
 // with a cached solution, plus "cube timings" (5 attempts, recording 17-26-36). An attempt that
 // died at x% passed every input before x% and failed the next one; one that got past the part the
 // sim covers only says those inputs were passed. Maximum likelihood on a grid.
+if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const fs = require("fs"), path = require("path");
 const { GD, readGdlvl } = require("./io.js");
 const DF = require("../lib/difficulty.js");

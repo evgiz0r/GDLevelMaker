@@ -10,6 +10,7 @@
 //   usage            what decoration good levels use: per family, how many levels / objects (local/community
 //                    rated levels + official + the user's examples), by tier and era; which families appear
 //                    together; layers and colour keys -> knowledge/objects/usage.json (numbers only)
+if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const fs = require("fs"), path = require("path");
 const ROOT = path.join(__dirname, ".."), C = require("../lib/catalogue.js").CATALOGUE, O = require("../lib/objects.js");
 const ART = require("../lib/art.js").ART_LIB;

@@ -42,6 +42,12 @@ uploaded or installed by this loop: the main session does that on the user's yes
   most outlined things on the screen: no deco in their colour or brightness (white stars, motes,
   corona or bubbles next to white spikes). GDLM 50 v1 pulsed the block edges white on every beat
   through totality and flashed the sky white twice; v2 is calm. (Round 0/1, 2026-11-23.)
+- **Readability is measured, not guessed**: `tools/readability.js <level> --gate` renders each moment
+  with and without the hazards and gives the hazards' contrast against what is behind them (want >= 3
+  in every frame, median >= 4.5), the share of the frame as bright as them (<= 4%) and the flash rate.
+  Hellgate round 1, which looked rich in our render, measured 1.05-1.48; round 2 (dark desaturated
+  scenery, no blending glow, no per-beat pulses) 4.96-5.9. A haze reaching the spike line cost a whole
+  point of contrast: dim it to 60%. (Polish, hellgate round 2, 2026-11-23.)
 - **Shapes that read as gameplay are out**, however pretty: thick white rings (236 at scale 0.5+) as
   bubbles read as orbs; a ball shape plus a square (51, 148) read as a cup next to the path. Use thin,
   small, dim versions, behind the play. (Round 1, first render of GDLM 51.)
