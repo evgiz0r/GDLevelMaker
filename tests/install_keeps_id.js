@@ -33,18 +33,19 @@ const rec = y.slice(y.lastIndexOf("<k>kCEK</k>", m), m);
 const ok = rec.includes("<k>k1</k><i>999000111</i>") && rec.includes("<k>k16</k><i>3</i>");
 console.log(ok ? "ok: online ID and version kept" : "FAIL: re-install dropped the online ID\n" + rec);
 
-// --slot phone: another level goes into the record holding the slot's ID, renamed, at the top
+// --slot phone: another level goes into the record holding the slot's ID, keeping the slot's
+// server name (the server refuses a rename) and the unlisted flag, without the "this version is
+// uploaded" flag k15 (GD refuses to re-share with it), at the top
 const other = path.join(__dirname, "..", "levels", "gdlm_43_climb.gdlvl");
 let ok2 = true;
 if (fs.existsSync(other)) {
   const ids = path.join(dir, "phone_ids.json");
-  fs.writeFileSync(ids, JSON.stringify({ slots: { phone: { id: 999000111, holds: { level: NAME }, history: [] } } }));
+  fs.writeFileSync(ids, JSON.stringify({ slots: { phone: { id: 999000111, name: NAME, holds: { level: NAME }, history: [] } } }));
   execFileSync(process.execPath, [path.join(__dirname, "..", "tools", "install.js"), other, "--save", copy, "--slot", "phone", "--ids", ids], { stdio: "pipe" });
   const z = dec(fs.readFileSync(copy));
   const first = z.slice(z.indexOf("<k>k_0</k><d>"), z.indexOf("<k>k_1</k><d>"));
   const j = JSON.parse(fs.readFileSync(ids, "utf8")).slots.phone;
-  ok2 = first.includes("<k>k1</k><i>999000111</i>") && first.includes("<k>k2</k><s>GDLM phone: 43 climb</s>")
-    && !z.includes(`<k>k2</k><s>${NAME}</s>`) && (z.match(/<i>999000111<\/i>/g) || []).length === 1
+  ok2 = first.includes("<k>k1</k><i>999000111</i>") && first.includes(`<k>k2</k><s>${NAME}</s>`) && !first.includes("<k>k15</k>") && first.includes("<k>k79</k><t />") && (z.match(/<i>999000111<\/i>/g) || []).length === 1
     && j.holds.level === "GDLM 43 climb" && j.history[0].level === NAME;
   console.log(ok2 ? "ok: --slot phone puts the level into the slot's record" : "FAIL: --slot phone\n" + first.slice(0, 300));
 }

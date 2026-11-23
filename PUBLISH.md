@@ -6,7 +6,8 @@ Search -> its level ID. The slot and what it holds: `local/phone_ids.json`.
 
 | level | ID | version | date |
 |---|---|---|---|
-| GDLM 44 hellgate (the phone slot since, see below) | 152848491 | v10 (16e82a4) | 2026-11-23 |
+| GDLM 44 hellgate (the phone slot, see below) | 152848491 | v10 (16e82a4) | 2026-11-23 |
+| GDLM 44 hellgate, update into the slot | 152848491 | v11 (dc72b09) | 2026-11-23 |
 
 ## Rule: every upload needs the user's yes
 
@@ -57,33 +58,41 @@ The user (2026-11-23): "replace that level with a new version and that will be t
 this level". So ID **152848491** is the single phone slot: the server never holds more than this one
 AI level. Whatever the user wants on the phone next goes into that ID:
 
-1. Close GD (ask the user; never kill it). It must have exited once since the last upload, or
-   the save doesn't hold the ID yet, and install.js stops with exit code 4.
+1. Close GD: main menu -> X (top-left) -> Quit Game "Yes" is a normal save-and-quit (GD writes the
+   save on exit); never kill the process. It must have exited once since the last upload, or the
+   save doesn't hold the ID yet, and install.js stops with exit code 4.
 2. `node tools/install.js levels/<name>.gdlvl --slot phone` puts the level into the save record that
-   holds the ID (keeping k1/k16/k60), renames it "GDLM phone: <name>", moves it to the top of
-   My Levels, and records it in `local/phone_ids.json` (`slots.phone.holds`, the old one into
-   `history`, `shared: null`).
-3. Open GD -> My Levels -> "GDLM phone: ..." -> share button -> check Unlisted is still ticked ->
-   the user's yes -> Share/Update. Then set `holds.shared` to the date in phone_ids.json.
+   holds the ID, moves it to the top of My Levels, and records it in `local/phone_ids.json`
+   (`slots.phone.holds`, the old one into `history`, `shared: null`). The record keeps:
+   - the slot's server NAME (`slots.phone.name`, "GDLM 44 hellgate") whatever level it holds:
+     an update under a new name ("GDLM phone: 44 hellgate") failed twice with "Upload Failed.
+     Please try again later." The server refuses a rename of a shared level.
+   - `k1` (ID), `k79` (unlisted), and `k16`/`k60` if present.
+   - but NOT `k15` ("this version is uploaded"): with it, Share says "This version has already
+     been submitted" and uploads nothing. GD clears it itself when a level is edited.
+3. Open GD -> My Levels -> the top level -> page shows ID 152848491 -> share button -> gear: Unlisted
+   ticked (greyed, locked) -> the user's yes -> Share Level -> "Upload Complete". Then set
+   `holds.shared` and `holds.version` in phone_ids.json.
 4. On the phone: search 152848491 again. The phone may keep the old download; open the level page
    and download it again.
 
-Open: GD locks a shared level's name ("You cannot change the name once it is shared"). Whether
-the server takes the new "GDLM phone: ..." name on an update hasn't been seen yet. Check the name
-the phone shows after the first slot update and write it here.
+Done this way once: hellgate v10 -> v11 (2026-11-23), Upload Complete, ID unchanged. So the phone
+always shows the name "GDLM 44 hellgate", even when the slot holds another level. The description
+(k3) comes from the new level; whether the server takes a new description on update is unchecked.
 
 ## Updating a level that is already on the phone (same ID)
 
-Pressing Share again on the SAME local level updates the upload in place (same ID, GD bumps the
-version). Our side: GD writes the online ID (`k1`, plus `k16` version, `k60` account) into the save
+Pressing Share again on the SAME local level updates the upload in place (same ID; the level
+page still showed "Version: 0" after both uploads). Our side: GD writes the online ID (`k1`, plus `k16` version, `k60` account) into the save
 when it exits; `tools/install.js` replaces a level by name but now keeps those keys
 (`tests/install_keeps_id.js`). So: close GD -> `node tools/install.js levels/<name>.gdlvl` (prints
 "kept online ID N") -> open GD -> the level -> Share (settings as before) after the user's yes.
 If install.js does not print "kept online ID", GD had not saved the ID yet (it was not closed
-since the upload) -- a Share then would make a NEW level with a new ID. Not yet tried end to end.
+since the upload) -- a Share then would make a NEW level with a new ID. The slot section above has
+the details that made the update work (same name, no k15).
 
 ## Open
 
-- Re-share of an updated level (same ID) not yet done in practice; check the ID stays and the
-  phone gets the new version (the phone may cache the old download: re-download from the level page).
+- The phone getting the new version after an update is unchecked (the phone may cache the old
+  download: re-download from the level page). Ask the user what the phone shows.
 - The GD window's button positions above are for a 1866x1080 window; other sizes move them.

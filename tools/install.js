@@ -64,11 +64,13 @@ function joinLevels(parts) {
   return parts.before + parts.head + parts.items.map((it, n) => `<k>k_${n}</k><d>${it.inner}</d>`).join("") + parts.after;
 }
 function nameOf(inner) { const m = inner.match(/<k>k2<\/k><s>([^<]*)<\/s>/); return m ? m[1] : ""; }
-// A level already shared online carries k1 (its online ID), k16 (its upload version) and k60
-// (the uploader's account id). Replacing the record must keep them, or GD would upload the new
-// version as a NEW level with a new ID instead of updating the old one.
-const ONLINE_KEYS = ["k1", "k16", "k60"];
-function entry(inner, k) { const m = inner.match(new RegExp(`<k>${k}</k><(i|s|r)>[^<]*</\\1>`)); return m ? m[0] : null; }
+// A level already shared online carries k1 (its online ID), k79 (true = unlisted), and maybe k16
+// (upload version) and k60 (account id). Replacing the record must keep them, or GD would upload
+// the new version as a NEW level, or as listed. NOT k15 (true = "this version is uploaded"): GD
+// clears it when a level is edited, and with it kept GD refuses Share ("This version has already
+// been submitted", seen 2026-11-23).
+const ONLINE_KEYS = ["k1", "k16", "k60", "k79"];
+function entry(inner, k) { const m = inner.match(new RegExp(`<k>${k}</k>(<(i|s|r)>[^<]*</\\2>|<t />)`)); return m ? m[0] : null; }
 function keepOnline(oldInner, newInner) {
   let inner = newInner, id = null;
   for (const k of ONLINE_KEYS) {
@@ -95,7 +97,9 @@ function main() {
   if (joinLevels(parts) !== xml) throw new Error("save did not split/join cleanly; refusing to touch it");
 
   // --slot phone: put the level into the save record that holds the slot's online ID (PUBLISH.md),
-  // named "GDLM phone: <name>", so Share updates that one upload instead of making a new level.
+  // so Share updates that one upload instead of making a new level. It keeps the slot's server name
+  // (slots.<slot>.name): GD locks a shared level's name, and the server refused an update under a
+  // new name ("Upload Failed" twice, 2026-11-23, renamed "GDLM phone: 44 hellgate").
   const sl = args.indexOf("--slot");
   const slotName = sl >= 0 ? args[sl + 1] : null;
   const ii = args.indexOf("--ids");
@@ -111,9 +115,13 @@ function main() {
     const rec = unpack(fs.readFileSync(files[0], "utf8"));
     let inner = rec.match(/<plist[^>]*><dict>([\s\S]*)<\/dict><\/plist>/)[1];
     const own = nameOf(inner), was = nameOf(parts.items[at].inner);
-    const name = `GDLM phone: ${own.replace(/^GDLM\s+/, "")}`;
+    const name = slot.name || was;
     inner = inner.replace(/<k>k2<\/k><s>[^<]*<\/s>/, `<k>k2</k><s>${name}</s>`);
     const kept = keepOnline(parts.items[at].inner, inner);
+    // the slot is unlisted by definition (even if an earlier install dropped the flag), and the new
+    // level is a new version, not the one already uploaded (no k15)
+    if (!entry(kept.inner, "k79")) kept.inner = kept.inner.replace(/^(<k>kCEK<\/k><i>4<\/i>)?/, m => m + "<k>k79</k><t />");
+    kept.inner = kept.inner.replace(/<k>k15<\/k>(<t \/>|<i>[^<]*<\/i>)/, "");
     parts.items.splice(at, 1);
     parts.items.unshift({ key: "", inner: kept.inner });
     console.log(`slot "${slotName}" (online ID ${slot.id}): "${was}" -> "${name}", now at the top of My Levels. Share it (with the user's yes) to update the upload.`);
