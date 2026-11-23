@@ -4,6 +4,10 @@ Claude writes Geometry Dash levels from a description, checks they can be beaten
 replaying with their clicks, and hands back a file the user imports into their real game.
 The user plays it and tells us what was off. Read this fully first.
 
+**What the project is for:** USE_CASES.md lists every use case the user wants (prompt -> level, fix a
+level, issue report, difficulty, design in chat, combine/cut, track + level...) with its status and
+what is missing. Update its row when your work moves one.
+
 ## Every session builds the project, not just its own task
 
 The user's standing rule: **no work is done only for its local goal.** Each session's job is its
@@ -47,6 +51,13 @@ not after it:
   patching: run a study (take real levels apart, measure, write the rules down -- CRAFT.md is one) or
   an experiment (several variants, measured and shown side by side), then change the generator.
   Owning a level means caring for all of it -- play, look, sync, fairness -- not only your one area.
+- **Git is the source of truth: everything goes in the repo, and it gets pushed.** (The user,
+  2026-11-23.) Commit and push to `main` as each piece of work lands (merge `origin/main`, run the
+  quick checks, push) -- never sit on local-only commits or uncommitted work between turns. Tools,
+  docs, specs, our levels, tests, measured numbers: in git. The only things that stay out are what
+  must not be published: other people's levels and RobTop's data/art, songs, the user's recordings
+  and save, and private details (`local/`). If something can't be pushed (a blocked permission, a
+  failing check), say so in your report instead of leaving it local.
 - **Hand off.** Before a long pause or when your area changes hands, write where you stopped,
   what is open and the good numbers into your area's doc.
 - **Share, don't duplicate.** Results go into the shared `local/` (see below) so no session redoes
