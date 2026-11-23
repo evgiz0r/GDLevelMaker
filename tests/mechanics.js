@@ -36,6 +36,12 @@ const first = (r, act) => r.path.find(p => p.act === act);
   check("no-skip: a reachable floating portal is taken", a.ok && took, a.ok ? (took ? "taken" : "skipped") : a.why);
   const b = GD.solveAny(GD.makeWorld(lvl(9)));
   check("no-skip: an unreachable portal makes the level stuck", !b.ok && /skipped/.test(b.why || ""), b.ok ? "passed around it" : b.why + " " + (b.skipped || ""));
+  // a long level: the portal is far behind at the end, out of the run's kept s.used, and still counts as taken
+  // ten yellow pads after it fill s.used past 8, so step() trims the portal out of it
+  const far = [{ id: 202, x: 400, y: 45 }, { id: 1, x: 9000, y: 15 }];
+  for (let k = 0; k < 10; k++) far.push({ id: 35, x: 1200 + k * 600, y: 2 });
+  const wf = GD.makeWorld(far), rf = GD.solveAny(wf);
+  check("no-skip: a portal taken early still counts at the end of a long run", rf.ok, rf.ok ? "ok" : rf.why + " " + (rf.skipped || ""));
   const c = GD.solveAny(GD.makeWorld(lvl(9)), { allowSkips: true });
   check("no-skip: allowSkips (debugging) still finds the way around", c.ok, c.ok ? "ok" : c.why);
 }
