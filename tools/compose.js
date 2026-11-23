@@ -100,7 +100,7 @@ function sectionBlocks(brief) {
 }
 
 // one library structure per plain cube section (see the header: "structures")
-function structurePicks(brief) {
+function structurePicks(brief, tweaks = {}) {
   const out = {};
   if (brief.structures === false) return out;
   let pool;
@@ -115,7 +115,9 @@ function structurePicks(brief) {
   const tagsUsed = new Set();
   for (const [, i] of want) {
     const fresh = pool.filter(r => !used.has("s:" + r.id));
-    const pick = fresh.find(r => ![r.mode, ...r.tags].some(t => tagsUsed.has(t))) || fresh[0];
+    // a reseeded section (tweaks "reseed:<i>", a variant or a backtrack) takes the n-th alternative
+    const rs = tweaks["reseed:" + i] || 0, novel = fresh.filter(r => ![r.mode, ...r.tags].some(t => tagsUsed.has(t)));
+    const pick = rs ? (novel.length ? novel : fresh)[rs % Math.max(1, (novel.length ? novel : fresh).length)] : (novel[0] || fresh[0]);
     if (!pick) break;
     out[i] = "s:" + pick.id; used.add(out[i]);
     [pick.mode, ...pick.tags].forEach(t => t !== "cube" && tagsUsed.add(t));
@@ -144,7 +146,7 @@ function compose(brief, tweaks = {}) {
   }
   const total = lens.reduce((a, n) => a + n, 0);
   let lastSpeed = brief.speed || "1x", h = 0, prevUpside = false;
-  const extra = structurePicks(brief);
+  const extra = structurePicks(brief, tweaks);
   for (const [si, sec0] of brief.sections.entries()) {
     const sec = Object.assign({}, sec0, { blocks: lens[si] });
     if (extra[si]) sec.use = [...sec.use, extra[si]];
@@ -238,8 +240,15 @@ function compose(brief, tweaks = {}) {
       // section (a cube jumping off a step into the next mode portal read as a 6-block prejump: 45 v8, block 82)
       const stop = upside ? end - 9 : brief.terrain ? end - 8 : end - 3;
       // draw every random choice up front so a tweak to one chunk does not reshuffle the others
-      const draws = Array.from({ length: 64 }, () => [rnd(), rnd()]);
-      const tdraws = Array.from({ length: 64 }, () => [rnd(), rnd()]);   // terrain, drawn apart so old levels keep their chunks
+      let draws = Array.from({ length: 64 }, () => [rnd(), rnd()]);
+      let tdraws = Array.from({ length: 64 }, () => [rnd(), rnd()]);   // terrain, drawn apart so old levels keep their chunks
+      // a variant / backtrack of this section (tweaks "reseed:<si>" = n): its chunks, gaps and terrain heights
+      // drawn from a generator of its own (the shared draws above are still taken, so the other sections stay
+      // as they were); the n-th alternative library structure too (structurePicks)
+      if (tweaks["reseed:" + si]) {
+        const r2 = rng((brief.seed || 1) * 131 + si * 1009 + tweaks["reseed:" + si] * 7919);
+        draws = draws.map(() => [r2(), r2()]); tdraws = tdraws.map(() => [r2(), r2()]);
+      }
       // block terrain (brief "terrain": true): the floor of a cube section steps between rows 0 and 2
       // between chunks, so the play is on blocks, ledges and steps, not the bare floor (rated Easy/
       // Normal: a block in ~47% of cube columns, most spikes by a block; GDLM had 13%:
@@ -450,7 +459,62 @@ function loop(briefFile, rounds = 8) {
   const better = (a, b) => !b || (sound(a.s) && !sound(b.s)) || (!sound(a.s) && !sound(b.s) && nFails(a) < nFails(b)) || (sound(a.s) === sound(b.s) && nFails(a) === nFails(b) && dist(a) < dist(b));
   const list = fixes => fixes.map(f => `- ${f.what}${NL}`).join("");
   const blocked = new Set();
-  let cur = evaluate({}), best = null;
+  // ---- section scores, variants, backtracking (the user, 2026-11-23: "in building levels in general it may
+  // be cool to somehow see possible alternatives"). A section is scored ALONE (sectionSpec) with every gate
+  // that makes sense for a part: 100 minus 30 per FAIL and 6 per WARN. The opening, the drops ("flash") and
+  // the finale get brief.variants (default 3) versions -- "reseed:<si>": other draws for its chunks, gaps and
+  // terrain heights and another library structure -- and the best one is kept; all are saved with their
+  // scores to local/wip/<session>/<level>.variants/ for the user to see, close calls marked. A section that
+  // fails 2 repair rounds is rebuilt from another plan (the next reseed), not patched further.
+  const SECTION_ONLY = new Set(["pacing", "colour", "sync", "length", "mode changes", "difficulty", "ending", "lead-in", "variety", "taste", "craft", "deco coverage"]);
+  const points = sc => Math.max(0, 100 - sc.gates.filter(g => !SECTION_ONLY.has(g.name)).reduce((a, g) => a + (g.status === "FAIL" ? 30 : g.status === "WARN" ? 6 : 0), 0));
+  const secCache = new Map();
+  const scoreSection = (tweaks, si) => {
+    const { spec, ranges } = compose(brief, tweaks);
+    const { sub } = sectionSpec(spec, ranges[si], speedsOf(brief)[si]);
+    const key = JSON.stringify(sub.objects);
+    if (!secCache.has(key)) {
+      sub.name = `${brief.name} s${si}`;
+      const { level, rec } = build(sub, briefFile);
+      const sc = scoreLevel(level, Object.assign({}, brief, { sections: undefined }), { fairness: false });
+      secCache.set(key, { sc, points: points(sc), level, rec });
+    }
+    return secCache.get(key);
+  };
+  const vdir = path.join(__dirname, "..", "local", "wip", brief.session || "style", slug(brief.name) + ".variants");
+  const lastPlay = brief.sections.map((s, i) => i).filter(i => !brief.sections[i].rest).pop();
+  const firstCube = brief.sections.findIndex(s => !s.rest && !s.mode && s.use && s.use.length);
+  const important = brief.sections.map((s, i) => i).filter(i => {
+    const s = brief.sections[i];
+    return s.use && s.use.length && !s.rest && (!s.mode || s.mode === "upside") && (i === firstCube || s.flash || i === lastPlay || (brief.variantSections || []).includes(s.name));
+  });
+  const K = brief.variants ?? 3, start0 = {}, vlog = [];
+  if (K > 1) for (const si of important) {
+    const tried = [];
+    for (let n = 0; n < K; n++) {
+      const tw = Object.assign({}, start0, n ? { ["reseed:" + si]: n } : {});
+      const r = scoreSection(tw, si);
+      tried.push({ n, points: r.points, gates: r.sc.gates.filter(g => g.status !== "PASS").map(g => `${g.status} ${g.name}`), r });
+      fs.mkdirSync(vdir, { recursive: true });
+      const file = path.join(vdir, `s${si}_${slug(brief.sections[si].name)}_v${n}`);
+      require("./io.js").writeGdlvl(file + ".gdlvl", r.rec, r.level);
+      fs.writeFileSync(file + ".json", JSON.stringify({ level: brief.name, section: brief.sections[si].name, variant: n, points: r.points, issues: tried[tried.length - 1].gates }, null, 1));
+    }
+    tried.sort((a, b) => b.points - a.points);
+    const win = tried[0], close = tried.length > 1 && tried[0].points - tried[1].points <= 5;
+    if (win.n) start0["reseed:" + si] = win.n;
+    const line = `${brief.sections[si].name}: v${win.n} kept (${win.points}) over ` + tried.slice(1).map(t => `v${t.n} ${t.points}` + (t.gates.length ? ` [${t.gates.join(", ")}]` : "")).join(", ") + (close ? " -- CLOSE: a taste call for the user" : "");
+    console.log("   variants " + line); vlog.push(line);
+    log.push(`- variants ${line}${NL}`);
+  }
+  if (vlog.length) {
+    // learn: which variant won and why (knowledge/variants.md, appended per run; the user's picks count double)
+    const lf = path.join(__dirname, "..", "knowledge", "variants.md");
+    const head = fs.existsSync(lf) ? "" : "# Section variants: which won and why\n\ncompose.js builds 2-4 versions of the opening, the drops and the finale, scores each section alone\n(100 - 30 per FAIL - 6 per WARN) and keeps the best; all are in local/wip/<session>/<level>.variants/. A CLOSE\nresult is a taste call for the user; the user's own picks count double (write them here as \"user picked\").\n\n";
+    fs.appendFileSync(lf, head + `## ${brief.name} (${new Date().toISOString().slice(0, 10)})\n` + vlog.map(l => "- " + l).join("\n") + "\n\n");
+  }
+  const failRounds = {};
+  let cur = evaluate(start0), best = null;
   for (let round = 1; round <= rounds; round++) {
     const s = cur.s;
     log.push(`${NL}## Round ${round}: ${s.ok ? "READY" : "not ready"} (${s.fails} fail, ${s.warns} warn)${NL}`);
@@ -479,6 +543,18 @@ function loop(briefFile, rounds = 8) {
         t.tries = (t.tries || 0) + 1;
         if (t.tries <= 2) { t.gap = (t.gap || 0) + 2; fixes.push({ key: ch.key, what: `2 more columns before ${t.swap || ch.name} at ${ch.from} (${b.why})` }); }
         else if (EASIER[t.swap || ch.name]) { t.swap = EASIER[t.swap || ch.name]; t.tries = 0; fixes.push({ key: ch.key, what: `${ch.name} at ${ch.from} -> ${t.swap} (${b.why})` }); }
+      }
+      // backtrack: a section blamed in 2 rounds is rebuilt from another plan instead of patched again
+      for (const si of new Set(fixes.map(f => +String(f.key).split(":")[0]).filter(n => !isNaN(n)))) {
+        failRounds[si] = (failRounds[si] || 0) + 1;
+        if (failRounds[si] >= 2) {
+          for (const k of Object.keys(tweaks)) if (k.startsWith(si + ":")) delete tweaks[k];
+          for (const k of [...blocked]) if (String(k).startsWith(si + ":")) blocked.delete(k);
+          tweaks["reseed:" + si] = (tweaks["reseed:" + si] || 0) + (brief.variants ?? 3);
+          failRounds[si] = 0;
+          for (let i = fixes.length - 1; i >= 0; i--) if (String(fixes[i].key).startsWith(si + ":")) fixes.splice(i, 1);
+          fixes.push({ key: "reseed:" + si, what: `section ${brief.sections[si].name} rebuilt from another plan (reseed ${tweaks["reseed:" + si]}): 2 rounds of patching did not fix it` });
+        }
       }
       if (!fixes.length) { log.push(`${NL}No automatic repair for what is left: needs a rethink of the brief.${NL}`); break; }
       log.push(`${NL}Repairs:${NL}` + list(fixes));
