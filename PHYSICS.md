@@ -147,7 +147,7 @@ The viewer draws moved, turned and switched-off objects where they are at each m
 
 ## Not in the sim yet (the game has it)
 
-Modes/portals: dual (286/287), mirror. Teleport portals (747) are in, unchecked: same x, speed kept, exit height = portal y + key 54 along the portal's turned axis (54 x cos(rotation)), but straight up/down when key 55 is set (fitted on Deadlocked, 2026-11-23: its -53 degree portal at block 76.5 needs the turned offset to pass under a spike; its -46 degree portal with 55 at 360.8 lands exactly on the gravity + speed portals 224 below; whether GD also moves x is not known; smooth teleport and the 2.2 options 345+ not modelled); first used by Deadlocked at block 77, Fingerdash 205, Dash 435. Triggers: count/pickup items,
+Modes/portals: dual (286/287), mirror. Teleport portals (747) are in, unchecked: same x, speed kept, exit height = portal y + key 54 along the portal's turned axis (54 x cos(rotation)), but the full 54 straight up/down when key 55 is set or the portal is turned a quarter (90/-90/270: cos would make it a no-op; Deadlocked's ball part 441-561 passes only so, neither "no move" nor "x moves by 54" does -- "angle mod 90" fits the same cases) (fitted on Deadlocked, 2026-11-23: its -53 degree portal at block 76.5 needs the turned offset to pass under a spike; its -46 degree portal with 55 at 360.8 lands exactly on the gravity + speed portals 224 below; whether GD also moves x is not known; smooth teleport and the 2.2 options 345+ not modelled); first used by Deadlocked at block 77, Fingerdash 205, Dash 435. Triggers: count/pickup items,
 scale, follow, on death, collision blocks, area triggers, gravity trigger, time warp. Others:
 keys and user coins (collectables only), start positions (levels always start at x 0), practice
 checkpoints, speed portals touched mid-air at a slant, force blocks, platformer mode, dash orbs'
@@ -177,3 +177,8 @@ a hazard. 37 ids have that mismatch, all block-outline, plank and outline pieces
 and 1903-1905 that real-game plans had already shown solid. lib/objects.js's SOLID0 makes them all
 solid (sure:false). Check for the next import: `node -e` over lib/objects_art.js (type = field 5)
 vs lib/objects_extra.js lists any id whose type is 0 but kind is hazard.
+
+With that and the quarter-turned teleports, Deadlocked's solve reaches block 695.4 (59%, physics 119344c):
+a ship takes a plain teleport (20887, 54 = -94) into a low corridor and its box overlaps a sideways
+spike (421) at the corridor's mouth by 1.6 units. Open: whether GD fires a teleport later than first
+touch (at the portal's centre fits this spot; being checked on the other teleports).
