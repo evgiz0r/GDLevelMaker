@@ -89,7 +89,11 @@ http.createServer((req, res) => {
       const { list } = require("./wip.js"), { readGdlvl } = require("./io.js"), { songOf } = require("./index_levels.js");
       for (const m of list()) {
         try { const L = readGdlvl(path.join(root, "local", "wip", m.session, m.file));
-              out.push(Object.assign({}, m, { name: m.name, file: "local/wip/" + m.session + "/" + m.file, level: L.levelStr, song: songOf(L.rec, L.level.header), wip: true })); } catch (e) {}
+              // the timing windows measured later (tools/solutions.js cache) for the same inputs: the viewer shows them at once
+              let solution = m.solution;
+              try { const c = require("./solutions.js").get(L.levelStr, true);
+                if (solution && !solution.windows && c && c.windows && JSON.stringify(c.events) === JSON.stringify(solution.events)) solution = Object.assign({}, solution, { windows: c.windows, win: c.win }); } catch (e) {}
+              out.push(Object.assign({}, m, { name: m.name, file: "local/wip/" + m.session + "/" + m.file, level: L.levelStr, song: songOf(L.rec, L.level.header), wip: true, solution })); } catch (e) {}
       }
     } catch (e) {}
     res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify(out));
