@@ -155,14 +155,21 @@ function scoreLevel(level, brief, opts = {}) {
     gate("reactive", reactive.length ? (want.label && !hard ? "FAIL" : "WARN") : "PASS",
       reactive.length ? `${reactive.length} spot(s) that need exact hops` : "every landing leaves room to react",
       reactive.map(s => `block ${s.block}: ${s.why}`).join("; "));
-    // player timing: each jump on the player's route (lib/natural.js, what the viewer and the game show)
-    // timed on its own, until the next input (later inputs free to adapt), capped at +-200 ms. The timing
-    // gate above measures the solver's route, which can take a different line: GDLM 47 v2 passed it at
-    // 113 ms while the player's route had a 4 ms jump (a spike, then a block 3 later: landing between them).
-    const pw = (reactive.windows || []).filter(x => x.ms < minMs);
-    if (reactive.windows && reactive.windows.length) gate("player timing", pw.length ? "FAIL" : "PASS",
-      `tightest ${Math.min(...reactive.windows.map(x => x.ms))} ms over ${reactive.windows.length} jumps on the player's route, want >= ${minMs}`,
-      pw.map(x => `block ${x.block} (${x.t} s) ${x.ms} ms`).join("; "));
+    // player timing: every input of the player's route (lib/natural.js, what the viewer and the game show)
+    // with lib/windows.js's player window (later inputs re-planned; the same number as the viewer and
+    // lib/difficulty.js: physics 05abaf7, tests/windows_shared.js). The timing gate above measures the
+    // solver's route, which can take a different line: GDLM 47 v2 passed it at 113 ms while the player's
+    // route had an 8 ms jump at block 67 (a spike, then a block 3 later: landing between them).
+    if (nr) {
+      try {
+        const WI = require("../lib/windows.js"), np = GD.run(w, nr.events).path;
+        const ws = (WI.inputWindows || GD.inputWindows)(w, nr.events, np, {}).map(x => ({ x: (np[x.tick] || {}).x || 0, t: x.tick / GD.PHYS.TPS, type: x.type, ms: Math.round((x.hi - x.lo + 1) / GD.PHYS.TPS * 1000) }));
+        const pw = ws.filter(x => x.ms < minMs);
+        if (ws.length) gate("player timing", pw.length ? "FAIL" : "PASS",
+          `tightest ${Math.min(...ws.map(x => x.ms))} ms over ${ws.length} inputs on the player's route, want >= ${minMs}`,
+          pw.map(x => `block ${(x.x / 30).toFixed(1)} (${x.t.toFixed(2)} s) ${x.type} ${x.ms} ms`).join("; "));
+      } catch (e) { gate("player timing", "WARN", "lib/windows.js failed: " + e.message); }
+    }
   }
 
   if (r.ok) {
@@ -459,30 +466,7 @@ function reactiveSpots(level, w, r, presses, opts = {}) {
     const horizon = Math.min(Math.max(at, pressTick) + Math.round(0.5 * TPS), next ? next.tick : Infinity);
     return { ok: !res.dead || res.path.length - 1 >= horizon, why: res.why || "" };
   };
-  // the press moved to `at`, then the NEXT press re-timed within +-100 ms: does any timing live until the
-  // input after it (or 0.5 s)? (no next press: true)
-  const aheadOk = (pressTick, at) => {
-    if (at === pressTick) return true;                        // the plan itself
-    const ev = r.events.map(e => ({ ...e })).sort((x, y) => x.tick - y.tick);
-    const k = ev.findIndex(e => e.type === "press" && e.tick === pressTick);
-    const rel = ev.findIndex((e, j) => j > k && e.type === "release");
-    const n = ev.findIndex((e, j) => j > k && e.type === "press");
-    if (n < 0) return true;
-    const nrel = ev.findIndex((e, j) => j > n && e.type === "release"), after = ev.find((e, j) => j > n && e.type === "press");
-    const d = at - pressTick;
-    ev[k].tick = at; if (rel >= 0) ev[rel].tick = Math.max(ev[rel].tick + d, at + 1);
-    const base = ev[n].tick, len = nrel >= 0 ? ev[nrel].tick - base : 1;
-    for (let d2 = 0; d2 <= 24; d2 = d2 > 0 ? -d2 : -d2 + 4) {     // 0, 4, -4, 8, -8 ... ticks (+-100 ms)
-      const t2 = base + d2;
-      if (t2 <= at + 1 || (after && t2 >= after.tick - 1)) continue;
-      const e2 = ev.map(e => ({ ...e })); e2[n].tick = t2; if (nrel >= 0) e2[nrel].tick = t2 + len;
-      const res = GD.run(w, e2.sort((x, y) => x.tick - y.tick));
-      const horizon = Math.min(t2 + Math.round(0.5 * TPS), after ? after.tick : Infinity);
-      if (!res.dead || res.path.length - 1 >= horizon) return true;
-    }
-    return false;
-  };
-  const SPAN = Math.round(0.2 * TPS), STEP = 2, wins = [];
+  const SPAN = Math.round(0.2 * TPS), STEP = 2;
   for (const pr of opts.noWindows ? [] : presses) {   // opts.noWindows: skip the per-jump scan (fast sweeps)
     const q = path[pr.tick] || {};
     if (!/^(cube|robot)$/.test(q.mode || "cube")) continue;
@@ -494,15 +478,6 @@ function reactiveSpots(level, w, r, presses, opts = {}) {
     while (a > 0 && res[a - 1].ok) a--;
     while (b < res.length - 1 && res[b + 1].ok) b++;
     const ms = (res[b].d - res[a].d + STEP) / TPS * 1000;
-    // one step of lookahead for the player-timing window (polish, from hellgate v12's dead end: a jump into
-    // a gap before a wall lives to the next press, but no next press works from there): an edge counts
-    // only if some re-timing of the next press (+-100 ms) then lives to the input after it. Checked at the
-    // edges only, shrinking inward, so a level costs a few more replays per jump, not hundreds.
-    let A = a, B = b;
-    while (A < i0 && !aheadOk(pr.tick, pr.tick + res[A].d)) A++;
-    while (B > i0 && !aheadOk(pr.tick, pr.tick + res[B].d)) B--;
-    const pms = (res[B].d - res[A].d + STEP) / TPS * 1000;
-    wins.push({ block: +(q.x / 30).toFixed(1), t: +(pr.tick / TPS).toFixed(2), ms: Math.round(pms) });
     // a block on one side of the window and the hazard on the other: the jump clears a hazard AND must
     // be timed around a block. (A plain step jump ends at the block's face by nature: not flagged.)
     const HAZ = /^(spike|saw)$/;
@@ -549,7 +524,6 @@ function reactiveSpots(level, w, r, presses, opts = {}) {
     }
   }
   const res = out.filter((s, i, a) => a.findIndex(z => z.block === s.block && z.why === s.why) === i);
-  res.windows = wins;   // every jumping-mode press's own window (to the next input), for the "player timing" gate
   return res;
 }
 

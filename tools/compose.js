@@ -138,9 +138,11 @@ function compose(brief, tweaks = {}) {
     const at = si === 0 ? 0 : (sec0.beats ? start : Math.max(0, start - 2));  // on the beat when in beats
     for (const ch of ["bg", "ground", "line", "obj"]) if (sec[ch]) {
       if (ch === "bg" && sec.flash && si > 0) {
-        // a drop: flash bright on the beat, then settle on the section's colour
-        objects.push(["colour", at, { ch: "bg", rgb: sec.bg.map(v => Math.min(255, v + 150)), secs: 0 }]);
-        objects.push(["colour", at + 0.5, { ch: "bg", rgb: sec.bg, secs: 0.6 }]);
+        // a drop: a short shift toward a lighter tint of the section's own colour on the beat (a third of
+        // the way to white, not +150 near white), then settle -- calm, not flashy (the user on hellgate:
+        // "waaaay too flashy ... hard to tell what kills you"; checklist "Calm, not flashy")
+        objects.push(["colour", at, { ch: "bg", rgb: sec.bg.map(v => Math.round(v + (255 - v) / 3)), secs: 0.1 }]);
+        objects.push(["colour", at + 0.5, { ch: "bg", rgb: sec.bg, secs: 0.8 }]);
       } else objects.push(["colour", at, { ch, rgb: sec[ch], secs: sec.secs ?? (sec0.beats ? 0.4 : 1) }]);
     }
     if (sec.deco != null) deco.push([start, sec.deco]);

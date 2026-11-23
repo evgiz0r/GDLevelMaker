@@ -78,6 +78,11 @@ checklist it was built against.
 - [ ] **Wave**: zigzag turns wider than ~100 ms apart; no head-on slopes at a portal exit; the exit
   portal over a flat floor, level stretches at the turns (patterns.js wave-zigzag `flat`, `leadGap`).
   (design.md; GDLM 44/46 real-game deaths)
+- [ ] **Jump arrows a block in front of the hazard, low, never over it**, and no two under 2 blocks
+  apart: `node tools/softrules.js <level>`, score.js gates "arrows" and "jump marks". (GDLM 50 v2: "arrow
+  into the spike", "too close to the spike, almost inside it")
+- [ ] **Corridor mouths flush**: no notch or hanger where a roof or floor meets a slope or a portal
+  (softrules "stubs"; GDLM 50 v2's wave entrance: "this entrance is wrong in its shape").
 - [ ] **Jump marks sit low**: about 1 block over the surface (make.js lifts them 30 units), and none
   where no jump is needed (placed from the natural replay's real jumps only). (GDLM 45 v5, the user)
 - [ ] **Invisible parts**: ghosted (faint), fully hidden only for a chunk already seen. No fakes at

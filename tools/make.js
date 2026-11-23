@@ -299,6 +299,9 @@ function build(spec, specFile = "spec") {
     for (let i = 1; i < js.length; i++) if (js[i] - js[i - 1] < need)
       console.log(`   NOTE jumps on beats ${js[i - 1]} and ${js[i]} are closer than a jump lasts (${air.toFixed(2)} s = ${need.toFixed(2)} beats here): the second cannot be on its beat`);
     nudgeJumps(jGroups, objects, header, ctx, tl);
+    // nudging jumps onto beats can push spike groups into each other or against a pad (GDLM 44 v13 at
+    // block ~85, the user: "this looks like very bad jump"): polish's tools/clusters.js on what was placed
+    for (const s of require("./clusters.js").check(objects)) console.log(`   WARN ${s.kind} at block ${(s.x / 30 - 0.5).toFixed(1)}: ${s.note} (tools/clusters.js)`);
   }
 
   let sceneSig = null;  // a scene may place the signature itself (its scenery runs on past the end): {col, shirt}

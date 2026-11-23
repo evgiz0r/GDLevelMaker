@@ -16,6 +16,7 @@
 //   attempt counter text under GD's "Attempt N" at the start
 //   height          floor changes, range, flat stretches, bare floor (tools/flow.js)
 //   repetition      4-move patterns repeated within 10 s
+//   clusters        overlapping / ragged spike groups, a hazard right before a pad (polish's tools/clusters.js)
 const fs = require("fs"), path = require("path");
 const { GD, readGdlvl } = require("./io.js");
 const S = require("./score.js"), F = require("./flow.js"), deco = require("./decorate.js");
@@ -31,13 +32,18 @@ function rulesOf(file, opts = {}) {
     if (o.x - half < Z.x1 && o.x + half > Z.x0 && o.y > Z.y0 - 20 && o.y < Z.y1 + 20) att.push(`"${t}" at block ${((o.x - 15) / 30).toFixed(0)}`);
   }
   add("attempt counter", att);
+  add("clusters", require("./clusters.js").check(L.level.objects).map(s => `block ${(s.x / 30 - 0.5).toFixed(1)} ${s.kind}: ${s.note}`));
   const sol = require("./solutions.js").get(L.levelStr);
   if (!sol || !sol.events) { out.note = "no saved solution: route rules not run (node tools/solutions.js " + out.file + ")"; return out; }
   const w = GD.makeWorld(L.level.objects, L.level.header), r = { ok: true, events: sol.events };
   const presses = sol.events.filter(e => e.type === "press").map(e => ({ tick: e.tick }));
   const re = S.reactiveSpots(L.level, w, r, presses, { natural: true, noWindows: !!opts.fast });
   add("reactive", re.map(s => `block ${s.block}: ${s.why}`));
-  if (re.windows && re.windows.length) add("player timing", re.windows.filter(x => x.ms < (opts.minMs || 60)).map(x => `block ${x.block} (${x.t} s) ${x.ms} ms`));
+  if (!opts.fast) {   // lib/windows.js's player windows (the viewer's number), every input of the route
+    const WI = require("../lib/windows.js"), p = GD.run(w, sol.events).path;
+    const ws = WI.inputWindows(w, sol.events, p, {}).map(x => ({ x: (p[x.tick] || {}).x || 0, t: x.tick / GD.PHYS.TPS, type: x.type, ms: Math.round((x.hi - x.lo + 1) / GD.PHYS.TPS * 1000) }));
+    add("player timing", ws.filter(x => x.ms < (opts.minMs || 60)).map(x => `block ${(x.x / 30).toFixed(1)} (${x.t.toFixed(2)} s) ${x.type} ${x.ms} ms`));
+  }
   add("hazards matter", S.inertHazards(L.level, w, r).map(s => `blocks ${s.a}-${s.b}: ${s.why}`));
   const m = F.measure(L.level, sol.events), h = [];
   if (m.jumpS >= 10) {
