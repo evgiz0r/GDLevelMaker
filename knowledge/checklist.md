@@ -196,6 +196,9 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   pattern option in that spec (e.g. orb-pit `"asym": true`). (GDLM 50 eclipse, changed by a wave fix
   made for hellgate)
 
+- [ ] **Every build puts its stages** (song, layout, path, deco, final) for the viewer: compose and make.js do it by
+  themselves (tools/stages.js, visuals); a hand-made build that skips them shows only its end. (the user, 2026-11-24)
+
 ## Name, description, signature (the user, 2026-11-23)
 
 - [ ] **The name is final from the first upload**: the GD server refuses a renamed shared level, so the

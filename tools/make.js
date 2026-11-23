@@ -419,10 +419,38 @@ function build(spec, specFile = "spec") {
 }
 
 // spec file (or an already parsed spec) -> levels/<name>.gdlvl, checked, added to the viewer
+// Every build puts its stages for the viewer (the user: "partial steps like song/layout/path/deco available in
+// the process, not just the end result"; visuals' tools/stages.js): layout (the gameplay objects), path (the
+// layout and its planned presses, tools/intent.js), deco (the whole level before the check), final (after it).
+// The song stage comes from compose (it has the sections). Session: spec.session, GDLM_SESSION, or the
+// worktree's name. A failure here never stops a build.
+const STAGE_PLAY = new Set(["solid", "hazard", "orb", "pad", "mode", "gravity", "speed", "size", "teleport", "slope", "dual"]);
+function putStages(spec, level, ctx, which) {
+  let STG; try { STG = require("./stages.js"); } catch (e) { return; }
+  const session = spec.session || process.env.GDLM_SESSION || path.basename(path.join(__dirname, "..")).replace(/-[0-9a-f]{6}$/, "") || "make";
+  const base = slug(spec.name), put = (stage, extra) => { try { STG.put(Object.assign({ session, base, name: spec.name, stage }, extra)); } catch (e) {} };
+  if (which.includes("layout") || which.includes("path")) {
+    const layout = { header: level.header, objects: level.objects.filter(o => STAGE_PLAY.has(GD.objInfo(o.id).kind)) };
+    const ls = GD.serializeLevel(layout);
+    if (which.includes("layout")) put("layout", { levelStr: ls, note: "gameplay only" });
+    if (which.includes("path")) try {
+      const I = require("./intent.js"), w = GD.makeWorld(layout.objects, layout.header), tl = GD.SYNC.timeline(w);
+      // cached intents only: the path stage never solves (patterns not yet in local/intent/ are left out;
+      // node tools/intent.js <spec> fills the cache through the heavy lock)
+      const { intents, missing } = I.intents(ctx.placements || [], tl, { cacheOnly: true });
+      put("path", { levelStr: ls, data: { planned: intents.map(i => ({ t: +GD.SYNC.tOfX(tl, i.x).toFixed(3), what: i.type === "press" ? "jump" : "release" })) },
+        note: "planned presses from each pattern's intended inputs" + (missing.length ? ` (${missing.length} pattern(s) not planned yet)` : "") });
+    } catch (e) { put("path", { levelStr: ls, note: "planned presses not available: " + e.message }); }
+  }
+  if (which.includes("deco")) put("deco", { levelStr: GD.serializeLevel(level), note: "with the look" });
+  if (which.includes("final")) put("final", { levelStr: GD.serializeLevel(level), note: which.note || "built" });
+}
+
 function make(specFile, specObj) {
   const spec = specObj || JSON.parse(fs.readFileSync(specFile, "utf8"));
   const { level, rec, ctx, objects, header } = build(spec, specFile);
   const out = path.join(__dirname, "..", "levels", slug(spec.name) + ".gdlvl");
+  putStages(spec, level, ctx, ["layout", "path", "deco"]);
   if (LOOK_ONLY && lookOnly(out, rec, level, spec)) return { out, r: { ok: true } };
   // the previous build and its saved route: an edit re-solves only what it changed (lib/incsolve.js,
   // PHYSICS.md "Incremental solving"); --full solves the whole level
@@ -460,6 +488,7 @@ function make(specFile, specObj) {
   // save the solution (natural replay) so the viewer and the phone replay it, not solve it again
   // r: the check's solve (indicators have no hitbox, so it still holds)
   try { const L2 = require("./io.js").readGdlvl(out); require("./solutions.js").fromRun(L2.level, L2.levelStr, r); } catch (e) { console.log("   (solution not saved: " + e.message + ")"); }
+  putStages(spec, level, ctx, Object.assign(["final"], { note: r && r.ok ? "beaten" : "not beaten" }));
   buildIndex();
   return { out, r };
 }
@@ -565,4 +594,4 @@ if (require.main === module) {
   if (!specs.length) { console.log("usage: node tools/make.js specs/<name>.json [...]"); process.exit(1); }
   for (const s of specs) make(s);
 }
-module.exports = { make, build, slug, TYPES, songOf, gridOf, checkDesc };
+module.exports = { make, build, slug, TYPES, songOf, gridOf, checkDesc, putStages };

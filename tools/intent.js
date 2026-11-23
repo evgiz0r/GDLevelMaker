@@ -27,10 +27,11 @@ const SPEED_NAMES = ["0.5x", "1x", "2x", "3x", "4x"];
 const speedAt = (tl, x) => { let s = tl[0]; for (const g of tl) if (g.x <= x) s = g; let best = 1, d = Infinity; GD.SPEEDS.forEach((sp, i) => { const e = Math.abs(sp.x * 60 - s.v); if (e < d) { d = e; best = i; } }); return SPEED_NAMES[best]; };
 
 // ---- 1. a pattern's intended inputs, relative to its column (cached) ----
-function relInputs(name, args, speed) {
+function relInputs(name, args, speed, opts = {}) {
   const key = crypto.createHash("sha1").update(JSON.stringify([name, args || {}, speed, 2])).digest("hex").slice(0, 16);
   const file = path.join(DIR, key + ".json");
   try { return JSON.parse(fs.readFileSync(file, "utf8")); } catch (e) {}
+  if (opts.cacheOnly) return null;            // a build's path stage never solves (make.js)
   const { build } = require("./make.js"), { PATTERNS } = require("./patterns.js");
   const P = PATTERNS[name]; if (!P) return null;
   const width = P.fn(args || {}).width, C0 = 12;
@@ -55,10 +56,10 @@ function relInputs(name, args, speed) {
 
 // ---- 2. the level's intended route: the placements' inputs laid end to end ----
 // placements: [{name, col, row, args}] (make.js build -> ctx.placements); tl: the speed timeline
-function intents(placements, tl) {
+function intents(placements, tl, opts = {}) {
   const out = [], missing = [];
   for (const p of placements) {
-    const sp = speedAt(tl, p.col * 30), rel = relInputs(p.name, p.args, sp);
+    const sp = speedAt(tl, p.col * 30), rel = relInputs(p.name, p.args, sp, opts);
     if (!rel || rel.fail || !rel.inputs) { missing.push(`${p.name}@${p.col}${rel && rel.fail ? " (" + rel.fail + ")" : ""}`); continue; }
     for (const i of rel.inputs) out.push({ x: p.col * 30 + i.dx, type: i.type, from: p.name + "@" + p.col });
   }

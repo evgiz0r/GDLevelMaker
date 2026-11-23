@@ -658,7 +658,7 @@ function loop(briefFile, rounds = 8) {
     const g = gameplayOnly(best.spec), log0 = console.log; console.log = () => {};
     let built; try { built = build(g, briefFile); } finally { console.log = log0; }
     const I = require("./intent.js"), wg = GD.makeWorld(built.level.objects, built.level.header), tl = SY.SYNC.timeline(wg);
-    const { intents } = I.intents(built.ctx.placements || [], tl);
+    const { intents } = I.intents(built.ctx.placements || [], tl, { cacheOnly: true });
     stage("path", { levelStr: GD.serializeLevel(built.level), data: { planned: intents.map(i => ({ t: +SY.SYNC.tOfX(tl, i.x).toFixed(3), what: i.type === "press" ? "jump" : "release" })) }, note: "the kept layout and its planned presses" });
   } catch (e) { console.log("   (path stage skipped: " + e.message + ")"); }
   make(specFile);
