@@ -69,8 +69,10 @@ S("green-orb-flip", { tags: ["orb", "green orb", "pad", "gravity", "ceiling run"
   doc: "a yellow pad throws the cube up to a green orb (a jump that also flips gravity) onto a high ceiling; a second green orb brings it down",
   build: () => ({ objects: [["yellow pad", 0, 0], ...spikes(1, 14), ...blocks(0, 15, 8, 9), [1022, 4, 4], [1022, 11, 6]], width: 16 }) });
 S("dash-orb-pit", { tags: ["orb", "dash orb"], tier: "Normal",
-  doc: "a green dash orb over a long pit: hold to dash straight across, release over the landing",
-  build: () => ({ objects: [...spikes(1, 11), ["green dash orb", 2, 2], ...blocks(11, 14, 0, 2)], width: 14 }) });
+  // the dash ends over open floor, not into a wall: a post right after a dash run killed the user 5 times
+  // holding the dash into it (GDLM 60 real play, physics 2026-11-23)
+  doc: "a green dash orb over a long pit: hold to dash straight across, release over open floor",
+  build: () => ({ objects: [...spikes(1, 11), ["green dash orb", 2, 2]], width: 15 }) });
 
 // ---------------------------------------------------------------- gravity and size
 S("gravity-tunnel", { tags: ["gravity", "gravity portal", "ceiling run"], tier: "Normal",
@@ -313,6 +315,8 @@ function rank(results) {
     // a prejump WARN is the approximate check on levels with modes (sweep solver): not counted
     const read = !r.ok ? 0 : Math.max(0, 1 - 0.5 * (r.gates.prejumps === "FAIL" ? 1 : 0)
       - 0.3 * (r.gates.fairness === "FAIL" ? 1 : 0) - 0.1 * (r.gates.fairness === "WARN" ? 1 : 0) - 0.1 * (r.gates.recovery === "WARN" ? 1 : 0)
+      // exact hops instead of reactions (score.js "reactive", the user on GDLM 45 v6): pushed well down
+      - 0.4 * (r.gates.reactive && r.gates.reactive !== "PASS" ? 1 : 0)
       - 0.15 * Math.max(0, pps - 2.5));
     const variety = 1 - ours, usage = Math.sqrt(real);
     r.rank = { variety: +variety.toFixed(2), usage: +usage.toFixed(2), fairness: +fair.toFixed(2), readability: +read.toFixed(2),
@@ -327,7 +331,7 @@ function rank(results) {
 const MODE_COL = { cube: "#3c9", ship: "#f5a", ball: "#f44", ufo: "#fb3", wave: "#3bf", robot: "#ccc", spider: "#b6f", swing: "#fd3" };
 function svgOf(r, GD) {
   const P = r.pic; if (!P) return "";
-  const W = P.x1 - P.x0, top = Math.max(330, ...P.objects.map(o => o[2] + 30), ...P.path.map(q => q[1] + 30)), H = top + 20;
+  const W = P.x1 - P.x0, top = Math.max(150, ...P.objects.map(o => o[2] + 45), ...P.path.map(q => q[1] + 45)), H = top + 20;
   const Y = y => (top - y).toFixed(1), X = x => (x - P.x0).toFixed(1), out = [];
   out.push(`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${r.id}">`);
   out.push(`<rect x="0" y="${Y(0)}" width="${W}" height="20" class="g"/>`);
@@ -435,7 +439,7 @@ function save(db) {
 }
 function byId(id) { return LIB.find(s => s.id === id); }
 
-module.exports = { LIB, byId, testSpec, check, rank, page, load, save, register, ranked };
+module.exports = { LIB, byId, testSpec, check, rank, page, load, save, register, ranked, svgOf };
 
 if (require.main === module) {
   const [cmd, ...rest] = process.argv.slice(2);

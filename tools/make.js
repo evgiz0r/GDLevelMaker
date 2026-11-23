@@ -150,6 +150,7 @@ const colAt = entry => entry[0] === "pattern" ? 2 : 1;
 // pit runs from the pattern's column to one column before the landing.
 function arcOrbs(name, col, args, header, specFile, speedPortals = []) {
   const n = name === "orb-pit" ? 1 : (args.n || (args.rows || [2, 3, 4]).length);
+  if (n === 1 && !args.asym) { const s = symmetricOrbPit(col, args, header, specFile, speedPortals); if (s) return s; }
   const orbType = args.orb || "yellow orb";
   const end = toObj(["block", col + 80, 12], specFile);   // the world's end, out of the way
   const orbs = [];
@@ -190,6 +191,51 @@ function arcOrbs(name, col, args, header, specFile, speedPortals = []) {
   const out = orbs.slice();
   for (let c = col; c < landCol - 1; c++) out.push(toObj(["spike", c, 0], specFile));
   return out;
+}
+
+// One orb over a spike pit, centred over it (the user on GDLM 45 v6: an orb over the 2nd of 5 spikes,
+// "it's not pretty that the orbs are not symmetrical to their structure. symmetry = good"). The orb goes
+// on the jump's arc at a column (or half column) X from the apex on; pressing at it gives a landing,
+// the pit ends one column before that, and its start is mirrored about X. Taken: the first X where the
+// pit starts at or after the pattern's column (the takeoff stays on the ground) and a plain jump without
+// the orb dies (the orb stays needed). None fits: null (the old apex placement). args.asym: true = off.
+function symmetricOrbPit(col, args, header, specFile, speedPortals) {
+  const orbType = args.orb || "yellow orb";
+  const end = toObj(["block", col + 80, 12], specFile);
+  const run = (objs, events) => GD.run(GD.makeWorld(objs.concat(speedPortals, [end]), header), events);
+  const p0 = run([], []).path;
+  const t0 = p0.findIndex(p => p.x >= col * 30 - 20);
+  const jump = [{ tick: t0, type: "press" }, { tick: t0 + 1, type: "release" }];
+  const arc = run([], jump).path;
+  let a = t0 + 2;
+  while (a + 1 < arc.length && arc[a + 1].y > arc[a].y) a++;
+  let land = a; while (land < arc.length && !arc[land].grounded) land++;
+  for (let X = Math.ceil((arc[a].x - 15) / 15) * 15 + 15; X < arc[land].x - 30; X += 15) {
+    const i = arc.findIndex(p => p.x >= X);
+    if (i < 0 || arc[i].y < 45) break;                         // too low on the arc to be an orb jump
+    const orb = toObj([orbType, (X - 15) / 30, 0], specFile);
+    orb.x = X; orb.y = Math.round(arc[i].y / 7.5) * 7.5;
+    // the press where the cube is closest to the orb's centre
+    let best = i, bd = Infinity;
+    for (let k = t0 + 1; k < arc.length && arc[k].x < X + 40; k++) { const d = Math.hypot(arc[k].x - X, arc[k].y - orb.y); if (d < bd) { bd = d; best = k; } }
+    const ev = jump.concat([{ tick: best, type: "press" }, { tick: best + 1, type: "release" }]);
+    const p = run([orb], ev).path;
+    let l = best + 2; while (l < p.length && !(p[l].grounded && p[l].y < 20)) l++;
+    if (l >= p.length) continue;
+    // the pit can end before the landing (ground there is fine), not after it; it starts at the
+    // pattern's column or later (never under the takeoff)
+    const landE = Math.floor((p[l].x - 15) / 30) - 2;
+    let E = landE, P = Math.round(2 * (X - 15) / 30 - E);
+    if (P < col) { P = col; E = Math.round(2 * (X - 15) / 30 - P); }
+    if (E > landE || E - P + 1 < 3) continue;
+    const spikes = []; for (let c = P; c <= E; c++) spikes.push(toObj(["spike", c, 0], specFile));
+    const withOrb = run([orb, ...spikes], ev), plain = run(spikes, jump);
+    if (withOrb.dead && withOrb.path.length - 1 < l + 10) continue;
+    if (!plain.dead) continue;                               // a plain jump clears it: the orb is not needed
+    return [orb, ...spikes];
+  }
+  console.log(`   NOTE orb-pit at column ${col}: no centred layout found, the orb stays at the apex (off-centre)`);
+  return null;
 }
 
 // spec (already parsed) -> { level, rec, ctx, objects, header }: everything but writing and checking
@@ -254,6 +300,9 @@ function build(spec, specFile = "spec") {
     for (let i = 1; i < js.length; i++) if (js[i] - js[i - 1] < need)
       console.log(`   NOTE jumps on beats ${js[i - 1]} and ${js[i]} are closer than a jump lasts (${air.toFixed(2)} s = ${need.toFixed(2)} beats here): the second cannot be on its beat`);
     nudgeJumps(jGroups, objects, header, ctx, tl);
+    // nudging jumps onto beats can push spike groups into each other or against a pad (GDLM 44 v13 at
+    // block ~85, the user: "this looks like very bad jump"): polish's tools/clusters.js on what was placed
+    for (const s of require("./clusters.js").check(objects)) console.log(`   WARN ${s.kind} at block ${(s.x / 30 - 0.5).toFixed(1)}: ${s.note} (tools/clusters.js)`);
   }
 
   let sceneSig = null;  // a scene may place the signature itself (its scenery runs on past the end): {col, shirt}
@@ -313,6 +362,15 @@ function build(spec, specFile = "spec") {
   let desc = spec.desc || "";
   if (signed) desc = require("./signature.js").describe(desc);
   checkDesc(desc, spec.name);
+  // no text under GD's "Attempt N" counter at the start (decorate.js ATTEMPT_ZONE; GDLM 47's title)
+  {
+    const Z = deco.ATTEMPT_ZONE;
+    for (const o of objects.filter(o => o.id === 914)) {
+      const t = Buffer.from(String((o.props || {})[31] || ""), "base64").toString(), half = deco.textHalfWidth(t, +((o.props || {})[32] || 1));
+      if (o.x - half < Z.x1 && o.x + half > Z.x0 && o.y > Z.y0 - 20 && o.y < Z.y1 + 20)
+        console.log(`   WARN text "${t}" at block ${((o.x - 15) / 30).toFixed(0)} sits under GD's "Attempt N" counter: start it after block ${Math.ceil(Z.x1 / 30)}`);
+    }
+  }
   const rec = GD.newRecord(spec.name, desc);
   if (song && song.k45) GD.setField(rec, "k45", "i", song.k45);
   if (song && song.k8) GD.setField(rec, "k8", "i", song.k8);
