@@ -36,6 +36,8 @@ not after it:
 `knowledge/` is a general GD knowledge base (not the user's personal taste): `design.md` (what
 makes a level good or unfair) and `critiques.md` (playtest feedback on GDLM levels) are required
 reading before writing a spec; `levels/`, `glossary.md`, `demonlist.md` for the rest.
+**Before a level goes to the user, go through `knowledge/checklist.md`**: every target in one page
+(fairness, orbs, arrows, structure, variety, the 2.2 look, length), each with the tool that checks it.
 
 ## The loop
 

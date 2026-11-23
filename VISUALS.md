@@ -59,6 +59,16 @@ object id -> frame names, offsets, colour roles, layers.
   triggers, 3016 advanced follow, 3022 teleport, 3029 change bg, 3031 change mg, 3600 end, 3602 SFX,
   3604 event, 3610 damage square, 3642 BPM guide, 1612 hide player, 1520 shake.
 
+- **Deco kit for composing: `tools/vfxkit.js`** (gd-style calls it from make.js; this session owns it):
+  `parallax(sections, opts)` -> two background layers per section (far: art clouds / clouds / hexagons /
+  cartwheels / spirals by the section's kind, 3x, B4, darkened by object HSV; near: 1.8x, B3), each a
+  group moved by a lock-to-player-x trigger (0.9 / 0.6 of the player's motion) and faded in / out at its
+  section's edges; `beatPulses(sections, grid, opts)` -> pulse triggers on bar starts in the section's
+  light channel, a strong background + light flash on `flash` sections and `opts.drops`. ~0.6 objects
+  per block on GDLM 45's look test. Try it on any level: `node tools/vfxkit.js <level.gdlvl>` (sections
+  from its portals) -> local/tmp/<name>_kit.gdlvl, then shoot.js. Checked in our render only, not yet
+  in the user's game (lock-to-player duration and multiplier semantics are from the rated levels' data).
+
 ## Facts (checked against the user's recordings)
 
 How: viewer "compare" panel, level start offset set by eye, "save comparison" -> `local/shots/`.

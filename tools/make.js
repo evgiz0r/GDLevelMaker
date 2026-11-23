@@ -23,6 +23,8 @@
 //            (e.g. "hell") -> skins only, the look comes from its colours
 //   "colours": {"bg": [r,g,b], "ground": [r,g,b], ...}   start colours in the header
 //   "art": {"bg": n, "ground": n}                        background / ground art numbers
+//   "modern": {"sections": [{from, to, kind, fill, light}], "title": "...", "end": "..."}   the modern
+//                          decoration pass (tools/decorate.js modernPass; compose.js fills it in)
 //   "decoDensity": [[fromCol, share], ...]   classic style: share of free columns with ground
 //                          decoration from that column on (default 0.25; compose.js sets it per section)
 //   "indicators": {"id": N, "rot": n, "at": [cols], "all": false}   a small arrow pointing down over
@@ -222,6 +224,7 @@ function build(spec, specFile = "spec") {
     nudgeJumps(jGroups, objects, header, ctx, tl);
   }
 
+  if (spec.modern) objects.push(...deco.modernPass(objects, spec.modern.sections || [], spec.modern)); // before skins: fills follow gameplay blocks
   if (spec.style && spec.style !== "classic") deco.skinBlocks(objects); // e.g. "hell": outlined blocks, no ground decoration
   if (spec.style === "classic") {
     deco.skinBlocks(objects);
@@ -249,7 +252,11 @@ function make(specFile, specObj) {
     // the solution does not change); then the file is written again. Without the arrow's id yet,
     // only say where they would go.
     const iid = spec.indicators.id || deco.INDICATOR.id;
-    const ind = deco.jumpIndicators(GD.makeWorld(level.objects, header), r, iid || 0, GD, spec.indicators);
+    // from the natural plan (taps, no empty jumps), not the solver's held-button run
+    const wI = GD.makeWorld(level.objects, header);
+    let plan = r;
+    try { const n = require("../lib/natural.js").naturalPlan(wI, r, level.objects); if (n && n.path[n.path.length - 1].done) plan = { ok: true, events: n.events }; } catch (e) {}
+    const ind = deco.jumpIndicators(wI, plan, iid || 0, GD, spec.indicators);
     if (iid) {
       level.objects.push(...ind.map(o => { const c = Object.assign({}, o); delete c.why; return c; }));
       if (ind.length) level.objects.push(deco.indicatorFade(spec.indicators));  // soft: faded group

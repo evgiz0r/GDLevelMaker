@@ -10,6 +10,7 @@ says is recorded verbatim in `inbox/`, then organised. Web facts carry a source 
 | file | what |
 |---|---|
 | `inbox/YYYY-MM-DD.md` | raw dumps, verbatim, in the order they came. Nothing is ever deleted here. |
+| `checklist.md` | **one page to go through before a level goes to the user**: every target, its number, the tool that checks it |
 | `design.md` | what makes a level good or unfair, in general (with where each point comes from) |
 | `critiques.md` | critiques of GDLM levels (ours) and what changed because of them -- **style/difficulty sessions must read** |
 | `levels/<name>.md` | one level: facts (ID, creator, difficulty, source) / reception / what to learn |
