@@ -70,7 +70,6 @@ longer). Not yet played by the user.
 ## Open
 
 - Step 1 is one drawing's worth of rules (GDLM 46); the next drawings will test them.
-  notes: the main session should correct it.
 - The window of an orb press is measured with the later inputs fixed in time, which is pessimistic
   for a chain where a player adjusts the next click; a "window with the next input re-timed" measure
   is not built yet.
