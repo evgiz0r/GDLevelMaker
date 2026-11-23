@@ -185,7 +185,7 @@ function measureLevel(src, song) {
     // the bar's beat clarity and loudness as a percentile within this song (0 = the song's calmest)
     const pct = (f) => { const all = song.bars.map(f).sort((a, b) => a - b); return v => all.filter(x => x < v).length / all.length; };
     const pc = pct(b => b.clar), pl = pct(b => b.loud);
-    r.barModes = bars.map(b => [modeAt(b.t + 2 * P), pc(b.clar), pl(b.loud)]);
+    r.barModes = bars.map(b => [modeAt(b.t + 2 * P), pc(b.clar), pl(b.loud), b.clar]);
     // novelty (section-change strength) where the level's portals and colour changes are, vs everywhere
     // in the level: threshold-free. A moment counts at the bar line within 1 beat of it.
     const lineNov = new Map(song.bars.map(b => [b.m, b.nov]));
@@ -243,7 +243,7 @@ if (require.main === module) {
       if (r.hit !== undefined && r.luck !== undefined) { g.levels++; g.n += r.sections; g.hit += r.hit * r.sections; g.luck += r.luck * r.sections; }
       if (r.drops) { g.drops += r.drops; g.dropHit += r.dropHit * r.drops; }
       if (r.densLoud !== undefined) g.dl.push(r.densLoud);
-      for (const [m, c, l] of r.barModes || []) { const q = g.modes[m] = g.modes[m] || { bars: 0, clar: [], beatless: 0, loud: [] }; q.bars++; q.clar.push(c); q.loud.push(l); if (c < 0.2) q.beatless++; }
+      for (const [m, c, l, raw] of r.barModes || []) { const q = g.modes[m] = g.modes[m] || { bars: 0, clar: [], beatless: 0, loud: [], none: 0 }; q.bars++; q.clar.push(c); q.loud.push(l); if (c < 0.2) q.beatless++; if (raw < 1.8) q.none++; }
       if (r.novAt) { g.nov = g.nov || { portal: [], colour: [], all: [] }; g.nov.portal.push(...r.novAt.portal); g.nov.colour.push(...r.novAt.colour); g.nov.all.push(...r.novAll); }
     }
     const mean = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : NaN;
@@ -253,7 +253,7 @@ if (require.main === module) {
     for (const [g, q] of Object.entries(pool)) {
       const s = summary[g] = { levels: q.levels, sections: q.n, atSection: +(q.hit / (q.n || 1)).toFixed(2), luck: +(q.luck / (q.n || 1)).toFixed(2),
         drops: q.drops, dropsHit: +(q.dropHit / (q.drops || 1)).toFixed(2), densityLoudMedian: +med(q.dl).toFixed(2), densityLoudPositive: +(q.dl.filter(x => x > 0).length / (q.dl.length || 1)).toFixed(2),
-        modes: Object.fromEntries(Object.entries(q.modes).map(([m, v]) => [m, { bars: v.bars, clarityPct: +mean(v.clar).toFixed(2), calmest20: +(v.beatless / v.bars).toFixed(2), loudPct: +mean(v.loud).toFixed(2) }])) };
+        modes: Object.fromEntries(Object.entries(q.modes).map(([m, v]) => [m, { bars: v.bars, clarityPct: +mean(v.clar).toFixed(2), calmest20: +(v.beatless / v.bars).toFixed(2), noBeat: +(v.none / v.bars).toFixed(3), loudPct: +mean(v.loud).toFixed(2) }])) };
       if (q.nov) {
         // share of moments on a bar line in the song's top 20% of novelty, vs 20% by luck
         const top = q.nov.all.slice().sort((a, b) => b - a)[Math.floor(q.nov.all.length * 0.2)];
@@ -266,7 +266,7 @@ if (require.main === module) {
         `at colour changes ${s.nov_colour.mean} (n ${s.nov_colour.n}, ${Math.round(s.nov_colour.top20 * 100)}%), all bars ${s.nov_all}`);
       console.log("     mode    bars   beat clarity / loudness as a percentile of the song (0.5 = typical), share in the song's calmest 20% bars");
       for (const [m, v] of Object.entries(s.modes).sort((a, b) => b[1].bars - a[1].bars))
-        console.log(`     ${m.padEnd(7)} ${String(v.bars).padStart(5)}   clarity ${v.clarityPct}   loudness ${v.loudPct}   calmest-20% ${Math.round(v.calmest20 * 100)}%`);
+        console.log(`     ${m.padEnd(7)} ${String(v.bars).padStart(5)}   clarity ${v.clarityPct}   loudness ${v.loudPct}   calmest-20% ${Math.round(v.calmest20 * 100)}%   no beat (clarity < 1.8) ${(v.noBeat * 100).toFixed(1)}%`);
     }
     if (args.includes("--json")) { fs.mkdirSync(OUT, { recursive: true }); fs.writeFileSync(path.join(OUT, "levels.json"), JSON.stringify({ summary, rows: rows.map(r => Object.assign({}, r, { barModes: undefined })) }, null, 1)); }
   }
