@@ -41,5 +41,13 @@ if (fs.existsSync(path.join(R, "GJ_GameSheet-uhd.plist"))) {
   for (const n of ["player_01_001.png", "ship_01_001.png", "floorLine_01_001.png", "portal_01_back_001.png"]) check(have[n], n + " in the sheets");
   console.log("(sheets checked: " + Object.keys(have).length + " frames; OpenGD frames missing " + missing.size + ", GD table " + miss22 + ")");
 } else console.log("(no game install: sheet checks skipped)");
+// OpenGD's object type (field 4 of ART) against the sim's kind: a type-0 (solid) object must never be a
+// hazard. tools/import_opengd.js's fallback once made 37 outline/plank pieces hazards (Deadlocked's 1202
+// ball lanes); lib/objects.js's SOLID0 fixes them -- a new import must keep that true.
+{
+  const info = require("../lib/objects.js").objInfo, wrong = [];
+  for (const [id, v] of Object.entries(OG)) if (v[4] === 0 && info(+id).kind === "hazard") wrong.push(id);
+  check(!wrong.length, "OpenGD type 0 (solid) but the sim calls them hazards: " + wrong.join(","));
+}
 console.log(bad ? bad + " failed" : "ok");
 process.exit(bad ? 1 : 0);
