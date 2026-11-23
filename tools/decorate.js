@@ -158,7 +158,14 @@ function jumpIndicators(w, r, id, GD, opts = {}) {
     if (opts.only && !why.length) continue;   // opts.only: just the jumps that cannot be read in time
     if (marks.length && a.x - marks[marks.length - 1] < 60) continue;
     marks.push(a.x);
-    const x = Math.round((a.x + 15) / 15) * 15;  // loosely: the area, half a block past the press (rated: ~0.5 block before the hazard)
+    // the area, half a block past the press, but always in FRONT of what the jump is for: at most ~0.5
+    // block before the hazard's start, never over it (the user on eclipse v2: "arrow into the spike" --
+    // a press late in its window put the mark at the spike). Then off any hazard under it.
+    let x = a.x + 15;
+    if (cue !== Infinity) x = Math.min(x, a.x + 15 + cue - 15);
+    x = Math.max(a.x - 15, Math.floor(x / 15) * 15);
+    const hazUnder = xx => boxes.find(b => b.kind === "hazard" && b.x0 - 8 <= xx && b.x1 + 8 >= xx && (up ? b.y0 <= surface + 40 && b.y1 >= surface - 5 : b.y1 >= surface - 40 && b.y0 <= surface + 5));
+    for (let k = 0, h; k < 4 && (h = hazUnder(x)); k++) x = Math.floor((h.x0 - 15) / 15) * 15;
     out.push({ id, x, y: up ? surface + INDICATOR.lift : surface - INDICATOR.lift,
       rot: ((opts.rot ?? INDICATOR.rot) + (up ? 0 : 180)) % 360, flipX: false, flipY: false, props: markProps(id, opts), why: why.join(",") });
   }
