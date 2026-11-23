@@ -175,6 +175,21 @@ Clutterfunk's 50 ms cube jump became two taps (0.60 -> 0.58). Before route choic
 Stars vs your attempts is 0.73, the bar. Before the physics update, with most upper levels
 partial, it was 0.59.
 
+**With the settle factor** (report7, 2026-11-23, `node tools/difficulty.js --cached --settle MS` from
+its cache). The table above is report6, before the factor. On the same coverage:
+
+| settle | per minute vs stars | per minute vs your attempts |
+|---|---|---|
+| off | 0.67 | 0.60 |
+| 300 ms (in use) | **0.81** | 0.57 |
+
+Insane and Demon levels have many inputs right after portals: ToE 2.89, Clubstep 2.42,
+Electrodynamix 2.26. Report7 also ran on the physics with the wave-edge and head-on-slope rules,
+which cut three saved solutions short: Blast Processing to 15%, Dominator to 24%, Deadlocked to 26%
+The old routes slid off block ends or rode slopes head-on, which GD forbids: gdsolver's real
+plan for 17 still gets through the wave part under the new rules. The physics session is
+re-solving 17, 19 and 20; rerun their rows (`node tools/difficulty.js 17 19 20`) when it reports.
+
 What it gets right:
 - **The Insane and Demon levels score highest**, now over whole levels: xStep 0.88,
   Clubstep 0.78, Electrodynamix 0.73, ToE 2 1.07 (56%). Their tight inputs (under 60 ms) number
@@ -199,30 +214,44 @@ and sketch all get it. It is judged on the route a person plays (`lib/natural.js
 
 | family | flags | from | threshold |
 |---|---|---|---|
-| switch | after a portal into any mode but ship/UFO, the first input starts after the portal and its strict window (that input moved, every other kept) closes within 250 ms of it | 44 v5 wave entry, closes ~125-138 ms after, 5 deaths; 46 v2 wave exit, 158 ms window closing 163 ms after, 2 | SWITCH_MS 250 |
-| mark | a jump mark (group 990) with no jump of the natural route within 60 units | 46 v2 mark at 825, death at 950 | MARK_DIST 60 |
-| floor | the floor within 3 blocks of a portal into a ground mode slopes | 46 v2 sawtooth under the wave exit, death at 3150 | FLOOR_RANGE 90 |
+| switch, into a jumping mode | the first input that starts after the portal has a strict window (that input moved, every other kept) closing under 250 ms after it | 46 v2 wave exit: 158 ms window closing 163 ms after, 2 deaths | SWITCH_MS 250 |
+| switch, into wave/swing | the player must change the button within 300 ms of the portal or die (the latest first change, with free steering after it, that lives) | 44 v5 wave entry: 267 ms, 4 of 5 died; 44 v8: 350 ms, passed | WAVE_DEADLINE 300 |
+| (ship/UFO entries) | exempt: a player holds into them from the jump that gets there; nobody died there | 44, 46: deadlines 67-467 ms, all passed | |
+| mark | a jump mark (group 990) with no jump of the natural route within 60 units; FAIL if jumping at it kills, else WARN | 46 v2 mark at 825, death at 950 (WARN: the sim's perfect follow-up survives it); 44 v8 x 3000 (WARN, beaten first try) | MARK_DIST 60 |
+| floor | a sawtooth: 2+ separate slopes within 5 blocks of a portal into a ground mode | 46 v2 wave exit, death at 3150; one slope down to it is fine (44 v8, 45) | FLOOR_RUNS 2, FLOOR_RANGE 150 |
 | chain | 3+ orb taps in a row, each under 500 ms after the last | 46 v2 end chain (windows 300/304/113 ms), 3 deaths | CHAIN_LEN 3, CHAIN_MS 500 |
 | blind (WARN) | a jump with a window under 100 ms, no mark, straight into an orb within 600 ms | 46 v2 first orb, 3 borderline deaths | BLIND_MS 100 |
-| wave | wave inputs under 150 ms apart | 44 v5 zigzag (75 ms turns), death at 1694 | WAVE_MS 150 |
+| wave | a wave input with a real window under 150 ms, not part of a portal switch | the user's checklist; no death of its own yet | WAVE_MS 150 |
 
-`node tools/fairness.js fit` checks it against every labelled death. A flag explains a death when it
-sits at most 11 blocks before it (`tests/fairness_fit.js` keeps it so). Over GDLM 44 v5 and 46 v2:
-- **unfair deaths flagged 12/12** (5 on 44 are inferred: rows the physics session called forced or
-  a 75 ms zigzag before the `fair` field existed);
-- **borderline flagged 3/3** (as WARN);
-- **the fair death not flagged 1/1**.
+`node tools/fairness.js fit` checks it against every labelled death; `tests/fairness_fit.js` keeps
+it so. A flag explains a death when it sits at most 11 blocks before it. Over GDLM 44 v5, 46 v2 and
+44 v8 (beaten first try, so every flag on it is a false alarm):
+- **unfair deaths flagged 12/12, 11 of them by a FAIL.** The 46 v2 mark death is caught only as a
+  WARN. 5 of the 12 on 44 are inferred: rows the physics session called forced before the `fair`
+  field existed;
+- **borderline flagged 3/3** (WARN);
+- **the fair death not flagged 1/1**;
+- **false alarms: 2.** 46 v2's wave entry (a 167 ms deadline, passed 7 of 7) and 44 v8's stray
+  mark (WARN).
 
-This is in-sample: the rules were shaped on these same deaths. What it cost and what is weak:
-- **One false alarm:** 46 v2's wave entry (a 71 ms window closing 171 ms after the portal) was
-  passed 7 of 7 times. It cannot be told apart from the deadly wave exit (163 ms) by this measure.
-- **Strict, not lenient, windows decide `switch`.** The lenient window (look-ahead re-plans) said
-  329 ms for the 46 wave exit; the physics session's careful `tools/press_window.js` says 158, and so
-  does the strict one here.
-- **Ship and UFO entries are exempt.** Their strict windows close ~30 ms after the portal, but a
-  player holds into them from the jump that gets there, and nobody died there.
-- **Wave turn gaps come from the natural plan's controller,** which taps quickly; check its flags on
-  new wave parts by eye.
+On the levels now in `levels/` and `local/wip/` (2026-11-23, `local/difficulty/fairness_survey.txt`):
+- **fair:** 01, 02, 41-44, 46 catalogue, 50, cube timings polished, and the wip 44 and 45;
+- **levels/ GDLM 45 fails:** two cube -> wave entries with a 267 ms deadline, the same as 44 v5's
+  deadly one;
+- **46 sketch v2 fails** as above;
+- **44 polished gets two WARNs** for stray marks.
+
+This is in-sample: the rules were shaped on these same deaths. What is weak:
+- **The wave deadline cut is thin:** 267 ms killed, 350 passed, and 46's 167 passed 7 of 7. The
+  deadline does not capture what made 44 v5 deadly: the cube sat on a block that ends right after
+  the portal.
+- **Several measures were tried and dropped**, each failing one of the cases:
+  - the lenient window (look-ahead re-plans): 329 ms on the deadly 46 exit;
+  - survival with no new input: 171 ms on the safe 46 entry, 483 on the deadly exit;
+  - the strict window alone: v8's wave entry closes sooner than v5's;
+  - wave-turn gaps from the natural plan's controller: 33 ms taps on v8, which was beaten.
+- **A stray mark is only a WARN** unless a jump at it kills outright. Whether a person can follow
+  up as well as the sim can is not modelled.
 - **Not measured yet:** orbs that carry the cube to the screen's top edge (46 v2 end chain).
 
 Refit whenever `local/real_stats.jsonl` gets new labelled deaths (the physics session adds every

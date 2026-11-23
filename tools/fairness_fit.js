@@ -10,11 +10,12 @@ const ROOT = path.join(__dirname, ".."), CACHE = path.join(ROOT, "local", "diffi
 const PLAYED = [ // level name in real_stats, version, where the played file comes from
   { level: "GDLM 44 hellgate", version: 5, git: "c9b7f88^:levels/gdlm_44_hellgate.gdlvl" },
   { level: "GDLM 46 sketch", version: 2, file: "local/wip/main/gdlm_46_sketch.gdlvl" },
+  { level: "GDLM 44 hellgate", version: 8, git: "9809a66:levels/gdlm_44_hellgate.gdlvl" }, // beaten first try: every flag is a false alarm
 ];
 const rows = fs.readFileSync(path.join(ROOT, "local", "real_stats.jsonl"), "utf8").trim().split("\n").map(JSON.parse);
 fs.mkdirSync(CACHE, { recursive: true });
 const thArg = process.argv.slice(3).reduce((o, a) => { const [k, v] = a.split("="); if (v !== undefined) o[k] = +v; return o; }, {});
-let caught = 0, unfairN = 0, fairOk = 0, fairN = 0, border = 0, borderN = 0;
+let caught = 0, caughtFail = 0, falseAlarms = 0, unfairN = 0, fairOk = 0, fairN = 0, border = 0, borderN = 0;
 for (const lv of PLAYED) {
   const phys = require("./difficulty_solve.js").physicsCommit() || "nophys";
   const cf = path.join(CACHE, `${lv.level.replace(/\W+/g, "_")}_v${lv.version}_${phys}.json`); // stale after a physics change
@@ -34,7 +35,7 @@ for (const lv of PLAYED) {
     if (!label) continue;
     const by = fl.filter(f => F.explains(f, r.x));
     const hit = by.length > 0;
-    if (label === "unfair") { unfairN++; if (hit) caught++; }
+    if (label === "unfair") { unfairN++; if (hit) caught++; if (by.some(f => f.severity === "FAIL")) caughtFail++; }
     if (label === "fair") { fairN++; if (!hit) fairOk++; }
     if (label === "borderline") { borderN++; if (hit) border++; }
     const good = label === "fair" ? !hit : hit;
@@ -43,6 +44,6 @@ for (const lv of PLAYED) {
   // false alarms: flags no death came after, though the level was passed beyond them
   const best = Math.max(...rows.filter(r => r.level === lv.level && (r.version || null) === lv.version).map(r => r.result === "beaten" ? 1e9 : r.x || 0));
   for (const f of fl) if (!deaths.some(r => F.explains(f, r.x)) && f.x1 + F.LEAD < best)
-    console.log(`   false alarm? ${f.family} at ${Math.round(f.x0)}: no death after it, though runs got past it`);
+    falseAlarms++, console.log(`   false alarm? ${f.severity} ${f.family} at ${Math.round(f.x0)}: no death after it, though runs got past it`);
 }
-console.log(`\nunfair deaths flagged ${caught}/${unfairN}, borderline flagged ${border}/${borderN}, fair deaths not flagged ${fairOk}/${fairN}`);
+console.log(`\nunfair deaths flagged ${caught}/${unfairN} (${caughtFail} by a FAIL), false alarms ${falseAlarms}, borderline flagged ${border}/${borderN}, fair deaths not flagged ${fairOk}/${fairN}`);

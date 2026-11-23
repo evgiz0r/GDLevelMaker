@@ -5,28 +5,32 @@
 // session labelled 7 unfair, 3 borderline, 1 fair; local/real_stats.jsonl `fair`). A level must pass
 // this before the user sees it (tools/score.js gate "fairness"). Families flagged, each from a
 // real death (DIFFICULTY.md "Fairness"):
-//   switch     after a portal switch (mode, speed, gravity portal, size) the next input's strict
-//              window (that input moved, every other kept) closes within SWITCH_MS of the portal:
-//              forced before the player settles into the new mode. Not ship/UFO (they fall slowly and
-//              are steered), not an input already going at the portal (a jump into it) (GDLM 44 v5 x 1643, 46 v2 x 3326)
-//   mark       a jump mark (deco in group 990, tools/decorate.js) with no jump near it: it misleads
-//              (46 v2: a "v" at x 825 and no input there, death at 950)
-//   floor      the floor around a portal into a ground mode slopes (within FLOOR_RANGE): the
-//              exit is unreadable (46 v2: a sawtooth under the wave exit, death at 3150)
+//   switch     forced right after a portal switch: into a jumping mode, the first new input's strict
+//              window (that input moved, every other kept) closes under SWITCH_MS after the portal
+//              (GDLM 46 v2 wave exit, 163 ms, 2 deaths); into the wave or swing, the player must
+//              change the button within WAVE_DEADLINE (the latest first change, free steering after it,
+//              that lives; GDLM 44 v5 267 ms, 4 deaths; v8 350 ms, passed). Ship/UFO: exempt (a
+//              player holds into them from the jump that gets there; nobody died there)
+//   mark       a jump mark (deco in group 990, tools/decorate.js) with no jump of the natural route
+//              within MARK_DIST, where jumping at it kills: it misleads (46 v2 x 825, death at 950).
+//              Survivable: WARN only (44 v8 x 3000, beaten first try)
+//   floor      a sawtooth (FLOOR_RUNS or more separate slopes) within FLOOR_RANGE of a portal into a
+//              ground mode: the exit is unreadable (46 v2, death at 3150; one slope is fine, 44 v8)
 //   chain      orb taps in a row, each under CHAIN_MS after the last, CHAIN_LEN or more: nothing is
 //              left to correct a late tap (46 v2 end orb chain, deaths at 3732, 3800)
 //   blind      a jump with a window under BLIND_MS that has no mark and leads straight into an orb:
 //              a two-step opener nobody can read in time (46 v2 first orb, borderline, 436)
-//   wave       wave turns under WAVE_MS apart (GDLM 44 v5 zigzag, 75 ms, death at 1694)
-// FAIL: switch, mark, floor, chain, wave. WARN: blind (borderline in the labels).
+//   wave       a wave input with a window under WAVE_MS that is not part of a portal switch (the
+//              user's checklist; no death of its own yet: 44 v5's zigzag death follows its entrance)
+// FAIL: switch, mark, floor, chain, wave. WARN: blind (borderline in the labels), a survivable stray mark.
 // Cost: one solve plus the difficulty windows (~1 min for a 60 s level). One at a time.
 const fs = require("fs"), path = require("path");
 const { GD, readGdlvl } = require("./io.js");
 const DF = require("../lib/difficulty.js");
 const { naturalPlan } = require("../lib/natural.js");
 
-const TH = { SWITCH_MS: 250, MARK_DIST: 60, FLOOR_RANGE: 90, CHAIN_MS: 500, CHAIN_LEN: 3, BLIND_MS: 100, WAVE_MS: 150 };
-const SEVERITY = { switch: "FAIL", mark: "FAIL", floor: "FAIL", chain: "FAIL", wave: "FAIL", blind: "WARN" };
+const TH = { SWITCH_MS: 250, WAVE_DEADLINE: 300, MARK_DIST: 60, FLOOR_RANGE: 150, FLOOR_RUNS: 2, CHAIN_MS: 500, CHAIN_LEN: 3, BLIND_MS: 100, WAVE_MS: 150 };
+const SEVERITY = { switch: "FAIL", mark: "FAIL", floor: "FAIL", chain: "FAIL", wave: "FAIL", blind: "WARN", markw: "WARN" };
 const MARK_GROUP = "990";
 
 // Everything the thresholds need, measured once (slow part).
@@ -52,6 +56,16 @@ function analyse(w, sol) {
   for (let t = 1; t < P.length; t++) if (P[t].act === "jump") jumps.push(P[t - 1].x);
   const marks = w.objects.filter(o => o.props && String(o.props["57"] || "").split(".").includes(MARK_GROUP))
     .map(o => ({ x: o.x, near: jumps.reduce((m, j) => Math.min(m, Math.abs(j - o.x)), Infinity) }));
+  // a player who believes the mark jumps there: does that kill (no way to live after it)?
+  for (const m of marks) {
+    let t = P.findIndex(st => st.x >= m.x - 15); if (t < 1) { m.jumpKills = false; continue; }
+    let kills = true;
+    for (const dt of [-8, 0, 8]) { // around the mark, a frame or two either way
+      const k = Math.max(1, t + dt), st = DF.cloneState(P[k]);
+      if (DF.survivesFrom(w, st, false, { type: "tap", tick: k, dur: 24 }, k + 24 + 16, k + 360, null)) { kills = false; break; }
+    }
+    m.jumpKills = kills;
+  }
   // portal switches: how long the player lives after it with NO new input (the button stays as it
   // is). Dying soon means an input is forced before the player has settled into the new mode.
   const held = new Array(P.length).fill(false);
@@ -88,7 +102,20 @@ function analyse(w, sol) {
     const first = wins.filter(x => x.closeMs >= 0).sort((p, q) => p.closeMs - q.closeMs)[0] || null;
     // held through the portal (a ship entered on the jump that got there): the input is already
     // going, nothing new to start
-    switches.push({ x: b.x, tick: t, from: a.mode, to: b.mode, first, heldIn: held[t - 1] && held[t], firstTick: first ? first.tick - t : null });
+    // deadline: the latest moment after the portal the player can first change the button (it
+    // stays as it was until then; after it the look-ahead may steer freely) and still live. The
+    // physics session's "held within ~13 ticks or it slides off" is this.
+    let deadline = Infinity;
+    { const h = held[t - 1]; let lastOk = -1, failed = false;
+      for (let k = 0; k <= 360; k += 4) {
+        const st = DF.cloneState(P[t]); let dead = false;
+        for (let i = 0; i < k; i++) { GD.step(w, st, { press: false, held: h }); if (st.dead) { dead = true; break; } if (st.done) break; }
+        const ok = !dead && (st.done || DF.survivesFrom(w, st, h, { type: h ? "release" : "press", tick: st.tick, dur: 0 }, st.tick + 16, st.tick + 240, null));
+        if (ok) lastOk = k; else if (lastOk >= 0) { failed = true; break; }
+      }
+      if (failed) deadline = lastOk / 240 * 1000;
+      else if (lastOk < 0) deadline = 0; }
+    switches.push({ x: b.x, tick: t, from: a.mode, to: b.mode, first, heldIn: held[t - 1] && held[t], firstTick: first ? first.tick - t : null, deadlineMs: deadline });
   }
   // portals the route takes: the floor under them
   const portals = [];
@@ -114,14 +141,23 @@ function flags(A, th) {
   th = Object.assign({}, TH, th || {});
   const out = [];
   const add = (family, x0, x1, note) => out.push({ family, severity: SEVERITY[family], x0, x1, note });
-  for (const p of A.switches || [])
-    if (p.first && !/ship|ufo/.test(p.to) && p.firstTick > 0 && p.first.closeMs < th.SWITCH_MS) add("switch", p.x, p.first.x, `${p.from} -> ${p.to}: the ${p.first.type} after it has a ${Math.round(p.first.ms)} ms window that closes ${Math.round(p.first.closeMs)} ms after the portal`);
-  for (const m of A.marks) if (m.near > th.MARK_DIST) add("mark", m.x, m.x, `mark with no jump within ${Math.round(m.near)} units`);
+  for (const p of A.switches || []) {
+    if (/ship|ufo/.test(p.to)) continue; // they fall slowly and are steered; a player holds into them
+    if (p.to === "wave" || p.to === "swing") {
+      if (p.deadlineMs < th.WAVE_DEADLINE) add("switch", p.x, p.x + 60, `${p.from} -> ${p.to}: the player must change the button within ${Math.round(p.deadlineMs)} ms of the portal or die`);
+    } else if (p.first && p.firstTick > 0 && p.first.closeMs < th.SWITCH_MS)
+      add("switch", p.x, p.first.x, `${p.from} -> ${p.to}: the ${p.first.type} after it has a ${Math.round(p.first.ms)} ms window that closes ${Math.round(p.first.closeMs)} ms after the portal`);
+  }
+  for (const m of A.marks) if (m.near > th.MARK_DIST)
+    if (m.jumpKills) add("mark", m.x, m.x, `mark with no jump within ${Math.round(m.near)} units, and jumping at it kills`);
+    else add("markw", m.x, m.x, `mark with no jump within ${Math.round(m.near)} units (jumping at it is survivable)`);
   for (const p of A.portals) {
     const c = p.cols.filter(k => Math.abs(k.dx) <= th.FLOOR_RANGE);
     const ys = c.map(k => k.y), spread = Math.max(...ys) - Math.min(...ys), slope = c.some(k => k.slope);
-    // into a ground mode: the player lands on that floor right after the switch
-    if (/cube|robot|ball|spider/.test(p.to) && slope) add("floor", p.x - th.FLOOR_RANGE, p.x + th.FLOOR_RANGE, `${p.from} -> ${p.to} portal: the floor slopes within ${th.FLOOR_RANGE / 30} blocks of it (steps ${spread} units)`);
+    // into a ground mode: a sawtooth (two or more separate slopes) around the portal is unreadable;
+    // one slope down to it is fine (GDLM 44 v8, beaten first try)
+    let runs = 0; c.forEach((k, i) => { if (k.slope && !(i > 0 && c[i - 1].slope)) runs++; });
+    if (/cube|robot|ball|spider/.test(p.to) && runs >= th.FLOOR_RUNS) add("floor", p.x - th.FLOOR_RANGE, p.x + th.FLOOR_RANGE, `${p.from} -> ${p.to} portal: ${runs} separate slopes within ${th.FLOOR_RANGE / 30} blocks of it (a sawtooth)`);
   }
   // chains of orb taps
   let run = [];
@@ -139,12 +175,11 @@ function flags(A, th) {
     if (A.marks.some(m => Math.abs(m.x - a.actX) <= th.MARK_DIST)) continue;
     add("blind", b.x, b.actX, `jump (${Math.round(a.ms)} ms) straight into an orb, no mark`);
   }
-  // wave turns
-  for (let i = 1; i < A.inputs.length; i++) {
-    const a = A.inputs[i - 1], b = A.inputs[i];
-    if (a.mode !== "wave" || b.mode !== "wave") continue;
-    const gap = (b.tick - a.tick) / 240 * 1000;
-    if (gap < th.WAVE_MS) add("wave", a.x, b.x, `wave turns ${Math.round(gap)} ms apart`);
+  // wave inputs that must be precise (a real window under WAVE_MS), not part of a portal switch
+  for (const a of A.inputs) {
+    if (a.mode !== "wave" || a.ms >= th.WAVE_MS) continue;
+    if ((A.switches || []).some(p => Math.abs(a.tick - p.tick) < 96)) continue;
+    add("wave", a.x, a.actX, `wave ${a.type} with a ${Math.round(a.ms)} ms window`);
   }
   return out.sort((p, q) => p.x0 - q.x0);
 }
