@@ -27,7 +27,7 @@
 //   "modern": {"sections": [{from, to, kind, fill, light}], "title": "...", "end": "..."}   the modern
 //                          decoration pass (tools/decorate.js modernPass; compose.js fills it in)
 //   "scene": "tools/scenes/<name>.js"   a scene script: fn({objects, header, spec, ctx, tl, beatX, xOfT, GD})
-//                          -> {objects (deco + triggers to add), header}; tools/scenekit.js recipes (SHOWCASE.md)
+//                          -> {objects (deco + triggers to add), header, signature?: {col, shirt}}; tools/scenekit.js recipes (SHOWCASE.md)
 //   "decoDensity": [[fromCol, share], ...]   classic style: share of free columns with ground
 //                          decoration from that column on (default 0.25; compose.js sets it per section)
 //   "indicators": {"id": N, "rot": n, "at": [cols], "all": false}   a small arrow pointing down over
@@ -238,12 +238,14 @@ function build(spec, specFile = "spec") {
     nudgeJumps(jGroups, objects, header, ctx, tl);
   }
 
+  let sceneSig = null;  // a scene may place the signature itself (its scenery runs on past the end): {col, shirt}
   if (spec.scene) { // a scene script (tools/scenes/<name>.js, SHOWCASE.md): deco + triggers + header channels
     const scene = require(path.resolve(__dirname, "..", spec.scene));
     const beatX = b => GD.SYNC.xOfT(tl, GD.SYNC.beatToTime(ctx.grid, ctx.offset, b));
     const r = scene({ objects, header, spec, ctx, tl, beatX, xOfT: t => GD.SYNC.xOfT(tl, t), GD });
     objects.push(...r.objects);
     if (r.header) header = r.header;
+    if (r.signature) sceneSig = r.signature;
   }
   if (spec.modern) {
     const secs = spec.modern.sections || [];
@@ -257,15 +259,29 @@ function build(spec, specFile = "spec") {
   }
   // The signature (tools/signature.js): robot + human, "Made by Claude (and some humans)", after the end.
   // On by default for every "GDLM ..." level (the user approved it for all, 2026-11-23); a spec opts out
-  // with "signature": false. Its column: spec.signature.col, else 3 blocks after the last object.
+  // with "signature": false. Its column: spec.signature.col, a scene's, else 3 blocks after the last gameplay object.
   const signed = spec.signature !== false && (spec.signature || /^GDLM /.test(spec.name || ""));
   if (signed) {
     const sig = require("./signature.js"), secs = (spec.modern && spec.modern.sections) || [];
-    const li = secs.length - 1, CH0 = 20;
     const col = spec.signature && spec.signature.col != null ? spec.signature.col
-      : Math.ceil(Math.max(...objects.map(o => o.x)) / 30) + 3;
-    objects.push(...sig.signature(Object.assign({ col, floorY: 0 },
-      li >= 0 ? { channels: { accent: CH0 + 2 * li, light: CH0 + 2 * li + 1 } } : {})));
+      : sceneSig && sceneSig.col != null ? sceneSig.col
+      // 3 blocks after the last gameplay object (scenery and triggers may run on past the end: hellgate's
+      // parallax put it 25 blocks late)
+      : Math.ceil(Math.max(...objects.filter(o => !["decoration", "trigger"].includes(GD.objInfo(o.id).kind)).map(o => o.x)) / 30) + 3;
+    // the shirt takes the last section's accent colour (a fixed rgb: the editor shows header colours only)
+    const last = secs.length ? secs[secs.length - 1] : null, acc = last && (last.light || last.fill);   // compose.js looks: light = the section bg brightened
+    const sopts = { col, floorY: 0 };
+    if (Array.isArray(acc) && acc.length === 3) sopts.shirt = acc;
+    if (sceneSig && sceneSig.shirt) sopts.shirt = sceneSig.shirt;
+    // its colours go in the header: the editor runs no colour triggers (hellgate v12 showed placeholder colours)
+    header = sig.header(header, sopts);
+    // bob / flash on the song's beats the player hears while running up to it
+    if (ctx.grid) {
+      const xOfT = t => GD.SYNC.xOfT(tl, t), tOfX = x => GD.SYNC.tOfX(tl, x), beats = [];
+      for (let b = 1; b < 4000; b++) { const t = GD.SYNC.beatToTime(ctx.grid, ctx.offset, b); if (xOfT(t) > col * 30 + 300) break; if (t > 0) beats.push(t); }
+      Object.assign(sopts, { beats, period: ctx.grid.period, xOfT, tOfX });
+    }
+    objects.push(...sig.signature(sopts));
   }
   if (spec.style && spec.style !== "classic") deco.skinBlocks(objects); // e.g. "hell": outlined blocks, no ground decoration
   if (spec.style === "classic") {

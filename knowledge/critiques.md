@@ -15,6 +15,14 @@ Format: date, level + version, the user's words, what it means, what was done (c
   the phone page, `tools/web.js`; the look is `lib/look.js`). Not yet acted on.
 
 ## GDLM 44 hellgate
+- 2026-11-23, v12 (looking at round-1 frames): the orb chain over the spike run landed in a 2-column gap
+  before a 2-high block -- "landing just behind a block is annoying, it's hard to aim the previous orb ...
+  if I miss my timing I just die even if I land. When I'm landing or passing an obstacle, fair play is that I
+  can continue somehow, not a dead end". Measured: the two jumps in that gap had 4 ms windows (orbs 29 ms).
+  Done (v13): the landing block starts right where the spikes end, 1 high, 5 long: orb taps 196 / 217 ms,
+  the jump off it 254 ms; score.js READY. Rule: after an orb, a pad or any obstacle, the landing is a
+  surface the player can stay on across the whole range of early/late presses -- never a gap in front of
+  a wall. "The marked jump is really annoying": the chevron sat on that forced gap jump (gone with it).
 - 2026-11-22, v1: called "bland" (reported by the style session; the user's exact words are not here yet).
   Likely cause per knowledge/levels/good_low_tier.md: rated low-tier levels change mode/speed every 3-7 s
   with forgiving sections; v1 did not. Style session is acting on it (STYLE.md, style branch).
