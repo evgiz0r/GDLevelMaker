@@ -26,4 +26,17 @@ const ok = (msg) => { n++; console.log("ok  " + msg); };
 { const s = scoreLevel(at("levels/gdlm_44_hellgate.gdlvl"), { difficulty: { label: "Easy" } });
   assert.strictEqual(s.gates.find(g => g.name === "skips").status, "PASS");
   ok("GDLM 44: no skipped portals or orbs"); }
+// 5. the new section kinds (2026-11-23): an upside-down cube stretch (patterns hung from a ceiling,
+// gravity portals in and out) and a ball corridor -- each beaten, cued, through its portals
+{ const { build } = require("../tools/make.js");
+  const { expand, mirrorUp } = require("../tools/patterns.js");
+  const up = [["pattern", "ceiling", 4, 0, { w: 40, ceil: 6, portal: true, exit: true }]]
+    .concat(mirrorUp(expand("single", 14, 0), 6), mirrorUp(expand("spike-block", 22, 0), 6), [["block", 50, 8]]);
+  const ball = [["pattern", "ball-run", 4, 0, { w: 40, portal: true, exit: "cube", portalRow: 1 }], ["block", 50, 8]];
+  for (const [name, objects] of [["upside-down", up], ["ball", ball]]) {
+    const { level } = build({ name: "test " + name, objects });
+    const s = scoreLevel(level, { difficulty: { label: "Easy" } });
+    for (const g of ["beatable", "prejumps", "skips"]) assert.strictEqual(s.gates.find(x => x.name === g).status, "PASS", `${name}: ${g}`);
+    ok(`${name} section: beaten, sight-readable, through its portals`);
+  } }
 console.log(`${n} checks passed`);

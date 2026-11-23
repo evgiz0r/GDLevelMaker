@@ -33,7 +33,10 @@ swap('<script src="beats.local.js" onerror="window.GD_BEATS = {}"></script>', '<
 // (StereoMadness.mp3, 343707.mp3) goes to every level on that song; any other name goes to the
 // level on screen.
 swap('<button id="music" class="on">music</button>',
-  '<button id="music" class="on">music</button><label class="btn" id="addSong">add song<input id="songFile" type="file" accept="audio/*,.mp3,.ogg" multiple hidden></label>');
+  // The input lies over the button, invisible but real: the user's tap lands on the input itself
+  // (no hidden input clicked from code, no capture attribute), which phone WebViews need.
+  '<button id="music" class="on">music</button><label class="btn" id="addSong" style="position:relative;overflow:hidden">add song<input id="songFile" type="file" accept="audio/*,.mp3,.ogg,.m4a,.wav" multiple style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:40px"></label>' +
+  '<div id="songMsg" style="display:none;flex:1 0 100%;order:99;box-sizing:border-box;margin:2px 0;padding:8px 10px;border:1px solid #6b5bd0;border-radius:6px;background:#1b1240;font-size:13px;line-height:1.4"></div>');
 swap("if (!info || location.protocol === \"file:\") return;", "if (!info) return; updateSongBtn();");
 swap('song = new Audio(info.url); song.preload = "auto";\n  song.onerror = () => { song = null; };', "song = songPlayer(info);");
 swap('<script>\n"use strict";\nconst P = GD.PHYS;', `<script>
@@ -75,22 +78,55 @@ async function keepSong(key, bytes) { try { const db = await songDb(); db.transa
 async function addSongBytes(key, bytes) {
   try { SONGBUF[key] = await audio().decodeAudioData(bytes.slice(0)); return true; } catch (e) { return false; }
 }
+function songMsg(text) {
+  const m = document.getElementById("songMsg"); if (!m) return;
+  m.textContent = text || ""; m.style.display = text ? "block" : "none";
+}
+// one way in for every source: the picker, a dropped file, a pasted file
+async function takeSongFiles(files) {
+  files = [...(files || [])].filter(f => f && f.size);
+  if (!files.length) return;
+  const known = new Set((window.GD_LEVELS || []).filter(l => l.song).map(l => songKey(l.song)));
+  const b = document.getElementById("addSong"); b.firstChild.nodeValue = "loading…"; songMsg("");
+  let bad = 0, ok = 0, skipped = 0;
+  for (const f of files) {
+    const key = known.has(f.name.toLowerCase()) ? f.name.toLowerCase() : songInfo ? songKey(songInfo) : null;
+    if (!key) { skipped++; continue; }
+    const bytes = await f.arrayBuffer();
+    if (await addSongBytes(key, bytes)) { keepSong(key, bytes); ok++; } else bad++;
+  }
+  if (songInfo) { const was = playing; setSong(songInfo); syncSong(true); playing = was; }
+  updateSongBtn();
+  if (bad) songMsg("That file could not be played as a song (" + bad + " of " + files.length + "). An mp3 or ogg works.");
+  else if (skipped) songMsg("This level has no song, so the file was not used. Open a level with a song, then add it.");
+  else if (ok) songMsg("");
+}
 document.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("songFile").onchange = async e => {
-    const known = new Set((window.GD_LEVELS || []).filter(l => l.song).map(l => songKey(l.song)));
-    const b = document.getElementById("addSong"); b.firstChild.nodeValue = "loading…";
-    let bad = 0;
-    for (const f of e.target.files) {
-      const key = known.has(f.name.toLowerCase()) ? f.name.toLowerCase() : songInfo ? songKey(songInfo) : null;
-      if (!key) continue;
-      const bytes = await f.arrayBuffer();
-      if (await addSongBytes(key, bytes)) keepSong(key, bytes); else bad++;
-    }
-    e.target.value = "";
-    if (songInfo) { const was = playing; setSong(songInfo); syncSong(true); playing = was; }
-    updateSongBtn();
-    if (bad) { b.firstChild.nodeValue = "not a song file"; setTimeout(updateSongBtn, 2500); }
-  };
+  const inp = document.getElementById("songFile");
+  let waiting = null;                       // did the picker open after a tap?
+  const opened = () => { if (waiting) { clearTimeout(waiting); waiting = null; } };
+  inp.addEventListener("click", () => {
+    songMsg(""); opened();
+    // a picker that opens hides or blurs the page; inside some in-app browsers nothing happens at all
+    waiting = setTimeout(() => { waiting = null; songMsg(
+      "No file picker opened? The app's built-in browser may not allow picking files. " +
+      "Open this page in Chrome (menu ⋮ → Open in browser, or copy the link into Chrome), " +
+      "or drop or paste the song file onto this page."); }, 2500);
+  });
+  window.addEventListener("blur", opened);
+  document.addEventListener("visibilitychange", () => { if (document.hidden) opened(); });
+  inp.addEventListener("cancel", opened);
+  inp.onchange = async e => { opened(); await takeSongFiles(e.target.files); e.target.value = ""; };
+  // second ways in: drag and drop (tablets, desktop), paste (a copied file)
+  document.addEventListener("dragover", e => { if (e.dataTransfer && [...e.dataTransfer.types].includes("Files")) e.preventDefault(); });
+  document.addEventListener("drop", e => {
+    const fs = e.dataTransfer && e.dataTransfer.files;
+    if (fs && fs.length) { e.preventDefault(); takeSongFiles(fs); }
+  });
+  document.addEventListener("paste", e => {
+    const fs = e.clipboardData && e.clipboardData.files;
+    if (fs && fs.length) { e.preventDefault(); takeSongFiles(fs); }
+  });
 });
 (async () => { try {
   const db = await songDb(), st = db.transaction("songs").objectStore("songs");
@@ -140,6 +176,50 @@ swap("const note = prompt(`What should change here? (block ${(x / 30).toFixed(1)
 // a published page's address can't carry #lv=...&t=...: no link button, no hash writes
 swap('<button id="linkBtn"', '<button id="linkBtn" hidden');
 swap("setInterval(() => { if (L && !playing) writeHash(); }, 1000);", "");
+// Never solve on the page's thread: a phone froze for minutes solving GDLM 45 (ship + wave, ~5 min
+// even on the PC). Rows from `wip.js put` carry {solution}; a level without one is solved in a Web
+// Worker (solve_worker.js, written below) with a seconds counter and a time limit, and shown
+// meanwhile without its run. The page opens on a level that already has a solution.
+swap("pick.onchange = () => { const l = ALL[pick.value]; load(l.name, l.level, l.solution, l.song); L.deaths = l.deaths || []; summary(); draw(); };",
+`pick.onchange = () => {
+  const l = ALL[pick.value];
+  const sol = l.solution || SOLVED.get(solveKey(l)) || { ok: false, events: [], why: "not solved yet", pending: true };
+  load(l.name, l.level, sol, l.song); L.deaths = l.deaths || []; L.pending = !!sol.pending; summary(); draw();
+  if (sol.pending) solveInWorker(l);
+};
+// ---- background solving (phone page) ----
+const SOLVED = new Map(), SOLVE_LIMIT_S = 60;
+const solveKey = l => (l.file || l.name) + "|" + (l.version || 0) + "|" + String(l.level || "").length;
+let solver = null;
+function solveInWorker(l) {
+  const key = solveKey(l);
+  if (solver && solver.key === key) return;
+  if (solver) { solver.w.terminate(); clearInterval(solver.tick); }
+  let w;
+  try { w = new Worker("solve_worker.js"); } catch (e) { setPending("not solved yet (this browser cannot solve in the background): open it on the PC, or ask the session to put it again"); solver = null; return; }
+  const t0 = Date.now();
+  solver = { key, w, tick: setInterval(() => {
+    const s = Math.round((Date.now() - t0) / 1000);
+    if (s >= SOLVE_LIMIT_S) { w.terminate(); clearInterval(solver.tick); solver = null; setPending("not solved yet: too big to solve on the phone (stopped after " + SOLVE_LIMIT_S + " s). Open it on the PC, or ask the session to put it again (wip.js put now saves the solution)."); return; }
+    setPending("solving on this phone in the background… " + s + " s (the page stays usable)");
+  }, 1000) };
+  setPending("solving on this phone in the background… 0 s (the page stays usable)");
+  w.onmessage = e => {
+    clearInterval(solver.tick); w.terminate(); solver = null;
+    SOLVED.set(key, e.data);
+    const cur = ALL[pick.value];
+    if (cur && solveKey(cur) === key) { const tt = t; pick.onchange(); t = Math.min(tt, (L.path.length - 1) / P.TPS); draw(); }
+  };
+  w.onerror = () => { clearInterval(solver.tick); w.terminate(); solver = null; setPending("not solved yet (the solver failed here): open it on the PC, or ask the session"); };
+  w.postMessage({ level: l.level });
+}
+function setPending(msg) { if (L && L.pending) { L.sol.why = msg; summary(); } }`);
+swap("            : `<p class=\"bad\">Not beatable in the simulation.",
+  "            : s.pending ? `<p class=\"muted\">${esc(s.why)}</p>` : `<p class=\"bad\">Not beatable in the simulation.");
+swap("if (saved) sol = saved.ok ? { ok: true, events: saved.events, clicks: [] } : { ok: false, trail: saved.events, clicks: [], dieAt: { x: saved.dieX || 0, tick: 0 }, why: saved.why || \"\" };",
+  "if (saved) sol = saved.ok ? { ok: true, events: saved.events, clicks: [] } : { ok: false, trail: saved.events, clicks: [], dieAt: { x: saved.dieX || 0, tick: 0 }, why: saved.why || \"\", pending: !!saved.pending };");
+swap("  else if (ALL.length) { pick.value = 0; pick.onchange(); }",
+  "  else if (ALL.length) { const s = ALL.findIndex(l => l.solution); pick.value = Math.max(0, s); pick.onchange(); }");
 swap('<script>\n"use strict";\nconst P = GD.PHYS;', `<script>
 // the page's database, or null (memoized; null after 10 s when no viewer answers)
 let _db;
@@ -179,7 +259,7 @@ swap("</style>", `  @media (max-width: 700px) {
     header h1 { width:100%; }
     select { flex:1 1 100%; min-width:0; }
     select, button { padding:9px 12px; font-size:15px; }
-    canvas#cv { height:min(52vh, 420px); }
+    canvas#cv { height:auto; aspect-ratio:4/3; max-height:70vh; } /* the game look frames by width here (viewer draw) */
     #strip { height:40px; }
     main { padding:12px max(16px, env(safe-area-inset-left, 0px)) 24px; }
     .card { overflow-x:auto; }
@@ -188,7 +268,18 @@ swap("</style>", `  @media (max-width: 700px) {
 html = `<!-- built by tools/web.js from viewer/index.html; do not edit -->\n` + html;
 fs.writeFileSync(path.join(OUT, "index.html"), html);
 // the Artifact publish call, ready to use (files map = everything beside index.html)
-const files = { "levels.js": "levels.js", "beats.js": "beats.js" };
+// the background solver: the same lib/ files, in a Web Worker (the libs attach to `window`)
+fs.writeFileSync(path.join(OUT, "solve_worker.js"), `// built by tools/web.js: solves one level off the page's thread
+self.window = self;
+importScripts(${libs.map(f => JSON.stringify("lib/" + f)).join(", ")});
+onmessage = e => {
+  try {
+    const level = GD.parseLevel(e.data.level), w = GD.makeWorld(level.objects, level.header), r = GD.solveAny(w);
+    postMessage(r.ok ? { ok: true, events: r.events } : { ok: false, events: r.trail || [], dieX: r.dieAt && r.dieAt.x, why: r.why || "" });
+  } catch (err) { postMessage({ ok: false, events: [], why: "the solver failed: " + err.message }); }
+};
+`);
+const files = { "levels.js": "levels.js", "beats.js": "beats.js", "solve_worker.js": "solve_worker.js" };
 for (const f of libs) files["lib/" + f] = "lib/" + f;
 fs.writeFileSync(path.join(OUT, "publish.json"), JSON.stringify({ file_path: path.join(OUT, "index.html"), root: OUT, files, capabilities: { db: {} } }, null, 1));
 console.log(`${OUT}: index.html + ${Object.keys(files).length} files; publish.json has the Artifact call's file_path, root, files and capabilities`);

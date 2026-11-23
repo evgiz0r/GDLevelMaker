@@ -21,8 +21,36 @@ Link: in `local/phone/url.txt` (shared folder; also in Claude's memory). Not in 
   phone itself, in sync, remembered in that browser (IndexedDB). A file named like the game's copy
   (`StereoMadness.mp3`, `343707.mp3`) goes to every level on that song. `node tools/songs.js --phone`
   copies the songs the repo's levels use into the user's OneDrive folder `GD songs/`, which the
-  phone's file picker can open. Playing straight from Newgrounds is not possible: the Artifact
+  phone's file picker can open.
+  The picker is a real `<input type=file accept="audio/*,...">` laid invisibly over the button, so
+  the tap lands on the input itself (no input clicked from code, no `capture`). Nov 23: on the
+  user's Android phone (S23+) "add song" opened nothing, most likely because the page was open
+  inside the Claude app, whose built-in browser may not offer a file picker. So: if neither the page
+  blurs/hides nor a file arrives within 2.5 s of the tap, the page says the picker did not open and
+  to open the page in Chrome (⋮ -> Open in browser), or to drop or paste the file onto the page
+  (both also work). Every outcome shows a line: a file that does not decode, or a level with no
+  song (the file is then not used). Playing straight from Newgrounds is not possible: the Artifact
   frame blocks media from other sites (CSP), and the asset store takes no audio.
+- **Never solves on the page's thread.** A level with a saved `solution` (rows from `wip.js put`
+  carry one, solved on the PC) only replays. One without (the pushed levels in `levels.js`, an
+  old row) is solved in a Web Worker (`solve_worker.js`, built by web.js) while the page stays
+  usable, with "solving on this phone in the background… N s" in the Level card, and stopped
+  after 60 s with "not solved yet: too big to solve on the phone". The page opens on a level that
+  has a saved solution. Why: on Nov 22 the page solved GDLM 45 (ship + wave, ~5 min even on the
+  PC) on its own thread and the user's phone hung on opening it.
+- **The look** (Nov 23, after the user called the phone view "so-so, bit crude"): the game look
+  (lib/look.js) is on by default, and the player is drawn as in GD: an icon per mode (cube, ship
+  and UFO with a small cube inside, ball, wave dart; GD's default green/cyan, shapes drawn here, no
+  game art), a soft glow, the wave's solid trail, a fading streak in flying modes and after an orb
+  or pad, ground particles under the cube, exhaust from the ship and UFO. The cube turns with the
+  physics in the air and eases onto its side in ~0.1 s on landing (`visualRot` in the viewer; the
+  physics' own `rot` snaps in one step and is left alone). Upright phones frame by width: GD's 19
+  blocks across, the canvas 4:3, more sky above. These live in the shared viewer, so the PC viewer
+  has them too.
+- **Smooth**: the player and camera move between the 240 Hz steps at the screen's own rate, the
+  camera's vertical easing no longer depends on the frame rate, the canvas is capped at 2x pixels,
+  and with a song playing the replay clock follows the song's (a fifth of the gap each frame) instead of
+  the song being re-seeked.
 - Not on the phone: official RobTop levels (`levels.local.js`), recordings and "compare", the
   `#lv=...&t=...` links (a published page's address keeps only a plain `#name`).
 
@@ -47,10 +75,35 @@ update tools/web.js"). Keep the phone page a build of the viewer, never a fork.
 - The database round trip through the published page's store: a `wip` row written by ArtifactData;
   a mark row written, read back with `out_dir`, listed by `node tools/marks.js` as from the phone;
   both deleted again.
+- The background solver (browser pane, phone width): a level without a solution shows at once,
+  solves in the worker with the page's thread never blocked over 75 ms; a worker that never
+  answers is stopped at 60 s with the "too big" note, the level still scrubbable.
+- Add song (Nov 23, phone width): a tap at the button's centre hits the input; a click with no
+  picker shows the "open in Chrome" line after 2.5 s; a dropped WAV and a pasted file go through
+  the same path (a good file plays, a junk one gets "could not be played"); no sideways scroll.
+- The look and smoothness (Nov 23, phone width, GDLM 44 with a test tone as its song): cube,
+  ship, orb streak and wave trail checked in screenshots; draw() costs 1.0-1.1 ms a frame (2.4 ms
+  worst) at 2x; at the moment a frame is drawn the picture is 3 ms from the song (median), 8 ms at most; replay speed
+  0.97-1.02x frame to frame. The browser pane was hidden (about 17 fps), so 60/120 Hz on the phone
+  is untested.
 - Not tested by Claude: the page itself on the phone (the browser pane is not signed in to
   claude.ai). The user is the first to see the live list and save a mark from the phone.
 
+## Solutions travel with the level
+
+A work-in-progress row carries its solution (`solution: {ok, events, physics}`, the natural replay
+of `lib/natural.js`), solved on the PC by `node tools/wip.js put` (`--no-solve` skips it). Pushed
+levels carry theirs in `viewer/levels.js` (from `local/solutions/`, see `tools/solutions.js`; solve
+any missing with `node tools/solutions.js --all`). `physics` = the commit of lib/physics.js /
+lib/objects*.js it was solved on; older ones are stale and get solved again. The page
+then only replays. Without it the phone solved the level itself: GDLM 45 (61 s with ship and wave)
+takes ~5 min to solve on the PC, and the page looked hung on the phone (user, Nov 22).
+
 ## Open
+
+- Whether the Claude app's built-in browser ever opens a file picker for an Artifact (unconfirmed;
+  the user is to try Chrome). If it never does, a song could come another way: a phone-side
+  upload into the page's store (the asset store takes no audio) is not possible today.
 
 - A session forgetting the ArtifactData call leaves the phone a version behind; nothing checks it.
   A check could compare `local/wip/` versions with the rows (one `list`).

@@ -3,6 +3,11 @@
 Style, difficulty and sync sessions: read this before making a level. Newest first.
 Format: date, level + version, the user's words, what it means, what was done (commit/session).
 
+## How levels are shown (the viewer and the phone page, not a level)
+- 2026-11-23, after watching GDLM 45 on the phone page: "The view is soso, bit crude." About the
+  replay's look, not the level's design. Passed by the main session to the sync session (owner of
+  the phone page, `tools/web.js`; the look is `lib/look.js`). Not yet acted on.
+
 ## GDLM 44 hellgate
 - 2026-11-22, v1: called "bland" (reported by the style session; the user's exact words are not here yet).
   Likely cause per knowledge/levels/good_low_tier.md: rated low-tier levels change mode/speed every 3-7 s

@@ -107,15 +107,19 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   rests, motifs, recurring chunks) + `tools/corpus.js` (official levels and the user's save, in
   memory), `tools/patterns.js` (named gameplay chunks incl. ship tunnel / wave zigzag with their
   portals), `tools/decorate.js` (block skins, ground deco, colour / alpha / zoom triggers, jump
-  indicators), `tools/compose.js` (brief with sections -> spec -> build -> score -> repair rounds,
+  indicators), `tools/compose.js` (brief with sections -> spec -> build -> score -> repair rounds; sections in beats that follow the song, each with its mode -- cube, ship, wave, ball, upside-down -- and its look, STYLE.md 2b; `--dry`, `--section n`;
   briefs in `briefs/`, a log per level), `tools/score.js` (every gate a level must pass before the
   user sees it), `tools/sightread.js` (prejumps), `tools/inputs.js` (a solution's inputs with
   modes), `lib/natural.js` (a natural replay plan: taps, no empty jumps). Test:
   `node tests/style_gates.js`.
+- `tools/solutions.js` -- solve each level ONCE on the PC (`--all` for every repo level missing one);
+  the viewer and the phone replay the saved solution (natural replay, stamped with the physics
+  commit; stale ones are re-solved). make.js and wip.js save one whenever they solve.
 - `viewer/index.html` -- the replay viewer; `viewer/levels.js` is generated, do not edit.
 - `lib/look.js` -- how a level LOOKS (viewer's "game look", on by default): header colours, colour
   899 / alpha 1007 / zoom 1913 triggers over time, block skins 1-7 outlined by their own edges,
-  spikes, ground, bg, hills. Drawn to match frames of the user's play, no game art. Toggle off for
+  spikes, ground, bg, hills; the player per mode with glow, trail and particles (smoothed between
+  steps, PHONE.md). Drawn to match frames of the user's play, no game art. Toggle off for
   the schematic view; "hitboxes" still overlays.
 - Iterating on a level's look or play: the viewer's **✎ mark** (key M) saves the user's notes at a
   spot to `marks/marks.jsonl` (via `tools/serve.js`); read them with `node tools/marks.js`, close
