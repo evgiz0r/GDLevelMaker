@@ -68,7 +68,10 @@ function get(levelStr, any) {
   return s;
 }
 function put(levelStr, sol, level) {
-  sol.physics = physicsCommit(); sol.plan = planCommit(); sol.solvedAt = new Date().toISOString();
+  // the plan stamp says which lib/natural.js made this route: only fromRun (which runs the natural plan) sets
+  // it; a copied route keeps its own, so it shows up stale and is re-planned (make.js --look once copied an
+  // old one-long-hold route and stamped it current: GDLM 45 wip v8, 2026-11-23)
+  sol.physics = physicsCommit(); if (sol.plan === undefined) sol.plan = null; sol.solvedAt = new Date().toISOString();
   if (level) { try { measureWindows(level, sol); } catch (e) { delete sol.windows; } }
   fs.mkdirSync(DIR, { recursive: true });
   fs.writeFileSync(path.join(DIR, keyOf(levelStr) + ".json"), JSON.stringify(sol));
@@ -78,11 +81,17 @@ function put(levelStr, sol, level) {
 function fromRun(level, levelStr, r) {
   const w = GD.makeWorld(level.objects, level.header);
   let sol;
+  // THE DEFAULT (the user, 2026-11-23: "let's by default solve with the human route, then in the limits we
+  // will see"): every saved route is the human route -- lib/natural.js with humanCost (no skips, no unneeded
+  // presses, short taps, holds only where the mode needs them, early in each window, flying the safe line).
+  // kind "human"; "limit" when no human route finishes (the raw solver route is kept, with why);
+  // "unbeaten" when the solver itself is stuck.
   if (r && r.ok) {
-    let events = r.events;
-    try { const n = GD.naturalPlan(w, r, level.objects, { cost: true }); if (n && n.path[n.path.length - 1].done) events = n.events; } catch (e) {}
-    sol = { ok: true, events };
-  } else sol = { ok: false, events: (r && r.trail) || [], dieX: r && r.dieAt && r.dieAt.x, why: r && r.why };
+    let events = r.events, kind = "limit", why = "the natural plan could not finish the level: the solver's raw route";
+    try { const n = GD.naturalPlan(w, r, level.objects, { cost: true });
+      if (n && n.path[n.path.length - 1].done) { events = n.events; kind = "human"; why = undefined; } } catch (e) { why = "natural plan failed: " + e.message; }
+    sol = { ok: true, events, kind, why, plan: planCommit() };
+  } else sol = { ok: false, kind: "unbeaten", events: (r && r.trail) || [], dieX: r && r.dieAt && r.dieAt.x, why: r && r.why, skipped: r && r.skipped, plan: planCommit() };
   return put(levelStr, sol, level);
 }
 // a saved solution's windows, measured and saved when missing or from older window code (no re-solving)
