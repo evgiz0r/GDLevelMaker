@@ -107,7 +107,11 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   or all official levels vs ratings and the user's attempts), `difficulty_solve` (cache an official
   solution, one at a time), `difficulty_fit` (refit on the user's runs), `difficulty_community`
   (score downloaded community levels), `runs` (the user's deaths from a recording, via the progress
-  bar), `save_stats` (the user's lifetime attempts per official level, read-only from the save).
+  bar), `save_stats` (the user's lifetime attempts per official level, read-only from the save),
+  `difficulty_route` (a level with and without route choice: a player avoids a hard timing when the
+  level has an easier way), **`fairness`** (deaths that are not the player's fault: forced input after
+  a portal, misleading marks, sloped portal exits, orb chains with nothing to correct; fitted on the
+  user's labelled deaths, `fairness fit`; tools/score.js gates on it; DIFFICULTY.md "Fairness").
 - `lib/sync.js` -- music sync: level time <-> x through speed portals, beat grid <-> level beats,
   press timing windows from a solution, sync scores. See SYNC.md (also where songs come from).
 - **The phone page** (PHONE.md: what is on it, what a session does after `wip.js put`, phone

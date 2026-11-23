@@ -189,6 +189,46 @@ What it gets wrong:
   do (dual, reading the UFO), surprise (Open 3) or density (Open 1).
 - **Dash (24%) and Deadlocked (31%) per minute** rest on short covered fragments.
 
+## Fairness: deaths that are not the player's fault
+
+The user, after GDLM 46 v2: "I mostly died deaths not really my fault". The physics session
+labelled the 11 deaths of that run (`local/real_stats.jsonl` field `fair`): 7 unfair, 3 borderline,
+1 fair. `node tools/fairness.js <level.gdlvl>` flags the spots such deaths come from.
+`tools/score.js` runs it as the gate **fairness**: FAIL blocks the hand-over, so compose, polish
+and sketch all get it. It is judged on the route a person plays (`lib/natural.js`).
+
+| family | flags | from | threshold |
+|---|---|---|---|
+| switch | after a portal into any mode but ship/UFO, the first input starts after the portal and its strict window (that input moved, every other kept) closes within 250 ms of it | 44 v5 wave entry, closes ~125-138 ms after, 5 deaths; 46 v2 wave exit, 158 ms window closing 163 ms after, 2 | SWITCH_MS 250 |
+| mark | a jump mark (group 990) with no jump of the natural route within 60 units | 46 v2 mark at 825, death at 950 | MARK_DIST 60 |
+| floor | the floor within 3 blocks of a portal into a ground mode slopes | 46 v2 sawtooth under the wave exit, death at 3150 | FLOOR_RANGE 90 |
+| chain | 3+ orb taps in a row, each under 500 ms after the last | 46 v2 end chain (windows 300/304/113 ms), 3 deaths | CHAIN_LEN 3, CHAIN_MS 500 |
+| blind (WARN) | a jump with a window under 100 ms, no mark, straight into an orb within 600 ms | 46 v2 first orb, 3 borderline deaths | BLIND_MS 100 |
+| wave | wave inputs under 150 ms apart | 44 v5 zigzag (75 ms turns), death at 1694 | WAVE_MS 150 |
+
+`node tools/fairness.js fit` checks it against every labelled death. A flag explains a death when it
+sits at most 11 blocks before it (`tests/fairness_fit.js` keeps it so). Over GDLM 44 v5 and 46 v2:
+- **unfair deaths flagged 12/12** (5 on 44 are inferred: rows the physics session called forced or
+  a 75 ms zigzag before the `fair` field existed);
+- **borderline flagged 3/3** (as WARN);
+- **the fair death not flagged 1/1**.
+
+This is in-sample: the rules were shaped on these same deaths. What it cost and what is weak:
+- **One false alarm:** 46 v2's wave entry (a 71 ms window closing 171 ms after the portal) was
+  passed 7 of 7 times. It cannot be told apart from the deadly wave exit (163 ms) by this measure.
+- **Strict, not lenient, windows decide `switch`.** The lenient window (look-ahead re-plans) said
+  329 ms for the 46 wave exit; the physics session's careful `tools/press_window.js` says 158, and so
+  does the strict one here.
+- **Ship and UFO entries are exempt.** Their strict windows close ~30 ms after the portal, but a
+  player holds into them from the jump that gets there, and nobody died there.
+- **Wave turn gaps come from the natural plan's controller,** which taps quickly; check its flags on
+  new wave parts by eye.
+- **Not measured yet:** orbs that carry the cube to the screen's top edge (46 v2 end chain).
+
+Refit whenever `local/real_stats.jsonl` gets new labelled deaths (the physics session adds every
+analysed recording): add the played version to `PLAYED` in `tools/fairness_fit.js` and run
+`node tools/fairness.js fit`.
+
 ## Tier ladder (targets for making levels)
 
 From the official levels the sim covers fully (1-8) or in good part (10, 16, 18), on the human

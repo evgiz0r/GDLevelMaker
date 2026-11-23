@@ -7,6 +7,12 @@ number there, then here. Last updated 2026-11-23.
 
 ## Fair (the user's playtests: a death must be the player's fault)
 
+- [ ] **`node tools/fairness.js <level>` passes** (also `tools/score.js` gate "fairness"). It
+  checks the items below automatically: forced input after a portal (strict window closes < 250 ms
+  after it), a mark with no jump, a sloped floor at a portal into a ground mode, 3+ orb taps under
+  500 ms apart, wave inputs under 150 ms apart (FAIL), a blind two-step opener (WARN). Fitted on the
+  user's labelled deaths: 12/12 unfair caught, the fair one left alone. (DIFFICULTY.md "Fairness")
+
 - [ ] **No prejumps.** Every jump is cued by what is in front. `node tools/sightread.js <level>`.
   (design.md "Fairness", GDLM 41)
 - [ ] **No forced input right after a mode or speed portal.** Give an empty lead-in: cube ~6 blocks,
