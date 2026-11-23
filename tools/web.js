@@ -16,7 +16,7 @@ const libs = [...html.matchAll(/<script src="\.\.\/lib\/([\w.]+)"><\/script>/g)]
   .filter(f => !/^(art|objects_art|objects_frames)\.js$/.test(f)); // never the GD-art libs (page, worker, publish list)
 for (const f of libs) fs.copyFileSync(path.join(ROOT, "lib", f), path.join(OUT, "lib", f));
 fs.copyFileSync(path.join(ROOT, "viewer", "levels.js"), path.join(OUT, "levels.js"));
-const beats = path.join(ROOT, "viewer", "beats.local.js");
+const beats = path.join(ROOT, "local", "beats.local.js"); // tools/beats.js (run it, or --index, when this is missing)
 fs.writeFileSync(path.join(OUT, "beats.js"), fs.existsSync(beats) ? fs.readFileSync(beats) : "window.GD_BEATS = {};\n");
 
 const swap = (a, b) => { if (!html.includes(a)) throw new Error("viewer changed, update tools/web.js: " + a); html = html.split(a).join(b); };
@@ -57,7 +57,7 @@ function showMap(src) {
 }
 const artOn = () =>`);
 swap('<script src="lib/objects_art.js"></script>\n<script src="lib/objects_frames.js"></script>\n<script src="lib/art.js"></script>\n', "<script>window.GD_PHONE = true;</script>\n");
-swap('<script src="beats.local.js" onerror="window.GD_BEATS = {}"></script>', '<script src="beats.js" onerror="window.GD_BEATS = {}"></script>');
+swap('<script src="../local/beats.local.js" onerror="window.GD_BEATS = {}"></script>', '<script src="beats.js" onerror="window.GD_BEATS = {}"></script>');
 // Songs: none are published. The viewer picks mp3s from their own device ("add song"); they are
 // decoded with Web Audio (no media URLs, which the Artifact frame may refuse) and kept in this
 // browser's IndexedDB so each song is picked once. A file named like the game's own copy
@@ -69,31 +69,13 @@ swap('<button id="music" class="on">music</button>',
   '<button id="music" class="on">music</button><label class="btn" id="addSong" style="position:relative;overflow:hidden">add song<input id="songFile" type="file" accept="audio/*,.mp3,.ogg,.m4a,.wav" multiple style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:40px"></label>' +
   '<div id="songMsg" style="display:none;flex:1 0 100%;order:99;box-sizing:border-box;margin:2px 0;padding:8px 10px;border:1px solid #6b5bd0;border-radius:6px;background:#1b1240;font-size:13px;line-height:1.4"></div>');
 swap("if (!info || location.protocol === \"file:\") return;", "if (!info) return; updateSongBtn();");
-swap('song = new Audio(info.url); song.preload = "auto";\n  song.onerror = () => { song = null; };', "song = songPlayer(info);");
+swap("song = viewerSong(info);", "song = songPlayer(info);"); // the phone's songs come from the device (below), not the server
 swap('<script>\n"use strict";\nconst P = GD.PHYS;', `<script>
-const SONGBUF = {};                       // song key -> decoded AudioBuffer
+const SONGBUF = (GD.SONGBUF = GD.SONGBUF || {}); // song key -> decoded AudioBuffer (the viewer's SONGS too)
 const songKey = info => decodeURIComponent(String(info.url).split("/").pop()).toLowerCase();
 function audio() { actx = actx || new AudioContext(); return actx; }
-// an Audio-like player over an AudioBuffer: currentTime, playbackRate, play(), pause(), paused
-function songPlayer(info) {
-  const buf = SONGBUF[songKey(info)];
-  if (!buf) return null;
-  let src = null, off = 0, rate = 1, t0 = 0;
-  const p = { paused: true };
-  const now = () => p.paused ? off : off + (audio().currentTime - t0) * rate;
-  const stop = () => { if (src) { try { src.stop(); } catch (e) {} src.disconnect(); src = null; } };
-  const start = () => {
-    const a = audio(); if (a.resume) a.resume();
-    src = a.createBufferSource(); src.buffer = buf; src.playbackRate.value = rate; src.connect(a.destination);
-    t0 = a.currentTime;
-    if (off >= 0) src.start(0, Math.min(off, buf.duration)); else src.start(a.currentTime - off / rate, 0);
-  };
-  Object.defineProperty(p, "currentTime", { get: now, set(v) { const playing = !p.paused; stop(); off = v; if (playing) start(); } });
-  Object.defineProperty(p, "playbackRate", { get: () => rate, set(v) { if (v === rate) return; const c = now(); const playing = !p.paused; stop(); off = c; rate = v; if (playing) start(); } });
-  p.play = () => { if (p.paused) { p.paused = false; start(); } return Promise.resolve(); };
-  p.pause = () => { if (!p.paused) { off = now(); stop(); p.paused = true; } };
-  return p;
-}
+// the player is lib/song.js, shared with the viewer (sample-exact; the replay's clock reads it)
+function songPlayer(info) { const buf = SONGBUF[songKey(info)]; return buf ? GD.songPlayer(buf, audio) : null; }
 function updateSongBtn() {
   const b = document.getElementById("addSong"); if (!b || !b.firstChild) return;
   const have = songInfo && SONGBUF[songKey(songInfo)];
