@@ -83,6 +83,7 @@
   <button id="markBtn" title="pause, then click where something should change (key M)">✎ mark</button>
   <button id="sound" class="on">click sound</button>
   <button id="music" class="on">music</button>
+  <button id="lightBtn" title="light mode: no GD art, no beat lines -- for a slow moment (the PC busy, the phone)">light</button>
   <button id="beatsBtn" class="on" title="beat grid of the level's song (songs on this PC, from tools/beats.js)">beats</button>
   <span id="clock" class="muted"></span>
 </header>
@@ -203,6 +204,7 @@ function load(name, levelStr, saved, info) {
     for (let k = 0; k < path.length; k++) { while (j < ev.length && ev[j].tick <= k) { h = ev[j].type === "press" ? 1 : 0; j++; } held[k] = h; } }
   L = { name, level, world, sol, path, held };
   L.vrot = visualRot(path);
+  L.routeKind = routeKindOf(saved, sol, world);
   // colour / alpha / zoom triggers fire when the replayed run passes their x
   L.look = GD.LOOK.timeline(level, x => {
     let lo = 0, hi = path.length - 1;
@@ -274,6 +276,16 @@ pick.onchange = () => { const l = ALL[pick.value]; load(l.name, l.level, l.solut
 // filters, pins and recent; the versions of one level under one card, newest first (the user: "the pick level
 // drop down is too annoying"). It only sets the hidden <select id="pick"> and fires its change, so every other
 // part (the phone build too) keeps working through pick.value.
+// which route the replay shows: saved.kind from tools/solutions.js ("human" | "limit" + why | "unbeaten"); a level
+// solved here: human when the natural plan finished it. A stale saved route (older physics) says so.
+function routeKindOf(saved, sol, world) {
+  const pct = x => Math.max(0, Math.min(100, Math.round(x / Math.max(1, world.endX) * 100)));
+  const k = saved ? saved.kind : sol.ok ? (sol.natural ? "human" : "limit") : "unbeaten";
+  const why = saved ? saved.why : !sol.ok ? sol.why : sol.natural ? "" : "the natural plan could not finish the level: the solver's raw route";
+  if (!k) return saved && saved.stale ? { k: "stale", label: "stale route", why: "saved on older physics; refreshed by tools/solutions.js" } : null;
+  const label = k === "human" ? "human route" : k === "limit" ? "limit route" + (why ? ": " + String(why).slice(0, 60) : "") : "unbeaten at " + pct(saved ? saved.dieX || 0 : (sol.dieAt || {}).x || 0) + "%";
+  return { k, label: label + (saved && saved.stale ? " (stale)" : ""), why: why || "" };
+}
 const PK = { f: "all", sel: 0, rows: [], meta: new Map() };
 const pkStore = (k, v) => { try { if (v === undefined) return JSON.parse(localStorage.getItem("gdlm." + k) || "[]"); localStorage.setItem("gdlm." + k, JSON.stringify(v)); } catch (e) { return []; } };
 const pkCat = l => l.wip || (l.session && l.version) ? "wip" : /official/.test(String(l.file)) || l.official != null ? "official" : /community/.test(String(l.file)) ? "community" : "ours";
@@ -284,6 +296,11 @@ const pkWhen = l => Date.parse(l.made || (l.wip || l.session ? l.updated : "") |
 const pkEsc = x => String(x).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 function pkBadge(l) {
   return pkCat(l) === "wip" ? `<span class="pkBadge wip">wip v${l.version || "?"}${l.session ? " · " + pkEsc(l.session) : ""}</span>` : `<span class="pkBadge">${pkCat(l) === "ours" ? "main" : pkCat(l)}</span>`;
+}
+function pkRoute(l) {
+  const k = l.solution && l.solution.kind; if (!k) return "";
+  const st = k === "human" ? "background:#16402c;color:#9cf5c4" : k === "limit" ? "background:#5a3a10;color:#ffd58a" : "background:#5a1424;color:#ffb3c2";
+  return `<span class="pkBadge" style="${st}" title="${pkEsc(l.solution.why || "")}">${k === "human" ? "human route" : k === "limit" ? "limit route" : "unbeaten"}</span>`;
 }
 function pkAgo(ms) { if (!ms) return ""; const m = (Date.now() - ms) / 60000; return m < 60 ? Math.max(1, Math.round(m)) + " min ago" : m < 1440 ? Math.round(m / 60) + " h ago" : Math.round(m / 1440) + " d ago"; }
 // length, modes and a thumbnail from the level itself: worked out for the cards on screen, a few at a time
@@ -333,7 +350,7 @@ function pkRender() {
   PK.rows = rec.concat(rest); PK.sel = Math.min(PK.sel, Math.max(0, PK.rows.length - 1));
   const card = (r, n) => { const l = ALL[r.is[0]];
     return `<div class="pkCard${n === PK.sel ? " sel" : ""}" data-n="${n}"><canvas data-i="${r.is[0]}"></canvas><div class="pkInfo"><div class="pkName">${pkEsc(l.name)}${cur && cur.file === l.file && cur.version === l.version ? " · <span style='color:var(--cube)'>open</span>" : ""}</div>` +
-      `<div class="pkMeta">${pkBadge(l)}<span data-meta="${r.is[0]}"></span>${pkWhen(l) ? " · made " + pkAgo(pkWhen(l)) : ""}</div>` +
+      `<div class="pkMeta">${pkBadge(l)}${pkRoute(l)}<span data-meta="${r.is[0]}"></span>${pkWhen(l) ? " · made " + pkAgo(pkWhen(l)) : ""}</div>` +
       (r.is.length > 1 ? `<div class="pkOlder">${r.is.slice(1, 8).map(i => `<button data-open="${i}">${pkCat(ALL[i]) === "wip" ? "wip v" + (ALL[i].version || "?") + (ALL[i].session ? " " + pkEsc(ALL[i].session) : "") : "main"}</button>`).join("")}</div>` : "") +
       `</div><button class="pkPin${pins.includes(r.k) ? " on" : ""}" data-pin="${pkEsc(r.k)}" title="pin">★</button></div>`; };
   el.innerHTML = (rec.length ? `<div class="pkHead">recent</div>` + rec.map((r, n) => card(r, n)).join("") : "") +
@@ -387,12 +404,14 @@ function summary() {
   for (const o of L.level.objects) { const d = GD.objInfo(o.id); if (d.kind === "decoration" || d.kind === "trigger") { deco++; continue; } counts[d.name] = (counts[d.name] || 0) + 1; }
   const unsim = L.level.objects.filter(o => ["unknown", "unsupported"].includes(GD.objInfo(o.id).kind)).length;
   const s = L.sol;
+  // the route kind (tools/solutions.js): human by default; amber when a limit route is used; red when unbeaten
+  const kind = L.routeKind ? `<span class="pkBadge" style="${L.routeKind.k === "human" ? "background:#16402c;color:#9cf5c4" : L.routeKind.k === "limit" ? "background:#5a3a10;color:#ffd58a" : "background:#5a1424;color:#ffb3c2"}" title="${esc(L.routeKind.why || "")}">${esc(L.routeKind.label)}</span>` : "";
   let h = `<b>${esc(L.name)}</b><br><span class="muted">${L.level.objects.length} objects · ${(L.world.endX / 30).toFixed(0)} blocks · ${(L.world.endX / P.SPEED).toFixed(1)} s at 1×</span><br>`;
   // presses only (a saved solution lists releases too); windows only where known (saved ones have none)
   const nP = s.clicks.filter(c => c.type !== "release").length, ws = s.clicks.map(c => c.ms).filter(ms => ms > 0);
-  h += s.ok ? `<p class="ok">Beatable in ${nP} click${nP === 1 ? "" : "s"}` +
+  h += s.ok ? `<p class="ok">Beatable in ${nP} click${nP === 1 ? "" : "s"} ${kind}` +
               (ws.length ? ` · tightest window ${Math.min(...ws)} ms` : "") + `</p>`
-            : `<p class="bad">Not beatable in the simulation. The furthest run dies at block ${(s.dieAt.x / 30).toFixed(1)} (${(s.dieAt.tick / P.TPS).toFixed(2)} s): ${s.why}. The replay shows that furthest run.</p>`;
+            : `<p class="bad">${kind} Not beatable in the simulation. The furthest run dies at block ${(s.dieAt.x / 30).toFixed(1)} (${(s.dieAt.tick / P.TPS).toFixed(2)} s): ${s.why}. The replay shows that furthest run.</p>`;
   if (L.deaths && L.deaths.length) h += `<p class="bad">Your real deaths (normal mode, from recordings): ${L.deaths.length} at ${L.deaths.slice().sort((a, b) => a - b).map(p => p.toFixed(0) + "%").join(", ")} (red marks).</p>`;
   if (unsim) h += `<p class="muted">${unsim} objects are not simulated yet (unsupported portals or unknown ids).</p>`;
   if (deco) h += `<p class="muted">${deco} decoration and trigger objects (no physics).</p>`;
@@ -458,6 +477,19 @@ document.getElementById("sound").onclick = e => { sound = !sound; e.target.class
 document.getElementById("music").onclick = e => { music = !music; e.target.classList.toggle("on", music); syncSong(true); };
 let showBeats = true;
 document.getElementById("beatsBtn").onclick = e => { showBeats = !showBeats; e.target.classList.toggle("on", showBeats); draw(); };
+// light mode: GD art and beat lines off in one press, back as they were in the next (remembered in this browser)
+let LIGHT = null;
+function setLight(on) {
+  if (on && !LIGHT) { LIGHT = { art, beats: showBeats }; art = false; showBeats = false; }
+  else if (!on && LIGHT) { art = LIGHT.art; showBeats = LIGHT.beats; LIGHT = null; if (art) artLoad(); }
+  document.getElementById("lightBtn").classList.toggle("on", !!LIGHT);
+  document.getElementById("beatsBtn").classList.toggle("on", showBeats);
+  const ab = document.getElementById("artBtn"); if (ab) ab.classList.toggle("on", art);
+  try { localStorage.setItem("gdlm.light", LIGHT ? "1" : "0"); } catch (e) {}
+  if (L) draw();
+}
+document.getElementById("lightBtn").onclick = () => setLight(!LIGHT);
+try { if (localStorage.getItem("gdlm.light") === "1") setTimeout(() => setLight(true), 0); } catch (e) {}
 const scrub = document.getElementById("scrub");
 scrub.oninput = () => { t = scrub.value / 1000 * (L.path.length - 1) / P.TPS; lastTick = tick(); playing = false; setPlay(); syncSong(); draw(); };
 addEventListener("keydown", e => {
@@ -1032,6 +1064,29 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 resize();
+// ?perf=<id>&secs=8&art=1&beats=1&light=0 (tools/perf.js): play the level in the hash from its t for `secs`
+// seconds with real animation frames and POST the frame and draw times to /perf/<id>
+(() => {
+  const q = new URLSearchParams(location.search), id = q.get("perf"); if (!id) return;
+  const want = (k, d) => q.has(k) ? q.get(k) === "1" : d;
+  const wait = setInterval(async () => {
+    if (!L) return; clearInterval(wait);
+    art = want("art", true); showBeats = want("beats", true); if (want("light", false)) setLight(true);
+    if (art) { await artLoad(); if (GD.ART_LIB.preload) await GD.ART_LIB.preload(); }
+    await new Promise(r => setTimeout(r, 1500));
+    const secs = +(q.get("secs") || 8), frames = [], draws = []; PERF.on = true; PERF.draws = [];
+    const t0 = performance.now(); let last = t0; playing = true; setPlay();
+    const loop = now => { frames.push(now - last); last = now; if (now - t0 < secs * 1000) requestAnimationFrame(loop); else done(); };
+    requestAnimationFrame(loop);
+    const done = () => { playing = false; setPlay();
+      const pc = (a, p) => { const b = a.slice().sort((x, y) => x - y); return +(b[Math.min(b.length - 1, Math.floor(p * b.length))] || 0).toFixed(2); };
+      const out = { level: L.name, objects: L.level.objects.length, W, H, art: artOn(), beats: showBeats, light: !!LIGHT, frames: frames.length, fps: +(frames.length / secs).toFixed(1),
+        frame: { p50: pc(frames, .5), p90: pc(frames, .9), p99: pc(frames, .99), over33: frames.filter(f => f > 33).length },
+        draw: { p50: pc(PERF.draws, .5), p90: pc(PERF.draws, .9), p99: pc(PERF.draws, .99) },
+        heapMB: performance.memory ? +(performance.memory.usedJSHeapSize / 1e6).toFixed(0) : null };
+      fetch("/perf/" + id, { method: "POST", body: JSON.stringify(out) }); };
+  }, 200);
+})();
 // ---------- work in progress: the levels the sessions are working on, live from local/wip ----------
 // Listed first under "in progress"; ⟳ refresh fetches the newest versions without reloading the page.
 // The address bar keeps #lv=<file>&t=<seconds>, so a link opens that level at that moment.

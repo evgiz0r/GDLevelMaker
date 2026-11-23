@@ -46,6 +46,9 @@ const first = (r, act) => r.path.find(p => p.act === act);
   for (let k = 0; k < 10; k++) far.push({ id: 35, x: 1200 + k * 600, y: 2 });
   const wf = GD.makeWorld(far), rf = GD.solveAny(wf);
   check("no-skip: a portal taken early still counts at the end of a long run", rf.ok, rf.ok ? "ok" : rf.why + " " + (rf.skipped || ""));
+  // a 1x speed portal at 1x changes nothing: passing it untouched is fine
+  const e = GD.solveAny(GD.makeWorld([{ id: 201, x: 400, y: 5 * 30 + 15 }, { id: 1, x: 1500, y: 15 }]));
+  check("no-skip: a portal that would change nothing is not required", e.ok, e.ok ? "ok" : e.why + " " + (e.skipped || ""));
   const c = GD.solveAny(GD.makeWorld(lvl(5)), { allowSkips: true });
   check("no-skip: allowSkips (debugging) still finds the way around", c.ok, c.ok ? "ok" : c.why);
 }

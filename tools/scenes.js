@@ -54,7 +54,7 @@ const THEMES = {
 // slow, the cube upside down or the robot; the next section never repeats the mode before it.
 const MODES = {
   intro: ["cube"], groove: ["cube", "ball", "robot", "upside"], build: ["ship", "ufo"],
-  ride: ["upside", "ball", "ufo", "robot", "cube"],   // the loud phrases after a drop's first one
+  ride: ["upside", "ball", "ufo", "robot", "cube", "wave", "ship"],   // the loud phrases after a drop's first one (may keep the drop's mode)
   drop: ["wave", "cube 2x", "ship"], breather: ["cube 0.5x", "robot", "upside"], outro: ["cube"],
 };
 // compose.js modes (it builds "ship", "wave", "ball", "upside" sections and plain cube ones)
@@ -123,12 +123,18 @@ function plan(song, o = {}) {
     if (s.role === "outro") cands = [byCalm[0]];
     s.scene = cands[0]; prevPlace = s.scene; used.set(s.scene, (used.get(s.scene) || 0) + 1);
   }
-  // modes: from the role's list, never the mode just before, and a mode the level has not used yet first
-  let prevMode = null; const usedM = new Set();
+  // modes: a section keeps the mode before it unless its energy class changes (calm / build / loud /
+  // breather) or that mode has run 8 bars -- the places change every phrase, the modes on the song's big
+  // turns (score.js "mode changes": official levels 1.3-5.2 a minute; TASTE_DATA.md: fewer swaps rate
+  // better). A new mode: from the role's list, never the one just before, one the level has not used first.
+  const CLASS = { intro: "calm", groove: "calm", outro: "calm", build: "build", drop: "loud", ride: "loud", breather: "breather" };
+  let prevMode = null, prevClass = null, run = 0; const usedM = new Set();
   for (const s of secs) {
+    const len = s.bars[1] - s.bars[0], cls = CLASS[s.role];
+    if (prevMode && cls === prevClass && run < 8 && MODES[s.role].includes(prevMode)) { s.mode = prevMode; run += len; continue; }
     const ok = MODES[s.role].filter(x => x !== prevMode);
     const m = ok.find(x => !usedM.has(x.split(" ")[0])) || ok[0] || MODES[s.role][0];
-    s.mode = m; prevMode = m; usedM.add(m.split(" ")[0]);
+    s.mode = m; prevMode = m; prevClass = cls; run = len; usedM.add(m.split(" ")[0]);
   }
   // transitions and effects: on each section's first bar. The palette fade length follows the role
   // (instant into a drop, a bar into a build, two bars into a breather); the camera: zoom out on a drop

@@ -43,6 +43,11 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   landing on a lone block that forces the next jump within 250 ms, never 3+ hops in a row each forced
   right after landing. `node tools/reactive.js <level>` (score.js gate "reactive": FAIL at Easy/Normal).
   (critiques.md GDLM 45 v6, blocks 50-75: "very specific cube jumps ... instead of being able to react")
+- [ ] **Pillar hops are tapped, not held**: at Easy/Normal, pillar tops 3-4 wide; a rise crosses a
+  1-column pit, a drop a 3-column one (2-column pits gave ~100 ms windows on rises and were walked across
+  on drops). Jumper's 1-2-wide pillars are a Harder rhythm that only works as a held bounce. Generated
+  by tools/structures.js pillarRun; checked by the reactive and hazards-matter gates. (the user on GDLM 61
+  v1, blocks 15-60: "these clicks very unnatural ... the timings seem reallllly awkward"; CRAFT.md)
 - [ ] **Windows on the player's route, not only the solver's**: every jump of the natural replay (what
   the viewer and the game show) timed on its own up to the next input; none under the tier's floor.
   score.js gate "player timing". (GDLM 47 v2: the timing gate said 113 ms on the solver's route, the
@@ -85,6 +90,7 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   ~0.5 block ahead). Used where a jump can't be read in time (after a drop, after a portal, the first of
   a pattern), consistently, small and softer than the level. `node tools/obstacles.js indicators --file <level>`.
   (levels/obstacles.md section 4, design.md "Telegraph"; GDLM 45 v4, GDLM 46 v2)
+- [ ] **The shown route is the human route** (the default; route.kind "human", or "limit" with why): no skips, no unneeded press, taps not holds outside ship/wave, flying the safe line. `node tests/saved_routes.js --all` (PHYSICS.md "How the route is chosen").
 - [ ] **The shown route clicks where a human would**: early in a wide window (~40% in), never at its
   last safe frame -- the replay, the arrows and the level map all follow it. `node tools/windows.js <level>`
   ("pressed N% in"; lib/natural.js step 4). (the user on GDLM 45's ball: "i would prefer to click way earlier")

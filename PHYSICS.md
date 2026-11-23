@@ -218,7 +218,9 @@ skips something, its 99% wrong. and will cause trouble. and anyway not the human
   of them is enough. A portal is a requirement only when some state of the search came within 60 units
   of it (2 blocks): a decorative portal far off the play (ClockWood's ball portal 22 blocks up, Spooky
   Dash's teleport at y 1605) is not, and a finished solve names such portals in `outOfReach`. One the
-  search got near and never took is the "stuck" case.
+  search got near and never took is the "stuck" case. A portal that would change nothing for the player
+  there (a ship portal while already a ship, a speed portal at that speed, gravity already that way, the
+  same size) is not a requirement either.
 - An **orb or pad** is "clearly meant to be taken" when the route's player box comes within 15 units of it
   (on the route's own line). The sweep already takes as many orbs as any route can, so a finished route that
   still leaves one like that is reported stuck: `why: "skipped an orb/pad"`, `skipped: "<name> at x <x>"`.
@@ -232,6 +234,14 @@ skips something, its 99% wrong. and will cause trouble. and anyway not the human
 - The shared check is `GD.skipCheck(w, path, events)` (null = clean; else the stuck result).
 
 ## How the route is chosen (the natural route)
+
+THE DEFAULT (the user, 2026-11-23: "let's by default solve with the human route, then in the limits we will
+see"): every route that is saved or shown is the human route below. tools/solutions.js fromRun is the one
+door every saving path goes through (make.js, wip.js, compose via make, polish, tests/saved_routes.js --fix);
+official and community viewer routes take the same pass (difficulty_solve.js toViewer). Each saved route says
+`kind`: "human"; "limit" when no human route finishes (the solver's raw route is kept, `why` says so);
+"unbeaten" when the solver is stuck (`why`, `skipped`). tests/saved_routes.js fails a route that dies, skips,
+or holds longer than needed (over 0.15 s outside ship/wave where a tap finishes).
 
 1. **Valid first (hard rule):** a route must finish and skip nothing ("No secret ways" above).
 2. **The search** (lib/physics.js solveSweep) ranks the states it keeps by: portals skipped (rejected), orbs and
