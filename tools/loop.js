@@ -142,7 +142,7 @@ async function main() {
     const step = args[1], cmd = args.slice(2);
     if (!step || !cmd.length) { console.log("usage: node tools/loop.js --time <step name> <command ...>"); return 1; }
     slotStatus();   // a heavy tool takes the lock itself (tools/heavy.js); a plain command just runs
-    const t0 = Date.now(), r = cp.spawnSync(cmd[0], cmd.slice(1), { cwd: process.cwd(), stdio: "inherit", shell: process.platform === "win32" });
+    const t0 = Date.now(), r = cp.spawnSync(cmd[0], cmd.slice(1), { cwd: process.cwd(), stdio: "inherit" });
     const secs = (Date.now() - t0) / 1000;
     logTiming({ at: new Date().toISOString(), step, secs: +secs.toFixed(1), ok: r.status === 0, cmd: cmd.join(" ").slice(0, 200), freeMB: freeMB() });
     console.log(`time: ${step} took ${fmt(secs)} (exit ${r.status}) -> ${path.relative(ROOT, TIMINGS)}`);
