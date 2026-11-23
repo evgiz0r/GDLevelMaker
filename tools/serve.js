@@ -199,7 +199,7 @@ const SERVER = http.createServer((req, res) => {
       out = Object.assign({}, idx, { stages: idx.stages.map(st => {
         let level = null, solution = null, file = null;
         if (st.file) try { const abs = path.join(dir, path.basename(st.file)); file = path.relative(root, abs).split(path.sep).join("/"); level = readGdlvl(abs).levelStr; solution = S.get(level) || null; } catch (e) {}
-        if (!level) { level = String(GDL.DEFAULT_HEADER).replace(/;?$/, ";"); solution = { ok: true, events: [] }; }   // the song stage: an empty level
+        if (!level) { level = require("./stages.js").emptyLevel(st.data); solution = { ok: true, events: [] }; }   // the song stage: an empty level as long as the song (no presses needed)
         return Object.assign({}, st, { level, solution, file });
       }) });
     } catch (e) {}
@@ -278,7 +278,7 @@ const SERVER = http.createServer((req, res) => {
         const file = "local/wip/" + b.session + "/" + b.base + ".gdlvl", have = out.find(o => o.file === file);
         if (have) { have.stage = last.stage; continue; }
         const withLevel = b.index.stages.filter(s => s.file).pop(), songSt = b.index.stages.find(s => s.stage === "song");
-        let level = String(GDL.DEFAULT_HEADER).replace(/;?$/, ";"), solution = { ok: true, events: [] };
+        let level = ST.emptyLevel(songSt && songSt.data), solution = { ok: true, events: [] };
         if (withLevel) try { level = readGdlvl(path.join(b.dir, withLevel.file)).levelStr; solution = require("./solutions.js").get(level) || undefined; } catch (e) {}
         out.push({ name: b.index.name, session: b.session, file, wip: true, stagesOnly: true, stage: last.stage, level, solution,
           song: songSt && songSt.data && songSt.data.song || undefined, version: 0, note: "building: " + b.index.stages.map(s => s.stage).join(" > "),

@@ -508,6 +508,7 @@ async function stagesFor(l) {
   let d = null; try { const r = await fetch("/wip/stages?file=" + encodeURIComponent(l.file), { cache: "no-store" }); if (r.ok) d = await r.json(); } catch (e) {}
   if (ALL[pick.value] !== l) return;
   STG.base = l; STG.data = d && d.stages && d.stages.length ? d : null; STG.cur = null; stageRender();
+  if (L && STG.data) { L.hits = stageHits(); draw(); }
   // a build that has no level of its own yet opens at its latest stage
   if (STG.data && l.stagesOnly) stageOpen(STG.data.stages[STG.data.stages.length - 1].stage);
 }
@@ -533,10 +534,19 @@ function stageOpen(name) {
   STG.cur = name;
   load(base.name + " · " + name, st.level, st.solution || { ok: false, events: [], pending: true, why: "this stage has no route yet (find the route: the button above)" }, song);
   L.planned = st.data && st.data.planned || null;
+  L.hits = stageHits();
   t = Math.min(tt, Math.max(0, (L.path.length - 1) / P.TPS)); lastTick = tick(); draw(); stageRender();
   const secs = st.data && st.data.sections;
   if (secs && secs.length || st.note) document.getElementById("summary").insertAdjacentHTML("beforeend",
     `<p class="muted">stage <b>${esc(name)}</b>${st.note ? ": " + esc(st.note) : ""}${secs && secs.length ? "<br>sections: " + secs.map(x => esc(x.name) + " " + (+x.from).toFixed(1) + "–" + (+x.to).toFixed(1) + " s").join(" · ") : ""}</p>`);
+}
+// the song's real hits (tools/hits.js slots {beat, t: song seconds, kind}, put with the song stage as data.hits):
+// kicks, snares and accents as ticks under the presses, in level time (song time - the song's offset)
+function stageHits() {
+  const sg = STG.data && STG.data.stages.find(x => x.stage === "song"), h = sg && sg.data && sg.data.hits;
+  if (!Array.isArray(h) || !h.length) return null;
+  const off = +((sg.data.song && sg.data.song.offset) || (STG.base && STG.base.song && STG.base.song.offset) || 0);
+  return h.filter(x => x && x.kind && x.kind !== ".").map(x => ({ t: x.t - off, k: String(x.kind) })).filter(x => x.t >= 0);
 }
 async function stageSolve(st) {
   const ans = await taskAsk({ title: "Find the route of stage " + st.stage, what: "The PC finds the route of this stage's level (as a person would play it) and saves it, so the stage replays here.",
@@ -1192,15 +1202,25 @@ function drawInput(k) {
     }
     i = j;
   }
+  // the song's hits (a build's song stage): kick orange, snare cyan, accent white, a lesser hit grey
+  // level time -> x: the replay's own path while it reaches that time, else the level's speed timeline (a stage
+  // with no route yet has a one-point path)
+  const xAtT = tt => { const tk = Math.round(tt * P.TPS); if (tk < n) return L.path[Math.max(0, tk)].x;
+    L.syncTl = L.syncTl || (L.beats ? L.beats.tl : GD.SYNC.timeline(L.world)); return GD.SYNC.xOfT(L.syncTl, tt); };
+  if (L.hits) for (const h of L.hits) { const x = sx(xAtT(h.t)); if (x < -4 || x > W + 4) continue;
+    const K = /K/i.test(h.k), S = /S/i.test(h.k), acc = /!|A/.test(h.k);
+    ix.fillStyle = acc ? "#ffffff" : K ? "#ff9a3d" : S ? "#5fd8ff" : "rgba(200,200,220,.45)";
+    const hh = (acc ? 7 : K || S ? 5 : 3) * d; ix.fillRect(x - (acc ? 1.5 : 1) * d, 37 * d - hh, (acc ? 3 : 2) * d, hh); }
   // the path stage's planned presses: hollow diamonds in the window lane, beside the measured ones
   if (L.planned) { ix.strokeStyle = "#c8b8ff"; ix.lineWidth = 1.5 * d;
-    for (const pl of L.planned) { const tk = Math.min(n - 1, Math.round(pl.t * P.TPS)), x = sx(L.path[Math.max(0, tk)].x); if (x < -10 || x > W + 10) continue;
+    for (const pl of L.planned) { const x = sx(xAtT(pl.t)); if (x < -10 || x > W + 10) continue;
       ix.beginPath(); ix.moveTo(x, 2 * d); ix.lineTo(x + 4 * d, 6 * d); ix.lineTo(x, 10 * d); ix.lineTo(x - 4 * d, 6 * d); ix.closePath(); ix.stroke(); } }
   ix.fillStyle = "#fff"; ix.fillRect(sx(L.path[k].x) - 1, 0, 2, IH); // now
   // the legend, bottom left
   ix.textAlign = "left"; ix.font = `${10 * d}px system-ui`;
   let lx = 4 * d; const ly = IH - 3 * d, leg = (col, txt) => { ix.fillStyle = col; ix.fillText(txt, lx, ly); lx += ix.measureText(txt).width + 8 * d; };
   if (L.planned) leg("#c8b8ff", "◇ planned");
+  if (L.hits) { leg("#ff9a3d", "▮ kick"); leg("#5fd8ff", "▮ snare"); leg("#ffffff", "▮ accent"); }
   leg("rgba(255,255,255,.75)", "┃● tap"); leg("rgba(255,225,77,.95)", "▬ hold"); leg("rgba(90,220,255,.9)", "▭ window (press)"); leg("rgba(255,120,200,.9)", "▭ window (release)");
   if (L.windowsBusy) leg("rgba(255,255,255,.5)", "measuring windows…");
   // button light, at the right end of the band
