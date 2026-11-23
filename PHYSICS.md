@@ -169,7 +169,11 @@ band's floor/roof ("he waves way too close to the border"); this works on unbeat
 lib/natural.js's mid-corridor re-fly (beaten levels only, and all-or-nothing per stretch: on Deadlocked
 it died inside every stretch) cannot. GDLM 44: 8 presses instead of 6.
 
-Open (2026-11-23): Deadlocked stops at block 436 in the mini ball part (three lanes; the middle one is a
-row of id 1202 -- a 30x3 piece with spikes hanging under it -- that the sim calls a hazard by OpenGD's
-"hitbox and not solid" rule). As a solid platform the solve gets to 456.6; no real-game plan reaches a
-1202 to settle it. Waiting on the user to check 1202 in the editor (platform or hazard).
+Deadlocked's ball lanes (2026-11-23): the solve stopped at block 436 on a row of id 1202 (a 30x3 piece
+with spikes hanging under it) that the sim called a hazard. Settled without the editor: OpenGD's own
+object table gives 1202 GameObjectType 0 (solid: block 1 and slab 40 are 0, spikes 2, decoration 7);
+only tools/import_opengd.js's fallback ("a hitbox that is not in the solids list is a hazard") made it
+a hazard. 37 ids have that mismatch, all block-outline, plank and outline pieces, among them 661-664
+and 1903-1905 that real-game plans had already shown solid. lib/objects.js's SOLID0 makes them all
+solid (sure:false). Check for the next import: `node -e` over lib/objects_art.js (type = field 5)
+vs lib/objects_extra.js lists any id whose type is 0 but kind is hazard.

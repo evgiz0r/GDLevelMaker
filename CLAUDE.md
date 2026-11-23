@@ -201,6 +201,9 @@ comes from OpenGD's object data via `tools/import_opengd.js` -> `lib/objects_ext
 OpenGD is GPL, so its file is not copied in). Rule there: hitbox + not solid + not trigger = hazard,
 so anything with a hitbox that is NOT a hazard (portals, coins, toggle orbs) must have its own entry
 in `lib/objects.js`. Missing that once let the sim pass through Stereo Madness's pit spikes (id 9).
+The rule also misfires the other way: OpenGD gives 37 block-outline / plank pieces type 0 (solid) but
+leaves them out of its solids list, so the import called them hazards; `SOLID0` in lib/objects.js
+fixes them (Deadlocked's 1202 ball lanes). Check OpenGD's type column (lib/objects_art.js) after an import.
 
 ## Calibration -- checked against the user's game
 
