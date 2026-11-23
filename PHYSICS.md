@@ -278,6 +278,28 @@ What exists and what blocks it (2026-11-23):
 Lab 2 (to build): the mini cube, the pink orb (clean, at ground level so the camera stays still), 45-degree
 and -53-degree teleports, the swing, dual portals, and a green orb in mid-air.
 
+## Agent co-solve (DESIGN, not built; the user's item 5, queued after buffering and unneeded jumps)
+
+Goal: faster solves of long levels (official, community, demons) and a second check against secret ways, by
+letting a cheap model (claude-haiku-5-5) read a section and say where the intended path goes.
+- Sections: cut the level at mode/speed portals and every ~40 blocks; per section a text map
+  (tools/textmap.js --from --to --rows, no path) plus a legend line: ~1-2 k tokens.
+- Prompt -> strict JSON only: `{"waypoints": [{"x": <block>, "y": [lo, hi], "why": "orb"|"portal"|"gap"|
+  "corridor"|"over"|"under", "obj": <id or null>}], "take": [object ids that must be used]}`; validated
+  against the section (ids exist, x within the section), else retried once, else ignored.
+- Cache: local/cosolve/<sha1 of the section's objects + prompt version>.json. A level re-solved after a
+  physics change pays nothing; a changed section pays for that section only.
+- Use in the solver: solveSweep gets opts.corridor(x) -> [ylo, yhi], interpolated between waypoints with a
+  margin. States outside it are ranked after all states inside (never dropped, so a wrong plan can't make a
+  level unsolvable), and `take` objects join the no-skip requirements. With the beam CAP, this focuses the
+  search: expect fewer states per tick, measured as time per level with and without.
+- Secret-way flag: the finished route's distance from the corridor; a route leaving it for more than ~1 s on a
+  rated level is reported as "off the intended path at x" (a physics-bug candidate, like a skip).
+- Cost report per level: sections, tokens in/out, cache hits, model time, solve time with vs without.
+- Not in lib/ (no network there): a tool, tools/cosolve.js, writes the corridor file; difficulty_solve reads it.
+Open: which API key and budget (the user's call); whether text maps carry enough for orb lines (test on
+Polargeist and Electroman, where secret ways were found).
+
 ## No secret ways (the user's rule, 2026-11-23, firm)
 
 "we need to stop accepting those secret ways by the solvers. especially in official levels. if the solver
@@ -328,7 +350,12 @@ or holds longer than needed (over 0.15 s outside ship/wave where a tap finishes)
    Cost: the first humanCost of a level is ~30 s on GDLM 44 (window measuring); measureWindows caches each
    window on the world `w` (difficulty, 48eeeac), so later candidates of the same level cost ~0.15-2 s.
    natural.js keeps one `w` per level for that reason.
-5. **Calibration (open):** tools/human_presses.js measures where the user really presses in each window
+5. **Orbs are taken buffered** (the user: "usually with orbs, when possible, we want to buffer"): the press
+   comes 2-6 frames before the orb and is held until the orb fires on its first tick of contact (in the sim a
+   press arms s.ring, kept while held; a ground jump uses it up, so a hold carried from a jump does NOT fire an
+   orb -- UNCHECKED against the game, a lab station is asked of gd-physics2). natural.js bufferOrbs;
+   tests/saved_routes.js warns on orbs no buffered press can take (natural.js unbufferedOrbs).
+6. **Calibration (open):** tools/human_presses.js measures where the user really presses in each window
    from recordings; the difficulty session fits humanCost's `centre` weight (and the 40%) to it.
 
 ## The intended route (solver ranking)

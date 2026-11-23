@@ -38,6 +38,11 @@
   #taskBox .row { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
   #taskChip { position:fixed; right:14px; bottom:14px; z-index:55; border-radius:16px; padding:6px 12px; background:#24184f; border:1px solid #6b5bd0; font-size:12px; }
   #taskChip[hidden] { display:none; }
+  #stagebar { display:flex; flex-wrap:wrap; gap:6px; align-items:center; padding:6px 10px; background:#120a2e; border-top:1px solid #2b2060; font-size:13px; }
+  #stagebar button { padding:3px 10px; font-size:12px; }
+  #stagebar button.cur { border-color:var(--cube); background:#3b2d78; }
+  #stagebar .todo { color:#6b5bd0; padding:3px 6px; }
+  #stagebar .sep { color:#6b5bd0; }
   #varbar { display:flex; flex-wrap:wrap; gap:6px 14px; align-items:center; padding:6px 10px; background:#140b33; border-top:1px solid #2b2060; font-size:13px; }
   #varbar .vsec { display:flex; gap:4px; align-items:center; }
   #varbar .vname { color:#c9bdf8; margin-right:2px; }
@@ -121,6 +126,7 @@
   <button data-dt="-1">-1 s</button><button data-dt="-0.1">-0.1</button><button data-dt="0.1">+0.1</button><button data-dt="1">+1 s</button>
   <button id="cmpShot" title="replay + game frame as one PNG in local/shots/">save comparison</button>
   <span id="cmpAt" class="muted"></span></div><img id="cmpImg" alt="game frame"></div></div>
+<div id="stagebar" hidden></div>
 <div id="varbar" hidden></div>
 <div id="notice" hidden></div>
 <div id="taskBox" hidden><div class="card"><h2 id="taskTitle"></h2><div id="taskBody"></div>
@@ -364,7 +370,7 @@ function load(name, levelStr, saved, info) {
   else if (location.protocol.startsWith("http") && !window.GD_PAGES && !window.GD_PHONE && !SHOOT && ALL[pick.value] && ALL[pick.value].level === levelStr) {
     // no saved route: ask the PC instead of freezing the page for minutes (solveLater explains first)
     sol = { ok: false, trail: [], clicks: [], dieAt: { x: 0, tick: 0 }, why: "not solved yet: no saved route", pending: true };
-    setTimeout(() => solveLater(ALL[pick.value], levelStr), 0);
+    if (!ALL[pick.value].stagesOnly) setTimeout(() => solveLater(ALL[pick.value], levelStr), 0);   // a build's stage: its own "find the route"
   }
   else try { sol = GD.solveAny(world); } catch (e) { sol = { ok: false, clicks: [], trail: [], dieAt: GD.startState(world), why: e.message }; }
   // the replay shows a natural way to play it (lib/natural.js: a tap per jump, no empty jumps, the
@@ -488,6 +494,61 @@ function routeKindOf(saved, sol, world) {
   return { k, label: label + (saved && saved.stale ? " (stale)" : ""), why: why || "" };
 }
 
+
+// ---------- build stages (tools/stages.js: local/wip/<session>/<level>.stages/, served by /wip/stages) ----------
+// A level being made shows each stage as soon as it exists: song > layout > path > deco > final (the user: "i want even
+// partial steps like song/layout/path/deco to be available in the process"). The latest stage is lit; an earlier one
+// is a click away. The song stage is an empty level with the song, its beats and sections; the path stage draws the
+// planned presses (◇) beside the measured route.
+const STG = { base: null, data: null, cur: null };
+const STAGE_ORDER = ["song", "layout", "path", "deco", "final"];
+async function stagesFor(l) {
+  const bar = document.getElementById("stagebar");
+  if (!l || !l.wip || window.GD_PAGES || window.GD_PHONE || !location.protocol.startsWith("http")) { if (!STG.cur) { bar.hidden = true; STG.base = null; } return; }
+  let d = null; try { const r = await fetch("/wip/stages?file=" + encodeURIComponent(l.file), { cache: "no-store" }); if (r.ok) d = await r.json(); } catch (e) {}
+  if (ALL[pick.value] !== l) return;
+  STG.base = l; STG.data = d && d.stages && d.stages.length ? d : null; STG.cur = null; stageRender();
+  // a build that has no level of its own yet opens at its latest stage
+  if (STG.data && l.stagesOnly) stageOpen(STG.data.stages[STG.data.stages.length - 1].stage);
+}
+function stageRender() {
+  const bar = document.getElementById("stagebar");
+  if (!STG.data) { bar.hidden = true; return; }
+  bar.hidden = false;
+  const have = new Map(STG.data.stages.map(x => [x.stage, x])), last = STG.data.stages[STG.data.stages.length - 1].stage;
+  const lit = STG.cur || (STG.base && STG.base.stagesOnly ? last : null);
+  bar.innerHTML = `<span class="muted">stages</span>` + STAGE_ORDER.map((n, i) => (i ? `<span class="sep">›</span>` : "") + (have.has(n)
+    ? `<button data-stage="${n}" class="${lit === n ? "cur" : ""}" title="${esc((have.get(n).note || "") + " · " + new Date(have.get(n).at).toLocaleString())}">${n}${n === last ? " ●" : ""}</button>`
+    : `<span class="todo" title="not made yet">${n}</span>`)).join("") +
+    (STG.cur && !STG.base.stagesOnly ? `<button id="stageBack" title="back to the level as it is now">current level</button>` : "") +
+    (STG.cur && have.get(STG.cur) && !have.get(STG.cur).solution && have.get(STG.cur).file ? `<button id="stageSolve" title="find this stage's route on the PC">find the route</button>` : "");
+  bar.querySelectorAll("[data-stage]").forEach(b => b.onclick = () => stageOpen(b.dataset.stage));
+  const back = document.getElementById("stageBack"); if (back) back.onclick = () => { STG.cur = null; const tt = t; pick.dispatchEvent(new Event("change")); t = Math.min(tt, (L.path.length - 1) / P.TPS); draw(); };
+  const sv = document.getElementById("stageSolve"); if (sv) sv.onclick = () => stageSolve(have.get(STG.cur));
+}
+function stageOpen(name) {
+  const st = STG.data && STG.data.stages.find(x => x.stage === name); if (!st) return;
+  const base = STG.base, tt = t, song = (st.data && st.data.song) || base.song;
+  if (st.data && st.data.grid && song && song.url) (window.GD_BEATS = window.GD_BEATS || {})[song.url] = st.data.grid;
+  STG.cur = name;
+  load(base.name + " · " + name, st.level, st.solution || { ok: false, events: [], pending: true, why: "this stage has no route yet (find the route: the button above)" }, song);
+  L.planned = st.data && st.data.planned || null;
+  t = Math.min(tt, Math.max(0, (L.path.length - 1) / P.TPS)); lastTick = tick(); draw(); stageRender();
+  const secs = st.data && st.data.sections;
+  if (secs && secs.length || st.note) document.getElementById("summary").insertAdjacentHTML("beforeend",
+    `<p class="muted">stage <b>${esc(name)}</b>${st.note ? ": " + esc(st.note) : ""}${secs && secs.length ? "<br>sections: " + secs.map(x => esc(x.name) + " " + (+x.from).toFixed(1) + "–" + (+x.to).toFixed(1) + " s").join(" · ") : ""}</p>`);
+}
+async function stageSolve(st) {
+  const ans = await taskAsk({ title: "Find the route of stage " + st.stage, what: "The PC finds the route of this stage's level (as a person would play it) and saves it, so the stage replays here.",
+    after: "It replays here when ready; you can keep using the viewer.", match: "solutions.js", typical: 2, go: "Solve on the PC" });
+  if (ans !== "go") return;
+  try { const r = await fetch("/solve", { method: "POST", body: JSON.stringify({ file: st.file }) }); if (!r.ok) throw new Error(); } catch (e) { notice("Could not ask the PC (is tools/serve.js running?)."); return; }
+  let sol = null;
+  taskAdd({ id: "solve:" + st.file, label: "route of stage " + st.stage, match: "solutions.js",
+    ready: async () => { try { sol = (await (await fetch("/solution?file=" + encodeURIComponent(st.file), { cache: "no-store" })).json()).solution; } catch (e) {} return !!sol; },
+    done: () => { st.solution = sol; notice("The route of stage " + esc(st.stage) + " is ready.", 4000); if (STG.cur === st.stage) stageOpen(st.stage); } });
+}
+pick.addEventListener("change", () => { if (!STG.cur) stagesFor(ALL[pick.value]); });
 // ---------- section variants (style's compose: local/wip/<session>/<level>.variants/, served by /wip/variants) ----------
 // For a work-in-progress level with variants: one row per section, A/B/C with the section's score (hover: difficulty,
 // issues); a click replays that variant from the same moment; "go" jumps to the section; "pick this one" leaves a
@@ -545,7 +606,8 @@ const pkKey = l => String(l.name || l.file).toLowerCase().replace(/\s+v\d+$/, ""
 const pkWhen = l => Date.parse(l.made || (l.wip || l.session ? l.updated : "") || "") || 0;
 const pkEsc = x => String(x).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 function pkBadge(l) {
-  return pkCat(l) === "wip" ? `<span class="pkBadge wip">wip v${l.version || "?"}${l.session ? " · " + pkEsc(l.session) : ""}</span>` : `<span class="pkBadge">${pkCat(l) === "ours" ? "main" : pkCat(l)}</span>`;
+  return (pkCat(l) === "wip" ? (l.stagesOnly ? `<span class="pkBadge wip">building${l.session ? " · " + pkEsc(l.session) : ""}</span>` : `<span class="pkBadge wip">wip v${l.version || "?"}${l.session ? " · " + pkEsc(l.session) : ""}</span>`)
+    : `<span class="pkBadge">${pkCat(l) === "ours" ? "main" : pkCat(l)}</span>`) + (l.stage ? `<span class="pkBadge" style="background:#2b3a66;color:#cfe0ff" title="build stage reached (song > layout > path > deco > final)">stage: ${pkEsc(l.stage)}</span>` : "");
 }
 function pkRoute(l) {
   const k = l.solution && l.solution.kind; if (!k) return "";
@@ -677,6 +739,7 @@ function summary() {
   document.getElementById("summary").innerHTML = h;
   if (typeof pkTitle === "function") pkTitle(); // the title bar: which level and version is open
   if (typeof variantsFor === "function" && !VAR.cur && (!VAR.base || VAR.base !== ALL[pick.value])) variantsFor(ALL[pick.value]);
+  if (typeof stagesFor === "function" && !STG.cur && STG.base !== ALL[pick.value]) stagesFor(ALL[pick.value]);
 }
 function clickTable() {
   const el = document.getElementById("clicks");
@@ -1129,10 +1192,15 @@ function drawInput(k) {
     }
     i = j;
   }
+  // the path stage's planned presses: hollow diamonds in the window lane, beside the measured ones
+  if (L.planned) { ix.strokeStyle = "#c8b8ff"; ix.lineWidth = 1.5 * d;
+    for (const pl of L.planned) { const tk = Math.min(n - 1, Math.round(pl.t * P.TPS)), x = sx(L.path[Math.max(0, tk)].x); if (x < -10 || x > W + 10) continue;
+      ix.beginPath(); ix.moveTo(x, 2 * d); ix.lineTo(x + 4 * d, 6 * d); ix.lineTo(x, 10 * d); ix.lineTo(x - 4 * d, 6 * d); ix.closePath(); ix.stroke(); } }
   ix.fillStyle = "#fff"; ix.fillRect(sx(L.path[k].x) - 1, 0, 2, IH); // now
   // the legend, bottom left
   ix.textAlign = "left"; ix.font = `${10 * d}px system-ui`;
   let lx = 4 * d; const ly = IH - 3 * d, leg = (col, txt) => { ix.fillStyle = col; ix.fillText(txt, lx, ly); lx += ix.measureText(txt).width + 8 * d; };
+  if (L.planned) leg("#c8b8ff", "◇ planned");
   leg("rgba(255,255,255,.75)", "┃● tap"); leg("rgba(255,225,77,.95)", "▬ hold"); leg("rgba(90,220,255,.9)", "▭ window (press)"); leg("rgba(255,120,200,.9)", "▭ window (release)");
   if (L.windowsBusy) leg("rgba(255,255,255,.5)", "measuring windows…");
   // button light, at the right end of the band

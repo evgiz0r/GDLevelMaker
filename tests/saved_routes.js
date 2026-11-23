@@ -63,6 +63,9 @@ for (const dir of dirs) {
     else if (s && s.ok) {   // a warning, not a failure: a jump over nothing (walking off would do)
       const pj = require("../lib/natural.js").pointlessJumps(GD.makeWorld(L.level.objects, L.level.header), s.events);
       if (pj.length) console.log(`warn ${dir}/${f}: ${pj.length} jump(s) over nothing at block ${pj.map(j => (j.x / 30).toFixed(0) + (j.down ? " (off a step)" : "")).join(", ")}`);
+      // orbs only a precise click takes (no buffered press works): a level-design warning (the user: buffer orbs)
+      const ub = require("../lib/natural.js").unbufferedOrbs(GD.makeWorld(L.level.objects, L.level.header), s.events);
+      if (ub.length) console.log(`warn ${dir}/${f}: ${ub.length} orb(s) that cannot be buffered at block ${ub.map(o => (o.x / 30).toFixed(0) + " (" + o.act + ")").join(", ")}`);
     }
   }
 }

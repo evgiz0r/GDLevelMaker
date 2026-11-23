@@ -58,6 +58,10 @@ not after it:
   must not be published: other people's levels and RobTop's data/art, songs, the user's recordings
   and save, and private details (`local/`). If something can't be pushed (a blocked permission, a
   failing check), say so in your report instead of leaving it local.
+- **Viewer first, always.** The user (2026-11-24): "i want to see in the viewer first always". Every new
+  level or version goes to the viewer (in-progress list, and the phone page) first. Never install into GD,
+  queue an install or upload until the user has seen it there and says "install" (or "upload") for it. When
+  you report a build, name what to look at in the viewer.
 - **Hand off.** Before a long pause or when your area changes hands, write where you stopped,
   what is open and the good numbers into your area's doc.
 - **Share, don't duplicate.** Results go into the shared `local/` (see below) so no session redoes
@@ -221,6 +225,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 - `lib/sync.js` -- music sync: level time <-> x through speed portals, beat grid <-> level beats,
   press timing windows from a solution, sync scores. See SYNC.md (also where songs come from).
 - **The public viewer** (https://evgiz0r.github.io/GDLevelMaker/, PAGES.md: GitHub Pages, rebuilt on every push, our levels only, songs / GD art / official levels only from the user's own serve.js): `tools/pages.js`, `tests/pages_build.js`, `.github/workflows/pages.yml`.
+- **Build stages in the viewer** (`tools/stages.js`: a builder puts song / layout / path / deco / final as each is done -> `local/wip/<session>/<base>.stages/`; the viewer shows a stage bar on the level and the stage on the picker's in-progress cards, even before the first wip put). `require("./stages.js").put({session, base, name, stage, levelStr?, data?, note?})`; test: `node tests/stages.js`.
 - **The phone page** (PHONE.md: what is on it, what a session does after `wip.js put`, phone
   marks, how it was tested, what is open): `tools/web.js` builds it from the viewer.
 - `tools/` -- node CLIs: `make`, `check`, `roundtrip`, `index_levels`, `serve`, `beats` (beat grid
