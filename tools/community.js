@@ -8,6 +8,8 @@
 //   sections               all 2.0-2.1 sections by speed and by mode (blocks, seconds, density)
 //   modes                  per-mode anatomy of a section: lead-in after the portal, share of columns
 //                          with a hazard, ground gaps/runs, flying openings (Easy+Normal vs Hard+Harder)
+//   ref                    the modes numbers as deciles per band and mode -> knowledge/levels/tier_ref.json
+//                          (committed: numbers only), read by tools/tiercheck.js
 //   comments               fetch the top 60 comments per level -> local/community/comments/<id>.json
 //   themes                 count themes in those comments (sync, gameplay, design, "should be harder"...)
 //
@@ -116,39 +118,49 @@ function sections() {
   for (const [k, S] of Object.entries(byMode).sort((p, q) => q[1].length - p[1].length)) console.log(`| ${k} | ${S.length} | ${f(med(S.map(s => s.blocks)), 0)} | ${f(med(S.map(s => s.hazards)))} |`);
 }
 
-function modes() {
-  const out = {};
-  for (const { l, L, a } of sectionsOf(l => l.era === "2.0-2.1")) {
-    const grp = l.tier === "Easy" || l.tier === "Normal" ? "Easy+Normal" : "Hard+Harder";
-    const objs = L.objects.map(o => ({ o, c: style.classify(o.id).cat })).filter(x => ["solid", "hazard", "orb", "pad"].includes(x.c));
-    for (const s of a.sections) {
-      if (s.blocks < 8) continue;
-      const x0 = s.from * 30, x1 = x0 + s.blocks * 30;
-      const inside = objs.filter(x => x.o.x >= x0 && x.o.x < x1), haz = inside.filter(x => x.c === "hazard");
-      const st = { blocks: s.blocks, secs: s.secs, haz10: s.hazards, act10: s.orbsPads / s.blocks * 10 };
-      st.leadIn = ((haz.length ? Math.min(...haz.map(x => x.o.x)) : x1) - x0) / 30;
-      const cols = new Map();
-      for (const x of inside) { const c = Math.floor(x.o.x / 30); if (!cols.has(c)) cols.set(c, []); cols.get(c).push(x); }
-      const hc = [...cols.entries()].filter(([, xs]) => xs.some(x => x.c === "hazard")).map(([c]) => c).sort((p, q) => p - q);
-      st.hazCols = hc.length / s.blocks;
-      if (FLY.has(s.mode)) {
-        const opens = [];
-        for (const xs of cols.values()) {
-          const ys = xs.filter(x => x.c === "solid" || x.c === "hazard").map(x => x.o.y).concat([-15]).sort((p, q) => p - q);
-          if (ys.length < 3) continue;
-          let best = 0; for (let i = 1; i < ys.length; i++) best = Math.max(best, ys[i] - ys[i - 1]);
-          if (best > 0 && best < 600) opens.push(best / 30 - 1);
-        }
-        st.open = med(opens);
-      } else {
-        const gaps = [], runs = []; let run = 1;
-        for (let i = 1; i < hc.length; i++) { const d = hc[i] - hc[i - 1]; if (d === 1) run++; else { runs.push(run); run = 1; gaps.push(d - 1); } }
-        if (hc.length) runs.push(run);
-        st.gap = med(gaps); st.run = med(runs);
+// per-section anatomy of one level (sections of 8+ blocks): lead-in after the portal, share of
+// columns with a hazard, ground gaps/runs, flying openings. Used by modes(), ref() and tools/tiercheck.js.
+function sectionStats(L, a) {
+  const objs = L.objects.map(o => ({ o, c: style.classify(o.id).cat })).filter(x => ["solid", "hazard", "orb", "pad"].includes(x.c));
+  const out = [];
+  for (const s of a.sections) {
+    if (s.blocks < 8) continue;
+    const x0 = s.from * 30, x1 = x0 + s.blocks * 30;
+    const inside = objs.filter(x => x.o.x >= x0 && x.o.x < x1), haz = inside.filter(x => x.c === "hazard");
+    const st = { mode: s.mode, speed: s.speed, from: s.from, blocks: s.blocks, secs: s.secs, start: s.start, haz10: s.hazards, act10: s.orbsPads / s.blocks * 10, cont: !!s.cont };
+    st.leadIn = ((haz.length ? Math.min(...haz.map(x => x.o.x)) : x1) - x0) / 30;
+    const cols = new Map();
+    for (const x of inside) { const c = Math.floor(x.o.x / 30); if (!cols.has(c)) cols.set(c, []); cols.get(c).push(x); }
+    const hc = [...cols.entries()].filter(([, xs]) => xs.some(x => x.c === "hazard")).map(([c]) => c).sort((p, q) => p - q);
+    st.hazCols = hc.length / s.blocks;
+    if (FLY.has(s.mode)) {
+      const opens = [];
+      for (const xs of cols.values()) {
+        const ys = xs.filter(x => x.c === "solid" || x.c === "hazard").map(x => x.o.y).concat([-15]).sort((p, q) => p - q);
+        if (ys.length < 3) continue;
+        let best = 0; for (let i = 1; i < ys.length; i++) best = Math.max(best, ys[i] - ys[i - 1]);
+        if (best > 0 && best < 600) opens.push(best / 30 - 1);
       }
-      ((out[grp] ||= {})[s.mode] ||= []).push(st);
+      st.open = med(opens);
+    } else {
+      const gaps = [], runs = []; let run = 1;
+      for (let i = 1; i < hc.length; i++) { const d = hc[i] - hc[i - 1]; if (d === 1) run++; else { runs.push(run); run = 1; gaps.push(d - 1); } }
+      if (hc.length) runs.push(run);
+      st.gap = med(gaps); st.run = med(runs);
     }
+    out.push(st);
   }
+  return out;
+}
+const bandOf = tier => tier === "Easy" || tier === "Normal" ? "Easy+Normal" : "Hard+Harder";
+function collect() {
+  const out = {};
+  for (const { l, L, a } of sectionsOf(l => l.era === "2.0-2.1"))
+    for (const st of sectionStats(L, a)) ((out[bandOf(l.tier)] ||= {})[st.mode] ||= []).push(st);
+  return out;
+}
+function modes() {
+  const out = collect();
   for (const grp of ["Easy+Normal", "Hard+Harder"]) {
     if (!out[grp]) continue;
     console.log(`\n### ${grp} (2.0-2.1)\n`);
@@ -160,6 +172,25 @@ function modes() {
         `${FLY.has(m) ? "-" : `${f(g("gap"), 0)} / ${f(g("run"), 0)}`} | ${FLY.has(m) ? f(g("open")) : "-"} |`);
     }
   }
+}
+
+// per band and mode: the deciles (10th..90th percentile) of each section number -> knowledge/levels/tier_ref.json
+// (numbers only, so it is committed; tools/tiercheck.js reads it)
+const REF = path.join(__dirname, "..", "knowledge", "levels", "tier_ref.json");
+const pct = (a, p) => { a = a.filter(Number.isFinite).sort((x, y) => x - y); return a.length ? +a[Math.min(a.length - 1, Math.floor(p * a.length))].toFixed(2) : null; };
+function ref() {
+  const out = collect(), R = { made: "node tools/community.js ref (" + new Date().toISOString().slice(0, 10) + ")",
+    from: "rated 2.0-2.1 community levels in local/community/list.json, sections of 8+ blocks", bands: {} };
+  for (const [band, M] of Object.entries(out)) for (const [m, S] of Object.entries(M)) {
+    if (S.length < 5) continue;
+    const e = (R.bands[band] ||= {})[m] = { n: S.length };
+    for (const k of ["secs", "leadIn", "hazCols", "haz10", "act10", "gap", "run", "open"]) {
+      const v = S.map(s => s[k]); if (!v.some(Number.isFinite)) continue;
+      e[k] = [1, 2, 3, 4, 5, 6, 7, 8, 9].map(d => pct(v, d / 10));
+    }
+  }
+  fs.writeFileSync(REF, JSON.stringify(R, null, 1).replace(/\[\s+([^\]]*?)\s+\]/g, (m, x) => "[" + x.replace(/\s+/g, " ") + "]") + "\n");
+  console.log("->", REF);
 }
 
 async function comments() {
@@ -204,7 +235,8 @@ function themes() {
   }
 }
 
-(async () => {
+module.exports = { sectionStats, bandOf, FLY, BPS, med };
+if (require.main === module) (async () => {
   const [step, ...rest] = process.argv.slice(2);
   if (step === "list") { const i = rest.indexOf("--per"); await list(i >= 0 ? rest[i + 1].split(",").map(Number) : [20, 10, 5]); }
   else if (step === "fetch") execFileSync(process.execPath, [path.join(__dirname, "fetch_level.js"), ...loadList().map(l => l.id), "--out", DIR], { stdio: "inherit" });
@@ -212,6 +244,7 @@ function themes() {
   else if (step === "measure") measure();
   else if (step === "sections") sections();
   else if (step === "modes") modes();
+  else if (step === "ref") ref();
   else if (step === "comments") await comments();
   else if (step === "themes") themes();
   else console.log(fs.readFileSync(__filename, "utf8").split("\n").filter(l => l.startsWith("//")).join("\n"));

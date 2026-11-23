@@ -52,6 +52,25 @@ official levels, or a playtest remark). A single playtest remark is evidence, no
 - Start each new mode or speed with an empty lead-in (cube ~6 blocks, ship ~8, others 2-3). Hard has none.
 - Hazards in at most ~1/3 of the columns (cube/ship/wave), ~1/2 (ball/robot); cube groups of up to 3,
   with 3+ empty columns between them.
+- Not much emptier than that, though: across a whole rated Easy/Normal level, hazards sit in ~46-49% of
+  the columns. GDLM 41-45 have 12-23%, emptier than rated Easy (`node tools/tiercheck.js`). That may be
+  part of "bland".
+
+## Not bland (`levels/variety.md`, `node tools/variety.js`)
+- Rated Easy/Normal (2.0-2.1) levels use ~15-17 kinds of gameplay thing, 4-5 modes and 2-3 speeds,
+  a portal every ~2-3 s, ~25 orbs and pads per minute, and ~90%+ new chunks.
+- GDLM 41-45 use 1-6 kinds, one speed and few portals, and mostly repeat chunks: sameness, not
+  emptiness, is the likely "bland".
+
+## Getting rated (`rating.md`)
+- RobTop has no fixed criteria. His tips: 60 s+ (30 s minimum), "clear gameplay and decent
+  visuals", and good performance. Higher tiers mean he likes the level more, and in our sample
+  they carry far more decoration and effects.
+
+## Past Harder (`levels/official_09-22.md`)
+- The official levels add 2-6 new mechanics per level and cut sections to 20-150 blocks. A new mode
+  comes in a spacious part first (Blast Processing's wave). Fakes and invisible parts appear only at
+  Demon, and even then with cues (arrows, stars, text).
 
 ## Music
 - Levels follow their song; how closely varies. Official levels put portals on bar starts and
