@@ -369,9 +369,8 @@ function staticRules(level) {
     const marks = level.objects.filter(o => o.id === 460 && String((o.props || {})[57] || "").split(".").includes("990")).sort((a, b) => a.x - b.x);
     const hz = level.objects.filter(o => GD.objInfo(o.id).kind === "hazard");
     const bad = [];
-    for (const m of marks) if (hz.some(h => Math.abs(h.x - m.x) < 15 && m.y > h.y && m.y - h.y < 75)) bad.push(`block ${((m.x - 15) / 30).toFixed(0)}: over a hazard`);
     for (let i = 1; i < marks.length; i++) if (marks[i].x - marks[i - 1].x < 60) bad.push(`blocks ${((marks[i - 1].x - 15) / 30).toFixed(0)}-${((marks[i].x - 15) / 30).toFixed(0)}: two marks under 2 blocks apart`);
-    gate("jump marks", bad.length ? "WARN" : "PASS", marks.length ? (bad.length ? `${bad.length} mark(s) misplaced` : `${marks.length} marks, none over a hazard or crowded`) : "no jump marks", bad.join("; "));
+    gate("jump marks", bad.length ? "WARN" : "PASS", marks.length ? (bad.length ? `${bad.length} mark(s) misplaced` : `${marks.length} marks, none crowded (over or near a hazard: the "arrows" gate)`) : "no jump marks", bad.join("; "));
   }
 
   return out;

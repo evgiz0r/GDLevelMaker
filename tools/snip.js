@@ -10,12 +10,12 @@ const { GD, readGdlvl } = require("./io.js");
 const { svgOf } = require("./structures.js");
 
 function picOf(file, a, b) {
-  const L = readGdlvl(file), sol = require("./solutions.js").get(L.levelStr);
+  const L = readGdlvl(file), sol = require("./solutions.js").get(L.levelStr) || require("./solutions.js").get(L.levelStr, true);   // an older version: any saved route
   if (!sol || !sol.events) throw new Error(`${file}: no saved solution (node tools/solutions.js ${file})`);
   const w = GD.makeWorld(L.level.objects, L.level.header), p = GD.run(w, sol.events).path;
   const x0 = a * 30, x1 = b * 30;
   return { name: L.name, pic: { x0, x1,
-    objects: L.level.objects.filter(o => o.x >= x0 - 15 && o.x <= x1 + 15 && GD.objInfo(o.id).kind !== "decoration").map(o => [o.id, o.x, o.y, o.rot || 0, o.flipY ? 1 : 0]),
+    objects: L.level.objects.filter(o => o.x >= x0 - 15 && o.x <= x1 + 15 && ["solid", "hazard", "orb", "pad", "slope", "mode", "gravity", "speed", "size", "teleport"].includes(GD.objInfo(o.id).kind)).map(o => [o.id, o.x, o.y, o.rot || 0, o.flipY ? 1 : 0]),
     path: p.filter((q, i) => q.x >= x0 && q.x <= x1 && i % 3 === 0).map(q => [Math.round(q.x), Math.round(q.y), q.mode]),
     presses: sol.events.filter(e => e.type === "press" && p[e.tick] && p[e.tick].x >= x0 && p[e.tick].x <= x1).map(e => [Math.round(p[e.tick].x), Math.round(p[e.tick].y)]) } };
 }

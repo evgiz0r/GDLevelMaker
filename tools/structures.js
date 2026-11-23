@@ -329,7 +329,7 @@ function rank(results) {
 const MODE_COL = { cube: "#3c9", ship: "#f5a", ball: "#f44", ufo: "#fb3", wave: "#3bf", robot: "#ccc", spider: "#b6f", swing: "#fd3" };
 function svgOf(r, GD) {
   const P = r.pic; if (!P) return "";
-  const W = P.x1 - P.x0, top = Math.max(330, ...P.objects.map(o => o[2] + 30), ...P.path.map(q => q[1] + 30)), H = top + 20;
+  const W = P.x1 - P.x0, top = Math.max(150, ...P.objects.map(o => o[2] + 45), ...P.path.map(q => q[1] + 45)), H = top + 20;
   const Y = y => (top - y).toFixed(1), X = x => (x - P.x0).toFixed(1), out = [];
   out.push(`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${r.id}">`);
   out.push(`<rect x="0" y="${Y(0)}" width="${W}" height="20" class="g"/>`);
