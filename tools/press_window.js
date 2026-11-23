@@ -15,7 +15,10 @@ const X = opt("x"), Y = opt("y"), VY = opt("vy", 0), TO = opt("to", X + 120), HO
 const L = readGdlvl(file), w = GD.makeWorld(L.level.objects);
 const side = file.replace(/\.gdlvl$/, ".json");
 let events = fs.existsSync(side) && JSON.parse(fs.readFileSync(side, "utf8")).solution;
-events = events && events.events ? events.events : (GD.solve(w).events || []);
+// else the level's saved solution (tools/solutions.js), else a fresh solve with modes (GD.solve is
+// cube-only: on a level with a ship it died early, and every tick then read as a death)
+if (!(events && events.events)) { const c = require("./solutions.js").get(L.levelStr, true); if (c && c.ok) events = c; }
+events = events && events.events ? events.events : (GD.solveAny(w).events || []);
 // the solution's state just before x X
 const s = GD.startState(w); let held = false, ev = events.slice();
 for (let t = 0; t < 200000 && s.x < X - 2 && !s.dead; t++) {
@@ -24,6 +27,7 @@ for (let t = 0; t < 200000 && s.x < X - 2 && !s.dead; t++) {
   GD.step(w, s, { press, held });
 }
 const at = () => { const t = JSON.parse(JSON.stringify(s)); t.x = X; t.y = Y; t.vy = VY; t.grounded = VY === 0; return t; };
+if (s.dead) { console.log(`the level's solution dies before x ${X} (${s.why} at ${s.x.toFixed(0)}): no state to start from`); process.exit(1); }
 const out = [];
 for (let k = 0; k < N; k++) {
   const t = at(); let i = 0;

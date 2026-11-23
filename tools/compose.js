@@ -54,6 +54,11 @@ const LABELS = ["Easy", "Normal", "Hard", "Harder", "Insane", "Demon"];
 
 function rng(seed) { let s = (seed * 9301 + 49297) % 233280 || 1; return () => (s = (s * 16807) % 2147483647) / 2147483647; }
 function widthOf(name, args) { return PATTERNS[name].fn(args || {}).width; }
+// how high a pattern ends (rows of block in its last column): the cube drops that far after it
+function endHeight(name, args) {
+  const r = PATTERNS[name].fn(args || {}), last = r.width - 1;
+  return r.objects.filter(([t, c]) => t === "block" && c === last).reduce((h, [, , row]) => Math.max(h, row + 1), 0);
+}
 
 // brief + tweaks -> spec. tweaks: { "<section>:<k>": {gap: +n, swap: "name"} } for the k-th chunk.
 // section lengths in beats -> start columns (the player's centre on the section's first beat)
@@ -79,7 +84,7 @@ function sectionBlocks(brief) {
 
 function compose(brief, tweaks = {}) {
   const rnd = rng(brief.seed || 1);
-  const objects = [], placed = [], ranges = [], deco = [];
+  const objects = [], placed = [], ranges = [], deco = [], firsts = [];
   const seen = new Set();
   let col = 0, prevFlying = false, flyEnd = -99;
   const lens = sectionBlocks(brief);
@@ -97,12 +102,16 @@ function compose(brief, tweaks = {}) {
     }
     if (sec.deco != null) deco.push([start, sec.deco]);
     for (const e of sec.objects || []) { const c = e.slice(); c[c[0] === "pattern" ? 2 : 1] += start; objects.push(c); }
+    // a mode section right after a corridor: the cube leaves the exit portal in the air, so its own
+    // portal comes `land` columns later, once the cube is down (GDLM 45 v5 round 2: the cube fell past
+    // the ball portal that stood right after the ship's exit, and skipped the ball)
+    const land = prevFlying && start - flyEnd < 4 ? 4 : 0;
     if (sec.mode === "ball") {
       const key = `${si}:0`, t = tweaks[key] || {};
-      const args = Object.assign({ w: sec.blocks - 3, gap: 5, every: 9, lead: 6 }, (sec.args || {})["ball-run"] || {}, { portal: true, exit: "cube", portalRow: 1 });
+      const args = Object.assign({ w: sec.blocks - 3 - land, gap: 5, every: 9, lead: 6 }, (sec.args || {})["ball-run"] || {}, { portal: true, exit: "cube", portalRow: 1 });
       if (t.room) args.every += 2 * t.room;
-      objects.push(["pattern", "ball-run", start + 1, 0, args]);
-      placed.push({ key, name: "ball-run", from: start + 1, to: start + 1 + widthOf("ball-run", args), section: sec.name, flying: true });
+      objects.push(["pattern", "ball-run", start + 1 + land, 0, args]);
+      placed.push({ key, name: "ball-run", from: start + 1 + land, to: start + 1 + land + widthOf("ball-run", args), section: sec.name, flying: true });
       ranges.push([i0, objects.length, start, end]);
       col = end; prevFlying = true; flyEnd = end;
       continue;
@@ -113,12 +122,12 @@ function compose(brief, tweaks = {}) {
       const key = `${si}:0`, t = tweaks[key] || {};
       const name = sec.mode === "ship" ? "ship-tunnel" : "wave-zigzag";
       const base = sec.mode === "ship"
-        ? { w: sec.blocks - 3, gap: 5, amp: 1.5, base: 0, teeth: true, lead: 6 }
-        : { seg: 4, legs: Math.max(2, Math.floor((sec.blocks - 3) / 4)), gap: 4, low: 1, slopes: true };
+        ? { w: sec.blocks - 3 - land, gap: 5, amp: 1.5, base: 0, teeth: true, lead: 6 }
+        : { seg: 4, legs: Math.max(2, Math.floor((sec.blocks - 3 - land) / 4)), gap: 4, low: 1, slopes: true };
       const args = Object.assign(base, (sec.args || {})[name] || {}, { portal: true, exit: "cube", portalRow: 1 });
       if (t.room) args.gap = (args.gap || 4) + t.room;
-      objects.push(["pattern", name, start + 1, 0, args]);
-      placed.push({ key, name, from: start + 1, to: start + 1 + widthOf(name, args), section: sec.name, flying: true });
+      objects.push(["pattern", name, start + 1 + land, 0, args]);
+      placed.push({ key, name, from: start + 1 + land, to: start + 1 + land + widthOf(name, args), section: sec.name, flying: true });
       ranges.push([i0, objects.length, start, end]);
       col = end; prevFlying = true; flyEnd = end;
       continue;
@@ -126,7 +135,7 @@ function compose(brief, tweaks = {}) {
     const upside = sec.mode === "upside", ceil = (sec.args && sec.args.ceil) || 6;
     if (upside) {
       // ceiling from start+1 to end-1, its gravity portal on the section's first beat, out at its last column
-      objects.push(["pattern", "ceiling", start + 1, 0, { w: sec.blocks - 2, ceil, portal: true, exit: true }]);
+      objects.push(["pattern", "ceiling", start + 1 + land, 0, { w: sec.blocks - 2 - land, ceil, portal: true, exit: true }]);
     }
     if (!sec.rest && sec.use && sec.use.length) {
       const early = start / total < 0.5;
@@ -135,7 +144,7 @@ function compose(brief, tweaks = {}) {
       // (rated low-tier levels: ~6 blocks after a cube portal, knowledge/levels/modes_low_tier.md)
       // (8 here: the cube first falls out of the exit portal, ~0.3 s)
       // upside down: the cube first falls up to the ceiling (~0.3 s), so 8 columns after its portal
-      let c = upside ? start + 10 : start + (prevFlying ? Math.max(3, 8 - (start - flyEnd)) : 3), k = 0, last = null;
+      let c = upside ? start + 10 + land : start + (prevFlying ? Math.max(3, 8 - (start - flyEnd)) : 3), k = 0, last = null;
       const stop = upside ? end - 9 : end - 3;   // upside: room to read and take the exit portal
       // draw every random choice up front so a tweak to one chunk does not reshuffle the others
       const draws = Array.from({ length: 64 }, () => [rnd(), rnd()]);
@@ -156,9 +165,14 @@ function compose(brief, tweaks = {}) {
         const intro = !seen.has(name);
         const args = (sec.args || {})[name] || {};
         const wdt = widthOf(name, args);
-        const gap = gMin + Math.floor(r2 * (gMax - gMin + 1)) + (intro && k > 0 ? 2 : 0) + (t.gap || 0);
+        // landing room: after a chunk that ends h rows up, the cube falls h rows; nothing may need a
+        // jump before it has landed and seen it (GDLM 45 v4: a spike-block right past a 3-high stair,
+        // the user died there 3 times "cant tell where to jump")
+        const drop = last ? endHeight(last, (sec.args || {})[last]) : 0;
+        const gap = gMin + Math.floor(r2 * (gMax - gMin + 1)) + (intro && k > 0 ? 2 : 0) + (t.gap || 0) + (drop >= 2 ? drop + 1 : 0);
         if (k > 0) c += gap;
         if (c + wdt > stop) break;
+        if (intro) firsts.push(c);
         if (upside) objects.push(...mirrorUp(expand(name, c, 0, args), ceil));
         else objects.push(["pattern", name, c, 0, args]);
         placed.push({ key, name, from: c, to: c + wdt - 1, section: sec.name });
@@ -174,6 +188,9 @@ function compose(brief, tweaks = {}) {
   objects.push(["block", col + 2, 6]); // marks the end; out of the cube's way
   const spec = { name: brief.name, desc: brief.desc || brief.idea || "", objects };
   if (deco.length) spec.decoDensity = deco;
+  // jump indicators (tools/decorate.js): on jumps that cannot be read in time, and the first jump of
+  // each new pattern. Default on; "indicators": false in the brief turns them off.
+  if (brief.indicators !== false) spec.indicators = Object.assign({ at: firsts }, brief.indicators || {});
   for (const k of ["style", "colours", "art", "speed", "song", "offset", "grid", "snap", "seed"]) if (brief[k] != null) spec[k] = brief[k];
   if (brief.sections[0] && brief.sections[0].bg && !spec.colours) spec.colours = { bg: brief.sections[0].bg, ground: brief.sections[0].ground || brief.sections[0].bg };
   return { spec, placed, ranges };
@@ -242,7 +259,9 @@ function loop(briefFile, rounds = 8) {
   const dist = r => !target || !r.s.difficulty ? 0 : Math.abs(LABELS.indexOf(labelOf(r.s)) - LABELS.indexOf(target)) * 10 + Math.abs(r.s.difficulty.logAttempts - BAND_MID[target]);
   // sound = no FAIL but the difficulty one: being off the target steers the hardening below, it is
   // not a defect to repair (GDLM 45 v5 stopped in round 1 on "Easy, want Hard" when it was one)
-  const sound = s => !s.gates.some(g => g.status === "FAIL" && g.name !== "difficulty");
+  // An approximate prejump (WARN, levels with modes) counts too: GDLM 45 v4's WARN at its stairs was
+  // the spot the user died at three times.
+  const sound = s => !s.gates.some(g => (g.status === "FAIL" && g.name !== "difficulty") || (g.name === "prejumps" && g.status !== "PASS"));
   const better = (a, b) => !b || (sound(a.s) && !sound(b.s)) || (sound(a.s) === sound(b.s) && dist(a) < dist(b));
   const list = fixes => fixes.map(f => `- ${f.what}${NL}`).join("");
   const blocked = new Set();
@@ -261,7 +280,7 @@ function loop(briefFile, rounds = 8) {
       const blame = [];
       for (const q of s.parts ? s.parts.filter(q => !q.ok) : [s]) {
         if (!q.solution.ok) blame.push({ col: q.solution.dieAt.x / 30, why: "dies here" });
-        if ((q.gates.find(g => g.name === "prejumps") || {}).status === "FAIL") for (const p of q.prejumps) blame.push({ col: p.cueAt, why: `prejump (${p.lead.toFixed(1)} blocks ahead)` });
+        if ((q.gates.find(g => g.name === "prejumps") || {}).status !== "PASS") for (const p of q.prejumps) blame.push({ col: p.cueAt, why: `prejump (${p.lead.toFixed(1)} blocks ahead)` });
         for (const c of q.tight) blame.push({ col: c.x / 30 + 1.5, why: `${c.ms} ms window` });
         if ((q.gates.find(g => g.name === "recovery") || {}).status === "FAIL")
           for (const c of q.chains) blame.push({ col: c.x / 30 + 1.5, why: `jump ${c.ms} ms after landing` });
