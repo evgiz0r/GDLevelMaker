@@ -115,11 +115,12 @@ function setHeaderArt(header, bg, ground) {
 // the arrow hangs under the ceiling and points up at it. opts.all: every takeoff (the old rule).
 // What the mark is: anything small and softer than the level, never like a hazard (the user: "dont
 // have to be arrows but thats the usual usage, something small bit softer than the level so not to
-// confuse with real spikes ... people put anything, from circles to smileys"). Default: a GD text
-// object (914, key 31 = base64 text) showing a small "v" -- an arrow pointing at the ground whose look
-// is certain, no deco-id guess -- in its own group, faded to `alpha` by an alpha trigger at the start.
-// A deco arrow can replace it per spec: "indicators": {"id": N, "rot": n} (no text then).
-const INDICATOR = { id: 914, text: "v", scale: 0.8, group: 990, alpha: 0.45, lift: 45, rot: 0 }; // lift: surface -> mark centre
+// confuse with real spikes ... people put anything, from circles to smileys"). Default: deco 460
+// (d_arrow_02, the classic chevron ">", knowledge/objects/catalogue.tsv) turned 90 degrees clockwise
+// to point at the ground, scale 0.7, on white (1011: its own channel 1006 is the player's colour) in
+// its own group, faded to `alpha` by an alpha trigger at the start. Any id works per spec:
+// "indicators": {"id": N, "rot": n, "ch": n}; id 914 = a text object showing `text` (e.g. "v").
+const INDICATOR = { id: 460, rot: 90, ch: 1011, scale: 0.7, text: "v", group: 990, alpha: 0.45, lift: 45 }; // lift: surface -> mark centre
 function jumpIndicators(w, r, id, GD, opts = {}) {
   const path = GD.run(w, r.events).path, out = [], marks = [];
   const boxes = w.items || [];
@@ -161,7 +162,9 @@ function jumpIndicators(w, r, id, GD, opts = {}) {
 }
 function markProps(id, opts) {
   const p = { 155: "1", 57: String(opts.group ?? INDICATOR.group) };
-  if (id === 914) { p[31] = Buffer.from(opts.text ?? INDICATOR.text).toString("base64"); p[32] = String(opts.scale ?? INDICATOR.scale); }
+  p[32] = String(opts.scale ?? INDICATOR.scale);
+  if (id === 914) p[31] = Buffer.from(opts.text ?? INDICATOR.text).toString("base64");
+  else p[21] = String(opts.ch ?? INDICATOR.ch);
   return p;
 }
 // the alpha trigger that makes the marks soft, at the level's start

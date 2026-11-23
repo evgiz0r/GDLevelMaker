@@ -123,7 +123,13 @@ function compose(brief, tweaks = {}) {
       const name = sec.mode === "ship" ? "ship-tunnel" : "wave-zigzag";
       const base = sec.mode === "ship"
         ? { w: sec.blocks - 3 - land, gap: 5, amp: 1.5, base: 0, teeth: true, lead: 6 }
-        : { seg: 4, legs: Math.max(2, Math.floor((sec.blocks - 3 - land) / 4)), gap: 4, low: 1, slopes: true };
+        : (() => {
+          // wave turns need room: level stretches at each peak and valley (2 columns at Easy/Normal,
+          // 1 above) and 2 at the entry -- with pure 45-degree legs a turn was 13-88 ms (GDLM 44, physics
+          // 2026-11-23); aim: every wave input >= ~150 ms at Normal (tools/windows.js)
+          const easy = ["Easy", "Normal"].includes((brief.difficulty || {}).label || "Easy"), flat = easy ? 2 : 1, seg = 4;
+          return { seg, flat, lead: 2, legs: Math.max(2, Math.floor((sec.blocks - 5 - land) / (seg + flat))), gap: easy ? 5 : 4, low: 2, slopes: true };
+        })();
       const args = Object.assign(base, (sec.args || {})[name] || {}, { portal: true, exit: "cube", portalRow: 1 });
       if (t.room) args.gap = (args.gap || 4) + t.room;
       objects.push(["pattern", name, start + 1 + land, 0, args]);
