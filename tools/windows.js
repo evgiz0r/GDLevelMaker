@@ -7,6 +7,8 @@
 // Use it on a human-like plan (style's natural replay, lib/natural.js): a fewest-presses solve hugs
 // walls and holds long, so its inputs sit at the edge of what works and its windows look tiny
 // (GDLM 44 v6's sweep solve: 4-13 ms) without the level being that tight.
+// "pressed N% in": where the plan's press sits in its window (0 = earliest, 100 = last safe tick); a
+// natural plan puts taps ~40% in (lib/natural.js step 4), never at the edge.
 // Found 2026-11-23: GDLM 44's wave zigzag ("i still couldnt fit into the gap in 44").
 const fs = require("fs");
 const { GD, readGdlvl } = require("./io.js");
@@ -41,5 +43,5 @@ for (let i = 0; i < ev.length; i++) {
   while (hi + 1 <= Math.min(hi0, e.tick + SPAN) && ok(hi + 1)) hi++;
   const n = hi - lo + 1, frames = Math.floor(hi / 4) - Math.ceil(lo / 4) + 1;  // 60 fps boundaries (every 4th tick) inside
   const edge = (lo === lo0 || hi === hi0) ? " (up to the next input)" : (lo === e.tick - SPAN || hi === e.tick + SPAN) ? " (or more)" : "";
-  console.log(`${(j > 0 ? "tap" : e.type).padEnd(7)} tick ${String(e.tick).padStart(5)}  x ${p.x.toFixed(0).padStart(5)} y ${p.y.toFixed(0).padStart(4)} ${p.mode.padEnd(6)} window ${lo}-${hi} = ${(n / 240 * 1000).toFixed(0)} ms, ${Math.max(frames, 0)} frames${edge}`);
+  console.log(`${(j > 0 ? "tap" : e.type).padEnd(7)} tick ${String(e.tick).padStart(5)}  x ${p.x.toFixed(0).padStart(5)} y ${p.y.toFixed(0).padStart(4)} ${p.mode.padEnd(6)} window ${lo}-${hi} = ${(n / 240 * 1000).toFixed(0)} ms, ${Math.max(frames, 0)} frames, pressed ${n > 1 ? Math.round((e.tick - lo) / (n - 1) * 100) : 50}% in${edge}`);
 }

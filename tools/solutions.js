@@ -8,6 +8,9 @@
 // Each carries `physics` (the commit of lib/physics.js / lib/objects*.js it was solved on): after a
 // physics change, get() treats older ones as stale and they are solved again.
 // --all: solve every repo level that has none yet (one at a time; heavy levels take minutes).
+// Each also carries `plan` (the commit of lib/natural.js). When only the plan is older, or the physics
+// is older but the saved inputs still finish the level, solve() re-plans from them (a few seconds)
+// instead of solving again; --all does that for every repo level.
 const fs = require("fs"), path = require("path"), crypto = require("crypto");
 const { GD, readGdlvl } = require("./io.js");
 Object.assign(GD, require("../lib/natural.js"));
@@ -24,6 +27,14 @@ function physicsCommit() {
   }
   return PHYS;
 }
+let PLAN = null;
+function planCommit() {
+  if (PLAN === null) {
+    try { PLAN = require("child_process").execSync("git log -1 --format=%h -- lib/natural.js", { cwd: path.join(__dirname, ".."), encoding: "utf8" }).trim(); } catch (e) { PLAN = ""; }
+  }
+  return PLAN;
+}
+const fresh = s => !!s && (!s.physics || !physicsCommit() || s.physics === physicsCommit()) && (!planCommit() || s.plan === planCommit());
 function get(levelStr, any) {
   let s;
   try { s = JSON.parse(fs.readFileSync(path.join(DIR, keyOf(levelStr) + ".json"), "utf8")); } catch (e) { return null; }
@@ -31,7 +42,7 @@ function get(levelStr, any) {
   return s;
 }
 function put(levelStr, sol) {
-  sol.physics = physicsCommit(); sol.solvedAt = new Date().toISOString();
+  sol.physics = physicsCommit(); sol.plan = planCommit(); sol.solvedAt = new Date().toISOString();
   fs.mkdirSync(DIR, { recursive: true });
   fs.writeFileSync(path.join(DIR, keyOf(levelStr) + ".json"), JSON.stringify(sol));
   return sol;
@@ -49,13 +60,18 @@ function fromRun(level, levelStr, r) {
 }
 // cached, or solve now
 function solve(level, levelStr) {
-  const c = get(levelStr);
-  if (c) return c;
+  const c = get(levelStr, true);
+  if (fresh(c)) return c;
   const w = GD.makeWorld(level.objects, level.header);
+  // the saved inputs still finish it: only the replay plan needs redoing
+  if (c && c.ok && c.events && c.events.length) {
+    const q = GD.run(w, c.events);
+    if (!q.dead && (q.done || q.end.x >= w.endX)) return fromRun(level, levelStr, { ok: true, events: c.events });
+  }
   return fromRun(level, levelStr, GD.solveAny(w));
 }
 
-module.exports = { get, put, fromRun, solve, keyOf, physicsCommit };
+module.exports = { get, put, fromRun, solve, keyOf, physicsCommit, planCommit, fresh };
 
 if (require.main === module) {
   const args = process.argv.slice(2);
@@ -67,7 +83,7 @@ if (require.main === module) {
   if (!files.length) { console.log("usage: node tools/solutions.js [--all | <level.gdlvl> ...]"); process.exit(1); }
   for (const f of files) {
     const L = readGdlvl(f);
-    if (get(L.levelStr)) { console.log(`${f}: saved already`); continue; }
+    if (fresh(get(L.levelStr, true))) { console.log(`${f}: saved already`); continue; }
     const t0 = Date.now();
     const s = solve(L.level, L.levelStr);
     console.log(`${f}: ${s.ok ? "beaten" : "not beaten"}, ${s.events.length} inputs, solved in ${((Date.now() - t0) / 1000).toFixed(0)} s`);

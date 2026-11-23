@@ -34,6 +34,9 @@ number there, then here. Last updated 2026-11-23.
   ~0.5 block ahead). Used where a jump can't be read in time (after a drop, after a portal, the first of
   a pattern), consistently, small and softer than the level. `node tools/obstacles.js indicators --file <level>`.
   (levels/obstacles.md section 4, design.md "Telegraph"; GDLM 45 v4, GDLM 46 v2)
+- [ ] **The shown route clicks where a human would**: early in a wide window (~40% in), never at its
+  last safe frame -- the replay, the arrows and the level map all follow it. `node tools/windows.js <level>`
+  ("pressed N% in"; lib/natural.js step 4). (the user on GDLM 45's ball: "i would prefer to click way earlier")
 - [ ] **Wave**: zigzag turns wider than ~100 ms apart; no head-on slopes at a portal exit.
   (design.md; GDLM 44/46 real-game deaths)
 - [ ] **Invisible parts**: ghosted (faint), fully hidden only for a chunk already seen. No fakes at
