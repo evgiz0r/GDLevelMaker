@@ -112,9 +112,10 @@ function portals(o, mode, entryRow, exitRow, w, a) {
     for (let r = 0; r < 10; r++) if (r < exitRow - 1 || r > exitRow + 1) o.push(["block", w, r]);
   }
 }
-def("ship-tunnel", "a ship corridor (band rows 0-9): floor and roof follow a wave, `gap` rows of air, teeth on the bends; portal/exit options", (a) => {
+def("ship-tunnel", "a ship corridor (band rows 0-9): floor and roof follow `waves` sine waves, `gap` rows of air, teeth on the bends; portal/exit options", (a) => {
   const w = a.w || 16, gap = a.gap || 5, amp = a.amp ?? 1.5, base = a.base ?? 1, o = [];
-  const floorAt = c => Math.max(0, Math.round(base + amp * Math.sin(c / w * 2 * Math.PI)));
+  // `waves`: how many rises and falls over the corridor (one over a 120-block ship is flat)
+  const floorAt = c => Math.max(0, Math.round(base + amp * Math.sin(c / w * 2 * Math.PI * (a.waves || 1))));
   for (let c = 0; c < w; c++) {
     const f = floorAt(c);              // floor top row (blocks 0..f-1)
     const roof = f + gap;              // first roof row
@@ -161,6 +162,53 @@ def("wave-zigzag", "a wave corridor (band rows 0-9): the path climbs and falls 4
   return { objects: o, width: w + (a.exit ? 1 : 0) };
 });
 
+def("ball-run", "a ball corridor (band rows 0-7 from a portal on the ground): a roof `gap` rows up, spikes alternating floor / roof every `every` columns after `lead`, so each one is a flip; portal/exit options", (a) => {
+  // The ball flips gravity on a tap and takes ~0.35 s (3-4 blocks at 1x) to cross a 5-row room,
+  // so hazards come `every` (default 9) columns apart at Easy. The roof is solid all along: a
+  // ball rolling on the band's invisible ceiling would not read. Floor spikes come in pairs or
+  // alone (variety), the roof's hang one row under it.
+  const w = a.w || 32, gap = a.gap || 5, every = a.every || 9, lead = a.lead ?? 5, o = [];
+  for (let c = 0; c < w; c++) for (let r = gap; r < 8; r++) o.push(["block", c, r]);
+  let k = 0;
+  for (let c = lead; c < w - 6; c += every, k++) {
+    const n = k % 4 === 2 ? 1 : 2;               // 2, 2, 1, 2, ...
+    for (let i = 0; i < n; i++) {
+      if (k % 2 === 0) o.push(["spike", c + i, 0]);
+      else o.push(["spike", c + i, gap - 1, { rot: 180 }]);
+    }
+  }
+  // exit on the floor (the frame forces a last flip down when the ball rides the roof)
+  portals(o, "ball", a.portalRow ?? 1, 1, w, a);
+  return { objects: o, width: w + (a.exit ? 1 : 0) };
+});
+
+// An upside-down stretch for the cube: a ceiling `ceil` rows up (its lower face), a yellow gravity
+// portal on the ground at the start, a blue one under the ceiling at the end. `chunk` objects
+// (plain pattern output, floor-based) are mirrored onto the ceiling by compose.js (mirrorUp).
+def("ceiling", "a ceiling `w` long whose lower face is row `ceil` (default 6), 2 blocks thick; with portal/exit: gravity portals in and out", (a) => {
+  const w = a.w || 24, ceil = a.ceil || 6, o = [];
+  for (let c = 0; c < w; c++) for (let r = ceil; r < ceil + 2; r++) o.push(["block", c, r]);
+  if (a.portal) o.push(["gravity down", -1, 1]);      // id 11: upside down; the cube falls up
+  if (a.exit) {
+    // under the ceiling, centred on the path's row (ceil - 1) minus one so it does not sit in the
+    // ceiling; framed below so the only way on is through it
+    o.push(["gravity up", w - 1, ceil - 2]);
+    for (let r = 0; r < ceil - 3; r++) o.push(["block", w - 1, r]);
+  }
+  return { objects: o, width: w };
+});
+// floor-based pattern objects -> the same shape hanging from a ceiling whose lower face is row
+// `ceil`: row r -> ceil - 1 - r, spikes turned over. Only shapes made of blocks and spikes
+// (pads and orbs upside down are not checked in the sim).
+function mirrorUp(objs, ceil) {
+  return objs.map(([t, c, r, e]) => {
+    if (t !== "block" && t !== "spike") throw new Error(`mirrorUp: ${t} upside down is not supported`);
+    const e2 = Object.assign({}, e || {});
+    if (t === "spike") e2.rot = ((e2.rot || 0) + 180) % 360;
+    return [t, c, ceil - 1 - r, e2];
+  });
+}
+
 // expand one spec entry ["pattern", name, col, row, args] into plain entries
 function expand(name, col, row, args, extra) {
   const p = P[name];
@@ -169,5 +217,5 @@ function expand(name, col, row, args, extra) {
   return r.objects.map(([t, c, rr, e]) => [t, col + c, row + rr, Object.assign({}, e || {}, extra || {})]);
 }
 
-module.exports = { PATTERNS: P, expand };
+module.exports = { PATTERNS: P, expand, mirrorUp };
 if (require.main === module) for (const [k, v] of Object.entries(P)) console.log(k.padEnd(18), v.doc);

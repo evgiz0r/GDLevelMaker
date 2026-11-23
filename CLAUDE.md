@@ -107,7 +107,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   rests, motifs, recurring chunks) + `tools/corpus.js` (official levels and the user's save, in
   memory), `tools/patterns.js` (named gameplay chunks incl. ship tunnel / wave zigzag with their
   portals), `tools/decorate.js` (block skins, ground deco, colour / alpha / zoom triggers, jump
-  indicators), `tools/compose.js` (brief with sections -> spec -> build -> score -> repair rounds,
+  indicators), `tools/compose.js` (brief with sections -> spec -> build -> score -> repair rounds; sections in beats that follow the song, each with its mode -- cube, ship, wave, ball, upside-down -- and its look, STYLE.md 2b; `--dry`, `--section n`;
   briefs in `briefs/`, a log per level), `tools/score.js` (every gate a level must pass before the
   user sees it), `tools/sightread.js` (prejumps), `tools/inputs.js` (a solution's inputs with
   modes), `lib/natural.js` (a natural replay plan: taps, no empty jumps). Test:

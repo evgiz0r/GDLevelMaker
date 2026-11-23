@@ -229,8 +229,46 @@ idea (a picture, a sketch, words); what they get back has already passed every g
 6. **Hand over**: installed level + the brief + the log. The user plays and reports; what they say
    becomes a gate or a rule here.
 
-Still to build: screenshot strips for step 5, a one-page design note for step 6, songs in
-briefs end to end (score.js has the sync gate; compose places by columns, not beats yet).
+Still to build: screenshot strips for step 5, a one-page design note for step 6.
+
+### Sections that follow the song (GDLM 45 v5, 2026-11-23)
+
+The user: "GD levels usually have some kind of sections, with different styling changing according
+to the music". Measured on the 22 official levels (`tools/corpus.js`, no solving): **159 of 178 mode
+portals (89%) have a colour trigger within 3 blocks**, against 31% for a random spot; in levels
+1-8, where colour triggers are rare, 16 of 21 (76%) against 8%. So in GD a section is a mode (or
+idea) and its look together: the colour changes where the portal is. With SYNC.md (portals on bar
+starts and 8/16-beat phrases), the recipe compose.js now follows:
+
+1. **Cut the song first.** `local/beats/<song>.json` has `sections` (beat index, dB change of the
+   next 8 beats vs the last 8) and `loud` per beat. Move each change to the nearest 8-beat phrase
+   start (bar starts are beat index = `downbeat` mod 4). Louder = a new busy section (with a
+   flash), quieter = a break.
+2. **One section per phrase or two**, each one mode or one cube idea, length in beats
+   (`"beats": 32` in the brief), so every section, its portal and its colour start on the beat.
+3. **The look per section**: `bg`, `ground`, `line` colours (fade 0.4 s on the first beat),
+   `flash` (background flashes bright on the beat, then settles: for the drops, where the
+   song gets louder), `deco` (share of ground decoration: 0 in breaks, fuller in busy parts). A
+   colour story over the level (GDLM 45 v5, hell on Ragnarok's song: dark red embers in the quiet
+   build, brighter each section, a white flash into orange on the drop, dark again at the end)
+   keeps sections apart without one random colour each.
+4. **Breaks are real breaks**: where the song drops back, fewer hazards (`gaps` 8-12) or an
+   easy upside-down stretch, darker, no decoration.
+
+Modes used: cube, ship, wave, ball, the cube upside down (gravity portals) -- the ones checked
+against the user's own recordings (PHYSICS.md: ball gravity, wave slope, ship, gravity flip).
+UFO, robot, spider and swing are in the sim but checked only by gdsolver's plans, so not yet in
+generated levels.
+
+New section kinds in compose.js: `"mode": "ball"` (`ball-run`: a roof 5 rows up, spikes
+alternating floor/roof every 8-9 columns, a framed cube exit on the floor) and `"mode": "upside"`
+(`ceiling` 6 rows up with a yellow gravity portal in and a framed blue one out; the section's
+block/spike patterns hung from it by `mirrorUp`). Tools: `compose.js --dry` (where each section
+lands, in columns and seconds, nothing solved), `--section n` (score one section alone, written
+to `local/sections/`). Levels over 90 s are scored **section by section** (each section alone,
+unchanged ones cached): a whole-level score of a 60 s level with modes takes ~4 min on this PC,
+a cube or ball section 2-20 s, a 120-block ship corridor minutes.
+Short sections work: 8 beats (~33 blocks at 1x, 145 BPM) still hold a mode with its lead-in.
 
 ## 3. The examples
 
@@ -335,9 +373,11 @@ State on 2026-11-22. What a new session should know before touching this area:
   the rest re-solved from there with `GD.solveFrom` (physics session). Every change is kept only if
   the run still finishes. The click table shows these inputs; timing windows stay the solver's
   (in `score.js`). Open: the solver's own run is still what `score.js` judges for prejumps.
-- **compose.js** places by columns, cube-only patterns by default; not yet: beats in briefs, modes
-  in sections, the low-tier recipe (lead-ins per mode, hazard share per mode, section lengths 4-6 s,
-  `knowledge/levels/modes_low_tier.md`). GDLM 44 was written by hand in beats.
+- **compose.js** sections in beats, modes ship / wave / ball / upside-down, a look per section
+  (section 2b "Sections that follow the song"). Not yet: beats for single chunks inside a section
+  (orbs on beats), UFO/robot/spider/swing (not checked in the user's game), gravity flips inside
+  ship/ball parts, the difficulty hill-climb for sectionwise levels (they are scored whole once at
+  the end, not tuned toward the target).
 - **Jump indicators**: code ready (`"indicators": {"id": N}`), the arrow's object id unknown --
   the user places the three arrows in an empty level, then read the ids from the save.
 - **Art**: decoration ids have no names. Plan: a generated catalogue level (every deco id with a
@@ -355,7 +395,8 @@ State on 2026-11-22. What a new session should know before touching this area:
 - Prejumps are exact only on cube levels; on mode levels approximate (WARN).
 
 Tests: `node tests/style_gates.js` (~1-2 min): the gates still agree with what the user found
-(GDLM 41 v1's pad prejump flagged, 42's chains gone, 44 without skips).
+(GDLM 41 v1's pad prejump flagged, 42's chains gone, 44 without skips), and an upside-down and a
+ball section are beaten, cued and taken through their portals.
 
 ## How the numbers were got
 

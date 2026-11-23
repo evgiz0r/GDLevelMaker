@@ -46,7 +46,9 @@ function skinBlocks(objects) {
 // antenna with a ball on top. No hitbox either way.
 const GROUND_DECO = [[18, 4], [19, 4], [20, -2], [21, -8]]; // id, y offset in units from the row centre
 const TOP_DECO = [[16, -1]];
-function groundDeco(objects, endCol, seed = 1) {
+// densityAt(col): share of free columns that get one (default 0.25); compose.js sets it per section
+// (calm breaks bare, busy parts fuller) through the spec's "decoDensity": [[fromCol, share], ...].
+function groundDeco(objects, endCol, seed = 1, densityAt = () => 0.25) {
   let s = seed;
   const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
   const busy = new Set(), solid = new Set();
@@ -57,7 +59,7 @@ function groundDeco(objects, endCol, seed = 1) {
   }
   const out = [];
   for (let c = 0; c < endCol; c++) {
-    if (busy.has(c) || rnd() > 0.25) continue;
+    if (busy.has(c) || rnd() > densityAt(c)) continue;
     // the top of this column: ground or the highest block
     let top = -1;
     for (let r = 0; r < 20; r++) if (solid.has(c + "," + r)) top = r;
