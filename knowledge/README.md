@@ -14,6 +14,7 @@ says is recorded verbatim in `inbox/`, then organised. Web facts carry a source 
 | `critiques.md` | critiques of GDLM levels (ours) and what changed because of them -- **style/difficulty sessions must read** |
 | `levels/<name>.md` | one level: facts (ID, creator, difficulty, source) / reception / what to learn |
 | `creators/<name>.md` | creators the user mentions |
+| `rating.md` | how levels get rated (Rated -> Mythic): RobTop's own tips, wiki facts, our numbers per tier |
 | `players_say.md` | what players praise and complain about in level comments (paraphrased, counted) |
 | `glossary.md` | GD terms as the user uses them |
 | `demonlist.md` | Demon List facts (pointercrate etc.), dated and sourced |
@@ -27,6 +28,7 @@ Levels index (add a line per level file):
 | Official 9-22 | 9-22 | Harder -> Demon: new mechanics per level, shorter sections | `levels/official_09-22.md` |
 | ~35 community levels, Easy -> Harder | various | Map Packs, Featured/Epic/Legendary/Mythic | `levels/good_low_tier.md` |
 | 91 rated levels, Easy -> Harder | various | per-tier/era/speed/mode numbers + 5 broken down | `levels/low_tier_stats.md` |
+| Not bland | - | GDLM 41-45 vs rated Easy/Normal: kinds of thing, portals, repeats | `levels/variety.md` |
 | Easy section per mode | - | lead-in, density, gaps, openings per mode | `levels/modes_low_tier.md` |
 | Pattern Seeker | ? | memory, invisible, repeating, synced | `levels/pattern_seeker.md` |
 
@@ -74,3 +76,14 @@ Never commit level data or songs -- notes, opinions and facts about levels only.
 - First finding: GDLM 41-45 read 0% H-like, with hazards in only 12-23% of their columns. Rated
   Easy/Normal levels sit around 46-49% (DIFFICULTY.md layout table). GDLM levels are emptier than
   rated Easy levels, which may be part of "bland" (GDLM 44).
+
+## Variety (is there enough different stuff?): `tools/variety.js`
+
+    node tools/variety.js levels/<name>.gdlvl     # one level: kinds of thing, portals, modes, speeds, repeats, quiet, presses/s
+    node tools/variety.js gdlm official 1          # every GDLM level, an official one
+    node tools/variety.js community                # medians per tier and era -> local/community/variety.json
+
+Write-up and targets: `levels/variety.md`. Findings (2026-11-23):
+- GDLM levels are not short of obstacles, but of variety.
+- They use 1-6 kinds of thing against 15-17 in rated Easy/Normal levels.
+- They have no speed changes and few portals, and in GDLM 42, 43 and 45 most chunks are repeats.
