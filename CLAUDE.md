@@ -289,3 +289,8 @@ The viewer draws moving objects where they start.
 - Playing on the phone too: how to get an updated level onto the phone while away from the PC.
   Watching is built: the phone page (PHONE.md: live work in progress, marks, songs added from
   the phone). Playing it in the phone's game: `tools/export_gmd.js` (.gmd for GDShare).
+- Polishing existing levels (the user, 2026-11-23): take a level that already exists -- one of
+  the user's own, a GDLM level, later maybe a community one (kept in local/ only) -- and make it
+  better without redesigning it: fix unfair spots (tools/windows.js, press_window.js), add jump
+  indicators, sync portals and drops to the song, decorate (once the real-art viewer and the deco
+  catalogue exist, VISUALS.md), and show before/after side by side. Not started; no owner yet.
