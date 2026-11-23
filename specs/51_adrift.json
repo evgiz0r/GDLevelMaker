@@ -1,0 +1,50 @@
+{
+  "name": "GDLM 51 adrift",
+  "desc": "Sink past jellyfish and turning currents to the dark sea floor, then race back up to the light.",
+  "notes": "Round 1 of the taste loop (TASTE.md). Song: balderdact - Adrift (619544), from song bar 39; the drop at level bar 4, the break at 16, the last drop at 20.",
+  "song": {
+    "custom": 619544
+  },
+  "offset": 70.233,
+  "grid": {
+    "bpm": 133.36,
+    "t0": 0.0475
+  },
+  "scene": "tools/scenes/adrift.js",
+  "indicators": {},
+  "objects": [
+    "// S0 surface, cube (bars 0-4)",
+    ["spike",12,0],
+    ["pattern","platform",18,0,{"w":4,"h":1}],
+    ["spike",27,0],
+    ["pink pad",32,0], ["spike",33,0], ["block",34,0], ["block",35,0], ["block",36,0], ["block",37,0],
+    ["pattern","orb-pit",44,0,{"n":5}],
+    ["pattern","double",56,0,{}],
+    ["pattern","block-spike-block",63,0,{}],
+    ["ufo portal","b17",1],
+    "// S1 sinking, UFO (bars 4-10, the drop)",
+    ["spike",80,0], ["spike",81,0], ["spike",82,0], ["spike",83,0], ["spike",84,0], ["spike",85,0], ["spike",86,0], ["spike",87,0], ["spike",88,0], ["spike",89,0], ["spike",90,0], ["spike",91,0], ["spike",92,0], ["spike",93,0], ["spike",94,0], ["block",84,0], ["block",84,1], ["block",84,2], ["block",90,0], ["block",90,1], ["block",90,2], ["block",90,3],
+    ["spike",100,0], ["spike",101,0], ["spike",102,0], ["spike",103,0], ["spike",104,0], ["spike",105,0], ["spike",106,0], ["spike",107,0], ["spike",108,0], ["spike",109,0], ["spike",110,0], ["spike",111,0], ["spike",112,0], ["spike",113,0], ["spike",114,0], ["spike",115,0], ["spike",116,0], ["spike",117,0], ["spike",118,0], ["spike",119,0], ["spike",120,0], ["spike",121,0], ["spike",122,0], ["spike",123,0], ["spike",124,0], ["spike",125,0], ["spike",126,0], ["spike",127,0], ["spike",128,0], ["block",104,0], ["block",104,1], ["block",104,2], ["block",111,6], ["block",111,7], ["block",111,8], ["block",111,9], ["block",118,0], ["block",118,1], ["block",118,2], ["block",118,3], ["block",124,5], ["block",124,6], ["block",124,7], ["block",124,8], ["block",124,9],
+    ["spike",134,0], ["spike",135,0], ["spike",136,0], ["spike",137,0], ["spike",138,0], ["spike",139,0], ["spike",140,0], ["spike",141,0], ["spike",142,0], ["spike",143,0], ["spike",144,0], ["spike",145,0], ["yellow orb",138,3], ["block",141,0], ["block",141,1], ["block",141,2], ["block",141,3], ["block",141,4], ["block",141,5],
+    ["spike",150,0], ["spike",151,0], ["spike",152,0], ["spike",153,0], ["spike",154,0], ["spike",155,0], ["spike",156,0], ["spike",157,0], ["spike",158,0], ["spike",159,0], ["spike",160,0], ["spike",161,0], ["spike",162,0], ["spike",163,0], ["spike",164,0], ["spike",165,0], ["spike",166,0], ["block",156,3], ["block",157,3], ["block",158,3], ["block",159,3], ["block",163,0], ["block",163,1], ["block",163,2],
+    ["block",179,4], ["block",180,4], ["block",181,4], ["block",182,4], ["block",183,4], ["block",184,4], ["block",185,4], ["block",186,4], ["block",187,4], ["block",188,4],
+    ["cube portal","b41",2],
+    "// S2 currents, cube upside down (bars 10-16)",
+    ["spike",196,0], ["spike",197,0], ["spike",198,0], ["spike",199,0], ["spike",200,0], ["spike",201,0], ["spike",202,0], ["spike",203,0], ["gravity down",197,1], ["block",196,5], ["block",197,5], ["block",198,5], ["block",199,5], ["block",200,5], ["block",201,5], ["block",202,5], ["block",203,5], ["block",204,5], ["block",205,5], ["blue pad",204,4,{"flipY":true}],
+    ["spike",212,0], ["block",215,0], ["block",216,0], ["block",217,0], ["spike",220,0],
+    ["yellow pad",226,0], ["spike",227,0], ["spike",228,0], ["spike",229,0], ["spike",230,0], ["spike",231,0], ["spike",232,0], ["spike",233,0], ["spike",234,0], ["spike",235,0], ["spike",236,0], ["spike",237,0], ["spike",238,0], ["spike",239,0], ["block",226,8], ["block",227,8], ["block",228,8], ["block",229,8], ["block",230,8], ["block",231,8], ["block",232,8], ["block",233,8], ["block",234,8], ["block",235,8], ["block",236,8], ["block",237,8], ["block",238,8], ["block",239,8], ["block",240,8], [1022,230,4], [1022,237,6],
+    ["blue pad",248,0], ["spike",250,0], ["spike",251,0], ["spike",252,0], ["spike",253,0], ["spike",254,0], ["spike",255,0], ["spike",256,0], ["spike",257,0], ["spike",258,0], ["block",248,5], ["block",249,5], ["block",250,5], ["block",251,5], ["block",252,5], ["block",253,5], ["block",254,5], ["block",255,5], ["block",256,5], ["block",257,5], ["block",258,5], ["block",259,5], ["blue pad",258,4,{"flipY":true}],
+    ["gravity down",268,1], ["block",268,5], ["block",268,6], ["block",269,5], ["block",269,6], ["block",270,5], ["block",270,6], ["block",271,5], ["block",271,6], ["block",272,5], ["block",272,6], ["block",273,5], ["block",273,6], ["block",274,5], ["block",274,6], ["block",275,5], ["block",275,6], ["block",276,5], ["block",276,6], ["block",277,5], ["block",277,6], ["block",278,5], ["block",278,6], ["block",279,5], ["block",279,6], ["block",280,5], ["block",280,6], ["block",281,5], ["block",281,6], ["block",282,5], ["block",282,6], ["block",283,5], ["block",283,6], ["block",284,5], ["block",284,6], ["block",285,5], ["block",285,6], ["spike",273,4,{"rot":180}], ["spike",274,4,{"rot":180}], ["spike",279,4,{"rot":180}], ["spike",280,4,{"rot":180}], ["gravity up",285,3], ["block",285,0], ["block",285,1],
+    ["robot portal","b65",1],
+    "// S3 the sea floor, robot (bars 16-20, the break)",
+    ["block",307,0], ["block",307,1], ["block",308,0], ["block",308,1], ["block",309,0], ["block",309,1], ["block",310,0], ["block",310,1], ["block",311,0], ["block",311,1], ["block",311,2], ["block",311,3], ["block",312,0], ["block",312,1], ["block",312,2], ["block",312,3], ["block",313,0], ["block",313,1], ["block",313,2], ["block",313,3], ["block",314,0], ["block",314,1], ["block",314,2], ["block",314,3], ["spike",315,0], ["spike",316,0],
+    ["spike",326,0], ["spike",327,0], ["spike",328,0], ["block",334,0], ["block",334,1], ["block",335,0], ["block",335,1],
+    ["spike",344,0], ["spike",345,0], ["spike",346,0], ["spike",347,0], ["spike",348,0], ["block",349,0], ["block",350,0], ["block",351,0],
+    ["ship portal","b81",1],
+    "// S4 rising, mini ship then ship (bars 20-23, the last drop)",
+    [101,382,4], ["block",388,0], ["block",388,1], ["block",388,2], ["block",388,6], ["block",388,7], ["block",388,8], ["block",388,9], ["block",395,0], ["block",395,1], ["block",395,2], ["block",395,3], ["block",395,7], ["block",395,8], ["block",395,9], [99,399,4],
+    ["block",405,0], ["block",405,1], ["block",405,2], ["block",405,3], ["block",405,4], ["block",411,5], ["block",411,6], ["block",411,7], ["block",411,8], ["block",411,9], ["block",417,0], ["block",417,1], ["block",417,2], ["block",417,3], ["block",417,4],
+    ["block",424,3], ["block",424,4], ["block",424,5], ["block",424,6], ["block",424,7], ["block",424,8], ["block",424,9], ["block",425,3], ["block",426,3], ["block",427,3], ["block",428,3], ["block",429,3], ["block",430,3],
+    ["cube portal",429,1]
+  ]
+}

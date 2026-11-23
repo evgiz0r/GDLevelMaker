@@ -213,7 +213,7 @@ function motes(x0, x1, o = {}) {
   const R = rng(o.seed || 9), out = [], n = Math.round((x1 - x0) / 100 * (o.density ?? 2)), ids = o.ids || [1764];
   for (let i = 0; i < n; i++)
     out.push(obj(ids[Math.floor(R() * ids.length)], x0 + R() * (x1 - x0), (o.y0 ?? -60) + R() * ((o.y1 ?? 300) - (o.y0 ?? -60)),
-      { ch: o.ch, z: o.z ?? "T2", zo: 0, s: 0.3 + R() * 0.5, groups: o.group ? [o.group] : [], hsv: R() < 0.5 ? "30a1a1a0a0" : null }));
+      { ch: o.ch, z: o.z ?? "T2", zo: 0, s: (o.sMin ?? 0.3) + R() * ((o.sMax ?? 0.8) - (o.sMin ?? 0.3)), groups: o.group ? [o.group] : [], hsv: R() < 0.5 ? "30a1a1a0a0" : null }));
   return out;
 }
 
@@ -245,5 +245,78 @@ function text(x, y, str, scale, o = {}) {
 // Pulses on beats: one per beat index in `beats` (level beat numbers), via beatX
 function beatPulses(beatX, beats, target, rgb, fin, hold, fout, o = {}) { return beats.map(b => pulse(beatX(b), target, rgb, fin, hold, fout, o)); }
 
+// --- loops: motion that keeps going (GD has no loop without spawn triggers: a chain of triggers along x) ---
+// Bob a group up and down: a move trigger every `every` units from x0 to x1, alternating +dy / -dy, each
+// lasting `secs` (sine in-out). Start at x0 going up; the chain ends where it began (an even count).
+function bob(x0, x1, group, dy, every, secs) {
+  const out = []; let k = 0;
+  for (let x = x0; x < x1 || k % 2; x += every, k++) out.push(move(x, group, 0, k % 2 ? -dy : dy, secs, 13));
+  return out;
+}
+// Sway: the same with rotate triggers (each object of the group turns about its own centre, no centre group)
+function sway(x0, x1, group, deg, every, secs) {
+  const out = [rotate(x0, group, deg, secs, { ease: 13 })]; let k = 1, x = x0 + every, side = 1;
+  for (; x < x1; x += every, k++, side = -side) out.push(rotate(x, group, -2 * deg * side, secs, { ease: 13 }));
+  out.push(rotate(x, group, -deg * side, secs, { ease: 13 }));   // back to upright
+  return out;
+}
+
+// --- underwater ---
+// A jellyfish: a bell (disk 497 squashed), a lighter inner bell, `n` tentacles (thin lines 1753 turned
+// upright) hanging under it. o: ch (bell, blend), ch2 (tentacles), s (size: bell width in blocks), z, groups
+function jellyfish(x, y, o = {}) {
+  const s = o.s ?? 1, gs = o.groups || [], z = o.z ?? "B2", out = [];
+  out.push(obj(497, x, y, { ch: o.ch, z, zo: 3, sx: 0.6 * s, sy: 0.42 * s, groups: gs }));
+  out.push(obj(497, x, y + 2 * s, { ch: o.ch, z, zo: 4, sx: 0.36 * s, sy: 0.22 * s, groups: gs, hsv: "0a0.5a1.4a0a0" }));
+  const n = o.n ?? 4;
+  for (let i = 0; i < n; i++) {
+    const dx = (i - (n - 1) / 2) * 6 * s, len = (0.9 + (i % 2) * 0.5) * s;
+    out.push(obj(1753, x + dx, y - 8 * s - len * 15, { ch: o.ch2 ?? o.ch, z, zo: 2, sx: len, rot: 90, groups: gs }));
+  }
+  return out;
+}
+// A school of small fish facing left (they swim against the level: move the group by -dx): ellipse
+// bodies (497) and triangle tails (693). o: ch, n, z, group, spread (units), seed
+function fishSchool(x, y, o = {}) {
+  const R = rng(o.seed || 17), out = [], gs = o.group ? [o.group] : [], z = o.z ?? "B2";
+  for (let i = 0; i < (o.n ?? 7); i++) {
+    const fx = x + (R() - 0.5) * (o.spread ?? 140), fy = y + (R() - 0.5) * (o.spread ?? 140) * 0.45, s = 0.7 + R() * 0.5;
+    out.push(obj(497, fx, fy, { ch: o.ch, z, zo: 2, sx: 0.42 * s, sy: 0.2 * s, groups: gs, hsv: R() < 0.4 ? "0a1a0.8a0a0" : null }));
+    out.push(obj(693, fx + 12 * s, fy, { ch: o.ch, z, zo: 1, s: 0.32 * s, rot: 45, groups: gs }));
+  }
+  return out;
+}
+// Kelp: stalks of leaves (squashed disks 497) from the floor; every leaf is in `group` (sway it).
+// o: ch, z, every (units between stalks), hMin/hMax (leaves), seed, groups (alternating sway groups)
+function kelp(x0, x1, o = {}) {
+  const R = rng(o.seed || 19), out = [], gsets = o.groups || [];
+  let k = 0;
+  for (let x = x0; x < x1; x += (o.every ?? 120) * (0.6 + R() * 0.8), k++) {
+    const n = Math.round((o.hMin ?? 3) + R() * ((o.hMax ?? 6) - (o.hMin ?? 3))), gs = gsets.length ? [gsets[k % gsets.length]] : [];
+    for (let j = 0; j < n; j++)
+      out.push(obj(497, x + Math.sin(j * 1.3 + k) * 5, 12 + j * 22, { ch: o.ch, z: o.z ?? "B3", zo: 0, sx: 0.26, sy: 0.6, rot: (j % 2 ? 18 : -18), groups: gs, hsv: j === n - 1 ? "0a1a1.25a0a0" : null }));
+  }
+  return out;
+}
+// The water's surface seen from below: a bright band (gradient 1293, solid at the top) and a row of
+// small waves (157) hanging from it, over a screen width around x (lock it to the player). o: ch, y, group
+function waterSurface(x, o = {}) {
+  const out = [], y = o.y ?? 230, gs = o.group ? [o.group] : [];
+  for (let dx = o.from ?? -330; dx < (o.to ?? 520); dx += 58) out.push(obj(1293, x + dx, y + 30, { ch: o.ch, z: o.z ?? "B1", zo: 0, sx: 4.2, sy: 2, flipY: true, groups: gs }));
+  for (let dx = o.from ?? -330; dx < (o.to ?? 520); dx += 30) out.push(obj(157, x + dx, y + 2, { ch: o.ch, z: o.z ?? "B1", zo: 1, s: 1, flipY: true, groups: gs }));
+  out.push(obj(1753, x + 95, y + 14, { ch: o.ch, z: o.z ?? "B1", zo: 2, sx: 30, groups: gs }));
+  return out;
+}
+// Rounded rocks or hills along the floor (balls 50-54 scaled), a far layer for parallax. o: ch, z, group, sMin/sMax, seed
+function rocks(x0, x1, o = {}) {
+  const R = rng(o.seed || 23), out = [], gs = o.group ? [o.group] : [];
+  for (let x = x0; x < x1; x += (o.every ?? 110) * (0.5 + R())) {
+    const s = (o.sMin ?? 2) + R() * ((o.sMax ?? 5) - (o.sMin ?? 2));
+    out.push(obj((o.ids || [50, 54])[Math.floor(R() * (o.ids || [50, 54]).length)], x, s * 9 + (o.y ?? -10), { ch: o.ch, z: o.z ?? "B4", zo: 0, sx: s * (1 + R() * 0.6), sy: s, groups: gs, hsv: R() < 0.5 ? "0a1a0.85a0a0" : null }));
+  }
+  return out;
+}
+
 module.exports = { L, rng, obj, trig, colour, palette, alpha, move, lockX, rotate, pulse, zoom, toggle, channels, art,
-  skyline, horizonGlow, topFrame, eclipse, starfield, cloudFrame, designBlocks, motes, lightRays, text, beatPulses };
+  skyline, horizonGlow, topFrame, eclipse, starfield, cloudFrame, designBlocks, motes, lightRays, text, beatPulses,
+  bob, sway, jellyfish, fishSchool, kelp, waterSurface, rocks };

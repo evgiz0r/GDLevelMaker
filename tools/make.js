@@ -6,6 +6,7 @@
 // {
 //   "name": "01 one jump",            // the name shown in GD's level list
 //   "desc": "one spike",              // optional
+//   (a plain string in "objects", e.g. "// S2 the ship", is a comment and is skipped)
 //   "objects": [                      // [type, column, row, {extra}] -- extra: rot, flipX, flipY
 //     ["spike", 12, 0],
 //     ["block", 20, 0],
@@ -249,6 +250,7 @@ function checkDesc(desc, name) {
 }
 
 function build(spec, specFile = "spec") {
+  spec = Object.assign({}, spec, { objects: spec.objects.filter(e => Array.isArray(e)) });   // a string entry is a comment
   const song = songOf(spec);
   const kA4 = spec.speed ? SPEED_NAMES[spec.speed] : 0;
   if (kA4 === undefined) throw new Error("speed must be one of " + Object.keys(SPEED_NAMES).join(" "));
@@ -418,7 +420,8 @@ function lookOnly(out, rec, level) {
   if (!fs.existsSync(out)) { console.log("   --look: no previous build, solving"); return false; }
   const old = io.readGdlvl(out), sol = sols.get(old.levelStr, true);
   const sig = (objs, h) => JSON.stringify(GD.makeWorld(objs, h).items.map(b => [b.kind, Math.round(b.x), Math.round(b.y)]));
-  if (!sol || !sol.ok || sig(old.level.objects, old.level.header) !== sig(level.objects, level.header)) { console.log("   --look: gameplay changed (or no saved solution), solving"); return false; }
+  if (!sol || !sol.ok) { console.log("   --look: no saved solution (none yet, or lib/physics.js changed since: saved solves go stale), solving"); return false; }
+  if (sig(old.level.objects, old.level.header) !== sig(level.objects, level.header)) { console.log("   --look: gameplay changed, solving"); return false; }
   // the jump marks of the last build (group 990 and the alpha trigger that fades them)
   const IG = String(deco.INDICATOR.group);
   level.objects.push(...old.level.objects.filter(o => o.props && (o.props[57] === IG || (o.id === 1007 && o.props[51] === IG))));
