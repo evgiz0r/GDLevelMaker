@@ -104,6 +104,32 @@ Open: Fingerdash (lv21, 54): a black orb drops the cube at -15 beside a column o
 presses just before landing jumps in the game, not in the sim; Theory of Everything 1 and 2 pink-orb
 sections ~30 units low; UFO, wave, robot, spider, swing want a recording of the user's own play.
 
+## GDLM 60 physics lab: what the user's game showed (2026-11-23, first play)
+
+The lab level (specs/60_physics_lab.json; 14 numbered, labelled stations) was played once in practice mode
+with hitboxes on: GD claude-rec 2026-11-23_04-27-50.mkv, ~57368-57465 s (26 attempts, practice complete).
+Contact sheets and frames: local/shots/lab60/. Read station by station from frames and tools/track.py
+(lab_read.js's time->x mapping does not survive practice-mode respawns; per-station time windows were used).
+- 1 letter blocks D/J/S/H (1755/1813/1829/1859): passed on attempt 1. Harmless, as the sim now says.
+- 2 teleports turned 0 / 45 / 90, key 54 = 150: all three put the cube at the SAME height (cube top ~478 px
+  up each time, even when entered mid-air: the exit is absolute, portal y + offset), and the game draws the
+  orange exit straight above the entry for the 45-degree one, no sideways move. So the exit is the full key 54
+  straight up at every angle tried. The sim's cos(angle) rule (106 at 45) is WRONG for 45. Not changed yet:
+  "full offset always" once broke Deadlocked's -53-degree portal at block 76 (see the Deadlocked notes), so
+  that portal needs a look first (another key? a 2902/2064 variant?), then tas_progress.
+- 3 quarter-turned slopes: the cube walks up onto the step and down off it, no wall. The new rule holds.
+- 4 planks 1202 over spikes: solid (attempt 7 rides them). The 7 deaths there were missed jumps onto them.
+- 6 green orb from the ground: the cube rises from rest to the ceiling in ~0.27 s (90 units): a gravity flip
+  whose downward push the ground blocks, as in the sim. Mid-air (the push down) still unseen.
+- 7 green dash orb: a straight horizontal dash while held (the deaths: holding into the post after it).
+- 5 pink orb: launch 0.5-0.63 of a ground jump's speed from arc fits (sim 0.72); noisy (px scale from the
+  ground jump's arc, 3.9 px/unit, vs 3.2 from the teleports: the camera moves). Unsettled.
+- 9-14 modes: the run passes them all, but the small, mostly non-lime mode icons defeat the lime tracker
+  (it locked on the green progress bar until cropped). Accelerations need a tracker for the hitbox outline
+  or the icon colours (open).
+Unfair stations to change in v2: 4 (plank row straight over spikes, from flat ground) and 7 (a post that
+punishes holding the dash).
+
 ## Objects
 
 - Hitboxes from OpenGD's 2.1 table, overridden in `lib/objects.js`; GD 2.2's decoration list
