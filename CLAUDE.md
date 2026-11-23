@@ -203,7 +203,7 @@ so anything with a hitbox that is NOT a hazard (portals, coins, toggle orbs) mus
 in `lib/objects.js`. Missing that once let the sim pass through Stereo Madness's pit spikes (id 9).
 The rule also misfires the other way: OpenGD gives 37 block-outline / plank pieces type 0 (solid) but
 leaves them out of its solids list, so the import called them hazards; `SOLID0` in lib/objects.js
-fixes them (Deadlocked's 1202 ball lanes). Check OpenGD's type column (lib/objects_art.js) after an import.
+fixes them (Deadlocked's 1202 ball lanes); the lettered helper blocks (type 40) were made killers the same way. Check OpenGD's type column (lib/objects_art.js) after an import.
 
 ## Calibration -- checked against the user's game
 
