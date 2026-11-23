@@ -241,8 +241,9 @@ hard spot at 90% costs more attempts than at 10%). The user's own attempts follo
 Which windows: measureWindows in lib/difficulty.js (lenient: a moved input counts as hit when the rest of
 the run can still be re-planned around it, as a player corrects). Since main 05abaf7 it is THE window for
 every tool: lib/windows.js inputWindows calls it (viewer, tools/windows.js, score.js); the strict variant
-(every other input fixed) is opt-in. Open, from physics: a land-and-jump tap moved earlier reads 1 tick
-(it should stay held until the jump fires), and a re-planned window can come out narrower than the strict
+(every other input fixed) is opt-in. A tap moved earlier is held until its own release (2026-11-24): a
+player holds through a landing or into an orb, which fires on contact -- GDLM 50's land-and-jump taps went
+from 25 ms (no early side) to 221 ms; buffered orb takes read wide. Open, from physics: a re-planned window can come out narrower than the strict
 one (GDLM 60's dash-orb release, tick 3052): it should contain it.
 
 ### Human cost: which valid route a person plays (2026-11-23)
