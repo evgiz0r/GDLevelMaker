@@ -126,9 +126,10 @@ function main() {
     const name = slot.name || was;
     inner = inner.replace(/<k>k2<\/k><s>[^<]*<\/s>/, `<k>k2</k><s>${name}</s>`);
     // --desc "what is being tested": the description for this upload, with the signature line
-    const di = args.indexOf("--desc");
-    if (di >= 0) {
-      const d = Buffer.from(require("./signature.js").describe(args[di + 1])).toString("base64").replace(/\+/g, "-").replace(/\//g, "_");
+    // (default: the slot's own "desc" in phone_ids.json, e.g. the lab's)
+    const di = args.indexOf("--desc"), descText = di >= 0 ? args[di + 1] : slot.desc;
+    if (descText) {
+      const d = Buffer.from(require("./signature.js").describe(descText)).toString("base64").replace(/\+/g, "-").replace(/\//g, "_");
       inner = /<k>k3<\/k><s>/.test(inner) ? inner.replace(/<k>k3<\/k><s>[^<]*<\/s>/, `<k>k3</k><s>${d}</s>`)
         : inner.replace(/(<k>k2<\/k><s>[^<]*<\/s>)/, `$1<k>k3</k><s>${d}</s>`);
     }
@@ -141,7 +142,7 @@ function main() {
     if (at >= 0) parts.items.splice(at, 1);
     parts.items.unshift({ key: "", inner: kept.inner });
     console.log(`slot "${slotName}" (${fresh ? (kept.id ? `online ID ${kept.id} in the save but not in ${idsFile}: record it` : "no online ID yet: its first Share creates one, tick Unlisted") : `online ID ${slot.id}`}): "${was}" -> "${name}", now at the top of My Levels. Share it only with the user's yes.`);
-    slotDone = { ids, slot, entry: { level: own, name, file: files[0].replace(/\\/g, "/"), installed: new Date().toISOString().slice(0, 10), shared: null, ...(di >= 0 ? { desc: args[di + 1] } : {}) } };
+    slotDone = { ids, slot, entry: { level: own, name, file: files[0].replace(/\\/g, "/"), installed: new Date().toISOString().slice(0, 10), shared: null, ...(descText ? { desc: descText } : {}) } };
   }
 
   for (const f of slotName ? [] : files) {

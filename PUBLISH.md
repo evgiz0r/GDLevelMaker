@@ -91,12 +91,14 @@ always shows the name "GDLM 44 hellgate", even when the slot holds another level
 
 The user named a second, reusable slot on 2026-11-23: **"Claude Lab"** (`slots.lab` in
 `local/phone_ids.json`). It's general: any level we want to test on the phone goes in it, so the
-server still holds at most two AI levels. The name is final. The description changes per upload:
-what is being tested, plus the signature line.
+server still holds at most two AI levels. The name is final. Its default description is the user's (below); `--desc` can
+replace it for one upload.
 
-- `node tools/install.js levels/<name>.gdlvl --slot lab --desc "what this upload tests"` installs the
-  level at the top of My Levels as "Claude Lab". The description is the `--desc` text +
-  " -- Made by Claude (and some humans)" (`tools/signature.js` describe). Re-running it replaces the
+- **Description** (the user picked it, 2026-11-23; `slots.lab.desc`): "This is a lab. You are the
+  test. Thank you for your service. -- Made by Claude (and some humans)".
+- `node tools/install.js levels/<name>.gdlvl --slot lab` installs the level at the top of My Levels
+  as "Claude Lab", with that description: the slot's `desc` + " -- Made by Claude (and some humans)"
+  (`tools/signature.js` describe). `--desc "..."` overrides it for one upload. Re-running it replaces the
   same record (found by name while the slot has no ID, `tests/install_keeps_id.js`).
 - **Not uploaded yet.** Its FIRST upload creates the ID and needs the user's explicit yes for that
   specific level. In the share form, tick Unlisted by hand, as in step 6 above (install.js doesn't
