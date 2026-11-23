@@ -84,6 +84,7 @@
 <script src="../lib/objects_frames.js"></script>
 <script src="../lib/art.js"></script>
 <script src="../lib/natural.js"></script>
+<script src="../lib/windows.js"></script>
 <script src="levels.js"></script>
 <script src="levels.local.js" onerror="window.GD_LEVELS_LOCAL = []"></script>
 <script src="beats.local.js" onerror="window.GD_BEATS = {}"></script>
@@ -170,6 +171,26 @@ function load(name, levelStr, saved, info) {
   L.beats = grid ? { grid, offset: info.offset || 0, tl: GD.SYNC.timeline(world) } : null;
   t = 0; lastTick = -1; playing = false; setPlay();
   summary(); clickTable(); markTable(); if (cmpOn) cmpLoadSetting(); draw();
+  windowsLater(L, events);
+}
+// every input's whole timing window (lib/windows.js: moved tick by tick and replayed), worked out after
+// the level shows, a slice at a time so the page stays live; the button strip shades each one and the
+// click table lists it. Saved and natural replays come without windows (the user: show how much room
+// there is, not only the chosen moment, which often sits near an edge).
+function windowsLater(LL, events) {
+  if (window.SHOOT_MAP || !GD.inputWindows || !LL.sol.ok || !events || !events.length || LL.sol.clicks.some(c => c.hi > c.lo)) return;
+  const byKey = new Map(LL.sol.clicks.map(c => [c.type + c.tick, c]));
+  let from = 0, out = [];
+  const slice = () => {
+    if (L !== LL) return; // another level was loaded
+    const r = GD.inputWindows(LL.world, events, LL.path, { from, out, budget: SHOOT ? 0 : 40 }); // shots: all at once
+    for (const wv of r) { const c = byKey.get(wv.type + wv.tick); if (!c || c.ms) continue;
+      Object.assign(c, { lo: wv.lo, hi: wv.hi, ms: Math.round((wv.hi - wv.lo + 1) / P.TPS * 1000) });
+      if (wv.j >= 0) { const e = events.slice().sort((a, b) => a.tick - b.tick)[wv.j], rc = e && byKey.get(e.type + e.tick); if (rc) rc.tapOf = c; } }
+    if (r.next === null) { LL.windowsDone = true; summary(); clickTable(); draw(); return; }
+    from = r.next; if (!playing) draw(); setTimeout(slice, 0);
+  };
+  if (SHOOT) slice(); else setTimeout(slice, 50);
 }
 async function loadFile(f) {
   const rec = GD.parseRecord(await gunzipB64(await f.text()));
@@ -528,7 +549,7 @@ function draw() {
     ctx.strokeStyle = L.held[i] ? "rgba(255,225,77,.8)" : "rgba(61,255,176,.35)";
     ctx.beginPath(); ctx.moveTo(sx(p.x), sy(p.y)); ctx.lineTo(sx(q.x), sy(q.y)); ctx.stroke();
   } }
-  if (!SHOOT) { drawDeaths(); drawMarks(); drawInput(k); }
+  if (!SHOOT) { drawDeaths(); drawMarks(); drawInput(k); } else if (window.SHOOT_INPUT) drawInput(k);
   // ship corridor
   if (s.mode === "ship" && !SHOOT) {
     ctx.strokeStyle = "rgba(255,90,210,.6)"; ctx.lineWidth = 3;
@@ -579,13 +600,19 @@ function drawInput(k) {
   const y0 = groundY + 30 * 0.45 * scale, h = 30 * 0.5 * scale;
   ctx.fillStyle = "rgba(0,0,0,.45)"; ctx.fillRect(0, y0 - 6, W, h + 12);
   const n = L.path.length;
-  // each click's timing window: a faint band around its mark
+  // each input's whole timing window, earliest to latest tick that still clears: a shaded bar with bright
+  // ends (presses cyan, releases pink) and its length; the press itself is the white mark inside it
+  ctx.font = `bold ${12 * DPR()}px system-ui`; ctx.textAlign = "center";
   for (const c of L.sol.clicks) {
-    if (c.hi <= c.lo) continue;
+    if (c.hi <= c.lo || c.tapOf) continue;
     const x0 = sx(L.path[Math.min(c.lo, n - 1)].x), x1 = sx(L.path[Math.min(c.hi + 1, n - 1)].x);
     if (x1 < 0 || x0 > W) continue;
-    ctx.fillStyle = "rgba(120,200,255,.35)"; ctx.fillRect(x0, y0 - 6, Math.max(2, x1 - x0), h + 12);
+    const rgb = c.type === "release" ? "255,120,200" : "90,220,255", wd = Math.max(2, x1 - x0);
+    ctx.fillStyle = `rgba(${rgb},.28)`; ctx.fillRect(x0, y0 - 6, wd, h + 12);
+    ctx.fillStyle = `rgba(${rgb},.95)`; ctx.fillRect(x0, y0 - 6, 2, h + 12); ctx.fillRect(x0 + wd - 2, y0 - 6, 2, h + 12);
+    if (wd > 40 * DPR()) { ctx.fillStyle = `rgba(${rgb},.95)`; ctx.fillText(c.ms + " ms", x0 + wd / 2, y0 + h + 6 + 14 * DPR()); }
   }
+  ctx.textAlign = "left";
   let a = 0; while (a < n - 1 && sx(L.path[a].x) < 0) a += 8;
   for (let i = Math.max(0, a - 8); i < n - 1 && sx(L.path[i].x) < W; i++) {
     if (!L.held[i]) continue;
@@ -834,6 +861,7 @@ async function shootRun() {
   if (art) { await artLoad(); await GD.ART_LIB.preload(); }
   resize();
   const lv = job.level;
+  window.SHOOT_MAP = !!job.map; window.SHOOT_INPUT = !!job.input; // a map draws its own path, no button strip: no windows to work out
   load(lv.name, lv.levelStr, lv.solution || null, null);
   // a run the sim cannot finish (2.2 levels it does not model yet) goes on as a ghost: same speed, height
   // held, so the camera keeps moving through the level as in the game (job.ghost false: stop at the death)
