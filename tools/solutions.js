@@ -10,7 +10,7 @@
 // Each carries `physics` (the commit of lib/physics.js / lib/objects*.js it was solved on): after a
 // physics change, get() treats older ones as stale and they are solved again.
 // --all: solve every repo level that has none yet (one at a time; heavy levels take minutes).
-// Each also carries `plan` (the commit of lib/natural.js). When only the plan is older, or the physics
+// Each also carries `plan` (the last commit of lib/natural.js or lib/difficulty.js: the route planner and its humanCost judge). When only the plan is older, or the physics
 // is older but the saved inputs still finish the level, solve() re-plans from them (a few seconds)
 // instead of solving again; --all does that for every repo level.
 // Each beaten one also carries `windows` -- every input's timing window (lib/windows.js, a player's window):
@@ -39,7 +39,7 @@ function physicsCommit() {
 let PLAN = null;
 function planCommit() {
   if (PLAN === null) {
-    try { PLAN = require("child_process").execSync("git log -1 --format=%h -- lib/natural.js", { cwd: path.join(__dirname, ".."), encoding: "utf8" }).trim(); } catch (e) { PLAN = ""; }
+    try { PLAN = require("child_process").execSync("git log -1 --format=%h -- lib/natural.js lib/difficulty.js", { cwd: path.join(__dirname, ".."), encoding: "utf8" }).trim(); } catch (e) { PLAN = ""; }
   }
   return PLAN;
 }
