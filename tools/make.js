@@ -23,6 +23,8 @@
 //            (e.g. "hell") -> skins only, the look comes from its colours
 //   "colours": {"bg": [r,g,b], "ground": [r,g,b], ...}   start colours in the header
 //   "art": {"bg": n, "ground": n}                        background / ground art numbers
+//   "decoDensity": [[fromCol, share], ...]   classic style: share of free columns with ground
+//                          decoration from that column on (default 0.25; compose.js sets it per section)
 //   "indicators": {"id": N}   a jump indicator (chevron) above every cube jump from the ground,
 //                          placed from the solver's run (tools/decorate.js jumpIndicators)
 //
@@ -180,7 +182,9 @@ function build(spec, specFile = "spec") {
   if (spec.style === "classic") {
     deco.skinBlocks(objects);
     const end = Math.max(...objects.map(o => o.x)) / 30 + 4;
-    objects.push(...deco.groundDeco(objects, end, spec.seed || 7));
+    const dd = (spec.decoDensity || []).slice().sort((a, b) => a[0] - b[0]);
+    const densityAt = c => { let v = 0.25; for (const [from, share] of dd) if (c >= from) v = share; return v; };
+    objects.push(...deco.groundDeco(objects, end, spec.seed || 7, densityAt));
   }
   const level = { header, objects };
   const rec = GD.newRecord(spec.name, spec.desc || "made by GDLevelMaker");
@@ -211,6 +215,9 @@ function make(specFile, specObj) {
     for (const p of bad) console.log(`   PREJUMP at block ${p.from.toFixed(1)}-${p.to.toFixed(1)}: jump ${p.lead.toFixed(1)} blocks before ${p.cue} at ${p.cueAt.toFixed(1)}`);
     console.log(bad.length ? `   NOT sight-readable: ${bad.length} prejump(s)` : "   sight-readable: every press is cued by what is right in front");
   }
+  // save the solution (natural replay) so the viewer and the phone replay it, not solve it again
+  // r: the check's solve (indicators have no hitbox, so it still holds)
+  try { const L2 = require("./io.js").readGdlvl(out); require("./solutions.js").fromRun(L2.level, L2.levelStr, r); } catch (e) { console.log("   (solution not saved: " + e.message + ")"); }
   buildIndex();
   return { out, r };
 }
@@ -279,4 +286,4 @@ if (require.main === module) {
   if (!specs.length) { console.log("usage: node tools/make.js specs/<name>.json [...]"); process.exit(1); }
   for (const s of specs) make(s);
 }
-module.exports = { make, build, slug, TYPES };
+module.exports = { make, build, slug, TYPES, songOf, gridOf };

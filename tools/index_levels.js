@@ -28,7 +28,9 @@ function buildIndex() {
       if (!f.endsWith(".gdlvl")) continue;
       const file = path.join(d, f);
       const L = readGdlvl(file);
-      list.push({ name: L.name, file: dir + "/" + f, level: L.levelStr, song: songOf(L.rec, L.level.header) });
+      // the saved solution (tools/solutions.js), so the viewer and the phone replay it instead of solving
+      let solution; try { solution = require("./solutions.js").get(L.levelStr) || undefined; } catch (e) {}
+      list.push({ name: L.name, file: dir + "/" + f, level: L.levelStr, song: songOf(L.rec, L.level.header), solution });
     }
   }
   const local = [];
