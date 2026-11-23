@@ -1,4 +1,5 @@
 // node tools/install.js <level.gdlvl> [...] [--save <path>] [--dry]
+// node tools/install.js <level.gdlvl> --slot phone [--ids <phone_ids.json>]   (the phone slot, PUBLISH.md)
 //
 // Puts levels straight into the game's save (Windows: %LOCALAPPDATA%\GeometryDash\CCLocalLevels.dat)
 // so they appear at the top of Create -> My Levels. A level with the same name is replaced in
@@ -93,7 +94,33 @@ function main() {
   const parts = splitLevels(xml);
   if (joinLevels(parts) !== xml) throw new Error("save did not split/join cleanly; refusing to touch it");
 
-  for (const f of files) {
+  // --slot phone: put the level into the save record that holds the slot's online ID (PUBLISH.md),
+  // named "GDLM phone: <name>", so Share updates that one upload instead of making a new level.
+  const sl = args.indexOf("--slot");
+  const slotName = sl >= 0 ? args[sl + 1] : null;
+  const ii = args.indexOf("--ids");
+  const idsFile = ii >= 0 ? args[ii + 1] : path.join(__dirname, "..", "local", "phone_ids.json");
+  let slotDone = null;
+  if (slotName) {
+    if (files.length !== 1) { console.log("--slot takes exactly one level"); process.exit(1); }
+    const ids = JSON.parse(fs.readFileSync(idsFile, "utf8"));
+    const slot = ids.slots && ids.slots[slotName];
+    if (!slot) { console.log(`no slot "${slotName}" in ${idsFile}`); process.exit(1); }
+    const at = parts.items.findIndex(it => (entry(it.inner, "k1") || "").includes(`<i>${slot.id}</i>`));
+    if (at < 0) { console.log(`no level with online ID ${slot.id} in the save. GD writes the ID when it exits after the upload; close GD once, then retry.`); process.exit(4); }
+    const rec = unpack(fs.readFileSync(files[0], "utf8"));
+    let inner = rec.match(/<plist[^>]*><dict>([\s\S]*)<\/dict><\/plist>/)[1];
+    const own = nameOf(inner), was = nameOf(parts.items[at].inner);
+    const name = `GDLM phone: ${own.replace(/^GDLM\s+/, "")}`;
+    inner = inner.replace(/<k>k2<\/k><s>[^<]*<\/s>/, `<k>k2</k><s>${name}</s>`);
+    const kept = keepOnline(parts.items[at].inner, inner);
+    parts.items.splice(at, 1);
+    parts.items.unshift({ key: "", inner: kept.inner });
+    console.log(`slot "${slotName}" (online ID ${slot.id}): "${was}" -> "${name}", now at the top of My Levels. Share it (with the user's yes) to update the upload.`);
+    slotDone = { ids, slot, entry: { level: own, name, file: files[0].replace(/\\/g, "/"), installed: new Date().toISOString().slice(0, 10), shared: null } };
+  }
+
+  for (const f of slotName ? [] : files) {
     const rec = unpack(fs.readFileSync(f, "utf8"));
     const inner = rec.match(/<plist[^>]*><dict>([\s\S]*)<\/dict><\/plist>/)[1];
     const name = nameOf(inner);
@@ -118,5 +145,12 @@ function main() {
   fs.copyFileSync(save, backup);
   fs.writeFileSync(save, enc);
   console.log(`written. backup: ${backup}`);
+  if (slotDone) {
+    const { ids, slot, entry: e } = slotDone;
+    (slot.history = slot.history || []).push(slot.holds);
+    slot.holds = e;   // "shared": null until it is re-shared in GD; set it then (PUBLISH.md)
+    fs.writeFileSync(idsFile, JSON.stringify(ids, null, 2) + "\n");
+    console.log(`${idsFile}: slot "${slotName}" now holds ${e.level} (not shared yet)`);
+  }
 }
 main();

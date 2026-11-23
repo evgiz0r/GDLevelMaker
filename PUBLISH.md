@@ -2,11 +2,11 @@
 
 The user's phone runs GD where file import is blocked (Geode doesn't support their version), so a
 level reaches the phone as an **unlisted upload from the PC game**, found on the phone by
-Search -> its level ID. IDs so far: `local/phone_ids.json` (level, ID, version, date).
+Search -> its level ID. The slot and what it holds: `local/phone_ids.json`.
 
 | level | ID | version | date |
 |---|---|---|---|
-| GDLM 44 hellgate | 152848491 | v10 (16e82a4) | 2026-11-23 |
+| GDLM 44 hellgate (the phone slot since, see below) | 152848491 | v10 (16e82a4) | 2026-11-23 |
 
 ## Rule: every upload needs the user's yes
 
@@ -50,6 +50,27 @@ say so in the question.
 
 Found: GD 2.2 accepted the upload of a level still marked **Unverified** (GDLM 44). So the user
 doesn't have to beat a level before it can go to the phone.
+
+## The phone slot: one online ID, whatever level is being played
+
+The user (2026-11-23): "replace that level with a new version and that will be the place holder for
+this level". So ID **152848491** is the single phone slot: the server never holds more than this one
+AI level. Whatever the user wants on the phone next goes into that ID:
+
+1. Close GD (ask the user; never kill it). It must have exited once since the last upload, or
+   the save doesn't hold the ID yet, and install.js stops with exit code 4.
+2. `node tools/install.js levels/<name>.gdlvl --slot phone` puts the level into the save record that
+   holds the ID (keeping k1/k16/k60), renames it "GDLM phone: <name>", moves it to the top of
+   My Levels, and records it in `local/phone_ids.json` (`slots.phone.holds`, the old one into
+   `history`, `shared: null`).
+3. Open GD -> My Levels -> "GDLM phone: ..." -> share button -> check Unlisted is still ticked ->
+   the user's yes -> Share/Update. Then set `holds.shared` to the date in phone_ids.json.
+4. On the phone: search 152848491 again. The phone may keep the old download; open the level page
+   and download it again.
+
+Open: GD locks a shared level's name ("You cannot change the name once it is shared"). Whether
+the server takes the new "GDLM phone: ..." name on an update hasn't been seen yet. Check the name
+the phone shows after the first slot update and write it here.
 
 ## Updating a level that is already on the phone (same ID)
 
