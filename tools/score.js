@@ -158,6 +158,19 @@ function scoreLevel(level, brief, opts = {}) {
     }
   }
 
+  // orbs you can buffer, no jumps over nothing (physics, from the user: "usually with orbs, when possible, we
+  // want to buffer"; stairs and step-downs are walked off, not jumped). lib/natural.js on the player's route:
+  // an orb only a precise mid-orb click takes, a cube jump from the ground over nothing. WARN.
+  if (r.ok && natural()) {
+    const N = require("../lib/natural.js"), ev = natural().events;
+    try {
+      const ub = N.unbufferedOrbs ? N.unbufferedOrbs(w, ev) : [];
+      gate("orb buffer", ub.length ? "WARN" : "PASS", ub.length ? `${ub.length} orb(s) that only a precise click takes` : "every orb can be buffered", ub.map(o => `block ${(o.x / 30).toFixed(0)}`).join("; "));
+      const pj = N.pointlessJumps ? N.pointlessJumps(w, ev) : [];
+      gate("pointless jumps", pj.length ? "WARN" : "PASS", pj.length ? `${pj.length} jump(s) over nothing` : "no jumps over nothing", pj.map(j => `block ${(j.x / 30).toFixed(0)}${j.down ? " (off a step)" : ""}`).join("; "));
+    } catch (e) { /* older natural.js */ }
+  }
+
   // hazards matter: every hazard either needs an action or clearly reads as scenery (the user on GDLM 47
   // ~18.7 s, slabs over spike pairs crossed without a jump: "dunno if we have to jump or not, simulation
   // says we don't but then there is no point in those spikes"). On the player's route (lib/natural.js):

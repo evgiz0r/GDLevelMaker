@@ -3,7 +3,7 @@
 # GD would fill them (deco square 211 = a plain rectangle in its channel colour; GD pieces -- chain 110,
 # cogwheel 85 -- as simple stand-ins), with name, object count, size and attach point under it.
 # Art-free (no GD sprites): fine for the phone and for committing. The GD-art version: tools/props.js gdsheet.
-import json, sys, math
+import math, json, sys, math
 from PIL import Image, ImageDraw, ImageFont
 
 job = json.load(open(sys.argv[1], encoding="utf8"))
@@ -36,7 +36,12 @@ for i, c in enumerate(cells):
         X, Y = base_x + (o["x"] - cx) * s, base_y - (o["y"] - cy) * s
         if o["id"] == 211:
             w, h = 15 * sx * s, 15 * sy * s
-            d.rectangle([X - w, Y - h, X + w - 1, Y + h - 1], fill=col)
+            a = math.radians(float(o.get("rot", 0) or 0))   # GD rotation: clockwise in degrees
+            if a:
+                ca, sa = math.cos(a), math.sin(a)
+                d.polygon([(X + dx * ca - dy * sa, Y + dx * sa + dy * ca) for dx, dy in ((-w, -h), (w, -h), (w, h), (-w, h))], fill=col)
+            else:
+                d.rectangle([X - w, Y - h, X + w - 1, Y + h - 1], fill=col)
         elif o["id"] == 85:  # cogwheel stand-in: a toothed disc
             r = 35 * sx * s
             for k in range(12):
