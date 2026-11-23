@@ -1,4 +1,6 @@
-// node tools/make.js specs/<name>.json [--look]  -> levels/<name>.gdlvl, checked, and added to the viewer
+// node tools/make.js specs/<name>.json [--look] [--full]  -> levels/<name>.gdlvl, checked, and added to the viewer
+//   an existing level with a saved route is re-solved only where the spec changed it (lib/incsolve.js);
+//   --full: solve the whole level
 //   --look: decoration-only change: keep the last solve if the gameplay is the same (see lookOnly)
 //
 // A spec is written in grid squares, not GD units: column 0 is where the player starts,
@@ -420,8 +422,15 @@ function make(specFile, specObj) {
   const { level, rec, ctx, objects, header } = build(spec, specFile);
   const out = path.join(__dirname, "..", "levels", slug(spec.name) + ".gdlvl");
   if (LOOK_ONLY && lookOnly(out, rec, level, spec)) return { out, r: { ok: true } };
+  // the previous build and its saved route: an edit re-solves only what it changed (lib/incsolve.js,
+  // PHYSICS.md "Incremental solving"); --full solves the whole level
+  let base = null;
+  if (!process.argv.includes("--full") && fs.existsSync(out)) try {
+    const old = require("./io.js").readGdlvl(out), sol = require("./solutions.js").get(old.levelStr, true);
+    if (sol && sol.ok && sol.events && sol.events.length) base = { level: old.level, levelStr: old.levelStr, events: sol.events };
+  } catch (e) { /* no base: solve whole */ }
   writeGdlvl(out, rec, level);
-  let r = report(out);
+  let r = report(out, { base });
   if (spec.indicators && r.ok) {
     // jump indicators come from the solved run, so they go in after the first check (no hitbox:
     // the solution does not change); then the file is written again. Without the arrow's id yet,
@@ -550,7 +559,7 @@ function beatReport(objects, header, r, ctx) {
 }
 
 if (require.main === module) {
-  const specs = process.argv.slice(2).filter(a => a !== "--look");
+  const specs = process.argv.slice(2).filter(a => a !== "--look" && a !== "--full");
   if (!specs.length) { console.log("usage: node tools/make.js specs/<name>.json [...]"); process.exit(1); }
   for (const s of specs) make(s);
 }

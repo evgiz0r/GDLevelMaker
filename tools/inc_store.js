@@ -2,6 +2,7 @@
 //   local/incsolve/sections/<entry key>.json   cached route sections (lib/incsolve.js sectionRecord), a list per key
 //   local/solutions/lv/<level hash>.gz         the level a saved solution was solved on, so a later edit of that
 //                                              level can be diffed against it (tools/solutions.js keeps it)
+//   local/solutions/wc/<level hash>.json.gz    difficulty's window cache of that level (lib/difficulty.js export)
 //   local/solutions/names.json                 level name -> the hashes of its saved solutions, newest last
 // require("./inc_store.js").sections() is the store lib/incsolve.js's cache functions take.
 const fs = require("fs"), path = require("path"), zlib = require("zlib");
@@ -36,4 +37,9 @@ function loadLevel(hash) { try { return zlib.gunzipSync(fs.readFileSync(path.joi
 // the hashes saved under a level name, newest last
 function byName(name) { try { return JSON.parse(fs.readFileSync(NAMES, "utf8"))[name] || []; } catch (e) { return []; } }
 
-module.exports = { sections, saveLevel, loadLevel, byName, SEC, LV };
+// difficulty's window cache of a solved level (GD.exportWindowCache), by level hash: ~1 KB per input, gzip
+const WC = path.join(ROOT, "solutions", "wc");
+function saveWindowCache(hash, data) { try { fs.mkdirSync(WC, { recursive: true }); fs.writeFileSync(path.join(WC, hash + ".json.gz"), zlib.gzipSync(Buffer.from(JSON.stringify(data)))); } catch (e) { /* a cache */ } }
+function loadWindowCache(hash) { try { return JSON.parse(zlib.gunzipSync(fs.readFileSync(path.join(WC, hash + ".json.gz"))).toString("utf8")); } catch (e) { return null; } }
+
+module.exports = { sections, saveLevel, loadLevel, byName, saveWindowCache, loadWindowCache, SEC, LV, WC };
