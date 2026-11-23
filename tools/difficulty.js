@@ -50,6 +50,11 @@ function scoreOfficial(n, sigma) {
     v.solution = Object.assign({}, v.solution, { events: d.events, rerouted: d.rerouted });
     fs.writeFileSync(vf, JSON.stringify(v));
   }
+  // cache what was scored (local/difficulty/scored_NN.json), so a change to the chance model (SIGMA,
+  // LAPSE, SETTLE) can be re-checked without re-measuring windows: node tools/difficulty.js --cached
+  fs.writeFileSync(path.join(OUT, `scored_${String(n).padStart(2, "0")}.json`), JSON.stringify({
+    n, physics: sol.physics || null, scoredAt: new Date().toISOString(), seconds: d.seconds, complete: d.complete, blocks: d.blocks,
+    actions: d.actions.map(a => ({ tick: a.tick, type: a.type, ms: a.ms, x: Math.round(a.x), mode: a.mode, afterSwitchMs: a.afterSwitchMs })) }));
   return Object.assign(d, { n, sol, levelBlocks: w.endX / 30 });
 }
 
