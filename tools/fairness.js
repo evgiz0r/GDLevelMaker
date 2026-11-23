@@ -72,7 +72,7 @@ function analyse(w, sol) {
   const held = new Array(P.length).fill(false);
   { let h = false, j = 0; const ev = d.events.slice().sort((a, b) => a.tick - b.tick);
     for (let t = 0; t < P.length; t++) { while (j < ev.length && ev[j].tick === t) { h = ev[j].type === "press"; j++; } held[t] = h; } }
-  const clone = st => { const c = Object.assign({}, st); c.used = st.used.slice(); if (Array.isArray(st.prev)) c.prev = st.prev.slice(); return c; };
+  const clone = st => { const c = { ...st }; c.used = st.used.slice(); if (Array.isArray(st.prev)) c.prev = st.prev.slice(); return c; };
   // strict window of one input: shift it (a tap moves whole), keep every other input, live 1 s on
   const strict = a => {
     const span = a.type === "tap" ? (a.dur || 1) : 0, A0 = a.tick;

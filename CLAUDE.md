@@ -142,10 +142,11 @@ half), correct the row here in the same change. Real numbers pile up in `local/t
 
 | job | how long | source |
 |---|---|---|
-| make, short cube level (15-20 s) | 15-30 s | loop.js, GDLM 02 / 41, 2026-11-23 |
+| make, short cube level (15-20 s) | 15-30 s (the solve itself ~2 s since the state-copy fix) | loop.js, GDLM 02 / 41, 2026-11-23 |
 | make `--look` (decoration only, gameplay unchanged) | ~1 s | showcase notes, GDLM 50 |
-| make, an existing level after a one-spot edit (incremental) | cube: ~1 s when it rejoins, else like a full make; with modes: being measured | PHYSICS.md "Incremental solving" |
-| make (= the solve), 40-100 s level with ship / wave / ball | 5-7 min | PHONE.md (GDLM 45 ~5 min), SHOWCASE.md (GDLM 50 ~7 min) |
+| make, an existing level after a one-spot edit (incremental) | 1-5 s in cube or ball; an edit inside or just before a ship stretch 25-65 s (the stretch is re-planned) | PHYSICS.md "Incremental solving", cloud 2026-11-23 |
+| cut or join of solved levels (section cache) | 0.5-10 s (full: 1-70 s) | PHYSICS.md "Incremental solving" |
+| make (= the solve), 40-100 s level with ship / wave / ball | ~2 min since the state-copy fix (was 5-7 min) | GDLM 45 106 s, GDLM 61 124 s (cloud, 2026-11-23); before: PHONE.md, SHOWCASE.md |
 | score.js, every gate, short cube level | 10-20 s | loop.js, GDLM 02 / 41 |
 | score.js, level with modes | ~2 solves + ~1 min fairness: 10-15 min | score.js header; not timed yet |
 | compose.js (brief, repair rounds) | one make + score per round | not timed yet |
@@ -288,6 +289,8 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   kept where nothing changed. Saved routes carry `checkpoints`; `tools/inc_store.js` keeps the old levels and
   sections in `local/`. make.js uses it on an existing level (`--full`: the old way). Study:
   `node tools/incsolve.js study|cutjoin|profile <level>`; test: `node tests/incsolve.js [--quick]`.
+  **Copy a sim state with `{ ...s }`, never `Object.assign({}, s)`** (V8 makes the latter a slow dictionary object:
+  every solver ran 2-5x slower); `node tests/fast_states.js` checks.
 - `viewer/index.html` -- the replay viewer; `viewer/levels.js` is generated, do not edit.
 - `lib/look.js` -- how a level LOOKS (viewer's "game look", on by default): header colours, colour
   899 / alpha 1007 / zoom 1913 triggers over time, block skins 1-7 outlined by their own edges,

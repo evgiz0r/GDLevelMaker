@@ -471,6 +471,39 @@ at the rejoin), the natural plan (window only) and humanCost (windows carried ov
 | GDLM 41 (cube, 17 s) | spike moved 1 block | 5.7 s (searched to the end) | 6.5 s | 0.276 / 0.311 |
 | GDLM 41 | raised spike moved 1 block | 0.8 s (rejoined after 340 ticks) | 6.2 s | 0.280 / 0.276 |
 | GDLM 45 (ship/wave, 40 s) | spike moved 1 block | 252 s (rejoined; old goal check: 200 s of it) | 268 s | 1.246 / 1.246, same route |
+| GDLM 45, 2026-11-23 cloud, after the speed-ups below | same spike (cube, just before the ship portal) | 25 s (search 1.2 s, rejoined at the ship's end; the rest: humanCost of the new 6.5 s ship stretch) | 106 s | 1.241 / 1.246 |
+| GDLM 45, same | block moved 1 block (ball part) | 4.4 s (search 0.2 s) | 121 s | 1.148 / 1.186 |
+| GDLM 45, same | another block moved (ball part) | 2.1 s (search 0.2 s) | 120 s | 1.148 / 1.186 |
+| GDLM 61 (cube/ship/ball, 72 s), same | block moved 1 block (cube) | 4.4 s | 124 s | 0.928 / 0.928 |
+| GDLM 61, same | hazard moved 1 block up (inside the ship) | 63 s (beam 100 died in 0.2 s; full beam 53 s) | 120 s | 0.908 / 0.935 |
+| GDLM 41, cut (section cache) | cut at x 2662 | 0.5 s (4 sections reused, 1 seam) | 0.7 s | 0.153 / 0.153 |
+| GDLM 41, joined with itself | +5430 | 1.6 s (7 reused) | 5.4 s | 0.566 / 0.556 |
+| GDLM 61, cut | cut at x 11060 | 10 s (12 reused) | 68 s | 1.624 / 1.667 |
+
+**Speed-ups (2026-11-23, the cloud session; every solver gains, not only re-solves):**
+- **State copies were 90x too slow.** On V8 (node 22) `Object.assign({}, state)` of a 20+ field state makes a
+  dictionary-mode object: 5.8 us a copy and slow field reads in every step. `{ ...state }` keeps the fast shape
+  (64 ns). Changed in lib/physics.js `clone`, difficulty.js `cloneS`, natural.js, windows.js, incsolve.js,
+  tools/fairness.js. **Rule: never copy a sim state with Object.assign({}, s); spread it.** GDLM 41 whole solve
+  (search + natural plan + humanCost) 9.0 s -> 1.6 s, the same route (hash) and cost; a cold humanCost of GDLM 45's
+  ship part 31 s -> 11.5 s (with the two below).
+- `near(w, x)` (lib/physics.js) builds each column span's object list once per world (`w._near`); same order.
+- fireTriggers walks every fired trigger each tick for toggles only when the level has a toggle (`T.hasToggle`).
+- `resolve` searches with a narrow beam first (`opts.caps`, default [100, full]): the rejoin is exact and the
+  spliced route is replayed, so a narrow beam risks only a miss (then the full 6000). GDLM 45's ship edit: the
+  same rejoin tick in 1.2 s instead of 113 s.
+- Measured how: `node tools/incsolve.js study ...` rows; `node --cpu-prof` on a humanCost with the ship part's
+  windows removed from the cache (cloneS was 45% of it before).
+
+**Where an edit's time goes now** (GDLM 45): an edit whose effect cannot rejoin inside a flying stretch (a ship
+cannot come back to the old route's exact y and vy mid-air; it rejoins where the stretch ends) re-plans the whole
+stretch: the natural plan costs 4 routes with humanCost, each measuring the stretch's windows (~6 s each for 6.5 s
+of ship). Fewer humanCost calls in a window re-plan (lib/natural.js, physics) or a cheaper window measure in a
+flying stretch (lib/difficulty.js, difficulty) are the next cuts; asked both in this section.
+A beam between 100 and 6000 does not help inside a ship corridor: on GDLM 61's ship edit 200 and 400 die, 800 finds
+a route that costs 0.954 (full solve 0.935, the full beam 0.908): the sweep's ranking keeps the fewest wall-hugs
+and presses, so a narrow beam loses the heights that get through. A beam that keeps the best state per height band
+(solveSweep, physics) would let a narrow search work in flying stretches too.
 
 **Open:** the rejoin search on flying stretches keeps thousands of states a tick (the goal check now compares a few
 raw fields first); humanCost on a new world in a new process starts cold until the window cache is saved with the
@@ -493,22 +526,23 @@ window cache with every route; `solve` tries `refresh` before a full solve. tool
 (fixed since: the goal compares raw fields first, NOT yet re-measured) and 50 s humanCost on a cold world (fixed
 since: window cache carried, NOT yet re-measured). No row yet for GDLM 61, cuts or joins (`cutjoin` never ran).
 
+**Done 2026-11-23 (cloud):** items 1-3 of the old list: GDLM 45 and 61 re-measured, cut/join measured, tests/incsolve.js
+passes (3 GDLM 41 edits within 0.02 of full). The table above has the rows. Every incremental result passed and
+cost at most full + 0.01 (most cost less: the old human route is kept outside the window).
+
 **Next, in order:**
-1. Re-measure GDLM 45 and 61 with the fixes: `node tools/incsolve.js study levels/gdlm_45_first_flight.gdlvl
-   --edits 1 --seed 3 --no-full` (same edit as the 252 s row; full was 268 s), then `... gdlm_61_lantern_towers.gdlvl
-   --edits 2 --seed 5`. If the rejoin search is still minutes, look at `tries` in the row (ms per backoff, goal
-   checks) and at the sweep's CAP from a mid-level state; if a re-solve does not rejoin, `nojoin` lists the
-   state fields that kept it apart (cube `rot` is the suspect for GDLM 41's first edit).
-2. `node tools/incsolve.js cutjoin levels/gdlm_41_classic.gdlvl` (and 61): section cache vs full for a cut and a
-   self-join. Seams are searched with the goal "a cached section fits here".
-3. `node tests/incsolve.js` (full part: 3 edits of GDLM 41 vs full, cost within 0.02); then widen to GDLM 41-62
-   and a few official levels as the task asks (random edits, cuts, joins: pass/fail must agree, cost within eps).
-4. Fill the time table in CLAUDE.md ("make, an existing level after a one-spot edit") with measured numbers.
-5. Use the rejoin goal in tools/difficulty_solve.js --resume (physics' suggestion: stop early instead of sweeping
-   to the end) -- agree with gd-difficulty / gd-physics first.
+1. Flying-stretch edits (GDLM 45's ship 25 s, GDLM 61's 63 s): fewer humanCost calls in a window re-plan
+   (natural.js `fly`/`plan` cost 4 routes; ask physics), a cheaper window measure in flying modes (ask difficulty),
+   a height-diverse beam in solveSweep (ask physics) so the 100-state first try works in corridors.
+2. Widen the study: `node tools/incsolve.js study <level> --edits 3 --seed N` over every level in levels/ and
+   examples/ (cube ones are seconds now; mode ones ~2 min each for the base solve, then the full solve per edit).
+3. Fill the time table in CLAUDE.md as rows come in (done for what is measured).
+4. Use the rejoin goal in tools/difficulty_solve.js --resume (physics' suggestion) -- agree with gd-difficulty /
+   gd-physics first.
 
 **Cloud notes:** local/ is not there, so no saved solutions, checkpoints, sections or window caches: `study` and
-the test solve the base level fully first (minutes for mode levels) and say so; use only the levels in git
+`cutjoin` solve the base level fully first (1-2 min for a mode level since the speed-ups) and save it as make.js
+would, so the next run of either starts from it; use only the levels in git
 (levels/, examples/). The heavy lock (tools/heavy.js) still applies inside the tools.
 
 **Agreements:**
