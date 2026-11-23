@@ -226,6 +226,11 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   **The user's notes as soft rules, swept over every level**: `node tools/softrules.js [level ...]`
   (jump arrows a block in front of hazards, corridor mouths flush, flash rate; score.js gate `arrows`).
   Owner: the showcase session.
+- **The section planner: a song -> a journey of little places** (SCENES.md: the rules, theme packs,
+  what a rated illustrated level does): `node tools/scenes.js <song> [--theme ...] [--brief ...]` -- per
+  section its role (intro/groove/build/drop/ride/breather/outro), place, palette, mode, transition,
+  camera, props; `--brief` writes a compose brief. Owner: the showcase session; props from the gd-art
+  session's `tools/props.js`.
 - **`tools/heavy.js` -- the one-heavy-job lock** every heavy tool takes on start (see "One heavy job at
   a time"). Test: `node tests/heavy.js`.
 - **`tools/loop.js` -- the whole make/iterate loop in one command** (owner check, ETA, make/compose, score,
