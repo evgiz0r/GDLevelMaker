@@ -33,6 +33,14 @@ not after it:
   your last round). A new lesson goes in as one line of the checklist in the same commit, and as a
   `make.js`/`score.js` check where possible -- code beats docs. `tools/wip.js` stamps each note
   with the checklist commit it was built against.
+- **Every note from the user is a soft rule, not a spot fix.** (The user, 2026-11-23: "i obviously
+  want each fix to be somewhat a soft rule. and reapplied across the level and anything in the
+  future.") When the user marks one jump, orb or patch, name the family it belongs to (e.g. "a
+  spike with a step right after it", "an orb off its structure's centre"), write it as one line in
+  `knowledge/checklist.md`, turn it into a scored check (a warning with a threshold, or a ranking
+  penalty -- soft: a level may break it with a stated reason, not silently), sweep every existing
+  level and the structure library for other instances, and make `compose`/`make.js` avoid it in new
+  levels. Reply with the rule and how many other spots it found, not only "fixed".
 - **Hand off.** Before a long pause or when your area changes hands, write where you stopped,
   what is open and the good numbers into your area's doc.
 - **Share, don't duplicate.** Results go into the shared `local/` (see below) so no session redoes
