@@ -161,7 +161,10 @@ The strip, the button band and the click-table rows each cost < 0.03 ms a frame.
 (16.7 ms) with room; the occasional 12-14 ms frame is the first draw after a seek (colour timeline, sprite tints).
 What was made smooth: the replay used to take the song's AudioContext clock as its time every frame; that clock
 moves in steps (a render quantum, ~3-10 ms), so the motion stuttered. Now it advances by frame time and pulls a
-tenth of the gap to the song clock a frame. Not measured yet: real frame rate with the pane visible (the
+tenth of the gap to the song clock a frame. **light** (header button, remembered): GD art and beat lines off in one press, for a slow moment.
+`node tools/perf.js <level as #lv=> [--at s] [--secs n]` measures playback with real animation frames in headless
+Edge (no GPU: a worst case) in three setups -- GD art + beats, shapes + beats, light -- via the viewer's ?perf=
+mode (POST /perf -> local/perf/). Not measured yet: real frame rate with the pane visible (the
 browser pane here was hidden, so no animation frames ran) and on the phone -- read them with F.
 
 ## Facts (checked against the user's recordings)
