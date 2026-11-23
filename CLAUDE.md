@@ -172,8 +172,8 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 - **The user's drawings -> levels** (SKETCH.md: reading a drawing into a spec, then making it fair;
   the GDLM 46 lessons).
 - **Levels onto the phone** (PUBLISH.md: unlisted upload from the PC game with computer use, where
-  the buttons are, GD must be windowed, the user's yes before each upload; IDs in
-  `local/phone_ids.json`). `tools/install.js` keeps a shared level's online ID on re-install, so
+  the buttons are, GD must be windowed, the user's yes before each upload; ONE phone slot,
+  ID 152848491, filled with `install.js <lvl> --slot phone`, in `local/phone_ids.json`). `tools/install.js` keeps a shared level's online ID on re-install, so
   Share again updates the same upload (`tests/install_keeps_id.js`).
 - `examples/` -- levels the user made in the game, for reference and as format ground truth.
 
