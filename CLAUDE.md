@@ -58,6 +58,10 @@ not after it:
   must not be published: other people's levels and RobTop's data/art, songs, the user's recordings
   and save, and private details (`local/`). If something can't be pushed (a blocked permission, a
   failing check), say so in your report instead of leaving it local.
+- **Viewer first, always.** The user (2026-11-24): "i want to see in the viewer first always". Every new
+  level or version goes to the viewer (in-progress list, and the phone page) first. Never install into GD,
+  queue an install or upload until the user has seen it there and says "install" (or "upload") for it. When
+  you report a build, name what to look at in the viewer.
 - **Hand off.** Before a long pause or when your area changes hands, write where you stopped,
   what is open and the good numbers into your area's doc.
 - **Share, don't duplicate.** Results go into the shared `local/` (see below) so no session redoes
