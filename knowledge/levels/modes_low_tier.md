@@ -58,3 +58,5 @@ Column meanings:
 - Ship: a ~7-block opening, mostly open flight. Wave: ~6 blocks. UFO: ~6 blocks.
 - 4-6 s per section.
 - Cross-check the timing against the DIFFICULTY.md "Tier ladder".
+- Check a level section by section against these numbers: `node tools/tiercheck.js <level> --tier Easy`
+  (deciles in `tier_ref.json`, made by `node tools/community.js ref`).
