@@ -144,12 +144,13 @@ const colAt = entry => entry[0] === "pattern" ? 2 : 1;
 // launch: the cube passes through the orb's centre and is slowest there, so a press in the middle (or
 // a held button) takes it. Simulated in an empty world (lib/physics.js) at the level's speed; the spike
 // pit runs from the pattern's column to one column before the landing.
-function arcOrbs(name, col, args, header, specFile) {
+function arcOrbs(name, col, args, header, specFile, speedPortals = []) {
   const n = name === "orb-pit" ? 1 : (args.n || (args.rows || [2, 3, 4]).length);
   const orbType = args.orb || "yellow orb";
   const end = toObj(["block", col + 80, 12], specFile);   // the world's end, out of the way
   const orbs = [];
-  const world = () => GD.makeWorld(orbs.concat([end]), header);
+  // the level's speed portals come along, so an orb chunk in a 2x part gets its 2x arc
+  const world = () => GD.makeWorld(orbs.concat(speedPortals, [end]), header);
   // the takeoff: half a column before the pit
   const p0 = GD.run(world(), []).path;
   let t = p0.findIndex(p => p.x >= col * 30 - 20);
@@ -218,7 +219,7 @@ function build(spec, specFile = "spec") {
     const col = toCol(entry[colAt(entry)], ctx, tl);
     const [type, , row] = entry;
     if (speedObj.has(entry)) objects.push(speedObj.get(entry));
-    else if (type === "pattern" && /^orb-(ladder|pit)$/.test(entry[1]) && !(entry[4] || {}).fixed && !entry[3]) objects.push(...arcOrbs(entry[1], col, entry[4] || {}, header, specFile));
+    else if (type === "pattern" && /^orb-(ladder|pit)$/.test(entry[1]) && !(entry[4] || {}).fixed && !entry[3]) objects.push(...arcOrbs(entry[1], col, entry[4] || {}, header, specFile, placed));
     else if (type === "pattern") { for (const e of expand(entry[1], col, entry[3], entry[4], entry[5])) objects.push(toObj(e, specFile)); }
     else if (type === "colour") { const a = entry[2]; objects.push(deco.colourTrigger(col, a.ch, a.rgb, a.secs ?? 0.5)); }
     else if (type === "fade") { const a = entry[2]; objects.push(deco.fadeTrigger(col, a.group, a.to ?? 0, a.secs ?? 0.2)); }
@@ -254,6 +255,12 @@ function build(spec, specFile = "spec") {
     objects.push(...kit.parallax(secs, { speed }));
     if (ctx.grid) objects.push(...kit.beatPulses(secs, ctx.grid, { speed, songOffset: spec.offset || 0, xOfT: t => GD.SYNC.xOfT(tl, t) }));
   }
+  if (spec.signature) {   // tools/signature.js: robot + human, "Made by Claude (and some humans)"
+    const sig = require("./signature.js"), secs = (spec.modern && spec.modern.sections) || [];
+    const li = secs.length - 1, CH0 = 20;
+    objects.push(...sig.signature(Object.assign({ col: spec.signature.col, floorY: 0 },
+      li >= 0 ? { channels: { accent: CH0 + 2 * li, light: CH0 + 2 * li + 1 } } : {})));
+  }
   if (spec.style && spec.style !== "classic") deco.skinBlocks(objects); // e.g. "hell": outlined blocks, no ground decoration
   if (spec.style === "classic") {
     deco.skinBlocks(objects);
@@ -263,7 +270,9 @@ function build(spec, specFile = "spec") {
     objects.push(...deco.groundDeco(objects, end, spec.seed || 7, densityAt));
   }
   const level = { header, objects };
-  const rec = GD.newRecord(spec.name, spec.desc || "made by GDLevelMaker");
+  let desc = spec.desc || "made by GDLevelMaker";
+  if (spec.signature) desc = require("./signature.js").describe(desc);
+  const rec = GD.newRecord(spec.name, desc);
   if (song && song.k45) GD.setField(rec, "k45", "i", song.k45);
   if (song && song.k8) GD.setField(rec, "k8", "i", song.k8);
   return { level, rec, ctx, objects, header };

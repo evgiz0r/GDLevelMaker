@@ -35,7 +35,9 @@
 // 4/8-bar phrases. The look of a section: "bg", "ground", "line", "obj" colours (changed on its first
 // beat, `secs` fade), "flash": true (the background flashes bright on that beat, for a drop), and
 // "deco": share of free columns with ground decoration (default 0.25; 0 for a bare, calm break).
-// "sectionwise": true in the brief (default for levels over 90 s) scores each section on its own
+// "palette": "light" (a happy level: pastel block fills, nothing dark; pair it with "art": {"bg": 13}, the
+// flat white background texture that shows its colour as set -- the default art 1 turns bright colours
+// muddy, measured over the game's 59 bg textures). "sectionwise": true in the brief (default for levels over 90 s) scores each section on its own
 // (the rest of the level left out; every section starts and ends as a cube on the ground) and keeps
 // the scores of unchanged sections, so a repair round re-solves only what it changed; the whole
 // level is scored once at the end.
@@ -69,14 +71,24 @@ function beatColumns(brief) {
   const ups = PH.SPEEDS[sp].x * 60;
   return b => (SY.SYNC.beatToTime(grid, brief.offset || 0, b) * ups - 15) / 30;
 }
+const SPEED_IX = { "0.5x": 0, "1x": 1, "2x": 2, "3x": 3, "4x": 4 };
+const upsOf = sp => PH.SPEEDS[SPEED_IX[sp || "1x"] ?? 1].x * 60;
+// a section's speed: its own "speed", else the one before it, else the brief's
+function speedsOf(brief) { let cur = brief.speed || "1x"; return brief.sections.map(s => (cur = s.speed || cur)); }
 function sectionBlocks(brief) {
   if (!brief.sections.some(s => s.beats)) return brief.sections.map(s => s.blocks);
-  const colOf = beatColumns(brief);
-  let b = 1, prev = 0;
-  return brief.sections.map(s => {
-    if (!s.beats) { prev += s.blocks; return s.blocks; }
+  const { songOf, gridOf } = require("./make.js");
+  const grid = brief._grid || (brief._grid = brief.grid ? gridOf(brief) : gridOf(brief, songOf(brief)));
+  const sp = speedsOf(brief);
+  // each section runs from its first beat to the next section's, at its own speed (speed portals on
+  // its first column), so every boundary stays on its beat whatever the speeds
+  let b = 1, t = 0, x = -15, prev = 0;
+  return brief.sections.map((s, i) => {
+    if (!s.beats) { prev += s.blocks; x += s.blocks * 30; t += s.blocks * 30 / upsOf(sp[i]); return s.blocks; }
     b += s.beats;
-    const next = Math.round(colOf(b)), n = next - prev;
+    const t1 = SY.SYNC.beatToTime(grid, brief.offset || 0, b);
+    x += (t1 - t) * upsOf(sp[i]); t = t1;
+    const next = Math.round(x / 30), n = next - prev;
     prev = next;
     return n;
   });
@@ -87,8 +99,9 @@ function compose(brief, tweaks = {}) {
   const objects = [], placed = [], ranges = [], deco = [], firsts = [], looks = [];
   const seen = new Set();
   let col = 0, prevFlying = false, flyEnd = -99;
-  const lens = sectionBlocks(brief);
+  const lens = sectionBlocks(brief), speeds = speedsOf(brief);
   const total = lens.reduce((a, n) => a + n, 0);
+  let lastSpeed = brief.speed || "1x", h = 0;
   for (const [si, sec0] of brief.sections.entries()) {
     const sec = Object.assign({}, sec0, { blocks: lens[si] });
     const start = col, end = col + sec.blocks, i0 = objects.length;
@@ -100,11 +113,15 @@ function compose(brief, tweaks = {}) {
         objects.push(["colour", at + 0.5, { ch: "bg", rgb: sec.bg, secs: 0.6 }]);
       } else objects.push(["colour", at, { ch, rgb: sec[ch], secs: sec.secs ?? (sec0.beats ? 0.4 : 1) }]);
     }
+    if (speeds[si] !== lastSpeed) {   // a speed portal on the section's first column (above a corridor's own portal)
+      objects.push([speeds[si] + " speed", start, sec.mode && sec.mode !== "upside" ? 5 : 1]);
+      lastSpeed = speeds[si];
+    }
     if (sec.deco != null) deco.push([start, sec.deco]);
     // the modern pass's section (tools/decorate.js modernPass): kind, and colours from the section's bg
     { const bg = sec.bg || (looks.length ? looks[looks.length - 1].bg : [40, 60, 160]);
       const kind = sec.rest ? "rest" : sec.deco === 0 ? "break" : (sec.mode || "cube");
-      looks.push({ from: start, to: end, kind, bg, flash: !!sec.flash, fill: bg.map(v => Math.min(255, Math.round(v * 0.8 + 60))), light: bg.map(v => Math.min(255, v + 110)) }); }
+      looks.push({ from: start, to: end, kind, bg, flash: !!sec.flash, fill: bg.map(v => Math.min(255, Math.round(brief.palette === "light" ? v * 0.45 + 140 : v * 0.8 + 60))), light: bg.map(v => Math.min(255, v + 110)) }); }
     for (const e of sec.objects || []) { const c = e.slice(); c[c[0] === "pattern" ? 2 : 1] += start; objects.push(c); }
     // a mode section right after a corridor: the cube leaves the exit portal in the air, so its own
     // portal comes `land` columns later, once the cube is down (GDLM 45 v5 round 2: the cube fell past
@@ -132,7 +149,7 @@ function compose(brief, tweaks = {}) {
           // 1 above) and 2 at the entry -- with pure 45-degree legs a turn was 13-88 ms (GDLM 44, physics
           // 2026-11-23); aim: every wave input >= ~150 ms at Normal (tools/windows.js)
           const easy = ["Easy", "Normal"].includes((brief.difficulty || {}).label || "Easy"), flat = easy ? 2 : 1, seg = 4;
-          return { seg, flat, lead: 2, legs: Math.max(2, Math.floor((sec.blocks - 5 - land) / (seg + flat))), gap: easy ? 5 : 4, low: 2, slopes: true };
+          return { seg, flat, lead: 3, legs: Math.max(2, Math.floor((sec.blocks - 5 - land) / (seg + flat))), gap: easy ? 5 : 4, low: 2, slopes: true };
         })();
       const args = Object.assign(base, (sec.args || {})[name] || {}, { portal: true, exit: "cube", portalRow: 1 });
       if (t.room) args.gap = (args.gap || 4) + t.room;
@@ -158,6 +175,17 @@ function compose(brief, tweaks = {}) {
       const stop = upside ? end - 9 : end - 3;   // upside: room to read and take the exit portal
       // draw every random choice up front so a tweak to one chunk does not reshuffle the others
       const draws = Array.from({ length: 64 }, () => [rnd(), rnd()]);
+      const tdraws = Array.from({ length: 64 }, () => [rnd(), rnd()]);   // terrain, drawn apart so old levels keep their chunks
+      // block terrain (brief "terrain": true): the floor of a cube section steps between rows 0 and 2
+      // between chunks, so the play is on blocks, ledges and steps, not the bare floor (rated Easy/
+      // Normal: a block in ~47% of cube columns, most spikes by a block; GDLM had 13%:
+      // knowledge/levels/obstacles.md). Orb and pad chunks go back to the ground (their arcs are
+      // placed from it). A step up sometimes has a spike at its foot (a ledge); a step down gets landing
+      // room. The terrain goes back to the ground at the section's end.
+      const terrain = brief.terrain && !upside;
+      let filledTo = c;
+      h = 0;
+      const fill = (from, to, hh) => { for (let cc = from; cc < to; cc++) for (let r = 0; r < hh; r++) objects.push(["block", cc, r]); };
       while (k < 64) {
         const key = `${si}:${k}`, t = tweaks[key] || {};
         const [r1, r2] = draws[k];
@@ -179,16 +207,36 @@ function compose(brief, tweaks = {}) {
         // jump before it has landed and seen it (GDLM 45 v4: a spike-block right past a 3-high stair,
         // the user died there 3 times "cant tell where to jump")
         const drop = last ? endHeight(last, (sec.args || {})[last]) : 0;
-        const gap = gMin + Math.floor(r2 * (gMax - gMin + 1)) + (intro && k > 0 ? 2 : 0) + (t.gap || 0) + (drop >= 2 ? drop + 1 : 0);
-        if (k > 0) c += gap;
+        let gap = gMin + Math.floor(r2 * (gMax - gMin + 1)) + (intro && k > 0 ? 2 : 0) + (t.gap || 0) + (drop >= 2 ? drop + 1 : 0);
+        let newH = h, stepAt = null, ledge = false;
+        if (terrain) {
+          const [t1, t2] = tdraws[k];
+          if (/orb|pad/.test(name)) newH = 0;
+          else if (k > 0 && t1 < 0.55) newH = h === 0 ? 1 : h === 2 ? 1 : (t1 < 0.3 ? 2 : 0);
+          if (newH !== h) {
+            gap = Math.max(gap, newH > h ? 6 : 5) + (newH < h ? 2 : 0);   // room to read the step and land
+            stepAt = c + Math.ceil(gap / 2);                               // the step, mid-gap
+            ledge = newH > h && t2 < 0.35 && k > 0;
+          }
+        }
+        if (k > 0) c += gap; else if (stepAt != null) { stepAt = c + 2; c += 5; }
         if (c + wdt > stop) break;
+        if (terrain) {
+          if (stepAt == null) fill(filledTo, c + wdt, h);
+          else {
+            fill(filledTo, stepAt, h); fill(stepAt, c + wdt, newH);
+            if (ledge) objects.push(["spike", stepAt - 1, h]);
+          }
+          filledTo = c + wdt; h = newH;
+        }
         if (intro) firsts.push(c);
         if (upside) objects.push(...mirrorUp(expand(name, c, 0, args), ceil));
-        else objects.push(["pattern", name, c, 0, args]);
+        else objects.push(["pattern", name, c, terrain ? h : 0, args]);
         placed.push({ key, name, from: c, to: c + wdt - 1, section: sec.name });
         seen.add(name); last = name;
         c += wdt; k++;
       }
+      if (terrain && h > 0) { fill(filledTo, filledTo + 2, h); h = 0; }   // a last step down to the ground
       prevFlying = false;
     }
     if (upside) { prevFlying = true; flyEnd = end; }   // the cube drops from the ceiling: a lead-in next
@@ -199,6 +247,8 @@ function compose(brief, tweaks = {}) {
   const spec = { name: brief.name, desc: brief.desc || brief.idea || "", objects };
   if (deco.length) spec.decoDensity = deco;
   // the modern look (STYLE.md: knowledge/levels/modern_look.md); "modern": false in the brief turns it off
+  // the signature at the end (tools/signature.js, the visuals session's): in the last rest section
+  if (brief.signature !== false) { const r = ranges[ranges.length - 1]; spec.signature = { col: r[2] + 3 }; }
   if (brief.modern !== false) spec.modern = { sections: looks.map(({ bg, ...l }) => l), title: brief.name, end: "thanks for playing", seed: brief.seed || 3 };
   // jump indicators (tools/decorate.js): on jumps that cannot be read in time, and the first jump of
   // each new pattern. Default on; "indicators": false in the brief turns them off.
