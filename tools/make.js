@@ -259,13 +259,15 @@ function build(spec, specFile = "spec") {
   }
   // The signature (tools/signature.js): robot + human, "Made by Claude (and some humans)", after the end.
   // On by default for every "GDLM ..." level (the user approved it for all, 2026-11-23); a spec opts out
-  // with "signature": false. Its column: spec.signature.col, else 3 blocks after the last object.
+  // with "signature": false. Its column: spec.signature.col, a scene's, else 3 blocks after the last gameplay object.
   const signed = spec.signature !== false && (spec.signature || /^GDLM /.test(spec.name || ""));
   if (signed) {
     const sig = require("./signature.js"), secs = (spec.modern && spec.modern.sections) || [];
     const col = spec.signature && spec.signature.col != null ? spec.signature.col
       : sceneSig && sceneSig.col != null ? sceneSig.col
-      : Math.ceil(Math.max(...objects.map(o => o.x)) / 30) + 3;
+      // 3 blocks after the last gameplay object (scenery and triggers may run on past the end: hellgate's
+      // parallax put it 25 blocks late)
+      : Math.ceil(Math.max(...objects.filter(o => !["decoration", "trigger"].includes(GD.objInfo(o.id).kind)).map(o => o.x)) / 30) + 3;
     // the shirt takes the last section's accent colour (a fixed rgb: the editor shows header colours only)
     const last = secs.length ? secs[secs.length - 1] : null, acc = last && (last.light || last.fill);   // compose.js looks: light = the section bg brightened
     const sopts = { col, floorY: 0 };
