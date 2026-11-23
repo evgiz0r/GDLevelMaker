@@ -346,7 +346,7 @@ function scoreLevel(level, brief, opts = {}) {
   } catch (e) { /* no model yet (knowledge/taste_model.json) */ }
   // craft: how the objects are used, against the 10 official 1.x levels (CRAFT.md, tools/craft.js):
   // many small pieces, a hazard floor, deco attached to structures. Soft: WARN, never FAIL.
-  { const C = require("./craft.js").check(level.objects), w = C.warn;
+  { const C = require("./craft.js").check(level.objects, null, want.label), w = C.warn;
     gate("craft", w.length >= 3 ? "WARN" : "PASS", `${C.checks.length - w.length}/${C.checks.length} craft targets`,
       w.map(c => `${c.key} ${c.value < 2 && c.key !== "pieces100" && c.key !== "hazards100" ? Math.round(100 * c.value) + "%" : c.value.toFixed(0)} (${c.target})`).join(", ")); }
 
