@@ -166,6 +166,12 @@ tenth of the gap to the song clock a frame. Measured with real frames (tools/per
 light the same (60.1 fps, draw 2.1 ms). GD art + beats: no result (the run timed out loading the sprite sheets
 headless -- open). The PC then had ~0.5 GB RAM free with GD and other sessions' jobs (this run waited 49 min for the
 heavy slot): the lag the user saw fits the machine, not the viewer.
+Big levels (official 22 Dash: 18329 objects, 3792 moved by triggers; "dash is really laggy", 2026-11-24): the
+viewer now culls -- static objects from an x-sorted index, a moved object only when its swept x range (sampled
+once per level) reaches the view, original order kept; and in GD-art mode it no longer poses every mover for
+nothing (the VFX path rebuilt the list anyway). draw() on Dash at t 10 s, before -> after: shapes p50 11.7 -> 5.7 ms,
+p90 14.1 -> 10 ms; GD-art setting p50 7.2 -> 5.8, p90 12.9 -> 7.8; posing 4.9 -> 1.5 ms a frame; ~2600 of 18329
+objects looked at. The picture is the same (culled vs all differ as much as two draws of the same frame).
 **light** (header button, remembered): GD art and beat lines off in one press, for a slow moment.
 `node tools/perf.js <level as #lv=> [--at s] [--secs n]` measures playback with real animation frames in headless
 Edge (no GPU: a worst case) in three setups -- GD art + beats, shapes + beats, light -- via the viewer's ?perf=

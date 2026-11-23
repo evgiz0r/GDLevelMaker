@@ -48,7 +48,15 @@ function selfUpdate() {
 if (!UPD.off) { setTimeout(selfUpdate, 2000); setInterval(selfUpdate, 60e3).unref(); }
 // variants without a saved solution: solved one at a time in a child process (tools/solutions.js waits for the heavy
 // lock and saves to the shared cache, where /wip/variants finds it next time)
-const SOLVE = { queue: [], seen: new Set(), running: false };
+// level maps asked for by the viewer: made one at a time (tools/levelmap.js claims the heavy lock itself)
+const MAPS = { queue: [], seen: new Set(), running: false };
+function mapNext() {
+  const job = MAPS.queue.shift(); if (!job) { MAPS.running = false; return; }
+  MAPS.running = true; console.log("making the map of " + job[0]);
+  const ch = cp.spawn(process.execPath, [path.join(__dirname, "levelmap.js"), job[0], "--name", job[1]], { cwd: root, stdio: "ignore", windowsHide: true, env: Object.assign({}, process.env, { GDLM_HEAVY_PRIORITY: "high" }) });
+  ch.on("exit", () => { MAPS.seen.delete(job[0]); mapNext(); }); ch.on("error", () => { MAPS.seen.delete(job[0]); mapNext(); });
+}
+const SOLVE = { queue: [], seen: new Set(), running: false, high: new Set() };
 function solveLater(file) {
   if (SOLVE.seen.has(file)) return; SOLVE.seen.add(file); SOLVE.queue.push(file);
   if (!SOLVE.running) solveNext();
@@ -56,7 +64,8 @@ function solveLater(file) {
 function solveNext() {
   const f = SOLVE.queue.shift(); if (!f) { SOLVE.running = false; return; }
   SOLVE.running = true; console.log("solving variant " + path.relative(root, f));
-  const ch = cp.spawn(process.execPath, [path.join(__dirname, "solutions.js"), f], { windowsHide: true, cwd: root, stdio: "ignore" });
+  const env = Object.assign({}, process.env, { GDLM_HEAVY_PRIORITY: SOLVE.high.has(f) ? "high" : "normal" });   // the user asked: high
+  const ch = cp.spawn(process.execPath, [path.join(__dirname, "solutions.js"), f], { windowsHide: true, cwd: root, stdio: "ignore", env });
   ch.on("exit", () => solveNext()); ch.on("error", () => solveNext());
 }
 // The public viewer (GitHub Pages, tools/pages.js) may READ songs, GD's art and /version from this server on the
@@ -177,6 +186,59 @@ const SERVER = http.createServer((req, res) => {
       }) })) });
     } catch (e) {}
     res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify(out));
+  }
+  // GET /heavy/status?match=<text>: the heavy-job queue (tools/heavy.js) for the viewer's task modal and chip: who
+  // runs, who waits in order, and for the job whose command line holds `match`: its place and a rough ETA (minutes)
+  if (p === "/heavy/status") {
+    const match = new URL(req.url, "http://x").searchParams.get("match") || "";
+    let out = { holders: [], waiting: [], mine: null };
+    try {
+      const H = require("./heavy.js"), now = Date.now(), short = c => (/tools[\\/].*/.exec(c) || [c])[0];
+      const hs = H.holders(), ws = H.waiters().sort((a, b) => H.RANK[a.prio] - H.RANK[b.prio] || String(a.since).localeCompare(String(b.since)));
+      const typical = c => H.minutesLeft({ cmd: c, start: new Date(now).toISOString() }) || 2;
+      out.holders = hs.map(h => ({ cmd: short(h.cmd), session: h.session, min: Math.round((now - Date.parse(h.start)) / 60000), left: H.minutesLeft(h) }));
+      out.waiting = ws.map(w => ({ cmd: short(w.cmd), session: w.session, prio: w.prio }));
+      const mh = match && hs.find(h => h.cmd.includes(match)), wi = match ? ws.findIndex(w => w.cmd.includes(match)) : -1;
+      if (mh) out.mine = { running: true, min: Math.round((now - Date.parse(mh.start)) / 60000), eta: H.minutesLeft(mh) || 1 };
+      else if (wi >= 0) out.mine = { running: false, ahead: wi + hs.length, eta: Math.round(hs.reduce((n, h) => n + (H.minutesLeft(h) || 2), 0) + ws.slice(0, wi).reduce((n, w) => n + typical(w.cmd), 0) + typical(ws[wi].cmd)) };
+      out.free = H.freeMB ? Math.round(H.freeMB()) : null;
+    } catch (e) { out.error = e.message; }
+    res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify(out));
+  }
+  // POST /solve {file}: solve a level that has no saved route on the PC (tools/solutions.js, heavy lock, HIGH priority:
+  // the user asked for it now) instead of in the page (which froze for minutes); GET /solution?file= returns it once saved
+  if (req.method === "POST" && p === "/solve") {
+    let body = ""; req.on("data", c => { body += c; if (body.length > 1e4) req.destroy(); });
+    req.on("end", () => {
+      let j = {}; try { j = JSON.parse(body); } catch (e) {}
+      const file = String(j.file || "");
+      if (!/^(levels|examples|local\/wip\/[\w-]+|local)\/[\w.-]+\.(gdlvl|json)$/.test(file) || !fs.existsSync(path.join(root, file))) { res.writeHead(400); return res.end("bad level"); }
+      const abs = path.join(root, file); SOLVE.high.add(abs);
+      if (!SOLVE.seen.has(abs)) { SOLVE.seen.add(abs); SOLVE.queue.unshift(abs); if (!SOLVE.running) solveNext(); }
+      res.writeHead(200, { "Content-Type": "application/json" }); res.end('{"queued":true}');
+    });
+    return;
+  }
+  if (p === "/solution") {
+    const file = new URL(req.url, "http://x").searchParams.get("file") || "";
+    let sol = null;
+    try { if (/^(levels|examples|local\/wip\/[\w-]+|local)\/[\w.-]+\.gdlvl$/.test(file)) { const { readGdlvl } = require("./io.js"); sol = require("./solutions.js").get(readGdlvl(path.join(root, file)).levelStr) || null; } } catch (e) {}
+    res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify({ solution: sol }));
+  }
+  // POST /maps/make {file, name}: the viewer's "level map" for a level that has none yet -> tools/levelmap.js
+  // <file> --name <name> (local/maps/<name>.jpg, the name the viewer asks for), one at a time, under the heavy lock
+  // at normal priority; answers {queued, ahead}. Only levels of this repo / local/ (no paths out).
+  if (req.method === "POST" && p === "/maps/make") {
+    let body = ""; req.on("data", c => { body += c; if (body.length > 1e4) req.destroy(); });
+    req.on("end", () => {
+      let j = {}; try { j = JSON.parse(body); } catch (e) {}
+      const file = String(j.file || ""), name = String(j.name || "").replace(/[^\w\- ]+/g, "");
+      if (!/^(levels|examples|local\/wip\/[\w-]+|local)\/[\w.-]+\.(gdlvl|json)$/.test(file) || !name || !fs.existsSync(path.join(root, file))) { res.writeHead(400); return res.end("bad level"); }
+      const ahead = MAPS.queue.length + (MAPS.running ? 1 : 0);
+      if (!MAPS.seen.has(file)) { MAPS.seen.add(file); MAPS.queue.push([file, name]); if (!MAPS.running) mapNext(); }
+      res.writeHead(200, { "Content-Type": "application/json" }); res.end(JSON.stringify({ queued: true, ahead }));
+    });
+    return;
   }
   if (p === "/wip/list") {
     let out = [];

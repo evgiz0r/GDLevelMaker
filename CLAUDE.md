@@ -144,6 +144,7 @@ half), correct the row here in the same change. Real numbers pile up in `local/t
 |---|---|---|
 | make, short cube level (15-20 s) | 15-30 s | loop.js, GDLM 02 / 41, 2026-11-23 |
 | make `--look` (decoration only, gameplay unchanged) | ~1 s | showcase notes, GDLM 50 |
+| make, an existing level after a one-spot edit (incremental) | cube: ~1 s when it rejoins, else like a full make; with modes: being measured | PHYSICS.md "Incremental solving" |
 | make (= the solve), 40-100 s level with ship / wave / ball | 5-7 min | PHONE.md (GDLM 45 ~5 min), SHOWCASE.md (GDLM 50 ~7 min) |
 | score.js, every gate, short cube level | 10-20 s | loop.js, GDLM 02 / 41 |
 | score.js, level with modes | ~2 solves + ~1 min fairness: 10-15 min | score.js header; not timed yet |
@@ -157,6 +158,13 @@ half), correct the row here in the same change. Real numbers pile up in `local/t
 | install into the game (`install.js`, game closed) | not timed yet (publisher: `--time install`) | |
 | a server upload | not timed yet (publisher: `--time upload`) | |
 | git pull + push | ~10 s | 2026-11-23 |
+| edit.js, one edit, the old route still clears (re-plan + checks) | see EDITING.md "Results" | 2026-11-23 |
+| edit.js, an edit that needs a full solve | as "make" above for that level | |
+| edit.js before/after picture (two shoot.js frames) | ~20-40 s | shoot.js row |
+| markedit.js: edit + the family's sweep over every GDLM level | edit + see EDITING.md "Results" | |
+| review.js, a level with a saved route (no --gates / --render) | see EDITING.md "Results" | |
+| fix.js (review, fixes, review again) | see EDITING.md "Results" | |
+| retarget.js, one tier | see EDITING.md "Results" | |
 
 ## Shared folder, work in progress, the user's marks
 
@@ -257,6 +265,14 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   section its role (intro/groove/build/drop/ride/breather/outro), place, palette, mode, transition,
   camera, props; `--brief` writes a compose brief. Owner: the showcase session; props from the gd-art
   session's `tools/props.js`.
+- **Editing, reviewing and fixing levels -- the everyday loop as tools** (EDITING.md: words and ops, spots, what
+  each prints, the families, auto fixes, what is open): `tools/edit.js <level> --at <b45 | t=12.3 | x= | #lv= link>
+  "<change>"` (one change on a COPY, re-solved, checks before/after, before/after picture), `tools/markedit.js`
+  (a viewer mark or a screenshot note -> its soft-rule family -> the edit -> the family swept over every level),
+  `tools/review.js <level>` (every check -> one ranked issue list + a phone page), `tools/fix.js <level>` (review ->
+  the safe fixes on a copy -> review again), `tools/retarget.js <level> --to easier|harder|<tier>|<stars>` (the
+  hardest spots first, small edits scored by the difficulty model), `tools/families.js` (every soft-rule family: note words, effect,
+  effort, fix, auto-fix). Test: `node tests/editing.js`.
 - **`tools/heavy.js` -- the one-heavy-job lock** every heavy tool takes on start (see "One heavy job at
   a time"). Test: `node tests/heavy.js`.
 - **`tools/loop.js` -- the whole make/iterate loop in one command** (owner check, ETA, make/compose, score,
@@ -265,6 +281,13 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 - `tools/solutions.js` -- solve each level ONCE on the PC (`--all` for every repo level missing one);
   the viewer and the phone replay the saved solution (natural replay, stamped with the physics
   commit; stale ones are re-solved). make.js and wip.js save one whenever they solve.
+- **Incremental solving** (PHYSICS.md "Incremental solving"; owner: the incremental-solving session):
+  `lib/incsolve.js` -- an edit re-solves only from a calm point before it until the run is back in the old
+  route's exact state (`fromBase`), a physics change re-solves only from the first broken stretch (`refresh`),
+  a section cache makes cut and joined levels solve only their seams (`solveWithCache`), old timing windows are
+  kept where nothing changed. Saved routes carry `checkpoints`; `tools/inc_store.js` keeps the old levels and
+  sections in `local/`. make.js uses it on an existing level (`--full`: the old way). Study:
+  `node tools/incsolve.js study|cutjoin|profile <level>`; test: `node tests/incsolve.js [--quick]`.
 - `viewer/index.html` -- the replay viewer; `viewer/levels.js` is generated, do not edit.
 - `lib/look.js` -- how a level LOOKS (viewer's "game look", on by default): header colours, colour
   899 / alpha 1007 / zoom 1913 triggers over time, block skins 1-7 outlined by their own edges,
@@ -446,6 +469,9 @@ The viewer draws moving objects where they start.
 
 ## Rules
 
+- **No native dialogs in the viewer pages** (alert / confirm / prompt): the app's built-in browser and the phone page's
+  frame suppress them, so the button just did nothing. Use the viewer's notice(), askNote(), showMap();
+  `node tests/no_dialogs.js` checks.
 - **Never pop a window on the user's screen.** Every child process (spawn, spawnSync, exec*, execFile*, fork) passes
   `windowsHide: true`: on Windows a console child without it flashes a console window (serve.js's self-update did,
   every minute, 2026-11-23). `node tests/no_console_windows.js` fails on any call without it (`--fix` adds it).

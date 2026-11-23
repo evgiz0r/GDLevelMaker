@@ -6,7 +6,8 @@
 // the page's own solve failed. Fix: node tools/solutions.js <level> (heavy, waits for the lock), or --all.
 // Checks levels/*.gdlvl and examples/*.gdlvl (with --all also local/wip/*/*.gdlvl). One replay each: seconds.
 // A route that skips a portal or an orb/pad on its line (the no-skip rule, GD.skipCheck) fails too, and so does
-// one with a hold (outside ship/wave) longer than needed: every saved route is the human route.
+// one with a hold (outside ship/wave) longer than needed: every saved route is the human route. A cube jump over
+// nothing (lib/natural.js pointlessJumps: walking off the step would do) is a warning.
 // --fix: refresh every route that fails or carries an old physics stamp (tools/solutions.js solve(): a clean
 // route is only restamped, instant; one that dies or skips is solved again, heavy, through the lock). Run
 // `node tests/saved_routes.js --all --fix` after any physics change, then push viewer/levels.js.
@@ -59,6 +60,10 @@ for (const dir of dirs) {
       if (r.ok) what = null;
     }
     if (what) { bad++; console.log(`FAIL ${dir}/${f} (${L.name}): ${what}`); }
+    else if (s && s.ok) {   // a warning, not a failure: a jump over nothing (walking off would do)
+      const pj = require("../lib/natural.js").pointlessJumps(GD.makeWorld(L.level.objects, L.level.header), s.events);
+      if (pj.length) console.log(`warn ${dir}/${f}: ${pj.length} jump(s) over nothing at block ${pj.map(j => (j.x / 30).toFixed(0) + (j.down ? " (off a step)" : "")).join(", ")}`);
+    }
   }
 }
 if (FIX) require("../tools/index_levels.js").buildIndex();

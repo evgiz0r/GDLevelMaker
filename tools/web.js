@@ -39,22 +39,12 @@ for (const m of maps) fs.copyFileSync(path.join(MAPS, m + "_shapes.jpg"), path.j
 swap('<button id="mapBtn" title="the whole level as one picture with its path (make it with node tools/levelmap.js <level>)">level map</button>\n',
   maps.length ? '<button id="mapBtn" title="the whole level as one picture with its path">level map</button>\n' : "");
 swap('  let ok = false; try { ok = (await fetch(url, { method: "HEAD", cache: "no-store" })).ok; } catch (e) {}\n' +
-  '  if (ok) window.open(url, "_blank"); else alert("No map yet for " + name + ". Make it with:\\n  node tools/levelmap.js " + l.file);',
-  '  if (!GD_MAPS.includes(name)) { alert("No map of " + name + " on this page yet."); return; }\n  showMap("maps/" + name + "_shapes.jpg");');
+  '  if (ok) showMap(url); else makeMap(l, name, url);',
+  '  if (!GD_MAPS.includes(name)) { notice("No map of " + esc(name) + " on this page yet."); return; }\n  showMap("maps/" + name + "_shapes.jpg");');
 swap("const artOn = () =>", `const GD_MAPS = ${JSON.stringify(maps)};
 function mapName() { const l = ALL[pick.value]; return l ? String(l.file || "").split("/").pop().replace(/\\.(gdlvl|json)$/, "") : ""; }
 function mapBtnShow() { const b = document.getElementById("mapBtn"); if (b) b.style.display = GD_MAPS.includes(mapName()) ? "" : "none"; }
 pick.addEventListener("change", mapBtnShow); setTimeout(mapBtnShow, 0);
-function showMap(src) {
-  const o = document.createElement("div");
-  o.style.cssText = "position:fixed;inset:0;z-index:50;background:#0b0820;overflow:auto;-webkit-overflow-scrolling:touch";
-  o.innerHTML = '<div style="position:sticky;top:0;left:0;display:flex;gap:8px;align-items:center;padding:6px;background:#0b0820cc"><span style="flex:1;font-size:12px;opacity:.7">tap the map to zoom</span><button>✕ close</button></div><img style="display:block;width:100%;max-width:none;height:auto" alt="level map">';
-  const img = o.querySelector("img"); img.src = src; o.querySelector("button").onclick = () => o.remove();
-  // tap: fit the width <-> 3x (scroll sideways), keeping the tapped spot under the finger
-  img.onclick = e => { const big = img.style.width !== "300%", fx = e.offsetX / img.clientWidth, fy = e.offsetY / img.clientHeight;
-    img.style.width = big ? "300%" : "100%"; o.scrollLeft = fx * img.clientWidth - e.clientX; o.scrollTop = fy * img.clientHeight + img.offsetTop - e.clientY; };
-  document.body.appendChild(o);
-}
 const artOn = () =>`);
 swap('<script src="lib/objects_art.js"></script>\n<script src="lib/objects_frames.js"></script>\n<script src="lib/art.js"></script>\n', "<script>window.GD_PHONE = true;</script>\n");
 swap('<script src="../local/beats.local.js" onerror="window.GD_BEATS = {}"></script>', '<script src="beats.js" onerror="window.GD_BEATS = {}"></script>');
@@ -183,11 +173,7 @@ swap(`    const r = await fetch("/marks", { method: "POST", headers: { "Content-
     const ref = db.collection("marks").doc(m.id);
     if (m.note != null) await ref.set(Object.assign({ from: "phone" }, m)); else await ref.update(m);`);
 // prompt() does not work inside an Artifact: an in-page box instead
-swap(`cv.addEventListener("click", e => {
-  if (!marking || !L) return;`, `cv.addEventListener("click", async e => {
-  if (!marking || !L) return;`);
-swap("const note = prompt(`What should change here? (block ${(x / 30).toFixed(1)}, ${(tick() / P.TPS).toFixed(2)} s)`);",
-  "const note = await askNote(`What should change here? (block ${(x / 30).toFixed(1)}, ${(tick() / P.TPS).toFixed(2)} s)`);");
+// the mark's note box and the async click handler are the viewer's own now (no prompt anywhere)
 // a published page's address can't carry #lv=...&t=...: no link button, no hash writes
 swap('<button id="linkBtn"', '<button id="linkBtn" hidden');
 swap("setInterval(() => { if (L && !playing) writeHash(); }, 1000);", "");
@@ -229,10 +215,7 @@ function solveInWorker(l) {
   w.postMessage({ level: l.level });
 }
 function setPending(msg) { if (L && L.pending) { L.sol.why = msg; summary(); } }`);
-swap("            : `<p class=\"bad\">${kind} Not beatable in the simulation.",
-  "            : s.pending ? `<p class=\"muted\">${esc(s.why)}</p>` : `<p class=\"bad\">${kind} Not beatable in the simulation.");
-swap("if (saved) sol = saved.ok ? { ok: true, events: saved.events, clicks: [] } : { ok: false, trail: saved.events, clicks: [], dieAt: { x: saved.dieX || 0, tick: 0 }, why: saved.why || \"\" };",
-  "if (saved) sol = saved.ok ? { ok: true, events: saved.events, clicks: [] } : { ok: false, trail: saved.events, clicks: [], dieAt: { x: saved.dieX || 0, tick: 0 }, why: saved.why || \"\", pending: !!saved.pending };");
+// (a pending solution and its muted summary line are the viewer's own now)
 swap("  else if (ALL.length) { pick.value = 0; pick.onchange(); }",
   "  else if (ALL.length) { const s = ALL.findIndex(l => l.solution); pick.value = Math.max(0, s); pick.onchange(); }");
 swap('<script>\n"use strict";\nconst P = GD.PHYS;', `<script>
@@ -243,31 +226,14 @@ function phoneDb() {
     ? Promise.race([window.claude.use("db").catch(() => null), new Promise(r => setTimeout(() => r(null), 10000))]) : Promise.resolve(null);
   return _db;
 }
-// a small note box (prompt() is refused inside an Artifact)
-function askNote(title) {
-  return new Promise(done => {
-    const box = document.getElementById("noteBox"), ta = document.getElementById("noteText");
-    document.getElementById("noteTitle").textContent = title; ta.value = ""; box.hidden = false; ta.focus();
-    const close = v => { box.hidden = true; done(v); };
-    document.getElementById("noteSave").onclick = () => close(ta.value);
-    document.getElementById("noteCancel").onclick = () => close(null);
-  });
-}
 // new levels from the sessions arrive while the page is open: refresh the list on any change
 phoneDb().then(db => { if (!db) return; let first = true;
   try { db.collection("wip").onSnapshot(() => { if (first) { first = false; return; } loadWip(true); }, () => {}); } catch (e) {} });
 </script>
-<div id="noteBox" hidden><div class="card"><h2 id="noteTitle"></h2><textarea id="noteText" rows="4"></textarea>
-<div class="row"><button id="noteSave" class="on">save mark</button><button id="noteCancel">cancel</button></div></div></div>
 <script>
 "use strict";
 const P = GD.PHYS;`);
-swap("</style>", `  #noteBox { position:fixed; inset:0; z-index:20; display:grid; place-items:center; background:rgba(11,6,32,.8); padding:16px; }
-  #noteBox[hidden] { display:none; }
-  #noteBox .card { width:min(100%, 420px); }
-  #noteBox textarea { width:100%; box-sizing:border-box; background:#0e0828; color:var(--ink); border:1px solid #3b2d78; border-radius:6px; padding:8px; font:inherit; font-size:16px; }
-  #noteBox .row { display:flex; gap:8px; margin-top:8px; }
-</style>`);
+swap("</style>", `</style>`);
 // phone: bigger touch targets, the header wraps, the canvas keeps a usable height
 swap("</style>", `  @media (max-width: 700px) {
     header { padding:8px max(12px, env(safe-area-inset-left, 0px)); gap:6px; }

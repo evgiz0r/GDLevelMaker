@@ -100,6 +100,9 @@ function specInfo(file) {
   const out = path.join(ROOT, "levels", make.slug(spec.name) + ".gdlvl");
   // the last build's length when there is one (building a scene level just for the ETA took minutes)
   if (fs.existsSync(out)) { try { return Object.assign({ out, name: spec.name }, lengthOf(require("./io.js").readGdlvl(out).level)); } catch (e) {} }
+  // "jN" columns make build() solve the whole level several times (make.js nudgeJumps: ~1.3 GB, minutes)
+  // outside the heavy lock -- GDLM 62 stalled the queue that way (2026-11-24). No ETA from those then.
+  if (/"j-?\d/.test(JSON.stringify(spec.objects || []))) return { out, name: spec.name };
   const log = console.log; console.log = () => {};
   try { const b = make.build(spec, file); return Object.assign({ out, name: spec.name }, lengthOf(b.level)); }
   catch (e) { return { out, name: spec.name }; }
