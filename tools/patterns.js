@@ -144,6 +144,11 @@ def("wave-zigzag", "a wave corridor (band rows 0-9): the path climbs and falls 4
   // degrees, so the wave slides along it and can turn anywhere on it: ~95 ms per flat column at 1x.
   const seg = a.seg || 4, legs = a.legs || 4, gap = a.gap || 4, low = a.low ?? 2, flat = a.flat || 0, lead = a.lead || 0, o = [];
   const L = seg + flat, w = lead + L * legs;
+  // the entry's roof with `leadGap` (its bottom row): the first leg keeps it until its own roof climbs to
+  // it, so the slope joins it flush -- dropping straight to the leg's roof left an open step in the
+  // ceiling (the user, GDLM 44 round 2: "disconnected structure"; tools/joins.js checks it)
+  let leadRoof = null, joined = true;
+  if (a.slopes && a.leadGap && lead) { const m = low; leadRoof = Math.max(0, m - Math.floor(a.leadGap / 2)) + a.leadGap; joined = false; }
   const midAt = c => { if (c < lead) return low; c -= lead; const leg = Math.floor(c / L), k = Math.min(c % L, seg); return low + (leg % 2 === 0 ? k : seg - k); };
   for (let c = 0; c < w; c++) {
     if (a.slopes) {
@@ -157,9 +162,17 @@ def("wave-zigzag", "a wave corridor (band rows 0-9): the path climbs and falls 4
         // (WAVE_DEADLINE); GDLM 46 v3's ship -> wave entrance gave 100 ms with the corridor's 3 rows
         const g = c < lead && a.leadGap ? a.leadGap : gap;
         const f = Math.max(0, m0 - Math.floor(g / 2));
-        if (g !== gap) { for (let r = f + g; r < 10; r++) o.push(["block", c, r]); continue; }
+        if (g !== gap) {
+          for (let r = f + g; r < 10; r++) o.push(["block", c, r]);
+          // the floor ramps up to meet the first leg's floor flush (a 1-row step there was an open edge)
+          const fl1 = Math.min(midAt(lead), midAt(lead + 1)) - Math.floor(gap / 2), k = c - (lead - (fl1 - f));
+          if (k >= 0 && k < fl1 - f) { for (let r = 0; r < f + k; r++) o.push(["block", c, r]); o.push(["slope", c, f + k, {}]); }
+          continue;
+        }
         for (let r = 0; r < f; r++) o.push(["block", c, r]);
-        for (let r = f + gap; r < 10; r++) o.push(["block", c, r]);
+        let roof = f + gap;
+        if (!joined) { if (roof < leadRoof) roof = leadRoof; else joined = true; }
+        for (let r = roof; r < 10; r++) o.push(["block", c, r]);
         continue;
       }
       const fl = Math.min(m0, m1) - Math.floor(gap / 2);       // floor slope row
@@ -168,6 +181,10 @@ def("wave-zigzag", "a wave corridor (band rows 0-9): the path climbs and falls 4
       if (fl >= 0) o.push(["slope", c, fl, up ? {} : { flipX: true }]);
       // ceiling: a rising roof is the slope turned over both ways (solid top-left), a falling roof
       // only upside down (solid top-right)
+      if (!joined && c >= lead) {
+        if (cl < leadRoof || !up) { for (let r = leadRoof; r < 10; r++) o.push(["block", c, r]); continue; }  // still under the entry's roof
+        joined = true;   // the rising roof meets the entry's roof here: flush
+      }
       if (cl <= 9) o.push(["slope", c, cl, up ? { flipX: true, flipY: true } : { flipY: true }]);
       for (let r = cl + 1; r < 10; r++) o.push(["block", c, r]);
       continue;
