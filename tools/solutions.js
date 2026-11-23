@@ -51,9 +51,10 @@ function windowsCommit() {
   return WINC;
 }
 // every input's window of a beaten solution, measured now (seconds to a minute: a heavy job's work)
-function measureWindows(level, sol) {
+function measureWindows(level, sol, wIn) {
   if (!sol || !sol.ok || !sol.events || !sol.events.length) return sol;
-  const w = GD.makeWorld(level.objects, level.header), ev = sol.events.slice().sort((a, b) => a.tick - b.tick);
+  // wIn: the world the natural plan costed its routes on (its window cache is warm: the windows are already there)
+  const w = wIn || GD.makeWorld(level.objects, level.header), ev = sol.events.slice().sort((a, b) => a.tick - b.tick);
   const path0 = GD.run(w, ev).path;
   sol.windows = WIN.inputWindows(w, ev, path0, {}).map(x => [x.type === "release" ? 1 : 0, x.tick, x.lo, x.hi, x.j]);
   sol.win = windowsCommit();
@@ -67,12 +68,14 @@ function get(levelStr, any) {
   if (!any && s.physics && physicsCommit() && s.physics !== physicsCommit()) return null; // stale
   return s;
 }
-function put(levelStr, sol, level) {
+function put(levelStr, sol, level, w) {
   // the plan stamp says which lib/natural.js made this route: only fromRun (which runs the natural plan) sets
   // it; a copied route keeps its own, so it shows up stale and is re-planned (make.js --look once copied an
   // old one-long-hold route and stamped it current: GDLM 45 wip v8, 2026-11-23)
   sol.physics = physicsCommit(); if (sol.plan === undefined) sol.plan = null; sol.solvedAt = new Date().toISOString();
-  if (level) { try { measureWindows(level, sol); } catch (e) { delete sol.windows; } }
+  if (level) { try { measureWindows(level, sol, w); } catch (e) { delete sol.windows; } }
+  // the window cache of that world goes along (local/solutions/wc/), so a later edit of this level starts warm
+  if (w && GD.exportWindowCache) try { require("./inc_store.js").saveWindowCache(keyOf(levelStr), GD.exportWindowCache(w)); } catch (e) { /* a cache */ }
   if (level) incSave(levelStr, sol, level);
   fs.mkdirSync(DIR, { recursive: true });
   fs.writeFileSync(path.join(DIR, keyOf(levelStr) + ".json"), JSON.stringify(sol));
@@ -113,7 +116,7 @@ function fromRun(level, levelStr, r) {
       if (n && n.path[n.path.length - 1].done) { events = n.events; kind = "human"; why = undefined; } } catch (e) { why = "natural plan failed: " + e.message; }
     sol = { ok: true, events, kind, why, plan: planCommit() };
   } else sol = { ok: false, kind: "unbeaten", events: (r && r.trail) || [], dieX: r && r.dieAt && r.dieAt.x, why: r && r.why, skipped: r && r.skipped, plan: planCommit() };
-  return put(levelStr, sol, level);
+  return put(levelStr, sol, level, w);
 }
 // a saved solution's windows, measured and saved when missing or from older window code (no re-solving)
 function withWindows(level, levelStr, sol) {
