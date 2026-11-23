@@ -258,6 +258,20 @@ S("ceiling-hop", { tags: ["gravity", "gravity portal", "pillar", "ceiling run"],
     o.push(...range(c, c + 2).map(x => [9, x, 11, { dy: 13, rot: 180 }]), ...blocks(c + 2, c + 6, 8, 12), ["gravity up", c + 5, 6], ...blocks(c + 5, c + 8, 0, 1));
     return { objects: o, width: c + 8 }; } });
 
+S("ship-weave", { mode: "ship", tags: ["ship", "pillar"], tier: "Normal",
+  doc: "the ship weaves along a drifting line between spike-tipped ground pillars and hanging columns over a pit floor (Jumper's ship, as a shape)",
+  args: { line: [5, 6, 5, 4, 3, 4], step: 4, open: 3 },
+  build: a => { const o = [], n = a.line.length;
+    a.line.forEach((c, i) => { const x = 3 + i * a.step;
+      if (i % 2 === 0) { o.push(...blocks(x, x + 1, 0, c - a.open + 1), ["spike", x, c - a.open + 1]); }
+      else { o.push(...blocks(x, x + 1, c + a.open, 11), ["spike", x, c + a.open - 1, { rot: 180 }]); } });
+    const w = 3 + n * a.step + 3; o.push(...pit(0, w)); return { objects: o, width: w, exitRow: a.line[n - 1] }; } });
+S("ship-lanterns", { mode: "ship", tags: ["ship", "floating"], tier: "Normal",
+  doc: "floating blocks with a spike above and below, hung on chains (the craft pass), up and down the ship's band: pass between them (xStep's floating pieces)",
+  args: { rows: [3, 7, 4, 7, 3], step: 5 },
+  build: a => { const o = []; a.rows.forEach((r, i) => { const x = 3 + i * a.step; o.push(["block", x, r], ["spike", x, r + 1], ["spike", x, r - 1, { rot: 180 }]); });
+    const w = 3 + a.rows.length * a.step + 3; o.push(...pit(0, w)); return { objects: o, width: w, exitRow: 5 }; } });
+
 // ---------------------------------------------------------------- the harness: one small test level per structure
 const MODE_PORTAL = { ship: "ship portal", ball: "ball portal", ufo: "ufo portal", wave: "wave portal", robot: "robot portal", spider: "spider portal", swing: "swing portal", cube: "cube portal" };
 // blocks of calm run after a mode portal before the structure (the lead-in medians of rated low-tier

@@ -80,6 +80,11 @@ checklist it was built against.
 - [ ] **Sync loosely**: portals, speed changes and the drop on the music's moments; most clicks free.
   `node tools/sync.js`. (SYNC.md "How much to sync")
 
+- [ ] **Crafted like RobTop's** (the user: "nothing at the level of ... Jumper or xStep"): many small
+  pieces (>= 12 per 100 blocks) over a floor that is a hazard >= 35% of the columns, neighbouring pillars
+  of different heights, rods and chains attached to pieces, <= 20% loose deco. `node tools/craft.js check
+  <level>` (score.js gate "craft"); generate with `"craft": true` and the craft structures. (CRAFT.md)
+
 ## Looks like 2.2, not 1.0 (levels/modern_look.md)
 
 - [ ] **Budget**: ~10-50 objects per block. Fall Out, the user's own example, has 13; the levels the

@@ -102,6 +102,14 @@ Lessons from building them:
   lower; the test uses a wall of three portals.
 - The checker is slow for ship (~80 s), robot (~25-130 s) and UFO (~45 s): the sweep solver.
 
+## Craft structures (2026-11-23, the craft session; CRAFT.md)
+
+Nine shapes from studying Jumper and xStep (rules, not coordinates), all over pit floors of low spikes (id 9
+sunk 13 units): `pillar-hop`, `pillar-climb`, `capped-hop`, `slab-steps`, `lantern-orb`, `stepped-pyramid`,
+`ceiling-hop`, `ship-weave`, `ship-lanterns`. All ready (121-304 ms). Each cube one starts on a 3-wide
+doorstep: a 1-wide first pillar gave a 1.7-block prejump. Dress them with the craft pass (spec `"craft":
+true`, tools/craftkit.js): rods and chains attached to the pieces.
+
 ## Open
 
 - **Swing**: one structure (swing-wiggle). Until 49fa848 `solveAny` found no path past any
