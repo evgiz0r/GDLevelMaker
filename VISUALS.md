@@ -111,6 +111,9 @@ Driven from the browser console: load a level (`load(name, levelStr, solution)` 
   old header has no flag and its ground spikes and chains show lime added over purple (yellowish).
 - **Ground spikes 18-21, chains, antennas' balls default to 1005** (OpenGD), confirmed by the colours above.
 - **Background**: the 2048 px tile is drawn at natural size (512 units), bottom on the ground line.
+- **Background 13 (`game_bg_13`) is a flat white texture** (mean grey 255; the others 140-166), so with it
+  the background shows channel 1000 exactly as set -- the one to use for bright / pastel levels (gd-style,
+  GDLM 47).
 - **Middleground**: only the top ~40 units of the `fg` pictures show above the ground; the rest is under it.
 - **Glow** takes the object's main colour (OpenGD; Cycles' white blocks glow white).
 - **Rotated frames**: the plist `textureRect` size is the upright size; the sheet holds it turned 90
