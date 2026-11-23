@@ -1,0 +1,4959 @@
+{
+ "levels": 119,
+ "bySource": {
+  "community": 97,
+  "official": 22
+ },
+ "families": {
+  "deco-blocks:lightsquare": {
+   "levels": 97,
+   "objects": 383072,
+   "tiers": {
+    "Harder": 18,
+    "Easy": 23,
+    "Normal": 21,
+    "Hard": 23,
+    "?": 4,
+    "official": 8
+   },
+   "eras": {
+    "2.2": 22,
+    "2.0-2.1": 61,
+    "?": 4,
+    "1.x": 2,
+    "official": 8
+   }
+  },
+  "deco-shapes:d_ball": {
+   "levels": 94,
+   "objects": 84108,
+   "tiers": {
+    "Harder": 19,
+    "Easy": 19,
+    "Hard": 19,
+    "Normal": 18,
+    "?": 5,
+    "official": 14
+   },
+   "eras": {
+    "2.2": 19,
+    "2.0-2.1": 54,
+    "?": 5,
+    "1.x": 2,
+    "official": 14
+   }
+  },
+  "deco-shapes:d_arrow": {
+   "levels": 89,
+   "objects": 6918,
+   "tiers": {
+    "Harder": 17,
+    "Easy": 20,
+    "Normal": 15,
+    "Hard": 21,
+    "?": 5,
+    "official": 11
+   },
+   "eras": {
+    "2.2": 19,
+    "2.0-2.1": 52,
+    "?": 5,
+    "1.x": 2,
+    "official": 11
+   }
+  },
+  "deco-blocks:persp_outline": {
+   "levels": 88,
+   "objects": 169437,
+   "tiers": {
+    "Harder": 18,
+    "Easy": 21,
+    "Normal": 19,
+    "Hard": 19,
+    "?": 5,
+    "official": 6
+   },
+   "eras": {
+    "2.2": 17,
+    "2.0-2.1": 60,
+    "?": 5,
+    "official": 6
+   }
+  },
+  "deco-shapes:d_gradient": {
+   "levels": 86,
+   "objects": 103078,
+   "tiers": {
+    "Harder": 18,
+    "Easy": 22,
+    "Normal": 14,
+    "Hard": 21,
+    "?": 4,
+    "official": 7
+   },
+   "eras": {
+    "2.2": 20,
+    "2.0-2.1": 53,
+    "?": 4,
+    "1.x": 2,
+    "official": 7
+   }
+  },
+  "deco-shapes:d_gradient_c": {
+   "levels": 83,
+   "objects": 149571,
+   "tiers": {
+    "Harder": 17,
+    "Easy": 18,
+    "Normal": 20,
+    "Hard": 21,
+    "?": 3,
+    "official": 4
+   },
+   "eras": {
+    "2.2": 20,
+    "2.0-2.1": 56,
+    "?": 3,
+    "official": 4
+   }
+  },
+  "deco-shapes:lighttriangle": {
+   "levels": 83,
+   "objects": 95241,
+   "tiers": {
+    "Harder": 16,
+    "Easy": 23,
+    "Normal": 18,
+    "Hard": 19,
+    "?": 2,
+    "official": 5
+   },
+   "eras": {
+    "2.2": 22,
+    "2.0-2.1": 53,
+    "?": 2,
+    "1.x": 1,
+    "official": 5
+   }
+  },
+  "deco-blocks:blockOutline": {
+   "levels": 69,
+   "objects": 24953,
+   "tiers": {
+    "Harder": 16,
+    "Hard": 17,
+    "Easy": 16,
+    "?": 4,
+    "Normal": 9,
+    "official": 7
+   },
+   "eras": {
+    "2.2": 9,
+    "2.0-2.1": 48,
+    "?": 4,
+    "1.x": 1,
+    "official": 7
+   }
+  },
+  "deco-scenery:d_cloud": {
+   "levels": 63,
+   "objects": 8479,
+   "tiers": {
+    "Harder": 9,
+    "Easy": 18,
+    "Hard": 14,
+    "Normal": 10,
+    "?": 3,
+    "official": 9
+   },
+   "eras": {
+    "2.2": 16,
+    "2.0-2.1": 34,
+    "?": 3,
+    "1.x": 1,
+    "official": 9
+   }
+  },
+  "deco-shapes:d_small_ball": {
+   "levels": 62,
+   "objects": 207159,
+   "tiers": {
+    "Harder": 14,
+    "Easy": 16,
+    "Normal": 15,
+    "Hard": 15,
+    "?": 1,
+    "official": 1
+   },
+   "eras": {
+    "2.2": 21,
+    "?": 1,
+    "2.0-2.1": 39,
+    "official": 1
+   }
+  },
+  "deco-blocks:d_whiteBlock": {
+   "levels": 62,
+   "objects": 77379,
+   "tiers": {
+    "Harder": 14,
+    "Easy": 15,
+    "Normal": 14,
+    "Hard": 14,
+    "?": 2,
+    "official": 3
+   },
+   "eras": {
+    "2.2": 17,
+    "2.0-2.1": 40,
+    "?": 2,
+    "official": 3
+   }
+  },
+  "deco-shapes:d_circle": {
+   "levels": 62,
+   "objects": 31466,
+   "tiers": {
+    "Harder": 14,
+    "Easy": 16,
+    "Hard": 13,
+    "Normal": 11,
+    "?": 4,
+    "official": 4
+   },
+   "eras": {
+    "2.2": 19,
+    "2.0-2.1": 33,
+    "?": 4,
+    "1.x": 2,
+    "official": 4
+   }
+  },
+  "deco-other:emptyFrame": {
+   "levels": 61,
+   "objects": 84932,
+   "tiers": {
+    "Harder": 15,
+    "Easy": 14,
+    "Normal": 14,
+    "Hard": 16,
+    "?": 1,
+    "official": 1
+   },
+   "eras": {
+    "2.2": 21,
+    "?": 1,
+    "2.0-2.1": 38,
+    "official": 1
+   }
+  },
+  "deco-shapes:d_gradient_b": {
+   "levels": 59,
+   "objects": 34175,
+   "tiers": {
+    "Harder": 11,
+    "Easy": 16,
+    "Normal": 10,
+    "Hard": 16,
+    "?": 2,
+    "official": 4
+   },
+   "eras": {
+    "2.2": 16,
+    "2.0-2.1": 37,
+    "?": 2,
+    "official": 4
+   }
+  },
+  "deco-shapes:d_ringSeg": {
+   "levels": 59,
+   "objects": 1904,
+   "tiers": {
+    "Harder": 15,
+    "Easy": 10,
+    "Normal": 11,
+    "Hard": 16,
+    "?": 3,
+    "official": 4
+   },
+   "eras": {
+    "2.2": 15,
+    "2.0-2.1": 37,
+    "?": 3,
+    "official": 4
+   }
+  },
+  "deco-shapes:d_scaleFadeRing": {
+   "levels": 58,
+   "objects": 116939,
+   "tiers": {
+    "Harder": 12,
+    "Easy": 16,
+    "Normal": 14,
+    "Hard": 14,
+    "?": 1,
+    "official": 1
+   },
+   "eras": {
+    "2.2": 21,
+    "?": 1,
+    "2.0-2.1": 35,
+    "official": 1
+   }
+  },
+  "deco-blocks:block008_topcolor": {
+   "levels": 56,
+   "objects": 18488,
+   "tiers": {
+    "Harder": 13,
+    "Easy": 14,
+    "Normal": 9,
+    "Hard": 17,
+    "?": 2,
+    "official": 1
+   },
+   "eras": {
+    "2.2": 18,
+    "2.0-2.1": 35,
+    "?": 2,
+    "official": 1
+   }
+  },
+  "deco-spikes:d_grass": {
+   "levels": 55,
+   "objects": 6024,
+   "tiers": {
+    "Harder": 11,
+    "Easy": 12,
+    "Hard": 16,
+    "?": 3,
+    "Normal": 11,
+    "official": 2
+   },
+   "eras": {
+    "2.2": 13,
+    "2.0-2.1": 37,
+    "?": 3,
+    "official": 2
+   }
+  },
+  "deco-scenery:chain": {
+   "levels": 54,
+   "objects": 2289,
+   "tiers": {
+    "Harder": 9,
+    "Easy": 8,
+    "Hard": 10,
+    "Normal": 6,
+    "?": 3,
+    "official": 18
+   },
+   "eras": {
+    "2.2": 6,
+    "2.0-2.1": 24,
+    "1.x": 3,
+    "?": 3,
+    "official": 18
+   }
+  },
+  "deco-shapes:d_flashRing": {
+   "levels": 54,
+   "objects": 1060,
+   "tiers": {
+    "Easy": 14,
+    "Hard": 10,
+    "Normal": 11,
+    "Harder": 12,
+    "?": 3,
+    "official": 4
+   },
+   "eras": {
+    "2.2": 11,
+    "2.0-2.1": 36,
+    "?": 3,
+    "official": 4
+   }
+  },
+  "deco-spikes:d_spikes": {
+   "levels": 53,
+   "objects": 4783,
+   "tiers": {
+    "Hard": 10,
+    "Easy": 7,
+    "Normal": 5,
+    "?": 3,
+    "Harder": 9,
+    "official": 19
+   },
+   "eras": {
+    "2.2": 7,
+    "2.0-2.1": 20,
+    "1.x": 4,
+    "?": 3,
+    "official": 19
+   }
+  },
+  "deco-scenery:d_cogwheel": {
+   "levels": 49,
+   "objects": 2106,
+   "tiers": {
+    "Easy": 6,
+    "Hard": 13,
+    "?": 3,
+    "Normal": 7,
+    "Harder": 11,
+    "official": 9
+   },
+   "eras": {
+    "2.0-2.1": 30,
+    "2.2": 7,
+    "?": 3,
+    "official": 9
+   }
+  },
+  "deco-scenery:rod": {
+   "levels": 45,
+   "objects": 1939,
+   "tiers": {
+    "Harder": 6,
+    "Easy": 5,
+    "Hard": 6,
+    "Normal": 4,
+    "?": 3,
+    "official": 21
+   },
+   "eras": {
+    "2.2": 6,
+    "1.x": 4,
+    "?": 3,
+    "2.0-2.1": 11,
+    "official": 21
+   }
+  },
+  "deco-shapes:d_pixelArt01": {
+   "levels": 43,
+   "objects": 19678,
+   "tiers": {
+    "Harder": 13,
+    "Easy": 11,
+    "?": 3,
+    "Hard": 8,
+    "Normal": 3,
+    "official": 5
+   },
+   "eras": {
+    "2.2": 5,
+    "2.0-2.1": 30,
+    "?": 3,
+    "official": 5
+   }
+  },
+  "deco-blocks:gridLine02": {
+   "levels": 43,
+   "objects": 11107,
+   "tiers": {
+    "Harder": 9,
+    "Easy": 12,
+    "Normal": 7,
+    "Hard": 12,
+    "?": 1,
+    "official": 2
+   },
+   "eras": {
+    "2.2": 16,
+    "?": 1,
+    "2.0-2.1": 24,
+    "official": 2
+   }
+  },
+  "deco-blocks:block005b": {
+   "levels": 42,
+   "objects": 27582,
+   "tiers": {
+    "Easy": 6,
+    "Hard": 16,
+    "Harder": 10,
+    "?": 1,
+    "Normal": 6,
+    "official": 3
+   },
+   "eras": {
+    "2.2": 9,
+    "?": 1,
+    "2.0-2.1": 29,
+    "official": 3
+   }
+  },
+  "deco-shapes:d_link_b": {
+   "levels": 42,
+   "objects": 9380,
+   "tiers": {
+    "Hard": 12,
+    "Normal": 10,
+    "?": 2,
+    "Harder": 8,
+    "Easy": 6,
+    "official": 4
+   },
+   "eras": {
+    "2.2": 8,
+    "?": 2,
+    "1.x": 1,
+    "2.0-2.1": 27,
+    "official": 4
+   }
+  },
+  "deco-spikes:d_grassDetail": {
+   "levels": 41,
+   "objects": 2683,
+   "tiers": {
+    "Harder": 8,
+    "Easy": 5,
+    "Hard": 15,
+    "Normal": 9,
+    "?": 2,
+    "official": 2
+   },
+   "eras": {
+    "2.2": 11,
+    "?": 2,
+    "2.0-2.1": 26,
+    "official": 2
+   }
+  },
+  "deco-scenery:d_chain": {
+   "levels": 40,
+   "objects": 739,
+   "tiers": {
+    "Harder": 9,
+    "Easy": 6,
+    "Hard": 9,
+    "?": 4,
+    "Normal": 4,
+    "official": 8
+   },
+   "eras": {
+    "2.2": 6,
+    "2.0-2.1": 22,
+    "?": 4,
+    "official": 8
+   }
+  },
+  "deco-blocks:gridLine01": {
+   "levels": 38,
+   "objects": 28993,
+   "tiers": {
+    "Harder": 6,
+    "Easy": 10,
+    "Normal": 8,
+    "Hard": 11,
+    "?": 1,
+    "official": 2
+   },
+   "eras": {
+    "2.2": 17,
+    "?": 1,
+    "2.0-2.1": 18,
+    "official": 2
+   }
+  },
+  "deco-shapes:d_spiral": {
+   "levels": 38,
+   "objects": 2343,
+   "tiers": {
+    "Harder": 10,
+    "Hard": 12,
+    "Normal": 8,
+    "?": 1,
+    "Easy": 4,
+    "official": 3
+   },
+   "eras": {
+    "2.2": 10,
+    "?": 1,
+    "2.0-2.1": 24,
+    "official": 3
+   }
+  },
+  "deco-other:d_sign_img": {
+   "levels": 37,
+   "objects": 714,
+   "tiers": {
+    "Harder": 8,
+    "Easy": 7,
+    "Hard": 12,
+    "Normal": 7,
+    "?": 1,
+    "official": 2
+   },
+   "eras": {
+    "2.2": 8,
+    "?": 1,
+    "2.0-2.1": 26,
+    "official": 2
+   }
+  },
+  "deco-blocks:block007": {
+   "levels": 35,
+   "objects": 9763,
+   "tiers": {
+    "Harder": 10,
+    "Hard": 9,
+    "?": 1,
+    "Easy": 8,
+    "Normal": 5,
+    "official": 2
+   },
+   "eras": {
+    "2.2": 6,
+    "?": 1,
+    "2.0-2.1": 26,
+    "official": 2
+   }
+  },
+  "deco-blocks:block006": {
+   "levels": 35,
+   "objects": 8682,
+   "tiers": {
+    "Harder": 8,
+    "Normal": 8,
+    "Hard": 9,
+    "?": 2,
+    "Easy": 7,
+    "official": 1
+   },
+   "eras": {
+    "2.2": 7,
+    "?": 2,
+    "2.0-2.1": 25,
+    "official": 1
+   }
+  },
+  "deco-shapes:d_link_d": {
+   "levels": 35,
+   "objects": 5738,
+   "tiers": {
+    "Hard": 12,
+    "Easy": 7,
+    "Harder": 10,
+    "Normal": 4,
+    "official": 2
+   },
+   "eras": {
+    "2.2": 6,
+    "2.0-2.1": 27,
+    "official": 2
+   }
+  },
+  "deco-blocks:pit": {
+   "levels": 34,
+   "objects": 7757,
+   "tiers": {
+    "Harder": 8,
+    "Easy": 10,
+    "?": 4,
+    "Hard": 6,
+    "Normal": 4,
+    "official": 2
+   },
+   "eras": {
+    "2.2": 6,
+    "2.0-2.1": 22,
+    "?": 4,
+    "official": 2
+   }
+  },
+  "deco-other:d_sign_paint": {
+   "levels": 34,
+   "objects": 7159,
+   "tiers": {
+    "Harder": 7,
+    "Easy": 9,
+    "Hard": 12,
+    "?": 1,
+    "Normal": 5
+   },
+   "eras": {
+    "2.2": 11,
+    "?": 1,
+    "2.0-2.1": 22
+   }
+  },
+  "deco-scenery:d_03_chain": {
+   "levels": 34,
+   "objects": 5521,
+   "tiers": {
+    "Harder": 9,
+    "Easy": 5,
+    "Normal": 6,
+    "?": 4,
+    "Hard": 6,
+    "official": 4
+   },
+   "eras": {
+    "2.2": 6,
+    "2.0-2.1": 20,
+    "?": 4,
+    "official": 4
+   }
+  },
+  "deco-blocks:block007_bgcolor": {
+   "levels": 34,
+   "objects": 5103,
+   "tiers": {
+    "Normal": 4,
+    "Hard": 11,
+    "Easy": 11,
+    "Harder": 7,
+    "official": 1
+   },
+   "eras": {
+    "2.2": 7,
+    "2.0-2.1": 26,
+    "official": 1
+   }
+  },
+  "deco-scenery:d_02_chain": {
+   "levels": 34,
+   "objects": 1105,
+   "tiers": {
+    "Harder": 8,
+    "Easy": 5,
+    "?": 4,
+    "Normal": 5,
+    "Hard": 6,
+    "official": 6
+   },
+   "eras": {
+    "2.2": 3,
+    "2.0-2.1": 21,
+    "?": 4,
+    "official": 6
+   }
+  },
+  "deco-shapes:d_exmark": {
+   "levels": 34,
+   "objects": 199,
+   "tiers": {
+    "Easy": 7,
+    "Hard": 9,
+    "Normal": 5,
+    "Harder": 7,
+    "?": 1,
+    "official": 5
+   },
+   "eras": {
+    "2.2": 8,
+    "2.0-2.1": 20,
+    "?": 1,
+    "official": 5
+   }
+  },
+  "deco-scenery:d_roundCloud": {
+   "levels": 33,
+   "objects": 1994,
+   "tiers": {
+    "Easy": 7,
+    "Normal": 4,
+    "Hard": 7,
+    "Harder": 8,
+    "?": 2,
+    "official": 5
+   },
+   "eras": {
+    "2.0-2.1": 20,
+    "2.2": 5,
+    "1.x": 1,
+    "?": 2,
+    "official": 5
+   }
+  },
+  "deco-blocks:blockOutlineThick": {
+   "levels": 32,
+   "objects": 6380,
+   "tiers": {
+    "Harder": 8,
+    "Normal": 7,
+    "Hard": 9,
+    "Easy": 6,
+    "?": 2
+   },
+   "eras": {
+    "2.2": 8,
+    "2.0-2.1": 22,
+    "?": 2
+   }
+  },
+  "deco-blocks:block009c": {
+   "levels": 32,
+   "objects": 4238,
+   "tiers": {
+    "Harder": 8,
+    "Hard": 10,
+    "Easy": 5,
+    "?": 1,
+    "Normal": 5,
+    "official": 3
+   },
+   "eras": {
+    "2.2": 6,
+    "2.0-2.1": 22,
+    "?": 1,
+    "official": 3
+   }
+  },
+  "deco-blocks:block006_slope_square": {
+   "levels": 32,
+   "objects": 4176,
+   "tiers": {
+    "Harder": 9,
+    "Easy": 8,
+    "Hard": 12,
+    "?": 1,
+    "Normal": 1,
+    "official": 1
+   },
+   "eras": {
+    "2.2": 11,
+    "?": 1,
+    "2.0-2.1": 19,
+    "official": 1
+   }
+  },
+  "deco-scenery:d_wheel": {
+   "levels": 32,
+   "objects": 1655,
+   "tiers": {
+    "Easy": 3,
+    "Hard": 6,
+    "Normal": 5,
+    "Harder": 7,
+    "?": 2,
+    "official": 9
+   },
+   "eras": {
+    "2.0-2.1": 17,
+    "2.2": 4,
+    "?": 2,
+    "official": 9
+   }
+  },
+  "deco-blocks:square": {
+   "levels": 31,
+   "objects": 12080,
+   "tiers": {
+    "Hard": 6,
+    "Normal": 5,
+    "?": 1,
+    "Harder": 7,
+    "official": 12
+   },
+   "eras": {
+    "2.2": 5,
+    "1.x": 3,
+    "?": 1,
+    "2.0-2.1": 10,
+    "official": 12
+   }
+  },
+  "deco-blocks:gridLine04": {
+   "levels": 31,
+   "objects": 8194,
+   "tiers": {
+    "Harder": 3,
+    "Easy": 9,
+    "Normal": 9,
+    "Hard": 9,
+    "?": 1
+   },
+   "eras": {
+    "2.2": 18,
+    "?": 1,
+    "2.0-2.1": 12
+   }
+  },
+  "deco-blocks:block005c": {
+   "levels": 31,
+   "objects": 5376,
+   "tiers": {
+    "Harder": 10,
+    "Hard": 10,
+    "?": 1,
+    "Easy": 4,
+    "Normal": 6
+   },
+   "eras": {
+    "2.2": 8,
+    "?": 1,
+    "2.0-2.1": 22
+   }
+  },
+  "deco-spikes:d_grassArt": {
+   "levels": 31,
+   "objects": 1490,
+   "tiers": {
+    "Harder": 5,
+    "Easy": 6,
+    "Hard": 9,
+    "?": 1,
+    "Normal": 8,
+    "official": 2
+   },
+   "eras": {
+    "2.2": 5,
+    "2.0-2.1": 23,
+    "?": 1,
+    "official": 2
+   }
+  },
+  "effects:starAnim": {
+   "levels": 31,
+   "objects": 1264,
+   "tiers": {
+    "Harder": 8,
+    "Easy": 8,
+    "Hard": 6,
+    "Normal": 7,
+    "official": 2
+   },
+   "eras": {
+    "2.2": 7,
+    "2.0-2.1": 22,
+    "official": 2
+   }
+  },
+  "deco-shapes:d_cartwheel": {
+   "levels": 30,
+   "objects": 1195,
+   "tiers": {
+    "Easy": 5,
+    "?": 3,
+    "Hard": 9,
+    "Normal": 1,
+    "Harder": 9,
+    "official": 3
+   },
+   "eras": {
+    "2.0-2.1": 19,
+    "?": 3,
+    "2.2": 4,
+    "1.x": 1,
+    "official": 3
+   }
+  },
+  "deco-spikes:d_spikewheel": {
+   "levels": 29,
+   "objects": 954,
+   "tiers": {
+    "Harder": 9,
+    "Easy": 3,
+    "Normal": 4,
+    "Hard": 5,
+    "?": 2,
+    "official": 6
+   },
+   "eras": {
+    "2.2": 4,
+    "2.0-2.1": 17,
+    "?": 2,
+    "official": 6
+   }
+  },
+  "deco-blocks:gridLine03": {
+   "levels": 28,
+   "objects": 22306,
+   "tiers": {
+    "Harder": 4,
+    "Easy": 10,
+    "Hard": 8,
+    "Normal": 5,
+    "?": 1
+   },
+   "eras": {
+    "2.2": 12,
+    "?": 1,
+    "2.0-2.1": 15
+   }
+  },
+  "deco-blocks:block009b": {
+   "levels": 26,
+   "objects": 7632,
+   "tiers": {
+    "Harder": 6,
+    "Hard": 12,
+    "?": 1,
+    "Easy": 2,
+    "Normal": 2,
+    "official": 3
+   },
+   "eras": {
+    "2.2": 5,
+    "?": 1,
+    "2.0-2.1": 17,
+    "official": 3
+   }
+  },
+  "deco-shapes:d_link": {
+   "levels": 26,
+   "objects": 6229,
+   "tiers": {
+    "Easy": 5,
+    "?": 4,
+    "Normal": 3,
+    "Hard": 8,
+    "Harder": 5,
+    "official": 1
+   },
+   "eras": {
+    "2.0-2.1": 20,
+    "?": 4,
+    "2.2": 1,
+    "official": 1
+   }
+  },
+  "deco-shapes:d_swirve": {
+   "levels": 26,
+   "objects": 3381,
+   "tiers": {
+    "Harder": 4,
+    "Easy": 3,
+    "Normal": 6,
+    "Hard": 9,
+    "?": 2,
+    "official": 2
+   },
+   "eras": {
+    "2.2": 11,
+    "?": 2,
+    "2.0-2.1": 10,
+    "1.x": 1,
+    "official": 2
+   }
+  },
+  "deco-blocks:d_largeSquare": {
+   "levels": 26,
+   "objects": 2555,
+   "tiers": {
+    "Harder": 5,
+    "Easy": 6,
+    "Hard": 9,
+    "Normal": 3,
+    "?": 2,
+    "official": 1
+   },
+   "eras": {
+    "2.2": 12,
+    "?": 2,
+    "2.0-2.1": 11,
+    "official": 1
+   }
+  },
+  "deco-blocks:d_brick": {
+   "levels": 26,
+   "objects": 629,
+   "tiers": {
+    "Easy": 5,
+    "Hard": 6,
+    "?": 2,
+    "Harder": 5,
+    "official": 8
+   },
+   "eras": {
+    "2.0-2.1": 13,
+    "2.2": 3,
+    "?": 2,
+    "official": 8
+   }
+  },
+  "deco-spikes:fakeSpike": {
+   "levels": 25,
+   "objects": 1485,
+   "tiers": {
+    "Hard": 7,
+    "Easy": 2,
+    "Normal": 1,
+    "Harder": 6,
+    "?": 1,
+    "official": 8
+   },
+   "eras": {
+    "2.2": 4,
+    "2.0-2.1": 12,
+    "?": 1,
+    "official": 8
+   }
+  },
+  "deco-shapes:d_artCloud": {
+   "levels": 25,
+   "objects": 1330,
+   "tiers": {
+    "Easy": 5,
+    "Hard": 9,
+    "Normal": 3,
+    "Harder": 6,
+    "official": 2
+   },
+   "eras": {
+    "2.0-2.1": 21,
+    "2.2": 2,
+    "official": 2
+   }
+  },
+  "deco-shapes:d_geometric": {
+   "levels": 25,
+   "objects": 815,
+   "tiers": {
+    "Easy": 4,
+    "Hard": 9,
+    "Harder": 8,
+    "?": 1,
+    "Normal": 1,
+    "official": 2
+   },
+   "eras": {
+    "2.0-2.1": 16,
+    "2.2": 4,
+    "1.x": 2,
+    "?": 1,
+    "official": 2
+   }
+  },
+  "deco-scenery:lava_top": {
+   "levels": 24,
+   "objects": 6849,
+   "tiers": {
+    "Harder": 11,
+    "?": 1,
+    "Hard": 4,
+    "Normal": 3,
+    "Easy": 3,
+    "official": 2
+   },
+   "eras": {
+    "2.2": 3,
+    "?": 1,
+    "2.0-2.1": 18,
+    "official": 2
+   }
+  },
+  "deco-blocks:block006_slope": {
+   "levels": 24,
+   "objects": 3184,
+   "tiers": {
+    "Harder": 8,
+    "Hard": 9,
+    "Normal": 1,
+    "Easy": 5,
+    "official": 1
+   },
+   "eras": {
+    "2.2": 6,
+    "2.0-2.1": 17,
+    "official": 1
+   }
+  },
+  "deco-spikes:d_spikeart": {
+   "levels": 24,
+   "objects": 1893,
+   "tiers": {
+    "Harder": 7,
+    "Easy": 3,
+    "Hard": 7,
+    "Normal": 3,
+    "?": 2,
+    "official": 2
+   },
+   "eras": {
+    "2.2": 8,
+    "2.0-2.1": 12,
+    "?": 2,
+    "official": 2
+   }
+  },
+  "deco-scenery:d_skull": {
+   "levels": 24,
+   "objects": 1294,
+   "tiers": {
+    "Harder": 7,
+    "Hard": 7,
+    "?": 1,
+    "Normal": 5,
+    "Easy": 4
+   },
+   "eras": {
+    "2.2": 5,
+    "?": 1,
+    "2.0-2.1": 18
+   }
+  },
+  "effects:d_animWave_01_base": {
+   "levels": 23,
+   "objects": 3091,
+   "tiers": {
+    "Easy": 4,
+    "Hard": 6,
+    "Harder": 7,
+    "Normal": 3,
+    "official": 3
+   },
+   "eras": {
+    "2.0-2.1": 17,
+    "2.2": 3,
+    "official": 3
+   }
+  },
+  "deco-blocks:blockOutlineThickb": {
+   "levels": 23,
+   "objects": 634,
+   "tiers": {
+    "Harder": 5,
+    "Normal": 4,
+    "Hard": 8,
+    "?": 2,
+    "Easy": 4
+   },
+   "eras": {
+    "2.2": 7,
+    "?": 2,
+    "2.0-2.1": 14
+   }
+  },
+  "deco-blocks:block012": {
+   "levels": 22,
+   "objects": 13421,
+   "tiers": {
+    "Harder": 9,
+    "Hard": 7,
+    "Normal": 3,
+    "Easy": 2,
+    "official": 1
+   },
+   "eras": {
+    "2.2": 5,
+    "2.0-2.1": 16,
+    "official": 1
+   }
+  },
+  "deco-scenery:d_flower01": {
+   "levels": 22,
+   "objects": 5467,
+   "tiers": {
+    "Harder": 5,
+    "Easy": 7,
+    "Hard": 5,
+    "Normal": 4,
+    "official": 1
+   },
+   "eras": {
+    "2.2": 5,
+    "2.0-2.1": 16,
+    "official": 1
+   }
+  },
+  "deco-shapes:d_bar": {
+   "levels": 22,
+   "objects": 4236,
+   "tiers": {
+    "Hard": 7,
+    "Normal": 4,
+    "?": 2,
+    "Easy": 2,
+    "Harder": 2,
+    "official": 5
+   },
+   "eras": {
+    "2.2": 4,
+    "?": 2,
+    "2.0-2.1": 9,
+    "1.x": 2,
+    "official": 5
+   }
+  },
+  "deco-shapes:d_art": {
+   "levels": 22,
+   "objects": 431,
+   "tiers": {
+    "Easy": 4,
+    "Hard": 6,
+    "Normal": 2,
+    "Harder": 6,
+    "official": 4
+   },
+   "eras": {
+    "2.2": 3,
+    "2.0-2.1": 15,
+    "official": 4
+   }
+  },
+  "deco-blocks:square_g": {
+   "levels": 21,
+   "objects": 5394,
+   "tiers": {
+    "Easy": 3,
+    "?": 3,
+    "Hard": 4,
+    "Harder": 3,
+    "Normal": 3,
+    "official": 5
+   },
+   "eras": {
+    "2.0-2.1": 10,
+    "?": 3,
+    "1.x": 2,
+    "2.2": 1,
+    "official": 5
+   }
+  },
+  "deco-shapes:d_link_c": {
+   "levels": 21,
+   "objects": 3596,
+   "tiers": {
+    "Easy": 5,
+    "Hard": 3,
+    "Harder": 5,
+    "Normal": 3,
+    "?": 2,
+    "official": 3
+   },
+   "eras": {
+    "2.0-2.1": 12,
+    "1.x": 1,
+    "?": 2,
+    "2.2": 3,
+    "official": 3
+   }
+  },
+  "deco-spikes:d_thorn": {
+   "levels": 21,
+   "objects": 1973,
+   "tiers": {
+    "Harder": 3,
+    "Easy": 3,
+    "Hard": 5,
+    "Normal": 6,
+    "?": 2,
+    "official": 2
+   },
+   "eras": {
+    "2.2": 8,
+    "2.0-2.1": 8,
+    "?": 2,
+    "1.x": 1,
+    "official": 2
+   }
+  },
+  "deco-shapes:d_pickupCircle": {
+   "levels": 21,
+   "objects": 363,
+   "tiers": {
+    "Easy": 3,
+    "Normal": 3,
+    "Hard": 4,
+    "?": 1,
+    "Harder": 7,
+    "official": 3
+   },
+   "eras": {
+    "2.2": 5,
+    "?": 1,
+    "2.0-2.1": 12,
+    "official": 3
+   }
+  },
+  "effects:particle": {
+   "levels": 20,
+   "objects": 150015,
+   "tiers": {
+    "Harder": 3,
+    "Easy": 6,
+    "Normal": 5,
+    "Hard": 5,
+    "?": 1
+   },
+   "eras": {
+    "2.2": 19,
+    "?": 1
+   }
+  },
+  "effects:gj22_anim": {
+   "levels": 20,
+   "objects": 7211,
+   "tiers": {
+    "Harder": 3,
+    "Easy": 5,
+    "Normal": 5,
+    "Hard": 5,
+    "?": 1,
+    "official": 1
+   },
+   "eras": {
+    "2.2": 18,
+    "?": 1,
+    "official": 1
+   }
+  },
+  "effects:d_animLoading": {
+   "levels": 20,
+   "objects": 1584,
+   "tiers": {
+    "Easy": 2,
+    "Hard": 6,
+    "Normal": 4,
+    "?": 2,
+    "Harder": 4,
+    "official": 2
+   },
+   "eras": {
+    "2.2": 7,
+    "?": 2,
+    "2.0-2.1": 9,
+    "official": 2
+   }
+  },
+  "deco-scenery:d_pillar": {
+   "levels": 20,
+   "objects": 1333,
+   "tiers": {
+    "Easy": 2,
+    "Hard": 7,
+    "Normal": 1,
+    "Harder": 5,
+    "?": 2,
+    "official": 3
+   },
+   "eras": {
+    "2.0-2.1": 10,
+    "2.2": 3,
+    "1.x": 2,
+    "?": 2,
+    "official": 3
+   }
+  },
+  "deco-blocks:d_square": {
+   "levels": 19,
+   "objects": 5616,
+   "tiers": {
+    "Harder": 5,
+    "Easy": 2,
+    "Hard": 7,
+    "Normal": 3,
+    "official": 2
+   },
+   "eras": {
+    "2.2": 6,
+    "2.0-2.1": 11,
+    "official": 2
+   }
+  },
+  "deco-blocks:block013_detail": {
+   "levels": 19,
+   "objects": 4302,
+   "tiers": {
+    "Harder": 7,
+    "Hard": 3,
+    "?": 1,
+    "Normal": 3,
+    "Easy": 4,
+    "official": 1
+   },
+   "eras": {
+    "2.2": 4,
+    "?": 1,
+    "2.0-2.1": 13,
+    "official": 1
+   }
+  },
+  "deco-blocks:block007b_bgcolor": {
+   "levels": 19,
+   "objects": 1768,
+   "tiers": {
+    "Hard": 6,
+    "Easy": 4,
+    "Harder": 7,
+    "Normal": 2
+   },
+   "eras": {
+    "2.2": 3,
+    "2.0-2.1": 16
+   }
+  },
+  "deco-blocks:block013": {
+   "levels": 18,
+   "objects": 6088,
+   "tiers": {
+    "Harder": 8,
+    "Normal": 3,
+    "Hard": 4,
+    "Easy": 2,
+    "official": 1
+   },
+   "eras": {
+    "2.2": 4,
+    "2.0-2.1": 13,
+    "official": 1
+   }
+  },
+  "effects:Fire_03_looped": {
+   "levels": 18,
+   "objects": 504,
+   "tiers": {
+    "Harder": 5,
+    "Hard": 3,
+    "Easy": 4,
+    "?": 1,
+    "Normal": 3,
+    "official": 2
+   },
+   "eras": {
+    "2.2": 5,
+    "2.0-2.1": 10,
+    "?": 1,
+    "official": 2
+   }
+  },
+  "effects:Fire_01_looped": {
+   "levels": 18,
+   "objects": 244,
+   "tiers": {
+    "Harder": 7,
+    "Hard": 3,
+    "Easy": 3,
+    "Normal": 3,
+    "official": 2
+   },
+   "eras": {
+    "2.2": 3,
+    "2.0-2.1": 13,
+    "official": 2
+   }
+  },
+  "deco-other:d_sign": {
+   "levels": 18,
+   "objects": 139,
+   "tiers": {
+    "Harder": 5,
+    "Hard": 4,
+    "Normal": 4,
+    "Easy": 3,
+    "official": 2
+   },
+   "eras": {
+    "2.2": 4,
+    "2.0-2.1": 12,
+    "official": 2
+   }
+  },
+  "deco-blocks:square_b": {
+   "levels": 17,
+   "objects": 17188,
+   "tiers": {
+    "Harder": 4,
+    "Normal": 4,
+    "Hard": 5,
+    "?": 1,
+    "Easy": 3
+   },
+   "eras": {
+    "2.2": 10,
+    "?": 1,
+    "2.0-2.1": 6
+   }
+  },
+  "deco-shapes:d_smallbar": {
+   "levels": 17,
+   "objects": 1967,
+   "tiers": {
+    "Hard": 5,
+    "Easy": 2,
+    "?": 2,
+    "Normal": 3,
+    "Harder": 4,
+    "official": 1
+   },
+   "eras": {
+    "2.2": 4,
+    "2.0-2.1": 10,
+    "?": 2,
+    "official": 1
+   }
+  },
+  "effects:d_animWave_03_base": {
+   "levels": 17,
+   "objects": 1652,
+   "tiers": {
+    "Easy": 2,
+    "Hard": 5,
+    "?": 1,
+    "Normal": 2,
+    "Harder": 5,
+    "official": 2
+   },
+   "eras": {
+    "2.0-2.1": 12,
+    "2.2": 2,
+    "?": 1,
+    "official": 2
+   }
+  },
+  "deco-blocks:block007b": {
+   "levels": 17,
+   "objects": 1585,
+   "tiers": {
+    "Harder": 6,
+    "Hard": 6,
+    "Normal": 2,
+    "Easy": 3
+   },
+   "eras": {
+    "2.2": 3,
+    "2.0-2.1": 14
+   }
+  },
+  "deco-blocks:block005c_slope_square": {
+   "levels": 17,
+   "objects": 1381,
+   "tiers": {
+    "Harder": 4,
+    "Normal": 3,
+    "Hard": 6,
+    "Easy": 3,
+    "?": 1
+   },
+   "eras": {
+    "2.2": 7,
+    "2.0-2.1": 9,
+    "?": 1
+   }
+  },
+  "deco-shapes:d_ringSpiral": {
+   "levels": 17,
+   "objects": 494,
+   "tiers": {
+    "Harder": 6,
+    "Hard": 5,
+    "Normal": 3,
+    "Easy": 1,
+    "official": 2
+   },
+   "eras": {
+    "2.2": 2,
+    "2.0-2.1": 13,
+    "official": 2
+   }
+  },
+  "effects:Fire_02_looped": {
+   "levels": 17,
+   "objects": 383,
+   "tiers": {
+    "Harder": 6,
+    "Easy": 4,
+    "Hard": 2,
+    "Normal": 3,
+    "official": 2
+   },
+   "eras": {
+    "2.2": 4,
+    "2.0-2.1": 11,
+    "official": 2
+   }
+  },
+  "deco-other:d_sign_pole": {
+   "levels": 17,
+   "objects": 292,
+   "tiers": {
+    "Harder": 5,
+    "Hard": 4,
+    "Normal": 2,
+    "Easy": 4,
+    "official": 2
+   },
+   "eras": {
+    "2.2": 5,
+    "2.0-2.1": 10,
+    "official": 2
+   }
+  },
+  "deco-blocks:block009": {
+   "levels": 16,
+   "objects": 9018,
+   "tiers": {
+    "Harder": 7,
+    "Hard": 5,
+    "Normal": 1,
+    "official": 3
+   },
+   "eras": {
+    "2.2": 4,
+    "2.0-2.1": 9,
+    "official": 3
+   }
+  },
+  "effects:waterfallAnim": {
+   "levels": 16,
+   "objects": 2112,
+   "tiers": {
+    "Hard": 4,
+    "?": 1,
+    "Harder": 5,
+    "Normal": 4,
+    "Easy": 1,
+    "official": 1
+   },
+   "eras": {
+    "2.2": 2,
+    "?": 1,
+    "2.0-2.1": 12,
+    "official": 1
+   }
+  },
+  "deco-spikes:d_waveBG": {
+   "levels": 16,
+   "objects": 1726,
+   "tiers": {
+    "Easy": 3,
+    "Hard": 4,
+    "Normal": 2,
+    "Harder": 5,
+    "official": 2
+   },
+   "eras": {
+    "2.0-2.1": 12,
+    "2.2": 2,
+    "official": 2
+   }
+  },
+  "deco-blocks:block007_slope": {
+   "levels": 16,
+   "objects": 1552,
+   "tiers": {
+    "Hard": 9,
+    "Easy": 1,
+    "Normal": 2,
+    "Harder": 3,
+    "official": 1
+   },
+   "eras": {
+    "2.0-2.1": 14,
+    "2.2": 1,
+    "official": 1
+   }
+  },
+  "deco-shapes:d_rainbow": {
+   "levels": 16,
+   "objects": 478,
+   "tiers": {
+    "Harder": 5,
+    "Hard": 2,
+    "Easy": 5,
+    "Normal": 2,
+    "?": 1,
+    "official": 1
+   },
+   "eras": {
+    "2.2": 4,
+    "2.0-2.1": 10,
+    "?": 1,
+    "official": 1
+   }
+  },
+  "deco-shapes:d_cross": {
+   "levels": 16,
+   "objects": 239,
+   "tiers": {
+    "Easy": 2,
+    "Harder": 2,
+    "?": 2,
+    "Normal": 1,
+    "Hard": 2,
+    "official": 7
+   },
+   "eras": {
+    "2.2": 4,
+    "2.0-2.1": 3,
+    "?": 2,
+    "official": 7
+   }
+  },
+  "deco-blocks:block013_light_c": {
+   "levels": 15,
+   "objects": 4767,
+   "tiers": {
+    "Harder": 4,
+    "Normal": 3,
+    "Hard": 3,
+    "?": 1,
+    "Easy": 3,
+    "official": 1
+   },
+   "eras": {
+    "2.2": 5,
+    "?": 1,
+    "2.0-2.1": 8,
+    "official": 1
+   }
+  },
+  "deco-blocks:d_rotatingSquare": {
+   "levels": 15,
+   "objects": 1989,
+   "tiers": {
+    "Harder": 4,
+    "?": 1,
+    "Normal": 4,
+    "Hard": 4,
+    "Easy": 2
+   },
+   "eras": {
+    "2.2": 2,
+    "?": 1,
+    "2.0-2.1": 12
+   }
+  },
+  "deco-spikes:d_wave": {
+   "levels": 14,
+   "objects": 4742,
+   "tiers": {
+    "Easy": 1,
+    "?": 2,
+    "Hard": 3,
+    "Harder": 2,
+    "official": 6
+   },
+   "eras": {
+    "2.0-2.1": 3,
+    "?": 2,
+    "2.2": 2,
+    "1.x": 1,
+    "official": 6
+   }
+  },
+  "deco-blocks:block012b": {
+   "levels": 14,
+   "objects": 4581,
+   "tiers": {
+    "Harder": 6,
+    "?": 1,
+    "Hard": 3,
+    "Normal": 2,
+    "Easy": 1,
+    "official": 1
+   },
+   "eras": {
+    "2.2": 2,
+    "?": 1,
+    "2.0-2.1": 10,
+    "official": 1
+   }
+  },
+  "deco-blocks:block013_light": {
+   "levels": 14,
+   "objects": 4282,
+   "tiers": {
+    "Harder": 4,
+    "Normal": 3,
+    "Hard": 4,
+    "?": 1,
+    "Easy": 1,
+    "official": 1
+   },
+   "eras": {
+    "2.2": 4,
+    "?": 1,
+    "2.0-2.1": 8,
+    "official": 1
+   }
+  },
+  "deco-blocks:block013_edge": {
+   "levels": 14,
+   "objects": 4220,
+   "tiers": {
+    "Normal": 3,
+    "Hard": 3,
+    "Harder": 5,
+    "Easy": 2,
+    "official": 1
+   },
+   "eras": {
+    "2.2": 3,
+    "2.0-2.1": 10,
+    "official": 1
+   }
+  },
+  "deco-blocks:block009_part": {
+   "levels": 14,
+   "objects": 3387,
+   "tiers": {
+    "Harder": 4,
+    "Hard": 5,
+    "Easy": 3,
+    "Normal": 1,
+    "official": 1
+   },
+   "eras": {
+    "2.2": 5,
+    "2.0-2.1": 8,
+    "official": 1
+   }
+  },
+  "deco-blocks:block005c_slope": {
+   "levels": 14,
+   "objects": 1825,
+   "tiers": {
+    "Harder": 5,
+    "Easy": 3,
+    "Hard": 4,
+    "?": 1,
+    "Normal": 1
+   },
+   "eras": {
+    "2.2": 6,
+    "?": 1,
+    "2.0-2.1": 7
+   }
+  },
+  "deco-blocks:block009c_base": {
+   "levels": 14,
+   "objects": 1689,
+   "tiers": {
+    "Hard": 5,
+    "?": 1,
+    "Easy": 1,
+    "Harder": 5,
+    "official": 2
+   },
+   "eras": {
+    "2.2": 3,
+    "?": 1,
+    "2.0-2.1": 8,
+    "official": 2
+   }
+  },
+  "deco-blocks:block009c_slope": {
+   "levels": 14,
+   "objects": 1365,
+   "tiers": {
+    "Harder": 4,
+    "Hard": 6,
+    "?": 1,
+    "Easy": 2,
+    "official": 1
+   },
+   "eras": {
+    "2.2": 3,
+    "?": 1,
+    "2.0-2.1": 9,
+    "official": 1
+   }
+  },
+  "deco-blocks:block013_edge_c": {
+   "levels": 14,
+   "objects": 1043,
+   "tiers": {
+    "Normal": 3,
+    "Hard": 3,
+    "Harder": 4,
+    "Easy": 3,
+    "official": 1
+   },
+   "eras": {
+    "2.2": 5,
+    "2.0-2.1": 8,
+    "official": 1
+   }
+  },
+  "effects:Fire_04_looped": {
+   "levels": 14,
+   "objects": 408,
+   "tiers": {
+    "Hard": 4,
+    "Easy": 2,
+    "Normal": 2,
+    "Harder": 4,
+    "official": 2
+   },
+   "eras": {
+    "2.2": 2,
+    "2.0-2.1": 10,
+    "official": 2
+   }
+  },
+  "deco-other:gjHand": {
+   "levels": 14,
+   "objects": 92,
+   "tiers": {
+    "Easy": 2,
+    "Hard": 5,
+    "?": 1,
+    "Normal": 4,
+    "Harder": 2
+   },
+   "eras": {
+    "2.2": 5,
+    "?": 1,
+    "2.0-2.1": 8
+   }
+  },
+  "deco-blocks:gdh": {
+   "levels": 13,
+   "objects": 4873,
+   "tiers": {
+    "Harder": 3,
+    "Easy": 2,
+    "Hard": 4,
+    "Normal": 3,
+    "?": 1
+   },
+   "eras": {
+    "2.2": 12,
+    "?": 1
+   }
+  },
+  "deco-blocks:blockDesign02": {
+   "levels": 13,
+   "objects": 3995,
+   "tiers": {
+    "Harder": 7,
+    "Normal": 2,
+    "Hard": 3,
+    "Easy": 1
+   },
+   "eras": {
+    "2.2": 3,
+    "2.0-2.1": 10
+   }
+  },
+  "deco-blocks:block005": {
+   "levels": 13,
+   "objects": 2947,
+   "tiers": {
+    "Normal": 2,
+    "Hard": 3,
+    "Easy": 2,
+    "Harder": 5,
+    "official": 1
+   },
+   "eras": {
+    "2.0-2.1": 10,
+    "2.2": 2,
+    "official": 1
+   }
+  },
+  "deco-blocks:square_c": {
+   "levels": 13,
+   "objects": 1677,
+   "tiers": {
+    "Easy": 1,
+    "Normal": 1,
+    "Harder": 2,
+    "official": 9
+   },
+   "eras": {
+    "2.0-2.1": 3,
+    "2.2": 1,
+    "official": 9
+   }
+  },
+  "deco-blocks:block003_part01": {
+   "levels": 13,
+   "objects": 1198,
+   "tiers": {
+    "Hard": 5,
+    "Harder": 3,
+    "?": 2,
+    "Easy": 1,
+    "official": 2
+   },
+   "eras": {
+    "2.0-2.1": 8,
+    "?": 2,
+    "2.2": 1,
+    "official": 2
+   }
+  },
+  "deco-other:keyframeIcon": {
+   "levels": 13,
+   "objects": 1102,
+   "tiers": {
+    "Easy": 3,
+    "Normal": 3,
+    "Hard": 4,
+    "?": 1,
+    "Harder": 1,
+    "official": 1
+   },
+   "eras": {
+    "2.2": 11,
+    "?": 1,
+    "official": 1
+   }
+  },
+  "effects:gj_drops03": {
+   "levels": 13,
+   "objects": 986,
+   "tiers": {
+    "Harder": 2,
+    "Normal": 1,
+    "Hard": 4,
+    "Easy": 5,
+    "?": 1
+   },
+   "eras": {
+    "2.2": 5,
+    "?": 1,
+    "2.0-2.1": 7
+   }
+  },
+  "effects:gj_lightning02": {
+   "levels": 13,
+   "objects": 946,
+   "tiers": {
+    "Hard": 4,
+    "?": 1,
+    "Normal": 4,
+    "Easy": 2,
+    "Harder": 2
+   },
+   "eras": {
+    "2.2": 3,
+    "?": 1,
+    "2.0-2.1": 9
+   }
+  },
+  "deco-blocks:smallOutline": {
+   "levels": 13,
+   "objects": 845,
+   "tiers": {
+    "Hard": 3,
+    "Normal": 2,
+    "Easy": 4,
+    "Harder": 4
+   },
+   "eras": {
+    "2.2": 3,
+    "2.0-2.1": 10
+   }
+  },
+  "deco-blocks:square_f": {
+   "levels": 12,
+   "objects": 3904,
+   "tiers": {
+    "Harder": 4,
+    "Hard": 1,
+    "?": 1,
+    "official": 6
+   },
+   "eras": {
+    "2.2": 2,
+    "2.0-2.1": 3,
+    "?": 1,
+    "official": 6
+   }
+  },
+  "deco-blocks:block001": {
+   "levels": 12,
+   "objects": 3694,
+   "tiers": {
+    "Hard": 3,
+    "Harder": 5,
+    "Normal": 1,
+    "official": 3
+   },
+   "eras": {
+    "1.x": 1,
+    "2.0-2.1": 7,
+    "2.2": 1,
+    "official": 3
+   }
+  },
+  "effects:d_animWave": {
+   "levels": 12,
+   "objects": 1437,
+   "tiers": {
+    "Easy": 3,
+    "Normal": 2,
+    "Hard": 4,
+    "Harder": 1,
+    "?": 1,
+    "official": 1
+   },
+   "eras": {
+    "2.2": 10,
+    "?": 1,
+    "official": 1
+   }
+  },
+  "deco-blocks:block004_slope": {
+   "levels": 12,
+   "objects": 941,
+   "tiers": {
+    "Easy": 3,
+    "Hard": 2,
+    "Harder": 3,
+    "?": 2,
+    "Normal": 1,
+    "official": 1
+   },
+   "eras": {
+    "2.0-2.1": 8,
+    "?": 2,
+    "2.2": 1,
+    "official": 1
+   }
+  },
+  "deco-blocks:block003_part06": {
+   "levels": 12,
+   "objects": 630,
+   "tiers": {
+    "Hard": 5,
+    "Harder": 3,
+    "?": 2,
+    "Easy": 1,
+    "official": 1
+   },
+   "eras": {
+    "2.0-2.1": 8,
+    "?": 2,
+    "2.2": 1,
+    "official": 1
+   }
+  },
+  "deco-blocks:block008": {
+   "levels": 12,
+   "objects": 607,
+   "tiers": {
+    "Harder": 3,
+    "Hard": 5,
+    "Easy": 2,
+    "official": 2
+   },
+   "eras": {
+    "2.2": 4,
+    "2.0-2.1": 6,
+    "official": 2
+   }
+  },
+  "deco-shapes:d_qmark": {
+   "levels": 12,
+   "objects": 76,
+   "tiers": {
+    "Normal": 2,
+    "Hard": 2,
+    "Harder": 3,
+    "Easy": 2,
+    "official": 3
+   },
+   "eras": {
+    "2.2": 3,
+    "2.0-2.1": 6,
+    "official": 3
+   }
+  },
+  "deco-other:d_keyHole01": {
+   "levels": 12,
+   "objects": 20,
+   "tiers": {
+    "Normal": 3,
+    "Hard": 2,
+    "Easy": 3,
+    "Harder": 3,
+    "official": 1
+   },
+   "eras": {
+    "2.0-2.1": 9,
+    "2.2": 2,
+    "official": 1
+   }
+  },
+  "pixel:pixelart": {
+   "levels": 11,
+   "objects": 15894,
+   "tiers": {
+    "Harder": 3,
+    "Easy": 1,
+    "Hard": 3,
+    "?": 1,
+    "Normal": 2,
+    "official": 1
+   },
+   "eras": {
+    "2.2": 9,
+    "?": 1,
+    "official": 1
+   }
+  },
+  "deco-blocks:blockDesign06": {
+   "levels": 11,
+   "objects": 6741,
+   "tiers": {
+    "Harder": 5,
+    "Hard": 5,
+    "Normal": 1
+   },
+   "eras": {
+    "2.2": 3,
+    "2.0-2.1": 8
+   }
+  },
+  "deco-spikes:d_spikeWave": {
+   "levels": 11,
+   "objects": 1534,
+   "tiers": {
+    "Hard": 5,
+    "Easy": 1,
+    "Harder": 3,
+    "official": 2
+   },
+   "eras": {
+    "2.2": 1,
+    "2.0-2.1": 8,
+    "official": 2
+   }
+  },
+  "deco-blocks:blockDesign07": {
+   "levels": 11,
+   "objects": 1372,
+   "tiers": {
+    "Harder": 3,
+    "Easy": 3,
+    "Hard": 4,
+    "Normal": 1
+   },
+   "eras": {
+    "2.2": 5,
+    "2.0-2.1": 6
+   }
+  },
+  "effects:d_animSquare": {
+   "levels": 11,
+   "objects": 1331,
+   "tiers": {
+    "Hard": 7,
+    "Normal": 2,
+    "Harder": 1,
+    "Easy": 1
+   },
+   "eras": {
+    "2.2": 5,
+    "2.0-2.1": 6
+   }
+  },
+  "deco-blocks:square_d": {
+   "levels": 11,
+   "objects": 1058,
+   "tiers": {
+    "?": 2,
+    "Hard": 3,
+    "Normal": 1,
+    "Harder": 3,
+    "official": 2
+   },
+   "eras": {
+    "?": 2,
+    "2.0-2.1": 6,
+    "2.2": 1,
+    "official": 2
+   }
+  },
+  "effects:gj_bubble01": {
+   "levels": 11,
+   "objects": 417,
+   "tiers": {
+    "Normal": 4,
+    "?": 1,
+    "Harder": 2,
+    "Hard": 1,
+    "Easy": 2,
+    "official": 1
+   },
+   "eras": {
+    "2.2": 2,
+    "?": 1,
+    "2.0-2.1": 7,
+    "official": 1
+   }
+  },
+  "effects:explosion": {
+   "levels": 11,
+   "objects": 219,
+   "tiers": {
+    "Easy": 3,
+    "?": 1,
+    "Harder": 2,
+    "Normal": 3,
+    "Hard": 2
+   },
+   "eras": {
+    "2.2": 2,
+    "?": 1,
+    "2.0-2.1": 8
+   }
+  },
+  "effects:gj_drops06": {
+   "levels": 11,
+   "objects": 153,
+   "tiers": {
+    "Normal": 2,
+    "?": 1,
+    "Hard": 5,
+    "Easy": 2,
+    "Harder": 1
+   },
+   "eras": {
+    "2.2": 2,
+    "?": 1,
+    "2.0-2.1": 8
+   }
+  },
+  "effects:gj_smoke02": {
+   "levels": 11,
+   "objects": 143,
+   "tiers": {
+    "Harder": 4,
+    "Easy": 3,
+    "Hard": 4
+   },
+   "eras": {
+    "2.2": 5,
+    "2.0-2.1": 6
+   }
+  },
+  "deco-blocks:blockDesign01": {
+   "levels": 10,
+   "objects": 4063,
+   "tiers": {
+    "Harder": 7,
+    "Normal": 1,
+    "Hard": 1,
+    "Easy": 1
+   },
+   "eras": {
+    "2.2": 2,
+    "2.0-2.1": 8
+   }
+  },
+  "deco-blocks:block011_light": {
+   "levels": 10,
+   "objects": 3184,
+   "tiers": {
+    "Harder": 4,
+    "Easy": 2,
+    "Hard": 2,
+    "?": 1,
+    "official": 1
+   },
+   "eras": {
+    "2.2": 4,
+    "?": 1,
+    "2.0-2.1": 4,
+    "official": 1
+   }
+  },
+  "deco-blocks:blockDesign03": {
+   "levels": 10,
+   "objects": 2971,
+   "tiers": {
+    "Harder": 3,
+    "Easy": 1,
+    "Normal": 2,
+    "Hard": 4
+   },
+   "eras": {
+    "2.2": 4,
+    "2.0-2.1": 6
+   }
+  },
+  "deco-blocks:square_f_brick01": {
+   "levels": 10,
+   "objects": 1763,
+   "tiers": {
+    "Easy": 2,
+    "Hard": 3,
+    "Normal": 2,
+    "Harder": 2,
+    "?": 1
+   },
+   "eras": {
+    "2.0-2.1": 8,
+    "2.2": 1,
+    "?": 1
+   }
+  },
+  "deco-blocks:block012_light": {
+   "levels": 10,
+   "objects": 1511,
+   "tiers": {
+    "Harder": 4,
+    "Hard": 2,
+    "?": 1,
+    "Easy": 2,
+    "official": 1
+   },
+   "eras": {
+    "2.2": 3,
+    "?": 1,
+    "2.0-2.1": 5,
+    "official": 1
+   }
+  },
+  "deco-blocks:block003_part04": {
+   "levels": 10,
+   "objects": 655,
+   "tiers": {
+    "Hard": 3,
+    "Harder": 3,
+    "?": 2,
+    "Easy": 1,
+    "official": 1
+   },
+   "eras": {
+    "2.0-2.1": 6,
+    "?": 2,
+    "2.2": 1,
+    "official": 1
+   }
+  },
+  "deco-shapes:d_zag": {
+   "levels": 10,
+   "objects": 579,
+   "tiers": {
+    "Harder": 3,
+    "Hard": 3,
+    "Normal": 2,
+    "Easy": 1,
+    "official": 1
+   },
+   "eras": {
+    "2.0-2.1": 8,
+    "2.2": 1,
+    "official": 1
+   }
+  },
+  "deco-shapes:d_rotatingBall": {
+   "levels": 10,
+   "objects": 392,
+   "tiers": {
+    "Hard": 3,
+    "?": 2,
+    "Normal": 1,
+    "Harder": 1,
+    "official": 3
+   },
+   "eras": {
+    "1.x": 2,
+    "2.0-2.1": 2,
+    "?": 2,
+    "2.2": 1,
+    "official": 3
+   }
+  },
+  "effects:gj_drops01": {
+   "levels": 10,
+   "objects": 195,
+   "tiers": {
+    "Harder": 4,
+    "Easy": 3,
+    "Hard": 3
+   },
+   "eras": {
+    "2.2": 4,
+    "2.0-2.1": 6
+   }
+  },
+  "deco-blocks:block002": {
+   "levels": 9,
+   "objects": 1723,
+   "tiers": {
+    "Hard": 5,
+    "Harder": 3,
+    "official": 1
+   },
+   "eras": {
+    "1.x": 1,
+    "2.0-2.1": 6,
+    "2.2": 1,
+    "official": 1
+   }
+  },
+  "deco-blocks:d_block04_piece06": {
+   "levels": 9,
+   "objects": 865,
+   "tiers": {
+    "Easy": 2,
+    "Hard": 3,
+    "Harder": 2,
+    "official": 2
+   },
+   "eras": {
+    "2.0-2.1": 6,
+    "2.2": 1,
+    "official": 2
+   }
+  },
+  "deco-blocks:block005b_slope": {
+   "levels": 9,
+   "objects": 338,
+   "tiers": {
+    "Normal": 2,
+    "Easy": 1,
+    "Hard": 2,
+    "Harder": 3,
+    "official": 1
+   },
+   "eras": {
+    "2.0-2.1": 7,
+    "2.2": 1,
+    "official": 1
+   }
+  },
+  "deco-scenery:waterSplash": {
+   "levels": 9,
+   "objects": 161,
+   "tiers": {
+    "Harder": 4,
+    "Hard": 2,
+    "Normal": 1,
+    "Easy": 1,
+    "official": 1
+   },
+   "eras": {
+    "2.2": 2,
+    "2.0-2.1": 6,
+    "official": 1
+   }
+  },
+  "effects:gj_drops02": {
+   "levels": 9,
+   "objects": 113,
+   "tiers": {
+    "Harder": 4,
+    "?": 1,
+    "Hard": 1,
+    "Easy": 2,
+    "Normal": 1
+   },
+   "eras": {
+    "2.2": 2,
+    "?": 1,
+    "2.0-2.1": 6
+   }
+  },
+  "deco-shapes:d_rotatingLine": {
+   "levels": 9,
+   "objects": 99,
+   "tiers": {
+    "Harder": 3,
+    "Easy": 3,
+    "Hard": 3
+   },
+   "eras": {
+    "2.2": 5,
+    "2.0-2.1": 4
+   }
+  },
+  "deco-blocks:block011": {
+   "levels": 8,
+   "objects": 2146,
+   "tiers": {
+    "Harder": 4,
+    "Hard": 2,
+    "Normal": 1,
+    "official": 1
+   },
+   "eras": {
+    "2.2": 1,
+    "2.0-2.1": 6,
+    "official": 1
+   }
+  },
+  "deco-spikes:d_pit06wave": {
+   "levels": 8,
+   "objects": 1535,
+   "tiers": {
+    "Hard": 4,
+    "?": 1,
+    "official": 3
+   },
+   "eras": {
+    "2.2": 1,
+    "1.x": 1,
+    "2.0-2.1": 2,
+    "?": 1,
+    "official": 3
+   }
+  },
+  "deco-blocks:blockDesign04": {
+   "levels": 8,
+   "objects": 1390,
+   "tiers": {
+    "Harder": 4,
+    "Normal": 1,
+    "Hard": 2,
+    "Easy": 1
+   },
+   "eras": {
+    "2.2": 2,
+    "2.0-2.1": 6
+   }
+  },
+  "deco-blocks:block011_edge": {
+   "levels": 8,
+   "objects": 854,
+   "tiers": {
+    "Harder": 3,
+    "Hard": 2,
+    "Normal": 1,
+    "Easy": 1,
+    "official": 1
+   },
+   "eras": {
+    "2.2": 3,
+    "2.0-2.1": 4,
+    "official": 1
+   }
+  },
+  "deco-blocks:d_sign_tile": {
+   "levels": 8,
+   "objects": 684,
+   "tiers": {
+    "Harder": 2,
+    "Hard": 4,
+    "Easy": 1,
+    "Normal": 1
+   },
+   "eras": {
+    "2.2": 4,
+    "2.0-2.1": 4
+   }
+  },
+  "deco-blocks:lightsquare_05_brick02": {
+   "levels": 8,
+   "objects": 673,
+   "tiers": {
+    "Hard": 3,
+    "Normal": 2,
+    "Harder": 3
+   },
+   "eras": {
+    "2.0-2.1": 7,
+    "2.2": 1
+   }
+  },
+  "effects:gj_lightning01": {
+   "levels": 8,
+   "objects": 123,
+   "tiers": {
+    "Hard": 2,
+    "Harder": 3,
+    "Normal": 2,
+    "official": 1
+   },
+   "eras": {
+    "2.2": 2,
+    "2.0-2.1": 5,
+    "official": 1
+   }
+  },
+  "deco-blocks:square_f_brick02": {
+   "levels": 8,
+   "objects": 109,
+   "tiers": {
+    "Easy": 3,
+    "Hard": 1,
+    "Normal": 1,
+    "Harder": 1,
+    "?": 1,
+    "official": 1
+   },
+   "eras": {
+    "2.0-2.1": 5,
+    "2.2": 1,
+    "?": 1,
+    "official": 1
+   }
+  },
+  "pixel:pixelart_base": {
+   "levels": 7,
+   "objects": 2332,
+   "tiers": {
+    "Hard": 4,
+    "Normal": 2,
+    "official": 1
+   },
+   "eras": {
+    "2.2": 6,
+    "official": 1
+   }
+  },
+  "pixel:pixelb": {
+   "levels": 7,
+   "objects": 2217,
+   "tiers": {
+    "Harder": 1,
+    "Easy": 1,
+    "Hard": 2,
+    "?": 1,
+    "Normal": 1,
+    "official": 1
+   },
+   "eras": {
+    "2.2": 5,
+    "?": 1,
+    "official": 1
+   }
+  },
+  "deco-blocks:block011b_piece": {
+   "levels": 7,
+   "objects": 1038,
+   "tiers": {
+    "Harder": 3,
+    "Hard": 1,
+    "Normal": 1,
+    "Easy": 1,
+    "official": 1
+   },
+   "eras": {
+    "2.2": 1,
+    "2.0-2.1": 5,
+    "official": 1
+   }
+  },
+  "deco-blocks:d_block04_piece11": {
+   "levels": 7,
+   "objects": 996,
+   "tiers": {
+    "Easy": 2,
+    "?": 1,
+    "Harder": 2,
+    "official": 2
+   },
+   "eras": {
+    "2.0-2.1": 3,
+    "?": 1,
+    "2.2": 1,
+    "official": 2
+   }
+  },
+  "deco-blocks:d_block04_piece08": {
+   "levels": 7,
+   "objects": 756,
+   "tiers": {
+    "Hard": 1,
+    "Harder": 3,
+    "?": 1,
+    "official": 2
+   },
+   "eras": {
+    "2.0-2.1": 3,
+    "?": 1,
+    "2.2": 1,
+    "official": 2
+   }
+  },
+  "deco-shapes:triangle_d": {
+   "levels": 7,
+   "objects": 579,
+   "tiers": {
+    "?": 1,
+    "Hard": 3,
+    "Easy": 1,
+    "Harder": 2
+   },
+   "eras": {
+    "?": 1,
+    "2.0-2.1": 5,
+    "2.2": 1
+   }
+  },
+  "deco-blocks:block007_slope_square": {
+   "levels": 7,
+   "objects": 303,
+   "tiers": {
+    "Easy": 1,
+    "Hard": 2,
+    "Harder": 3,
+    "official": 1
+   },
+   "eras": {
+    "2.0-2.1": 5,
+    "2.2": 1,
+    "official": 1
+   }
+  },
+  "effects:gj_drops05": {
+   "levels": 7,
+   "objects": 136,
+   "tiers": {
+    "Easy": 1,
+    "Normal": 1,
+    "?": 1,
+    "Hard": 2,
+    "Harder": 2
+   },
+   "eras": {
+    "2.2": 4,
+    "?": 1,
+    "2.0-2.1": 2
+   }
+  },
+  "deco-blocks:block003_part05": {
+   "levels": 7,
+   "objects": 108,
+   "tiers": {
+    "Hard": 3,
+    "?": 1,
+    "Harder": 2,
+    "official": 1
+   },
+   "eras": {
+    "2.0-2.1": 4,
+    "?": 1,
+    "2.2": 1,
+    "official": 1
+   }
+  },
+  "deco-blocks:block011b": {
+   "levels": 6,
+   "objects": 1704,
+   "tiers": {
+    "Harder": 2,
+    "?": 1,
+    "Hard": 1,
+    "Easy": 1,
+    "official": 1
+   },
+   "eras": {
+    "2.2": 1,
+    "?": 1,
+    "2.0-2.1": 3,
+    "official": 1
+   }
+  },
+  "deco-blocks:triangle_g_square": {
+   "levels": 6,
+   "objects": 768,
+   "tiers": {
+    "Hard": 2,
+    "Harder": 1,
+    "official": 3
+   },
+   "eras": {
+    "1.x": 2,
+    "2.2": 1,
+    "official": 3
+   }
+  },
+  "deco-blocks:blockDesign05": {
+   "levels": 6,
+   "objects": 557,
+   "tiers": {
+    "Harder": 2,
+    "Easy": 1,
+    "Hard": 3
+   },
+   "eras": {
+    "2.2": 2,
+    "2.0-2.1": 4
+   }
+  },
+  "deco-blocks:block010": {
+   "levels": 6,
+   "objects": 546,
+   "tiers": {
+    "Easy": 3,
+    "Hard": 1,
+    "?": 1,
+    "official": 1
+   },
+   "eras": {
+    "2.2": 2,
+    "?": 1,
+    "2.0-2.1": 2,
+    "official": 1
+   }
+  },
+  "deco-blocks:d_block04_piece01": {
+   "levels": 6,
+   "objects": 420,
+   "tiers": {
+    "Hard": 2,
+    "Normal": 1,
+    "Easy": 2,
+    "official": 1
+   },
+   "eras": {
+    "2.2": 1,
+    "2.0-2.1": 4,
+    "official": 1
+   }
+  },
+  "deco-blocks:d_block04_piece07": {
+   "levels": 5,
+   "objects": 631,
+   "tiers": {
+    "Harder": 2,
+    "?": 1,
+    "official": 2
+   },
+   "eras": {
+    "2.0-2.1": 1,
+    "?": 1,
+    "2.2": 1,
+    "official": 2
+   }
+  },
+  "deco-blocks:block009_slope": {
+   "levels": 5,
+   "objects": 468,
+   "tiers": {
+    "Hard": 2,
+    "Harder": 2,
+    "official": 1
+   },
+   "eras": {
+    "2.0-2.1": 3,
+    "2.2": 1,
+    "official": 1
+   }
+  },
+  "deco-blocks:block003_part02": {
+   "levels": 5,
+   "objects": 354,
+   "tiers": {
+    "Hard": 2,
+    "Harder": 1,
+    "official": 2
+   },
+   "eras": {
+    "2.0-2.1": 2,
+    "2.2": 1,
+    "official": 2
+   }
+  },
+  "deco-shapes:triangle_c": {
+   "levels": 5,
+   "objects": 314,
+   "tiers": {
+    "Easy": 1,
+    "Harder": 2,
+    "official": 2
+   },
+   "eras": {
+    "2.0-2.1": 2,
+    "2.2": 1,
+    "official": 2
+   }
+  },
+  "deco-blocks:block003_part03": {
+   "levels": 5,
+   "objects": 307,
+   "tiers": {
+    "Easy": 1,
+    "Harder": 2,
+    "official": 2
+   },
+   "eras": {
+    "2.0-2.1": 2,
+    "2.2": 1,
+    "official": 2
+   }
+  },
+  "deco-blocks:d_block04_piece04": {
+   "levels": 5,
+   "objects": 302,
+   "tiers": {
+    "Normal": 1,
+    "Easy": 1,
+    "Hard": 1,
+    "Harder": 1,
+    "official": 1
+   },
+   "eras": {
+    "2.0-2.1": 3,
+    "2.2": 1,
+    "official": 1
+   }
+  },
+  "deco-blocks:block001_slope": {
+   "levels": 5,
+   "objects": 246,
+   "tiers": {
+    "Hard": 1,
+    "Harder": 2,
+    "official": 2
+   },
+   "eras": {
+    "2.0-2.1": 2,
+    "2.2": 1,
+    "official": 2
+   }
+  },
+  "deco-shapes:triangle_f": {
+   "levels": 5,
+   "objects": 194,
+   "tiers": {
+    "Hard": 1,
+    "Harder": 2,
+    "?": 1,
+    "official": 1
+   },
+   "eras": {
+    "2.0-2.1": 2,
+    "2.2": 1,
+    "?": 1,
+    "official": 1
+   }
+  },
+  "deco-blocks:plank005b": {
+   "levels": 5,
+   "objects": 78,
+   "tiers": {
+    "Easy": 1,
+    "Harder": 1,
+    "Normal": 1,
+    "Hard": 2
+   },
+   "eras": {
+    "2.0-2.1": 5
+   }
+  },
+  "effects:gj_drops04": {
+   "levels": 5,
+   "objects": 34,
+   "tiers": {
+    "?": 1,
+    "Easy": 2,
+    "Hard": 1,
+    "Harder": 1
+   },
+   "eras": {
+    "?": 1,
+    "2.0-2.1": 3,
+    "2.2": 1
+   }
+  },
+  "effects:fire_b": {
+   "levels": 4,
+   "objects": 315,
+   "tiers": {
+    "Easy": 1,
+    "?": 1,
+    "Hard": 1,
+    "official": 1
+   },
+   "eras": {
+    "2.2": 2,
+    "?": 1,
+    "official": 1
+   }
+  },
+  "deco-blocks:puzzle": {
+   "levels": 4,
+   "objects": 275,
+   "tiers": {
+    "Harder": 1,
+    "Normal": 1,
+    "Hard": 1,
+    "Easy": 1
+   },
+   "eras": {
+    "2.0-2.1": 4
+   }
+  },
+  "effects:d_animWave_02_base": {
+   "levels": 4,
+   "objects": 220,
+   "tiers": {
+    "Hard": 1,
+    "Harder": 3
+   },
+   "eras": {
+    "2.0-2.1": 3,
+    "2.2": 1
+   }
+  },
+  "deco-shapes:triangle_g": {
+   "levels": 4,
+   "objects": 163,
+   "tiers": {
+    "Hard": 1,
+    "Harder": 2,
+    "official": 1
+   },
+   "eras": {
+    "2.0-2.1": 2,
+    "2.2": 1,
+    "official": 1
+   }
+  },
+  "deco-blocks:block005_slope": {
+   "levels": 4,
+   "objects": 144,
+   "tiers": {
+    "Easy": 1,
+    "Normal": 1,
+    "Harder": 1,
+    "official": 1
+   },
+   "eras": {
+    "2.0-2.1": 2,
+    "2.2": 1,
+    "official": 1
+   }
+  },
+  "deco-blocks:block002_slope": {
+   "levels": 4,
+   "objects": 90,
+   "tiers": {
+    "Hard": 2,
+    "Harder": 2
+   },
+   "eras": {
+    "2.0-2.1": 3,
+    "2.2": 1
+   }
+  },
+  "deco-shapes:triangle_a": {
+   "levels": 4,
+   "objects": 83,
+   "tiers": {
+    "Normal": 1,
+    "Hard": 1,
+    "Harder": 2
+   },
+   "eras": {
+    "2.2": 2,
+    "2.0-2.1": 2
+   }
+  },
+  "deco-blocks:d_block04_piece09": {
+   "levels": 4,
+   "objects": 60,
+   "tiers": {
+    "Harder": 1,
+    "Hard": 1,
+    "official": 2
+   },
+   "eras": {
+    "2.2": 1,
+    "2.0-2.1": 1,
+    "official": 2
+   }
+  },
+  "deco-blocks:lightsquare_05_brick03": {
+   "levels": 4,
+   "objects": 49,
+   "tiers": {
+    "Normal": 1,
+    "Harder": 1,
+    "Hard": 1,
+    "Easy": 1
+   },
+   "eras": {
+    "2.0-2.1": 3,
+    "2.2": 1
+   }
+  },
+  "pixel:pixelitem": {
+   "levels": 4,
+   "objects": 44,
+   "tiers": {
+    "Easy": 2,
+    "Hard": 1,
+    "official": 1
+   },
+   "eras": {
+    "2.2": 3,
+    "official": 1
+   }
+  },
+  "effects:gj_smoke01": {
+   "levels": 4,
+   "objects": 44,
+   "tiers": {
+    "Harder": 3,
+    "Hard": 1
+   },
+   "eras": {
+    "2.0-2.1": 3,
+    "2.2": 1
+   }
+  },
+  "deco-other:GJBeast05": {
+   "levels": 4,
+   "objects": 7,
+   "tiers": {
+    "Easy": 1,
+    "Hard": 1,
+    "?": 1,
+    "official": 1
+   },
+   "eras": {
+    "2.2": 2,
+    "?": 1,
+    "official": 1
+   }
+  },
+  "deco-blocks:plank007": {
+   "levels": 3,
+   "objects": 361,
+   "tiers": {
+    "Hard": 1,
+    "Harder": 1,
+    "official": 1
+   },
+   "eras": {
+    "2.0-2.1": 2,
+    "official": 1
+   }
+  },
+  "deco-blocks:block003_slope": {
+   "levels": 3,
+   "objects": 89,
+   "tiers": {
+    "Harder": 2,
+    "official": 1
+   },
+   "eras": {
+    "2.0-2.1": 1,
+    "2.2": 1,
+    "official": 1
+   }
+  },
+  "deco-blocks:block010_slope_square": {
+   "levels": 3,
+   "objects": 55,
+   "tiers": {
+    "Hard": 1,
+    "Easy": 1,
+    "official": 1
+   },
+   "eras": {
+    "2.2": 1,
+    "2.0-2.1": 1,
+    "official": 1
+   }
+  },
+  "deco-blocks:persp_block013": {
+   "levels": 3,
+   "objects": 39,
+   "tiers": {
+    "Harder": 3
+   },
+   "eras": {
+    "2.2": 2,
+    "2.0-2.1": 1
+   }
+  },
+  "deco-blocks:block005b_slope_square": {
+   "levels": 3,
+   "objects": 36,
+   "tiers": {
+    "Normal": 1,
+    "Easy": 1,
+    "official": 1
+   },
+   "eras": {
+    "2.0-2.1": 2,
+    "official": 1
+   }
+  },
+  "deco-blocks:block010_slope": {
+   "levels": 2,
+   "objects": 252,
+   "tiers": {
+    "Easy": 1,
+    "official": 1
+   },
+   "eras": {
+    "2.0-2.1": 1,
+    "official": 1
+   }
+  },
+  "deco-blocks:d_block04_piece05": {
+   "levels": 2,
+   "objects": 127,
+   "tiers": {
+    "Easy": 1,
+    "Harder": 1
+   },
+   "eras": {
+    "2.0-2.1": 1,
+    "2.2": 1
+   }
+  },
+  "deco-blocks:block005_slope_square": {
+   "levels": 2,
+   "objects": 82,
+   "tiers": {
+    "Harder": 1,
+    "official": 1
+   },
+   "eras": {
+    "2.2": 1,
+    "official": 1
+   }
+  },
+  "deco-blocks:plank_01_square": {
+   "levels": 2,
+   "objects": 77,
+   "tiers": {
+    "Hard": 1,
+    "Harder": 1
+   },
+   "eras": {
+    "2.0-2.1": 1,
+    "2.2": 1
+   }
+  },
+  "deco-blocks:triangle_b_square": {
+   "levels": 2,
+   "objects": 25,
+   "tiers": {
+    "Normal": 1,
+    "Harder": 1
+   },
+   "eras": {
+    "2.0-2.1": 1,
+    "2.2": 1
+   }
+  },
+  "deco-blocks:d_block04_piece03": {
+   "levels": 2,
+   "objects": 25,
+   "tiers": {
+    "Harder": 1,
+    "Hard": 1
+   },
+   "eras": {
+    "2.2": 1,
+    "2.0-2.1": 1
+   }
+  },
+  "deco-blocks:block010_piece": {
+   "levels": 2,
+   "objects": 3,
+   "tiers": {
+    "Hard": 1,
+    "official": 1
+   },
+   "eras": {
+    "2.2": 1,
+    "official": 1
+   }
+  },
+  "deco-blocks:blockOutlineOuter3": {
+   "levels": 2,
+   "objects": 3,
+   "tiers": {
+    "Harder": 2
+   },
+   "eras": {
+    "2.0-2.1": 2
+   }
+  },
+  "deco-blocks:plank005_slope_square": {
+   "levels": 1,
+   "objects": 89,
+   "tiers": {
+    "Hard": 1
+   },
+   "eras": {
+    "2.0-2.1": 1
+   }
+  },
+  "deco-blocks:plank005": {
+   "levels": 1,
+   "objects": 40,
+   "tiers": {
+    "official": 1
+   },
+   "eras": {
+    "official": 1
+   }
+  },
+  "deco-blocks:d_block04_piece02": {
+   "levels": 1,
+   "objects": 38,
+   "tiers": {
+    "Hard": 1
+   },
+   "eras": {
+    "2.0-2.1": 1
+   }
+  },
+  "deco-blocks:d_block04_piece10": {
+   "levels": 1,
+   "objects": 34,
+   "tiers": {
+    "Hard": 1
+   },
+   "eras": {
+    "2.0-2.1": 1
+   }
+  },
+  "deco-blocks:block009b_slope": {
+   "levels": 1,
+   "objects": 17,
+   "tiers": {
+    "Harder": 1
+   },
+   "eras": {
+    "2.2": 1
+   }
+  },
+  "deco-blocks:blockPiece": {
+   "levels": 1,
+   "objects": 14,
+   "tiers": {
+    "official": 1
+   },
+   "eras": {
+    "official": 1
+   }
+  },
+  "deco-blocks:d_block04_piece12": {
+   "levels": 1,
+   "objects": 8,
+   "tiers": {
+    "Harder": 1
+   },
+   "eras": {
+    "2.2": 1
+   }
+  },
+  "deco-other:d_potion01_match": {
+   "levels": 1,
+   "objects": 6,
+   "tiers": {
+    "Easy": 1
+   },
+   "eras": {
+    "2.0-2.1": 1
+   }
+  },
+  "deco-blocks:d_block04_piece13": {
+   "levels": 1,
+   "objects": 2,
+   "tiers": {
+    "Harder": 1
+   },
+   "eras": {
+    "2.2": 1
+   }
+  },
+  "deco-blocks:blockOutlineOuter2": {
+   "levels": 1,
+   "objects": 1,
+   "tiers": {
+    "Easy": 1
+   },
+   "eras": {
+    "2.0-2.1": 1
+   }
+  },
+  "deco-scenery:d_skull01_match": {
+   "levels": 1,
+   "objects": 1,
+   "tiers": {
+    "Hard": 1
+   },
+   "eras": {
+    "2.0-2.1": 1
+   }
+  }
+ },
+ "pairs": {
+  "deco-blocks:lightsquare + deco-blocks:persp_outline": 84,
+  "deco-blocks:lightsquare + deco-shapes:d_gradient": 84,
+  "deco-blocks:lightsquare + deco-shapes:d_gradient_c": 82,
+  "deco-blocks:lightsquare + deco-shapes:lighttriangle": 81,
+  "deco-blocks:lightsquare + deco-shapes:d_arrow": 77,
+  "deco-blocks:lightsquare + deco-shapes:d_ball": 77,
+  "deco-blocks:persp_outline + deco-shapes:d_gradient_c": 77,
+  "deco-blocks:persp_outline + deco-shapes:d_gradient": 76,
+  "deco-blocks:persp_outline + deco-shapes:lighttriangle": 74,
+  "deco-shapes:d_gradient + deco-shapes:d_gradient_c": 74,
+  "deco-shapes:d_gradient + deco-shapes:lighttriangle": 72,
+  "deco-shapes:d_gradient_c + deco-shapes:lighttriangle": 72,
+  "deco-shapes:d_arrow + deco-shapes:d_ball": 71,
+  "deco-blocks:persp_outline + deco-shapes:d_ball": 70,
+  "deco-shapes:d_ball + deco-shapes:d_gradient": 70,
+  "deco-blocks:persp_outline + deco-shapes:d_arrow": 69,
+  "deco-shapes:d_arrow + deco-shapes:d_gradient": 68,
+  "deco-shapes:d_arrow + deco-shapes:d_gradient_c": 66,
+  "deco-shapes:d_ball + deco-shapes:lighttriangle": 66,
+  "deco-blocks:blockOutline + deco-blocks:persp_outline": 65,
+  "deco-shapes:d_ball + deco-shapes:d_gradient_c": 65,
+  "deco-blocks:blockOutline + deco-blocks:lightsquare": 64,
+  "deco-shapes:d_arrow + deco-shapes:lighttriangle": 63,
+  "deco-blocks:blockOutline + deco-shapes:d_gradient": 62,
+  "deco-blocks:lightsquare + deco-shapes:d_small_ball": 61,
+  "deco-blocks:lightsquare + deco-other:emptyFrame": 60,
+  "deco-blocks:blockOutline + deco-shapes:d_gradient_c": 59,
+  "deco-blocks:d_whiteBlock + deco-blocks:lightsquare": 59,
+  "deco-other:emptyFrame + deco-shapes:d_gradient_c": 59,
+  "deco-blocks:lightsquare + deco-shapes:d_gradient_b": 58,
+  "deco-blocks:lightsquare + deco-shapes:d_scaleFadeRing": 58,
+  "deco-shapes:d_gradient_c + deco-shapes:d_small_ball": 58,
+  "deco-blocks:blockOutline + deco-shapes:d_arrow": 57,
+  "deco-blocks:d_whiteBlock + deco-shapes:d_gradient_c": 57,
+  "deco-shapes:d_gradient_b + deco-shapes:d_gradient_c": 57,
+  "deco-shapes:d_scaleFadeRing + deco-shapes:d_small_ball": 57,
+  "deco-blocks:persp_outline + deco-shapes:d_gradient_b": 56,
+  "deco-other:emptyFrame + deco-shapes:d_small_ball": 56,
+  "deco-shapes:d_small_ball + deco-shapes:lighttriangle": 56,
+  "deco-blocks:blockOutline + deco-shapes:d_ball": 55,
+  "deco-blocks:blockOutline + deco-shapes:lighttriangle": 55,
+  "deco-blocks:d_whiteBlock + deco-shapes:d_gradient": 55,
+  "deco-blocks:d_whiteBlock + deco-shapes:lighttriangle": 55,
+  "deco-blocks:persp_outline + deco-shapes:d_small_ball": 55,
+  "deco-scenery:d_cloud + deco-shapes:d_ball": 55,
+  "deco-shapes:d_gradient_c + deco-shapes:d_scaleFadeRing": 55,
+  "deco-shapes:d_scaleFadeRing + deco-shapes:lighttriangle": 55,
+  "deco-blocks:d_whiteBlock + deco-blocks:persp_outline": 54,
+  "deco-blocks:persp_outline + deco-other:emptyFrame": 54,
+  "deco-other:emptyFrame + deco-shapes:d_scaleFadeRing": 54,
+  "deco-other:emptyFrame + deco-shapes:lighttriangle": 54,
+  "deco-shapes:d_gradient + deco-shapes:d_gradient_b": 54,
+  "deco-blocks:block008_topcolor + deco-blocks:lightsquare": 53,
+  "deco-blocks:lightsquare + deco-shapes:d_circle": 53,
+  "deco-shapes:d_gradient_b + deco-shapes:lighttriangle": 53,
+  "deco-blocks:lightsquare + deco-scenery:d_cloud": 52,
+  "deco-blocks:lightsquare + deco-shapes:d_ringSeg": 52,
+  "deco-blocks:persp_outline + deco-shapes:d_ringSeg": 52,
+  "deco-blocks:persp_outline + deco-shapes:d_scaleFadeRing": 52,
+  "deco-shapes:d_gradient_c + deco-shapes:d_ringSeg": 52
+ },
+ "keys": {
+  "colour21": 2106736,
+  "colour22": 158865,
+  "layer24": 1620170,
+  "order25": 1312422,
+  "scale32": 450569,
+  "group57": 1586080,
+  "total": 2273363
+ },
+ "layers": {
+  "10": 1,
+  "13": 894,
+  "T1": 338402,
+  "B4": 173131,
+  "B1": 216478,
+  "T2": 168643,
+  "B3": 194550,
+  "B2": 215829,
+  "T3": 156704,
+  "T4": 88746,
+  "B5": 66792
+ },
+ "perLevel": [
+  {
+   "src": "community",
+   "id": "100157619",
+   "tier": "Harder",
+   "era": "2.2",
+   "objects": 61950,
+   "deco": 56609,
+   "decoShare": 0.914,
+   "decoPerBlock": 61.17,
+   "families": 101
+  },
+  {
+   "src": "community",
+   "id": "111694817",
+   "tier": "Easy",
+   "era": "2.2",
+   "objects": 14265,
+   "deco": 12958,
+   "decoShare": 0.908,
+   "decoPerBlock": 13.75,
+   "families": 38
+  },
+  {
+   "src": "community",
+   "id": "11280109",
+   "tier": "Easy",
+   "era": "2.0-2.1",
+   "objects": 17266,
+   "deco": 13906,
+   "decoShare": 0.805,
+   "decoPerBlock": 22.69,
+   "families": 28
+  },
+  {
+   "src": "community",
+   "id": "114694142",
+   "tier": "Easy",
+   "era": "2.2",
+   "objects": 51313,
+   "deco": 37647,
+   "decoShare": 0.734,
+   "decoPerBlock": 42.49,
+   "families": 49
+  },
+  {
+   "src": "community",
+   "id": "115305577",
+   "tier": "Normal",
+   "era": "2.2",
+   "objects": 24734,
+   "deco": 21099,
+   "decoShare": 0.853,
+   "decoPerBlock": 18.83,
+   "families": 26
+  },
+  {
+   "src": "community",
+   "id": "115688378",
+   "tier": "Hard",
+   "era": "2.2",
+   "objects": 29912,
+   "deco": 25150,
+   "decoShare": 0.841,
+   "decoPerBlock": 17.43,
+   "families": 47
+  },
+  {
+   "src": "community",
+   "id": "116021302",
+   "tier": "Normal",
+   "era": "2.2",
+   "objects": 38879,
+   "deco": 29150,
+   "decoShare": 0.75,
+   "decoPerBlock": 10.75,
+   "families": 32
+  },
+  {
+   "src": "community",
+   "id": "116177905",
+   "tier": "Hard",
+   "era": "2.2",
+   "objects": 44721,
+   "deco": 36031,
+   "decoShare": 0.806,
+   "decoPerBlock": 19.4,
+   "families": 95
+  },
+  {
+   "src": "community",
+   "id": "11630859",
+   "tier": "Easy",
+   "era": "2.0-2.1",
+   "objects": 29960,
+   "deco": 27943,
+   "decoShare": 0.933,
+   "decoPerBlock": 45.11,
+   "families": 40
+  },
+  {
+   "src": "community",
+   "id": "117863163",
+   "tier": "Normal",
+   "era": "2.2",
+   "objects": 16895,
+   "deco": 13174,
+   "decoShare": 0.78,
+   "decoPerBlock": 16.77,
+   "families": 48
+  },
+  {
+   "src": "community",
+   "id": "117912123",
+   "tier": "Hard",
+   "era": "2.2",
+   "objects": 39721,
+   "deco": 33318,
+   "decoShare": 0.839,
+   "decoPerBlock": 38.45,
+   "families": 61
+  },
+  {
+   "src": "community",
+   "id": "11940",
+   "tier": "Normal",
+   "era": "1.x",
+   "objects": 1982,
+   "deco": 563,
+   "decoShare": 0.284,
+   "decoPerBlock": 0.64,
+   "families": 4
+  },
+  {
+   "src": "community",
+   "id": "11945914",
+   "tier": "Easy",
+   "era": "2.0-2.1",
+   "objects": 12934,
+   "deco": 6053,
+   "decoShare": 0.468,
+   "decoPerBlock": 9.85,
+   "families": 22
+  },
+  {
+   "src": "community",
+   "id": "119731730",
+   "tier": "Harder",
+   "era": "2.2",
+   "objects": 49084,
+   "deco": 40870,
+   "decoShare": 0.833,
+   "decoPerBlock": 34.27,
+   "families": 39
+  },
+  {
+   "src": "community",
+   "id": "12057578",
+   "tier": "?",
+   "era": "?",
+   "objects": 23831,
+   "deco": 19926,
+   "decoShare": 0.836,
+   "decoPerBlock": 30.4,
+   "families": 29
+  },
+  {
+   "src": "community",
+   "id": "124237602",
+   "tier": "Easy",
+   "era": "2.2",
+   "objects": 24357,
+   "deco": 19940,
+   "decoShare": 0.819,
+   "decoPerBlock": 24.1,
+   "families": 25
+  },
+  {
+   "src": "community",
+   "id": "1244147",
+   "tier": "?",
+   "era": "?",
+   "objects": 2293,
+   "deco": 832,
+   "decoShare": 0.363,
+   "decoPerBlock": 1,
+   "families": 5
+  },
+  {
+   "src": "community",
+   "id": "125994364",
+   "tier": "Easy",
+   "era": "2.2",
+   "objects": 113957,
+   "deco": 111925,
+   "decoShare": 0.982,
+   "decoPerBlock": 16.16,
+   "families": 17
+  },
+  {
+   "src": "community",
+   "id": "126539075",
+   "tier": "?",
+   "era": "?",
+   "objects": 224040,
+   "deco": 203078,
+   "decoShare": 0.906,
+   "decoPerBlock": 147.05,
+   "families": 91
+  },
+  {
+   "src": "community",
+   "id": "127828956",
+   "tier": "Easy",
+   "era": "2.2",
+   "objects": 91173,
+   "deco": 88806,
+   "decoShare": 0.974,
+   "decoPerBlock": 31.6,
+   "families": 23
+  },
+  {
+   "src": "community",
+   "id": "128000865",
+   "tier": "Normal",
+   "era": "2.2",
+   "objects": 56005,
+   "deco": 42005,
+   "decoShare": 0.75,
+   "decoPerBlock": 43.58,
+   "families": 31
+  },
+  {
+   "src": "community",
+   "id": "129492004",
+   "tier": "Harder",
+   "era": "2.2",
+   "objects": 57015,
+   "deco": 33194,
+   "decoShare": 0.582,
+   "decoPerBlock": 23.85,
+   "families": 28
+  },
+  {
+   "src": "community",
+   "id": "131860273",
+   "tier": "Hard",
+   "era": "2.2",
+   "objects": 79551,
+   "deco": 69856,
+   "decoShare": 0.878,
+   "decoPerBlock": 78.1,
+   "families": 72
+  },
+  {
+   "src": "community",
+   "id": "135177546",
+   "tier": "Normal",
+   "era": "2.2",
+   "objects": 48864,
+   "deco": 34726,
+   "decoShare": 0.711,
+   "decoPerBlock": 18.32,
+   "families": 45
+  },
+  {
+   "src": "community",
+   "id": "1389451",
+   "tier": "Normal",
+   "era": "2.0-2.1",
+   "objects": 5858,
+   "deco": 3458,
+   "decoShare": 0.59,
+   "decoPerBlock": 3.43,
+   "families": 17
+  },
+  {
+   "src": "community",
+   "id": "13935609",
+   "tier": "Easy",
+   "era": "2.0-2.1",
+   "objects": 10736,
+   "deco": 8945,
+   "decoShare": 0.833,
+   "decoPerBlock": 14.2,
+   "families": 26
+  },
+  {
+   "src": "community",
+   "id": "141525782",
+   "tier": "Hard",
+   "era": "2.2",
+   "objects": 27443,
+   "deco": 24204,
+   "decoShare": 0.882,
+   "decoPerBlock": 22.5,
+   "families": 39
+  },
+  {
+   "src": "community",
+   "id": "150245",
+   "tier": "Hard",
+   "era": "1.x",
+   "objects": 2080,
+   "deco": 684,
+   "decoShare": 0.329,
+   "decoPerBlock": 0.82,
+   "families": 4
+  },
+  {
+   "src": "community",
+   "id": "1642022",
+   "tier": "Hard",
+   "era": "1.x",
+   "objects": 6688,
+   "deco": 3858,
+   "decoShare": 0.577,
+   "decoPerBlock": 4.99,
+   "families": 18
+  },
+  {
+   "src": "community",
+   "id": "1729",
+   "tier": "Easy",
+   "era": "1.x",
+   "objects": 1388,
+   "deco": 56,
+   "decoShare": 0.04,
+   "decoPerBlock": 0.07,
+   "families": 3
+  },
+  {
+   "src": "community",
+   "id": "1734354",
+   "tier": "Hard",
+   "era": "1.x",
+   "objects": 6569,
+   "deco": 3818,
+   "decoShare": 0.581,
+   "decoPerBlock": 4.01,
+   "families": 16
+  },
+  {
+   "src": "community",
+   "id": "18533341",
+   "tier": "Normal",
+   "era": "2.0-2.1",
+   "objects": 11497,
+   "deco": 9205,
+   "decoShare": 0.801,
+   "decoPerBlock": 14.03,
+   "families": 32
+  },
+  {
+   "src": "community",
+   "id": "20635816",
+   "tier": "Hard",
+   "era": "2.0-2.1",
+   "objects": 12353,
+   "deco": 10664,
+   "decoShare": 0.863,
+   "decoPerBlock": 16.55,
+   "families": 65
+  },
+  {
+   "src": "community",
+   "id": "215705",
+   "tier": "Normal",
+   "era": "2.0-2.1",
+   "objects": 7432,
+   "deco": 5218,
+   "decoShare": 0.702,
+   "decoPerBlock": 6.83,
+   "families": 17
+  },
+  {
+   "src": "community",
+   "id": "21923305",
+   "tier": "Easy",
+   "era": "2.0-2.1",
+   "objects": 16452,
+   "deco": 13502,
+   "decoShare": 0.821,
+   "decoPerBlock": 20.6,
+   "families": 16
+  },
+  {
+   "src": "community",
+   "id": "23356701",
+   "tier": "Easy",
+   "era": "2.0-2.1",
+   "objects": 13938,
+   "deco": 10694,
+   "decoShare": 0.767,
+   "decoPerBlock": 17.49,
+   "families": 56
+  },
+  {
+   "src": "community",
+   "id": "25886024",
+   "tier": "Hard",
+   "era": "2.0-2.1",
+   "objects": 13183,
+   "deco": 7915,
+   "decoShare": 0.6,
+   "decoPerBlock": 9.19,
+   "families": 57
+  },
+  {
+   "src": "community",
+   "id": "25969464",
+   "tier": "Harder",
+   "era": "2.0-2.1",
+   "objects": 17340,
+   "deco": 14384,
+   "decoShare": 0.83,
+   "decoPerBlock": 19.25,
+   "families": 23
+  },
+  {
+   "src": "community",
+   "id": "26248615",
+   "tier": "Normal",
+   "era": "2.0-2.1",
+   "objects": 13557,
+   "deco": 11975,
+   "decoShare": 0.883,
+   "decoPerBlock": 20.31,
+   "families": 32
+  },
+  {
+   "src": "community",
+   "id": "26618473",
+   "tier": "Easy",
+   "era": "2.0-2.1",
+   "objects": 9782,
+   "deco": 6176,
+   "decoShare": 0.631,
+   "decoPerBlock": 9.89,
+   "families": 45
+  },
+  {
+   "src": "community",
+   "id": "26949498",
+   "tier": "Normal",
+   "era": "2.0-2.1",
+   "objects": 18358,
+   "deco": 15817,
+   "decoShare": 0.862,
+   "decoPerBlock": 25.29,
+   "families": 13
+  },
+  {
+   "src": "community",
+   "id": "27080757",
+   "tier": "Hard",
+   "era": "2.0-2.1",
+   "objects": 15626,
+   "deco": 9652,
+   "decoShare": 0.618,
+   "decoPerBlock": 16.05,
+   "families": 36
+  },
+  {
+   "src": "community",
+   "id": "27319926",
+   "tier": "Normal",
+   "era": "2.0-2.1",
+   "objects": 9648,
+   "deco": 8411,
+   "decoShare": 0.872,
+   "decoPerBlock": 16.71,
+   "families": 16
+  },
+  {
+   "src": "community",
+   "id": "27448202",
+   "tier": "Harder",
+   "era": "2.0-2.1",
+   "objects": 27685,
+   "deco": 19104,
+   "decoShare": 0.69,
+   "decoPerBlock": 15.93,
+   "families": 62
+  },
+  {
+   "src": "community",
+   "id": "27483789",
+   "tier": "Harder",
+   "era": "2.2",
+   "objects": 18886,
+   "deco": 15922,
+   "decoShare": 0.843,
+   "decoPerBlock": 21.13,
+   "families": 47
+  },
+  {
+   "src": "community",
+   "id": "27732941",
+   "tier": "Hard",
+   "era": "2.0-2.1",
+   "objects": 13903,
+   "deco": 9711,
+   "decoShare": 0.698,
+   "decoPerBlock": 10.12,
+   "families": 51
+  },
+  {
+   "src": "community",
+   "id": "27961648",
+   "tier": "Hard",
+   "era": "2.0-2.1",
+   "objects": 13079,
+   "deco": 8468,
+   "decoShare": 0.647,
+   "decoPerBlock": 13.63,
+   "families": 48
+  },
+  {
+   "src": "community",
+   "id": "28127292",
+   "tier": "Harder",
+   "era": "2.0-2.1",
+   "objects": 8828,
+   "deco": 4767,
+   "decoShare": 0.54,
+   "decoPerBlock": 6.41,
+   "families": 36
+  },
+  {
+   "src": "community",
+   "id": "28179535",
+   "tier": "Hard",
+   "era": "2.0-2.1",
+   "objects": 14192,
+   "deco": 11899,
+   "decoShare": 0.838,
+   "decoPerBlock": 18.53,
+   "families": 55
+  },
+  {
+   "src": "community",
+   "id": "28200611",
+   "tier": "Hard",
+   "era": "2.0-2.1",
+   "objects": 14617,
+   "deco": 11181,
+   "decoShare": 0.765,
+   "decoPerBlock": 13.5,
+   "families": 20
+  },
+  {
+   "src": "community",
+   "id": "28225110",
+   "tier": "Harder",
+   "era": "2.0-2.1",
+   "objects": 18541,
+   "deco": 15637,
+   "decoShare": 0.843,
+   "decoPerBlock": 26.64,
+   "families": 60
+  },
+  {
+   "src": "community",
+   "id": "28255647",
+   "tier": "Normal",
+   "era": "2.0-2.1",
+   "objects": 17202,
+   "deco": 13754,
+   "decoShare": 0.8,
+   "decoPerBlock": 21.49,
+   "families": 42
+  },
+  {
+   "src": "community",
+   "id": "28677296",
+   "tier": "Harder",
+   "era": "2.0-2.1",
+   "objects": 17553,
+   "deco": 14660,
+   "decoShare": 0.835,
+   "decoPerBlock": 16.23,
+   "families": 46
+  },
+  {
+   "src": "community",
+   "id": "28879542",
+   "tier": "Hard",
+   "era": "2.0-2.1",
+   "objects": 9285,
+   "deco": 5517,
+   "decoShare": 0.594,
+   "decoPerBlock": 7.67,
+   "families": 26
+  },
+  {
+   "src": "community",
+   "id": "29066114",
+   "tier": "Harder",
+   "era": "2.0-2.1",
+   "objects": 28572,
+   "deco": 23597,
+   "decoShare": 0.826,
+   "decoPerBlock": 31.23,
+   "families": 67
+  },
+  {
+   "src": "community",
+   "id": "29270946",
+   "tier": "Harder",
+   "era": "2.0-2.1",
+   "objects": 14656,
+   "deco": 11433,
+   "decoShare": 0.78,
+   "decoPerBlock": 14.74,
+   "families": 31
+  },
+  {
+   "src": "community",
+   "id": "29394058",
+   "tier": "Harder",
+   "era": "2.0-2.1",
+   "objects": 16519,
+   "deco": 12919,
+   "decoShare": 0.782,
+   "decoPerBlock": 18.59,
+   "families": 66
+  },
+  {
+   "src": "community",
+   "id": "29416734",
+   "tier": "Harder",
+   "era": "2.0-2.1",
+   "objects": 21692,
+   "deco": 15967,
+   "decoShare": 0.736,
+   "decoPerBlock": 14.47,
+   "families": 85
+  },
+  {
+   "src": "community",
+   "id": "29424929",
+   "tier": "Hard",
+   "era": "2.0-2.1",
+   "objects": 32553,
+   "deco": 26581,
+   "decoShare": 0.817,
+   "decoPerBlock": 22.4,
+   "families": 79
+  },
+  {
+   "src": "community",
+   "id": "3012870",
+   "tier": "?",
+   "era": "?",
+   "objects": 11477,
+   "deco": 7836,
+   "decoShare": 0.683,
+   "decoPerBlock": 8.55,
+   "families": 26
+  },
+  {
+   "src": "community",
+   "id": "30225532",
+   "tier": "Normal",
+   "era": "2.0-2.1",
+   "objects": 19311,
+   "deco": 14631,
+   "decoShare": 0.758,
+   "decoPerBlock": 21.84,
+   "families": 66
+  },
+  {
+   "src": "community",
+   "id": "30468868",
+   "tier": "Normal",
+   "era": "2.0-2.1",
+   "objects": 14411,
+   "deco": 11741,
+   "decoShare": 0.815,
+   "decoPerBlock": 18.57,
+   "families": 41
+  },
+  {
+   "src": "community",
+   "id": "31280642",
+   "tier": "Normal",
+   "era": "2.0-2.1",
+   "objects": 13444,
+   "deco": 10992,
+   "decoShare": 0.818,
+   "decoPerBlock": 17.86,
+   "families": 46
+  },
+  {
+   "src": "community",
+   "id": "31944232",
+   "tier": "Normal",
+   "era": "2.0-2.1",
+   "objects": 12127,
+   "deco": 10000,
+   "decoShare": 0.825,
+   "decoPerBlock": 11.34,
+   "families": 31
+  },
+  {
+   "src": "community",
+   "id": "32122593",
+   "tier": "Normal",
+   "era": "2.0-2.1",
+   "objects": 8797,
+   "deco": 6788,
+   "decoShare": 0.772,
+   "decoPerBlock": 13.31,
+   "families": 16
+  },
+  {
+   "src": "community",
+   "id": "32338202",
+   "tier": "Normal",
+   "era": "2.0-2.1",
+   "objects": 7009,
+   "deco": 5181,
+   "decoShare": 0.739,
+   "decoPerBlock": 5.33,
+   "families": 19
+  },
+  {
+   "src": "community",
+   "id": "32400752",
+   "tier": "Easy",
+   "era": "2.0-2.1",
+   "objects": 10953,
+   "deco": 9119,
+   "decoShare": 0.833,
+   "decoPerBlock": 14.46,
+   "families": 39
+  },
+  {
+   "src": "community",
+   "id": "33118209",
+   "tier": "Hard",
+   "era": "2.0-2.1",
+   "objects": 16666,
+   "deco": 12870,
+   "decoShare": 0.772,
+   "decoPerBlock": 19.72,
+   "families": 97
+  },
+  {
+   "src": "community",
+   "id": "3382569",
+   "tier": "?",
+   "era": "?",
+   "objects": 8902,
+   "deco": 6190,
+   "decoShare": 0.695,
+   "decoPerBlock": 7.76,
+   "families": 24
+  },
+  {
+   "src": "community",
+   "id": "34224737",
+   "tier": "Easy",
+   "era": "2.0-2.1",
+   "objects": 13235,
+   "deco": 9177,
+   "decoShare": 0.693,
+   "decoPerBlock": 17.6,
+   "families": 78
+  },
+  {
+   "src": "community",
+   "id": "34362654",
+   "tier": "Normal",
+   "era": "2.0-2.1",
+   "objects": 9477,
+   "deco": 7739,
+   "decoShare": 0.817,
+   "decoPerBlock": 11.06,
+   "families": 49
+  },
+  {
+   "src": "community",
+   "id": "34749502",
+   "tier": "Easy",
+   "era": "2.0-2.1",
+   "objects": 10150,
+   "deco": 7731,
+   "decoShare": 0.762,
+   "decoPerBlock": 12.8,
+   "families": 47
+  },
+  {
+   "src": "community",
+   "id": "34851342",
+   "tier": "Hard",
+   "era": "2.0-2.1",
+   "objects": 24625,
+   "deco": 20949,
+   "decoShare": 0.851,
+   "decoPerBlock": 29.75,
+   "families": 89
+  },
+  {
+   "src": "community",
+   "id": "36847362",
+   "tier": "Hard",
+   "era": "2.0-2.1",
+   "objects": 25977,
+   "deco": 22769,
+   "decoShare": 0.877,
+   "decoPerBlock": 33.17,
+   "families": 65
+  },
+  {
+   "src": "community",
+   "id": "37188385",
+   "tier": "Hard",
+   "era": "2.0-2.1",
+   "objects": 39527,
+   "deco": 34155,
+   "decoShare": 0.864,
+   "decoPerBlock": 54.17,
+   "families": 17
+  },
+  {
+   "src": "community",
+   "id": "37269362",
+   "tier": "Harder",
+   "era": "2.0-2.1",
+   "objects": 13251,
+   "deco": 8866,
+   "decoShare": 0.669,
+   "decoPerBlock": 10.81,
+   "families": 108
+  },
+  {
+   "src": "community",
+   "id": "39113837",
+   "tier": "Normal",
+   "era": "2.0-2.1",
+   "objects": 19089,
+   "deco": 15319,
+   "decoShare": 0.803,
+   "decoPerBlock": 13.2,
+   "families": 18
+  },
+  {
+   "src": "community",
+   "id": "40638411",
+   "tier": "Hard",
+   "era": "2.0-2.1",
+   "objects": 35147,
+   "deco": 30592,
+   "decoShare": 0.87,
+   "decoPerBlock": 41.34,
+   "families": 21
+  },
+  {
+   "src": "community",
+   "id": "42497026",
+   "tier": "Harder",
+   "era": "2.0-2.1",
+   "objects": 16469,
+   "deco": 12838,
+   "decoShare": 0.78,
+   "decoPerBlock": 17.65,
+   "families": 57
+  },
+  {
+   "src": "community",
+   "id": "43908596",
+   "tier": "Harder",
+   "era": "2.2",
+   "objects": 54164,
+   "deco": 37900,
+   "decoShare": 0.7,
+   "decoPerBlock": 18.56,
+   "families": 178
+  },
+  {
+   "src": "community",
+   "id": "4454123",
+   "tier": "Easy",
+   "era": "2.0-2.1",
+   "objects": 6182,
+   "deco": 3474,
+   "decoShare": 0.562,
+   "decoPerBlock": 4.08,
+   "families": 21
+  },
+  {
+   "src": "community",
+   "id": "44793604",
+   "tier": "Hard",
+   "era": "2.0-2.1",
+   "objects": 40407,
+   "deco": 33952,
+   "decoShare": 0.84,
+   "decoPerBlock": 50.79,
+   "families": 85
+  },
+  {
+   "src": "community",
+   "id": "55037478",
+   "tier": "Easy",
+   "era": "2.0-2.1",
+   "objects": 40332,
+   "deco": 33690,
+   "decoShare": 0.835,
+   "decoPerBlock": 15.9,
+   "families": 29
+  },
+  {
+   "src": "community",
+   "id": "56199846",
+   "tier": "Harder",
+   "era": "2.0-2.1",
+   "objects": 59349,
+   "deco": 51156,
+   "decoShare": 0.862,
+   "decoPerBlock": 51.58,
+   "families": 27
+  },
+  {
+   "src": "community",
+   "id": "59760047",
+   "tier": "Easy",
+   "era": "2.0-2.1",
+   "objects": 64799,
+   "deco": 58183,
+   "decoShare": 0.898,
+   "decoPerBlock": 59.52,
+   "families": 31
+  },
+  {
+   "src": "community",
+   "id": "60679881",
+   "tier": "Hard",
+   "era": "2.0-2.1",
+   "objects": 39901,
+   "deco": 32981,
+   "decoShare": 0.827,
+   "decoPerBlock": 44.48,
+   "families": 21
+  },
+  {
+   "src": "community",
+   "id": "6508283",
+   "tier": "Easy",
+   "era": "2.0-2.1",
+   "objects": 20000,
+   "deco": 16748,
+   "decoShare": 0.837,
+   "decoPerBlock": 27.39,
+   "families": 26
+  },
+  {
+   "src": "community",
+   "id": "65109444",
+   "tier": "Easy",
+   "era": "2.2",
+   "objects": 28724,
+   "deco": 25495,
+   "decoShare": 0.888,
+   "decoPerBlock": 30.55,
+   "families": 28
+  },
+  {
+   "src": "community",
+   "id": "67661363",
+   "tier": "Easy",
+   "era": "2.2",
+   "objects": 39650,
+   "deco": 24719,
+   "decoShare": 0.623,
+   "decoPerBlock": 3.09,
+   "families": 39
+  },
+  {
+   "src": "community",
+   "id": "7485599",
+   "tier": "Harder",
+   "era": "2.0-2.1",
+   "objects": 13083,
+   "deco": 7974,
+   "decoShare": 0.609,
+   "decoPerBlock": 10.89,
+   "families": 30
+  },
+  {
+   "src": "community",
+   "id": "78743788",
+   "tier": "Easy",
+   "era": "2.0-2.1",
+   "objects": 16635,
+   "deco": 13924,
+   "decoShare": 0.837,
+   "decoPerBlock": 24.36,
+   "families": 30
+  },
+  {
+   "src": "community",
+   "id": "81257107",
+   "tier": "Easy",
+   "era": "2.0-2.1",
+   "objects": 33575,
+   "deco": 30068,
+   "decoShare": 0.896,
+   "decoPerBlock": 26.19,
+   "families": 37
+  },
+  {
+   "src": "community",
+   "id": "819956",
+   "tier": "Harder",
+   "era": "1.x",
+   "objects": 3040,
+   "deco": 1623,
+   "decoShare": 0.534,
+   "decoPerBlock": 2.58,
+   "families": 4
+  },
+  {
+   "src": "community",
+   "id": "89521875",
+   "tier": "Normal",
+   "era": "2.0-2.1",
+   "objects": 119993,
+   "deco": 104489,
+   "decoShare": 0.871,
+   "decoPerBlock": 88.51,
+   "families": 43
+  },
+  {
+   "src": "community",
+   "id": "9063899",
+   "tier": "?",
+   "era": "?",
+   "objects": 12170,
+   "deco": 8230,
+   "decoShare": 0.676,
+   "decoPerBlock": 8.34,
+   "families": 42
+  },
+  {
+   "src": "community",
+   "id": "90752263",
+   "tier": "Easy",
+   "era": "2.0-2.1",
+   "objects": 39293,
+   "deco": 34198,
+   "decoShare": 0.87,
+   "decoPerBlock": 42.04,
+   "families": 59
+  },
+  {
+   "src": "community",
+   "id": "92555035",
+   "tier": "Normal",
+   "era": "2.0-2.1",
+   "objects": 17736,
+   "deco": 15140,
+   "decoShare": 0.854,
+   "decoPerBlock": 19.15,
+   "families": 17
+  },
+  {
+   "src": "official",
+   "id": "Stereo Madness",
+   "tier": "official",
+   "era": "official",
+   "objects": 2291,
+   "deco": 869,
+   "decoShare": 0.379,
+   "decoPerBlock": 0.99,
+   "families": 5
+  },
+  {
+   "src": "official",
+   "id": "Back On Track",
+   "tier": "official",
+   "era": "official",
+   "objects": 1545,
+   "deco": 521,
+   "decoShare": 0.337,
+   "decoPerBlock": 0.63,
+   "families": 4
+  },
+  {
+   "src": "official",
+   "id": "Polargeist",
+   "tier": "official",
+   "era": "official",
+   "objects": 1531,
+   "deco": 265,
+   "decoShare": 0.173,
+   "decoPerBlock": 0.29,
+   "families": 5
+  },
+  {
+   "src": "official",
+   "id": "Dry Out",
+   "tier": "official",
+   "era": "official",
+   "objects": 1444,
+   "deco": 234,
+   "decoShare": 0.162,
+   "decoPerBlock": 0.28,
+   "families": 4
+  },
+  {
+   "src": "official",
+   "id": "Base After Base",
+   "tier": "official",
+   "era": "official",
+   "objects": 2146,
+   "deco": 582,
+   "decoShare": 0.271,
+   "decoPerBlock": 0.68,
+   "families": 4
+  },
+  {
+   "src": "official",
+   "id": "Cant Let Go",
+   "tier": "official",
+   "era": "official",
+   "objects": 1704,
+   "deco": 122,
+   "decoShare": 0.072,
+   "decoPerBlock": 0.15,
+   "families": 4
+  },
+  {
+   "src": "official",
+   "id": "Jumper",
+   "tier": "official",
+   "era": "official",
+   "objects": 2813,
+   "deco": 512,
+   "decoShare": 0.182,
+   "decoPerBlock": 0.58,
+   "families": 5
+  },
+  {
+   "src": "official",
+   "id": "Time Machine",
+   "tier": "official",
+   "era": "official",
+   "objects": 3599,
+   "deco": 998,
+   "decoShare": 0.277,
+   "decoPerBlock": 1.02,
+   "families": 4
+  },
+  {
+   "src": "official",
+   "id": "Cycles",
+   "tier": "official",
+   "era": "official",
+   "objects": 3921,
+   "deco": 1581,
+   "decoShare": 0.403,
+   "decoPerBlock": 1.96,
+   "families": 5
+  },
+  {
+   "src": "official",
+   "id": "xStep",
+   "tier": "official",
+   "era": "official",
+   "objects": 4716,
+   "deco": 1802,
+   "decoShare": 0.382,
+   "decoPerBlock": 2.16,
+   "families": 7
+  },
+  {
+   "src": "official",
+   "id": "Clutterfunk",
+   "tier": "official",
+   "era": "official",
+   "objects": 4863,
+   "deco": 751,
+   "decoShare": 0.154,
+   "decoPerBlock": 0.76,
+   "families": 7
+  },
+  {
+   "src": "official",
+   "id": "Theory of Everything",
+   "tier": "official",
+   "era": "official",
+   "objects": 4345,
+   "deco": 1427,
+   "decoShare": 0.328,
+   "decoPerBlock": 1.68,
+   "families": 15
+  },
+  {
+   "src": "official",
+   "id": "Electroman Adventures",
+   "tier": "official",
+   "era": "official",
+   "objects": 5643,
+   "deco": 2312,
+   "decoShare": 0.41,
+   "decoPerBlock": 2.67,
+   "families": 20
+  },
+  {
+   "src": "official",
+   "id": "Clubstep",
+   "tier": "official",
+   "era": "official",
+   "objects": 7641,
+   "deco": 3852,
+   "decoShare": 0.504,
+   "decoPerBlock": 4.34,
+   "families": 21
+  },
+  {
+   "src": "official",
+   "id": "Electrodynamix",
+   "tier": "official",
+   "era": "official",
+   "objects": 9523,
+   "deco": 5110,
+   "decoShare": 0.537,
+   "decoPerBlock": 4.69,
+   "families": 31
+  },
+  {
+   "src": "official",
+   "id": "Hexagon Force",
+   "tier": "official",
+   "era": "official",
+   "objects": 10224,
+   "deco": 6034,
+   "decoShare": 0.59,
+   "decoPerBlock": 5.84,
+   "families": 35
+  },
+  {
+   "src": "official",
+   "id": "Blast Processing",
+   "tier": "official",
+   "era": "official",
+   "objects": 11552,
+   "deco": 7838,
+   "decoShare": 0.678,
+   "decoPerBlock": 7.67,
+   "families": 47
+  },
+  {
+   "src": "official",
+   "id": "Theory of Everything 2",
+   "tier": "official",
+   "era": "official",
+   "objects": 14400,
+   "deco": 9632,
+   "decoShare": 0.669,
+   "decoPerBlock": 10.05,
+   "families": 45
+  },
+  {
+   "src": "official",
+   "id": "Geometrical Dominator",
+   "tier": "official",
+   "era": "official",
+   "objects": 16131,
+   "deco": 11571,
+   "decoShare": 0.717,
+   "decoPerBlock": 10.82,
+   "families": 59
+  },
+  {
+   "src": "official",
+   "id": "Deadlocked",
+   "tier": "official",
+   "era": "official",
+   "objects": 19494,
+   "deco": 13163,
+   "decoShare": 0.675,
+   "decoPerBlock": 11.19,
+   "families": 49
+  },
+  {
+   "src": "official",
+   "id": "Fingerdash",
+   "tier": "official",
+   "era": "official",
+   "objects": 27283,
+   "deco": 22318,
+   "decoShare": 0.818,
+   "decoPerBlock": 24.7,
+   "families": 64
+  },
+  {
+   "src": "official",
+   "id": "Dash",
+   "tier": "official",
+   "era": "official",
+   "objects": 18329,
+   "deco": 13930,
+   "decoShare": 0.76,
+   "decoPerBlock": 17.6,
+   "families": 36
+  }
+ ]
+}

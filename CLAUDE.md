@@ -128,6 +128,9 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   ("GD art" button). Tables: `lib/objects_art.js` (`tools/import_art.js`, OpenGD) and
   `lib/objects_frames.js` (`tools/import_frames.js`, GD 2.2's own id -> frame table from the exe).
   Test: `node tests/art_tables.js`.
+- **Deco catalogue** (knowledge/objects/README.md): `tools/catalogue.js index | sheets | usage` --
+  every id with its picture on contact sheets (`local/catalogue/`, or browse `viewer/catalogue.html`),
+  the searchable `knowledge/objects/catalogue.tsv`, and which deco families rated levels use together.
 - Iterating on a level's look or play: the viewer's **✎ mark** (key M) saves the user's notes at a
   spot to `marks/marks.jsonl` (via `tools/serve.js`); read them with `node tools/marks.js`, close
   them with `node tools/marks.js done <id> "what changed"`. **compare** puts a frame of one of the
