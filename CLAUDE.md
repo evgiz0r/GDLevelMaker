@@ -57,8 +57,8 @@ reading before writing a spec; `levels/`, `glossary.md`, `demonlist.md` for the 
    every session's work in progress live, marks from the phone. Republish it when the viewer or
    the pushed levels change (`node tools/web.js --out <scratchpad>/web`, link in local/phone/url.txt).
 4. With the game closed, `node tools/install.js levels/<name>.gdlvl` puts it at the top of
-   (GD open? queue it: `node tools/install_queue.js add <file> --by <who>`, the watcher installs it when GD closes)
-   My Levels (backs the save up first; refuses while GeometryDash.exe runs). The user plays it
+   My Levels (backs the save up first; refuses while GeometryDash.exe runs -- then queue it:
+   `node tools/install_queue.js add <file> --by <who>`, the watcher installs it when GD closes). The user plays it
    and reports. The user's game is plain GD 2.2 on Windows, no Geode: there is no in-game import.
    Or the bot plays it: `node tools/bot.js levels/<name>.gdlvl` presses Space at the solver's
    click times in the real game (no mod; it syncs to each attempt's start on screen and measures
