@@ -16,7 +16,7 @@ const libs = [...html.matchAll(/<script src="\.\.\/lib\/([\w.]+)"><\/script>/g)]
   .filter(f => !/^(art|objects_art|objects_frames)\.js$/.test(f)); // never the GD-art libs (page, worker, publish list)
 for (const f of libs) fs.copyFileSync(path.join(ROOT, "lib", f), path.join(OUT, "lib", f));
 fs.copyFileSync(path.join(ROOT, "viewer", "levels.js"), path.join(OUT, "levels.js"));
-const beats = path.join(ROOT, "viewer", "beats.local.js");
+const beats = path.join(ROOT, "local", "beats.local.js"); // tools/beats.js (run it, or --index, when this is missing)
 fs.writeFileSync(path.join(OUT, "beats.js"), fs.existsSync(beats) ? fs.readFileSync(beats) : "window.GD_BEATS = {};\n");
 
 const swap = (a, b) => { if (!html.includes(a)) throw new Error("viewer changed, update tools/web.js: " + a); html = html.split(a).join(b); };
@@ -57,7 +57,7 @@ function showMap(src) {
 }
 const artOn = () =>`);
 swap('<script src="lib/objects_art.js"></script>\n<script src="lib/objects_frames.js"></script>\n<script src="lib/art.js"></script>\n', "<script>window.GD_PHONE = true;</script>\n");
-swap('<script src="beats.local.js" onerror="window.GD_BEATS = {}"></script>', '<script src="beats.js" onerror="window.GD_BEATS = {}"></script>');
+swap('<script src="../local/beats.local.js" onerror="window.GD_BEATS = {}"></script>', '<script src="beats.js" onerror="window.GD_BEATS = {}"></script>');
 // Songs: none are published. The viewer picks mp3s from their own device ("add song"); they are
 // decoded with Web Audio (no media URLs, which the Artifact frame may refuse) and kept in this
 // browser's IndexedDB so each song is picked once. A file named like the game's own copy

@@ -20,7 +20,10 @@ http.createServer((req, res) => {
         const m = JSON.parse(body);
         if (typeof m !== "object" || !m || !m.id) throw new Error("not a mark");
         fs.mkdirSync(path.dirname(MARKS), { recursive: true });
-        fs.appendFileSync(MARKS, JSON.stringify(m) + "\n");
+        // a session testing the mark flow: id "test-..." or test: true -> local/marks.test.jsonl, never shown to the
+        // user (a "TEST mark from Claude" pin sat on hellgate in the user's viewer, 2026-11-23)
+        const testMark = m.test === true || /^test-/.test(String(m.id));
+        fs.appendFileSync(testMark ? MARKS.replace(/\.jsonl$/, ".test.jsonl") : MARKS, JSON.stringify(m) + "\n");
         res.writeHead(200, { "Content-Type": "application/json" }); res.end('{"ok":true}');
       } catch (e) { res.writeHead(400); res.end(String(e.message)); }
     });
