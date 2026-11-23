@@ -147,3 +147,9 @@ floor, at most 5% of 4-move patterns repeated within 10 s. compose.js's block te
 
 Open: the structure library does not have entry/exit heights yet (every structure starts and ends on the
 floor it is placed on); repetition is not steered in compose (it only avoids the same chunk twice in a row).
+
+Next to measure: **Spooky Dash** (Fabruuuu, rated Hard, ID 150941693, local/community/150941693.gdlvl, not
+committed), a modern Hard level the user beat and enjoyed (attempt 9; deaths at 27.7% twice and 40-42%
+three times, local/real_stats.jsonl). Solve it once (`node tools/solutions.js local/community/150941693.gdlvl`,
+heavy), then `node tools/flow.js local/community/150941693.gdlvl` and `node tools/rules.js` on it: its
+height / repetition numbers next to the official ones are a target the user has played and liked.
