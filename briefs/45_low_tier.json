@@ -248,5 +248,9 @@
   ],
   "terrain": true,
   "craft": true,
-  "notesV8": "v8 (2026-11-23): recomposed with the new generator -- block terrain (height), craft pieces and pass, no triple at Normal (46 ms), compose gaps 4+ at Normal, structures per section; the user-marked fixes of v7 are compose rules now"
+  "notesV8": "v8 (2026-11-23): recomposed with the new generator -- block terrain (height), craft pieces and pass, no triple at Normal (46 ms), compose gaps 4+ at Normal, structures per section; the user-marked fixes of v7 are compose rules now",
+  "accept": {
+    "length": "the user asked for 40 s on the Ragnarok song",
+    "mode changes": "the user asked for sections with upside-down and the new modes in 40 s"
+  }
 }

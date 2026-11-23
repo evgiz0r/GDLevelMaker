@@ -128,13 +128,22 @@ function scoreLevel(level, brief, opts = {}) {
   if (r.ok) {
     const F = require("./flow.js").measure(level, (natural() || r).events), miss = [];
     if (F.jumpS >= 10) {
-      if (F.changesPer10s < 10) miss.push(`${F.changesPer10s} floor changes per 10 s (want 10+)`);
+      // 12+: official levels 1-10 change 12-22 times per 10 s (QUALITY.md, difficulty session)
+      if (F.changesPer10s < 12) miss.push(`${F.changesPer10s} floor changes per 10 s (want 12+; official 12-22)`);
       if (F.range != null && F.range < 3) miss.push(`height range ${F.range} blocks per 10 s (want 3+)`);
       if (F.flat10 > 0) miss.push(`${Math.round(F.flat10 * 100)}% of 10 s windows flat`);
       if (F.ground > 0.45) miss.push(`${Math.round(F.ground * 100)}% of standing on the bare floor (want 45% or less)`);
     }
     gate("height", miss.length ? "WARN" : "PASS", F.jumpS < 10 ? "under 10 s of jumping play: not judged" : miss.length ? miss.join("; ") : `${F.changesPer10s} changes per 10 s, range ${F.range}, ${Math.round(F.ground * 100)}% on the floor`);
     gate("repetition", F.jumpS >= 10 && F.repeat > 0.05 ? "WARN" : "PASS", F.repeat == null ? "no move patterns" : `${Math.round(F.repeat * 100)}% of 4-move patterns repeat within 10 s (want 5% or less)`);
+    // length and mode changes (QUALITY.md: official levels 1-10 run 78-95 s and change mode 1.3-5.2 times
+    // a minute; ours ran mostly under 45 s with 7-17 changes a minute -- short snippets; the taste data
+    // agrees: longer sections, fewer swaps rate better). WARN under 60 s / over 6 changes a minute.
+    const p = GD.run(w, (natural() || r).events).path, secs = p.length / GD.PHYS.TPS;
+    let changes = 0; for (let i = 1; i < p.length; i++) if (p[i].mode !== p[i - 1].mode) changes++;
+    const perMin = changes / (secs / 60);
+    gate("length", secs < 60 ? "WARN" : "PASS", `${secs.toFixed(0)} s (official 78-95 s; want 60+)`);
+    gate("mode changes", perMin > 6 ? "WARN" : "PASS", `${changes} mode changes, ${perMin.toFixed(1)} a minute (official 1.3-5.2; want 6 or fewer)`);
   }
 
   // ending: the level ends soon after the last input (the user on 45 v7: "ending still bit too long"). GD
