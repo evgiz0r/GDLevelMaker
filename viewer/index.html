@@ -49,6 +49,7 @@
   <button id="restart">⟲</button>
   <button data-speed="0.25">¼×</button><button data-speed="0.5">½×</button><button data-speed="1" class="on">1×</button>
   <button id="lookBtn" class="on" title="colours, triggers, block skins as in the game (off: the schematic view)">game look</button>
+  <button id="artBtn" title="draw objects, background, ground and icon with GD's own sprites from your game install (needs tools/serve.js; VISUALS.md)">GD art</button>
   <button id="hit">hitboxes</button>
   <button id="cmpBtn" hidden title="a frame of your recording next to the replay (needs tools/serve.js)">compare</button>
   <button id="markBtn" title="pause, then click where something should change (key M)">✎ mark</button>
@@ -77,6 +78,9 @@
 <script src="../lib/physics.js"></script>
 <script src="../lib/sync.js"></script>
 <script src="../lib/look.js"></script>
+<script src="../lib/objects_art.js"></script>
+<script src="../lib/objects_frames.js"></script>
+<script src="../lib/art.js"></script>
 <script src="../lib/natural.js"></script>
 <script src="levels.js"></script>
 <script src="levels.local.js" onerror="window.GD_LEVELS_LOCAL = []"></script>
@@ -222,6 +226,25 @@ let look = true;
 try { look = localStorage.getItem("gdlm.look") !== "0"; } catch (e) {}
 document.getElementById("lookBtn").classList.toggle("on", look);
 document.getElementById("lookBtn").onclick = e => { look = !look; e.target.classList.toggle("on", look); try { localStorage.setItem("gdlm.look", look ? "1" : "0"); } catch (err) {} draw(); };
+// GD's own sprites (lib/art.js), loaded from the game install through tools/serve.js; off on file:// and
+// on the phone page, which must not carry RobTop's art
+let art = false, artTried = false;
+const artBtn = document.getElementById("artBtn");
+try { art = localStorage.getItem("gdlm.art") !== "0"; } catch (e) {}
+async function artLoad() {
+  if (artTried) return; artTried = true;
+  if (!location.protocol.startsWith("http") || window.GD_PHONE) { art = false; artBtn.hidden = true; return; }
+  artBtn.textContent = "GD art …";
+  const ok = await GD.ART_LIB.load("/gdres/", () => draw());
+  artBtn.textContent = ok ? "GD art" : "GD art (not found)";
+  artBtn.title = ok ? artBtn.title : "no sprites: " + GD.ART_LIB.S.failed + " (set GD_GAME for tools/serve.js)";
+  if (!ok) art = false;
+  artBtn.classList.toggle("on", art); draw();
+}
+artBtn.classList.toggle("on", art);
+artBtn.onclick = () => { art = !art; artBtn.classList.toggle("on", art); try { localStorage.setItem("gdlm.art", art ? "1" : "0"); } catch (e) {} if (art) artLoad(); draw(); };
+if (art) artLoad();
+const artOn = () => art && LS && GD.ART_LIB && GD.ART_LIB.S.ready;
 document.getElementById("hit").onclick = e => { showHit = !showHit; e.target.classList.toggle("on", showHit); draw(); };
 document.getElementById("sound").onclick = e => { sound = !sound; e.target.classList.toggle("on", sound); };
 document.getElementById("music").onclick = e => { music = !music; e.target.classList.toggle("on", music); syncSong(true); };
@@ -400,7 +423,9 @@ function draw() {
     : Math.max(0, s.y - 30 * 4.5);
   camY += (want - camY) * (1 - Math.exp(-9.75 * drawDt)); // 0.15 a frame at 60 fps, at any rate
   const view = { W, H, scale, camX, sx, sy };
-  if (LS) { GD.LOOK.drawBackground(ctx, view, LS); GD.LOOK.drawMiddleground(ctx, view, LS); }
+  const AR = GD.ART_LIB, sc = artOn() ? (L.scenery = L.scenery || AR.scenery(L.level.header)) : null;
+  if (sc) { if (!AR.drawBackground(ctx, view, LS, sc)) GD.LOOK.drawBackground(ctx, view, LS); AR.drawMiddleground(ctx, view, LS, sc); }
+  else if (LS) { GD.LOOK.drawBackground(ctx, view, LS); GD.LOOK.drawMiddleground(ctx, view, LS); }
   else { ctx.fillStyle = "#0e0828"; ctx.fillRect(0, 0, W, H); }
   // grid
   if (!LS) for (const _ of [0]) { ctx.strokeStyle = "rgba(120,100,220,.10)"; ctx.lineWidth = 1;
@@ -417,7 +442,17 @@ function draw() {
       ctx.fillStyle = down ? "rgba(150,230,255,.9)" : "rgba(150,230,255,.5)"; ctx.fillText(String(b), x + 3 * d, 14 * d);
     }
   }
-  if (LS) {
+  if (sc) {
+    // GD's own sprites in its z-layers (B layers, glow, then T layers); ids without a known frame are
+    // drawn with the shapes below. Triggers and editor-only objects are not drawn (as in the game).
+    const on = objsNow.filter(o => sx(o.x) > -150 && sx(o.x) < W + 150);
+    const skip = o => { const d = GD.objInfo(o.id); if (d.kind === "trigger") return true; const i = AR.info(o.id); return !!i && /^edit_/.test(i.frame); };
+    const res = AR.drawObjects(ctx, on, LS, local, o => GD.LOOK.objAlpha(o, LS.alpha), skip);
+    for (const o of res.rest) { const d = GD.objInfo(o.id); if (d.kind === "decoration" || d.kind === "trigger") continue;
+      const a = GD.LOOK.objAlpha(o, LS.alpha); if (a <= 0.01) continue; ctx.globalAlpha = a; drawObj(o); ctx.globalAlpha = 1; ctx.shadowBlur = 0; }
+    res.after();
+    if (!AR.drawGround(ctx, view, LS, sc)) GD.LOOK.drawGround(ctx, view, LS);
+  } else if (LS) {
     // objects as the game draws them: decoration, then blocks (fills, then outlines), then the rest;
     // the ground goes over anything below it
     const on = objsNow.filter(o => sx(o.x) > -90 && sx(o.x) < W + 90), blocks = [];
@@ -468,7 +503,7 @@ function draw() {
   }
   // the player
   // the player, drawn by its mode (a cube in every mode read wrong: "the wave looks like cube")
-  if (LS) GD.LOOK.drawPlayer(ctx, view, s, L.held[k], local, (P.SPEEDS[s.sp] || P.SPEEDS[1]).x);
+  if (LS) GD.LOOK.drawPlayer(ctx, view, s, L.held[k], local, (P.SPEEDS[s.sp] || P.SPEEDS[1]).x, sc ? GD.ART_LIB.drawIcon : null);
   else if (s.mode === "ship") drawShip(s);
   else if (s.mode === "wave") drawWave(s);
   else if (s.mode === "ball") drawBall(s);

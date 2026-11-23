@@ -122,6 +122,12 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   spikes, ground, bg, hills; the player per mode with glow, trail and particles (smoothed between
   steps, PHONE.md). Drawn to match frames of the user's play, no game art. Toggle off for
   the schematic view; "hitboxes" still overlays.
+- **GD's own art in the viewer** (VISUALS.md: what is known, how it was checked against recordings,
+  what is open, the rule that RobTop's art never leaves the PC): `lib/art.js` draws objects, background,
+  ground and icons with the sprite sheets of the user's install, served by `tools/serve.js` at `/gdres/`
+  ("GD art" button). Tables: `lib/objects_art.js` (`tools/import_art.js`, OpenGD) and
+  `lib/objects_frames.js` (`tools/import_frames.js`, GD 2.2's own id -> frame table from the exe).
+  Test: `node tests/art_tables.js`.
 - Iterating on a level's look or play: the viewer's **✎ mark** (key M) saves the user's notes at a
   spot to `marks/marks.jsonl` (via `tools/serve.js`); read them with `node tools/marks.js`, close
   them with `node tools/marks.js done <id> "what changed"`. **compare** puts a frame of one of the
