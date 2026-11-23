@@ -11,6 +11,11 @@ Search -> its level ID. The slot and what it holds: `local/phone_ids.json`.
 
 ## Rule: every upload needs the user's yes
 
+**A name is for good once uploaded** (the user, 2026-11-23: "We use the same name once uploaded,
+no rename. Thats why we need pick proper names as well"). The server refuses a rename, and our
+tools never try one. So choose a level's final name before its FIRST upload, and put it in the
+upload question so the user can change it. The phone slot is named "GDLM 44 hellgate" for good.
+
 **Don't fill the servers with AI levels** (the user, 2026-11-23: "I dont want to spam ai levels to
 the server yet"). Upload only a level the user asks to play on the phone, never offer batches
 or extra levels. To change one that is already up, re-share it under its ID (below) rather than
