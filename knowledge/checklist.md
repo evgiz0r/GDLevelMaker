@@ -53,6 +53,11 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   its jump comes down: GDLM 47 ~29.3 s): the step right after the spike (one jump lands on it) or
   farther. Same check and gate ("reactive"). Patterns: spike-block `at 1, w 3` and block-spike-block
   `w1 2, w2 2` at Easy/Normal. (critiques.md GDLM 45 v6 ~21.5 s)
+- [ ] **Cue a jump onto planks over spikes**: a plank row straight over a spike row, reached by a jump
+  from flat ground with no cue, killed the user 7 times (GDLM 60). Give it a cue (a mark, a step, a
+  visible landing) or room. (PHYSICS.md "GDLM 60 physics lab")
+- [ ] **A dash ends in open space**, or where it must end is telegraphed: a solid post right after a dash
+  orb's run killed the user 5 times holding the dash into it (GDLM 60). (structures: dash-orb-pit)
 - [ ] **Every hazard matters**: none walked over without a jump (slabs at one height 2 apart over
   spikes are crossed on foot: the spikes are pointless and leave a "do I jump?" doubt). Make it a real
   jump (gap 3+, or rising slabs) or keep the spikes out of the way. score.js gate "hazards matter".

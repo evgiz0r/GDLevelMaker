@@ -69,8 +69,10 @@ S("green-orb-flip", { tags: ["orb", "green orb", "pad", "gravity", "ceiling run"
   doc: "a yellow pad throws the cube up to a green orb (a jump that also flips gravity) onto a high ceiling; a second green orb brings it down",
   build: () => ({ objects: [["yellow pad", 0, 0], ...spikes(1, 14), ...blocks(0, 15, 8, 9), [1022, 4, 4], [1022, 11, 6]], width: 16 }) });
 S("dash-orb-pit", { tags: ["orb", "dash orb"], tier: "Normal",
-  doc: "a green dash orb over a long pit: hold to dash straight across, release over the landing",
-  build: () => ({ objects: [...spikes(1, 11), ["green dash orb", 2, 2], ...blocks(11, 14, 0, 2)], width: 14 }) });
+  // the dash ends over open floor, not into a wall: a post right after a dash run killed the user 5 times
+  // holding the dash into it (GDLM 60 real play, physics 2026-11-23)
+  doc: "a green dash orb over a long pit: hold to dash straight across, release over open floor",
+  build: () => ({ objects: [...spikes(1, 11), ["green dash orb", 2, 2]], width: 15 }) });
 
 // ---------------------------------------------------------------- gravity and size
 S("gravity-tunnel", { tags: ["gravity", "gravity portal", "ceiling run"], tier: "Normal",
