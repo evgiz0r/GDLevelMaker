@@ -13,6 +13,12 @@ const first = (r, act) => r.path.find(p => p.act === act);
   const p = first(GD.run(w, []), "teleport portal");
   check("teleport to portal y + offset", p && p.y === 165, p && p.y);
 }
+// a teleport turned a quarter moves the full offset straight up, like an unturned one (Deadlocked's ball part)
+{
+  const w = GD.makeWorld([{ id: 747, x: 300, y: 15, rot: 90, props: { "54": "150" } }, { id: 1, x: 330, y: 150 }, { id: 1, x: 600, y: 15 }]);
+  const p = first(GD.run(w, []), "teleport portal");
+  check("quarter-turned teleport: full offset", p && p.y === 165, p && p.y);
+}
 // pad table: a ball's yellow pad gives 16 x 0.6 = 9.6; a cube's 16
 for (const [mode, want] of [["cube", 16], ["ball", 9.6]]) {
   const w = GD.makeWorld([{ id: 35, x: 300, y: 2 }, { id: 1, x: 900, y: 15 }]);
