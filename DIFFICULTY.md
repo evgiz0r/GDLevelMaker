@@ -271,6 +271,8 @@ After an edit: `GD.carryWindowCache(wOld, wNew, ranges, aToB)` copies every cach
 misses the edited x ranges into the new level's cache, renaming the object / trigger indices its state holds
 (aToB from the incremental solver's diffObjects). GDLM 45: a moved spike or an inserted decoration re-measures in
 0.1 s instead of 38 s, every window equal to a fresh measuring (`node tests/carry_windows.js`, heavy).
+Across processes: `GD.exportWindowCache(w)` -> JSON (whole keys, ~1 KB per input: GDLM 43 29 KB) and
+`GD.importWindowCache(w, data)`; the incremental solver keeps the export beside a saved route (local/, not committed).
 Test: `node tests/human_cost.js`. Open: the weights are set by hand; fit `centre` on where the user really
 presses in a window (physics brings those from the recordings).
 
