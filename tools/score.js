@@ -20,6 +20,10 @@
 //                ship 8, wave/robot 3, UFO 2 (Hard and up: 0). WARN under 60% of it.
 //   skips        the solved run goes through every mode/gravity/speed portal (FAIL) and uses every
 //                orb (WARN): a "secret way" past part of the level means a path should be blocked
+//   fairness     no death that is not the player's fault (tools/fairness.js: forced input right after
+//                a portal, a mark with no jump, a sloped floor at a portal exit, an orb chain with
+//                nothing to correct, too-fast wave turns: FAIL; a blind two-step opener: WARN).
+//                Fitted on the user's labelled deaths (DIFFICULTY.md "Fairness"). ~1 min more.
 //   objects      gameplay objects with unconfirmed hitboxes (sure:false; WARN only)
 // Cost: two solves of the level (a few seconds for a 30 s cube level). One at a time.
 const fs = require("fs");
@@ -191,6 +195,16 @@ function scoreLevel(level, brief, opts = {}) {
     const missedP = portals.filter(o => !touched(o)), missedO = orbs.filter(o => !touched(o));
     gate("skips", missedP.length ? "FAIL" : missedO.length ? "WARN" : "PASS",
       missedP.length || missedO.length ? [...missedP, ...missedO].map(o => `${GD.objInfo(o.id).name} at block ${((o.x - 15) / 30).toFixed(0)}`).join("; ") + " not touched by the solved run: block that way past it" : `all ${portals.length} portals and ${orbs.length} orbs on the path`);
+  }
+
+  // deaths that would not be the player's fault (tools/fairness.js, fitted on the user's labelled
+  // GDLM 44/46 deaths: forced inputs after a portal, misleading marks, sloped portal exits, orb
+  // chains with nothing to correct, blind two-step openers, too-fast wave turns)
+  if (r.ok && opts.fairness !== false) {
+    const FA = require("./fairness.js"), fl = FA.flags(FA.analyse(w, r));
+    const fail = fl.filter(f => f.severity === "FAIL");
+    gate("fairness", fail.length ? "FAIL" : fl.length ? "WARN" : "PASS",
+      fl.length ? fl.map(f => `${f.family} at block ${(f.x0 / 30).toFixed(0)}: ${f.note}`).join("; ") : "no unfair spots found");
   }
 
   const unsure = level.objects.filter(o => { const d = GD.objInfo(o.id); return ["solid", "hazard", "orb", "pad", "slope"].includes(d.kind) && d.sure === false; });

@@ -56,7 +56,10 @@ if (!args[0] || args[0].startsWith("--")) { console.log(fs.readFileSync(__filena
   const r = await headless(`viewer/?shoot=${id}`, path.join(dir, id, ".done"), { port: +(opt("--port") || 8767), timeoutMs: 15 * 60e3 });
   const src = path.join(dir, id, "000.png");
   if (!fs.existsSync(src)) { console.log("no map made" + (r.ok ? "" : " (timed out)")); process.exit(1); }
-  const safe = (opt("--name") || path.basename(args[0]).replace(/\.(gdlvl|json)$/, "").replace(/^(save|official):/, "")).replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "_") + (shapes ? "_shapes" : "");
+  // official:N -> official_NN_<name> (as local/official_NN.json maps were named), lower case
+  const offN = /^official:(\d+)$/.exec(args[0]) || /official_(\d+)\.json$/.exec(args[0]);
+  const base = offN ? `official_${String(+offN[1]).padStart(2, "0")}_${String(lv.name || "").toLowerCase()}` : path.basename(args[0]).replace(/\.(gdlvl|json)$/, "").replace(/^save:/, "");
+  const safe = (opt("--name") || base).replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "_") + (shapes ? "_shapes" : "");
   const out = path.join(ROOT, "local", "maps"); fs.mkdirSync(out, { recursive: true });
   const png = path.join(out, safe + ".png"), jpg = path.join(out, safe + ".jpg");
   fs.copyFileSync(src, png);
