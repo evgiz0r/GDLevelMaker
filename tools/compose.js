@@ -299,7 +299,8 @@ function compose(brief, tweaks = {}) {
   // marks the end (the level ends at its last object): an alpha trigger on an unused group, invisible
   // in the game (a block up at row 6 showed as a stray black square, GDLM 47)
   objects.push(["fade", col + 2, { group: 999, to: 1, secs: 0 }]);
-  const spec = { name: brief.name, desc: brief.desc || brief.idea || "", objects };
+  // "desc" is what players read in the game (short, flavour; make.js checks it); the idea is a note for us
+  const spec = { name: brief.name, desc: brief.desc || "", notes: brief.idea || "", objects };
   if (deco.length) spec.decoDensity = deco;
   // the modern look (STYLE.md: knowledge/levels/modern_look.md); "modern": false in the brief turns it off
   // the signature at the end (tools/signature.js, the visuals session's): in the last rest section

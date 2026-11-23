@@ -189,6 +189,19 @@ function arcOrbs(name, col, args, header, specFile, speedPortals = []) {
 }
 
 // spec (already parsed) -> { level, rec, ctx, objects, header }: everything but writing and checking
+// The in-game description is for players (the user, 2026-11-23): one or two short sentences with a bit
+// of flavour, ending with the signature line, at most ~150 characters (GD's limit is about 180). Notes
+// for us (beats, dB, song ids, versions, who asked) go in the spec's "notes", never in "desc".
+// Over 180: the build stops. Over 150, or anything that reads like an internal note: a warning.
+const DESC_MAX = 180, DESC_TARGET = 150;
+const INTERNAL = /\b\d{5,}\b|\bdB\b|\bBPM\b|\bb\d+\b|\bv\d+\b|\(the user\)|\bbeats?\b|\bsections?\b|\bspec\b|\bbrief\b/i;
+function checkDesc(desc, name) {
+  if (desc.length > DESC_MAX) throw new Error(`description of "${name}" is ${desc.length} characters (GD's limit is about ${DESC_MAX}): write one or two short sentences for players in "desc", move notes to "notes"`);
+  if (desc.length > DESC_TARGET) console.log(`   WARN description is ${desc.length} characters; aim for ${DESC_TARGET} or less (STYLE.md "Name and description")`);
+  const m = INTERNAL.exec(desc.replace(/Made by Claude \(and some humans\)/, ""));
+  if (m) console.log(`   WARN description reads like an internal note ("${m[0]}"): it is shown to players; notes go in "notes"`);
+}
+
 function build(spec, specFile = "spec") {
   const song = songOf(spec);
   const kA4 = spec.speed ? SPEED_NAMES[spec.speed] : 0;
@@ -292,8 +305,9 @@ function build(spec, specFile = "spec") {
     objects.push(...deco.groundDeco(objects, end, spec.seed || 7, densityAt));
   }
   const level = { header, objects };
-  let desc = spec.desc || "made by GDLevelMaker";
+  let desc = spec.desc || "";
   if (signed) desc = require("./signature.js").describe(desc);
+  checkDesc(desc, spec.name);
   const rec = GD.newRecord(spec.name, desc);
   if (song && song.k45) GD.setField(rec, "k45", "i", song.k45);
   if (song && song.k8) GD.setField(rec, "k8", "i", song.k8);
@@ -427,4 +441,4 @@ if (require.main === module) {
   if (!specs.length) { console.log("usage: node tools/make.js specs/<name>.json [...]"); process.exit(1); }
   for (const s of specs) make(s);
 }
-module.exports = { make, build, slug, TYPES, songOf, gridOf };
+module.exports = { make, build, slug, TYPES, songOf, gridOf, checkDesc };

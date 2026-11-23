@@ -103,9 +103,7 @@ S("ball-flips", { mode: "ball", tags: ["ball"], tier: "Normal",
 S("spider-zaps", { mode: "spider", tags: ["spider"], tier: "Normal",
   doc: "the spider teleports to the roof over floor spikes and back down under roof spikes",
   build: () => ({ objects: [...blocks(0, 20, 5, 9), ...spikes(4, 7), ...hang(11, 14, 4), ...spikes(17, 19)], width: 20, exitRow: 1 }) });
-// swing: the sim moves it right (a press flips it), but lib/physics.js's solveAny finds no path past any
-// wall (2026-11-23), so it cannot be checked yet: left out until the solver plans swing inputs
-false && S("swing-wiggle", { mode: "swing", tags: ["swing"], tier: "Normal",
+S("swing-wiggle", { mode: "swing", tags: ["swing"], tier: "Normal",
   doc: "the swing flips its gravity past a floor wall and a roof wall",
   build: () => ({ objects: [...blocks(5, 6, 0, 5), ...blocks(11, 12, 5, 10), ...blocks(17, 18, 0, 5)], width: 20, exitRow: 4 }) });
 

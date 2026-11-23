@@ -82,11 +82,11 @@ difficulty label, a different one per section, preferring a mechanic the level d
 with `"structures": false` in the brief or a section. (Speed, mini and gravity-entry structures are not
 auto-placed, and only sections at 1x get one: they were checked at 1x. A level picks the rest by hand.)
 
-## Results (2026-11-23, 50 structures)
+## Results (2026-11-23, 51 structures)
 
-48 ready, 2 not: `triple-spike` (46 ms: the classic triple really is that tight at 1x; fine for Hard,
+49 ready, 2 not: `triple-spike` (46 ms: the classic triple really is that tight at 1x; fine for Hard,
 listed to show it) and `blue-orb-bounce` (a second blue orb right after the first leaves 25-33 ms; two
-layouts tried). By mode: cube 32, ship 4, robot 3, UFO 3, wave 3, ball 3, spider 2. Top of the ranking:
+layouts tried). By mode: cube 32, ship 4, robot 3, UFO 3, wave 3, ball 3, spider 2, swing 1. Top of the ranking:
 gravity-pad-gap 95, triple-speed-run 94, ufo-orb 94, speed-burst 93, ufo-pillars 93, robot-steps 92 --
 the mechanics our levels never had. Plain cube shapes (stairs, pillars, doubles) sit at 57-62: common in
 real levels and fair, but we already use them everywhere. Numbers in `knowledge/structures.json`;
@@ -104,8 +104,8 @@ Lessons from building them:
 
 ## Open
 
-- **Swing**: the sim moves the swing right (a press flips it), but `solveAny` finds no path past any
-  wall, so no swing structure can be checked yet. Told the physics session (the solver is theirs).
+- **Swing**: one structure (swing-wiggle). Until 49fa848 `solveAny` found no path past any
+  wall (the sweep merged a pending flip away; fixed by the physics session). More swing shapes to add.
 - **Green orb**: `sure:false` in lib/objects.js. In the sim it flips gravity and jumps toward the new
   gravity's "up", so from the floor it throws the cube DOWN; the structure meets it high, after a pad.
   Check in the real game before a level leans on it.
