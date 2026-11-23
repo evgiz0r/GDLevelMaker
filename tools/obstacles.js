@@ -1,6 +1,7 @@
 // node tools/obstacles.js catalogue [--tiers Easy,Normal] [--top 12] [--gdlm]
 // node tools/obstacles.js intro     [--tiers Easy,Normal] [--gdlm] [--official]
 // node tools/obstacles.js structure [--tiers Easy,Normal] [--gdlm] [--official]
+// node tools/obstacles.js indicators [--tiers Easy,Normal,Hard,Harder] [--gdlm] [--official]   (jump arrows: height, turn, hazard ahead)
 //
 // What rated levels are built from, as a stock for GDLM (which mostly uses lone spikes and few kinds
 // of thing; knowledge/levels/variety.md). Reads the rated 2.0-2.1 community levels in
@@ -173,7 +174,46 @@ function intro() {
   }
 }
 
+// indicators: d_arrow deco (ids 132, 460, 494, 3630-3632; knowledge/objects/) used as "jump here" hints.
+// Hints only: a single arrow (no other within 3 blocks), at most 3 blocks up, a hazard within 6 ahead.
+// For each: height of its centre above the surface under it (the top of the nearest solid within
+// half a block sideways, else the ground), its turn (key 6), and how far the nearest hazard ahead is.
+const ARROWS = new Set([132, 460, 494, 3630, 3631, 3632]);
+function indicators() {
+  const G = {};
+  for (const { group, L } of levels()) {
+    const arrows = L.objects.filter(o => ARROWS.has(o.id));
+    if (!arrows.length) continue;
+    const solids = L.objects.filter(o => cat(o) === "solid"), haz = L.objects.filter(o => cat(o) === "hazard");
+    const g = (G[group] ||= { levels: 0, lv: new Set(), h: [], rot: {}, ahead: [], scale: [] });
+    g.levels++;
+    for (const a of arrows) {
+      // a hint, not decoration: no other arrow within 3 blocks, at most 3 blocks above the surface,
+      // with a hazard within 6 blocks ahead (the rest are arrow patterns, signs, backgrounds)
+      if (arrows.some(b => b !== a && Math.abs(b.x - a.x) <= 90 && Math.abs(b.y - a.y) <= 90)) continue;
+      let top = 0;
+      for (const s of solids) if (Math.abs(s.x - a.x) <= 15 && s.y < a.y) top = Math.max(top, s.y + 15);
+      const ys = (+(a.props && a.props[129]) || +(a.props && a.props[32]) || 1);
+      g.h.push((a.y - top) / 30); g.scale.push(ys);
+      const r = ((Math.round((a.rot || 0) / 90) % 4) + 4) % 4 * 90 + (a.flipY ? "f" : "");
+      g.rot[r] = (g.rot[r] || 0) + 1;
+      const next = haz.filter(h => h.x >= a.x - 15 && h.x <= a.x + 6 * 30).map(h => (h.x - a.x) / 30);
+      const ahead = next.length ? Math.min(...next) : NaN;
+      if (!Number.isFinite(ahead) || (a.y - top) / 30 > 3) { g.h.pop(); g.scale.pop(); g.rot[r]--; continue; }
+      g.ahead.push(ahead); g.lv.add(L.name);
+    }
+  }
+  console.log("| group | levels with hint arrows | hint arrows | height above surface (p25 / median / p75, blocks) | hazard ahead (median blocks; share with one within 6) | turn (deg: share) |\n|---|---|---|---|---|---|");
+  const q = (a, p) => { a = a.filter(Number.isFinite).sort((x, y) => x - y); return a.length ? a[Math.floor(p * a.length)] : NaN; };
+  for (const [group, g] of Object.entries(G)) {
+    const n = g.h.length;
+    console.log(`| ${group} | ${g.lv.size} | ${n} | ${f(q(g.h, .25))} / ${f(q(g.h, .5))} / ${f(q(g.h, .75))} | ${f(med(g.ahead))}; ${pc(g.ahead.filter(Number.isFinite).length / n)} | ` +
+      Object.entries(g.rot).sort((p, q2) => q2[1] - p[1]).slice(0, 4).map(([k, v]) => `${k}: ${pc(v / n)}`).join(", ") + " |");
+  }
+}
+
 if (args[0] === "catalogue") catalogue();
 else if (args[0] === "intro") intro();
 else if (args[0] === "structure") structure();
+else if (args[0] === "indicators") indicators();
 else console.log(fs.readFileSync(__filename, "utf8").split("\n").filter(l => l.startsWith("//")).join("\n"));

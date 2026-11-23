@@ -35,11 +35,28 @@ Format: date, level + version, the user's words, what it means, what was done (c
   attempt (03-38-03.mkv) died at the v5 block edge again. The slope complaint fits v5's zigzag: 71-88 ms
   turns and head-on slope deaths (PHYSICS.md "Wave"). v6 not played yet.
 
+- 2026-11-23, v8 (with GDLM 46 v2; recording 03-50-48.mkv, local/real_stats.jsonl): beaten first try. The
+  user's verdict on both levels, verbatim: "its playble. not great. gameplay meh. visuals still very bad
+  obviously. indicator a bit too high over the ground; the second indicator is wrong, dont need to jump
+  there; no indicator in some of the jumps; the exit with the wave, some slope issues, something wrong
+  about blocks there; the triple orb in the end, feels very akward, if you just click normal you fall and
+  die, cant adjust. i feel i mostly died deaths not really my fault (besides first click which is fine in
+  its difficulty)". Layout fixes went to style and polish (physics session).
+
 ## GDLM 46 sketch
 - 2026-11-23 (03-36-54.mkv): beaten on attempt 7. Deaths: first double spike x2 (late jump), ship part,
   the wave's last V before the exit portal (head-on into the rising floor), and after the wave exit: the cube
   must jump off the 2-high block within 42-171 ms of becoming a cube or it lands below a 3-high wall it
   cannot clear (a forced input right after a mode change, like GDLM 44's entrance).
+- 2026-11-23, v2 (03-50-48.mkv): 12 attempts, 10 of its 11 deaths from the layout, not the player
+  (physics session). The user's words are under GDLM 44 v8 (one verdict for both). What it means:
+  - Jump indicators: one sat where no jump is needed (a wrong cue kills), some jumps had none, and they
+    sit too high (~1.5 blocks; the user wants ~1).
+  - The wave's exit: slopes and blocks there read wrong.
+  - The triple orb at the end: a normal click falls to death and there is no way to adjust. The chain
+    leaves no room to correct and carries the cube toward the screen's edge.
+  - Positive: the first click is "fine in its difficulty": the hard part should be the player's skill,
+    not the layout's traps.
 
 ## GDLM 42 seen then gone
 - 2026-11-22, v1: whole phrases invisible -> "practically very hard, tons of learning, pure memory
