@@ -58,6 +58,13 @@ Reported beside the score:
 - ship gap (free height around the ship's path);
 - hiding triggers (move, alpha, toggle and spawn triggers the sim ignores: memory parts);
 - `quickRecoveries`: presses whose window closes under 150 ms after a landing.
+- `forcedAfterSwitch`: inputs whose window closes under 250 ms (`SETTLE`, assumed) after a mode,
+  gravity or speed change; `afterSwitchMs` per input. From the physics session: in GDLM 44 the
+  user died 2 of 2 at a wave entrance whose window is 92 ms. The cube lands on a block and takes
+  the portal at its end, and unless the wave is held within ~13 ticks it slides off and dies. The
+  window is not small; it starts at the mode change, before the player has settled.
+  `node tools/press_window.js <level> --x X --y Y --hold-to X2 --to X3` (physics session) gives the
+  press window from any spot.
 - `room`: free height per flying mode, counting blocks AND hazards, min and median in units
   (30 = a row). The user found GDLM 44's wave "slightly too difficult" with the same windows as the
   rest. It had 2 rows of room where the ship had 5.
@@ -271,7 +278,9 @@ widest-moment scan skipped. Flying presses and releases are now scanned too.
    Back On Track are the best. Keep mouse and keyboard apart (`--device`).
    - Loop: record → `node tools/runs.js <files> --join --level N --device mouse` →
      `node tools/difficulty_fit.js` → update SIGMA and LAPSE.
-3. **Unexpected land-and-jump chains.** These were all 8 of the player's GDLM 42 deaths, but
+3. **Surprise: unexpected land-and-jump chains and inputs forced right after a switch.** Both
+   are reported (`quickRecoveries`, `forcedAfterSwitch`), neither is in the score. The GDLM 44
+   wave entrance (2 of 2 deaths) is the first case of the second kind. **Unexpected land-and-jump chains.** These were all 8 of the player's GDLM 42 deaths, but
    rhythmic chains are fine (every early official level has 60-90). Needs a rhythm or surprise
    measure to tell them apart.
 4. **Coverage.** 6 official levels are under 10% in the sim (`local/difficulty/NN.json` says
