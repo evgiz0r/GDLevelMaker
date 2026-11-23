@@ -1,6 +1,8 @@
 // node tools/difficulty.js [n ...] [--sigma 30]       -- scores the official levels and compares
 //   with their in-game ratings. Needs their solutions in local/difficulty/ (make them with
 //   `node tools/difficulty_solve.js n`, ONE AT A TIME: a solve takes ~800 MB).
+// node tools/difficulty.js --cached [--sigma S] [--settle MS]  -- the same comparison from the inputs the last
+//   full report cached (local/difficulty/scored_NN.json), with another chance model: seconds, not an hour
 // node tools/difficulty.js some.gdlvl [...]             -- scores your own levels (solves them first).
 // Levels the sim cannot finish are scored on the part it gets through ("per minute" compares them).
 const fs = require("fs"), path = require("path");
@@ -61,6 +63,27 @@ function scoreOfficial(n, sigma) {
 function main() {
   const args = process.argv.slice(2);
   const si = args.indexOf("--sigma"), sigma = si >= 0 ? +args.splice(si, 2)[1] : DF.DIFF.SIGMA;
+  if (args.includes("--cached")) { // re-score the cached inputs with the current chance model, in seconds
+    const sti = args.indexOf("--settle"), settle = sti >= 0 ? +args[sti + 1] : DF.DIFF.SETTLE;
+    const uf = path.join(OUT, "user_stats.json"), user = fs.existsSync(uf) ? JSON.parse(fs.readFileSync(uf, "utf8")) : null;
+    const rows = [];
+    for (const n of Object.keys(RATED).map(Number)) {
+      const f = path.join(OUT, `scored_${String(n).padStart(2, "0")}.json`);
+      if (!fs.existsSync(f)) continue;
+      const c = JSON.parse(fs.readFileSync(f, "utf8"));
+      let la = 0;
+      for (const a of c.actions) {
+        const k = a.afterSwitchMs !== null && a.afterSwitchMs !== undefined && a.afterSwitchMs < settle ? Math.max(0.02, a.afterSwitchMs / settle) : 1;
+        la -= Math.log10(Math.max(DF.hitChance(a.ms, sigma) * k, 1e-9));
+      }
+      rows.push({ n, la, pm: la / Math.max(c.seconds, 1e-9) * 60, cover: c.blocks, complete: c.complete, att: user && user[n] ? user[n].attempts : null });
+      console.log(`${String(n).padStart(3)} ${RATED[n][0].padEnd(23)} ${(RATED[n][1] + " " + RATED[n][2]).padEnd(10)} score ${la.toFixed(2)}  /min ${(la / Math.max(c.seconds, 1e-9) * 60).toFixed(2)}`);
+    }
+    const ok = rows.filter(r => r.n !== 21);
+    console.log(`sigma ${sigma}, settle ${settle} ms. Spearman over ${ok.length} (Fingerdash out): per minute vs stars ${spearman(ok.map(r => r.pm), ok.map(r => RATED[r.n][2])).toFixed(2)}, score vs stars ${spearman(ok.map(r => r.la), ok.map(r => RATED[r.n][2])).toFixed(2)}` +
+      (ok.every(r => r.att) ? `, per minute vs your attempts ${spearman(ok.map(r => r.pm), ok.map(r => r.att)).toFixed(2)}` : ""));
+    return;
+  }
   const files = args.filter(a => a.endsWith(".gdlvl"));
   if (files.length) {
     for (const f of files) {

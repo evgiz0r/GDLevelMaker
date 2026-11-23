@@ -48,7 +48,26 @@ A level is hard when you must get many inputs right in one go and some leave lit
    real orb route over a triple spike (0.039 -> 0.007) and a lone spike that keeps its jump.
    `node tools/difficulty_route.js <n | file | community id>` shows a level with and without it.
    The report writes the chosen route into `local/official_NN.json`, so the viewer replays it.
-5. **Score** = log10 of the expected attempts to beat the level in one go, -Σ log10 p
+5. **Settling after a portal.** An input whose window closes less than SETTLE = 300 ms after a
+   portal switch gets its chance scaled by (ms from the switch to the window's end) / 300, at least
+   0.02. A player's own orb flip does not count; only portals do.
+   - **The evidence.** The user's attempts in the physics session's `local/real_stats.jsonl`
+     (`node tools/real_stats.js`), 2026-11-23:
+     - GDLM 44 v5's wave entrance: the cube lands on a block, takes the wave portal at its end and
+       must hold within ~13 ticks or slide off. The window is 92 ms and closes ~54 ms after the
+       portal. It passed 1 of the 5 times it was reached.
+     - GDLM 46's jump after the wave exit: a 129 ms window opening ~42 ms after the switch. It
+       passed 1 of 2.
+     The windows alone give ~100% for both. Maximum likelihood for the ramp is 315 ms (an
+     exponential, τ 245 ms, fits as well).
+   - **Effect.** GDLM 44 v5 goes from 1.1 to 3.0 expected attempts (the user: 7, not beaten).
+     GDLM 46 goes from 1.2 to 2.1 (beaten on attempt 7).
+   - **Caveat.** My window measure flags slightly different inputs than the physics session's
+     careful `tools/press_window.js`. On 44 its window closes 113 ms after the portal. On 46 it
+     flags the wave entry and gives the post-wave jump a wider window, because the look-ahead
+     re-plans. Seven tries on two levels; refit as real_stats grows. `opts.settle = false` turns
+     it off.
+6. **Score** = log10 of the expected attempts to beat the level in one go, -Σ log10 p
    (1.0 ≈ 10 attempts). `/min` is the same per minute of the part the sim covers.
    `practiceDeaths` = Σ (1/p - 1).
 
@@ -58,14 +77,8 @@ Reported beside the score:
 - ship gap (free height around the ship's path);
 - hiding triggers (move, alpha, toggle and spawn triggers the sim ignores: memory parts);
 - `quickRecoveries`: presses whose window closes under 150 ms after a landing.
-- `forcedAfterSwitch`: inputs whose window closes under 250 ms (`SETTLE`, assumed) after a mode,
-  gravity or speed change; `afterSwitchMs` per input. From the physics session: in GDLM 44 the
-  user died 2 of 2 at a wave entrance whose window is 92 ms. The cube lands on a block and takes
-  the portal at its end, and unless the wave is held within ~13 ticks it slides off and dies. The
-  window is not small; it starts at the mode change, before the player has settled. (The GDLM 44
-  in levels/ now, 2026-11-23, has a 279 ms wave press closing 363 ms after the portal: forced 0.)
-  `node tools/press_window.js <level> --x X --y Y --hold-to X2 --to X3` (physics session) gives the
-  press window from any spot.
+- `forcedAfterSwitch`: inputs whose window closes under SETTLE (300 ms) after a portal switch
+  (mode, speed, gravity portal, size). These are IN the score (item 5). `afterSwitchMs` per input.
 - `room`: free height per flying mode, counting blocks AND hazards, min and median in units
   (30 = a row). The user found GDLM 44's wave "slightly too difficult" with the same windows as the
   rest. It had 2 rows of room where the ship had 5.
@@ -74,7 +87,7 @@ Reported beside the score:
   91 community levels (knowledge/levels/low_tier_stats.md) say Hard differs from Normal mostly by
   this kind of density, not by tighter timing.
 
-None of the extras are in the score yet; each rests on a level or two.
+Apart from `forcedAfterSwitch`, none of the extras are in the score yet; each rests on a level or two.
 
 ## Calibration on the player's own runs
 
@@ -288,9 +301,10 @@ widest-moment scan skipped. Flying presses and releases are now scanned too.
    Back On Track are the best. Keep mouse and keyboard apart (`--device`).
    - Loop: record → `node tools/runs.js <files> --join --level N --device mouse` →
      `node tools/difficulty_fit.js` → update SIGMA and LAPSE.
-3. **Surprise: unexpected land-and-jump chains and inputs forced right after a switch.** Both
-   are reported (`quickRecoveries`, `forcedAfterSwitch`), neither is in the score. The GDLM 44
-   wave entrance (2 of 2 deaths) is the first case of the second kind. **Unexpected land-and-jump chains.** These were all 8 of the player's GDLM 42 deaths, but
+3. **Surprise.** Inputs forced right after a portal are in the score (The measure, item 5); refit
+   SETTLE on `local/real_stats.jsonl` as it grows (the physics session adds every analysed
+   recording) and with `node tools/difficulty.js --cached --settle MS` (seconds, from the
+   report's cache). **Unexpected land-and-jump chains** are reported only (`quickRecoveries`). These were all 8 of the player's GDLM 42 deaths, but
    rhythmic chains are fine (every early official level has 60-90). Needs a rhythm or surprise
    measure to tell them apart.
 4. **Coverage.** 6 official levels are under 10% in the sim (`local/difficulty/NN.json` says
