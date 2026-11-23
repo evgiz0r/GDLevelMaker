@@ -279,8 +279,10 @@ on the right bar, and its pad reads beatless. This replaces the loudness-only se
 - Newgrounds songs vary more: 644761, 467267 (33%), 10000912 (29%), 343707 (26%, GDLM 44
   hellgate's), 685746 (24%) and 10004401 (21%) have long beatless stretches. These are the songs
   where "follow the vibe, not the grid" applies.
-- Sections start on a 4-bar phrase line about as often as luck says (all songs pooled ~35% vs
-  25%), so the detector's bar can be off by one; use its sections as "around here".
+- Sections start on a 4-bar phrase line (bar 0, 4, 8... from the grid's downbeat) 46% of the
+  time in the official songs (41 of 90; luck 25%, about 4.5 sigma), 32% in the custom songs (whose
+  downbeats are less sure). The rest are off by a bar or two: use a section as "around here", and
+  snap it to the nearest phrase line when placing a portal.
 
 **The levels** (22 official, 14 downloaded community levels whose songs are on the PC, the GDLM
 levels; transitions = mode and speed portals and colour triggers):
