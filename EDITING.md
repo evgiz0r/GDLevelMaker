@@ -45,8 +45,9 @@ re-solved), the tightest window within 6 blocks before -> after, the checks that
 before/after picture (`<copy>_before_after.png`, shoot.js frames side by side) and a viewer link.
 
 Re-solve order: the old route if it still clears (a re-plan of the human route, seconds), then `lib/incsolve.js`
-when gd-incsolve lands it (expected: `resolve(world, oldEvents, {x})` -> `{ok, events}`; edit.js calls it if it
-exists), then a full solve. Checks: `quickChecks` = tools/rules.js (fast) + softrules.js + indicators.js on the saved
+(gd-incsolve's `incsolve.fromBase(oldLevel, oldEvents, newLevel)`: the route kept up to a calm point before the
+change, searched from there until it is back on the old route, the rest spliced back), then a full solve (its
+reason printed, e.g. "incsolve: the level header changed"). Checks: `quickChecks` = tools/rules.js (fast) + softrules.js + indicators.js on the saved
 route, no solve. `--full` also runs every score.js gate (solves again).
 
 Copies go to `local/edits/<slug>.e<N>.gdlvl` with a `.json` report (shared folder, never committed: it may be
@@ -119,8 +120,6 @@ See CLAUDE.md's table. Measured 2026-11-23: see "Results" below.
 
 ## Open
 
-- `lib/incsolve.js` (gd-incsolve): edit.js already calls `resolve(world, oldEvents, {x})` when the file exists; agree
-  the signature when it lands.
 - The words: one change per clause, no "it" across clauses, no "between the orbs". A session covers the rest with
   ops; add the common ones to the vocabulary when they come up twice.
 - Auto fixes for reactive's "spike then a step", ragged clusters, deco coverage (a look pass on a stretch), player

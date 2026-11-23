@@ -44,7 +44,7 @@ function fix(spec, o = {}) {
   const tryOps = (ops, spot, label, issue) => {
     let res; try { res = E.apply(cur.level, ops, spot); } catch (e) { rep.rejected.push({ fix: label, why: e.message }); return false; }
     if (o.dry) { rep.kept.push({ fix: label, ops, changes: res.changes.map(c => c.what), dry: true }); return true; }
-    const A = E.writeCopy(tmp, L, res.objects), rs = E.resolve(A.level, A.levelStr, cur.sol, { x: spot.x });
+    const A = E.writeCopy(tmp, L, res.objects), rs = E.resolve(A.level, A.levelStr, cur.sol, { x: spot.x, oldLevel: cur.level });
     const run = rs.sol && rs.sol.events ? GD.run(GD.makeWorld(A.level.objects, A.level.header), rs.sol.events) : null;
     if (!(rs.sol && rs.sol.ok && run && !run.dead)) { rep.rejected.push({ fix: label, why: "the level is no longer beaten" + (run ? ` (dies at block ${(run.end.x / 30).toFixed(1)})` : "") }); return false; }
     const qa = E.quickChecks(tmp, { fast: true }).filter(q => !q.info), qb = cur.checks || [];

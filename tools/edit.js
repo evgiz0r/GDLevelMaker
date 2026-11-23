@@ -335,13 +335,19 @@ function resolve(level, levelStr, oldSol, opts = {}) {
     const q = GD.run(w, oldSol.events);
     if (!q.dead && (q.done || q.end.x >= w.endX) && !GD.skipCheck(w, q.path, oldSol.events)) return { sol: S.fromRun(level, levelStr, { ok: true, events: oldSol.events }), how: "the old route still clears (re-planned)" };
   }
-  let INC = null; try { INC = require("../lib/incsolve.js"); } catch (e) {}
-  if (INC && typeof INC.resolve === "function" && oldSol && oldSol.events) {
-    try { const r = INC.resolve(w, oldSol.events, { x: opts.x }); if (r && r.ok) return { sol: S.fromRun(level, levelStr, r), how: "lib/incsolve.js (re-solved from the edit)" }; } catch (e) {}
+  // lib/incsolve.js (gd-incsolve): keep the route up to a calm point before the change, search from there until the
+  // run is back in the old route's exact state, splice the old rest back in (seconds instead of a whole solve)
+  let INC = null; try { INC = require("../lib/incsolve.js").incsolve; } catch (e) {}
+  if (INC && opts.oldLevel && oldSol && oldSol.events && oldSol.events.length) {
+    try {
+      const r = INC.fromBase(opts.oldLevel, oldSol.events, level, {});
+      if (r && r.ok) return { sol: S.fromRun(level, levelStr, { ok: true, events: r.events }), how: `lib/incsolve.js (re-solved ${r.from != null ? "from tick " + r.from : "the changed stretch"}${r.ms != null ? ", " + (r.ms / 1000).toFixed(1) + " s" : ""})` };
+      if (r && r.fallback) opts.why = "incsolve: " + r.fallback;
+    } catch (e) { opts.why = "incsolve failed: " + e.message; }
   }
   if (opts.noSolve) return { sol: null, how: "not solved (--no-solve)" };
   const t0 = Date.now(), r = GD.solveAny(w);
-  return { sol: S.fromRun(level, levelStr, r), how: `full solve (${((Date.now() - t0) / 1000).toFixed(0)} s)` };
+  return { sol: S.fromRun(level, levelStr, r), how: `full solve (${((Date.now() - t0) / 1000).toFixed(0)} s)${opts.why ? "; " + opts.why : ""}` };
 }
 
 // ---------- quick checks (no solve): soft rules on a saved route ----------
@@ -430,7 +436,7 @@ function edit(o) {
   const beforeFile = L.file || before;
   if (route && route.sol && !require("./solutions.js").get(B.levelStr, true)) try { require("./solutions.js").put(B.levelStr, clone(route.sol), B.level); } catch (e) {}
   const A = writeCopy(out, L, res.objects);
-  const t0 = Date.now(), rs = resolve(A.level, A.levelStr, route && route.sol, { x: spot.x, noSolve: o.noSolve });
+  const t0 = Date.now(), rs = resolve(A.level, A.levelStr, route && route.sol, { x: spot.x, noSolve: o.noSolve, oldLevel: L.level });
   rep.file = rel(out); rep.solve = rs.how; rep.solveS = +((Date.now() - t0) / 1000).toFixed(1);
   const wA = GD.makeWorld(A.level.objects, A.level.header);
   const runA = rs.sol && rs.sol.events ? GD.run(wA, rs.sol.events) : null;
