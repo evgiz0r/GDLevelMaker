@@ -6,6 +6,7 @@
 // {
 //   "name": "01 one jump",            // the name shown in GD's level list
 //   "desc": "one spike",              // optional
+//   (a plain string in "objects", e.g. "// S2 the ship", is a comment and is skipped)
 //   "objects": [                      // [type, column, row, {extra}] -- extra: rot, flipX, flipY
 //     ["spike", 12, 0],
 //     ["block", 20, 0],
@@ -189,7 +190,21 @@ function arcOrbs(name, col, args, header, specFile, speedPortals = []) {
 }
 
 // spec (already parsed) -> { level, rec, ctx, objects, header }: everything but writing and checking
+// The in-game description is for players (the user, 2026-11-23): one or two short sentences with a bit
+// of flavour, ending with the signature line, at most ~150 characters (GD's limit is about 180). Notes
+// for us (beats, dB, song ids, versions, who asked) go in the spec's "notes", never in "desc".
+// Over 180: the build stops. Over 150, or anything that reads like an internal note: a warning.
+const DESC_MAX = 180, DESC_TARGET = 150;
+const INTERNAL = /\b\d{5,}\b|\bdB\b|\bBPM\b|\bb\d+\b|\bv\d+\b|\(the user\)|\bbeats?\b|\bsections?\b|\bspec\b|\bbrief\b/i;
+function checkDesc(desc, name) {
+  if (desc.length > DESC_MAX) throw new Error(`description of "${name}" is ${desc.length} characters (GD's limit is about ${DESC_MAX}): write one or two short sentences for players in "desc", move notes to "notes"`);
+  if (desc.length > DESC_TARGET) console.log(`   WARN description is ${desc.length} characters; aim for ${DESC_TARGET} or less (STYLE.md "Name and description")`);
+  const m = INTERNAL.exec(desc.replace(/Made by Claude \(and some humans\)/, ""));
+  if (m) console.log(`   WARN description reads like an internal note ("${m[0]}"): it is shown to players; notes go in "notes"`);
+}
+
 function build(spec, specFile = "spec") {
+  spec = Object.assign({}, spec, { objects: spec.objects.filter(e => Array.isArray(e)) });   // a string entry is a comment
   const song = songOf(spec);
   const kA4 = spec.speed ? SPEED_NAMES[spec.speed] : 0;
   if (kA4 === undefined) throw new Error("speed must be one of " + Object.keys(SPEED_NAMES).join(" "));
@@ -292,8 +307,9 @@ function build(spec, specFile = "spec") {
     objects.push(...deco.groundDeco(objects, end, spec.seed || 7, densityAt));
   }
   const level = { header, objects };
-  let desc = spec.desc || "made by GDLevelMaker";
+  let desc = spec.desc || "";
   if (signed) desc = require("./signature.js").describe(desc);
+  checkDesc(desc, spec.name);
   const rec = GD.newRecord(spec.name, desc);
   if (song && song.k45) GD.setField(rec, "k45", "i", song.k45);
   if (song && song.k8) GD.setField(rec, "k8", "i", song.k8);
@@ -349,7 +365,8 @@ function lookOnly(out, rec, level) {
   if (!fs.existsSync(out)) { console.log("   --look: no previous build, solving"); return false; }
   const old = io.readGdlvl(out), sol = sols.get(old.levelStr, true);
   const sig = (objs, h) => JSON.stringify(GD.makeWorld(objs, h).items.map(b => [b.kind, Math.round(b.x), Math.round(b.y)]));
-  if (!sol || !sol.ok || sig(old.level.objects, old.level.header) !== sig(level.objects, level.header)) { console.log("   --look: gameplay changed (or no saved solution), solving"); return false; }
+  if (!sol || !sol.ok) { console.log("   --look: no saved solution (none yet, or lib/physics.js changed since: saved solves go stale), solving"); return false; }
+  if (sig(old.level.objects, old.level.header) !== sig(level.objects, level.header)) { console.log("   --look: gameplay changed, solving"); return false; }
   // the jump marks of the last build (group 990 and the alpha trigger that fades them)
   const IG = String(deco.INDICATOR.group);
   level.objects.push(...old.level.objects.filter(o => o.props && (o.props[57] === IG || (o.id === 1007 && o.props[51] === IG))));
@@ -427,4 +444,4 @@ if (require.main === module) {
   if (!specs.length) { console.log("usage: node tools/make.js specs/<name>.json [...]"); process.exit(1); }
   for (const s of specs) make(s);
 }
-module.exports = { make, build, slug, TYPES, songOf, gridOf };
+module.exports = { make, build, slug, TYPES, songOf, gridOf, checkDesc };

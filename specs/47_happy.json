@@ -1,4 +1,4 @@
-{"name":"GDLM 47 sunny side","desc":"a happy level with happy colours, 1:40 long (the user), Normal, fair and fun: sections on the song's own changes, a new mode or idea every section, play on block terrain, a new scene and palette per section, the modern look","objects":[["colour",0,{"ch":"bg","rgb":[255,214,90],"secs":0.4}],
+{"name":"GDLM 47 sunny side","desc":"A sunny day out: fly the blue sky, roll in the pink and dash for the golden finale!","notes":"a happy level with happy colours, 1:40 long (the user), Normal, fair and fun: sections on the song's own changes, a new mode or idea every section, play on block terrain, a new scene and palette per section, the modern look","objects":[["colour",0,{"ch":"bg","rgb":[255,214,90],"secs":0.4}],
   ["colour",0,{"ch":"ground","rgb":[240,170,60],"secs":0.4}],
   ["colour",0,{"ch":"line","rgb":[255,255,255],"secs":0.4}],
   ["pattern","single",10,0,{}],

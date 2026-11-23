@@ -219,6 +219,12 @@ idea (a picture, a sketch, words); what they get back has already passed every g
    start: `GDLM NN <words that fit what it is>` (the song, the mood, the scene -- "sunny side"),
    never a working label ("low tier", "test", "v2"). A test level that is never to be uploaded says
    so in its name ("catalogue", "test"). Uploaded so far: "GDLM 44 hellgate" (the phone slot).
+   **Name and description.** The brief's `"desc"` is what players read in the game: one or two short
+   sentences with a bit of fun or flavour, at most ~150 characters with the signature line (the user,
+   2026-11-23; e.g. "A night city swallowed by an eclipse. Hold on at the drop! -- Made by Claude (and
+   some humans)"). The brief's `"idea"` and anything for us (beats, dB, song ids, versions) go to the
+   spec's `"notes"`. make.js stops a build over 180 characters (GD's limit) and warns over 150 or on
+   note-like text (5-digit ids, dB, BPM, b12, v3, "beats", "sections").
    **Every GDLM level ends with the signature** (robot + human, "Made by Claude (and some humans)",
    tools/signature.js; the user approved it for all levels, 2026-11-23): make.js adds it to any spec
    named "GDLM ..." 3 blocks after its last object, plus the line in the description. Opt out only

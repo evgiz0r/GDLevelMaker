@@ -242,5 +242,7 @@ function expand(name, col, row, args, extra) {
   return r.objects.map(([t, c, rr, e]) => [t, col + c, row + rr, Object.assign({}, e || {}, extra || {})]);
 }
 
+// the structure library (tools/structures.js, STRUCTURES.md) as patterns named "s:<id>"
+require("./structures.js").register(P);
 module.exports = { PATTERNS: P, expand, mirrorUp };
 if (require.main === module) for (const [k, v] of Object.entries(P)) console.log(k.padEnd(18), v.doc);
