@@ -38,7 +38,7 @@ const isCommunity = n => /^c\d+$/.test(String(n));
 const tag = n => isCommunity(n) ? String(n) : String(n).padStart(2, "0");
 function levelText(n) {
   if (isCommunity(n)) return readGdlvl(path.join(__dirname, "..", "local", "community", String(n).slice(1) + ".gdlvl")).levelStr;
-  return levelText(n);
+  return unpack(fs.readFileSync(path.join(SRC, n + ".txt"), "utf8"));   // was levelText(n): endless recursion for every official level
 }
 const partFile = n => path.join(OUT, tag(n) + ".part.json");
 function checkpointer(n, prefix, physics) {
