@@ -100,6 +100,7 @@
   <div class="card"><h2>Clicks</h2><div id="clicks"></div></div>
   <div class="card" style="grid-column:1/-1"><h2>Marks — what to change</h2><div id="marks"></div></div>
 </main>
+<div id="ver" class="muted" style="font-size:12px;padding:6px 16px 14px"></div>
 <script src="../lib/gd.js"></script>
 <script src="../lib/objects_extra.js"></script>
 <script src="../lib/objects_gd22.js"></script>
@@ -205,6 +206,7 @@ function load(name, levelStr, saved, info) {
     for (let k = 0; k < path.length; k++) { while (j < ev.length && ev[j].tick <= k) { h = ev[j].type === "press" ? 1 : 0; j++; } held[k] = h; } }
   L = { name, level, world, sol, path, held };
   L.vrot = visualRot(path);
+  L.routeKind = routeKindOf(saved, sol, world);
   // colour / alpha / zoom triggers fire when the replayed run passes their x
   L.look = GD.LOOK.timeline(level, x => {
     let lo = 0, hi = path.length - 1;
@@ -276,6 +278,16 @@ pick.onchange = () => { const l = ALL[pick.value]; load(l.name, l.level, l.solut
 // filters, pins and recent; the versions of one level under one card, newest first (the user: "the pick level
 // drop down is too annoying"). It only sets the hidden <select id="pick"> and fires its change, so every other
 // part (the phone build too) keeps working through pick.value.
+// which route the replay shows: saved.kind from tools/solutions.js ("human" | "limit" + why | "unbeaten"); a level
+// solved here: human when the natural plan finished it. A stale saved route (older physics) says so.
+function routeKindOf(saved, sol, world) {
+  const pct = x => Math.max(0, Math.min(100, Math.round(x / Math.max(1, world.endX) * 100)));
+  const k = saved ? saved.kind : sol.ok ? (sol.natural ? "human" : "limit") : "unbeaten";
+  const why = saved ? saved.why : !sol.ok ? sol.why : sol.natural ? "" : "the natural plan could not finish the level: the solver's raw route";
+  if (!k) return saved && saved.stale ? { k: "stale", label: "stale route", why: "saved on older physics; refreshed by tools/solutions.js" } : null;
+  const label = k === "human" ? "human route" : k === "limit" ? "limit route" + (why ? ": " + String(why).slice(0, 60) : "") : "unbeaten at " + pct(saved ? saved.dieX || 0 : (sol.dieAt || {}).x || 0) + "%";
+  return { k, label: label + (saved && saved.stale ? " (stale)" : ""), why: why || "" };
+}
 const PK = { f: "all", sel: 0, rows: [], meta: new Map() };
 const pkStore = (k, v) => { try { if (v === undefined) return JSON.parse(localStorage.getItem("gdlm." + k) || "[]"); localStorage.setItem("gdlm." + k, JSON.stringify(v)); } catch (e) { return []; } };
 const pkCat = l => l.wip || (l.session && l.version) ? "wip" : /official/.test(String(l.file)) || l.official != null ? "official" : /community/.test(String(l.file)) ? "community" : "ours";
@@ -286,6 +298,11 @@ const pkWhen = l => Date.parse(l.made || (l.wip || l.session ? l.updated : "") |
 const pkEsc = x => String(x).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 function pkBadge(l) {
   return pkCat(l) === "wip" ? `<span class="pkBadge wip">wip v${l.version || "?"}${l.session ? " · " + pkEsc(l.session) : ""}</span>` : `<span class="pkBadge">${pkCat(l) === "ours" ? "main" : pkCat(l)}</span>`;
+}
+function pkRoute(l) {
+  const k = l.solution && l.solution.kind; if (!k) return "";
+  const st = k === "human" ? "background:#16402c;color:#9cf5c4" : k === "limit" ? "background:#5a3a10;color:#ffd58a" : "background:#5a1424;color:#ffb3c2";
+  return `<span class="pkBadge" style="${st}" title="${pkEsc(l.solution.why || "")}">${k === "human" ? "human route" : k === "limit" ? "limit route" : "unbeaten"}</span>`;
 }
 function pkAgo(ms) { if (!ms) return ""; const m = (Date.now() - ms) / 60000; return m < 60 ? Math.max(1, Math.round(m)) + " min ago" : m < 1440 ? Math.round(m / 60) + " h ago" : Math.round(m / 1440) + " d ago"; }
 // length, modes and a thumbnail from the level itself: worked out for the cards on screen, a few at a time
@@ -335,7 +352,7 @@ function pkRender() {
   PK.rows = rec.concat(rest); PK.sel = Math.min(PK.sel, Math.max(0, PK.rows.length - 1));
   const card = (r, n) => { const l = ALL[r.is[0]];
     return `<div class="pkCard${n === PK.sel ? " sel" : ""}" data-n="${n}"><canvas data-i="${r.is[0]}"></canvas><div class="pkInfo"><div class="pkName">${pkEsc(l.name)}${cur && cur.file === l.file && cur.version === l.version ? " · <span style='color:var(--cube)'>open</span>" : ""}</div>` +
-      `<div class="pkMeta">${pkBadge(l)}<span data-meta="${r.is[0]}"></span>${pkWhen(l) ? " · made " + pkAgo(pkWhen(l)) : ""}</div>` +
+      `<div class="pkMeta">${pkBadge(l)}${pkRoute(l)}<span data-meta="${r.is[0]}"></span>${pkWhen(l) ? " · made " + pkAgo(pkWhen(l)) : ""}</div>` +
       (r.is.length > 1 ? `<div class="pkOlder">${r.is.slice(1, 8).map(i => `<button data-open="${i}">${pkCat(ALL[i]) === "wip" ? "wip v" + (ALL[i].version || "?") + (ALL[i].session ? " " + pkEsc(ALL[i].session) : "") : "main"}</button>`).join("")}</div>` : "") +
       `</div><button class="pkPin${pins.includes(r.k) ? " on" : ""}" data-pin="${pkEsc(r.k)}" title="pin">★</button></div>`; };
   el.innerHTML = (rec.length ? `<div class="pkHead">recent</div>` + rec.map((r, n) => card(r, n)).join("") : "") +
@@ -389,12 +406,14 @@ function summary() {
   for (const o of L.level.objects) { const d = GD.objInfo(o.id); if (d.kind === "decoration" || d.kind === "trigger") { deco++; continue; } counts[d.name] = (counts[d.name] || 0) + 1; }
   const unsim = L.level.objects.filter(o => ["unknown", "unsupported"].includes(GD.objInfo(o.id).kind)).length;
   const s = L.sol;
+  // the route kind (tools/solutions.js): human by default; amber when a limit route is used; red when unbeaten
+  const kind = L.routeKind ? `<span class="pkBadge" style="${L.routeKind.k === "human" ? "background:#16402c;color:#9cf5c4" : L.routeKind.k === "limit" ? "background:#5a3a10;color:#ffd58a" : "background:#5a1424;color:#ffb3c2"}" title="${esc(L.routeKind.why || "")}">${esc(L.routeKind.label)}</span>` : "";
   let h = `<b>${esc(L.name)}</b><br><span class="muted">${L.level.objects.length} objects · ${(L.world.endX / 30).toFixed(0)} blocks · ${(L.world.endX / P.SPEED).toFixed(1)} s at 1×</span><br>`;
   // presses only (a saved solution lists releases too); windows only where known (saved ones have none)
   const nP = s.clicks.filter(c => c.type !== "release").length, ws = s.clicks.map(c => c.ms).filter(ms => ms > 0);
-  h += s.ok ? `<p class="ok">Beatable in ${nP} click${nP === 1 ? "" : "s"}` +
+  h += s.ok ? `<p class="ok">Beatable in ${nP} click${nP === 1 ? "" : "s"} ${kind}` +
               (ws.length ? ` · tightest window ${Math.min(...ws)} ms` : "") + `</p>`
-            : `<p class="bad">Not beatable in the simulation. The furthest run dies at block ${(s.dieAt.x / 30).toFixed(1)} (${(s.dieAt.tick / P.TPS).toFixed(2)} s): ${s.why}. The replay shows that furthest run.</p>`;
+            : `<p class="bad">${kind} Not beatable in the simulation. The furthest run dies at block ${(s.dieAt.x / 30).toFixed(1)} (${(s.dieAt.tick / P.TPS).toFixed(2)} s): ${s.why}. The replay shows that furthest run.</p>`;
   if (L.deaths && L.deaths.length) h += `<p class="bad">Your real deaths (normal mode, from recordings): ${L.deaths.length} at ${L.deaths.slice().sort((a, b) => a - b).map(p => p.toFixed(0) + "%").join(", ")} (red marks).</p>`;
   if (unsim) h += `<p class="muted">${unsim} objects are not simulated yet (unsupported portals or unknown ids).</p>`;
   if (deco) h += `<p class="muted">${deco} decoration and trigger objects (no physics).</p>`;
@@ -1050,6 +1069,11 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 resize();
+// the footer: which commit this page is (tools/serve.js keeps its checkout current; GET /version)
+if (location.protocol.startsWith("http") && !window.GD_PHONE) fetch("/version", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(v => {
+  if (!v || !v.commit) return;
+  document.getElementById("ver").textContent = `viewer ${v.note === "up to date" || /^updated/.test(v.note || "") ? "up to date" : "at"}: ${v.commit} -- ${v.subject}` + (v.note && !/^up to date|^updated/.test(v.note) ? ` (${v.note})` : "");
+}).catch(() => {});
 // ?perf=<id>&secs=8&art=1&beats=1&light=0 (tools/perf.js): play the level in the hash from its t for `secs`
 // seconds with real animation frames and POST the frame and draw times to /perf/<id>
 (() => {

@@ -12,7 +12,7 @@
 //   "sections": [ {"from": beat, "kind": "cube"|"ball"|"ship"|"rest", "bg", "ground", "line",
 //                  "fill", "light", "flash", "deco", "secs"} ],   // ball/ship: portal on `from`,
 //                  // a framed cube portal on the next section's `from`
-//   "cells": [ [beat, kind, {args}] ],   // cube: spike | double | up | down | orb | pad | flat
+//   "cells": [ [beat, kind, {args}] ],   // cube: spike | double | up | upoff | down | orb | pad | flat ({off: true} = walk off a row later)
 //                                        // ball: floor | roof (the flip pressed on `beat`)
 //   "pulses": [ [beat, [r,g,b]] ],       // a soft bg swell on a big hit (a tint, never white)
 //   "last": beat }                       // the level's last gameplay beat (the sign comes after)
@@ -48,7 +48,8 @@ function build(plan) {
   // cells
   let h = 0;
   const cells = plan.cells;
-  cells.forEach(([b, kind, a = {}], i) => {
+  cells.forEach(([b, kind, a0], i) => {
+    const a = Object.assign({}, a0 || {});
     const s = secAt(b), J = "j" + b;
     const nextB = i + 1 < cells.length && secAt(cells[i + 1][0]) === s ? cells[i + 1][0] : null;
     const span = Math.ceil(((nextB || (secs[secs.indexOf(s) + 1] || { from: plan.last + 4 }).from) - b) * bpb) + 1;
@@ -60,9 +61,14 @@ function build(plan) {
       else throw new Error(`ball cell "${kind}" at ${b}`);
       return;
     }
-    if (kind === "spike") { o.push(["spike", J, h]); floor(0, span, h); }
+    // `off` (spike / up cells on a raised floor): the floor steps down a row partway to the next cell
+    // (a free walk-off: one more height change without a press; STRUCTURES.md "Height and repetition")
+    const offAt = a.off === true ? Math.ceil(span * 0.55) : a.off;
+    const walk = from => { if (offAt && h >= 1) { floor(from, offAt, h); h -= 1; floor(offAt, span, h); } else floor(from, span, h); };
+    if (kind === "upoff") { kind = "up"; a.off = true; }
+    if (kind === "spike") { o.push(["spike", J, h]); walk(0); }
     else if (kind === "double") { o.push(["spike", J, h]); o.push(["spike", at(1), h]); floor(0, span, h); }
-    else if (kind === "up") { h += 1; floor(0, span, h); if (a.spike) o.push(["spike", at(a.spike), h]); }
+    else if (kind === "up") { h += 1; if (a.spike) o.push(["spike", at(a.spike), h]); const offA = a.off === true ? Math.ceil(span * 0.55) : a.off; if (offA) { floor(0, offA, h); h -= 1; floor(offA, span, h); } else floor(0, span, h); }
     else if (kind === "down") { if (h < 1) throw new Error(`"down" on the floor at beat ${b}`); floor(0, 1, h); o.push(["spike", J, h]); h -= 1; floor(1, span, h); }
     else if (kind === "orb") { if (h) throw new Error(`orb off the floor at ${b}`); o.push(["pattern", "orb-pit", J, 0, { n: a.n || 5 }]); }
     else if (kind === "pad") { if (h) throw new Error(`pad off the floor at ${b}`); o.push(["pattern", "pad-launch", "b" + b, 0, { n: a.n || 3 }]); }

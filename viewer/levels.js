@@ -24,7 +24,7 @@ window.GD_LEVELS = [
    "physics": "c39a889",
    "solvedAt": "2026-11-22T21:27:39.837Z",
    "stale": true,
-   "replayedOn": "d74c788"
+   "replayedOn": "37c191e"
   },
   "made": "2026-11-22T15:14:30.000Z"
  },
@@ -132,7 +132,7 @@ window.GD_LEVELS = [
    "physics": "c39a889",
    "solvedAt": "2026-11-22T21:27:39.836Z",
    "stale": true,
-   "replayedOn": "d74c788"
+   "replayedOn": "37c191e"
   },
   "made": "2026-11-22T18:20:38.000Z"
  },
@@ -280,7 +280,7 @@ window.GD_LEVELS = [
    "physics": "c39a889",
    "solvedAt": "2026-11-22T21:27:39.836Z",
    "stale": true,
-   "replayedOn": "d74c788"
+   "replayedOn": "37c191e"
   },
   "made": "2026-11-22T17:00:11.000Z"
  },
@@ -460,7 +460,7 @@ window.GD_LEVELS = [
    "physics": "c39a889",
    "solvedAt": "2026-11-22T21:27:39.834Z",
    "stale": true,
-   "replayedOn": "d74c788"
+   "replayedOn": "37c191e"
   },
   "made": "2026-11-22T17:57:37.000Z"
  },
@@ -688,7 +688,7 @@ window.GD_LEVELS = [
    "physics": "c39a889",
    "solvedAt": "2026-11-22T21:27:39.833Z",
    "stale": true,
-   "replayedOn": "d74c788"
+   "replayedOn": "37c191e"
   },
   "made": "2026-11-22T17:57:37.000Z"
  },
@@ -933,7 +933,7 @@ window.GD_LEVELS = [
    "plan": "c1dfa6e",
    "solvedAt": "2026-11-23T19:08:56.432Z",
    "stale": true,
-   "replayedOn": "d74c788"
+   "replayedOn": "37c191e"
   },
   "made": "2026-11-23T19:47:17.000Z"
  },
@@ -1562,7 +1562,7 @@ window.GD_LEVELS = [
    ],
    "win": "a65ea6d",
    "stale": true,
-   "replayedOn": "d74c788"
+   "replayedOn": "37c191e"
   },
   "made": "2026-11-23T20:49:11.000Z"
  },
@@ -1581,7 +1581,7 @@ window.GD_LEVELS = [
    "physics": "c39a889",
    "solvedAt": "2026-11-23T01:01:54.129Z",
    "stale": true,
-   "replayedOn": "d74c788"
+   "replayedOn": "37c191e"
   },
   "made": "2026-11-23T01:14:26.000Z"
  },
@@ -1842,7 +1842,7 @@ window.GD_LEVELS = [
    "plan": "c1dfa6e",
    "solvedAt": "2026-11-23T18:36:34.772Z",
    "stale": true,
-   "replayedOn": "d74c788"
+   "replayedOn": "37c191e"
   },
   "made": "2026-11-23T04:17:11.000Z"
  },
@@ -2458,7 +2458,7 @@ window.GD_LEVELS = [
    "plan": "42fb451",
    "solvedAt": "2026-11-23T18:50:28.485Z",
    "stale": true,
-   "replayedOn": "d74c788"
+   "replayedOn": "37c191e"
   },
   "made": "2026-11-23T19:09:51.000Z"
  },
@@ -2799,7 +2799,7 @@ window.GD_LEVELS = [
    "solvedAt": "2026-11-23T18:32:50.799Z",
    "plan": "42fb451",
    "stale": true,
-   "replayedOn": "d74c788"
+   "replayedOn": "37c191e"
   },
   "made": "2026-11-23T19:09:51.000Z"
  },
@@ -2980,7 +2980,7 @@ window.GD_LEVELS = [
    "plan": "42fb451",
    "solvedAt": "2026-11-23T18:19:13.578Z",
    "stale": true,
-   "replayedOn": "d74c788"
+   "replayedOn": "37c191e"
   },
   "made": "2026-11-23T18:20:11.000Z"
  },
@@ -3345,7 +3345,7 @@ window.GD_LEVELS = [
    "plan": "c1dfa6e",
    "solvedAt": "2026-11-23T19:41:45.347Z",
    "stale": true,
-   "replayedOn": "d74c788"
+   "replayedOn": "37c191e"
   },
   "made": "2026-11-23T19:46:51.000Z"
  },
@@ -3472,7 +3472,7 @@ window.GD_LEVELS = [
    "physics": "7924db0",
    "solvedAt": "2026-11-23T03:47:42.285Z",
    "stale": true,
-   "replayedOn": "d74c788"
+   "replayedOn": "37c191e"
   },
   "made": "2026-11-22T15:14:30.000Z"
  }

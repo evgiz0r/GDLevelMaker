@@ -146,8 +146,9 @@ function toViewer(n, level, res) {
   let events = null;
   try { const n = require("../lib/natural.js").naturalPlan(w, { ok: res.ok, events: res.events }, L.objects, { cost: true });
     if (n && (res.ok ? n.path[n.path.length - 1].done : true)) events = n.events; } catch (e) {}
+  const kind = events ? "human" : "humanize";   // tools/difficulty.js scores a "human" route as it is
   if (!events) events = require("../lib/difficulty.js").humanize(w, res.events).events;
-  const solution = res.ok ? { ok: true, events } : { ok: false, events, dieX: res.dieX, why: res.why };
+  const solution = res.ok ? { ok: true, events, kind } : { ok: false, events, dieX: res.dieX, why: res.why, kind };
   fs.writeFileSync(path.join(OUT, "..", `official_${String(n).padStart(2, "0")}.json`),
     JSON.stringify({ n, name: NAMES[n] ? NAMES[n][0] : "level " + n, level, solution, physics: res.physics || null }));
   require("./index_levels.js").buildIndex();

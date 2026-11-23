@@ -227,8 +227,8 @@ function solveInWorker(l) {
   w.postMessage({ level: l.level });
 }
 function setPending(msg) { if (L && L.pending) { L.sol.why = msg; summary(); } }`);
-swap("            : `<p class=\"bad\">Not beatable in the simulation.",
-  "            : s.pending ? `<p class=\"muted\">${esc(s.why)}</p>` : `<p class=\"bad\">Not beatable in the simulation.");
+swap("            : `<p class=\"bad\">${kind} Not beatable in the simulation.",
+  "            : s.pending ? `<p class=\"muted\">${esc(s.why)}</p>` : `<p class=\"bad\">${kind} Not beatable in the simulation.");
 swap("if (saved) sol = saved.ok ? { ok: true, events: saved.events, clicks: [] } : { ok: false, trail: saved.events, clicks: [], dieAt: { x: saved.dieX || 0, tick: 0 }, why: saved.why || \"\" };",
   "if (saved) sol = saved.ok ? { ok: true, events: saved.events, clicks: [] } : { ok: false, trail: saved.events, clicks: [], dieAt: { x: saved.dieX || 0, tick: 0 }, why: saved.why || \"\", pending: !!saved.pending };");
 swap("  else if (ALL.length) { pick.value = 0; pick.onchange(); }",
