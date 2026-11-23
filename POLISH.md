@@ -42,7 +42,9 @@ Real-game results come back from the physics session (`node tools/real_stats.js 
 
 Every change is kept only if the level still clears with the edited plan, and no other input's window
 within two inputs drops below min(its old window, the limit). At the end a fresh `solveAny` on the
-current physics must beat the polished level, or polish.js refuses to write it.
+current physics must beat the polished level, and the fairness gate (`tools/fairness.js`, difficulty
+session: families fitted on the user's labelled deaths) must give no FAIL, or polish.js refuses to
+write it (`--force` overrides; WARNs go in the report).
 
 1. **fair** -- inputs whose timing window is under `--min-ms`, and inputs FORCED right after a mode,
    gravity or speed change (their window closes under 250 ms after it: lib/difficulty.js
@@ -73,7 +75,10 @@ current physics must beat the polished level, or polish.js refuses to write it.
    scene). Dropped: anything in front of the play near the path, and any shape whose size reaches a
    hazard, orb or pad (a cloud band crossed cube timings' hanging spikes). The level's blocks are NOT
    reskinned: the classic outlined skins over the lit fill drew the user's glowing black blocks as a
-   checkered grid in the GD-art render. Skipped if the level uses colour channels 20+.
+   checkered grid in the GD-art render. The fill is a DARK tint of the scene colour (a bright one made
+   GDLM 46's wave walls flat hot-pink masses: GD's blocks are see-through), and no soft light sits on a
+   block under a slope (it drew the wave's diagonal walls as a staircase). Skipped if the level uses
+   colour channels 20+.
 
 The order matters: fair moves geometry, sync moves orbs/portals (using the fair plan), read and look
 add only no-collision objects, so they cannot break what came before (the final solve checks anyway).
@@ -88,11 +93,14 @@ add only no-collision objects, so they cannot break what came before (the final 
   `local/shots/ct_ba_*.png`. Open: the level is meant to be hard (its name); 34 ms may ease it more than
   the user wants (`--min-ms 17` fixes only the sub-frame ones). Parallax's near clouds (rows 3-6) still
   drift behind the hanging spikes (vfxkit, visuals session).
-- **GDLM 44 hellgate** (gd-style's v6 from wip), v1 in wip: cube taps after the ship 4 -> 33-54 ms (a
+- **GDLM 44 hellgate** (gd-style's v6 from wip), v1 in wip (stale, see below): cube taps after the ship 4 -> 33-54 ms (a
   yellow orb down half a block twice, a spike half a block left), the red pad half a block right
   (4 -> 379 ms), the cube portal onto bar 9. Already decorated (42%): no deco pass. (Before the look pass.)
-- **GDLM 46 sketch** (the user's drawing, SKETCH.md): v3 -- see SKETCH.md for the spec changes from the
-  user's v2 deaths; polish results there.
+- **GDLM 46 sketch** (the user's drawing, SKETCH.md): v3 in wip -- spec changes from the user's v2 deaths,
+  then polish: tightest 17 -> 42 ms, forced 2 -> 0, fairness gate passes, 2.6 -> 6.6 objects per block.
+  Details in SKETCH.md.
+- GDLM 44's polished v1 is stale (gd-style's v9 came after) and both fail the fairness gate's wave
+  entrance; hellgate stays gd-style's (told them about `leadGap`).
 
 ## How it was tested
 
@@ -108,6 +116,8 @@ add only no-collision objects, so they cannot break what came before (the final 
 - **More gameplay / extend** (the user's points 4): not built. Extending needs new sections in the same
   style on the rest of the song (compose.js sections with the level's own chunk kinds); cube timings is
   10.6 s on a 262 s song.
+- Look: big wall masses (wave and ship corridors) read as flat fills; fills only on edge blocks may
+  look better -- untested.
 - Look: 3.8 objects per block (the checklist's target is 10-50; modernPass stays near 5-6 by design).
   No front-layer glow or particles yet, no shaders, colours of hazards untouched.
 - Fair pass moves one thing at a time and re-times only the input it fixes.
