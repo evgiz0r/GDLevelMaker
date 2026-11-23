@@ -6,3 +6,6 @@ viewer/levels.local.js
 viewer/beats.local.js
 export/
 local.before-share*/
+
+# timing / test copies built by make.js from local/tmp specs (named "GDLM tmp ...")
+levels/gdlm_tmp_*

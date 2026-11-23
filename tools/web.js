@@ -310,7 +310,9 @@ onmessage = e => {
   } catch (err) { postMessage({ ok: false, events: [], why: "the solver failed: " + err.message }); }
 };
 `);
-const files = { "levels.js": "levels.js", "beats.js": "beats.js", "solve_worker.js": "solve_worker.js" };
+// the timing windows' worker (viewer/windows_worker.js: lib URLs come from the page, so the same file works here)
+fs.copyFileSync(path.join(ROOT, "viewer", "windows_worker.js"), path.join(OUT, "windows_worker.js"));
+const files = { "levels.js": "levels.js", "beats.js": "beats.js", "solve_worker.js": "solve_worker.js", "windows_worker.js": "windows_worker.js" };
 for (const m of maps) files["maps/" + m + "_shapes.jpg"] = "maps/" + m + "_shapes.jpg";
 for (const f of libs) files["lib/" + f] = "lib/" + f;
 fs.writeFileSync(path.join(OUT, "publish.json"), JSON.stringify({ file_path: path.join(OUT, "index.html"), root: OUT, files, capabilities: { db: {} } }, null, 1));

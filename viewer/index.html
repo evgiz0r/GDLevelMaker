@@ -180,18 +180,36 @@ function load(name, levelStr, saved, info) {
 // there is, not only the chosen moment, which often sits near an edge).
 function windowsLater(LL, events) {
   if (window.SHOOT_MAP || !GD.inputWindows || !LL.sol.ok || !events || !events.length || LL.sol.clicks.some(c => c.hi > c.lo)) return;
-  const byKey = new Map(LL.sol.clicks.map(c => [c.type + c.tick, c]));
-  let from = 0, out = [];
+  const byKey = new Map(LL.sol.clicks.map(c => [c.type + c.tick, c])), sorted = events.slice().sort((a, b) => a.tick - b.tick);
+  const take = wins => { for (const wv of wins) { const c = byKey.get(wv.type + wv.tick); if (!c || c.ms) continue;
+    Object.assign(c, { lo: wv.lo, hi: wv.hi, ms: Math.round((wv.hi - wv.lo + 1) / P.TPS * 1000) });
+    if (wv.j >= 0) { const e = sorted[wv.j], rc = e && byKey.get(e.type + e.tick); if (rc) rc.tapOf = c; } } };
+  const finish = () => { LL.windowsDone = true; summary(); clickTable(); draw(); };
+  if (SHOOT) { take(GD.inputWindows(LL.world, events, LL.path, {})); return finish(); } // shots: all at once
+  // a Web Worker (one input can take seconds; on the page that froze it), else slices on the page (file://)
+  if (windowsLater.worker) windowsLater.worker.terminate();
+  const libs = [...document.scripts].map(s => s.src).filter(u => /\/lib\/(gd|objects_extra|objects_gd22|objects|physics|difficulty|windows)\.js(\?.*)?$/.test(u));
+  let wk = null; try { if (location.protocol.startsWith("http")) wk = new Worker("windows_worker.js"); } catch (e) {}
+  if (wk) {
+    windowsLater.worker = wk;
+    wk.onmessage = e => {
+      if (L !== LL) { wk.terminate(); return; } // another level was loaded
+      if (e.data.wins) { take(e.data.wins); if (!playing) draw(); }
+      if (e.data.done) { wk.terminate(); finish(); }
+      if (e.data.error) { console.warn("timing windows:", e.data.error); wk.terminate(); }
+    };
+    wk.postMessage({ libs, objects: LL.level.objects, header: LL.level.header, events: sorted });
+    return;
+  }
+  let from = 0;
   const slice = () => {
     if (L !== LL) return; // another level was loaded
-    const r = GD.inputWindows(LL.world, events, LL.path, { from, out, budget: SHOOT ? 0 : 40 }); // shots: all at once
-    for (const wv of r) { const c = byKey.get(wv.type + wv.tick); if (!c || c.ms) continue;
-      Object.assign(c, { lo: wv.lo, hi: wv.hi, ms: Math.round((wv.hi - wv.lo + 1) / P.TPS * 1000) });
-      if (wv.j >= 0) { const e = events.slice().sort((a, b) => a.tick - b.tick)[wv.j], rc = e && byKey.get(e.type + e.tick); if (rc) rc.tapOf = c; } }
-    if (r.next === null) { LL.windowsDone = true; summary(); clickTable(); draw(); return; }
+    const r = GD.inputWindows(LL.world, events, LL.path, { from, out: [], budget: 40 });
+    take(r);
+    if (r.next === null) return finish();
     from = r.next; if (!playing) draw(); setTimeout(slice, 0);
   };
-  if (SHOOT) slice(); else setTimeout(slice, 50);
+  setTimeout(slice, 50);
 }
 async function loadFile(f) {
   const rec = GD.parseRecord(await gunzipB64(await f.text()));

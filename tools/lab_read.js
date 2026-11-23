@@ -17,6 +17,7 @@
 // accelerations, units/frame^2: the peaks held and released). A metric's own from/to narrow its columns.
 // Units: GD units (a block = 30), frames of 1/60 s; 1 unit = 3.375 px at 1080p.
 // Writes nothing; real_stats rows and docs are the analyst's job (CLAUDE.md "Real-game stats").
+if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const fs = require("fs"), path = require("path"), { execFileSync } = require("child_process");
 const { GD, readGdlvl } = require("./io.js");
 

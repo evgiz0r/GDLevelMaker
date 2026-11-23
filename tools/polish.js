@@ -20,6 +20,7 @@
 // user's level) and <out>.compare.json (before + after levels, their solutions, the change list and
 // the numbers) for viewer/polish.html (the before/after view). --dry: report only, write nothing.
 // Then: node tools/wip.js put <out>.gdlvl --session polish --note "..."
+if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const fs = require("fs"), path = require("path");
 const { GD, readGdlvl, writeGdlvl } = require("./io.js");
 Object.assign(GD, require("../lib/sync.js"), require("../lib/natural.js"));

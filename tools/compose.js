@@ -45,6 +45,7 @@
 // structure from the ranked library (tools/structures.js, STRUCTURES.md) as its newest idea, a
 // different one per section, best-ranked first within the brief's difficulty label, skipping what the
 // level already uses; a section names its own with `use: ["s:<id>"]`, or "structures": false for none.
+if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const fs = require("fs"), path = require("path");
 const { make, build, slug } = require("./make.js");
 const { PATTERNS, expand, mirrorUp } = require("./patterns.js");
@@ -128,6 +129,10 @@ function compose(brief, tweaks = {}) {
   const seen = new Set();
   let col = 0, prevFlying = false, flyEnd = -99;
   const lens = sectionBlocks(brief), speeds = speedsOf(brief);
+  // no dead air at the end (polish's tools/deadair.js; the user on hellgate: "the ending is too long where
+  // nothing happens"; GD ends a level at its furthest object): the closing rest holds the signature (3
+  // blocks in, 7 wide) and a little run, ~14 blocks
+  { const li = brief.sections.length - 1; if (brief.sections[li].rest && brief.signature !== false) lens[li] = Math.min(lens[li], 14); }
   const total = lens.reduce((a, n) => a + n, 0);
   let lastSpeed = brief.speed || "1x", h = 0, prevUpside = false;
   const extra = structurePicks(brief);
@@ -138,9 +143,11 @@ function compose(brief, tweaks = {}) {
     const at = si === 0 ? 0 : (sec0.beats ? start : Math.max(0, start - 2));  // on the beat when in beats
     for (const ch of ["bg", "ground", "line", "obj"]) if (sec[ch]) {
       if (ch === "bg" && sec.flash && si > 0) {
-        // a drop: flash bright on the beat, then settle on the section's colour
-        objects.push(["colour", at, { ch: "bg", rgb: sec.bg.map(v => Math.min(255, v + 150)), secs: 0 }]);
-        objects.push(["colour", at + 0.5, { ch: "bg", rgb: sec.bg, secs: 0.6 }]);
+        // a drop: a short shift toward a lighter tint of the section's own colour on the beat (a third of
+        // the way to white, not +150 near white), then settle -- calm, not flashy (the user on hellgate:
+        // "waaaay too flashy ... hard to tell what kills you"; checklist "Calm, not flashy")
+        objects.push(["colour", at, { ch: "bg", rgb: sec.bg.map(v => Math.round(v + (255 - v) / 3)), secs: 0.1 }]);
+        objects.push(["colour", at + 0.5, { ch: "bg", rgb: sec.bg, secs: 0.8 }]);
       } else objects.push(["colour", at, { ch, rgb: sec[ch], secs: sec.secs ?? (sec0.beats ? 0.4 : 1) }]);
     }
     if (sec.deco != null) deco.push([start, sec.deco]);
@@ -207,7 +214,11 @@ function compose(brief, tweaks = {}) {
     }
     if (!sec.rest && sec.use && sec.use.length) {
       const early = start / total < 0.5;
-      const [gMin, gMax] = sec.gaps || (early ? [4, 7] : [3, 5]);
+      // reactive (score.js gate, the user on GDLM 45 v6): at Easy/Normal at least 4 empty columns between
+      // chunks, so after each landing there is room to see the next thing and jump on reaction
+      const low = ["Easy", "Normal"].includes((brief.difficulty || {}).label);
+      let [gMin, gMax] = sec.gaps || (early ? [4, 7] : [3, 5]);
+      if (low) { gMin = Math.max(gMin, 4); gMax = Math.max(gMax, gMin); }
       // after a flying section the cube lands from its exit portal: a calm lead-in first
       // (rated low-tier levels: ~6 blocks after a cube portal, knowledge/levels/modes_low_tier.md)
       // (8 here: the cube first falls out of the exit portal, ~0.3 s)
@@ -224,10 +235,15 @@ function compose(brief, tweaks = {}) {
       // knowledge/levels/obstacles.md). Orb and pad chunks go back to the ground (their arcs are
       // placed from it). A step up sometimes has a spike at its foot (a ledge); a step down gets landing
       // room. The terrain goes back to the ground at the section's end.
-      const terrain = brief.terrain && !upside;
+      // Upside down too (the user on GDLM 47's upside part: "all in flat area. no change of height
+      // really"): the same steps hang from the ceiling, at most 2 rows (the room under it is 6).
+      // Heights: 0-3 on the floor, a change at ~4 chunks in 5 (official levels: ~13.6 floor changes per
+      // 10 s of jumping play, range ~7 blocks; GDLM 47 had 7.5 and 3: tools/flow.js, STRUCTURES.md).
+      const terrain = brief.terrain;
+      const maxH = upside ? 2 : 3;
       let filledTo = c;
       h = 0;
-      const fill = (from, to, hh) => { for (let cc = from; cc < to; cc++) for (let r = 0; r < hh; r++) objects.push(["block", cc, r]); };
+      const fill = (from, to, hh) => { for (let cc = from; cc < to; cc++) for (let r = 0; r < hh; r++) objects.push(["block", cc, upside ? ceil - 1 - r : r]); };
       while (k < 64) {
         const key = `${si}:${k}`, t = tweaks[key] || {};
         const [r1, r2] = draws[k];
@@ -235,7 +251,10 @@ function compose(brief, tweaks = {}) {
         // section's last-listed, its new idea), never the same twice in a row when there is a choice
         let name = sec.use.find(n => !seen.has(n));
         if (!name) {
-          const pool = sec.use.length > 1 ? sec.use.filter(n => n !== last) : sec.use;
+          // not one of the last two chunks when the section has 3+ kinds (score.js "repetition": official
+          // levels hardly repeat a 4-move pattern within 10 s; GDLM 47 repeated 17%)
+          const recent = placed.slice(-2).map(p => p.name);
+          const pool = sec.use.length > 2 ? sec.use.filter(n => !recent.includes(n)) : sec.use.length > 1 ? sec.use.filter(n => n !== last) : sec.use;
           const wts = pool.map((n, i) => 1 + (n === sec.use[sec.use.length - 1] ? 1 : 0) + i * 0.2);
           let x = r1 * wts.reduce((a, b) => a + b, 0);
           name = pool[pool.length - 1];
@@ -243,7 +262,9 @@ function compose(brief, tweaks = {}) {
         }
         if (t.swap) name = t.swap;
         const intro = !seen.has(name);
-        const args = (sec.args || {})[name] || {};
+        // Easy/Normal: block-spike-block with 2-wide blocks (land, look, jump: no exact hop off a lone block)
+        const LOW_ARGS = { "block-spike-block": { w1: 2, w2: 2 }, "spike-block": { at: 1, w: 3 } };
+        const args = Object.assign(low && LOW_ARGS[name] ? LOW_ARGS[name] : {}, (sec.args || {})[name] || {});
         const wdt = widthOf(name, args);
         // landing room: after a chunk that ends h rows up, the cube falls h rows; nothing may need a
         // jump before it has landed and seen it (GDLM 45 v4: a spike-block right past a 3-high stair,
@@ -257,14 +278,19 @@ function compose(brief, tweaks = {}) {
         if (terrain) {
           const [t1, t2] = tdraws[k];
           if (/orb|pad/.test(name)) newH = 0;
-          else if (k > 0 && t1 < 0.55) newH = h === 0 ? 1 : h === 2 ? 1 : (t1 < 0.3 ? 2 : 0);
+          else if (k > 0 && t1 < 0.8) newH = h === 0 ? (t1 < 0.3 && maxH >= 2 ? 2 : 1) : h >= maxH ? h - 1 : (t1 < 0.45 ? h + 1 : h - 1);
           if (newH !== h) {
             // the step 3 columns after the last chunk, then 5 (up) or 6 (down, a drop) on the new level
             // before the next: steps mid-gap left 3 columns and chained the jumps (GDLM 47 round 1)
             // a step up 5 columns after the chunk (its jump lands ~2 past the chunk's end: then a run, then
             // the jump onto the step; at +3 it was a land-and-jump chain), a step down 3 (no input)
-            gap = Math.max(gap, newH > h ? 10 : 9);
-            stepAt = c + (newH > h ? 5 : 3);
+            // a step up comes after the zone where the last chunk's jump comes down (score.js "reactive",
+            // spike then step: half a jump + 250 ms of run; 1x 4.8 blocks, 2x 6.1, 3x 7.3), so it is its
+            // own jump on reaction (5 at 1x as before)
+            const ups = upsOf(speeds[si]), zone = Math.ceil(0.43 * ups / 30 / 2 + 0.25 * ups / 30) + 1;
+            const upAt = Math.max(5, zone);
+            gap = Math.max(gap, newH > h ? upAt + 5 : 9);
+            stepAt = c + (newH > h ? upAt : 3);
             // a chunk that already ends up high (a platform): the new level continues from its end, no
             // 3-wide pit between them to drop into and jump straight out of (GDLM 47: 50 ms, block 57)
             if (newH > h && last && endHeight(last, (sec.args || {})[last]) >= newH - h) { stepAt = c; gap = Math.max(gap, 6); }
@@ -277,12 +303,12 @@ function compose(brief, tweaks = {}) {
           if (stepAt == null) fill(filledTo, c + wdt, h);
           else {
             fill(filledTo, stepAt, h); fill(stepAt, c + wdt, newH);
-            if (ledge) objects.push(["spike", stepAt - 1, h]);
+            if (ledge) objects.push(upside ? ["spike", stepAt - 1, ceil - 1 - h, { rot: 180 }] : ["spike", stepAt - 1, h]);
           }
           filledTo = c + wdt; h = newH;
         }
         if (intro) firsts.push(c);
-        if (upside) objects.push(...mirrorUp(expand(name, c, 0, args), ceil));
+        if (upside) objects.push(...mirrorUp(expand(name, c, 0, args), ceil - (terrain ? h : 0)));
         else objects.push(["pattern", name, c, terrain ? h : 0, args]);
         placed.push({ key, name, from: c, to: c + wdt - 1, section: sec.name });
         seen.add(name); last = name;
@@ -291,6 +317,11 @@ function compose(brief, tweaks = {}) {
       if (terrain && h > 0) { fill(filledTo, filledTo + 2, h); h = 0; }   // a last step down to the ground
       prevFlying = false;
     }
+    // a rest in the middle over 3 s gets one easy single in its middle, so no stretch passes without an
+    // input (polish's tools/deadair.js: no stretch over 3 s without an input or obstacle); "busy": false
+    // on the section keeps it empty (then accept "dead air" in the brief with the reason)
+    if (sec.rest && si > 0 && si < brief.sections.length - 1 && sec.busy !== false && sec.blocks * 30 / upsOf(speeds[si]) > 3)
+      objects.push(["pattern", "single", start + Math.floor(sec.blocks / 2), 0, {}]);
     if (upside) { prevFlying = true; flyEnd = end; }   // the cube drops from the ceiling: a lead-in next
     prevUpside = upside;
     ranges.push([i0, objects.length, start, end]);
