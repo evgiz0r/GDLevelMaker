@@ -52,3 +52,9 @@ for (const ch of Object.keys(r1.colours)) assert(h.includes(`_6_${ch}_`), "chann
 const p1 = P.place("tombstone", 0, 900, { seed: 3 }), p2 = P.place("tombstone", 0, 900, { seed: 3 });
 assert.deepStrictEqual(p1.xs, p2.xs); assert(p1.xs.length >= 2 && p1.xs.every(x => x > 0 && x < 900));
 console.log(`ok (${n} checks + allocator, header, place)`);
+// 6. place({avoid}) keeps ground props 2 blocks clear of gameplay columns
+{ const lvl = [{ id: 8, x: 315, y: 15 }, { id: 1, x: 615, y: 15 }];
+  const r = P.place("rock", 0, 1500, { seed: 2, density: 6, avoid: lvl });
+  const w = P.list().find(p => p.name === "rock").size.w * 30;
+  for (const x of r.xs) for (const b of lvl) assert(Math.abs(x - b.x) >= w / 2 + 60 - 1, `rock at ${x} too near ${b.x}`);
+  assert(r.xs.length >= 2, "still places some"); console.log("ok avoid:", r.xs.length, "rocks,", r.skipped, "moves"); }

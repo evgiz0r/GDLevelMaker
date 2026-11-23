@@ -81,6 +81,8 @@ scene `palette` {bg, ground, fill, edge, accent} (the showcase planner's): outli
 accent, the rest tinted half-way to fill at its own brightness -- one palette per scene, as rated levels do.
 Aliases take the planner's plural names (tombstones, jack-o-lanterns, chains, ...).
 
+`place(..., {avoid: objects, clear: 2})` keeps ground and hanging props 2 blocks off every gameplay column (background ones ignore it).
+
 Rules the props keep: calm (no triggers inside a prop; animate a prop's `groups` from outside, on bars only,
 TASTE.md); no rings or round orb-coloured shapes near the path; at most ~5 blocks high; no hitboxes. Ground
 props stand behind the player on B2 -- fine in GD -- but one right next to a jump can read as an obstacle
@@ -99,7 +101,7 @@ decides the default (`chKeys`, `ch0`). Write the answer here.
 
 - The colour answer (above); then the in-game look of the test level (sizes, z order, seams between stretched
   squares at non-integer scales).
-- More props for the showcase planner's places: crow, candle, windmill, flower, sun, kelp / coral (or wrap
+- More props for the showcase planner's places (crow, candle, windmill, flower, sun are in): kelp / coral (or wrap
   scenekit's), witch silhouette, broken arch, stained window.
 - Diagonal edges: half-cell triangles (693 lighttriangle) on staircase edges would smooth curves cheaply.
 - Glow: GD's own glow / gradient pieces (1293) behind lamps and eyes, once the colour answer is in.
