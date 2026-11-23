@@ -3,6 +3,12 @@
 Style, difficulty and sync sessions: read this before making a level. Newest first.
 Format: date, level + version, the user's words, what it means, what was done (commit/session).
 
+## The look of GDLM levels in general
+- 2026-11-23 (via the main session): "i want to get more realism, this is like 1.0 graphics. we need 2.2
+  stuff and more". Measured: GDLM has ~1 object per block against 20-50 in 2.2 rated levels, no front
+  layers, no object colour channels, no HSV, almost no triggers (`levels/modern_look.md`, recipe there).
+  Passed to gd-style.
+
 ## How levels are shown (the viewer and the phone page, not a level)
 - 2026-11-23, after watching GDLM 45 on the phone page: "The view is soso, bit crude." About the
   replay's look, not the level's design. Passed by the main session to the sync session (owner of
