@@ -46,6 +46,9 @@ function rulesOf(file, opts = {}) {
     add("player timing", ws.filter(x => x.ms < (opts.minMs || 60)).map(x => `block ${(x.x / 30).toFixed(1)} (${x.t.toFixed(2)} s) ${x.type} ${x.ms} ms`));
   }
   add("hazards matter", S.inertHazards(L.level, w, r).map(s => `blocks ${s.a}-${s.b}: ${s.why}`));
+  { const N = require("../lib/natural.js");   // physics' route checks (the user's buffer / walk-off rules)
+    if (N.unbufferedOrbs) add("orb buffer", N.unbufferedOrbs(w, sol.events).map(o => `block ${(o.x / 30).toFixed(0)}: only a precise click takes it`));
+    if (N.pointlessJumps) add("pointless jumps", N.pointlessJumps(w, sol.events).map(j => `block ${(j.x / 30).toFixed(0)}: a jump over nothing${j.down ? " (off a step)" : ""}`)); }
   const m = F.measure(L.level, sol.events), h = [];
   if (m.jumpS >= 10) {
     if (m.changesPer10s < 10) h.push(`${m.changesPer10s} floor changes per 10 s (want 10+)`);
