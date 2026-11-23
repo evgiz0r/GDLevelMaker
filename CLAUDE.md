@@ -142,6 +142,8 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   <level.gdlvl | save:<name> | official:N> [--at 2,5] [--rec <video> --t0 <s>]` -> PNGs in `local/shots/`.
   **The whole level as one picture with its path:** `node tools/levelmap.js <level> [--brief briefs/NN.json]`
   -> `local/maps/<name>.jpg` (viewer: "level map").
+  **Every level ends with the signature** (robot + human, "Made by Claude (and some humans)"):
+  `tools/signature.js` (signature() objects, describe() for the description).
 - **Deco catalogue** (knowledge/objects/README.md): `tools/catalogue.js index | sheets | usage` --
   every id with its picture on contact sheets (`local/catalogue/`, or browse `viewer/catalogue.html`),
   the searchable `knowledge/objects/catalogue.tsv`, and which deco families rated levels use together.

@@ -80,6 +80,18 @@ object id -> frame names, offsets, colour roles, layers.
   "level map" button opens the .jpg. GD-art maps and official levels stay local; `_shapes` maps are
   art-free (for the phone page, gd-sync). Drawn by the viewer's map mode (`mapRender`, `MAPCAM`).
 
+- **Signature: `tools/signature.js`** (the user's idea, 2026-11-23: a robot and a human side by side,
+  "Made by Claude (and some humans)", at the end of every level). `signature({col, floorY, channels:
+  {accent|shirt, light|text}, beats, period, xOfT, tOfX, group0=960, ch0=990})` -> ~156 objects: 118
+  pixels (id 211 squares at 6-unit pixels, ~2.4 blocks tall), the text (914), colour triggers for its
+  own channels 990-996 (grey metal, cyan eyes, peach skin, brown hair, navy trousers; the shirt copies
+  the level's accent when given), and per beat in the last ~26 blocks a hop (901) and the robot's arm
+  waving about its shoulder (1346, object rotation locked). `describe(desc)` adds the line to the
+  description. Try: `node tools/signature.js <level>` -> local/tmp/<name>_sig.gdlvl. Renders:
+  local/shots/signature/. Player colours 1005/1006 were tried first: they blend, the human went
+  see-through. Text objects are drawn by lib/art.js in a heavy system font -- GD's bigFont and the
+  text's real size are not checked in the game yet (install one and look).
+
 ## Facts (checked against the user's recordings)
 
 How: viewer "compare" panel, level start offset set by eye, "save comparison" -> `local/shots/`.
