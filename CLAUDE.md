@@ -4,6 +4,10 @@ Claude writes Geometry Dash levels from a description, checks they can be beaten
 replaying with their clicks, and hands back a file the user imports into their real game.
 The user plays it and tells us what was off. Read this fully first.
 
+**What the project is for:** USE_CASES.md lists every use case the user wants (prompt -> level, fix a
+level, issue report, difficulty, design in chat, combine/cut, track + level...) with its status and
+what is missing. Update its row when your work moves one.
+
 ## Every session builds the project, not just its own task
 
 The user's standing rule: **no work is done only for its local goal.** Each session's job is its
