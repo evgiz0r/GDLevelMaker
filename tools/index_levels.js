@@ -46,7 +46,9 @@ function buildIndex() {
       // today's physics (savedRoute): without any, the page solved the level itself for minutes and looked
       // hung, and replayed a death when its solve failed (the user: "why when I play the cube timings it dies").
       let solution; try { solution = savedRoute(L) || undefined; } catch (e) {}
-      list.push({ name: L.name, file: dir + "/" + f, level: L.levelStr, song: songOf(L.rec, L.level.header), solution });
+      // when this level was made: the last commit that changed its file (not mtimes, index rebuilds or re-solves)
+      let made; try { const ct = +require("child_process").execSync(`git log -1 --format=%ct -- "${dir}/${f}"`, { cwd: root, encoding: "utf8" }).trim(); if (ct) made = new Date(ct * 1000).toISOString(); } catch (e) {}
+      list.push({ name: L.name, file: dir + "/" + f, level: L.levelStr, song: songOf(L.rec, L.level.header), solution, made });
     }
   }
   const local = [];

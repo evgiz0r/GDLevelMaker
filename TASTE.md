@@ -21,6 +21,14 @@ uploaded or installed by this loop: the main session does that on the user's yes
 3. **What the user says** once they play it (knowledge/critiques.md, local/real_stats.jsonl):
    that outranks everything above.
 
+**Taste from data** (TASTE_DATA.md, the taste-data session, 308 rated community levels compared within
+tier and era): better-rated levels have fewer hazards per block (Easy/Normal featured 75-81 per 100
+blocks, unrated 155-235), longer sections (fewer mode/speed swaps per minute), a fuller look (objects per
+block, front deco, deco share), and 32-52% floating background deco. Pulses and flashes do not separate
+ratings once effort is taken out: the calm rule below is the user's, not the data's. A per-level hint
+(AUC 0.63, a hint, not a judge): `node tools/taste.js score <level>`. Note for the section planner
+(SCENES.md): longer sections rate better, against Spooky Dash's every-5-s mode changes.
+
 ## Rules of taste so far (each with where it came from)
 
 - **One idea carries a level.** A single motif on the screen all level (GDLM 50's eclipse, ~17

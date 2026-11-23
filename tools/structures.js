@@ -210,49 +210,55 @@ S("spider-steps", { mode: "spider", tags: ["spider", "platforming"], tier: "Norm
 // the pieces. The craft pass (tools/craftkit.js, spec "craft": true) adds the rods and chains.
 const pit = (c0, c1) => range(c0, c1).map(c => [9, c, 0, { dy: -13 }]);
 // pillars `w` wide, `gap` apart, with these heights (rows), a pit between them; a calm landing after
-function pillarRun(heights, w, gap, capGap) {
-  // the first pillar is a 3-wide doorstep (stepped onto from the floor: a 1-wide one asked for a jump
-  // 1.7 blocks ahead of it, a prejump)
-  const o = [], xs = heights.map((_, i) => i ? 3 + gap + (i - 1) * (w + gap) : 0);
-  heights.forEach((h, i) => o.push(...blocks(xs[i], xs[i] + (i ? w : 3), 0, h)));
-  const wd = i => i ? w : 3;
+// pillars `w` wide over a pit, with these heights (rows); a calm landing after. The pit before a pillar
+// depends on the move (worked out on GDLM 61 v1, whose 2-wide gaps the user found "reallllly awkward"):
+//   a RISE crosses a 1-column pit: over a 2-column pit the take-off must come late (window ~1 block,
+//      ~100 ms, "cut by a block"); over 1 column the whole far half of the top works;
+//   a DROP (or the same height) crosses a 3-column pit: over 2 columns the cube walks off the edge and
+//      lands across without a jump (the pit "needs no action": the hazards-matter gate).
+// The first pillar is a 3-wide doorstep (stepped onto from the floor: a 1-wide one asked for a jump 1.7
+// blocks ahead of it, a prejump).
+function pillarRun(heights, w, riseGap = 1, dropGap = 3, capGap) {
+  const o = [], xs = [0], wd = i => i ? w : 3;
+  for (let i = 1; i < heights.length; i++) xs.push(xs[i - 1] + wd(i - 1) + (heights[i] > heights[i - 1] ? riseGap : dropGap));
+  heights.forEach((h, i) => o.push(...blocks(xs[i], xs[i] + wd(i), 0, h)));
   for (let i = 1; i < heights.length; i++) o.push(...pit(xs[i - 1] + wd(i - 1), xs[i]));
-  const end = xs[xs.length - 1] + w;
-  // capGap: hanging columns over each gap, their ends capGap rows over the higher pillar beside it
+  const end = xs[xs.length - 1] + w, last = heights[heights.length - 1];
+  // capGap: hanging columns over each pit, their ends capGap rows over the higher pillar beside it
   if (capGap) for (let i = 1; i < heights.length; i++) {
-    const c = xs[i - 1] + wd(i - 1) + Math.floor(gap / 2), r = Math.max(heights[i - 1], heights[i]) + capGap;
+    const c = xs[i - 1] + wd(i - 1), r = Math.max(heights[i - 1], heights[i]) + capGap;
     o.push(...blocks(c, c + 1, r, 12));
   }
-  o.push(...pit(end, end + 2), ...blocks(end + 2, end + 5, 0, 1));
-  return { objects: o, width: end + 5 };
+  // off the last pillar: a 3-wide pit and a landing block (a drop), or straight down onto the floor run
+  if (last >= 1) o.push(...pit(end, end + dropGap), ...blocks(end + dropGap, end + dropGap + 3, 0, 1));
+  return { objects: o, width: end + dropGap + 3 };
 }
 S("pillar-hop", { tags: ["platforming", "pillar", "pit"], tier: "Normal",
-  doc: "pillars 2 wide over a pit, each a row higher or lower than the last: every jump changes height (Jumper's opening, rebuilt)",
-  args: { heights: [1, 2, 3, 2, 1], w: 2, gap: 2 },
-  build: a => pillarRun(a.heights, a.w, a.gap) });
+  doc: "pillars 4 wide over a pit, each a row higher or lower than the last: every jump changes height, with room to react on each top (Jumper's opening at Easy/Normal: its 1-2 wide pillars only work as a held bounce)",
+  args: { heights: [1, 2, 3, 2, 1], w: 4 },
+  build: a => pillarRun(a.heights, a.w) });
 S("pillar-climb", { tags: ["platforming", "pillar", "pit"], tier: "Normal",
   doc: "a climb of pillars over a pit, up a row at each, then a drop to a low one",
-  args: { heights: [1, 2, 3, 4, 2], w: 2, gap: 2 },
-  build: a => pillarRun(a.heights, a.w, a.gap) });
+  args: { heights: [1, 2, 3, 4, 2], w: 4 },
+  build: a => pillarRun(a.heights, a.w) });
 S("capped-hop", { tags: ["platforming", "pillar", "pit", "ceiling"], tier: "Normal",
   doc: "pillars over a pit under hanging columns: the column ends sit 4 rows over the pillars, framing every arc",
-  args: { heights: [1, 2, 1, 2, 3], w: 2, gap: 2, cap: 4 },
-  build: a => pillarRun(a.heights, a.w, a.gap, a.cap) });
+  args: { heights: [1, 2, 1, 2, 3], w: 4, cap: 4 },
+  build: a => pillarRun(a.heights, a.w, 1, 3, a.cap) });
 S("slab-steps", { tags: ["platforming", "pit", "floating"], tier: "Normal",
-  doc: "floating 3-wide steps over a pit, a row higher each (the craft pass hangs them on chains)",
-  args: { n: 3, gap: 3 },
+  doc: "floating 4-wide steps over a pit, a row higher each (the craft pass hangs them on chains)",
+  args: { n: 3, gap: 3, w: 4 },
   build: a => { const o = [...blocks(0, 3, 0, 1)]; let c = 3 + a.gap;
     o.push(...pit(3, 3 + a.gap));
-    for (let i = 0; i < a.n; i++) { o.push(...blocks(c, c + 3, i + 1, i + 2), ...pit(c, c + 3 + a.gap)); c += 3 + a.gap; }
+    for (let i = 0; i < a.n; i++) { o.push(...blocks(c, c + a.w, i + 1, i + 2), ...pit(c, c + a.w + a.gap)); c += a.w + a.gap; }
     o.push(...blocks(c, c + 3, 0, a.n)); return { objects: o, width: c + 3 }; } });
 S("lantern-orb", { tags: ["orb", "yellow orb", "pit", "pillar"], tier: "Normal",
   doc: "a yellow orb hung on a chain over a pit between two pillars: jump off the first, tap the orb, land on the second",
-  build: () => ({ objects: [...blocks(0, 2, 0, 2), ...pit(2, 8), ["yellow orb", 4, 4], ...blocks(8, 10, 0, 2), ...pit(10, 11), ...blocks(11, 14, 0, 1)], width: 14 }) });
+  build: () => ({ objects: [...blocks(0, 4, 0, 2), ...pit(4, 9), ["yellow orb", 6, 4], ...blocks(9, 13, 0, 2), ...blocks(13, 17, 0, 1)], width: 17 }) });
 S("stepped-pyramid", { tags: ["platforming", "stairs", "pit", "set piece"], tier: "Easy",
-  doc: "a symmetric stepped pyramid (2-wide steps, 3 up, a top, 3 down) with spikes on the outer steps' edges: the 1.x set piece",
-  build: () => { const o = [];
-    for (let i = 0; i < 3; i++) { o.push(...blocks(2 * i, 16 - 2 * i, 0, i + 1)); }
-    o.push(["spike", 1, 1], ["spike", 14, 1], ...pit(16, 18), ...blocks(18, 21, 0, 1)); return { objects: o, width: 21 }; } });
+  doc: "a symmetric stepped pyramid (3-wide steps, 2 up, a 7-wide top with one spike in its middle, 2 down) and a 3-wide pit after it: the 1.x set piece",
+  build: () => { const o = [...blocks(0, 19, 0, 1), ...blocks(3, 16, 1, 2), ...blocks(6, 13, 2, 3), ["spike", 9, 3]];
+    o.push(...pit(19, 22), ...blocks(22, 25, 0, 1)); return { objects: o, width: 25 }; } });
 S("ceiling-hop", { tags: ["gravity", "gravity portal", "pillar", "ceiling run"], tier: "Normal",
   doc: "upside down: hanging columns of different lengths are the floor, a spiked roof-pit between them (Jumper's green part, as a shape)",
   build: () => { const o = [["gravity down", 0, 1], ...blocks(0, 4, 8, 12)];
