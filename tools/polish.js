@@ -1,5 +1,5 @@
 // node tools/polish.js <level.gdlvl> [--dry] [--passes fair,read,sync,deco] [--min-ms 34] [--out file.gdlvl]
-//                      [--name "new name"] [--indicator id[:rot]] [--lift 24]
+//                      [--name "new name"] [--indicator id[:rot]] [--lift 24] [--force]
 // Polish a level that already exists WITHOUT redesigning it (POLISH.md): keep its layout, fix the
 // smallest things, in this order, each change kept only if the level still clears on the current
 // physics and no other input's window gets worse:
@@ -418,16 +418,23 @@ function polish(file, opt = {}) {
   // the final check: a fresh solve on the current physics, not just our edited plan
   const w1 = GD.makeWorld(objs, header), r1 = GD.solveAny(w1);
   if (!r1.ok) throw new Error(`polished level does not solve (dies at block ${(r1.dieAt.x / 30).toFixed(1)}: ${r1.why}) -- a pass is wrong`);
+  // the fairness gate (tools/fairness.js, difficulty session: families fitted on the user's labelled
+  // deaths): a FAIL blocks writing, unless --force; WARNs go into the report
+  let fair = null;
+  try { const F = require("./fairness.js"); w1.name = L.name; fair = F.flags(F.analyse(w1, r1)); } catch (e) { fair = null; log.push({ pass: "gate", kept: true, what: "fairness", why: "tools/fairness.js failed: " + e.message }); }
+  for (const f of fair || []) log.push({ pass: "gate", kept: true, x: f.x0, what: `${f.severity} ${f.family} at block ${(f.x0 / 30).toFixed(1)}`, why: f.note });
+  if (fair && fair.some(f => f.severity === "FAIL") && !opt.force) throw new Error("the fairness gate fails (tools/fairness.js):\n" + fair.filter(f => f.severity === "FAIL").map(f => `  ${f.family} at block ${(f.x0 / 30).toFixed(1)}: ${f.note}`).join("\n") + "\n(--force writes it anyway)");
   const after = numbers(objs, header, sorted(ev), MIN);
   const afterSR = sightread({ header, objects: objs }, 1.5);
   after.prejumps = afterSR.ok ? afterSR.presses.filter(p => p.flag).length : null;
-  return { L, objs, header, log, before, after, sync, r0, r1, cached, plan };
+  return { L, objs, header, log, before, after, sync, r0, r1, cached, plan, fair };
 }
 
 function print(res) {
   const { L, log, before: b, after: a, sync } = res;
   console.log(`== ${L.name}: ${b.objects} -> ${a.objects} objects (windows on the ${res.plan} plan)`);
   console.log(`   windows: tightest ${b.tightestMs} -> ${a.tightestMs} ms, median ${b.medianMs} -> ${a.medianMs} ms, under the limit ${b.under} -> ${a.under}, under 1 frame ${b.under1frame} -> ${a.under1frame}`);
+  if (res.fair) console.log(`   fairness gate (tools/fairness.js): ${res.fair.length ? res.fair.map(f => f.severity + " " + f.family).join(", ") : "fair"}`);
   console.log(`   forced right after a mode change (window closes < ${SETTLE} ms after it): ${b.forced} -> ${a.forced}`);
   console.log(`   prejumps ${b.prejumps} -> ${a.prejumps} (indicators mark the rest), deco ${b.deco} -> ${a.deco}`);
   if (sync) console.log(`   sync (${sync.bpm.toFixed(1)} BPM): portals on a beat ${sync.before.portals}/${sync.before.nPortals} -> ${sync.after.portals}/${sync.after.nPortals}, orbs ${sync.before.orbs}/${sync.before.nOrbs} -> ${sync.after.orbs}/${sync.after.nOrbs}`);
@@ -447,7 +454,7 @@ if (require.main === module) {
   if (!file) { console.log(fs.readFileSync(__filename, "utf8").split("\n").slice(0, 24).join("\n")); process.exit(1); }
   const ind = val("indicator");
   const res = polish(file, { minMs: val("min-ms") ? +val("min-ms") : 34, passes: val("passes") ? val("passes").split(",") : undefined,
-    indicator: Object.assign(ind ? { id: +ind.split(":")[0], rot: +(ind.split(":")[1] || 0) } : {}, val("lift") ? { lift: +val("lift") } : {}) });
+    force: a.includes("--force"), indicator: Object.assign(ind ? { id: +ind.split(":")[0], rot: +(ind.split(":")[1] || 0) } : {}, val("lift") ? { lift: +val("lift") } : {}) });
   print(res);
   if (a.includes("--dry")) process.exit(0);
   const slug = GD.getField(res.L.rec, "k2").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
