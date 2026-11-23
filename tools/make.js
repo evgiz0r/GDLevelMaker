@@ -131,6 +131,47 @@ function toCol(col, ctx, tl) {
 }
 const colAt = entry => entry[0] === "pattern" ? 2 : 1;
 
+// Orbs on the arc (orb-ladder, orb-pit from the ground; args "fixed": true keeps the pattern's rows).
+// The user on GDLM 44's ladder: "very awkward; in lower difficulty levels there should be better space
+// to click the orb, and clicking in the middle is almost the point (where you can mostly buffer)". So
+// each orb goes at the TOP of the arc that reaches it -- the jump before the pit, then each orb's own
+// launch: the cube passes through the orb's centre and is slowest there, so a press in the middle (or
+// a held button) takes it. Simulated in an empty world (lib/physics.js) at the level's speed; the spike
+// pit runs from the pattern's column to one column before the landing.
+function arcOrbs(name, col, args, header, specFile) {
+  const n = name === "orb-pit" ? 1 : (args.n || (args.rows || [2, 3, 4]).length);
+  const orbType = args.orb || "yellow orb";
+  const end = toObj(["block", col + 80, 12], specFile);   // the world's end, out of the way
+  const orbs = [];
+  const world = () => GD.makeWorld(orbs.concat([end]), header);
+  // the takeoff: half a column before the pit
+  const p0 = GD.run(world(), []).path;
+  let t = p0.findIndex(p => p.x >= col * 30 - 20);
+  const events = [{ tick: t, type: "press" }, { tick: t + 1, type: "release" }];
+  for (let k = 0; k < n; k++) {
+    const path = GD.run(world(), events).path;
+    let a = t + 2;
+    while (a + 1 < path.length && path[a + 1].y > path[a].y) a++;          // the apex
+    const ox = Math.round(path[a].x / 7.5) * 7.5, oy = Math.round(path[a].y / 7.5) * 7.5;
+    const o = toObj([orbType, (ox - 15) / 30, (oy - 15) / 30], specFile);
+    o.x = ox; o.y = oy; orbs.push(o);
+    // press where the cube is closest to the orb's centre
+    const p2 = GD.run(world(), events).path;
+    let best = a, bd = Infinity;
+    for (let i = t + 1; i < p2.length && p2[i].x < ox + 40; i++) { const d = Math.hypot(p2[i].x - ox, p2[i].y - oy); if (d < bd) { bd = d; best = i; } }
+    t = best;
+    events.push({ tick: t, type: "press" }, { tick: t + 1, type: "release" });
+  }
+  // landing after the last orb: the pit ends one column before it
+  const path = GD.run(world(), events).path;
+  let l = t + 2;
+  while (l < path.length && !(path[l].grounded && path[l].y < 20)) l++;
+  const landCol = Math.floor(((path[Math.min(l, path.length - 1)].x) - 15) / 30);
+  const out = orbs.slice();
+  for (let c = col; c < landCol - 1; c++) out.push(toObj(["spike", c, 0], specFile));
+  return out;
+}
+
 // spec (already parsed) -> { level, rec, ctx, objects, header }: everything but writing and checking
 function build(spec, specFile = "spec") {
   const song = songOf(spec);
@@ -162,6 +203,7 @@ function build(spec, specFile = "spec") {
     const col = toCol(entry[colAt(entry)], ctx, tl);
     const [type, , row] = entry;
     if (speedObj.has(entry)) objects.push(speedObj.get(entry));
+    else if (type === "pattern" && /^orb-(ladder|pit)$/.test(entry[1]) && !(entry[4] || {}).fixed && !entry[3]) objects.push(...arcOrbs(entry[1], col, entry[4] || {}, header, specFile));
     else if (type === "pattern") { for (const e of expand(entry[1], col, entry[3], entry[4], entry[5])) objects.push(toObj(e, specFile)); }
     else if (type === "colour") { const a = entry[2]; objects.push(deco.colourTrigger(col, a.ch, a.rgb, a.secs ?? 0.5)); }
     else if (type === "fade") { const a = entry[2]; objects.push(deco.fadeTrigger(col, a.group, a.to ?? 0, a.secs ?? 0.2)); }

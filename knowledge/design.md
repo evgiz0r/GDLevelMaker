@@ -11,6 +11,9 @@ official levels, or a playtest remark). A single playtest remark is evidence, no
   unless the level is meant to be. Show first, then hide. (Playtest of GDLM 42 v1, 2026-11-22.)
 - **Recovery time**: landing and having to jump again within ~100 ms is where people die.
   (Real-game deaths, GDLM 42 v3; score.js recovery gate.)
+- **Orbs where the arc already goes** (lower tiers): an orb at the top of the arc that reaches
+  it is taken by a press in the middle, or by holding (buffering); an orb the arc only grazes needs
+  exact timing and feels awkward. (The user on GDLM 44's orb ladder, 2026-11-23.)
 - **Telegraph what can't be read in time**: a jump whose reason is out of sight or far ahead (off a
   ledge or a high step onto something past the landing, right after a portal, the first of a new
   pattern) gets a small arrow over the takeoff area, pointing at the ground: "in the area vaguely

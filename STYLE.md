@@ -363,6 +363,15 @@ at the start: an arrow pointing at the ground whose look is certain. A deco arro
 shows 20 candidate decoration ids (enriched over takeoffs in 97 community levels, none singled
 out) under their numbers for the user to point at.
 
+**Orbs on the arc** (make.js `arcOrbs`, for `orb-ladder` and `orb-pit` on the ground; `"fixed": true`
+keeps the old fixed rows): the user on GDLM 44's ladder, "very awkward; in lower difficulty levels
+there should be better space to click the orb, and clicking in the middle is almost the point
+(where you can mostly buffer)". Each orb now sits at the top of the arc that reaches it (the jump
+before the pit, then each orb's own launch), simulated at the level's speed: the cube passes
+through the orb's centre and is slowest there, so a press in the middle or a held button takes it.
+A yellow-orb ladder then climbs 2 rows per orb, 2.3 blocks apart; the pit ends a column before
+the landing. Harder levels can still place orbs off the arc on purpose (`fixed`).
+
 **Landing room** (compose.js): after a chunk that ends h >= 2 rows up, h+1 more empty columns
 before the next one, so the cube lands and sees the next hazard before it must jump. Approximate
 prejump WARNs (levels with modes) now count as defects in compose's loop: v4's WARN at its stairs
@@ -408,6 +417,14 @@ State on 2026-11-22. What a new session should know before touching this area:
   changes, orb/pad chunks in every cube section, a chunk never twice in a level unless it is a
   motif, wider chunks (spike runs on blocks, not lone spikes). RobTop's tips (knowledge/rating.md):
   30 s at least, 60 s+ the rated standard.
+- **Play on blocks, not the floor (knowledge, 2026-11-23, `node tools/obstacles.js structure --gdlm
+  --official`, knowledge/levels/obstacles.md) -- the strongest "bland" finding:** rated Easy/Normal
+  and official 1-8 have a block/slab/slope in ~47% of cube columns (GDLM 13%); 44-64% of their
+  hazards sit by a block (ledges, steps, pit edges, overhangs; GDLM 17%); 92% of GDLM spikes are on
+  the bare floor; rated obstacles are 2 rows tall (GDLM 1). New kinds every ~2 s up to ~85% of the
+  level, ~17 kinds (GDLM: every ~8 s, 3 kinds), each used once or twice then left. Next compose
+  work: cube sections built on a block terrain (raised runs, steps, pits with edges) with hazards on
+  and beside it, and a new kind per few seconds (saws, pads, orbs, gravity, 0.5x speed ...).
 - **Jump indicators**: on by default in compose (a faded text "v"); a deco arrow needs its id (GDLM 46
   catalogue for the user). Not yet checked in the game: how the text "v" looks at 45% and scale 0.8.
 - **Art**: decoration ids have no names. Plan: a generated catalogue level (every deco id with a
