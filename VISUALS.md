@@ -94,6 +94,11 @@ Driven from the browser console: load a level (`load(name, levelStr, solution)` 
   degrees clockwise (w and h swapped). Getting this wrong squashed `rod_02`.
 - **Portals**: front and back halves are separate frames (`portal_NN_front`, `_back`), each with its own
   trim offset; both centred on the object give the full oval seen in the game.
+- **Copy-colour channels** (header kS38 field 9 = the channel copied, 10 = an HSV shift; rated 2.2
+  levels use them for glows that follow the background, often blending with an opacity): resolved after
+  triggers and pulses every frame (LOOK.applyCopies). Spire attempt 4 (recording 03-23-46, video 86.3 s;
+  `local/shots/spire_att4b/`) went from a white-washed screen to the game's green section with it.
+  Still lighter than the game overall; the colour change at t 18 comes a bit early.
 - Old-format headers (official levels in `local/`): `kS29` bg, `kS30` ground, `kS31` line, `kS32` obj,
   `kS33..36` colours 1-4, `kS37` 3DL; `kS38` field 4 is read as "player colour 1/2" (not verified).
 
