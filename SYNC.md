@@ -165,7 +165,8 @@ Per level (mode + speed portals within 0.15 beat of a beat (luck 30%) and of a b
   beat grid is the least certain).
 - **The user's levels** (`--save`, 22 levels, 5 on songs not on this PC): mostly short tests
   with too few events to score. "cube timings" puts all 5 of its orbs on beats (kappa 1.0); its
-  presses are loose (0.23). No user level is synced at the official levels' bar level.
+  presses are loose (kappa 0.18, 12 presses; 0.23 before the replay-checked windows of physics
+  a8a2220, Nov 23). GDLM 02 keeps all 11 presses on a beat with the narrower windows. No user level is synced at the official levels' bar level.
 
 How GD makers place sync, from this: build a section per 4- or 8-bar phrase and start it with
 a portal (or a speed change) whose centre is on that bar's first beat; put orbs on beats when
