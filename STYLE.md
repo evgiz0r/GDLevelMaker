@@ -393,6 +393,36 @@ Rule: every wave input >= ~150 ms at Normal; compose's wave sections use flat 2 
 rest fixed: in chains -- jump, orb, orb -- it reads far too small; judge those by the solver's own
 inputs or by press_window.js from a placed state).
 
+**A long level end to end (GDLM 47 sunny side, 2026-11-23: "a happy level with happy colors, 1:40")** --
+what it took, for the next one:
+- Song: an upbeat chiptune with a steady grid (311087, 134 BPM, drift 5 ms); `local/songmap/` gives
+  its sections by bar (drops at bars 9, 26; changes 32, 40, 50; a dip at 48). Bars = 4 beats from
+  `downbeat` (here beat index 2), so a section "beats" count starts with the 2 pickup beats.
+- Happy look: background art 13 (`"art": {"bg": 13}`) is flat white, so the bg colour shows as set;
+  art 1 turned sunny yellow into brown. `"palette": "light"` makes block fills pastel and the
+  vfxkit parallax undarkened. Sunny yellow, sky blue, mint, coral, pink, lavender, gold.
+- Block terrain (`"terrain": true`): the floor steps 0-2 rows between chunks. A step up goes 5
+  columns after a chunk (its jump lands ~2 past the chunk's end; at +3 it was a land-and-jump chain),
+  a step down 3; then 5-6 columns on the new level before the next chunk. After a chunk that already
+  ends up high (a platform) the new level continues from its end (a 3-wide pit between them meant
+  drop-in-and-jump-out, 50 ms). Orb/pad chunks bring it back to the ground; ledge spikes at a step's
+  foot only at Hard+. Iterate a section in seconds: `node tools/compose.js brief --section n`.
+- The recovery gate measures landing -> the END of the next press's window (a window that opens on
+  landing but stays open is no chain; what kills is having to press within ~100 ms of touching down).
+- `pad-launch` has 3 spikes by default: the pad's arc at 1x does not clear 4, and the player had to
+  jump before the pad to arrive high (a prejump).
+- Speeds per section (`"speed": "0.5x"`): section lengths stay on the beats at any speed; the speed
+  portal must sit on the player's path (row 1, before the section's own portal) -- at row 5 above a
+  corridor the wave passed under it and a 0.5x part ran on into three more sections. At 0.5x the
+  jump is shorter: spike-block left a 33 ms window; use singles and doubles there.
+- After an orb or pad launch: 3 more columns (the cube comes down from high up).
+- Scoring a 100 s level with modes: sections alone, moved to the level's start (solving from the
+  real start walked ~80 s of empty ground per section); the sweep solver's cube windows in a whole
+  level with modes are unreliable (16 ms where the exact solver gives 100+), so a sectionwise level
+  takes timing / recovery / prejumps from its sections and the rest (beatable, skips, fairness,
+  pacing, sync ...) from one whole-level score. Recovery counts only jumping modes (a wave sliding
+  on a floor is "grounded" but does not land and jump).
+
 **Landing room** (compose.js): after a chunk that ends h >= 2 rows up, h+1 more empty columns
 before the next one, so the cube lands and sees the next hazard before it must jump. Approximate
 prejump WARNs (levels with modes) now count as defects in compose's loop: v4's WARN at its stairs
@@ -471,6 +501,14 @@ State on 2026-11-22. What a new session should know before touching this area:
   text label) the user opens and screenshots; then style deco sets (hell, classic ...).
 - **GDLM 44** (Easy, 10 s, song 343707): v5 under "in progress" in the viewer, all gates pass (the
   ship tunnel's teeth now start 6 columns in: `ship-tunnel` "lead").
+- **GDLM 47 sunny side v1** (`briefs/47_happy.json`, 2026-11-23; "a happy level with happy colors,
+  1:40"): 102 s on Tiny Tunes (311087), 10 sections on the song's bars, block terrain, 3 speeds,
+  cube / ship / upside-down / wave / ball, the modern look with bg art 13 and a light palette, the
+  signature. Every gate passes including fairness; Normal (0.51), tightest window 113 ms, 54
+  presses. Composing took ~4 full runs to settle the rules in section 2b's GDLM 47 notes (20-30 min
+  each; sections now iterate in seconds with `--section n`). Level map: local/maps/gdlm_47_sunny_side.jpg.
+  Open: sync WARN (1/10 portals on a bar start: the landing room and speed-portal offsets move portals
+  off the bars -- put the offset before the bar instead), 9 chunk kinds (target ~15), not played yet.
 - **GDLM 45 first flight v5** (`briefs/45_low_tier.json`, 2026-11-23): the user's "Ragnarok 40 seconds,
   with sections, Normal-Hard, somewhat matching the beat" + more variety, upside down, new modes.
   42 s on 343707, 10 sections cut on the song (quiet build to b69, the drop flashed in): cube,

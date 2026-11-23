@@ -107,7 +107,11 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   or all official levels vs ratings and the user's attempts), `difficulty_solve` (cache an official
   solution, one at a time), `difficulty_fit` (refit on the user's runs), `difficulty_community`
   (score downloaded community levels), `runs` (the user's deaths from a recording, via the progress
-  bar), `save_stats` (the user's lifetime attempts per official level, read-only from the save).
+  bar), `save_stats` (the user's lifetime attempts per official level, read-only from the save),
+  `difficulty_route` (a level with and without route choice: a player avoids a hard timing when the
+  level has an easier way), **`fairness`** (deaths that are not the player's fault: forced input after
+  a portal, misleading marks, sloped portal exits, orb chains with nothing to correct; fitted on the
+  user's labelled deaths, `fairness fit`; tools/score.js gates on it; DIFFICULTY.md "Fairness").
 - `lib/sync.js` -- music sync: level time <-> x through speed portals, beat grid <-> level beats,
   press timing windows from a solution, sync scores. See SYNC.md (also where songs come from).
 - **The phone page** (PHONE.md: what is on it, what a session does after `wip.js put`, phone
@@ -158,11 +162,15 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   them with `node tools/marks.js done <id> "what changed"`. **compare** puts a frame of one of the
   user's recordings (Videos/Captures, read by ffmpeg, never copied) beside the replay;
   "save comparison" writes both as one PNG to `local/shots/`.
-- **Polishing existing levels** (POLISH.md: the passes, results, tests, what is open; owner: the polish
-  session, wip `local/wip/polish/`): `tools/polish.js <level.gdlvl>` keeps the layout and fixes tight
-  windows (small moves near the input), syncs portals/orbs loosely, adds jump indicators at prejumps,
-  decorates a bare level; output in `local/polish/` only. Before/after side by side in GD art:
-  `viewer/polish.html` (via tools/serve.js). Test: `node tests/polish.js`.
+- **Polishing existing levels** (POLISH.md: what polish means to the user -- prettier, more synced,
+  visual fixes, more gameplay, extended, fair as the floor -- the passes, results, tests, what is open;
+  owner: the polish session, wip `local/wip/polish/`): `tools/polish.js <level.gdlvl>` (fair windows and
+  no input forced after a mode change, loose sync, chevrons on needed jumps, the modern look with
+  parallax and beat pulses); output in `local/polish/` only. Before/after in GD art: `viewer/polish.html`
+  (via tools/serve.js) and shoot.js renders. Helpers: `tools/textmap.js` (a level as text with the
+  path), `tools/orbchain_try.js` (forgiving orb chains). Test: `node tests/polish.js`.
+- **The user's drawings -> levels** (SKETCH.md: reading a drawing into a spec, then making it fair;
+  the GDLM 46 lessons).
 - `examples/` -- levels the user made in the game, for reference and as format ground truth.
 
 All the library code runs in both node and the browser (no build step, no dependencies).

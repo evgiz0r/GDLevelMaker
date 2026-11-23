@@ -5,7 +5,7 @@
 //   beatable     the solver beats it (cube/ship/... physics, lib/physics.js)
 //   prejumps     no press is committed far ahead of its cue (tools/sightread.js; the user's rule)
 //   timing       tightest press window >= the brief's minWindowMs (default 60)
-//   recovery     time from landing to the next press window >= minRecoveryMs (default Easy 150,
+//   recovery     time from landing to the END of the next press's window >= minRecoveryMs (default Easy 150,
 //                Normal 100, harder: none). Land-and-jump-at-once chains were the wall in GDLM 42
 //                (the user's normal-mode deaths, mouse, recording 19:45): fine for the solver, hard
 //                for a person without holding the button.
@@ -20,6 +20,10 @@
 //                ship 8, wave/robot 3, UFO 2 (Hard and up: 0). WARN under 60% of it.
 //   skips        the solved run goes through every mode/gravity/speed portal (FAIL) and uses every
 //                orb (WARN): a "secret way" past part of the level means a path should be blocked
+//   fairness     no death that is not the player's fault (tools/fairness.js: forced input right after
+//                a portal, a mark with no jump, a sloped floor at a portal exit, an orb chain with
+//                nothing to correct, too-fast wave turns: FAIL; a blind two-step opener: WARN).
+//                Fitted on the user's labelled deaths (DIFFICULTY.md "Fairness"). ~1 min more.
 //   objects      gameplay objects with unconfirmed hitboxes (sure:false; WARN only)
 // Cost: two solves of the level (a few seconds for a 30 s cube level). One at a time.
 const fs = require("fs");
@@ -75,7 +79,13 @@ function scoreLevel(level, brief, opts = {}) {
       let t = presses[i - 1].tick + 2;
       while (t < path.length && !path[t].grounded) t++;
       if (t > presses[i].lo) continue; // pressed in the air (orbs): not a landing
-      const ms = (presses[i].lo - t) / GD.PHYS.TPS * 1000;
+      // only jumping modes land and jump again: a wave or ship touching a floor is not a landing (GDLM
+      // 47's wave turns read as land-and-jump chains)
+      if (!/^(cube|robot)$/.test((path[presses[i].tick] || {}).mode || "cube")) continue;
+      // from landing to the LAST moment the next press still works: a window that opens on landing but
+      // stays open is no chain (GDLM 47: a step 2 blocks past the landing read as "0 ms"); what kills is
+      // having to press within ~100 ms of touching down (GDLM 42 v3)
+      const ms = ((presses[i].hi ?? presses[i].lo) - t) / GD.PHYS.TPS * 1000;
       if (minRec != null ? ms < minRec : ms < 100) chains.push({ x: path[presses[i].tick].x, ms: Math.round(ms) });
     }
     gate("recovery", chains.length && minRec != null ? "FAIL" : chains.length ? "WARN" : "PASS",
@@ -191,6 +201,16 @@ function scoreLevel(level, brief, opts = {}) {
     const missedP = portals.filter(o => !touched(o)), missedO = orbs.filter(o => !touched(o));
     gate("skips", missedP.length ? "FAIL" : missedO.length ? "WARN" : "PASS",
       missedP.length || missedO.length ? [...missedP, ...missedO].map(o => `${GD.objInfo(o.id).name} at block ${((o.x - 15) / 30).toFixed(0)}`).join("; ") + " not touched by the solved run: block that way past it" : `all ${portals.length} portals and ${orbs.length} orbs on the path`);
+  }
+
+  // deaths that would not be the player's fault (tools/fairness.js, fitted on the user's labelled
+  // GDLM 44/46 deaths: forced inputs after a portal, misleading marks, sloped portal exits, orb
+  // chains with nothing to correct, blind two-step openers, too-fast wave turns)
+  if (r.ok && opts.fairness !== false) {
+    const FA = require("./fairness.js"), fl = FA.flags(FA.analyse(w, r));
+    const fail = fl.filter(f => f.severity === "FAIL");
+    gate("fairness", fail.length ? "FAIL" : fl.length ? "WARN" : "PASS",
+      fl.length ? fl.map(f => `${f.family} at block ${(f.x0 / 30).toFixed(0)}: ${f.note}`).join("; ") : "no unfair spots found");
   }
 
   const unsure = level.objects.filter(o => { const d = GD.objInfo(o.id); return ["solid", "hazard", "orb", "pad", "slope"].includes(d.kind) && d.sure === false; });

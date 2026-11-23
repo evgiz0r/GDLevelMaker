@@ -240,4 +240,4 @@ function modernPass(objects, sections, opts = {}) {
   return out;
 }
 
-module.exports = { INDICATOR, jumpIndicators, indicatorFade, modernPass, LAYER, KITS, CH, SKIN, skinBlocks, groundDeco, colourTrigger, fadeTrigger, zoomTrigger, setHeaderColours, setHeaderArt };
+module.exports = { INDICATOR, jumpIndicators, markProps, indicatorFade, modernPass, LAYER, KITS, CH, SKIN, skinBlocks, groundDeco, colourTrigger, fadeTrigger, zoomTrigger, setHeaderColours, setHeaderArt };

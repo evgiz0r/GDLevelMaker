@@ -62,8 +62,10 @@ def("orb-pit", "yellow orb over a long spike run (n spikes); click the orb at th
   o.push(["yellow orb", Math.floor(n / 2), a.orbRow || 2]);
   return { objects: o, width: n };
 });
-def("pad-launch", "yellow pad on the floor, a spike run after it, a platform to land on", (a) => {
-  const n = a.n || 4, o = [["yellow pad", 0, 0]];
+def("pad-launch", "yellow pad on the floor, a run of n spikes (default 3) after it", (a) => {
+  // 3 by default: the pad's arc at 1x does not clear 4, and the player then has to jump before the pad
+  // to arrive high -- a prejump (GDLM 47's finale; GDLM 41/45 set n: 3 by hand)
+  const n = a.n || 3, o = [["yellow pad", 0, 0]];
   for (let i = 0; i < n; i++) o.push(["spike", 2 + i, 0]);
   return { objects: o, width: 2 + n };
 });
@@ -135,7 +137,7 @@ def("ship-tunnel", "a ship corridor (band rows 0-9): floor and roof follow `wave
   portals(o, "ship", a.portalRow ?? Math.min(5, Math.round(mid(0))), Math.round(mid(w - 1)), w, a);
   return { objects: o, width: w + (a.exit ? 1 : 0) };
 });
-def("wave-zigzag", "a wave corridor (band rows 0-9): the path climbs and falls 45 degrees, `seg` columns per leg, `gap` rows of room, `flat` level columns at each peak and valley, `lead` level columns at the entry; portal/exit options", (a) => {
+def("wave-zigzag", "a wave corridor (band rows 0-9): the path climbs and falls 45 degrees, `seg` columns per leg, `gap` rows of room, `flat` level columns at each peak and valley, `lead` level columns at the entry (`leadGap` rows of room there); portal/exit options", (a) => {
   // `flat`: with 45-degree slope walls the wave flies exactly parallel to them, and at a turn the next
   // leg's slope meets it head-on -- which kills (physics, 2026-11-23: GDLM 44's zigzag turns were
   // 13-88 ms, "i still couldnt fit into the gap"). A flat roof or floor at each turn is met at 45
@@ -150,7 +152,12 @@ def("wave-zigzag", "a wave corridor (band rows 0-9): the path climbs and falls 4
       // floor slopes and treats ceiling slopes as full blocks, so it checks with less room than the game.
       const m0 = midAt(c), m1 = c + 1 < w ? midAt(c + 1) : m0, up = m1 > m0;
       if (m0 === m1) { // level: floor below row m0 - gap/2, roof from `gap` rows above it
-        const f = m0 - Math.floor(gap / 2);
+        // `leadGap`: more room in the `lead` columns, so a wave that enters with the button held (or
+        // let go) has ~300 ms before it meets the roof (or floor) -- tools/fairness.js "switch"
+        // (WAVE_DEADLINE); GDLM 46 v3's ship -> wave entrance gave 100 ms with the corridor's 3 rows
+        const g = c < lead && a.leadGap ? a.leadGap : gap;
+        const f = Math.max(0, m0 - Math.floor(g / 2));
+        if (g !== gap) { for (let r = f + g; r < 10; r++) o.push(["block", c, r]); continue; }
         for (let r = 0; r < f; r++) o.push(["block", c, r]);
         for (let r = f + gap; r < 10; r++) o.push(["block", c, r]);
         continue;
