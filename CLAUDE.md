@@ -81,6 +81,8 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   main checkout's (newest file wins), keeps yours as `local.before-share/`, and links `local/` to
   the shared one. From then on solved levels, beat grids, recordings notes and marks are shared --
   don't re-solve what another session already solved (check the file; one heavy job at a time).
+  Stopping a long official solve to free the PC costs nothing: `tools/difficulty_solve.js` checkpoints
+  every 30 s to `local/difficulty/NN.part.json` and the next run on the same physics carries on from it.
 - **The level you are working on: `node tools/wip.js put <level.gdlvl> --session <your name>
   --note "what changed"` after every change.** It goes to `local/wip/<session>/`, and the viewer
   (`node tools/serve.js`, http://localhost:8765/viewer/) lists it under "in progress" with its
@@ -113,7 +115,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   timing windows, a timing-error + lapse model fitted on the user's real runs; see DIFFICULTY.md
   (also the tier ladder for making levels, and what is open). Its tools: `difficulty` (score a level,
   or all official levels vs ratings and the user's attempts), `difficulty_solve` (cache an official
-  solution, one at a time), `difficulty_fit` (refit on the user's runs), `difficulty_community`
+  solution, one at a time; `--resume` after a physics change solves only from a bit before where it matters), `difficulty_fit` (refit on the user's runs), `difficulty_community`
   (score downloaded community levels), `runs` (the user's deaths from a recording, via the progress
   bar), `save_stats` (the user's lifetime attempts per official level, read-only from the save),
   `stop` (where a level's saved solution dies in the sim and what killed it), `difficulty_route` (a level with and without route choice: a player avoids a hard timing when the
@@ -312,8 +314,7 @@ spider orb + pad, the upside-down red-orb dive under a hanging column.
 
 ## Not simulated yet
 
-Mirror and dual portals, teleport portal variants 2902/2064 and the teleport trigger 3022; slopes turned
-a quarter turn (walls act as blocks); follow and "move to target" triggers, and a player carried sideways by a moving
+Mirror and dual portals, teleport portal variants 2902/2064 and the teleport trigger 3022; follow and "move to target" triggers, and a player carried sideways by a moving
 block; speed-dependent ring scaling for ball/UFO; spike slopes (any slope skin that kills is
 treated as a plain slope -- unchecked).
 Simulated but checked only by the plans: mini size (gdsolver's measured values), move/toggle/spawn
