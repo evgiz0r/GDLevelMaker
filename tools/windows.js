@@ -4,6 +4,9 @@
 // run of ticks around it that still clear. Works where the exact solver's windows do not exist
 // (levels with portals are solved by the sweep, which gives none). The solution is the level's .json
 // beside it (wip), else a fresh solveAny. --from/--to limit it to inputs between those x.
+// Use it on a human-like plan (style's natural replay, lib/natural.js): a fewest-presses solve hugs
+// walls and holds long, so its inputs sit at the edge of what works and its windows look tiny
+// (GDLM 44 v6's sweep solve: 4-13 ms) without the level being that tight.
 // Found 2026-11-23: GDLM 44's wave zigzag ("i still couldnt fit into the gap in 44").
 const fs = require("fs");
 const { GD, readGdlvl } = require("./io.js");

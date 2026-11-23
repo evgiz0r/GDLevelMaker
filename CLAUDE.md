@@ -128,6 +128,9 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   ("GD art" button). Tables: `lib/objects_art.js` (`tools/import_art.js`, OpenGD) and
   `lib/objects_frames.js` (`tools/import_frames.js`, GD 2.2's own id -> frame table from the exe).
   Test: `node tests/art_tables.js`.
+- **Deco catalogue** (knowledge/objects/README.md): `tools/catalogue.js index | sheets | usage` --
+  every id with its picture on contact sheets (`local/catalogue/`, or browse `viewer/catalogue.html`),
+  the searchable `knowledge/objects/catalogue.tsv`, and which deco families rated levels use together.
 - Iterating on a level's look or play: the viewer's **✎ mark** (key M) saves the user's notes at a
   spot to `marks/marks.jsonl` (via `tools/serve.js`); read them with `node tools/marks.js`, close
   them with `node tools/marks.js done <id> "what changed"`. **compare** puts a frame of one of the
@@ -289,3 +292,8 @@ The viewer draws moving objects where they start.
 - Playing on the phone too: how to get an updated level onto the phone while away from the PC.
   Watching is built: the phone page (PHONE.md: live work in progress, marks, songs added from
   the phone). Playing it in the phone's game: `tools/export_gmd.js` (.gmd for GDShare).
+- Polishing existing levels (the user, 2026-11-23): take a level that already exists -- one of
+  the user's own, a GDLM level, later maybe a community one (kept in local/ only) -- and make it
+  better without redesigning it: fix unfair spots (tools/windows.js, press_window.js), add jump
+  indicators, sync portals and drops to the song, decorate (once the real-art viewer and the deco
+  catalogue exist, VISUALS.md), and show before/after side by side. Not started; no owner yet.

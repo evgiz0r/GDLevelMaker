@@ -19,6 +19,7 @@ says is recorded verbatim in `inbox/`, then organised. Web facts carry a source 
 | `glossary.md` | GD terms as the user uses them |
 | `demonlist.md` | Demon List facts (pointercrate etc.), dated and sourced |
 | `eras.md` | eras and trends of GD level design |
+| `objects/README.md` | every object id and what it looks like (`catalogue.tsv`), decoration families good levels use and how they are combined (`usage.json`) -- read before decorating |
 
 Levels index (add a line per level file):
 
