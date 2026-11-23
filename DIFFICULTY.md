@@ -79,6 +79,9 @@ Reported beside the score:
 - `quickRecoveries`: presses whose window closes under 150 ms after a landing.
 - `forcedAfterSwitch`: inputs whose window closes under SETTLE (300 ms) after a portal switch
   (mode, speed, gravity portal, size). These are IN the score (item 5). `afterSwitchMs` per input.
+- `chainExtra`, `worstChain`: how much more the level costs if quick chains (jumping-mode inputs
+  under CHAIN_GAP = 300 ms apart, assumed) are not corrected. Joint chance of the chain versus the
+  product of its windows; not in the score. See Open 3.
 - `room`: free height per flying mode, counting blocks AND hazards, min and median in units
   (30 = a row). The user found GDLM 44's wave "slightly too difficult" with the same windows as the
   rest. It had 2 rows of room where the ship had 5.
@@ -304,7 +307,21 @@ widest-moment scan skipped. Flying presses and releases are now scanned too.
 3. **Surprise.** Inputs forced right after a portal are in the score (The measure, item 5); refit
    SETTLE on `local/real_stats.jsonl` as it grows (the physics session adds every analysed
    recording) and with `node tools/difficulty.js --cached --settle MS` (seconds, from the
-   report's cache). **Unexpected land-and-jump chains** are reported only (`quickRecoveries`). These were all 8 of the player's GDLM 42 deaths, but
+   report's cache). **Unexpected land-and-jump chains** are reported only (`quickRecoveries`).
+   **Chains with no time to correct** (`chainExtra`), from GDLM 46 v2 (real_stats, 03-50-48.mkv):
+   12 attempts and 11 deaths, the user: "I mostly died deaths not really my fault".
+   - The deaths: 3 at the first orb (x 345), 2 at the forced jump after the wave exit (158 ms
+     window), 3 in the end orb chain ("can't adjust", windows 100-217 ms), and 3 others (a
+     misleading mark, a sawtooth floor, the first spike).
+   - The model says 0.33 (~2 attempts). The usual windows assume every next input re-plans
+     perfectly. The joint chance with no correcting at all says 0.63 over the first 8 inputs
+     alone, against the user's 4 deaths in 12 there (~0.18).
+   - So correction happens, but only with time to react. The gap that still links two inputs
+     decides it: 300 ms adds 0.06, 400 ms gives 0.62 over the first chain. worstChain at 300 ms
+     points at the end orb chain, the right spot.
+   - Next: fit CHAIN_GAP (or a correction that grows with the gap) on real_stats deaths by place,
+     then put it in the score. Also from that run: orbs that carry the cube to the screen's top
+     edge (not measured). These were all 8 of the player's GDLM 42 deaths, but
    rhythmic chains are fine (every early official level has 60-90). Needs a rhythm or surprise
    measure to tell them apart.
 4. **Coverage.** 6 official levels are under 10% in the sim (`local/difficulty/NN.json` says
