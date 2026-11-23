@@ -66,6 +66,12 @@ not after it:
   to be available in the process, not just the end result". Every build puts its stages (song, layout, path,
   deco, final) to local/wip/<session>/<base>.stages/ via tools/stages.js; compose and make.js do it themselves.
   A new builder calls stages.put too. The viewer's in-progress list shows each build at its latest stage.
+- **Estimates come from measurements, not guesses.** The user (2026-11-24): estimates have been wrong for a long time,
+  mostly far too long ("ready in 45 minutes" -> ready after 5; "10 minutes" -> it was copying 2 files). Say a time only when
+  it comes from a measurement: local/timings.jsonl (the heavy lock records every run by tool, level and flags), or a
+  similar run you timed. Give the basis in a few words ("last 3 runs: 4-6 min"). With no measurement, say "not measured",
+  or "seconds" for edits and file work. Never pad. When a job finishes, compare it with what you said, and fix the
+  table or the estimate code when it was off by 2x or more.
 - **Hand off.** Before a long pause or when your area changes hands, write where you stopped,
   what is open and the good numbers into your area's doc.
 - **Share, don't duplicate.** Results go into the shared `local/` (see below) so no session redoes
