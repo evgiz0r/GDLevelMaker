@@ -220,10 +220,11 @@ Modes beyond cube/ship come from gdsolver's measured model and the gdp decompile
 by the plans so far (xStep's ball, Blast Processing's wave): ball, UFO, wave, robot, spider,
 swing. Each still wants a recording of the user's own play.
 
+- No flying off into the sky (the user, 2026-11-23: "you cant just fly to the sky"). The sim
+  counts 300 units above the highest object as a death; the exact height is not measured.
+
 Assumed (not yet checked):
 - Object keys 121 = No Touch and 134 = Passable (both make an object not collide).
-- Going 300 units above the highest object counts as a death (otherwise the solver "wins" by
-  falling up into the sky). Ask the user whether GD kills you up there.
 - Spider teleport searches a 9-unit strip above/below the cube.
 - Dash orbs: horizontal at the orb's angle while held; the props 586/588 on them are unknown.
 - "Click Between Steps" is OFF in the user's settings: presses land on a frame boundary, not any
