@@ -11,6 +11,11 @@
 const dry = process.argv.includes("--dry");
 if (!dry) require("../tools/heavy.js").claim();
 const fs = require("fs"), path = require("path"), cp = require("child_process");
+// the saved routes these tests use (local/ is not in git: a fresh checkout or a cloud session has none)
+{ const fsx = require("fs"), px = require("path"), src = px.join(__dirname, "fixtures", "edit_routes"), dst = px.join(__dirname, "..", "local", "solutions");
+  fsx.mkdirSync(dst, { recursive: true });
+  for (const f of fsx.readdirSync(src)) if (!fsx.existsSync(px.join(dst, f))) fsx.copyFileSync(px.join(src, f), px.join(dst, f)); }
+
 const M = require("../tools/markedit.js");
 const ROOT = path.join(__dirname, ".."), DIR = path.join(ROOT, "local", "tmp", "replay");
 fs.mkdirSync(DIR, { recursive: true });

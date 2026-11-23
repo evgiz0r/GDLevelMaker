@@ -128,6 +128,57 @@ before/after picture at the biggest change. `easier`/`harder` lowercase = one ti
 Open: swapping whole structures for easier/harder library entries by their difficulty tags (needs to know where a
 structure sits in a built level: compose's section plan has it; a level from elsewhere does not).
 
+## Hand-off (2026-11-24, from the local editing session to a cloud session)
+
+**Done and on main** (all on copies, never the original; never installs or uploads):
+- 16 `tools/edit.js`, 17 `tools/markedit.js`, 4 `tools/review.js`, 2 `tools/fix.js`, 13 `tools/retarget.js`, the shared
+  `tools/families.js`. Usage: the sections above and each file's header (`node tools/<tool>.js` prints it).
+- score.js staticRules' symmetry judges an orb pair's middle once (was: each orb of a mirrored pair flagged).
+- edit.js re-solves: old route -> `lib/incsolve.js` `incsolve.fromBase` (with `inc` + `world` handed to
+  `solutions.fromRun`, so only the changed stretch is re-planned) -> a full solve.
+
+**Tests and their status** (local PC, 2026-11-24):
+- `node tests/editing.js --quick`: 46/46 ok (vocabulary, 18 user notes -> families, dry edits on GDLM 61 touch only
+  the right objects and never the file, retarget targets and candidates). Without `--quick` it also runs one REAL
+  edit (a jump mark moved clear of its spike on GDLM 61): written, NEVER RUN yet (the PC's heavy slot was full all
+  night). First thing to run in the cloud.
+- `node tests/edit_replays.js --dry`: 10/10 ok. Without `--dry`: the 5 replays as real edits -- never run yet.
+- Both seed `local/solutions/` from `tests/fixtures/edit_routes/` (the saved routes of GDLM 61 and the four old
+  versions), so they run on a fresh checkout. The old versions come from git (`git show <commit>:levels/...`).
+- Not run since the symmetry change: `node tests/style_gates.js` (solves; run it).
+
+**The user's marks used as test cases** (tests/edit_replays.js, with spot and words; the user's own words from
+knowledge/critiques.md, TASTE.md, checklist.md -- local/marks.jsonl was empty all day: the viewer's mark box was
+broken until visuals fixed it on 2026-11-23 night):
+| level @ commit | spot | the user's words | family | the fix the tools pick | what a session did by hand |
+|---|---|---|---|---|---|
+| 44 hellgate @54704b4 (round 2) | b41 | "indicator inside spike" | jump marks | clearmark: the mark 1.5 blocks back | marks kept 40 units in front (2424373) |
+| 50 eclipse @d60d543 (v2) | b24.5 | "arrow into the spike" | jump marks | clearmark | softrules arrows + placement (701909b) |
+| 50 eclipse @d60d543 | b42 | "too close to the spike, almost inside it" | jump marks | clearmark | same |
+| 47 sunny side @cae1b05 | b750 | (symmetry) "not pretty ... not over the centre" | symmetry | centre (a pair moves as one) | orbs centred in the spec |
+| 45 first flight @cae1b05 (v6) | b301.5 | "not symmetrical to their structure" | symmetry | centre | symmetric orb pit (f31e4fc) |
+The other 13 notes (reactive, hazards matter, clusters, flash/contrast, stubs, ending, fairness switch / chain / mark,
+height, deco coverage, player timing) are family-reading cases in tests/editing.js; their levels were already fixed,
+so a replay needs the pre-fix commit (`git log -- levels/<file>`), as above.
+
+**Next, in the user's order (16, 17, 2, 13):**
+1. Run the real tests above; fill "Results" and CLAUDE.md's time-table rows (they point here, no numbers yet).
+2. 17: run `markedit.js` on the first real marks in local/marks.jsonl (the mark box works now; lines carry `kind`:
+   unfair / awkward / ugly / unclear, which markedit uses to rank families). The cloud has no local/: the marks reach
+   it only if the main session copies them into a message or a fixture.
+3. 2 with 4: `review.js` then `fix.js` on GDLM 61 (dry: 8 safe fixes -- 7 jump marks too close to spikes, 1 orb off
+   centre), then on 44/45/47 and an official level; check every kept fix in the picture.
+4. 13: `retarget.js levels/gdlm_61_lantern_towers.gdlvl --to easier` (Normal 0.365 -> Easy); then structure swaps by
+   the library's difficulty tags (knowledge/structures.json has tier, difficulty, minWindowMs per structure).
+
+**Coordination:**
+- incsolve (gd-incsolve): `incsolve.fromBase(oldLevel, oldEvents, newLevel)`; pass `inc` + `world` to fromRun (done).
+- style (compose owner): compose has section variants (`reseed:<si>`, `<level>.variants/s<i>_..._v<n>.gdlvl` + .json
+  with points). Told them what edit/review/fix expose; retarget's section edits could be saved in that variants shape.
+- visuals: mark lines `{id, level, file, session, version, t, x, y, note, kind?, view, zoom, made}`; close with
+  `node tools/marks.js done <id> "reply"` (markedit `--done` writes the same line); test marks go to marks.test.jsonl.
+- Every child process needs `windowsHide: true` (tests/no_console_windows.js); no alert/confirm/prompt page-side.
+
 ## Times (this PC, 16 GB; plus the wait for the heavy slot)
 
 See CLAUDE.md's table. Measured 2026-11-23: see "Results" below.
