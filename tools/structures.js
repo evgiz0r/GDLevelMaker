@@ -312,6 +312,8 @@ function rank(results) {
     // a prejump WARN is the approximate check on levels with modes (sweep solver): not counted
     const read = !r.ok ? 0 : Math.max(0, 1 - 0.5 * (r.gates.prejumps === "FAIL" ? 1 : 0)
       - 0.3 * (r.gates.fairness === "FAIL" ? 1 : 0) - 0.1 * (r.gates.fairness === "WARN" ? 1 : 0) - 0.1 * (r.gates.recovery === "WARN" ? 1 : 0)
+      // exact hops instead of reactions (score.js "reactive", the user on GDLM 45 v6): pushed well down
+      - 0.4 * (r.gates.reactive && r.gates.reactive !== "PASS" ? 1 : 0)
       - 0.15 * Math.max(0, pps - 2.5));
     const variety = 1 - ours, usage = Math.sqrt(real);
     r.rank = { variety: +variety.toFixed(2), usage: +usage.toFixed(2), fairness: +fair.toFixed(2), readability: +read.toFixed(2),
@@ -434,7 +436,7 @@ function save(db) {
 }
 function byId(id) { return LIB.find(s => s.id === id); }
 
-module.exports = { LIB, byId, testSpec, check, rank, page, load, save, register, ranked };
+module.exports = { LIB, byId, testSpec, check, rank, page, load, save, register, ranked, svgOf };
 
 if (require.main === module) {
   const [cmd, ...rest] = process.argv.slice(2);

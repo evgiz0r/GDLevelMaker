@@ -30,6 +30,26 @@ checklist it was built against.
   GDLM 44 entrance, GDLM 46 wall after the wave)
 - [ ] **Recovery**: never land and have to jump again within ~100 ms, unless it is a steady rhythm.
   (design.md, score.js recovery gate; GDLM 42 v3)
+- [ ] **Reactive cube parts**: every obstacle cleared by a natural jump on reaction, with a flat
+  run-up between groups (4+ columns at Easy/Normal) and landing spots wider than 1 block. Never a
+  landing on a lone block that forces the next jump within 250 ms, never 3+ hops in a row each forced
+  right after landing. `node tools/reactive.js <level>` (score.js gate "reactive": FAIL at Easy/Normal).
+  (critiques.md GDLM 45 v6, blocks 50-75: "very specific cube jumps ... instead of being able to react")
+- [ ] **A jump over a spike needs no timing around a block**: no press whose window is cut short
+  (< 250 ms) or split by a block, ceiling step or slope rather than by the hazard (a lip right after
+  the spike, a step where the jump comes down). No step 2 to ~5 blocks after a spike (at 1x; where
+  its jump comes down: GDLM 47 ~29.3 s): the step right after the spike (one jump lands on it) or
+  farther. Same check and gate ("reactive"). Patterns: spike-block `at 1, w 3` and block-spike-block
+  `w1 2, w2 2` at Easy/Normal. (critiques.md GDLM 45 v6 ~21.5 s)
+- [ ] **Every hazard matters**: none walked over without a jump (slabs at one height 2 apart over
+  spikes are crossed on foot: the spikes are pointless and leave a "do I jump?" doubt). Make it a real
+  jump (gap 3+, or rising slabs) or keep the spikes out of the way. score.js gate "hazards matter".
+  (critiques.md GDLM 47 ~18.7 s)
+- [ ] **Symmetry = good**: an orb sits over the centre of its spike row (within half a block), pairs
+  mirror each other. If the timing wants it off-centre, change the structure (the row, the landing),
+  not the look. make.js centres orb-pit orbs itself; score.js gate "symmetry". (GDLM 45 v6 ~28.4 s)
+- [ ] **A flying mode's exit portal is framed on all sides**: a roof AND a wall up to the band's top,
+  so no route flies over it. The skips gate also runs the player's route. (TASTE.md; GDLM 51)
 - [ ] **Orbs**: mostly single (~3/4). A chain of at most 2-3, ~3 blocks apart, climbing ~1 block in
   all, one orb kind, and a hazard-free surface ~1 block after the last orb. Never a chain where a
   normal click falls to death or that carries the cube toward the screen's edge.
@@ -88,6 +108,18 @@ checklist it was built against.
   sections. Shaders only at transitions and drops.
 - [ ] **Shape of the level**: a dense opening, quiet 1-2 s transitions, the biggest effects at the
   drops. A title at the start and credits at the end. Don't copy any one level's art.
+- [ ] **The title clears GD's "Attempt N" counter**: it shows ~5 rows up from the start to ~6 blocks
+  ahead (more with 3 digits); the title starts after block 12. make.js warns on any text there.
+  (GDLM 47, the user; measured on recording 2026-11-23_02-51-50.mkv)
+- [ ] **No empty patches**: every screen-wide stretch has at least half the level's own deco per
+  block (open cube stretches get a dim back row and dots from the modern pass). score.js gate
+  "deco coverage". (GDLM 45 v6 ~24.7 s: "some places are very empty in deco")
+- [ ] **Calm, not flashy**: pulses on bars or rarer, toward a tint of the deco's own colour, never
+  white, never on gameplay edges; one dim sky flash at most. (TASTE.md; hellgate, eclipse v2)
+- [ ] **Deco never looks like gameplay**: no thick rings (236 at scale 0.5+) that read as orbs, no
+  ball or square shapes (51, 148) next to the path. (TASTE.md; GDLM 51)
+- [ ] **Deco above ~225 units (7.5 rows) is not seen in a cube part**: put what should be seen lower.
+  (TASTE.md; GDLM 51's eyes at y 235)
 - [ ] **Readable**: hazards stand out (white, grey or their own colour against the scene); no deco
   that looks like an orb, pad or hazard: fires only far back, small and dim. Hazards keep their contrast
   on the drop's brightest frame (one sky flash, not two). Behind a portal a dark disc, never a lit one.

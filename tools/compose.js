@@ -207,7 +207,11 @@ function compose(brief, tweaks = {}) {
     }
     if (!sec.rest && sec.use && sec.use.length) {
       const early = start / total < 0.5;
-      const [gMin, gMax] = sec.gaps || (early ? [4, 7] : [3, 5]);
+      // reactive (score.js gate, the user on GDLM 45 v6): at Easy/Normal at least 4 empty columns between
+      // chunks, so after each landing there is room to see the next thing and jump on reaction
+      const low = ["Easy", "Normal"].includes((brief.difficulty || {}).label);
+      let [gMin, gMax] = sec.gaps || (early ? [4, 7] : [3, 5]);
+      if (low) { gMin = Math.max(gMin, 4); gMax = Math.max(gMax, gMin); }
       // after a flying section the cube lands from its exit portal: a calm lead-in first
       // (rated low-tier levels: ~6 blocks after a cube portal, knowledge/levels/modes_low_tier.md)
       // (8 here: the cube first falls out of the exit portal, ~0.3 s)
@@ -224,10 +228,15 @@ function compose(brief, tweaks = {}) {
       // knowledge/levels/obstacles.md). Orb and pad chunks go back to the ground (their arcs are
       // placed from it). A step up sometimes has a spike at its foot (a ledge); a step down gets landing
       // room. The terrain goes back to the ground at the section's end.
-      const terrain = brief.terrain && !upside;
+      // Upside down too (the user on GDLM 47's upside part: "all in flat area. no change of height
+      // really"): the same steps hang from the ceiling, at most 2 rows (the room under it is 6).
+      // Heights: 0-3 on the floor, a change at ~4 chunks in 5 (official levels: ~13.6 floor changes per
+      // 10 s of jumping play, range ~7 blocks; GDLM 47 had 7.5 and 3: tools/flow.js, STRUCTURES.md).
+      const terrain = brief.terrain;
+      const maxH = upside ? 2 : 3;
       let filledTo = c;
       h = 0;
-      const fill = (from, to, hh) => { for (let cc = from; cc < to; cc++) for (let r = 0; r < hh; r++) objects.push(["block", cc, r]); };
+      const fill = (from, to, hh) => { for (let cc = from; cc < to; cc++) for (let r = 0; r < hh; r++) objects.push(["block", cc, upside ? ceil - 1 - r : r]); };
       while (k < 64) {
         const key = `${si}:${k}`, t = tweaks[key] || {};
         const [r1, r2] = draws[k];
@@ -243,7 +252,9 @@ function compose(brief, tweaks = {}) {
         }
         if (t.swap) name = t.swap;
         const intro = !seen.has(name);
-        const args = (sec.args || {})[name] || {};
+        // Easy/Normal: block-spike-block with 2-wide blocks (land, look, jump: no exact hop off a lone block)
+        const LOW_ARGS = { "block-spike-block": { w1: 2, w2: 2 }, "spike-block": { at: 1, w: 3 } };
+        const args = Object.assign(low && LOW_ARGS[name] ? LOW_ARGS[name] : {}, (sec.args || {})[name] || {});
         const wdt = widthOf(name, args);
         // landing room: after a chunk that ends h rows up, the cube falls h rows; nothing may need a
         // jump before it has landed and seen it (GDLM 45 v4: a spike-block right past a 3-high stair,
@@ -257,7 +268,7 @@ function compose(brief, tweaks = {}) {
         if (terrain) {
           const [t1, t2] = tdraws[k];
           if (/orb|pad/.test(name)) newH = 0;
-          else if (k > 0 && t1 < 0.55) newH = h === 0 ? 1 : h === 2 ? 1 : (t1 < 0.3 ? 2 : 0);
+          else if (k > 0 && t1 < 0.8) newH = h === 0 ? (t1 < 0.3 && maxH >= 2 ? 2 : 1) : h >= maxH ? h - 1 : (t1 < 0.45 ? h + 1 : h - 1);
           if (newH !== h) {
             // the step 3 columns after the last chunk, then 5 (up) or 6 (down, a drop) on the new level
             // before the next: steps mid-gap left 3 columns and chained the jumps (GDLM 47 round 1)
@@ -277,12 +288,12 @@ function compose(brief, tweaks = {}) {
           if (stepAt == null) fill(filledTo, c + wdt, h);
           else {
             fill(filledTo, stepAt, h); fill(stepAt, c + wdt, newH);
-            if (ledge) objects.push(["spike", stepAt - 1, h]);
+            if (ledge) objects.push(upside ? ["spike", stepAt - 1, ceil - 1 - h, { rot: 180 }] : ["spike", stepAt - 1, h]);
           }
           filledTo = c + wdt; h = newH;
         }
         if (intro) firsts.push(c);
-        if (upside) objects.push(...mirrorUp(expand(name, c, 0, args), ceil));
+        if (upside) objects.push(...mirrorUp(expand(name, c, 0, args), ceil - (terrain ? h : 0)));
         else objects.push(["pattern", name, c, terrain ? h : 0, args]);
         placed.push({ key, name, from: c, to: c + wdt - 1, section: sec.name });
         seen.add(name); last = name;
