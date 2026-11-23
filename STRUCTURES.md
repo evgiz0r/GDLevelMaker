@@ -153,3 +153,8 @@ committed), a modern Hard level the user beat and enjoyed (attempt 9; deaths at 
 three times, local/real_stats.jsonl). Solve it once (`node tools/solutions.js local/community/150941693.gdlvl`,
 heavy), then `node tools/flow.js local/community/150941693.gdlvl` and `node tools/rules.js` on it: its
 height / repetition numbers next to the official ones are a target the user has played and liked.
+More references the user chose and played (2026-11-23, local/community, deaths in local/real_stats.jsonl):
+Locked 149415501, ClockWood 150286303 (beaten), NOT A MONOCHROME LVL 149575037 (left after one try at 25%),
+Gang Vibes 147433579 (completed), "A level" 148448631, Eden and Ash 146165333, Accelerate 140155559 (beaten).
+Measure them as Spooky Dash: the beaten / completed ones are the target band, the one left early a
+counter-example (what made the user stop at 25%).
