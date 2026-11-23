@@ -317,6 +317,23 @@ function build(spec, specFile = "spec") {
     if (r.header) header = r.header;
     if (r.signature) sceneSig = r.signature;
   }
+  if (spec.props) { // illustrated props by name (lib/props.js, ART.md): [{"prop": "pumpkin", "col": 30, "row": 0}, {"prop": "tree", "from": 40, "to": 80, "density": 2}]
+    const P = require("../lib/props.js"), alloc = P.allocator(spec.propsCh0 || 600), cols = {};
+    const play = objects.filter(o => { const k = (GD.objInfo(o.id) || {}).kind; return k && k !== "decoration" && k !== "trigger" && k !== "deco"; });
+    for (const it of spec.props) {
+      const o = Object.assign({ alloc, theme: spec.propTheme }, it), y = (it.row || 0) * 30 + (it.y || 0);
+      const r = it.from != null ? P.place(it.prop, it.from * 30, it.to * 30, Object.assign(o, { y })) : P.put(it.prop, it.col * 30 + 15, y, o);
+      objects.push(...r.objects); Object.assign(cols, r.colours);
+      // soft rule (ART.md): a prop on the ground near gameplay can read as an obstacle -- say so
+      for (const x of r.xs || [it.col * 30 + 15]) {
+        const near = play.filter(p => Math.abs(p.x - x) < 60 && p.y < y + 90 && p.y > y - 30);
+        if (near.length && (it.layer || P.DEFS[P.ALIAS[it.prop] || it.prop].layer) !== "B4" && P.DEFS[P.ALIAS[it.prop] || it.prop].attach !== "bg")
+          console.log(`   WARN prop "${it.prop}" at block ${(x / 30).toFixed(1)} stands within 2 blocks of gameplay (${near.length} objects): it may read as an obstacle; move it or put it on "layer": "B4"`);
+      }
+    }
+    header = P.header(header, cols);
+    console.log(`   props: ${spec.props.length} placements, ${Object.keys(cols).length} channels from ${spec.propsCh0 || 600}`);
+  }
   if (spec.modern) {
     const secs = spec.modern.sections || [];
     objects.push(...deco.modernPass(objects, secs, spec.modern)); // before skins: fills follow gameplay blocks
