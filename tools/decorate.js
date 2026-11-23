@@ -124,7 +124,7 @@ function setHeaderArt(header, bg, ground) {
 // to point at the ground, scale 0.7, on white (1011: its own channel 1006 is the player's colour) in
 // its own group, faded to `alpha` by an alpha trigger at the start. Any id works per spec:
 // "indicators": {"id": N, "rot": n, "ch": n}; id 914 = a text object showing `text` (e.g. "v").
-const INDICATOR = { id: 460, rot: 90, ch: 1011, scale: 0.7, text: "v", group: 990, alpha: 0.45, lift: 30 }; // lift: surface -> mark centre (45 read 'a bit too high', GDLM 44 v8; rated median 30)
+const INDICATOR = { id: 460, rot: 90, ch: 1011, scale: 0.7, text: "v", group: 990, alpha: 0.45, lift: 30, clear: 40 }; // lift: surface -> mark centre (45 read 'a bit too high', GDLM 44 v8; rated median 30)
 function jumpIndicators(w, r, id, GD, opts = {}) {
   const path = GD.run(w, r.events).path, out = [], marks = [];
   const boxes = w.items || [];
@@ -158,9 +158,25 @@ function jumpIndicators(w, r, id, GD, opts = {}) {
     if (opts.only && !why.length) continue;   // opts.only: just the jumps that cannot be read in time
     if (marks.length && a.x - marks[marks.length - 1] < 60) continue;
     marks.push(a.x);
-    const x = Math.round((a.x + 15) / 15) * 15;  // loosely: the area, half a block past the press (rated: ~0.5 block before the hazard)
+    let x = Math.round((a.x + 15) / 15) * 15;  // loosely: the area, half a block past the press (rated: ~0.5 block before the hazard)
+    // ... but never on or next to the hazard it is for (the user, hellgate round 2: "indicator inside spike"):
+    // its centre stays INDICATOR.clear units in front of the hazard's hitbox (tools/indicators.js checks it)
+    if (cue !== Infinity) { const hz0 = a.x + 15 + cue; if (x > hz0 - INDICATOR.clear) x = Math.floor((hz0 - INDICATOR.clear) / 15) * 15; }
     out.push({ id, x, y: up ? surface + INDICATOR.lift : surface - INDICATOR.lift,
       rot: ((opts.rot ?? INDICATOR.rot) + (up ? 0 : 180)) % 360, flipX: false, flipY: false, props: markProps(id, opts), why: why.join(",") });
+  }
+  return out;
+}
+// The shared check (tools/indicators.js, score.js): jump marks (group INDICATOR.group) whose centre is within
+// `clear` units of a hazard's hitbox. w = GD.makeWorld(objects, header). Returns [{x, y, gap}].
+function indicatorIssues(objects, w, clear = INDICATOR.clear - 10) {
+  const g = String(INDICATOR.group), hz = (w.items || []).filter(b => b.kind === "hazard");
+  const out = [];
+  for (const o of objects) {
+    if (!o.props || o.props[57] !== g || o.id === 1007) continue;
+    let gap = Infinity;
+    for (const b of hz) { const dx = Math.max(b.x0 - o.x, 0, o.x - b.x1), dy = Math.max(b.y0 - o.y, 0, o.y - b.y1); gap = Math.min(gap, Math.hypot(dx, dy)); }
+    if (gap < clear) out.push({ x: o.x, y: o.y, gap: Math.round(gap) });
   }
   return out;
 }
@@ -240,4 +256,4 @@ function modernPass(objects, sections, opts = {}) {
   return out;
 }
 
-module.exports = { INDICATOR, jumpIndicators, markProps, indicatorFade, modernPass, LAYER, KITS, CH, SKIN, skinBlocks, groundDeco, colourTrigger, fadeTrigger, zoomTrigger, setHeaderColours, setHeaderArt };
+module.exports = { indicatorIssues, INDICATOR, jumpIndicators, markProps, indicatorFade, modernPass, LAYER, KITS, CH, SKIN, skinBlocks, groundDeco, colourTrigger, fadeTrigger, zoomTrigger, setHeaderColours, setHeaderArt };
