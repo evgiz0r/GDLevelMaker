@@ -217,12 +217,6 @@ function scoreLevel(level, brief, opts = {}) {
   const near = level.objects.filter(o => SPIKY_DECO.has(o.id)).filter(o => { const c = Math.floor(o.x / 30); return [-2, -1, 0, 1, 2].some(d => hazCols.has(c + d)); });
   gate("readability", near.length ? "FAIL" : "PASS", near.length ? `${near.length} spike-like decorations within 2 columns of a hazard` : "decoration clear of hazards");
 
-  // craft: how the objects are used, against the 10 official 1.x levels (CRAFT.md, tools/craft.js):
-  // many small pieces, a hazard floor, deco attached to structures. Soft: WARN, never FAIL.
-  { const C = require("./craft.js").check(level.objects), w = C.warn;
-    gate("craft", w.length >= 3 ? "WARN" : "PASS", `${C.checks.length - w.length}/${C.checks.length} craft targets`,
-      w.map(c => `${c.key} ${c.value < 2 && c.key !== "pieces100" && c.key !== "hazards100" ? Math.round(100 * c.value) + "%" : c.value.toFixed(0)} (${c.target})`).join(", ")); }
-
   if (brief.sections) {
     const colourT = level.objects.filter(o => o.id === 899 || o.id === 29 || o.id === 30).length;
     const need = brief.sections.filter(s => s.bg).length;
@@ -321,6 +315,12 @@ function scoreLevel(level, brief, opts = {}) {
   const unsure = level.objects.filter(o => { const d = GD.objInfo(o.id); return ["solid", "hazard", "orb", "pad", "slope"].includes(d.kind) && d.sure === false; });
   const ids = [...new Set(unsure.map(o => o.id))];
   gate("objects", unsure.length ? "WARN" : "PASS", unsure.length ? `${unsure.length} gameplay objects with unconfirmed hitboxes (ids ${ids.join(", ")})` : "all hitboxes confirmed");
+
+  // craft: how the objects are used, against the 10 official 1.x levels (CRAFT.md, tools/craft.js):
+  // many small pieces, a hazard floor, deco attached to structures. Soft: WARN, never FAIL.
+  { const C = require("./craft.js").check(level.objects), w = C.warn;
+    gate("craft", w.length >= 3 ? "WARN" : "PASS", `${C.checks.length - w.length}/${C.checks.length} craft targets`,
+      w.map(c => `${c.key} ${c.value < 2 && c.key !== "pieces100" && c.key !== "hazards100" ? Math.round(100 * c.value) + "%" : c.value.toFixed(0)} (${c.target})`).join(", ")); }
 
   // soft rules (the user, 2026-11-23: "each fix to be somewhat a soft rule. and reapplied across the
   // level and anything in the future"): a brief may accept a gate with a stated reason,

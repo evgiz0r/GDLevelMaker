@@ -72,6 +72,10 @@ function craftPass(objects, opts = {}) {
       // a floating piece hangs on chains: one in the middle (<= 2 wide), else one near each end
       const cols = w <= 2 ? [p.x0] : [p.x0 + (w >= 5 ? 1 : 0), p.x1 - (w >= 5 ? 1 : 0)];
       for (const c of cols) { const t = topOf(p, c); if (free(c, t + 1)) chainUp(c, t * 30 + 15 + 48); }
+      // and a rod pointing down under an end (Jumper: 17 under-block rods); never on a long ceiling --
+      // a ball or an upside-down cube runs along those
+      if (w <= 4) for (const c of [p.x0, p.x1]) { const b = botOf(p, c);
+        if (b > 1 && free(c, b - 1) && free(c, b - 2) && rnd() < o.underRods * 1.5) { obj(ROD, c * 30 + 15, b * 30 + 15 - 29, { flipY: true }); break; } }
     }
   }
   if (o.lanterns) for (const [k, ob] of P) {
