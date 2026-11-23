@@ -21,7 +21,6 @@ path), **not yet**. Update the status when a use case moves; add new ones as the
 | 13 | **Make it easier / harder** (retarget the difficulty) | not yet | the difficulty model, windows, the structure library's difficulty tags | a tool that widens or tightens windows and swaps structures toward a star target |
 | 14 | **Move a level to another song** (re-sync) | not yet | beats.js, sync.js, the scene planner (in progress) | re-timing sections and portals to the new song's beats |
 | 15 | **Compare levels** (ours vs official vs a level I liked) | parts | `tools/quality.js` (QUALITY.md), craft.js, the taste corpus | one picture-plus-table page per comparison |
-
 | 16 | **Add / move / change one thing by prompt** ("an orb here", "lower this block", "make this a wave") | not yet | make.js specs, the viewer's coordinates and #lv links | a small edit tool: a level + a spot (x, block or a viewer link) + the change in words -> a copy with only that changed, re-solved, gates re-run |
 | 17 | **Edit by prompt + picture** (a screenshot or a viewer mark with a drawing on it) | parts | the user's marks and annotated screenshots (read by hand today), soft rules | read the mark's spot and drawing, propose the change, apply it as 16, and learn the family as a soft rule |
 | 18 | **Prompt + Q&A -> level**: a short interview (song, length, difficulty, theme, modes, mood) before building | not yet | compose briefs, the scene planner | the question set with good defaults ("let it run" = defaults), turning the answers into a brief |
