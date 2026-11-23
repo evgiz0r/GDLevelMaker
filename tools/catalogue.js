@@ -44,7 +44,8 @@ if (step === "index") {
   require("./headless.js").headless("viewer/catalogue.html?save=1", path.join(dir, ".done"), { port: +(process.argv[3] || 8767) }).then(r => {
     const pngs = fs.readdirSync(dir).filter(f => f.endsWith(".png"));
     console.log(r.ok ? `done: ${pngs.length} sheets in local/catalogue/ (${r.seconds.toFixed(0)} s)` : "timed out; sheets so far: " + pngs.length);
-  }, e => console.log(e.message));
+    process.exit(r.ok ? 0 : 1);
+  }, e => { console.log(e.message); process.exit(1); });
 } else if (step === "usage") {
   const { readGdlvl } = require("./io.js");
   const levels = [];

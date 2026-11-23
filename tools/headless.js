@@ -21,7 +21,10 @@ async function headless(pagePath, doneFile, opt = {}) {
     "--user-data-dir=" + prof, `--window-size=${opt.width || 1920},${opt.height || 1080}`, url], { stdio: "ignore" });
   const t0 = Date.now(), limit = opt.timeoutMs || 10 * 60e3;
   while (!fs.existsSync(doneFile) && Date.now() - t0 < limit) await new Promise(r => setTimeout(r, 400));
-  br.kill(); if (server) server.kill();
+  // kill and let go: on Windows Edge's broker can outlive the kill, and a live child handle kept node
+  // running after the PNGs were written (gd-polish, 2026-11-23)
+  try { br.kill(); } catch (e) {} br.unref();
+  if (server) { try { server.kill(); } catch (e) {} server.unref(); }
   await new Promise(r => setTimeout(r, 300));
   try { fs.rmSync(prof, { recursive: true, force: true }); } catch (e) {}
   return { ok: fs.existsSync(doneFile), seconds: (Date.now() - t0) / 1000 };
