@@ -29,7 +29,7 @@ if (step === "index") {
   if (!Object.keys(have).length) console.log("(game not found: sizes left empty; set GD_GAME)");
   const rows = [["id", "group", "family", "frame", "kind", "w_blocks", "h_blocks", "layer", "ch_main", "ch_detail", "parts", "note"].join("\t")];
   for (const id of C.ids()) {
-    const fr = C.frameOf(id), f = have[fr], inf = ART.info(id), d = O.objInfo(id);
+    const fr = C.frameOf(id), f = have[fr], inf = ART.info(id) || { src: "none", z: "", ch1: "", ch2: -1 }, d = O.objInfo(id);
     const t = ART.tree(id, n => have[n] ? [have[n].sw / 4, have[n].sh / 4] : null);
     rows.push([id, C.group(id), C.family(fr), fr, d.kind, f ? (f.sw / 120).toFixed(2) : "", f ? (f.sh / 120).toFixed(2) : "",
       inf.src === "gd22" ? "?" : LAYER[inf.z] || inf.z, inf.src === "gd22" ? "?" : inf.ch1, inf.src === "gd22" ? "?" : (inf.ch2 > 0 ? inf.ch2 : ""),
