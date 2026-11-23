@@ -129,6 +129,10 @@ function compose(brief, tweaks = {}) {
   const seen = new Set();
   let col = 0, prevFlying = false, flyEnd = -99;
   const lens = sectionBlocks(brief), speeds = speedsOf(brief);
+  // no dead air at the end (polish's tools/deadair.js; the user on hellgate: "the ending is too long where
+  // nothing happens"; GD ends a level at its furthest object): the closing rest holds the signature (3
+  // blocks in, 7 wide) and a little run, ~14 blocks
+  { const li = brief.sections.length - 1; if (brief.sections[li].rest && brief.signature !== false) lens[li] = Math.min(lens[li], 14); }
   const total = lens.reduce((a, n) => a + n, 0);
   let lastSpeed = brief.speed || "1x", h = 0, prevUpside = false;
   const extra = structurePicks(brief);
@@ -313,6 +317,11 @@ function compose(brief, tweaks = {}) {
       if (terrain && h > 0) { fill(filledTo, filledTo + 2, h); h = 0; }   // a last step down to the ground
       prevFlying = false;
     }
+    // a rest in the middle over 3 s gets one easy single in its middle, so no stretch passes without an
+    // input (polish's tools/deadair.js: no stretch over 3 s without an input or obstacle); "busy": false
+    // on the section keeps it empty (then accept "dead air" in the brief with the reason)
+    if (sec.rest && si > 0 && si < brief.sections.length - 1 && sec.busy !== false && sec.blocks * 30 / upsOf(speeds[si]) > 3)
+      objects.push(["pattern", "single", start + Math.floor(sec.blocks / 2), 0, {}]);
     if (upside) { prevFlying = true; flyEnd = end; }   // the cube drops from the ceiling: a lead-in next
     prevUpside = upside;
     ranges.push([i0, objects.length, start, end]);
