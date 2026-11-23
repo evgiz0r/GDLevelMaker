@@ -322,7 +322,7 @@ function build(spec, specFile = "spec") {
     const play = objects.filter(o => { const k = (GD.objInfo(o.id) || {}).kind; return k && k !== "decoration" && k !== "trigger" && k !== "deco"; });
     for (const it of spec.props) {
       const o = Object.assign({ alloc, theme: spec.propTheme }, it), y = (it.row || 0) * 30 + (it.y || 0);
-      const r = it.from != null ? P.place(it.prop, it.from * 30, it.to * 30, Object.assign(o, { y })) : P.put(it.prop, it.col * 30 + 15, y, o);
+      const r = it.from != null ? P.place(it.prop, it.from * 30, it.to * 30, Object.assign(o, { y, avoid: it.avoid === false ? null : objects })) : P.put(it.prop, it.col * 30 + 15, y, o);
       objects.push(...r.objects); Object.assign(cols, r.colours);
       // soft rule (ART.md): a prop on the ground near gameplay can read as an obstacle -- say so
       for (const x of r.xs || [it.col * 30 + 15]) {

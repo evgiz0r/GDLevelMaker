@@ -215,7 +215,10 @@ skips something, its 99% wrong. and will cause trouble. and anyway not the human
 - A route that passes a **portal** (mode, gravity, speed, size, teleport) without taking it is REJECTED in
   every solver (lib/physics.js solveSweep: dropped from the search; solveAny: an exact cube route that skips
   falls back to the ranked sweep). Portals of the same effect stacked within 30 units of x count as one: any
-  of them is enough.
+  of them is enough. A portal is a requirement only when some state of the search came within 60 units
+  of it (2 blocks): a decorative portal far off the play (ClockWood's ball portal 22 blocks up, Spooky
+  Dash's teleport at y 1605) is not, and a finished solve names such portals in `outOfReach`. One the
+  search got near and never took is the "stuck" case.
 - An **orb or pad** is "clearly meant to be taken" when the route's player box comes within 15 units of it
   (on the route's own line). The sweep already takes as many orbs as any route can, so a finished route that
   still leaves one like that is reported stuck: `why: "skipped an orb/pad"`, `skipped: "<name> at x <x>"`.

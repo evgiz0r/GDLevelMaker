@@ -16,30 +16,31 @@ const ROOT = path.join(__dirname, "..");
 const PORTAL = ["mode", "gravity", "speed", "size", "teleport"];
 
 function skipsOf(objects, header, events) {
-  const w = GD.makeWorld(objects, header), run = GD.run(w, events), P = run.path;
-  const reach = run.end.x;
+  const w = GD.makeWorld(objects, header), run = GD.run(w, events), P = run.path, end = run.end;
+  // every object the run fired: the union over the whole run (a state's used list is trimmed to the last 80 units)
+  const reach = end.x, used = new Set(); for (const p of P) for (const i of p.used || []) used.add(i);
   const moved = new Set();
   for (const o of objects) if (o.id === 901 && o.props && o.props[51]) moved.add(String(o.props[51]));
   const movesOf = o => o.props && o.props[57] && String(o.props[57]).split(".").some(g => moved.has(g));
-  const touched = o => {
-    const hb = GD.hitbox(o); if (!hb) return true;
-    for (let t = 0; t < P.length; t++) { const p = P[t]; if (p.x + 15 >= hb.x0 && p.x - 15 <= hb.x1 && p.y + 15 >= hb.y0 && p.y - 15 <= hb.y1) return true; }
-    return false;
-  };
-  const inReach = o => o.x < reach - 15;
-  const kind = o => (GD.objInfo(o.id) || {}).kind;
-  const portals = objects.filter(o => PORTAL.includes(kind(o)) && inReach(o)), orbs = objects.filter(o => /^(orb|pad)$/.test(kind(o)) && inReach(o));
-  // what the route is at a portal's x: a portal that would change nothing there (a ship portal while
-  // flying a ship, normal gravity while upright...) is a no-op, not a skip (a same-mode portal in a
-  // flying mode moves the band in GD: noted, not counted); a portal in the same column as one the route
-  // takes is another lane (Deadlocked's stacked teleports), not a skip
+  // taken = the sim fired it (its index is in the run's used list, as GD.skipCheck in lib/physics.js) -- not a
+  // box overlap: Electrodynamix's mini ship clipped a cube portal's corner by 6 units and stayed a ship
+  const items = kinds => w.items.filter(b => kinds.includes(b.kind) && b.x1 + 15 < reach);
+  const portals = items(PORTAL), orbs = items(["orb", "pad"]);
   const at = x => { let best = P[0]; for (const p of P) { if (p.x > x) break; best = p; } return best; };
-  const noop = o => { const i = GD.objInfo(o.id), s = at(o.x);
-    return i.kind === "mode" ? i.mode === s.mode : i.kind === "gravity" ? i.grav === s.grav : i.kind === "speed" ? i.speed === s.sp : i.kind === "size" ? !!i.mini === !!s.mini : false; };
-  const desc = o => ({ id: o.id, name: GD.objInfo(o.id).name, block: +((o.x - 15) / 30).toFixed(1), y: Math.round(o.y), moves: movesOf(o), noop: noop(o) });
+  // a no-op: the route there already has what the portal sets (same mode / gravity / speed / size), shown by
+  // the run's own state at the portal; a twin: a portal with the same effect within 30 units that fired
+  const eff = b => b.kind + ":" + (b.d.mode || "") + ":" + (b.d.grav != null ? b.d.grav : "") + ":" + (b.d.speed != null ? b.d.speed : "") + ":" + (b.d.mini != null ? b.d.mini : "");
+  const cx = b => (b.x0 + b.x1) / 2;
+  const noop = b => { const d = b.d, s = at(cx(b));
+    return b.kind === "mode" ? d.mode === s.mode : b.kind === "gravity" ? d.grav === s.grav : b.kind === "speed" ? d.speed === s.sp : b.kind === "size" ? !!d.mini === !!s.mini : false; };
+  // within reach: the route came within 60 units of it (physics' rule, lib/physics.js 14449b0: a portal far
+  // off the play is decoration, not a requirement -- ClockWood's ball portal at y 675)
+  const REACH = 60, near = b => P.some(p => p.x + 15 > b.x0 - REACH && p.x - 15 < b.x1 + REACH && p.y + 15 > b.y0 - REACH && p.y - 15 < b.y1 + REACH);
+  const desc = b => ({ id: b.o.id, far: !near(b), name: b.d.name, block: +((b.o.x - 15) / 30).toFixed(1), y: Math.round(b.o.y), moves: !!movesOf(b.o), noop: noop(b),
+    lane: portals.some(c => c !== b && used.has(c.i) && eff(c) === eff(b) && Math.abs(cx(c) - cx(b)) < 30) });
   return { reach, complete: !!run.done, portals: portals.length, orbs: orbs.length,
-    missedPortals: (() => { const tk = portals.filter(touched); return portals.filter(o => !touched(o)).map(desc).map(d => Object.assign(d, { lane: tk.some(t => Math.abs(t.x - (d.block * 30 + 15)) < 10) })); })(),
-    missedOrbs: orbs.filter(o => !touched(o)).map(desc) };
+    missedPortals: portals.filter(b => !used.has(b.i)).map(desc), missedOrbs: orbs.filter(b => !used.has(b.i)).map(desc),
+    shared: GD.skipCheck ? (GD.skipCheck(w, P, events) || {}).skipped || null : undefined };
 }
 
 function official(n) {
@@ -64,13 +65,13 @@ function main() {
     out.push(r);
     if (process.argv.includes("--json")) continue;
     if (r.none) { console.log(`${r.name}: no saved route`); continue; }
-    const mp = r.missedPortals.filter(o => !o.moves && !o.noop && !o.lane), mm = r.missedPortals.filter(o => o.moves), nn = r.missedPortals.filter(o => !o.moves && (o.noop || o.lane));
+    const mp = r.missedPortals.filter(o => !o.moves && !o.noop && !o.lane && !o.far), mm = r.missedPortals.filter(o => o.moves), nn = r.missedPortals.filter(o => !o.moves && (o.noop || o.lane || o.far));
     console.log(`${(r.n ? String(r.n).padStart(2) + " " : "") + r.name}: ${mp.length ? "SKIPS " + mp.length + " of " + r.portals + " portals" : "takes all " + r.portals + " portals"}` +
-      (mm.length ? ` (+${mm.length} moved by triggers, unsure)` : "") + (nn.length ? ` (${nn.length} passed that change nothing or are another lane)` : "") + `, ${r.missedOrbs.length} of ${r.orbs} orbs/pads untouched${r.complete ? "" : ", route ends at block " + (r.reach / 30).toFixed(0)}`);
+      (mm.length ? ` (+${mm.length} moved by triggers, unsure)` : "") + (nn.length ? ` (${nn.length} passed that change nothing, are another lane or lie over 2 blocks off the route)` : "") + `, ${r.missedOrbs.length} of ${r.orbs} orbs/pads untouched${r.complete ? "" : ", route ends at block " + (r.reach / 30).toFixed(0)}`);
     for (const o of mp) console.log(`     portal ${o.name} (${o.id}) at block ${o.block}, y ${o.y}`);
   }
   if (process.argv.includes("--json")) console.log(JSON.stringify(out));
 }
 if (require.main === module) main();
-const realSkips = r => (r.missedPortals || []).filter(o => !o.moves && !o.noop && !o.lane);
+const realSkips = r => (r.missedPortals || []).filter(o => !o.moves && !o.noop && !o.lane && !o.far);
 module.exports = { skipsOf, official, file, realSkips };

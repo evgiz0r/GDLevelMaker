@@ -37,6 +37,15 @@ committed). Everything here is a rule or a number, never a copied layout.
 | neighbouring pillars differ in height | 39-100% (median 87%) | 90% | 89% | 0% | - | 67% | >= 70% |
 | deco belonging to no structure | 0-1% | 0% | 1% | 32% | 28% | 42% | <= 20% |
 
+**Targets depend on the look** (the taste session, 308 community levels, TASTE_DATA.md "Per band"):
+the hazard-floor share (>= 35%) and the loose-deco limit (<= 20%) are RobTop-1.x-look targets. Featured
+Easy/Normal levels have 16-21% hazard floors, and 2.0-2.2 ones 30-52% loose deco (epic more than featured),
+so a 2.2-look level (a third of its deco ids >= 1000; `--look=2.2`) is held to a 15% floor and leaves loose
+deco to tools/readability.js (contrast, clutter). Hazards: >= 45 and <= 110 per 100 blocks for Easy/Normal, <= 180 for
+Hard and up (the brief's difficulty label; `--tier=Hard`) -- featured Easy/Normal sit at ~75-81, featured
+Hard/Harder at ~140; Jumper's 121 and xStep's 191 are Hard/Harder numbers, and spike spam marks the
+plain, unrated level.
+
 Read: **RobTop builds a level out of many small pieces** (a pillar, a hanging column, a 1x1 block, a
 3-wide slab), each with hazards and deco attached, over a floor that is mostly hazard. Ours are built
 from few long masses on a safe floor, with decoration floating in the background.
