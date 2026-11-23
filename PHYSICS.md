@@ -328,7 +328,12 @@ or holds longer than needed (over 0.15 s outside ship/wave where a tap finishes)
    Cost: the first humanCost of a level is ~30 s on GDLM 44 (window measuring); measureWindows caches each
    window on the world `w` (difficulty, 48eeeac), so later candidates of the same level cost ~0.15-2 s.
    natural.js keeps one `w` per level for that reason.
-5. **Calibration (open):** tools/human_presses.js measures where the user really presses in each window
+5. **Orbs are taken buffered** (the user: "usually with orbs, when possible, we want to buffer"): the press
+   comes 2-6 frames before the orb and is held until the orb fires on its first tick of contact (in the sim a
+   press arms s.ring, kept while held; a ground jump uses it up, so a hold carried from a jump does NOT fire an
+   orb -- UNCHECKED against the game, a lab station is asked of gd-physics2). natural.js bufferOrbs;
+   tests/saved_routes.js warns on orbs no buffered press can take (natural.js unbufferedOrbs).
+6. **Calibration (open):** tools/human_presses.js measures where the user really presses in each window
    from recordings; the difficulty session fits humanCost's `centre` weight (and the 40%) to it.
 
 ## The intended route (solver ranking)
