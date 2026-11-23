@@ -187,6 +187,24 @@ const SERVER = http.createServer((req, res) => {
     } catch (e) {}
     res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify(out));
   }
+  // GET /wip/stages?file=local/wip/<session>/<base>.gdlvl: a build's stages (tools/stages.js): each with its level
+  // string (the song stage: an empty level), its data and its saved solution when the shared cache has one
+  if (p === "/wip/stages") {
+    const q = new URL(req.url, "http://x").searchParams.get("file") || "";
+    if (!/^local\/wip\/[\w-]+\/[\w.-]+\.gdlvl$/.test(q)) { res.writeHead(400); return res.end("bad file"); }
+    let out = { stages: [] };
+    try {
+      const dir = process.env.GDLM_WIP_DIR ? path.join(process.env.GDLM_WIP_DIR, q.replace(/^local\/wip\//, "").replace(/\.gdlvl$/, ".stages")) : path.join(root, q.replace(/\.gdlvl$/, ".stages")), idx = JSON.parse(fs.readFileSync(path.join(dir, "index.json"), "utf8"));
+      const { readGdlvl } = require("./io.js"), S = require("./solutions.js"), GDL = require("../lib/gd.js");
+      out = Object.assign({}, idx, { stages: idx.stages.map(st => {
+        let level = null, solution = null, file = null;
+        if (st.file) try { const abs = path.join(dir, path.basename(st.file)); file = path.relative(root, abs).split(path.sep).join("/"); level = readGdlvl(abs).levelStr; solution = S.get(level) || null; } catch (e) {}
+        if (!level) { level = String(GDL.DEFAULT_HEADER).replace(/;?$/, ";"); solution = { ok: true, events: [] }; }   // the song stage: an empty level
+        return Object.assign({}, st, { level, solution, file });
+      }) });
+    } catch (e) {}
+    res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify(out));
+  }
   // GET /heavy/status?match=<text>: the heavy-job queue (tools/heavy.js) for the viewer's task modal and chip: who
   // runs, who waits in order, and for the job whose command line holds `match`: its place and a rough ETA (minutes)
   if (p === "/heavy/status") {
@@ -212,7 +230,7 @@ const SERVER = http.createServer((req, res) => {
     req.on("end", () => {
       let j = {}; try { j = JSON.parse(body); } catch (e) {}
       const file = String(j.file || "");
-      if (!/^(levels|examples|local\/wip\/[\w-]+|local)\/[\w.-]+\.(gdlvl|json)$/.test(file) || !fs.existsSync(path.join(root, file))) { res.writeHead(400); return res.end("bad level"); }
+      if (!/^(levels|examples|local\/wip\/[\w-]+(?:\/[\w.-]+\.stages)?|local)\/[\w.-]+\.(gdlvl|json)$/.test(file) || !fs.existsSync(path.join(root, file))) { res.writeHead(400); return res.end("bad level"); }
       const abs = path.join(root, file); SOLVE.high.add(abs);
       if (!SOLVE.seen.has(abs)) { SOLVE.seen.add(abs); SOLVE.queue.unshift(abs); if (!SOLVE.running) solveNext(); }
       res.writeHead(200, { "Content-Type": "application/json" }); res.end('{"queued":true}');
@@ -222,7 +240,7 @@ const SERVER = http.createServer((req, res) => {
   if (p === "/solution") {
     const file = new URL(req.url, "http://x").searchParams.get("file") || "";
     let sol = null;
-    try { if (/^(levels|examples|local\/wip\/[\w-]+|local)\/[\w.-]+\.gdlvl$/.test(file)) { const { readGdlvl } = require("./io.js"); sol = require("./solutions.js").get(readGdlvl(path.join(root, file)).levelStr) || null; } } catch (e) {}
+    try { if (/^(levels|examples|local\/wip\/[\w-]+(?:\/[\w.-]+\.stages)?|local)\/[\w.-]+\.gdlvl$/.test(file)) { const { readGdlvl } = require("./io.js"); sol = require("./solutions.js").get(readGdlvl(path.join(root, file)).levelStr) || null; } } catch (e) {}
     res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify({ solution: sol }));
   }
   // POST /maps/make {file, name}: the viewer's "level map" for a level that has none yet -> tools/levelmap.js
@@ -251,6 +269,20 @@ const SERVER = http.createServer((req, res) => {
               try { const c = require("./solutions.js").get(L.levelStr, true);
                 if (solution && !solution.windows && c && c.windows && JSON.stringify(c.events) === JSON.stringify(solution.events)) solution = Object.assign({}, solution, { windows: c.windows, win: c.win }); } catch (e) {}
               out.push(Object.assign({}, m, { name: m.name, file: "local/wip/" + m.session + "/" + m.file, level: L.levelStr, song: songOf(L.rec, L.level.header), wip: true, solution })); } catch (e) {}
+      }
+      // build stages (tools/stages.js): the stage each build has reached; a build with stages but no wip level yet
+      // is listed too, as its latest stage (the song stage alone: an empty level with the song)
+      const ST = require("./stages.js"), GDL = require("../lib/gd.js");
+      for (const b of ST.list()) {
+        const last = b.index.stages[b.index.stages.length - 1]; if (!last) continue;
+        const file = "local/wip/" + b.session + "/" + b.base + ".gdlvl", have = out.find(o => o.file === file);
+        if (have) { have.stage = last.stage; continue; }
+        const withLevel = b.index.stages.filter(s => s.file).pop(), songSt = b.index.stages.find(s => s.stage === "song");
+        let level = String(GDL.DEFAULT_HEADER).replace(/;?$/, ";"), solution = { ok: true, events: [] };
+        if (withLevel) try { level = readGdlvl(path.join(b.dir, withLevel.file)).levelStr; solution = require("./solutions.js").get(level) || undefined; } catch (e) {}
+        out.push({ name: b.index.name, session: b.session, file, wip: true, stagesOnly: true, stage: last.stage, level, solution,
+          song: songSt && songSt.data && songSt.data.song || undefined, version: 0, note: "building: " + b.index.stages.map(s => s.stage).join(" > "),
+          made: b.index.stages[0].at, updated: last.at });
       }
     } catch (e) {}
     res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify(out));
