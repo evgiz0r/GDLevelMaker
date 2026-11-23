@@ -479,7 +479,7 @@ function draw() {
     const skip = o => { const d = GD.objInfo(o.id); if (d.kind === "trigger") return true; const i = AR.info(o.id); return !!i && /^edit_/.test(i.frame); };
     const res = AR.drawObjects(ctx, on, LS, local, o => GD.LOOK.objAlpha(o, LS.alpha), skip);
     for (const o of res.rest) { const d = GD.objInfo(o.id);
-      if (o.id === 914) { const a = GD.LOOK.objAlpha(o, LS.alpha); if (a > 0.01) { ctx.globalAlpha = a; local(o, () => GD.LOOK.drawDeco(ctx, o, LS)); ctx.globalAlpha = 1; } continue; } // text: GD's font, drawn by lib/look.js
+      if (GD.LOOK.isMark(o.id)) { const a = GD.LOOK.objAlpha(o, LS.alpha); if (a > 0.01) { ctx.globalAlpha = a; local(o, () => GD.LOOK.drawMark(ctx, o, LS)); ctx.globalAlpha = 1; } continue; } // text (GD's font) or an arrow with no sprite: lib/look.js
       if (d.kind === "decoration" || d.kind === "trigger") continue;
       const a = GD.LOOK.objAlpha(o, LS.alpha); if (a <= 0.01) continue; ctx.globalAlpha = a; drawObj(o); ctx.globalAlpha = 1; ctx.shadowBlur = 0; }
     res.after();
@@ -508,6 +508,9 @@ function draw() {
   ctx.strokeStyle = "#7d6bff"; ctx.lineWidth = 3; ctx.shadowColor = "#7d6bff"; ctx.shadowBlur = 12;
   ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke(); ctx.shadowBlur = 0;
   // objects
+  // jump indicators and text are decoration, but they tell the player something: soft, as in the game
+  for (const o of objsNow) if (GD.LOOK.isMark(o.id) && sx(o.x) > -150 && sx(o.x) < W + 150) {
+    ctx.globalAlpha = o.id === 914 ? 0.8 : 0.45; local(o, () => GD.LOOK.drawMark(ctx, o, null)); ctx.globalAlpha = 1; }
   for (const o of objsNow) if (sx(o.x) > -60 && sx(o.x) < W + 60) drawObj(o);
   }
   // end line
