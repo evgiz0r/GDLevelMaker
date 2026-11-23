@@ -94,6 +94,10 @@ function incSave(levelStr, sol, level) {
 // from a solver result already in hand (make.js has one): natural plan, saved
 function fromRun(level, levelStr, r) {
   const w = GD.makeWorld(level.objects, level.header);
+  // an incremental re-solve hands its world (r.world): its timing windows carry over to this one (make.js adds
+  // jump indicators after the check, decoration that changes no window)
+  if (r && r.world) try { const INC = require("../lib/incsolve.js").incsolve, d = INC.diffObjects(r.world.objects, level.objects);
+    INC.carryWindows(r.world, w, INC.influence(r.world, w, d, level.header, level.header), d); } catch (e) { /* cold */ }
   let sol;
   // THE DEFAULT (the user, 2026-11-23: "let's by default solve with the human route, then in the limits we
   // will see"): every saved route is the human route -- lib/natural.js with humanCost (no skips, no unneeded
@@ -102,7 +106,10 @@ function fromRun(level, levelStr, r) {
   // "unbeaten" when the solver itself is stuck.
   if (r && r.ok) {
     let events = r.events, kind = "limit", why = "the natural plan could not finish the level: the solver's raw route";
-    try { const n = GD.naturalPlan(w, r, level.objects, { cost: true });
+    // an incremental re-solve (r.inc, lib/incsolve.js): the route outside [from, to] is already the old natural
+    // route, so only that window is planned again
+    const win = r.inc && !r.inc.reused && r.inc.from != null ? [r.inc.from, r.inc.to] : null;
+    try { const n = r.inc && r.inc.reused ? { events: r.events, path: GD.run(w, r.events).path } : GD.naturalPlan(w, r, level.objects, win ? { cost: true, window: win } : { cost: true });
       if (n && n.path[n.path.length - 1].done) { events = n.events; kind = "human"; why = undefined; } } catch (e) { why = "natural plan failed: " + e.message; }
     sol = { ok: true, events, kind, why, plan: planCommit() };
   } else sol = { ok: false, kind: "unbeaten", events: (r && r.trail) || [], dieX: r && r.dieAt && r.dieAt.x, why: r && r.why, skipped: r && r.skipped, plan: planCommit() };
@@ -133,6 +140,12 @@ function solve(level, levelStr, opts) {
       return fromRun(level, levelStr, { ok: true, events: c.events });
     }
   }
+  // the saved route breaks under the new physics: re-solve only from its first changed stretch, back onto
+  // its saved checkpoints (lib/incsolve.js refresh), before solving the whole level
+  if (c && c.ok && c.checkpoints) try {
+    const r = require("../lib/incsolve.js").incsolve.refresh(w, c.events, c.checkpoints);
+    if (r.ok && !r.kept) return fromRun(level, levelStr, { ok: true, events: r.events, inc: { from: r.from, to: r.to, rejoined: r.rejoined } });
+  } catch (e) { /* solve it whole */ }
   return fromRun(level, levelStr, GD.solveAny(w));
 }
 
