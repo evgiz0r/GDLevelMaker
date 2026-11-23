@@ -102,6 +102,8 @@ at once and the PC hung (0.2 GB free), so the rule is now a lock every heavy too
 (`make`, `compose`, `score`, `solutions`, `wip put`, `shoot`, `levelmap`, the `difficulty*` / `fairness*` /
 `tas*` solvers, `windows`, `press_window`, `stop`, `polish`, `structures`, `check`, `sightread`, ...):
 - one heavy job at a time (two while more than 6 GB is free), and none starts under 1.5 GB free;
+- while the user plays (GeometryDash.exe runs): one job whatever is free, and none starts under 2 GB free;
+- every heavy job lowers itself to idle CPU priority at start, so the game and the desktop always win;
 - the others wait and say so: `heavy: waiting for tools/make.js ... (<session>, pid, N min in, ~M min left)`;
 - the slot is a file in the shared `local/locks/heavy/` (real path, all worktrees); a dead pid's slot is
   cleared, a child of a holder runs in its parent's slot. `node tools/heavy.js` shows who holds it.
