@@ -104,7 +104,7 @@ function compose(brief, tweaks = {}) {
     // the modern pass's section (tools/decorate.js modernPass): kind, and colours from the section's bg
     { const bg = sec.bg || (looks.length ? looks[looks.length - 1].bg : [40, 60, 160]);
       const kind = sec.rest ? "rest" : sec.deco === 0 ? "break" : (sec.mode || "cube");
-      looks.push({ from: start, to: end, kind, bg, fill: bg.map(v => Math.min(255, Math.round(v * 0.8 + 60))), light: bg.map(v => Math.min(255, v + 110)) }); }
+      looks.push({ from: start, to: end, kind, bg, flash: !!sec.flash, fill: bg.map(v => Math.min(255, Math.round(v * 0.8 + 60))), light: bg.map(v => Math.min(255, v + 110)) }); }
     for (const e of sec.objects || []) { const c = e.slice(); c[c[0] === "pattern" ? 2 : 1] += start; objects.push(c); }
     // a mode section right after a corridor: the cube leaves the exit portal in the air, so its own
     // portal comes `land` columns later, once the cube is down (GDLM 45 v5 round 2: the cube fell past

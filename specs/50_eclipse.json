@@ -1,0 +1,39 @@
+{
+  "name": "GDLM 50 eclipse",
+  "desc": "A scene level: a city at dusk, a flight into the darkening sky, totality on the drop, the diamond ring, dawn. Song: Uxvellda - Eclipse. Made with GDLevelMaker.",
+  "song": { "custom": 1086693 }, "offset": 40.4502, "grid": { "bpm": 142.994, "t0": 0.1688 },
+  "scene": "tools/scenes/eclipse.js",
+  "indicators": {},
+  "objects": [
+    ["spike", 14, 0],
+    ["pattern", "platform", 19, 0, { "w": 5, "h": 1 }],
+    ["spike", 24, 0], ["spike", 25, 0],
+    ["pattern", "platform", 26, 0, { "w": 5, "h": 2 }],
+    ["spike", 35, 0],
+    ["pattern", "platform", 39, 0, { "w": 6, "h": 1, "spike": 3 }],
+    ["pattern", "double", 48, 0, {}],
+    ["pattern", "platform", 53, 0, { "w": 3, "h": 1 }],
+    ["spike", 56, 0], ["spike", 57, 0],
+    ["pattern", "platform", 58, 0, { "w": 3, "h": 1 }],
+
+    ["pattern", "ship-tunnel", 70, 0, { "w": 69, "gap": 5, "amp": 1.5, "base": 0.4, "waves": 2, "teeth": true, "lead": 9, "portal": true, "exit": "cube", "portalRow": 1 }],
+
+    ["pattern", "orb-pit", 149, 0, {}],
+    ["pattern", "pad-launch", 163, 0, { "n": 4 }],
+    ["pattern", "stairs", 174, 0, { "n": 2, "w": 3 }],
+    ["pattern", "double", 185, 0, {}],
+    ["pattern", "block-spike-block", 191, 0, {}],
+    ["spike", 200, 0],
+
+    ["pattern", "wave-zigzag", 210, 0, { "seg": 4, "legs": 10, "gap": 4, "low": 1, "flat": 2, "lead": 8, "slopes": true, "portal": true, "exit": "cube", "portalRow": 1 }],
+
+    ["spike", 287, 0],
+    ["pattern", "platform", 291, 0, { "w": 5, "h": 1 }],
+    ["spike", 296, 0], ["spike", 297, 0],
+    ["pattern", "platform", 298, 0, { "w": 4, "h": 2 }],
+    ["pattern", "hops", 306, 0, { "n": 3, "gap": 2, "w": 2, "rise": 1 }],
+    ["pattern", "double", 322, 0, {}],
+    ["spike", 328, 0],
+    ["pattern", "spike-block", 333, 0, {}]
+  ]
+}

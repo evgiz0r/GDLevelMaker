@@ -349,7 +349,7 @@ more than 60% of presses pinned to beats.
 **Jump indicators** (common in modern levels; they also show what the level intends): a small
 arrow just over the area where a jump starts, pointing down at it (`tools/decorate.js`
 jumpIndicators). The user's feedback on the first version (GDLM 44 v8 / 46 v2, 2026-11-23) set the
-rules: "a bit too high over the ground" -> the mark's centre is 24 units over the surface (was 45);
+rules: "a bit too high over the ground" -> the mark's centre is 30 units over the surface (was 45; rated median 1 block, knowledge/levels/obstacles.md section 4), half a block past the press;
 "the second indicator is wrong, dont need to jump there" -> marks come from the NATURAL plan (one tap
 per jump, lib/natural.js), never the solver's held-button run; "no indicator in some of the jumps"
 -> every real jump gets one (a filter for only the hard-to-read ones dropped 10 of 13), at least 2
@@ -371,8 +371,15 @@ there should be better space to click the orb, and clicking in the middle is alm
 (where you can mostly buffer)". Each orb now sits at the top of the arc that reaches it (the jump
 before the pit, then each orb's own launch), simulated at the level's speed: the cube passes
 through the orb's centre and is slowest there, so a press in the middle or a held button takes it.
-A yellow-orb ladder then climbs 2 rows per orb, 2.3 blocks apart; the pit ends a column before
-the landing. Harder levels can still place orbs off the arc on purpose (`fixed`).
+The orbs after the first sit where the previous orb's arc comes back down to its height (+1/3
+row): rated Easy/Normal chains stay level (~1 block of climb in all, ~3 blocks apart, a landing ~1
+block after; knowledge/levels/obstacles.md section 5), and apex-to-apex climbed 2.3 rows per orb --
+GDLM 46 v2's "cant adjust" triple. Now: 4.3 blocks apart, +1/3 row each (`"climb": true` keeps the
+apex chain). The pit ends a column before the landing. Harder levels can still place orbs off the arc on purpose (`fixed`). An apex chain (`climb`)
+climbs ~2 rows per orb, so 3 reach row 6.5: make.js notes a chain above row 7 (orb chains must not
+carry the cube to the screen's edge, knowledge/design.md). Rated levels put hint arrows a median 1
+block over the surface, right at the press (knowledge/levels/obstacles.md section 4): ours sit 0.8
+up, at the takeoff.
 
 **Wave turns** (GDLM 44 v7, physics 2026-11-23: a wave flying head-on into a slope dies, as in the
 game): with pure 45-degree slope walls the wave flies parallel to them and every turn meets the next
@@ -464,11 +471,14 @@ State on 2026-11-22. What a new session should know before touching this area:
   text label) the user opens and screenshots; then style deco sets (hell, classic ...).
 - **GDLM 44** (Easy, 10 s, song 343707): v5 under "in progress" in the viewer, all gates pass (the
   ship tunnel's teeth now start 6 columns in: `ship-tunnel` "lead").
-- **GDLM 45 first flight** (`briefs/45_low_tier.json`): the low-tier level from the knowledge base
-  (template A, a new mode every ~7 s): 61 s, Easy, cube sections with one idea each between ship
-  and wave corridors (compose.js `mode` sections), all gates pass in round 1 (~8 min per round on
-  this PC). Under "in progress" and on the phone; not pushed, not played. Its 3 prejump WARNs
-  (stairs, spike-block, finale) are the approximate check on chains of jumps, not seen as real.
+- **GDLM 45 first flight v5** (`briefs/45_low_tier.json`, 2026-11-23): the user's "Ragnarok 40 seconds,
+  with sections, Normal-Hard, somewhat matching the beat" + more variety, upside down, new modes.
+  42 s on 343707, 10 sections cut on the song (quiet build to b69, the drop flashed in): cube,
+  ship, ball, upside-down cube, wave, drop cube, ball, wave. All gates pass (26 presses, no
+  prejumps, tightest 50 ms); level wave turns, orbs on the arc, a mark on every real jump, the
+  modern pass + vfxkit (~6.5 objects per block). The model rates it Easy (0.17): every harder swap
+  broke the 50 ms floor -- the difficulty there needs block terrain and denser chunks, not tighter
+  timing. Took 28 min to compose (5 rounds x ~4 min) and 5 min to build. In wip and on the phone.
 - The approximate prejump check (mode levels) is noisy on chains of jumps: it shifts one press
   with the later ones fixed in time. A fix: re-solve the rest with `GD.solveFrom` for each shifted
   press (exact, but costs a sweep per try).

@@ -124,6 +124,12 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   user sees it), `tools/sightread.js` (prejumps), `tools/inputs.js` (a solution's inputs with
   modes), `lib/natural.js` (a natural replay plan: taps, no empty jumps). Test:
   `node tests/style_gates.js`.
+- **Scene levels, decorated by hand** (SHOWCASE.md: GDLM 50 eclipse, what made it look good, numbers,
+  what is unchecked in the game): `tools/scenekit.js` (recipes: own colour channels, palettes per section,
+  skylines, the eclipse set piece, stars, designed blocks, motes, light rays, a top frame, lock-to-player
+  parallax, beat pulses, text), a level's scene script `tools/scenes/<name>.js` (spec key `"scene"`).
+  `node tools/make.js <spec> --look` rebuilds a decoration-only change in a second (keeps the solve when
+  the gameplay is the same). Owner: the showcase session.
 - `tools/solutions.js` -- solve each level ONCE on the PC (`--all` for every repo level missing one);
   the viewer and the phone replay the saved solution (natural replay, stamped with the physics
   commit; stale ones are re-solved). make.js and wip.js save one whenever they solve.
@@ -140,6 +146,10 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   `lib/objects_frames.js` (`tools/import_frames.js`, GD 2.2's own id -> frame table from the exe).
   Test: `node tests/art_tables.js`. **See your level as the game draws it:** `node tools/shoot.js
   <level.gdlvl | save:<name> | official:N> [--at 2,5] [--rec <video> --t0 <s>]` -> PNGs in `local/shots/`.
+  **The whole level as one picture with its path:** `node tools/levelmap.js <level> [--brief briefs/NN.json]`
+  -> `local/maps/<name>.jpg` (viewer: "level map").
+  **Every level ends with the signature** (robot + human, "Made by Claude (and some humans)"):
+  `tools/signature.js` (signature() objects, describe() for the description).
 - **Deco catalogue** (knowledge/objects/README.md): `tools/catalogue.js index | sheets | usage` --
   every id with its picture on contact sheets (`local/catalogue/`, or browse `viewer/catalogue.html`),
   the searchable `knowledge/objects/catalogue.tsv`, and which deco families rated levels use together.
@@ -153,7 +163,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   owner: the polish session, wip `local/wip/polish/`): `tools/polish.js <level.gdlvl>` (fair windows and
   no input forced after a mode change, loose sync, chevrons on needed jumps, the modern look with
   parallax and beat pulses); output in `local/polish/` only. Before/after in GD art: `viewer/polish.html`
-  (via tools/serve.js) and shoot.js renders. Helpers: `tools/levelmap.js` (a level as text with the
+  (via tools/serve.js) and shoot.js renders. Helpers: `tools/textmap.js` (a level as text with the
   path), `tools/orbchain_try.js` (forgiving orb chains). Test: `node tests/polish.js`.
 - **The user's drawings -> levels** (SKETCH.md: reading a drawing into a spec, then making it fair;
   the GDLM 46 lessons).

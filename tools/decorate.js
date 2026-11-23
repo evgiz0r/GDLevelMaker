@@ -124,7 +124,7 @@ function setHeaderArt(header, bg, ground) {
 // to point at the ground, scale 0.7, on white (1011: its own channel 1006 is the player's colour) in
 // its own group, faded to `alpha` by an alpha trigger at the start. Any id works per spec:
 // "indicators": {"id": N, "rot": n, "ch": n}; id 914 = a text object showing `text` (e.g. "v").
-const INDICATOR = { id: 460, rot: 90, ch: 1011, scale: 0.7, text: "v", group: 990, alpha: 0.45, lift: 24 }; // lift: surface -> mark centre (45 read 'a bit too high', GDLM 44 v8)
+const INDICATOR = { id: 460, rot: 90, ch: 1011, scale: 0.7, text: "v", group: 990, alpha: 0.45, lift: 30 }; // lift: surface -> mark centre (45 read 'a bit too high', GDLM 44 v8; rated median 30)
 function jumpIndicators(w, r, id, GD, opts = {}) {
   const path = GD.run(w, r.events).path, out = [], marks = [];
   const boxes = w.items || [];
@@ -158,7 +158,7 @@ function jumpIndicators(w, r, id, GD, opts = {}) {
     if (opts.only && !why.length) continue;   // opts.only: just the jumps that cannot be read in time
     if (marks.length && a.x - marks[marks.length - 1] < 60) continue;
     marks.push(a.x);
-    const x = Math.round(a.x / 15) * 15;  // loosely: the area, not the tick
+    const x = Math.round((a.x + 15) / 15) * 15;  // loosely: the area, half a block past the press (rated: ~0.5 block before the hazard)
     out.push({ id, x, y: up ? surface + INDICATOR.lift : surface - INDICATOR.lift,
       rot: ((opts.rot ?? INDICATOR.rot) + (up ? 0 : 180)) % 360, flipX: false, flipY: false, props: markProps(id, opts), why: why.join(",") });
   }

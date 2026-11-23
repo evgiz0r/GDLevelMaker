@@ -27,7 +27,7 @@ turned into levels: SKETCH.md.
 | another indicator / height | `--indicator <id>[:rot]`, `--lift 24` | |
 | renders | `node tools/shoot.js <level> --at 1.5,4,7 --out local/shots/<name>` for before and after (it may not exit after writing: the PNGs are there), then `ffmpeg -i before.png -i after.png -filter_complex "[0]scale=960:-1[a];[1]scale=960:-1[b];[a][b]vstack" ba.png` | ~1 min |
 | before / after live | `node tools/serve.js`, http://localhost:8765/viewer/polish.html (every compare file; GD art; numbers, changes, every window) | |
-| the level as text | `node tools/levelmap.js <level> --from C --to C` (blocks, spikes, orbs, portals, the path, presses) | seconds |
+| the level as text | `node tools/textmap.js <level> --from C --to C` (blocks, spikes, orbs, portals, the path, presses) | seconds |
 | orb chains | `node tools/orbchain_try.js [--n 2,3] [--row 2,3] ...`: orb-chain layouts ranked by their tightest window | ~6 s a layout |
 | show it to the user | `node tools/wip.js put local/polish/<slug>_polished.gdlvl --session polish --note "..."`, then the ArtifactData call it prints (phone page); tell the main session (it installs) | |
 | test | `node tests/polish.js` | ~35 s |

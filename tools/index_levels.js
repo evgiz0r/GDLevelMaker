@@ -45,7 +45,7 @@ function buildIndex() {
   if (fs.existsSync(ld)) for (const f of fs.readdirSync(ld).sort()) {
     if (!f.endsWith(".json")) continue;
     const o = JSON.parse(fs.readFileSync(path.join(ld, f), "utf8"));
-    if (!o || typeof o.level !== "string") continue; // other sessions keep other json in local/ (it crashed make.js once)
+    if (!o || typeof o.level !== "string") continue;   // other sessions' json in the shared local/ (not a level)
     const header = o.level.split(";")[0];
     local.push({ name: "official " + o.n + ": " + o.name, file: "local/" + f, level: o.level, solution: o.solution, deaths: deaths[o.n] || [],
                  song: { url: "/song/official/" + OFFICIAL_SONGS[o.n - 1] + ".mp3", official: o.n - 1, offset: offsetOf(header) } });
