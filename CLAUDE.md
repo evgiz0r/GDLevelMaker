@@ -210,6 +210,9 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   `check`, `build <id>`, `rank`, `page`), results in `knowledge/structures.json`, a picture page for the
   phone (link in local/phone/structures_url.txt). Every cube-in/cube-out one is the pattern `"s:<id>"`,
   and compose.js puts one in every plain cube section by default (`"structures": false` = off).
+- **Quality vs the official levels** (QUALITY.md: one scorecard, official 1-10 next to every GDLM level --
+  gameplay, flow, look, fairness, soft rules -- with a verdict per metric and the biggest gaps; owner: the
+  difficulty session): `node tools/quality.js` (a new level gets a row by itself; `--cached` prints only).
 - **Level style and the idea -> level loop** (STYLE.md: findings, style vocabulary, the loop, every
   playtest lesson, what is open): `tools/style.js` (measure style: deco share, triggers, sections,
   rests, motifs, recurring chunks) + `tools/corpus.js` (official levels and the user's save, in

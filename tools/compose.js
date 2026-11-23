@@ -133,6 +133,15 @@ function compose(brief, tweaks = {}) {
   // nothing happens"; GD ends a level at its furthest object): the closing rest holds the signature (3
   // blocks in, 7 wide) and a little run, ~14 blocks
   { const li = brief.sections.length - 1; if (brief.sections[li].rest && brief.signature !== false) lens[li] = Math.min(lens[li], 14); }
+  // length and mode changes, before anything is placed (QUALITY.md: official levels 1-10 run 78-95 s and
+  // change mode 1.3-5.2 times a minute; ours were short with 7-17 a minute -- snippets). A note, not a stop:
+  // the brief decides (score.js gates "length" / "mode changes"; "accept" them with the reason)
+  {
+    const secs = lens.reduce((a, n, i) => a + n * 30 / upsOf(speeds[i]), 0);
+    let ch = 0; for (let i = 1; i < brief.sections.length; i++) if ((brief.sections[i].mode || "cube").replace("upside", "cube") !== (brief.sections[i - 1].mode || "cube").replace("upside", "cube")) ch++;
+    if (secs < 60) console.log(`   NOTE the brief is ${secs.toFixed(0)} s: official levels run 78-95 s (QUALITY.md)`);
+    if (ch / (secs / 60) > 6) console.log(`   NOTE ${ch} mode changes in ${secs.toFixed(0)} s = ${(ch / (secs / 60)).toFixed(1)} a minute: official 1.3-5.2; longer sections with one mode each`);
+  }
   const total = lens.reduce((a, n) => a + n, 0);
   let lastSpeed = brief.speed || "1x", h = 0, prevUpside = false;
   const extra = structurePicks(brief);
