@@ -79,6 +79,14 @@ for (const [mode, want] of [["cube", 16], ["ball", 9.6]]) {
   check("wave slides along a block top", slidX !== null && slidX < 300, slidX && slidX.toFixed(0));
   check("wave dies sliding off the block's end", s.dead && s.x > 360 && s.x < 362, `${s.why} at ${s.x.toFixed(1)}`);
 }
+// wave vs a rising 45-degree slope: held, it slides up along it; released (head-on), it dies
+// (measured: the user's GDLM 44 zigzag, 2026-11-23_03-11-47.mkv ~25 s)
+for (const hold of [true, false]) {
+  const objs = [{ id: 660, x: 100, y: 45 }, { id: 1338, x: 315, y: 15 }, { id: 1338, x: 345, y: 45 }, { id: 1, x: 900, y: 15 }];
+  const w = GD.makeWorld(objs), s = GD.startState(w);
+  for (let t = 0; t < 260 && !s.dead; t++) { const h = hold && s.mode === "wave" && s.x > 280; GD.step(w, s, { press: h, held: h }); }
+  check(hold ? "wave held slides up a slope" : "wave released dies head-on into a slope", hold ? !s.dead : s.dead && s.why === "slope", `${s.dead ? s.why : "alive"} at ${s.x.toFixed(0)},${s.y.toFixed(0)}`);
+}
 // the solver's click windows replay: every tick in a window clears (difficulty session's repro:
 // triple spike with a yellow orb above, the merged-state solver claimed 429-450, real 440-450)
 {

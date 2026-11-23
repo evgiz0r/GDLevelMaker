@@ -13,7 +13,7 @@ fs.mkdirSync(path.join(OUT, "lib"), { recursive: true });
 
 let html = fs.readFileSync(path.join(ROOT, "viewer", "index.html"), "utf8").replace(/\r\n/g, "\n");
 const libs = [...html.matchAll(/<script src="\.\.\/lib\/([\w.]+)"><\/script>/g)].map(m => m[1]);
-for (const f of libs) fs.copyFileSync(path.join(ROOT, "lib", f), path.join(OUT, "lib", f));
+for (const f of libs.filter(f => !/^(art|objects_art|objects_frames)\.js$/.test(f))) fs.copyFileSync(path.join(ROOT, "lib", f), path.join(OUT, "lib", f));
 fs.copyFileSync(path.join(ROOT, "viewer", "levels.js"), path.join(OUT, "levels.js"));
 const beats = path.join(ROOT, "viewer", "beats.local.js");
 fs.writeFileSync(path.join(OUT, "beats.js"), fs.existsSync(beats) ? fs.readFileSync(beats) : "window.GD_BEATS = {};\n");
@@ -26,6 +26,8 @@ swap('<meta charset="utf-8">\n', ""); swap('<meta name="viewport" content="width
 swap("<title>GD Level Viewer</title>", "<title>GDLM Level Replays</title>");
 swap('src="../lib/', 'src="lib/');
 swap('<script src="levels.local.js" onerror="window.GD_LEVELS_LOCAL = []"></script>', "<script>window.GD_LEVELS_LOCAL = [];</script>");
+// no GD art on the published page: RobTop's sprites never leave the user's PC (VISUALS.md "Phone")
+swap('<script src="lib/objects_art.js"></script>\n<script src="lib/objects_frames.js"></script>\n<script src="lib/art.js"></script>\n', "<script>window.GD_PHONE = true;</script>\n");
 swap('<script src="beats.local.js" onerror="window.GD_BEATS = {}"></script>', '<script src="beats.js" onerror="window.GD_BEATS = {}"></script>');
 // Songs: none are published. The viewer picks mp3s from their own device ("add song"); they are
 // decoded with Web Audio (no media URLs, which the Artifact frame may refuse) and kept in this

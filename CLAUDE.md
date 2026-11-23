@@ -102,7 +102,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 - **The phone page** (PHONE.md: what is on it, what a session does after `wip.js put`, phone
   marks, how it was tested, what is open): `tools/web.js` builds it from the viewer.
 - `tools/` -- node CLIs: `make`, `check`, `roundtrip`, `index_levels`, `serve`, `beats` (beat grid
-  of every song on this PC, ffmpeg + JS), `sync` (how well levels follow their song's beat), `frames` (timing windows with 60 fps presses, as the user's game has them), `press_window` (which press ticks get the player through one spot, from a given position: the human window there), `web` (the viewer as a phone page, PHONE.md), `songs` (custom songs by id into local/songs/, as GD gets them; SYNC.md section 6), `songmap` (songs' beat clarity, sections, drops, and how levels follow them; SYNC.md section 7), `fetch_level` (online levels by ID into local/community/, for measuring only, never committed), `community` (study rated community levels: list, fetch, measure, modes, comments; see knowledge/README.md), `tiercheck` (does each section look like rated Easy/Normal or Hard/Harder sections of its mode; `--tier Easy`), `variety` (kinds of thing, portals, modes, speeds, repeated chunks vs rated levels; knowledge/levels/variety.md), `obstacles` (block structure per mode, obstacle shapes, when new kinds come in; knowledge/levels/obstacles.md), `difficulty` (score vs the official ratings).
+  of every song on this PC, ffmpeg + JS), `sync` (how well levels follow their song's beat), `frames` (timing windows with 60 fps presses, as the user's game has them), `press_window` (which press ticks get the player through one spot, from a given position: the human window there), `windows` (every input's timing window in any mode, by moving it and replaying), `web` (the viewer as a phone page, PHONE.md), `songs` (custom songs by id into local/songs/, as GD gets them; SYNC.md section 6), `songmap` (songs' beat clarity, sections, drops, and how levels follow them; SYNC.md section 7), `fetch_level` (online levels by ID into local/community/, for measuring only, never committed), `community` (study rated community levels: list, fetch, measure, modes, comments; see knowledge/README.md), `tiercheck` (does each section look like rated Easy/Normal or Hard/Harder sections of its mode; `--tier Easy`), `variety` (kinds of thing, portals, modes, speeds, repeated chunks vs rated levels; knowledge/levels/variety.md), `obstacles` (block structure per mode, obstacle shapes, when new kinds come in; knowledge/levels/obstacles.md), `difficulty` (score vs the official ratings).
 - **Level style and the idea -> level loop** (STYLE.md: findings, style vocabulary, the loop, every
   playtest lesson, what is open): `tools/style.js` (measure style: deco share, triggers, sections,
   rests, motifs, recurring chunks) + `tools/corpus.js` (official levels and the user's save, in
@@ -122,6 +122,12 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   spikes, ground, bg, hills; the player per mode with glow, trail and particles (smoothed between
   steps, PHONE.md). Drawn to match frames of the user's play, no game art. Toggle off for
   the schematic view; "hitboxes" still overlays.
+- **GD's own art in the viewer** (VISUALS.md: what is known, how it was checked against recordings,
+  what is open, the rule that RobTop's art never leaves the PC): `lib/art.js` draws objects, background,
+  ground and icons with the sprite sheets of the user's install, served by `tools/serve.js` at `/gdres/`
+  ("GD art" button). Tables: `lib/objects_art.js` (`tools/import_art.js`, OpenGD) and
+  `lib/objects_frames.js` (`tools/import_frames.js`, GD 2.2's own id -> frame table from the exe).
+  Test: `node tests/art_tables.js`.
 - Iterating on a level's look or play: the viewer's **✎ mark** (key M) saves the user's notes at a
   spot to `marks/marks.jsonl` (via `tools/serve.js`); read them with `node tools/marks.js`, close
   them with `node tools/marks.js done <id> "what changed"`. **compare** puts a frame of one of the
@@ -187,6 +193,8 @@ Confirmed:
 - The wave slides along a block's top, but dies as it slides off the block's end (its centre
   passing the corner, x within ~5 units): two of two deaths in the user's GDLM 44 runs
   (2026-11-23_02-51-50.mkv, 17.6 s and 24.38 s). The sim slid off and lived until then.
+- The wave dies flying head-on into a slope (down into a rising 45-degree floor): GDLM 44's zigzag,
+  2026-11-23_03-11-47.mkv ~25 s. The sim had let it ride up the slope.
 - Flipping gravity halves vertical speed (blue orb and ceiling blue pad in the recording move at
   half the decompile's velocity). The decompile's ringJump alone does not show this.
 

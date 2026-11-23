@@ -70,6 +70,14 @@ A plan's tick t is our step t-1 (`tools/tas.js` shifts it). Plans reach, in bloc
   frame its centre passes the corner (game x 1638-1643; sim now 1643). Two of two attempts. The
   rule's exact shape (centre vs box, does it apply on a ceiling face or a ground row) is not seen
   yet; `tests/mechanics.js` pins it. Not hit by any official plan (none slides on a block).
+- Head-on into a slope kills: a wave moving into a slope face at more than 67.5 degrees to it
+  (e.g. down into a rising 45-degree floor, up into a descending ceiling: 90 degrees) does not ride
+  it; it dies once its 1.5 kill box is in (so grazing a V's tip lives: Blast Processing's plan,
+  block 166). Glancing (45 degrees onto flat, parallel along a slope) slides. Measured: the user's
+  GDLM 44 zigzag (2026-11-23_03-11-47.mkv, ~25 s): released in the corridor, the wave died on the
+  rising floor slope; the sim had let it ride up the slope (its zigzag windows of ~500 ms were
+  fake). The 67.5 cut is not measured (between 45: slides, and 90: dies). Slope contact for the
+  wave now uses its own 5-wide box, not the cube's 15.
 - Design consequence: a wave portal right at a block's end that a cube can land on is a trap --
   the habit (enter the wave without holding) slides into the corner. `tools/press_window.js`
   measured GDLM 44's entrance: press-and-hold from 8 ticks before the portal to 13 after (92 ms)
