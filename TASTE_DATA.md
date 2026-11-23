@@ -64,9 +64,96 @@ Not yet (need a solve per level, ~2-4 min and ~1 GB each): input windows (lib/wi
 difficulty score, flow on the played route, sync (needs the songs). Plan: solve the Easy/Normal part of
 the corpus a few levels a night through the heavy lock, then add those columns.
 
-## Results
+## Results (first run, 2026-11-23)
 
-(filled by the first full run; numbers from `node tools/taste.js learn`)
+Full tables: `local/taste/report.md` (regenerate with `learn`, 2 s). Numbers below are from it.
+
+**Corpus**: 308 community levels measured (0 failed) + 22 official. 248 used in the learning (60 dropped:
+under 20 s, or trigger-built so the static measures see them as empty). By band (tier x era):
+EN|1.x 7, EN|2.0 45, EN|2.2 27, HH|1.x 14, HH|2.0 43, HH|2.2 58, I|1.x 8, I|2.0 14, I|2.2 32;
+in all 64 unrated, 12 rated only, 102 featured, 70 epic or better.
+
+**What separates featured+ from the rest, within band** (Cliff's delta, 90% bootstrap interval):
+effort. Move triggers / min +0.46 (0.33..0.58), triggers / min +0.35, deco share +0.34, colour
+channels +0.29, pulses / min +0.27, front-layer deco +0.26, distinct ids +0.26, alpha triggers +0.25,
+objects / block +0.22. And **fewer hazards**: hazards per 10 blocks -0.21 (-0.36..-0.05), floor hazards -0.18.
+
+**With effort taken out** (the measure's within-band percentile minus what the level's effort
+percentile -- objects/block, triggers/min, distinct ids -- predicts):
+- still more move triggers (+0.34) and deco share (+0.23), more front-layer deco (+0.20);
+- **fewer hazards per 10 blocks (-0.25, -0.42..-0.11)**, also among the mod-judged levels: epic+ vs
+  featured -0.33 (-0.51..-0.19). The clearest gameplay finding: better-rated levels are less spike-dense.
+- **fewer sections per minute (-0.28)** and fewer speeds (-0.18): longer sections, fewer mode/speed swaps.
+- more repeated chunks (+0.22): good levels reuse their motifs (the whole level, not the user's
+  "same 4 moves within 10 s", which needs the route).
+- pulses, flashes, alpha and colour triggers: ~0 once effort is out. Rated levels pulse more because
+  they have more of everything, not because pulsing is rewarded.
+
+**Likes per download** correlates with nothing measured (|rho| <= 0.12 for every feature): it is a
+label of popularity and age, not of what the objects look like. Not used.
+
+**Combined model** (18 features as within-band percentiles, logistic, ridge; 5-fold held-out):
+AUC 0.63 featured+ vs rest (per band 0.47-0.75), Spearman 0.46 with the rating rank (unrated ..
+mythic). Modest: static measures explain part of what mods reward; mostly effort and spike density.
+Officials score 49-83 (the 1.x ones ~66-75, Clubstep / Electrodynamix / Hexagon Force ~50, Dash 83).
+
+### The user's soft rules vs the data
+
+| rule | measure | effort-adjusted | epic+ vs featured | verdict |
+|---|---|---|---|---|
+| flat ground under mode portals | portalFlat | +0.05 | +0.13 (-0.04..0.31) | unclear (leans yes) |
+| orbs centred over their spike row | orbCentred | -0.03 | -0.04 | unclear |
+| no step 2-5 blocks after a spike | spikeStepBad | 0.00 | +0.09 | unclear |
+| calm: pulses | pulsesPerMin | -0.06 | -0.09 | unclear |
+| calm: flashes | flashesPerMin | -0.01 | -0.12 (-0.30..0.01) | unclear (leans yes) |
+| hazards stand out (contrast) | contrastProxy | +0.06 | -0.08 | unclear (proxy is weak) |
+| no empty deco patches | decoCoverage | +0.01 | -0.14 | unclear |
+| clean spike groups | clusterIssues100 | +0.14 (-0.01..0.30) | 0.00 | unclear (leans yes) |
+| many small structure pieces | pieces100 | -0.14 | +0.12 | unclear |
+| variety: modes | modes | +0.02 | -0.01 | unclear |
+| 2.2 budget: objects per block | objPerBlock | +0.22 (raw) | +0.45 (0.26..0.58) | **supported** |
+| height changes, not flat | heightChanges10 | -0.10 | -0.26 | against (static proxy) |
+| not all on the bare floor | groundShare | -0.12 | -0.25 | against (static proxy) |
+| no repeated chunks | chunkRepeat | -0.22 | -0.11 | against (whole-level chunks) |
+| deco attached, not floating | backDeco | -0.14 | -0.23 | against |
+
+How to read it:
+- "Unclear" is the usual answer, and it does **not** weaken a rule. The user's rules are about single
+  spots (one orb, one portal, one step); a level-wide share barely moves with them, and rated levels
+  break them as often as unrated ones. They stay soft rules from the user, with their score.js checks.
+- **Supported, weight up**: a fuller look (objects per block), and from the free search: **fewer
+  hazards per block** and **longer sections**. These two are new rules from data, not from a note.
+- **Against, read with care**:
+  - floating deco (`backDeco`): featured levels have more deco away from structures, epic+ even more:
+    2.2 background art. The "attached deco" target came from RobTop's 1.x levels (CRAFT.md), which are
+    right for 1.x; for a 2.2 look, background deco is normal. The user's complaint behind it was flashy
+    contrast (hellgate), which this proxy does not see.
+  - height (`heightChanges10`, `groundShare`): a static guess of the floor; rated levels show fewer
+    changes. Do not act on it: the route measure (tools/flow.js on a solved level) is the real one, and
+    the officials there are far above our levels. Open until route measures exist for the corpus.
+  - chunk repeats: whole-level motif reuse is normal in good levels; the user's rule is about the same
+    moves within 10 s (flow.js `repeat`), a different thing. Both can hold.
+
+### The taste score
+
+`knowledge/taste_model.json` (aggregates only) -> `taste(F, band)` in tools/taste.js -> score.js gate
+"taste" (info; WARN only when a *supported* rule is under the featured levels' quartile). The score is
+the model's probability that a level of this band is featured+, 0-100. compose and make can aim at
+the band's featured medians in `targets` (p25 / median / p75 per measure). The model is retrained with
+`learn` whenever the corpus grows; each user play (`taste.js user`) and later each mark becomes data.
+
+## The user's own plays (the "my taste" data)
+
+`node tools/taste.js user <id> --note "..." [--finished] [--attempts N] [--liked|--disliked]` adds a level
+the user played to the corpus with their verdict (field `user.plays`), fetching it if needed. Real-game
+attempt rows stay in local/real_stats.jsonl (physics owns them); this is the per-level verdict.
+- 2026-11-23 Spooky Dash (ID 150941693, Hard 5*, featured, 2.2): the user chose it and beat it on
+  attempt 9 (1:19, 64 jumps; deaths at 18.8-47.1%, one practice run). A positive "chose and finished" row.
+- 2026-11-23, seven more the user chose (all featured/epic 2.2, Hard 5 - Harder 7). Verdict "stayed" (kept
+  playing to practice complete or a clear): Locked 149415501, ClockWood 150286303 (beaten), Gang Vibes
+  147433579 (beaten), A level 148448631, Eden and Ash 146165333, Accelerate 140155559 (beaten).
+  Verdict "left": NOT A MONOCHROME LVL 149575037 (one try, 25%). So far 7 stayed vs 1 left: too few to fit;
+  each new play adds a row. Compare "left" levels with "stayed" ones on the taste measures once there are ~5.
 
 ## Open
 

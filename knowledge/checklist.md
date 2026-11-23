@@ -91,6 +91,12 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 - [ ] **Sync loosely**: portals, speed changes and the drop on the music's moments; most clicks free.
   `node tools/sync.js`. (SYNC.md "How much to sync")
 
+- [ ] **Taste from data** (308 rated / unrated community levels, within tier and era, effort taken out):
+  featured levels have **fewer hazards per block** (delta -0.25; epic+ vs featured -0.33) and **longer
+  sections** (fewer mode / speed swaps per minute, -0.28), and a fuller look. `node tools/taste.js score
+  <level>`; score.js gate "taste". Most of the user's spot rules come out "unclear" in level-wide data
+  (not weaker for it). (TASTE_DATA.md)
+
 ## Looks like 2.2, not 1.0 (levels/modern_look.md)
 
 - [ ] **Budget**: ~10-50 objects per block. Fall Out, the user's own example, has 13; the levels the

@@ -11,7 +11,9 @@
 //                               -> local/taste/feat/<id>.json (one child process per level, cached)
 //   learn                       per-feature effect within (tier band x era), held-out model, rule verdicts
 //                               -> local/taste/report.md, knowledge/taste_model.json (aggregates only)
-//   score <level.gdlvl|official:N> [--json]  the taste score of one level (0-100) and what drives it
+//   user <id> --note "..." [--finished] [--attempts N] [--liked|--disliked|--verdict stayed|left]   a level the user played: adds it to
+//                               the corpus with their verdict (field "user"), the data of the "my taste" model
+//   score <level.gdlvl|official:N> ... [--band EN|2.2] [--json]  the taste score of each level (0-100) and what drives it
 //   one <file> [--id x]         (internal) the measures of one level as JSON
 //
 // No solving: every measure is static (the objects as placed), so it runs on hundreds of levels in
@@ -79,6 +81,17 @@ async function corpus() {
   fs.writeFileSync(CORPUS, JSON.stringify(all, null, 1));
   const c = {}; for (const l of all) { const k = `${l.tier} ${RANK[l.rank]}`; c[k] = (c[k] || 0) + 1; }
   console.log(all.length, "levels ->", CORPUS); console.log(c);
+}
+async function userLevel(id) {
+  const L = fs.existsSync(CORPUS) ? JSON.parse(fs.readFileSync(CORPUS, "utf8")) : [];
+  let r = L.find(l => l.id === String(id));
+  if (!r) { const m = await getJSON(`https://gdbrowser.com/api/level/${id}`); if (!m || !m.id) { console.log("no metadata for", id); return; } r = row(m, "user"); L.push(r); }
+  const u = r.user = r.user || { plays: [] };
+  u.plays.push({ date: new Date().toISOString().slice(0, 10), note: opt("--note") || "", finished: args.includes("--finished"), attempts: +opt("--attempts") || null,
+    verdict: opt("--verdict") || (args.includes("--liked") ? "liked" : args.includes("--disliked") ? "disliked" : null) });
+  fs.writeFileSync(CORPUS, JSON.stringify(L, null, 1));
+  if (!fs.existsSync(path.join(COMM, r.id + ".gdlvl"))) cp.execFileSync(process.execPath, [path.join(__dirname, "fetch_level.js"), r.id, "--out", COMM], { stdio: "inherit" });
+  console.log(r.name, RANK[r.rank], r.tier, "->", u.plays.length, "play(s) recorded");
 }
 function fetch() {
   const L = JSON.parse(fs.readFileSync(CORPUS, "utf8"));
@@ -267,7 +280,7 @@ function measure() {
 
 // ---------------- learn ----------------
 // Bands compare like with like: the tier (Easy+Normal, Hard+Harder, Insane) and the era (the rating system changed).
-const bandOf = l => (/Easy|Normal|Auto/.test(l.tier) ? "EN" : /Hard/.test(l.tier) ? "HH" : "I") + "|" + (l.era === "2.2" ? "2.2" : "old");
+const bandOf = l => (/Easy|Normal|Auto/.test(l.tier) ? "EN" : /Hard/.test(l.tier) ? "HH" : "I") + "|" + (l.era === "2.2" ? "2.2" : l.era === "1.x" ? "1.x" : "2.0");
 const FEATURES = ["objPerBlock", "decoShare", "modes", "speeds", "sectionsPerMin", "hazPer10", "orbsPadsPerMin", "restsPerMin", "distinctIds", "channels",
   "triggersPerMin", "moveTrigPerMin", "colourTrigPerMin", "alphaPerMin", "pieces100", "pieceCells", "floorHaz", "underArmed", "topsDressed", "attached",
   "pillarDelta", "backDeco", "structuralDeco", "frontShare", "hsvShare", "colouredDeco", "pulsesPerMin", "flashesPerMin", "contrastProxy",
@@ -302,6 +315,16 @@ function auc(score, lab) { const p = score.filter((_, i) => lab[i]), n = score.f
 // a seeded RNG so a report is the same every run
 function rng(seed) { return () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }; }
 
+// within-band Cliff's delta of val(r) between pos(r) and the rest (rows where inc(r)), pooled by min group size,
+// with a 90% bootstrap interval over levels within bands
+function contrast(bands, val, pos, inc = () => true, seed = 7) {
+  const one = R => { const g = R.filter(pos).map(val), p = R.filter(r => !pos(r)).map(val); return g.length >= 3 && p.length >= 3 ? [cliff(g, p), Math.min(g.length, p.length)] : null; };
+  const pool = pick => { let d = 0, n = 0; for (const R0 of Object.values(bands)) { const R = pick(R0.filter(r => inc(r) && Number.isFinite(val(r)))); if (R.length < 8) continue; const c = one(R); if (c) { d += c[0] * c[1]; n += c[1]; } } return n ? d / n : NaN; };
+  const rnd = rng(seed), boots = [];
+  for (let it = 0; it < 200; it++) { const b = pool(R => R.map(() => R[Math.floor(rnd() * R.length)])); if (Number.isFinite(b)) boots.push(b); }
+  boots.sort((x, y) => x - y);
+  return { delta: pool(R => R), lo: boots[Math.floor(boots.length * 0.05)], hi: boots[Math.floor(boots.length * 0.95)] };
+}
 function loadRows() {
   const L = JSON.parse(fs.readFileSync(CORPUS, "utf8")), rows = [];
   for (const l of L) { const f = path.join(FEAT, l.id + ".json"); if (!fs.existsSync(f)) continue;
@@ -372,15 +395,35 @@ function learn() {
   P(`- AUC featured+ vs rest: **${fmt(aucAll)}** (0.5 = chance); per band: ${Object.entries(perBandAuc).map(([b, v]) => b + " " + v).join(", ")}`);
   P(`- Spearman with the rating rank (0 unrated .. 5 mythic): ${fmt(rhoRank)}; with likes per download: ${fmt(rhoHeld)}`);
   P("\n| feature | weight (per 1.0 of band percentile) |\n|---|---|"); strong.forEach((f, i) => P(`| ${f} | ${fmt(M.w[i])} |`));
+  // ---- effort: featured levels have more of everything (objects, triggers, ids). A rule's measure is judged after
+  // taking effort out: its within-band percentile minus what the band's effort percentile predicts (least squares) ----
+  const EFF = ["objPerBlock", "triggersPerMin", "distinctIds"];
+  for (const [b, R] of Object.entries(bands)) for (const r of R) r.effort = mean(EFF.map(f => pct(sorted[b][f], r.F[f])));
+  const resid = {};
+  for (const f of FEATURES) { resid[f] = new Map();
+    for (const [b, R] of Object.entries(bands)) { const R2 = R.filter(r => Number.isFinite(r.F[f])); if (R2.length < 8) continue;
+      const x = R2.map(r => r.effort), y = R2.map(r => pct(sorted[b][f], r.F[f])), mx = mean(x), my = mean(y);
+      let sxy = 0, sxx = 0; x.forEach((v, i) => { sxy += (v - mx) * (y[i] - my); sxx += (v - mx) ** 2; }); const k = sxx ? sxy / sxx : 0;
+      R2.forEach((r, i) => resid[f].set(r, y[i] - my - k * (x[i] - mx))); } }
+  const adj = {}, epic = {};
+  // an effort measure itself is judged raw (taking effort out of it leaves noise)
+  for (const f of FEATURES) if (EFF.includes(f)) { adj[f] = eff[f]; epic[f] = contrast(bands, r => r.F[f], r => r.rank >= 3, r => r.rank >= 2, 9); }
+  else { adj[f] = contrast(bands, r => resid[f].has(r) ? resid[f].get(r) : NaN, good);
+    epic[f] = contrast(bands, r => resid[f].has(r) ? resid[f].get(r) : NaN, r => r.rank >= 3, r => r.rank >= 2, 9); }
+  P("\n## Effort taken out\n\nFeatured levels carry more effort (objects per block, triggers, distinct ids: the effort percentile). Same delta after removing what effort predicts, and a second contrast inside the mod-judged levels: epic+ vs featured, effort removed too (1.x had no epic rating: only the 2.0-2.1 and 2.2 bands count).\n");
+  P("| feature | raw delta | effort-adjusted | 90% | epic+ vs featured | 90% |\n|---|---|---|---|---|---|");
+  for (const f of [...FEATURES].sort((x, y) => Math.abs(adj[y].delta || 0) - Math.abs(adj[x].delta || 0)))
+    P(`| ${f} | ${fmt(eff[f].delta)} | ${fmt(adj[f].delta)} | ${fmt(adj[f].lo)}..${fmt(adj[f].hi)} | ${fmt(epic[f].delta)} | ${fmt(epic[f].lo)}..${fmt(epic[f].hi)} |`);
   // ---- the user's rules ----
-  P("\n## The user's soft rules vs the data\n\nsupported: the rule's direction separates featured+ from the rest (delta >= 0.1 in the rule's direction, interval clear of 0). against: the data says the opposite. unclear: neither. Each rule stays a soft rule either way; supported ones weigh more.\n");
-  P("| rule | measure | delta (rule's direction) | 90% | verdict | n with it |\n|---|---|---|---|---|---|");
+  P("\n## The user's soft rules vs the data\n\nEach rule's measure in the rule's direction (+ = featured levels follow the rule more). Verdict from the effort-adjusted delta and epic+ vs featured: supported = either one >= 0.1 with its interval clear of 0 and neither one against; against = the opposite; unclear = neither. Each rule stays a soft rule either way; supported ones weigh more.\n");
+  P("| rule | measure | raw | effort-adjusted (90%) | epic+ vs featured (90%) | verdict | n |\n|---|---|---|---|---|---|---|");
   const verdicts = [];
-  for (const R of RULES) { const e = eff[R.f], d = e.delta * R.dir, lo = Math.min(e.lo * R.dir, e.hi * R.dir), hi = Math.max(e.lo * R.dir, e.hi * R.dir);
-    const v = d >= 0.1 && lo > 0 ? "supported" : d <= -0.1 && hi < 0 ? "against" : "unclear";
+  const side = (e, dir) => { const d = e.delta * dir, lo = Math.min(e.lo * dir, e.hi * dir), hi = Math.max(e.lo * dir, e.hi * dir); return { d, lo, hi, v: d >= 0.1 && lo > 0 ? 1 : d <= -0.1 && hi < 0 ? -1 : 0 }; };
+  for (const R of RULES) { const a1 = side(adj[R.f], R.dir), a2 = side(epic[R.f], R.dir), raw = eff[R.f].delta * R.dir;
+    const v = (a1.v > 0 || a2.v > 0) && a1.v >= 0 && a2.v >= 0 ? "supported" : (a1.v < 0 || a2.v < 0) && a1.v <= 0 && a2.v <= 0 ? "against" : "unclear";
     const nn = use.filter(r => Number.isFinite(r.F[R.f])).length;
-    verdicts.push({ rule: R.rule, feature: R.f, dir: R.dir, delta: +d.toFixed(3), lo: +lo.toFixed(3), hi: +hi.toFixed(3), verdict: v, n: nn });
-    P(`| ${R.rule} | ${R.f} | ${fmt(d)} | ${fmt(lo)}..${fmt(hi)} | ${v} | ${nn} |`); }
+    verdicts.push({ rule: R.rule, feature: R.f, dir: R.dir, raw: +raw.toFixed(3), adjusted: +a1.d.toFixed(3), adjLo: +a1.lo.toFixed(3), adjHi: +a1.hi.toFixed(3), epic: +a2.d.toFixed(3), epicLo: +a2.lo.toFixed(3), epicHi: +a2.hi.toFixed(3), verdict: v, n: nn });
+    P(`| ${R.rule} | ${R.f} | ${fmt(raw)} | ${fmt(a1.d)} (${fmt(a1.lo)}..${fmt(a1.hi)}) | ${fmt(a2.d)} (${fmt(a2.lo)}..${fmt(a2.hi)}) | ${v} | ${nn} |`); }
   // ---- officials and medians of featured+ per band (targets) ----
   const targets = {}; for (const [b, R] of Object.entries(bands)) { targets[b] = {}; const G = R.filter(good);
     for (const f of FEATURES) { const v = G.map(r => r.F[f]).filter(Number.isFinite).sort((x, y) => x - y); if (v.length >= 3) targets[b][f] = { p25: v[Math.floor(v.length * .25)], med: v[v.length >> 1], p75: v[Math.floor(v.length * .75)] }; } }
@@ -390,9 +433,9 @@ function learn() {
     quantiles: Object.fromEntries(Object.entries(sorted).map(([b, o]) => [b, Object.fromEntries(Object.entries(o).filter(([, v]) => v.length >= 8).map(([f, v]) => [f, Array.from({ length: 21 }, (_, i) => +v[Math.min(v.length - 1, Math.floor(i * (v.length - 1) / 20))].toFixed(4))]))])),
     targets, effects: Object.fromEntries(Object.entries(eff).map(([f, e]) => [f, { delta: +(+e.delta).toFixed(3), lo: +(+e.lo).toFixed(3), hi: +(+e.hi).toFixed(3), rhoLD: +(+e.rhoLD).toFixed(3) }])), rules: verdicts };
   // officials through the model (as EN|old: RobTop's levels are Easy..Harder of the 1.x/2.x era)
-  P("\n## Official levels through the model (band EN|old or HH|old by their stars)\n\n| level | taste |\n|---|---|");
+  P("\n## Official levels through the model (band EN or HH by their stars, era by their update)\n\n| level | taste |\n|---|---|");
   const tasteOf = (F, b) => { const r = { F, band: b }; const z = score(M, r); return Math.round(100 / (1 + Math.exp(-z))); };
-  for (const o of off) P(`| ${o.n} ${o.name} | ${tasteOf(o.F, o.n <= 4 || o.n === 8 ? "EN|old" : "HH|old")} |`);
+  for (const o of off) P(`| ${o.n} ${o.name} | ${tasteOf(o.F, (o.n <= 4 || o.n === 8 ? "EN" : "HH") + (o.n <= 13 ? "|1.x" : "|2.0"))} |`);
   fs.mkdirSync(DIR, { recursive: true });
   fs.writeFileSync(path.join(DIR, "report.md"), out.join("\n") + "\n");
   fs.writeFileSync(MODEL, JSON.stringify(model, null, 1) + "\n");
@@ -428,8 +471,11 @@ if (require.main === module) {
   if (step === "one") { process.stdout.write(JSON.stringify(measureOne(args[1]))); }
   else if (step === "corpus") corpus();
   else if (step === "fetch") fetch();
+  else if (step === "user" && args[1]) userLevel(args[1]);
   else if (step === "measure") { require("./heavy.js").claim(); measure(); }
   else if (step === "learn") learn();
-  else if (step === "score" && args[1]) { require("./heavy.js").claim(); scoreCli(args[1]); }
+  else if (step === "score" && args[1]) { require("./heavy.js").claim();
+    const files = []; for (let i = 1; i < args.length; i++) { if (args[i].startsWith("--")) { if (args[i] === "--band") i++; continue; } files.push(args[i]); }
+    for (const f of files) scoreCli(f); }
   else console.log(fs.readFileSync(__filename, "utf8").split("\n").filter(l => l.startsWith("//")).join("\n"));
 }
