@@ -346,7 +346,10 @@ function lookPass(L, objs, header, ev, log) {
   const base = rgb2hsv(headerColour(header, 1000) || [40, 60, 160]);
   secs.forEach((sc, i) => {
     const h = (base[0] + i * 47) % 360, sat = Math.max(0.45, base[1]), v = Math.max(0.35, Math.min(0.75, base[2]));
-    sc.fill = hsv2rgb(h, sat * 0.8, Math.min(1, v + 0.15)); sc.light = hsv2rgb(h, sat * 0.35, 1); sc.flash = i > 0;
+    // the fill sits behind every block, and GD's blocks are see-through: a bright fill turned GDLM 46's
+    // wave walls into flat hot-pink masses (render, 2026-11-23). So: a dark tint of the scene's colour,
+    // and a soft pastel light
+    sc.fill = hsv2rgb(h, sat * 0.7, Math.min(0.32, v * 0.5)); sc.light = hsv2rgb(h, sat * 0.4, 0.85); sc.flash = i > 0;
   });
   const n0 = objs.length;
   const add = [];
@@ -369,7 +372,11 @@ function lookPass(L, objs, header, ev, log) {
   const hot = objs.filter(o => ["hazard", "orb", "pad"].includes(kindOf(o)));
   const overHazard = d => { if (kindOf(d) === "trigger" || d.id === 207 || d.id === 505 || +(d.props && d.props[57]) >= 100 && +(d.props && d.props[57]) < 200) return false;
     const r = 30 * Math.max(0.5, +(d.props && d.props[32]) || 1) + 15; return hot.some(h => Math.abs(h.x - d.x) < r && Math.abs(h.y - d.y) < r); };
-  const keep = add.filter(d => !(front(d) && near(d.x, d.y)) && !overHazard(d));
+  // the soft light (505) on a block whose top a slope covers drew the wave's diagonal walls as a staircase
+  // (GDLM 46 v3 render; "the wave looks like cube" was GDLM 44's complaint about square walls)
+  const slopeCell = new Set(objs.filter(o => kindOf(o) === "slope").map(o => Math.round((o.x - 15) / 30) + "," + Math.round((o.y - 15) / 30)));
+  const underSlope = d => d.id === 505 && [0, 1, -1].some(dc => slopeCell.has((Math.round((d.x - 15) / 30) + dc) + "," + (Math.round((d.y - 15) / 30) + 1)));
+  const keep = add.filter(d => !(front(d) && near(d.x, d.y)) && !overHazard(d) && !underSlope(d));
   const out = o2.concat(keep);
   if (!clears(GD.makeWorld(out, header), ev)) { log.push({ pass: "look", kept: true, what: "decoration", why: "the decorated level no longer clears with the same plan: not added" }); return { objs }; }
   log.push({ pass: "look", what: `${secs.length} sections (${secs.map(sc => sc.kind + " " + sc.from + "-" + sc.to).join(", ")})`,
