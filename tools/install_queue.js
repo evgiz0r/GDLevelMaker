@@ -77,14 +77,31 @@ function installNow(save) {
   const batch = q.queue.slice();
   const missing = batch.filter(e => !fs.existsSync(path.join(ROOT, e.file)));
   const todo = batch.filter(e => !missing.includes(e));
+  // online IDs the save holds for these names before installing: an install must never drop one
+  const idsBefore = {};
+  try {
+    for (const r of INST.splitLevels(INST.decodeSave(fs.readFileSync(save))).items) {
+      const k1 = (INST.entry(r.inner, "k1") || "").replace(/<[^>]+>/g, "").replace(/^k1/, "");
+      if (k1 && todo.some(e => e.name === INST.nameOf(r.inner))) idsBefore[INST.nameOf(r.inner)] = k1;
+    }
+  } catch (e) {}
   let out = "", err = null;
   if (todo.length) {
     try {
-      out = execFileSync(process.execPath, [path.join(__dirname, "install.js"), ...todo.map(e => path.join(ROOT, e.file)), ...(opt("--save") ? ["--save", save] : [])], { encoding: "utf8" });
+      out = execFileSync(process.execPath, [process.env.GDLM_INSTALL_JS || path.join(__dirname, "install.js"), ...todo.map(e => path.join(ROOT, e.file)), ...(opt("--save") ? ["--save", save] : [])], { encoding: "utf8" });
     } catch (e) { err = (e.stdout || "") + (e.stderr || "") || e.message; }
   }
   if (err && /running/i.test(err)) return { skipped: "GD started" };   // GD came up between poll and install: try later
-  const checked = err ? todo.map(e => ({ ...e, ok: false, problem: "install.js failed" })) : readBack(save, todo);
+  let checked = err ? todo.map(e => ({ ...e, ok: false, problem: "install.js failed" })) : readBack(save, todo);
+  // an online ID lost (an install.js without keepOnline, as main's once did with hellgate's 152848491):
+  // put the backup back and report every level as not installed
+  const lost = checked.filter(l => idsBefore[l.name] && (!l.got || l.got.onlineId !== idsBefore[l.name]));
+  if (lost.length) {
+    const bk = ((out.match(/backup: (.+)/) || [])[1] || "").trim();
+    let restored = false;
+    if (bk && fs.existsSync(bk)) { fs.copyFileSync(bk, save); restored = true; }
+    checked = checked.map(l => ({ ...l, ok: false, problem: `online ID dropped for ${lost.map(x => `${x.name} (${idsBefore[x.name]})`).join(", ")}; ` + (restored ? `save restored from ${bk}` : "COULD NOT RESTORE the backup") }));
+  }
   const report = { at: now(), save, installOutput: (out || err || "").trim().split(/\r?\n/), levels: [...checked, ...missing.map(e => ({ ...e, ok: false, problem: "file missing" }))] };
   fs.mkdirSync(REPORTS, { recursive: true });
   const name = path.join(REPORTS, report.at.replace(/[:.]/g, "-") + ".json");

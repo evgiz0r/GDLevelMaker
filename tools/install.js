@@ -65,6 +65,22 @@ function splitLevels(xml) {
 function joinLevels(parts) {
   return parts.before + parts.head + parts.items.map((it, n) => `<k>k_${n}</k><d>${it.inner}</d>`).join("") + parts.after;
 }
+// the short player-facing description from the level's spec ("desc", STYLE.md "Name and description"):
+// a level file built before that rule may still carry the old note-like text
+function specDesc(levelName) {
+  const dir = path.join(__dirname, "..", "specs");
+  try {
+    for (const f of fs.readdirSync(dir).filter(f => f.endsWith(".json"))) {
+      try { const j = JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")); if (j.name === levelName && j.desc) return j.desc; } catch (e) {}
+    }
+  } catch (e) {}
+  return null;
+}
+function setDesc(inner, text) {
+  const d = Buffer.from(require("./signature.js").describe(text)).toString("base64").replace(/\+/g, "-").replace(/\//g, "_");
+  return /<k>k3<\/k><s>/.test(inner) ? inner.replace(/<k>k3<\/k><s>[^<]*<\/s>/, `<k>k3</k><s>${d}</s>`)
+    : inner.replace(/(<k>k2<\/k><s>[^<]*<\/s>)/, `$1<k>k3</k><s>${d}</s>`);
+}
 function nameOf(inner) { const m = inner.match(/<k>k2<\/k><s>([^<]*)<\/s>/); return m ? m[1] : ""; }
 // A level already shared online carries k1 (its online ID), k79 (true = unlisted), and maybe k16
 // (upload version) and k60 (account id). Replacing the record must keep them, or GD would upload
@@ -126,13 +142,9 @@ function main() {
     const name = slot.name || was;
     inner = inner.replace(/<k>k2<\/k><s>[^<]*<\/s>/, `<k>k2</k><s>${name}</s>`);
     // --desc "what is being tested": the description for this upload, with the signature line
-    // (default: the slot's own "desc" in phone_ids.json, e.g. the lab's)
-    const di = args.indexOf("--desc"), descText = di >= 0 ? args[di + 1] : slot.desc;
-    if (descText) {
-      const d = Buffer.from(require("./signature.js").describe(descText)).toString("base64").replace(/\+/g, "-").replace(/\//g, "_");
-      inner = /<k>k3<\/k><s>/.test(inner) ? inner.replace(/<k>k3<\/k><s>[^<]*<\/s>/, `<k>k3</k><s>${d}</s>`)
-        : inner.replace(/(<k>k2<\/k><s>[^<]*<\/s>)/, `$1<k>k3</k><s>${d}</s>`);
-    }
+    // (default: the slot's own "desc" in phone_ids.json, e.g. the lab's; else the level spec's "desc")
+    const di = args.indexOf("--desc"), descText = di >= 0 ? args[di + 1] : (slot.desc || specDesc(own));
+    if (descText) { inner = setDesc(inner, descText); console.log(`description: ${require("./signature.js").describe(descText)}`); }
     const kept = keepOnline(old, inner);
     // a shared slot is unlisted by definition (even if an earlier install dropped the flag); a fresh
     // one gets Unlisted ticked in GD's share form at its first upload. The new level is a new
@@ -147,8 +159,10 @@ function main() {
 
   for (const f of slotName ? [] : files) {
     const rec = unpack(fs.readFileSync(f, "utf8"));
-    const inner = rec.match(/<plist[^>]*><dict>([\s\S]*)<\/dict><\/plist>/)[1];
+    let inner = rec.match(/<plist[^>]*><dict>([\s\S]*)<\/dict><\/plist>/)[1];
     const name = nameOf(inner);
+    const sd = specDesc(name);
+    if (sd) inner = setDesc(inner, sd);   // the spec's short description wins over an old one in the file
     const at = parts.items.findIndex(it => nameOf(it.inner) === name);
     if (at >= 0) {
       const kept = keepOnline(parts.items[at].inner, inner);

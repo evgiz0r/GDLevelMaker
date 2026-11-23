@@ -122,6 +122,13 @@ install.js refuses while GD runs (GD rewrites the save on exit), so levels used 
   `local/install_reports/<time>.json` + a line in `log.jsonl`, then empties the queue of what it
   processed. `report` prints the last one; `list` shows what is waiting.
 - It never uploads, never starts or closes GD, and it is light (one tasklist call per poll).
+- **It never drops an online ID.** Before installing it notes each queued name's `k1` in the save;
+  if the read-back lacks it, it copies install.js's backup back over the save and reports every level
+  as failed. (Seen 2026-11-23: main's install.js before keepOnline dropped hellgate's 152848491 on a
+  plain replace; the coordinator restored the backup by hand.)
+- Descriptions: install.js (plain and `--slot`) takes the level spec's short `"desc"` (STYLE.md "Name
+  and description") over an older note-like description in the file, plus the signature line.
+  `--slot`: `--desc` > the slot's `desc` > the spec's.
 - Test: `node tests/install_queue.js` (a save copy, a fake "GD running" marker).
 - Note: installing a level whose name is a slot's record (e.g. "GDLM 44 hellgate", the phone slot)
   changes only the PC copy; the phone keeps the uploaded version until someone Shares (user's yes).
