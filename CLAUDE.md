@@ -51,6 +51,13 @@ not after it:
   patching: run a study (take real levels apart, measure, write the rules down -- CRAFT.md is one) or
   an experiment (several variants, measured and shown side by side), then change the generator.
   Owning a level means caring for all of it -- play, look, sync, fairness -- not only your one area.
+- **Git is the source of truth: everything goes in the repo, and it gets pushed.** (The user,
+  2026-11-23.) Commit and push to `main` as each piece of work lands (merge `origin/main`, run the
+  quick checks, push) -- never sit on local-only commits or uncommitted work between turns. Tools,
+  docs, specs, our levels, tests, measured numbers: in git. The only things that stay out are what
+  must not be published: other people's levels and RobTop's data/art, songs, the user's recordings
+  and save, and private details (`local/`). If something can't be pushed (a blocked permission, a
+  failing check), say so in your report instead of leaving it local.
 - **Hand off.** Before a long pause or when your area changes hands, write where you stopped,
   what is open and the good numbers into your area's doc.
 - **Share, don't duplicate.** Results go into the shared `local/` (see below) so no session redoes
