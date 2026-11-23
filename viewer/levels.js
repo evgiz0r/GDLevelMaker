@@ -23,6 +23,7 @@ window.GD_LEVELS = [
    ],
    "physics": "c39a889",
    "solvedAt": "2026-11-22T21:27:39.837Z",
+   "stale": true,
    "replayedOn": "3f609ab"
   }
  },
@@ -129,6 +130,7 @@ window.GD_LEVELS = [
    ],
    "physics": "c39a889",
    "solvedAt": "2026-11-22T21:27:39.836Z",
+   "stale": true,
    "replayedOn": "3f609ab"
   }
  },
@@ -275,6 +277,7 @@ window.GD_LEVELS = [
    ],
    "physics": "c39a889",
    "solvedAt": "2026-11-22T21:27:39.836Z",
+   "stale": true,
    "replayedOn": "3f609ab"
   }
  },
@@ -453,6 +456,7 @@ window.GD_LEVELS = [
    ],
    "physics": "c39a889",
    "solvedAt": "2026-11-22T21:27:39.834Z",
+   "stale": true,
    "replayedOn": "3f609ab"
   }
  },
@@ -679,6 +683,7 @@ window.GD_LEVELS = [
    ],
    "physics": "c39a889",
    "solvedAt": "2026-11-22T21:27:39.833Z",
+   "stale": true,
    "replayedOn": "3f609ab"
   }
  },
@@ -922,6 +927,7 @@ window.GD_LEVELS = [
    "physics": "070bfc2",
    "plan": "c1dfa6e",
    "solvedAt": "2026-11-23T19:08:56.432Z",
+   "stale": true,
    "replayedOn": "3f609ab"
   }
  },
@@ -1437,6 +1443,7 @@ window.GD_LEVELS = [
    "physics": "3961ca5",
    "plan": "c1dfa6e",
    "solvedAt": "2026-11-23T19:42:44.643Z",
+   "stale": true,
    "replayedOn": "3f609ab"
   }
  },
@@ -1454,6 +1461,7 @@ window.GD_LEVELS = [
    "events": [],
    "physics": "c39a889",
    "solvedAt": "2026-11-23T01:01:54.129Z",
+   "stale": true,
    "replayedOn": "3f609ab"
   }
  },
@@ -1713,6 +1721,7 @@ window.GD_LEVELS = [
    "physics": "070bfc2",
    "plan": "c1dfa6e",
    "solvedAt": "2026-11-23T18:36:34.772Z",
+   "stale": true,
    "replayedOn": "3f609ab"
   }
  },
@@ -2326,6 +2335,7 @@ window.GD_LEVELS = [
    "physics": "070bfc2",
    "plan": "42fb451",
    "solvedAt": "2026-11-23T18:50:28.485Z",
+   "stale": true,
    "replayedOn": "3f609ab"
   }
  },
@@ -2665,6 +2675,7 @@ window.GD_LEVELS = [
    "physics": "070bfc2",
    "solvedAt": "2026-11-23T18:32:50.799Z",
    "plan": "42fb451",
+   "stale": true,
    "replayedOn": "3f609ab"
   }
  },
@@ -2844,6 +2855,7 @@ window.GD_LEVELS = [
    "physics": "070bfc2",
    "plan": "42fb451",
    "solvedAt": "2026-11-23T18:19:13.578Z",
+   "stale": true,
    "replayedOn": "3f609ab"
   }
  },
@@ -3207,6 +3219,7 @@ window.GD_LEVELS = [
    "physics": "070bfc2",
    "plan": "c1dfa6e",
    "solvedAt": "2026-11-23T19:41:45.347Z",
+   "stale": true,
    "replayedOn": "3f609ab"
   }
  },
@@ -3331,6 +3344,7 @@ window.GD_LEVELS = [
    ],
    "physics": "7924db0",
    "solvedAt": "2026-11-23T03:47:42.285Z",
+   "stale": true,
    "replayedOn": "3f609ab"
   }
  }

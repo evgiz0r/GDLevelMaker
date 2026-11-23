@@ -20,7 +20,7 @@ function savedRoute(L) {
   const old = sols.get(L.levelStr, true);
   if (!old || !old.ok || !old.events) return null;
   const { GD } = require("./io.js"), q = GD.run(GD.makeWorld(L.level.objects, L.level.header), old.events);
-  return (q.done || (q.end && !q.dead)) ? Object.assign({}, old, { replayedOn: sols.physicsCommit() }) : null;
+  return (q.done || (q.end && !q.dead)) ? Object.assign({}, old, { stale: true, replayedOn: sols.physicsCommit() }) : null;
 }
 
 function offsetOf(header) { const m = /(?:^|,)kA13,([-0-9.]+)/.exec(header || ""); return m ? +m[1] : 0; }
@@ -42,6 +42,9 @@ function buildIndex() {
       const file = path.join(d, f);
       const L = readGdlvl(file);
       // the saved solution (tools/solutions.js), so the viewer and the phone replay it instead of solving
+      // A stale one (solved on older physics) is kept, marked `stale`, when it still replays to the end on
+      // today's physics (savedRoute): without any, the page solved the level itself for minutes and looked
+      // hung, and replayed a death when its solve failed (the user: "why when I play the cube timings it dies").
       let solution; try { solution = savedRoute(L) || undefined; } catch (e) {}
       list.push({ name: L.name, file: dir + "/" + f, level: L.levelStr, song: songOf(L.rec, L.level.header), solution });
     }
