@@ -4,6 +4,10 @@ Claude writes Geometry Dash levels from a description, checks they can be beaten
 replaying with their clicks, and hands back a file the user imports into their real game.
 The user plays it and tells us what was off. Read this fully first.
 
+**What the project is for:** USE_CASES.md lists every use case the user wants (prompt -> level, fix a
+level, issue report, difficulty, design in chat, combine/cut, track + level...) with its status and
+what is missing. Update its row when your work moves one.
+
 ## Every session builds the project, not just its own task
 
 The user's standing rule: **no work is done only for its local goal.** Each session's job is its
@@ -47,6 +51,13 @@ not after it:
   patching: run a study (take real levels apart, measure, write the rules down -- CRAFT.md is one) or
   an experiment (several variants, measured and shown side by side), then change the generator.
   Owning a level means caring for all of it -- play, look, sync, fairness -- not only your one area.
+- **Git is the source of truth: everything goes in the repo, and it gets pushed.** (The user,
+  2026-11-23.) Commit and push to `main` as each piece of work lands (merge `origin/main`, run the
+  quick checks, push) -- never sit on local-only commits or uncommitted work between turns. Tools,
+  docs, specs, our levels, tests, measured numbers: in git. The only things that stay out are what
+  must not be published: other people's levels and RobTop's data/art, songs, the user's recordings
+  and save, and private details (`local/`). If something can't be pushed (a blocked permission, a
+  failing check), say so in your report instead of leaving it local.
 - **Hand off.** Before a long pause or when your area changes hands, write where you stopped,
   what is open and the good numbers into your area's doc.
 - **Share, don't duplicate.** Results go into the shared `local/` (see below) so no session redoes
@@ -114,6 +125,32 @@ at once and the PC hung (0.2 GB free), so the rule is now a lock every heavy too
   `tools/loop.js` stops when another worktree has uncommitted changes to the spec or level, or another
   session put it in work in progress in the last 3 hours.
 
+## How long things take (this PC: 16 GB, other sessions' jobs running)
+
+The user wants to know how long a wait will be. **Before a job over ~30 s, tell the user roughly how long
+it takes** (from this table, or the ETA `tools/loop.js` prints). When a run is far off (over 2x, or under
+half), correct the row here in the same change. Real numbers pile up in `local/timings.jsonl` (every
+`loop.js` step; any other job with `node tools/loop.js --time <step> <command>`); `node tools/loop.js
+--times` prints them by level length. Wait for the heavy-job slot comes on top of all of these.
+
+| job | how long | source |
+|---|---|---|
+| make, short cube level (15-20 s) | 15-30 s | loop.js, GDLM 02 / 41, 2026-11-23 |
+| make `--look` (decoration only, gameplay unchanged) | ~1 s | showcase notes, GDLM 50 |
+| make (= the solve), 40-100 s level with ship / wave / ball | 5-7 min | PHONE.md (GDLM 45 ~5 min), SHOWCASE.md (GDLM 50 ~7 min) |
+| score.js, every gate, short cube level | 10-20 s | loop.js, GDLM 02 / 41 |
+| score.js, level with modes | ~2 solves + ~1 min fairness: 10-15 min | score.js header; not timed yet |
+| compose.js (brief, repair rounds) | one make + score per round | not timed yet |
+| solve an official level (`difficulty_solve.js`) | minutes to an hour+ (checkpoints every 30 s) | not timed yet: use `--time solve-official` |
+| render frames (`shoot.js`, 8 frames) | ~10 s; ~1 min with before/after | SHOWCASE.md, POLISH.md |
+| level map (`levelmap.js`), with a saved solution | ~5 s (without one the page solves: minutes) | loop.js, GDLM 41 |
+| polish report (`polish.js --dry`) | 1-3 min | POLISH.md |
+| readability check | ~8 min for a 12 s level | POLISH.md |
+| wip put (solution cached by make) | a few s | wip.js |
+| install into the game (`install.js`, game closed) | not timed yet (publisher: `--time install`) | |
+| a server upload | not timed yet (publisher: `--time upload`) | |
+| git pull + push | ~10 s | 2026-11-23 |
+
 ## Shared folder, work in progress, the user's marks
 
 Every session works in its own git worktree, but `local/` (never committed) is ONE shared folder:
@@ -158,7 +195,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   solution, one at a time; `--resume` after a physics change solves only from a bit before where it matters), `difficulty_fit` (refit on the user's runs), `difficulty_community`
   (score downloaded community levels), `runs` (the user's deaths from a recording, via the progress
   bar), `save_stats` (the user's lifetime attempts per official level, read-only from the save),
-  `stop` (where a level's saved solution dies in the sim and what killed it), `difficulty_route` (a level with and without route choice: a player avoids a hard timing when the
+  `difficulty_parts` (how much windows and CPS alone explain the stars), `skips` (does a saved route skip a portal: then no number from it), `quality` (the scorecard: official 1-10 vs every GDLM level, QUALITY.md), `stop` (where a level's saved solution dies in the sim and what killed it), `difficulty_route` (a level with and without route choice: a player avoids a hard timing when the
   level has an easier way), **`fairness`** (deaths that are not the player's fault: forced input after
   a portal, misleading marks, sloped portal exits, orb chains with nothing to correct; fitted on the
   user's labelled deaths, `fairness fit`; tools/score.js gates on it; DIFFICULTY.md "Fairness").
@@ -167,7 +204,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 - **The phone page** (PHONE.md: what is on it, what a session does after `wip.js put`, phone
   marks, how it was tested, what is open): `tools/web.js` builds it from the viewer.
 - `tools/` -- node CLIs: `make`, `check`, `roundtrip`, `index_levels`, `serve`, `beats` (beat grid
-  of every song on this PC, ffmpeg + JS), `sync` (how well levels follow their song's beat), `frames` (timing windows with 60 fps presses, as the user's game has them), `press_window` (which press ticks get the player through one spot, from a given position: the human window there), `windows` (every input's timing window in any mode, by moving it and replaying; the work is `lib/windows.js`, which resumes from the plan's saved states and stops when the run rejoins it: 6 s for GDLM 45 instead of 3.5 min, so the viewer shades every input's window in its button strip too), `real_stats` (the user's real-game attempts on our levels, local/real_stats.jsonl), `web` (the viewer as a phone page, PHONE.md), `songs` (custom songs by id into local/songs/, as GD gets them; SYNC.md section 6), `songmap` (songs' beat clarity, sections, drops, and how levels follow them; SYNC.md section 7), `fetch_level` (online levels by ID into local/community/, for measuring only, never committed), `community` (study rated community levels: list, fetch, measure, modes, comments; see knowledge/README.md), `tiercheck` (does each section look like rated Easy/Normal or Hard/Harder sections of its mode; `--tier Easy`), `variety` (kinds of thing, portals, modes, speeds, repeated chunks vs rated levels; knowledge/levels/variety.md), `obstacles` (block structure per mode, obstacle shapes, when new kinds come in; knowledge/levels/obstacles.md), `modern_look` (how 2.2 rated levels are decorated: objects per block, layers, colour, triggers per section; knowledge/levels/modern_look.md), `difficulty` (score vs the official ratings).
+  of every song on this PC, ffmpeg + JS), `sync` (how well levels follow their song's beat), `frames` (timing windows with 60 fps presses, as the user's game has them), `press_window` (which press ticks get the player through one spot, from a given position: the human window there), `windows` (every input's timing window in any mode, by moving it and replaying; the work is `lib/windows.js`, a player's window with later inputs re-planned, the one definition the viewer's button strip, score.js and difficulty share; `--strict` the old fixed-inputs rule), `real_stats` (the user's real-game attempts on our levels, local/real_stats.jsonl), `web` (the viewer as a phone page, PHONE.md), `songs` (custom songs by id into local/songs/, as GD gets them; SYNC.md section 6), `songmap` (songs' beat clarity, sections, drops, and how levels follow them; SYNC.md section 7), `fetch_level` (online levels by ID into local/community/, for measuring only, never committed), `community` (study rated community levels: list, fetch, measure, modes, comments; see knowledge/README.md), `tiercheck` (does each section look like rated Easy/Normal or Hard/Harder sections of its mode; `--tier Easy`), `variety` (kinds of thing, portals, modes, speeds, repeated chunks vs rated levels; knowledge/levels/variety.md), `obstacles` (block structure per mode, obstacle shapes, when new kinds come in; knowledge/levels/obstacles.md), `modern_look` (how 2.2 rated levels are decorated: objects per block, layers, colour, triggers per section; knowledge/levels/modern_look.md), `difficulty` (score vs the official ratings).
 - **Structures: a ranked library of 1-3 s layouts** (STRUCTURES.md: format, how each is checked, the
   ranking rules, results, what is open; owner: the style session): `tools/structures.js` (`list`,
   `check`, `build <id>`, `rank`, `page`), results in `knowledge/structures.json`, a picture page for the
@@ -192,7 +229,19 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   skylines, the eclipse set piece, stars, designed blocks, motes, light rays, a top frame, lock-to-player
   parallax, beat pulses, text), a level's scene script `tools/scenes/<name>.js` (spec key `"scene"`).
   `node tools/make.js <spec> --look` rebuilds a decoration-only change in a second (keeps the solve when
-  the gameplay is the same). Owner: the showcase session.
+  the gameplay is the same; the jump arrows are placed again from the saved route). Owner: the showcase session.
+- **Taste, learned one level at a time** (TASTE.md: the taste loop's rounds -- one new approach per level,
+  compared with rated levels in GD art -- and every rule of taste with the note it came from; read it
+  before making or judging a level). Round 1: GDLM 51 adrift (`tools/scenes/adrift.js`: depth as the
+  story, looping motion -- scenekit `bob`, `sway`, jellyfish, fish, kelp, water surface, rocks).
+  **The user's notes as soft rules, swept over every level**: `node tools/softrules.js [level ...]`
+  (jump arrows a block in front of hazards, corridor mouths flush, flash rate; score.js gate `arrows`).
+  Owner: the showcase session.
+- **The section planner: a song -> a journey of little places** (SCENES.md: the rules, theme packs,
+  what a rated illustrated level does): `node tools/scenes.js <song> [--theme ...] [--brief ...]` -- per
+  section its role (intro/groove/build/drop/ride/breather/outro), place, palette, mode, transition,
+  camera, props; `--brief` writes a compose brief. Owner: the showcase session; props from the gd-art
+  session's `tools/props.js`.
 - **`tools/heavy.js` -- the one-heavy-job lock** every heavy tool takes on start (see "One heavy job at
   a time"). Test: `node tests/heavy.js`.
 - **`tools/loop.js` -- the whole make/iterate loop in one command** (owner check, ETA, make/compose, score,
@@ -238,6 +287,11 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   band, the verdict on each of the user's soft rules, what is open; owner: the taste session):
   `tools/taste.js` (`corpus`, `fetch`, `measure`, `learn`, `score <level>`), aggregates in
   `knowledge/taste_model.json`, score.js gate "taste". Test: `node tests/taste.js`.
+- **Art: pictures and props as GD objects** (ART.md: how a picture becomes merged deco squares, the prop
+  library with counts and sizes, the colour question still open in the game, what is open; owner: the art
+  session): `lib/pixelart.js` (canvas + converter), `tools/pixelart.js <image.png>` (picture -> objects,
+  `--max-objects`), `lib/props.js` (`put` / `place` / `list` by name: tree, pumpkin, house, robot, ...;
+  spec key `"props"` in make.js), `tools/props.js sheet | level`. Test: `node tests/pixelart.js`.
 - **The user's drawings -> levels** (SKETCH.md: reading a drawing into a spec, then making it fair;
   the GDLM 46 lessons).
 - **Levels onto the phone** (PUBLISH.md: unlisted upload from the PC game with computer use, where

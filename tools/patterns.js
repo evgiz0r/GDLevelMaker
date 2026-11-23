@@ -16,10 +16,25 @@ def("spikes", "n spikes side by side (n 1..3 is one jump at 1x; 4+ needs an orb/
 def("single", "one spike", () => P.spikes.fn({ n: 1 }));
 def("double", "two spikes", () => P.spikes.fn({ n: 2 }));
 def("triple", "three spikes: the classic hardest ground jump", () => P.spikes.fn({ n: 3 }));
-def("spike-block", "spike then a 1-high block to land on and jump off", () => ({
-  objects: [["spike", 0, 0], ["block", 3, 0]], width: 4 }));
-def("block-spike-block", "jump block to block over a spike (the spike punishes a short hop)", () => ({
-  objects: [["block", 0, 0], ["spike", 1, 0], ["spike", 2, 0], ["block", 3, 0]], width: 4 }));
+// `at`: the block's column (default 3), `w`: its width (default 1). At 3 the jump over the spike comes
+// down at the block's edge, so its window is cut by the block, not the spike (score.js "reactive": GDLM 45
+// v6/v7, 117 and 33 ms), and a step 2-5 blocks after the spike is where the jump comes down (GDLM 47 ~29.3 s):
+// compose uses at 1, w 3 at Easy/Normal -- one jump clears the spike and lands on the block.
+def("spike-block", "spike then a 1-high block (at `at`, `w` wide) to land on and jump off", (a) => {
+  const at = a.at || 3, w = a.w || 1, o = [["spike", 0, 0]];
+  for (let c = 0; c < w; c++) o.push(["block", at + c, 0]);
+  return { objects: o, width: at + w };
+});
+// `w1`/`w2`: widths of the two blocks (default 1, the old shape). A 1-wide first block makes the cube
+// land and jump again at once -- an exact hop, not a reaction (the user on GDLM 45 v6; score.js
+// "reactive"): compose uses 2 and 2 at Easy/Normal, so the cube lands, sees the spikes and jumps.
+def("block-spike-block", "jump block to block over two spikes (the spikes punish a short hop); w1/w2 = block widths", (a) => {
+  const w1 = a.w1 || 1, w2 = a.w2 || 1, o = [];
+  for (let c = 0; c < w1; c++) o.push(["block", c, 0]);
+  o.push(["spike", w1, 0], ["spike", w1 + 1, 0]);
+  for (let c = 0; c < w2; c++) o.push(["block", w1 + 2 + c, 0]);
+  return { objects: o, width: w1 + 2 + w2 };
+});
 
 // --- terrain ---
 def("stairs", "n one-square steps up, w squares each (default 3), optional spike on the far floor", (a) => {
@@ -34,7 +49,11 @@ def("platform", "a flat platform w long at height h (top row h), filled to the f
   return { objects: o, width: w };
 });
 def("hops", "floating 1-high slabs of blocks rising by `rise` with a spike pit under them", (a) => {
-  const n = a.n || 3, gap = a.gap || 2, w = a.w || 2, rise = a.rise ?? 1, o = [];
+  const w = a.w || 2, rise = a.rise ?? 1, o = [];
+  // slabs at one height 2 apart are walked across without a jump, so the spikes under the gaps never
+  // matter (the user on GDLM 47 ~18.7 s: "dunno if we have to jump or not ... then there is no point in
+  // those spikes"; score.js "hazards matter"): level hops get gaps of 3 or more, which need a jump each
+  const n = a.n || 3, gap = rise === 0 ? Math.max(3, a.gap || 2) : (a.gap || 2);
   let c = 0;
   for (let i = 0; i < n; i++) {
     for (let k = 0; k < w; k++) o.push(["block", c + k, 1 + i * rise]);
@@ -107,11 +126,16 @@ def("orb-ladder", "yellow orbs climbing over a spike floor; rows = orb heights, 
 // cube running on the ground).
 // The exit portal gets a frame (blocks above and below it, rows 0-9) so the only way out of the
 // corridor is through it: without one the solver flew over GDLM 44's exit and played on as a ship.
+// exitRow: a number (the portal's centre row; it covers that row and one either side, blocks above and
+// below), or [r0, r1]: the portal is stretched (scaleY, key 129: its 86-unit box grows with it) to fill
+// rows r0..r1 exactly, so a corridor wider than 3 rows needs no one-block hanger above it
 function portals(o, mode, entryRow, exitRow, w, a) {
   if (a.portal) o.push([mode + " portal", -1, entryRow]);
   if (a.exit) {
-    o.push([a.exit + " portal", w, exitRow]);
-    for (let r = 0; r < 10; r++) if (r < exitRow - 1 || r > exitRow + 1) o.push(["block", w, r]);
+    const [r0, r1] = Array.isArray(exitRow) ? exitRow : [exitRow - 1, exitRow + 1];
+    const span = r1 - r0 + 1;
+    o.push([a.exit + " portal", w, (r0 + r1) / 2, span === 3 ? undefined : { props: { 129: String(+(span * 30 / 86).toFixed(3)) } }]);
+    for (let r = 0; r < 10; r++) if (r < r0 || r > r1) o.push(["block", w, r]);
   }
 }
 def("ship-tunnel", "a ship corridor (band rows 0-9): floor and roof follow `waves` sine waves, `gap` rows of air, teeth on the bends; portal/exit options", (a) => {
@@ -144,6 +168,11 @@ def("wave-zigzag", "a wave corridor (band rows 0-9): the path climbs and falls 4
   // degrees, so the wave slides along it and can turn anywhere on it: ~95 ms per flat column at 1x.
   const seg = a.seg || 4, legs = a.legs || 4, gap = a.gap || 4, low = a.low ?? 2, flat = a.flat || 0, lead = a.lead || 0, o = [];
   const L = seg + flat, w = lead + L * legs;
+  // the entry's roof with `leadGap` (its bottom row): the first leg keeps it until its own roof climbs to
+  // it, so the slope joins it flush -- dropping straight to the leg's roof left an open step in the
+  // ceiling (the user, GDLM 44 round 2: "disconnected structure"; tools/joins.js checks it)
+  let leadRoof = null, joined = true;
+  if (a.slopes && a.leadGap && lead) { leadRoof = low - Math.floor(a.leadGap / 2) + a.leadGap; joined = false; }   // unclamped, as the entry's roof
   const midAt = c => { if (c < lead) return low; c -= lead; const leg = Math.floor(c / L), k = Math.min(c % L, seg); return low + (leg % 2 === 0 ? k : seg - k); };
   for (let c = 0; c < w; c++) {
     if (a.slopes) {
@@ -156,10 +185,22 @@ def("wave-zigzag", "a wave corridor (band rows 0-9): the path climbs and falls 4
         // let go) has ~300 ms before it meets the roof (or floor) -- tools/fairness.js "switch"
         // (WAVE_DEADLINE); GDLM 46 v3's ship -> wave entrance gave 100 ms with the corridor's 3 rows
         const g = c < lead && a.leadGap ? a.leadGap : gap;
-        const f = Math.max(0, m0 - Math.floor(g / 2));
-        if (g !== gap) { for (let r = f + g; r < 10; r++) o.push(["block", c, r]); continue; }
+        // the roof from the UNclamped floor row, so it joins the legs' slopes flush: with the floor
+        // clamped at the ground (low < gap/2) the level roof sat a row above the first slope and left a
+        // hanging notch at the mouth (the user on GDLM 50 v2's wave entrance: "this entrance is wrong in
+        // its shape"; tools/softrules.js "stubs")
+        const f0 = m0 - Math.floor(g / 2), f = Math.max(0, f0);
+        if (g !== gap) {
+          for (let r = f0 + g; r < 10; r++) o.push(["block", c, r]);
+          // the floor ramps up to meet the first leg's floor flush (a 1-row step there was an open edge)
+          const fl1 = Math.min(midAt(lead), midAt(lead + 1)) - Math.floor(gap / 2), k = c - (lead - (fl1 - f));
+          if (k >= 0 && k < fl1 - f) { for (let r = 0; r < f + k; r++) o.push(["block", c, r]); o.push(["slope", c, f + k, {}]); }
+          continue;
+        }
         for (let r = 0; r < f; r++) o.push(["block", c, r]);
-        for (let r = f + gap; r < 10; r++) o.push(["block", c, r]);
+        let roof = f0 + gap;
+        if (!joined) { if (roof < leadRoof) roof = leadRoof; else joined = true; }
+        for (let r = roof; r < 10; r++) o.push(["block", c, r]);
         continue;
       }
       const fl = Math.min(m0, m1) - Math.floor(gap / 2);       // floor slope row
@@ -168,6 +209,10 @@ def("wave-zigzag", "a wave corridor (band rows 0-9): the path climbs and falls 4
       if (fl >= 0) o.push(["slope", c, fl, up ? {} : { flipX: true }]);
       // ceiling: a rising roof is the slope turned over both ways (solid top-left), a falling roof
       // only upside down (solid top-right)
+      if (!joined && c >= lead) {
+        if (cl < leadRoof || !up) { for (let r = leadRoof; r < 10; r++) o.push(["block", c, r]); continue; }  // still under the entry's roof
+        joined = true;   // the rising roof meets the entry's roof here: flush
+      }
       if (cl <= 9) o.push(["slope", c, cl, up ? { flipX: true, flipY: true } : { flipY: true }]);
       for (let r = cl + 1; r < 10; r++) o.push(["block", c, r]);
       continue;
@@ -183,7 +228,9 @@ def("wave-zigzag", "a wave corridor (band rows 0-9): the path climbs and falls 4
   // so the portal covers the floor's top row and the two above it (centred one row up); in the middle
   // of the path it let only a late release through (GDLM 44 v7: 54 ms, the early ones slid under it)
   const endFlat = a.slopes && flat && midAt(w - 1) === midAt(w - 2);
-  portals(o, "wave", a.portalRow ?? Math.min(5, midAt(0)), endFlat ? midAt(w - 1) - Math.floor(gap / 2) + 1 : midAt(w - 1), w, a);
+  // a corridor ending level: the exit portal fills the corridor's mouth (floor to roof), flush
+  const f1 = midAt(w - 1) - Math.floor(gap / 2);
+  portals(o, "wave", a.portalRow ?? Math.min(5, midAt(0)), endFlat ? [Math.max(0, f1), f1 + gap - 1] : midAt(w - 1), w, a);
   return { objects: o, width: w + (a.exit ? 1 : 0) };
 });
 

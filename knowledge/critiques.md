@@ -14,6 +14,24 @@ Format: date, level + version, the user's words, what it means, what was done (c
   replay's look, not the level's design. Passed by the main session to the sync session (owner of
   the phone page, `tools/web.js`; the look is `lib/look.js`). Not yet acted on.
 
+## GDLM 60 physics lab (a test course, 2026-11-23; practice, 26 attempts)
+
+Measured, not said: the deaths in the user's one practice run (local/real_stats.jsonl; PHYSICS.md "GDLM 60").
+- A plank row straight over a spike row, reached by a jump from flat ground with no cue: 7 deaths.
+  Give a step up or a mark, or start the planks after a gap of ground.
+- A solid post right after a dash orb's run: 5 deaths, the player held the dash into it. Show where a
+  dash must end (open space, or a mark), never a wall the held dash flies into.
+- The user on the ending: "the last sign is also bad" -- the signature figure reads as a white blob in the
+  game (frame local/shots/lab60/signature_game.png; with visuals).
+## GDLM 45 first flight
+- 2026-11-23, v6, the cube part at ~4-6 s (blocks ~50-75: block, spike, spike, block, then spike-spike,
+  spike, block): "such pattern is awkward, as it creates very specific cube jumps I need to do, instead of
+  being able to react". Measured (tools/reactive.js, on the player's route): landings on 1-block spots at
+  blocks 52, 62 and 70 that force the next jump within 250 ms, and 3 forced hops in a row (52, 57, 62).
+  Cause: block-spike-block's 1-wide first block and 2-4 column gaps in "the hit". Done (v7): a 3-wide
+  landing block, 4+ flat columns before each group; score.js gate "reactive" (FAIL at Easy/Normal),
+  compose keeps 4+ columns between chunks and 2-wide blocks at Easy/Normal. Rule in checklist.md.
+
 ## GDLM 44 hellgate
 - 2026-11-23, v12 (looking at round-1 frames): the orb chain over the spike run landed in a 2-column gap
   before a 2-high block -- "landing just behind a block is annoying, it's hard to aim the previous orb ...

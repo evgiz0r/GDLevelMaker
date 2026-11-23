@@ -23,6 +23,7 @@ const INST = require("./install.js");
 
 const ROOT = path.join(__dirname, "..");
 const QUEUE = process.env.GDLM_INSTALL_QUEUE || path.join(ROOT, "local", "install_queue.json");   // env: tests only
+const FILES = path.join(path.dirname(QUEUE), "install_queue_files");   // copies of the queued files
 const REPORTS = process.env.GDLM_INSTALL_REPORTS || path.join(ROOT, "local", "install_reports");
 const args = process.argv.slice(2), opt = (n, d) => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] : d; };
 const sha = s => crypto.createHash("sha1").update(s).digest("hex").slice(0, 12);
@@ -43,9 +44,16 @@ function add() {
   if (!files.length) { console.log("usage: node tools/install_queue.js add <level.gdlvl> [...] [--by <who>]"); process.exit(1); }
   const q = load();
   for (const f of files) {
-    const abs = path.resolve(f), L = readGdlvl(abs);
-    const e = { file: path.relative(ROOT, abs).replace(/\\/g, "/"), name: L.name, objects: L.level.objects.length, sha: sha(L.levelStr),
+    // the file is copied into the queue's own folder (next to install_queue.json, in the shared local/):
+    // the watcher may run in another checkout, where a relative path means another file or none
+    // (2026-11-23: "file missing" for a level queued from the main checkout)
+    const abs = path.resolve(f), L = readGdlvl(abs), h = sha(L.levelStr);
+    fs.mkdirSync(FILES, { recursive: true });
+    const copy = h + "_" + path.basename(abs);
+    fs.copyFileSync(abs, path.join(FILES, copy));
+    const e = { file: abs.replace(/\\/g, "/"), copy, name: L.name, objects: L.level.objects.length, sha: h,
       wip: wipVersion(abs), added: now(), by };
+    for (const x of q.queue) if (x.name === e.name && x.copy && x.copy !== copy) try { fs.unlinkSync(path.join(FILES, x.copy)); } catch (err) {}
     q.queue = q.queue.filter(x => x.name !== e.name);
     q.queue.push(e);
     console.log(`queued "${e.name}" (${e.objects} objects, ${e.sha}) from ${e.file}`);
@@ -75,7 +83,8 @@ function installNow(save) {
   const q = load();
   if (!q.queue.length) return null;
   const batch = q.queue.slice();
-  const missing = batch.filter(e => !fs.existsSync(path.join(ROOT, e.file)));
+  const src = e => e.copy ? path.join(FILES, e.copy) : path.resolve(ROOT, e.file);
+  const missing = batch.filter(e => !fs.existsSync(src(e)));
   const todo = batch.filter(e => !missing.includes(e));
   // online IDs the save holds for these names before installing: an install must never drop one
   const idsBefore = {};
@@ -88,7 +97,7 @@ function installNow(save) {
   let out = "", err = null;
   if (todo.length) {
     try {
-      out = execFileSync(process.execPath, [process.env.GDLM_INSTALL_JS || path.join(__dirname, "install.js"), ...todo.map(e => path.join(ROOT, e.file)), ...(opt("--save") ? ["--save", save] : [])], { encoding: "utf8" });
+      out = execFileSync(process.execPath, [process.env.GDLM_INSTALL_JS || path.join(__dirname, "install.js"), ...todo.map(src), ...(opt("--save") ? ["--save", save] : [])], { encoding: "utf8" });
     } catch (e) { err = (e.stdout || "") + (e.stderr || "") || e.message; }
   }
   if (err && /running/i.test(err)) return { skipped: "GD started" };   // GD came up between poll and install: try later
@@ -111,6 +120,7 @@ function installNow(save) {
   const after = load();
   after.queue = after.queue.filter(x => !batch.some(b => b.name === x.name && b.added === x.added));
   store(after);
+  for (const b of batch) if (b.copy && !after.queue.some(x => x.copy === b.copy)) try { fs.unlinkSync(path.join(FILES, b.copy)); } catch (err) {}
   return { report, file: name };
 }
 

@@ -1,4 +1,5 @@
-// node tools/difficulty_solve.js <n> [--sweep]   -- solves official level n into the shared local/:
+// node tools/difficulty_solve.js <n | c<id>> [--sweep]   -- solves official level n (or the downloaded community
+//   level <id>, local/community/<id>.gdlvl -> local/difficulty/c<id>.json) into the shared local/:
 //   local/difficulty/NN.json (raw solver inputs, for tools/difficulty.js) and local/official_NN.json
 //   (the human route, for the viewer and other sessions). Both carry `physics`: the last commit
 //   that changed lib/physics.js or lib/objects*.js, so a later physics change shows what is stale.
@@ -20,7 +21,7 @@
 // RobTop's levels: local/ is gitignored and nothing from it is ever committed.
 if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const fs = require("fs"), path = require("path"), { execFileSync, execSync } = require("child_process");
-const { GD, unpack } = require("./io.js");
+const { GD, unpack, readGdlvl } = require("./io.js");
 const SRC = process.env.GD_LEVELS || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash/Resources/levels/";
 const OUT = path.join(__dirname, "..", "local", "difficulty");
 
@@ -29,7 +30,15 @@ function physicsCommit() {
   catch (e) { return null; }
 }
 
-const partFile = n => path.join(OUT, String(n).padStart(2, "0") + ".part.json");
+// a level: an official number (GD's own files), or "c<id>" for a downloaded community level
+// (local/community/<id>.gdlvl, tools/fetch_level.js): same checkpoints, resume and no-skip rule
+const isCommunity = n => /^c\d+$/.test(String(n));
+const tag = n => isCommunity(n) ? String(n) : String(n).padStart(2, "0");
+function levelText(n) {
+  if (isCommunity(n)) return readGdlvl(path.join(__dirname, "..", "local", "community", String(n).slice(1) + ".gdlvl")).levelStr;
+  return levelText(n);
+}
+const partFile = n => path.join(OUT, tag(n) + ".part.json");
 function checkpointer(n, prefix, physics) {
   return (ev, st) => { fs.mkdirSync(OUT, { recursive: true });
     fs.writeFileSync(partFile(n), JSON.stringify({ n, physics, events: prefix.concat(ev), x: st.x, savedAt: new Date().toISOString() })); };
@@ -45,7 +54,7 @@ function partOf(n, opts) {
 function solveOfficial(n, opts) {
   const part = opts.sweep ? null : partOf(n, opts);
   if (part) { const r = continueFrom(n, part.events, part.x, [0, 300, 1200], opts, null); if (r) return r; }
-  const level = unpack(fs.readFileSync(path.join(SRC, n + ".txt"), "utf8"));
+  const level = levelText(n);
   const L = GD.parseLevel(level);
   const w = GD.makeWorld(L.objects, L.header);
   const t0 = Date.now();
@@ -60,7 +69,7 @@ function solveOfficial(n, opts) {
     endX: w.endX,
   };
   fs.mkdirSync(OUT, { recursive: true });
-  fs.writeFileSync(path.join(OUT, String(n).padStart(2, "0") + (opts.sweep ? "_sweep" : "") + ".json"), JSON.stringify(res));
+  fs.writeFileSync(path.join(OUT, tag(n) + (opts.sweep ? "_sweep" : "") + ".json"), JSON.stringify(res));
   toViewer(n, level, res);
   return res;
 }
@@ -81,7 +90,7 @@ function replay(w, events) {
 function resumeOfficial(n, opts) {
   const part = partOf(n, opts);
   if (part) { const r = continueFrom(n, part.events, part.x, [0, 300, 1200], opts, null); if (r) return r; }
-  const file = path.join(OUT, String(n).padStart(2, "0") + ".json");
+  const file = path.join(OUT, tag(n) + ".json");
   if (!fs.existsSync(file)) return solveOfficial(n, opts);
   const old = JSON.parse(fs.readFileSync(file, "utf8"));
   return continueFrom(n, old.events, opts.from, opts.from != null ? [0] : [300, 900, 2700], opts, old) || solveOfficial(n, opts);
@@ -91,8 +100,8 @@ function resumeOfficial(n, opts) {
 // in turn. old: the saved result being redone (trouble left null: found by replaying its events in
 // the current physics). Null when every start gets stuck within 2 blocks of the trouble spot.
 function continueFrom(n, events, trouble, backs, opts, old) {
-  const file = path.join(OUT, String(n).padStart(2, "0") + ".json"), physics = physicsCommit();
-  const level = unpack(fs.readFileSync(path.join(SRC, n + ".txt"), "utf8"));
+  const file = path.join(OUT, tag(n) + ".json"), physics = physicsCommit();
+  const level = levelText(n);
   const L = GD.parseLevel(level), w = GD.makeWorld(L.objects, L.header), t0 = Date.now();
   const rp = replay(w, events), endS = rp.end;
   const save = (r, evs, from) => {
@@ -126,6 +135,7 @@ function continueFrom(n, events, trouble, backs, opts, old) {
 
 // also show it in the viewer (local/official_NN.json, the format tools/official.js writes)
 function toViewer(n, level, res) {
+  if (isCommunity(n)) return;   // other people's levels: numbers only, not in the viewer's official list
   const NAMES = require("./difficulty.js").RATED;
   // the viewer shows the route a person would play: one tap per cube jump instead of long holds
   const L = GD.parseLevel(level), w = GD.makeWorld(L.objects, L.header);
@@ -145,7 +155,7 @@ const sleep = ms => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0,
 if (require.main === module) {
   const args = process.argv.slice(2);
   if (args[0] === "all") {
-    const ns = args.slice(1).map(Number); const list = ns.length ? ns : Array.from({ length: 22 }, (_, i) => i + 1);
+    const ns = args.slice(1).filter(a => !a.startsWith("--")).map(a => isCommunity(a) ? a : Number(a)); const list = ns.length ? ns : Array.from({ length: 22 }, (_, i) => i + 1);
     for (const n of list) {
       let waited = 0;
       while (freeGB() < 2.5) { if (waited++ % 6 === 0) console.log(`  (waiting: under 2.5 GB free)`); sleep(10000); }
@@ -153,7 +163,7 @@ if (require.main === module) {
       catch (e) { console.log(`${n}: failed: ${String(e.message).split("\n")[0]}`); }
     }
   } else {
-    const n = +args[0];
+    const n = isCommunity(args[0]) ? args[0] : +args[0];
     const fi = args.indexOf("--from"), o = { sweep: args.includes("--sweep"), fresh: args.includes("--fresh"), from: fi < 0 ? null : +args[fi + 1] };
     const r = args.includes("--resume") || fi >= 0 ? resumeOfficial(n, o) : solveOfficial(n, o);
     console.log(`${n}: ${r.ok ? "beaten" : "stops at block " + (r.dieX / 30).toFixed(1) + " (" + r.why + ")"}, ${r.events.length} events, ${r.secs.toFixed(0)} s, physics ${r.physics}` +

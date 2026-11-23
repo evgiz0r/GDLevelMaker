@@ -14,10 +14,10 @@ const fs = require("fs");
 const { GD, readGdlvl, writeGdlvl } = require("./io.js");
 const DECO = require("./decorate.js");
 const args = process.argv.slice(2).filter(a => !a.startsWith("--"));
-if (!args.length) { console.log(fs.readFileSync(__filename, "utf8").split("\n").filter(l => l.startsWith("//")).join("\n")); process.exit(1); }
+if (require.main === module && !args.length) { console.log(fs.readFileSync(__filename, "utf8").split("\n").filter(l => l.startsWith("//")).join("\n")); process.exit(1); }
 
 let total = 0;
-for (const f of args) {
+if (require.main === module) for (const f of args) {
   const L = readGdlvl(f), objs = L.level.objects, w = GD.makeWorld(objs, L.level.header);
   const bad = DECO.indicatorIssues(objs, w);
   total += bad.length;
@@ -46,4 +46,4 @@ for (const f of args) {
     console.log(`   moved ${moved} of ${bad.length}; wrote ${f}${kept}`);
   }
 }
-process.exit(process.argv.includes("--gate") && total ? 1 : 0);
+if (require.main === module) process.exit(process.argv.includes("--gate") && total ? 1 : 0);

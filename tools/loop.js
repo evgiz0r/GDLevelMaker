@@ -52,7 +52,7 @@ function readTimings(file = TIMINGS) {
 function table(rows) {
   const bucket = r => !(r.levelSecs > 0) ? "-" : r.levelSecs < 30 ? "< 30 s" : r.levelSecs < 75 ? "30-75 s" : "> 75 s";
   const g = {};
-  for (const r of rows) if (r.secs > 0) (g[r.step + "|" + bucket(r)] = g[r.step + "|" + bucket(r)] || []).push(r.secs);
+  for (const r of rows) if (r.secs > 0 && r.ok !== false) (g[r.step + "|" + bucket(r)] = g[r.step + "|" + bucket(r)] || []).push(r.secs);
   return Object.entries(g).map(([k, v]) => { const [step, len] = k.split("|"); return { step, len, n: v.length, median: median(v), min: Math.min(...v), max: Math.max(...v) }; })
     .sort((a, b) => a.step.localeCompare(b.step) || a.len.localeCompare(b.len));
 }
@@ -142,7 +142,7 @@ async function main() {
     const step = args[1], cmd = args.slice(2);
     if (!step || !cmd.length) { console.log("usage: node tools/loop.js --time <step name> <command ...>"); return 1; }
     slotStatus();   // a heavy tool takes the lock itself (tools/heavy.js); a plain command just runs
-    const t0 = Date.now(), r = cp.spawnSync(cmd[0], cmd.slice(1), { cwd: process.cwd(), stdio: "inherit", shell: process.platform === "win32" });
+    const t0 = Date.now(), r = cp.spawnSync(cmd[0], cmd.slice(1), { cwd: process.cwd(), stdio: "inherit" });
     const secs = (Date.now() - t0) / 1000;
     logTiming({ at: new Date().toISOString(), step, secs: +secs.toFixed(1), ok: r.status === 0, cmd: cmd.join(" ").slice(0, 200), freeMB: freeMB() });
     console.log(`time: ${step} took ${fmt(secs)} (exit ${r.status}) -> ${path.relative(ROOT, TIMINGS)}`);

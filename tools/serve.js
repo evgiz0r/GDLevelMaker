@@ -20,7 +20,10 @@ http.createServer((req, res) => {
         const m = JSON.parse(body);
         if (typeof m !== "object" || !m || !m.id) throw new Error("not a mark");
         fs.mkdirSync(path.dirname(MARKS), { recursive: true });
-        fs.appendFileSync(MARKS, JSON.stringify(m) + "\n");
+        // a session testing the mark flow: id "test-..." or test: true -> local/marks.test.jsonl, never shown to the
+        // user (a "TEST mark from Claude" pin sat on hellgate in the user's viewer, 2026-11-23)
+        const testMark = m.test === true || /^test-/.test(String(m.id));
+        fs.appendFileSync(testMark ? MARKS.replace(/\.jsonl$/, ".test.jsonl") : MARKS, JSON.stringify(m) + "\n");
         res.writeHead(200, { "Content-Type": "application/json" }); res.end('{"ok":true}');
       } catch (e) { res.writeHead(400); res.end(String(e.message)); }
     });
@@ -86,7 +89,11 @@ http.createServer((req, res) => {
       const { list } = require("./wip.js"), { readGdlvl } = require("./io.js"), { songOf } = require("./index_levels.js");
       for (const m of list()) {
         try { const L = readGdlvl(path.join(root, "local", "wip", m.session, m.file));
-              out.push(Object.assign({}, m, { name: m.name, file: "local/wip/" + m.session + "/" + m.file, level: L.levelStr, song: songOf(L.rec, L.level.header), wip: true })); } catch (e) {}
+              // the timing windows measured later (tools/solutions.js cache) for the same inputs: the viewer shows them at once
+              let solution = m.solution;
+              try { const c = require("./solutions.js").get(L.levelStr, true);
+                if (solution && !solution.windows && c && c.windows && JSON.stringify(c.events) === JSON.stringify(solution.events)) solution = Object.assign({}, solution, { windows: c.windows, win: c.win }); } catch (e) {}
+              out.push(Object.assign({}, m, { name: m.name, file: "local/wip/" + m.session + "/" + m.file, level: L.levelStr, song: songOf(L.rec, L.level.header), wip: true, solution })); } catch (e) {}
       }
     } catch (e) {}
     res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify(out));
@@ -127,6 +134,8 @@ http.createServer((req, res) => {
   }
   if (p === "/" || p === "/viewer") { res.writeHead(302, { Location: "/viewer/" }); return res.end(); }
   if (p.endsWith("/")) p += "index.html";
+  // the beat grids live in the shared local/ (tools/beats.js); an older viewer page asks for viewer/beats.local.js
+  if (p === "/viewer/beats.local.js") p = "/local/beats.local.js";
   let f = path.join(root, p);
   const song = /^\/song\/(official|custom)\/([A-Za-z0-9]+)\.(mp3|ogg)$/.exec(p);
   // custom songs: the game's save folder, else the shared cache tools/songs.js fills (either extension)
