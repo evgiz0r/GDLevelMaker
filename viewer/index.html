@@ -25,6 +25,14 @@
   #noteBox h2 { font-size:15px; margin:0 0 8px; }
   #noteBox textarea { width:100%; box-sizing:border-box; background:#0e0828; color:var(--ink); border:1px solid #3b2d78; border-radius:6px; padding:8px; font:inherit; font-size:16px; }
   #noteBox .row { display:flex; gap:8px; margin-top:8px; }
+  #taskBox { position:fixed; inset:0; z-index:70; display:grid; place-items:center; background:rgba(11,6,32,.8); padding:16px; }
+  #taskBox[hidden] { display:none; }
+  #taskBox .card { width:min(100%, 480px); background:#160d3a; border:1px solid #3b2d78; border-radius:10px; padding:14px; font-size:14px; line-height:1.45; }
+  #taskBox h2 { font-size:16px; margin:0 0 8px; }
+  #taskBox p { margin:6px 0; }
+  #taskBox .row { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+  #taskChip { position:fixed; right:14px; bottom:14px; z-index:55; border-radius:16px; padding:6px 12px; background:#24184f; border:1px solid #6b5bd0; font-size:12px; }
+  #taskChip[hidden] { display:none; }
   #varbar { display:flex; flex-wrap:wrap; gap:6px 14px; align-items:center; padding:6px 10px; background:#140b33; border-top:1px solid #2b2060; font-size:13px; }
   #varbar .vsec { display:flex; gap:4px; align-items:center; }
   #varbar .vname { color:#c9bdf8; margin-right:2px; }
@@ -110,6 +118,9 @@
   <span id="cmpAt" class="muted"></span></div><img id="cmpImg" alt="game frame"></div></div>
 <div id="varbar" hidden></div>
 <div id="notice" hidden></div>
+<div id="taskBox" hidden><div class="card"><h2 id="taskTitle"></h2><div id="taskBody"></div>
+<div class="row"><button id="taskGo" class="on">Start</button><button id="taskAlt" hidden></button><button id="taskCancel">Cancel</button></div></div></div>
+<button id="taskChip" hidden title="what the PC is doing for you (click for details)"></button>
 <div id="noteBox" hidden><div class="card"><h2 id="noteTitle"></h2><textarea id="noteText" rows="4"></textarea>
 <div class="row"><button id="noteSave" class="on">save mark</button><button id="noteCancel">cancel</button></div></div></div>
 <canvas id="strip"></canvas>
@@ -186,6 +197,63 @@ function showMap(src) {
   addEventListener("keydown", function esc(e) { if (e.key === "Escape") { o.remove(); removeEventListener("keydown", esc); } });
   document.body.appendChild(o);
 }
+// ---------- tasks the PC does for the user (a level map, a route): explained first, then a chip while they run ----
+// (the user: "open a dialog that explains what's going to happen"). taskAsk shows what it will do, how long it may
+// take (the heavy-job queue: GET /heavy/status) and what happens after; Start runs it, and a small chip shows its
+// place / progress (click: the details again). Each task: {id, label, match (its command line), start(), ready()
+// -> Promise<bool>, done(), state}.
+const TASKS = [];
+function taskAsk(o) {
+  return new Promise(done => {
+    const box = document.getElementById("taskBox"), go = document.getElementById("taskGo"), alt = document.getElementById("taskAlt");
+    document.getElementById("taskTitle").textContent = o.title;
+    document.getElementById("taskBody").innerHTML = `<p>${o.what}</p><p id="taskEta" class="muted">${o.etaText || "checking the PC's queue…"}</p><p>${o.after}</p>`;
+    go.textContent = o.go || "Start"; alt.hidden = !o.alt; alt.textContent = o.alt || "";
+    box.hidden = false;
+    const close = v => { box.hidden = true; done(v); };
+    go.onclick = () => close("go"); alt.onclick = () => close("alt"); document.getElementById("taskCancel").onclick = () => close(null);
+    if (o.match !== undefined) queueText(o.match, o.typical).then(t => { const e = document.getElementById("taskEta"); if (e && !box.hidden) e.innerHTML = t; });
+  });
+}
+// the queue in words: who runs, how many wait, a rough time until this job is done
+async function queueText(match, typical) {
+  let q = null; try { q = await (await fetch("/heavy/status?match=" + encodeURIComponent(match || "\u0000"), { cache: "no-store" })).json(); } catch (e) {}
+  if (!q) return "The PC's queue could not be read.";
+  const n = q.holders.length + q.waiting.length, run = q.holders[0];
+  if (q.mine) return q.mine.running ? `It is running now (${q.mine.min} min in, about ${q.mine.eta} min left).` : `It waits its turn: ${q.mine.ahead} job${q.mine.ahead === 1 ? "" : "s"} ahead, done in about ${q.mine.eta} min.`;
+  const wait = q.holders.reduce((m, h) => m + (h.left || 2), 0) + q.waiting.filter(w => w.prio !== "low").length * 2;
+  return !n ? `The PC is free: it starts at once and takes about ${typical} min.`
+    : `The PC is busy (${run ? esc(run.cmd.slice(0, 60)) + " runs" : ""}${q.waiting.length ? ", " + q.waiting.length + " waiting" : ""}). Your job goes ahead of the routine ones: roughly ${Math.max(1, Math.round(wait / 2)) + typical}–${wait + typical} min.`;
+}
+function taskAdd(t) {
+  if (TASKS.find(x => x.id === t.id)) return; TASKS.push(t); t.state = "queued"; t.t0 = Date.now(); chipTick();
+}
+async function chipTick() {
+  clearTimeout(chipTick.timer);
+  for (const t of TASKS.filter(t => t.state !== "done")) {
+    if (await t.ready().catch(() => false)) { t.state = "done"; t.done(); continue; }
+    try { const q = await (await fetch("/heavy/status?match=" + encodeURIComponent(t.match), { cache: "no-store" })).json(); t.q = q.mine; } catch (e) {}
+    if (Date.now() - t.t0 > 60 * 60e3) { t.state = "done"; notice(esc(t.label) + ": still not done after an hour -- the PC may be busy (node tools/heavy.js shows the queue)."); }
+  }
+  const live = TASKS.filter(t => t.state !== "done"), chip = document.getElementById("taskChip");
+  chip.hidden = !live.length;
+  if (live.length) {
+    const t = live[0], q = t.q;
+    chip.textContent = `⏳ ${t.label}: ` + (q ? (q.running ? `running, ~${q.eta} min` : `${q.ahead} ahead, ~${q.eta} min`) : "starting…") + (live.length > 1 ? ` (+${live.length - 1})` : "");
+    chipTick.timer = setTimeout(chipTick, 5000);
+  }
+}
+document.addEventListener("DOMContentLoaded", () => {
+  const chip = document.getElementById("taskChip"); if (!chip) return;
+  chip.onclick = async () => { const live = TASKS.filter(t => t.state !== "done"); if (!live.length) return;
+    const lines = await Promise.all(live.map(async t => `<p><b>${esc(t.label)}</b>: ${await queueText(t.match, 2)}</p>`));
+    const box = document.getElementById("taskBox");
+    document.getElementById("taskTitle").textContent = "What the PC is doing for you";
+    document.getElementById("taskBody").innerHTML = lines.join("") + "<p class='muted'>Each opens here when it is ready; you can keep using the viewer.</p>";
+    document.getElementById("taskGo").textContent = "OK"; document.getElementById("taskAlt").hidden = true;
+    box.hidden = false; const close = () => { box.hidden = true; };
+    document.getElementById("taskGo").onclick = close; document.getElementById("taskCancel").onclick = close; };
+});
 // ---------- the public site (tools/pages.js sets window.GD_PAGES) ----------
 // Nothing copyrighted is hosted there. Songs, GD's own art and the official levels come from the user's OWN
 // tools/serve.js on this PC when it runs (http://localhost:8765 answers the Pages origin, CORS); anywhere else
@@ -237,6 +305,24 @@ document.addEventListener("DOMContentLoaded", () => {
     try { SONGS[k] = await audioCtx().decodeAudioData(bytes.slice(0)); } catch (err) { notice("That file could not be played as a song. An mp3 or ogg works."); return; }
     keepSong(k, bytes); songAsk(false); const was = playing; setSong(songInfo); if (was) syncSong(true); };
 });
+// a level with no saved route (tools/solutions.js): explain and offer to solve it on the PC (high priority, the page
+// stays usable), or here (the page freezes while it solves), or not at all
+async function solveLater(l, levelStr) {
+  if (!l || !l.file) return;
+  const match = "solutions.js", objs = (levelStr.match(/;/g) || []).length;
+  const ans = await taskAsk({ title: "Find the route of " + l.name,
+    what: `This level has no saved route yet, so there is nothing to replay. The PC can find it: the route a person would take, saved so the viewer, the phone and the scores all use it. (${objs} objects.)`,
+    after: "The replay starts here when it is ready; you can keep using the viewer meanwhile.", match, typical: objs > 2000 ? 5 : 2,
+    go: "Solve on the PC", alt: "Solve here now (the page freezes until done)" });
+  if (ans === "alt") { const tt = t; load(l.name, l.level, (() => { try { return GD.solveAny(GD.makeWorld(GD.parseLevel(l.level).objects, GD.parseLevel(l.level).header)); } catch (e) { return null; } })() || undefined, l.song); t = tt; draw(); return; }
+  if (ans !== "go") { if (L) { L.sol.why = "not solved: no saved route (pick the level again to solve it)"; summary(); } return; }
+  try { const r = await fetch("/solve", { method: "POST", body: JSON.stringify({ file: l.file }) }); if (!r.ok) throw new Error(); } catch (e) { notice("Could not ask the PC (is tools/serve.js running?)."); return; }
+  if (L) { L.sol.why = "solving on the PC…"; summary(); }
+  let sol = null;
+  taskAdd({ id: "solve:" + l.file, label: "route of " + l.name, match: "solutions.js",
+    ready: async () => { try { sol = (await (await fetch("/solution?file=" + encodeURIComponent(l.file), { cache: "no-store" })).json()).solution; } catch (e) {} return !!sol; },
+    done: () => { l.solution = sol; notice("The route of " + esc(l.name) + " is ready.", 4000); if (ALL[pick.value] === l) { const tt = t; pick.dispatchEvent(new Event("change")); t = Math.min(tt, (L.path.length - 1) / P.TPS); draw(); } } });
+}
 function setSong(info) {
   if (song) { song.pause(); song = null; }
   songInfo = info || null;
@@ -259,7 +345,12 @@ function load(name, levelStr, saved, info) {
   const level = GD.parseLevel(levelStr);
   const world = GD.makeWorld(level.objects, level.header);
   let sol;
-  if (saved) sol = saved.ok ? { ok: true, events: saved.events, clicks: [] } : { ok: false, trail: saved.events, clicks: [], dieAt: { x: saved.dieX || 0, tick: 0 }, why: saved.why || "" };
+  if (saved) sol = saved.ok ? { ok: true, events: saved.events, clicks: [] } : { ok: false, trail: saved.events, clicks: [], dieAt: { x: saved.dieX || 0, tick: 0 }, why: saved.why || "", pending: !!saved.pending };
+  else if (location.protocol.startsWith("http") && !window.GD_PAGES && !window.GD_PHONE && !SHOOT && ALL[pick.value] && ALL[pick.value].level === levelStr) {
+    // no saved route: ask the PC instead of freezing the page for minutes (solveLater explains first)
+    sol = { ok: false, trail: [], clicks: [], dieAt: { x: 0, tick: 0 }, why: "not solved yet: no saved route", pending: true };
+    setTimeout(() => solveLater(ALL[pick.value], levelStr), 0);
+  }
   else try { sol = GD.solveAny(world); } catch (e) { sol = { ok: false, clicks: [], trail: [], dieAt: GD.startState(world), why: e.message }; }
   // the replay shows a natural way to play it (lib/natural.js: a tap per jump, no empty jumps, the
   // ship and wave flown along the middle of their corridor), not the solver's fewest-presses run
@@ -556,7 +647,7 @@ function summary() {
   const nP = s.clicks.filter(c => c.type !== "release").length, ws = s.clicks.map(c => c.ms).filter(ms => ms > 0);
   h += s.ok ? `<p class="ok">Beatable in ${nP} click${nP === 1 ? "" : "s"} ${kind}` +
               (ws.length ? ` · tightest window ${Math.min(...ws)} ms` : "") + `</p>`
-            : `<p class="bad">${kind} Not beatable in the simulation. The furthest run dies at block ${(s.dieAt.x / 30).toFixed(1)} (${(s.dieAt.tick / P.TPS).toFixed(2)} s): ${s.why}. The replay shows that furthest run.</p>`;
+            : s.pending ? `<p class="muted">${esc(s.why)}</p>` : `<p class="bad">${kind} Not beatable in the simulation. The furthest run dies at block ${(s.dieAt.x / 30).toFixed(1)} (${(s.dieAt.tick / P.TPS).toFixed(2)} s): ${s.why}. The replay shows that furthest run.</p>`;
   if (L.deaths && L.deaths.length) h += `<p class="bad">Your real deaths (normal mode, from recordings): ${L.deaths.length} at ${L.deaths.slice().sort((a, b) => a - b).map(p => p.toFixed(0) + "%").join(", ")} (red marks).</p>`;
   if (unsim) h += `<p class="muted">${unsim} objects are not simulated yet (unsupported portals or unknown ids).</p>`;
   if (deco) h += `<p class="muted">${deco} decoration and trigger objects (no physics).</p>`;
@@ -619,19 +710,19 @@ if (document.getElementById("mapBtn")) document.getElementById("mapBtn").onclick
   let ok = false; try { ok = (await fetch(url, { method: "HEAD", cache: "no-store" })).ok; } catch (e) {}
   if (ok) showMap(url); else makeMap(l, name, url);
 };
-// no map yet: the PC's tools/serve.js makes it (tools/levelmap.js under the heavy lock); the page waits and opens it
+// no map yet: explain, then the PC's tools/serve.js makes it (tools/levelmap.js under the heavy lock, high priority)
 async function makeMap(l, name, url) {
+  if (!location.protocol.startsWith("http") || window.GD_PAGES) { notice("No map yet for " + esc(name) + ". Maps are made on the PC: node tools/levelmap.js " + esc(l.file)); return; }
+  const match = "levelmap.js " + l.file;
+  const ans = await taskAsk({ title: "Make the level map of " + l.name,
+    what: "The PC solves the level's route if it has none saved, then draws the whole level as one long picture, with the route drawn over it: every press, the modes, the portals.",
+    after: "It opens here when ready; you can keep using the viewer meanwhile. A small chip in the corner shows how far it is.", match, typical: 2 });
+  if (ans !== "go") return;
   let r = null; try { r = await fetch("/maps/make", { method: "POST", body: JSON.stringify({ file: l.file, name }) }); } catch (e) {}
-  if (!r || !r.ok) { notice("No map yet for " + esc(name) + ". It is made on the PC: node tools/levelmap.js " + esc(l.file)); return; }
-  const j = await r.json().catch(() => ({}));
-  notice(`making the map of ${esc(name)}… it waits its turn among the PC's heavy jobs (about a minute once it runs) and opens here when ready`, 0);
-  const t0 = Date.now(), poll = async () => {
-    let ok = false; try { ok = (await fetch(url, { method: "HEAD", cache: "no-store" })).ok; } catch (e) {}
-    if (ok) { notice("map of " + esc(name) + " ready", 3000); showMap(url); return; }
-    if (Date.now() - t0 > 30 * 60e3) { notice("The map of " + esc(name) + " is still not made (the PC may be busy: node tools/heavy.js shows the queue)."); return; }
-    setTimeout(poll, 5000);
-  };
-  setTimeout(poll, 5000);
+  if (!r || !r.ok) { notice("The map could not be started (is tools/serve.js running?)."); return; }
+  taskAdd({ id: "map:" + l.file, label: "map of " + l.name, match,
+    ready: async () => { try { return (await fetch(url, { method: "HEAD", cache: "no-store" })).ok; } catch (e) { return false; } },
+    done: () => { notice("The map of " + esc(l.name) + " is ready.", 4000); showMap(url); } });
 }
 document.getElementById("hit").onclick = e => { showHit = !showHit; e.target.classList.toggle("on", showHit); draw(); };
 document.getElementById("sound").onclick = e => { sound = !sound; e.target.classList.toggle("on", sound); };
@@ -749,7 +840,9 @@ let cmpOn = false, cmpWant = "", cmpBusy = false;
 if (location.protocol.startsWith("http")) fetch("/rec/list").then(r => r.ok ? r.json() : []).then(list => {
   if (!list.length) return;
   list.forEach(f => cmpRec.add(new Option(f, f)));
-  cmpBtn.hidden = false;
+  // "compare" is put away for now (the user, 2026-11-24); the code stays: localStorage gdlm.compare = "1" shows it
+  let cmpWanted = false; try { cmpWanted = localStorage.getItem("gdlm.compare") === "1"; } catch (e) {}
+  cmpBtn.hidden = !cmpWanted;
 }).catch(() => {});
 const cmpKey = () => "gdlm.cmp." + (L ? L.name : "");
 function cmpLoadSetting() {

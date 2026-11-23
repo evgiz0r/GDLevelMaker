@@ -25,7 +25,7 @@ let bad = 0, n = 0;
 const ok = (c, m) => { n++; if (!c) { bad++; console.log("FAIL " + m); } };
 for (const c of CASES) {
   const f = path.join(DIR, `${c.lv}@${c.at}.gdlvl`);
-  if (!fs.existsSync(f)) fs.writeFileSync(f, cp.execFileSync("git", ["show", `${c.at}:levels/${c.lv}.gdlvl`], { cwd: ROOT }));
+  if (!fs.existsSync(f)) fs.writeFileSync(f, cp.execFileSync("git", ["show", `${c.at}:levels/${c.lv}.gdlvl`], { windowsHide: true, cwd: ROOT }));
   const t0 = Date.now();
   let r; try { r = M.run({ level: f, at: c.spot, note: c.note, dry, noShots: true, noSweep: true }); } catch (e) { r = { ok: false, error: e.message, families: [] }; }
   const tag = `${c.lv}@${c.at} "${c.note}"`;

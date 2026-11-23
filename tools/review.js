@@ -83,7 +83,7 @@ function review(spec, o = {}) {
   // readability (rendered): the saved numbers, or --render now
   try {
     const rf = path.join(ROOT, "local", "readability", slug(L.name) + ".json");
-    if (o.render) cp.spawnSync(process.execPath, [path.join(__dirname, "readability.js"), file], { stdio: "ignore", timeout: 3600000 });
+    if (o.render) cp.spawnSync(process.execPath, [path.join(__dirname, "readability.js"), file], { windowsHide: true, stdio: "ignore", timeout: 3600000 });
     const cand = fs.existsSync(path.join(ROOT, "local", "readability")) ? fs.readdirSync(path.join(ROOT, "local", "readability")).filter(f => f.startsWith(slug(L.name).slice(0, 12))).map(f => path.join(ROOT, "local", "readability", f)) : [];
     const R = [rf, ...cand].filter(f => fs.existsSync(f)).map(f => ({ f, m: fs.statSync(f).mtimeMs })).sort((a, b) => b.m - a.m)[0];
     if (R) { const j = JSON.parse(fs.readFileSync(R.f, "utf8")); meta.readability = rel(R.f);
@@ -92,7 +92,7 @@ function review(spec, o = {}) {
   } catch (e) {}
   // score.js gates (solves again)
   if (o.gates) {
-    const r = cp.spawnSync(process.execPath, [path.join(__dirname, "score.js"), file, "--json"], { encoding: "utf8", timeout: 3600000 });
+    const r = cp.spawnSync(process.execPath, [path.join(__dirname, "score.js"), file, "--json"], { windowsHide: true, encoding: "utf8", timeout: 3600000 });
     try { const j = JSON.parse(r.stdout.trim().split("\n").pop()); meta.gates = j.ok ? "READY" : "NOT READY";
       for (const g of j.gates.filter(g => g.status !== "PASS")) if (!issues.some(i => i.rule === g.name)) for (const part of (g.note || g.value).split("; ")) add(g.name, g.status, FAM.blockIn(part), `${g.name}: ${part}`);
     } catch (e) { meta.gatesError = (r.stderr || "").slice(-300); }

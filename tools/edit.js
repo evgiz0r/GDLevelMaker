@@ -406,12 +406,12 @@ function shots(beforeFile, afterFile, t, outPng) {
   const pics = [];
   for (const [f, tag] of [[beforeFile, "before"], [afterFile, "after"]]) {
     const d = path.join(dir, tag);
-    const r = cp.spawnSync(process.execPath, [sh, f, "--at", String(Math.max(0, t)), "--out", d], { encoding: "utf8", timeout: 180000 });
+    const r = cp.spawnSync(process.execPath, [sh, f, "--at", String(Math.max(0, t)), "--out", d], { windowsHide: true, encoding: "utf8", timeout: 180000 });
     const png = fs.existsSync(d) ? fs.readdirSync(d).filter(x => x.endsWith(".png")).map(x => path.join(d, x))[0] : null;
     if (!png) return { error: (r.stderr || r.stdout || "shoot.js gave no picture").split("\n").slice(-3).join(" ") };
     pics.push(png);
   }
-  const r = cp.spawnSync("ffmpeg", ["-v", "error", "-y", "-i", pics[0], "-i", pics[1], "-filter_complex", "[0]scale=960:-1[a];[1]scale=960:-1[b];[a][b]hstack", outPng], { encoding: "utf8" });
+  const r = cp.spawnSync("ffmpeg", ["-v", "error", "-y", "-i", pics[0], "-i", pics[1], "-filter_complex", "[0]scale=960:-1[a];[1]scale=960:-1[b];[a][b]hstack", outPng], { windowsHide: true, encoding: "utf8" });
   return r.status === 0 ? { png: outPng, before: pics[0], after: pics[1] } : { error: "ffmpeg: " + r.stderr, before: pics[0], after: pics[1] };
 }
 
@@ -455,12 +455,12 @@ function edit(o) {
   const sb = new Set(qb.map(k)), sa = new Set(qa.map(k));
   rep.checks = { before: qb.length, after: qa.length, fixed: qb.filter(q => !sa.has(k(q))), added: qa.filter(q => !sb.has(k(q))) };
   if (o.full) {
-    const r = cp.spawnSync(process.execPath, [path.join(__dirname, "score.js"), out, "--json"], { encoding: "utf8", timeout: 3600000 });
+    const r = cp.spawnSync(process.execPath, [path.join(__dirname, "score.js"), out, "--json"], { windowsHide: true, encoding: "utf8", timeout: 3600000 });
     try { const j = JSON.parse(r.stdout.trim().split("\n").pop()); rep.gates = { ok: j.ok, fails: j.gates.filter(g => g.status === "FAIL").map(g => g.name + ": " + g.value) }; } catch (e) { rep.gates = { error: (r.stderr || "").slice(-300) }; }
   }
   rep.viewer = `http://localhost:8765/viewer/#lv=${encodeURIComponent("../" + rep.file)}&t=${spot.t}`;
   if (!o.noShots) rep.picture = shots(beforeFile, out, Math.max(0, spot.t - 0.6), out.replace(/\.gdlvl$/, "_before_after.png"));
-  if (o.session) { const r = cp.spawnSync(process.execPath, [path.join(__dirname, "wip.js"), "put", out, "--session", o.session, "--note", "edit: " + (o.words || JSON.stringify(ops))], { encoding: "utf8" }); rep.wip = (r.stdout || "").trim().split("\n").slice(-2).join(" "); }
+  if (o.session) { const r = cp.spawnSync(process.execPath, [path.join(__dirname, "wip.js"), "put", out, "--session", o.session, "--note", "edit: " + (o.words || JSON.stringify(ops))], { windowsHide: true, encoding: "utf8" }); rep.wip = (r.stdout || "").trim().split("\n").slice(-2).join(" "); }
   fs.writeFileSync(out.replace(/\.gdlvl$/, ".json"), JSON.stringify(Object.assign({ words: o.words || null, at: o.at, made: new Date().toISOString() }, rep), null, 1));
   return rep;
 }

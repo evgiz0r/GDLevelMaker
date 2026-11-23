@@ -201,7 +201,7 @@ function claim(label) {
 }
 const release = () => { if (held) { try { fs.unlinkSync(held); } catch (e) {} held = null; delete process.env.GDLM_HEAVY_HELD; } };
 
-module.exports = { claim, release, syncTree, holders, waiters, firstInLine, myPriority, decide, gameRunning, lowPriority, lockDir, freeMB, describe, MIN_FREE_MB, TWO_SLOTS_MB, GAME_MIN_FREE_MB };
+module.exports = { claim, release, syncTree, holders, waiters, firstInLine, myPriority, decide, gameRunning, lowPriority, lockDir, freeMB, describe, minutesLeft, RANK, MIN_FREE_MB, TWO_SLOTS_MB, GAME_MIN_FREE_MB };
 if (require.main === module) {
   const hs = holders();
   console.log(`${freeMB()} MB free${gameRunning() ? ", the game runs" : ""}; ${hs.length ? hs.length + " heavy job(s): " + hs.map(describe).join("; ") : "no heavy job running"}  (lock dir ${lockDir()})`);

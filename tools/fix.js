@@ -81,7 +81,7 @@ function fix(spec, o = {}) {
     const route = E.routeOf(Object.assign({}, L, { solution: null })), i = route ? route.path.findIndex(p => p.x >= firstX) : -1;
     rep.picture = E.shots(L.file, out, Math.max(0, (i < 0 ? firstX / 311.6 : i / GD.PHYS.TPS) - 0.6), out.replace(/\.gdlvl$/, "_before_after.png"));
   }
-  if (o.session) { const r = require("child_process").spawnSync(process.execPath, [path.join(__dirname, "wip.js"), "put", out, "--session", o.session, "--note", `fix.js: ${rep.kept.length} fixes`], { encoding: "utf8" }); rep.wip = (r.stdout || "").trim().split("\n").pop(); }
+  if (o.session) { const r = require("child_process").spawnSync(process.execPath, [path.join(__dirname, "wip.js"), "put", out, "--session", o.session, "--note", `fix.js: ${rep.kept.length} fixes`], { windowsHide: true, encoding: "utf8" }); rep.wip = (r.stdout || "").trim().split("\n").pop(); }
   fs.writeFileSync(out.replace(/\.gdlvl$/, ".json"), JSON.stringify(rep, null, 1));
   return rep;
 }
