@@ -151,6 +151,37 @@ for (const hold of [true, false]) {
   const r = GD.solveAny(w);
   check("the sweep flips the swing past floor and roof walls", r.ok && !GD.run(w, r.events).dead, r.ok ? `${r.clicks.filter(c => c.type === "press").length} presses` : `dies at ${r.dieAt && r.dieAt.x.toFixed(0)}`);
 }
+// ---- moving objects: move to target, follow, pause/resume, multi-trigger spawn loops, toggled-off triggers ----
+{
+  const at = (objs, ticks, id) => { const w = GD.makeWorld(objs.concat([{ id: 1, x: 3000, y: 15 }])), s = GD.startState(w);
+    for (let t = 0; t < ticks; t++) GD.step(w, s, { press: false, held: false });
+    const p = GD.posedObjects(w, s).find(q => q.o.id === id); return p ? p.o : null; };
+  const blk = (g, x, y) => ({ id: 1, x, y, props: { "57": String(g) } });
+  // move to target (100): the group's object lands on group 9's object; 101 = 1: x only
+  const tgt = { id: 211, x: 1500, y: 105, props: { "57": "9" } };
+  let o = at([{ id: 901, x: 30, y: 300, props: { "51": "7", "100": "1", "71": "9", "10": "0" } }, blk(7, 600, 300), tgt], 60, 1);
+  check("move to target: the group lands on the target", o && o.x === 1500 && o.y === 105, o && `${o.x},${o.y}`);
+  o = at([{ id: 901, x: 30, y: 300, props: { "51": "7", "100": "1", "71": "9", "101": "1", "10": "0" } }, blk(7, 600, 300), tgt], 60, 1);
+  check("move to target, x only", o && o.x === 1500 && o.y === 300, o && `${o.x},${o.y}`);
+  // follow (1347): group 8 follows group 7's moves, y at half
+  o = at([{ id: 1347, x: 30, y: 300, props: { "51": "8", "71": "7", "72": "1", "73": "0.5", "10": "10" } },
+    { id: 901, x: 60, y: 300, props: { "51": "7", "28": "60", "29": "-150", "10": "0" } }, blk(8, 600, 300), { id: 211, x: 700, y: 300, props: { "57": "7" } }], 80, 1);
+  check("follow: moves by the followed group's moves x its mods", o && o.x === 660 && o.y === 225, o && `${o.x},${o.y}`);
+  // stop trigger 580: 1 pause, 2 resume -- the paused time does not count
+  const pr = [{ id: 901, x: 30, y: 300, props: { "51": "7", "28": "600", "10": "2", "57": "5" } },
+    { id: 1616, x: 300, y: 300, props: { "51": "5", "580": "1" } }, { id: 1616, x: 600, y: 300, props: { "51": "5", "580": "2" } }, blk(7, 600, 300)];
+  const a1 = at(pr, 300, 1), a2 = at(pr, 400, 1), a3 = at(pr, 2000, 1);
+  check("pause holds a move, resume carries on, it still ends where it should", a1 && a2 && a1.x === a2.x && a1.x < 1200 && a3.x === 1200, a1 && `${a1.x.toFixed(1)} ${a2.x.toFixed(1)} -> ${a3.x.toFixed(1)}`);
+  // a multi-trigger spawn loop: every 0.25 s the group goes up a block (spawn B re-spawns its own group)
+  const loop = multi => [{ id: 1268, x: 30, y: 300, props: { "51": "3" } },
+    { id: 901, x: 3000, y: 300, props: { "51": "7", "29": "30", "10": "0", "57": "3", "62": "1", "87": multi ? "1" : "0" } },
+    { id: 1268, x: 3000, y: 330, props: { "51": "3", "63": "0.25", "57": "3", "62": "1", "87": multi ? "1" : "0" } }, blk(7, 600, 300)];
+  const m1 = at(loop(true), 240, 1), m0 = at(loop(false), 240, 1);
+  check("multi-trigger: a spawn loop fires again every 0.25 s (without 87: once)", m1 && m0 && m1.y === 420 && m0.y === 330, m1 && `${m1.y} vs ${m0.y}`);
+  // a trigger in a group a toggle switched off does not fire when passed
+  o = at([{ id: 1049, x: 30, y: 300, props: { "51": "4", "56": "0" } }, { id: 901, x: 300, y: 300, props: { "51": "7", "29": "60", "10": "0", "57": "4" } }, blk(7, 600, 300)], 400, 1);
+  check("a toggled-off trigger does not fire", o && o.y === 300, o && o.y);
+}
 // ---- dual (lib/dual.js; GD's rules from the 2.2081 decompile, PHYSICS.md "Dual") ----
 {
   const DP = (x, y) => ({ id: 286, x, y }), SOLO = (x, y) => ({ id: 287, x, y });

@@ -188,6 +188,10 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 - `lib/physics.js` -- physics of every mode, triggers + solver (fewest clicks, each in the middle of its window;
   every window is replay-checked tick by tick: `solve` merges near-twin states, which once claimed ticks that die).
   PHYSICS.md: per mode and trigger, its constants, sources, checks and what is open.
+- `lib/dual.js` -- dual mode (two players, one button; GD 2.2's rules read from the 2.2081 decompile), stepped from
+  physics.js's step() only in levels with dual portals. Moving objects (move, move to target, follow, rotate, toggle,
+  spawn, multi-trigger, stop/pause/resume) live in physics.js's trigger code. `tools/movers.js`: which levels' triggers
+  move hitboxes. Lab: GDLM 63 (`tools/lab63.js`). PHYSICS.md "Dual" and "Moving objects".
 - `lib/difficulty.js` -- difficulty score from a solution: the human route (one tap per jump), per-input
   timing windows, a timing-error + lapse model fitted on the user's real runs; see DIFFICULTY.md
   (also the tier ladder for making levels, and what is open). Its tools: `difficulty` (score a level,
