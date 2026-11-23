@@ -2,7 +2,8 @@
 //
 // Puts levels straight into the game's save (Windows: %LOCALAPPDATA%\GeometryDash\CCLocalLevels.dat)
 // so they appear at the top of Create -> My Levels. A level with the same name is replaced in
-// place, so re-installing after an edit updates it instead of piling up copies.
+// place, so re-installing after an edit updates it instead of piling up copies; a level already
+// shared online keeps its online ID (k1/k16/k60), so Share again updates that upload (PUBLISH.md).
 //
 // The game must be CLOSED: it rewrites this file when it exits, wiping anything put in meanwhile.
 // Every run first copies the save to GeometryDash\gdlm_backups\ (restore = copy it back).
@@ -62,6 +63,21 @@ function joinLevels(parts) {
   return parts.before + parts.head + parts.items.map((it, n) => `<k>k_${n}</k><d>${it.inner}</d>`).join("") + parts.after;
 }
 function nameOf(inner) { const m = inner.match(/<k>k2<\/k><s>([^<]*)<\/s>/); return m ? m[1] : ""; }
+// A level already shared online carries k1 (its online ID), k16 (its upload version) and k60
+// (the uploader's account id). Replacing the record must keep them, or GD would upload the new
+// version as a NEW level with a new ID instead of updating the old one.
+const ONLINE_KEYS = ["k1", "k16", "k60"];
+function entry(inner, k) { const m = inner.match(new RegExp(`<k>${k}</k><(i|s|r)>[^<]*</\\1>`)); return m ? m[0] : null; }
+function keepOnline(oldInner, newInner) {
+  let inner = newInner, id = null;
+  for (const k of ONLINE_KEYS) {
+    const old = entry(oldInner, k);
+    if (!old || entry(inner, k)) continue;
+    if (k === "k1") id = old.replace(/<[^>]+>/g, "").replace(/^k1/, "");
+    inner = inner.replace(/^(<k>kCEK<\/k><i>4<\/i>)?/, m => m + old);
+  }
+  return { inner, id };
+}
 
 function main() {
   const args = process.argv.slice(2);
@@ -82,7 +98,11 @@ function main() {
     const inner = rec.match(/<plist[^>]*><dict>([\s\S]*)<\/dict><\/plist>/)[1];
     const name = nameOf(inner);
     const at = parts.items.findIndex(it => nameOf(it.inner) === name);
-    if (at >= 0) { parts.items[at].inner = inner; console.log(`replaced "${name}" (position ${at + 1})`); }
+    if (at >= 0) {
+      const kept = keepOnline(parts.items[at].inner, inner);
+      parts.items[at].inner = kept.inner;
+      console.log(`replaced "${name}" (position ${at + 1})` + (kept.id ? `, kept online ID ${kept.id}: pressing Share again updates that same upload (PUBLISH.md)` : ""));
+    }
     else { parts.items.unshift({ key: "", inner }); console.log(`added "${name}" at the top`); }
   }
   const out = joinLevels(parts);

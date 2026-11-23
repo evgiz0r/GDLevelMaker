@@ -153,6 +153,10 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   windows (small moves near the input), syncs portals/orbs loosely, adds jump indicators at prejumps,
   decorates a bare level; output in `local/polish/` only. Before/after side by side in GD art:
   `viewer/polish.html` (via tools/serve.js). Test: `node tests/polish.js`.
+- **Levels onto the phone** (PUBLISH.md: unlisted upload from the PC game with computer use, where
+  the buttons are, GD must be windowed, the user's yes before each upload; IDs in
+  `local/phone_ids.json`). `tools/install.js` keeps a shared level's online ID on re-install, so
+  Share again updates the same upload (`tests/install_keeps_id.js`).
 - `examples/` -- levels the user made in the game, for reference and as format ground truth.
 
 All the library code runs in both node and the browser (no build step, no dependencies).
@@ -308,4 +312,6 @@ The viewer draws moving objects where they start.
   loopback device (only the headset mic).
 - Playing on the phone too: how to get an updated level onto the phone while away from the PC.
   Watching is built: the phone page (PHONE.md: live work in progress, marks, songs added from
-  the phone). Playing it in the phone's game: `tools/export_gmd.js` (.gmd for GDShare).
+  the phone). Playing it in the phone's game: unlisted uploads from the PC game, found
+  on the phone by ID (PUBLISH.md; IDs in `local/phone_ids.json`); `tools/export_gmd.js` (.gmd for
+  GDShare) where file import works.
