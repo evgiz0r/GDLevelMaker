@@ -165,7 +165,8 @@ Per level (mode + speed portals within 0.15 beat of a beat (luck 30%) and of a b
   beat grid is the least certain).
 - **The user's levels** (`--save`, 22 levels, 5 on songs not on this PC): mostly short tests
   with too few events to score. "cube timings" puts all 5 of its orbs on beats (kappa 1.0); its
-  presses are loose (0.23). No user level is synced at the official levels' bar level.
+  presses are loose (kappa 0.18, 12 presses; 0.23 before the replay-checked windows of physics
+  a8a2220, Nov 23). GDLM 02 keeps all 11 presses on a beat with the narrower windows. No user level is synced at the official levels' bar level.
 
 How GD makers place sync, from this: build a section per 4- or 8-bar phrase and start it with
 a portal (or a speed change) whose centre is on that bar's first beat; put orbs on beats when
@@ -260,7 +261,8 @@ places (`songFile` in songs.js), so a fetched song gets beat lines and a beat gr
 
 On Nov 22 2026 the levels used 85 custom songs; 6 were on the PC. Of the 79 missing, 72 have a
 Newgrounds url (608 MB in all), 5 are library songs, and 2 (628806, 1268427) the server refuses
-("-2": removed or not allowed in GD). Meta (name, artist, url) is in `local/songs/<id>.json`.
+("-2": removed or not allowed in GD). Fetched Nov 23 with the user's OK: 76 of 79 (655 MB in
+local/songs/); 709117's Newgrounds file is gone (HTTP 404). Beat grids for all 118 songs: 2m40s. Meta (name, artist, url) is in `local/songs/<id>.json`.
 
 ## 7. Song structure: sections, drops, beatless parts (Nov 23 2026)
 
@@ -273,38 +275,46 @@ or change. Checked on a made-up song (`tests/songmap_synthetic.js`): its drop an
 on the right bar, and its pad reads beatless. This replaces the loudness-only section finder in
 `local/beats/` (which got 39% vs 32% luck).
 
-**The songs** (42 on the PC):
+**The songs** (118 on the PC since Nov 23: 22 official, 86 Newgrounds, 10 from GD's library;
+`local/songmap/songs.txt` has the table):
 - Every official song has a clear, steady beat: median clarity 2.5-4.1, beatless bars 0-15%
   (Back On Track 15%, Theory of Everything 8%, xStep 9%, the rest under 8%).
-- Newgrounds songs vary more: 644761, 467267 (33%), 10000912 (29%), 343707 (26%, GDLM 44
-  hellgate's), 685746 (24%) and 10004401 (21%) have long beatless stretches. These are the songs
-  where "follow the vibe, not the grid" applies.
+- Custom songs vary more. Median beatless share: official 2%, Newgrounds 8%, GD library 18%;
+  songs with 20% or more: 0 of 22 official, 17 of 86 Newgrounds, 4 of 10 library. Among the first
+  ones measured: 644761, 467267 (33%), 10000912 (29%), 343707 (26%, GDLM 44 hellgate's), 685746
+  (24%), 10004401 (21%). These are the songs where "follow the vibe, not the grid" applies.
 - Sections start on a 4-bar phrase line (bar 0, 4, 8... from the grid's downbeat) 46% of the
   time in the official songs (41 of 90; luck 25%, about 4.5 sigma), 32% in the custom songs (whose
   downbeats are less sure). The rest are off by a bar or two: use a section as "around here", and
   snap it to the nearest phrase line when placing a portal.
 
-**The levels** (22 official, 14 downloaded community levels whose songs are on the PC, the GDLM
-levels; transitions = mode and speed portals and colour triggers):
+**The levels** (22 official; 84 of the 91 downloaded community levels, all whose songs are now on
+the PC; the GDLM levels. Transitions = mode and speed portals and colour triggers. Numbers in
+`local/songmap/levels.txt`):
 - **Portals mark section changes.** Novelty (z) where a mode or speed portal sits on a bar line:
-  official 0.41 (n 94, 36% in the song's top-20% bars, luck 20%: about 4 sigma), community 0.52
-  (n 37, 32%). Colour triggers do not (official -0.05, 19%): most are pulses and decoration.
+  official 0.41 (n 94, 36% in the song's top-20% bars, luck 20%: about 4 sigma), community 0.25
+  (n 797, 29%: about 6 sigma). Colour triggers do not (official -0.05, community 0.02, both 19-20%):
+  most are pulses and decoration.
 - Counting the other way, a song's section changes get a transition within 1 beat 57% of the time in
-  official levels (luck 44%, sliding the sections by whole bars) and 36% in community levels
-  (luck 28%). Drops: official 62% met, community 29%.
-- **Density follows loudness in the official levels**: hazards per bar vs the bar's loudness,
-  Spearman r median 0.18, positive in 16 of 22 levels (sign test p ~0.03). The 14 community
-  levels do not (median -0.11, positive in 36%).
+  official levels (luck 44%, sliding the sections by whole bars) and 55% in community levels
+  (luck 35%). Drops: official 62% met, community 63%.
+- **Density follows loudness, more in the official levels**: hazards per bar vs the bar's loudness,
+  Spearman r median 0.18, positive in 16 of 22 official levels (sign test p ~0.03); community
+  median 0.07, positive in 57% of 84.
 - **No mode lives in the calm parts.** Per-song percentile of the bars each mode is played in
   (0.5 = typical): official ship clarity 0.49, loudness 0.51; wave 0.49 / 0.57; cube 0.50 /
   0.44; every mode has 12-21% of its bars in the song's calmest 20% (luck 20%). UFO, wave and ball
-  sit in slightly louder bars than cube. So the official levels do not put the ship or wave on
-  beatless parts (their songs barely have any); the user's "beatless suits ship/wave" is a
-  maker's choice for songs that have such parts, not something the official levels show.
+  sit in slightly louder bars than cube. The official songs barely have beatless parts.
+- **In bars with no beat (clarity < 1.8), community makers play cube, ship and wave as often as
+  anywhere, and avoid the tap modes.** Share of each mode's bars that have no beat: cube 10.4%
+  (of 2232), ship 10.6% (951), wave 11.5% (504), robot 8.5%, UFO 4.7% (380), spider 2.9%, ball
+  2.8% (286; luck ~10%, so ball and UFO are well under it). So the user's "beatless parts suit ship/wave"
+  holds in the weaker form: holding modes and the cube go anywhere, but the modes you tap in
+  rhythm (ball, UFO, spider) are kept where there is a beat to tap to.
 
 For writing levels: start a new mode or speed at a section change (the strong novelty bars),
-make it denser where the song is louder, and treat a song's beatless stretches (the custom songs
-above) as the place for flying parts without beat-pinned clicks.
+make it denser where the song is louder, and in a song's beatless stretches use ship, wave or
+cube, not ball, UFO or spider.
 
 ## Status and hand-off (Nov 22 2026, music sync session, branch claude/sync-6e196a)
 
@@ -334,9 +344,8 @@ asked them (Nov 22) to grade portals and drops instead, per the user's "not forc
 - Section detection: now spectral novelty (section 7). Not yet: whether its drops are where a
   listener hears them (no labels; the user could mark a few in the viewer). The detector's bar can
   be off by one.
-- Songs with long beatless stretches (644761, 467267, 10000912, 343707, 685746): only 14 community
-  levels are measured so far, too few to see what makers fly there. Needs more songs on the PC
-  (the download is waiting for the user's OK) and `node tools/songmap.js --levels`.
+- 7 community levels still unmeasured (songs refused or gone: 628806, 1268427, 709117). The
+  user's own save levels are not in songmap yet (sync.js has the reader).
 - make.js / compose.js do not yet read songmap's sections: a spec could say "new section at the
   song's next section change" instead of a beat number.
 - Songs with tempo changes need local grids. Low-confidence songs: custom 343707 (GDLM 44

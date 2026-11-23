@@ -14,6 +14,15 @@ Format: date, level + version, the user's words, what it means, what was done (c
   with forgiving sections; v1 did not. Style session is acting on it (STYLE.md, style branch).
   2026-11-23 numbers (`levels/variety.md`): GDLM 41-45 use 1-6 kinds of gameplay thing (rated Easy/Normal
   15-17), one speed, few portals, and mostly repeated chunks. That points at sameness more than emptiness.
+  Also (`levels/obstacles.md`): GDLM's cube parts have blocks in 13% of their columns (rated/official ~47%),
+  and 92% of the spikes are on the bare ground: a flat floor, where rated levels play on ledges, steps and pits.
+- 2026-11-23, v5 (recording 2026-11-23_02-51-50.mkv): "i just die in the entrance" -- of the wave.
+  Both runs that got there landed the cube on the block before the wave portal (the sim's solution
+  stays airborne into it), entered the wave without holding, slid on the block top and died at its
+  end. Two causes: the sim let a wave slide off a block's end (fixed, PHYSICS.md "Wave"), and the
+  design: a wave portal at the end of a block the cube lands on punishes the natural "enter, then
+  steer" with a death 50 ms in. Lesson (design.md-worthy): a mode portal should not drop the new
+  mode onto a corner; leave open air (or flat floor) after it so the first input can come late.
 
 ## GDLM 42 seen then gone
 - 2026-11-22, v1: whole phrases invisible -> "practically very hard, tons of learning, pure memory

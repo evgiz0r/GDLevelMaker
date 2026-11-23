@@ -87,7 +87,8 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 
 - `lib/gd.js` -- the format: base64url + gzip layers, the record (plist) and the level string.
 - `lib/objects.js` -- object ids: name, kind, hitbox. `sure:false` = from memory, unconfirmed.
-- `lib/physics.js` -- physics of every mode, triggers + solver (fewest clicks, each in the middle of its window).
+- `lib/physics.js` -- physics of every mode, triggers + solver (fewest clicks, each in the middle of its window;
+  every window is replay-checked tick by tick: `solve` merges near-twin states, which once claimed ticks that die).
   PHYSICS.md: per mode and trigger, its constants, sources, checks and what is open.
 - `lib/difficulty.js` -- difficulty score from a solution: the human route (one tap per jump), per-input
   timing windows, a timing-error + lapse model fitted on the user's real runs; see DIFFICULTY.md
@@ -101,7 +102,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 - **The phone page** (PHONE.md: what is on it, what a session does after `wip.js put`, phone
   marks, how it was tested, what is open): `tools/web.js` builds it from the viewer.
 - `tools/` -- node CLIs: `make`, `check`, `roundtrip`, `index_levels`, `serve`, `beats` (beat grid
-  of every song on this PC, ffmpeg + JS), `sync` (how well levels follow their song's beat), `frames` (timing windows with 60 fps presses, as the user's game has them), `web` (the viewer as a phone page, PHONE.md), `songs` (custom songs by id into local/songs/, as GD gets them; SYNC.md section 6), `songmap` (songs' beat clarity, sections, drops, and how levels follow them; SYNC.md section 7), `fetch_level` (online levels by ID into local/community/, for measuring only, never committed), `community` (study rated community levels: list, fetch, measure, modes, comments; see knowledge/README.md), `tiercheck` (does each section look like rated Easy/Normal or Hard/Harder sections of its mode; `--tier Easy`), `variety` (kinds of thing, portals, modes, speeds, repeated chunks vs rated levels; knowledge/levels/variety.md), `difficulty` (score vs the official ratings).
+  of every song on this PC, ffmpeg + JS), `sync` (how well levels follow their song's beat), `frames` (timing windows with 60 fps presses, as the user's game has them), `press_window` (which press ticks get the player through one spot, from a given position: the human window there), `web` (the viewer as a phone page, PHONE.md), `songs` (custom songs by id into local/songs/, as GD gets them; SYNC.md section 6), `songmap` (songs' beat clarity, sections, drops, and how levels follow them; SYNC.md section 7), `fetch_level` (online levels by ID into local/community/, for measuring only, never committed), `community` (study rated community levels: list, fetch, measure, modes, comments; see knowledge/README.md), `tiercheck` (does each section look like rated Easy/Normal or Hard/Harder sections of its mode; `--tier Easy`), `variety` (kinds of thing, portals, modes, speeds, repeated chunks vs rated levels; knowledge/levels/variety.md), `obstacles` (block structure per mode, obstacle shapes, when new kinds come in; knowledge/levels/obstacles.md), `difficulty` (score vs the official ratings).
 - **Level style and the idea -> level loop** (STYLE.md: findings, style vocabulary, the loop, every
   playtest lesson, what is open): `tools/style.js` (measure style: deco share, triggers, sections,
   rests, motifs, recurring chunks) + `tools/corpus.js` (official levels and the user's save, in
@@ -183,6 +184,9 @@ Confirmed:
   camera drops during the dive).
 - The cube has no head bump: its outer box grazing a block's corner from the head side does
   nothing, only the 9x9 inner box kills (the same dive clips a ledge corner and carries on).
+- The wave slides along a block's top, but dies as it slides off the block's end (its centre
+  passing the corner, x within ~5 units): two of two deaths in the user's GDLM 44 runs
+  (2026-11-23_02-51-50.mkv, 17.6 s and 24.38 s). The sim slid off and lived until then.
 - Flipping gravity halves vertical speed (blue orb and ceiling blue pad in the recording move at
   half the decompile's velocity). The decompile's ringJump alone does not show this.
 
@@ -236,7 +240,7 @@ Assumed (not yet checked):
 
 ## Status of the solver on "cube timings" (examples/)
 
-Beaten: 11 presses plus a dash release, tightest window 21 ms (the blue orb). Every part of
+Beaten: 11 presses plus a dash release, tightest window 17 ms (windows replay-checked since 2026-11-23). Every part of
 the level is in the sim: triple spikes, blue orb + ceiling blue pad, slope, dash orb, red orb,
 spider orb + pad, the upside-down red-orb dive under a hanging column.
 
