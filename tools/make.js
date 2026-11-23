@@ -1,4 +1,5 @@
-// node tools/make.js specs/<name>.json   -> levels/<name>.gdlvl, checked, and added to the viewer
+// node tools/make.js specs/<name>.json [--look]  -> levels/<name>.gdlvl, checked, and added to the viewer
+//   --look: decoration-only change: keep the last solve if the gameplay is the same (see lookOnly)
 //
 // A spec is written in grid squares, not GD units: column 0 is where the player starts,
 // row 0 is the first square above the ground.
@@ -25,6 +26,8 @@
 //   "art": {"bg": n, "ground": n}                        background / ground art numbers
 //   "modern": {"sections": [{from, to, kind, fill, light}], "title": "...", "end": "..."}   the modern
 //                          decoration pass (tools/decorate.js modernPass; compose.js fills it in)
+//   "scene": "tools/scenes/<name>.js"   a scene script: fn({objects, header, spec, ctx, tl, beatX, xOfT, GD})
+//                          -> {objects (deco + triggers to add), header}; tools/scenekit.js recipes (SHOWCASE.md)
 //   "decoDensity": [[fromCol, share], ...]   classic style: share of free columns with ground
 //                          decoration from that column on (default 0.25; compose.js sets it per section)
 //   "indicators": {"id": N, "rot": n, "at": [cols], "all": false}   a small arrow pointing down over
@@ -133,19 +136,21 @@ function toCol(col, ctx, tl) {
 }
 const colAt = entry => entry[0] === "pattern" ? 2 : 1;
 
-// Orbs on the arc (orb-ladder, orb-pit from the ground; args "fixed": true keeps the pattern's rows).
+// Orbs on the arc (orb-ladder, orb-pit from the ground; args "fixed": true keeps the pattern's rows;
+// the first at the top of the jump's arc, the next ones level -- see below).
 // The user on GDLM 44's ladder: "very awkward; in lower difficulty levels there should be better space
 // to click the orb, and clicking in the middle is almost the point (where you can mostly buffer)". So
 // each orb goes at the TOP of the arc that reaches it -- the jump before the pit, then each orb's own
 // launch: the cube passes through the orb's centre and is slowest there, so a press in the middle (or
 // a held button) takes it. Simulated in an empty world (lib/physics.js) at the level's speed; the spike
 // pit runs from the pattern's column to one column before the landing.
-function arcOrbs(name, col, args, header, specFile) {
+function arcOrbs(name, col, args, header, specFile, speedPortals = []) {
   const n = name === "orb-pit" ? 1 : (args.n || (args.rows || [2, 3, 4]).length);
   const orbType = args.orb || "yellow orb";
   const end = toObj(["block", col + 80, 12], specFile);   // the world's end, out of the way
   const orbs = [];
-  const world = () => GD.makeWorld(orbs.concat([end]), header);
+  // the level's speed portals come along, so an orb chunk in a 2x part gets its 2x arc
+  const world = () => GD.makeWorld(orbs.concat(speedPortals, [end]), header);
   // the takeoff: half a column before the pit
   const p0 = GD.run(world(), []).path;
   let t = p0.findIndex(p => p.x >= col * 30 - 20);
@@ -154,6 +159,11 @@ function arcOrbs(name, col, args, header, specFile) {
     const path = GD.run(world(), events).path;
     let a = t + 2;
     while (a + 1 < path.length && path[a + 1].y > path[a].y) a++;          // the apex
+    // after the first orb: where the arc comes back down to the last orb's height (+ a third of a
+    // block), not its apex -- rated Easy/Normal chains stay level (~1 block of climb in all, ~3 blocks
+    // apart; knowledge/levels/obstacles.md section 5); apex to apex climbed 2.3 rows per orb ("cant
+    // adjust", GDLM 46 v2). args.climb: true keeps the apex chain.
+    if (k > 0 && !args.climb) { const h = orbs[k - 1].y + 10; while (a + 1 < path.length && path[a + 1].y > h) a++; }
     const ox = Math.round(path[a].x / 7.5) * 7.5, oy = Math.round(path[a].y / 7.5) * 7.5;
     const o = toObj([orbType, (ox - 15) / 30, (oy - 15) / 30], specFile);
     o.x = ox; o.y = oy; orbs.push(o);
@@ -164,6 +174,10 @@ function arcOrbs(name, col, args, header, specFile) {
     t = best;
     events.push({ tick: t, type: "press" }, { tick: t + 1, type: "release" });
   }
+  // an orb chain must not carry the cube to the screen's edge (knowledge/design.md "Cues and orb
+  // chains"): each yellow orb on the arc climbs ~2 rows
+  const top = Math.max(...orbs.map(q => q.y));
+  if (top > 7 * 30 + 15) console.log(`   NOTE orb chain at column ${col.toFixed(0)} climbs to row ${((top - 15) / 30).toFixed(1)}: near the screen's top; fewer orbs, or a blue/pink orb to come down`);
   // landing after the last orb: the pit ends one column before it
   const path = GD.run(world(), events).path;
   let l = t + 2;
@@ -205,7 +219,7 @@ function build(spec, specFile = "spec") {
     const col = toCol(entry[colAt(entry)], ctx, tl);
     const [type, , row] = entry;
     if (speedObj.has(entry)) objects.push(speedObj.get(entry));
-    else if (type === "pattern" && /^orb-(ladder|pit)$/.test(entry[1]) && !(entry[4] || {}).fixed && !entry[3]) objects.push(...arcOrbs(entry[1], col, entry[4] || {}, header, specFile));
+    else if (type === "pattern" && /^orb-(ladder|pit)$/.test(entry[1]) && !(entry[4] || {}).fixed && !entry[3]) objects.push(...arcOrbs(entry[1], col, entry[4] || {}, header, specFile, placed));
     else if (type === "pattern") { for (const e of expand(entry[1], col, entry[3], entry[4], entry[5])) objects.push(toObj(e, specFile)); }
     else if (type === "colour") { const a = entry[2]; objects.push(deco.colourTrigger(col, a.ch, a.rgb, a.secs ?? 0.5)); }
     else if (type === "fade") { const a = entry[2]; objects.push(deco.fadeTrigger(col, a.group, a.to ?? 0, a.secs ?? 0.2)); }
@@ -224,7 +238,29 @@ function build(spec, specFile = "spec") {
     nudgeJumps(jGroups, objects, header, ctx, tl);
   }
 
-  if (spec.modern) objects.push(...deco.modernPass(objects, spec.modern.sections || [], spec.modern)); // before skins: fills follow gameplay blocks
+  if (spec.scene) { // a scene script (tools/scenes/<name>.js, SHOWCASE.md): deco + triggers + header channels
+    const scene = require(path.resolve(__dirname, "..", spec.scene));
+    const beatX = b => GD.SYNC.xOfT(tl, GD.SYNC.beatToTime(ctx.grid, ctx.offset, b));
+    const r = scene({ objects, header, spec, ctx, tl, beatX, xOfT: t => GD.SYNC.xOfT(tl, t), GD });
+    objects.push(...r.objects);
+    if (r.header) header = r.header;
+  }
+  if (spec.modern) {
+    const secs = spec.modern.sections || [];
+    objects.push(...deco.modernPass(objects, secs, spec.modern)); // before skins: fills follow gameplay blocks
+    // the 2.2 kit (tools/vfxkit.js, the visuals session's): parallax backgrounds per section, pulses
+    // on bar starts and a strong one on each section's drop ("flash"); speed from the header
+    const kit = require("./vfxkit.js");
+    const speed = tl[0].v;   // units per second at the start (the timeline's first segment)
+    objects.push(...kit.parallax(secs, Object.assign({ speed }, spec.modern.light ? { value: [0.95, 1] } : {})));  // light palette: no darkened layers
+    if (ctx.grid) objects.push(...kit.beatPulses(secs, ctx.grid, { speed, songOffset: spec.offset || 0, xOfT: t => GD.SYNC.xOfT(tl, t) }));
+  }
+  if (spec.signature) {   // tools/signature.js: robot + human, "Made by Claude (and some humans)"
+    const sig = require("./signature.js"), secs = (spec.modern && spec.modern.sections) || [];
+    const li = secs.length - 1, CH0 = 20;
+    objects.push(...sig.signature(Object.assign({ col: spec.signature.col, floorY: 0 },
+      li >= 0 ? { channels: { accent: CH0 + 2 * li, light: CH0 + 2 * li + 1 } } : {})));
+  }
   if (spec.style && spec.style !== "classic") deco.skinBlocks(objects); // e.g. "hell": outlined blocks, no ground decoration
   if (spec.style === "classic") {
     deco.skinBlocks(objects);
@@ -234,7 +270,9 @@ function build(spec, specFile = "spec") {
     objects.push(...deco.groundDeco(objects, end, spec.seed || 7, densityAt));
   }
   const level = { header, objects };
-  const rec = GD.newRecord(spec.name, spec.desc || "made by GDLevelMaker");
+  let desc = spec.desc || "made by GDLevelMaker";
+  if (spec.signature) desc = require("./signature.js").describe(desc);
+  const rec = GD.newRecord(spec.name, desc);
   if (song && song.k45) GD.setField(rec, "k45", "i", song.k45);
   if (song && song.k8) GD.setField(rec, "k8", "i", song.k8);
   return { level, rec, ctx, objects, header };
@@ -245,6 +283,7 @@ function make(specFile, specObj) {
   const spec = specObj || JSON.parse(fs.readFileSync(specFile, "utf8"));
   const { level, rec, ctx, objects, header } = build(spec, specFile);
   const out = path.join(__dirname, "..", "levels", slug(spec.name) + ".gdlvl");
+  if (LOOK_ONLY && lookOnly(out, rec, level)) return { out, r: { ok: true } };
   writeGdlvl(out, rec, level);
   let r = report(out);
   if (spec.indicators && r.ok) {
@@ -276,6 +315,30 @@ function make(specFile, specObj) {
   try { const L2 = require("./io.js").readGdlvl(out); require("./solutions.js").fromRun(L2.level, L2.levelStr, r); } catch (e) { console.log("   (solution not saved: " + e.message + ")"); }
   buildIndex();
   return { out, r };
+}
+
+// --look: only the look changed (decoration, colours, triggers that move deco). Keeps the last build's
+// solution and jump indicators when the gameplay (every object the physics collides with) is the same,
+// checks that the saved plan still clears the level with one replay (seconds, not a solve), and writes
+// the file. Falls back to a full build when there is no previous build or the gameplay differs.
+const LOOK_ONLY = process.argv.includes("--look");
+function lookOnly(out, rec, level) {
+  const io = require("./io.js"), sols = require("./solutions.js");
+  if (!fs.existsSync(out)) { console.log("   --look: no previous build, solving"); return false; }
+  const old = io.readGdlvl(out), sol = sols.get(old.levelStr, true);
+  const sig = (objs, h) => JSON.stringify(GD.makeWorld(objs, h).items.map(b => [b.kind, Math.round(b.x), Math.round(b.y)]));
+  if (!sol || !sol.ok || sig(old.level.objects, old.level.header) !== sig(level.objects, level.header)) { console.log("   --look: gameplay changed (or no saved solution), solving"); return false; }
+  // the jump marks of the last build (group 990 and the alpha trigger that fades them)
+  const IG = String(deco.INDICATOR.group);
+  level.objects.push(...old.level.objects.filter(o => o.props && (o.props[57] === IG || (o.id === 1007 && o.props[51] === IG))));
+  const q = GD.run(GD.makeWorld(level.objects, level.header), sol.events);
+  if (!(q.done || (q.end && !q.dead))) { console.log("   --look: the saved plan no longer clears it, solving"); return false; }
+  writeGdlvl(out, rec, level);
+  const L2 = io.readGdlvl(out);
+  sols.put(L2.levelStr, Object.assign({}, sol));
+  buildIndex();
+  console.log(`   --look: ${level.objects.length} objects; gameplay unchanged, saved plan replayed to the end -> ${path.relative(process.cwd(), out)}`);
+  return true;
 }
 
 // "jN" is placed for a lone spike. Runs of spikes, blocks and orbs change where the press goes,
@@ -338,7 +401,7 @@ function beatReport(objects, header, r, ctx) {
 }
 
 if (require.main === module) {
-  const specs = process.argv.slice(2);
+  const specs = process.argv.slice(2).filter(a => a !== "--look");
   if (!specs.length) { console.log("usage: node tools/make.js specs/<name>.json [...]"); process.exit(1); }
   for (const s of specs) make(s);
 }

@@ -75,7 +75,7 @@ function panels() {
   const more = (y, x) => y > x, less = (y, x) => y < x;
   let h = `<table><tr><th></th><th>before</th><th>after</th></tr>` +
     row("tightest window (ms)", b.tightestMs, a.tightestMs, more) + row("median window (ms)", b.medianMs, a.medianMs, more) +
-    row("windows under 34 ms", b.under, a.under, less) + row("windows under 1 frame", b.under1frame, a.under1frame, less) +
+    row("windows under 34 ms", b.under, a.under, less) + row("windows under 1 frame", b.under1frame, a.under1frame, less) + row("forced < 250 ms after a mode change", b.forced, a.forced, less) +
     row("prejumps (sight-read check)", b.prejumps, a.prejumps, less) + row("decoration objects", b.deco, a.deco, more) + row("objects", b.objects, a.objects, () => true);
   if (C.sync) h += row(`orbs on a beat (${C.sync.bpm.toFixed(0)} BPM)`, `${C.sync.before.orbs}/${C.sync.before.nOrbs}`, `${C.sync.after.orbs}/${C.sync.after.nOrbs}`, (y, x) => parseInt(y) > parseInt(x)) +
     row("portals on a bar", `${C.sync.before.portals}/${C.sync.before.nPortals}`, `${C.sync.after.portals}/${C.sync.after.nPortals}`, (y, x) => parseInt(y) > parseInt(x));

@@ -138,8 +138,29 @@ The viewer draws moved, turned and switched-off objects where they are at each m
 
 ## Not in the sim yet (the game has it)
 
-Modes/portals: dual (286/287), mirror. Teleport portals (747) are in, unchecked: same x, portal y + key 54, speed kept (no rotated exits, smooth teleport or the 2.2 options 345+); first used by Deadlocked at block 77, Fingerdash 205, Dash 435. Triggers: count/pickup items,
+Modes/portals: dual (286/287), mirror. Teleport portals (747) are in, unchecked: same x, speed kept, exit height = portal y + key 54 along the portal's turned axis (54 x cos(rotation)), but straight up/down when key 55 is set (fitted on Deadlocked, 2026-11-23: its -53 degree portal at block 76.5 needs the turned offset to pass under a spike; its -46 degree portal with 55 at 360.8 lands exactly on the gravity + speed portals 224 below; whether GD also moves x is not known; smooth teleport and the 2.2 options 345+ not modelled); first used by Deadlocked at block 77, Fingerdash 205, Dash 435. Triggers: count/pickup items,
 scale, follow, on death, collision blocks, area triggers, gravity trigger, time warp. Others:
 keys and user coins (collectables only), start positions (levels always start at x 0), practice
 checkpoints, speed portals touched mid-air at a slant, force blocks, platformer mode, dash orbs'
 unknown props 586/588, spike slopes.
+
+## The intended route (solver ranking)
+
+The sweep solver (solveSweep, used for every level with modes) does not just find the fewest presses:
+it ranks routes by, in order, portals passed without taking them (mode, gravity, speed, size,
+teleport), then orbs and pads passed unused, then presses (`opts.anyRoute` = the old fewest-presses
+only; `opts.strict` = a route that skips any portal is out, to find where the intended route dies).
+Why: the user on the Deadlocked level map, 2026-11-23: "The player skips the portal ... In normal
+levels you usually dont skip portals". The old cached Deadlocked run skipped the cube portal at block
+38 and stayed a mini wave past 40+ portals, orbs and pads. With the ranking (and the turned teleport
+exits above) Deadlocked's portal-taking route reaches block 434.9 (37%; was 26-31%), dying in the
+ball part on a hanging spike near the turned teleport at 441.5. Third in the ranking, before presses:
+flying ticks (ship, wave, UFO, swing) spent closer to a wall than half the way to the corridor's middle (at least 12, at most 45 units; a flat 12 left Jumper's ship 12-15 units off spike rows with 150-210 of room, now 23-41, centring 0.6 -> 0.72); two tiers, very near (12) ranked first: Deadlocked's wave/ship median clearance 28 -> 47 units, ticks within 15 units 24% -> 5%, centring 0.78; Jumper 0% within 15). The wave keeps the middle 70% (not half): it only moves at 45 degrees, and holding the middle half of a flat corridor made runs of 3-frame zigzags; Deadlocked's 14-17.5 s went from 21 to 15 presses, median clearance 47 -> 41 -- a solid, hazard, slope or the
+band's floor/roof ("he waves way too close to the border"); this works on unbeaten levels too, where
+lib/natural.js's mid-corridor re-fly (beaten levels only, and all-or-nothing per stretch: on Deadlocked
+it died inside every stretch) cannot. GDLM 44: 8 presses instead of 6.
+
+Open (2026-11-23): Deadlocked stops at block 436 in the mini ball part (three lanes; the middle one is a
+row of id 1202 -- a 30x3 piece with spikes hanging under it -- that the sim calls a hazard by OpenGD's
+"hitbox and not solid" rule). As a solid platform the solve gets to 456.6; no real-game plan reaches a
+1202 to settle it. Waiting on the user to check 1202 in the editor (platform or hazard).

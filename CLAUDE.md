@@ -107,7 +107,11 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   or all official levels vs ratings and the user's attempts), `difficulty_solve` (cache an official
   solution, one at a time), `difficulty_fit` (refit on the user's runs), `difficulty_community`
   (score downloaded community levels), `runs` (the user's deaths from a recording, via the progress
-  bar), `save_stats` (the user's lifetime attempts per official level, read-only from the save).
+  bar), `save_stats` (the user's lifetime attempts per official level, read-only from the save),
+  `difficulty_route` (a level with and without route choice: a player avoids a hard timing when the
+  level has an easier way), **`fairness`** (deaths that are not the player's fault: forced input after
+  a portal, misleading marks, sloped portal exits, orb chains with nothing to correct; fitted on the
+  user's labelled deaths, `fairness fit`; tools/score.js gates on it; DIFFICULTY.md "Fairness").
 - `lib/sync.js` -- music sync: level time <-> x through speed portals, beat grid <-> level beats,
   press timing windows from a solution, sync scores. See SYNC.md (also where songs come from).
 - **The phone page** (PHONE.md: what is on it, what a session does after `wip.js put`, phone
@@ -124,6 +128,12 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   user sees it), `tools/sightread.js` (prejumps), `tools/inputs.js` (a solution's inputs with
   modes), `lib/natural.js` (a natural replay plan: taps, no empty jumps). Test:
   `node tests/style_gates.js`.
+- **Scene levels, decorated by hand** (SHOWCASE.md: GDLM 50 eclipse, what made it look good, numbers,
+  what is unchecked in the game): `tools/scenekit.js` (recipes: own colour channels, palettes per section,
+  skylines, the eclipse set piece, stars, designed blocks, motes, light rays, a top frame, lock-to-player
+  parallax, beat pulses, text), a level's scene script `tools/scenes/<name>.js` (spec key `"scene"`).
+  `node tools/make.js <spec> --look` rebuilds a decoration-only change in a second (keeps the solve when
+  the gameplay is the same). Owner: the showcase session.
 - `tools/solutions.js` -- solve each level ONCE on the PC (`--all` for every repo level missing one);
   the viewer and the phone replay the saved solution (natural replay, stamped with the physics
   commit; stale ones are re-solved). make.js and wip.js save one whenever they solve.
@@ -140,6 +150,10 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   `lib/objects_frames.js` (`tools/import_frames.js`, GD 2.2's own id -> frame table from the exe).
   Test: `node tests/art_tables.js`. **See your level as the game draws it:** `node tools/shoot.js
   <level.gdlvl | save:<name> | official:N> [--at 2,5] [--rec <video> --t0 <s>]` -> PNGs in `local/shots/`.
+  **The whole level as one picture with its path:** `node tools/levelmap.js <level> [--brief briefs/NN.json]`
+  -> `local/maps/<name>.jpg` (viewer: "level map").
+  **Every level ends with the signature** (robot + human, "Made by Claude (and some humans)"):
+  `tools/signature.js` (signature() objects, describe() for the description).
 - **Deco catalogue** (knowledge/objects/README.md): `tools/catalogue.js index | sheets | usage` --
   every id with its picture on contact sheets (`local/catalogue/`, or browse `viewer/catalogue.html`),
   the searchable `knowledge/objects/catalogue.tsv`, and which deco families rated levels use together.
@@ -148,11 +162,15 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   them with `node tools/marks.js done <id> "what changed"`. **compare** puts a frame of one of the
   user's recordings (Videos/Captures, read by ffmpeg, never copied) beside the replay;
   "save comparison" writes both as one PNG to `local/shots/`.
-- **Polishing existing levels** (POLISH.md: the passes, results, tests, what is open; owner: the polish
-  session, wip `local/wip/polish/`): `tools/polish.js <level.gdlvl>` keeps the layout and fixes tight
-  windows (small moves near the input), syncs portals/orbs loosely, adds jump indicators at prejumps,
-  decorates a bare level; output in `local/polish/` only. Before/after side by side in GD art:
-  `viewer/polish.html` (via tools/serve.js). Test: `node tests/polish.js`.
+- **Polishing existing levels** (POLISH.md: what polish means to the user -- prettier, more synced,
+  visual fixes, more gameplay, extended, fair as the floor -- the passes, results, tests, what is open;
+  owner: the polish session, wip `local/wip/polish/`): `tools/polish.js <level.gdlvl>` (fair windows and
+  no input forced after a mode change, loose sync, chevrons on needed jumps, the modern look with
+  parallax and beat pulses); output in `local/polish/` only. Before/after in GD art: `viewer/polish.html`
+  (via tools/serve.js) and shoot.js renders. Helpers: `tools/textmap.js` (a level as text with the
+  path), `tools/orbchain_try.js` (forgiving orb chains). Test: `node tests/polish.js`.
+- **The user's drawings -> levels** (SKETCH.md: reading a drawing into a spec, then making it fair;
+  the GDLM 46 lessons).
 - **Levels onto the phone** (PUBLISH.md: unlisted upload from the PC game with computer use, where
   the buttons are, GD must be windowed, the user's yes before each upload; IDs in
   `local/phone_ids.json`). `tools/install.js` keeps a shared level's online ID on re-install, so
