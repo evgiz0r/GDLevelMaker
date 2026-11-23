@@ -25,10 +25,10 @@ Song artists marked "unverified" are from memory, not the wiki.
 | 14 | Clubstep | Demon 14 | 1.6 | 86 | 14 | + ufo | 1x | 1 | 100% | 161 | 33 | 100% |
 | 15 | Electrodynamix | Insane 12 | 1.7 | 80 | 14 | + ufo | 1x 2x 3x | 6 | 76% | 132 | 25 | 100% |
 | 16 | Hexagon Force | Insane 12 | 1.8 | 87 | 12 | + ufo | 0.5x 1x 2x | 19 | 44% | 136 | 63 | 100% |
-| 17 | Blast Processing | Harder 10 | 1.9 | 98 | 12 | + wave | 1x | 9 | 58% | 120 | 25 | 100% |
+| 17 | Blast Processing | Harder 10 | 1.9 | 98 | 12 | + wave | 1x | 9 | 58% | 120† | 25† | 79% |
 | 18 | Theory of Everything 2 | Demon 14 | 1.9 | 88 | 18 | + wave | 0.5x 1x 2x | 13 | 68% | 92* | 13* | 56% |
-| 19 | Geometrical Dominator | Harder 10 | 2.0 | 96 | 14 | 6, + robot | 0.5x 1x 2x | 30 | 31% | 115* | 33* | 89% |
-| 20 | Deadlocked | Demon 15 | 2.0 | 99 | 25 | 6 | 0.5x-3x | 4 | 75% | 55* | 25* | 31% |
+| 19 | Geometrical Dominator | Harder 10 | 2.0 | 96 | 14 | 6, + robot | 0.5x 1x 2x | 30 | 31% | 115† | 33† | 100% |
+| 20 | Deadlocked | Demon 15 | 2.0 | 99 | 25 | 6 | 0.5x-3x | 4 | 75% | 55† | 25† | 37% |
 | 21 | Fingerdash | Insane 12 | 2.1 | 84 | 12 | 6, + spider | 1x 2x | 5 | 95% | - | - | 5% |
 | 22 | Dash | Harder 10 | 2.2 | 62 | 21 | 7, + swing | 0.5x-3x | 10 | 74% | 24* | 21* | 24% |
 
@@ -36,6 +36,11 @@ Song artists marked "unverified" are from memory, not the wiki.
   community sections rather than Easy/Normal ones (`tools/tiercheck.js`, layout only). For
   comparison, official 1-4 give 15-28%, Can't Let Go 69%, Jumper 58% and Time Machine 61%.
 - \* = partial (the sim stops before the end; see "covers"), so not comparable.
+- † = inputs and min ms from the old route (before physics 7924db0, 2026-11-23), not re-measured.
+  Under the corrected wave rules (it dies sliding off a block's end or flying head-on into a slope,
+  both seen in the user's GDLM 44 deaths) the sim stops in Blast Processing at block 807.7 (79%; the
+  old "beaten" route did both). It now beats Geometrical Dominator (was 89%) and reaches 37% of
+  Deadlocked (was 26-31%, now taking every portal). See PHYSICS.md "Wave" and "The intended route".
 - **Static layout caveat**: from 2.0 on (19-22) the levels move objects with triggers (36, 62, 177
   and 235 move triggers). Their layout numbers describe the editor's view, not the play.
 - Section lengths per level, in blocks (from `style.js`):
