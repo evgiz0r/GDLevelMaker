@@ -140,7 +140,7 @@ hitbox needs, not what the game shows):
 | ship | tilts with its velocity | by eye in recordings |
 | wave | points along its velocity | by eye |
 | ball | rolls with distance (one turn per 2 pi x 15 units), direction by gravity | no |
-| UFO | tilts with its velocity, half as far as the ship | no -- the user: "when the ufo jumps it doesn't rotate"; amount is a guess |
+| UFO | nearly level: a quarter of the ship's tilt | no -- the user missed a tilt, then noticed half of it as too much; set from a clean UFO clip when one exists |
 | swing | tilts with its velocity | no |
 | robot, spider | upright; the legs move | no |
 
