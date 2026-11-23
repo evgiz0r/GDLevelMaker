@@ -68,6 +68,613 @@ window.GD_LEVELS = [
    "url": "/song/custom/343707.mp3",
    "id": 343707,
    "offset": 0
+  },
+  "solution": {
+   "ok": true,
+   "events": [
+    {
+     "tick": 448,
+     "type": "press"
+    },
+    {
+     "tick": 449,
+     "type": "release"
+    },
+    {
+     "tick": 654,
+     "type": "press"
+    },
+    {
+     "tick": 655,
+     "type": "release"
+    },
+    {
+     "tick": 928,
+     "type": "press"
+    },
+    {
+     "tick": 929,
+     "type": "release"
+    },
+    {
+     "tick": 1134,
+     "type": "press"
+    },
+    {
+     "tick": 1135,
+     "type": "release"
+    },
+    {
+     "tick": 1223,
+     "type": "press"
+    },
+    {
+     "tick": 1224,
+     "type": "release"
+    },
+    {
+     "tick": 1337,
+     "type": "press"
+    },
+    {
+     "tick": 1338,
+     "type": "release"
+    },
+    {
+     "tick": 1440,
+     "type": "press"
+    },
+    {
+     "tick": 1441,
+     "type": "release"
+    },
+    {
+     "tick": 1529,
+     "type": "press"
+    },
+    {
+     "tick": 1530,
+     "type": "release"
+    },
+    {
+     "tick": 1632,
+     "type": "press"
+    },
+    {
+     "tick": 1633,
+     "type": "release"
+    },
+    {
+     "tick": 1844,
+     "type": "press"
+    },
+    {
+     "tick": 1845,
+     "type": "release"
+    },
+    {
+     "tick": 1947,
+     "type": "press"
+    },
+    {
+     "tick": 1948,
+     "type": "release"
+    },
+    {
+     "tick": 1975,
+     "type": "press"
+    },
+    {
+     "tick": 1996,
+     "type": "release"
+    },
+    {
+     "tick": 2009,
+     "type": "press"
+    },
+    {
+     "tick": 2017,
+     "type": "release"
+    },
+    {
+     "tick": 2025,
+     "type": "press"
+    },
+    {
+     "tick": 2036,
+     "type": "release"
+    },
+    {
+     "tick": 2079,
+     "type": "press"
+    },
+    {
+     "tick": 2093,
+     "type": "release"
+    },
+    {
+     "tick": 2094,
+     "type": "press"
+    },
+    {
+     "tick": 2122,
+     "type": "release"
+    },
+    {
+     "tick": 2224,
+     "type": "press"
+    },
+    {
+     "tick": 2264,
+     "type": "release"
+    },
+    {
+     "tick": 2304,
+     "type": "press"
+    },
+    {
+     "tick": 2316,
+     "type": "release"
+    },
+    {
+     "tick": 2369,
+     "type": "press"
+    },
+    {
+     "tick": 2438,
+     "type": "release"
+    },
+    {
+     "tick": 2481,
+     "type": "press"
+    },
+    {
+     "tick": 2501,
+     "type": "release"
+    },
+    {
+     "tick": 2562,
+     "type": "press"
+    },
+    {
+     "tick": 2573,
+     "type": "release"
+    },
+    {
+     "tick": 2587,
+     "type": "press"
+    },
+    {
+     "tick": 2636,
+     "type": "release"
+    },
+    {
+     "tick": 2666,
+     "type": "press"
+    },
+    {
+     "tick": 2679,
+     "type": "release"
+    },
+    {
+     "tick": 2743,
+     "type": "press"
+    },
+    {
+     "tick": 2815,
+     "type": "release"
+    },
+    {
+     "tick": 2857,
+     "type": "press"
+    },
+    {
+     "tick": 2880,
+     "type": "release"
+    },
+    {
+     "tick": 2958,
+     "type": "press"
+    },
+    {
+     "tick": 3013,
+     "type": "release"
+    },
+    {
+     "tick": 3141,
+     "type": "press"
+    },
+    {
+     "tick": 3251,
+     "type": "release"
+    },
+    {
+     "tick": 3350,
+     "type": "press"
+    },
+    {
+     "tick": 3394,
+     "type": "release"
+    },
+    {
+     "tick": 3405,
+     "type": "press"
+    },
+    {
+     "tick": 3419,
+     "type": "release"
+    },
+    {
+     "tick": 3488,
+     "type": "press"
+    },
+    {
+     "tick": 3523,
+     "type": "release"
+    },
+    {
+     "tick": 3812,
+     "type": "press"
+    },
+    {
+     "tick": 3816,
+     "type": "release"
+    },
+    {
+     "tick": 3976,
+     "type": "press"
+    },
+    {
+     "tick": 3980,
+     "type": "release"
+    },
+    {
+     "tick": 4136,
+     "type": "press"
+    },
+    {
+     "tick": 4140,
+     "type": "release"
+    },
+    {
+     "tick": 4296,
+     "type": "press"
+    },
+    {
+     "tick": 4300,
+     "type": "release"
+    },
+    {
+     "tick": 4460,
+     "type": "press"
+    },
+    {
+     "tick": 4464,
+     "type": "release"
+    },
+    {
+     "tick": 4672,
+     "type": "press"
+    },
+    {
+     "tick": 4676,
+     "type": "release"
+    },
+    {
+     "tick": 5064,
+     "type": "press"
+    },
+    {
+     "tick": 5065,
+     "type": "release"
+    },
+    {
+     "tick": 5167,
+     "type": "press"
+    },
+    {
+     "tick": 5168,
+     "type": "release"
+    },
+    {
+     "tick": 5270,
+     "type": "press"
+    },
+    {
+     "tick": 5271,
+     "type": "release"
+    },
+    {
+     "tick": 5373,
+     "type": "press"
+    },
+    {
+     "tick": 5374,
+     "type": "release"
+    },
+    {
+     "tick": 5462,
+     "type": "press"
+    },
+    {
+     "tick": 5463,
+     "type": "release"
+    },
+    {
+     "tick": 5576,
+     "type": "press"
+    },
+    {
+     "tick": 5577,
+     "type": "release"
+    },
+    {
+     "tick": 5665,
+     "type": "press"
+    },
+    {
+     "tick": 5666,
+     "type": "release"
+    },
+    {
+     "tick": 6042,
+     "type": "press"
+    },
+    {
+     "tick": 6059,
+     "type": "release"
+    },
+    {
+     "tick": 6079,
+     "type": "press"
+    },
+    {
+     "tick": 6110,
+     "type": "release"
+    },
+    {
+     "tick": 6117,
+     "type": "press"
+    },
+    {
+     "tick": 6171,
+     "type": "release"
+    },
+    {
+     "tick": 6179,
+     "type": "press"
+    },
+    {
+     "tick": 6198,
+     "type": "release"
+    },
+    {
+     "tick": 6229,
+     "type": "press"
+    },
+    {
+     "tick": 6237,
+     "type": "release"
+    },
+    {
+     "tick": 6291,
+     "type": "press"
+    },
+    {
+     "tick": 6299,
+     "type": "release"
+    },
+    {
+     "tick": 6319,
+     "type": "press"
+    },
+    {
+     "tick": 6397,
+     "type": "release"
+    },
+    {
+     "tick": 6408,
+     "type": "press"
+    },
+    {
+     "tick": 6430,
+     "type": "release"
+    },
+    {
+     "tick": 6461,
+     "type": "press"
+    },
+    {
+     "tick": 6469,
+     "type": "release"
+    },
+    {
+     "tick": 6523,
+     "type": "press"
+    },
+    {
+     "tick": 6531,
+     "type": "release"
+    },
+    {
+     "tick": 6551,
+     "type": "press"
+    },
+    {
+     "tick": 6559,
+     "type": "release"
+    },
+    {
+     "tick": 6578,
+     "type": "press"
+    },
+    {
+     "tick": 6581,
+     "type": "release"
+    },
+    {
+     "tick": 6920,
+     "type": "press"
+    },
+    {
+     "tick": 6921,
+     "type": "release"
+    },
+    {
+     "tick": 6992,
+     "type": "press"
+    },
+    {
+     "tick": 6993,
+     "type": "release"
+    },
+    {
+     "tick": 7152,
+     "type": "press"
+    },
+    {
+     "tick": 7153,
+     "type": "release"
+    },
+    {
+     "tick": 7696,
+     "type": "press"
+    },
+    {
+     "tick": 7700,
+     "type": "release"
+    },
+    {
+     "tick": 7812,
+     "type": "press"
+    },
+    {
+     "tick": 7816,
+     "type": "release"
+    },
+    {
+     "tick": 7924,
+     "type": "press"
+    },
+    {
+     "tick": 7928,
+     "type": "release"
+    },
+    {
+     "tick": 8040,
+     "type": "press"
+    },
+    {
+     "tick": 8283,
+     "type": "release"
+    },
+    {
+     "tick": 8387,
+     "type": "press"
+    },
+    {
+     "tick": 8388,
+     "type": "release"
+    },
+    {
+     "tick": 8422,
+     "type": "press"
+    },
+    {
+     "tick": 8445,
+     "type": "release"
+    },
+    {
+     "tick": 8476,
+     "type": "press"
+    },
+    {
+     "tick": 8553,
+     "type": "release"
+    },
+    {
+     "tick": 8584,
+     "type": "press"
+    },
+    {
+     "tick": 8595,
+     "type": "release"
+    },
+    {
+     "tick": 8652,
+     "type": "press"
+    },
+    {
+     "tick": 8683,
+     "type": "release"
+    },
+    {
+     "tick": 8711,
+     "type": "press"
+    },
+    {
+     "tick": 8785,
+     "type": "release"
+    },
+    {
+     "tick": 8816,
+     "type": "press"
+    },
+    {
+     "tick": 8826,
+     "type": "release"
+    },
+    {
+     "tick": 8882,
+     "type": "press"
+    },
+    {
+     "tick": 8913,
+     "type": "release"
+    },
+    {
+     "tick": 8942,
+     "type": "press"
+    },
+    {
+     "tick": 9017,
+     "type": "release"
+    },
+    {
+     "tick": 9048,
+     "type": "press"
+    },
+    {
+     "tick": 9057,
+     "type": "release"
+    },
+    {
+     "tick": 9112,
+     "type": "press"
+    },
+    {
+     "tick": 9143,
+     "type": "release"
+    },
+    {
+     "tick": 9173,
+     "type": "press"
+    },
+    {
+     "tick": 9249,
+     "type": "release"
+    },
+    {
+     "tick": 9303,
+     "type": "press"
+    },
+    {
+     "tick": 9308,
+     "type": "release"
+    }
+   ],
+   "physics": "81ff5a7",
+   "solvedAt": "2026-11-23T17:22:55.915Z"
   }
  },
  {
