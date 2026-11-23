@@ -40,7 +40,7 @@ one palette per scene. Our levels could not draw anything. This is the start of 
 
 Numbers: 16-53 objects per prop of 150-750 pixels; a 40x32 flat illustration with outline 57; a 48x48
 smooth gradient at 8 colours 12 (k-means regions are blobby, so it merges well -- photos look posterised).
-Whole prop library: 23 props, ~570 objects. Rated 2.2 levels carry 17-22 deco objects per block
+Whole prop library: 31 props, ~700 objects. Rated 2.2 levels carry 17-22 deco objects per block
 (knowledge/objects/README.md), so a 4-block tree at 38 is cheap. Phones: keep a scene under a few hundred
 prop objects per screen.
 
@@ -73,6 +73,13 @@ Contact sheet: `node tools/props.js sheet` (day colours) / `--theme spooky`. GD 
 | candle | ground | 0.7 x 1.3 | 9 | glow light moon moon2 outline |
 | flower | ground | 0.9 x 1.2 | 15 | leaf leaf2 petal (seed) glow outline |
 | sun | bg | 3.3 x 3.3 | 9 | glow light |
+| mountains | bg (foot at y), B5 | 12 x 4.5 | 56 | mountain mountain2 snow |
+| hills | bg (foot at y), B4 | 12 x 3 | 17 | leaf3 leaf |
+| tower | ground | 2.7 x 6.7 | 18 | stone stone2 dark outline |
+| ruin | ground | 5 x 4.3 | 29 | stone stone2 stone3 leaf3 outline |
+| cloud band | bg (foot at y), B4 | 8 x 2.4 | 12 | cloud cloud2 -- tile with place(); `flipY` = a top frame hanging from y |
+| rays | bg (fan top at y), B4 | 11 x 6.5 | 6 | ray -- 6 rotated stretched squares; give "ray" opacity ~0.3 in the header |
+| leaf / petal | bg, T1 | 0.5 / 0.4 | 5 / 3 | orange bark / petal light -- motif particles, place() with density |
 | windmill | ground | 4.7 x 5.3 | 92 | wall wall2 roof wood cloud dark outline (diagonal sails are costly: rotate GD squares instead, open) |
 
 Colour names are shared (`NAMES` in lib/props.js), so props placed with one `allocator` share channels: a
@@ -87,6 +94,11 @@ Rules the props keep: calm (no triggers inside a prop; animate a prop's `groups`
 TASTE.md); no rings or round orb-coloured shapes near the path; at most ~5 blocks high; no hitboxes. Ground
 props stand behind the player on B2 -- fine in GD -- but one right next to a jump can read as an obstacle
 (make.js warns).
+
+Frames and see-through fronts (asked by the style session for a landscape level, 2026-11-24): any prop takes
+`layer` ("T1".."T3" in front of the play), `scale`, `flipY`, and `channels: {name: ch}` to draw on the caller's
+own channels; see-through = that channel's opacity below 1 in the header (P.header writes 1) or an alpha
+trigger on the prop's `groups`. The props never use hazard colours; keep fronts off the player's path anyway.
 
 ## Colour -- UNCHECKED in the game
 

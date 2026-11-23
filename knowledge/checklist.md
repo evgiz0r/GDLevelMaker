@@ -93,7 +93,7 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   ~0.5 block ahead). Used where a jump can't be read in time (after a drop, after a portal, the first of
   a pattern), consistently, small and softer than the level. `node tools/obstacles.js indicators --file <level>`.
   (levels/obstacles.md section 4, design.md "Telegraph"; GDLM 45 v4, GDLM 46 v2)
-- [ ] **The shown route is the human route** (the default; route.kind "human", or "limit" with why): no skips, no unneeded press, taps not holds outside ship/wave, flying the safe line. `node tests/saved_routes.js --all` (PHYSICS.md "How the route is chosen").
+- [ ] **The shown route is the human route** (the default; route.kind "human", or "limit" with why): no skips, no unneeded press, taps not holds outside ship/wave (a tap ~60 ms, like a real one; family: "human taps"), orbs buffered, no jumps over nothing, flying the safe line. `node tests/saved_routes.js --all` (PHYSICS.md "How the route is chosen").
 - [ ] **The shown route clicks where a human would**: early in a wide window (~40% in), never at its
   last safe frame -- the replay, the arrows and the level map all follow it. `node tools/windows.js <level>`
   ("pressed N% in"; lib/natural.js step 4). (the user on GDLM 45's ball: "i would prefer to click way earlier")
@@ -195,6 +195,9 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   every level whose gameplay would change when rebuilt; tell each owner, or keep the old shape with a
   pattern option in that spec (e.g. orb-pit `"asym": true`). (GDLM 50 eclipse, changed by a wave fix
   made for hellgate)
+
+- [ ] **Every build puts its stages** (song, layout, path, deco, final) for the viewer: compose and make.js do it by
+  themselves (tools/stages.js, visuals); a hand-made build that skips them shows only its end. (the user, 2026-11-24)
 
 ## Name, description, signature (the user, 2026-11-23)
 

@@ -343,7 +343,7 @@ function resolve(level, levelStr, oldSol, opts = {}) {
   if (INC && opts.oldLevel && oldSol && oldSol.events && oldSol.events.length) {
     try {
       const r = INC.fromBase(opts.oldLevel, oldSol.events, level, {});
-      if (r && r.ok) return { sol: opts.raw ? { ok: true, events: r.events } : S.fromRun(level, levelStr, { ok: true, events: r.events }), how: `lib/incsolve.js (re-solved ${r.from != null ? "from tick " + r.from : "the changed stretch"}${r.ms != null ? ", " + (r.ms / 1000).toFixed(1) + " s" : ""})` };
+      if (r && r.ok) return { sol: opts.raw ? { ok: true, events: r.events } : S.fromRun(level, levelStr, { ok: true, events: r.events, inc: { from: r.from, to: r.to, rejoined: r.rejoined, reused: r.reused || null }, world: r.w }), how: `lib/incsolve.js (re-solved ${r.from != null ? "from tick " + r.from : "the changed stretch"}${r.ms != null ? ", " + (r.ms / 1000).toFixed(1) + " s" : ""})` };
       if (r && r.fallback) opts.why = "incsolve: " + r.fallback;
     } catch (e) { opts.why = "incsolve failed: " + e.message; }
   }
