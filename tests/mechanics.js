@@ -95,4 +95,12 @@ for (const hold of [true, false]) {
   for (let t = c.lo; t <= c.hi; t++) if (GD.run(w, [{ tick: t, type: "press" }, { tick: t + 1, type: "release" }]).dead) badT.push(t);
   check("every tick of a solver window clears", r.ok && !badT.length && !GD.run(w, r.events).dead, `${c.lo}-${c.hi}${badT.length ? " bad " + badT.join(",") : ""}`);
 }
+// the sweep plans the swing: a press flips gravity one tick later, so a just-pressed swing must not
+// merge with one still holding from before (style's swing-wiggle: floor wall, roof wall, floor wall)
+{
+  const B = (c, r0, r1) => Array.from({ length: r1 - r0 }, (_, i) => ({ id: 1, x: c * 30 + 15, y: (r0 + i) * 30 + 15 }));
+  const w = GD.makeWorld([{ id: 1933, x: 255, y: 45 }, ...B(20, 0, 5), ...B(26, 5, 10), ...B(32, 0, 5), { id: 1, x: 1515, y: 15 }]);
+  const r = GD.solveAny(w);
+  check("the sweep flips the swing past floor and roof walls", r.ok && !GD.run(w, r.events).dead, r.ok ? `${r.clicks.filter(c => c.type === "press").length} presses` : `dies at ${r.dieAt && r.dieAt.x.toFixed(0)}`);
+}
 process.exit(bad ? 1 : 0);

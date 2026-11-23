@@ -38,6 +38,15 @@ A plan's tick t is our step t-1 (`tools/tas.js` shifts it). Plans reach, in bloc
 | robot | jump 0.5x, gravity 0.9x, hover 67 ticks while held | gdsolver | plans only |
 | spider | half 13.5, teleports to the facing surface | gdsolver | plans only |
 | swing | flips gravity a tick after a press, vy x0.8, gravity 0.086, limit 8 | gdsolver | plans only |
+
+Swing and the solver (2026-11-23, style's report): the sweep's state key left out the pending flip, so a
+swing pressed this tick merged with one still holding from an earlier press, and the cheaper one (no
+flip) won: no swing past any wall. Fixed (key has `swingPend`); `tests/mechanics.js` builds style's
+swing-wiggle (floor wall, roof wall, floor wall) and solves it in 7 presses.
+
+Green orb (1022, sure:false): flips gravity, then vy = jump speed in the NEW gravity, so from normal
+gravity it throws the cube down, away from its new floor (the roof). From gdp's ringJump and gdsolver,
+not seen in the user's game yet.
 | mini (portals 99/101) | half 9 (spider 8.1, wave 3); jumps, orbs, pads x0.8; on foot gravity unchanged; ship/UFO gravity and limits /0.85; mini UFO flap 6.8; mini swing gravity x1.5 | gdsolver (lv11) | video: mini cube turns 90 deg per 10 frames, falls at 0.78; plan lv11 through its mini part |
 
 ### Ball (sections from the decompile, gdsolver and the user's Clutterfunk video)
