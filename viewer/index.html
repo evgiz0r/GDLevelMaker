@@ -84,6 +84,7 @@
 <script src="../lib/objects_frames.js"></script>
 <script src="../lib/art.js"></script>
 <script src="../lib/natural.js"></script>
+<script src="../lib/difficulty.js"></script>
 <script src="../lib/windows.js"></script>
 <script src="levels.js"></script>
 <script src="levels.local.js" onerror="window.GD_LEVELS_LOCAL = []"></script>
@@ -173,7 +174,7 @@ function load(name, levelStr, saved, info) {
   summary(); clickTable(); markTable(); if (cmpOn) cmpLoadSetting(); draw();
   windowsLater(L, events);
 }
-// every input's whole timing window (lib/windows.js: moved tick by tick and replayed), worked out after
+// every input's whole timing window (lib/windows.js: a player's window, later inputs re-planned), worked out after
 // the level shows, a slice at a time so the page stays live; the button strip shades each one and the
 // click table lists it. Saved and natural replays come without windows (the user: show how much room
 // there is, not only the chosen moment, which often sits near an edge).
