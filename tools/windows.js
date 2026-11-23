@@ -11,6 +11,7 @@
 // "pressed N% in": where the plan's press sits in its window (0 = earliest, 100 = last safe tick); a
 // natural plan puts taps ~40% in (lib/natural.js step 4), never at the edge.
 // Found 2026-11-23: GDLM 44's wave zigzag ("i still couldnt fit into the gap in 44").
+if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const fs = require("fs");
 const { GD, readGdlvl } = require("./io.js");
 const a = process.argv.slice(2), file = a[0];

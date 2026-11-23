@@ -8,6 +8,7 @@
 // rows and how high the cube gets (knowledge/checklist.md: chains of 2-3, ~3 blocks apart, climbing
 // ~1 block, a safe surface ~1 block after the last orb). Prints the best layouts as spec entries.
 // Made for GDLM 46 v3 (2026-11-23, POLISH.md / SKETCH.md).
+if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const { GD } = require("./io.js");
 Object.assign(GD, require("../lib/natural.js"));
 const P = require("./polish.js");

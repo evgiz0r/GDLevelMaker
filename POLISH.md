@@ -170,6 +170,7 @@ looks like hell (dim warm haze, dark rocks, lava-edged blocks). What did not: ev
 |---|---|---|
 | too flashy, hazards not readable | `tools/readability.js <level> --gate`: renders each moment with and without hazards (same run), hazard contrast (WCAG) vs what is behind, bright clutter, flash rate | hellgate v13 fails (1.05), round 2 passes (4.7); the other levels: see below |
 | orbs off the natural arc / off-centre | `tools/orbarc.js <level> --gate`: the free arc from the press before each orb, its apex vs the orb; the take-off window with the orbs clicked on reach (`adaptiveTakeoff`); halves / thirds of the hazard row | see below |
+| jump mark on a hazard ("indicator inside spike") | `tools/indicators.js <level ...> [--fix]` = decorate.js indicatorIssues; placement: jumpIndicators keeps INDICATOR.clear (40) in front of the hazard | 13 GDLM levels: 44 v4 1 (fixed), 45 9, 47 20, 50 7, 51 6, polished cube timings 4, the rest clean |
 | uneven spike clusters | `tools/clusters.js <level ...> --gate`: overlap, ragged gaps, a hazard just before a pad (static) | 13 GDLM levels: v13 3 spots (the user's), GDLM 45 1 ragged (block 63), all others clean; round 2 clean |
 
 Windows: a jump's window should be measured with the NEXT input re-timed (a player reacts), not fixed

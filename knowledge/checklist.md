@@ -13,6 +13,14 @@ check in make.js / score.js, so a level cannot miss it even when nobody reads th
 docs. `tools/wip.js put` adds `[checklist <commit>]` to every wip note, so each version says which
 checklist it was built against.
 
+**Run the loop with one command:** `node tools/loop.js <spec | brief | level> [--look] [--render]
+[--session <name> --note "..."]` (make -> every score.js gate -> pictures -> wip, stops at the first
+failure, prints an ETA first and waits while the PC is busy). A level is ready for the user when it says
+READY and the items below that no gate checks are gone through by eye.
+**One heavy job at a time is enforced** (tools/heavy.js): every solve / score / render tool waits for the
+shared slot by itself and prints whom it waits for. Don't get around it with `node -e` solves or scratch
+scripts, and build timing or test runs from copies in `local/tmp/`, never another session's level.
+
 ## Fair (the user's playtests: a death must be the player's fault)
 
 - [ ] **`node tools/fairness.js <level>` passes** (also `tools/score.js` gate "fairness"). It
@@ -78,6 +86,9 @@ checklist it was built against.
 - [ ] **Wave**: zigzag turns wider than ~100 ms apart; no head-on slopes at a portal exit; the exit
   portal over a flat floor, level stretches at the turns (patterns.js wave-zigzag `flat`, `leadGap`).
   (design.md; GDLM 44/46 real-game deaths)
+- [ ] **Jump marks clear of hazards**: a mark shows the take-off, its centre >= ~1 block in front of the
+  hazard's hitbox, never on or touching one. Placed by decorate.js jumpIndicators (INDICATOR.clear);
+  `node tools/indicators.js <level> [--fix]`. (the user, hellgate round 2: "indicator inside spike")
 - [ ] **Jump arrows a block in front of the hazard, low, never over it**, and no two under 2 blocks
   apart: `node tools/softrules.js <level>`, score.js gates "arrows" and "jump marks". (GDLM 50 v2: "arrow
   into the spike", "too close to the spike, almost inside it")

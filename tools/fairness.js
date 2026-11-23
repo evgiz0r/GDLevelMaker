@@ -24,6 +24,7 @@
 //              user's checklist; no death of its own yet: 44 v5's zigzag death follows its entrance)
 // FAIL: switch, mark, floor, chain, wave. WARN: blind (borderline in the labels), a survivable stray mark.
 // Cost: one solve plus the difficulty windows (~1 min for a 60 s level). One at a time.
+if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const fs = require("fs"), path = require("path");
 const { GD, readGdlvl } = require("./io.js");
 const DF = require("../lib/difficulty.js");

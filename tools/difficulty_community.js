@@ -2,6 +2,7 @@
 // downloaded community levels (tools/fetch_level.js; never committed), to check the tier ladder in
 // DIFFICULTY.md against levels other than RobTop's. Heavy: a solve each (~1-6 min, up to ~800 MB),
 // one at a time. Appends one JSON row per level to local/difficulty/community.jsonl.
+if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const fs = require("fs"), path = require("path");
 const { GD, readGdlvl } = require("./io.js");
 const DF = require("../lib/difficulty.js");

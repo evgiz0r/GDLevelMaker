@@ -16,6 +16,7 @@
 // Prints a line per frame, the level's numbers, and with --gate exits 1 when a threshold fails (TH below).
 // Writes local/readability/<name>.json. Uses the saved solution (tools/solutions.js). Frames 960x540.
 // One heavy job at a time (a headless browser with the sheets, ~1 GB). POLISH.md "Readability".
+if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const fs = require("fs"), path = require("path"), cp = require("child_process");
 const ROOT = path.join(__dirname, ".."), { headless } = require("./headless.js"), { levelOf } = require("./shoot.js");
 const GDL = require("../lib/gd.js"), O = require("../lib/objects.js");
