@@ -11,7 +11,9 @@ levels in `local/community/` (Easy -> Harder, Featured / Epic / Legendary / Myth
   blocks, default layer, default main / detail channel, number of sprites, a looks-like note.
   `grep -P "\tdeco-scenery\t" knowledge/objects/catalogue.tsv`, or by family: `grep "\td_cloud\t"`.
   Layer / channels are "?" for 2.2-only ids (GD's own table gives the frame only).
-- `usage.json` -- the counts below, per family, per tier and era, pairs, per level (numbers only).
+- `usage.json` -- the counts below, per family, per tier and era, pairs, per level (numbers only). Remade 2026-11-23
+  with 126 levels (the 2.2 levels the user played, local/community, added); the tables below are from the
+  first 119.
 - Pictures: `local/catalogue/<group>_NN.png` (contact sheets, 12 x 10, id + size + frame + note; main
   colour white, detail light blue, black black; the faint square in each cell's corner = one block at the
   same scale). Not committed (RobTop's art); rebuild with `node tools/catalogue.js sheets`. Or browse and

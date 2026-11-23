@@ -53,17 +53,18 @@ if (step === "index") {
   let list = []; try { list = JSON.parse(fs.readFileSync(path.join(DIRC, "list.json"), "utf8")); } catch (e) {}
   const meta = {}; for (const l of list) meta[l.id] = l;
   for (const f of fs.existsSync(DIRC) ? fs.readdirSync(DIRC).filter(f => f.endsWith(".gdlvl")) : []) {
-    try { const L = readGdlvl(path.join(DIRC, f)), id = f.replace(".gdlvl", ""); levels.push({ src: "community", id, tier: (meta[id] || {}).tier || "?", era: (meta[id] || {}).era || "?", objects: L.level.objects }); } catch (e) {}
+    // loaded one at a time below (all at once ran out of memory with ~120 levels incl. 75k-object ones)
+    const id = f.replace(".gdlvl", ""); levels.push({ src: "community", id, tier: (meta[id] || {}).tier || "?", era: (meta[id] || {}).era || "?", load: () => readGdlvl(path.join(DIRC, f)).level.objects });
   }
   for (const f of fs.readdirSync(path.join(ROOT, "local")).filter(f => /^official_\d+\.json$/.test(f))) {
-    const j = JSON.parse(fs.readFileSync(path.join(ROOT, "local", f), "utf8"));
-    levels.push({ src: "official", id: j.name, tier: "official", era: "official", objects: require("../lib/gd.js").parseLevel(j.level).objects });
+    levels.push({ src: "official", id: f.replace(".json", ""), tier: "official", era: "official", load: () => require("../lib/gd.js").parseLevel(JSON.parse(fs.readFileSync(path.join(ROOT, "local", f), "utf8")).level).objects });
   }
   const isDeco = id => { const g = C.group(id); return g.startsWith("deco") || g === "pixel" || g === "effects"; };
   const fam = {}, pairs = {}, perLevel = [], layers = {}, keys = { colour21: 0, colour22: 0, layer24: 0, order25: 0, scale32: 0, group57: 0, total: 0 };
   for (const L of levels) {
     const here = {}; let deco = 0, all = 0, maxX = 0;
-    for (const o of L.objects) {
+    let objects; try { objects = L.load(); } catch (e) { continue; }
+    for (const o of objects) {
       all++; maxX = Math.max(maxX, o.x || 0);
       if (!C.frameOf(o.id) || !isDeco(o.id)) continue;
       deco++; keys.total++;
