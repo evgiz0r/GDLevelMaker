@@ -68,7 +68,9 @@ swap('<button id="music" class="on">music</button>',
   // (no hidden input clicked from code, no capture attribute), which phone WebViews need.
   '<button id="music" class="on">music</button><label class="btn" id="addSong" style="position:relative;overflow:hidden">add song<input id="songFile" type="file" accept="audio/*,.mp3,.ogg,.m4a,.wav" multiple style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:40px"></label>' +
   '<div id="songMsg" style="display:none;flex:1 0 100%;order:99;box-sizing:border-box;margin:2px 0;padding:8px 10px;border:1px solid #6b5bd0;border-radius:6px;background:#1b1240;font-size:13px;line-height:1.4"></div>');
-swap("if (!info || location.protocol === \"file:\") return;", "if (!info) return; updateSongBtn();");
+swap("  if (!info) { songAsk(false); return; }\n  if (location.protocol === \"file:\") return; // songs come from tools/serve.js", "  if (!info) return; updateSongBtn();");
+// the viewer's own "add song" (the public site's) is not used here: the phone page has its own, below
+swap('<label class="btn" id="addSongPc" hidden>add song<input id="songFilePc" type="file" accept="audio/*,.mp3,.ogg,.m4a,.wav" hidden></label>', "");
 swap("song = viewerSong(info);", "song = songPlayer(info);"); // the phone's songs come from the device (below), not the server
 swap('<script>\n"use strict";\nconst P = GD.PHYS;', `<script>
 const SONGBUF = (GD.SONGBUF = GD.SONGBUF || {}); // song key -> decoded AudioBuffer (the viewer's SONGS too)

@@ -42,8 +42,19 @@ function selfUpdate() {
   finally { UPD.busy = false; }
 }
 if (!UPD.off) { setTimeout(selfUpdate, 2000); setInterval(selfUpdate, 60e3).unref(); }
+// The public viewer (GitHub Pages, tools/pages.js) may READ songs, GD's art and /version from this server on the
+// user's own PC -- so there it plays music and can show GD art, while nothing copyrighted is hosted. Only that
+// origin, only those GET paths (Chrome's Private Network Access preflight answered); it may write nothing here.
+const PAGES_ORIGINS = ["https://evgiz0r.github.io"];
 const SERVER = http.createServer((req, res) => {
   let p = decodeURIComponent(req.url.split("?")[0]);
+  const origin = req.headers.origin;
+  if (origin && PAGES_ORIGINS.includes(origin)) {
+    const readable = /^\/(version$|song\/|gdres\/)/.test(p);
+    if (req.method === "OPTIONS") { res.writeHead(readable ? 204 : 403, readable ? { "Access-Control-Allow-Origin": origin, "Access-Control-Allow-Methods": "GET", "Access-Control-Allow-Headers": "*", "Access-Control-Allow-Private-Network": "true", "Vary": "Origin" } : {}); return res.end(); }
+    if (req.method !== "GET" || !readable) { res.writeHead(403); return res.end("not for the public page"); }
+    res.setHeader("Access-Control-Allow-Origin", origin); res.setHeader("Access-Control-Allow-Private-Network", "true"); res.setHeader("Vary", "Origin");
+  }
   if (p === "/viewer/" && Date.now() - UPD.checked > 60e3) selfUpdate();   // a page load after a quiet spell
   if (p === "/version") {
     let v = {}; try { v = { commit: git(["rev-parse", "--short", "HEAD"]), subject: git(["log", "-1", "--format=%s"]).slice(0, 80), at: git(["log", "-1", "--format=%cI"]) }; } catch (e) {}
