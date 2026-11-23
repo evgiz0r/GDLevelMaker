@@ -1,4 +1,5 @@
-// node tools/make.js specs/<name>.json   -> levels/<name>.gdlvl, checked, and added to the viewer
+// node tools/make.js specs/<name>.json [--look]  -> levels/<name>.gdlvl, checked, and added to the viewer
+//   --look: decoration-only change: keep the last solve if the gameplay is the same (see lookOnly)
 //
 // A spec is written in grid squares, not GD units: column 0 is where the player starts,
 // row 0 is the first square above the ground.
@@ -25,6 +26,8 @@
 //   "art": {"bg": n, "ground": n}                        background / ground art numbers
 //   "modern": {"sections": [{from, to, kind, fill, light}], "title": "...", "end": "..."}   the modern
 //                          decoration pass (tools/decorate.js modernPass; compose.js fills it in)
+//   "scene": "tools/scenes/<name>.js"   a scene script: fn({objects, header, spec, ctx, tl, beatX, xOfT, GD})
+//                          -> {objects (deco + triggers to add), header}; tools/scenekit.js recipes (SHOWCASE.md)
 //   "decoDensity": [[fromCol, share], ...]   classic style: share of free columns with ground
 //                          decoration from that column on (default 0.25; compose.js sets it per section)
 //   "indicators": {"id": N, "rot": n, "at": [cols], "all": false}   a small arrow pointing down over
@@ -224,6 +227,13 @@ function build(spec, specFile = "spec") {
     nudgeJumps(jGroups, objects, header, ctx, tl);
   }
 
+  if (spec.scene) { // a scene script (tools/scenes/<name>.js, SHOWCASE.md): deco + triggers + header channels
+    const scene = require(path.resolve(__dirname, "..", spec.scene));
+    const beatX = b => GD.SYNC.xOfT(tl, GD.SYNC.beatToTime(ctx.grid, ctx.offset, b));
+    const r = scene({ objects, header, spec, ctx, tl, beatX, xOfT: t => GD.SYNC.xOfT(tl, t), GD });
+    objects.push(...r.objects);
+    if (r.header) header = r.header;
+  }
   if (spec.modern) objects.push(...deco.modernPass(objects, spec.modern.sections || [], spec.modern)); // before skins: fills follow gameplay blocks
   if (spec.style && spec.style !== "classic") deco.skinBlocks(objects); // e.g. "hell": outlined blocks, no ground decoration
   if (spec.style === "classic") {
@@ -245,6 +255,7 @@ function make(specFile, specObj) {
   const spec = specObj || JSON.parse(fs.readFileSync(specFile, "utf8"));
   const { level, rec, ctx, objects, header } = build(spec, specFile);
   const out = path.join(__dirname, "..", "levels", slug(spec.name) + ".gdlvl");
+  if (LOOK_ONLY && lookOnly(out, rec, level)) return { out, r: { ok: true } };
   writeGdlvl(out, rec, level);
   let r = report(out);
   if (spec.indicators && r.ok) {
@@ -276,6 +287,30 @@ function make(specFile, specObj) {
   try { const L2 = require("./io.js").readGdlvl(out); require("./solutions.js").fromRun(L2.level, L2.levelStr, r); } catch (e) { console.log("   (solution not saved: " + e.message + ")"); }
   buildIndex();
   return { out, r };
+}
+
+// --look: only the look changed (decoration, colours, triggers that move deco). Keeps the last build's
+// solution and jump indicators when the gameplay (every object the physics collides with) is the same,
+// checks that the saved plan still clears the level with one replay (seconds, not a solve), and writes
+// the file. Falls back to a full build when there is no previous build or the gameplay differs.
+const LOOK_ONLY = process.argv.includes("--look");
+function lookOnly(out, rec, level) {
+  const io = require("./io.js"), sols = require("./solutions.js");
+  if (!fs.existsSync(out)) { console.log("   --look: no previous build, solving"); return false; }
+  const old = io.readGdlvl(out), sol = sols.get(old.levelStr, true);
+  const sig = (objs, h) => JSON.stringify(GD.makeWorld(objs, h).items.map(b => [b.kind, Math.round(b.x), Math.round(b.y)]));
+  if (!sol || !sol.ok || sig(old.level.objects, old.level.header) !== sig(level.objects, level.header)) { console.log("   --look: gameplay changed (or no saved solution), solving"); return false; }
+  // the jump marks of the last build (group 990 and the alpha trigger that fades them)
+  const IG = String(deco.INDICATOR.group);
+  level.objects.push(...old.level.objects.filter(o => o.props && (o.props[57] === IG || (o.id === 1007 && o.props[51] === IG))));
+  const q = GD.run(GD.makeWorld(level.objects, level.header), sol.events);
+  if (!(q.done || (q.end && !q.dead))) { console.log("   --look: the saved plan no longer clears it, solving"); return false; }
+  writeGdlvl(out, rec, level);
+  const L2 = io.readGdlvl(out);
+  sols.put(L2.levelStr, Object.assign({}, sol));
+  buildIndex();
+  console.log(`   --look: ${level.objects.length} objects; gameplay unchanged, saved plan replayed to the end -> ${path.relative(process.cwd(), out)}`);
+  return true;
 }
 
 // "jN" is placed for a lone spike. Runs of spikes, blocks and orbs change where the press goes,
@@ -338,7 +373,7 @@ function beatReport(objects, header, r, ctx) {
 }
 
 if (require.main === module) {
-  const specs = process.argv.slice(2);
+  const specs = process.argv.slice(2).filter(a => a !== "--look");
   if (!specs.length) { console.log("usage: node tools/make.js specs/<name>.json [...]"); process.exit(1); }
   for (const s of specs) make(s);
 }

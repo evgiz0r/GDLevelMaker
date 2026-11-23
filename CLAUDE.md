@@ -124,6 +124,12 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   user sees it), `tools/sightread.js` (prejumps), `tools/inputs.js` (a solution's inputs with
   modes), `lib/natural.js` (a natural replay plan: taps, no empty jumps). Test:
   `node tests/style_gates.js`.
+- **Scene levels, decorated by hand** (SHOWCASE.md: GDLM 50 eclipse, what made it look good, numbers,
+  what is unchecked in the game): `tools/scenekit.js` (recipes: own colour channels, palettes per section,
+  skylines, the eclipse set piece, stars, designed blocks, motes, light rays, a top frame, lock-to-player
+  parallax, beat pulses, text), a level's scene script `tools/scenes/<name>.js` (spec key `"scene"`).
+  `node tools/make.js <spec> --look` rebuilds a decoration-only change in a second (keeps the solve when
+  the gameplay is the same). Owner: the showcase session.
 - `tools/solutions.js` -- solve each level ONCE on the PC (`--all` for every repo level missing one);
   the viewer and the phone replay the saved solution (natural replay, stamped with the physics
   commit; stale ones are re-solved). make.js and wip.js save one whenever they solve.
