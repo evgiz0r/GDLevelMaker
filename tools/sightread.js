@@ -11,6 +11,7 @@
 // Small lead = you jump when the obstacle is in your face = reactable. Big lead = a prejump.
 // Flagged: lead > LIMIT blocks (default 1.5; --limit n; 3 in ship/UFO/wave/swing). A press that
 // fires an orb counts as cued, and so does jumping off the end of a ledge.
+if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const { GD, readGdlvl } = require("./io.js");
 // flying modes turn slowly, so steering starts further ahead of what it is for: allow 3 blocks
 const FLYING = new Set(["ship", "ufo", "wave", "swing"]), FLY_LIMIT = 3;

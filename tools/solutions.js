@@ -1,4 +1,6 @@
-// node tools/solutions.js [--all | <level.gdlvl> ...]  -- solve levels ONCE, on the PC, and keep the answer
+// node tools/solutions.js [--all | <level.gdlvl> ...] [--fresh]  -- solve levels ONCE, on the PC, and keep the answer
+//   --fresh: solve again from scratch (the sweep's current route ranking: off the walls, then fewest presses)
+//   instead of re-planning the saved inputs
 //
 // The viewer and the phone page replay a saved solution instead of solving in the browser (a 60 s
 // level with modes takes minutes to solve; on the phone the page looked hung). A solution is
@@ -11,6 +13,7 @@
 // Each also carries `plan` (the commit of lib/natural.js). When only the plan is older, or the physics
 // is older but the saved inputs still finish the level, solve() re-plans from them (a few seconds)
 // instead of solving again; --all does that for every repo level.
+if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const fs = require("fs"), path = require("path"), crypto = require("crypto");
 const { GD, readGdlvl } = require("./io.js");
 Object.assign(GD, require("../lib/natural.js"));
@@ -59,8 +62,9 @@ function fromRun(level, levelStr, r) {
   return put(levelStr, sol);
 }
 // cached, or solve now
-function solve(level, levelStr) {
-  const c = get(levelStr, true);
+function solve(level, levelStr, opts) {
+  opts = opts || {};
+  const c = opts.fresh ? null : get(levelStr, true);
   if (fresh(c)) return c;
   const w = GD.makeWorld(level.objects, level.header);
   // the saved inputs still finish it: only the replay plan needs redoing
@@ -83,9 +87,10 @@ if (require.main === module) {
   if (!files.length) { console.log("usage: node tools/solutions.js [--all | <level.gdlvl> ...]"); process.exit(1); }
   for (const f of files) {
     const L = readGdlvl(f);
-    if (fresh(get(L.levelStr, true))) { console.log(`${f}: saved already`); continue; }
+    const again = args.includes("--fresh");
+    if (!again && fresh(get(L.levelStr, true))) { console.log(`${f}: saved already`); continue; }
     const t0 = Date.now();
-    const s = solve(L.level, L.levelStr);
+    const s = solve(L.level, L.levelStr, { fresh: again });
     console.log(`${f}: ${s.ok ? "beaten" : "not beaten"}, ${s.events.length} inputs, solved in ${((Date.now() - t0) / 1000).toFixed(0)} s`);
   }
   require("./index_levels.js").buildIndex();

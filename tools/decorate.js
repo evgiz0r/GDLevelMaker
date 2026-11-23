@@ -124,7 +124,7 @@ function setHeaderArt(header, bg, ground) {
 // to point at the ground, scale 0.7, on white (1011: its own channel 1006 is the player's colour) in
 // its own group, faded to `alpha` by an alpha trigger at the start. Any id works per spec:
 // "indicators": {"id": N, "rot": n, "ch": n}; id 914 = a text object showing `text` (e.g. "v").
-const INDICATOR = { id: 460, rot: 90, ch: 1011, scale: 0.7, text: "v", group: 990, alpha: 0.45, lift: 30, clear: 30 }; // lift: surface -> mark centre (45 read 'a bit too high', GDLM 44 v8; rated median 30)
+const INDICATOR = { id: 460, rot: 90, ch: 1011, scale: 0.7, text: "v", group: 990, alpha: 0.45, lift: 30, clear: 40 }; // lift: surface -> mark centre (45 read 'a bit too high', GDLM 44 v8; rated median 30)
 function jumpIndicators(w, r, id, GD, opts = {}) {
   const path = GD.run(w, r.events).path, out = [], marks = [];
   const boxes = w.items || [];
@@ -158,15 +158,27 @@ function jumpIndicators(w, r, id, GD, opts = {}) {
     if (opts.only && !why.length) continue;   // opts.only: just the jumps that cannot be read in time
     if (marks.length && a.x - marks[marks.length - 1] < 60) continue;
     marks.push(a.x);
-    // the take-off point: half a block past the press, but always at least a block in FRONT of the
-    // nearest hazard's hitbox, low, never over or next to it (the user on eclipse v2: "arrow into the
-    // spike"; "too close to the spike, almost inside it" -- a press late in its window put the mark at
-    // the spike). INDICATOR.clear = units between the mark's centre and any hazard's hitbox.
+    let x = Math.round((a.x + 15) / 15) * 15;  // loosely: the area, half a block past the press (rated: ~0.5 block before the hazard)
+    // ... but never on or next to the hazard it is for (the user, hellgate round 2: "indicator inside spike"):
+    // its centre stays INDICATOR.clear units in front of the hazard's hitbox (tools/indicators.js checks it)
+    if (cue !== Infinity) { const hz0 = a.x + 15 + cue; if (x > hz0 - INDICATOR.clear) x = Math.floor((hz0 - INDICATOR.clear) / 15) * 15; }
     const hazNear = xx => boxes.find(b => b.kind === "hazard" && b.x0 - INDICATOR.clear < xx && b.x1 + INDICATOR.clear > xx && (up ? b.y0 <= surface + 60 && b.y1 >= surface - 5 : b.y1 >= surface - 60 && b.y0 <= surface + 5));
-    let x = Math.floor((a.x + 15) / 15) * 15;
     for (let k = 0, h; k < 6 && (h = hazNear(x)); k++) x = Math.floor((h.x0 - INDICATOR.clear) / 15) * 15;
     out.push({ id, x, y: up ? surface + INDICATOR.lift : surface - INDICATOR.lift,
       rot: ((opts.rot ?? INDICATOR.rot) + (up ? 0 : 180)) % 360, flipX: false, flipY: false, props: markProps(id, opts), why: why.join(",") });
+  }
+  return out;
+}
+// The shared check (tools/indicators.js, score.js): jump marks (group INDICATOR.group) whose centre is within
+// `clear` units of a hazard's hitbox. w = GD.makeWorld(objects, header). Returns [{x, y, gap}].
+function indicatorIssues(objects, w, clear = INDICATOR.clear - 10) {
+  const g = String(INDICATOR.group), hz = (w.items || []).filter(b => b.kind === "hazard");
+  const out = [];
+  for (const o of objects) {
+    if (!o.props || o.props[57] !== g || o.id === 1007) continue;
+    let gap = Infinity;
+    for (const b of hz) { const dx = Math.max(b.x0 - o.x, 0, o.x - b.x1), dy = Math.max(b.y0 - o.y, 0, o.y - b.y1); gap = Math.min(gap, Math.hypot(dx, dy)); }
+    if (gap < clear) out.push({ x: o.x, y: o.y, gap: Math.round(gap) });
   }
   return out;
 }
@@ -197,6 +209,11 @@ const KITS = {   // backdrop shapes per kind of section: [id, scale]
   ball: [[1058, 2], [1059, 2.4], [1060, 2.8]],       // spirals
   wave: [[394, 1.2], [395, 1.6], [396, 2.2]],        // geometric hexagons
 };
+// where GD's "Attempt N" text shows at the level start (units; x from the level start, y from the
+// ground), with room for 3-digit counts: no text object may overlap it (make.js warns)
+const ATTEMPT_ZONE = { x0: -30, x1: 360, y0: 105, y1: 195 };
+// a text object's half width in units (GD's big font: ~20 units per character at scale 1; approximate)
+const textHalfWidth = (t, sc) => String(t).length * 20 * sc / 2;
 function modernPass(objects, sections, opts = {}) {
   let sd = opts.seed || 3;
   const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
@@ -223,6 +240,17 @@ function modernPass(objects, sections, opts = {}) {
       const [id, sc] = kit[Math.floor(rnd() * kit.length)];
       out.push(o(id, x, 150 + rnd() * 150, light, LAYER.B3, { scale: sc, rot: Math.round(rnd() * 360) }));
     }
+    // open stretches (cube on the floor, upside down, ball) have few blocks to decorate, so they read as
+    // empty next to the corridors (the user on GDLM 45 v6 at ~24.7 s: "some places are very empty in
+    // deco"; score.js "deco coverage"). A calm, dim back row: the kit's shapes small and low, far back
+    // (B4) on the section's darker fill channel, every 2.5-4.5 blocks, and a second pass of dots.
+    if (["cube", "upside", "ball"].includes(sec.kind)) {
+      for (let x = x0 + 45; x < x1 - 45; x += 75 + rnd() * 60) {
+        const [id, sc] = kit[Math.floor(rnd() * kit.length)];
+        out.push(o(id, x, 60 + rnd() * 90, fill, LAYER.B4, { scale: +(sc * 0.55).toFixed(2), rot: Math.round(rnd() * 360) }));
+      }
+      for (let x = x0 + 30; x < x1 - 30; x += 50 + rnd() * 50) out.push(o(725, x, 40 + rnd() * 250, light, LAYER.B2, { scale: +(0.4 + rnd() * 0.5).toFixed(2) }));
+    }
   });
   // the motif through every section: small dots drifting at all heights, behind the play
   const endX = Math.max(...sections.map(s => s.to)) * 30;
@@ -241,9 +269,12 @@ function modernPass(objects, sections, opts = {}) {
   }
   // a title at the start and an end card
   const text = (t, x, y, sc) => ({ id: 914, x, y, rot: 0, flipX: false, flipY: false, props: { 155: "1", 31: Buffer.from(t).toString("base64"), 32: String(sc), 24: String(LAYER.B1) } });
-  if (opts.title) out.push(text(opts.title, 300, 150, 0.9));
+  // the title starts after GD's "Attempt N" counter: it sits ~5 rows up from the start position to ~6
+  // blocks ahead (more with 3 digits), measured on the user's recording 2026-11-23_02-51-50.mkv (11 s,
+  // "Attempt 2"); the title at block 10 was covered (GDLM 47, the user). Left edge at block 12 or later.
+  if (opts.title) { const sc = 0.9, half = textHalfWidth(opts.title, sc); out.push(text(opts.title, Math.max(600, ATTEMPT_ZONE.x1 + half), 150, sc)); }
   if (opts.end) out.push(text(opts.end, endX - 240, 150, 0.8));
   return out;
 }
 
-module.exports = { INDICATOR, jumpIndicators, markProps, indicatorFade, modernPass, LAYER, KITS, CH, SKIN, skinBlocks, groundDeco, colourTrigger, fadeTrigger, zoomTrigger, setHeaderColours, setHeaderArt };
+module.exports = { ATTEMPT_ZONE, textHalfWidth, indicatorIssues, INDICATOR, jumpIndicators, markProps, indicatorFade, modernPass, LAYER, KITS, CH, SKIN, skinBlocks, groundDeco, colourTrigger, fadeTrigger, zoomTrigger, setHeaderColours, setHeaderArt };

@@ -1,4 +1,5 @@
 // node tools/check.js <level.gdlvl> [...]   -- is it beatable, and where are the clicks?
+if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const { GD, readGdlvl } = require("./io.js");
 
 function report(file) {

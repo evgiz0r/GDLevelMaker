@@ -5,6 +5,7 @@
 // 40 = GD's lettered helper blocks), the objects touching that spot, and the special blocks in the level.
 // See the spot: tools/levelmap.js draws the level with the path and a red X there. Built 2026-11-23 to answer "do we play it wrong, or
 // does some trigger not happen?" for Deadlocked / Dash / Fingerdash (DIFFICULTY.md "Where the sim stops").
+if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const fs = require("fs"), path = require("path");
 const ROOT = path.join(__dirname, ".."), GD = require("../lib/gd.js"), G = require("../lib/physics.js"), O = require("../lib/objects.js");
 const { levelOf } = require("./shoot.js");

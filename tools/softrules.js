@@ -23,7 +23,8 @@ const fs = require("fs"), path = require("path");
 const { GD, readGdlvl } = require("./io.js");
 
 const ARROW = new Set([132, 460, 494, 3630, 3631, 3632]);
-const CLEAR = 30;   // units: an arrow's centre to any hazard hitbox (tools/decorate.js INDICATOR.clear)
+// units: an arrow's centre to any hazard hitbox: the shared check's distance (tools/decorate.js indicatorIssues)
+const CLEAR = require("./decorate.js").INDICATOR.clear - 10;
 
 function arrows(level, w) {
   const hz = w.items.filter(b => b.kind === "hazard"), over = [], near = [];
