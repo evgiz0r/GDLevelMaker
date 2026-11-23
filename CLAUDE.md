@@ -26,6 +26,13 @@ not after it:
   with the user), setting up its knowledge is the AI's job, not the user's: its own doc (or
   section) with what is known, the sources, how to test it and what is open; a line here pointing
   to it; and, if a session owns it, who that is. Don't wait to be asked.
+- **Use what others learned, every round.** (The user, 2026-11-23: "if we gain knowledge on the fly,
+  I do want sessions to use it.") A long session reads the docs once and then misses what the
+  others learn. So before each new level or round: `git pull`, then re-read
+  `knowledge/checklist.md`, `TASTE.md`, `STRUCTURES.md` and your own area's doc (what changed since
+  your last round). A new lesson goes in as one line of the checklist in the same commit, and as a
+  `make.js`/`score.js` check where possible -- code beats docs. `tools/wip.js` stamps each note
+  with the checklist commit it was built against.
 - **Hand off.** Before a long pause or when your area changes hands, write where you stopped,
   what is open and the good numbers into your area's doc.
 - **Share, don't duplicate.** Results go into the shared `local/` (see below) so no session redoes
