@@ -326,4 +326,4 @@ function fitAtBpm(file, bpm) {
   const g = fitGrid(env, 60 * FPS / bpm);
   return { bpm: 60 * FPS / g.P, ratio: g.ratio, z: g.z, half: g.half, maxDriftMs: Math.max(...g.drift.map(d => Math.abs(d.ms))) };
 }
-module.exports = { analyse, loadBeats, keyOfUrl, allSongs, writeViewerIndex, fitAtBpm, OFFICIAL, GAME };
+module.exports = { analyse, loadBeats, keyOfUrl, allSongs, writeViewerIndex, fitAtBpm, decode, makeFFT, OFFICIAL, GAME };
