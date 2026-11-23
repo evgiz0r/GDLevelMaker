@@ -481,7 +481,12 @@ function loop(briefFile, rounds = 8) {
     }
     return secCache.get(key);
   };
-  const vdir = path.join(__dirname, "..", "local", "wip", brief.session || "style", slug(brief.name) + ".variants");
+  // viewer format (visuals, 2026-11-23): local/wip/<session>/<level base>.variants/index.json + one WHOLE-level
+  // file per variant (that section swapped in), keys A, B, C ... (A = the plain plan, the baseline); the user's
+  // pick comes back as a "variant-pick" mark in local/marks.jsonl (tools/marks.js)
+  const vbase = slug(brief.name), vdir = path.join(__dirname, "..", "local", "wip", brief.session || "style", vbase + ".variants");
+  const vindex = { level: vbase + ".gdlvl", version: null, sections: [] };
+  try { vindex.version = JSON.parse(fs.readFileSync(path.join(vdir, "..", vbase + ".json"), "utf8")).version; } catch (e) {}
   const lastPlay = brief.sections.map((s, i) => i).filter(i => !brief.sections[i].rest).pop();
   const firstCube = brief.sections.findIndex(s => !s.rest && !s.mode && s.use && s.use.length);
   const important = brief.sections.map((s, i) => i).filter(i => {
@@ -490,27 +495,39 @@ function loop(briefFile, rounds = 8) {
   });
   const K = brief.variants ?? 3, start0 = {}, vlog = [];
   if (K > 1) for (const si of important) {
-    const tried = [];
+    const tried = [], KEYS = "ABCDEFGH";
+    const entry = { id: "s" + si, name: brief.sections[si].name, from: null, to: null, variants: [] };
     for (let n = 0; n < K; n++) {
       const tw = Object.assign({}, start0, n ? { ["reseed:" + si]: n } : {});
       const r = scoreSection(tw, si);
-      tried.push({ n, points: r.points, gates: r.sc.gates.filter(g => g.status !== "PASS").map(g => `${g.status} ${g.name}`), r });
+      const issues = r.sc.gates.filter(g => g.status !== "PASS").map(g => `${g.status} ${g.name}`);
+      tried.push({ n, points: r.points, gates: issues, r });
+      // the whole level with this section's variant (no solve: the viewer solves it, or the cache has it)
+      const whole = compose(brief, tw), b = build(whole.spec, briefFile);
+      const rg = whole.ranges[si]; entry.from = rg[2] * 30; entry.to = rg[3] * 30;
       fs.mkdirSync(vdir, { recursive: true });
-      const file = path.join(vdir, `s${si}_${slug(brief.sections[si].name)}_v${n}`);
-      require("./io.js").writeGdlvl(file + ".gdlvl", r.rec, r.level);
-      fs.writeFileSync(file + ".json", JSON.stringify({ level: brief.name, section: brief.sections[si].name, variant: n, points: r.points, issues: tried[tried.length - 1].gates }, null, 1));
+      const file = `s${si}_${KEYS[n]}.gdlvl`;
+      require("./io.js").writeGdlvl(path.join(vdir, file), b.rec, b.level);
+      const sol = (() => { try { return require("./solutions.js").get(require("./io.js").readGdlvl(path.join(vdir, file)).levelStr); } catch (e) { return null; } })();
+      const diffG = r.sc.gates.find(g => g.name === "difficulty");
+      entry.variants.push(Object.assign({ key: KEYS[n], file, scores: { section: r.points, difficulty: diffG ? diffG.value.split(" (")[0] : undefined, issues: issues.length ? issues.join(", ") : "none" },
+        note: n ? `reseed ${n}: other chunks, gaps, terrain heights and library structure` : "the plain plan (baseline)" }, sol ? { solution: sol } : {}));
     }
+    vindex.sections.push(entry);
     tried.sort((a, b) => b.points - a.points);
     const win = tried[0], close = tried.length > 1 && tried[0].points - tried[1].points <= 5;
     if (win.n) start0["reseed:" + si] = win.n;
     const line = `${brief.sections[si].name}: v${win.n} kept (${win.points}) over ` + tried.slice(1).map(t => `v${t.n} ${t.points}` + (t.gates.length ? ` [${t.gates.join(", ")}]` : "")).join(", ") + (close ? " -- CLOSE: a taste call for the user" : "");
     console.log("   variants " + line); vlog.push(line);
+    const e = vindex.sections[vindex.sections.length - 1];
+    for (const v of e.variants) { v.scores.kept = v.key === "ABCDEFGH"[win.n] ? "yes" : "no"; if (close) v.scores.close = "taste call"; }
     log.push(`- variants ${line}${NL}`);
   }
+  if (vindex.sections.length) fs.writeFileSync(path.join(vdir, "index.json"), JSON.stringify(vindex, null, 1));
   if (vlog.length) {
     // learn: which variant won and why (knowledge/variants.md, appended per run; the user's picks count double)
     const lf = path.join(__dirname, "..", "knowledge", "variants.md");
-    const head = fs.existsSync(lf) ? "" : "# Section variants: which won and why\n\ncompose.js builds 2-4 versions of the opening, the drops and the finale, scores each section alone\n(100 - 30 per FAIL - 6 per WARN) and keeps the best; all are in local/wip/<session>/<level>.variants/. A CLOSE\nresult is a taste call for the user; the user's own picks count double (write them here as \"user picked\").\n\n";
+    const head = fs.existsSync(lf) ? "" : "# Section variants: which won and why\n\ncompose.js builds 2-4 versions of the opening, the drops and the finale, scores each section alone\n(100 - 30 per FAIL - 6 per WARN) and keeps the best; all are in local/wip/<session>/<level>.variants/ (index.json, whole-level files s<i>_A/B/C: the viewer's format). A CLOSE\nresult is a taste call for the user; the user's own picks count double (write them here as \"user picked\").\n\n";
     fs.appendFileSync(lf, head + `## ${brief.name} (${new Date().toISOString().slice(0, 10)})\n` + vlog.map(l => "- " + l).join("\n") + "\n\n");
   }
   const failRounds = {};
