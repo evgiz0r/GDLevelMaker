@@ -113,7 +113,11 @@ sections ~30 units low; UFO, wave, robot, spider, swing want a recording of the 
 - Saws: player box against the circle (GD's playerCircleCollision branch B).
 - Orbs: touched at the end of either of the last two ticks; rotated orbs use turned boxes.
 - Slopes: floor slopes, and ceiling slopes (flipped / half-turned) for the ship and an upside-down
-  player. Quarter-turned slopes act as blocks.
+  player. A slope turned a quarter is the slope whose square corner the turn puts where it lands
+  (plain "/" has it bottom-right; turned clockwise BR -> BL -> TL -> TR), so 1338 flipped up and turned 90
+  rises to the right; its turned hitbox gives the rise (a 2:1 slope turned is 1:2). Until 2026-11-23 they
+  were blocks, a wall (Dash's swing part stops at 1744 turned 90, the difficulty session). UNCHECKED in
+  the game: GDLM 60's station 3 walks up and down two of them (tests/mechanics.js).
 - Found by plans: 143 one-way platform; 661-664, 1903-1905 slabs; slab 40 centred; 5/73/80 scenery;
   a blue pad flipped with key 5 faces down.
 

@@ -19,6 +19,14 @@ const first = (r, act) => r.path.find(p => p.act === act);
   const p = first(GD.run(w, []), "teleport portal");
   check("quarter-turned teleport: full offset", p && p.y === 165, p && p.y);
 }
+// a slope turned a quarter is still a slope: 1338 flipped up and turned 90 rises to the right, so a cube
+// walks up it onto a block (the old rule made it a wall: death); turned 90 unflipped it walks down
+{
+  const objs = [{ id: 1338, x: 315, y: 15, rot: 90, flipY: true }, { id: 1, x: 345, y: 15 }, { id: 1, x: 375, y: 15 },
+    { id: 1338, x: 405, y: 15, rot: 90 }, { id: 1, x: 900, y: 15 }];
+  const q = GD.run(GD.makeWorld(objs), []), top = q.path.find(s => s.x >= 360 && s.x <= 365);
+  check("quarter-turned slopes: walk up and down", !q.dead || q.end.x > 500, (q.dead ? "dies " + q.why + " at " + q.end.x.toFixed(0) : "") + " y at step " + (top && top.y.toFixed(1)));
+}
 // pad table: a ball's yellow pad gives 16 x 0.6 = 9.6; a cube's 16
 for (const [mode, want] of [["cube", 16], ["ball", 9.6]]) {
   const w = GD.makeWorld([{ id: 35, x: 300, y: 2 }, { id: 1, x: 900, y: 15 }]);
