@@ -37,6 +37,12 @@ checklist it was built against.
 - [ ] **A landing you can stay on**: after an orb, pad or obstacle, the cube lands on one surface across
   every early/late press; never a gap in front of a wall that needs an instant jump (a dead end).
   `node tools/polish.js <level> --dry --passes none` (two 4 ms jumps there). (critiques.md GDLM 44 v12)
+- [ ] **Orbs at the natural arc**: the first orb of a chain where a normal take-off jump tops out (at the
+  apex or up to 1.5 blocks after), each next orb where the previous orb's arc tops out; the take-off has
+  >= 100 ms with the orbs clicked when reached; orbs on the hazard row's halves or thirds.
+  `node tools/orbarc.js <level>`. (critiques.md GDLM 44 v12/v13: "unnatural and small")
+- [ ] **Clean spike groups**: no overlapping or doubled hazards, no 1-2 column gap inside a group, no
+  hazard within 1.5 blocks before a pad. `node tools/clusters.js <level>`. (critiques.md GDLM 44 v13)
 - [ ] **Orbs where the arc already goes**, not grazed at the arc's edge. (design.md; GDLM 44 orb ladder)
 - [ ] **Jump arrows only on real inputs**, ~1 block above the surface, right at the press (the hazard
   ~0.5 block ahead). Used where a jump can't be read in time (after a drop, after a portal, the first of
@@ -91,6 +97,10 @@ checklist it was built against.
   sections. Shaders only at transitions and drops.
 - [ ] **Shape of the level**: a dense opening, quiet 1-2 s transitions, the biggest effects at the
   drops. A title at the start and credits at the end. Don't copy any one level's art.
+- [ ] **Readable, measured**: hazard contrast against what is behind it >= 3 in every frame (median
+  >= 4.5), at most 4% of a frame as bright as the hazards, no flashing (< 0.5 per second, no frame-to-
+  frame brightness jump over 0.12). `node tools/readability.js <level> --gate` (renders, ~8 min).
+  GDLM 44 v13: contrast 1.05-1.48 ("waaaay too flashy ... hard to tell what kills you"); round 2: 4.7-6.
 - [ ] **Readable**: hazards stand out (white, grey or their own colour against the scene); no deco
   that looks like an orb, pad or hazard: fires only far back, small and dim. Hazards keep their contrast
   on the drop's brightest frame (one sky flash, not two). Behind a portal a dark disc, never a lit one.
