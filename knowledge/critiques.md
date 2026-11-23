@@ -30,6 +30,17 @@ Format: date, level + version, the user's words, what it means, what was done (c
   steer" with a death 50 ms in. Lesson (design.md-worthy): a mode portal should not drop the new
   mode onto a corner; leave open air (or flat floor) after it so the first input can come late.
 
+- 2026-11-23 ~03:39: "hell still doesnt work. something with slopes is akward" -- but the save still held v5
+  (wave portal by the 3-high block; v6 was written to levels/ at 03:37, after the 03:35 install). The one
+  attempt (03-38-03.mkv) died at the v5 block edge again. The slope complaint fits v5's zigzag: 71-88 ms
+  turns and head-on slope deaths (PHYSICS.md "Wave"). v6 not played yet.
+
+## GDLM 46 sketch
+- 2026-11-23 (03-36-54.mkv): beaten on attempt 7. Deaths: first double spike x2 (late jump), ship part,
+  the wave's last V before the exit portal (head-on into the rising floor), and after the wave exit: the cube
+  must jump off the 2-high block within 42-171 ms of becoming a cube or it lands below a 3-high wall it
+  cannot clear (a forced input right after a mode change, like GDLM 44's entrance).
+
 ## GDLM 42 seen then gone
 - 2026-11-22, v1: whole phrases invisible -> "practically very hard, tons of learning, pure memory
   without visuals -- usually not fair unless you want it unfair". Done: ghosts (opacity 0.35) by default,

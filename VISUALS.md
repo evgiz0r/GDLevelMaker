@@ -32,6 +32,12 @@ object id -> frame names, offsets, colour roles, layers.
   rest are objects whose root sprite GD swaps in setup (OpenGD has the swapped one), so OpenGD wins
   where it has the id. For 2.2-only ids we know the root frame only: no children, layer T1, channel 1004.
 - `tests/art_tables.js` -- plist parsing, trees, and every named frame exists in the install's sheets.
+- **`tools/shoot.js`** -- pictures of a level as GD draws it, no browser to drive: headless Edge renders
+  1920x1080 frames at given level times into `local/shots/<level>/` (`--at 2,5.5`, default every 2 s).
+  `<level>` = a .gdlvl, `local/official_NN.json`, `official:9`, or `save:<name>` (the copy installed
+  in the user's save, read only). `--rec <video> --t0 <s>`: render | game side by side. The viewer's
+  `?shoot=<job>` mode does the drawing (no overlays, camera snapped); `tools/headless.js` is shared with
+  `tools/catalogue.js`. Then Read the PNGs. A few seconds for a few frames once the level is solved.
 
 - **Deco catalogue**: `tools/catalogue.js` + `viewer/catalogue.html` + `lib/catalogue.js` (group, family,
   note per id) -> `knowledge/objects/` (catalogue.tsv, usage.json, README.md) and `local/catalogue/*.png`.
@@ -45,8 +51,11 @@ Driven from the browser console: load a level (`load(name, levelStr, solution)` 
 - Cycles (official 9) vs `GD claude-rec 2026-11-22_19-09-46.mkv` (attempt 2 starts at 0.9 s), level t=3.2:
   blocks, spikes, chains, ground spikes, orb, portal and ground match (shot
   `local/shots/cmp 2026-11-23T01-24-52-969Z.png`).
-- GDLM 41 vs `18-48-19.mkv` (attempt 1 at 7.62 s), level t=5.4: background blob size, hills,
-  grid blocks, ground match.
+- GDLM 41 vs `18-48-19.mkv` (attempt 1 at 7.62 s): the recording shows the level as of commit
+  6a9b8b0 (125 objects; the repo and the save now hold a later 95-object version -- identical to each
+  other). `node tools/shoot.js local/tmp/gdlm41_v1.gdlvl --rec "GD claude-rec 2026-11-22_18-48-19.mkv"
+  --t0 7.62 --at 5.4,6.6` (after `git show 6a9b8b0:levels/gdlm_41_classic.gdlvl > local/tmp/gdlm41_v1.gdlvl`):
+  layout, antennas, crystals, background, hills, grid blocks and ground match.
 - **Channels 1005/1006 are the player's own colours** whatever the header stores (GDLM 41's header
   says orange for 1005; its P1 deco is lime in the game). They **blend (additive) by default**: Cycles'
   old header has no flag and its ground spikes and chains show lime added over purple (yellowish).
@@ -63,9 +72,14 @@ Driven from the browser console: load a level (`load(name, levelStr, solution)` 
 
 ## Open (not done or not sure)
 
-- GDLM 41's white blocks show **lime edges** in the game, our render white. The installed copy has more
-  deco than `levels/gdlm_41_classic.gdlvl`, so it may carry other colours; re-check with a level whose
-  installed copy is known (install, record, compare).
+- **Lime flashes in GDLM 41** (measured, not understood): the block edges (channel 1004, white) and
+  the P1 crystals switch between WHITE and solid player LIME (126,255,0) from one frame to the next
+  while the level plays: white at the start and most of the time, lime for runs of ~0.2-1 s. Sampled at
+  30 fps over video 8-15 s: lime starts at video 9.33, 9.83, 10.80, 11.37, 12.93, 14.57, white again at 9.63,
+  10.67, 11.13, 12.03, 13.70, 14.77. Not periodic (no beat at 0.375 s), not tied to the cube being on the
+  ground; some switches fall on presses (level t 2.19, 3.68, 5.32). No trigger in the level does it (only
+  bg / ground colour triggers). Cycles shows white edges. Our render draws the white (base) state. Ask
+  the user whether a setting does this; else look for GD 2.2 behaviour of 1004 / 1005 on input.
 - The rod (antenna) ball draws as a ring; the game shows a filled pale ball. Ball offsets are by eye.
 - Order of the player vs T1 objects (we draw the player after everything, OpenGD puts it under T1).
 - The camera's vertical follow and the bg's slower vertical parallax are not the game's.

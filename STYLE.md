@@ -357,11 +357,12 @@ and pads. Upside down they hang from the ceiling. compose.js turns them on by de
 among them the stair-top jump the user died at 3 times.
 What the mark is (the user): anything **small and softer than the level, never like a hazard** --
 arrows are the usual choice, but circles, dots, any small deco, even smileys are used. Default
-here: a GD text object (914) showing "v" (scale 0.8) in group 990, faded to 45% by an alpha trigger
-at the start: an arrow pointing at the ground whose look is certain. A deco arrow per level style:
-`"indicators": {"id": N, "rot": n}` once its id is known -- `levels/gdlm_46_arrow_catalogue.gdlvl`
-shows 20 candidate decoration ids (enriched over takeoffs in 97 community levels, none singled
-out) under their numbers for the user to point at.
+here: deco **460** (d_arrow_02, the classic chevron ">", from the visuals session's
+knowledge/objects/catalogue.tsv) turned 90 degrees to point at the ground, scale 0.7, on white
+(1011 -- its own channel 1006 is the player's colour), group 990 faded to 45% by an alpha trigger at
+the start. The other arrows: 132 (long arrow), 494 (solid triangle: too spike-like). A text object
+(914, "text") also works. Per spec: `"indicators": {"id": N, "rot": n, "ch": n}`. GDLM 44 v8: 5
+marks (first climb jump, first jump after each mode change, far cues). Not yet seen in the game.
 
 **Orbs on the arc** (make.js `arcOrbs`, for `orb-ladder` and `orb-pit` on the ground; `"fixed": true`
 keeps the old fixed rows): the user on GDLM 44's ladder, "very awkward; in lower difficulty levels
@@ -437,8 +438,8 @@ State on 2026-11-22. What a new session should know before touching this area:
   level, ~17 kinds (GDLM: every ~8 s, 3 kinds), each used once or twice then left. Next compose
   work: cube sections built on a block terrain (raised runs, steps, pits with edges) with hazards on
   and beside it, and a new kind per few seconds (saws, pads, orbs, gravity, 0.5x speed ...).
-- **Jump indicators**: on by default in compose (a faded text "v"); a deco arrow needs its id (GDLM 46
-  catalogue for the user). Not yet checked in the game: how the text "v" looks at 45% and scale 0.8.
+- **Jump indicators**: on by default in compose (chevron 460, white, 45%). Not yet seen in the game.
+  GDLM 46 (arrow catalogue) is no longer needed: the visuals catalogue named the ids.
 - **Art**: decoration ids have no names. Plan: a generated catalogue level (every deco id with a
   text label) the user opens and screenshots; then style deco sets (hell, classic ...).
 - **GDLM 44** (Easy, 10 s, song 343707): v5 under "in progress" in the viewer, all gates pass (the
