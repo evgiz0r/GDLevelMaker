@@ -44,6 +44,18 @@ function kindOf(o) {
   return k; // solid, hazard, trigger, decoration
 }
 
+// the signature (tools/signature.js: channels 988-999) is ours by design, not level deco: left out
+const isSignature = o => { const ch = +((o.props || {})[21] || 0); return ch >= 988 && ch <= 999; };
+// rods (15-17) and chains (41) that hang on something: within 12 units across and 80 along of a solid,
+// hazard, orb or pad -- or of another chain that does (a chain stack up to the ceiling)
+function hangers(objects) {
+  const things = objects.filter(o => { const k = kindOf(o); return k === "solid" || k === "hazard" || k === "play" || (o.id >= 1 && o.id <= 7); });
+  const hs = objects.filter(o => [15, 16, 17, 41].includes(o.id)), ok = new Set();
+  const touch = (a, b) => Math.abs(a.x - b.x) < 12 && Math.abs(a.y - b.y) < 80;
+  for (const h of hs) if (things.some(t => touch(h, t))) ok.add(h);
+  for (let grew = true; grew;) { grew = false; for (const h of hs) if (!ok.has(h) && h.id === 41 && [...ok].some(g => g.id === 41 && touch(h, g))) { ok.add(h); grew = true; } }
+  ok.total = hs.length; return ok;
+}
 function roles(objects) {
   const solid = new Set(), hazard = new Set(), structure = new Set();
   for (const o of objects) {
@@ -56,9 +68,12 @@ function roles(objects) {
   const near = (c, r, d) => { for (let i = -d; i <= d; i++) for (let j = -d; j <= d; j++) if (structure.has(key(c + i, r + j)) || hazard.has(key(c + i, r + j))) return true; return false; };
   const counts = {}, per = {}, hz = {}, out = [];
   let maxc = 0;
+  const attachedHang = hangers(objects);
   for (const o of objects) {
     const k = kindOf(o), [c, r] = cellOf(o); let role;
-    if (k !== "decoration") role = k === "trigger" ? "trigger" : k;
+    if (isSignature(o)) role = "signature";
+    else if (k !== "decoration") role = k === "trigger" ? "trigger" : k;
+    else if (attachedHang.has(o)) role = "hang";
     else if (structure.has(key(c, r)) && (o.id <= 7 || solid.has(key(c, r)))) role = "fill";
     else if (structure.has(key(c, r - 1))) role = "top";
     else if (structure.has(key(c, r + 1))) role = "hang";
@@ -84,6 +99,7 @@ function roles(objects) {
     const open = ((structure.has(key(c, r - 1)) || r <= 0) ? "" : "D") + (structure.has(key(c - 1, r)) ? "" : "L") + (structure.has(key(c + 1, r)) ? "" : "R") + (structure.has(key(c, r + 1)) ? "" : "U");
     skinN++; if (skinEdges(o) === open.split("").sort().join("")) skinOk++;
   }
+  counts.signature = counts.signature || 0;
   const deco = ["fill", "top", "hang", "side", "ground", "near", "back"].reduce((a, k) => a + (counts[k] || 0), 0);
   const structural = ["fill", "top", "hang", "side"].reduce((a, k) => a + (counts[k] || 0), 0);
   return { counts, perScreen: per, hazards: hz, skins: { n: skinN, exact: skinN ? skinOk / skinN : NaN }, deco, structural, roles: out, screens: maxc + 1 };
@@ -106,7 +122,7 @@ function numbers(objects) {
   objects.forEach((o, i) => {
     const [c, r] = cellOf(o), k = key(c, r), role = R.roles[i]; maxc = Math.max(maxc, c);
     if (role === "solid" || (role === "fill" && o.id <= 7)) S.add(k); else if (role === "hazard") H.add(k);
-    else if (role === "play") P.add(k); else if (role !== "trigger") D.add(k);
+    else if (role === "play") P.add(k); else if (role !== "trigger" && role !== "signature") D.add(k);
   });
   const blocks = Math.max(1, maxc);
   // pieces
@@ -128,12 +144,7 @@ function numbers(objects) {
   }
   let floor = 0; for (let c = 0; c <= maxc; c++) if (H.has(key(c, 0)) || H.has(key(c, -1))) floor++;
   // rods and chains: touching a structure / play object (within 2.5 blocks along their axis)
-  const things = objects.filter((o, i) => ["solid", "fill", "hazard", "play"].includes(R.roles[i]));
-  let hang = 0, hangOk = 0;
-  for (const o of objects) {
-    if (![15, 16, 17, 41].includes(o.id)) continue; hang++;
-    if (things.some(s => Math.abs(s.x - o.x) < 12 && Math.abs(s.y - o.y) < 80)) hangOk++;
-  }
+  const H2 = hangers(objects), hang = H2.total, hangOk = H2.size;
   const gp = comps.filter(c => c.y0 <= 0 && c.w <= 2).sort((a, b) => a.x0 - b.x0);
   let pn = 0, pd = 0;
   for (let i = 1; i < gp.length; i++) { if (gp[i].x0 - (gp[i - 1].x0 + gp[i - 1].w) > 8) continue; pn++; if (gp[i].h !== gp[i - 1].h) pd++; }

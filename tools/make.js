@@ -29,6 +29,9 @@
 //                          decoration pass (tools/decorate.js modernPass; compose.js fills it in)
 //   "scene": "tools/scenes/<name>.js"   a scene script: fn({objects, header, spec, ctx, tl, beatX, xOfT, GD})
 //                          -> {objects (deco + triggers to add), header, signature?: {col, shirt}}; tools/scenekit.js recipes (SHOWCASE.md)
+//   "craft": true | {rods, underRods, chains, lanterns, skipCols}   the craft pass (CRAFT.md): rods on
+//                          pillar tops, chains holding floating pieces and orbs (tools/craftkit.js)
+//   extra "dy": n          shift an object n units up from its row centre (the low pit spikes 9/61 sit at -13)
 //   "decoDensity": [[fromCol, share], ...]   classic style: share of free columns with ground
 //                          decoration from that column on (default 0.25; compose.js sets it per section)
 //   "indicators": {"id": N, "rot": n, "at": [cols], "all": false}   a small arrow pointing down over
@@ -84,7 +87,7 @@ function toObj([type, col, row, extra], specFile) {
   if (e.group != null) props[57] = String(e.group);
   if (e.ch != null) props[21] = String(e.ch);
   if (e.props) Object.assign(props, e.props);   // raw object keys, e.g. a text object's 31
-  return { id, x: +(col * 30 + 15).toFixed(3), y: row * 30 + 15, rot: e.rot || 0, flipX: !!e.flipX, flipY: !!e.flipY, props };
+  return { id, x: +(col * 30 + 15).toFixed(3), y: row * 30 + 15 + (e.dy || 0), rot: e.rot || 0, flipX: !!e.flipX, flipY: !!e.flipY, props };
 }
 
 // how far ahead of the press a lone ground spike sits when the press is in the middle of its
@@ -358,6 +361,9 @@ function build(spec, specFile = "spec") {
     const densityAt = c => { let v = 0.25; for (const [from, share] of dd) if (c >= from) v = share; return v; };
     objects.push(...deco.groundDeco(objects, end, spec.seed || 7, densityAt));
   }
+  // the craft pass (CRAFT.md, tools/craftkit.js): rods on pillar tops, chains holding floating pieces
+  // and orbs -- deco that belongs to the structures; "craft": true or an options object
+  if (spec.craft) objects.push(...require("./craftkit.js").craftPass(objects, Object.assign({ seed: spec.seed || 1 }, spec.craft === true ? {} : spec.craft)));
   // the level ends right after the signature: GD ends a level at its FURTHEST object, so scenery and
   // triggers past the sign (parallax, clouds, the end card, an end marker) are clipped ~5 blocks after it.
   // The user on 45 v7: "ending still bit too long". Official levels: 0.8 s from the last input to the end
@@ -396,7 +402,7 @@ function make(specFile, specObj) {
   const spec = specObj || JSON.parse(fs.readFileSync(specFile, "utf8"));
   const { level, rec, ctx, objects, header } = build(spec, specFile);
   const out = path.join(__dirname, "..", "levels", slug(spec.name) + ".gdlvl");
-  if (LOOK_ONLY && lookOnly(out, rec, level)) return { out, r: { ok: true } };
+  if (LOOK_ONLY && lookOnly(out, rec, level, spec)) return { out, r: { ok: true } };
   writeGdlvl(out, rec, level);
   let r = report(out);
   if (spec.indicators && r.ok) {
@@ -435,16 +441,28 @@ function make(specFile, specObj) {
 // checks that the saved plan still clears the level with one replay (seconds, not a solve), and writes
 // the file. Falls back to a full build when there is no previous build or the gameplay differs.
 const LOOK_ONLY = process.argv.includes("--look");
-function lookOnly(out, rec, level) {
+function lookOnly(out, rec, level, spec) {
   const io = require("./io.js"), sols = require("./solutions.js");
   if (!fs.existsSync(out)) { console.log("   --look: no previous build, solving"); return false; }
   const old = io.readGdlvl(out), sol = sols.get(old.levelStr, true);
   const sig = (objs, h) => JSON.stringify(GD.makeWorld(objs, h).items.map(b => [b.kind, Math.round(b.x), Math.round(b.y)]));
   if (!sol || !sol.ok) { console.log("   --look: no saved solution (none yet, or lib/physics.js changed since: saved solves go stale), solving"); return false; }
   if (sig(old.level.objects, old.level.header) !== sig(level.objects, level.header)) { console.log("   --look: gameplay changed, solving"); return false; }
-  // the jump marks of the last build (group 990 and the alpha trigger that fades them)
+  // the jump marks: placed again from the saved route (the rules in tools/decorate.js may have changed
+  // since the last build), else the last build's (group 990 and the alpha trigger that fades them)
   const IG = String(deco.INDICATOR.group);
-  level.objects.push(...old.level.objects.filter(o => o.props && (o.props[57] === IG || (o.id === 1007 && o.props[51] === IG))));
+  let placed = false;
+  if (spec && spec.indicators) try {
+    const wI = GD.makeWorld(level.objects, level.header);
+    let plan = { ok: true, events: sol.events };
+    const n = require("../lib/natural.js").naturalPlan(wI, plan, level.objects); if (n && n.path[n.path.length - 1].done) plan = { ok: true, events: n.events };
+    const ind = deco.jumpIndicators(wI, plan, spec.indicators.id || deco.INDICATOR.id, GD, spec.indicators);
+    level.objects.push(...ind.map(o => { const c = Object.assign({}, o); delete c.why; return c; }));
+    if (ind.length) level.objects.push(deco.indicatorFade(spec.indicators));
+    console.log(`   --look: ${ind.length} jump indicators placed again from the saved route`);
+    placed = true;
+  } catch (e) { console.log("   --look: could not place the jump indicators again (" + e.message + "), keeping the old ones"); }
+  if (!placed) level.objects.push(...old.level.objects.filter(o => o.props && (o.props[57] === IG || (o.id === 1007 && o.props[51] === IG))));
   const q = GD.run(GD.makeWorld(level.objects, level.header), sol.events);
   if (!(q.done || (q.end && !q.dead))) { console.log("   --look: the saved plan no longer clears it, solving"); return false; }
   writeGdlvl(out, rec, level);
