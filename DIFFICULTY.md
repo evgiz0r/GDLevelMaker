@@ -203,6 +203,33 @@ What it gets wrong:
   easily than people do (dual, reading the UFO), or in density (Open 1).
 - **Dash (26%) and Deadlocked (58%) per minute** rest on partly covered levels.
 
+### What windows and CPS explain (2026-11-23)
+
+The user: "these frame windows (timings), and cps, somewhat determine the difficulty of levels". They do,
+roughly. Rank agreement (Spearman) with the stars over the 21 official levels the sim covers, each measure
+alone (`node tools/difficulty_parts.js`):
+
+| measure | vs stars | vs your attempts |
+|---|---|---|
+| clicks per second | 0.43 | 0.57 |
+| tightest window | 0.73 | 0.77 |
+| share of inputs under 60 ms | 0.70 | 0.62 |
+| windows alone (summed miss chance) | 0.64 | 0.66 |
+| windows per minute (windows + CPS) | 0.67 | 0.64 |
+| full model (+ settling after portals, route choice) | **0.88** | 0.63 |
+
+So windows plus CPS get about two thirds of the ranking; CPS alone is weak (a busy level is not
+necessarily a hard one). The biggest single addition is the time to settle after a
+portal (0.64 -> 0.88). Not in any number yet, and likely the rest: reading and memory (blind or fake
+routes, first-try sight-reading), visibility (deco, camera, speed), and consistency over length (one
+hard spot at 90% costs more attempts than at 10%). The user's own attempts follow the stars at 0.73.
+
+Which windows: this model measures its own, lenient ones (measureWindows in lib/difficulty.js: a moved input
+counts as hit when the rest of the run can still be re-planned around it, as a player corrects). The shared
+lib/windows.js (the viewer, tools/windows.js) keeps every other input fixed and asks to rejoin the plan
+exactly: a stricter window, much smaller in steering modes. It and tools/score.js disagree by up to 13 vs
+208 ms (GDLM 44); the physics session is reconciling them; once it settles, re-run the official reports and this table.
+
 ### Where the sim stops (2026-11-23, physics 119344c)
 
 The three unbeaten official levels each stop on a physics gap, not on a bad route: the route up to
