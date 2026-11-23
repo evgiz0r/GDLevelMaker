@@ -3,22 +3,250 @@
   "desc": "Take off into a burning sky: ship, ball, wave and an upside-down run before the drop hits.",
   "idea": "40 s on the song of Ragnarok (343707), Normal to Hard: sections that follow the song -- the hit at b5 starts it, a long quiet build (cube, ship, ball, upside-down cube, a wave rising into it), the drop at b69 (+10 dB) flashes in a hard cube part, then ball and a wave finale on the loud part; every section its own mode or idea and its own look, changed on its first beat",
   "story": "v1-v4 were a 61 s Easy level on 134270 (template A from the knowledge base). The user: 'more variety, some upside down, the new modes, sections with styling changing according to the music' and then 'Ragnarok 40 seconds, with sections, Normal-Hard, somewhat matching the beat'. Look: hell, dark red embers in the build getting brighter, the drop a white flash into orange, the end back to dark.",
-  "difficulty": { "label": "Normal", "minWindowMs": 50 },
+  "difficulty": {
+    "label": "Normal",
+    "minWindowMs": 50
+  },
   "style": "hell",
-  "song": { "custom": 343707 }, "offset": 0,
-  "grid": { "bpm": 145.012, "t0": 0.0662 },
-  "seed": 7, "stepsPerRound": 6,
+  "song": {
+    "custom": 343707
+  },
+  "offset": 0,
+  "grid": {
+    "bpm": 145.012,
+    "t0": 0.0662
+  },
+  "seed": 7,
+  "stepsPerRound": 6,
   "songNotes": "343707: 145 BPM, low-confidence grid (drifts ~100 ms), downbeat on beat index 0 (bars start b1, b5, b9 ...). Loudness: quiet -24..-20 dB to beat index 60, rising 60-68, the drop at 68 (+10 dB, b69, 28.2 s), a dip at 76 (-3.8), back up at 84 and 100. The hit at 1.72 s is b5 (GDLM 44).",
   "sections": [
-    { "name": "intro", "beats": 4, "rest": true, "bg": [25, 5, 5], "ground": [40, 8, 8], "line": [120, 30, 20] },
-    { "name": "the hit", "beats": 16, "use": ["double", "spike-block", "triple", "block-spike-block"], "gaps": [2, 4], "bg": [90, 10, 5], "ground": [60, 10, 5], "line": [255, 90, 40], "flash": true, "deco": 0.2 },
-    { "name": "ember ship", "beats": 16, "mode": "ship", "bg": [120, 25, 0], "ground": [80, 15, 0], "args": { "ship-tunnel": { "waves": 2, "amp": 2 } } },
-    { "name": "ball", "beats": 12, "mode": "ball", "bg": [140, 40, 10], "ground": [90, 20, 5], "args": { "ball-run": { "every": 7 } } },
-    { "name": "upside down", "beats": 12, "mode": "upside", "use": ["double", "spike-block", "block-spike-block"], "bg": [60, 0, 40], "ground": [40, 0, 30], "line": [255, 60, 160], "deco": 0 },
-    { "name": "rising wave", "beats": 8, "mode": "wave", "bg": [160, 30, 0], "ground": [110, 15, 0], "args": { "wave-zigzag": { "seg": 3, "flat": 2 } } },
-    { "name": "the drop", "beats": 8, "use": ["triple", "orb-pit", "gate", "block-spike-block"], "gaps": [2, 4], "bg": [230, 90, 0], "ground": [170, 50, 0], "line": [255, 255, 200], "flash": true, "deco": 0.3 },
-    { "name": "fire ball", "beats": 8, "mode": "ball", "bg": [200, 30, 0], "ground": [140, 15, 0], "args": { "ball-run": { "every": 7 } } },
-    { "name": "wave finale", "beats": 12, "mode": "wave", "bg": [255, 60, 20], "ground": [180, 30, 10], "flash": true, "args": { "wave-zigzag": { "seg": 3, "flat": 2 } } },
-    { "name": "end", "beats": 4, "rest": true, "bg": [25, 5, 5], "ground": [40, 8, 8], "line": [120, 30, 20], "secs": 1 }
-  ]
+    {
+      "name": "intro",
+      "beats": 4,
+      "rest": true,
+      "bg": [
+        25,
+        5,
+        5
+      ],
+      "ground": [
+        40,
+        8,
+        8
+      ],
+      "line": [
+        120,
+        30,
+        20
+      ]
+    },
+    {
+      "name": "the hit",
+      "beats": 16,
+      "use": [
+        "double",
+        "spike-block",
+        "s:pillar-hop",
+        "block-spike-block"
+      ],
+      "bg": [
+        90,
+        10,
+        5
+      ],
+      "ground": [
+        60,
+        10,
+        5
+      ],
+      "line": [
+        255,
+        90,
+        40
+      ],
+      "flash": true,
+      "deco": 0.2
+    },
+    {
+      "name": "ember ship",
+      "beats": 16,
+      "mode": "ship",
+      "bg": [
+        120,
+        25,
+        0
+      ],
+      "ground": [
+        80,
+        15,
+        0
+      ],
+      "args": {
+        "ship-tunnel": {
+          "waves": 2,
+          "amp": 2
+        }
+      }
+    },
+    {
+      "name": "ball",
+      "beats": 12,
+      "mode": "ball",
+      "bg": [
+        140,
+        40,
+        10
+      ],
+      "ground": [
+        90,
+        20,
+        5
+      ],
+      "args": {
+        "ball-run": {
+          "every": 7
+        }
+      }
+    },
+    {
+      "name": "upside down",
+      "beats": 12,
+      "mode": "upside",
+      "use": [
+        "double",
+        "spike-block",
+        "block-spike-block"
+      ],
+      "bg": [
+        60,
+        0,
+        40
+      ],
+      "ground": [
+        40,
+        0,
+        30
+      ],
+      "line": [
+        255,
+        60,
+        160
+      ],
+      "deco": 0
+    },
+    {
+      "name": "rising wave",
+      "beats": 8,
+      "mode": "wave",
+      "bg": [
+        160,
+        30,
+        0
+      ],
+      "ground": [
+        110,
+        15,
+        0
+      ],
+      "args": {
+        "wave-zigzag": {
+          "seg": 3,
+          "flat": 2
+        }
+      }
+    },
+    {
+      "name": "the drop",
+      "beats": 8,
+      "use": [
+        "s:pillar-climb",
+        "orb-pit",
+        "gate",
+        "s:capped-hop"
+      ],
+      "bg": [
+        230,
+        90,
+        0
+      ],
+      "ground": [
+        170,
+        50,
+        0
+      ],
+      "line": [
+        255,
+        255,
+        200
+      ],
+      "flash": true,
+      "deco": 0.3
+    },
+    {
+      "name": "fire ball",
+      "beats": 8,
+      "mode": "ball",
+      "bg": [
+        200,
+        30,
+        0
+      ],
+      "ground": [
+        140,
+        15,
+        0
+      ],
+      "args": {
+        "ball-run": {
+          "every": 7
+        }
+      }
+    },
+    {
+      "name": "wave finale",
+      "beats": 12,
+      "mode": "wave",
+      "bg": [
+        255,
+        60,
+        20
+      ],
+      "ground": [
+        180,
+        30,
+        10
+      ],
+      "flash": true,
+      "args": {
+        "wave-zigzag": {
+          "seg": 3,
+          "flat": 2
+        }
+      }
+    },
+    {
+      "name": "end",
+      "beats": 4,
+      "rest": true,
+      "bg": [
+        25,
+        5,
+        5
+      ],
+      "ground": [
+        40,
+        8,
+        8
+      ],
+      "line": [
+        120,
+        30,
+        20
+      ],
+      "secs": 1
+    }
+  ],
+  "terrain": true,
+  "craft": true,
+  "notesV8": "v8 (2026-11-23): recomposed with the new generator -- block terrain (height), craft pieces and pass, no triple at Normal (46 ms), compose gaps 4+ at Normal, structures per section; the user-marked fixes of v7 are compose rules now"
 }

@@ -1,5 +1,5 @@
 // node tools/craft.js roles <level> [--per 30] [--json]      every object's role, per screen
-// node tools/craft.js check <level>                           the craft numbers vs the official targets
+// node tools/craft.js check <level> [--look=1.x|2.2]          the craft numbers vs the targets for its look
 //
 // How a level USES its objects (CRAFT.md). Object count is not what separates our levels from RobTop's
 // (Jumper 3.2 objects/block, ours 5-9): the difference is where the objects go. Every object gets one role:
@@ -165,16 +165,27 @@ const TARGETS = {
   attached: { min: 0.9, doc: "rods and chains attached to something (official ~100%)" },
   pillarDelta: { min: 0.7, doc: "neighbouring ground pillars of different heights (official 75-90%)" },
   backDeco: { max: 0.2, doc: "decoration that belongs to no structure (official 0-1%; the user: \"way too flashy\")" },
-  hazards100: { min: 45, doc: "hazards per 100 blocks (official 62-191)" },
+  hazards100: { min: 45, max: 110, doc: "hazards per 100 blocks (official 62-191; featured Easy/Normal ~75-81, spike spam marks the plain level: TASTE_DATA.md)" },
 };
-function check(objects) {
-  const N = numbers(objects), out = [];
-  for (const [k, t] of Object.entries(TARGETS)) {
-    const v = N[k]; if (!Number.isFinite(v)) continue;
+// The floor share and the loose-deco limit are RobTop-1.x-look targets (the taste session, 308 community
+// levels, TASTE_DATA.md "Per band"): featured Easy/Normal levels have 16-21% hazard floors and 2.0-2.2 ones
+// 30-52% loose deco (more on epic than featured). A 2.2-look level keeps a lighter floor target and leaves
+// loose deco to tools/readability.js (contrast and clutter: what the user objected to on hellgate).
+const LOOK = { "1.x": {}, "2.2": { floorHaz: { min: 0.15, doc: "floor columns with a hazard (featured Easy/Normal 16-21%)" }, backDeco: null } };
+// a level's look: 2.2 when a third of its decoration is 2.0+ objects (ids >= 1000) -- scene levels, the modern pass
+function lookOf(objects) {
+  const deco = objects.filter(o => kindOf(o) === "decoration" && !isSignature(o));
+  return deco.length && deco.filter(o => o.id >= 1000).length / deco.length > 0.33 ? "2.2" : "1.x";
+}
+function check(objects, look) {
+  look = look || lookOf(objects);
+  const N = numbers(objects), out = [], T = Object.assign({}, TARGETS, LOOK[look] || {});
+  for (const [k, t] of Object.entries(T)) {
+    const v = N[k]; if (!t || !Number.isFinite(v)) continue;
     const bad = (t.min != null && v < t.min) || (t.max != null && v > t.max);
-    out.push({ key: k, value: v, ok: !bad, doc: t.doc, target: t.min != null ? ">= " + t.min : "<= " + t.max });
+    out.push({ key: k, value: v, ok: !bad, doc: t.doc, target: [t.min != null ? ">= " + t.min : "", t.max != null ? "<= " + t.max : ""].filter(Boolean).join(", ") });
   }
-  return { numbers: N, checks: out, warn: out.filter(c => !c.ok) };
+  return { look, numbers: N, checks: out, warn: out.filter(c => !c.ok) };
 }
 
 function load(spec) {
@@ -212,7 +223,8 @@ if (require.main === module) {
     process.exit(0);
   }
   if (cmd === "check") {
-    const C = check(level.objects);
+    const C = check(level.objects, (rest.find(a => a.startsWith("--look=")) || "").slice(7) || null);
+    console.log(`look: ${C.look} (targets for it; --look=1.x | --look=2.2)`);
     for (const c of C.checks) console.log(`${c.ok ? "ok  " : "WARN"} ${c.key.padEnd(12)} ${(c.value < 2 && c.key !== "pieces100" ? Math.round(100 * c.value) + "%" : c.value.toFixed(1)).padStart(6)}  (${c.target}) ${c.doc}`);
     console.log(`     hazards/100 blocks ${C.numbers.hazards100.toFixed(0)}, piece median ${C.numbers.pieceCells} cells`);
   }
@@ -222,4 +234,4 @@ if (require.main === module) {
     for (let s = 0; s < R.screens; s++) console.log(String(s).padStart(6) + " " + cols.map(c => String((R.perScreen[s] || {})[c] || 0).padStart(6)).join(""));
   }
 }
-module.exports = { roles, numbers, check, TARGETS, load, skinEdges };
+module.exports = { roles, numbers, check, lookOf, TARGETS, LOOK, load, skinEdges };
