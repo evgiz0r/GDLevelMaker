@@ -37,12 +37,38 @@
   #cmpImg { width:100%; height:min(60vh, 460px); object-fit:contain; object-position:center top; }
   @media (max-width: 700px) { #views.split { grid-template-columns:1fr; } }
   #drop { position:absolute; inset:0; display:none; place-items:center; background:rgba(11,6,32,.85); font-size:18px; border:2px dashed var(--cube); }
+  #picker { position:fixed; inset:0; z-index:50; background:rgba(6,3,20,.72); display:flex; justify-content:center; align-items:flex-start; padding:4vh 12px; }
+  #picker[hidden] { display:none; }
+  #pk { width:min(860px,100%); max-height:92vh; display:flex; flex-direction:column; background:#160d3a; border:1px solid #3b2d78; border-radius:10px; overflow:hidden; }
+  #pkTop { display:flex; gap:8px; flex-wrap:wrap; padding:10px; border-bottom:1px solid #2b2060; align-items:center; }
+  #pkQ { flex:1 1 220px; min-width:160px; background:#0e0828; color:var(--ink); border:1px solid #3b2d78; border-radius:6px; padding:8px 10px; font:inherit; }
+  #pkTop button.on { border-color:var(--cube); background:#3b2d78; }
+  #pkList { overflow-y:auto; padding:6px; }
+  .pkHead { color:#9c8ee0; font-size:12px; margin:8px 6px 4px; text-transform:uppercase; letter-spacing:.06em; }
+  .pkCard { display:flex; gap:10px; align-items:center; padding:8px; border-radius:8px; cursor:pointer; border:1px solid transparent; }
+  .pkCard:hover, .pkCard.sel { background:#24184f; border-color:#4a3a98; }
+  .pkCard canvas { width:200px; height:34px; flex:0 0 auto; border-radius:4px; background:#0b0620; }
+  .pkInfo { flex:1; min-width:0; }
+  .pkName { font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .pkMeta { font-size:12px; color:#a99ce6; margin-top:2px; }
+  .pkBadge { display:inline-block; font-size:11px; padding:1px 6px; border-radius:9px; background:#2c2166; color:#d8d0ff; margin-right:4px; }
+  .pkBadge.wip { background:#5a3a10; color:#ffd58a; }
+  .pkPin { background:none; border:none; font-size:18px; color:#6b5bd0; cursor:pointer; padding:4px 6px; }
+  .pkPin.on { color:#ffe14d; }
+  .pkOlder { font-size:12px; margin-top:4px; display:flex; gap:6px; flex-wrap:wrap; }
+  .pkOlder button { font-size:11px; padding:2px 6px; }
+  @media (max-width:700px) { #picker { padding:0; } #pk { max-height:100vh; height:100vh; border-radius:0; } .pkCard { padding:12px 8px; } .pkCard canvas { width:120px; } #pkTop button { padding:10px 12px; } }
 </style>
 </head>
 <body>
+<div id="picker" hidden><div id="pk" role="dialog" aria-label="choose a level">
+  <div id="pkTop"><input id="pkQ" type="search" placeholder="search levels…" autocomplete="off">
+    <button data-f="all" class="on">all</button><button data-f="ours">ours</button><button data-f="wip">in progress</button><button data-f="official">official</button><button data-f="community">community</button><button data-f="pinned">★ pinned</button>
+    <button id="pkClose" title="close (Esc)">✕</button></div>
+  <div id="pkList"></div></div></div>
 <header>
   <h1>GD LEVEL VIEWER</h1>
-  <select id="pick"></select>
+  <select id="pick" hidden></select><button id="pickBtn" title="choose a level (key L)">📂 <span id="pickName">levels</span></button>
   <button id="refresh" title="get the newest version of the sessions' levels">⟳ refresh</button>
   <button id="linkBtn" title="copy a link to this level at this moment">🔗 link</button>
   <label class="btn">open .gdlvl<input id="file" type="file" accept=".gdlvl,.txt" hidden></label>
@@ -244,6 +270,108 @@ const pick = document.getElementById("pick");
 const ALL = (window.GD_LEVELS || []).concat(window.GD_LEVELS_LOCAL || []);
 ALL.forEach((l, i) => pick.add(new Option(l.name + "  —  " + l.file, i)));
 pick.onchange = () => { const l = ALL[pick.value]; load(l.name, l.level, l.solution, l.song); L.deaths = l.deaths || []; summary(); draw(); };
+// ---------- the level picker (button / key L): cards with a thumbnail strip, length, modes, version, search,
+// filters, pins and recent; the versions of one level under one card, newest first (the user: "the pick level
+// drop down is too annoying"). It only sets the hidden <select id="pick"> and fires its change, so every other
+// part (the phone build too) keeps working through pick.value.
+const PK = { f: "all", sel: 0, rows: [], meta: new Map() };
+const pkStore = (k, v) => { try { if (v === undefined) return JSON.parse(localStorage.getItem("gdlm." + k) || "[]"); localStorage.setItem("gdlm." + k, JSON.stringify(v)); } catch (e) { return []; } };
+const pkCat = l => l.wip || (l.session && l.version) ? "wip" : /official/.test(String(l.file)) || l.official != null ? "official" : /community/.test(String(l.file)) ? "community" : "ours";
+const pkKey = l => String(l.name || l.file).toLowerCase().replace(/\s+v\d+$/, "").trim();
+const pkWhen = l => l.updated ? Date.parse(l.updated) || 0 : 0;
+const pkEsc = x => String(x).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+function pkBadge(l) {
+  return pkCat(l) === "wip" ? `<span class="pkBadge wip">wip v${l.version || "?"}${l.session ? " · " + pkEsc(l.session) : ""}</span>` : `<span class="pkBadge">${pkCat(l) === "ours" ? "main" : pkCat(l)}</span>`;
+}
+function pkAgo(ms) { if (!ms) return ""; const m = (Date.now() - ms) / 60000; return m < 60 ? Math.max(1, Math.round(m)) + " min ago" : m < 1440 ? Math.round(m / 60) + " h ago" : Math.round(m / 1440) + " d ago"; }
+// length, modes and a thumbnail from the level itself: worked out for the cards on screen, a few at a time
+const MODEICON = { cube: "■", ship: "✈", ball: "●", ufo: "◒", wave: "➤", robot: "R", spider: "S", swing: "⟡" };
+function pkMetaOf(l) {
+  const key = l.file + "|" + (l.version || "");
+  if (PK.meta.has(key)) return PK.meta.get(key);
+  // compact: length, modes and up to 2500 thumbnail points (x, y, colour); a huge level (official ones run to
+  // 75k objects) gets no thumbnail: parsing it would hold the page for seconds
+  let m = { endX: 0, modes: [], secs: 0, pts: [], big: String(l.level || "").length > 400000 };
+  if (!m.big) try {
+    const objs = GD.parseLevel(l.level).objects, modes = new Set(["cube"]), every = Math.max(1, Math.ceil(objs.length / 2500));
+    objs.forEach((o, n) => { const d = GD.objInfo(o.id);
+      if (d.kind !== "decoration" && d.kind !== "trigger") m.endX = Math.max(m.endX, o.x);
+      if (d.kind === "mode") modes.add(d.mode);
+      const c = d.kind === "hazard" ? "#ff4d6d" : d.kind === "solid" || d.kind === "slope" ? "#8f86c8" : d.kind === "mode" || d.kind === "speed" ? (d.color || "#fff") : d.kind === "orb" || d.kind === "pad" ? "#ffe14d" : null;
+      if (c && o.y <= 330 && (d.kind === "mode" || n % every === 0)) m.pts.push([o.x, o.y, c, d.kind === "mode"]); });
+    m.modes = [...modes]; m.secs = m.endX / (P.SPEEDS[1].x * 60);
+  } catch (e) {}
+  PK.meta.set(key, m); return m;
+}
+function pkThumb(cnv, m) {
+  const x = cnv.getContext("2d"), W2 = cnv.width = 200, H2 = cnv.height = 34;
+  x.fillStyle = "#0b0620"; x.fillRect(0, 0, W2, H2);
+  if (m.big) { x.fillStyle = "#6b5bd0"; x.font = "11px system-ui"; x.fillText("large level", 6, 21); return; }
+  if (!m.endX) return;
+  const kx = W2 / (m.endX + 60), ky = H2 / 330;
+  for (const [ox, oy, c, portal] of m.pts) { x.fillStyle = c; x.fillRect(ox * kx, H2 - 2 - oy * ky, portal ? 2 : 1.4, portal ? 8 : 1.6); }
+}
+function pkRows() {
+  const q = document.getElementById("pkQ").value.trim().toLowerCase(), pins = pkStore("pins"), recent = pkStore("recent");
+  const groups = new Map();
+  ALL.forEach((l, i) => {
+    if (PK.f === "pinned" ? !pins.includes(pkKey(l)) : PK.f !== "all" && pkCat(l) !== PK.f) return;
+    if (q && !(String(l.name) + " " + l.file + " " + (l.session || "")).toLowerCase().includes(q)) return;
+    const k = pkKey(l); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(i);
+  });
+  // in each group: the newest work in progress first, then the pushed one
+  const list = [...groups.entries()].map(([k, is]) => { is.sort((a, b) => pkWhen(ALL[b]) - pkWhen(ALL[a]) || (pkCat(ALL[a]) === "wip" ? -1 : 1)); return { k, is, when: Math.max(...is.map(i => pkWhen(ALL[i]))) }; });
+  const rank = r => recent.indexOf(r.k);
+  const rec = list.filter(r => rank(r) >= 0 && !q).sort((a, b) => rank(a) - rank(b)).slice(0, 5);
+  const rest = list.filter(r => !rec.includes(r)).sort((a, b) => (pins.includes(b.k) - pins.includes(a.k)) || b.when - a.when || a.k.localeCompare(b.k));
+  return { rec, rest, pins };
+}
+function pkRender() {
+  const { rec, rest, pins } = pkRows(), el = document.getElementById("pkList"), cur = ALL[pick.value];
+  PK.rows = rec.concat(rest); PK.sel = Math.min(PK.sel, Math.max(0, PK.rows.length - 1));
+  const card = (r, n) => { const l = ALL[r.is[0]];
+    return `<div class="pkCard${n === PK.sel ? " sel" : ""}" data-n="${n}"><canvas data-i="${r.is[0]}"></canvas><div class="pkInfo"><div class="pkName">${pkEsc(l.name)}${cur && cur.file === l.file && cur.version === l.version ? " · <span style='color:var(--cube)'>open</span>" : ""}</div>` +
+      `<div class="pkMeta">${pkBadge(l)}<span data-meta="${r.is[0]}"></span>${pkWhen(l) ? " · " + pkAgo(pkWhen(l)) : ""}</div>` +
+      (r.is.length > 1 ? `<div class="pkOlder">${r.is.slice(1, 8).map(i => `<button data-open="${i}">${pkCat(ALL[i]) === "wip" ? "wip v" + (ALL[i].version || "?") + (ALL[i].session ? " " + pkEsc(ALL[i].session) : "") : "main"}</button>`).join("")}</div>` : "") +
+      `</div><button class="pkPin${pins.includes(r.k) ? " on" : ""}" data-pin="${pkEsc(r.k)}" title="pin">★</button></div>`; };
+  el.innerHTML = (rec.length ? `<div class="pkHead">recent</div>` + rec.map((r, n) => card(r, n)).join("") : "") +
+    `<div class="pkHead">${PK.f === "all" ? "all levels" : PK.f} · ${rest.length}</div>` + rest.map((r, n) => card(r, n + rec.length)).join("");
+  el.querySelectorAll(".pkCard").forEach(c => c.onclick = e => { if (e.target.dataset.pin || e.target.dataset.open) return; pkOpen(PK.rows[+c.dataset.n].is[0]); });
+  el.querySelectorAll("[data-open]").forEach(b => b.onclick = () => pkOpen(+b.dataset.open));
+  el.querySelectorAll("[data-pin]").forEach(b => b.onclick = () => { const p = pkStore("pins"), k = b.dataset.pin; pkStore("pins", p.includes(k) ? p.filter(x => x !== k) : p.concat(k)); pkRender(); });
+  // thumbnails and lengths only for the cards on screen, one per tick (the page stays live while scrolling)
+  if (PK.io) PK.io.disconnect();
+  const queue = [], seen = new Set();
+  const step = () => { if (document.getElementById("picker").hidden || !queue.length) { PK.busy = false; return; }
+    const cnv = queue.shift(), i = +cnv.dataset.i, m = pkMetaOf(ALL[i]); pkThumb(cnv, m);
+    const meta = el.querySelector(`[data-meta="${i}"]`); if (meta) meta.textContent = m.big ? "large level" : `~${Math.round(m.secs)} s · ${(m.endX / 30).toFixed(0)} blocks · ${m.modes.map(x => MODEICON[x] || x).join(" ")}`;
+    setTimeout(step, 0); };
+  PK.io = new IntersectionObserver(es => { for (const e of es) if (e.isIntersecting && !seen.has(e.target)) { seen.add(e.target); queue.push(e.target); }
+    if (queue.length && !PK.busy) { PK.busy = true; setTimeout(step, 0); } }, { root: el });
+  el.querySelectorAll("canvas[data-i]").forEach(c => PK.io.observe(c));
+}
+function pkOpen(i) {
+  pick.value = i; pick.dispatchEvent(new Event("change"));
+  const k = pkKey(ALL[i]); pkStore("recent", [k].concat(pkStore("recent").filter(x => x !== k)).slice(0, 5));
+  pkClose();
+}
+function pkShow() { document.getElementById("picker").hidden = false; PK.sel = 0; pkRender(); const q = document.getElementById("pkQ"); q.focus(); q.select(); }
+function pkClose() { document.getElementById("picker").hidden = true; }
+function pkTitle() { const l = ALL[pick.value]; document.getElementById("pickName").innerHTML = l ? pkEsc(l.name) + " " + pkBadge(l) : "levels"; }
+document.getElementById("pickBtn").onclick = pkShow;
+document.getElementById("pkClose").onclick = pkClose;
+document.getElementById("picker").onclick = e => { if (e.target.id === "picker") pkClose(); };
+document.getElementById("pkQ").oninput = () => { PK.sel = 0; pkRender(); };
+document.querySelectorAll("#pkTop [data-f]").forEach(b => b.onclick = () => { PK.f = b.dataset.f; document.querySelectorAll("#pkTop [data-f]").forEach(x => x.classList.toggle("on", x === b)); PK.sel = 0; pkRender(); });
+pick.addEventListener("change", pkTitle);
+addEventListener("keydown", e => {
+  const open = !document.getElementById("picker").hidden;
+  if (!open) { if ((e.key === "l" || e.key === "L") && !/INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName || "")) { e.preventDefault(); pkShow(); } return; }
+  if (e.key === "Escape") { pkClose(); e.preventDefault(); }
+  else if (e.key === "ArrowDown" || e.key === "ArrowUp") { PK.sel = Math.max(0, Math.min(PK.rows.length - 1, PK.sel + (e.key === "ArrowDown" ? 1 : -1))); document.querySelectorAll(".pkCard").forEach(c => c.classList.toggle("sel", +c.dataset.n === PK.sel)); const c = document.querySelector(`.pkCard[data-n="${PK.sel}"]`); if (c) c.scrollIntoView({ block: "nearest" }); e.preventDefault(); }
+  else if (e.key === "Enter" && PK.rows[PK.sel]) { pkOpen(PK.rows[PK.sel].is[0]); e.preventDefault(); }
+});
+
 document.getElementById("file").onchange = e => e.target.files[0] && loadFile(e.target.files[0]);
 const drop = document.getElementById("drop");
 addEventListener("dragover", e => { e.preventDefault(); drop.style.display = "grid"; });
@@ -270,6 +398,7 @@ function summary() {
   else if (songInfo) h += `<p class="muted">no beat grid for this song (run <code>node tools/beats.js</code>; the song must be on this PC)</p>`;
   h += `<p class="muted">` + Object.entries(Object.fromEntries(Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 14))).map(([k, v]) => `${esc(k)} ×${v}`).join(" · ") + `</p>`;
   document.getElementById("summary").innerHTML = h;
+  if (typeof pkTitle === "function") pkTitle(); // the title bar: which level and version is open
 }
 function clickTable() {
   const el = document.getElementById("clicks");

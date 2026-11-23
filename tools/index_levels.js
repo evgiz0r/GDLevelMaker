@@ -29,7 +29,10 @@ function buildIndex() {
       const file = path.join(d, f);
       const L = readGdlvl(file);
       // the saved solution (tools/solutions.js), so the viewer and the phone replay it instead of solving
-      let solution; try { solution = require("./solutions.js").get(L.levelStr) || undefined; } catch (e) {}
+      // A stale one (solved on older physics) is kept, marked `stale`, until a fresh one exists: without any, the
+      // page solved the level itself for minutes and looked hung (2026-11-23, after a physics change dropped most).
+      let solution; try { const S = require("./solutions.js"), any = S.get(L.levelStr, true);
+        solution = S.get(L.levelStr) || (any ? Object.assign({}, any, { stale: true }) : undefined); } catch (e) {}
       list.push({ name: L.name, file: dir + "/" + f, level: L.levelStr, song: songOf(L.rec, L.level.header), solution });
     }
   }
