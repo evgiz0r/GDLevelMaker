@@ -54,6 +54,9 @@ checklist it was built against.
 - [ ] **Wave**: zigzag turns wider than ~100 ms apart; no head-on slopes at a portal exit; the exit
   portal over a flat floor, level stretches at the turns (patterns.js wave-zigzag `flat`, `leadGap`).
   (design.md; GDLM 44/46 real-game deaths)
+- [ ] **Jump marks clear of hazards**: a mark shows the take-off, its centre >= ~1 block in front of the
+  hazard's hitbox, never on or touching one. Placed by decorate.js jumpIndicators (INDICATOR.clear);
+  `node tools/indicators.js <level> [--fix]`. (the user, hellgate round 2: "indicator inside spike")
 - [ ] **Jump marks sit low**: about 1 block over the surface (make.js lifts them 30 units), and none
   where no jump is needed (placed from the natural replay's real jumps only). (GDLM 45 v5, the user)
 - [ ] **Invisible parts**: ghosted (faint), fully hidden only for a chunk already seen. No fakes at
