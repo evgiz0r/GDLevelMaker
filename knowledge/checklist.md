@@ -180,6 +180,10 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 - [ ] **The description is for players**: one or two short sentences with some flavour, ending with
   " -- Made by Claude (and some humans)", ~150 characters at most. Notes (beats, dB, song ids,
   versions) go in the spec's `"notes"`. make.js stops over 180 and warns over 150 or on note-like text.
+- [ ] **The level ends right after the last input**: the sign ~3 blocks after the last gameplay object, the
+  level over ~5 blocks after the sign (make.js clips scenery and triggers past it: GD ends a level at its
+  furthest object). ~1.5 s from the last input to the end; official median 0.8 s, rated community 0.9 s.
+  score.js gate "ending" (WARN over 2.5 s). (the user on 45 v7: "ending still bit too long")
 - [ ] **The signature ends every GDLM level** (robot + human): make.js adds it by default; opt out
   only with `"signature": false`.
 

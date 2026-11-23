@@ -23,7 +23,9 @@ module.exports = function ({ objects, header, beatX }) {
   // the signature (make.js, tools/signature.js) goes 4 blocks after the last gameplay object; the scene runs
   // a screen past it so it stands in the lava light (left to make.js it went after the far scenery: 25 blocks late)
   const SIG = Math.ceil(Math.max(...objects.map(o => o.x)) / 30) + 4;
-  const END = SIG * 30 + 600, LEN = END + 300, T0 = 3;
+  // the level ends a few blocks past the sign: GD ends a level at its furthest object, so no scenery may
+  // run on (v4 ran 2.9 s past the sign: "the ending is too long where nothing happens", tools/deadair.js)
+  const END = SIG * 30 + 180, LEN = END + 300, T0 = 3;
   const lastX = Math.max(...objects.filter(o => o.id === 1 || o.id === 8).map(o => o.x));
   const dropX = beatX(DROP_BEAT), hasDrop = dropX < lastX;
   // spans: [x0, x1, mode]; the end (cooling) starts 8 blocks before the signature
@@ -149,5 +151,8 @@ module.exports = function ({ objects, header, beatX }) {
   out.push(K.alpha(T0, G.frame, 0.8, 0));
   for (const [a, b, m] of S) if (m === "ship" || m === "wave") out.push(K.alpha(a, G.frame, 0, 0.5), K.alpha(b, G.frame, 0.8, 0.8));
 
-  return { objects: out, header, signature: { col: SIG, shirt: [255, 110, 20] } };
+  // nothing past the end (parallax layers start further back and are locked to the player: their far
+  // objects would stretch the level)
+  const kept = out.filter(o => o.x <= END || o.id === 899 || o.id === 901 || o.id === 1006 || o.id === 1007 || o.id === 1913 || o.id === 1346);
+  return { objects: kept, header, signature: { col: SIG, shirt: [255, 110, 20] } };
 };

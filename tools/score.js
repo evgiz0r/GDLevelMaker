@@ -13,6 +13,7 @@
 //   pacing       calm start and end, rests, a rising curve (numbers from the official levels)
 //   variety      not one chunk over and over (unless the brief says "repeat": true)
 //   readability  spike-like decoration (18-21) never within 2 columns of a hazard
+//   arrows       every jump indicator a block in front of its hazard: over one FAIL, within a block WARN
 //   craft        how objects are used vs the official 1.x levels (tools/craft.js, CRAFT.md): pieces per
 //                100 blocks, hazard floor, armed undersides, dressed tops, attached rods/chains, pillar
 //                heights, loose deco, hazards per 100 blocks. WARN when 3+ targets are missed.
@@ -134,6 +135,18 @@ function scoreLevel(level, brief, opts = {}) {
     gate("repetition", F.jumpS >= 10 && F.repeat > 0.05 ? "WARN" : "PASS", F.repeat == null ? "no move patterns" : `${Math.round(F.repeat * 100)}% of 4-move patterns repeat within 10 s (want 5% or less)`);
   }
 
+  // ending: the level ends soon after the last input (the user on 45 v7: "ending still bit too long"). GD
+  // ends a level at its furthest object. Official levels: 0.8 s from the last input to the end (median of
+  // 16); rated community levels: 0.9 s from the last hazard. WARN over 2.5 s on the player's route.
+  if (r.ok) {
+    const ev = (natural() || r).events, p = GD.run(w, ev).path, lastP = ev.filter(e => e.type === "press").pop();
+    const endX = Math.max(...level.objects.map(o => o.x)), tEnd = p.findIndex(q => q.x >= endX);
+    if (lastP) {
+      const s = ((tEnd < 0 ? p.length : tEnd) - lastP.tick) / GD.PHYS.TPS;
+      gate("ending", s > 2.5 ? "WARN" : "PASS", `${s.toFixed(1)} s from the last input to the end (official median 0.8 s; want 2.5 s or less)`);
+    }
+  }
+
   // hazards matter: every hazard either needs an action or clearly reads as scenery (the user on GDLM 47
   // ~18.7 s, slabs over spike pairs crossed without a jump: "dunno if we have to jump or not, simulation
   // says we don't but then there is no point in those spikes"). On the player's route (lib/natural.js):
@@ -216,6 +229,10 @@ function scoreLevel(level, brief, opts = {}) {
   const hazCols = new Set(haz);
   const near = level.objects.filter(o => SPIKY_DECO.has(o.id)).filter(o => { const c = Math.floor(o.x / 30); return [-2, -1, 0, 1, 2].some(d => hazCols.has(c + d)); });
   gate("readability", near.length ? "FAIL" : "PASS", near.length ? `${near.length} spike-like decorations within 2 columns of a hazard` : "decoration clear of hazards");
+
+  // arrows: every jump indicator a block in front of its hazard, never over it (FAIL) or next to it (WARN):
+  // the user on GDLM 50 v2, "arrow into the spike", "too close to the spike" (tools/softrules.js)
+  { const ar = require("./softrules.js").arrows(level, w); if (ar.n) gate("arrows", ar.status, ar.text); }
 
   if (brief.sections) {
     const colourT = level.objects.filter(o => o.id === 899 || o.id === 29 || o.id === 30).length;

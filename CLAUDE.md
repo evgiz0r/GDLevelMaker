@@ -229,7 +229,19 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   skylines, the eclipse set piece, stars, designed blocks, motes, light rays, a top frame, lock-to-player
   parallax, beat pulses, text), a level's scene script `tools/scenes/<name>.js` (spec key `"scene"`).
   `node tools/make.js <spec> --look` rebuilds a decoration-only change in a second (keeps the solve when
-  the gameplay is the same). Owner: the showcase session.
+  the gameplay is the same; the jump arrows are placed again from the saved route). Owner: the showcase session.
+- **Taste, learned one level at a time** (TASTE.md: the taste loop's rounds -- one new approach per level,
+  compared with rated levels in GD art -- and every rule of taste with the note it came from; read it
+  before making or judging a level). Round 1: GDLM 51 adrift (`tools/scenes/adrift.js`: depth as the
+  story, looping motion -- scenekit `bob`, `sway`, jellyfish, fish, kelp, water surface, rocks).
+  **The user's notes as soft rules, swept over every level**: `node tools/softrules.js [level ...]`
+  (jump arrows a block in front of hazards, corridor mouths flush, flash rate; score.js gate `arrows`).
+  Owner: the showcase session.
+- **The section planner: a song -> a journey of little places** (SCENES.md: the rules, theme packs,
+  what a rated illustrated level does): `node tools/scenes.js <song> [--theme ...] [--brief ...]` -- per
+  section its role (intro/groove/build/drop/ride/breather/outro), place, palette, mode, transition,
+  camera, props; `--brief` writes a compose brief. Owner: the showcase session; props from the gd-art
+  session's `tools/props.js`.
 - **`tools/heavy.js` -- the one-heavy-job lock** every heavy tool takes on start (see "One heavy job at
   a time"). Test: `node tests/heavy.js`.
 - **`tools/loop.js` -- the whole make/iterate loop in one command** (owner check, ETA, make/compose, score,
