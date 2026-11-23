@@ -1,7 +1,7 @@
 {
   "name": "GDLM 44 hellgate",
   "desc": "hellish, a new idea every bar: climb, the ship on the hit, orbs, wave, drop, red pad",
-  "style": "hell",
+  "style": "hell", "indicators": {},
   "song": { "custom": 343707 }, "offset": 0, "grid": { "bpm": 145.012, "t0": 0.0662 },
   "colours": { "bg": [25, 0, 0], "ground": [12, 0, 0], "ground2": [12, 0, 0], "line": [255, 70, 0] },
   "objects": [
@@ -14,12 +14,12 @@
 
     ["colour", "b9", { "ch": "bg", "rgb": [170, 15, 0], "secs": 0 }],
     ["colour", "b9.5", { "ch": "bg", "rgb": [70, 0, 0], "secs": 0.6 }],
-    ["pattern", "orb-ladder", "b10+1", 0, { "rows": [3, 4, 5], "dx": 4 }],
-    ["pattern", "platform", "b13", 0, { "w": 3, "h": 3 }],
+    ["pattern", "orb-ladder", "b10+1", 0, { "n": 2 }],
+    ["pattern", "platform", "b13", 0, { "w": 3, "h": 2 }],
 
     ["colour", "b13", { "ch": "bg", "rgb": [200, 40, 0], "secs": 0 }],
     ["colour", "b13.5", { "ch": "bg", "rgb": [80, 0, 0], "secs": 0.6 }],
-    ["pattern", "wave-zigzag", "b13+4", 0, { "seg": 4, "legs": 4, "gap": 4, "low": 3, "slopes": true, "portal": true, "exit": "cube" }],
+    ["pattern", "wave-zigzag", "b13+6", 0, { "seg": 4, "legs": 2, "flat": 3, "lead": 2, "gap": 5, "low": 3, "slopes": true, "portal": true, "exit": "cube" }],
 
     ["colour", "b17", { "ch": "bg", "rgb": [170, 15, 0], "secs": 0 }],
     ["colour", "b17.5", { "ch": "bg", "rgb": [70, 0, 0], "secs": 0.6 }],

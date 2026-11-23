@@ -87,7 +87,8 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 
 - `lib/gd.js` -- the format: base64url + gzip layers, the record (plist) and the level string.
 - `lib/objects.js` -- object ids: name, kind, hitbox. `sure:false` = from memory, unconfirmed.
-- `lib/physics.js` -- physics of every mode, triggers + solver (fewest clicks, each in the middle of its window).
+- `lib/physics.js` -- physics of every mode, triggers + solver (fewest clicks, each in the middle of its window;
+  every window is replay-checked tick by tick: `solve` merges near-twin states, which once claimed ticks that die).
   PHYSICS.md: per mode and trigger, its constants, sources, checks and what is open.
 - `lib/difficulty.js` -- difficulty score from a solution: the human route (one tap per jump), per-input
   timing windows, a timing-error + lapse model fitted on the user's real runs; see DIFFICULTY.md
@@ -101,22 +102,35 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 - **The phone page** (PHONE.md: what is on it, what a session does after `wip.js put`, phone
   marks, how it was tested, what is open): `tools/web.js` builds it from the viewer.
 - `tools/` -- node CLIs: `make`, `check`, `roundtrip`, `index_levels`, `serve`, `beats` (beat grid
-  of every song on this PC, ffmpeg + JS), `sync` (how well levels follow their song's beat), `frames` (timing windows with 60 fps presses, as the user's game has them), `web` (the viewer as a phone page, PHONE.md), `songs` (custom songs by id into local/songs/, as GD gets them; SYNC.md section 6), `fetch_level` (online levels by ID into local/community/, for measuring only, never committed), `community` (study rated community levels: list, fetch, measure, modes, comments; see knowledge/README.md), `difficulty` (score vs the official ratings).
+  of every song on this PC, ffmpeg + JS), `sync` (how well levels follow their song's beat), `frames` (timing windows with 60 fps presses, as the user's game has them), `press_window` (which press ticks get the player through one spot, from a given position: the human window there), `windows` (every input's timing window in any mode, by moving it and replaying), `web` (the viewer as a phone page, PHONE.md), `songs` (custom songs by id into local/songs/, as GD gets them; SYNC.md section 6), `songmap` (songs' beat clarity, sections, drops, and how levels follow them; SYNC.md section 7), `fetch_level` (online levels by ID into local/community/, for measuring only, never committed), `community` (study rated community levels: list, fetch, measure, modes, comments; see knowledge/README.md), `tiercheck` (does each section look like rated Easy/Normal or Hard/Harder sections of its mode; `--tier Easy`), `variety` (kinds of thing, portals, modes, speeds, repeated chunks vs rated levels; knowledge/levels/variety.md), `obstacles` (block structure per mode, obstacle shapes, when new kinds come in; knowledge/levels/obstacles.md), `difficulty` (score vs the official ratings).
 - **Level style and the idea -> level loop** (STYLE.md: findings, style vocabulary, the loop, every
   playtest lesson, what is open): `tools/style.js` (measure style: deco share, triggers, sections,
   rests, motifs, recurring chunks) + `tools/corpus.js` (official levels and the user's save, in
   memory), `tools/patterns.js` (named gameplay chunks incl. ship tunnel / wave zigzag with their
   portals), `tools/decorate.js` (block skins, ground deco, colour / alpha / zoom triggers, jump
-  indicators), `tools/compose.js` (brief with sections -> spec -> build -> score -> repair rounds,
+  indicators), `tools/compose.js` (brief with sections -> spec -> build -> score -> repair rounds; sections in beats that follow the song, each with its mode -- cube, ship, wave, ball, upside-down -- and its look, STYLE.md 2b; `--dry`, `--section n`;
   briefs in `briefs/`, a log per level), `tools/score.js` (every gate a level must pass before the
   user sees it), `tools/sightread.js` (prejumps), `tools/inputs.js` (a solution's inputs with
   modes), `lib/natural.js` (a natural replay plan: taps, no empty jumps). Test:
   `node tests/style_gates.js`.
+- `tools/solutions.js` -- solve each level ONCE on the PC (`--all` for every repo level missing one);
+  the viewer and the phone replay the saved solution (natural replay, stamped with the physics
+  commit; stale ones are re-solved). make.js and wip.js save one whenever they solve.
 - `viewer/index.html` -- the replay viewer; `viewer/levels.js` is generated, do not edit.
 - `lib/look.js` -- how a level LOOKS (viewer's "game look", on by default): header colours, colour
   899 / alpha 1007 / zoom 1913 triggers over time, block skins 1-7 outlined by their own edges,
-  spikes, ground, bg, hills. Drawn to match frames of the user's play, no game art. Toggle off for
+  spikes, ground, bg, hills; the player per mode with glow, trail and particles (smoothed between
+  steps, PHONE.md). Drawn to match frames of the user's play, no game art. Toggle off for
   the schematic view; "hitboxes" still overlays.
+- **GD's own art in the viewer** (VISUALS.md: what is known, how it was checked against recordings,
+  what is open, the rule that RobTop's art never leaves the PC): `lib/art.js` draws objects, background,
+  ground and icons with the sprite sheets of the user's install, served by `tools/serve.js` at `/gdres/`
+  ("GD art" button). Tables: `lib/objects_art.js` (`tools/import_art.js`, OpenGD) and
+  `lib/objects_frames.js` (`tools/import_frames.js`, GD 2.2's own id -> frame table from the exe).
+  Test: `node tests/art_tables.js`.
+- **Deco catalogue** (knowledge/objects/README.md): `tools/catalogue.js index | sheets | usage` --
+  every id with its picture on contact sheets (`local/catalogue/`, or browse `viewer/catalogue.html`),
+  the searchable `knowledge/objects/catalogue.tsv`, and which deco families rated levels use together.
 - Iterating on a level's look or play: the viewer's **✎ mark** (key M) saves the user's notes at a
   spot to `marks/marks.jsonl` (via `tools/serve.js`); read them with `node tools/marks.js`, close
   them with `node tools/marks.js done <id> "what changed"`. **compare** puts a frame of one of the
@@ -179,6 +193,11 @@ Confirmed:
   camera drops during the dive).
 - The cube has no head bump: its outer box grazing a block's corner from the head side does
   nothing, only the 9x9 inner box kills (the same dive clips a ledge corner and carries on).
+- The wave slides along a block's top, but dies as it slides off the block's end (its centre
+  passing the corner, x within ~5 units): two of two deaths in the user's GDLM 44 runs
+  (2026-11-23_02-51-50.mkv, 17.6 s and 24.38 s). The sim slid off and lived until then.
+- The wave dies flying head-on into a slope (down into a rising 45-degree floor): GDLM 44's zigzag,
+  2026-11-23_03-11-47.mkv ~25 s. The sim had let it ride up the slope.
 - Flipping gravity halves vertical speed (blue orb and ceiling blue pad in the recording move at
   half the decompile's velocity). The decompile's ringJump alone does not show this.
 
@@ -220,10 +239,11 @@ Modes beyond cube/ship come from gdsolver's measured model and the gdp decompile
 by the plans so far (xStep's ball, Blast Processing's wave): ball, UFO, wave, robot, spider,
 swing. Each still wants a recording of the user's own play.
 
+- No flying off into the sky (the user, 2026-11-23: "you cant just fly to the sky"). The sim
+  counts 300 units above the highest object as a death; the exact height is not measured.
+
 Assumed (not yet checked):
 - Object keys 121 = No Touch and 134 = Passable (both make an object not collide).
-- Going 300 units above the highest object counts as a death (otherwise the solver "wins" by
-  falling up into the sky). Ask the user whether GD kills you up there.
 - Spider teleport searches a 9-unit strip above/below the cube.
 - Dash orbs: horizontal at the orb's angle while held; the props 586/588 on them are unknown.
 - "Click Between Steps" is OFF in the user's settings: presses land on a frame boundary, not any
@@ -231,7 +251,7 @@ Assumed (not yet checked):
 
 ## Status of the solver on "cube timings" (examples/)
 
-Beaten: 11 presses plus a dash release, tightest window 21 ms (the blue orb). Every part of
+Beaten: 11 presses plus a dash release, tightest window 17 ms (windows replay-checked since 2026-11-23). Every part of
 the level is in the sim: triple spikes, blue orb + ceiling blue pad, slope, dash orb, red orb,
 spider orb + pad, the upside-down red-orb dive under a hanging column.
 
@@ -272,3 +292,8 @@ The viewer draws moving objects where they start.
 - Playing on the phone too: how to get an updated level onto the phone while away from the PC.
   Watching is built: the phone page (PHONE.md: live work in progress, marks, songs added from
   the phone). Playing it in the phone's game: `tools/export_gmd.js` (.gmd for GDShare).
+- Polishing existing levels (the user, 2026-11-23): take a level that already exists -- one of
+  the user's own, a GDLM level, later maybe a community one (kept in local/ only) -- and make it
+  better without redesigning it: fix unfair spots (tools/windows.js, press_window.js), add jump
+  indicators, sync portals and drops to the song, decorate (once the real-art viewer and the deco
+  catalogue exist, VISUALS.md), and show before/after side by side. Not started; no owner yet.

@@ -2,7 +2,7 @@
 // These are the model's own rules (sources in PHYSICS.md), not measurements: they catch a change
 // that breaks them by accident. Footage checks live in tests/jump_video.js and tests/modes_video.js,
 // real-game plans in tests/tas_progress.js.
-const GD = Object.assign({}, require("../lib/objects.js"), require("../lib/physics.js"));
+const GD = Object.assign({}, require("../lib/gd.js"), require("../lib/objects.js"), require("../lib/physics.js"));
 let bad = 0;
 const check = (name, ok, got) => { if (!ok) bad++; console.log(`${ok ? "ok  " : "BAD "} ${name}${got !== undefined ? ": " + got : ""}`); };
 const first = (r, act) => r.path.find(p => p.act === act);
@@ -65,5 +65,34 @@ for (const [mode, want] of [["cube", 16], ["ball", 9.6]]) {
   const w = GD.makeWorld([{ id: 143, x: 300, y: 15 }, { id: 1, x: 900, y: 15 }]);
   const r = GD.run(w, []);
   check("one-way block never kills", !r.dead || r.end.x > 330, r.why || "passed");
+}
+// wave sliding on a block: survives along the top, dies as its centre passes the block's end
+// (measured: the user's GDLM 44 runs, 2026-11-23, two deaths at the block's top-right corner)
+{
+  const objs = [{ id: 660, x: 200, y: 105 }];
+  for (let x = 165; x <= 345; x += 30) objs.push({ id: 1, x, y: 75 });   // a row of blocks, top y 90, ends x 360
+  objs.push({ id: 1, x: 900, y: 15 });
+  const w = GD.makeWorld(objs);
+  const s = GD.startState(w); s.y = 105; s.x = 150;
+  let slidX = null;
+  for (let t = 0; t < 400 && !s.dead; t++) { GD.step(w, s, { press: false, held: false }); if (s.mode === "wave" && s.y === 95 && slidX === null) slidX = s.x; }
+  check("wave slides along a block top", slidX !== null && slidX < 300, slidX && slidX.toFixed(0));
+  check("wave dies sliding off the block's end", s.dead && s.x > 360 && s.x < 362, `${s.why} at ${s.x.toFixed(1)}`);
+}
+// wave vs a rising 45-degree slope: held, it slides up along it; released (head-on), it dies
+// (measured: the user's GDLM 44 zigzag, 2026-11-23_03-11-47.mkv ~25 s)
+for (const hold of [true, false]) {
+  const objs = [{ id: 660, x: 100, y: 45 }, { id: 1338, x: 315, y: 15 }, { id: 1338, x: 345, y: 45 }, { id: 1, x: 900, y: 15 }];
+  const w = GD.makeWorld(objs), s = GD.startState(w);
+  for (let t = 0; t < 260 && !s.dead; t++) { const h = hold && s.mode === "wave" && s.x > 280; GD.step(w, s, { press: h, held: h }); }
+  check(hold ? "wave held slides up a slope" : "wave released dies head-on into a slope", hold ? !s.dead : s.dead && s.why === "slope", `${s.dead ? s.why : "alive"} at ${s.x.toFixed(0)},${s.y.toFixed(0)}`);
+}
+// the solver's click windows replay: every tick in a window clears (difficulty session's repro:
+// triple spike with a yellow orb above, the merged-state solver claimed 429-450, real 440-450)
+{
+  const w = GD.makeWorld(GD.parseLevel("kA4,0;1,8,2,615,3,15;1,8,2,645,3,15;1,8,2,675,3,15;1,36,2,645,3,105;1,1,2,1215,3,-15;").objects);
+  const r = GD.solveAny(w), c = r.clicks[0], badT = [];
+  for (let t = c.lo; t <= c.hi; t++) if (GD.run(w, [{ tick: t, type: "press" }, { tick: t + 1, type: "release" }]).dead) badT.push(t);
+  check("every tick of a solver window clears", r.ok && !badT.length && !GD.run(w, r.events).dead, `${c.lo}-${c.hi}${badT.length ? " bad " + badT.join(",") : ""}`);
 }
 process.exit(bad ? 1 : 0);

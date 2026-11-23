@@ -23,8 +23,11 @@
 //            (e.g. "hell") -> skins only, the look comes from its colours
 //   "colours": {"bg": [r,g,b], "ground": [r,g,b], ...}   start colours in the header
 //   "art": {"bg": n, "ground": n}                        background / ground art numbers
-//   "indicators": {"id": N}   a jump indicator (chevron) above every cube jump from the ground,
-//                          placed from the solver's run (tools/decorate.js jumpIndicators)
+//   "decoDensity": [[fromCol, share], ...]   classic style: share of free columns with ground
+//                          decoration from that column on (default 0.25; compose.js sets it per section)
+//   "indicators": {"id": N, "rot": n, "at": [cols], "all": false}   a small arrow pointing down over
+//                          the jumps a player cannot read in time (far cue, ledge, after a portal,
+//                          first of a new pattern), from the solver's run (tools/decorate.js)
 //
 // Music (optional; see SYNC.md):
 //   "song": {"custom": 233860} or {"official": 1} (1 = Stereo Madness ... 22 = Dash)
@@ -71,6 +74,7 @@ function toObj([type, col, row, extra], specFile) {
   const props = { 155: "1" };
   if (e.group != null) props[57] = String(e.group);
   if (e.ch != null) props[21] = String(e.ch);
+  if (e.props) Object.assign(props, e.props);   // raw object keys, e.g. a text object's 31
   return { id, x: +(col * 30 + 15).toFixed(3), y: row * 30 + 15, rot: e.rot || 0, flipX: !!e.flipX, flipY: !!e.flipY, props };
 }
 
@@ -127,6 +131,47 @@ function toCol(col, ctx, tl) {
 }
 const colAt = entry => entry[0] === "pattern" ? 2 : 1;
 
+// Orbs on the arc (orb-ladder, orb-pit from the ground; args "fixed": true keeps the pattern's rows).
+// The user on GDLM 44's ladder: "very awkward; in lower difficulty levels there should be better space
+// to click the orb, and clicking in the middle is almost the point (where you can mostly buffer)". So
+// each orb goes at the TOP of the arc that reaches it -- the jump before the pit, then each orb's own
+// launch: the cube passes through the orb's centre and is slowest there, so a press in the middle (or
+// a held button) takes it. Simulated in an empty world (lib/physics.js) at the level's speed; the spike
+// pit runs from the pattern's column to one column before the landing.
+function arcOrbs(name, col, args, header, specFile) {
+  const n = name === "orb-pit" ? 1 : (args.n || (args.rows || [2, 3, 4]).length);
+  const orbType = args.orb || "yellow orb";
+  const end = toObj(["block", col + 80, 12], specFile);   // the world's end, out of the way
+  const orbs = [];
+  const world = () => GD.makeWorld(orbs.concat([end]), header);
+  // the takeoff: half a column before the pit
+  const p0 = GD.run(world(), []).path;
+  let t = p0.findIndex(p => p.x >= col * 30 - 20);
+  const events = [{ tick: t, type: "press" }, { tick: t + 1, type: "release" }];
+  for (let k = 0; k < n; k++) {
+    const path = GD.run(world(), events).path;
+    let a = t + 2;
+    while (a + 1 < path.length && path[a + 1].y > path[a].y) a++;          // the apex
+    const ox = Math.round(path[a].x / 7.5) * 7.5, oy = Math.round(path[a].y / 7.5) * 7.5;
+    const o = toObj([orbType, (ox - 15) / 30, (oy - 15) / 30], specFile);
+    o.x = ox; o.y = oy; orbs.push(o);
+    // press where the cube is closest to the orb's centre
+    const p2 = GD.run(world(), events).path;
+    let best = a, bd = Infinity;
+    for (let i = t + 1; i < p2.length && p2[i].x < ox + 40; i++) { const d = Math.hypot(p2[i].x - ox, p2[i].y - oy); if (d < bd) { bd = d; best = i; } }
+    t = best;
+    events.push({ tick: t, type: "press" }, { tick: t + 1, type: "release" });
+  }
+  // landing after the last orb: the pit ends one column before it
+  const path = GD.run(world(), events).path;
+  let l = t + 2;
+  while (l < path.length && !(path[l].grounded && path[l].y < 20)) l++;
+  const landCol = Math.floor(((path[Math.min(l, path.length - 1)].x) - 15) / 30);
+  const out = orbs.slice();
+  for (let c = col; c < landCol - 1; c++) out.push(toObj(["spike", c, 0], specFile));
+  return out;
+}
+
 // spec (already parsed) -> { level, rec, ctx, objects, header }: everything but writing and checking
 function build(spec, specFile = "spec") {
   const song = songOf(spec);
@@ -158,6 +203,7 @@ function build(spec, specFile = "spec") {
     const col = toCol(entry[colAt(entry)], ctx, tl);
     const [type, , row] = entry;
     if (speedObj.has(entry)) objects.push(speedObj.get(entry));
+    else if (type === "pattern" && /^orb-(ladder|pit)$/.test(entry[1]) && !(entry[4] || {}).fixed && !entry[3]) objects.push(...arcOrbs(entry[1], col, entry[4] || {}, header, specFile));
     else if (type === "pattern") { for (const e of expand(entry[1], col, entry[3], entry[4], entry[5])) objects.push(toObj(e, specFile)); }
     else if (type === "colour") { const a = entry[2]; objects.push(deco.colourTrigger(col, a.ch, a.rgb, a.secs ?? 0.5)); }
     else if (type === "fade") { const a = entry[2]; objects.push(deco.fadeTrigger(col, a.group, a.to ?? 0, a.secs ?? 0.2)); }
@@ -180,7 +226,9 @@ function build(spec, specFile = "spec") {
   if (spec.style === "classic") {
     deco.skinBlocks(objects);
     const end = Math.max(...objects.map(o => o.x)) / 30 + 4;
-    objects.push(...deco.groundDeco(objects, end, spec.seed || 7));
+    const dd = (spec.decoDensity || []).slice().sort((a, b) => a[0] - b[0]);
+    const densityAt = c => { let v = 0.25; for (const [from, share] of dd) if (c >= from) v = share; return v; };
+    objects.push(...deco.groundDeco(objects, end, spec.seed || 7, densityAt));
   }
   const level = { header, objects };
   const rec = GD.newRecord(spec.name, spec.desc || "made by GDLevelMaker");
@@ -198,11 +246,16 @@ function make(specFile, specObj) {
   let r = report(out);
   if (spec.indicators && r.ok) {
     // jump indicators come from the solved run, so they go in after the first check (no hitbox:
-    // the solution does not change); then the file is written again
-    const ind = deco.jumpIndicators(GD.makeWorld(level.objects, header), r, (spec.indicators.id || deco.INDICATOR.id), GD);
-    level.objects.push(...ind);
-    writeGdlvl(out, rec, level);
-    console.log(`   ${ind.length} jump indicators (object ${spec.indicators.id || deco.INDICATOR.id})`);
+    // the solution does not change); then the file is written again. Without the arrow's id yet,
+    // only say where they would go.
+    const iid = spec.indicators.id || deco.INDICATOR.id;
+    const ind = deco.jumpIndicators(GD.makeWorld(level.objects, header), r, iid || 0, GD, spec.indicators);
+    if (iid) {
+      level.objects.push(...ind.map(o => { const c = Object.assign({}, o); delete c.why; return c; }));
+      if (ind.length) level.objects.push(deco.indicatorFade(spec.indicators));  // soft: faded group
+      writeGdlvl(out, rec, level);
+      console.log(`   ${ind.length} jump indicators (object ${iid}): ` + ind.map(o => `${(o.x / 30).toFixed(0)} ${o.why}`).join("; "));
+    } else console.log(`   ${ind.length} jump indicators planned (arrow object id not known yet): ` + ind.map(o => `${(o.x / 30).toFixed(0)} ${o.why}`).join("; "));
   }
   if (ctx.grid && r.ok) beatReport(objects, header, r, ctx);
   if (r.ok) { // the user's fairness rule: no prejumps (see tools/sightread.js)
@@ -211,6 +264,9 @@ function make(specFile, specObj) {
     for (const p of bad) console.log(`   PREJUMP at block ${p.from.toFixed(1)}-${p.to.toFixed(1)}: jump ${p.lead.toFixed(1)} blocks before ${p.cue} at ${p.cueAt.toFixed(1)}`);
     console.log(bad.length ? `   NOT sight-readable: ${bad.length} prejump(s)` : "   sight-readable: every press is cued by what is right in front");
   }
+  // save the solution (natural replay) so the viewer and the phone replay it, not solve it again
+  // r: the check's solve (indicators have no hitbox, so it still holds)
+  try { const L2 = require("./io.js").readGdlvl(out); require("./solutions.js").fromRun(L2.level, L2.levelStr, r); } catch (e) { console.log("   (solution not saved: " + e.message + ")"); }
   buildIndex();
   return { out, r };
 }
@@ -279,4 +335,4 @@ if (require.main === module) {
   if (!specs.length) { console.log("usage: node tools/make.js specs/<name>.json [...]"); process.exit(1); }
   for (const s of specs) make(s);
 }
-module.exports = { make, build, slug, TYPES };
+module.exports = { make, build, slug, TYPES, songOf, gridOf };

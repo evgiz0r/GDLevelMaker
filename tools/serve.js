@@ -41,6 +41,21 @@ http.createServer((req, res) => {
     });
     return;
   }
+  // POST /catalogue/<name>.png: a contact sheet from viewer/catalogue.html -> local/catalogue/ (never
+  // committed: it is RobTop's art). POST /catalogue/done marks the run finished (tools/catalogue.js waits).
+  const cat = req.method === "POST" && /^\/catalogue\/([\w.\-]+\.(png|json)|done)$/.exec(p);
+  if (cat) {
+    const chunks = [];
+    req.on("data", c => chunks.push(c));
+    req.on("end", () => {
+      const dir = path.join(root, "local", "catalogue"); fs.mkdirSync(dir, { recursive: true });
+      const body = Buffer.concat(chunks).toString(), m = /^data:image\/png;base64,(.+)$/.exec(body);
+      if (cat[1] === "done") fs.writeFileSync(path.join(dir, ".done"), body || String(Date.now()));
+      else fs.writeFileSync(path.join(dir, cat[1]), m ? Buffer.from(m[1], "base64") : body);
+      res.writeHead(200, { "Content-Type": "application/json" }); res.end('{"ok":true}');
+    });
+    return;
+  }
   // the user's recordings (never copied anywhere): a list, and one frame at a time via ffmpeg,
   // for the viewer's "compare" panel
   // GET /wip/list: every session's work-in-progress level (local/wip/<session>/, tools/wip.js), with the
@@ -71,6 +86,18 @@ http.createServer((req, res) => {
     ff.on("error", () => { res.writeHead(500); res.end("ffmpeg not found"); });
     ff.on("close", () => { if (res.headersSent) return; if (!out.length) { res.writeHead(404); return res.end("no frame"); } res.writeHead(200, { "Content-Type": "image/png", "Cache-Control": "no-store" }); res.end(Buffer.concat(out)); });
     return;
+  }
+  // GET /gdres/<file>: GD's own sprite sheets, plists and background images, read straight from the
+  // user's install (never copied: RobTop's art stays out of the repo and off any published page).
+  // lib/art.js draws the viewer's "GD art" look from them. Icons are under /gdres/icons/<file>.
+  const res_ = /^\/gdres\/((?:icons\/)?[\w.\-]+\.(?:png|plist))$/.exec(p);
+  if (res_) {
+    const f = path.join(GAME, "Resources", res_[1]);
+    return fs.readFile(f, (e, data) => {
+      if (e) { res.writeHead(404); return res.end("not in the game's Resources"); }
+      res.writeHead(200, { "Content-Type": f.endsWith(".png") ? "image/png" : "text/xml", "Cache-Control": "max-age=3600" });
+      res.end(data);
+    });
   }
   if (p === "/" || p === "/viewer") { res.writeHead(302, { Location: "/viewer/" }); return res.end(); }
   if (p.endsWith("/")) p += "index.html";

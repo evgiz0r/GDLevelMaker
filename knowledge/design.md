@@ -11,6 +11,19 @@ official levels, or a playtest remark). A single playtest remark is evidence, no
   unless the level is meant to be. Show first, then hide. (Playtest of GDLM 42 v1, 2026-11-22.)
 - **Recovery time**: landing and having to jump again within ~100 ms is where people die.
   (Real-game deaths, GDLM 42 v3; score.js recovery gate.)
+- **Orbs where the arc already goes** (lower tiers): an orb at the top of the arc that reaches
+  it is taken by a press in the middle, or by holding (buffering); an orb the arc only grazes needs
+  exact timing and feels awkward. (The user on GDLM 44's orb ladder, 2026-11-23.)
+- **Telegraph what can't be read in time**: a jump whose reason is out of sight or far ahead (off a
+  ledge or a high step onto something past the landing, right after a portal, the first of a new
+  pattern) gets a small arrow over the takeoff area, pointing at the ground: "in the area vaguely
+  you have to jump" (the user). Modern levels use them there, not on every click. The mark is anything
+  small and softer than the level (dimmer, muted) and never hazard-like: arrows usually, but
+  circles, dots, small deco, even smileys are all used (the user). Better still,
+  give room: after a drop from height h, nothing may need a jump before the cube has landed and
+  seen it. (GDLM 45 v4: the user died 3 times at the same spike-block right past a 3-high stair,
+  "cant tell where to jump", recording 2026-11-23 02:52; tools/decorate.js jumpIndicators,
+  compose.js landing room.)
 
 ## Difficulty
 - A per-level choice, not a house style. Good hard levels are wanted by players.
@@ -52,6 +65,32 @@ official levels, or a playtest remark). A single playtest remark is evidence, no
 - Start each new mode or speed with an empty lead-in (cube ~6 blocks, ship ~8, others 2-3). Hard has none.
 - Hazards in at most ~1/3 of the columns (cube/ship/wave), ~1/2 (ball/robot); cube groups of up to 3,
   with 3+ empty columns between them.
+- Not much emptier than that, though: across a whole rated Easy/Normal level, hazards sit in ~46-49% of
+  the columns. GDLM 41-45 have 12-23%, emptier than rated Easy (`node tools/tiercheck.js`). That may be
+  part of "bland".
+
+## Not bland (`levels/variety.md`, `node tools/variety.js`)
+- Rated Easy/Normal (2.0-2.1) levels use ~15-17 kinds of gameplay thing, 4-5 modes and 2-3 speeds,
+  a portal every ~2-3 s, ~25 orbs and pads per minute, and ~90%+ new chunks.
+- GDLM 41-45 use 1-6 kinds, one speed and few portals, and mostly repeat chunks: sameness, not
+  emptiness, is the likely "bland".
+
+## Built on blocks (`levels/obstacles.md`)
+- Rated and official cube parts have a block in ~half their columns, and ~45-65% of their hazards
+  sit next to a block (ledges, steps, pits, overhangs). GDLM 41-45 have 13% and 17%: spikes on a
+  flat floor.
+- Rated Easy/Normal levels bring in a new kind of thing every ~2 s until ~85% of the level, each shown
+  once or twice before moving on. Official 1-8 do it every ~4.6 s.
+
+## Getting rated (`rating.md`)
+- RobTop has no fixed criteria. His tips: 60 s+ (30 s minimum), "clear gameplay and decent
+  visuals", and good performance. Higher tiers mean he likes the level more, and in our sample
+  they carry far more decoration and effects.
+
+## Past Harder (`levels/official_09-22.md`)
+- The official levels add 2-6 new mechanics per level and cut sections to 20-150 blocks. A new mode
+  comes in a spacious part first (Blast Processing's wave). Fakes and invisible parts appear only at
+  Demon, and even then with cues (arrows, stars, text).
 
 ## Music
 - Levels follow their song; how closely varies. Official levels put portals on bar starts and

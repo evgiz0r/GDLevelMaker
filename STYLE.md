@@ -229,8 +229,46 @@ idea (a picture, a sketch, words); what they get back has already passed every g
 6. **Hand over**: installed level + the brief + the log. The user plays and reports; what they say
    becomes a gate or a rule here.
 
-Still to build: screenshot strips for step 5, a one-page design note for step 6, songs in
-briefs end to end (score.js has the sync gate; compose places by columns, not beats yet).
+Still to build: screenshot strips for step 5, a one-page design note for step 6.
+
+### Sections that follow the song (GDLM 45 v5, 2026-11-23)
+
+The user: "GD levels usually have some kind of sections, with different styling changing according
+to the music". Measured on the 22 official levels (`tools/corpus.js`, no solving): **159 of 178 mode
+portals (89%) have a colour trigger within 3 blocks**, against 31% for a random spot; in levels
+1-8, where colour triggers are rare, 16 of 21 (76%) against 8%. So in GD a section is a mode (or
+idea) and its look together: the colour changes where the portal is. With SYNC.md (portals on bar
+starts and 8/16-beat phrases), the recipe compose.js now follows:
+
+1. **Cut the song first.** `local/beats/<song>.json` has `sections` (beat index, dB change of the
+   next 8 beats vs the last 8) and `loud` per beat. Move each change to the nearest 8-beat phrase
+   start (bar starts are beat index = `downbeat` mod 4). Louder = a new busy section (with a
+   flash), quieter = a break.
+2. **One section per phrase or two**, each one mode or one cube idea, length in beats
+   (`"beats": 32` in the brief), so every section, its portal and its colour start on the beat.
+3. **The look per section**: `bg`, `ground`, `line` colours (fade 0.4 s on the first beat),
+   `flash` (background flashes bright on the beat, then settles: for the drops, where the
+   song gets louder), `deco` (share of ground decoration: 0 in breaks, fuller in busy parts). A
+   colour story over the level (GDLM 45 v5, hell on Ragnarok's song: dark red embers in the quiet
+   build, brighter each section, a white flash into orange on the drop, dark again at the end)
+   keeps sections apart without one random colour each.
+4. **Breaks are real breaks**: where the song drops back, fewer hazards (`gaps` 8-12) or an
+   easy upside-down stretch, darker, no decoration.
+
+Modes used: cube, ship, wave, ball, the cube upside down (gravity portals) -- the ones checked
+against the user's own recordings (PHYSICS.md: ball gravity, wave slope, ship, gravity flip).
+UFO, robot, spider and swing are in the sim but checked only by gdsolver's plans, so not yet in
+generated levels.
+
+New section kinds in compose.js: `"mode": "ball"` (`ball-run`: a roof 5 rows up, spikes
+alternating floor/roof every 8-9 columns, a framed cube exit on the floor) and `"mode": "upside"`
+(`ceiling` 6 rows up with a yellow gravity portal in and a framed blue one out; the section's
+block/spike patterns hung from it by `mirrorUp`). Tools: `compose.js --dry` (where each section
+lands, in columns and seconds, nothing solved), `--section n` (score one section alone, written
+to `local/sections/`). Levels over 90 s are scored **section by section** (each section alone,
+unchanged ones cached): a whole-level score of a 60 s level with modes takes ~4 min on this PC,
+a cube or ball section 2-20 s, a 120-block ship corridor minutes.
+Short sections work: 8 beats (~33 blocks at 1x, 145 BPM) still hold a mode with its lead-in.
 
 ## 3. The examples
 
@@ -308,11 +346,49 @@ moments on bar starts and section changes; jumps where the gameplay wants them. 
 jump on a beat -- a test of the tools, not a rule. `score.js` warns on portals off the bars and on
 more than 60% of presses pinned to beats.
 
-**Jump indicators** (common in modern levels; they also show what the level intends): spec
-`"indicators": {"id": N}` puts a small mark just above the surface at every cube/robot takeoff
-(upside down: under the ceiling, pointing down), from the solved run (`tools/decorate.js`). Orb
-and pad launches get none. The chevron's object id is not confirmed yet -- asked; until then
-specs leave indicators off.
+**Jump indicators** (common in modern levels; they also show what the level intends): a small
+arrow over the area where a jump starts, pointing down at it -- only where the jump cannot be read
+in time, not on every click (`tools/decorate.js` jumpIndicators, from the solved run):
+far cue (what the jump is for is more than 2.5 blocks past the takeoff), ledge (jumping off the
+end of a raised surface), portal (first jump within 12 blocks after a mode or gravity change), new
+(the first jump of a pattern's first use, from compose.js). No two within 4 blocks; none for orbs
+and pads. Upside down they hang from the ceiling. compose.js turns them on by default
+(`"indicators": false` in a brief turns them off). On GDLM 45 v4 the rule marks 7 jumps in 60 s,
+among them the stair-top jump the user died at 3 times.
+What the mark is (the user): anything **small and softer than the level, never like a hazard** --
+arrows are the usual choice, but circles, dots, any small deco, even smileys are used. Default
+here: deco **460** (d_arrow_02, the classic chevron ">", from the visuals session's
+knowledge/objects/catalogue.tsv) turned 90 degrees to point at the ground, scale 0.7, on white
+(1011 -- its own channel 1006 is the player's colour), group 990 faded to 45% by an alpha trigger at
+the start. The other arrows: 132 (long arrow), 494 (solid triangle: too spike-like). A text object
+(914, "text") also works. Per spec: `"indicators": {"id": N, "rot": n, "ch": n}`. GDLM 44 v8: 5
+marks (first climb jump, first jump after each mode change, far cues). Not yet seen in the game.
+
+**Orbs on the arc** (make.js `arcOrbs`, for `orb-ladder` and `orb-pit` on the ground; `"fixed": true`
+keeps the old fixed rows): the user on GDLM 44's ladder, "very awkward; in lower difficulty levels
+there should be better space to click the orb, and clicking in the middle is almost the point
+(where you can mostly buffer)". Each orb now sits at the top of the arc that reaches it (the jump
+before the pit, then each orb's own launch), simulated at the level's speed: the cube passes
+through the orb's centre and is slowest there, so a press in the middle or a held button takes it.
+A yellow-orb ladder then climbs 2 rows per orb, 2.3 blocks apart; the pit ends a column before
+the landing. Harder levels can still place orbs off the arc on purpose (`fixed`).
+
+**Wave turns** (GDLM 44 v7, physics 2026-11-23: a wave flying head-on into a slope dies, as in the
+game): with pure 45-degree slope walls the wave flies parallel to them and every turn meets the next
+leg's slope head-on, so a turn was 13-88 ms ("i still couldnt fit into the gap in 44"). `wave-zigzag`
+`flat` puts level floor and roof at each peak and valley (the wave meets them at 45 degrees and
+slides, so it can turn anywhere along them, ~95 ms per column), `lead` level columns at the entry,
+and its exit portal covers the floor the wave slides on (in the path's middle it let only a late
+release through). GDLM 44: 3 flat at the peak, 2 at the entry, gap 5 -> wave inputs 308 / 225 ms.
+Rule: every wave input >= ~150 ms at Normal; compose's wave sections use flat 2 (Easy/Normal) or
+1, gap 5 or 4. Check with `node tools/windows.js level --from X --to X` (moves one input with the
+rest fixed: in chains -- jump, orb, orb -- it reads far too small; judge those by the solver's own
+inputs or by press_window.js from a placed state).
+
+**Landing room** (compose.js): after a chunk that ends h >= 2 rows up, h+1 more empty columns
+before the next one, so the cube lands and sees the next hazard before it must jump. Approximate
+prejump WARNs (levels with modes) now count as defects in compose's loop: v4's WARN at its stairs
+was that death spot.
 
 ## 4. Checked in the real game (recording of the first 41 and 42, 2026-11-22)
 
@@ -335,21 +411,52 @@ State on 2026-11-22. What a new session should know before touching this area:
   the rest re-solved from there with `GD.solveFrom` (physics session). Every change is kept only if
   the run still finishes. The click table shows these inputs; timing windows stay the solver's
   (in `score.js`). Open: the solver's own run is still what `score.js` judges for prejumps.
-- **compose.js** places by columns, cube-only patterns by default; not yet: beats in briefs, modes
-  in sections, the low-tier recipe (lead-ins per mode, hazard share per mode, section lengths 4-6 s,
-  `knowledge/levels/modes_low_tier.md`). GDLM 44 was written by hand in beats.
-- **Jump indicators**: code ready (`"indicators": {"id": N}`), the arrow's object id unknown --
-  the user places the three arrows in an empty level, then read the ids from the save.
+- **compose.js** sections in beats, modes ship / wave / ball / upside-down, a look per section
+  (section 2b "Sections that follow the song"). Not yet: beats for single chunks inside a section
+  (orbs on beats), UFO/robot/spider/swing (not checked in the user's game), gravity flips inside
+  ship/ball parts, the difficulty hill-climb for sectionwise levels (they are scored whole once at
+  the end, not tuned toward the target).
+- **Next for compose (from music sync, 2026-11-23):** `node tools/songmap.js --songs` gives each
+  song's sections and drops by bar (spectral novelty) and its beatless share, cached in
+  `local/songmap/<song>.json`. Official levels: mode/speed portals sit on those section changes
+  (4 sigma), hazards per bar rise with the bar's loudness (16 of 22), no mode in the calm bars
+  (SYNC.md section 7). So: take section starts from songmap snapped to 4-bar lines instead of
+  hand-reading `local/beats` sections, and scale each section's gaps with its loudness.
+- **Variety, not density (knowledge, 2026-11-23, `node tools/variety.js`, knowledge/levels/variety.md):**
+  GDLM 41-45 have enough obstacles (0.7-1.0 hazard groups/s, rated Easy 0.34, Normal 0.66) but 1-6
+  kinds of gameplay thing against 15-17 in rated Easy/Normal levels, one speed (rated: 2-3), 10-28%
+  new chunks (rated: 90-96%), few orbs/pads (rated ~25/min), lone spikes (hazards in 12-23% of
+  columns, rated ~40%; `tools/tiercheck.js` per section). For compose: speed portals on section
+  changes, orb/pad chunks in every cube section, a chunk never twice in a level unless it is a
+  motif, wider chunks (spike runs on blocks, not lone spikes). RobTop's tips (knowledge/rating.md):
+  30 s at least, 60 s+ the rated standard.
+- **Play on blocks, not the floor (knowledge, 2026-11-23, `node tools/obstacles.js structure --gdlm
+  --official`, knowledge/levels/obstacles.md) -- the strongest "bland" finding:** rated Easy/Normal
+  and official 1-8 have a block/slab/slope in ~47% of cube columns (GDLM 13%); 44-64% of their
+  hazards sit by a block (ledges, steps, pit edges, overhangs; GDLM 17%); 92% of GDLM spikes are on
+  the bare floor; rated obstacles are 2 rows tall (GDLM 1). New kinds every ~2 s up to ~85% of the
+  level, ~17 kinds (GDLM: every ~8 s, 3 kinds), each used once or twice then left. Next compose
+  work: cube sections built on a block terrain (raised runs, steps, pits with edges) with hazards on
+  and beside it, and a new kind per few seconds (saws, pads, orbs, gravity, 0.5x speed ...).
+- **Jump indicators**: on by default in compose (chevron 460, white, 45%). Not yet seen in the game.
+  GDLM 46 (arrow catalogue) is no longer needed: the visuals catalogue named the ids.
 - **Art**: decoration ids have no names. Plan: a generated catalogue level (every deco id with a
   text label) the user opens and screenshots; then style deco sets (hell, classic ...).
 - **GDLM 44** (Easy, 10 s, song 343707): v5 under "in progress" in the viewer, all gates pass (the
   ship tunnel's teeth now start 6 columns in: `ship-tunnel` "lead").
-- **Low-tier level from the knowledge base** (the user agreed, via the knowledge session): >= 60 s,
-  Easy/Normal, sight-readable, no fakes; templates in "What good low-tier levels do". Not started.
+- **GDLM 45 first flight** (`briefs/45_low_tier.json`): the low-tier level from the knowledge base
+  (template A, a new mode every ~7 s): 61 s, Easy, cube sections with one idea each between ship
+  and wave corridors (compose.js `mode` sections), all gates pass in round 1 (~8 min per round on
+  this PC). Under "in progress" and on the phone; not pushed, not played. Its 3 prejump WARNs
+  (stairs, spike-block, finale) are the approximate check on chains of jumps, not seen as real.
+- The approximate prejump check (mode levels) is noisy on chains of jumps: it shifts one press
+  with the later ones fixed in time. A fix: re-solve the rest with `GD.solveFrom` for each shifted
+  press (exact, but costs a sweep per try).
 - Prejumps are exact only on cube levels; on mode levels approximate (WARN).
 
 Tests: `node tests/style_gates.js` (~1-2 min): the gates still agree with what the user found
-(GDLM 41 v1's pad prejump flagged, 42's chains gone, 44 without skips).
+(GDLM 41 v1's pad prejump flagged, 42's chains gone, 44 without skips), and an upside-down and a
+ball section are beaten, cued and taken through their portals.
 
 ## How the numbers were got
 
