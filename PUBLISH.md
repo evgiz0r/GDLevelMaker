@@ -10,6 +10,11 @@ Search -> its level ID. IDs so far: `local/phone_ids.json` (level, ID, version, 
 
 ## Rule: every upload needs the user's yes
 
+**Don't fill the servers with AI levels** (the user, 2026-11-23: "I dont want to spam ai levels to
+the server yet"). Upload only a level the user asks to play on the phone, never offer batches
+or extra levels. To change one that is already up, re-share it under its ID (below) rather than
+uploading a new copy.
+
 Each Share press is outward-facing and the unlisted choice can't be undone. Before the final press,
 tell the user the exact settings (unlisted, friends-only, notify, star request) and wait for a yes
 for THAT level (they may answer from the phone). A yes for one level is not a yes for the next,
