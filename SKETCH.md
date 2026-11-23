@@ -7,15 +7,28 @@ the polish session (POLISH.md) makes it fair.
 
 ## 1. Drawing -> spec (main session)
 
-- List what is drawn, left to right, in the user's words ("orb over spikes, slabs over a pit, ship
-  through four gates, a wave zigzag, an orb chain" -- the spec's `desc`). Keep every element; do not
-  add ideas that are not drawn (decoration and colours excepted).
-- Each element becomes the nearest named chunk (`node tools/patterns.js` lists them: platform,
-  orb-ladder, wave-zigzag, ship-tunnel ...) or plain objects where the drawing is specific (the four
-  ship gates of GDLM 46 are 2-wide block pillars with a 3-row gap, as drawn). Columns follow the
-  drawing's proportions; heights are read in rows (a cube is a row).
-- The song, colours ("style": "hell" ...) and a colour change at each new part, as compose.js does.
-- `node tools/make.js specs/NN_sketch.json`: it must be beatable; then put it in wip.
+How the main session read GDLM 46's drawing (its own account, 2026-11-23):
+
+1. **A solid stroke is a surface top.** A horizontal stroke at height y ≈ h becomes a platform or slab
+   whose top is round(h) (1.5 was rounded down to 1; 3.9 became a slab in row 3, top 4). A vertical
+   solid stroke is a pillar or a wall.
+2. **Two vertical strokes at the same x with a gap between them are a gate**; the gap is a ship opening.
+3. **Parallel pairs of diagonal strokes are a wave corridor**: the wave-zigzag pattern, not a copy of the
+   exact lines.
+4. **A danger stroke** on the ground is a spike run; in the air it is hanging spikes (rot 180) over the
+   gap below.
+5. **An orb** goes where it was dotted, then is moved so that it is required (a spike run too wide to
+   jump, a slab higher than one jump).
+6. **A portal** goes where it was drawn, its mode from the canvas's dropdown (v1 had none: guessed from
+   what follows -- gates mean ship, a zigzag means wave).
+7. **Stretch x about 4x**: the drawing's 27 blocks were 2.6 s, far too short. Gaps widened to playable
+   sizes (ship gates 1.2 -> 3 blocks), sections spaced about a bar of the song apart.
+8. **Then** solve, test each orb by removing it (it must be needed), fix prejumps.
+
+Also: keep every drawn element and add no ideas that are not drawn (decoration and colours excepted);
+the spec's `desc` lists them in the user's words ("orb over spikes, slabs over a pit, ship through four
+gates, a wave zigzag, an orb chain"). Song, colours ("style": "hell" ...) and a colour change at each
+new part as compose.js does. `node tools/make.js specs/NN_sketch.json` must be beatable; then section 2.
 
 ## 2. Make it fair (polish session) -- the GDLM 46 lessons
 
@@ -56,7 +69,7 @@ longer). Not yet played by the user.
 
 ## Open
 
-- How the drawing is read (step 1) is written from the GDLM 46 spec, not from the main session's own
+- Step 1 is one drawing's worth of rules (GDLM 46); the next drawings will test them.
   notes: the main session should correct it.
 - The window of an orb press is measured with the later inputs fixed in time, which is pessimistic
   for a chain where a player adjusts the next click; a "window with the next input re-timed" measure
