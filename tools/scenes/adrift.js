@@ -130,8 +130,8 @@ module.exports = function ({ objects, header, beatX }) {
   out.push(K.zoom(S[1][0], 0.88, 1.5), K.zoom(S[2][0] - 60, 1, 1), K.zoom(S[4][0], 0.9, 1), K.zoom(S[4][1] - 700, 1, 1.5));
 
   // ---- title and credits ----
-  out.push(K.text(250, 170, "ADRIFT", 1.8, { z: "B1", groups: [G.title] }), K.text(250, 135, "GDLM 51", 0.6, { z: "B1", groups: [G.title] }));
-  out.push(K.alpha(330, G.title, 0, 1));
+  out.push(K.text(615, 170, "ADRIFT", 1.8, { z: "B1", groups: [G.title] }), K.text(615, 135, "GDLM 51", 0.6, { z: "B1", groups: [G.title] }));
+  out.push(K.alpha(900, G.title, 0, 1));
   const cx = barX(23) + 150;
   out.push(K.text(cx, 175, "song: balderdact - Adrift", 0.5, { z: "B1", groups: [G.credits] }));
   out.push(K.alpha(T0, G.credits, 0, 0), K.alpha(barX(21), G.credits, 1, 1.5));

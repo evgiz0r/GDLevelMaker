@@ -121,6 +121,9 @@ install.js refuses while GD runs (GD rewrites the save on exit), so levels used 
   same level data as the file by sha1, object count, online ID) and writes
   `local/install_reports/<time>.json` + a line in `log.jsonl`, then empties the queue of what it
   processed. `report` prints the last one; `list` shows what is waiting.
+- `add` copies each file into `local/install_queue_files/` (shared) and the watcher installs that copy,
+  so a level queued from any checkout installs right wherever the watcher runs (a relative path once
+  pointed into the watcher's own worktree: "file missing"). The copies go when the queue empties.
 - It never uploads, never starts or closes GD, and it is light (one tasklist call per poll).
 - **It never drops an online ID.** Before installing it notes each queued name's `k1` in the save;
   if the read-back lacks it, it copies install.js's backup back over the save and reports every level
