@@ -107,4 +107,4 @@ decides the default (`chKeys`, `ch0`). Write the answer here.
 - Glow: GD's own glow / gradient pieces (1293) behind lamps and eyes, once the colour answer is in.
 - Pictures from Blender (tools/blender_model.sh in the GamePlatform kit: render a model small, flat-shaded,
   then tools/pixelart.js) -- not tried yet; PIL drawings and hand-drawn rows work.
-- The signature's robot and human from this library (with the visuals session, tools/signature.js).
+- The signature v3 (robot + human from this library, both colour keys, channels 976-989 via props.header, the stage lifted 3 blocks over the path): branch claude/signature-props, waiting for the visuals session's review.
