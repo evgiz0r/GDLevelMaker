@@ -11,6 +11,7 @@ level by hand, re-checks it and replies. These tools do each step, on a COPY, wi
 | `tools/markedit.js` | 17 edit by mark / picture | a viewer mark or a screenshot note -> its soft-rule family -> the edit -> the family swept over every level | edit + ~1 min sweep |
 | `tools/review.js` | 4 issue report | every check -> one ranked list (effect, effort, fix, auto?), a phone page | 10 s - 2 min (+ a solve if no route) |
 | `tools/fix.js` | 2 fix any level | review -> the top safe fixes on a copy, each kept only if it helps -> review again | review x2 + seconds per fix |
+| `tools/retarget.js` | 13 easier / harder | the hardest (or most generous) inputs first, small edits scored by the difficulty model, until the target tier | see "Times" |
 | `tools/families.js` | (shared) | the table of soft-rule families: note words, effect, effort, fix, auto-fix | instant |
 
 Tests: `node tests/editing.js` (`--quick`: no solve). Never installs or uploads; never writes the original level.
@@ -109,6 +110,23 @@ Auto fixes today (tools/families.js `auto`): jump mark too close to / over a haz
 row's centre -> centred; doubled (overlapping) hazard -> one removed; a landing on a 1-block spot -> the block
 extended 2 right; hazards nobody jumps -> removed; text under GD's attempt counter -> moved 8 blocks on; a mark
 where no jump is needed -> removed. Add one: an `auto: issue => ops` on its family, and a golden case in the test.
+
+## 13. Make it easier / harder: `tools/retarget.js`
+
+```
+node tools/retarget.js <level> --to <easier | harder | Easy..Insane | stars 1-10 | 0.5> [--max 8] [--spots 4] [--dry]
+```
+The score is lib/difficulty.js's (log10 of the attempts a player needs; tiers Easy < 0.3 < Normal < 0.8 < Hard < 1.5
+< Harder < 2.5 < Insane < 4). Each round takes the `--spots` costliest inputs (easier: lowest hit chance) or the most
+generous cube/robot inputs (harder: widest windows), tries small edits there (easier: a hazard row one shorter or a
+block later, a step a row lower, a landing a block wider, an orb half a block either way; harder: a row one longer
+or a block earlier), re-solves each without a full solve (old route, then incsolve), measures the windows within 8
+blocks again, keeps the best only if the level still beats and the quick checks get no new issue, then scores the
+whole level again. Portals, decoration and triggers are never touched (sync and look kept). Prints the score and tier
+before -> after, each edit, a per-section curve (mode, inputs, tightest window, score) before and after, and a
+before/after picture at the biggest change. `easier`/`harder` lowercase = one tier that way; `Harder` = that tier.
+Open: swapping whole structures for easier/harder library entries by their difficulty tags (needs to know where a
+structure sits in a built level: compose's section plan has it; a level from elsewhere does not).
 
 ## Times (this PC, 16 GB; plus the wait for the heavy slot)
 

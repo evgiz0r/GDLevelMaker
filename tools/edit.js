@@ -331,9 +331,11 @@ function resolve(level, levelStr, oldSol, opts = {}) {
   const S = require("./solutions.js"), w = GD.makeWorld(level.objects, level.header);
   const cached = S.get(levelStr, true);
   if (cached && S.fresh(cached) && cached.events) return { sol: cached, how: "cached" };
+  // opts.raw: the events only, nothing saved (tools/retarget.js tries many candidates; fromRun re-plans and measures
+  // every window of the level, which is the slow part)
   if (oldSol && oldSol.events && oldSol.events.length) {
     const q = GD.run(w, oldSol.events);
-    if (!q.dead && (q.done || q.end.x >= w.endX) && !GD.skipCheck(w, q.path, oldSol.events)) return { sol: S.fromRun(level, levelStr, { ok: true, events: oldSol.events }), how: "the old route still clears (re-planned)" };
+    if (!q.dead && (q.done || q.end.x >= w.endX) && !GD.skipCheck(w, q.path, oldSol.events)) return opts.raw ? { sol: { ok: true, events: oldSol.events }, how: "the old route still clears" } : { sol: S.fromRun(level, levelStr, { ok: true, events: oldSol.events }), how: "the old route still clears (re-planned)" };
   }
   // lib/incsolve.js (gd-incsolve): keep the route up to a calm point before the change, search from there until the
   // run is back in the old route's exact state, splice the old rest back in (seconds instead of a whole solve)
@@ -341,7 +343,7 @@ function resolve(level, levelStr, oldSol, opts = {}) {
   if (INC && opts.oldLevel && oldSol && oldSol.events && oldSol.events.length) {
     try {
       const r = INC.fromBase(opts.oldLevel, oldSol.events, level, {});
-      if (r && r.ok) return { sol: S.fromRun(level, levelStr, { ok: true, events: r.events }), how: `lib/incsolve.js (re-solved ${r.from != null ? "from tick " + r.from : "the changed stretch"}${r.ms != null ? ", " + (r.ms / 1000).toFixed(1) + " s" : ""})` };
+      if (r && r.ok) return { sol: opts.raw ? { ok: true, events: r.events } : S.fromRun(level, levelStr, { ok: true, events: r.events }), how: `lib/incsolve.js (re-solved ${r.from != null ? "from tick " + r.from : "the changed stretch"}${r.ms != null ? ", " + (r.ms / 1000).toFixed(1) + " s" : ""})` };
       if (r && r.fallback) opts.why = "incsolve: " + r.fallback;
     } catch (e) { opts.why = "incsolve failed: " + e.message; }
   }
