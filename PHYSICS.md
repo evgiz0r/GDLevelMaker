@@ -231,6 +231,24 @@ skips something, its 99% wrong. and will cause trouble. and anyway not the human
 - `opts.allowSkips` brings back the old ranking for debugging only. Tests: tests/mechanics.js "no-skip".
 - The shared check is `GD.skipCheck(w, path, events)` (null = clean; else the stuck result).
 
+## How the route is chosen (the natural route)
+
+1. **Valid first (hard rule):** a route must finish and skip nothing ("No secret ways" above).
+2. **The search** (lib/physics.js solveSweep) ranks the states it keeps by: portals skipped (rejected), orbs and
+   pads skipped, ticks close to walls in flying modes, then presses.
+3. **The natural plan** (lib/natural.js) makes candidates from the solver's route: one tap per jump, no
+   unneeded press, a flying controller's line per ship/wave/UFO/swing stretch, taps moved ~40% into their
+   windows.
+4. **The judge: human cost** (lib/difficulty.js humanCost, the difficulty session's: the difficulty score of
+   exactly these inputs, plus presses, distance from the window middle, missed jump marks, beat; lower is
+   better). With `naturalPlan(..., { cost: true })`, which tools/solutions.js uses when it saves a route,
+   every choice between two valid routes (each flying stretch: the solver's line or the controller's; at the
+   end: the natural route or the solver's own) keeps the lower cost. Without it (make.js and other quick
+   paths) the rules of thumb decide: fewer close passes, then fewer presses.
+   Cost: one humanCost is ~30 s on GDLM 44 (window measuring of ship holds); cached per route.
+5. **Calibration (open):** tools/human_presses.js measures where the user really presses in each window
+   from recordings; the difficulty session fits humanCost's `centre` weight (and the 40%) to it.
+
 ## The intended route (solver ranking)
 
 The sweep solver (solveSweep, used for every level with modes) does not just find the fewest presses:

@@ -80,7 +80,7 @@ function fromRun(level, levelStr, r) {
   let sol;
   if (r && r.ok) {
     let events = r.events;
-    try { const n = GD.naturalPlan(w, r, level.objects); if (n && n.path[n.path.length - 1].done) events = n.events; } catch (e) {}
+    try { const n = GD.naturalPlan(w, r, level.objects, { cost: true }); if (n && n.path[n.path.length - 1].done) events = n.events; } catch (e) {}
     sol = { ok: true, events };
   } else sol = { ok: false, events: (r && r.trail) || [], dieX: r && r.dieAt && r.dieAt.x, why: r && r.why };
   return put(levelStr, sol, level);
