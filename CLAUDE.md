@@ -272,8 +272,8 @@ spider orb + pad, the upside-down red-orb dive under a hanging column.
 
 ## Not simulated yet
 
-Mirror, dual and teleport portals; slopes turned a quarter turn (walls act as blocks); rotate,
-follow and "move to target"/"lock to player" triggers, and a player carried sideways by a moving
+Mirror and dual portals, teleport portal variants 2902/2064 and the teleport trigger 3022; slopes turned
+a quarter turn (walls act as blocks); follow and "move to target" triggers, and a player carried sideways by a moving
 block; speed-dependent ring scaling for ball/UFO; spike slopes (any slope skin that kills is
 treated as a plain slope -- unchecked).
 Simulated but checked only by the plans: mini size (gdsolver's measured values), move/toggle/spawn
