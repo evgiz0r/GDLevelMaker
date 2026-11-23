@@ -107,9 +107,10 @@ Lessons from building them:
 
 - **Swing**: one structure (swing-wiggle). Until 49fa848 `solveAny` found no path past any
   wall (the sweep merged a pending flip away; fixed by the physics session). More swing shapes to add.
-- **Green orb**: `sure:false` in lib/objects.js. In the sim it flips gravity and jumps toward the new
-  gravity's "up", so from the floor it throws the cube DOWN; the structure meets it high, after a pad.
-  Check in the real game before a level leans on it.
+- **Green orb**: the sim (gdp decompile, gdsolver) flips gravity and jumps toward the new gravity's
+  "up", throwing the cube DOWN from the floor; the user's real play of GDLM 60 shows a green orb taken
+  from the ground sends the cube to the CEILING (physics, 2026-11-23). The sim and the game disagree:
+  green-orb-flip (met high, after a pad) is to be re-checked once physics settles it.
 - **Dual** portals are not simulated: no dual structures yet.
 - Mining real levels for shapes (the most common 1-3 s layouts in official and community levels, by
   mode) to add what they use and to rank by "how often real levels use this shape".
