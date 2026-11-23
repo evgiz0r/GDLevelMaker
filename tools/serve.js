@@ -35,8 +35,12 @@ function selfUpdate() {
     // this file changed: start the new code (same arguments), then leave
     if (git(["diff", "--name-only", before, "HEAD", "--", "tools/serve.js", "tools/wip.js", "tools/index_levels.js", "tools/solutions.js"])) {
       console.log("self-update: serve.js or what it loads changed -- restarting");
-      SERVER.close(() => { cp.spawn(process.execPath, process.argv.slice(1), { cwd: process.cwd(), detached: true, stdio: "ignore" }).unref(); process.exit(0); });
-      setTimeout(() => process.exit(0), 3000).unref();
+      // start the new one at once (it retries the port while this one lets go), drop open keep-alive connections
+      // and leave. (The first version started the new one only after close() -- which waits for every open
+      // browser connection -- and its 3 s exit came first: the server just stopped, 2026-11-23.)
+      SERVER.close(); if (SERVER.closeAllConnections) SERVER.closeAllConnections();
+      cp.spawn(process.execPath, process.argv.slice(1), { cwd: process.cwd(), detached: true, stdio: "ignore", env: Object.assign({}, process.env, { GDLM_RESTART: "1" }) }).unref();
+      setTimeout(() => process.exit(0), 500).unref();
     }
   } catch (e) { UPD.note = "self-update failed: " + String(e.message).split("\n")[0]; console.log(UPD.note); }
   finally { UPD.busy = false; }
@@ -237,4 +241,11 @@ const SERVER = http.createServer((req, res) => {
     res.writeHead(200, { "Content-Type": types[path.extname(f)] || "application/octet-stream", "Cache-Control": "no-store" });
     res.end(data);
   });
-}).listen(port, () => console.log(`viewer at http://localhost:${port}/viewer/`));
+});
+// a restarted server (self-update) retries the port for 20 s while the old process lets go of it
+let listenTries = 0;
+SERVER.on("error", e => {
+  if (e.code === "EADDRINUSE" && process.env.GDLM_RESTART && ++listenTries < 40) return setTimeout(() => SERVER.listen(port), 500);
+  console.error(e.message); process.exit(1);
+});
+SERVER.listen(port, () => console.log(`viewer at http://localhost:${port}/viewer/`));
