@@ -82,7 +82,7 @@
   <button id="cmpBtn" hidden title="a frame of your recording next to the replay (needs tools/serve.js)">compare</button>
   <button id="markBtn" title="pause, then click where something should change (key M)">✎ mark</button>
   <button id="sound" class="on">click sound</button>
-  <button id="music" class="on">music</button>
+  <button id="music" class="on">music</button><label class="btn" id="addSongPc" hidden>add song<input id="songFilePc" type="file" accept="audio/*,.mp3,.ogg,.m4a,.wav" hidden></label>
   <button id="lightBtn" title="light mode: no GD art, no beat lines -- for a slow moment (the PC busy, the phone)">light</button>
   <button id="beatsBtn" class="on" title="beat grid of the level's song (songs on this PC, from tools/beats.js)">beats</button>
   <span id="clock" class="muted"></span>
@@ -137,6 +137,22 @@ async function gunzipB64(b64) {
   const buf = await new Response(new Blob([bytes]).stream().pipeThrough(ds)).arrayBuffer();
   return new TextDecoder().decode(buf);
 }
+// ---------- the public site (tools/pages.js sets window.GD_PAGES) ----------
+// Nothing copyrighted is hosted there. Songs, GD's own art and the official levels come from the user's OWN
+// tools/serve.js on this PC when it runs (http://localhost:8765 answers the Pages origin, CORS); anywhere else
+// that fails quietly: the shapes look, our levels, a song the visitor picks from their own device, or the
+// click sound. LOCALBASE is "" on the PC viewer itself (same server).
+let LOCALBASE = "";
+const LOCAL_URL = "http://localhost:8765";
+const localReady = !window.GD_PAGES ? Promise.resolve(location.protocol.startsWith("http"))
+  : fetch(LOCAL_URL + "/version", { cache: "no-store" }).then(r => { if (r.ok) LOCALBASE = LOCAL_URL; return r.ok; }).catch(() => false);
+// the song file a visitor picked, kept in this browser per song (IndexedDB; a convenience: all works without it)
+function songDb() {
+  return new Promise((ok, no) => { try { const r = indexedDB.open("gdlm-songs", 1);
+    r.onupgradeneeded = () => r.result.createObjectStore("songs"); r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); } catch (e) { no(e); } });
+}
+async function keptSong(key) { try { const db = await songDb(); return await new Promise(ok => { const q = db.transaction("songs").objectStore("songs").get(key); q.onsuccess = () => ok(q.result || null); q.onerror = () => ok(null); }); } catch (e) { return null; } }
+async function keepSong(key, bytes) { try { const db = await songDb(); db.transaction("songs", "readwrite").objectStore("songs").put(bytes, key); } catch (e) {} }
 // the level's song: fetched from tools/serve.js once, decoded, played sample-exact by lib/song.js (Web Audio);
 // while playing, the replay's clock IS the song's clock (frame()), so they cannot drift apart
 let song = null, songInfo = null, music = true;
@@ -150,13 +166,33 @@ function viewerSong(info) {
 const songLoading = {};
 async function loadSong(info) {
   const k = songKeyOf(info); if (songLoading[k]) return; songLoading[k] = true;
-  try { const r = await fetch(info.url); if (!r.ok) return; SONGS[k] = await audioCtx().decodeAudioData(await r.arrayBuffer()); } catch (e) { return; }
+  try {
+    let bytes = await keptSong(k);
+    if (!bytes) { const ok = await localReady; if (!ok || (window.GD_PAGES && !LOCALBASE)) { songLoading[k] = false; songAsk(true); return; }
+      const r = await fetch(LOCALBASE + info.url); if (!r.ok) { songLoading[k] = false; songAsk(true); return; } bytes = await r.arrayBuffer(); }
+    SONGS[k] = await audioCtx().decodeAudioData(bytes.slice(0));
+  } catch (e) { songLoading[k] = false; songAsk(true); return; }
+  songAsk(false);
   if (songInfo && songKeyOf(songInfo) === k && !song) { song = GD.songPlayer(SONGS[k], audioCtx); syncSong(true); }
 }
+// "add song": shown when the level has a song this page cannot get (the public site away from the user's PC).
+// The visitor picks the file from their own device; it is decoded here and kept per song id in this browser.
+function songAsk(show) {
+  const b = document.getElementById("addSongPc"); if (!b) return;
+  b.hidden = !show || !songInfo; if (show && songInfo) b.title = "this level's song (" + songKeyOf(songInfo) + ") is not here: pick the file from your device";
+}
+document.addEventListener("DOMContentLoaded", () => {
+  const inp = document.getElementById("songFilePc"); if (!inp) return;
+  inp.onchange = async e => { const f = e.target.files[0]; e.target.value = ""; if (!f || !songInfo) return;
+    const k = songKeyOf(songInfo), bytes = await f.arrayBuffer();
+    try { SONGS[k] = await audioCtx().decodeAudioData(bytes.slice(0)); } catch (err) { alert("That file could not be played as a song. An mp3 or ogg works."); return; }
+    keepSong(k, bytes); songAsk(false); const was = playing; setSong(songInfo); if (was) syncSong(true); };
+});
 function setSong(info) {
   if (song) { song.pause(); song = null; }
   songInfo = info || null;
-  if (!info || location.protocol === "file:") return; // songs come from tools/serve.js
+  if (!info) { songAsk(false); return; }
+  if (location.protocol === "file:") return; // songs come from tools/serve.js
   song = viewerSong(info);
 }
 // keep the song where the replay is: level time t plays song second offset + t. Seeks only when asked
@@ -272,6 +308,14 @@ async function loadFile(f) {
 }
 const pick = document.getElementById("pick");
 const ALL = (window.GD_LEVELS || []).concat(window.GD_LEVELS_LOCAL || []);
+if (window.GD_PAGES) localReady.then(ok => { if (!ok || !LOCALBASE) return;
+  const sc = document.createElement("script"); sc.src = LOCALBASE + "/viewer/levels.local.js";
+  sc.onload = () => { for (const l of (window.GD_LEVELS_LOCAL || []).filter(l => /official/.test(String(l.file)))) ALL.push(l); };
+  document.head.appendChild(sc);
+  // the beat grids too (measured from the songs on that PC); then the open level again, with its beat lines
+  const bs = document.createElement("script"); bs.src = LOCALBASE + "/local/beats.local.js";
+  bs.onload = () => { if (L && pick.value !== "") pick.dispatchEvent(new Event("change")); };
+  document.head.appendChild(bs); });
 ALL.forEach((l, i) => pick.add(new Option(l.name + "  —  " + l.file, i)));
 pick.onchange = () => { const l = ALL[pick.value]; load(l.name, l.level, l.solution, l.song); L.deaths = l.deaths || []; summary(); draw(); };
 // ---------- the level picker (button / key L): cards with a thumbnail strip, length, modes, version, search,
@@ -456,8 +500,9 @@ try { art = localStorage.getItem("gdlm.art") !== "0"; } catch (e) {}
 function artLoad() { return artTried || (artTried = artLoad1()); } // one load, shared by every caller
 async function artLoad1() {
   if (!location.protocol.startsWith("http") || window.GD_PHONE) { art = false; artBtn.hidden = true; return; }
+  if (window.GD_PAGES && !(await localReady && LOCALBASE)) { art = false; artBtn.hidden = true; draw(); return; } // no art hosted here
   artBtn.textContent = "GD art …";
-  const ok = await GD.ART_LIB.load("/gdres/", () => draw());
+  const ok = await GD.ART_LIB.load(LOCALBASE + "/gdres/", () => draw());
   artBtn.textContent = ok ? "GD art" : "GD art (not found)";
   artBtn.title = ok ? artBtn.title : "no sprites: " + GD.ART_LIB.S.failed + " (set GD_GAME for tools/serve.js)";
   if (!ok) art = false;
@@ -1070,7 +1115,8 @@ function frame(now) {
 }
 resize();
 // the footer: which commit this page is (tools/serve.js keeps its checkout current; GET /version)
-if (location.protocol.startsWith("http") && !window.GD_PHONE) fetch("/version", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(v => {
+if (window.GD_PAGES) document.getElementById("ver").textContent = "public viewer, build " + (window.GD_BUILD || "?") + " -- Geometry Dash levels made by Claude. Songs and GD's art are never hosted here.";
+else if (location.protocol.startsWith("http") && !window.GD_PHONE) fetch("/version", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(v => {
   if (!v || !v.commit) return;
   document.getElementById("ver").textContent = `viewer ${v.note === "up to date" || /^updated/.test(v.note || "") ? "up to date" : "at"}: ${v.commit} -- ${v.subject}` + (v.note && !/^up to date|^updated/.test(v.note) ? ` (${v.note})` : "");
 }).catch(() => {});
