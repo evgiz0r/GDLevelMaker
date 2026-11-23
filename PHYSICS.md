@@ -235,6 +235,14 @@ skips something, its 99% wrong. and will cause trouble. and anyway not the human
 
 ## How the route is chosen (the natural route)
 
+THE DEFAULT (the user, 2026-11-23: "let's by default solve with the human route, then in the limits we will
+see"): every route that is saved or shown is the human route below. tools/solutions.js fromRun is the one
+door every saving path goes through (make.js, wip.js, compose via make, polish, tests/saved_routes.js --fix);
+official and community viewer routes take the same pass (difficulty_solve.js toViewer). Each saved route says
+`kind`: "human"; "limit" when no human route finishes (the solver's raw route is kept, `why` says so);
+"unbeaten" when the solver is stuck (`why`, `skipped`). tests/saved_routes.js fails a route that dies, skips,
+or holds longer than needed (over 0.15 s outside ship/wave where a tap finishes).
+
 1. **Valid first (hard rule):** a route must finish and skip nothing ("No secret ways" above).
 2. **The search** (lib/physics.js solveSweep) ranks the states it keeps by: portals skipped (rejected), orbs and
    pads skipped, ticks close to walls in flying modes, then presses.
