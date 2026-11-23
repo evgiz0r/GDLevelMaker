@@ -11,6 +11,11 @@
 //   - a child process of a holder (env GDLM_HEAVY_HELD) runs in its parent's slot: no deadlock when
 //     a heavy tool runs another one (loop.js -> make.js, difficulty_solve.js all -> one level)
 // Waits up to GDLM_HEAVY_WAIT minutes (default 120), then gives up with exit code 75.
+// Priority: GDLM_HEAVY_PRIORITY=high|normal|low (or --priority high on the tool's command line); default normal.
+//   Waiters register in the lock folder (w<pid>.json); a free slot goes to the highest priority waiting, first
+//   come first within one priority. A running job is never stopped, so a long low-priority job (batch
+//   re-solves, measuring runs) holds a high one back by at most itself. High: what the user asked for now;
+//   low: batches and measuring that can wait.
 // GDLM_HEAVY=off skips all of it (only when the user says so). Status: node tools/heavy.js
 // Why: 2026-11-23 the PC hung with 0.2 GB of 16 GB free -- five heavy node jobs from different
 // sessions at once, while the rule was only written down. Test: node tests/heavy.js
@@ -45,6 +50,30 @@ function holders(dir = lockDir()) {
   }
   return out.sort((a, b) => a.start.localeCompare(b.start));
 }
+// priority of this process: env, then a --priority flag
+const RANK = { high: 0, normal: 1, low: 2 };
+function myPriority() {
+  let p = process.env.GDLM_HEAVY_PRIORITY || process.env.HEAVY_PRIORITY || "";
+  const i = process.argv.indexOf("--priority"); if (!p && i > 0) p = process.argv[i + 1] || "";
+  const m = /^--priority=(\w+)$/.exec(process.argv.find(a => /^--priority=/.test(a)) || ""); if (!p && m) p = m[1];
+  return RANK[p] !== undefined ? p : "normal";
+}
+// the live waiters (w<pid>.json); stale ones are removed
+function waiters(dir = lockDir()) {
+  let files = [];
+  try { files = fs.readdirSync(dir).filter(f => /^w\d+\.json$/.test(f)); } catch (e) { return []; }
+  const out = [];
+  for (const f of files) {
+    let h = null;
+    try { h = JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")); } catch (e) {}
+    if (!h || !alive(h.pid)) { try { fs.unlinkSync(path.join(dir, f)); } catch (e) {} continue; }
+    out.push(h);
+  }
+  return out;
+}
+// who goes first among waiters: higher priority, then who came first (pure: tested)
+const before = (a, b) => RANK[a.prio] !== RANK[b.prio] ? RANK[a.prio] < RANK[b.prio] : a.since !== b.since ? a.since < b.since : a.pid < b.pid;
+function firstInLine(ws) { return ws.reduce((m, w) => (!m || before(w, m) ? w : m), null); }
 // may a new job start? (pure: tested)
 function decide(nHolders, free, gameOn) {
   const slots = free > TWO_SLOTS_MB && !gameOn ? 2 : 1;
@@ -76,7 +105,7 @@ function minutesLeft(h) {
   } catch (e) {}
   return isNaN(typical) ? null : Math.max(1, Math.round((typical - elapsed) / 60));
 }
-const describe = h => `${(/tools[\\/].*/.exec(h.cmd) || [h.cmd])[0]} (${h.session}, pid ${h.pid}, ${Math.round((Date.now() - Date.parse(h.start)) / 60000)} min in` +
+const describe = h => `${(/tools[\\/].*/.exec(h.cmd) || [h.cmd])[0]} (${h.session}, ${h.prio && h.prio !== "normal" ? h.prio + " priority, " : ""}pid ${h.pid}, ${Math.round((Date.now() - Date.parse(h.start)) / 60000)} min in` +
   (minutesLeft(h) ? `, ~${minutesLeft(h)} min left)` : ")");
 
 let held = null;
@@ -89,20 +118,29 @@ function claim(label) {
   const cmd = label || process.argv.slice(1).map(a => path.relative(ROOT, a).startsWith("..") ? a : path.relative(ROOT, a).replace(/\\/g, "/")).join(" ");
   const limit = Date.now() + (+(process.env.GDLM_HEAVY_WAIT || 120)) * 60000;
   let lastMsg = "", lastAt = 0;
-  const waitStart = Date.now();
+  const waitStart = Date.now(), prio = myPriority();
+  const me = { pid: process.pid, prio, since: waitStart, session: sessionName(), cmd };
+  const wfile = path.join(dir, "w" + process.pid + ".json");
+  const unwait = () => { try { fs.unlinkSync(wfile); } catch (e) {} };
+  try { fs.writeFileSync(wfile, JSON.stringify(me)); } catch (e) {}
+  process.on("exit", unwait);
   for (;;) {
     // check-and-take under a short mutex (exclusive create), so two starting at once cannot both get in
     let got = false;
     try {
       const fd = fs.openSync(mutex, "wx");
       try {
-        const hs = holders(dir), free = freeMB(), game = gameRunning(), d = decide(hs.length, free, game);
+        const hs = holders(dir), free = freeMB(), game = gameRunning();
+        let d = decide(hs.length, free, game);
+        const ws = waiters(dir), first = firstInLine(ws.some(w => w.pid === me.pid) ? ws : ws.concat([me]));
+        if (d === "go" && first && first.pid !== me.pid) d = "queue";
         if (d === "go") {
           held = path.join(dir, process.pid + ".json");
-          fs.writeFileSync(held, JSON.stringify({ pid: process.pid, session: sessionName(), cmd, start: new Date().toISOString(), freeMB: free }));
-          got = true;
+          fs.writeFileSync(held, JSON.stringify({ pid: process.pid, session: sessionName(), cmd, prio, start: new Date().toISOString(), freeMB: free }));
+          got = true; unwait();
         } else {
-          const msg = d === "busy" ? `waiting for ${hs.map(describe).join("; ")}${game ? " (the game runs: one job at a time)" : ""}` : `waiting for memory: ${free} MB free, need ${game ? GAME_MIN_FREE_MB + " MB while the game runs" : MIN_FREE_MB + " MB"}`;
+          const msg = d === "busy" ? `waiting for ${hs.map(describe).join("; ")}${game ? " (the game runs: one job at a time)" : ""}`
+            : d === "queue" ? `waiting: ${first.prio} priority ${(/tools[\\/].*/.exec(first.cmd) || [first.cmd])[0]} (${first.session}) goes first` : `waiting for memory: ${free} MB free, need ${game ? GAME_MIN_FREE_MB + " MB while the game runs" : MIN_FREE_MB + " MB"}`;
           if (msg.replace(/\d+ min in.*$/, "") !== lastMsg || Date.now() - lastAt > 120000) { console.log(`heavy: ${msg}`); lastMsg = msg.replace(/\d+ min in.*$/, ""); lastAt = Date.now(); }
         }
       } finally { fs.closeSync(fd); try { fs.unlinkSync(mutex); } catch (e) { /* removed by a waiter that took it for stale (OneDrive/Windows can be slow): fine */ } }
@@ -123,8 +161,10 @@ function claim(label) {
 }
 const release = () => { if (held) { try { fs.unlinkSync(held); } catch (e) {} held = null; delete process.env.GDLM_HEAVY_HELD; } };
 
-module.exports = { claim, release, holders, decide, gameRunning, lowPriority, lockDir, freeMB, describe, MIN_FREE_MB, TWO_SLOTS_MB, GAME_MIN_FREE_MB };
+module.exports = { claim, release, holders, waiters, firstInLine, myPriority, decide, gameRunning, lowPriority, lockDir, freeMB, describe, MIN_FREE_MB, TWO_SLOTS_MB, GAME_MIN_FREE_MB };
 if (require.main === module) {
   const hs = holders();
   console.log(`${freeMB()} MB free${gameRunning() ? ", the game runs" : ""}; ${hs.length ? hs.length + " heavy job(s): " + hs.map(describe).join("; ") : "no heavy job running"}  (lock dir ${lockDir()})`);
+  const ws = waiters().sort((a, b) => (before(a, b) ? -1 : 1));
+  if (ws.length) console.log("waiting, in order: " + ws.map(w => `${(/tools[\\/].*/.exec(w.cmd) || [w.cmd])[0]} (${w.session}, ${w.prio}, ${Math.round((Date.now() - w.since) / 60000)} min)`).join("; "));
 }

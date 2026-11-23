@@ -116,6 +116,10 @@ at once and the PC hung (0.2 GB free), so the rule is now a lock every heavy too
 - while the user plays (GeometryDash.exe runs): one job whatever is free, and none starts under 2 GB free;
 - every heavy job lowers itself to idle CPU priority at start, so the game and the desktop always win;
 - the others wait and say so: `heavy: waiting for tools/make.js ... (<session>, pid, N min in, ~M min left)`;
+- **priority**: `GDLM_HEAVY_PRIORITY=high|normal|low` (or `--priority high`); the next free slot goes to the highest
+  priority waiting, first come within one. Running jobs are never stopped, so a long low job delays a high one by
+  itself at most. High = what the user asked for now; low = batch re-solves and measuring runs (put them at low);
+  `node tools/heavy.js` lists the waiters in order;
 - the slot is a file in the shared `local/locks/heavy/` (real path, all worktrees); a dead pid's slot is
   cleared, a child of a holder runs in its parent's slot. `node tools/heavy.js` shows who holds it.
 - **A new heavy tool adds the line** `if (require.main === module) require("./heavy.js").claim();` after

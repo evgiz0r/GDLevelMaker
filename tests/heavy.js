@@ -3,6 +3,7 @@
 // 2. a second job waits ("waiting for ...") while the first holds the slot, and runs after it exits
 // 3. a claimed job runs at idle priority; a slot whose pid is dead is cleared; a child of a holder (GDLM_HEAVY_HELD) runs in its slot
 // 4. every heavy tool claims the lock itself
+// 5. priority: a free slot goes to the highest-priority waiter (GDLM_HEAVY_PRIORITY), first come within one
 const assert = require("assert"), fs = require("fs"), path = require("path"), os = require("os"), cp = require("child_process");
 const H = require("../tools/heavy.js");
 
@@ -15,6 +16,9 @@ assert.strictEqual(H.decide(0, 1000), "memory");
 assert.strictEqual(H.decide(1, 9000, true), "busy", "one job while the game runs");
 assert.strictEqual(H.decide(0, 1800, true), "memory", "2 GB free while the game runs");
 assert.strictEqual(H.decide(0, 1800, false), "go");
+// 5 (pure): high before normal before low; first come within one priority
+assert.strictEqual(H.firstInLine([{ pid: 1, prio: "low", since: 1 }, { pid: 2, prio: "high", since: 5 }, { pid: 3, prio: "normal", since: 2 }]).pid, 2);
+assert.strictEqual(H.firstInLine([{ pid: 4, prio: "normal", since: 9 }, { pid: 5, prio: "normal", since: 3 }]).pid, 5);
 
 // 2
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), "gdlm-heavy-test-"));
@@ -35,6 +39,21 @@ assert(/heavy: waiting for A \(test/.test(b.stdout), "B says what it waits for: 
 const runB = +/RUN B (\d+)/.exec(b.stdout)[1], endA = +/END A (\d+)/.exec(aOut)[1];
 assert(runB >= endA, "B ran only after A ended");
 assert.strictEqual(H.holders(dir).length, 0, "slots released on exit");
+
+// 5 (live): A holds the slot; a low job queues, then a high one; when A ends the high one runs first
+{
+  const A = cp.spawn(process.execPath, ["-e", job(4000, "A")], { env });
+  let aO = ""; A.stdout.on("data", d => aO += d);
+  const t1 = Date.now();
+  while (!/RUN A/.test(aO) && Date.now() - t1 < 10000) await new Promise(r => setTimeout(r, 100));
+  const L = outOf(cp.spawn(process.execPath, ["-e", job(500, "L")], { env: Object.assign({}, env, { GDLM_HEAVY_PRIORITY: "low" }) }));
+  await new Promise(r => setTimeout(r, 1000));
+  const Hi = outOf(cp.spawn(process.execPath, ["-e", job(500, "H")], { env: Object.assign({}, env, { GDLM_HEAVY_PRIORITY: "high" }) }));
+  const [lo, hi] = await Promise.all([L, Hi]);
+  const runL = +/RUN L (\d+)/.exec(lo)[1], runH = +/RUN H (\d+)/.exec(hi)[1], endH = +/END H (\d+)/.exec(hi)[1];
+  assert(runH < runL && runL >= endH, `the high-priority job ran first (H ${runH}, L ${runL})`);
+  assert.strictEqual(H.waiters(dir).length, 0, "waiter files removed");
+}
 
 // 3
 fs.writeFileSync(path.join(dir, "999999.json"), JSON.stringify({ pid: 999999, session: "x", cmd: "dead", start: new Date().toISOString() }));
