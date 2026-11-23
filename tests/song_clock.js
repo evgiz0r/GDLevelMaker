@@ -1,6 +1,7 @@
 // node tests/song_clock.js  -- the viewer's song clock (lib/song.js) stays exact through seeks: "if i start from
 // any place, the music starts getting bad" (the user, 2026-11-23). A fake AudioContext whose clock advances in
-// 128-sample steps with jittery frame times; the replay reads the song's currentTime as the viewer's frame() does.
+// 128-sample steps with jittery frame times. (The viewer advances by frame time and pulls a tenth of the gap
+// to this clock each frame, since the stepped audio clock alone stuttered; this checks the clock it pulls to.)
 // Checks, starting at 10, 25 and 40 s (and a negative song offset): the clock stays within 20 ms of the true song
 // position over 10 s, every seek / rate change leaves exactly ONE source node playing (no overlapping audio),
 // pause stops the node, and a suspended context (no click yet) is reported as not running.

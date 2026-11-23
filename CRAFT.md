@@ -115,9 +115,30 @@ From the text maps; each is now (or will be) a structure in `tools/structures.js
 - **ship spike frames**: hollow boxes and diamonds of spikes in the ship's lane, floating blocks with
   spikes on 3 sides.
 
+## Generator and checks (step 2)
+
+- **`tools/craft.js check <level>`** and score.js's **`craft` gate** (WARN when 3+ targets missed): the
+  numbers above against the targets. Every rule is soft: a level may miss one with a reason.
+- **`tools/craftkit.js`** -- the craft pass, spec `"craft": true` (or `{rods, underRods, chains, lanterns,
+  skipCols}`) in make.js, after the block skins: rods on ~30% of ground-pillar tops (rod 16, tall pillars
+  rod 15), rods pointing down under ~35% of hanging-column ends, every floating piece hung on one chain
+  (<= 2 wide) or two, every orb in the air hung on a chain (the lantern). Chains stack up to row 11 or the
+  solid above. Seeded, deco only.
+- **make.js extra `"dy"`**: an object n units off its row centre -- the low pit spikes sit at `dy: -13`
+  (id 9 at y 2, like the official floors).
+- **Structures, section "craft"** in `tools/structures.js` (all ready, windows 121-304 ms): `pillar-hop`,
+  `pillar-climb`, `capped-hop` (args: heights, w, gap, cap), `slab-steps`, `lantern-orb`,
+  `stepped-pyramid`, `ceiling-hop` (upside down on hanging columns), `ship-weave` (spike-tipped pillars and
+  hanging columns along a drifting line), `ship-lanterns` (floating spiked blocks on chains). Each over a
+  pit floor; each starts from a 3-wide doorstep (a 1-wide first pillar asked for a 1.7-block prejump).
+- **`tools/craftlevel.js briefs/craft_NN_<name>.json`** -- the craft composer: sections on the song's bars,
+  each a list of chunks (structures, raw objects, rests), one hue per section switched on its first bar
+  (ground = the hue x0.45), the mode portal at the start (a 3-portal wall after a flying part), xStep-style
+  hue flashes (`"build": n` bars) into the next section, `"craft": true` and the classic skins. Writes
+  `specs/NN_<name>.json` for make.js.
+
 ## What is open
 
-- Step 2 (generator) and step 3 (the level): see below as they land.
 - Not measured: how the pieces sync with the song (Jumper's piece rhythm vs its beat).
 - The 2.2 look (TASTE.md, modern_look.md) and this 1.x craft are not opposed: the craft is about the
   playfield; a 2.2 level adds its scene behind it. The rule kept from both: the playfield is

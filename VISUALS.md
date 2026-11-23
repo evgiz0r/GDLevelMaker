@@ -147,6 +147,23 @@ hitbox needs, not what the game shows):
 Open: measure the UFO, swing and ball rotation in a recording (track.py on a clean stretch) and set the
 factors from it.
 
+## Viewer speed (the user: playback "slightly laggy", 2026-11-23)
+
+Key **F** shows frames a second and the median draw time in the clock line (never over the playfield).
+Measured draw() CPU time on GDLM 51 adrift (3173 objects), 120 frames through the level (browser pane, PC):
+
+| canvas | GD art | shapes |
+|---|---|---|
+| 1009 x 460 | median 2.7 ms, p90 4.0, max 12.9 | median 1.3, p90 2.6, max 14.3 |
+| 2400 x 1100 | median 2.5 ms, p90 5.5, max 12.6 | median 1.2, p90 1.8, max 6.2 |
+
+The strip, the button band and the click-table rows each cost < 0.03 ms a frame. So drawing fits a 60 fps frame
+(16.7 ms) with room; the occasional 12-14 ms frame is the first draw after a seek (colour timeline, sprite tints).
+What was made smooth: the replay used to take the song's AudioContext clock as its time every frame; that clock
+moves in steps (a render quantum, ~3-10 ms), so the motion stuttered. Now it advances by frame time and pulls a
+tenth of the gap to the song clock a frame. Not measured yet: real frame rate with the pane visible (the
+browser pane here was hidden, so no animation frames ran) and on the phone -- read them with F.
+
 ## Facts (checked against the user's recordings)
 
 How: viewer "compare" panel, level start offset set by eye, "save comparison" -> `local/shots/`.

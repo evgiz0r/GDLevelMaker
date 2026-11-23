@@ -103,6 +103,14 @@ Lessons from building them:
   lower; the test uses a wall of three portals.
 - The checker is slow for ship (~80 s), robot (~25-130 s) and UFO (~45 s): the sweep solver.
 
+## Craft structures (2026-11-23, the craft session; CRAFT.md)
+
+Nine shapes from studying Jumper and xStep (rules, not coordinates), all over pit floors of low spikes (id 9
+sunk 13 units): `pillar-hop`, `pillar-climb`, `capped-hop`, `slab-steps`, `lantern-orb`, `stepped-pyramid`,
+`ceiling-hop`, `ship-weave`, `ship-lanterns`. All ready (121-304 ms). Each cube one starts on a 3-wide
+doorstep: a 1-wide first pillar gave a 1.7-block prejump. Dress them with the craft pass (spec `"craft":
+true`, tools/craftkit.js): rods and chains attached to the pieces.
+
 ## Open
 
 - **Swing**: one structure (swing-wiggle). Until 49fa848 `solveAny` found no path past any
@@ -147,3 +155,14 @@ floor, at most 5% of 4-move patterns repeated within 10 s. compose.js's block te
 
 Open: the structure library does not have entry/exit heights yet (every structure starts and ends on the
 floor it is placed on); repetition is not steered in compose (it only avoids the same chunk twice in a row).
+
+Next to measure: **Spooky Dash** (Fabruuuu, rated Hard, ID 150941693, local/community/150941693.gdlvl, not
+committed), a modern Hard level the user beat and enjoyed (attempt 9; deaths at 27.7% twice and 40-42%
+three times, local/real_stats.jsonl). Solve it once (`node tools/solutions.js local/community/150941693.gdlvl`,
+heavy), then `node tools/flow.js local/community/150941693.gdlvl` and `node tools/rules.js` on it: its
+height / repetition numbers next to the official ones are a target the user has played and liked.
+More references the user chose and played (2026-11-23, local/community, deaths in local/real_stats.jsonl):
+Locked 149415501, ClockWood 150286303 (beaten), NOT A MONOCHROME LVL 149575037 (left after one try at 25%),
+Gang Vibes 147433579 (completed), "A level" 148448631, Eden and Ash 146165333, Accelerate 140155559 (beaten).
+Measure them as Spooky Dash: the beaten / completed ones are the target band, the one left early a
+counter-example (what made the user stop at 25%).
