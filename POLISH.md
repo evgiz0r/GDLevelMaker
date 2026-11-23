@@ -159,7 +159,7 @@ timing is unnatural and small"; on block ~85 (v13): "this looks like very bad ju
   clicked on reach), orb presses 196 / 217 ms. The orbs sit 0.5-0.6 block off the spike row's exact
   thirds (an 8-spike row with them on the thirds does not solve with one press per orb): kept, stated.
 - **The jump before the red pad**: the j19 single and j20.5 double were nudged into each other and
-  against the pad (a 13 ms tap, the user's "very bad jump"); now one single at b20, 6 blocks after the
+  against the pad (13 ms with later inputs fixed; 63 ms in the shared player window, lib/windows.js since main 05abaf7, which re-plans the next input -- tight either way, the user's "very bad jump"); now one single at b20, 6 blocks after the
   wave exit, 2 blocks of run before the pad.
 What made it better: readability first. A dark, calm scene with white hazards reads at a glance and still
 looks like hell (dim warm haze, dark rocks, lava-edged blocks). What did not: everything that pulsed.
@@ -196,6 +196,9 @@ lib/windows.js (the viewer's window bars).
 - Look: 3.8 objects per block (the checklist's target is 10-50; modernPass stays near 5-6 by design).
   No front-layer glow or particles yet, no shaders, colours of hazards untouched.
 - Fair pass moves one thing at a time and re-times only the input it fixes.
+- polish.js's own windowOf still holds later inputs fixed (pessimistic); the shared measure is now
+  lib/windows.js (difficulty's re-planned measureWindows, used by the viewer, score.js and tools/windows.js):
+  polish.js should switch to it so every tool gives one number.
 - Sync: drops and section changes (`tools/songmap.js`) are not used yet; only beats and bars.
 - Difficulty before/after (lib/difficulty.js tier) is not in the report yet.
 - The viewer's GD art draws the title text object (914) as an editor "Start pos" label (visuals session).
