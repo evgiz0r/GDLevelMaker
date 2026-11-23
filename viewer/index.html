@@ -403,6 +403,10 @@ const sx = x => (x - camX) * scale, sy = y => groundY - (y - camY) * scale;
 
 function draw() {
   if (!L) return;
+  // a canvas with no size yet (a hidden pane, an iframe before layout) made scale 0, the camera NaN,
+  // and the smoothed camY stayed NaN for good: every later draw threw in drawPlayer
+  if (!W || !H) { resize(); if (!W || !H) return; }
+  if (!isFinite(camY)) camY = 0;
   const k = tick(), s0 = L.path[k];
   // between two 240 Hz steps: the player and the camera move on smoothly at the screen's own rate
   const f = playing ? Math.min(1, Math.max(0, t * P.TPS - k)) : 0, s1 = L.path[Math.min(k + 1, L.path.length - 1)];
@@ -782,6 +786,7 @@ document.getElementById("linkBtn").onclick = async () => {
 };
 setInterval(() => { if (L && !playing) writeHash(); }, 1000);
 (async () => {
+  if (hashParams().get("embed")) return; // the parent page loads the level (viewer/polish.html)
   await loadWip(false);
   const h = hashParams(), want = h.get("lv");
   const i = want ? ALL.findIndex(l => l.file === want) : -1;
@@ -790,6 +795,20 @@ setInterval(() => { if (L && !playing) writeHash(); }, 1000);
 })();
 loadMarks();
 requestAnimationFrame(frame);
+// ---------- embedded (viewer/polish.html: before / after side by side) ----------
+// #embed=1 hides the controls; the parent page drives the clock through window.VIEWER.
+if (hashParams().get("embed")) {
+  document.querySelector("header").style.display = "none"; document.querySelector("main").style.display = "none";
+  document.getElementById("scrub").style.display = "none"; sound = false; music = false;
+}
+window.VIEWER = {
+  load(name, levelStr, saved, info) { load(name, levelStr, saved, info); },
+  seek(tt) { if (!L) return; t = Math.max(0, Math.min(tt, (L.path.length - 1) / P.TPS)); playing = false; draw(); },
+  timeOfX(x) { if (!L) return 0; const i = L.path.findIndex(s => s.x >= x); return (i < 0 ? L.path.length - 1 : i) / P.TPS; },
+  get t() { return t; }, get len() { return L ? (L.path.length - 1) / P.TPS : 0 },
+  setArt(on) { if (art !== !!on) artBtn.onclick(); },
+  setHit(on) { if (showHit !== !!on) document.getElementById("hit").onclick({ target: document.getElementById("hit") }); },
+};
 </script>
 </body>
 </html>
