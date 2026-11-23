@@ -154,6 +154,13 @@ Why: the user on the Deadlocked level map, 2026-11-23: "The player skips the por
 levels you usually dont skip portals". The old cached Deadlocked run skipped the cube portal at block
 38 and stayed a mini wave past 40+ portals, orbs and pads. With the ranking (and the turned teleport
 exits above) Deadlocked's portal-taking route reaches block 434.9 (37%; was 26-31%), dying in the
-ball part on a hanging spike near the turned teleport at 441.5. Flying stretches are then re-flown
-through the corridor's middle by lib/natural.js (naturalPlan, only for beaten levels: an unbeaten
-level's map still shows the solver's edge-hugging line -- open).
+ball part on a hanging spike near the turned teleport at 441.5. Third in the ranking, before presses:
+flying ticks (ship, wave, UFO, swing) spent closer to a wall than half the way to the corridor's middle (at least 12, at most 45 units; a flat 12 left Jumper's ship 12-15 units off spike rows with 150-210 of room, now 23-41, centring 0.6 -> 0.72); two tiers, very near (12) ranked first: Deadlocked's wave/ship median clearance 28 -> 47 units, ticks within 15 units 24% -> 5%, centring 0.78; Jumper 0% within 15). The wave keeps the middle 70% (not half): it only moves at 45 degrees, and holding the middle half of a flat corridor made runs of 3-frame zigzags; Deadlocked's 14-17.5 s went from 21 to 15 presses, median clearance 47 -> 41 -- a solid, hazard, slope or the
+band's floor/roof ("he waves way too close to the border"); this works on unbeaten levels too, where
+lib/natural.js's mid-corridor re-fly (beaten levels only, and all-or-nothing per stretch: on Deadlocked
+it died inside every stretch) cannot. GDLM 44: 8 presses instead of 6.
+
+Open (2026-11-23): Deadlocked stops at block 436 in the mini ball part (three lanes; the middle one is a
+row of id 1202 -- a 30x3 piece with spikes hanging under it -- that the sim calls a hazard by OpenGD's
+"hitbox and not solid" rule). As a solid platform the solve gets to 456.6; no real-game plan reaches a
+1202 to settle it. Waiting on the user to check 1202 in the editor (platform or hazard).

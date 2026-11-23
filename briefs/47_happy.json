@@ -1,0 +1,23 @@
+{
+  "name": "GDLM 47 sunny side",
+  "idea": "a happy level with happy colours, 1:40 long (the user), Normal, fair and fun: sections on the song's own changes, a new mode or idea every section, play on block terrain, a new scene and palette per section, the modern look",
+  "story": "a sunny day: morning yellow, sky-blue flight, mint meadow upside down at half speed, coral wave on the second drop, pink ball, lavender orbs and pads at double speed, a short breath, a golden finale, the signature at the end",
+  "difficulty": { "label": "Normal", "minWindowMs": 60 },
+  "style": "classic",
+  "song": { "custom": 311087 }, "offset": 0,
+  "grid": { "bpm": 133.998, "t0": 0.0461 },
+  "seed": 11, "terrain": true, "palette": "light", "art": { "bg": 13 },
+  "songNotes": "311087 Tiny Tunes (Fantomenk): 134 BPM, high-confidence grid (drift 5 ms), downbeat on beat index 2 (bars start b3, b7 ...), bar = 1.79 s. songmap sections: drops at bar 9 (17.1 s) and 26 (47.5 s), changes at 32, 40, 50 (90.5 s), a dip at 48-49. Level sections start on those bars; it ends at bar 56 (101 s).",
+  "sections": [
+    { "name": "morning", "beats": 38, "use": ["single", "spike-block", "platform"], "args": { "platform": { "w": 4, "h": 1 } }, "gaps": [5, 8], "bg": [255, 214, 90], "ground": [240, 170, 60], "line": [255, 255, 255], "deco": 0.2 },
+    { "name": "first drop", "beats": 32, "use": ["double", "spike-block", "platform", "hops"], "args": { "platform": { "w": 4, "h": 1 }, "hops": { "n": 3, "w": 3, "gap": 2, "rise": 0 } }, "bg": [255, 190, 70], "ground": [245, 150, 50], "line": [255, 255, 255], "flash": true, "deco": 0.3 },
+    { "name": "blue sky", "beats": 20, "mode": "ship", "bg": [90, 185, 255], "ground": [60, 150, 230], "args": { "ship-tunnel": { "waves": 2, "gap": 5 } } },
+    { "name": "mint meadow", "beats": 16, "mode": "upside", "speed": "0.5x", "use": ["single", "double"], "bg": [110, 230, 185], "ground": [70, 200, 150], "line": [255, 255, 255] },
+    { "name": "coral wave", "beats": 24, "mode": "wave", "speed": "1x", "bg": [255, 140, 120], "ground": [240, 110, 95], "flash": true },
+    { "name": "pink bounce", "beats": 32, "mode": "ball", "bg": [255, 150, 205], "ground": [240, 115, 180] },
+    { "name": "lavender jumps", "beats": 32, "speed": "2x", "use": ["orb-pit", "pad-launch", "double", "orb-ladder"], "args": { "orb-ladder": { "n": 2 }, "pad-launch": { "n": 3 } }, "gaps": [4, 6], "bg": [185, 160, 255], "ground": [150, 125, 240], "line": [255, 255, 255] },
+    { "name": "breath", "beats": 8, "rest": true, "speed": "1x", "bg": [200, 235, 255], "ground": [160, 210, 250], "deco": 0 },
+    { "name": "golden finale", "beats": 16, "use": ["block-spike-block", "double", "pad-launch", "gate"], "bg": [255, 205, 60], "ground": [245, 160, 40], "line": [255, 255, 255], "flash": true, "deco": 0.3 },
+    { "name": "end", "beats": 8, "rest": true, "bg": [255, 225, 150], "ground": [245, 190, 110], "line": [255, 255, 255], "secs": 1.5 }
+  ]
+}

@@ -62,8 +62,10 @@ def("orb-pit", "yellow orb over a long spike run (n spikes); click the orb at th
   o.push(["yellow orb", Math.floor(n / 2), a.orbRow || 2]);
   return { objects: o, width: n };
 });
-def("pad-launch", "yellow pad on the floor, a spike run after it, a platform to land on", (a) => {
-  const n = a.n || 4, o = [["yellow pad", 0, 0]];
+def("pad-launch", "yellow pad on the floor, a run of n spikes (default 3) after it", (a) => {
+  // 3 by default: the pad's arc at 1x does not clear 4, and the player then has to jump before the pad
+  // to arrive high -- a prejump (GDLM 47's finale; GDLM 41/45 set n: 3 by hand)
+  const n = a.n || 3, o = [["yellow pad", 0, 0]];
   for (let i = 0; i < n; i++) o.push(["spike", 2 + i, 0]);
   return { objects: o, width: 2 + n };
 });
