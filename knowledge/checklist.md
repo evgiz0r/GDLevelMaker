@@ -130,6 +130,11 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 - [ ] **Sync loosely**: portals, speed changes and the drop on the music's moments; most clicks free.
   `node tools/sync.js`. (SYNC.md "How much to sync")
 
+- [ ] **Taste from data** (308 rated / unrated community levels, within tier and era, effort taken out):
+  featured levels have **fewer hazards per block** (delta -0.25; epic+ vs featured -0.33) and **longer
+  sections** (fewer mode / speed swaps per minute, -0.28), and a fuller look. `node tools/taste.js score
+  <level>`; score.js gate "taste". Most of the user's spot rules come out "unclear" in level-wide data
+  (not weaker for it). (TASTE_DATA.md)
 - [ ] **Crafted like RobTop's** (the user: "nothing at the level of ... Jumper or xStep"): many small
   pieces (>= 12 per 100 blocks) over a floor that is a hazard >= 35% of the columns, neighbouring pillars
   of different heights, rods and chains attached to pieces, <= 20% loose deco. `node tools/craft.js check

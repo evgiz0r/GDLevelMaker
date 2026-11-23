@@ -460,6 +460,14 @@ Still open:
 
 ## 5. Open / next (hand-off)
 
+- **Compose targets from rated-level data** (taste session, TASTE_DATA.md, knowledge/taste_model.json
+  "targets"; score.js gate "taste"): Easy/Normal featured levels have ~75-81 hazards per 100 blocks (aim
+  60-90; unrated 155-235, Hard/Harder featured ~140), and LONGER sections: fewer mode/speed swaps per
+  minute and fewer distinct speeds rate better. GDLM 45 has 10 sections in 42 s (the user asked for
+  sections on the music); 47 has 10 in 100 s. To do: compose aims hazard density at the band and merges
+  short sections into longer ones (keeping the look change on the music), checked on 45 v8 / the next level.
+  Floating background deco is normal in 2.0-2.2 rated levels (30-52%); craft's <=20% is a 1.x number.
+
 State on 2026-11-22. What a new session should know before touching this area:
 - **Natural replay** (`lib/natural.js`, the viewer's default replay): one tap per cube jump, empty
   jumps dropped, ship / wave stretches flown by a controller along the middle of the free space,

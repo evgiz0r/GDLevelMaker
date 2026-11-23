@@ -8,6 +8,23 @@ window.GD_LEVELS = [
    "url": "/song/official/StereoMadness.mp3",
    "official": 0,
    "offset": 0
+  },
+  "solution": {
+   "ok": true,
+   "events": [
+    {
+     "tick": 307,
+     "type": "press"
+    },
+    {
+     "tick": 308,
+     "type": "release"
+    }
+   ],
+   "physics": "c39a889",
+   "solvedAt": "2026-11-22T21:27:39.837Z",
+   "stale": true,
+   "replayedOn": "3f609ab"
   }
  },
  {
@@ -18,6 +35,103 @@ window.GD_LEVELS = [
    "url": "/song/official/StereoMadness.mp3",
    "official": 0,
    "offset": 0
+  },
+  "solution": {
+   "ok": true,
+   "events": [
+    {
+     "tick": 778,
+     "type": "press"
+    },
+    {
+     "tick": 779,
+     "type": "release"
+    },
+    {
+     "tick": 958,
+     "type": "press"
+    },
+    {
+     "tick": 959,
+     "type": "release"
+    },
+    {
+     "tick": 1138,
+     "type": "press"
+    },
+    {
+     "tick": 1139,
+     "type": "release"
+    },
+    {
+     "tick": 1318,
+     "type": "press"
+    },
+    {
+     "tick": 1319,
+     "type": "release"
+    },
+    {
+     "tick": 1495,
+     "type": "press"
+    },
+    {
+     "tick": 1496,
+     "type": "release"
+    },
+    {
+     "tick": 1576,
+     "type": "press"
+    },
+    {
+     "tick": 1577,
+     "type": "release"
+    },
+    {
+     "tick": 1858,
+     "type": "press"
+    },
+    {
+     "tick": 1859,
+     "type": "release"
+    },
+    {
+     "tick": 2038,
+     "type": "press"
+    },
+    {
+     "tick": 2039,
+     "type": "release"
+    },
+    {
+     "tick": 2758,
+     "type": "press"
+    },
+    {
+     "tick": 2759,
+     "type": "release"
+    },
+    {
+     "tick": 2938,
+     "type": "press"
+    },
+    {
+     "tick": 2939,
+     "type": "release"
+    },
+    {
+     "tick": 3118,
+     "type": "press"
+    },
+    {
+     "tick": 3119,
+     "type": "release"
+    }
+   ],
+   "physics": "c39a889",
+   "solvedAt": "2026-11-22T21:27:39.836Z",
+   "stale": true,
+   "replayedOn": "3f609ab"
   }
  },
  {
@@ -28,6 +142,143 @@ window.GD_LEVELS = [
    "url": "/song/official/StereoMadness.mp3",
    "official": 0,
    "offset": 0
+  },
+  "solution": {
+   "ok": true,
+   "events": [
+    {
+     "tick": 307,
+     "type": "press"
+    },
+    {
+     "tick": 308,
+     "type": "release"
+    },
+    {
+     "tick": 526,
+     "type": "press"
+    },
+    {
+     "tick": 527,
+     "type": "release"
+    },
+    {
+     "tick": 676,
+     "type": "press"
+    },
+    {
+     "tick": 677,
+     "type": "release"
+    },
+    {
+     "tick": 872,
+     "type": "press"
+    },
+    {
+     "tick": 873,
+     "type": "release"
+    },
+    {
+     "tick": 1061,
+     "type": "press"
+    },
+    {
+     "tick": 1062,
+     "type": "release"
+    },
+    {
+     "tick": 1253,
+     "type": "press"
+    },
+    {
+     "tick": 1254,
+     "type": "release"
+    },
+    {
+     "tick": 1358,
+     "type": "press"
+    },
+    {
+     "tick": 1359,
+     "type": "release"
+    },
+    {
+     "tick": 1457,
+     "type": "press"
+    },
+    {
+     "tick": 1458,
+     "type": "release"
+    },
+    {
+     "tick": 1650,
+     "type": "press"
+    },
+    {
+     "tick": 1651,
+     "type": "release"
+    },
+    {
+     "tick": 2074,
+     "type": "press"
+    },
+    {
+     "tick": 2075,
+     "type": "release"
+    },
+    {
+     "tick": 2253,
+     "type": "press"
+    },
+    {
+     "tick": 2254,
+     "type": "release"
+    },
+    {
+     "tick": 2332,
+     "type": "press"
+    },
+    {
+     "tick": 2333,
+     "type": "release"
+    },
+    {
+     "tick": 2906,
+     "type": "press"
+    },
+    {
+     "tick": 2907,
+     "type": "release"
+    },
+    {
+     "tick": 3096,
+     "type": "press"
+    },
+    {
+     "tick": 3097,
+     "type": "release"
+    },
+    {
+     "tick": 3278,
+     "type": "press"
+    },
+    {
+     "tick": 3279,
+     "type": "release"
+    },
+    {
+     "tick": 3363,
+     "type": "press"
+    },
+    {
+     "tick": 3364,
+     "type": "release"
+    }
+   ],
+   "physics": "c39a889",
+   "solvedAt": "2026-11-22T21:27:39.836Z",
+   "stale": true,
+   "replayedOn": "3f609ab"
   }
  },
  {
@@ -38,6 +289,175 @@ window.GD_LEVELS = [
    "url": "/song/official/StereoMadness.mp3",
    "official": 0,
    "offset": 0
+  },
+  "solution": {
+   "ok": true,
+   "events": [
+    {
+     "tick": 283,
+     "type": "press"
+    },
+    {
+     "tick": 284,
+     "type": "release"
+    },
+    {
+     "tick": 480,
+     "type": "press"
+    },
+    {
+     "tick": 481,
+     "type": "release"
+    },
+    {
+     "tick": 679,
+     "type": "press"
+    },
+    {
+     "tick": 680,
+     "type": "release"
+    },
+    {
+     "tick": 896,
+     "type": "press"
+    },
+    {
+     "tick": 897,
+     "type": "release"
+    },
+    {
+     "tick": 1115,
+     "type": "press"
+    },
+    {
+     "tick": 1116,
+     "type": "release"
+    },
+    {
+     "tick": 1311,
+     "type": "press"
+    },
+    {
+     "tick": 1312,
+     "type": "release"
+    },
+    {
+     "tick": 1511,
+     "type": "press"
+    },
+    {
+     "tick": 1512,
+     "type": "release"
+    },
+    {
+     "tick": 1727,
+     "type": "press"
+    },
+    {
+     "tick": 1728,
+     "type": "release"
+    },
+    {
+     "tick": 1947,
+     "type": "press"
+    },
+    {
+     "tick": 1948,
+     "type": "release"
+    },
+    {
+     "tick": 2143,
+     "type": "press"
+    },
+    {
+     "tick": 2144,
+     "type": "release"
+    },
+    {
+     "tick": 2343,
+     "type": "press"
+    },
+    {
+     "tick": 2344,
+     "type": "release"
+    },
+    {
+     "tick": 2559,
+     "type": "press"
+    },
+    {
+     "tick": 2560,
+     "type": "release"
+    },
+    {
+     "tick": 2790,
+     "type": "press"
+    },
+    {
+     "tick": 2791,
+     "type": "release"
+    },
+    {
+     "tick": 2990,
+     "type": "press"
+    },
+    {
+     "tick": 2991,
+     "type": "release"
+    },
+    {
+     "tick": 3195,
+     "type": "press"
+    },
+    {
+     "tick": 3196,
+     "type": "release"
+    },
+    {
+     "tick": 3368,
+     "type": "press"
+    },
+    {
+     "tick": 3369,
+     "type": "release"
+    },
+    {
+     "tick": 3622,
+     "type": "press"
+    },
+    {
+     "tick": 3623,
+     "type": "release"
+    },
+    {
+     "tick": 3822,
+     "type": "press"
+    },
+    {
+     "tick": 3823,
+     "type": "release"
+    },
+    {
+     "tick": 4027,
+     "type": "press"
+    },
+    {
+     "tick": 4028,
+     "type": "release"
+    },
+    {
+     "tick": 4200,
+     "type": "press"
+    },
+    {
+     "tick": 4201,
+     "type": "release"
+    }
+   ],
+   "physics": "c39a889",
+   "solvedAt": "2026-11-22T21:27:39.834Z",
+   "stale": true,
+   "replayedOn": "3f609ab"
   }
  },
  {
@@ -48,6 +468,223 @@ window.GD_LEVELS = [
    "url": "/song/official/StereoMadness.mp3",
    "official": 0,
    "offset": 0
+  },
+  "solution": {
+   "ok": true,
+   "events": [
+    {
+     "tick": 376,
+     "type": "press"
+    },
+    {
+     "tick": 377,
+     "type": "release"
+    },
+    {
+     "tick": 561,
+     "type": "press"
+    },
+    {
+     "tick": 562,
+     "type": "release"
+    },
+    {
+     "tick": 723,
+     "type": "press"
+    },
+    {
+     "tick": 724,
+     "type": "release"
+    },
+    {
+     "tick": 930,
+     "type": "press"
+    },
+    {
+     "tick": 931,
+     "type": "release"
+    },
+    {
+     "tick": 1103,
+     "type": "press"
+    },
+    {
+     "tick": 1104,
+     "type": "release"
+    },
+    {
+     "tick": 1311,
+     "type": "press"
+    },
+    {
+     "tick": 1312,
+     "type": "release"
+    },
+    {
+     "tick": 1485,
+     "type": "press"
+    },
+    {
+     "tick": 1486,
+     "type": "release"
+    },
+    {
+     "tick": 1693,
+     "type": "press"
+    },
+    {
+     "tick": 1694,
+     "type": "release"
+    },
+    {
+     "tick": 1855,
+     "type": "press"
+    },
+    {
+     "tick": 1856,
+     "type": "release"
+    },
+    {
+     "tick": 2287,
+     "type": "press"
+    },
+    {
+     "tick": 2288,
+     "type": "release"
+    },
+    {
+     "tick": 2644,
+     "type": "press"
+    },
+    {
+     "tick": 2645,
+     "type": "release"
+    },
+    {
+     "tick": 2990,
+     "type": "press"
+    },
+    {
+     "tick": 2991,
+     "type": "release"
+    },
+    {
+     "tick": 3291,
+     "type": "press"
+    },
+    {
+     "tick": 3292,
+     "type": "release"
+    },
+    {
+     "tick": 3614,
+     "type": "press"
+    },
+    {
+     "tick": 3615,
+     "type": "release"
+    },
+    {
+     "tick": 3915,
+     "type": "press"
+    },
+    {
+     "tick": 3916,
+     "type": "release"
+    },
+    {
+     "tick": 4656,
+     "type": "press"
+    },
+    {
+     "tick": 4657,
+     "type": "release"
+    },
+    {
+     "tick": 4735,
+     "type": "press"
+    },
+    {
+     "tick": 4736,
+     "type": "release"
+    },
+    {
+     "tick": 5101,
+     "type": "press"
+    },
+    {
+     "tick": 5102,
+     "type": "release"
+    },
+    {
+     "tick": 5257,
+     "type": "press"
+    },
+    {
+     "tick": 5258,
+     "type": "release"
+    },
+    {
+     "tick": 5336,
+     "type": "press"
+    },
+    {
+     "tick": 5337,
+     "type": "release"
+    },
+    {
+     "tick": 5679,
+     "type": "press"
+    },
+    {
+     "tick": 5680,
+     "type": "release"
+    },
+    {
+     "tick": 5853,
+     "type": "press"
+    },
+    {
+     "tick": 5854,
+     "type": "release"
+    },
+    {
+     "tick": 6002,
+     "type": "press"
+    },
+    {
+     "tick": 6003,
+     "type": "release"
+    },
+    {
+     "tick": 6153,
+     "type": "press"
+    },
+    {
+     "tick": 6154,
+     "type": "release"
+    },
+    {
+     "tick": 6505,
+     "type": "press"
+    },
+    {
+     "tick": 6506,
+     "type": "release"
+    },
+    {
+     "tick": 6583,
+     "type": "press"
+    },
+    {
+     "tick": 6584,
+     "type": "release"
+    }
+   ],
+   "physics": "c39a889",
+   "solvedAt": "2026-11-22T21:27:39.833Z",
+   "stale": true,
+   "replayedOn": "3f609ab"
   }
  },
  {
@@ -58,6 +695,240 @@ window.GD_LEVELS = [
    "url": "/song/custom/343707.mp3",
    "id": 343707,
    "offset": 0
+  },
+  "solution": {
+   "ok": true,
+   "events": [
+    {
+     "tick": 140,
+     "type": "press"
+    },
+    {
+     "tick": 432,
+     "type": "release"
+    },
+    {
+     "tick": 508,
+     "type": "press"
+    },
+    {
+     "tick": 560,
+     "type": "release"
+    },
+    {
+     "tick": 664,
+     "type": "press"
+    },
+    {
+     "tick": 724,
+     "type": "release"
+    },
+    {
+     "tick": 932,
+     "type": "press"
+    },
+    {
+     "tick": 936,
+     "type": "release"
+    },
+    {
+     "tick": 992,
+     "type": "press"
+    },
+    {
+     "tick": 996,
+     "type": "release"
+    },
+    {
+     "tick": 1080,
+     "type": "press"
+    },
+    {
+     "tick": 1376,
+     "type": "release"
+    },
+    {
+     "tick": 1428,
+     "type": "press"
+    },
+    {
+     "tick": 1564,
+     "type": "release"
+    },
+    {
+     "tick": 1728,
+     "type": "press"
+    },
+    {
+     "tick": 1736,
+     "type": "release"
+    },
+    {
+     "tick": 1824,
+     "type": "press"
+    },
+    {
+     "tick": 2424,
+     "type": "release"
+    },
+    {
+     "tick": 2864,
+     "type": "press"
+    },
+    {
+     "tick": 2868,
+     "type": "release"
+    },
+    {
+     "tick": 3232,
+     "type": "press"
+    },
+    {
+     "tick": 3236,
+     "type": "release"
+    },
+    {
+     "tick": 3412,
+     "type": "press"
+    },
+    {
+     "tick": 3416,
+     "type": "release"
+    },
+    {
+     "tick": 4084,
+     "type": "press"
+    },
+    {
+     "tick": 4088,
+     "type": "release"
+    },
+    {
+     "tick": 4152,
+     "type": "press"
+    },
+    {
+     "tick": 4300,
+     "type": "release"
+    },
+    {
+     "tick": 4692,
+     "type": "press"
+    },
+    {
+     "tick": 4836,
+     "type": "release"
+    },
+    {
+     "tick": 4964,
+     "type": "press"
+    },
+    {
+     "tick": 5044,
+     "type": "release"
+    },
+    {
+     "tick": 5172,
+     "type": "press"
+    },
+    {
+     "tick": 5264,
+     "type": "release"
+    },
+    {
+     "tick": 5372,
+     "type": "press"
+    },
+    {
+     "tick": 6148,
+     "type": "release"
+    },
+    {
+     "tick": 6204,
+     "type": "press"
+    },
+    {
+     "tick": 6868,
+     "type": "release"
+    },
+    {
+     "tick": 6916,
+     "type": "press"
+    },
+    {
+     "tick": 7008,
+     "type": "release"
+    },
+    {
+     "tick": 7168,
+     "type": "press"
+    },
+    {
+     "tick": 7332,
+     "type": "release"
+    },
+    {
+     "tick": 7496,
+     "type": "press"
+    },
+    {
+     "tick": 8412,
+     "type": "release"
+    },
+    {
+     "tick": 8512,
+     "type": "press"
+    },
+    {
+     "tick": 8556,
+     "type": "release"
+    },
+    {
+     "tick": 8656,
+     "type": "press"
+    },
+    {
+     "tick": 8708,
+     "type": "release"
+    },
+    {
+     "tick": 8792,
+     "type": "press"
+    },
+    {
+     "tick": 8884,
+     "type": "release"
+    },
+    {
+     "tick": 8968,
+     "type": "press"
+    },
+    {
+     "tick": 8996,
+     "type": "release"
+    },
+    {
+     "tick": 9328,
+     "type": "press"
+    },
+    {
+     "tick": 9464,
+     "type": "release"
+    },
+    {
+     "tick": 9528,
+     "type": "press"
+    },
+    {
+     "tick": 9784,
+     "type": "release"
+    }
+   ],
+   "physics": "070bfc2",
+   "plan": "c1dfa6e",
+   "solvedAt": "2026-11-23T19:08:56.432Z",
+   "stale": true,
+   "replayedOn": "3f609ab"
   }
  },
  {
@@ -571,7 +1442,9 @@ window.GD_LEVELS = [
    ],
    "physics": "3961ca5",
    "plan": "c1dfa6e",
-   "solvedAt": "2026-11-23T19:42:44.643Z"
+   "solvedAt": "2026-11-23T19:42:44.643Z",
+   "stale": true,
+   "replayedOn": "3f609ab"
   }
  },
  {
@@ -582,6 +1455,14 @@ window.GD_LEVELS = [
    "url": "/song/official/StereoMadness.mp3",
    "official": 0,
    "offset": 0
+  },
+  "solution": {
+   "ok": true,
+   "events": [],
+   "physics": "c39a889",
+   "solvedAt": "2026-11-23T01:01:54.129Z",
+   "stale": true,
+   "replayedOn": "3f609ab"
   }
  },
  {
@@ -592,6 +1473,256 @@ window.GD_LEVELS = [
    "url": "/song/custom/343707.mp3",
    "id": 343707,
    "offset": 0
+  },
+  "solution": {
+   "ok": true,
+   "events": [
+    {
+     "tick": 196,
+     "type": "press"
+    },
+    {
+     "tick": 197,
+     "type": "release"
+    },
+    {
+     "tick": 260,
+     "type": "press"
+    },
+    {
+     "tick": 261,
+     "type": "release"
+    },
+    {
+     "tick": 485,
+     "type": "press"
+    },
+    {
+     "tick": 486,
+     "type": "release"
+    },
+    {
+     "tick": 568,
+     "type": "press"
+    },
+    {
+     "tick": 569,
+     "type": "release"
+    },
+    {
+     "tick": 711,
+     "type": "press"
+    },
+    {
+     "tick": 712,
+     "type": "release"
+    },
+    {
+     "tick": 826,
+     "type": "press"
+    },
+    {
+     "tick": 827,
+     "type": "release"
+    },
+    {
+     "tick": 956,
+     "type": "press"
+    },
+    {
+     "tick": 957,
+     "type": "release"
+    },
+    {
+     "tick": 1067,
+     "type": "press"
+    },
+    {
+     "tick": 1068,
+     "type": "release"
+    },
+    {
+     "tick": 1143,
+     "type": "press"
+    },
+    {
+     "tick": 1172,
+     "type": "release"
+    },
+    {
+     "tick": 1276,
+     "type": "press"
+    },
+    {
+     "tick": 1400,
+     "type": "release"
+    },
+    {
+     "tick": 1512,
+     "type": "press"
+    },
+    {
+     "tick": 1540,
+     "type": "release"
+    },
+    {
+     "tick": 1624,
+     "type": "press"
+    },
+    {
+     "tick": 1744,
+     "type": "release"
+    },
+    {
+     "tick": 1856,
+     "type": "press"
+    },
+    {
+     "tick": 1916,
+     "type": "release"
+    },
+    {
+     "tick": 2068,
+     "type": "press"
+    },
+    {
+     "tick": 2124,
+     "type": "release"
+    },
+    {
+     "tick": 2128,
+     "type": "press"
+    },
+    {
+     "tick": 2188,
+     "type": "release"
+    },
+    {
+     "tick": 2204,
+     "type": "press"
+    },
+    {
+     "tick": 2228,
+     "type": "release"
+    },
+    {
+     "tick": 2252,
+     "type": "press"
+    },
+    {
+     "tick": 2256,
+     "type": "release"
+    },
+    {
+     "tick": 2304,
+     "type": "press"
+    },
+    {
+     "tick": 2312,
+     "type": "release"
+    },
+    {
+     "tick": 2336,
+     "type": "press"
+    },
+    {
+     "tick": 2356,
+     "type": "release"
+    },
+    {
+     "tick": 2360,
+     "type": "press"
+    },
+    {
+     "tick": 2420,
+     "type": "release"
+    },
+    {
+     "tick": 2436,
+     "type": "press"
+    },
+    {
+     "tick": 2460,
+     "type": "release"
+    },
+    {
+     "tick": 2484,
+     "type": "press"
+    },
+    {
+     "tick": 2488,
+     "type": "release"
+    },
+    {
+     "tick": 2536,
+     "type": "press"
+    },
+    {
+     "tick": 2540,
+     "type": "release"
+    },
+    {
+     "tick": 2564,
+     "type": "press"
+    },
+    {
+     "tick": 2588,
+     "type": "release"
+    },
+    {
+     "tick": 2592,
+     "type": "press"
+    },
+    {
+     "tick": 2652,
+     "type": "release"
+    },
+    {
+     "tick": 2668,
+     "type": "press"
+    },
+    {
+     "tick": 2692,
+     "type": "release"
+    },
+    {
+     "tick": 2716,
+     "type": "press"
+    },
+    {
+     "tick": 2720,
+     "type": "release"
+    },
+    {
+     "tick": 2768,
+     "type": "press"
+    },
+    {
+     "tick": 2780,
+     "type": "release"
+    },
+    {
+     "tick": 3044,
+     "type": "press"
+    },
+    {
+     "tick": 3045,
+     "type": "release"
+    },
+    {
+     "tick": 3124,
+     "type": "press"
+    },
+    {
+     "tick": 3125,
+     "type": "release"
+    }
+   ],
+   "physics": "070bfc2",
+   "plan": "c1dfa6e",
+   "solvedAt": "2026-11-23T18:36:34.772Z",
+   "stale": true,
+   "replayedOn": "3f609ab"
   }
  },
  {
@@ -602,68 +1733,6 @@ window.GD_LEVELS = [
    "url": "/song/custom/311087.mp3",
    "id": 311087,
    "offset": 0
-  },
-  "solution": {
-   "ok": false,
-   "events": [
-    {
-     "tick": 196,
-     "type": "press"
-    },
-    {
-     "tick": 1120,
-     "type": "release"
-    },
-    {
-     "tick": 1460,
-     "type": "press"
-    },
-    {
-     "tick": 2576,
-     "type": "release"
-    },
-    {
-     "tick": 2876,
-     "type": "press"
-    },
-    {
-     "tick": 3784,
-     "type": "release"
-    },
-    {
-     "tick": 4148,
-     "type": "press"
-    },
-    {
-     "tick": 4356,
-     "type": "release"
-    },
-    {
-     "tick": 4492,
-     "type": "press"
-    },
-    {
-     "tick": 5604,
-     "type": "release"
-    },
-    {
-     "tick": 5736,
-     "type": "press"
-    },
-    {
-     "tick": 6464,
-     "type": "release"
-    },
-    {
-     "tick": 6600,
-     "type": "press"
-    }
-   ],
-   "dieX": 9795.299458513167,
-   "why": "skipped a portal",
-   "physics": "3961ca5",
-   "plan": "c1dfa6e",
-   "solvedAt": "2026-11-23T19:47:12.840Z"
   }
  },
  {
@@ -674,6 +1743,600 @@ window.GD_LEVELS = [
    "url": "/song/custom/1086693.mp3",
    "id": 1086693,
    "offset": 40.4502
+  },
+  "solution": {
+   "ok": true,
+   "events": [
+    {
+     "tick": 256,
+     "type": "press"
+    },
+    {
+     "tick": 257,
+     "type": "release"
+    },
+    {
+     "tick": 387,
+     "type": "press"
+    },
+    {
+     "tick": 388,
+     "type": "release"
+    },
+    {
+     "tick": 519,
+     "type": "press"
+    },
+    {
+     "tick": 520,
+     "type": "release"
+    },
+    {
+     "tick": 636,
+     "type": "press"
+    },
+    {
+     "tick": 637,
+     "type": "release"
+    },
+    {
+     "tick": 763,
+     "type": "press"
+    },
+    {
+     "tick": 764,
+     "type": "release"
+    },
+    {
+     "tick": 866,
+     "type": "press"
+    },
+    {
+     "tick": 867,
+     "type": "release"
+    },
+    {
+     "tick": 955,
+     "type": "press"
+    },
+    {
+     "tick": 956,
+     "type": "release"
+    },
+    {
+     "tick": 1069,
+     "type": "press"
+    },
+    {
+     "tick": 1070,
+     "type": "release"
+    },
+    {
+     "tick": 1172,
+     "type": "press"
+    },
+    {
+     "tick": 1173,
+     "type": "release"
+    },
+    {
+     "tick": 1277,
+     "type": "press"
+    },
+    {
+     "tick": 1278,
+     "type": "release"
+    },
+    {
+     "tick": 1508,
+     "type": "press"
+    },
+    {
+     "tick": 1509,
+     "type": "release"
+    },
+    {
+     "tick": 1582,
+     "type": "press"
+    },
+    {
+     "tick": 1660,
+     "type": "release"
+    },
+    {
+     "tick": 1701,
+     "type": "press"
+    },
+    {
+     "tick": 1717,
+     "type": "release"
+    },
+    {
+     "tick": 1778,
+     "type": "press"
+    },
+    {
+     "tick": 1808,
+     "type": "release"
+    },
+    {
+     "tick": 1851,
+     "type": "press"
+    },
+    {
+     "tick": 1871,
+     "type": "release"
+    },
+    {
+     "tick": 1936,
+     "type": "press"
+    },
+    {
+     "tick": 1963,
+     "type": "release"
+    },
+    {
+     "tick": 1999,
+     "type": "press"
+    },
+    {
+     "tick": 2050,
+     "type": "release"
+    },
+    {
+     "tick": 2102,
+     "type": "press"
+    },
+    {
+     "tick": 2128,
+     "type": "release"
+    },
+    {
+     "tick": 2157,
+     "type": "press"
+    },
+    {
+     "tick": 2177,
+     "type": "release"
+    },
+    {
+     "tick": 2223,
+     "type": "press"
+    },
+    {
+     "tick": 2250,
+     "type": "release"
+    },
+    {
+     "tick": 2283,
+     "type": "press"
+    },
+    {
+     "tick": 2305,
+     "type": "release"
+    },
+    {
+     "tick": 2342,
+     "type": "press"
+    },
+    {
+     "tick": 2366,
+     "type": "release"
+    },
+    {
+     "tick": 2379,
+     "type": "press"
+    },
+    {
+     "tick": 2418,
+     "type": "release"
+    },
+    {
+     "tick": 2495,
+     "type": "press"
+    },
+    {
+     "tick": 2556,
+     "type": "release"
+    },
+    {
+     "tick": 2640,
+     "type": "press"
+    },
+    {
+     "tick": 2677,
+     "type": "release"
+    },
+    {
+     "tick": 2758,
+     "type": "press"
+    },
+    {
+     "tick": 2772,
+     "type": "release"
+    },
+    {
+     "tick": 2782,
+     "type": "press"
+    },
+    {
+     "tick": 2787,
+     "type": "release"
+    },
+    {
+     "tick": 2801,
+     "type": "press"
+    },
+    {
+     "tick": 2804,
+     "type": "release"
+    },
+    {
+     "tick": 2813,
+     "type": "press"
+    },
+    {
+     "tick": 2885,
+     "type": "release"
+    },
+    {
+     "tick": 2959,
+     "type": "press"
+    },
+    {
+     "tick": 2989,
+     "type": "release"
+    },
+    {
+     "tick": 3017,
+     "type": "press"
+    },
+    {
+     "tick": 3037,
+     "type": "release"
+    },
+    {
+     "tick": 3074,
+     "type": "press"
+    },
+    {
+     "tick": 3102,
+     "type": "release"
+    },
+    {
+     "tick": 3154,
+     "type": "press"
+    },
+    {
+     "tick": 3183,
+     "type": "release"
+    },
+    {
+     "tick": 3420,
+     "type": "press"
+    },
+    {
+     "tick": 3421,
+     "type": "release"
+    },
+    {
+     "tick": 3476,
+     "type": "press"
+    },
+    {
+     "tick": 3477,
+     "type": "release"
+    },
+    {
+     "tick": 3692,
+     "type": "press"
+    },
+    {
+     "tick": 3693,
+     "type": "release"
+    },
+    {
+     "tick": 4172,
+     "type": "press"
+    },
+    {
+     "tick": 4173,
+     "type": "release"
+    },
+    {
+     "tick": 4312,
+     "type": "press"
+    },
+    {
+     "tick": 4313,
+     "type": "release"
+    },
+    {
+     "tick": 4376,
+     "type": "press"
+    },
+    {
+     "tick": 4377,
+     "type": "release"
+    },
+    {
+     "tick": 4552,
+     "type": "press"
+    },
+    {
+     "tick": 4553,
+     "type": "release"
+    },
+    {
+     "tick": 4817,
+     "type": "press"
+    },
+    {
+     "tick": 4827,
+     "type": "release"
+    },
+    {
+     "tick": 4847,
+     "type": "press"
+    },
+    {
+     "tick": 4867,
+     "type": "release"
+    },
+    {
+     "tick": 4887,
+     "type": "press"
+    },
+    {
+     "tick": 4907,
+     "type": "release"
+    },
+    {
+     "tick": 4927,
+     "type": "press"
+    },
+    {
+     "tick": 4947,
+     "type": "release"
+    },
+    {
+     "tick": 4967,
+     "type": "press"
+    },
+    {
+     "tick": 4987,
+     "type": "release"
+    },
+    {
+     "tick": 5006,
+     "type": "press"
+    },
+    {
+     "tick": 5106,
+     "type": "release"
+    },
+    {
+     "tick": 5114,
+     "type": "press"
+    },
+    {
+     "tick": 5133,
+     "type": "release"
+    },
+    {
+     "tick": 5164,
+     "type": "press"
+    },
+    {
+     "tick": 5172,
+     "type": "release"
+    },
+    {
+     "tick": 5249,
+     "type": "press"
+    },
+    {
+     "tick": 5257,
+     "type": "release"
+    },
+    {
+     "tick": 5277,
+     "type": "press"
+    },
+    {
+     "tick": 5320,
+     "type": "release"
+    },
+    {
+     "tick": 5328,
+     "type": "press"
+    },
+    {
+     "tick": 5405,
+     "type": "release"
+    },
+    {
+     "tick": 5436,
+     "type": "press"
+    },
+    {
+     "tick": 5445,
+     "type": "release"
+    },
+    {
+     "tick": 5523,
+     "type": "press"
+    },
+    {
+     "tick": 5531,
+     "type": "release"
+    },
+    {
+     "tick": 5551,
+     "type": "press"
+    },
+    {
+     "tick": 5582,
+     "type": "release"
+    },
+    {
+     "tick": 5590,
+     "type": "press"
+    },
+    {
+     "tick": 5668,
+     "type": "release"
+    },
+    {
+     "tick": 5676,
+     "type": "press"
+    },
+    {
+     "tick": 5695,
+     "type": "release"
+    },
+    {
+     "tick": 5795,
+     "type": "press"
+    },
+    {
+     "tick": 5807,
+     "type": "release"
+    },
+    {
+     "tick": 5831,
+     "type": "press"
+    },
+    {
+     "tick": 5874,
+     "type": "release"
+    },
+    {
+     "tick": 5882,
+     "type": "press"
+    },
+    {
+     "tick": 5959,
+     "type": "release"
+    },
+    {
+     "tick": 5990,
+     "type": "press"
+    },
+    {
+     "tick": 6000,
+     "type": "release"
+    },
+    {
+     "tick": 6079,
+     "type": "press"
+    },
+    {
+     "tick": 6087,
+     "type": "release"
+    },
+    {
+     "tick": 6107,
+     "type": "press"
+    },
+    {
+     "tick": 6138,
+     "type": "release"
+    },
+    {
+     "tick": 6146,
+     "type": "press"
+    },
+    {
+     "tick": 6235,
+     "type": "release"
+    },
+    {
+     "tick": 6266,
+     "type": "press"
+    },
+    {
+     "tick": 6277,
+     "type": "release"
+    },
+    {
+     "tick": 6357,
+     "type": "press"
+    },
+    {
+     "tick": 6365,
+     "type": "release"
+    },
+    {
+     "tick": 6385,
+     "type": "press"
+    },
+    {
+     "tick": 6405,
+     "type": "release"
+    },
+    {
+     "tick": 6580,
+     "type": "press"
+    },
+    {
+     "tick": 6581,
+     "type": "release"
+    },
+    {
+     "tick": 6695,
+     "type": "press"
+    },
+    {
+     "tick": 6696,
+     "type": "release"
+    },
+    {
+     "tick": 6916,
+     "type": "press"
+    },
+    {
+     "tick": 6960,
+     "type": "release"
+    },
+    {
+     "tick": 7020,
+     "type": "press"
+    },
+    {
+     "tick": 7056,
+     "type": "release"
+    },
+    {
+     "tick": 7352,
+     "type": "press"
+    },
+    {
+     "tick": 7380,
+     "type": "release"
+    },
+    {
+     "tick": 7476,
+     "type": "press"
+    },
+    {
+     "tick": 7516,
+     "type": "release"
+    },
+    {
+     "tick": 7872,
+     "type": "press"
+    },
+    {
+     "tick": 7873,
+     "type": "release"
+    }
+   ],
+   "physics": "070bfc2",
+   "plan": "42fb451",
+   "solvedAt": "2026-11-23T18:50:28.485Z",
+   "stale": true,
+   "replayedOn": "3f609ab"
   }
  },
  {
@@ -684,6 +2347,336 @@ window.GD_LEVELS = [
    "url": "/song/custom/619544.mp3",
    "id": 619544,
    "offset": 70.233
+  },
+  "solution": {
+   "ok": true,
+   "events": [
+    {
+     "tick": 252,
+     "type": "press"
+    },
+    {
+     "tick": 964,
+     "type": "release"
+    },
+    {
+     "tick": 1044,
+     "type": "press"
+    },
+    {
+     "tick": 1676,
+     "type": "release"
+    },
+    {
+     "tick": 1764,
+     "type": "press"
+    },
+    {
+     "tick": 1768,
+     "type": "release"
+    },
+    {
+     "tick": 1852,
+     "type": "press"
+    },
+    {
+     "tick": 1856,
+     "type": "release"
+    },
+    {
+     "tick": 1928,
+     "type": "press"
+    },
+    {
+     "tick": 1932,
+     "type": "release"
+    },
+    {
+     "tick": 2052,
+     "type": "press"
+    },
+    {
+     "tick": 2056,
+     "type": "release"
+    },
+    {
+     "tick": 2188,
+     "type": "press"
+    },
+    {
+     "tick": 2192,
+     "type": "release"
+    },
+    {
+     "tick": 2312,
+     "type": "press"
+    },
+    {
+     "tick": 2316,
+     "type": "release"
+    },
+    {
+     "tick": 2400,
+     "type": "press"
+    },
+    {
+     "tick": 2404,
+     "type": "release"
+    },
+    {
+     "tick": 2576,
+     "type": "press"
+    },
+    {
+     "tick": 2580,
+     "type": "release"
+    },
+    {
+     "tick": 2672,
+     "type": "press"
+    },
+    {
+     "tick": 2676,
+     "type": "release"
+    },
+    {
+     "tick": 2688,
+     "type": "press"
+    },
+    {
+     "tick": 2692,
+     "type": "release"
+    },
+    {
+     "tick": 2872,
+     "type": "press"
+    },
+    {
+     "tick": 2876,
+     "type": "release"
+    },
+    {
+     "tick": 2996,
+     "type": "press"
+    },
+    {
+     "tick": 3000,
+     "type": "release"
+    },
+    {
+     "tick": 3116,
+     "type": "press"
+    },
+    {
+     "tick": 3120,
+     "type": "release"
+    },
+    {
+     "tick": 3204,
+     "type": "press"
+    },
+    {
+     "tick": 3244,
+     "type": "release"
+    },
+    {
+     "tick": 3408,
+     "type": "press"
+    },
+    {
+     "tick": 3412,
+     "type": "release"
+    },
+    {
+     "tick": 3540,
+     "type": "press"
+    },
+    {
+     "tick": 3544,
+     "type": "release"
+    },
+    {
+     "tick": 3584,
+     "type": "press"
+    },
+    {
+     "tick": 3588,
+     "type": "release"
+    },
+    {
+     "tick": 3732,
+     "type": "press"
+    },
+    {
+     "tick": 3736,
+     "type": "release"
+    },
+    {
+     "tick": 3804,
+     "type": "press"
+    },
+    {
+     "tick": 3808,
+     "type": "release"
+    },
+    {
+     "tick": 4012,
+     "type": "press"
+    },
+    {
+     "tick": 4016,
+     "type": "release"
+    },
+    {
+     "tick": 4160,
+     "type": "press"
+    },
+    {
+     "tick": 4164,
+     "type": "release"
+    },
+    {
+     "tick": 4284,
+     "type": "press"
+    },
+    {
+     "tick": 5072,
+     "type": "release"
+    },
+    {
+     "tick": 5328,
+     "type": "press"
+    },
+    {
+     "tick": 5472,
+     "type": "release"
+    },
+    {
+     "tick": 5512,
+     "type": "press"
+    },
+    {
+     "tick": 5516,
+     "type": "release"
+    },
+    {
+     "tick": 6296,
+     "type": "press"
+    },
+    {
+     "tick": 6300,
+     "type": "release"
+    },
+    {
+     "tick": 6432,
+     "type": "press"
+    },
+    {
+     "tick": 6436,
+     "type": "release"
+    },
+    {
+     "tick": 7048,
+     "type": "press"
+    },
+    {
+     "tick": 7092,
+     "type": "release"
+    },
+    {
+     "tick": 7136,
+     "type": "press"
+    },
+    {
+     "tick": 7180,
+     "type": "release"
+    },
+    {
+     "tick": 7512,
+     "type": "press"
+    },
+    {
+     "tick": 7560,
+     "type": "release"
+    },
+    {
+     "tick": 7568,
+     "type": "press"
+    },
+    {
+     "tick": 7708,
+     "type": "release"
+    },
+    {
+     "tick": 7924,
+     "type": "press"
+    },
+    {
+     "tick": 7976,
+     "type": "release"
+    },
+    {
+     "tick": 8540,
+     "type": "press"
+    },
+    {
+     "tick": 8748,
+     "type": "release"
+    },
+    {
+     "tick": 8896,
+     "type": "press"
+    },
+    {
+     "tick": 9004,
+     "type": "release"
+    },
+    {
+     "tick": 9128,
+     "type": "press"
+    },
+    {
+     "tick": 9228,
+     "type": "release"
+    },
+    {
+     "tick": 9316,
+     "type": "press"
+    },
+    {
+     "tick": 9328,
+     "type": "release"
+    },
+    {
+     "tick": 9440,
+     "type": "press"
+    },
+    {
+     "tick": 9572,
+     "type": "release"
+    },
+    {
+     "tick": 9764,
+     "type": "press"
+    },
+    {
+     "tick": 9772,
+     "type": "release"
+    },
+    {
+     "tick": 9784,
+     "type": "press"
+    },
+    {
+     "tick": 9856,
+     "type": "release"
+    }
+   ],
+   "physics": "070bfc2",
+   "solvedAt": "2026-11-23T18:32:50.799Z",
+   "plan": "42fb451",
+   "stale": true,
+   "replayedOn": "3f609ab"
   }
  },
  {
@@ -694,6 +2687,176 @@ window.GD_LEVELS = [
    "url": "/song/official/StereoMadness.mp3",
    "official": 0,
    "offset": 0
+  },
+  "solution": {
+   "ok": true,
+   "events": [
+    {
+     "tick": 1800,
+     "type": "press"
+    },
+    {
+     "tick": 2204,
+     "type": "release"
+    },
+    {
+     "tick": 2260,
+     "type": "press"
+    },
+    {
+     "tick": 2264,
+     "type": "release"
+    },
+    {
+     "tick": 2528,
+     "type": "press"
+    },
+    {
+     "tick": 3052,
+     "type": "release"
+    },
+    {
+     "tick": 3084,
+     "type": "press"
+    },
+    {
+     "tick": 3208,
+     "type": "release"
+    },
+    {
+     "tick": 3500,
+     "type": "press"
+    },
+    {
+     "tick": 3584,
+     "type": "release"
+    },
+    {
+     "tick": 4116,
+     "type": "press"
+    },
+    {
+     "tick": 4120,
+     "type": "release"
+    },
+    {
+     "tick": 4327,
+     "type": "press"
+    },
+    {
+     "tick": 4340,
+     "type": "release"
+    },
+    {
+     "tick": 4492,
+     "type": "press"
+    },
+    {
+     "tick": 4544,
+     "type": "release"
+    },
+    {
+     "tick": 4596,
+     "type": "press"
+    },
+    {
+     "tick": 4656,
+     "type": "release"
+    },
+    {
+     "tick": 4716,
+     "type": "press"
+    },
+    {
+     "tick": 4772,
+     "type": "release"
+    },
+    {
+     "tick": 4828,
+     "type": "press"
+    },
+    {
+     "tick": 4860,
+     "type": "release"
+    },
+    {
+     "tick": 4900,
+     "type": "press"
+    },
+    {
+     "tick": 4904,
+     "type": "release"
+    },
+    {
+     "tick": 5108,
+     "type": "press"
+    },
+    {
+     "tick": 5112,
+     "type": "release"
+    },
+    {
+     "tick": 5488,
+     "type": "press"
+    },
+    {
+     "tick": 5516,
+     "type": "release"
+    },
+    {
+     "tick": 5884,
+     "type": "press"
+    },
+    {
+     "tick": 5888,
+     "type": "release"
+    },
+    {
+     "tick": 6068,
+     "type": "press"
+    },
+    {
+     "tick": 6072,
+     "type": "release"
+    },
+    {
+     "tick": 6248,
+     "type": "press"
+    },
+    {
+     "tick": 6251,
+     "type": "release"
+    },
+    {
+     "tick": 6374,
+     "type": "press"
+    },
+    {
+     "tick": 6376,
+     "type": "release"
+    },
+    {
+     "tick": 6397,
+     "type": "press"
+    },
+    {
+     "tick": 6399,
+     "type": "release"
+    },
+    {
+     "tick": 6464,
+     "type": "press"
+    },
+    {
+     "tick": 6466,
+     "type": "release"
+    }
+   ],
+   "physics": "070bfc2",
+   "plan": "42fb451",
+   "solvedAt": "2026-11-23T18:19:13.578Z",
+   "stale": true,
+   "replayedOn": "3f609ab"
   }
  },
  {
@@ -704,6 +2867,370 @@ window.GD_LEVELS = [
    "url": "/song/custom/575768.mp3",
    "id": 575768,
    "offset": 13.95
+  },
+  "solution": {
+   "ok": true,
+   "events": [
+    {
+     "tick": 348,
+     "type": "press"
+    },
+    {
+     "tick": 2248,
+     "type": "release"
+    },
+    {
+     "tick": 2332,
+     "type": "press"
+    },
+    {
+     "tick": 2660,
+     "type": "release"
+    },
+    {
+     "tick": 2800,
+     "type": "press"
+    },
+    {
+     "tick": 2804,
+     "type": "release"
+    },
+    {
+     "tick": 2952,
+     "type": "press"
+    },
+    {
+     "tick": 3840,
+     "type": "release"
+    },
+    {
+     "tick": 4000,
+     "type": "press"
+    },
+    {
+     "tick": 4088,
+     "type": "release"
+    },
+    {
+     "tick": 4204,
+     "type": "press"
+    },
+    {
+     "tick": 4292,
+     "type": "release"
+    },
+    {
+     "tick": 4412,
+     "type": "press"
+    },
+    {
+     "tick": 4548,
+     "type": "release"
+    },
+    {
+     "tick": 4732,
+     "type": "press"
+    },
+    {
+     "tick": 4860,
+     "type": "release"
+    },
+    {
+     "tick": 5016,
+     "type": "press"
+    },
+    {
+     "tick": 5144,
+     "type": "release"
+    },
+    {
+     "tick": 5336,
+     "type": "press"
+    },
+    {
+     "tick": 5448,
+     "type": "release"
+    },
+    {
+     "tick": 5564,
+     "type": "press"
+    },
+    {
+     "tick": 5656,
+     "type": "release"
+    },
+    {
+     "tick": 5744,
+     "type": "press"
+    },
+    {
+     "tick": 5812,
+     "type": "release"
+    },
+    {
+     "tick": 5952,
+     "type": "press"
+    },
+    {
+     "tick": 6084,
+     "type": "release"
+    },
+    {
+     "tick": 6736,
+     "type": "press"
+    },
+    {
+     "tick": 7168,
+     "type": "release"
+    },
+    {
+     "tick": 7268,
+     "type": "press"
+    },
+    {
+     "tick": 7416,
+     "type": "release"
+    },
+    {
+     "tick": 7492,
+     "type": "press"
+    },
+    {
+     "tick": 7496,
+     "type": "release"
+    },
+    {
+     "tick": 7568,
+     "type": "press"
+    },
+    {
+     "tick": 8276,
+     "type": "release"
+    },
+    {
+     "tick": 8968,
+     "type": "press"
+    },
+    {
+     "tick": 8972,
+     "type": "release"
+    },
+    {
+     "tick": 9028,
+     "type": "press"
+    },
+    {
+     "tick": 9032,
+     "type": "release"
+    },
+    {
+     "tick": 9784,
+     "type": "press"
+    },
+    {
+     "tick": 9788,
+     "type": "release"
+    },
+    {
+     "tick": 9920,
+     "type": "press"
+    },
+    {
+     "tick": 9924,
+     "type": "release"
+    },
+    {
+     "tick": 10076,
+     "type": "press"
+    },
+    {
+     "tick": 10080,
+     "type": "release"
+    },
+    {
+     "tick": 10164,
+     "type": "press"
+    },
+    {
+     "tick": 10168,
+     "type": "release"
+    },
+    {
+     "tick": 10252,
+     "type": "press"
+    },
+    {
+     "tick": 10256,
+     "type": "release"
+    },
+    {
+     "tick": 10344,
+     "type": "press"
+    },
+    {
+     "tick": 10348,
+     "type": "release"
+    },
+    {
+     "tick": 10416,
+     "type": "press"
+    },
+    {
+     "tick": 10420,
+     "type": "release"
+    },
+    {
+     "tick": 10724,
+     "type": "press"
+    },
+    {
+     "tick": 10728,
+     "type": "release"
+    },
+    {
+     "tick": 10888,
+     "type": "press"
+    },
+    {
+     "tick": 10892,
+     "type": "release"
+    },
+    {
+     "tick": 11040,
+     "type": "press"
+    },
+    {
+     "tick": 11044,
+     "type": "release"
+    },
+    {
+     "tick": 12084,
+     "type": "press"
+    },
+    {
+     "tick": 12276,
+     "type": "release"
+    },
+    {
+     "tick": 12420,
+     "type": "press"
+    },
+    {
+     "tick": 12600,
+     "type": "release"
+    },
+    {
+     "tick": 12996,
+     "type": "press"
+    },
+    {
+     "tick": 13000,
+     "type": "release"
+    },
+    {
+     "tick": 13056,
+     "type": "press"
+    },
+    {
+     "tick": 13520,
+     "type": "release"
+    },
+    {
+     "tick": 13528,
+     "type": "press"
+    },
+    {
+     "tick": 14036,
+     "type": "release"
+    },
+    {
+     "tick": 14120,
+     "type": "press"
+    },
+    {
+     "tick": 14448,
+     "type": "release"
+    },
+    {
+     "tick": 14612,
+     "type": "press"
+    },
+    {
+     "tick": 15496,
+     "type": "release"
+    },
+    {
+     "tick": 15580,
+     "type": "press"
+    },
+    {
+     "tick": 15664,
+     "type": "release"
+    },
+    {
+     "tick": 15832,
+     "type": "press"
+    },
+    {
+     "tick": 15904,
+     "type": "release"
+    },
+    {
+     "tick": 15948,
+     "type": "press"
+    },
+    {
+     "tick": 16020,
+     "type": "release"
+    },
+    {
+     "tick": 16148,
+     "type": "press"
+    },
+    {
+     "tick": 16276,
+     "type": "release"
+    },
+    {
+     "tick": 16444,
+     "type": "press"
+    },
+    {
+     "tick": 16552,
+     "type": "release"
+    },
+    {
+     "tick": 16664,
+     "type": "press"
+    },
+    {
+     "tick": 16732,
+     "type": "release"
+    },
+    {
+     "tick": 16836,
+     "type": "press"
+    },
+    {
+     "tick": 16948,
+     "type": "release"
+    }
+   ],
+   "physics": "070bfc2",
+   "plan": "c1dfa6e",
+   "solvedAt": "2026-11-23T19:41:45.347Z",
+   "stale": true,
+   "replayedOn": "3f609ab"
+  }
+ },
+ {
+  "name": "GDLM prop test",
+  "file": "levels/gdlm_prop_test.gdlvl",
+  "level": "kS38,1_73_2_44_3_237_11_255_12_255_13_255_4_-1_6_1009_7_1_15_1_18_0_8_1|1_255_2_255_3_255_11_255_12_255_13_255_4_-1_6_1002_5_1_7_1_15_1_18_0_8_1|1_107_2_100_3_193_11_255_12_255_13_255_4_-1_6_1013_7_1_15_1_18_0_8_1|1_125_2_176_3_193_11_255_12_255_13_255_4_-1_6_1014_7_1_15_1_18_0_8_1|1_255_2_185_3_0_11_255_12_255_13_255_4_-1_6_1005_5_1_7_1_15_1_18_0_8_1|1_255_2_125_3_0_11_255_12_255_13_255_4_-1_6_1006_5_1_7_1_15_1_18_0_8_1|1_255_2_255_3_255_11_255_12_255_13_255_4_-1_6_1004_7_1_15_1_18_0_8_1|1_255_2_255_3_255_11_255_12_255_13_255_4_-1_6_1010_7_1_15_1_18_0_8_1|1_40_2_30_3_64_11_255_12_255_13_255_4_-1_6_1000_7_1_15_1_18_0_8_1|1_30_2_24_3_44_11_255_12_255_13_255_4_-1_6_1001_7_1_15_1_18_0_8_1|1_20_2_14_3_24_11_255_12_255_13_255_4_-1_6_40_7_1_15_1_18_0_8_1|1_70_2_110_3_40_11_255_12_255_13_255_4_-1_6_41_7_1_15_1_18_0_8_1|1_255_2_164_3_60_11_255_12_255_13_255_4_-1_6_42_7_1_15_1_18_0_8_1|1_240_2_122_3_30_11_255_12_255_13_255_4_-1_6_43_7_1_15_1_18_0_8_1|1_255_2_170_3_60_11_255_12_255_13_255_4_-1_6_44_7_1_15_1_18_0_8_1|1_20_2_14_3_24_11_255_12_255_13_255_4_-1_6_600_7_1_15_1_18_0_8_1|1_70_2_110_3_40_11_255_12_255_13_255_4_-1_6_601_7_1_15_1_18_0_8_1|1_255_2_164_3_60_11_255_12_255_13_255_4_-1_6_602_7_1_15_1_18_0_8_1|1_240_2_122_3_30_11_255_12_255_13_255_4_-1_6_603_7_1_15_1_18_0_8_1|1_255_2_170_3_60_11_255_12_255_13_255_4_-1_6_604_7_1_15_1_18_0_8_1|1_86_2_60_3_120_11_255_12_255_13_255_4_-1_6_605_7_1_15_1_18_0_8_1|1_120_2_86_3_160_11_255_12_255_13_255_4_-1_6_606_7_1_15_1_18_0_8_1|1_56_2_40_3_84_11_255_12_255_13_255_4_-1_6_607_7_1_15_1_18_0_8_1|1_36_2_28_3_40_11_255_12_255_13_255_4_-1_6_608_7_1_15_1_18_0_8_1|1_52_2_40_3_56_11_255_12_255_13_255_4_-1_6_609_7_1_15_1_18_0_8_1|1_44_2_36_3_52_11_255_12_255_13_255_4_-1_6_610_7_1_15_1_18_0_8_1|1_46_2_36_3_60_11_255_12_255_13_255_4_-1_6_611_7_1_15_1_18_0_8_1|1_34_2_26_3_46_11_255_12_255_13_255_4_-1_6_612_7_1_15_1_18_0_8_1|1_70_2_60_3_88_11_255_12_255_13_255_4_-1_6_613_7_1_15_1_18_0_8_1|1_92_2_80_3_110_11_255_12_255_13_255_4_-1_6_614_7_1_15_1_18_0_8_1|1_120_2_78_3_44_11_255_12_255_13_255_4_-1_6_615_7_1_15_1_18_0_8_1|1_104_2_112_3_130_11_255_12_255_13_255_4_-1_6_616_7_1_15_1_18_0_8_1|1_255_2_210_3_120_11_255_12_255_13_255_4_-1_6_617_7_1_15_1_18_0_8_1|1_150_2_160_3_176_11_255_12_255_13_255_4_-1_6_618_7_1_15_1_18_0_8_1|1_96_2_96_3_116_11_255_12_255_13_255_4_-1_6_619_7_1_15_1_18_0_8_1|1_130_2_130_3_150_11_255_12_255_13_255_4_-1_6_620_7_1_15_1_18_0_8_1|1_64_2_64_3_82_11_255_12_255_13_255_4_-1_6_621_7_1_15_1_18_0_8_1|1_120_2_110_3_150_11_255_12_255_13_255_4_-1_6_622_7_1_15_1_18_0_8_1|1_86_2_78_3_116_11_255_12_255_13_255_4_-1_6_623_7_1_15_1_18_0_8_1|1_244_2_238_3_210_11_255_12_255_13_255_4_-1_6_624_7_1_15_1_18_0_8_1|1_208_2_200_3_170_11_255_12_255_13_255_4_-1_6_625_7_1_15_1_18_0_8_1|1_140_2_255_3_120_11_255_12_255_13_255_4_-1_6_626_7_1_15_1_18_0_8_1|1_96_2_58_3_36_11_255_12_255_13_255_4_-1_6_627_7_1_15_1_18_0_8_1|1_240_2_192_3_150_11_255_12_255_13_255_4_-1_6_628_7_1_15_1_18_0_8_1|1_60_2_120_3_220_11_255_12_255_13_255_4_-1_6_629_7_1_15_1_18_0_8_1|1_52_2_60_3_92_11_255_12_255_13_255_4_-1_6_630_7_1_15_1_18_0_8_1|1_232_2_236_3_248_11_255_12_255_13_255_4_-1_6_631_7_1_15_1_18_0_8_1|1_184_2_192_3_220_11_255_12_255_13_255_4_-1_6_632_7_1_15_1_18_0_8_1|1_36_2_28_3_44_11_255_12_255_13_255_4_-1_6_633_7_1_15_1_18_0_8_1|,kA13,0,kA15,1,kA16,0,kA14,,kA6,57,kA7,5,kA25,1,kA17,1,kA18,0,kS39,0,kA2,0,kA3,0,kA8,0,kA4,0,kA9,0,kA10,0,kA22,0,kA23,0,kA24,0,kA27,1,kA40,1,kA41,1,kA42,1,kA28,0,kA29,0,kA31,1,kA32,1,kA36,0,kA43,0,kA44,0,kA45,1,kA46,0,kA33,1,kA34,1,kA35,0,kA37,1,kA38,1,kA39,1,kA19,0,kA26,0,kA20,0,kA21,0,kA11,0;1,211,2,300,3,25.5,21,600,22,600,24,1,25,0,128,0.2,129,1.7,155,1;1,211,2,300,3,24,21,600,22,600,24,1,25,0,128,0.4,129,1.6,155,1;1,211,2,301.5,3,22.5,21,600,22,600,24,1,25,0,128,0.5,129,1.5,155,1;1,211,2,286.5,3,21,21,600,22,600,24,1,25,0,128,0.1,129,1.4,155,1;1,211,2,300,3,21,21,600,22,600,24,1,25,0,128,0.6,129,1.4,155,1;1,211,2,313.5,3,21,21,600,22,600,24,1,25,0,128,0.1,129,1.4,155,1;1,211,2,300,3,21,21,600,22,600,24,1,25,0,128,1.4,129,1.2,155,1;1,211,2,300,3,21,21,600,22,600,24,1,25,0,128,1.6,129,1,155,1;1,211,2,300,3,21,21,600,22,600,24,1,25,0,128,1.8,129,0.6,155,1;1,211,2,300,3,21,21,600,22,600,24,1,25,0,128,2,129,0.2,155,1;1,211,2,286.5,3,21,21,602,22,602,24,1,25,1,128,0.1,129,1.2,155,1;1,211,2,313.5,3,21,21,602,22,602,24,1,25,1,128,0.1,129,1.2,155,1;1,211,2,300,3,21,21,602,22,602,24,1,25,1,128,1.4,129,1,155,1;1,211,2,300,3,21,21,602,22,602,24,1,25,1,128,1.6,129,0.6,155,1;1,211,2,300,3,28.5,21,604,22,604,24,1,25,2,128,1.2,129,0.1,155,1;1,211,2,300,3,27,21,604,22,604,24,1,25,2,128,1,129,0.2,155,1;1,211,2,300,3,25.5,21,604,22,604,24,1,25,2,128,0.8,129,0.3,155,1;1,211,2,300,3,12,21,604,22,604,24,1,25,2,128,0.8,129,0.2,155,1;1,211,2,300,3,37.5,21,603,22,603,24,1,25,3,128,0.6,129,0.1,155,1;1,211,2,300,3,27,21,603,22,603,24,1,25,3,128,0.4,129,0.8,155,1;1,211,2,300,3,31.5,21,603,22,603,24,1,25,3,128,0.6,129,0.1,155,1;1,211,2,300,3,21,21,603,22,603,24,1,25,3,128,0.6,129,0.4,155,1;1,211,2,274.5,3,21,21,603,22,603,24,1,25,3,128,0.1,129,0.2,155,1;1,211,2,325.5,3,21,21,603,22,603,24,1,25,3,128,0.1,129,0.2,155,1;1,211,2,292.5,3,19.5,21,603,22,603,24,1,25,3,128,0.1,129,0.5,155,1;1,211,2,307.5,3,19.5,21,603,22,603,24,1,25,3,128,0.1,129,0.5,155,1;1,211,2,301.5,3,7.5,21,603,22,603,24,1,25,3,128,0.1,129,0.3,155,1;1,211,2,300,3,6,21,603,22,603,24,1,25,3,128,0.4,129,0.2,155,1;1,211,2,300,3,4.5,21,603,22,603,24,1,25,3,128,0.6,129,0.1,155,1;1,211,2,300,3,42,21,601,22,601,24,1,25,4,128,0.2,129,0.4,155,1;1,211,2,301.5,3,43.5,21,601,22,601,24,1,25,4,128,0.3,129,0.1,155,1;1,914,2,300,3,90,31,QQ==,32,0.6,155,1;1,211,2,390,3,25.5,21,600,24,1,25,0,128,0.2,129,1.7,155,1;1,211,2,390,3,24,21,600,24,1,25,0,128,0.4,129,1.6,155,1;1,211,2,391.5,3,22.5,21,600,24,1,25,0,128,0.5,129,1.5,155,1;1,211,2,376.5,3,21,21,600,24,1,25,0,128,0.1,129,1.4,155,1;1,211,2,390,3,21,21,600,24,1,25,0,128,0.6,129,1.4,155,1;1,211,2,403.5,3,21,21,600,24,1,25,0,128,0.1,129,1.4,155,1;1,211,2,390,3,21,21,600,24,1,25,0,128,1.4,129,1.2,155,1;1,211,2,390,3,21,21,600,24,1,25,0,128,1.6,129,1,155,1;1,211,2,390,3,21,21,600,24,1,25,0,128,1.8,129,0.6,155,1;1,211,2,390,3,21,21,600,24,1,25,0,128,2,129,0.2,155,1;1,211,2,376.5,3,21,21,602,24,1,25,1,128,0.1,129,1.2,155,1;1,211,2,403.5,3,21,21,602,24,1,25,1,128,0.1,129,1.2,155,1;1,211,2,390,3,21,21,602,24,1,25,1,128,1.4,129,1,155,1;1,211,2,390,3,21,21,602,24,1,25,1,128,1.6,129,0.6,155,1;1,211,2,390,3,28.5,21,604,24,1,25,2,128,1.2,129,0.1,155,1;1,211,2,390,3,27,21,604,24,1,25,2,128,1,129,0.2,155,1;1,211,2,390,3,25.5,21,604,24,1,25,2,128,0.8,129,0.3,155,1;1,211,2,390,3,12,21,604,24,1,25,2,128,0.8,129,0.2,155,1;1,211,2,390,3,37.5,21,603,24,1,25,3,128,0.6,129,0.1,155,1;1,211,2,390,3,27,21,603,24,1,25,3,128,0.4,129,0.8,155,1;1,211,2,390,3,31.5,21,603,24,1,25,3,128,0.6,129,0.1,155,1;1,211,2,390,3,21,21,603,24,1,25,3,128,0.6,129,0.4,155,1;1,211,2,364.5,3,21,21,603,24,1,25,3,128,0.1,129,0.2,155,1;1,211,2,415.5,3,21,21,603,24,1,25,3,128,0.1,129,0.2,155,1;1,211,2,382.5,3,19.5,21,603,24,1,25,3,128,0.1,129,0.5,155,1;1,211,2,397.5,3,19.5,21,603,24,1,25,3,128,0.1,129,0.5,155,1;1,211,2,391.5,3,7.5,21,603,24,1,25,3,128,0.1,129,0.3,155,1;1,211,2,390,3,6,21,603,24,1,25,3,128,0.4,129,0.2,155,1;1,211,2,390,3,4.5,21,603,24,1,25,3,128,0.6,129,0.1,155,1;1,211,2,390,3,42,21,601,24,1,25,4,128,0.2,129,0.4,155,1;1,211,2,391.5,3,43.5,21,601,24,1,25,4,128,0.3,129,0.1,155,1;1,914,2,390,3,90,31,Qg==,32,0.6,155,1;1,211,2,480,3,25.5,22,600,24,1,25,0,128,0.2,129,1.7,155,1;1,211,2,480,3,24,22,600,24,1,25,0,128,0.4,129,1.6,155,1;1,211,2,481.5,3,22.5,22,600,24,1,25,0,128,0.5,129,1.5,155,1;1,211,2,466.5,3,21,22,600,24,1,25,0,128,0.1,129,1.4,155,1;1,211,2,480,3,21,22,600,24,1,25,0,128,0.6,129,1.4,155,1;1,211,2,493.5,3,21,22,600,24,1,25,0,128,0.1,129,1.4,155,1;1,211,2,480,3,21,22,600,24,1,25,0,128,1.4,129,1.2,155,1;1,211,2,480,3,21,22,600,24,1,25,0,128,1.6,129,1,155,1;1,211,2,480,3,21,22,600,24,1,25,0,128,1.8,129,0.6,155,1;1,211,2,480,3,21,22,600,24,1,25,0,128,2,129,0.2,155,1;1,211,2,466.5,3,21,22,602,24,1,25,1,128,0.1,129,1.2,155,1;1,211,2,493.5,3,21,22,602,24,1,25,1,128,0.1,129,1.2,155,1;1,211,2,480,3,21,22,602,24,1,25,1,128,1.4,129,1,155,1;1,211,2,480,3,21,22,602,24,1,25,1,128,1.6,129,0.6,155,1;1,211,2,480,3,28.5,22,604,24,1,25,2,128,1.2,129,0.1,155,1;1,211,2,480,3,27,22,604,24,1,25,2,128,1,129,0.2,155,1;1,211,2,480,3,25.5,22,604,24,1,25,2,128,0.8,129,0.3,155,1;1,211,2,480,3,12,22,604,24,1,25,2,128,0.8,129,0.2,155,1;1,211,2,480,3,37.5,22,603,24,1,25,3,128,0.6,129,0.1,155,1;1,211,2,480,3,27,22,603,24,1,25,3,128,0.4,129,0.8,155,1;1,211,2,480,3,31.5,22,603,24,1,25,3,128,0.6,129,0.1,155,1;1,211,2,480,3,21,22,603,24,1,25,3,128,0.6,129,0.4,155,1;1,211,2,454.5,3,21,22,603,24,1,25,3,128,0.1,129,0.2,155,1;1,211,2,505.5,3,21,22,603,24,1,25,3,128,0.1,129,0.2,155,1;1,211,2,472.5,3,19.5,22,603,24,1,25,3,128,0.1,129,0.5,155,1;1,211,2,487.5,3,19.5,22,603,24,1,25,3,128,0.1,129,0.5,155,1;1,211,2,481.5,3,7.5,22,603,24,1,25,3,128,0.1,129,0.3,155,1;1,211,2,480,3,6,22,603,24,1,25,3,128,0.4,129,0.2,155,1;1,211,2,480,3,4.5,22,603,24,1,25,3,128,0.6,129,0.1,155,1;1,211,2,480,3,42,22,601,24,1,25,4,128,0.2,129,0.4,155,1;1,211,2,481.5,3,43.5,22,601,24,1,25,4,128,0.3,129,0.1,155,1;1,914,2,480,3,90,31,Qw==,32,0.6,155,1;1,211,2,570,3,25.5,21,40,22,40,24,1,25,0,128,0.2,129,1.7,155,1;1,211,2,570,3,24,21,40,22,40,24,1,25,0,128,0.4,129,1.6,155,1;1,211,2,571.5,3,22.5,21,40,22,40,24,1,25,0,128,0.5,129,1.5,155,1;1,211,2,556.5,3,21,21,40,22,40,24,1,25,0,128,0.1,129,1.4,155,1;1,211,2,570,3,21,21,40,22,40,24,1,25,0,128,0.6,129,1.4,155,1;1,211,2,583.5,3,21,21,40,22,40,24,1,25,0,128,0.1,129,1.4,155,1;1,211,2,570,3,21,21,40,22,40,24,1,25,0,128,1.4,129,1.2,155,1;1,211,2,570,3,21,21,40,22,40,24,1,25,0,128,1.6,129,1,155,1;1,211,2,570,3,21,21,40,22,40,24,1,25,0,128,1.8,129,0.6,155,1;1,211,2,570,3,21,21,40,22,40,24,1,25,0,128,2,129,0.2,155,1;1,211,2,556.5,3,21,21,42,22,42,24,1,25,1,128,0.1,129,1.2,155,1;1,211,2,583.5,3,21,21,42,22,42,24,1,25,1,128,0.1,129,1.2,155,1;1,211,2,570,3,21,21,42,22,42,24,1,25,1,128,1.4,129,1,155,1;1,211,2,570,3,21,21,42,22,42,24,1,25,1,128,1.6,129,0.6,155,1;1,211,2,570,3,28.5,21,44,22,44,24,1,25,2,128,1.2,129,0.1,155,1;1,211,2,570,3,27,21,44,22,44,24,1,25,2,128,1,129,0.2,155,1;1,211,2,570,3,25.5,21,44,22,44,24,1,25,2,128,0.8,129,0.3,155,1;1,211,2,570,3,12,21,44,22,44,24,1,25,2,128,0.8,129,0.2,155,1;1,211,2,570,3,37.5,21,43,22,43,24,1,25,3,128,0.6,129,0.1,155,1;1,211,2,570,3,27,21,43,22,43,24,1,25,3,128,0.4,129,0.8,155,1;1,211,2,570,3,31.5,21,43,22,43,24,1,25,3,128,0.6,129,0.1,155,1;1,211,2,570,3,21,21,43,22,43,24,1,25,3,128,0.6,129,0.4,155,1;1,211,2,544.5,3,21,21,43,22,43,24,1,25,3,128,0.1,129,0.2,155,1;1,211,2,595.5,3,21,21,43,22,43,24,1,25,3,128,0.1,129,0.2,155,1;1,211,2,562.5,3,19.5,21,43,22,43,24,1,25,3,128,0.1,129,0.5,155,1;1,211,2,577.5,3,19.5,21,43,22,43,24,1,25,3,128,0.1,129,0.5,155,1;1,211,2,571.5,3,7.5,21,43,22,43,24,1,25,3,128,0.1,129,0.3,155,1;1,211,2,570,3,6,21,43,22,43,24,1,25,3,128,0.4,129,0.2,155,1;1,211,2,570,3,4.5,21,43,22,43,24,1,25,3,128,0.6,129,0.1,155,1;1,211,2,570,3,42,21,41,22,41,24,1,25,4,128,0.2,129,0.4,155,1;1,211,2,571.5,3,43.5,21,41,22,41,24,1,25,4,128,0.3,129,0.1,155,1;1,914,2,570,3,90,31,RA==,32,0.6,155,1;1,914,2,435,3,135,31,d2hpY2ggcHVtcGtpbnMgYXJlIG9yYW5nZT8=,32,0.4,155,1;1,211,2,865.05,3,70,21,600,22,600,24,1,25,0,128,1,129,4.333,155,1;1,211,2,867.55,3,90,21,600,22,600,24,1,25,0,128,1.167,129,3,155,1;1,211,2,867.55,3,87.5,21,600,22,600,24,1,25,0,128,1.5,129,2.833,155,1;1,211,2,867.55,3,87.5,21,600,22,600,24,1,25,0,128,1.833,129,2.5,155,1;1,211,2,865.05,3,85,21,600,22,600,24,1,25,0,32,2.333,155,1;1,211,2,862.55,3,85,21,600,22,600,24,1,25,0,128,2.5,129,2,155,1;1,211,2,865.05,3,82.5,21,600,22,600,24,1,25,0,128,2.667,129,1.833,155,1;1,211,2,865.05,3,82.5,21,600,22,600,24,1,25,0,128,3,129,1.5,155,1;1,211,2,862.55,3,77.5,21,600,22,600,24,1,25,0,128,3.167,129,1.167,155,1;1,211,2,865.05,3,77.5,21,600,22,600,24,1,25,0,128,3.333,129,0.833,155,1;1,211,2,862.55,3,75,21,600,22,600,24,1,25,0,128,3.5,129,0.667,155,1;1,211,2,862.55,3,80,21,600,22,600,24,1,25,0,128,2.833,129,1.667,155,1;1,211,2,865.05,3,85,21,600,22,600,24,1,25,0,128,1.667,129,2.667,155,1;1,211,2,865.05,3,67.5,21,600,22,600,24,1,25,0,128,0.667,129,4.5,155,1;1,211,2,867.55,3,100,21,605,22,605,24,1,25,1,128,1.167,129,2,155,1;1,211,2,867.55,3,97.5,21,605,22,605,24,1,25,1,128,1.5,129,1.833,155,1;1,211,2,867.55,3,92.5,21,605,22,605,24,1,25,1,32,1.833,155,1;1,211,2,862.55,3,90,21,605,22,605,24,1,25,1,128,2.167,129,1.667,155,1;1,211,2,865.05,3,87.5,21,605,22,605,24,1,25,1,128,2.333,129,1.5,155,1;1,211,2,865.05,3,82.5,21,605,22,605,24,1,25,1,128,2.667,129,1.5,155,1;1,211,2,862.55,3,77.5,21,605,22,605,24,1,25,1,128,2.833,129,1.167,155,1;1,211,2,865.05,3,77.5,21,605,22,605,24,1,25,1,128,3,129,0.833,155,1;1,211,2,862.55,3,75,21,605,22,605,24,1,25,1,128,3.167,129,0.667,155,1;1,211,2,860.05,3,105,21,606,22,606,24,1,25,2,128,0.333,129,1.667,155,1;1,211,2,860.05,3,105,21,606,22,606,24,1,25,2,128,1,129,1.333,155,1;1,211,2,840.05,3,95,21,606,22,606,24,1,25,2,128,0.333,129,1.333,155,1;1,211,2,835.05,3,87.5,21,606,22,606,24,1,25,2,128,0.333,129,1.167,155,1;1,211,2,882.55,3,85,21,606,22,606,24,1,25,2,128,0.5,129,0.667,155,1;1,211,2,832.55,3,80,21,606,22,606,24,1,25,2,128,0.5,129,0.667,155,1;1,211,2,882.55,3,85,21,606,22,606,24,1,25,2,128,0.833,129,0.333,155,1;1,211,2,842.55,3,82.5,21,606,22,606,24,1,25,2,128,1.5,129,0.167,155,1;1,211,2,832.55,3,80,21,606,22,606,24,1,25,2,128,0.833,129,0.333,155,1;1,211,2,885.05,3,82.5,21,606,22,606,24,1,25,2,128,0.667,129,0.5,155,1;1,211,2,865.05,3,60,21,607,22,607,24,1,25,3,128,1.667,129,0.667,155,1;1,211,2,865.05,3,60,21,607,22,607,24,1,25,3,128,2.333,129,0.333,155,1;1,211,2,865.05,3,30,21,608,22,608,24,1,25,4,128,0.667,129,1.667,155,1;1,211,2,862.55,3,27.5,21,609,22,609,24,1,25,5,128,0.5,129,1.5,155,1;1,211,2,867.55,3,47.5,21,609,22,609,24,1,25,5,128,0.833,129,0.167,155,1;1,914,2,865.05,3,380.1,31,dHJlZSAoMzgp,32,0.4,155,1;1,211,2,1105.1,3,72.5,21,600,22,600,24,1,25,0,128,0.333,129,4.833,155,1;1,211,2,1117.6,3,137.5,21,600,22,600,24,1,25,0,128,0.167,129,0.5,155,1;1,211,2,1062.6,3,117.5,21,600,22,600,24,1,25,0,128,0.167,129,1.5,155,1;1,211,2,1105.1,3,125,21,600,22,600,24,1,25,0,128,0.667,129,1,155,1;1,211,2,1110.1,3,137.5,21,600,22,600,24,1,25,0,128,1,129,0.167,155,1;1,211,2,1062.6,3,132.5,21,600,22,600,24,1,25,0,128,0.5,129,0.167,155,1;1,211,2,1070.1,3,110,21,600,22,600,24,1,25,0,128,0.333,129,1.333,155,1;1,211,2,1127.6,3,102.5,21,600,22,600,24,1,25,0,128,0.167,129,1.833,155,1;1,211,2,1127.6,3,102.5,21,600,22,600,24,1,25,0,128,0.5,129,1.5,155,1;1,211,2,1062.6,3,112.5,21,600,22,600,24,1,25,0,128,0.833,129,0.5,155,1;1,211,2,1100.1,3,60,21,600,22,600,24,1,25,0,128,0.667,129,4,155,1;1,211,2,1147.6,3,110,21,600,22,600,24,1,25,0,128,0.167,129,0.667,155,1;1,211,2,1060.1,3,112.5,21,600,22,600,24,1,25,0,128,1,129,0.167,155,1;1,211,2,1137.6,3,110,21,600,22,600,24,1,25,0,128,1.167,129,0.333,155,1;1,211,2,1077.6,3,97.5,21,600,22,600,24,1,25,0,128,0.167,129,0.833,155,1;1,211,2,1082.6,3,102.5,21,600,22,600,24,1,25,0,128,1.833,129,0.167,155,1;1,211,2,1132.6,3,102.5,21,600,22,600,24,1,25,0,32,0.833,155,1;1,211,2,1100.1,3,47.5,21,600,22,600,24,1,25,0,128,1,129,3.167,155,1;1,211,2,1105.1,3,82.5,21,600,22,600,24,1,25,0,128,1.333,129,0.833,155,1;1,211,2,1107.6,3,90,21,600,22,600,24,1,25,0,128,2.167,129,0.333,155,1;1,211,2,1107.6,3,87.5,21,600,22,600,24,1,25,0,128,1.833,129,0.5,155,1;1,211,2,1102.6,3,17.5,21,600,22,600,24,1,25,0,32,1.167,155,1;1,211,2,1100.1,3,15,21,600,22,600,24,1,25,0,128,1.333,129,1,155,1;1,211,2,1100.1,3,7.5,21,600,22,600,24,1,25,0,128,1.667,129,0.167,155,1;1,211,2,1102.6,3,50,21,608,22,608,24,1,25,1,128,0.5,129,3,155,1;1,211,2,1100.1,3,17.5,21,608,22,608,24,1,25,1,128,1,129,0.833,155,1;1,211,2,1100.1,3,7.5,21,608,22,608,24,1,25,1,128,1.333,129,0.167,155,1;1,211,2,1102.6,3,77.5,21,609,22,609,24,1,25,2,128,0.167,129,4.167,155,1;1,211,2,1105.1,3,125,21,609,22,609,24,1,25,2,128,0.333,129,1,155,1;1,211,2,1117.6,3,137.5,21,609,22,609,24,1,25,2,32,0.167,155,1;1,211,2,1062.6,3,132.5,21,609,22,609,24,1,25,2,32,0.167,155,1;1,211,2,1107.6,3,132.5,21,609,22,609,24,1,25,2,128,0.5,129,0.167,155,1;1,211,2,1067.6,3,112.5,21,609,22,609,24,1,25,2,128,0.167,129,1.167,155,1;1,211,2,1127.6,3,102.5,21,609,22,609,24,1,25,2,128,0.167,129,1.5,155,1;1,211,2,1100.1,3,67.5,21,609,22,609,24,1,25,2,128,0.333,129,3.5,155,1;1,211,2,1060.1,3,112.5,21,609,22,609,24,1,25,2,128,0.667,129,0.167,155,1;1,211,2,1147.6,3,110,21,609,22,609,24,1,25,2,128,0.167,129,0.333,155,1;1,211,2,1065.1,3,107.5,21,609,22,609,24,1,25,2,128,0.667,129,0.167,155,1;1,211,2,1140.1,3,105,21,609,22,609,24,1,25,2,32,0.333,155,1;1,211,2,1070.1,3,102.5,21,609,22,609,24,1,25,2,128,0.667,129,0.167,155,1;1,211,2,1132.6,3,97.5,21,609,22,609,24,1,25,2,32,0.5,155,1;1,211,2,1077.6,3,97.5,21,609,22,609,24,1,25,2,128,0.833,129,0.167,155,1;1,211,2,1092.6,3,92.5,21,609,22,609,24,1,25,2,128,1.167,129,0.167,155,1;1,211,2,1122.6,3,85,21,609,22,609,24,1,25,2,128,0.167,129,0.667,155,1;1,211,2,1095.1,3,90,21,609,22,609,24,1,25,2,128,1,129,0.333,155,1;1,211,2,1120.1,3,82.5,21,609,22,609,24,1,25,2,128,0.333,129,0.5,155,1;1,211,2,1125.1,3,87.5,21,609,22,609,24,1,25,2,128,0.667,129,0.167,155,1;1,211,2,1095.1,3,87.5,21,609,22,609,24,1,25,2,128,0.667,129,0.5,155,1;1,211,2,1112.6,3,77.5,21,609,22,609,24,1,25,2,128,0.167,129,0.5,155,1;1,211,2,1102.6,3,72.5,21,609,22,609,24,1,25,2,32,0.5,155,1;1,211,2,1097.6,3,45,21,609,22,609,24,1,25,2,128,0.5,129,2,155,1;1,211,2,1112.6,3,32.5,21,609,22,609,24,1,25,2,32,0.167,155,1;1,211,2,1095.1,3,22.5,21,609,22,609,24,1,25,2,128,0.667,129,0.5,155,1;1,914,2,1100.1,3,390,31,ZGVhZCB0cmVlICg1Myk=,32,0.4,155,1;1,211,2,1310.1,3,25.5,21,600,22,600,24,1,25,0,128,0.2,129,1.7,155,1;1,211,2,1310.1,3,24,21,600,22,600,24,1,25,0,128,0.4,129,1.6,155,1;1,211,2,1311.6,3,22.5,21,600,22,600,24,1,25,0,128,0.5,129,1.5,155,1;1,211,2,1296.6,3,21,21,600,22,600,24,1,25,0,128,0.1,129,1.4,155,1;1,211,2,1310.1,3,21,21,600,22,600,24,1,25,0,128,0.6,129,1.4,155,1;1,211,2,1323.6,3,21,21,600,22,600,24,1,25,0,128,0.1,129,1.4,155,1;1,211,2,1310.1,3,21,21,600,22,600,24,1,25,0,128,1.4,129,1.2,155,1;1,211,2,1310.1,3,21,21,600,22,600,24,1,25,0,128,1.6,129,1,155,1;1,211,2,1310.1,3,21,21,600,22,600,24,1,25,0,128,1.8,129,0.6,155,1;1,211,2,1310.1,3,21,21,600,22,600,24,1,25,0,128,2,129,0.2,155,1;1,211,2,1296.6,3,21,21,602,22,602,24,1,25,1,128,0.1,129,1.2,155,1;1,211,2,1323.6,3,21,21,602,22,602,24,1,25,1,128,0.1,129,1.2,155,1;1,211,2,1310.1,3,21,21,602,22,602,24,1,25,1,128,1.4,129,1,155,1;1,211,2,1310.1,3,21,21,602,22,602,24,1,25,1,128,1.6,129,0.6,155,1;1,211,2,1310.1,3,28.5,21,604,22,604,24,1,25,2,128,1.2,129,0.1,155,1;1,211,2,1310.1,3,27,21,604,22,604,24,1,25,2,128,1,129,0.2,155,1;1,211,2,1310.1,3,25.5,21,604,22,604,24,1,25,2,128,0.8,129,0.3,155,1;1,211,2,1310.1,3,12,21,604,22,604,24,1,25,2,128,0.8,129,0.2,155,1;1,211,2,1310.1,3,37.5,21,603,22,603,24,1,25,3,128,0.6,129,0.1,155,1;1,211,2,1310.1,3,27,21,603,22,603,24,1,25,3,128,0.4,129,0.8,155,1;1,211,2,1310.1,3,31.5,21,603,22,603,24,1,25,3,128,0.6,129,0.1,155,1;1,211,2,1310.1,3,21,21,603,22,603,24,1,25,3,128,0.6,129,0.4,155,1;1,211,2,1284.6,3,21,21,603,22,603,24,1,25,3,128,0.1,129,0.2,155,1;1,211,2,1335.6,3,21,21,603,22,603,24,1,25,3,128,0.1,129,0.2,155,1;1,211,2,1302.6,3,19.5,21,603,22,603,24,1,25,3,128,0.1,129,0.5,155,1;1,211,2,1317.6,3,19.5,21,603,22,603,24,1,25,3,128,0.1,129,0.5,155,1;1,211,2,1311.6,3,7.5,21,603,22,603,24,1,25,3,128,0.1,129,0.3,155,1;1,211,2,1310.1,3,6,21,603,22,603,24,1,25,3,128,0.4,129,0.2,155,1;1,211,2,1310.1,3,4.5,21,603,22,603,24,1,25,3,128,0.6,129,0.1,155,1;1,211,2,1310.1,3,42,21,601,22,601,24,1,25,4,128,0.2,129,0.4,155,1;1,211,2,1311.6,3,43.5,21,601,22,601,24,1,25,4,128,0.3,129,0.1,155,1;1,914,2,1310.1,3,291,31,cHVtcGtpbiAoMzEp,32,0.4,155,1;1,211,2,1547.55,3,67.5,21,600,22,600,24,1,25,0,128,0.833,129,4.5,155,1;1,211,2,1540.05,3,65,21,600,22,600,24,1,25,0,128,1.333,129,4.333,155,1;1,211,2,1542.55,3,125,21,600,22,600,24,1,25,0,128,1.5,129,0.333,155,1;1,211,2,1537.55,3,62.5,21,600,22,600,24,1,25,0,128,1.5,129,4.167,155,1;1,211,2,1535.05,3,60,21,600,22,600,24,1,25,0,128,1.667,129,4,155,1;1,211,2,1532.55,3,57.5,21,600,22,600,24,1,25,0,128,1.833,129,3.833,155,1;1,211,2,1530.05,3,55,21,600,22,600,24,1,25,0,128,2,129,3.667,155,1;1,211,2,1525.05,3,52.5,21,600,22,600,24,1,25,0,128,2.333,129,3.5,155,1;1,211,2,1525.05,3,50,21,600,22,600,24,1,25,0,128,2.667,129,3.333,155,1;1,211,2,1525.05,3,47.5,21,600,22,600,24,1,25,0,128,3,129,3.167,155,1;1,211,2,1525.05,3,45,21,600,22,600,24,1,25,0,128,3.333,129,3,155,1;1,211,2,1525.05,3,45,21,600,22,600,24,1,25,0,128,3.667,129,2.667,155,1;1,211,2,1525.05,3,77.5,21,600,22,600,24,1,25,0,128,4,129,0.167,155,1;1,211,2,1525.05,3,45,21,614,22,614,24,1,25,1,128,3.333,129,2.667,155,1;1,211,2,1525.05,3,100,21,611,22,611,24,1,25,2,128,0.333,129,1.667,155,1;1,211,2,1525.05,3,97.5,21,611,22,611,24,1,25,2,128,0.667,129,1.5,155,1;1,211,2,1532.55,3,95,21,611,22,611,24,1,25,2,128,1.5,129,1.333,155,1;1,211,2,1530.05,3,92.5,21,611,22,611,24,1,25,2,128,1.667,129,1.167,155,1;1,211,2,1527.55,3,90,21,611,22,611,24,1,25,2,128,1.833,129,1,155,1;1,211,2,1525.05,3,87.5,21,611,22,611,24,1,25,2,128,2.333,129,0.833,155,1;1,211,2,1525.05,3,85,21,611,22,611,24,1,25,2,128,2.667,129,0.667,155,1;1,211,2,1525.05,3,82.5,21,611,22,611,24,1,25,2,128,3,129,0.5,155,1;1,211,2,1525.05,3,80,21,611,22,611,24,1,25,2,128,3.333,129,0.333,155,1;1,211,2,1525.05,3,77.5,21,611,22,611,24,1,25,2,128,3.667,129,0.167,155,1;1,211,2,1547.55,3,115,21,613,22,613,24,1,25,3,128,0.5,129,1,155,1;1,211,2,1565.05,3,45,21,613,22,613,24,1,25,3,128,0.667,129,2.667,155,1;1,211,2,1547.55,3,125,21,610,22,610,24,1,25,4,128,0.833,129,0.333,155,1;1,211,2,1522.55,3,92.5,21,610,22,610,24,1,25,4,32,0.5,155,1;1,211,2,1495.05,3,50,21,610,22,610,24,1,25,4,32,0.667,155,1;1,211,2,1550.05,3,50,21,610,22,610,24,1,25,4,32,0.667,155,1;1,211,2,1522.55,3,25,21,610,22,610,24,1,25,4,128,0.833,129,1.333,155,1;1,211,2,1527.55,3,122.5,21,612,22,612,24,1,25,5,32,0.167,155,1;1,211,2,1532.55,3,115,21,612,22,612,24,1,25,5,128,0.167,129,0.333,155,1;1,211,2,1537.55,3,110,21,612,22,612,24,1,25,5,128,0.167,129,0.333,155,1;1,211,2,1542.55,3,102.5,21,612,22,612,24,1,25,5,128,0.167,129,0.5,155,1;1,211,2,1547.55,3,95,21,612,22,612,24,1,25,5,128,0.167,129,0.667,155,1;1,211,2,1555.05,3,90,21,612,22,612,24,1,25,5,128,0.333,129,0.667,155,1;1,211,2,1560.05,3,85,21,612,22,612,24,1,25,5,128,0.333,129,0.667,155,1;1,211,2,1562.55,3,82.5,21,612,22,612,24,1,25,5,32,0.5,155,1;1,211,2,1565.05,3,80,21,612,22,612,24,1,25,5,128,0.667,129,0.333,155,1;1,211,2,1567.55,3,77.5,21,612,22,612,24,1,25,5,128,0.833,129,0.167,155,1;1,211,2,1522.55,3,22.5,21,615,22,615,24,1,25,6,128,0.5,129,1.167,155,1;1,211,2,1522.55,3,92.5,21,604,22,604,24,1,25,7,32,0.167,155,1;1,211,2,1495.05,3,50,21,604,22,604,24,1,25,7,32,0.333,155,1;1,211,2,1550.05,3,50,21,604,22,604,24,1,25,7,32,0.333,155,1;1,211,2,1527.55,3,22.5,21,604,22,604,24,1,25,7,32,0.167,155,1;1,914,2,1525.05,3,380.1,31,aG91c2UgKDQ2KQ==,32,0.4,155,1;1,211,2,1740,3,60,21,600,22,600,24,1,25,0,128,0.4,129,4,155,1;1,211,2,1740,3,100,21,600,22,600,24,1,25,0,128,0.667,129,1.067,155,1;1,211,2,1740,3,98,21,600,22,600,24,1,25,0,32,0.933,155,1;1,211,2,1740,3,98,21,600,22,600,24,1,25,0,128,1.2,129,0.667,155,1;1,211,2,1740,3,78,21,600,22,600,24,1,25,0,128,0.667,129,0.133,155,1;1,211,2,1740,3,10,21,600,22,600,24,1,25,0,32,0.667,155,1;1,211,2,1740,3,8,21,600,22,600,24,1,25,0,128,0.933,129,0.533,155,1;1,211,2,1740,3,6,21,600,22,600,24,1,25,0,128,1.2,129,0.133,155,1;1,211,2,1740,3,66,21,618,22,618,24,1,25,1,128,0.133,129,3.333,155,1;1,211,2,1740,3,102,21,616,22,616,24,1,25,2,128,0.4,129,0.933,155,1;1,211,2,1740,3,98,21,616,22,616,24,1,25,2,128,0.933,129,0.667,155,1;1,211,2,1740,3,78,21,616,22,616,24,1,25,2,128,0.4,129,0.133,155,1;1,211,2,1740,3,10,21,616,22,616,24,1,25,2,128,0.667,129,0.4,155,1;1,211,2,1740,3,6,21,616,22,616,24,1,25,2,128,0.933,129,0.133,155,1;1,211,2,1740,3,98,21,617,22,617,24,1,25,3,128,0.667,129,0.4,155,1;1,211,2,1740,3,98,21,604,22,604,24,1,25,4,128,0.4,129,0.133,155,1;1,914,2,1740,3,360,31,bGFtcCBwb3N0ICgxNik=,32,0.4,155,1;1,211,2,1902,3,21,21,600,22,600,24,1,25,0,128,0.2,129,1.4,155,1;1,211,2,1923,3,21,21,600,22,600,24,1,25,0,128,0.2,129,1.4,155,1;1,211,2,1944,3,21,21,600,22,600,24,1,25,0,128,0.2,129,1.4,155,1;1,211,2,1902,3,19.5,21,600,22,600,24,1,25,0,128,0.4,129,1.3,155,1;1,211,2,1923,3,19.5,21,600,22,600,24,1,25,0,128,0.4,129,1.3,155,1;1,211,2,1944,3,19.5,21,600,22,600,24,1,25,0,128,0.4,129,1.3,155,1;1,211,2,1902,3,19.5,21,600,22,600,24,1,25,0,128,0.6,129,1.1,155,1;1,211,2,1923,3,19.5,21,600,22,600,24,1,25,0,128,0.6,129,1.1,155,1;1,211,2,1944,3,19.5,21,600,22,600,24,1,25,0,128,0.6,129,1.1,155,1;1,211,2,1924.5,3,18,21,600,22,600,24,1,25,0,128,2.1,129,0.8,155,1;1,211,2,1924.5,3,24,21,600,22,600,24,1,25,0,128,2.3,129,0.2,155,1;1,211,2,1924.5,3,12,21,600,22,600,24,1,25,0,128,2.3,129,0.2,155,1;1,211,2,1902,3,19.5,21,609,22,609,24,1,25,1,128,0.4,129,1.1,155,1;1,211,2,1923,3,19.5,21,609,22,609,24,1,25,1,128,0.4,129,1.1,155,1;1,211,2,1944,3,19.5,21,609,22,609,24,1,25,1,128,0.4,129,1.1,155,1;1,211,2,1924.5,3,24,21,609,22,609,24,1,25,1,128,2.1,129,0.2,155,1;1,211,2,1924.5,3,12,21,609,22,609,24,1,25,1,128,2.1,129,0.2,155,1;1,211,2,1902,3,21,21,615,22,615,24,1,25,2,128,0.2,129,1.2,155,1;1,211,2,1923,3,21,21,615,22,615,24,1,25,2,128,0.2,129,1.2,155,1;1,211,2,1944,3,21,21,615,22,615,24,1,25,2,128,0.2,129,1.2,155,1;1,211,2,1900.5,3,19.5,21,615,22,615,24,1,25,2,128,0.3,129,1.1,155,1;1,211,2,1902,3,34.5,21,615,22,615,24,1,25,2,128,0.4,129,0.1,155,1;1,211,2,1921.5,3,19.5,21,615,22,615,24,1,25,2,128,0.3,129,1.1,155,1;1,211,2,1923,3,34.5,21,615,22,615,24,1,25,2,128,0.4,129,0.1,155,1;1,211,2,1942.5,3,19.5,21,615,22,615,24,1,25,2,128,0.3,129,1.1,155,1;1,211,2,1944,3,34.5,21,615,22,615,24,1,25,2,128,0.4,129,0.1,155,1;1,914,2,1924.5,3,282,31,ZmVuY2UgKDI2KQ==,32,0.4,155,1;1,211,2,2110.5,3,24,21,600,22,600,24,1,25,0,128,0.5,129,1.6,155,1;1,211,2,2109,3,22.5,21,600,22,600,24,1,25,0,128,0.8,129,1.5,155,1;1,211,2,2109,3,21,21,600,22,600,24,1,25,0,128,1,129,1.4,155,1;1,211,2,2109,3,19.5,21,600,22,600,24,1,25,0,128,1.2,129,1.3,155,1;1,211,2,2109,3,6,21,600,22,600,24,1,25,0,128,1.4,129,0.2,155,1;1,211,2,2110.5,3,27,21,619,22,619,24,1,25,1,128,0.5,129,1.2,155,1;1,211,2,2109,3,25.5,21,619,22,619,24,1,25,1,128,0.8,129,1.1,155,1;1,211,2,2109,3,24,21,619,22,619,24,1,25,1,32,1,155,1;1,211,2,2119.5,3,22.5,21,621,22,621,24,1,25,2,128,0.3,129,0.9,155,1;1,211,2,2112,3,28.5,21,621,22,621,24,1,25,2,128,0.8,129,0.1,155,1;1,211,2,2112,3,22.5,21,621,22,621,24,1,25,2,128,0.8,129,0.1,155,1;1,211,2,2112,3,16.5,21,621,22,621,24,1,25,2,128,0.8,129,0.1,155,1;1,211,2,2109,3,6,21,607,22,607,24,1,25,3,128,1.2,129,0.2,155,1;1,211,2,2113.5,3,40.5,21,620,22,620,24,1,25,4,32,0.3,155,1;1,211,2,2113.5,3,39,21,620,22,620,24,1,25,4,128,0.5,129,0.2,155,1;1,211,2,2113.5,3,39,21,620,22,620,24,1,25,4,128,0.1,129,0.4,155,1;1,914,2,2109,3,291,31,dG9tYnN0b25lICgxNik=,32,0.4,155,1;1,110,2,2289,3,268.05,21,616,22,616,24,1,25,-1,155,1;1,110,2,2289,3,234.15,21,616,22,616,24,1,25,-1,155,1;1,110,2,2289,3,200.25,21,616,22,616,24,1,25,-1,155,1;1,211,2,2289,3,161.3,21,600,22,600,24,1,25,0,128,0.6,129,1.6,155,1;1,211,2,2289,3,159.8,21,600,22,600,24,1,25,0,128,0.8,129,1.5,155,1;1,211,2,2289,3,158.3,21,600,22,600,24,1,25,0,128,1.6,129,1.4,155,1;1,211,2,2289,3,158.3,21,600,22,600,24,1,25,0,128,1.8,129,1.2,155,1;1,211,2,2289,3,158.3,21,621,22,621,24,1,25,1,128,1.6,129,1.2,155,1;1,211,2,2284.5,3,161.3,21,619,22,619,24,1,25,2,128,1.3,129,1,155,1;1,211,2,2284.5,3,173.3,21,620,22,620,24,1,25,3,128,1.3,129,0.2,155,1;1,211,2,2289,3,179.3,21,616,22,616,24,1,25,4,128,0.6,129,0.2,155,1;1,211,2,2272.5,3,165.8,21,618,22,618,24,1,25,5,32,0.1,155,1;1,211,2,2299.5,3,165.8,21,618,22,618,24,1,25,5,32,0.1,155,1;1,211,2,2272.5,3,150.8,21,618,22,618,24,1,25,5,32,0.1,155,1;1,211,2,2299.5,3,150.8,21,618,22,618,24,1,25,5,32,0.1,155,1;1,914,2,2289,3,330,31,aGFuZ2luZyBibG9jayAoMTUp,32,0.4,155,1;1,1,2,2229,3,315,155,1;1,1,2,2259,3,315,155,1;1,1,2,2289,3,315,155,1;1,1,2,2319,3,315,155,1;1,1,2,2349,3,315,155,1;1,85,2,2473.95,3,200,21,618,22,618,24,-3,25,-1,155,1;1,211,2,2473.95,3,200,21,616,22,616,24,-3,25,0,128,0.2,129,0.8,155,1;1,211,2,2473.95,3,200,21,616,22,616,24,-3,25,0,32,0.6,155,1;1,211,2,2473.95,3,200,21,616,22,616,24,-3,25,0,128,0.8,129,0.2,155,1;1,211,2,2473.95,3,200,21,610,22,610,24,-3,25,1,128,0.2,129,0.4,155,1;1,211,2,2473.95,3,200,21,610,22,610,24,-3,25,1,128,0.4,129,0.2,155,1;1,914,2,2473.95,3,330,31,Z2VhciAoNik=,32,0.4,155,1;1,211,2,2708.95,3,207.5,21,622,22,622,24,-3,25,0,128,1,129,1.5,155,1;1,211,2,2708.95,3,205,21,622,22,622,24,-3,25,0,128,1.667,129,1.333,155,1;1,211,2,2708.95,3,202.5,21,622,22,622,24,-3,25,0,128,2,129,1.167,155,1;1,211,2,2703.95,3,200,21,622,22,622,24,-3,25,0,128,3.333,129,1,155,1;1,211,2,2703.95,3,197.5,21,622,22,622,24,-3,25,0,128,4,129,0.833,155,1;1,211,2,2701.45,3,195,21,622,22,622,24,-3,25,0,128,4.167,129,0.667,155,1;1,211,2,2703.95,3,195,21,622,22,622,24,-3,25,0,128,4.333,129,0.333,155,1;1,211,2,2703.95,3,182.5,21,623,22,623,24,-3,25,1,128,4,129,0.167,155,1;1,211,2,2703.95,3,180,21,623,22,623,24,-3,25,1,128,3.333,129,0.333,155,1;1,211,2,2703.95,3,177.5,21,623,22,623,24,-3,25,1,128,2,129,0.5,155,1;1,914,2,2698.95,3,330,31,Y2xvdWQgKDEwKQ==,32,0.4,155,1;1,211,2,2944.05,3,202.5,21,624,22,624,24,-5,25,0,128,1.333,129,3.167,155,1;1,211,2,2944.05,3,202.5,21,624,22,624,24,-5,25,0,128,2,129,2.833,155,1;1,211,2,2944.05,3,200,21,624,22,624,24,-5,25,0,128,2.333,129,2.667,155,1;1,211,2,2944.05,3,200,21,624,22,624,24,-5,25,0,128,2.667,129,2.333,155,1;1,211,2,2944.05,3,200,21,624,22,624,24,-5,25,0,128,3,129,2,155,1;1,211,2,2944.05,3,200,21,624,22,624,24,-5,25,0,128,3.333,129,1.333,155,1;1,211,2,2924.05,3,220,21,625,22,625,24,-5,25,1,128,0.333,129,0.667,155,1;1,211,2,2964.05,3,225,21,625,22,625,24,-5,25,1,32,0.333,155,1;1,211,2,2986.55,3,222.5,21,625,22,625,24,-5,25,1,128,0.167,129,0.5,155,1;1,211,2,2924.05,3,220,21,625,22,625,24,-5,25,1,128,0.667,129,0.333,155,1;1,211,2,2991.55,3,200,21,625,22,625,24,-5,25,1,128,0.167,129,1.333,155,1;1,211,2,2986.55,3,190,21,625,22,625,24,-5,25,1,128,0.167,129,1.333,155,1;1,211,2,2959.05,3,185,21,625,22,625,24,-5,25,1,128,0.333,129,1,155,1;1,211,2,2959.05,3,185,21,625,22,625,24,-5,25,1,32,0.667,155,1;1,211,2,2919.05,3,185,21,625,22,625,24,-5,25,1,32,0.333,155,1;1,211,2,2959.05,3,185,21,625,22,625,24,-5,25,1,128,1,129,0.333,155,1;1,211,2,2981.55,3,177.5,21,625,22,625,24,-5,25,1,128,0.167,129,0.833,155,1;1,211,2,2976.55,3,170,21,625,22,625,24,-5,25,1,128,0.167,129,0.667,155,1;1,211,2,2971.55,3,165,21,625,22,625,24,-5,25,1,128,0.167,129,0.667,155,1;1,211,2,2969.05,3,162.5,21,625,22,625,24,-5,25,1,128,0.333,129,0.5,155,1;1,211,2,2959.05,3,157.5,21,625,22,625,24,-5,25,1,128,0.333,129,0.5,155,1;1,211,2,2921.55,3,157.5,21,625,22,625,24,-5,25,1,128,0.5,129,0.167,155,1;1,211,2,2949.05,3,155,21,625,22,625,24,-5,25,1,128,1,129,0.333,155,1;1,211,2,2944.05,3,152.5,21,625,22,625,24,-5,25,1,128,1.333,129,0.167,155,1;1,914,2,2944.05,3,330,31,bW9vbiAoMjQp,32,0.4,155,1;1,211,2,3157.1,3,22,21,600,22,600,24,1,25,0,128,0.667,129,1.467,155,1;1,211,2,3157.1,3,20,21,600,22,600,24,1,25,0,128,0.933,129,1.333,155,1;1,211,2,3157.1,3,18,21,600,22,600,24,1,25,0,32,1.2,155,1;1,211,2,3155.1,3,16,21,600,22,600,24,1,25,0,128,1.867,129,1.067,155,1;1,211,2,3155.1,3,14,21,600,22,600,24,1,25,0,128,2.133,129,0.933,155,1;1,211,2,3155.1,3,14,21,600,22,600,24,1,25,0,128,2.4,129,0.667,155,1;1,211,2,3157.1,3,24,21,605,22,605,24,1,25,1,128,0.667,129,1.067,155,1;1,211,2,3157.1,3,22,21,605,22,605,24,1,25,1,32,0.933,155,1;1,211,2,3157.1,3,20,21,605,22,605,24,1,25,1,128,1.2,129,0.8,155,1;1,211,2,3155.1,3,18,21,605,22,605,24,1,25,1,128,1.867,129,0.667,155,1;1,211,2,3155.1,3,16,21,605,22,605,24,1,25,1,128,2.133,129,0.533,155,1;1,211,2,3155.1,3,30,21,606,22,606,24,1,25,2,128,0.267,129,0.4,155,1;1,211,2,3155.1,3,28,21,606,22,606,24,1,25,2,128,0.533,129,0.267,155,1;1,211,2,3139.1,3,22,21,606,22,606,24,1,25,2,128,0.267,129,0.4,155,1;1,211,2,3171.1,3,22,21,606,22,606,24,1,25,2,128,0.267,129,0.4,155,1;1,211,2,3139.1,3,22,21,606,22,606,24,1,25,2,128,0.533,129,0.133,155,1;1,211,2,3171.1,3,20,21,606,22,606,24,1,25,2,128,0.533,129,0.267,155,1;1,211,2,3155.1,3,6,21,607,22,607,24,1,25,3,128,2.133,129,0.133,155,1;1,914,2,3155.1,3,284.1,31,YnVzaCAoMTgp,32,0.4,155,1;1,211,2,3337.05,3,20,21,600,22,600,24,1,25,0,128,0.133,129,1.333,155,1;1,211,2,3343.05,3,18,21,600,22,600,24,1,25,0,128,1.067,129,1.2,155,1;1,211,2,3343.05,3,16,21,600,22,600,24,1,25,0,128,1.333,129,1.067,155,1;1,211,2,3343.05,3,14,21,600,22,600,24,1,25,0,128,1.6,129,0.933,155,1;1,211,2,3343.05,3,12,21,600,22,600,24,1,25,0,128,1.867,129,0.8,155,1;1,211,2,3341.05,3,10,21,600,22,600,24,1,25,0,128,2,129,0.4,155,1;1,211,2,3343.05,3,8,21,600,22,600,24,1,25,0,128,2.133,129,0.267,155,1;1,211,2,3337.05,3,20,21,619,22,619,24,1,25,1,128,0.133,129,1.067,155,1;1,211,2,3343.05,3,18,21,619,22,619,24,1,25,1,128,1.067,129,0.933,155,1;1,211,2,3343.05,3,16,21,619,22,619,24,1,25,1,128,1.333,129,0.8,155,1;1,211,2,3343.05,3,14,21,619,22,619,24,1,25,1,128,1.6,129,0.667,155,1;1,211,2,3341.05,3,10,21,619,22,619,24,1,25,1,128,1.733,129,0.4,155,1;1,211,2,3357.05,3,18,21,621,22,621,24,1,25,2,128,0.133,129,0.933,155,1;1,211,2,3359.05,3,16,21,621,22,621,24,1,25,2,128,0.267,129,0.8,155,1;1,211,2,3361.05,3,14,21,621,22,621,24,1,25,2,128,0.4,129,0.667,155,1;1,211,2,3359.05,3,12,21,621,22,621,24,1,25,2,32,0.533,155,1;1,211,2,3361.05,3,8,21,621,22,621,24,1,25,2,128,0.667,129,0.267,155,1;1,211,2,3337.05,3,28,21,620,22,620,24,1,25,3,128,0.4,129,0.267,155,1;1,211,2,3339.05,3,30,21,620,22,620,24,1,25,3,128,0.533,129,0.133,155,1;1,211,2,3335.05,3,26,21,620,22,620,24,1,25,3,128,0.533,129,0.133,155,1;1,914,2,3343.05,3,284.1,31,cm9jayAoMjAp,32,0.4,155,1;1,211,2,3525,3,43.5,21,600,22,600,24,1,25,0,128,0.2,129,2.7,155,1;1,211,2,3525,3,73.5,21,600,22,600,24,1,25,0,128,0.4,129,0.5,155,1;1,211,2,3525,3,43.5,21,600,22,600,24,1,25,0,128,1.2,129,1.7,155,1;1,211,2,3525,3,52.5,21,600,22,600,24,1,25,0,128,1.4,129,0.9,155,1;1,211,2,3504,3,28.5,21,600,22,600,24,1,25,0,128,0.2,129,0.9,155,1;1,211,2,3546,3,28.5,21,600,22,600,24,1,25,0,128,0.2,129,0.9,155,1;1,211,2,3525,3,28.5,21,600,22,600,24,1,25,0,128,1.8,129,0.7,155,1;1,211,2,3516,3,34.5,21,600,22,600,24,1,25,0,128,0.4,129,2.3,155,1;1,211,2,3534,3,34.5,21,600,22,600,24,1,25,0,128,0.4,129,2.3,155,1;1,211,2,3525,3,4.5,21,600,22,600,24,1,25,0,128,1.2,129,0.1,155,1;1,211,2,3525,3,54,21,618,22,618,24,1,25,1,128,1.2,129,0.8,155,1;1,211,2,3525,3,28.5,21,618,22,618,24,1,25,1,128,1,129,0.7,155,1;1,211,2,3525,3,73.5,21,616,22,616,24,1,25,2,128,0.2,129,0.5,155,1;1,211,2,3540,3,54,21,616,22,616,24,1,25,2,128,0.2,129,0.8,155,1;1,211,2,3525,3,40.5,21,616,22,616,24,1,25,2,128,0.4,129,0.1,155,1;1,211,2,3504,3,30,21,616,22,616,24,1,25,2,128,0.2,129,0.6,155,1;1,211,2,3537,3,28.5,21,616,22,616,24,1,25,2,128,0.2,129,0.7,155,1;1,211,2,3546,3,30,21,616,22,616,24,1,25,2,128,0.2,129,0.6,155,1;1,211,2,3517.5,3,12,21,616,22,616,24,1,25,2,128,0.3,129,0.4,155,1;1,211,2,3532.5,3,12,21,616,22,616,24,1,25,2,128,0.3,129,0.4,155,1;1,211,2,3517.5,3,55.5,21,610,22,610,24,1,25,3,32,0.3,155,1;1,211,2,3532.5,3,55.5,21,610,22,610,24,1,25,3,32,0.3,155,1;1,211,2,3525,3,46.5,21,610,22,610,24,1,25,3,128,0.6,129,0.1,155,1;1,211,2,3525,3,28.5,21,610,22,610,24,1,25,3,128,0.6,129,0.3,155,1;1,211,2,3504,3,19.5,21,610,22,610,24,1,25,3,128,0.2,129,0.1,155,1;1,211,2,3546,3,19.5,21,610,22,610,24,1,25,3,128,0.2,129,0.1,155,1;1,211,2,3516,3,4.5,21,610,22,610,24,1,25,3,128,0.4,129,0.1,155,1;1,211,2,3534,3,4.5,21,610,22,610,24,1,25,3,128,0.4,129,0.1,155,1;1,211,2,3525,3,64.5,21,617,22,617,24,1,25,4,128,1.2,129,0.1,155,1;1,211,2,3525,3,78,21,604,22,604,24,1,25,5,32,0.2,155,1;1,211,2,3517.5,3,55.5,21,604,22,604,24,1,25,5,32,0.1,155,1;1,211,2,3532.5,3,55.5,21,604,22,604,24,1,25,5,32,0.1,155,1;1,211,2,3520.5,3,28.5,21,604,22,604,24,1,25,5,32,0.1,155,1;1,211,2,3529.5,3,28.5,21,626,22,626,24,1,25,6,32,0.1,155,1;1,914,2,3525,3,324,31,cm9ib3QgKDM0KQ==,32,0.4,155,1;1,211,2,3705,3,43.5,21,600,22,600,24,1,25,0,128,0.8,129,2.7,155,1;1,211,2,3705,3,43.5,21,600,22,600,24,1,25,0,128,1,129,2.5,155,1;1,211,2,3703.5,3,70.5,21,600,22,600,24,1,25,0,128,1.1,129,0.5,155,1;1,211,2,3705,3,37.5,21,600,22,600,24,1,25,0,128,1.4,129,1.1,155,1;1,211,2,3705,3,37.5,21,600,22,600,24,1,25,0,128,1.6,129,0.9,155,1;1,211,2,3705,3,4.5,21,600,22,600,24,1,25,0,128,1.2,129,0.1,155,1;1,211,2,3696,3,40.5,21,600,22,600,24,1,25,0,128,0.4,129,2.7,155,1;1,211,2,3714,3,40.5,21,600,22,600,24,1,25,0,128,0.4,129,2.7,155,1;1,211,2,3705,3,39,21,629,22,629,24,1,25,1,128,1.4,129,0.8,155,1;1,211,2,3705,3,67.5,21,628,22,628,24,1,25,2,128,0.8,129,0.9,155,1;1,211,2,3705,3,66,21,628,22,628,24,1,25,2,128,0.2,129,1,155,1;1,211,2,3687,3,27,21,628,22,628,24,1,25,2,32,0.2,155,1;1,211,2,3723,3,27,21,628,22,628,24,1,25,2,32,0.2,155,1;1,211,2,3697.5,3,16.5,21,630,22,630,24,1,25,3,128,0.3,129,0.7,155,1;1,211,2,3705,3,24,21,630,22,630,24,1,25,3,128,0.8,129,0.2,155,1;1,211,2,3712.5,3,16.5,21,630,22,630,24,1,25,3,128,0.3,129,0.7,155,1;1,211,2,3705,3,78,21,627,22,627,24,1,25,4,128,0.8,129,0.2,155,1;1,211,2,3693,3,70.5,21,627,22,627,24,1,25,4,128,0.2,129,0.5,155,1;1,211,2,3715.5,3,75,21,627,22,627,24,1,25,4,128,0.1,129,0.4,155,1;1,211,2,3700.5,3,66,21,610,22,610,24,1,25,5,128,0.1,129,0.2,155,1;1,211,2,3709.5,3,66,21,610,22,610,24,1,25,5,128,0.1,129,0.2,155,1;1,211,2,3696,3,4.5,21,610,22,610,24,1,25,5,128,0.4,129,0.1,155,1;1,211,2,3714,3,4.5,21,610,22,610,24,1,25,5,128,0.4,129,0.1,155,1;1,211,2,3703.5,3,58.5,21,611,22,611,24,1,25,6,128,0.3,129,0.1,155,1;1,914,2,3705,3,324,31,aHVtYW4gKDI0KQ==,32,0.4,155,1;1,211,2,3880.5,3,201.5,21,600,22,600,24,-1,25,0,128,0.3,129,2.1,155,1;1,211,2,3885,3,204.5,21,600,22,600,24,-1,25,0,128,0.6,129,1.9,155,1;1,211,2,3885,3,203,21,600,22,600,24,-1,25,0,128,1,129,1.8,155,1;1,211,2,3870,3,198.5,21,600,22,600,24,-1,25,0,128,0.2,129,1.9,155,1;1,211,2,3901.5,3,198.5,21,600,22,600,24,-1,25,0,128,0.1,129,1.9,155,1;1,211,2,3885,3,221,21,600,22,600,24,-1,25,0,128,1.4,129,0.2,155,1;1,211,2,3885,3,197,21,600,22,600,24,-1,25,0,128,1.6,129,1.4,155,1;1,211,2,3886.5,3,192.5,21,600,22,600,24,-1,25,0,128,1.7,129,1.1,155,1;1,211,2,3868.5,3,197,21,600,22,600,24,-1,25,0,128,0.3,129,1.8,155,1;1,211,2,3892.5,3,200,21,600,22,600,24,-1,25,0,128,0.3,129,2,155,1;1,211,2,3904.5,3,194,21,600,22,600,24,-1,25,0,128,0.3,129,1.6,155,1;1,211,2,3868.5,3,197,21,600,22,600,24,-1,25,0,128,0.1,129,2,155,1;1,211,2,3880.5,3,200,21,600,22,600,24,-1,25,0,128,0.1,129,2.2,155,1;1,211,2,3892.5,3,200,21,600,22,600,24,-1,25,0,128,0.1,129,2.2,155,1;1,211,2,3904.5,3,195.5,21,600,22,600,24,-1,25,0,128,0.1,129,1.9,155,1;1,211,2,3885,3,204.5,21,631,22,631,24,-1,25,1,128,0.6,129,1.7,155,1;1,211,2,3885,3,203,21,631,22,631,24,-1,25,1,128,1,129,1.6,155,1;1,211,2,3868.5,3,197,21,631,22,631,24,-1,25,1,128,0.1,129,1.8,155,1;1,211,2,3901.5,3,200,21,631,22,631,24,-1,25,1,128,0.1,129,1.6,155,1;1,211,2,3868.5,3,197,21,631,22,631,24,-1,25,1,128,0.3,129,1.4,155,1;1,211,2,3904.5,3,194,21,631,22,631,24,-1,25,1,128,0.1,129,1.6,155,1;1,211,2,3904.5,3,192.5,21,631,22,631,24,-1,25,1,128,0.3,129,1.1,155,1;1,211,2,3880.5,3,203,21,631,22,631,24,-1,25,1,128,0.3,129,1.8,155,1;1,211,2,3892.5,3,201.5,21,631,22,631,24,-1,25,1,128,0.3,129,1.7,155,1;1,211,2,3880.5,3,200,21,631,22,631,24,-1,25,1,128,0.1,129,2,155,1;1,211,2,3892.5,3,200,21,631,22,631,24,-1,25,1,128,0.1,129,2,155,1;1,211,2,3900,3,197,21,632,22,632,24,-1,25,2,128,0.4,129,1.2,155,1;1,211,2,3874.5,3,207.5,21,610,22,610,24,-1,25,3,128,0.1,129,0.5,155,1;1,211,2,3892.5,3,207.5,21,610,22,610,24,-1,25,3,128,0.1,129,0.5,155,1;1,211,2,3874.5,3,207.5,21,610,22,610,24,-1,25,3,32,0.3,155,1;1,211,2,3892.5,3,207.5,21,610,22,610,24,-1,25,3,32,0.3,155,1;1,211,2,3883.5,3,194,21,610,22,610,24,-1,25,3,128,0.1,129,0.4,155,1;1,211,2,3883.5,3,194,21,610,22,610,24,-1,25,3,128,0.3,129,0.2,155,1;1,914,2,3885,3,330,31,Z2hvc3QgKDMzKQ==,32,0.4,155,1;1,211,2,4059,3,206,21,626,22,626,24,-1,25,0,32,0.1,155,1;1,211,2,4071,3,206,21,626,22,626,24,-1,25,0,32,0.1,155,1;1,211,2,4050,3,201.5,21,626,22,626,24,-1,25,0,128,0.5,129,0.2,155,1;1,211,2,4078.5,3,200,21,626,22,626,24,-1,25,0,128,0.4,129,0.3,155,1;1,211,2,4080,3,201.5,21,626,22,626,24,-1,25,0,128,0.5,129,0.2,155,1;1,211,2,4051.5,3,200,21,626,22,626,24,-1,25,0,128,0.4,129,0.3,155,1;1,211,2,4053,3,200,21,610,22,610,24,-1,25,1,128,0.1,129,0.3,155,1;1,211,2,4077,3,200,21,610,22,610,24,-1,25,1,128,0.1,129,0.3,155,1;1,914,2,4065,3,330,31,Z2xvd2luZyBleWVzICg4KQ==,32,0.4,155,1;1,211,2,4233,3,204.5,21,633,22,633,24,-1,25,0,32,0.4,155,1;1,211,2,4245,3,203,21,633,22,633,24,-1,25,0,128,0.2,129,0.5,155,1;1,211,2,4257,3,204.5,21,633,22,633,24,-1,25,0,32,0.4,155,1;1,211,2,4245,3,204.5,21,633,22,633,24,-1,25,0,128,1.4,129,0.2,155,1;1,211,2,4245,3,203,21,633,22,633,24,-1,25,0,128,1.6,129,0.1,155,1;1,211,2,4245,3,201.5,21,633,22,633,24,-1,25,0,128,0.6,129,0.4,155,1;1,211,2,4231.5,3,203,21,633,22,633,24,-1,25,0,128,0.1,129,0.5,155,1;1,211,2,4258.5,3,203,21,633,22,633,24,-1,25,0,128,0.1,129,0.5,155,1;1,211,2,4240.5,3,200,21,633,22,633,24,-1,25,0,128,0.1,129,0.5,155,1;1,211,2,4249.5,3,200,21,633,22,633,24,-1,25,0,128,0.1,129,0.5,155,1;1,211,2,4245,3,203,21,626,22,626,24,-1,25,1,128,0.2,129,0.1,155,1;1,914,2,4245,3,330,31,YmF0ICgxMSk=,32,0.4,155,1;1,211,2,4433.75,3,17.5,21,633,22,633,24,1,25,0,128,0.25,129,0.333,155,1;1,211,2,4423.75,3,11.25,21,633,22,633,24,1,25,0,128,0.417,129,0.583,155,1;1,211,2,4428.75,3,18.75,21,633,22,633,24,1,25,0,128,0.75,129,0.083,155,1;1,211,2,4422.5,3,11.25,21,633,22,633,24,1,25,0,128,0.667,129,0.417,155,1;1,211,2,4422.5,3,11.25,21,633,22,633,24,1,25,0,128,0.833,129,0.083,155,1;1,211,2,4421.25,3,10,21,633,22,633,24,1,25,0,128,0.75,129,0.167,155,1;1,211,2,4422.5,3,13.75,21,610,22,610,24,1,25,1,128,0.333,129,0.25,155,1;1,211,2,4422.5,3,12.5,21,610,22,610,24,1,25,1,128,0.5,129,0.167,155,1;1,211,2,4421.25,3,2.5,21,610,22,610,24,1,25,1,128,0.083,129,0.167,155,1;1,211,2,4428.75,3,2.5,21,610,22,610,24,1,25,1,128,0.083,129,0.167,155,1;1,211,2,4440,3,16.25,21,602,22,602,24,1,25,2,128,0.167,129,0.083,155,1;1,211,2,4436.25,3,18.75,21,626,22,626,24,1,25,3,32,0.083,155,1;1,914,2,4425,3,264.9,31,Y3JvdyAoMTIp,32,0.4,155,1;1,211,2,4605,3,20,21,600,22,600,24,1,25,0,128,0.167,129,1.333,155,1;1,211,2,4605,3,18.75,21,600,22,600,24,1,25,0,128,0.333,129,1.25,155,1;1,211,2,4605,3,31.25,21,600,22,600,24,1,25,0,128,0.5,129,0.083,155,1;1,211,2,4605,3,13.75,21,600,22,600,24,1,25,0,128,0.5,129,0.75,155,1;1,211,2,4605,3,13.75,21,624,22,624,24,1,25,1,128,0.333,129,0.75,155,1;1,211,2,4607.5,3,13.75,21,625,22,625,24,1,25,2,128,0.167,129,0.75,155,1;1,211,2,4605,3,31.25,21,604,22,604,24,1,25,3,128,0.167,129,0.417,155,1;1,211,2,4605,3,31.25,21,604,22,604,24,1,25,3,128,0.333,129,0.083,155,1;1,211,2,4605,3,30,21,617,22,617,24,1,25,4,32,0.167,155,1;1,914,2,4605,3,279.9,31,Y2FuZGxlICg5KQ==,32,0.4,155,1;1,211,2,4785,3,20,21,600,22,600,24,1,25,0,128,0.25,129,1.167,155,1;1,211,2,4785,3,23.75,21,600,22,600,24,1,25,0,128,0.417,129,0.75,155,1;1,211,2,4785,3,23.75,21,600,22,600,24,1,25,0,32,0.583,155,1;1,211,2,4785,3,23.75,21,600,22,600,24,1,25,0,128,0.75,129,0.417,155,1;1,211,2,4785,3,26.25,21,600,22,600,24,1,25,0,128,0.917,129,0.083,155,1;1,211,2,4781.25,3,12.5,21,600,22,600,24,1,25,0,128,0.5,129,0.167,155,1;1,211,2,4782.5,3,20,21,600,22,600,24,1,25,0,128,0.417,129,0.833,155,1;1,211,2,4785,3,18.75,21,600,22,600,24,1,25,0,128,0.083,129,1.25,155,1;1,211,2,4785,3,25,21,602,22,602,24,1,25,1,128,0.25,129,0.667,155,1;1,211,2,4785,3,23.75,21,602,22,602,24,1,25,1,128,0.583,129,0.417,155,1;1,211,2,4785,3,26.25,21,602,22,602,24,1,25,1,128,0.75,129,0.083,155,1;1,211,2,4785,3,22.5,21,602,22,602,24,1,25,1,128,0.417,129,0.5,155,1;1,211,2,4785,3,25,21,604,22,604,24,1,25,2,128,0.25,129,0.167,155,1;1,211,2,4785,3,10,21,605,22,605,24,1,25,3,128,0.083,129,0.5,155,1;1,211,2,4780,3,12.5,21,606,22,606,24,1,25,4,128,0.25,129,0.167,155,1;1,914,2,4785,3,277.5,31,Zmxvd2VyICgxNSk=,32,0.4,155,1;1,211,2,4984.95,3,200,21,604,22,604,24,-5,25,0,128,1.333,129,3,155,1;1,211,2,4984.95,3,200,21,604,22,604,24,-5,25,0,128,2,129,2.667,155,1;1,211,2,4984.95,3,200,21,604,22,604,24,-5,25,0,32,2.333,155,1;1,211,2,4984.95,3,200,21,604,22,604,24,-5,25,0,128,2.667,129,2,155,1;1,211,2,4984.95,3,200,21,604,22,604,24,-5,25,0,128,3,129,1.333,155,1;1,211,2,4984.95,3,200,21,617,22,617,24,-5,25,1,128,1.333,129,2.333,155,1;1,211,2,4984.95,3,200,21,617,22,617,24,-5,25,1,128,1.667,129,2,155,1;1,211,2,4984.95,3,200,21,617,22,617,24,-5,25,1,128,2,129,1.667,155,1;1,211,2,4984.95,3,200,21,617,22,617,24,-5,25,1,128,2.333,129,1.333,155,1;1,914,2,4984.95,3,330,31,c3VuICg5KQ==,32,0.4,155,1;1,211,2,5174.95,3,150,21,600,22,600,24,1,25,0,128,0.333,129,0.667,155,1;1,211,2,5274.95,3,150,21,600,22,600,24,1,25,0,128,0.333,129,0.667,155,1;1,211,2,5177.45,3,150,21,600,22,600,24,1,25,0,128,0.833,129,0.333,155,1;1,211,2,5272.45,3,150,21,600,22,600,24,1,25,0,128,0.833,129,0.333,155,1;1,211,2,5189.95,3,137.5,21,600,22,600,24,1,25,0,128,0.333,129,0.833,155,1;1,211,2,5259.95,3,137.5,21,600,22,600,24,1,25,0,128,0.333,129,0.833,155,1;1,211,2,5199.95,3,132.5,21,600,22,600,24,1,25,0,128,0.333,129,0.833,155,1;1,211,2,5249.95,3,132.5,21,600,22,600,24,1,25,0,128,0.333,129,0.833,155,1;1,211,2,5194.95,3,137.5,21,600,22,600,24,1,25,0,128,1.333,129,0.167,155,1;1,211,2,5254.95,3,137.5,21,600,22,600,24,1,25,0,128,1.333,129,0.167,155,1;1,211,2,5199.95,3,132.5,21,600,22,600,24,1,25,0,128,1.333,129,0.167,155,1;1,211,2,5234.95,3,67.5,21,600,22,600,24,1,25,0,128,0.333,129,4.5,155,1;1,211,2,5249.95,3,132.5,21,600,22,600,24,1,25,0,128,1.333,129,0.167,155,1;1,211,2,5214.95,3,67.5,21,600,22,600,24,1,25,0,128,0.333,129,4.5,155,1;1,211,2,5224.95,3,120,21,600,22,600,24,1,25,0,128,1.667,129,0.333,155,1;1,211,2,5224.95,3,117.5,21,600,22,600,24,1,25,0,128,1.333,129,0.5,155,1;1,211,2,5224.95,3,52.5,21,600,22,600,24,1,25,0,128,1.333,129,3.5,155,1;1,211,2,5224.95,3,87.5,21,600,22,600,24,1,25,0,128,1.667,129,0.833,155,1;1,211,2,5197.45,3,82.5,21,600,22,600,24,1,25,0,128,0.167,129,0.833,155,1;1,211,2,5252.45,3,82.5,21,600,22,600,24,1,25,0,128,0.167,129,0.833,155,1;1,211,2,5192.45,3,77.5,21,600,22,600,24,1,25,0,128,0.167,129,0.833,155,1;1,211,2,5257.45,3,77.5,21,600,22,600,24,1,25,0,128,0.167,129,0.833,155,1;1,211,2,5187.45,3,72.5,21,600,22,600,24,1,25,0,128,0.167,129,0.833,155,1;1,211,2,5262.45,3,72.5,21,600,22,600,24,1,25,0,128,0.167,129,0.833,155,1;1,211,2,5182.45,3,67.5,21,600,22,600,24,1,25,0,128,0.167,129,0.833,155,1;1,211,2,5267.45,3,67.5,21,600,22,600,24,1,25,0,128,0.167,129,0.833,155,1;1,211,2,5179.95,3,65,21,600,22,600,24,1,25,0,128,0.333,129,0.667,155,1;1,211,2,5269.95,3,65,21,600,22,600,24,1,25,0,128,0.333,129,0.667,155,1;1,211,2,5179.95,3,65,21,600,22,600,24,1,25,0,128,0.667,129,0.333,155,1;1,211,2,5269.95,3,65,21,600,22,600,24,1,25,0,128,0.667,129,0.333,155,1;1,211,2,5224.95,3,20,21,600,22,600,24,1,25,0,128,1.667,129,1,155,1;1,211,2,5224.95,3,55,21,614,22,614,24,1,25,1,128,1,129,3.333,155,1;1,211,2,5224.95,3,20,21,614,22,614,24,1,25,1,128,1.333,129,1,155,1;1,211,2,5232.45,3,55,21,613,22,613,24,1,25,2,128,0.5,129,3.333,155,1;1,211,2,5229.95,3,20,21,613,22,613,24,1,25,2,32,1,155,1;1,211,2,5174.95,3,150,21,615,22,615,24,1,25,3,32,0.333,155,1;1,211,2,5274.95,3,150,21,615,22,615,24,1,25,3,32,0.333,155,1;1,211,2,5184.95,3,142.5,21,615,22,615,24,1,25,3,128,0.333,129,0.5,155,1;1,211,2,5264.95,3,142.5,21,615,22,615,24,1,25,3,128,0.333,129,0.5,155,1;1,211,2,5184.95,3,142.5,21,615,22,615,24,1,25,3,128,0.667,129,0.167,155,1;1,211,2,5264.95,3,142.5,21,615,22,615,24,1,25,3,128,0.667,129,0.167,155,1;1,211,2,5199.95,3,132.5,21,615,22,615,24,1,25,3,128,1,129,0.167,155,1;1,211,2,5244.95,3,130,21,615,22,615,24,1,25,3,128,0.667,129,0.333,155,1;1,211,2,5249.95,3,132.5,21,615,22,615,24,1,25,3,128,1,129,0.167,155,1;1,211,2,5204.95,3,130,21,615,22,615,24,1,25,3,128,0.667,129,0.333,155,1;1,211,2,5209.95,3,122.5,21,615,22,615,24,1,25,3,128,0.667,129,0.167,155,1;1,211,2,5237.45,3,120,21,615,22,615,24,1,25,3,128,0.5,129,0.333,155,1;1,211,2,5239.95,3,122.5,21,615,22,615,24,1,25,3,128,0.667,129,0.167,155,1;1,211,2,5224.95,3,117.5,21,615,22,615,24,1,25,3,128,1.333,129,0.167,155,1;1,211,2,5224.95,3,115,21,615,22,615,24,1,25,3,128,1,129,0.333,155,1;1,211,2,5224.95,3,110,21,615,22,615,24,1,25,3,32,0.667,155,1;1,211,2,5212.45,3,97.5,21,615,22,615,24,1,25,3,128,0.167,129,0.5,155,1;1,211,2,5237.45,3,97.5,21,615,22,615,24,1,25,3,128,0.167,129,0.5,155,1;1,211,2,5212.45,3,97.5,21,615,22,615,24,1,25,3,128,0.5,129,0.167,155,1;1,211,2,5237.45,3,97.5,21,615,22,615,24,1,25,3,128,0.5,129,0.167,155,1;1,211,2,5204.95,3,87.5,21,615,22,615,24,1,25,3,128,0.333,129,0.5,155,1;1,211,2,5242.45,3,92.5,21,615,22,615,24,1,25,3,128,0.5,129,0.167,155,1;1,211,2,5197.45,3,82.5,21,615,22,615,24,1,25,3,128,0.167,129,0.5,155,1;1,211,2,5252.45,3,82.5,21,615,22,615,24,1,25,3,128,0.167,129,0.5,155,1;1,211,2,5192.45,3,77.5,21,615,22,615,24,1,25,3,128,0.167,129,0.5,155,1;1,211,2,5257.45,3,77.5,21,615,22,615,24,1,25,3,128,0.167,129,0.5,155,1;1,211,2,5187.45,3,72.5,21,615,22,615,24,1,25,3,128,0.167,129,0.5,155,1;1,211,2,5262.45,3,72.5,21,615,22,615,24,1,25,3,128,0.167,129,0.5,155,1;1,211,2,5182.45,3,67.5,21,615,22,615,24,1,25,3,128,0.167,129,0.5,155,1;1,211,2,5267.45,3,67.5,21,615,22,615,24,1,25,3,128,0.167,129,0.5,155,1;1,211,2,5179.95,3,65,21,615,22,615,24,1,25,3,32,0.333,155,1;1,211,2,5269.95,3,65,21,615,22,615,24,1,25,3,32,0.333,155,1;1,211,2,5182.45,3,147.5,21,622,22,622,24,1,25,4,32,0.167,155,1;1,211,2,5267.45,3,147.5,21,622,22,622,24,1,25,4,32,0.167,155,1;1,211,2,5189.95,3,142.5,21,622,22,622,24,1,25,4,128,0.333,129,0.167,155,1;1,211,2,5259.95,3,142.5,21,622,22,622,24,1,25,4,128,0.333,129,0.167,155,1;1,211,2,5197.45,3,137.5,21,622,22,622,24,1,25,4,128,0.5,129,0.167,155,1;1,211,2,5252.45,3,137.5,21,622,22,622,24,1,25,4,128,0.5,129,0.167,155,1;1,211,2,5207.45,3,132.5,21,622,22,622,24,1,25,4,128,0.5,129,0.167,155,1;1,211,2,5242.45,3,132.5,21,622,22,622,24,1,25,4,128,0.5,129,0.167,155,1;1,211,2,5207.45,3,130,21,622,22,622,24,1,25,4,128,0.167,129,0.333,155,1;1,211,2,5242.45,3,130,21,622,22,622,24,1,25,4,128,0.167,129,0.333,155,1;1,211,2,5207.45,3,90,21,622,22,622,24,1,25,4,128,0.167,129,0.333,155,1;1,211,2,5242.45,3,90,21,622,22,622,24,1,25,4,128,0.167,129,0.333,155,1;1,211,2,5202.45,3,85,21,622,22,622,24,1,25,4,128,0.167,129,0.333,155,1;1,211,2,5207.45,3,87.5,21,622,22,622,24,1,25,4,128,0.5,129,0.167,155,1;1,211,2,5242.45,3,87.5,21,622,22,622,24,1,25,4,128,0.5,129,0.167,155,1;1,211,2,5199.95,3,82.5,21,622,22,622,24,1,25,4,128,0.333,129,0.167,155,1;1,211,2,5249.95,3,82.5,21,622,22,622,24,1,25,4,128,0.333,129,0.167,155,1;1,211,2,5192.45,3,77.5,21,622,22,622,24,1,25,4,32,0.167,155,1;1,211,2,5257.45,3,77.5,21,622,22,622,24,1,25,4,32,0.167,155,1;1,211,2,5187.45,3,72.5,21,622,22,622,24,1,25,4,32,0.167,155,1;1,211,2,5262.45,3,72.5,21,622,22,622,24,1,25,4,32,0.167,155,1;1,211,2,5182.45,3,67.5,21,622,22,622,24,1,25,4,32,0.167,155,1;1,211,2,5267.45,3,67.5,21,622,22,622,24,1,25,4,32,0.167,155,1;1,211,2,5224.95,3,110,21,610,22,610,24,1,25,5,32,0.333,155,1;1,211,2,5224.95,3,20,21,610,22,610,24,1,25,5,128,0.667,129,1,155,1;1,914,2,5224.95,3,399.9,31,d2luZG1pbGwgKDkyKQ==,32,0.4,155,1;1,1,2,5715,3,15,155,1;",
+  "song": {
+   "url": "/song/official/StereoMadness.mp3",
+   "official": 0,
+   "offset": 0
   }
  },
  {
@@ -714,6 +3241,111 @@ window.GD_LEVELS = [
    "url": "/song/custom/233860.mp3",
    "id": 233860,
    "offset": 120
+  },
+  "solution": {
+   "ok": true,
+   "events": [
+    {
+     "tick": 237,
+     "type": "press"
+    },
+    {
+     "tick": 238,
+     "type": "release"
+    },
+    {
+     "tick": 451,
+     "type": "press"
+    },
+    {
+     "tick": 452,
+     "type": "release"
+    },
+    {
+     "tick": 541,
+     "type": "press"
+    },
+    {
+     "tick": 542,
+     "type": "release"
+    },
+    {
+     "tick": 759,
+     "type": "press"
+    },
+    {
+     "tick": 760,
+     "type": "release"
+    },
+    {
+     "tick": 876,
+     "type": "press"
+    },
+    {
+     "tick": 1042,
+     "type": "release"
+    },
+    {
+     "tick": 1064,
+     "type": "press"
+    },
+    {
+     "tick": 1065,
+     "type": "release"
+    },
+    {
+     "tick": 1259,
+     "type": "press"
+    },
+    {
+     "tick": 1260,
+     "type": "release"
+    },
+    {
+     "tick": 1578,
+     "type": "press"
+    },
+    {
+     "tick": 1579,
+     "type": "release"
+    },
+    {
+     "tick": 1778,
+     "type": "press"
+    },
+    {
+     "tick": 1779,
+     "type": "release"
+    },
+    {
+     "tick": 1873,
+     "type": "press"
+    },
+    {
+     "tick": 1874,
+     "type": "release"
+    },
+    {
+     "tick": 2225,
+     "type": "press"
+    },
+    {
+     "tick": 2226,
+     "type": "release"
+    },
+    {
+     "tick": 2386,
+     "type": "press"
+    },
+    {
+     "tick": 2387,
+     "type": "release"
+    }
+   ],
+   "physics": "7924db0",
+   "solvedAt": "2026-11-23T03:47:42.285Z",
+   "stale": true,
+   "replayedOn": "3f609ab"
   }
  }
 ];
