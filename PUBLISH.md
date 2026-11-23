@@ -9,6 +9,7 @@ Search -> its level ID. The slot and what it holds: `local/phone_ids.json`.
 | GDLM 44 hellgate (the phone slot, see below) | 152848491 | v10 (16e82a4) | 2026-11-23 |
 | GDLM 44 hellgate, update into the slot | 152848491 | v11 (dc72b09) | 2026-11-23 |
 | GDLM 44 hellgate, update into the slot | 152848491 | v12 (4b8a308, end signature) | 2026-11-23 |
+| Claude Lab (the lab slot, see below) | not uploaded yet | -- | -- |
 
 ## Rule: every upload needs the user's yes
 
@@ -85,6 +86,24 @@ AI level. Whatever the user wants on the phone next goes into that ID:
 Done this way twice: hellgate v10 -> v11 (three tries, see above) and v11 -> v12 (first try), 2026-11-23, Upload Complete, ID unchanged. So the phone
 always shows the name "GDLM 44 hellgate", even when the slot holds another level. The description
 (k3) comes from the new level; whether the server takes a new description on update is unchecked.
+
+## The lab slot: "Claude Lab", a general test slot (no ID yet)
+
+The user named a second, reusable slot on 2026-11-23: **"Claude Lab"** (`slots.lab` in
+`local/phone_ids.json`). It's general: any level we want to test on the phone goes in it, so the
+server still holds at most two AI levels. The name is final. The description changes per upload:
+what is being tested, plus the signature line.
+
+- `node tools/install.js levels/<name>.gdlvl --slot lab --desc "what this upload tests"` installs the
+  level at the top of My Levels as "Claude Lab". The description is the `--desc` text +
+  " -- Made by Claude (and some humans)" (`tools/signature.js` describe). Re-running it replaces the
+  same record (found by name while the slot has no ID, `tests/install_keeps_id.js`).
+- **Not uploaded yet.** Its FIRST upload creates the ID and needs the user's explicit yes for that
+  specific level. In the share form, tick Unlisted by hand, as in step 6 above (install.js doesn't
+  set k79 on a fresh slot; whether GD would honour it before the first share is unchecked).
+- After that first upload: quit GD via its menu once (it writes k1), read the ID off the level page,
+  put it in `slots.lab.id`, and set `holds.shared`. From then on it works like the phone slot (by ID,
+  exit 4 if the save doesn't hold it, k79 forced, k15 dropped).
 
 ## Updating a level that is already on the phone (same ID)
 

@@ -1,5 +1,7 @@
 // node tools/install.js <level.gdlvl> [...] [--save <path>] [--dry]
-// node tools/install.js <level.gdlvl> --slot phone [--ids <phone_ids.json>]   (the phone slot, PUBLISH.md)
+// node tools/install.js <level.gdlvl> --slot phone|lab [--desc "what is tested"] [--ids <phone_ids.json>]
+//   (the online slots, PUBLISH.md: the level goes in under the slot's fixed name; --desc sets the
+//   description, with the signature line)
 //
 // Puts levels straight into the game's save (Windows: %LOCALAPPDATA%\GeometryDash\CCLocalLevels.dat)
 // so they appear at the top of Create -> My Levels. A level with the same name is replaced in
@@ -110,22 +112,36 @@ function main() {
     const ids = JSON.parse(fs.readFileSync(idsFile, "utf8"));
     const slot = ids.slots && ids.slots[slotName];
     if (!slot) { console.log(`no slot "${slotName}" in ${idsFile}`); process.exit(1); }
-    const at = parts.items.findIndex(it => (entry(it.inner, "k1") || "").includes(`<i>${slot.id}</i>`));
-    if (at < 0) { console.log(`no level with online ID ${slot.id} in the save. GD writes the ID when it exits after the upload; close GD once, then retry.`); process.exit(4); }
+    // a slot with no ID yet (never uploaded, e.g. "lab"): its record is found by the slot's name, or
+    // made; its first Share creates the ID (record it in phone_ids.json after GD has exited once)
+    const fresh = !slot.id;
+    if (fresh && !slot.name) { console.log(`slot "${slotName}" has neither an id nor a name`); process.exit(1); }
+    const at = fresh ? parts.items.findIndex(it => nameOf(it.inner) === slot.name)
+      : parts.items.findIndex(it => (entry(it.inner, "k1") || "").includes(`<i>${slot.id}</i>`));
+    if (at < 0 && !fresh) { console.log(`no level with online ID ${slot.id} in the save. GD writes the ID when it exits after the upload; close GD once, then retry.`); process.exit(4); }
     const rec = unpack(fs.readFileSync(files[0], "utf8"));
     let inner = rec.match(/<plist[^>]*><dict>([\s\S]*)<\/dict><\/plist>/)[1];
-    const own = nameOf(inner), was = nameOf(parts.items[at].inner);
+    const old = at >= 0 ? parts.items[at].inner : "";
+    const own = nameOf(inner), was = at >= 0 ? nameOf(old) : "(new)";
     const name = slot.name || was;
     inner = inner.replace(/<k>k2<\/k><s>[^<]*<\/s>/, `<k>k2</k><s>${name}</s>`);
-    const kept = keepOnline(parts.items[at].inner, inner);
-    // the slot is unlisted by definition (even if an earlier install dropped the flag), and the new
-    // level is a new version, not the one already uploaded (no k15)
-    if (!entry(kept.inner, "k79")) kept.inner = kept.inner.replace(/^(<k>kCEK<\/k><i>4<\/i>)?/, m => m + "<k>k79</k><t />");
+    // --desc "what is being tested": the description for this upload, with the signature line
+    const di = args.indexOf("--desc");
+    if (di >= 0) {
+      const d = Buffer.from(require("./signature.js").describe(args[di + 1])).toString("base64").replace(/\+/g, "-").replace(/\//g, "_");
+      inner = /<k>k3<\/k><s>/.test(inner) ? inner.replace(/<k>k3<\/k><s>[^<]*<\/s>/, `<k>k3</k><s>${d}</s>`)
+        : inner.replace(/(<k>k2<\/k><s>[^<]*<\/s>)/, `$1<k>k3</k><s>${d}</s>`);
+    }
+    const kept = keepOnline(old, inner);
+    // a shared slot is unlisted by definition (even if an earlier install dropped the flag); a fresh
+    // one gets Unlisted ticked in GD's share form at its first upload. The new level is a new
+    // version, not the one already uploaded (no k15).
+    if (!fresh && !entry(kept.inner, "k79")) kept.inner = kept.inner.replace(/^(<k>kCEK<\/k><i>4<\/i>)?/, m => m + "<k>k79</k><t />");
     kept.inner = kept.inner.replace(/<k>k15<\/k>(<t \/>|<i>[^<]*<\/i>)/, "");
-    parts.items.splice(at, 1);
+    if (at >= 0) parts.items.splice(at, 1);
     parts.items.unshift({ key: "", inner: kept.inner });
-    console.log(`slot "${slotName}" (online ID ${slot.id}): "${was}" -> "${name}", now at the top of My Levels. Share it (with the user's yes) to update the upload.`);
-    slotDone = { ids, slot, entry: { level: own, name, file: files[0].replace(/\\/g, "/"), installed: new Date().toISOString().slice(0, 10), shared: null } };
+    console.log(`slot "${slotName}" (${fresh ? (kept.id ? `online ID ${kept.id} in the save but not in ${idsFile}: record it` : "no online ID yet: its first Share creates one, tick Unlisted") : `online ID ${slot.id}`}): "${was}" -> "${name}", now at the top of My Levels. Share it only with the user's yes.`);
+    slotDone = { ids, slot, entry: { level: own, name, file: files[0].replace(/\\/g, "/"), installed: new Date().toISOString().slice(0, 10), shared: null, ...(di >= 0 ? { desc: args[di + 1] } : {}) } };
   }
 
   for (const f of slotName ? [] : files) {
@@ -155,7 +171,7 @@ function main() {
   console.log(`written. backup: ${backup}`);
   if (slotDone) {
     const { ids, slot, entry: e } = slotDone;
-    (slot.history = slot.history || []).push(slot.holds);
+    if (slot.holds) (slot.history = slot.history || []).push(slot.holds);
     slot.holds = e;   // "shared": null until it is re-shared in GD; set it then (PUBLISH.md)
     fs.writeFileSync(idsFile, JSON.stringify(ids, null, 2) + "\n");
     console.log(`${idsFile}: slot "${slotName}" now holds ${e.level} (not shared yet)`);

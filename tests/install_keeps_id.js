@@ -49,5 +49,22 @@ if (fs.existsSync(other)) {
     && j.holds.level === "GDLM 43 climb" && j.history[0].level === NAME;
   console.log(ok2 ? "ok: --slot phone puts the level into the slot's record" : "FAIL: --slot phone\n" + first.slice(0, 300));
 }
+// --slot lab with no ID yet: the level goes in at the top under the slot's name with the given
+// description + signature, no online keys; a second install replaces that same record
+let ok3 = true;
+if (fs.existsSync(other)) {
+  const ids = path.join(dir, "lab_ids.json");
+  fs.writeFileSync(ids, JSON.stringify({ slots: { lab: { id: null, name: "Claude Lab", holds: null, history: [] } } }));
+  const run = () => execFileSync(process.execPath, [path.join(__dirname, "..", "tools", "install.js"), other, "--save", copy, "--slot", "lab", "--ids", ids, "--desc", "testing X"], { stdio: "pipe" });
+  run(); run();
+  const z = dec(fs.readFileSync(copy));
+  const first = z.slice(z.indexOf("<k>k_0</k><d>"), z.indexOf("<k>k_1</k><d>"));
+  const d3 = (first.match(/<k>k3<\/k><s>([^<]*)<\/s>/) || [])[1] || "";
+  const desc = Buffer.from(d3.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString();
+  const j = JSON.parse(fs.readFileSync(ids, "utf8")).slots.lab;
+  ok3 = first.includes("<k>k2</k><s>Claude Lab</s>") && !/<k>k(1|15|79)<\/k>/.test(first) && (z.match(/<s>Claude Lab<\/s>/g) || []).length === 1
+    && desc.startsWith("testing X -- Made by Claude") && j.holds.level === "GDLM 43 climb" && j.history.length === 1;
+  console.log(ok3 ? "ok: --slot lab (no ID yet) installs under its name with the description" : "FAIL: --slot lab\n" + desc + "\n" + first.slice(0, 300));
+}
 fs.rmSync(dir, { recursive: true, force: true });
-process.exit(ok && ok2 ? 0 : 1);
+process.exit(ok && ok2 && ok3 ? 0 : 1);
