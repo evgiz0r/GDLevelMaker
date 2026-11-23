@@ -99,6 +99,12 @@ decides the default (`chKeys`, `ch0`). Write the answer here.
 
 ## Open
 
+- GD-art render of the first 18 props (local/props/props_gdart.png, from local/maps/gdlm_prop_test.jpg, 2026-11-23):
+  all draw in the viewer's GD art as on the art-free sheet, but in spooky colours the bat and the glowing eyes
+  are too small and dark to read (a few pixels on the dark sky), the hanging block's chain is faint, and the
+  bush / rock / tombstone sink into the ground hills. Next: bat and eyes 2x, ground props on B1 or a lighter
+  edge. The 5 newer props (crow, candle, flower, sun, windmill) and the A-D pumpkins are not rendered yet (the
+  PC was full: re-run `node tools/solutions.js levels/gdlm_prop_test.gdlvl`, then levelmap).
 - The colour answer (above); then the in-game look of the test level (sizes, z order, seams between stretched
   squares at non-integer scales).
 - More props for the showcase planner's places (crow, candle, windmill, flower, sun are in): kelp / coral (or wrap

@@ -69,7 +69,7 @@ assert(/RUN C/.test(p.stdout) && !/waiting/.test(p.stdout), "a child runs in its
 fs.rmSync(dir, { recursive: true, force: true });
 
 // 4
-for (const t of ["make", "compose", "score", "solutions", "shoot", "levelmap", "difficulty_solve", "windows", "fairness", "polish", "structures", "tas"])
+for (const t of ["make", "compose", "score", "solutions", "shoot", "levelmap", "difficulty_solve", "windows", "fairness", "polish", "structures", "tas", "intent", "rules", "reactive"])
   assert(/require\("\.\/heavy\.js"\)\.claim\(\)/.test(fs.readFileSync(path.join(__dirname, "..", "tools", t + ".js"), "utf8")), t + ".js claims the lock");
 assert(/heavy\.js"\)\.claim\(\)/.test(fs.readFileSync(path.join(__dirname, "..", "tools", "wip.js"), "utf8")), "wip.js put claims the lock");
 // 6 (throwaway repos: an origin, a clone that falls behind, another clone that pushes)

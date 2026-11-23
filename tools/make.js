@@ -266,7 +266,7 @@ function build(spec, specFile = "spec") {
   if (spec.offset) header = header.replace(/(^|,)kA13,[-0-9.]+/, "$1kA13," + spec.offset);
   if (spec.colours) header = deco.setHeaderColours(header, spec.colours);
   if (spec.art) header = deco.setHeaderArt(header, spec.art.bg, spec.art.ground);
-  const ctx = { grid: song ? gridOf(spec, song) : null, offset: spec.offset || 0, kA4, snap: spec.snap || 0 };
+  const ctx = { grid: song ? gridOf(spec, song) : null, offset: spec.offset || 0, kA4, snap: spec.snap || 0, placements: [] };
 
   // speed portals first, in order along the level, each one updating the timeline
   const timelineOf = objs => GD.SYNC.timeline(GD.makeWorld(objs, header));
@@ -287,6 +287,8 @@ function build(spec, specFile = "spec") {
     const start = objects.length;
     const col = toCol(entry[colAt(entry)], ctx, tl);
     const [type, , row] = entry;
+    // where each pattern lands: its intended inputs come with it (tools/intent.js)
+    if (type === "pattern") ctx.placements.push({ name: entry[1], col, row: entry[3] || 0, args: entry[4] || {} });
     if (speedObj.has(entry)) objects.push(speedObj.get(entry));
     else if (type === "pattern" && /^orb-(ladder|pit)$/.test(entry[1]) && !(entry[4] || {}).fixed && !entry[3]) objects.push(...arcOrbs(entry[1], col, entry[4] || {}, header, specFile, placed));
     else if (type === "pattern") { for (const e of expand(entry[1], col, entry[3], entry[4], entry[5])) objects.push(toObj(e, specFile)); }

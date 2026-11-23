@@ -17,6 +17,7 @@
 //   height          floor changes, range, flat stretches, bare floor (tools/flow.js)
 //   repetition      4-move patterns repeated within 10 s
 //   clusters        overlapping / ragged spike groups, a hazard right before a pad (polish's tools/clusters.js)
+if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const fs = require("fs"), path = require("path");
 const { GD, readGdlvl } = require("./io.js");
 const S = require("./score.js"), F = require("./flow.js"), deco = require("./decorate.js");
