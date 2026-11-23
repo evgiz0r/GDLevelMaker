@@ -69,8 +69,10 @@ S("green-orb-flip", { tags: ["orb", "green orb", "pad", "gravity", "ceiling run"
   doc: "a yellow pad throws the cube up to a green orb (a jump that also flips gravity) onto a high ceiling; a second green orb brings it down",
   build: () => ({ objects: [["yellow pad", 0, 0], ...spikes(1, 14), ...blocks(0, 15, 8, 9), [1022, 4, 4], [1022, 11, 6]], width: 16 }) });
 S("dash-orb-pit", { tags: ["orb", "dash orb"], tier: "Normal",
-  doc: "a green dash orb over a long pit: hold to dash straight across, release over the landing",
-  build: () => ({ objects: [...spikes(1, 11), ["green dash orb", 2, 2], ...blocks(11, 14, 0, 2)], width: 14 }) });
+  // the dash ends over open floor, not into a wall: a post right after a dash run killed the user 5 times
+  // holding the dash into it (GDLM 60 real play, physics 2026-11-23)
+  doc: "a green dash orb over a long pit: hold to dash straight across, release over open floor",
+  build: () => ({ objects: [...spikes(1, 11), ["green dash orb", 2, 2]], width: 15 }) });
 
 // ---------------------------------------------------------------- gravity and size
 S("gravity-tunnel", { tags: ["gravity", "gravity portal", "ceiling run"], tier: "Normal",
@@ -202,6 +204,77 @@ S("spider-steps", { mode: "spider", tags: ["spider", "platforming"], tier: "Norm
   doc: "the spider zaps up onto a ledge and down off it under a roof",
   build: () => ({ objects: [...blocks(0, 18, 7, 9), ...blocks(6, 12, 0, 3), ...spikes(3, 6), ...spikes(12, 15)], width: 18, exitRow: 1 }) });
 
+// ---------------------------------------------------------------- craft (CRAFT.md: the shapes of Jumper and xStep, as
+// patterns, never their coordinates). Built over a PIT -- the low floor spikes (id 9, sunk 13 units like
+// the official ones) -- because the official floor is a hazard 39-69% of the time; the player lives on
+// the pieces. The craft pass (tools/craftkit.js, spec "craft": true) adds the rods and chains.
+const pit = (c0, c1) => range(c0, c1).map(c => [9, c, 0, { dy: -13 }]);
+// pillars `w` wide, `gap` apart, with these heights (rows), a pit between them; a calm landing after
+function pillarRun(heights, w, gap, capGap) {
+  // the first pillar is a 3-wide doorstep (stepped onto from the floor: a 1-wide one asked for a jump
+  // 1.7 blocks ahead of it, a prejump)
+  const o = [], xs = heights.map((_, i) => i ? 3 + gap + (i - 1) * (w + gap) : 0);
+  heights.forEach((h, i) => o.push(...blocks(xs[i], xs[i] + (i ? w : 3), 0, h)));
+  const wd = i => i ? w : 3;
+  for (let i = 1; i < heights.length; i++) o.push(...pit(xs[i - 1] + wd(i - 1), xs[i]));
+  const end = xs[xs.length - 1] + w;
+  // capGap: hanging columns over each gap, their ends capGap rows over the higher pillar beside it
+  if (capGap) for (let i = 1; i < heights.length; i++) {
+    const c = xs[i - 1] + wd(i - 1) + Math.floor(gap / 2), r = Math.max(heights[i - 1], heights[i]) + capGap;
+    o.push(...blocks(c, c + 1, r, 12));
+  }
+  o.push(...pit(end, end + 2), ...blocks(end + 2, end + 5, 0, 1));
+  return { objects: o, width: end + 5 };
+}
+S("pillar-hop", { tags: ["platforming", "pillar", "pit"], tier: "Normal",
+  doc: "pillars 2 wide over a pit, each a row higher or lower than the last: every jump changes height (Jumper's opening, rebuilt)",
+  args: { heights: [1, 2, 3, 2, 1], w: 2, gap: 2 },
+  build: a => pillarRun(a.heights, a.w, a.gap) });
+S("pillar-climb", { tags: ["platforming", "pillar", "pit"], tier: "Normal",
+  doc: "a climb of pillars over a pit, up a row at each, then a drop to a low one",
+  args: { heights: [1, 2, 3, 4, 2], w: 2, gap: 2 },
+  build: a => pillarRun(a.heights, a.w, a.gap) });
+S("capped-hop", { tags: ["platforming", "pillar", "pit", "ceiling"], tier: "Normal",
+  doc: "pillars over a pit under hanging columns: the column ends sit 4 rows over the pillars, framing every arc",
+  args: { heights: [1, 2, 1, 2, 3], w: 2, gap: 2, cap: 4 },
+  build: a => pillarRun(a.heights, a.w, a.gap, a.cap) });
+S("slab-steps", { tags: ["platforming", "pit", "floating"], tier: "Normal",
+  doc: "floating 3-wide steps over a pit, a row higher each (the craft pass hangs them on chains)",
+  args: { n: 3, gap: 3 },
+  build: a => { const o = [...blocks(0, 3, 0, 1)]; let c = 3 + a.gap;
+    o.push(...pit(3, 3 + a.gap));
+    for (let i = 0; i < a.n; i++) { o.push(...blocks(c, c + 3, i + 1, i + 2), ...pit(c, c + 3 + a.gap)); c += 3 + a.gap; }
+    o.push(...blocks(c, c + 3, 0, a.n)); return { objects: o, width: c + 3 }; } });
+S("lantern-orb", { tags: ["orb", "yellow orb", "pit", "pillar"], tier: "Normal",
+  doc: "a yellow orb hung on a chain over a pit between two pillars: jump off the first, tap the orb, land on the second",
+  build: () => ({ objects: [...blocks(0, 2, 0, 2), ...pit(2, 8), ["yellow orb", 4, 4], ...blocks(8, 10, 0, 2), ...pit(10, 11), ...blocks(11, 14, 0, 1)], width: 14 }) });
+S("stepped-pyramid", { tags: ["platforming", "stairs", "pit", "set piece"], tier: "Easy",
+  doc: "a symmetric stepped pyramid (2-wide steps, 3 up, a top, 3 down) with spikes on the outer steps' edges: the 1.x set piece",
+  build: () => { const o = [];
+    for (let i = 0; i < 3; i++) { o.push(...blocks(2 * i, 16 - 2 * i, 0, i + 1)); }
+    o.push(["spike", 1, 1], ["spike", 14, 1], ...pit(16, 18), ...blocks(18, 21, 0, 1)); return { objects: o, width: 21 }; } });
+S("ceiling-hop", { tags: ["gravity", "gravity portal", "pillar", "ceiling run"], tier: "Normal",
+  doc: "upside down: hanging columns of different lengths are the floor, a spiked roof-pit between them (Jumper's green part, as a shape)",
+  build: () => { const o = [["gravity down", 0, 1], ...blocks(0, 4, 8, 12)];
+    const lens = [3, 4, 3, 2]; let c = 4;
+    for (const L of lens) { o.push(...range(c, c + 2).map(x => [9, x, 11, { dy: 13, rot: 180 }]), ...blocks(c + 2, c + 4, 12 - L, 12)); c += 4; }
+    o.push(...range(c, c + 2).map(x => [9, x, 11, { dy: 13, rot: 180 }]), ...blocks(c + 2, c + 6, 8, 12), ["gravity up", c + 5, 6], ...blocks(c + 5, c + 8, 0, 1));
+    return { objects: o, width: c + 8 }; } });
+
+S("ship-weave", { mode: "ship", tags: ["ship", "pillar"], tier: "Normal",
+  doc: "the ship weaves along a drifting line between spike-tipped ground pillars and hanging columns over a pit floor (Jumper's ship, as a shape)",
+  args: { line: [5, 6, 5, 4, 3, 4], step: 4, open: 3 },
+  build: a => { const o = [], n = a.line.length;
+    a.line.forEach((c, i) => { const x = 3 + i * a.step;
+      if (i % 2 === 0) { o.push(...blocks(x, x + 1, 0, c - a.open + 1), ["spike", x, c - a.open + 1]); }
+      else { o.push(...blocks(x, x + 1, c + a.open, 11), ["spike", x, c + a.open - 1, { rot: 180 }]); } });
+    const w = 3 + n * a.step + 3; o.push(...pit(0, w)); return { objects: o, width: w, exitRow: a.line[n - 1] }; } });
+S("ship-lanterns", { mode: "ship", tags: ["ship", "floating"], tier: "Normal",
+  doc: "floating blocks with a spike above and below, hung on chains (the craft pass), up and down the ship's band: pass between them (xStep's floating pieces)",
+  args: { rows: [3, 7, 4, 7, 3], step: 5 },
+  build: a => { const o = []; a.rows.forEach((r, i) => { const x = 3 + i * a.step; o.push(["block", x, r], ["spike", x, r + 1], ["spike", x, r - 1, { rot: 180 }]); });
+    const w = 3 + a.rows.length * a.step + 3; o.push(...pit(0, w)); return { objects: o, width: w, exitRow: 5 }; } });
+
 // ---------------------------------------------------------------- the harness: one small test level per structure
 const MODE_PORTAL = { ship: "ship portal", ball: "ball portal", ufo: "ufo portal", wave: "wave portal", robot: "robot portal", spider: "spider portal", swing: "swing portal", cube: "cube portal" };
 // blocks of calm run after a mode portal before the structure (the lead-in medians of rated low-tier
@@ -313,6 +386,8 @@ function rank(results) {
     // a prejump WARN is the approximate check on levels with modes (sweep solver): not counted
     const read = !r.ok ? 0 : Math.max(0, 1 - 0.5 * (r.gates.prejumps === "FAIL" ? 1 : 0)
       - 0.3 * (r.gates.fairness === "FAIL" ? 1 : 0) - 0.1 * (r.gates.fairness === "WARN" ? 1 : 0) - 0.1 * (r.gates.recovery === "WARN" ? 1 : 0)
+      // exact hops instead of reactions (score.js "reactive", the user on GDLM 45 v6): pushed well down
+      - 0.4 * (r.gates.reactive && r.gates.reactive !== "PASS" ? 1 : 0)
       - 0.15 * Math.max(0, pps - 2.5));
     const variety = 1 - ours, usage = Math.sqrt(real);
     r.rank = { variety: +variety.toFixed(2), usage: +usage.toFixed(2), fairness: +fair.toFixed(2), readability: +read.toFixed(2),
@@ -327,7 +402,7 @@ function rank(results) {
 const MODE_COL = { cube: "#3c9", ship: "#f5a", ball: "#f44", ufo: "#fb3", wave: "#3bf", robot: "#ccc", spider: "#b6f", swing: "#fd3" };
 function svgOf(r, GD) {
   const P = r.pic; if (!P) return "";
-  const W = P.x1 - P.x0, top = Math.max(330, ...P.objects.map(o => o[2] + 30), ...P.path.map(q => q[1] + 30)), H = top + 20;
+  const W = P.x1 - P.x0, top = Math.max(150, ...P.objects.map(o => o[2] + 45), ...P.path.map(q => q[1] + 45)), H = top + 20;
   const Y = y => (top - y).toFixed(1), X = x => (x - P.x0).toFixed(1), out = [];
   out.push(`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${r.id}">`);
   out.push(`<rect x="0" y="${Y(0)}" width="${W}" height="20" class="g"/>`);
@@ -435,7 +510,7 @@ function save(db) {
 }
 function byId(id) { return LIB.find(s => s.id === id); }
 
-module.exports = { LIB, byId, testSpec, check, rank, page, load, save, register, ranked };
+module.exports = { LIB, byId, testSpec, check, rank, page, load, save, register, ranked, svgOf };
 
 if (require.main === module) {
   const [cmd, ...rest] = process.argv.slice(2);

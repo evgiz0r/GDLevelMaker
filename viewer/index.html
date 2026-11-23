@@ -16,6 +16,7 @@
   canvas { display:block; width:100%; height:min(60vh, 460px); background:#0e0828; touch-action:none; }
   #scrub { width:100%; margin:0; accent-color:var(--cube); }
   #strip { display:block; width:100%; height:34px; background:#120a2e; cursor:pointer; }
+  #inbar { display:block; width:100%; height:46px; background:#0b0620; }
   main { display:grid; grid-template-columns: 1fr 1fr; gap:16px; padding:12px 16px 24px; }
   @media (max-width: 700px) { main { grid-template-columns: 1fr; } }
   .card { background:var(--panel); border-radius:8px; padding:12px; }
@@ -59,7 +60,7 @@
   <button id="beatsBtn" class="on" title="beat grid of the level's song (songs on this PC, from tools/beats.js)">beats</button>
   <span id="clock" class="muted"></span>
 </header>
-<div id="views"><div id="wrap"><canvas id="cv"></canvas><div id="drop">drop a .gdlvl here</div></div>
+<div id="views"><div id="wrap"><canvas id="cv"></canvas><canvas id="inbar" title="the button: holds (yellow), presses (white), each input's timing window (cyan press, pink release)"></canvas><div id="drop">drop a .gdlvl here</div></div>
 <div id="cmp" hidden><div class="cmpbar"><select id="cmpRec"></select>
   <label title="where this level's attempt starts in the video: replay time t shows video second (start + t)">level starts at <input id="cmpT0" type="number" step="0.1" value="0" style="width:5em"> s</label>
   <button data-dt="-1">-1 s</button><button data-dt="-0.1">-0.1</button><button data-dt="0.1">+0.1</button><button data-dt="1">+1 s</button>
@@ -84,11 +85,12 @@
 <script src="../lib/objects_frames.js"></script>
 <script src="../lib/art.js"></script>
 <script src="../lib/natural.js"></script>
+<script src="../lib/song.js"></script>
 <script src="../lib/difficulty.js"></script>
 <script src="../lib/windows.js"></script>
 <script src="levels.js"></script>
 <script src="levels.local.js" onerror="window.GD_LEVELS_LOCAL = []"></script>
-<script src="beats.local.js" onerror="window.GD_BEATS = {}"></script>
+<script src="../local/beats.local.js" onerror="window.GD_BEATS = {}"></script>
 <script>
 "use strict";
 const P = GD.PHYS;
@@ -106,22 +108,37 @@ async function gunzipB64(b64) {
   const buf = await new Response(new Blob([bytes]).stream().pipeThrough(ds)).arrayBuffer();
   return new TextDecoder().decode(buf);
 }
+// the level's song: fetched from tools/serve.js once, decoded, played sample-exact by lib/song.js (Web Audio);
+// while playing, the replay's clock IS the song's clock (frame()), so they cannot drift apart
 let song = null, songInfo = null, music = true;
+const SONGS = (GD.SONGBUF = GD.SONGBUF || {}), songKeyOf = info => decodeURIComponent(String(info.url).split("/").pop()).toLowerCase();
+function audioCtx() { actx = actx || new AudioContext(); return actx; }
+function viewerSong(info) {
+  const buf = SONGS[songKeyOf(info)];
+  if (buf) return GD.songPlayer(buf, audioCtx);
+  loadSong(info); return null;
+}
+const songLoading = {};
+async function loadSong(info) {
+  const k = songKeyOf(info); if (songLoading[k]) return; songLoading[k] = true;
+  try { const r = await fetch(info.url); if (!r.ok) return; SONGS[k] = await audioCtx().decodeAudioData(await r.arrayBuffer()); } catch (e) { return; }
+  if (songInfo && songKeyOf(songInfo) === k && !song) { song = GD.songPlayer(SONGS[k], audioCtx); syncSong(true); }
+}
 function setSong(info) {
   if (song) { song.pause(); song = null; }
   songInfo = info || null;
   if (!info || location.protocol === "file:") return; // songs come from tools/serve.js
-  song = new Audio(info.url); song.preload = "auto";
-  song.onerror = () => { song = null; };
+  song = viewerSong(info);
 }
-// keep the song where the replay is: level time t plays song second offset + t
+// keep the song where the replay is: level time t plays song second offset + t. Seeks only when asked
+// (play, restart, scrub, speed): never from the frame loop, which reads the song's clock instead
 function syncSong(force) {
   if (!song) return;
   if (!playing || !music) { if (!song.paused) song.pause(); return; }
-  const want = songInfo.offset + t;
   song.playbackRate = speed;
-  if (force || Math.abs(song.currentTime - want) > 0.08) song.currentTime = want;
-  if (song.paused) song.play().catch(() => {});
+  const want = songInfo.offset + t;
+  if (song.paused) { song.currentTime = want; song.play(); }
+  else if (force && Math.abs(song.currentTime - want) > 0.002) song.currentTime = want;
 }
 function load(name, levelStr, saved, info) {
   setSong(info);
@@ -180,18 +197,36 @@ function load(name, levelStr, saved, info) {
 // there is, not only the chosen moment, which often sits near an edge).
 function windowsLater(LL, events) {
   if (window.SHOOT_MAP || !GD.inputWindows || !LL.sol.ok || !events || !events.length || LL.sol.clicks.some(c => c.hi > c.lo)) return;
-  const byKey = new Map(LL.sol.clicks.map(c => [c.type + c.tick, c]));
-  let from = 0, out = [];
+  const byKey = new Map(LL.sol.clicks.map(c => [c.type + c.tick, c])), sorted = events.slice().sort((a, b) => a.tick - b.tick);
+  const take = wins => { for (const wv of wins) { const c = byKey.get(wv.type + wv.tick); if (!c || c.ms) continue;
+    Object.assign(c, { lo: wv.lo, hi: wv.hi, ms: Math.round((wv.hi - wv.lo + 1) / P.TPS * 1000) });
+    if (wv.j >= 0) { const e = sorted[wv.j], rc = e && byKey.get(e.type + e.tick); if (rc) rc.tapOf = c; } } };
+  const finish = () => { LL.windowsDone = true; summary(); clickTable(); draw(); };
+  if (SHOOT) { take(GD.inputWindows(LL.world, events, LL.path, {})); return finish(); } // shots: all at once
+  // a Web Worker (one input can take seconds; on the page that froze it), else slices on the page (file://)
+  if (windowsLater.worker) windowsLater.worker.terminate();
+  const libs = [...document.scripts].map(s => s.src).filter(u => /\/lib\/(gd|objects_extra|objects_gd22|objects|physics|difficulty|windows)\.js(\?.*)?$/.test(u));
+  let wk = null; try { if (location.protocol.startsWith("http")) wk = new Worker("windows_worker.js"); } catch (e) {}
+  if (wk) {
+    windowsLater.worker = wk;
+    wk.onmessage = e => {
+      if (L !== LL) { wk.terminate(); return; } // another level was loaded
+      if (e.data.wins) { take(e.data.wins); if (!playing) draw(); }
+      if (e.data.done) { wk.terminate(); finish(); }
+      if (e.data.error) { console.warn("timing windows:", e.data.error); wk.terminate(); }
+    };
+    wk.postMessage({ libs, objects: LL.level.objects, header: LL.level.header, events: sorted });
+    return;
+  }
+  let from = 0;
   const slice = () => {
     if (L !== LL) return; // another level was loaded
-    const r = GD.inputWindows(LL.world, events, LL.path, { from, out, budget: SHOOT ? 0 : 40 }); // shots: all at once
-    for (const wv of r) { const c = byKey.get(wv.type + wv.tick); if (!c || c.ms) continue;
-      Object.assign(c, { lo: wv.lo, hi: wv.hi, ms: Math.round((wv.hi - wv.lo + 1) / P.TPS * 1000) });
-      if (wv.j >= 0) { const e = events.slice().sort((a, b) => a.tick - b.tick)[wv.j], rc = e && byKey.get(e.type + e.tick); if (rc) rc.tapOf = c; } }
-    if (r.next === null) { LL.windowsDone = true; summary(); clickTable(); draw(); return; }
+    const r = GD.inputWindows(LL.world, events, LL.path, { from, out: [], budget: 40 });
+    take(r);
+    if (r.next === null) return finish();
     from = r.next; if (!playing) draw(); setTimeout(slice, 0);
   };
-  if (SHOOT) slice(); else setTimeout(slice, 50);
+  setTimeout(slice, 50);
 }
 async function loadFile(f) {
   const rec = GD.parseRecord(await gunzipB64(await f.text()));
@@ -489,7 +524,7 @@ function draw() {
     ctx.font = `${11 * d}px system-ui`;
     for (let b = Math.max(1, Math.ceil(bA)); b <= bB; b++) {
       const x = sx(GD.SYNC.xOfT(L.beats.tl, timeOfBeat(b))), down = isDownbeat(b);
-      ctx.strokeStyle = down ? "rgba(120,220,255,.55)" : "rgba(120,220,255,.22)"; ctx.lineWidth = down ? 2 : 1;
+      ctx.strokeStyle = down ? "rgba(140,230,255,.75)" : "rgba(140,230,255,.38)"; ctx.lineWidth = (down ? 2.5 : 1.2) * d;
       ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, groundY); ctx.stroke();
       ctx.fillStyle = down ? "rgba(150,230,255,.9)" : "rgba(150,230,255,.5)"; ctx.fillText(String(b), x + 3 * d, 14 * d);
     }
@@ -597,45 +632,51 @@ function drawDeaths() {
   }
   ctx.textAlign = "left";
 }
+// the button band (its own canvas under the level, never over the playfield -- the user: "the timings again
+// are part of the ui and are annoying. put the timings below the level"): holds, presses, each input's timing
+// window, the button light; x follows the level's camera, so a window sits under the spot it is for
 function drawInput(k) {
-  const y0 = groundY + 30 * 0.45 * scale, h = 30 * 0.5 * scale;
-  ctx.fillStyle = "rgba(0,0,0,.45)"; ctx.fillRect(0, y0 - 6, W, h + 12);
-  const n = L.path.length;
-  // each input's whole timing window, earliest to latest tick that still clears: a shaded bar with bright
-  // ends (presses cyan, releases pink) and its length; the press itself is the white mark inside it
-  ctx.font = `bold ${12 * DPR()}px system-ui`; ctx.textAlign = "center";
+  const d = DPR(), ib = document.getElementById("inbar"), IH = Math.round(46 * d);
+  if (ib.width !== W) ib.width = W; if (ib.height !== IH) ib.height = IH;
+  const ix = ib.getContext("2d"), y0 = 7 * d, h = 16 * d, n = L.path.length;
+  ix.clearRect(0, 0, W, IH); ix.fillStyle = "#0b0620"; ix.fillRect(0, 0, W, IH);
+  // each input's whole timing window, earliest to latest tick that works: a shaded bar with bright ends
+  // (presses cyan, releases pink) and its length under it; the press itself is the white mark inside it
+  ix.font = `bold ${11 * d}px system-ui`; ix.textAlign = "center"; ix.textBaseline = "alphabetic";
   for (const c of L.sol.clicks) {
     if (c.hi <= c.lo || c.tapOf) continue;
     const x0 = sx(L.path[Math.min(c.lo, n - 1)].x), x1 = sx(L.path[Math.min(c.hi + 1, n - 1)].x);
     if (x1 < 0 || x0 > W) continue;
     const rgb = c.type === "release" ? "255,120,200" : "90,220,255", wd = Math.max(2, x1 - x0);
-    ctx.fillStyle = `rgba(${rgb},.28)`; ctx.fillRect(x0, y0 - 6, wd, h + 12);
-    ctx.fillStyle = `rgba(${rgb},.95)`; ctx.fillRect(x0, y0 - 6, 2, h + 12); ctx.fillRect(x0 + wd - 2, y0 - 6, 2, h + 12);
-    if (wd > 40 * DPR()) { ctx.fillStyle = `rgba(${rgb},.95)`; ctx.fillText(c.ms + " ms", x0 + wd / 2, y0 + h + 6 + 14 * DPR()); }
+    ix.fillStyle = `rgba(${rgb},.28)`; ix.fillRect(x0, y0 - 4 * d, wd, h + 8 * d);
+    ix.fillStyle = `rgba(${rgb},.95)`; ix.fillRect(x0, y0 - 4 * d, 2, h + 8 * d); ix.fillRect(x0 + wd - 2, y0 - 4 * d, 2, h + 8 * d);
+    if (wd > 40 * d) { ix.fillStyle = `rgba(${rgb},.95)`; ix.fillText(c.ms + " ms", x0 + wd / 2, IH - 3 * d); }
   }
-  ctx.textAlign = "left";
+  ix.textAlign = "left";
   let a = 0; while (a < n - 1 && sx(L.path[a].x) < 0) a += 8;
   for (let i = Math.max(0, a - 8); i < n - 1 && sx(L.path[i].x) < W; i++) {
     if (!L.held[i]) continue;
     let j = i; while (j + 1 < n && L.held[j + 1]) j++;
     const xa = sx(L.path[i].x), xb = Math.max(xa + 3, sx(L.path[Math.min(j + 1, n - 1)].x));
-    ctx.fillStyle = i <= k ? "rgba(255,225,77,.95)" : "rgba(255,225,77,.35)"; ctx.fillRect(xa, y0, xb - xa, h);
-    ctx.fillStyle = "#fff"; ctx.fillRect(xa, y0 - 4, 2, h + 8); // the press
+    ix.fillStyle = i <= k ? "rgba(255,225,77,.95)" : "rgba(255,225,77,.35)"; ix.fillRect(xa, y0, xb - xa, h);
+    ix.fillStyle = "#fff"; ix.fillRect(xa, y0 - 3 * d, 2, h + 6 * d); // the press
     i = j;
   }
-  ctx.fillStyle = "#fff"; ctx.fillRect(sx(L.path[k].x) - 1, y0 - 6, 2, h + 12); // now
-  ctx.fillStyle = "rgba(255,255,255,.55)"; ctx.font = "12px system-ui"; ctx.fillText("button", 6, y0 - 6);
-  // button light
-  const on = L.held[k], bx = W - 28 * (DPR()), by = y0 + h / 2 - 22;
+  ix.fillStyle = "#fff"; ix.fillRect(sx(L.path[k].x) - 1, 0, 2, IH); // now
+  ix.fillStyle = "rgba(255,255,255,.5)"; ix.font = `${10 * d}px system-ui`; ix.fillText("button", 4 * d, IH - 3 * d);
+  // button light, at the right end of the band
+  const on = L.held[k], bx = W - 24 * d;
   let since = k; while (since > 0 && L.held[since - 1] === on) since--;
-  ctx.fillStyle = on ? "#ffe14d" : "rgba(255,255,255,.08)"; if (on) glow("#ffe14d", 18);
-  ctx.fillStyle = "rgba(0,0,0,.8)"; ctx.fillRect(bx - 110, y0 - 6, 140, h + 12); ctx.fillStyle = on ? "#ffe14d" : "rgba(255,255,255,.08)"; if (on) glow("#ffe14d", 18);
-  ctx.beginPath(); ctx.arc(bx, by + 22, Math.min(20, h / 2 + 4), 0, 7); ctx.fill(); ctx.shadowBlur = 0;
-  ctx.strokeStyle = "rgba(255,255,255,.5)"; ctx.lineWidth = 2; ctx.stroke();
-  ctx.fillStyle = on ? "#0e0828" : "rgba(255,255,255,.6)"; ctx.font = "bold 12px system-ui"; ctx.textAlign = "center";
-  ctx.fillText(on ? "HOLD" : "up", bx, by + 26);
-  ctx.fillStyle = "rgba(255,255,255,.7)"; ctx.font = "11px system-ui";
-  ctx.textAlign = "right"; ctx.fillText((on ? "held " : "up ") + ((k - since) / P.TPS).toFixed(2) + " s", bx - 28, by + 26); ctx.textAlign = "left";
+  ix.fillStyle = "rgba(11,6,32,.7)"; ix.fillRect(W - 96 * d, 0, 96 * d, IH);
+  ix.fillStyle = on ? "#ffe14d" : "rgba(255,255,255,.08)"; if (on) { ix.shadowColor = "#ffe14d"; ix.shadowBlur = 14 * d; }
+  ix.beginPath(); ix.arc(bx, IH / 2, 15 * d, 0, 7); ix.fill(); ix.shadowBlur = 0;
+  ix.strokeStyle = "rgba(255,255,255,.5)"; ix.lineWidth = 2; ix.stroke();
+  ix.fillStyle = on ? "#0e0828" : "rgba(255,255,255,.6)"; ix.font = `bold ${10 * d}px system-ui`; ix.textAlign = "center"; ix.textBaseline = "middle";
+  ix.fillText(on ? "HOLD" : "up", bx, IH / 2);
+  ix.fillStyle = "rgba(255,255,255,.7)"; ix.font = `${10 * d}px system-ui`; ix.textAlign = "right";
+  ix.fillText((on ? "held " : "up ") + ((k - since) / P.TPS).toFixed(2) + " s", bx - 20 * d, IH / 2); ix.textAlign = "left"; ix.textBaseline = "alphabetic";
+  // headless shots (shoot.js --input) capture only the level canvas: stamp the band under the frame there
+  if (SHOOT) ctx.drawImage(ib, 0, H - IH);
 }
 // screen x -> level time (through the speed portals)
 function tOfScreenX(px) { return L.beats ? GD.SYNC.tOfX(L.beats.tl, px / scale + camX) : 0; }
@@ -779,9 +820,17 @@ function drawCube(s) {
 function visualRot(path) {
   const v = new Float32Array(path.length); let r = 0;
   const near = (a, b) => b + ((((a - b) % 360) + 540) % 360) - 180; // a, moved by turns of 360 to be closest to b
+  // drawn rotation per mode (VISUALS.md "Player motion"; the sim's own s.rot spins every mode but the ship in
+  // the air, which its hitbox needs, not what the game draws): cube spins in the air and lands square; ship
+  // and swing tilt with their velocity; UFO nearly level, a quarter of the ship's tilt (the user first missed
+  // a tilt, then still noticed half of it; no clean UFO clip measured yet); ball rolls with its distance; robot and spider stay upright (their legs move instead)
+  const tilt = (s, p, k) => p ? -Math.atan2((s.y - p.y), Math.max(0.1, s.x - p.x)) * 180 / Math.PI * k : 0;
   for (let i = 0; i < path.length; i++) {
     const s = path[i], p = path[i - 1];
     if (s.mode === "ship" || s.mode === "wave") { r = near(r, s.rot); r += (s.rot - r) * 0.12; }
+    else if (s.mode === "swing" || s.mode === "ufo") { const T = tilt(s, p, s.mode === "ufo" ? 0.25 : 1); r = near(r, T); r += (T - r) * 0.12; }
+    else if (s.mode === "robot" || s.mode === "spider") { r = near(r, 0); r += (0 - r) * 0.25; }
+    else if (s.mode === "ball") { if (p) r += (s.grav || 1) * (s.x - p.x) * 180 / (Math.PI * 15); }
     else if (s.grounded || s.dashing || !p || p.mode !== s.mode) { const T = Math.round(r / 90) * 90; r += (T - r) * 0.12; }
     else { const d = s.rot - p.rot; if (Math.abs(d) < 30) r += d; }
     v[i] = r;
@@ -790,19 +839,21 @@ function visualRot(path) {
 }
 // ---------- loop ----------
 let prev = performance.now(), drawDt = 1 / 60;
+// a hidden tab: stop (the song keeps playing in the background, frames do not); back: carry on from a fresh
+// clock, no catching up ("if i tab to something, usually it just get hangy", the user, 2026-11-23)
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden && playing && !SHOOT) { playing = false; setPlay(); syncSong(); }
+  prev = performance.now();
+});
 function frame(now) {
   const dt = Math.min(0.1, (now - prev) / 1000); prev = now; drawDt = dt || 1 / 60;
   if (L && playing) {
-    t += dt * speed;
-    // with the song playing, the replay follows the song's clock: a fifth of the gap each frame, so
-    // the picture stays smooth and in step (seeking the song makes it skip; syncSong only does that
-    // past 80 ms)
-    if (song && !song.paused && music && songInfo) {
-      const err = (song.currentTime - (songInfo.offset || 0)) - t;
-      if (Math.abs(err) < 0.25) t = Math.max(0, t + err * 0.2);
-    }
+    // the song's clock when it is playing (lib/song.js: sample-exact), else the frame time
+    if (song && music && song.running && song.running()) t = Math.max(0, song.currentTime - (songInfo.offset || 0));
+    else t += dt * speed;
     const k = tick();
-    for (const c of L.sol.clicks) if (c.type === "press" && c.tick > lastTick && c.tick <= k) beep();
+    let clicks = 0; for (const c of L.sol.clicks) if (c.type === "press" && c.tick > lastTick && c.tick <= k) clicks++;
+    if (clicks && k - lastTick < P.TPS / 4) beep(); // one beep a frame at most, none after a jump
     lastTick = k;
     if (k >= L.path.length - 1) { playing = false; setPlay(); }
     syncSong(false);

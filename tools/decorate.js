@@ -207,6 +207,11 @@ const KITS = {   // backdrop shapes per kind of section: [id, scale]
   ball: [[1058, 2], [1059, 2.4], [1060, 2.8]],       // spirals
   wave: [[394, 1.2], [395, 1.6], [396, 2.2]],        // geometric hexagons
 };
+// where GD's "Attempt N" text shows at the level start (units; x from the level start, y from the
+// ground), with room for 3-digit counts: no text object may overlap it (make.js warns)
+const ATTEMPT_ZONE = { x0: -30, x1: 360, y0: 105, y1: 195 };
+// a text object's half width in units (GD's big font: ~20 units per character at scale 1; approximate)
+const textHalfWidth = (t, sc) => String(t).length * 20 * sc / 2;
 function modernPass(objects, sections, opts = {}) {
   let sd = opts.seed || 3;
   const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
@@ -233,6 +238,17 @@ function modernPass(objects, sections, opts = {}) {
       const [id, sc] = kit[Math.floor(rnd() * kit.length)];
       out.push(o(id, x, 150 + rnd() * 150, light, LAYER.B3, { scale: sc, rot: Math.round(rnd() * 360) }));
     }
+    // open stretches (cube on the floor, upside down, ball) have few blocks to decorate, so they read as
+    // empty next to the corridors (the user on GDLM 45 v6 at ~24.7 s: "some places are very empty in
+    // deco"; score.js "deco coverage"). A calm, dim back row: the kit's shapes small and low, far back
+    // (B4) on the section's darker fill channel, every 2.5-4.5 blocks, and a second pass of dots.
+    if (["cube", "upside", "ball"].includes(sec.kind)) {
+      for (let x = x0 + 45; x < x1 - 45; x += 75 + rnd() * 60) {
+        const [id, sc] = kit[Math.floor(rnd() * kit.length)];
+        out.push(o(id, x, 60 + rnd() * 90, fill, LAYER.B4, { scale: +(sc * 0.55).toFixed(2), rot: Math.round(rnd() * 360) }));
+      }
+      for (let x = x0 + 30; x < x1 - 30; x += 50 + rnd() * 50) out.push(o(725, x, 40 + rnd() * 250, light, LAYER.B2, { scale: +(0.4 + rnd() * 0.5).toFixed(2) }));
+    }
   });
   // the motif through every section: small dots drifting at all heights, behind the play
   const endX = Math.max(...sections.map(s => s.to)) * 30;
@@ -251,9 +267,12 @@ function modernPass(objects, sections, opts = {}) {
   }
   // a title at the start and an end card
   const text = (t, x, y, sc) => ({ id: 914, x, y, rot: 0, flipX: false, flipY: false, props: { 155: "1", 31: Buffer.from(t).toString("base64"), 32: String(sc), 24: String(LAYER.B1) } });
-  if (opts.title) out.push(text(opts.title, 300, 150, 0.9));
+  // the title starts after GD's "Attempt N" counter: it sits ~5 rows up from the start position to ~6
+  // blocks ahead (more with 3 digits), measured on the user's recording 2026-11-23_02-51-50.mkv (11 s,
+  // "Attempt 2"); the title at block 10 was covered (GDLM 47, the user). Left edge at block 12 or later.
+  if (opts.title) { const sc = 0.9, half = textHalfWidth(opts.title, sc); out.push(text(opts.title, Math.max(600, ATTEMPT_ZONE.x1 + half), 150, sc)); }
   if (opts.end) out.push(text(opts.end, endX - 240, 150, 0.8));
   return out;
 }
 
-module.exports = { indicatorIssues, INDICATOR, jumpIndicators, markProps, indicatorFade, modernPass, LAYER, KITS, CH, SKIN, skinBlocks, groundDeco, colourTrigger, fadeTrigger, zoomTrigger, setHeaderColours, setHeaderArt };
+module.exports = { ATTEMPT_ZONE, textHalfWidth, indicatorIssues, INDICATOR, jumpIndicators, markProps, indicatorFade, modernPass, LAYER, KITS, CH, SKIN, skinBlocks, groundDeco, colourTrigger, fadeTrigger, zoomTrigger, setHeaderColours, setHeaderArt };

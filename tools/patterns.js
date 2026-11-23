@@ -16,10 +16,25 @@ def("spikes", "n spikes side by side (n 1..3 is one jump at 1x; 4+ needs an orb/
 def("single", "one spike", () => P.spikes.fn({ n: 1 }));
 def("double", "two spikes", () => P.spikes.fn({ n: 2 }));
 def("triple", "three spikes: the classic hardest ground jump", () => P.spikes.fn({ n: 3 }));
-def("spike-block", "spike then a 1-high block to land on and jump off", () => ({
-  objects: [["spike", 0, 0], ["block", 3, 0]], width: 4 }));
-def("block-spike-block", "jump block to block over a spike (the spike punishes a short hop)", () => ({
-  objects: [["block", 0, 0], ["spike", 1, 0], ["spike", 2, 0], ["block", 3, 0]], width: 4 }));
+// `at`: the block's column (default 3), `w`: its width (default 1). At 3 the jump over the spike comes
+// down at the block's edge, so its window is cut by the block, not the spike (score.js "reactive": GDLM 45
+// v6/v7, 117 and 33 ms), and a step 2-5 blocks after the spike is where the jump comes down (GDLM 47 ~29.3 s):
+// compose uses at 1, w 3 at Easy/Normal -- one jump clears the spike and lands on the block.
+def("spike-block", "spike then a 1-high block (at `at`, `w` wide) to land on and jump off", (a) => {
+  const at = a.at || 3, w = a.w || 1, o = [["spike", 0, 0]];
+  for (let c = 0; c < w; c++) o.push(["block", at + c, 0]);
+  return { objects: o, width: at + w };
+});
+// `w1`/`w2`: widths of the two blocks (default 1, the old shape). A 1-wide first block makes the cube
+// land and jump again at once -- an exact hop, not a reaction (the user on GDLM 45 v6; score.js
+// "reactive"): compose uses 2 and 2 at Easy/Normal, so the cube lands, sees the spikes and jumps.
+def("block-spike-block", "jump block to block over two spikes (the spikes punish a short hop); w1/w2 = block widths", (a) => {
+  const w1 = a.w1 || 1, w2 = a.w2 || 1, o = [];
+  for (let c = 0; c < w1; c++) o.push(["block", c, 0]);
+  o.push(["spike", w1, 0], ["spike", w1 + 1, 0]);
+  for (let c = 0; c < w2; c++) o.push(["block", w1 + 2 + c, 0]);
+  return { objects: o, width: w1 + 2 + w2 };
+});
 
 // --- terrain ---
 def("stairs", "n one-square steps up, w squares each (default 3), optional spike on the far floor", (a) => {
@@ -34,7 +49,11 @@ def("platform", "a flat platform w long at height h (top row h), filled to the f
   return { objects: o, width: w };
 });
 def("hops", "floating 1-high slabs of blocks rising by `rise` with a spike pit under them", (a) => {
-  const n = a.n || 3, gap = a.gap || 2, w = a.w || 2, rise = a.rise ?? 1, o = [];
+  const w = a.w || 2, rise = a.rise ?? 1, o = [];
+  // slabs at one height 2 apart are walked across without a jump, so the spikes under the gaps never
+  // matter (the user on GDLM 47 ~18.7 s: "dunno if we have to jump or not ... then there is no point in
+  // those spikes"; score.js "hazards matter"): level hops get gaps of 3 or more, which need a jump each
+  const n = a.n || 3, gap = rise === 0 ? Math.max(3, a.gap || 2) : (a.gap || 2);
   let c = 0;
   for (let i = 0; i < n; i++) {
     for (let k = 0; k < w; k++) o.push(["block", c + k, 1 + i * rise]);

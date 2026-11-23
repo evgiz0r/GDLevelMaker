@@ -62,7 +62,8 @@ user can change; the parts:
 - **fairness margin** = (tightest window - 40 ms) / 160 ms, clamped to 0..1: 50 ms is the floor,
   200 ms and up is "nothing to fear".
 - **readability** = 1, minus 0.5 for a prejump FAIL, 0.3 for a fairness FAIL, 0.1 for a fairness WARN,
-  0.15 for each press per second above 2.5. (A prejump WARN is the approximate check on levels with
+  0.4 when the "reactive" gate flags it (exact hops: a lone landing block forcing the next jump
+  within 250 ms, or 3+ forced hops in a row; the user on GDLM 45 v6), 0.15 for each press per second above 2.5. (A prejump WARN is the approximate check on levels with
   modes and is not counted.)
 
 Known limits of the score: "fun" is not measured (only readability and variety stand in for it); usage
@@ -102,13 +103,22 @@ Lessons from building them:
   lower; the test uses a wall of three portals.
 - The checker is slow for ship (~80 s), robot (~25-130 s) and UFO (~45 s): the sweep solver.
 
+## Craft structures (2026-11-23, the craft session; CRAFT.md)
+
+Nine shapes from studying Jumper and xStep (rules, not coordinates), all over pit floors of low spikes (id 9
+sunk 13 units): `pillar-hop`, `pillar-climb`, `capped-hop`, `slab-steps`, `lantern-orb`, `stepped-pyramid`,
+`ceiling-hop`, `ship-weave`, `ship-lanterns`. All ready (121-304 ms). Each cube one starts on a 3-wide
+doorstep: a 1-wide first pillar gave a 1.7-block prejump. Dress them with the craft pass (spec `"craft":
+true`, tools/craftkit.js): rods and chains attached to the pieces.
+
 ## Open
 
 - **Swing**: one structure (swing-wiggle). Until 49fa848 `solveAny` found no path past any
   wall (the sweep merged a pending flip away; fixed by the physics session). More swing shapes to add.
-- **Green orb**: `sure:false` in lib/objects.js. In the sim it flips gravity and jumps toward the new
-  gravity's "up", so from the floor it throws the cube DOWN; the structure meets it high, after a pad.
-  Check in the real game before a level leans on it.
+- **Green orb**: the sim (gdp decompile, gdsolver) flips gravity and jumps toward the new gravity's
+  "up", throwing the cube DOWN from the floor; the user's real play of GDLM 60 shows a green orb taken
+  from the ground sends the cube to the CEILING (physics, 2026-11-23). The sim and the game disagree:
+  green-orb-flip (met high, after a pad) is to be re-checked once physics settles it.
 - **Dual** portals are not simulated: no dual structures yet.
 - Mining real levels for shapes (the most common 1-3 s layouts in official and community levels, by
   mode) to add what they use and to rank by "how often real levels use this shape".
@@ -118,3 +128,30 @@ Lessons from building them:
   (knowledge/design.md) make most of them unfair at low tiers.
 - Not checked in the real game yet: none of these has been played. The first level built with them
   is the test.
+
+## Height and repetition (2026-11-23)
+
+The user on GDLM 47's upside-down part: "some sections are somewhat boring. all in flat area. no change
+of height really. no variety. robtop levels do show decent change of height in their play, trying not to
+repeat exact gameplay for a long while". Measured with `node tools/flow.js official ours <level>` along
+the route, in the jumping modes only (cube, robot, ball, spider; either gravity):
+
+| | jumping s | floor changes / 10 s | height range / 10 s | 10 s windows flat | on the bare floor | 4-move patterns repeated within 10 s |
+|---|---|---|---|---|---|---|
+| official 1-8 (Easy-Harder) | 59-81 | 12.4-21.6 | 3-8 | 0 | 23-62% | 0-12% (Stereo Madness 12%) |
+| official 9-22 | 6-75 | 8.1-17.6 | 0-11 | 0 (ToE 67%) | 7-54% | 0-2% |
+| **official median** | 58.9 | **13.6** | **7** | **0** | **28%** | **0%** |
+| GDLM 45 v6 | 30.3 | 7.9 | 5 | 25% | 81% | 0% |
+| GDLM 47 v2 | 84.3 | 7.5 | 3 | 5% | 54% | 17% |
+
+So ours change height about half as often, sit on the bare floor twice as much, and 47 repeats its moves
+(its upside part: the same hanging spikes again and again). Theory of Everything is the exception (mostly
+UFO and ball; its cube stretches are flat).
+
+Targets (score.js gates "height" and "repetition", WARN for now): 10+ floor changes per 10 s of jumping
+play, a height range of 3+ blocks per 10 s window, no flat 10 s window, at most 45% of standing on the bare
+floor, at most 5% of 4-move patterns repeated within 10 s. compose.js's block terrain now changes height at
+~4 chunks in 5 (0-3 rows), and also hangs from the ceiling in upside-down sections (0-2 rows).
+
+Open: the structure library does not have entry/exit heights yet (every structure starts and ends on the
+floor it is placed on); repetition is not steered in compose (it only avoids the same chunk twice in a row).
