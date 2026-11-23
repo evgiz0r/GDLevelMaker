@@ -449,3 +449,53 @@ at the rejoin), the natural plan (window only) and humanCost (windows carried ov
 raw fields first); humanCost on a new world in a new process starts cold until the window cache is saved with the
 route (asked difficulty for export/import); sections are only cut in plain modes, so a level that is all ship has
 one section; the cache keys sections on whole-block moves only.
+
+### Incremental solving -- hand-off (2026-11-24, from the local session to a cloud session)
+
+**Done (all on main):** lib/incsolve.js (diff, influence, exact states incl. dual p2 and every trigger-keyed
+field, calm points, checkpoints, `resolve`/`fromBase` edit re-solve with rejoin, `refresh` after a physics change,
+section cache + `solveWithCache`, `windowsIncremental`, `carryWindows`), tools/incsolve.js (`study`, `cutjoin`,
+`profile`), tools/inc_store.js (local/ files), tests/incsolve.js. Wired in: make.js -> check.js `report(file,
+{ base })` re-solves an existing level from its previous build (`--full`: whole); solutions.js `fromRun` plans
+only `r.inc`'s window and carries windows from `r.world`, saves checkpoints, the level, its sections and the
+window cache with every route; `solve` tries `refresh` before a full solve. tools/edit.js (gd-edit) calls
+`fromBase`; it was told to pass `inc` and `world` on to fromRun (not checked that it does).
+
+**Results so far:** the table above. In short: GDLM 41 one-spot edit rejoined: 0.8 s vs 6.2 s full, cost 0.280 vs
+0.276; GDLM 45 (ship/wave): same route and cost as full, but 252 s vs 268 s -- 200 s of it the rejoin search
+(fixed since: the goal compares raw fields first, NOT yet re-measured) and 50 s humanCost on a cold world (fixed
+since: window cache carried, NOT yet re-measured). No row yet for GDLM 61, cuts or joins (`cutjoin` never ran).
+
+**Next, in order:**
+1. Re-measure GDLM 45 and 61 with the fixes: `node tools/incsolve.js study levels/gdlm_45_first_flight.gdlvl
+   --edits 1 --seed 3 --no-full` (same edit as the 252 s row; full was 268 s), then `... gdlm_61_lantern_towers.gdlvl
+   --edits 2 --seed 5`. If the rejoin search is still minutes, look at `tries` in the row (ms per backoff, goal
+   checks) and at the sweep's CAP from a mid-level state; if a re-solve does not rejoin, `nojoin` lists the
+   state fields that kept it apart (cube `rot` is the suspect for GDLM 41's first edit).
+2. `node tools/incsolve.js cutjoin levels/gdlm_41_classic.gdlvl` (and 61): section cache vs full for a cut and a
+   self-join. Seams are searched with the goal "a cached section fits here".
+3. `node tests/incsolve.js` (full part: 3 edits of GDLM 41 vs full, cost within 0.02); then widen to GDLM 41-62
+   and a few official levels as the task asks (random edits, cuts, joins: pass/fail must agree, cost within eps).
+4. Fill the time table in CLAUDE.md ("make, an existing level after a one-spot edit") with measured numbers.
+5. Use the rejoin goal in tools/difficulty_solve.js --resume (physics' suggestion: stop early instead of sweeping
+   to the end) -- agree with gd-difficulty / gd-physics first.
+
+**Cloud notes:** local/ is not there, so no saved solutions, checkpoints, sections or window caches: `study` and
+the test solve the base level fully first (minutes for mode levels) and say so; use only the levels in git
+(levels/, examples/). The heavy lock (tools/heavy.js) still applies inside the tools.
+
+**Agreements:**
+- gd-physics (owner of lib/physics.js, natural.js): hooks `solveSweep opts.goal` and `naturalPlan opts.window`
+  (d68d0df), no change when unset; the no-skip rule stays on in every partial solve (skips()/reach in the sweep,
+  GD.skipCheck on every spliced route); run tests/mechanics.js, saved_routes.js, tas_progress.js before pushing
+  changes to them (mechanics and tas_progress pass with the hooks; saved_routes' 4 failures were stale saved
+  routes, physics is refreshing them).
+- gd-physics2 (triggers, dual, moving objects): all state in `s`, plain data, copy-on-write; index-keyed fields
+  `used`, `p2.used`, trigger-keyed (`k` or `k.n`) `fired stopped paused psum tgt fol offDone lockAt nfire`,
+  `pend` [[tick, k]], `off` by group, `tp` a position in byX. A new index field must be added to
+  lib/incsolve.js `canon` (TRIG_MAPS) or states across edits compare wrong.
+- gd-difficulty: window reach is 48 ticks back, max(T, nextT) + 48 + 240 ahead; `measureWindows opts.ticks`
+  (7b03ee1), `carryWindowCache(wOld, wNew, ranges, aToB)` (2c577f7), `exportWindowCache` / `importWindowCache`
+  (f0d483d).
+- gd-style's intended-route plan: not discussed with this session; ask gd-style how its route ranking should
+  apply inside a partial re-solve before changing the sweep's ranking there.
