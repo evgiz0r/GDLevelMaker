@@ -1,6 +1,7 @@
 {
   "name": "GDLM 51 adrift",
-  "desc": "A dive: the sunlit surface, sinking past jellyfish, currents that turn you over, the dark sea floor, and the rise back to the light. Song: balderdact - Adrift. Made with GDLevelMaker.",
+  "desc": "Sink past jellyfish and turning currents to the dark sea floor, then race back up to the light.",
+  "notes": "Round 1 of the taste loop (TASTE.md). Song: balderdact - Adrift (619544), from song bar 39; the drop at level bar 4, the break at 16, the last drop at 20.",
   "song": {
     "custom": 619544
   },

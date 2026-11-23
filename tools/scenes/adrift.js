@@ -24,7 +24,7 @@ module.exports = function ({ objects, header, beatX }) {
   const P = [
     { 1000: [26, 150, 186], 1001: [16, 96, 120], 1009: [22, 120, 146], 1002: [190, 255, 250], 1004: [240, 255, 252],
       [C.glow]: [90, 230, 220], [C.rockFar]: [30, 120, 150], [C.rockNear]: [18, 86, 112], [C.kelp]: [40, 150, 100], [C.jelly]: [255, 150, 220],
-      [C.tent]: [255, 190, 235], [C.fish]: [255, 190, 80], [C.bubble]: [130, 215, 235], [C.edge]: [160, 255, 240], [C.fill]: [14, 72, 94],
+      [C.tent]: [255, 190, 235], [C.fish]: [255, 190, 80], [C.bubble]: [90, 175, 205], [C.edge]: [160, 255, 240], [C.fill]: [14, 72, 94],
       [C.rays]: [220, 255, 245], [C.surface]: [220, 255, 250], [C.eyes]: [255, 236, 120], [C.coral]: [255, 120, 110], [C.plankton]: [140, 255, 220] },
     { 1000: [16, 92, 150], 1001: [8, 54, 96], 1009: [12, 70, 118], 1002: [140, 220, 255], 1004: [235, 250, 255],
       [C.glow]: [60, 170, 255], [C.rockFar]: [18, 76, 126], [C.rockNear]: [10, 54, 96], [C.kelp]: [24, 100, 90], [C.jelly]: [255, 110, 230],
@@ -37,7 +37,7 @@ module.exports = function ({ objects, header, beatX }) {
       [C.fill]: [2, 10, 18], [C.bubble]: [60, 200, 170], [C.eyes]: [255, 236, 120], [C.plankton]: [70, 255, 200], [C.coral]: [20, 40, 50] },
     { 1000: [40, 160, 200], 1001: [18, 100, 126], 1009: [26, 126, 150], 1002: [255, 240, 190], 1004: [255, 255, 245],
       [C.glow]: [255, 230, 150], [C.rockFar]: [30, 120, 150], [C.rockNear]: [18, 86, 112], [C.kelp]: [40, 150, 100], [C.edge]: [255, 236, 170],
-      [C.fill]: [14, 72, 94], [C.rays]: [255, 245, 210], [C.bubble]: [160, 230, 245], [C.surface]: [255, 250, 220], [C.eyes]: [255, 236, 120],
+      [C.fill]: [14, 72, 94], [C.rays]: [255, 245, 210], [C.bubble]: [100, 190, 215], [C.surface]: [255, 250, 220], [C.eyes]: [255, 236, 120],
       [C.fish]: [255, 200, 90], [C.coral]: [255, 130, 110], [C.plankton]: [255, 240, 200] },
   ];
   const defs = {};
@@ -122,12 +122,11 @@ module.exports = function ({ objects, header, beatX }) {
   for (let b = 1; b < 4 * 23; b++) {
     const x = beatX(b), sec = S.findIndex(([a, c]) => x >= a && x < c), bar = (b - 1) % 4 === 0;
     if (sec < 0) continue;
-    if (bar) out.push(K.pulse(x, C.edge, [255, 255, 255], 0, 0.05, 0.5));
-    if ((sec === 1 || sec === 4) && !bar) out.push(K.pulse(x, C.bubble, [200, 245, 255], 0, 0.03, 0.3));
-    if (sec === 1 && bar) out.push(K.pulse(x, C.jelly, [255, 220, 255], 0, 0.05, 0.6));
-    if (sec === 3 && bar) out.push(K.pulse(x, C.plankton, [220, 255, 240], 0.1, 0.1, 0.8));
+    // calm: only on bars, soft swells of the deco's own colour, never the gameplay edges, never white (TASTE.md)
+    if (sec === 1 && bar) out.push(K.pulse(x, C.jelly, [255, 170, 240], 0.1, 0.1, 0.8));
+    if (sec === 3 && bar) out.push(K.pulse(x, C.plankton, [150, 255, 220], 0.15, 0.1, 0.9));
   }
-  out.push(K.pulse(S[1][0], 1000, [200, 255, 255], 0, 0.05, 0.8), K.pulse(S[4][0], 1000, [255, 250, 220], 0, 0.08, 1.2));
+  out.push(K.pulse(S[4][0], 1000, [90, 190, 220], 0.1, 0.1, 1));   // one soft flash, on the last drop
   out.push(K.zoom(S[1][0], 0.88, 1.5), K.zoom(S[2][0] - 60, 1, 1), K.zoom(S[4][0], 0.9, 1), K.zoom(S[4][1] - 700, 1, 1.5));
 
   // ---- title and credits ----

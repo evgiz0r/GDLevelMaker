@@ -29,8 +29,8 @@ module.exports = function ({ objects, header, beatX }) {
       [C.glow]: [150, 50, 130], [C.cloud]: [64, 40, 112], [C.stars]: [230, 230, 255], [C.edge]: [180, 130, 255], [C.fill]: [22, 12, 50],
       [C.moon]: [18, 10, 44], [C.corona]: [255, 230, 190], [C.motes]: [190, 160, 255], [C.win]: [255, 160, 70] },
     { 1000: [4, 3, 12], 1001: [0, 0, 0], 1009: [6, 4, 14], 1002: [255, 255, 255], 1004: [255, 255, 255],
-      [C.glow]: [70, 40, 160], [C.moon]: [0, 0, 0], [C.corona]: [255, 250, 235], [C.rays]: [200, 190, 255], [C.rings]: [170, 150, 255],
-      [C.stars]: [255, 255, 255], [C.edge]: [255, 255, 255], [C.fill]: [14, 10, 30], [C.cloud]: [20, 14, 40], [C.motes]: [255, 255, 255], [C.frame]: [0, 0, 0] },
+      [C.glow]: [70, 40, 160], [C.moon]: [0, 0, 0], [C.corona]: [215, 205, 235], [C.rays]: [150, 140, 210], [C.rings]: [130, 115, 210],
+      [C.stars]: [150, 140, 200], [C.edge]: [140, 120, 230], [C.fill]: [14, 10, 30], [C.cloud]: [20, 14, 40], [C.motes]: [130, 120, 200], [C.frame]: [0, 0, 0] },
     { 1000: [8, 22, 48], 1001: [4, 12, 30], 1009: [8, 20, 42], 1002: [255, 210, 120], 1004: [255, 250, 235],
       [C.glow]: [255, 170, 60], [C.moon]: [6, 16, 38], [C.corona]: [255, 215, 120], [C.rays]: [255, 200, 90], [C.rings]: [255, 190, 90],
       [C.stars]: [200, 230, 255], [C.edge]: [255, 205, 110], [C.fill]: [6, 18, 40], [C.cloud]: [30, 60, 96], [C.motes]: [255, 210, 110] },
@@ -104,7 +104,7 @@ module.exports = function ({ objects, header, beatX }) {
   // windows twinkle on the beat (pulse the two groups towards white, alternating bars)
   for (const [x0, x1] of [S[0], S[4]]) for (let b = 1; b < 120; b++) {
     const x = beatX(b); if (x < x0 || x >= x1) continue;
-    if (b % 2 === 1) out.push(K.pulse(x, b % 4 === 1 ? G.twA : G.twB, [255, 255, 230], 0.02, 0.08, 0.35, { group: true }));
+    if (b % 4 === 1) out.push(K.pulse(x, b % 8 === 1 ? G.twA : G.twB, [255, 210, 150], 0.1, 0.1, 0.6, { group: true }));
   }
 
   // ---- S2 / S4: clouds drifting through the corridor, behind the play ----
@@ -135,23 +135,21 @@ module.exports = function ({ objects, header, beatX }) {
   // slopes (the wave's walls) take the fill colour; spikes stay white (1004)
   for (const o of objects) if (o.id === 1338) { o.props = o.props || {}; o.props[21] = String(C.edge); }
 
-  // ---- beat pulses: lit edges on bar starts; on every beat at the drop; a white flash on it ----
-  for (let b = 1; b < 4 * 22; b++) {
+  // ---- beat pulses: calm (the user on a flashy level: "waaaay too flashy ... hard to tell what kills you",
+  // TASTE.md). Only on bar starts, a soft swell towards a lighter tint of the same colour, never white; the
+  // hazards (white spikes) stay the brightest thing on the screen ----
+  for (let b = 1; b < 4 * 22; b += 4) {
     const x = beatX(b), sec = S.findIndex(([a, c]) => x >= a && x < c);
     if (sec < 0) continue;
-    const bar = (b - 1) % 4 === 0;
-    if (sec === 2) { // totality: every beat
-      out.push(K.pulse(x, C.edge, [255, 255, 255], 0, 0.05, 0.3));
-      if (bar) out.push(K.pulse(x, C.corona, [255, 255, 255], 0, 0.06, 0.5), K.pulse(x, C.rings, [255, 255, 255], 0, 0.06, 0.6));
-      else out.push(K.pulse(x, C.stars, [255, 255, 255], 0, 0.03, 0.25));
-    } else if (sec === 3) { if ((b - 1) % 2 === 0) out.push(K.pulse(x, C.rays, [255, 255, 220], 0, 0.05, 0.4)); if (bar) out.push(K.pulse(x, C.edge, [255, 255, 255], 0, 0.04, 0.4)); }
-    else if (bar) out.push(K.pulse(x, C.edge, [255, 255, 255], 0, 0.05, 0.45), K.pulse(x, C.glow, [255, 230, 200], 0, 0.05, 0.6));
+    if (sec === 2) { if ((b - 1) % 8 === 0) out.push(K.pulse(x, C.corona, [200, 190, 235], 0.1, 0.1, 0.9), K.pulse(x, C.rings, [190, 175, 255], 0.1, 0.1, 0.9)); }
+    else if (sec === 3) out.push(K.pulse(x, C.rays, [230, 200, 130], 0.1, 0.1, 0.8));
+    else out.push(K.pulse(x, C.glow, [255, 170, 120], 0.1, 0.1, 0.8));
   }
-  // the drop: a white flash of the sky, and the camera pulls back to show the corona; back at S4
-  out.push(K.pulse(S[2][0], 1000, [255, 255, 255], 0, 0.06, 0.9), K.pulse(S[2][0], C.glow, [255, 255, 255], 0, 0.1, 1.2));
+  // the drop: one soft flash of the sky (not white), and the camera pulls back to show the corona; back at S4
+  out.push(K.pulse(S[2][0], 1000, [70, 60, 120], 0, 0.06, 0.8));
   out.push(K.zoom(S[2][0], 0.82, 0.6), K.zoom(S[3][0] - 60, 1, 1.2));
   // the flash into S2 (take-off) and S5 (dawn): softer
-  out.push(K.pulse(S[1][0], 1000, [120, 80, 200], 0, 0.05, 0.6), K.pulse(S[4][0], 1000, [255, 230, 200], 0.1, 0.1, 1.2));
+  // (no flashes at the other portals: the palette change is the transition)
 
   // ---- a dark frame along the top of the screen in the cube sections (fades out for the flying ones) ----
   out.push(...K.topFrame(0, { ch: C.frame, group: G.frame, y: 250, h: 3.5 }), K.lockX(T0, G.frame, secs(END) + 2, 1));
@@ -167,7 +165,7 @@ module.exports = function ({ objects, header, beatX }) {
   out.push(K.text(cx, 125, "made with GDLevelMaker", 0.45, { z: "B1", groups: [G.credits] }));
   out.push(K.alpha(T0, G.credits, 0, 0), K.alpha(barX(20), G.credits, 1, 1.5));
   // where the level ends: an invisible marker past the credits, so the end comes after them
-  out.push(K.obj(1764, END, 300, { ch: C.motes, z: "B5" }));
 
-  return { objects: out, header };
+  // the signature (make.js places it) right after the credits, its shirt in the dawn's pink
+  return { objects: out, header, signature: { col: Math.ceil((cx + 300) / 30), shirt: [255, 150, 170] } };
 };

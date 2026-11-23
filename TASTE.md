@@ -34,6 +34,22 @@ uploaded or installed by this loop: the main session does that on the user's yes
   clouds with black outlines over a tunnel). (Round 0.)
 - Our view shows ~7.5 blocks above the ground in a cube part: tall background things hide the sky.
   (Round 0.)
+- **Calm, not flashy; hazards first.** The user on a modern-look level (GDLM 44 hellgate, polish's
+  pass): "waaaay too flashy. the contrast between the objects is bad, hard to tell what kills you
+  what not." So: pulses only on bar starts (or rarer), a soft swell towards a lighter tint of the
+  same colour, never to white and never on every beat; at most one sky flash in a level, on its main
+  drop, and not to white; the gameplay blocks' edges do not pulse. Hazards stay the brightest,
+  most outlined things on the screen: no deco in their colour or brightness (white stars, motes,
+  corona or bubbles next to white spikes). GDLM 50 v1 pulsed the block edges white on every beat
+  through totality and flashed the sky white twice; v2 is calm. (Round 0/1, 2026-11-23.)
+- **Shapes that read as gameplay are out**, however pretty: thick white rings (236 at scale 0.5+) as
+  bubbles read as orbs; a ball shape plus a square (51, 148) read as a cup next to the path. Use thin,
+  small, dim versions, behind the play. (Round 1, first render of GDLM 51.)
+- **Things placed high must be under ~7 blocks** (225 units) to be seen in a cube part: GDLM 51's eyes
+  in the dark at y 235 never showed. (Round 1.)
+- **A route check needs the human route too**: score.js's `skips` gate follows the solver's run, which
+  went through GDLM 51's last cube portal while the natural replay flew over it. Frame a flying mode's
+  exit portal on all sides (a roof AND a wall up to the top of the band). (Round 1.)
 
 ## Rounds
 
