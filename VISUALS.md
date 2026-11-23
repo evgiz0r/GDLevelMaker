@@ -33,6 +33,9 @@ object id -> frame names, offsets, colour roles, layers.
   where it has the id. For 2.2-only ids we know the root frame only: no children, layer T1, channel 1004.
 - `tests/art_tables.js` -- plist parsing, trees, and every named frame exists in the install's sheets.
 
+- **Deco catalogue**: `tools/catalogue.js` + `viewer/catalogue.html` + `lib/catalogue.js` (group, family,
+  note per id) -> `knowledge/objects/` (catalogue.tsv, usage.json, README.md) and `local/catalogue/*.png`.
+
 ## Facts (checked against the user's recordings)
 
 How: viewer "compare" panel, level start offset set by eye, "save comparison" -> `local/shots/`.

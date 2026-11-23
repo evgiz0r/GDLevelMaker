@@ -101,25 +101,70 @@ function setHeaderArt(header, bg, ground) {
   return header;
 }
 
-// --- jump indicators: a small "^" just above the surface where a jump starts (modern levels use
-// them; the user asked for them, also to read Claude's intent). Placed from the solver's run: one
-// per cube/robot takeoff from a surface (a held button re-jumps on landing, so a press can mean
-// several jumps). Orb and pad launches get none (the orb or pad is the cue). Upside down, the mark hangs under the ceiling and points down.
-// The chevron's object id is not confirmed yet: INDICATOR.id, overridable per spec.
-const INDICATOR = { id: null, lift: 12 }; // lift: units from the surface to the mark's centre
-function jumpIndicators(w, r, id, GD) {
-  if (!id) throw new Error("jump indicators need the chevron's object id: spec \"indicators\": {\"id\": N}");
-  // every takeoff, not every press: a held button re-jumps on each landing
-  const path = GD.run(w, r.events).path, out = [];
+// --- jump indicators: a small arrow over the area where a jump starts, pointing down at it (the
+// user: "a small arrow pointing to the ground, in the area vaguely you have to jump"). Modern levels
+// put them where a jump cannot be read in time, not on every click (that is clutter). Placed from the
+// solver's run, at cube/robot takeoffs from a surface, and kept only where the jump is NOT obvious:
+//   far cue   the hazard or block it is for is more than 2.5 blocks ahead of the takeoff (the jump
+//             looks early: the GDLM 45 v4 death spot, a jump off a 3-high stair over a spike past
+//             the landing, died there 3 times in a row)
+//   ledge     the takeoff is the last column of a raised surface (jumping off an edge)
+//   portal    the first jump within 12 blocks after a mode / gravity change
+//   new       the first jump at or after a column in opts.at (compose.js: a pattern's first use)
+// No two within 4 blocks; orb and pad launches get none (the orb or pad is the cue). Upside down
+// the arrow hangs under the ceiling and points up at it. opts.all: every takeoff (the old rule).
+// What the mark is: anything small and softer than the level, never like a hazard (the user: "dont
+// have to be arrows but thats the usual usage, something small bit softer than the level so not to
+// confuse with real spikes ... people put anything, from circles to smileys"). Default: a GD text
+// object (914, key 31 = base64 text) showing a small "v" -- an arrow pointing at the ground whose look
+// is certain, no deco-id guess -- in its own group, faded to `alpha` by an alpha trigger at the start.
+// A deco arrow can replace it per spec: "indicators": {"id": N, "rot": n} (no text then).
+const INDICATOR = { id: 914, text: "v", scale: 0.8, group: 990, alpha: 0.45, lift: 45, rot: 0 }; // lift: surface -> mark centre
+function jumpIndicators(w, r, id, GD, opts = {}) {
+  const path = GD.run(w, r.events).path, out = [], marks = [];
+  const boxes = w.items || [];
+  const solidAt = (x, y) => boxes.some(b => (b.kind === "solid" || b.kind === "slope") && b.x0 <= x && b.x1 >= x && b.y0 <= y && b.y1 >= y);
+  let lastChange = -1e9, prevMode = path[0] && path[0].mode, prevGrav = path[0] && (path[0].grav || 1);
+  const at = (opts.at || []).map(c => c * 30 + 15).sort((a, b) => a - b);
+  let atI = 0;
   for (let t = 1; t < path.length; t++) {
     const a = path[t - 1], s = path[t];
+    if (s.mode !== prevMode || (s.grav || 1) !== prevGrav) { lastChange = s.x; prevMode = s.mode; prevGrav = s.grav || 1; }
     if (!a.grounded || s.grounded || !(a.mode === "cube" || a.mode === "robot")) continue;
     if (s.act !== "jump" || s.vy * (s.grav || 1) <= 0) continue;
-    const up = (a.grav || 1) > 0;
+    const g = a.grav || 1, up = g > 0;
     const surface = up ? a.y - 15 : a.y + 15;
-    out.push({ id, x: +a.x.toFixed(1), y: up ? surface + INDICATOR.lift : surface - INDICATOR.lift, rot: up ? 0 : 180, flipX: false, flipY: false, props: { 155: "1" } });
+    // what the jump is for: the first hazard, or a solid face, ahead on the player's level
+    let cue = Infinity;
+    for (const b of boxes) {
+      if (!(b.kind === "hazard" || b.kind === "solid" || b.kind === "slope")) continue;
+      if (b.x0 <= a.x + 15 || b.x0 > a.x + 240) continue;
+      const lo = up ? surface - 5 : surface - 70, hi = up ? surface + 70 : surface + 5;
+      if (b.y1 < lo || b.y0 > hi) continue;
+      if (b.kind !== "hazard" && (up ? b.y1 <= surface + 2 : b.y0 >= surface - 2)) continue; // the floor it runs on
+      cue = Math.min(cue, b.x0 - (a.x + 15));
+    }
+    const why = [];
+    if (cue > 75 && cue !== Infinity) why.push("far cue");
+    const under = up ? surface - 5 : surface + 5;
+    if (Math.abs(surface) > 2 && solidAt(a.x, under) && !solidAt(a.x + 30, under)) why.push("ledge");
+    if (a.x - lastChange < 360) { why.push("portal"); lastChange = -1e9; }
+    while (atI < at.length && at[atI] <= a.x + 90) { atI++; if (at[atI - 1] > a.x - 60) why.push("new"); } // the jump for a chunk starts ~1-3 blocks before it
+    if (!opts.all && !why.length) continue;
+    if (marks.length && a.x - marks[marks.length - 1] < 120) continue;
+    marks.push(a.x);
+    const x = Math.round(a.x / 15) * 15;  // loosely: the area, not the tick
+    out.push({ id, x, y: up ? surface + INDICATOR.lift : surface - INDICATOR.lift,
+      rot: ((opts.rot ?? INDICATOR.rot) + (up ? 0 : 180)) % 360, flipX: false, flipY: false, props: markProps(id, opts), why: why.join(",") });
   }
   return out;
 }
+function markProps(id, opts) {
+  const p = { 155: "1", 57: String(opts.group ?? INDICATOR.group) };
+  if (id === 914) { p[31] = Buffer.from(opts.text ?? INDICATOR.text).toString("base64"); p[32] = String(opts.scale ?? INDICATOR.scale); }
+  return p;
+}
+// the alpha trigger that makes the marks soft, at the level's start
+function indicatorFade(opts = {}) { return fadeTrigger(0, opts.group ?? INDICATOR.group, opts.alpha ?? INDICATOR.alpha, 0, 11); }
 
-module.exports = { INDICATOR, jumpIndicators, CH, SKIN, skinBlocks, groundDeco, colourTrigger, fadeTrigger, zoomTrigger, setHeaderColours, setHeaderArt };
+module.exports = { INDICATOR, jumpIndicators, indicatorFade, CH, SKIN, skinBlocks, groundDeco, colourTrigger, fadeTrigger, zoomTrigger, setHeaderColours, setHeaderArt };

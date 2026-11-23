@@ -166,6 +166,17 @@ function scoreLevel(level, brief, opts = {}) {
     }
     if (ports.length) gate("lead-in", short.length ? "WARN" : "PASS", short.length ? short.join("; ") : `${ports.length} mode portals with a calm lead-in`);
   }
+  // mode entry: a mode portal right at a raised block's end (or above its top) lets the player reach
+  // it still on the block, and the new mode starts on a corner -- GDLM 44's wave: the user landed on
+  // the 3-high block, touched the portal there without holding and died sliding off its end (physics
+  // session, recording 2026-11-23 02:51; 92 ms to survive). The portal goes over open air instead.
+  {
+    const ports = level.objects.filter(o => GD.objInfo(o.id).kind === "mode" && GD.objInfo(o.id).mode !== "cube");
+    const tops = level.objects.filter(o => GD.objInfo(o.id).kind === "solid").map(o => GD.hitbox(o)).filter(h => h && h.y1 > 2);
+    const bad = ports.filter(p => tops.some(h => h.x1 >= p.x - 45 && h.x0 <= p.x + 15 && h.y1 <= p.y + 10 && h.y1 >= p.y - 60))
+      .map(p => `${GD.objInfo(p.id).mode} at block ${((p.x - 15) / 30).toFixed(0)}`);
+    if (ports.length) gate("mode entry", bad.length ? "WARN" : "PASS", bad.length ? bad.join("; ") + " sits at a raised block's end: the new mode can start on its corner" : "mode portals over open space");
+  }
 
   // skips: which portals and orbs the solved run never touched
   if (r.ok) {

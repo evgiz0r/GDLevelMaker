@@ -41,6 +41,21 @@ http.createServer((req, res) => {
     });
     return;
   }
+  // POST /catalogue/<name>.png: a contact sheet from viewer/catalogue.html -> local/catalogue/ (never
+  // committed: it is RobTop's art). POST /catalogue/done marks the run finished (tools/catalogue.js waits).
+  const cat = req.method === "POST" && /^\/catalogue\/([\w.\-]+\.(png|json)|done)$/.exec(p);
+  if (cat) {
+    const chunks = [];
+    req.on("data", c => chunks.push(c));
+    req.on("end", () => {
+      const dir = path.join(root, "local", "catalogue"); fs.mkdirSync(dir, { recursive: true });
+      const body = Buffer.concat(chunks).toString(), m = /^data:image\/png;base64,(.+)$/.exec(body);
+      if (cat[1] === "done") fs.writeFileSync(path.join(dir, ".done"), body || String(Date.now()));
+      else fs.writeFileSync(path.join(dir, cat[1]), m ? Buffer.from(m[1], "base64") : body);
+      res.writeHead(200, { "Content-Type": "application/json" }); res.end('{"ok":true}');
+    });
+    return;
+  }
   // the user's recordings (never copied anywhere): a list, and one frame at a time via ffmpeg,
   // for the viewer's "compare" panel
   // GET /wip/list: every session's work-in-progress level (local/wip/<session>/, tools/wip.js), with the

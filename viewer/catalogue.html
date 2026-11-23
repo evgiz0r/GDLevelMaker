@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GD Object Catalogue</title>
+<!-- Every object id drawn with GD's own sprites from the user's install (via tools/serve.js /gdres/),
+     on contact sheets by group. Main colour white, detail light blue, black black, so the roles show.
+     ?save=1: render every sheet and POST it to /catalogue/<group>_<n>.png (local/catalogue/, never
+     committed) -- tools/catalogue.js sheets does that headless. Otherwise: browse and search here.
+     VISUALS.md, knowledge/objects/README.md. -->
+<style>
+  body { margin: 0; background: #16141f; color: #ddd; font: 13px system-ui, sans-serif; }
+  header { position: sticky; top: 0; background: #16141f; padding: 8px 12px; border-bottom: 1px solid #333; z-index: 2; }
+  input { background: #222; color: #eee; border: 1px solid #555; padding: 4px 8px; width: 22em; }
+  h2 { margin: 18px 12px 6px; font-size: 15px; color: #9fd; }
+  canvas { display: block; margin: 0 12px 12px; max-width: calc(100% - 24px); }
+  .muted { color: #888; }
+</style>
+</head>
+<body>
+<header>GD object catalogue · <input id="q" placeholder="filter: id, frame or family (e.g. 1338, spike, d_cloud)"> <span id="msg" class="muted">loading sprites…</span></header>
+<div id="out"></div>
+<script src="../lib/gd.js"></script>
+<script src="../lib/objects_extra.js"></script>
+<script src="../lib/objects_gd22.js"></script>
+<script src="../lib/objects.js"></script>
+<script src="../lib/objects_art.js"></script>
+<script src="../lib/objects_frames.js"></script>
+<script src="../lib/art.js"></script>
+<script src="../lib/catalogue.js"></script>
+<script>
+"use strict";
+const AR = GD.ART_LIB, C = GD.CATALOGUE;
+const COLS = 12, ROWS = 10, CW = 150, CH = 172, PAD = 10;
+const COL = { b: [255, 255, 255], d: [120, 200, 255], k: [0, 0, 0] };
+const save = new URLSearchParams(location.search).get("save") === "1";
+const msg = document.getElementById("msg"), out = document.getElementById("out");
+
+function cell(x, id, cx, cy) {
+  const t = AR.treeOf(id);
+  x.fillStyle = "#3b3a4c"; x.fillRect(cx + 2, cy + 2, CW - 4, CH - 4);
+  x.fillStyle = "#2f2e3e"; x.fillRect(cx + 2, cy + 2, CW - 4, 120);
+  if (t) {
+    const sz = AR.frameSize(t.frame) || [30, 30], k = Math.min(3, 110 / Math.max(sz[0], sz[1], 10));
+    x.save(); x.beginPath(); x.rect(cx + 2, cy + 2, CW - 4, 120); x.clip();
+    // a one-block reference square in the corner, at the same scale
+    x.strokeStyle = "rgba(255,255,255,.18)"; x.strokeRect(cx + 6, cy + 6, 30 * k, 30 * k);
+    x.translate(cx + CW / 2, cy + 62); x.scale(k, -k);
+    AR.drawNode(x, t.node, r => r ? COL[r] : null);
+    x.restore();
+  }
+  const f = C.frameOf(id), sz = t && AR.frameSize(t.frame);
+  x.fillStyle = "#fff"; x.font = "bold 15px system-ui"; x.fillText(String(id), cx + 6, cy + 140);
+  x.fillStyle = "#aaa"; x.font = "11px system-ui";
+  if (sz) x.fillText((sz[0] / 30).toFixed(1) + "×" + (sz[1] / 30).toFixed(1) + " bl", cx + CW - 62, cy + 140);
+  x.fillText((f || "").replace(/_001\.png$/, "").slice(0, 24), cx + 6, cy + 156);
+  x.fillStyle = "#7a9"; x.fillText(C.note(f).slice(0, 24), cx + 6, cy + 168);
+}
+function sheet(ids, title) {
+  const c = document.createElement("canvas"), rows = Math.ceil(ids.length / COLS);
+  c.width = COLS * CW + 2 * PAD; c.height = rows * CH + 2 * PAD + 26;
+  const x = c.getContext("2d");
+  x.fillStyle = "#16141f"; x.fillRect(0, 0, c.width, c.height);
+  x.fillStyle = "#9fd"; x.font = "bold 16px system-ui"; x.fillText(title, PAD, PAD + 14);
+  ids.forEach((id, i) => cell(x, id, PAD + (i % COLS) * CW, PAD + 26 + Math.floor(i / COLS) * CH));
+  return c;
+}
+function byGroup(filter) {
+  const g = {};
+  for (const id of C.ids()) {
+    if (filter && !filter(id)) continue;
+    (g[C.group(id)] = g[C.group(id)] || []).push(id);
+  }
+  return g;
+}
+async function render(filter) {
+  out.innerHTML = "";
+  const g = byGroup(filter);
+  for (const [key, desc] of C.GROUPS) {
+    const ids = g[key]; if (!ids) continue;
+    const h = document.createElement("h2"); h.textContent = `${key} — ${desc} (${ids.length})`; out.appendChild(h);
+    for (let p = 0; p * COLS * ROWS < ids.length; p++) {
+      const part = ids.slice(p * COLS * ROWS, (p + 1) * COLS * ROWS);
+      const c = sheet(part, `${key} ${p + 1}/${Math.ceil(ids.length / (COLS * ROWS))} — ${desc} — ids ${part[0]}..${part[part.length - 1]}`);
+      if (save) {
+        const name = `${key}_${String(p + 1).padStart(2, "0")}.png`;
+        await fetch("/catalogue/" + name, { method: "POST", body: c.toDataURL("image/png") });
+        msg.textContent = "saved " + name;
+      } else out.appendChild(c);
+      await new Promise(r => setTimeout(r, 0));
+    }
+  }
+}
+(async () => {
+  const ok = await AR.load("/gdres/");
+  if (!ok) { msg.textContent = "no sprites: " + AR.S.failed + " (run tools/serve.js; GD_GAME = the game folder)"; return; }
+  await AR.preload();
+  msg.textContent = C.ids().length + " ids";
+  await render(null);
+  if (save) { await fetch("/catalogue/done", { method: "POST", body: String(C.ids().length) }); msg.textContent = "all sheets saved to local/catalogue/"; }
+  let tm = 0;
+  document.getElementById("q").oninput = e => {
+    clearTimeout(tm);
+    const q = e.target.value.trim().toLowerCase();
+    tm = setTimeout(() => render(q ? id => String(id) === q || (C.frameOf(id) || "").toLowerCase().includes(q) || C.family(C.frameOf(id)).toLowerCase().includes(q) : null), 250);
+  };
+})();
+</script>
+</body>
+</html>
