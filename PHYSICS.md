@@ -155,7 +155,7 @@ levels you usually dont skip portals". The old cached Deadlocked run skipped the
 38 and stayed a mini wave past 40+ portals, orbs and pads. With the ranking (and the turned teleport
 exits above) Deadlocked's portal-taking route reaches block 434.9 (37%; was 26-31%), dying in the
 ball part on a hanging spike near the turned teleport at 441.5. Third in the ranking, before presses:
-flying ticks (ship, wave, UFO, swing) spent closer to a wall than half the way to the corridor's middle (at least 12, at most 45 units; a flat 12 left Jumper's ship 12-15 units off spike rows with 150-210 of room, now 23-41, centring 0.6 -> 0.72) -- a solid, hazard, slope or the
+flying ticks (ship, wave, UFO, swing) spent closer to a wall than half the way to the corridor's middle (at least 12, at most 45 units; a flat 12 left Jumper's ship 12-15 units off spike rows with 150-210 of room, now 23-41, centring 0.6 -> 0.72); two tiers, very near (12) ranked first: Deadlocked's wave/ship median clearance 28 -> 47 units, ticks within 15 units 24% -> 5%, centring 0.78; Jumper 0% within 15) -- a solid, hazard, slope or the
 band's floor/roof ("he waves way too close to the border"); this works on unbeaten levels too, where
 lib/natural.js's mid-corridor re-fly (beaten levels only, and all-or-nothing per stretch: on Deadlocked
 it died inside every stretch) cannot. GDLM 44: 8 presses instead of 6.
