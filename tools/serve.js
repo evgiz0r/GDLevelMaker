@@ -200,7 +200,8 @@ const SERVER = http.createServer((req, res) => {
         let level = null, solution = null, file = null;
         if (st.file) try { const abs = path.join(dir, path.basename(st.file)); file = path.relative(root, abs).split(path.sep).join("/"); level = readGdlvl(abs).levelStr; solution = S.get(level) || null; } catch (e) {}
         if (!level) { level = require("./stages.js").emptyLevel(st.data); solution = { ok: true, events: [] }; }   // the song stage: an empty level as long as the song (no presses needed)
-        return Object.assign({}, st, { level, solution, file });
+        const data = st.data && st.data.song ? Object.assign({}, st.data, { song: require("./stages.js").songOf(st.data) }) : st.data;
+        return Object.assign({}, st, { level, solution, file, data });
       }) });
     } catch (e) {}
     res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify(out));
@@ -281,7 +282,7 @@ const SERVER = http.createServer((req, res) => {
         let level = ST.emptyLevel(songSt && songSt.data), solution = { ok: true, events: [] };
         if (withLevel) try { level = readGdlvl(path.join(b.dir, withLevel.file)).levelStr; solution = require("./solutions.js").get(level) || undefined; } catch (e) {}
         out.push({ name: b.index.name, session: b.session, file, wip: true, stagesOnly: true, stage: last.stage, level, solution,
-          song: songSt && songSt.data && songSt.data.song || undefined, version: 0, note: "building: " + b.index.stages.map(s => s.stage).join(" > "),
+          song: songSt && ST.songOf(songSt.data), version: 0, note: "building: " + b.index.stages.map(s => s.stage).join(" > "),
           made: b.index.stages[0].at, updated: last.at });
       }
     } catch (e) {}

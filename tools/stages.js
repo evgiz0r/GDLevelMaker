@@ -63,7 +63,12 @@ function emptyLevel(data) {
   const x = Math.round(secs * 311.58);   // 1x speed: 10.386 units a tick x 30 (lib/physics.js SPEEDS[1])
   return GD.serializeLevel({ header: GD.DEFAULT_HEADER, objects: [{ id: 1764, x, y: 1500, rot: 0, flipX: false, flipY: false, props: { 155: "1" } }] });
 }
-module.exports = { put, list, dirOf, ORDER, emptyLevel };
+// a stage's song as the viewer needs it: a url (the song's id alone: /song/custom/<id>.mp3, as tools/serve.js serves it)
+function songOf(data) {
+  const sg = data && data.song; if (!sg) return undefined;
+  return sg.url ? sg : Object.assign({}, sg, sg.id ? { url: "/song/custom/" + sg.id + ".mp3" } : {});
+}
+module.exports = { put, list, dirOf, ORDER, emptyLevel, songOf };
 
 if (require.main === module) {
   const a = process.argv.slice(2), opt = n => { const i = a.indexOf(n); return i >= 0 ? a[i + 1] : null; };

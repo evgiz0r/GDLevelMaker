@@ -530,7 +530,9 @@ function stageRender() {
 function stageOpen(name) {
   const st = STG.data && STG.data.stages.find(x => x.stage === name); if (!st) return;
   const base = STG.base, tt = t, song = (st.data && st.data.song) || base.song;
-  if (st.data && st.data.grid && song && song.url) (window.GD_BEATS = window.GD_BEATS || {})[song.url] = st.data.grid;
+  // a plan's grid may hold only bpm / period / t0 (compose): the beat lines want downbeat and a confidence too
+  if (st.data && st.data.grid && song && song.url) { const g = st.data.grid;
+    (window.GD_BEATS = window.GD_BEATS || {})[song.url] = Object.assign({ downbeat: 0, conf: "plan", sections: [] }, g, { period: g.period || 60 / g.bpm, bpm: g.bpm || 60 / g.period }); }
   STG.cur = name;
   load(base.name + " · " + name, st.level, st.solution || { ok: false, events: [], pending: true, why: "this stage has no route yet (find the route: the button above)" }, song);
   L.planned = st.data && st.data.planned || null;
