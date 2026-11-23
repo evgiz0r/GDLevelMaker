@@ -7,6 +7,11 @@
 //      ("b1" = the first beat at or after offset 0), so a spec can put "j<beat>" on a hit.
 //   For ultra-synced levels (GDLM 62): put every press on a slot with kind K/S/A, never on '.'.
 //   Light job (decodes one song, ~10 MB); needs the beat grid (node tools/beats.js).
+// node tools/hits.js --level levels/<name>.gdlvl [--skip 27.9-39.2]
+//   -- how well a level's presses sit on the song's hits: from its saved solution (tools/solutions.js),
+//      each press's song time against the nearest K/S/accent slot; the share within +-1 frame (16.7 ms)
+//      and +-2 frames, and the median offset. --skip a-b (song seconds, repeatable): leave out a
+//      stretch (a ship part whose holds follow the music's flow, not its hits).
 const fs = require("fs"), path = require("path");
 const { decode, makeFFT, loadBeats, OFFICIAL } = require("./beats.js");
 
@@ -80,6 +85,7 @@ if (require.main === module) {
   const args = process.argv.slice(2);
   const opt = (k, d) => { const i = args.indexOf(k); return i >= 0 ? +args[i + 1] : d; };
   if (!args[0]) { console.log("usage: node tools/hits.js <song id | file | official:N> [--from bar] [--to bar] [--json]"); process.exit(1); }
+  if (args[0] === "--level") return levelReport(args[1], args);
   const h = hits(args[0]);
   const out = path.join(__dirname, "..", "local", "hits");
   fs.mkdirSync(out, { recursive: true });
@@ -96,5 +102,30 @@ if (require.main === module) {
     const marks = row.map(s => s.kind === "A" ? (s.kick >= s.snare ? "K!" : "S!") : s.kind + " ").join("");
     console.log(String(bar).padStart(3), String(row[0].beat).padStart(5), row[0].t.toFixed(2).padStart(7), "  " + marks);
   }
+}
+function levelReport(file, args) {
+  const { readGdlvl, GD } = require("./io.js");
+  const R = readGdlvl(file), rec = R.rec, str = R.levelStr;
+  const sol = require("./solutions.js").get(str, true);
+  if (!sol || !sol.ok) throw new Error("no saved solution for " + file + ": run node tools/solutions.js " + file);
+  const song = GD.getField(rec, "k45");
+  const off = +((/(?:^|,)kA13,([-0-9.]+)/.exec(str.split(";")[0]) || [])[1] || 0);
+  const h = hits(song);
+  const skips = [];
+  args.forEach((a, i) => { if (a === "--skip") { const [x, y] = args[i + 1].split("-").map(Number); skips.push([x, y]); } });
+  const strong = h.slots.filter(s => s.kind !== "." && s.kind !== "x");
+  const rows = [];
+  for (const e of sol.events) {
+    if (e.type !== "press") continue;
+    const t = e.tick / 240 + off;
+    if (skips.some(([x, y]) => t >= x && t <= y)) continue;
+    let best = null;
+    for (const s of strong) if (!best || Math.abs(s.t - t) < Math.abs(best.t - t)) best = s;
+    rows.push({ t, dt: (t - best.t) * 1000, kind: best.kind, beat: best.beat });
+  }
+  const n = rows.length, f1 = rows.filter(r => Math.abs(r.dt) <= 16.7).length, f2 = rows.filter(r => Math.abs(r.dt) <= 33.4).length;
+  const med = rows.map(r => r.dt).sort((a, b) => a - b)[n >> 1];
+  for (const r of rows) console.log(r.t.toFixed(3).padStart(8), "beat", String(r.beat).padStart(6), r.kind, (r.dt >= 0 ? "+" : "") + r.dt.toFixed(0) + " ms");
+  console.log(`${n} presses: ${f1} (${Math.round(100 * f1 / n)}%) within +-1 frame of a hit, ${f2} (${Math.round(100 * f2 / n)}%) within +-2 frames; median offset ${med.toFixed(0)} ms`);
 }
 module.exports = { hits };
