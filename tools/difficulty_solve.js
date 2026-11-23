@@ -129,6 +129,10 @@ function continueFrom(n, events, trouble, backs, opts, old) {
     const r = GD.solveFrom(w, start, { held: rp.helds[t], onCheckpoint: checkpointer(n, prefix, physics) });
     const evs = prefix.concat(r.ok ? r.events : r.trail || []);
     const dieX = r.ok ? null : r.dieAt && r.dieAt.x;
+    // the kept prefix comes from the old run: if it went around a portal (made before the no-skip rule, or before
+    // dual portals counted), the stitched route is a secret way. Check the whole route; then a full solve.
+    if (r.ok) { const q = GD.run(w, evs), sk = GD.skipCheck(w, q.path, evs);
+      if (sk) { if (!opts.quiet) console.log(`  (the kept old run skips ${sk.skipped}: solving from the start)`); return null; } }
     if (r.ok || dieX > trouble + 60) return save({ ok: r.ok, clicks: r.clicks, dieX, why: r.why }, evs, +start.x.toFixed(1));
     if (!opts.quiet) console.log(`  (stuck at block ${dieX && (dieX / 30).toFixed(1)}, backing off)`);
   }
