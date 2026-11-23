@@ -172,6 +172,12 @@ once per level) reaches the view, original order kept; and in GD-art mode it no 
 nothing (the VFX path rebuilt the list anyway). draw() on Dash at t 10 s, before -> after: shapes p50 11.7 -> 5.7 ms,
 p90 14.1 -> 10 ms; GD-art setting p50 7.2 -> 5.8, p90 12.9 -> 7.8; posing 4.9 -> 1.5 ms a frame; ~2600 of 18329
 objects looked at. The picture is the same (culled vs all differ as much as two draws of the same frame).
+Opening a big level must not block the page (the user: "i clicked official and it hanged"; soft rule: no UI action
+blocks more than ~100 ms). The picker's tab itself was fast (1 ms; card details <= 6 ms each); the block was opening
+the level: its replay (GD.run) in one go -- official 20 Deadlocked 500-700 ms, Dash ~400. Now a level with a saved
+route replays in ~12 ms slices first (lib/runner.js, the same loop as run(); tests/runner_same.js checks the same
+path and the budgets), then opens from that cache, and the culling index builds in slices too. Deadlocked: click
+handler 0.1 ms, parse + world 46 ms, 29 slices (worst 29 ms), final open 22 ms (warm; ~120 cold on a busy PC).
 **light** (header button, remembered): GD art and beat lines off in one press, for a slow moment.
 `node tools/perf.js <level as #lv=> [--at s] [--secs n]` measures playback with real animation frames in headless
 Edge (no GPU: a worst case) in three setups -- GD art + beats, shapes + beats, light -- via the viewer's ?perf=

@@ -158,6 +158,7 @@
 <script src="../lib/art.js"></script>
 <script src="../lib/natural.js"></script>
 <script src="../lib/song.js"></script>
+<script src="../lib/runner.js"></script>
 <script src="../lib/difficulty.js"></script>
 <script src="../lib/windows.js"></script>
 <script src="levels.js"></script>
@@ -363,8 +364,9 @@ function syncSong(force) {
 }
 function load(name, levelStr, saved, info) {
   setSong(info);
-  const level = GD.parseLevel(levelStr);
-  const world = GD.makeWorld(level.objects, level.header);
+  const pre = PATHCACHE.get(levelStr);   // a sliced pre-run (pick.onchange below): its level, world and path
+  const level = pre && pre.level || GD.parseLevel(levelStr);
+  const world = pre && pre.world || GD.makeWorld(level.objects, level.header);
   let sol;
   if (saved) sol = saved.ok ? { ok: true, events: saved.events, clicks: [] } : { ok: false, trail: saved.events, clicks: [], dieAt: { x: saved.dieX || 0, tick: 0 }, why: saved.why || "", pending: !!saved.pending };
   else if (location.protocol.startsWith("http") && !window.GD_PAGES && !window.GD_PHONE && !SHOOT && ALL[pick.value] && ALL[pick.value].level === levelStr) {
@@ -388,13 +390,10 @@ function load(name, levelStr, saved, info) {
     } catch (e) { console.warn("natural plan failed:", e); }
   }
   // a level that cannot be beaten replays the run that got furthest
-  let events = sol.events;
-  if (!sol.ok) {
-    events = [];
-    (sol.trail || []).forEach((e, i, a) => { events.push(e); if (e.type === "press" && !(a[i + 1] && a[i + 1].type === "release")) events.push({ tick: e.tick + 1, type: "release" }); });
-    sol.clicks = (sol.trail || []).filter(e => e.type === "press").map(e => ({ type: "press", tick: e.tick, lo: e.tick, hi: e.tick, ms: 0, act: "" }));
-  }
-  const path = GD.run(world, events).path;
+  const events = replayEvents(sol);
+  if (!sol.ok) sol.clicks = (sol.trail || []).filter(e => e.type === "press").map(e => ({ type: "press", tick: e.tick, lo: e.tick, hi: e.tick, ms: 0, act: "" }));
+  const path = (pre && pre.key === JSON.stringify(events) ? pre.result : GD.run(world, events)).path;
+  PATHCACHE.delete(levelStr);
   if (saved && saved.ok) sol.clicks = saved.events.map(e => ({ type: e.type, tick: e.tick, lo: e.tick, hi: e.tick, ms: 0 }));
   sol.clicks.forEach(c => { if (c.type === "press") c.act = path[Math.min(c.tick + 1, path.length - 1)].act || c.act; c.x = path[Math.min(c.tick, path.length - 1)].x; });
   // button state at every step, for the hold strip and the button light
@@ -479,6 +478,38 @@ if (window.GD_PAGES) localReady.then(ok => { if (!ok || !LOCALBASE) return;
   document.head.appendChild(bs); });
 ALL.forEach((l, i) => pick.add(new Option(l.name + "  —  " + l.file, i)));
 pick.onchange = () => { const l = ALL[pick.value]; load(l.name, l.level, l.solution, l.song); L.deaths = l.deaths || []; summary(); draw(); };
+// Opening a level with a saved route replays it first in slices (lib/runner.js), so the page never blocks:
+// official 20 Deadlocked's replay took ~400-700 ms in one go ("i clicked official and it hanged for a bit").
+// The level then opens through the opener above, which finds its path in PATHCACHE. A small level just opens.
+const PATHCACHE = new Map();
+// the inputs the replay plays: the solution's, or for a level the sim cannot beat its furthest run (each press
+// released a tick later unless a release follows)
+function replayEvents(sol) {
+  if (sol.ok) return sol.events;
+  const events = [];
+  (sol.trail || []).forEach((e, i, a) => { events.push(e); if (e.type === "press" && !(a[i + 1] && a[i + 1].type === "release")) events.push({ tick: e.tick + 1, type: "release" }); });
+  return events;
+}
+const pickOpen0 = pick.onchange;
+pick.onchange = () => {
+  const l = ALL[pick.value];
+  if (!l || !GD.runSliced || !l.solution || !l.solution.events || l.solution.pending || String(l.level).length < 40000) return pickOpen0();
+  const my = (pick.onchange.seq = (pick.onchange.seq || 0) + 1);
+  const ev = replayEvents(l.solution.ok ? { ok: true, events: l.solution.events } : { ok: false, trail: l.solution.events });
+  const t0 = Date.now(); let lv = null, w = null, r = null;
+  const slow = setTimeout(() => notice("opening " + esc(l.name) + "…", 0), 120);
+  const step = () => {
+    if (pick.onchange.seq !== my) { clearTimeout(slow); return; }
+    if (!r) { lv = GD.parseLevel(l.level); w = GD.makeWorld(lv.objects, lv.header); r = GD.runSliced(w, ev); return setTimeout(step, 0); }   // the click returns at once
+    if (pick.onchange.seq !== my) { clearTimeout(slow); return; }        // another level was picked meanwhile
+    if (!r.advance(12)) return setTimeout(step, 0);
+    clearTimeout(slow); PATHCACHE.set(l.level, { key: JSON.stringify(ev), result: r.result, level: lv, world: w });
+    if (ALL[pick.value] === l) pickOpen0();
+    const n = document.getElementById("notice"); if (n && /^opening /.test(n.textContent)) n.hidden = true;
+    window.GD_OPEN_MS = Date.now() - t0;
+  };
+  setTimeout(step, 0);
+};
 // ---------- the level picker (button / key L): cards with a thumbnail strip, length, modes, version, search,
 // filters, pins and recent; the versions of one level under one card, newest first (the user: "the pick level
 // drop down is too annoying"). It only sets the hidden <select id="pick"> and fires its change, so every other
@@ -1287,6 +1318,7 @@ function cullPrep() {
   if (L.cull !== undefined) return L.cull;
   L.cull = null;
   const objs = L.level.objects; if (objs.length < CULL.min || MAPCAM || window.SHOOT_MAP) return null;
+  if (!SHOOT && !L.cullSync) { cullBuild(L); return null; }   // built in slices; draws are full until it is ready
   const P0 = L.world.posed || [], moved = new Set(P0.map(p => p.i)), st = [];
   for (let i = 0; i < objs.length; i++) if (!moved.has(i)) st.push(i);
   st.sort((a, b) => objs[a].x - objs[b].x);
@@ -1299,6 +1331,25 @@ function cullPrep() {
     c.lo = lo; c.hi = hi;
   } catch (e) { c.lo = null; }   // sampling failed: pose every moved object (as before)
   return (L.cull = c);
+}
+// the culling index built a few samples at a time (each sample poses every mover: ~5 ms on Dash), then switched on
+function cullBuild(LL) {
+  const objs = LL.level.objects, P0 = LL.world.posed || [], moved = new Set(P0.map(p => p.i)), st = [];
+  for (let i = 0; i < objs.length; i++) if (!moved.has(i)) st.push(i);
+  st.sort((a, b) => objs[a].x - objs[b].x);
+  const c = { st: Int32Array.from(st), sx: Float64Array.from(st.map(i => objs[i].x)), lo: null, hi: null };
+  if (!P0.length || !GD.posedObjects) { LL.cull = c; return; }
+  const lo = new Float64Array(P0.length), hi = new Float64Array(P0.length); P0.forEach((p, j) => { lo[j] = hi[j] = p.o.x; });
+  const step = Math.max(Math.floor(P.TPS / 2), Math.ceil(LL.path.length / 120)); let k = 0;
+  const slice = () => {
+    if (L !== LL) return;
+    const t0 = performance.now();
+    try { while (k < LL.path.length && performance.now() - t0 < 12) { GD.posedObjects(LL.world, LL.path[k]).forEach((q, j) => { if (q.o.x < lo[j]) lo[j] = q.o.x; if (q.o.x > hi[j]) hi[j] = q.o.x; }); k += step; } }
+    catch (e) { c.lo = null; LL.cull = c; return; }
+    if (k < LL.path.length) return setTimeout(slice, 0);
+    c.lo = lo; c.hi = hi; LL.cull = c; if (!playing) draw();
+  };
+  setTimeout(slice, 0);
 }
 // the object indices to look at this frame (sorted), or null: all of them. extra: indices always included (VFX)
 function cullIndices(s, extra) {
