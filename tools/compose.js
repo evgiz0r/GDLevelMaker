@@ -234,7 +234,9 @@ function compose(brief, tweaks = {}) {
       // upside down: the cube first falls up to the ceiling (~0.3 s), so 8 columns after its portal
       // the level's first section: a calm start (pacing gate: 10+ blocks before the first hazard)
       let c = upside ? start + 10 + land : start + (prevFlying ? Math.max(3, 8 - (start - flyEnd)) : si === 0 ? 10 : 3), k = 0, last = null;
-      const stop = upside ? end - 9 : end - 3;   // upside: room to read and take the exit portal
+      // upside: room to read and take the exit portal. Terrain: back on the ground well before the next
+      // section (a cube jumping off a step into the next mode portal read as a 6-block prejump: 45 v8, block 82)
+      const stop = upside ? end - 9 : brief.terrain ? end - 8 : end - 3;
       // draw every random choice up front so a tweak to one chunk does not reshuffle the others
       const draws = Array.from({ length: 64 }, () => [rnd(), rnd()]);
       const tdraws = Array.from({ length: 64 }, () => [rnd(), rnd()]);   // terrain, drawn apart so old levels keep their chunks
@@ -287,7 +289,9 @@ function compose(brief, tweaks = {}) {
         if (terrain) {
           const [t1, t2] = tdraws[k];
           if (/orb|pad/.test(name)) newH = 0;
-          else if (k > 0 && t1 < 0.8) newH = h === 0 ? (t1 < 0.3 && maxH >= 2 ? 2 : 1) : h >= maxH ? h - 1 : (t1 < 0.45 ? h + 1 : h - 1);
+          // one row at a time: a 2-row step is a jump started ~2.5 blocks before its face, read as a prejump
+          // (GDLM 45 v8 round 1-6, block 25)
+          else if (k > 0 && t1 < 0.8) newH = h === 0 ? 1 : h >= maxH ? h - 1 : (t1 < 0.45 ? h + 1 : h - 1);
           if (newH !== h) {
             // the step 3 columns after the last chunk, then 5 (up) or 6 (down, a drop) on the new level
             // before the next: steps mid-gap left 3 columns and chained the jumps (GDLM 47 round 1)
