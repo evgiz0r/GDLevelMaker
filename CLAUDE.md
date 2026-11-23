@@ -195,7 +195,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   solution, one at a time; `--resume` after a physics change solves only from a bit before where it matters), `difficulty_fit` (refit on the user's runs), `difficulty_community`
   (score downloaded community levels), `runs` (the user's deaths from a recording, via the progress
   bar), `save_stats` (the user's lifetime attempts per official level, read-only from the save),
-  `stop` (where a level's saved solution dies in the sim and what killed it), `difficulty_route` (a level with and without route choice: a player avoids a hard timing when the
+  `difficulty_parts` (how much windows and CPS alone explain the stars), `skips` (does a saved route skip a portal: then no number from it), `quality` (the scorecard: official 1-10 vs every GDLM level, QUALITY.md), `stop` (where a level's saved solution dies in the sim and what killed it), `difficulty_route` (a level with and without route choice: a player avoids a hard timing when the
   level has an easier way), **`fairness`** (deaths that are not the player's fault: forced input after
   a portal, misleading marks, sloped portal exits, orb chains with nothing to correct; fitted on the
   user's labelled deaths, `fairness fit`; tools/score.js gates on it; DIFFICULTY.md "Fairness").
