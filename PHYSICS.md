@@ -183,6 +183,31 @@ keys and user coins (collectables only), start positions (levels always start at
 checkpoints, speed portals touched mid-air at a slant, force blocks, platformer mode, dash orbs'
 unknown props 586/588, spike slopes.
 
+## Fidelity: measuring the sim against the user's game (goal: "as close as possible")
+
+The user's standing goal (2026-11-23). Plan: a scoreboard (tools/fidelity.js, not built yet) giving, per
+mechanic, the error between the player tracked in each recording and the sim replaying the same inputs, plus
+death agreement; fix the biggest errors first, each with a test in tests/mechanics.js; a lab level for every
+mechanic with no evidence.
+What exists and what blocks it (2026-11-23):
+- Checked against video so far: the cube jump arc (tests/jump_video.js, 1.3 px rms), mode accelerations from
+  Clutterfunk (tests/modes_video.js: cube, ship, ball), the wave's 2:1 trail, red orb depth, the GDLM 60
+  stations (section above).
+- Tracking the player: tools/track.py follows the lime icon. Small mode icons work only in a narrow strip
+  at the player's screen column with the UI cut out: `--crop 620,120,180,900 --tol 70` at 1080p fullscreen
+  (the progress bar is lime too; the on-screen Z button sits right of x 800). In a window, shift by the window.
+- BLOCKER: GD's camera moves up and down with the player (cube and robot jumps, teleports), so screen y is
+  not level y. Fitted screen accelerations came out at about half the real ones (cube -0.35 vs -0.78
+  units/frame^2) and the teleport heights read 478 px against 588 expected. Every per-mode number needs y
+  measured against something in the level (the ground line, a block row) in the same frame: track.py
+  --rows gives candidate edges; following the right one through camera moves is the next piece of work.
+- Inputs: the user's presses are not recorded (no sound loopback, no input log). Options: read them from
+  the hitbox trail (a press starts a new arc), or fit them (the sim's inputs that best follow the tracked
+  path), then compare the rest of the path.
+- Practice-mode respawns break time -> x; per-attempt segmentation by the attempt label or a jump in x.
+Lab 2 (to build): the mini cube, the pink orb (clean, at ground level so the camera stays still), 45-degree
+and -53-degree teleports, the swing, dual portals, and a green orb in mid-air.
+
 ## No secret ways (the user's rule, 2026-11-23, firm)
 
 "we need to stop accepting those secret ways by the solvers. especially in official levels. if the solver
