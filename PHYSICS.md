@@ -278,6 +278,28 @@ What exists and what blocks it (2026-11-23):
 Lab 2 (to build): the mini cube, the pink orb (clean, at ground level so the camera stays still), 45-degree
 and -53-degree teleports, the swing, dual portals, and a green orb in mid-air.
 
+## Agent co-solve (DESIGN, not built; the user's item 5, queued after buffering and unneeded jumps)
+
+Goal: faster solves of long levels (official, community, demons) and a second check against secret ways, by
+letting a cheap model (claude-haiku-5-5) read a section and say where the intended path goes.
+- Sections: cut the level at mode/speed portals and every ~40 blocks; per section a text map
+  (tools/textmap.js --from --to --rows, no path) plus a legend line: ~1-2 k tokens.
+- Prompt -> strict JSON only: `{"waypoints": [{"x": <block>, "y": [lo, hi], "why": "orb"|"portal"|"gap"|
+  "corridor"|"over"|"under", "obj": <id or null>}], "take": [object ids that must be used]}`; validated
+  against the section (ids exist, x within the section), else retried once, else ignored.
+- Cache: local/cosolve/<sha1 of the section's objects + prompt version>.json. A level re-solved after a
+  physics change pays nothing; a changed section pays for that section only.
+- Use in the solver: solveSweep gets opts.corridor(x) -> [ylo, yhi], interpolated between waypoints with a
+  margin. States outside it are ranked after all states inside (never dropped, so a wrong plan can't make a
+  level unsolvable), and `take` objects join the no-skip requirements. With the beam CAP, this focuses the
+  search: expect fewer states per tick, measured as time per level with and without.
+- Secret-way flag: the finished route's distance from the corridor; a route leaving it for more than ~1 s on a
+  rated level is reported as "off the intended path at x" (a physics-bug candidate, like a skip).
+- Cost report per level: sections, tokens in/out, cache hits, model time, solve time with vs without.
+- Not in lib/ (no network there): a tool, tools/cosolve.js, writes the corridor file; difficulty_solve reads it.
+Open: which API key and budget (the user's call); whether text maps carry enough for orb lines (test on
+Polargeist and Electroman, where secret ways were found).
+
 ## No secret ways (the user's rule, 2026-11-23, firm)
 
 "we need to stop accepting those secret ways by the solvers. especially in official levels. if the solver
