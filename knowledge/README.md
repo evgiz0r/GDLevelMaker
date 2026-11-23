@@ -29,6 +29,7 @@ Levels index (add a line per level file):
 | Official 9-22 | 9-22 | Harder -> Demon: new mechanics per level, shorter sections | `levels/official_09-22.md` |
 | ~35 community levels, Easy -> Harder | various | Map Packs, Featured/Epic/Legendary/Mythic | `levels/good_low_tier.md` |
 | 91 rated levels, Easy -> Harder | various | per-tier/era/speed/mode numbers + 5 broken down | `levels/low_tier_stats.md` |
+| Modern 2.2 look | - | objects per block, layers, deco, colour, triggers per section; a recipe | `levels/modern_look.md` |
 | Built on blocks; new things every 2 s | - | structure, obstacle shapes, introduction order | `levels/obstacles.md` |
 | Not bland | - | GDLM 41-45 vs rated Easy/Normal: kinds of thing, portals, repeats | `levels/variety.md` |
 | Easy section per mode | - | lead-in, density, gaps, openings per mode | `levels/modes_low_tier.md` |
@@ -101,3 +102,16 @@ Write-up: `levels/obstacles.md`. Findings (2026-11-23):
   its spikes sit on bare ground.
 - Rated Easy/Normal levels bring in a new kind of thing every ~2 s. Official levels do it every
   ~4.6 s, GDLM every ~8 s.
+
+## The modern look: `tools/modern_look.js`
+
+    node tools/modern_look.js played legendary featured gdlm     # per level + medians: objects/block, groups, layers, colour, HSV, triggers/min, families
+    node tools/modern_look.js played --sections                  # the same per section
+    node tools/modern_look.js <id or file.gdlvl>                 # any level
+
+Write-up and recipe: `levels/modern_look.md`. Findings (2026-11-23):
+- The 2.2 levels the user played have ~46 objects per block, Legendaries ~32, 2.0-2.1 Featured ~23.
+  GDLM has ~1.
+- 2.2 levels use all 9 layers, a quarter of the objects in front (T2-T4), dozens to hundreds of
+  colour channels and HSV on ~40% of objects.
+- Their triggers run at ~24 per second of play: move, alpha, pulse, particles, camera, shaders.

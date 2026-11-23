@@ -82,6 +82,20 @@ official levels, or a playtest remark). A single playtest remark is evidence, no
 - Rated Easy/Normal levels bring in a new kind of thing every ~2 s until ~85% of the level, each shown
   once or twice before moving on. Official 1-8 do it every ~4.6 s.
 
+## The modern look (`levels/modern_look.md`)
+- 2.2 rated levels have 20-50 objects per block (GDLM: 1), half behind the play and a quarter in
+  front. Every object has a colour channel, HSV on ~40%, and ~24 triggers per second of play.
+- Dense opening, quiet transitions, the biggest effects at the drops, a new look per section.
+  Gameplay stays readable.
+
+## No forced input right after a mode change (real-game deaths, physics session, 2026-11-23)
+- GDLM 44: a wave portal at the end of a block (4 deaths). GDLM 46: the cube leaves the wave above a
+  3-high wall and must jump within 129 ms. Both force an input right at a portal: give room after it
+  (the lead-in rule in `levels/modes_low_tier.md`).
+- A 45-degree wave zigzag whose turns come less than 100 ms apart kills a player who releases at
+  the wrong moment, because diving head-on into a slope is a death. Keep zigzag turns wide at low
+  tiers.
+
 ## Getting rated (`rating.md`)
 - RobTop has no fixed criteria. His tips: 60 s+ (30 s minimum), "clear gameplay and decent
   visuals", and good performance. Higher tiers mean he likes the level more, and in our sample

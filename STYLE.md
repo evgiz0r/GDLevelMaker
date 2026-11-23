@@ -362,7 +362,7 @@ knowledge/objects/catalogue.tsv) turned 90 degrees to point at the ground, scale
 (1011 -- its own channel 1006 is the player's colour), group 990 faded to 45% by an alpha trigger at
 the start. The other arrows: 132 (long arrow), 494 (solid triangle: too spike-like). A text object
 (914, "text") also works. Per spec: `"indicators": {"id": N, "rot": n, "ch": n}`. GDLM 44 v8: 5
-marks (first climb jump, first jump after each mode change, far cues). Not yet seen in the game.
+marks (first climb jump, first jump after each mode change, far cues). Rendered in GD art (`node tools/shoot.js level --at 0.6,7.4`): small soft grey chevrons over the takeoff areas, nothing like a hazard. Not yet seen in the game itself.
 
 **Orbs on the arc** (make.js `arcOrbs`, for `orb-ladder` and `orb-pit` on the ground; `"fixed": true`
 keeps the old fixed rows): the user on GDLM 44's ladder, "very awkward; in lower difficulty levels
