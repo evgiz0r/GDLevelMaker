@@ -1,7 +1,7 @@
 {
  "name": "GDLM 61 lantern towers",
  "desc": "Hop the towers, ride the lanterns, mind the pits.",
- "notes": "CRAFT.md step 3: built with the Jumper/xStep craft rules (many small pieces over pit floors, rods and chains on the pieces, one hue per section). Song: Waterflame - Thumper (575768), from song bar 8 (13.95 s); the drop (song bar 16) is the ship.",
+ "notes": "CRAFT.md step 3: built with the Jumper/xStep craft rules (many small pieces over pit floors, rods and chains on the pieces, one hue per section). Song: Waterflame - Thumper (575768), from song bar 8 (13.95 s); the drop (song bar 16) is the ship. Each orb sits where its arc goes (blue orb at a long pit's start, pink/dash orbs at a pit's entry), not at the spike row's centre: the symmetry gate's WARN is by design there.",
  "song": {
   "custom": 575768
  },
@@ -25,9 +25,11 @@
    "chunks": [
     "pillar-hop",
     "stepped-pyramid",
+    {
+     "rest": 6
+    },
     "capped-hop",
-    "lantern-orb",
-    "slab-steps"
+    "lantern-orb"
    ]
   },
   {
@@ -66,9 +68,6 @@
    ],
    "build": 1,
    "chunks": [
-    {
-     "rest": 6
-    },
     "ceiling-hop",
     "blue-orb-ceiling",
     "pillar-climb",
@@ -86,9 +85,6 @@
     10
    ],
    "chunks": [
-    {
-     "rest": 5
-    },
     "ball-pillars",
     "ball-orb",
     "ball-flips",
@@ -179,9 +175,6 @@
    ],
    "build": 2,
    "chunks": [
-    {
-     "rest": 6
-    },
     {
      "s": "pillar-hop",
      "args": {

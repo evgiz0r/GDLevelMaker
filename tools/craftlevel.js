@@ -41,6 +41,7 @@ function chunkOf(c) {
 }
 // the portal into mode m at column c: from the cube (on the floor) on row 1, so the cube walks into it; from a
 // flying mode a wall of three (rows 1, 4, 7), so it is taken at any height (tools/structures.js harness)
+const LEAD_AFTER = { cube: 6, ship: 8, ball: 5, ufo: 4, wave: 4, robot: 4 };
 const FLY = new Set(["ship", "ufo", "wave", "swing"]);
 const portalAt = (m, c, from) => FLY.has(from) || from === "ball" ? [1, 4, 7].map(r => [MODE_PORTAL[m], c, r]) : [[MODE_PORTAL[m], c, 1]];
 const dark = (rgb, k) => rgb.map(v => Math.round(v * k));
@@ -54,7 +55,7 @@ function compose(brief) {
   const bar0 = brief.grid.t0 + k * barSec - brief.offset;  // level seconds of bar 0
   const colOfBar = b => Math.round((bar0 + b * barSec) * blocksPerSec);
   const objects = [], notes = [];
-  let col = brief.lead || 10, bar = 0, mode = "cube";
+  let col = brief.lead || 10, bar = 0, mode = "cube", lastEnd = 0;
   const lead = brief.lead || 10;
   if (colOfBar(0) < lead) bar = Math.ceil((lead / blocksPerSec - bar0) / barSec);
   brief.sections.forEach((sec, si) => {
@@ -64,11 +65,16 @@ function compose(brief) {
     // colours: instant switch on the section's first bar
     objects.push(["colour", col, { ch: "bg", rgb: sec.hue, secs: 0 }], ["colour", col, { ch: "ground", rgb: dark(sec.hue, 0.45), secs: 0 }]);
     const m = sec.mode || "cube";
-    if (m !== mode) { objects.push(...portalAt(m, col, mode)); mode = m; col += m === "ship" ? 4 : 2; }
+    if (m !== mode) {
+      // a calm floor before the portal (the natural route jumped over a portal 3 blocks after a tower), and
+      // the rated lead-in after it (tools/score.js lead-in: cube 6, ship 8, ball 5)
+      col = Math.max(col, lastEnd + 6);
+      objects.push(...portalAt(m, col, mode)); mode = m; col += LEAD_AFTER[m] || 4;
+    }
     sec.chunks.forEach((c, i) => {
       const ch = chunkOf(c);
       objects.push(...shift(ch.objects, col));
-      col += ch.width + (i < sec.chunks.length - 1 ? (sec.gap ?? 3) : 0);
+      col += ch.width; lastEnd = col; col += i < sec.chunks.length - 1 ? (sec.gap ?? 3) : 0;
     });
     if (col > end) notes.push(`section ${si} (${m}) runs ${col - end} blocks past its ${sec.bars} bars`);
     // xStep's build-up: hue flashes (a lighter tint and back) on beats, closer together, into the next section
@@ -82,7 +88,7 @@ function compose(brief) {
     bar += sec.bars;
     col = Math.max(col + 3, colOfBar(bar) - 0);
   });
-  if (mode !== "cube") { objects.push(...portalAt("cube", col, mode)); col += 8; }
+  if (mode !== "cube") { col = Math.max(col, lastEnd + 6); objects.push(...portalAt("cube", col, mode)); col += 8; }
   const spec = {
     name: brief.name, desc: brief.desc, song: brief.song, offset: brief.offset, grid: brief.grid, seed: brief.seed || 1,
     style: "classic", craft: brief.craft ?? true, colours: { bg: brief.sections[0].hue, ground: dark(brief.sections[0].hue, 0.45) },
