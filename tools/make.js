@@ -66,7 +66,9 @@ const TYPES = { block: 1, spike: 8, slope: 1338, "small spike": 39, "yellow orb"
   "red pad": 1332, "spider orb": 3004, "spider pad": 3005, "green dash orb": 1704,
   "cube portal": 12, "ship portal": 13, "ball portal": 47, "ufo portal": 111, "wave portal": 660,
   "robot portal": 745, "spider portal": 1331, "swing portal": 1933,
-  "gravity down": 11, "gravity up": 10,
+  // careful: "gravity down" is 11, the YELLOW portal that turns the player upside down (it then falls up);
+  // "gravity up" is 10, the blue one back to normal. The plain names below say what they do.
+  "gravity down": 11, "gravity up": 10, "upside down": 11, "normal gravity": 10,
   "0.5x speed": 200, "1x speed": 201, "2x speed": 202, "3x speed": 203, "4x speed": 1334 };
 const SPEED_NAMES = { "0.5x": 1, "1x": 0, "2x": 2, "3x": 3, "4x": 4 }; // -> kA4
 const SPECIAL = ["pattern", "colour", "fade", "zoom"];
