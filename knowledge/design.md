@@ -82,6 +82,38 @@ official levels, or a playtest remark). A single playtest remark is evidence, no
 - Rated Easy/Normal levels bring in a new kind of thing every ~2 s until ~85% of the level, each shown
   once or twice before moving on. Official 1-8 do it every ~4.6 s.
 
+## The modern look (`levels/modern_look.md`)
+- 2.2 rated levels have 20-50 objects per block (GDLM: 1), half behind the play and a quarter in
+  front. Every object has a colour channel, HSV on ~40%, and ~24 triggers per second of play.
+- Dense opening, quiet transitions, the biggest effects at the drops, a new look per section.
+  Gameplay stays readable.
+
+## No forced input right after a mode change (real-game deaths, physics session, 2026-11-23)
+- GDLM 44: a wave portal at the end of a block (4 deaths). GDLM 46: the cube leaves the wave above a
+  3-high wall and must jump within 129 ms. Both force an input right at a portal: give room after it
+  (the lead-in rule in `levels/modes_low_tier.md`).
+- A 45-degree wave zigzag whose turns come less than 100 ms apart kills a player who releases at
+  the wrong moment, because diving head-on into a slope is a death. Keep zigzag turns wide at low
+  tiers.
+
+## Cues and orb chains (the user on GDLM 44 v8 / 46 v2, 2026-11-23; physics session)
+- **A jump indicator (arrow) only on a real input.** A wrong one causes deaths, and a missing one where
+  others are shown is a trap too: cue all of a kind or none.
+- Indicators about one block above the surface, not 1.5 (the user). Rated levels agree: hint arrows
+  sit a median 1.0 block up, right at the press (the hazard ~0.5 block ahead; GDLM 46's were 2.5
+  before it). See `levels/obstacles.md` section 4.
+- **An orb chain must leave the player a way to correct**: no chain where a normal click falls to death,
+  and no chain that carries the cube to the screen's edge.
+- **The floor right before a mode portal: flat and readable.** (See also the section below.)
+- Deaths should be the player's fault: the user accepts a hard first click, not layout traps.
+
+## Orb chains, measured (`levels/obstacles.md` section 5)
+- In rated Easy/Normal levels 3/4 of the orbs stand alone; chains of 3+ are ~8% of the orb groups.
+  Chains climb ~1 block in all, ~3 blocks apart, with a safe surface ~1 block after the last orb.
+  GDLM 46 v2's triple climbed 4.3 blocks with no landing for 5: "cant adjust".
+
+All the targets in one list: `checklist.md`.
+
 ## Getting rated (`rating.md`)
 - RobTop has no fixed criteria. His tips: 60 s+ (30 s minimum), "clear gameplay and decent
   visuals", and good performance. Higher tiers mean he likes the level more, and in our sample

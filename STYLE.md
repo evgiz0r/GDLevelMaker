@@ -347,14 +347,15 @@ jump on a beat -- a test of the tools, not a rule. `score.js` warns on portals o
 more than 60% of presses pinned to beats.
 
 **Jump indicators** (common in modern levels; they also show what the level intends): a small
-arrow over the area where a jump starts, pointing down at it -- only where the jump cannot be read
-in time, not on every click (`tools/decorate.js` jumpIndicators, from the solved run):
-far cue (what the jump is for is more than 2.5 blocks past the takeoff), ledge (jumping off the
-end of a raised surface), portal (first jump within 12 blocks after a mode or gravity change), new
-(the first jump of a pattern's first use, from compose.js). No two within 4 blocks; none for orbs
-and pads. Upside down they hang from the ceiling. compose.js turns them on by default
-(`"indicators": false` in a brief turns them off). On GDLM 45 v4 the rule marks 7 jumps in 60 s,
-among them the stair-top jump the user died at 3 times.
+arrow just over the area where a jump starts, pointing down at it (`tools/decorate.js`
+jumpIndicators). The user's feedback on the first version (GDLM 44 v8 / 46 v2, 2026-11-23) set the
+rules: "a bit too high over the ground" -> the mark's centre is 24 units over the surface (was 45);
+"the second indicator is wrong, dont need to jump there" -> marks come from the NATURAL plan (one tap
+per jump, lib/natural.js), never the solver's held-button run; "no indicator in some of the jumps"
+-> every real jump gets one (a filter for only the hard-to-read ones dropped 10 of 13), at least 2
+blocks apart; orbs and pads are their own cue. Each mark notes why it is hard to read, if it is (far
+cue, ledge, after a portal, a pattern's first use; `"indicators": {"only": true}` keeps just those).
+
 What the mark is (the user): anything **small and softer than the level, never like a hazard** --
 arrows are the usual choice, but circles, dots, any small deco, even smileys are used. Default
 here: deco **460** (d_arrow_02, the classic chevron ">", from the visuals session's
@@ -362,7 +363,7 @@ knowledge/objects/catalogue.tsv) turned 90 degrees to point at the ground, scale
 (1011 -- its own channel 1006 is the player's colour), group 990 faded to 45% by an alpha trigger at
 the start. The other arrows: 132 (long arrow), 494 (solid triangle: too spike-like). A text object
 (914, "text") also works. Per spec: `"indicators": {"id": N, "rot": n, "ch": n}`. GDLM 44 v8: 5
-marks (first climb jump, first jump after each mode change, far cues). Not yet seen in the game.
+marks (first climb jump, first jump after each mode change, far cues). Rendered in GD art (`node tools/shoot.js level --at 0.6,7.4`): small soft grey chevrons over the takeoff areas, nothing like a hazard. Not yet seen in the game itself.
 
 **Orbs on the arc** (make.js `arcOrbs`, for `orb-ladder` and `orb-pit` on the ground; `"fixed": true`
 keeps the old fixed rows): the user on GDLM 44's ladder, "very awkward; in lower difficulty levels
@@ -438,6 +439,25 @@ State on 2026-11-22. What a new session should know before touching this area:
   level, ~17 kinds (GDLM: every ~8 s, 3 kinds), each used once or twice then left. Next compose
   work: cube sections built on a block terrain (raised runs, steps, pits with edges) with hazards on
   and beside it, and a new kind per few seconds (saws, pads, orbs, gravity, 0.5x speed ...).
+- **Modern look (the user: GDLM looks "like 1.0 graphics", wants 2.2; knowledge/levels/modern_look.md,
+  `node tools/modern_look.js`):** 2.2 levels the user played have ~46 objects per block (Legendary
+  ~32, 2.0-2.1 Featured ~23, GDLM ~1); per section ~36 (ground ~40, flying ~25, opening ~50,
+  transitions < 5, drops the densest), a deco set per section, all 9 layers (40-60% behind the play,
+  17-26% in front: glow, dots, particles), every deco object on its own colour channel (30-550
+  channels, a third blending, HSV on ~40%), ~24 triggers per second of play (move/rotate, alpha/
+  toggle, colour/pulse, particles, camera). Two kits: designed blocks (lightsquare/lighttriangle
+  fills, d_gradient light, blockOutline/persp_outline edges + 1-2 shape families) or pixel art; both
+  with particles, d_small_ball dots, d_scaleFadeRing rings (ids: knowledge/objects/catalogue.tsv,
+  check renders with `tools/shoot.js`). Never solid fills in front of the play. This is a decorate.js
+  pass of its own (per section kit, layers, channels, pulses on beats), the next big piece after the
+  block terrain. Known bug: `tools/style.js classify()` counts 2.2 triggers (area 3006+, shaders
+  2904+) as decoration; modern_look.js uses the catalogue's kinds instead.
+  A reachable target, from the modern level the user picked as an example (Fall Out, 2.2, Hard;
+  "dont need to copy style and everything"; modern_look.md "Worked example 1"): 13 objects per
+  block, one motif through every section, a new scene per mode change, frames of cloud bands around
+  the play, bold but see-through front layers with hazards kept white/grey, HSV on half the
+  objects, shaders only at transitions, a title at the start and credits at the end -- and its
+  sparsest part (a black silhouette, 2 per block) is its most striking.
 - **Jump indicators**: on by default in compose (chevron 460, white, 45%). Not yet seen in the game.
   GDLM 46 (arrow catalogue) is no longer needed: the visuals catalogue named the ids.
 - **Art**: decoration ids have no names. Plan: a generated catalogue level (every deco id with a

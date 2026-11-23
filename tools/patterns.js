@@ -124,8 +124,12 @@ def("ship-tunnel", "a ship corridor (band rows 0-9): floor and roof follow `wave
     // teeth alternate floor / roof, never both in one column (both at once left 3 rows: 42 ms)
     // and not before `lead` columns: a calm lead-in after the portal (rated Easy ships ~8 blocks)
     const lead = a.lead ?? 6;
-    if (a.teeth && c >= lead && (c - lead) % 8 === 0) o.push(["spike", c, f]);
-    if (a.teeth && c >= lead && (c - lead) % 8 === 4) o.push(["spike", c, roof - 1, { rot: 180 }]);
+    // never on a step of the floor or roof (or next to one): the wall changes height there, and a
+    // tooth on top of that is a trap (GDLM 44: the user's ship crashed into a spike hanging under a
+    // ceiling step, real_stats 2026-11-23)
+    const flatHere = [c - 1, c + 1].every(k => k < 0 || k >= w || floorAt(k) === f);
+    if (a.teeth && flatHere && c >= lead && (c - lead) % 8 === 0) o.push(["spike", c, f]);
+    if (a.teeth && flatHere && c >= lead && (c - lead) % 8 === 4) o.push(["spike", c, roof - 1, { rot: 180 }]);
   }
   const mid = c => floorAt(c) + (gap - 1) / 2;
   portals(o, "ship", a.portalRow ?? Math.min(5, Math.round(mid(0))), Math.round(mid(w - 1)), w, a);

@@ -130,6 +130,63 @@ When each kind first appears in rated Easy/Normal levels (median):
   first use is over a spike, since that is what they are for. Measuring how gentle an
   introduction is would need timing (the difficulty tools), not layout.
 
+## 4. Indicators: where rated levels put their jump arrows
+
+`node tools/obstacles.js indicators --tiers Easy,Normal,Hard,Harder --gdlm` (2026-11-23), asked for
+after the user said GDLM 46's arrows sit "a bit too high over the ground".
+
+Method:
+- Arrows are the `d_arrow` deco (ids 132, 460, 494, 3630-3632).
+- Most arrows in rated levels are decoration: 3,656 in 52 levels, in patterns and signs, at a median
+  of 4 blocks up.
+- A **hint** is counted as a single arrow (no other within 3 blocks), at most 3 blocks above the
+  surface under it, with a hazard within 6 blocks ahead. That is a heuristic, not a label.
+
+| levels | levels with hints | hints | height of the arrow's centre above the surface (p25 / median / p75) | nearest hazard ahead (median) |
+|---|---|---|---|---|
+| rated Easy-Harder 2.0-2.1 | 30 | 240 | 0.5 / **1.0** / 2.0 blocks | **0.5 blocks** |
+| rated Easy+Normal only | 9 | 84 | 0.6 / 1.4 / 1.9 | 0.8 |
+| GDLM 46 v2 | 1 | 5 | 1.5 | 2.5 |
+
+- Rated levels put a hint arrow **about 1 block above the surface** (Easy/Normal alone: 1.4, on fewer
+  levels). That agrees with the user's "about one block, not 1.5".
+- They put it **right at the jump**: the hazard is half a block ahead. GDLM's sit 2.5 blocks before
+  the hazard. A hint marks where to press, not the obstacle.
+- Hints are used sparingly: 30 of 63 rated 2.0-2.1 levels use any, ~8 per level. Many levels cue
+  with structure and orbs instead.
+- Turns vary (90 40%, 0 32%, 270 21%). Which way the sprite points at each turn is not checked.
+
+## 5. Orb chains: rated levels rarely chain orbs, and their chains stay level
+
+`node tools/obstacles.js orbchains --official --gdlm --file <level.gdlvl> [--list]` (2026-11-23), after
+the user on GDLM 46 v2: "the triple orb in the end, feels very akward, if you just click normal you
+fall and die, cant adjust".
+
+Method:
+- A chain is jump orbs (yellow, blue, pink, green, black, red; not dash, spider or toggle) in a
+  ground mode, each within 4 blocks of the last.
+- **landing**: blocks from the last orb to the first surface with no hazard, at or below it.
+- **net under**: the share of the chain's columns where a fall would be safe.
+
+| levels | orb groups | single orbs | chains of 2 / 3 / 4+ | spacing in a chain | climb (median, p90) | net under | landing after (median) |
+|---|---|---|---|---|---|---|---|
+| rated Easy+Normal (34) | 108 (~3 per level) | **73%** | 19% / **5%** / 3% | 3.0 blocks | **1.0**, 4.0 blocks | 20% | **1.0 block** |
+| rated Hard+Harder (29) | 418 | 76% | 19% / 4% / 2% | 2.4 | 1.0, 4.0 | 0% | 3.0 |
+| official 1-8 | 68 | 76% | 18% / 4% / 1% | 4.0 | 1.0, 2.0 | 0% | 4.0 |
+| GDLM 46 v2 (`local/wip/main/gdlm_46_sketch.gdlvl`) | 3 | 67% | the triple | 2.3 | **4.3** | 0% | **5.0** |
+
+- **Most orbs stand alone**: three quarters at every tier. Chains of 3 or more are 8% of the orb groups
+  at Easy/Normal: about one in four levels has one.
+- **Chains stay about level**: a median climb of 1 block. GDLM 46's triple climbs 4.3 blocks in 2.3-block
+  steps, more than nine in ten rated chains. Each orb throws the cube higher, so a normal click
+  carries it up and over the safe line. That is the "cant adjust".
+- **A safe surface right after the chain**: rated Easy/Normal chains put a hazard-free surface a median
+  1 block after the last orb, so an early or late click still lands. GDLM 46's is 5 blocks away
+  over hazards.
+- Under the chain itself there is usually no safety net (0-20%): the orbs are over a pit or spikes,
+  which is their point. The fairness comes from the shape (level, spaced ~3 blocks) and the landing.
+- Mixed orb kinds in one chain: 17% at Easy/Normal, 53% at Hard/Harder.
+
 ## Targets for GDLM (Easy/Normal)
 
 - **Build cube parts on blocks**: blocks in ~45-50% of the columns; most spikes on or next to a
@@ -139,3 +196,7 @@ When each kind first appears in rated Easy/Normal levels (median):
   by ~15-20 s, gravity and a speed change by a third of the way in, ~15 kinds by the end.
 - Show each new thing once or twice, then move on, while staying fair: the first use in plain
   sight, cued, no prejump (`design.md`).
+- Orbs: mostly single. A chain at most 2-3 orbs, ~3 blocks apart, climbing ~1 block in all, with a
+  hazard-free surface ~1 block after the last orb. One orb kind per chain at Easy/Normal.
+- Jump arrows, if any: ~1 block above the surface, right at the press (the hazard ~0.5 block ahead),
+  only on real inputs, and consistently.

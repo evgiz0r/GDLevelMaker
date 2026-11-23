@@ -36,6 +36,8 @@ not after it:
 `knowledge/` is a general GD knowledge base (not the user's personal taste): `design.md` (what
 makes a level good or unfair) and `critiques.md` (playtest feedback on GDLM levels) are required
 reading before writing a spec; `levels/`, `glossary.md`, `demonlist.md` for the rest.
+**Before a level goes to the user, go through `knowledge/checklist.md`**: every target in one page
+(fairness, orbs, arrows, structure, variety, the 2.2 look, length), each with the tool that checks it.
 
 ## The loop
 
@@ -76,6 +78,15 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   (`node tools/serve.js`, http://localhost:8765/viewer/) lists it under "in progress" with its
   version; the user presses ⟳ refresh to see the newest, before anything is pushed. **Then run
   the ArtifactData call it prints**, so the phone page shows it too (PHONE.md).
+- **Real-game stats go to every owner, at once** (the user: "anytime we have stats about a new level
+  from real game, lets send it to physics/difficulty/style and so on for analyzing"). After analysing a
+  recording (the physics session owns recordings), add each attempt to `local/real_stats.jsonl` with
+  `node tools/real_stats.js add '<json>'` (level, version, video, attempt, death %/x, mode, cause, whether
+  the sim agrees, inputs forced right after a mode change, the window there; `node tools/real_stats.js
+  [level]` lists them). Then send each level's stats straight to every session it concerns, not through
+  the main one: difficulty (predicted vs real deaths), style (GDLM layout), polish (the user's own
+  levels), knowledge (critiques, community levels) and the main session. x from GD's % (x = level end x
+  * % / 100) is approximate; a frame-measured x says so in its cause or sim note.
 - **The user's marks** (✎ in the viewer, pinned to a moment and a spot) go to `local/marks.jsonl`
   with the level's file and `session`. `node tools/marks.js` lists open ones: handle the ones with
   your session, then `node tools/marks.js done <id> "what changed"`. Marks from the phone: fetch
@@ -102,7 +113,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 - **The phone page** (PHONE.md: what is on it, what a session does after `wip.js put`, phone
   marks, how it was tested, what is open): `tools/web.js` builds it from the viewer.
 - `tools/` -- node CLIs: `make`, `check`, `roundtrip`, `index_levels`, `serve`, `beats` (beat grid
-  of every song on this PC, ffmpeg + JS), `sync` (how well levels follow their song's beat), `frames` (timing windows with 60 fps presses, as the user's game has them), `press_window` (which press ticks get the player through one spot, from a given position: the human window there), `windows` (every input's timing window in any mode, by moving it and replaying), `web` (the viewer as a phone page, PHONE.md), `songs` (custom songs by id into local/songs/, as GD gets them; SYNC.md section 6), `songmap` (songs' beat clarity, sections, drops, and how levels follow them; SYNC.md section 7), `fetch_level` (online levels by ID into local/community/, for measuring only, never committed), `community` (study rated community levels: list, fetch, measure, modes, comments; see knowledge/README.md), `tiercheck` (does each section look like rated Easy/Normal or Hard/Harder sections of its mode; `--tier Easy`), `variety` (kinds of thing, portals, modes, speeds, repeated chunks vs rated levels; knowledge/levels/variety.md), `obstacles` (block structure per mode, obstacle shapes, when new kinds come in; knowledge/levels/obstacles.md), `difficulty` (score vs the official ratings).
+  of every song on this PC, ffmpeg + JS), `sync` (how well levels follow their song's beat), `frames` (timing windows with 60 fps presses, as the user's game has them), `press_window` (which press ticks get the player through one spot, from a given position: the human window there), `windows` (every input's timing window in any mode, by moving it and replaying), `real_stats` (the user's real-game attempts on our levels, local/real_stats.jsonl), `web` (the viewer as a phone page, PHONE.md), `songs` (custom songs by id into local/songs/, as GD gets them; SYNC.md section 6), `songmap` (songs' beat clarity, sections, drops, and how levels follow them; SYNC.md section 7), `fetch_level` (online levels by ID into local/community/, for measuring only, never committed), `community` (study rated community levels: list, fetch, measure, modes, comments; see knowledge/README.md), `tiercheck` (does each section look like rated Easy/Normal or Hard/Harder sections of its mode; `--tier Easy`), `variety` (kinds of thing, portals, modes, speeds, repeated chunks vs rated levels; knowledge/levels/variety.md), `obstacles` (block structure per mode, obstacle shapes, when new kinds come in; knowledge/levels/obstacles.md), `modern_look` (how 2.2 rated levels are decorated: objects per block, layers, colour, triggers per section; knowledge/levels/modern_look.md), `difficulty` (score vs the official ratings).
 - **Level style and the idea -> level loop** (STYLE.md: findings, style vocabulary, the loop, every
   playtest lesson, what is open): `tools/style.js` (measure style: deco share, triggers, sections,
   rests, motifs, recurring chunks) + `tools/corpus.js` (official levels and the user's save, in
