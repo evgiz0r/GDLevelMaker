@@ -108,7 +108,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   solution, one at a time), `difficulty_fit` (refit on the user's runs), `difficulty_community`
   (score downloaded community levels), `runs` (the user's deaths from a recording, via the progress
   bar), `save_stats` (the user's lifetime attempts per official level, read-only from the save),
-  `difficulty_route` (a level with and without route choice: a player avoids a hard timing when the
+  `stop` (where a level's saved solution dies in the sim and what killed it), `difficulty_route` (a level with and without route choice: a player avoids a hard timing when the
   level has an easier way), **`fairness`** (deaths that are not the player's fault: forced input after
   a portal, misleading marks, sloped portal exits, orb chains with nothing to correct; fitted on the
   user's labelled deaths, `fairness fit`; tools/score.js gates on it; DIFFICULTY.md "Fairness").
@@ -206,6 +206,9 @@ comes from OpenGD's object data via `tools/import_opengd.js` -> `lib/objects_ext
 OpenGD is GPL, so its file is not copied in). Rule there: hitbox + not solid + not trigger = hazard,
 so anything with a hitbox that is NOT a hazard (portals, coins, toggle orbs) must have its own entry
 in `lib/objects.js`. Missing that once let the sim pass through Stereo Madness's pit spikes (id 9).
+The rule also misfires the other way: OpenGD gives 37 block-outline / plank pieces type 0 (solid) but
+leaves them out of its solids list, so the import called them hazards; `SOLID0` in lib/objects.js
+fixes them (Deadlocked's 1202 ball lanes); the lettered helper blocks (type 40) were made killers the same way. Check OpenGD's type column (lib/objects_art.js) after an import.
 
 ## Calibration -- checked against the user's game
 
@@ -332,3 +335,8 @@ The viewer draws moving objects where they start.
 - Playing on the phone too: how to get an updated level onto the phone while away from the PC.
   Watching is built: the phone page (PHONE.md: live work in progress, marks, songs added from
   the phone). Playing it in the phone's game: `tools/export_gmd.js` (.gmd for GDShare).
+- An in-game GD list of all the Claude levels (the user, 2026-11-23: "making a new gd list ingame,
+  with all claude levels. Maybe later"). GD 2.2 lists hold online level IDs, so every level in it
+  must be uploaded first -- which clashes with the user's rule of not putting many AI levels on the
+  server yet (today only the phone slot, ID 152848491, is used). Names are final once uploaded
+  (PUBLISH.md), so settle names first. Not started; no owner yet.
