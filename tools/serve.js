@@ -42,6 +42,19 @@ function selfUpdate() {
   finally { UPD.busy = false; }
 }
 if (!UPD.off) { setTimeout(selfUpdate, 2000); setInterval(selfUpdate, 60e3).unref(); }
+// variants without a saved solution: solved one at a time in a child process (tools/solutions.js waits for the heavy
+// lock and saves to the shared cache, where /wip/variants finds it next time)
+const SOLVE = { queue: [], seen: new Set(), running: false };
+function solveLater(file) {
+  if (SOLVE.seen.has(file)) return; SOLVE.seen.add(file); SOLVE.queue.push(file);
+  if (!SOLVE.running) solveNext();
+}
+function solveNext() {
+  const f = SOLVE.queue.shift(); if (!f) { SOLVE.running = false; return; }
+  SOLVE.running = true; console.log("solving variant " + path.relative(root, f));
+  const ch = cp.spawn(process.execPath, [path.join(__dirname, "solutions.js"), f], { cwd: root, stdio: "ignore" });
+  ch.on("exit", () => solveNext()); ch.on("error", () => solveNext());
+}
 // The public viewer (GitHub Pages, tools/pages.js) may READ songs, GD's art and /version from this server on the
 // user's own PC -- so there it plays music and can show GD art, while nothing copyrighted is hosted. Only that
 // origin, only those GET paths (Chrome's Private Network Access preflight answered); it may write nothing here.
@@ -139,6 +152,28 @@ const SERVER = http.createServer((req, res) => {
   // for the viewer's "compare" panel
   // GET /wip/list: every session's work-in-progress level (local/wip/<session>/, tools/wip.js), with the
   // decoded level and its song, newest first. Read fresh on every request: refresh = latest.
+  // GET /wip/variants?file=local/wip/<session>/<level>.gdlvl: the section variants style's compose saved beside it
+  // (<level>.variants/index.json: sections {id, name, from, to, variants {key, file, scores, note, solution?}}),
+  // each with its level string and its solution when the shared cache has it. A variant with none is solved here
+  // in the background, one at a time (tools/solutions.js, heavy lock): the page shows it as "solving" and asks
+  // again. VIEWER.md / the viewer's variants bar; the user's pick goes to marks as type "variant-pick".
+  if (p === "/wip/variants") {
+    const q = new URL(req.url, "http://x").searchParams.get("file") || "";
+    if (!/^local\/wip\/[\w-]+\/[\w.-]+\.gdlvl$/.test(q)) { res.writeHead(400); return res.end("bad file"); }
+    const dir = path.join(root, q.replace(/\.gdlvl$/, ".variants"));
+    let out = { sections: [] };
+    try {
+      const idx = JSON.parse(fs.readFileSync(path.join(dir, "index.json"), "utf8")), { readGdlvl } = require("./io.js"), S = require("./solutions.js");
+      out = Object.assign({}, idx, { sections: (idx.sections || []).map(sec => Object.assign({}, sec, { variants: (sec.variants || []).map(v => {
+        const f = path.join(dir, path.basename(String(v.file || "")));
+        try { const L = readGdlvl(f), sol = v.solution || S.get(L.levelStr) || null;
+          if (!sol) solveLater(f);
+          return Object.assign({}, v, { level: L.levelStr, solution: sol, solving: !sol });
+        } catch (e) { return Object.assign({}, v, { missing: true }); }
+      }) })) });
+    } catch (e) {}
+    res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify(out));
+  }
   if (p === "/wip/list") {
     let out = [];
     try {

@@ -16,6 +16,12 @@
   canvas { display:block; width:100%; height:min(60vh, 460px); background:#0e0828; touch-action:none; }
   #scrub { width:100%; margin:0; accent-color:var(--cube); }
   #strip { display:block; width:100%; height:34px; background:#120a2e; cursor:pointer; }
+  #varbar { display:flex; flex-wrap:wrap; gap:6px 14px; align-items:center; padding:6px 10px; background:#140b33; border-top:1px solid #2b2060; font-size:13px; }
+  #varbar .vsec { display:flex; gap:4px; align-items:center; }
+  #varbar .vname { color:#c9bdf8; margin-right:2px; }
+  #varbar button { padding:3px 8px; font-size:12px; }
+  #varbar button.cur { border-color:var(--cube); background:#3b2d78; }
+  #varbar button.close { border-color:#ffb020; }
   #inbar { display:block; width:100%; height:58px; background:#0b0620; }
   main { display:grid; grid-template-columns: 1fr 1fr; gap:16px; padding:12px 16px 24px; }
   @media (max-width: 700px) { main { grid-template-columns: 1fr; } }
@@ -93,6 +99,7 @@
   <button data-dt="-1">-1 s</button><button data-dt="-0.1">-0.1</button><button data-dt="0.1">+0.1</button><button data-dt="1">+1 s</button>
   <button id="cmpShot" title="replay + game frame as one PNG in local/shots/">save comparison</button>
   <span id="cmpAt" class="muted"></span></div><img id="cmpImg" alt="game frame"></div></div>
+<div id="varbar" hidden></div>
 <canvas id="strip"></canvas>
 <input id="scrub" type="range" min="0" max="1000" value="0">
 <main>
@@ -332,6 +339,53 @@ function routeKindOf(saved, sol, world) {
   const label = k === "human" ? "human route" : k === "limit" ? "limit route" + (why ? ": " + String(why).slice(0, 60) : "") : "unbeaten at " + pct(saved ? saved.dieX || 0 : (sol.dieAt || {}).x || 0) + "%";
   return { k, label: label + (saved && saved.stale ? " (stale)" : ""), why: why || "" };
 }
+
+// ---------- section variants (style's compose: local/wip/<session>/<level>.variants/, served by /wip/variants) ----------
+// For a work-in-progress level with variants: one row per section, A/B/C with the section's score (hover: difficulty,
+// issues); a click replays that variant from the same moment; "go" jumps to the section; "pick this one" leaves a
+// "variant-pick" mark that style applies (the user: "see possible alternatives").
+const VAR = { base: null, data: null, cur: null, poll: null };
+async function variantsFor(l) {
+  const bar = document.getElementById("varbar");
+  if (!l || !l.wip || window.GD_PAGES || window.GD_PHONE || !location.protocol.startsWith("http")) { if (!VAR.cur) { bar.hidden = true; VAR.base = null; } return; }
+  let d = null; try { const r = await fetch("/wip/variants?file=" + encodeURIComponent(l.file), { cache: "no-store" }); if (r.ok) d = await r.json(); } catch (e) {}
+  if (ALL[pick.value] !== l) return;
+  VAR.base = l; VAR.data = d && d.sections && d.sections.length ? d : null; VAR.cur = null; varRender();
+  clearTimeout(VAR.poll);
+  if (VAR.data && VAR.data.sections.some(sc => sc.variants.some(v => v.solving))) VAR.poll = setTimeout(() => { if (ALL[pick.value] === l && !VAR.cur) variantsFor(l); }, 15000);
+}
+function varRender() {
+  const bar = document.getElementById("varbar");
+  if (!VAR.data) { bar.hidden = true; return; }
+  bar.hidden = false;
+  const btn = (sc, v) => { const sco = v.scores || {}, cur = VAR.cur && VAR.cur.sec === sc.id && VAR.cur.key === v.key;
+    const tip = [sco.difficulty, sco.issues, sco.kept ? "kept: " + sco.kept : "", sco.close ? sco.close : "", v.note].filter(Boolean).join(" · ");
+    return `<button class="${cur ? "cur" : ""}${sco.close ? " close" : ""}" data-sec="${esc(sc.id)}" data-key="${esc(v.key)}" title="${esc(tip)}"${v.solving || v.missing ? " disabled" : ""}>${esc(v.key)}${sco.section != null ? " " + sco.section : ""}${v.solving ? " …" : ""}</button>`; };
+  bar.innerHTML = `<span class="muted">variants</span>` + VAR.data.sections.map(sc => `<span class="vsec"><span class="vname">${esc(sc.name || sc.id)} <span class="muted">${Math.round(sc.from / 30)}–${Math.round(sc.to / 30)}</span></span>` +
+      sc.variants.map(v => btn(sc, v)).join("") + `<button data-go="${esc(sc.id)}" title="jump to this section">go</button></span>`).join("") +
+    (VAR.cur ? `<button id="varBase" title="back to the level as it is">current</button><button id="varPick" title="ask for this variant in the level (a mark style applies)">pick ${esc(VAR.cur.sec)} ${esc(VAR.cur.key)}</button>` : "") +
+    (VAR.data.sections.some(sc => sc.variants.some(v => v.solving)) ? `<span class="muted">solving the others…</span>` : "");
+  bar.querySelectorAll("[data-key]").forEach(b => b.onclick = () => varOpen(b.dataset.sec, b.dataset.key));
+  bar.querySelectorAll("[data-go]").forEach(b => b.onclick = () => { const sc = VAR.data.sections.find(x => x.id === b.dataset.go); if (sc && L) varGo(sc.from); });
+  const bb = document.getElementById("varBase"); if (bb) bb.onclick = () => { VAR.cur = null; const tt = t; pick.dispatchEvent(new Event("change")); t = Math.min(tt, (L.path.length - 1) / P.TPS); draw(); };
+  const pb = document.getElementById("varPick"); if (pb) pb.onclick = varPick;
+}
+function varGo(x) { let k = 0; while (k < L.path.length - 1 && L.path[k].x < x - 90) k++; t = k / P.TPS; lastTick = tick(); playing = false; setPlay(); syncSong(); draw(); }
+function varOpen(secId, key) {
+  const sc = VAR.data.sections.find(x => x.id === secId), v = sc && sc.variants.find(x => x.key === key); if (!v || !v.level) return;
+  const tt = t, base = VAR.base;
+  VAR.cur = { sec: secId, key };
+  load(base.name + " · " + (sc.name || sc.id) + " " + key, v.level, v.solution || null, base.song);
+  t = Math.min(tt, (L.path.length - 1) / P.TPS); lastTick = tick(); draw(); varRender();
+}
+async function varPick() {
+  if (!VAR.cur || !VAR.base) return;
+  const m = { id: "pick-" + Date.now().toString(36), type: "variant-pick", level: VAR.base.name, file: VAR.base.file, session: VAR.base.session || "",
+    section: VAR.cur.sec, key: VAR.cur.key, note: `pick variant ${VAR.cur.key} for section ${VAR.cur.sec}`, t, made: new Date().toISOString() };
+  let ok = false; try { ok = (await fetch("/marks", { method: "POST", body: JSON.stringify(m) })).ok; } catch (e) {}
+  const pb = document.getElementById("varPick"); if (pb) pb.textContent = ok ? "✓ picked: " + m.section + " " + m.key : "not saved (is serve.js running?)";
+}
+pick.addEventListener("change", () => { if (!VAR.cur) variantsFor(ALL[pick.value]); });
 const PK = { f: "all", sel: 0, rows: [], meta: new Map() };
 const pkStore = (k, v) => { try { if (v === undefined) return JSON.parse(localStorage.getItem("gdlm." + k) || "[]"); localStorage.setItem("gdlm." + k, JSON.stringify(v)); } catch (e) { return []; } };
 const pkCat = l => l.wip || (l.session && l.version) ? "wip" : /official/.test(String(l.file)) || l.official != null ? "official" : /community/.test(String(l.file)) ? "community" : "ours";
@@ -466,6 +520,7 @@ function summary() {
   h += `<p class="muted">` + Object.entries(Object.fromEntries(Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 14))).map(([k, v]) => `${esc(k)} ×${v}`).join(" · ") + `</p>`;
   document.getElementById("summary").innerHTML = h;
   if (typeof pkTitle === "function") pkTitle(); // the title bar: which level and version is open
+  if (typeof variantsFor === "function" && !VAR.cur && (!VAR.base || VAR.base !== ALL[pick.value])) variantsFor(ALL[pick.value]);
 }
 function clickTable() {
   const el = document.getElementById("clicks");
