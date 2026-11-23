@@ -11,11 +11,12 @@
 // block 39.86, and a whole group shifted together reads fine.)
 // Prints each spot with its block; --gate exits 1 when any is found. Static: no solve, milliseconds.
 // POLISH.md "Soft rules from the user's notes".
+if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const fs = require("fs");
 const { readGdlvl } = require("./io.js");
 const O = require("../lib/objects.js");
 const args = process.argv.slice(2).filter(a => !a.startsWith("--"));
-if (!args.length) { console.log(fs.readFileSync(__filename, "utf8").split("\n").filter(l => l.startsWith("//")).join("\n")); process.exit(1); }
+if (require.main === module && !args.length) { console.log(fs.readFileSync(__filename, "utf8").split("\n").filter(l => l.startsWith("//")).join("\n")); process.exit(1); }
 
 const PADS = new Set([35, 67, 140, 1332, 3005, 36, 84, 141, 1022, 1333, 3004]);
 function check(objs) {

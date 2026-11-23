@@ -20,6 +20,7 @@ const args = process.argv.slice(2);
 const opt = k => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : undefined; };
 
 if (args[0] === "put") {
+  require("./heavy.js").claim();   // the solve below is heavy: one heavy job at a time (tools/heavy.js)
   const file = args[1], session = (opt("--session") || "").replace(/[^\w-]+/g, "");
   if (!file || !file.endsWith(".gdlvl") || !session) { console.log('usage: node tools/wip.js put <level.gdlvl> --session <name> [--note "..."]'); process.exit(1); }
   const L = readGdlvl(file);

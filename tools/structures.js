@@ -14,6 +14,7 @@
 // on entry and what it leaves (mode, gravity, size, speed, the row the player is on), so they chain.
 // STRUCTURES.md: the format, the checks, the ranking and what is open. Shapes are generic GD
 // vocabulary, nothing copied from a particular level.
+if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 "use strict";
 const fs = require("fs"), path = require("path");
 const ROOT = path.join(__dirname, "..");
@@ -383,6 +384,8 @@ function rank(results) {
     // a prejump WARN is the approximate check on levels with modes (sweep solver): not counted
     const read = !r.ok ? 0 : Math.max(0, 1 - 0.5 * (r.gates.prejumps === "FAIL" ? 1 : 0)
       - 0.3 * (r.gates.fairness === "FAIL" ? 1 : 0) - 0.1 * (r.gates.fairness === "WARN" ? 1 : 0) - 0.1 * (r.gates.recovery === "WARN" ? 1 : 0)
+      // exact hops instead of reactions (score.js "reactive", the user on GDLM 45 v6): pushed well down
+      - 0.4 * (r.gates.reactive && r.gates.reactive !== "PASS" ? 1 : 0)
       - 0.15 * Math.max(0, pps - 2.5));
     const variety = 1 - ours, usage = Math.sqrt(real);
     r.rank = { variety: +variety.toFixed(2), usage: +usage.toFixed(2), fairness: +fair.toFixed(2), readability: +read.toFixed(2),
@@ -397,7 +400,7 @@ function rank(results) {
 const MODE_COL = { cube: "#3c9", ship: "#f5a", ball: "#f44", ufo: "#fb3", wave: "#3bf", robot: "#ccc", spider: "#b6f", swing: "#fd3" };
 function svgOf(r, GD) {
   const P = r.pic; if (!P) return "";
-  const W = P.x1 - P.x0, top = Math.max(330, ...P.objects.map(o => o[2] + 30), ...P.path.map(q => q[1] + 30)), H = top + 20;
+  const W = P.x1 - P.x0, top = Math.max(150, ...P.objects.map(o => o[2] + 45), ...P.path.map(q => q[1] + 45)), H = top + 20;
   const Y = y => (top - y).toFixed(1), X = x => (x - P.x0).toFixed(1), out = [];
   out.push(`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${r.id}">`);
   out.push(`<rect x="0" y="${Y(0)}" width="${W}" height="20" class="g"/>`);
@@ -505,7 +508,7 @@ function save(db) {
 }
 function byId(id) { return LIB.find(s => s.id === id); }
 
-module.exports = { LIB, byId, testSpec, check, rank, page, load, save, register, ranked };
+module.exports = { LIB, byId, testSpec, check, rank, page, load, save, register, ranked, svgOf };
 
 if (require.main === module) {
   const [cmd, ...rest] = process.argv.slice(2);
