@@ -159,3 +159,8 @@ flying ticks (ship, wave, UFO, swing) spent within 12 units of a wall -- a solid
 band's floor/roof ("he waves way too close to the border"); this works on unbeaten levels too, where
 lib/natural.js's mid-corridor re-fly (beaten levels only, and all-or-nothing per stretch: on Deadlocked
 it died inside every stretch) cannot. GDLM 44: 8 presses instead of 6.
+
+Open (2026-11-23): Deadlocked stops at block 436 in the mini ball part (three lanes; the middle one is a
+row of id 1202 -- a 30x3 piece with spikes hanging under it -- that the sim calls a hazard by OpenGD's
+"hitbox and not solid" rule). As a solid platform the solve gets to 456.6; no real-game plan reaches a
+1202 to settle it. Waiting on the user to check 1202 in the editor (platform or hazard).
