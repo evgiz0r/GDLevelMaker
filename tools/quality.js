@@ -1,4 +1,4 @@
-// node tools/quality.js [--only <name part>] [--fresh] [--md]
+// node tools/quality.js [--only <name part>] [--fresh] [--cached] [--md]
 //
 // The quality scorecard: the official levels 1-10 next to every GDLM level (QUALITY.md). One row per level,
 // the newest file of each: levels/gdlm_*.gdlvl and local/wip/<session>/gdlm_*.gdlvl ("_polished" counts as the
@@ -110,7 +110,12 @@ function main() {
     const h = crypto.createHash("md5").update(fs.readFileSync(L.file)).digest("hex").slice(0, 8);
     const cf = path.join(OUT, `${L.key.replace(/[^\w@.-]/g, "_")}_${h}_${ph}_v${VERSION}.json`);
     let r = null;
-    if (fs.existsSync(cf) && !args.includes("--fresh")) r = JSON.parse(fs.readFileSync(cf, "utf8"));
+    // --cached: the newest row measured for this file, whatever physics it was measured on (to print only)
+    const old = args.includes("--cached") && fs.readdirSync(OUT).filter(f => f.startsWith(`${L.key.replace(/[^\w@.-]/g, "_")}_${h}_`) && f.endsWith(`_v${VERSION}.json`))
+      .map(f => path.join(OUT, f)).sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs)[0];
+    if (old) r = JSON.parse(fs.readFileSync(old, "utf8"));
+    else if (args.includes("--cached")) { console.error(`(no cached row for ${L.key})`); continue; }
+    else if (fs.existsSync(cf) && !args.includes("--fresh")) r = JSON.parse(fs.readFileSync(cf, "utf8"));
     else {
       if (!claimed) { require("./heavy.js").claim(); claimed = true; } // one heavy job at a time on the PC (tools/heavy.js)
       process.stderr.write(`measuring ${L.key} ... `);
@@ -148,6 +153,7 @@ function render(rows) {
   const lk = withRange(table(all, ["obj/blk", "ids", "play", "struct", "bg", "trig/min", "fair"],
     [r => f0(r.objPerBlock), r => r.distinctIds, r => pc(r.gameplayShare), r => pc(r.structuralShare), r => pc(r.backgroundShare), r => f0(r.triggersPerMin), r => r.fails == null ? "-" : (r.fails ? r.fails + " FAIL" : "ok") + (r.warns ? " " + r.warns + "W" : "")]),
     ["objPerBlock", "distinctIds", "gameplayShare", "structuralShare", "backgroundShare", "triggersPerMin", null], [f0, f0, pc, pc, pc, f0, f0]);
+  const ru = mine.map(r => `- ${short(r)}: ${r.rules && r.rules.length ? r.rules.join(", ") : "none"}`).join("\n");
   return `Gameplay\n\n${g}\n\nFlow\n\n${fl}\n\nLook and fairness\n\n${lk}\n\nSoft rules broken (tools/rules.js --fast; official levels not swept)
 
 ${ru}

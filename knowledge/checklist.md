@@ -113,6 +113,9 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 
 ## Not bland (rated Easy/Normal 2.0-2.1 medians)
 
+- [ ] **Long enough, with long sections**: 60 s or more (official 78-95 s) and at most ~6 mode changes a
+  minute (official 1.3-5.2; ours were 7-17: short snippets). score.js gates "length" and "mode changes";
+  compose notes it from the brief. (QUALITY.md, TASTE_DATA.md)
 - [ ] **Height changes and no repeats** in the jumping modes: 10+ floor changes per 10 s, a 3+ block
   range in every 10 s, no flat 10 s, at most ~45% of standing on the bare floor, at most 5% of 4-move
   patterns repeated within 10 s (official medians: 13.6, 7 blocks, 0, 28%, 0%). `node tools/flow.js
