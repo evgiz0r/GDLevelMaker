@@ -177,6 +177,13 @@ a hazard. 37 ids have that mismatch, all block-outline, plank and outline pieces
 and 1903-1905 that real-game plans had already shown solid. lib/objects.js's SOLID0 makes them all
 solid (sure:false). Check for the next import: `node -e` over lib/objects_art.js (type = field 5)
 vs lib/objects_extra.js lists any id whose type is 0 but kind is hazard.
+The same misfire hit the editor's lettered helper blocks D 1755, J 1813, S 1829, H 1859 (OpenGD type
+40, "Special" in Geode's GameObjectType enum; invisible in play): 30x30 killers in the sim, Fingerdash's
+6% stop (found by the difficulty session, 2026-11-23). Now decoration (sure:false: what each letter does
+to other objects is not simulated). The real-game plans for 21 and 22 die earlier and are unchanged, so
+they neither confirm nor refute it. tests/art_tables.js fails if a type-0 or type-40 id kills. Every
+other hazard is type 2, except 1304 (type 7, decoration in OpenGD, but GD 2.2's decoration list leaves it
+out too: left a hazard, unchecked).
 
 With that and the quarter-turned teleports, Deadlocked's solve reaches block 695.4 (59%, physics 119344c):
 a ship takes a plain teleport (20887, 54 = -94) into a low corridor and its box overlaps a sideways

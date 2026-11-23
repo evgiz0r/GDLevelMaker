@@ -1,6 +1,6 @@
 {
   "name": "GDLM 50 eclipse",
-  "desc": "A scene level: a city at dusk, a flight into the darkening sky, totality on the drop, the diamond ring, dawn. Song: Uxvellda - Eclipse. Made with GDLevelMaker.",
+  "desc": "A dusk city watches the moon swallow the sun, flies through totality upside down, and wakes to a pink dawn.",
   "song": { "custom": 1086693 }, "offset": 40.4502, "grid": { "bpm": 142.994, "t0": 0.1688 },
   "scene": "tools/scenes/eclipse.js",
   "indicators": {},
@@ -19,21 +19,21 @@
     ["pattern", "ship-tunnel", 70, 0, { "w": 69, "gap": 5, "amp": 1.5, "base": 0.4, "waves": 2, "teeth": true, "lead": 9, "portal": true, "exit": "cube", "portalRow": 1 }],
 
     ["pattern", "orb-pit", 149, 0, {}],
-    ["pattern", "pad-launch", 163, 0, { "n": 4 }],
-    ["pattern", "stairs", 174, 0, { "n": 2, "w": 3 }],
-    ["pattern", "double", 185, 0, {}],
-    ["pattern", "block-spike-block", 191, 0, {}],
-    ["spike", 200, 0],
+    "// totality, upside down: a gravity portal over a pit throws the cube to the ceiling, a hanging blue pad drops it",
+    ["spike",162,0], ["spike",163,0], ["spike",164,0], ["spike",165,0], ["spike",166,0], ["spike",167,0], ["spike",168,0], ["spike",169,0], ["gravity down",163,1], ["block",162,5], ["block",163,5], ["block",164,5], ["block",165,5], ["block",166,5], ["block",167,5], ["block",168,5], ["block",169,5], ["block",170,5], ["block",171,5], ["blue pad",170,4,{"flipY":true}],
+    "// a yellow pad up to a green orb (flips gravity) onto a high ceiling, a second green orb brings it down",
+    ["yellow pad",177,0], ["spike",178,0], ["spike",179,0], ["spike",180,0], ["spike",181,0], ["spike",182,0], ["spike",183,0], ["spike",184,0], ["spike",185,0], ["spike",186,0], ["spike",187,0], ["spike",188,0], ["spike",189,0], ["spike",190,0], ["block",177,8], ["block",178,8], ["block",179,8], ["block",180,8], ["block",181,8], ["block",182,8], ["block",183,8], ["block",184,8], ["block",185,8], ["block",186,8], ["block",187,8], ["block",188,8], ["block",189,8], ["block",190,8], ["block",191,8], [1022,181,4], [1022,188,6],
+    ["spike", 199, 0],
 
     ["pattern", "wave-zigzag", 210, 0, { "seg": 4, "legs": 10, "gap": 4, "low": 1, "flat": 2, "lead": 8, "slopes": true, "portal": true, "exit": "cube", "portalRow": 1 }],
 
     ["spike", 287, 0],
-    ["pattern", "platform", 291, 0, { "w": 5, "h": 1 }],
-    ["spike", 296, 0], ["spike", 297, 0],
-    ["pattern", "platform", 298, 0, { "w": 4, "h": 2 }],
-    ["pattern", "hops", 306, 0, { "n": 3, "gap": 2, "w": 2, "rise": 1 }],
-    ["pattern", "double", 322, 0, {}],
-    ["spike", 328, 0],
-    ["pattern", "spike-block", 333, 0, {}]
+    ["pattern", "double", 291, 0, {}],
+    "// dawn: the robot climbs out (a held jump goes higher), then back to the cube",
+    ["robot portal", "b69", 1],
+    ["block",303,0], ["block",303,1], ["block",304,0], ["block",304,1], ["block",305,0], ["block",305,1], ["block",306,0], ["block",306,1], ["block",307,0], ["block",307,1], ["block",307,2], ["block",307,3], ["block",308,0], ["block",308,1], ["block",308,2], ["block",308,3], ["block",309,0], ["block",309,1], ["block",309,2], ["block",309,3], ["block",310,0], ["block",310,1], ["block",310,2], ["block",310,3], ["spike",311,0], ["spike",312,0],
+    ["spike",319,0], ["spike",320,0], ["spike",321,0], ["block",327,0], ["block",327,1], ["block",328,0], ["block",328,1],
+    ["cube portal", 334, 1],
+    ["pattern", "double", 342, 0, {}]
   ]
 }

@@ -1,5 +1,6 @@
 {
   "name": "GDLM 45 first flight",
+  "desc": "Take off into a burning sky: ship, ball, wave and an upside-down run before the drop hits.",
   "idea": "40 s on the song of Ragnarok (343707), Normal to Hard: sections that follow the song -- the hit at b5 starts it, a long quiet build (cube, ship, ball, upside-down cube, a wave rising into it), the drop at b69 (+10 dB) flashes in a hard cube part, then ball and a wave finale on the loud part; every section its own mode or idea and its own look, changed on its first beat",
   "story": "v1-v4 were a 61 s Easy level on 134270 (template A from the knowledge base). The user: 'more variety, some upside down, the new modes, sections with styling changing according to the music' and then 'Ragnarok 40 seconds, with sections, Normal-Hard, somewhat matching the beat'. Look: hell, dark red embers in the build getting brighter, the drop a white flash into orange, the end back to dark.",
   "difficulty": { "label": "Normal", "minWindowMs": 50 },

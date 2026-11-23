@@ -1,5 +1,6 @@
 {
   "name": "GDLM 47 sunny side",
+  "desc": "A sunny day out: fly the blue sky, roll in the pink and dash for the golden finale!",
   "idea": "a happy level with happy colours, 1:40 long (the user), Normal, fair and fun: sections on the song's own changes, a new mode or idea every section, play on block terrain, a new scene and palette per section, the modern look",
   "story": "a sunny day: morning yellow, sky-blue flight, mint meadow upside down at half speed, coral wave on the second drop, pink ball, lavender orbs and pads at double speed, a short breath, a golden finale, the signature at the end",
   "difficulty": { "label": "Normal", "minWindowMs": 60 },
