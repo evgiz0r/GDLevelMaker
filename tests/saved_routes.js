@@ -52,7 +52,9 @@ for (const dir of dirs) {
     }
     const stale = s && s.physics !== sols.physicsCommit();
     if (FIX && (what || stale)) {
-      const t0 = Date.now(), r = sols.solve(L.level, L.levelStr);
+      // a long hold: re-plan the same run (the human-route pass); a skip or a death: solve again from scratch
+      const t0 = Date.now(), r = what && /^HOLD/.test(what) ? sols.fromRun(L.level, L.levelStr, { ok: true, events: s.events })
+        : sols.solve(L.level, L.levelStr, { fresh: !!(what && /^SKIPS|DIES|NO SAVED|does not finish/.test(what)) });
       console.log(`fixed ${dir}/${f}: ${what || "old stamp"} -> ${r.ok ? "finishes" : "NOT beaten (" + (r.why || "?") + ")"} in ${((Date.now() - t0) / 1000).toFixed(0)} s`);
       if (r.ok) what = null;
     }
