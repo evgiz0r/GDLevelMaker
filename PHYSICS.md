@@ -154,6 +154,8 @@ Why: the user on the Deadlocked level map, 2026-11-23: "The player skips the por
 levels you usually dont skip portals". The old cached Deadlocked run skipped the cube portal at block
 38 and stayed a mini wave past 40+ portals, orbs and pads. With the ranking (and the turned teleport
 exits above) Deadlocked's portal-taking route reaches block 434.9 (37%; was 26-31%), dying in the
-ball part on a hanging spike near the turned teleport at 441.5. Flying stretches are then re-flown
-through the corridor's middle by lib/natural.js (naturalPlan, only for beaten levels: an unbeaten
-level's map still shows the solver's edge-hugging line -- open).
+ball part on a hanging spike near the turned teleport at 441.5. Third in the ranking, before presses:
+flying ticks (ship, wave, UFO, swing) spent within 12 units of a wall -- a solid, hazard, slope or the
+band's floor/roof ("he waves way too close to the border"); this works on unbeaten levels too, where
+lib/natural.js's mid-corridor re-fly (beaten levels only, and all-or-nothing per stretch: on Deadlocked
+it died inside every stretch) cannot. GDLM 44: 8 presses instead of 6.
