@@ -158,7 +158,11 @@ function jumpIndicators(w, r, id, GD, opts = {}) {
     if (opts.only && !why.length) continue;   // opts.only: just the jumps that cannot be read in time
     if (marks.length && a.x - marks[marks.length - 1] < 60) continue;
     marks.push(a.x);
-    const x = Math.round((a.x + 15) / 15) * 15;  // loosely: the area, half a block past the press (rated: ~0.5 block before the hazard)
+    let x = Math.round((a.x + 15) / 15) * 15;  // loosely: the area, half a block past the press (rated: ~0.5 block before the hazard)
+    // never over a hazard (an arrow pointing into a spike; score.js "jump marks"): back off to the press
+    const overHaz = xx => boxes.some(b => b.kind === "hazard" && Math.abs((b.x0 + b.x1) / 2 - xx) < 15 && (up ? b.y0 >= surface - 2 && b.y0 < surface + 45 : b.y1 <= surface + 2 && b.y1 > surface - 45));
+    for (let k = 0; k < 3 && overHaz(x); k++) x -= 15;
+    if (overHaz(x)) continue;
     out.push({ id, x, y: up ? surface + INDICATOR.lift : surface - INDICATOR.lift,
       rot: ((opts.rot ?? INDICATOR.rot) + (up ? 0 : 180)) % 360, flipX: false, flipY: false, props: markProps(id, opts), why: why.join(",") });
   }

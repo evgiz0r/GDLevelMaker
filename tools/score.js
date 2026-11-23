@@ -102,42 +102,8 @@ function scoreLevel(level, brief, opts = {}) {
       chains.map(c => `block ${(c.x / 30).toFixed(0)} ${c.ms} ms`).join("; "));
   }
 
-  // deco coverage: no empty patches (the user on GDLM 45 v6 at ~24.7 s: "some places are very empty in
-  // deco"). Decoration objects per block in each screen-wide window (16 blocks, half-overlapping); a
-  // window under HALF the level's own average is flagged (WARN; 45 v6: 1.1-1.4 against 2.8). Levels with almost no deco
-  // (under 1 per block on average: the old plain look) are not judged.
-  {
-    const deco = level.objects.filter(o => GD.objInfo(o.id).kind === "decoration").map(o => o.x / 30);
-    const endB = Math.max(...level.objects.map(o => o.x)) / 30, mean = deco.length / Math.max(1, endB);
-    const thin = [];
-    if (mean >= 1) for (let a = 0; a + 16 <= endB; a += 8) {
-      const n = deco.filter(x => x >= a && x < a + 16).length / 16;
-      if (n < mean / 2) thin.push(`blocks ${a}-${a + 16}: ${n.toFixed(1)}/block`);
-    }
-    gate("deco coverage", thin.length ? "WARN" : "PASS", mean < 1 ? `plain look (${mean.toFixed(1)} deco per block): not judged`
-      : thin.length ? `${thin.length} stretch(es) under half the level's ${mean.toFixed(1)} deco per block` : `every screen within reach of the level's ${mean.toFixed(1)} deco per block`, thin.join("; "));
-  }
-
-  // symmetry: an orb over a row of floor (or ceiling) spikes sits over the row's centre, within half a
-  // block (the user on GDLM 45 v6: "it's not pretty that the orbs are not symmetrical to their structure.
-  // symmetry = good"). make.js's orb-pit centres itself; a hand-placed or chained orb is checked here. WARN.
-  {
-    const hz = level.objects.filter(o => GD.objInfo(o.id).kind === "hazard").map(o => ({ c: Math.round((o.x - 15) / 30), y: o.y }));
-    const off = [];
-    for (const o of level.objects.filter(o => GD.objInfo(o.id).kind === "orb")) {
-      const oc = Math.round((o.x - 15) / 30);
-      for (const yy of [...new Set(hz.map(h => h.y))]) {
-        if (Math.abs(yy - o.y) > 150 || !hz.some(h => h.y === yy && Math.abs(h.c - oc) <= 0)) continue;
-        let a = oc, b = oc;
-        while (hz.some(h => h.y === yy && h.c === a - 1)) a--;
-        while (hz.some(h => h.y === yy && h.c === b + 1)) b++;
-        if (b - a < 2) continue;                                // a row of 3+
-        const cx = (a + b) / 2 * 30 + 15;
-        if (Math.abs(o.x - cx) > 15) off.push(`orb at block ${oc} over spikes ${a}-${b} (centre ${((cx - 15) / 30).toFixed(1)})`);
-      }
-    }
-    gate("symmetry", off.length ? "WARN" : "PASS", off.length ? `${off.length} orb(s) off the centre of their spike row` : "orbs centred on their structures", off.join("; "));
-  }
+  // static soft rules (deco coverage, symmetry, jump marks): staticRules() below, shared with tools/rules.js
+  for (const g of staticRules(level)) gate(g.name, g.status, g.value, g.note);
 
   // height and repetition (the user on GDLM 47's upside-down part: "some sections are somewhat boring. all
   // in flat area. no change of height really ... robtop levels do show decent change of height in their
@@ -183,6 +149,14 @@ function scoreLevel(level, brief, opts = {}) {
     gate("reactive", reactive.length ? (want.label && !hard ? "FAIL" : "WARN") : "PASS",
       reactive.length ? `${reactive.length} spot(s) that need exact hops` : "every landing leaves room to react",
       reactive.map(s => `block ${s.block}: ${s.why}`).join("; "));
+    // player timing: each jump on the player's route (lib/natural.js, what the viewer and the game show)
+    // timed on its own, until the next input (later inputs free to adapt), capped at +-200 ms. The timing
+    // gate above measures the solver's route, which can take a different line: GDLM 47 v2 passed it at
+    // 113 ms while the player's route had a 4 ms jump (a spike, then a block 3 later: landing between them).
+    const pw = (reactive.windows || []).filter(x => x.ms < minMs);
+    if (reactive.windows && reactive.windows.length) gate("player timing", pw.length ? "FAIL" : "PASS",
+      `tightest ${Math.min(...reactive.windows.map(x => x.ms))} ms over ${reactive.windows.length} jumps on the player's route, want >= ${minMs}`,
+      pw.map(x => `block ${x.block} (${x.t} s) ${x.ms} ms`).join("; "));
   }
 
   if (r.ok) {
@@ -313,8 +287,68 @@ function scoreLevel(level, brief, opts = {}) {
   const ids = [...new Set(unsure.map(o => o.id))];
   gate("objects", unsure.length ? "WARN" : "PASS", unsure.length ? `${unsure.length} gameplay objects with unconfirmed hitboxes (ids ${ids.join(", ")})` : "all hitboxes confirmed");
 
+  // soft rules (the user, 2026-11-23: "each fix to be somewhat a soft rule. and reapplied across the
+  // level and anything in the future"): a brief may accept a gate with a stated reason,
+  // "accept": {"<gate>": "<why this level breaks it>"}; the gate then reads ACCEPT and does not count.
+  for (const g of gates) if (brief.accept && brief.accept[g.name] && g.status !== "PASS") { g.note = `accepted: ${brief.accept[g.name]}` + (g.note ? " -- " + g.note : ""); g.status = "ACCEPT"; }
+
   const fails = gates.filter(g => g.status === "FAIL").length, warns = gates.filter(g => g.status === "WARN").length;
   return { ok: fails === 0, fails, warns, gates, solution: r, prejumps: bad, tight, chains, difficulty: diff };
+}
+
+// the soft rules that need no route: deco coverage, symmetry, jump marks -> [{name, status, value, note}]
+function staticRules(level) {
+  const out = [], gate = (name, status, value, note) => out.push({ name, status, value, note: note || "" });
+  // deco coverage: no empty patches (the user on GDLM 45 v6 at ~24.7 s: "some places are very empty in
+  // deco"). Decoration objects per block in each screen-wide window (16 blocks, half-overlapping); a
+  // window under HALF the level's own average is flagged (WARN; 45 v6: 1.1-1.4 against 2.8). Levels with almost no deco
+  // (under 1 per block on average: the old plain look) are not judged.
+  {
+    const deco = level.objects.filter(o => GD.objInfo(o.id).kind === "decoration").map(o => o.x / 30);
+    const endB = Math.max(...level.objects.map(o => o.x)) / 30, mean = deco.length / Math.max(1, endB);
+    const thin = [];
+    if (mean >= 1) for (let a = 0; a + 16 <= endB; a += 8) {
+      const n = deco.filter(x => x >= a && x < a + 16).length / 16;
+      if (n < mean / 2) thin.push(`blocks ${a}-${a + 16}: ${n.toFixed(1)}/block`);
+    }
+    gate("deco coverage", thin.length ? "WARN" : "PASS", mean < 1 ? `plain look (${mean.toFixed(1)} deco per block): not judged`
+      : thin.length ? `${thin.length} stretch(es) under half the level's ${mean.toFixed(1)} deco per block` : `every screen within reach of the level's ${mean.toFixed(1)} deco per block`, thin.join("; "));
+  }
+
+  // symmetry: an orb over a row of floor (or ceiling) spikes sits over the row's centre, within half a
+  // block (the user on GDLM 45 v6: "it's not pretty that the orbs are not symmetrical to their structure.
+  // symmetry = good"). make.js's orb-pit centres itself; a hand-placed or chained orb is checked here. WARN.
+  {
+    const hz = level.objects.filter(o => GD.objInfo(o.id).kind === "hazard").map(o => ({ c: Math.round((o.x - 15) / 30), y: o.y }));
+    const off = [];
+    for (const o of level.objects.filter(o => GD.objInfo(o.id).kind === "orb")) {
+      const oc = Math.round((o.x - 15) / 30);
+      for (const yy of [...new Set(hz.map(h => h.y))]) {
+        if (Math.abs(yy - o.y) > 150 || !hz.some(h => h.y === yy && Math.abs(h.c - oc) <= 0)) continue;
+        let a = oc, b = oc;
+        while (hz.some(h => h.y === yy && h.c === a - 1)) a--;
+        while (hz.some(h => h.y === yy && h.c === b + 1)) b++;
+        if (b - a < 2) continue;                                // a row of 3+
+        const cx = (a + b) / 2 * 30 + 15;
+        if (Math.abs(o.x - cx) > 15) off.push(`orb at block ${oc} over spikes ${a}-${b} (centre ${((cx - 15) / 30).toFixed(1)})`);
+      }
+    }
+    gate("symmetry", off.length ? "WARN" : "PASS", off.length ? `${off.length} orb(s) off the centre of their spike row` : "orbs centred on their structures", off.join("; "));
+  }
+
+  // jump marks (decorate.js INDICATOR: id 460 on group 990): never over a hazard (an arrow pointing into a
+  // spike reads as "jump onto it"), never two closer than 2 blocks (the user on GDLM 45 v5: "the second
+  // indicator is wrong", marks crowding a stretch). WARN.
+  {
+    const marks = level.objects.filter(o => o.id === 460 && String((o.props || {})[57] || "").split(".").includes("990")).sort((a, b) => a.x - b.x);
+    const hz = level.objects.filter(o => GD.objInfo(o.id).kind === "hazard");
+    const bad = [];
+    for (const m of marks) if (hz.some(h => Math.abs(h.x - m.x) < 15 && m.y > h.y && m.y - h.y < 75)) bad.push(`block ${((m.x - 15) / 30).toFixed(0)}: over a hazard`);
+    for (let i = 1; i < marks.length; i++) if (marks[i].x - marks[i - 1].x < 60) bad.push(`blocks ${((marks[i - 1].x - 15) / 30).toFixed(0)}-${((marks[i].x - 15) / 30).toFixed(0)}: two marks under 2 blocks apart`);
+    gate("jump marks", bad.length ? "WARN" : "PASS", marks.length ? (bad.length ? `${bad.length} mark(s) misplaced` : `${marks.length} marks, none over a hazard or crowded`) : "no jump marks", bad.join("; "));
+  }
+
+  return out;
 }
 
 // hazards no player action deals with (the "hazards matter" gate)
@@ -407,8 +441,31 @@ function reactiveSpots(level, w, r, presses, opts = {}) {
     const horizon = Math.min(Math.max(at, pressTick) + Math.round(0.5 * TPS), next ? next.tick : Infinity);
     return { ok: !res.dead || res.path.length - 1 >= horizon, why: res.why || "" };
   };
-  const SPAN = Math.round(0.2 * TPS), STEP = 2;
-  for (const pr of presses) {
+  // the press moved to `at`, then the NEXT press re-timed within +-100 ms: does any timing live until the
+  // input after it (or 0.5 s)? (no next press: true)
+  const aheadOk = (pressTick, at) => {
+    if (at === pressTick) return true;                        // the plan itself
+    const ev = r.events.map(e => ({ ...e })).sort((x, y) => x.tick - y.tick);
+    const k = ev.findIndex(e => e.type === "press" && e.tick === pressTick);
+    const rel = ev.findIndex((e, j) => j > k && e.type === "release");
+    const n = ev.findIndex((e, j) => j > k && e.type === "press");
+    if (n < 0) return true;
+    const nrel = ev.findIndex((e, j) => j > n && e.type === "release"), after = ev.find((e, j) => j > n && e.type === "press");
+    const d = at - pressTick;
+    ev[k].tick = at; if (rel >= 0) ev[rel].tick = Math.max(ev[rel].tick + d, at + 1);
+    const base = ev[n].tick, len = nrel >= 0 ? ev[nrel].tick - base : 1;
+    for (let d2 = 0; d2 <= 24; d2 = d2 > 0 ? -d2 : -d2 + 4) {     // 0, 4, -4, 8, -8 ... ticks (+-100 ms)
+      const t2 = base + d2;
+      if (t2 <= at + 1 || (after && t2 >= after.tick - 1)) continue;
+      const e2 = ev.map(e => ({ ...e })); e2[n].tick = t2; if (nrel >= 0) e2[nrel].tick = t2 + len;
+      const res = GD.run(w, e2.sort((x, y) => x.tick - y.tick));
+      const horizon = Math.min(t2 + Math.round(0.5 * TPS), after ? after.tick : Infinity);
+      if (!res.dead || res.path.length - 1 >= horizon) return true;
+    }
+    return false;
+  };
+  const SPAN = Math.round(0.2 * TPS), STEP = 2, wins = [];
+  for (const pr of opts.noWindows ? [] : presses) {   // opts.noWindows: skip the per-jump scan (fast sweeps)
     const q = path[pr.tick] || {};
     if (!/^(cube|robot)$/.test(q.mode || "cube")) continue;
     const res = [];
@@ -419,6 +476,15 @@ function reactiveSpots(level, w, r, presses, opts = {}) {
     while (a > 0 && res[a - 1].ok) a--;
     while (b < res.length - 1 && res[b + 1].ok) b++;
     const ms = (res[b].d - res[a].d + STEP) / TPS * 1000;
+    // one step of lookahead for the player-timing window (polish, from hellgate v12's dead end: a jump into
+    // a gap before a wall lives to the next press, but no next press works from there): an edge counts
+    // only if some re-timing of the next press (+-100 ms) then lives to the input after it. Checked at the
+    // edges only, shrinking inward, so a level costs a few more replays per jump, not hundreds.
+    let A = a, B = b;
+    while (A < i0 && !aheadOk(pr.tick, pr.tick + res[A].d)) A++;
+    while (B > i0 && !aheadOk(pr.tick, pr.tick + res[B].d)) B--;
+    const pms = (res[B].d - res[A].d + STEP) / TPS * 1000;
+    wins.push({ block: +(q.x / 30).toFixed(1), t: +(pr.tick / TPS).toFixed(2), ms: Math.round(pms) });
     // a block on one side of the window and the hazard on the other: the jump clears a hazard AND must
     // be timed around a block. (A plain step jump ends at the block's face by nature: not flagged.)
     const HAZ = /^(spike|saw)$/;
@@ -464,7 +530,9 @@ function reactiveSpots(level, w, r, presses, opts = {}) {
       break;
     }
   }
-  return out.filter((s, i, a) => a.findIndex(z => z.block === s.block && z.why === s.why) === i);
+  const res = out.filter((s, i, a) => a.findIndex(z => z.block === s.block && z.why === s.why) === i);
+  res.windows = wins;   // every jumping-mode press's own window (to the next input), for the "player timing" gate
+  return res;
 }
 
 function print(name, s) {
@@ -488,4 +556,4 @@ if (require.main === module) {
   }
   process.exit(bad ? 2 : 0);
 }
-module.exports = { scoreLevel, print, reactiveSpots, inertHazards };
+module.exports = { scoreLevel, print, reactiveSpots, inertHazards, staticRules };

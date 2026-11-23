@@ -244,7 +244,10 @@ function compose(brief, tweaks = {}) {
         // section's last-listed, its new idea), never the same twice in a row when there is a choice
         let name = sec.use.find(n => !seen.has(n));
         if (!name) {
-          const pool = sec.use.length > 1 ? sec.use.filter(n => n !== last) : sec.use;
+          // not one of the last two chunks when the section has 3+ kinds (score.js "repetition": official
+          // levels hardly repeat a 4-move pattern within 10 s; GDLM 47 repeated 17%)
+          const recent = placed.slice(-2).map(p => p.name);
+          const pool = sec.use.length > 2 ? sec.use.filter(n => !recent.includes(n)) : sec.use.length > 1 ? sec.use.filter(n => n !== last) : sec.use;
           const wts = pool.map((n, i) => 1 + (n === sec.use[sec.use.length - 1] ? 1 : 0) + i * 0.2);
           let x = r1 * wts.reduce((a, b) => a + b, 0);
           name = pool[pool.length - 1];
@@ -274,8 +277,13 @@ function compose(brief, tweaks = {}) {
             // before the next: steps mid-gap left 3 columns and chained the jumps (GDLM 47 round 1)
             // a step up 5 columns after the chunk (its jump lands ~2 past the chunk's end: then a run, then
             // the jump onto the step; at +3 it was a land-and-jump chain), a step down 3 (no input)
-            gap = Math.max(gap, newH > h ? 10 : 9);
-            stepAt = c + (newH > h ? 5 : 3);
+            // a step up comes after the zone where the last chunk's jump comes down (score.js "reactive",
+            // spike then step: half a jump + 250 ms of run; 1x 4.8 blocks, 2x 6.1, 3x 7.3), so it is its
+            // own jump on reaction (5 at 1x as before)
+            const ups = upsOf(speeds[si]), zone = Math.ceil(0.43 * ups / 30 / 2 + 0.25 * ups / 30) + 1;
+            const upAt = Math.max(5, zone);
+            gap = Math.max(gap, newH > h ? upAt + 5 : 9);
+            stepAt = c + (newH > h ? upAt : 3);
             // a chunk that already ends up high (a platform): the new level continues from its end, no
             // 3-wide pit between them to drop into and jump straight out of (GDLM 47: 50 ms, block 57)
             if (newH > h && last && endHeight(last, (sec.args || {})[last]) >= newH - h) { stepAt = c; gap = Math.max(gap, 6); }

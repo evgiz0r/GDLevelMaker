@@ -35,6 +35,10 @@ checklist it was built against.
   landing on a lone block that forces the next jump within 250 ms, never 3+ hops in a row each forced
   right after landing. `node tools/reactive.js <level>` (score.js gate "reactive": FAIL at Easy/Normal).
   (critiques.md GDLM 45 v6, blocks 50-75: "very specific cube jumps ... instead of being able to react")
+- [ ] **Windows on the player's route, not only the solver's**: every jump of the natural replay (what
+  the viewer and the game show) timed on its own up to the next input; none under the tier's floor.
+  score.js gate "player timing". (GDLM 47 v2: the timing gate said 113 ms on the solver's route, the
+  player's route had a 4 ms jump at block 67: a spike, then a block 3 later, landing between them)
 - [ ] **A jump over a spike needs no timing around a block**: no press whose window is cut short
   (< 250 ms) or split by a block, ceiling step or slope rather than by the hazard (a lip right after
   the spike, a step where the jump comes down). No step 2 to ~5 blocks after a spike (at 1x; where
@@ -76,6 +80,11 @@ checklist it was built against.
   under ~60 ms, almost none under 100 ms). (players_say.md: a late spike makes a rating feel wrong)
 
 ## Not bland (rated Easy/Normal 2.0-2.1 medians)
+
+- [ ] **Height changes and no repeats** in the jumping modes: 10+ floor changes per 10 s, a 3+ block
+  range in every 10 s, no flat 10 s, at most ~45% of standing on the bare floor, at most 5% of 4-move
+  patterns repeated within 10 s (official medians: 13.6, 7 blocks, 0, 28%, 0%). `node tools/flow.js
+  <level>`; score.js gates "height" / "repetition". (STRUCTURES.md; the user on GDLM 47's upside part)
 
 - [ ] **Built on blocks**: a block, slab or slope in ~45-50% of the cube columns; most spikes on
   ledges, steps, pit edges and under overhangs, not lone on the floor. `node tools/obstacles.js structure --file <level>`.
