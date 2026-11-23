@@ -124,7 +124,7 @@ function setHeaderArt(header, bg, ground) {
 // to point at the ground, scale 0.7, on white (1011: its own channel 1006 is the player's colour) in
 // its own group, faded to `alpha` by an alpha trigger at the start. Any id works per spec:
 // "indicators": {"id": N, "rot": n, "ch": n}; id 914 = a text object showing `text` (e.g. "v").
-const INDICATOR = { id: 460, rot: 90, ch: 1011, scale: 0.7, text: "v", group: 990, alpha: 0.45, lift: 30 }; // lift: surface -> mark centre (45 read 'a bit too high', GDLM 44 v8; rated median 30)
+const INDICATOR = { id: 460, rot: 90, ch: 1011, scale: 0.7, text: "v", group: 990, alpha: 0.45, lift: 30, clear: 30 }; // lift: surface -> mark centre (45 read 'a bit too high', GDLM 44 v8; rated median 30)
 function jumpIndicators(w, r, id, GD, opts = {}) {
   const path = GD.run(w, r.events).path, out = [], marks = [];
   const boxes = w.items || [];
@@ -158,14 +158,13 @@ function jumpIndicators(w, r, id, GD, opts = {}) {
     if (opts.only && !why.length) continue;   // opts.only: just the jumps that cannot be read in time
     if (marks.length && a.x - marks[marks.length - 1] < 60) continue;
     marks.push(a.x);
-    // the area, half a block past the press, but always in FRONT of what the jump is for: at most ~0.5
-    // block before the hazard's start, never over it (the user on eclipse v2: "arrow into the spike" --
-    // a press late in its window put the mark at the spike). Then off any hazard under it.
-    let x = a.x + 15;
-    if (cue !== Infinity) x = Math.min(x, a.x + 15 + cue - 15);
-    x = Math.max(a.x - 15, Math.floor(x / 15) * 15);
-    const hazUnder = xx => boxes.find(b => b.kind === "hazard" && b.x0 - 8 <= xx && b.x1 + 8 >= xx && (up ? b.y0 <= surface + 40 && b.y1 >= surface - 5 : b.y1 >= surface - 40 && b.y0 <= surface + 5));
-    for (let k = 0, h; k < 4 && (h = hazUnder(x)); k++) x = Math.floor((h.x0 - 15) / 15) * 15;
+    // the take-off point: half a block past the press, but always at least a block in FRONT of the
+    // nearest hazard's hitbox, low, never over or next to it (the user on eclipse v2: "arrow into the
+    // spike"; "too close to the spike, almost inside it" -- a press late in its window put the mark at
+    // the spike). INDICATOR.clear = units between the mark's centre and any hazard's hitbox.
+    const hazNear = xx => boxes.find(b => b.kind === "hazard" && b.x0 - INDICATOR.clear < xx && b.x1 + INDICATOR.clear > xx && (up ? b.y0 <= surface + 60 && b.y1 >= surface - 5 : b.y1 >= surface - 60 && b.y0 <= surface + 5));
+    let x = Math.floor((a.x + 15) / 15) * 15;
+    for (let k = 0, h; k < 6 && (h = hazNear(x)); k++) x = Math.floor((h.x0 - INDICATOR.clear) / 15) * 15;
     out.push({ id, x, y: up ? surface + INDICATOR.lift : surface - INDICATOR.lift,
       rot: ((opts.rot ?? INDICATOR.rot) + (up ? 0 : 180)) % 360, flipX: false, flipY: false, props: markProps(id, opts), why: why.join(",") });
   }

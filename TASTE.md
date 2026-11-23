@@ -47,6 +47,16 @@ uploaded or installed by this loop: the main session does that on the user's yes
   small, dim versions, behind the play. (Round 1, first render of GDLM 51.)
 - **Things placed high must be under ~7 blocks** (225 units) to be seen in a cube part: GDLM 51's eyes
   in the dark at y 235 never showed. (Round 1.)
+- **Jump arrows mark the take-off, a block in front of the hazard, low.** The user on GDLM 50 v2:
+  "arrow into the spike" (a press late in its window put the mark over the spikes) and "too close to
+  the spike, almost inside it". tools/decorate.js now keeps every mark at least a block (30 units)
+  from any hazard's hitbox at its height; `tools/softrules.js` and score.js's `arrows` gate check it.
+  The first sweep found 42 such arrows in GDLM 44, 45, 47 and 51 (fixed in 51 and 50).
+- **Corridor mouths are clean**: the roof and floor join their slopes flush, no one-row notch or
+  one-block hanger at the entrance or exit. The user on GDLM 50 v2's wave entrance: "this entrance is
+  wrong in its shape". The wave-zigzag pattern placed its level roof from a clamped floor row (a row
+  above the slopes) and walled its exit portal with a hanger; it now joins flush and stretches the
+  exit portal (key 129) to fill the mouth. Sweep: 18 notches (all of GDLM 50 v2's zigzag, GDLM 44, 45).
 - **A route check needs the human route too**: score.js's `skips` gate follows the solver's run, which
   went through GDLM 51's last cube portal while the natural replay flew over it. Frame a flying mode's
   exit portal on all sides (a roof AND a wall up to the top of the band). (Round 1.)
