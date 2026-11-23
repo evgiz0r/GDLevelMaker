@@ -187,6 +187,12 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   on the drop's brightest frame (one sky flash, not two). Behind a portal a dark disc, never a lit one.
   `node tools/shoot.js` the drop. (design.md; players_say.md: saws taken for orbs; POLISH.md hellgate)
 
+- [ ] **A generator change does not silently change other levels**: before pushing a change to
+  patterns.js / structures.js / compose.js / decorate.js / make.js, `node tests/generator_impact.js` lists
+  every level whose gameplay would change when rebuilt; tell each owner, or keep the old shape with a
+  pattern option in that spec (e.g. orb-pit `"asym": true`). (GDLM 50 eclipse, changed by a wave fix
+  made for hellgate)
+
 ## Name, description, signature (the user, 2026-11-23)
 
 - [ ] **The name is final from the first upload**: the GD server refuses a renamed shared level, so the
