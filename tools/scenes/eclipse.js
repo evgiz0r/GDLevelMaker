@@ -156,9 +156,9 @@ module.exports = function ({ objects, header, beatX }) {
   out.push(K.alpha(T0, G.frame, 0.85, 0), K.alpha(S[1][0], G.frame, 0, 1), K.alpha(S[2][0], G.frame, 0.9, 0), K.alpha(S[3][0], G.frame, 0, 1), K.alpha(S[4][0], G.frame, 0.6, 2));
 
   // ---- title and credits ----
-  out.push(K.text(240, 190, "ECLIPSE", 1.9, { z: "B1", groups: [G.title] }));
-  out.push(K.text(240, 155, "GDLM 50", 0.6, { z: "B1", groups: [G.title] }));
-  out.push(K.alpha(S[0][0] + 330, G.title, 0, 1));
+  out.push(K.text(615, 190, "ECLIPSE", 1.9, { z: "B1", groups: [G.title] }));
+  out.push(K.text(615, 155, "GDLM 50", 0.6, { z: "B1", groups: [G.title] }));
+  out.push(K.alpha(S[0][0] + 900, G.title, 0, 1));
   const cx = barX(21) + 330;
   out.push(K.text(cx, 180, "ECLIPSE", 1.5, { z: "B1", groups: [G.credits] }));
   out.push(K.text(cx, 145, "song: Uxvellda - Eclipse", 0.5, { z: "B1", groups: [G.credits] }));
