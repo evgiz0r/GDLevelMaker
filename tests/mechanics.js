@@ -151,4 +151,31 @@ for (const hold of [true, false]) {
   const r = GD.solveAny(w);
   check("the sweep flips the swing past floor and roof walls", r.ok && !GD.run(w, r.events).dead, r.ok ? `${r.clicks.filter(c => c.type === "press").length} presses` : `dies at ${r.dieAt && r.dieAt.x.toFixed(0)}`);
 }
+// ---- dual (lib/dual.js; GD's rules from the 2.2081 decompile, PHYSICS.md "Dual") ----
+{
+  const DP = (x, y) => ({ id: 286, x, y }), SOLO = (x, y) => ({ id: 287, x, y });
+  const runTo = (w, X, press) => { const s = GD.startState(w); while (!s.dead && s.x < X) GD.step(w, s, press && press(s) ? { press: true, held: true } : { press: false, held: false }); return s; };
+  // the portal spawns player 2 mirrored: it falls to the band's roof (300 units, ASSUMED for a cube)
+  const w1 = GD.makeWorld([DP(300, 60), { id: 1, x: 1500, y: 15 }]);
+  const a = runTo(w1, 900);
+  check("dual: player 2 spawns upside down and rides the roof", !a.dead && a.p2 && a.p2.grav === -1 && Math.abs(a.p2.y - 285) < 0.01 && a.y === 15, a.p2 ? `p1 ${a.y.toFixed(0)} p2 ${a.p2.y.toFixed(1)} grav ${a.p2.grav}` : a.why);
+  // one button: a press jumps both, player 2 away from its roof
+  let low = Infinity; const b = runTo(w1, 1000, s => { if (s.p2 && s.x > 850) low = Math.min(low, s.p2.y); return s.x > 900 && s.x < 905; });
+  check("dual: one press jumps both players, mirrored (p2 tops out a jump below the roof)", !b.dead && Math.abs(low - 221.2) < 0.5, `p2 lowest ${low.toFixed(0)}`);
+  // either one dying is a death: a spike hanging from the roof kills player 2
+  const c = runTo(GD.makeWorld([DP(300, 60), { id: 8, x: 900, y: 285, flipY: true }, { id: 1, x: 1500, y: 15 }]), 1200);
+  check("dual: player 2 dies on a roof spike", c.dead && /player 2/.test(c.why), c.dead ? c.why : "alive");
+  // a mode portal switches only the player that touches it
+  const d = runTo(GD.makeWorld([DP(300, 60), { id: 13, x: 600, y: 45 }, { id: 1, x: 1500, y: 15 }]), 700);
+  check("dual: a ship portal low down switches only player 1", d.mode === "ship" && d.p2 && d.p2.mode === "cube", `${d.mode} / ${d.p2 && d.p2.mode}`);
+  // a gravity portal flips the toucher, and the other one too while they share a mode (they stay mirrored)
+  const e = runTo(GD.makeWorld([DP(300, 60), { id: 11, x: 600, y: 45 }, { id: 1, x: 1500, y: 15 }]), 900);
+  check("dual: a gravity portal keeps both mirrored", e.grav === -1 && e.p2 && e.p2.grav === 1 && Math.abs(e.y - 285) < 0.01 && e.p2.y === 15, `p1 ${e.grav} at ${e.y.toFixed(0)}, p2 ${e.p2 && e.p2.grav} at ${e.p2 && e.p2.y.toFixed(0)}`);
+  // the solo portal: the player that touched it goes on (here player 2, on the roof)
+  const f = runTo(GD.makeWorld([DP(300, 60), SOLO(900, 255), { id: 1, x: 1500, y: 15 }]), 1000);
+  check("dual: the solo portal keeps the player that touched it", !f.p2 && !f.dualBand && f.grav === -1, `p2 ${!!f.p2}, grav ${f.grav}, y ${f.y.toFixed(0)}`);
+  // the solver takes the dual portal (no secret way around it) and gets both players past their spikes
+  const g = GD.solveAny(GD.makeWorld([DP(300, 60), { id: 8, x: 800, y: 15 }, { id: 8, x: 1100, y: 285, flipY: true }, SOLO(1400, 60), { id: 1, x: 1800, y: 15 }]));
+  check("dual: the solver clears a dual part with one button", g.ok, g.ok ? `${g.clicks.filter(c => c.type === "press").length} presses` : `${g.why} ${g.skipped || ""}`);
+}
 process.exit(bad ? 1 : 0);

@@ -104,6 +104,7 @@
 <script src="../lib/objects_extra.js"></script>
 <script src="../lib/objects_gd22.js"></script>
 <script src="../lib/objects.js"></script>
+<script src="../lib/dual.js"></script>
 <script src="../lib/physics.js"></script>
 <script src="../lib/sync.js"></script>
 <script src="../lib/look.js"></script>
@@ -740,18 +741,21 @@ function draw() {
   } }
   if (!SHOOT) { drawDeaths(); drawMarks(); drawInput(k); } else if (window.SHOOT_INPUT) drawInput(k);
   // ship corridor
-  if (s.mode === "ship" && !SHOOT) {
+  if ((s.mode === "ship" || s.dualBand) && !SHOOT) {
     ctx.strokeStyle = "rgba(255,90,210,.6)"; ctx.lineWidth = 3;
     for (const yy of [s.floorY, s.ceilY]) { ctx.beginPath(); ctx.moveTo(0, sy(yy)); ctx.lineTo(W, sy(yy)); ctx.stroke(); }
   }
   // the player
   // the player, drawn by its mode (a cube in every mode read wrong: "the wave looks like cube")
-  if (MAPCAM) {} else if (LS) GD.LOOK.drawPlayer(ctx, view, s, L.held[k], local, (P.SPEEDS[s.sp] || P.SPEEDS[1]).x, sc ? GD.ART_LIB.drawIcon : null);
-  else if (s.mode === "ship") drawShip(s);
-  else if (s.mode === "wave") drawWave(s);
-  else if (s.mode === "ball") drawBall(s);
-  else if (s.mode === "ufo") drawUfo(s);
-  else drawCube(s);
+  // dual (lib/dual.js): player 2's own fields are in s.p2; it is drawn the same way, at its own height
+  for (const ps of s.p2 ? [s, Object.assign({}, s, s.p2)] : [s]) {
+  if (MAPCAM) {} else if (LS) GD.LOOK.drawPlayer(ctx, view, ps, L.held[k], local, (P.SPEEDS[ps.sp] || P.SPEEDS[1]).x, sc ? GD.ART_LIB.drawIcon : null);
+  else if (ps.mode === "ship") drawShip(ps);
+  else if (ps.mode === "wave") drawWave(ps);
+  else if (ps.mode === "ball") drawBall(ps);
+  else if (ps.mode === "ufo") drawUfo(ps);
+  else drawCube(ps);
+  }
   if (showHit) { const hh = s.mini ? 9 : 15; ctx.strokeStyle = "#fff"; rectW({ x0: s.x - hh, x1: s.x + hh, y0: s.y - hh, y1: s.y + hh }); ctx.strokeStyle = "#f0f"; rectW({ x0: s.x - 4.5, x1: s.x + 4.5, y0: s.y - 4.5, y1: s.y + 4.5 }); }
   // the click table row of the input just made (the button strip shows it in the view)
   L.sol.clicks.forEach((c, i) => {

@@ -175,9 +175,44 @@ stop is another "sky" death near the ball part, not looked at). Not modelled: "m
 (100), the player carried sideways by a moving block, multi-trigger (87).
 The viewer draws moved, turned and switched-off objects where they are at each moment (GD.posedObjects).
 
+## Dual (lib/dual.js, 2026-11-23; owner: the dual/moving-objects session)
+
+Two players, one button. A level with dual portals (286 on, 287 off) steps through `GD.dualStep`; a level
+without them runs exactly the old code (`w.hasDual` false). Player 1's fields stay at the top of the state
+(`s.y`, `s.mode`...), player 2's are in `s.p2` (a fresh object every tick); x, tick, speed, triggers and the
+band flag are shared. The viewer draws both players and the band lines.
+
+What GD 2.2 does, read from iArtie's 2.2081 decompile (`local/src/GD-2.2081-Decompiled`, a clone for
+reading only; GJBaseGameLayer `toggleDualMode`, `playerWillSwitchMode`, `flipGravity`, the DualPortal /
+SoloPortal cases; PlayerObject `copyAttributes`):
+| rule | source | in sim | checked |
+|---|---|---|---|
+| dual portal: player 2 = a copy of player 1 (place, mode, size, y speed), gravity flipped (y speed halved) | toggleDualMode -> spawnFromPlayer (body not in the decompile; copyAttributes is) | yes | tests/mechanics.js |
+| same input for both; either death ends the run (`why` "player 2: ...") | update loop steps both | yes | tests |
+| mode and size portals switch ONLY the player touching them | switchToFlyMode(player) / togglePlayerScale(player) | yes | tests |
+| a player switching into the mode the other is in takes the other's opposite gravity (ship, cube, ball, UFO, robot, spider, swing; NO wave case in the decompile: gap or real, unknown) | playerWillSwitchMode | yes | - |
+| gravity portals, blue/green orbs, gravity dash orbs, blue pads flip the other player too while both are in the same mode (they stay mirrored); ball taps, swing flips, spider teleports flip only their own | GJBaseGameLayer::flipGravity vs PlayerObject::flipGravity | yes | tests (portal) |
+| solo portal: the player that touched it goes on (player 1 copies player 2 when player 2 touched it) | toggleDualMode(false) | yes | tests |
+| in dual every mode has a floor and a roof | checkCollisions: `isFlyingMode = ... || m_isDualMode` | yes | - |
+| band height in dual: ASSUMED the larger of the two players' bands, cube/robot 300 like the ship, centred on the portal that set it (dual portal, or a mode portal in dual) like a flying portal's | updateDualGround's body is not in the decompile | yes | NOT checked |
+| speed: shared (both players are at one x) | - | yes | - |
+| camera: centred on the band (animateInDualGroundNew, tween 0.4 s) | decompile | viewer only | - |
+Not modelled: two-player mode (level setting, separate buttons), start-in-dual (level setting), the
+cube hitting the band roof head-first (treated as safe, like the ship).
+
+Solvers: the state key has player 2's part (`GD.dualKey`); portal requirements (no-skip) count either
+player's used objects and either player's distance; dual levels go to the sweep (the exact cube solver
+knows one player).
+
+Official levels (dual portals): Hexagon Force 351.7-503.4 (cube), 640.3-709.8 (ball), 944.8-995.2 (mini
+ship); Blast Processing 512.3-554.0 (wave); Deadlocked 859.2-910.9 (wave). Before this, 286/287 were
+"unsupported" (a death on touch, and NOT on the no-skip list), so Hexagon Force's "beaten" and Blast
+Processing's 78% went around every dual portal: secret ways. Their saved routes, replayed with dual:
+Hexagon Force dies at 362.8 (player 2 on a spike), Blast Processing at 564.4. Re-solves: see below.
+
 ## Not in the sim yet (the game has it)
 
-Modes/portals: dual (286/287), mirror. Teleport portals (747) are in, unchecked: same x, speed kept, exit height = portal y + key 54 along the portal's turned axis (54 x cos(rotation)), but the full 54 straight up/down when key 55 is set or the portal is turned a quarter (90/-90/270: cos would make it a no-op; Deadlocked's ball part 441-561 passes only so, neither "no move" nor "x moves by 54" does -- "angle mod 90" fits the same cases) (fitted on Deadlocked, 2026-11-23: its -53 degree portal at block 76.5 needs the turned offset to pass under a spike; its -46 degree portal with 55 at 360.8 lands exactly on the gravity + speed portals 224 below; whether GD also moves x is not known; smooth teleport and the 2.2 options 345+ not modelled); first used by Deadlocked at block 77, Fingerdash 205, Dash 435. Triggers: count/pickup items,
+Modes/portals: mirror. Teleport portals (747) are in, unchecked: same x, speed kept, exit height = portal y + key 54 along the portal's turned axis (54 x cos(rotation)), but the full 54 straight up/down when key 55 is set or the portal is turned a quarter (90/-90/270: cos would make it a no-op; Deadlocked's ball part 441-561 passes only so, neither "no move" nor "x moves by 54" does -- "angle mod 90" fits the same cases) (fitted on Deadlocked, 2026-11-23: its -53 degree portal at block 76.5 needs the turned offset to pass under a spike; its -46 degree portal with 55 at 360.8 lands exactly on the gravity + speed portals 224 below; whether GD also moves x is not known; smooth teleport and the 2.2 options 345+ not modelled); first used by Deadlocked at block 77, Fingerdash 205, Dash 435. Triggers: count/pickup items,
 scale, follow, on death, collision blocks, area triggers, gravity trigger, time warp. Others:
 keys and user coins (collectables only), start positions (levels always start at x 0), practice
 checkpoints, speed portals touched mid-air at a slant, force blocks, platformer mode, dash orbs'
