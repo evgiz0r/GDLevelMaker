@@ -278,7 +278,9 @@ const PK = { f: "all", sel: 0, rows: [], meta: new Map() };
 const pkStore = (k, v) => { try { if (v === undefined) return JSON.parse(localStorage.getItem("gdlm." + k) || "[]"); localStorage.setItem("gdlm." + k, JSON.stringify(v)); } catch (e) { return []; } };
 const pkCat = l => l.wip || (l.session && l.version) ? "wip" : /official/.test(String(l.file)) || l.official != null ? "official" : /community/.test(String(l.file)) ? "community" : "ours";
 const pkKey = l => String(l.name || l.file).toLowerCase().replace(/\s+v\d+$/, "").trim();
-const pkWhen = l => l.updated ? Date.parse(l.updated) || 0 : 0;
+// when the level (this version) was made: wip `made` (first put of this content), a pushed level's commit time;
+// officials and community levels have none. Never a re-stamp (wip `updated` is only a fallback for old rows)
+const pkWhen = l => Date.parse(l.made || (l.wip || l.session ? l.updated : "") || "") || 0;
 const pkEsc = x => String(x).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 function pkBadge(l) {
   return pkCat(l) === "wip" ? `<span class="pkBadge wip">wip v${l.version || "?"}${l.session ? " · " + pkEsc(l.session) : ""}</span>` : `<span class="pkBadge">${pkCat(l) === "ours" ? "main" : pkCat(l)}</span>`;
@@ -331,7 +333,7 @@ function pkRender() {
   PK.rows = rec.concat(rest); PK.sel = Math.min(PK.sel, Math.max(0, PK.rows.length - 1));
   const card = (r, n) => { const l = ALL[r.is[0]];
     return `<div class="pkCard${n === PK.sel ? " sel" : ""}" data-n="${n}"><canvas data-i="${r.is[0]}"></canvas><div class="pkInfo"><div class="pkName">${pkEsc(l.name)}${cur && cur.file === l.file && cur.version === l.version ? " · <span style='color:var(--cube)'>open</span>" : ""}</div>` +
-      `<div class="pkMeta">${pkBadge(l)}<span data-meta="${r.is[0]}"></span>${pkWhen(l) ? " · " + pkAgo(pkWhen(l)) : ""}</div>` +
+      `<div class="pkMeta">${pkBadge(l)}<span data-meta="${r.is[0]}"></span>${pkWhen(l) ? " · made " + pkAgo(pkWhen(l)) : ""}</div>` +
       (r.is.length > 1 ? `<div class="pkOlder">${r.is.slice(1, 8).map(i => `<button data-open="${i}">${pkCat(ALL[i]) === "wip" ? "wip v" + (ALL[i].version || "?") + (ALL[i].session ? " " + pkEsc(ALL[i].session) : "") : "main"}</button>`).join("")}</div>` : "") +
       `</div><button class="pkPin${pins.includes(r.k) ? " on" : ""}" data-pin="${pkEsc(r.k)}" title="pin">★</button></div>`; };
   el.innerHTML = (rec.length ? `<div class="pkHead">recent</div>` + rec.map((r, n) => card(r, n)).join("") : "") +

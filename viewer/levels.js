@@ -24,8 +24,9 @@ window.GD_LEVELS = [
    "physics": "c39a889",
    "solvedAt": "2026-11-22T21:27:39.837Z",
    "stale": true,
-   "replayedOn": "951ebb4"
-  }
+   "replayedOn": "d74c788"
+  },
+  "made": "2026-11-22T15:14:30.000Z"
  },
  {
   "name": "GDLM 02 on the beat",
@@ -131,8 +132,9 @@ window.GD_LEVELS = [
    "physics": "c39a889",
    "solvedAt": "2026-11-22T21:27:39.836Z",
    "stale": true,
-   "replayedOn": "951ebb4"
-  }
+   "replayedOn": "d74c788"
+  },
+  "made": "2026-11-22T18:20:38.000Z"
  },
  {
   "name": "GDLM 41 classic",
@@ -278,8 +280,9 @@ window.GD_LEVELS = [
    "physics": "c39a889",
    "solvedAt": "2026-11-22T21:27:39.836Z",
    "stale": true,
-   "replayedOn": "951ebb4"
-  }
+   "replayedOn": "d74c788"
+  },
+  "made": "2026-11-22T17:00:11.000Z"
  },
  {
   "name": "GDLM 42 seen then gone",
@@ -457,8 +460,9 @@ window.GD_LEVELS = [
    "physics": "c39a889",
    "solvedAt": "2026-11-22T21:27:39.834Z",
    "stale": true,
-   "replayedOn": "951ebb4"
-  }
+   "replayedOn": "d74c788"
+  },
+  "made": "2026-11-22T17:57:37.000Z"
  },
  {
   "name": "GDLM 43 climb",
@@ -684,8 +688,9 @@ window.GD_LEVELS = [
    "physics": "c39a889",
    "solvedAt": "2026-11-22T21:27:39.833Z",
    "stale": true,
-   "replayedOn": "951ebb4"
-  }
+   "replayedOn": "d74c788"
+  },
+  "made": "2026-11-22T17:57:37.000Z"
  },
  {
   "name": "GDLM 44 hellgate",
@@ -928,8 +933,9 @@ window.GD_LEVELS = [
    "plan": "c1dfa6e",
    "solvedAt": "2026-11-23T19:08:56.432Z",
    "stale": true,
-   "replayedOn": "951ebb4"
-  }
+   "replayedOn": "d74c788"
+  },
+  "made": "2026-11-23T19:47:17.000Z"
  },
  {
   "name": "GDLM 45 first flight",
@@ -1554,8 +1560,11 @@ window.GD_LEVELS = [
      -1
     ]
    ],
-   "win": "a65ea6d"
-  }
+   "win": "a65ea6d",
+   "stale": true,
+   "replayedOn": "d74c788"
+  },
+  "made": "2026-11-23T20:49:11.000Z"
  },
  {
   "name": "GDLM 46 arrow catalogue",
@@ -1572,8 +1581,9 @@ window.GD_LEVELS = [
    "physics": "c39a889",
    "solvedAt": "2026-11-23T01:01:54.129Z",
    "stale": true,
-   "replayedOn": "951ebb4"
-  }
+   "replayedOn": "d74c788"
+  },
+  "made": "2026-11-23T01:14:26.000Z"
  },
  {
   "name": "GDLM 46 sketch",
@@ -1832,8 +1842,9 @@ window.GD_LEVELS = [
    "plan": "c1dfa6e",
    "solvedAt": "2026-11-23T18:36:34.772Z",
    "stale": true,
-   "replayedOn": "951ebb4"
-  }
+   "replayedOn": "d74c788"
+  },
+  "made": "2026-11-23T04:17:11.000Z"
  },
  {
   "name": "GDLM 47 sunny side",
@@ -1843,7 +1854,8 @@ window.GD_LEVELS = [
    "url": "/song/custom/311087.mp3",
    "id": 311087,
    "offset": 0
-  }
+  },
+  "made": "2026-11-23T19:48:02.000Z"
  },
  {
   "name": "GDLM 50 eclipse",
@@ -2446,8 +2458,9 @@ window.GD_LEVELS = [
    "plan": "42fb451",
    "solvedAt": "2026-11-23T18:50:28.485Z",
    "stale": true,
-   "replayedOn": "951ebb4"
-  }
+   "replayedOn": "d74c788"
+  },
+  "made": "2026-11-23T19:09:51.000Z"
  },
  {
   "name": "GDLM 51 adrift",
@@ -2786,8 +2799,9 @@ window.GD_LEVELS = [
    "solvedAt": "2026-11-23T18:32:50.799Z",
    "plan": "42fb451",
    "stale": true,
-   "replayedOn": "951ebb4"
-  }
+   "replayedOn": "d74c788"
+  },
+  "made": "2026-11-23T19:09:51.000Z"
  },
  {
   "name": "GDLM 60 physics lab",
@@ -2966,8 +2980,9 @@ window.GD_LEVELS = [
    "plan": "42fb451",
    "solvedAt": "2026-11-23T18:19:13.578Z",
    "stale": true,
-   "replayedOn": "951ebb4"
-  }
+   "replayedOn": "d74c788"
+  },
+  "made": "2026-11-23T18:20:11.000Z"
  },
  {
   "name": "GDLM 61 lantern towers",
@@ -3330,8 +3345,9 @@ window.GD_LEVELS = [
    "plan": "c1dfa6e",
    "solvedAt": "2026-11-23T19:41:45.347Z",
    "stale": true,
-   "replayedOn": "951ebb4"
-  }
+   "replayedOn": "d74c788"
+  },
+  "made": "2026-11-23T19:46:51.000Z"
  },
  {
   "name": "GDLM prop test",
@@ -3341,7 +3357,8 @@ window.GD_LEVELS = [
    "url": "/song/official/StereoMadness.mp3",
    "official": 0,
    "offset": 0
-  }
+  },
+  "made": "2026-11-23T19:59:51.000Z"
  },
  {
   "name": "cube timings",
@@ -3455,7 +3472,8 @@ window.GD_LEVELS = [
    "physics": "7924db0",
    "solvedAt": "2026-11-23T03:47:42.285Z",
    "stale": true,
-   "replayedOn": "951ebb4"
-  }
+   "replayedOn": "d74c788"
+  },
+  "made": "2026-11-22T15:14:30.000Z"
  }
 ];
