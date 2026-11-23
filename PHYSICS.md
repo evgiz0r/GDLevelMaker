@@ -245,7 +245,9 @@ skips something, its 99% wrong. and will cause trouble. and anyway not the human
    every choice between two valid routes (each flying stretch: the solver's line or the controller's; at the
    end: the natural route or the solver's own) keeps the lower cost. Without it (make.js and other quick
    paths) the rules of thumb decide: fewer close passes, then fewer presses.
-   Cost: one humanCost is ~30 s on GDLM 44 (window measuring of ship holds); cached per route.
+   Cost: the first humanCost of a level is ~30 s on GDLM 44 (window measuring); measureWindows caches each
+   window on the world `w` (difficulty, 48eeeac), so later candidates of the same level cost ~0.15-2 s.
+   natural.js keeps one `w` per level for that reason.
 5. **Calibration (open):** tools/human_presses.js measures where the user really presses in each window
    from recordings; the difficulty session fits humanCost's `centre` weight (and the 40%) to it.
 
