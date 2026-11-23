@@ -215,7 +215,10 @@ skips something, its 99% wrong. and will cause trouble. and anyway not the human
 - A route that passes a **portal** (mode, gravity, speed, size, teleport) without taking it is REJECTED in
   every solver (lib/physics.js solveSweep: dropped from the search; solveAny: an exact cube route that skips
   falls back to the ranked sweep). Portals of the same effect stacked within 30 units of x count as one: any
-  of them is enough.
+  of them is enough. A portal is a requirement only when some state of the search came within 60 units
+  of it (2 blocks): a decorative portal far off the play (ClockWood's ball portal 22 blocks up, Spooky
+  Dash's teleport at y 1605) is not, and a finished solve names such portals in `outOfReach`. One the
+  search got near and never took is the "stuck" case.
 - An **orb or pad** is "clearly meant to be taken" when the route's player box comes within 15 units of it
   (on the route's own line). The sweep already takes as many orbs as any route can, so a finished route that
   still leaves one like that is reported stuck: `why: "skipped an orb/pad"`, `skipped: "<name> at x <x>"`.
@@ -227,6 +230,24 @@ skips something, its 99% wrong. and will cause trouble. and anyway not the human
   corridor); the sky limit (300 above the highest object) is the only guard.
 - `opts.allowSkips` brings back the old ranking for debugging only. Tests: tests/mechanics.js "no-skip".
 - The shared check is `GD.skipCheck(w, path, events)` (null = clean; else the stuck result).
+
+## How the route is chosen (the natural route)
+
+1. **Valid first (hard rule):** a route must finish and skip nothing ("No secret ways" above).
+2. **The search** (lib/physics.js solveSweep) ranks the states it keeps by: portals skipped (rejected), orbs and
+   pads skipped, ticks close to walls in flying modes, then presses.
+3. **The natural plan** (lib/natural.js) makes candidates from the solver's route: one tap per jump, no
+   unneeded press, a flying controller's line per ship/wave/UFO/swing stretch, taps moved ~40% into their
+   windows.
+4. **The judge: human cost** (lib/difficulty.js humanCost, the difficulty session's: the difficulty score of
+   exactly these inputs, plus presses, distance from the window middle, missed jump marks, beat; lower is
+   better). With `naturalPlan(..., { cost: true })`, which tools/solutions.js uses when it saves a route,
+   every choice between two valid routes (each flying stretch: the solver's line or the controller's; at the
+   end: the natural route or the solver's own) keeps the lower cost. Without it (make.js and other quick
+   paths) the rules of thumb decide: fewer close passes, then fewer presses.
+   Cost: one humanCost is ~30 s on GDLM 44 (window measuring of ship holds); cached per route.
+5. **Calibration (open):** tools/human_presses.js measures where the user really presses in each window
+   from recordings; the difficulty session fits humanCost's `centre` weight (and the 40%) to it.
 
 ## The intended route (solver ranking)
 

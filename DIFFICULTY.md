@@ -241,6 +241,18 @@ every tool: lib/windows.js inputWindows calls it (viewer, tools/windows.js, scor
 (it should stay held until the jump fires), and a re-planned window can come out narrower than the strict
 one (GDLM 60's dash-orb release, tick 3052): it should contain it.
 
+### Human cost: which valid route a person plays (2026-11-23)
+
+The user: the natural route is "the valid route with the lowest human cost". `humanCost(w, events, opts)` in
+lib/difficulty.js returns `{ cost, terms, actions, complete }`, lower is better, in log10-attempts units:
+`windows` (the difficulty score of exactly this route: lenient windows, settling after portals; no humanize, no
+route choice -- the caller's candidates are the choice), `presses` 0.01 each, `centre` 0.02 x how far each input
+sits from its window's middle (0..1), `marks` 0.05 per jump mark with no press within 60 units, `beat`
+(opts.beats, off by default) 0.005 x seconds off the nearest beat per press. Wall clearance and mid-corridor
+flying stay in the solver's own ranking. Physics calls it from lib/natural.js to pick among candidate routes.
+Test: `node tests/human_cost.js`. Open: the weights are set by hand; fit `centre` on where the user really
+presses in a window (physics brings those from the recordings).
+
 ### Where the sim stops (2026-11-23, physics 119344c)
 
 The three unbeaten official levels each stop on a physics gap, not on a bad route: the route up to
