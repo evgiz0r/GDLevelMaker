@@ -156,15 +156,15 @@ in the sim; Fingerdash stops at 6% at a black orb where gdsolver's real-game pla
 | 9 | Cycles | Harder 9 | 100% | 108 | 0 | 63 | 0.63 | 0.48 | 127 |
 | 10 | xStep | Insane 10 | 100% | 115 | 6 | 17 | 1.21 | 0.90 | 114 |
 | 11 | Clutterfunk | Insane 11 | 100% | 159 | 1 | 42 | 0.81 | 0.52 | 456 |
-| 12 | Theory of Everything | Insane 12 | route skips 6 portals (blocks 775-824): no number | | | | | | 170 |
-| 13 | Electroman Adventures | Insane 10 | route skips a gravity portal (block 804): no number | | | | | | 285 |
+| 12 | Theory of Everything | Insane 12 | 100% | 112 | 3 | 58 | 2.89 | 2.11 | 170 |
+| 13 | Electroman Adventures | Insane 10 | route skips the UFO portal at block 528: no number | | | | | | 285 |
 | 14 | Clubstep | Demon 14 | 100% | 161 | 5 | 33 | 2.42 | 1.70 | 1886 |
-| 15 | Electrodynamix | Insane 12 | 100% | 132 | 3 | 25 | 2.26 | 1.57 | 560 |
+| 15 | Electrodynamix | Insane 12 | route skips 3x (664), ball (839), cube + size (898): no number | | | | | | 560 |
 | 16 | Hexagon Force | Insane 12 | 100% (saved route now stops at block 563: re-solve) | 136 | 0 | 63 | 0.79 | 0.55 | 249 |
 | 17 | Blast Processing | Harder 10 | 78% | 125 | 1 | 58 | 0.84 | 0.66 | 203 |
-| 18 | Theory of Everything 2 | Demon 14 | 52% | 86 | 7 | 13 | 1.55 | 1.99 | 3258 |
+| 18 | Theory of Everything 2 | Demon 14 | route skips the 2x portal at block 501: no number | | | | | | 3258 |
 | 19 | Geometrical Dominator | Harder 10 | 100% | 206 | 0 | 67 | 1.43 | 0.89 | 191 |
-| 20 | Deadlocked | Demon 15 | route skips 5 portals (teleports at blocks 76-534): no number | | | | | | 3951 |
+| 20 | Deadlocked | Demon 15 | 58% | 141 | 7 | 17 | 3.69 | 3.84 | 3951 |
 | 21 | Fingerdash | Insane 12 | 5% | - | - | - | - | - | 296 |
 | 22 | Dash | Harder 10 | route skips the cube + 1x portals at block 91: no number | | | | | | 477 |
 
@@ -172,18 +172,22 @@ Fingerdash is left out: a sim bug stops it at block 55, being fixed by the physi
 
 **No secret ways (the user, 2026-11-23: "if the solver skips something, its 99% wrong").** A route that
 skips a portal gets no number: on an official level it is a physics bug at that portal (listed with the
-physics session). `node tools/skips.js [n]` checks every saved route (a portal that would change nothing
-there, or a twin in the same column the route takes, is not a skip). Four skip: Theory of Everything,
-Electroman, Deadlocked, Dash; the physics session re-solves them under the new rule in lib/physics.js.
-Before the rule their rows were 2.89 / 0.72 / 3.69 / 1.80. Hexagon Force's saved route no longer finishes
-on today's physics (its numbers are from the older route, kept until the re-solve).
+physics session). `node tools/skips.js [n]` checks every saved route: a portal counts as taken only when the
+sim fired it (a box overlap is not enough: Electrodynamix's mini ship clipped a cube portal's corner by 6 units
+and stayed a ship -- the user saw it in the viewer at 71 s). Not a skip: a portal that would change nothing
+there, a twin with the same effect in the same column that fired, or one more than 2 blocks off the route
+(decoration; physics' rule: Theory of Everything's six end portals hang 26 blocks above a floor route). Four
+skip: Electroman (UFO 528), Electrodynamix (3x 664, ball 839, cube + size 898), Theory of Everything 2 (2x 501),
+Dash (cube + 1x 91); physics re-solves them under the rule now in lib/physics.js. Their old rows were 0.72 /
+2.26 / 1.55 / 1.80. Hexagon Force's saved route no longer finishes on today's physics (its numbers are from the
+older route, kept until the re-solve).
 
 **Rank agreement over the other 17** (`node tools/difficulty.js --cached`, from the report's cache):
 
 | | per minute vs stars | score vs stars | per minute vs your attempts |
 |---|---|---|---|
-| route choice, no settle factor | 0.77 | 0.74 | 0.54 |
-| **with settling after portals (in use)** | **0.86** | **0.87** | 0.60 |
+| route choice, no settle factor | 0.64 | 0.55 | 0.46 |
+| **with settling after portals (in use)** | **0.85** | **0.88** | 0.47 |
 
 (Over 21, skipping routes counted, it was 0.67 / 0.64 / 0.64 and 0.82 / 0.88 / 0.60.)
 
@@ -221,16 +225,16 @@ alone (`node tools/difficulty_parts.js`):
 
 | measure | vs stars | vs your attempts |
 |---|---|---|
-| clicks per second | 0.49 | 0.42 |
-| tightest window | 0.76 | 0.74 |
-| share of inputs under 60 ms | 0.69 | 0.59 |
-| windows alone (summed miss chance) | 0.74 | 0.54 |
-| windows per minute (windows + CPS) | 0.77 | 0.54 |
-| full model (+ settling after portals, route choice) | **0.87** | 0.62 |
+| clicks per second | 0.40 | 0.50 |
+| tightest window | 0.73 | 0.69 |
+| share of inputs under 60 ms | 0.68 | 0.46 |
+| windows alone (summed miss chance) | 0.55 | 0.49 |
+| windows per minute (windows + CPS) | 0.64 | 0.46 |
+| full model (+ settling after portals, route choice) | **0.88** | 0.51 |
 
-So windows plus CPS get most of the ranking (0.77); CPS alone is weak (a busy level is not
-necessarily a hard one). The time to settle after a portal adds the rest of what is measured
-(0.77 -> 0.87). Not in any number yet, and likely the rest: reading and memory (blind or fake
+So windows plus CPS get about two thirds of the ranking (0.64); CPS alone is weak (a busy level is
+not necessarily a hard one); the tightest single window alone does better (0.73). The time to settle after a
+portal adds the rest of what is measured (0.64 -> 0.88). Not in any number yet, and likely the rest: reading and memory (blind or fake
 routes, first-try sight-reading), visibility (deco, camera, speed), and consistency over length (one
 hard spot at 90% costs more attempts than at 10%). The user's own attempts follow the stars at 0.73.
 
