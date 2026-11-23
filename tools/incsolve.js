@@ -52,7 +52,7 @@ function full(level) {
 function incremental(oldLevel, oldEvents, level, opts) {
   opts = opts || {};
   const t0 = Date.now();
-  const r = I.fromBase(oldLevel, oldEvents, level), w = r.w || GD.makeWorld(level.objects, level.header), inf = r.inf;
+  const r = I.fromBase(oldLevel, oldEvents, level, { windowCache: opts.windowCache }), w = r.w || GD.makeWorld(level.objects, level.header), inf = r.inf;
   if (r.fallback) { if (opts.noFallback) return { ok: false, fallback: r.fallback, ms: Date.now() - t0 };
     const f = full(level); return Object.assign(f, { fallback: r.fallback, ms: Date.now() - t0 }); }
   const tr = Date.now() - t0;
@@ -87,7 +87,8 @@ function study(file, opts) {
   const rand = rng(opts.seed || 1), out = path.join(__dirname, "..", "local", "incsolve"); fs.mkdirSync(out, { recursive: true });
   for (let k = 0; k < (opts.edits || 3); k++) {
     const e = randomEdit(L.level, rand); if (!e) break;
-    const inc = incremental(L.level, base.events, e.level, { noFallback: opts.noFull });
+    const wc = require("./inc_store.js").loadWindowCache(SOL.keyOf(L.levelStr));
+    const inc = incremental(L.level, base.events, e.level, { noFallback: opts.noFull, windowCache: wc });
     const fu = opts.noFull ? null : full(e.level);
     const row = { level: path.basename(file), edit: e.what, inc: { ok: inc.ok, cost: inc.cost, presses: inc.presses, ms: inc.ms, resolveMs: inc.resolveMs, inNatural: inc.inNatural, from: inc.from, to: inc.to, rejoined: inc.rejoined, reused: inc.reused, fallback: inc.fallback, kind: inc.kind, tries: inc.tries, nojoin: inc.nojoin },
       full: fu && { ok: fu.ok, cost: fu.cost, presses: fu.presses, ms: fu.ms, solveMs: fu.solveMs, naturalMs: fu.naturalMs, inNatural: fu.inNatural, kind: fu.kind }, at: new Date().toISOString() };

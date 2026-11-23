@@ -427,7 +427,7 @@ function make(specFile, specObj) {
   let base = null;
   if (!process.argv.includes("--full") && fs.existsSync(out)) try {
     const old = require("./io.js").readGdlvl(out), sol = require("./solutions.js").get(old.levelStr, true);
-    if (sol && sol.ok && sol.events && sol.events.length) base = { level: old.level, events: sol.events };
+    if (sol && sol.ok && sol.events && sol.events.length) base = { level: old.level, levelStr: old.levelStr, events: sol.events };
   } catch (e) { /* no base: solve whole */ }
   writeGdlvl(out, rec, level);
   let r = report(out, { base });

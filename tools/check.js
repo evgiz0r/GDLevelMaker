@@ -17,7 +17,8 @@ function report(file, opts) {
   let r = null;
   if (opts && opts.base && opts.base.events && opts.base.events.length) {
     try {
-      const inc = require("../lib/incsolve.js").incsolve.fromBase(opts.base.level, opts.base.events, L.level);
+      const wc = opts.base.levelStr ? require("./inc_store.js").loadWindowCache(require("./solutions.js").keyOf(opts.base.levelStr)) : null;
+      const inc = require("../lib/incsolve.js").incsolve.fromBase(opts.base.level, opts.base.events, L.level, { windowCache: wc });
       if (inc.ok) {
         const p = GD.run(w, inc.events).path;
         r = { ok: true, events: inc.events, world: inc.w, inc: { from: inc.from, to: inc.to, rejoined: inc.rejoined, reused: inc.reused || null },
