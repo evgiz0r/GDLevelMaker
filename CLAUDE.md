@@ -157,6 +157,12 @@ half), correct the row here in the same change. Real numbers pile up in `local/t
 | install into the game (`install.js`, game closed) | not timed yet (publisher: `--time install`) | |
 | a server upload | not timed yet (publisher: `--time upload`) | |
 | git pull + push | ~10 s | 2026-11-23 |
+| edit.js, one edit, the old route still clears (re-plan + checks) | see EDITING.md "Results" | 2026-11-23 |
+| edit.js, an edit that needs a full solve | as "make" above for that level | |
+| edit.js before/after picture (two shoot.js frames) | ~20-40 s | shoot.js row |
+| markedit.js: edit + the family's sweep over every GDLM level | edit + see EDITING.md "Results" | |
+| review.js, a level with a saved route (no --gates / --render) | see EDITING.md "Results" | |
+| fix.js (review, fixes, review again) | see EDITING.md "Results" | |
 
 ## Shared folder, work in progress, the user's marks
 
@@ -257,6 +263,13 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   section its role (intro/groove/build/drop/ride/breather/outro), place, palette, mode, transition,
   camera, props; `--brief` writes a compose brief. Owner: the showcase session; props from the gd-art
   session's `tools/props.js`.
+- **Editing, reviewing and fixing levels -- the everyday loop as tools** (EDITING.md: words and ops, spots, what
+  each prints, the families, auto fixes, what is open): `tools/edit.js <level> --at <b45 | t=12.3 | x= | #lv= link>
+  "<change>"` (one change on a COPY, re-solved, checks before/after, before/after picture), `tools/markedit.js`
+  (a viewer mark or a screenshot note -> its soft-rule family -> the edit -> the family swept over every level),
+  `tools/review.js <level>` (every check -> one ranked issue list + a phone page), `tools/fix.js <level>` (review ->
+  the safe fixes on a copy -> review again), `tools/families.js` (every soft-rule family: note words, effect,
+  effort, fix, auto-fix). Test: `node tests/editing.js`.
 - **`tools/heavy.js` -- the one-heavy-job lock** every heavy tool takes on start (see "One heavy job at
   a time"). Test: `node tests/heavy.js`.
 - **`tools/loop.js` -- the whole make/iterate loop in one command** (owner check, ETA, make/compose, score,
