@@ -106,6 +106,42 @@ add only no-collision objects, so they cannot break what came before (the final 
 - GDLM 44's polished v1 is stale (gd-style's v9 came after) and both fail the fairness gate's wave
   entrance; hellgate stays gd-style's (told them about `leadGap`).
 
+## GDLM 44 hellgate rounds (2026-11-23, ongoing)
+
+The user: "continue iterating and making prettier, specifically hell44" -- in rounds, toward the modern
+2.2 look, more synced, gameplay where it helps, every gate green, the name stays "GDLM 44 hellgate".
+How: the look lives in a scene script, `tools/scenes/hellgate.js` (spec key `"scene"`; the spec's gameplay
+stays gd-style's), rebuilt with `node tools/make.js specs/44_hellgate.json --look` in a second. Renders:
+`node tools/shoot.js levels/gdlm_44_hellgate.gdlvl --at 0.8,2.6,4.6,6.6,8.6,10.6 --out local/shots/hg_rN`
+and an ffmpeg 3x2 sheet. Each round goes to wip (`local/wip/polish/`) and its sheet to the main session.
+
+Round 1 (look): one scene per mode, the palette switched at each portal (own channels 30-41); lava glow
+along the ground (blending gradients) pulsed on bars and every beat of the drop; rock spires in two
+parallax layers (thorn sprites 461-466 scaled 2-6x, locked at 0.85 / 0.6); stalactites lowered into the
+ship and wave spans; embers rising (faster and sideways in the flying spans); obsidian blocks with lava
+edges (scenekit designBlocks); chains and skulls in the orb span and the end; a dark top frame; the
+middleground hills recoloured (channels 1013/1014 were icy blue: the worst visual bug of v12).
+
+What made it prettier (in our render):
+- the palette per section plus the lava glow: v12's flat dark red became a lit scene at once;
+- obsidian blocks with lava edges: the white grid skins were the most "editor" thing on screen;
+- a DARK disc behind each portal: it frames the portal and makes it pop.
+
+What did not:
+- a filled light disc (497) or a lit ring (236) behind a portal: a big orange blob that hides it;
+- thorn sprites dense (one every 2-3 blocks): broken glass, not rocks; one every 5-9 blocks reads as rocks
+  (still shard-like: a real rock silhouette recipe is open);
+- fires (920-924) at the ground near the path: they read as hazards next to the cube. Far back (B4), small,
+  dimmed only;
+- a second sky flash at the drop on top of the spec's own: the sky washed out to beige and the white
+  spikes were unreadable on it. Rule: hazards must keep contrast on the brightest frame of the drop.
+
+Round 1 gameplay (the user's note on the round-1 frames, knowledge/critiques.md): the orb chain landed
+in a 2-column gap before a 2-high block (two 4 ms jumps; a late orb press ran into the wall). The spec's
+platform now starts where the spikes end, 1 high and 5 long (2 high failed the fairness gate at the wave
+exit). Tightest window 208 ms over the human route, score.js READY (warns: v12's prejump at block 6, an
+empty last third -- next round's gameplay).
+
 ## How it was tested
 
 - `tests/polish.js`: tap pairing; the window of cube timings' 13 ms input; read + deco add only

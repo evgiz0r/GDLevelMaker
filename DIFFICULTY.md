@@ -134,10 +134,11 @@ session's attempts show up there late.
 
 Report7, 2026-11-23, with route choice and the settle factor. Solved into the shared `local/` and
 tagged with their physics commit (`tools/difficulty_solve.js`). Rows 7, 17, 19 and 20 were re-solved
-by the physics session (physics 7924db0-da4fcf3: wave edge rules, the intended route). The rest are
+by the physics session (7, 17 on 7924db0-61f17d3; 19, 20, 22 on 119344c: wave edge rules, the
+intended route, outline pieces solid, quarter-turned teleports). The rest are
 on 1503b03 and may take a different route on today's sweep, which prefers routes that take every
 portal and orb and keep off walls. Their `physics` stamp shows which are stale. 17 of 22 are beaten
-in the sim.
+in the sim; Fingerdash stops at 6% at a black orb where gdsolver's real-game plan stops too.
 
 | # | level | rating | covers | inputs | tight | min ms | score | /min | your attempts |
 |---|---|---|---|---|---|---|---|---|---|
@@ -159,10 +160,10 @@ in the sim.
 | 16 | Hexagon Force | Insane 12 | 100% | 136 | 0 | 63 | 0.79 | 0.55 | 249 |
 | 17 | Blast Processing | Harder 10 | 78% | 125 | 1 | 58 | 0.84 | 0.66 | 203 |
 | 18 | Theory of Everything 2 | Demon 14 | 52% | 86 | 7 | 13 | 1.55 | 1.99 | 3258 |
-| 19 | Geometrical Dominator | Harder 10 | 100% | 146 | 0 | 67 | 0.86 | 0.54 | 191 |
-| 20 | Deadlocked | Demon 15 | 36% | 97 | 2 | 42 | 2.81 | 4.81 | 3951 |
+| 19 | Geometrical Dominator | Harder 10 | 100% | 206 | 0 | 67 | 1.43 | 0.89 | 191 |
+| 20 | Deadlocked | Demon 15 | 58% | 141 | 7 | 17 | 3.69 | 3.84 | 3951 |
 | 21 | Fingerdash | Insane 12 | 5% | - | - | - | - | - | 296 |
-| 22 | Dash | Harder 10 | 24% | 24 | 3 | 21 | 2.14 | 8.73 | 477 |
+| 22 | Dash | Harder 10 | 26% | 40 | 4 | 8 | 1.80 | 6.49 | 477 |
 
 Fingerdash is left out: a sim bug stops it at block 55, being fixed by the physics session.
 
@@ -170,8 +171,8 @@ Fingerdash is left out: a sim bug stops it at block 55, being fixed by the physi
 
 | | per minute vs stars | score vs stars | per minute vs your attempts |
 |---|---|---|---|
-| route choice, no settle factor | 0.64 | 0.40 | 0.61 |
-| **with settling after portals (in use)** | **0.82** | **0.87** | 0.60 |
+| route choice, no settle factor | 0.67 | 0.64 | 0.64 |
+| **with settling after portals (in use)** | **0.82** | **0.88** | 0.60 |
 
 Stars vs your attempts is 0.73. Before route choice and the physics updates it was 0.66 / 0.61 /
 0.66 (report6), and 0.59 before that.
@@ -182,7 +183,7 @@ extra flap 0.9 s later, which makes up for an off-time first one (1.08 -> 0.48 t
 easier route.
 
 The settle factor is what lifts the upper levels: Insane and Demon levels have many inputs right
-after portals (ToE 2.89, Clubstep 2.42, Electrodynamix 2.26, Deadlocked's first 36% 2.81).
+after portals (ToE 2.89, Clubstep 2.42, Electrodynamix 2.26, Deadlocked's first 58% 3.69).
 
 What it gets right:
 - **The Insane and Demon levels score highest:** ToE 2.89, Clubstep 2.42, Electrodynamix 2.26,
@@ -197,7 +198,7 @@ What it gets wrong:
 - **Hexagon Force, Electroman and Clutterfunk (Insane) score like Harder** (0.5 per minute).
   Route choice found easy routes in Electroman; their difficulty may be in parts the sim plays more
   easily than people do (dual, reading the UFO), or in density (Open 1).
-- **Dash (24%) and Deadlocked (36%) per minute** rest on short covered fragments.
+- **Dash (26%) and Deadlocked (58%) per minute** rest on partly covered levels.
 
 ## Fairness: deaths that are not the player's fault
 

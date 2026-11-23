@@ -81,16 +81,22 @@ object id -> frame names, offsets, colour roles, layers.
   art-free (for the phone page, gd-sync). Drawn by the viewer's map mode (`mapRender`, `MAPCAM`).
 
 - **Signature: `tools/signature.js`** (the user's idea, 2026-11-23: a robot and a human side by side,
-  "Made by Claude (and some humans)", at the end of every level). `signature({col, floorY, channels:
-  {accent|shirt, light|text}, beats, period, xOfT, tOfX, group0=960, ch0=990})` -> ~156 objects: 118
-  pixels (id 211 squares at 6-unit pixels, ~2.4 blocks tall), the text (914), colour triggers for its
-  own channels 990-996 (grey metal, cyan eyes, peach skin, brown hair, navy trousers; the shirt copies
-  the level's accent when given), and per beat in the last ~26 blocks a hop (901) and the robot's arm
-  waving about its shoulder (1346, object rotation locked). `describe(desc)` adds the line to the
-  description. Try: `node tools/signature.js <level>` -> local/tmp/<name>_sig.gdlvl. Renders:
-  local/shots/signature/. Player colours 1005/1006 were tried first: they blend, the human went
-  see-through. Text objects are drawn by lib/art.js in a heavy system font -- GD's bigFont and the
-  text's real size are not checked in the game yet (install one and look).
+  "Made by Claude (and some humans)", at the end of every level; v2 the same day after "Can we improve the
+  signage in the end"). A robot and a human high-fiving on a small lit stage (a plinth with a glowing
+  edge), a spark where the hands meet, a spotlight (two 1293 gradients) and a dim halo (497) behind them,
+  and two text lines: "MADE BY CLAUDE" (gold, 0.62) over "(and some humans)" (white 1011, 0.4). On each
+  beat heard in the last ~26 blocks: both hop 4 units (901), the spark and the stage edge flash (1006),
+  the spotlight breathes every other beat. API: `header(h, opts)` puts its 12 channels (988-999) in the
+  level header, `signature({col, floorY, shirt:[r,g,b], beats, period, xOfT, tOfX, group0=960, ch0=988})`
+  returns ~140 objects + beat triggers, `describe(desc)`. make.js does all three for every GDLM level
+  (shirt = the last section's light colour, beats from the song grid).
+  **Lesson (v1 in the user's phone editor, hellgate v12):** channels set only by colour triggers show in
+  the editor as its own pale, see-through placeholder colours -- the editor runs no triggers. Any colour
+  a decoration must have from the first frame belongs in the header (kS38). Also channel 1010 is listed
+  white in our header template (lib/gd.js), so it is no "black" in the editor; use an own dark channel.
+  Not checked yet: the v2 look in the editor and the game (GD's font size and the 1293 / 497 light).
+  Try: `node tools/signature.js <level>` -> local/tmp/<name>_sig.gdlvl (replaces an older signature),
+  then `node tools/shoot.js` on it.
 
 ## Facts (checked against the user's recordings)
 
