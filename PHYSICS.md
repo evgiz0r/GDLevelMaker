@@ -180,5 +180,8 @@ vs lib/objects_extra.js lists any id whose type is 0 but kind is hazard.
 
 With that and the quarter-turned teleports, Deadlocked's solve reaches block 695.4 (59%, physics 119344c):
 a ship takes a plain teleport (20887, 54 = -94) into a low corridor and its box overlaps a sideways
-spike (421) at the corridor's mouth by 1.6 units. Open: whether GD fires a teleport later than first
-touch (at the portal's centre fits this spot; being checked on the other teleports).
+spike (421) at the corridor's mouth by 1.6 units. Tried and ruled out (sweeps of
+2400 units from just before, scratch flags): moving the player by 54 relative to its own height (same
+death); firing the teleport at the portal's centre instead of first touch (passes only by skipping 3
+portals, and kills the -53 degree portal at block 76 that fits now). Still open: the ship's hazard box,
+spike 421's turned box, or the exit's x.
