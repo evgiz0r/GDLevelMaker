@@ -82,7 +82,7 @@ things take" below). The tools below still work one by one.
 
 1. Write a spec in `specs/NN_name.json` (grid squares, see the top of `tools/make.js`).
 2. `node tools/make.js specs/NN_name.json` -> `levels/<name>.gdlvl`, solved, added to the viewer.
-3. Look at it: `node tools/serve.js` and open http://localhost:8765/viewer/ (or open
+3. Look at it: `node tools/serve.js` (on the main checkout it fast-forwards itself to origin/main every minute when clean -- push, and the user's reload shows it; the page footer names the commit) and open http://localhost:8765/viewer/ (or open
    `viewer/index.html` straight from disk in a normal browser). It replays the solver's clicks
    with a click sound, the timing window of each click, and hitboxes on request.
    For the phone: the same viewer as the user's private Artifact (PHONE.md): pushed levels,
