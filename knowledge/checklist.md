@@ -43,6 +43,11 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   landing on a lone block that forces the next jump within 250 ms, never 3+ hops in a row each forced
   right after landing. `node tools/reactive.js <level>` (score.js gate "reactive": FAIL at Easy/Normal).
   (critiques.md GDLM 45 v6, blocks 50-75: "very specific cube jumps ... instead of being able to react")
+- [ ] **Pillar hops are tapped, not held**: at Easy/Normal, pillar tops 3-4 wide; a rise crosses a
+  1-column pit, a drop a 3-column one (2-column pits gave ~100 ms windows on rises and were walked across
+  on drops). Jumper's 1-2-wide pillars are a Harder rhythm that only works as a held bounce. Generated
+  by tools/structures.js pillarRun; checked by the reactive and hazards-matter gates. (the user on GDLM 61
+  v1, blocks 15-60: "these clicks very unnatural ... the timings seem reallllly awkward"; CRAFT.md)
 - [ ] **Windows on the player's route, not only the solver's**: every jump of the natural replay (what
   the viewer and the game show) timed on its own up to the next input; none under the tier's floor.
   score.js gate "player timing". (GDLM 47 v2: the timing gate said 113 ms on the solver's route, the
