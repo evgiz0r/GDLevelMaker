@@ -51,6 +51,11 @@ Link: in `local/phone/url.txt` (shared folder; also in Claude's memory). Not in 
   camera's vertical easing no longer depends on the frame rate, the canvas is capped at 2x pixels,
   and with a song playing the replay clock follows the song's (a fifth of the gap each frame) instead of
   the song being re-seeked.
+- **Level map** (Nov 23): the button shows for a level that has an art-free map, made with
+  `node tools/levelmap.js <level> --shapes` (-> `local/maps/<name>_shapes.jpg`). `tools/web.js` ships
+  every `gdlm_*_shapes.jpg` under `maps/` (never the GD-art maps or official levels) and opens it over
+  the page (a new tab may be blocked in the Artifact frame); a tap zooms it 3x around the spot. New
+  map -> rebuild and republish. Tested in the pane at 375 px: button only on 44/45, map loads, zoom.
 - Not on the phone: official RobTop levels (`levels.local.js`), recordings and "compare", the
   `#lv=...&t=...` links (a published page's address keeps only a plain `#name`).
 
@@ -66,7 +71,9 @@ Link: in `local/phone/url.txt` (shared folder; also in Claude's memory). Not in 
 
 `tools/web.js` builds the page from `viewer/index.html` by exact text swaps; when the viewer
 changes, a swap that no longer matches stops the build with the text to update ("viewer changed,
-update tools/web.js"). Keep the phone page a build of the viewer, never a fork.
+update tools/web.js"). Keep the phone page a build of the viewer, never a fork. The GD-art libs (`art`,
+`objects_art`, `objects_frames`) are dropped once from the lib list, so the page, the solve worker and
+the publish list never name them (the worker once imported them and would have failed on the phone).
 
 ## How it was tested (Nov 22 2026)
 

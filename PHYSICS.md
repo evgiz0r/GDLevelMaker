@@ -128,14 +128,34 @@ colour 29/30/899/105/221/744/915/900, pulse 1006, alpha 1007 (still collides), e
 | collision block / trigger, area triggers | 1815/1816, 3006+ | | no (no official level uses them) | - |
 
 Firing: x passing the trigger's x; touch-triggered (11) when the player's box meets its 30x30;
-spawn-triggered (62) only from a spawn trigger. Not modelled: move "lock to player" (58/59) and
-"move to target" (100), the player carried sideways by a moving block, multi-trigger (87).
+spawn-triggered (62) only from a spawn trigger. Move "lock to player" X/Y (58/59): for its duration
+the group moves by the player's own motion since the trigger fired, then stays (plus any dx/dy);
+UNCHECKED against the game, added 2026-11-23 for Spire (community 128630430), whose upside-down
+cube rides under a roof locked to the player: its solve went from block 112.7 to 327.6 (the next
+stop is another "sky" death near the ball part, not looked at). Not modelled: "move to target"
+(100), the player carried sideways by a moving block, multi-trigger (87).
 The viewer draws moved, turned and switched-off objects where they are at each moment (GD.posedObjects).
 
 ## Not in the sim yet (the game has it)
 
-Modes/portals: dual (286/287), mirror. Teleport portals (747) are in, unchecked: same x, portal y + key 54, speed kept (no rotated exits, smooth teleport or the 2.2 options 345+); first used by Deadlocked at block 77, Fingerdash 205, Dash 435. Triggers: count/pickup items,
+Modes/portals: dual (286/287), mirror. Teleport portals (747) are in, unchecked: same x, speed kept, exit height = portal y + key 54 along the portal's turned axis (54 x cos(rotation)), but straight up/down when key 55 is set (fitted on Deadlocked, 2026-11-23: its -53 degree portal at block 76.5 needs the turned offset to pass under a spike; its -46 degree portal with 55 at 360.8 lands exactly on the gravity + speed portals 224 below; whether GD also moves x is not known; smooth teleport and the 2.2 options 345+ not modelled); first used by Deadlocked at block 77, Fingerdash 205, Dash 435. Triggers: count/pickup items,
 scale, follow, on death, collision blocks, area triggers, gravity trigger, time warp. Others:
 keys and user coins (collectables only), start positions (levels always start at x 0), practice
 checkpoints, speed portals touched mid-air at a slant, force blocks, platformer mode, dash orbs'
 unknown props 586/588, spike slopes.
+
+## The intended route (solver ranking)
+
+The sweep solver (solveSweep, used for every level with modes) does not just find the fewest presses:
+it ranks routes by, in order, portals passed without taking them (mode, gravity, speed, size,
+teleport), then orbs and pads passed unused, then presses (`opts.anyRoute` = the old fewest-presses
+only; `opts.strict` = a route that skips any portal is out, to find where the intended route dies).
+Why: the user on the Deadlocked level map, 2026-11-23: "The player skips the portal ... In normal
+levels you usually dont skip portals". The old cached Deadlocked run skipped the cube portal at block
+38 and stayed a mini wave past 40+ portals, orbs and pads. With the ranking (and the turned teleport
+exits above) Deadlocked's portal-taking route reaches block 434.9 (37%; was 26-31%), dying in the
+ball part on a hanging spike near the turned teleport at 441.5. Third in the ranking, before presses:
+flying ticks (ship, wave, UFO, swing) spent within 12 units of a wall -- a solid, hazard, slope or the
+band's floor/roof ("he waves way too close to the border"); this works on unbeaten levels too, where
+lib/natural.js's mid-corridor re-fly (beaten levels only, and all-or-nothing per stretch: on Deadlocked
+it died inside every stretch) cannot. GDLM 44: 8 presses instead of 6.

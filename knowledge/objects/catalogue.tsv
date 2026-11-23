@@ -744,7 +744,7 @@ id	group	family	frame	kind	w_blocks	h_blocks	layer	ch_main	ch_detail	parts	note
 909	deco-spikes	d_grassArt	d_grassArt_03_001.png	decoration	0.67	0.57	B1	1		1	grass art
 910	deco-spikes	d_grassArt	d_grassArt_04_001.png	decoration	0.48	0.43	B1	1		1	grass art
 911	deco-blocks	block005	block005_13_001.png	decoration	1.00	1.00	B2	1004		1	block005
-914	triggers	edit_eStartPosBtn	edit_eStartPosBtn_001.png	decoration	1.20	0.75	T1	1		1	edit e start pos btn
+914	deco-other	text	(text)	decoration						0	text object: key 31 = the text (base64), 32 scale, 21 colour
 915	triggers	edit_eTintCol01Btn	edit_eTintCol01Btn_001.png	trigger	0.68	0.93	?	?	?	1	edit e tint col01btn
 916	deco-blocks	d_whiteBlock	d_whiteBlock_01_001.png	decoration	0.50	0.50	B1	1		1	white block
 917	deco-blocks	d_whiteBlock	d_whiteBlock_02_001.png	decoration	0.25	0.25	B1	1		1	white block

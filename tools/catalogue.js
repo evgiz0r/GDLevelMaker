@@ -29,7 +29,7 @@ if (step === "index") {
   if (!Object.keys(have).length) console.log("(game not found: sizes left empty; set GD_GAME)");
   const rows = [["id", "group", "family", "frame", "kind", "w_blocks", "h_blocks", "layer", "ch_main", "ch_detail", "parts", "note"].join("\t")];
   for (const id of C.ids()) {
-    const fr = C.frameOf(id), f = have[fr], inf = ART.info(id), d = O.objInfo(id);
+    const fr = C.frameOf(id), f = have[fr], inf = ART.info(id) || { src: "none", z: "", ch1: "", ch2: -1 }, d = O.objInfo(id);
     const t = ART.tree(id, n => have[n] ? [have[n].sw / 4, have[n].sh / 4] : null);
     rows.push([id, C.group(id), C.family(fr), fr, d.kind, f ? (f.sw / 120).toFixed(2) : "", f ? (f.sh / 120).toFixed(2) : "",
       inf.src === "gd22" ? "?" : LAYER[inf.z] || inf.z, inf.src === "gd22" ? "?" : inf.ch1, inf.src === "gd22" ? "?" : (inf.ch2 > 0 ? inf.ch2 : ""),
@@ -44,7 +44,8 @@ if (step === "index") {
   require("./headless.js").headless("viewer/catalogue.html?save=1", path.join(dir, ".done"), { port: +(process.argv[3] || 8767) }).then(r => {
     const pngs = fs.readdirSync(dir).filter(f => f.endsWith(".png"));
     console.log(r.ok ? `done: ${pngs.length} sheets in local/catalogue/ (${r.seconds.toFixed(0)} s)` : "timed out; sheets so far: " + pngs.length);
-  }, e => console.log(e.message));
+    process.exit(r.ok ? 0 : 1);
+  }, e => { console.log(e.message); process.exit(1); });
 } else if (step === "usage") {
   const { readGdlvl } = require("./io.js");
   const levels = [];
@@ -52,17 +53,18 @@ if (step === "index") {
   let list = []; try { list = JSON.parse(fs.readFileSync(path.join(DIRC, "list.json"), "utf8")); } catch (e) {}
   const meta = {}; for (const l of list) meta[l.id] = l;
   for (const f of fs.existsSync(DIRC) ? fs.readdirSync(DIRC).filter(f => f.endsWith(".gdlvl")) : []) {
-    try { const L = readGdlvl(path.join(DIRC, f)), id = f.replace(".gdlvl", ""); levels.push({ src: "community", id, tier: (meta[id] || {}).tier || "?", era: (meta[id] || {}).era || "?", objects: L.level.objects }); } catch (e) {}
+    // loaded one at a time below (all at once ran out of memory with ~120 levels incl. 75k-object ones)
+    const id = f.replace(".gdlvl", ""); levels.push({ src: "community", id, tier: (meta[id] || {}).tier || "?", era: (meta[id] || {}).era || "?", load: () => readGdlvl(path.join(DIRC, f)).level.objects });
   }
   for (const f of fs.readdirSync(path.join(ROOT, "local")).filter(f => /^official_\d+\.json$/.test(f))) {
-    const j = JSON.parse(fs.readFileSync(path.join(ROOT, "local", f), "utf8"));
-    levels.push({ src: "official", id: j.name, tier: "official", era: "official", objects: require("../lib/gd.js").parseLevel(j.level).objects });
+    levels.push({ src: "official", id: f.replace(".json", ""), tier: "official", era: "official", load: () => require("../lib/gd.js").parseLevel(JSON.parse(fs.readFileSync(path.join(ROOT, "local", f), "utf8")).level).objects });
   }
   const isDeco = id => { const g = C.group(id); return g.startsWith("deco") || g === "pixel" || g === "effects"; };
   const fam = {}, pairs = {}, perLevel = [], layers = {}, keys = { colour21: 0, colour22: 0, layer24: 0, order25: 0, scale32: 0, group57: 0, total: 0 };
   for (const L of levels) {
     const here = {}; let deco = 0, all = 0, maxX = 0;
-    for (const o of L.objects) {
+    let objects; try { objects = L.load(); } catch (e) { continue; }
+    for (const o of objects) {
       all++; maxX = Math.max(maxX, o.x || 0);
       if (!C.frameOf(o.id) || !isDeco(o.id)) continue;
       deco++; keys.total++;

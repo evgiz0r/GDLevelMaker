@@ -50,6 +50,9 @@ for (const r of rows) { if (!cur || r[0] - cur.end > 2000) runs.push(cur = { end
 const best = runs.sort((a, b) => b.rows.length - a.rows.length)[0];
 const frames = {};
 for (const [, id, s] of best.rows) if (!frames[id]) frames[id] = s;
+// 914 is the text object (no sprite; drawn with GD's font): the pattern above gives it the start-pos
+// button's frame (31's), so it is dropped here (showcase session, 2026-11-23)
+delete frames[914];
 const ids = Object.keys(frames).map(Number).sort((a, b) => a - b);
 const sorted = {}; for (const id of ids) sorted[id] = frames[id];
 const file = path.join(__dirname, "..", "lib", "objects_frames.js");

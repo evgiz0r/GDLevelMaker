@@ -14,7 +14,8 @@
 //   player's x (keys 58 = 1, 143 = how much of the player's motion the layer copies: 0.9 far, 0.6 near)
 //   makes them scroll slower than the level; alpha triggers fade each layer in at its section's start
 //   and out at its end, so a slow layer never drifts into the next section. Groups from opts.group0
-//   (default 100): section i uses group0 + 2i (far) and + 1 (near).
+//   (default 100): section i uses group0 + 2i (far) and + 1 (near). opts.value = [far, near] HSV value
+//   (default [0.45, 0.5], darker than the fill; [0.95, 1] or more for sunny palettes).
 // beatPulses: a pulse trigger (1006) on every bar start, on the section's light channel (towards white,
 //   quick fade out), skipped in rest / break sections; on a section's first beat when it has `flash`,
 //   and at every opts.drops time, a strong one on the background (1000) and the light channel.
@@ -44,9 +45,15 @@ const xr = sec => [sec.from * 30, sec.to * 30];
 
 function parallax(sections, opts = {}) {
   const speed = opts.speed || SPEED_1X, g0 = opts.group0 || 100, out = [];
+  // opts.value = [far, near]: the layers' HSV value (brightness multiplier; > 1 brightens). The defaults
+  // darken (0.45 / 0.5) for night palettes; a sunny level wants ~[0.95, 1] (gd-style, GDLM 47)
+  const val = opts.value || [];
   const layers = [
-    { m: opts.farMul || 0.9, z: -3, zo: -20, scale: 3, v: 0.45, gap: 330, rows: [5, 8, 6, 9] },   // far: big, dark, slow
-    { m: opts.nearMul || 0.6, z: -1, zo: -10, scale: 1.8, v: 0.7, gap: 230, rows: [3, 5, 4, 6] }, // near
+    { m: opts.farMul || 0.9, z: -3, zo: -20, scale: 3, v: val[0] != null ? val[0] : 0.45, gap: 330, rows: [5, 8, 6, 9] },   // far: big, dark, slow
+    // near: smaller and darker than first made -- at 1.8x / 70% its round clouds crossed hanging spikes in
+    // cube timings and hurt hazard readability (gd-polish, 2026-11-23); shapes stay well below the hazards'
+    // white outlines in brightness
+    { m: opts.nearMul || 0.6, z: -1, zo: -10, scale: 1.3, v: val[1] != null ? val[1] : 0.5, gap: 260, rows: [2, 4, 3, 5] }, // near
   ];
   sections.forEach((sec, i) => {
     const [x0, x1] = xr(sec), dur = (x1 - x0) / speed, shapes = SHAPES[sec.kind] || SHAPES.cube;
