@@ -50,6 +50,7 @@
   <button data-speed="0.25">¼×</button><button data-speed="0.5">½×</button><button data-speed="1" class="on">1×</button>
   <button id="lookBtn" class="on" title="colours, triggers, block skins as in the game (off: the schematic view)">game look</button>
   <button id="artBtn" title="draw objects, background, ground and icon with GD's own sprites from your game install (needs tools/serve.js; VISUALS.md)">GD art</button>
+  <button id="mapBtn" title="the whole level as one picture with its path (make it with node tools/levelmap.js <level>)">level map</button>
   <button id="hit">hitboxes</button>
   <button id="cmpBtn" hidden title="a frame of your recording next to the replay (needs tools/serve.js)">compare</button>
   <button id="markBtn" title="pause, then click where something should change (key M)">✎ mark</button>
@@ -92,6 +93,7 @@ const P = GD.PHYS;
 const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
 // shoot mode (tools/shoot.js): ?shoot=<job> renders a level's frames headless, without the overlays
 const SHOOT = new URLSearchParams(location.search).get("shoot");
+let MAPCAM = null; // level map (tools/levelmap.js): a fixed camera {x, y, scale, groundY}, no player
 let L = null;          // {name, objects, world, sol, path}
 let t = 0, playing = false, speed = 1, showHit = false, sound = true, lastTick = -1;
 
@@ -248,6 +250,13 @@ artBtn.classList.toggle("on", art);
 artBtn.onclick = () => { art = !art; artBtn.classList.toggle("on", art); try { localStorage.setItem("gdlm.art", art ? "1" : "0"); } catch (e) {} if (art) artLoad(); draw(); };
 if (art) artLoad();
 const artOn = () => art && LS && GD.ART_LIB && GD.ART_LIB.S.ready;
+// level map: local/maps/<level file name>.jpg, made by tools/levelmap.js (GD art: this PC only)
+if (document.getElementById("mapBtn")) document.getElementById("mapBtn").onclick = async () => {
+  const l = ALL[pick.value]; if (!l) return;
+  const name = String(l.file || "").split("/").pop().replace(/\.(gdlvl|json)$/, ""), url = "../local/maps/" + name + ".jpg";
+  let ok = false; try { ok = (await fetch(url, { method: "HEAD", cache: "no-store" })).ok; } catch (e) {}
+  if (ok) window.open(url, "_blank"); else alert("No map yet for " + name + ". Make it with:\n  node tools/levelmap.js " + l.file);
+};
 document.getElementById("hit").onclick = e => { showHit = !showHit; e.target.classList.toggle("on", showHit); draw(); };
 document.getElementById("sound").onclick = e => { sound = !sound; e.target.classList.toggle("on", sound); };
 document.getElementById("music").onclick = e => { music = !music; e.target.classList.toggle("on", music); syncSong(true); };
@@ -408,7 +417,8 @@ function draw() {
   if (!L) return;
   // a canvas with no size yet (a hidden pane, an iframe before layout) made scale 0, the camera NaN,
   // and the smoothed camY stayed NaN for good: every later draw threw in drawPlayer
-  if (!W || !H) { resize(); if (!W || !H) return; }
+  // (resize() draws again only once the canvas has a size: with none, the two called each other forever)
+  if (!W || !H) { const r = cv.getBoundingClientRect(); if (r.width && r.height) resize(); return; }
   if (!isFinite(camY)) camY = 0;
   const k = tick(), s0 = L.path[k];
   // between two 240 Hz steps: the player and the camera move on smoothly at the screen's own rate
@@ -439,6 +449,7 @@ function draw() {
   const want = isFinite(s.ceilY) && s.mode !== "cube"
     ? Math.max(s.floorY - 15, Math.min(s.y - viewH * 0.5, s.ceilY + 15 - viewH))
     : Math.max(0, s.y - 30 * 4.5);
+  if (MAPCAM) { scale = MAPCAM.scale; camX = MAPCAM.x; camY = MAPCAM.y; groundY = MAPCAM.groundY; } else
   if (SHOOT) camY = want + (LS && LS.camOff ? LS.camOff[1] : 0); else
   camY += (want - camY) * (1 - Math.exp(-9.75 * drawDt)); // 0.15 a frame at 60 fps, at any rate
   const view = { W, H, scale, camX, sx, sy };
@@ -507,7 +518,7 @@ function draw() {
     for (const b of L.world.hazards) { ctx.strokeStyle = "#ff2050"; rectW(b); }
   }
   // trail: in the game look, GD's own kind (lib/look.js drawTrail); otherwise yellow where the button is held
-  if (LS) GD.LOOK.drawTrail(ctx, view, L.path, k, f, s);
+  if (MAPCAM) {} else if (LS) GD.LOOK.drawTrail(ctx, view, L.path, k, f, s);
   else { ctx.lineWidth = 4;
   for (let i = Math.max(0, k - 120); i < k; i += 2) {
     const p = L.path[i], q = L.path[Math.min(i + 2, k)];
@@ -522,7 +533,7 @@ function draw() {
   }
   // the player
   // the player, drawn by its mode (a cube in every mode read wrong: "the wave looks like cube")
-  if (LS) GD.LOOK.drawPlayer(ctx, view, s, L.held[k], local, (P.SPEEDS[s.sp] || P.SPEEDS[1]).x, sc ? GD.ART_LIB.drawIcon : null);
+  if (MAPCAM) {} else if (LS) GD.LOOK.drawPlayer(ctx, view, s, L.held[k], local, (P.SPEEDS[s.sp] || P.SPEEDS[1]).x, sc ? GD.ART_LIB.drawIcon : null);
   else if (s.mode === "ship") drawShip(s);
   else if (s.mode === "wave") drawWave(s);
   else if (s.mode === "ball") drawBall(s);
@@ -824,7 +835,9 @@ async function shootRun() {
   // a run the sim cannot finish (2.2 levels it does not model yet) goes on as a ghost: same speed, height
   // held, so the camera keeps moving through the level as in the game (job.ghost false: stop at the death)
   if (job.ghost !== false) {
-    const last = L.path[L.path.length - 1], want = Math.max(...job.times) * P.TPS + 2;
+    const last = L.path[L.path.length - 1];
+    // a map wants the whole level (colours keep changing past a sim stop); shots their latest time
+    const want = job.map ? Math.ceil(L.world.endX / (((P.SPEEDS[last.sp] || P.SPEEDS[1]).x) * 60 / P.TPS)) + 2 : Math.max(...job.times) * P.TPS + 2;
     if (last.dead || L.path.length < want) {
       let k = L.path.length - 1; while (k > 0 && L.path[k].dead) k--;
       const base = L.path[k], v = ((P.SPEEDS[base.sp] || P.SPEEDS[1]).x) * 60 / P.TPS; // SPEEDS: units per 60 fps frame
@@ -834,6 +847,7 @@ async function shootRun() {
     }
   }
   const post = (name, url) => fetch("/shoot/" + SHOOT + "/" + name, { method: "POST", body: url });
+  if (job.map) { await post("000.png", await mapRender(job)); return post("done", "1"); }
   for (let i = 0; i < job.times.length; i++) {
     t = Math.max(0, Math.min(job.times[i], (L.path.length - 1) / P.TPS)); playing = false;
     // draw until every lazily loaded picture (background, ground, tinted frames) is in
@@ -853,6 +867,118 @@ async function shootRun() {
     await post(String(i).padStart(3, "0") + ".png", url);
   }
   await post("done", String(job.times.length));
+}
+// ---------- level map (tools/levelmap.js): the whole level in stacked rows, drawn in chunks with a fixed
+// camera -- each chunk at the moment the player passes it, so colour changes and moved objects are where
+// they are then -- and the replayed path over it: mode colours, presses, releases, orb / pad hits,
+// portals, seconds and % ticks, section names, where a run the sim cannot finish stops ----------
+const MODE_COL = { cube: "#7dff00", ship: "#ff5ad2", wave: "#00e5ff", ball: "#ffa500", ufo: "#ffe14d", robot: "#c8c8ff", spider: "#b48cff", swing: "#ffffff" };
+async function mapRender(job) {
+  const S = job.scale || 0.5, path = L.path, endX = Math.max(L.world.endX, path[path.length - 1].x + 60);
+  let minY = 0, maxY = 120;
+  for (const o of L.level.objects) { if (GD.objInfo(o.id).kind === "trigger") continue; if (o.y < minY) minY = o.y; if (o.y > maxY) maxY = o.y; }
+  for (const p of path) if (p.y > maxY) maxY = p.y;
+  maxY = Math.min(maxY + 60, Math.max(minY, 0) + 30 * 30); minY = Math.max(minY - 30, -600);
+  const rows = job.rows || Math.max(1, Math.ceil(endX * S / 2400)), rowU = Math.ceil(endX / rows / 30) * 30;
+  const GROUND = 45, camY0 = Math.min(0, minY);
+  const rowW = Math.round(rowU * S), sceneH = Math.round((maxY - camY0 + GROUND) * S);
+  const HEAD = 70, TOP = 40, BOT = 32, GAP = 14, rowH = TOP + sceneH + BOT;
+  const out = document.createElement("canvas"); out.width = rowW + 20; out.height = HEAD + rows * (rowH + GAP);
+  const X = out.getContext("2d"); X.fillStyle = "#0d0b18"; X.fillRect(0, 0, out.width, out.height);
+  // the scene, chunk by chunk
+  const CH = 600;
+  const timeAtX = x => { let lo = 0, hi = path.length - 1; if (path[hi].x < x) return hi / P.TPS; while (lo < hi) { const m = (lo + hi) >> 1; if (path[m].x >= x) hi = m; else lo = m + 1; } return lo / P.TPS; };
+  W = cv.width = Math.round(CH * S); H = cv.height = sceneH;
+  let first = true;
+  for (let r = 0; r < rows; r++) for (let a = r * rowU; a < (r + 1) * rowU && a < endX; a += CH) {
+    MAPCAM = { x: a, y: camY0, scale: S, groundY: H - GROUND * S };
+    t = timeAtX(a + CH / 2); playing = false;
+    for (let k = 0; k < (first ? 6 : 2); k++) { draw(); await new Promise(res => setTimeout(res, first ? 150 : 20)); }
+    first = false;
+    const w = Math.min(CH, (r + 1) * rowU - a);
+    X.drawImage(cv, 0, 0, Math.round(w * S), H, 10 + Math.round((a - r * rowU) * S), HEAD + r * (rowH + GAP) + TOP, Math.round(w * S), H);
+  }
+  MAPCAM = null;
+  // overlay: level x, y -> map pixels
+  const rowOf = x => Math.min(rows - 1, Math.max(0, Math.floor(x / rowU)));
+  const mx = x => 10 + (x - rowOf(x) * rowU) * S, my = (x, y) => HEAD + rowOf(x) * (rowH + GAP) + TOP + (sceneH - GROUND * S) - (y - camY0) * S;
+  X.lineJoin = "round"; X.lineCap = "round";
+  const ok = L.sol.ok, stopK = path.findIndex(p => p.dead || p.ghost);
+  const lastK = stopK >= 0 ? stopK : path.length - 1;
+  // the path, outlined, coloured by mode; a new stroke at each row and mode change
+  for (const [lw, colOf] of [[6, () => "rgba(0,0,0,.75)"], [3, m => MODE_COL[m] || "#fff"]]) {
+    let k = 0;
+    while (k < lastK) {
+      const m = path[k].mode, r = rowOf(path[k].x);
+      X.strokeStyle = colOf(m); X.lineWidth = lw; X.beginPath(); X.moveTo(mx(path[k].x), my(path[k].x, path[k].y));
+      while (k < lastK && path[k].mode === m && rowOf(path[k].x) === r) { k += 2; const p = path[Math.min(k, lastK)]; if (rowOf(p.x) === r) X.lineTo(mx(p.x), my(p.x, p.y)); }
+      X.stroke();
+    }
+  }
+  // presses (white dots), releases of a hold (hollow squares), orb / pad hits (yellow diamonds)
+  for (let k = 1; k <= lastK; k++) {
+    const p = path[k];
+    if (L.held[k] && !L.held[k - 1]) { X.fillStyle = "#fff"; X.strokeStyle = "#000"; X.lineWidth = 2; X.beginPath(); X.arc(mx(p.x), my(p.x, p.y), 5, 0, 7); X.fill(); X.stroke(); }
+    if (!L.held[k] && L.held[k - 1]) {
+      let h = k - 1; while (h > 0 && L.held[h - 1]) h--;
+      if (k - h > 24 || /ship|wave|ufo|swing/.test(p.mode)) { X.strokeStyle = "#fff"; X.lineWidth = 2; X.strokeRect(mx(p.x) - 4, my(p.x, p.y) - 4, 8, 8); }
+    }
+    if (p.act && p.act !== path[k - 1].act && /orb|pad|ring|dash/.test(p.act)) {
+      const cx = mx(p.x), cy = my(p.x, p.y);
+      X.fillStyle = "#ffe14d"; X.strokeStyle = "#000"; X.lineWidth = 2; X.beginPath(); X.moveTo(cx, cy - 8); X.lineTo(cx + 7, cy); X.lineTo(cx, cy + 8); X.lineTo(cx - 7, cy); X.closePath(); X.fill(); X.stroke();
+    }
+  }
+  // portals: a faint line and a short name at the top of the row, staggered when they crowd
+  X.font = "bold 12px system-ui"; X.textAlign = "center";
+  const short = n => String(n || "").replace(/gravity portal \(upside down\)/, "grav ↑").replace(/gravity portal \(normal\)/, "grav ↓")
+    .replace(/ portal$/, "").replace(/^normal size$/, "big").replace(/ speed$/, "");
+  const lastEnd = [];
+  const portals = L.level.objects.filter(o => /^(mode|gravity|speed|size|teleport)$/.test(GD.objInfo(o.id).kind)).sort((a, b) => a.x - b.x);
+  for (const o of portals) {
+    const d = GD.objInfo(o.id), r = rowOf(o.x), x = mx(o.x), y0 = HEAD + r * (rowH + GAP), label = short(d.name), w = X.measureText(label).width;
+    X.strokeStyle = "rgba(255,255,255,.35)"; X.lineWidth = 1; X.setLineDash([4, 4]); X.beginPath(); X.moveTo(x, y0 + TOP); X.lineTo(x, y0 + TOP + sceneH); X.stroke(); X.setLineDash([]);
+    let lane = 0; while (lane < 3 && lastEnd[r * 3 + lane] !== undefined && lastEnd[r * 3 + lane] > x - w / 2 - 4) lane++;
+    if (lane === 3) continue; // too crowded: the dashed line stays
+    lastEnd[r * 3 + lane] = x + w / 2;
+    X.fillStyle = d.color || "#fff"; X.fillText(label, x, y0 + 11 + lane * 12);
+  }
+  // section names
+  X.font = "bold 15px system-ui"; X.textAlign = "left";
+  for (const sc of job.sections || []) { const x = sc.from * 30, r = rowOf(x); X.fillStyle = "#9fd"; X.fillText("▸ " + sc.name, mx(x) + 3, HEAD + r * (rowH + GAP) + TOP + 16); }
+  // seconds and % ticks under each row
+  X.font = "11px system-ui"; X.textAlign = "center";
+  const total = lastK / P.TPS;
+  for (let sec = 0; sec <= total; sec++) {
+    const k = Math.min(path.length - 1, sec * P.TPS), x = path[k].x; if (x > endX) break;
+    const yb = HEAD + rowOf(x) * (rowH + GAP) + TOP + sceneH;
+    X.fillStyle = "#bbb"; X.fillRect(mx(x), yb, 1, 6); X.fillText(sec + "s", mx(x), yb + 16);
+  }
+  for (let pc = 10; pc < 100; pc += 10) {
+    const x = pc / 100 * (L.world.endX - 90), yb = HEAD + rowOf(x) * (rowH + GAP) + TOP + sceneH;
+    X.fillStyle = "#ffe14d"; X.fillRect(mx(x), yb, 2, 10); X.fillText(pc + "%", mx(x), yb + 29);
+  }
+  // where a run the sim cannot finish stops
+  if (!ok || stopK >= 0) {
+    const p = path[lastK], cx = mx(p.x), cy = my(p.x, p.y);
+    X.strokeStyle = "#ff3b6b"; X.lineWidth = 4; X.beginPath(); X.moveTo(cx - 9, cy - 9); X.lineTo(cx + 9, cy + 9); X.moveTo(cx + 9, cy - 9); X.lineTo(cx - 9, cy + 9); X.stroke();
+    X.fillStyle = "#ff3b6b"; X.font = "bold 15px system-ui"; X.textAlign = "left";
+    X.fillText(`the simulation stops here (${(p.x / (L.world.endX - 90) * 100).toFixed(0)}%): ${p.why || L.sol.why || "dies"}`, Math.max(10, Math.min(cx + 12, out.width - 470)), Math.max(HEAD + 14, cy - 14));
+  }
+  // header: name, numbers, legend
+  X.textAlign = "left"; X.fillStyle = "#fff"; X.font = "bold 22px system-ui"; X.fillText(L.name, 12, 28);
+  let presses = 0; for (let k = 1; k <= lastK; k++) if (L.held[k] && !L.held[k - 1]) presses++;
+  X.font = "14px system-ui"; X.fillStyle = "#bbb";
+  X.fillText(`${(L.world.endX / 30).toFixed(0)} blocks · ${total.toFixed(1)} s · ${presses} presses · ${ok ? (L.sol.natural ? "natural replay" : "solver run") : "not beaten in the simulation"} · ${job.art === false ? "shapes" : "GD art"}`, 12, 52);
+  let lx = Math.max(640, Math.min(out.width - 560, 900));
+  X.font = "13px system-ui";
+  for (const [m, c] of Object.entries(MODE_COL)) {
+    if (!path.some(p => p.mode === m)) continue;
+    X.fillStyle = c; X.fillRect(lx, 40, 18, 4); X.fillStyle = "#ddd"; X.fillText(m, lx + 22, 46); lx += 30 + X.measureText(m).width;
+  }
+  X.fillStyle = "#fff"; X.beginPath(); X.arc(lx + 6, 42, 5, 0, 7); X.fill(); X.fillStyle = "#ddd"; X.fillText("press", lx + 15, 46); lx += 62;
+  X.strokeStyle = "#fff"; X.lineWidth = 2; X.strokeRect(lx, 38, 8, 8); X.fillText("release", lx + 13, 46); lx += 70;
+  X.fillStyle = "#ffe14d"; X.fillText("◆ orb / pad", lx, 46);
+  return out.toDataURL("image/png");
 }
 loadMarks();
 requestAnimationFrame(frame);

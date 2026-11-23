@@ -136,7 +136,8 @@ function toCol(col, ctx, tl) {
 }
 const colAt = entry => entry[0] === "pattern" ? 2 : 1;
 
-// Orbs on the arc (orb-ladder, orb-pit from the ground; args "fixed": true keeps the pattern's rows).
+// Orbs on the arc (orb-ladder, orb-pit from the ground; args "fixed": true keeps the pattern's rows;
+// the first at the top of the jump's arc, the next ones level -- see below).
 // The user on GDLM 44's ladder: "very awkward; in lower difficulty levels there should be better space
 // to click the orb, and clicking in the middle is almost the point (where you can mostly buffer)". So
 // each orb goes at the TOP of the arc that reaches it -- the jump before the pit, then each orb's own
@@ -157,6 +158,11 @@ function arcOrbs(name, col, args, header, specFile) {
     const path = GD.run(world(), events).path;
     let a = t + 2;
     while (a + 1 < path.length && path[a + 1].y > path[a].y) a++;          // the apex
+    // after the first orb: where the arc comes back down to the last orb's height (+ a third of a
+    // block), not its apex -- rated Easy/Normal chains stay level (~1 block of climb in all, ~3 blocks
+    // apart; knowledge/levels/obstacles.md section 5); apex to apex climbed 2.3 rows per orb ("cant
+    // adjust", GDLM 46 v2). args.climb: true keeps the apex chain.
+    if (k > 0 && !args.climb) { const h = orbs[k - 1].y + 10; while (a + 1 < path.length && path[a + 1].y > h) a++; }
     const ox = Math.round(path[a].x / 7.5) * 7.5, oy = Math.round(path[a].y / 7.5) * 7.5;
     const o = toObj([orbType, (ox - 15) / 30, (oy - 15) / 30], specFile);
     o.x = ox; o.y = oy; orbs.push(o);
@@ -167,6 +173,10 @@ function arcOrbs(name, col, args, header, specFile) {
     t = best;
     events.push({ tick: t, type: "press" }, { tick: t + 1, type: "release" });
   }
+  // an orb chain must not carry the cube to the screen's edge (knowledge/design.md "Cues and orb
+  // chains"): each yellow orb on the arc climbs ~2 rows
+  const top = Math.max(...orbs.map(q => q.y));
+  if (top > 7 * 30 + 15) console.log(`   NOTE orb chain at column ${col.toFixed(0)} climbs to row ${((top - 15) / 30).toFixed(1)}: near the screen's top; fewer orbs, or a blue/pink orb to come down`);
   // landing after the last orb: the pit ends one column before it
   const path = GD.run(world(), events).path;
   let l = t + 2;
@@ -234,7 +244,16 @@ function build(spec, specFile = "spec") {
     objects.push(...r.objects);
     if (r.header) header = r.header;
   }
-  if (spec.modern) objects.push(...deco.modernPass(objects, spec.modern.sections || [], spec.modern)); // before skins: fills follow gameplay blocks
+  if (spec.modern) {
+    const secs = spec.modern.sections || [];
+    objects.push(...deco.modernPass(objects, secs, spec.modern)); // before skins: fills follow gameplay blocks
+    // the 2.2 kit (tools/vfxkit.js, the visuals session's): parallax backgrounds per section, pulses
+    // on bar starts and a strong one on each section's drop ("flash"); speed from the header
+    const kit = require("./vfxkit.js");
+    const speed = tl[0].v;   // units per second at the start (the timeline's first segment)
+    objects.push(...kit.parallax(secs, { speed }));
+    if (ctx.grid) objects.push(...kit.beatPulses(secs, ctx.grid, { speed, songOffset: spec.offset || 0, xOfT: t => GD.SYNC.xOfT(tl, t) }));
+  }
   if (spec.style && spec.style !== "classic") deco.skinBlocks(objects); // e.g. "hell": outlined blocks, no ground decoration
   if (spec.style === "classic") {
     deco.skinBlocks(objects);
