@@ -29,6 +29,9 @@
 //                          decoration pass (tools/decorate.js modernPass; compose.js fills it in)
 //   "scene": "tools/scenes/<name>.js"   a scene script: fn({objects, header, spec, ctx, tl, beatX, xOfT, GD})
 //                          -> {objects (deco + triggers to add), header, signature?: {col, shirt}}; tools/scenekit.js recipes (SHOWCASE.md)
+//   "craft": true | {rods, underRods, chains, lanterns, skipCols}   the craft pass (CRAFT.md): rods on
+//                          pillar tops, chains holding floating pieces and orbs (tools/craftkit.js)
+//   extra "dy": n          shift an object n units up from its row centre (the low pit spikes 9/61 sit at -13)
 //   "decoDensity": [[fromCol, share], ...]   classic style: share of free columns with ground
 //                          decoration from that column on (default 0.25; compose.js sets it per section)
 //   "indicators": {"id": N, "rot": n, "at": [cols], "all": false}   a small arrow pointing down over
@@ -84,7 +87,7 @@ function toObj([type, col, row, extra], specFile) {
   if (e.group != null) props[57] = String(e.group);
   if (e.ch != null) props[21] = String(e.ch);
   if (e.props) Object.assign(props, e.props);   // raw object keys, e.g. a text object's 31
-  return { id, x: +(col * 30 + 15).toFixed(3), y: row * 30 + 15, rot: e.rot || 0, flipX: !!e.flipX, flipY: !!e.flipY, props };
+  return { id, x: +(col * 30 + 15).toFixed(3), y: row * 30 + 15 + (e.dy || 0), rot: e.rot || 0, flipX: !!e.flipX, flipY: !!e.flipY, props };
 }
 
 // how far ahead of the press a lone ground spike sits when the press is in the middle of its
@@ -358,6 +361,9 @@ function build(spec, specFile = "spec") {
     const densityAt = c => { let v = 0.25; for (const [from, share] of dd) if (c >= from) v = share; return v; };
     objects.push(...deco.groundDeco(objects, end, spec.seed || 7, densityAt));
   }
+  // the craft pass (CRAFT.md, tools/craftkit.js): rods on pillar tops, chains holding floating pieces
+  // and orbs -- deco that belongs to the structures; "craft": true or an options object
+  if (spec.craft) objects.push(...require("./craftkit.js").craftPass(objects, Object.assign({ seed: spec.seed || 1 }, spec.craft === true ? {} : spec.craft)));
   const level = { header, objects };
   let desc = spec.desc || "";
   if (signed) desc = require("./signature.js").describe(desc);
