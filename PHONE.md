@@ -101,6 +101,9 @@ takes ~5 min to solve on the PC, and the page looked hung on the phone (user, No
 
 ## Open
 
+- GD's own art (VISUALS.md) is NOT on the phone page: `tools/web.js` strips `lib/art.js` and its tables,
+  because RobTop's sprites must not be published. Options for later, in VISUALS.md "Phone".
+
 - Whether the Claude app's built-in browser ever opens a file picker for an Artifact (unconfirmed;
   the user is to try Chrome). If it never does, a song could come another way: a phone-side
   upload into the page's store (the asset store takes no audio) is not possible today.

@@ -28,6 +28,7 @@ Levels index (add a line per level file):
 | Official 9-22 | 9-22 | Harder -> Demon: new mechanics per level, shorter sections | `levels/official_09-22.md` |
 | ~35 community levels, Easy -> Harder | various | Map Packs, Featured/Epic/Legendary/Mythic | `levels/good_low_tier.md` |
 | 91 rated levels, Easy -> Harder | various | per-tier/era/speed/mode numbers + 5 broken down | `levels/low_tier_stats.md` |
+| Built on blocks; new things every 2 s | - | structure, obstacle shapes, introduction order | `levels/obstacles.md` |
 | Not bland | - | GDLM 41-45 vs rated Easy/Normal: kinds of thing, portals, repeats | `levels/variety.md` |
 | Easy section per mode | - | lead-in, density, gaps, openings per mode | `levels/modes_low_tier.md` |
 | Pattern Seeker | ? | memory, invisible, repeating, synced | `levels/pattern_seeker.md` |
@@ -87,3 +88,15 @@ Write-up and targets: `levels/variety.md`. Findings (2026-11-23):
 - GDLM levels are not short of obstacles, but of variety.
 - They use 1-6 kinds of thing against 15-17 in rated Easy/Normal levels.
 - They have no speed changes and few portals, and in GDLM 42, 43 and 45 most chunks are repeats.
+
+## Structure, obstacle shapes, introductions: `tools/obstacles.js`
+
+    node tools/obstacles.js structure --gdlm --official   # per mode: block columns, hazards off the ground, hazards by a block
+    node tools/obstacles.js catalogue --gdlm             # chunk sizes per mode + example pictures, one per level
+    node tools/obstacles.js intro --gdlm --official      # when each kind first appears, new kinds per minute
+
+Write-up: `levels/obstacles.md`. Findings (2026-11-23):
+- Rated and official cube parts have a block in ~47% of their columns. GDLM has 13%, and 92% of
+  its spikes sit on bare ground.
+- Rated Easy/Normal levels bring in a new kind of thing every ~2 s. Official levels do it every
+  ~4.6 s, GDLM every ~8 s.

@@ -62,6 +62,13 @@ official levels, or a playtest remark). A single playtest remark is evidence, no
 - GDLM 41-45 use 1-6 kinds, one speed and few portals, and mostly repeat chunks: sameness, not
   emptiness, is the likely "bland".
 
+## Built on blocks (`levels/obstacles.md`)
+- Rated and official cube parts have a block in ~half their columns, and ~45-65% of their hazards
+  sit next to a block (ledges, steps, pits, overhangs). GDLM 41-45 have 13% and 17%: spikes on a
+  flat floor.
+- Rated Easy/Normal levels bring in a new kind of thing every ~2 s until ~85% of the level, each shown
+  once or twice before moving on. Official 1-8 do it every ~4.6 s.
+
 ## Getting rated (`rating.md`)
 - RobTop has no fixed criteria. His tips: 60 s+ (30 s minimum), "clear gameplay and decent
   visuals", and good performance. Higher tiers mean he likes the level more, and in our sample
