@@ -16,7 +16,10 @@ module.exports = function ({ objects, header, beatX }) {
   const out = [], SPEED = 311.58, secs = x => x / SPEED;
   // ---- sections: cut at the mode portals, the drop at beat 21, the gate at beat 25 ----
   const portals = objects.filter(o => [12, 13, 660, 47, 111].includes(o.id)).map(o => o.x).sort((a, b) => a - b);
-  const END = Math.max(...objects.map(o => o.x)) + 600;
+  // the signature (make.js, tools/signature.js) goes 4 blocks after the last gameplay object; the scene runs
+  // a screen past it so it stands in the lava light (left to make.js it went after the far scenery: 25 blocks late)
+  const SIG = Math.ceil(Math.max(...objects.map(o => o.x)) / 30) + 4;
+  const END = SIG * 30 + 600;
   const cuts = [-300, ...portals.slice(0, 4), beatX(21), beatX(25), END];
   const S = cuts.slice(0, -1).map((x, i) => [x, cuts[i + 1]]);   // 7 spans: S0..S6 (S4 = run to the drop, S5 drop, S6 end)
   const T0 = 3;
@@ -143,5 +146,5 @@ module.exports = function ({ objects, header, beatX }) {
   out.push(K.alpha(T0, G.frame, 0.8, 0));
   for (const i of [1, 3]) out.push(K.alpha(S[i][0], G.frame, 0, 0.5), K.alpha(S[i][1], G.frame, 0.8, 0.8));
 
-  return { objects: out, header };
+  return { objects: out, header, signature: { col: SIG, shirt: [255, 110, 20] } };
 };
