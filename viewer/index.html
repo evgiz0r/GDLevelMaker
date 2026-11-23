@@ -189,19 +189,27 @@ function load(name, levelStr, saved, info) {
   L.beats = grid ? { grid, offset: info.offset || 0, tl: GD.SYNC.timeline(world) } : null;
   t = 0; lastTick = -1; playing = false; setPlay();
   summary(); clickTable(); markTable(); if (cmpOn) cmpLoadSetting(); draw();
-  windowsLater(L, events);
+  windowsLater(L, events, saved);
 }
 // every input's whole timing window (lib/windows.js: a player's window, later inputs re-planned), worked out after
 // the level shows, a slice at a time so the page stays live; the button strip shades each one and the
 // click table lists it. Saved and natural replays come without windows (the user: show how much room
 // there is, not only the chosen moment, which often sits near an edge).
-function windowsLater(LL, events) {
-  if (window.SHOOT_MAP || !GD.inputWindows || !LL.sol.ok || !events || !events.length || LL.sol.clicks.some(c => c.hi > c.lo)) return;
+// A saved solution carries them already (tools/solutions.js measures them once per level content, as it
+// solves): then they show at once and nothing is measured here ("it resolves every time I select a level?").
+function windowsLater(LL, events, saved) {
+  if (window.SHOOT_MAP || !LL.sol.ok || !events || !events.length || LL.sol.clicks.some(c => c.hi > c.lo)) return;
   const byKey = new Map(LL.sol.clicks.map(c => [c.type + c.tick, c])), sorted = events.slice().sort((a, b) => a.tick - b.tick);
   const take = wins => { for (const wv of wins) { const c = byKey.get(wv.type + wv.tick); if (!c || c.ms) continue;
     Object.assign(c, { lo: wv.lo, hi: wv.hi, ms: Math.round((wv.hi - wv.lo + 1) / P.TPS * 1000) });
     if (wv.j >= 0) { const e = sorted[wv.j], rc = e && byKey.get(e.type + e.tick); if (rc) rc.tapOf = c; } } };
-  const finish = () => { LL.windowsDone = true; summary(); clickTable(); draw(); };
+  const finish = () => { LL.windowsDone = true; LL.windowsBusy = false; summary(); clickTable(); draw(); };
+  if (saved && saved.ok && Array.isArray(saved.windows)) {
+    take(saved.windows.map(a => ({ type: a[0] ? "release" : "press", tick: a[1], lo: a[2], hi: a[3], j: a[4] })));
+    LL.windowsSaved = true; return finish();
+  }
+  if (!GD.inputWindows) return;
+  LL.windowsBusy = true; // the button band says "measuring windows…" meanwhile
   if (SHOOT) { take(GD.inputWindows(LL.world, events, LL.path, {})); return finish(); } // shots: all at once
   // a Web Worker (one input can take seconds; on the page that froze it), else slices on the page (file://)
   if (windowsLater.worker) windowsLater.worker.terminate();
@@ -610,7 +618,7 @@ function draw() {
   } else if (s.done) {
     ctx.fillStyle = "rgba(61,255,176,.95)"; ctx.font = "bold 22px system-ui"; ctx.fillText("LEVEL COMPLETE", W / 2 - 90, 40);
   }
-  document.getElementById("clock").textContent = `${(k / P.TPS).toFixed(2)} s · block ${(s.x / 30).toFixed(1)}` + (L.beats ? ` · beat ${beatOf(k / P.TPS).toFixed(1)}` : "") + ` · ${speed}×`;
+  document.getElementById("clock").textContent = `${(k / P.TPS).toFixed(2)} s · block ${(s.x / 30).toFixed(1)}` + (L.beats ? ` · beat ${beatOf(k / P.TPS).toFixed(1)}` : "") + ` · ${speed}×` + perfText();
   drawStrip(k);
   cmpUpdate();
   scrub.value = Math.round(k / Math.max(1, L.path.length - 1) * 1000);
@@ -663,7 +671,7 @@ function drawInput(k) {
     i = j;
   }
   ix.fillStyle = "#fff"; ix.fillRect(sx(L.path[k].x) - 1, 0, 2, IH); // now
-  ix.fillStyle = "rgba(255,255,255,.5)"; ix.font = `${10 * d}px system-ui`; ix.fillText("button", 4 * d, IH - 3 * d);
+  ix.fillStyle = "rgba(255,255,255,.5)"; ix.font = `${10 * d}px system-ui`; ix.fillText(L.windowsBusy ? "button · measuring windows…" : "button", 4 * d, IH - 3 * d);
   // button light, at the right end of the band
   const on = L.held[k], bx = W - 24 * d;
   let since = k; while (since > 0 && L.held[since - 1] === on) since--;
@@ -845,19 +853,36 @@ document.addEventListener("visibilitychange", () => {
   if (document.hidden && playing && !SHOOT) { playing = false; setPlay(); syncSong(); }
   prev = performance.now();
 });
+// fps / draw-time counter, in the clock line (key F; never over the playfield): frames a second and the
+// median draw time over the last second
+const PERF = { on: false, frames: [], draws: [] };
+try { PERF.on = localStorage.getItem("gdlm.fps") === "1"; } catch (e) {}
+addEventListener("keydown", e => { if ((e.key === "f" || e.key === "F") && !/INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName || "")) { PERF.on = !PERF.on; try { localStorage.setItem("gdlm.fps", PERF.on ? "1" : "0"); } catch (err) {} if (L) draw(); } });
+function perfText() {
+  if (!PERF.on) return "";
+  const now = performance.now(); PERF.frames = PERF.frames.filter(x => now - x < 1000);
+  const d = PERF.draws.slice(-60).sort((a, b) => a - b), med = d.length ? d[d.length >> 1] : 0;
+  return ` · ${PERF.frames.length} fps, draw ${med.toFixed(1)} ms`;
+}
 function frame(now) {
   const dt = Math.min(0.1, (now - prev) / 1000); prev = now; drawDt = dt || 1 / 60;
+  if (PERF.on && playing) PERF.frames.push(now);
   if (L && playing) {
-    // the song's clock when it is playing (lib/song.js: sample-exact), else the frame time
-    if (song && music && song.running && song.running()) t = Math.max(0, song.currentTime - (songInfo.offset || 0));
-    else t += dt * speed;
+    // frame time, pulled towards the song's clock when it plays (lib/song.js: sample-exact). Not the song's
+    // clock itself: AudioContext time moves in steps (a render quantum, ~3-10 ms), which made the motion stutter
+    // ("slightly laggy", the user); a tenth of the gap a frame keeps it within a few ms and smooth
+    t += dt * speed;
+    if (song && music && song.running && song.running()) {
+      const err = Math.max(0, song.currentTime - (songInfo.offset || 0)) - t;
+      t = Math.abs(err) > 0.1 ? t + err : t + err * 0.1;
+    }
     const k = tick();
     let clicks = 0; for (const c of L.sol.clicks) if (c.type === "press" && c.tick > lastTick && c.tick <= k) clicks++;
     if (clicks && k - lastTick < P.TPS / 4) beep(); // one beep a frame at most, none after a jump
     lastTick = k;
     if (k >= L.path.length - 1) { playing = false; setPlay(); }
     syncSong(false);
-    draw();
+    const d0 = performance.now(); draw(); if (PERF.on) { PERF.draws.push(performance.now() - d0); if (PERF.draws.length > 120) PERF.draws.splice(0, 60); }
   }
   requestAnimationFrame(frame);
 }

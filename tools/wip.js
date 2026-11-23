@@ -72,6 +72,9 @@ function phoneRow(session, base, L, version, note, solution) {
   const ROOT = path.join(__dirname, ".."), PH = path.join(ROOT, "local", "phone");
   const { songOf } = require("./index_levels.js");
   const doc = (session + "__" + base.replace(/\.gdlvl$/, "")).replace(/[^A-Za-z0-9_\-.]/g, "_");
+  // timing windows measured since (tools/solutions.js cache) for the same inputs go along: the phone shows them at once
+  try { const c = require("./solutions.js").get(L.levelStr, true);
+    if (solution && !solution.windows && c && c.windows && JSON.stringify(c.events) === JSON.stringify(solution.events)) solution = Object.assign({}, solution, { windows: c.windows, win: c.win }); } catch (e) {}
   const row = { name: L.name, session, file: "local/wip/" + session + "/" + base, level: L.levelStr, song: songOf(L.rec, L.level.header),
     version, note, updated: new Date().toISOString(), solution };
   const json = JSON.stringify(row);
