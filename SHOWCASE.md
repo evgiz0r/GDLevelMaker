@@ -95,8 +95,8 @@ later; 6 blocks fixed it.
 - `tools/make.js` spec key `"scene"` (a scene script) -- see the top of make.js.
 - Viewer / `lib/art.js`: text objects (914) drew as the editor's "Start Pos" button in GD art; now the text.
 - `tools/index_levels.js`: skips non-level json in the shared `local/` (phone_ids.json crashed it).
-- `tools/shoot.js` stalled after ~4 frames in one call on this level (each frame alone takes ~3 s): shoot
-  a few times per call. Reported to the visuals session.
+- `tools/shoot.js` stalled after ~4 frames per call during this work: a browser child that never exited,
+  fixed by the visuals session in d983d6a (8 frames now take ~8 s). Text 914 is now family "text" in the catalogue.
 
 ## Unsure in the game (check in a recording)
 
