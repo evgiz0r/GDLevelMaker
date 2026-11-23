@@ -27,6 +27,7 @@ swap("<title>GD Level Viewer</title>", "<title>GDLM Level Replays</title>");
 swap('src="../lib/', 'src="lib/');
 swap('<script src="levels.local.js" onerror="window.GD_LEVELS_LOCAL = []"></script>', "<script>window.GD_LEVELS_LOCAL = [];</script>");
 // no GD art on the published page: RobTop's sprites never leave the user's PC (VISUALS.md "Phone")
+swap('<button id="mapBtn" title="the whole level as one picture with its path (make it with node tools/levelmap.js <level>)">level map</button>\n', ""); // maps carry GD art (VISUALS.md)
 swap('<script src="lib/objects_art.js"></script>\n<script src="lib/objects_frames.js"></script>\n<script src="lib/art.js"></script>\n', "<script>window.GD_PHONE = true;</script>\n");
 swap('<script src="beats.local.js" onerror="window.GD_BEATS = {}"></script>', '<script src="beats.js" onerror="window.GD_BEATS = {}"></script>');
 // Songs: none are published. The viewer picks mp3s from their own device ("add song"); they are

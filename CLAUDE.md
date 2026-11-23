@@ -140,6 +140,8 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   `lib/objects_frames.js` (`tools/import_frames.js`, GD 2.2's own id -> frame table from the exe).
   Test: `node tests/art_tables.js`. **See your level as the game draws it:** `node tools/shoot.js
   <level.gdlvl | save:<name> | official:N> [--at 2,5] [--rec <video> --t0 <s>]` -> PNGs in `local/shots/`.
+  **The whole level as one picture with its path:** `node tools/levelmap.js <level> [--brief briefs/NN.json]`
+  -> `local/maps/<name>.jpg` (viewer: "level map").
 - **Deco catalogue** (knowledge/objects/README.md): `tools/catalogue.js index | sheets | usage` --
   every id with its picture on contact sheets (`local/catalogue/`, or browse `viewer/catalogue.html`),
   the searchable `knowledge/objects/catalogue.tsv`, and which deco families rated levels use together.

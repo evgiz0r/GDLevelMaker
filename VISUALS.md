@@ -69,6 +69,17 @@ object id -> frame names, offsets, colour roles, layers.
   from its portals) -> local/tmp/<name>_kit.gdlvl, then shoot.js. Checked in our render only, not yet
   in the user's game (lock-to-player duration and multiplier semantics are from the rated levels' data).
 
+- **Level map: `tools/levelmap.js <level> [--brief briefs/NN.json] [--shapes] [--rows N] [--scale s]`**
+  -- the whole level as one picture in stacked rows (2400 px wide, ~0.5 px per unit), GD art (or
+  `--shapes`), each 600-unit chunk drawn at the moment the player passes it (colours, moved objects),
+  with the replayed path over it: mode colours, a dot per press, a hollow square where a hold is let go,
+  yellow diamonds at orbs / pads, portal names (short, stacked when crowded), seconds and % ticks,
+  section names from a brief (blocks, or beats on its grid), and a red X with the reason where the run
+  stops. Uses a solution saved on today's physics (official levels: theirs), else solves fresh (a stale
+  one died in GDLM 45's wave). Writes local/maps/<name>.png + .jpg (phone, <= 1600 px); the viewer's
+  "level map" button opens the .jpg. GD-art maps and official levels stay local; `_shapes` maps are
+  art-free (for the phone page, gd-sync). Drawn by the viewer's map mode (`mapRender`, `MAPCAM`).
+
 ## Facts (checked against the user's recordings)
 
 How: viewer "compare" panel, level start offset set by eye, "save comparison" -> `local/shots/`.
