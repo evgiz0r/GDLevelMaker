@@ -100,9 +100,15 @@ function solve(level, levelStr, opts) {
   if (fresh(c)) return withWindows(level, levelStr, c);
   const w = GD.makeWorld(level.objects, level.header);
   // the saved inputs still finish it: only the replay plan needs redoing
+  // (and skip nothing: the no-skip rule; a route that now skips is solved again)
   if (c && c.ok && c.events && c.events.length) {
     const q = GD.run(w, c.events);
-    if (!q.dead && (q.done || q.end.x >= w.endX)) return fromRun(level, levelStr, { ok: true, events: c.events });
+    if (!q.dead && (q.done || q.end.x >= w.endX) && !GD.skipCheck(w, q.path, c.events)) {
+      // same replay plan code: only the physics stamp was old -- restamp, no work (a physics change no longer
+      // makes every viewer page solve its levels again)
+      if (c.plan === planCommit()) { const keep = Object.assign({}, c); delete keep.physics; delete keep.solvedAt; return put(levelStr, keep); }
+      return fromRun(level, levelStr, { ok: true, events: c.events });
+    }
   }
   return fromRun(level, levelStr, GD.solveAny(w));
 }
