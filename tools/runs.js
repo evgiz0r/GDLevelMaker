@@ -4,16 +4,19 @@
 // (beaten). Lime bar = normal mode, so practice runs (cyan bar) are left out.
 // Writes local/runs/<video name>.json; with --level N the deaths also go to the viewer and the fit.
 // The bar's place is for 1920x1080 (other sizes are scaled); the recording needs no sound.
+// --window X,Y,W: GD ran in a window, its play area's top-left at screen (X,Y), W px wide (the
+// user's 1600x900 window at 160,101 on the 2026-11-23 Spooky Dash recording).
 const fs = require("fs"), path = require("path"), { spawnSync } = require("child_process");
 const FF = process.env.FFMPEG || "ffmpeg";
 const OUT = path.join(__dirname, "..", "local", "runs");
 const BAR = { x0: 615, x1: 1305, y: 32, from: 600, w: 720 }; // at 1080p, from the BAB recording
 const FPS = 30;
 
-function barSeries(video) {
+function barSeries(video, win) {
   const probe = spawnSync(FF.replace(/ffmpeg(?=(\.exe)?$)/, "ffprobe"), ["-v", "error", "-select_streams", "v", "-show_entries", "stream=width,height", "-of", "csv=p=0", video], { encoding: "utf8" });
-  const [W, H] = ((probe.stdout || "").trim() || "1920,1080").split(",").map(Number), k = W / 1920;
-  const crop = `format=rgb24,crop=${Math.round(BAR.w * k)}:2:${Math.round(BAR.from * k)}:${Math.round(BAR.y * H / 1080)},scale=${BAR.w}:2`; // 2 rows (yuv needs even sizes); row 0 is read
+  const [W, H] = ((probe.stdout || "").trim() || "1920,1080").split(",").map(Number);
+  const k = win ? win[2] / 1920 : W / 1920, ox = win ? win[0] : 0, oy = win ? win[1] : 0, ky = win ? k : H / 1080;
+  const crop = `format=rgb24,crop=${Math.round(BAR.w * k)}:2:${Math.round(ox + BAR.from * k)}:${Math.round(oy + BAR.y * ky)},scale=${BAR.w}:2`; // 2 rows (yuv needs even sizes); row 0 is read
   const r = spawnSync(FF, ["-v", "error", "-i", video, "-vf", `fps=${FPS},${crop}`, "-f", "rawvideo", "-pix_fmt", "rgb24", "-"], { maxBuffer: 1 << 30 });
   if (r.status !== 0) throw new Error("ffmpeg failed on " + video + ": " + r.stderr);
   const buf = r.stdout, row = BAR.w * 3 * 2, out = [];
@@ -70,10 +73,11 @@ if (require.main === module) {
   const ji = args.indexOf("--join"), join = ji >= 0 && args.splice(ji, 1);
   const mi = args.indexOf("--device"), device = mi >= 0 ? args.splice(mi, 2)[1] : null;
   const ri = args.indexOf("--len"), lenRange = ri >= 0 ? args.splice(ri, 2)[1].split("-").map(Number) : null;
+  const wi = args.indexOf("--window"), win = wi >= 0 ? args.splice(wi, 2)[1].split(",").map(Number) : null;
   const groups = join ? [args] : args.map(a => [a]);
   for (const g of groups) {
     let series = [], t0 = 0;
-    for (const v of g) { const sr = barSeries(v); series = series.concat(sr.map(x => Object.assign(x, { t: x.t + t0 }))); t0 += sr.length / FPS; }
+    for (const v of g) { const sr = barSeries(v, win); series = series.concat(sr.map(x => Object.assign(x, { t: x.t + t0 }))); t0 += sr.length / FPS; }
     const v = g[0];
     let runs = attempts(series);
     // --len lo-hi: keep the attempts on a level of that length (s), e.g. 80-110
