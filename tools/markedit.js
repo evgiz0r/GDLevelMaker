@@ -59,7 +59,10 @@ function sweep(fams) {
 
 function run(o) {
   const out = { mark: o.mark ? o.mark.id : null, note: o.note };
-  const fams = FAM.classify(o.note);
+  // the viewer's optional kind (unfair / awkward / ugly / unclear) puts families with that effect first
+  const KIND = { unfair: "fairness", awkward: "flow", ugly: "look", unclear: "readability" }, eff = KIND[o.kind];
+  const fams = FAM.classify(o.note === o.kind ? "" : o.note).sort((a, b) => (b.effect === eff) - (a.effect === eff));
+  out.kind = o.kind || null;
   out.families = fams.map(f => f.id);
   const L = E.loadLevel(o.level), route = E.routeOf(L), spot = E.parseSpot(o.at, L, route);
   out.level = L.name; out.spot = spot;
@@ -95,6 +98,7 @@ function run(o) {
 }
 
 function print(r) {
+  if (r.kind) console.log(`   (the user's kind: ${r.kind})`);
   console.log(`== mark ${r.mark || "(screenshot note)"} on ${r.level} at block ${r.spot && r.spot.block} (t ${r.spot && r.spot.t} s): "${r.note}"`);
   console.log(`   family: ${r.families.length ? r.families.map(id => { const f = FAM.of(id) || FAM.FAMILIES.find(x => x.id === id); return `${id} (${f.effect}, ${f.effort}; ${f.check})`; }).join(" | ") : r.how && /the note read/.test(r.how) ? "none named (an instruction; if it is a rule, record it: --new-family)" : "NONE -- a new family: --new-family"}`);
   if (r.found && r.found.length) console.log(`   the checks at the spot: ${r.found.join("; ")}`);
@@ -131,11 +135,11 @@ if (require.main === module) {
   if (a.includes("--new-family")) { console.log(JSON.stringify(newFamily(opt("--new-family"), opt("--words") || "", opt("--line") || "", opt("--effect"), opt("--effort")))); process.exit(0); }
   let o;
   const common = { ops: opt("--do") ? JSON.parse(opt("--do")) : null, words: opt("--words"), dry: a.includes("--dry"), noShots: a.includes("--no-shots"), noSweep: a.includes("--no-sweep"), done: a.includes("--done"), session: opt("--session") };
-  if (opt("--level")) o = Object.assign({ level: opt("--level"), at: opt("--at") || "", note: opt("--note") || "" }, common);
+  if (opt("--level")) o = Object.assign({ level: opt("--level"), at: opt("--at") || "", note: opt("--note") || "", kind: opt("--kind") }, common);
   else {
     const m = marks().find(x => x.id === a[0]);
     if (!m) { console.log(fs.readFileSync(__filename, "utf8").split("\n").filter(l => l.startsWith("//")).join("\n")); process.exit(1); }
-    o = Object.assign({ mark: m, level: levelFileOf(m), at: `x=${m.x}` + (m.y != null ? `,y=${m.y}` : ""), note: m.note }, common);
+    o = Object.assign({ mark: m, level: levelFileOf(m), at: `x=${m.x}` + (m.y != null ? `,y=${m.y}` : ""), note: m.note, kind: m.kind }, common);
   }
   let r; try { r = run(o); } catch (e) { r = { ok: false, error: e.message, families: FAM.classify(o.note).map(f => f.id), note: o.note }; }
   if (a.includes("--json")) console.log(JSON.stringify(r, null, 1)); else print(r);

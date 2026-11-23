@@ -164,6 +164,7 @@ half), correct the row here in the same change. Real numbers pile up in `local/t
 | markedit.js: edit + the family's sweep over every GDLM level | edit + see EDITING.md "Results" | |
 | review.js, a level with a saved route (no --gates / --render) | see EDITING.md "Results" | |
 | fix.js (review, fixes, review again) | see EDITING.md "Results" | |
+| retarget.js, one tier | see EDITING.md "Results" | |
 
 ## Shared folder, work in progress, the user's marks
 
@@ -269,7 +270,8 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   "<change>"` (one change on a COPY, re-solved, checks before/after, before/after picture), `tools/markedit.js`
   (a viewer mark or a screenshot note -> its soft-rule family -> the edit -> the family swept over every level),
   `tools/review.js <level>` (every check -> one ranked issue list + a phone page), `tools/fix.js <level>` (review ->
-  the safe fixes on a copy -> review again), `tools/families.js` (every soft-rule family: note words, effect,
+  the safe fixes on a copy -> review again), `tools/retarget.js <level> --to easier|harder|<tier>|<stars>` (the
+  hardest spots first, small edits scored by the difficulty model), `tools/families.js` (every soft-rule family: note words, effect,
   effort, fix, auto-fix). Test: `node tests/editing.js`.
 - **`tools/heavy.js` -- the one-heavy-job lock** every heavy tool takes on start (see "One heavy job at
   a time"). Test: `node tests/heavy.js`.
