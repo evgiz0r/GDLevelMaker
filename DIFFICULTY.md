@@ -130,79 +130,74 @@ timing misses.
 Deadlocked 3951. The others took 39-560. The game writes the save only now and then, so a
 session's attempts show up there late.
 
-## Against the official levels (physics 1503b03 with triggers, the player's route, SIGMA 13, LAPSE 0.75 %)
+## Against the official levels (the player's route, SIGMA 13, LAPSE 0.75 %, SETTLE 300 ms)
 
-Solved into the shared `local/` and tagged with their physics commit (`tools/difficulty_solve.js`);
-9, 10, 17, 19, 20 and 22 come from the physics session's runs. 18 of 22 are now beaten in the sim.
+Report7, 2026-11-23, with route choice and the settle factor. Solved into the shared `local/` and
+tagged with their physics commit (`tools/difficulty_solve.js`). Rows 7, 17, 19 and 20 were re-solved
+by the physics session (physics 7924db0-da4fcf3: wave edge rules, the intended route). The rest are
+on 1503b03 and may take a different route on today's sweep, which prefers routes that take every
+portal and orb and keep off walls. Their `physics` stamp shows which are stale. 17 of 22 are beaten
+in the sim.
 
 | # | level | rating | covers | inputs | tight | min ms | score | /min | your attempts |
 |---|---|---|---|---|---|---|---|---|---|
 | 1 | Stereo Madness | Easy 1 | 100% | 119 | 0 | 63 | 0.40 | 0.29 | 353 |
 | 2 | Back On Track | Easy 2 | 100% | 111 | 0 | 100 | 0.36 | 0.27 | 39 |
 | 3 | Polargeist | Normal 3 | 100% | 142 | 0 | 100 | 0.46 | 0.31 | 47 |
-| 4 | Dry Out | Normal 4 | 100% | 127 | 0 | 100 | 0.42 | 0.31 | 64 |
+| 4 | Dry Out | Normal 4 | 100% | 127 | 0 | 100 | 0.72 | 0.54 | 64 |
 | 5 | Base After Base | Hard 5 | 100% | 126 | 0 | 67 | 0.42 | 0.30 | 58 |
 | 6 | Cant Let Go | Hard 6 | 100% | 127 | 0 | 71 | 0.42 | 0.32 | 150 |
-| 7 | Jumper | Harder 7 | 100% | 131 | 1 | 58 | 0.45 | 0.31 | 173 |
-| 8 | Time Machine | Harder 8 | 100% | 136 | 1 | 54 | 0.46 | 0.29 | 204 |
-| 9 | Cycles | Harder 9 | 100% | 108 | 0 | 63 | 0.37 | 0.28 | 127 |
-| 10 | xStep | Insane 10 | 100% | 115 | 6 | 17 | 0.88 | 0.66 | 114 |
-| 11 | Clutterfunk | Insane 11 | 100% | 159 | 1 | 42 | 0.58 | 0.37 | 456 |
-| 12 | Theory of Everything | Insane 12 | 100% | 112 | 3 | 58 | 0.40 | 0.29 | 170 |
-| 13 | Electroman Adventures | Insane 10 | 100% | 137 | 1 | 54 | 0.48 | 0.34 | 285 |
-| 14 | Clubstep | Demon 14 | 100% | 161 | 5 | 33 | 0.78 | 0.55 | 1886 |
-| 15 | Electrodynamix | Insane 12 | 100% | 132 | 3 | 25 | 0.73 | 0.51 | 560 |
-| 16 | Hexagon Force | Insane 12 | 100% | 136 | 0 | 63 | 0.46 | 0.32 | 249 |
-| 17 | Blast Processing | Harder 10 | 100% | 120 | 2 | 25 | 0.67 | 0.41 | 203 |
-| 18 | Theory of Everything 2 | Demon 14 | 56% | 92 | 7 | 13 | 1.07 | 1.26 | 3258 |
-| 19 | Geometrical Dominator | Harder 10 | 89% | 115 | 3 | 33 | 0.53 | 0.37 | 191 |
-| 20 | Deadlocked | Demon 15 | 30% | 55 | 3 | 25 | 0.51 | 0.89 | 3951 |
+| 7 | Jumper | Harder 7 | 100% | 160 | 1 | 58 | 0.80 | 0.56 | 173 |
+| 8 | Time Machine | Harder 8 | 100% | 136 | 1 | 54 | 0.61 | 0.39 | 204 |
+| 9 | Cycles | Harder 9 | 100% | 108 | 0 | 63 | 0.63 | 0.48 | 127 |
+| 10 | xStep | Insane 10 | 100% | 115 | 6 | 17 | 1.21 | 0.90 | 114 |
+| 11 | Clutterfunk | Insane 11 | 100% | 159 | 1 | 42 | 0.81 | 0.52 | 456 |
+| 12 | Theory of Everything | Insane 12 | 100% | 112 | 3 | 58 | 2.89 | 2.11 | 170 |
+| 13 | Electroman Adventures | Insane 10 | 100% | 137 | 1 | 54 | 0.72 | 0.51 | 285 |
+| 14 | Clubstep | Demon 14 | 100% | 161 | 5 | 33 | 2.42 | 1.70 | 1886 |
+| 15 | Electrodynamix | Insane 12 | 100% | 132 | 3 | 25 | 2.26 | 1.57 | 560 |
+| 16 | Hexagon Force | Insane 12 | 100% | 136 | 0 | 63 | 0.79 | 0.55 | 249 |
+| 17 | Blast Processing | Harder 10 | 78% | 125 | 1 | 58 | 0.84 | 0.66 | 203 |
+| 18 | Theory of Everything 2 | Demon 14 | 52% | 86 | 7 | 13 | 1.55 | 1.99 | 3258 |
+| 19 | Geometrical Dominator | Harder 10 | 100% | 146 | 0 | 67 | 0.86 | 0.54 | 191 |
+| 20 | Deadlocked | Demon 15 | 36% | 97 | 2 | 42 | 2.81 | 4.81 | 3951 |
 | 21 | Fingerdash | Insane 12 | 5% | - | - | - | - | - | 296 |
-| 22 | Dash | Harder 10 | 24% | 24 | 3 | 21 | 0.44 | 1.79 | 477 |
+| 22 | Dash | Harder 10 | 24% | 24 | 3 | 21 | 2.14 | 8.73 | 477 |
 
 Fingerdash is left out: a sim bug stops it at block 55, being fixed by the physics session.
 
-**Rank agreement over the other 21:**
-- score per minute vs stars **0.70**;
-- total score vs stars **0.63**;
-- score per minute vs your attempts **0.64**.
+**Rank agreement over the other 21** (`node tools/difficulty.js --cached`, from the report's cache):
 
-Route choice (`easierRoute`, report6, 2026-11-23) changed two levels. Electroman's 8 ms UFO
-tap became an extra flap 0.9 s later, which makes up for an off-time first one (1.08 -> 0.48).
-Clutterfunk's 50 ms cube jump became two taps (0.60 -> 0.58). Before route choice it was 0.66 /
-0.61 / 0.66. Every other tight input is ship, wave or swing steering, or had no easier route.
+| | per minute vs stars | score vs stars | per minute vs your attempts |
+|---|---|---|---|
+| route choice, no settle factor | 0.64 | 0.40 | 0.61 |
+| **with settling after portals (in use)** | **0.82** | **0.87** | 0.60 |
 
-Stars vs your attempts is 0.73, the bar. Before the physics update, with most upper levels
-partial, it was 0.59.
+Stars vs your attempts is 0.73. Before route choice and the physics updates it was 0.66 / 0.61 /
+0.66 (report6), and 0.59 before that.
 
-**With the settle factor** (report7, 2026-11-23, `node tools/difficulty.js --cached --settle MS` from
-its cache). The table above is report6, before the factor. On the same coverage:
+Route choice (`easierRoute`, report6) changed two levels. Electroman's 8 ms UFO tap became an
+extra flap 0.9 s later, which makes up for an off-time first one (1.08 -> 0.48 then). Clutterfunk's
+50 ms cube jump became two taps. Every other tight input is ship, wave or swing steering, or had no
+easier route.
 
-| settle | per minute vs stars | per minute vs your attempts |
-|---|---|---|
-| off | 0.67 | 0.60 |
-| 300 ms (in use) | **0.81** | 0.57 |
-
-Insane and Demon levels have many inputs right after portals: ToE 2.89, Clubstep 2.42,
-Electrodynamix 2.26. Report7 also ran on the physics with the wave-edge and head-on-slope rules,
-which cut three saved solutions short: Blast Processing to 15%, Dominator to 24%, Deadlocked to 26%
-The old routes slid off block ends or rode slopes head-on, which GD forbids: gdsolver's real
-plan for 17 still gets through the wave part under the new rules. The physics session is
-re-solving 17, 19 and 20; rerun their rows (`node tools/difficulty.js 17 19 20`) when it reports.
+The settle factor is what lifts the upper levels: Insane and Demon levels have many inputs right
+after portals (ToE 2.89, Clubstep 2.42, Electrodynamix 2.26, Deadlocked's first 36% 2.81).
 
 What it gets right:
-- **The Insane and Demon levels score highest**, now over whole levels: xStep 0.88,
-  Clubstep 0.78, Electrodynamix 0.73, ToE 2 1.07 (56%). Their tight inputs (under 60 ms) number
-  3-7 per level, against 0-1 up to Harder.
+- **The Insane and Demon levels score highest:** ToE 2.89, Clubstep 2.42, Electrodynamix 2.26,
+  xStep 1.21, ToE 2 1.55 (52%). Most of it is tight inputs (2-7 per level against 0-1 up to
+  Harder) and inputs right after portals.
 - **It fits the player's attempts** on the levels they played (calibration above).
 
 What it gets wrong:
-- **Easy to Harder all score 0.36-0.46,** about 0.3 per minute. The layout model above separates
-  them into two bands; timing does not.
-- **Hexagon Force, ToE and now Electroman (Insane) score like Harder.** Route choice found easy
-  routes in them, so their difficulty is elsewhere: parts the sim plays more easily than people
-  do (dual, reading the UFO), surprise (Open 3) or density (Open 1).
-- **Dash (24%) and Deadlocked (31%) per minute** rest on short covered fragments.
+- **Easy to Harder are still close,** 0.27-0.56 per minute. Dry Out (Normal) and Jumper (Harder)
+  rise with the settle factor, the rest stay ~0.3. The layout model above separates them into two
+  bands; timing does not.
+- **Hexagon Force, Electroman and Clutterfunk (Insane) score like Harder** (0.5 per minute).
+  Route choice found easy routes in Electroman; their difficulty may be in parts the sim plays more
+  easily than people do (dual, reading the UFO), or in density (Open 1).
+- **Dash (24%) and Deadlocked (36%) per minute** rest on short covered fragments.
 
 ## Fairness: deaths that are not the player's fault
 
