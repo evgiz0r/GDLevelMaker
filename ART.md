@@ -1,0 +1,110 @@
+# ART -- drawing things in GD: pictures -> objects, and the prop library
+
+Why: the rated community levels the user played on 2026-11-23 (Spooky Dash by Fabruuuu, ID 150941693, and
+others; recording `GD claude-rec 2026-11-23_20-41-39.mkv`, never delete it) are illustrated scenes --
+pumpkins, graveyard trees, creature faces, pixel forests, factory chains -- built from many small pieces in
+one palette per scene. Our levels could not draw anything. This is the start of that. Owner: the art session
+(2026-11-23); the showcase session builds scene levels on top of it (SHOWCASE.md, tools/scenes.js).
+
+## Files
+
+- `lib/pixelart.js` -- the core (node + browser): a pixel canvas (`grid`: rect, ellipse, ring, line, poly,
+  stamp rows, outline, flipX), `toObjects(grid, {x, y, px, ch, z, zo, anchor, groups})` -> GD objects,
+  `quantise(rgba, w, h, k)` (k-means to k colours), `downscale`.
+- `tools/pixelart.js <image.png> [--at x,y] [--scale s | --width W] [--colours k] [--max-objects N]
+  [--outline r,g,b] [--glow r,g,b] [--into lvl --out lvl] [--json f] [--preview f.png]` -- a picture -> objects,
+  with a report of counts per colour channel. `tools/png.js`: PNG read / write in plain node.
+- `lib/props.js` -- the prop library: `list()`, `put(name, x, y, opts)`, `place(name, x0, x1, opts)`,
+  `header(header, colours)`, `allocator(ch0)`. API and options at the top of the file.
+- `tools/props.js list | show <name> | sheet [--theme spooky] | level` -- table, text pixels, contact sheet
+  (`local/props/props_<theme>.png`, art-free), the test level `levels/gdlm_prop_test.gdlvl`.
+- `tools/props_sheet.py` -- draws the contact sheet (PIL).
+- In a spec (tools/make.js): `"props": [{"prop": "pumpkin", "col": 30}, {"prop": "tree", "from": 40, "to": 80,
+  "density": 2}]`, `"propTheme": "spooky"`, `"propsCh0": 600`. make.js puts the channels in the header and
+  warns when a ground prop stands within 2 blocks of gameplay (it may read as an obstacle).
+- Test: `node tests/pixelart.js` (objects redraw the picture exactly; props deco-only, under budget, < 7 blocks).
+
+## How a picture becomes objects
+
+1. Colours: at most k (default 6) -- each colour is one colour channel, so a scene keeps few channels.
+   Transparent pixels (alpha < 128) stay empty.
+2. Pieces: every pixel is drawn by **deco square 211** (`lightsquare_01_05_color`: a plain white 1x1 square,
+   decoration, no hitbox; checked in GD's sprite sheet: solid to the edge, no border) -- recoloured by its
+   channel and stretched with 2.2's separate **scale X / Y (keys 128 / 129)** into a rectangle.
+3. Merging, painter's order: colours are drawn bottom-up, each with its own **z order (key 25)**, on one
+   **layer (key 24, default B2: behind the player)**. A colour's rectangles may run under the pixels of every
+   colour drawn above it, so a pumpkin body is a few big rectangles under its face, not dozens around it. The
+   paint order is searched (by area, by spread, then single moves while the count drops): an outline goes at
+   the bottom as a silhouette. tests/pixelart.js redraws random pictures from the objects, pixel-exact.
+4. Budget: `--max-objects N` drops colours (to 3), then halves the grid, until it fits.
+
+Numbers: 16-53 objects per prop of 150-750 pixels; a 40x32 flat illustration with outline 57; a 48x48
+smooth gradient at 8 colours 12 (k-means regions are blobby, so it merges well -- photos look posterised).
+Whole prop library: 23 props, ~570 objects. Rated 2.2 levels carry 17-22 deco objects per block
+(knowledge/objects/README.md), so a 4-block tree at 38 is cheap. Phones: keep a scene under a few hundred
+prop objects per screen.
+
+## The props (2026-11-23)
+
+Contact sheet: `node tools/props.js sheet` (day colours) / `--theme spooky`. GD art: the test level through
+`node tools/levelmap.js levels/gdlm_prop_test.gdlvl --scale 2 --rows 1` (local/maps/, not committed).
+
+| prop | attach | blocks w x h | objects | colours |
+|---|---|---|---|---|
+| tree | ground | 3.7 x 4.7 | 38 | bark bark2 leaf leaf2 leaf3 outline |
+| dead tree | ground | 4.0 x 5.0 | 53 | bark bark2 outline |
+| pumpkin | ground | 2.0 x 1.7 | 31 | orange orange2 stem glow outline |
+| house | ground | 4.3 x 4.7 | 46 | wall wall2 roof roof2 dark glow wood outline |
+| lamp post | ground | 1.5 x 4.0 | 16 | metal metal2 light glow outline |
+| fence | ground | 2.3 x 1.4 | 26 | wood bark outline |
+| tombstone | ground | 1.4 x 1.7 | 16 | stone stone2 stone3 leaf3 outline |
+| hanging block | hang | 1.8 x 4.9 | 15 | GD chain 110 + stone block |
+| gear | bg | 2.3 x 2.3 | 6 | GD cogwheel 85 + pixel hub |
+| cloud | bg | 4.7 x 2.0 | 10 | cloud cloud2 |
+| moon | bg | 3.7 x 3.7 | 24 | moon moon2 |
+| bush | ground | 2.4 x 1.5 | 18 | leaf leaf2 leaf3 outline |
+| rock | ground | 2.1 x 1.5 | 20 | stone stone2 stone3 outline |
+| robot | ground | 1.8 x 2.8 | 34 | metal metal2 light dark glow eye outline |
+| human | ground | 1.6 x 2.8 | 24 | skin hair dark roof shirt trousers outline |
+| ghost | bg | 1.8 x 2.2 | 33 | ghost ghost2 dark outline |
+| glowing eyes | bg | 1.5 x 0.5 | 8 | eye dark |
+| bat | bg | 1.6 x 0.7 | 11 | wing eye |
+| crow | ground (perch) | 1.2 x 0.8 | 12 | wing dark eye orange2 |
+| candle | ground | 0.7 x 1.3 | 9 | glow light moon moon2 outline |
+| flower | ground | 0.9 x 1.2 | 15 | leaf leaf2 petal (seed) glow outline |
+| sun | bg | 3.3 x 3.3 | 9 | glow light |
+| windmill | ground | 4.7 x 5.3 | 92 | wall wall2 roof wood cloud dark outline (diagonal sails are costly: rotate GD squares instead, open) |
+
+Colour names are shared (`NAMES` in lib/props.js), so props placed with one `allocator` share channels: a
+forest of trees and bushes uses one leaf channel. Scene colour: `theme` (day, spooky, night, factory) or a
+scene `palette` {bg, ground, fill, edge, accent} (the showcase planner's): outlines from edge, lights from
+accent, the rest tinted half-way to fill at its own brightness -- one palette per scene, as rated levels do.
+Aliases take the planner's plural names (tombstones, jack-o-lanterns, chains, ...).
+
+`place(..., {avoid: objects, clear: 2})` keeps ground and hanging props 2 blocks off every gameplay column (background ones ignore it).
+
+Rules the props keep: calm (no triggers inside a prop; animate a prop's `groups` from outside, on bars only,
+TASTE.md); no rings or round orb-coloured shapes near the path; at most ~5 blocks high; no hitboxes. Ground
+props stand behind the player on B2 -- fine in GD -- but one right next to a jump can read as an obstacle
+(make.js warns).
+
+## Colour -- UNCHECKED in the game
+
+The signature came out pure white in the real game (GDLM 60): its 211 squares on channels 988-999, channels
+in the header. Not understood yet; the visuals session's `tools/colourtest.js` (rows A-J) asks the user. Until
+the answer: props set BOTH colour keys (21 main and 22 detail -- either way 211 gets its channel), use channels
+600+ (opts.ch0), and the prop test level opens with four pumpkins: **A** keys 21+22 on ch 6xx (what every prop
+does), **B** key 21 only, **C** key 22 only, **D** keys 21+22 on channels 40+. Which are orange in the game
+decides the default (`chKeys`, `ch0`). Write the answer here.
+
+## Open
+
+- The colour answer (above); then the in-game look of the test level (sizes, z order, seams between stretched
+  squares at non-integer scales).
+- More props for the showcase planner's places (crow, candle, windmill, flower, sun are in): kelp / coral (or wrap
+  scenekit's), witch silhouette, broken arch, stained window.
+- Diagonal edges: half-cell triangles (693 lighttriangle) on staircase edges would smooth curves cheaply.
+- Glow: GD's own glow / gradient pieces (1293) behind lamps and eyes, once the colour answer is in.
+- Pictures from Blender (tools/blender_model.sh in the GamePlatform kit: render a model small, flat-shaded,
+  then tools/pixelart.js) -- not tried yet; PIL drawings and hand-drawn rows work.
+- The signature's robot and human from this library (with the visuals session, tools/signature.js).

@@ -195,7 +195,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   solution, one at a time; `--resume` after a physics change solves only from a bit before where it matters), `difficulty_fit` (refit on the user's runs), `difficulty_community`
   (score downloaded community levels), `runs` (the user's deaths from a recording, via the progress
   bar), `save_stats` (the user's lifetime attempts per official level, read-only from the save),
-  `stop` (where a level's saved solution dies in the sim and what killed it), `difficulty_route` (a level with and without route choice: a player avoids a hard timing when the
+  `difficulty_parts` (how much windows and CPS alone explain the stars), `skips` (does a saved route skip a portal: then no number from it), `quality` (the scorecard: official 1-10 vs every GDLM level, QUALITY.md), `stop` (where a level's saved solution dies in the sim and what killed it), `difficulty_route` (a level with and without route choice: a player avoids a hard timing when the
   level has an easier way), **`fairness`** (deaths that are not the player's fault: forced input after
   a portal, misleading marks, sloped portal exits, orb chains with nothing to correct; fitted on the
   user's labelled deaths, `fairness fit`; tools/score.js gates on it; DIFFICULTY.md "Fairness").
@@ -282,6 +282,16 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   parallax and beat pulses); output in `local/polish/` only. Before/after in GD art: `viewer/polish.html`
   (via tools/serve.js) and shoot.js renders. Helpers: `tools/textmap.js` (a level as text with the
   path), `tools/orbchain_try.js` (forgiving orb chains). Test: `node tests/polish.js`.
+- **Taste learned from real levels** (TASTE_DATA.md: the corpus of ~330 rated / unrated / official levels with
+  likes and downloads, the static measures, which ones separate featured levels from the rest within a tier
+  band, the verdict on each of the user's soft rules, what is open; owner: the taste session):
+  `tools/taste.js` (`corpus`, `fetch`, `measure`, `learn`, `score <level>`), aggregates in
+  `knowledge/taste_model.json`, score.js gate "taste". Test: `node tests/taste.js`.
+- **Art: pictures and props as GD objects** (ART.md: how a picture becomes merged deco squares, the prop
+  library with counts and sizes, the colour question still open in the game, what is open; owner: the art
+  session): `lib/pixelart.js` (canvas + converter), `tools/pixelart.js <image.png>` (picture -> objects,
+  `--max-objects`), `lib/props.js` (`put` / `place` / `list` by name: tree, pumpkin, house, robot, ...;
+  spec key `"props"` in make.js), `tools/props.js sheet | level`. Test: `node tests/pixelart.js`.
 - **The user's drawings -> levels** (SKETCH.md: reading a drawing into a spec, then making it fair;
   the GDLM 46 lessons).
 - **Levels onto the phone** (PUBLISH.md: unlisted upload from the PC game with computer use, where

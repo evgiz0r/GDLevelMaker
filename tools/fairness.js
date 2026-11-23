@@ -134,7 +134,8 @@ function analyse(w, sol) {
     for (let x = px - 150; x <= px + 150; x += 15) cols.push(Object.assign({ dx: x - px }, surf(x)));
     portals.push({ x: px, from: P[t - 1].mode, to: P[t].mode, cols });
   }
-  return { name: w.name, inputs, marks, portals, switches, seconds: d.seconds, complete: d.complete, logAttempts: d.logAttempts };
+  return { name: w.name, inputs, marks, portals, switches, seconds: d.seconds, complete: d.complete, logAttempts: d.logAttempts,
+    tightest: d.tightest, medianMs: d.medianMs, events: d.events, windows: d.actions.map(a => ({ tick: a.tick, ms: a.ms, mode: a.mode })) };
 }
 
 // Flags from the measured features (fast part).

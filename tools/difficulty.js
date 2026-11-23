@@ -8,6 +8,7 @@
 if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const fs = require("fs"), path = require("path");
 const { GD, unpack, readGdlvl } = require("./io.js");
+const SK = require("./skips.js");
 const DF = require("../lib/difficulty.js");
 const SRC = process.env.GD_LEVELS || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash/Resources/levels/";
 const OUT = path.join(__dirname, "..", "local", "difficulty");
@@ -77,11 +78,15 @@ function main() {
         const k = a.afterSwitchMs !== null && a.afterSwitchMs !== undefined && a.afterSwitchMs < settle ? Math.max(0.02, a.afterSwitchMs / settle) : 1;
         la -= Math.log10(Math.max(DF.hitChance(a.ms, sigma) * k, 1e-9));
       }
-      rows.push({ n, la, pm: la / Math.max(c.seconds, 1e-9) * 60, cover: c.blocks, complete: c.complete, att: user && user[n] ? user[n].attempts : null });
-      console.log(`${String(n).padStart(3)} ${RATED[n][0].padEnd(23)} ${(RATED[n][1] + " " + RATED[n][2]).padEnd(10)} score ${la.toFixed(2)}  /min ${(la / Math.max(c.seconds, 1e-9) * 60).toFixed(2)}`);
+      // the user's rule (2026-11-23): a route that skips a portal is a physics bug, never a number
+      const sk = SK.official(n), skips = sk ? SK.realSkips(sk).length : 0, stale = sk && c.complete && !sk.complete;
+      rows.push({ n, la, pm: la / Math.max(c.seconds, 1e-9) * 60, cover: c.blocks, complete: c.complete, att: user && user[n] ? user[n].attempts : null, skips, stale });
+      console.log(`${String(n).padStart(3)} ${RATED[n][0].padEnd(23)} ${(RATED[n][1] + " " + RATED[n][2]).padEnd(10)} ` +
+        (skips ? `route SKIPS ${skips} portal(s): no number (tools/skips.js ${n})` : `score ${la.toFixed(2)}  /min ${(la / Math.max(c.seconds, 1e-9) * 60).toFixed(2)}`) +
+        (stale ? "  (the saved route no longer finishes on today's physics)" : ""));
     }
-    const ok = rows.filter(r => r.n !== 21);
-    console.log(`sigma ${sigma}, settle ${settle} ms. Spearman over ${ok.length} (Fingerdash out): per minute vs stars ${spearman(ok.map(r => r.pm), ok.map(r => RATED[r.n][2])).toFixed(2)}, score vs stars ${spearman(ok.map(r => r.la), ok.map(r => RATED[r.n][2])).toFixed(2)}` +
+    const ok = rows.filter(r => r.n !== 21 && !r.skips);
+    console.log(`sigma ${sigma}, settle ${settle} ms. Spearman over ${ok.length} (Fingerdash and skipping routes out): per minute vs stars ${spearman(ok.map(r => r.pm), ok.map(r => RATED[r.n][2])).toFixed(2)}, score vs stars ${spearman(ok.map(r => r.la), ok.map(r => RATED[r.n][2])).toFixed(2)}` +
       (ok.every(r => r.att) ? `, per minute vs your attempts ${spearman(ok.map(r => r.pm), ok.map(r => r.att)).toFixed(2)}` : ""));
     return;
   }

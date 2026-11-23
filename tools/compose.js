@@ -337,6 +337,7 @@ function compose(brief, tweaks = {}) {
   // the signature at the end (tools/signature.js, the visuals session's): in the last rest section
   // on by default; make.js puts it 3 blocks after the last gameplay object and ends the level ~5 blocks after it
   spec.signature = brief.signature === false ? false : {};
+  if (brief.craft) spec.craft = brief.craft;   // craft pass (tools/craftkit.js, CRAFT.md): rods, chains, lanterns on the structures
   if (brief.modern !== false) spec.modern = { sections: looks.map(({ bg, ...l }) => l), title: brief.name, end: "thanks for playing", seed: brief.seed || 3, light: brief.palette === "light" };
   // jump indicators (tools/decorate.js): on jumps that cannot be read in time, and the first jump of
   // each new pattern. Default on; "indicators": false in the brief turns them off.
