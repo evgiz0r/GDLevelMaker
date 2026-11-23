@@ -19,7 +19,7 @@
 
     ["colour", "b13", { "ch": "bg", "rgb": [200, 40, 0], "secs": 0 }],
     ["colour", "b13.5", { "ch": "bg", "rgb": [80, 0, 0], "secs": 0.6 }],
-    ["pattern", "wave-zigzag", "b13+6", 0, { "seg": 4, "legs": 3, "gap": 5, "low": 3, "slopes": true, "portal": true, "exit": "cube" }],
+    ["pattern", "wave-zigzag", "b13+6", 0, { "seg": 4, "legs": 2, "flat": 3, "lead": 2, "gap": 5, "low": 3, "slopes": true, "portal": true, "exit": "cube" }],
 
     ["colour", "b17", { "ch": "bg", "rgb": [170, 15, 0], "secs": 0 }],
     ["colour", "b17.5", { "ch": "bg", "rgb": [70, 0, 0], "secs": 0.6 }],

@@ -131,16 +131,26 @@ def("ship-tunnel", "a ship corridor (band rows 0-9): floor and roof follow `wave
   portals(o, "ship", a.portalRow ?? Math.min(5, Math.round(mid(0))), Math.round(mid(w - 1)), w, a);
   return { objects: o, width: w + (a.exit ? 1 : 0) };
 });
-def("wave-zigzag", "a wave corridor (band rows 0-9): the path climbs and falls 45 degrees, `seg` columns per leg, `gap` rows of room (4 = Easy); portal/exit options", (a) => {
-  const seg = a.seg || 4, legs = a.legs || 4, gap = a.gap || 4, low = a.low ?? 2, o = [];
-  const w = seg * legs;
-  const midAt = c => { const leg = Math.floor(c / seg), k = c % seg; return low + (leg % 2 === 0 ? k : seg - k); };
+def("wave-zigzag", "a wave corridor (band rows 0-9): the path climbs and falls 45 degrees, `seg` columns per leg, `gap` rows of room, `flat` level columns at each peak and valley, `lead` level columns at the entry; portal/exit options", (a) => {
+  // `flat`: with 45-degree slope walls the wave flies exactly parallel to them, and at a turn the next
+  // leg's slope meets it head-on -- which kills (physics, 2026-11-23: GDLM 44's zigzag turns were
+  // 13-88 ms, "i still couldnt fit into the gap"). A flat roof or floor at each turn is met at 45
+  // degrees, so the wave slides along it and can turn anywhere on it: ~95 ms per flat column at 1x.
+  const seg = a.seg || 4, legs = a.legs || 4, gap = a.gap || 4, low = a.low ?? 2, flat = a.flat || 0, lead = a.lead || 0, o = [];
+  const L = seg + flat, w = lead + L * legs;
+  const midAt = c => { if (c < lead) return low; c -= lead; const leg = Math.floor(c / L), k = Math.min(c % L, seg); return low + (leg % 2 === 0 ? k : seg - k); };
   for (let c = 0; c < w; c++) {
     if (a.slopes) {
       // walls of 45-degree slopes along the legs, so the corridor is a straight diagonal (square
       // blocks made it a staircase: "the wave looks like cube", playtest GDLM 44 v3). The sim models
       // floor slopes and treats ceiling slopes as full blocks, so it checks with less room than the game.
       const m0 = midAt(c), m1 = c + 1 < w ? midAt(c + 1) : m0, up = m1 > m0;
+      if (m0 === m1) { // level: floor below row m0 - gap/2, roof from `gap` rows above it
+        const f = m0 - Math.floor(gap / 2);
+        for (let r = 0; r < f; r++) o.push(["block", c, r]);
+        for (let r = f + gap; r < 10; r++) o.push(["block", c, r]);
+        continue;
+      }
       const fl = Math.min(m0, m1) - Math.floor(gap / 2);       // floor slope row
       const cl = Math.max(m0, m1) - Math.floor(gap / 2) + gap - 1; // ceiling slope row
       for (let r = 0; r < fl; r++) o.push(["block", c, r]);
@@ -158,7 +168,11 @@ def("wave-zigzag", "a wave corridor (band rows 0-9): the path climbs and falls 4
     for (let r = 0; r < bottom; r++) o.push(["block", c, r]);
     for (let r = top; r < 10; r++) o.push(["block", c, r]);
   }
-  portals(o, "wave", a.portalRow ?? Math.min(5, midAt(0)), midAt(w - 1), w, a);
+  // the exit over the last floor: a corridor ending level (flat) has the wave sliding on its floor,
+  // so the portal covers the floor's top row and the two above it (centred one row up); in the middle
+  // of the path it let only a late release through (GDLM 44 v7: 54 ms, the early ones slid under it)
+  const endFlat = a.slopes && flat && midAt(w - 1) === midAt(w - 2);
+  portals(o, "wave", a.portalRow ?? Math.min(5, midAt(0)), endFlat ? midAt(w - 1) - Math.floor(gap / 2) + 1 : midAt(w - 1), w, a);
   return { objects: o, width: w + (a.exit ? 1 : 0) };
 });
 
