@@ -282,6 +282,11 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   parallax and beat pulses); output in `local/polish/` only. Before/after in GD art: `viewer/polish.html`
   (via tools/serve.js) and shoot.js renders. Helpers: `tools/textmap.js` (a level as text with the
   path), `tools/orbchain_try.js` (forgiving orb chains). Test: `node tests/polish.js`.
+- **Taste learned from real levels** (TASTE_DATA.md: the corpus of ~330 rated / unrated / official levels with
+  likes and downloads, the static measures, which ones separate featured levels from the rest within a tier
+  band, the verdict on each of the user's soft rules, what is open; owner: the taste session):
+  `tools/taste.js` (`corpus`, `fetch`, `measure`, `learn`, `score <level>`), aggregates in
+  `knowledge/taste_model.json`, score.js gate "taste". Test: `node tests/taste.js`.
 - **Art: pictures and props as GD objects** (ART.md: how a picture becomes merged deco squares, the prop
   library with counts and sizes, the colour question still open in the game, what is open; owner: the art
   session): `lib/pixelart.js` (canvas + converter), `tools/pixelart.js <image.png>` (picture -> objects,

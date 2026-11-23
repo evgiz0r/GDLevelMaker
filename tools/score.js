@@ -35,6 +35,8 @@
 //                Also WARN: a press the route can drop and still finish (an arrow would mark a jump
 //                that is not needed; the user on GDLM 44 v12, "some places mark to jump but no need").
 //   objects      gameplay objects with unconfirmed hitboxes (sure:false; WARN only)
+//   taste        the taste score learned from rated vs unrated community levels (tools/taste.js, TASTE_DATA.md):
+//                info; WARN when a rule the data supports is missed. Band from the brief's "taste": {"band"}.
 // Cost: two solves of the level (a few seconds for a 30 s cube level). One at a time.
 if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const fs = require("fs");
@@ -333,9 +335,18 @@ function scoreLevel(level, brief, opts = {}) {
   const ids = [...new Set(unsure.map(o => o.id))];
   gate("objects", unsure.length ? "WARN" : "PASS", unsure.length ? `${unsure.length} gameplay objects with unconfirmed hitboxes (ids ${ids.join(", ")})` : "all hitboxes confirmed");
 
+  // taste: the score learned from rated vs unrated community levels (tools/taste.js, TASTE_DATA.md). Info only;
+  // WARN when a rule the data supports is missed (a soft rule: a level may break it with a reason)
+  try {
+    const TS = require("./taste.js"), band = (brief && brief.taste && brief.taste.band) || "EN|2.2";
+    const t = TS.taste(TS.measureOne({ header: level.header, objects: level.objects }).F, band);
+    const miss = t.rules.filter(q => !q.ok && q.verdict === "supported");
+    gate("taste", miss.length ? "WARN" : "PASS", `${t.score}/100 (${band}; ${t.parts.slice(0, 3).map(p => `${p.f} p${p.pct}`).join(", ")})`,
+      miss.length ? "under featured levels on: " + miss.map(q => `${q.rule} (${q.value}, want ${q.target})`).join("; ") : "");
+  } catch (e) { /* no model yet (knowledge/taste_model.json) */ }
   // craft: how the objects are used, against the 10 official 1.x levels (CRAFT.md, tools/craft.js):
   // many small pieces, a hazard floor, deco attached to structures. Soft: WARN, never FAIL.
-  { const C = require("./craft.js").check(level.objects), w = C.warn;
+  { const C = require("./craft.js").check(level.objects, null, want.label), w = C.warn;
     gate("craft", w.length >= 3 ? "WARN" : "PASS", `${C.checks.length - w.length}/${C.checks.length} craft targets`,
       w.map(c => `${c.key} ${c.value < 2 && c.key !== "pieces100" && c.key !== "hazards100" ? Math.round(100 * c.value) + "%" : c.value.toFixed(0)} (${c.target})`).join(", ")); }
 
