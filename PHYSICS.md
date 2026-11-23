@@ -390,6 +390,10 @@ they neither confirm nor refute it. tests/art_tables.js fails if a type-0 or typ
 other hazard is type 2, except 1304 (type 7, decoration in OpenGD, but GD 2.2's decoration list leaves it
 out too: left a hazard, unchecked).
 
+2026-11-24: the user's Deadlocked practice run passes this spot (GD claude-rec 2026-11-24_00-33-07.mkv, practice
+complete, 30 attempts). The teleport's exit is absolute (portal y + 54, x kept; GDLM 60 station 2), so every
+player reaches the corridor mouth in the same place: the game clearing it means one of the three candidates
+below is wrong in the sim. Frames of that moment (hitboxes on in practice) can now settle which: open.
 With that and the quarter-turned teleports, Deadlocked's solve reaches block 695.4 (59%, physics 119344c):
 a ship takes a plain teleport (20887, 54 = -94) into a low corridor and its box overlaps a sideways
 spike (421) at the corridor's mouth by 1.6 units. Tried and ruled out (sweeps of

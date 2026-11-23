@@ -11,7 +11,8 @@
 //                   put of the same stage replaces it; stages are kept in the order above
 //   <stage>.gdlvl   the level at that stage, when levelStr is given (layout: gameplay only; deco: with the look; final)
 // data by stage (all optional):
-//   song  { song: { url, id, offset }, grid: { bpm, period, t0, beats, downbeat, sections }, sections: [{ name, from, to }] }
+//   song  { song: { url, id, offset }, grid: { bpm, period, t0, beats, downbeat, sections }, sections: [{ name, from, to }],
+//           hits: tools/hits.js slots [{ beat, t (song seconds), kind: K/S/A/x/. }] -- drawn as kick / snare ticks }
 //         (no level needed: the viewer shows an empty level with the song, its beats and sections)
 //   path  { planned: [{ t, what }] }  -- the planned presses, drawn beside the measured route
 // Small files, no solving here: the viewer replays a stage with its saved solution when tools/solutions.js has one,
@@ -53,7 +54,21 @@ function list(session) {
   }
   return out;
 }
-module.exports = { put, list, dirOf, ORDER };
+// the song stage's level: empty, but as long as the song's plan (its last section, hit or beat + 2 s at 1x), so the
+// replay runs through the whole song -- one decoration square high above the view marks the end
+function emptyLevel(data) {
+  const GD = require("../lib/gd.js"), d = data || {};
+  const ts = [].concat((d.sections || []).map(x => +x.to || 0), (d.hits || []).map(x => +x.t || 0), ((d.grid || {}).beats || []).slice(-1).map(Number));
+  const secs = Math.max(4, ...ts.filter(isFinite)) - (+((d.song || {}).offset) || 0) + 2;
+  const x = Math.round(secs * 311.58);   // 1x speed: 10.386 units a tick x 30 (lib/physics.js SPEEDS[1])
+  return GD.serializeLevel({ header: GD.DEFAULT_HEADER, objects: [{ id: 1764, x, y: 1500, rot: 0, flipX: false, flipY: false, props: { 155: "1" } }] });
+}
+// a stage's song as the viewer needs it: a url (the song's id alone: /song/custom/<id>.mp3, as tools/serve.js serves it)
+function songOf(data) {
+  const sg = data && data.song; if (!sg) return undefined;
+  return sg.url ? sg : Object.assign({}, sg, sg.id ? { url: "/song/custom/" + sg.id + ".mp3" } : {});
+}
+module.exports = { put, list, dirOf, ORDER, emptyLevel, songOf };
 
 if (require.main === module) {
   const a = process.argv.slice(2), opt = n => { const i = a.indexOf(n); return i >= 0 ? a[i + 1] : null; };
