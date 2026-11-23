@@ -130,6 +130,8 @@ http.createServer((req, res) => {
   }
   if (p === "/" || p === "/viewer") { res.writeHead(302, { Location: "/viewer/" }); return res.end(); }
   if (p.endsWith("/")) p += "index.html";
+  // the beat grids live in the shared local/ (tools/beats.js); an older viewer page asks for viewer/beats.local.js
+  if (p === "/viewer/beats.local.js") p = "/local/beats.local.js";
   let f = path.join(root, p);
   const song = /^\/song\/(official|custom)\/([A-Za-z0-9]+)\.(mp3|ogg)$/.exec(p);
   // custom songs: the game's save folder, else the shared cache tools/songs.js fills (either extension)

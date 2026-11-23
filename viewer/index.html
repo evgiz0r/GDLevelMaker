@@ -508,7 +508,7 @@ function draw() {
     ctx.font = `${11 * d}px system-ui`;
     for (let b = Math.max(1, Math.ceil(bA)); b <= bB; b++) {
       const x = sx(GD.SYNC.xOfT(L.beats.tl, timeOfBeat(b))), down = isDownbeat(b);
-      ctx.strokeStyle = down ? "rgba(120,220,255,.55)" : "rgba(120,220,255,.22)"; ctx.lineWidth = down ? 2 : 1;
+      ctx.strokeStyle = down ? "rgba(140,230,255,.75)" : "rgba(140,230,255,.38)"; ctx.lineWidth = (down ? 2.5 : 1.2) * d;
       ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, groundY); ctx.stroke();
       ctx.fillStyle = down ? "rgba(150,230,255,.9)" : "rgba(150,230,255,.5)"; ctx.fillText(String(b), x + 3 * d, 14 * d);
     }
