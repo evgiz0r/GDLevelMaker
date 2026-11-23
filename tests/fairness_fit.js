@@ -4,7 +4,7 @@
 // in local/difficulty/fairness/ per physics commit (delete it after changing fairness.js's analyse()).
 const fs = require("fs"), path = require("path"), { execFileSync } = require("child_process");
 if (!fs.existsSync(path.join(__dirname, "..", "local", "real_stats.jsonl"))) { console.log("skip: no local/real_stats.jsonl"); process.exit(0); }
-const out = execFileSync(process.execPath, [path.join(__dirname, "..", "tools", "fairness.js"), "fit"], { encoding: "utf8", maxBuffer: 1 << 24 });
+const out = execFileSync(process.execPath, [path.join(__dirname, "..", "tools", "fairness.js"), "fit"], { windowsHide: true, encoding: "utf8", maxBuffer: 1 << 24 });
 const m = out.match(/unfair deaths flagged (\d+)\/(\d+).*?borderline flagged (\d+)\/(\d+), fair deaths not flagged (\d+)\/(\d+)/);
 if (!m) { console.log(out); console.log("FAIL: no summary line"); process.exit(1); }
 const [u, un, b, bn, f, fn] = m.slice(1).map(Number);

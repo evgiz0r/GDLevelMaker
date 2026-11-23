@@ -27,7 +27,7 @@ function one(kind, id) {
 
 function measure() {
   const rows = [];
-  const run = (kind, id) => JSON.parse(execFileSync(process.execPath, ["--max-old-space-size=1500", __filename, "one", kind, String(id)], { encoding: "utf8", maxBuffer: 1 << 24 }));
+  const run = (kind, id) => JSON.parse(execFileSync(process.execPath, ["--max-old-space-size=1500", __filename, "one", kind, String(id)], { windowsHide: true, encoding: "utf8", maxBuffer: 1 << 24 }));
   for (let n = 1; n <= 22; n++) rows.push(Object.assign({ id: "official " + n, name: RATED[n][0], tier: RATED[n][1], era: "official" }, run("official", n)));
   const list = fs.existsSync(path.join(COMM, "list.json")) ? JSON.parse(fs.readFileSync(path.join(COMM, "list.json"), "utf8")) : [];
   for (const l of list) {

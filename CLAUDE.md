@@ -116,6 +116,13 @@ at once and the PC hung (0.2 GB free), so the rule is now a lock every heavy too
 - while the user plays (GeometryDash.exe runs): one job whatever is free, and none starts under 2 GB free;
 - every heavy job lowers itself to idle CPU priority at start, so the game and the desktop always win;
 - the others wait and say so: `heavy: waiting for tools/make.js ... (<session>, pid, N min in, ~M min left)`;
+- **priority**: `GDLM_HEAVY_PRIORITY=high|normal|low` (or `--priority high`); the next free slot goes to the highest
+  priority waiting, first come within one. Running jobs are never stopped, so a long low job delays a high one by
+  itself at most. High = what the user asked for now; low = batch re-solves and measuring runs (put them at low);
+  `node tools/heavy.js` lists the waiters in order;
+- **freshness**: with its slot, a job checks its worktree against origin/main (fetch at most once a minute): clean
+  and behind -> fast-forward and run again on the new code; dirty or diverged -> a loud `!!! heavy: ... behind main`
+  warning listing the tools/lib commits it lacks. `GDLM_HEAVY_NOSYNC=1` skips it;
 - the slot is a file in the shared `local/locks/heavy/` (real path, all worktrees); a dead pid's slot is
   cleared, a child of a holder runs in its parent's slot. `node tools/heavy.js` shows who holds it.
 - **A new heavy tool adds the line** `if (require.main === module) require("./heavy.js").claim();` after
@@ -150,6 +157,12 @@ half), correct the row here in the same change. Real numbers pile up in `local/t
 | install into the game (`install.js`, game closed) | not timed yet (publisher: `--time install`) | |
 | a server upload | not timed yet (publisher: `--time upload`) | |
 | git pull + push | ~10 s | 2026-11-23 |
+| edit.js, one edit, the old route still clears (re-plan + checks) | see EDITING.md "Results" | 2026-11-23 |
+| edit.js, an edit that needs a full solve | as "make" above for that level | |
+| edit.js before/after picture (two shoot.js frames) | ~20-40 s | shoot.js row |
+| markedit.js: edit + the family's sweep over every GDLM level | edit + see EDITING.md "Results" | |
+| review.js, a level with a saved route (no --gates / --render) | see EDITING.md "Results" | |
+| fix.js (review, fixes, review again) | see EDITING.md "Results" | |
 
 ## Shared folder, work in progress, the user's marks
 
@@ -205,6 +218,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   user's labelled deaths, `fairness fit`; tools/score.js gates on it; DIFFICULTY.md "Fairness").
 - `lib/sync.js` -- music sync: level time <-> x through speed portals, beat grid <-> level beats,
   press timing windows from a solution, sync scores. See SYNC.md (also where songs come from).
+- **The public viewer** (https://evgiz0r.github.io/GDLevelMaker/, PAGES.md: GitHub Pages, rebuilt on every push, our levels only, songs / GD art / official levels only from the user's own serve.js): `tools/pages.js`, `tests/pages_build.js`, `.github/workflows/pages.yml`.
 - **The phone page** (PHONE.md: what is on it, what a session does after `wip.js put`, phone
   marks, how it was tested, what is open): `tools/web.js` builds it from the viewer.
 - `tools/` -- node CLIs: `make`, `check`, `roundtrip`, `index_levels`, `serve`, `beats` (beat grid
@@ -249,6 +263,13 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   section its role (intro/groove/build/drop/ride/breather/outro), place, palette, mode, transition,
   camera, props; `--brief` writes a compose brief. Owner: the showcase session; props from the gd-art
   session's `tools/props.js`.
+- **Editing, reviewing and fixing levels -- the everyday loop as tools** (EDITING.md: words and ops, spots, what
+  each prints, the families, auto fixes, what is open): `tools/edit.js <level> --at <b45 | t=12.3 | x= | #lv= link>
+  "<change>"` (one change on a COPY, re-solved, checks before/after, before/after picture), `tools/markedit.js`
+  (a viewer mark or a screenshot note -> its soft-rule family -> the edit -> the family swept over every level),
+  `tools/review.js <level>` (every check -> one ranked issue list + a phone page), `tools/fix.js <level>` (review ->
+  the safe fixes on a copy -> review again), `tools/families.js` (every soft-rule family: note words, effect,
+  effort, fix, auto-fix). Test: `node tests/editing.js`.
 - **`tools/heavy.js` -- the one-heavy-job lock** every heavy tool takes on start (see "One heavy job at
   a time"). Test: `node tests/heavy.js`.
 - **`tools/loop.js` -- the whole make/iterate loop in one command** (owner check, ETA, make/compose, score,
@@ -437,6 +458,13 @@ triggers (x-crossing, touch and spawn firing, GD's easings), ceiling slopes, tur
 The viewer draws moving objects where they start.
 
 ## Rules
+
+- **No native dialogs in the viewer pages** (alert / confirm / prompt): the app's built-in browser and the phone page's
+  frame suppress them, so the button just did nothing. Use the viewer's notice(), askNote(), showMap();
+  `node tests/no_dialogs.js` checks.
+- **Never pop a window on the user's screen.** Every child process (spawn, spawnSync, exec*, execFile*, fork) passes
+  `windowsHide: true`: on Windows a console child without it flashes a console window (serve.js's self-update did,
+  every minute, 2026-11-23). `node tests/no_console_windows.js` fails on any call without it (`--fix` adds it).
 
 - Levels must be sight-readable unless the user asks otherwise: no "prejumps" (a jump you must
   start while what it is for is still far ahead). `make.js` prints it; `tools/sightread.js`.

@@ -402,7 +402,12 @@ function staticRules(level) {
         while (hz.some(h => h.y === yy && h.c === b + 1)) b++;
         if (b - a < 2) continue;                                // a row of 3+
         const cx = (a + b) / 2 * 30 + 15;
-        if (Math.abs(o.x - cx) > 15) off.push(`orb at block ${oc} over spikes ${a}-${b} (centre ${((cx - 15) / 30).toFixed(1)})`);
+        // two or more orbs over one row (a pair) mirror each other: their middle is judged, once (tools/edit.js
+        // "centre" moves them as one; GDLM 47 v2's pairs read as 2 off-centre orbs each, 2026-11-23)
+        const set = level.objects.filter(q => GD.objInfo(q.id).kind === "orb" && Math.abs(q.y - o.y) <= 60 && Math.round((q.x - 15) / 30) >= a && Math.round((q.x - 15) / 30) <= b);
+        if (set.length > 1 && set[0] !== o) continue;
+        const mx = (Math.min(...set.map(q => q.x)) + Math.max(...set.map(q => q.x))) / 2;
+        if (Math.abs(mx - cx) > 15) off.push(`${set.length > 1 ? set.length + " orbs (a group) at block " + oc : "orb at block " + oc} over spikes ${a}-${b} (centre ${((cx - 15) / 30).toFixed(1)})`);
       }
     }
     gate("symmetry", off.length ? "WARN" : "PASS", off.length ? `${off.length} orb(s) off the centre of their spike row` : "orbs centred on their structures", off.join("; "));

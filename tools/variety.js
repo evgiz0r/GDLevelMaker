@@ -87,7 +87,7 @@ for (let i = 0; i < args.length; i++) {
     const list = JSON.parse(fs.readFileSync(path.join(COMM, "list.json"), "utf8")), C = [];
     for (const l of list) {
       if (!fs.existsSync(path.join(COMM, l.id + ".gdlvl"))) continue;
-      try { C.push({ ...l, ...JSON.parse(execFileSync(process.execPath, ["--max-old-space-size=1500", __filename, "one", l.id], { encoding: "utf8", maxBuffer: 1 << 24 })) }); }
+      try { C.push({ ...l, ...JSON.parse(execFileSync(process.execPath, ["--max-old-space-size=1500", __filename, "one", l.id], { windowsHide: true, encoding: "utf8", maxBuffer: 1 << 24 })) }); }
       catch (e) { console.error("skip", l.id, l.name); }
     }
     fs.writeFileSync(path.join(COMM, "variety.json"), JSON.stringify(C, null, 1));

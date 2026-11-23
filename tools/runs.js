@@ -13,11 +13,11 @@ const BAR = { x0: 615, x1: 1305, y: 32, from: 600, w: 720 }; // at 1080p, from t
 const FPS = 30;
 
 function barSeries(video, win) {
-  const probe = spawnSync(FF.replace(/ffmpeg(?=(\.exe)?$)/, "ffprobe"), ["-v", "error", "-select_streams", "v", "-show_entries", "stream=width,height", "-of", "csv=p=0", video], { encoding: "utf8" });
+  const probe = spawnSync(FF.replace(/ffmpeg(?=(\.exe)?$)/, "ffprobe"), ["-v", "error", "-select_streams", "v", "-show_entries", "stream=width,height", "-of", "csv=p=0", video], { windowsHide: true, encoding: "utf8" });
   const [W, H] = ((probe.stdout || "").trim() || "1920,1080").split(",").map(Number);
   const k = win ? win[2] / 1920 : W / 1920, ox = win ? win[0] : 0, oy = win ? win[1] : 0, ky = win ? k : H / 1080;
   const crop = `format=rgb24,crop=${Math.round(BAR.w * k)}:2:${Math.round(ox + BAR.from * k)}:${Math.round(oy + BAR.y * ky)},scale=${BAR.w}:2`; // 2 rows (yuv needs even sizes); row 0 is read
-  const r = spawnSync(FF, ["-v", "error", "-i", video, "-vf", `fps=${FPS},${crop}`, "-f", "rawvideo", "-pix_fmt", "rgb24", "-"], { maxBuffer: 1 << 30 });
+  const r = spawnSync(FF, ["-v", "error", "-i", video, "-vf", `fps=${FPS},${crop}`, "-f", "rawvideo", "-pix_fmt", "rgb24", "-"], { windowsHide: true, maxBuffer: 1 << 30 });
   if (r.status !== 0) throw new Error("ffmpeg failed on " + video + ": " + r.stderr);
   const buf = r.stdout, row = BAR.w * 3 * 2, out = [];
   for (let f = 0; f * row < buf.length; f++) {

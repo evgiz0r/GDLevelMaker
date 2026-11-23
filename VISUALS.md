@@ -161,7 +161,12 @@ The strip, the button band and the click-table rows each cost < 0.03 ms a frame.
 (16.7 ms) with room; the occasional 12-14 ms frame is the first draw after a seek (colour timeline, sprite tints).
 What was made smooth: the replay used to take the song's AudioContext clock as its time every frame; that clock
 moves in steps (a render quantum, ~3-10 ms), so the motion stuttered. Now it advances by frame time and pulls a
-tenth of the gap to the song clock a frame. **light** (header button, remembered): GD art and beat lines off in one press, for a slow moment.
+tenth of the gap to the song clock a frame. Measured with real frames (tools/perf.js, headless Edge, software canvas, 1896x460) on GDLM 45 wip v8, 3085 objects,
+2026-11-23: shapes + beats 60.1 fps, frame p50 16.7 / p99 16.8 ms, 0 frames over 33 ms, draw p50 1.9 / p90 2.9 ms;
+light the same (60.1 fps, draw 2.1 ms). GD art + beats: no result (the run timed out loading the sprite sheets
+headless -- open). The PC then had ~0.5 GB RAM free with GD and other sessions' jobs (this run waited 49 min for the
+heavy slot): the lag the user saw fits the machine, not the viewer.
+**light** (header button, remembered): GD art and beat lines off in one press, for a slow moment.
 `node tools/perf.js <level as #lv=> [--at s] [--secs n]` measures playback with real animation frames in headless
 Edge (no GPU: a worst case) in three setups -- GD art + beats, shapes + beats, light -- via the viewer's ?perf=
 mode (POST /perf -> local/perf/). Not measured yet: real frame rate with the pane visible (the

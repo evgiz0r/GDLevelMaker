@@ -23,7 +23,7 @@ function sheet(theme, out, title) {
   const job = path.join(dir, "sheet_job.json");
   fs.writeFileSync(job, JSON.stringify({ cells, title: title || `GDLM props (${theme || "day"}) -- lib/props.js, ${cells.length} props, ${cells.reduce((a, c) => a + c.count, 0)} objects in all`, bg: theme === "spooky" || theme === "night" ? [26, 22, 36] : [70, 110, 160] }));
   out = out || path.join(dir, `props_${theme || "day"}.png`);
-  cp.execFileSync("python", [path.join(__dirname, "props_sheet.py"), job, out], { stdio: "inherit" });
+  cp.execFileSync("python", [path.join(__dirname, "props_sheet.py"), job, out], { windowsHide: true, stdio: "inherit" });
   return out;
 }
 

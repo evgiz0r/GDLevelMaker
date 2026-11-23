@@ -28,7 +28,7 @@ const SRC = process.env.GD_LEVELS || "C:/Program Files (x86)/Steam/steamapps/com
 const OUT = path.join(__dirname, "..", "local", "difficulty");
 
 function physicsCommit() {
-  try { return execSync("git log -1 --format=%h -- lib/physics.js lib/dual.js lib/objects.js lib/objects_extra.js", { cwd: path.join(__dirname, ".."), encoding: "utf8" }).trim(); }
+  try { return execSync("git log -1 --format=%h -- lib/physics.js lib/dual.js lib/objects.js lib/objects_extra.js", { windowsHide: true, cwd: path.join(__dirname, ".."), encoding: "utf8" }).trim(); }
   catch (e) { return null; }
 }
 
@@ -159,7 +159,7 @@ function toViewer(n, level, res) {
 }
 
 function freeGB() {
-  try { return +execSync('powershell -NoProfile -c "(Get-CimInstance Win32_OperatingSystem).FreePhysicalMemory"', { encoding: "utf8" }) / 1048576; }
+  try { return +execSync('powershell -NoProfile -c "(Get-CimInstance Win32_OperatingSystem).FreePhysicalMemory"', { windowsHide: true, encoding: "utf8" }) / 1048576; }
   catch (e) { return 99; }
 }
 const sleep = ms => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
@@ -171,7 +171,7 @@ if (require.main === module) {
     for (const n of list) {
       let waited = 0;
       while (freeGB() < 2.5) { if (waited++ % 6 === 0) console.log(`  (waiting: under 2.5 GB free)`); sleep(10000); }
-      try { process.stdout.write(execFileSync(process.execPath, ["--max-old-space-size=2000", __filename, String(n)].concat(args.filter(a => a === "--resume" || a === "--fresh")), { encoding: "utf8" })); }
+      try { process.stdout.write(execFileSync(process.execPath, ["--max-old-space-size=2000", __filename, String(n)].concat(args.filter(a => a === "--resume" || a === "--fresh")), { windowsHide: true, encoding: "utf8" })); }
       catch (e) { console.log(`${n}: failed: ${String(e.message).split("\n")[0]}`); }
     }
   } else {

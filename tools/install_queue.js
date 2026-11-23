@@ -97,7 +97,7 @@ function installNow(save) {
   let out = "", err = null;
   if (todo.length) {
     try {
-      out = execFileSync(process.execPath, [process.env.GDLM_INSTALL_JS || path.join(__dirname, "install.js"), ...todo.map(src), ...(opt("--save") ? ["--save", save] : [])], { encoding: "utf8" });
+      out = execFileSync(process.execPath, [process.env.GDLM_INSTALL_JS || path.join(__dirname, "install.js"), ...todo.map(src), ...(opt("--save") ? ["--save", save] : [])], { windowsHide: true, encoding: "utf8" });
     } catch (e) { err = (e.stdout || "") + (e.stderr || "") || e.message; }
   }
   if (err && /running/i.test(err)) return { skipped: "GD started" };   // GD came up between poll and install: try later

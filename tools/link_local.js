@@ -15,7 +15,7 @@ const fs = require("fs");
 const path = require("path");
 const { execSync } = require("child_process");
 
-const git = args => execSync("git " + args, { encoding: "utf8" }).trim();
+const git = args => execSync("git " + args, { windowsHide: true, encoding: "utf8" }).trim();
 const top = path.resolve(git("rev-parse --show-toplevel"));
 const main = path.resolve(path.dirname(path.resolve(top, git("rev-parse --git-common-dir"))));
 const mine = path.join(top, "local"), shared = path.join(main, "local");

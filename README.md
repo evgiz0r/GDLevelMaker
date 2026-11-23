@@ -4,6 +4,9 @@ Geometry Dash levels written by Claude from a description, checked for being bea
 small physics simulation, replayed in a browser viewer with their clicks, and imported into
 the real game to play.
 
+**Watch the levels in your browser: https://evgiz0r.github.io/GDLevelMaker/** (our levels, replayed with their
+clicks; songs and the game's art are not hosted -- pick a level's song file from your own device to hear it).
+
 Unofficial; not affiliated with RobTop Games.
 
 ## Try it

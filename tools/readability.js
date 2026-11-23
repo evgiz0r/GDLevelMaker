@@ -32,7 +32,7 @@ const LUT = Float64Array.from({ length: 256 }, (_, i) => lin(i));
 const lumOf = (b, i) => 0.2126 * LUT[b[i]] + 0.7152 * LUT[b[i + 1]] + 0.0722 * LUT[b[i + 2]];
 const cr = (a, b) => (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
 const med = a => { if (!a.length) return NaN; const s = Float64Array.from(a).sort(); return s[s.length >> 1]; };
-function raw(png) { return cp.execFileSync("ffmpeg", ["-v", "error", "-i", png, "-vf", `scale=${SW}:${SH}`, "-f", "rawvideo", "-pix_fmt", "rgb24", "-"], { maxBuffer: 64 << 20 }); }
+function raw(png) { return cp.execFileSync("ffmpeg", ["-v", "error", "-i", png, "-vf", `scale=${SW}:${SH}`, "-f", "rawvideo", "-pix_fmt", "rgb24", "-"], { windowsHide: true, maxBuffer: 64 << 20 }); }
 
 async function render(level, times, tag) {
   const id = "r" + tag + Date.now().toString(36), dir = path.join(ROOT, "local", "shoot");
