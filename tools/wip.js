@@ -35,16 +35,22 @@ if (args[0] === "put") {
   let checklist = "";
   try { checklist = require("child_process").execSync("git log -1 --format=%h -- knowledge/checklist.md", { cwd: path.join(__dirname, ".."), encoding: "utf8" }).trim(); } catch (e) {}
   const note = (opt("--note") || "") + (checklist ? ` [checklist ${checklist}]` : "");
-  history.push({ at: new Date().toISOString(), note, checklist });
+  // `hash` = the level's content: a re-put of the same level (a route refresh, a re-stamp) keeps its `made` time,
+  // which is what the level picker shows ("it all shows low time, since reset", the user, 2026-11-23)
+  const hash = require("crypto").createHash("sha1").update(L.levelStr).digest("hex").slice(0, 12), now = new Date().toISOString();
+  const same = history.filter(h => h.hash === hash);
+  history.push({ at: now, note, checklist, hash });
+  const made = same.length ? same[0].made || same[0].at : now;
+  history[history.length - 1].made = made;
   fs.copyFileSync(file, path.join(dir, base));
   const solution = args.includes("--no-solve") ? undefined : solveFor(L);
   fs.writeFileSync(metaFile, JSON.stringify({ name: L.name, session, file: base, from: path.relative(path.join(__dirname, ".."), path.resolve(file)).replace(/\\/g, "/"),
-    updated: new Date().toISOString(), note, checklist, version: history.length, history: history.slice(-20), solution }, null, 1));
+    updated: now, made, note, checklist, version: history.length, history: history.slice(-20), solution }, null, 1));
   console.log(`wip: ${session}/${base} v${history.length} ("${L.name}") -- refresh the viewer to see it`);
-  phoneRow(session, base, L, history.length, note, solution);
+  phoneRow(session, base, L, history.length, note, solution, made);
 } else if (args[0] === "phone") {
   // rows for every current work-in-progress level (e.g. after the page's database was emptied)
-  for (const m of list()) phoneRow(m.session, m.file, readGdlvl(path.join(WIP, m.session, m.file)), m.version, m.note || "", m.solution);
+  for (const m of list()) phoneRow(m.session, m.file, readGdlvl(path.join(WIP, m.session, m.file)), m.version, m.note || "", m.solution, m.made || m.updated);
 } else if (args[0] === "list" || !args.length) {
   for (const l of list()) console.log(`${l.session.padEnd(14)} ${l.name.padEnd(28)} v${l.version}  ${l.updated}  ${l.note || ""}`);
 } else console.log("usage: node tools/wip.js put|list");
@@ -68,7 +74,7 @@ function solveFor(L) {
   console.log(`solution for the viewer and the phone: ${sol.ok ? "beaten" : "not beaten"} (${((Date.now() - t0) / 1000).toFixed(0)} s)`);
   return sol;
 }
-function phoneRow(session, base, L, version, note, solution) {
+function phoneRow(session, base, L, version, note, solution, made) {
   const ROOT = path.join(__dirname, ".."), PH = path.join(ROOT, "local", "phone");
   const { songOf } = require("./index_levels.js");
   const doc = (session + "__" + base.replace(/\.gdlvl$/, "")).replace(/[^A-Za-z0-9_\-.]/g, "_");
@@ -76,7 +82,7 @@ function phoneRow(session, base, L, version, note, solution) {
   try { const c = require("./solutions.js").get(L.levelStr, true);
     if (solution && !solution.windows && c && c.windows && JSON.stringify(c.events) === JSON.stringify(solution.events)) solution = Object.assign({}, solution, { windows: c.windows, win: c.win }); } catch (e) {}
   const row = { name: L.name, session, file: "local/wip/" + session + "/" + base, level: L.levelStr, song: songOf(L.rec, L.level.header),
-    version, note, updated: new Date().toISOString(), solution };
+    version, note, updated: made || new Date().toISOString(), made: made || undefined, solution };   // the version's time, not the row's
   const json = JSON.stringify(row);
   if (json.length > 250000) { console.log(`phone: level too big for one database row (${(json.length / 1024).toFixed(0)} KB > 250 KB); not sent`); return; }
   fs.mkdirSync(path.join(PH, "wip"), { recursive: true });

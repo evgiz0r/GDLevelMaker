@@ -34,16 +34,27 @@ const first = (r, act) => r.path.find(p => p.act === act);
   const a = GD.solveAny(GD.makeWorld(lvl(1.5)));
   const took = a.ok && GD.run(GD.makeWorld(lvl(1.5)), a.events).end.used.length > 0;
   check("no-skip: a reachable floating portal is taken", a.ok && took, a.ok ? (took ? "taken" : "skipped") : a.why);
-  const b = GD.solveAny(GD.makeWorld(lvl(9)));
-  check("no-skip: an unreachable portal makes the level stuck", !b.ok && /skipped/.test(b.why || ""), b.ok ? "passed around it" : b.why + " " + (b.skipped || ""));
+  // just out of reach (a jump tops out ~2.1 blocks; the portal's box starts within 2 blocks of that): stuck
+  const b = GD.solveAny(GD.makeWorld(lvl(5)));
+  check("no-skip: a portal the route gets near but cannot take makes the level stuck", !b.ok && /skipped/.test(b.why || ""), b.ok ? "passed around it" : b.why + " " + (b.skipped || ""));
+  // far above the play (decoration, ClockWood's ball portal at y 675): not a requirement, named in outOfReach
+  const d = GD.solveAny(GD.makeWorld(lvl(25)));
+  check("no-skip: a portal far out of reach is not required", d.ok && (d.outOfReach || []).length === 1, d.ok ? "ok, out of reach: " + (d.outOfReach || []).join(", ") : d.why + " " + (d.skipped || ""));
   // a long level: the portal is far behind at the end, out of the run's kept s.used, and still counts as taken
   // ten yellow pads after it fill s.used past 8, so step() trims the portal out of it
   const far = [{ id: 202, x: 400, y: 45 }, { id: 1, x: 9000, y: 15 }];
   for (let k = 0; k < 10; k++) far.push({ id: 35, x: 1200 + k * 600, y: 2 });
   const wf = GD.makeWorld(far), rf = GD.solveAny(wf);
   check("no-skip: a portal taken early still counts at the end of a long run", rf.ok, rf.ok ? "ok" : rf.why + " " + (rf.skipped || ""));
-  const c = GD.solveAny(GD.makeWorld(lvl(9)), { allowSkips: true });
+  const c = GD.solveAny(GD.makeWorld(lvl(5)), { allowSkips: true });
   check("no-skip: allowSkips (debugging) still finds the way around", c.ok, c.ok ? "ok" : c.why);
+}
+// solveFrom from a state already past a portal (the resume tool and the natural plan's flying stretches)
+{
+  const w = GD.makeWorld([{ id: 202, x: 300, y: 15 }, { id: 8, x: 900, y: 15 }, { id: 1, x: 1500, y: 15 }]);
+  const s = GD.startState(w); while (s.x < 600) GD.step(w, s, { press: false, held: false });
+  let r; try { r = GD.solveFrom(w, s, {}); } catch (e) { r = { ok: false, why: "threw: " + e.message }; }
+  check("solveFrom from past a portal", r.ok, r.ok ? "ok" : r.why);
 }
 // pad table: a ball's yellow pad gives 16 x 0.6 = 9.6; a cube's 16
 for (const [mode, want] of [["cube", 16], ["ball", 9.6]]) {

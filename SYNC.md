@@ -19,6 +19,9 @@ and songs.
 | a level written in beats | `node tools/make.js specs/02_on_the_beat.json` | a few s |
 | songs: beat clarity, beatless share, sections and drops; levels vs that structure | `node tools/songmap.js` (`--songs`, `--levels`, `--json`) | ~30 s first time, then ~10 s |
 | check the section finder on a made-up song | `node tests/songmap_synthetic.js` | ~5 s |
+| a song's real hits per half-beat (kick / snare / accent) | `node tools/hits.js <song id>` | ~2 s |
+| how many of a level's presses sit on a real hit (+-1 frame) | `node tools/hits.js --level levels/<name>.gdlvl [--skip a-b]` | ~2 s (needs a saved solution) |
+| an ultra-synced level from a list of hits | `node tools/hitlevel.js briefs/<NN>.hits.json --check` -> spec | instant |
 
 `tools/beats.js` writes `local/beats/<song>.json` and `viewer/beats.local.js` (the viewer's
 beat lines). `tools/sync.js` writes `local/sync/*.json`. All are gitignored.
@@ -316,7 +319,28 @@ For writing levels: start a new mode or speed at a section change (the strong no
 make it denser where the song is louder, and in a song's beatless stretches use ship, wave or
 cube, not ball, UFO or spider.
 
-## Status and hand-off (Nov 22 2026, music sync session, branch claude/sync-6e196a)
+## 8. Ultra-synced levels: every press on a real hit (GDLM 62, Nov 23 2026)
+
+The user asked for an "ultra-synced" level, not too hard. The grid alone is not enough: a song with a
+half-time feel (Subwoofer Lullaby, 148 BPM) has a kick on beat 1 and a snare on beat 3 and nothing
+on beats 2 and 4, so "on a beat" can still be on silence. So:
+
+1. **Pick a song by beat clarity**: `node tools/songmap.js --songs`, sort by clarity among `high`
+   confidence. 1289772 (Subwoofer Lullaby [Remix], RunoNG, 68 s) was 5.98, the clearest of 118, and
+   about a minute long by itself.
+2. **Map its real hits**: `node tools/hits.js <id>` -> one line per bar, K kick / S snare / K! S!
+   accents / x lesser / . nothing, per half-beat (z-scores of band flux over the song; written to
+   local/hits/<id>.json with make.js beat numbers).
+3. **Write the level as hits**: `briefs/<NN>.hits.json` lists sections (mode, look, from a beat on
+   songmap's changes) and cells `[beat, kind]` (cube: spike, double, up, down, orb, pad; ball: floor,
+   roof). `node tools/hitlevel.js <plan> --check` refuses a cell on a slot with no hit and writes the
+   spec; every press is a `jN` group (make.js slides it until the press is on beat N).
+   At 148 BPM a cube press every 2 beats (0.81 s) is a comfortable Easy-Normal pace; an orb-pit jump on
+   a hit puts its orb tap half a beat later (look for a K on the half-beat).
+4. **Measure**: `node tools/hits.js --level <gdlvl> --skip <ship seconds>`: the share of presses
+   within +-1 frame of a hit. A ship's holds follow the music's flow, not its hits: skip them.
+
+, music sync session, branch claude/sync-6e196a)
 
 Done and on main: beat grids for all 42 songs on the PC (22 official, all checked against
 published tempos; 20 Newgrounds), sync scores for the 22 official levels (presses for 1-8, from

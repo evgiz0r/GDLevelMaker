@@ -241,6 +241,24 @@ every tool: lib/windows.js inputWindows calls it (viewer, tools/windows.js, scor
 (it should stay held until the jump fires), and a re-planned window can come out narrower than the strict
 one (GDLM 60's dash-orb release, tick 3052): it should contain it.
 
+### Human cost: which valid route a person plays (2026-11-23)
+
+The user: the natural route is "the valid route with the lowest human cost". `humanCost(w, events, opts)` in
+lib/difficulty.js returns `{ cost, terms, actions, complete }`, lower is better, in log10-attempts units:
+`windows` (the difficulty score of exactly this route: lenient windows, settling after portals; no humanize, no
+route choice -- the caller's candidates are the choice), `presses` 0.01 each, `centre` 0.02 x how far each input
+sits from its window's middle (0..1), `marks` 0.05 per jump mark (its pieces within 45 units are one) with no
+jump within 60 units (a jump, flap or orb firing: a held button jumps again on landing), `beat`
+(opts.beats, off by default) 0.005 x seconds off the nearest beat per press. Wall clearance and mid-corridor
+flying stay in the solver's own ranking. Physics calls it from lib/natural.js to pick among candidate routes.
+Speed: measureWindows keeps an exact cache per world (an input's window depends only on the state where its
+search starts, the button over the span it can see, the input and where the run ends), so a candidate that
+differs in a few inputs re-measures only those. GDLM 44 (17 s, a ship part): 32 s cold, 0.15 s again, 1.9 s with
+one input moved (57 s without the cache; same cost to the last digit). `opts.fast` skips the tight-input scan
+(~10% cheaper here, and a needlessly tight solver timing then reads tight).
+Test: `node tests/human_cost.js`. Open: the weights are set by hand; fit `centre` on where the user really
+presses in a window (physics brings those from the recordings).
+
 ### Where the sim stops (2026-11-23, physics 119344c)
 
 The three unbeaten official levels each stop on a physics gap, not on a bad route: the route up to
