@@ -13,6 +13,9 @@
 //   pacing       calm start and end, rests, a rising curve (numbers from the official levels)
 //   variety      not one chunk over and over (unless the brief says "repeat": true)
 //   readability  spike-like decoration (18-21) never within 2 columns of a hazard
+//   craft        how objects are used vs the official 1.x levels (tools/craft.js, CRAFT.md): pieces per
+//                100 blocks, hazard floor, armed undersides, dressed tops, attached rods/chains, pillar
+//                heights, loose deco, hazards per 100 blocks. WARN when 3+ targets are missed.
 //   colour       a colour change per section (when the brief has sections)
 //   sync         with a song: portals on bar starts, and not too many presses pinned to beats (WARN only)
 //   lead-in      Easy/Normal: blocks from each mode portal to the first hazard after it, against
@@ -139,6 +142,12 @@ function scoreLevel(level, brief, opts = {}) {
   const hazCols = new Set(haz);
   const near = level.objects.filter(o => SPIKY_DECO.has(o.id)).filter(o => { const c = Math.floor(o.x / 30); return [-2, -1, 0, 1, 2].some(d => hazCols.has(c + d)); });
   gate("readability", near.length ? "FAIL" : "PASS", near.length ? `${near.length} spike-like decorations within 2 columns of a hazard` : "decoration clear of hazards");
+
+  // craft: how the objects are used, against the 10 official 1.x levels (CRAFT.md, tools/craft.js):
+  // many small pieces, a hazard floor, deco attached to structures. Soft: WARN, never FAIL.
+  { const C = require("./craft.js").check(level.objects), w = C.warn;
+    gate("craft", w.length >= 3 ? "WARN" : "PASS", `${C.checks.length - w.length}/${C.checks.length} craft targets`,
+      w.map(c => `${c.key} ${c.value < 2 && c.key !== "pieces100" && c.key !== "hazards100" ? Math.round(100 * c.value) + "%" : c.value.toFixed(0)} (${c.target})`).join(", ")); }
 
   if (brief.sections) {
     const colourT = level.objects.filter(o => o.id === 899 || o.id === 29 || o.id === 30).length;

@@ -201,6 +201,63 @@ S("spider-steps", { mode: "spider", tags: ["spider", "platforming"], tier: "Norm
   doc: "the spider zaps up onto a ledge and down off it under a roof",
   build: () => ({ objects: [...blocks(0, 18, 7, 9), ...blocks(6, 12, 0, 3), ...spikes(3, 6), ...spikes(12, 15)], width: 18, exitRow: 1 }) });
 
+// ---------------------------------------------------------------- craft (CRAFT.md: the shapes of Jumper and xStep, as
+// patterns, never their coordinates). Built over a PIT -- the low floor spikes (id 9, sunk 13 units like
+// the official ones) -- because the official floor is a hazard 39-69% of the time; the player lives on
+// the pieces. The craft pass (tools/craftkit.js, spec "craft": true) adds the rods and chains.
+const pit = (c0, c1) => range(c0, c1).map(c => [9, c, 0, { dy: -13 }]);
+// pillars `w` wide, `gap` apart, with these heights (rows), a pit between them; a calm landing after
+function pillarRun(heights, w, gap, capGap) {
+  // the first pillar is a 3-wide doorstep (stepped onto from the floor: a 1-wide one asked for a jump
+  // 1.7 blocks ahead of it, a prejump)
+  const o = [], xs = heights.map((_, i) => i ? 3 + gap + (i - 1) * (w + gap) : 0);
+  heights.forEach((h, i) => o.push(...blocks(xs[i], xs[i] + (i ? w : 3), 0, h)));
+  const wd = i => i ? w : 3;
+  for (let i = 1; i < heights.length; i++) o.push(...pit(xs[i - 1] + wd(i - 1), xs[i]));
+  const end = xs[xs.length - 1] + w;
+  // capGap: hanging columns over each gap, their ends capGap rows over the higher pillar beside it
+  if (capGap) for (let i = 1; i < heights.length; i++) {
+    const c = xs[i - 1] + wd(i - 1) + Math.floor(gap / 2), r = Math.max(heights[i - 1], heights[i]) + capGap;
+    o.push(...blocks(c, c + 1, r, 12));
+  }
+  o.push(...pit(end, end + 2), ...blocks(end + 2, end + 5, 0, 1));
+  return { objects: o, width: end + 5 };
+}
+S("pillar-hop", { tags: ["platforming", "pillar", "pit"], tier: "Normal",
+  doc: "pillars 2 wide over a pit, each a row higher or lower than the last: every jump changes height (Jumper's opening, rebuilt)",
+  args: { heights: [1, 2, 3, 2, 1], w: 2, gap: 2 },
+  build: a => pillarRun(a.heights, a.w, a.gap) });
+S("pillar-climb", { tags: ["platforming", "pillar", "pit"], tier: "Normal",
+  doc: "a climb of pillars over a pit, up a row at each, then a drop to a low one",
+  args: { heights: [1, 2, 3, 4, 2], w: 2, gap: 2 },
+  build: a => pillarRun(a.heights, a.w, a.gap) });
+S("capped-hop", { tags: ["platforming", "pillar", "pit", "ceiling"], tier: "Normal",
+  doc: "pillars over a pit under hanging columns: the column ends sit 4 rows over the pillars, framing every arc",
+  args: { heights: [1, 2, 1, 2, 3], w: 2, gap: 2, cap: 4 },
+  build: a => pillarRun(a.heights, a.w, a.gap, a.cap) });
+S("slab-steps", { tags: ["platforming", "pit", "floating"], tier: "Normal",
+  doc: "floating 3-wide steps over a pit, a row higher each (the craft pass hangs them on chains)",
+  args: { n: 3, gap: 3 },
+  build: a => { const o = [...blocks(0, 3, 0, 1)]; let c = 3 + a.gap;
+    o.push(...pit(3, 3 + a.gap));
+    for (let i = 0; i < a.n; i++) { o.push(...blocks(c, c + 3, i + 1, i + 2), ...pit(c, c + 3 + a.gap)); c += 3 + a.gap; }
+    o.push(...blocks(c, c + 3, 0, a.n)); return { objects: o, width: c + 3 }; } });
+S("lantern-orb", { tags: ["orb", "yellow orb", "pit", "pillar"], tier: "Normal",
+  doc: "a yellow orb hung on a chain over a pit between two pillars: jump off the first, tap the orb, land on the second",
+  build: () => ({ objects: [...blocks(0, 2, 0, 2), ...pit(2, 8), ["yellow orb", 4, 4], ...blocks(8, 10, 0, 2), ...pit(10, 11), ...blocks(11, 14, 0, 1)], width: 14 }) });
+S("stepped-pyramid", { tags: ["platforming", "stairs", "pit", "set piece"], tier: "Easy",
+  doc: "a symmetric stepped pyramid (2-wide steps, 3 up, a top, 3 down) with spikes on the outer steps' edges: the 1.x set piece",
+  build: () => { const o = [];
+    for (let i = 0; i < 3; i++) { o.push(...blocks(2 * i, 16 - 2 * i, 0, i + 1)); }
+    o.push(["spike", 1, 1], ["spike", 14, 1], ...pit(16, 18), ...blocks(18, 21, 0, 1)); return { objects: o, width: 21 }; } });
+S("ceiling-hop", { tags: ["gravity", "gravity portal", "pillar", "ceiling run"], tier: "Normal",
+  doc: "upside down: hanging columns of different lengths are the floor, a spiked roof-pit between them (Jumper's green part, as a shape)",
+  build: () => { const o = [["gravity down", 0, 1], ...blocks(0, 4, 8, 12)];
+    const lens = [3, 4, 3, 2]; let c = 4;
+    for (const L of lens) { o.push(...range(c, c + 2).map(x => [9, x, 11, { dy: 13, rot: 180 }]), ...blocks(c + 2, c + 4, 12 - L, 12)); c += 4; }
+    o.push(...range(c, c + 2).map(x => [9, x, 11, { dy: 13, rot: 180 }]), ...blocks(c + 2, c + 6, 8, 12), ["gravity up", c + 5, 6], ...blocks(c + 5, c + 8, 0, 1));
+    return { objects: o, width: c + 8 }; } });
+
 // ---------------------------------------------------------------- the harness: one small test level per structure
 const MODE_PORTAL = { ship: "ship portal", ball: "ball portal", ufo: "ufo portal", wave: "wave portal", robot: "robot portal", spider: "spider portal", swing: "swing portal", cube: "cube portal" };
 // blocks of calm run after a mode portal before the structure (the lead-in medians of rated low-tier
