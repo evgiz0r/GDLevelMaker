@@ -57,6 +57,7 @@ reading before writing a spec; `levels/`, `glossary.md`, `demonlist.md` for the 
    every session's work in progress live, marks from the phone. Republish it when the viewer or
    the pushed levels change (`node tools/web.js --out <scratchpad>/web`, link in local/phone/url.txt).
 4. With the game closed, `node tools/install.js levels/<name>.gdlvl` puts it at the top of
+   (GD open? queue it: `node tools/install_queue.js add <file> --by <who>`, the watcher installs it when GD closes)
    My Levels (backs the save up first; refuses while GeometryDash.exe runs). The user plays it
    and reports. The user's game is plain GD 2.2 on Windows, no Geode: there is no in-game import.
    Or the bot plays it: `node tools/bot.js levels/<name>.gdlvl` presses Space at the solver's
@@ -185,7 +186,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   the GDLM 46 lessons).
 - **Levels onto the phone** (PUBLISH.md: unlisted upload from the PC game with computer use, where
   the buttons are, GD must be windowed, the user's yes before each upload; ONE phone slot,
-  ID 152848491, filled with `install.js <lvl> --slot phone`; and the test slot "Claude Lab", `--slot lab --desc "..."`, not uploaded yet; both in `local/phone_ids.json`). `tools/install.js` keeps a shared level's online ID on re-install, so
+  ID 152848491, filled with `install.js <lvl> --slot phone`; and the test slot "Claude Lab", `--slot lab --desc "..."`, not uploaded yet; both in `local/phone_ids.json`). **Install queue** `tools/install_queue.js` (add / watch: installs the moment GD closes, reads the save back; PUBLISH.md). `tools/install.js` keeps a shared level's online ID on re-install, so
   Share again updates the same upload (`tests/install_keeps_id.js`).
 - `examples/` -- levels the user made in the game, for reference and as format ground truth.
 

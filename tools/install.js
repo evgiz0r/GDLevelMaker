@@ -178,4 +178,5 @@ function main() {
     console.log(`${idsFile}: slot "${slotName}" now holds ${e.level} (not shared yet)`);
   }
 }
-main();
+if (require.main === module) main();
+module.exports = { decodeSave, splitLevels, nameOf, entry, gameRunning };

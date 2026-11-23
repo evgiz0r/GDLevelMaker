@@ -107,6 +107,25 @@ replace it for one upload.
   put it in `slots.lab.id`, and set `holds.shared`. From then on it works like the phone slot (by ID,
   exit 4 if the save doesn't hold it, k79 forced, k15 dropped).
 
+## Install queue: levels go into the save the moment GD closes
+
+install.js refuses while GD runs (GD rewrites the save on exit), so levels used to wait for hours.
+`tools/install_queue.js` (the user's request, 2026-11-23):
+
+- `node tools/install_queue.js add <level.gdlvl> ... --by <who>` puts levels on the queue
+  (`local/install_queue.json`, shared). **Only the coordinator (main) session or the user adds.**
+  Queuing a name that is already there replaces the older entry.
+- `node tools/install_queue.js watch` (run in the background) polls `tasklist` every 30 s; when GD is
+  not running it runs install.js once on the whole queue (backup first, online IDs k1/k16/k60/k79
+  kept, a same-name level replaced in place), reads the save back, checks each level (found by name,
+  same level data as the file by sha1, object count, online ID) and writes
+  `local/install_reports/<time>.json` + a line in `log.jsonl`, then empties the queue of what it
+  processed. `report` prints the last one; `list` shows what is waiting.
+- It never uploads, never starts or closes GD, and it is light (one tasklist call per poll).
+- Test: `node tests/install_queue.js` (a save copy, a fake "GD running" marker).
+- Note: installing a level whose name is a slot's record (e.g. "GDLM 44 hellgate", the phone slot)
+  changes only the PC copy; the phone keeps the uploaded version until someone Shares (user's yes).
+
 ## Updating a level that is already on the phone (same ID)
 
 Pressing Share again on the SAME local level updates the upload in place (same ID; the level
