@@ -13,7 +13,7 @@ function report(file) {
   if (unsim.length) console.log(`   NOTE ${unsim.length} objects have unknown ids and are ignored: ${[...new Set(unsim.map(o => o.id))].join(", ")}`);
   const r = GD.solveAny(w);
   if (!r.ok) {
-    console.log(`   NOT BEATABLE with cube physics: the furthest run dies at x=${r.dieAt.x.toFixed(0)} (block ${(r.dieAt.x / 30).toFixed(1)}, ${(r.dieAt.tick / GD.PHYS.TPS).toFixed(2)} s), hit a ${r.why} at x=${r.killer.x}`);
+    console.log(`   NOT BEATABLE with cube physics: the furthest run dies at x=${r.dieAt.x.toFixed(0)} (block ${(r.dieAt.x / 30).toFixed(1)}, ${(r.dieAt.tick / GD.PHYS.TPS).toFixed(2)} s), hit a ${r.why}${r.killer ? " at x=" + r.killer.x : ""}`);
     return r;
   }
   console.log(`   beatable: ${r.clicks.filter(c => c.type === "press").length} presses`);
