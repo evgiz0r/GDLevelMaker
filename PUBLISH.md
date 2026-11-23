@@ -8,6 +8,7 @@ Search -> its level ID. The slot and what it holds: `local/phone_ids.json`.
 |---|---|---|---|
 | GDLM 44 hellgate (the phone slot, see below) | 152848491 | v10 (16e82a4) | 2026-11-23 |
 | GDLM 44 hellgate, update into the slot | 152848491 | v11 (dc72b09) | 2026-11-23 |
+| GDLM 44 hellgate, update into the slot | 152848491 | v12 (4b8a308, end signature) | 2026-11-23 |
 
 ## Rule: every upload needs the user's yes
 
@@ -81,7 +82,7 @@ AI level. Whatever the user wants on the phone next goes into that ID:
 4. On the phone: search 152848491 again. The phone may keep the old download; open the level page
    and download it again.
 
-Done this way once: hellgate v10 -> v11 (2026-11-23), Upload Complete, ID unchanged. So the phone
+Done this way twice: hellgate v10 -> v11 (three tries, see above) and v11 -> v12 (first try), 2026-11-23, Upload Complete, ID unchanged. So the phone
 always shows the name "GDLM 44 hellgate", even when the slot holds another level. The description
 (k3) comes from the new level; whether the server takes a new description on update is unchecked.
 
