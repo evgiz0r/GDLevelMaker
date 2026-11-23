@@ -62,7 +62,8 @@ Reported beside the score:
   gravity or speed change; `afterSwitchMs` per input. From the physics session: in GDLM 44 the
   user died 2 of 2 at a wave entrance whose window is 92 ms. The cube lands on a block and takes
   the portal at its end, and unless the wave is held within ~13 ticks it slides off and dies. The
-  window is not small; it starts at the mode change, before the player has settled.
+  window is not small; it starts at the mode change, before the player has settled. (The GDLM 44
+  in levels/ now, 2026-11-23, has a 279 ms wave press closing 363 ms after the portal: forced 0.)
   `node tools/press_window.js <level> --x X --y Y --hold-to X2 --to X3` (physics session) gives the
   press window from any spot.
 - `room`: free height per flying mode, counting blocks AND hazards, min and median in units
@@ -184,7 +185,7 @@ that tier's official levels look like, per minute of play, at 1x:
 | Normal | 3, 4 | 1.6 | ~21-29 | 0 | 100 ms | 0 | ~0.31 |
 | Hard | 5, 6 | 1.5-1.6 | ~25-32 | 2-3 | 67-71 ms | 0 | ~0.31 |
 | Harder | 7, 8 | 1.4-1.5 | ~23-28 | 2-5 | 54-58 ms | 1 | ~0.30 |
-| Insane | 10, 11, 13, 15 | 1.4-1.7 | - | - | 8-42 ms | 2-6 | 0.4-0.8 |
+| Insane | 10, 11, 13, 15 | 1.4-1.7 | - | - | 17-54 ms | 1-6 | 0.34-0.66 |
 | Demon | 14, 18, 20 | 1.6-1.9 | - | - | 13-33 ms | 3-7 | 0.55-1.3 |
 
 Read it as rough guide rails, not a classifier:
