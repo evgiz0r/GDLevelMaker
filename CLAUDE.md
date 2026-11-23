@@ -41,6 +41,12 @@ not after it:
   penalty -- soft: a level may break it with a stated reason, not silently), sweep every existing
   level and the structure library for other instances, and make `compose`/`make.js` avoid it in new
   levels. Reply with the rule and how many other spots it found, not only "fixed".
+- **When stuck, study bigger, and own the level.** (The user, 2026-11-23: "if we are stuck we
+  need to make bigger studies and experiments. and own our level.") When the same kind of note keeps
+  coming back, or our levels stay below the official ones on a measured axis (QUALITY.md), stop
+  patching: run a study (take real levels apart, measure, write the rules down -- CRAFT.md is one) or
+  an experiment (several variants, measured and shown side by side), then change the generator.
+  Owning a level means caring for all of it -- play, look, sync, fairness -- not only your one area.
 - **Hand off.** Before a long pause or when your area changes hands, write where you stopped,
   what is open and the good numbers into your area's doc.
 - **Share, don't duplicate.** Results go into the shared `local/` (see below) so no session redoes
