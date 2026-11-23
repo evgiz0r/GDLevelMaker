@@ -250,7 +250,14 @@ route choice -- the caller's candidates are the choice), `presses` 0.01 each, `c
 sits from its window's middle (0..1), `marks` 0.05 per jump mark (its pieces within 45 units are one) with no
 jump within 60 units (a jump, flap or orb firing: a held button jumps again on landing), `beat`
 (opts.beats, off by default) 0.005 x seconds off the nearest beat per press. Wall clearance and mid-corridor
-flying stay in the solver's own ranking. Physics calls it from lib/natural.js to pick among candidate routes.
+flying: `clearance` 0.1 per second a flying mode (ship, UFO, wave, swing) spends nearer a wall, hazard or the
+band's floor/roof than the corridor forces (closer than min(12, room / 4) units, room = the free height there, so
+a tight corridor is not punished for being tight); presses in a flying mode cost 0.002 (hover taps are how a
+person flies). Stereo Madness's first ship (the user: "it's unnatural to wait so late and fly up"): the solver's
+floor-rider costs 1.4 in clearance; the natural plan now takes the centred line in both ship parts (close to a
+surface 62% -> 2%, 43% -> 0%). The late climb at block 399.5 has a 213 ms window, so the window term does not
+see that "fake timing"; riding the floor up to the wall is what makes it, and clearance charges for that.
+Physics calls it from lib/natural.js to pick among candidate routes.
 Speed: measureWindows keeps an exact cache per world (an input's window depends only on the state where its
 search starts, the button over the span it can see, the input and where the run ends), so a candidate that
 differs in a few inputs re-measures only those. GDLM 44 (17 s, a ship part): 32 s cold, 0.15 s again, 1.9 s with
