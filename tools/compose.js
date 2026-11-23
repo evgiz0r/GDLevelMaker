@@ -84,7 +84,7 @@ function sectionBlocks(brief) {
 
 function compose(brief, tweaks = {}) {
   const rnd = rng(brief.seed || 1);
-  const objects = [], placed = [], ranges = [], deco = [], firsts = [];
+  const objects = [], placed = [], ranges = [], deco = [], firsts = [], looks = [];
   const seen = new Set();
   let col = 0, prevFlying = false, flyEnd = -99;
   const lens = sectionBlocks(brief);
@@ -101,6 +101,10 @@ function compose(brief, tweaks = {}) {
       } else objects.push(["colour", at, { ch, rgb: sec[ch], secs: sec.secs ?? (sec0.beats ? 0.4 : 1) }]);
     }
     if (sec.deco != null) deco.push([start, sec.deco]);
+    // the modern pass's section (tools/decorate.js modernPass): kind, and colours from the section's bg
+    { const bg = sec.bg || (looks.length ? looks[looks.length - 1].bg : [40, 60, 160]);
+      const kind = sec.rest ? "rest" : sec.deco === 0 ? "break" : (sec.mode || "cube");
+      looks.push({ from: start, to: end, kind, bg, fill: bg.map(v => Math.min(255, Math.round(v * 0.8 + 60))), light: bg.map(v => Math.min(255, v + 110)) }); }
     for (const e of sec.objects || []) { const c = e.slice(); c[c[0] === "pattern" ? 2 : 1] += start; objects.push(c); }
     // a mode section right after a corridor: the cube leaves the exit portal in the air, so its own
     // portal comes `land` columns later, once the cube is down (GDLM 45 v5 round 2: the cube fell past
@@ -194,6 +198,8 @@ function compose(brief, tweaks = {}) {
   objects.push(["block", col + 2, 6]); // marks the end; out of the cube's way
   const spec = { name: brief.name, desc: brief.desc || brief.idea || "", objects };
   if (deco.length) spec.decoDensity = deco;
+  // the modern look (STYLE.md: knowledge/levels/modern_look.md); "modern": false in the brief turns it off
+  if (brief.modern !== false) spec.modern = { sections: looks.map(({ bg, ...l }) => l), title: brief.name, end: "thanks for playing", seed: brief.seed || 3 };
   // jump indicators (tools/decorate.js): on jumps that cannot be read in time, and the first jump of
   // each new pattern. Default on; "indicators": false in the brief turns them off.
   if (brief.indicators !== false) spec.indicators = Object.assign({ at: firsts }, brief.indicators || {});
