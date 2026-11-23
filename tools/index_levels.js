@@ -10,6 +10,19 @@ const OFFICIAL_SONGS = ["StereoMadness", "BackOnTrack", "Polargeist", "DryOut", 
   "Electrodynamix", "HexagonForce", "BlastProcessing", "TheoryOfEverything2", "GeometricalDominator",
   "Deadlocked", "Fingerdash", "Dash"];
 // kA13 in the level header = where in the song the level starts, in seconds
+// The saved route for the viewer: today's (tools/solutions.js), else an older one (solved on earlier
+// physics) that still replays to the end on today's physics -- one run, cheap. get() alone drops every
+// route after any physics commit, and the page then solves the level itself; when that fails it replays
+// "the run that got furthest", which dies (the user, 2026-11-23: "why when I play the cube timings it dies").
+function savedRoute(L) {
+  const sols = require("./solutions.js"), now = sols.get(L.levelStr);
+  if (now) return now;
+  const old = sols.get(L.levelStr, true);
+  if (!old || !old.ok || !old.events) return null;
+  const { GD } = require("./io.js"), q = GD.run(GD.makeWorld(L.level.objects, L.level.header), old.events);
+  return (q.done || (q.end && !q.dead)) ? Object.assign({}, old, { replayedOn: sols.physicsCommit() }) : null;
+}
+
 function offsetOf(header) { const m = /(?:^|,)kA13,([-0-9.]+)/.exec(header || ""); return m ? +m[1] : 0; }
 function songOf(rec, header) {
   const custom = GD.getField(rec, "k45");
@@ -29,7 +42,7 @@ function buildIndex() {
       const file = path.join(d, f);
       const L = readGdlvl(file);
       // the saved solution (tools/solutions.js), so the viewer and the phone replay it instead of solving
-      let solution; try { solution = require("./solutions.js").get(L.levelStr) || undefined; } catch (e) {}
+      let solution; try { solution = savedRoute(L) || undefined; } catch (e) {}
       list.push({ name: L.name, file: dir + "/" + f, level: L.levelStr, song: songOf(L.rec, L.level.header), solution });
     }
   }
