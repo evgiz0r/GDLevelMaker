@@ -48,6 +48,14 @@ function selfUpdate() {
 if (!UPD.off) { setTimeout(selfUpdate, 2000); setInterval(selfUpdate, 60e3).unref(); }
 // variants without a saved solution: solved one at a time in a child process (tools/solutions.js waits for the heavy
 // lock and saves to the shared cache, where /wip/variants finds it next time)
+// level maps asked for by the viewer: made one at a time (tools/levelmap.js claims the heavy lock itself)
+const MAPS = { queue: [], seen: new Set(), running: false };
+function mapNext() {
+  const job = MAPS.queue.shift(); if (!job) { MAPS.running = false; return; }
+  MAPS.running = true; console.log("making the map of " + job[0]);
+  const ch = cp.spawn(process.execPath, [path.join(__dirname, "levelmap.js"), job[0], "--name", job[1]], { cwd: root, stdio: "ignore", windowsHide: true });
+  ch.on("exit", () => { MAPS.seen.delete(job[0]); mapNext(); }); ch.on("error", () => { MAPS.seen.delete(job[0]); mapNext(); });
+}
 const SOLVE = { queue: [], seen: new Set(), running: false };
 function solveLater(file) {
   if (SOLVE.seen.has(file)) return; SOLVE.seen.add(file); SOLVE.queue.push(file);
@@ -177,6 +185,21 @@ const SERVER = http.createServer((req, res) => {
       }) })) });
     } catch (e) {}
     res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify(out));
+  }
+  // POST /maps/make {file, name}: the viewer's "level map" for a level that has none yet -> tools/levelmap.js
+  // <file> --name <name> (local/maps/<name>.jpg, the name the viewer asks for), one at a time, under the heavy lock
+  // at normal priority; answers {queued, ahead}. Only levels of this repo / local/ (no paths out).
+  if (req.method === "POST" && p === "/maps/make") {
+    let body = ""; req.on("data", c => { body += c; if (body.length > 1e4) req.destroy(); });
+    req.on("end", () => {
+      let j = {}; try { j = JSON.parse(body); } catch (e) {}
+      const file = String(j.file || ""), name = String(j.name || "").replace(/[^\w\- ]+/g, "");
+      if (!/^(levels|examples|local\/wip\/[\w-]+|local)\/[\w.-]+\.(gdlvl|json)$/.test(file) || !name || !fs.existsSync(path.join(root, file))) { res.writeHead(400); return res.end("bad level"); }
+      const ahead = MAPS.queue.length + (MAPS.running ? 1 : 0);
+      if (!MAPS.seen.has(file)) { MAPS.seen.add(file); MAPS.queue.push([file, name]); if (!MAPS.running) mapNext(); }
+      res.writeHead(200, { "Content-Type": "application/json" }); res.end(JSON.stringify({ queued: true, ahead }));
+    });
+    return;
   }
   if (p === "/wip/list") {
     let out = [];

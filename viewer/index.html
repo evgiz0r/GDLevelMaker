@@ -16,6 +16,15 @@
   canvas { display:block; width:100%; height:min(60vh, 460px); background:#0e0828; touch-action:none; }
   #scrub { width:100%; margin:0; accent-color:var(--cube); }
   #strip { display:block; width:100%; height:34px; background:#120a2e; cursor:pointer; }
+  #notice { position:fixed; left:50%; bottom:16px; transform:translateX(-50%); z-index:60; max-width:min(92vw, 640px); background:#24184f; border:1px solid #6b5bd0; border-radius:8px; padding:8px 12px; font-size:13px; box-shadow:0 4px 18px rgba(0,0,0,.5); }
+  #notice[hidden] { display:none; }
+  #notice a { color:#9cf5c4; }
+  #noteBox { position:fixed; inset:0; z-index:70; display:grid; place-items:center; background:rgba(11,6,32,.8); padding:16px; }
+  #noteBox[hidden] { display:none; }
+  #noteBox .card { width:min(100%, 420px); background:#160d3a; border:1px solid #3b2d78; border-radius:10px; padding:12px; }
+  #noteBox h2 { font-size:15px; margin:0 0 8px; }
+  #noteBox textarea { width:100%; box-sizing:border-box; background:#0e0828; color:var(--ink); border:1px solid #3b2d78; border-radius:6px; padding:8px; font:inherit; font-size:16px; }
+  #noteBox .row { display:flex; gap:8px; margin-top:8px; }
   #varbar { display:flex; flex-wrap:wrap; gap:6px 14px; align-items:center; padding:6px 10px; background:#140b33; border-top:1px solid #2b2060; font-size:13px; }
   #varbar .vsec { display:flex; gap:4px; align-items:center; }
   #varbar .vname { color:#c9bdf8; margin-right:2px; }
@@ -100,6 +109,9 @@
   <button id="cmpShot" title="replay + game frame as one PNG in local/shots/">save comparison</button>
   <span id="cmpAt" class="muted"></span></div><img id="cmpImg" alt="game frame"></div></div>
 <div id="varbar" hidden></div>
+<div id="notice" hidden></div>
+<div id="noteBox" hidden><div class="card"><h2 id="noteTitle"></h2><textarea id="noteText" rows="4"></textarea>
+<div class="row"><button id="noteSave" class="on">save mark</button><button id="noteCancel">cancel</button></div></div></div>
 <canvas id="strip"></canvas>
 <input id="scrub" type="range" min="0" max="1000" value="0">
 <main>
@@ -143,6 +155,36 @@ async function gunzipB64(b64) {
   const ds = new DecompressionStream("gzip");
   const buf = await new Response(new Blob([bytes]).stream().pipeThrough(ds)).arrayBuffer();
   return new TextDecoder().decode(buf);
+}
+// ---------- messages, the note box, the map overlay: in the page, never alert / prompt / confirm ----------
+// (the app's built-in browser and the phone page's frame suppress native dialogs: a click that called alert()
+// did nothing at all for the user, 2026-11-24; tests/no_dialogs.js keeps them out)
+let noticeTimer = null;
+function notice(html, ms = 6000) {
+  const n = document.getElementById("notice"); if (!n) return;
+  n.innerHTML = html + ' <button style="margin-left:8px;padding:1px 6px">✕</button>'; n.hidden = !html;
+  n.querySelector("button").onclick = () => { n.hidden = true; };
+  clearTimeout(noticeTimer); if (ms) noticeTimer = setTimeout(() => { n.hidden = true; }, ms);
+}
+function askNote(title) {
+  return new Promise(done => {
+    const box = document.getElementById("noteBox"), ta = document.getElementById("noteText");
+    document.getElementById("noteTitle").textContent = title; ta.value = ""; box.hidden = false; ta.focus();
+    const close = v => { box.hidden = true; done(v); };
+    document.getElementById("noteSave").onclick = () => close(ta.value);
+    document.getElementById("noteCancel").onclick = () => close(null);
+  });
+}
+// a level map over the page (a new tab may be blocked): tap to zoom 3x, keeping the tapped spot under the finger
+function showMap(src) {
+  const o = document.createElement("div");
+  o.style.cssText = "position:fixed;inset:0;z-index:50;background:#0b0820;overflow:auto;-webkit-overflow-scrolling:touch";
+  o.innerHTML = '<div style="position:sticky;top:0;left:0;display:flex;gap:8px;align-items:center;padding:6px;background:#0b0820cc"><span style="flex:1;font-size:12px;opacity:.7">click the map to zoom</span><button>✕ close</button></div><img style="display:block;width:100%;max-width:none;height:auto" alt="level map">';
+  const img = o.querySelector("img"); img.src = src; o.querySelector("button").onclick = () => o.remove();
+  img.onclick = e => { const big = img.style.width !== "300%", fx = e.offsetX / img.clientWidth, fy = e.offsetY / img.clientHeight;
+    img.style.width = big ? "300%" : "100%"; o.scrollLeft = fx * img.clientWidth - e.clientX; o.scrollTop = fy * img.clientHeight + img.offsetTop - e.clientY; };
+  addEventListener("keydown", function esc(e) { if (e.key === "Escape") { o.remove(); removeEventListener("keydown", esc); } });
+  document.body.appendChild(o);
 }
 // ---------- the public site (tools/pages.js sets window.GD_PAGES) ----------
 // Nothing copyrighted is hosted there. Songs, GD's own art and the official levels come from the user's OWN
@@ -192,7 +234,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const inp = document.getElementById("songFilePc"); if (!inp) return;
   inp.onchange = async e => { const f = e.target.files[0]; e.target.value = ""; if (!f || !songInfo) return;
     const k = songKeyOf(songInfo), bytes = await f.arrayBuffer();
-    try { SONGS[k] = await audioCtx().decodeAudioData(bytes.slice(0)); } catch (err) { alert("That file could not be played as a song. An mp3 or ogg works."); return; }
+    try { SONGS[k] = await audioCtx().decodeAudioData(bytes.slice(0)); } catch (err) { notice("That file could not be played as a song. An mp3 or ogg works."); return; }
     keepSong(k, bytes); songAsk(false); const was = playing; setSong(songInfo); if (was) syncSong(true); };
 });
 function setSong(info) {
@@ -575,8 +617,22 @@ if (document.getElementById("mapBtn")) document.getElementById("mapBtn").onclick
   const l = ALL[pick.value]; if (!l) return;
   const name = String(l.file || "").split("/").pop().replace(/\.(gdlvl|json)$/, ""), url = "../local/maps/" + name + ".jpg";
   let ok = false; try { ok = (await fetch(url, { method: "HEAD", cache: "no-store" })).ok; } catch (e) {}
-  if (ok) window.open(url, "_blank"); else alert("No map yet for " + name + ". Make it with:\n  node tools/levelmap.js " + l.file);
+  if (ok) showMap(url); else makeMap(l, name, url);
 };
+// no map yet: the PC's tools/serve.js makes it (tools/levelmap.js under the heavy lock); the page waits and opens it
+async function makeMap(l, name, url) {
+  let r = null; try { r = await fetch("/maps/make", { method: "POST", body: JSON.stringify({ file: l.file, name }) }); } catch (e) {}
+  if (!r || !r.ok) { notice("No map yet for " + esc(name) + ". It is made on the PC: node tools/levelmap.js " + esc(l.file)); return; }
+  const j = await r.json().catch(() => ({}));
+  notice(`making the map of ${esc(name)}… it waits its turn among the PC's heavy jobs (about a minute once it runs) and opens here when ready`, 0);
+  const t0 = Date.now(), poll = async () => {
+    let ok = false; try { ok = (await fetch(url, { method: "HEAD", cache: "no-store" })).ok; } catch (e) {}
+    if (ok) { notice("map of " + esc(name) + " ready", 3000); showMap(url); return; }
+    if (Date.now() - t0 > 30 * 60e3) { notice("The map of " + esc(name) + " is still not made (the PC may be busy: node tools/heavy.js shows the queue)."); return; }
+    setTimeout(poll, 5000);
+  };
+  setTimeout(poll, 5000);
+}
 document.getElementById("hit").onclick = e => { showHit = !showHit; e.target.classList.toggle("on", showHit); draw(); };
 document.getElementById("sound").onclick = e => { sound = !sound; e.target.classList.toggle("on", sound); };
 document.getElementById("music").onclick = e => { music = !music; e.target.classList.toggle("on", music); syncSong(true); };
@@ -658,13 +714,13 @@ const markBtn = document.getElementById("markBtn");
 function setMarking(on) { marking = on; markBtn.classList.toggle("on", on); cv.classList.toggle("marking", on); if (on) { playing = false; setPlay(); syncSong(); } }
 markBtn.onclick = () => setMarking(!marking);
 addEventListener("keydown", e => { if ((e.key === "m" || e.key === "M") && e.target.tagName !== "INPUT") setMarking(!marking); });
-cv.addEventListener("click", e => {
+cv.addEventListener("click", async e => {
   if (!marking || !L) return;
   const r = cv.getBoundingClientRect(), d = DPR();
   const px = (e.clientX - r.left) * d, py = (e.clientY - r.top) * d;
   const x = px / scale + camX, y = camY + (groundY - py) / scale;
   setMarking(false);
-  const note = prompt(`What should change here? (block ${(x / 30).toFixed(1)}, ${(tick() / P.TPS).toFixed(2)} s)`);
+  const note = await askNote(`What should change here? (block ${(x / 30).toFixed(1)}, ${(tick() / P.TPS).toFixed(2)} s)`);
   if (!note || !note.trim()) return;
   const lv = ALL[pick.value];
   saveMark({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), level: L.name, file: lv && lv.name === L.name ? lv.file : "", session: lv && lv.session || "", version: lv && lv.version || 0, t: +(tick() / P.TPS).toFixed(3),
@@ -1228,7 +1284,7 @@ function hashParams() { return new URLSearchParams(location.hash.slice(1)); }
 function writeHash() { const l = ALL[pick.value]; if (!l || !L) return; history.replaceState(null, "", "#lv=" + encodeURIComponent(l.file) + "&t=" + (tick() / P.TPS).toFixed(2)); }
 document.getElementById("linkBtn").onclick = async () => {
   writeHash();
-  try { await navigator.clipboard.writeText(location.href); document.getElementById("linkBtn").textContent = "✓ copied"; } catch (e) { prompt("Link to this moment:", location.href); }
+  try { await navigator.clipboard.writeText(location.href); document.getElementById("linkBtn").textContent = "✓ copied"; } catch (e) { notice('Link to this moment: <input readonly style="width:28em" value="' + esc(location.href) + '" onclick="this.select()">', 15000); }
   setTimeout(() => document.getElementById("linkBtn").textContent = "🔗 link", 1500);
 };
 setInterval(() => { if (L && !playing) writeHash(); }, 1000);
