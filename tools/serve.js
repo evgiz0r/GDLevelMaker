@@ -2,6 +2,11 @@
 // (opening viewer/index.html straight from disk also works in a normal browser)
 // POST /marks appends one JSON line to local/marks.jsonl (shared by all sessions): the user's notes from the viewer
 // ("ground too dark here"), which Claude reads to make the next round. See marks/README.md.
+// Keeps its own checkout current (the user reloaded and did not get the latest, 2026-11-23): every 60 s, and on a
+// page load when the last check is older, `git fetch` + `git merge --ff-only origin/main` -- only on branch main,
+// only when the tree is clean apart from the generated viewer/levels.js (restored first), never forced; local
+// commits or changes: skipped and logged. When serve.js itself changed, it restarts itself. --no-update: off.
+// GET /version: {commit, subject, checked, note} -- the page footer shows it.
 const http = require("http"), fs = require("fs"), path = require("path");
 const root = path.join(__dirname, ".."), port = +(process.argv[2] || 8765);
 const MARKS = path.join(root, "local", "marks.jsonl");
@@ -10,8 +15,69 @@ const types = { ".html": "text/html", ".js": "text/javascript", ".json": "applic
 const GAME = process.env.GD_GAME || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash";
 const SAVE = process.env.GD_SAVE || path.join(process.env.LOCALAPPDATA || "", "GeometryDash");
 const RECS = process.env.GD_RECS || path.join(process.env.USERPROFILE || "", "Videos", "Captures"); // tools/record.sh writes here
-http.createServer((req, res) => {
+const cp = require("child_process");
+const git = args => cp.execFileSync("git", args, { windowsHide: true, cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+const UPD = { checked: 0, note: "", busy: false, off: process.argv.includes("--no-update") };
+function selfUpdate() {
+  if (UPD.off || UPD.busy) return; UPD.busy = true; UPD.checked = Date.now();
+  try {
+    if (git(["rev-parse", "--abbrev-ref", "HEAD"]) !== "main") { UPD.note = "not on main: no self-update"; return; }
+    let dirty = git(["status", "--porcelain", "--untracked-files=no"]).split("\n").filter(Boolean);
+    if (dirty.length === 1 && / viewer\/levels\.js$/.test(dirty[0])) { git(["checkout", "--", "viewer/levels.js"]); dirty = []; } // generated: restore
+    if (dirty.length) { UPD.note = "local changes (" + dirty.length + "): skipped"; console.log("self-update skipped: local changes " + dirty.join(", ")); return; }
+    git(["fetch", "-q", "origin", "main"]);
+    const ahead = +git(["rev-list", "--count", "origin/main..HEAD"]), behind = +git(["rev-list", "--count", "HEAD..origin/main"]);
+    if (ahead) { UPD.note = ahead + " local commit(s) not on origin: skipped"; console.log("self-update skipped: " + UPD.note); return; }
+    if (!behind) { UPD.note = "up to date"; return; }
+    const before = git(["rev-parse", "HEAD"]);
+    git(["merge", "-q", "--ff-only", "origin/main"]);
+    UPD.note = "updated " + behind + " commit(s)"; console.log(`self-update: ${before.slice(0, 7)} -> ${git(["rev-parse", "--short", "HEAD"])} (${behind} commits)`);
+    // this file changed: start the new code (same arguments), then leave
+    if (git(["diff", "--name-only", before, "HEAD", "--", "tools/serve.js", "tools/wip.js", "tools/index_levels.js", "tools/solutions.js"])) {
+      console.log("self-update: serve.js or what it loads changed -- restarting");
+      // start the new one at once (it retries the port while this one lets go), drop open keep-alive connections
+      // and leave. (The first version started the new one only after close() -- which waits for every open
+      // browser connection -- and its 3 s exit came first: the server just stopped, 2026-11-23.)
+      SERVER.close(); if (SERVER.closeAllConnections) SERVER.closeAllConnections();
+      cp.spawn(process.execPath, process.argv.slice(1), { windowsHide: true, cwd: process.cwd(), detached: true, stdio: "ignore", env: Object.assign({}, process.env, { GDLM_RESTART: "1" }) }).unref();
+      setTimeout(() => process.exit(0), 500).unref();
+    }
+  } catch (e) { UPD.note = "self-update failed: " + String(e.message).split("\n")[0]; console.log(UPD.note); }
+  finally { UPD.busy = false; }
+}
+if (!UPD.off) { setTimeout(selfUpdate, 2000); setInterval(selfUpdate, 60e3).unref(); }
+// variants without a saved solution: solved one at a time in a child process (tools/solutions.js waits for the heavy
+// lock and saves to the shared cache, where /wip/variants finds it next time)
+const SOLVE = { queue: [], seen: new Set(), running: false };
+function solveLater(file) {
+  if (SOLVE.seen.has(file)) return; SOLVE.seen.add(file); SOLVE.queue.push(file);
+  if (!SOLVE.running) solveNext();
+}
+function solveNext() {
+  const f = SOLVE.queue.shift(); if (!f) { SOLVE.running = false; return; }
+  SOLVE.running = true; console.log("solving variant " + path.relative(root, f));
+  const ch = cp.spawn(process.execPath, [path.join(__dirname, "solutions.js"), f], { windowsHide: true, cwd: root, stdio: "ignore" });
+  ch.on("exit", () => solveNext()); ch.on("error", () => solveNext());
+}
+// The public viewer (GitHub Pages, tools/pages.js) may READ songs, GD's art and /version from this server on the
+// user's own PC -- so there it plays music and can show GD art, while nothing copyrighted is hosted. Only that
+// origin, only those GET paths (Chrome's Private Network Access preflight answered); it may write nothing here.
+const PAGES_ORIGINS = ["https://evgiz0r.github.io"];
+const SERVER = http.createServer((req, res) => {
   let p = decodeURIComponent(req.url.split("?")[0]);
+  const origin = req.headers.origin;
+  if (origin && PAGES_ORIGINS.includes(origin)) {
+    const readable = /^\/(version$|song\/|gdres\/)/.test(p);
+    if (req.method === "OPTIONS") { res.writeHead(readable ? 204 : 403, readable ? { "Access-Control-Allow-Origin": origin, "Access-Control-Allow-Methods": "GET", "Access-Control-Allow-Headers": "*", "Access-Control-Allow-Private-Network": "true", "Vary": "Origin" } : {}); return res.end(); }
+    if (req.method !== "GET" || !readable) { res.writeHead(403); return res.end("not for the public page"); }
+    res.setHeader("Access-Control-Allow-Origin", origin); res.setHeader("Access-Control-Allow-Private-Network", "true"); res.setHeader("Vary", "Origin");
+  }
+  if (p === "/viewer/" && Date.now() - UPD.checked > 60e3) selfUpdate();   // a page load after a quiet spell
+  if (p === "/version") {
+    let v = {}; try { v = { commit: git(["rev-parse", "--short", "HEAD"]), subject: git(["log", "-1", "--format=%s"]).slice(0, 80), at: git(["log", "-1", "--format=%cI"]) }; } catch (e) {}
+    res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" });
+    return res.end(JSON.stringify(Object.assign(v, { checked: UPD.checked ? new Date(UPD.checked).toISOString() : null, note: UPD.off ? "self-update off" : UPD.note })));
+  }
   if (req.method === "POST" && p === "/marks") {
     let body = "";
     req.on("data", c => { body += c; if (body.length > 1e5) req.destroy(); });
@@ -90,6 +156,28 @@ http.createServer((req, res) => {
   // for the viewer's "compare" panel
   // GET /wip/list: every session's work-in-progress level (local/wip/<session>/, tools/wip.js), with the
   // decoded level and its song, newest first. Read fresh on every request: refresh = latest.
+  // GET /wip/variants?file=local/wip/<session>/<level>.gdlvl: the section variants style's compose saved beside it
+  // (<level>.variants/index.json: sections {id, name, from, to, variants {key, file, scores, note, solution?}}),
+  // each with its level string and its solution when the shared cache has it. A variant with none is solved here
+  // in the background, one at a time (tools/solutions.js, heavy lock): the page shows it as "solving" and asks
+  // again. VIEWER.md / the viewer's variants bar; the user's pick goes to marks as type "variant-pick".
+  if (p === "/wip/variants") {
+    const q = new URL(req.url, "http://x").searchParams.get("file") || "";
+    if (!/^local\/wip\/[\w-]+\/[\w.-]+\.gdlvl$/.test(q)) { res.writeHead(400); return res.end("bad file"); }
+    const dir = path.join(root, q.replace(/\.gdlvl$/, ".variants"));
+    let out = { sections: [] };
+    try {
+      const idx = JSON.parse(fs.readFileSync(path.join(dir, "index.json"), "utf8")), { readGdlvl } = require("./io.js"), S = require("./solutions.js");
+      out = Object.assign({}, idx, { sections: (idx.sections || []).map(sec => Object.assign({}, sec, { variants: (sec.variants || []).map(v => {
+        const f = path.join(dir, path.basename(String(v.file || "")));
+        try { const L = readGdlvl(f), sol = v.solution || S.get(L.levelStr) || null;
+          if (!sol) solveLater(f);
+          return Object.assign({}, v, { level: L.levelStr, solution: sol, solving: !sol });
+        } catch (e) { return Object.assign({}, v, { missing: true }); }
+      }) })) });
+    } catch (e) {}
+    res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify(out));
+  }
   if (p === "/wip/list") {
     let out = [];
     try {
@@ -120,7 +208,7 @@ http.createServer((req, res) => {
     const q = new URLSearchParams(req.url.split("?")[1] || ""), name = path.basename(q.get("f") || ""), at = Math.max(0, +q.get("t") || 0);
     const file = path.join(RECS, name);
     if (!/\.(mkv|mp4)$/i.test(name) || !fs.existsSync(file)) { res.writeHead(404); return res.end("no such recording"); }
-    const ff = require("child_process").spawn("ffmpeg", ["-v", "error", "-ss", String(at), "-i", file, "-frames:v", "1", "-vf", "scale=960:-1", "-f", "image2pipe", "-vcodec", "png", "-"]);
+    const ff = require("child_process").spawn("ffmpeg", ["-v", "error", "-ss", String(at), "-i", file, "-frames:v", "1", "-vf", "scale=960:-1", "-f", "image2pipe", "-vcodec", "png", "-"], { windowsHide: true });
     const out = [];
     ff.stdout.on("data", c => out.push(c));
     ff.on("error", () => { res.writeHead(500); res.end("ffmpeg not found"); });
@@ -153,4 +241,11 @@ http.createServer((req, res) => {
     res.writeHead(200, { "Content-Type": types[path.extname(f)] || "application/octet-stream", "Cache-Control": "no-store" });
     res.end(data);
   });
-}).listen(port, () => console.log(`viewer at http://localhost:${port}/viewer/`));
+});
+// a restarted server (self-update) retries the port for 20 s while the old process lets go of it
+let listenTries = 0;
+SERVER.on("error", e => {
+  if (e.code === "EADDRINUSE" && process.env.GDLM_RESTART && ++listenTries < 40) return setTimeout(() => SERVER.listen(port), 500);
+  console.error(e.message); process.exit(1);
+});
+SERVER.listen(port, () => console.log(`viewer at http://localhost:${port}/viewer/`));

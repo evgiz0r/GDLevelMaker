@@ -56,7 +56,7 @@ const unitPx = +opt("k", 3.375 * k);   // px per unit on screen (only scales the
 const kicks = [];
 for (const r of chosen) {
   const t0 = r.start, t1 = r.start + r.secs;
-  const csv = execFileSync(process.env.PYTHON || "python", [path.join(__dirname, "track.py"), video, "--from", String(t0), "--to", String(t1), "--crop", crop, "--tol", "70"], { encoding: "utf8", maxBuffer: 1 << 28 });
+  const csv = execFileSync(process.env.PYTHON || "python", [path.join(__dirname, "track.py"), video, "--from", String(t0), "--to", String(t1), "--crop", crop, "--tol", "70"], { windowsHide: true, encoding: "utf8", maxBuffer: 1 << 28 });
   const fr = csv.trim().split("\n").slice(1).map(l => l.split(",").map(Number)).filter(f => f[3] > 150 * k * k);
   for (let i = 2; i < fr.length; i++) {
     const dt0 = fr[i - 1][0] - fr[i - 2][0], dt1 = fr[i][0] - fr[i - 1][0];

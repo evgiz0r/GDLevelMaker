@@ -98,7 +98,7 @@ function levels() {
   return out;
 }
 
-function physicsStamp() { try { return cp.execSync("git log -1 --format=%h -- lib/physics.js lib/objects.js lib/difficulty.js lib/natural.js", { cwd: ROOT }).toString().trim(); } catch (e) { return "x"; } }
+function physicsStamp() { try { return cp.execSync("git log -1 --format=%h -- lib/physics.js lib/dual.js lib/objects.js lib/difficulty.js lib/natural.js", { windowsHide: true, cwd: ROOT }).toString().trim(); } catch (e) { return "x"; } }
 
 function main() {
   const args = process.argv.slice(2), only = args.includes("--only") ? args[args.indexOf("--only") + 1] : null;
@@ -120,7 +120,7 @@ function main() {
       if (!claimed) { require("./heavy.js").claim(); claimed = true; } // one heavy job at a time on the PC (tools/heavy.js)
       process.stderr.write(`measuring ${L.key} ... `);
       const t0 = Date.now();
-      try { r = JSON.parse(cp.execFileSync(process.execPath, ["--max-old-space-size=1500", __filename, "--one", L.spec], { cwd: ROOT, maxBuffer: 1 << 26, stdio: ["ignore", "pipe", "ignore"] }).toString()); }
+      try { r = JSON.parse(cp.execFileSync(process.execPath, ["--max-old-space-size=1500", __filename, "--one", L.spec], { windowsHide: true, cwd: ROOT, maxBuffer: 1 << 26, stdio: ["ignore", "pipe", "ignore"] }).toString()); }
       catch (e) { process.stderr.write("failed\n"); continue; }
       process.stderr.write(`${((Date.now() - t0) / 1000).toFixed(0)} s\n`);
       fs.writeFileSync(cf, JSON.stringify(r));

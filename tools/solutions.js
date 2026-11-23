@@ -32,21 +32,21 @@ const keyOf = levelStr => crypto.createHash("sha1").update(levelStr).digest("hex
 let PHYS = null;
 function physicsCommit() {
   if (PHYS === null) {
-    try { PHYS = require("child_process").execSync("git log -1 --format=%h -- lib/physics.js lib/objects.js lib/objects_extra.js lib/objects_gd22.js", { cwd: path.join(__dirname, ".."), encoding: "utf8" }).trim(); } catch (e) { PHYS = ""; }
+    try { PHYS = require("child_process").execSync("git log -1 --format=%h -- lib/physics.js lib/dual.js lib/objects.js lib/objects_extra.js lib/objects_gd22.js", { windowsHide: true, cwd: path.join(__dirname, ".."), encoding: "utf8" }).trim(); } catch (e) { PHYS = ""; }
   }
   return PHYS;
 }
 let PLAN = null;
 function planCommit() {
   if (PLAN === null) {
-    try { PLAN = require("child_process").execSync("git log -1 --format=%h -- lib/natural.js lib/difficulty.js", { cwd: path.join(__dirname, ".."), encoding: "utf8" }).trim(); } catch (e) { PLAN = ""; }
+    try { PLAN = require("child_process").execSync("git log -1 --format=%h -- lib/natural.js lib/difficulty.js", { windowsHide: true, cwd: path.join(__dirname, ".."), encoding: "utf8" }).trim(); } catch (e) { PLAN = ""; }
   }
   return PLAN;
 }
 let WINC = null;
 function windowsCommit() {
   if (WINC === null) {
-    try { WINC = require("child_process").execSync("git log -1 --format=%h -- lib/windows.js lib/difficulty.js", { cwd: path.join(__dirname, ".."), encoding: "utf8" }).trim(); } catch (e) { WINC = ""; }
+    try { WINC = require("child_process").execSync("git log -1 --format=%h -- lib/windows.js lib/difficulty.js", { windowsHide: true, cwd: path.join(__dirname, ".."), encoding: "utf8" }).trim(); } catch (e) { WINC = ""; }
   }
   return WINC;
 }
@@ -73,9 +73,23 @@ function put(levelStr, sol, level) {
   // old one-long-hold route and stamped it current: GDLM 45 wip v8, 2026-11-23)
   sol.physics = physicsCommit(); if (sol.plan === undefined) sol.plan = null; sol.solvedAt = new Date().toISOString();
   if (level) { try { measureWindows(level, sol); } catch (e) { delete sol.windows; } }
+  if (level) incSave(levelStr, sol, level);
   fs.mkdirSync(DIR, { recursive: true });
   fs.writeFileSync(path.join(DIR, keyOf(levelStr) + ".json"), JSON.stringify(sol));
   return sol;
+}
+// incremental solving (PHYSICS.md "Incremental solving"): a beaten route keeps checkpoints (its exact state about
+// every second, ~10-30 KB), its level is kept by hash (local/solutions/lv/) and its sections go into the section
+// cache, so an edit, a cut or a join of this level later re-solves only what changed (tools/incsolve.js)
+function incSave(levelStr, sol, level) {
+  try {
+    const INC = require("../lib/incsolve.js").incsolve, ST = require("./inc_store.js");
+    ST.saveLevel(keyOf(levelStr), levelStr, sol.name);
+    if (!sol.ok || !sol.events || !sol.events.length) return;
+    const w = GD.makeWorld(level.objects, level.header), p = GD.run(w, sol.events).path;
+    sol.checkpoints = INC.checkpoints(w, sol.events, p);
+    if (INC.finishes(w, { done: p[p.length - 1].done, end: p[p.length - 1] })) INC.cacheRoute(w, sol.events, p, ST.sections(), { stamp: physicsCommit() + "/" + planCommit() });
+  } catch (e) { delete sol.checkpoints; }
 }
 // from a solver result already in hand (make.js has one): natural plan, saved
 function fromRun(level, levelStr, r) {

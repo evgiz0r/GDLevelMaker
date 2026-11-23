@@ -156,14 +156,17 @@ colour 29/30/899/105/221/744/915/900, pulse 1006, alpha 1007 (still collides), e
 | trigger | id | keys | in sim | checked |
 |---|---|---|---|---|
 | move | 901 | 51 target, 28/29 x/y (30 = a block), 10 duration, 30 easing, 85 rate | yes, all easings | lv22: cube lands on blocks a move raises, jumps on the plan's tick |
+| move to target | 901 + 100 | 71 target group (138: player 1), 395 centre group, 101 axis (1 x, 2 y) | yes (target read when it fires; 397 dynamic: no) | tests; GDLM 63 station 5 |
+| move lock to player | 901 + 58/59 | 143/144 mods (not read) | yes | Spire's solve (community) |
 | toggle | 1049 | 51, 56 on | yes | plans (lv19, 22) |
 | spawn | 1268 | 51, 63 delay | yes | plans |
 | rotate | 1346 | 51, 71 centre group, 68 deg + 69 turns, 70 lock | yes (hitboxes turn too) | fires in lv22; no plan depends on it yet |
-| stop | 1616 | 51 = group of the triggers to stop | yes | none yet |
+| stop / pause / resume | 1616 | 51 = group of the triggers; 580: 0 stop, 1 pause, 2 resume (ASSUMED key; 535 control ID: no) | yes | tests; GDLM 63 station 6 |
 | count / instant count / pickup | 1611 / 1811 / 1817 | items | no (lv21 at 630, lv22 at 95) | - |
 | scale | 2067 | 150/151 | no (lv22 from 70) | - |
 | on death | 1812 | | no | - |
-| follow | 1347 | | no (lv22 at 535) | - |
+| follow | 1347 | 71 followed group, 72/73 x/y mods, 10 duration | yes (ASSUMED keys) | tests; lv22's one moves no hitbox |
+| multi-trigger | key 87 on any trigger | | yes: fires again each time it is spawned | tests; GDLM 63 station 7 |
 | collision block / trigger, area triggers | 1815/1816, 3006+ | | no (no official level uses them) | - |
 
 Firing: x passing the trigger's x; touch-triggered (11) when the player's box meets its 30x30;
@@ -171,13 +174,80 @@ spawn-triggered (62) only from a spawn trigger. Move "lock to player" X/Y (58/59
 the group moves by the player's own motion since the trigger fired, then stays (plus any dx/dy);
 UNCHECKED against the game, added 2026-11-23 for Spire (community 128630430), whose upside-down
 cube rides under a roof locked to the player: its solve went from block 112.7 to 327.6 (the next
-stop is another "sky" death near the ball part, not looked at). Not modelled: "move to target"
-(100), the player carried sideways by a moving block, multi-trigger (87).
+stop is another "sky" death near the ball part, not looked at). Not modelled: the player carried
+sideways by a moving block, scale (2067), follow player Y (1814), count/pickup, collision triggers,
+keyframes and the 2.2 area triggers (no official level moves a hitbox with them).
 The viewer draws moved, turned and switched-off objects where they are at each moment (GD.posedObjects).
+
+## Moving objects (2026-11-23; owner: the dual/moving-objects session)
+
+Hazards, solids, orbs, pads and portals in a group a trigger reaches are "dynamic" (w.dyn): every tick
+`nearDyn` puts them where the triggers have them now (moves, rotates about a centre, follows, toggles), so
+they collide at their moved places at 240 Hz. Everything else stays in the static column index.
+How a trigger is live: the first firing is `s.fired[k]` (the tick it acts from); a multi-trigger (87) that is
+spawned again gets `s.fired["k.n"]`, its n-th repeat, each moving the group by its own amount, so loops add
+up. A repeat whose tick is still ahead waits in `s.pend` (a spawn loop with a delay cannot run away; a cap of
+64 repeats per trigger). Stop freezes a firing for good; pause holds it, resume carries on, and the paused
+time does not count (`s.paused`, `s.psum`). A trigger inside a group a toggle switched off does not fire when
+the player passes or touches it (spawned ones: not checked). Move to target measures its distance when it
+fires (`s.tgt`), from the centre object (395, or the group's first object) to group 71's object.
+Follow adds the followed group's own movement since it fired, times 72/73, until its time runs out.
+Added 2026-11-23 (multi-trigger, move to target, follow, pause/resume, toggled-off triggers), all from the
+2.2081 decompile's save keys (EffectGameObject::getSaveString) except 580 (stop mode) and 72/73 (follow
+mods), which are ASSUMED; tests/mechanics.js pins each; GDLM 63's stations are for the user's game.
+Alpha (1007): looks only, an object at alpha 0 still collides (the decompile's opacity actions touch no
+collision); toggle is what removes a hitbox.
+
+Which official levels move hitboxes (`node tools/movers.js`; counts of triggers whose target group holds
+hitboxes): Geometrical Dominator moves 30 (+2 locked to the player), Deadlocked 58 (+3 locked, 17 toggles,
+it moves portals too), Fingerdash 107 moves and 48 rotates, Dash 67 moves, 6 rotates, 10 toggles, 13
+multi-triggers, 1 move to target, 1 scale. Electroman, Clubstep and Theory of Everything 2 use none (their
+2.2 versions move only decoration, if anything). The stops do not move with this: Dash stops at block 220
+on a static block (groups 183/191 there move only decoration), Fingerdash at 55 on a saw no trigger moves,
+Deadlocked at 695 on a static spike; the re-solves on the new physics are listed below as they finish.
+
+Lab: GDLM 63 (specs/63_dual_movers_lab.json, made by tools/lab63.js): 1-3 dual, 4 a rising platform,
+5 move to target, 6 pause/resume, 7 a multi-trigger loop, 8 a toggled-off trigger. Each station's note says
+what the sim expects. Not played yet.
+
+## Dual (lib/dual.js, 2026-11-23; owner: the dual/moving-objects session)
+
+Two players, one button. A level with dual portals (286 on, 287 off) steps through `GD.dualStep`; a level
+without them runs exactly the old code (`w.hasDual` false). Player 1's fields stay at the top of the state
+(`s.y`, `s.mode`...), player 2's are in `s.p2` (a fresh object every tick); x, tick, speed, triggers and the
+band flag are shared. The viewer draws both players and the band lines.
+
+What GD 2.2 does, read from iArtie's 2.2081 decompile (`local/src/GD-2.2081-Decompiled`, a clone for
+reading only; GJBaseGameLayer `toggleDualMode`, `playerWillSwitchMode`, `flipGravity`, the DualPortal /
+SoloPortal cases; PlayerObject `copyAttributes`):
+| rule | source | in sim | checked |
+|---|---|---|---|
+| dual portal: player 2 = a copy of player 1 (place, mode, size, y speed), gravity flipped (y speed halved) | toggleDualMode -> spawnFromPlayer (body not in the decompile; copyAttributes is) | yes | tests/mechanics.js |
+| same input for both; either death ends the run (`why` "player 2: ...") | update loop steps both | yes | tests |
+| mode and size portals switch ONLY the player touching them | switchToFlyMode(player) / togglePlayerScale(player) | yes | tests |
+| a player switching into the mode the other is in takes the other's opposite gravity (ship, cube, ball, UFO, robot, spider, swing; NO wave case in the decompile: gap or real, unknown) | playerWillSwitchMode | yes | - |
+| gravity portals, blue/green orbs, gravity dash orbs, blue pads flip the other player too while both are in the same mode (they stay mirrored); ball taps, swing flips, spider teleports flip only their own | GJBaseGameLayer::flipGravity vs PlayerObject::flipGravity | yes | tests (portal) |
+| solo portal: the player that touched it goes on (player 1 copies player 2 when player 2 touched it) | toggleDualMode(false) | yes | tests |
+| in dual every mode has a floor and a roof | checkCollisions: `isFlyingMode = ... || m_isDualMode` | yes | - |
+| band height in dual: ASSUMED the larger of the two players' bands, cube/robot 300 like the ship, centred on the portal that set it (dual portal, or a mode portal in dual) like a flying portal's | updateDualGround's body is not in the decompile | yes | NOT checked |
+| speed: shared (both players are at one x) | - | yes | - |
+| camera: centred on the band (animateInDualGroundNew, tween 0.4 s) | decompile | viewer only | - |
+Not modelled: two-player mode (level setting, separate buttons), start-in-dual (level setting), the
+cube hitting the band roof head-first (treated as safe, like the ship).
+
+Solvers: the state key has player 2's part (`GD.dualKey`); portal requirements (no-skip) count either
+player's used objects and either player's distance; dual levels go to the sweep (the exact cube solver
+knows one player).
+
+Official levels (dual portals): Hexagon Force 351.7-503.4 (cube), 640.3-709.8 (ball), 944.8-995.2 (mini
+ship); Blast Processing 512.3-554.0 (wave); Deadlocked 859.2-910.9 (wave). Before this, 286/287 were
+"unsupported" (a death on touch, and NOT on the no-skip list), so Hexagon Force's "beaten" and Blast
+Processing's 78% went around every dual portal: secret ways. Their saved routes, replayed with dual:
+Hexagon Force dies at 362.8 (player 2 on a spike), Blast Processing at 564.4. Re-solves: see below.
 
 ## Not in the sim yet (the game has it)
 
-Modes/portals: dual (286/287), mirror. Teleport portals (747) are in, unchecked: same x, speed kept, exit height = portal y + key 54 along the portal's turned axis (54 x cos(rotation)), but the full 54 straight up/down when key 55 is set or the portal is turned a quarter (90/-90/270: cos would make it a no-op; Deadlocked's ball part 441-561 passes only so, neither "no move" nor "x moves by 54" does -- "angle mod 90" fits the same cases) (fitted on Deadlocked, 2026-11-23: its -53 degree portal at block 76.5 needs the turned offset to pass under a spike; its -46 degree portal with 55 at 360.8 lands exactly on the gravity + speed portals 224 below; whether GD also moves x is not known; smooth teleport and the 2.2 options 345+ not modelled); first used by Deadlocked at block 77, Fingerdash 205, Dash 435. Triggers: count/pickup items,
+Modes/portals: mirror. Teleport portals (747) are in, unchecked: same x, speed kept, exit height = portal y + key 54 along the portal's turned axis (54 x cos(rotation)), but the full 54 straight up/down when key 55 is set or the portal is turned a quarter (90/-90/270: cos would make it a no-op; Deadlocked's ball part 441-561 passes only so, neither "no move" nor "x moves by 54" does -- "angle mod 90" fits the same cases) (fitted on Deadlocked, 2026-11-23: its -53 degree portal at block 76.5 needs the turned offset to pass under a spike; its -46 degree portal with 55 at 360.8 lands exactly on the gravity + speed portals 224 below; whether GD also moves x is not known; smooth teleport and the 2.2 options 345+ not modelled); first used by Deadlocked at block 77, Fingerdash 205, Dash 435. Triggers: count/pickup items,
 scale, follow, on death, collision blocks, area triggers, gravity trigger, time warp. Others:
 keys and user coins (collectables only), start positions (levels always start at x 0), practice
 checkpoints, speed portals touched mid-air at a slant, force blocks, platformer mode, dash orbs'

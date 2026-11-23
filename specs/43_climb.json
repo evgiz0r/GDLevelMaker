@@ -1,36 +1,318 @@
-{"name":"GDLM 43 climb","desc":"a classic cube level that climbs: ground spikes, then platforms and stairs, then orbs and pads, each section one new idea, warmer colours as it gets harder","objects": [
-  ["colour",0,{"ch":"bg","rgb":[40,90,230],"secs":1}],
-  ["colour",0,{"ch":"ground","rgb":[20,60,200],"secs":1}],
-  ["pattern","triple",17,0,{}],
-  ["pattern","triple",25,0,{}],
-  ["pattern","triple",32,0,{}],
-  ["pattern","single",42,0,{}],
-  ["pattern","double",49,0,{}],
-  ["pattern","double",58,0,{}],
-  ["pattern","triple",65,0,{}],
-  ["pattern","triple",74,0,{}],
-  ["pattern","triple",81,0,{}],
-  ["colour",95,{"ch":"bg","rgb":[120,50,210],"secs":1}],
-  ["colour",95,{"ch":"ground","rgb":[80,30,170],"secs":1}],
-  ["pattern","block-spike-block",100,0,{}],
-  ["pattern","platform",117,0,{}],
-  ["pattern","platform",132,0,{}],
-  ["pattern","platform",145,0,{}],
-  ["pattern","platform",159,0,{}],
-  ["pattern","platform",172,0,{}],
-  ["colour",198,{"ch":"bg","rgb":[210,40,60],"secs":1}],
-  ["colour",198,{"ch":"ground","rgb":[160,20,40],"secs":1}],
-  ["pattern","orb-pit",203,0,{}],
-  ["pattern","pad-launch",213,0,{"n":3}],
-  ["pattern","gate",222,0,{}],
-  ["pattern","orb-pit",229,0,{}],
-  ["pattern","pad-launch",238,0,{"n":3}],
-  ["pattern","gate",247,0,{}],
-  ["pattern","triple",254,0,{}],
-  ["pattern","gate",261,0,{}],
-  ["pattern","triple",267,0,{}],
-  ["pattern","pad-launch",274,0,{"n":3}],
-  ["pattern","orb-pit",283,0,{}],
-  ["colour",293,{"ch":"bg","rgb":[40,90,230],"secs":1}],
-  ["colour",293,{"ch":"ground","rgb":[20,60,200],"secs":1}],
-  ["block",315,6]],"style":"classic","seed":3,"colours":{"bg":[40,90,230],"ground":[20,60,200]}}
+{
+ "name": "GDLM 43 climb",
+ "desc": "A classic climb: ground spikes, then platforms and stairs, then orbs and pads, warmer as it gets harder.",
+ "objects": [
+  [
+   "colour",
+   0,
+   {
+    "ch": "bg",
+    "rgb": [
+     40,
+     90,
+     230
+    ],
+    "secs": 1
+   }
+  ],
+  [
+   "colour",
+   0,
+   {
+    "ch": "ground",
+    "rgb": [
+     20,
+     60,
+     200
+    ],
+    "secs": 1
+   }
+  ],
+  [
+   "pattern",
+   "triple",
+   17,
+   0,
+   {}
+  ],
+  [
+   "pattern",
+   "triple",
+   25,
+   0,
+   {}
+  ],
+  [
+   "pattern",
+   "triple",
+   32,
+   0,
+   {}
+  ],
+  [
+   "pattern",
+   "single",
+   42,
+   0,
+   {}
+  ],
+  [
+   "pattern",
+   "double",
+   49,
+   0,
+   {}
+  ],
+  [
+   "pattern",
+   "double",
+   58,
+   0,
+   {}
+  ],
+  [
+   "pattern",
+   "triple",
+   65,
+   0,
+   {}
+  ],
+  [
+   "pattern",
+   "triple",
+   74,
+   0,
+   {}
+  ],
+  [
+   "pattern",
+   "triple",
+   81,
+   0,
+   {}
+  ],
+  [
+   "colour",
+   95,
+   {
+    "ch": "bg",
+    "rgb": [
+     120,
+     50,
+     210
+    ],
+    "secs": 1
+   }
+  ],
+  [
+   "colour",
+   95,
+   {
+    "ch": "ground",
+    "rgb": [
+     80,
+     30,
+     170
+    ],
+    "secs": 1
+   }
+  ],
+  [
+   "pattern",
+   "block-spike-block",
+   100,
+   0,
+   {}
+  ],
+  [
+   "pattern",
+   "platform",
+   117,
+   0,
+   {}
+  ],
+  [
+   "pattern",
+   "platform",
+   132,
+   0,
+   {}
+  ],
+  [
+   "pattern",
+   "platform",
+   145,
+   0,
+   {}
+  ],
+  [
+   "pattern",
+   "platform",
+   159,
+   0,
+   {}
+  ],
+  [
+   "pattern",
+   "platform",
+   172,
+   0,
+   {}
+  ],
+  [
+   "colour",
+   198,
+   {
+    "ch": "bg",
+    "rgb": [
+     210,
+     40,
+     60
+    ],
+    "secs": 1
+   }
+  ],
+  [
+   "colour",
+   198,
+   {
+    "ch": "ground",
+    "rgb": [
+     160,
+     20,
+     40
+    ],
+    "secs": 1
+   }
+  ],
+  [
+   "pattern",
+   "orb-pit",
+   203,
+   0,
+   {}
+  ],
+  [
+   "pattern",
+   "pad-launch",
+   213,
+   0,
+   {
+    "n": 3
+   }
+  ],
+  [
+   "pattern",
+   "gate",
+   222,
+   0,
+   {}
+  ],
+  [
+   "pattern",
+   "orb-pit",
+   229,
+   0,
+   {}
+  ],
+  [
+   "pattern",
+   "pad-launch",
+   238,
+   0,
+   {
+    "n": 3
+   }
+  ],
+  [
+   "pattern",
+   "gate",
+   247,
+   0,
+   {}
+  ],
+  [
+   "pattern",
+   "triple",
+   254,
+   0,
+   {}
+  ],
+  [
+   "pattern",
+   "gate",
+   261,
+   0,
+   {}
+  ],
+  [
+   "pattern",
+   "triple",
+   267,
+   0,
+   {}
+  ],
+  [
+   "pattern",
+   "pad-launch",
+   274,
+   0,
+   {
+    "n": 3
+   }
+  ],
+  [
+   "pattern",
+   "orb-pit",
+   283,
+   0,
+   {}
+  ],
+  [
+   "colour",
+   293,
+   {
+    "ch": "bg",
+    "rgb": [
+     40,
+     90,
+     230
+    ],
+    "secs": 1
+   }
+  ],
+  [
+   "colour",
+   293,
+   {
+    "ch": "ground",
+    "rgb": [
+     20,
+     60,
+     200
+    ],
+    "secs": 1
+   }
+  ],
+  [
+   "block",
+   315,
+   6
+  ]
+ ],
+ "style": "classic",
+ "seed": 3,
+ "colours": {
+  "bg": [
+   40,
+   90,
+   230
+  ],
+  "ground": [
+   20,
+   60,
+   200
+  ]
+ },
+ "notes": "a classic cube level that climbs: ground spikes, then platforms and stairs, then orbs and pads, each section one new idea, warmer colours as it gets harder"
+}

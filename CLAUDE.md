@@ -82,7 +82,7 @@ things take" below). The tools below still work one by one.
 
 1. Write a spec in `specs/NN_name.json` (grid squares, see the top of `tools/make.js`).
 2. `node tools/make.js specs/NN_name.json` -> `levels/<name>.gdlvl`, solved, added to the viewer.
-3. Look at it: `node tools/serve.js` and open http://localhost:8765/viewer/ (or open
+3. Look at it: `node tools/serve.js` (on the main checkout it fast-forwards itself to origin/main every minute when clean -- push, and the user's reload shows it; the page footer names the commit) and open http://localhost:8765/viewer/ (or open
    `viewer/index.html` straight from disk in a normal browser). It replays the solver's clicks
    with a click sound, the timing window of each click, and hitboxes on request.
    For the phone: the same viewer as the user's private Artifact (PHONE.md): pushed levels,
@@ -116,6 +116,13 @@ at once and the PC hung (0.2 GB free), so the rule is now a lock every heavy too
 - while the user plays (GeometryDash.exe runs): one job whatever is free, and none starts under 2 GB free;
 - every heavy job lowers itself to idle CPU priority at start, so the game and the desktop always win;
 - the others wait and say so: `heavy: waiting for tools/make.js ... (<session>, pid, N min in, ~M min left)`;
+- **priority**: `GDLM_HEAVY_PRIORITY=high|normal|low` (or `--priority high`); the next free slot goes to the highest
+  priority waiting, first come within one. Running jobs are never stopped, so a long low job delays a high one by
+  itself at most. High = what the user asked for now; low = batch re-solves and measuring runs (put them at low);
+  `node tools/heavy.js` lists the waiters in order;
+- **freshness**: with its slot, a job checks its worktree against origin/main (fetch at most once a minute): clean
+  and behind -> fast-forward and run again on the new code; dirty or diverged -> a loud `!!! heavy: ... behind main`
+  warning listing the tools/lib commits it lacks. `GDLM_HEAVY_NOSYNC=1` skips it;
 - the slot is a file in the shared `local/locks/heavy/` (real path, all worktrees); a dead pid's slot is
   cleared, a child of a holder runs in its parent's slot. `node tools/heavy.js` shows who holds it.
 - **A new heavy tool adds the line** `if (require.main === module) require("./heavy.js").claim();` after
@@ -194,6 +201,10 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 - `lib/physics.js` -- physics of every mode, triggers + solver (fewest clicks, each in the middle of its window;
   every window is replay-checked tick by tick: `solve` merges near-twin states, which once claimed ticks that die).
   PHYSICS.md: per mode and trigger, its constants, sources, checks and what is open.
+- `lib/dual.js` -- dual mode (two players, one button; GD 2.2's rules read from the 2.2081 decompile), stepped from
+  physics.js's step() only in levels with dual portals. Moving objects (move, move to target, follow, rotate, toggle,
+  spawn, multi-trigger, stop/pause/resume) live in physics.js's trigger code. `tools/movers.js`: which levels' triggers
+  move hitboxes. Lab: GDLM 63 (`tools/lab63.js`). PHYSICS.md "Dual" and "Moving objects".
 - `lib/difficulty.js` -- difficulty score from a solution: the human route (one tap per jump), per-input
   timing windows, a timing-error + lapse model fitted on the user's real runs; see DIFFICULTY.md
   (also the tier ladder for making levels, and what is open). Its tools: `difficulty` (score a level,
@@ -207,6 +218,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   user's labelled deaths, `fairness fit`; tools/score.js gates on it; DIFFICULTY.md "Fairness").
 - `lib/sync.js` -- music sync: level time <-> x through speed portals, beat grid <-> level beats,
   press timing windows from a solution, sync scores. See SYNC.md (also where songs come from).
+- **The public viewer** (https://evgiz0r.github.io/GDLevelMaker/, PAGES.md: GitHub Pages, rebuilt on every push, our levels only, songs / GD art / official levels only from the user's own serve.js): `tools/pages.js`, `tests/pages_build.js`, `.github/workflows/pages.yml`.
 - **The phone page** (PHONE.md: what is on it, what a session does after `wip.js put`, phone
   marks, how it was tested, what is open): `tools/web.js` builds it from the viewer.
 - `tools/` -- node CLIs: `make`, `check`, `roundtrip`, `index_levels`, `serve`, `beats` (beat grid
@@ -446,6 +458,10 @@ triggers (x-crossing, touch and spawn firing, GD's easings), ceiling slopes, tur
 The viewer draws moving objects where they start.
 
 ## Rules
+
+- **Never pop a window on the user's screen.** Every child process (spawn, spawnSync, exec*, execFile*, fork) passes
+  `windowsHide: true`: on Windows a console child without it flashes a console window (serve.js's self-update did,
+  every minute, 2026-11-23). `node tests/no_console_windows.js` fails on any call without it (`--fix` adds it).
 
 - Levels must be sight-readable unless the user asks otherwise: no "prejumps" (a jump you must
   start while what it is for is still far ahead). `make.js` prints it; `tools/sightread.js`.

@@ -26,7 +26,7 @@ const head = x.slice(c, n).replace(/<k>k(1|16)<\/k><i>[^<]*<\/i>/g, "");
 x = x.slice(0, c) + "<k>k1</k><i>999000111</i><k>k16</k><i>3</i>" + head + x.slice(n);
 fs.writeFileSync(copy, enc(x));
 
-execFileSync(process.execPath, [path.join(__dirname, "..", "tools", "install.js"), level, "--save", copy], { stdio: "pipe" });
+execFileSync(process.execPath, [path.join(__dirname, "..", "tools", "install.js"), level, "--save", copy], { windowsHide: true, stdio: "pipe" });
 const y = dec(fs.readFileSync(copy));
 const m = y.indexOf(`<k>k2</k><s>${NAME}</s>`);
 const rec = y.slice(y.lastIndexOf("<k>kCEK</k>", m), m);
@@ -41,7 +41,7 @@ let ok2 = true;
 if (fs.existsSync(other)) {
   const ids = path.join(dir, "phone_ids.json");
   fs.writeFileSync(ids, JSON.stringify({ slots: { phone: { id: 999000111, name: NAME, holds: { level: NAME }, history: [] } } }));
-  execFileSync(process.execPath, [path.join(__dirname, "..", "tools", "install.js"), other, "--save", copy, "--slot", "phone", "--ids", ids], { stdio: "pipe" });
+  execFileSync(process.execPath, [path.join(__dirname, "..", "tools", "install.js"), other, "--save", copy, "--slot", "phone", "--ids", ids], { windowsHide: true, stdio: "pipe" });
   const z = dec(fs.readFileSync(copy));
   const first = z.slice(z.indexOf("<k>k_0</k><d>"), z.indexOf("<k>k_1</k><d>"));
   const j = JSON.parse(fs.readFileSync(ids, "utf8")).slots.phone;
@@ -55,9 +55,9 @@ let ok3 = true;
 if (fs.existsSync(other)) {
   const ids = path.join(dir, "lab_ids.json");
   fs.writeFileSync(ids, JSON.stringify({ slots: { lab: { id: null, name: "Claude Lab", holds: null, history: [], desc: "Lab default." } } }));
-  const run = () => execFileSync(process.execPath, [path.join(__dirname, "..", "tools", "install.js"), other, "--save", copy, "--slot", "lab", "--ids", ids, "--desc", "testing X"], { stdio: "pipe" });
+  const run = () => execFileSync(process.execPath, [path.join(__dirname, "..", "tools", "install.js"), other, "--save", copy, "--slot", "lab", "--ids", ids, "--desc", "testing X"], { windowsHide: true, stdio: "pipe" });
   // without --desc the slot's own default description is used
-  execFileSync(process.execPath, [path.join(__dirname, "..", "tools", "install.js"), other, "--save", copy, "--slot", "lab", "--ids", ids], { stdio: "pipe" });
+  execFileSync(process.execPath, [path.join(__dirname, "..", "tools", "install.js"), other, "--save", copy, "--slot", "lab", "--ids", ids], { windowsHide: true, stdio: "pipe" });
   const z0 = dec(fs.readFileSync(copy)), f0 = z0.slice(z0.indexOf("<k>k_0</k><d>"), z0.indexOf("<k>k_1</k><d>"));
   const dflt = Buffer.from(((f0.match(/<k>k3<\/k><s>([^<]*)<\/s>/) || [])[1] || "").replace(/-/g, "+").replace(/_/g, "/"), "base64").toString();
   run(); run();

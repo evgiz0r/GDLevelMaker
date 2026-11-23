@@ -1,6 +1,6 @@
 {
  "name": "GDLM 46 arrow catalogue",
- "desc": "Which of these is the small jump-indicator arrow? Each candidate decoration sits under its object id. Tell Claude the number (and which way it points).",
+ "desc": "A test level: every jump-arrow candidate side by side. Not for upload.",
  "colours": {
   "bg": [
    40,
@@ -319,5 +319,6 @@
    132,
    6
   ]
- ]
+ ],
+ "notes": "Which of these is the small jump-indicator arrow? Each candidate decoration sits under its object id. Tell Claude the number (and which way it points)."
 }

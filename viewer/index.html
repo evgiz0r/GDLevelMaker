@@ -16,6 +16,12 @@
   canvas { display:block; width:100%; height:min(60vh, 460px); background:#0e0828; touch-action:none; }
   #scrub { width:100%; margin:0; accent-color:var(--cube); }
   #strip { display:block; width:100%; height:34px; background:#120a2e; cursor:pointer; }
+  #varbar { display:flex; flex-wrap:wrap; gap:6px 14px; align-items:center; padding:6px 10px; background:#140b33; border-top:1px solid #2b2060; font-size:13px; }
+  #varbar .vsec { display:flex; gap:4px; align-items:center; }
+  #varbar .vname { color:#c9bdf8; margin-right:2px; }
+  #varbar button { padding:3px 8px; font-size:12px; }
+  #varbar button.cur { border-color:var(--cube); background:#3b2d78; }
+  #varbar button.close { border-color:#ffb020; }
   #inbar { display:block; width:100%; height:58px; background:#0b0620; }
   main { display:grid; grid-template-columns: 1fr 1fr; gap:16px; padding:12px 16px 24px; }
   @media (max-width: 700px) { main { grid-template-columns: 1fr; } }
@@ -63,7 +69,7 @@
 <body>
 <div id="picker" hidden><div id="pk" role="dialog" aria-label="choose a level">
   <div id="pkTop"><input id="pkQ" type="search" placeholder="search levels…" autocomplete="off">
-    <button data-f="all" class="on">all</button><button data-f="ours">ours</button><button data-f="wip">in progress</button><button data-f="official">official</button><button data-f="community">community</button><button data-f="pinned">★ pinned</button>
+    <button data-f="main" class="on" title="official levels, the levels being worked on and ours">main</button><button data-f="recent">recent</button><button data-f="pinned">★ pinned</button><button data-f="wip">in progress</button><button data-f="ours">ours</button><button data-f="official">official</button><button data-f="community">community</button><button data-f="all">all</button>
     <button id="pkClose" title="close (Esc)">✕</button></div>
   <div id="pkList"></div></div></div>
 <header>
@@ -82,7 +88,7 @@
   <button id="cmpBtn" hidden title="a frame of your recording next to the replay (needs tools/serve.js)">compare</button>
   <button id="markBtn" title="pause, then click where something should change (key M)">✎ mark</button>
   <button id="sound" class="on">click sound</button>
-  <button id="music" class="on">music</button>
+  <button id="music" class="on">music</button><label class="btn" id="addSongPc" hidden>add song<input id="songFilePc" type="file" accept="audio/*,.mp3,.ogg,.m4a,.wav" hidden></label>
   <button id="lightBtn" title="light mode: no GD art, no beat lines -- for a slow moment (the PC busy, the phone)">light</button>
   <button id="beatsBtn" class="on" title="beat grid of the level's song (songs on this PC, from tools/beats.js)">beats</button>
   <span id="clock" class="muted"></span>
@@ -93,6 +99,7 @@
   <button data-dt="-1">-1 s</button><button data-dt="-0.1">-0.1</button><button data-dt="0.1">+0.1</button><button data-dt="1">+1 s</button>
   <button id="cmpShot" title="replay + game frame as one PNG in local/shots/">save comparison</button>
   <span id="cmpAt" class="muted"></span></div><img id="cmpImg" alt="game frame"></div></div>
+<div id="varbar" hidden></div>
 <canvas id="strip"></canvas>
 <input id="scrub" type="range" min="0" max="1000" value="0">
 <main>
@@ -100,10 +107,12 @@
   <div class="card"><h2>Clicks</h2><div id="clicks"></div></div>
   <div class="card" style="grid-column:1/-1"><h2>Marks — what to change</h2><div id="marks"></div></div>
 </main>
+<div id="ver" class="muted" style="font-size:12px;padding:6px 16px 14px"></div>
 <script src="../lib/gd.js"></script>
 <script src="../lib/objects_extra.js"></script>
 <script src="../lib/objects_gd22.js"></script>
 <script src="../lib/objects.js"></script>
+<script src="../lib/dual.js"></script>
 <script src="../lib/physics.js"></script>
 <script src="../lib/sync.js"></script>
 <script src="../lib/look.js"></script>
@@ -135,6 +144,22 @@ async function gunzipB64(b64) {
   const buf = await new Response(new Blob([bytes]).stream().pipeThrough(ds)).arrayBuffer();
   return new TextDecoder().decode(buf);
 }
+// ---------- the public site (tools/pages.js sets window.GD_PAGES) ----------
+// Nothing copyrighted is hosted there. Songs, GD's own art and the official levels come from the user's OWN
+// tools/serve.js on this PC when it runs (http://localhost:8765 answers the Pages origin, CORS); anywhere else
+// that fails quietly: the shapes look, our levels, a song the visitor picks from their own device, or the
+// click sound. LOCALBASE is "" on the PC viewer itself (same server).
+let LOCALBASE = "";
+const LOCAL_URL = "http://localhost:8765";
+const localReady = !window.GD_PAGES ? Promise.resolve(location.protocol.startsWith("http"))
+  : fetch(LOCAL_URL + "/version", { cache: "no-store" }).then(r => { if (r.ok) LOCALBASE = LOCAL_URL; return r.ok; }).catch(() => false);
+// the song file a visitor picked, kept in this browser per song (IndexedDB; a convenience: all works without it)
+function songDb() {
+  return new Promise((ok, no) => { try { const r = indexedDB.open("gdlm-songs", 1);
+    r.onupgradeneeded = () => r.result.createObjectStore("songs"); r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); } catch (e) { no(e); } });
+}
+async function keptSong(key) { try { const db = await songDb(); return await new Promise(ok => { const q = db.transaction("songs").objectStore("songs").get(key); q.onsuccess = () => ok(q.result || null); q.onerror = () => ok(null); }); } catch (e) { return null; } }
+async function keepSong(key, bytes) { try { const db = await songDb(); db.transaction("songs", "readwrite").objectStore("songs").put(bytes, key); } catch (e) {} }
 // the level's song: fetched from tools/serve.js once, decoded, played sample-exact by lib/song.js (Web Audio);
 // while playing, the replay's clock IS the song's clock (frame()), so they cannot drift apart
 let song = null, songInfo = null, music = true;
@@ -148,13 +173,33 @@ function viewerSong(info) {
 const songLoading = {};
 async function loadSong(info) {
   const k = songKeyOf(info); if (songLoading[k]) return; songLoading[k] = true;
-  try { const r = await fetch(info.url); if (!r.ok) return; SONGS[k] = await audioCtx().decodeAudioData(await r.arrayBuffer()); } catch (e) { return; }
+  try {
+    let bytes = await keptSong(k);
+    if (!bytes) { const ok = await localReady; if (!ok || (window.GD_PAGES && !LOCALBASE)) { songLoading[k] = false; songAsk(true); return; }
+      const r = await fetch(LOCALBASE + info.url); if (!r.ok) { songLoading[k] = false; songAsk(true); return; } bytes = await r.arrayBuffer(); }
+    SONGS[k] = await audioCtx().decodeAudioData(bytes.slice(0));
+  } catch (e) { songLoading[k] = false; songAsk(true); return; }
+  songAsk(false);
   if (songInfo && songKeyOf(songInfo) === k && !song) { song = GD.songPlayer(SONGS[k], audioCtx); syncSong(true); }
 }
+// "add song": shown when the level has a song this page cannot get (the public site away from the user's PC).
+// The visitor picks the file from their own device; it is decoded here and kept per song id in this browser.
+function songAsk(show) {
+  const b = document.getElementById("addSongPc"); if (!b) return;
+  b.hidden = !show || !songInfo; if (show && songInfo) b.title = "this level's song (" + songKeyOf(songInfo) + ") is not here: pick the file from your device";
+}
+document.addEventListener("DOMContentLoaded", () => {
+  const inp = document.getElementById("songFilePc"); if (!inp) return;
+  inp.onchange = async e => { const f = e.target.files[0]; e.target.value = ""; if (!f || !songInfo) return;
+    const k = songKeyOf(songInfo), bytes = await f.arrayBuffer();
+    try { SONGS[k] = await audioCtx().decodeAudioData(bytes.slice(0)); } catch (err) { alert("That file could not be played as a song. An mp3 or ogg works."); return; }
+    keepSong(k, bytes); songAsk(false); const was = playing; setSong(songInfo); if (was) syncSong(true); };
+});
 function setSong(info) {
   if (song) { song.pause(); song = null; }
   songInfo = info || null;
-  if (!info || location.protocol === "file:") return; // songs come from tools/serve.js
+  if (!info) { songAsk(false); return; }
+  if (location.protocol === "file:") return; // songs come from tools/serve.js
   song = viewerSong(info);
 }
 // keep the song where the replay is: level time t plays song second offset + t. Seeks only when asked
@@ -270,6 +315,14 @@ async function loadFile(f) {
 }
 const pick = document.getElementById("pick");
 const ALL = (window.GD_LEVELS || []).concat(window.GD_LEVELS_LOCAL || []);
+if (window.GD_PAGES) localReady.then(ok => { if (!ok || !LOCALBASE) return;
+  const sc = document.createElement("script"); sc.src = LOCALBASE + "/viewer/levels.local.js";
+  sc.onload = () => { for (const l of (window.GD_LEVELS_LOCAL || []).filter(l => /official/.test(String(l.file)))) ALL.push(l); };
+  document.head.appendChild(sc);
+  // the beat grids too (measured from the songs on that PC); then the open level again, with its beat lines
+  const bs = document.createElement("script"); bs.src = LOCALBASE + "/local/beats.local.js";
+  bs.onload = () => { if (L && pick.value !== "") pick.dispatchEvent(new Event("change")); };
+  document.head.appendChild(bs); });
 ALL.forEach((l, i) => pick.add(new Option(l.name + "  —  " + l.file, i)));
 pick.onchange = () => { const l = ALL[pick.value]; load(l.name, l.level, l.solution, l.song); L.deaths = l.deaths || []; summary(); draw(); };
 // ---------- the level picker (button / key L): cards with a thumbnail strip, length, modes, version, search,
@@ -286,7 +339,56 @@ function routeKindOf(saved, sol, world) {
   const label = k === "human" ? "human route" : k === "limit" ? "limit route" + (why ? ": " + String(why).slice(0, 60) : "") : "unbeaten at " + pct(saved ? saved.dieX || 0 : (sol.dieAt || {}).x || 0) + "%";
   return { k, label: label + (saved && saved.stale ? " (stale)" : ""), why: why || "" };
 }
-const PK = { f: "all", sel: 0, rows: [], meta: new Map() };
+
+// ---------- section variants (style's compose: local/wip/<session>/<level>.variants/, served by /wip/variants) ----------
+// For a work-in-progress level with variants: one row per section, A/B/C with the section's score (hover: difficulty,
+// issues); a click replays that variant from the same moment; "go" jumps to the section; "pick this one" leaves a
+// "variant-pick" mark that style applies (the user: "see possible alternatives").
+const VAR = { base: null, data: null, cur: null, poll: null };
+async function variantsFor(l) {
+  const bar = document.getElementById("varbar");
+  if (!l || !l.wip || window.GD_PAGES || window.GD_PHONE || !location.protocol.startsWith("http")) { if (!VAR.cur) { bar.hidden = true; VAR.base = null; } return; }
+  let d = null; try { const r = await fetch("/wip/variants?file=" + encodeURIComponent(l.file), { cache: "no-store" }); if (r.ok) d = await r.json(); } catch (e) {}
+  if (ALL[pick.value] !== l) return;
+  VAR.base = l; VAR.data = d && d.sections && d.sections.length ? d : null; VAR.cur = null; varRender();
+  clearTimeout(VAR.poll);
+  if (VAR.data && VAR.data.sections.some(sc => sc.variants.some(v => v.solving))) VAR.poll = setTimeout(() => { if (ALL[pick.value] === l && !VAR.cur) variantsFor(l); }, 15000);
+}
+function varRender() {
+  const bar = document.getElementById("varbar");
+  if (!VAR.data) { bar.hidden = true; return; }
+  bar.hidden = false;
+  const btn = (sc, v) => { const sco = v.scores || {}, cur = VAR.cur && VAR.cur.sec === sc.id && VAR.cur.key === v.key;
+    const tip = [sco.difficulty, sco.issues, sco.kept ? "kept: " + sco.kept : "", sco.close ? sco.close : "", v.note].filter(Boolean).join(" · ");
+    return `<button class="${cur ? "cur" : ""}${sco.close ? " close" : ""}" data-sec="${esc(sc.id)}" data-key="${esc(v.key)}" title="${esc(tip)}"${v.solving || v.missing ? " disabled" : ""}>${esc(v.key)}${sco.section != null ? " " + sco.section : ""}${v.solving ? " …" : ""}</button>`; };
+  bar.innerHTML = `<span class="muted">variants</span>` + VAR.data.sections.map(sc => `<span class="vsec"><span class="vname">${esc(sc.name || sc.id)} <span class="muted">${Math.round(sc.from / 30)}–${Math.round(sc.to / 30)}</span></span>` +
+      sc.variants.map(v => btn(sc, v)).join("") + `<button data-go="${esc(sc.id)}" title="jump to this section">go</button></span>`).join("") +
+    (VAR.cur ? `<button id="varBase" title="back to the level as it is">current</button><button id="varPick" title="ask for this variant in the level (a mark style applies)">pick ${esc(VAR.cur.sec)} ${esc(VAR.cur.key)}</button>` : "") +
+    (VAR.data.sections.some(sc => sc.variants.some(v => v.solving)) ? `<span class="muted">solving the others…</span>` : "");
+  bar.querySelectorAll("[data-key]").forEach(b => b.onclick = () => varOpen(b.dataset.sec, b.dataset.key));
+  bar.querySelectorAll("[data-go]").forEach(b => b.onclick = () => { const sc = VAR.data.sections.find(x => x.id === b.dataset.go); if (sc && L) varGo(sc.from); });
+  const bb = document.getElementById("varBase"); if (bb) bb.onclick = () => { VAR.cur = null; const tt = t; pick.dispatchEvent(new Event("change")); t = Math.min(tt, (L.path.length - 1) / P.TPS); draw(); };
+  const pb = document.getElementById("varPick"); if (pb) pb.onclick = varPick;
+}
+function varGo(x) { let k = 0; while (k < L.path.length - 1 && L.path[k].x < x - 90) k++; t = k / P.TPS; lastTick = tick(); playing = false; setPlay(); syncSong(); draw(); }
+function varOpen(secId, key) {
+  const sc = VAR.data.sections.find(x => x.id === secId), v = sc && sc.variants.find(x => x.key === key); if (!v || !v.level) return;
+  const tt = t, base = VAR.base;
+  VAR.cur = { sec: secId, key };
+  load(base.name + " · " + (sc.name || sc.id) + " " + key, v.level, v.solution || null, base.song);
+  t = Math.min(tt, (L.path.length - 1) / P.TPS); lastTick = tick(); draw(); varRender();
+}
+async function varPick() {
+  if (!VAR.cur || !VAR.base) return;
+  const m = { id: "pick-" + Date.now().toString(36), type: "variant-pick", level: VAR.base.name, file: VAR.base.file, session: VAR.base.session || "",
+    section: VAR.cur.sec, key: VAR.cur.key, note: `pick variant ${VAR.cur.key} for section ${VAR.cur.sec}`, t, made: new Date().toISOString() };
+  let ok = false; try { ok = (await fetch("/marks", { method: "POST", body: JSON.stringify(m) })).ok; } catch (e) {}
+  const pb = document.getElementById("varPick"); if (pb) pb.textContent = ok ? "✓ picked: " + m.section + " " + m.key : "not saved (is serve.js running?)";
+}
+pick.addEventListener("change", () => { if (!VAR.cur) variantsFor(ALL[pick.value]); });
+// the default view ("main"): official levels + in progress + ours; "recent" and "pinned" are tabs of their own
+// (the user: "keep only the official level + some that we working on. recent is a separate tab")
+const PK = { f: "main", sel: 0, rows: [], meta: new Map() };
 const pkStore = (k, v) => { try { if (v === undefined) return JSON.parse(localStorage.getItem("gdlm." + k) || "[]"); localStorage.setItem("gdlm." + k, JSON.stringify(v)); } catch (e) { return []; } };
 const pkCat = l => l.wip || (l.session && l.version) ? "wip" : /official/.test(String(l.file)) || l.official != null ? "official" : /community/.test(String(l.file)) ? "community" : "ours";
 const pkKey = l => String(l.name || l.file).toLowerCase().replace(/\s+v\d+$/, "").trim();
@@ -334,14 +436,15 @@ function pkRows() {
   const q = document.getElementById("pkQ").value.trim().toLowerCase(), pins = pkStore("pins"), recent = pkStore("recent");
   const groups = new Map();
   ALL.forEach((l, i) => {
-    if (PK.f === "pinned" ? !pins.includes(pkKey(l)) : PK.f !== "all" && pkCat(l) !== PK.f) return;
+    const c = pkCat(l);
+    if (PK.f === "pinned" ? !pins.includes(pkKey(l)) : PK.f === "recent" ? !recent.includes(pkKey(l)) : PK.f === "main" ? c === "community" : PK.f !== "all" && c !== PK.f) return;
     if (q && !(String(l.name) + " " + l.file + " " + (l.session || "")).toLowerCase().includes(q)) return;
     const k = pkKey(l); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(i);
   });
   // in each group: the newest work in progress first, then the pushed one
   const list = [...groups.entries()].map(([k, is]) => { is.sort((a, b) => pkWhen(ALL[b]) - pkWhen(ALL[a]) || (pkCat(ALL[a]) === "wip" ? -1 : 1)); return { k, is, when: Math.max(...is.map(i => pkWhen(ALL[i]))) }; });
   const rank = r => recent.indexOf(r.k);
-  const rec = list.filter(r => rank(r) >= 0 && !q).sort((a, b) => rank(a) - rank(b)).slice(0, 5);
+  const rec = PK.f === "recent" ? list.filter(r => rank(r) >= 0).sort((a, b) => rank(a) - rank(b)) : [];
   const rest = list.filter(r => !rec.includes(r)).sort((a, b) => (pins.includes(b.k) - pins.includes(a.k)) || b.when - a.when || a.k.localeCompare(b.k));
   return { rec, rest, pins };
 }
@@ -354,7 +457,7 @@ function pkRender() {
       (r.is.length > 1 ? `<div class="pkOlder">${r.is.slice(1, 8).map(i => `<button data-open="${i}">${pkCat(ALL[i]) === "wip" ? "wip v" + (ALL[i].version || "?") + (ALL[i].session ? " " + pkEsc(ALL[i].session) : "") : "main"}</button>`).join("")}</div>` : "") +
       `</div><button class="pkPin${pins.includes(r.k) ? " on" : ""}" data-pin="${pkEsc(r.k)}" title="pin">★</button></div>`; };
   el.innerHTML = (rec.length ? `<div class="pkHead">recent</div>` + rec.map((r, n) => card(r, n)).join("") : "") +
-    `<div class="pkHead">${PK.f === "all" ? "all levels" : PK.f} · ${rest.length}</div>` + rest.map((r, n) => card(r, n + rec.length)).join("");
+    (PK.f === "recent" ? "" : `<div class="pkHead">${PK.f === "main" ? "official, in progress and ours" : PK.f === "all" ? "all levels" : PK.f} · ${rest.length}</div>`) + rest.map((r, n) => card(r, n + rec.length)).join("");
   el.querySelectorAll(".pkCard").forEach(c => c.onclick = e => { if (e.target.dataset.pin || e.target.dataset.open) return; pkOpen(PK.rows[+c.dataset.n].is[0]); });
   el.querySelectorAll("[data-open]").forEach(b => b.onclick = () => pkOpen(+b.dataset.open));
   el.querySelectorAll("[data-pin]").forEach(b => b.onclick = () => { const p = pkStore("pins"), k = b.dataset.pin; pkStore("pins", p.includes(k) ? p.filter(x => x !== k) : p.concat(k)); pkRender(); });
@@ -371,7 +474,7 @@ function pkRender() {
 }
 function pkOpen(i) {
   pick.value = i; pick.dispatchEvent(new Event("change"));
-  const k = pkKey(ALL[i]); pkStore("recent", [k].concat(pkStore("recent").filter(x => x !== k)).slice(0, 5));
+  const k = pkKey(ALL[i]); pkStore("recent", [k].concat(pkStore("recent").filter(x => x !== k)).slice(0, 10));
   pkClose();
 }
 function pkShow() { document.getElementById("picker").hidden = false; PK.sel = 0; pkRender(); const q = document.getElementById("pkQ"); q.focus(); q.select(); }
@@ -420,6 +523,7 @@ function summary() {
   h += `<p class="muted">` + Object.entries(Object.fromEntries(Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 14))).map(([k, v]) => `${esc(k)} ×${v}`).join(" · ") + `</p>`;
   document.getElementById("summary").innerHTML = h;
   if (typeof pkTitle === "function") pkTitle(); // the title bar: which level and version is open
+  if (typeof variantsFor === "function" && !VAR.cur && (!VAR.base || VAR.base !== ALL[pick.value])) variantsFor(ALL[pick.value]);
 }
 function clickTable() {
   const el = document.getElementById("clicks");
@@ -454,8 +558,9 @@ try { art = localStorage.getItem("gdlm.art") !== "0"; } catch (e) {}
 function artLoad() { return artTried || (artTried = artLoad1()); } // one load, shared by every caller
 async function artLoad1() {
   if (!location.protocol.startsWith("http") || window.GD_PHONE) { art = false; artBtn.hidden = true; return; }
+  if (window.GD_PAGES && !(await localReady && LOCALBASE)) { art = false; artBtn.hidden = true; draw(); return; } // no art hosted here
   artBtn.textContent = "GD art …";
-  const ok = await GD.ART_LIB.load("/gdres/", () => draw());
+  const ok = await GD.ART_LIB.load(LOCALBASE + "/gdres/", () => draw());
   artBtn.textContent = ok ? "GD art" : "GD art (not found)";
   artBtn.title = ok ? artBtn.title : "no sprites: " + GD.ART_LIB.S.failed + " (set GD_GAME for tools/serve.js)";
   if (!ok) art = false;
@@ -758,18 +863,21 @@ function draw() {
   } }
   if (!SHOOT) { drawDeaths(); drawMarks(); drawInput(k); } else if (window.SHOOT_INPUT) drawInput(k);
   // ship corridor
-  if (s.mode === "ship" && !SHOOT) {
+  if ((s.mode === "ship" || s.dualBand) && !SHOOT) {
     ctx.strokeStyle = "rgba(255,90,210,.6)"; ctx.lineWidth = 3;
     for (const yy of [s.floorY, s.ceilY]) { ctx.beginPath(); ctx.moveTo(0, sy(yy)); ctx.lineTo(W, sy(yy)); ctx.stroke(); }
   }
   // the player
   // the player, drawn by its mode (a cube in every mode read wrong: "the wave looks like cube")
-  if (MAPCAM) {} else if (LS) GD.LOOK.drawPlayer(ctx, view, s, L.held[k], local, (P.SPEEDS[s.sp] || P.SPEEDS[1]).x, sc ? GD.ART_LIB.drawIcon : null);
-  else if (s.mode === "ship") drawShip(s);
-  else if (s.mode === "wave") drawWave(s);
-  else if (s.mode === "ball") drawBall(s);
-  else if (s.mode === "ufo") drawUfo(s);
-  else drawCube(s);
+  // dual (lib/dual.js): player 2's own fields are in s.p2; it is drawn the same way, at its own height
+  for (const ps of s.p2 ? [s, Object.assign({}, s, s.p2)] : [s]) {
+  if (MAPCAM) {} else if (LS) GD.LOOK.drawPlayer(ctx, view, ps, L.held[k], local, (P.SPEEDS[ps.sp] || P.SPEEDS[1]).x, sc ? GD.ART_LIB.drawIcon : null);
+  else if (ps.mode === "ship") drawShip(ps);
+  else if (ps.mode === "wave") drawWave(ps);
+  else if (ps.mode === "ball") drawBall(ps);
+  else if (ps.mode === "ufo") drawUfo(ps);
+  else drawCube(ps);
+  }
   if (showHit) { const hh = s.mini ? 9 : 15; ctx.strokeStyle = "#fff"; rectW({ x0: s.x - hh, x1: s.x + hh, y0: s.y - hh, y1: s.y + hh }); ctx.strokeStyle = "#f0f"; rectW({ x0: s.x - 4.5, x1: s.x + 4.5, y0: s.y - 4.5, y1: s.y + 4.5 }); }
   // the click table row of the input just made (the button strip shows it in the view)
   L.sol.clicks.forEach((c, i) => {
@@ -1064,6 +1172,12 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 resize();
+// the footer: which commit this page is (tools/serve.js keeps its checkout current; GET /version)
+if (window.GD_PAGES) document.getElementById("ver").textContent = "public viewer, build " + (window.GD_BUILD || "?") + " -- Geometry Dash levels made by Claude. Songs and GD's art are never hosted here.";
+else if (location.protocol.startsWith("http") && !window.GD_PHONE) fetch("/version", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(v => {
+  if (!v || !v.commit) return;
+  document.getElementById("ver").textContent = `viewer ${v.note === "up to date" || /^updated/.test(v.note || "") ? "up to date" : "at"}: ${v.commit} -- ${v.subject}` + (v.note && !/^up to date|^updated/.test(v.note) ? ` (${v.note})` : "");
+}).catch(() => {});
 // ?perf=<id>&secs=8&art=1&beats=1&light=0 (tools/perf.js): play the level in the hash from its t for `secs`
 // seconds with real animation frames and POST the frame and draw times to /perf/<id>
 (() => {

@@ -23,14 +23,14 @@ const attempts = +opt("attempts", 3), offset = +opt("offset", 20); // measured o
 const cs = path.join(__dirname, "keybot.cs").replace(/'/g, "''");
 // the bot sees the screen through ffmpeg (Desktop Duplication), as tools/record.sh does
 if (!process.env.GDLM_FFMPEG) {
-  const w = spawnSync("where", ["ffmpeg"], { encoding: "utf8" });
+  const w = spawnSync("where", ["ffmpeg"], { windowsHide: true, encoding: "utf8" });
   const found = w.status === 0 && w.stdout.split(/\r?\n/)[0].trim();
   const winget = path.join(process.env.LOCALAPPDATA || "", "Microsoft/WinGet/Packages/Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe/ffmpeg-8.0.1-full_build/bin/ffmpeg.exe");
   process.env.GDLM_FFMPEG = found || (fs.existsSync(winget) ? winget : "ffmpeg");
 }
 if (args.includes("--probe")) {
   // look only: is the game window found, and do the screen grabs see the cube? Presses nothing.
-  const res = spawnSync("powershell.exe", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", `Add-Type -Path '${cs}'; exit [KeyBot]::Probe(30)`], { stdio: "inherit" });
+  const res = spawnSync("powershell.exe", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", `Add-Type -Path '${cs}'; exit [KeyBot]::Probe(30)`], { windowsHide: true, stdio: "inherit" });
   process.exit(res.status === null ? 1 : res.status);
 }
 const file = args[0];
@@ -64,5 +64,5 @@ fs.mkdirSync(path.join(__dirname, "..", "local"), { recursive: true });
 const ps = `$ErrorActionPreference='Stop'; Add-Type -Path '${cs}';
 $j = Get-Content -Raw '${js}' | ConvertFrom-Json;
 $code = [KeyBot]::Run([int[]]$j.ticks, [bool[]]$j.downs, [int[]]$j.jumps, [double]$j.end, ${attempts}, ${offset}, '${log}'); exit $code`;
-const res = spawnSync("powershell.exe", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", ps], { stdio: "inherit" });
+const res = spawnSync("powershell.exe", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", ps], { windowsHide: true, stdio: "inherit" });
 process.exit(res.status === null ? 1 : res.status);

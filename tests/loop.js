@@ -26,7 +26,7 @@ const { GD, writeGdlvl } = require("../tools/io.js");
 const lv = path.join(tmp, "one_spike.gdlvl");
 writeGdlvl(lv, GD.newRecord("GDLM test one spike", ""), { header: "kA4,0", objects: [{ id: 8, x: 12 * 30 + 15, y: 15 }] });
 const env = Object.assign({}, process.env, { GDLM_TIMINGS: path.join(tmp, "timings.jsonl"), GDLM_LOOPLOGS: path.join(tmp, "logs"), GDLM_LOCKDIR: path.join(tmp, "locks"), GDLM_HEAVY_FREE_MB: "8000" });
-const loop = a => cp.spawnSync(process.execPath, [path.join(__dirname, "..", "tools", "loop.js")].concat(a), { env, encoding: "utf8" });
+const loop = a => cp.spawnSync(process.execPath, [path.join(__dirname, "..", "tools", "loop.js")].concat(a), { windowsHide: true, env, encoding: "utf8" });
 const dry = loop([lv, "--eta"]);
 assert.strictEqual(dry.status, 0, dry.stdout + dry.stderr); assert(/ETA/.test(dry.stdout)); assert(!fs.existsSync(env.GDLM_TIMINGS), "--eta runs nothing");
 const real = loop([lv]);   // its own lock folder: a busy PC does not make the test wait

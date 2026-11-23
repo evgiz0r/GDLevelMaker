@@ -77,7 +77,7 @@ function measure() {
   const rows = [];
   for (const l of loadList()) {
     if (!fs.existsSync(levelFile(l.id))) continue;
-    const r = JSON.parse(execFileSync(process.execPath, ["--max-old-space-size=1500", __filename, "one", l.id], { encoding: "utf8", maxBuffer: 1 << 24 }));
+    const r = JSON.parse(execFileSync(process.execPath, ["--max-old-space-size=1500", __filename, "one", l.id], { windowsHide: true, encoding: "utf8", maxBuffer: 1 << 24 }));
     if (r.blocks) rows.push({ ...l, ...r });
   }
   fs.writeFileSync(MEAS, JSON.stringify(rows, null, 1));
@@ -239,7 +239,7 @@ module.exports = { sectionStats, bandOf, FLY, BPS, med };
 if (require.main === module) (async () => {
   const [step, ...rest] = process.argv.slice(2);
   if (step === "list") { const i = rest.indexOf("--per"); await list(i >= 0 ? rest[i + 1].split(",").map(Number) : [20, 10, 5]); }
-  else if (step === "fetch") execFileSync(process.execPath, [path.join(__dirname, "fetch_level.js"), ...loadList().map(l => l.id), "--out", DIR], { stdio: "inherit" });
+  else if (step === "fetch") execFileSync(process.execPath, [path.join(__dirname, "fetch_level.js"), ...loadList().map(l => l.id), "--out", DIR], { windowsHide: true, stdio: "inherit" });
   else if (step === "one") process.stdout.write(JSON.stringify(one(rest[0])));
   else if (step === "measure") measure();
   else if (step === "sections") sections();

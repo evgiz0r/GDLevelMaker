@@ -31,7 +31,7 @@ const OUT = path.join(ROOT, "local", "beats");
 // ---------- audio ----------
 function decode(file) {
   const r = spawnSync("ffmpeg", ["-v", "error", "-i", file, "-ac", "1", "-ar", String(SR), "-f", "f32le", "-"],
-    { maxBuffer: 1 << 30 });
+    { windowsHide: true, maxBuffer: 1 << 30 });
   if (r.status !== 0) throw new Error("ffmpeg failed on " + file + ": " + String(r.stderr));
   const b = r.stdout;
   return new Float32Array(b.buffer, b.byteOffset, b.length >> 2);
