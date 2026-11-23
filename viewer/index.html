@@ -25,6 +25,11 @@
   #noteBox h2 { font-size:15px; margin:0 0 8px; }
   #noteBox textarea { width:100%; box-sizing:border-box; background:#0e0828; color:var(--ink); border:1px solid #3b2d78; border-radius:6px; padding:8px; font:inherit; font-size:16px; }
   #noteBox .row { display:flex; gap:8px; margin-top:8px; }
+  #noteBox.at { display:block; background:rgba(11,6,32,.35); }
+  #noteBox.at .card { position:fixed; }
+  #noteBox .kinds { display:flex; gap:6px; flex-wrap:wrap; margin:0 0 8px; }
+  #noteBox .kinds button { padding:4px 10px; font-size:12px; }
+  #noteBox .kinds button.on { border-color:var(--cube); background:#3b2d78; }
   #taskBox { position:fixed; inset:0; z-index:70; display:grid; place-items:center; background:rgba(11,6,32,.8); padding:16px; }
   #taskBox[hidden] { display:none; }
   #taskBox .card { width:min(100%, 480px); background:#160d3a; border:1px solid #3b2d78; border-radius:10px; padding:14px; font-size:14px; line-height:1.45; }
@@ -121,7 +126,9 @@
 <div id="taskBox" hidden><div class="card"><h2 id="taskTitle"></h2><div id="taskBody"></div>
 <div class="row"><button id="taskGo" class="on">Start</button><button id="taskAlt" hidden></button><button id="taskCancel">Cancel</button></div></div></div>
 <button id="taskChip" hidden title="what the PC is doing for you (click for details)"></button>
-<div id="noteBox" hidden><div class="card"><h2 id="noteTitle"></h2><textarea id="noteText" rows="4"></textarea>
+<div id="noteBox" hidden><div class="card"><h2 id="noteTitle"></h2>
+<div class="kinds" id="noteKinds"><button data-kind="unfair">unfair</button><button data-kind="awkward">awkward</button><button data-kind="ugly">ugly</button><button data-kind="unclear">unclear</button><button data-kind="other">other</button></div>
+<textarea id="noteText" rows="3" placeholder="what should change here?"></textarea>
 <div class="row"><button id="noteSave" class="on">save mark</button><button id="noteCancel">cancel</button></div></div></div>
 <canvas id="strip"></canvas>
 <input id="scrub" type="range" min="0" max="1000" value="0">
@@ -177,13 +184,21 @@ function notice(html, ms = 6000) {
   n.querySelector("button").onclick = () => { n.hidden = true; };
   clearTimeout(noticeTimer); if (ms) noticeTimer = setTimeout(() => { n.hidden = true; }, ms);
 }
-function askNote(title) {
+// the mark's note: a box next to the spot (at: {x, y} page pixels), a kind to pick (unfair / awkward / ugly /
+// unclear / other) and a note; resolves {note, kind}, or null when cancelled. A kind alone is enough.
+function askNote(title, at) {
   return new Promise(done => {
-    const box = document.getElementById("noteBox"), ta = document.getElementById("noteText");
-    document.getElementById("noteTitle").textContent = title; ta.value = ""; box.hidden = false; ta.focus();
-    const close = v => { box.hidden = true; done(v); };
-    document.getElementById("noteSave").onclick = () => close(ta.value);
+    const box = document.getElementById("noteBox"), ta = document.getElementById("noteText"), card = box.querySelector(".card");
+    document.getElementById("noteTitle").textContent = title; ta.value = ""; let kind = "";
+    box.querySelectorAll("[data-kind]").forEach(b => { b.classList.remove("on"); b.onclick = () => { kind = kind === b.dataset.kind ? "" : b.dataset.kind; box.querySelectorAll("[data-kind]").forEach(x => x.classList.toggle("on", x.dataset.kind === kind)); ta.focus(); }; });
+    box.classList.toggle("at", !!at); box.hidden = false;
+    if (at) { const w = Math.min(420, innerWidth - 24); card.style.width = w + "px"; card.style.left = Math.max(12, Math.min(innerWidth - w - 12, at.x - w / 2)) + "px";
+      card.style.top = Math.max(12, Math.min(innerHeight - 260, at.y + 18)) + "px"; } else { card.style.left = card.style.top = card.style.width = ""; }
+    ta.focus();
+    const close = v => { box.hidden = true; ta.onkeydown = null; done(v); };
+    document.getElementById("noteSave").onclick = () => close(ta.value.trim() || kind ? { note: ta.value.trim() || kind, kind } : null);
     document.getElementById("noteCancel").onclick = () => close(null);
+    ta.onkeydown = e => { if (e.key === "Escape") close(null); if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) document.getElementById("noteSave").click(); };
   });
 }
 // a level map over the page (a new tab may be blocked): tap to zoom 3x, keeping the tapped spot under the finger
@@ -578,7 +593,12 @@ function pkRows() {
   const list = [...groups.entries()].map(([k, is]) => { is.sort((a, b) => pkWhen(ALL[b]) - pkWhen(ALL[a]) || (pkCat(ALL[a]) === "wip" ? -1 : 1)); return { k, is, when: Math.max(...is.map(i => pkWhen(ALL[i]))) }; });
   const rank = r => recent.indexOf(r.k);
   const rec = PK.f === "recent" ? list.filter(r => rank(r) >= 0).sort((a, b) => rank(a) - rank(b)) : [];
-  const rest = list.filter(r => !rec.includes(r)).sort((a, b) => (pins.includes(b.k) - pins.includes(a.k)) || b.when - a.when || a.k.localeCompare(b.k));
+  // pinned first; then work in progress and ours, newest made first; then the official levels in the game's own
+  // order, by their number (1 Stereo Madness ... 22 Dash; not as text, not by date); then the rest by name
+  const CATRANK = { wip: 0, ours: 1, official: 2, community: 3 }, num = r => +((/official_(\d+)/.exec(ALL[r.is[0]].file) || [])[1] || 0);
+  const rest = list.filter(r => !rec.includes(r)).sort((a, b) => (pins.includes(b.k) - pins.includes(a.k))
+    || ((CATRANK[pkCat(ALL[a.is[0]])] >= 2) - (CATRANK[pkCat(ALL[b.is[0]])] >= 2))
+    || (num(a) && num(b) ? num(a) - num(b) : 0) || b.when - a.when || a.k.localeCompare(b.k, undefined, { numeric: true }));
   return { rec, rest, pins };
 }
 function pkRender() {
@@ -790,6 +810,9 @@ async function saveMark(m) {
     try { const a = localMarks(); a.push(m); localStorage.setItem(markKey, JSON.stringify(a)); } catch (err) {}
   }
   MARKS = foldMarks(MARKS.concat([m])); markTable(); draw();
+  const open = levelMarks().filter(x => !x.done).length;
+  notice(m.localOnly ? `⚠ Saved in this browser only (the PC's tools/serve.js did not answer) -- the sessions will not see it yet.`
+    : `✓ Saved: the sessions will see it. ${open} open mark${open === 1 ? "" : "s"} on this level.`, 6000);
 }
 const levelMarks = () => L ? MARKS.filter(m => m.level === L.name) : [];
 function markTable() {
@@ -802,7 +825,8 @@ function markTable() {
   el.querySelectorAll("[data-done]").forEach(b => b.onclick = () => { const m = MARKS.find(q => q.id === b.dataset.done); saveMark({ id: m.id, done: !m.done, at: new Date().toISOString() }); });
 }
 const markBtn = document.getElementById("markBtn");
-function setMarking(on) { marking = on; markBtn.classList.toggle("on", on); cv.classList.toggle("marking", on); if (on) { playing = false; setPlay(); syncSong(); } }
+function setMarking(on) { marking = on; markBtn.classList.toggle("on", on); cv.classList.toggle("marking", on); if (on) { playing = false; setPlay(); syncSong(); notice("✎ Click the spot in the level that should change (Esc: cancel).", 0); } else { const n = document.getElementById("notice"); if (n && /Click the spot/.test(n.textContent)) n.hidden = true; } }
+addEventListener("keydown", e => { if (e.key === "Escape" && marking) setMarking(false); });
 markBtn.onclick = () => setMarking(!marking);
 addEventListener("keydown", e => { if ((e.key === "m" || e.key === "M") && e.target.tagName !== "INPUT") setMarking(!marking); });
 cv.addEventListener("click", async e => {
@@ -811,22 +835,28 @@ cv.addEventListener("click", async e => {
   const px = (e.clientX - r.left) * d, py = (e.clientY - r.top) * d;
   const x = px / scale + camX, y = camY + (groundY - py) / scale;
   setMarking(false);
-  const note = await askNote(`What should change here? (block ${(x / 30).toFixed(1)}, ${(tick() / P.TPS).toFixed(2)} s)`);
-  if (!note || !note.trim()) return;
+  const ans = await askNote(`What should change here? (block ${(x / 30).toFixed(1)}, ${(tick() / P.TPS).toFixed(2)} s)`, { x: e.clientX, y: e.clientY });
+  if (!ans) return;
+  const note = ans.note;
   const lv = ALL[pick.value];
   saveMark({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), level: L.name, file: lv && lv.name === L.name ? lv.file : "", session: lv && lv.session || "", version: lv && lv.version || 0, t: +(tick() / P.TPS).toFixed(3),
-    x: +x.toFixed(1), y: +y.toFixed(1), note: note.trim(), view: look ? "game look" : "schematic", zoom: LS ? +LS.zoom.toFixed(2) : 1, made: new Date().toISOString() });
+    x: +x.toFixed(1), y: +y.toFixed(1), note: note.trim(), ...(ans.kind ? { kind: ans.kind } : {}), view: look ? "game look" : "schematic", zoom: LS ? +LS.zoom.toFixed(2) : 1, made: new Date().toISOString() });
 });
 function drawMarks() {
   const d = DPR();
   levelMarks().forEach((m, i) => {
     const x = sx(m.x), y = sy(m.y);
     if (x < -20 || x > W + 20) return;
-    ctx.globalAlpha = m.done ? 0.35 : 1;
-    ctx.fillStyle = "#ffe14d"; ctx.strokeStyle = "#000"; ctx.lineWidth = 2 * d;
+    ctx.globalAlpha = m.done ? 0.4 : 1;
+    ctx.fillStyle = m.done ? "#9cf5c4" : m.reply ? "#7fd6ff" : "#ffe14d"; ctx.strokeStyle = "#000"; ctx.lineWidth = 2 * d;
     ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - 7 * d, y - 14 * d); ctx.arc(x, y - 18 * d, 8 * d, Math.PI * 0.8, Math.PI * 2.2); ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = "#000"; ctx.font = `bold ${10 * d}px system-ui`; ctx.textAlign = "center"; ctx.fillText(String(i + 1), x, y - 14.5 * d); ctx.textAlign = "left";
-    if (Math.abs(tick() / P.TPS - m.t) < 1.5) { ctx.font = `${12 * d}px system-ui`; ctx.fillStyle = "rgba(0,0,0,.7)"; const w = ctx.measureText(m.note).width; ctx.fillRect(x + 10 * d, y - 30 * d, w + 10 * d, 18 * d); ctx.fillStyle = "#ffe14d"; ctx.fillText(m.note, x + 15 * d, y - 17 * d); }
+    ctx.fillStyle = "#000"; ctx.font = `bold ${10 * d}px system-ui`; ctx.textAlign = "center"; ctx.fillText(m.done ? "✓" : String(i + 1), x, y - 14.5 * d); ctx.textAlign = "left";
+    if (Math.abs(tick() / P.TPS - m.t) < 1.5) {
+      const txt = (m.kind && m.kind !== m.note ? m.kind + ": " : "") + m.note + (m.done ? "  (done)" : m.reply ? "  (replied)" : "  (open)");
+      ctx.font = `${12 * d}px system-ui`; ctx.fillStyle = "rgba(0,0,0,.75)"; const w = ctx.measureText(txt).width; ctx.fillRect(x + 10 * d, y - 30 * d, w + 10 * d, 18 * d);
+      ctx.fillStyle = m.done ? "#9cf5c4" : "#ffe14d"; ctx.fillText(txt, x + 15 * d, y - 17 * d);
+      if (m.reply) { const r = "↳ " + m.reply, w2 = ctx.measureText(r).width; ctx.fillStyle = "rgba(0,0,0,.75)"; ctx.fillRect(x + 10 * d, y - 11 * d, w2 + 10 * d, 18 * d); ctx.fillStyle = "#7fd6ff"; ctx.fillText(r, x + 15 * d, y + 2 * d); }
+    }
     ctx.globalAlpha = 1;
   });
 }
