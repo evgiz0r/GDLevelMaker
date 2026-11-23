@@ -31,6 +31,13 @@ http.createServer((req, res) => {
   }
   // POST /shots: a PNG (data URL) from the viewer's "save comparison" -> local/shots/ (never committed:
   // it holds frames of the user's game)
+  // POST /perf/<id>: a speed run's numbers from the viewer's ?perf= mode (tools/perf.js) -> local/perf/<id>.json
+  const perfM = req.method === "POST" && /^\/perf\/([\w-]+)$/.exec(p);
+  if (perfM) {
+    let body = ""; req.on("data", c => { body += c; if (body.length > 1e6) req.destroy(); });
+    req.on("end", () => { const d = path.join(root, "local", "perf"); fs.mkdirSync(d, { recursive: true }); fs.writeFileSync(path.join(d, perfM[1] + ".json"), body); res.writeHead(200); res.end("ok"); });
+    return;
+  }
   if (req.method === "POST" && p === "/shots") {
     const chunks = [];
     req.on("data", c => chunks.push(c));

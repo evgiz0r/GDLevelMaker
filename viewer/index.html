@@ -83,6 +83,7 @@
   <button id="markBtn" title="pause, then click where something should change (key M)">✎ mark</button>
   <button id="sound" class="on">click sound</button>
   <button id="music" class="on">music</button>
+  <button id="lightBtn" title="light mode: no GD art, no beat lines -- for a slow moment (the PC busy, the phone)">light</button>
   <button id="beatsBtn" class="on" title="beat grid of the level's song (songs on this PC, from tools/beats.js)">beats</button>
   <span id="clock" class="muted"></span>
 </header>
@@ -458,6 +459,19 @@ document.getElementById("sound").onclick = e => { sound = !sound; e.target.class
 document.getElementById("music").onclick = e => { music = !music; e.target.classList.toggle("on", music); syncSong(true); };
 let showBeats = true;
 document.getElementById("beatsBtn").onclick = e => { showBeats = !showBeats; e.target.classList.toggle("on", showBeats); draw(); };
+// light mode: GD art and beat lines off in one press, back as they were in the next (remembered in this browser)
+let LIGHT = null;
+function setLight(on) {
+  if (on && !LIGHT) { LIGHT = { art, beats: showBeats }; art = false; showBeats = false; }
+  else if (!on && LIGHT) { art = LIGHT.art; showBeats = LIGHT.beats; LIGHT = null; if (art) artLoad(); }
+  document.getElementById("lightBtn").classList.toggle("on", !!LIGHT);
+  document.getElementById("beatsBtn").classList.toggle("on", showBeats);
+  const ab = document.getElementById("artBtn"); if (ab) ab.classList.toggle("on", art);
+  try { localStorage.setItem("gdlm.light", LIGHT ? "1" : "0"); } catch (e) {}
+  if (L) draw();
+}
+document.getElementById("lightBtn").onclick = () => setLight(!LIGHT);
+try { if (localStorage.getItem("gdlm.light") === "1") setTimeout(() => setLight(true), 0); } catch (e) {}
 const scrub = document.getElementById("scrub");
 scrub.oninput = () => { t = scrub.value / 1000 * (L.path.length - 1) / P.TPS; lastTick = tick(); playing = false; setPlay(); syncSong(); draw(); };
 addEventListener("keydown", e => {
@@ -1032,6 +1046,29 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 resize();
+// ?perf=<id>&secs=8&art=1&beats=1&light=0 (tools/perf.js): play the level in the hash from its t for `secs`
+// seconds with real animation frames and POST the frame and draw times to /perf/<id>
+(() => {
+  const q = new URLSearchParams(location.search), id = q.get("perf"); if (!id) return;
+  const want = (k, d) => q.has(k) ? q.get(k) === "1" : d;
+  const wait = setInterval(async () => {
+    if (!L) return; clearInterval(wait);
+    art = want("art", true); showBeats = want("beats", true); if (want("light", false)) setLight(true);
+    if (art) { await artLoad(); if (GD.ART_LIB.preload) await GD.ART_LIB.preload(); }
+    await new Promise(r => setTimeout(r, 1500));
+    const secs = +(q.get("secs") || 8), frames = [], draws = []; PERF.on = true; PERF.draws = [];
+    const t0 = performance.now(); let last = t0; playing = true; setPlay();
+    const loop = now => { frames.push(now - last); last = now; if (now - t0 < secs * 1000) requestAnimationFrame(loop); else done(); };
+    requestAnimationFrame(loop);
+    const done = () => { playing = false; setPlay();
+      const pc = (a, p) => { const b = a.slice().sort((x, y) => x - y); return +(b[Math.min(b.length - 1, Math.floor(p * b.length))] || 0).toFixed(2); };
+      const out = { level: L.name, objects: L.level.objects.length, W, H, art: artOn(), beats: showBeats, light: !!LIGHT, frames: frames.length, fps: +(frames.length / secs).toFixed(1),
+        frame: { p50: pc(frames, .5), p90: pc(frames, .9), p99: pc(frames, .99), over33: frames.filter(f => f > 33).length },
+        draw: { p50: pc(PERF.draws, .5), p90: pc(PERF.draws, .9), p99: pc(PERF.draws, .99) },
+        heapMB: performance.memory ? +(performance.memory.usedJSHeapSize / 1e6).toFixed(0) : null };
+      fetch("/perf/" + id, { method: "POST", body: JSON.stringify(out) }); };
+  }, 200);
+})();
 // ---------- work in progress: the levels the sessions are working on, live from local/wip ----------
 // Listed first under "in progress"; ⟳ refresh fetches the newest versions without reloading the page.
 // The address bar keeps #lv=<file>&t=<seconds>, so a link opens that level at that moment.
