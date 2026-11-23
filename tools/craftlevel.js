@@ -15,7 +15,7 @@
 //                   "chunks": [ "pillar-hop", {"s": "capped-hop", "args": {...}}, {"raw": [[type,col,row,extra]...], "w": n},
 //                               {"rest": n} ] } ... ] }
 // A chunk's columns are relative to its start; "rest" is n blocks of calm floor. Between chunks the composer
-// adds `gap` (default 3) calm blocks. A section shorter than its bars is padded with calm floor (the lead-in
+// adds `gap` (default 4: the 4+ column run-up between groups of the reactive rule) calm blocks. A section shorter than its bars is padded with calm floor (the lead-in
 // to the next portal); a longer one is reported (the next section starts late).
 const fs = require("fs"), path = require("path");
 const { GD } = require("./io.js");
@@ -74,7 +74,7 @@ function compose(brief) {
     sec.chunks.forEach((c, i) => {
       const ch = chunkOf(c);
       objects.push(...shift(ch.objects, col));
-      col += ch.width; lastEnd = col; col += i < sec.chunks.length - 1 ? (sec.gap ?? 3) : 0;
+      col += ch.width; lastEnd = col; col += i < sec.chunks.length - 1 ? (sec.gap ?? 4) : 0;
     });
     if (col > end) notes.push(`section ${si} (${m}) runs ${col - end} blocks past its ${sec.bars} bars`);
     // xStep's build-up: hue flashes (a lighter tint and back) on beats, closer together, into the next section
