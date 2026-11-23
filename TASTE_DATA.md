@@ -134,6 +134,37 @@ How to read it:
   - chunk repeats: whole-level motif reuse is normal in good levels; the user's rule is about the same
     moves within 10 s (flow.js `repeat`), a different thing. Both can hold.
 
+### Per band, against craft's targets (Jumper / xStep)
+
+Medians, featured+ / the rest (unrated or rated only), static measures (craft.js numbers):
+
+| band | n | hazards per 100 blocks | floor-hazard columns | back (floating) deco | sections / min |
+|---|---|---|---|---|---|
+| EN 1.x | 5/2 | 75 / 155 | 0.21 / 0.41 | 0.07 / 0.15 | 7.3 / 21.6 |
+| EN 2.0-2.1 | 40/5 | 81 / 235 | 0.16 / 0.39 | 0.30 / 0.08 | 11.0 / 8.6 |
+| EN 2.2 | 16/11 | 24 / 84 | 0.00 / 0.04 | 0.52 / 0.37 | 5.1 / 5.2 |
+| HH 1.x | 10/4 | 147 / 30 | 0.52 / 0.11 | 0.05 / 0.57 | 3.6 / 13.5 |
+| HH 2.0-2.1 | 38/5 | 140 / 128 | 0.25 / 0.14 | 0.18 / 0.10 | 16.6 / 34.1 |
+| HH 2.2 | 36/22 | 75 / 75 | 0.00 / 0.08 | 0.32 / 0.27 | 9.6 / 9.5 |
+| I 2.2 | 16/16 | 76 / 118 | 0.00 / 0.05 | 0.39 / 0.27 | 12.1 / 18.2 |
+| official 1 / 2 / 3 / 7 / 10 | | 69 / 62 / 71 / 121 / 191 | 0.48-0.69 | 0.00-0.01 | 2.0-6.0 |
+
+(Bands with under 5 levels on a side are noise. "Sections" = style.js sections, split at mode and speed portals.)
+
+What this means for craft's targets (CRAFT.md, craft.js TARGETS), to settle with craft and style:
+- **Hazards per block depend on tier.** Easy/Normal featured levels sit at 75-81 per 100 blocks
+  (1.x and 2.0-2.1), close to Stereo Madness (69) and Polargeist (71), well under Jumper (121) and
+  xStep (191), which are the hardest of the 1.x set. Unrated Easy/Normal levels have 2-3x as many
+  (155-235): spike spam is the mark of the plain level. Target for EN: ~60-90, not Jumper's 121.
+  HH featured: ~140 (1.x / 2.0), where Jumper and xStep fit. craft's floor `hazards100 >= 45` is fine.
+- **Floor-hazard share**: featured EN levels 16-21%, the officials 48-69%. craft's `floorHaz >= 0.35`
+  is an official-1.x target, above what featured community levels of the same tier do; 2.2 levels put
+  almost nothing on the floor (median 0). Keep it for a "RobTop 1.x" look only.
+- **Floating deco**: 1.x featured levels 5-7% (craft's <= 20% fits); 2.0-2.1 EN 30%, 2.2 32-52%, and
+  epic+ more than featured. The <= 20% limit is right for a 1.x look and wrong for a 2.2 look. What the
+  user objected to (hellgate) was deco competing with hazards: measure that (tools/readability.js
+  contrast and clutter), not where the deco sits.
+
 ### The taste score
 
 `knowledge/taste_model.json` (aggregates only) -> `taste(F, band)` in tools/taste.js -> score.js gate
