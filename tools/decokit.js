@@ -160,18 +160,30 @@ function rolePalette(hue, o = {}) {
     accent: atLum(hue - 10, sat * 0.5, Math.min(0.45, bgL * 1.8)),
   };
   P.line = P.pathEdge;
-  const black = [0, 0, 0], body = P.bg.map(v => Math.round(v * 0.38));   // skins 2-7: see-through body (roles.js)
-  P.body = body;
-  const path = [body, P.pathEdge], haz = [black, P.hazardEdge], L = RL.LIM, lost = (set, c, lim) => set.every(a => RL.similar(a, c, lim));
-  P.check = { pathBg: lost(path, P.bg, L.pathBg), hazardBg: lost(haz, P.bg, L.hazardBg), hazardPath: RL.similar(P.hazardEdge, P.pathEdge, L.hazardPath),
-    groundBg: lost([P.ground, P.line], P.bg, L.pathBg) };
-  P.check.bodyBg = RL.similar(body, P.bg, L.pathBg);   // the block must read as a mass, not only by its rim
-  for (const d of ["far", "mid", "near", "accent"]) { P.check["path/" + d] = RL.similar(body, P[d], L.pathDeco) || lost(path, P[d], L.pathDeco); P.check["hazard/" + d] = lost(haz, P[d], L.hazardDeco);
-    P.check["edge~" + d] = RL.similar(P.pathEdge, P[d], L.pathDeco) || RL.similar(P.hazardEdge, P[d], L.hazardDeco); }
+  P.body = P.bg.map(v => Math.round(v * 0.38));   // skins 2-7: see-through body (roles.js)
+  P.check = checkRoles(P);
   P.ok = Object.values(P.check).every(v => !v);
-  P.ratios = { edgeBg: +C.ratio(P.pathEdge, P.bg).toFixed(2), hazardBg: +C.ratio(P.hazardEdge, P.bg).toFixed(2), bodyBg: +C.ratio(body, P.bg).toFixed(2),
-    hazardEdge_pathEdge: +C.ratio(P.hazardEdge, P.pathEdge).toFixed(2), nearBody: +C.ratio(P.near, body).toFixed(2) };
+  P.ratios = roleRatios(P);
   return P;
 }
+// tools/roles.js's pairs on a palette {bg, ground, line, pathEdge, hazardEdge, far, mid, near, accent, body?}: true = they mix.
+// The path is its body (a skin's see-through dark fill, bg x 0.38) + its rim; it may lose its body in an EMPTY sky only
+// when the rim is 3x+ off the sky (roles.js), and deco must keep off the body's value.
+function checkRoles(P) {
+  const C = require("./contrast.js"), RL = require("./roles.js"), L = RL.LIM, black = [0, 0, 0];
+  const body = P.body || P.bg.map(v => Math.round(v * 0.38)), path = [body, P.pathEdge], haz = [black, P.hazardEdge];
+  const lost = (set, c, lim) => set.every(a => RL.similar(a, c, lim));
+  const ck = { pathBg: lost(path, P.bg, L.pathBg), bodyBg: RL.similar(body, P.bg, L.pathBg) && C.ratio(P.pathEdge, P.bg) < 3,
+    hazardBg: lost(haz, P.bg, L.hazardBg), hazardPath: RL.similar(P.hazardEdge, P.pathEdge, L.hazardPath),
+    groundBg: lost([P.ground, P.line || P.pathEdge], P.bg, L.pathBg) };
+  for (const d of ["far", "mid", "near", "accent"]) if (P[d]) { ck["path/" + d] = RL.similar(body, P[d], L.pathDeco) || lost(path, P[d], L.pathDeco);
+    ck["hazard/" + d] = lost(haz, P[d], L.hazardDeco); ck["edge~" + d] = RL.similar(P.pathEdge, P[d], L.pathDeco) || RL.similar(P.hazardEdge, P[d], L.hazardDeco); }
+  return ck;
+}
+function roleRatios(P) {
+  const C = require("./contrast.js"), body = P.body || P.bg.map(v => Math.round(v * 0.38));
+  return { edgeBg: +C.ratio(P.pathEdge, P.bg).toFixed(2), hazardBg: +C.ratio(P.hazardEdge, P.bg).toFixed(2), bodyBg: +C.ratio(body, P.bg).toFixed(2),
+    hazardEdge_pathEdge: +C.ratio(P.hazardEdge, P.pathEdge).toFixed(2), nearBody: P.near ? +C.ratio(P.near, body).toFixed(2) : null };
+}
 
-module.exports = { blockPattern, backdrop, tufts, depthColours, motion, midTone, rolePalette };
+module.exports = { blockPattern, backdrop, tufts, depthColours, motion, midTone, rolePalette, checkRoles, roleRatios };

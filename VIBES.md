@@ -222,10 +222,60 @@ hazards and objects per block, measured energies as the default; (2) a scene fro
 (3) vehicle, never and camera as constraints compose obeys (no extra modes from structures, no beat pulses unless asked);
 (4) repair rounds in collab builds; (5) the machine's abstraction naming places from the deco it sees.
 
+## Handoff (2026-11-24): state, the five fixes, how to run it
+
+Owner from here: **the style session** (it owns compose and collab, which the round trip builds with). The vibes
+session that wrote this was archived to free memory.
+
+**How to run it.** `node tools/recompile.js <level> --name "GDLM NN name" [--spec sheet.vibe.json] [--from
+decompile|abstract|plan|build|compare] [--to step]`. `<level>` is `official:8` or a `.gdlvl`; `--spec` uses a person's
+sheet instead of the machine's abstraction. Everything goes to `local/recompile/<slug>/` (sections.json, spec.json/md,
+plan.json, run.log, compare.md, compare_sections/) and to the viewer as the stages original / spec / plan / ... /
+compare. It takes the heavy slot per step; with the queue busy it waits (the last run sat 84 min behind high-priority
+jobs before compose started). The two runs so far:
+- `node tools/recompile.js official:8 --name "GDLM 69 time hop" --spec local/vibes/69_person_v2.vibe.json --from abstract`
+- `node tools/recompile.js c150941693 --name "GDLM 70 candy night" --from abstract` (`--pictures` adds the compare frames)
+
+**The five fixes (from "Results").** All are in code except 5; none has been measured yet (see below).
+1. **Density as numbers, energies from the song** -- DONE (tools/vibe.js): a beat's `density` (hazards per block)
+   becomes compose's gaps (`gap = max(1, round(2.5*(1/h - 1)))`) and denser patterns from 0.8 per block; a beat with no
+   `energy` takes the song's loudness percentile (songmap bars); `check()` shows "~ (from the song)".
+2. **A scene from `place`** -- DONE (vibe.js `scenePlan` + `pickPlace`, tools/scenes/planned.js, recompile.js `dress()`
+   runs `collab.js scene` after the build). Places map to tools/scenes.js theme-pack places by synonyms, else the pack
+   place with the closest sky colour; `dress: "plain"` or `lookRule` keep the plain look.
+3. **Vehicle, never and camera as constraints** -- DONE: `sections[i].structureModes` (compose.js structurePicks only
+   takes structures in the sheet's modes, so no stray ufo/ball/wave); `brief.pulses === false` (from `never` / camera)
+   reaches make.js (`spec.modern.pulses`) and planned.js (no bar pulses); `modern: false` for plain sheets.
+4. **Repair rounds in collab builds** -- DONE, UNTESTED (tools/collab.js `build`, `--rounds n`, default 3,
+   `brief.partRounds`): compose's blame rules (dies / prejumps / tight / chains / skips / reactive -> room, columns,
+   EASIER chunk, another plan after two blamed rounds) on the part, with no files written; a worse round is dropped,
+   the best kept, the seam check after. First test: `node tools/collab.js build briefs/69_time_hop.json 1 --by
+   recompile` -- part 1 failed `timing` (45.8 ms) and `reactive` on 3 seeds in the v2 run before this existed.
+5. **The machine naming places from the deco it sees** -- NOT STARTED (recompile.js `abstract` still writes
+   "a <hue> place"; tools/catalogue.js usage families or props would be the start).
+
+**Benchmark numbers to beat** (v1, before the fixes; copies of the compare files in `local/recompile/<slug>/v1/`):
+
+| | GDLM 69 (Time Machine, person's sheet) | GDLM 70 (Spooky Dash, machine spec) |
+|---|---|---|
+| hazards per block, ours / original | 0.19 / 1.34 | 0.06-0.29 / 0.02-0.33 |
+| energy shape r | 0.47 | 0.18 |
+| mode changes a minute, ours / original | 13-25 / 0-4 | 17-51 / 6-17 |
+| deco pulses a minute | 123-397 / 9-25 | up to 392, 55-89% on a beat / 13-30% |
+| objects per block | -- | 2-10 / 19-45 |
+| palette switches | 12 / 12, same colours | -- |
+| gates | NOT READY: skips, fairness | NOT READY: skips, fairness |
+
+**Where the re-run stopped.** The v2 run of GDLM 69 (sheet `local/vibes/69_person_v2.vibe.json`: `dress: plain`,
+per-beat density 0.5 / 0.8 / 2.1 / 1.0 / 1.4 / 1.1 / 2.0, no energies) wrote the new plan (briefs/69_time_hop*.json
+are its output) and failed part 1 on 3 seeds (timing 45.8 ms, reactive: density 0.8 forces 1-3 block gaps), then was
+stopped while waiting for the heavy slot to run the compose fallback. GDLM 70 was not re-run. levels/gdlm_69 and
+gdlm_70 are still the v1 builds. Next: test fix 4 on part 1, then run both round trips again with `--from plan`
+(69) and `--from abstract` (70) and fill a v2 column in the table above.
+
 ## Open
 
-- The five fixes at the end of "Results" (density numbers, scene from place, constraints, collab repair rounds,
-  machine-named places); then run the round trip again on Time Machine and Spooky Dash and compare with these rows.
+- Measure fixes 1-4 (the re-run above) and do fix 5.
 - Step 2 of the user's idea beyond the benchmark: a person's vibe sheet for a NEW level -> recompile.js --from plan.
 - The songs of the demon levels (Acheron, Tidal Wave, Moonlight, Afterlife) are not on this PC: they cannot be
   round-tripped (the cut needs the song's beat grid). Spooky Dash, Bloodbath and every official level can.

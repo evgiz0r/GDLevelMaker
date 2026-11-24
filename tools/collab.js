@@ -1,6 +1,7 @@
 // node tools/collab.js split <brief>                           -- the song plan -> parts of 10-20 s on section boundaries,
 //                                                                each seam pinned to a song TIME -> local/collab/<base>/plan.json
-// node tools/collab.js build <brief> <part> [--by <name>] [--seed n]  -- one part ALONE: compose + build + its own route
+// node tools/collab.js build <brief> <part> [--by <name>] [--seed n] [--rounds 3]  -- one part ALONE: compose + build + its
+//                                                                own route, up to --rounds repair rounds (compose's repairs, no files)
 //                                                                and checks -> local/collab/<base>/p<i>.gdlvl + p<i>.json
 // node tools/collab.js deco <brief> <part> [--by <name>] [--scene tools/scenes/kit.js]  -- the part's DECO alone, by its
 //                                                                decorator: rebuilt with the scene, gameplay checked
@@ -151,20 +152,62 @@ function build(briefFile, k, opts = {}) {
   console.log = () => {};
   // --seed n: every section of the part from its n-th alternative plan (compose's "reseed:<i>" tweak -- the brief's seed
   // alone does not change a section's chunks: GDLM 65 p2 seeds 1 and 2 came out byte-identical)
-  const tweaks = {}; if (opts.seed) sub.sections.forEach((x, i) => { tweaks["reseed:" + i] = opts.seed; });
-  let placed = [];
-  try { const cr = C.compose(sub, tweaks); spec = cr.spec; placed = cr.placed.map(q => q.name); built = mk(spec, briefFile); } finally { console.log = log0; }
-  const level = built.level, levelStr = GD.serializeLevel(level), w = GD.makeWorld(level.objects, level.header), tl = SY.timeline(w);
-  const dur = part.t[1] - part.t[0], L = SY.xOfT(tl, dur) - SY.xOfT(tl, 0);
-  const tb = Date.now();
-  const sol = require("./solutions.js").solve(level, levelStr, { name: sub.name });
-  const ts = Date.now();
-  const sc = scoreLevel(level, sub, { fairness: false, levelStr });
+  const tweaks0 = {}; if (opts.seed) sub.sections.forEach((x, i) => { tweaks0["reseed:" + i] = opts.seed; });
   const BLOCK = ["beatable", "prejumps", "timing", "recovery", "skips", "reactive", "fairness"];
+  const dur = part.t[1] - part.t[0];
+  // one try: compose -> make -> solve -> the part's gates (a part fails only on what a part can fail by itself: the
+  // level-wide gates -- difficulty, length, pacing, sync -- are the join's; a 12 s part "failed" difficulty against the
+  // level's Hard target, GDLM 64 v6)
+  const attempt = tweaks => {
+    let cr, b;
+    console.log = () => {};
+    try { cr = C.compose(sub, tweaks); b = mk(cr.spec, briefFile); } finally { console.log = log0; }
+    const lv = b.level, ls = GD.serializeLevel(lv), tb = Date.now();
+    const so = require("./solutions.js").solve(lv, ls, { name: sub.name }), ts = Date.now();
+    const s = scoreLevel(lv, sub, { fairness: false, levelStr: ls });
+    return { tweaks, cr, built: b, level: lv, levelStr: ls, sol: so, sc: s, tb, ts, fails: s.gates.filter(g => g.status === "FAIL" && BLOCK.includes(g.name)).map(g => g.name) };
+  };
+  // repair rounds (VIBES.md "Results": parts failed the same way on every seed -- a reseed has nothing to vary in a
+  // flight): compose's own repairs on the part, with no files of compose's loop (no specs/, levels/, BUILDS.md,
+  // variants, stages): room in a corridor, columns before the chunk blamed, an easier chunk after two tries, the
+  // section from another plan after two blamed rounds. opts.rounds (default 3; 1 = the old single try).
+  const rounds = opts.rounds ?? brief.partRounds ?? 3, repairs = [], failRounds = {};
+  let cur = attempt(tweaks0), best = cur;
+  for (let round = 2; round <= rounds && cur.fails.length; round++) {
+    const tw = JSON.parse(JSON.stringify(cur.tweaks)), fixes = [], sc0 = cur.sc, blame = [];
+    if (sc0.solution && !sc0.solution.ok && sc0.solution.dieAt) blame.push({ col: sc0.solution.dieAt.x / 30, why: "dies here" });
+    for (const p of sc0.prejumps || []) blame.push({ col: p.cueAt, why: `prejump (${(+p.lead).toFixed(1)} ahead)` });
+    for (const c of sc0.tight || []) blame.push({ col: c.x / 30 + 1.5, why: `${c.ms} ms window` });
+    for (const c of sc0.chains || []) blame.push({ col: c.x / 30 + 1.5, why: `jump ${c.ms} ms after landing` });
+    for (const g of sc0.gates.filter(g => g.status === "FAIL" && (g.name === "skips" || g.name === "reactive")))
+      for (const m of String(g.value).matchAll(/block (\d+(\.\d+)?)/g)) blame.push({ col: +m[1] - 2, why: g.name });
+    for (const b of blame) {
+      const ch = C.chunkAt(cur.cr.placed, b.col); if (!ch || fixes.some(f => f.key === ch.key)) continue;
+      const t = tw[ch.key] || (tw[ch.key] = {});
+      if (ch.flying) { if ((t.room || 0) < 2) { t.room = (t.room || 0) + 1; fixes.push({ key: ch.key, what: `room +1 in the ${ch.name} (${b.why})` }); } continue; }
+      t.tries = (t.tries || 0) + 1;
+      // a tight window is the chunk's own jump (a triple at 1x: 45.8 ms however much room is before it -- GDLM 69 p1, the
+      // first test, 2026-11-24: two rounds of "2 columns before triple" left it at 45.8 ms): the easier chunk at once
+      if (/ms window$/.test(b.why) && C.EASIER[t.swap || ch.name]) { t.swap = C.EASIER[t.swap || ch.name]; t.tries = 0; fixes.push({ key: ch.key, what: `${ch.name} -> ${t.swap} (${b.why})` }); continue; }
+      if (t.tries <= 2) { t.gap = (t.gap || 0) + 2; fixes.push({ key: ch.key, what: `2 columns before ${t.swap || ch.name} (${b.why})` }); }
+      else if (C.EASIER[t.swap || ch.name]) { t.swap = C.EASIER[t.swap || ch.name]; t.tries = 0; fixes.push({ key: ch.key, what: `${ch.name} -> ${t.swap} (${b.why})` }); }
+    }
+    for (const si of new Set(fixes.map(f => +String(f.key).split(":")[0]).filter(n => !isNaN(n)))) {
+      failRounds[si] = (failRounds[si] || 0) + 1;
+      if (failRounds[si] >= 2) { for (const k2 of Object.keys(tw)) if (k2.startsWith(si + ":")) delete tw[k2]; tw["reseed:" + si] = (tw["reseed:" + si] || 0) + 3; failRounds[si] = 0; fixes.push({ key: "reseed:" + si, what: `section ${si} from another plan` }); }
+    }
+    if (!fixes.length) break;
+    repairs.push(`round ${round}: ` + fixes.map(f => f.what).join("; "));
+    const nx = attempt(tw);
+    if (nx.fails.length <= cur.fails.length) cur = nx;   // a repair that makes it worse is dropped
+    if (cur.fails.length < best.fails.length) best = cur;
+  }
+  cur = best;
+  built = cur.built; spec = cur.cr.spec;
+  const placed = cur.cr.placed.map(q => q.name), level = cur.level, levelStr = cur.levelStr, sol = cur.sol, sc = cur.sc, tb = cur.tb, ts = cur.ts;
+  const w = GD.makeWorld(level.objects, level.header), tl = SY.timeline(w), L = SY.xOfT(tl, dur) - SY.xOfT(tl, 0);
   const gates = Object.fromEntries(sc.gates.filter(g => BLOCK.includes(g.name) && g.status !== "PASS").map(g => [g.name, g.status + ": " + String(g.value).slice(0, 160)]));
-  // a part fails only on what a part can fail by itself: the level-wide gates (difficulty, length, pacing, sync...) are
-  // the join's (a 12 s part "failed" difficulty against the level's Hard target, GDLM 64 v6)
-  const fails = sc.gates.filter(g => g.status === "FAIL" && BLOCK.includes(g.name)).map(g => g.name);
+  const fails = cur.fails.slice();
   // the part's own exit: the state its route leaves at the seam time (what the next part will be handed)
   let exit = null;
   // read where the join reads it: 30 ticks before the seam (GDLM 64 v6 p2 passed at the seam's last tick, failed at the join)
@@ -184,7 +227,7 @@ function build(briefFile, k, opts = {}) {
   const dir = dirOf(briefFile); fs.mkdirSync(dir, { recursive: true });
   writeGdlvl(path.join(dir, part.id + ".gdlvl"), built.rec, level);
   const res = { part: part.id, by: opts.by || "style", seed: opts.seed || 0, ok: !!(sol && sol.ok) && !fails.length, solved: !!(sol && sol.ok), fails, gates, dur: +dur.toFixed(4), L: +L.toFixed(2),
-    events: sol && sol.ok ? sol.events : null, exit, objects: level.objects.length, patterns: placed, role: sub._role || null,
+    events: sol && sol.ok ? sol.events : null, exit, objects: level.objects.length, patterns: placed, role: sub._role || null, repairs,
     secs: { build: (tb - t0) / 1000, route: (ts - tb) / 1000, check: (Date.now() - ts) / 1000, total: (Date.now() - t0) / 1000 }, at: new Date().toISOString() };
   writeJ(path.join(dir, part.id + ".json"), res);
   // two builders can finish at once (the heavy lock has 2 slots): re-read the plan and change only this part's entry
@@ -392,7 +435,9 @@ function scene(briefFile, opts = {}) {
   const beatX = b => SY.xOfT(tl, SY.beatToTime(grid, brief.offset || 0, b));
   const PLAY = new Set(["solid", "hazard", "slope", "orb", "pad", "portal", "speed", "mode"]);
   const play = L.level.objects.filter(o => PLAY.has((GD.objInfo(o.id) || {}).kind));
-  const r = require(path.resolve(ROOT, file))({ objects: play, header: L.level.header, beatX, spec: { objects: [] } });
+  // xOfT and the brief's name / song / scenePlan: a scene placed by level time (tools/scenes/planned.js from a vibe sheet)
+  const r = require(path.resolve(ROOT, file))({ objects: play, header: L.level.header, beatX, xOfT: t => SY.xOfT(tl, t), tl, GD,
+    spec: { objects: [], name: brief.name, song: brief.song, offset: brief.offset || 0, scenePlan: brief.scenePlan } });
   const level = { header: r.header, objects: L.level.objects.concat(r.objects) };
   const w = GD.makeWorld(level.objects, level.header), run = GD.run(w, sol.events);
   if (run.dead) throw new Error("the route dies on the decorated level (" + run.why + ") -- not saved");
@@ -421,9 +466,10 @@ if (require.main === module) {
   if (!cmd || !bf) { console.log(fs.readFileSync(__filename, "utf8").split("\n").filter(l => l.startsWith("// node")).join("\n")); process.exit(1); }
   if (cmd === "split") { const p = split(bf); console.log(`${p.parts.length} parts:`); for (const x of p.parts) console.log(`  ${x.id} ${x.name.padEnd(30)} beats ${x.beats[0]}-${x.beats[1]}  ${x.t[0].toFixed(2)}-${x.t[1].toFixed(2)} s (${(x.t[1] - x.t[0]).toFixed(1)} s) in at ${x.speedIn}`); }
   else if (cmd === "build") {
-    const k = +String(rest[0]).replace(/^p/, ""), r = build(bf, k, { by: opt("--by") || "style", seed: +(opt("--seed") || 0) });
+    const k = +String(rest[0]).replace(/^p/, ""), r = build(bf, k, { by: opt("--by") || "style", seed: +(opt("--seed") || 0), rounds: opt("--rounds") != null ? +opt("--rounds") : undefined });
     console.log(`${r.part} by ${r.by}: ${r.ok ? "OK" : "NOT OK"} -- ${r.solved ? "beaten" : "not beaten"}, ${r.L.toFixed(0)} units (${(r.L / 30).toFixed(1)} blocks) in ${r.dur.toFixed(2)} s; exit ${JSON.stringify(r.exit)}; ` +
       `${r.secs.total.toFixed(0)} s (build ${r.secs.build.toFixed(0)}, route ${r.secs.route.toFixed(0)}, check ${r.secs.check.toFixed(0)})`);
+    for (const x of r.repairs || []) console.log(`   repair ${x}`);
     for (const [g, v] of Object.entries(r.gates)) console.log(`   ${g}: ${v}`);
     process.exit(r.ok ? 0 : 2);
   }

@@ -1,0 +1,556 @@
+{
+ "name": "GDLM 71 two moons",
+ "desc": "A ride through space under two moons: dark, lighter, the nebula, and the moon at the drop.",
+ "idea": "the first SPACE theme kit level (the user: 'Somewhat black background... Bit more flying with space. Sections may give different vibe of space, bit lighter bit darker. Bit more planets or deco. Different structures and objects. But in all trying to create a cohesive experience.'); vibe sheet briefs/71_two_moons.vibe.json; flying modes ~65% of the time; real-level pace (0.63 inputs per beat, 2.4-3 obstacles per bar); look and set pieces from gd-art's space kit",
+ "song": {
+  "custom": 1175526
+ },
+ "grid": {
+  "bpm": 165.981,
+  "t0": 1.048
+ },
+ "offset": 0,
+ "seed": 71,
+ "difficulty": {
+  "label": "Normal",
+  "minWindowMs": 60
+ },
+ "terrain": true,
+ "craft": false,
+ "structures": true,
+ "modern": true,
+ "signature": {},
+ "scene": "tools/scenes/theme.js",
+ "parts": [
+  [
+   0
+  ],
+  [
+   1,
+   2
+  ],
+  [
+   3,
+   4
+  ],
+  [
+   5,
+   6
+  ],
+  [
+   7,
+   8
+  ],
+  [
+   9
+  ],
+  [
+   10,
+   11
+  ],
+  [
+   12,
+   13
+  ],
+  [
+   14,
+   15
+  ]
+ ],
+ "sections": [
+  {
+   "name": "dark arrival",
+   "beats": 34,
+   "speed": "1x",
+   "use": [
+    "single",
+    "double",
+    "spike-block",
+    "platform",
+    "orb-pit"
+   ],
+   "bg": [
+    5,
+    6,
+    13
+   ],
+   "ground": [
+    10,
+    12,
+    24
+   ],
+   "line": [
+    128,
+    144,
+    192
+   ],
+   "obj": [
+    255,
+    255,
+    255
+   ],
+   "gaps": [
+    2,
+    3
+   ]
+  },
+  {
+   "name": "launch ship",
+   "beats": 32,
+   "speed": "2x",
+   "mode": "ship",
+   "bg": [
+    14,
+    26,
+    60
+   ],
+   "ground": [
+    16,
+    24,
+    51
+   ],
+   "line": [
+    168,
+    196,
+    255
+   ],
+   "obj": [
+    255,
+    255,
+    255
+   ],
+   "gaps": [
+    2,
+    3
+   ]
+  },
+  {
+   "name": "launch wave",
+   "beats": 16,
+   "mode": "wave",
+   "bg": [
+    14,
+    26,
+    60
+   ],
+   "ground": [
+    16,
+    24,
+    51
+   ],
+   "line": [
+    168,
+    196,
+    255
+   ],
+   "obj": [
+    255,
+    255,
+    255
+   ],
+   "gaps": [
+    2,
+    3
+   ]
+  },
+  {
+   "name": "breath",
+   "beats": 16,
+   "use": [
+    "single",
+    "double",
+    "spike-block"
+   ],
+   "bg": [
+    14,
+    26,
+    60
+   ],
+   "ground": [
+    16,
+    24,
+    51
+   ],
+   "line": [
+    168,
+    196,
+    255
+   ],
+   "obj": [
+    255,
+    255,
+    255
+   ],
+   "gaps": [
+    2,
+    3
+   ]
+  },
+  {
+   "name": "nebula ufo",
+   "beats": 24,
+   "mode": "ufo",
+   "bg": [
+    27,
+    11,
+    48
+   ],
+   "ground": [
+    22,
+    10,
+    38
+   ],
+   "line": [
+    208,
+    168,
+    255
+   ],
+   "obj": [
+    255,
+    255,
+    255
+   ],
+   "gaps": [
+    2,
+    3
+   ]
+  },
+  {
+   "name": "nebula ball",
+   "beats": 20,
+   "mode": "ball",
+   "bg": [
+    27,
+    11,
+    48
+   ],
+   "ground": [
+    22,
+    10,
+    38
+   ],
+   "line": [
+    208,
+    168,
+    255
+   ],
+   "obj": [
+    255,
+    255,
+    255
+   ],
+   "gaps": [
+    2,
+    3
+   ]
+  },
+  {
+   "name": "nebula cube",
+   "beats": 20,
+   "use": [
+    "orb-pit",
+    "double",
+    "platform",
+    "s:pink-orb-pit"
+   ],
+   "bg": [
+    27,
+    11,
+    48
+   ],
+   "ground": [
+    22,
+    10,
+    38
+   ],
+   "line": [
+    208,
+    168,
+    255
+   ],
+   "obj": [
+    255,
+    255,
+    255
+   ],
+   "gaps": [
+    2,
+    3
+   ]
+  },
+  {
+   "name": "deep wave",
+   "beats": 24,
+   "mode": "wave",
+   "bg": [
+    2,
+    3,
+    10
+   ],
+   "ground": [
+    6,
+    7,
+    15
+   ],
+   "line": [
+    127,
+    160,
+    255
+   ],
+   "obj": [
+    255,
+    255,
+    255
+   ],
+   "gaps": [
+    2,
+    3
+   ]
+  },
+  {
+   "name": "deep ship",
+   "beats": 32,
+   "mode": "ship",
+   "bg": [
+    2,
+    3,
+    10
+   ],
+   "ground": [
+    6,
+    7,
+    15
+   ],
+   "line": [
+    127,
+    160,
+    255
+   ],
+   "obj": [
+    255,
+    255,
+    255
+   ],
+   "gaps": [
+    2,
+    3
+   ]
+  },
+  {
+   "name": "climb swing",
+   "beats": 32,
+   "mode": "swing",
+   "bg": [
+    10,
+    16,
+    34
+   ],
+   "ground": [
+    11,
+    16,
+    32
+   ],
+   "line": [
+    176,
+    200,
+    255
+   ],
+   "obj": [
+    255,
+    255,
+    255
+   ],
+   "gaps": [
+    2,
+    3
+   ]
+  },
+  {
+   "name": "climb cube",
+   "beats": 24,
+   "use": [
+    "double",
+    "spike-block",
+    "s:pit-run-armed",
+    "orb-pit"
+   ],
+   "bg": [
+    10,
+    16,
+    34
+   ],
+   "ground": [
+    11,
+    16,
+    32
+   ],
+   "line": [
+    176,
+    200,
+    255
+   ],
+   "obj": [
+    255,
+    255,
+    255
+   ],
+   "gaps": [
+    2,
+    3
+   ]
+  },
+  {
+   "name": "moon rise",
+   "beats": 16,
+   "speed": "1x",
+   "use": [
+    "single"
+   ],
+   "bg": [
+    20,
+    28,
+    48
+   ],
+   "ground": [
+    28,
+    34,
+    54
+   ],
+   "line": [
+    224,
+    232,
+    255
+   ],
+   "obj": [
+    255,
+    255,
+    255
+   ],
+   "gaps": [
+    2,
+    3
+   ]
+  },
+  {
+   "name": "moon ship",
+   "beats": 24,
+   "speed": "2x",
+   "mode": "ship",
+   "flash": true,
+   "bg": [
+    27,
+    36,
+    54
+   ],
+   "ground": [
+    20,
+    26,
+    40
+   ],
+   "line": [
+    240,
+    244,
+    255
+   ],
+   "obj": [
+    255,
+    255,
+    255
+   ],
+   "gaps": [
+    2,
+    3
+   ]
+  },
+  {
+   "name": "moon wave",
+   "beats": 16,
+   "mode": "wave",
+   "bg": [
+    27,
+    36,
+    54
+   ],
+   "ground": [
+    20,
+    26,
+    40
+   ],
+   "line": [
+    240,
+    244,
+    255
+   ],
+   "obj": [
+    255,
+    255,
+    255
+   ],
+   "gaps": [
+    2,
+    3
+   ]
+  },
+  {
+   "name": "moon swing",
+   "beats": 16,
+   "mode": "swing",
+   "bg": [
+    27,
+    36,
+    54
+   ],
+   "ground": [
+    20,
+    26,
+    40
+   ],
+   "line": [
+    240,
+    244,
+    255
+   ],
+   "obj": [
+    255,
+    255,
+    255
+   ],
+   "gaps": [
+    2,
+    3
+   ]
+  },
+  {
+   "name": "end",
+   "beats": 6,
+   "use": [
+    "single"
+   ],
+   "bg": [
+    27,
+    36,
+    54
+   ],
+   "ground": [
+    20,
+    26,
+    40
+   ],
+   "line": [
+    240,
+    244,
+    255
+   ],
+   "obj": [
+    255,
+    255,
+    255
+   ],
+   "gaps": [
+    2,
+    3
+   ]
+  }
+ ],
+ "theme": "space"
+}

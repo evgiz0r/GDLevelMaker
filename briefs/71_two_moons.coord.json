@@ -1,0 +1,638 @@
+{
+ "level": "GDLM 71 two moons",
+ "title": "GDLM 71 two moons",
+ "brief": "briefs/71_two_moons.json",
+ "at": "2026-11-24T21:37:59.244Z",
+ "vibe": "briefs/71_two_moons.vibe.json",
+ "journey": "dark space arrival (cube, almost black, a few stars) -> launch into light space (ship then wave, planets close by, navy) -> the nebula (ufo / ball / cube, violet haze) -> deep space climb (wave then ship, darkest part, speed rising) -> the moon rises (a calm cube breath, the moon comes up behind) -> the drop in front of the moon (ship / wave / swing at full pace, moonlit) -> end",
+ "oneImage": "the drop at 105 s: a huge pale moon filling the back, the ship threading a corridor across its face",
+ "song": {
+  "shape": [
+   {
+    "t": [
+     0,
+     11.892614745061183
+    ],
+    "part": "intro"
+   },
+   {
+    "t": [
+     11.892614745061183,
+     29.243998337159077
+    ],
+    "part": "drop"
+   },
+   {
+    "t": [
+     29.243998337159077,
+     43.70348466390732
+    ],
+    "part": "calm"
+   },
+   {
+    "t": [
+     43.70348466390732,
+     58.16297099065556
+    ],
+    "part": "calm"
+   },
+   {
+    "t": [
+     58.16297099065556,
+     78.4062518481031
+    ],
+    "part": "build"
+   },
+   {
+    "t": [
+     78.4062518481031,
+     89.9738409095017
+    ],
+    "part": "build"
+   },
+   {
+    "t": [
+     89.9738409095017,
+     104.43332723624994
+    ],
+    "part": "build"
+   },
+   {
+    "t": [
+     104.43332723624994,
+     118.89281356299819
+    ],
+    "part": "finale"
+   },
+   {
+    "t": [
+     118.89281356299819,
+     127.56850535904712
+    ],
+    "part": "finale"
+   }
+  ]
+ },
+ "lookRule": "shifting",
+ "camera": "slow zoom-out on the launch, zoom pulses on the drop's bars, a still camera for the moon rise",
+ "feel": {
+  "tier": "Normal",
+  "modeStretch": 4,
+  "density": "2.4-3 obstacles per bar (real levels' median 3.04, tools/pace.js)",
+  "pace": "0.63 inputs per beat (official median, tools/tempo.js); busy parts 0.5+",
+  "flying": "flying modes (ship, ufo, wave, swing, ball) at least 60% of the time"
+ },
+ "never": [
+  "a bright sky: the background stays near black, lighter only as navy or violet",
+  "cube for more than ~20 s in a row",
+  "deco or stars in the path's value (roles gate)"
+ ],
+ "look": "per-part",
+ "lookRules": {
+  "contrast": 3,
+  "seamBlendSecs": 1.7
+ },
+ "moodCurve": [
+  0.25,
+  0.8,
+  0.6,
+  0.6,
+  0.75,
+  0.85,
+  0.85,
+  1,
+  1
+ ],
+ "difficultyCurve": [
+  "Easy",
+  "Normal",
+  "Easy",
+  "Easy",
+  "Normal",
+  "Normal",
+  "Normal",
+  "Normal",
+  "Normal"
+ ],
+ "parts": [
+  {
+   "id": "p0",
+   "t": [
+    0,
+    11.892614745061183
+   ],
+   "role": "intro",
+   "energy": 0.25,
+   "mood": "quiet, dark, waiting",
+   "place": "dark space",
+   "vehicle": {
+    "mode": "cube",
+    "speeds": [
+     "1x"
+    ]
+   },
+   "moment": "the title, a few stars fade in",
+   "density": {
+    "gaps": [
+     4,
+     6
+    ]
+   },
+   "difficulty": "Easy",
+   "look": {
+    "style": "space-dark",
+    "bg": [
+     5,
+     6,
+     13
+    ],
+    "ground": [
+     2,
+     2,
+     4
+    ],
+    "line": [
+     128,
+     144,
+     192
+    ]
+   },
+   "transition": {
+    "in": "level start",
+    "out": "into drop"
+   },
+   "must": [
+    "the title",
+    "its seam contracts",
+    "a intro's density (gaps 4-6)"
+   ],
+   "mustNot": [
+    "an ending (no 'thanks for playing', no signature)",
+    "another part's set pieces"
+   ],
+   "setPieces": []
+  },
+  {
+   "id": "p1",
+   "t": [
+    11.892614745061183,
+    29.243998337159077
+   ],
+   "role": "drop",
+   "energy": 0.8,
+   "mood": "driving, open, lighter",
+   "place": "light space",
+   "vehicle": {
+    "mode": "ship then wave then cube",
+    "speeds": [
+     "2x"
+    ]
+   },
+   "moment": "the ship portal on the drop at 12.6 s, a planet passing under the corridor",
+   "density": {
+    "gaps": [
+     2,
+     3
+    ]
+   },
+   "difficulty": "Normal",
+   "look": {
+    "style": "space-light",
+    "bg": [
+     14,
+     26,
+     60
+    ],
+    "ground": [
+     2,
+     4,
+     9
+    ],
+    "line": [
+     168,
+     196,
+     255
+    ]
+   },
+   "transition": {
+    "in": "from intro: colours blend over 1.7 s",
+    "out": "into calm"
+   },
+   "must": [
+    "its seam contracts",
+    "a drop's density (gaps 2-3)"
+   ],
+   "mustNot": [
+    "a title",
+    "an ending (no 'thanks for playing', no signature)",
+    "another part's set pieces"
+   ],
+   "setPieces": []
+  },
+  {
+   "id": "p2",
+   "t": [
+    29.243998337159077,
+    43.70348466390732
+   ],
+   "role": "calm",
+   "energy": 0.6,
+   "mood": "floating, strange, violet",
+   "place": "the nebula",
+   "vehicle": {
+    "mode": "ufo then ball then cube",
+    "speeds": [
+     "2x"
+    ]
+   },
+   "moment": "the ufo hopping between gas clouds",
+   "density": {
+    "gaps": [
+     4,
+     6
+    ]
+   },
+   "difficulty": "Easy",
+   "look": {
+    "style": "space-nebula",
+    "bg": [
+     27,
+     11,
+     48
+    ],
+    "ground": [
+     4,
+     2,
+     6
+    ],
+    "line": [
+     208,
+     168,
+     255
+    ]
+   },
+   "transition": {
+    "in": "from drop: colours blend over 1.7 s",
+    "out": "into calm"
+   },
+   "must": [
+    "its seam contracts",
+    "a calm's density (gaps 4-6)"
+   ],
+   "mustNot": [
+    "a title",
+    "an ending (no 'thanks for playing', no signature)",
+    "another part's set pieces"
+   ],
+   "setPieces": []
+  },
+  {
+   "id": "p3",
+   "t": [
+    43.70348466390732,
+    58.16297099065556
+   ],
+   "role": "calm",
+   "energy": 0.6,
+   "mood": "floating, strange, violet",
+   "place": "the nebula",
+   "vehicle": {
+    "mode": "ufo then ball then cube",
+    "speeds": [
+     "2x"
+    ]
+   },
+   "moment": "the ufo hopping between gas clouds",
+   "density": {
+    "gaps": [
+     4,
+     6
+    ]
+   },
+   "difficulty": "Easy",
+   "look": {
+    "style": "space-nebula",
+    "bg": [
+     27,
+     11,
+     48
+    ],
+    "ground": [
+     4,
+     2,
+     6
+    ],
+    "line": [
+     208,
+     168,
+     255
+    ]
+   },
+   "transition": {
+    "in": "from calm: colours blend over 1.7 s",
+    "out": "into build"
+   },
+   "must": [
+    "its seam contracts",
+    "a calm's density (gaps 4-6)"
+   ],
+   "mustNot": [
+    "a title",
+    "an ending (no 'thanks for playing', no signature)",
+    "another part's set pieces"
+   ],
+   "setPieces": [
+    "s:pink-orb-pit"
+   ]
+  },
+  {
+   "id": "p4",
+   "t": [
+    58.16297099065556,
+    78.4062518481031
+   ],
+   "role": "build",
+   "energy": 0.75,
+   "mood": "dark, rising, tense",
+   "place": "deep space",
+   "vehicle": {
+    "mode": "wave then ship",
+    "speeds": [
+     "2x"
+    ]
+   },
+   "moment": "the darkest frame of the level, only the path's rim and the stars",
+   "density": {
+    "gaps": [
+     3,
+     5
+    ]
+   },
+   "difficulty": "Normal",
+   "look": {
+    "style": "space-dark",
+    "bg": [
+     2,
+     3,
+     10
+    ],
+    "ground": [
+     2,
+     2,
+     2
+    ],
+    "line": [
+     127,
+     160,
+     255
+    ]
+   },
+   "transition": {
+    "in": "from calm: colours blend over 1.7 s",
+    "out": "into build"
+   },
+   "must": [
+    "its seam contracts",
+    "a build's density (gaps 3-5)"
+   ],
+   "mustNot": [
+    "a title",
+    "an ending (no 'thanks for playing', no signature)",
+    "another part's set pieces"
+   ],
+   "setPieces": []
+  },
+  {
+   "id": "p5",
+   "t": [
+    78.4062518481031,
+    89.9738409095017
+   ],
+   "role": "build",
+   "energy": 0.85,
+   "mood": "rising, loudest before the break",
+   "place": "deep space, lighter towards the moon",
+   "vehicle": {
+    "mode": "swing then cube",
+    "speeds": [
+     "2x"
+    ]
+   },
+   "moment": "the sky lightens a step every 4 bars",
+   "density": {
+    "gaps": [
+     3,
+     5
+    ]
+   },
+   "difficulty": "Normal",
+   "look": {
+    "style": "space-light",
+    "bg": [
+     10,
+     16,
+     34
+    ],
+    "ground": [
+     2,
+     2,
+     6
+    ],
+    "line": [
+     176,
+     200,
+     255
+    ]
+   },
+   "transition": {
+    "in": "from build: colours blend over 1.7 s",
+    "out": "into build"
+   },
+   "must": [
+    "its seam contracts",
+    "a build's density (gaps 3-5)"
+   ],
+   "mustNot": [
+    "a title",
+    "an ending (no 'thanks for playing', no signature)",
+    "another part's set pieces"
+   ],
+   "setPieces": []
+  },
+  {
+   "id": "p6",
+   "t": [
+    89.9738409095017,
+    104.43332723624994
+   ],
+   "role": "build",
+   "energy": 0.85,
+   "mood": "rising, loudest before the break",
+   "place": "deep space, lighter towards the moon",
+   "vehicle": {
+    "mode": "swing then cube",
+    "speeds": [
+     "2x"
+    ]
+   },
+   "moment": "the sky lightens a step every 4 bars",
+   "density": {
+    "gaps": [
+     3,
+     5
+    ]
+   },
+   "difficulty": "Normal",
+   "look": {
+    "style": "space-light",
+    "bg": [
+     10,
+     16,
+     34
+    ],
+    "ground": [
+     2,
+     2,
+     6
+    ],
+    "line": [
+     176,
+     200,
+     255
+    ]
+   },
+   "transition": {
+    "in": "from build: colours blend over 1.7 s",
+    "out": "into finale"
+   },
+   "must": [
+    "its seam contracts",
+    "a build's density (gaps 3-5)"
+   ],
+   "mustNot": [
+    "a title",
+    "an ending (no 'thanks for playing', no signature)",
+    "another part's set pieces"
+   ],
+   "setPieces": [
+    "s:pit-run-armed"
+   ]
+  },
+  {
+   "id": "p7",
+   "t": [
+    104.43332723624994,
+    118.89281356299819
+   ],
+   "role": "finale",
+   "energy": 1,
+   "mood": "full pace, bright moonlight on black",
+   "place": "in front of the moon",
+   "vehicle": {
+    "mode": "ship then wave then swing then cube",
+    "speeds": [
+     "3x",
+     "2x"
+    ]
+   },
+   "moment": "THE SET PIECE: the moon fills the back, zoom pulses on bars",
+   "density": {
+    "gaps": [
+     2,
+     4
+    ]
+   },
+   "difficulty": "Normal",
+   "look": {
+    "style": "space-moon",
+    "bg": [
+     27,
+     36,
+     54
+    ],
+    "ground": [
+     3,
+     5,
+     7
+    ],
+    "line": [
+     240,
+     244,
+     255
+    ]
+   },
+   "transition": {
+    "in": "from build: colours blend over 1.7 s",
+    "out": "into finale"
+   },
+   "must": [
+    "its seam contracts",
+    "a finale's density (gaps 2-4)"
+   ],
+   "mustNot": [
+    "a title",
+    "an ending (no 'thanks for playing', no signature)",
+    "another part's set pieces"
+   ],
+   "setPieces": []
+  },
+  {
+   "id": "p8",
+   "t": [
+    118.89281356299819,
+    127.56850535904712
+   ],
+   "role": "finale",
+   "energy": 1,
+   "mood": "full pace, bright moonlight on black",
+   "place": "in front of the moon",
+   "vehicle": {
+    "mode": "ship then wave then swing then cube",
+    "speeds": [
+     "3x",
+     "2x"
+    ]
+   },
+   "moment": "THE SET PIECE: the moon fills the back, zoom pulses on bars",
+   "density": {
+    "gaps": [
+     2,
+     4
+    ]
+   },
+   "difficulty": "Normal",
+   "look": {
+    "style": "space-moon",
+    "bg": [
+     27,
+     36,
+     54
+    ],
+    "ground": [
+     3,
+     5,
+     7
+    ],
+    "line": [
+     240,
+     244,
+     255
+    ]
+   },
+   "transition": {
+    "in": "from finale: colours blend over 1.7 s",
+    "out": "the ending"
+   },
+   "must": [
+    "the ending: end text + signature",
+    "its seam contracts",
+    "a finale's density (gaps 2-4)"
+   ],
+   "mustNot": [
+    "a title",
+    "another part's set pieces"
+   ],
+   "setPieces": []
+  }
+ ]
+}
