@@ -77,7 +77,13 @@ function plan(briefFile, opts = {}) {
       for (let g = 0; g < 8 && ratio(st.bg, st.ground) < 3; g++) st.ground = darken(st.ground, 0.8);
     }
     const di = Math.max(0, Math.min(TIERS.length - 1, TIERS.indexOf(lab) + R.diff));
-    if (vb.look && vb.look.palette && look === "per-part") st = Object.assign({ style: vb.look.scene || vb.place || "from the vibe sheet" }, vb.look.palette);
+    if (vb.look && vb.look.palette && look === "per-part") {
+      // a vibe sheet's palette is hex ("#00f0b5"; VIBES.md): to [r, g, b], ground and line made from the sky when missing
+      const rgb = c => Array.isArray(c) ? c : /^#?[0-9a-f]{6}$/i.test(String(c || "")) ? [0, 2, 4].map(i => parseInt(String(c).replace("#", "").slice(i, i + 2), 16)) : null;
+      const bg = rgb(vb.look.palette.bg);
+      if (bg) { st = { style: vb.look.scene || vb.place || "from the vibe sheet", bg, ground: rgb(vb.look.palette.ground) || bg.map(v => Math.round(v * 0.45)), line: rgb(vb.look.palette.line) || bg.map(v => Math.round(v + (255 - v) * 0.6)) };
+        for (let g = 0; g < 8 && ratio(st.bg, st.ground) < 3; g++) st.ground = darken(st.ground, 0.8); }
+    }
     const modes = [...new Set(p.sections.map(i => secOf(i).mode || "cube"))];
     return { id: p.id, t: p.t, role: roles[k], energy: vb.energy ?? R.energy, mood: vb.mood || R.mood, place: vb.place || null,
       vehicle: vb.vehicle || { mode: modes.join(" + "), speed: p.speedIn }, moment: vb.moment || null, density: { gaps: R.gaps }, difficulty: TIERS[di],
@@ -104,7 +110,8 @@ function applyTo(sub, cp, coord) {
     if (s.use && !s.mode && !s.rest) s.gaps = s.gaps || cp.density.gaps;
     // no set piece of another part: a library structure this part does not own is left out
     if (s.use) { const own = new Set(cp.setPieces); s.use = s.use.filter(u => !u.startsWith("s:") || own.has(u)); if (!s.use.length) s.use = ["single", "double"]; }
-    if (coord.look === "per-part" && cp.look) { s.bg = cp.look.bg; s.ground = cp.look.ground; s.line = cp.look.line; }
+    // a section that has its own colours (tools/vibe.js: several eras in one part) keeps them
+    if (coord.look === "per-part" && cp.look && !Array.isArray(s.bg)) { s.bg = cp.look.bg; s.ground = cp.look.ground; s.line = cp.look.line; }
   }
   if (coord.look === "per-part") sub.sections[0] = Object.assign({}, sub.sections[0], { secs: coord.lookRules.seamBlendSecs });
   sub.difficulty = Object.assign({}, sub.difficulty || {}, { label: cp.difficulty });

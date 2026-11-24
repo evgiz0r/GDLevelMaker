@@ -53,7 +53,10 @@ module.exports = function ({ objects, header, beatX }) {
   header = K.channels(header, defs);
   // the scene changes at each portal: quick on the drops (S2, S5), slow on the calm turns
   const FADE = [0, 2, 0.15, 0.6, 2.5, 0.15, 1, 3];
-  for (let i = 1; i < S.length; i++) out.push(...K.palette(S[i][0], P[i], FADE[i]));
+  // each palette fades IN to its section's downbeat, starting half a beat before (not snapped onto the grid: our colour
+  // triggers sat 91% on a beat vs real levels' ~31%, gd-taste's section comparison; a fade that lands on the beat reads better)
+  const halfBeat = (beatX(2) - beatX(1)) / 2;
+  for (let i = 1; i < S.length; i++) out.push(...K.palette(S[i][0] - halfBeat, P[i], FADE[i]));
   // transitions: a short flash toward the new scene's light colour (bg 1000), never white; a quick zoom on the drops
   for (let i = 1; i < S.length; i++) {
     const light = P[i][C.halo] || P[i][C.sun];
@@ -115,16 +118,19 @@ module.exports = function ({ objects, header, beatX }) {
       out.push(...D.blockPattern(objects, S[i][0], S[i][1], { ch: C.fill, top: C.trim, seed: 40 + i }));
       out.push(...D.tufts(objects, S[i][0], S[i][1], { ch: C.grass, seed: 60 + i, group: 312 }));
     }
-    out.push(...D.backdrop(S[i][0], S[i][1], { far: C.far2, mid: C.mid, near: i === 2 ? null : C.near, trees: i >= 4 ? "dead tree" : "tree", density: 1.5, seed: i }));
+    out.push(...D.backdrop(S[i][0], S[i][1], { far: C.far2, mid: C.mid, near: i === 2 ? null : C.near, trees: i >= 4 ? "dead tree" : "tree", density: 1.5, seed: i, group: 313 }));
   }
-  // ---- motion on every screen (gd-art / gd-taste: moving deco is the strongest sign of a featured level,
-  // ART.md "Deco study"): the grass sways, the motes bob, the lit block edges pulse on every bar toward a
-  // brighter tint of their own colour every second bar (calm: under 0.5 a second, never white) -- ~10 triggers per 20-block screen
-  out.push(...K.sway(S[0][0], END, 312, 7, 100, 0.35));
-  out.push(...K.bob(S[0][0], END, G.motes, 12, 160, 0.5));
-  { const spb = 8, bars = []; for (let b = 1; beatX(b) < END - 60; b += spb) bars.push(b);
-    for (const b of bars) { const x = beatX(b), i = Math.max(0, S.findIndex(([a, z]) => x >= a && x < z)), e = P[i][C.edge];
-      out.push(K.pulse(x, C.edge, e.map(v => Math.round(v + (255 - v) * 0.35)), 0.05, 0.1, 0.5)); } }
+  // ---- motion with the song (gd-art's decokit.motion, ART.md "Deco targets"; gd-taste's section comparison: real 2.2
+  // levels ~48 motion triggers a screen, ours 10): per beat a pulse per pulse group (only the first on the beat), a bob
+  // per bob group, a sway per sway group, every group back where it began each beat; more groups at higher energy.
+  // DECO groups only (never a hazard, orb or block edge): pulse = stars, light rays, the sun's halo; bob = the motes, the
+  // cloud bands, the backdrop; sway = the grass. Energy by scene: the drops (noon flight, night wave) 1, runs 0.6-0.8,
+  // first light / dusk / dawn calm.
+  { const ENERGY = [0.3, 0.6, 1, 0.8, 0.4, 1, 0.7, 0.3], spb = 60 / 140.01;
+    for (let i = 0; i < S.length; i++) {
+      const b0 = Math.max(1, B[i]), beat = beatX(b0 + 1) - beatX(b0);
+      out.push(...D.motion(S[i][0], S[i][1], { beat, spb, phase: beatX(b0), energy: ENERGY[i], pulse: [G.stars, G.rays, G.halo], bob: [G.motes, G.cloudA, 313], sway: [312], rgb: P[i][C.sun] }));
+    } }
 
   // ---- a vignette closing in at the end of the night (top and bottom bands, locked to the screen) ----
   const vx = S[6][0] + 0.6 * (S[6][1] - S[6][0]);

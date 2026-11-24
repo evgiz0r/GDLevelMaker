@@ -690,6 +690,23 @@ or holds longer than needed (over 0.15 s outside ship/wave where a tap finishes)
 6. **Calibration (open):** tools/human_presses.js measures where the user really presses in each window
    from recordings; the difficulty session fits humanCost's `centre` weight (and the 40%) to it.
 
+### The ship like a person, and the tap length (2026-11-24)
+- The user, comparing their run with the solver's in the viewer: "the solver ship moves weirdly". `tools/shipstyle.js`
+  (ship stretches only, the user's recorded runs vs the viewer route): the user flies ~1.5-1.7 presses a second, holds
+  ~280 ms, lets go ~300 ms, never taps under 75 ms; the routes flew Stereo Madness, Back On Track, Polargeist and Jumper at
+  5-6 presses a second, mostly taps under 75 ms (the fly controller's bang-bang steering with no dwell).
+- lib/natural.js fly(): in a ship stretch the controller keeps each button state at least 40 ticks (then 28, 18, 0 if
+  nothing longer finishes) and switches early only when the ship would leave the free space within 8 ticks; dead band 8.
+  A ship stretch wins on smoothness (a quarter fewer presses for at most 15% more humanCost) and never takes a line over
+  2.5 presses a second that adds presses to the line it replaces. After: Stereo Madness 1.7 presses/s, Back On Track 1.9,
+  Polargeist 2.0, Jumper 2.2, Time Machine 0.6, Base After Base 2.2; no taps under 75 ms; all beaten; `tools/humanroute.js`
+  flags none. So the "only inhuman input clears it" ship stretches were the planner, not the ship's physics.
+  `tools/pathpic.js <n> --from --to --route a --route b` draws a stretch before / after (Jumper: local/shots/pathpic/).
+- Tap length (outside ship/wave): the user, "60-90 ms for humans as default ... higher skill ... slightly smaller ...
+  depends on the level". `tapMsFor`: 75 ms by default; by stars 1-2: 90, 3-5: 80, 6-7: 75, 8-9: 70, 10+: 60
+  (difficulty_solve passes the official stars); `opts.tapMs` a level's own; `opts.player: "user"` the user's habit
+  (tools/habits.js: median 120 ms). Was 14 ticks (58 ms) everywhere. tests/natural_tap.js.
+
 ## The intended route (solver ranking)
 
 The sweep solver (solveSweep, used for every level with modes) does not just find the fewest presses:

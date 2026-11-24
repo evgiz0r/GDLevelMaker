@@ -1,0 +1,365 @@
+{
+ "level": "GDLM 70 candy night",
+ "title": "GDLM 70 candy night",
+ "brief": "briefs/70_candy_night.json",
+ "at": "2026-11-24T19:41:20.884Z",
+ "vibe": "briefs/70_candy_night.vibe.json",
+ "journey": "intro (cube then robot, purple place) -> drop (robot then ship then cube then ufo then robot, purple place) -> calm (robot then cube then ufo, purple place) -> drop (cube then ship then cube then ball then robot, purple place) -> finale (robot, purple place)",
+ "oneImage": "densest deco (51/block) at 56.0 s",
+ "song": {
+  "shape": [
+   {
+    "t": [
+     0,
+     14.142761236035316
+    ],
+    "part": "intro"
+   },
+   {
+    "t": [
+     14.142761236035316,
+     24.428769407697363
+    ],
+    "part": "drop"
+   },
+   {
+    "t": [
+     24.428769407697363,
+     36.42911227463641
+    ],
+    "part": "drop"
+   },
+   {
+    "t": [
+     36.42911227463641,
+     46.71512044629846
+    ],
+    "part": "calm"
+   },
+   {
+    "t": [
+     46.71512044629846,
+     58.715463313237514
+    ],
+    "part": "drop"
+   },
+   {
+    "t": [
+     58.715463313237514,
+     70.71580618017657
+    ],
+    "part": "finale"
+   }
+  ]
+ },
+ "lookRule": "shared",
+ "camera": "zoom pulses",
+ "feel": {
+  "tier": "Normal",
+  "modeStretch": 3.5,
+  "density": "0.15 hazards per block"
+ },
+ "never": [],
+ "look": "shared",
+ "lookRules": {
+  "palettes": "the brief's sections"
+ },
+ "moodCurve": [
+  0.61,
+  0.58,
+  0.58,
+  0.39,
+  0.59,
+  0.21
+ ],
+ "difficultyCurve": [
+  "Easy",
+  "Normal",
+  "Normal",
+  "Easy",
+  "Normal",
+  "Normal"
+ ],
+ "parts": [
+  {
+   "id": "p0",
+   "t": [
+    0,
+    14.142761236035316
+   ],
+   "role": "intro",
+   "energy": 0.61,
+   "mood": "driving, dark",
+   "place": "a purple place",
+   "vehicle": {
+    "mode": "cube then robot",
+    "speed": "1x",
+    "at": [
+     5
+    ],
+    "speeds": [
+     "1x",
+     "2x"
+    ]
+   },
+   "moment": "speed 2x at 3.4 s",
+   "density": {
+    "gaps": [
+     4,
+     6
+    ]
+   },
+   "difficulty": "Easy",
+   "look": null,
+   "transition": {
+    "in": "level start",
+    "out": "into drop"
+   },
+   "must": [
+    "the title",
+    "its seam contracts",
+    "a intro's density (gaps 4-6)"
+   ],
+   "mustNot": [
+    "an ending (no 'thanks for playing', no signature)",
+    "another part's set pieces"
+   ],
+   "setPieces": [
+    "s:robot-steps"
+   ]
+  },
+  {
+   "id": "p1",
+   "t": [
+    14.142761236035316,
+    24.428769407697363
+   ],
+   "role": "drop",
+   "energy": 0.58,
+   "mood": "steady, dark",
+   "place": "a purple place",
+   "vehicle": {
+    "mode": "robot then ship then cube then ufo then robot",
+    "speed": "2x",
+    "at": [
+     13.7,
+     17.9,
+     24.9,
+     27.4
+    ],
+    "speeds": [
+     "2x",
+     "3x",
+     "3x",
+     "3x",
+     "3x"
+    ]
+   },
+   "moment": "zoom 1 at 10.9 s",
+   "density": {
+    "gaps": [
+     2,
+     3
+    ]
+   },
+   "difficulty": "Normal",
+   "look": null,
+   "transition": {
+    "in": "from intro: colours blend over 1.7 s",
+    "out": "into drop"
+   },
+   "must": [
+    "its seam contracts",
+    "a drop's density (gaps 2-3)"
+   ],
+   "mustNot": [
+    "a title",
+    "an ending (no 'thanks for playing', no signature)",
+    "another part's set pieces"
+   ],
+   "setPieces": []
+  },
+  {
+   "id": "p2",
+   "t": [
+    24.428769407697363,
+    36.42911227463641
+   ],
+   "role": "drop",
+   "energy": 0.58,
+   "mood": "steady, dark",
+   "place": "a purple place",
+   "vehicle": {
+    "mode": "robot then ship then cube then ufo then robot",
+    "speed": "2x",
+    "at": [
+     13.7,
+     17.9,
+     24.9,
+     27.4
+    ],
+    "speeds": [
+     "2x",
+     "3x",
+     "3x",
+     "3x",
+     "3x"
+    ]
+   },
+   "moment": "zoom 1 at 10.9 s",
+   "density": {
+    "gaps": [
+     2,
+     3
+    ]
+   },
+   "difficulty": "Normal",
+   "look": null,
+   "transition": {
+    "in": "from drop: colours blend over 1.7 s",
+    "out": "into calm"
+   },
+   "must": [
+    "its seam contracts",
+    "a drop's density (gaps 2-3)"
+   ],
+   "mustNot": [
+    "a title",
+    "an ending (no 'thanks for playing', no signature)",
+    "another part's set pieces"
+   ],
+   "setPieces": [
+    "s:ufo-pillars"
+   ]
+  },
+  {
+   "id": "p3",
+   "t": [
+    36.42911227463641,
+    46.71512044629846
+   ],
+   "role": "calm",
+   "energy": 0.39,
+   "mood": "steady, dark",
+   "place": "a purple place",
+   "vehicle": {
+    "mode": "robot then cube then ufo",
+    "speed": "2x",
+    "at": [
+     36.5,
+     43.4
+    ],
+    "speeds": [
+     "2x",
+     "2x",
+     "3x"
+    ]
+   },
+   "moment": "speed 3x at 41.1 s",
+   "density": {
+    "gaps": [
+     4,
+     6
+    ]
+   },
+   "difficulty": "Easy",
+   "look": null,
+   "transition": {
+    "in": "from drop: colours blend over 1.7 s",
+    "out": "into drop"
+   },
+   "must": [
+    "its seam contracts",
+    "a calm's density (gaps 4-6)"
+   ],
+   "mustNot": [
+    "a title",
+    "an ending (no 'thanks for playing', no signature)",
+    "another part's set pieces"
+   ],
+   "setPieces": []
+  },
+  {
+   "id": "p4",
+   "t": [
+    46.71512044629846,
+    58.715463313237514
+   ],
+   "role": "drop",
+   "energy": 0.59,
+   "mood": "steady, dark",
+   "place": "a purple place",
+   "vehicle": {
+    "mode": "cube then ship then cube then ball then robot",
+    "speed": "3x",
+    "at": [
+     50,
+     53,
+     54.8,
+     58.3
+    ]
+   },
+   "moment": "zoom 1.021 at 53.4 s",
+   "density": {
+    "gaps": [
+     2,
+     3
+    ]
+   },
+   "difficulty": "Normal",
+   "look": null,
+   "transition": {
+    "in": "from calm: colours blend over 1.7 s",
+    "out": "into finale"
+   },
+   "must": [
+    "its seam contracts",
+    "a drop's density (gaps 2-3)"
+   ],
+   "mustNot": [
+    "a title",
+    "an ending (no 'thanks for playing', no signature)",
+    "another part's set pieces"
+   ],
+   "setPieces": []
+  },
+  {
+   "id": "p5",
+   "t": [
+    58.715463313237514,
+    70.71580618017657
+   ],
+   "role": "finale",
+   "energy": 0.21,
+   "mood": "calm, dark",
+   "place": "a purple place",
+   "vehicle": {
+    "mode": "robot",
+    "speed": "3x"
+   },
+   "moment": "densest deco (47/block) at 62 s",
+   "density": {
+    "gaps": [
+     2,
+     4
+    ]
+   },
+   "difficulty": "Normal",
+   "look": null,
+   "transition": {
+    "in": "from drop: colours blend over 1.7 s",
+    "out": "the ending"
+   },
+   "must": [
+    "the ending: end text + signature",
+    "its seam contracts",
+    "a finale's density (gaps 2-4)"
+   ],
+   "mustNot": [
+    "a title",
+    "another part's set pieces"
+   ],
+   "setPieces": []
+  }
+ ]
+}
