@@ -394,7 +394,8 @@ function compose(brief, tweaks = {}) {
   spec.signature = brief.signature === false ? false : {};
   if (brief.scene) spec.scene = brief.scene;   // a scene script (tools/scenes/<name>.js, SHOWCASE.md): the look by hand, run by make.js
   if (brief.craft) spec.craft = brief.craft;   // craft pass (tools/craftkit.js, CRAFT.md): rods, chains, lanterns on the structures
-  if (brief.modern !== false) spec.modern = { sections: looks.map(({ bg, ...l }) => l), title: brief._noTitle ? null : brief.name, end: brief._noEnd ? null : "thanks for playing",   // a collab part: the title only on the first, the end text only on the last seed: brief.seed || 3, light: brief.palette === "light" };
+  // (a collab part, tools/collab.js: the title only on the first part, the end text only on the last)
+  if (brief.modern !== false) spec.modern = { sections: looks.map(({ bg, ...l }) => l), title: brief._noTitle ? null : brief.name, end: brief._noEnd ? null : "thanks for playing", seed: brief.seed || 3, light: brief.palette === "light" };
   // jump indicators (tools/decorate.js): on jumps that cannot be read in time, and the first jump of
   // each new pattern. Default on; "indicators": false in the brief turns them off.
   if (brief.indicators !== false) spec.indicators = Object.assign({ at: firsts }, brief.indicators || {});
