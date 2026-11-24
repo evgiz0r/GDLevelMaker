@@ -192,6 +192,11 @@ for (const hold of [true, false]) {
   // a trigger in a group a toggle switched off does not fire when passed
   o = at([{ id: 1049, x: 30, y: 300, props: { "51": "4", "56": "0" } }, { id: 901, x: 300, y: 300, props: { "51": "7", "29": "60", "10": "0", "57": "4" } }, blk(7, 600, 300)], 400, 1);
   check("a toggled-off trigger does not fire", o && o.y === 300, o && o.y);
+  // a touch trigger's box grows with its scale (129 = y scale): 31 above the walking cube's centre, a 30x30 box (15 + 15)
+  // misses it, scale y 1.2 (18 + 15) touches it (Dash's touch spawns on its invisible platforms, 2026-11-24)
+  const touchAt = sc => at([{ id: 901, x: 300, y: 46, props: Object.assign({ "51": "7", "29": "60", "10": "0", "11": "1" }, sc ? { "129": String(sc) } : {}) }, blk(7, 600, 300)], 400, 1);
+  const tS = touchAt(1.2), t0 = touchAt(0);
+  check("a scaled touch trigger is touched by its scaled box (unscaled: missed)", tS && t0 && tS.y === 360 && t0.y === 300, tS && t0 && `${tS.y} vs ${t0.y}`);
 }
 // ---- dual (lib/dual.js; GD's rules from the 2.2081 decompile, PHYSICS.md "Dual") ----
 {

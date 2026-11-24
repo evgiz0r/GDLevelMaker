@@ -46,7 +46,8 @@ function study(w, events, X, o) {
       GD.step(w, s, { press: h && !n.held, held: h });
       const tk = new Set(n.took); for (const i of took(s)) tk.add(i);
       if (s.dead) { const k = (s.killer ? s.killer.id + " " + Math.round(s.killer.x / 30 * 10) / 10 : s.why) + " (" + s.why + ")";
-        const d = deaths.get(k) || { n: 0, ys: [], took: 0 }; d.n++; if (d.ys.length < 4) d.ys.push(Math.round(s.y)); if (tk.size) d.took++; deaths.set(k, d); continue; }
+        const d = deaths.get(k) || { n: 0, ys: [], took: 0, sets: {} }; d.n++; if (d.ys.length < 4) d.ys.push(Math.round(s.y)); if (tk.size) d.took++;
+        const sk = [...tk].sort((a, b) => a - b).join("+") || "none"; d.sets[sk] = (d.sets[sk] || 0) + 1; deaths.set(k, d); continue; }
       const m = { s, held: h, took: tk, parent: n };
       if (s.x >= X + past || s.done) { done.push(m); continue; }
       const kk = key(m); if (!nx.has(kk)) nx.set(kk, m);
@@ -103,7 +104,7 @@ if (require.main === module) {
   for (const b of r.portals) console.log(`  ${b.d.name} #${b.i}: taken by ${r.done.filter(m => m.took.has(b.i)).length} that get past`);
   if (band) console.log(`  in the band y ${band[0]}-${band[1]} at the end: ${r.done.filter(m => m.s.y >= band[0] && m.s.y <= band[1]).length}`);
   console.log("deaths (killer id, block (why): count, player y, how many had taken a portal here):");
-  for (const [k, d] of [...r.deaths.entries()].sort((a, b) => b[1].n - a[1].n).slice(0, 15)) console.log(`  ${k}: ${d.n}, y ${d.ys.join("/")}, ${d.took} took one`);
+  for (const [k, d] of [...r.deaths.entries()].sort((a, b) => b[1].n - a[1].n).slice(0, 15)) console.log(`  ${k}: ${d.n}, y ${d.ys.join("/")}, portals taken: ${Object.entries(d.sets).map(([s, c]) => (s === "none" ? "none" : "#" + s.replace(/[+]/g, "+#")) + " x" + c).join(", ")}`);
   console.log(takesAll.length ? "=> some sequences take it and live: a SOLVER lead (the sweep pruned them)" : r.portals.length ? "=> no sequence takes it and lives: a PHYSICS lead (hitbox, mode or portal there)" : "=> no portal in range");
 }
 module.exports = { study };
