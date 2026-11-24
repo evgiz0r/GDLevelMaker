@@ -76,6 +76,20 @@ station("ship corridor", 26, [{ m: "alive" }], "ship in a 3-block corridor with 
   portal(CUBE, c + 24);
 });
 
+// ---- ship ENTRY speed (the physics session's open question, PHYSICS.md "Ship entry speed tried and rejected"): the sim
+// halves vy on entering a ship; gdsolver's real-game plans fit 0.25 on FALLING entries better, the user's Hexagon Force
+// and xStep runs did not. A yellow pad throws the cube so it crosses the ship portal at a fixed speed with NO input
+// (any press would change it): only how high the ship coasts after the portal answers it, read on the two rulers.
+const shipEntry = (when, pc, prow, note) => station(`ship entry ${when}`, 22, c => [{ m: "yAt", at: [c + 3 + pc - 10 + 2, c + 3 + pc - 10 + 4] }, { m: "alive" }], note, c => {
+  label(c, `${lab.length + 1} ship entry ${when}: NO press until past both rulers`);
+  objs.push([35, c + 3, -0.4]);
+  portal(SHIP, c + 3 + pc - 10, prow);
+  ruler(c + 3 + pc - 10 + 2, 0, 6); ruler(c + 3 + pc - 10 + 4, 0, 6);
+  portal(CUBE, c + 20);
+});
+shipEntry("RISING", 11, 3, "no press: the pad throws the cube up through the ship portal (vy 11.9 -> 5.8: the sim halves it). Sim: the ship coasts up to y ~115 at the first ruler, ~103 at the second, then falls. Lower = the game keeps less of a rising entry speed");
+shipEntry("FALLING", 15, 2, "no press: the pad's arc comes down through the ship portal (vy -8 -> -4: the sim halves it). Sim: y ~34 at the first ruler, on the floor (15) by the second. Higher at the first ruler = the game keeps less of a falling entry speed (gdsolver's plans fit 0.25: y ~56)");
+
 // ---- mini cube: can it jump onto a step whose top is 56 up? (Dash's invisible platforms: sim says a mini jump's
 // feet peak at 40.7, so it needs a top <= 55.7; a normal cube reaches 63.9). Never kills.
 station("mini step", 20, c => [{ m: "yAt", at: [c + 9.5] }], "mini cube: jump at the low step (top 56 units, under 2 blocks): sim says the mini cube CANNOT land on it (peaks 4.3 short with the 15-unit snap). Landing on it = the mini jump or snap is bigger in the game", c => {
@@ -186,5 +200,8 @@ function check() {
   { const L = by("ship heights"), r = play(L.from, L.from + 43, s => s.x > (L.from + 14) * 30 && s.x < (L.from + 24) * 30);
     const yAt = c => { const p = r.trail.find(q => q.x >= c * 30); return p ? p.y.toFixed(1) : "-"; };
     out(L.n, `ship: floor y ${yAt(L.from + 12)}, roof y ${yAt(L.from + 22)}, on the block y ${yAt(L.from + 31)}, after it y ${yAt(L.from + 40)}${r.s.dead ? " (died: " + r.s.why + ")" : ""}`); }
+  for (const when of ["RISING", "FALLING"]) { const L = by("ship entry " + when), r = play(L.from, L.to - 3, () => false), m = L.metrics[0].at;
+    const yAt = c => { const p = r.trail.find(q => q.x >= c * 30); return p ? p.y.toFixed(0) : "-"; };
+    out(L.n, `ship entry ${when}, no press: y ${yAt(m[0])} at the first ruler, ${yAt(m[1])} at the second${r.s.dead ? " (died: " + r.s.why + ")" : ""}`); }
   { const L = by("dual ball"), r = play(L.from, L.from + 19, () => false); out(L.n, `dual ball: player 1 y ${r.s.y.toFixed(0)}, player 2 y ${r.s.p2 ? r.s.p2.y.toFixed(0) : "-"}`); }
 }

@@ -132,7 +132,7 @@ punishes holding the dash).
 
 ## GDLM 67 physics questions lab (2026-11-24; built by the dual/moving-objects session, NOT played yet)
 
-`tools/lab67.js` -> specs/67_physics_questions_lab.json -> levels/gdlm_67_physics_questions_lab.gdlvl (39.6 s, 17 stations).
+`tools/lab67.js` -> specs/67_physics_questions_lab.json -> levels/gdlm_67_physics_questions_lab.gdlvl (19 stations; the two ship-entry ones added by the physics session).
 One open question per station; the label says what to do, the station's note what the sim predicts. Every station has
 a ruler (deco 211 squares a block apart) so heights are read against the level in the same frame, not the moving
 camera. Stations whose answer is a choice never kill either way. `node tools/lab67.js --check` plays each station's
@@ -149,12 +149,14 @@ instructed input in the sim and prints the predictions below. To run: practice m
 | 6 | green orb in the air | tap it at a jump's top | thrown down first, then falls up to the roof | the mid-air green orb, never seen |
 | 7 | ship heights | rest on floor, hold to roof, slide on a block | y 15 / ~272 / ~118 / back to ~20 | Stereo Madness ~0.5 low, Back On Track ~1 block high |
 | 8 | ship corridor | fly it naturally | (sim needs many fast presses in such corridors) | is the ship's hover/ceiling right |
-| 9 | mini step | try to jump onto a step 56 up | cannot land (feet peak 40.7, needs 41) | the mini jump and snap (Dash 106) |
-| 10-13 | UFO, robot, spider, swing | free flight beside rulers | flap 7; hover 67 ticks; teleport; flip a tick after a press | the unmeasured modes |
-| 14 | touch trigger scale | walk under two invisible touch triggers | the scaled (y 1.2) one raises its block, the unscaled one not | touch box = 30 x scale (Dash fix) |
-| 15 | collision trigger | watch a block drop onto another | nothing (collision blocks not modelled) | does 1815 spawn its target group |
-| 16 | stop trigger | watch a rising block | stops halfway (y ~163) | stop acts on moves fired by triggers in its group |
-| 17 | dual ball | two balls | band 8 blocks: player 2 at y 225 | the assumed ball dual band |
+| 9 | ship entry RISING | no press: a pad throws the cube up through the ship portal | vy 11.9 -> 5.8 (halved): y ~115 at the 1st ruler, ~103 at the 2nd | how much rising speed a ship keeps on entry |
+| 10 | ship entry FALLING | no press: the pad's arc comes down through the ship portal | vy -8 -> -4 (halved): y ~34 at the 1st ruler; 0.25 (gdsolver's plans) would give ~56 | the rejected falling-entry factor: plans vs the user's runs |
+| 11 | mini step | try to jump onto a step 56 up | cannot land (feet peak 40.7, needs 41) | the mini jump and snap (Dash 106) |
+| 12-15 | UFO, robot, spider, swing | free flight beside rulers | flap 7; hover 67 ticks; teleport; flip a tick after a press | the unmeasured modes |
+| 16 | touch trigger scale | walk under two invisible touch triggers | the scaled (y 1.2) one raises its block, the unscaled one not | touch box = 30 x scale (Dash fix) |
+| 17 | collision trigger | watch a block drop onto another | nothing (collision blocks not modelled) | does 1815 spawn its target group |
+| 18 | stop trigger | watch a rising block | stops halfway (y ~163) | stop acts on moves fired by triggers in its group |
+| 19 | dual ball | two balls | band 8 blocks: player 2 at y 225 | the assumed ball dual band |
 
 ## Trigger firing point (2026-11-24)
 
@@ -509,7 +511,8 @@ What exists and what blocks it (2026-11-23):
   Checked: the same ship/UFO latency applied to the user's logged runs breaks two that agree (Hexagon Force 40.6 ->
   18.9, Base After Base's clear -> 65.8): the user's logs fit best WITHOUT it (each attempt's fitted clock shift already
   takes the constant delay). So the plans and the user's runs disagree about a ship entry; the next step needs a ship
-  recording with the raw-input logger (tools/inputlog_raw.ps1), e.g. a lab level with ship entries falling and rising.
+  recording with the raw-input logger (tools/inputlog_raw.ps1): GDLM 67 stations 9-10 (pad-thrown ship entries, no input:
+  falling reads y ~34 at the first ruler with 0.5, ~56 with 0.25).
 - PASS CHECK (tools/passcheck.js, 2026-11-24): an exhaustive held / not-held search (states merged on position, speed,
   mode, button, orbs) from an attempt's replayed state through a stretch. NO WAY where the user got through = a physics
   difference there; a way that needs presses the log lacks = a missed input or timing. Fingerdash 550-558: a way exists
