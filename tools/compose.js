@@ -525,7 +525,7 @@ function loop(briefFile, rounds = 8, phase = {}) {
     const planned = intents.map(i => ({ t: +SY.SYNC.tOfX(tl, i.x).toFixed(3), what: i.type === "press" ? "jump" : "release" }));
     let events = null, vnote = "";
     if (drive) {
-      const v = I.verify(wg, built.level, intents, { maxRepairs: 6 });
+      const v = I.verify(wg, built.level, intents, { maxRepairs: 20 });   // flying parts start from another height than their cached test: repairs expected there
       events = v.events;
       vnote = v.ok ? (v.repairs ? `; plays to the end with ${v.repairs} local repair(s) (cache gaps: ${v.log.join("; ")})` : "; plays to the end from the plan alone") : `; the plan stops at block ${((v.dieX || 0) / 30).toFixed(0)} (${v.log.join("; ")})`;
     }
