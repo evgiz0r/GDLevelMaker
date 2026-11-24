@@ -141,6 +141,13 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 - [ ] **Built on blocks**: a block, slab or slope in ~45-50% of the cube columns; most spikes on
   ledges, steps, pit edges and under overhangs, not lone on the floor. `node tools/obstacles.js structure --file <level>`.
   (levels/obstacles.md section 1; GDLM 41-45 had 13%)
+- [ ] **Readable climbs**: every climb (3+ rising landings) has a press moment the player can find on each step: steady
+  spacing between the jumps (within 1.5x), a landing of 0.3 s+ on the ground (4+ blocks at 1x), the next step on screen
+  when the press comes (the camera lifts only 0.38 blocks per block above 2), no window under 120 ms. `node tools/climbs.js
+  <level> | --all | --library`, score.js "climbs". The stairs pattern now makes 4-wide steps. (The user, 2026-11-24, on
+  GDLM 68's ladder: "those cube ladders are way too bad to play. its almost luck based if i can find where to click".
+  Flagged then: all 5 climbs of GDLM 68 (3-wide steps; station 1's top two steps off screen), 1-3 in each Golden Hour,
+  41, 66.)
 - [ ] **No stale stretch**: the longest time with no mode / speed / gravity / size change (a blue or green orb or pad
   counts) stays under 35 s at Easy / Normal, 25 Hard, 18 Harder, 15 Insane+ (official levels 1-6: 28-46 s; the later
   ones mostly 4-15 s). compose adds a cued gravity structure (blue pad, gravity portal pair, ceiling run) to cube sections
