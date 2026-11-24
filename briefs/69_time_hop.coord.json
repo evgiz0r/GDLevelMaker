@@ -1,0 +1,492 @@
+{
+ "level": "GDLM 69 time hop",
+ "title": "GDLM 69 time hop",
+ "brief": "briefs/69_time_hop.json",
+ "at": "2026-11-24T18:23:31.821Z",
+ "vibe": "briefs/69_time_hop.vibe.json",
+ "journey": "A ride through time: each phrase of the song is a new era in a new colour, the middle falls into a dark void between eras, and the end hops eras faster and faster until the ship flies out.",
+ "oneImage": "The whole screen switching colour on a phrase start, as if the time machine just jumped.",
+ "song": {
+  "shape": [
+   {
+    "t": [
+     0,
+     10.07025965133111
+    ],
+    "part": "intro"
+   },
+   {
+    "t": [
+     10.07025965133111,
+     28.531669012104807
+    ],
+    "part": "build"
+   },
+   {
+    "t": [
+     28.531669012104807,
+     41.95814854721295
+    ],
+    "part": "build"
+   },
+   {
+    "t": [
+     41.95814854721295,
+     62.09786784987517
+    ],
+    "part": "calm"
+   },
+   {
+    "t": [
+     62.09786784987517,
+     72.16772750120627
+    ],
+    "part": "build"
+   },
+   {
+    "t": [
+     72.16772750120627,
+     85.59420703631443
+    ],
+    "part": "drop"
+   },
+   {
+    "t": [
+     85.59420703631443,
+     93.98575674575702
+    ],
+    "part": "finale"
+   }
+  ]
+ },
+ "lookRule": "per-part",
+ "camera": "plain: the camera follows the player, no zoom or shake; the colours do all the telling",
+ "feel": {
+  "tier": "Normal",
+  "modeStretch": 12,
+  "density": "sparse: about one hazard per block at most, with breathing room"
+ },
+ "never": [
+  "deco that competes with the path (the look is the colours, not objects)",
+  "speed changes (the song's steady 143 BPM is the clock)",
+  "a long flying part before the middle"
+ ],
+ "look": "per-part",
+ "lookRules": {
+  "contrast": 3,
+  "seamBlendSecs": 1.7
+ },
+ "moodCurve": [
+  0.3,
+  0.45,
+  0.7,
+  0.4,
+  0.6,
+  0.8,
+  0.85
+ ],
+ "difficultyCurve": [
+  "Easy",
+  "Normal",
+  "Normal",
+  "Easy",
+  "Normal",
+  "Normal",
+  "Normal"
+ ],
+ "parts": [
+  {
+   "id": "p0",
+   "t": [
+    0,
+    10.07025965133111
+   ],
+   "role": "intro",
+   "energy": 0.3,
+   "mood": "light, curious",
+   "place": "a bright teal present",
+   "vehicle": {
+    "mode": "cube",
+    "speed": "1x",
+    "why": "on foot before the machine starts"
+   },
+   "moment": "a short upside-down hop at 4 s: a taste of the world turning",
+   "density": {
+    "gaps": [
+     4,
+     6
+    ]
+   },
+   "difficulty": "Easy",
+   "look": {
+    "style": "a bright teal present",
+    "bg": [
+     0,
+     240,
+     181
+    ],
+    "ground": [
+     0,
+     108,
+     81
+    ],
+    "line": [
+     153,
+     249,
+     225
+    ]
+   },
+   "transition": {
+    "in": "level start",
+    "out": "into build"
+   },
+   "must": [
+    "the title",
+    "its seam contracts",
+    "a intro's density (gaps 4-6)"
+   ],
+   "mustNot": [
+    "an ending (no 'thanks for playing', no signature)",
+    "another part's set pieces"
+   ],
+   "setPieces": []
+  },
+  {
+   "id": "p1",
+   "t": [
+    10.07025965133111,
+    28.531669012104807
+   ],
+   "role": "build",
+   "energy": 0.45,
+   "mood": "steady, on the beat",
+   "place": "a deep blue era",
+   "vehicle": {
+    "mode": "cube",
+    "speed": "1x",
+    "why": "the rhythm of the machine: jumps on the beat"
+   },
+   "moment": "the first jump in time: the screen turns blue",
+   "density": {
+    "gaps": [
+     3,
+     5
+    ]
+   },
+   "difficulty": "Normal",
+   "look": {
+    "style": "a deep blue era",
+    "bg": [
+     0,
+     99,
+     253
+    ],
+    "ground": [
+     0,
+     29,
+     73
+    ],
+    "line": [
+     153,
+     193,
+     254
+    ]
+   },
+   "transition": {
+    "in": "from intro: colours blend over 1.7 s",
+    "out": "into build"
+   },
+   "must": [
+    "its seam contracts",
+    "a build's density (gaps 3-5)"
+   ],
+   "mustNot": [
+    "a title",
+    "an ending (no 'thanks for playing', no signature)",
+    "another part's set pieces"
+   ],
+   "setPieces": []
+  },
+  {
+   "id": "p2",
+   "t": [
+    28.531669012104807,
+    41.95814854721295
+   ],
+   "role": "build",
+   "energy": 0.7,
+   "mood": "tense, upside-down logic",
+   "place": "a pink era where time runs backwards",
+   "vehicle": {
+    "mode": "cube then ship",
+    "at": 34,
+    "speed": "1x",
+    "why": "the ship is the hardest early stretch: the machine takes off"
+   },
+   "moment": "the screen flips (mirror) and turns pink; a ship at 34 s",
+   "density": {
+    "gaps": [
+     3,
+     5
+    ]
+   },
+   "difficulty": "Normal",
+   "look": {
+    "style": "a pink era where time runs backwards",
+    "bg": [
+     255,
+     0,
+     191
+    ],
+    "ground": [
+     115,
+     0,
+     86
+    ],
+    "line": [
+     255,
+     153,
+     229
+    ]
+   },
+   "transition": {
+    "in": "from build: colours blend over 1.7 s",
+    "out": "into calm"
+   },
+   "must": [
+    "its seam contracts",
+    "a build's density (gaps 3-5)"
+   ],
+   "mustNot": [
+    "a title",
+    "an ending (no 'thanks for playing', no signature)",
+    "another part's set pieces"
+   ],
+   "setPieces": []
+  },
+  {
+   "id": "p3",
+   "t": [
+    41.95814854721295,
+    62.09786784987517
+   ],
+   "role": "calm",
+   "energy": 0.4,
+   "mood": "quiet, lost, slow fade to black",
+   "place": "the dark between eras",
+   "vehicle": {
+    "mode": "cube",
+    "speed": "1x",
+    "why": "back on foot, finding the way in the dark"
+   },
+   "moment": "a 10 s fade to near black",
+   "density": {
+    "gaps": [
+     4,
+     6
+    ]
+   },
+   "difficulty": "Easy",
+   "look": {
+    "style": "the dark between eras",
+    "bg": [
+     24,
+     0,
+     23
+    ],
+    "ground": [
+     2,
+     0,
+     2
+    ],
+    "line": [
+     163,
+     153,
+     162
+    ]
+   },
+   "transition": {
+    "in": "from build: colours blend over 1.7 s",
+    "out": "into build"
+   },
+   "must": [
+    "its seam contracts",
+    "a calm's density (gaps 4-6)"
+   ],
+   "mustNot": [
+    "a title",
+    "an ending (no 'thanks for playing', no signature)",
+    "another part's set pieces"
+   ],
+   "setPieces": []
+  },
+  {
+   "id": "p4",
+   "t": [
+    62.09786784987517,
+    72.16772750120627
+   ],
+   "role": "build",
+   "energy": 0.6,
+   "mood": "rising again",
+   "place": "a purple dawn",
+   "vehicle": {
+    "mode": "upside cube",
+    "speed": "1x",
+    "why": "the world turns over as the machine restarts"
+   },
+   "moment": "a 10 s fade up from black into purple",
+   "density": {
+    "gaps": [
+     3,
+     5
+    ]
+   },
+   "difficulty": "Normal",
+   "look": {
+    "style": "a purple dawn",
+    "bg": [
+     154,
+     0,
+     130
+    ],
+    "ground": [
+     11,
+     0,
+     10
+    ],
+    "line": [
+     215,
+     153,
+     205
+    ]
+   },
+   "transition": {
+    "in": "from calm: colours blend over 1.7 s",
+    "out": "into drop"
+   },
+   "must": [
+    "its seam contracts",
+    "a build's density (gaps 3-5)"
+   ],
+   "mustNot": [
+    "a title",
+    "an ending (no 'thanks for playing', no signature)",
+    "another part's set pieces"
+   ],
+   "setPieces": []
+  },
+  {
+   "id": "p5",
+   "t": [
+    72.16772750120627,
+    85.59420703631443
+   ],
+   "role": "drop",
+   "energy": 0.8,
+   "mood": "giddy, fast-changing",
+   "place": "pink, green, cyan, magenta, green: an era every few seconds",
+   "vehicle": {
+    "mode": "cube",
+    "speed": "1x",
+    "why": "the colours move fast, the cube keeps its feet so the player can watch them"
+   },
+   "moment": "an instant palette switch every 3-7 s, flipped and upside-down moments between",
+   "density": {
+    "gaps": [
+     2,
+     3
+    ]
+   },
+   "difficulty": "Normal",
+   "look": {
+    "style": "pink, green, cyan, magenta, green: an era every few seconds",
+    "bg": [
+     251,
+     0,
+     209
+    ],
+    "ground": [
+     113,
+     0,
+     94
+    ],
+    "line": [
+     253,
+     153,
+     237
+    ]
+   },
+   "transition": {
+    "in": "from build: colours blend over 1.7 s",
+    "out": "into finale"
+   },
+   "must": [
+    "its seam contracts",
+    "a drop's density (gaps 2-3)"
+   ],
+   "mustNot": [
+    "a title",
+    "an ending (no 'thanks for playing', no signature)",
+    "another part's set pieces"
+   ],
+   "setPieces": []
+  },
+  {
+   "id": "p6",
+   "t": [
+    85.59420703631443,
+    93.98575674575702
+   ],
+   "role": "finale",
+   "energy": 0.85,
+   "mood": "triumphant escape",
+   "place": "a blue sky",
+   "vehicle": {
+    "mode": "ship",
+    "speed": "1x",
+    "why": "the machine flies out of time"
+   },
+   "moment": "ship, then upside-down ship to the end",
+   "density": {
+    "gaps": [
+     2,
+     4
+    ]
+   },
+   "difficulty": "Normal",
+   "look": {
+    "style": "a blue sky",
+    "bg": [
+     0,
+     118,
+     252
+    ],
+    "ground": [
+     0,
+     42,
+     90
+    ],
+    "line": [
+     153,
+     200,
+     254
+    ]
+   },
+   "transition": {
+    "in": "from drop: colours blend over 1.7 s",
+    "out": "the ending"
+   },
+   "must": [
+    "the ending: end text + signature",
+    "its seam contracts",
+    "a finale's density (gaps 2-4)"
+   ],
+   "mustNot": [
+    "a title",
+    "another part's set pieces"
+   ],
+   "setPieces": []
+  }
+ ]
+}

@@ -65,6 +65,18 @@
   #stagebar .todo { color:#6b5bd0; padding:3px 6px; }
   #stagebar .sep { color:#6b5bd0; }
   #varbar { display:flex; flex-wrap:wrap; gap:6px 14px; align-items:center; padding:6px 10px; background:#140b33; border-top:1px solid #2b2060; font-size:13px; }
+  #labbar { display:flex; flex-wrap:wrap; gap:6px 10px; align-items:center; padding:6px 10px; background:#0f2a2a; border-top:1px solid #1f5a55; font-size:13px; }
+  #labbar[hidden] { display:none; }
+  #labbar .vname { color:#9ff0e2; }
+  #labbar .lvars { display:flex; flex-wrap:wrap; gap:4px; }
+  #labbar button { padding:4px 9px; font-size:12px; }
+  #labbar button.cur { border-color:var(--cube); background:#3b2d78; }
+  #labbar button.todo { opacity:.5; }
+  #labbar button.pick { border-color:#ff7ab8; background:#4a1f3a; }
+  #labbar button.close { margin-left:auto; }
+  #labbar .lwhy, #labbar .lpick { flex-basis:100%; display:flex; flex-wrap:wrap; gap:4px 6px; align-items:center; }
+  #labbar #labWhy { flex:1 1 14em; min-width:10em; padding:4px 6px; }
+  @media (max-width:700px) { #labbar button { padding:8px 10px; font-size:13px; } }
   #varbar .vsec { display:flex; gap:4px; align-items:center; }
   #varbar .vname { color:#c9bdf8; margin-right:2px; }
   #varbar button { padding:3px 8px; font-size:12px; }
@@ -181,6 +193,7 @@
   <span id="cmpAt" class="muted"></span></div><img id="cmpImg" alt="game frame"></div></div>
 <div id="stagebar" hidden></div><div id="secbar" hidden></div>
 <div id="varbar" hidden></div>
+<div id="labbar" hidden></div>
 <div id="notice" hidden></div>
 <div id="taskBox" hidden><div class="card"><h2 id="taskTitle"></h2><div id="taskBody"></div>
 <div class="row"><button id="taskGo" class="on">Start</button><button id="taskAlt" hidden></button><button id="taskCancel">Cancel</button></div></div></div>
@@ -662,8 +675,8 @@ const WK = { open: false, timer: null, data: null };
 async function workFetch() {
   if (!location.protocol.startsWith("http") || window.GD_PAGES || window.GD_PHONE) return null;
   const j = async u => { try { const r = await fetch(u, { cache: "no-store" }); return r.ok ? r.json() : null; } catch (e) { return null; } };
-  const [asks, wip, heavy] = await Promise.all([j("/asks"), j("/wip/list"), j("/heavy/status")]);
-  return (WK.data = { asks: asks || [], wip: (wip || []).filter(l => l.stage || l.wip), heavy, at: Date.now() });
+  const [asks, wip, heavy, lab] = await Promise.all([j("/asks"), j("/wip/list"), j("/heavy/status"), j("/lab/list")]);
+  return (WK.data = { asks: asks || [], wip: (wip || []).filter(l => l.stage || l.wip), heavy, lab: lab || [], at: Date.now() });
 }
 function workBadge() {
   const d = WK.data, b = document.getElementById("workBadge"); if (!d || !b) return;
@@ -678,6 +691,7 @@ function workRender() {
   let h = `<h3>Decisions for you · ${open.length}</h3>` + (open.length ? open.map(c => `<div class="wkCard open"><b>${esc(c.question)}</b><div class="muted">${esc(c.session)}${c.level ? " · " + esc(c.level) : ""} · ${ago(c.at)}</div>
     <div class="opts">${c.options.map(o => `<button data-card="${esc(c.id)}" data-ans="${esc(o)}">${esc(o)}</button>`).join("")}<button data-card="${esc(c.id)}" data-other="1" title="answer in your own words">other…</button></div></div>`).join("") : "<p class='muted'>Nothing waits for your answer.</p>");
   if (done.length) h += done.map(c => `<div class="wkCard"><span class="muted">${esc(c.session)}:</span> ${esc(c.question)} → <b>${esc(c.answer)}</b>${c.note ? " (" + esc(c.note) + ")" : ""}</div>`).join("");
+  if (d.lab.length) h += `<h3>Section lab · ${d.lab.length}</h3>` + d.lab.slice(0, 6).map(r => `<div class="wkRow" data-lab="${esc(r.id)}"><span class="nm">🧪 ${esc(r.id)} · ${esc(r.moment || "")}</span><span class="pkBadge">${r.n} variants</span>${r.answer ? `<span class="muted">picked: ${esc(r.answer)}</span>` : `<span class="pkBadge wip">waits for your pick</span>`}</div>`).join("");
   h += `<h3>Builds · ${d.wip.length}</h3>` + d.wip.sort((a, b) => (!!b.waiting - !!a.waiting) || String(b.updated || "").localeCompare(String(a.updated || ""))).map(l =>
     `<div class="wkRow" data-file="${esc(l.file)}"><span class="nm">${esc(l.name)}</span><span class="pkBadge">${esc(l.session || "")}</span>${l.stage ? `<span class="pkBadge" style="background:#2b3a66;color:#cfe0ff">stage: ${esc(l.stage)}</span>` : ""}${l.waiting ? `<span class="pkBadge wip">waits for your ✓ on ${esc(l.waiting)}</span>` : ""}<span class="muted">${ago(l.updated || l.made)}</span></div>`).join("");
   const q = d.heavy;
@@ -694,6 +708,7 @@ function workRender() {
     catch (e) { notice("The answer could not be saved (is tools/serve.js running?)."); return; }
     await workFetch(); workRender(); workBadge();
   });
+  el.querySelectorAll("[data-lab]").forEach(r => r.onclick = () => { workClose(); labOpen(r.dataset.lab); });
   el.querySelectorAll("[data-file]").forEach(r => r.onclick = () => { const i = ALL.findIndex(l => l.file === r.dataset.file); if (i < 0) return notice("Refresh (⟳) to list it."); workClose(); pick.value = i; pick.dispatchEvent(new Event("change")); });
 }
 async function workShow() { WK.open = true; document.getElementById("workBox").hidden = false; document.getElementById("wkList").innerHTML = "<p class='muted'>loading…</p>"; await workFetch(); if (WK.open) { workRender(); workBadge(); }
@@ -712,7 +727,7 @@ else document.getElementById("workBtn").hidden = true;
 // is a click away. The song stage is an empty level with the song, its beats and sections; the path stage draws the
 // planned presses (◇) beside the measured route.
 const STG = { base: null, data: null, cur: null };
-const STAGE_ORDER = ["song", "layout", "path", "deco", "final"];
+const STAGE_ORDER = ["original", "spec", "plan", "song", "layout", "path", "deco", "final", "compare"];   // original/spec/plan/compare: tools/recompile.js
 async function stagesFor(l) {
   const bar = document.getElementById("stagebar");
   if (!l || !l.wip || window.GD_PAGES || window.GD_PHONE || !location.protocol.startsWith("http")) { if (!STG.cur) { bar.hidden = true; STG.base = null; } return; }
@@ -729,7 +744,7 @@ function stageRender() {
   bar.hidden = false;
   const have = new Map(STG.data.stages.map(x => [x.stage, x])), last = STG.data.stages[STG.data.stages.length - 1].stage;
   const lit = STG.cur || (STG.base && STG.base.stagesOnly ? last : null);
-  bar.innerHTML = `<span class="muted">stages</span>` + STAGE_ORDER.map((n, i) => (i ? `<span class="sep">›</span>` : "") + (have.has(n)
+  bar.innerHTML = `<span class="muted">stages</span>` + STAGE_ORDER.filter(n => have.has(n) || !/^(original|spec|plan|compare)$/.test(n)).map((n, i) => (i ? `<span class="sep">›</span>` : "") + (have.has(n)
     ? `<button data-stage="${n}" class="${lit === n ? "cur" : ""}" title="${esc((have.get(n).note || "") + " · " + new Date(have.get(n).at).toLocaleString())}">${n}${n === last ? " ●" : ""}</button>`
     : `<span class="todo" title="not made yet">${n}</span>`)).join("") +
     (STG.cur && !STG.base.stagesOnly ? `<button id="stageBack" title="back to the level as it is now">current level</button>` : "") +
@@ -831,6 +846,8 @@ function stageOpen(name) {
     if (secs && secs.length || st.note || tm) document.getElementById("summary").insertAdjacentHTML("beforeend",
       `<p class="muted">stage <b>${esc(name)}</b>${st.note ? ": " + esc(st.note) : ""}${secs && secs.length ? "<br>sections: " + secs.map(x => esc(x.name) + " " + (+x.from).toFixed(1) + "–" + (+x.to).toFixed(1) + " s").join(" · ") : ""}` +
       (tm ? `<br>build time: ${esc(tm)}${st.data.target ? ` (this stage's target ${esc(st.data.target)} s${st.data.secs > st.data.target ? ", <b>over</b>" : ""})` : ""}` : "") + `</p>`);
+    // a round-trip stage's one-pager (tools/recompile.js: the spec, the comparison) as text under the level
+    if (st.data && typeof st.data.md === "string") document.getElementById("summary").insertAdjacentHTML("beforeend", `<pre class="stageMd" style="white-space:pre-wrap;font-size:12px;max-height:50vh;overflow:auto">${esc(st.data.md)}</pre>`);
   };
   const pending = { ok: false, events: [], pending: true, why: "this stage has no route yet (find the route: the button above)" };
   // no route yet, but a plan (the layout / path stage: the patterns' intended presses): replay it at once, no solve
@@ -2542,7 +2559,83 @@ function openLink(s) {
   if (typeof pkTitle === "function") try { pkTitle(); } catch (e) {}
   return true;
 }
-addEventListener("hashchange", () => { if (!SHOOT && location.hash.length > 1) openLink(location.hash); });
+// ---------- Section lab (tools/lab.js builds one 10-20 s moment as ~6 variants, each with its own hook; VIEWER.md
+// "Section lab"): a bar with the round's variants one tap apart -- each tap opens that variant and plays it from the
+// start; 🎮 (P) plays it yourself; "pick" answers the round's decision card with a reason (POST /lab/pick -> the card,
+// local/reviews.jsonl, the actions feed). Open with #lab=r1 (#lab = the newest), the Work panel; keys 1-9 switch.
+const LAB = { round: null, k: 0, timer: null, list: null, why: "" };
+function labOk() { return location.protocol.startsWith("http") && !window.GD_PAGES && !window.GD_PHONE; }
+async function labFetch(r) { try { const x = await fetch("/lab/" + r, { cache: "no-store" }); return x.ok ? x.json() : null; } catch (e) { return null; } }
+async function labOpen(r) {
+  if (!labOk()) return notice("The section lab needs the PC's tools/serve.js (on the PC or the home Wi-Fi link).");
+  if (!r || r === "list") { const ls = await labFetch("list"); if (!ls || !ls.length) return notice("No section-lab rounds yet."); r = ls[0].id; }
+  const R = await labFetch(r); if (!R || R.error) return notice("No section-lab round " + esc(r) + ".");
+  if (!LAB.round || LAB.round.id !== R.id) LAB.k = 0;
+  LAB.round = R; LAB.list = await labFetch("list");
+  if (R.variants.some(v => !ALL.some(l => l.file === v.file))) await loadWip(true);
+  labRender(); labGo(LAB.k || (R.variants.find(v => ALL.some(l => l.file === v.file)) || R.variants[0] || {}).k);
+  clearInterval(LAB.timer); LAB.timer = setInterval(labPoll, 15000);
+}
+async function labPoll() {   // results and new variant cards arrive while the round builds
+  if (!LAB.round) return clearInterval(LAB.timer);
+  const R = await labFetch(LAB.round.id); if (!R || R.error || !LAB.round || R.id !== LAB.round.id) return;
+  const missing = R.variants.some(v => !ALL.some(l => l.file === v.file));
+  if (JSON.stringify(R) === JSON.stringify(LAB.round) && !missing) return;
+  LAB.round = R; if (missing && !PLAY.on) await loadWip(true);
+  if (document.activeElement && document.activeElement.id === "labWhy") return;   // don't redraw under the user's typing
+  labRender();
+}
+function labClose() { LAB.round = null; clearInterval(LAB.timer); document.getElementById("labbar").hidden = true; }
+function labPace(res) { const p = res && res.pace; if (!p) return ""; const f = (v, d) => v == null ? "?" : (+v).toFixed(d);
+  return `${f(p.cps, 1)} clicks/s · ${f(p.obsPerBar, 1)} obstacles/bar · ${f(p.changesPer10s, 1)} changes/10 s`; }
+function labRender() {
+  const R = LAB.round, bar = document.getElementById("labbar"); if (!R) { bar.hidden = true; return; }
+  const v = R.variants.find(x => x.k === LAB.k), ans = R.card && R.card.answer;
+  const rounds = (LAB.list || []).map(x => `<option value="${esc(x.id)}"${x.id === R.id ? " selected" : ""}>${esc(x.id)} · ${esc(x.moment || "")}${x.answer ? " ✓" : ""}</option>`).join("");
+  const tt = R.t ? ` <span class="muted">${Math.round(R.t[0])}–${Math.round(R.t[1])} s of the song</span>` : "";
+  bar.innerHTML = `<span class="vname">🧪 lab ${(LAB.list || []).length > 1 ? `<select id="labRound">${rounds}</select>` : esc(R.id)} · ${esc(R.moment || "")}${tt}</span>` +
+    `<span class="lvars">` + R.variants.map(x => { const have = ALL.some(l => l.file === x.file), picked = ans && x.option && ans === x.option;
+      return `<button data-k="${x.k}" class="${x.k === LAB.k ? "cur" : ""}${have ? "" : " todo"}" title="${esc(x.why || "")}${have ? "" : " (still building)"}">${picked ? "♥ " : ""}v${x.k} ${esc(x.hook || "")}${x.result && x.result.ok === false ? " ✗" : ""}</button>`; }).join("") + `</span>` +
+    `<button class="close" id="labClose" title="close the lab bar">✕</button>` +
+    (v ? `<div class="lwhy"><b>v${v.k} ${esc(v.hook || "")}</b>: ${esc(v.why || "")}${labPace(v.result) ? ` <span class="muted">· ${labPace(v.result)}</span>` : ""}</div>` : "") +
+    `<div class="lpick"><button id="labPlay" title="play this variant yourself (P)">🎮 play it</button>` +
+    `<input id="labWhy" placeholder="why? (boring, too slow, love the orb part…)" value="${esc(LAB.why || "").replace(/"/g, "&quot;")}">` +
+    ["boring", "too slow", "too hard", "feels good", "love the hook"].map(c => `<button data-chip="${c}">${c}</button>`).join("") +
+    (v ? `<button id="labPick" class="pick" title="answer the round: this variant is my favourite, with the reason typed here">♥ pick v${v.k}</button>` : "") +
+    `<button id="labNone" title="none of them works">none: all dull</button>` +
+    (ans ? `<span class="muted">answered: <b>${esc(ans)}</b>${R.card.note ? " (" + esc(R.card.note) + ")" : ""} · picking again changes it</span>` : "") + `</div>`;
+  bar.hidden = false;
+  bar.querySelectorAll("[data-k]").forEach(b => b.onclick = () => { b.blur(); labGo(+b.dataset.k); });
+  const why = document.getElementById("labWhy"); why.oninput = () => { LAB.why = why.value; };
+  bar.querySelectorAll("[data-chip]").forEach(b => b.onclick = () => { const s = why.value.trim(); why.value = s ? s + ", " + b.dataset.chip : b.dataset.chip; LAB.why = why.value; });
+  document.getElementById("labClose").onclick = labClose;
+  document.getElementById("labPlay").onclick = e => { e.currentTarget.blur(); PLAY.on ? playStop() : playStart(); };
+  const rs = document.getElementById("labRound"); if (rs) rs.onchange = () => labOpen(rs.value);
+  const pk = document.getElementById("labPick"); if (pk) pk.onclick = () => labPick(v.k);
+  document.getElementById("labNone").onclick = () => labPick(0);
+}
+function labGo(k) {
+  const R = LAB.round, v = R && R.variants.find(x => x.k === k); if (!v) return;
+  LAB.k = k; labRender();
+  const i = ALL.findIndex(l => l.file === v.file); if (i < 0) return notice(`v${k} ${esc(v.hook || "")} is still building; it shows up here when it is ready.`, 5000);
+  if (PLAY.on) playStop(true);
+  const before = L, l = ALL[i]; pick.value = i; pick.onchange();
+  let tries = 0; const go = () => { if (ALL[pick.value] !== l || LAB.k !== k) return;
+    if (!L || L === before || !L.path || L.path.length < 2) { if (++tries < 150) setTimeout(go, 100); return; }
+    t = 0; lastTick = -1; playing = true; setPlay(); syncSong(true); draw(); };
+  go();
+}
+async function labPick(k) {
+  const R = LAB.round; if (!R) return; const note = (document.getElementById("labWhy").value || "").trim();
+  try { const r = await fetch("/lab/pick", { method: "POST", body: JSON.stringify({ round: R.id, k, note, test: TESTPAGE || undefined }) }); if (!r.ok) throw new Error();
+    const j = await r.json(); notice(`✓ Sent to style: <b>${esc(j.answer)}</b>${note ? " (" + esc(note) + ")" : ""}`, 5000); }
+  catch (e) { return notice("The pick could not be saved (is tools/serve.js running?)."); }
+  LAB.why = ""; const R2 = await labFetch(R.id); if (R2 && !R2.error && LAB.round && LAB.round.id === R.id) LAB.round = R2; labRender();
+}
+addEventListener("keydown", e => { if (!LAB.round || PLAY.on || /INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName || "")) return;
+  if (/^Digit[1-9]$/.test(e.code) && !e.ctrlKey && !e.metaKey && !e.altKey) { const k = +e.code.slice(5); if (LAB.round.variants.some(v => v.k === k)) { e.preventDefault(); labGo(k); } } });
+function labHash() { const m = /^#lab(?:=(r\d+))?$/.exec(location.hash); return m ? (m[1] || "list") : null; }
+addEventListener("hashchange", () => { if (SHOOT || location.hash.length < 2) return; if (labHash()) return labOpen(labHash()); openLink(location.hash); });
 document.getElementById("linkBtn").onclick = async () => {
   if (window.GD_PHONE) {   // the phone page: its address can't carry a link, so a pasted one opens here
     const a = await askNote("Paste a level link (from a chat or the PC)"); if (a && a.note) openLink(a.note); return;
@@ -2559,7 +2652,8 @@ setInterval(() => { if (L && !playing) writeHash(); }, 1000);
   if (SHOOT) return shootRun();
   if (hashParams().get("embed")) return; // the parent page loads the level (viewer/polish.html)
   await loadWip(false); meLoad();
-  if (location.hash.length > 1 && !hashParams().get("embed") && linkFind(parseLink(location.hash)) >= 0) openLink(location.hash);
+  if (labHash()) labOpen(labHash());
+  else if (location.hash.length > 1 && !hashParams().get("embed") && linkFind(parseLink(location.hash)) >= 0) openLink(location.hash);
   else if (ALL.length) { pick.value = 0; pick.onchange(); }
   else if (window.GD_PAGES) {   // the public site with no level published yet (knowledge/public_levels.json is opt-in)
     document.getElementById("summary").innerHTML = "<b>First levels coming soon.</b><br><span class='muted'>Geometry Dash levels made by Claude will appear here once one is good enough to share.</span>";

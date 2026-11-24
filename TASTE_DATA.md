@@ -192,6 +192,34 @@ Its contrast score runs the other way (featured 45 vs other 63), so it is not a 
 (held-out AUC 0.633 -> 0.64; glow left out of the model as not strong): what these see, the effort measures already saw. For a level: **put motion on every
 screen** (move / rotate / pulse triggers on deco). Glow: keep it moderate (10-25 %), it is not a lever.
 
+## Sections vs real levels (2026-11-24, `tools/compare_sections.js`)
+
+Ours: GDLM 64 golden hour v5, 62 low end lullaby, 52 necromancy, 61 lantern towers. Real: Jumper, Time Machine, Spooky
+Dash, Dreamy, boogie, and two on OUR songs -- SLAM (GDLM 52's song) and Subwoofer Lullaby (GDLM 62's). Each level is cut at
+its song's section changes (songmap), typed (intro / build / drop / calm / groove / flight / ending), and every one of our
+16 sections is paired with a real section of the same type (same song first). Sheets and pictures: local/compare_sections/
+(local only). Luck for "on a beat" (60 ms) is ~30%.
+
+Where we are off, ranked by gap size (counts on a log scale) times how many pairs agree:
+
+| # | measure | ours | real | pairs | reading |
+|---|---|---|---|---|---|
+| 1 | deco pulses on a beat | 57% | 31% | 14/16 | real levels pulse at luck level: their pulses are not beat-locked, ours are. Over-sync (SYNC.md "loose, not forced") |
+| 2 | contrast score | 100 | 50 | 16/16 | ours are plain and stark; featured levels sit lower (ART.md), so this is a look gap, not a fairness one |
+| 3 | portals on a bar line | 100% | 33% | 7/9 | every one of our portals is on a bar line; real ones follow the gameplay (Jumper 50-67%, 2.2 levels less) |
+| 4 | hazards per block | 0.14 | 0.26 | 15/16 | half the hazards. NB the refs are higher tiers (SLAM Harder, officials); within a tier featured levels have FEWER (above) |
+| 5 | obstacles per bar | 1.5 | 2.4 | 11/16 | less happens per bar |
+| 6 | motion triggers per screen | 10 | 45 | 12/16 | the deco moves 4x less; deco pulses per minute 406 vs 1702 |
+| 7 | obstacles on a beat | 17% | 27% | 10/15 | both at luck level: neither side puts obstacles on beats |
+| 8 | repeated chunks | 20% | 7% | 6/10 | we repeat more |
+| 9 | objects per block | 9 | 35 | 13/16 | the known budget gap (above) |
+
+Energy follows the song's loudness only weakly on BOTH sides (rho ours 0.11-0.27, real -0.06-0.23; songmap: officials
+0.18), so a flat-energy level is normal, not ours alone.
+Limits: Subwoofer Lullaby (2.2) builds its layout with triggers, so its frames render black (our renderer draws objects
+where they start) -- its numbers count, its pictures do not; the sheet maker skips black frames for the gap pictures. The
+height-change measure is a static proxy that reads 0 on most 2.2 levels: shown, not ranked.
+
 ## Our GDLM levels through the taste score (2026-11-24, band EN|2.2)
 
 `node tools/taste.js score levels/gdlm_4*.gdlvl levels/gdlm_5*.gdlvl levels/gdlm_60*.gdlvl` (full output in

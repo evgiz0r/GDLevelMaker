@@ -308,7 +308,10 @@ function compose(brief, tweaks = {}) {
           // levels hardly repeat a 4-move pattern within 10 s; GDLM 47 repeated 17%)
           const recent = placed.slice(-2).map(p => p.name);
           const pool = sec.use.length > 2 ? sec.use.filter(n => !recent.includes(n)) : sec.use.length > 1 ? sec.use.filter(n => n !== last) : sec.use;
-          const wts = pool.map((n, i) => 1 + (n === sec.use[sec.use.length - 1] ? 1 : 0) + i * 0.2);
+          // ... and the least-used kinds first: a weight falls with how often the section already placed it (repeated
+          // chunks: ours 20-57% vs real levels' 7%, gd-taste's section comparison 2026-11-24)
+          const usedN = n => placed.filter(p => p.section === sec.name && p.name === n).length;
+          const wts = pool.map((n, i) => (1 + (n === sec.use[sec.use.length - 1] ? 1 : 0) + i * 0.2) / (1 + usedN(n)) ** 2);
           let x = r1 * wts.reduce((a, b) => a + b, 0);
           name = pool[pool.length - 1];
           for (let i = 0; i < pool.length; i++) { x -= wts[i]; if (x <= 0) { name = pool[i]; break; } }

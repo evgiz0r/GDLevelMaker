@@ -1,4 +1,5 @@
-// node tools/compare_sections.js [--ours a.gdlvl,b.gdlvl] [--refs official:7,c150941693,...] [--no-render] [--out local/compare_sections]
+// node tools/compare_sections.js [--ours a.gdlvl,b.gdlvl] [--refs official:7,c150941693,...] [--no-render] [--fresh] [--out local/compare_sections]
+//   (frames already rendered at the same spots are reused; --fresh renders them again)
 //
 // Our levels against real ones, section by section: where we are off on sync and style.
 // 1. Every level is cut into sections at its SONG's section changes (tools/songmap.js: Foote novelty on the bars),
@@ -201,25 +202,31 @@ async function main() {
   const gaps = [];
   for (const [area, k, label, u, norank] of SHOW) {
     if (norank) continue;
-    const refVals = refSecs.map(r => r.s.M[k]).filter(Number.isFinite).sort((a, b) => a - b);
+    // counts (u "") on a log scale: 9 vs 35 objects per block is a 4x gap however much the references vary
+    const tf = u === "%" || k === "energyGap" || k === "contrast" ? (x => x) : (x => Math.log(Math.max(0, x) + 0.1));
+    const refVals = refSecs.map(r => tf(r.s.M[k])).filter(Number.isFinite).sort((a, b) => a - b);
     if (refVals.length < 4) continue;
     const iqr = (refVals[Math.floor(refVals.length * 0.75)] - refVals[Math.floor(refVals.length * 0.25)]) || (refVals[refVals.length - 1] - refVals[0]) || 1;
-    const d = pairs.map(p => ({ p, d: p.s.M[k] - p.rs.M[k] })).filter(x => Number.isFinite(x.d));
+    const d = pairs.map(p => ({ p, d: tf(p.s.M[k]) - tf(p.rs.M[k]) })).filter(x => Number.isFinite(x.d));
     if (d.length < 3) continue;
-    const md = med(d.map(x => x.d)), worst = d.slice().sort((a, b) => Math.sign(md) * (b.d - a.d))[0];
-    gaps.push({ area, k, label, u, z: md / iqr, ours: med(d.map(x => x.p.s.M[k])), ref: med(d.map(x => x.p.rs.M[k])), n: d.length, same: d.filter(x => Math.sign(x.d) === Math.sign(md)).length, worst: worst.p });
+    const md = med(d.map(x => x.d)), byGap = d.slice().sort((a, b) => Math.sign(md) * (b.d - a.d)), worst = byGap[0], same = d.filter(x => Math.sign(x.d) === Math.sign(md)).length;
+    // rank: the median gap in reference spreads, times how consistently the pairs agree (2 * share - 1: 1 = all, 0 = a coin)
+    gaps.push({ area, k, label, u, z: md / iqr, rank: Math.abs(md / iqr) * Math.max(0, 2 * same / d.length - 1), ours: med(d.map(x => x.p.s.M[k])), ref: med(d.map(x => x.p.rs.M[k])), n: d.length, same, worst: worst.p, top: byGap.map(x => x.p) });
   }
-  gaps.sort((a, b) => Math.abs(b.z) - Math.abs(a.z));
+  gaps.sort((a, b) => b.rank - a.rank);
   // pictures
   const shots = {};
   if (!args.includes("--no-render")) for (const p of pairs) {
     const key = `${p.o.L.name}|${p.s.i}`, at = ((p.s.t0 + p.s.t1) / 2 - p.o.E.off).toFixed(2), rat = ((p.rs.t0 + p.rs.t1) / 2 - p.r.E.off).toFixed(2);
     const dir = path.join(OUT, "frames", slug(p.o.L.name) + "_" + p.s.i);
+    const have = path.join(dir, `s${String(+at).padStart(5, "0")}.png`);   // compare_frames' own name for this spot
+    if (fs.existsSync(have) && fs.existsSync(path.join(dir, "ref_at.txt")) && fs.readFileSync(path.join(dir, "ref_at.txt"), "utf8") === p.r.L.renderId + "@" + rat && !args.includes("--fresh")) { shots[key] = have; continue; }
     try {
-      cp.execFileSync(process.execPath, [path.join(__dirname, "compare_frames.js"), p.o.src, p.r.renderId, "--at", "s:" + at, "--ref-at", "s:" + rat, "--out", dir],
-        { cwd: ROOT, stdio: ["ignore", "pipe", "pipe"], env: process.env, timeout: 15 * 60e3 });
+      try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) {}
+      cp.execFileSync(process.execPath, [path.join(__dirname, "compare_frames.js"), p.o.src, p.r.L.renderId, "--at", "s:" + at, "--ref-at", "s:" + rat, "--out", dir],
+        { windowsHide: true, cwd: ROOT, stdio: ["ignore", "pipe", "pipe"], env: process.env, timeout: 15 * 60e3 });
       const png = fs.readdirSync(dir).filter(f => f.endsWith(".png")).map(f => path.join(dir, f))[0];
-      if (png) shots[key] = png;
+      if (png) { shots[key] = png; fs.writeFileSync(path.join(dir, "ref_at.txt"), p.r.L.renderId + "@" + rat); }
     } catch (e) { console.log("render failed", key, String(e.stderr || e.message).slice(-400)); }
   }
   const data = { made: new Date().toISOString(), levels: Object.values(lv).map(v => ({ src: v.src, name: v.L.name, song: v.L.songKey, ours: v.ours, energyLoud: r2(v.rho), routed: !!v.E.presses,
@@ -232,9 +239,11 @@ async function main() {
   for (const p of pairs) sheetIn.pairs.push({ level: p.o.L.name, title: `${p.o.L.name} #${p.s.i} ${p.s.type} (${p.s.mainMode}, ${fmtT(p.s.t0 - p.o.E.off)}-${fmtT(p.s.t1 - p.o.E.off)})  vs  ${p.r.L.name} #${p.rs.i} ${p.rs.type} (${p.rs.mainMode}, ${fmtT(p.rs.t0 - p.r.E.off)}-${fmtT(p.rs.t1 - p.r.E.off)})${p.same ? "  same song" : ""}`,
     png: shots[`${p.o.L.name}|${p.s.i}`] || null, rows: SHOW.map(([a, k, l, u]) => [a, l, fmt(p.s.M[k], u), fmt(p.rs.M[k], u)]) });
   gaps.slice(0, 6).forEach((g, i) => sheetIn.gaps.push({ rank: i + 1, title: `${i + 1}. ${g.label}: ours ${fmt(g.ours, g.u)}, real ${fmt(g.ref, g.u)} (${g.same}/${g.n} pairs the same way)`,
-    png: shots[`${g.worst.o.L.name}|${g.worst.s.i}`] || null, sub: `shown: ${g.worst.o.L.name} #${g.worst.s.i} ${g.worst.s.type} (${fmt(g.worst.s.M[g.k], g.u)}) vs ${g.worst.r.L.name} #${g.worst.rs.i} (${fmt(g.worst.rs.M[g.k], g.u)})` }));
+    // the pairs in order of how much they show it; the sheet maker takes the first whose reference is not a black frame (a level built by
+    // triggers draws nothing where its objects start)
+    options: g.top.map(p => ({ png: shots[`${p.o.L.name}|${p.s.i}`] || null, sub: `shown: ${p.o.L.name} #${p.s.i} ${p.s.type} (${fmt(p.s.M[g.k], g.u)}) vs ${p.r.L.name} #${p.rs.i} (${fmt(p.rs.M[g.k], g.u)})` })) }));
   fs.writeFileSync(path.join(OUT, "sheets.json"), JSON.stringify(sheetIn));
-  try { cp.execFileSync("python", [path.join(__dirname, "compare_sheets.py"), path.join(OUT, "sheets.json"), OUT], { stdio: "inherit" }); } catch (e) { console.log("sheets failed:", e.message); }
+  try { cp.execFileSync("python", [path.join(__dirname, "compare_sheets.py"), path.join(OUT, "sheets.json"), OUT], { windowsHide: true, stdio: "inherit" }); } catch (e) { console.log("sheets failed:", e.message); }
   // report
   const lines = ["# Sections: ours vs real levels", "", `Made ${data.made.slice(0, 16)} by tools/compare_sections.js. Luck for "on a beat" (60 ms) is ~${Math.round(mean(pairs.map(p => p.s.M.luck60)) * 100)}%.`, "",
     "## Where we're off (biggest first)", "", "| # | measure | ours | real | pairs the same way | shown by |", "|---|---|---|---|---|---|"];

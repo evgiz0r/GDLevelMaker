@@ -23,7 +23,8 @@
 //   node tools/stages.js sections <session> <base> <briefs/NN.seams.json>    copy the seam contract's sections in
 // setSections() keeps a section's reviews while its status for that role is unchanged; a new status clears them.
 //
-// stage: song | layout | path | deco | final (that order). Files: local/wip/<session>/<base>.stages/
+// stage: song | layout | path | deco | final (that order); a rebuild from a real level (tools/recompile.js, BUILDING.md 8) adds
+// original | spec | plan before them and compare after: data.md is shown as text under the level. Files: local/wip/<session>/<base>.stages/
 //   index.json      { level: "<base>.gdlvl", name, session, stages: [{ stage, at, note, file?, data? }] } -- a later
 //                   put of the same stage replaces it; stages are kept in the order above
 //   <stage>.gdlvl   the level at that stage, when levelStr is given (layout: gameplay only; deco: with the look; final)
@@ -36,7 +37,7 @@
 // and asks the PC to solve it otherwise (the task modal).
 const fs = require("fs"), path = require("path");
 const ROOT = path.join(__dirname, ".."), WIP = process.env.GDLM_WIP_DIR || path.join(ROOT, "local", "wip");   // GDLM_WIP_DIR: tests
-const ORDER = ["song", "layout", "path", "deco", "final"];
+const ORDER = ["original", "spec", "plan", "song", "layout", "path", "deco", "final", "compare"];   // original / spec / plan / compare: the reverse round trip (tools/recompile.js)
 function dirOf(session, base) { return path.join(WIP, String(session).replace(/[^\w-]+/g, ""), String(base).replace(/\.gdlvl$/, "") + ".stages"); }
 function read(dir) { try { return JSON.parse(fs.readFileSync(path.join(dir, "index.json"), "utf8")); } catch (e) { return null; } }
 function put(o) {

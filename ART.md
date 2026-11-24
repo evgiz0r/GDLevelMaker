@@ -213,7 +213,7 @@ A soft rule, scored by `node tools/contrast.js <level ...> [--all] [--official] 
 "contrast", WARN under 70). Every 10 blocks, with the colours the header and colour triggers give there (time ~ x at
 1x: approximate on levels with speed portals), it measures LUMINANCE contrast (WCAG ratio): hazard/bg, block/bg,
 ground/bg (or the ground line), a hazard against a differently-coloured block next to it, and deco in front of hazards.
-Thresholds = the official levels' 10th percentile: hazard/bg 1.6, block/bg 1.5, ground/bg 1.1 (or line/bg 3),
+Thresholds = the official levels' 10th percentile: hazard/bg 1.6, block/bg 1.15 (was 1.5: see "Retuned" below), ground/bg 1.1 (or line/bg 3),
 hazard/block 1.3 (only when their colours differ: one colour for both is normal GD, told apart by shape), 40+ deco
 pieces on hazards in a section. Official medians: hazard/bg 2.1-21 (most 3.5-7), ground/bg 1.0-3.9.
 Official section scores: 4-100, median ~88 (Fingerdash 4 and Dash 26: heavy colour-trigger / copy-colour effects the
@@ -224,9 +224,27 @@ block in two hues at one value, ~27-28 s and ~97 s), 45 first flight 74 (block/b
 (ground at the background's brightness, ~1-3 s and ~10 s; its bright line saves part of it), 51 adrift 97 (deco over
 hazards ~7.7 s); the rest 100. Pictures: local/shots/ (shoot.js at those times).
 
+**Retuned 2026-11-24 (gd-taste's section comparison, `tools/compare_sections.js`, local/compare_sections/report.md):**
+our sections scored 100 against 50 for 7 real levels -- we were overshooting. Taken apart per rule on the 5 rated 2.2
+levels there:
+- their background sits at luminance ~0.2-0.26 (Dreamy, Spooky Dash) or near black (SLAM, Subwoofer Lullaby, boogie);
+  ours ran from 0.015 (52) to 0.47 (64 v5, a bright sky);
+- their blocks sit CLOSE to the background (block/bg medians 1.35-3.4, SLAM 6.2) and read by their outlines; ours
+  5.6-15 (black blocks on a bright sky). Most of their "fails" were block/bg 1.08-1.5, so the floor is now 1.15;
+- their hazards stay clear (median hazard/bg 3.8-4.2 on mid-tone levels); SLAM / Subwoofer / boogie read under 1.6 by
+  fill but their spikes carry glow outlines the measure cannot see (a known limit). **The hazard floor stays at 1.6:**
+  the user's "mushy" note was about hazards, and that rule does not move;
+- new soft note **STARK**: median block/bg over 6.5 (above every rated level) = WARN in score.js. 8 GDLM levels were
+  stark that day (43 climb, 44 hellgate, 46 sketch, 46 arrow catalogue, 50 eclipse, 51 adrift, 52 necromancy, prop test;
+  `node tools/contrast.js --all | grep STARK`).
+In short: **mid-tone scene, clear hazards.** `require("./tools/decokit.js").midTone(hue)` gives a palette that does it
+(bg at luminance 0.17, blocks 3x darker -- the checklist's "three values" -- with a light outline ~8-9x off the block,
+hazards ~4.4x, three deco depths between bg and block, ground darkest).
+
 **The palette rule** (for compose / scenes / anyone picking colours):
-1. Pick the background first, then put hazards and block edges at the OTHER end of brightness: dark bg -> light
-   hazards (or white edges), light bg (a sunny sky) -> dark blocks and spikes. Ratio >= 3 is safe, 1.6 is the floor.
+1. Pick the background first, mid-tone (luminance ~0.2) or dark; then put HAZARDS and block EDGES at the other end of
+   brightness (ratio >= 3 is safe, 1.6 is the floor). Block fills may stay near the bg (1.3-3x): the edge carries them.
+   A bright sky with black blocks everywhere is the stark fault (block/bg > 6.5).
 2. Hue is for mood, value is for reading: two colours one step apart in hue but equal in brightness are mush.
 3. Ground: a step darker or lighter than the bg (ratio >= 1.1), or a bright ground line.
 4. Colour triggers keep the rule at every moment: check the colour a trigger fades TO against what is behind then.
@@ -283,20 +301,30 @@ What it says:
 - **Glow:** a quarter of the objects in a featured level sit on a blending channel or come from a glow / gradient family.
   In legendary 2.2 it is 12%, and in 2.0-2.1 featured levels 47%: glow-heavy is the older style. Ours: none.
 - **Motion:** 15 motion triggers per screen (move, alpha, pulse, particles...), 63 in legendary 2.2. Ours: 0.
+  Section by section against real levels (compare_sections, 2026-11-24): rated 2.2 median 48 per screen (Dreamy 45,
+  SLAM 50, Subwoofer 73) and ~1700 pulse / move / rotate triggers a minute; ours 10 and 406.
 - **Layers:** a median of 3 layers holding 5% or more each. The back and front shares are small (most deco sits at
   B1-T1 around the play), so depth comes from colour more than from layer count.
 - **Contrast is not what featured levels win on:** their median is 45 on tools/contrast.js, while the officials score 93
   and we score 100. The score reads only start and trigger colours (no glow, no art), so a busy level loses points.
   Keep it as a floor for OUR levels (WARN under 70), not as a taste target.
 
-**Targets for a GDLM level (per screen, play sections):**
-- n 250-600 (12-30 objects per block);
-- dress at least 3 per play object;
+**Targets for a GDLM level (per screen, play sections; retuned 2026-11-24 to gd-taste's section comparison, which
+measured the same sections of 7 real levels: their medians in brackets):**
+- n 500-900 per screen, 25-45 objects per block (rated 2.2 median 37 per block; ours 9);
+- dress at least 3 per play object (rated 2.2 median 7.8);
 - glow 10-25%;
-- at least 6 channels, with HSV variants;
-- at least 10 motion triggers;
+- at least 8 channels, with HSV variants (rated 2.2 median 14; ours 2 in the plain levels);
+- motion by the song's energy: drops ~45 triggers per screen and 1000-1700 a minute, grooves ~25, calm parts ~12
+  (rated 2.2: 48 and ~1700; ours 10 and 406). `decokit.motion(x0, x1, {beat, spb, energy, pulse, bob, sway})` puts
+  them: 4 pulse + 3 bob + 1 sway groups = 46 a screen at energy 1, 23 at 0.3. Pulses mostly OFF the beat (real ~30%
+  on a beat; ours 57% reads as a metronome): motion() puts only the first pulse group on it;
+  first user: tools/scenes/golden_hour.js (GDLM 64 v8, style, 2026-11-24): pulse stars / rays / sun halo, bob motes /
+  clouds / backdrop, sway grass; energy per scene 0.3-1; ~44 triggers a screen on v5's gameplay (was 11). It keeps its
+  bright golden sky (luminance ~0.47, block/bg 5.6: under the stark line) as the level's idea;
 - at least 3 layers;
-- contrast at least 70 (tools/contrast.js).
+- contrast: hazards clear (contrast.js 70+, the hazard floor unchanged) but NOT stark (median block/bg under 6.5): a
+  mid-tone scene, `decokit.midTone`.
 
 Check any level with `node tools/decostudy.js <file.gdlvl>`.
 

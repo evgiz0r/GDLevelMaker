@@ -184,7 +184,9 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 - [ ] **Taste from data** (308 rated / unrated community levels, within tier and era, effort taken out):
   featured levels have **fewer hazards per block** (delta -0.25; epic+ vs featured -0.33) and **longer
   sections** (fewer mode / speed swaps per minute, -0.28), and a fuller look -- above all **motion on every
-  screen** (move / rotate / pulse triggers on deco, +0.32 with effort out). `node tools/taste.js score
+  screen** (move / rotate / pulse triggers on deco, +0.32 with effort out).
+  Against real sections of the same type (`tools/compare_sections.js`): we over-sync -- deco pulses on the beat 57% vs
+  31% (luck ~30%), portals on bar lines 100% vs 33% -- and under-animate (motion triggers per screen 10 vs 45). `node tools/taste.js score
   <level>`; score.js gate "taste". Most of the user's spot rules come out "unclear" in level-wide data
   (not weaker for it). (TASTE_DATA.md)
 - [ ] **Crafted like RobTop's** (the user: "nothing at the level of ... Jumper or xStep"): many small
@@ -197,7 +199,9 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 - [ ] **No white deco by accident** (the user, 2026-11-24, after GDLM 67 in the real game: "our deco being pure white within the game is still expected?"): every deco object's colour channel -- its key 21/22, or its default (channel 1 for 211 / 693) -- is defined in the header or by a colour trigger before it; otherwise GD draws it WHITE. `node tools/channels.js <level>`, score.js gate "channels" (FAIL).
 - [ ] **Readable colours, not mush** (the user, 2026-11-24: "sometimes its not clear and its all mooshy"): judge by
   BRIGHTNESS, not hue -- hazards and blocks stand out from the background at every moment (luminance ratio hazard/bg
-  >= 1.6, block/bg >= 1.5; aim for 3+ like most official sections), the floor shows (ground/bg >= 1.1 or a bright
+  >= 1.6, block/bg >= 1.15 with an edge; aim for 3+ like most official sections) but not STARK (median block/bg
+  over 6.5, black blocks on a bright sky everywhere: rated 2.2 levels sit at 1.35-6.2; `decokit.midTone(hue)` gives a
+  mid-tone palette with clear hazards), the floor shows (ground/bg >= 1.1 or a bright
   ground line), a spike and its block are one colour or clearly different in brightness (never two hues at one value),
   no glow/deco in front of hazards. Colour triggers included. `node tools/contrast.js <level>` (score.js gate
   "contrast"); palette rule in ART.md "Colour readability".
@@ -214,7 +218,9 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 - [ ] **A theme with one motif through the level, and a new scene per section**: palette, frame and
   background change with the mode. Mode changes and look changes go together.
 - [ ] **Motion**: moves, fades and particles (~100-150 each per minute). The camera changes at
-  sections. Shaders only at transitions and drops.
+  sections. Shaders only at transitions and drops. Per screen by energy (gd-taste's section comparison, 2026-11-24:
+  rated 2.2 median 48 a screen, ~1700 pulse/move/rotate a minute; ours 10 and 406): drops ~45, grooves ~25, calm ~12,
+  pulses mostly off the beat. `decokit.motion(x0, x1, {beat, spb, energy, pulse, bob, sway})`; decostudy.js measures.
 - [ ] **Shape of the level**: a dense opening, quiet 1-2 s transitions, the biggest effects at the
   drops. A title at the start and credits at the end. Don't copy any one level's art.
 - [ ] **The title clears GD's "Attempt N" counter**: it shows ~5 rows up from the start to ~6 blocks

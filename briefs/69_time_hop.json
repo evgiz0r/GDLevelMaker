@@ -1,699 +1,699 @@
 {
-  "name": "GDLM 69 time hop",
+ "name": "GDLM 69 time hop",
+ "desc": "A ride through time: a new era in a new colour on every phrase.",
+ "notes": "A ride through time: each phrase of the song is a new era in a new colour, the middle falls into a dark void between eras, and the end hops eras faster and faster until the ship flies out.",
+ "idea": "The whole screen switching colour on a phrase start, as if the time machine just jumped.",
+ "story": "0-10 s intro: a short upside-down hop at 4 s: a taste of the world turning; 10-28 s build: the first jump in time: the screen turns blue; 28-34 s build: the screen flips (mirror) and turns pink; a ship at 34 s; 34-41.6 s build: the screen flips (mirror) and turns pink; a ship at 34 s; 41.6-61.4 s break: a 10 s fade to near black; 61.4-68.3 s build: a 10 s fade up from black into purple; 68.3-88.2 s drop: an instant palette switch every 3-7 s, flipped and upside-down moments between; 88.2-94.6 s finale: ship, then upside-down ship to the end",
+ "song": {
+  "official": 8
+ },
+ "grid": {
+  "bpm": 143.001,
+  "t0": 0.0494
+ },
+ "offset": 0.049,
+ "seed": 31,
+ "difficulty": {
+  "label": "Normal",
+  "minWindowMs": 60
+ },
+ "structures": true,
+ "signature": {},
+ "vibe": {
+  "title": "GDLM 69 time hop",
   "desc": "A ride through time: a new era in a new colour on every phrase.",
-  "notes": "A ride through time: each phrase of the song is a new era in a new colour, the middle falls into a dark void between eras, and the end hops eras faster and faster until the ship flies out.",
-  "idea": "The whole screen switching colour on a phrase start, as if the time machine just jumped.",
-  "story": "0-10 s intro: a short upside-down hop at 4 s: a taste of the world turning; 10-28 s build: the first jump in time: the screen turns blue; 28-34 s build: the screen flips (mirror) and turns pink; a ship at 34 s; 34-41.6 s build: the screen flips (mirror) and turns pink; a ship at 34 s; 41.6-61.4 s break: a 10 s fade to near black; 61.4-68.3 s build: a 10 s fade up from black into purple; 68.3-88.2 s drop: an instant palette switch every 3-7 s, flipped and upside-down moments between; 88.2-94.6 s finale: ship, then upside-down ship to the end",
-  "song": {
-    "official": 8
-  },
-  "grid": {
-    "bpm": 143.001,
-    "t0": 0.0494
-  },
-  "offset": 0.049,
-  "seed": 31,
-  "difficulty": {
-    "label": "Normal",
-    "minWindowMs": 60
-  },
-  "structures": true,
-  "signature": {},
-  "vibe": {
-    "title": "GDLM 69 time hop",
-    "desc": "A ride through time: a new era in a new colour on every phrase.",
-    "journey": "A ride through time: each phrase of the song is a new era in a new colour, the middle falls into a dark void between eras, and the end hops eras faster and faster until the ship flies out.",
-    "oneImage": "The whole screen switching colour on a phrase start, as if the time machine just jumped.",
-    "never": [
-      "deco that competes with the path (the look is the colours, not objects)",
-      "speed changes (the song's steady 143 BPM is the clock)",
-      "a long flying part before the middle"
-    ],
-    "song": {
-      "official": 8,
-      "from": 0,
-      "shape": [
-        {
-          "t": [
-            0,
-            10
-          ],
-          "part": "intro"
-        },
-        {
-          "t": [
-            10,
-            41.6
-          ],
-          "part": "build"
-        },
-        {
-          "t": [
-            41.6,
-            61.4
-          ],
-          "part": "break"
-        },
-        {
-          "t": [
-            61.4,
-            88
-          ],
-          "part": "drop"
-        },
-        {
-          "t": [
-            88,
-            94.6
-          ],
-          "part": "finale"
-        }
-      ]
-    },
-    "feel": {
-      "tier": "Normal",
-      "modeStretch": 12,
-      "density": "sparse: about one hazard per block at most, with breathing room"
-    },
-    "lookRule": "per-part",
-    "camera": "plain: the camera follows the player, no zoom or shake; the colours do all the telling",
-    "motifs": [
-      "a palette switch on a phrase start = a jump to a new era (instant when hopping, a 10 s fade when sinking into or out of the void)",
-      "upside-down cube moments as short 'the world turned over' interludes",
-      "flipped screen (mirror) once time runs backwards"
-    ],
-    "rhythm": {
-      "sync": "portals",
-      "speed": "1x"
-    },
-    "beats": [
-      {
-        "id": "departure",
-        "t": [
-          0,
-          10
-        ],
-        "role": "intro",
-        "energy": 0.3,
-        "place": "a bright teal present",
-        "mood": "light, curious",
-        "vehicle": {
-          "mode": "cube",
-          "speed": "1x",
-          "why": "on foot before the machine starts"
-        },
-        "moment": "a short upside-down hop at 4 s: a taste of the world turning",
-        "look": {
-          "palette": {
-            "bg": "#00f0b5"
-          }
-        }
-      },
-      {
-        "id": "first era",
-        "t": [
-          10,
-          28
-        ],
-        "role": "build",
-        "energy": 0.45,
-        "place": "a deep blue era",
-        "mood": "steady, on the beat",
-        "vehicle": {
-          "mode": "cube",
-          "speed": "1x",
-          "why": "the rhythm of the machine: jumps on the beat"
-        },
-        "moment": "the first jump in time: the screen turns blue",
-        "look": {
-          "palette": {
-            "bg": "#0063fd"
-          }
-        },
-        "transition": {
-          "in": "instant"
-        }
-      },
-      {
-        "id": "reversal",
-        "t": [
-          28,
-          34
-        ],
-        "role": "build",
-        "energy": 0.7,
-        "place": "a pink era where time runs backwards",
-        "mood": "tense, upside-down logic",
-        "vehicle": {
-          "mode": "cube",
-          "at": 34,
-          "speed": "1x",
-          "why": "the ship is the hardest early stretch: the machine takes off"
-        },
-        "moment": "the screen flips (mirror) and turns pink; a ship at 34 s",
-        "look": {
-          "palette": {
-            "bg": "#ff00bf"
-          }
-        },
-        "transition": {
-          "in": "instant"
-        }
-      },
-      {
-        "id": "reversal (ship)",
-        "t": [
-          34,
-          41.6
-        ],
-        "role": "build",
-        "energy": 0.7,
-        "place": "a pink era where time runs backwards",
-        "mood": "tense, upside-down logic",
-        "vehicle": {
-          "mode": "ship",
-          "at": 34,
-          "speed": "1x",
-          "why": "the ship is the hardest early stretch: the machine takes off"
-        },
-        "moment": "the screen flips (mirror) and turns pink; a ship at 34 s",
-        "look": {
-          "palette": {
-            "bg": "#ff00bf"
-          }
-        },
-        "transition": {}
-      },
-      {
-        "id": "the void",
-        "t": [
-          41.6,
-          61.4
-        ],
-        "role": "break",
-        "energy": 0.4,
-        "place": "the dark between eras",
-        "mood": "quiet, lost, slow fade to black",
-        "vehicle": {
-          "mode": "cube",
-          "speed": "1x",
-          "why": "back on foot, finding the way in the dark"
-        },
-        "moment": "a 10 s fade to near black",
-        "look": {
-          "palette": {
-            "bg": "#180017"
-          }
-        },
-        "transition": {
-          "in": "fade 10"
-        }
-      },
-      {
-        "id": "re-emergence",
-        "t": [
-          61.4,
-          68.3
-        ],
-        "role": "build",
-        "energy": 0.6,
-        "place": "a purple dawn",
-        "mood": "rising again",
-        "vehicle": {
-          "mode": "upside cube",
-          "speed": "1x",
-          "why": "the world turns over as the machine restarts"
-        },
-        "moment": "a 10 s fade up from black into purple",
-        "look": {
-          "palette": {
-            "bg": "#9a0082"
-          }
-        },
-        "transition": {
-          "in": "fade 10"
-        }
-      },
-      {
-        "id": "era hopping",
-        "t": [
-          68.3,
-          88.2
-        ],
-        "role": "drop",
-        "energy": 0.8,
-        "place": "pink, green, cyan, magenta, green: an era every few seconds",
-        "mood": "giddy, fast-changing",
-        "vehicle": {
-          "mode": "cube",
-          "speed": "1x",
-          "why": "the colours move fast, the cube keeps its feet so the player can watch them"
-        },
-        "moment": "an instant palette switch every 3-7 s, flipped and upside-down moments between",
-        "look": {
-          "palette": {
-            "bg": "#fb00d1"
-          },
-          "palettes": [
-            "#fb00d1",
-            "#0fff00",
-            "#00fcfc",
-            "#ff00d6",
-            "#31ff00"
-          ]
-        },
-        "transition": {
-          "in": "instant"
-        }
-      },
-      {
-        "id": "lift-off",
-        "t": [
-          88.2,
-          94.6
-        ],
-        "role": "finale",
-        "energy": 0.85,
-        "place": "a blue sky",
-        "mood": "triumphant escape",
-        "vehicle": {
-          "mode": "ship",
-          "speed": "1x",
-          "why": "the machine flies out of time"
-        },
-        "moment": "ship, then upside-down ship to the end",
-        "look": {
-          "palette": {
-            "bg": "#0076fc"
-          }
-        },
-        "transition": {
-          "in": "fade 5"
-        }
-      }
-    ]
-  },
-  "vibeNotes": [
-    "reversal: a pink era where time runs backwards: mirror is not simulated -- left out",
-    "reversal (ship): a pink era where time runs backwards: mirror is not simulated -- left out"
+  "journey": "A ride through time: each phrase of the song is a new era in a new colour, the middle falls into a dark void between eras, and the end hops eras faster and faster until the ship flies out.",
+  "oneImage": "The whole screen switching colour on a phrase start, as if the time machine just jumped.",
+  "never": [
+   "deco that competes with the path (the look is the colours, not objects)",
+   "speed changes (the song's steady 143 BPM is the clock)",
+   "a long flying part before the middle"
   ],
-  "sections": [
+  "song": {
+   "official": 8,
+   "from": 0,
+   "shape": [
     {
-      "name": "departure: a bright teal present",
-      "beats": 24,
-      "use": [
-        "single",
-        "spike-block",
-        "platform"
-      ],
-      "gaps": [
-        5,
-        8
-      ],
-      "rest": false,
-      "bg": [
-        0,
-        240,
-        181
-      ],
-      "ground": [
-        0,
-        108,
-        81
-      ],
-      "line": [
-        153,
-        249,
-        225
-      ],
-      "obj": [
-        255,
-        255,
-        255
-      ]
+     "t": [
+      0,
+      10
+     ],
+     "part": "intro"
     },
     {
-      "name": "first era: a deep blue era",
-      "beats": 44,
-      "use": [
-        "single",
-        "double",
-        "spike-block",
-        "hops",
-        "stairs"
-      ],
-      "gaps": [
-        3,
-        6
-      ],
-      "bg": [
-        0,
-        99,
-        253
-      ],
-      "ground": [
-        0,
-        45,
-        114
-      ],
-      "line": [
-        153,
-        193,
-        254
-      ],
-      "obj": [
-        255,
-        255,
-        255
-      ]
+     "t": [
+      10,
+      41.6
+     ],
+     "part": "build"
     },
     {
-      "name": "reversal: a pink era where time runs backwards",
-      "beats": 12,
-      "use": [
-        "double",
-        "triple",
-        "block-spike-block",
-        "orb-pit",
-        "pad-launch"
-      ],
-      "gaps": [
-        3,
-        5
-      ],
-      "bg": [
-        255,
-        0,
-        191
-      ],
-      "ground": [
-        115,
-        0,
-        86
-      ],
-      "line": [
-        255,
-        153,
-        229
-      ],
-      "obj": [
-        255,
-        255,
-        255
-      ]
+     "t": [
+      41.6,
+      61.4
+     ],
+     "part": "break"
     },
     {
-      "name": "reversal (ship): a pink era where time runs backwards",
-      "beats": 20,
-      "mode": "ship",
-      "bg": [
-        255,
-        0,
-        191
-      ],
-      "ground": [
-        115,
-        0,
-        86
-      ],
-      "line": [
-        255,
-        153,
-        229
-      ],
-      "obj": [
-        255,
-        255,
-        255
-      ]
+     "t": [
+      61.4,
+      88
+     ],
+     "part": "drop"
     },
     {
-      "name": "the void: the dark between eras",
-      "beats": 48,
-      "use": [
-        "single",
-        "double",
-        "spike-block",
-        "hops",
-        "stairs"
-      ],
-      "gaps": [
-        3,
-        6
-      ],
-      "bg": [
-        24,
-        0,
-        23
-      ],
-      "ground": [
-        11,
-        0,
-        10
-      ],
-      "line": [
-        163,
-        153,
-        162
-      ],
-      "obj": [
-        255,
-        255,
-        255
-      ],
-      "secs": 10,
-      "deco": 0.1
-    },
-    {
-      "name": "re-emergence: a purple dawn",
-      "beats": 16,
-      "mode": "upside",
-      "bg": [
-        154,
-        0,
-        130
-      ],
-      "ground": [
-        69,
-        0,
-        59
-      ],
-      "line": [
-        215,
-        153,
-        205
-      ],
-      "obj": [
-        255,
-        255,
-        255
-      ],
-      "secs": 10
-    },
-    {
-      "name": "era hopping: pink, green, cyan, magenta, green: an era every few seconds (1/5)",
-      "beats": 8,
-      "use": [
-        "triple",
-        "orb-pit",
-        "orb-ladder",
-        "gate",
-        "climb"
-      ],
-      "gaps": [
-        2,
-        4
-      ],
-      "bg": [
-        251,
-        0,
-        209
-      ],
-      "ground": [
-        113,
-        0,
-        94
-      ],
-      "line": [
-        253,
-        153,
-        237
-      ],
-      "obj": [
-        255,
-        255,
-        255
-      ]
-    },
-    {
-      "name": "era hopping: pink, green, cyan, magenta, green: an era every few seconds (2/5)",
-      "beats": 12,
-      "use": [
-        "triple",
-        "orb-pit",
-        "orb-ladder",
-        "gate",
-        "climb"
-      ],
-      "gaps": [
-        2,
-        4
-      ],
-      "bg": [
-        15,
-        255,
-        0
-      ],
-      "ground": [
-        7,
-        115,
-        0
-      ],
-      "line": [
-        159,
-        255,
-        153
-      ],
-      "obj": [
-        255,
-        255,
-        255
-      ],
-      "secs": 0
-    },
-    {
-      "name": "era hopping: pink, green, cyan, magenta, green: an era every few seconds (3/5)",
-      "beats": 8,
-      "use": [
-        "triple",
-        "orb-pit",
-        "orb-ladder",
-        "gate",
-        "climb"
-      ],
-      "gaps": [
-        2,
-        4
-      ],
-      "bg": [
-        0,
-        252,
-        252
-      ],
-      "ground": [
-        0,
-        113,
-        113
-      ],
-      "line": [
-        153,
-        254,
-        254
-      ],
-      "obj": [
-        255,
-        255,
-        255
-      ],
-      "secs": 0
-    },
-    {
-      "name": "era hopping: pink, green, cyan, magenta, green: an era every few seconds (4/5)",
-      "beats": 12,
-      "use": [
-        "triple",
-        "orb-pit",
-        "orb-ladder",
-        "gate",
-        "climb"
-      ],
-      "gaps": [
-        2,
-        4
-      ],
-      "bg": [
-        255,
-        0,
-        214
-      ],
-      "ground": [
-        115,
-        0,
-        96
-      ],
-      "line": [
-        255,
-        153,
-        239
-      ],
-      "obj": [
-        255,
-        255,
-        255
-      ],
-      "secs": 0
-    },
-    {
-      "name": "era hopping: pink, green, cyan, magenta, green: an era every few seconds (5/5)",
-      "beats": 8,
-      "use": [
-        "triple",
-        "orb-pit",
-        "orb-ladder",
-        "gate",
-        "climb"
-      ],
-      "gaps": [
-        2,
-        4
-      ],
-      "bg": [
-        49,
-        255,
-        0
-      ],
-      "ground": [
-        22,
-        115,
-        0
-      ],
-      "line": [
-        173,
-        255,
-        153
-      ],
-      "obj": [
-        255,
-        255,
-        255
-      ],
-      "secs": 0
-    },
-    {
-      "name": "lift-off: a blue sky",
-      "beats": 12,
-      "mode": "ship",
-      "bg": [
-        0,
-        118,
-        252
-      ],
-      "ground": [
-        0,
-        53,
-        113
-      ],
-      "line": [
-        153,
-        200,
-        254
-      ],
-      "obj": [
-        255,
-        255,
-        255
-      ],
-      "secs": 5
+     "t": [
+      88,
+      94.6
+     ],
+     "part": "finale"
     }
+   ]
+  },
+  "feel": {
+   "tier": "Normal",
+   "modeStretch": 12,
+   "density": "sparse: about one hazard per block at most, with breathing room"
+  },
+  "lookRule": "per-part",
+  "camera": "plain: the camera follows the player, no zoom or shake; the colours do all the telling",
+  "motifs": [
+   "a palette switch on a phrase start = a jump to a new era (instant when hopping, a 10 s fade when sinking into or out of the void)",
+   "upside-down cube moments as short 'the world turned over' interludes",
+   "flipped screen (mirror) once time runs backwards"
+  ],
+  "rhythm": {
+   "sync": "portals",
+   "speed": "1x"
+  },
+  "beats": [
+   {
+    "id": "departure",
+    "t": [
+     0,
+     10
+    ],
+    "role": "intro",
+    "energy": 0.3,
+    "place": "a bright teal present",
+    "mood": "light, curious",
+    "vehicle": {
+     "mode": "cube",
+     "speed": "1x",
+     "why": "on foot before the machine starts"
+    },
+    "moment": "a short upside-down hop at 4 s: a taste of the world turning",
+    "look": {
+     "palette": {
+      "bg": "#00f0b5"
+     }
+    }
+   },
+   {
+    "id": "first era",
+    "t": [
+     10,
+     28
+    ],
+    "role": "build",
+    "energy": 0.45,
+    "place": "a deep blue era",
+    "mood": "steady, on the beat",
+    "vehicle": {
+     "mode": "cube",
+     "speed": "1x",
+     "why": "the rhythm of the machine: jumps on the beat"
+    },
+    "moment": "the first jump in time: the screen turns blue",
+    "look": {
+     "palette": {
+      "bg": "#0063fd"
+     }
+    },
+    "transition": {
+     "in": "instant"
+    }
+   },
+   {
+    "id": "reversal",
+    "t": [
+     28,
+     34
+    ],
+    "role": "build",
+    "energy": 0.7,
+    "place": "a pink era where time runs backwards",
+    "mood": "tense, upside-down logic",
+    "vehicle": {
+     "mode": "cube",
+     "at": 34,
+     "speed": "1x",
+     "why": "the ship is the hardest early stretch: the machine takes off"
+    },
+    "moment": "the screen flips (mirror) and turns pink; a ship at 34 s",
+    "look": {
+     "palette": {
+      "bg": "#ff00bf"
+     }
+    },
+    "transition": {
+     "in": "instant"
+    }
+   },
+   {
+    "id": "reversal (ship)",
+    "t": [
+     34,
+     41.6
+    ],
+    "role": "build",
+    "energy": 0.7,
+    "place": "a pink era where time runs backwards",
+    "mood": "tense, upside-down logic",
+    "vehicle": {
+     "mode": "ship",
+     "at": 34,
+     "speed": "1x",
+     "why": "the ship is the hardest early stretch: the machine takes off"
+    },
+    "moment": "the screen flips (mirror) and turns pink; a ship at 34 s",
+    "look": {
+     "palette": {
+      "bg": "#ff00bf"
+     }
+    },
+    "transition": {}
+   },
+   {
+    "id": "the void",
+    "t": [
+     41.6,
+     61.4
+    ],
+    "role": "break",
+    "energy": 0.4,
+    "place": "the dark between eras",
+    "mood": "quiet, lost, slow fade to black",
+    "vehicle": {
+     "mode": "cube",
+     "speed": "1x",
+     "why": "back on foot, finding the way in the dark"
+    },
+    "moment": "a 10 s fade to near black",
+    "look": {
+     "palette": {
+      "bg": "#180017"
+     }
+    },
+    "transition": {
+     "in": "fade 10"
+    }
+   },
+   {
+    "id": "re-emergence",
+    "t": [
+     61.4,
+     68.3
+    ],
+    "role": "build",
+    "energy": 0.6,
+    "place": "a purple dawn",
+    "mood": "rising again",
+    "vehicle": {
+     "mode": "upside cube",
+     "speed": "1x",
+     "why": "the world turns over as the machine restarts"
+    },
+    "moment": "a 10 s fade up from black into purple",
+    "look": {
+     "palette": {
+      "bg": "#9a0082"
+     }
+    },
+    "transition": {
+     "in": "fade 10"
+    }
+   },
+   {
+    "id": "era hopping",
+    "t": [
+     68.3,
+     88.2
+    ],
+    "role": "drop",
+    "energy": 0.8,
+    "place": "pink, green, cyan, magenta, green: an era every few seconds",
+    "mood": "giddy, fast-changing",
+    "vehicle": {
+     "mode": "cube",
+     "speed": "1x",
+     "why": "the colours move fast, the cube keeps its feet so the player can watch them"
+    },
+    "moment": "an instant palette switch every 3-7 s, flipped and upside-down moments between",
+    "look": {
+     "palette": {
+      "bg": "#fb00d1"
+     },
+     "palettes": [
+      "#fb00d1",
+      "#0fff00",
+      "#00fcfc",
+      "#ff00d6",
+      "#31ff00"
+     ]
+    },
+    "transition": {
+     "in": "instant"
+    }
+   },
+   {
+    "id": "lift-off",
+    "t": [
+     88.2,
+     94.6
+    ],
+    "role": "finale",
+    "energy": 0.85,
+    "place": "a blue sky",
+    "mood": "triumphant escape",
+    "vehicle": {
+     "mode": "ship",
+     "speed": "1x",
+     "why": "the machine flies out of time"
+    },
+    "moment": "ship, then upside-down ship to the end",
+    "look": {
+     "palette": {
+      "bg": "#0076fc"
+     }
+    },
+    "transition": {
+     "in": "fade 5"
+    }
+   }
   ]
+ },
+ "vibeNotes": [
+  "reversal: a pink era where time runs backwards: mirror is not simulated -- left out",
+  "reversal (ship): a pink era where time runs backwards: mirror is not simulated -- left out"
+ ],
+ "sections": [
+  {
+   "name": "departure: a bright teal present",
+   "beats": 24,
+   "use": [
+    "single",
+    "spike-block",
+    "platform"
+   ],
+   "gaps": [
+    5,
+    8
+   ],
+   "rest": false,
+   "bg": [
+    0,
+    240,
+    181
+   ],
+   "ground": [
+    0,
+    108,
+    81
+   ],
+   "line": [
+    153,
+    249,
+    225
+   ],
+   "obj": [
+    255,
+    255,
+    255
+   ]
+  },
+  {
+   "name": "first era: a deep blue era",
+   "beats": 44,
+   "use": [
+    "single",
+    "double",
+    "spike-block",
+    "hops",
+    "stairs"
+   ],
+   "gaps": [
+    3,
+    6
+   ],
+   "bg": [
+    0,
+    99,
+    253
+   ],
+   "ground": [
+    0,
+    45,
+    114
+   ],
+   "line": [
+    153,
+    193,
+    254
+   ],
+   "obj": [
+    255,
+    255,
+    255
+   ]
+  },
+  {
+   "name": "reversal: a pink era where time runs backwards",
+   "beats": 12,
+   "use": [
+    "double",
+    "triple",
+    "block-spike-block",
+    "orb-pit",
+    "pad-launch"
+   ],
+   "gaps": [
+    3,
+    5
+   ],
+   "bg": [
+    255,
+    0,
+    191
+   ],
+   "ground": [
+    115,
+    0,
+    86
+   ],
+   "line": [
+    255,
+    153,
+    229
+   ],
+   "obj": [
+    255,
+    255,
+    255
+   ]
+  },
+  {
+   "name": "reversal (ship): a pink era where time runs backwards",
+   "beats": 20,
+   "mode": "ship",
+   "bg": [
+    255,
+    0,
+    191
+   ],
+   "ground": [
+    115,
+    0,
+    86
+   ],
+   "line": [
+    255,
+    153,
+    229
+   ],
+   "obj": [
+    255,
+    255,
+    255
+   ]
+  },
+  {
+   "name": "the void: the dark between eras",
+   "beats": 48,
+   "use": [
+    "single",
+    "double",
+    "spike-block",
+    "hops",
+    "stairs"
+   ],
+   "gaps": [
+    3,
+    6
+   ],
+   "bg": [
+    24,
+    0,
+    23
+   ],
+   "ground": [
+    11,
+    0,
+    10
+   ],
+   "line": [
+    163,
+    153,
+    162
+   ],
+   "obj": [
+    255,
+    255,
+    255
+   ],
+   "secs": 10,
+   "deco": 0.1
+  },
+  {
+   "name": "re-emergence: a purple dawn",
+   "beats": 16,
+   "mode": "upside",
+   "bg": [
+    154,
+    0,
+    130
+   ],
+   "ground": [
+    69,
+    0,
+    59
+   ],
+   "line": [
+    215,
+    153,
+    205
+   ],
+   "obj": [
+    255,
+    255,
+    255
+   ],
+   "secs": 10
+  },
+  {
+   "name": "era hopping: pink, green, cyan, magenta, green: an era every few seconds (1/5)",
+   "beats": 8,
+   "use": [
+    "triple",
+    "orb-pit",
+    "orb-ladder",
+    "gate",
+    "climb"
+   ],
+   "gaps": [
+    2,
+    4
+   ],
+   "bg": [
+    251,
+    0,
+    209
+   ],
+   "ground": [
+    113,
+    0,
+    94
+   ],
+   "line": [
+    253,
+    153,
+    237
+   ],
+   "obj": [
+    255,
+    255,
+    255
+   ]
+  },
+  {
+   "name": "era hopping: pink, green, cyan, magenta, green: an era every few seconds (2/5)",
+   "beats": 12,
+   "use": [
+    "triple",
+    "orb-pit",
+    "orb-ladder",
+    "gate",
+    "climb"
+   ],
+   "gaps": [
+    2,
+    4
+   ],
+   "bg": [
+    15,
+    255,
+    0
+   ],
+   "ground": [
+    7,
+    115,
+    0
+   ],
+   "line": [
+    159,
+    255,
+    153
+   ],
+   "obj": [
+    255,
+    255,
+    255
+   ],
+   "secs": 0
+  },
+  {
+   "name": "era hopping: pink, green, cyan, magenta, green: an era every few seconds (3/5)",
+   "beats": 8,
+   "use": [
+    "triple",
+    "orb-pit",
+    "orb-ladder",
+    "gate",
+    "climb"
+   ],
+   "gaps": [
+    2,
+    4
+   ],
+   "bg": [
+    0,
+    252,
+    252
+   ],
+   "ground": [
+    0,
+    113,
+    113
+   ],
+   "line": [
+    153,
+    254,
+    254
+   ],
+   "obj": [
+    255,
+    255,
+    255
+   ],
+   "secs": 0
+  },
+  {
+   "name": "era hopping: pink, green, cyan, magenta, green: an era every few seconds (4/5)",
+   "beats": 12,
+   "use": [
+    "triple",
+    "orb-pit",
+    "orb-ladder",
+    "gate",
+    "climb"
+   ],
+   "gaps": [
+    2,
+    4
+   ],
+   "bg": [
+    255,
+    0,
+    214
+   ],
+   "ground": [
+    115,
+    0,
+    96
+   ],
+   "line": [
+    255,
+    153,
+    239
+   ],
+   "obj": [
+    255,
+    255,
+    255
+   ],
+   "secs": 0
+  },
+  {
+   "name": "era hopping: pink, green, cyan, magenta, green: an era every few seconds (5/5)",
+   "beats": 8,
+   "use": [
+    "triple",
+    "orb-pit",
+    "orb-ladder",
+    "gate",
+    "climb"
+   ],
+   "gaps": [
+    2,
+    4
+   ],
+   "bg": [
+    49,
+    255,
+    0
+   ],
+   "ground": [
+    22,
+    115,
+    0
+   ],
+   "line": [
+    173,
+    255,
+    153
+   ],
+   "obj": [
+    255,
+    255,
+    255
+   ],
+   "secs": 0
+  },
+  {
+   "name": "lift-off: a blue sky",
+   "beats": 12,
+   "mode": "ship",
+   "bg": [
+    0,
+    118,
+    252
+   ],
+   "ground": [
+    0,
+    53,
+    113
+   ],
+   "line": [
+    153,
+    200,
+    254
+   ],
+   "obj": [
+    255,
+    255,
+    255
+   ],
+   "secs": 5
+  }
+ ]
 }

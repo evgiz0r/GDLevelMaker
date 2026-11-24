@@ -295,6 +295,37 @@ const SERVER = http.createServer((req, res) => {
     });
     return;
   }
+  // section lab (tools/lab.js, VIEWER.md "Section lab"): GET /lab/list -> rounds, newest first; GET /lab/<rN> -> round.json
+  // + per variant its file, result and the decision card's state; POST /lab/pick {round, k (0 = none), note, test?} ->
+  // answers the round's card, a line in local/reviews.jsonl and the actions feed. The phone on the home Wi-Fi may pick too.
+  const labM = /^\/lab\/(list|r\d+|pick)$/.exec(p);
+  if (labM) {
+    const LAB = process.env.GDLM_LAB_DIR || path.join(root, "local", "lab"), rd = r => { try { return JSON.parse(fs.readFileSync(path.join(LAB, r, "round.json"), "utf8")); } catch (e) { return null; } };
+    const full = r => { const R = rd(r); if (!R) return null; let card = null; try { card = R.ask ? require("./ask.js").get(R.ask) : null; } catch (e) {}
+      R.card = card; R.variants = (R.variants || []).map(v => { let res = null; try { res = JSON.parse(fs.readFileSync(path.join(LAB, r, "v" + v.k + ".result.json"), "utf8")); } catch (e) {}
+        const f = "local/wip/style/lab_" + r + "_v" + v.k + ".gdlvl";
+        return Object.assign({}, v, { file: v.file || f, result: res, option: card && (card.options || []).find(o => new RegExp("^v" + v.k + "\\b").test(o)) || null }); });
+      return R; };
+    const send = (c, j) => { res.writeHead(c, { "Content-Type": "application/json", "Cache-Control": "no-store" }); res.end(JSON.stringify(j)); };
+    if (labM[1] === "list") { let ds = []; try { ds = fs.readdirSync(LAB).filter(d => /^r\d+$/.test(d)); } catch (e) {}
+      return send(200, ds.map(full).filter(Boolean).sort((a, b) => +b.id.slice(1) - +a.id.slice(1)).map(R => ({ id: R.id, moment: R.moment, t: R.t, at: R.at, n: R.variants.length, answer: R.card && R.card.answer || null }))); }
+    if (req.method === "GET" && labM[1] !== "pick") { const R = full(labM[1]); return R ? send(200, R) : send(404, { error: "no round " + labM[1] }); }
+    if (req.method === "POST" && labM[1] === "pick") {
+      let body = ""; req.on("data", c => { body += c; if (body.length > 1e5) req.destroy(); });
+      req.on("end", () => { try {
+        const j = JSON.parse(body), R = full(String(j.round || "")); if (!R) return send(404, { error: "no round" });
+        const v = R.variants.find(x => x.k === +j.k), none = R.card && (R.card.options || []).find(o => /^none/i.test(o));
+        const answer = v ? (v.option || "v" + v.k + " " + v.hook) : (none || "none: all dull"), note = String(j.note || "").slice(0, 2000);
+        if (j.test) return send(200, { round: R.id, answer, note, test: true });   // a test page: nothing stored
+        let card = null; if (R.ask) try { card = require("./ask.js").answer(R.ask, answer, note); } catch (e) {}
+        const line = { at: new Date().toISOString(), kind: "lab", round: R.id, moment: R.moment, k: v ? v.k : 0, hook: v ? v.hook : null, answer, note, file: v ? v.file : null, card: R.ask || null };
+        fs.mkdirSync(path.join(root, "local"), { recursive: true }); fs.appendFileSync(path.join(root, "local", "reviews.jsonl"), JSON.stringify(line) + "\n");
+        require("./actions.js").append({ type: "answer", session: (card && card.session) || "style", level: v ? "LAB " + R.id + " v" + v.k + " " + v.hook : "LAB " + R.id, file: line.file || "", card: R.ask || "", question: card ? card.question : "Section lab " + R.id + ": which variant?", answer, text: "lab " + R.id + " -> " + answer + (note ? " (" + note + ")" : "") });
+        send(200, line);
+      } catch (e) { send(400, { error: String(e.message) }); } });
+      return;
+    }
+  }
   // decision cards (tools/ask.js): GET /asks -> every card, open first; POST /asks/answer {id, answer, note?}
   if (p === "/asks" && req.method === "GET") {
     let out = []; try { out = require("./ask.js").list(); } catch (e) {}

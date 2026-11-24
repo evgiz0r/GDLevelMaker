@@ -10,7 +10,7 @@
 //   experience curve  feel { tier, modeStretch (s a mode lasts), density }, song { official | custom, from (s), shape
 //                     [{ t:[t0,t1], part: intro|build|drop|break|finale }] }, and every beat's energy 0-1
 //   scenes and roles  beats [{ id, t:[t0,t1] (song s from `from`), role intro|build|drop|calm|break|finale, energy, place,
-//                     mood, vehicle { mode ("cube then ship": two sections), at (s, the switch), speed, why }, moment, look { palette { bg, ground, line } (hex), palettes [bg hex, ...]
+//                     mood, vehicle { mode ("cube then ship": two sections), at (s, the switch), speed, speeds [one per mode], why }, moment, look { palette { bg, ground, line } (hex), palettes [bg hex, ...]
 //                     (several eras in one beat: the beat is cut into that many sections, each switching), scene },
 //                     transition { in: "instant" | "fade 10s" | ..., out }, must [...], mustNot [...] }]
 //   motifs            motifs [...]: what comes back and means something ("a palette switch on every phrase: a new era")
@@ -59,13 +59,15 @@ function check(v) {
 }
 
 function brief(v, o = {}) {
-  // a vehicle "cube then ship" is two sections: the switch at vehicle.at (song s), else halfway
+  // a vehicle "cube then ship [then ufo ...]" is that many sections: the switches at vehicle.at (song s; a number or a
+  // list, one per "then"), else evenly spread
   v = Object.assign({}, v, { beats: [].concat(...(v.beats || []).map(b => {
     const m = String((b.vehicle || {}).mode || "").split(/\s+then\s+/);
     if (m.length < 2) return [b];
-    const at = (b.vehicle.at != null ? b.vehicle.at : (b.t[0] + b.t[1]) / 2);
-    return [Object.assign({}, b, { t: [b.t[0], at], vehicle: Object.assign({}, b.vehicle, { mode: m[0] }) }),
-            Object.assign({}, b, { id: (b.id || "") + " (" + m[1] + ")", t: [at, b.t[1]], vehicle: Object.assign({}, b.vehicle, { mode: m[1] }), transition: {} })];
+    const at = [].concat(b.vehicle.at != null ? b.vehicle.at : []).map(Number);
+    const cuts = m.slice(1).map((_, k) => at[k] != null && at[k] > b.t[0] && at[k] < b.t[1] ? at[k] : b.t[0] + (b.t[1] - b.t[0]) * (k + 1) / m.length);
+    const edges = [b.t[0], ...cuts, b.t[1]];
+    return m.map((md, k) => Object.assign({}, b, { id: (b.id || "") + (k ? " (" + md + ")" : ""), t: [edges[k], edges[k + 1]], vehicle: Object.assign({}, b.vehicle, { mode: md }, b.vehicle.speeds && b.vehicle.speeds[k] ? { speed: b.vehicle.speeds[k] } : {}) }, k ? { transition: {} } : {}));
   })) });
   const grid = songBeats(v.song || {}), period = 60 / grid.bpm, from = (v.song && v.song.from) || 0;
   const tier = (v.feel && v.feel.tier) || "Normal", notes = [];
@@ -78,6 +80,7 @@ function brief(v, o = {}) {
     const n = endBeat - usedBeats; usedBeats = endBeat;
     const s = { name: (b.id || `beat ${i + 1}`) + (b.place ? ": " + b.place : ""), beats: n };
     const veh = b.vehicle || {}, mode = String(veh.mode || "cube").toLowerCase();
+    if (/^(0\.5|1|2|3|4)x$/.test(String(veh.speed || ""))) s.speed = veh.speed;   // the section's speed portal (compose)
     if (/mirror/.test(mode) || /mirror/.test(b.moment || "")) notes.push(`${s.name}: mirror is not simulated -- left out`);
     if (/dual/.test(mode)) notes.push(`${s.name}: dual left out (the composer has no dual section)`);
     const base = mode.replace(/mirror(ed)?|dual|mini/g, "").trim();
