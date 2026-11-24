@@ -70,7 +70,7 @@ function list() {
 // the solution the viewer replays: {ok, events} (the natural plan when it works), or the furthest run
 function solveFor(L) {
   const t0 = Date.now();
-  const sol = require("./solutions.js").solve(L.level, L.levelStr);  // cached when make.js already solved it
+  const sol = require("./solutions.js").solve(L.level, L.levelStr, { name: L.name });  // cached when make.js already solved it
   console.log(`solution for the viewer and the phone: ${sol.ok ? "beaten" : "not beaten"} (${((Date.now() - t0) / 1000).toFixed(0)} s)`);
   return sol;
 }

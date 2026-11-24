@@ -70,6 +70,21 @@
   #cmpImg { width:100%; height:min(60vh, 460px); object-fit:contain; object-position:center top; }
   @media (max-width: 700px) { #views.split { grid-template-columns:1fr; } }
   #drop { position:absolute; inset:0; display:none; place-items:center; background:rgba(11,6,32,.85); font-size:18px; border:2px dashed var(--cube); }
+  #workBox { position:fixed; inset:0; z-index:50; background:rgba(6,3,20,.72); display:flex; justify-content:center; align-items:flex-start; padding:4vh 12px; }
+  #workBox[hidden] { display:none; }
+  #wk { width:min(860px,100%); max-height:92vh; display:flex; flex-direction:column; background:#160d3a; border:1px solid #3b2d78; border-radius:10px; overflow:hidden; }
+  #wkTop { display:flex; gap:10px; align-items:center; padding:10px; border-bottom:1px solid #2b2060; }
+  #wkTop b { font-size:15px; } #wkTop .muted { flex:1; font-size:12px; }
+  #wkList { overflow-y:auto; padding:8px 12px 14px; font-size:13px; }
+  #wkList h3 { font-size:12px; color:#9c8ee0; text-transform:uppercase; letter-spacing:.06em; margin:12px 0 6px; }
+  .wkCard { border:1px solid #3b2d78; border-radius:8px; padding:8px 10px; margin:6px 0; background:#1b1145; }
+  .wkCard.open { border-color:#ffb020; }
+  .wkCard .opts { display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
+  .wkRow { display:flex; gap:8px; align-items:center; padding:6px 4px; border-bottom:1px solid #241a52; cursor:pointer; }
+  .wkRow:hover { background:#24184f; }
+  .wkRow .nm { font-weight:600; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #stagebar .rev { padding:3px 8px; font-size:12px; }
+  #stagebar .gate { color:#ffd58a; }
   #picker { position:fixed; inset:0; z-index:50; background:rgba(6,3,20,.72); display:flex; justify-content:center; align-items:flex-start; padding:4vh 12px; }
   #picker[hidden] { display:none; }
   #pk { width:min(860px,100%); max-height:92vh; display:flex; flex-direction:column; background:#160d3a; border:1px solid #3b2d78; border-radius:10px; overflow:hidden; }
@@ -94,6 +109,9 @@
 </style>
 </head>
 <body>
+<div id="workBox" hidden><div id="wk" role="dialog" aria-label="work">
+  <div id="wkTop"><b>Work</b><span class="muted" id="wkWhen"></span><button id="wkClose" title="close (Esc)">✕</button></div>
+  <div id="wkList"></div></div></div>
 <div id="picker" hidden><div id="pk" role="dialog" aria-label="choose a level">
   <div id="pkTop"><input id="pkQ" type="search" placeholder="search levels…" autocomplete="off">
     <button data-f="main" class="on" title="official levels, the levels being worked on and ours">main</button><button data-f="recent">recent</button><button data-f="pinned">★ pinned</button><button data-f="wip">in progress</button><button data-f="ours">ours</button><button data-f="official">official</button><button data-f="community">community</button><button data-f="all">all</button>
@@ -101,12 +119,13 @@
   <div id="pkList"></div></div></div>
 <header>
   <h1>GD LEVEL VIEWER</h1>
-  <select id="pick" hidden></select><button id="pickBtn" title="choose a level (key L)">📂 <span id="pickName">levels</span></button>
+  <select id="pick" hidden></select><button id="workBtn" title="what the sessions are building, what waits for you, the PC's queue (key W)">work <span id="workBadge" class="pkBadge wip" hidden></span></button><button id="pickBtn" title="choose a level (key L)">📂 <span id="pickName">levels</span></button>
   <button id="refresh" title="get the newest version of the sessions' levels">⟳ refresh</button>
   <button id="linkBtn" title="copy a link to this level at this moment">🔗 link</button>
   <label class="btn">open .gdlvl<input id="file" type="file" accept=".gdlvl,.txt" hidden></label>
   <button id="play">▶ play</button>
   <button id="restart">⟲</button>
+  <button id="youPlay" title="play it yourself here: space / click / tap = jump, R = restart, P = back to the replay (practice checkpoints at each section)">🎮 you play</button><button id="practiceBtn" class="on" hidden title="practice: after a death, start again from the last checkpoint (each section / portal)">practice</button>
   <button data-speed="0.25">¼×</button><button data-speed="0.5">½×</button><button data-speed="1" class="on">1×</button>
   <button id="lookBtn" class="on" title="colours, triggers, block skins as in the game (off: the schematic view)">game look</button>
   <button id="artBtn" title="draw objects, background, ground and icon with GD's own sprites from your game install (needs tools/serve.js; VISUALS.md)">GD art</button>
@@ -159,6 +178,7 @@
 <script src="../lib/natural.js"></script>
 <script src="../lib/song.js"></script>
 <script src="../lib/runner.js"></script>
+<script src="../lib/liveplay.js"></script>
 <script src="../lib/difficulty.js"></script>
 <script src="../lib/windows.js"></script>
 <script src="levels.js"></script>
@@ -167,7 +187,8 @@
 <script>
 "use strict";
 const P = GD.PHYS;
-const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
+const cv = document.getElementById("cv"), ctx0 = cv.getContext("2d");
+let ctx = ctx0;   // mapRender swaps in its own offscreen canvas, so drawing a map never takes over the view
 // shoot mode (tools/shoot.js): ?shoot=<job> renders a level's frames headless, without the overlays
 const SHOOT = new URLSearchParams(location.search).get("shoot");
 let MAPCAM = null; // level map (tools/levelmap.js): a fixed camera {x, y, scale, groundY}, no player
@@ -234,18 +255,23 @@ function taskAsk(o) {
     box.hidden = false;
     const close = v => { box.hidden = true; done(v); };
     go.onclick = () => close("go"); alt.onclick = () => close("alt"); document.getElementById("taskCancel").onclick = () => close(null);
-    if (o.match !== undefined) queueText(o.match, o.typical).then(t => { const e = document.getElementById("taskEta"); if (e && !box.hidden) e.innerHTML = t; });
+    if (o.match !== undefined) queueText(o.match, o.cmd).then(t => { const e = document.getElementById("taskEta"); if (e && !box.hidden) e.innerHTML = t; });
   });
 }
-// the queue in words: who runs, how many wait, a rough time until this job is done
-async function queueText(match, typical) {
-  let q = null; try { q = await (await fetch("/heavy/status?match=" + encodeURIComponent(match || "\u0000"), { cache: "no-store" })).json(); } catch (e) {}
+// the queue in words: who runs, how many wait, and the time until this job is done -- only from measurements (the
+// server's tools/jobtime.js: earlier runs of the same tool + level + flags), always with their basis; "not measured"
+// otherwise (CLAUDE.md: estimates come from measurements). cmd: the command line the job will run, for its estimate.
+const etaWords = (min, basis, unknown) => min == null ? "time not measured" : `${unknown ? "at least " : "about "}${min} min <span class="muted">(${esc(basis || "measured")}${unknown ? `; ${unknown} job${unknown === 1 ? "" : "s"} ahead not measured` : ""})</span>`;
+async function queueText(match, cmd) {
+  let q = null; try { q = await (await fetch("/heavy/status?match=" + encodeURIComponent(match || "\u0000") + (cmd ? "&cmd=" + encodeURIComponent(cmd) : ""), { cache: "no-store" })).json(); } catch (e) {}
   if (!q) return "The PC's queue could not be read.";
-  const n = q.holders.length + q.waiting.length, run = q.holders[0];
-  if (q.mine) return q.mine.running ? `It is running now (${q.mine.min} min in, about ${q.mine.eta} min left).` : `It waits its turn: ${q.mine.ahead} job${q.mine.ahead === 1 ? "" : "s"} ahead, done in about ${q.mine.eta} min.`;
-  const wait = q.holders.reduce((m, h) => m + (h.left || 2), 0) + q.waiting.filter(w => w.prio !== "low").length * 2;
-  return !n ? `The PC is free: it starts at once and takes about ${typical} min.`
-    : `The PC is busy (${run ? esc(run.cmd.slice(0, 60)) + " runs" : ""}${q.waiting.length ? ", " + q.waiting.length + " waiting" : ""}). Your job goes ahead of the routine ones: roughly ${Math.max(1, Math.round(wait / 2)) + typical}–${wait + typical} min.`;
+  const n = q.holders.length + q.waiting.length, run = q.holders[0], m = q.mine;
+  if (m) return m.running ? `It is running now (${m.min} min in; ${m.eta == null ? "time not measured" : m.over ? "past its estimate: " + esc(m.basis) : etaWords(m.eta, m.basis) + " left"}).`
+    : `It waits its turn: ${m.ahead} job${m.ahead === 1 ? "" : "s"} ahead, done in ${etaWords(m.eta, m.basis, m.unknown)}.`;
+  const w = q.would || {}, takes = w.est == null ? "its time is not measured yet" : w.secs < 90 ? `it takes about ${w.secs} s <span class="muted">(${esc(w.basis)})</span>` : `it takes ${etaWords(w.est, w.basis)}`;
+  return !n ? `The PC is free: it starts at once; ${takes}.`
+    : `The PC is busy (${[run ? esc(run.cmd.slice(0, 60)) + " runs" : "", q.waiting.length ? q.waiting.length + " waiting" : ""].filter(Boolean).join(", ")}). Your job goes ahead of the routine ones` +
+      (q.holders.length ? `; the running job${q.holders.length === 1 ? "" : "s"} need${q.holders.length === 1 ? "s" : ""} ${etaWords(w.wait, "their measured runs", w.unknown)} more` : "") + `, then ${takes}.`;
 }
 function taskAdd(t) {
   if (TASKS.find(x => x.id === t.id)) return; TASKS.push(t); t.state = "queued"; t.t0 = Date.now(); chipTick();
@@ -261,14 +287,15 @@ async function chipTick() {
   chip.hidden = !live.length;
   if (live.length) {
     const t = live[0], q = t.q;
-    chip.textContent = `⏳ ${t.label}: ` + (q ? (q.running ? `running, ~${q.eta} min` : `${q.ahead} ahead, ~${q.eta} min`) : "starting…") + (live.length > 1 ? ` (+${live.length - 1})` : "");
+    const left = q && (q.eta == null ? "time not measured" : q.over ? "past its estimate" : (q.unknown ? "≥" : "~") + q.eta + " min");
+    chip.textContent = `⏳ ${t.label}: ` + (q ? (q.running ? `running, ${left}` : `${q.ahead} ahead, ${left}`) : "starting…") + (live.length > 1 ? ` (+${live.length - 1})` : "");
     chipTick.timer = setTimeout(chipTick, 5000);
   }
 }
 document.addEventListener("DOMContentLoaded", () => {
   const chip = document.getElementById("taskChip"); if (!chip) return;
   chip.onclick = async () => { const live = TASKS.filter(t => t.state !== "done"); if (!live.length) return;
-    const lines = await Promise.all(live.map(async t => `<p><b>${esc(t.label)}</b>: ${await queueText(t.match, 2)}</p>`));
+    const lines = await Promise.all(live.map(async t => `<p><b>${esc(t.label)}</b>: ${await queueText(t.match, t.cmd)}</p>`));
     const box = document.getElementById("taskBox");
     document.getElementById("taskTitle").textContent = "What the PC is doing for you";
     document.getElementById("taskBody").innerHTML = lines.join("") + "<p class='muted'>Each opens here when it is ready; you can keep using the viewer.</p>";
@@ -334,14 +361,14 @@ async function solveLater(l, levelStr) {
   const match = "solutions.js", objs = (levelStr.match(/;/g) || []).length;
   const ans = await taskAsk({ title: "Find the route of " + l.name,
     what: `This level has no saved route yet, so there is nothing to replay. The PC can find it: the route a person would take, saved so the viewer, the phone and the scores all use it. (${objs} objects.)`,
-    after: "The replay starts here when it is ready; you can keep using the viewer meanwhile.", match, typical: objs > 2000 ? 5 : 2,
+    after: "The replay starts here when it is ready; you can keep using the viewer meanwhile.", match, cmd: "tools/solutions.js " + l.file,
     go: "Solve on the PC", alt: "Solve here now (the page freezes until done)" });
   if (ans === "alt") { const tt = t; load(l.name, l.level, (() => { try { return GD.solveAny(GD.makeWorld(GD.parseLevel(l.level).objects, GD.parseLevel(l.level).header)); } catch (e) { return null; } })() || undefined, l.song); t = tt; draw(); return; }
   if (ans !== "go") { if (L) { L.sol.why = "not solved: no saved route (pick the level again to solve it)"; summary(); } return; }
   try { const r = await fetch("/solve", { method: "POST", body: JSON.stringify({ file: l.file }) }); if (!r.ok) throw new Error(); } catch (e) { notice("Could not ask the PC (is tools/serve.js running?)."); return; }
   if (L) { L.sol.why = "solving on the PC…"; summary(); }
   let sol = null;
-  taskAdd({ id: "solve:" + l.file, label: "route of " + l.name, match: "solutions.js",
+  taskAdd({ id: "solve:" + l.file, label: "route of " + l.name, match: "solutions.js", cmd: "tools/solutions.js " + l.file,
     ready: async () => { try { sol = (await (await fetch("/solution?file=" + encodeURIComponent(l.file), { cache: "no-store" })).json()).solution; } catch (e) {} return !!sol; },
     done: () => { l.solution = sol; notice("The route of " + esc(l.name) + " is ready.", 4000); if (ALL[pick.value] === l) { const tt = t; pick.dispatchEvent(new Event("change")); t = Math.min(tt, (L.path.length - 1) / P.TPS); draw(); } } });
 }
@@ -368,7 +395,8 @@ function load(name, levelStr, saved, info) {
   const level = pre && pre.level || GD.parseLevel(levelStr);
   const world = pre && pre.world || GD.makeWorld(level.objects, level.header);
   let sol;
-  if (saved) sol = saved.ok ? { ok: true, events: saved.events, clicks: [] } : { ok: false, trail: saved.events, clicks: [], dieAt: { x: saved.dieX || 0, tick: 0 }, why: saved.why || "", pending: !!saved.pending };
+  if (PLAY && PLAY.on) playStop(true);   // another level opened while the user played
+  if (saved) sol = saved.ok ? { ok: true, events: saved.events, clicks: [], plan: !!saved.plan } : { ok: false, trail: saved.events, clicks: [], dieAt: { x: saved.dieX || 0, tick: saved.dieTick || 0 }, why: saved.why || "", pending: !!saved.pending, plan: !!saved.plan };
   else if (location.protocol.startsWith("http") && !window.GD_PAGES && !window.GD_PHONE && !SHOOT && ALL[pick.value] && ALL[pick.value].level === levelStr) {
     // no saved route: ask the PC instead of freezing the page for minutes (solveLater explains first)
     sol = { ok: false, trail: [], clicks: [], dieAt: { x: 0, tick: 0 }, why: "not solved yet: no saved route", pending: true };
@@ -403,6 +431,11 @@ function load(name, levelStr, saved, info) {
   L = { name, level, world, sol, path, held };
   L.vrot = visualRot(path);
   L.routeKind = routeKindOf(saved, sol, world);
+  // no route yet (a level or build stage still being made): the camera runs through it at the level's speed
+  if (sol.pending && !SHOOT) { L.path.length = 1; ghostExtend(L, null, true); L.noRoute = true; }
+  // a build stage's plan replayed (no solve): where it breaks, and the camera going on as a ghost after it
+  L.planBreak = null;
+  if (sol.plan && !sol.ok && !SHOOT) { const e = path[Math.min(sol.dieAt.tick, path.length - 1)]; L.planBreak = { x: sol.dieAt.x, y: e.y, t: sol.dieAt.tick / P.TPS, why: sol.why }; ghostExtend(L, null, true); }
   // colour / alpha / zoom triggers fire when the replayed run passes their x
   L.look = GD.LOOK.timeline(level, x => {
     let lo = 0, hi = path.length - 1;
@@ -424,7 +457,7 @@ function load(name, levelStr, saved, info) {
 // A saved solution carries them already (tools/solutions.js measures them once per level content, as it
 // solves): then they show at once and nothing is measured here ("it resolves every time I select a level?").
 function windowsLater(LL, events, saved) {
-  if (window.SHOOT_MAP || !LL.sol.ok || !events || !events.length || LL.sol.clicks.some(c => c.hi > c.lo)) return;
+  if (window.SHOOT_MAP || LL.sol.plan || !LL.sol.ok || !events || !events.length || LL.sol.clicks.some(c => c.hi > c.lo)) return;
   const byKey = new Map(LL.sol.clicks.map(c => [c.type + c.tick, c])), sorted = events.slice().sort((a, b) => a.tick - b.tick);
   const take = wins => { for (const wv of wins) { const c = byKey.get(wv.type + wv.tick); if (!c || c.ms) continue;
     Object.assign(c, { lo: wv.lo, hi: wv.hi, ms: Math.round((wv.hi - wv.lo + 1) / P.TPS * 1000) });
@@ -485,6 +518,24 @@ pick.onchange = () => { const l = ALL[pick.value]; load(l.name, l.level, l.solut
 const PATHCACHE = new Map();
 // the inputs the replay plays: the solution's, or for a level the sim cannot beat its furthest run (each press
 // released a tick later unless a release follows)
+// a build stage's (or a variant's) plan replayed at once: the sim on its planned presses (lib/liveplay.js planEvents),
+// in slices, no solve -- the first check of a layout, free. done(saved) gets a saved-route-like object for load():
+// {ok, events, plan: true, dieX, dieTick, why}; the run is put in PATHCACHE so load() does not run it again.
+function planSaved(levelStr, plan, done) {
+  const ev0 = GD.planEvents && GD.planEvents(plan); if (!ev0 || !GD.runSliced) return false;
+  const ev = replayEvents({ ok: false, trail: ev0 });   // a tap is released a tick later, as load() replays an unfinished run
+  let lv = null, w = null, r = null;
+  const slow = setTimeout(() => notice("replaying the plan…", 0), 150);
+  const step = () => {
+    if (!r) { lv = GD.parseLevel(levelStr); w = GD.makeWorld(lv.objects, lv.header); r = GD.runSliced(w, ev); return setTimeout(step, 0); }
+    if (!r.advance(12)) return setTimeout(step, 0);
+    clearTimeout(slow); const n = document.getElementById("notice"); if (n && /^replaying the plan/.test(n.textContent)) n.hidden = true;
+    const res = r.result, ok = !!res.done && !res.dead;
+    PATHCACHE.set(levelStr, { key: JSON.stringify(ev), result: res, level: lv, world: w });
+    done({ ok, events: ev, plan: true, dieX: res.end.x, dieTick: res.path.length - 1, why: ok ? "" : res.dead ? (res.why || "dies") : "the run does not reach the end" });
+  };
+  setTimeout(step, 0); return true;
+}
 function replayEvents(sol) {
   if (sol.ok) return sol.events;
   const events = [];
@@ -527,6 +578,60 @@ function routeKindOf(saved, sol, world) {
 }
 
 
+
+// ---------- Work (key W): the place to steer the sessions (VIEWER.md) ----------
+// What each build has reached and whether it waits for you (a gated stage), the decision cards sessions ask you
+// (tools/ask.js), and the PC's heavy-job queue -- refreshed every 5 s while open; the badge on the button counts
+// what waits for you (open cards + gates), checked every 20 s. Every answer goes to the actions feed
+// (tools/actions.js), which the coordinator forwards to the owning session at once.
+const WK = { open: false, timer: null, data: null };
+async function workFetch() {
+  if (!location.protocol.startsWith("http") || window.GD_PAGES || window.GD_PHONE) return null;
+  const j = async u => { try { const r = await fetch(u, { cache: "no-store" }); return r.ok ? r.json() : null; } catch (e) { return null; } };
+  const [asks, wip, heavy] = await Promise.all([j("/asks"), j("/wip/list"), j("/heavy/status")]);
+  return (WK.data = { asks: asks || [], wip: (wip || []).filter(l => l.stage || l.wip), heavy, at: Date.now() });
+}
+function workBadge() {
+  const d = WK.data, b = document.getElementById("workBadge"); if (!d || !b) return;
+  const n = d.asks.filter(c => !c.answer).length + d.wip.filter(l => l.waiting).length;
+  b.hidden = !n; b.textContent = n;
+}
+function workRender() {
+  const d = WK.data, el = document.getElementById("wkList"); if (!d) { el.innerHTML = "<p class='muted'>Needs the PC's tools/serve.js.</p>"; return; }
+  document.getElementById("wkWhen").textContent = "updated " + new Date(d.at).toLocaleTimeString();
+  const open = d.asks.filter(c => !c.answer), done = d.asks.filter(c => c.answer).slice(0, 5);
+  const ago = iso => { const m = (Date.now() - Date.parse(iso)) / 60000; return !isFinite(m) ? "" : m < 60 ? Math.max(1, Math.round(m)) + " min ago" : Math.round(m / 60) + " h ago"; };
+  let h = `<h3>Decisions for you · ${open.length}</h3>` + (open.length ? open.map(c => `<div class="wkCard open"><b>${esc(c.question)}</b><div class="muted">${esc(c.session)}${c.level ? " · " + esc(c.level) : ""} · ${ago(c.at)}</div>
+    <div class="opts">${c.options.map(o => `<button data-card="${esc(c.id)}" data-ans="${esc(o)}">${esc(o)}</button>`).join("")}<button data-card="${esc(c.id)}" data-other="1" title="answer in your own words">other…</button></div></div>`).join("") : "<p class='muted'>Nothing waits for your answer.</p>");
+  if (done.length) h += done.map(c => `<div class="wkCard"><span class="muted">${esc(c.session)}:</span> ${esc(c.question)} → <b>${esc(c.answer)}</b>${c.note ? " (" + esc(c.note) + ")" : ""}</div>`).join("");
+  h += `<h3>Builds · ${d.wip.length}</h3>` + d.wip.sort((a, b) => (!!b.waiting - !!a.waiting) || String(b.updated || "").localeCompare(String(a.updated || ""))).map(l =>
+    `<div class="wkRow" data-file="${esc(l.file)}"><span class="nm">${esc(l.name)}</span><span class="pkBadge">${esc(l.session || "")}</span>${l.stage ? `<span class="pkBadge" style="background:#2b3a66;color:#cfe0ff">stage: ${esc(l.stage)}</span>` : ""}${l.waiting ? `<span class="pkBadge wip">waits for your ✓ on ${esc(l.waiting)}</span>` : ""}<span class="muted">${ago(l.updated || l.made)}</span></div>`).join("");
+  const q = d.heavy;
+  h += `<h3>The PC's queue</h3>` + (!q ? "<p class='muted'>not readable</p>" : (q.holders.length ? q.holders.map(x => `<div>▶ <b>${esc(x.cmd.slice(0, 90))}</b> <span class="muted">${esc(x.session)} · ${x.min} min in · ${x.left == null ? "time not measured" : x.over ? "past its estimate (" + esc(x.basis) + ")" : "~" + x.left + " min left (" + esc(x.basis) + ")"}</span></div>`).join("") : "<p class='muted'>nothing running</p>") +
+    q.waiting.map((x, i) => `<div class="muted">${i + 1}. ${esc(x.cmd.slice(0, 90))} · ${esc(x.session)}${x.prio && x.prio !== "normal" ? " · " + esc(x.prio) : ""} · ${x.est == null ? "not measured" : "~" + (x.secs < 90 ? x.secs + " s" : x.est + " min") + " (" + esc(x.basis) + ")"}</div>`).join("") + (q.free ? `<div class="muted">${q.free} MB free</div>` : "") +
+    // estimate vs actual of the last finished jobs, so drift shows (tools/jobtime.js recent)
+    ((q.recent || []).length ? `<h3>Finished: estimate vs actual</h3>` + q.recent.map(r => { const f = s => s < 90 ? Math.round(s) + " s" : Math.round(s / 60) + " min", off = r.est && (r.secs > 2 * r.est || r.secs < r.est / 2);
+      return `<div class="muted">${esc(r.tool)} ${esc(r.level || "")}${(r.flags || []).length ? " " + esc(r.flags.join(" ")) : ""} · took <b>${f(r.secs)}</b>${r.ok === false ? " (failed)" : ""} · estimate ${r.est ? f(r.est) : "none"}${off ? ` <b style="color:#ffb3b3">off ${(r.secs / r.est).toFixed(1)}x</b>` : ""} · ${ago(r.at)}</div>`; }).join("") : ""));
+  el.innerHTML = h;
+  el.querySelectorAll("[data-card]").forEach(b => b.onclick = async () => {
+    let ans = b.dataset.ans, note;
+    if (b.dataset.other) { const r = await askNote("Your answer"); if (!r) return; ans = r.note; }
+    try { const r = await fetch("/asks/answer", { method: "POST", body: JSON.stringify({ id: b.dataset.card, answer: ans, note }) }); if (!r.ok) throw new Error(); notice("✓ Answer sent: " + esc(ans), 4000); }
+    catch (e) { notice("The answer could not be saved (is tools/serve.js running?)."); return; }
+    await workFetch(); workRender(); workBadge();
+  });
+  el.querySelectorAll("[data-file]").forEach(r => r.onclick = () => { const i = ALL.findIndex(l => l.file === r.dataset.file); if (i < 0) return notice("Refresh (⟳) to list it."); workClose(); pick.value = i; pick.dispatchEvent(new Event("change")); });
+}
+async function workShow() { WK.open = true; document.getElementById("workBox").hidden = false; document.getElementById("wkList").innerHTML = "<p class='muted'>loading…</p>"; await workFetch(); if (WK.open) { workRender(); workBadge(); }
+  clearInterval(WK.timer); WK.timer = setInterval(async () => { if (!WK.open) return; await workFetch(); workRender(); workBadge(); }, 5000); }
+function workClose() { WK.open = false; clearInterval(WK.timer); document.getElementById("workBox").hidden = true; }
+document.getElementById("workBtn").onclick = workShow;
+document.getElementById("wkClose").onclick = workClose;
+document.getElementById("workBox").onclick = e => { if (e.target.id === "workBox") workClose(); };
+addEventListener("keydown", e => { if (/INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName || "")) return;
+  if (e.key === "Escape" && WK.open) workClose(); else if ((e.key === "w" || e.key === "W") && !WK.open && document.getElementById("picker").hidden) workShow(); });
+if (location.protocol.startsWith("http") && !window.GD_PAGES && !window.GD_PHONE) { setTimeout(async () => { await workFetch(); workBadge(); }, 1500); setInterval(async () => { if (!WK.open) { await workFetch(); workBadge(); } }, 20000); }
+else document.getElementById("workBtn").hidden = true;
 // ---------- build stages (tools/stages.js: local/wip/<session>/<level>.stages/, served by /wip/stages) ----------
 // A level being made shows each stage as soon as it exists: song > layout > path > deco > final (the user: "i want even
 // partial steps like song/layout/path/deco to be available in the process"). The latest stage is lit; an earlier one
@@ -554,10 +659,33 @@ function stageRender() {
     ? `<button data-stage="${n}" class="${lit === n ? "cur" : ""}" title="${esc((have.get(n).note || "") + " · " + new Date(have.get(n).at).toLocaleString())}">${n}${n === last ? " ●" : ""}</button>`
     : `<span class="todo" title="not made yet">${n}</span>`)).join("") +
     (STG.cur && !STG.base.stagesOnly ? `<button id="stageBack" title="back to the level as it is now">current level</button>` : "") +
-    (STG.cur && have.get(STG.cur) && !have.get(STG.cur).solution && have.get(STG.cur).file ? `<button id="stageSolve" title="find this stage's route on the PC">find the route</button>` : "");
+    (STG.cur && have.get(STG.cur) && !have.get(STG.cur).solution && have.get(STG.cur).file ? `<button id="stageSolve" title="find this stage's route on the PC">find the route</button>` : "") +
+    stageReviewHtml(have.get(lit || last), lit || last);
   bar.querySelectorAll("[data-stage]").forEach(b => b.onclick = () => stageOpen(b.dataset.stage));
   const back = document.getElementById("stageBack"); if (back) back.onclick = () => { STG.cur = null; const tt = t; pick.dispatchEvent(new Event("change")); t = Math.min(tt, (L.path.length - 1) / P.TPS); draw(); };
   const sv = document.getElementById("stageSolve"); if (sv) sv.onclick = () => stageSolve(have.get(STG.cur));
+  bar.querySelectorAll("[data-review]").forEach(b => b.onclick = () => stageReview(have.get(b.dataset.stage), b.dataset.review));
+}
+// the user's answer on the stage shown: ✓ ok, or redo with a note (and the moment / spot on screen); a gated stage
+// says the build waits for it
+function stageReviewHtml(st, name) {
+  if (!st || !STG.base) return "";
+  const r = st.review, gate = st.gate && !r ? `<span class="gate">⏸ the build waits for you on ${esc(name)}</span>` : "";
+  const state = r ? `<span class="muted">${r.verdict === "ok" ? "✓ approved" : "↺ redo asked" + (r.note ? ": " + esc(r.note.slice(0, 40)) : "")}</span>` : "";
+  return `<span class="sep">|</span>${gate}${state}<button class="rev" data-review="ok" data-stage="${esc(name)}" title="this stage is good: the build goes on">✓ ok</button><button class="rev" data-review="redo" data-stage="${esc(name)}" title="send it back with a note (the moment on screen goes with it)">redo…</button>`;
+}
+async function stageReview(st, verdict) {
+  if (!st || !STG.base) return;
+  let note;
+  if (verdict === "redo") { const a = await askNote("What should change in the " + st.stage + "?"); if (!a) return; note = a.note + (a.kind && a.kind !== a.note ? " (" + a.kind + ")" : ""); }
+  const spot = L && L.path.length ? { t: +(tick() / P.TPS).toFixed(2), x: Math.round(L.path[tick()].x) } : undefined;
+  try {
+    const r = await fetch("/stages/review", { method: "POST", body: JSON.stringify({ file: STG.base.file, level: STG.base.name, stage: st.stage, verdict, note, spot }) });
+    if (!r.ok) throw new Error(await r.text());
+    st.review = await r.json();
+    notice(verdict === "ok" ? `✓ ${esc(st.stage)} approved: ${esc(STG.base.session || "the session")} hears it now.` : `↺ ${esc(st.stage)} sent back to ${esc(STG.base.session || "the session")} with your note.`, 5000);
+    stageRender(); workFetch().then(workBadge);
+  } catch (e) { notice("Could not send it (is tools/serve.js running?)."); }
 }
 function stageOpen(name) {
   const st = STG.data && STG.data.stages.find(x => x.stage === name); if (!st) return;
@@ -566,13 +694,21 @@ function stageOpen(name) {
   if (st.data && st.data.grid && song && song.url) { const g = st.data.grid;
     (window.GD_BEATS = window.GD_BEATS || {})[song.url] = Object.assign({ downbeat: 0, conf: "plan", sections: [] }, g, { period: g.period || 60 / g.bpm, bpm: g.bpm || 60 / g.period }); }
   STG.cur = name;
-  load(base.name + " · " + name, st.level, st.solution || { ok: false, events: [], pending: true, why: "this stage has no route yet (find the route: the button above)" }, song);
-  L.planned = st.data && st.data.planned || null;
-  L.hits = stageHits();
-  t = Math.min(tt, Math.max(0, (L.path.length - 1) / P.TPS)); lastTick = tick(); draw(); stageRender();
-  const secs = st.data && st.data.sections;
-  if (secs && secs.length || st.note) document.getElementById("summary").insertAdjacentHTML("beforeend",
-    `<p class="muted">stage <b>${esc(name)}</b>${st.note ? ": " + esc(st.note) : ""}${secs && secs.length ? "<br>sections: " + secs.map(x => esc(x.name) + " " + (+x.from).toFixed(1) + "–" + (+x.to).toFixed(1) + " s").join(" · ") : ""}</p>`);
+  const show = saved => {
+    if (STG.cur !== name) return;
+    load(base.name + " · " + name, st.level, saved, song);
+    L.planned = st.data && st.data.planned || null;
+    L.hits = stageHits();
+    t = Math.min(tt, Math.max(0, (L.path.length - 1) / P.TPS)); lastTick = tick(); draw(); stageRender();
+    const secs = st.data && st.data.sections, tm = st.data && st.data.timing;
+    if (secs && secs.length || st.note || tm) document.getElementById("summary").insertAdjacentHTML("beforeend",
+      `<p class="muted">stage <b>${esc(name)}</b>${st.note ? ": " + esc(st.note) : ""}${secs && secs.length ? "<br>sections: " + secs.map(x => esc(x.name) + " " + (+x.from).toFixed(1) + "–" + (+x.to).toFixed(1) + " s").join(" · ") : ""}` +
+      (tm ? `<br>build time: ${esc(tm)}${st.data.target ? ` (this stage's target ${esc(st.data.target)} s${st.data.secs > st.data.target ? ", <b>over</b>" : ""})` : ""}` : "") + `</p>`);
+  };
+  const pending = { ok: false, events: [], pending: true, why: "this stage has no route yet (find the route: the button above)" };
+  // no route yet, but a plan (the layout / path stage: the patterns' intended presses): replay it at once, no solve
+  if (!st.solution && planSaved(st.level, st.data, saved => { if (STG.cur === name && !(PLAY && PLAY.on)) show(saved); })) show(Object.assign({}, pending, { why: "replaying the plan…" }));
+  else show(st.solution || pending);
 }
 // the song's real hits (tools/hits.js slots {beat, t: song seconds, kind}, put with the song stage as data.hits):
 // kicks, snares and accents as ticks under the presses, in level time (song time - the song's offset)
@@ -584,11 +720,11 @@ function stageHits() {
 }
 async function stageSolve(st) {
   const ans = await taskAsk({ title: "Find the route of stage " + st.stage, what: "The PC finds the route of this stage's level (as a person would play it) and saves it, so the stage replays here.",
-    after: "It replays here when ready; you can keep using the viewer.", match: "solutions.js", typical: 2, go: "Solve on the PC" });
+    after: "It replays here when ready; you can keep using the viewer.", match: "solutions.js", cmd: "tools/solutions.js " + (st.file || "stage.gdlvl"), go: "Solve on the PC" });
   if (ans !== "go") return;
   try { const r = await fetch("/solve", { method: "POST", body: JSON.stringify({ file: st.file }) }); if (!r.ok) throw new Error(); } catch (e) { notice("Could not ask the PC (is tools/serve.js running?)."); return; }
   let sol = null;
-  taskAdd({ id: "solve:" + st.file, label: "route of stage " + st.stage, match: "solutions.js",
+  taskAdd({ id: "solve:" + st.file, label: "route of stage " + st.stage, match: "solutions.js", cmd: "tools/solutions.js " + st.file,
     ready: async () => { try { sol = (await (await fetch("/solution?file=" + encodeURIComponent(st.file), { cache: "no-store" })).json()).solution; } catch (e) {} return !!sol; },
     done: () => { st.solution = sol; notice("The route of stage " + esc(st.stage) + " is ready.", 4000); if (STG.cur === st.stage) stageOpen(st.stage); } });
 }
@@ -628,8 +764,16 @@ function varOpen(secId, key) {
   const sc = VAR.data.sections.find(x => x.id === secId), v = sc && sc.variants.find(x => x.key === key); if (!v || !v.level) return;
   const tt = t, base = VAR.base;
   VAR.cur = { sec: secId, key };
-  load(base.name + " · " + (sc.name || sc.id) + " " + key, v.level, v.solution || null, base.song);
-  t = Math.min(tt, (L.path.length - 1) / P.TPS); lastTick = tick(); draw(); varRender();
+  const open = saved => { if (!VAR.cur || VAR.cur.sec !== secId || VAR.cur.key !== key) return;
+    load(base.name + " · " + (sc.name || sc.id) + " " + key, v.level, saved, base.song);
+    t = Math.min(tt, (L.path.length - 1) / P.TPS); lastTick = tick(); draw(); varRender(); };
+  if (v.solution) return open(v.solution);
+  // no route: replay its plan (the variants index's planned presses, or the layout stage's data.alt option's)
+  const lay = STG.data && STG.data.stages.find(x => x.stage === "layout"), alt = lay && lay.data && (lay.data.alt || []).find(a => a.section === secId),
+    opt = alt && (alt.options || []).find(o => o.key === key), plan = v.planned || (opt && opt.planned);
+  const pend = { ok: false, events: [], pending: true, why: "no route for this variant" };
+  if (plan && planSaved(v.level, { planned: plan }, open)) open(Object.assign({}, pend, { why: "replaying the plan…" }));
+  else open(pend);   // never a solve in the page (it froze for minutes)
 }
 async function varPick() {
   if (!VAR.cur || !VAR.base) return;
@@ -771,7 +915,9 @@ function summary() {
   let h = `<b>${esc(L.name)}</b><br><span class="muted">${L.level.objects.length} objects · ${(L.world.endX / 30).toFixed(0)} blocks · ${(L.world.endX / P.SPEED).toFixed(1)} s at 1×</span><br>`;
   // presses only (a saved solution lists releases too); windows only where known (saved ones have none)
   const nP = s.clicks.filter(c => c.type !== "release").length, ws = s.clicks.map(c => c.ms).filter(ms => ms > 0);
-  h += s.ok ? `<p class="ok">Beatable in ${nP} click${nP === 1 ? "" : "s"} ${kind}` +
+  h += s.plan ? (s.ok ? `<p class="ok">▶ The plan plays to the end: the planned presses replayed (${nP} presses, no solve).</p>`
+      : `<p class="bad">▶ The plan breaks here: block ${(s.dieAt.x / 30).toFixed(1)} (x ${Math.round(s.dieAt.x)}), ${(s.dieAt.tick / P.TPS).toFixed(2)} s${s.why ? ": " + esc(s.why) : ""}. After it the camera goes on as a ghost.</p>`)
+    : s.ok ? `<p class="ok">Beatable in ${nP} click${nP === 1 ? "" : "s"} ${kind}` +
               (ws.length ? ` · tightest window ${Math.min(...ws)} ms` : "") + `</p>`
             : s.pending ? `<p class="muted">${esc(s.why)}</p>` : `<p class="bad">${kind} Not beatable in the simulation. The furthest run dies at block ${(s.dieAt.x / 30).toFixed(1)} (${(s.dieAt.tick / P.TPS).toFixed(2)} s): ${s.why}. The replay shows that furthest run.</p>`;
   if (L.deaths && L.deaths.length) h += `<p class="bad">Your real deaths (normal mode, from recordings): ${L.deaths.length} at ${L.deaths.slice().sort((a, b) => a - b).map(p => p.toFixed(0) + "%").join(", ")} (red marks).</p>`;
@@ -801,8 +947,10 @@ function esc(s) { return String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": 
 // ---------- controls ----------
 const playBtn = document.getElementById("play");
 function setPlay() { playBtn.textContent = playing ? "❚❚ pause" : "▶ play"; }
-playBtn.onclick = () => { if (!L) return; if (tick() >= L.path.length - 1) t = 0; playing = !playing; setPlay(); syncSong(true); };
-document.getElementById("restart").onclick = () => { if (!L) return; t = 0; lastTick = -1; playing = true; setPlay(); syncSong(true); };
+playBtn.onclick = () => { if (!L) return;
+  if (PLAY && PLAY.on) { const st = PLAY.lp.state; if (st.dead || st.done) playRestart(PLAY.practice); else { playing = !playing; setPlay(); syncSong(true); } return; }
+  if (tick() >= L.path.length - 1) t = 0; playing = !playing; setPlay(); syncSong(true); };
+document.getElementById("restart").onclick = () => { if (!L) return; if (PLAY && PLAY.on) return playRestart(false); t = 0; lastTick = -1; playing = true; setPlay(); syncSong(true); };
 document.querySelectorAll("[data-speed]").forEach(b => b.onclick = () => {
   speed = +b.dataset.speed; document.querySelectorAll("[data-speed]").forEach(x => x.classList.toggle("on", x === b)); syncSong(true);
 });
@@ -835,7 +983,37 @@ if (document.getElementById("mapBtn")) document.getElementById("mapBtn").onclick
   const l = ALL[pick.value]; if (!l) return;
   const name = String(l.file || "").split("/").pop().replace(/\.(gdlvl|json)$/, ""), url = "../local/maps/" + name + ".jpg";
   let ok = false; try { ok = (await fetch(url, { method: "HEAD", cache: "no-store" })).ok; } catch (e) {}
-  if (ok) showMap(url); else makeMap(l, name, url);
+  if (ok) return showMap(url);
+  // no map file: draw it here, now, from what exists (the layout; the route too when there is one). Solving for a
+  // route is offered beside it, never needed to see the level ("nothing waits on a solve to be visible")
+  const hasRoute = L && !L.noRoute && L.sol && (L.sol.ok || (L.path || []).length > 10);
+  const pcOk = location.protocol.startsWith("http") && !window.GD_PAGES && !window.GD_PHONE;
+  const ans = await taskAsk({ title: "Level map of " + l.name,
+    what: hasRoute ? "Draw the whole level as one long picture, here and now, with its route over it (presses, modes, portals)."
+      : "Draw the whole level as one long picture, here and now: its blocks, hazards, orbs, pads and portals. It has no route yet, so none is drawn.",
+    after: "It opens over the page in a few seconds." + (pcOk && !hasRoute ? " Or let the PC solve the route first and draw the map with it (that can take long on a big level)." : ""),
+    etaText: "Drawn in this page: no waiting on the PC.", go: "Draw it now", alt: pcOk && !hasRoute ? "Solve and add the route (PC)" : null });
+  if (ans === "alt") return makeMap(l, name, url);
+  if (ans !== "go") return;
+  drawMapHere(l);
+};
+// the level map drawn in this page (the shots' mapRender), for the level on screen; the view is restored after
+// drawn in the page without freezing it (the ~100 ms rule): offscreen, one chunk per task with a yield between, progress
+// in the notice; the view, the clock and the controls stay usable; another level opened meanwhile cancels it.
+async function drawMapHere(l) {
+  if (!L || drawMapHere.busy) return;
+  drawMapHere.busy = true;
+  notice("drawing the level map…", 0);
+  const keep = { t, playing };
+  playing = false; setPlay();
+  if (L.path[L.path.length - 1].x < L.world.endX - 30 && !L.noRoute) ghostExtend(L, null, true);   // a run that stops early: the rest as a ghost
+  let url = null, why = "";
+  try { url = await mapRender({ scale: 0.5, blob: true, progress: (i, n) => { if (!document.getElementById("notice").hidden) notice(`drawing the level map… ${i}/${n}`, 0); } }); }
+  catch (e) { why = e.message; console.warn(e); }
+  drawMapHere.busy = false;
+  t = keep.t; draw();
+  const n = document.getElementById("notice"); if (n) n.hidden = true;
+  if (url) showMap(url); else notice(why === "cancelled" ? "Map cancelled: another level was opened." : "The map could not be drawn here.");
 };
 // no map yet: explain, then the PC's tools/serve.js makes it (tools/levelmap.js under the heavy lock, high priority)
 async function makeMap(l, name, url) {
@@ -843,11 +1021,11 @@ async function makeMap(l, name, url) {
   const match = "levelmap.js " + l.file;
   const ans = await taskAsk({ title: "Make the level map of " + l.name,
     what: "The PC solves the level's route if it has none saved, then draws the whole level as one long picture, with the route drawn over it: every press, the modes, the portals.",
-    after: "It opens here when ready; you can keep using the viewer meanwhile. A small chip in the corner shows how far it is.", match, typical: 2 });
+    after: "It opens here when ready; you can keep using the viewer meanwhile. A small chip in the corner shows how far it is.", match, cmd: "tools/levelmap.js " + l.file + " --name " + name });
   if (ans !== "go") return;
   let r = null; try { r = await fetch("/maps/make", { method: "POST", body: JSON.stringify({ file: l.file, name }) }); } catch (e) {}
   if (!r || !r.ok) { notice("The map could not be started (is tools/serve.js running?)."); return; }
-  taskAdd({ id: "map:" + l.file, label: "map of " + l.name, match,
+  taskAdd({ id: "map:" + l.file, label: "map of " + l.name, match, cmd: "tools/levelmap.js " + l.file + " --name " + name,
     ready: async () => { try { return (await fetch(url, { method: "HEAD", cache: "no-store" })).ok; } catch (e) { return false; } },
     done: () => { notice("The map of " + esc(l.name) + " is ready.", 4000); showMap(url); } });
 }
@@ -877,6 +1055,95 @@ addEventListener("keydown", e => {
   if (e.key === "ArrowRight") { t += 1 / P.TPS * (e.shiftKey ? 24 : 1); playing = false; setPlay(); draw(); }
   if (e.key === "ArrowLeft") { t = Math.max(0, t - 1 / P.TPS * (e.shiftKey ? 24 : 1)); playing = false; setPlay(); draw(); }
 });
+
+// ---------- "you play" (button / key P): the user plays the level here, the same sim live (lib/liveplay.js) ----------
+// space / ↑ / W / Enter / click / tap = the button (presses land on the next tick: a frame boundary, as in the user's
+// game); R = restart (practice: from the last checkpoint), Shift+R from the start; P or Esc = back to the replay.
+// Practice checkpoints at each section start and portal. Every attempt goes to the actions feed as type "play" (POST
+// /play): where the user dies is a soft signal for difficulty. Works on any level or build stage, with or without a
+// route: a layout can be tried minutes after it exists (VIEWER.md).
+var PLAY = { on: false, lp: null, practice: true, keep: null, timer: null, deaths: [], from: 0 };
+try { PLAY.practice = localStorage.getItem("gdlm.practice") !== "0"; } catch (e) {}
+function playCheckpoints() {
+  const xs = [];
+  for (const o of L.level.objects) { const k = GD.objInfo(o.id).kind; if (k === "mode" || k === "speed" || k === "gravity" || k === "size") xs.push(o.x + 20); }
+  const withSecs = STG.data && STG.data.stages.find(x => x.data && Array.isArray(x.data.sections) && x.data.sections.length);
+  if (withSecs) { const tl = GD.SYNC.timeline(L.world); for (const sc of withSecs.data.sections) xs.push(GD.SYNC.xOfT(tl, +sc.from || 0)); }
+  if (VAR.data) for (const sc of VAR.data.sections) xs.push(+sc.from || 0);
+  if (!xs.length) for (let i = 1; i < 10; i++) xs.push(L.world.endX * i / 10);
+  const out = []; for (const x of xs.filter(x => x > 90 && x < L.world.endX - 60).sort((a, b) => a - b)) if (!out.length || x - out[out.length - 1] > 150) out.push(x);
+  return out;
+}
+function playUse() { L.path = PLAY.lp.path; L.held = PLAY.lp.held; }
+function playButtons() {
+  const b = document.getElementById("youPlay"), pr = document.getElementById("practiceBtn");
+  b.classList.toggle("on", PLAY.on); b.textContent = PLAY.on ? "🎮 playing (P: stop)" : "🎮 you play";
+  pr.hidden = !PLAY.on; pr.classList.toggle("on", PLAY.practice); cv.style.touchAction = PLAY.on ? "none" : "";
+}
+function playStart() {
+  if (!L || PLAY.on) return;
+  if (marking) setMarking(false);
+  PLAY.keep = { path: L.path, held: L.held, vrot: L.vrot, sol: L.sol, noRoute: L.noRoute, planBreak: L.planBreak, t };
+  PLAY.lp = GD.livePlay(L.world, { checkpoints: playCheckpoints() }); PLAY.deaths = []; PLAY.from = 0; PLAY.on = true;
+  playUse(); L.sol = Object.assign({}, L.sol, { clicks: [] }); L.noRoute = false; L.planBreak = null; L.vrot = null;
+  t = 0; lastTick = -1; playing = true; setPlay(); syncSong(true); playButtons();
+  notice("🎮 You play: <b>space</b> / <b>click</b> / <b>tap</b> = jump · <b>R</b> restart (Shift+R: from the start) · <b>P</b> back to the replay" + (PLAY.practice ? " · practice: checkpoints at each section" : ""), 6000);
+}
+function playStop(quiet) {
+  if (!PLAY.on) return;
+  clearTimeout(PLAY.timer); PLAY.on = false;
+  if (!quiet && L && PLAY.keep) { Object.assign(L, { path: PLAY.keep.path, held: PLAY.keep.held, vrot: PLAY.keep.vrot, sol: PLAY.keep.sol, noRoute: PLAY.keep.noRoute, planBreak: PLAY.keep.planBreak });
+    t = Math.min(PLAY.keep.t, (L.path.length - 1) / P.TPS); lastTick = tick(); playing = false; setPlay(); syncSong(); summary(); draw(); }
+  PLAY.keep = null; playButtons();
+}
+function playPress() {
+  const st = PLAY.lp.state;
+  if (st.dead) { if (!PLAY.timer) playRestart(PLAY.practice); return; }   // a death with no press waits for one
+  PLAY.pressed = true;
+  if (st.done) return playRestart(false);
+  if (!playing) { playing = true; setPlay(); syncSong(true); }
+  PLAY.lp.press();
+}
+function playFrame() {
+  const lp = PLAY.lp, want = Math.floor(t * P.TPS), s = lp.advanceTo(want);
+  if (lp.path.length - 1 < want) t = (lp.path.length - 1) / P.TPS;   // it stopped: a death or the end
+  if (s.dead || s.done) { playing = false; setPlay(); syncSong(); playEnd(s); }
+}
+function playEnd(s) {
+  const lp = PLAY.lp, clear = s.done && !s.dead, pct = Math.max(0, Math.min(100, s.x / Math.max(1, L.world.endX - 90) * 100)), l = STG.base || ALL[pick.value] || {};
+  const rec = { level: l.name || L.name, file: l.file || "", session: l.session || "", stage: STG.cur || undefined, attempt: lp.attempts, result: clear ? "clear" : "died",
+    x: Math.round(s.x), pct: +pct.toFixed(1), t: +((lp.path.length - 1) / P.TPS).toFixed(2), why: s.why || "", from: Math.round(PLAY.from), practice: PLAY.practice };
+  // an attempt with no press at all (nobody playing) is not logged, and does not restart by itself
+  const idle = !PLAY.pressed; PLAY.pressed = false;
+  if (!idle && location.protocol.startsWith("http") && !window.GD_PAGES && !window.GD_PHONE) fetch("/play", { method: "POST", body: JSON.stringify(Object.assign(rec, window.PLAY_TEST ? { test: true } : {})) }).catch(() => {});
+  PLAY.last = rec;
+  if (clear) { notice(`✓ Cleared on attempt ${lp.attempts}${PLAY.practice ? " (practice)" : ""}! Space or R plays again, P goes back to the replay.`, 0); return; }
+  PLAY.deaths.push(s.x); draw();
+  if (idle) { PLAY.timer = null; notice(`✕ ${pct.toFixed(0)}%${s.why ? " · " + esc(s.why) : ""} -- press space / click to try again`, 0); return; }
+  notice(`✕ ${pct.toFixed(0)}% · attempt ${lp.attempts}${s.why ? " · " + esc(s.why) : ""}`, 1500);
+  PLAY.timer = setTimeout(() => playRestart(PLAY.practice), 800);
+}
+function playRestart(practice) {
+  if (!PLAY.on) return;
+  clearTimeout(PLAY.timer); PLAY.timer = null; PLAY.pressed = false; const lp = PLAY.lp;
+  lp.restart(practice); playUse(); PLAY.from = lp.path[lp.path.length - 1].x;
+  t = (lp.path.length - 1) / P.TPS; lastTick = -1; playing = true; setPlay(); syncSong(true); draw();
+}
+const PLAYKEYS = new Set(["Space", "ArrowUp", "KeyW", "Enter", "NumpadEnter"]);
+addEventListener("keydown", e => {
+  if (/INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName || "") || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.code === "KeyP") { e.preventDefault(); e.stopImmediatePropagation(); return PLAY.on ? playStop() : playStart(); }
+  if (!PLAY.on) return;
+  e.stopImmediatePropagation();   // in "you play" these keys are the game's, not the viewer's
+  if (PLAYKEYS.has(e.code)) { e.preventDefault(); if (!e.repeat) playPress(); return; }
+  if (e.code === "KeyR") { e.preventDefault(); return playRestart(!e.shiftKey && PLAY.practice); }
+  if (e.code === "Escape") return playStop();
+}, true);
+addEventListener("keyup", e => { if (PLAY.on && PLAYKEYS.has(e.code)) { e.preventDefault(); e.stopImmediatePropagation(); PLAY.lp.release(); } }, true);
+cv.addEventListener("pointerdown", e => { if (!PLAY.on || marking) return; e.preventDefault(); playPress(); });
+for (const ev of ["pointerup", "pointercancel"]) addEventListener(ev, () => { if (PLAY.on) PLAY.lp.release(); });
+document.getElementById("youPlay").onclick = e => { e.currentTarget.blur(); PLAY.on ? playStop() : playStart(); };
+document.getElementById("practiceBtn").onclick = e => { e.currentTarget.blur(); PLAY.practice = !PLAY.practice; try { localStorage.setItem("gdlm.practice", PLAY.practice ? "1" : "0"); } catch (err) {} playButtons(); };
 
 let actx = null;
 function beep() {
@@ -1152,10 +1419,18 @@ function draw() {
     ctx.strokeStyle = "rgba(255,90,210,.6)"; ctx.lineWidth = 3;
     for (const yy of [s.floorY, s.ceilY]) { ctx.beginPath(); ctx.moveTo(0, sy(yy)); ctx.lineTo(W, sy(yy)); ctx.stroke(); }
   }
+  // where a build stage's plan breaks (a red cross at the death spot)
+  if (L.planBreak && !MAPCAM) { const bx = sx(L.planBreak.x), by = sy(L.planBreak.y), r = 10 * DPR();
+    if (bx > -60 && bx < W + 60) { ctx.strokeStyle = "#ff3b6b"; ctx.lineWidth = 3 * DPR(); ctx.beginPath(); ctx.moveTo(bx - r, by - r); ctx.lineTo(bx + r, by + r); ctx.moveTo(bx + r, by - r); ctx.lineTo(bx - r, by + r); ctx.stroke();
+      ctx.fillStyle = "#ff8fa8"; ctx.font = `bold ${12 * DPR()}px system-ui`; ctx.fillText("the plan breaks here", bx + r + 4, by - r); } }
+  // your deaths in "you play" (this session of attempts): small red ticks on the ground
+  if (PLAY && PLAY.on && PLAY.deaths.length && !MAPCAM) { ctx.fillStyle = "rgba(255,59,107,.8)"; for (const x of PLAY.deaths) { const dx = sx(x); if (dx > -5 && dx < W + 5) ctx.fillRect(dx - 1, groundY - 10 * DPR(), 2 * DPR(), 10 * DPR()); } }
   // the player
   // the player, drawn by its mode (a cube in every mode read wrong: "the wave looks like cube")
   // dual (lib/dual.js): player 2's own fields are in s.p2; it is drawn the same way, at its own height
   for (const ps of s.p2 ? [s, Object.assign({}, s, s.p2)] : [s]) {
+  if (s0.ghost && !MAPCAM) { const gx = sx(ps.x); ctx.strokeStyle = "rgba(255,255,255,.35)"; ctx.setLineDash([6, 6]); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, groundY); ctx.stroke(); ctx.setLineDash([]);
+    if (L.noRoute) { ctx.fillStyle = "rgba(255,255,255,.6)"; ctx.font = `${12 * DPR()}px system-ui`; ctx.fillText("no route yet: the camera runs at the level's speed", gx + 8, 18 * DPR()); } continue; }
   if (MAPCAM) {} else if (LS) GD.LOOK.drawPlayer(ctx, view, ps, L.held[k], local, (P.SPEEDS[ps.sp] || P.SPEEDS[1]).x, sc ? GD.ART_LIB.drawIcon : null);
   else if (ps.mode === "ship") drawShip(ps);
   else if (ps.mode === "wave") drawWave(ps);
@@ -1522,6 +1797,7 @@ function frame(now) {
       const err = Math.max(0, song.currentTime - (songInfo.offset || 0)) - t;
       t = Math.abs(err) > 0.1 ? t + err : t + err * 0.1;
     }
+    if (PLAY && PLAY.on) { playFrame(); syncSong(false); draw(); requestAnimationFrame(frame); return; }
     const k = tick();
     let clicks = 0; for (const c of L.sol.clicks) if (c.type === "press" && c.tick > lastTick && c.tick <= k) clicks++;
     if (clicks && k - lastTick < P.TPS / 4) beep(); // one beep a frame at most, none after a jump
@@ -1622,32 +1898,8 @@ async function shootRun() {
   // a run the sim cannot finish (2.2 levels it does not model yet) goes on as a ghost: same speed, height
   // held, so the camera keeps moving through the level as in the game (job.ghost false: stop at the death)
   if (job.ghost !== false) {
-    const last = L.path[L.path.length - 1];
-    // a map wants the whole level (colours keep changing past a sim stop); shots their latest time
-    // the ghost keeps to the level's speed portals after the stop (it ran at the death's speed before, and
-    // look47's 0.5x / 2x portals put frames at the wrong x: gd-style, 2026-11-23). SPEEDS: units per 60 fps frame
-    const portals = L.level.objects.filter(o => GD.objInfo(o.id).kind === "speed").sort((a, b) => a.x - b.x);
     const vOf = sp => ((P.SPEEDS[sp] || P.SPEEDS[1]).x) * 60 / P.TPS;
-    const want = job.map ? Math.ceil(L.world.endX / vOf(0)) + 2 : Math.max(...job.times) * P.TPS + 2;
-    if (last.dead || L.path.length < want) {
-      let k = L.path.length - 1; while (k > 0 && L.path[k].dead) k--;
-      const base = L.path[k];
-      let x = base.x, sp = base.sp, pi = portals.findIndex(o => o.x > x); if (pi < 0) pi = portals.length;
-      L.path.length = k + 1;
-      for (let j = k + 1; j < want; j++) {
-        x += vOf(sp);
-        while (pi < portals.length && portals[pi].x <= x) { sp = GD.objInfo(portals[pi].id).speed; pi++; }
-        if (job.map && x > L.world.endX + 60) break;
-        L.path.push(Object.assign({}, base, { x, sp, tick: j, dead: false, ghost: true }));
-      }
-      L.held = new Uint8Array(L.path.length);
-      // load() already drew once, building the colour timeline and the trigger runtime on the short path:
-      // triggers past the stop never fired (look47 stayed lavender). Rebuild both on the extended path.
-      const path = L.path;
-      L.look = GD.LOOK.timeline(L.level, x => { let lo = 0, hi = path.length - 1; if (path[hi].x < x) return Infinity;
-        while (lo < hi) { const m = (lo + hi) >> 1; if (path[m].x >= x) hi = m; else lo = m + 1; } return lo / P.TPS; });
-      L.vfx = null;
-    }
+    ghostExtend(L, job.map ? Math.ceil(L.world.endX / vOf(0)) + 2 : Math.max(...job.times) * P.TPS + 2, !!job.map);
   }
   const post = (name, url) => fetch("/shoot/" + SHOOT + "/" + name, { method: "POST", body: url });
   if (job.map) { await post("000.png", await mapRender(job)); return post("done", "1"); }
@@ -1675,6 +1927,34 @@ async function shootRun() {
 // camera -- each chunk at the moment the player passes it, so colour changes and moved objects are where
 // they are then -- and the replayed path over it: mode colours, presses, releases, orb / pad hits,
 // portals, seconds and % ticks, section names, where a run the sim cannot finish stops ----------
+// A run the sim cannot finish, or a level / build stage with no route yet, goes on as a ghost: the camera moves at
+// the level's speed (its speed portals honoured), height held, so everything that exists can be seen and scrubbed
+// at once ("where is the layout", the user on GDLM 64's layout stage: play and the timeline stayed at 0).
+// The look timeline and the trigger runtime are rebuilt on the longer path (triggers past the stop never fired).
+function ghostExtend(LL, want, toEnd) {
+  const portals = LL.level.objects.filter(o => GD.objInfo(o.id).kind === "speed").sort((a, b) => a.x - b.x);
+  const vOf = sp => ((P.SPEEDS[sp] || P.SPEEDS[1]).x) * 60 / P.TPS;
+  want = want || Math.ceil(LL.world.endX / vOf(0)) + 2;
+  const last = LL.path[LL.path.length - 1];
+  if (!(last.dead || LL.path.length < want)) return false;
+  let k = LL.path.length - 1; while (k > 0 && LL.path[k].dead) k--;
+  const base = LL.path[k];
+  let x = base.x, sp = base.sp, pi = portals.findIndex(o => o.x > x); if (pi < 0) pi = portals.length;
+  LL.path.length = k + 1;
+  for (let j = k + 1; j < want; j++) {
+    x += vOf(sp);
+    while (pi < portals.length && portals[pi].x <= x) { sp = GD.objInfo(portals[pi].id).speed; pi++; }
+    if (toEnd && x > LL.world.endX + 60) break;
+    LL.path.push(Object.assign({}, base, { x, sp, tick: j, dead: false, ghost: true }));
+  }
+  const h0 = LL.held; LL.held = new Uint8Array(LL.path.length);
+  if (h0) LL.held.set(Array.prototype.slice.call(h0, 0, Math.min(h0.length, k + 1)));   // the presses before the ghost part stay lit
+  const path = LL.path;
+  LL.look = GD.LOOK.timeline(LL.level, x => { let lo = 0, hi = path.length - 1; if (path[hi].x < x) return Infinity;
+    while (lo < hi) { const m = (lo + hi) >> 1; if (path[m].x >= x) hi = m; else lo = m + 1; } return lo / P.TPS; });
+  LL.vfx = null; LL.vrot = visualRot(path);
+  return true;
+}
 const MODE_COL = { cube: "#7dff00", ship: "#ff5ad2", wave: "#00e5ff", ball: "#ffa500", ufo: "#ffe14d", robot: "#c8c8ff", spider: "#b48cff", swing: "#ffffff" };
 async function mapRender(job) {
   const S = job.scale || 0.5, path = L.path, endX = Math.max(L.world.endX, path[path.length - 1].x + 60);
@@ -1691,17 +1971,36 @@ async function mapRender(job) {
   // the scene, chunk by chunk
   const CH = 600;
   const timeAtX = x => { let lo = 0, hi = path.length - 1; if (path[hi].x < x) return hi / P.TPS; while (lo < hi) { const m = (lo + hi) >> 1; if (path[m].x >= x) hi = m; else lo = m + 1; } return lo / P.TPS; };
-  W = cv.width = Math.round(CH * S); H = cv.height = sceneH;
-  let first = true;
-  for (let r = 0; r < rows; r++) for (let a = r * rowU; a < (r + 1) * rowU && a < endX; a += CH) {
-    MAPCAM = { x: a, y: camY0, scale: S, groundY: H - GROUND * S };
-    t = timeAtX(a + CH / 2); playing = false;
-    for (let k = 0; k < (first ? 6 : 2); k++) { draw(); await new Promise(res => setTimeout(res, first ? 150 : 20)); }
-    first = false;
-    const w = Math.min(CH, (r + 1) * rowU - a);
-    X.drawImage(cv, 0, 0, Math.round(w * S), H, 10 + Math.round((a - r * rowU) * S), HEAD + r * (rowH + GAP) + TOP, Math.round(w * S), H);
-  }
-  MAPCAM = null;
+  // each chunk is drawn into an offscreen canvas (draw() paints into ctx), so the page's own view is untouched; the
+  // view's ctx / W / H come back between chunks, so a redraw the user causes meanwhile paints the view as usual
+  const off = document.createElement("canvas"); off.width = Math.round(CH * S); off.height = sceneH;
+  const offCtx = off.getContext("2d"), keepV = { W, H, t }, L0 = L;
+  let nChunks = 0; for (let r = 0; r < rows; r++) for (let a = r * rowU; a < (r + 1) * rowU && a < endX; a += CH) nChunks++;
+  let first = true, done = 0;
+  const yieldNow = ms => new Promise(res => setTimeout(res, ms));
+  try {
+    for (let r = 0; r < rows; r++) for (let a = r * rowU; a < (r + 1) * rowU && a < endX; a += CH) {
+      // the first chunk waits for images (GD art) to load; then each chunk is drawn again while the art's time budget
+      // left tinted sprites out (lib/art.js budget(): new colours cost a canvas op each), so no task runs long
+      const AR = GD.ART_LIB;
+      for (let k = 0, again = true; again && k < 40; k++) {
+        if (L !== L0) throw new Error("cancelled");
+        ctx = offCtx; W = off.width; H = off.height;
+        MAPCAM = { x: a, y: camY0, scale: S, groundY: H - GROUND * S };
+        t = timeAtX(a + CH / 2); playing = false;
+        if (AR && AR.budget) AR.budget(40);
+        try { draw(); } finally { if (AR && AR.budget) AR.budget(0); ctx = ctx0; MAPCAM = null; W = keepV.W; H = keepV.H; t = keepV.t; }
+        again = (first && k < 5) || k < 1 || !!(AR && AR.S && AR.S.missed);
+        await yieldNow(first ? 150 : 0);
+      }
+      first = false;
+      const w = Math.min(CH, (r + 1) * rowU - a);
+      X.drawImage(off, 0, 0, Math.round(w * S), sceneH, 10 + Math.round((a - r * rowU) * S), HEAD + r * (rowH + GAP) + TOP, Math.round(w * S), sceneH);
+      if (job.progress) job.progress(++done, nChunks);
+    }
+  } finally { ctx = ctx0; MAPCAM = null; W = keepV.W; H = keepV.H; }
+  if (L !== L0) throw new Error("cancelled");
+  await yieldNow(0);
   // overlay: level x, y -> map pixels
   const rowOf = x => Math.min(rows - 1, Math.max(0, Math.floor(x / rowU)));
   const mx = x => 10 + (x - rowOf(x) * rowU) * S, my = (x, y) => HEAD + rowOf(x) * (rowH + GAP) + TOP + (sceneH - GROUND * S) - (y - camY0) * S;
@@ -1760,8 +2059,8 @@ async function mapRender(job) {
     const x = pc / 100 * (L.world.endX - 90), yb = HEAD + rowOf(x) * (rowH + GAP) + TOP + sceneH;
     X.fillStyle = "#ffe14d"; X.fillRect(mx(x), yb, 2, 10); X.fillText(pc + "%", mx(x), yb + 29);
   }
-  // where a run the sim cannot finish stops
-  if (!ok || stopK >= 0) {
+  // where a run the sim cannot finish stops (a level without a route has no run to stop)
+  if ((!ok || stopK >= 0) && !L.noRoute) {
     const p = path[lastK], cx = mx(p.x), cy = my(p.x, p.y);
     X.strokeStyle = "#ff3b6b"; X.lineWidth = 4; X.beginPath(); X.moveTo(cx - 9, cy - 9); X.lineTo(cx + 9, cy + 9); X.moveTo(cx + 9, cy - 9); X.lineTo(cx - 9, cy + 9); X.stroke();
     // the label on a dark plate: red text vanished on red sections (Deadlocked's 59% stop)
@@ -1775,7 +2074,8 @@ async function mapRender(job) {
   X.textAlign = "left"; X.fillStyle = "#fff"; X.font = "bold 22px system-ui"; X.fillText(L.name, 12, 28);
   let presses = 0; for (let k = 1; k <= lastK; k++) if (L.held[k] && !L.held[k - 1]) presses++;
   X.font = "14px system-ui"; X.fillStyle = "#bbb";
-  X.fillText(`${(L.world.endX / 30).toFixed(0)} blocks · ${total.toFixed(1)} s · ${presses} presses · ${ok ? (L.sol.natural ? "natural replay" : "solver run") : "not beaten in the simulation"} · ${job.art === false ? "shapes" : "GD art"}`, 12, 52);
+  X.fillText(L.noRoute ? `${(L.world.endX / 30).toFixed(0)} blocks · the layout only: no route yet · ${job.art === false || !artOn() ? "shapes" : "GD art"}`
+    : `${(L.world.endX / 30).toFixed(0)} blocks · ${total.toFixed(1)} s · ${presses} presses · ${ok ? (L.sol.natural ? "natural replay" : "solver run") : "not beaten in the simulation"} · ${job.art === false ? "shapes" : "GD art"}`, 12, 52);
   let lx = Math.max(640, Math.min(out.width - 560, 900));
   X.font = "13px system-ui";
   for (const [m, c] of Object.entries(MODE_COL)) {
@@ -1785,6 +2085,8 @@ async function mapRender(job) {
   X.fillStyle = "#fff"; X.beginPath(); X.arc(lx + 6, 42, 5, 0, 7); X.fill(); X.fillStyle = "#ddd"; X.fillText("press", lx + 15, 46); lx += 62;
   X.strokeStyle = "#fff"; X.lineWidth = 2; X.strokeRect(lx, 38, 8, 8); X.fillText("release", lx + 13, 46); lx += 70;
   X.fillStyle = "#ffe14d"; X.fillText("◆ orb / pad", lx, 46);
+  // in the page: encoded off the main thread (toBlob) -- toDataURL of a big map blocked for long; tools/shoot.js wants a data url
+  if (job.blob) return await new Promise(res => out.toBlob(b => res(b ? URL.createObjectURL(b) : null), "image/png"));
   return out.toDataURL("image/png");
 }
 loadMarks();

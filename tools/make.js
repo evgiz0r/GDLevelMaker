@@ -289,6 +289,7 @@ function build(spec, specFile = "spec") {
     const [type, , row] = entry;
     // where each pattern lands: its intended inputs come with it (tools/intent.js)
     if (type === "pattern") ctx.placements.push({ name: entry[1], col, row: entry[3] || 0, args: entry[4] || {} });
+    else if (type === "block" || type === "spike") (ctx.raw || (ctx.raw = [])).push({ type, col, row: row || 0 });   // terrain: intents from its rises (tools/intent.js)
     if (speedObj.has(entry)) objects.push(speedObj.get(entry));
     else if (type === "pattern" && /^orb-(ladder|pit)$/.test(entry[1]) && !(entry[4] || {}).fixed && !entry[3]) objects.push(...arcOrbs(entry[1], col, entry[4] || {}, header, specFile, placed));
     else if (type === "pattern") { for (const e of expand(entry[1], col, entry[3], entry[4], entry[5])) objects.push(toObj(e, specFile)); }
@@ -432,15 +433,18 @@ function putStages(spec, level, ctx, which) {
   if (which.includes("layout") || which.includes("path")) {
     const layout = { header: level.header, objects: level.objects.filter(o => STAGE_PLAY.has(GD.objInfo(o.id).kind)) };
     const ls = GD.serializeLevel(layout);
-    if (which.includes("layout")) put("layout", { levelStr: ls, note: "gameplay only" });
-    if (which.includes("path")) try {
+    // the planned presses: cached intents only, never a solve (patterns not yet in local/intent/ are left out;
+    // node tools/intent.js <spec> fills the cache through the heavy lock). Shown with the layout too (the user:
+    // "the layout doesnt include the clicks themselves?")
+    let planned = [], missing = [];
+    try {
       const I = require("./intent.js"), w = GD.makeWorld(layout.objects, layout.header), tl = GD.SYNC.timeline(w);
-      // cached intents only: the path stage never solves (patterns not yet in local/intent/ are left out;
-      // node tools/intent.js <spec> fills the cache through the heavy lock)
-      const { intents, missing } = I.intents(ctx.placements || [], tl, { cacheOnly: true });
-      put("path", { levelStr: ls, data: { planned: intents.map(i => ({ t: +GD.SYNC.tOfX(tl, i.x).toFixed(3), what: i.type === "press" ? "jump" : "release" })) },
-        note: "planned presses from each pattern's intended inputs" + (missing.length ? ` (${missing.length} pattern(s) not planned yet)` : "") });
-    } catch (e) { put("path", { levelStr: ls, note: "planned presses not available: " + e.message }); }
+      const r = I.intents(ctx.placements || [], tl, { cacheOnly: true }); missing = r.missing;
+      planned = r.intents.map(i => ({ t: +GD.SYNC.tOfX(tl, i.x).toFixed(3), what: i.type === "press" ? "jump" : "release" }));
+    } catch (e) {}
+    const pnote = missing.length ? ` (${missing.length} pattern(s) not planned yet)` : "";
+    if (which.includes("layout")) put("layout", { levelStr: ls, data: { planned }, note: "gameplay and its planned presses" + pnote });
+    if (which.includes("path")) put("path", { levelStr: ls, data: { planned }, note: "planned presses from each pattern's intended inputs" + pnote });
   }
   if (which.includes("deco")) put("deco", { levelStr: GD.serializeLevel(level), note: "with the look" });
   if (which.includes("final")) put("final", { levelStr: GD.serializeLevel(level), note: which.note || "built" });
@@ -487,7 +491,7 @@ function make(specFile, specObj) {
   }
   // save the solution (natural replay) so the viewer and the phone replay it, not solve it again
   // r: the check's solve (indicators have no hitbox, so it still holds)
-  try { const L2 = require("./io.js").readGdlvl(out); require("./solutions.js").fromRun(L2.level, L2.levelStr, r); } catch (e) { console.log("   (solution not saved: " + e.message + ")"); }
+  try { const L2 = require("./io.js").readGdlvl(out); require("./solutions.js").fromRun(L2.level, L2.levelStr, r, { name: L2.name, file: out }); } catch (e) { console.log("   (solution not saved: " + e.message + ")"); }
   putStages(spec, level, ctx, Object.assign(["final"], { note: r && r.ok ? "beaten" : "not beaten" }));
   buildIndex();
   return { out, r };

@@ -53,10 +53,10 @@
       "use": [
         "single",
         "spike-block",
-        "s:pillar-hop",
         "platform",
         "s:slab-steps",
         "orb-pit",
+        "stairs",
         "s:pillar-climb"
       ],
       "args": {
@@ -128,14 +128,17 @@
       "speed": "2x",
       "use": [
         "double",
-        "s:capped-hop",
         "pad-launch",
-        "block-spike-block",
-        "s:stepped-pyramid"
+        "platform",
+        "single"
       ],
       "args": {
         "pad-launch": {
           "n": 3
+        },
+        "platform": {
+          "w": 4,
+          "h": 1
         }
       },
       "bg": [
@@ -229,7 +232,7 @@
       "beats": 32,
       "use": [
         "single",
-        "s:pillar-hop",
+        "s:slab-steps",
         "orb-pit",
         "spike-block",
         "s:lantern-orb"
@@ -283,5 +286,6 @@
       "secs": 1.5
     }
   ],
-  "modern": false
+  "modern": false,
+  "notesV2": "round 2 (2026-11-24): the 2x noon run with craft pieces checked only at 1x failed 8 rounds (25 ms, prejump, land-and-jump chains): classic patterns proven at 2x; pillar-hop out (a jump over a spike timed around the next pillar, the reactive gate)"
 }

@@ -39,8 +39,9 @@ for (const m of maps) fs.copyFileSync(path.join(MAPS, m + "_shapes.jpg"), path.j
 swap('<button id="mapBtn" title="the whole level as one picture with its path (make it with node tools/levelmap.js <level>)">level map</button>\n',
   maps.length ? '<button id="mapBtn" title="the whole level as one picture with its path">level map</button>\n' : "");
 swap('  let ok = false; try { ok = (await fetch(url, { method: "HEAD", cache: "no-store" })).ok; } catch (e) {}\n' +
-  '  if (ok) showMap(url); else makeMap(l, name, url);',
-  '  if (!GD_MAPS.includes(name)) { notice("No map of " + esc(name) + " on this page yet."); return; }\n  showMap("maps/" + name + "_shapes.jpg");');
+  '  if (ok) return showMap(url);',
+  // the phone: only the art-free maps made on the PC; the viewer's in-page drawing below is not used here
+  '  if (!GD_MAPS.includes(name)) { notice("No map of " + esc(name) + " on this page yet."); return; }\n  return showMap("maps/" + name + "_shapes.jpg");');
 swap("const artOn = () =>", `const GD_MAPS = ${JSON.stringify(maps)};
 function mapName() { const l = ALL[pick.value]; return l ? String(l.file || "").split("/").pop().replace(/\\.(gdlvl|json)$/, "") : ""; }
 function mapBtnShow() { const b = document.getElementById("mapBtn"); if (b) b.style.display = GD_MAPS.includes(mapName()) ? "" : "none"; }

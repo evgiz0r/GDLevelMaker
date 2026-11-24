@@ -5,6 +5,12 @@
 //   require("./stages.js").put({ session, base, name, stage, levelStr?, data?, note? })
 //   node tools/stages.js put <session> <level.gdlvl | base> <stage> [--json file.json] [--note "..."] [--name "GDLM 70 x"]
 //   node tools/stages.js list [session]
+//   node tools/stages.js wait <session> <base> <stage> [--timeout-min 120]   a builder's gate: blocks until the user
+//        approves (prints "ok") or sends the stage back (prints "redo<TAB>note"); exit 2 on timeout
+//
+// Approve or redo (the viewer's stage bar, VIEWER.md): put({..., gate: true}) marks a stage the build waits on; the user's
+// answer is stored on the stage as review {verdict: "ok" | "redo", note, spot?: {t, x}, at} (approve() below, from
+// tools/serve.js POST /stages/review). Without a gate an approval is optional and just recorded.
 //
 // stage: song | layout | path | deco | final (that order). Files: local/wip/<session>/<base>.stages/
 //   index.json      { level: "<base>.gdlvl", name, session, stages: [{ stage, at, note, file?, data? }] } -- a later
@@ -31,6 +37,7 @@ function put(o) {
   if (o.name) idx.name = o.name;
   const entry = { stage: o.stage, at: new Date().toISOString() };
   if (o.note) entry.note = o.note;
+  if (o.gate) entry.gate = true;   // the build waits for the user's ok / redo on this stage (waitApproval)
   if (o.levelStr) {
     const { pack } = require("./io.js"), GD = require("../lib/gd.js");
     const rec = GD.newRecord(idx.name + " (" + o.stage + ")", "build stage " + o.stage);
@@ -68,7 +75,27 @@ function songOf(data) {
   const sg = data && data.song; if (!sg) return undefined;
   return sg.url ? sg : Object.assign({}, sg, sg.id ? { url: "/song/custom/" + sg.id + ".mp3" } : {});
 }
-module.exports = { put, list, dirOf, ORDER, emptyLevel, songOf };
+// the user's answer on a stage: {verdict: "ok" | "redo", note?, spot?} -> stored on the stage as review
+function approve(session, base, stage, r) {
+  const dir = dirOf(session, base), idx = read(dir); if (!idx) throw new Error("no stages for " + session + "/" + base);
+  const st = idx.stages.find(x => x.stage === stage); if (!st) throw new Error("no stage " + stage);
+  if (!["ok", "redo"].includes(r.verdict)) throw new Error("verdict must be ok or redo");
+  st.review = { verdict: r.verdict, note: r.note || undefined, spot: r.spot || undefined, at: new Date().toISOString() };
+  fs.writeFileSync(path.join(dir, "index.json"), JSON.stringify(idx, null, 1));
+  return st.review;
+}
+// a builder at a gate: resolves with the review when the user answers (polls the index; after a redo the builder puts
+// the stage again, which clears the review, and waits again)
+function waitApproval(session, base, stage, opts = {}) {
+  const until = Date.now() + (opts.timeoutMin || 120) * 60e3;
+  return new Promise((ok, no) => { const tick = () => {
+    const idx = read(dirOf(session, base)), st = idx && idx.stages.find(x => x.stage === stage);
+    if (st && st.review) return ok(st.review);
+    if (Date.now() > until) return no(new Error("no answer on " + stage + " yet"));
+    setTimeout(tick, opts.everyMs || 2000);
+  }; tick(); });
+}
+module.exports = { put, list, dirOf, ORDER, emptyLevel, songOf, approve, waitApproval };
 
 if (require.main === module) {
   const a = process.argv.slice(2), opt = n => { const i = a.indexOf(n); return i >= 0 ? a[i + 1] : null; };
@@ -78,6 +105,9 @@ if (require.main === module) {
     const data = opt("--json") ? JSON.parse(fs.readFileSync(opt("--json"), "utf8")) : undefined;
     const idx = put({ session, base, name, stage, levelStr, data, note: opt("--note") });
     console.log(`stage ${stage} of ${idx.name} saved (${idx.stages.map(s => s.stage).join(" > ")}) -> ${path.relative(ROOT, dirOf(session, base))}`);
+  } else if (a[0] === "wait" && a[3]) {
+    waitApproval(a[1], a[2].replace(/\.gdlvl$/, ""), a[3], { timeoutMin: +opt("--timeout-min") || 120 })
+      .then(r => { console.log(r.verdict + (r.note ? "	" + r.note : "")); process.exit(0); }, e => { console.error(e.message); process.exit(2); });
   } else if (a[0] === "list") {
     for (const b of list(a[1])) console.log(`${b.session.padEnd(14)} ${b.index.name.padEnd(30)} ${b.index.stages.map(s => s.stage).join(" > ")}`);
   } else console.log(fs.readFileSync(__filename, "utf8").split("\n").filter(l => l.startsWith("//")).join("\n"));

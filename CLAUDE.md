@@ -66,6 +66,29 @@ not after it:
   to be available in the process, not just the end result". Every build puts its stages (song, layout, path,
   deco, final) to local/wip/<session>/<base>.stages/ via tools/stages.js; compose and make.js do it themselves.
   A new builder calls stages.put too. The viewer's in-progress list shows each build at its latest stage.
+- **Estimates come from measurements, not guesses.** The user (2026-11-24): estimates have been wrong for a long time,
+  mostly far too long ("ready in 45 minutes" -> ready after 5; "10 minutes" -> it was copying 2 files). Say a time only when
+  it comes from a measurement: local/timings.jsonl (the heavy lock records every run by tool, level and flags), or a
+  similar run you timed. Give the basis in a few words ("last 3 runs: 4-6 min"). With no measurement, say "not measured",
+  or "seconds" for edits and file work. Never pad. When a job finishes, compare it with what you said, and fix the
+  table or the estimate code when it was off by 2x or more.
+- **A layout is playable the moment it exists.** The user (2026-11-24): "i would assume i could start playing [...]
+  from the layout [...] thats the point". A layout is built from its planned presses, so it ships with them: the
+  viewer replays the plan at once (no solve) and the user can play it themselves. Solving comes after, as a check
+  for secret ways and fairness; it never gates seeing or playing a level. A layout whose plan dies is a bug in the
+  plan, shown at the death spot.
+- **One way to build a level: BUILDING.md.** Sections with seam contracts (like a collab), presses before
+  blocks (beat-first for synced levels), a playable layout at once, stages shown as they happen, alternatives
+  shown, reuse, measured times, and a retro in BUILDS.md. Read it before any build; change it when a build
+  teaches something.
+- **Process rules go in the repo, never only in a message.** The user (2026-11-24): "never just for one session
+  if its a big repeatable process". A rule, a process step or a lesson that one session was told applies to
+  every session and every future build: write it in CLAUDE.md, BUILDING.md or the topic's doc in the same round.
+- **Experiments are silent.** The user (2026-11-24): "when some claude is experimenting, can it mute?" A session
+  that opens the viewer or plays anything to test it (browser pane, headless, shots, play mode) runs it muted:
+  the viewer's `mute=1` URL flag (music, click sound, every sound), and tests use it by default. Test actions are
+  marked test (id "test-..." or test: true) so they stay out of the user's feed. Only the user's own viewer
+  plays sound.
 - **Hand off.** Before a long pause or when your area changes hands, write where you stopped,
   what is open and the good numbers into your area's doc.
 - **Share, don't duplicate.** Results go into the shared `local/` (see below) so no session redoes
@@ -145,15 +168,20 @@ at once and the PC hung (0.2 GB free), so the rule is now a lock every heavy too
 The user wants to know how long a wait will be. **Before a job over ~30 s, tell the user roughly how long
 it takes** (from this table, or the ETA `tools/loop.js` prints). When a run is far off (over 2x, or under
 half), correct the row here in the same change. Real numbers pile up in `local/timings.jsonl` (every
-`loop.js` step; any other job with `node tools/loop.js --time <step> <command>`); `node tools/loop.js
---times` prints them by level length. Wait for the heavy-job slot comes on top of all of these.
+`loop.js` step; **every heavy job, by itself**: tools/heavy.js logs each finished one keyed by tool + level + flags, with the
+estimate it had); `node tools/loop.js --times` prints them by level length. **Estimates in code:** `tools/jobtime.js`
+(`est <command>` -> "~28 min (last run make jN, this level: 28 min)" or "not measured"; `recent` -> estimate vs actual,
+"!! off 3x" where it drifted); the heavy lock's waiting lines, `/heavy/status` and the viewer's Work panel / task chip use it,
+always with that basis. Runs of another level size or other flags never count (score: 11 s on a short cube level, minutes
+on a long one with modes). Wait for the heavy-job slot comes on top of all of these.
 
 | job | how long | source |
 |---|---|---|
-| make, short cube level (15-20 s) | 15-30 s | loop.js, GDLM 02 / 41, 2026-11-23 |
+| make, short cube level (15-20 s) | 15-30 s (the solve itself ~2 s since the state-copy fix) | loop.js, GDLM 02 / 41, 2026-11-23 |
 | make `--look` (decoration only, gameplay unchanged) | ~1 s | showcase notes, GDLM 50 |
-| make, an existing level after a one-spot edit (incremental) | cube: ~1 s when it rejoins, else like a full make; with modes: being measured | PHYSICS.md "Incremental solving" |
-| make (= the solve), 40-100 s level with ship / wave / ball | 5-7 min | PHONE.md (GDLM 45 ~5 min), SHOWCASE.md (GDLM 50 ~7 min) |
+| make, an existing level after a one-spot edit (incremental) | 1-5 s in cube or ball; an edit inside or just before a ship stretch 25-65 s (the stretch is re-planned) | PHYSICS.md "Incremental solving", cloud 2026-11-23 |
+| cut or join of solved levels (section cache) | 0.5-10 s (full: 1-70 s) | PHYSICS.md "Incremental solving" |
+| make (= the solve), 40-100 s level with ship / wave / ball | ~2 min since the state-copy fix (was 5-7 min) | GDLM 45 106 s, GDLM 61 124 s (cloud, 2026-11-23); before: PHONE.md, SHOWCASE.md |
 | score.js, every gate, short cube level | 10-20 s | loop.js, GDLM 02 / 41 |
 | score.js, level with modes | ~2 solves + ~1 min fairness: 10-15 min | score.js header; not timed yet |
 | compose.js (brief, repair rounds) | one make + score per round | not timed yet |
@@ -229,6 +257,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 - `lib/sync.js` -- music sync: level time <-> x through speed portals, beat grid <-> level beats,
   press timing windows from a solution, sync scores. See SYNC.md (also where songs come from).
 - **The public viewer** (https://evgiz0r.github.io/GDLevelMaker/, PAGES.md: GitHub Pages, rebuilt on every push; a level goes on it ONLY when the user says so for that level: `knowledge/public_levels.json`, empty for now, our levels only, songs / GD art / official levels only from the user's own serve.js): `tools/pages.js`, `tests/pages_build.js`, `.github/workflows/pages.yml`.
+- **The viewer is where the user steers the work** (VIEWER.md): the Work panel, ✓ ok / redo on build stages with gates (`tools/stages.js waitApproval`), decision cards (`tools/ask.js put/wait`), and the actions feed every user action goes to (`tools/actions.js tail --since <id>`). Ask the user there, not only in chat. **🎮 you play** (key P): the user plays any level or build stage in the viewer, the same sim live (`lib/liveplay.js`), practice checkpoints per section; each attempt is a `play` line in the feed (where they die). A stage with a plan but no route replays the plan at once and shows where it breaks.
 - **Build stages in the viewer** (`tools/stages.js`: a builder puts song / layout / path / deco / final as each is done -> `local/wip/<session>/<base>.stages/`; the viewer shows a stage bar on the level and the stage on the picker's in-progress cards, even before the first wip put). `require("./stages.js").put({session, base, name, stage, levelStr?, data?, note?})`; test: `node tests/stages.js`.
 - **The phone page** (PHONE.md: what is on it, what a session does after `wip.js put`, phone
   marks, how it was tested, what is open): `tools/web.js` builds it from the viewer.
@@ -283,7 +312,8 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   hardest spots first, small edits scored by the difficulty model), `tools/families.js` (every soft-rule family: note words, effect,
   effort, fix, auto-fix). Test: `node tests/editing.js`.
 - **`tools/heavy.js` -- the one-heavy-job lock** every heavy tool takes on start (see "One heavy job at
-  a time"). Test: `node tests/heavy.js`.
+  a time"); it logs every finished job's real time to local/timings.jsonl (`tools/jobtime.js`: measured estimates with
+  their basis, estimate vs actual). Tests: `node tests/heavy.js`, `node tests/jobtime.js`.
 - **`tools/loop.js` -- the whole make/iterate loop in one command** (owner check, ETA, make/compose, score,
   shoot, levelmap, wip; logs under `local/loop/`), `--times` prints the measured time table, `--time <step>
   <cmd>` times any other job into it. Test: `node tests/loop.js`.
@@ -297,6 +327,8 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   kept where nothing changed. Saved routes carry `checkpoints`; `tools/inc_store.js` keeps the old levels and
   sections in `local/`. make.js uses it on an existing level (`--full`: the old way). Study:
   `node tools/incsolve.js study|cutjoin|profile <level>`; test: `node tests/incsolve.js [--quick]`.
+  **Copy a sim state with `{ ...s }`, never `Object.assign({}, s)`** (V8 makes the latter a slow dictionary object:
+  every solver ran 2-5x slower); `node tests/fast_states.js` checks.
 - `viewer/index.html` -- the replay viewer; `viewer/levels.js` is generated, do not edit.
 - `lib/look.js` -- how a level LOOKS (viewer's "game look", on by default): header colours, colour
   899 / alpha 1007 / zoom 1913 triggers over time, block skins 1-7 outlined by their own edges,
@@ -478,6 +510,9 @@ The viewer draws moving objects where they start.
 
 ## Rules
 
+- **In the viewer, everything that exists can be seen at once; nothing waits on a solve to be visible.** A level or
+  build stage with no route runs as a ghost (the camera at the level's speed, portals honoured), and its level map is
+  drawn in the page from the layout; solving for the route is an option, never the price of seeing it.
 - **No native dialogs in the viewer pages** (alert / confirm / prompt): the app's built-in browser and the phone page's
   frame suppress them, so the button just did nothing. Use the viewer's notice(), askNote(), showMap();
   `node tests/no_dialogs.js` checks.

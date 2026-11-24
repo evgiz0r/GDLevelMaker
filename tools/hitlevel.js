@@ -24,7 +24,12 @@ const PH = require("../lib/physics.js");
 
 const UPS = PH.SPEEDS[1].x * 60;   // 1x, units per second
 
-function build(plan) {
+// opts (tools/hitbuild.js, beat-first): numeric: true -> plain columns (no "jN": nothing is slid by solving);
+// shift[i] / orbShift[i] (columns) move cell i's obstacle / its orb; ship[sectionIndex] = spec entries for a
+// ship section (a corridor built around a planned path) instead of the ship-tunnel pattern.
+const LEAD = { spike: 2.22, double: 2.22, down: 2.22, orb: 2.22, up: 1.9, upoff: 1.9, flat: 0, floor: 1.6, roof: 1.6 };
+function build(plan, opts = {}) {
+  const num = !!opts.numeric, ranges = [];
   const P = 60 / plan.grid.bpm, t0 = plan.grid.t0, off = plan.offset || 0;
   const first = Math.ceil((off - t0) / P - 1e-9);
   const tOf = b => t0 + (first + b - 1) * P - off;
@@ -41,8 +46,10 @@ function build(plan) {
     modern.push({ from: Math.max(0, Math.round(col(b))), to: Math.round(col(to)), kind: s.kind === "rest" ? "rest" : s.kind, flash: !!s.flash, fill: s.fill, light: s.light });
     if (s.kind === "ball" || s.kind === "ship") {
       const w = Math.round((next.from - b) * bpb) - 1;
-      if (s.kind === "ball") o.push(["pattern", "ball-run", "b" + b + "+1", 0, { w, gap: s.gap || 5, lead: 999, portal: true, exit: "cube", portalRow: 1 }]);
-      else o.push(["pattern", "ship-tunnel", "b" + b + "+1", 0, { w, gap: s.gap || 5, amp: s.amp ?? 1.5, base: 0, teeth: true, lead: 8, waves: s.waves || 2, portal: true, exit: "cube", portalRow: 1 }]);
+      const c1 = num ? col(b) + 1 : "b" + b + "+1";
+      if (s.kind === "ship" && opts.ship && opts.ship[i]) o.push(...opts.ship[i]);
+      else if (s.kind === "ball") o.push(["pattern", "ball-run", c1, 0, { w, gap: s.gap || 5, lead: 999, portal: true, exit: "cube", portalRow: 1 }]);
+      else o.push(["pattern", "ship-tunnel", c1, 0, { w, gap: s.gap || 5, amp: s.amp ?? 1.5, base: 0, teeth: true, lead: 8, waves: s.waves || 2, portal: true, exit: "cube", portalRow: 1 }]);
     }
   });
   // cells
@@ -50,15 +57,17 @@ function build(plan) {
   const cells = plan.cells;
   cells.forEach(([b, kind, a0], i) => {
     const a = Object.assign({}, a0 || {});
-    const s = secAt(b), J = "j" + b;
+    const s = secAt(b), J = num ? +(col(b) + (LEAD[kind] ?? 2.22) + ((opts.shift || [])[i] || 0)).toFixed(3) : "j" + b;
+    const o0 = o.length; ranges[i] = [o0, o0];
     const nextB = i + 1 < cells.length && secAt(cells[i + 1][0]) === s ? cells[i + 1][0] : null;
     const span = Math.ceil(((nextB || (secs[secs.indexOf(s) + 1] || { from: plan.last + 4 }).from) - b) * bpb) + 1;
-    const at = k => J + (k >= 0 ? "+" : "") + k;
+    const at = k => num ? +(J + k).toFixed(3) : J + (k >= 0 ? "+" : "") + k;
     const floor = (from, to, hh) => { for (let k = from; k < to; k++) for (let r = 0; r < hh; r++) o.push(["block", at(k), r]); };
     if (s.kind === "ball") {
       if (kind === "floor") { o.push(["spike", J, 0]); o.push(["spike", at(1), 0]); }
       else if (kind === "roof") { const g = s.gap || 5; o.push(["spike", J, g - 1, { rot: 180 }]); o.push(["spike", at(1), g - 1, { rot: 180 }]); }
       else throw new Error(`ball cell "${kind}" at ${b}`);
+      ranges[i] = [o0, o.length];
       return;
     }
     // `off` (spike / up cells on a raised floor): the floor steps down a row partway to the next cell
@@ -70,10 +79,15 @@ function build(plan) {
     else if (kind === "double") { o.push(["spike", J, h]); o.push(["spike", at(1), h]); floor(0, span, h); }
     else if (kind === "up") { h += 1; if (a.spike) o.push(["spike", at(a.spike), h]); const offA = a.off === true ? Math.ceil(span * 0.55) : a.off; if (offA) { floor(0, offA, h); h -= 1; floor(offA, span, h); } else floor(0, span, h); }
     else if (kind === "down") { if (h < 1) throw new Error(`"down" on the floor at beat ${b}`); floor(0, 1, h); o.push(["spike", J, h]); h -= 1; floor(1, span, h); }
-    else if (kind === "orb") { if (h) throw new Error(`orb off the floor at ${b}`); o.push(["pattern", "orb-pit", J, 0, { n: a.n || 5 }]); }
-    else if (kind === "pad") { if (h) throw new Error(`pad off the floor at ${b}`); o.push(["pattern", "pad-launch", "b" + b, 0, { n: a.n || 3 }]); }
+    else if (kind === "orb") {
+      if (h) throw new Error(`orb off the floor at ${b}`);
+      if (!num) o.push(["pattern", "orb-pit", J, 0, { n: a.n || 5 }]);
+      else { const n = a.n || 5; for (let k = 0; k < n; k++) o.push(["spike", at(k), 0]); o.push(["yellow orb", +(J + Math.floor(n / 2) + ((opts.orbShift || [])[i] || 0)).toFixed(3), a.orbRow || 2]); }
+    }
+    else if (kind === "pad") { if (h) throw new Error(`pad off the floor at ${b}`); o.push(["pattern", "pad-launch", num ? +col(b).toFixed(3) : "b" + b, 0, { n: a.n || 3 }]); }
     else if (kind === "flat") floor(0, span, h);
     else throw new Error(`cube cell "${kind}" at ${b}`);
+    ranges[i] = [o0, o.length];
     const nextSec = secs[secs.indexOf(s) + 1];
     if (!nextB && h) throw new Error(`section ending at beat ${nextSec ? nextSec.from : "end"} leaves the floor at height ${h}`);
   });
@@ -92,7 +106,7 @@ function build(plan) {
     objects: o,
   };
   if (plan.indicators) spec.indicators = plan.indicators;
-  return { spec, col, bpb };
+  return { spec, col, bpb, tOf, ranges };
 }
 
 if (require.main === module) {

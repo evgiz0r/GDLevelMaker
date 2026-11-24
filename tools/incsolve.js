@@ -46,7 +46,16 @@ function full(level) {
   try { const n = GD.naturalPlan(w, r, level.objects, { cost: true }); if (n && n.path[n.path.length - 1].done) { events = n.events; kind = "human"; } } catch (e) { /* raw route */ }
   const naturalMs = Date.now() - tn, inNatural = JSON.parse(JSON.stringify(prof));
   const cost = GD.humanCost(w, events).cost;
-  return { ok: true, events, kind, cost, presses: events.filter(e => e.type === "press").length, ms: Date.now() - t0, solveMs: ts, naturalMs, inNatural };
+  const out = { ok: true, events, kind, cost, presses: events.filter(e => e.type === "press").length, ms: Date.now() - t0, solveMs: ts, naturalMs, inNatural };
+  return Object.defineProperty(out, "w", { value: w });   // the world (its window cache is warm), not in the rows
+}
+// a base level with no saved route (a cloud session has no local/): solve it whole once and save it as make.js
+// would (route, checkpoints, sections, window cache), so the next study / cutjoin of it starts from there
+function solveBase(L, SOL) {
+  console.log("  (no saved route that finishes: solving the base level whole first, then saving it)");
+  const f = full(L.level); if (!f.ok) { console.log("  base level not beaten:", f.why); return null; }
+  SOL.put(L.levelStr, { ok: true, events: f.events, kind: f.kind, plan: SOL.planCommit() }, L.level, f.w);
+  return f;
 }
 // the incremental pipeline: diff against the old level and its route, re-solve the changed stretch, re-plan it
 function incremental(oldLevel, oldEvents, level, opts) {
@@ -83,7 +92,7 @@ function randomEdit(level, rand) {
 function study(file, opts) {
   const L = readGdlvl(file), SOL = require("./solutions.js");
   let base = SOL.get(L.levelStr, true), w = GD.makeWorld(L.level.objects, L.level.header);
-  if (!base || !base.ok || !I.finishes(w, GD.run(w, base.events))) { console.log(file + ": the saved route does not finish here; full solve first"); const f = full(L.level); if (!f.ok) return; base = f; }
+  if (!base || !base.ok || !I.finishes(w, GD.run(w, base.events))) { console.log(file + ": the saved route does not finish here"); base = solveBase(L, SOL); if (!base) return; }
   const rand = rng(opts.seed || 1), out = path.join(__dirname, "..", "local", "incsolve"); fs.mkdirSync(out, { recursive: true });
   for (let k = 0; k < (opts.edits || 3); k++) {
     const e = randomEdit(L.level, rand); if (!e) break;
@@ -103,7 +112,7 @@ function cutjoin(file) {
   const L = readGdlvl(file), SOL = require("./solutions.js"), ST = require("./inc_store.js");
   const w = GD.makeWorld(L.level.objects, L.level.header);
   let base = SOL.get(L.levelStr, true);
-  if (!base || !base.ok || !I.finishes(w, GD.run(w, base.events))) { const f = full(L.level); if (!f.ok) return; base = f; }
+  if (!base || !base.ok || !I.finishes(w, GD.run(w, base.events))) { base = solveBase(L, SOL); if (!base) return; }
   const p = GD.run(w, base.events).path, store = ST.sections(), stamp = SOL.physicsCommit() + "/" + SOL.planCommit();
   I.cacheRoute(w, base.events, p, store, { stamp });
   const secs = I.sectionsOf(w, base.events, p), cutX = p[secs[Math.floor(secs.length / 2)].from].x + 150;
@@ -126,7 +135,7 @@ function cutjoin(file) {
   }
 }
 
-module.exports = { cutjoin, profile, full, incremental, randomEdit, study, rng };
+module.exports = { cutjoin, profile, full, incremental, randomEdit, study, rng, prof };
 if (require.main === module) {
   const [cmd, ...rest] = process.argv.slice(2);
   const arg = (n, d) => { const i = rest.indexOf(n); return i >= 0 ? +rest[i + 1] : d; };

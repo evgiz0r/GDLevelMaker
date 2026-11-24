@@ -191,4 +191,4 @@ if (require.main === module) {
       (r.resumedFrom != null ? `, resumed from block ${(r.resumedFrom / 30).toFixed(1)}` : r.resumedOver !== undefined ? ", old inputs still hold" : ""));
   }
 }
-module.exports = { solveOfficial, resumeOfficial, continueFrom, toViewer, physicsCommit, SRC, OUT };
+module.exports = { levelText, solveOfficial, resumeOfficial, continueFrom, toViewer, physicsCommit, SRC, OUT };
