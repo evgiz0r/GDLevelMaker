@@ -294,6 +294,15 @@ function scoreLevel0(level, brief, opts = {}) {
         over.length ? "official levels bring these in at higher ratings: keep them for harder levels, or accept with a reason" : "");
     }
   } catch (e) { /* no corpus on this PC */ }
+  // climbs (the user, 2026-11-24: "those cube ladders are way too bad to play. its almost luck based if i can find where to
+  // click"): every climb on the route (3+ rising landings) needs a readable press per step -- steady spacing, a landing of
+  // 0.3 s+ on the ground, the next step on screen at the press, no narrow window (tools/climbs.js). WARN.
+  if (r.ok) try {
+    const CL = require("./climbs.js"), wins = new Map((r.clicks || []).filter(c => c.type === "press" && c.lo != null).map(c => [c.tick, { lo: c.lo, hi: c.hi }]));
+    const cl = CL.climbsOf(runPath(), r.events.filter(e => e.type === "press").map(e => e.tick), level.objects, GD, wins.size ? wins : null), bad = cl.filter(c => c.flags.length);
+    gate("climbs", bad.length ? "WARN" : "PASS", cl.length ? `${cl.length} climb(s), ${bad.length} hard to read` : "no climbs",
+      bad.map(c => `blocks ${c.from}-${c.to}: ${c.flags.join("; ")}`).join(" | "));
+  } catch (e) { /* no route path */ }
   // energy curve (the user, 2026-11-24: "check how compares"): the level's REAL experience curve against the INTENDED one.
   // One definition, gd-taste's tools/energy.js: obstacle starts (a hazard group, an orb, a pad) per bar of the song,
   // ranked within the level (0 calmest bar .. 1 busiest), against the beats of the level's vibe sheet (briefs/<NN>.vibe.json)
