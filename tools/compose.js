@@ -400,7 +400,7 @@ function chunkAt(placed, col) {
 // Difficulty bands on lib/difficulty.js's scale (log10 attempts): the middle of each label's range.
 const BAND_MID = { Easy: 0.15, Normal: 0.55, Hard: 1.15, Harder: 2, Insane: 3.25, Demon: 5 };
 
-function loop(briefFile, rounds = 8) {
+function loop(briefFile, rounds = 8, phase = {}) {
   const brief = JSON.parse(fs.readFileSync(briefFile, "utf8"));
   const base = path.basename(briefFile, ".json");
   const target = brief.difficulty && brief.difficulty.label;
@@ -494,7 +494,11 @@ function loop(briefFile, rounds = 8) {
     const s = brief.sections[i];
     return s.use && s.use.length && !s.rest && (!s.mode || s.mode === "upside") && (i === firstCube || s.flash || i === lastPlay || (brief.variantSections || []).includes(s.name));
   });
-  const K = brief.variants ?? 3, start0 = {}, vlog = [];
+  // two phases (user gates, visuals' tools/stages.js): --until layout ends after the layout stage (gate: true),
+  // saving the plan here; tools/gated.js waits for the user outside the heavy lock, then runs --resume
+  const stateFile = path.join(__dirname, "..", "local", "wip", brief.session || "style", slug(brief.name) + ".compose_state.json");
+  const saved = phase.resume ? (() => { try { return JSON.parse(fs.readFileSync(stateFile, "utf8")); } catch (e) { return null; } })() : null;
+  const K = saved ? 1 : brief.variants ?? 3, start0 = saved ? Object.assign({}, saved.tweaks) : {}, vlog = [];
   if (K > 1) for (const si of important) {
     const tried = [], KEYS = "ABCDEFGH";
     const entry = { id: "s" + si, name: brief.sections[si].name, from: null, to: null, variants: [] };
@@ -544,7 +548,36 @@ function loop(briefFile, rounds = 8) {
     let grid = null; try { grid = brief._grid || (brief.grid ? gridOf(brief) : gridOf(brief, songOf(brief))); } catch (e) {}
     let b = 1; const secs = brief.sections.map(s => { const from = grid ? SY.SYNC.beatToTime(grid, brief.offset || 0, b) : null; b += s.beats || 0; const to = grid ? SY.SYNC.beatToTime(grid, brief.offset || 0, b) : null; return { name: s.name, from, to }; });
     stage("song", { data: { song: { id: brief.song && brief.song.custom, offset: brief.offset || 0 }, grid: grid ? { bpm: brief.grid && brief.grid.bpm, period: grid.period, t0: grid.t0 } : null, sections: secs }, note: "song and its sections" });
-    try { stage("layout", { levelStr: levelStrOf(gameplayOnly(compose(brief, start0).spec)), note: "gameplay only, first plan" }); } catch (e) {}
+    // the layout with its planned presses (the user: "the layout doesnt include the clicks themselves?"): each
+    // pattern's intended inputs (tools/intent.js cache, no solve) laid along it
+    try {
+      const g = gameplayOnly(compose(brief, start0).spec), log0 = console.log; console.log = () => {};
+      let built; try { built = build(g, briefFile); } finally { console.log = log0; }
+      let planned = [];
+      try { const I = require("./intent.js"), wg = GD.makeWorld(built.level.objects, built.level.header), tl = SY.SYNC.timeline(wg);
+        planned = I.intents(built.ctx.placements || [], tl, { cacheOnly: true }).intents.map(i => ({ t: +SY.SYNC.tOfX(tl, i.x).toFixed(3), what: i.type === "press" ? "jump" : "release" })); } catch (e) {}
+      // a complete plan the viewer can replay at once (the user: playable "the moment it exists, not almost"):
+      // the intended inputs driven by position through one replay; a spot the plan cannot pass is a gap in the
+      // intent cache, patched by a short local search and named in the note
+      let events = null, vnote = "";
+      try {
+        const I = require("./intent.js"), wg = GD.makeWorld(built.level.objects, built.level.header), tl = SY.SYNC.timeline(wg);
+        const { intents, missing } = I.intents(built.ctx.placements || [], tl, { raw: built.ctx.raw });
+        planned = intents.map(i => ({ t: +SY.SYNC.tOfX(tl, i.x).toFixed(3), what: i.type === "press" ? "jump" : "release" }));
+        const v = I.verify(wg, built.level, intents, { maxRepairs: 6 });
+        events = v.events;
+        vnote = v.ok ? (v.repairs ? `; plays to the end with ${v.repairs} local repair(s) (cache gaps: ${v.log.join("; ")})` : "; plays to the end from the plan alone") : `; the plan stops at block ${((v.dieX || 0) / 30).toFixed(0)} (${v.log.join("; ")})`;
+        if (missing.length) vnote += `; no intent yet for ${missing.join(", ")}`;
+        console.log("   layout plan" + vnote);
+      } catch (e) { vnote = "; plan not driven: " + e.message; }
+      stage("layout", Object.assign({ levelStr: GD.serializeLevel(built.level), data: { planned, events, kind: "planned" }, note: "gameplay and its planned presses" + vnote + (phase.until === "layout" ? " -- waiting for the user" : "") }, phase.until === "layout" ? { gate: true } : {}));
+    } catch (e) {}
+  }
+  if (phase.until === "layout") {
+    fs.mkdirSync(path.dirname(stateFile), { recursive: true });
+    fs.writeFileSync(stateFile, JSON.stringify({ brief: briefFile, tweaks: start0, at: new Date().toISOString() }, null, 1));
+    console.log(`layout stage put (gated); the plan is saved in ${path.relative(process.cwd(), stateFile)}: tools/gated.js waits for the user, then resumes`);
+    return null;
   }
   let cur = evaluate(start0), best = null;
   for (let round = 1; round <= rounds; round++) {
@@ -697,6 +730,9 @@ if (require.main === module) {
       }
     }
     if (si < 0) console.log(`total ${ranges[ranges.length - 1][3]} columns, ${(ranges[ranges.length - 1][3] / 10.39).toFixed(0)} s`);
-  } else loop(file, ri >= 0 ? +args[ri + 1] : 8);
+  } else {
+    const ui = args.indexOf("--until");
+    loop(file, ri >= 0 ? +args[ri + 1] : 8, { until: ui >= 0 ? args[ui + 1] : null, resume: args.includes("--resume") });
+  }
 }
 module.exports = { compose, loop };

@@ -460,6 +460,12 @@ Still open:
 
 ## 5. Open / next (hand-off)
 
+- **User gates in compose** (visuals 52754fc, VIEWER.md): stages.put(... gate: true) + stages.waitApproval -> ok /
+  redo with a note and a spot. Not wired yet: compose is one heavy job, so waiting inside it would hold the lock
+  for hours. To do: "compose --until layout" (put the gated layout, save tweaks/plan, exit, free the lock), wait
+  outside the lock (node tools/stages.js wait), then "compose --resume" (ok: continue; redo: rebuild that section
+  from another plan using the note/spot). Questions (a song pick) go through tools/ask.js.
+
 - **Section variants and edits** (2026-11-24): compose builds A/B/C versions of the opening, drops and finale
   (tweaks "reseed:<si>"), scores each section alone, keeps the best, saves all to
   local/wip/<session>/<level>.variants/ (index.json; the viewer shows them, visuals 0fd7643) and logs the

@@ -72,6 +72,11 @@ not after it:
   similar run you timed. Give the basis in a few words ("last 3 runs: 4-6 min"). With no measurement, say "not measured",
   or "seconds" for edits and file work. Never pad. When a job finishes, compare it with what you said, and fix the
   table or the estimate code when it was off by 2x or more.
+- **A layout is playable the moment it exists.** The user (2026-11-24): "i would assume i could start playing [...]
+  from the layout [...] thats the point". A layout is built from its planned presses, so it ships with them: the
+  viewer replays the plan at once (no solve) and the user can play it themselves. Solving comes after, as a check
+  for secret ways and fairness; it never gates seeing or playing a level. A layout whose plan dies is a bug in the
+  plan, shown at the death spot.
 - **Hand off.** Before a long pause or when your area changes hands, write where you stopped,
   what is open and the good numbers into your area's doc.
 - **Share, don't duplicate.** Results go into the shared `local/` (see below) so no session redoes

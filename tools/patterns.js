@@ -73,6 +73,9 @@ def("gate", "ceiling with hanging spikes over ground spikes, `open` squares of a
   return { objects: o, width: w };
 });
 def("pillar", "a w-wide column h high to jump onto/over", (a) => P.platform.fn({ w: a.w || 1, h: a.h || 2 }));
+// a plain step up onto a w-wide floor one row higher: compose's block terrain is made of these; tools/intent.js
+// caches the press for it, so a terrain level's plan is complete without a solve
+def("step-up", "a step up one row onto a floor w wide (default 4)", (a) => P.platform.fn({ w: a.w || 4, h: 1 }));
 
 // --- orbs and pads ---
 def("orb-pit", "yellow orb over a long spike run (n spikes); click the orb at the top of a jump", (a) => {
