@@ -148,7 +148,7 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 - [ ] **Taste from data** (308 rated / unrated community levels, within tier and era, effort taken out):
   featured levels have **fewer hazards per block** (delta -0.25; epic+ vs featured -0.33) and **longer
   sections** (fewer mode / speed swaps per minute, -0.28), and a fuller look -- above all **motion on every
-  screen** (move / rotate / pulse triggers on deco, +0.32 with effort out; glow is not what sets the top apart). `node tools/taste.js score
+  screen** (move / rotate / pulse triggers on deco, +0.32 with effort out). `node tools/taste.js score
   <level>`; score.js gate "taste". Most of the user's spot rules come out "unclear" in level-wide data
   (not weaker for it). (TASTE_DATA.md)
 - [ ] **Crafted like RobTop's** (the user: "nothing at the level of ... Jumper or xStep"): many small
