@@ -57,7 +57,15 @@ for p in data["pairs"]:
 for lv in levels:
     stack([pair_block(p) for p in data["pairs"] if p["level"] == lv], os.path.join(out, "sheet_" + re.sub(r"\W+", "_", lv.lower()).strip("_") + ".jpg"))
 gb = []
+def black_ref(png):
+    # the right half (the reference) nearly black: a trigger-built level, nothing drawn where its objects start
+    try:
+        im = Image.open(png).convert("L"); r = im.crop((im.width // 2, 0, im.width, im.height)).resize((80, 45))
+        return sum(r.getdata()) / (80 * 45) < 14
+    except Exception: return True
 for g in data["gaps"]:
+    opts = g.get("options") or [{"png": g.get("png"), "sub": g.get("sub", "")}]
+    pick = next((o for o in opts if o["png"] and not black_ref(o["png"])), opts[0]); g["png"], g["sub"] = pick["png"], pick["sub"]
     img = frame(g["png"]); tmp = ImageDraw.Draw(Image.new("RGB", (1, 1)))
     t = wrap(tmp, g["title"], F_T, W - 20); s = wrap(tmp, g["sub"], F_N, W - 20)
     b = Image.new("RGB", (W, 12 + 26 * len(t) + 20 * len(s) + img.height + 8), BG); d = ImageDraw.Draw(b); y = 8
