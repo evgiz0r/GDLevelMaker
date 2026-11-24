@@ -130,6 +130,32 @@ Contact sheets and frames: local/shots/lab60/. Read station by station from fram
 Unfair stations to change in v2: 4 (plank row straight over spikes, from flat ground) and 7 (a post that
 punishes holding the dash).
 
+## GDLM 67 physics questions lab (2026-11-24; built by the dual/moving-objects session, NOT played yet)
+
+`tools/lab67.js` -> specs/67_physics_questions_lab.json -> levels/gdlm_67_physics_questions_lab.gdlvl (39.6 s, 17 stations).
+One open question per station; the label says what to do, the station's note what the sim predicts. Every station has
+a ruler (deco 211 squares a block apart) so heights are read against the level in the same frame, not the moving
+camera. Stations whose answer is a choice never kill either way. `node tools/lab67.js --check` plays each station's
+instructed input in the sim and prints the predictions below. To run: practice mode, hitboxes on, tools/record.sh
+(input log + sound); read with tools/replay_run.js and tools/lab_read.js --spec specs/67_physics_questions_lab.json.
+
+| # | station | do | sim predicts | answers |
+|---|---|---|---|---|
+| 1 | landing buffer EARLY | jump, tap again while rising, no more presses | dies at the 2nd spike (a rising press is kept 40 ticks) | how long a rising press is kept |
+| 2 | landing buffer AT THE TOP | tap again at the peak | lives (vy 0 counts as falling: kept until landing) | where "falling" starts |
+| 3 | landing buffer on the way DOWN | tap again falling | lives | the Clutterfunk rule, once more |
+| 4 | orb hold | jump and HOLD into the yellow orb (roof after the apex) | dies in the pit (a held jump press does not fire the orb) | GDLM 63's open orb hold-buffer |
+| 5 | pink orb | one tap, read the apex | launch 0.72 of a ground jump | GDLM 60's 0.5-0.63 vs 0.72 |
+| 6 | green orb in the air | tap it at a jump's top | thrown down first, then falls up to the roof | the mid-air green orb, never seen |
+| 7 | ship heights | rest on floor, hold to roof, slide on a block | y 15 / ~272 / ~118 / back to ~20 | Stereo Madness ~0.5 low, Back On Track ~1 block high |
+| 8 | ship corridor | fly it naturally | (sim needs many fast presses in such corridors) | is the ship's hover/ceiling right |
+| 9 | mini step | try to jump onto a step 56 up | cannot land (feet peak 40.7, needs 41) | the mini jump and snap (Dash 106) |
+| 10-13 | UFO, robot, spider, swing | free flight beside rulers | flap 7; hover 67 ticks; teleport; flip a tick after a press | the unmeasured modes |
+| 14 | touch trigger scale | walk under two invisible touch triggers | the scaled (y 1.2) one raises its block, the unscaled one not | touch box = 30 x scale (Dash fix) |
+| 15 | collision trigger | watch a block drop onto another | nothing (collision blocks not modelled) | does 1815 spawn its target group |
+| 16 | stop trigger | watch a rising block | stops halfway (y ~163) | stop acts on moves fired by triggers in its group |
+| 17 | dual ball | two balls | band 8 blocks: player 2 at y 225 | the assumed ball dual band |
+
 ## Trigger firing point (2026-11-24)
 
 Gameplay triggers (move, toggle, spawn...) fire when the player's CENTRE passes their x. gd-visuals saw a colour
