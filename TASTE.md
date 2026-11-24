@@ -94,6 +94,12 @@ ratings once effort is taken out: the calm rule below is the user's, not the dat
   removed: the dawn opens with a calm run to the robot portal. `node tests/generator_impact.js` says which
   levels a generator change moves; re-gate them. (GDLM 50 v3, 2026-11-24.)
 
+- **Open with a plain jump**: GDLM 52 v2's first real play (the user, 2026-11-24, 11 attempts, the sim agreeing on
+  all) lost 4 attempts at 1.4 s on the level's opening structure, a pink orb over four spikes. The first input of a
+  level is a jump the player already knows; orbs come once they have jumped a few times. softrules.js opener;
+  planlevel.js picks an orb-free opener. The other spots of that play (12.5 s wave into a block edge, 19.5 s, 25 s
+  flew off the top then a spike, 59.6 s ufo) are open: local/attempts/gdlm_52_necromancy.jsonl.
+
 ## Rounds
 
 ### Round 0 -- GDLM 50 eclipse (cube / ship / cube / wave / cube, Easy, 37 s)

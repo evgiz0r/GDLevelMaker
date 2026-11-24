@@ -18,6 +18,8 @@
 //            WARN over 120 pulses/min, over 10 white pulses, or more than 1 sky flash (the signature's
 //            own flashes not counted). Calm reference:
 //            GDLM 50 v2 (bars only, tints, one dim flash).
+//   opener   the first obstacle has an orb or pad in it (WARN). GDLM 52 v2's real play: 4 of 11 attempts died on its
+//            opening pink-orb pit; official levels open with a plain jump. tools/planlevel.js opens orb-free.
 // A level may break a rule on purpose: say why in its spec's "notes".
 "use strict";
 const fs = require("fs"), path = require("path");
@@ -82,20 +84,31 @@ function flash(level) {
   return { bad: warn ? 1 : 0, status: warn ? "WARN" : "PASS", text: `${Math.round(perMin)} pulses/min, ${white} to white, ${sky} sky flashes` };
 }
 
+// opener: the level's first obstacle (the hazards, orbs and pads within 4 blocks of the first one) has an orb or pad
+// in it. GDLM 52 v2, the user's first real play (2026-11-24): 4 of 11 attempts died at 1.4 s in its opening pink-orb
+// pit over four spikes. Official 1-21 open with a plain jump (first hazard at block 10-21) and bring the first orb
+// at block 12-264 (Back On Track's pad is the one exception).
+function opener(level) {
+  const kind = o => (GD.objInfo(o.id) || {}).kind, h = level.objects.filter(o => ["hazard", "orb", "pad"].includes(kind(o))).sort((a, b) => a.x - b.x);
+  if (!h.length) return { bad: 0, status: "PASS", text: "no obstacles" };
+  const grp = h.filter(o => o.x < h[0].x + 120), o = grp.find(q => kind(q) !== "hazard");
+  return o ? { bad: 1, status: "WARN", text: `the first obstacle (block ${(h[0].x / 30).toFixed(0)}) has a ${(GD.objInfo(o.id) || {}).name}: open with a plain jump` } : { bad: 0, status: "PASS", text: `a plain jump at block ${(h[0].x / 30).toFixed(0)}` };
+}
+
 function check(file) {
   const L = readGdlvl(file).level, w = GD.makeWorld(L.objects, L.header);
-  return { file: path.relative(process.cwd(), file), arrows: arrows(L, w), stubs: stubs(L, w), flash: flash(L) };
+  return { file: path.relative(process.cwd(), file), arrows: arrows(L, w), stubs: stubs(L, w), flash: flash(L), opener: opener(L) };
 }
-module.exports = { check, arrows, stubs, flash };
+module.exports = { check, arrows, stubs, flash, opener };
 
 if (require.main === module) {
   let files = process.argv.slice(2).filter(a => !a.startsWith("--"));
   if (!files.length) files = fs.readdirSync(path.join(__dirname, "..", "levels")).filter(f => f.endsWith(".gdlvl")).map(f => path.join(__dirname, "..", "levels", f));
-  const res = files.map(check), tot = { arrows: 0, stubs: 0, flash: 0 };
+  const res = files.map(check), tot = { arrows: 0, stubs: 0, flash: 0, opener: 0 };
   for (const r of res) {
     console.log(`== ${r.file}`);
-    for (const k of ["arrows", "stubs", "flash"]) { console.log(`   ${r[k].status.padEnd(4)} ${k.padEnd(7)} ${r[k].text}`); tot[k] += r[k].bad; }
+    for (const k of ["arrows", "stubs", "flash", "opener"]) { console.log(`   ${r[k].status.padEnd(4)} ${k.padEnd(7)} ${r[k].text}`); tot[k] += r[k].bad; }
   }
-  console.log(`\nfound over ${res.length} levels: arrows ${tot.arrows}, stubs ${tot.stubs}, flash ${tot.flash} level(s)`);
+  console.log(`\nfound over ${res.length} levels: arrows ${tot.arrows}, stubs ${tot.stubs}, flash ${tot.flash}, opener ${tot.opener} level(s)`);
   if (process.argv.includes("--json")) fs.writeFileSync(path.join(__dirname, "..", "local", "softrules.json"), JSON.stringify(res, null, 1));
 }

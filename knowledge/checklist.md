@@ -91,6 +91,7 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 - [ ] **Calm after a flying exit**: ~10 blocks with nothing to jump after the cube lands (compose does it
   since 79635eb). A pattern change that moves the exit later moves the next hazard into a prejump: GDLM 50 v3's
   spike 7 blocks after the wave landing (score.js "prejumps", block 283). (TASTE.md; GDLM 50 v3)
+- [ ] **Open with a plain jump**: the first obstacle has no orb or pad in it; the first orb comes after a few plain jumps (official 1-21: first hazard at block 10-21, first orb at block 12-264). GDLM 52 v2, the user's first real play: 4 of 11 attempts died at 1.4 s on its opening pink-orb pit over four spikes. `node tools/softrules.js` "opener" (3 levels: 46, 52, 68); tools/planlevel.js opens orb-free.
 - [ ] **Orbs**: mostly single (~3/4). A chain of at most 2-3, ~3 blocks apart, climbing ~1 block in
   all, one orb kind, and a hazard-free surface ~1 block after the last orb. Never a chain where a
   normal click falls to death or that carries the cube toward the screen's edge.
