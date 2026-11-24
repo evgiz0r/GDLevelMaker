@@ -13,10 +13,10 @@ const ROOT = path.join(__dirname, ".."), sols = require("./solutions.js");
 const a = process.argv.slice(2);
 if (a[0] !== "status") { console.log(fs.readFileSync(__filename, "utf8").split("\n").slice(0, 2).join("\n")); process.exit(1); }
 const RULES = [["370a20a", "taps"], ["892974e", "holds"], ["ecb883d", "planned"]];
-const has = (commit, rule) => { if (!commit) return false; try { execSync(`git merge-base --is-ancestor ${rule} ${commit}`, { cwd: ROOT, stdio: "ignore" }); return true; } catch (e) { return false; } };
+const has = (commit, rule) => { if (!commit) return false; try { execSync(`git merge-base --is-ancestor ${rule} ${commit}`, { windowsHide: true, cwd: ROOT, stdio: "ignore" }); return true; } catch (e) { return false; } };
 const missing = c => c ? RULES.filter(([r]) => !has(c, r)).map(([, n]) => n) : ["(no stamp)"];
 let procs = "";
-try { procs = execSync(`powershell -NoProfile -c "Get-CimInstance Win32_Process -Filter \\"name='node.exe'\\" | ForEach-Object { $_.CommandLine }"`, { encoding: "utf8" }); } catch (e) {}
+try { procs = execSync(`powershell -NoProfile -c "Get-CimInstance Win32_Process -Filter \\"name='node.exe'\\" | ForEach-Object { $_.CommandLine }"`, { windowsHide: true, encoding: "utf8" }); } catch (e) {}
 const queued = re => procs.split("\n").some(l => re.test(l));
 const pad = (s, n) => String(s).slice(0, n).padEnd(n);
 const row = r => console.log([pad(r.level, 30), pad(r.sim, 16), pad(r.kind, 9), pad(r.by, 13), pad(r.plan, 9), pad(r.old, 18), pad(r.skips, 26), r.queued ? "queued" : ""].join(" "));
