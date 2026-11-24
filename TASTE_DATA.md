@@ -184,13 +184,13 @@ Within-band delta, featured+ vs the rest; then with effort taken out; then epic+
 | dsMotion (motion triggers per screen) | 0.43 | **0.32** (0.15..0.46) | **0.36** (0.22..0.53) | strongest new one: moving deco on every screen, not only the effort it costs |
 | dsChannels (colour channels per screen) | 0.35 | 0.18 (0.03..0.34) | 0.16 (-0.01..0.30) | mild yes |
 | dsDress (deco near play objects, per play object) | 0.24 | 0.12 (-0.06..0.25) | 0.09 | mostly effort |
-| dsGlow (glow / blending share) | 0.17 | 0.14 (-0.01..0.29) | **-0.26** (-0.39..-0.10) | **wrong, to refit**: this cache counted plain 211/693 squares as glow (fixed in decostudy 034a6a5, re-measure queued) |
+| dsGlow (glow / blending share, v2: plain 211/693 not counted) | 0.10 | 0.05 (-0.10..0.20) | -0.17 (-0.32..0.02) | unclear: the pooled medians (featured 25 % vs other 5 %) are mostly era and effort; within a band it barely separates, and the top leans to less glow. ART.md's 10-25 % target fits |
 | dsLayers (z-layers with >= 5%) | 0.14 | -0.01 | 0.03 | nothing |
 | dsPerScreen (objects per screen) | 0.22 | (an effort measure) | 0.41 | effort |
 
 Its contrast score runs the other way (featured 45 vs other 63), so it is not a feature. The model barely moves
-(held-out AUC 0.633 -> 0.639): what these see, the effort measures already saw. For a level: **put motion on every
-screen** (move / rotate / pulse triggers on deco). The glow row waits for the re-measure.
+(held-out AUC 0.633 -> 0.64; glow left out of the model as not strong): what these see, the effort measures already saw. For a level: **put motion on every
+screen** (move / rotate / pulse triggers on deco). Glow: keep it moderate (10-25 %), it is not a lever.
 
 ## Our GDLM levels through the taste score (2026-11-24, band EN|2.2)
 
