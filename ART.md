@@ -80,6 +80,11 @@ Contact sheet: `node tools/props.js sheet` (day colours) / `--theme spooky`. GD 
 | cloud band | bg (foot at y), B4 | 8 x 2.4 | 12 | cloud cloud2 -- tile with place(); `flipY` = a top frame hanging from y |
 | rays | bg (fan top at y), B4 | 11 x 6.5 | 6 | ray -- 6 rotated stretched squares; give "ray" opacity ~0.3 in the header |
 | leaf / petal | bg, T1 | 0.5 / 0.4 | 5 / 3 | orange bark / petal light -- motif particles, place() with density |
+| factory wall (chimney) | ground, B3 | 5.3 x 7 | 63 (17 as a silhouette) | brick brick2 dark glow metal2 outline -- a saw-tooth roof, a chimney stack, lit windows (showcase, 2026-11-24) |
+| pipes | ground, B3 | 5.1 x 3.6 | 34 | metal metal2 roof outline -- two runs with elbows, flanges and a valve |
+| broken arches | ground, B3 | 5.7 x 6.7 | 80 | stone stone2 stone3 leaf3 outline -- a pointed church arch, the right shoulder broken off, a rose ring |
+| stained window | bg, B3 | 1.9 x 3.2 | 22 | glass glass2 glass3 stone dark glow -- a pointed window with lead lines; light it with a blending channel |
+| witch silhouette | bg, B4 | 2.2 x 1.8 | 13 | witch -- one colour, on a broom, for the sky / against the moon |
 | windmill | ground | 4.7 x 5.3 | 92 | wall wall2 roof wood cloud dark outline (diagonal sails are costly: rotate GD squares instead, open) |
 
 Colour names are shared (`NAMES` in lib/props.js), so props placed with one `allocator` share channels: a
