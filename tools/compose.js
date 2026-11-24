@@ -432,10 +432,13 @@ function loop(briefFile, rounds = 8, phase = {}) {
         // a flying press judged on a section alone is not exact: the section's own solve climbs early from a
         // standing start (GDLM 64 round 4: a ship tunnel's press "5.6 blocks ahead" in 8 rounds of repairs,
         // 0.4-0.8 in the whole level). Those are judged in the whole level's score instead.
-        const FLY = /^(ship|ufo|wave|swing)$/;
-        if ((sc.prejumps || []).some(p => FLY.test(p.mode || ""))) {
-          sc.prejumps = sc.prejumps.filter(p => !FLY.test(p.mode || ""));
-          sc.gates = sc.gates.map(g => g.name !== "prejumps" ? g : Object.assign({}, g, sc.prejumps.length ? {} : { status: "PASS", value: "none (flying presses: judged in the whole level)" }));
+        // Same for a press in the section's lead-in (before its first column, 12 in): the cube walking into the
+        // section's first portal from a standing start is the seam, not the section (GDLM 64 round 5: a cube press
+        // at local block 11 carried into the ship's climb). The whole level judges the seam.
+        const FLY = /^(ship|ufo|wave|swing)$/, seam = p => FLY.test(p.mode || "") || (p.to != null && p.to < 12.5);
+        if ((sc.prejumps || []).some(seam)) {
+          sc.prejumps = sc.prejumps.filter(p => !seam(p));
+          sc.gates = sc.gates.map(g => g.name !== "prejumps" ? g : Object.assign({}, g, sc.prejumps.length ? {} : { status: "PASS", value: "none (flying and lead-in presses: judged in the whole level)" }));
         }
         sc.ok = !sc.gates.some(g => g.status === "FAIL");
         unshift(sc, shift);

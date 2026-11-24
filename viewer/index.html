@@ -13,7 +13,14 @@
   header { position:relative; }
   #viewMenu { position:absolute; right:16px; top:100%; z-index:60; display:flex; flex-wrap:wrap; gap:6px; max-width:min(440px, calc(100vw - 32px)); padding:10px; background:var(--panel); border:1px solid #2b2060; border-radius:8px; box-shadow:0 6px 24px rgba(0,0,0,.5); }
   #viewMenu[hidden] { display:none; }
+  #ctxbar { flex-basis:100%; display:flex; flex-direction:column; gap:0; margin:2px -16px -10px; }
+  #ctxbar:not(:has(> :not([hidden]))) { display:none; }
+  header #taskChip { position:static; border-radius:8px; }
+  header #notice { position:static; transform:none; max-width:none; margin:4px 16px 6px; }
+  header .cmpbar { padding:4px 10px; }
+  .cmpbar[hidden], #stagebar[hidden], #secbar[hidden], #varbar[hidden] { display:none; }
   .cmpBtn { border-color:#ff7ad9 !important; color:#ffd0f0; font-weight:600; }
+  button:disabled { opacity:.38; cursor:not-allowed; filter:grayscale(1); }
   .cmpBtn.on { background:#5a1f4a !important; color:#fff; }
   select, button, label.btn { background:#24184f; color:var(--ink); border:1px solid #3b2d78; border-radius:6px; padding:6px 10px; font:inherit; cursor:pointer; }
   button.on { background:#3b2d78; border-color:var(--cube); }
@@ -137,6 +144,7 @@
   <label class="btn">open .gdlvl<input id="file" type="file" accept=".gdlvl,.txt" hidden></label>
   <button id="play">▶ play</button>
   <button id="restart">⟲</button>
+  <select id="runPick" hidden title="your runs at this version: pick one to replay it as the player"></select><button id="runRoute" class="cmpBtn" disabled title="pick a run first">⇄ compare</button>
   <button id="youPlay" title="play it yourself here: space / click / tap = jump, R = restart, P = back to the replay (practice checkpoints at each section)">🎮 you play</button><button id="practiceBtn" class="on" hidden title="practice: after a death, start again from the last checkpoint (each section / portal)">practice</button>
   <button data-speed="0.25">¼×</button><button data-speed="0.5">½×</button><button data-speed="1" class="on">1×</button>
   <button id="lookBtn" class="on" title="colours, triggers, block skins as in the game (off: the schematic view)">game look</button>
@@ -152,6 +160,7 @@
   <button id="windowsBtn" title="each input's timing window in the button band (the range of moments that still work)">timing windows</button>
   <button id="legendBtn" title="what the marks in the button band mean">band legend</button>
   <button id="camBtn" title="camera only: the level from start to end at its speed, no player (for levels the sim cannot beat)">camera only</button>
+  <button id="taskChip" hidden title="what the PC is doing for you (click for details)"></button>
   <button id="viewBtn" title="view options: speed, look, GD art, level map, hitboxes, sounds, beats, the button band's windows and legend (remembered)">⚙ view</button>
   <div id="viewMenu" hidden></div>
   <span id="clock" class="muted"></span>
@@ -167,7 +176,6 @@
 <div id="notice" hidden></div>
 <div id="taskBox" hidden><div class="card"><h2 id="taskTitle"></h2><div id="taskBody"></div>
 <div class="row"><button id="taskGo" class="on">Start</button><button id="taskAlt" hidden></button><button id="taskCancel">Cancel</button></div></div></div>
-<button id="taskChip" hidden title="what the PC is doing for you (click for details)"></button>
 <div id="noteBox" hidden><div class="card"><h2 id="noteTitle"></h2>
 <div class="kinds" id="noteKinds"><button data-kind="unfair">unfair</button><button data-kind="awkward">awkward</button><button data-kind="ugly">ugly</button><button data-kind="unclear">unclear</button><button data-kind="other">other</button></div>
 <textarea id="noteText" rows="3" placeholder="what should change here?"></textarea>
@@ -265,7 +273,7 @@ function askNote(title, at) {
 // a level map over the page (a new tab may be blocked): tap to zoom 3x, keeping the tapped spot under the finger
 function showMap(src) {
   const o = document.createElement("div");
-  o.style.cssText = "position:fixed;inset:0;z-index:50;background:#0b0820;overflow:auto;-webkit-overflow-scrolling:touch";
+  o.style.cssText = "position:fixed;inset:0;z-index:50;background:#0b0820;overflow:auto;-webkit-overflow-scrolling:touch"; o.dataset.overlay = "map";
   o.innerHTML = '<div style="position:sticky;top:0;left:0;display:flex;gap:8px;align-items:center;padding:6px;background:#0b0820cc"><span style="flex:1;font-size:12px;opacity:.7">click the map to zoom</span><button>✕ close</button></div><img style="display:block;width:100%;max-width:none;height:auto" alt="level map">';
   const img = o.querySelector("img"); img.src = src; o.querySelector("button").onclick = () => o.remove();
   img.onclick = e => { const big = img.style.width !== "300%", fx = e.offsetX / img.clientWidth, fy = e.offsetY / img.clientHeight;
@@ -491,7 +499,7 @@ function load(name, levelStr, saved, info) {
   t = 0; lastTick = -1; playing = false; setPlay();
   summary(); clickTable(); markTable(); if (cmpOn) cmpLoadSetting(); draw();
   windowsLater(L, events, saved);
-  setTimeout(() => runsFor(L), 0);
+  setTimeout(() => runsFor(L), 0); if (typeof runBtnState === "function") runBtnState();
 }
 // every input's whole timing window (lib/windows.js: a player's window, later inputs re-planned), worked out after
 // the level shows, a slice at a time so the page stays live; the button strip shades each one and the
@@ -1206,27 +1214,28 @@ function runsFile() {
 }
 async function runsFor(LL) {
   const el = document.getElementById("runsRow"), f = runsFile();
-  if (!LL || LL !== L || !f || !location.protocol.startsWith("http") || window.GD_PAGES || window.GD_PHONE) { el.hidden = true; return; }
+  const pk0 = document.getElementById("runPick");
+  if (!LL || LL !== L || !f || !location.protocol.startsWith("http") || window.GD_PAGES || window.GD_PHONE) { el.hidden = true; pk0.hidden = true; runBtnState(); return; }
   // every version's runs; the ones at another version (the level changed since) are only counted: they replay on a
   // different level, so they are not in the picker
   let all = []; try { all = await (await fetch("/attempts?file=" + encodeURIComponent(f), { cache: "no-store" })).json(); } catch (e) {}
   if (LL !== L) return;
   const rows = all.filter(r => r.hash === LL.hash), older = all.length - rows.length;
-  if (!all.length) { el.hidden = true; return; }
-  if (!rows.length) { el.hidden = false; el.innerHTML = `<p class="muted" style="margin:6px 0 2px">Your runs: ${older} at older versions of this level (it changed since), none at this one yet.</p>`; return; }
+  if (!all.length) { el.hidden = true; pk0.hidden = true; runBtnState(); return; }
+  if (!rows.length) { el.hidden = false; pk0.hidden = true; runBtnState(); el.innerHTML = `<p class="muted" style="margin:6px 0 2px">Your runs: ${older} at older versions of this level (it changed since), none at this one yet.</p>`; return; }
   const ago = iso => { const m = (Date.now() - Date.parse(iso)) / 60000; return m < 60 ? Math.max(1, Math.round(m)) + " min ago" : m < 1440 ? Math.round(m / 60) + " h ago" : Math.round(m / 1440) + " d ago"; };
   const dead = rows.filter(r => r.result === "died"), b = {}; for (const r of dead) { const k = Math.floor(r.pct / 10) * 10; b[k] = (b[k] || 0) + 1; }
   const worst = Object.entries(b).sort((x, y) => y[1] - x[1])[0];
   el.hidden = false;
+  const selEl = document.getElementById("runPick"); selEl.hidden = false;
+  selEl.innerHTML = `<option value="">🎮 your runs (${rows.length})…</option>` + rows.slice().reverse().map(r => `<option value="${esc(r.id)}">${r.source === "video" ? "🎥 " : "🎮 "}${r.video && r.video.res === "mismatch" ? "⚠ " : ""}${r.result === "clear" ? "clear" : "died " + Math.round(r.pct) + "%"} · ${r.presses} presses${r.practice ? " · practice" : ""} · ${ago(r.at)}</option>`).join("");
   el.innerHTML = `<p class="muted" style="margin:6px 0 2px">Your runs at this version: ${rows.length} (${rows.filter(r => r.result === "clear").length} clear${worst ? `, most deaths at ${worst[0]}-${+worst[0] + 10}%` : ""})${older ? ` · ${older} at older versions` : ""}</p>` +
-    `<select id="runPick"><option value="">replay one beside the route…</option>` + rows.slice().reverse().map(r => `<option value="${esc(r.id)}">${r.source === "video" ? "🎥 " : "🎮 "}${r.video && r.video.res === "mismatch" ? "⚠ " : ""}${r.result === "clear" ? "clear" : "died " + Math.round(r.pct) + "%"} · ${r.presses} presses${r.practice ? " · practice" : ""} · ${ago(r.at)}</option>`).join("") + `</select> <button id="runRoute" class="cmpBtn" hidden title="compare: your run (pink, “you”) and the solver’s route (“solver”) play together, with both press timelines in the band (remembered)">⇄ compare with solver</button> <span id="runCmp" class="muted"></span>`;
+    `<span id="runCmp" class="muted"></span>`;
   const sel = document.getElementById("runPick");
   if (PK.openRun && PK.openRun.base === GD.attemptsBase(f)) { const want = rows.find(r => r.id === PK.openRun.id) || rows[rows.length - 1]; PK.openRun = null; sel.value = want.id; runShow(want.id); }
   if (LL.ghost) sel.value = LL.ghost.row.id;
   sel.onchange = () => runShow(sel.value);
-  const rb = document.getElementById("runRoute"); rb.hidden = !LL.ghost; rb.classList.toggle("on", VIEW.route);
-  rb.textContent = VIEW.route ? "⇄ comparing with solver" : "⇄ compare with solver";
-  rb.onclick = () => { VIEW.route = !VIEW.route; VSET("route", VIEW.route); runViewApply(); runCmpText(); };
+  runBtnState();
   runCmpText();
 }
 async function runShow(id) {
@@ -1282,10 +1291,19 @@ function runViewApply() {
     Object.assign(LL, { path: g.path, held, vrot: typeof visualRot === "function" ? visualRot(g.path) : null, sol: Object.assign({}, LL.runKeep.sol, { clicks, run: true }), noRoute: false, planBreak: null });
   }
   t = Math.min(t, (LL.path.length - 1) / P.TPS);
-  const b = document.getElementById("runRoute"); if (b) { b.hidden = !g; b.classList.toggle("on", VIEW.route); b.textContent = VIEW.route ? "⇄ comparing with solver" : "⇄ compare with solver"; }
+  runBtnState();
   if (typeof clickTable === "function") try { clickTable(); } catch (e) {}
   draw();
 }
+// the compare button (top bar): greyed with "pick a run first" until a run is loaded; on = the run and the solver together
+function runBtnState() {
+  const b = document.getElementById("runRoute"), g = L && L.ghost; if (!b) return;
+  b.disabled = !g; b.classList.toggle("on", !!g && VIEW.route);
+  b.textContent = g && VIEW.route ? "⇄ comparing" : "⇄ compare";
+  b.title = g ? "compare: your run (pink, “you”) and the solver’s route (“solver”) play together, both press timelines in the band (remembered)" : "pick a run first";
+}
+document.getElementById("runRoute").onclick = () => { if (!L || !L.ghost) return; VIEW.route = !VIEW.route; VSET("route", VIEW.route); runViewApply(); runCmpText(); };
+document.getElementById("runPick").onchange = e => runShow(e.target.value);
 // one compact line: "12 on time · 3 early · 1 missed"; each press's offset on hover
 function runCmpText() {
   const el = document.getElementById("runCmp"); if (!el) return;
@@ -1302,7 +1320,8 @@ function runCmpText() {
   const gl = g.path[g.path.length - 1], simDead = sim ? sim.result === "died" : !!gl.dead;
   const simPct = sim && sim.pct != null ? sim.pct : Math.max(0, Math.min(100, gl.x / Math.max(1, L.world.endX) * 100)), simWhy = (sim && sim.why) || gl.why || "";
   const youTxt = you === "clear" ? "clear" : "died at " + Math.round(youPct) + "%", simTxt = simDead ? `dies at ${Math.round(simPct)}%${simWhy ? " (" + esc(simWhy) + ")" : ""}` : "clear";
-  const end = (you === "clear") === !simDead ? youTxt : `<b>you: ${youTxt}</b> · sim: ${simTxt}`;
+  const same = R.agree != null ? R.agree : (you === "clear") === !simDead;   // the line's own agree (physics' rule) when it has one
+  const end = same ? youTxt : `<b>you: ${youTxt}</b> · sim: ${simTxt}`;
   if (!c) { el.innerHTML = warn + pre + end; return; }
   const on = c.pairs.filter(p => Math.abs(p.dt) <= 2), early = c.pairs.filter(p => p.dt < -2), late = c.pairs.filter(p => p.dt > 2);
   const parts = [`${on.length} on time`, early.length && `${early.length} early`, late.length && `${late.length} late`, c.missing.length && `${c.missing.length} missed`, c.extra.length && `${c.extra.length} extra`].filter(Boolean);
@@ -1451,11 +1470,22 @@ const levelMarks = () => L ? MARKS.filter(m => m.level === L.name) : [];
 function markTable() {
   const el = document.getElementById("marks"), ms = levelMarks();
   el.innerHTML = (ms.length ? `<table><tr><th>#</th><th>time</th><th>block</th><th>note</th><th></th></tr>` + ms.map((m, i) =>
-    `<tr class="${m.done ? "done" : ""}"><td>${i + 1}</td><td>${m.t.toFixed(2)} s</td><td>${(m.x / 30).toFixed(1)}</td><td>${esc(m.note)}${m.reply ? `<br><span class="muted">↳ ${esc(m.reply)}</span>` : ""}${m.localOnly ? ` <span class="muted">(this browser only)</span>` : ""}</td>` +
-    `<td><button data-go="${esc(m.id)}">go</button> <button data-done="${esc(m.id)}">${m.done ? "reopen" : "done"}</button></td></tr>`).join("") + `</table>` : `<span class="muted">none yet</span>`) +
+    `<tr class="${m.done ? "done" : ""}" data-mark="${esc(m.id)}" style="cursor:pointer" title="go there (done / reopen: in the top bar)"><td>${i + 1}</td><td>${m.t.toFixed(2)} s</td><td>${(m.x / 30).toFixed(1)}</td><td>${esc(m.note)}${m.reply ? `<br><span class="muted">↳ ${esc(m.reply)}</span>` : ""}${m.localOnly ? ` <span class="muted">(this browser only)</span>` : ""}</td>` +
+    `<td class="muted">${m.done ? "done" : ""}</td></tr>`).join("") + `</table>` : `<span class="muted">none yet</span>`) +
     `<p class="muted">✎ mark (or M), then click the spot in the view and say what should change. Saved to local/marks.jsonl for Claude's next round${ALL[pick.value] && ALL[pick.value].session ? " (goes to the " + esc(ALL[pick.value].session) + " session)" : ""}.</p>`;
-  el.querySelectorAll("[data-go]").forEach(b => b.onclick = () => { const m = MARKS.find(q => q.id === b.dataset.go); t = m.t; lastTick = tick(); playing = false; setPlay(); syncSong(); draw(); });
-  el.querySelectorAll("[data-done]").forEach(b => b.onclick = () => { const m = MARKS.find(q => q.id === b.dataset.done); saveMark({ id: m.id, done: !m.done, at: new Date().toISOString() }); });
+  // a row is clicked (not a button: controls are only at the top): the replay goes there, and the top bar offers done / reopen
+  el.querySelectorAll("tr[data-mark]").forEach(r => r.onclick = () => { const m = MARKS.find(q => q.id === r.dataset.mark); if (!m) return; t = m.t; lastTick = tick(); playing = false; setPlay(); syncSong(); markPick(m); draw(); });
+  markPick(MARKS.find(q => q.id === (markPick.id || "")) || null);
+}
+function markPick(m) {
+  markPick.id = m ? m.id : null;
+  let bar = document.getElementById("markCtx");
+  if (!bar) { bar = document.createElement("div"); bar.id = "markCtx"; bar.className = "cmpbar"; bar.hidden = true; document.getElementById("ctxbar").appendChild(bar); }
+  if (!m) { bar.hidden = true; bar.innerHTML = ""; return; }
+  bar.hidden = false;
+  bar.innerHTML = `<span class="muted">mark at ${m.t.toFixed(2)} s:</span> <b>${esc(String(m.note || "").slice(0, 80))}</b> <button id="markDone">${m.done ? "reopen" : "✓ done"}</button><button id="markClose" title="close">✕</button>`;
+  bar.querySelector("#markDone").onclick = () => saveMark({ id: m.id, done: !m.done, at: new Date().toISOString() });
+  bar.querySelector("#markClose").onclick = () => markPick(null);
 }
 const markBtn = document.getElementById("markBtn");
 function setMarking(on) { marking = on; markBtn.classList.toggle("on", on); cv.classList.toggle("marking", on); if (on) { playing = false; setPlay(); syncSong(); notice("✎ Click the spot in the level that should change (Esc: cancel).", 0); } else { const n = document.getElementById("notice"); if (n && /Click the spot/.test(n.textContent)) n.hidden = true; } }
@@ -1750,6 +1780,26 @@ function drawDeaths() {
   }
   ctx.textAlign = "left";
 }
+// A press held on in a mode where holding does nothing more (cube, ball, UFO, spider, swing) acts only when it acts: a
+// held cube jumps again on each landing. Such a hold is drawn as a tick at each jump it makes, on a thin line, not as a
+// long bar (the user: "those clicks still extend a mile"); a long hold that makes one jump is flagged (a route problem,
+// shown as it is). Holds that move the player (ship, wave, robot, a dash orb) stay bars as long as they are held.
+const HOLD_MODES = new Set(["ship", "wave", "robot"]);
+function holdMatters(path, i, j) { for (let t = i; t <= j && t < path.length; t++) if (HOLD_MODES.has(path[t].mode) || path[t].dashing) return true; return false; }
+function drawHeldTaps(ix, path, i, j, py, ph, past, d, c1, c2) {
+  const n = path.length, X = t => sx(path[Math.min(t, n - 1)].x), xa = X(i), xe = X(j + 1);
+  const acts = []; for (let t = i; t <= Math.min(j + 1, n - 1); t++) if (path[t].act && !/portal/.test(path[t].act) && (!acts.length || t - acts[acts.length - 1] > 4)) acts.push(t);
+  if (!acts.length || acts[0] > i + 2) acts.unshift(i);
+  ix.fillStyle = past ? "rgba(255,255,255,.35)" : "rgba(255,255,255,.18)"; ix.fillRect(xa, py + ph / 2 - 0.75 * d, Math.max(1, xe - xa), 1.5 * d);
+  for (const tk of acts) { const x = X(tk); if (x < -6 || x > W + 6) continue;
+    ix.fillStyle = past ? c1 : "rgba(255,255,255,.55)"; ix.fillRect(x - 1, py - 2 * d, 2 * d, ph + 4 * d);
+    ix.fillStyle = past ? c2 : "rgba(255,225,77,.55)"; ix.beginPath(); ix.arc(x, py + ph / 2, 3 * d, 0, 7); ix.fill(); }
+  const ms = Math.round((j + 1 - i) / P.TPS * 1000);
+  const la = Math.max(xa, 0), lb = Math.min(xe, W - 100 * d), lx = (la + lb) / 2;   // the label sits on the part on screen
+  if (lb - la > 90 * d) { ix.font = `${9 * d}px system-ui`; ix.textAlign = "center";
+    if (acts.length > 1) { ix.fillStyle = "rgba(255,255,255,.6)"; ix.fillText(`held ${(ms / 1000).toFixed(1)} s · ${acts.length} jumps`, lx, py - 3 * d + ph / 2); }
+    else if (ms > 300) { ix.fillStyle = "#ffb35a"; ix.fillText(`⚠ held ${(ms / 1000).toFixed(1)} s, 1 jump`, lx, py - 3 * d + ph / 2); } }
+}
 // the button band (its own canvas under the level, never over the playfield -- the user: "the timings again
 // are part of the ui and are annoying. put the timings below the level"): holds, presses, each input's timing
 // window, the button light; x follows the level's camera, so a window sits under the spot it is for
@@ -1781,6 +1831,7 @@ function drawInput(k) {
     if (!L.held[i]) continue;
     let j = i; while (j + 1 < n && L.held[j + 1]) j++;
     const xa = sx(L.path[i].x), xe = sx(L.path[Math.min(j + 1, n - 1)].x), past = i <= k, ms = Math.round((j + 1 - i) / P.TPS * 1000);
+    if (j - i >= 6 && !holdMatters(L.path, i, j)) { drawHeldTaps(ix, L.path, i, j, py, ph, past, d, "#fff", "#ffe14d"); i = j; continue; }
     if (j - i < 6) {   // a tap (released within 25 ms): a mark, not a bar
       ix.fillStyle = past ? "#fff" : "rgba(255,255,255,.55)"; ix.fillRect(xa - 1, py - 2 * d, 2 * d, ph + 4 * d);
       ix.fillStyle = past ? "#ffe14d" : "rgba(255,225,77,.55)"; ix.beginPath(); ix.arc(xa, py + ph / 2, 3 * d, 0, 7); ix.fill();
@@ -1812,6 +1863,7 @@ function drawInput(k) {
     for (let i = 0; i < ev.length; i++) { const e = ev[i]; if (e.type !== "press" || e.tick >= gp.length) continue;
       const rel = ev.slice(i + 1).find(x => x.type === "release"), e2 = Math.min(rel ? rel.tick : e.tick + 1, gp.length - 1);
       const xa = sx(gp[e.tick].x), xb = Math.max(xa + 2 * d, sx(gp[e2].x)); if (xb < 0 || xa > W) continue;
+      if (e2 - e.tick >= 6 && !holdMatters(gp, e.tick, e2 - 1)) { drawHeldTaps(ix, gp, e.tick, e2 - 1, y0 + 1 * d, hh - 2 * d, true, d, "#ff9ad9", "#ff7ad9"); continue; }
       ix.fillStyle = e2 - e.tick < 6 ? "#ff9ad9" : "rgba(255,122,217,.75)"; ix.fillRect(xa, y0 + 1 * d, xb - xa, hh - 2 * d); }
     ix.font = `bold ${9 * d}px system-ui`; ix.textAlign = "left"; ix.fillStyle = "#9cf5c4"; ix.fillText("solver", 3 * d, py + 9 * d); ix.fillStyle = "#ff9ad9"; ix.fillText("you", 3 * d, y0 + 9 * d); }
   ix.fillStyle = "#fff"; ix.fillRect(sx(L.path[k].x) - 1, 0, 2, IH); // now
@@ -2184,6 +2236,14 @@ async function loadWip(keep) {
   else if (cur) pick.value = Math.max(0, ALL.findIndex(l => l.file === cur.file));
 }
 document.getElementById("refresh").onclick = () => loadWip(true);
+// Every control lives in the top bar (VIEWER.md "Controls only at the top"; the user: "i cant have buttons in the bottom,
+// only in the top ui"): the rows that come and go with the level -- stages, sections, variants, the recording compare's
+// controls, the notice, the PC's task chip -- are moved into the header here; the panels under the level are read-only.
+{ const hdr = document.querySelector("header"), ctx = document.createElement("div"); ctx.id = "ctxbar"; hdr.appendChild(ctx);
+  for (const id of ["notice", "stagebar", "secbar", "varbar"]) { const e = document.getElementById(id); if (e) ctx.appendChild(e); }
+  const cb = document.querySelector("#cmp .cmpbar"), cmpEl = document.getElementById("cmp");
+  if (cb && cmpEl) { ctx.appendChild(cb); const sync = () => { cb.hidden = cmpEl.hidden; }; sync(); new MutationObserver(sync).observe(cmpEl, { attributes: true, attributeFilter: ["hidden"] }); }
+  const chip = document.getElementById("taskChip"); if (chip) hdr.insertBefore(chip, document.getElementById("viewBtn")); }
 { const menu = document.getElementById("viewMenu"), vb = document.getElementById("viewBtn");
   const extras = [...document.querySelectorAll("header [data-speed]"), document.getElementById("file").parentElement, ...["lookBtn", "artBtn", "mapBtn", "hit", "cmpBtn", "sound", "music", "addSongPc", "lightBtn", "beatsBtn", "windowsBtn", "legendBtn", "camBtn"].map(id => document.getElementById(id))].filter(Boolean);
   for (const e of extras) menu.appendChild(e);
@@ -2195,6 +2255,19 @@ document.getElementById("refresh").onclick = () => loadWip(true);
   // the speed in use shows on the menu button when it is not 1x
   const sp = () => { const on = document.querySelector("#viewMenu [data-speed].on"); vb.textContent = "⚙ view" + (on && on.dataset.speed !== "1" ? " · " + on.textContent : ""); };
   document.querySelectorAll("#viewMenu [data-speed]").forEach(b => b.addEventListener("click", () => setTimeout(sp, 0))); }
+// ?check=controls (tests/top_controls.js, headless): after the level, its runs and stages are on screen (a run picked when
+// there is one), list every control outside the top bar and the overlays, and send it to POST /selfcheck
+const CONTROL_HOMES = "header, #picker, #workBox, #taskBox, #noteBox, [data-overlay]";
+function controlsOutsideTop() {
+  return [...document.querySelectorAll("button, select, input, textarea, [contenteditable]")].filter(e => !e.closest(CONTROL_HOMES) && e.id !== "scrub" && !(e.type === "file"))
+    .map(e => { let p = e.parentElement; while (p && !p.id) p = p.parentElement; return (p ? "#" + p.id + " " : "") + (e.id ? "#" + e.id : e.tagName.toLowerCase() + " \"" + (e.textContent || "").trim().slice(0, 24) + "\""); });
+}
+async function controlsCheck() {
+  const sel = document.getElementById("runPick"); if (sel && !sel.hidden && sel.options.length > 1) { sel.value = sel.options[1].value; sel.onchange(); await new Promise(r => setTimeout(r, 4000)); }
+  if (L && MARKS && levelMarks().length) markPick(levelMarks()[0]);
+  const out = { level: L && L.name, bad: controlsOutsideTop(), compareDisabled: document.getElementById("runRoute").disabled, ghost: !!(L && L.ghost) };
+  try { await fetch("/selfcheck?id=" + encodeURIComponent(QS.get("id") || "x"), { method: "POST", body: JSON.stringify(out) }); } catch (e) {}
+}
 function hashParams() { return new URLSearchParams(location.hash.slice(1)); }
 function writeHash() { const l = ALL[pick.value]; if (!l || !L) return; history.replaceState(null, "", "#lv=" + encodeURIComponent(l.file) + "&t=" + (tick() / P.TPS).toFixed(2)); }
 document.getElementById("linkBtn").onclick = async () => {
@@ -2215,6 +2288,7 @@ setInterval(() => { if (L && !playing) writeHash(); }, 1000);
     document.getElementById("summary").innerHTML = "<b>First levels coming soon.</b><br><span class='muted'>Geometry Dash levels made by Claude will appear here once one is good enough to share.</span>";
     document.getElementById("pickName").textContent = "no levels yet";
   }
+  if (QS.get("check") === "controls") setTimeout(controlsCheck, 6000);
 })();
 // ---------- shoot mode: tools/shoot.js writes local/shoot/<job>.json {level:{name, levelStr, solution,
 // song}, times:[s], rec, t0, width, height}; each frame goes back as POST /shoot/<job>/<n>.png (the

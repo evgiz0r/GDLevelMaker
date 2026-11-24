@@ -7,6 +7,19 @@ are builds of the same page without these PC-only parts.
 
 ## What the user can do there
 
+**Controls only at the top (a soft rule; the user, 2026-11-24: "i cant have buttons in the bottom, only in the top ui").** Every
+button, picker and field is in the top bar: the main row, the ⚙ view menu, and the context rows under it that come with the
+level (stage bar with ✓ ok / redo / find the route, sections, variants, the recording compare's controls, a picked mark's
+done / reopen, the notice, the PC's task chip). The panels under the level (summary, clicks, marks) are read-only: a marks row
+is clicked to go there. Overlays (the level picker, the work panel, the note box, the task box, the map) may have their own.
+**compare** sits in the top bar, greyed with "pick a run first" until a run is loaded. `node tests/top_controls.js` fails on
+any control outside the top bar (the page's HTML, and headless on a level with runs, a build with stages and one of ours).
+
+**Presses as long as they act.** In the button band a tap is a short tick. A hold is a bar only where holding moves the player
+(ship, wave, robot, a dash orb); a hold in cube, ball, UFO, spider or swing is a tick at each jump it makes on a thin line
+("held 4.3 s · 12 jumps"), and a long hold that makes one jump is flagged "⚠ held N s, 1 jump" (a route problem, shown as it
+is). A run whose last press has no release (it died holding) ends its hold where the run ends.
+
 **Minimal by default (a soft rule for the viewer; the user, 2026-11-24: "the ui becomes a bit busy").** The default view is the
 level, the player and the timeline: one header row (work, levels, refresh, link, play, restart, you play, mark, **⚙ view**) and
 the button band with the presses only. Everything else is a toggle in **⚙ view** (speed, game look, GD art, level map, hitboxes,
