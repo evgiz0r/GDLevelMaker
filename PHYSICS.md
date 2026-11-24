@@ -412,12 +412,21 @@ What exists and what blocks it (2026-11-23):
     far shift and died at 2.0%). 02:33 has none: its bar starts are off by 0.3-1 s per attempt.
   - The attempt filter by length now keeps an attempt near the level's own length OR this recording's clears of it
     (40%): a death's implied length (secs x 100 / %) is rough where speed portals change the pace.
+- FRAME-SNAPPED PRESSES do not help (the user's "Click Between Steps" is off, so GD may apply a press only at a
+  frame start): snapping the logged presses to 60/120/144 Hz grids (every phase) makes no stuck replay go further and
+  breaks Base After Base's clear (60 Hz: 12.9%). The logged times as they are fit best.
+- HABITS (tools/habits.js): median tap 120 ms (p10 88, p90 161) over 3,094 presses -- the human route's tap is 60 ms.
 - PATHS, not only outcomes (tools/pathcheck.js, 2026-11-24): the icon tracked in the video (track.py) against the
   sim's path under the same presses. Height against "the lowest strong edge" failed (Base After Base: errors of
   100-350 units on a run that clears in both -- the camera rises and the edge found is a block row, not the ground),
   so the robust comparison is LAUNCHES: upward onsets in the video (faster than the camera ever moves) vs the sim's
   jumps / orb and pad launches, lined up by one time shift. It reports matched launches, the timing drift over the
   run (clock), and the first launch only in the video (the game launched, the sim did not) or only in the sim.
+  STATUS: NOT RELIABLE YET. Even on Base After Base, which the sim clears with the logged presses, only 75 of ~160
+  launches match: colour tracking is too noisy (lime decoration; the camera). Now: only the player's column is
+  tracked (0.367 of the window; 14 s instead of minutes) and the level start is searched +-0.4 s around the known
+  clock (bar start + shift - the video's ~1 s lag). Next: track the icon by its shape (template match), and the
+  ground / block rows from the level's own geometry at the sim's x, so heights compare too.
 - Practice-mode respawns break time -> x; per-attempt segmentation by the attempt label or a jump in x.
 Lab 2 (to build): the mini cube, the pink orb (clean, at ground level so the camera stays still), 45-degree
 and -53-degree teleports, the swing, dual portals, and a green orb in mid-air.
