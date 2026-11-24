@@ -129,7 +129,7 @@ function main() {
       if (q) opts.orbAt[c.i] = [(q.x - 15) / 30, (q.y - 15) / 30];
     }
     for (let round = 0; round < 8; round++) {
-      const w = gameplayWorld(plan, opts), win = windowOf(w, c.tick, c.kind === "orb" ? orbTap(c) - 2 : until);
+      const w = gameplayWorld(plan, opts), win = windowOf(w, c.tick, c.kind === "orb" ? orbTap(c) + 24 : until);
       c.win = win;
       if (!win) { console.log(`   b${c.b} ${c.kind}: no tap near the hit clears it -- check the cell`); break; }
       const mid = aim(win);
