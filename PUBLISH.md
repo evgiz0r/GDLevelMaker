@@ -9,6 +9,7 @@ Search -> its level ID. The slot and what it holds: `local/phone_ids.json`.
 | GDLM 44 hellgate (the phone slot, see below) | 152848491 | v10 (16e82a4) | 2026-11-23 |
 | GDLM 44 hellgate, update into the slot | 152848491 | v11 (dc72b09) | 2026-11-23 |
 | GDLM 44 hellgate, update into the slot | 152848491 | v12 (4b8a308, end signature) | 2026-11-23 |
+| GDLM 44 hellgate, update into the slot | 152848491 | polish v6 (ID put back with --ids-from) | 2026-11-24 |
 | Claude Lab (the lab slot, see below) | not uploaded yet | -- | -- |
 
 ## Rule: every upload needs the user's yes
