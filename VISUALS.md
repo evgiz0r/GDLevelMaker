@@ -209,6 +209,7 @@ ground line with `tools/track.py --rows`. Source: Hexagon Force, recording 2026-
 | when a trigger fires | the colour-1 flash at x 945 shows between frames 2.983 and 3.000 s | at 3.033 (the player's centre passing) | fixed: at the player's front edge (x - 15), 2.985 s; the look's colour / alpha / zoom triggers only (the sim's triggers are gd-physics') |
 | antenna ball, short rod (17) | 12.9 units across | 22 (0.73 after the first fix) | fixed: 0.43; rod 15 not measured yet |
 | block outlines | white with a soft glow | thin white | open |
+| death burst | GDLM 60's 48 % death, video 492.55 s (level_t + the sim's death tick): white disc with a blue glow 1.2 -> 2.6 blocks in 0.25 s, then 2-3 offset thin rings to ~3.7 blocks, gone by 0.7 s; shards in the player's colour; small square sparks | "✖ died on a spike" only | fixed: drawn on top at the death, on the wall clock while the replay rests there; picture local/shots/rvg/death_compare.png |
 
 ## Facts (checked against the user's recordings)
 
