@@ -100,7 +100,12 @@ const SERVER = http.createServer((req, res) => {
       res.writeHead(200); res.end("ok"); });
     return;
   }
-  // GET /me/icons: the user's icons and colours from their GD save (tools/save_icons.js; read-only, this PC's viewer only)
+  // GET /phone/url: the phone page's address (local/phone/url.txt), for the viewer's 🔗 phone link (LINKS.md)
+  if (p === "/phone/url" && req.method === "GET") {
+    let u = ""; try { u = fs.readFileSync(path.join(root, "local", "phone", "url.txt"), "utf8").trim(); } catch (e) {}
+    res.writeHead(u ? 200 : 404, { "Content-Type": "text/plain", "Cache-Control": "no-store" }); return res.end(u);
+  }
+  // GET /me/icons:the user's icons and colours from their GD save (tools/save_icons.js; read-only, this PC's viewer only)
   if (p === "/me/icons" && req.method === "GET") {
     let o = null; try { o = require("./save_icons.js").read(); } catch (e) {}
     res.writeHead(o ? 200 : 404, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify(o));
@@ -206,13 +211,13 @@ const SERVER = http.createServer((req, res) => {
       res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); res.end(d);
     });
   }
-  const sp = req.method === "POST" && /^\/shoot\/([\w\-]+)\/(\d+\.png|done)$/.exec(p);
+  const sp = req.method === "POST" && /^\/shoot\/([\w\-]+)\/(\d+\.png|f\d+\.jpg|done)$/.exec(p);
   if (sp) {
     const chunks = [];
     req.on("data", c => chunks.push(c));
     req.on("end", () => {
       const dir = path.join(root, "local", "shoot", sp[1]); fs.mkdirSync(dir, { recursive: true });
-      const body = Buffer.concat(chunks).toString(), m = /^data:image\/png;base64,(.+)$/.exec(body);
+      const body = Buffer.concat(chunks).toString(), m = /^data:image\/(?:png|jpeg);base64,(.+)$/.exec(body);
       fs.writeFileSync(path.join(dir, sp[2] === "done" ? ".done" : sp[2]), m ? Buffer.from(m[1], "base64") : body);
       res.writeHead(200, { "Content-Type": "application/json" }); res.end('{"ok":true}');
     });

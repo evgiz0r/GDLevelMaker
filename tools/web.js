@@ -175,8 +175,9 @@ swap(`    const r = await fetch("/marks", { method: "POST", headers: { "Content-
     if (m.note != null) await ref.set(Object.assign({ from: "phone" }, m)); else await ref.update(m);`);
 // prompt() does not work inside an Artifact: an in-page box instead
 // the mark's note box and the async click handler are the viewer's own now (no prompt anywhere)
-// a published page's address can't carry #lv=...&t=...: no link button, no hash writes
-swap('<button id="linkBtn"', '<button id="linkBtn" hidden');
+// a published page's address keeps only a plain #name: the short link form (#<base>--v5--t40, LINKS.md) opens from the
+// address, any other link is pasted into the "open link" box (the same button); no hash writes
+swap('<button id="linkBtn" title="copy a link to this level at this moment">🔗 link</button>', '<button id="linkBtn" title="open a level link pasted from a chat">🔗 open link</button>');
 swap("setInterval(() => { if (L && !playing) writeHash(); }, 1000);", "");
 // Never solve on the page's thread: a phone froze for minutes solving GDLM 45 (ship + wave, ~5 min
 // even on the PC). Rows from `wip.js put` carry {solution}; a level without one is solved in a Web

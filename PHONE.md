@@ -56,8 +56,9 @@ Link: in `local/phone/url.txt` (shared folder; also in Claude's memory). Not in 
   every `gdlm_*_shapes.jpg` under `maps/` (never the GD-art maps or official levels) and opens it over
   the page (a new tab may be blocked in the Artifact frame); a tap zooms it 3x around the spot. New
   map -> rebuild and republish. Tested in the pane at 375 px: button only on 44/45, map loads, zoom.
-- Not on the phone: official RobTop levels (`levels.local.js`), recordings and "compare", the
-  `#lv=...&t=...` links (a published page's address keeps only a plain `#name`).
+- Not on the phone: official RobTop levels (`levels.local.js`), recordings and "compare". Links: a published page's address
+  keeps only a plain `#name`, so the phone page opens the short form `#<base>--v5--t40` (LINKS.md; `tools/link.js` prints
+  it), and its 🔗 open link box takes any pasted link.
 
 ## What a session does
 

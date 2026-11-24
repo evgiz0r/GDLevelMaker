@@ -19,6 +19,9 @@ function resolve(w) {
   else if (/^c\d+$/.test(w)) w = path.join(ROOT, "local", "community", w.slice(1) + ".gdlvl");
   const lv = levelOf(w);
   if (!lv.solution) try { const s = require("./solutions.js").get(lv.levelStr, true); if (s && s.events) lv.solution = s; } catch (e) {}
+  // no saved route: never solve in the page (a big 2.2 level hung the render for its 10 min, Brave Blue 2026-11-24): the
+  // camera runs through it at the level's speed (the page's ghost), which is all a deco picture needs
+  if (!lv.solution) lv.solution = { ok: false, events: [], why: "not solved: the camera runs at the level's speed", pending: true };
   return lv;
 }
 function spots(spec) {

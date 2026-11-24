@@ -5,7 +5,7 @@
 // I play the cube timings it dies" -- the route was stamped with older physics, the index dropped it and
 // the page's own solve failed. Fix: node tools/solutions.js <level> (heavy, waits for the lock), or --all.
 // Checks levels/*.gdlvl and examples/*.gdlvl (with --all also local/wip/*/*.gdlvl). One replay each: seconds.
-// A route that skips a portal or an orb/pad on its line (the no-skip rule, GD.skipCheck) fails too, and so does
+// A route that skips a portal (the no-skip rule, GD.skipCheck; orbs and pads may be skipped, PHYSICS.md) fails too, and so does
 // one with a hold (outside ship/wave) longer than needed: every saved route is the human route. A cube jump over
 // nothing (lib/natural.js pointlessJumps: walking off the step would do) is a warning.
 // --fix: refresh every route that fails or carries an old physics stamp (tools/solutions.js solve(): a clean

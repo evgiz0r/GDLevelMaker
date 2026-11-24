@@ -58,6 +58,10 @@ not after it:
   must not be published: other people's levels and RobTop's data/art, songs, the user's recordings
   and save, and private details (`local/`). If something can't be pushed (a blocked permission, a
   failing check), say so in your report instead of leaving it local.
+- **Every level you name comes with its link.** The user (2026-11-24): "Can you just paste link and it will open on the
+  level we are talking about." A report, message or note that names a level gives `node tools/link.js <level> [--t <s>]
+  [--run <id>] --md` (the phone page's link: opens that level, version and moment on the phone from anywhere); the PC and
+  home-wifi links when the user is at the PC. LINKS.md: the two forms, what works where.
 - **Viewer first, always.** The user (2026-11-24): "i want to see in the viewer first always". Every new
   level or version goes to the viewer (in-progress list, and the phone page) first. Never install into GD,
   queue an install or upload until the user has seen it there and says "install" (or "upload") for it. When
@@ -252,6 +256,9 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   physics.js's step() only in levels with dual portals. Moving objects (move, move to target, follow, rotate, toggle,
   spawn, multi-trigger, stop/pause/resume) live in physics.js's trigger code. `tools/movers.js`: which levels' triggers
   move hitboxes. Lab: GDLM 63 (`tools/lab63.js`). PHYSICS.md "Dual" and "Moving objects".
+- `lib/runcache.js` -- GD.run without replaying what an earlier run on the same world already played (exact: starts at the
+  first differing input, joins the cached run once the state is identical); tools/io.js installs it, so every tool that
+  loads GD through io.js gets it (the planner's thousands of runs: 17x faster in `tests/runcache.js`). `GDLM_RUNCACHE=0` = off.
 - `lib/difficulty.js` -- difficulty score from a solution: the human route (one tap per jump), per-input
   timing windows, a timing-error + lapse model fitted on the user's real runs; see DIFFICULTY.md
   (also the tier ladder for making levels, and what is open). Its tools: `difficulty` (score a level,
@@ -268,6 +275,9 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 - **The public viewer** (https://evgiz0r.github.io/GDLevelMaker/, PAGES.md: GitHub Pages, rebuilt on every push; a level goes on it ONLY when the user says so for that level: `knowledge/public_levels.json`, empty for now, our levels only, songs / GD art / official levels only from the user's own serve.js): `tools/pages.js`, `tests/pages_build.js`, `.github/workflows/pages.yml`.
 - **The viewer is where the user steers the work** (VIEWER.md): the Work panel, ✓ ok / redo on build stages with gates (`tools/stages.js waitApproval`), decision cards (`tools/ask.js put/wait`), and the actions feed every user action goes to (`tools/actions.js tail --since <id>`). Ask the user there, not only in chat. **🎮 you play** (key P): the user plays any level or build stage in the viewer, the same sim live (`lib/liveplay.js`), practice checkpoints per section; each attempt is a `play` line in the feed (where they die). A stage with a plan but no route replays the plan at once and shows where it breaks.
 - **Build stages in the viewer** (`tools/stages.js`: a builder puts song / layout / path / deco / final as each is done -> `local/wip/<session>/<base>.stages/`; the viewer shows a stage bar on the level and the stage on the picker's in-progress cards, even before the first wip put). `require("./stages.js").put({session, base, name, stage, levelStr?, data?, note?})`; test: `node tests/stages.js`.
+- **Videos and links**: `tools/video.js <level> [--run <id> | --route] [--from s --to s] [--vs-rec]` -- an mp4 of the level
+  playing in the game look with its song (local only: GD's art and the song are in it; VISUALS.md "Video"); `tools/link.js`
+  -- links that open a level at a version / moment / run on the PC, the phone page and the home wifi (LINKS.md).
 - **The phone page** (PHONE.md: what is on it, what a session does after `wip.js put`, phone
   marks, how it was tested, what is open): `tools/web.js` builds it from the viewer.
 - `tools/` -- node CLIs: `make`, `check`, `roundtrip`, `index_levels`, `serve`, `beats` (beat grid

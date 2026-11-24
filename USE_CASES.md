@@ -29,7 +29,7 @@ path), **not yet**. Update the status when a use case moves; add new ones as the
 | 21 | **Decorate my own level**: keep the user's gameplay, add the look | parts | polish.js look pass, props, craft rules | read a level from the user's save, decorate in a copy, show before/after |
 | 22 | **Finish my level**: the user builds a part in GD, Claude builds the rest in the same style | not yet | reading the save, structures, style learning | learn the user's part's style and continue it, matching the song |
 | 23 | **Level from a picture / drawing** | parts | the free-draw widget -> GDLM 46, picture -> GD art (ART.md) | a photo or sketch of a layout -> a level |
-| 24 | **A preview video** of a level to share | parts | GamePlatform's record tools idea, shoot.js frames | a short rendered video with the song |
+| 24 | **A preview video** of a level to share | built (local) | `tools/video.js <level> [--run <id>] [--from --to] [--vs-rec]`: an mp4 in the game look (GD art, camera, death burst, the user's icon on runs) with the song, 1280x720 60 fps, under 30 MB; VISUALS.md "Video" | public sharing needs an art-free look (RobTop's art stays local); the player's trail / pulses still differ from the game (VISUALS.md "Render vs game") |
 | 25 | **Learn my skill**: personalised difficulty from my recordings | parts | real_stats, the taste rows | a per-user difficulty curve that picks what's right for them |
 | 26 | **Verify in the real game automatically** (the PC plays the level itself) | not yet | computer use, the publisher | inputs from the route sent to GD, recorded, compared -- the strongest fidelity check |
 | 27 | **Platformer mode** levels | not yet | -- | the 2.2 platformer physics and controls |

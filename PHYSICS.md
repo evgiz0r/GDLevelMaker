@@ -503,16 +503,17 @@ skips something, its 99% wrong. and will cause trouble. and anyway not the human
   search got near and never took is the "stuck" case. A portal that would change nothing for the player
   there (a ship portal while already a ship, a speed portal at that speed, gravity already that way, the
   same size) is not a requirement either.
-- An **orb or pad** is "clearly meant to be taken" when the route's player box comes within 15 units of it
-  (on the route's own line). The sweep already takes as many orbs as any route can, so a finished route that
-  still leaves one like that is reported stuck: `why: "skipped an orb/pad"`, `skipped: "<name> at x <x>"`.
-  An orb far off the line (above a corridor, a decoration orb) is not required. Nor is a **decoy**: an orb or
-  pad that kills whatever you press after taking it -- an exhaustive held/not-held search from a block before it
-  finds no state that took it and got 90 units past it (`decoy()` in skipCheck, 2026-11-24). Found on Hexagon
-  Force's yellow orb at block 553.7 (y 478.7): every taking dies in the ceiling spikes by 556.4, the ~4,500 ways
-  through take 551.5 -> 556.0 or 551.5 -> 558.4. Optional orbs a level means
-  as optional: none marked yet (a spec key "optional" on the object would be the way; not built).
-- On official and rated levels a stuck like that is a **physics bug at that object**: our sim cannot take
+- **Orbs, pads and dash orbs are NOT requirements** (the user, 2026-11-24: "Skipping an orb or a dash is not bad,
+  sometimes they are actually fake and should be avoided. Unlike portals or whole paths which are rarely to be
+  skipped."). A route that passes one untaken is valid, and the sweep no longer ranks routes by orbs taken (it only
+  counts them: `skipped.orbs`), so it neither forces a route through an orb nor avoids one. `GD.skipCheck(w, path,
+  events, ignore, { orbs: true })` still reports an orb/pad the route's box came within 15 units of and left (a
+  level-design warning: tools/skips.js lists them as "untouched"); the decoy test (`decoy()`, Hexagon Force's yellow
+  orb at block 553.7 that kills every way it is taken) only runs then. Before 2026-11-24 such an orb was a failure:
+  Cant Let Go, Time Machine, Cycles, xStep, Clutterfunk and Clubstep counted unbeaten for an orb or pad alone.
+- **Portals and whole paths/sections** stay hard: skipping one is a failure (above; a whole path skipped without a
+  portal is not detected yet, see the last point).
+- On official and rated levels a portal stuck like that is a **physics bug at that object**: our sim cannot take
   what the game's players take. Never report a % or "beaten" that came from a skip.
 - Not yet covered: leaving the intended space without skipping anything (over a ceiling, outside a
   corridor); the sky limit (300 above the highest object) is the only guard.
