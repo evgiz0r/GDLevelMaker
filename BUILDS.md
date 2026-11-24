@@ -28,3 +28,9 @@ The stage times are also in local/timings.jsonl.
 - result: not ready (prejumps), 8 round(s), variants: 2 section(s)
 - change made: ship and reactive fixed; left: three 2x jumps 1.6-1.7 blocks ahead. sightread's limit is a reaction time, so it now scales with speed (x1.24 at 2x). Then the whole-level score on the saved route (54 s, no solve) found the wave mouth: a cube press held into the wave portal; a press whose window crosses into a flying portal is cued by the portal. Deco after: gd-art's decokit (bricks + lit trims, three-depth backdrop, tufts), scalloped cloud bands, three-value palettes, make --look (35 s): 14 -> 24 objects per block, contrast 100 (ground/sky 2.0 -> 4.5). Result: READY (0 fail, 11 warn).
 
+## GDLM 64 golden hour, 2026-11-24 05:11
+- stages: song 0 s, layout 77 s, layout 270 s, path 858 s, deco 1066 s, final 1066 s
+- slowest step: path (588 s); over target: layout 77 s > 60 s, layout 270 s > 60 s
+- result: not ready (prejumps, fairness), 8 round(s), variants: 2 section(s)
+- change made: (the session fills this in)
+
