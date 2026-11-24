@@ -16,10 +16,10 @@
     { "from": 129, "kind": "cube", "bg": [40, 50, 110], "ground": [28, 35, 85], "line": [170, 185, 255], "fill": [55, 68, 135], "light": [180, 195, 255], "secs": 3, "deco": 0.2 }
   ],
   "cells": [
-    [13, "spike"], [17, "up"], [19, "spike", {"off": true}], [21, "up"], [23, "down"], [25, "upoff"], [27, "double"], [29, "pad"], [31, "upoff"],
+    [13, "spike"], [17, "up"], [19, "spike", {"off": true}], [21, "up"], [23, "down"], [25, "upoff"], [27, "spike"], [29, "pad"], [31, "upoff"],
     [37, "floor"], [39, "roof"], [41, "floor"], [43, "roof"], [45, "floor"], [47, "roof"], [49, "floor"], [51, "roof"],
-    [55, "up"], [57, "down"], [59, "orb"], [63, "up"], [65, "spike", {"off": true}], [67, "upoff"],
-    [99, "up"], [101, "up"], [103, "down"], [105, "spike", {"off": true}], [107, "double"], [111, "upoff"], [113, "spike"], [115, "up"], [117, "down"], [119, "upoff"], [121, "spike"], [123, "orb"], [127, "upoff"],
+    [55, "up"], [57, "down"], [59, "orb", {"n": 7}], [63, "up"], [65, "spike", {"off": true}], [67, "upoff"],
+    [99, "up"], [101, "up"], [103, "down"], [105, "spike", {"off": true}], [107, "spike"], [111, "upoff"], [113, "spike"], [115, "up"], [117, "down"], [119, "upoff"], [121, "spike"], [123, "orb", {"n": 7}], [127, "upoff"],
     [129, "up"], [133, "spike", {"off": true}], [137, "upoff"], [141, "spike"], [145, "up"], [149, "down"]
   ],
   "pulses": [
