@@ -1,5 +1,6 @@
 // node tools/structures.js list                      -- the library: id, mode, tags, entry/exit state
-// node tools/structures.js check [id ...] [--fast]   -- build each one into a small test level, solve it, run the
+// node tools/structures.js check [id ...] [--fast]   -- (keeps its in-context result, marked stale: rerun --context after)
+//                                                      build each one into a small test level, solve it, run the
 //                                                      gates; results -> knowledge/structures.json (shared)
 // node tools/structures.js build <id>               -- its test level -> local/structures/<id>.gdlvl (look:
 //                                                      node tools/textmap.js local/structures/<id>.gdlvl)
@@ -416,7 +417,7 @@ function rank(results) {
       - (r.context && !r.context.ok ? 0.5 : 0));
     const variety = 1 - ours, usage = Math.sqrt(real);
     r.rank = { variety: +variety.toFixed(2), usage: +usage.toFixed(2), fairness: +fair.toFixed(2), readability: +read.toFixed(2),
-      realShare: real, oursShare: ours, keys: ks, ready: r.ok && fails === 0 && (r.minWindowMs ?? 999) >= 50 && !(r.context && !r.context.ok), context: r.context ? r.context.ok : null, fails, warns };
+      realShare: real, oursShare: ours, keys: ks, ready: r.ok && fails === 0 && (r.minWindowMs ?? 999) >= 50 && !(r.context && (!r.context.ok || r.context.stale)), context: r.context ? (r.context.stale ? "stale" : r.context.ok) : null, fails, warns };
     // nothing to press (a pad-only stretch): something to watch, not to play -- x 0.85
     r.score = r.rank.ready ? Math.round(100 * (0.3 * variety + 0.25 * usage + 0.25 * fair + 0.2 * read) * (r.presses === 0 ? 0.85 : 1)) : 0;
   }
@@ -569,6 +570,10 @@ if (require.main === module) {
     for (const st of todo) {
       const t0 = Date.now(), r = check(st, null, { fast: rest.includes("--fast") });
       // keep the picture data out of the committed file's diff noise: still stored, it is small
+      // keep the check in context, marked stale: the shape may have changed, so it counts as not ready until
+      // `check --context` runs again (craft's re-check of 5 pieces once dropped it and they read as ready)
+      const oldCtx = db.structures[st.id] && db.structures[st.id].context;
+      if (oldCtx) r.context = Object.assign({}, oldCtx, { stale: true });
       db.structures[st.id] = r;
       console.log(`${st.id.padEnd(20)} ${r.ok ? "beaten" : "DIES  "} ${r.presses ?? "-"} presses, ${r.seconds ?? "-"} s, tightest ${r.minWindowMs ?? "-"} ms, ${r.label || "-"}; ` +
         Object.entries(r.gates).filter(([, v]) => v !== "PASS").map(([k, v]) => `${k} ${v}`).join(", ") + ` (${((Date.now() - t0) / 1000).toFixed(1)} s)`);
