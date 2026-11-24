@@ -1,0 +1,195 @@
+{
+  "name": "GDLM 65 single builder test",
+  "desc": "A test of building in sections: four parts, each made on its own, joined on the beat.",
+  "idea": "the collab pipeline test (tools/collab.js, BUILDING.md 1): parts of 10-20 s pinned to song time, built alone, joined",
+  "song": {
+    "custom": 557117
+  },
+  "grid": {
+    "bpm": 140.01,
+    "t0": 0.0224
+  },
+  "offset": 0,
+  "seed": 65,
+  "difficulty": {
+    "label": "Normal",
+    "minWindowMs": 60
+  },
+  "terrain": true,
+  "craft": false,
+  "structures": false,
+  "modern": true,
+  "signature": {},
+  "sections": [
+    {
+      "name": "intro",
+      "beats": 16,
+      "use": [
+        "single",
+        "spike-block"
+      ],
+      "bg": [
+        60,
+        120,
+        200
+      ],
+      "ground": [
+        20,
+        40,
+        90
+      ],
+      "line": [
+        200,
+        230,
+        255
+      ],
+      "obj": [
+        255,
+        255,
+        255
+      ]
+    },
+    {
+      "name": "run",
+      "beats": 16,
+      "use": [
+        "single",
+        "double",
+        "platform",
+        "orb-pit"
+      ],
+      "bg": [
+        60,
+        120,
+        200
+      ],
+      "ground": [
+        20,
+        40,
+        90
+      ],
+      "line": [
+        200,
+        230,
+        255
+      ],
+      "obj": [
+        255,
+        255,
+        255
+      ]
+    },
+    {
+      "name": "flight",
+      "beats": 24,
+      "mode": "ship",
+      "bg": [
+        120,
+        60,
+        170
+      ],
+      "ground": [
+        40,
+        15,
+        70
+      ],
+      "line": [
+        230,
+        200,
+        255
+      ],
+      "obj": [
+        255,
+        255,
+        255
+      ]
+    },
+    {
+      "name": "dash",
+      "beats": 16,
+      "speed": "2x",
+      "use": [
+        "single",
+        "platform",
+        "double"
+      ],
+      "bg": [
+        200,
+        80,
+        60
+      ],
+      "ground": [
+        70,
+        20,
+        15
+      ],
+      "line": [
+        255,
+        220,
+        200
+      ],
+      "obj": [
+        255,
+        255,
+        255
+      ]
+    },
+    {
+      "name": "wave",
+      "beats": 24,
+      "speed": "1x",
+      "mode": "wave",
+      "bg": [
+        30,
+        140,
+        120
+      ],
+      "ground": [
+        10,
+        50,
+        40
+      ],
+      "line": [
+        200,
+        255,
+        240
+      ],
+      "obj": [
+        255,
+        255,
+        255
+      ]
+    },
+    {
+      "name": "finale",
+      "beats": 24,
+      "use": [
+        "single",
+        "double",
+        "spike-block",
+        "s:capped-hop"
+      ],
+      "bg": [
+        60,
+        120,
+        200
+      ],
+      "ground": [
+        20,
+        40,
+        90
+      ],
+      "line": [
+        200,
+        230,
+        255
+      ],
+      "obj": [
+        255,
+        255,
+        255
+      ]
+    }
+  ],
+  "variants": 0
+}

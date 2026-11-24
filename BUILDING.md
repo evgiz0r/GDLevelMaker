@@ -32,8 +32,9 @@ song (speed portals may ruin if we add), location of the switch. Other than that
 - **Split** (`node tools/collab.js split <brief>`): compose's sections (in beats) are grouped into **parts of 10-20 s**
   on section boundaries (or the brief's `"parts": [[0,1],[2],...]`). Each part boundary is a seam pinned to a
   **song time** (its beat), never an x. The contract at a seam: the cube, grounded on the floor (y 15), normal
-  gravity and size, at the speed of the next part's first section. Mode portals live inside a part (a ship section
-  enters and leaves the ship itself). -> local/collab/<base>/plan.json; the viewer card shows one section per part
+  gravity and size, at the speed the player **arrives** with (the part before ends at it). A part that runs at another
+  speed switches with its own speed portal; mode portals live inside a part too (a ship section enters and leaves the
+  ship itself). -> local/collab/<base>/plan.json; the viewer card shows one section per part
   with its builder and state.
 - **Build** (`node tools/collab.js build <brief> <part> --by <builder>`): the part is its own small level whose time 0
   is its seam's song time (the brief's offset moved to the part's first beat, unrounded), so its beats, sync and
@@ -47,8 +48,25 @@ song (speed portals may ruin if we add), location of the switch. Other than that
   y within 8; vy ~0) and the sync (the joined level's x at the seam time = the next part's start, within 6 units),
   then the joined route is saved and score.js runs once on the whole level. A failed seam or a death sends back only that part.
 - **Builders**: one agent per part, given only its part (the brief's sections for it) and its two seams; it runs
-  `build`, reads its checks, and may retry with `--seed n`. Builds take the heavy lock one at a time, so parts build
-  in turn even when the agents run at once; each is short.
+  `build`, reads its checks (its own seam too: `seam` FAIL = the state it hands over at the seam time is not the
+  contract), and may retry with `--seed n` (every section of the part from another plan; a ship / wave section has
+  no chunks to vary). Builds take the heavy lock (2 slots now), so 4 parts build two at a time.
+
+**Rules the first joins taught (GDLM 65, 2026-11-24)** -- each was a failed join, each is now in the code:
+- **A part's level header is dropped at the join**: a part never relies on it. The seam speed is the arrival speed and
+  a faster part places its own speed portal (the first contract said "the next part's speed"; part 2 ran 2x off its
+  header and the joined level never had it).
+- **No portal on a part's first columns** (`portalRoom` 3): joined, the player reaches a portal's hitbox ~30 units
+  before the seam; alone it starts inside it at time 0. 13 ticks of extra ship physics killed the joined route.
+- **A part that ends in flight exits 4 blocks before its seam** (`exitRoom`): exiting at the section's very end left
+  the cube on the portal's frame block (y 45) at the seam.
+- **Every seam starts with the button up**: the join cuts each part's run-out (and a release in it), so it adds a
+  release at the seam; a hold carried into the next part's ship.
+- **The seam state is read 30 ticks before the seam**, before the next part's first portal can touch the player.
+- **Nothing from before a part's start** joins (parts carry deco to x -300).
+- **Builders write only their own entry of plan.json** (re-read, change, write): two builds finish at once now. An old
+  builder process still running old code rewrote the whole plan once and put the old seams back -- stop old builders
+  before changing the contract.
 
 ## 2. Design first: the presses come before the blocks
 
