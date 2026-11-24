@@ -150,8 +150,19 @@ A cube's press made in the air is kept and the cube jumps when it lands, even if
   Clutterfunk 288 -> 294; none less far once an orb or pad that takes the press also clears the buffer
   (without that, ToE 2 fell 105 -> 92). This was the old open item "a cube that walked off a ledge and presses
   shortly before landing: the game jumps, we do not".
-- In the sim: lib/physics.js `LANDBUF` = 40 ticks (cube only; the solvers' state keys carry it).
-  `GDLM_LANDBUF=<ticks>` overrides it for measuring, 0 = off. OPEN: the upper bound (is it "until landing"?),
+- ONLY WHILE FALLING, NO TIME LIMIT (2026-11-24, second Clutterfunk attempt, 18.43 s of 02:45, fixed logger): a tap
+  53 ticks before landing, made just after the peak of a yellow-orb arc (vy -1.6), released in the air: the game jumps
+  on landing (the user clears); with 40 ticks the sim walked onto the yellow pad at 34.5 and was thrown into the
+  hanging spikes (3.5%). A longer buffer for every press broke Geometrical Dominator (taps 45-63 ticks out made while
+  still RISING: 7.3% -> 5.4%, 5.7% -> 2.7%) and Hexagon Force (40.6 -> 38.1 from 80 ticks). Buffering only a press
+  made while falling (vy towards the ground, or 0) fits all 21 recorded attempts for any length from 40 to infinite,
+  and gdsolver's 22 plans reach exactly the same blocks. Clutterfunk now dies at 3.9% (a tap that jumps the cube into
+  a low hanging spike at 38.6: not understood yet; the video clock there needs a frame check).
+- In the sim: lib/physics.js `LANDBUF` = a flag (cube only; the solvers' state keys carry it): set by a press in the
+  air while falling, cleared by the landing jump, an orb or pad, or leaving the cube. tests/mechanics.js checks both
+  sides (a falling tap 50 ticks out jumps, a rising one does not). Was: 40 ticks for any air press.
+  `GDLM_LANDBUF=<ticks>` makes it a countdown again for measuring, 0 = off. OPEN: the exact falling threshold (vy 0? a
+  little before the peak?),
   and whether a release clears it in other modes. A clean test: tap in the air at several heights before a
   landing in a lab level.
 
