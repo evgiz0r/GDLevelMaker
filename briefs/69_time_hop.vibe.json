@@ -52,7 +52,7 @@
  "feel": {
   "tier": "Normal",
   "modeStretch": 12,
-  "density": "sparse: about one hazard per block at most, with breathing room"
+  "density": "about one hazard per block, two in the ship parts"
  },
  "lookRule": "per-part",
  "camera": "plain: the camera follows the player, no zoom or shake; the colours do all the telling",
@@ -73,7 +73,6 @@
     10
    ],
    "role": "intro",
-   "energy": 0.3,
    "place": "a bright teal present",
    "mood": "light, curious",
    "vehicle": {
@@ -86,7 +85,8 @@
     "palette": {
      "bg": "#00f0b5"
     }
-   }
+   },
+   "density": 0.5
   },
   {
    "id": "first era",
@@ -95,7 +95,6 @@
     28
    ],
    "role": "build",
-   "energy": 0.45,
    "place": "a deep blue era",
    "mood": "steady, on the beat",
    "vehicle": {
@@ -111,7 +110,8 @@
    },
    "transition": {
     "in": "instant"
-   }
+   },
+   "density": 0.8
   },
   {
    "id": "reversal",
@@ -120,7 +120,6 @@
     41.6
    ],
    "role": "build",
-   "energy": 0.7,
    "place": "a pink era where time runs backwards",
    "mood": "tense, upside-down logic",
    "vehicle": {
@@ -137,7 +136,8 @@
    },
    "transition": {
     "in": "instant"
-   }
+   },
+   "density": 2.1
   },
   {
    "id": "the void",
@@ -146,7 +146,6 @@
     61.4
    ],
    "role": "break",
-   "energy": 0.4,
    "place": "the dark between eras",
    "mood": "quiet, lost, slow fade to black",
    "vehicle": {
@@ -162,7 +161,8 @@
    },
    "transition": {
     "in": "fade 10"
-   }
+   },
+   "density": 1
   },
   {
    "id": "re-emergence",
@@ -171,7 +171,6 @@
     68.3
    ],
    "role": "build",
-   "energy": 0.6,
    "place": "a purple dawn",
    "mood": "rising again",
    "vehicle": {
@@ -187,7 +186,8 @@
    },
    "transition": {
     "in": "fade 10"
-   }
+   },
+   "density": 1.4
   },
   {
    "id": "era hopping",
@@ -196,7 +196,6 @@
     88.2
    ],
    "role": "drop",
-   "energy": 0.8,
    "place": "pink, green, cyan, magenta, green: an era every few seconds",
    "mood": "giddy, fast-changing",
    "vehicle": {
@@ -219,7 +218,8 @@
    },
    "transition": {
     "in": "instant"
-   }
+   },
+   "density": 1.1
   },
   {
    "id": "lift-off",
@@ -228,7 +228,6 @@
     94.6
    ],
    "role": "finale",
-   "energy": 0.85,
    "place": "a blue sky",
    "mood": "triumphant escape",
    "vehicle": {
@@ -244,7 +243,9 @@
    },
    "transition": {
     "in": "fade 5"
-   }
+   },
+   "density": 2
   }
- ]
+ ],
+ "dress": "plain"
 }

@@ -41,6 +41,8 @@
 // (the rest of the level left out; every section starts and ends as a cube on the ground) and keeps
 // the scores of unchanged sections, so a repair round re-solves only what it changed; the whole
 // level is scored once at the end.
+// "pulses": false (a vibe sheet that says no pulses): the modern look without its beat pulses (tools/vfxkit.js).
+// A section's "structureModes": ["cube"]: its structure only from those modes (tools/vibe.js: the sheet's vehicle).
 // "structures" (default on; false = off): every plain cube section (not rest, no mode) also gets ONE
 // structure from the ranked library (tools/structures.js, STRUCTURES.md) as its newest idea, a
 // different one per section, best-ranked first within the brief's difficulty label, skipping what the
@@ -115,7 +117,9 @@ function structurePicks(brief, tweaks = {}) {
   // spread the mechanics: a mode or tag not yet in the level first
   const tagsUsed = new Set();
   for (const [, i] of want) {
-    const fresh = pool.filter(r => !used.has("s:" + r.id) && (r.needs.speed || "1x") === sp[i]);
+    // a section with "structureModes" (tools/vibe.js: a vibe sheet's vehicle) takes only structures of those modes
+    const sm = brief.sections[i].structureModes;
+    const fresh = pool.filter(r => !used.has("s:" + r.id) && (r.needs.speed || "1x") === sp[i] && (!sm || sm.includes(r.mode)));
     // a reseeded section (tweaks "reseed:<i>", a variant or a backtrack) takes the n-th alternative
     const rs = tweaks["reseed:" + i] || 0, novel = fresh.filter(r => ![r.mode, ...r.tags].some(t => tagsUsed.has(t)));
     const pick = rs ? (novel.length ? novel : fresh)[rs % Math.max(1, (novel.length ? novel : fresh).length)] : (novel[0] || fresh[0]);
@@ -214,12 +218,14 @@ function compose(brief, tweaks = {}) {
       if (flying) land += 3;
       lastSpeed = speeds[si];
     }
-    if (sec.mode === "ball") {
-      const key = `${si}:0`, t = tweaks[key] || {};
-      const args = Object.assign({ w: sec.blocks - 3 - land, gap: 5, every: 9, lead: 6 }, (sec.args || {})["ball-run"] || {}, { portal: true, exit: "cube", portalRow: 1 });
+    // ball, and the ufo and swing corridors (tools/patterns.js; added for the space level, GDLM 71: "more flying")
+    const RUN = { ball: ["ball-run", { gap: 5, every: 9 }], ufo: ["ufo-run", { gap: 7, every: 7 }], swing: ["swing-run", { gap: 6, every: 8 }] }[sec.mode];
+    if (RUN) {
+      const key = `${si}:0`, t = tweaks[key] || {}, pname = RUN[0];
+      const args = Object.assign({ w: sec.blocks - 3 - land, lead: 6 }, RUN[1], (sec.args || {})[pname] || {}, { portal: true, exit: "cube", portalRow: 1 });
       if (t.room) args.every += 2 * t.room;
-      objects.push(["pattern", "ball-run", start + 1 + land, 0, args]);
-      placed.push({ key, name: "ball-run", from: start + 1 + land, to: start + 1 + land + widthOf("ball-run", args), section: sec.name, flying: true });
+      objects.push(["pattern", pname, start + 1 + land, 0, args]);
+      placed.push({ key, name: pname, from: start + 1 + land, to: start + 1 + land + widthOf(pname, args), section: sec.name, flying: true });
       ranges.push([i0, objects.length, start, end]);
       col = end; prevFlying = true; flyEnd = end; prevUpside = false;
       continue;
@@ -317,6 +323,11 @@ function compose(brief, tweaks = {}) {
           for (let i = 0; i < pool.length; i++) { x -= wts[i]; if (x <= 0) { name = pool[i]; break; } }
         }
         if (t.swap) name = t.swap;
+        // few triple spikes (the user, 2026-11-24: "lets do less triple spikes for now"; checklist "Few triple spikes",
+        // tools/triples.js, score.js gate "triples"): at most one per section, never within 4 chunks of the last one;
+        // a double instead. brief.triples: "allow" turns it off.
+        const TRI = n => /triple/.test(n);   // "triple" and the library's "s:triple-spike", "s:robot-triple"
+        if (TRI(name) && brief.triples !== "allow" && (placed.some(p => p.section === sec.name && TRI(p.name)) || placed.slice(-4).some(p => TRI(p.name)))) name = "double";
         const intro = !seen.has(name);
         // Easy/Normal: block-spike-block with 2-wide blocks (land, look, jump: no exact hop off a lone block)
         const LOW_ARGS = { "block-spike-block": { w1: 2, w2: 2 }, "spike-block": { at: 1, w: 3 } };
@@ -398,7 +409,7 @@ function compose(brief, tweaks = {}) {
   if (brief.scene) spec.scene = brief.scene;   // a scene script (tools/scenes/<name>.js, SHOWCASE.md): the look by hand, run by make.js
   if (brief.craft) spec.craft = brief.craft;   // craft pass (tools/craftkit.js, CRAFT.md): rods, chains, lanterns on the structures
   // (a collab part, tools/collab.js: the title only on the first part, the end text only on the last)
-  if (brief.modern !== false) spec.modern = { sections: looks.map(({ bg, ...l }) => l), title: brief._noTitle ? null : brief.name, end: brief._noEnd ? null : "thanks for playing", seed: brief.seed || 3, light: brief.palette === "light" };
+  if (brief.modern !== false) spec.modern = { sections: looks.map(({ bg, ...l }) => l), title: brief._noTitle ? null : brief.name, end: brief._noEnd ? null : "thanks for playing", seed: brief.seed || 3, light: brief.palette === "light", ...(brief.pulses === false ? { pulses: false } : {}) };
   // jump indicators (tools/decorate.js): on jumps that cannot be read in time, and the first jump of
   // each new pattern. Default on; "indicators": false in the brief turns them off.
   if (brief.indicators !== false) spec.indicators = Object.assign({ at: firsts }, brief.indicators || {});
@@ -843,4 +854,4 @@ if (require.main === module) {
     loop(file, ri >= 0 ? +args[ri + 1] : 8, { until: ui >= 0 ? args[ui + 1] : null, resume: args.includes("--resume") });
   }
 }
-module.exports = { compose, loop };
+module.exports = { compose, loop, chunkAt, EASIER };

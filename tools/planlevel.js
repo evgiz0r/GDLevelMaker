@@ -53,7 +53,10 @@ function build(plan, o = {}) {
     let k = 0, lastExit = 1;
     while (cand.length) {
       const fresh = cand.filter(x => !used.has(x.id));
-      const pick = (fresh.length ? fresh : cand.filter(x => used.get(x.id) < 2)).find(x => c + x.width <= end);
+      // the level's first obstacle is a plain jump: no orb or pad in the opening structure (tools/softrules.js "opener";
+      // GDLM 52 v2's real play died 4 of 11 times on its opening pink-orb pit)
+      const plainJump = x => !/orb|pad/.test(x.id + " " + (x.tags || []).join(" "));
+      const pick = (fresh.length ? fresh : cand.filter(x => used.get(x.id) < 2)).find(x => c + x.width <= end && (i > 0 || k > 0 || plainJump(x)));
       if (!pick) break;
       const st = ST.byId(pick.id), r = st.build(Object.assign({}, st.args));
       objs.push(`//   ${pick.id} (score ${pick.rank && (pick.rank.score ?? pick.score)}) at ${Math.round(c)}`);
