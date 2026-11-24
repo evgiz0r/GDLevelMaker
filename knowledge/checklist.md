@@ -34,7 +34,9 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   (design.md "Fairness", GDLM 41)
 - [ ] **No forced input right after a mode or speed portal.** Give an empty lead-in: cube ~6 blocks,
   ship ~8, others 2-3. A flat, readable floor before the portal; never a portal on a block's end or a
-  corner. `node tools/tiercheck.js <level> --tier Easy` (lead-in per section). (levels/modes_low_tier.md;
+  corner. `node tools/tiercheck.js <level> --tier Easy` (lead-in per section). A mode portal reaches the
+  walking line (a cube walking there touches it; else it can walk under it and skip the mode) and stands on
+  flat ground: `node tools/portalground.js <level>` (GDLM 44 round 3). (levels/modes_low_tier.md;
   GDLM 44 entrance, GDLM 46 wall after the wave)
 - [ ] **Recovery**: never land and have to jump again within ~100 ms, unless it is a steady rhythm.
   (design.md, score.js recovery gate; GDLM 42 v3)
