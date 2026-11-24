@@ -89,7 +89,7 @@ function songOf(data) {
 }
 // sections from the seam contract (or compose): the fields the viewer needs; a section's reviews stay while its status for
 // that role is the same (a rebuilt section, status "built" again, asks again)
-const SEC_FIELDS = ["id", "name", "x", "t", "builder", "status", "beats"];
+const SEC_FIELDS = ["id", "name", "role", "x", "t", "builder", "status", "beats"];   // role: a collab part's, from the coordinator (tools/coordinator.js)
 function mergeSections(old, secs) {
   const byId = new Map((old || []).map(s => [s.id, s]));
   return secs.map(s => {

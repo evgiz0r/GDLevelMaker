@@ -6,13 +6,18 @@
 //   node tools/make.js specs/68_camera_lab.json.  --check prints the sim's band (floor / roof) and heights per station.
 // Sim's band rule (lib/physics.js enterMode): a flying portal at height y sets floor = max(0, floor((y - 150) / 30) * 30),
 // roof = floor + 300 (ball 240, spider 270); the viewer centres the camera on it. What GD does is the question.
-// Rulers: deco 211 squares on every other row, colour channel 1014 (defined: never white; tools/channels.js).
+// Rulers: a thin pole with block ticks (lab67.js's, art's), channel 1001 (defined: never white; tools/channels.js).
 const fs = require("fs"), path = require("path");
 const b64 = s => Buffer.from(s).toString("base64");
 const objs = [], lab = [];
 let col = 22;   // past GD's "Attempt N" text
 const label = (c, text, row = 6.5) => objs.push([914, c, row, { props: { "31": b64(text), "32": "0.5" } }]);
-const ruler = (c, from = 0, to = 14) => { for (let r = from; r <= to; r += 2) objs.push([211, c, r, { props: { "21": "1014" } }]); };
+// a ruler as in lab67.js (art's): a thin pole with a tick at each block line, in the ground colour (channel 1001, always
+// defined: never white in the game)
+const RC = { "21": "1001", "22": "1001", "24": "-1" };
+const ruler = (c, from = 0, to = 14) => { for (let r = from; r <= to; r++) {
+  objs.push([211, c, r, { props: Object.assign({ "128": "0.12" }, RC) }]);
+  objs.push([211, c, r, { dy: -15, props: Object.assign({ "128": "0.6", "129": "0.1" }, RC) }]); } };
 const station = (name, width, note, build) => { const n = lab.length + 1, from = col; build(col, n); lab.push({ n, name, from, to: from + width, metrics: [{ m: "alive" }], note }); col += width; };
 const CUBE = 12, SHIP = 13, UFO = 111, WAVE = 660, SWING = 1933;
 const portal = (id, c, row) => objs.push([id, c, row]);

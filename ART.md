@@ -115,7 +115,11 @@ tools/decowin.js windows):
   default channel 1, which no header defines, so GD draws white (the viewer draws them white too).
 - So "keys 21 + 22 on a channel in kS38" works, including 988/989. White deco is deco on a channel nothing defines.
 
-`node tools/channels.js --all` (score.js gate "channels", FAIL) finds every such object. Found:
+`node tools/channels.js --all` (score.js gate "channels", FAIL) finds every such object.
+- GDLM 67's rulers now: a thin pole with block ticks on channel 1001, the ground colour, which is always in the header
+  (tools/lab67.js, rebuilt with --look). 0 white.
+- `python tools/whiteframes.py <video>` finds tall pure-white shapes inside the game in a recording: 56 of 99 frames of
+  18-58-15, all of them the old rulers. Found:
 - GDLM 64 v6, 65 collab test, 66 collab long: the Claude badge (973-975), 96 objects each. tools/collab.js took
   the first part's header only, and the badge's channels live in the last part's. Fixed: the join now merges every
   part's channels (`mergeChannels`). These three levels need a rebuild to pick it up.

@@ -12,11 +12,13 @@ const b64 = s => Buffer.from(s).toString("base64");
 const objs = [], lab = [];
 let col = 22;   // GD's "Attempt N" text covers the first ~12 blocks (a label must start after it)
 const label = (c, text, row = 6.5) => objs.push([914, c, row, { props: { "31": b64(text), "32": "0.5" } }]);
-// a ruler square on every other row (rows 0, 2, 4...: 60 units apart): stacked on every row, id 211 drew as one solid white
-// bar with nothing to read (the user's v2 run, 2026-11-24)
-// on colour channel 1014 (GD's own, always defined; a light blue): with no key a 211 takes channel 1, which nothing
-// defines, and the game draws it pure WHITE (tools/channels.js, score.js gate "channels")
-const ruler = (c, from = 0, to = 9) => { for (let r = from; r <= to; r += 2) objs.push([211, c, r, { props: { "21": "1014" } }]); };
+// a ruler: a thin pole with a tick at each block line, in the GROUND colour (channel 1001, always in the header). Until
+// 2026-11-24 it was plain 211 squares with no colour key -- default channel 1, which no header defines, so the game
+// drew full-height WHITE columns (the user: "our deco being pure white within the game is still expected?"; tools/channels.js)
+const RC = { "21": "1001", "22": "1001", "24": "-1" };
+const ruler = (c, from = 0, to = 9) => { for (let r = from; r <= to; r++) {
+  objs.push([211, c, r, { props: Object.assign({ "128": "0.12" }, RC) }]);
+  objs.push([211, c, r, { dy: -15, props: Object.assign({ "128": "0.6", "129": "0.1" }, RC) }]); } };
 const trig = (id, c, row, props, extra) => objs.push([id, c, row, Object.assign({ props }, extra || {})]);
 const station = (name, width, metrics, note, build) => {
   const n = lab.length + 1, from = col;

@@ -52,6 +52,21 @@ song (speed portals may ruin if we add), location of the switch. Other than that
   contract), and may retry with `--seed n` (every section of the part from another plan; a ship / wave section has
   no chunks to vary). Builds take the heavy lock (2 slots now), so 4 parts build two at a time.
 
+**The coordinator (tools/coordinator.js), before any part** -- the user (2026-11-24): "first a coordinator of the collab,
+so they don't just combine ... he gives them roles, and whether he makes the picture or them is a choice". `node
+tools/coordinator.js plan <brief> [--look shared|per-part]` writes briefs/<NN>.coord.json (committed): the journey, the
+mood / energy curve and the difficulty curve over the parts, and per part its ROLE (intro, build, drop, calm, finale --
+from the song plan: the first part is the intro, the last the finale, a part with a drop or a flight after cube is a
+drop, the one before a drop builds), its density (gaps by role), its difficulty, its transitions, what it MUST do (the
+title: intro only; the ending: finale only; its seams) and MUST NOT (another part's set pieces: each library structure
+belongs to one part). Look ownership per level: "shared" (the coordinator's palettes, the brief's sections) or
+"per-part" (each part its own style from a pool, under the coordinator's rules: path vs sky >= 3, colours blending over
+1.7 s at each seam). Every `collab.js build` / `deco` applies its part's entry. `coordinator.js review <brief>` checks
+each built part against its role before the join (title / ending in the wrong part, another part's set piece, a drop
+thinner or an intro / calm denser than the level's middle) and names the parts to send back with the reason. The
+viewer's sections bar shows each part's role. The brief's shape is meant to become gd-showcase's storyboard / vibe
+sheet (tools/storyboard.js) once that exists.
+
 **Rules the first joins taught (GDLM 65, 2026-11-24)** -- each was a failed join, each is now in the code:
 - **A part's level header is dropped at the join**: a part never relies on it. The seam speed is the arrival speed and
   a faster part places its own speed portal (the first contract said "the next part's speed"; part 2 ran 2x off its
