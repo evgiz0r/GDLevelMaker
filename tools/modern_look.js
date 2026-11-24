@@ -105,7 +105,7 @@ for (const spec of specs) {
   const R = [];
   for (const l of load(spec)) {
     if (!fs.existsSync(l.file)) { console.error("missing", l.file); continue; }
-    try { R.push({ name: l.name, ...JSON.parse(execFileSync(process.execPath, ["--max-old-space-size=2500", __filename, "one", l.file], { encoding: "utf8", maxBuffer: 1 << 26 })) }); }
+    try { R.push({ name: l.name, ...JSON.parse(execFileSync(process.execPath, ["--max-old-space-size=2500", __filename, "one", l.file], { windowsHide: true, encoding: "utf8", maxBuffer: 1 << 26 })) }); }
     catch (e) { console.error("skip", l.name, String(e.message).split("\n")[0]); }
   }
   all[spec] = R;

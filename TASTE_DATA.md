@@ -173,6 +173,52 @@ the model's probability that a level of this band is featured+, 0-100. compose a
 the band's featured medians in `targets` (p25 / median / p75 per measure). The model is retrained with
 `learn` whenever the corpus grows; each user play (`taste.js user`) and later each mark becomes data.
 
+### Per-screen deco measures from the art session (2026-11-24)
+
+The deco study (`tools/decostudy.js`, ART.md "Deco study") measures each 20-block screen; taste.js reads its
+medians as `ds*` features (from `local/decostudy/<id>.json` for the corpus, computed on the spot for a scored level).
+Within-band delta, featured+ vs the rest; then with effort taken out; then epic+ vs featured:
+
+| feature | raw | effort-adjusted (90%) | epic+ vs featured (90%) | reading |
+|---|---|---|---|---|
+| dsMotion (motion triggers per screen) | 0.43 | **0.32** (0.15..0.46) | **0.36** (0.22..0.53) | strongest new one: moving deco on every screen, not only the effort it costs |
+| dsChannels (colour channels per screen) | 0.35 | 0.18 (0.03..0.34) | 0.16 (-0.01..0.30) | mild yes |
+| dsDress (deco near play objects, per play object) | 0.24 | 0.12 (-0.06..0.25) | 0.09 | mostly effort |
+| dsGlow (glow / blending share, v2: plain 211/693 not counted) | 0.10 | 0.05 (-0.10..0.20) | -0.17 (-0.32..0.02) | unclear: the pooled medians (featured 25 % vs other 5 %) are mostly era and effort; within a band it barely separates, and the top leans to less glow. ART.md's 10-25 % target fits |
+| dsLayers (z-layers with >= 5%) | 0.14 | -0.01 | 0.03 | nothing |
+| dsPerScreen (objects per screen) | 0.22 | (an effort measure) | 0.41 | effort |
+
+Its contrast score runs the other way (featured 45 vs other 63), so it is not a feature. The model barely moves
+(held-out AUC 0.633 -> 0.64; glow left out of the model as not strong): what these see, the effort measures already saw. For a level: **put motion on every
+screen** (move / rotate / pulse triggers on deco). Glow: keep it moderate (10-25 %), it is not a lever.
+
+## Our GDLM levels through the taste score (2026-11-24, band EN|2.2)
+
+`node tools/taste.js score levels/gdlm_4*.gdlvl levels/gdlm_5*.gdlvl levels/gdlm_60*.gdlvl` (full output in
+local/taste/gdlm_scores.txt). The officials score 49-83; two community levels the user played are given for scale.
+
+| level | taste | what pulls it down most |
+|---|---|---|
+| GDLM 41 classic | 47 | no move triggers, 14 distinct ids, deco 31 %, 0.6 objects per block |
+| GDLM 42 seen then gone | 47 | the same, and 87 % repeated chunks |
+| GDLM 43 climb | 47 | the same, and 71 % repeated chunks |
+| GDLM 46 sketch | 44 | plain blocks, no deco |
+| GDLM 60 physics lab | 53 | a test level, no look |
+| GDLM 46 arrow catalogue | 57 | no triggers (all deco, no hazards) |
+| GDLM 47 sunny side | 57 | 56 distinct ids, deco 52 % |
+| GDLM 45 first flight | 62 | deco 49 %, little front deco, 7.6 objects per block |
+| GDLM 44 hellgate | 65 | 40 distinct ids (band median far higher), 7.9 objects per block |
+| GDLM 51 adrift | 67 | 33 distinct ids, height range 7 (top of the band) |
+| GDLM 50 eclipse | 69 | 33 distinct ids, deco 76 % |
+| Spooky Dash (community, the user stayed) | 73 | |
+| NOT A MONOCHROME (community, the user left at 25 %) | 69 | |
+
+Reading: the score tracks effort and the 2.2 look. The early cube levels (41-43) sit at the bottom, and the
+decorated scene levels (50, 51) near the officials' middle. Every GDLM level is still far under featured 2.2
+levels on objects per block (0.2-8 against >= 17), the one rule the data supports. The level the user left
+scores almost as high as the one they stayed on: the static score does not see what made them leave (gameplay,
+not look), so it is a hint, not a verdict (held-out AUC 0.63).
+
 ## The user's own plays (the "my taste" data)
 
 `node tools/taste.js user <id> --note "..." [--finished] [--attempts N] [--liked|--disliked]` adds a level
@@ -189,6 +235,7 @@ attempt rows stay in local/real_stats.jsonl (physics owns them); this is the per
 ## Open
 
 - Route measures (above). Readability by render for a sample of 30 levels to calibrate the proxy.
+
 - 2.2 levels built by move triggers measure as empty: a measure on the moved positions.
 - The user's marks and plays as data: each mark is a labelled spot (bad) on our levels; each played
   level a row with the user's verdict. When there are ~30, fit the user's own weights next to the

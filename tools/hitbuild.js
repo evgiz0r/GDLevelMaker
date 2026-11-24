@@ -1,0 +1,221 @@
+// node tools/hitbuild.js briefs/<NN>.hits.json   -> specs/<NN>.json + local/hitroutes/<NN>.json
+//   -- BEAT-FIRST build of an ultra-synced level (the user on GDLM 62 v2, 2026-11-24: "the whole point of
+//      ultra sync is the clicks to match the beat. so you need to make the layout with the beats, see it
+//      works"). The presses come first and never move: one tap EXACTLY on each planned hit (tools/hits.js).
+//      1. ship sections: a press / release schedule on the section's hits, flown in open air, and the
+//         corridor built around that path (2.5 blocks of air above and below) -- the path is the design;
+//      2. cube and ball cells: each obstacle is placed, then moved (never the tap) until its hit sits in the
+//         middle of its timing window -- window found by replaying the planned taps in the sim (one run
+//         each, ~70 ms; no solving), the other taps fixed; orb cells also centre the orb's own tap on its
+//         half-beat hit;
+//      3. the planned taps replayed: the level must clear with them and nothing else (no extra presses).
+//   Then build and check-solve it as usual (node tools/loop.js specs/<NN>.json), and put the planned route
+//   as the level's route: node tools/hitroute.js <plan> <level> --save (taps on the hits in the viewer).
+//   Takes the heavy slot (a few hundred replays, ~1-3 min for a 60 s level).
+if (require.main === module) require("./heavy.js").claim();
+const fs = require("fs"), path = require("path");
+const { GD } = require("./io.js");
+const HL = require("./hitlevel.js");
+const make = require("./make.js");
+
+const TPS = 240, TAP = Math.round(0.06 * TPS);
+const PH = require("../lib/physics.js"), UPS = PH.SPEEDS[1].x * 60;
+
+function gameplayWorld(plan, opts) {
+  const { spec } = HL.build(plan, Object.assign({ numeric: true }, opts));
+  const g = Object.assign({}, spec, { objects: spec.objects.filter(e => Array.isArray(e) && !["colour", "fade", "zoom"].includes(e[0])), modern: null, style: "none", signature: false, colours: null, art: null });
+  const log = console.log; console.log = () => {};
+  try { const b = make.build(g, "hitbuild"); return GD.makeWorld(b.level.objects, b.level.header); }
+  finally { console.log = log; }
+}
+const evOf = (taps, extra) => {
+  const ev = [];
+  for (const t of taps) { ev.push({ tick: t, type: "press" }); ev.push({ tick: t + TAP, type: "release" }); }
+  return ev.concat(extra || []).sort((a, b) => a.tick - b.tick || (a.type === "release" ? -1 : 1));
+};
+const lastOf = r => r.path[r.path.length - 1];
+
+// a ship section: schedule on the hits, flown in open air; corridor around the path
+function shipSection(plan, si, hits, tOf, col) {
+  const s = plan.sections[si], next = plan.sections[si + 1];
+  const t0 = tOf(s.from), t1 = tOf(next.from);
+  const slots = hits.slots.filter(h => "KSA".includes(h.kind) && h.t > t0 + 0.3 && h.t < t1 - 0.3);
+  const portalX = col(s.from) * 30 + 15, endX = col(next.from) * 30 + 15;
+  // a far, high block only marks the world's end (a run stops a little after the last object)
+  const open = [{ id: 13, x: portalX, y: 45, rot: 0, props: {} }, { id: 1, x: endX + 900, y: 600, rot: 0, props: {} }];
+  const w = GD.makeWorld(open, GD.DEFAULT_HEADER);
+  const sched = [];   // {tick, type}
+  let holding = false;
+  const target = t => (t > t1 - 2.2 * 60 / plan.grid.bpm ? 45 : 120);   // mid band, low before the exit
+  const yAt = (ev, tick) => { const r = GD.run(w, ev); const q = r.path[Math.min(tick, r.path.length - 1)]; return q; };
+  for (let k = 0; k < slots.length; k++) {
+    const tick = Math.round(slots[k].t * TPS), nextTick = k + 1 < slots.length ? Math.round(slots[k + 1].t * TPS) : Math.round(t1 * TPS);
+    const look = Math.min(nextTick + 60, Math.round(t1 * TPS));
+    const cost = ev => { const q = yAt(ev, look), m = yAt(ev, nextTick); return Math.abs(m.y - target(nextTick / TPS)) + 0.5 * Math.abs(q.y - target(look / TPS)) + (q.y < 20 || q.y > 280 ? 500 : 0); };
+    const keep = sched.slice(), flip = sched.concat([{ tick, type: holding ? "release" : "press" }]);
+    if (cost(flip) < cost(keep) - 4) { sched.push(flip[flip.length - 1]); holding = !holding; }
+  }
+  if (holding) sched.push({ tick: Math.round((t1 - 0.25) * TPS), type: "release" });
+  const run = GD.run(w, sched).path;
+  // corridor: per column, the path's lowest / highest centre in it, 2 blocks of air each side
+  const c0 = Math.ceil(col(s.from) + 1), c1 = Math.floor(col(next.from));
+  const lo = {}, hi = {};
+  for (const q of run) { const c = Math.floor(q.x / 30); if (c < c0 - 1 || c > c1 + 1) continue; lo[c] = Math.min(lo[c] ?? 1e9, q.y); hi[c] = Math.max(hi[c] ?? -1e9, q.y); }
+  const o = [["ship portal", +col(s.from).toFixed(3), 1]];
+  const fr = {}, rr = {};
+  // one flat tunnel around the whole path: a floor or roof that follows the path puts a step a few blocks
+  // after each press, and the step is then the press's cue 5-8 blocks ahead -- a prejump (GDLM 62 v3, score.js)
+  const L = Math.min(...Object.values(lo)), H = Math.max(...Object.values(hi));
+  for (let c = c0; c <= c1; c++) {
+    const l = L, h = H;
+    if (!(l < 1e8 && h > -1e8)) throw new Error(`ship path does not reach column ${c} (the open-air run ended early)`);
+    fr[c] = Math.max(0, Math.floor((l - 75) / 30)); rr[c] = Math.min(10, Math.ceil((h + 75) / 30));   // 2.5 blocks of air: a press 3+ blocks before a floor rise was a prejump (GDLM 62 v3)
+  }
+  for (let c = c0; c < c1; c++) {
+    for (let r = 0; r < fr[c]; r++) o.push(["block", c, r]);
+    for (let r = rr[c]; r < 10; r++) o.push(["block", c, r]);
+  }
+  // every ship input gets its cue right in front (sightread: a flying input's cue within 3 blocks):
+  // after a press a floor pillar at the ship's height (one that did not press hits it),
+  // 3 blocks after a release a column hanging to 50 units over it (one that kept holding hits that)
+  const at = x => run.find(q => q.x >= x);
+  for (const e of sched) {
+    const q0 = run[Math.min(e.tick, run.length - 1)], q = at(q0.x + 90);
+    if (!q || q.x > endX - 120) continue;
+    const c = Math.round((q.x - 15) / 30);
+    if (e.type === "press") {
+      // the pillar must stand at the ship's own height when it pressed (sightread counts only what a ship flying on
+      // level would hit; a pillar 50 units under the path was no cue at all, GDLM 62 v3): the first column after
+      // the press where the path has risen enough to pass 10 units over a top above the press height
+      const yP = q0.y; let placed = false;
+      for (let cc = Math.floor(q0.x / 30) + 1; cc <= Math.floor(q0.x / 30) + 8; cc++) {
+        const cx = cc * 30 + 15, seg = run.filter(p => p.x >= cx - 30 && p.x <= cx + 30);
+        if (!seg.length || cx > endX - 120) break;
+        const top = Math.min(...seg.map(p => p.y)) - 15 - 10;
+        if (top <= yP - 15 + 3) continue;
+        const tr = top / 30;
+        for (let r = tr - 1; r > -1; r--) o.push(["block", cc, +Math.max(0, r).toFixed(3)]);
+        placed = true; break;
+      }
+      // a press that only stops a fall (GDLM 62 b-373: the path dips under the press height and never climbs back
+      // over it within 8 blocks) has no pillar at its height: frame the dip from above instead, a column hanging
+      // 10 units over the path 2 columns past the dip's bottom (the press's latest moment is in the dip's block, and sightread counts only what starts half a block ahead of it: one column on was still "behind") (a bend in the tunnel, inside what sightread reads as in front)
+      if (!placed) {
+        const dip = run.filter(p => p.x > q0.x && p.x < q0.x + 240).reduce((m, p) => p.y < m.y ? p : m, q0);
+        const cc = Math.floor(dip.x / 30) + 2, cx = cc * 30 + 15, seg = run.filter(p => p.x >= cx - 30 && p.x <= cx + 30);
+        if (seg.length && cx <= endX - 120) {
+          const bot = Math.max(...seg.map(p => p.y)) + 15 + 10;
+          for (let r = bot / 30; r < 10; r++) o.push(["block", cc, +r.toFixed(3)]);
+        }
+      }
+      continue;
+    }
+    else { const bot = Math.ceil((q.y + 15 + 50) / 30); for (let r = Math.max(bot, 0); r < 10; r++) o.push(["block", c, r]); }
+  }
+  // the exit: a cube portal where the path crosses the section's last beat, framed above and below
+  const ex = run.find(q => q.x >= endX - 15) || run[run.length - 1];
+  // the exit sits on the floor (row 1, rows 0-2 open), framed above only: a ship riding the floor reaches it
+  // too, so no ship press has the exit's frame as its cue (it was every press's "cue" 16-102 blocks ahead)
+  const er = 1;
+  o.push(["cube portal", +col(next.from).toFixed(3), er]);
+  for (let r = 0; r < 10; r++) if (r < er - 1 || r > er + 1) o.push(["block", +col(next.from).toFixed(3), r]);
+  const seen = new Set(), uniq = o.filter(e => { const k = JSON.stringify(e); return !seen.has(k) && seen.add(k); });   // cue blocks inside the tunnel's roof
+  return { objects: uniq, sched: sched.map(e => ({ tick: e.tick, type: e.type })), presses: sched.filter(e => e.type === "press").length };
+}
+
+function main() {
+  const planFile = process.argv[2];
+  if (!planFile) { console.log("usage: node tools/hitbuild.js briefs/<NN>.hits.json"); process.exit(1); }
+  const plan = JSON.parse(fs.readFileSync(planFile, "utf8"));
+  const hits = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "local", "hits", plan.song.custom + ".json"), "utf8"));
+  const { tOf, col } = HL.build(plan, { numeric: true });
+  const opts = { numeric: true, shift: [], orbShift: [], ship: {} };
+  // 1. ship sections
+  let shipEv = [];
+  plan.sections.forEach((s, i) => {
+    if (s.kind !== "ship") return;
+    const r = shipSection(plan, i, hits, tOf, col);
+    opts.ship[i] = r.objects; shipEv = shipEv.concat(r.sched);
+    console.log(`ship b${s.from}-b${plan.sections[i + 1].from}: ${r.presses} presses + releases, every one on a hit; corridor built around the path`);
+  });
+  // 2. the taps: one per cell on its hit (pads are no press); orb cells get a second tap on the half-beat
+  const cells = plan.cells.map(([b, kind], i) => ({ i, b, kind, tick: Math.round(tOf(b) * TPS) })).filter(c => c.kind !== "pad");
+  const orbTap = c => Math.round(tOf(c.b + 0.5) * TPS);
+  const allTaps = () => cells.flatMap(c => c.kind === "orb" ? [c.tick, orbTap(c)] : [c.tick]).sort((a, b) => a - b);
+  // does the run get past `until` with tap `which` moved by d ticks?
+  const survives = (w, which, d, until) => {
+    const taps = allTaps().map(t => t === which ? t + d : t);
+    const q = lastOf(GD.run(w, evOf(taps, shipEv)));
+    return !q.dead || q.tick > until;
+  };
+  // windows are searched within +-300 ms: a ball flip or a step after a walk-off has an open early side
+  // (flipping early just waits on the roof), so "the middle" means nothing there; then the closed side is
+  // put 100 ms from the hit instead (aim(): the tap offset to move the window by)
+  const CAP = 72, EDGE = 24;
+  const aim = v => v.open === "both" ? 0 : v.open === "early" ? v.hi - EDGE : v.open === "late" ? v.lo + EDGE : (v.lo + v.hi) / 2;
+  const windowOf = (w, which, until) => {
+    let start = null;
+    for (let k = 0, d = 0; k < 40; k++, d = (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 6) if (survives(w, which, d, until)) { start = d; break; }
+    if (start === null) return null;
+    let lo = start, hi = start;
+    while (lo > -CAP && survives(w, which, lo - 1, until)) lo--;
+    while (hi < CAP && survives(w, which, hi + 1, until)) hi++;
+    return { lo, hi, open: lo <= -CAP ? (hi >= CAP ? "both" : "early") : hi >= CAP ? "late" : null };
+  };
+  opts.orbAt = [];
+  for (let k = 0; k < cells.length; k++) {
+    const c = cells[k], until = k + 1 < cells.length ? cells[k + 1].tick + 4 : Infinity;
+    // an orb cell: first put the orb where the arc of a jump tapped on the hit is at the orb tap's hit
+    if (c.kind === "orb") {
+      const w = gameplayWorld(plan, opts), taps = allTaps().filter(t => t <= c.tick);
+      const q = GD.run(w, evOf(taps, shipEv)).path[orbTap(c)];
+      if (q) opts.orbAt[c.i] = [(q.x - 15) / 30, (q.y - 15) / 30];
+    }
+    for (let round = 0; round < 8; round++) {
+      const w = gameplayWorld(plan, opts), win = windowOf(w, c.tick, c.kind === "orb" ? orbTap(c) + 24 : until);
+      c.win = win;
+      if (!win) { console.log(`   b${c.b} ${c.kind}: no tap near the hit clears it -- check the cell`); break; }
+      const mid = aim(win);
+      if (win.open === "both") { console.log(`   b${c.b} ${c.kind}: this tap is not needed (any time works) -- the cell is no obstacle`); break; }
+      if (Math.abs(mid) <= 1.5 || round === 7) break;
+      opts.shift[c.i] = (opts.shift[c.i] || 0) - mid * UPS / TPS / 30;
+      if (c.kind === "orb" && opts.orbAt[c.i]) opts.orbAt[c.i][0] -= mid * UPS / TPS / 30;   // the orb moves with its pit   // the window centred after the hit: the obstacle is too far, so bring it nearer
+    }
+    if (c.kind === "orb") for (let round = 0; round < 8; round++) {
+      const w = gameplayWorld(plan, opts), win = windowOf(w, orbTap(c), until);
+      c.orbWin = win;
+      if (!win) { console.log(`   b${c.b + 0.5} orb tap: no tap near the hit takes the orb`); break; }
+      const mid = aim(win);
+      if (Math.abs(mid) <= 1.5 || round === 7) break;
+      opts.orbShift[c.i] = (opts.orbShift[c.i] || 0) - mid * UPS / TPS / 30;
+    }
+    const ms = v => (v / TPS * 1000).toFixed(0);
+    if (c.win) console.log(`   b${String(c.b).padEnd(5)} ${c.kind.padEnd(6)} window ${c.win.open ? ">=" : "  "}${ms(c.win.hi - c.win.lo + 1).padStart(4)} ms, hit ${c.win.open === "early" || c.win.open === "both" ? ">=" : ""}${ms(-c.win.lo)} ms after its start, ${c.win.open === "late" || c.win.open === "both" ? ">=" : ""}${ms(c.win.hi)} ms before its end${c.orbWin ? `; orb tap b${c.b + 0.5} window ${ms(c.orbWin.hi - c.orbWin.lo + 1)} ms` : ""}`);
+  }
+  // 3. the planned taps, nothing else
+  const w = gameplayWorld(plan, opts), ev = evOf(allTaps(), shipEv), q = lastOf(GD.run(w, ev));
+  const nTaps = allTaps().length, nShip = shipEv.length;
+  console.log(q.dead ? `NOT CLEARED: the planned taps die at t=${(q.tick / TPS).toFixed(2)} s, block ${(q.x / 30).toFixed(1)} (${q.why || "?"})`
+    : `CLEARED by the planned inputs alone: ${nTaps} taps exactly on hits + ${nShip} ship press/release events on hits; no other input`);
+  const wins = cells.flatMap(c => [c.win, c.orbWin]).filter(Boolean).map(v => (v.hi - v.lo + 1) / TPS * 1000);
+  if (wins.length) console.log(`tightest window ${Math.min(...wins).toFixed(0)} ms; ${wins.filter(x => x >= 150).length}/${wins.length} windows >= 150 ms`);
+  // write the spec (with the look) and the planned route
+  const { spec } = HL.build(plan, opts);
+  spec.notes = (spec.notes || "") + " Beat-first build (tools/hitbuild.js): the taps are fixed on the hits, obstacles placed around them.";
+  const base = path.basename(planFile).replace(/\.hits\.json$/, "");
+  fs.writeFileSync(path.join("specs", base + ".json"), JSON.stringify(spec, null, 1));
+  const rdir = path.join(__dirname, "..", "local", "hitroutes"); fs.mkdirSync(rdir, { recursive: true });
+  fs.writeFileSync(path.join(rdir, base + ".json"), JSON.stringify({ events: ev, taps: allTaps(), cleared: !q.dead, opts: { shift: opts.shift, orbShift: opts.orbShift, orbAt: opts.orbAt } }));
+  // the plan as the level's route (tools/planned.js reads levels/<slug>.planned.json): every input with its hit
+  const slug = make.slug(plan.name), near = t => hits.slots.reduce((b, x) => Math.abs(x.t - t) < Math.abs(b.t - t) ? x : b);
+  const tapSet = new Set(allTaps().map(t => t + TAP));
+  const planned = ev.filter(e => !(e.type === "release" && tapSet.has(e.tick))).map(e => {
+    const t = +(e.tick / TPS).toFixed(4), h = near(t + (plan.offset || 0)), off = +((t + (plan.offset || 0) - h.t) * 1000).toFixed(1);
+    return { t, what: `${e.type} b${h.beat} ${h.kind} (${off} ms)`, offsetMs: off };
+  });
+  if (!q.dead) fs.writeFileSync(path.join("levels", slug + ".planned.json"), JSON.stringify({ note: `${plan.name}: the beat-first plan (tools/hitbuild.js), every input on a hit; t = seconds from the level start`, planned }));
+  console.log(`-> specs/${base}.json, local/hitroutes/${base}.json${q.dead ? "" : `, levels/${slug}.planned.json (${planned.length} inputs, max ${Math.max(...planned.map(p => Math.abs(p.offsetMs))).toFixed(1)} ms off a hit)`}`);
+  if (q.dead) process.exit(2);
+}
+if (require.main === module) main();
+module.exports = { gameplayWorld, evOf };

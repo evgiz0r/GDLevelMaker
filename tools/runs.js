@@ -13,11 +13,11 @@ const BAR = { x0: 615, x1: 1305, y: 32, from: 600, w: 720 }; // at 1080p, from t
 const FPS = 30;
 
 function barSeries(video, win) {
-  const probe = spawnSync(FF.replace(/ffmpeg(?=(\.exe)?$)/, "ffprobe"), ["-v", "error", "-select_streams", "v", "-show_entries", "stream=width,height", "-of", "csv=p=0", video], { encoding: "utf8" });
+  const probe = spawnSync(FF.replace(/ffmpeg(?=(\.exe)?$)/, "ffprobe"), ["-v", "error", "-select_streams", "v", "-show_entries", "stream=width,height", "-of", "csv=p=0", video], { windowsHide: true, encoding: "utf8" });
   const [W, H] = ((probe.stdout || "").trim() || "1920,1080").split(",").map(Number);
   const k = win ? win[2] / 1920 : W / 1920, ox = win ? win[0] : 0, oy = win ? win[1] : 0, ky = win ? k : H / 1080;
   const crop = `format=rgb24,crop=${Math.round(BAR.w * k)}:2:${Math.round(ox + BAR.from * k)}:${Math.round(oy + BAR.y * ky)},scale=${BAR.w}:2`; // 2 rows (yuv needs even sizes); row 0 is read
-  const r = spawnSync(FF, ["-v", "error", "-i", video, "-vf", `fps=${FPS},${crop}`, "-f", "rawvideo", "-pix_fmt", "rgb24", "-"], { maxBuffer: 1 << 30 });
+  const r = spawnSync(FF, ["-v", "error", "-i", video, "-vf", `fps=${FPS},${crop}`, "-f", "rawvideo", "-pix_fmt", "rgb24", "-"], { windowsHide: true, maxBuffer: 1 << 30 });
   if (r.status !== 0) throw new Error("ffmpeg failed on " + video + ": " + r.stderr);
   const buf = r.stdout, row = BAR.w * 3 * 2, out = [];
   for (let f = 0; f * row < buf.length; f++) {
@@ -55,7 +55,10 @@ function attempts(series) {
     // the best %): the run ended there, and nothing counts until a bar starts again from 0
     if (cur && last !== null && s.pct > last + 8) { runs.push(cur); cur = null; last = s.pct; continue; }
     if (!cur && s.pct >= 1.5) { last = s.pct; continue; }
-    if (!cur && s.pct < 1.5) cur = { start: s.t, end: s.t, pct: s.pct, mode: s.bar };
+    if (!cur && s.pct < 1.5) cur = { start: s.t, end: s.t, pct: s.pct, low: s.pct, mode: s.bar };
+    // the start is the LAST frame the bar sat at its lowest before rising: a menu page or another window can read
+    // as an empty bar long before the attempt (02-33-44: Base After Base "started" 31 s early, in the Claude app)
+    if (cur && s.pct <= cur.low + 0.2 && cur.pct < 1) { cur.start = s.t; cur.low = Math.min(cur.low, s.pct); }
     if (cur) { cur.end = s.t; if (s.pct >= cur.pct) { cur.pct = s.pct; if (s.bar !== "empty") cur.mode = s.bar; } }
     last = s.pct;
   }

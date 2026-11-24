@@ -1,7 +1,10 @@
 // Node-side reading and writing of .gdlvl files (the gzip layers).
 const fs = require("fs");
 const zlib = require("zlib");
-const GD = Object.assign({}, require("../lib/gd.js"), require("../lib/objects.js"), require("../lib/physics.js"));
+// GD.run with lib/runcache.js (exact: a run starts where it first differs from an earlier one): installed on the
+// physics module itself before anything copies it, so lib/natural.js, windows.js and difficulty.js get it too
+const PHYSICS = require("../lib/physics.js"); require("../lib/runcache.js").installRunCache(PHYSICS);
+const GD = Object.assign({}, require("../lib/gd.js"), require("../lib/objects.js"), PHYSICS);
 
 function unpack(b64) { return zlib.gunzipSync(Buffer.from(GD.b64urlToBytes(b64))).toString("utf8"); }
 function pack(text) {

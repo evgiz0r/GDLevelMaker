@@ -29,7 +29,7 @@ function encodeSave(xml) {
   return Buffer.from(Buffer.from(b64, "latin1").map(b => b ^ 11));
 }
 function gameRunning() {
-  try { return /GeometryDash\.exe/i.test(execSync("tasklist", { encoding: "utf8" })); } catch (e) { return false; }
+  try { return /GeometryDash\.exe/i.test(execSync("tasklist", { windowsHide: true, encoding: "utf8" })); } catch (e) { return false; }
 }
 function levelNames(xml) {
   return [...xml.matchAll(/<k>(k_\d+)<\/k><d><k>kCEK<\/k><i>4<\/i>[\s\S]*?<k>k2<\/k><s>([^<]*)<\/s>/g)].map(m => m[2]);

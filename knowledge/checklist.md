@@ -34,7 +34,9 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   (design.md "Fairness", GDLM 41)
 - [ ] **No forced input right after a mode or speed portal.** Give an empty lead-in: cube ~6 blocks,
   ship ~8, others 2-3. A flat, readable floor before the portal; never a portal on a block's end or a
-  corner. `node tools/tiercheck.js <level> --tier Easy` (lead-in per section). (levels/modes_low_tier.md;
+  corner. `node tools/tiercheck.js <level> --tier Easy` (lead-in per section). A mode portal reaches the
+  walking line (a cube walking there touches it; else it can walk under it and skip the mode) and stands on
+  flat ground: `node tools/portalground.js <level>` (GDLM 44 round 3). (levels/modes_low_tier.md;
   GDLM 44 entrance, GDLM 46 wall after the wave)
 - [ ] **Recovery**: never land and have to jump again within ~100 ms, unless it is a steady rhythm.
   (design.md, score.js recovery gate; GDLM 42 v3)
@@ -63,6 +65,9 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   visible landing) or room. (PHYSICS.md "GDLM 60 physics lab")
 - [ ] **A dash ends in open space**, or where it must end is telegraphed: a solid post right after a dash
   orb's run killed the user 5 times holding the dash into it (GDLM 60). (structures: dash-orb-pit)
+- [ ] **Orbs can be buffered**: a press held a little before an orb fires it on first contact; an orb only a
+  precise mid-orb click takes is a warning. **No jumps over nothing**: stairs and step-downs are walked off.
+  score.js gates "orb buffer" / "pointless jumps" (lib/natural.js; the user via physics, 2026-11-24)
 - [ ] **Every hazard matters**: none walked over without a jump (slabs at one height 2 apart over
   spikes are crossed on foot: the spikes are pointless and leave a "do I jump?" doubt). Make it a real
   jump (gap 3+, or rising slabs) or keep the spikes out of the way. score.js gate "hazards matter".
@@ -90,7 +95,7 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   ~0.5 block ahead). Used where a jump can't be read in time (after a drop, after a portal, the first of
   a pattern), consistently, small and softer than the level. `node tools/obstacles.js indicators --file <level>`.
   (levels/obstacles.md section 4, design.md "Telegraph"; GDLM 45 v4, GDLM 46 v2)
-- [ ] **The shown route is the human route** (the default; route.kind "human", or "limit" with why): no skips, no unneeded press, taps not holds outside ship/wave, flying the safe line. `node tests/saved_routes.js --all` (PHYSICS.md "How the route is chosen").
+- [ ] **The shown route is the human route** (the default; route.kind "human", or "limit" with why): no skips, no unneeded press, taps not holds outside ship/wave (a tap ~60 ms, like a real one; family: "human taps"), orbs buffered, no jumps over nothing, flying the safe line. `node tests/saved_routes.js --all` (PHYSICS.md "How the route is chosen").
 - [ ] **The shown route clicks where a human would**: early in a wide window (~40% in), never at its
   last safe frame -- the replay, the arrows and the level map all follow it. `node tools/windows.js <level>`
   ("pressed N% in"; lib/natural.js step 4). (the user on GDLM 45's ball: "i would prefer to click way earlier")
@@ -127,7 +132,10 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   (levels/obstacles.md section 1; GDLM 41-45 had 13%)
 - [ ] **Structures from the library**: compose.js puts a ranked structure (STRUCTURES.md) in every
   plain 1x cube section by default; a hand-made spec names them as `"s:<id>"`. Mechanics our levels
-  never had rank first. `node tools/structures.js rank`.
+  never had rank first. `node tools/structures.js rank`. **Only ready ones, and ready includes the check in
+  context** (a spike before, an orb pit after, 2 columns each: `check --context`): a piece that passes alone
+  can make orb chains or jumps timed around a block beside its neighbours (GDLM 64 v2/v3). compose leaves out
+  a not-ready `s:` piece even when a brief names it by hand.
 - [ ] **Variety**: ~15 kinds of gameplay thing; 4-5 modes and 2-3 speeds; a portal every ~2-3 s;
   ~25 orbs and pads per minute; at least ~90% of the chunks new. `node tools/variety.js <level>`.
   (levels/variety.md)
@@ -136,12 +144,20 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   `node tools/obstacles.js intro --file <level>`. (levels/obstacles.md section 3)
 - [ ] **Sections read as Easy/Normal**, with no "off" or "sparse" ones. `node tools/tiercheck.js <level> --tier Easy`.
   (levels/modes_low_tier.md, tier_ref.json)
+- [ ] **Ultra-synced levels sync the INPUTS, not the obstacles**: build them beat-first (`tools/hitbuild.js`):
+  the planned taps alone, each on a real hit (tools/hits.js), must clear the level in the sim. Sliding
+  obstacles until a window covers the beat left 11% of presses on a hit (GDLM 62 v2: "there is no sync").
+- [ ] **Every ship press has something at the ship's height right in front of it** (a pillar it must rise over,
+  or for a press that only stops a fall, a roof coming down past the dip), within 3 blocks of the latest
+  moment it works. A tunnel floor far below or a step 5+ blocks on is a prejump. `score.js` gate `prejumps`;
+  built in by `tools/hitbuild.js` (SYNC.md section 8).
 - [ ] **Sync loosely**: portals, speed changes and the drop on the music's moments; most clicks free.
   `node tools/sync.js`. (SYNC.md "How much to sync")
 
 - [ ] **Taste from data** (308 rated / unrated community levels, within tier and era, effort taken out):
   featured levels have **fewer hazards per block** (delta -0.25; epic+ vs featured -0.33) and **longer
-  sections** (fewer mode / speed swaps per minute, -0.28), and a fuller look. `node tools/taste.js score
+  sections** (fewer mode / speed swaps per minute, -0.28), and a fuller look -- above all **motion on every
+  screen** (move / rotate / pulse triggers on deco, +0.32 with effort out). `node tools/taste.js score
   <level>`; score.js gate "taste". Most of the user's spot rules come out "unclear" in level-wide data
   (not weaker for it). (TASTE_DATA.md)
 - [ ] **Crafted like RobTop's** (the user: "nothing at the level of ... Jumper or xStep"): many small
@@ -150,6 +166,13 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   <level>` (score.js gate "craft"); generate with `"craft": true` and the craft structures. (CRAFT.md)
 
 ## Looks like 2.2, not 1.0 (levels/modern_look.md)
+
+- [ ] **Readable colours, not mush** (the user, 2026-11-24: "sometimes its not clear and its all mooshy"): judge by
+  BRIGHTNESS, not hue -- hazards and blocks stand out from the background at every moment (luminance ratio hazard/bg
+  >= 1.6, block/bg >= 1.5; aim for 3+ like most official sections), the floor shows (ground/bg >= 1.1 or a bright
+  ground line), a spike and its block are one colour or clearly different in brightness (never two hues at one value),
+  no glow/deco in front of hazards. Colour triggers included. `node tools/contrast.js <level>` (score.js gate
+  "contrast"); palette rule in ART.md "Colour readability".
 
 - [ ] **Budget**: ~10-50 objects per block. Fall Out, the user's own example, has 13; the levels the
   user played have a median 46. GDLM was at 1. `node tools/modern_look.js <level>`.
@@ -186,12 +209,21 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   that looks like an orb, pad or hazard: fires only far back, small and dim. Hazards keep their contrast
   on the drop's brightest frame (one sky flash, not two). Behind a portal a dark disc, never a lit one.
   `node tools/shoot.js` the drop. (design.md; players_say.md: saws taken for orbs; POLISH.md hellgate)
+- [ ] **Three values, never mooshy**: per section the sky, the path (ground + block fills) and the scenery behind
+  it sit at clearly different brightness: sky vs path and sky vs blocks >= 3 (luminance contrast ratio), sky vs
+  spikes >= 4. Far scenery sits BETWEEN sky and path, never as dark as the path (a silhouette as dark as the floor
+  reads as floor). A dark night sky cannot separate from a dark floor: lift the sky to a mid blue (GDLM 64: night
+  sky/floor 1.2 -> 3.2 with sky 82,86,184 over floor 8,8,24). (The user, 2026-11-24: "your color choices sometimes
+  are bad according to background/path/spikes ... its all mooshy".) gd-art's contrast check codes it.
 
 - [ ] **A generator change does not silently change other levels**: before pushing a change to
   patterns.js / structures.js / compose.js / decorate.js / make.js, `node tests/generator_impact.js` lists
   every level whose gameplay would change when rebuilt; tell each owner, or keep the old shape with a
   pattern option in that spec (e.g. orb-pit `"asym": true`). (GDLM 50 eclipse, changed by a wave fix
   made for hellgate)
+
+- [ ] **Every build puts its stages** (song, layout, path, deco, final) for the viewer: compose and make.js do it by
+  themselves (tools/stages.js, visuals); a hand-made build that skips them shows only its end. (the user, 2026-11-24)
 
 ## Name, description, signature (the user, 2026-11-23)
 

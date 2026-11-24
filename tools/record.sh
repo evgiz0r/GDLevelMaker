@@ -6,12 +6,27 @@
 # file each time, until "stop". Run "start" in the background.
 # Never delete a recording without asking; check frames all through it, not only first and last.
 # mkv, so a hard stop (taskkill) still leaves a playable file.
+# With it, the user's GD inputs are logged (see below): only on "record", only GD's jump keys/click, only while GD
+# is the foreground window.
 FF="${FFMPEG:-$(command -v ffmpeg || echo /c/Users/$USERNAME/AppData/Local/Microsoft/WinGet/Packages/Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe/ffmpeg-8.0.1-full_build/bin/ffmpeg.exe)}"
 OUT="${CAPTURES:-$HOME/Videos/Captures}"
 FLAG="$OUT/.gd-record-stop"
+# the user's GD inputs (Space / Up / W / left mouse, only while GD is in front) are logged with the recording:
+# tools/inputlog.ps1, hidden, its own stop flag; to local/inputs/GD inputs <time>.csv (never committed). For
+# replaying the user's real runs in the sim (USE_CASES 29, PHYSICS.md "Fidelity").
+IFLAG="$OUT/.gd-input-stop"
+# and the PC's own sound (GD's music), WASAPI loopback, no install: tools/audiolog.ps1, hidden, its own stop
+# flag; to Videos/Captures/GD claude-audio <time>.wav (+ .json with the UTC start), ~1.4 GB/h (48 kHz float)
+AFLAG="$OUT/.gd-audio-stop"
+INDIR="$(cd "$(dirname "$0")/.." && pwd)/local/inputs"
 case "$1" in
   start)
-    rm -f "$FLAG"
+    rm -f "$FLAG" "$IFLAG" "$AFLAG"; mkdir -p "$INDIR"
+    powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "$(cygpath -w "$(dirname "$0")/audiolog.ps1")" -Out "$(cygpath -w "$OUT")\GD claude-audio $(date +%Y-%m-%d_%H-%M-%S).wav" -Stop "$(cygpath -w "$AFLAG")" &
+    powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "$(cygpath -w "$(dirname "$0")/inputlog.ps1")"       -Out "$(cygpath -w "$INDIR")\GD inputs $(date +%Y-%m-%d_%H-%M-%S).csv" -Stop "$(cygpath -w "$IFLAG")" &
+    # the same inputs by raw input too (tools/inputlog_raw.ps1: never skipped when the PC is busy, unlike a hook;
+    # 2026-11-24 the hook logger missed a click in Electroman) -- compared with the hook log on the next recordings
+    powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "$(cygpath -w "$(dirname "$0")/inputlog_raw.ps1")"   -Out "$(cygpath -w "$INDIR")\GD inputs raw $(date +%Y-%m-%d_%H-%M-%S).csv" -Stop "$(cygpath -w "$IFLAG")" &
     while [ ! -f "$FLAG" ]; do
       "$FF" -y -hide_banner -loglevel error -f lavfi -i ddagrab=output_idx=0:framerate=60 \
         -vf hwdownload,format=bgra -c:v libx264 -preset ultrafast -crf 20 -pix_fmt yuv420p \
@@ -19,6 +34,6 @@ case "$1" in
       [ -f "$FLAG" ] || sleep 1
     done
     rm -f "$FLAG" ;;
-  stop) touch "$FLAG"; taskkill //IM ffmpeg.exe //F ;;
+  stop) touch "$FLAG" "$IFLAG" "$AFLAG"; taskkill //IM ffmpeg.exe //F ;;
   *) echo "usage: tools/record.sh start|stop" ;;
 esac

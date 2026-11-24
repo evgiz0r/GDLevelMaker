@@ -73,6 +73,18 @@ user plays it.
 A structure with no press at all (a pad-only stretch) is something to watch, not to play: its score is
 multiplied by 0.85.
 
+## In context (2026-11-24)
+
+A structure checked alone can still fail beside its neighbours. GDLM 64 v2/v3 (gaps of 2-4 columns at Hard)
+showed it: `orb-ladder-2` made 3-tap orb chains with the orb pit after it (fairness FAIL), and `block-hops`,
+`slab-steps`, `lantern-orb` gave 10 of 15 "jump over a hazard timed around a block" spots. So every cube-in /
+cube-out structure is also built between a single spike 2 columns before it and an orb pit 2 after (the
+tightest gap compose uses), and the gates a neighbour changes -- beatable, prejumps, reactive, fairness,
+recovery, skips -- go to the entry's `context` (`node tools/structures.js check --context [id ...]`).
+A piece that FAILs any of them there, or is not PASS on reactive, is `context.ok = false`: ranked down
+(readability -0.5) and not ready. compose.js only uses ready pieces, also when a brief names one by hand
+(it prints a NOTE). Results: see "Results in context" below once run.
+
 ## In levels
 
 `tools/patterns.js` registers every structure that starts and ends as a normal-size cube in normal
@@ -113,6 +125,12 @@ true`, tools/craftkit.js): rods and chains attached to the pieces.
 
 ## Open
 
+- **A structure that passes alone can fail inside a level**: `orb-ladder-2` (ok in the harness) made a fairness
+  FAIL twice in GDLM 64 v2 (blocks 213, 325: 3 orb taps 208-292 ms windows under 500 ms apart -- the natural
+  route takes the ladder's orbs and the pit's next orb as one chain). The harness should run each structure with a
+  neighbour on each side (an orb-pit, a single) and rank on that; until then it is left out of dense briefs.
+  Same in GDLM 64 v3 (gaps 2-4) for the reactive gate: block-hops 4 spots, slab-steps 3, lantern-orb 3 of 15
+  ("a jump over a hazard timed around a block", 58-208 ms windows) -- each passes the harness alone.
 - **Swing**: one structure (swing-wiggle). Until 49fa848 `solveAny` found no path past any
   wall (the sweep merged a pending flip away; fixed by the physics session). More swing shapes to add.
 - **Green orb**: the sim (gdp decompile, gdsolver) flips gravity and jumps toward the new gravity's

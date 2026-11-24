@@ -45,8 +45,10 @@ function eta(step, levelSecs, rows) {
   return { secs: median(near.map(({ r }) => r.secs * Math.min(4, Math.max(0.25, L / r.levelSecs)))), from: near.length };
 }
 const fmt = s => s < 90 ? `${Math.round(s)} s` : s < 5400 ? `${(s / 60).toFixed(s < 600 ? 1 : 0)} min` : `${(s / 3600).toFixed(1)} h`;
+// loop.js's own step rows; tools/heavy.js logs every heavy job to the same file ({by: "heavy", tool, ...}: tools/jobtime.js),
+// compose.js its build stages ({stage, target}): neither has a step
 function readTimings(file = TIMINGS) {
-  try { return fs.readFileSync(file, "utf8").split("\n").filter(Boolean).map(l => { try { return JSON.parse(l); } catch (e) { return null; } }).filter(Boolean); } catch (e) { return []; }
+  try { return fs.readFileSync(file, "utf8").split("\n").filter(Boolean).map(l => { try { return JSON.parse(l); } catch (e) { return null; } }).filter(r => r && r.by !== "heavy" && r.step); } catch (e) { return []; }
 }
 // the time table from the log: per step and level-length bucket, median and range
 function table(rows) {
@@ -100,6 +102,9 @@ function specInfo(file) {
   const out = path.join(ROOT, "levels", make.slug(spec.name) + ".gdlvl");
   // the last build's length when there is one (building a scene level just for the ETA took minutes)
   if (fs.existsSync(out)) { try { return Object.assign({ out, name: spec.name }, lengthOf(require("./io.js").readGdlvl(out).level)); } catch (e) {} }
+  // "jN" columns make build() solve the whole level several times (make.js nudgeJumps: ~1.3 GB, minutes)
+  // outside the heavy lock -- GDLM 62 stalled the queue that way (2026-11-24). No ETA from those then.
+  if (/"j-?\d/.test(JSON.stringify(spec.objects || []))) return { out, name: spec.name };
   const log = console.log; console.log = () => {};
   try { const b = make.build(spec, file); return Object.assign({ out, name: spec.name }, lengthOf(b.level)); }
   catch (e) { return { out, name: spec.name }; }
@@ -113,12 +118,12 @@ function specInfo(file) {
 function othersAtWork(files, session, wipHours = 3, wipDir = path.join(ROOT, "local", "wip")) {
   const why = [], here = path.resolve(ROOT).toLowerCase();
   let wts = [];
-  try { wts = cp.execFileSync("git", ["worktree", "list", "--porcelain"], { cwd: ROOT, encoding: "utf8" }).split(/\r?\n/).filter(l => l.startsWith("worktree ")).map(l => l.slice(9).trim()); } catch (e) {}
+  try { wts = cp.execFileSync("git", ["worktree", "list", "--porcelain"], { windowsHide: true, cwd: ROOT, encoding: "utf8" }).split(/\r?\n/).filter(l => l.startsWith("worktree ")).map(l => l.slice(9).trim()); } catch (e) {}
   const rel = files.filter(Boolean).map(f => path.relative(ROOT, path.resolve(f)).replace(/\\/g, "/")).filter(f => !f.startsWith(".."));
   for (const wt of wts) {
     if (path.resolve(wt).toLowerCase() === here || !rel.length || !fs.existsSync(wt)) continue;
     try {
-      const st = cp.execFileSync("git", ["-C", wt, "status", "--porcelain", "--", ...rel], { encoding: "utf8", timeout: 30000 }).trimEnd();
+      const st = cp.execFileSync("git", ["-C", wt, "status", "--porcelain", "--", ...rel], { windowsHide: true, encoding: "utf8", timeout: 30000 }).trimEnd();
       if (st) why.push(`uncommitted changes in worktree ${path.basename(wt)}: ${st.split(/\r?\n/).map(l => l.slice(3)).join(", ")}`);
     } catch (e) {}
   }
@@ -142,7 +147,7 @@ async function main() {
     const step = args[1], cmd = args.slice(2);
     if (!step || !cmd.length) { console.log("usage: node tools/loop.js --time <step name> <command ...>"); return 1; }
     slotStatus();   // a heavy tool takes the lock itself (tools/heavy.js); a plain command just runs
-    const t0 = Date.now(), r = cp.spawnSync(cmd[0], cmd.slice(1), { cwd: process.cwd(), stdio: "inherit" });
+    const t0 = Date.now(), r = cp.spawnSync(cmd[0], cmd.slice(1), { windowsHide: true, cwd: process.cwd(), stdio: "inherit" });
     const secs = (Date.now() - t0) / 1000;
     logTiming({ at: new Date().toISOString(), step, secs: +secs.toFixed(1), ok: r.status === 0, cmd: cmd.join(" ").slice(0, 200), freeMB: freeMB() });
     console.log(`time: ${step} took ${fmt(secs)} (exit ${r.status}) -> ${path.relative(ROOT, TIMINGS)}`);

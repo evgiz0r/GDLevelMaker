@@ -5,6 +5,7 @@
 // spot at most 1 block wide that forces the next press within 250 ms, and 3+ hops in a row each forced
 // within 250 ms of landing. The user on GDLM 45 v6 (blocks 50-75): "such pattern is awkward, as it
 // creates very specific cube jumps I need to do, instead of being able to react". knowledge/checklist.md.
+if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const { GD, readGdlvl } = require("./io.js");
 const { reactiveSpots } = require("./score.js");
 const files = process.argv.slice(2).filter(a => a.endsWith(".gdlvl"));

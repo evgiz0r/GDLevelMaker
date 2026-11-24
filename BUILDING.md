@@ -1,0 +1,105 @@
+# Building a level: the one process every build follows
+
+The user (2026-11-24): "its a repeatable process, we need to make whatever needed to iterate better next time".
+Every level build, whoever builds it (compose, make.js, a sync level, a themed level, an edit), follows these
+steps. Nothing here is for one level or one session. When a build teaches something, change this page.
+
+Owner of the tooling: gd-style (compose, tools/gated.js). Viewer side: gd-visuals (VIEWER.md). Measured step
+times and the retro log: BUILDS.md.
+
+## 1. Sections first, like a collab
+
+The user: "usually it is easy to make a level in sections, where those section stops are defined... thats how
+collabs are made. usually its one player doing layout, other deco and playtest. and it could be separate for
+each section."
+
+- The song plan sets the sections and their boundaries before any gameplay.
+- Each boundary is a **seam contract**: mode, speed, gravity, mini/dual, the player's y and velocity, the scene
+  and colours at that point. Inside a section anything may change while its seams hold.
+- Each section has its own stages and status (layout -> deco -> playtest) and can be built, redone, varied or
+  approved on its own, by any builder, in parallel. Joining sections only checks the seams (and the sync at the
+  seam). This is also use case 8 (combine / cut).
+- Seams are the incremental solver's checkpoints (lib/incsolve.js), so a changed section re-solves alone.
+- Stored in briefs/<NN_name>.seams.json (committed next to the brief): `node tools/seams.js write <brief>` makes
+  it, `seams.js check <brief> [level]` is the join check (y within 8 units, vy within 0.5, mode/speed/gravity/mini
+  exact), `seams.js status <brief> <section> <role> <state> --by <builder>` records who builds what.
+
+### Building in parts, one builder each: tools/collab.js (2026-11-24)
+
+The user: "Each section like 10 20 seconds. Done by a different agent just connected together. Need to align the
+song (speed portals may ruin if we add), location of the switch. Other than that those can be completely isolated."
+
+- **Split** (`node tools/collab.js split <brief>`): compose's sections (in beats) are grouped into **parts of 10-20 s**
+  on section boundaries (or the brief's `"parts": [[0,1],[2],...]`). Each part boundary is a seam pinned to a
+  **song time** (its beat), never an x. The contract at a seam: the cube, grounded on the floor (y 15), normal
+  gravity and size, at the speed of the next part's first section. Mode portals live inside a part (a ship section
+  enters and leaves the ship itself). -> local/collab/<base>/plan.json; the viewer card shows one section per part
+  with its builder and state.
+- **Build** (`node tools/collab.js build <brief> <part> --by <builder>`): the part is its own small level whose time 0
+  is its seam's song time (the brief's offset moved to the part's first beat, unrounded), so its beats, sync and
+  speed portals are its own business and its length in blocks follows from its speeds. Composed, built, routed and
+  checked alone (a few seconds of solving), -> p<i>.gdlvl + p<i>.json (its route, its exit state, its time).
+  A part after the first starts with a short lead-in (`partLeadIn`, 4 blocks), not the level's 10-block calm start.
+- **Join** (`node tools/collab.js join <brief>`): part i's objects move by the x the player has covered when part i
+  starts (the sum of the parts before, each measured on its own speed timeline), so every seam lands on its song
+  time whatever speeds a part used inside. The parts' routes join by time (tick offset = seam time x 240) and replay
+  on the joined level: no solve. Checked: the state at every seam against the contract (mode, speed, gravity exact;
+  y within 8; vy ~0) and the sync (the joined level's x at the seam time = the next part's start, within 6 units),
+  then the joined route is saved and score.js runs once on the whole level. A failed seam or a death sends back only that part.
+- **Builders**: one agent per part, given only its part (the brief's sections for it) and its two seams; it runs
+  `build`, reads its checks, and may retry with `--seed n`. Builds take the heavy lock one at a time, so parts build
+  in turn even when the agents run at once; each is short.
+
+## 2. Design first: the presses come before the blocks
+
+- A section's gameplay is built from its **planned presses** (the intended route), with each pattern's input
+  timing from the intent cache (local/intent/). The timing plan (difficulty curve -> a target window per press)
+  is set here; later fixes are small knob turns (spacing, gap, orb position), never a search.
+- **Synced levels are beat-first**: the song's hits (kick / snare / accent) choose the presses, and the gap
+  between two presses chooses a pattern whose timing fits it, placed so its press falls on its hit. If no pattern
+  fits, tune the pattern's spacing, never move the press. Never slide presses with repeated whole-level solves.
+  Sync is judged on the route's real presses: every press within +-1 frame of its hit, no extra presses.
+- The shown and played route presses on the planned time when that clears (not at the window's end). Human route
+  rules hold: short ~60 ms taps, buffered orbs, no jumps over nothing, ship in the middle.
+  MEASURED (tools/habits.js, 2026-11-24, 3,094 presses of the user's real GD runs on the fixed logger): the user's
+  taps are 120 ms at the median (p10 88, p90 161 ms), twice the ~60 ms above; presses ~0.5 s apart at the median.
+  Not changed yet (the 60 ms came from the user): asked. And the user's own clears that the sim replays are saved as
+  "player" routes beside the solver's (tools/replay_run.js; PHYSICS.md "Fidelity").
+  Built (2026-11-24): the planned presses are read from ONE place, the level's stages index
+  (local/wip/<session>/<slug>.stages/index.json, stage "layout", else "path": data.planned [{t seconds, what}],
+  releases left out) or a <slug>.planned.json beside the level; `node tools/planned.js "<level name>"` lists them.
+  tools/solutions.js passes them to lib/natural.js (opts.planned) from make.js, wip.js and tests/saved_routes.js:
+  each press goes to the nearest planned tick inside its window, else ~40% in. GDLM 62: 1 -> 33 of 62 presses
+  on a planned time.
+
+## 3. A layout is playable the moment it exists
+
+- The layout stage carries its full planned presses (data.planned). The viewer replays them at once (no solve),
+  and the user can play it themselves. If the plan dies, that is a bug in the plan, shown at the death spot.
+- The check solve comes after, only to catch secret ways (a skipped portal is wrong) and judge fairness. It
+  never gates seeing or playing a level.
+
+## 4. Stages are shown as they happen
+
+- Every build puts its stages with tools/stages.js: song, layout (with planned presses), path, deco, final.
+  Each records its seconds, shown next to its target. Targets: song in seconds, playable layout in about a
+  minute.
+- Alternatives being weighed (patterns, variants, song picks) go into the stage as alternatives (layout.alt[]:
+  section, score, why, planned presses), so the viewer shows "considering A / B / C" and the user can pick.
+- Gates: a build can wait for the user's ok after layout without holding the heavy lock (tools/gated.js: the
+  layout job ends, the wait is outside the lock, then the rest queues as a new job). Redo rebuilds only the
+  named section.
+- Questions for the user go to the viewer as decision cards (tools/ask.js), not only to chat. Viewer actions
+  reach the owning session through local/viewer_actions.jsonl.
+
+## 5. Reuse, measure, retro
+
+- Reuse before solving: intent cache, section score cache, solutions and incsolve, song analysis caches, the
+  structure library.
+- Times are measured (local/timings.jsonl by tool, level and flags); estimates quote their basis or say
+  "not measured" (CLAUDE.md).
+- After each build, BUILDS.md gets a retro: stage times against targets, rounds, what failed, the slowest step,
+  and the change made, so the next build is faster.
+- Every level has a song, test labs included: recordings line the user's inputs up with the song's audio
+  (tools/audiolog.ps1, replay_run.js); a level with no song falls back to the progress bar.
+- Viewer first: nothing is installed or uploaded until the user has seen it there and says so.

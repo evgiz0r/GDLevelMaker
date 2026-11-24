@@ -35,11 +35,13 @@ const SEVERITY = { switch: "FAIL", mark: "FAIL", floor: "FAIL", chain: "FAIL", w
 const MARK_GROUP = "990";
 
 // Everything the thresholds need, measured once (slow part).
-function analyse(w, sol) {
+function analyse(w, sol, opts = {}) {
   // judged on the route a person plays (lib/natural.js: taps, no empty jumps, flying through the
-  // middle) -- the solver's route has jumps nobody needs (the GDLM 46 v2 mark at 825 sits on one)
-  const nat = naturalPlan(w, sol, w.objects);
-  const d = DF.difficulty(w, nat ? { ok: true, events: nat.events } : sol, { chains: false });
+  // middle) -- the solver's route has jumps nobody needs (the GDLM 46 v2 mark at 825 sits on one).
+  // opts.natural: sol IS that route already (a saved human route, tools/score.js); opts.diff: its difficulty
+  // report, measured already -- then nothing is planned or measured again
+  const nat = opts.natural ? null : naturalPlan(w, sol, w.objects);
+  const d = opts.diff || DF.difficulty(w, nat ? { ok: true, events: nat.events } : sol, { chains: false });
   const run = GD.run(w, d.events), P = run.path;
   const orbNames = new Set(Object.values(GD.OBJECTS || {}).filter(o => o.kind === "orb").map(o => o.name));
   // what each input did: the first jump/orb act while it is held
@@ -72,7 +74,7 @@ function analyse(w, sol) {
   const held = new Array(P.length).fill(false);
   { let h = false, j = 0; const ev = d.events.slice().sort((a, b) => a.tick - b.tick);
     for (let t = 0; t < P.length; t++) { while (j < ev.length && ev[j].tick === t) { h = ev[j].type === "press"; j++; } held[t] = h; } }
-  const clone = st => { const c = Object.assign({}, st); c.used = st.used.slice(); if (Array.isArray(st.prev)) c.prev = st.prev.slice(); return c; };
+  const clone = st => { const c = { ...st }; c.used = st.used.slice(); if (Array.isArray(st.prev)) c.prev = st.prev.slice(); return c; };
   // strict window of one input: shift it (a tap moves whole), keep every other input, live 1 s on
   const strict = a => {
     const span = a.type === "tap" ? (a.dur || 1) : 0, A0 = a.tick;

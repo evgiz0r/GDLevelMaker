@@ -12,6 +12,7 @@
 //            a slope (a hanging notch where the line should join the slope flush), or a one-block hanger
 //            at a corridor's mouth. The user on GDLM 50 v2's wave entrance: "this entrance is wrong in
 //            its shape". tools/patterns.js wave-zigzag joins its roof flush and stretches its exit portal.
+//            Also every open slope edge from polish's tools/joins.js (the same family: "disconnected structure").
 //   flash    pulse triggers (1006) per minute, how many pulse towards near-white, and sky (1000) flashes.
 //            The user on a modern-look level: "waaaay too flashy ... hard to tell what kills you".
 //            WARN over 120 pulses/min, over 10 white pulses, or more than 1 sky flash (the signature's
@@ -65,7 +66,10 @@ function stubs(level, w) {
     // a one-block hanger: a roof cell one row below a flat roof on both sides
     else if (b === a - 1 && b === d - 1 && !slopeNear(c)) found.push(`hanger at block ${c}`);
   }
-  return { bad: found.length, status: found.length ? "WARN" : "PASS", text: found.length ? found.join("; ") : "roofs join their slopes flush" };
+  // the same family from slopes' side: polish's tools/joins.js (every slope's surface end meets a block,
+  // a slope, the ground or the band top) -- one copy of that check, called here
+  try { for (const j of require("./joins.js").check(level.objects)) found.push(`open slope edge at block ${(j.x / 30).toFixed(1)} row ${(j.y / 30).toFixed(1)}`); } catch (e) {}
+  return { bad: found.length, status: found.length ? "WARN" : "PASS", text: found.length ? found.join("; ") : "roofs join their slopes flush, no open slope edges" };
 }
 function flash(level) {
   // the end signature's own beat flashes (its channels 988-999, tools/signature.js) are not counted

@@ -33,7 +33,7 @@ if (args[0] === "put") {
   // which checklist the level was built against (the user: sessions must use what others learned;
   // knowledge/checklist.md's last commit, added to the note so the viewer and the phone show it)
   let checklist = "";
-  try { checklist = require("child_process").execSync("git log -1 --format=%h -- knowledge/checklist.md", { cwd: path.join(__dirname, ".."), encoding: "utf8" }).trim(); } catch (e) {}
+  try { checklist = require("child_process").execSync("git log -1 --format=%h -- knowledge/checklist.md", { windowsHide: true, cwd: path.join(__dirname, ".."), encoding: "utf8" }).trim(); } catch (e) {}
   const note = (opt("--note") || "") + (checklist ? ` [checklist ${checklist}]` : "");
   // `hash` = the level's content: a re-put of the same level (a route refresh, a re-stamp) keeps its `made` time,
   // which is what the level picker shows ("it all shows low time, since reset", the user, 2026-11-23)
@@ -70,7 +70,7 @@ function list() {
 // the solution the viewer replays: {ok, events} (the natural plan when it works), or the furthest run
 function solveFor(L) {
   const t0 = Date.now();
-  const sol = require("./solutions.js").solve(L.level, L.levelStr);  // cached when make.js already solved it
+  const sol = require("./solutions.js").solve(L.level, L.levelStr, { name: L.name });  // cached when make.js already solved it
   console.log(`solution for the viewer and the phone: ${sol.ok ? "beaten" : "not beaten"} (${((Date.now() - t0) / 1000).toFixed(0)} s)`);
   return sol;
 }

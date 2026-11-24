@@ -28,7 +28,7 @@ const SRC = process.env.GD_LEVELS || "C:/Program Files (x86)/Steam/steamapps/com
 const OUT = path.join(__dirname, "..", "local", "difficulty");
 
 function physicsCommit() {
-  try { return execSync("git log -1 --format=%h -- lib/physics.js lib/dual.js lib/objects.js lib/objects_extra.js", { cwd: path.join(__dirname, ".."), encoding: "utf8" }).trim(); }
+  try { return execSync("git log -1 --format=%h -- lib/physics.js lib/dual.js lib/objects.js lib/objects_extra.js", { windowsHide: true, cwd: path.join(__dirname, ".."), encoding: "utf8" }).trim(); }
   catch (e) { return null; }
 }
 
@@ -38,7 +38,7 @@ const isCommunity = n => /^c\d+$/.test(String(n));
 const tag = n => isCommunity(n) ? String(n) : String(n).padStart(2, "0");
 function levelText(n) {
   if (isCommunity(n)) return readGdlvl(path.join(__dirname, "..", "local", "community", String(n).slice(1) + ".gdlvl")).levelStr;
-  return levelText(n);
+  return unpack(fs.readFileSync(path.join(SRC, n + ".txt"), "utf8"));   // was levelText(n): endless recursion for every official level
 }
 const partFile = n => path.join(OUT, tag(n) + ".part.json");
 function checkpointer(n, prefix, physics) {
@@ -114,10 +114,13 @@ function continueFrom(n, events, trouble, backs, opts, old) {
     if (fs.existsSync(partFile(n))) fs.unlinkSync(partFile(n));
     return res;
   };
-  // the old inputs still beat it: nothing to redo
-  if (old && (endS.done || (!endS.dead && endS.x >= w.endX))) return save({ ok: true, clicks: old.clicks }, old.events, null);
-  // where the change matters: the new death, or the old one if the old inputs now get past it
-  if (trouble == null) trouble = old.dieX != null && endS.x > old.dieX + 1 ? old.dieX : endS.x;
+  // the old inputs still beat it, and take every portal: nothing to redo. A finishing route that skips (a secret
+  // way: made before the no-skip rule, or before a portal kind counted) is redone from a bit before the skip; it
+  // used to be kept as "old inputs still hold" (2026-11-24: Cant Let Go, Cycles, xStep, ... kept their skips)
+  const fin = old && (endS.done || (!endS.dead && endS.x >= w.endX)), sk = fin ? GD.skipCheck(w, rp.st, events) : null;
+  if (fin && !sk) return save({ ok: true, clicks: old.clicks }, old.events, null);
+  // where the change matters: the skip, the new death, or the old one if the old inputs now get past it
+  if (trouble == null) trouble = sk ? sk.dieAt.x : old.dieX != null && endS.x > old.dieX + 1 ? old.dieX : endS.x;
   for (const back of backs) {
     const x0 = trouble - back;
     if (x0 <= 0) break;
@@ -159,7 +162,7 @@ function toViewer(n, level, res) {
 }
 
 function freeGB() {
-  try { return +execSync('powershell -NoProfile -c "(Get-CimInstance Win32_OperatingSystem).FreePhysicalMemory"', { encoding: "utf8" }) / 1048576; }
+  try { return +execSync('powershell -NoProfile -c "(Get-CimInstance Win32_OperatingSystem).FreePhysicalMemory"', { windowsHide: true, encoding: "utf8" }) / 1048576; }
   catch (e) { return 99; }
 }
 const sleep = ms => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
@@ -171,7 +174,7 @@ if (require.main === module) {
     for (const n of list) {
       let waited = 0;
       while (freeGB() < 2.5) { if (waited++ % 6 === 0) console.log(`  (waiting: under 2.5 GB free)`); sleep(10000); }
-      try { process.stdout.write(execFileSync(process.execPath, ["--max-old-space-size=2000", __filename, String(n)].concat(args.filter(a => a === "--resume" || a === "--fresh")), { encoding: "utf8" })); }
+      try { process.stdout.write(execFileSync(process.execPath, ["--max-old-space-size=2000", __filename, String(n)].concat(args.filter(a => a === "--resume" || a === "--fresh")), { windowsHide: true, encoding: "utf8" })); }
       catch (e) { console.log(`${n}: failed: ${String(e.message).split("\n")[0]}`); }
     }
   } else {
@@ -191,4 +194,4 @@ if (require.main === module) {
       (r.resumedFrom != null ? `, resumed from block ${(r.resumedFrom / 30).toFixed(1)}` : r.resumedOver !== undefined ? ", old inputs still hold" : ""));
   }
 }
-module.exports = { solveOfficial, resumeOfficial, continueFrom, toViewer, physicsCommit, SRC, OUT };
+module.exports = { levelText, solveOfficial, resumeOfficial, continueFrom, toViewer, physicsCommit, SRC, OUT };

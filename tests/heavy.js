@@ -23,18 +23,18 @@ assert.strictEqual(H.firstInLine([{ pid: 4, prio: "normal", since: 9 }, { pid: 5
 
 // 2
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), "gdlm-heavy-test-"));
-const env = Object.assign({}, process.env, { GDLM_HEAVY_NOSYNC: "1", GDLM_LOCKDIR: dir, GDLM_HEAVY_FREE_MB: "4000", GDLM_SESSION: "test", GDLM_GAME: "0" });
+const env = Object.assign({}, process.env, { GDLM_HEAVY_NOSYNC: "1", GDLM_LOCKDIR: dir, GDLM_HEAVY_FREE_MB: "4000", GDLM_SESSION: "test", GDLM_GAME: "0", GDLM_TIMINGS: path.join(dir, "timings.jsonl") });
 delete env.GDLM_HEAVY_HELD; delete env.GDLM_HEAVY;
 const job = (ms, tag) => `require(${JSON.stringify(path.join(__dirname, "..", "tools", "heavy.js"))}).claim(${JSON.stringify(tag)}); console.log("RUN ${tag} " + Date.now()); Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ${ms}); console.log("END ${tag} " + Date.now());`;
 const outOf = ch => new Promise(res => { let o = ""; ch.stdout.on("data", d => o += d); ch.on("close", () => res(o)); });
 (async () => {
-const a = cp.spawn(process.execPath, ["-e", job(4000, "A")], { env });
+const a = cp.spawn(process.execPath, ["-e", job(4000, "A")], { windowsHide: true, env });
 let aOut = ""; a.stdout.on("data", d => aOut += d);
 const t0 = Date.now();
 while (!/RUN A/.test(aOut) && Date.now() - t0 < 10000) await new Promise(r => setTimeout(r, 100));
 assert(/RUN A/.test(aOut), "A got the slot");
 assert.strictEqual(H.holders(dir).length, 1);
-const b = { stdout: await outOf(cp.spawn(process.execPath, ["-e", job(10, "B")], { env })) };
+const b = { stdout: await outOf(cp.spawn(process.execPath, ["-e", job(10, "B")], { windowsHide: true, env })) };
 await new Promise(r => setTimeout(r, 300));
 assert(/heavy: waiting for A \(test/.test(b.stdout), "B says what it waits for: " + b.stdout);
 const runB = +/RUN B (\d+)/.exec(b.stdout)[1], endA = +/END A (\d+)/.exec(aOut)[1];
@@ -43,13 +43,13 @@ assert.strictEqual(H.holders(dir).length, 0, "slots released on exit");
 
 // 5 (live): A holds the slot; a low job queues, then a high one; when A ends the high one runs first
 {
-  const A = cp.spawn(process.execPath, ["-e", job(4000, "A")], { env });
+  const A = cp.spawn(process.execPath, ["-e", job(4000, "A")], { windowsHide: true, env });
   let aO = ""; A.stdout.on("data", d => aO += d);
   const t1 = Date.now();
   while (!/RUN A/.test(aO) && Date.now() - t1 < 10000) await new Promise(r => setTimeout(r, 100));
-  const L = outOf(cp.spawn(process.execPath, ["-e", job(500, "L")], { env: Object.assign({}, env, { GDLM_HEAVY_PRIORITY: "low" }) }));
+  const L = outOf(cp.spawn(process.execPath, ["-e", job(500, "L")], { windowsHide: true, env: Object.assign({}, env, { GDLM_HEAVY_PRIORITY: "low" }) }));
   await new Promise(r => setTimeout(r, 1000));
-  const Hi = outOf(cp.spawn(process.execPath, ["-e", job(500, "H")], { env: Object.assign({}, env, { GDLM_HEAVY_PRIORITY: "high" }) }));
+  const Hi = outOf(cp.spawn(process.execPath, ["-e", job(500, "H")], { windowsHide: true, env: Object.assign({}, env, { GDLM_HEAVY_PRIORITY: "high" }) }));
   const [lo, hi] = await Promise.all([L, Hi]);
   const runL = +/RUN L (\d+)/.exec(lo)[1], runH = +/RUN H (\d+)/.exec(hi)[1], endH = +/END H (\d+)/.exec(hi)[1];
   assert(runH < runL && runL >= endH, `the high-priority job ran first (H ${runH}, L ${runL})`);
@@ -60,21 +60,21 @@ assert.strictEqual(H.holders(dir).length, 0, "slots released on exit");
 fs.writeFileSync(path.join(dir, "999999.json"), JSON.stringify({ pid: 999999, session: "x", cmd: "dead", start: new Date().toISOString() }));
 assert.strictEqual(H.holders(dir).length, 0, "a dead pid's slot is cleared");
 // idle priority: a claimed job runs at the lowest priority
-const pr = cp.spawnSync(process.execPath, ["-e", `require(${JSON.stringify(path.join(__dirname, "..", "tools", "heavy.js"))}).claim("pr"); console.log("PRIO " + require("os").getPriority())`], { env, encoding: "utf8" });
+const pr = cp.spawnSync(process.execPath, ["-e", `require(${JSON.stringify(path.join(__dirname, "..", "tools", "heavy.js"))}).claim("pr"); console.log("PRIO " + require("os").getPriority())`], { windowsHide: true, env, encoding: "utf8" });
 assert(+/PRIO (-?\d+)/.exec(pr.stdout)[1] >= 10, "lowered priority: " + pr.stdout);
 const child = `const cp=require("child_process"); require(${JSON.stringify(path.join(__dirname, "..", "tools", "heavy.js"))}).claim("P");
-  const r = cp.spawnSync(process.execPath, ["-e", ${JSON.stringify(job(10, "C"))}], { encoding: "utf8" }); process.stdout.write(r.stdout);`;
-const p = cp.spawnSync(process.execPath, ["-e", child], { env, encoding: "utf8", timeout: 20000 });
+  const r = cp.spawnSync(process.execPath, ["-e", ${JSON.stringify(job(10, "C"))}], { windowsHide: true, encoding: "utf8" }); process.stdout.write(r.stdout);`;
+const p = cp.spawnSync(process.execPath, ["-e", child], { windowsHide: true, env, encoding: "utf8", timeout: 20000 });
 assert(/RUN C/.test(p.stdout) && !/waiting/.test(p.stdout), "a child runs in its parent's slot: " + p.stdout);
 fs.rmSync(dir, { recursive: true, force: true });
 
 // 4
-for (const t of ["make", "compose", "score", "solutions", "shoot", "levelmap", "difficulty_solve", "windows", "fairness", "polish", "structures", "tas"])
+for (const t of ["make", "compose", "score", "solutions", "shoot", "levelmap", "difficulty_solve", "windows", "fairness", "polish", "structures", "tas", "intent", "rules", "reactive"])
   assert(/require\("\.\/heavy\.js"\)\.claim\(\)/.test(fs.readFileSync(path.join(__dirname, "..", "tools", t + ".js"), "utf8")), t + ".js claims the lock");
 assert(/heavy\.js"\)\.claim\(\)/.test(fs.readFileSync(path.join(__dirname, "..", "tools", "wip.js"), "utf8")), "wip.js put claims the lock");
 // 6 (throwaway repos: an origin, a clone that falls behind, another clone that pushes)
 {
-  const g = (cwd, ...a) => cp.execFileSync("git", a, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+  const g = (cwd, ...a) => cp.execFileSync("git", a, { windowsHide: true, cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
   const base = fs.mkdtempSync(path.join(os.tmpdir(), "gdlm-heavy-sync-")), origin = path.join(base, "o.git"), a = path.join(base, "a"), b = path.join(base, "b");
   g(base, "init", "-q", "--bare", "-b", "main", origin);
   g(base, "clone", "-q", origin, b);

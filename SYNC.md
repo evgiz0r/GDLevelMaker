@@ -22,6 +22,8 @@ and songs.
 | a song's real hits per half-beat (kick / snare / accent) | `node tools/hits.js <song id>` | ~2 s |
 | how many of a level's presses sit on a real hit (+-1 frame) | `node tools/hits.js --level levels/<name>.gdlvl [--skip a-b]` | ~2 s (needs a saved solution) |
 | an ultra-synced level from a list of hits | `node tools/hitlevel.js briefs/<NN>.hits.json --check` -> spec | instant |
+| ... built beat-first: taps fixed on hits, obstacles placed around them | `node tools/hitbuild.js briefs/<NN>.hits.json` | 1-3 min (heavy slot) |
+| replay a hit plan's taps on a built level, windows per tap | `node tools/hitroute.js <plan> <level> [--save]` | ~1-2 min |
 
 `tools/beats.js` writes `local/beats/<song>.json` and `viewer/beats.local.js` (the viewer's
 beat lines). `tools/sync.js` writes `local/sync/*.json`. All are gitignored.
@@ -339,6 +341,40 @@ on beats 2 and 4, so "on a beat" can still be on silence. So:
    a hit puts its orb tap half a beat later (look for a K on the half-beat).
 4. **Measure**: `node tools/hits.js --level <gdlvl> --skip <ship seconds>`: the share of presses
    within +-1 frame of a hit. A ship's holds follow the music's flow, not its hits: skip them.
+
+**v2 failed, and why (the user: "there is no sync. i dont get it")**: make.js's `jN` slides each
+obstacle until its press WINDOW is centred on the beat, with up to 6 whole-level solves (28 min for a 62 s
+level, 1.3 GB). The obstacles were on the hits, but nothing made the played or shown route press on them.
+The solver presses at a window's end (ball flips +150 ms), and the route held the button through whole
+cube stretches (79 bunny-hop jumps). 11% of presses were within +-1 frame of a hit. Sync must be built
+into the inputs, not the obstacles.
+
+**Beat-first (v3, `node tools/hitbuild.js <plan>`)**: the inputs come first and never move.
+- One 60 ms tap exactly on each planned hit; each obstacle is moved (sim replays of the planned taps,
+  ~70 ms each, no solve) until its hit sits in the middle of its window.
+- An open-sided window (a ball flip: flipping early just waits on the roof; a step after a walk-off) has
+  no middle. Search +-300 ms and put the closed side 100 ms from the hit.
+- A ship part: a press/release schedule on its hits, flown in open air; the corridor is built around that
+  path. One flat tunnel (2.5 blocks of air over the path's lowest and highest point): a floor or roof that
+  follows the path puts a step a few blocks after each press, and that step reads as the press's cue 5-8
+  blocks ahead (a prejump).
+- Every ship press needs its own cue within 3 blocks of the latest moment it still works (tools/sightread.js).
+  Sightread counts only an object a ship flying level would hit (top above the ship's bottom, at most 120
+  units over it) that starts half a block or more past that moment. So: a floor pillar AT the ship's height,
+  in the first column the path has climbed 10+ units over it (a pillar 50 units under the path counted as
+  nothing: 6 prejumps 14-44 blocks ahead). A press that only stops a fall (the path dips and never climbs
+  back to the press height) gets a column hanging 10 units over the path, 2 columns past the dip's bottom:
+  the latest moment is in the dip's own block, and one column on was still "behind" it.
+- The ship's exit portal on the floor, framed above only: a ship riding the floor reaches it, and no press
+  takes the exit frame as its cue.
+- An orb: where the arc of the jump tapped on its hit is at the orb tap's hit. A half-beat orb (0.2 s)
+  sits over the pit's first spike, so the pit is 4 spikes: a plain jump lands in it, the orb clears it.
+- A walk-off 6+ blocks before the next obstacle (a double 3 blocks after a drop had 142 ms), and never a
+  walk-off right before a step up: the jump lands past both and the step vanishes.
+- Done when the planned inputs alone clear the level. GDLM 62 v3: 43 taps + 8 ship presses (and 8 releases), max
+  2.1 ms off a hit (tick rounding), every window >= 208 ms, every score gate passes. 8 rounds of ~1-3 min each (plus the heavy-slot waits).
+- Then the usual make (one check solve) and score. `levels/<slug>.planned.json` carries the plan, so the
+  human route presses on it (tools/planned.js).
 
 , music sync session, branch claude/sync-6e196a)
 

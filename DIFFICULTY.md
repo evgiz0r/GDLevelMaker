@@ -241,11 +241,20 @@ hard spot at 90% costs more attempts than at 10%). The user's own attempts follo
 Which windows: measureWindows in lib/difficulty.js (lenient: a moved input counts as hit when the rest of
 the run can still be re-planned around it, as a player corrects). Since main 05abaf7 it is THE window for
 every tool: lib/windows.js inputWindows calls it (viewer, tools/windows.js, score.js); the strict variant
-(every other input fixed) is opt-in. Open, from physics: a land-and-jump tap moved earlier reads 1 tick
-(it should stay held until the jump fires), and a re-planned window can come out narrower than the strict
+(every other input fixed) is opt-in. A tap moved earlier is held until its own release (2026-11-24): a
+player holds through a landing or into an orb, which fires on contact -- GDLM 50's land-and-jump taps went
+from 25 ms (no early side) to 221 ms; buffered orb takes read wide. Open, from physics: a re-planned window can come out narrower than the strict
 one (GDLM 60's dash-orb release, tick 3052): it should contain it.
 
 ### Human cost: which valid route a person plays (2026-11-23)
+
+**Known flaw (2026-11-24): a cube hold through an auto-jump chain is ONE input** to humanCost, where the same
+jumps tapped are one input each. So the solver's raw holds look cheaper. naturalPlan's last step ("keep the
+solver's route when its cost is lower") saved GDLM 64 v2's 14 holds, up to 6.5 s each, as its "human" route.
+score.js then read them as 14-27 block prejumps and a 6 s ending. Guard in lib/natural.js: the raw route can't win
+with more cube holds over 0.6 s. With the guard, 64's route has 0 holds and still finishes (153 presses, 56 s
+re-plan). Still open: humanCost itself should count each jump a hold rides, e.g. the landing-buffer window per
+re-jump. Then the guard can go.
 
 The user: the natural route is "the valid route with the lowest human cost". `humanCost(w, events, opts)` in
 lib/difficulty.js returns `{ cost, terms, actions, complete }`, lower is better, in log10-attempts units:
@@ -259,7 +268,8 @@ band's floor/roof than the corridor forces (closer than min(12, room / 4) units,
 a tight corridor is not punished for being tight); presses in a flying mode cost 0.002 (hover taps are how a
 person flies). Stereo Madness's first ship (the user: "it's unnatural to wait so late and fly up"): the solver's
 floor-rider costs 1.4 in clearance; the natural plan now takes the centred line in both ship parts (close to a
-surface 62% -> 2%, 43% -> 0%). The late climb at block 399.5 has a 213 ms window, so the window term does not
+surface 62% -> 2%, 43% -> 0%). `pointless` 0.05 per cube jump over nothing (lib/natural.js pointlessJumps: from the
+ground, lands no higher, nothing under or near the arc; the user: dropping down a staircase is the intended way). The late climb at block 399.5 has a 213 ms window, so the window term does not
 see that "fake timing"; riding the floor up to the wall is what makes it, and clearance charges for that.
 Physics calls it from lib/natural.js to pick among candidate routes.
 Speed: measureWindows keeps an exact cache per world (an input's window depends only on the state where its
@@ -267,6 +277,12 @@ search starts, the button over the span it can see, the input and where the run 
 differs in a few inputs re-measures only those. GDLM 44 (17 s, a ship part): 32 s cold, 0.15 s again, 1.9 s with
 one input moved (57 s without the cache; same cost to the last digit). `opts.fast` skips the tight-input scan
 (~10% cheaper here, and a needlessly tight solver timing then reads tight).
+After an edit: `GD.carryWindowCache(wOld, wNew, ranges, aToB)` copies every cached window whose look-ahead span
+misses the edited x ranges into the new level's cache, renaming the object / trigger indices its state holds
+(aToB from the incremental solver's diffObjects). GDLM 45: a moved spike or an inserted decoration re-measures in
+0.1 s instead of 38 s, every window equal to a fresh measuring (`node tests/carry_windows.js`, heavy).
+Across processes: `GD.exportWindowCache(w)` -> JSON (whole keys, ~1 KB per input: GDLM 43 29 KB) and
+`GD.importWindowCache(w, data)`; the incremental solver keeps the export beside a saved route (local/, not committed).
 Test: `node tests/human_cost.js`. Open: the weights are set by hand; fit `centre` on where the user really
 presses in a window (physics brings those from the recordings).
 
@@ -454,6 +470,13 @@ widest-moment scan skipped. Flying presses and releases are now scanned too.
    Back On Track are the best. Keep mouse and keyboard apart (`--device`).
    - Loop: record → `node tools/runs.js <files> --join --level N --device mouse` →
      `node tools/difficulty_fit.js` → update SIGMA and LAPSE.
+   - 2026-11-24, recording 02:33:44, 9 attempts on official levels (`node tools/real_stats.js`).
+     Base After Base and xStep were cleared first try. Fingerdash was cleared on attempt 2.
+     Deaths: Electroman 33.2% and 10.3%, Hexagon Force 40.4%, Geometrical Dominator 12.3% and
+     13.3%, Fingerdash 53.0%. The death %s are solid (from the progress bar). No attempt replays in
+     the sim yet, so don't fit SIGMA on them (physics, PHYSICS.md "Fidelity"). Use them for
+     predicted vs real places only: does the model's hardest stretch sit where the user died?
+     Electroman, Hexagon Force and Dash wait on re-solved routes (skips and a stale route).
 3. **Surprise.** Inputs forced right after a portal are in the score (The measure, item 5); refit
    SETTLE on `local/real_stats.jsonl` as it grows (the physics session adds every analysed
    recording) and with `node tools/difficulty.js --cached --settle MS` (seconds, from the

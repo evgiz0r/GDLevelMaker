@@ -3,6 +3,10 @@
 //                                                      gates; results -> knowledge/structures.json (shared)
 // node tools/structures.js build <id>               -- its test level -> local/structures/<id>.gdlvl (look:
 //                                                      node tools/textmap.js local/structures/<id>.gdlvl)
+// node tools/structures.js check --context [id ...]  -- the same in CONTEXT: a spike 2 columns before, an orb pit 2 after
+//                                                      (the tightest Hard gap, compose): reactive / fairness / prejumps
+//                                                      there -> the entry's "context" (a piece can pass alone and fail
+//                                                      beside its neighbours: GDLM 64 v2/v3, STRUCTURES.md "In context")
 // node tools/structures.js rank                      -- the ranked list (rules: STRUCTURES.md "Ranking")
 // node tools/structures.js page [--out file.html]    -- one self-contained page: ranked list + a picture of each
 //                                                      (shapes + the solved path; no GD art), for the phone
@@ -294,10 +298,13 @@ const MODE_PORTAL = { ship: "ship portal", ball: "ball portal", ufo: "ufo portal
 // levels, knowledge/levels/modes_low_tier.md: cube 6, ship 8, wave/robot 3, UFO 2; ball/spider/swing ~4)
 const LEADIN = { cube: 6, ship: 8, wave: 4, robot: 4, ufo: 4, ball: 5, spider: 5, swing: 6 };
 const START = 8;   // the cube runs 8 blocks before anything
-function testSpec(st, args) {
+const CTX_GAP = 2;   // the tightest gap compose uses between chunks at Hard (sec.gaps [2, 4])
+function testSpec(st, args, ctx) {
   const a = Object.assign({}, st.args, args || {});
   const r = st.build(a), objs = [];
   let col = START;
+  // in context: a single spike CTX_GAP columns before the structure (the run-up is longer so it is not the start)
+  if (ctx) { col += 6; objs.push(["pattern", "single", col - CTX_GAP - 1, 0]); }
   if (st.needs.mode !== "cube") { objs.push([MODE_PORTAL[st.needs.mode], col, 1]); col += 1; }
   col += st.needs.mode !== "cube" ? LEADIN[st.needs.mode] : 4;
   const s0 = col;
@@ -311,6 +318,8 @@ function testSpec(st, args) {
     objs.push(["block", ex, 9]);
     end = ex + 1;
   }
+  // in context: an orb pit CTX_GAP columns after (orbs right after the structure: the chain GDLM 64's orb-ladder-2 made)
+  if (ctx) { objs.push(["pattern", "orb-pit", end + CTX_GAP, 0, { n: 4 }]); end += CTX_GAP + 6; }
   objs.push(["block", end + 10, 0]);   // the end of the run-out
   return { spec: { name: "structure " + st.id, speed: st.needs.speed, style: "classic", indicators: false, signature: false, objects: objs },
     s0, s1: s0 + r.width, width: r.width, exitCol };
@@ -321,8 +330,8 @@ function check(st, args, opts = {}) {
   const { GD } = require("./io.js");
   Object.assign(GD, require("../lib/difficulty.js"));
   const { build } = require("./make.js"), { scoreLevel } = require("./score.js");
-  const t = testSpec(st, args);
-  const { level } = build(t.spec, "structure " + st.id);
+  const t = testSpec(st, args, opts.context);
+  const { level } = build(t.spec, "structure " + st.id + (opts.context ? " (context)" : ""));
   const sc = scoreLevel(level, { difficulty: { minWindowMs: 50 } }, { fairness: !opts.fast });
   const r = sc.solution, x0 = t.s0 * 30, x1 = t.s1 * 30;
   const res = { id: st.id, mode: st.needs.mode, tags: st.tags, tier: st.tier, doc: st.doc, needs: st.needs, leaves: st.leaves,
@@ -401,10 +410,12 @@ function rank(results) {
       - 0.3 * (r.gates.fairness === "FAIL" ? 1 : 0) - 0.1 * (r.gates.fairness === "WARN" ? 1 : 0) - 0.1 * (r.gates.recovery === "WARN" ? 1 : 0)
       // exact hops instead of reactions (score.js "reactive", the user on GDLM 45 v6): pushed well down
       - 0.4 * (r.gates.reactive && r.gates.reactive !== "PASS" ? 1 : 0)
-      - 0.15 * Math.max(0, pps - 2.5));
+      - 0.15 * Math.max(0, pps - 2.5)
+      // in context (a spike before, an orb pit after): what it does beside its neighbours counts as much
+      - (r.context && !r.context.ok ? 0.5 : 0));
     const variety = 1 - ours, usage = Math.sqrt(real);
     r.rank = { variety: +variety.toFixed(2), usage: +usage.toFixed(2), fairness: +fair.toFixed(2), readability: +read.toFixed(2),
-      realShare: real, oursShare: ours, keys: ks, ready: r.ok && fails === 0 && (r.minWindowMs ?? 999) >= 50, fails, warns };
+      realShare: real, oursShare: ours, keys: ks, ready: r.ok && fails === 0 && (r.minWindowMs ?? 999) >= 50 && !(r.context && !r.context.ok), context: r.context ? r.context.ok : null, fails, warns };
     // nothing to press (a pad-only stretch): something to watch, not to play -- x 0.85
     r.score = r.rank.ready ? Math.round(100 * (0.3 * variety + 0.25 * usage + 0.25 * fair + 0.2 * read) * (r.presses === 0 ? 0.85 : 1)) : 0;
   }
@@ -538,7 +549,22 @@ if (require.main === module) {
     }
   }
   else if (cmd === "check") {
-    const db = load(), todo = ids.length ? ids.map(byId).filter(Boolean) : LIB;
+    const db = load(), ctx = rest.includes("--context");
+    const todo = (ids.length ? ids.map(byId).filter(Boolean) : LIB).filter(st => !ctx || (st.needs.mode === "cube" && st.leaves.mode === "cube" && st.needs.grav === 1 && st.leaves.grav === 1));
+    if (ctx) {
+      // the check in context: only the gates that a neighbour changes, stored beside the piece's own result
+      const GATES = ["beatable", "prejumps", "reactive", "fairness", "recovery", "skips"];
+      for (const st of todo) {
+        const t0 = Date.now(), r = check(st, null, { fast: false, context: true });
+        const g = Object.fromEntries(GATES.filter(k => r.gates[k]).map(k => [k, r.gates[k]]));
+        const bad = Object.entries(g).filter(([k, v]) => v === "FAIL" || (k === "reactive" && v !== "PASS"));
+        const c = { ok: r.ok && !bad.length, gates: g, notes: Object.fromEntries(Object.entries(r.notes).filter(([k]) => GATES.includes(k))), gap: CTX_GAP };
+        db.structures[st.id] = Object.assign(db.structures[st.id] || { id: st.id }, { context: c });
+        console.log(`${st.id.padEnd(20)} in context: ${c.ok ? "ok" : "FAILS"} ${bad.map(([k, v]) => k + " " + v).join(", ")} (${((Date.now() - t0) / 1000).toFixed(1)} s)`);
+        save(db);
+      }
+      return;
+    }
     for (const st of todo) {
       const t0 = Date.now(), r = check(st, null, { fast: rest.includes("--fast") });
       // keep the picture data out of the committed file's diff noise: still stored, it is small

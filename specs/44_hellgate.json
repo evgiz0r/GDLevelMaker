@@ -23,7 +23,7 @@
 
     ["colour", "b13", { "ch": "bg", "rgb": [55, 14, 8], "secs": 0.3 }],
     ["colour", "b13.5", { "ch": "bg", "rgb": [36, 8, 6], "secs": 0.6 }],
-    ["pattern", "wave-zigzag", "b13+6", 0, { "seg": 4, "legs": 2, "flat": 3, "lead": 4, "leadGap": 8, "gap": 5, "low": 3, "slopes": true, "portal": true, "exit": "cube" }],
+    ["pattern", "wave-zigzag", "b13+6", 0, { "seg": 4, "legs": 2, "flat": 3, "lead": 4, "leadGap": 8, "gap": 5, "low": 2, "slopes": true, "portal": true, "exit": "cube" }],
 
     ["colour", "b17", { "ch": "bg", "rgb": [55, 12, 8], "secs": 0.3 }],
     ["colour", "b17.5", { "ch": "bg", "rgb": [38, 8, 6], "secs": 0.6 }],
@@ -49,21 +49,23 @@
     ["pattern", "s:pink-pad-step", "b46", 0],
 
     ["colour", "b49", { "ch": "bg", "rgb": [55, 12, 10], "secs": 0.3 }],
-    ["pattern", "ship-tunnel", "b49+1", 0, { "w": 30, "gap": 5, "amp": 1.5, "base": 1, "portal": true, "exit": "cube" }],
+    ["pattern", "platform", 200, 0, { "w": 9, "h": 2 }],
+    ["pattern", "ship-tunnel", "b49+1", 0, { "w": 30, "gap": 5, "amp": 1.5, "base": 1, "portal": true, "portalRow": 2, "exit": "cube" }],
     ["pattern", "s:gravity-pad-gap", "b58", 0],
     ["pattern", "orb-pit", "b63", 0, { "n": 5 }],
     ["pattern", "double", "j66.5", 0],
 
     ["colour", "b69", { "ch": "bg", "rgb": [90, 26, 8], "secs": 0.2 }],
     ["colour", "b69.5", { "ch": "bg", "rgb": [50, 12, 6], "secs": 0.6 }],
-    ["pattern", "wave-zigzag", "b69+1", 0, { "seg": 4, "legs": 4, "flat": 3, "lead": 4, "leadGap": 8, "gap": 5, "slopes": true, "portal": true, "exit": "cube" }],
+    ["pattern", "wave-zigzag", "b69+1", 0, { "seg": 4, "legs": 4, "flat": 3, "lead": 4, "leadGap": 8, "gap": 5, "slopes": true, "portal": true, "portalRow": 1, "exit": "cube" }],
     ["colour", "b81", { "ch": "bg", "rgb": [80, 24, 8], "secs": 0.3 }],
     ["colour", "b81.5", { "ch": "bg", "rgb": [50, 12, 6], "secs": 0.5 }],
     ["red pad", "b81", 0],
     ["pattern", "spikes", "b81+2", 0, { "n": 4 }],
 
     ["colour", "b85", { "ch": "bg", "rgb": [60, 12, 10], "secs": 0.3 }],
-    ["pattern", "ship-tunnel", "b85+1", 0, { "w": 30, "gap": 5, "amp": 2, "base": 1, "teeth": true, "portal": true, "exit": "cube" }],
+    ["pattern", "platform", 355, 0, { "w": 9, "h": 2 }],
+    ["pattern", "ship-tunnel", "b85+1", 0, { "w": 30, "gap": 5, "amp": 2, "base": 1, "teeth": true, "portal": true, "portalRow": 2, "exit": "cube" }],
     ["pattern", "s:green-orb-flip", "b94", 0],
     ["pattern", "gate", "j99.5", 0, { "w": 2, "open": 4 }],
 

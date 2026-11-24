@@ -46,7 +46,7 @@ function videoPath(video, vx) {
   const t1 = opt("to") ? +opt("to") : t0 + dur;
   const py = process.env.PYTHON || "python";
   const csv = execFileSync(py, [path.join(__dirname, "track.py"), video, "--from", String(t0), "--to", String(t1), "--rows", "--color", opt("color", "lime")],
-    { encoding: "utf8", maxBuffer: 1 << 28 });
+    { windowsHide: true, encoding: "utf8", maxBuffer: 1 << 28 });
   let ground = +opt("ground", 775), lastX = null, miss = 0;
   const out = [];
   for (const line of csv.trim().split("\n").slice(1)) {

@@ -64,7 +64,7 @@ if (!args[0] || args[0].startsWith("--")) { console.log(fs.readFileSync(__filena
   const out = path.join(ROOT, "local", "maps"); fs.mkdirSync(out, { recursive: true });
   const png = path.join(out, safe + ".png"), jpg = path.join(out, safe + ".jpg");
   fs.copyFileSync(src, png);
-  try { cp.execFileSync("ffmpeg", ["-v", "error", "-y", "-i", png, "-vf", "scale='min(1600,iw)':-2", "-q:v", "3", jpg]); } catch (e) { console.log("(ffmpeg missing: no phone .jpg)"); }
+  try { cp.execFileSync("ffmpeg", ["-v", "error", "-y", "-i", png, "-vf", "scale='min(1600,iw)':-2", "-q:v", "3", jpg], { windowsHide: true }); } catch (e) { console.log("(ffmpeg missing: no phone .jpg)"); }
   try { fs.rmSync(path.join(dir, id), { recursive: true, force: true }); fs.unlinkSync(path.join(dir, id + ".json")); } catch (e) {}
   const mb = f => fs.existsSync(f) ? (fs.statSync(f).size / 1e6).toFixed(1) + " MB" : "-";
   console.log(`map of ${lv.name} in ${r.seconds.toFixed(0)} s:\n  ${path.relative(ROOT, png)} (${mb(png)})\n  ${path.relative(ROOT, jpg)} (${mb(jpg)}, phone)`);

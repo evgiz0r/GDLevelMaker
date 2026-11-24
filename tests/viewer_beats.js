@@ -7,7 +7,7 @@
 const cp = require("child_process"), path = require("path"), fs = require("fs"), http = require("http");
 const ROOT = path.join(__dirname, ".."), PORT = 8791;
 const get = u => new Promise((ok, no) => http.get(`http://localhost:${PORT}${u}`, r => { let b = ""; r.on("data", c => b += c); r.on("end", () => ok({ status: r.statusCode, body: b })); }).on("error", no));
-const srv = cp.spawn(process.execPath, [path.join(ROOT, "tools", "serve.js"), String(PORT)], { stdio: "ignore" });
+const srv = cp.spawn(process.execPath, [path.join(ROOT, "tools", "serve.js"), String(PORT)], { windowsHide: true, stdio: "ignore" });
 let bad = 0; const check = (ok, what) => { console.log((ok ? "ok   " : "FAIL ") + what); if (!ok) bad++; };
 (async () => {
   for (let i = 0; i < 40; i++) { try { await get("/viewer/"); break; } catch (e) { await new Promise(r => setTimeout(r, 150)); } }

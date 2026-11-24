@@ -17,10 +17,10 @@ const env = { ...process.env, GDLM_INSTALL_QUEUE: path.join(dir, "q.json"), GDLM
 // the watcher must install from the queue's own copy (2026-11-23: "file missing" across worktrees)
 const other = path.join(dir, "other_checkout"); fs.mkdirSync(path.join(other, "levels"), { recursive: true });
 fs.copyFileSync(lv[0], path.join(other, "levels", "only_there.gdlvl"));
-execFileSync(process.execPath, [T, "add", "levels/only_there.gdlvl", "--by", "test"], { env, cwd: other, stdio: "pipe" });
+execFileSync(process.execPath, [T, "add", "levels/only_there.gdlvl", "--by", "test"], { windowsHide: true, env, cwd: other, stdio: "pipe" });
 fs.rmSync(other, { recursive: true, force: true });
-execFileSync(process.execPath, [T, "add", lv[1], "--by", "test"], { env, stdio: "pipe" });
-const w = spawn(process.execPath, [T, "watch", "--every", "0.3", "--save", copy, "--pretend-running", marker, "--exit-after-install"], { env });
+execFileSync(process.execPath, [T, "add", lv[1], "--by", "test"], { windowsHide: true, env, stdio: "pipe" });
+const w = spawn(process.execPath, [T, "watch", "--every", "0.3", "--save", copy, "--pretend-running", marker, "--exit-after-install"], { windowsHide: true, env });
 let out = ""; w.stdout.on("data", d => out += d);
 setTimeout(() => {
   const before = fs.readFileSync(copy).equals(fs.readFileSync(save));
@@ -50,10 +50,10 @@ function guard() {
   fs.writeFileSync(fake, `const fs=require("fs"),zlib=require("zlib");const s=process.argv[process.argv.indexOf("--save")+1];
 const dec=${dec.toString()};const enc=${enc.toString()};
 fs.copyFileSync(s, s+".bak");fs.writeFileSync(s, enc(dec(fs.readFileSync(s)).replace("<k>k1</k><i>999000222</i>","")));console.log("written. backup: "+s+".bak");`);
-  execFileSync(process.execPath, [T, "add", lv[1], "--by", "test"], { env, stdio: "pipe" });
+  execFileSync(process.execPath, [T, "add", lv[1], "--by", "test"], { windowsHide: true, env, stdio: "pipe" });
   let out2 = "", code2 = 0;
   try { out2 = execFileSync(process.execPath, [T, "watch", "--every", "0.3", "--save", copy, "--pretend-running", path.join(dir, "never"), "--exit-after-install"],
-    { env: { ...env, GDLM_INSTALL_JS: fake }, encoding: "utf8", stdio: "pipe", timeout: 30000 }); }
+    { windowsHide: true, env: { ...env, GDLM_INSTALL_JS: fake }, encoding: "utf8", stdio: "pipe", timeout: 30000 }); }
   catch (e) { out2 = String(e.stdout || ""); code2 = e.status; }
   const ok = code2 === 2 && /online ID dropped/.test(out2) && /save restored/.test(out2) && fs.readFileSync(copy).equals(good);
   console.log(ok ? "ok: an install that drops an online ID is undone from the backup and reported" : "FAIL guard (exit " + code2 + ")\n" + out2);

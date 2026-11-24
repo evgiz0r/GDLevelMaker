@@ -130,6 +130,31 @@ Contact sheets and frames: local/shots/lab60/. Read station by station from fram
 Unfair stations to change in v2: 4 (plank row straight over spikes, from flat ground) and 7 (a post that
 punishes holding the dash).
 
+## Trigger firing point (2026-11-24)
+
+Gameplay triggers (move, toggle, spawn...) fire when the player's CENTRE passes their x. gd-visuals saw a colour
+trigger fire when the FRONT edge (x + 15) reached it (Hexagon Force's colour 1 at x 945, frames aligned by
+video.level_t), and the viewer's look triggers now fire there. Front-edge firing for the sim's triggers was tried on
+gdsolver's real-game plans: nothing gains and Dash falls from 81 to 40 blocks, so the centre stays (colour and
+gameplay triggers may well differ in GD).
+
+## Landing buffer (2026-11-24)
+
+A cube's press made in the air is kept and the cube jumps when it lands, even if the button is already up.
+- Seen in the user's real run: Clutterfunk, 2026-11-24_02-45-05.mkv, level time 1.055 s. The input log has a
+  tap in the air (down 1.055, up 1.167), the cube lands at 1.20 s and the video shows it jump at once, 0.45 s
+  before the next logged press. Without the buffer the sim walks into the saw at x 451 (1.9%); with it the run
+  goes on. The sim needs at least 37 ticks there (36: the saw; 37-1000: through).
+- gdsolver's real-game plans (tests/tas_progress.js), for any length from 24 to 1000 ticks: Polargeist CLEARS
+  (was 909 blocks), Dry Out 415 -> 574, Can't Let Go 303 -> 489, Jumper 210 -> 248, Time Machine 333 -> 362,
+  Clutterfunk 288 -> 294; none less far once an orb or pad that takes the press also clears the buffer
+  (without that, ToE 2 fell 105 -> 92). This was the old open item "a cube that walked off a ledge and presses
+  shortly before landing: the game jumps, we do not".
+- In the sim: lib/physics.js `LANDBUF` = 40 ticks (cube only; the solvers' state keys carry it).
+  `GDLM_LANDBUF=<ticks>` overrides it for measuring, 0 = off. OPEN: the upper bound (is it "until landing"?),
+  and whether a release clears it in other modes. A clean test: tap in the air at several heights before a
+  landing in a lab level.
+
 ## Objects
 
 - Hitboxes from OpenGD's 2.1 table, overridden in `lib/objects.js`; GD 2.2's decoration list
@@ -208,7 +233,21 @@ Deadlocked at 695 on a static spike; the re-solves on the new physics are listed
 
 Lab: GDLM 63 (specs/63_dual_movers_lab.json, made by tools/lab63.js): 1-3 dual, 4 a rising platform,
 5 move to target, 6 pause/resume, 7 a multi-trigger loop, 8 a toggled-off trigger. Each station's note says
-what the sim expects. Not played yet.
+what the sim expects; 9-12 orb buffering (the physics session's question).
+**Played 2026-11-24** (GD claude-rec 2026-11-24_02-13-32.mkv with the input log; physics session, tools/replay_run.js):
+both normal-mode clears replay to the end in the sim with the user's own presses (one clock offset, 842 ms). A station
+only CONFIRMS a rule when the user's real inputs there would have died under the other rule (attempts in
+local/attempts/gdlm_63_dual_and_movers_lab.jsonl; clear 1 made no press from block 88 to 151, clear 2 jumped at 6-7):
+- confirmed: 7 multi-trigger loops (clear 1, no press: fired once, the spike would sit 20 up and kill the cube on the
+  floor); 8 a trigger in a toggled-off group does not fire (clear 1, no press: else the spike lands on the floor);
+  3 the solo portal keeps the player that touched it (keeping player 1 leaves an upside-down cube with no roof,
+  flying out of the level; the game went on normally).
+- consistent but not settled by deaths: dual spawn and mirroring, the band's height (player 2's roof spike is
+  survived at any roof a little higher), 2 gravity portal in dual, 4 riding a rising platform, 5 move to target
+  (the user jumped there anyway), 6 pause/resume (the spike is clear paused or not). Settling these needs the
+  frames: player 2's height on the roof, the spike positions (tools/track.py, the physics session's tracker).
+- open: 9 and 11 (the user tapped at the orb instead of holding from the jump: the hold-buffer question stays; next
+  lab: a roof right after the jump's apex so a second press cannot reach the orb), 12 (the press reached the orb).
 
 ## Dual (lib/dual.js, 2026-11-23; owner: the dual/moving-objects session)
 
@@ -229,7 +268,7 @@ SoloPortal cases; PlayerObject `copyAttributes`):
 | gravity portals, blue/green orbs, gravity dash orbs, blue pads flip the other player too while both are in the same mode (they stay mirrored); ball taps, swing flips, spider teleports flip only their own | GJBaseGameLayer::flipGravity vs PlayerObject::flipGravity | yes | tests (portal) |
 | solo portal: the player that touched it goes on (player 1 copies player 2 when player 2 touched it) | toggleDualMode(false) | yes | tests |
 | in dual every mode has a floor and a roof | checkCollisions: `isFlyingMode = ... || m_isDualMode` | yes | - |
-| band height in dual: ASSUMED the larger of the two players' bands, cube/robot 300 like the ship, centred on the portal that set it (dual portal, or a mode portal in dual) like a flying portal's | updateDualGround's body is not in the decompile | yes | NOT checked |
+| band in dual: centred on the DUAL PORTAL for the whole dual part (a mode portal in dual changes only its height); height ASSUMED the larger of the two players' bands, cube/robot 300 like the ship | processCameraObject: in dual the camera object is the dual portal (m_lastActivatedPortal2); updateDualGround's body is not in the decompile | yes | centre: Hexagon Force (re-centring on a player's ship portal opened a gap over its corridor at 432; the solve flew over the spike roof and died at 499); height NOT checked |
 | speed: shared (both players are at one x) | - | yes | - |
 | camera: centred on the band (animateInDualGroundNew, tween 0.4 s) | decompile | viewer only | - |
 Not modelled: two-player mode (level setting, separate buttons), start-in-dual (level setting), the
@@ -239,11 +278,21 @@ Solvers: the state key has player 2's part (`GD.dualKey`); portal requirements (
 player's used objects and either player's distance; dual levels go to the sweep (the exact cube solver
 knows one player).
 
-Official levels (dual portals): Hexagon Force 351.7-503.4 (cube), 640.3-709.8 (ball), 944.8-995.2 (mini
+Official levels (dual portals): Hexagon Force 351.7-503.4 (cube), 640.3-709.8 (mini ball), 944.8-995.2 (mini
 ship); Blast Processing 512.3-554.0 (wave); Deadlocked 859.2-910.9 (wave). Before this, 286/287 were
 "unsupported" (a death on touch, and NOT on the no-skip list), so Hexagon Force's "beaten" and Blast
 Processing's 78% went around every dual portal: secret ways. Their saved routes, replayed with dual:
-Hexagon Force dies at 362.8 (player 2 on a spike), Blast Processing at 564.4. Re-solves: see below.
+Hexagon Force dies at 362.8 (player 2 on a spike), Blast Processing at 564.4.
+Re-solved with dual (2026-11-24, physics 1d59689, `difficulty_solve --resume`, checked by tools/skips.js and a replay):
+- **Blast Processing: beaten** (was 78%, and that 78% went around its dual): all 18 portals taken, 0 of 46 orbs/pads
+  skipped; two players from block 511.6 to 553.3 (wave dual).
+- **Hexagon Force: beaten** (2026-11-24, physics 23634a9, a full solve from the start: 568 s solve, 25 min with the
+  viewer's route): all 37 portals taken (11 of 75 orbs/pads untouched, none of them a skipped portal), through all
+  three dual parts: 350.7-502.4 (cube, then ships), 639.5-708.9 (mini ball), 943.9-994.3 (mini ship); ends at
+  block 1035.5. On 1d59689 it had stopped at 553.8 (a decoy orb, fixed by physics 36ca0ac); a `--resume` after the
+  landing buffer (fee98db) died at 459.8 in the dual ships because the kept prefix was planned without the buffer,
+  so after a physics change that alters cube timing, solve dual levels from the start.
+- Deadlocked's wave dual (859-911) is past its current stop (695); not reached yet.
 
 ## Not in the sim yet (the game has it)
 
@@ -271,12 +320,175 @@ What exists and what blocks it (2026-11-23):
   units/frame^2) and the teleport heights read 478 px against 588 expected. Every per-mode number needs y
   measured against something in the level (the ground line, a block row) in the same frame: track.py
   --rows gives candidate edges; following the right one through camera moves is the next piece of work.
-- Inputs: the user's presses are not recorded (no sound loopback, no input log). Options: read them from
-  the hitbox trail (a press starts a new arc), or fit them (the sim's inputs that best follow the tracked
-  path), then compare the rest of the path.
+- Inputs (USE_CASES 29, built 2026-11-24): tools/record.sh now also runs tools/inputlog.ps1, which logs the
+  user's GD inputs ONLY while recording and ONLY GD's jump keys/click while GD is in front (Space, Up, W, left
+  mouse; down/up, high-resolution, wall-clock) to local/inputs/. tools/replay_run.js <video> <log> <level>
+  replays each normal-mode attempt (attempts from the progress bar, tools/runs.js) in the sim: the clock offset
+  is the shift at which the sim dies at the video's % (or finishes); an attempt no shift explains is a physics
+  mismatch for this list. Output local/replays/<video>.json and local/attempts/<base>.jsonl (viewer ghost,
+  difficulty). Sound (2026-11-24, the user's pick: no install): tools/audiolog.ps1 records the PC's own sound by
+  WASAPI loopback with record.sh (Videos/Captures/GD claude-audio <time>.wav + .json with the UTC start; silence
+  is written while nothing plays, so the file's time is wall time; tested: a 1.5 s tone lands where it played).
+  replay_run.js matches the recorded sound around each attempt with the level's song from its offset
+  (loudness envelopes, 100 Hz): the music's restart pins the attempt's start to ~10 ms (a synthetic test: 2.00 s
+  found for 2.00 s), then the press shift is searched +-25 ms; without sound or the song, the bar fit (+-1.5 s).
+  First real run (2026-11-24, GDLM 63 dual + movers lab, GD claude-rec 2026-11-24_02-13-32.mkv with the
+  minimal "<unix ms> <down|up> <key>" log, no sound; window 172,94,1600): one clock offset for the whole
+  recording, 842 ms, from the clears. BOTH CLEARS REPLAY TO THE END IN THE SIM with the user's own presses:
+  every station (dual, moving objects, orbs) agrees with the game on that run. The first attempt (died 38.1%)
+  needs a 1.4 s shift: its bar-detected start is late (the first attempt fades in after loading), not physics.
+  The 0.9% / 3.6% "deaths" are quick restarts. Orb stations: at 9 and 11 the user pressed again at the orb
+  instead of holding from the jump, so "a held jump fires an orb" is still unanswered (ask for a hold next
+  time); 10 (press just before, held) fired as the sim expects; 12 fired and the run went on.
+  Attempts are in local/attempts/gdlm_63_dual_and_movers_lab.jsonl (viewer "Your runs", video lines).
+  Dual band height, measured (frame at 88.0 s, local/shots/rec63/d88.png, window crop 172,94,1600x900): in
+  dual GD draws the roof as a band at the top of the view; floor line y 826 px, roof line y 73 px = 753 px;
+  a floor spike (1 block) is 76 px tall -> 9.9 blocks. The sim's dual band is 10 blocks (player 2's top at
+  y 300): agrees within the measure (+-1 px on each line = +-0.03 blocks... the spike edge, ~+-2%).
+  The same recording also holds GDLM 60 (2 attempts) and Blast Processing (1): identified from the frames.
+  INPUT LOGGER LESSON (02:26 recording, 2026-11-24): the first tools/inputlog.ps1 did its work (a process-name
+  lookup, a file write + flush) inside the low-level hook callback. Jumper, which the user cleared, replays to a
+  death at 2.6% because the log has no press at the route's 2.07 s and 2.44 s jumps: the hook MISSED real
+  clicks (Windows skips a hook that takes too long, and every click waits on it until then). The user, the same
+  session: "a spike killed me, probably we are running something" (Clutterfunk, 92.6%). Fixed 02:34: the
+  callback only queues (clock, foreground pid, key); a writer thread does the rest. Logs from 02:13-02:34 (both
+  loggers' first versions) may miss presses: judge them only where they replay a clear.
+  - The first attempt after a level loads: its bar shows ~0.55 s before the level moves (GDLM 63 +580 ms, BP
+    +520 ms); replay_run.js allows for it (LOAD_MS). With it: GDLM 63 all agree (2 clears, a 38.1% death,
+    2 restarts not judged), Blast Processing's 15.8% death agrees (sim 15.7%, a slope), GDLM 60's 48.1% agrees.
+  - OPEN, a mismatch candidate: GDLM 60 at 456.6 s died 33.9% (the green-orb station) in the game; with the
+    logged presses the sim dies at block 96.9 (the pink-orb station's spike) before the user's jump there, and
+    no clock shift in +-1.5 s reproduces 33.9%. Either the pink-orb station plays differently (the pink orb
+    was already the unsettled lab-60 measurement), or the input log has a gap (it only logs while GD is in
+    front). The other GDLM 60 attempt passes the same station in both. Needs a clean pink-orb recording.
+  - FIRST RECORDING ON THE FIXED LOGGER (02:33:44, 2026-11-24): 9 normal attempts on official levels, identified from
+    the frames (level page + "Attempt 1"): Electroman 13.5 s 33.2%, 43.5 s 10.3%; Hexagon Force 60.6 s 40.4%; Geometrical
+    Dominator 102.9 s 12.3%, 115.6 s 13.3%; Fingerdash 138.7 s 53.0%, 186.7 s CLEAR; Base After Base 306.4 s CLEAR
+    (GD: 108 jumps; the log: 126 presses -- ship presses are not jumps); xStep 404.0 s CLEAR. No attempt agrees yet:
+    - Base After Base: the sim dies at 62.8% (ship, a block); the presses from 2 s before it moved +54 ms -> the sim
+      BEATS it. So the log is complete and the physics holds there: a clock drift or lag of ~50 ms over the run.
+    - xStep: dies at 22.7% in the ship, its bottom 0.2 unit into a floor spike's top: the known "sim ship ~0.5 unit
+      low" (Stereo Madness, Hexagon Force). No shift in +-300 ms gets past it. Second real-run case of it.
+    - Fingerdash: dies at 51.9% ~1 s after a spider -> ship portal, flying ~8 units into small ceiling spikes (458);
+      no shift gets past it. Open.
+    - Electroman 1.5%, Geometrical Dominator 6-7% (robot), Hexagon Force 31.4%: deaths on saws with every whole-run
+      shift in +-3 s. The user taps fast there (~70 ms taps, ~0.17 s apart). Tried and ruled out: saws as circle vs
+      the player's circle (the sim dies at the next saw instead) and a 20-40 tick landing buffer (no change).
+      Next: track the cube in the video over the first 2 s of Electroman (tools/track.py) against the sim's path.
+    - Tool fixes from this recording: runs.js started an attempt at the first empty-bar reading, which a menu page
+      or another window also gives (Base After Base "started" 31 s early): now the last frame the bar sat at its
+      lowest. replay_run.js: the sound pin locked on the wrong spot for every attempt here (all died in the first
+      7% pinned): the bar fit now runs too and the closer one wins; a logger restart resets the keys at its start.
+  - RECORDING 02:45:05 (2026-11-24, 30 min, fixed logger; the video file ends abruptly): 48 attempts by the bar.
+    Clutterfunk 18.4 s CLEAR (81 jumps) -- its replay found the LANDING BUFFER (section above): the sim died at
+    1.9% on the first saw because it dropped an in-air tap the game kept; now it reaches 3.5%, where the game's
+    cube uses a pad on a hanging block that the sim's does not reach (open). The video runs ~1.05 s behind its
+    file name's second here (first jump tracked at 18.28 s, logged at 19.33 s). Other groups: the user's own
+    online levels page, then a 6-12 s level (264-303 s, 6 deaths then a clear) right after GDLM 44's online page
+    (ID 152848491) -- but the repo GDLM 44 runs 42.6 s, so not replayed; the daily "Worldwide" (360-636 s,
+    deaths 37-75%, a practice clear); Bow Wow (668 s, 91.2%); 668-1406 s practice (no attempts from the bar);
+    "IS" by Crenate (1406-1618 s); Sidestep (1741-1791 s). None of the community ones are on this PC.
+- OUTCOMES, TWO SIDES (2026-11-24, after xStep's and Fingerdash's clears were drawn as deaths in the viewer): each
+  attempt line keeps what really happened (result / pct from the video's bar; why null -- the bar does not know the
+  cause) and the sim's replay (`sim: {result, pct, x, why, tick, mode}`) apart; `agree` = tools/attempts.js agreeOf
+  (same result; a death within 2.5 % of the same %); a quick restart is not judged. tests/attempts_consistency.js
+  checks every line, including a fresh replay on today's physics (a physics change makes old verdicts stale).
+  Lines that were wrong were removed (official 2 and 3 @274.5 s: the bad attempt start; GDLM 44 from 02:45: the level
+  is not identified); backup local/attempts.bak-2026-11-24. replay_run.js now filters attempts by the level's own
+  length (lib/sync.js) even with --from/--to (it had put GDLM 60's and Blast Processing's attempts in GDLM 63's file).
+- THE USER'S PLAY AS A ROUTE: a clear the sim replays to the end is saved as kind "player" beside the solver's
+  route (local/solutions/<key>.player.json, replay_run.js). First: GDLM 63 (the clear at 430.3 s, 02:13 recording).
+  Every other clear so far stops in the sim: those first divergences are the best fidelity tests we have (a known
+  good input sequence): Clutterfunk 3.5% (02:45), Base After Base 62.8% (~50 ms clock), xStep 22.7% (ship),
+  Fingerdash 51.9% (ship after a spider), Jumper / Cycles (02:26, old logger with gaps: not usable).
+- PIPELINE DIAGNOSIS (2026-11-24, "diagnose before blaming physics"), on the fixed-logger recordings:
+  - THE HOOK LOGGER STILL MISSES CLICKS. Electroman, 02:33:44 @43.5 s: the video shows two jumps 0.6 s apart over the
+    two half-buried saws (x 307, 439; gdsolver's real-game plan presses there too, 0.43 s apart); the log has the first
+    (44.645) and nothing until 45.573. No clock shift can replay that: the sim dies at the second saw (1.0-1.5%) for
+    every start from 43.4 to 44.4. Cause: Windows skips a low-level hook that does not answer in time (the PC was
+    running solver jobs). Fix: tools/inputlog_raw.ps1 (raw input, never skipped, the event's own time) runs beside
+    the hook logger from now on (tools/record.sh), so the two are compared on the next recording.
+  - THE VIDEO RUNS ~1 s BEHIND ITS FILE NAME's second (0.98 s at 02:33, 1.05 s at 02:45, from tracked launches vs
+    logged presses), and the bar's attempt start is 0.3-1 s late (Electroman 43.25 vs 43.53; Base After Base 305.44
+    vs 306.43). Both are inside replay_run's +-1.5 s search, so they do not cause the mismatches alone.
+  - CLOCK DRIFT inside a run: Base After Base's launches line up -38 ms early in the first 10 s and -9 ms in the last
+    15 s. replay_run.js now re-fits the presses from 2 s before a sim death within +-60 ms (100 ms in all) and reports
+    "agree after drift" apart (video.drift on the line). Hexagon Force's 40.4% death agrees after a 28 ms re-fit.
+  - WHICH LEVEL each attempt is: local/runs/<video>.levels.json ({"<start s>": "official:N | levels/x.gdlvl | ?"}),
+    read off the frames (level page, "Attempt 1"); when it exists replay_run uses it and not the length guess (GDLM 60
+    and 63 are 30 and 21 s: length alone put one's attempts in the other's file). Written for 02:13, 02:26, 02:33, 02:45.
+  - THE LEVEL'S START IN THE VIDEO: video.level_t on each attempt line = bar start + shift - the video's lag behind its
+    file name (clock.json video_lag_s: 0.82 s at 02:13 from two death frames, 0.98 s at 02:33, 1.05 s at 02:45, else 1.0;
+    it differs per recording, so measure it on each new one: one death or clear frame is enough). video.t is the bar start, 0.3-1 s
+    late: never use it for a side-by-side (Hexagon Force: bar 60.6 s, level_t 59.40 s; checked on the frames).
+  - ONE CLOCK PER RECORDING: local/runs/<video>.clock.json (offset from the recording's clears), reused when one level
+    is replayed alone (Blast Processing in 02:13 agreed only with GDLM 63's clock: 15.7% vs 15.8%; alone it picked a
+    far shift and died at 2.0%). 02:33 has none: its bar starts are off by 0.3-1 s per attempt.
+  - The attempt filter by length now keeps an attempt near the level's own length OR this recording's clears of it
+    (40%): a death's implied length (secs x 100 / %) is rough where speed portals change the pace.
+- THE TABLE (2026-11-24 night, physics with the landing buffer, replay_run with drift re-fit, level maps, clocks):
+  | recording | level | you | sim | agree | first divergence / cause |
+  | 02:13 | GDLM 63 | 38.1%, clear, clear (+2 restarts) | 39.7%, clear, clear | yes x3 | - |
+  | 02:13 | GDLM 60 | 48.1% / 33.9% | 49.5% / 30.7% | yes / no | 33.9%: pink-orb station, unknown (log may have a gap) |
+  | 02:13 | Blast Processing | 15.8% | 15.7% (slope) | yes | - (needs the recording's clock) |
+  | 02:33 | Hexagon Force | 40.4% | 40.6% | yes (drift 28 ms) | - |
+  | 02:33 | Base After Base | clear | clear | yes (drift 52 ms) | - |
+  | 02:33 | Fingerdash | 53.0% / clear | 53.2% / 61.3% | yes (drift) / no | clear: block 555.6, robot launched into ceiling spikes (458). tools/passcheck.js 550-558 from the attempt's state: our physics HAS a way (presses 53.150 53.204 53.233 53.608 53.646 s), the log has 53.158 then 53.388 -- the same recording's hook logger dropped a click in Electroman, so most likely PIPELINE (a missed press); re-check with a raw-input recording |
+  | 02:33 | xStep | clear | 25.3% | no | block 211, ship into a hanging spike, after 3 drift re-fits. passcheck 205-216: our physics passes only with 35 presses in 0.9 s (a jitter no human makes); the user pressed twice there (19.875, 20.554) -> most likely PHYSICS: the ship's line in that corridor (cf. the open ~0.5-unit ship offset, Stereo Madness 328) |
+  | 02:33 | Electroman | 33.2% / 10.3% | 3.5% / 1.5% | no | PIPELINE: the hook logger missed a click (2nd saw jump) |
+  | 02:33 | Geometrical Dominator | 12.3% / 13.3% | 7.3% / 5.7% | no | unknown (robot; path check too noisy to tell) |
+  | 02:45 | Clutterfunk | clear | 3.5% | no | block 34.6: the game's cube uses a pad on a hanging block the sim's does not reach: unknown |
+  | 02:26 | Jumper, Cycles, Clutterfunk | clear, clear, 92.6% | 2.6%, 2.2%, 1.9% | no | PIPELINE: first logger (missed clicks), not usable |
+- PASS CHECK (tools/passcheck.js, 2026-11-24): an exhaustive held / not-held search (states merged on position, speed,
+  mode, button, orbs) from an attempt's replayed state through a stretch. NO WAY where the user got through = a physics
+  difference there; a way that needs presses the log lacks = a missed input or timing. Fingerdash 550-558: a way exists
+  (10 min, 5.6k states at most) -> not a physics fact. xStep 205-216: a way only by 35 presses in 0.9 s -> a
+  physics lead (the search takes any way; judge whether a human could press it). Use --max 5000 (40000 ran out of time).
+- PLANNER GUARDS (2026-11-24, polish on GDLM 44 hellgate): tools/solutions.js fromRun saves a natural plan only when it
+  skips no portal / orb (a fresh solve's plan walked under the wave portal at block 292 that the raw route took) and, for
+  an incremental or windowed re-plan, adds no jump over nothing (else the whole-level plan). lib/natural.js mergeLegs
+  (after fly): a wave leg split into short presses by the controller's dead band is merged back, the stretch's other
+  inputs nudged by whole frames: hellgate's first corridor 5 presses / 5 short legs / 202 ticks near a wall -> 2 / 0 / 54.
+- FRAME-SNAPPED PRESSES do not help (the user's "Click Between Steps" is off, so GD may apply a press only at a
+  frame start): snapping the logged presses to 60/120/144 Hz grids (every phase) makes no stuck replay go further and
+  breaks Base After Base's clear (60 Hz: 12.9%). The logged times as they are fit best.
+- HABITS (tools/habits.js): median tap 120 ms (p10 88, p90 161) over 3,094 presses -- the human route's tap is 60 ms.
+- PATHS, not only outcomes (tools/pathcheck.js, 2026-11-24): the icon tracked in the video (track.py) against the
+  sim's path under the same presses. Height against "the lowest strong edge" failed (Base After Base: errors of
+  100-350 units on a run that clears in both -- the camera rises and the edge found is a block row, not the ground),
+  so the robust comparison is LAUNCHES: upward onsets in the video (faster than the camera ever moves) vs the sim's
+  jumps / orb and pad launches, lined up by one time shift. It reports matched launches, the timing drift over the
+  run (clock), and the first launch only in the video (the game launched, the sim did not) or only in the sim.
+  STATUS: NOT RELIABLE YET. Even on Base After Base, which the sim clears with the logged presses, only 75 of ~160
+  launches match: colour tracking is too noisy (lime decoration; the camera). Now: only the player's column is
+  tracked (0.367 of the window; 14 s instead of minutes) and the level start is searched +-0.4 s around the known
+  clock (bar start + shift - the video's ~1 s lag). Next: track the icon by its shape (template match), and the
+  ground / block rows from the level's own geometry at the sim's x, so heights compare too.
 - Practice-mode respawns break time -> x; per-attempt segmentation by the attempt label or a jump in x.
 Lab 2 (to build): the mini cube, the pink orb (clean, at ground level so the camera stays still), 45-degree
 and -53-degree teleports, the swing, dual portals, and a green orb in mid-air.
+
+## Agent co-solve (DESIGN, not built; the user's item 5, queued after buffering and unneeded jumps)
+
+Goal: faster solves of long levels (official, community, demons) and a second check against secret ways, by
+letting a cheap model (claude-haiku-5-5) read a section and say where the intended path goes.
+- Sections: cut the level at mode/speed portals and every ~40 blocks; per section a text map
+  (tools/textmap.js --from --to --rows, no path) plus a legend line: ~1-2 k tokens.
+- Prompt -> strict JSON only: `{"waypoints": [{"x": <block>, "y": [lo, hi], "why": "orb"|"portal"|"gap"|
+  "corridor"|"over"|"under", "obj": <id or null>}], "take": [object ids that must be used]}`; validated
+  against the section (ids exist, x within the section), else retried once, else ignored.
+- Cache: local/cosolve/<sha1 of the section's objects + prompt version>.json. A level re-solved after a
+  physics change pays nothing; a changed section pays for that section only.
+- Use in the solver: solveSweep gets opts.corridor(x) -> [ylo, yhi], interpolated between waypoints with a
+  margin. States outside it are ranked after all states inside (never dropped, so a wrong plan can't make a
+  level unsolvable), and `take` objects join the no-skip requirements. With the beam CAP, this focuses the
+  search: expect fewer states per tick, measured as time per level with and without.
+- Secret-way flag: the finished route's distance from the corridor; a route leaving it for more than ~1 s on a
+  rated level is reported as "off the intended path at x" (a physics-bug candidate, like a skip).
+- Cost report per level: sections, tokens in/out, cache hits, model time, solve time with vs without.
+- Not in lib/ (no network there): a tool, tools/cosolve.js, writes the corridor file; difficulty_solve reads it.
+Open: which API key and budget (the user's call); whether text maps carry enough for orb lines (test on
+Polargeist and Electroman, where secret ways were found).
 
 ## No secret ways (the user's rule, 2026-11-23, firm)
 
@@ -291,12 +503,17 @@ skips something, its 99% wrong. and will cause trouble. and anyway not the human
   search got near and never took is the "stuck" case. A portal that would change nothing for the player
   there (a ship portal while already a ship, a speed portal at that speed, gravity already that way, the
   same size) is not a requirement either.
-- An **orb or pad** is "clearly meant to be taken" when the route's player box comes within 15 units of it
-  (on the route's own line). The sweep already takes as many orbs as any route can, so a finished route that
-  still leaves one like that is reported stuck: `why: "skipped an orb/pad"`, `skipped: "<name> at x <x>"`.
-  An orb far off the line (above a corridor, a decoration orb) is not required. Optional orbs a level means
-  as optional: none marked yet (a spec key "optional" on the object would be the way; not built).
-- On official and rated levels a stuck like that is a **physics bug at that object**: our sim cannot take
+- **Orbs, pads and dash orbs are NOT requirements** (the user, 2026-11-24: "Skipping an orb or a dash is not bad,
+  sometimes they are actually fake and should be avoided. Unlike portals or whole paths which are rarely to be
+  skipped."). A route that passes one untaken is valid, and the sweep no longer ranks routes by orbs taken (it only
+  counts them: `skipped.orbs`), so it neither forces a route through an orb nor avoids one. `GD.skipCheck(w, path,
+  events, ignore, { orbs: true })` still reports an orb/pad the route's box came within 15 units of and left (a
+  level-design warning: tools/skips.js lists them as "untouched"); the decoy test (`decoy()`, Hexagon Force's yellow
+  orb at block 553.7 that kills every way it is taken) only runs then. Before 2026-11-24 such an orb was a failure:
+  Cant Let Go, Time Machine, Cycles, xStep, Clutterfunk and Clubstep counted unbeaten for an orb or pad alone.
+- **Portals and whole paths/sections** stay hard: skipping one is a failure (above; a whole path skipped without a
+  portal is not detected yet, see the last point).
+- On official and rated levels a portal stuck like that is a **physics bug at that object**: our sim cannot take
   what the game's players take. Never report a % or "beaten" that came from a skip.
 - Not yet covered: leaving the intended space without skipping anything (over a ceiling, outside a
   corridor); the sky limit (300 above the highest object) is the only guard.
@@ -304,6 +521,19 @@ skips something, its 99% wrong. and will cause trouble. and anyway not the human
 - The shared check is `GD.skipCheck(w, path, events)` (null = clean; else the stuck result).
 
 ## How the route is chosen (the natural route)
+
+- HOLDS THROUGH JUMPS become taps (lib/natural.js tapsEach), now also (2026-11-24, after gd-polish found 1-8 s holds
+  in routes planned after the rule): a hold running into or out of a ship / wave part keeps the button down only
+  where the mode steers; a hold one firing really needs is cut to the gaps that need it (greedy); and the pass runs
+  once more last (a later pass -- an orb buffered into an auto-jump chain -- had rebuilt one). Re-planned: GDLM 44
+  (36 presses, none left), 45, 61 (none), 60 (2.27 s through 6 jumps -> 0.43 s through 2: tapping there kills).
+- FIRST: the level's own planned inputs (tools/planned.js plannedEvents: the build's taps, 14 ticks each as
+  tools/hitbuild.js taps, and its ship schedule's own releases). When they clear the level as-is and skip nothing,
+  they ARE the saved route (kind "human", source "planned"; tools/solutions.js solve), with no solving. GDLM 62:
+  50 presses (43 taps + 7 ship presses), clears, 1.7 s (2026-11-24). Otherwise the natural plan below.
+
+Status of every saved route (official and GDLM: beaten?, kind, how it was made, plan stamp vs today's rules,
+skips, queued): `node tools/routes.js status [--official | --gdlm]` (saved files + one replay each, no solving).
 
 THE DEFAULT (the user, 2026-11-23: "let's by default solve with the human route, then in the limits we will
 see"): every route that is saved or shown is the human route below. tools/solutions.js fromRun is the one
@@ -328,7 +558,12 @@ or holds longer than needed (over 0.15 s outside ship/wave where a tap finishes)
    Cost: the first humanCost of a level is ~30 s on GDLM 44 (window measuring); measureWindows caches each
    window on the world `w` (difficulty, 48eeeac), so later candidates of the same level cost ~0.15-2 s.
    natural.js keeps one `w` per level for that reason.
-5. **Calibration (open):** tools/human_presses.js measures where the user really presses in each window
+5. **Orbs are taken buffered** (the user: "usually with orbs, when possible, we want to buffer"): the press
+   comes 2-6 frames before the orb and is held until the orb fires on its first tick of contact (in the sim a
+   press arms s.ring, kept while held; a ground jump uses it up, so a hold carried from a jump does NOT fire an
+   orb -- UNCHECKED against the game, a lab station is asked of gd-physics2). natural.js bufferOrbs;
+   tests/saved_routes.js warns on orbs no buffered press can take (natural.js unbufferedOrbs).
+6. **Calibration (open):** tools/human_presses.js measures where the user really presses in each window
    from recordings; the difficulty session fits humanCost's `centre` weight (and the 40%) to it.
 
 ## The intended route (solver ranking)
@@ -363,6 +598,10 @@ they neither confirm nor refute it. tests/art_tables.js fails if a type-0 or typ
 other hazard is type 2, except 1304 (type 7, decoration in OpenGD, but GD 2.2's decoration list leaves it
 out too: left a hazard, unchecked).
 
+2026-11-24: the user's Deadlocked practice run passes this spot (GD claude-rec 2026-11-24_00-33-07.mkv, practice
+complete, 30 attempts). The teleport's exit is absolute (portal y + 54, x kept; GDLM 60 station 2), so every
+player reaches the corridor mouth in the same place: the game clearing it means one of the three candidates
+below is wrong in the sim. Frames of that moment (hitboxes on in practice) can now settle which: open.
 With that and the quarter-turned teleports, Deadlocked's solve reaches block 695.4 (59%, physics 119344c):
 a ship takes a plain teleport (20887, 54 = -94) into a low corridor and its box overlaps a sideways
 spike (421) at the corridor's mouth by 1.6 units. Tried and ruled out (sweeps of
@@ -374,3 +613,166 @@ the spike by 1.3 units in x and 4 in y). The exit at the corridor's left mouth l
 corridor runs right to two gravity portals and the next teleport at 21561). Still open, unmeasured:
 the teleport's trigger width (25, sure:false; ~22 would clear it), the ship's hazard box, spike 421's
 box. Wants a hitbox-on recording of this spot (Deadlocked ~58.5 s).
+## Incremental solving (lib/incsolve.js, 2026-11-23; owner: the incremental-solving session)
+
+The user: "how can we reuse the solver data between runs, cutting, splitting. 5 minutes per re-solve sounds
+too much." A re-solve no longer has to start at the level's start. Everything below is exact or checked by a
+replay; nothing is trusted on a guess.
+
+**What a saved route keeps** (tools/solutions.js `put`, via `incSave`): `checkpoints` -- the exact sim state
+about every second, at a calm tick when there is one (`[tick, button down going in, state]`, 3-20 KB a level);
+the level itself by hash (`local/solutions/lv/<hash>.gz`, tools/inc_store.js); and its sections in the
+section cache (`local/incsolve/sections/`).
+
+**States compare exactly** (`canon`, `sameState`): every field of the state is compared (generic: a field a
+later change adds, like dual's `p2`, counts at once), with object indices (`used`, trigger keys of
+`fired`/`stopped`/`offDone`/`lockAt`) turned into object identity, so two versions of a level compare. Triggers
+that only move decoration are left out. Equal states at one tick under one level stretch give the same future:
+that is the whole basis of rejoining.
+
+**Calm** (`calm`): grounded, not dashing, no orb flag, not on a slope, not in dual, and every trigger that acts
+on something the player can touch has finished (no pending spawn delay, no move/rotate under way).
+
+**1. Edit re-solve** (`fromBase(oldLevel, oldRoute, newLevel)`, `resolve`): diff the objects (`objKey`: all
+keys), find the x range the change can touch the player in (`influence`: hitbox x range; a moved group's
+reach; a trigger's x and its group's reach; decoration nobody moves: nothing; a spawn trigger, a rotate
+centre or a header change: solve whole, says why). Replay the old route on the new level, check its prefix
+against the checkpoints, start from the last calm tick 1 s before the change (then 3 s, then 8 s), and search
+(solveSweep from that state) with `opts.goal`: the search ends the moment a state is the old route's exact
+state with the same button at a tick past the change. The old rest is spliced back, the whole new route is
+replayed and must finish and skip nothing (the no-skip rule stays on). Then the natural plan runs only on
+that window (`naturalPlan(..., { window: [from, to] })`; its flying controller's own solveFrom also stops when
+back on the route). A decoration-only edit keeps the route as it is.
+Wired in: `tools/make.js` (via `tools/check.js report(file, { base })`) re-solves an existing level from its
+previous build's saved route (`--full`: the old way); `tools/solutions.js fromRun` plans only the window.
+
+**2. Section cache** (`sectionsOf`, `cacheRoute`, `useCached`, `solveWithCache`): a route is cut at calm ticks
+in a plain mode (cube, robot, ball, spider) at least 2 s apart. A section is keyed by its entry state (without
+x) and the objects that can touch the player in it, their x taken from the grid column the section starts in
+-- so a section moved by whole blocks (cutting, joining) keeps its key. The player's phase inside a column is
+not in the key, so every cached section is replayed from the real entry state before it is used.
+`solveWithCache` walks a level: a cached section wherever one fits, else a search from there until a calm
+state where a cached section starts (a seam). Cutting and joining levels therefore solve only the seams.
+
+**3. Physics / planner change** (`refresh`): replay the saved route first; kept when it still finishes and
+skips nothing. Else the stretch from the first checkpoint that replays differently (or where it dies or skips)
+is re-solved from the calm tick before it until the run is back in a saved checkpoint state, and the old rest
+replayed under the new physics must finish. tools/solutions.js `solve` does this before a full solve.
+
+**4. Windows** (`windowsIncremental`): an input's window depends only on the run from difficulty's MAX_SHIFT
+before it to its look-ahead after the next input (difficulty's own exact cache key), so an old window is kept
+when the state there, the button over that span and the objects in that x range are all unchanged.
+
+**Tests:** `node tests/incsolve.js --quick` (no search: exact states across a reordered object list,
+checkpoints restore, edit ranges, decoration-only edits, a level rebuilt from its cached sections, a cut).
+`node tests/incsolve.js` adds edits of GDLM 41 re-solved both ways. The study: `node tools/incsolve.js study
+<level> --edits N --seed S` -- random one-spot edits (move a hazard, solid, orb or pad a block, or delete it),
+incremental vs full: both beat it or neither, incremental humanCost <= full + 0.02, time of each; rows in
+`local/incsolve/study.jsonl`.
+
+**Where a full solve's time goes** (GDLM 45, 40 s, ship + wave, 2026-11-23): 268 s = the search 128 s + the
+natural plan 140 s (its flying controller's 3 solveFrom calls 38 s, 6 humanCost calls 92 s -- each measures every
+window of the whole route on a fresh world). So an edit re-solve must cut all three: the search (start late, stop
+at the rejoin), the natural plan (window only) and humanCost (windows carried over: difficulty's
+`carryWindowCache(wOld, wNew, ranges, aToB)`, 2c577f7; fromBase and solutions.fromRun call it).
+
+**Results** (`local/incsolve/study.jsonl`; incremental vs full on the same edited level):
+
+| level | edit | incremental | full | cost inc / full |
+|---|---|---|---|---|
+| GDLM 41 (cube, 17 s) | spike moved 1 block | 5.7 s (searched to the end) | 6.5 s | 0.276 / 0.311 |
+| GDLM 41 | raised spike moved 1 block | 0.8 s (rejoined after 340 ticks) | 6.2 s | 0.280 / 0.276 |
+| GDLM 45 (ship/wave, 40 s) | spike moved 1 block | 252 s (rejoined; old goal check: 200 s of it) | 268 s | 1.246 / 1.246, same route |
+| GDLM 45, 2026-11-23 cloud, after the speed-ups below | same spike (cube, just before the ship portal) | 25 s (search 1.2 s, rejoined at the ship's end; the rest: humanCost of the new 6.5 s ship stretch) | 106 s | 1.241 / 1.246 |
+| GDLM 45, same | block moved 1 block (ball part) | 4.4 s (search 0.2 s) | 121 s | 1.148 / 1.186 |
+| GDLM 45, same | another block moved (ball part) | 2.1 s (search 0.2 s) | 120 s | 1.148 / 1.186 |
+| GDLM 61 (cube/ship/ball, 72 s), same | block moved 1 block (cube) | 4.4 s | 124 s | 0.928 / 0.928 |
+| GDLM 61, same | hazard moved 1 block up (inside the ship) | 63 s (beam 100 died in 0.2 s; full beam 53 s) | 120 s | 0.908 / 0.935 |
+| GDLM 41, cut (section cache) | cut at x 2662 | 0.5 s (4 sections reused, 1 seam) | 0.7 s | 0.153 / 0.153 |
+| GDLM 41, joined with itself | +5430 | 1.6 s (7 reused) | 5.4 s | 0.566 / 0.556 |
+| GDLM 61, cut | cut at x 11060 | 10 s (12 reused) | 68 s | 1.624 / 1.667 |
+| GDLM 61, joined with itself | +22800 | 206 s (36 reused; 4 seams, the first 10 000 ticks: the ship and ball stretches have no cut point) | 253 s | 1.858 / 1.935 |
+
+**Speed-ups (2026-11-23, the cloud session; every solver gains, not only re-solves):**
+- **State copies were 90x too slow.** On V8 (node 22) `Object.assign({}, state)` of a 20+ field state makes a
+  dictionary-mode object: 5.8 us a copy and slow field reads in every step. `{ ...state }` keeps the fast shape
+  (64 ns). Changed in lib/physics.js `clone`, difficulty.js `cloneS`, natural.js, windows.js, incsolve.js,
+  tools/fairness.js. **Rule: never copy a sim state with Object.assign({}, s); spread it.** GDLM 41 whole solve
+  (search + natural plan + humanCost) 9.0 s -> 1.6 s, the same route (hash) and cost; a cold humanCost of GDLM 45's
+  ship part 31 s -> 11.5 s (with the two below).
+- `near(w, x)` (lib/physics.js) builds each column span's object list once per world (`w._near`); same order.
+- fireTriggers walks every fired trigger each tick for toggles only when the level has a toggle (`T.hasToggle`).
+- `resolve` searches with a narrow beam first (`opts.caps`, default [100, full]): the rejoin is exact and the
+  spliced route is replayed, so a narrow beam risks only a miss (then the full 6000). GDLM 45's ship edit: the
+  same rejoin tick in 1.2 s instead of 113 s.
+- Measured how: `node tools/incsolve.js study ...` rows; `node --cpu-prof` on a humanCost with the ship part's
+  windows removed from the cache (cloneS was 45% of it before).
+
+**Where an edit's time goes now** (GDLM 45): an edit whose effect cannot rejoin inside a flying stretch (a ship
+cannot come back to the old route's exact y and vy mid-air; it rejoins where the stretch ends) re-plans the whole
+stretch: the natural plan costs 4 routes with humanCost, each measuring the stretch's windows (~6 s each for 6.5 s
+of ship). Fewer humanCost calls in a window re-plan (lib/natural.js, physics) or a cheaper window measure in a
+flying stretch (lib/difficulty.js, difficulty) are the next cuts; asked both in this section.
+A beam between 100 and 6000 does not help inside a ship corridor: on GDLM 61's ship edit 200 and 400 die, 800 finds
+a route that costs 0.954 (full solve 0.935, the full beam 0.908): the sweep's ranking keeps the fewest wall-hugs
+and presses, so a narrow beam loses the heights that get through. A beam that keeps the best state per height band
+(solveSweep, physics) would let a narrow search work in flying stretches too.
+
+**Open:** the rejoin search on flying stretches keeps thousands of states a tick (the goal check now compares a few
+raw fields first); humanCost on a new world in a new process starts cold until the window cache is saved with the
+route (asked difficulty for export/import); sections are only cut in plain modes, so a level that is all ship has
+one section; the cache keys sections on whole-block moves only.
+
+### Incremental solving -- hand-off (2026-11-24, from the local session to a cloud session)
+
+**Done (all on main):** lib/incsolve.js (diff, influence, exact states incl. dual p2 and every trigger-keyed
+field, calm points, checkpoints, `resolve`/`fromBase` edit re-solve with rejoin, `refresh` after a physics change,
+section cache + `solveWithCache`, `windowsIncremental`, `carryWindows`), tools/incsolve.js (`study`, `cutjoin`,
+`profile`), tools/inc_store.js (local/ files), tests/incsolve.js. Wired in: make.js -> check.js `report(file,
+{ base })` re-solves an existing level from its previous build (`--full`: whole); solutions.js `fromRun` plans
+only `r.inc`'s window and carries windows from `r.world`, saves checkpoints, the level, its sections and the
+window cache with every route; `solve` tries `refresh` before a full solve. tools/edit.js (gd-edit) calls
+`fromBase`; it was told to pass `inc` and `world` on to fromRun (not checked that it does).
+
+**Results so far:** the table above. In short: GDLM 41 one-spot edit rejoined: 0.8 s vs 6.2 s full, cost 0.280 vs
+0.276; GDLM 45 (ship/wave): same route and cost as full, but 252 s vs 268 s -- 200 s of it the rejoin search
+(fixed since: the goal compares raw fields first, NOT yet re-measured) and 50 s humanCost on a cold world (fixed
+since: window cache carried, NOT yet re-measured). No row yet for GDLM 61, cuts or joins (`cutjoin` never ran).
+
+**Done 2026-11-23 (cloud):** items 1-3 of the old list: GDLM 45 and 61 re-measured, cut/join measured, tests/incsolve.js
+passes (3 GDLM 41 edits within 0.02 of full). The table above has the rows. Every incremental result passed and
+cost at most full + 0.01 (most cost less: the old human route is kept outside the window).
+
+**Next, in order:**
+1. Flying-stretch edits (GDLM 45's ship 25 s, GDLM 61's 63 s): fewer humanCost calls in a window re-plan
+   (natural.js `fly`/`plan` cost 4 routes; ask physics), a cheaper window measure in flying modes (ask difficulty),
+   a height-diverse beam in solveSweep (ask physics) so the 100-state first try works in corridors.
+2. Joins of mode levels: sections are only cut in plain modes, so a join re-searches each ship/ball stretch whole
+   (GDLM 61 joined: 206 s vs 253 s). Cut flying stretches too, at a state the search can re-enter (a portal exit,
+   a wall-touch), or key a flying section by its entry state and replay it.
+3. Widen the study: `node tools/incsolve.js study <level> --edits 3 --seed N` over every level in levels/ and
+   examples/ (cube ones are seconds now; mode ones ~2 min each for the base solve, then the full solve per edit).
+4. Fill the time table in CLAUDE.md as rows come in (done for what is measured).
+5. Use the rejoin goal in tools/difficulty_solve.js --resume (physics' suggestion) -- agree with gd-difficulty /
+   gd-physics first.
+
+**Cloud notes:** local/ is not there, so no saved solutions, checkpoints, sections or window caches: `study` and
+`cutjoin` solve the base level fully first (1-2 min for a mode level since the speed-ups) and save it as make.js
+would, so the next run of either starts from it; use only the levels in git
+(levels/, examples/). The heavy lock (tools/heavy.js) still applies inside the tools.
+
+**Agreements:**
+- gd-physics (owner of lib/physics.js, natural.js): hooks `solveSweep opts.goal` and `naturalPlan opts.window`
+  (d68d0df), no change when unset; the no-skip rule stays on in every partial solve (skips()/reach in the sweep,
+  GD.skipCheck on every spliced route); run tests/mechanics.js, saved_routes.js, tas_progress.js before pushing
+  changes to them (mechanics and tas_progress pass with the hooks; saved_routes' 4 failures were stale saved
+  routes, physics is refreshing them).
+- gd-physics2 (triggers, dual, moving objects): all state in `s`, plain data, copy-on-write; index-keyed fields
+  `used`, `p2.used`, trigger-keyed (`k` or `k.n`) `fired stopped paused psum tgt fol offDone lockAt nfire`,
+  `pend` [[tick, k]], `off` by group, `tp` a position in byX. A new index field must be added to
+  lib/incsolve.js `canon` (TRIG_MAPS) or states across edits compare wrong.
+- gd-difficulty: window reach is 48 ticks back, max(T, nextT) + 48 + 240 ahead; `measureWindows opts.ticks`
+  (7b03ee1), `carryWindowCache(wOld, wNew, ranges, aToB)` (2c577f7), `exportWindowCache` / `importWindowCache`
+  (f0d483d).
+- gd-style's intended-route plan: not discussed with this session; ask gd-style how its route ranking should
+  apply inside a partial re-solve before changing the sweep's ranking there.

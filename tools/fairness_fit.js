@@ -24,7 +24,7 @@ for (const lv of PLAYED) {
   if (fs.existsSync(cf)) A = JSON.parse(fs.readFileSync(cf, "utf8"));
   else {
     let file = lv.file && path.join(ROOT, lv.file);
-    if (lv.git) { file = path.join(CACHE, path.basename(cf, ".json") + ".gdlvl"); fs.writeFileSync(file, execSync(`git show ${lv.git}`, { cwd: ROOT })); }
+    if (lv.git) { file = path.join(CACHE, path.basename(cf, ".json") + ".gdlvl"); fs.writeFileSync(file, execSync(`git show ${lv.git}`, { windowsHide: true, cwd: ROOT })); }
     A = F.analyseFile(file); fs.writeFileSync(cf, JSON.stringify(A));
   }
   const fl = F.flags(A, thArg);
