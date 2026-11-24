@@ -13,6 +13,8 @@
   header { position:relative; }
   #viewMenu { position:absolute; right:16px; top:100%; z-index:60; display:flex; flex-wrap:wrap; gap:6px; max-width:min(440px, calc(100vw - 32px)); padding:10px; background:var(--panel); border:1px solid #2b2060; border-radius:8px; box-shadow:0 6px 24px rgba(0,0,0,.5); }
   #viewMenu[hidden] { display:none; }
+  .cmpBtn { border-color:#ff7ad9 !important; color:#ffd0f0; font-weight:600; }
+  .cmpBtn.on { background:#5a1f4a !important; color:#fff; }
   select, button, label.btn { background:#24184f; color:var(--ink); border:1px solid #3b2d78; border-radius:6px; padding:6px 10px; font:inherit; cursor:pointer; }
   button.on { background:#3b2d78; border-color:var(--cube); }
   #wrap { position:relative; }
@@ -1217,12 +1219,13 @@ async function runsFor(LL) {
   const worst = Object.entries(b).sort((x, y) => y[1] - x[1])[0];
   el.hidden = false;
   el.innerHTML = `<p class="muted" style="margin:6px 0 2px">Your runs at this version: ${rows.length} (${rows.filter(r => r.result === "clear").length} clear${worst ? `, most deaths at ${worst[0]}-${+worst[0] + 10}%` : ""})${older ? ` · ${older} at older versions` : ""}</p>` +
-    `<select id="runPick"><option value="">replay one beside the route…</option>` + rows.slice().reverse().map(r => `<option value="${esc(r.id)}">${r.source === "video" ? "🎥 " : "🎮 "}${r.video && r.video.res === "mismatch" ? "⚠ " : ""}${r.result === "clear" ? "clear" : "died " + Math.round(r.pct) + "%"} · ${r.presses} presses${r.practice ? " · practice" : ""} · ${ago(r.at)}</option>`).join("") + `</select> <button id="runRoute" hidden title="show the solved route's player, trail and presses next to your run (your run is then the pink ghost)">show route</button> <span id="runCmp" class="muted"></span>`;
+    `<select id="runPick"><option value="">replay one beside the route…</option>` + rows.slice().reverse().map(r => `<option value="${esc(r.id)}">${r.source === "video" ? "🎥 " : "🎮 "}${r.video && r.video.res === "mismatch" ? "⚠ " : ""}${r.result === "clear" ? "clear" : "died " + Math.round(r.pct) + "%"} · ${r.presses} presses${r.practice ? " · practice" : ""} · ${ago(r.at)}</option>`).join("") + `</select> <button id="runRoute" class="cmpBtn" hidden title="compare: your run (pink, “you”) and the solver’s route (“solver”) play together, with both press timelines in the band (remembered)">⇄ compare with solver</button> <span id="runCmp" class="muted"></span>`;
   const sel = document.getElementById("runPick");
   if (PK.openRun && PK.openRun.base === GD.attemptsBase(f)) { const want = rows.find(r => r.id === PK.openRun.id) || rows[rows.length - 1]; PK.openRun = null; sel.value = want.id; runShow(want.id); }
   if (LL.ghost) sel.value = LL.ghost.row.id;
   sel.onchange = () => runShow(sel.value);
   const rb = document.getElementById("runRoute"); rb.hidden = !LL.ghost; rb.classList.toggle("on", VIEW.route);
+  rb.textContent = VIEW.route ? "⇄ comparing with solver" : "⇄ compare with solver";
   rb.onclick = () => { VIEW.route = !VIEW.route; VSET("route", VIEW.route); runViewApply(); runCmpText(); };
   runCmpText();
 }
@@ -1279,7 +1282,7 @@ function runViewApply() {
     Object.assign(LL, { path: g.path, held, vrot: typeof visualRot === "function" ? visualRot(g.path) : null, sol: Object.assign({}, LL.runKeep.sol, { clicks, run: true }), noRoute: false, planBreak: null });
   }
   t = Math.min(t, (LL.path.length - 1) / P.TPS);
-  const b = document.getElementById("runRoute"); if (b) { b.hidden = !g; b.classList.toggle("on", VIEW.route); }
+  const b = document.getElementById("runRoute"); if (b) { b.hidden = !g; b.classList.toggle("on", VIEW.route); b.textContent = VIEW.route ? "⇄ comparing with solver" : "⇄ compare with solver"; }
   if (typeof clickTable === "function") try { clickTable(); } catch (e) {}
   draw();
 }
@@ -1290,7 +1293,16 @@ function runCmpText() {
   const ms = dt => Math.round(dt / P.TPS * 1000), c = g.cmp, v = g.row.video;
   const warn = v && v.res === "mismatch" ? `<span style="color:#ffb35a;cursor:help" title="${esc("the sim does not reproduce this recording: " + (v.mismatch || "it differs from the video") + ". The run stops where the sim dies.")}">⚠ sim disagrees</span> · ` : "";
   const pre = g.from ? `<span title="the route's presses take it to the checkpoint">practice from ${(g.from / P.TPS).toFixed(1)} s</span> · ` : "";
-  const end = g.row.result === "clear" ? "clear" : "died at " + Math.round(g.row.pct) + "%";
+  // what happened (the game, or the viewer's play) and what the sim makes of the same inputs, apart when they differ
+  // (physics may split the fields: video.result / sim.result; until then the ghost's own end is the sim's outcome)
+  // the agreed line shape (tools/attempts.js): result / pct = what really happened, sim {result, pct, x, why} = the sim on the
+  // same inputs, agree; user_result / sim_result (flat) read too
+  const R = g.row, sim = R.sim || (R.sim_result ? { result: R.sim_result, pct: R.sim_pct, why: R.sim_why } : null);
+  const you = R.user_result || R.result, youPct = R.user_pct != null ? R.user_pct : R.pct;
+  const gl = g.path[g.path.length - 1], simDead = sim ? sim.result === "died" : !!gl.dead;
+  const simPct = sim && sim.pct != null ? sim.pct : Math.max(0, Math.min(100, gl.x / Math.max(1, L.world.endX) * 100)), simWhy = (sim && sim.why) || gl.why || "";
+  const youTxt = you === "clear" ? "clear" : "died at " + Math.round(youPct) + "%", simTxt = simDead ? `dies at ${Math.round(simPct)}%${simWhy ? " (" + esc(simWhy) + ")" : ""}` : "clear";
+  const end = (you === "clear") === !simDead ? youTxt : `<b>you: ${youTxt}</b> · sim: ${simTxt}`;
   if (!c) { el.innerHTML = warn + pre + end; return; }
   const on = c.pairs.filter(p => Math.abs(p.dt) <= 2), early = c.pairs.filter(p => p.dt < -2), late = c.pairs.filter(p => p.dt > 2);
   const parts = [`${on.length} on time`, early.length && `${early.length} early`, late.length && `${late.length} late`, c.missing.length && `${c.missing.length} missed`, c.extra.length && `${c.extra.length} extra`].filter(Boolean);
@@ -1678,7 +1690,12 @@ function draw() {
   // a run of the user's beside the route: a pink ghost cube (its path), a cross where it died
   if (L.ghost && !MAPCAM && !(PLAY && PLAY.on)) { const gp = L.ghost.path, gk = Math.min(k, gp.length - 1), q = gp[gk], gx = sx(q.x), gy = sy(q.y), z = 15 * scale;
     if (!L.runKeep) { ctx.save(); ctx.globalAlpha = gk < k && q.dead ? 0.8 : 0.55; ctx.strokeStyle = "#ff7ad9"; ctx.fillStyle = "rgba(255,122,217,.25)"; ctx.lineWidth = 2.5 * DPR();
-    ctx.translate(gx, gy); ctx.rotate(-(q.rot || 0) * Math.PI / 180); ctx.fillRect(-z, -z, 2 * z, 2 * z); ctx.strokeRect(-z, -z, 2 * z, 2 * z); ctx.restore(); }
+    ctx.translate(gx, gy); ctx.rotate(-(q.rot || 0) * Math.PI / 180); ctx.fillRect(-z, -z, 2 * z, 2 * z); ctx.strokeRect(-z, -z, 2 * z, 2 * z); ctx.restore();
+      // comparing: "you" over the run, "solver" over the route's player (s: the route at this tick)
+      const tag = (x, y, txt, col) => { ctx.font = `bold ${12 * DPR()}px system-ui`; ctx.textAlign = "center"; const w = ctx.measureText(txt).width + 8 * DPR();
+        ctx.fillStyle = "rgba(11,6,32,.75)"; ctx.fillRect(x - w / 2, y - 16 * DPR(), w, 15 * DPR()); ctx.fillStyle = col; ctx.fillText(txt, x, y - 4 * DPR()); ctx.textAlign = "left"; };
+      const ry = sy(s.y) - z - 6 * DPR(), yy = gy - z - 6 * DPR(), close = Math.abs(sx(s.x) - gx) < 40 * DPR() && Math.abs(ry - yy) < 18 * DPR();
+      tag(sx(s.x), ry, "solver", "#9cf5c4"); tag(gx, close ? yy - 17 * DPR() : yy, "you", "#ff9ad9"); }
     if (q.dead && gk === gp.length - 1 && k >= gk) { ctx.strokeStyle = "#ff3b6b"; ctx.lineWidth = 3 * DPR(); ctx.beginPath(); ctx.moveTo(gx - z, gy - z); ctx.lineTo(gx + z, gy + z); ctx.moveTo(gx + z, gy - z); ctx.lineTo(gx - z, gy + z); ctx.stroke(); } }
   // where a build stage's plan breaks (a red cross at the death spot)
   if (L.planBreak && !MAPCAM) { const bx = sx(L.planBreak.x), by = sy(L.planBreak.y), r = 10 * DPR();
@@ -1738,7 +1755,8 @@ function drawDeaths() {
 // window, the button light; x follows the level's camera, so a window sits under the spot it is for
 function drawInput(k) {
   // the windows lane and the legend only when switched on (the view menu): the band is then just the presses
-  const d = DPR(), ib = document.getElementById("inbar"), IH = Math.round((VIEW.windows || VIEW.legend || L.hits || L.planned ? 58 : 34) * d);
+  const cmp2 = !!(L.ghost && !L.runKeep);   // comparing: the solver's presses, and the user's in a lane under them
+  const d = DPR(), ib = document.getElementById("inbar"), IH = Math.round((VIEW.windows || VIEW.legend || L.hits || L.planned || cmp2 ? 58 : 34) * d);
   if (ib.width !== W) ib.width = W; if (ib.height !== IH) { ib.height = IH; ib.style.height = Math.round(IH / d) + "px"; }
   const ix = ib.getContext("2d"), n = L.path.length;
   ix.clearRect(0, 0, W, IH); ix.fillStyle = "#0b0620"; ix.fillRect(0, 0, W, IH);
@@ -1789,6 +1807,13 @@ function drawInput(k) {
       ix.beginPath(); ix.moveTo(x, 2 * d); ix.lineTo(x + 4 * d, 6 * d); ix.lineTo(x, 10 * d); ix.lineTo(x - 4 * d, 6 * d); ix.closePath(); ix.stroke(); } }
   // a run of the user's: no marks here (the user: "i dont like the replays on the bottom"); the compact line beside
   // the runs picker says how its presses compare, with the details on hover
+  if (cmp2) { const g = L.ghost, gp = g.path, y0 = py + ph + 5 * d, hh = 12 * d, ev = (g.events || []).slice().sort((a, b) => a.tick - b.tick);
+    ix.fillStyle = "rgba(255,122,217,.08)"; ix.fillRect(0, y0, W, hh);
+    for (let i = 0; i < ev.length; i++) { const e = ev[i]; if (e.type !== "press" || e.tick >= gp.length) continue;
+      const rel = ev.slice(i + 1).find(x => x.type === "release"), e2 = Math.min(rel ? rel.tick : e.tick + 1, gp.length - 1);
+      const xa = sx(gp[e.tick].x), xb = Math.max(xa + 2 * d, sx(gp[e2].x)); if (xb < 0 || xa > W) continue;
+      ix.fillStyle = e2 - e.tick < 6 ? "#ff9ad9" : "rgba(255,122,217,.75)"; ix.fillRect(xa, y0 + 1 * d, xb - xa, hh - 2 * d); }
+    ix.font = `bold ${9 * d}px system-ui`; ix.textAlign = "left"; ix.fillStyle = "#9cf5c4"; ix.fillText("solver", 3 * d, py + 9 * d); ix.fillStyle = "#ff9ad9"; ix.fillText("you", 3 * d, y0 + 9 * d); }
   ix.fillStyle = "#fff"; ix.fillRect(sx(L.path[k].x) - 1, 0, 2, IH); // now
   // the legend, bottom left
   ix.textAlign = "left"; ix.font = `${10 * d}px system-ui`;

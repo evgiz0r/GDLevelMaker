@@ -13,6 +13,9 @@
 //     tick 0: the presses that reached its checkpoint are kept), session?, stage?,
 //     video?: { file, inputs (the input log's file name), t (start in the video, s), shift_ms, agree, res: "agree" | "mismatch",
 //              mismatch? } }   (tools/replay_run.js, source "video"; agreed with physics 2026-11-24)
+//   Outcome, two sides (proposed to physics 2026-11-24): result / pct / x / t / why = what really happened (the game in the
+//   recording, or the viewer's play; why only for a real death), sim: { result, pct, x, why, tick } = our sim replaying the
+//   same events, agree: true when both end the same way (same result, pct within 1). The viewer shows both when they differ.
 //   pct as GD shows it (0-100), x in units, for both sources. A practice attempt from a recording only has the inputs
 //   after its checkpoint: events start at from.tick, and the viewer prepends the route's own presses up to from.tick
 //   (and compares only from there); a viewer attempt carries its own presses before it.
