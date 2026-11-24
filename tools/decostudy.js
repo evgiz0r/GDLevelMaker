@@ -7,7 +7,8 @@
 //   back / front   share behind (B5-B3) / in front (T2-T4)
 //   dress    deco pieces within 1.5 blocks of a play object (solid / hazard), per play object: how much a block
 //            or spike is dressed (trims, fills, outlines, glow around it)
-//   glow     share of objects on a blending (additive) channel or from a glow / gradient / light family
+//   glow     share of objects on a blending (additive) channel or from a glow / gradient / fade family (plain 211 / 693
+//            squares and triangles count only when their channel blends)
 //   ch       distinct colour channels used (keys 21/22); hsv share of objects with an HSV shift (41/42)
 //   motion   move / rotate / scale, alpha / toggle, pulse, particle, shader, camera triggers on the screen
 // Per level: the median screen (screens with play objects), plus the contrast score (tools/contrast.js).
@@ -16,6 +17,7 @@
 // readable levels (dress, layers, glow, contrast >= 70) as reference picks.
 // One child process per level (big 2.2 levels); heavy (tools/heavy.js).
 "use strict";
+const MV = 2;   // measure version: cached results of another version are measured again (2: glow no longer counts "light" pieces)
 if (require.main === module && process.argv[2] !== "one") require("./heavy.js").claim();
 const fs = require("fs"), path = require("path"), cp = require("child_process");
 const ROOT = path.join(__dirname, ".."), COMM = path.join(ROOT, "local", "community"), OUT = path.join(ROOT, "local", "decostudy");
@@ -38,7 +40,7 @@ function measure(L) {
   const kind = o => (O.objInfo(o.id) || {}).kind;
   const isPlay = o => { const k = kind(o); return k === "solid" || k === "hazard"; };
   const layerOf = o => { const p = o.props || {}; if (p[24] != null && p[24] !== "") return +p[24]; const c = CAT[o.id]; return c && ZN[c.layer] != null ? ZN[c.layer] : 5; };
-  const glowy = o => { const c = CAT[o.id], ch = +((o.props || {})[21] || 0); return !!flags.blend[ch] || (c && /glow|gradient|light|fade|blur/i.test((c.family || "") + " " + (c.frame || ""))); };
+  const glowy = o => { const c = CAT[o.id], ch = +((o.props || {})[21] || 0); return !!flags.blend[ch] || (c && /glow|gradient|fade|blur/i.test((c.family || "") + " " + (c.frame || ""))); };   // not "light": lightsquare (211) / lighttriangle (693) / block0xx_light are plain pieces (style, 2026-11-24)
   const objs = L.objects.filter(o => o.x != null);
   const play = objs.filter(isPlay);
   if (!play.length) return null;
@@ -100,10 +102,10 @@ if (process.argv[2] === "one") {
   for (const sp of specs) for (const it of list(sp)) {
     const cache = path.join(OUT, it.id + ".json");
     let r = null;
-    if (fs.existsSync(cache) && it.group !== "gdlm" && it.group !== "given") r = JSON.parse(fs.readFileSync(cache, "utf8"));
+    if (fs.existsSync(cache) && it.group !== "gdlm" && it.group !== "given") { r = JSON.parse(fs.readFileSync(cache, "utf8")); if (r.v !== MV) r = null; }
     else {
       try { r = JSON.parse(cp.execFileSync(process.execPath, ["--max-old-space-size=3000", __filename, "one", it.src], { windowsHide: true, maxBuffer: 1 << 26, timeout: 180000 }).toString() || "null"); } catch (e) { r = null; }
-      if (r) fs.writeFileSync(cache, JSON.stringify(r));
+      if (r) { r.v = MV; fs.writeFileSync(cache, JSON.stringify(r)); }
     }
     if (r) rows.push(Object.assign(r, { group: it.group, id: it.id, likes: it.likes }));
   }
