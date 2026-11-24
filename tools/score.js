@@ -251,6 +251,11 @@ function scoreLevel0(level, brief, opts = {}) {
     gate("difficulty", off >= 2 ? "FAIL" : off === 1 ? "WARN" : "PASS",
       `${lab} (${diff.logAttempts.toFixed(2)} = ~${Math.round(10 ** diff.logAttempts)} attempts)` + (want.label ? `, want ${want.label}` : ""));
   }
+  // one ending: a level has at most one end text ("thanks for playing") and one signature (GDLM 65 / 66 collab joins
+  // had one after every part: the user, 2026-11-24). FAIL.
+  { const txt = level.objects.filter(o => o.id === 914 && o.props && o.props[31]).map(o => { try { return Buffer.from(String(o.props[31]).replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8"); } catch (e) { return ""; } });
+    const ends = txt.filter(t => /thanks for playing/i.test(t)).length, sigs = txt.filter(t => /made by claude/i.test(t)).length;
+    gate("one ending", ends > 1 || sigs > 1 ? "FAIL" : "PASS", `${ends} end text(s), ${sigs} signature(s)`, ends > 1 || sigs > 1 ? "only the level's last part ends it (tools/collab.js)" : ""); }
   // mode tier (the user, 2026-11-24: "the difficulty of modes is usually correlated to their appearance in gd main
   // levels"): each mode / speed / size / gravity / orb / pad has the rating of the first official level it appears in
   // (tools/modeorder.js, DIFFICULTY.md "Mode order"). A level using a feature MORE than one tier above its target reads

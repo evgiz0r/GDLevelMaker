@@ -120,6 +120,10 @@ function partBrief(brief, part, k, nParts, seed) {
   // before), alone it starts inside it at time 0 -- 13 ticks of ship physics apart (GDLM 65 p1 died 7 blocks in)
   if (k > 0) sub.portalRoom = brief.partPortalRoom ?? 3;
   if (k < nParts - 1) sub.signature = false;                     // the signature ends the last part only
+  // the level's title only at the first part's start, its "thanks for playing" only at the last part's end (the user,
+  // 2026-11-24: "in the collab they all put thanks for playing")
+  if (k > 0) sub._noTitle = true;
+  if (k < nParts - 1) sub._noEnd = true;
   // a part that ends in a flying section: its exit portal 4 blocks before the seam, so the cube is down on the floor
   // when the seam time comes (GDLM 65 p1: the exit at the section's very end left it on the portal's frame block, y 45)
   const lastSec = sub.sections[sub.sections.length - 1];
