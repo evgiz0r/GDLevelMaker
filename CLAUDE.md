@@ -416,6 +416,11 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   spec key `"props"` in make.js), `tools/props.js sheet | level`. Test: `node tests/pixelart.js`.
 - **The user's drawings -> levels** (SKETCH.md: reading a drawing into a spec, then making it fair;
   the GDLM 46 lessons).
+- **The whiteboard: draw a level freehand** (DRAW.md: no grid, pens for ground / blocks / spikes / deco / "I jump here" /
+  notes, areas, stamps for orbs, pads, portals and props, deco shown or hidden, the song's beats and drop on the board, ✓ check
+  and play; the cell-builder design): `viewer/draw.html` (⚙ view -> ✏ whiteboard; phone: `tools/draw_web.js`, link in
+  local/phone/draw_url.txt), `lib/sketch.js`, `tools/sketch.js` (a saved sketch from local/sketches/ -> .gdlvl + report).
+  Tests: `node tests/sketch.js`, `node tests/draw_page.js`.
 - **Levels onto the phone** (PUBLISH.md: unlisted upload from the PC game with computer use, where
   the buttons are, GD must be windowed, the user's yes before each upload; ONE phone slot,
   ID 152848491, filled with `install.js <lvl> --slot phone`; and the test slot "Claude Lab", `--slot lab --desc "..."`, not uploaded yet; both in `local/phone_ids.json`). **Install queue** `tools/install_queue.js` (add / watch: installs the moment GD closes, reads the save back; PUBLISH.md). `tools/install.js` keeps a shared level's online ID on re-install, so
