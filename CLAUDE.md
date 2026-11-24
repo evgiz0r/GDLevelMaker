@@ -77,6 +77,13 @@ not after it:
   viewer replays the plan at once (no solve) and the user can play it themselves. Solving comes after, as a check
   for secret ways and fairness; it never gates seeing or playing a level. A layout whose plan dies is a bug in the
   plan, shown at the death spot.
+- **One way to build a level: BUILDING.md.** Sections with seam contracts (like a collab), presses before
+  blocks (beat-first for synced levels), a playable layout at once, stages shown as they happen, alternatives
+  shown, reuse, measured times, and a retro in BUILDS.md. Read it before any build; change it when a build
+  teaches something.
+- **Process rules go in the repo, never only in a message.** The user (2026-11-24): "never just for one session
+  if its a big repeatable process". A rule, a process step or a lesson that one session was told applies to
+  every session and every future build: write it in CLAUDE.md, BUILDING.md or the topic's doc in the same round.
 - **Hand off.** Before a long pause or when your area changes hands, write where you stopped,
   what is open and the good numbers into your area's doc.
 - **Share, don't duplicate.** Results go into the shared `local/` (see below) so no session redoes
