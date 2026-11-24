@@ -15,6 +15,18 @@ is clicked to go there. Overlays (the level picker, the work panel, the note box
 **compare** sits in the top bar, greyed with "pick a run first" until a run is loaded. `node tests/top_controls.js` fails on
 any control outside the top bar (the page's HTML, and headless on a level with runs, a build with stages and one of ours).
 
+**One row over the level.** The controls are one row from 800 px up (labels give way to their icons, the text stays as the
+tooltip; the least used buttons move into ⋯), two at phone width, and never over the level; the clock is under the
+timeline. In flying modes the camera centres the corridor when it fits, else follows the player with a block of ceiling
+and floor in view. tests/top_controls.js checks 375, 800 and 1200 px.
+
+**A run looks like you.** A run of the user's (and "you play") is drawn with the user's own icons and colours from their GD
+save (`tools/save_icons.js`, GET /me/icons: cube, ship, ball, UFO, wave, robot, spider, swing, colour 1 / 2; read-only, this
+PC only; colours known for GD's palette indices 0 and 3 so far, another index keeps the default). While a run is open it is
+always the player; "⇄ vs solver" adds the solver as a dashed green outline, both labelled, and the solver's clicks in a lane
+under "you". When the sim loses the run, a cross says so ("our bug, not your death") and the camera carries on to where
+the real run ended, so every logged click is on the strip. Camera-only steps aside while a run is open.
+
 **Presses as long as they act.** In the button band a tap is a short tick. A hold is a bar only where holding moves the player
 (ship, wave, robot, a dash orb); a hold in cube, ball, UFO, spider or swing is a tick at each jump it makes on a thin line
 ("held 4.3 s · 12 jumps"), and a long hold that makes one jump is flagged "⚠ held N s, 1 jump" (a route problem, shown as it
