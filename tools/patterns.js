@@ -272,7 +272,26 @@ def("ball-run", "a ball corridor (band rows 0-7 from a portal on the ground): a 
       o.push(k % 2 === 0 ? [9, x, 0, { dy: -13 }] : [9, x, gap - 1, { dy: 13, rot: 180 }]);
   }
   // exit on the floor (the frame forces a last flip down when the ball rides the roof)
-  portals(o, "ball", a.portalRow ?? 1, 1, w, a);
+  portals(o, a._mode || "ball", a.portalRow ?? 1, 1, w, a);
+  return { objects: o, width: w + (a.exit ? 1 : 0) };
+});
+// The swing (2.2): a tap flips its gravity like the ball's, but it flies (a smooth arc, no rolling), so the same
+// floor / roof alternation reads for it; a little more room (gap 6) since it swings past the middle row.
+// Space level (GDLM 71, the user: "Bit more flying with space").
+def("swing-run", "a swing corridor (band rows 0-7 from a portal on the ground): a roof `gap` (6) rows up, spikes alternating floor / roof every `every` (8) columns, each one a flip; portal/exit options", (a) =>
+  P["ball-run"].fn(Object.assign({ gap: 6, every: 8 }, a, { _mode: "swing" })));
+// The UFO: a tap is a hop, it falls between taps (flappy). A corridor with a solid roof `gap` rows up; pillars from the
+// floor (2 or 3 rows, 2 wide) alternate with hangers from the roof (2 rows), `every` columns apart after `lead`, so
+// the player hops over a pillar, then lets the UFO sink under a hanger.
+def("ufo-run", "a ufo corridor (band rows 0-8 from a portal on the ground): roof `gap` (7) rows up, floor pillars (2-3 rows) alternating with roof hangers (2 rows) every `every` (7) columns; portal/exit options", (a) => {
+  const w = a.w || 32, gap = a.gap || 7, every = a.every || 7, lead = a.lead ?? 6, o = [];
+  for (let c = 0; c < w; c++) for (let r = gap; r < 9; r++) o.push(["block", c, r]);
+  let k = 0;
+  for (let c = lead; c < w - 6; c += every, k++) {
+    if (k % 2 === 0) { const h = k % 4 === 0 ? 2 : 3; for (let i = 0; i < 2; i++) for (let r = 0; r < h; r++) o.push(["block", c + i, r]); }
+    else for (let i = 0; i < 2; i++) for (let r = gap - 2; r < gap; r++) o.push(["block", c + i, r]);
+  }
+  portals(o, "ufo", a.portalRow ?? 1, 1, w, a);
   return { objects: o, width: w + (a.exit ? 1 : 0) };
 });
 

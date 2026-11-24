@@ -133,6 +133,13 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 
 ## Not bland (rated Easy/Normal 2.0-2.1 medians)
 
+- [ ] **Few triple spikes** (the user, 2026-11-24: "lets do less triple spikes for now"): at most one per ~15 s, never two
+  within 4 s; singles, doubles, pits, pillars and orbs carry the jumps. `tools/triples.js` (sweep: `--all`), score.js
+  "triples" (WARN); compose turns a second triple in a section, or one within 4 chunks of the last, into a double
+  (`"triples": "allow"` in a brief = off). A triple = exactly 3 full spikes in a row (4+ is a pit). Sweep 2026-11-24: 4 of 29 levels over it (GDLM 43: 11 triples in 31 s,
+  47: 10, 64 v5 and 69: back to back), 39 triples in all; 6 of 81 library structures hold one (triple-spike, robot-triple,
+  spider-zaps, spider-steps, pad-launch, red-orb-wall).
+
 - [ ] **Long enough, with long sections**: 60 s or more (official 78-95 s) and at most ~6 mode changes a
   minute (official 1.3-5.2; ours were 7-17: short snippets). score.js gates "length" and "mode changes";
   compose notes it from the brief. (QUALITY.md, TASTE_DATA.md)
