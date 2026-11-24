@@ -1,0 +1,48 @@
+{
+ "note": "pace of real levels (tools/pace.js): official solved routes, energy.js obstacles per bar, flow.js changes per 10 s",
+ "at": "2026-11-24T19:15:52.929Z",
+ "rows": [
+  {
+   "level": "Jumper",
+   "secs": 85.4,
+   "cps": 0.92,
+   "obsPerBar": 0.71,
+   "unit": "bar",
+   "changesPer10s": 21.6,
+   "modeChangesPerMin": 2.8
+  },
+  {
+   "level": "xStep",
+   "secs": 80.4,
+   "cps": 0.97,
+   "obsPerBar": 3.42,
+   "unit": "bar",
+   "changesPer10s": 11.8,
+   "modeChangesPerMin": 5.2
+  },
+  {
+   "level": "Clutterfunk",
+   "secs": 94.9,
+   "cps": 1.01,
+   "obsPerBar": 3.04,
+   "unit": "bar",
+   "changesPer10s": 11.7,
+   "modeChangesPerMin": 2.5
+  },
+  {
+   "level": "Electroman Adventures",
+   "secs": 83.8,
+   "cps": 1.24,
+   "obsPerBar": 2.78,
+   "unit": "bar",
+   "changesPer10s": 17.6,
+   "modeChangesPerMin": 7.9
+  }
+ ],
+ "target": {
+  "cps": 1.01,
+  "obsPerBar": 3.04,
+  "changesPer10s": 17.6,
+  "modeChangesPerMin": 5.2
+ }
+}

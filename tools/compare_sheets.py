@@ -61,7 +61,7 @@ def black_ref(png):
     # the right half (the reference) nearly black: a trigger-built level, nothing drawn where its objects start
     try:
         im = Image.open(png).convert("L"); r = im.crop((im.width // 2, 0, im.width, im.height)).resize((80, 45))
-        return sum(r.getdata()) / (80 * 45) < 14
+        return sum(r.get_flattened_data()) / (80 * 45) < 25   # Subwoofer Lullaby (2.2, trigger-built) reads 2-15; dark real levels 40+
     except Exception: return True
 for g in data["gaps"]:
     opts = g.get("options") or [{"png": g.get("png"), "sub": g.get("sub", "")}]

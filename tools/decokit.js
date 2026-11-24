@@ -7,6 +7,7 @@
 //   out.push(...D.blockPattern(objects, x0, x1, { ch: C.fill, top: 32, seed }));   // inside the play blocks + top trims
 //   out.push(...D.backdrop(x0, x1, { far: 33, mid: 34, near: 35, seed }));          // three depths behind the play
 //   out.push(...D.tufts(objects, x0, x1, { ch: 36, seed }));                       // low grass in front, clear of hazards
+// motion(x0, x1, {beat, spb, energy, pulse, bob, sway}) puts the triggers; midTone(hue) gives a mid-tone palette.
 // Pieces: 211 (plain square, scaled per axis), 693 (triangle), the prop library (lib/props.js) as one-colour silhouettes.
 // Rules: nothing in front of a hazard; front pieces (T2) stay low and small; backdrop on B3-B5, darker / paler with
 // distance; every piece on a channel the caller owns. Readability: tools/contrast.js; density: tools/decostudy.js.
@@ -78,4 +79,53 @@ function depthColours(sky, tint = [90, 60, 100], k = [0.18, 0.32, 0.48]) {
   return { far: mix(sky, tint, k[0]), mid: mix(sky, tint, k[1]), near: mix(sky, tint, k[2]) };
 }
 
-module.exports = { blockPattern, backdrop, tufts, depthColours };
+// --- motion: deco that moves with the song (ART.md "Deco targets": the strongest gap; gd-taste's section comparison,
+// local/compare_sections, 2026-11-24: rated 2.2 levels median 48 motion triggers per screen and ~1700 pulse / move /
+// rotate triggers a minute, ours 10 and 406). Per beat, at energy 1: one group pulse per pulse group (the first on the
+// beat, the others on the off-beats: real levels put ~30% of their pulses on a beat, ours 57% read as a metronome),
+// a bob up and back per bob group in its own phase, a sway out and back per sway group. Every group ends each beat
+// where it began (nothing drifts). With 4 pulse + 3 bob + 1 sway groups: 4 + 6 + 2 = 12 triggers a beat = ~46 a
+// screen at 120 bpm (1x), ~1440 a minute. energy (0-1) uses only the first ceil(n * energy) groups of each kind:
+// calm 0.3, groove 0.6, drop 1. The caller owns the groups: put deco in them (o.group on blockPattern, props'
+// groups, scenekit motes). Pulses touch deco groups only -- never a group holding a hazard, orb or block edge
+// (a flashing spike reads as a different object; contrast.js "drown").
+// o: beat (units per beat), spb (seconds per beat), phase (x of a beat, default x0), energy, pulse [groups],
+//    bob [groups], sway [groups], dy (bob height, 4), deg (sway angle, 6), rgb (pulse colour, white), fade (of a beat, 0.6)
+function motion(x0, x1, o = {}) {
+  const out = [], beat = o.beat || 155.8, spb = o.spb || 0.5, e = Math.max(0, Math.min(1, o.energy ?? 1));
+  const use = a => (a || []).slice(0, Math.ceil((a || []).length * e));
+  const P = use(o.pulse), B = use(o.bob), W = use(o.sway), dy = o.dy ?? 4, deg = o.deg ?? 6, rgb = o.rgb || [255, 255, 255];
+  const ph = o.phase ?? x0, first = ph + Math.ceil((x0 - ph) / beat - 1e-6) * beat;
+  for (let x = first; x + beat <= x1 + 1e-6; x += beat) {
+    P.forEach((g, i) => out.push(K.pulse(x + (i ? beat * (i / P.length) : 0), g, rgb, 0, 0, spb * (o.fade ?? 0.6), { group: true })));
+    B.forEach((g, i) => { const t = x + beat * (i / Math.max(1, B.length)) * 0.5;
+      out.push(K.move(t, g, 0, dy, spb / 2, 13), K.move(t + beat / 2, g, 0, -dy, spb / 2, 13)); });
+    W.forEach(g => out.push(K.rotate(x, g, deg, spb / 2, { ease: 13 }), K.rotate(x + beat / 2, g, -deg, spb / 2, { ease: 13 })));
+  }
+  return out;
+}
+
+// A mid-tone scene with clear hazards (gd-taste's comparison: rated 2.2 levels' contrast score ~50 against our 100;
+// their background sits at luminance ~0.2-0.26 or near black, their blocks within 1.35-6.2x of it and read by their
+// outlines; ours were black blocks on a bright sky, 5.6-15x). Given a hue (0-360), returns rgb for bg, ground, block
+// (fill), edge (block outline: scenekit blocks o.edge), hazard and deco depths far/mid/near, so that
+// block/bg ~ o.blockRatio (3: knowledge/checklist.md "Three values", under contrast.js's stark 6.5), hazard/bg ~4.4
+// (checklist: sky vs spikes >= 4; rated medians 3.8-4.2), deco between bg and
+// block. o: bgLum (0.17), blockRatio (3), dark (true: blocks darker than bg; false: lighter), sat (0.6).
+function midTone(hue, o = {}) {
+  const C = require("./contrast.js"), sat = o.sat ?? 0.6;
+  const hsv = (h, s, v) => { const f = n => { const k = (n + h / 60) % 6; return v - v * s * Math.max(0, Math.min(k, 4 - k, 1)); };
+    return [f(5), f(3), f(1)].map(c => Math.round(c * 255)); };
+  const atLum = (h, s, L) => { let lo = 0, hi = 1; for (let i = 0; i < 30; i++) { const m = (lo + hi) / 2; if (C.lum(hsv(h, s, m)) < L) lo = m; else hi = m; } return hsv(h, s, hi); };
+  const bgL = o.bgLum ?? 0.17, r = o.blockRatio ?? 3, dark = o.dark !== false;
+  const blockL = dark ? (bgL + 0.05) / r - 0.05 : (bgL + 0.05) * r - 0.05;
+  const hz = dark ? Math.min(1, (bgL + 0.05) * 4.4 - 0.05) : Math.max(0, (bgL + 0.05) / 4.4 - 0.05);
+  const bg = atLum(hue, sat, bgL), block = atLum(hue, sat * 0.9, Math.max(0.002, blockL));
+  const mixL = t => bgL + (blockL - bgL) * t;
+  const P = { bg, ground: atLum(hue, sat, Math.max(0.002, mixL(1.1))), block, edge: atLum((hue + 20) % 360, sat * 0.5, Math.min(1, bgL * 3 + 0.1)),
+    hazard: atLum(hue, dark ? 0.06 : sat, hz), far: atLum((hue + 10) % 360, sat * 0.7, mixL(0.2)), mid: atLum((hue + 5) % 360, sat * 0.8, mixL(0.45)), near: atLum(hue, sat * 0.9, mixL(0.7)) };
+  P.ratios = { blockBg: +C.ratio(P.block, P.bg).toFixed(2), hazardBg: +C.ratio(P.hazard, P.bg).toFixed(2), edgeBlock: +C.ratio(P.edge, P.block).toFixed(2) };
+  return P;
+}
+
+module.exports = { blockPattern, backdrop, tufts, depthColours, motion, midTone };

@@ -87,6 +87,24 @@ ode.exe` (TCP,
   the user's icons, and a link opened Hexagon Force at 20 s. `.git/config`, CLAUDE.md, `local/inputs` and `local/phone/url.txt`
   were 403 there and still served on localhost. Not yet opened from the phone itself.
 
+## Section lab (pick one of a few variants of one moment)
+
+The user (2026-11-24): "smaller sections, with reviews". The style session's `tools/lab.js` builds one 10-20 s moment of a song
+as ~6 variants, each with its own hook (speed-up, mode switch, orb trick, ...). The viewer shows a round as a **lab bar**:
+the variants one tap apart (keys 1-9). A tap opens that variant and plays it from the start. Each variant has a line with
+its hook, why, and its pace against real levels. **🎮 play it** (P) lets the user play it. A **why** box has chips (boring,
+too slow, too hard, feels good, love the hook). **♥ pick vN** / **none: all dull** answers the round.
+- Open: `#lab=r1` (`#lab` = the newest round), or the Work panel's "Section lab" rows. Works on the phone over the home
+  Wi-Fi (the /lab routes and local/wip files are allowed from the LAN). Not on the phone page (no serve.js there).
+- Data: `local/lab/r<N>/round.json` {id, moment, t, variants:[{k, hook, why, file?}], ask}, `v<k>.result.json` {ok, pace}.
+  A variant's level is its stage card `local/wip/style/lab_r<N>_v<k>.gdlvl` (or the variant's `file`). A variant still
+  building is greyed and shows up by itself: the bar polls every 15 s.
+- A pick: `POST /lab/pick {round, k (0 = none), note}` answers the round's decision card with its option ("v3 orb-trick"),
+  adds a line to `local/reviews.jsonl` {kind:"lab", round, k, hook, answer, note, file}, and to the actions feed. Picking
+  again changes the answer. `test: true` stores nothing.
+- Not built: a grid of 6 small live previews at once (the viewer draws one level; one tap apart was the quick way).
+  The first open from a link does not start playing by itself; a tap does.
+
 ## For sessions
 
 - **Experiments are silent and not the user's: open the viewer with `?test=1`** (e.g. `http://localhost:8765/viewer/?test=1#lv=...`):
@@ -111,5 +129,6 @@ ode.exe` (TCP,
 
 `lib/liveplay.js` (live play with each attempt's inputs, planEvents, levelHash, comparePresses; `node tests/liveplay.js`), POST /play and GET /attempts (tools/serve.js), `tools/attempts.js`, `tools/actions.js`, `tools/ask.js` (local/asks/), `tools/stages.js` (approve, waitApproval, gate), `tools/serve.js`
 (POST /stages/review, GET /asks, POST /asks/answer; marks also go to the feed), viewer/index.html (Work, stage review).
+Section lab: GET /lab/list, GET /lab/r<N>, POST /lab/pick (tools/serve.js; GDLM_LAB_DIR for tests), `labOpen` in viewer/index.html; `node tests/lab_view.js`.
 Tests: `node tests/work.js` (gate -> waiting -> review -> waitApproval; card put -> list -> answer; the feed and tail),
 `node tests/stages.js`, `node tests/no_dialogs.js`.

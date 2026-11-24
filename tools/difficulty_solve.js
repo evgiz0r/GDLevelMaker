@@ -161,7 +161,9 @@ function toViewer(n, level, res) {
   // route is chosen"), as the GDLM levels get; difficulty's humanize when the natural plan fails
   const L = GD.parseLevel(level), w = GD.makeWorld(L.objects, L.header);
   let events = null;
-  try { const n = require("../lib/natural.js").naturalPlan(w, { ok: res.ok, events: res.events }, L.objects, { cost: true });
+  // the human route's tap length follows the level's stars (lib/natural.js tapMsFor: harder levels, shorter taps)
+  const stars = NAMES[n] ? NAMES[n][2] : null;
+  try { const n = require("../lib/natural.js").naturalPlan(w, { ok: res.ok, events: res.events }, L.objects, { cost: true, stars });
     if (n && (res.ok ? n.path[n.path.length - 1].done : true)) events = n.events; } catch (e) {}
   const kind = events ? "human" : "humanize";   // tools/difficulty.js scores a "human" route as it is
   if (!events) events = require("../lib/difficulty.js").humanize(w, res.events).events;

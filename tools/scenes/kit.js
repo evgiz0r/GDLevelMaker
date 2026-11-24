@@ -36,7 +36,7 @@ module.exports = function ({ objects, header, spec }) {
   header = K.channels(header, defs);
   const out = [];
   secs.forEach((s, i) => {
-    if (i > 0) out.push(...K.palette(s.x0, pal[i], 0.6));
+    if (i > 0) out.push(...K.palette(s.x0 - 45, pal[i], 0.6));   // fades in to the section start, not snapped onto its beat
     out.push(...D.blockPattern(objects, s.x0, s.x1, { ch: C.fill, top: C.trim, seed: 40 + i }));
     out.push(...D.backdrop(s.x0, s.x1, { far: C.far, mid: C.mid, near: C.near, trees: lum(s.bg) < 0.35 ? "dead tree" : "tree", density: 1.5, seed: 7 + i }));
     out.push(...D.tufts(objects, s.x0, s.x1, { ch: C.grass, seed: 60 + i, group: 412 }));

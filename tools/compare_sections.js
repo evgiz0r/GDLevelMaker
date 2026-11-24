@@ -211,7 +211,7 @@ async function main() {
     if (d.length < 3) continue;
     const md = med(d.map(x => x.d)), byGap = d.slice().sort((a, b) => Math.sign(md) * (b.d - a.d)), worst = byGap[0], same = d.filter(x => Math.sign(x.d) === Math.sign(md)).length;
     // rank: the median gap in reference spreads, times how consistently the pairs agree (2 * share - 1: 1 = all, 0 = a coin)
-    gaps.push({ area, k, label, u, z: md / iqr, rank: Math.abs(md / iqr) * Math.max(0, 2 * same / d.length - 1), ours: med(d.map(x => x.p.s.M[k])), ref: med(d.map(x => x.p.rs.M[k])), n: d.length, same, worst: worst.p, top: byGap.slice(0, 3).map(x => x.p) });
+    gaps.push({ area, k, label, u, z: md / iqr, rank: Math.abs(md / iqr) * Math.max(0, 2 * same / d.length - 1), ours: med(d.map(x => x.p.s.M[k])), ref: med(d.map(x => x.p.rs.M[k])), n: d.length, same, worst: worst.p, top: byGap.map(x => x.p) });
   }
   gaps.sort((a, b) => b.rank - a.rank);
   // pictures
@@ -239,7 +239,7 @@ async function main() {
   for (const p of pairs) sheetIn.pairs.push({ level: p.o.L.name, title: `${p.o.L.name} #${p.s.i} ${p.s.type} (${p.s.mainMode}, ${fmtT(p.s.t0 - p.o.E.off)}-${fmtT(p.s.t1 - p.o.E.off)})  vs  ${p.r.L.name} #${p.rs.i} ${p.rs.type} (${p.rs.mainMode}, ${fmtT(p.rs.t0 - p.r.E.off)}-${fmtT(p.rs.t1 - p.r.E.off)})${p.same ? "  same song" : ""}`,
     png: shots[`${p.o.L.name}|${p.s.i}`] || null, rows: SHOW.map(([a, k, l, u]) => [a, l, fmt(p.s.M[k], u), fmt(p.rs.M[k], u)]) });
   gaps.slice(0, 6).forEach((g, i) => sheetIn.gaps.push({ rank: i + 1, title: `${i + 1}. ${g.label}: ours ${fmt(g.ours, g.u)}, real ${fmt(g.ref, g.u)} (${g.same}/${g.n} pairs the same way)`,
-    // the three pairs that show it most; the sheet maker takes the first whose reference is not a black frame (a level built by
+    // the pairs in order of how much they show it; the sheet maker takes the first whose reference is not a black frame (a level built by
     // triggers draws nothing where its objects start)
     options: g.top.map(p => ({ png: shots[`${p.o.L.name}|${p.s.i}`] || null, sub: `shown: ${p.o.L.name} #${p.s.i} ${p.s.type} (${fmt(p.s.M[g.k], g.u)}) vs ${p.r.L.name} #${p.rs.i} (${fmt(p.rs.M[g.k], g.u)})` })) }));
   fs.writeFileSync(path.join(OUT, "sheets.json"), JSON.stringify(sheetIn));
