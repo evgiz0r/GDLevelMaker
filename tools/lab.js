@@ -42,7 +42,11 @@ const HOOKS = {
 };
 // a round's palette set: "space" = near-black skies in blue to violet, a little lighter or darker per variant (the user:
 // "Somewhat black background ... bit lighter bit darker"), each still separated by role (decokit.rolePalette)
-const PALETTES = { space: k => [215 + k * 14, { bgLum: [0.02, 0.035, 0.05][k % 3], sat: 0.55 }] };
+// "space" now takes gd-art's space kit (tools/themes/space.js): its four variants' role palettes, cycled, and the kit's dress
+// (tools/scenes/theme.js) -- near black a palette can't separate by luminance alone (round 2's first ufo variant mixed)
+const SPACE = ["moon", "dark", "light", "nebula"];
+const THEMED = { space: k => ({ pal: require("./themes/space.js").palette(SPACE[k % 4]), theme: { name: "space", variant: SPACE[k % 4] } }) };
+const PALETTES = {};
 const prefs = () => { try { return readJ(path.join(ROOT, "knowledge", "lab_prefs.json")); } catch (e) { return { hooks: {}, picks: 0 }; } };
 
 function round(briefFile, opts) {
@@ -60,11 +64,13 @@ function round(briefFile, opts) {
   // deco)"): each variant its own hue (~60 degrees apart), mid-tone sky, light path rims, spikes in their own hue
   const D = require("./decokit.js");
   const variants = names.map((h, k) => {
-    const pal = opts.palette === "song" ? null : PALETTES[opts.palette] ? D.rolePalette(...PALETTES[opts.palette](k)) : D.rolePalette((opts.hue0 ?? 30) + k * 60);
+    const th = THEMED[opts.palette] ? THEMED[opts.palette](k) : null;
+    const pal = opts.palette === "song" ? null : th ? th.pal : PALETTES[opts.palette] ? D.rolePalette(...PALETTES[opts.palette](k)) : D.rolePalette((opts.hue0 ?? 30) + k * 60);
     if (pal) col = { bg: pal.bg, ground: pal.ground, line: pal.line, obj: pal.pathEdge };
     const v = { _palette: pal, name: `LAB ${id} v${k + 1} ${h}`, desc: `Section lab ${id}: ${opts.name || "a moment"}, hook: ${h}`, song: brief.song, grid: brief.grid, offset: (brief.offset || 0) + t0,
       seed: (brief.seed || 1) * 100 + k, difficulty: brief.difficulty || { label: "Normal" }, terrain: true, structures: false, modern: true, signature: false, leadIn: 4, flips: false,
       sections: HOOKS[h].make(beats, col), _hook: h };
+    if (th) { v.scene = "tools/scenes/theme.js"; v.theme = th.theme; v._variant = th.theme.variant; }
     writeJ(path.join(dir, `v${k + 1}.json`), v);
     return { k: k + 1, hook: h, why: HOOKS[h].why };
   });
@@ -78,7 +84,7 @@ function build(id, k) {
   const C = require("./compose.js"), { build: mk, slug } = require("./make.js"), { scoreLevel } = require("./score.js"), { GD, writeGdlvl } = require("./io.js");
   const log0 = console.log; let built, placed = []; console.log = () => {};
   // the role palette's path and hazard colours: make.js puts block rims and hazards on their own channels (spec.colours)
-  try { const cr = C.compose(v); placed = cr.placed.map(q => q.name); if (v._palette) cr.spec.colours = Object.assign({}, cr.spec.colours, { path: v._palette.pathEdge, hazard: v._palette.hazardEdge }); built = mk(cr.spec, vf); } finally { console.log = log0; }
+  try { const cr = C.compose(v); placed = cr.placed.map(q => q.name); if (v._palette && !v.theme) cr.spec.colours = Object.assign({}, cr.spec.colours, { path: v._palette.pathEdge, hazard: v._palette.hazardEdge }); built = mk(cr.spec, vf); } finally { console.log = log0; }
   const level = built.level, levelStr = GD.serializeLevel(level), out = path.join(dir, `v${k}.gdlvl`);
   writeGdlvl(out, built.rec, level);
   const sol = require("./solutions.js").solve(level, levelStr, { name: v.name });
