@@ -414,7 +414,7 @@ fixes them (Deadlocked's 1202 ball lanes); the lettered helper blocks (type 40) 
 ## Calibration -- checked against the user's game
 
 How: the user says "record", "reshoot" (close the current file, start a new one) or "stop".
-Run `tools/record.sh start` in the background (whole screen, 60 fps, Desktop Duplication, to
+Run `tools/record.sh start` in the background (it also logs the user's GD inputs, only GD's jump keys/click while GD is in front, to local/inputs/, for tools/replay_run.js; PHYSICS.md "Fidelity") (whole screen, 60 fps, Desktop Duplication, to
 Videos/Captures/GD claude-rec <time>.mkv) and `tools/record.sh stop`. Whole screen rather than
 the GD window by title: a window capture looked "frozen" once, but the user had only tabbed out
 on a paused screen -- and the file was deleted on that wrong guess, losing their run. Never
