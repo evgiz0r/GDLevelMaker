@@ -87,6 +87,25 @@ const SERVER = http.createServer((req, res) => {
     res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" });
     return res.end(JSON.stringify(Object.assign(v, { checked: UPD.checked ? new Date(UPD.checked).toISOString() : null, note: UPD.off ? "self-update off" : UPD.note })));
   }
+  // POST /play {level, file, session, stage?, attempt, result: "died" | "clear", x, pct, t, why, from, practice}: one
+  // attempt of the viewer's "you play" mode -> the actions feed as type "play" (where the user dies: a soft signal for
+  // difficulty; VIEWER.md). test: true -> local/viewer_actions.test.jsonl
+  if (req.method === "POST" && p === "/play") {
+    let body = ""; req.on("data", c => { body += c; if (body.length > 1e4) req.destroy(); });
+    req.on("end", () => {
+      try {
+        const j = JSON.parse(body), num = v => (isFinite(+v) ? +(+v).toFixed(2) : undefined);
+        const a = { type: "play", session: String(j.session || ""), level: String(j.level || ""), file: String(j.file || ""), stage: j.stage ? String(j.stage) : undefined,
+          attempt: num(j.attempt), result: j.result === "clear" ? "clear" : "died", x: num(j.x), pct: num(j.pct), t: num(j.t), why: j.why ? String(j.why).slice(0, 120) : undefined,
+          from: num(j.from), practice: !!j.practice };
+        a.text = a.result === "clear" ? `cleared on attempt ${a.attempt}${a.practice ? " (practice)" : ""}` : `died at ${a.pct}% (block ${Math.round((a.x || 0) / 30)}, ${a.t} s)${a.why ? ": " + a.why : ""} -- attempt ${a.attempt}${a.practice ? ", practice" : ""}`;
+        const ACT = require("./actions.js");
+        const out = j.test ? (fs.appendFileSync(ACT.FILE.replace(/\.jsonl$/, ".test.jsonl"), JSON.stringify(a) + "\n"), a) : ACT.append(a);
+        res.writeHead(200, { "Content-Type": "application/json" }); res.end(JSON.stringify(out));
+      } catch (e) { res.writeHead(400); res.end(String(e.message)); }
+    });
+    return;
+  }
   if (req.method === "POST" && p === "/marks") {
     let body = "";
     req.on("data", c => { body += c; if (body.length > 1e5) req.destroy(); });

@@ -2,7 +2,8 @@
 // GDLM_LOCAL_DIR) a build puts a gated layout stage; tools/serve.js lists it as waiting for the user; the viewer's
 // POST /stages/review answers it, the stages index keeps the review and waitApproval() returns it; a decision card is
 // put (tools/ask.js), listed by GET /asks, answered by POST /asks/answer and stored; every answer is a line in the
-// actions feed, and `tools/actions.js tail --since <id> --once` prints exactly the lines after that id.
+// actions feed, and `tools/actions.js tail --since <id> --once` prints exactly the lines after that id; a "you play"
+// attempt (POST /play) is one "play" line.
 const fs = require("fs"), path = require("path"), os = require("os"), cp = require("child_process"), http = require("http");
 const ROOT = path.join(__dirname, ".."), tmp = fs.mkdtempSync(path.join(os.tmpdir(), "gdlm-work-"));
 process.env.GDLM_WIP_DIR = path.join(tmp, "wip"); process.env.GDLM_LOCAL_DIR = tmp;
@@ -37,6 +38,12 @@ const req = (method, u, body) => new Promise((ok, no) => { const r = http.reques
   // the feed, as the coordinator's monitor reads it
   const out = cp.spawnSync(process.execPath, [path.join(ROOT, "tools", "actions.js"), "tail", "--since", since, "--once"], { encoding: "utf8", windowsHide: true, env: Object.assign({}, process.env) }).stdout.trim().split("\n").filter(Boolean);
   check(out.length === 1 && /answer \[test · GDLM 98 gate test\] Which song\? -> B: driving/.test(out[0]), "actions tail --since prints exactly the new line: " + out[0]);
+  // "you play": an attempt is one "play" line in the feed (a test attempt goes to the test file instead)
+  const pr = await req("POST", "/play", { level: "GDLM 98 gate test", file, session: "test", stage: "layout", attempt: 3, result: "died", x: 1346, pct: 44.9, t: 4.32, why: "spike", from: 0, practice: true });
+  const pa = ACT.read().pop();
+  check(pr.status === 200 && pa.type === "play" && pa.result === "died" && pa.pct === 44.9 && /died at 44.9% \(block 45, 4.32 s\): spike -- attempt 3, practice/.test(pa.text), "POST /play: an attempt in the feed: " + pa.text);
+  const n0 = ACT.read().length; await req("POST", "/play", { level: "x", result: "clear", attempt: 1, test: true });
+  check(ACT.read().length === n0, "a test attempt stays out of the feed");
   srv.kill(); fs.rmSync(tmp, { recursive: true, force: true });
   console.log(bad ? `${bad} failed` : "all passed"); process.exit(bad ? 1 : 0);
 })().catch(e => { console.log("FAIL", e.message); srv.kill(); process.exit(1); });

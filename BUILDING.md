@@ -20,6 +20,9 @@ each section."
   approved on its own, by any builder, in parallel. Joining sections only checks the seams (and the sync at the
   seam). This is also use case 8 (combine / cut).
 - Seams are the incremental solver's checkpoints (lib/incsolve.js), so a changed section re-solves alone.
+- Stored in briefs/<NN_name>.seams.json (committed next to the brief): `node tools/seams.js write <brief>` makes
+  it, `seams.js check <brief> [level]` is the join check (y within 8 units, vy within 0.5, mode/speed/gravity/mini
+  exact), `seams.js status <brief> <section> <role> <state> --by <builder>` records who builds what.
 
 ## 2. Design first: the presses come before the blocks
 
@@ -32,6 +35,12 @@ each section."
   Sync is judged on the route's real presses: every press within +-1 frame of its hit, no extra presses.
 - The shown and played route presses on the planned time when that clears (not at the window's end). Human route
   rules hold: short ~60 ms taps, buffered orbs, no jumps over nothing, ship in the middle.
+  Built (2026-11-24): the planned presses are read from ONE place, the level's stages index
+  (local/wip/<session>/<slug>.stages/index.json, stage "layout", else "path": data.planned [{t seconds, what}],
+  releases left out) or a <slug>.planned.json beside the level; `node tools/planned.js "<level name>"` lists them.
+  tools/solutions.js passes them to lib/natural.js (opts.planned) from make.js, wip.js and tests/saved_routes.js:
+  each press goes to the nearest planned tick inside its window, else ~40% in. GDLM 62: 1 -> 33 of 62 presses
+  on a planned time.
 
 ## 3. A layout is playable the moment it exists
 
