@@ -201,22 +201,22 @@ T2-T4 15-25%, a third of channels blending, HSV on ~40%, motion per minute) and 
   (sky / frame clouds as one stretched square each): edges need shape -- scalloped "cloud band" props, stepped
   silhouettes, gradients.
 
-## Deco study: real levels per screen (2026-11-24, `tools/decostudy.js`, 822 levels, one 41-min run)
+## Deco study: real levels per screen (2026-11-24, `tools/decostudy.js`, 822 levels, measured again 2026-11-24 with glow v2, 39 min)
 
 One screen is 20 blocks (600 units). Each level gets its median screen, and the table shows each group's median.
 gd-taste's corpus is local/taste/corpus.json. The results stay in local/decostudy/ and are not committed.
 
 | group | levels | objects/screen (per block) | layers | dress per play object | glow | channels | motion triggers/screen | contrast |
 |---|---|---|---|---|---|---|---|---|
-| taste featured | 192 | 372 (18.6) | 3 | 3.8 | 53% | 8 | 15 | 45 |
-| legendary 2.2 | 18 | 416 (20.8) | 4 | 6.0 | 45% | 15 | 63 | 44 |
-| featured 2.0-2.1 | 26 | 347 (17.4) | 3 | 3.7 | 67% | 6 | 11 | 56 |
-| taste other (not featured) | 105 | 266 (13.3) | 3 | 2.2 | 33% | 4 | 6 | 63 |
+| taste featured | 192 | 372 (18.6) | 3 | 3.8 | 25% | 8 | 15 | 45 |
+| legendary 2.2 | 18 | 416 (20.8) | 4 | 6.0 | 12% | 15 | 63 | 44 |
+| featured 2.0-2.1 | 26 | 347 (17.4) | 3 | 3.7 | 47% | 6 | 11 | 56 |
+| taste other (not featured) | 105 | 266 (13.3) | 3 | 2.2 | 5% | 4 | 6 | 63 |
 | official 1-22 | 22 | 112 (5.6) | 3 | 0.5 | 1% | 0 | 2 | 93 |
 | **GDLM (ours)** | 16 | **31 (1.5)** | 2 | **0.2** | **0%** | 0 | **0** | 100 |
 
-**The glow column above is inflated.** It counted plain 211 / 693 pieces as glow (their catalogue family is lightsquare /
-lighttriangle). This was fixed in 034a6a5, and the numbers are being measured again (local/decostudy_run2.txt).
+Glow is measured as v2: blending channels plus the glow / gradient / fade / blur families. v1 also counted plain 211 / 693
+pieces, because their family is "lightsquare", and gave about twice these numbers.
 
 Quartiles (p25-p75):
 - taste featured: n 242-632, dress 2.0-6.2, motion p75 35;
@@ -225,13 +225,13 @@ Quartiles (p25-p75):
 
 What it says:
 - **Density.** Featured levels carry ~12x our objects per screen, and even RobTop's own levels carry 3.6x.
-  What separates featured from not featured: dress (3.8 vs 2.2), glow (53% vs 33%), channels (8 vs 4) and motion (15 vs 6).
+  What separates featured from not featured: dress (3.8 vs 2.2), glow (25% vs 5%), channels (8 vs 4) and motion (15 vs 6).
   The overall count matters less (372 vs 266).
 - **Dress is the biggest gap.** A featured level puts ~4 deco pieces within 1.5 blocks of every block or spike, a
   legendary one ~6; we put 0.2. So the play objects themselves get decorated: trims, fills, outlines, glow around them.
   A backdrop alone does not close it.
-- **Glow:** about half of the objects in a featured level sit on a blending channel or come from a glow / gradient family.
-  Ours: none.
+- **Glow:** a quarter of the objects in a featured level sit on a blending channel or come from a glow / gradient family.
+  In legendary 2.2 it is 12%, and in 2.0-2.1 featured levels 47%: glow-heavy is the older style. Ours: none.
 - **Motion:** 15 motion triggers per screen (move, alpha, pulse, particles...), 63 in legendary 2.2. Ours: 0.
 - **Layers:** a median of 3 layers holding 5% or more each. The back and front shares are small (most deco sits at
   B1-T1 around the play), so depth comes from colour more than from layer count.
@@ -242,7 +242,7 @@ What it says:
 **Targets for a GDLM level (per screen, play sections):**
 - n 250-600 (12-30 objects per block);
 - dress at least 3 per play object;
-- glow 30-50%;
+- glow 10-25%;
 - at least 6 channels, with HSV variants;
 - at least 10 motion triggers;
 - at least 3 layers;
@@ -256,7 +256,7 @@ Check any level with `node tools/decostudy.js <file.gdlvl>`.
 - Channels next: +0.18.
 - Dress counts mostly as effort (+0.12).
 - Glow helps featured over the rest (+0.14), but the best levels use LESS of it (epic+ against featured -0.26). Keep it
-  moderate: 30% is the target's low end, not something to maximise.
+  moderate: 10-25%, not something to maximise. These coefficients were fitted on v1 glow and are waiting for gd-taste's refit.
 - Layer count says nothing.
 score.js's "taste" gate now includes these measures.
 
@@ -265,12 +265,12 @@ community levels in local/community/ (local only).
 
 | id | name | n/screen | dress | glow | channels | motion | style |
 |---|---|---|---|---|---|---|---|
-| 138346597 | Hyperluminal | 1945 | 52 | 23% | 18 | 22 | very dense, detailed |
-| 92555035 | Dreamy | 372 | 28 | 52% | 15 | 43 | soft glow, lots of motion |
-| 149743086 | how is it october | 792 | 56 | 3% | 9 | 0 | flat-colour scenery, no glow |
-| 141525782 | Brave Blue (legendary 2.2) | 383 | 17 | 31% | 20 | 34 | modern 2.2, our density range |
-| 31912642 | Project Muse | 729 | 14 | 36% | 9 | 112 | motion-heavy |
-| 26248615 | Highscore | 439 | 6 | 86% | 8 | 14 | glow-based (2.0-2.1 style) |
+| 138346597 | Hyperluminal | 1945 | 52 | 16% | 18 | 22 | very dense, detailed |
+| 92555035 | Dreamy | 372 | 28 | 30% | 15 | 43 | soft glow, lots of motion |
+| 149743086 | how is it october | 792 | 56 | 1% | 9 | 0 | flat-colour scenery, no glow |
+| 141525782 | Brave Blue (legendary 2.2) | 383 | 17 | 8% | 20 | 34 | modern 2.2, our density range |
+| 31912642 | Project Muse | 729 | 14 | 21% | 9 | 112 | motion-heavy |
+| 27483789 | First Race | 478 | 5 | 74% | 9 | 5 | glow-based (2.0-2.1 style) |
 
 Brave Blue and Dreamy sit at our target density: compare against them first (tools/decowin.js, or
 tools/shoot.js for GD art).
