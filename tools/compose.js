@@ -429,6 +429,14 @@ function loop(briefFile, rounds = 8, phase = {}) {
         // section-local gates only: pacing / colour / difficulty are for the whole level
         const sc = scoreLevel(level, Object.assign({}, brief, { sections: undefined }), { fairness: false });
         sc.gates = sc.gates.filter(g => BLOCKING.has(g.name));
+        // a flying press judged on a section alone is not exact: the section's own solve climbs early from a
+        // standing start (GDLM 64 round 4: a ship tunnel's press "5.6 blocks ahead" in 8 rounds of repairs,
+        // 0.4-0.8 in the whole level). Those are judged in the whole level's score instead.
+        const FLY = /^(ship|ufo|wave|swing)$/;
+        if ((sc.prejumps || []).some(p => FLY.test(p.mode || ""))) {
+          sc.prejumps = sc.prejumps.filter(p => !FLY.test(p.mode || ""));
+          sc.gates = sc.gates.map(g => g.name !== "prejumps" ? g : Object.assign({}, g, sc.prejumps.length ? {} : { status: "PASS", value: "none (flying presses: judged in the whole level)" }));
+        }
         sc.ok = !sc.gates.some(g => g.status === "FAIL");
         unshift(sc, shift);
         console.log(`   section ${si} ${brief.sections[si].name}: ${sc.ok ? "ok" : "FAIL " + sc.gates.filter(g => g.status === "FAIL").map(g => g.name).join(",")} (${((Date.now() - t0) / 1000).toFixed(0)} s)`);
