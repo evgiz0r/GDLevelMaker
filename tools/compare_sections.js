@@ -7,7 +7,7 @@
 // 2. Each section is measured:
 //    sync     obstacles (the start of each hazard group, orbs, pads) within 60 ms of a beat / of an accent (the song's
 //             strongest 30% onsets); our presses within 60 ms of a beat (saved route, tools/solutions.js; refs have
-//             none); transitions (mode / speed portals, colour triggers) within a quarter beat of a bar line; deco
+//             none); transitions (mode / speed portals, by their centre) within a quarter beat of a bar line; deco
 //             pulses (pulse / colour / move / alpha / rotate triggers) within 60 ms of a beat. Luck for 60 ms is
 //             120 ms / beat period (~28% at 140 BPM).
 //    density  hazards and objects per block.
@@ -80,7 +80,7 @@ function events(L) {
   for (const h of haz) { if (h.x0 - last > 60) obs.push({ x: h.x0, t: tOf(h.x0) }); last = Math.max(last, h.x1); }
   for (const b of world.items) if (b.kind === "orb" || b.kind === "pad") obs.push({ x: (b.x0 + b.x1) / 2, t: tOf((b.x0 + b.x1) / 2), what: b.kind });
   obs.sort((a, b) => a.t - b.t);
-  const portals = world.items.filter(b => b.kind === "mode" || b.kind === "speed").map(b => ({ x: b.x0, t: tOf(b.x0), what: b.kind === "mode" ? b.d.mode : "speed" })).sort((a, b) => a.t - b.t);
+  const portals = world.items.filter(b => b.kind === "mode" || b.kind === "speed").map(b => ({ x: (b.x0 + b.x1) / 2, t: tOf((b.x0 + b.x1) / 2), what: b.kind === "mode" ? b.d.mode : "speed" })).sort((a, b) => a.t - b.t);
   const colour = L.objects.filter(o => COLOUR.has(o.id)).map(o => ({ x: o.x, t: tOf(o.x) }));
   const pulses = L.objects.filter(o => PULSE.has(o.id)).map(o => ({ x: o.x, t: tOf(o.x) }));
   let presses = null;
@@ -134,7 +134,8 @@ function measure(L, E, s) {
   const o1 = on(E.obs, t => nearBeat(t, 0.06)); M.obsOnBeat = o1.share; M.nObs = o1.n;
   M.obsOnAccent = on(E.obs, nearAccent).share;
   M.pressOnBeat = E.presses ? on(E.presses, t => nearBeat(t, 0.06)).share : NaN;
-  const tr = [...E.portals, ...E.colour].sort((a, b) => a.t - b.t).filter((e, i, a) => !i || e.t - a[i - 1].t > P);
+  // portals by their centre (SYNC.md); colour triggers are placed before the moment they fade to, so they are pulses here
+  const tr = E.portals.filter((e, i, a) => !i || e.t - a[i - 1].t > P);
   const t1 = on(tr, nearBar); M.transOnBar = t1.share; M.nTrans = t1.n;
   const p1 = on(E.pulses, t => nearBeat(t, 0.06)); M.pulsesOnBeat = p1.share; M.pulsesPerMin = p1.n / mins;
   M.hazPerBlock = E.haz.filter(h => h.x0 >= x0 && h.x0 < x1).length / blocks;
@@ -165,8 +166,8 @@ const SHOW = [
   ["sync", "obsOnBeat", "obstacles on a beat", "%"], ["sync", "obsOnAccent", "obstacles on an accent", "%"], ["sync", "transOnBar", "transitions on a bar line", "%"],
   ["sync", "pulsesOnBeat", "deco pulses on a beat", "%"], ["sync", "pulsesPerMin", "deco pulses per minute", ""],
   ["density", "hazPerBlock", "hazards per block", ""], ["density", "objPerBlock", "objects per block", ""],
-  ["variety", "heightChanges10", "height changes per 10 blocks", ""], ["variety", "chunkRepeat", "repeated chunks", "%"], ["variety", "modeChangesPerMin", "mode changes per minute", ""],
-  ["look", "layers", "z-layers in use", ""], ["look", "motionPerScreen", "motion triggers per screen", ""], ["look", "channels", "colour channels per screen", ""], ["look", "contrast", "contrast score", ""], ["look", "dress", "deco around play objects", ""],
+  ["variety", "heightChanges10", "height changes /10 blocks*", "", "norank"], ["variety", "chunkRepeat", "repeated chunks", "%"], ["variety", "modeChangesPerMin", "mode changes per minute", ""],
+  ["look", "layers", "z-layers in use", ""], ["look", "motionPerScreen", "motion triggers per screen", ""], ["look", "channels", "colour channels per screen", ""], ["look", "contrast", "contrast score**", ""], ["look", "dress", "deco around play objects", ""],
   ["feel", "actPerBar", "obstacles per bar", ""], ["feel", "energyGap", "energy vs song (activity - loudness pct)", ""],
 ];
 const fmt = (v, u) => !Number.isFinite(v) ? "-" : u === "%" ? Math.round(v * 100) + "%" : Math.abs(v) >= 10 ? v.toFixed(0) : v.toFixed(2);
@@ -198,7 +199,8 @@ async function main() {
   }
   // gaps: per measure, median (ours - ref) over the spread among the reference sections
   const gaps = [];
-  for (const [area, k, label, u] of SHOW) {
+  for (const [area, k, label, u, norank] of SHOW) {
+    if (norank) continue;
     const refVals = refSecs.map(r => r.s.M[k]).filter(Number.isFinite).sort((a, b) => a - b);
     if (refVals.length < 4) continue;
     const iqr = (refVals[Math.floor(refVals.length * 0.75)] - refVals[Math.floor(refVals.length * 0.25)]) || (refVals[refVals.length - 1] - refVals[0]) || 1;
@@ -237,6 +239,7 @@ async function main() {
   const lines = ["# Sections: ours vs real levels", "", `Made ${data.made.slice(0, 16)} by tools/compare_sections.js. Luck for "on a beat" (60 ms) is ~${Math.round(mean(pairs.map(p => p.s.M.luck60)) * 100)}%.`, "",
     "## Where we're off (biggest first)", "", "| # | measure | ours | real | pairs the same way | shown by |", "|---|---|---|---|---|---|"];
   gaps.forEach((g, i) => lines.push(`| ${i + 1} | ${g.label} (${g.area}) | ${fmt(g.ours, g.u)} | ${fmt(g.ref, g.u)} | ${g.same}/${g.n} | ${g.worst.o.L.name} #${g.worst.s.i} vs ${g.worst.r.L.name} #${g.worst.rs.i} |`));
+  lines.push("", "\* height changes: a static proxy that reads 0 on most 2.2 levels; shown, not ranked. \*\* contrast: featured levels sit LOWER than the rest (ART.md \"Deco study\"), so higher is not better.");
   lines.push("", "## Levels", "", "| level | song | sections | energy follows loudness (rho) | route |", "|---|---|---|---|---|");
   for (const v of Object.values(lv)) lines.push(`| ${v.ours ? "**" + v.L.name + "**" : v.L.name} | ${v.L.songKey} | ${v.secs.map(s => s.type).join(", ")} | ${fmt(v.rho, "")} | ${v.E.presses ? "saved" : "-"} |`);
   lines.push("", "## Pairs", "");
