@@ -491,7 +491,7 @@ function make(specFile, specObj) {
   }
   // save the solution (natural replay) so the viewer and the phone replay it, not solve it again
   // r: the check's solve (indicators have no hitbox, so it still holds)
-  try { const L2 = require("./io.js").readGdlvl(out); require("./solutions.js").fromRun(L2.level, L2.levelStr, r); } catch (e) { console.log("   (solution not saved: " + e.message + ")"); }
+  try { const L2 = require("./io.js").readGdlvl(out); require("./solutions.js").fromRun(L2.level, L2.levelStr, r, { name: L2.name, file: out }); } catch (e) { console.log("   (solution not saved: " + e.message + ")"); }
   putStages(spec, level, ctx, Object.assign(["final"], { note: r && r.ok ? "beaten" : "not beaten" }));
   buildIndex();
   return { out, r };
