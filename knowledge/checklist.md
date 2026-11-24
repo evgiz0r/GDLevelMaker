@@ -137,6 +137,11 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 - [ ] **Built on blocks**: a block, slab or slope in ~45-50% of the cube columns; most spikes on
   ledges, steps, pit edges and under overhangs, not lone on the floor. `node tools/obstacles.js structure --file <level>`.
   (levels/obstacles.md section 1; GDLM 41-45 had 13%)
+- [ ] **No stale stretch**: the longest time with no mode / speed / gravity / size change (a blue or green orb or pad
+  counts) stays under 35 s at Easy / Normal, 25 Hard, 18 Harder, 15 Insane+ (official levels 1-6: 28-46 s; the later
+  ones mostly 4-15 s). compose adds a cued gravity structure (blue pad, gravity portal pair, ceiling run) to cube sections
+  of 10+ s at Normal and up. score.js "stale stretch". (The user, 2026-11-24: "a bit more upside down ... almost
+  everything is very stale". Over it then: the Golden Hour versions, 34 s of sunrise at Hard.)
 - [ ] **Modes for the tier**: a level's modes, speeds, sizes, orbs and pads fit its difficulty the way the official levels
   bring them in (DIFFICULTY.md "Mode order": Easy = cube, ship, yellow / blue pads; Normal adds gravity flips and yellow
   orbs; Hard pink pads; Harder ball, pink / blue orbs; Insane mini, UFO, wave, 2x...). score.js "mode tier" WARNs a

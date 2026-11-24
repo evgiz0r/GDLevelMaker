@@ -169,6 +169,13 @@ function compose(brief, tweaks = {}) {
     const sec = Object.assign({}, sec0, { blocks: lens[si] });
     if (notReady && sec.use) { const drop = sec.use.filter(u => notReady.has(u)); if (drop.length) { sec.use = sec.use.filter(u => !notReady.has(u)); if (!NOTED.has(sec.name + drop)) NOTED.add(sec.name + drop), console.log(`   NOTE ${sec.name}: ${drop.join(", ")} left out (not ready in the structure library: node tools/structures.js rank)`); } }
     if (extra[si]) sec.use = [...sec.use, extra[si]];
+    // gravity flips inside plain cube sections (the user, 2026-11-24: "a bit more upside down ... almost everything is very
+    // stale"; score.js "stale stretch"): a section of 10+ s at Normal or above gets one ready gravity structure, a
+    // cued flip and back (a blue pad, a gravity portal pair, a ceiling run). brief.flips false = off.
+    { const lab = (brief.difficulty || {}).label || "Normal", secsLen = sec.blocks * 30 / upsOf(speeds[si] || "1x");
+      const FLIPS = ["s:gravity-pad-gap", "s:ceiling-hop", "s:upside-hops", "s:blue-pad-ceiling", "s:gravity-tunnel"];
+      if (brief.flips !== false && sec.flips !== false && !sec.mode && !sec.rest && sec.use && lab !== "Easy" && secsLen >= 10 && (speeds[si] || "1x") === "1x" && !sec.use.some(u => FLIPS.includes(u)))
+        { const m = Math.min(2, sec.use.length); sec.use = [...sec.use.slice(0, m), FLIPS[si % FLIPS.length], ...sec.use.slice(m)]; } }   // early in the list: long lists end before their last item
     const start = col, end = col + sec.blocks, i0 = objects.length;
     const at = si === 0 ? 0 : (sec0.beats ? start : Math.max(0, start - 2));  // on the beat when in beats
     for (const ch of ["bg", "ground", "line", "obj"]) if (sec[ch]) {
