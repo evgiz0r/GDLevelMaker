@@ -75,7 +75,8 @@ function estimate(cmd, all) {
     const last = rs.slice(-3).map(r => r.secs), lo = Math.min(...last), hi = Math.max(...last);
     const s = last.slice().sort((a, b) => a - b), med = s[s.length >> 1];
     const name = k.tool + (fl ? " " + fl : "");
-    return { secs: med, lo, hi, n: last.length, basis: `last ${last.length === 1 ? "run" : last.length} ${name}${what ? ", " + what : ""}: ${range(lo, hi)}` };
+    const mbs = rs.slice(-3).map(r => r.mb).filter(v => v > 0);   // peak memory of the same runs (heavy.js logs it): the light lane
+    return { secs: med, lo, hi, n: last.length, mb: mbs.length ? Math.max(...mbs) : null, basis: `last ${last.length === 1 ? "run" : last.length} ${name}${what ? ", " + what : ""}: ${range(lo, hi)}` };
   }
   return null;
 }
