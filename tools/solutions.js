@@ -134,7 +134,10 @@ function withWindows(level, levelStr, sol) {
 function solve(level, levelStr, opts) {
   opts = opts || {};
   const c = opts.fresh ? null : get(levelStr, true);
-  if (fresh(c)) return withWindows(level, levelStr, c);
+  // a fresh cached route stands -- unless the level has a plan and the cached route is not it (a solver route saved
+  // before the plan landed: GDLM 62 was scored on a 25-press solver route instead of its 50-input plan)
+  const hasPlan = (opts.name || opts.file) && (() => { try { const pe = require("./planned.js").plannedEvents(opts.name, opts.file); return !!(pe && pe.length); } catch (e) { return false; } })();
+  if (fresh(c) && (!hasPlan || c.source === "planned")) return withWindows(level, levelStr, c);
   const w = GD.makeWorld(level.objects, level.header);
   // the level's own planned inputs (a beat-first build's taps and ship schedule, tools/planned.js plannedEvents), when
   // they clear it as-is and skip nothing: that IS the route -- the designer's presses, no solving (GDLM 62, 2026-11-24)
@@ -185,9 +188,9 @@ if (require.main === module) {
       const t0 = Date.now(); withWindows(L.level, L.levelStr, c);
       console.log(`${f}: ${(c.windows || []).length} windows measured in ${((Date.now() - t0) / 1000).toFixed(0)} s`); continue;
     }
-    if (!again && fresh(get(L.levelStr, true)) && windowsFresh(get(L.levelStr, true))) { console.log(`${f}: saved already`); continue; }
+    if (!again && fresh(get(L.levelStr, true)) && windowsFresh(get(L.levelStr, true)) && (get(L.levelStr, true).source === "planned" || !require("./planned.js").plannedEvents(L.name, f))) { console.log(`${f}: saved already`); continue; }
     const t0 = Date.now();
-    const s = solve(L.level, L.levelStr, { fresh: again });
+    const s = solve(L.level, L.levelStr, { fresh: again, name: L.name, file: f });
     console.log(`${f}: ${s.ok ? "beaten" : "not beaten"}, ${s.events.length} inputs, solved in ${((Date.now() - t0) / 1000).toFixed(0)} s`);
   }
   require("./index_levels.js").buildIndex();

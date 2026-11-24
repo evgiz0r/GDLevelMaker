@@ -42,7 +42,7 @@ function build(plan, opts = {}) {
   secs.forEach((s, i) => {
     const next = secs[i + 1], b = s.from;
     for (const ch of ["bg", "ground", "line"]) if (s[ch]) o.push(["colour", "b" + b, { ch, rgb: s[ch], secs: s.secs ?? 0.4 }]);
-    const to = next ? next.from : plan.last + 8;
+    const to = next ? next.from : plan.last + 3;
     modern.push({ from: Math.max(0, Math.round(col(b))), to: Math.round(col(to)), kind: s.kind === "rest" ? "rest" : s.kind, flash: !!s.flash, fill: s.fill, light: s.light });
     if (s.kind === "ball" || s.kind === "ship") {
       const w = Math.round((next.from - b) * bpb) - 1;
@@ -62,9 +62,9 @@ function build(plan, opts = {}) {
     const s = secAt(b), J = num ? Jof(i) : "j" + b;
     const o0 = o.length; ranges[i] = [o0, o0];
     const nextB = i + 1 < cells.length && secAt(cells[i + 1][0]) === s ? cells[i + 1][0] : null;
-    let span = Math.ceil(((nextB || (secs[secs.indexOf(s) + 1] || { from: plan.last + 4 }).from) - b) * bpb) + 1;
+    let span = Math.ceil(((nextB || (secs[secs.indexOf(s) + 1] || { from: plan.last + 1.5 }).from) - b) * bpb) + 1;
     if (num && nextB) span = Math.ceil(Jof(i + 1) - J) + 1;   // to the next obstacle (one column of overlap)
-    else if (num) span = Math.ceil(col((secs[secs.indexOf(s) + 1] || { from: plan.last + 4 }).from) - J) + 1;
+    else if (num) span = Math.ceil(col((secs[secs.indexOf(s) + 1] || { from: plan.last + 1.5 }).from) - J) + 1;
     const at = k => num ? +(J + k).toFixed(3) : J + (k >= 0 ? "+" : "") + k;
     const floor = (from, to, hh) => { for (let k = from; k < to; k++) for (let r = 0; r < hh; r++) o.push(["block", at(k), r]); };
     if (s.kind === "ball") {
