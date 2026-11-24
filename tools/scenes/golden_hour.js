@@ -53,7 +53,10 @@ module.exports = function ({ objects, header, beatX }) {
   header = K.channels(header, defs);
   // the scene changes at each portal: quick on the drops (S2, S5), slow on the calm turns
   const FADE = [0, 2, 0.15, 0.6, 2.5, 0.15, 1, 3];
-  for (let i = 1; i < S.length; i++) out.push(...K.palette(S[i][0], P[i], FADE[i]));
+  // each palette fades IN to its section's downbeat, starting half a beat before (not snapped onto the grid: our colour
+  // triggers sat 91% on a beat vs real levels' ~31%, gd-taste's section comparison; a fade that lands on the beat reads better)
+  const halfBeat = (beatX(2) - beatX(1)) / 2;
+  for (let i = 1; i < S.length; i++) out.push(...K.palette(S[i][0] - halfBeat, P[i], FADE[i]));
   // transitions: a short flash toward the new scene's light colour (bg 1000), never white; a quick zoom on the drops
   for (let i = 1; i < S.length; i++) {
     const light = P[i][C.halo] || P[i][C.sun];
@@ -123,7 +126,8 @@ module.exports = function ({ objects, header, beatX }) {
   out.push(...K.sway(S[0][0], END, 312, 7, 100, 0.35));
   out.push(...K.bob(S[0][0], END, G.motes, 12, 160, 0.5));
   { const spb = 8, bars = []; for (let b = 1; beatX(b) < END - 60; b += spb) bars.push(b);
-    for (const b of bars) { const x = beatX(b), i = Math.max(0, S.findIndex(([a, z]) => x >= a && x < z)), e = P[i][C.edge];
+    // every second one on the off-beat ("and" of beat 2): loose, not snapped (real levels ~31% of pulses on a beat)
+    for (const [j, b] of bars.entries()) { const x = j % 2 ? beatX(b + 1.5) : beatX(b), i = Math.max(0, S.findIndex(([a, z]) => x >= a && x < z)), e = P[i][C.edge];
       out.push(K.pulse(x, C.edge, e.map(v => Math.round(v + (255 - v) * 0.35)), 0.05, 0.1, 0.5)); } }
 
   // ---- a vignette closing in at the end of the night (top and bottom bands, locked to the screen) ----
