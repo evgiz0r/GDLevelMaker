@@ -10,7 +10,9 @@
 //  3. report per attempt: the matched shift, the sim's end vs the video's. An attempt no shift explains is a
 //     PHYSICS MISMATCH (level, %, x, mode): it goes to PHYSICS.md's fidelity list. The per-press offsets
 //     against the solved human route (early/late/extra/missing) go to local/replays/<video>.json for the
-//     viewer's ghost and for difficulty.
+//     viewer's ghost and for difficulty; and one line per attempt in local/attempts/<base>.jsonl (the format
+//     shared with the viewer's "you play", agreed with gd-visuals: events, result, pct, video {file, inputs, t,
+//     shift_ms, agree, res, mismatch}).
 // No sound is recorded on this PC (no loopback), so the song can't align it yet; with sound, the music's
 // restart per attempt would pin the clock to a frame.
 // STATUS 2026-11-24: first version, not yet run on a real log (the first recording with inputs comes next).
@@ -64,10 +66,24 @@ for (const r of runs) {
   if (!best) { out.push({ attempt: r.start, note: "no inputs logged in this attempt" }); continue; }
   const want = r.beaten ? 100 : r.pct, ok = best.err <= 1.5;
   const row = { video_t: r.start, video: r.beaten ? "beaten" : `died ${r.pct.toFixed(1)}%`, sim: best.q.done ? "beaten" : `died ${best.pct.toFixed(1)}% (${best.q.why || "?"})`,
-    shift_ms: Math.round(best.sh), presses: best.list.filter(e => e.type === "press").length, agree: ok };
+    shift_ms: Math.round(best.sh), presses: best.list.filter(e => e.type === "press").length, agree: ok,
+    events: best.list, beaten: !!r.beaten, videoPct: r.beaten ? 100 : r.pct, secs: r.secs, x: +(w.endX * (r.beaten ? 100 : r.pct) / 100).toFixed(1), why: best.q.why };
   if (!ok) { const s = best.q.end; Object.assign(row, { mismatch: `the sim ${best.q.done ? "finishes" : "dies at " + best.pct.toFixed(1) + "% x " + s.x.toFixed(0) + " (" + s.mode + ", " + (best.q.why || "?") + ")"} where the video ${r.beaten ? "beats it" : "dies at " + want.toFixed(1) + "%"}` }); }
   out.push(row);
   console.log(`${r.start.toFixed(1).padStart(7)} s  video ${row.video.padEnd(12)} sim ${row.sim.padEnd(24)} shift ${row.shift_ms} ms  ${ok ? "agree" : "MISMATCH"}`);
+}
+// the shared per-attempt file (agreed with gd-visuals: the viewer's "you play" uses the same lines, and shows
+// them as a ghost beside the route): local/attempts/<base>.jsonl, one attempt per line
+{
+  const fnv = str => { let h = 2166136261; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(16); };
+  const hashOf = GD.levelHash || fnv, base = /^c\d+$/.test(lv) ? lv : lv.startsWith("official:") ? "official_" + lv.slice(9) : path.basename(lv).replace(/\.gdlvl$/, "");
+  const adir = path.join(__dirname, "..", "local", "attempts"); fs.mkdirSync(adir, { recursive: true });
+  const lines = [];
+  for (const o of out) { if (!o.events) continue;
+    lines.push(JSON.stringify({ id: "a" + Date.now().toString(36) + lines.length, at: new Date().toISOString(), source: "video", level: L.name || lv, file: lv.startsWith("official:") || /^c\d+$/.test(lv) ? lv : path.relative(path.join(__dirname, ".."), path.resolve(lv)).split(path.sep).join("/"),
+      hash: hashOf(L.levelStr), events: o.events, result: o.beaten ? "clear" : "died", x: o.x, pct: o.videoPct, t: o.secs, why: o.why || null, practice: false, from: null,
+      video: { file: path.basename(video), inputs: path.basename(logFile), t: o.video_t, shift_ms: o.shift_ms, agree: o.agree, res: o.agree ? "agree" : "mismatch", mismatch: o.mismatch || undefined } })); }
+  if (lines.length) fs.appendFileSync(path.join(adir, base + ".jsonl"), lines.join("\n") + "\n");
 }
 const dir = path.join(__dirname, "..", "local", "replays"); fs.mkdirSync(dir, { recursive: true });
 fs.writeFileSync(path.join(dir, path.basename(video).replace(/\.\w+$/, "") + ".json"), JSON.stringify({ level: L.name, video: path.basename(video), log: path.basename(logFile), attempts: out }, null, 1));
