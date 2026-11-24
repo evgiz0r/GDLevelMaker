@@ -9,7 +9,7 @@
 // block to land on, an orb), is the press's CUE. The LEAD is how far ahead of the cube's
 // front edge the cue still is at the LATEST moment the press works (the end of its window).
 // Small lead = you jump when the obstacle is in your face = reactable. Big lead = a prejump.
-// Flagged: lead > LIMIT blocks (default 1.5; --limit n; 3 in ship/UFO/wave/swing; times the speed over 1x at 2x+). A press that
+// Flagged: lead > LIMIT blocks (default 1.5; --limit n; times the speed over 1x at 2x+); presses made in ship/UFO/wave/swing are steering and not judged. A press that
 // fires an orb counts as cued, and so does jumping off the end of a ledge.
 if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const { GD, readGdlvl } = require("./io.js");
@@ -149,14 +149,12 @@ function judge(w, level, presses, base, limit, approx) {
     }
     // a press that fires an orb is cued by that orb: the cube is touching it
     if (c.act && GD.objInfo && /orb/.test(c.act)) { lead = 0; cue = null; }
-    // a press held into a flying mode's portal is cued by that portal: its latest moment is at the portal, and
-    // what follows is the new mode's steering (GDLM 64's wave mouth: a cube press at 748-750 held into the wave
-    // portal at 750 read as "4.8 ahead" of the corridor's first slope). The fairness gate judges the input
-    // forced right after a portal; this only stops the hold from counting as a prejump.
-    if (lead != null && hiState && FLYING.has(hiState.mode)) {
-      const before = res.path[c.lo];
-      if (before && before.mode !== hiState.mode) { lead = 0; cue = null; }
-    }
+    // A press whose latest moment is in a flying mode (ship, ufo, wave, swing) is steering, not a jump: it has no
+    // one thing it answers, so it is not judged as a prejump -- the route, fairness and timing gates judge flight
+    // (GDLM 44's ship tunnel: the fly controller's centring presses read as "4.1 / 10.1 blocks ahead of a block";
+    // GDLM 64's wave mouth: a cube press held into the wave portal, "4.8 ahead"). A hold that carries out of flight
+    // into a cube jump is still judged: its latest moment is then in cube mode. (polish + physics, 2026-11-24)
+    if (lead != null && hiState && FLYING.has(hiState.mode)) { lead = 0; cue = null; }
     out.push({ act: c.act, block: c.x / 30, from: xLo / 30, to: xHi / 30, ms: c.ms, cue: cue && GD.objInfo(cue.id).name, cueAt: cue && cue.x / 30,
       mode: hiState && hiState.mode, lead, flag: lead != null && lead > (FLYING.has(hiState && hiState.mode) ? FLY_LIMIT : limit) * speedFactor(hiState) });
   }
