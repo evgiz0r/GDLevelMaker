@@ -25,6 +25,9 @@ for (const name of LEVELS) {
     else { const j = ev.findIndex((e, n) => n >= i && e.type === "release"); if (j > 0) ev[j].tick = Math.max(ev[j - 1].tick + 1, ev[j].tick - 5); }
     variants.push(ev, base);   // back to the route between edits: the cache's usual pattern
   }
+  // inputs GD.run never reads (score.js's moved inputs: fractional ticks; a negative one; a string tick)
+  const odd = base.map(e => ({ ...e })); if (odd.length > 2) { odd[1].tick += 0.5; odd[2].tick = String(odd[2].tick); }
+  variants.push(odd, base, [{ tick: -3, type: "press" }].concat(base), [{ tick: 50.5, type: "press" }, { tick: 51.5, type: "release" }]);
   for (const ev of variants) {
     let t0 = Date.now(); const p = plain(w, ev); plainMs += Date.now() - t0;
     t0 = Date.now(); const c = GD.run(w, ev); cachedMs += Date.now() - t0;
