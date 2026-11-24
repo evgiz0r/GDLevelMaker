@@ -481,9 +481,9 @@ Open mismatches the plans show (not understood yet, do not paper over them):
 - Theory of Everything (lv12, 34) and its sequel (lv18, 106): after a pink orb the cube is ~30 units
   too low to land on a block with a blue pad; every orb and pad value matches gdsolver's.
 - Back On Track's ship ends ~1 block high after a slide (493).
-- A cube that walked off a ledge and presses shortly before landing: the game jumps, we do not
-  (Dry Out, Can't Let Go, Jumper, Time Machine, Polargeist's end). A 19-38 tick "landing buffer"
-  would fit every case, but gdsolver's model has no such rule, so it is not in the sim.
+- SOLVED 2026-11-24, the landing buffer: a cube's press in the air jumps on landing, even released (the user's
+  Clutterfunk run shows it on video; Polargeist's plan now clears, Dry Out / Can't Let Go / Jumper / Time Machine
+  much further). In the sim at 40 ticks; the upper bound is open. PHYSICS.md "Landing buffer".
 
 Modes beyond cube/ship come from gdsolver's measured model and the gdp decompile, checked only
 by the plans so far (xStep's ball, Blast Processing's wave): ball, UFO, wave, robot, spider,

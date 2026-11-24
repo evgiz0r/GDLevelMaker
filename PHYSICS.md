@@ -130,6 +130,23 @@ Contact sheets and frames: local/shots/lab60/. Read station by station from fram
 Unfair stations to change in v2: 4 (plank row straight over spikes, from flat ground) and 7 (a post that
 punishes holding the dash).
 
+## Landing buffer (2026-11-24)
+
+A cube's press made in the air is kept and the cube jumps when it lands, even if the button is already up.
+- Seen in the user's real run: Clutterfunk, 2026-11-24_02-45-05.mkv, level time 1.055 s. The input log has a
+  tap in the air (down 1.055, up 1.167), the cube lands at 1.20 s and the video shows it jump at once, 0.45 s
+  before the next logged press. Without the buffer the sim walks into the saw at x 451 (1.9%); with it the run
+  goes on. The sim needs at least 37 ticks there (36: the saw; 37-1000: through).
+- gdsolver's real-game plans (tests/tas_progress.js), for any length from 24 to 1000 ticks: Polargeist CLEARS
+  (was 909 blocks), Dry Out 415 -> 574, Can't Let Go 303 -> 489, Jumper 210 -> 248, Time Machine 333 -> 362,
+  Clutterfunk 288 -> 294; none less far once an orb or pad that takes the press also clears the buffer
+  (without that, ToE 2 fell 105 -> 92). This was the old open item "a cube that walked off a ledge and presses
+  shortly before landing: the game jumps, we do not".
+- In the sim: lib/physics.js `LANDBUF` = 40 ticks (cube only; the solvers' state keys carry it).
+  `GDLM_LANDBUF=<ticks>` overrides it for measuring, 0 = off. OPEN: the upper bound (is it "until landing"?),
+  and whether a release clears it in other modes. A clean test: tap in the air at several heights before a
+  landing in a lab level.
+
 ## Objects
 
 - Hitboxes from OpenGD's 2.1 table, overridden in `lib/objects.js`; GD 2.2's decoration list
