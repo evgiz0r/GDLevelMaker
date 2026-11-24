@@ -511,6 +511,11 @@ skips something, its 99% wrong. and will cause trouble. and anyway not the human
 
 ## How the route is chosen (the natural route)
 
+- HOLDS THROUGH JUMPS become taps (lib/natural.js tapsEach), now also (2026-11-24, after gd-polish found 1-8 s holds
+  in routes planned after the rule): a hold running into or out of a ship / wave part keeps the button down only
+  where the mode steers; a hold one firing really needs is cut to the gaps that need it (greedy); and the pass runs
+  once more last (a later pass -- an orb buffered into an auto-jump chain -- had rebuilt one). Re-planned: GDLM 44
+  (36 presses, none left), 45, 61 (none), 60 (2.27 s through 6 jumps -> 0.43 s through 2: tapping there kills).
 - FIRST: the level's own planned inputs (tools/planned.js plannedEvents: the build's taps, 14 ticks each as
   tools/hitbuild.js taps, and its ship schedule's own releases). When they clear the level as-is and skip nothing,
   they ARE the saved route (kind "human", source "planned"; tools/solutions.js solve), with no solving. GDLM 62:
