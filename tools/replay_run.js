@@ -36,8 +36,11 @@ const runs = JSON.parse(fs.readFileSync(runsFile, "utf8")).runs.filter(r => r.mo
   .filter(r => r.start >= +opt("from", -1) && r.start <= +opt("to", 1e9));
 
 // 2. the input log: press/release times in UTC ms
-const ev = fs.readFileSync(logFile, "utf8").split("\n").filter(l => l && !l.startsWith("#")).map(l => { const [ms, utc, ud, key] = l.split(",");
-  return { t: Date.parse(utc), type: ud === "down" ? "press" : "release", key }; });
+// two formats: tools/inputlog.ps1's "ms,utc ISO,down|up,key" and the minimal logger's "<unix ms> <down|up> <key>"
+const ev = fs.readFileSync(logFile, "utf8").split(/\r?\n/).filter(l => l.trim() && !l.startsWith("#")).map(l => {
+  if (l.includes(",")) { const [ms, utc, ud, key] = l.split(","); return { t: Date.parse(utc), type: ud === "down" ? "press" : "release", key }; }
+  const [t, ud, key] = l.trim().split(/\s+/); return { t: +t, type: ud === "down" ? "press" : "release", key };
+}).filter(e => isFinite(e.t)).sort((p, q) => p.t - q.t);
 // merge keys: the button is down while any of them is down
 const button = []; { let n = 0; for (const e of ev) { const was = n > 0; n += e.type === "press" ? 1 : -1; n = Math.max(0, n); const is = n > 0; if (is !== was) button.push({ t: e.t, type: is ? "press" : "release" }); } }
 // the video's start in UTC from its name ("GD claude-rec 2026-11-24_00-33-07.mkv", local time)
