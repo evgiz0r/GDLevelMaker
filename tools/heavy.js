@@ -15,7 +15,9 @@
 //   - a child process of a holder (env GDLM_HEAVY_HELD) runs in its parent's slot: no deadlock when
 //     a heavy tool runs another one (loop.js -> make.js, difficulty_solve.js all -> one level)
 // Waits up to GDLM_HEAVY_WAIT minutes (default 120), then gives up with exit code 75.
-// Priority: GDLM_HEAVY_PRIORITY=high|normal|low (or --priority high on the tool's command line); default normal.
+// Priority: GDLM_HEAVY_PRIORITY=urgent|high|normal|low (or --priority high on the tool's command line); default normal.
+//   urgent: a main (official) level whose saved route fails on today's sim -- tools/mains.js (the user, 2026-11-24:
+//   "If we have it failed then its highest priority").
 //   Waiters register in the lock folder (w<pid>.json); a free slot goes to the highest priority waiting, first
 //   come first within one priority. A running job of lower priority with yield points gives its slot back to a
 //   higher one that has waited 5 min (see "yield, pause, resume" below; nothing is lost); one without yield points is
@@ -76,7 +78,7 @@ function holders(dir = lockDir()) {
   return out.sort((a, b) => a.start.localeCompare(b.start));
 }
 // priority of this process: env, then a --priority flag
-const RANK = { high: 0, normal: 1, low: 2 };
+const RANK = { urgent: -1, high: 0, normal: 1, low: 2 };   // urgent: a main level whose route fails (tools/mains.js)
 function myPriority() {
   let p = process.env.GDLM_HEAVY_PRIORITY || process.env.HEAVY_PRIORITY || "";
   const i = process.argv.indexOf("--priority"); if (!p && i > 0) p = process.argv[i + 1] || "";

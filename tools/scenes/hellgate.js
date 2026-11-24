@@ -11,7 +11,7 @@
 // pulse on every beat; the end cools to ash at the signature.
 // Every object here is decoration or a trigger (no collision): the gameplay is untouched.
 "use strict";
-const K = require("../scenekit.js");
+const K = require("../scenekit.js"), P = require("../../lib/props.js");
 
 const DROP_BEAT = 69;            // the song's drop (343707: bar 17, t 28.2 s) -- only if the level gets there
 const ZONES = [[21, 25], [69, 77], [81, 85]];   // beats that pulse on every beat (red pad moments, the drop)
@@ -131,6 +131,48 @@ module.exports = function ({ objects, header, beatX }) {
   // ---- the gameplay blocks: obsidian with lava edges (dark fill over the skins, lit open sides) ----
   out.push(...K.designBlocks(objects, -300, END, { fill: C.fill, edge: C.edge, glow: C.lava, seed: 70 }));
   for (const o of objects) if (o.id === 1338) { o.props = o.props || {}; o.props[21] = String(C.edge); }
+
+  // ---- v7 (the user on v6, phone: "the level is pretty bland, in the deco. Not many objects"): gd-art's kit
+  // (tools/decokit.js) for density and motion, on the scene's own dark channels so the contrast the user praised on
+  // v6 stays (the path = black bodies with lit edges; everything else dark and dull) ----
+  const D = require("../decokit.js");
+  Object.assign(G, { bricks: 320, bdFar: 321, bdMid: 322, bdNear: 323, debris: 324, ash: 325 });
+  // inside the play blocks: running-bond bricks a shade darker than the fill, a crust trim on open tops
+  out.push(...D.blockPattern(objects, -300, END, { ch: C.fill, top: C.top, seed: 41, group: G.bricks }));
+  // three depths behind the play: far mountains, mid hills, near dead trees and ruins -- all in the dark scene
+  // colours (far lighter than near: depth), never lit
+  out.push(...D.backdrop(-300, END, { far: C.far, seed: 11, group: G.bdFar }));
+  out.push(...D.backdrop(-135, END, { far: C.horizon, seed: 13, group: G.bdFar }));   // a second, offset range in the haze colour: a fuller skyline
+  out.push(...D.backdrop(-300, END, { mid: C.near, seed: 12, group: G.bdMid }));
+  S.forEach(([a, b, m], i) => {
+    if (m === "ship" || m === "wave") return;   // the cavern spans: stalactites, no ground scenery
+    out.push(...D.backdrop(a, b, { near: C.near, trees: "dead tree", density: 1.2, seed: 30 + i, group: G.bdNear }));
+    const R = K.rng(90 + i);
+    for (let x = a + 120; x < b - 60; x += 260 + R() * 200) out.push(...P.put(R() < 0.5 ? "broken arches" : "ruin", x, 0, { silhouette: C.near, layer: "B3", zo: -4, scale: 0.9 + R() * 0.4, seed: i * 7 + Math.floor(x), groups: [G.bdNear] }).objects);
+  });
+  // debris: small rock shards hanging in the sky (bob with the beat), and fine ash falling everywhere
+  {
+    const R = K.rng(77);
+    for (let x = -200; x < END; x += 70 + R() * 90) {
+      const y = 170 + R() * 150, s = 0.18 + R() * 0.3;
+      if (!free(x, y, 60)) continue;
+      out.push(K.obj(R() < 0.5 ? 693 : 211, x, y, { ch: C.far, z: "B2", zo: -1, s, rot: Math.floor(R() * 8) * 45, groups: [G.debris] }));
+      if (R() < 0.6) out.push(K.obj(693, x + 8, y - 6, { ch: C.near, z: "B2", zo: -1, s: s * 0.6, rot: 45 + Math.floor(R() * 4) * 90, groups: [G.debris] }));
+    }
+  }
+  out.push(...K.motes(-200, END + 200, { ch: C.far, group: G.ash, density: 4, z: "B3", seed: 55, y0: -20, y1: 340 }));
+  out.push(K.move(T0, G.ash, -40, -160, secs(END) + 4, 0));
+  // motion with the song (decokit.motion): pulses on the far scenery only (never the path or a hazard: the user's
+  // round 2, "waaaay too flashy ... hard to tell what kills you"), bobbing shards and chains, swaying chains;
+  // energy by mode (the drop runs hottest), a dim ember glow, not white
+  {
+    const spb = 60 / 145.012, beat = spb * SPEED, b0 = beatX(1) - beat;
+    const ENERGY = { cube: 0.5, ball: 0.4, ship: 0.7, wave: 0.8, ufo: 0.6, end: 0.25 };
+    S.forEach(([a, b, m]) => {
+      const e = hasDrop && a >= dropX - 30 && m !== "end" ? 1 : ENERGY[m] ?? 0.5;
+      out.push(...D.motion(a, b, { beat, spb, phase: b0, energy: e, pulse: [G.bdFar, G.far, G.bdMid], bob: [G.debris, G.chains, G.bdNear], sway: [G.chains], rgb: [96, 34, 18], fade: 0.7, dy: 3, deg: 4 }));
+    });
+  }
 
   // ---- pulses (round 2: seasoning, not the meal): the block edges brighten softly on the bars of the drop
   // zones and at each mode change; nothing else flashes, no full-screen flash, no per-beat pulse ----
