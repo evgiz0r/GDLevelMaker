@@ -210,17 +210,19 @@ Lab: GDLM 63 (specs/63_dual_movers_lab.json, made by tools/lab63.js): 1-3 dual, 
 5 move to target, 6 pause/resume, 7 a multi-trigger loop, 8 a toggled-off trigger. Each station's note says
 what the sim expects; 9-12 orb buffering (the physics session's question).
 **Played 2026-11-24** (GD claude-rec 2026-11-24_02-13-32.mkv with the input log; physics session, tools/replay_run.js):
-both normal-mode clears replay to the end in the sim with the user's own presses (one clock offset, 842 ms). What
-that settles, station by station -- a station only "confirms" a rule when the other rule would have killed:
-- confirmed: 1-2 dual spawns mirrored and one press jumps both (a roof spike for player 2); 2 a gravity portal flips
-  both; 3 the solo portal keeps the player that touched it (keeping player 1 would leave it upside down with no
-  roof); 5 move to target (the spike lands on the floor marker); 7 multi-trigger loops (fired once, the spike sits
-  20 up and kills a cube on the floor); 8 a trigger in a toggled-off group does not fire (else the spike drops onto
-  the floor in front of an unjumped cube); 4 riding a rising platform.
-- not settled by this run: the dual band's HEIGHT (player 2's roof spike is survived at any roof a bit higher),
-  6 pause/resume (the spike is clear of the cube paused or not), 9 and 11 (the user tapped at the orb instead of
-  holding from the jump: the hold-buffer question is open; next lab: a roof right after the jump's apex so a second
-  press cannot reach the orb), 12 (the user's press reached the orb).
+both normal-mode clears replay to the end in the sim with the user's own presses (one clock offset, 842 ms). A station
+only CONFIRMS a rule when the user's real inputs there would have died under the other rule (attempts in
+local/attempts/gdlm_63_dual_and_movers_lab.jsonl; clear 1 made no press from block 88 to 151, clear 2 jumped at 6-7):
+- confirmed: 7 multi-trigger loops (clear 1, no press: fired once, the spike would sit 20 up and kill the cube on the
+  floor); 8 a trigger in a toggled-off group does not fire (clear 1, no press: else the spike lands on the floor);
+  3 the solo portal keeps the player that touched it (keeping player 1 leaves an upside-down cube with no roof,
+  flying out of the level; the game went on normally).
+- consistent but not settled by deaths: dual spawn and mirroring, the band's height (player 2's roof spike is
+  survived at any roof a little higher), 2 gravity portal in dual, 4 riding a rising platform, 5 move to target
+  (the user jumped there anyway), 6 pause/resume (the spike is clear paused or not). Settling these needs the
+  frames: player 2's height on the roof, the spike positions (tools/track.py, the physics session's tracker).
+- open: 9 and 11 (the user tapped at the orb instead of holding from the jump: the hold-buffer question stays; next
+  lab: a roof right after the jump's apex so a second press cannot reach the orb), 12 (the press reached the orb).
 
 ## Dual (lib/dual.js, 2026-11-23; owner: the dual/moving-objects session)
 
