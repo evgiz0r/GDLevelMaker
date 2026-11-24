@@ -87,7 +87,8 @@ function build(plan, opts = {}) {
     else if (kind === "orb") {
       if (h) throw new Error(`orb off the floor at ${b}`);
       if (!num) o.push(["pattern", "orb-pit", J, 0, { n: a.n || 5 }]);
-      else { const n = a.n || 5; for (let k = 0; k < n; k++) o.push(["spike", at(k), 0]); o.push(["yellow orb", +(J + Math.floor(n / 2) + ((opts.orbShift || [])[i] || 0)).toFixed(3), a.orbRow || 2]); }
+      else { const n = a.n || 5; for (let k = 0; k < n; k++) o.push(["spike", at(k), 0]); const at2 = (opts.orbAt || [])[i];   // [col, row]: where the jump's arc is at the orb tap's hit (tools/hitbuild.js)
+        o.push(["yellow orb", at2 ? +(at2[0] + ((opts.orbShift || [])[i] || 0)).toFixed(3) : +(J + Math.floor(n / 2) + ((opts.orbShift || [])[i] || 0)).toFixed(3), at2 ? +at2[1].toFixed(3) : a.orbRow || 2]); }
     }
     else if (kind === "pad") { if (h) throw new Error(`pad off the floor at ${b}`); o.push(["pattern", "pad-launch", num ? +col(b).toFixed(3) : "b" + b, 0, { n: a.n || 3 }]); }
     else if (kind === "flat") floor(0, span, h);
