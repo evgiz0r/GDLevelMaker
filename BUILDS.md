@@ -46,3 +46,9 @@ The stage times are also in local/timings.jsonl.
 - result: READY, 2 round(s), variants: 2 section(s)
 - change made: v4 (block-hops / slab-steps / lantern-orb out): READY in 2 rounds, reactive 15 -> 7, hazards 18 -> 14 per 100 blocks (those pieces carried hazards); noon ship without the near tree line reads cleaner; noon run kept it (coverage). Kept v4 over v3: fairness first. Next: hazards back up with pieces that pass reactive in context (harness with neighbours, STRUCTURES.md open).
 
+## GDLM 64 golden hour v5, 2026-11-24 07:15
+- stages: song 0 s, layout 21 s, layout 239 s, path 745 s, deco 984 s, final 984 s
+- slowest step: path (507 s); over target: layout 239 s > 60 s
+- result: READY, 1 round(s), variants: 2 section(s)
+- change made: v5 = the structural fix (structures checked in context, compose uses only ready ones): READY in 1 round (v3/v4 needed 2), jumps timed around a block 7 -> 5, hazards still 14/100 -- the pieces that pass in context carry fewer hazards. Density next needs denser pieces that pass in context (new library shapes) or spike floors (craft floorHaz 8% vs 35%).
+

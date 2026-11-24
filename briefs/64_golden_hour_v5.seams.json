@@ -1,0 +1,733 @@
+{
+ "level": "GDLM 64 golden hour v5",
+ "brief": "briefs/64_golden_hour_v5.json",
+ "song": {
+  "custom": 557117,
+  "offset": 0,
+  "bpm": 140.01,
+  "t0": 0.0224
+ },
+ "planOk": true,
+ "sections": [
+  {
+   "id": "s0",
+   "name": "first light",
+   "beats": [
+    1,
+    9
+   ],
+   "t": [
+    0,
+    3.37
+   ],
+   "x": [
+    0,
+    1050
+   ],
+   "in": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      255,
+      176,
+      120
+     ],
+     "ground": [
+      105,
+      52,
+      45
+     ],
+     "line": [
+      255,
+      240,
+      220
+     ],
+     "obj": [
+      70,
+      55,
+      55
+     ]
+    }
+   },
+   "out": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      255,
+      176,
+      120
+     ],
+     "ground": [
+      105,
+      52,
+      45
+     ],
+     "line": [
+      255,
+      240,
+      220
+     ],
+     "obj": [
+      70,
+      55,
+      55
+     ]
+    }
+   },
+   "builder": {
+    "layout": "style",
+    "deco": "style",
+    "playtest": "style"
+   },
+   "status": {
+    "deco": "planned",
+    "playtest": "planned",
+    "layout": "built"
+   }
+  },
+  {
+   "id": "s1",
+   "name": "sunrise",
+   "beats": [
+    9,
+    81
+   ],
+   "t": [
+    3.37,
+    34.277
+   ],
+   "x": [
+    1050,
+    10680
+   ],
+   "in": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      255,
+      160,
+      90
+     ],
+     "ground": [
+      115,
+      55,
+      32
+     ],
+     "line": [
+      255,
+      240,
+      210
+     ],
+     "obj": [
+      70,
+      55,
+      55
+     ]
+    }
+   },
+   "out": {
+    "mode": "ship",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 71.8,
+    "vy": -1.93,
+    "grounded": false,
+    "scene": {
+     "bg": [
+      255,
+      160,
+      90
+     ],
+     "ground": [
+      115,
+      55,
+      32
+     ],
+     "line": [
+      255,
+      240,
+      210
+     ],
+     "obj": [
+      70,
+      55,
+      55
+     ]
+    }
+   },
+   "builder": {
+    "layout": "style",
+    "deco": "style",
+    "playtest": "style"
+   },
+   "status": {
+    "deco": "planned",
+    "playtest": "planned",
+    "layout": "built"
+   }
+  },
+  {
+   "id": "s2",
+   "name": "noon flight",
+   "beats": [
+    81,
+    109
+   ],
+   "t": [
+    34.277,
+    46.205
+   ],
+   "x": [
+    10680,
+    14400
+   ],
+   "in": {
+    "mode": "ship",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 71.4,
+    "vy": -2,
+    "grounded": false,
+    "scene": {
+     "bg": [
+      255,
+      214,
+      110
+     ],
+     "ground": [
+      128,
+      72,
+      18
+     ],
+     "line": [
+      255,
+      255,
+      230
+     ],
+     "obj": [
+      80,
+      65,
+      40
+     ]
+    }
+   },
+   "out": {
+    "mode": "cube",
+    "speed": "2x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 45,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      255,
+      214,
+      110
+     ],
+     "ground": [
+      128,
+      72,
+      18
+     ],
+     "line": [
+      255,
+      255,
+      230
+     ],
+     "obj": [
+      80,
+      65,
+      40
+     ]
+    }
+   },
+   "builder": {
+    "layout": "style",
+    "deco": "style",
+    "playtest": "style"
+   },
+   "status": {
+    "deco": "planned",
+    "playtest": "planned",
+    "layout": "built"
+   }
+  },
+  {
+   "id": "s3",
+   "name": "noon run",
+   "beats": [
+    109,
+    137
+   ],
+   "t": [
+    46.205,
+    58.237
+   ],
+   "x": [
+    14400,
+    19050
+   ],
+   "in": {
+    "mode": "cube",
+    "speed": "2x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 45,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      255,
+      196,
+      70
+     ],
+     "ground": [
+      122,
+      66,
+      14
+     ],
+     "line": [
+      255,
+      255,
+      220
+     ],
+     "obj": [
+      80,
+      60,
+      35
+     ]
+    }
+   },
+   "out": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": -1,
+    "mini": false,
+    "dual": false,
+    "y": 17.2,
+    "vy": 1.94,
+    "grounded": false,
+    "scene": {
+     "bg": [
+      255,
+      196,
+      70
+     ],
+     "ground": [
+      122,
+      66,
+      14
+     ],
+     "line": [
+      255,
+      255,
+      220
+     ],
+     "obj": [
+      80,
+      60,
+      35
+     ]
+    }
+   },
+   "builder": {
+    "layout": "style",
+    "deco": "style",
+    "playtest": "style"
+   },
+   "status": {
+    "deco": "planned",
+    "playtest": "planned",
+    "layout": "built"
+   }
+  },
+  {
+   "id": "s4",
+   "name": "dusk",
+   "beats": [
+    137,
+    161
+   ],
+   "t": [
+    58.237,
+    68.54
+   ],
+   "x": [
+    19050,
+    22260
+   ],
+   "in": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": -1,
+    "mini": false,
+    "dual": false,
+    "y": 17.2,
+    "vy": 1.94,
+    "grounded": false,
+    "scene": {
+     "bg": [
+      176,
+      96,
+      150
+     ],
+     "ground": [
+      62,
+      22,
+      55
+     ],
+     "line": [
+      255,
+      210,
+      240
+     ],
+     "obj": [
+      255,
+      255,
+      255
+     ]
+    }
+   },
+   "out": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 139.3,
+    "vy": -6.91,
+    "grounded": false,
+    "scene": {
+     "bg": [
+      176,
+      96,
+      150
+     ],
+     "ground": [
+      62,
+      22,
+      55
+     ],
+     "line": [
+      255,
+      210,
+      240
+     ],
+     "obj": [
+      255,
+      255,
+      255
+     ]
+    }
+   },
+   "builder": {
+    "layout": "style",
+    "deco": "style",
+    "playtest": "style"
+   },
+   "status": {
+    "deco": "planned",
+    "playtest": "planned",
+    "layout": "built"
+   }
+  },
+  {
+   "id": "s5",
+   "name": "night wave",
+   "beats": [
+    161,
+    189
+   ],
+   "t": [
+    68.54,
+    80.575
+   ],
+   "x": [
+    22260,
+    26010
+   ],
+   "in": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 137.7,
+    "vy": -7.13,
+    "grounded": false,
+    "scene": {
+     "bg": [
+      92,
+      98,
+      200
+     ],
+     "ground": [
+      10,
+      10,
+      30
+     ],
+     "line": [
+      190,
+      200,
+      255
+     ],
+     "obj": [
+      255,
+      255,
+      255
+     ]
+    }
+   },
+   "out": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 55.9,
+    "vy": -8.42,
+    "grounded": false,
+    "scene": {
+     "bg": [
+      92,
+      98,
+      200
+     ],
+     "ground": [
+      10,
+      10,
+      30
+     ],
+     "line": [
+      190,
+      200,
+      255
+     ],
+     "obj": [
+      255,
+      255,
+      255
+     ]
+    }
+   },
+   "builder": {
+    "layout": "style",
+    "deco": "style",
+    "playtest": "style"
+   },
+   "status": {
+    "deco": "planned",
+    "playtest": "planned",
+    "layout": "built"
+   }
+  },
+  {
+   "id": "s6",
+   "name": "night run",
+   "beats": [
+    189,
+    221
+   ],
+   "t": [
+    80.575,
+    94.247
+   ],
+   "x": [
+    26010,
+    30270
+   ],
+   "in": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 53.9,
+    "vy": -8.63,
+    "grounded": false,
+    "scene": {
+     "bg": [
+      82,
+      86,
+      184
+     ],
+     "ground": [
+      8,
+      8,
+      24
+     ],
+     "line": [
+      180,
+      190,
+      255
+     ],
+     "obj": [
+      255,
+      255,
+      255
+     ]
+    }
+   },
+   "out": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      82,
+      86,
+      184
+     ],
+     "ground": [
+      8,
+      8,
+      24
+     ],
+     "line": [
+      180,
+      190,
+      255
+     ],
+     "obj": [
+      255,
+      255,
+      255
+     ]
+    }
+   },
+   "builder": {
+    "layout": "style",
+    "deco": "style",
+    "playtest": "style"
+   },
+   "status": {
+    "deco": "planned",
+    "playtest": "planned",
+    "layout": "built"
+   }
+  },
+  {
+   "id": "s7",
+   "name": "dawn",
+   "beats": [
+    221,
+    229
+   ],
+   "t": [
+    94.247,
+    97.714
+   ],
+   "x": [
+    30270,
+    31350
+   ],
+   "in": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      255,
+      205,
+      175
+     ],
+     "ground": [
+      125,
+      72,
+      68
+     ],
+     "line": [
+      255,
+      245,
+      235
+     ],
+     "obj": [
+      70,
+      55,
+      55
+     ]
+    }
+   },
+   "out": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 64.5,
+    "vy": -9.12,
+    "grounded": false,
+    "scene": {
+     "bg": [
+      255,
+      205,
+      175
+     ],
+     "ground": [
+      125,
+      72,
+      68
+     ],
+     "line": [
+      255,
+      245,
+      235
+     ],
+     "obj": [
+      70,
+      55,
+      55
+     ]
+    }
+   },
+   "builder": {
+    "layout": "style",
+    "deco": "style",
+    "playtest": "style"
+   },
+   "status": {
+    "deco": "planned",
+    "playtest": "planned",
+    "layout": "built"
+   }
+  }
+ ]
+}
