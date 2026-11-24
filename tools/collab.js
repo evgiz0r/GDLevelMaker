@@ -303,7 +303,10 @@ function join(briefFile) {
   // the route (no solve: the parts' own routes, joined) and the full check on it
   let full = null;
   if (!run.dead) {
-    try { require("./solutions.js").fromRun(level, levelStr, { ok: true, events }, { name: brief.name }); } catch (e) { problems.push("saving the route: " + e.message); }
+    // saved AS IT IS (the builders' routes, joined): fromRun would re-plan the whole level with the natural passes, so
+    // the full check judged a route no builder made (GDLM 66: a wave part re-planned into 27 short legs, a "prejump" in a
+    // part that was OK alone). Stamped current, like a level's own planned route.
+    try { const SO = require("./solutions.js"); SO.put(levelStr, { ok: true, events, kind: "human", source: "collab", plan: SO.planCommit() }, level, w); } catch (e) { problems.push("saving the route: " + e.message); }
     try { const sc = require("./score.js").scoreLevel(level, brief, { fairness: true, levelStr, name: brief.name }); full = { ok: sc.ok, fails: sc.gates.filter(g => g.status === "FAIL").map(g => g.name + ": " + String(g.value).slice(0, 140)), warns: sc.gates.filter(g => g.status === "WARN").map(g => g.name) }; } catch (e) { problems.push("full check: " + e.message); }
   }
   for (const { p } of parts) p.status = Object.assign({}, p.status, { join: send.has(p.id) ? "redo" : (run.dead ? "waiting" : "joined") });
@@ -332,7 +335,7 @@ function scene(briefFile, opts = {}) {
   if (run.dead) throw new Error("the route dies on the decorated level (" + run.why + ") -- not saved");
   writeGdlvl(out, L.rec, level);
   const levelStr = GD.serializeLevel(level);
-  try { require("./solutions.js").fromRun(level, levelStr, { ok: true, events: sol.events }, { name: brief.name }); } catch (e) {}
+  try { const SO = require("./solutions.js"); SO.put(levelStr, { ok: true, events: sol.events, kind: "human", source: "collab", plan: SO.planCommit() }, level, w); } catch (e) {}
   const plan = readJ(path.join(dirOf(briefFile), "plan.json"));
   showInViewer(briefFile, plan, "deco", levelStr, { events: sol.events }, "the level's scene over the joined parts: " + path.basename(file));
   return { out: path.relative(ROOT, out), added: r.objects.length, objects: level.objects.length, secs: (Date.now() - t0) / 1000 };
