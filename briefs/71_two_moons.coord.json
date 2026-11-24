@@ -2,7 +2,7 @@
  "level": "GDLM 71 two moons",
  "title": "GDLM 71 two moons",
  "brief": "briefs/71_two_moons.json",
- "at": "2026-11-24T21:59:51.132Z",
+ "at": "2026-11-24T22:50:29.260Z",
  "vibe": "briefs/71_two_moons.vibe.json",
  "journey": "dark space arrival (cube, almost black, a few stars) -> launch into light space (ship then wave, planets close by, navy) -> the nebula (ufo / ball / cube, violet haze) -> deep space climb (wave then ship, darkest part, speed rising) -> the moon rises (a calm cube breath, the moon comes up behind) -> the drop in front of the moon (ship / wave / swing at full pace, moonlit) -> end",
  "oneImage": "the drop at 105 s: a huge pale moon filling the back, the ship threading a corridor across its face",
@@ -514,9 +514,7 @@
     "an ending (no 'thanks for playing', no signature)",
     "another part's set pieces"
    ],
-   "setPieces": [
-    "s:pit-run-armed"
-   ]
+   "setPieces": []
   },
   {
    "id": "p7",

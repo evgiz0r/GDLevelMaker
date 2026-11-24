@@ -137,7 +137,7 @@ function partBrief(brief, part, k, nParts, seed) {
   if (nextSec && nextSec.continue && nextSec.mode === lastSec.mode) sub._continueAfter = lastSec.mode;
   // an upside-down part's exit: the cube falls from the ceiling (~3 blocks) -- 6 blocks of room (GDLM 66 p5: in the air at the seam)
   if (k < nParts - 1 && lastSec.mode === "upside") sub.sections[sub.sections.length - 1] = Object.assign({}, lastSec, { exitRoom: lastSec.exitRoom ?? 6 });
-  if (k < nParts - 1 && ["ship", "wave", "ball"].includes(lastSec.mode) && !(nextSec && nextSec.continue && nextSec.mode === lastSec.mode)) sub.sections[sub.sections.length - 1] = Object.assign({}, lastSec, { exitRoom: lastSec.exitRoom ?? 6 });   // 6: a ship exit high up still falls ~4 blocks (v6 p2)
+  if (k < nParts - 1 && ["ship", "wave", "ball", "ufo", "swing"].includes(lastSec.mode) && !(nextSec && nextSec.continue && nextSec.mode === lastSec.mode)) sub.sections[sub.sections.length - 1] = Object.assign({}, lastSec, { exitRoom: lastSec.exitRoom ?? 6 });   // 6: a ship exit high up still falls ~4 blocks (v6 p2)
   delete sub.parts;
   return sub;
 }

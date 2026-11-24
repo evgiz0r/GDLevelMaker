@@ -207,7 +207,8 @@ function compose(brief, tweaks = {}) {
     // the ball portal that stood right after the ship's exit, and skipped the ball)
     // (8 after an upside-down part: the cube falls from the ceiling first; 4 left it mid-air at the next
     // portal, fairness gate, GDLM 47)
-    let land = prevFlying && start - flyEnd < 4 ? (prevUpside ? 8 : 4) : 0;
+    // at 2x+ a flying exit needs more room: GDLM 71's wave -> cube left a tap closing 113 ms after the portal (fairness)
+    let land = prevFlying && start - flyEnd < 4 ? (prevUpside ? 8 : /^[234]x$/.test(speeds[si] || "") ? 7 : 4) : 0;
     // brief.portalRoom: the first section's portals that many columns in (tools/collab.js parts: a portal on a part's
     // first column is touched ~30 units before the seam once joined, but at time 0 when the part runs alone)
     const pRoom = si === 0 ? (brief.portalRoom || 0) : 0;
@@ -227,7 +228,8 @@ function compose(brief, tweaks = {}) {
     const RUN = { ball: ["ball-run", { gap: 5, every: 9 }], ufo: ["ufo-run", { gap: 7, every: 7 }], swing: ["swing-run", { gap: 6, every: 8 }] }[sec.mode];
     if (RUN) {
       const key = `${si}:0`, t = tweaks[key] || {}, pname = RUN[0];
-      const args = Object.assign({ w: sec.blocks - 3 - land, lead: 6 }, RUN[1], (sec.args || {})[pname] || {}, { portal: true, exit: "cube", portalRow: 1 });
+      // lead 10 for ufo / swing: a swing entered from the ground had to change the button within 183 ms (GDLM 71, fairness)
+      const args = Object.assign({ w: sec.blocks - 3 - land - (sec.exitRoom || 0), lead: sec.mode === "ball" ? 6 : 10 }, RUN[1], (sec.args || {})[pname] || {}, { portal: true, exit: "cube", portalRow: 1 });
       if (t.room) args.every += 2 * t.room;
       objects.push(["pattern", pname, start + 1 + land, 0, args]);
       placed.push({ key, name: pname, from: start + 1 + land, to: start + 1 + land + widthOf(pname, args), section: sec.name, flying: true });
