@@ -420,6 +420,11 @@ fixes them (Deadlocked's 1202 ball lanes); the lettered helper blocks (type 40) 
 ## Calibration -- checked against the user's game
 
 How: the user says "record", "reshoot" (close the current file, start a new one) or "stop".
+**A recorded run counts as checked only when its agreement is computed** (the user, 2026-11-24: "how didnt we catch my
+runs"): `tools/replay_run.js` writes each attempt with what really happened (top level) and the sim's replay of the same
+presses (`sim`) apart, and `agree` from one rule (tools/attempts.js agreeOf); `node tests/attempts_consistency.js` fails
+on a line whose fields contradict, lack the sim side, or no longer replay the same on today's physics. A user clear the
+sim does not finish is a ⚠ mismatch with the sim's death point, never drawn as the user's death.
 Run `tools/record.sh start` in the background (it also logs the user's GD inputs, only GD's jump keys/click while GD is in front, to local/inputs/, and the PC's own sound by WASAPI loopback, tools/audiolog.ps1, next to the video; both for tools/replay_run.js; PHYSICS.md "Fidelity"; GD's music must be ON in GD's settings for the sound to align attempts -- with it off, the replay falls back to the progress bar) (whole screen, 60 fps, Desktop Duplication, to
 Videos/Captures/GD claude-rec <time>.mkv) and `tools/record.sh stop`. Whole screen rather than
 the GD window by title: a window capture looked "frozen" once, but the user had only tabbed out
