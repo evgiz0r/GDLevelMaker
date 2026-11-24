@@ -205,6 +205,10 @@ for (const hold of [true, false]) {
   // the solo portal: the player that touched it goes on (here player 2, on the roof)
   const f = runTo(GD.makeWorld([DP(300, 60), SOLO(900, 255), { id: 1, x: 1500, y: 15 }]), 1000);
   check("dual: the solo portal keeps the player that touched it", !f.p2 && !f.dualBand && f.grav === -1, `p2 ${!!f.p2}, grav ${f.grav}, y ${f.y.toFixed(0)}`);
+  // the band stays centred on the dual portal when a player takes a mode portal in dual (processCameraObject hands
+  // GD's ground code the dual portal; Hexagon Force's corridor at 432 is only closed so)
+  const h = runTo(GD.makeWorld([DP(300, 60), { id: 13, x: 900, y: 255 }, { id: 1, x: 1500, y: 15 }]), 1000);   // player 2 (on the roof) takes it
+  check("dual: a ship portal in dual keeps the band on the dual portal", h.p2 && h.p2.mode === "ship" && h.floorY === 0 && h.ceilY === 300 && h.p2.ceilY === 300, `${h.p2 && h.p2.mode} band ${h.floorY}-${h.ceilY}`);
   // the solver takes the dual portal (no secret way around it) and gets both players past their spikes
   const g = GD.solveAny(GD.makeWorld([DP(300, 60), { id: 8, x: 800, y: 15 }, { id: 8, x: 1100, y: 285, flipY: true }, SOLO(1400, 60), { id: 1, x: 1800, y: 15 }]));
   check("dual: the solver clears a dual part with one button", g.ok, g.ok ? `${g.clicks.filter(c => c.type === "press").length} presses` : `${g.why} ${g.skipped || ""}`);
