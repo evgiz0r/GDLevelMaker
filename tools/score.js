@@ -69,7 +69,7 @@ function scoreLevel0(level, brief, opts = {}) {
   // solve() returns the saved human route when it is current, re-plans it when only the planner changed, re-solves
   // only from its first broken stretch (lib/incsolve.js) when the physics changed, and solves the whole level only
   // when there is nothing to build on. Its saved timing windows stand in for measuring. opts.saved === false: solve.
-  const saved = opts.saved === false ? null : savedRoute(w, level, opts.levelStr);
+  const saved = opts.saved === false ? null : savedRoute(w, level, opts.levelStr, opts);
   const r = saved || GD.solveAny(w);
   gate("beatable", r.ok ? "PASS" : "FAIL", r.ok ? `${r.clicks.filter(c => c.type === "press").length} presses` :
     `dies at block ${(r.dieAt.x / 30).toFixed(1)} (${r.why})`);
@@ -489,9 +489,10 @@ function inertHazards(level, w, r) {
 // The saved route of this level, verified (tools/solutions.js solve: current, re-planned, or re-solved from its
 // first broken stretch), shaped as a solver result with its saved timing windows: clicks carry lo / hi (sightread),
 // actions carry lo / hi / ms (lib/difficulty.js opts.actions). null when nothing beats the level that way.
-function savedRoute(w, level, levelStr) {
+function savedRoute(w, level, levelStr, opts) {
   let s;
-  try { s = require("./solutions.js").solve(level, levelStr || GD.serializeLevel(level)); } catch (e) { return null; }
+  // name / file reach the level's planned inputs: when they clear it, THEY are the route every gate judges (GDLM 62)
+  try { s = require("./solutions.js").solve(level, levelStr || GD.serializeLevel(level), { name: opts && opts.name, file: opts && opts.file }); } catch (e) { return null; }
   if (!s || !s.ok || !s.events || !Array.isArray(s.windows)) return null;
   const path = GD.run(w, s.events).path, TPS = GD.PHYS.TPS, ms = (lo, hi) => (hi - lo + 1) / TPS * 1000;
   const win = new Map(s.windows.map(([k, tick, lo, hi]) => [(k ? "r" : "p") + tick, { lo, hi }]));
@@ -648,7 +649,7 @@ if (require.main === module) {
   let bad = 0;
   for (const f of files) {
     const L = readGdlvl(f);
-    const s = scoreLevel(L.level, brief);
+    const s = scoreLevel(L.level, brief, { name: L.name, file: f, levelStr: L.levelStr });   // name/file: the level's planned route (tools/planned.js)
     if (args.includes("--json")) console.log(JSON.stringify({ name: L.name, ok: s.ok, gates: s.gates }));
     else print(L.name, s);
     if (!s.ok) bad++;

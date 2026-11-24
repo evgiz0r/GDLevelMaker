@@ -8,10 +8,12 @@
 // ("GDLM 62 low end lullaby" -> gdlm_62_low_end_lullaby). Returns [] when there is none.
 const fs = require("fs"), path = require("path");
 const ROOT = path.join(__dirname, "..");
-const slugOf = name => String(name || "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
+// a build stage's level is named "<name> (<stage>)" and lives at .../<slug>.stages/<stage>.gdlvl: both point at the level's plan
+const slugOf = name => String(name || "").replace(/\s*\([^)]*\)\s*$/, "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
+const stageSlug = file => { const m = String(file || "").split(path.sep).join("/").match(/([^/]+)\.stages\/[^/]+\.gdlvl$/); return m ? m[1] : null; };
 
 function plannedFor(name, levelFile) {
-  const slug = slugOf(name), times = list => (list || []).filter(e => typeof e === "number" || !/release/i.test(e.what || ""))
+  const slug = stageSlug(levelFile) || slugOf(name), times = list => (list || []).filter(e => typeof e === "number" || !/release/i.test(e.what || ""))
     .map(e => typeof e === "number" ? e : +e.t).filter(t => isFinite(t)).sort((a, b) => a - b);
   const side = levelFile ? levelFile.replace(/\.gdlvl$/, ".planned.json") : null;
   for (const f of [side, path.join(ROOT, "levels", slug + ".planned.json")].filter(Boolean))
@@ -33,7 +35,7 @@ function plannedFor(name, levelFile) {
 // entries: a ship's schedule) and a 14-tick tap (0.06 s, tools/hitbuild.js's) after every other press. null when the
 // level has no plan with releases or presses. tools/solutions.js uses it as the route when it clears the level as-is.
 function plannedEvents(name, levelFile) {
-  const slug = slugOf(name), TAP = Math.round(0.06 * 240);
+  const slug = stageSlug(levelFile) || slugOf(name), TAP = Math.round(0.06 * 240);
   let raw = null;
   const side = levelFile ? levelFile.replace(/\.gdlvl$/, ".planned.json") : null;
   for (const f of [side, path.join(ROOT, "levels", slug + ".planned.json")].filter(Boolean))
