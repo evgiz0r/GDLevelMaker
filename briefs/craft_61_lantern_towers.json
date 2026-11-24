@@ -73,7 +73,7 @@
     "red-pad-tower",
     "pink-orb-pit"
    ],
-   "gap": 3
+   "gap": 2
   },
   {
    "bars": 6,
@@ -88,79 +88,7 @@
     "ball-orb",
     "ball-flips",
     {
-     "raw": [
-      [
-       "block",
-       0,
-       5
-      ],
-      [
-       "block",
-       1,
-       5
-      ],
-      [
-       "block",
-       2,
-       5
-      ],
-      [
-       "block",
-       3,
-       5
-      ],
-      [
-       "block",
-       4,
-       5
-      ],
-      [
-       "block",
-       5,
-       5
-      ],
-      [
-       "block",
-       6,
-       5
-      ],
-      [
-       "block",
-       7,
-       5
-      ],
-      [
-       "block",
-       8,
-       5
-      ],
-      [
-       "block",
-       9,
-       5
-      ],
-      [
-       "block",
-       10,
-       5
-      ],
-      [
-       "block",
-       11,
-       5
-      ],
-      [
-       "block",
-       12,
-       5
-      ],
-      [
-       "block",
-       13,
-       5
-      ]
-     ],
-     "w": 14
+     "rest": 4
     }
    ]
   },
@@ -235,5 +163,9 @@
    ],
    "gap": 2
   }
- ]
+ ],
+ "decoDensity": 0.05,
+ "accept": {
+  "symmetry": "the orbs sit where the jump's arc reaches them (the user: orbs where the arc goes), not on the centre of the pit's spike row"
+ }
 }

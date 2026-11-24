@@ -272,11 +272,16 @@ S("stepped-pyramid", { tags: ["1x only", "platforming", "stairs", "pit", "set pi
   build: () => { const o = [...blocks(0, 29, 0, 1), ...blocks(5, 24, 1, 2), ...blocks(10, 19, 2, 3), ["spike", 14, 3]];
     o.push(...pit(29, 32), ...blocks(32, 35, 0, 1)); return { objects: o, width: 35 }; } });
 S("ceiling-hop", { tags: ["1x only", "gravity", "gravity portal", "pillar", "ceiling run"], tier: "Normal",
-  doc: "upside down: hanging columns of different lengths are the floor, a spiked roof-pit between them (Jumper's green part, as a shape)",
-  build: () => { const o = [["gravity down", 0, 1], ...blocks(0, 4, 8, 12)];
-    const lens = [3, 4, 3, 2]; let c = 4;
-    for (const L of lens) { o.push(...range(c, c + 2).map(x => [9, x, 11, { dy: 13, rot: 180 }]), ...blocks(c + 2, c + 4, 12 - L, 12)); c += 4; }
-    o.push(...range(c, c + 2).map(x => [9, x, 11, { dy: 13, rot: 180 }]), ...blocks(c + 2, c + 6, 8, 12), ["gravity up", c + 5, 6], ...blocks(c + 5, c + 8, 0, 1));
+  doc: "upside down: hanging columns of different lengths are the floor, a spiked 3-wide roof-pit before each, each the same length or a row shorter (a drop, upside down); never longer: upside down a step onto a longer column asks for a jump 1.7 blocks early, a prejump (Jumper's green part, as a shape)",
+  args: { lens: [4, 3, 3, 2] },
+  build: a => { const o = [["gravity down", 0, 1], ...blocks(0, 4, 8, 12)];
+    let c = 4, prev = 4;
+    for (const L0 of a.lens) { const L = Math.min(L0, prev);
+      o.push(...range(c, c + 3).map(x => [9, x, 11, { dy: 13, rot: 180 }])); c += 3;
+      o.push(...blocks(c, c + 4, 12 - L, 12)); c += 4; prev = L;
+    }
+    // the last column runs on; the gravity portal hangs right under its end (the cube runs into it), then the floor
+    o.push(...blocks(c - 1, c + 3, 12 - prev, 12), ["gravity up", c + 2, 12 - prev - 2], ...blocks(c + 2, c + 8, 0, 1));
     return { objects: o, width: c + 8 }; } });
 
 S("ship-weave", { mode: "ship", tags: ["ship", "pillar"], tier: "Normal",
