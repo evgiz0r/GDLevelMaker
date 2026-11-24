@@ -94,6 +94,10 @@ function partBrief(brief, part, k, nParts, seed) {
   sub.seed = (brief.seed || 1) * 1000 + k * 37 + (seed || 0);
   if (k > 0) sub.leadIn = brief.partLeadIn ?? 4;                 // not the level's 10-block calm start at every seam
   if (k < nParts - 1) sub.signature = false;                     // the signature ends the last part only
+  // a part that ends in a flying section: its exit portal 4 blocks before the seam, so the cube is down on the floor
+  // when the seam time comes (GDLM 65 p1: the exit at the section's very end left it on the portal's frame block, y 45)
+  const lastSec = sub.sections[sub.sections.length - 1];
+  if (k < nParts - 1 && ["ship", "wave", "ball"].includes(lastSec.mode)) sub.sections[sub.sections.length - 1] = Object.assign({}, lastSec, { exitRoom: lastSec.exitRoom ?? 4 });
   delete sub.parts;
   return sub;
 }
@@ -104,7 +108,10 @@ function build(briefFile, k, opts = {}) {
   const C = require("./compose.js"), { build: mk } = require("./make.js"), { scoreLevel } = require("./score.js");
   const log0 = console.log; let built, spec;
   console.log = () => {};
-  try { spec = C.compose(sub).spec; built = mk(spec, briefFile); } finally { console.log = log0; }
+  // --seed n: every section of the part from its n-th alternative plan (compose's "reseed:<i>" tweak -- the brief's seed
+  // alone does not change a section's chunks: GDLM 65 p2 seeds 1 and 2 came out byte-identical)
+  const tweaks = {}; if (opts.seed) sub.sections.forEach((x, i) => { tweaks["reseed:" + i] = opts.seed; });
+  try { spec = C.compose(sub, tweaks).spec; built = mk(spec, briefFile); } finally { console.log = log0; }
   const level = built.level, levelStr = GD.serializeLevel(level), w = GD.makeWorld(level.objects, level.header), tl = SY.timeline(w);
   const dur = part.t[1] - part.t[0], L = SY.xOfT(tl, dur) - SY.xOfT(tl, 0);
   const tb = Date.now();
@@ -117,6 +124,18 @@ function build(briefFile, k, opts = {}) {
   // the part's own exit: the state its route leaves at the seam time (what the next part will be handed)
   let exit = null;
   if (sol && sol.ok) { const p = GD.run(w, sol.events).path, q = p[Math.min(p.length - 1, Math.round(dur * TPS) - 1)] || {}; exit = { mode: q.mode, sp: q.sp, grav: q.grav, y: q.y != null ? +q.y.toFixed(1) : null, vy: q.vy != null ? +q.vy.toFixed(2) : null, grounded: !!q.grounded, x: q.x }; }
+  // the part's own seam check: what it hands the next part at the seam time against the contract (the builder sees it
+  // before the join does)
+  const out = plan.seams[k];
+  if (out && exit) {
+    const bad = [];
+    if (exit.mode !== out.mode) bad.push(`mode ${exit.mode}`);
+    if (exit.sp !== SPEED_IX[out.speed]) bad.push(`speed ${exit.sp} (contract ${out.speed})`);
+    if ((exit.grav || 1) !== out.grav) bad.push(`gravity ${exit.grav}`);
+    if (exit.y == null || Math.abs(exit.y - out.y) > 8) bad.push(`y ${exit.y} (contract ${out.y})`);
+    if (out.grounded && !exit.grounded) bad.push("in the air");
+    if (bad.length) { gates.seam = "FAIL: at the seam time " + bad.join(", "); fails.push("seam"); }
+  }
   const dir = dirOf(briefFile); fs.mkdirSync(dir, { recursive: true });
   writeGdlvl(path.join(dir, part.id + ".gdlvl"), built.rec, level);
   const res = { part: part.id, by: opts.by || "style", seed: opts.seed || 0, ok: !!(sol && sol.ok) && !fails.length, solved: !!(sol && sol.ok), fails, gates, dur: +dur.toFixed(4), L: +L.toFixed(2),
