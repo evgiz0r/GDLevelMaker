@@ -187,6 +187,17 @@ for (const r of runs) {
     try { const o = JSON.parse(l); return !(o.source === "video" && o.video && o.video.file === path.basename(video)); } catch (e) { return true; } }) : [];
   if (lines.length) fs.writeFileSync(af, keep.concat(lines).join("\n") + "\n");
 }
+// the user's own play as a route (the coordinator, 2026-11-24: "my 'human' play was decent"): a clear the sim replays to the
+// end is saved as the level's route of kind "player", beside the solver's (local/solutions/<key>.player.json, the same
+// content key as tools/solutions.js); the viewer offers it next to the solver's route. The latest agreeing clear wins.
+{
+  const sols = require("./solutions.js"), clears = out.filter(o => o.beaten && o.agree && o.simOut && o.simOut.result === "clear");
+  if (clears.length) { const c = clears[clears.length - 1], f = path.join(__dirname, "..", "local", "solutions", sols.keyOf(L.levelStr) + ".player.json");
+    fs.mkdirSync(path.dirname(f), { recursive: true });
+    fs.writeFileSync(f, JSON.stringify({ ok: true, kind: "player", events: c.events, physics: sols.physicsCommit(), name: L.name || lv,
+      from: { video: path.basename(video), t: c.video_t, inputs: path.basename(logFile), shift_ms: c.shift_ms } }));
+    console.log(`player route saved: ${path.relative(path.join(__dirname, ".."), f)} (the clear at ${c.video_t} s)`); }
+}
 const dir = path.join(__dirname, "..", "local", "replays"); fs.mkdirSync(dir, { recursive: true });
 fs.writeFileSync(path.join(dir, path.basename(video).replace(/\.\w+$/, "") + ".json"), JSON.stringify({ level: L.name, video: path.basename(video), log: path.basename(logFile), attempts: out }, null, 1));
 console.log(`${out.filter(o => o.agree).length} of ${out.length} attempts agree; mismatches go to PHYSICS.md "Fidelity"`);
