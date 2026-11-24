@@ -211,6 +211,17 @@ function scoreLevel0(level, brief, opts = {}) {
     } catch (e) { /* deadair.js missing */ }
   }
 
+  // presses vs the song's tempo (the user on GDLM 44 hellgate v6: "Still the cps is very small, compared to beat of the
+  // song"): inputs per beat of the human route, over the level and in its busy phrases, against the official levels
+  // (0.53-0.87 per beat; busy parts p10 0.50). tools/tempo.js (polish). WARN; needs the song's beat grid and the file.
+  if (r.ok && opts.file) {
+    try {
+      const T = require("./tempo.js"), L = require("./energy.js").loadLevel(opts.file);
+      const q = T.analyse(L, T.inputs(level.objects, level.header, (natural() || r).events));
+      if (!q.error) gate("tempo", q.flags.length ? "WARN" : "PASS", `${q.perBeat.toFixed(2)} inputs per beat (busy parts ${q.busyPerBeat.toFixed(2)}) at ${q.bpm.toFixed(0)} bpm; official levels 0.53-0.87`, q.flags.join("; "));
+    } catch (e) { /* no beat grid / tempo.js missing */ }
+  }
+
   // orbs you can buffer, no jumps over nothing (physics, from the user: "usually with orbs, when possible, we
   // want to buffer"; stairs and step-downs are walked off, not jumped). lib/natural.js on the player's route:
   // an orb only a precise mid-orb click takes, a cube jump from the ground over nothing. WARN.

@@ -50,6 +50,9 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   presses) and no empty screen -- no hazard, orb, pad or structure in view for 1+ s (official levels: 1 in ten).
   A calm is short and deliberate, with deco, and accepted in the brief. `tools/deadair.js`, score.js "dead air";
   craftlevel fills a short section with its own chunks. (the user on GDLM 61 v3, 38-46 s: "very big breaks with nothing")
+- [ ] **Presses follow the song's beat**: the human route has about as many inputs per beat as the official levels
+  (0.53-0.87 over the level, 0.50+ in its busy phrases; a calm phrase may be sparse). `tools/tempo.js`, score.js "tempo".
+  (the user on GDLM 44 hellgate v6: "the cps is very small, compared to beat of the song")
 - [ ] **Density without timing**: arm the pieces the route never touches -- spike tips under hanging columns
   (3+ rows over the higher pillar beside them) and spike-tipped 1-wide pillars mid-pit, a row under the lower
   landing; never a spike on a top the route lands on. Checked: windows unchanged (CRAFT.md "Density").
