@@ -251,6 +251,50 @@ hazards ~4.4x, three deco depths between bg and block, ground darkest).
 5. Glow and deco go behind the play (B layers) near hazards, and are dimmer than the hazards' edges.
 Tool: `require("./tools/contrast.js").ratio(rgbA, rgbB)` for a quick pair check; `measure({header, objects})` for a level.
 
+## Colour by role (the user, 2026-11-24)
+
+The user, twice the same day: "your color choices sometimes are bad according to background/path/spikes, sometimes its
+not clear and its all mooshy", then: **"Usually the contrast in our games is pretty bad. Can we do clear contrasts
+between the different things (ground, spikes, deco). Sometimes the path is very unclear with similar shades of black,
+grey, brown (at least in previous levels)."**
+
+This does NOT conflict with "go mid-tone" (gd-taste's comparison, above): the BACKGROUND and the DECO may be busy and
+mid-tone; the PLAYABLE things separate from them by role:
+- path (blocks, ground): one clear value band, read as a MASS, with edges that read against the sky and the deco;
+- hazards: their own hue and value, never the deco's or the blocks' (one colour shared with their block, as in GD's own
+  levels, is noted "shape only", not failed);
+- orbs, pads, portals: GD's own bright art (not measured yet: open);
+- deco: never in the path's or a hazard's value AND hue family where it touches them; it melts into the sky instead.
+
+**The check: `node tools/roles.js <level ...> [--all] [--shots N]`** (score.js gate "roles", FAIL at 10% of sections).
+Every 10 blocks, with the colours of that moment, pairs: path/bg, path/deco, hazard/path, hazard/deco, hazard/bg.
+"Similar" = a luminance ratio under the pair's limit (1.3-1.6) AND one hue family (both grey/black/dark, or within 35
+degrees of hue: black, grey and dark brown are one family). What it learned on the way, from the user's own recording
+of GDLM 52 (2026-11-24_19-34-49.mkv, frames every 25 s):
+- GD draws a block skin as a see-through DARK BODY (~62% black over the sky) with edge lines in its colour, and a spike
+  as a black body with a coloured rim. So the colour we give a block (key 21) is its RIM, not its fill. Measuring the
+  rim alone, every GDLM level passed -- while the recording shows dark grey bodies, a grey-purple sky and grey gears /
+  houses all at one value, with only thin rims apart. That is the mush. Now a block's body counts;
+- a bright rim (3x+ off the sky) still carries a body lost in an EMPTY sky (Can't Let Go's black on black with white
+  edges reads fine); deco in the body's value touching it is what turns it to mush;
+- deco with no colour key draws GD's own black-and-white art: not judged.
+Calibration: officials 1-18 pass (0-5% of sections); Geometrical Dominator, Deadlocked, Fingerdash and Dash
+fail on copy-colour / 2.0+ block art the measure reads badly (the same limit as contrast.js). Featured community levels
+(SLAM, Subwoofer Lullaby, Spooky Dash) fail too: busy deco next to the path, carried by glow the measure cannot see.
+The user asked for clear, so the officials are the bar here, not the featured levels.
+
+**Sweep 2026-11-24** (share of sections that mix a playable role): 64 golden hour v5 83% (brown deco on brown path
+pieces), 52 necromancy 94% (grey deco in the bodies' value), 62 low end lullaby 38%, 66 collab long 72%, 69 time hop
+57%, 47 sunny side 63%, 50 eclipse 83%, 44 hellgate 78%, 65 collab test 78%, 70 candy night 31%, 45 first flight 47%,
+51 adrift 39%, lab round 1 v1-v6 27-100% (light yellow blocks on a yellow sky, ratio 1.13). Clean: 41, 42, 43, 46,
+60, 61, 63, 67, 68 camera lab. Pictures of the worst spots: local/roles/<level>/sheet.jpg (`--shots 3`).
+
+**The palette: `require("./tools/decokit.js").rolePalette(hue)`** -- bg mid-tone (0.17) in the scene hue; pathEdge a
+light off-white (rim, key 21 of blocks; the line too); blockFill near-black; ground darker than bg; hazardEdge in its
+OWN hue (scene + 150 degrees), 2.6x off the sky; deco far / mid / near just under the sky (0.88 / 0.72 / 0.56 of its
+luminance: ~2x off the blocks' bodies); accent for motes and rays. `P.check` runs roles.js's pairs on the palette
+itself (all 24 hues pass, tests/decokit.js). midTone (above) is superseded for play colours.
+
 ## Deco library (2026-11-24; the user: our levels look like "3 squares and poopy" next to real ones)
 
 Targets: knowledge/levels/modern_look.md "Recipe" (20-50 objects per block, layers B4-B5 ~20% / B1-B3 ~25% / T1 /

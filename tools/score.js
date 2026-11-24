@@ -37,6 +37,7 @@
 //   channels     deco on a colour channel nothing defines: white in the game (tools/channels.js); FAIL
 //   contrast     colour readability: hazards / blocks / ground vs the background, by luminance (tools/contrast.js); WARN
 //                under 70/100 sections readable
+//   roles        colour by role: block bodies vs the sky, deco in the path's / a hazard's value + hue family (tools/roles.js); FAIL
 //   objects      gameplay objects with unconfirmed hitboxes (sure:false; WARN only)
 //   taste        the taste score learned from rated vs unrated community levels (tools/taste.js, TASTE_DATA.md):
 //                info; WARN when a rule the data supports is missed. Band from the brief's "taste": {"band"}.
@@ -141,6 +142,14 @@ function scoreLevel0(level, brief, opts = {}) {
     gate("contrast", C.score < 70 || C.stark ? "WARN" : "PASS", `${C.score}/100 sections readable (official levels: median hazard/bg 3.5-21)` + (C.stark ? `; STARK: median block/bg ${C.median.blockBg} > ${require("./contrast.js").STARK} (rated 2.2 levels: 1.35-6.2) -- a mid-tone scene, hazards kept clear (decokit.midTone)` : ""),
       C.worst.slice(0, 4).map(s => `~${s.t} s: ${s.fails.join(", ")}`).join("; "));
   } catch (e) { gate("contrast", "WARN", "tools/contrast.js failed: " + e.message); }
+  // colour by ROLE (the user, 2026-11-24: "clear contrasts between the different things (ground, spikes, deco) ... the path
+  // is very unclear with similar shades of black, grey, brown"): blocks' bodies vs the sky, deco in the path's or a hazard's
+  // value and hue family, hazards vs sky and path (tools/roles.js; palettes: decokit.rolePalette). FAIL at 10% of sections.
+  try {
+    const RL = require("./roles.js").measure({ name: level.name, header: level.header, objects: level.objects });
+    gate("roles", RL.ok ? "PASS" : "FAIL", `${RL.failed}/${RL.sections} sections mix a playable role with deco or the sky ${JSON.stringify(RL.byPair)} (official levels 0-5%)`,
+      RL.worst.slice(0, 3).map(s => `~${s.t} s: ${s.fails.join("; ")}`).join(" | "));
+  } catch (e) { gate("roles", "WARN", "tools/roles.js failed: " + e.message); }
   // deco the GAME draws white: a colour channel 1-999 (an object's key or its default) that neither the header nor a
   // colour trigger before it defines (the user, 2026-11-24, after a real-game run: "our deco being pure white within the
   // game is still expected?"; tools/channels.js). Hard: the viewer shows a colour the game will not.

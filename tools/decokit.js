@@ -105,6 +105,7 @@ function motion(x0, x1, o = {}) {
   return out;
 }
 
+// (Superseded for play colours by rolePalette below: it separates path, hazards and deco by ROLE.)
 // A mid-tone scene with clear hazards (gd-taste's comparison: rated 2.2 levels' contrast score ~50 against our 100;
 // their background sits at luminance ~0.2-0.26 or near black, their blocks within 1.35-6.2x of it and read by their
 // outlines; ours were black blocks on a bright sky, 5.6-15x). Given a hue (0-360), returns rgb for bg, ground, block
@@ -128,4 +129,49 @@ function midTone(hue, o = {}) {
   return P;
 }
 
-module.exports = { blockPattern, backdrop, tufts, depthColours, motion, midTone };
+// Role-separated palette (the user, 2026-11-24: "Can we do clear contrasts between the different things (ground, spikes,
+// deco). Sometimes the path is very unclear with similar shades of black, grey, brown"). The background and the deco
+// may be busy and mid-tone; the PLAYABLE roles separate from them by value AND hue family (tools/roles.js's rule):
+//   bg          mid-tone (luminance o.bgLum, 0.17) in the scene's hue
+//   pathEdge    key 21 of block skins / outlines (GD draws a BLACK body with edges in this colour): light, low-sat,
+//               a cool or warm white off the scene hue -- the path is "black with a bright rim"
+//   blockFill   fill pieces inside blocks (decokit.blockPattern ch): near-black in the scene hue (with the black body)
+//   ground      darker than bg; line = pathEdge (the floor reads by its line like the blocks)
+//   hazardEdge  key 21 of spikes / saws: its OWN hue (o.hazardHue, default the scene hue + 150: across the wheel) at a
+//               high value, saturated -- never the path's colour or the deco's
+//   far/mid/near  deco depths: the bg's family, just under the bg (0.88 / 0.72 / 0.56 of its luminance): away from the
+//               blocks' dark bodies (ratio ~2) and far under the edges -- deco melts into the sky, never into the path
+//   accent      deco highlights (motes, rays): the bg family, lighter than bg but under the edges; keep off play objects
+// Returns rgb per role and `check`: roles.js's pairs on the palette itself (every listed pair must be false).
+function rolePalette(hue, o = {}) {
+  const C = require("./contrast.js"), RL = require("./roles.js"), sat = o.sat ?? 0.6, bgL = o.bgLum ?? 0.17;
+  const hsv = (h, s, v) => { h = ((h % 360) + 360) % 360; const f = n => { const k = (n + h / 60) % 6; return v - v * s * Math.max(0, Math.min(k, 4 - k, 1)); };
+    return [f(5), f(3), f(1)].map(c => Math.round(c * 255)); };
+  const atLum = (h, s, L) => { let lo = 0, hi = 1; for (let i = 0; i < 30; i++) { const m = (lo + hi) / 2; if (C.lum(hsv(h, s, m)) < L) lo = m; else hi = m; } return hsv(h, s, hi); };
+  const hz = o.hazardHue ?? hue + 150;
+  const P = {
+    bg: atLum(hue, sat, bgL),
+    ground: atLum(hue, sat * 0.9, bgL * 0.3),
+    pathEdge: atLum(hue + 180, 0.12, Math.min(0.85, bgL * 4.5 + 0.1)),
+    blockFill: atLum(hue, sat * 0.8, 0.012),
+    hazardEdge: (() => { const want = Math.min(0.6, (bgL + 0.05) * 2.6 - 0.05);   // hazard/bg >= 2.6 in its own hue, as saturated as that allows
+      for (let s2 = 0.85; s2 > 0.2; s2 -= 0.05) { const c = atLum(hz, s2, want); if (C.lum(c) >= want * 0.97) return c; } return atLum(hz, 0.2, want); })(),
+    far: atLum(hue + 8, sat * 0.6, bgL * 0.88), mid: atLum(hue + 4, sat * 0.7, bgL * 0.72), near: atLum(hue, sat * 0.8, bgL * 0.56),
+    accent: atLum(hue - 10, sat * 0.5, Math.min(0.45, bgL * 1.8)),
+  };
+  P.line = P.pathEdge;
+  const black = [0, 0, 0], body = P.bg.map(v => Math.round(v * 0.38));   // skins 2-7: see-through body (roles.js)
+  P.body = body;
+  const path = [body, P.pathEdge], haz = [black, P.hazardEdge], L = RL.LIM, lost = (set, c, lim) => set.every(a => RL.similar(a, c, lim));
+  P.check = { pathBg: lost(path, P.bg, L.pathBg), hazardBg: lost(haz, P.bg, L.hazardBg), hazardPath: RL.similar(P.hazardEdge, P.pathEdge, L.hazardPath),
+    groundBg: lost([P.ground, P.line], P.bg, L.pathBg) };
+  P.check.bodyBg = RL.similar(body, P.bg, L.pathBg);   // the block must read as a mass, not only by its rim
+  for (const d of ["far", "mid", "near", "accent"]) { P.check["path/" + d] = RL.similar(body, P[d], L.pathDeco) || lost(path, P[d], L.pathDeco); P.check["hazard/" + d] = lost(haz, P[d], L.hazardDeco);
+    P.check["edge~" + d] = RL.similar(P.pathEdge, P[d], L.pathDeco) || RL.similar(P.hazardEdge, P[d], L.hazardDeco); }
+  P.ok = Object.values(P.check).every(v => !v);
+  P.ratios = { edgeBg: +C.ratio(P.pathEdge, P.bg).toFixed(2), hazardBg: +C.ratio(P.hazardEdge, P.bg).toFixed(2), bodyBg: +C.ratio(body, P.bg).toFixed(2),
+    hazardEdge_pathEdge: +C.ratio(P.hazardEdge, P.pathEdge).toFixed(2), nearBody: +C.ratio(P.near, body).toFixed(2) };
+  return P;
+}
+
+module.exports = { blockPattern, backdrop, tufts, depthColours, motion, midTone, rolePalette };
