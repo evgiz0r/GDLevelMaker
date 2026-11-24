@@ -3,7 +3,7 @@
 //      ultra sync is the clicks to match the beat. so you need to make the layout with the beats, see it
 //      works"). The presses come first and never move: one tap EXACTLY on each planned hit (tools/hits.js).
 //      1. ship sections: a press / release schedule on the section's hits, flown in open air, and the
-//         corridor built around that path (2 blocks of air above and below) -- the path is the design;
+//         corridor built around that path (2.5 blocks of air above and below) -- the path is the design;
 //      2. cube and ball cells: each obstacle is placed, then moved (never the tap) until its hit sits in the
 //         middle of its timing window -- window found by replaying the planned taps in the sim (one run
 //         each, ~70 ms; no solving), the other taps fixed; orb cells also centre the orb's own tap on its
@@ -66,7 +66,7 @@ function shipSection(plan, si, hits, tOf, col) {
   for (let c = c0; c <= c1; c++) {
     const l = Math.min(lo[c - 1] ?? 1e9, lo[c] ?? 1e9, lo[c + 1] ?? 1e9), h = Math.max(hi[c - 1] ?? -1e9, hi[c] ?? -1e9, hi[c + 1] ?? -1e9);
     if (!(l < 1e8 && h > -1e8)) throw new Error(`ship path does not reach column ${c} (the open-air run ended early)`);
-    fr[c] = Math.max(0, Math.floor((l - 60) / 30)); rr[c] = Math.min(10, Math.ceil((h + 60) / 30));
+    fr[c] = Math.max(0, Math.floor((l - 75) / 30)); rr[c] = Math.min(10, Math.ceil((h + 75) / 30));   // 2.5 blocks of air: a press 3+ blocks before a floor rise was a prejump (GDLM 62 v3)
   }
   for (let c = c0; c < c1; c++) {
     for (let r = 0; r < fr[c]; r++) o.push(["block", c, r]);
