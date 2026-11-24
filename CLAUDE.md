@@ -158,6 +158,9 @@ at once and the PC hung (0.2 GB free), so the rule is now a lock every heavy too
 - **fast lane**: a waiter whose measured runs take under 2 min may take a free slot ahead of the long ones -- one lane job
   at a time, and never ahead of a long job that has waited 10 min (no starving); `node tools/heavy.js` and
   `/heavy/status` show the slots, the lane job and the fast waiters;
+- **light lane** (the user, 2026-11-24, on the section lab: "Iterating on them like this feels too slow"): a job whose
+  measured runs take under 2 min AND peak under 500 MB (lab builds: 0.2-0.3 GB, 4-77 s) runs as a third slot beside two
+  held ones, one light job at a time, when 2 GB are free (2.5 GB while the game runs);
 - while the user plays (GeometryDash.exe runs): one job whatever is free, and none starts under 2 GB free;
 - every heavy job lowers itself to idle CPU priority at start, so the game and the desktop always win;
 - the others wait and say so: `heavy: waiting for tools/make.js ... (<session>, pid, N min in, ~M min left)`;

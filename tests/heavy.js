@@ -120,5 +120,12 @@ assert(/heavy\.js"\)\.claim\(\)/.test(fs.readFileSync(path.join(__dirname, "..",
   assert(!r.ff && /1 commit\(s\) behind main/.test(r.warn) && /another rule/.test(r.warn) && fs.readFileSync(path.join(a, "tools", "x.js"), "utf8").trim() === "mine","a dirty tree is warned, not moved: " + JSON.stringify(r));
   fs.rmSync(base, { recursive: true, force: true });
 }
+// the light lane: short and small jobs get a third slot beside two held ones, one at a time, with LIGHT_MB headroom
+{
+  assert(H.isLight({ est: 30, mb: 300 }) && !H.isLight({ est: 30, mb: 900 }) && !H.isLight({ est: 300, mb: 300 }) && !H.isLight({ est: 30, mb: null }), "light = measured under 2 min and 500 MB");
+  assert(H.lightGo([{ pid: 1 }, { pid: 2 }], 2100, false), "two held slots, 2.1 GB free, game closed: the light job runs");
+  assert(!H.lightGo([{ pid: 1 }, { pid: 2, light: true }], 4000, false), "one light job at a time");
+  assert(!H.lightGo([{ pid: 1 }], 2100, true) && H.lightGo([{ pid: 1 }], 2600, true), "while the game runs: 2.5 GB free needed");
+}
 console.log("heavy: ok");
 })().catch(e => { console.error(e); process.exit(1); });
