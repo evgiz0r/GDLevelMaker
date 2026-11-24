@@ -75,15 +75,30 @@ function shipSection(plan, si, hits, tOf, col) {
     for (let r = 0; r < fr[c]; r++) o.push(["block", c, r]);
     for (let r = rr[c]; r < 10; r++) o.push(["block", c, r]);
   }
-  // every ship input gets its cue right in front (sightread: a flying input's cue within 3 blocks): 3 blocks
-  // after a press a floor pillar up to 50 units under the path (a ship that did not press is lower and hits it),
+  // every ship input gets its cue right in front (sightread: a flying input's cue within 3 blocks):
+  // after a press a floor pillar at the ship's height (one that did not press hits it),
   // 3 blocks after a release a column hanging to 50 units over it (one that kept holding hits that)
   const at = x => run.find(q => q.x >= x);
   for (const e of sched) {
     const q0 = run[Math.min(e.tick, run.length - 1)], q = at(q0.x + 90);
     if (!q || q.x > endX - 120) continue;
     const c = Math.round((q.x - 15) / 30);
-    if (e.type === "press") { const top = Math.floor((q.y - 15 - 50) / 30); for (let r = 0; r < top; r++) o.push(["block", c, r]); }
+    if (e.type === "press") {
+      // the pillar must stand at the ship's own height when it pressed (sightread counts only what a ship flying on
+      // level would hit; a pillar 50 units under the path was no cue at all, GDLM 62 v3): the first column after
+      // the press where the path has risen enough to pass 10 units over a top above the press height
+      const yP = q0.y;
+      for (let cc = Math.floor(q0.x / 30) + 1; cc <= Math.floor(q0.x / 30) + 8; cc++) {
+        const cx = cc * 30 + 15, seg = run.filter(p => p.x >= cx - 30 && p.x <= cx + 30);
+        if (!seg.length || cx > endX - 120) break;
+        const top = Math.min(...seg.map(p => p.y)) - 15 - 10;
+        if (top <= yP - 15 + 3) continue;
+        const tr = top / 30;
+        for (let r = tr - 1; r > -1; r--) o.push(["block", cc, +Math.max(0, r).toFixed(3)]);
+        break;
+      }
+      continue;
+    }
     else { const bot = Math.ceil((q.y + 15 + 50) / 30); for (let r = Math.max(bot, 0); r < 10; r++) o.push(["block", c, r]); }
   }
   // the exit: a cube portal where the path crosses the section's last beat, framed above and below
