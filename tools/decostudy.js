@@ -103,7 +103,7 @@ if (process.argv[2] === "one") {
     const cache = path.join(OUT, it.id + ".json");
     let r = null;
     if (fs.existsSync(cache) && it.group !== "gdlm" && it.group !== "given") { r = JSON.parse(fs.readFileSync(cache, "utf8")); if (r.v !== MV) r = null; }
-    else {
+    if (!r) {
       try { r = JSON.parse(cp.execFileSync(process.execPath, ["--max-old-space-size=3000", __filename, "one", it.src], { windowsHide: true, maxBuffer: 1 << 26, timeout: 180000 }).toString() || "null"); } catch (e) { r = null; }
       if (r) { r.v = MV; fs.writeFileSync(cache, JSON.stringify(r)); }
     }
