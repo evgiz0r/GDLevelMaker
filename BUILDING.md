@@ -67,6 +67,16 @@ thinner or an intro / calm denser than the level's middle) and names the parts t
 viewer's sections bar shows each part's role. The brief's shape is meant to become gd-showcase's storyboard / vibe
 sheet (tools/storyboard.js) once that exists.
 
+**Watching a collab build: the combined track** (the user picked option A of local/collab/mockup.svg). While parts
+build, the level's card in the viewer shows ONE track of the whole song: every built part at its song time (placed as
+the join places it, with its route), a placeholder for each part not built yet (a flat floor for its song time at its
+seam speed, with its role and contract written on it; the camera runs through). `collab.js preview <brief>` makes it,
+and every part build refreshes it (light: no solve, no lock). The parts strip under the stage bar is the sections bar:
+role, name, L / D / P / J pills (builder and state on hover); a click jumps to the part, a DOUBLE-click opens the part
+alone (its own card, <level>_p<k>, with its builder's stages), and "◀ <level>" goes back. After the join the same card
+is the joined level. Energy: score.js "energy curve" compares the level's real energy (gd-taste's storyboard measure)
+with the coordinator's intended curve.
+
 **Fixes through the model** -- the user (2026-11-24): "when we fix/reshape a level ... call such person, depending on the
 size of the fix, so that the fix matches the level anyway." Every level has a MODEL next to it (tools/model.js): its
 sections with role, energy (hazards per 100 blocks), look and vehicle -- the coordinator's brief when it has one, else

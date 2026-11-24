@@ -219,6 +219,18 @@ re-encoded at the bitrate that fits. `--vs-rec` puts the run's recording beside 
   stretch (`contentY`) when that is above 6 blocks.
 - Open: an art-free version, so a video can be shared publicly; cropping a windowed recording in `--vs-rec`; the progress bar.
 
+## A run the sim loses (2026-11-24)
+
+The user: "when i play my replay in clutterfunk my icon disappears". Where our sim loses a run (a recording it does not
+reproduce: Clutterfunk at 1.8 s and 3.7 s, Geometrical Dominator, ...), the replay used to go on as a camera-only ghost
+with no player. Now `runThrough` (viewer/index.html) steps on from the last live state with the user's own presses,
+deaths ignored. The player stays on screen, drawn at 60% alpha ("our sim loses your run here" marks the spot), to the
+run's real end: the level's end for a clear, GD's death % for a died run (not the progress bar's time, which can end
+short of it). Heights after the break are the sim's guess from the presses, not measured. Test:
+`node tests/run_player_drawn.js` (every saved run of every level, headless, ?check=runs: the player is drawn on every frame
+to the real end; 16 runs pass). The same day: a level link opened while that level was already showing seeked the old
+copy, so the load reset the time and dropped the run. It now waits for the new load.
+
 ## Render vs game (measured from the user's recordings, 2026-11-24)
 
 How: the user's own attempt replayed as the player (viewer run mode), the video frame at the same level time beside it

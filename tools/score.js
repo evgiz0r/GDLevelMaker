@@ -294,6 +294,35 @@ function scoreLevel0(level, brief, opts = {}) {
         over.length ? "official levels bring these in at higher ratings: keep them for harder levels, or accept with a reason" : "");
     }
   } catch (e) { /* no corpus on this PC */ }
+  // climbs (the user, 2026-11-24: "those cube ladders are way too bad to play. its almost luck based if i can find where to
+  // click"): every climb on the route (3+ rising landings) needs a readable press per step -- steady spacing, a landing of
+  // 0.3 s+ on the ground, the next step on screen at the press, no narrow window (tools/climbs.js). WARN.
+  if (r.ok) try {
+    const CL = require("./climbs.js"), wins = new Map((r.clicks || []).filter(c => c.type === "press" && c.lo != null).map(c => [c.tick, { lo: c.lo, hi: c.hi }]));
+    const cl = CL.climbsOf(runPath(), r.events.filter(e => e.type === "press").map(e => e.tick), level.objects, GD, wins.size ? wins : null), bad = cl.filter(c => c.flags.length);
+    gate("climbs", bad.length ? "WARN" : "PASS", cl.length ? `${cl.length} climb(s), ${bad.length} hard to read` : "no climbs",
+      bad.map(c => `blocks ${c.from}-${c.to}: ${c.flags.join("; ")}`).join(" | "));
+  } catch (e) { /* no route path */ }
+  // energy curve (the user, 2026-11-24: "check how compares"): the level's REAL experience curve against the INTENDED one.
+  // One definition, gd-taste's tools/energy.js: obstacle starts (a hazard group, an orb, a pad) per bar of the song,
+  // ranked within the level (0 calmest bar .. 1 busiest), against the beats of the level's vibe sheet (briefs/<NN>.vibe.json)
+  // or, for a collab build, its coordinator's brief (each part's energy, at its song time). WARN when the shapes disagree
+  // (Spearman rho < 0.5) or 2+ beats are off by more than 0.3, naming the worst. Levels with no intended curve: skipped.
+  try {
+    const name = brief.name || opts.name, P = require("path"), FS = require("fs"), dir = P.join(__dirname, "..", "briefs");
+    let coord = null; if (name) for (const f of FS.readdirSync(dir).filter(f => f.endsWith(".coord.json"))) { try { const c = JSON.parse(FS.readFileSync(P.join(dir, f), "utf8")); if (c.level === name) { coord = c; break; } } catch (e) {} }
+    let sheet = null;
+    if (coord && coord.vibe) try { sheet = JSON.parse(FS.readFileSync(P.join(__dirname, "..", coord.vibe), "utf8")); } catch (e) {}
+    if (!sheet && coord && coord.parts && coord.parts.length >= 3) { const off = brief.offset || 0; sheet = { beats: coord.parts.map(p => ({ id: p.id, role: p.role, t: [p.t[0] + off, p.t[1] + off], energy: p.energy })) }; }
+    if (sheet && (sheet.beats || []).length >= 3) {
+      const E = require("./energy.js"), B = require("./beats.js"), song = brief.song && (brief.song.custom || brief.song);
+      let grid = null; try { grid = song ? B.loadBeats(/^\d+$/.test(String(song)) ? "custom_" + song : String(song)) : null; } catch (e) {}
+      const v = E.vsSheet(E.curve({ header: level.header, objects: level.objects, grid }), sheet);
+      const bad = v.rho < 0.5 || v.off >= 2, w = v.worst;
+      gate("energy curve", bad ? "WARN" : "PASS", `real vs intended energy: rho ${v.rho} over ${v.beats.length} beats, ${v.off} off by > 0.3` + (w ? `; worst ${w.id} (${w.role}) want ${w.want} got ${w.got}` : ""),
+        bad ? "the level does not follow its intended energy: densify the beats that run low, calm the ones that run high (tools/energy.js <level> --sheet ...)" : "");
+    }
+  } catch (e) { /* no sheet, no energy tool */ }
 
   // pacing, from hazard columns
   const haz = level.objects.filter(o => GD.objInfo(o.id).kind === "hazard").map(o => Math.floor(o.x / 30)).sort((a, b) => a - b);

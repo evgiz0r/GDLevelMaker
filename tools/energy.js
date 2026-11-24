@@ -2,7 +2,8 @@
 //
 // A level's ENERGY CURVE, in one place (tools/compare_sections.js, and score.js against a vibe sheet, use this):
 //   activity = obstacle starts per second -- the start of each hazard group (hazards closer than 2 blocks are one
-//   group), every orb and every pad -- counted per bar of the song's beat grid (per 2 s when the song has none),
+//   group), every orb and every pad, and in ship / wave / ufo / swing every turn and narrowing of the corridor
+//   (corridorEvents) -- counted per bar of the song's beat grid (per 2 s when the song has none),
 //   at SONG time (level time + the level's song offset, kA13; through the speed portals).
 //   e = the bar's activity as a percentile within the level (0 = its calmest bar, 1 = its busiest): the SHAPE,
 //   comparable across levels and with a sheet's 0-1 energies; perSec keeps the absolute amount.
@@ -29,6 +30,35 @@ function spearman(a, b) {
   for (let i = 0; i < n; i++) { sxy += (x[i] - m) * (y[i] - m); sxx += (x[i] - m) ** 2; syy += (y[i] - m) ** 2; }
   return sxx && syy ? sxy / Math.sqrt(sxx * syy) : NaN;
 }
+// Flying stretches (ship, wave, ufo, swing): the challenge is the corridor -- walls, slopes, ceiling spikes -- which a
+// hazard-group count barely sees (style, GDLM 66: a wave drop read 0.12). Per 30-unit column the corridor around the
+// tracked centre line: floor = top of the highest blocking thing (solid, slope, hazard) under it, ceiling = bottom of the
+// lowest above it. An event at every TURN of the floor or ceiling line (its direction of travel flips; a step up then
+// down is two) and every narrowing to under 3 blocks; events closer than 2 blocks merge.
+const FLY = new Set(["ship", "wave", "ufo", "swing"]);
+function corridorEvents(world) {
+  const portals = world.items.filter(b => b.kind === "mode").sort((a, b) => a.x0 - b.x0);
+  const spans = []; for (let i = 0; i < portals.length; i++) if (FLY.has(portals[i].d.mode)) spans.push({ x0: portals[i].x1, x1: i + 1 < portals.length ? portals[i + 1].x0 : world.endX, y: (portals[i].y0 + portals[i].y1) / 2 });
+  if (!spans.length) return [];
+  const block = world.items.filter(b => b.kind === "solid" || b.kind === "slope" || b.kind === "hazard"), col = new Map();
+  for (const b of block) for (let c = Math.floor(b.x0 / 30); c <= Math.floor((b.x1 - 1) / 30); c++) { if (!col.has(c)) col.set(c, []); col.get(c).push(b); }
+  const ev = [];
+  for (const sp of spans) {
+    let centre = Math.max(sp.y, 45), pf = null, pc = null, df = 0, dc = 0, narrow = false;
+    for (let c = Math.floor(sp.x0 / 30); c * 30 < sp.x1; c++) {
+      let floor = 0, ceil = Infinity;
+      for (const b of col.get(c) || []) { const m = (b.y0 + b.y1) / 2; if (m < centre) floor = Math.max(floor, b.y1); else ceil = Math.min(ceil, b.y0); }
+      const x = c * 30 + 15;
+      if (pf != null && floor !== pf) { const d = Math.sign(floor - pf); if (df && d !== df) ev.push(x); df = d; }
+      if (pc != null && Number.isFinite(ceil) && Number.isFinite(pc) && ceil !== pc) { const d = Math.sign(ceil - pc); if (dc && d !== dc) ev.push(x); dc = d; }
+      const n = Number.isFinite(ceil) && ceil - floor < 90; if (n && !narrow) ev.push(x); narrow = n;
+      pf = floor; pc = ceil;
+      centre = Number.isFinite(ceil) ? (floor + ceil) / 2 : Math.max(centre, floor + 45);
+    }
+  }
+  ev.sort((a, b) => a - b);
+  return ev.filter((x, i) => !i || x - ev[i - 1] > 60);
+}
 // obstacle starts in song time
 function starts(header, objects) {
   const world = GD.makeWorld(objects, header), tl = S.timeline(world);
@@ -37,6 +67,7 @@ function starts(header, objects) {
   let last = -1e9;
   for (const h of world.items.filter(b => b.kind === "hazard").sort((a, b) => a.x0 - b.x0)) { if (h.x0 - last > 60) out.push(tOf(h.x0)); last = Math.max(last, h.x1); }
   for (const b of world.items) if (b.kind === "orb" || b.kind === "pad") out.push(tOf((b.x0 + b.x1) / 2));
+  for (const x of corridorEvents(world)) out.push(tOf(x));
   return { t: out.sort((a, b) => a - b), off, end: tOf(world.endX) };
 }
 // level: { header, objects } (+ grid: a beat grid from tools/beats.js, optional)
