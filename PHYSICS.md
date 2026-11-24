@@ -208,7 +208,19 @@ Deadlocked at 695 on a static spike; the re-solves on the new physics are listed
 
 Lab: GDLM 63 (specs/63_dual_movers_lab.json, made by tools/lab63.js): 1-3 dual, 4 a rising platform,
 5 move to target, 6 pause/resume, 7 a multi-trigger loop, 8 a toggled-off trigger. Each station's note says
-what the sim expects. Not played yet.
+what the sim expects; 9-12 orb buffering (the physics session's question).
+**Played 2026-11-24** (GD claude-rec 2026-11-24_02-13-32.mkv with the input log; physics session, tools/replay_run.js):
+both normal-mode clears replay to the end in the sim with the user's own presses (one clock offset, 842 ms). What
+that settles, station by station -- a station only "confirms" a rule when the other rule would have killed:
+- confirmed: 1-2 dual spawns mirrored and one press jumps both (a roof spike for player 2); 2 a gravity portal flips
+  both; 3 the solo portal keeps the player that touched it (keeping player 1 would leave it upside down with no
+  roof); 5 move to target (the spike lands on the floor marker); 7 multi-trigger loops (fired once, the spike sits
+  20 up and kills a cube on the floor); 8 a trigger in a toggled-off group does not fire (else the spike drops onto
+  the floor in front of an unjumped cube); 4 riding a rising platform.
+- not settled by this run: the dual band's HEIGHT (player 2's roof spike is survived at any roof a bit higher),
+  6 pause/resume (the spike is clear of the cube paused or not), 9 and 11 (the user tapped at the orb instead of
+  holding from the jump: the hold-buffer question is open; next lab: a roof right after the jump's apex so a second
+  press cannot reach the orb), 12 (the user's press reached the orb).
 
 ## Dual (lib/dual.js, 2026-11-23; owner: the dual/moving-objects session)
 
