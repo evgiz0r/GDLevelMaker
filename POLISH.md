@@ -182,9 +182,9 @@ entering. the empty below makes it slightly bad. would probably prefer flat grou
   through wave exits, wiggled wave legs, jumps over nothing after an incremental re-solve) -- physics
   fixed them (64e7de3, 6cd11dd, 109f77c); style made sightread treat presses in flight as steering.
 Result: score.js READY, prejumps none, all 13 portals and 6 orbs on the path, fairness clean, player
-timing 96 ms, ending 1.5 s. Open: the FIRST wave portal's box starts 1.1 rows above the ground just past a
-ledge (tools/portalground.js); the route reaches it falling off the ledge, but a walking cube could pass under
-it -- next round: `"portalRow": 1` on that wave-zigzag (the rebuild timed out in the heavy queue).
+timing 96 ms, ending 1.5 s. Round 3b (v6): the FIRST wave portal's box started 1.1 rows above the ground
+just past a ledge (tools/portalground.js) -- a walking cube could pass under it; `"portalRow": 1` on that
+wave-zigzag put it on the walking line. Still READY (0 fail), 96 ms, portalground / deadair / joins clean.
 What made it better: every fix as a check first (joins, portalground, deadair, indicators), then the
 level. What did not: re-solving and hoping -- each new route showed a different problem until the
 planner was fixed.
@@ -198,7 +198,7 @@ planner was fixed.
 | jump mark on a hazard ("indicator inside spike") | `tools/indicators.js <level ...> [--fix]` = decorate.js indicatorIssues; placement: jumpIndicators keeps INDICATOR.clear (40) in front of the hazard | 13 GDLM levels: 44 v4 1 (fixed), 45 9, 47 20, 50 7, 51 6, polished cube timings 4, the rest clean |
 | uneven spike clusters | `tools/clusters.js <level ...> --gate`: overlap, ragged gaps, a hazard just before a pad (static) | 13 GDLM levels: v13 3 spots (the user's), GDLM 45 1 ragged (block 63), all others clean; round 2 clean |
 | disconnected structure (open step where a slope meets a roof) | `tools/joins.js <level ...> --gate`: each slope's surface ends touch a solid, the ground or the band top (static); showcase's softrules.js "stubs" calls it | 45 7, 46 sketch 2, 47 1, the rest clean; hellgate clean since round 3 |
-| empty ground under a mode portal; portal above the walking line | `tools/portalground.js <level ... \| official \| community> --gate`: a pit or hazard under a non-cube mode portal, or its box a cube's height above the ground (a walking cube passes under) | GDLM: hellgate (fixed round 3), 46 sketch wave portal at block 87 (2.1 rows up); official 68% / community 56% of mode portals flagged (they jump into them: a warning, not a gate) |
+| empty ground under a mode portal; portal above the walking line | `tools/portalground.js <level ... \| official \| community> --gate`: a pit or hazard under a non-cube mode portal, or its box a cube's height above the ground (a walking cube passes under) | GDLM: hellgate (fixed rounds 3 and 3b); every GDLM level clean since the "above" rule skips a portal the player reaches flying (46 sketch's wave portal at block 87 is entered from the ship: a false positive before); official 65% / community 51% of mode portals flagged (they jump into them: a warning, not a gate) |
 | nothing happens (long ending, empty stretches) | `tools/deadair.js <level ...> --gate`: gaps over 3 s with no press, hazard, orb, pad, portal or corridor wall near the path; the sign over 2 s after the last gameplay; the level running past the sign | 41 1, 43 2, 46 arrow catalogue 1, 46 sketch 1, 47 8, 50 2, 51 1; 42, 44, 45 clean |
 
 Windows: a jump's window should be measured with the NEXT input re-timed (a player reacts), not fixed

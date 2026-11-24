@@ -52,3 +52,27 @@ The stage times are also in local/timings.jsonl.
 - result: READY, 1 round(s), variants: 2 section(s)
 - change made: v5 = the structural fix (structures checked in context, compose uses only ready ones): READY in 1 round (v3/v4 needed 2), jumps timed around a block 7 -> 5, hazards still 14/100 -- the pieces that pass in context carry fewer hazards. Density next needs denser pieces that pass in context (new library shapes) or spike floors (craft floorHaz 8% vs 35%).
 
+## GDLM 65 single builder test, 2026-11-24 14:10
+- stages: song 0 s, layout 97 s, path 846 s, deco 1091 s, final 1091 s
+- slowest step: path (750 s); over target: layout 97 s > 60 s
+- result: not ready (prejumps), 8 round(s)
+- change made: none -- this was the single-builder baseline for the collab test below (same brief, one compose).
+
+## GDLM 65 collab test (tools/collab.js), 2026-11-24
+- what: a 51 s brief (6 sections: cube, cube, ship, 2x cube, wave, cube) split into 4 parts of 10-17 s pinned to song
+  time, each part built alone by its own builder agent, joined by time; routes joined, no solve.
+- final round (all fixes in): parts built 2 at a time (2 lock slots): p1 54 s, p2 19 s, p3 3 s of work (p0 4 s earlier),
+  lock waits 34-86 s; join + full check 113 s (most of it fairness). Wall 236 s -> READY, every seam holds.
+- one-builder baseline on the same brief (GDLM 65 single builder test): 1115 s (18.6 min), 8 repair rounds, NOT READY
+  (2 prejumps). Not the same judge: parts are scored alone (exact cube checks), the whole level by the sweep.
+- seams: join 1: 3 of 3 failed; join 2: 3 of 3; join 3: 0 of 3. Part builds: 11 runs, 4 crashed (runcache, fixed by
+  physics2 f6abcdf), 4 failed their own seam (contract and exit fixes), 0 failed on gameplay after the tick fix.
+- the time that went: lock waits (up to 58 and 91 min behind other sessions' long solves, before the 2 slots).
+- what broke and what changed (each now in BUILDING.md 1 and the code): a part's header is dropped at the join (seam
+  speed = arrival speed, a faster part brings its own portal); a portal on a part's first column is touched ~30 units
+  early once joined (portalRoom 3); a flight exit at the section's end leaves the cube on the frame at the seam
+  (exitRoom 4); a hold crossed a seam (release at every seam); seam state read 30 ticks before; parts' deco before
+  their start dropped; plan.json written per part (2 builds at once); --seed did nothing (now reseeds sections);
+  score.js moved presses to fractional ticks (rounded).
+- next: a part's deco by its own builder (today the scene / modern pass runs per part, no art pieces yet); parts of
+  other modes at the seam (a ship seam); the viewer's per-part stage bar; sync drift budget across many seams.
