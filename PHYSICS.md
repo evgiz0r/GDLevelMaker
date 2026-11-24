@@ -394,7 +394,11 @@ skips something, its 99% wrong. and will cause trouble. and anyway not the human
 - An **orb or pad** is "clearly meant to be taken" when the route's player box comes within 15 units of it
   (on the route's own line). The sweep already takes as many orbs as any route can, so a finished route that
   still leaves one like that is reported stuck: `why: "skipped an orb/pad"`, `skipped: "<name> at x <x>"`.
-  An orb far off the line (above a corridor, a decoration orb) is not required. Optional orbs a level means
+  An orb far off the line (above a corridor, a decoration orb) is not required. Nor is a **decoy**: an orb or
+  pad that kills whatever you press after taking it -- an exhaustive held/not-held search from a block before it
+  finds no state that took it and got 90 units past it (`decoy()` in skipCheck, 2026-11-24). Found on Hexagon
+  Force's yellow orb at block 553.7 (y 478.7): every taking dies in the ceiling spikes by 556.4, the ~4,500 ways
+  through take 551.5 -> 556.0 or 551.5 -> 558.4. Optional orbs a level means
   as optional: none marked yet (a spec key "optional" on the object would be the way; not built).
 - On official and rated levels a stuck like that is a **physics bug at that object**: our sim cannot take
   what the game's players take. Never report a % or "beaten" that came from a skip.
