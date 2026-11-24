@@ -25,7 +25,9 @@ Object.assign(GD, require("../lib/natural.js"), require("../lib/difficulty.js"))
 const WIN = require("../lib/windows.js");
 const DIR = path.join(__dirname, "..", "local", "solutions");
 
-const keyOf = levelStr => crypto.createHash("sha1").update(levelStr).digest("hex").slice(0, 16);
+// key 155 (GD's colour-batch index) is left out of the hash: levels stopped carrying it on 2026-11-24 (tools/io.js
+// strip155) and a level with and without it is the same level (tools/strip155.js moved the saved routes over)
+const keyOf = levelStr => crypto.createHash("sha1").update(String(levelStr).replace(/,155,[^,;]*/g, "")).digest("hex").slice(0, 16);
 // the physics a solution was solved on: the last commit that changed lib/physics.js or lib/objects*.js
 // (as tools/difficulty_solve.js stamps the official answers). A cached solution from other physics is
 // stale: get() returns null for it, so it is solved again.

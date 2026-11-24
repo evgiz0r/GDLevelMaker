@@ -107,17 +107,25 @@ trigger on the prop's `groups`. The props never use hazard colours; keep fronts 
 
 ## Colour -- UNCHECKED in the game
 
-**2026-11-24, GDLM 67 in the real game** (`GD claude-rec 2026-11-24_18-58-15.mkv`, frames at 60-240 s next to
-tools/decowin.js windows):
-- The props come out COLOURED in the game, exactly as in the viewer: pink trees, blue-violet hills. They are 211 squares
-  with keys 21 + 22 on channels 973-989, all defined in the header.
-- The tall WHITE columns are the lab's rulers: 211 squares with NO colour key (tools/lab67.js `ruler`). They take their
-  default channel 1, which no header defines, so GD draws white (the viewer draws them white too).
-- So "keys 21 + 22 on a channel in kS38" works, including 988/989. White deco is deco on a channel nothing defines.
+**2026-11-24, the cause: key 155.** Our writer put `155,1` on every object. 155 is GD 2.2's colour-batch index: objects
+that share a value share ONE colour in the game. Evidence:
+- In Brave Blue, 617 of 638 key-155 values go with exactly one colour pair.
+- Dreamy carries no 155 at all and is coloured right, so GD works it out on load.
+- The user's colour test run (`GD claude-rec 2026-11-24_19-16-56.mkv`, 10 fps from 24 s): every row (squares, circles,
+  text, letters) flips at once to the colour of the LEFTMOST row on screen. It is red while A-C lead, white while D (no
+  key) leads, red again for E/F, green for G, dark green for H, red for I. One colour at a time.
+- So the signature's white, GDLM 67's white rulers and every "deco not as in the viewer" are one bug.
 
+Fixed: tools/io.js `writeGdlvl` never writes 155. tools/strip155.js rewrote all 112 level files (levels/ and
+local/wip/) and moved 973 saved-route / cache files to the new keys (tools/solutions.js keyOf ignores 155), so nothing
+re-solves. tools/channels.js FAILs a level where 155 is shared across colours.
+
+Correction to the note before: the pink trees and blue hills in the GDLM 67 and colour test recordings are GD's own
+background and ground art (header kA6 / kA7), not our deco. They proved nothing about our colours.
+
+Still deco on undefined channels (white whatever 155 says):
+- GDLM 67's rulers had no key (channel 1). They are now thin poles on channel 1001 (tools/lab67.js), 0 white.
 `node tools/channels.js --all` (score.js gate "channels", FAIL) finds every such object.
-- GDLM 67's rulers now: a thin pole with block ticks on channel 1001, the ground colour, which is always in the header
-  (tools/lab67.js, rebuilt with --look). 0 white.
 - `python tools/whiteframes.py <video>` finds tall pure-white shapes inside the game in a recording: 56 of 99 frames of
   18-58-15, all of them the old rulers. Found:
 - GDLM 64 v6, 65 collab test, 66 collab long: the Claude badge (973-975), 96 objects each. tools/collab.js took

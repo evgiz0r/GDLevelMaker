@@ -17,10 +17,16 @@ function readGdlvl(file) {
   const levelStr = unpack(GD.getField(rec, "k4"));
   return { rec, level: GD.parseLevel(levelStr), levelStr, name: GD.getField(rec, "k2"), desc: GD.decodeDesc(GD.getField(rec, "k3")) };
 }
+// Key 155 is GD 2.2's colour-batch index: objects that share a value share ONE colour in the game (Brave Blue: 617 of its
+// 638 values go with exactly one colour pair). We wrote "1" on every object, so the game painted all our deco in one
+// colour -- the user's colour test (2026-11-24_19-16-56.mkv): every row flips to the colour of the leftmost one on screen.
+// Levels without it (Dreamy, 17736 objects) are coloured right: GD works it out on load. So it is never written.
+function strip155(level) { for (const o of level.objects) if (o.props && "155" in o.props) delete o.props[155]; return level; }
 function writeGdlvl(file, rec, level) {
+  strip155(level);
   GD.setField(rec, "k4", "s", pack(GD.serializeLevel(level)));
   GD.setField(rec, "k48", "i", String(level.objects.length));
   fs.writeFileSync(file, pack(GD.serializeRecord(rec)));
 }
 
-module.exports = { GD, unpack, pack, readGdlvl, writeGdlvl };
+module.exports = { GD, unpack, pack, readGdlvl, writeGdlvl, strip155 };
