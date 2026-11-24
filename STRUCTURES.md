@@ -150,6 +150,30 @@ Watch:
 - spike-pit-train's 88 ms window comes from the pit right after the spike's landing. gap 8 should loosen it, but that
   is not checked yet.
 
+### Dense chains vs the Jumper / xStep study (the craft session, 2026-11-24)
+
+`node tools/craft.js pieces <id> ...` measures a piece alone (built with the craft pass, no solve) against
+CRAFT.md's targets: hazards 45-110 per 100 blocks (featured Easy/Normal ~75-81, Jumper 121, xStep 191),
+floor a hazard >= 35%, pieces >= 12 per 100 blocks, undersides armed >= 35%.
+
+| piece | hazards/100 | floor hazard | pieces/100 | undersides armed |
+|---|---|---|---|---|
+| spike-train / double-train | 18 / 32 | 17% / 31% | 0 | - |
+| pit-run / pit-run-high | 45 / 42 | 44% / 41% | 15 / 16 | - |
+| pit-spike-mix / spike-pit-train | 34 / 32 | 27% / 32% | 9 / 0 | - |
+| pit-run-2x / pit-spike-mix-2x | 42 / 32 | 41% / 26% | 11 / 7 | - |
+| upside-pit-run | 29 | 0% | 4 | 31% |
+| ship-dense / ball-dense / wave-dense | 64 / 44 / 15 | 28% / 25% / 0% | 8 / 3 / 10 | 13% / 18% / 8% |
+| craft: pillar-hop / capped-hop / slab-steps / lantern-orb | 28 / 25 / 34 / 39 | 27% / 24% / 33% / 37% | 13 / 25 / 14 / 11 | - / 40% / 25% / - |
+| craft: ship-weave / ship-lanterns | 124 / 137 | 100% | 21 / 17 | 100% |
+
+Read: only the pit-runs reach the floor target, and no cube piece reaches 45 hazards per 100 blocks -- half of
+a featured Easy/Normal level, a third of Jumper. Jumper's density is not pits alone: it arms tops and
+undersides (spikes on pillar tops, hanging spikes under columns) and puts a piece every 4-5 blocks. With
+4-wide tap-able landings (the reactive rule) the floor can be a hazard ~45% of the way; the rest of the
+density has to come from armed undersides and hanging columns, which cost the player no extra timing. Open:
+a piece with hanging spikes 4+ rows over its landings (does "hazards matter" accept them?).
+
 ### Dense chains, other modes (2026-11-24)
 
 Golden Hour v6 stayed at 14 hazards per 100 blocks: its 2x, upside, ship and wave sections were not taking the library
@@ -179,6 +203,25 @@ as the library does.
 - **Height:** these are flat. In 2x and upside sections, mix them with the height pieces. In ship, `amp`/`waves`
   already move the corridor.
 - Checked: `compose --dry` on a copy of v6 with these args places them. No full build was run.
+
+### Armed dense pieces (2026-11-24, from craft's "density that costs no timing", CRAFT.md)
+
+pitRun takes craft's two moves as args:
+- `cap`: over each pit, a hanging column from `cap` rows over the platform up to row 12, with a spike under its end;
+- `tips`: in a pit next to a 2+ high landing, a spike-tipped 1-wide pillar in the pit's middle, a row under the landing.
+
+The windows are the same as the unarmed pieces, with no "hazards matter" warning. All are ready and pass `check --context`:
+
+| id | hazards / 100 (unarmed) | tightest |
+|---|---|---|
+| pit-run-armed | 53 (42) | 204 ms |
+| pit-run-high-armed | 50 (38); its tips swap a pit spike for a pillar top | 246 ms |
+| pit-spike-mix-armed | 38 (32) | 208 ms |
+| pit-run-2x-armed | 48 (40) | 192 ms |
+
+Not for upside pieces: mirrored, the columns would stand on the floor. Featured Easy/Normal levels run ~75-81 and Jumper
+121 (craft's `tools/craft.js pieces`), so the cube pieces are still short of that. The next step is more than one armed
+column per pit, or armed ceilings over the platforms, both untested.
 
 ## Open
 

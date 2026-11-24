@@ -102,6 +102,9 @@ function compose(brief) {
     name: brief.name, desc: brief.desc, song: brief.song, offset: brief.offset, grid: brief.grid, seed: brief.seed || 1,
     style: "classic", craft: brief.craft ?? true, colours: { bg: brief.sections[0].hue, ground: dark(brief.sections[0].hue, 0.45) },
     decoDensity: [[0, brief.decoDensity ?? 0.2]], indicators: brief.indicators ?? { all: false },
+    // the 1.x look (CRAFT.md 4): the plain squares background, the plain ground, NO middleground hills (the
+    // template's bg 57 and hill band hid the black pit spikes and fought the black-and-white playfield)
+    art: Object.assign({ bg: 1, ground: 1, mg: 0 }, brief.art || {}),
     notes: (brief.notes || "") + " | composed by tools/craftlevel.js from " + (brief.file || "a brief"),
     objects: [...objects, ...(brief.extra || [])],
   };

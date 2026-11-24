@@ -227,18 +227,26 @@ const pit = (c0, c1) => range(c0, c1).map(c => [9, c, 0, { dy: -13 }]);
 // The first pillar is a 5-wide doorstep (stepped onto from the floor: a 1-wide one asked for a jump 1.7
 // blocks ahead of it, a prejump; a 3-wide one followed by a step up left 38 ms to land early enough).
 // Drops are 1 row: a 2-row drop is walked across over 3 columns and cut by the face over 4 (242 ms).
-function pillarRun(heights, w, riseGap = 0, dropGap = 3, capGap) {
+function pillarRun(heights, w, riseGap = 0, dropGap = 3, capGap, capSpikes, tips) {
   const o = [], xs = [0], wd = i => i ? w : 5;
   // a drop of k rows falls longer and carries farther: its pit is dropGap + k - 1 wide
   const gapTo = (a, b) => b > a ? riseGap : dropGap + Math.max(0, a - b - 1);
   for (let i = 1; i < heights.length; i++) xs.push(xs[i - 1] + wd(i - 1) + gapTo(heights[i - 1], heights[i]));
   heights.forEach((h, i) => o.push(...blocks(xs[i], xs[i] + wd(i), 0, h)));
-  for (let i = 1; i < heights.length; i++) o.push(...pit(xs[i - 1] + wd(i - 1), xs[i]));
+  for (let i = 1; i < heights.length; i++) {
+    const c0 = xs[i - 1] + wd(i - 1), c1 = xs[i], lo = Math.min(heights[i - 1], heights[i]) - 1;
+    // tips: a 1-wide spike-tipped pillar in the middle of a drop pit, a row under the lower landing
+    // (Jumper's "^ on a pillar" in a pit; the tipped-pillar test, 2026-11-24)
+    if (tips && c1 - c0 >= 3 && lo >= 1) { const m = c0 + ((c1 - c0) >> 1);
+      o.push(...pit(c0, m), ...blocks(m, m + 1, 0, lo), ["spike", m, lo], ...pit(m + 1, c1)); }
+    else o.push(...pit(c0, c1));
+  }
   const end = xs[xs.length - 1] + w, last = heights[heights.length - 1];
   // capGap: hanging columns over each pit, their ends capGap rows over the higher pillar beside it
   if (capGap) for (let i = 1; i < heights.length; i++) {
     const c = xs[i - 1] + wd(i - 1), r = Math.max(heights[i - 1], heights[i]) + capGap;
     o.push(...blocks(c, c + 1, r, 12));
+    if (capSpikes) o.push(["spike", c, r - 1, { rot: 180 }]);   // a spike tip under the column's end (Jumper's armed undersides)
   }
   // off the last pillar: a 3-wide pit and a landing block (a drop), or straight down onto the floor run
   const g = gapTo(last, 1);
@@ -248,15 +256,29 @@ function pillarRun(heights, w, riseGap = 0, dropGap = 3, capGap) {
 S("pillar-hop", { tags: ["1x only", "platforming", "pillar", "pit"], tier: "Normal",
   doc: "pillars 4 wide, each a row higher or lower than the last: up a plain step, down over a pit; every jump changes height, with room to react on each top (Jumper's opening at Easy/Normal: its 1-2 wide pillars only work as a held bounce)",
   args: { heights: [1, 2, 3, 2, 1], w: 4 },
-  build: a => pillarRun(a.heights, a.w) });
+  build: a => pillarRun(a.heights, a.w, 0, 3, a.cap) });
 S("pillar-climb", { tags: ["1x only", "platforming", "pillar", "pit"], tier: "Normal",
   doc: "a climb of pillars, up a step at each, then down a row at a time over pits",
   args: { heights: [1, 2, 3, 4, 3, 2], w: 4 },
-  build: a => pillarRun(a.heights, a.w) });
+  build: a => pillarRun(a.heights, a.w, 0, 3, a.cap) });
 S("capped-hop", { tags: ["1x only", "platforming", "pillar", "pit", "ceiling"], tier: "Normal",
   doc: "pillars over a pit under hanging columns: the column ends sit 4 rows over the pillars, framing every arc",
   args: { heights: [1, 2, 1, 2, 3, 2], w: 4, cap: 4 },
   build: a => pillarRun(a.heights, a.w, 0, 3, a.cap) });
+// the hanging-spike test (art + craft, 2026-11-24): capped-hop with a spike under each column end, its tip
+// `cap - 1` rows over the higher pillar beside it. Does a spike no sane route touches pass "hazards matter"?
+S("capped-hop-armed", { tags: ["1x only", "platforming", "pillar", "pit", "ceiling"], tier: "Normal",
+  doc: "capped-hop with a hanging spike under every column end (armed undersides): the arcs are framed by spike tips",
+  args: { heights: [1, 2, 1, 2, 3, 2], w: 4, cap: 4 },
+  build: a => pillarRun(a.heights, a.w, 0, 3, a.cap, true) });
+S("pillar-climb-tipped", { tags: ["1x only", "platforming", "pillar", "pit"], tier: "Normal",
+  doc: "pillar-climb with a spike-tipped 1-wide pillar in the middle of each drop pit, a row under the lower landing",
+  args: { heights: [1, 2, 3, 4, 3, 2], w: 4 },
+  build: a => pillarRun(a.heights, a.w, 0, 3, null, false, true) });
+S("capped-hop-armed5", { tags: ["1x only", "platforming", "pillar", "pit", "ceiling"], tier: "Normal",
+  doc: "capped-hop-armed with the columns a row higher (tips 4 rows over the pillars)",
+  args: { heights: [1, 2, 1, 2, 3, 2], w: 4, cap: 5 },
+  build: a => pillarRun(a.heights, a.w, 0, 3, a.cap, true) });
 S("slab-steps", { tags: ["1x only", "platforming", "pit", "floating"], tier: "Normal",
   doc: "floating 4-wide slabs over a pit at one height, 3 apart, off the top of a stair, onto a 3-wide tower (the craft pass hangs them on chains). Slabs a row higher each cut every window with the next slab's face (208 ms), a row lower each gave 42 ms",
   args: { n: 3, gap: 3, w: 4, h: 2 },
@@ -309,11 +331,20 @@ S("ship-lanterns", { mode: "ship", tags: ["ship", "floating"], tier: "Normal",
 const train = (n, gap, size) => { const o = []; for (let i = 0; i < n; i++) o.push(...spikes(i * gap, i * gap + size)); return { objects: o, width: (n - 1) * gap + size + 2 }; };
 // platforms `h` high and `w` wide, `pit` apart, over low pit spikes; a 3-wide doorstep a row lower (stepped onto), off
 // the last one into a pit and onto the floor
-function pitRun(n, w, pit3, h, lead = 0) {   // lead: flat floor first (2x: a jump over a neighbour's spike lands 7 blocks on, right before a doorstep there)
+// cap (armed): over each pit after a platform, a hanging column from `cap` rows over the platform up to row 12 with a
+// spike under its end -- craft's "density that costs no timing" (CRAFT.md; capped-hop-armed: no hazards-matter warning,
+// same windows). tips: in a pit next to a 2+ high landing, a 1-wide spike-tipped pillar a row under it in the pit's
+// middle (craft's pillar-climb-tipped). Neither goes in an upside piece (mirrored, the columns would stand on the floor).
+function pitRun(n, w, pit3, h, lead = 0, cap = 0, tips = false) {   // lead: flat floor first (2x: a jump over a neighbour's spike lands 7 blocks on, right before a doorstep there)
   const o = [], d = Math.max(1, h - 1); let c = lead;
   o.push(...blocks(lead, lead + 3, 0, d)); c = lead + 3;
   if (h > d) { o.push(...pit(c, c + 1)); c += 1; } else { o.push(...pit(c, c + pit3)); c += pit3; }
-  for (let i = 0; i < n; i++) { o.push(...blocks(c, c + w, 0, h)); c += w; o.push(...pit(c, c + pit3)); c += pit3; }
+  const pitAt = (c0, c1) => {
+    if (tips && h >= 2 && c1 - c0 >= 3) { const m = c0 + ((c1 - c0) >> 1); o.push(...pit(c0, m), ...blocks(m, m + 1, 0, h - 1), ["spike", m, h - 1], ...pit(m + 1, c1)); }
+    else o.push(...pit(c0, c1));
+    if (cap) { o.push(...blocks(c0, c0 + 1, h + cap, 12), ["spike", c0, h + cap - 1, { rot: 180 }]); }
+  };
+  for (let i = 0; i < n; i++) { o.push(...blocks(c, c + w, 0, h)); c += w; pitAt(c, c + pit3); c += pit3; }
   return { objects: o, width: c + 2 };
 }
 S("spike-train", { tags: ["spikes", "dense", "chain"], tier: "Easy",
@@ -363,6 +394,21 @@ S("upside-pit-run", { tags: ["gravity", "gravity portal", "ceiling run", "pit", 
     const o = [["pattern", "ceiling", 1, 0, { w: W, ceil: a.ceil, portal: true, exit: true }]];
     for (const [t, c, rr, e] of M(r.objects, a.ceil)) o.push([t, c + 11, rr, e]);
     return { objects: o, width: W + 3 }; } });
+// armed variants (craft's hanging spike tips, 2026-11-24): the same pieces, +1 hazard per pit at no timing cost
+S("pit-run-armed", { tags: ["platforming", "pit", "ceiling", "dense", "chain"], tier: "Easy",
+  doc: "the pit run with a spike-tipped hanging column over each pit, 4 rows over the platforms",
+  args: { n: 5, w: 4, pit: 3, cap: 4 }, build: a => pitRun(a.n, a.w, a.pit, 1, 0, a.cap) });
+S("pit-run-high-armed", { tags: ["platforming", "pit", "pillar", "ceiling", "dense", "chain"], tier: "Normal",
+  doc: "the high pit run, armed: hanging spike tips over the pits and a spike-tipped pillar in each pit's middle",
+  args: { n: 4, w: 4, pit: 3, cap: 4 }, build: a => pitRun(a.n, a.w, a.pit, 2, 0, a.cap, true) });
+S("pit-spike-mix-armed", { tags: ["platforming", "pit", "spikes", "ceiling", "dense", "chain"], tier: "Normal",
+  doc: "the pit-spike mix with hanging spike tips over the pits",
+  args: { n: 3, w: 10, pit: 3, cap: 4 },
+  build: a => { const r = pitRun(a.n, a.w, a.pit, 1, 0, a.cap), o = r.objects; let c = 3 + a.pit;
+    for (let i = 0; i < a.n; i++) { o.push(["spike", c + Math.floor(a.w / 2) - 1, 1]); c += a.w + a.pit; } return r; } });
+S("pit-run-2x-armed", { tags: ["platforming", "pit", "ceiling", "dense", "chain", "2x"], tier: "Normal", needs: { speed: "2x" },
+  doc: "the 2x pit run with hanging spike tips over the pits", args: { n: 5, w: 5, pit: 4, lead: 6, cap: 4 },
+  build: a => pitRun(a.n, a.w, a.pit, 1, a.lead, a.cap) });
 S("ship-dense", { mode: "ship", tags: ["ship", "pit", "dense"], tier: "Normal",
   doc: "a ship corridor over a hazard floor of low spikes, teeth every 6 columns on the flats",
   args: { w: 40, gap: 5, amp: 1.5, base: 1, teeth: true, teethEvery: 6, pit: true, lead: 6, waves: 1 },
