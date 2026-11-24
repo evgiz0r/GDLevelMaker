@@ -217,6 +217,9 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   don't re-solve what another session already solved (check the file; one heavy job at a time).
   Stopping a long official solve to free the PC costs nothing: `tools/difficulty_solve.js` checkpoints
   every 30 s to `local/difficulty/NN.part.json` and the next run on the same physics carries on from it.
+  **Gotcha:** a script kept under `local/` that does `require("../../tools/x.js")` loads the MAIN
+  checkout's code, not your worktree's (node follows the link). Debug scripts go in your scratchpad
+  and require the worktree by absolute path (the difficulty session lost four debug runs to this).
 - **The level you are working on: `node tools/wip.js put <level.gdlvl> --session <your name>
   --note "what changed"` after every change.** It goes to `local/wip/<session>/`, and the viewer
   (`node tools/serve.js`, http://localhost:8765/viewer/) lists it under "in progress" with its
