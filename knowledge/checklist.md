@@ -154,6 +154,13 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 
 ## Looks like 2.2, not 1.0 (levels/modern_look.md)
 
+- [ ] **Readable colours, not mush** (the user, 2026-11-24: "sometimes its not clear and its all mooshy"): judge by
+  BRIGHTNESS, not hue -- hazards and blocks stand out from the background at every moment (luminance ratio hazard/bg
+  >= 1.6, block/bg >= 1.5; aim for 3+ like most official sections), the floor shows (ground/bg >= 1.1 or a bright
+  ground line), a spike and its block are one colour or clearly different in brightness (never two hues at one value),
+  no glow/deco in front of hazards. Colour triggers included. `node tools/contrast.js <level>` (score.js gate
+  "contrast"); palette rule in ART.md "Colour readability".
+
 - [ ] **Budget**: ~10-50 objects per block. Fall Out, the user's own example, has 13; the levels the
   user played have a median 46. GDLM was at 1. `node tools/modern_look.js <level>`.
 - [ ] **Layers**: ~40-60% behind the play (B5-B1), ~15-40% in front (T2-T4: glow, dots, particles,
