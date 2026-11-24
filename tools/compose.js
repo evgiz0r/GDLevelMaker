@@ -220,7 +220,9 @@ function compose(brief, tweaks = {}) {
           // button held or not has ~300 ms before roof or floor (fairness gate: wave deadline 300 ms)
           return { seg, flat, lead: 4, leadGap: 8, legs: Math.max(2, Math.floor((sec.blocks - 5 - land - (sec.exitRoom || 0)) / (seg + flat))), gap: easy ? 5 : 4, low: 2, slopes: true };
         })();
-      const args = Object.assign(base, (sec.args || {})[name] || {}, { portal: true, exit: "cube", portalRow: 1 });
+      // the next section CONTINUES this flight (a collab seam inside a flight, tools/collab.js): no exit portal here
+      const nx = brief.sections[si + 1], cont = !!(nx && nx.continue && nx.mode === sec.mode);
+      const args = Object.assign(base, (sec.args || {})[name] || {}, { portal: true, exit: cont ? null : "cube", portalRow: 1 });
       if (t.room) args.gap = (args.gap || 4) + t.room;
       objects.push(["pattern", name, start + 1 + land, 0, args]);
       placed.push({ key, name, from: start + 1 + land, to: start + 1 + land + widthOf(name, args), section: sec.name, flying: true });
