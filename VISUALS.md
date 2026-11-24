@@ -204,7 +204,11 @@ ground line with `tools/track.py --rows`. Source: Hexagon Force, recording 2026-
 | frame alignment | video.level_t (gd-physics): the video time of tick 0 (59.403 for this attempt, not the bar start 60.6) | side-by-sides now at level_t + tick / 240 | fixed: frames line up (same position, height, tilt) |
 | antenna balls (rods 15-17) | 22 units across, centre ~10.5 units past the stick's tip, pale cream = lime 1005 added over the purple | were 0.13 scale (3.9 units) at the tip, flat lime | fixed: scale 0.73, placed past the tip, detail parts blend by their own channel |
 | player glow | none (the user's save: playerGlow off) | a halo | fixed for the user's runs and "you play" |
-| lines and block edges | pink glow on the corridor lines and dotted columns | thin white / violet | open: next |
+| LBG (1007) parts: dotted-column links, ground waves | (238,43,238), brightest (255,89,255) = our LBG (190,78,252) + background (117,0,180) | drawn flat, lavender | fixed: 1007 blends by default, like 1005 / 1006; each part blends by its own channel (the columns' dots, channel 1, stay solid) |
+| 1.x colour triggers 221 / 717 / 718 / 743 / 744 (colour 1-4, 3DL) | Hexagon Force flashes colour 1 blue on its beats (20 triggers) | ignored | fixed: read like 29 / 30 |
+| when a trigger fires | the colour-1 flash at x 945 shows between frames 2.983 and 3.000 s | at 3.033 (the player's centre passing) | fixed: at the player's front edge (x - 15), 2.985 s; the look's colour / alpha / zoom triggers only (the sim's triggers are gd-physics') |
+| antenna ball, short rod (17) | 12.9 units across | 22 (0.73 after the first fix) | fixed: 0.43; rod 15 not measured yet |
+| block outlines | white with a soft glow | thin white | open |
 
 ## Facts (checked against the user's recordings)
 
