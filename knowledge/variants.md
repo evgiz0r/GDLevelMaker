@@ -16,3 +16,11 @@ result is a taste call for the user; the user's own picks count double (write th
 - sunrise: v0 kept (94) over v1 94 [WARN height, WARN length, WARN ending, WARN difficulty, WARN pacing, WARN taste, WARN craft], v2 94 [WARN height, WARN length, WARN ending, WARN difficulty, WARN pacing, WARN variety, WARN taste, WARN craft] -- CLOSE: a taste call for the user
 - night run: v0 kept (94) over v2 94 [WARN height, WARN length, WARN ending, WARN difficulty, WARN pacing, WARN taste, WARN craft], v1 64 [WARN height, WARN length, WARN ending, FAIL reactive, WARN difficulty, WARN pacing, WARN taste, WARN craft] -- CLOSE: a taste call for the user
 
+## GDLM 64 golden hour (2026-11-24)
+- sunrise: v0 kept (94) over v1 94 [WARN height, WARN length, WARN ending, WARN difficulty, WARN pacing, WARN taste, WARN craft], v2 94 [WARN height, WARN length, WARN ending, WARN difficulty, WARN pacing, WARN variety, WARN taste, WARN craft] -- CLOSE: a taste call for the user
+- night run: v0 kept (94) over v2 94 [WARN height, WARN length, WARN ending, WARN difficulty, WARN pacing, WARN taste, WARN craft], v1 64 [WARN height, WARN length, WARN ending, FAIL reactive, WARN difficulty, WARN pacing, WARN taste, WARN craft] -- CLOSE: a taste call for the user
+
+## GDLM 64 golden hour (2026-11-24)
+- sunrise: v0 kept (94) over v1 94 [WARN height, WARN length, WARN ending, WARN difficulty, WARN pacing, WARN taste, WARN craft], v2 94 [WARN height, WARN length, WARN ending, WARN difficulty, WARN pacing, WARN variety, WARN taste, WARN craft] -- CLOSE: a taste call for the user
+- night run: v0 kept (94) over v2 94 [WARN height, WARN length, WARN ending, WARN difficulty, WARN pacing, WARN taste, WARN craft], v1 64 [WARN height, WARN length, WARN ending, FAIL reactive, WARN difficulty, WARN pacing, WARN taste, WARN craft] -- CLOSE: a taste call for the user
+

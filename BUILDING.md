@@ -35,6 +35,10 @@ each section."
   Sync is judged on the route's real presses: every press within +-1 frame of its hit, no extra presses.
 - The shown and played route presses on the planned time when that clears (not at the window's end). Human route
   rules hold: short ~60 ms taps, buffered orbs, no jumps over nothing, ship in the middle.
+  MEASURED (tools/habits.js, 2026-11-24, 3,094 presses of the user's real GD runs on the fixed logger): the user's
+  taps are 120 ms at the median (p10 88, p90 161 ms), twice the ~60 ms above; presses ~0.5 s apart at the median.
+  Not changed yet (the 60 ms came from the user): asked. And the user's own clears that the sim replays are saved as
+  "player" routes beside the solver's (tools/replay_run.js; PHYSICS.md "Fidelity").
   Built (2026-11-24): the planned presses are read from ONE place, the level's stages index
   (local/wip/<session>/<slug>.stages/index.json, stage "layout", else "path": data.planned [{t seconds, what}],
   releases left out) or a <slug>.planned.json beside the level; `node tools/planned.js "<level name>"` lists them.

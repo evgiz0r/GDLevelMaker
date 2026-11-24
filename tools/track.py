@@ -66,6 +66,8 @@ def blob(img, rgb, tol):
     mx, my = np.median(xs), np.median(ys)
     keep = (np.abs(xs - mx) < 120) & (np.abs(ys - my) < 120)
     xs, ys = xs[keep], ys[keep]
+    if len(xs) < 20:  # the lime pixels were scattered (no cube-sized group): no blob, not a crash
+        return None
     return xs.mean(), ys.mean(), len(xs), xs.min(), xs.max(), ys.min(), ys.max()
 
 

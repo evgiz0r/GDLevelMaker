@@ -1,0 +1,456 @@
+{
+ "source": "geometry-dash-fan.fandom.com 'List of Top 1 levels' (2026-11-24), newest first; 'contested' = the page's second table (claimed / unofficial Top 1s)",
+ "levels": [
+  {
+   "name": "GRIEF",
+   "creator": "icedcave (Doggie)",
+   "uploaded": "5 October 2026",
+   "id": 149992717,
+   "top1For": "Incumbent (since 4 October 2026)",
+   "kind": "top1"
+  },
+  {
+   "name": "Society",
+   "creator": "Neomarbilan (wPopoff)",
+   "uploaded": "20 June 2026",
+   "id": 127323087,
+   "top1For": "102 days",
+   "kind": "top1"
+  },
+  {
+   "name": "Thinking Space II",
+   "creator": "CairoX (Zoink)",
+   "uploaded": "25 May 2025",
+   "id": 119544028,
+   "top1For": "278 days",
+   "kind": "top1"
+  },
+  {
+   "name": "Amethyst",
+   "creator": "Mist (wPopoff)",
+   "uploaded": "25 May 2025",
+   "id": 119550490,
+   "top1For": "107 days",
+   "kind": "top1"
+  },
+  {
+   "name": "Tidal Wave (original)",
+   "creator": "OniLink (Zoink)",
+   "uploaded": "9 September 2023",
+   "id": 86407629,
+   "top1For": "472 days",
+   "kind": "top1"
+  },
+  {
+   "name": "Avernus",
+   "creator": "PockeWindfish (Zoink)",
+   "uploaded": "22 March 2023",
+   "id": 89496627,
+   "top1For": "125 days",
+   "kind": "top1"
+  },
+  {
+   "name": "Acheron",
+   "creator": "ryamu (Zoink)",
+   "uploaded": "23 August 2022",
+   "id": 73667628,
+   "top1For": "374 days",
+   "kind": "top1"
+  },
+  {
+   "name": "Abyss of Darkness",
+   "creator": "Exen (Cursed)",
+   "uploaded": "3 April 2022",
+   "id": 49896559,
+   "top1For": "45 days",
+   "kind": "top1"
+  },
+  {
+   "name": "Sakupen Circles",
+   "creator": "Diamond",
+   "uploaded": "29 December 2021",
+   "id": 76962930,
+   "top1For": "71 days",
+   "kind": "top1"
+  },
+  {
+   "name": "Slaughterhouse",
+   "creator": "icedcave (Doggie)",
+   "uploaded": "24 October 2021",
+   "id": 27690100,
+   "top1For": "226 days",
+   "kind": "top1"
+  },
+  {
+   "name": "Firework",
+   "creator": "Trick",
+   "uploaded": "29 October 2021",
+   "id": 75206202,
+   "top1For": "~18 seconds",
+   "kind": "top1"
+  },
+  {
+   "name": "The Golden",
+   "creator": "Bo (nSwish)",
+   "uploaded": "17 April 2020",
+   "id": 60978746,
+   "top1For": "105 days",
+   "kind": "top1"
+  },
+  {
+   "name": "Tartarus",
+   "creator": "Dolphy",
+   "uploaded": "6 January 2020",
+   "id": 59075347,
+   "top1For": "522 days",
+   "kind": "top1"
+  },
+  {
+   "name": "Crimson Planet",
+   "creator": "TrueOmega (Wooshi)",
+   "uploaded": "19 May 2018",
+   "id": 45866767,
+   "top1For": "~20 hours",
+   "kind": "top1"
+  },
+  {
+   "name": "Zodiac",
+   "creator": "Bianox (Technical)",
+   "uploaded": "28 January 2019",
+   "id": 52374843,
+   "top1For": "339 days",
+   "kind": "top1"
+  },
+  {
+   "name": "Bloodlust",
+   "creator": "knobbelboy",
+   "uploaded": "21 February 2018",
+   "id": 42584142,
+   "top1For": "381 days",
+   "kind": "top1"
+  },
+  {
+   "name": "Plasma Pulse Finale",
+   "creator": "Smokes",
+   "uploaded": "29 October 2017",
+   "id": 38655495,
+   "top1For": "35 days",
+   "kind": "top1"
+  },
+  {
+   "name": "Stalemate Redux",
+   "creator": "GDTheTactiq (Zephal)",
+   "uploaded": "9 September 2017",
+   "id": 37398911,
+   "top1For": "4 days",
+   "kind": "top1"
+  },
+  {
+   "name": "Digital Descent (unbuffed)",
+   "creator": "Viprin (Combined)",
+   "uploaded": "11 September 2017",
+   "id": 37456092,
+   "top1For": "4 days",
+   "kind": "top1"
+  },
+  {
+   "name": "Erebus",
+   "creator": "BoldStep",
+   "uploaded": "19 March 2017",
+   "id": 31462941,
+   "top1For": "101 days",
+   "kind": "top1"
+  },
+  {
+   "name": "Yatagarasu",
+   "creator": "TrusTa",
+   "uploaded": "13 January 2017",
+   "id": 28220417,
+   "top1For": "104 days",
+   "kind": "top1"
+  },
+  {
+   "name": "Artificial Ascent",
+   "creator": "Viprin (Combined)",
+   "uploaded": "12 December 2016",
+   "id": 27122654,
+   "top1For": "33 days",
+   "kind": "top1"
+  },
+  {
+   "name": "Sonic Wave (current)",
+   "creator": "Sunix",
+   "uploaded": "25 November 2016",
+   "id": 26681070,
+   "top1For": "172 days",
+   "kind": "top1"
+  },
+  {
+   "name": "Athanatos (old)",
+   "creator": "Exenity (Sunix)",
+   "uploaded": "5 November 2016",
+   "id": 75455747,
+   "top1For": "12 days",
+   "kind": "top1"
+  },
+  {
+   "name": "Sakupen Hell",
+   "creator": "TrusTa",
+   "uploaded": "14 August 2016",
+   "id": 23262780,
+   "top1For": "4 days",
+   "kind": "top1"
+  },
+  {
+   "name": "Phobos (unnerfed)",
+   "creator": "Tygrysek",
+   "uploaded": "20 November 2015",
+   "id": 13612299,
+   "top1For": "12 days",
+   "kind": "top1",
+   "onServer": false
+  },
+  {
+   "name": "Bloodbath",
+   "creator": "Riot",
+   "uploaded": "12 August 2015",
+   "id": 10565740,
+   "top1For": "443 days",
+   "kind": "top1"
+  },
+  {
+   "name": "Fexty",
+   "creator": "Ozpectro",
+   "uploaded": "7 August 2015",
+   "id": 25449475,
+   "top1For": "5 days",
+   "kind": "top1"
+  },
+  {
+   "name": "Sonic Wave (old)",
+   "creator": "Cyclic",
+   "uploaded": "20 July 2015",
+   "id": 9704784,
+   "top1For": "18 days",
+   "kind": "top1",
+   "onServer": false
+  },
+  {
+   "name": "Future demoness (unnerfed)",
+   "creator": "MaJackO",
+   "uploaded": "7 July 2015",
+   "id": 9229228,
+   "top1For": "~1 day",
+   "kind": "top1"
+  },
+  {
+   "name": "Supreme Lab Factory (buffed)",
+   "creator": "demonmker",
+   "uploaded": "June-July 2015",
+   "id": 126113673,
+   "top1For": "~20 days",
+   "kind": "top1"
+  },
+  {
+   "name": "Cataclysm (old)",
+   "creator": "Ggb0y (Giron)",
+   "uploaded": "3 January 2015",
+   "id": 3979721,
+   "top1For": "~41 days",
+   "kind": "top1"
+  },
+  {
+   "name": "ICE Carbon Diablo X",
+   "creator": "Roadbose",
+   "uploaded": "20 May 2014",
+   "id": 814678,
+   "top1For": "~46 days",
+   "kind": "top1"
+  },
+  {
+   "name": "Silent Club",
+   "creator": "BlackP2sFull",
+   "uploaded": "1 April 2014",
+   "id": 462797,
+   "top1For": "205 days",
+   "kind": "top1"
+  },
+  {
+   "name": "Element 111 Rg",
+   "creator": "DarkX",
+   "uploaded": "7 April 2014",
+   "id": 498620,
+   "top1For": "1 day",
+   "kind": "top1",
+   "onServer": false
+  },
+  {
+   "name": "Stereo Demoness (unnerfed)",
+   "creator": "MaJackO",
+   "uploaded": "22 February 2014",
+   "id": 260693,
+   "top1For": "~193 days",
+   "kind": "top1"
+  },
+  {
+   "name": "The Hell origin (original)",
+   "creator": "Sohn0924",
+   "uploaded": "31 January 2014",
+   "id": 29386981,
+   "top1For": "~28 days",
+   "kind": "top1"
+  },
+  {
+   "name": "Heaven And Hell",
+   "creator": "roadjunior",
+   "uploaded": "23 January 2014",
+   "id": 167264,
+   "top1For": "5 days",
+   "kind": "top1"
+  },
+  {
+   "name": "The Hell World (original)",
+   "creator": "Sohn0924",
+   "uploaded": "12 January 2014",
+   "id": 149027,
+   "top1For": "15 days",
+   "kind": "top1"
+  },
+  {
+   "name": "The Hell zone (original)",
+   "creator": "Sohn0924",
+   "uploaded": "8 January 2014",
+   "id": 142942,
+   "top1For": "3 days",
+   "kind": "top1"
+  },
+  {
+   "name": "Bicycle",
+   "creator": "Back",
+   "uploaded": "26 December 2013",
+   "id": 120432,
+   "top1For": "14 days",
+   "kind": "top1"
+  },
+  {
+   "name": "demons time machine",
+   "creator": "bbddee",
+   "uploaded": "24 December 2013",
+   "id": 117818,
+   "top1For": "~9 hours",
+   "kind": "top1"
+  },
+  {
+   "name": "demon world",
+   "creator": "superhexagon",
+   "uploaded": "24 November 2013",
+   "id": 72540,
+   "top1For": "~7 days",
+   "kind": "top1"
+  },
+  {
+   "name": "FINAL DESTINATION",
+   "creator": "ZurkQyulox",
+   "uploaded": "5 December 2013",
+   "id": 91402,
+   "top1For": "~13 days",
+   "kind": "top1"
+  },
+  {
+   "name": "Extreme Park",
+   "creator": "Rabbitical",
+   "uploaded": "16 November 2013",
+   "id": 56287,
+   "top1For": "16 days",
+   "kind": "top1"
+  },
+  {
+   "name": "To the Grave",
+   "creator": "Darnoc2",
+   "uploaded": "19 October 2013",
+   "id": 12556,
+   "top1For": "32 days",
+   "kind": "top1"
+  },
+  {
+   "name": "demon park",
+   "creator": "M2CoL",
+   "uploaded": "17 October 2013",
+   "id": 10109,
+   "top1For": "1 day",
+   "kind": "top1"
+  },
+  {
+   "name": "Rythem Time Machine",
+   "creator": "GW Popomon",
+   "uploaded": "6 January 2014",
+   "id": 139804,
+   "top1For": "2 days",
+   "kind": "contested"
+  },
+  {
+   "name": "WindFall",
+   "creator": "YoshiPower",
+   "uploaded": "29 April 2016",
+   "id": 19378386,
+   "top1For": "2 weeks",
+   "kind": "contested"
+  },
+  {
+   "name": "Athanasia",
+   "creator": "ViRuZ",
+   "uploaded": "24 November 2016",
+   "id": 26647581,
+   "top1For": "1 day",
+   "kind": "contested"
+  },
+  {
+   "name": "SonicBath",
+   "creator": "Sunix",
+   "uploaded": "12 May 2017",
+   "id": 33728111,
+   "top1For": "168 days",
+   "kind": "contested"
+  },
+  {
+   "name": "Sakupen Realm",
+   "creator": "MeatiusGaming",
+   "uploaded": "18 September 2017",
+   "id": 37641709,
+   "top1For": "1 month",
+   "kind": "contested"
+  },
+  {
+   "name": "Crystal Edge",
+   "creator": "UFokinWotM8",
+   "uploaded": "13 July 2021",
+   "id": 64530439,
+   "top1For": "70 days",
+   "kind": "contested"
+  },
+  {
+   "name": "VSC",
+   "creator": "Bo (Yossarian)",
+   "uploaded": "21 September 2021",
+   "id": 60805571,
+   "top1For": "194 days",
+   "kind": "contested"
+  },
+  {
+   "name": "Acheron buffed",
+   "creator": "Zoink",
+   "uploaded": "30 January 2023",
+   "id": 88201288,
+   "top1For": "51 days",
+   "kind": "contested"
+  },
+  {
+   "name": "Tidal Wave buffed",
+   "creator": "wPopoff",
+   "uploaded": "1 April 2025",
+   "id": 116732736,
+   "top1For": "55 days",
+   "kind": "contested"
+  }
+ ]
+}

@@ -34,6 +34,8 @@
 //                in these wave corridors. and way too close to the borders" (lib/natural.js routeCheck).
 //                Also WARN: a press the route can drop and still finish (an arrow would mark a jump
 //                that is not needed; the user on GDLM 44 v12, "some places mark to jump but no need").
+//   contrast     colour readability: hazards / blocks / ground vs the background, by luminance (tools/contrast.js); WARN
+//                under 70/100 sections readable
 //   objects      gameplay objects with unconfirmed hitboxes (sure:false; WARN only)
 //   taste        the taste score learned from rated vs unrated community levels (tools/taste.js, TASTE_DATA.md):
 //                info; WARN when a rule the data supports is missed. Band from the brief's "taste": {"band"}.
@@ -67,7 +69,7 @@ function scoreLevel0(level, brief, opts = {}) {
   // solve() returns the saved human route when it is current, re-plans it when only the planner changed, re-solves
   // only from its first broken stretch (lib/incsolve.js) when the physics changed, and solves the whole level only
   // when there is nothing to build on. Its saved timing windows stand in for measuring. opts.saved === false: solve.
-  const saved = opts.saved === false ? null : savedRoute(w, level, opts.levelStr);
+  const saved = opts.saved === false ? null : savedRoute(w, level, opts.levelStr, opts);
   const r = saved || GD.solveAny(w);
   gate("beatable", r.ok ? "PASS" : "FAIL", r.ok ? `${r.clicks.filter(c => c.type === "press").length} presses` :
     `dies at block ${(r.dieAt.x / 30).toFixed(1)} (${r.why})`);
@@ -130,6 +132,14 @@ function scoreLevel0(level, brief, opts = {}) {
 
   // static soft rules (deco coverage, symmetry, jump marks): staticRules() below, shared with tools/rules.js
   for (const g of staticRules(level)) gate(g.name, g.status, g.value, g.note);
+
+  // colour readability (the user, 2026-11-24: "its not clear and its all mooshy"): luminance contrast of hazards,
+  // blocks and ground against the background along the level (tools/contrast.js, ART.md "Colour readability"). Soft.
+  try {
+    const C = require("./contrast.js").measure({ header: level.header, objects: level.objects });
+    gate("contrast", C.score < 70 ? "WARN" : "PASS", `${C.score}/100 sections readable (official levels: median hazard/bg 3.5-21)`,
+      C.worst.slice(0, 4).map(s => `~${s.t} s: ${s.fails.join(", ")}`).join("; "));
+  } catch (e) { gate("contrast", "WARN", "tools/contrast.js failed: " + e.message); }
 
   // height and repetition (the user on GDLM 47's upside-down part: "some sections are somewhat boring. all
   // in flat area. no change of height really ... robtop levels do show decent change of height in their
@@ -479,9 +489,10 @@ function inertHazards(level, w, r) {
 // The saved route of this level, verified (tools/solutions.js solve: current, re-planned, or re-solved from its
 // first broken stretch), shaped as a solver result with its saved timing windows: clicks carry lo / hi (sightread),
 // actions carry lo / hi / ms (lib/difficulty.js opts.actions). null when nothing beats the level that way.
-function savedRoute(w, level, levelStr) {
+function savedRoute(w, level, levelStr, opts) {
   let s;
-  try { s = require("./solutions.js").solve(level, levelStr || GD.serializeLevel(level)); } catch (e) { return null; }
+  // name / file reach the level's planned inputs: when they clear it, THEY are the route every gate judges (GDLM 62)
+  try { s = require("./solutions.js").solve(level, levelStr || GD.serializeLevel(level), { name: opts && opts.name, file: opts && opts.file }); } catch (e) { return null; }
   if (!s || !s.ok || !s.events || !Array.isArray(s.windows)) return null;
   const path = GD.run(w, s.events).path, TPS = GD.PHYS.TPS, ms = (lo, hi) => (hi - lo + 1) / TPS * 1000;
   const win = new Map(s.windows.map(([k, tick, lo, hi]) => [(k ? "r" : "p") + tick, { lo, hi }]));
@@ -580,7 +591,7 @@ function reactiveSpots(level, w, r, presses, opts = {}) {
     const cutLo = SOLID.test(lo) && HAZ.test(hi), cutHi = SOLID.test(hi) && HAZ.test(lo);
     // split: another good window beyond a block -- only a problem when a hazard is in play too (a plain step
     // jump from a dip onto stairs has a far second window by nature: GDLM 64 round 4, block 200)
-    const split = res.some((x, j) => x.ok && (j < a - 1 || j > b + 1)) && (SOLID.test(lo) || SOLID.test(hi)) && res.some(x => HAZ.test(x.why));
+    const split = res.some((x, j) => x.ok && (j < a - 1 || j > b + 1)) && (SOLID.test(lo) || SOLID.test(hi)) && res.some(x => !x.ok && HAZ.test(x.why));
     if ((cutLo || cutHi) && ms < REACT_MS || split) out.push({ block: Math.floor(q.x / 30),
       why: `the jump over a hazard must also be timed around a block: its window (${Math.round(ms)} ms) is ${split ? "split" : "cut"} by a ${SOLID.test(hi) ? hi : lo}` });
   }
@@ -638,7 +649,7 @@ if (require.main === module) {
   let bad = 0;
   for (const f of files) {
     const L = readGdlvl(f);
-    const s = scoreLevel(L.level, brief);
+    const s = scoreLevel(L.level, brief, { name: L.name, file: f, levelStr: L.levelStr });   // name/file: the level's planned route (tools/planned.js)
     if (args.includes("--json")) console.log(JSON.stringify({ name: L.name, ok: s.ok, gates: s.gates }));
     else print(L.name, s);
     if (!s.ok) bad++;

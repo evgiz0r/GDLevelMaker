@@ -139,6 +139,9 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   `node tools/obstacles.js intro --file <level>`. (levels/obstacles.md section 3)
 - [ ] **Sections read as Easy/Normal**, with no "off" or "sparse" ones. `node tools/tiercheck.js <level> --tier Easy`.
   (levels/modes_low_tier.md, tier_ref.json)
+- [ ] **Ultra-synced levels sync the INPUTS, not the obstacles**: build them beat-first (`tools/hitbuild.js`):
+  the planned taps alone, each on a real hit (tools/hits.js), must clear the level in the sim. Sliding
+  obstacles until a window covers the beat left 11% of presses on a hit (GDLM 62 v2: "there is no sync").
 - [ ] **Sync loosely**: portals, speed changes and the drop on the music's moments; most clicks free.
   `node tools/sync.js`. (SYNC.md "How much to sync")
 
@@ -153,6 +156,13 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   <level>` (score.js gate "craft"); generate with `"craft": true` and the craft structures. (CRAFT.md)
 
 ## Looks like 2.2, not 1.0 (levels/modern_look.md)
+
+- [ ] **Readable colours, not mush** (the user, 2026-11-24: "sometimes its not clear and its all mooshy"): judge by
+  BRIGHTNESS, not hue -- hazards and blocks stand out from the background at every moment (luminance ratio hazard/bg
+  >= 1.6, block/bg >= 1.5; aim for 3+ like most official sections), the floor shows (ground/bg >= 1.1 or a bright
+  ground line), a spike and its block are one colour or clearly different in brightness (never two hues at one value),
+  no glow/deco in front of hazards. Colour triggers included. `node tools/contrast.js <level>` (score.js gate
+  "contrast"); palette rule in ART.md "Colour readability".
 
 - [ ] **Budget**: ~10-50 objects per block. Fall Out, the user's own example, has 13; the levels the
   user played have a median 46. GDLM was at 1. `node tools/modern_look.js <level>`.
@@ -189,6 +199,12 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   that looks like an orb, pad or hazard: fires only far back, small and dim. Hazards keep their contrast
   on the drop's brightest frame (one sky flash, not two). Behind a portal a dark disc, never a lit one.
   `node tools/shoot.js` the drop. (design.md; players_say.md: saws taken for orbs; POLISH.md hellgate)
+- [ ] **Three values, never mooshy**: per section the sky, the path (ground + block fills) and the scenery behind
+  it sit at clearly different brightness: sky vs path and sky vs blocks >= 3 (luminance contrast ratio), sky vs
+  spikes >= 4. Far scenery sits BETWEEN sky and path, never as dark as the path (a silhouette as dark as the floor
+  reads as floor). A dark night sky cannot separate from a dark floor: lift the sky to a mid blue (GDLM 64: night
+  sky/floor 1.2 -> 3.2 with sky 82,86,184 over floor 8,8,24). (The user, 2026-11-24: "your color choices sometimes
+  are bad according to background/path/spikes ... its all mooshy".) gd-art's contrast check codes it.
 
 - [ ] **A generator change does not silently change other levels**: before pushing a change to
   patterns.js / structures.js / compose.js / decorate.js / make.js, `node tests/generator_impact.js` lists
