@@ -153,6 +153,18 @@ function compose(brief, tweaks = {}) {
   // chains and jumps timed around a block beside their neighbours
   let notReady = null; const NOTED = compose.noted || (compose.noted = new Set());
   try { const ST = require("./structures.js"); const rk = ST.rank(Object.values(ST.load().structures)); notReady = new Set(rk.filter(r => !r.rank.ready).map(r => "s:" + r.id)); } catch (e) {}
+  // mode tier (tools/modeorder.js): a section mode or speed that official levels bring in more than one tier above the
+  // brief's difficulty -- a NOTE (an Easy level keeps to cube / ship / pads; later modes come in at higher difficulty)
+  try {
+    const MO = require("./modeorder.js"), T = MO.TIERS, lab = (brief.difficulty || {}).label;
+    if (lab && !compose.tierNoted) {
+      const over = [];
+      for (const s of brief.sections) for (const f of [s.mode && s.mode !== "upside" ? "mode:" + s.mode : s.mode === "upside" ? "gravity flip" : null, s.speed && s.speed !== "1x" ? "speed:" + s.speed : null].filter(Boolean)) {
+        const t = MO.tierOf(f); if (t && T.indexOf(t) > T.indexOf(lab) + 1 && !over.includes(f + " (" + t + ")")) over.push(f + " (" + t + ")");
+      }
+      if (over.length) { console.log(`   NOTE mode tier: ${over.join(", ")} in a ${lab} brief -- official levels bring these in later (DIFFICULTY.md "Mode order")`); compose.tierNoted = true; }
+    }
+  } catch (e) { /* no corpus */ }
   for (const [si, sec0] of brief.sections.entries()) {
     const sec = Object.assign({}, sec0, { blocks: lens[si] });
     if (notReady && sec.use) { const drop = sec.use.filter(u => notReady.has(u)); if (drop.length) { sec.use = sec.use.filter(u => !notReady.has(u)); if (!NOTED.has(sec.name + drop)) NOTED.add(sec.name + drop), console.log(`   NOTE ${sec.name}: ${drop.join(", ")} left out (not ready in the structure library: node tools/structures.js rank)`); } }

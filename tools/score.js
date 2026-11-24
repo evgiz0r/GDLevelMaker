@@ -242,6 +242,19 @@ function scoreLevel0(level, brief, opts = {}) {
     gate("difficulty", off >= 2 ? "FAIL" : off === 1 ? "WARN" : "PASS",
       `${lab} (${diff.logAttempts.toFixed(2)} = ~${Math.round(10 ** diff.logAttempts)} attempts)` + (want.label ? `, want ${want.label}` : ""));
   }
+  // mode tier (the user, 2026-11-24: "the difficulty of modes is usually correlated to their appearance in gd main
+  // levels"): each mode / speed / size / gravity / orb / pad has the rating of the first official level it appears in
+  // (tools/modeorder.js, DIFFICULTY.md "Mode order"). A level using a feature MORE than one tier above its target reads
+  // harder than its timing says: WARN (soft: brief.accept["mode tier"] with a reason). One tier above is common.
+  try {
+    const MO = require("./modeorder.js"), fl = MO.floor(MO.features(level.objects, level.header)), T = MO.TIERS;
+    const target = want.label || (r.ok && diff ? GD.difficultyLabel(diff.logAttempts) : null);
+    if (target) {
+      const over = Object.entries(fl.tiers).filter(([, t]) => T.indexOf(t) > T.indexOf(target) + 1);
+      gate("mode tier", over.length ? "WARN" : "PASS", over.length ? `${over.map(([f, t]) => f + " (" + t + ")").join(", ")} in a ${target} level` : `features up to ${fl.tier} for ${target}`,
+        over.length ? "official levels bring these in at higher ratings: keep them for harder levels, or accept with a reason" : "");
+    }
+  } catch (e) { /* no corpus on this PC */ }
 
   // pacing, from hazard columns
   const haz = level.objects.filter(o => GD.objInfo(o.id).kind === "hazard").map(o => Math.floor(o.x / 30)).sort((a, b) => a - b);

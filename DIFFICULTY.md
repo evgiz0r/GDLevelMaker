@@ -516,3 +516,52 @@ The input shows under the ground like morse code: a lit bar while the button is 
 each press, a blue band for each click's window, and a HOLD/up light with how long. The player's
 real deaths (from `tools/runs.js --level N`) are red ✖ marks with their %. The camera follows a
 flying player inside its corridor.
+
+## Mode order: a feature's tier is where the official levels bring it in (2026-11-24)
+
+The user: "the difficulty of modes is usually correlated to their appearance in gd main levels". GD's main levels add
+one new thing at a time as their rating climbs, so the rating of the FIRST official level (1-22) that uses a mode,
+speed, size, gravity flip, dual, orb or pad is its tier. `node tools/modeorder.js` builds the table
+(knowledge/mode_order.json) from the levels on this PC; `node tools/modeorder.js <level>` gives a level's tier floor.
+
+| feature | first in | tier | in |
+|---|---|---|---|
+| mode:ship | 1 Stereo Madness | Easy | 22 of 22 |
+| mode:cube | 1 Stereo Madness | Easy | 22 of 22 |
+| pad:yellow | 2 Back On Track | Easy | 21 of 22 |
+| pad:blue | 2 Back On Track | Easy | 14 of 22 |
+| orb:yellow | 3 Polargeist | Normal | 20 of 22 |
+| gravity flip | 4 Dry Out | Normal | 18 of 22 |
+| pad:pink | 6 Can't Let Go | Hard | 12 of 22 |
+| orb:pink | 8 Time Machine | Harder | 11 of 22 |
+| mode:ball | 9 Cycles | Harder | 13 of 22 |
+| orb:blue | 10 xStep | Insane | 13 of 22 |
+| mini | 11 Clutterfunk | Insane | 11 of 22 |
+| mode:ufo | 12 Theory of Everything | Harder | 10 of 22 |
+| speed:2x | 15 Electrodynamix | Insane | 7 of 22 |
+| speed:3x | 15 Electrodynamix | Insane | 3 of 22 |
+| dual | 16 Hexagon Force | Insane | 3 of 22 |
+| speed:0.5x | 16 Hexagon Force | Insane | 5 of 22 |
+| mode:wave | 17 Blast Processing | Harder | 6 of 22 |
+| mode:robot | 19 Geometrical Dominator | Harder | 4 of 22 |
+| orb:green | 20 Deadlocked | Demon | 3 of 22 |
+| orb:black | 21 Fingerdash | Insane | 1 of 22 |
+| orb:green dash | 21 Fingerdash | Insane | 2 of 22 |
+| pad:red | 21 Fingerdash | Insane | 2 of 22 |
+| orb:pink dash | 21 Fingerdash | Insane | 2 of 22 |
+| mode:spider | 21 Fingerdash | Insane | 2 of 22 |
+| orb:red | 21 Fingerdash | Insane | 2 of 22 |
+| mode:swing | 22 Dash | Insane | 1 of 22 |
+| orb:spider | 22 Dash | Insane | 1 of 22 |
+
+Used in:
+- **the difficulty check** (tools/score.js gate "mode tier"): a feature more than one tier above the level's target is a
+  WARN -- the level reads harder than its timing windows say (a newer mode is unfamiliar). Soft: a brief may accept it
+  with a reason. One tier above is common (a Normal level with a ball part).
+- **compose** (tools/compose.js): a NOTE when a brief puts a section mode or speed more than a tier above its difficulty.
+  An Easy level keeps to cube, ship, yellow / blue pads; gravity flips and yellow orbs come at Normal, pink pads at Hard,
+  ball and pink / blue orbs at Harder, mini, UFO, wave, robot, dual, 2x / 3x / 0.5x and the other orbs at Insane+.
+- Not in lib/difficulty.js's fitted attempts model (it is fitted on the user's runs, no mode term yet): the tier is a
+  floor next to it. Open: fit a per-mode familiarity term once the user's runs cover more modes.
+Our levels by tier floor (2026-11-24): 41/43 Normal; 45, 46 sketch, 62 Harder (ball, wave); 47, 61, 63-66 Insane (2x,
+0.5x, dual, blue orb); 44, 50, 51, 52, 60, 67 Demon (a green orb).
