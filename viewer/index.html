@@ -2168,7 +2168,10 @@ function visualRot(path) {
   const tilt = (s, p, k) => p ? -Math.atan2((s.y - p.y), Math.max(0.1, s.x - p.x)) * 180 / Math.PI * k : 0;
   for (let i = 0; i < path.length; i++) {
     const s = path[i], p = path[i - 1];
-    if (s.mode === "ship" || s.mode === "wave") { r = near(r, s.rot); r += (s.rot - r) * 0.12; }
+    // the ship follows its velocity's angle about 67 ms behind (measured: the user's Hexagon Force ship, gain 0.98, lag 4
+    // frames; was 0.12 a tick = ~17 ms; VISUALS.md "Render vs game"); the wave points along its velocity at once
+    if (s.mode === "ship") { r = near(r, s.rot); r += (s.rot - r) * 0.06; }
+    else if (s.mode === "wave") { r = near(r, s.rot); r += (s.rot - r) * 0.12; }
     else if (s.mode === "swing" || s.mode === "ufo") { const T = tilt(s, p, s.mode === "ufo" ? 0.25 : 1); r = near(r, T); r += (T - r) * 0.12; }
     else if (s.mode === "robot" || s.mode === "spider") { r = near(r, 0); r += (0 - r) * 0.25; }
     else if (s.mode === "ball") { if (p) r += (s.grav || 1) * (s.x - p.x) * 180 / (Math.PI * 15); }

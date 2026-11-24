@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """The player's drawn rotation in a recording, per video frame (VISUALS.md "render vs game").
 
-  python tools/rot_video.py VIDEO --from 61.4 --to 62.2 [--color lime|r,g,b] [--tol 70] [--sym 90]
+  python tools/rot_video.py VIDEO --from 61.4 --to 62.2 [--color lime|r,g,b] [--tol 70] [--sym 90] [--axis]
 
 Finds the player's colour blob each frame (like tools/track.py) and the rotation of its outline: the angle, modulo
 --sym degrees (90 for a cube: a square looks the same every quarter turn), that makes the blob's bounding box smallest.
 Prints CSV: t, cx, cy, angle (degrees, 0..sym, counter-clockwise on screen), unwrapped angle, and the spin rate between
-frames (deg/s). Frame times come from the container's pts (tools/track.py), never an assumed rate.
+frames (deg/s). --axis: the blob's main axis instead (second moments; for a long shape like the ship, whose box flips
+between near-square fits), modulo 180. Frame times come from the container's pts (tools/track.py), never an assumed rate.
 Needs ffmpeg/ffprobe and numpy. Reads the video, never writes it.
 """
 import argparse, os, shutil, subprocess, sys
@@ -18,7 +19,7 @@ from track import frame_times, COLORS, tool  # noqa: E402
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("video"); ap.add_argument("--from", dest="t0", type=float, required=True); ap.add_argument("--to", dest="t1", type=float, required=True)
-    ap.add_argument("--color", default="lime"); ap.add_argument("--tol", type=float, default=70); ap.add_argument("--sym", type=float, default=90)
+    ap.add_argument("--color", default="lime"); ap.add_argument("--tol", type=float, default=70); ap.add_argument("--sym", type=float, default=90); ap.add_argument("--axis", action="store_true")
     a = ap.parse_args()
     col = np.array(COLORS.get(a.color) or [int(v) for v in a.color.split(",")], dtype=np.int32)
     ts = frame_times(a.video, a.t0, a.t1)
@@ -40,9 +41,15 @@ def main():
         mx, my = np.median(xs), np.median(ys); k = (np.abs(xs - mx) < 120) & (np.abs(ys - my) < 120); xs, ys = xs[k] - xs[k].mean(), ys[k] - ys[k].mean()
         # rotate the points by -angle; the angle whose box is smallest is the shape's own rotation
         rx = np.outer(cs, xs) + np.outer(sn, ys); ry = np.outer(-sn, xs) + np.outer(cs, ys)
-        area = (rx.max(1) - rx.min(1)) * (ry.max(1) - ry.min(1))
-        ang = float(np.degrees(angs[int(np.argmin(area))]))
-        ang = (-ang) % a.sym   # screen y is down: report counter-clockwise
+        if a.axis:
+            cxx, cyy, cxy = (xs * xs).mean(), (ys * ys).mean(), (xs * ys).mean()
+            ang = float(np.degrees(0.5 * np.arctan2(2 * cxy, cxx - cyy))); a.sym = 180
+            ang = (-ang) % 180   # screen y is down: report counter-clockwise
+            if ang > 90: ang -= 180
+        else:
+            area = (rx.max(1) - rx.min(1)) * (ry.max(1) - ry.min(1))
+            ang = float(np.degrees(angs[int(np.argmin(area))]))
+            ang = (-ang) % a.sym   # screen y is down: report counter-clockwise
         if prev is None: unw = ang
         else:
             d = (ang - prev + a.sym / 2) % a.sym - a.sym / 2; unw += d
