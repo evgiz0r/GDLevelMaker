@@ -31,7 +31,7 @@
     },
     "stepped-pyramid",
     {
-     "s": "capped-hop",
+     "s": "capped-hop-armed",
      "args": {
       "cap": 4
      }
@@ -99,12 +99,11 @@
    ],
    "chunks": [
     "ball-pillars",
-    "ball-orb",
+    "ball-dense",
     "ball-flips",
-    {
-     "rest": 4
-    }
-   ]
+    "ball-orb"
+   ],
+   "gap": 2
   },
   {
    "bars": 8,
