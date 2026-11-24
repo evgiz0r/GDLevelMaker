@@ -121,7 +121,7 @@
   <div id="wkList"></div></div></div>
 <div id="picker" hidden><div id="pk" role="dialog" aria-label="choose a level">
   <div id="pkTop"><input id="pkQ" type="search" placeholder="search levels…" autocomplete="off">
-    <button data-f="main" class="on" title="official levels, the levels being worked on and ours">main</button><button data-f="recent">recent</button><button data-f="pinned">★ pinned</button><button data-f="runs" title="every level you played -- here (🎮) or in GD recordings (🎥) -- newest first; opens on your latest run as a ghost">my runs</button><button data-f="wip">in progress</button><button data-f="ours">ours</button><button data-f="official">official</button><button data-f="community">community</button><button data-f="all">all</button>
+    <button data-f="main" class="on" title="official levels, the levels being worked on and ours">main</button><button data-f="recent">recent</button><button data-f="pinned">★ pinned</button><button data-f="runs" title="every level you played -- here (🎮) or in GD recordings (🎥) -- newest first; opens on your latest run as a ghost">my runs</button><button data-f="wip">in progress</button><button data-f="ours">ours</button><button data-f="official">official</button><button data-f="community">community</button><button data-f="demons" title="the demon list's top 150 and every former Top 1 that is on this PC (local/community, tools/demonlist.js), by list place">demon list</button><button data-f="all">all</button>
     <button id="pkClose" title="close (Esc)">✕</button></div>
   <div id="pkList"></div></div></div>
 <header>
@@ -423,7 +423,8 @@ function load(name, levelStr, saved, info) {
   else if (location.protocol.startsWith("http") && !window.GD_PAGES && !window.GD_PHONE && !SHOOT && ALL[pick.value] && ALL[pick.value].level === levelStr) {
     // no saved route: ask the PC instead of freezing the page for minutes (solveLater explains first)
     sol = { ok: false, trail: [], clicks: [], dieAt: { x: 0, tick: 0 }, why: "not solved yet: no saved route", pending: true };
-    if (!ALL[pick.value].stagesOnly) setTimeout(() => solveLater(ALL[pick.value], levelStr), 0);   // a build's stage: its own "find the route"
+    if (ALL[pick.value].comm) sol.why = "a community level: not solved (most demons cannot be beaten in our sim); the camera runs through it";
+    else if (!ALL[pick.value].stagesOnly) setTimeout(() => solveLater(ALL[pick.value], levelStr), 0);   // a build's stage: its own "find the route"
   }
   else try { sol = GD.solveAny(world); } catch (e) { sol = { ok: false, clicks: [], trail: [], dieAt: GD.startState(world), why: e.message }; }
   // the replay shows a natural way to play it (lib/natural.js: a tap per jump, no empty jumps, the
@@ -585,6 +586,12 @@ pick.onchange = () => {
     window.GD_OPEN_MS = Date.now() - t0;
   };
   setTimeout(step, 0);
+};
+const pickOpen1 = pick.onchange;
+pick.onchange = () => {
+  const l = ALL[pick.value];
+  if (!l || !l.lazy || l.level != null) return pickOpen1();
+  commOpen(l).then(ok => { if (ok && ALL[pick.value] === l) { pickOpen1(); if (typeof pkTitle === "function") pkTitle(); } });
 };
 // ---------- the level picker (button / key L): cards with a thumbnail strip, length, modes, version, search,
 // filters, pins and recent; the versions of one level under one card, newest first (the user: "the pick level
@@ -893,6 +900,7 @@ const MODEICON = { cube: "■", ship: "✈", ball: "●", ufo: "◒", wave: "➤
 function pkMetaOf(l) {
   const key = l.file + "|" + (l.version || "");
   if (PK.meta.has(key)) return PK.meta.get(key);
+  if (l.lazy && l.level == null) return { endX: 0, modes: [], secs: 0, pts: [], lazy: true };   // not unpacked yet: nothing to measure
   // compact: length, modes and up to 2500 thumbnail points (x, y, colour); a huge level (official ones run to
   // 75k objects) gets no thumbnail: parsing it would hold the page for seconds
   let m = { endX: 0, modes: [], secs: 0, pts: [], big: String(l.level || "").length > 400000 };
@@ -907,10 +915,15 @@ function pkMetaOf(l) {
   } catch (e) {}
   PK.meta.set(key, m); return m;
 }
+function commMeta(l) {
+  const d = l.demon; if (!d) return `${Math.round((l.bytes || 0) / 1024)} KB`;
+  return [d.position ? "demon list #" + d.position : "", d.top1 ? (/^incumbent/i.test(d.top1.for || "") ? "Top 1 now" : d.top1.kind === "contested" ? "contested Top 1" : "former Top 1") + (d.top1.uploaded ? " (" + d.top1.uploaded + ")" : "") : "",
+    d.creator ? "by " + d.creator : "", d.verifier ? "verified by " + d.verifier : "", d.objects ? d.objects.toLocaleString() + " objects" : ""].filter(Boolean).join(" · ");
+}
 function pkThumb(cnv, m) {
   const x = cnv.getContext("2d"), W2 = cnv.width = 200, H2 = cnv.height = 34;
   x.fillStyle = "#0b0620"; x.fillRect(0, 0, W2, H2);
-  if (m.big) { x.fillStyle = "#6b5bd0"; x.font = "11px system-ui"; x.fillText("large level", 6, 21); return; }
+  if (m.big || m.lazy) { x.fillStyle = "#6b5bd0"; x.font = "11px system-ui"; x.fillText(m.lazy ? "opens on click" : "large level", 6, 21); return; }
   if (!m.endX) return;
   const kx = W2 / (m.endX + 60), ky = H2 / 330;
   for (const [ox, oy, c, portal] of m.pts) { x.fillStyle = c; x.fillRect(ox * kx, H2 - 2 - oy * ky, portal ? 2 : 1.4, portal ? 8 : 1.6); }
@@ -921,7 +934,8 @@ function pkRows() {
   const groups = new Map();
   ALL.forEach((l, i) => {
     const c = pkCat(l);
-    if (PK.f === "pinned" ? !pins.includes(pkKey(l)) : PK.f === "recent" ? !recent.includes(pkKey(l)) : PK.f === "main" ? c === "community" : PK.f !== "all" && c !== PK.f) return;
+    if (PK.f === "pinned" ? !pins.includes(pkKey(l)) : PK.f === "recent" ? !recent.includes(pkKey(l)) : PK.f === "main" ? c === "community" : PK.f === "demons" ? !l.demon : PK.f !== "all" && c !== PK.f) return;
+    if (q && l.demon && (String(l.demon.creator) + " " + l.demon.verifier).toLowerCase().includes(q)) { const k = pkKey(l); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(i); return; }
     if (q && !(String(l.name) + " " + l.file + " " + (l.session || "")).toLowerCase().includes(q)) return;
     const k = pkKey(l); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(i);
   });
@@ -935,6 +949,9 @@ function pkRows() {
   const rest = list.filter(r => !rec.includes(r)).sort((a, b) => (pins.includes(b.k) - pins.includes(a.k))
     || ((CATRANK[pkCat(ALL[a.is[0]])] >= 2) - (CATRANK[pkCat(ALL[b.is[0]])] >= 2))
     || (num(a) && num(b) ? num(a) - num(b) : 0) || b.when - a.when || a.k.localeCompare(b.k, undefined, { numeric: true }));
+  // the demon list: by list place; former Top 1s that left the list after it, newest upload first
+  if (PK.f === "demons") { const pos = r => (ALL[r.is[0]].demon || {}).position || 1e4, up = r => Date.parse(((ALL[r.is[0]].demon || {}).top1 || {}).uploaded || "") || 0;
+    rest.sort((a, b) => pos(a) - pos(b) || up(b) - up(a)); }
   return { rec, rest, pins };
 }
 function pkRender() {
@@ -947,7 +964,7 @@ function pkRender() {
       `</div><button class="pkPin${pins.includes(r.k) ? " on" : ""}" data-pin="${pkEsc(r.k)}" title="pin">★</button></div>`; };
   el.innerHTML = (rec.length ? `<div class="pkHead">recent</div>` + rec.map((r, n) => card(r, n)).join("") : "") +
     (PK.f === "recent" ? "" : PK.f === "runs" ? `<div class="pkHead">my runs, newest played first · ${rest.length}${PK.runs === null ? " (loading…)" : ""}${PK.runsNote ? " · " + pkEsc(PK.runsNote) : ""}${PK.runsMissing ? ` · ${PK.runsMissing} more not in this list (build stages, levels not on this PC)` : ""}</div>`
-      : `<div class="pkHead">${PK.f === "main" ? "official, in progress and ours" : PK.f === "all" ? "all levels" : PK.f} · ${rest.length}</div>`) + rest.map((r, n) => card(r, n + rec.length)).join("");
+      : `<div class="pkHead">${PK.f === "main" ? "official, in progress and ours" : PK.f === "all" ? "all levels" : PK.f === "demons" ? "demon list (on this PC), by list place; no route: the camera runs through" : PK.f} · ${rest.length}</div>`) + rest.map((r, n) => card(r, n + rec.length)).join("");
   el.querySelectorAll(".pkCard").forEach(c => c.onclick = e => { if (e.target.dataset.pin || e.target.dataset.open) return; const r = PK.rows[+c.dataset.n]; pkOpen(r.is[0], r.run); });
   el.querySelectorAll("[data-open]").forEach(b => b.onclick = () => pkOpen(+b.dataset.open));
   el.querySelectorAll("[data-pin]").forEach(b => b.onclick = () => { const p = pkStore("pins"), k = b.dataset.pin; pkStore("pins", p.includes(k) ? p.filter(x => x !== k) : p.concat(k)); pkRender(); });
@@ -956,7 +973,7 @@ function pkRender() {
   const queue = [], seen = new Set();
   const step = () => { if (document.getElementById("picker").hidden || !queue.length) { PK.busy = false; return; }
     const cnv = queue.shift(), i = +cnv.dataset.i, m = pkMetaOf(ALL[i]); pkThumb(cnv, m);
-    const meta = el.querySelector(`[data-meta="${i}"]`); if (meta) meta.textContent = m.big ? "large level" : `~${Math.round(m.secs)} s · ${(m.endX / 30).toFixed(0)} blocks · ${m.modes.map(x => MODEICON[x] || x).join(" ")}`;
+    const meta = el.querySelector(`[data-meta="${i}"]`); if (meta) meta.textContent = m.lazy ? commMeta(ALL[i]) : m.big ? "large level" : `~${Math.round(m.secs)} s · ${(m.endX / 30).toFixed(0)} blocks · ${m.modes.map(x => MODEICON[x] || x).join(" ")}`;
     setTimeout(step, 0); };
   PK.io = new IntersectionObserver(es => { for (const e of es) if (e.isIntersecting && !seen.has(e.target)) { seen.add(e.target); queue.push(e.target); }
     if (queue.length && !PK.busy) { PK.busy = true; setTimeout(step, 0); } }, { root: el });
@@ -2025,6 +2042,34 @@ else if (location.protocol.startsWith("http") && !window.GD_PHONE) fetch("/versi
 // ---------- work in progress: the levels the sessions are working on, live from local/wip ----------
 // Listed first under "in progress"; ⟳ refresh fetches the newest versions without reloading the page.
 // The address bar keeps #lv=<file>&t=<seconds>, so a link opens that level at that moment.
+// Community levels (other people's: on this PC only, local/community, never the repo or the phone page): listed from
+// GET /community/list (names, demon-list place, creator; no level strings), each level's file fetched and unpacked only
+// when it is opened (pick.onchange below). Most demons cannot be beaten in our sim, so nothing solves them: the camera
+// runs through the layout and deco as a ghost at the level's speed.
+const COMM = new Map();   // file -> its entry (kept across refreshes, so an opened level stays unpacked)
+async function commLoad() {
+  if (!location.protocol.startsWith("http") || window.GD_PAGES || window.GD_PHONE) return;
+  let rows = []; try { const r = await fetch("/community/list", { cache: "no-store" }); if (r.ok) rows = await r.json(); } catch (e) { return; }
+  for (let i = ALL.length - 1; i >= 0; i--) if (ALL[i].comm) ALL.splice(i, 1);
+  for (const r of rows) {
+    const e = COMM.get(r.file) || { file: r.file, comm: true, lazy: true };
+    const d = r.demon;
+    Object.assign(e, { name: d && d.position ? `#${d.position} ${r.name}` : r.name, id: r.id, bytes: r.bytes, demon: d || null });
+    COMM.set(r.file, e); ALL.push(e);
+  }
+}
+async function commOpen(l) {
+  const slow = setTimeout(() => notice(`unpacking ${esc(l.name)} (${Math.round((l.bytes || 0) / 1024)} KB)…`, 0), 150);
+  try {
+    const rec = GD.parseRecord(await gunzipB64(await (await fetch("/" + l.file, { cache: "no-store" })).text()));
+    l.level = await gunzipB64(GD.getField(rec, "k4"));
+    const header = l.level.split(";")[0], off = +((/(?:^|,)kA13,([-0-9.]+)/.exec(header) || [])[1] || 0), custom = GD.getField(rec, "k45");
+    l.song = custom && custom !== "0" ? { url: "/song/custom/" + custom + ".mp3", id: +custom, offset: off } : null;
+    if (!l.name || /^\d+$/.test(l.name)) l.name = GD.getField(rec, "k2") || l.name;
+    return true;
+  } catch (e) { notice("Could not open " + esc(l.name) + ": " + esc(e.message)); return false; }
+  finally { clearTimeout(slow); const n = document.getElementById("notice"); if (n && /^unpacking /.test(n.textContent)) n.hidden = true; }
+}
 async function loadWip(keep) {
   if (!location.protocol.startsWith("http")) return;
   let list = [];
@@ -2032,10 +2077,11 @@ async function loadWip(keep) {
   const cur = ALL[pick.value];
   for (let i = ALL.length - 1; i >= 0; i--) if (ALL[i].wip) ALL.splice(i, 1);
   ALL.unshift(...list.map(l => Object.assign(l, { name: l.name })));
+  await commLoad();
   pick.innerHTML = "";
   const groups = new Map();
   ALL.forEach((l, i) => {
-    const g = l.wip ? "in progress" : /^official/.test(l.name) ? "official (this PC only)" : "levels";
+    const g = l.wip ? "in progress" : l.comm ? "community (this PC only)" : /^official/.test(l.name) ? "official (this PC only)" : "levels";
     if (!groups.has(g)) { const og = document.createElement("optgroup"); og.label = g; groups.set(g, og); pick.appendChild(og); }
     const label = l.wip ? `${l.name}  —  ${l.session} v${l.version}, ${new Date(l.updated).toLocaleTimeString()}${l.note ? " · " + l.note : ""}` : l.name + "  —  " + l.file;
     groups.get(g).appendChild(new Option(label, i));

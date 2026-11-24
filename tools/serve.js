@@ -92,6 +92,12 @@ const SERVER = http.createServer((req, res) => {
   // difficulty; VIEWER.md). test: true -> local/viewer_actions.test.jsonl
   // GET /attempts?file=<level file>&hash=<GD.levelHash>: the user's attempts at that version (tools/attempts.js), without
   // their inputs unless &id=<attempt id> (one attempt, with its events)
+  // GET /community/list: the community levels on this PC, names and demon-list facts only (tools/community_index.js);
+  // the viewer fetches a level's own file (local/community/<id>.gdlvl) when it is opened
+  if (p === "/community/list" && req.method === "GET") {
+    let rows = []; try { rows = require("./community_index.js").list(); } catch (e) {}
+    res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify(rows));
+  }
   // GET /attempts/index: every level with attempts, one small row each, newest played first (the "my runs" tab)
   if (p === "/attempts/index" && req.method === "GET") {
     res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify(require("./attempts.js").index()));
