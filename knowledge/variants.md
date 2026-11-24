@@ -40,3 +40,6 @@ result is a taste call for the user; the user's own picks count double (write th
 - sunrise: v0 kept (76) over v1 70 [WARN symmetry, WARN length, WARN ending, WARN orb buffer, WARN hazards matter, WARN reactive, FAIL difficulty, WARN pacing, WARN objects, WARN craft], v2 70 [WARN symmetry, WARN height, WARN length, WARN ending, WARN hazards matter, WARN reactive, FAIL difficulty, WARN pacing, WARN objects, WARN craft]
 - dawn: v0 kept (100) over v1 100 [WARN length, WARN ending, FAIL difficulty, WARN pacing, WARN craft], v2 100 [WARN length, WARN ending, FAIL difficulty, WARN pacing, WARN craft] -- CLOSE: a taste call for the user
 
+## GDLM 69 time hop (2026-11-24)
+- departure: a bright teal present: v0 kept (52) over v2 16 [WARN deco coverage, WARN contrast, FAIL channels, WARN length, WARN mode changes, WARN ending, WARN difficulty, WARN mode tier, WARN energy curve, WARN sync, FAIL skips, WARN route, WARN taste, WARN craft], v1 4 [WARN deco coverage, WARN symmetry, WARN contrast, FAIL channels, WARN length, WARN mode changes, WARN ending, WARN orb buffer, WARN difficulty, WARN mode tier, WARN energy curve, WARN sync, FAIL skips, WARN route, WARN taste, WARN craft]
+
