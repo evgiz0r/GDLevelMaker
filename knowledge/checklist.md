@@ -17,7 +17,8 @@ checklist it was built against.
 [--session <name> --note "..."]` (make -> every score.js gate -> pictures -> wip, stops at the first
 failure, prints an ETA first and waits while the PC is busy). A level is ready for the user when it says
 READY and the items below that no gate checks are gone through by eye.
-**One heavy job at a time is enforced** (tools/heavy.js): every solve / score / render tool waits for the
+**The heavy-job lock is enforced** (tools/heavy.js: two slots while the game is closed and ~3 GB are free, one while it
+runs; a fast lane for jobs measured under 2 min): every solve / score / render tool waits for a
 shared slot by itself and prints whom it waits for. Don't get around it with `node -e` solves or scratch
 scripts, and build timing or test runs from copies in `local/tmp/`, never another session's level.
 
@@ -45,9 +46,9 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   landing on a lone block that forces the next jump within 250 ms, never 3+ hops in a row each forced
   right after landing. `node tools/reactive.js <level>` (score.js gate "reactive": FAIL at Easy/Normal).
   (critiques.md GDLM 45 v6, blocks 50-75: "very specific cube jumps ... instead of being able to react")
-- [ ] **Pillar hops are tapped, not held**: at Easy/Normal, pillar tops 3-4 wide; a rise crosses a
-  1-column pit, a drop a 3-column one (2-column pits gave ~100 ms windows on rises and were walked across
-  on drops). Jumper's 1-2-wide pillars are a Harder rhythm that only works as a held bounce. Generated
+- [ ] **Pillar hops are tapped, not held**: at Easy/Normal, pillar tops 3-4 wide; a rise is a plain
+  step with no pit (any pit cuts its window with the next face: 208 ms over 1 column), a drop crosses a
+  3-column pit, +1 per extra row (2-column ones were walked across); floating steps go down, not up. Jumper's 1-2-wide pillars are a Harder rhythm that only works as a held bounce. Generated
   by tools/structures.js pillarRun; checked by the reactive and hazards-matter gates. (the user on GDLM 61
   v1, blocks 15-60: "these clicks very unnatural ... the timings seem reallllly awkward"; CRAFT.md)
 - [ ] **Windows on the player's route, not only the solver's**: every jump of the natural replay (what

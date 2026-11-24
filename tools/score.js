@@ -566,8 +566,8 @@ function reactiveSpots(level, w, r, presses, opts = {}) {
     const d = at - pressTick, rel = ev.findIndex((e, j) => j > k && e.type === "release");
     const next = ev.find((e, j) => j > k && e.type === "press"), prev = ev.slice(0, k).reverse().find(e => e.type === "release");
     if ((next && at >= next.tick - 1) || (prev && at <= prev.tick)) return { ok: false, why: "input order" };
-    ev[k].tick = at;
-    if (rel >= 0) ev[rel].tick = Math.max(ev[rel].tick + d, at + 1);
+    ev[k].tick = Math.round(at);   // whole ticks: GD.run never fires a fractional one (the moved press would silently vanish; physics2, 2026-11-24)
+    if (rel >= 0) ev[rel].tick = Math.max(Math.round(ev[rel].tick + d), Math.round(at) + 1);
     const res = GD.run(w, ev.sort((a, b) => a.tick - b.tick));
     const horizon = Math.min(Math.max(at, pressTick) + Math.round(0.5 * TPS), next ? next.tick : Infinity);
     return { ok: !res.dead || res.path.length - 1 >= horizon, why: res.why || "" };

@@ -146,13 +146,18 @@ things take" below). The tools below still work one by one.
 Every level the tool makes is named `GDLM NN ...` so it is easy to find (and delete) in the
 user's created-levels list.
 
-## One heavy job at a time -- in code (tools/heavy.js)
+## Heavy jobs: two at most, in code (tools/heavy.js)
 
 The PC has 16 GB; a solve takes ~0.8-1.5 GB. On 2026-11-23 five heavy jobs from different sessions ran
 at once and the PC hung (0.2 GB free), so the rule is now a lock every heavy tool takes ITSELF on start
 (`make`, `compose`, `score`, `solutions`, `wip put`, `shoot`, `levelmap`, the `difficulty*` / `fairness*` /
 `tas*` solvers, `windows`, `press_window`, `stop`, `polish`, `structures`, `check`, `sightread`, ...):
-- one heavy job at a time (two while more than 6 GB is free), and none starts under 1.5 GB free;
+- **"Go more in parallel"** (the user, 2026-11-24): two slots while the game is closed and a second job would still leave
+  1.5 GB free (free >= 1.5 GB + one job's peak memory: ~3 GB; each finished job's peak memory is logged as `mb` in
+  local/timings.jsonl and the threshold follows their 90th percentile), else one; none starts under 1.5 GB free;
+- **fast lane**: a waiter whose measured runs take under 2 min may take a free slot ahead of the long ones -- one lane job
+  at a time, and never ahead of a long job that has waited 10 min (no starving); `node tools/heavy.js` and
+  `/heavy/status` show the slots, the lane job and the fast waiters;
 - while the user plays (GeometryDash.exe runs): one job whatever is free, and none starts under 2 GB free;
 - every heavy job lowers itself to idle CPU priority at start, so the game and the desktop always win;
 - the others wait and say so: `heavy: waiting for tools/make.js ... (<session>, pid, N min in, ~M min left)`;
@@ -278,6 +283,9 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 - **Videos and links**: `tools/video.js <level> [--run <id> | --route] [--from s --to s] [--vs-rec]` -- an mp4 of the level
   playing in the game look with its song (local only: GD's art and the song are in it; VISUALS.md "Video"); `tools/link.js`
   -- links that open a level at a version / moment / run on the PC, the phone page and the home wifi (LINKS.md).
+- **Offline snapshot** (PHONE.md "Offline snapshot"): `node tools/snapshot.js [--no-songs]` -> one HTML file with the PC
+  viewer, every level, the user's runs, GD's art and the songs, which opens from disk with no network (local only, sent to
+  the user by file card); `node tests/snapshot_offline.js` checks it from disk with no network at phone size.
 - **The phone page** (PHONE.md: what is on it, what a session does after `wip.js put`, phone
   marks, how it was tested, what is open): `tools/web.js` builds it from the viewer.
 - `tools/` -- node CLIs: `make`, `check`, `roundtrip`, `index_levels`, `serve`, `beats` (beat grid

@@ -443,7 +443,13 @@ What exists and what blocks it (2026-11-23):
   mode, button, orbs) from an attempt's replayed state through a stretch. NO WAY where the user got through = a physics
   difference there; a way that needs presses the log lacks = a missed input or timing. Fingerdash 550-558: a way exists
   (10 min, 5.6k states at most) -> not a physics fact. xStep 205-216: a way only by 35 presses in 0.9 s -> a
-  physics lead (the search takes any way; judge whether a human could press it). Use --max 5000 (40000 ran out of time).
+  physics lead (the search takes any way; judge whether a human could press it).
+  tools/inputgap.js on that xStep attempt: one extra release+press pair at any spot in the last 3 s gets at most 0.4%
+  further (493 tried, none clears) -> not one missed click: the ship's path there stays a physics lead (the video: the
+  real ship flies 1-2 blocks over the floor clouds; the sim's, with the same presses, bobs between y 41 and 91 and climbs
+  into the hanging saws; a smaller or shifted ship box only delays the hit). passcheck --trail / --mini / --set start
+  from a solver's saved route or a state you give (Dash 22, 2026-11-24: the mini route over the invisible key-135
+  platforms at 106-113 exists up to 116.5, where spikes of group 265 moved by four move triggers kill it -> moving objects). Use --max 5000 (40000 ran out of time).
 - PLANNER GUARDS (2026-11-24, polish on GDLM 44 hellgate): tools/solutions.js fromRun saves a natural plan only when it
   skips no portal / orb (a fresh solve's plan walked under the wave portal at block 292 that the raw route took) and, for
   an incremental or windowed re-plan, adds no jump over nothing (else the whole-level plan). lib/natural.js mergeLegs
