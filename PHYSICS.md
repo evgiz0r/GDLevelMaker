@@ -158,9 +158,13 @@ A cube's press made in the air is kept and the cube jumps when it lands, even if
   made while falling (vy towards the ground, or 0) fits all 21 recorded attempts for any length from 40 to infinite,
   and gdsolver's 22 plans reach exactly the same blocks. Clutterfunk now dies at 3.9% (a tap that jumps the cube into
   a low hanging spike at 38.6: not understood yet; the video clock there needs a frame check).
-- In the sim: lib/physics.js `LANDBUF` = a flag (cube only; the solvers' state keys carry it): set by a press in the
-  air while falling, cleared by the landing jump, an orb or pad, or leaving the cube. tests/mechanics.js checks both
-  sides (a falling tap 50 ticks out jumps, a rising one does not). Was: 40 ticks for any air press.
+- In the sim: lib/physics.js, cube only, the solvers' state keys carry it: a press in the air while FALLING is kept
+  until landing (`LANDBUF`, Infinity); one made while still RISING is kept 40 ticks (`LANDRISE`), as before -- no
+  recording shows a rising press ignored that close to landing, and the solvers' routes rely on it (gd-physics2's
+  bisect: falling-only had broken Time Machine 29, Clubstep 108, Can't Let Go 727, Electroman 407). Cleared by the
+  landing jump, an orb or pad, or leaving the cube. tests/mechanics.js checks a falling tap 50 ticks out (jumps) and a
+  rising one 73 ticks out (does not). Every press of the original evidence (Clutterfunk 1.054 s, 36 ticks; 2.942 s,
+  53 ticks) was made while falling.
   `GDLM_LANDBUF=<ticks>` makes it a countdown again for measuring, 0 = off. OPEN: the exact falling threshold (vy 0? a
   little before the peak?),
   and whether a release clears it in other modes. A clean test: tap in the air at several heights before a
