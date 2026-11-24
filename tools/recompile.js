@@ -183,8 +183,27 @@ function main() {
     stage("plan", { note: `3 plan: ${b.sections.length} sections in ${plan.parts.length} parts, seams on song time`, data: { song: songData(D), sections: plan.parts.map(p => ({ name: `${p.id} ${p.name}`, from: p.t[0], to: p.t[1] })) } });
   });
   step(3, () => {
-    const plan = rd(path.join(dir, "plan.json")), bf = path.relative(ROOT, briefFile);
-    for (let k = 0; k < plan.parts.length; k++) { const r = run("collab.js", ["build", bf, String(k), "--by", "recompile"]); console.log(r.out.split("\n").filter(l => l.trim() && !/heavy: waiting/.test(l)).slice(-4).map(l => "   " + l).join("\n")); if (!r.ok) throw new Error(`part ${k} failed (exit ${r.status}): node tools/collab.js build ${bf} ${k}`); }
+    const plan = rd(path.join(dir, "plan.json")), bf = path.relative(ROOT, briefFile); let collabFailed = null;
+    try { fs.unlinkSync(path.join(dir, "build_note.txt")); } catch (e) {}
+    // a part that fails a gate is built again with another seed (collab.js build makes one attempt): up to 3 tries
+    for (let k = 0; k < plan.parts.length; k++) {
+      let r;
+      for (let a = 0; a < 3; a++) {
+        r = run("collab.js", ["build", bf, String(k), "--by", "recompile"].concat(a ? ["--seed", String(100 + 17 * a + k)] : []));
+        console.log(r.out.split("\n").filter(l => l.trim() && !/heavy: waiting/.test(l)).slice(-4).map(l => "   " + l).join("\n"));
+        if (r.ok) break;
+      }
+      if (!r.ok) { collabFailed = `part ${k} failed its gates 3 times (collab builds a part in one try, no repair rounds)`; break; }
+    }
+    // the fallback: the same brief as ONE level through compose's repair rounds (a pipeline gap, said in compare.md)
+    if (collabFailed) {
+      console.log(`   collab: ${collabFailed} -> compose with repair rounds`);
+      fs.writeFileSync(path.join(dir, "build_note.txt"), `collab: ${collabFailed}; built by compose.js with repair rounds instead\n`);
+      const r = run("compose.js", [bf]); console.log(r.out.split("\n").filter(l => l.trim() && !/heavy: waiting/.test(l)).slice(-8).map(l => "   " + l).join("\n"));
+      const out = path.join("levels", slug + ".gdlvl");
+      if (!fs.existsSync(path.join(ROOT, out))) throw new Error("compose made no " + out);
+      levelOut = out; fs.writeFileSync(path.join(dir, "level.txt"), levelOut + "\n"); return;
+    }
     const r = run("collab.js", ["join", bf]); console.log(r.out.split("\n").map(l => "   " + l).join("\n"));
     const m = /-> (levels[\\/][^\s]+\.gdlvl)/.exec(r.out); if (!m) throw new Error("join made no level");
     levelOut = m[1]; fs.writeFileSync(path.join(dir, "level.txt"), levelOut + "\n");
@@ -199,6 +218,7 @@ function main() {
     const vd = VD.diff(lvO, require("./io.js").readGdlvl(path.join(ROOT, levelOut)), V);
     const md = [`# Round trip: ${D.level} -> ${name}`, "",
       "Two diffs tell where a gap comes from. **Spec**: the original's own spec (the machine's, from steps 1-2) against the spec used (a person's when one was given): what the spec chose to drop or change. **Build**: the spec used against the rebuild decompiled by steps 1-2: what steps 3-4 could not deliver.", "",
+      ...(fs.existsSync(path.join(dir, "build_note.txt")) ? ["**Build:** " + fs.readFileSync(path.join(dir, "build_note.txt"), "utf8").trim(), ""] : []),
       "## Spec (the original vs the spec used)", "", "| beat | t | spec used | original | gap |", "|---|---|---|---|---|",
       ...specDiff(V, Vm).map(r => `| ${r.id} | ${r.t[0]}-${r.t[1]} | ${r.want} | ${r.got} | ${r.diff.join("; ")} |`), "",
       "## Build (the spec used vs the rebuild)", "", "| beat | t | spec | rebuild | gap |", "|---|---|---|---|---|",

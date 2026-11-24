@@ -1,0 +1,1092 @@
+{
+ "level": "GDLM 69 time hop",
+ "brief": "briefs/69_time_hop.json",
+ "song": {
+  "offset": 0.049,
+  "bpm": 143.001,
+  "t0": 0.0494
+ },
+ "planOk": true,
+ "sections": [
+  {
+   "id": "s0",
+   "name": "departure: a bright teal present",
+   "beats": [
+    1,
+    25
+   ],
+   "t": [
+    0,
+    10.013
+   ],
+   "x": [
+    0,
+    3120
+   ],
+   "in": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      0,
+      240,
+      181
+     ],
+     "ground": [
+      0,
+      108,
+      81
+     ],
+     "line": [
+      153,
+      249,
+      225
+     ],
+     "obj": [
+      255,
+      255,
+      255
+     ]
+    }
+   },
+   "out": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      0,
+      240,
+      181
+     ],
+     "ground": [
+      0,
+      108,
+      81
+     ],
+     "line": [
+      153,
+      249,
+      225
+     ],
+     "obj": [
+      255,
+      255,
+      255
+     ]
+    }
+   },
+   "builder": {
+    "layout": "style",
+    "deco": "style",
+    "playtest": "style"
+   },
+   "status": {
+    "deco": "planned",
+    "playtest": "planned",
+    "layout": "built"
+   }
+  },
+  {
+   "id": "s1",
+   "name": "first era: a deep blue era",
+   "beats": [
+    25,
+    69
+   ],
+   "t": [
+    10.013,
+    28.5
+   ],
+   "x": [
+    3120,
+    8880
+   ],
+   "in": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      0,
+      99,
+      253
+     ],
+     "ground": [
+      0,
+      45,
+      114
+     ],
+     "line": [
+      153,
+      193,
+      254
+     ],
+     "obj": [
+      255,
+      255,
+      255
+     ]
+    }
+   },
+   "out": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      0,
+      99,
+      253
+     ],
+     "ground": [
+      0,
+      45,
+      114
+     ],
+     "line": [
+      153,
+      193,
+      254
+     ],
+     "obj": [
+      255,
+      255,
+      255
+     ]
+    }
+   },
+   "builder": {
+    "layout": "style",
+    "deco": "style",
+    "playtest": "style"
+   },
+   "status": {
+    "deco": "planned",
+    "playtest": "planned",
+    "layout": "built"
+   }
+  },
+  {
+   "id": "s2",
+   "name": "reversal: a pink era where time runs backwards",
+   "beats": [
+    69,
+    81
+   ],
+   "t": [
+    28.5,
+    33.507
+   ],
+   "x": [
+    8880,
+    10440
+   ],
+   "in": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      255,
+      0,
+      191
+     ],
+     "ground": [
+      115,
+      0,
+      86
+     ],
+     "line": [
+      255,
+      153,
+      229
+     ],
+     "obj": [
+      255,
+      255,
+      255
+     ]
+    }
+   },
+   "out": {
+    "mode": "ship",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 63.1,
+    "vy": -1,
+    "grounded": false,
+    "scene": {
+     "bg": [
+      255,
+      0,
+      191
+     ],
+     "ground": [
+      115,
+      0,
+      86
+     ],
+     "line": [
+      255,
+      153,
+      229
+     ],
+     "obj": [
+      255,
+      255,
+      255
+     ]
+    }
+   },
+   "builder": {
+    "layout": "style",
+    "deco": "style",
+    "playtest": "style"
+   },
+   "status": {
+    "deco": "planned",
+    "playtest": "planned",
+    "layout": "built"
+   }
+  },
+  {
+   "id": "s3",
+   "name": "reversal (ship): a pink era where time runs backwards",
+   "beats": [
+    81,
+    101
+   ],
+   "t": [
+    33.507,
+    41.883
+   ],
+   "x": [
+    10440,
+    13050
+   ],
+   "in": {
+    "mode": "ship",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 62.9,
+    "vy": -0.89,
+    "grounded": false,
+    "scene": {
+     "bg": [
+      255,
+      0,
+      191
+     ],
+     "ground": [
+      115,
+      0,
+      86
+     ],
+     "line": [
+      255,
+      153,
+      229
+     ],
+     "obj": [
+      255,
+      255,
+      255
+     ]
+    }
+   },
+   "out": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 69.4,
+    "vy": -4.69,
+    "grounded": false,
+    "scene": {
+     "bg": [
+      255,
+      0,
+      191
+     ],
+     "ground": [
+      115,
+      0,
+      86
+     ],
+     "line": [
+      255,
+      153,
+      229
+     ],
+     "obj": [
+      255,
+      255,
+      255
+     ]
+    }
+   },
+   "builder": {
+    "layout": "style",
+    "deco": "style",
+    "playtest": "style"
+   },
+   "status": {
+    "deco": "planned",
+    "playtest": "planned",
+    "layout": "built"
+   }
+  },
+  {
+   "id": "s4",
+   "name": "the void: the dark between eras",
+   "beats": [
+    101,
+    149
+   ],
+   "t": [
+    41.883,
+    62.007
+   ],
+   "x": [
+    13050,
+    19320
+   ],
+   "in": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 69.4,
+    "vy": -4.69,
+    "grounded": false,
+    "scene": {
+     "bg": [
+      24,
+      0,
+      23
+     ],
+     "ground": [
+      11,
+      0,
+      10
+     ],
+     "line": [
+      163,
+      153,
+      162
+     ],
+     "obj": [
+      255,
+      255,
+      255
+     ]
+    }
+   },
+   "out": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": -1,
+    "mini": false,
+    "dual": false,
+    "y": 17.2,
+    "vy": 1.94,
+    "grounded": false,
+    "scene": {
+     "bg": [
+      24,
+      0,
+      23
+     ],
+     "ground": [
+      11,
+      0,
+      10
+     ],
+     "line": [
+      163,
+      153,
+      162
+     ],
+     "obj": [
+      255,
+      255,
+      255
+     ]
+    }
+   },
+   "builder": {
+    "layout": "style",
+    "deco": "style",
+    "playtest": "style"
+   },
+   "status": {
+    "deco": "planned",
+    "playtest": "planned",
+    "layout": "built"
+   }
+  },
+  {
+   "id": "s5",
+   "name": "re-emergence: a purple dawn",
+   "beats": [
+    149,
+    165
+   ],
+   "t": [
+    62.007,
+    68.746
+   ],
+   "x": [
+    19320,
+    21420
+   ],
+   "in": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": -1,
+    "mini": false,
+    "dual": false,
+    "y": 17.7,
+    "vy": 2.16,
+    "grounded": false,
+    "scene": {
+     "bg": [
+      154,
+      0,
+      130
+     ],
+     "ground": [
+      69,
+      0,
+      59
+     ],
+     "line": [
+      215,
+      153,
+      205
+     ],
+     "obj": [
+      255,
+      255,
+      255
+     ]
+    }
+   },
+   "out": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 139.3,
+    "vy": -6.91,
+    "grounded": false,
+    "scene": {
+     "bg": [
+      154,
+      0,
+      130
+     ],
+     "ground": [
+      69,
+      0,
+      59
+     ],
+     "line": [
+      215,
+      153,
+      205
+     ],
+     "obj": [
+      255,
+      255,
+      255
+     ]
+    }
+   },
+   "builder": {
+    "layout": "style",
+    "deco": "style",
+    "playtest": "style"
+   },
+   "status": {
+    "deco": "planned",
+    "playtest": "planned",
+    "layout": "built"
+   }
+  },
+  {
+   "id": "s6",
+   "name": "era hopping: pink, green, cyan, magenta, green: an era every few seconds (1/5)",
+   "beats": [
+    165,
+    173
+   ],
+   "t": [
+    68.746,
+    72.116
+   ],
+   "x": [
+    21420,
+    22470
+   ],
+   "in": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 137.7,
+    "vy": -7.13,
+    "grounded": false,
+    "scene": {
+     "bg": [
+      251,
+      0,
+      209
+     ],
+     "ground": [
+      113,
+      0,
+      94
+     ],
+     "line": [
+      253,
+      153,
+      237
+     ],
+     "obj": [
+      255,
+      255,
+      255
+     ]
+    }
+   },
+   "out": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      251,
+      0,
+      209
+     ],
+     "ground": [
+      113,
+      0,
+      94
+     ],
+     "line": [
+      253,
+      153,
+      237
+     ],
+     "obj": [
+      255,
+      255,
+      255
+     ]
+    }
+   },
+   "builder": {
+    "layout": "style",
+    "deco": "style",
+    "playtest": "style"
+   },
+   "status": {
+    "deco": "planned",
+    "playtest": "planned",
+    "layout": "built"
+   }
+  },
+  {
+   "id": "s7",
+   "name": "era hopping: pink, green, cyan, magenta, green: an era every few seconds (2/5)",
+   "beats": [
+    173,
+    185
+   ],
+   "t": [
+    72.116,
+    77.123
+   ],
+   "x": [
+    22470,
+    24030
+   ],
+   "in": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      15,
+      255,
+      0
+     ],
+     "ground": [
+      7,
+      115,
+      0
+     ],
+     "line": [
+      159,
+      255,
+      153
+     ],
+     "obj": [
+      255,
+      255,
+      255
+     ]
+    }
+   },
+   "out": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      15,
+      255,
+      0
+     ],
+     "ground": [
+      7,
+      115,
+      0
+     ],
+     "line": [
+      159,
+      255,
+      153
+     ],
+     "obj": [
+      255,
+      255,
+      255
+     ]
+    }
+   },
+   "builder": {
+    "layout": "style",
+    "deco": "style",
+    "playtest": "style"
+   },
+   "status": {
+    "deco": "planned",
+    "playtest": "planned",
+    "layout": "built"
+   }
+  },
+  {
+   "id": "s8",
+   "name": "era hopping: pink, green, cyan, magenta, green: an era every few seconds (3/5)",
+   "beats": [
+    185,
+    193
+   ],
+   "t": [
+    77.123,
+    80.493
+   ],
+   "x": [
+    24030,
+    25080
+   ],
+   "in": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      0,
+      252,
+      252
+     ],
+     "ground": [
+      0,
+      113,
+      113
+     ],
+     "line": [
+      153,
+      254,
+      254
+     ],
+     "obj": [
+      255,
+      255,
+      255
+     ]
+    }
+   },
+   "out": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      0,
+      252,
+      252
+     ],
+     "ground": [
+      0,
+      113,
+      113
+     ],
+     "line": [
+      153,
+      254,
+      254
+     ],
+     "obj": [
+      255,
+      255,
+      255
+     ]
+    }
+   },
+   "builder": {
+    "layout": "style",
+    "deco": "style",
+    "playtest": "style"
+   },
+   "status": {
+    "deco": "planned",
+    "playtest": "planned",
+    "layout": "built"
+   }
+  },
+  {
+   "id": "s9",
+   "name": "era hopping: pink, green, cyan, magenta, green: an era every few seconds (4/5)",
+   "beats": [
+    193,
+    205
+   ],
+   "t": [
+    80.493,
+    85.5
+   ],
+   "x": [
+    25080,
+    26640
+   ],
+   "in": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      255,
+      0,
+      214
+     ],
+     "ground": [
+      115,
+      0,
+      96
+     ],
+     "line": [
+      255,
+      153,
+      239
+     ],
+     "obj": [
+      255,
+      255,
+      255
+     ]
+    }
+   },
+   "out": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      255,
+      0,
+      214
+     ],
+     "ground": [
+      115,
+      0,
+      96
+     ],
+     "line": [
+      255,
+      153,
+      239
+     ],
+     "obj": [
+      255,
+      255,
+      255
+     ]
+    }
+   },
+   "builder": {
+    "layout": "style",
+    "deco": "style",
+    "playtest": "style"
+   },
+   "status": {
+    "deco": "planned",
+    "playtest": "planned",
+    "layout": "built"
+   }
+  },
+  {
+   "id": "s10",
+   "name": "era hopping: pink, green, cyan, magenta, green: an era every few seconds (5/5)",
+   "beats": [
+    205,
+    213
+   ],
+   "t": [
+    85.5,
+    88.87
+   ],
+   "x": [
+    26640,
+    27690
+   ],
+   "in": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      49,
+      255,
+      0
+     ],
+     "ground": [
+      22,
+      115,
+      0
+     ],
+     "line": [
+      173,
+      255,
+      153
+     ],
+     "obj": [
+      255,
+      255,
+      255
+     ]
+    }
+   },
+   "out": {
+    "mode": "ship",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 69.2,
+    "vy": -0.46,
+    "grounded": false,
+    "scene": {
+     "bg": [
+      49,
+      255,
+      0
+     ],
+     "ground": [
+      22,
+      115,
+      0
+     ],
+     "line": [
+      173,
+      255,
+      153
+     ],
+     "obj": [
+      255,
+      255,
+      255
+     ]
+    }
+   },
+   "builder": {
+    "layout": "style",
+    "deco": "style",
+    "playtest": "style"
+   },
+   "status": {
+    "deco": "planned",
+    "playtest": "planned",
+    "layout": "built"
+   }
+  },
+  {
+   "id": "s11",
+   "name": "lift-off: a blue sky",
+   "beats": [
+    213,
+    225
+   ],
+   "t": [
+    88.87,
+    93.973
+   ],
+   "x": [
+    27690,
+    29280
+   ],
+   "in": {
+    "mode": "ship",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 69.1,
+    "vy": -0.35,
+    "grounded": false,
+    "scene": {
+     "bg": [
+      0,
+      118,
+      252
+     ],
+     "ground": [
+      0,
+      53,
+      113
+     ],
+     "line": [
+      153,
+      200,
+      254
+     ],
+     "obj": [
+      255,
+      255,
+      255
+     ]
+    }
+   },
+   "out": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 45,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      0,
+      118,
+      252
+     ],
+     "ground": [
+      0,
+      53,
+      113
+     ],
+     "line": [
+      153,
+      200,
+      254
+     ],
+     "obj": [
+      255,
+      255,
+      255
+     ]
+    }
+   },
+   "builder": {
+    "layout": "style",
+    "deco": "style",
+    "playtest": "style"
+   },
+   "status": {
+    "deco": "planned",
+    "playtest": "planned",
+    "layout": "built"
+   }
+  }
+ ]
+}

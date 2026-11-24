@@ -110,3 +110,9 @@ The stage times are also in local/timings.jsonl.
   - a press that walks alive to the next input is a free jump (pointless-jumps' business), not a prejump;
   - the join saved the joined route through fromRun, which re-planned the WHOLE level (a wave part into 27 short legs):
     now saved as it is, stamped current; the natural passes run only inside re-routed stretches.
+## GDLM 69 time hop, 2026-11-24 19:33
+- stages: song 0 s, layout 101 s, layout 167 s, path 677 s, deco 1048 s, final 1048 s
+- slowest step: path (510 s); over target: layout 101 s > 60 s, layout 167 s > 60 s
+- result: not ready (prejumps, timing, channels, reactive, player timing, skips, fairness), 8 round(s), variants: 1 section(s)
+- change made: (the session fills this in)
+

@@ -167,8 +167,37 @@ deliver; tools/vibediff.js and taste's tools/compare_sections.js side by side). 
 
 ### Results
 
-- GDLM 69 time hop (Time Machine, a person's spec): in progress -- steps 1-3 done, the build waits for the heavy slot.
-- GDLM 70 candy night (Spooky Dash, the machine's spec): steps 1-2 done (`local/recompile/gdlm_70_candy_night/spec.md`).
+**GDLM 69 time hop: Time Machine rebuilt from a person's vibe sheet (2026-11-24).** `briefs/69_time_hop.vibe.json`
+(written from the storyboard above, never from the blocks) -> 12 sections, 7 collab parts -> built -> compared
+(`local/recompile/gdlm_69_time_hop/compare.md`, sheet `compare_sections/sheet_gdlm_69_time_hop.jpg`). The level
+`levels/gdlm_69_time_hop.gdlvl` is NOT READY (score.js: `skips` and `fairness` fail) -- a benchmark result, not a
+level for the user to play yet.
+
+What came through (the spec carried it and the pipeline built it):
+- **The look layer, exactly**: 12 palette switches in both, the same colour in every beat (teal, blue, pink, the
+  black void, purple, the five era colours, blue), fades where the sheet said fade.
+- **The structure on the song**: the same 5 song sections, both levels 94 s, the ship where the sheet put it
+  (34 s and 88 s).
+
+What did not, and where it was lost:
+
+| gap | ours / Time Machine | lost in | why |
+|---|---|---|---|
+| hazards per block | 0.19 / 1.34 (5 of 5 sections) | the **spec** | the sheet's density is words ("sparse"), and nothing turns them into hazards per block; "sparse" for a person meant ~1 per block, the Normal-tier composer reads it as ~0.2 |
+| energy curve | r 0.47 | the **spec** | the person's energies (0.85 at the ship finale) disagree with the measured ones (0.22: the finale's ship has few obstacle starts); the experience layer needs numbers taken from the song, not felt |
+| modes the sheet never asked for | ufo, ball and wave in our level; 13-25 mode changes a minute where Time Machine has 0-4 | the **build** | compose's structure library drops one structure per cube section, and structures bring their own mode (ufo pillars, ball flips, wave steps); the vehicle in the sheet is not a constraint on them |
+| deco pulses | 123-397 a minute, on the beat / 9-25, never on the beat | the **build** | compose's modern look pulses on the beat by default; the sheet's camera "plain" and its "never: deco that competes with the path" reach no code |
+| mirror ("time runs backwards") | missing | the **build** | mirror portals are not simulated (CLAUDE.md) |
+| colour channels, motion, z-layers | 2-4 / 0, 1-11 / 0, 3-5 / 2-3 | the **build** | compose dresses every level 2.2-style; a 1.x-era plain look is not a choice the sheet can make |
+| parts failing their gates | part 1 failed `timing`, `reactive`, `skips` on 3 seeds | the **build** | collab builds a part in one try with no repair rounds; recompile.js fell back to compose (whole level, repair rounds), which still ended with `skips` and `fairness` failing |
+
+So the spec format holds the look and the song structure; it lacks **numbers for difficulty and density** and
+**hard constraints** (no extra modes, no deco pulses). The pipeline lacks repair rounds in collab, mirror portals and
+a plain-look option. Next, in that order: the sheet's density as hazards per block (with tools/energy.js's
+measured curve as the default energies), the vehicle and the motifs as constraints compose obeys, repair rounds
+in collab builds.
+
+**GDLM 70 candy night: Spooky Dash from the machine's spec**: running (`local/recompile/gdlm_70_candy_night/`).
 
 ## Open
 
