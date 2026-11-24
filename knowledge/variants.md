@@ -32,3 +32,7 @@ result is a taste call for the user; the user's own picks count double (write th
 - sunrise: v0 kept (82) over v1 52 [FAIL prejumps, WARN contrast, WARN length, WARN ending, WARN hazards matter, WARN reactive, FAIL difficulty, WARN craft], v2 22 [FAIL timing, WARN contrast, WARN length, WARN ending, WARN hazards matter, WARN reactive, FAIL player timing, FAIL difficulty, WARN pacing, WARN craft]
 - dawn: v0 kept (100) over v1 100 [WARN length, WARN ending, FAIL difficulty, WARN pacing, WARN craft], v2 100 [WARN length, WARN ending, FAIL difficulty, WARN pacing, WARN craft] -- CLOSE: a taste call for the user
 
+## GDLM 64 golden hour (2026-11-24)
+- sunrise: v0 kept (88) over v1 88 [WARN length, WARN ending, WARN hazards matter, WARN reactive, FAIL difficulty, WARN pacing, WARN craft], v2 88 [WARN length, WARN ending, WARN hazards matter, WARN reactive, FAIL difficulty, WARN pacing, WARN craft] -- CLOSE: a taste call for the user
+- dawn: v0 kept (100) over v1 100 [WARN length, WARN ending, FAIL difficulty, WARN pacing, WARN craft], v2 100 [WARN length, WARN ending, FAIL difficulty, WARN pacing, WARN craft] -- CLOSE: a taste call for the user
+
