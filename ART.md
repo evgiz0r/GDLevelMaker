@@ -319,6 +319,9 @@ measured the same sections of 7 real levels: their medians in brackets):**
   (rated 2.2: 48 and ~1700; ours 10 and 406). `decokit.motion(x0, x1, {beat, spb, energy, pulse, bob, sway})` puts
   them: 4 pulse + 3 bob + 1 sway groups = 46 a screen at energy 1, 23 at 0.3. Pulses mostly OFF the beat (real ~30%
   on a beat; ours 57% reads as a metronome): motion() puts only the first pulse group on it;
+  first user: tools/scenes/golden_hour.js (GDLM 64 v8, style, 2026-11-24): pulse stars / rays / sun halo, bob motes /
+  clouds / backdrop, sway grass; energy per scene 0.3-1; ~44 triggers a screen on v5's gameplay (was 11). It keeps its
+  bright golden sky (luminance ~0.47, block/bg 5.6: under the stark line) as the level's idea;
 - at least 3 layers;
 - contrast: hazards clear (contrast.js 70+, the hazard floor unchanged) but NOT stark (median block/bg under 6.5): a
   mid-tone scene, `decokit.midTone`.
