@@ -289,6 +289,14 @@ pieces), 52 necromancy 94% (grey deco in the bodies' value), 62 low end lullaby 
 51 adrift 39%, lab round 1 v1-v6 27-100% (light yellow blocks on a yellow sky, ratio 1.13). Clean: 41, 42, 43, 46,
 60, 61, 63, 67, 68 camera lab. Pictures of the worst spots: local/roles/<level>/sheet.jpg (`--shots 3`).
 
+**What counts as the block itself, not deco beside it** (2026-11-25, after GDLM 71's first join and Hellgate v7 were
+flagged for their own block dress): a fill laid over a block; any piece whose box lies inside the path's mass (bricks,
+merged fills, panels; scenery block skins under a floor count as mass); a light-square part laid on a block; rim lines
+and top glows along a block; crumbs under 0.1 block^2 (trims, specks, stars). A B5 piece of 9+ blocks^2 (a moon, a
+planet) or a B5 glow is sky. What still fails is real: GDLM 44's dark-red skyline / column silhouettes (B3-B4) at the
+blocks' value, 52's grey-purple backdrop, and GDLM 71's compose modern-pass deco (channels 20/22, run AFTER the theme
+scene in make.js) next to the kit's bodies -- with a theme, the brief should say "modern": false.
+
 **The palette: `require("./tools/decokit.js").rolePalette(hue)`** -- bg mid-tone (0.17) in the scene hue; pathEdge a
 light off-white (rim, key 21 of blocks; the line too); blockFill near-black; ground darker than bg; hazardEdge in its
 OWN hue (scene + 150 degrees), 2.6x off the sky; deco far / mid / near just under the sky (0.88 / 0.72 / 0.56 of its

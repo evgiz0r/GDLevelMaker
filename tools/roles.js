@@ -68,6 +68,10 @@ function measure(L) {
   const size = o => { const p = o.props || {}, c = K[o.id] || { w: 1, h: 1 }, s = +(p[32] || 1);
     return { w: c.w * 30 * s * +(p[128] || 1), h: c.h * 30 * s * +(p[129] || 1) }; };
   const maxX = Math.max(300, ...haz.concat(sol).map(o => o.x));
+  // cells of the path's mass: solids, and block skins placed as scenery (ids 5 / 73 / 80 ...: the filler under a floor)
+  const massObjs = objs.filter(o => kindOf(o) === "solid" || /^(square|blockOutline)/.test((cat()[o.id] || {}).fam || ""));
+  const massAt = (x, y) => massObjs.some(b => Math.abs(b.x - x) < 3 && Math.abs(b.y - y) < 3);   // (a linear scan per piece: fine at level sizes)
+  const K0 = cat(), solidCells = new Set(objs.filter(o => kindOf(o) === "solid" || /^(square|blockOutline)/.test((K0[o.id] || {}).fam || "")).map(b => Math.round(b.x / 30 - 0.5) + ":" + Math.round(b.y / 30 - 0.5)));
   const secs = [];
   for (let x0 = 0; x0 < maxX; x0 += 300) {
     const st = LOOK.stateAt(tl, x0 + 150), bg = st.col[1000] || [40, 125, 255], gr = st.col[1001] || [0, 102, 255];
@@ -105,7 +109,10 @@ function measure(L) {
     // path / bg: the ground (with its line) and every block
     const gset = [R(gr), chCol(1002)], bgR = R(bg);
     if (lostIn(gset, bgR, LIM.pathBg)) worse("pathBg", C.ratio(gset[0], bgR), gset[0], bgR, { what: "ground" }).bad = true;
-    const SC = S.map(b => [b, roleCols(b)]), HC = H.map(h => [h, roleCols(h)]);
+    // a light part laid on a block (id 207-family "lightsquare" in a cell another solid fills: the modern pass's dress) is
+    // the block's dress, not a path piece of its own
+    const cellKey = b => Math.round(b.x / 30 - 0.5) + ":" + Math.round(b.y / 30 - 0.5), plain = new Set(S.filter(b => !/^lightsquare/.test((K[b.id] || {}).fam || "")).map(cellKey));
+    const SC = S.filter(b => !(/^lightsquare/.test((K[b.id] || {}).fam || "") && plain.has(cellKey(b)))).map(b => [b, roleCols(b)]), HC = H.map(h => [h, roleCols(h)]);
     // a block must read as a MASS, not only by a thin rim: its body (or, for a body-less outline, its colour) against the bg
     // (a bright rim, 3x+ off the sky, carries a body lost in an EMPTY sky: Can't Let Go's black-on-black with white edges;
     // deco in the body's value is what turns it to mush -- path/deco below)
@@ -113,16 +120,20 @@ function measure(L) {
     // deco touching a play object (boxes overlap within 6 units), or standing on the ground line
     const touch = (d, o, ds) => Math.abs(d.x - o.x) <= ds.w / 2 + 21 && Math.abs(d.y - o.y) <= ds.h / 2 + 21;
     for (const d of D) {
-      const ds = size(d), area = ds.w * ds.h / 900; if (area < 0.02) continue;
+      const ds = size(d), area = ds.w * ds.h / 900; if (area < 0.1) continue;   // crumbs (trims, specks, stars) cannot hide a block
       // deco with no colour key draws its own sprite colours (GD's black-and-white art): not judged by a channel
       if ((d.props || {})[21] == null || d.props[21] === "") continue;
       const dc = colourOf(d);
       // a block's own dress (a fill laid exactly over it: scenekit.designBlocks) is the block, not deco beside it
-      if (ds.w <= 32 && ds.h <= 32 && sol.some(b => Math.abs(b.x - d.x) < 3 && Math.abs(b.y - d.y) < 3)) continue;
-      // a huge piece on the farthest layer (B5, 25+ blocks^2: a nebula, a planet) is part of the SKY: judged as the sky is
+      if (ds.w <= 32 && ds.h <= 32 && massAt(d.x, d.y)) continue;
+      // a big piece on the farthest layer (B5, 9+ blocks^2: a nebula, a planet, a moon) is part of the SKY: judged as the sky is
       // (path/bg: lost only when the body matches it AND the rim is under 3x off it)
       // (a glow on a blending channel on B5 too: light in the sky, however small)
-      const sky = +((d.props || {})[24] || 0) <= -5 && (area >= 25 || !!(st.blend && st.blend[mainCh(d)]));
+      const sky = +((d.props || {})[24] || 0) <= -5 && (area >= 9 || !!(st.blend && st.blend[mainCh(d)]));
+      // a fill inside the blocks (its box's corners and centre all inside the path's mass: blockPattern's bricks,
+      // decorate.js's merged fills, panels) is their dress too
+      { const inMass = (x, y) => massObjs.some(m => Math.abs(m.x - x) <= 15.5 && Math.abs(m.y - y) <= 15.5), hw = ds.w / 2 - 1.5, hh = ds.h / 2 - 1.5;
+        if (ds.w * ds.h <= 900 * 400 && [[0, 0], [-hw, -hh], [hw, -hh], [-hw, hh], [hw, hh]].every(([dx, dy]) => inMass(d.x + dx, d.y + dy))) continue; }
       // ... and so are its rim lines (thin lines 1753 along a block's side) and the glow under an open top (1293)
       if ((d.id === 1753 || d.id === 1293) && sol.some(b => Math.abs(b.x - d.x) <= 16 && Math.abs(b.y - d.y) <= 16)) continue;
       const hitB = SC.find(([b, cs]) => touch(d, b, ds) && similar(cs[0], dc, LIM.pathDeco) && !(sky && cs.length > 1 && C.ratio(cs[cs.length - 1], dc) >= 3));   // deco in the body's value and family: the mass merges
