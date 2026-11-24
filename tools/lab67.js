@@ -165,7 +165,7 @@ station("dual ball band", 26, c => [{ m: "yAt", at: [c + 10, c + 16] }], "two ba
 
 objs.push(["block", col + 2, 0]);
 
-const spec = { name: "GDLM 67 physics questions lab", desc: "Practice, hitboxes on, record. Do what each label says; read heights on the rulers. Dying or not, both answer it.", lab, objects: objs };
+const spec = { name: "GDLM 67 physics questions lab", desc: "Practice, hitboxes on, record. Do what each label says; read heights on the rulers. Dying or not, both answer it.", accept: { "dead air": "lab level: watch-only stations and labels, no gameplay to fill (tools/deadair.js)" }, lab, objects: objs };
 const out = path.join(__dirname, "..", "specs", "67_physics_questions_lab.json");
 if (!process.argv.includes("--check")) {
   fs.writeFileSync(out, JSON.stringify(spec, null, 0).replace(/\],\[/g, "],\n["));

@@ -114,7 +114,7 @@ station("ship VERY HIGH from a tower", 31 + HOLD + 8, `ship portal on a 9-block 
 objs.push(["block", col + 2, 0]);
 for (const L of lab) L.note = `starts at ${timeAt(L.from).toFixed(1)} s. ` + L.note;
 
-const spec = { name: "GDLM 68 camera lab", desc: "Fly up and down! Flying portals low, middle and high, open sky and corridors: how GD's camera moves. Record it.", lab, objects: objs };
+const spec = { name: "GDLM 68 camera lab", desc: "Fly up and down! Flying portals low, middle and high, open sky and corridors: how GD's camera moves. Record it.", accept: { "dead air": "lab level: watch-only stations and labels, no gameplay to fill (tools/deadair.js)" }, lab, objects: objs };
 const out = path.join(__dirname, "..", "specs", "68_camera_lab.json");
 if (!process.argv.includes("--check")) {
   fs.writeFileSync(out, JSON.stringify(spec, null, 0).replace(/\],\[/g, "],\n["));
