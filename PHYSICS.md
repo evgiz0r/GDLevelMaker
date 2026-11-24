@@ -471,6 +471,19 @@ What exists and what blocks it (2026-11-23):
   | 02:33 | Geometrical Dominator | 12.3% / 13.3% | 7.3% / 5.7% | no | unknown (robot; path check too noisy to tell) |
   | 02:45 | Clutterfunk | clear | 3.5% | no | block 34.6: the game's cube uses a pad on a hanging block the sim's does not reach: unknown |
   | 02:26 | Jumper, Cycles, Clutterfunk | clear, clear, 92.6% | 2.6%, 2.2%, 1.9% | no | PIPELINE: first logger (missed clicks), not usable |
+- SHIP ENTRY SPEED, TRIED AND REJECTED (2026-11-24): the ship stretches that need inhuman input (Stereo Madness
+  358-386, Back On Track 459-510, Polargeist 342-378, xStep 211) made the entry the suspect. On gdsolver's plans: moving
+  the ship +-0.5 / 1 unit at entry changes nothing for Stereo Madness (328.8 every time); the factor on LEAVING a flying
+  mode changes nothing; the factor on ENTERING does: keeping 0.25 instead of 0.5 of vy when the entry is FALLING (0.5
+  when rising) takes Dry Out 575 -> 639, Can't Let Go 490 -> 608, Time Machine 363 -> 378, xStep 168 -> 189, Jumper,
+  Clutterfunk a little, none less far (0.1, 0.35, 0 each less good; a smaller factor on rising entries costs Back On
+  Track 50 blocks). BUT the user's own runs say no: Hexagon Force's agreeing attempt (40.4 vs 40.6) dies at 15.9, xStep
+  25.3 -> 20.0. Not adopted. The plans' gain probably stands in for something else at a ship entry -- tools/tas.js
+  replays with GD's 2-tick button latency in ship/UFO (playLatent), the user's replays do not: check that first.
+  Checked: the same ship/UFO latency applied to the user's logged runs breaks two that agree (Hexagon Force 40.6 ->
+  18.9, Base After Base's clear -> 65.8): the user's logs fit best WITHOUT it (each attempt's fitted clock shift already
+  takes the constant delay). So the plans and the user's runs disagree about a ship entry; the next step needs a ship
+  recording with the raw-input logger (tools/inputlog_raw.ps1), e.g. a lab level with ship entries falling and rising.
 - PASS CHECK (tools/passcheck.js, 2026-11-24): an exhaustive held / not-held search (states merged on position, speed,
   mode, button, orbs) from an attempt's replayed state through a stretch. NO WAY where the user got through = a physics
   difference there; a way that needs presses the log lacks = a missed input or timing. Fingerdash 550-558: a way exists

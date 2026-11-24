@@ -27,8 +27,6 @@
 
     ["pattern", "wave-zigzag", 210, 0, { "seg": 4, "legs": 10, "gap": 4, "low": 2, "flat": 2, "lead": 8, "slopes": true, "portal": true, "exit": "cube", "portalRow": 1 }],
 
-    ["spike", 287, 0],
-    ["pattern", "double", 291, 0, {}],
     "// dawn: the robot climbs out (a held jump goes higher), then back to the cube",
     ["robot portal", "b69", 1],
     ["block",303,0], ["block",303,1], ["block",304,0], ["block",304,1], ["block",305,0], ["block",305,1], ["block",306,0], ["block",306,1], ["block",307,0], ["block",307,1], ["block",307,2], ["block",307,3], ["block",308,0], ["block",308,1], ["block",308,2], ["block",308,3], ["block",309,0], ["block",309,1], ["block",309,2], ["block",309,3], ["block",310,0], ["block",310,1], ["block",310,2], ["block",310,3], ["spike",311,0], ["spike",312,0],

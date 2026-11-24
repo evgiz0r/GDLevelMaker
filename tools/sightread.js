@@ -59,21 +59,28 @@ function sightread(level, limit = 1.5, opts = {}) {
     if (presses.some(c => c.hi - c.tick >= CAP)) {
       // walk each cut-off press (with its own release) later, one step at a time, while the run lives to the next
       // input (up to 1 s: a ball press can wait 3+ blocks)
-      const ev = opts.route.events, end = GD.run(w, ev).path.length;
+      const ev = opts.route.events, basePath = GD.run(w, ev).path, end = basePath.length;
       presses = presses.map(c => {
         if (c.hi - c.tick < CAP) return c;
+        // never across a mode change: a ship press walked past the exit portal was judged as a cube jump "2.3 ahead"
+        // (GDLM 66 p1, block 52 -> 60.6)
+        const m0 = (basePath[c.tick] || {}).mode;
         const i = ev.findIndex(e => e.type === "press" && e.tick === c.tick); if (i < 0) return c;
         const rel = ev[i + 1] && ev[i + 1].type === "release" ? i + 1 : -1, dur = rel < 0 ? 0 : ev[rel].tick - c.tick;
         const next = ev.find((e, j) => j > (rel < 0 ? i : rel)), stop = Math.min(c.tick + 240, next ? next.tick - dur - 1 : end);
         let hi = c.hi;
-        for (let t = c.hi + 1; t <= stop; t++) {
+        for (let t = c.hi + 1; t <= stop && (basePath[t] || {}).mode === m0; t++) {
           // this press's job ends at the next input: alive until then counts (later inputs belong to later presses;
           // keeping them fixed in time made a later flip look fatal on the ball corridor)
           const moved = ev.slice(0, (rel < 0 ? i : rel) + 1).map((e, j) => j === i ? Object.assign({}, e, { tick: t }) : j === rel ? Object.assign({}, e, { tick: t + dur }) : e);
           const run = GD.run(w, moved);
           if (run.dead && run.path.length - 1 < (next ? next.tick : end)) break; hi = t;
         }
-        return Object.assign({}, c, { hi });
+        // walked all the way to the next input (or the mode change) and still alive: the press answers nothing at its
+        // moment -- a free jump (score.js's "pointless jumps" judges those), not a prejump (GDLM 66: a free hop at 967.9
+        // walked to 978 read "11.5 ahead" of a spike 22 blocks after the press)
+        const free = hi >= stop || (basePath[hi + 1] || {}).mode !== m0;
+        return Object.assign({}, c, { hi, free });
       });
     }
     return judge(w, level, presses, opts.route.events, limit, false);
@@ -149,13 +156,33 @@ function judge(w, level, presses, base, limit, approx) {
     }
     // a press that fires an orb is cued by that orb: the cube is touching it
     if (c.act && GD.objInfo && /orb/.test(c.act)) { lead = 0; cue = null; }
+    if (c.free) { lead = 0; cue = null; }
     // A press whose latest moment is in a flying mode (ship, ufo, wave, swing) is steering, not a jump: it has no
     // one thing it answers, so it is not judged as a prejump -- the route, fairness and timing gates judge flight
     // (GDLM 44's ship tunnel: the fly controller's centring presses read as "4.1 / 10.1 blocks ahead of a block";
     // GDLM 64's wave mouth: a cube press held into the wave portal, "4.8 ahead"). A hold that carries out of flight
     // into a cube jump is still judged: its latest moment is then in cube mode. (polish + physics, 2026-11-24)
     if (lead != null && hiState && FLYING.has(hiState.mode)) { lead = 0; cue = null; }
-    out.push({ act: c.act, block: c.x / 30, from: xLo / 30, to: xHi / 30, ms: c.ms, cue: cue && GD.objInfo(cue.id).name, cueAt: cue && cue.x / 30,
+    // a press right at a flying mode's portal (its latest moment within 2 blocks before the portal, still in cube) is the
+    // hold that carries the player into the new mode: cued by the portal (GDLM 66: a cube press at block 141 "4.7 ahead"
+    // of the ship corridor's first block, its portal at 142)
+    if (lead != null && lead > 0 && level.objects.some(o => { const i = GD.objInfo(o.id); return i && i.kind === "mode" && FLYING.has(i.mode) && o.x >= xHi - 15 && o.x <= xHi + 105; })) { lead = 0; cue = null; }
+    // a press that would be flagged: its latest moment measured as a PLAYER's (lib/windows.js: the later inputs re-planned
+    // around it, as a player corrects). With the later inputs fixed, a later first press breaks the NEXT jump, so the
+    // window ends early and the lead reads long (GDLM 66 p1: "2.3 ahead" with the next jump 4 blocks on; GDLM 50 v3:
+    // "4.2 ahead" before a robot part -- showcase, 2026-11-24). Only for presses over the limit: it costs a replay each.
+    let xHiP = xHi;
+    const lim = (FLYING.has(hiState && hiState.mode) ? FLY_LIMIT : limit) * speedFactor(hiState);
+    if (lead != null && lead > lim) try {
+      const W = require("../lib/windows.js"), ev = base.slice().sort((a, b) => a.tick - b.tick), idx = ev.findIndex(e => e.type === "press" && e.tick === c.tick);
+      const win = idx >= 0 ? (W.inputWindows || GD.inputWindows)(w, ev, GD.run(w, ev).path, { only: i => i === idx }) : null;
+      const pw = win && win.find(x => x.i === idx);
+      if (pw && pw.hi > c.hi) {
+        const st = GD.run(w, ev.filter(e => e.tick < c.tick).concat([{ tick: pw.hi, type: "press" }, { tick: pw.hi + 1, type: "release" }])).path[pw.hi];
+        if (st) { xHiP = st.x; lead = lead - (xHiP - xHi) / 30; }
+      }
+    } catch (e) { /* keep the strict reading */ }
+    out.push({ act: c.act, block: c.x / 30, from: xLo / 30, to: xHiP / 30, ms: c.ms, cue: cue && GD.objInfo(cue.id).name, cueAt: cue && cue.x / 30,
       mode: hiState && hiState.mode, lead, flag: lead != null && lead > (FLYING.has(hiState && hiState.mode) ? FLY_LIMIT : limit) * speedFactor(hiState) });
   }
   return { ok: true, presses: out, approx };

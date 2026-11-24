@@ -7,6 +7,9 @@
 //                                                                unchanged, its route kept (no solve)
 // node tools/collab.js join <brief>                            -- the parts end to end, the seams checked, one full check
 //                                                                -> levels/<slug>.gdlvl (+ viewer stages)
+// node tools/collab.js scene <brief> [--scene <file>]           -- AFTER the join: one scene over the whole joined level
+//                                                                (a level-wide scene like tools/scenes/golden_hour.js: its
+//                                                                sun and palettes run on global beats); gameplay and route kept
 // node tools/collab.js status <brief>                          -- each part: builder, state, checks, time
 //
 // A level made the way GD collabs are (BUILDING.md section 1; the user, 2026-11-24: "Each section like 10 20 seconds.
@@ -24,7 +27,7 @@
 //   The parts' routes are joined by time (tick offset = seam time x 240) and replayed on the joined level: no solve.
 //   A seam whose state differs from the contract, or a death, sends back only that part.
 "use strict";
-if (require.main === module && /^(build|join|deco)$/.test(process.argv[2] || "")) require("./heavy.js").claim();
+if (require.main === module && /^(build|join|deco|scene)$/.test(process.argv[2] || "")) require("./heavy.js").claim();
 const fs = require("fs"), path = require("path");
 const ROOT = path.join(__dirname, "..");
 const { GD, readGdlvl, writeGdlvl } = require("./io.js");
@@ -111,7 +114,11 @@ function partBrief(brief, part, k, nParts, seed) {
   // when the seam time comes (GDLM 65 p1: the exit at the section's very end left it on the portal's frame block, y 45)
   const lastSec = sub.sections[sub.sections.length - 1];
   const nextSec = brief.sections[part.sections[part.sections.length - 1] + 1];
-  if (k < nParts - 1 && ["ship", "wave", "ball"].includes(lastSec.mode) && !(nextSec && nextSec.continue && nextSec.mode === lastSec.mode)) sub.sections[sub.sections.length - 1] = Object.assign({}, lastSec, { exitRoom: lastSec.exitRoom ?? 4 });
+  // the next part continues this part's flight: say so (compose cannot see the next part's sections) -- no exit portal
+  if (nextSec && nextSec.continue && nextSec.mode === lastSec.mode) sub._continueAfter = lastSec.mode;
+  // an upside-down part's exit: the cube falls from the ceiling (~3 blocks) -- 6 blocks of room (GDLM 66 p5: in the air at the seam)
+  if (k < nParts - 1 && lastSec.mode === "upside") sub.sections[sub.sections.length - 1] = Object.assign({}, lastSec, { exitRoom: lastSec.exitRoom ?? 6 });
+  if (k < nParts - 1 && ["ship", "wave", "ball"].includes(lastSec.mode) && !(nextSec && nextSec.continue && nextSec.mode === lastSec.mode)) sub.sections[sub.sections.length - 1] = Object.assign({}, lastSec, { exitRoom: lastSec.exitRoom ?? 6 });   // 6: a ship exit high up still falls ~4 blocks (v6 p2)
   delete sub.parts;
   return sub;
 }
@@ -134,10 +141,13 @@ function build(briefFile, k, opts = {}) {
   const sc = scoreLevel(level, sub, { fairness: false, levelStr });
   const BLOCK = ["beatable", "prejumps", "timing", "recovery", "skips", "reactive", "fairness"];
   const gates = Object.fromEntries(sc.gates.filter(g => BLOCK.includes(g.name) && g.status !== "PASS").map(g => [g.name, g.status + ": " + String(g.value).slice(0, 160)]));
-  const fails = sc.gates.filter(g => g.status === "FAIL").map(g => g.name);
+  // a part fails only on what a part can fail by itself: the level-wide gates (difficulty, length, pacing, sync...) are
+  // the join's (a 12 s part "failed" difficulty against the level's Hard target, GDLM 64 v6)
+  const fails = sc.gates.filter(g => g.status === "FAIL" && BLOCK.includes(g.name)).map(g => g.name);
   // the part's own exit: the state its route leaves at the seam time (what the next part will be handed)
   let exit = null;
-  if (sol && sol.ok) { const p = GD.run(w, sol.events).path, q = p[Math.min(p.length - 1, Math.round(dur * TPS) - 1)] || {}; exit = { mode: q.mode, sp: q.sp, grav: q.grav, y: q.y != null ? +q.y.toFixed(1) : null, vy: q.vy != null ? +q.vy.toFixed(2) : null, grounded: !!q.grounded, x: q.x }; }
+  // read where the join reads it: 30 ticks before the seam (GDLM 64 v6 p2 passed at the seam's last tick, failed at the join)
+  if (sol && sol.ok) { const p = GD.run(w, sol.events).path, q = p[Math.min(p.length - 1, Math.round(dur * TPS) - 30)] || {}; exit = { mode: q.mode, sp: q.sp, grav: q.grav, y: q.y != null ? +q.y.toFixed(1) : null, vy: q.vy != null ? +q.vy.toFixed(2) : null, grounded: !!q.grounded, x: q.x }; }
   // the part's own seam check: what it hands the next part at the seam time against the contract (the builder sees it
   // before the join does)
   const out = plan.seams[k];
@@ -245,7 +255,7 @@ function join(briefFile) {
     const T = last ? Infinity : (sv.goalTick ?? (sv.events.length ? sv.events[sv.events.length - 1].tick + 1 : c));
     events = events.filter(e => e.tick < c || e.tick >= T).concat(sv.events.filter(e => e.tick >= c && e.tick < T)).sort((a, b) => a.tick - b.tick || (a.type === "release" ? -1 : 1));
     if (!last && T < Infinity) events.push({ tick: T, type: "release" }), events.sort((a, b) => a.tick - b.tick || (a.type === "release" ? -1 : 1));
-    rerouted.push({ part: parts[k].p.id, from: +(path0[c].x / 30).toFixed(1), secs: (Date.now() - t0r) / 1000 });
+    rerouted.push({ part: parts[k].p.id, from: +(path0[c].x / 30).toFixed(1), secs: (Date.now() - t0r) / 1000, ticks: [c, T] });
     run = GD.run(w, events); path0 = run.path;
   }
   // the seams: the joined run's state at each seam time against the contract
@@ -271,6 +281,19 @@ function join(briefFile) {
     const x = run.end ? run.end.x : (path0[path0.length - 1] || {}).x || 0, k = parts.findIndex(({ p }, i) => i === parts.length - 1 || x < parts[i + 1].p.shift);
     problems.push(`the joined route dies at block ${(x / 30).toFixed(1)} in ${parts[k].p.id} (${run.why || "?"})`); send.add(parts[k].p.id);
   }
+  // a re-routed part's route is the solver's (holds through auto-jump chains, a hold across a flight's exit): as a player
+  // presses it -- lib/natural.js's passes, one tap per jump -- where the run still finishes (GDLM 66: a re-routed hold
+  // read as an "8.7-block prejump" after the ship exit)
+  if (rerouted.length && !run.dead) try {
+    const N = require("../lib/natural.js"), n = N.naturalPlan(w, { ok: true, events }, level.objects);
+    // only inside the re-routed stretches: the other parts keep their builders' routes (the whole level through the
+    // passes re-planned a good wave part into 27 legs under 100 ms)
+    const inR = t => rerouted.some(r => t >= r.ticks[0] && t < r.ticks[1]);
+    if (n && n.events && n.path && n.path[n.path.length - 1].done) {
+      const mixed = events.filter(e => !inR(e.tick)).concat(n.events.filter(e => inR(e.tick))).sort((a, b) => a.tick - b.tick || (a.type === "release" ? -1 : 1));
+      const q = GD.run(w, mixed); if (!q.dead) { events = mixed; run = q; path0 = q.path; }
+    }
+  } catch (e) { /* keep the solver's */ }
   const skip = !run.dead ? GD.skipCheck(w, path0, events) : null;
   if (skip) problems.push("the joined route skips " + JSON.stringify(skip).slice(0, 120));
   // the joined level: the first part's record, renamed
@@ -280,7 +303,10 @@ function join(briefFile) {
   // the route (no solve: the parts' own routes, joined) and the full check on it
   let full = null;
   if (!run.dead) {
-    try { require("./solutions.js").fromRun(level, levelStr, { ok: true, events }, { name: brief.name }); } catch (e) { problems.push("saving the route: " + e.message); }
+    // saved AS IT IS (the builders' routes, joined): fromRun would re-plan the whole level with the natural passes, so
+    // the full check judged a route no builder made (GDLM 66: a wave part re-planned into 27 short legs, a "prejump" in a
+    // part that was OK alone). Stamped current, like a level's own planned route.
+    try { const SO = require("./solutions.js"); SO.put(levelStr, { ok: true, events, kind: "human", source: "collab", plan: SO.planCommit() }, level, w); } catch (e) { problems.push("saving the route: " + e.message); }
     try { const sc = require("./score.js").scoreLevel(level, brief, { fairness: true, levelStr, name: brief.name }); full = { ok: sc.ok, fails: sc.gates.filter(g => g.status === "FAIL").map(g => g.name + ": " + String(g.value).slice(0, 140)), warns: sc.gates.filter(g => g.status === "WARN").map(g => g.name) }; } catch (e) { problems.push("full check: " + e.message); }
   }
   for (const { p } of parts) p.status = Object.assign({}, p.status, { join: send.has(p.id) ? "redo" : (run.dead ? "waiting" : "joined") });
@@ -292,6 +318,29 @@ function join(briefFile) {
   return res;
 }
 
+// ---- scene: a level-wide scene over the joined level (the parts were built with gameplay and colours only)
+function scene(briefFile, opts = {}) {
+  const t0 = Date.now(), brief = readJ(briefFile), { slug } = require("./make.js");
+  const file = opts.scene || brief.levelScene; if (!file) throw new Error("no scene: --scene <file> or the brief's levelScene");
+  const out = path.join(ROOT, "levels", slug(brief.name) + ".gdlvl"), L = readGdlvl(out);
+  const sol = require("./solutions.js").get(L.levelStr, true);
+  if (!sol || !sol.events) throw new Error("the joined level has no saved route: join it first");
+  const w0 = GD.makeWorld(L.level.objects, L.level.header), tl = SY.timeline(w0), grid = gridOfBrief(brief);
+  const beatX = b => SY.xOfT(tl, SY.beatToTime(grid, brief.offset || 0, b));
+  const PLAY = new Set(["solid", "hazard", "slope", "orb", "pad", "portal", "speed", "mode"]);
+  const play = L.level.objects.filter(o => PLAY.has((GD.objInfo(o.id) || {}).kind));
+  const r = require(path.resolve(ROOT, file))({ objects: play, header: L.level.header, beatX, spec: { objects: [] } });
+  const level = { header: r.header, objects: L.level.objects.concat(r.objects) };
+  const w = GD.makeWorld(level.objects, level.header), run = GD.run(w, sol.events);
+  if (run.dead) throw new Error("the route dies on the decorated level (" + run.why + ") -- not saved");
+  writeGdlvl(out, L.rec, level);
+  const levelStr = GD.serializeLevel(level);
+  try { const SO = require("./solutions.js"); SO.put(levelStr, { ok: true, events: sol.events, kind: "human", source: "collab", plan: SO.planCommit() }, level, w); } catch (e) {}
+  const plan = readJ(path.join(dirOf(briefFile), "plan.json"));
+  showInViewer(briefFile, plan, "deco", levelStr, { events: sol.events }, "the level's scene over the joined parts: " + path.basename(file));
+  return { out: path.relative(ROOT, out), added: r.objects.length, objects: level.objects.length, secs: (Date.now() - t0) / 1000 };
+}
+
 function status(briefFile) {
   const dir = dirOf(briefFile), plan = readJ(path.join(dir, "plan.json"));
   for (const p of plan.parts) {
@@ -301,7 +350,7 @@ function status(briefFile) {
   }
 }
 
-module.exports = { split, build, deco, join, status, partBrief };
+module.exports = { split, build, deco, join, scene, status, partBrief };
 
 if (require.main === module) {
   const [cmd, bf, ...rest] = process.argv.slice(2);
@@ -317,5 +366,6 @@ if (require.main === module) {
   }
   else if (cmd === "deco") { const k = +String(rest[0]).replace(/^p/, ""), r = deco(bf, k, { by: opt("--by") || "style", scene: opt("--scene") }); console.log(`${r.part} deco by ${r.decoBy}: ${r.objects} objects (scene ${r.scene}), gameplay unchanged, route kept; ${r.decoSecs.toFixed(0)} s`); }
   else if (cmd === "join") { const r = join(bf); if (r.drift) console.log("   drift per seam: " + r.drift.map(d => `${d.units} u (${d.ms} ms)`).join(", ")); if (r.rerouted && r.rerouted.length) console.log("   re-routed at the join (from the state handed over): " + r.rerouted.map(x => `${x.part} from block ${x.from} in ${x.secs.toFixed(1)} s`).join(", ")); console.log(r.ok ? `JOINED: every seam holds, full check READY -> ${r.out} (${r.secs.toFixed(0)} s)` : `NOT JOINED (${(r.secs || 0).toFixed(0)} s):`); for (const p of r.problems || []) console.log("   " + p); if (r.full) { for (const f of r.full.fails) console.log("   full check FAIL " + f); console.log("   warnings: " + r.full.warns.join(", ")); } if (r.send && r.send.length) console.log("   send back: " + r.send.join(", ")); process.exit(r.ok ? 0 : 2); }
+  else if (cmd === "scene") { const r = scene(bf, { scene: opt("--scene") }); console.log(`scene over the joined level: +${r.added} objects (${r.objects} in all), route kept -> ${r.out} (${r.secs.toFixed(0)} s)`); }
   else if (cmd === "status") status(bf);
 }

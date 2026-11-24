@@ -123,6 +123,63 @@ sunk 13 units): `pillar-hop`, `pillar-climb`, `capped-hop`, `slab-steps`, `lante
 doorstep: a 1-wide first pillar gave a 1.7-block prejump. Dress them with the craft pass (spec `"craft":
 true`, tools/craftkit.js): rods and chains attached to the pieces.
 
+## Dense chains (2026-11-24, the art session)
+
+GDLM 64 v5 had 14 hazards per 100 blocks, with the floor a hazard 8% of the way; the craft target is 45+ and 35%+.
+Packing library pieces tighter made "timed around a block" spots, so these six are built to be dense *and* to sit next
+to each other. Every one passes `check --context` (a spike 2 columns before, an orb pit 2 after), all ready:
+
+| id | tier | hazards / 100 blocks | tightest window | args (steady spacing: set it to the song's beat) |
+|---|---|---|---|---|
+| spike-train | Easy | 17 | 238 ms | n 5, gap 7 |
+| double-train | Normal | 29 | 142 ms | n 4, gap 8 |
+| pit-run | Easy | 42 (floor a hazard ~43%) | 204 ms | n 5, w 4, pit 3 |
+| pit-run-high | Normal | 38 | 246 ms | n 4, w 4, pit 3 |
+| pit-spike-mix | Normal | 32 | 208 ms | n 3, w 10, pit 3 |
+| spike-pit-train | Normal (tight) | 30 | 88 ms | n 3, gap 7 |
+
+How they stay dense and fair:
+- Most of the hazards are pit floor: the low id-9 spikes. A 3-wide pit costs one jump and holds 3 hazards.
+- Every landing is 4+ wide, so the reactive gate's 250 ms press after landing still works.
+- Each starts and ends on the floor with 2 calm columns.
+- At 1x, 7 columns is 0.67 s, one beat at 90 bpm.
+
+Watch:
+- They are flat and repeat themselves. The "height" and "repetition" gates (below) want 10+ floor changes per 10 s and
+  at most 5% repeated 4-move patterns. Use n 3-5 and alternate them with height pieces (pillar-hop, stairs).
+- spike-pit-train's 88 ms window comes from the pit right after the spike's landing. gap 8 should loosen it, but that
+  is not checked yet.
+
+### Dense chains, other modes (2026-11-24)
+
+Golden Hour v6 stayed at 14 hazards per 100 blocks: its 2x, upside, ship and wave sections were not taking the library
+pieces. All of these are ready. The 2x and upside pieces also pass `check --context`; mode pieces are checked alone,
+as the library does.
+
+| id | where | hazards / 100 | tightest | how to use |
+|---|---|---|---|---|
+| pit-run-2x | 2x cube | 40 | 192 ms | `use: ["s:pit-run-2x"]`: w 5, pit 4 (1.25x the 1x run), 6 flat columns first |
+| pit-spike-mix-2x | 2x cube | 30 | 192 ms | w 12, pit 4, lead 6 |
+| double-train-2x | 2x cube | 24 | 196 ms | gap 10 |
+| spike-train-2x | 2x cube | 13 | 271 ms | gap 9 |
+| upside-pit-run | cube, its own gravity portals | 27 (with its 10-column lead) | 242 ms | in an upside section, the 1x `s:pit-run` etc. are mirrored by compose (mirrorUp now turns the low pit spikes over too) |
+| ship-dense | ship | 63 | 192 ms | a ship section's `"args": {"ship-tunnel": {"pit": true, "teethEvery": 6}}` |
+| ball-dense | ball | 43 | 342 ms | `"args": {"ball-run": {"pit": true, "pitClear": 2}}` (every 9) |
+| wave-dense | wave | 15 | 321 ms | `"args": {"wave-zigzag": {"teeth": true}}` |
+
+- **Pits on the side the player is not on.**
+  - ship: a floor of low spikes under the corridor (not on steps, not next to a tooth, not in the last 3 columns);
+  - ball: low spikes along the side the ball rides away from after each flip, 2 columns clear after the spike and
+    `pitClear` before the next one;
+  - wave: one spike at each flat turn, on the far side from the wave. The wave stays low on density: spikes on its
+    path would be the unfair kind.
+- **compose:** 2x sections now take 2x pieces (structurePicks matches the piece's `needs.speed` to the section's), and
+  `register` includes the 2x pieces as `s:<id>`. A 2x pit run needed 6 flat columns first: a jump over the
+  neighbour's spike landed right before its doorstep (reactive WARN in context).
+- **Height:** these are flat. In 2x and upside sections, mix them with the height pieces. In ship, `amp`/`waves`
+  already move the corridor.
+- Checked: `compose --dry` on a copy of v6 with these args places them. No full build was run.
+
 ## Open
 
 - **A structure that passes alone can fail inside a level**: `orb-ladder-2` (ok in the harness) made a fairness
