@@ -493,6 +493,9 @@ Still open:
 - **Polish, inherited (2026-11-24)**: POLISH.md "Handoff" -- polish.js, tempo.js (exports stable for pace.js), deadair.js,
   portalground.js, tools/scenes/hellgate.js. Hellgate v7 NOT READY only on roles (33/42 sections: the blocks' dark fill reads
   as deco); open: 62's dead-air diff, 51's spare spike at block 253, upside-down inside ship tunnels, sync on the drop's hits.
+  Roles on v7 (gd-art 2026-11-25): 28/42 left are real -- the near skyline (ch 33, B3-B4) at the blocks' own value touches
+  the path. Tried near = 2x the fill: no change (near black, the gate's 0.05 flare keeps every dark red within 1.04x).
+  Fix to do: push those silhouettes to B5 and off the path rows (or lift the block bodies, as the space kit does).
 - **Craft, inherited (2026-11-24)** with gd-art (art takes the look): CRAFT.md "Handoff", tools/craft.js, tools/craftlevel.js.
   Open for style: the solo-check failures of craft structures (slab-steps 208 ms reactive cut, lantern-orb prejump + 67 ms
   cut, stepped-pyramid 38 ms press; capped-hop and stepped-pyramid fail at 2x: all tagged 1x only); spec drift (41, 43, 44,

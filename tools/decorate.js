@@ -220,6 +220,14 @@ function modernPass(objects, sections, opts = {}) {
   const out = [], CH0 = opts.ch0 || 20;
   const o = (id, x, y, ch, z, extra = {}) => ({ id, x, y, rot: extra.rot || 0, flipX: !!extra.flipX, flipY: false,
     props: Object.assign({ 155: "1", 21: String(ch), 24: String(z) }, extra.scale ? { 32: String(extra.scale) } : {}) });
+  // textOnly: just the title and the end card (a theme kit dresses the level: tools/scenes/theme.js; the modern pass's grey
+  // fills and backdrops over the kit's navy bodies failed the roles gate on GDLM 71, gd-art 2026-11-25)
+  if (opts.textOnly) {
+    const endX = Math.max(...sections.map(s => s.to)) * 30, text = (t, x, y, sc) => ({ id: 914, x, y, rot: 0, flipX: false, flipY: false, props: { 155: "1", 31: Buffer.from(t).toString("base64"), 32: String(sc), 24: String(LAYER.B1) } });
+    if (opts.title) { const sc = 0.9, half = textHalfWidth(opts.title, sc); out.push(text(opts.title, Math.max(600, ATTEMPT_ZONE.x1 + half), 150, sc)); }
+    if (opts.end && isFinite(endX)) out.push(text(opts.end, endX - 240, 150, 0.8));
+    return out;
+  }
   const blocks = objects.filter(b => b.id >= 1 && b.id <= 7);
   const solidAt = new Set(blocks.map(b => Math.round((b.x - 15) / 30) + "," + Math.round((b.y - 15) / 30)));
   sections.forEach((sec, i) => {

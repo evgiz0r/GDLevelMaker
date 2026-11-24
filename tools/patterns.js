@@ -279,7 +279,13 @@ def("ball-run", "a ball corridor (band rows 0-7 from a portal on the ground): a 
 // floor / roof alternation reads for it; a little more room (gap 6) since it swings past the middle row.
 // Space level (GDLM 71, the user: "Bit more flying with space").
 def("swing-run", "a swing corridor (band rows 0-7 from a portal on the ground): a roof `gap` (6) rows up, spikes alternating floor / roof every `every` (8) columns, each one a flip; portal/exit options", (a) =>
-  P["ball-run"].fn(Object.assign({ gap: 6, every: 8 }, a, { _mode: "swing" })));
+  (() => {
+    // its gravity flips stay after the cube portal (GDLM 71 p5 left upside down in the air): a blue gravity portal in the
+    // exit funnel, one column before it, puts it back
+    const r = P["ball-run"].fn(Object.assign({ gap: 6, every: 8 }, a, { _mode: "swing" }));
+    if (a.exit) { const w = a.w || 32; r.objects.push(["gravity up", w - 1, 1]); for (let rr = 3; rr < (a.gap || 6); rr++) r.objects.push(["block", w - 1, rr]); }
+    return r;
+  })());
 // The UFO: a tap is a hop, it falls between taps (flappy). A corridor with a solid roof `gap` rows up; pillars from the
 // floor (2 or 3 rows, 2 wide) alternate with hangers from the roof (2 rows), `every` columns apart after `lead`, so
 // the player hops over a pillar, then lets the UFO sink under a hanger.

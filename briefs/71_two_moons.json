@@ -150,7 +150,14 @@
    "gaps": [
     2,
     3
-   ]
+   ],
+   "args": {
+    "wave-zigzag": {
+     "seg": 4,
+     "flat": 2,
+     "gap": 6
+    }
+   }
   },
   {
    "name": "breath",
@@ -304,7 +311,14 @@
    "gaps": [
     2,
     3
-   ]
+   ],
+   "args": {
+    "wave-zigzag": {
+     "seg": 4,
+     "flat": 3,
+     "gap": 6
+    }
+   }
   },
   {
    "name": "deep ship",
@@ -370,7 +384,6 @@
    "use": [
     "double",
     "spike-block",
-    "s:pit-run-armed",
     "orb-pit"
    ],
    "bg": [

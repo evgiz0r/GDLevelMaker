@@ -341,7 +341,9 @@ function build(spec, specFile = "spec") {
     header = P.header(header, cols);
     console.log(`   props: ${spec.props.length} placements, ${Object.keys(cols).length} channels from ${spec.propsCh0 || 600}`);
   }
-  if (spec.modern) {
+  // a theme kit (spec.theme, tools/scenes/theme.js) dresses the level itself: the modern pass keeps only the title and end card
+  if (spec.modern && spec.theme) objects.push(...deco.modernPass(objects, spec.modern.sections || [], Object.assign({}, spec.modern, { textOnly: true })));
+  else if (spec.modern) {
     const secs = spec.modern.sections || [];
     objects.push(...deco.modernPass(objects, secs, spec.modern)); // before skins: fills follow gameplay blocks
     // the 2.2 kit (tools/vfxkit.js, the visuals session's): parallax backgrounds per section, pulses
