@@ -63,7 +63,7 @@ function measure(L) {
   for (const k in tl.colour) for (const e of tl.colour[k]) e.dur *= 311.58;
   const V = require("../lib/vfx.js").VFX, K = cat();
   const objs = L.objects.filter(o => o.x != null);
-  const haz = objs.filter(o => kindOf(o) === "hazard"), sol = objs.filter(o => kindOf(o) === "solid");
+  const haz = objs.filter(o => kindOf(o) === "hazard"), sol = objs.filter(o => kindOf(o) === "solid" || o.id === 1338 || o.id === 1339);
   const deco = objs.filter(o => { const k = kindOf(o); return (k === "decoration" || k === "deco" || k == null) && o.id !== 914; });
   const size = o => { const p = o.props || {}, c = K[o.id] || { w: 1, h: 1 }, s = +(p[32] || 1);
     return { w: c.w * 30 * s * +(p[128] || 1), h: c.h * 30 * s * +(p[129] || 1) }; };
@@ -88,12 +88,17 @@ function measure(L) {
     // blocks are edges only
     const roleCols = o => { const c = K[o.id] || {}, main = colourOf(o), p = o.props || {};
       if (/^blockOutline/.test(c.fam || "")) return [main];
-      if (c.det != null) return [main, chCol(p[22] != null && p[22] !== "" ? +p[22] : c.det, o)];
+      if (c.det != null) return [chCol(p[22] != null && p[22] !== "" ? +p[22] : c.det, o), main];   // body = its detail part, rim = key 21
+      const f = fillAt.get(o.x + ":" + o.y); if (f) return [colourOf(f), main];   // a fill laid over it (designBlocks) IS its body
       if (c.ch == null || c.ch === 1004) return [body(o), main];
       return [main]; };
     const inS = a => a.filter(o => o.x >= x0 && o.x < x0 + 300);
     const H = inS(haz), S = inS(sol), D = deco.filter(o => o.x >= x0 - 60 && o.x < x0 + 360);
     if (!H.length && !S.length) continue;
+    // fills laid exactly over a block (scenekit.designBlocks: a 211 square at its centre): what shows as its body
+    const fillAt = new Map();
+    for (const d of D) if (d.id === 211 && (d.props || {})[21] && Math.abs(+((d.props || {})[128] || (d.props || {})[32] || 1) - 1) < 0.06) {
+      const b = S.find(b => Math.abs(b.x - d.x) < 3 && Math.abs(b.y - d.y) < 3); if (b) fillAt.set(b.x + ":" + b.y, d); }
     const s = { x0, t: +tOf(x0 + 150).toFixed(2), pairs: {}, fails: [], shared: 0 };
     const worse = (k, r, a, b, extra) => { const p = s.pairs[k] || (s.pairs[k] = { ratio: Infinity, area: 0 });
       if (r < p.ratio) Object.assign(p, { ratio: +r.toFixed(2), a, b }, extra || {}); return p; };
@@ -112,7 +117,14 @@ function measure(L) {
       // deco with no colour key draws its own sprite colours (GD's black-and-white art): not judged by a channel
       if ((d.props || {})[21] == null || d.props[21] === "") continue;
       const dc = colourOf(d);
-      const hitB = SC.find(([b, cs]) => touch(d, b, ds) && similar(cs[0], dc, LIM.pathDeco));   // deco in the body's value and family: the mass merges
+      // a block's own dress (a fill laid exactly over it: scenekit.designBlocks) is the block, not deco beside it
+      if (ds.w <= 32 && ds.h <= 32 && sol.some(b => Math.abs(b.x - d.x) < 3 && Math.abs(b.y - d.y) < 3)) continue;
+      // a huge piece on the farthest layer (B5, 25+ blocks^2: a nebula, a planet) is part of the SKY: judged as the sky is
+      // (path/bg: lost only when the body matches it AND the rim is under 3x off it)
+      const sky = +((d.props || {})[24] || 0) <= -5 && area >= 25;
+      // ... and so are its rim lines (thin lines 1753 along a block's side) and the glow under an open top (1293)
+      if ((d.id === 1753 || d.id === 1293) && sol.some(b => Math.abs(b.x - d.x) <= 16 && Math.abs(b.y - d.y) <= 16)) continue;
+      const hitB = SC.find(([b, cs]) => touch(d, b, ds) && similar(cs[0], dc, LIM.pathDeco) && !(sky && cs.length > 1 && C.ratio(cs[cs.length - 1], dc) >= 3));   // deco in the body's value and family: the mass merges
       const onGround = d.y - ds.h / 2 <= 15 && d.x >= x0 && d.x < x0 + 300 && lostIn(gset, dc, LIM.pathDeco);
       if (hitB || onGround) { const pc = hitB ? hitB[1][0] : gset[0];
         const p = worse("pathDeco", C.ratio(dc, pc), dc, pc, { x: d.x, y: d.y, id: d.id }); p.area += area; }
