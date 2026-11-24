@@ -89,6 +89,11 @@ not after it:
   the viewer's `mute=1` URL flag (music, click sound, every sound), and tests use it by default. Test actions are
   marked test (id "test-..." or test: true) so they stay out of the user's feed. Only the user's own viewer
   plays sound.
+- **Never slow the user's game.** 2026-11-24: the first input logger did work inside its keyboard/mouse hook,
+  delayed and dropped the user's clicks, and likely cost them a death in Clutterfunk at 92.6%. Anything that runs
+  while the user plays (loggers, recorders, jobs) stays off the input path: a hook callback only queues (no I/O,
+  no lookups), recorders only read, heavy jobs run at idle priority with GD open. A new tool of this kind is
+  checked for added input delay before it runs during play.
 - **Hand off.** Before a long pause or when your area changes hands, write where you stopped,
   what is open and the good numbers into your area's doc.
 - **Share, don't duplicate.** Results go into the shared `local/` (see below) so no session redoes
