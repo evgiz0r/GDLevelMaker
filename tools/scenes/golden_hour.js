@@ -161,5 +161,12 @@ module.exports = function ({ objects, header, beatX }) {
     if (o.id === 1753) o.props[24] = "7";
     if (!o.props[41] && (k++ % 2 === 0)) { o.props[41] = "1"; o.props[43] = (k % 3 === 0 ? "-8" : "6") + "a1a" + (k % 5 === 0 ? "0.9" : "1.05") + "a0a0"; }
   }
-  return { objects: out, header };
+  // nothing in front of a hazard (tools/contrast.js "deco over hazards": v2 had 58 at x 2400-2700): deco on B2 or
+  // in front within a block of a spike / saw goes, except what dresses a solid block (its fill and edges)
+  const GDo = require("../../lib/objects.js"), kindOf = o => (GDo.objInfo(o.id) || {}).kind;
+  const haz = objects.filter(o => kindOf(o) === "hazard"), solidCell = new Set(objects.filter(o => kindOf(o) === "solid").map(o => Math.floor(o.x / 30) + ":" + Math.floor(o.y / 30)));
+  const front = o => { const z = o.props && o.props[24]; return z != null && z !== "" && +z >= 1; };
+  const kept = out.filter(o => !(o.x != null && o.id !== 1346 && kindOf(o) !== "trigger" && front(o) && !solidCell.has(Math.floor(o.x / 30) + ":" + Math.floor(o.y / 30))
+    && haz.some(h => Math.abs(h.x - o.x) < 30 && Math.abs(h.y - o.y) < 30)));
+  return { objects: kept, header };
 };
