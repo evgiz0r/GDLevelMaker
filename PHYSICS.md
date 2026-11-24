@@ -229,7 +229,7 @@ SoloPortal cases; PlayerObject `copyAttributes`):
 | gravity portals, blue/green orbs, gravity dash orbs, blue pads flip the other player too while both are in the same mode (they stay mirrored); ball taps, swing flips, spider teleports flip only their own | GJBaseGameLayer::flipGravity vs PlayerObject::flipGravity | yes | tests (portal) |
 | solo portal: the player that touched it goes on (player 1 copies player 2 when player 2 touched it) | toggleDualMode(false) | yes | tests |
 | in dual every mode has a floor and a roof | checkCollisions: `isFlyingMode = ... || m_isDualMode` | yes | - |
-| band height in dual: ASSUMED the larger of the two players' bands, cube/robot 300 like the ship, centred on the portal that set it (dual portal, or a mode portal in dual) like a flying portal's | updateDualGround's body is not in the decompile | yes | NOT checked |
+| band in dual: centred on the DUAL PORTAL for the whole dual part (a mode portal in dual changes only its height); height ASSUMED the larger of the two players' bands, cube/robot 300 like the ship | processCameraObject: in dual the camera object is the dual portal (m_lastActivatedPortal2); updateDualGround's body is not in the decompile | yes | centre: Hexagon Force (re-centring on a player's ship portal opened a gap over its corridor at 432; the solve flew over the spike roof and died at 499); height NOT checked |
 | speed: shared (both players are at one x) | - | yes | - |
 | camera: centred on the band (animateInDualGroundNew, tween 0.4 s) | decompile | viewer only | - |
 Not modelled: two-player mode (level setting, separate buttons), start-in-dual (level setting), the
@@ -271,12 +271,44 @@ What exists and what blocks it (2026-11-23):
   units/frame^2) and the teleport heights read 478 px against 588 expected. Every per-mode number needs y
   measured against something in the level (the ground line, a block row) in the same frame: track.py
   --rows gives candidate edges; following the right one through camera moves is the next piece of work.
-- Inputs: the user's presses are not recorded (no sound loopback, no input log). Options: read them from
-  the hitbox trail (a press starts a new arc), or fit them (the sim's inputs that best follow the tracked
-  path), then compare the rest of the path.
+- Inputs (USE_CASES 29, built 2026-11-24): tools/record.sh now also runs tools/inputlog.ps1, which logs the
+  user's GD inputs ONLY while recording and ONLY GD's jump keys/click while GD is in front (Space, Up, W, left
+  mouse; down/up, high-resolution, wall-clock) to local/inputs/. tools/replay_run.js <video> <log> <level>
+  replays each normal-mode attempt (attempts from the progress bar, tools/runs.js) in the sim: the clock offset
+  is the shift at which the sim dies at the video's % (or finishes); an attempt no shift explains is a physics
+  mismatch for this list. Output local/replays/<video>.json and local/attempts/<base>.jsonl (viewer ghost,
+  difficulty). Sound (2026-11-24, the user's pick: no install): tools/audiolog.ps1 records the PC's own sound by
+  WASAPI loopback with record.sh (Videos/Captures/GD claude-audio <time>.wav + .json with the UTC start; silence
+  is written while nothing plays, so the file's time is wall time; tested: a 1.5 s tone lands where it played).
+  replay_run.js matches the recorded sound around each attempt with the level's song from its offset
+  (loudness envelopes, 100 Hz): the music's restart pins the attempt's start to ~10 ms (a synthetic test: 2.00 s
+  found for 2.00 s), then the press shift is searched +-25 ms; without sound or the song, the bar fit (+-1.5 s).
+  Not yet run on a real recording.
 - Practice-mode respawns break time -> x; per-attempt segmentation by the attempt label or a jump in x.
 Lab 2 (to build): the mini cube, the pink orb (clean, at ground level so the camera stays still), 45-degree
 and -53-degree teleports, the swing, dual portals, and a green orb in mid-air.
+
+## Agent co-solve (DESIGN, not built; the user's item 5, queued after buffering and unneeded jumps)
+
+Goal: faster solves of long levels (official, community, demons) and a second check against secret ways, by
+letting a cheap model (claude-haiku-5-5) read a section and say where the intended path goes.
+- Sections: cut the level at mode/speed portals and every ~40 blocks; per section a text map
+  (tools/textmap.js --from --to --rows, no path) plus a legend line: ~1-2 k tokens.
+- Prompt -> strict JSON only: `{"waypoints": [{"x": <block>, "y": [lo, hi], "why": "orb"|"portal"|"gap"|
+  "corridor"|"over"|"under", "obj": <id or null>}], "take": [object ids that must be used]}`; validated
+  against the section (ids exist, x within the section), else retried once, else ignored.
+- Cache: local/cosolve/<sha1 of the section's objects + prompt version>.json. A level re-solved after a
+  physics change pays nothing; a changed section pays for that section only.
+- Use in the solver: solveSweep gets opts.corridor(x) -> [ylo, yhi], interpolated between waypoints with a
+  margin. States outside it are ranked after all states inside (never dropped, so a wrong plan can't make a
+  level unsolvable), and `take` objects join the no-skip requirements. With the beam CAP, this focuses the
+  search: expect fewer states per tick, measured as time per level with and without.
+- Secret-way flag: the finished route's distance from the corridor; a route leaving it for more than ~1 s on a
+  rated level is reported as "off the intended path at x" (a physics-bug candidate, like a skip).
+- Cost report per level: sections, tokens in/out, cache hits, model time, solve time with vs without.
+- Not in lib/ (no network there): a tool, tools/cosolve.js, writes the corridor file; difficulty_solve reads it.
+Open: which API key and budget (the user's call); whether text maps carry enough for orb lines (test on
+Polargeist and Electroman, where secret ways were found).
 
 ## No secret ways (the user's rule, 2026-11-23, firm)
 
@@ -305,6 +337,9 @@ skips something, its 99% wrong. and will cause trouble. and anyway not the human
 
 ## How the route is chosen (the natural route)
 
+Status of every saved route (official and GDLM: beaten?, kind, how it was made, plan stamp vs today's rules,
+skips, queued): `node tools/routes.js status [--official | --gdlm]` (saved files + one replay each, no solving).
+
 THE DEFAULT (the user, 2026-11-23: "let's by default solve with the human route, then in the limits we will
 see"): every route that is saved or shown is the human route below. tools/solutions.js fromRun is the one
 door every saving path goes through (make.js, wip.js, compose via make, polish, tests/saved_routes.js --fix);
@@ -328,7 +363,12 @@ or holds longer than needed (over 0.15 s outside ship/wave where a tap finishes)
    Cost: the first humanCost of a level is ~30 s on GDLM 44 (window measuring); measureWindows caches each
    window on the world `w` (difficulty, 48eeeac), so later candidates of the same level cost ~0.15-2 s.
    natural.js keeps one `w` per level for that reason.
-5. **Calibration (open):** tools/human_presses.js measures where the user really presses in each window
+5. **Orbs are taken buffered** (the user: "usually with orbs, when possible, we want to buffer"): the press
+   comes 2-6 frames before the orb and is held until the orb fires on its first tick of contact (in the sim a
+   press arms s.ring, kept while held; a ground jump uses it up, so a hold carried from a jump does NOT fire an
+   orb -- UNCHECKED against the game, a lab station is asked of gd-physics2). natural.js bufferOrbs;
+   tests/saved_routes.js warns on orbs no buffered press can take (natural.js unbufferedOrbs).
+6. **Calibration (open):** tools/human_presses.js measures where the user really presses in each window
    from recordings; the difficulty session fits humanCost's `centre` weight (and the 40%) to it.
 
 ## The intended route (solver ranking)
@@ -363,6 +403,10 @@ they neither confirm nor refute it. tests/art_tables.js fails if a type-0 or typ
 other hazard is type 2, except 1304 (type 7, decoration in OpenGD, but GD 2.2's decoration list leaves it
 out too: left a hazard, unchecked).
 
+2026-11-24: the user's Deadlocked practice run passes this spot (GD claude-rec 2026-11-24_00-33-07.mkv, practice
+complete, 30 attempts). The teleport's exit is absolute (portal y + 54, x kept; GDLM 60 station 2), so every
+player reaches the corridor mouth in the same place: the game clearing it means one of the three candidates
+below is wrong in the sim. Frames of that moment (hitboxes on in practice) can now settle which: open.
 With that and the quarter-turned teleports, Deadlocked's solve reaches block 695.4 (59%, physics 119344c):
 a ship takes a plain teleport (20887, 54 = -94) into a low corridor and its box overlaps a sideways
 spike (421) at the corridor's mouth by 1.6 units. Tried and ruled out (sweeps of
@@ -444,6 +488,40 @@ at the rejoin), the natural plan (window only) and humanCost (windows carried ov
 | GDLM 41 (cube, 17 s) | spike moved 1 block | 5.7 s (searched to the end) | 6.5 s | 0.276 / 0.311 |
 | GDLM 41 | raised spike moved 1 block | 0.8 s (rejoined after 340 ticks) | 6.2 s | 0.280 / 0.276 |
 | GDLM 45 (ship/wave, 40 s) | spike moved 1 block | 252 s (rejoined; old goal check: 200 s of it) | 268 s | 1.246 / 1.246, same route |
+| GDLM 45, 2026-11-23 cloud, after the speed-ups below | same spike (cube, just before the ship portal) | 25 s (search 1.2 s, rejoined at the ship's end; the rest: humanCost of the new 6.5 s ship stretch) | 106 s | 1.241 / 1.246 |
+| GDLM 45, same | block moved 1 block (ball part) | 4.4 s (search 0.2 s) | 121 s | 1.148 / 1.186 |
+| GDLM 45, same | another block moved (ball part) | 2.1 s (search 0.2 s) | 120 s | 1.148 / 1.186 |
+| GDLM 61 (cube/ship/ball, 72 s), same | block moved 1 block (cube) | 4.4 s | 124 s | 0.928 / 0.928 |
+| GDLM 61, same | hazard moved 1 block up (inside the ship) | 63 s (beam 100 died in 0.2 s; full beam 53 s) | 120 s | 0.908 / 0.935 |
+| GDLM 41, cut (section cache) | cut at x 2662 | 0.5 s (4 sections reused, 1 seam) | 0.7 s | 0.153 / 0.153 |
+| GDLM 41, joined with itself | +5430 | 1.6 s (7 reused) | 5.4 s | 0.566 / 0.556 |
+| GDLM 61, cut | cut at x 11060 | 10 s (12 reused) | 68 s | 1.624 / 1.667 |
+| GDLM 61, joined with itself | +22800 | 206 s (36 reused; 4 seams, the first 10 000 ticks: the ship and ball stretches have no cut point) | 253 s | 1.858 / 1.935 |
+
+**Speed-ups (2026-11-23, the cloud session; every solver gains, not only re-solves):**
+- **State copies were 90x too slow.** On V8 (node 22) `Object.assign({}, state)` of a 20+ field state makes a
+  dictionary-mode object: 5.8 us a copy and slow field reads in every step. `{ ...state }` keeps the fast shape
+  (64 ns). Changed in lib/physics.js `clone`, difficulty.js `cloneS`, natural.js, windows.js, incsolve.js,
+  tools/fairness.js. **Rule: never copy a sim state with Object.assign({}, s); spread it.** GDLM 41 whole solve
+  (search + natural plan + humanCost) 9.0 s -> 1.6 s, the same route (hash) and cost; a cold humanCost of GDLM 45's
+  ship part 31 s -> 11.5 s (with the two below).
+- `near(w, x)` (lib/physics.js) builds each column span's object list once per world (`w._near`); same order.
+- fireTriggers walks every fired trigger each tick for toggles only when the level has a toggle (`T.hasToggle`).
+- `resolve` searches with a narrow beam first (`opts.caps`, default [100, full]): the rejoin is exact and the
+  spliced route is replayed, so a narrow beam risks only a miss (then the full 6000). GDLM 45's ship edit: the
+  same rejoin tick in 1.2 s instead of 113 s.
+- Measured how: `node tools/incsolve.js study ...` rows; `node --cpu-prof` on a humanCost with the ship part's
+  windows removed from the cache (cloneS was 45% of it before).
+
+**Where an edit's time goes now** (GDLM 45): an edit whose effect cannot rejoin inside a flying stretch (a ship
+cannot come back to the old route's exact y and vy mid-air; it rejoins where the stretch ends) re-plans the whole
+stretch: the natural plan costs 4 routes with humanCost, each measuring the stretch's windows (~6 s each for 6.5 s
+of ship). Fewer humanCost calls in a window re-plan (lib/natural.js, physics) or a cheaper window measure in a
+flying stretch (lib/difficulty.js, difficulty) are the next cuts; asked both in this section.
+A beam between 100 and 6000 does not help inside a ship corridor: on GDLM 61's ship edit 200 and 400 die, 800 finds
+a route that costs 0.954 (full solve 0.935, the full beam 0.908): the sweep's ranking keeps the fewest wall-hugs
+and presses, so a narrow beam loses the heights that get through. A beam that keeps the best state per height band
+(solveSweep, physics) would let a narrow search work in flying stretches too.
 
 **Open:** the rejoin search on flying stretches keeps thousands of states a tick (the goal check now compares a few
 raw fields first); humanCost on a new world in a new process starts cold until the window cache is saved with the
@@ -466,22 +544,26 @@ window cache with every route; `solve` tries `refresh` before a full solve. tool
 (fixed since: the goal compares raw fields first, NOT yet re-measured) and 50 s humanCost on a cold world (fixed
 since: window cache carried, NOT yet re-measured). No row yet for GDLM 61, cuts or joins (`cutjoin` never ran).
 
+**Done 2026-11-23 (cloud):** items 1-3 of the old list: GDLM 45 and 61 re-measured, cut/join measured, tests/incsolve.js
+passes (3 GDLM 41 edits within 0.02 of full). The table above has the rows. Every incremental result passed and
+cost at most full + 0.01 (most cost less: the old human route is kept outside the window).
+
 **Next, in order:**
-1. Re-measure GDLM 45 and 61 with the fixes: `node tools/incsolve.js study levels/gdlm_45_first_flight.gdlvl
-   --edits 1 --seed 3 --no-full` (same edit as the 252 s row; full was 268 s), then `... gdlm_61_lantern_towers.gdlvl
-   --edits 2 --seed 5`. If the rejoin search is still minutes, look at `tries` in the row (ms per backoff, goal
-   checks) and at the sweep's CAP from a mid-level state; if a re-solve does not rejoin, `nojoin` lists the
-   state fields that kept it apart (cube `rot` is the suspect for GDLM 41's first edit).
-2. `node tools/incsolve.js cutjoin levels/gdlm_41_classic.gdlvl` (and 61): section cache vs full for a cut and a
-   self-join. Seams are searched with the goal "a cached section fits here".
-3. `node tests/incsolve.js` (full part: 3 edits of GDLM 41 vs full, cost within 0.02); then widen to GDLM 41-62
-   and a few official levels as the task asks (random edits, cuts, joins: pass/fail must agree, cost within eps).
-4. Fill the time table in CLAUDE.md ("make, an existing level after a one-spot edit") with measured numbers.
-5. Use the rejoin goal in tools/difficulty_solve.js --resume (physics' suggestion: stop early instead of sweeping
-   to the end) -- agree with gd-difficulty / gd-physics first.
+1. Flying-stretch edits (GDLM 45's ship 25 s, GDLM 61's 63 s): fewer humanCost calls in a window re-plan
+   (natural.js `fly`/`plan` cost 4 routes; ask physics), a cheaper window measure in flying modes (ask difficulty),
+   a height-diverse beam in solveSweep (ask physics) so the 100-state first try works in corridors.
+2. Joins of mode levels: sections are only cut in plain modes, so a join re-searches each ship/ball stretch whole
+   (GDLM 61 joined: 206 s vs 253 s). Cut flying stretches too, at a state the search can re-enter (a portal exit,
+   a wall-touch), or key a flying section by its entry state and replay it.
+3. Widen the study: `node tools/incsolve.js study <level> --edits 3 --seed N` over every level in levels/ and
+   examples/ (cube ones are seconds now; mode ones ~2 min each for the base solve, then the full solve per edit).
+4. Fill the time table in CLAUDE.md as rows come in (done for what is measured).
+5. Use the rejoin goal in tools/difficulty_solve.js --resume (physics' suggestion) -- agree with gd-difficulty /
+   gd-physics first.
 
 **Cloud notes:** local/ is not there, so no saved solutions, checkpoints, sections or window caches: `study` and
-the test solve the base level fully first (minutes for mode levels) and say so; use only the levels in git
+`cutjoin` solve the base level fully first (1-2 min for a mode level since the speed-ups) and save it as make.js
+would, so the next run of either starts from it; use only the levels in git
 (levels/, examples/). The heavy lock (tools/heavy.js) still applies inside the tools.
 
 **Agreements:**

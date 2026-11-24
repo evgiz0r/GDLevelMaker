@@ -98,20 +98,18 @@ function gameRunning() {
 function lowPriority() {
   try { os.setPriority(process.pid, 19); } catch (e) { try { os.setPriority(process.pid, 10); } catch (e2) {} }
 }
-// rough minutes left for a holder, from the time table
-function minutesLeft(h) {
-  const tool = (/tools[\\/](\w+)\.js/.exec(h.cmd) || [])[1] || "";
-  const step = { make: "make", compose: "compose", score: "score", shoot: "render", levelmap: "map", wip: "wip", difficulty_solve: "solve-official" }[tool];
-  const elapsed = (Date.now() - Date.parse(h.start)) / 1000;
-  let typical = NaN;
-  try {
-    const rows = fs.readFileSync(path.join(ROOT, "local", "timings.jsonl"), "utf8").split("\n").filter(Boolean).map(l => JSON.parse(l)).filter(r => r.step === step && r.ok !== false);
-    const s = rows.map(r => r.secs).sort((a, b) => a - b); if (s.length) typical = s[s.length >> 1];
-  } catch (e) {}
-  return isNaN(typical) ? null : Math.max(1, Math.round((typical - elapsed) / 60));
+// time left for a holder, from measurements only (tools/jobtime.js: same tool + level + flags): { left (min), basis,
+// over, secs } or null = not measured. The estimate is taken when the job gets its slot and kept in its slot file.
+function etaOf(h) {
+  let est = h.est != null ? { secs: h.est, basis: h.basis } : null;
+  if (!est && !("est" in h)) try { est = require("./jobtime.js").estimate(h.cmd); } catch (e) {}
+  if (!est) return null;
+  const elapsed = h.start ? (Date.now() - Date.parse(h.start)) / 1000 : 0;
+  return { left: Math.max(1, Math.round((est.secs - elapsed) / 60)), basis: est.basis, over: elapsed > est.secs * 1.2, secs: est.secs };
 }
-const describe = h => `${(/tools[\\/].*/.exec(h.cmd) || [h.cmd])[0]} (${h.session}, ${h.prio && h.prio !== "normal" ? h.prio + " priority, " : ""}pid ${h.pid}, ${Math.round((Date.now() - Date.parse(h.start)) / 60000)} min in` +
-  (minutesLeft(h) ? `, ~${minutesLeft(h)} min left)` : ")");
+function minutesLeft(h) { const e = etaOf(h); return e ? e.left : null; }
+const describe = h => { const e = etaOf(h); return `${(/tools[\\/].*/.exec(h.cmd) || [h.cmd])[0]} (${h.session}, ${h.prio && h.prio !== "normal" ? h.prio + " priority, " : ""}pid ${h.pid}, ${Math.round((Date.now() - Date.parse(h.start)) / 60000)} min in` +
+  (!e ? ", time not measured)" : e.over ? `, past its estimate: ${e.basis})` : `, ~${e.left} min left: ${e.basis})`); };
 
 // is the worktree at root behind origin/main? fast-forward when it is clean. Returns
 // { behind, ff: true when moved, warn: the message when it could not, subjects }
@@ -149,6 +147,7 @@ function claim(label) {
   const limit = Date.now() + (+(process.env.GDLM_HEAVY_WAIT || 120)) * 60000;
   let lastMsg = "", lastAt = 0;
   const waitStart = Date.now(), prio = myPriority();
+  let est = null;
   const me = { pid: process.pid, prio, since: waitStart, session: sessionName(), cmd };
   const wfile = path.join(dir, "w" + process.pid + ".json");
   const unwait = () => { try { fs.unlinkSync(wfile); } catch (e) {} };
@@ -166,7 +165,8 @@ function claim(label) {
         if (d === "go" && first && first.pid !== me.pid) d = "queue";
         if (d === "go") {
           held = path.join(dir, process.pid + ".json");
-          fs.writeFileSync(held, JSON.stringify({ pid: process.pid, session: sessionName(), cmd, prio, start: new Date().toISOString(), freeMB: free }));
+          try { est = require("./jobtime.js").estimate(cmd); } catch (e) {}
+          fs.writeFileSync(held, JSON.stringify({ pid: process.pid, session: sessionName(), cmd, prio, start: new Date().toISOString(), freeMB: free, est: est ? Math.round(est.secs) : null, basis: est ? est.basis : null }));
           got = true; unwait();
         } else {
           const msg = d === "busy" ? `waiting for ${hs.map(describe).join("; ")}${game ? " (the game runs: one job at a time)" : ""}`
@@ -185,6 +185,15 @@ function claim(label) {
   const waited = (Date.now() - waitStart) / 1000;
   if (waited > 2) console.log(`heavy: got the slot after waiting ${waited.toFixed(0)} s`);   // tools/loop.js leaves this out of the step's time
   process.env.GDLM_HEAVY_HELD = String(process.pid);   // children run in this slot
+  // every finished heavy job's real duration (from getting the slot) with the estimate it had -> local/timings.jsonl
+  // (tools/jobtime.js; `node tools/jobtime.js recent` shows estimate vs actual)
+  const t0 = Date.now(), JT = require("./jobtime.js");
+  let recorded = false;
+  const rec = ok => { if (recorded || process.env.GDLM_HEAVY_NOREC === "1") return; recorded = true;
+    try { const r = JT.record(cmd, t0, ok, est, { session: sessionName() });
+      if (r.secs > 30) process.stderr.write(`heavy: took ${JT.fmt(r.secs)}${est ? " (estimate " + JT.fmt(est.secs) + ": " + est.basis + ")" : " (no estimate: not measured before)"}\n`); } catch (e) {} };
+  process.on("exit", code => rec(code === 0));
+  for (const sig of ["SIGINT", "SIGTERM", "SIGHUP", "SIGBREAK"]) process.on(sig, () => rec(false));
   if (process.env.GDLM_HEAVY_NOSYNC !== "1" && !label) {
     const r = syncTree(ROOT, { stamp: path.join(dir, "fetch.json") });
     if (r.warn) console.log("\n!!! heavy: " + r.warn + "\n");
@@ -201,7 +210,7 @@ function claim(label) {
 }
 const release = () => { if (held) { try { fs.unlinkSync(held); } catch (e) {} held = null; delete process.env.GDLM_HEAVY_HELD; } };
 
-module.exports = { claim, release, syncTree, holders, waiters, firstInLine, myPriority, decide, gameRunning, lowPriority, lockDir, freeMB, describe, minutesLeft, RANK, MIN_FREE_MB, TWO_SLOTS_MB, GAME_MIN_FREE_MB };
+module.exports = { claim, release, syncTree, holders, waiters, firstInLine, myPriority, decide, gameRunning, lowPriority, lockDir, freeMB, describe, minutesLeft, etaOf, RANK, MIN_FREE_MB, TWO_SLOTS_MB, GAME_MIN_FREE_MB };
 if (require.main === module) {
   const hs = holders();
   console.log(`${freeMB()} MB free${gameRunning() ? ", the game runs" : ""}; ${hs.length ? hs.length + " heavy job(s): " + hs.map(describe).join("; ") : "no heavy job running"}  (lock dir ${lockDir()})`);

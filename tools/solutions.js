@@ -95,7 +95,11 @@ function incSave(levelStr, sol, level) {
   } catch (e) { delete sol.checkpoints; }
 }
 // from a solver result already in hand (make.js has one): natural plan, saved
-function fromRun(level, levelStr, r) {
+// opts.name (the level's name) or opts.planned: the build's planned presses (tools/planned.js), which the
+// human route presses on where they clear
+function fromRun(level, levelStr, r, opts) {
+  opts = opts || {};
+  const planned = opts.planned || (opts.name ? require("./planned.js").plannedFor(opts.name, opts.file) : []);
   const w = GD.makeWorld(level.objects, level.header);
   // an incremental re-solve hands its world (r.world): its timing windows carry over to this one (make.js adds
   // jump indicators after the check, decoration that changes no window)
@@ -140,16 +144,16 @@ function solve(level, levelStr, opts) {
       // same replay plan code: only the physics stamp was old -- restamp, no work (a physics change no longer
       // makes every viewer page solve its levels again)
       if (c.plan === planCommit()) { const keep = Object.assign({}, c); delete keep.physics; delete keep.solvedAt; return put(levelStr, keep); }
-      return fromRun(level, levelStr, { ok: true, events: c.events });
+      return fromRun(level, levelStr, { ok: true, events: c.events }, opts);
     }
   }
   // the saved route breaks under the new physics: re-solve only from its first changed stretch, back onto
   // its saved checkpoints (lib/incsolve.js refresh), before solving the whole level
   if (c && c.ok && c.checkpoints) try {
     const r = require("../lib/incsolve.js").incsolve.refresh(w, c.events, c.checkpoints);
-    if (r.ok && !r.kept) return fromRun(level, levelStr, { ok: true, events: r.events, inc: { from: r.from, to: r.to, rejoined: r.rejoined } });
+    if (r.ok && !r.kept) return fromRun(level, levelStr, { ok: true, events: r.events, inc: { from: r.from, to: r.to, rejoined: r.rejoined } }, opts);
   } catch (e) { /* solve it whole */ }
-  return fromRun(level, levelStr, GD.solveAny(w));
+  return fromRun(level, levelStr, GD.solveAny(w), opts);
 }
 
 module.exports = { get, put, fromRun, solve, keyOf, physicsCommit, planCommit, fresh, withWindows, windowsFresh, measureWindows };

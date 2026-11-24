@@ -7,8 +7,11 @@ official levels.
 
 ## What is on it, what never is
 
-On it: the viewer and its libraries (`lib/`), **our levels only** (`levels/` and `examples/`: the GDLM levels
-and the user's own), their saved solutions and timing windows, the shapes look.
+On it: the viewer and its libraries (`lib/`), and **only the levels the user chose** for it: opt-in, one by one, in
+`knowledge/public_levels.json` (from `levels/` and `examples/`). It is EMPTY: the user, 2026-11-24, "all those levels
+are bad for now. lets publish a real there when we have something decent" -- the 16 GDLM levels were taken off.
+With none, the page says "First levels coming soon"; on the user's PC it opens the first official level (bridge).
+Add a level to the list only when the user says so for that level.
 
 Never on it: anything from `local/` -- **official levels** (RobTop's: our rule is that other people's levels need
 *their* OK, and the user's OK cannot stand in for RobTop's), community levels, songs, recordings, marks, work in
