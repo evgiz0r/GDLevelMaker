@@ -3,7 +3,8 @@
 // beside the route with each press early / late / extra / missing (VIEWER.md); difficulty can read where people die.
 //   node tools/attempts.js list <level.gdlvl | official:N | base>      the attempts at that level, newest last
 //   node tools/attempts.js deaths <level...>                          deaths per 5% of the level (all sources)
-//   require("./attempts.js").append(line) / .read(fileOrBase, hash?) / .baseOf(file)
+//   node tools/attempts.js index                                      every level with attempts, newest played first
+//   require("./attempts.js").append(line) / .read(fileOrBase, hash?) / .baseOf(file) / .index()
 // File: local/attempts/<base>.jsonl (base: baseOf(file) -- the level file's name without .gdlvl; official_<N> with no zero
 //   padding for official:N and the viewer's local/official_NN.json alike; c<id>), one line each:
 //   { id, at, source: "viewer" | "video", level, file, hash: GD.levelHash(levelStr) (lib/liveplay.js; that exact version),
@@ -18,16 +19,8 @@
 // GDLM_LOCAL_DIR: tests.
 const fs = require("fs"), path = require("path");
 const DIR = () => path.join(process.env.GDLM_LOCAL_DIR || path.join(__dirname, "..", "local"), "attempts");
-function baseOf(file) {
-  const f = String(file || "");
-  // one key per level whatever names it: official:7, official_7, local/official_07.json (the viewer's file) -> official_7;
-  // c123, local/community/123.gdlvl -> c123
-  let m = /^official[:_]0*(\d+)$/.exec(f) || /(?:^|[\\/])official_0*(\d+)\.(?:json|gdlvl|txt)$/.exec(f); if (m) return "official_" + m[1];
-  if (/^c\d+$/.test(f)) return f;
-  m = /(?:^|[\\/])community[\\/](\d+)\.(?:gdlvl|json)$/.exec(f); if (m) return "c" + m[1];
-  const st = /([\w.-]+)\.stages[\\/](\w+)\.gdlvl$/.exec(f); if (st) return st[1] + "." + st[2];   // a build stage: <base>.<stage>
-  return path.basename(f).replace(/\.(gdlvl|json)$/, "").replace(/[^\w.-]+/g, "_") || "unknown";
-}
+// the key: lib/liveplay.js attemptsBase (the viewer uses the same function to find a level's runs)
+const baseOf = file => require("../lib/liveplay.js").attemptsBase(file);
 function append(a) {
   const line = Object.assign({ id: "a" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), at: new Date().toISOString() }, a);
   if (!Array.isArray(line.events)) throw new Error("events needed");
@@ -41,7 +34,26 @@ function read(file, hash) {
   try { rows = fs.readFileSync(path.join(DIR(), baseOf(file) + ".jsonl"), "utf8").split(/\r?\n/).filter(Boolean).map(l => { try { return JSON.parse(l); } catch (e) { return null; } }).filter(Boolean); } catch (e) {}
   return hash ? rows.filter(r => r.hash === hash) : rows;
 }
-module.exports = { append, read, baseOf, DIR };
+// every level with attempts, newest played first: one small row each (the viewer's "my runs" tab; GET /attempts/index).
+// Cached by the files' sizes and times, so a repeat call reads nothing.
+let IDX = null;
+function index() {
+  let names = []; try { names = fs.readdirSync(DIR()).filter(f => f.endsWith(".jsonl")); } catch (e) { return []; }
+  const stamp = names.map(f => { try { const st = fs.statSync(path.join(DIR(), f)); return f + ":" + st.size + ":" + st.mtimeMs; } catch (e) { return f; } }).join("|");
+  if (IDX && IDX.stamp === stamp && IDX.dir === DIR()) return IDX.rows;
+  const rows = [];
+  for (const f of names) {
+    const all = read(f.replace(/\.jsonl$/, "")); if (!all.length) continue;
+    const last = all.reduce((a, b) => (b.at || "") >= (a.at || "") ? b : a);
+    rows.push({ base: f.replace(/\.jsonl$/, ""), level: last.level || "", file: last.file || "", attempts: all.length, clears: all.filter(r => r.result === "clear").length,
+      best: Math.max(...all.map(r => r.result === "clear" ? 100 : +r.pct || 0)), last: last.at, lastId: last.id, lastHash: last.hash || "",
+      viewer: all.filter(r => r.source !== "video").length, video: all.filter(r => r.source === "video").length,
+      mismatch: all.filter(r => r.video && r.video.res === "mismatch").length, hashes: [...new Set(all.map(r => r.hash))] });
+  }
+  rows.sort((a, b) => String(b.last).localeCompare(String(a.last)));
+  IDX = { stamp, dir: DIR(), rows }; return rows;
+}
+module.exports = { append, read, baseOf, index, DIR };
 
 if (require.main === module) {
   const a = process.argv.slice(2);
@@ -50,5 +62,7 @@ if (require.main === module) {
   } else if (a[0] === "deaths" && a[1]) {
     const b = {}; for (const r of read(a[1]).filter(r => r.result === "died")) { const k = Math.floor(r.pct / 5) * 5; b[k] = (b[k] || 0) + 1; }
     for (const k of Object.keys(b).map(Number).sort((x, y) => x - y)) console.log(`${String(k).padStart(3)}-${k + 5}%  ${"#".repeat(b[k])} ${b[k]}`);
+  } else if (a[0] === "index") {
+    for (const r of index()) console.log(`${String(r.last).slice(5, 16).replace("T", " ")} ${r.base.padEnd(34)} ${String(r.attempts).padStart(3)} tries ${String(r.clears).padStart(2)} clear  best ${String(Math.round(r.best)).padStart(3)}%  ${r.video ? r.video + " video" : ""}`);
   } else console.log(fs.readFileSync(__filename, "utf8").split("\n").filter(l => l.startsWith("//")).join("\n"));
 }
