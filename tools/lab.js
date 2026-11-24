@@ -84,7 +84,10 @@ function build(id, k) {
 function ask(id) {
   const dir = path.join(LAB, id), R = readJ(path.join(dir, "round.json"));
   const res = R.variants.map(x => { try { return readJ(path.join(dir, `v${x.k}.result.json`)); } catch (e) { return null; } });
-  const options = R.variants.filter((x, i) => res[i]).map(x => `v${x.k} ${x.hook}`).concat(["none: all dull"]);
+  // every variant is an option, built or not (the viewer's lab view greys the unbuilt ones and fills them in as they
+  // land): the user can start with the first ones; one card per round (asked again: the same card)
+  if (R.ask && require("./ask.js").get(R.ask)) return { card: R.ask, options: require("./ask.js").get(R.ask).options, again: true };
+  const options = R.variants.map(x => `v${x.k} ${x.hook}`).concat(["none: all dull"]);
   const card = require("./ask.js").put({ session: SESSION, question: `Section lab ${id} -- ${R.moment} of the song (${R.t[0]}-${R.t[1]} s): which variant do you like best, and why? (each is a card "LAB ${id} v..." in the in-progress list: watch it or press P to play)`, options, level: `LAB ${id}` });
   R.ask = card.id || card; writeJ(path.join(dir, "round.json"), R);
   return { card: R.ask, options };
