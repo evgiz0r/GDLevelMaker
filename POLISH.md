@@ -13,7 +13,7 @@ one (kept in `local/` only) -- that keeps its identity (layout, idea, colours, b
    song allows (not built yet, see Open);
 5. **fair, as the floor** -- the fixes below, and the knowledge checklist's fairness targets.
 
-Owner: the polish session (wip folder `local/wip/polish/`). Started 2026-11-23. Drawings from the user
+Owner: the polish session until 2026-11-24, now gd-style (see "Handoff" below; wip folder `local/wip/polish/`). Started 2026-11-23. Drawings from the user
 turned into levels: SKETCH.md.
 
 ## Commands
@@ -189,6 +189,50 @@ What made it better: every fix as a check first (joins, portalground, deadair, i
 level. What did not: re-solving and hoping -- each new route showed a different problem until the
 planner was fixed.
 
+### Round 4 (v7, 2026-11-24): the user's notes on v6
+
+The user played v6 on the phone (slot 152848491): "Interesting. Much more pleasant gameplay for 44. And better contrast
+of colors. Still the cps is very small, compared to beat of the song. And the level is pretty bland, in the deco. Not
+many objects. But the vibe is bit better honestly."
+Keep: fair entries, flat ground into portals, readable climbs, the contrast (path = black bodies with lit edges,
+everything else dark). Change:
+- **Presses vs the beat**: v6 had 0.50 inputs per beat at 145 bpm (1.20 a second, human route, ship / wave releases
+  counted); the official levels 0.53-0.87 (`node tools/tempo.js official`). Thin phrases: the first wave (2 legs), the
+  gate-to-slope stretch, the ball run (a flip every 9 columns) and the second wave (long legs). v7: first wave
+  seg 2 / legs 4 / flat 2, a double on beat 27, the ball run a flip every 6, the second wave seg 3 / legs 6 / flat 2.
+- **Deco**: v6 7.8 objects per block (real 2.2 levels 25-45) and ~10 motion triggers a screen. v7 adds gd-art's kit
+  in tools/scenes/hellgate.js: decokit.blockPattern (bricks + crust trims in the blocks), two far mountain ranges,
+  hills, dead trees and ruins in the ground spans (none in the caverns), rock shards in the sky, falling ash, and
+  decokit.motion per span (pulses on far scenery only, in a dim ember colour, never the path or a hazard -- round 2's
+  "too flashy" -- bob on shards / chains / trees, sway on chains; energy by mode, hottest after the drop): ~25 objects
+  per block and ~44 motion triggers a screen from the scene alone.
+
+More from the user for v7 (same day): "Some richer variety in the structure. A bit less repetitive paths. Bit more orbs
+and reverse gameplay. Some more sync."
+- **Variety**: v6 repeated the red pad + 4 spikes (b21 and b81) and the gate (j25 and j99.5). v7 keeps one of each:
+  b79 is style's `s:pink-orb-pit` (+ a single on the kick at j81.5); the last gate is gone (see the result below).
+- **Orbs and reverse**: b63's yellow orb pit + double -> `s:blue-orb-bounce` (blue orbs, upside down). With
+  `s:gravity-pad-gap` (b58), the ball and `s:green-orb-flip` (b94) the level now flips gravity in four places. Orb
+  colours: yellow, dash, pink, blue, green, red. Not done: upside-down inside a ship tunnel (ship-tunnel has no
+  gravity-portal option yet).
+- **Sync**: `node tools/hits.js --level` on v6: 2 of 37 presses (5%) within a frame of a hit, median 210 ms off.
+  The song (343707) has almost no drum hits before bar 17 (28 s, the drop); from there kicks and snares every
+  half-beat, accents at beats 83.5, 84.5, 92.5, 94.5, 109... (local/hits/343707.json). So sync goes in the
+  second half; deco pulses stay off the grid (decokit.motion: one pulse group on the beat, the rest off-beat).
+
+**v7 result (2026-11-25, five builds, ~6-10 min each):** score.js NOT READY only on "roles" (33/42 sections: the
+blocks' own dark fill counts as deco against the black bodies -- v6 would fail it too, the gate came after v6).
+Prejumps none, fairness clean, player timing 142 ms (v6 96), tempo 0.60 inputs per beat (v6 0.50; busy 0.50),
+dead air clean, triples 0, 27 objects per block (v6 7.8), ~1100 motion triggers. WARNs: ending 2.9 s from the
+last input (the run-out after the green-orb flip), presses on hits still 2% (median 134 ms off). In the viewer
+as wip polish v7; too big for a phone database row (787 KB > 250 KB), so the phone page needs a republish
+(tools/web.js) to show it.
+What the builds taught: (1) a structure that passes alone can break in context -- b63's blue-orb bounce left the
+press before the wave with nothing to jump (prejump at 278; a single at j67 fixed it), s:red-orb-wall right
+after s:green-orb-flip prejumped (2.7 blocks), s:orb-ladder-2 there made a 3-orb chain under 500 ms (fairness),
+at b100 and b101.5 alike; the level now ends on the green-orb flip. (2) Leave 6+ blocks between two orb
+structures. Copies: local/polish/hg_v6.gdlvl, hg_v7_redorb.gdlvl.
+
 ## Soft rules from the user's notes (CLAUDE.md: each note is a rule, checked everywhere)
 
 | family | check | sweep (2026-11-23) |
@@ -199,6 +243,7 @@ planner was fixed.
 | uneven spike clusters | `tools/clusters.js <level ...> --gate`: overlap, ragged gaps, a hazard just before a pad (static) | 13 GDLM levels: v13 3 spots (the user's), GDLM 45 1 ragged (block 63), all others clean; round 2 clean |
 | disconnected structure (open step where a slope meets a roof) | `tools/joins.js <level ...> --gate`: each slope's surface ends touch a solid, the ground or the band top (static); showcase's softrules.js "stubs" calls it | 45 7, 46 sketch 2, 47 1, the rest clean; hellgate clean since round 3 |
 | empty ground under a mode portal; portal above the walking line | `tools/portalground.js <level ... \| official \| community> --gate`: a pit or hazard under a non-cube mode portal, or its box a cube's height above the ground (a walking cube passes under) | GDLM: hellgate (fixed rounds 3 and 3b); every GDLM level clean since the "above" rule skips a portal the player reaches flying (46 sketch's wave portal at block 87 is entered from the ship: a false positive before); official 65% / community 51% of mode portals flagged (they jump into them: a warning, not a gate) |
+| too few presses for the song's beat (the user on hellgate v6: "the cps is very small, compared to beat of the song") | `tools/tempo.js <level ... \| official> [--phrases] [--gate]`: inputs per beat of the human route (taps; ship / wave releases count), over the level and per 2-bar phrase; busy = phrases in the upper half of the level's energy (tools/energy.js). WARN under 0.52 per beat over the level (just under the officials' lowest, Stereo Madness 0.53), under 0.50 in the busy parts, or 2+ busy phrases with under 2 inputs in 8 beats. score.js gate "tempo" (WARN). Official 1-16 + 19: 0.53-0.87 per beat (median 0.62), busy 0.50-1.13; only Theory of Everything has a near-empty busy phrase (one) | 2026-11-24, 28 GDLM levels: under 0.52 per beat -- 01, 02, 41, 42, 43, 44 v6 (0.50), 60, 62 (0.39, busy 0.38), 63, 67, 68 (labs), 69 (busy 0.38); 45, 46 sketch, 47, 50, 51, 52, 61, 64, 65, 66, 70 within the officials' range |
 | nothing happens (long ending, empty stretches) | `tools/deadair.js <level ...> --gate`: gaps over 3 s with no press, hazard, orb, pad, portal or corridor wall near the path; the sign over 2 s after the last gameplay; the level running past the sign | 41 1, 43 2, 46 arrow catalogue 1, 46 sketch 1, 47 8, 50 2, 51 1; 42, 44, 45 clean |
 | big breaks with nothing (GDLM 61 v3, 38-46 s; widened 2026-11-24 by the craft session) | `tools/deadair.js` also flags input gaps over max(2 s, 2.5x the level's median press gap) and empty screens (nothing but floor in view for 1+ s; `official:N` measures RobTop's: 1 empty screen in ten levels); score.js gate "dead air" (WARN). The 3 s rule missed 61 because nobody ran it on 61 -- now it runs in every score. Polish's review (same day): a gap is time with the button UP (a held press -- a dash orb, a ship climb -- is play: hellgate's 2.1 s dash-orb hold was flagged), and a ground-row block counts at its edges (a step; 62's outro steps read as empty) | sweep 2026-11-24: 45 input gaps, 22 empty screens over 25 levels; clean: 01, 42, 46 sketch; most: 61 (5+3), 62 (2+4), 51 (6+1), 47 (3+2), 64 (3-5 +0-1), 67 (4+2). After the review: 14 empty screens. Polish's fixes: 51 v3 (spikes at 253, 263, 291, 360: READY, 112 ms, dead air 5 flags -> 1 -- the re-solved UFO coasts 14.8-17.6 s; the hanging spike at 253 needs no action, a candidate to remove); 44 tried (a ball flip more, a spike on j77: the ball gap went, but the full re-solve gave prejumps at 83/88/346 and 62.5 ms, and the j77 spike did not end the 30.5-32.8 s gap -- v6 kept, attempt in local/polish/hg_v7_deadair_attempt.diff); 62 planned (a cube jump on the snare opening the ball, b33, and the drop, b97; local/polish/62_deadair_proposal.diff) but loop.js's owner guard stops it (ultrasync's wip) -- for main / the user to clear; 45's 2.03 s left (at the limit); 64 to style (v8), 67 to physics2 |
 
@@ -215,6 +260,30 @@ lib/windows.js (the viewer's window bars).
   renders before/after (shoot.js), viewer/polish.html.
 - The real game: GDLM 46 v2's deaths (physics session, 03-50-48.mkv) drove the v3 fixes. Not yet: a
   polished level played by the user.
+
+## Handoff (2026-11-24: the polish session is archived, gd-style takes over)
+
+**Tools the polish session wrote** (all static or one replay, seconds a level):
+| tool | what | test |
+|---|---|---|
+| `tools/polish.js` | the passes (fair, sync, chevrons, modern look) on a copy in local/polish/ | `node tests/polish.js` |
+| `tools/deadair.js` | dead stretches, input gaps (button up only), empty screens; `quiet()` is score.js's "dead air" | none yet (official:N runs are the yardstick) |
+| `tools/portalground.js` | a mode portal over a pit / hazard, or above the walking line (unless arriving flying) | none yet; `official` / `community` print the reference shares |
+| `tools/tempo.js` | inputs per beat of the human route vs the officials; score.js "tempo"; style's pace.js uses its exports (check, analyse, inputs, REF -- keep them stable) | `node tests/tempo.js` |
+| `tools/indicators.js`, `tools/joins.js`, `tools/clusters.js`, `tools/orbarc.js`, `tools/readability.js` | the soft-rule checks in the table below | via tests/polish.js / none |
+| `tools/scenes/hellgate.js` | hellgate's scene (v7: decokit density + motion) | `node tools/make.js specs/44_hellgate.json --look` |
+
+**Open, in order:**
+1. Hellgate v7 (round 4 above): built and in the viewer as wip polish; the user's verdict is open. v8 ideas:
+   upside-down inside a ship tunnel (ship-tunnel needs a gravity-portal option), presses on the drop's hits
+   (beats 83.5, 84.5, 92.5, 94.5: `node tools/hits.js --level`), the roles gate (contrast by role) still fails
+   on hellgate's dark scheme -- fixing it means lifting the deco off the black block bodies without losing the
+   contrast the user praised on v6 (the user: "better contrast of colors").
+2. 62 dead air: local/polish/62_deadair_proposal.diff, blocked by loop.js's owner guard (ultrasync's wip); for
+   main / the user to clear.
+3. 51 adrift: the hanging spike at 253 (a candidate to remove), the UFO coast 14.8-17.6 s.
+4. Levels under the tempo rule: 62, 69 (busy parts 0.38) -- their owners; the early cube levels and labs.
+5. The "Open" list below (extend, polish.js on lib/windows.js, drops from songmap, difficulty before/after).
 
 ## Open
 

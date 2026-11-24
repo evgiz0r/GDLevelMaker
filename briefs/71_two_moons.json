@@ -49,12 +49,11 @@
    11
   ],
   [
-   12,
-   13
+   12
   ],
   [
-   14,
-   15
+   13,
+   14
   ]
  ],
  "sections": [
@@ -433,7 +432,7 @@
   },
   {
    "name": "moon ship",
-   "beats": 24,
+   "beats": 40,
    "speed": "2x",
    "mode": "ship",
    "flash": true,
@@ -460,36 +459,14 @@
    "gaps": [
     2,
     3
-   ]
-  },
-  {
-   "name": "moon wave",
-   "beats": 16,
-   "mode": "wave",
-   "bg": [
-    27,
-    36,
-    54
    ],
-   "ground": [
-    20,
-    26,
-    40
-   ],
-   "line": [
-    240,
-    244,
-    255
-   ],
-   "obj": [
-    255,
-    255,
-    255
-   ],
-   "gaps": [
-    2,
-    3
-   ]
+   "args": {
+    "ship-tunnel": {
+     "waves": 2,
+     "teethEvery": 6
+    }
+   },
+   "note": "lab r2 v1 ship-corridor (best passing of round 2, until the user picks)"
   },
   {
    "name": "moon swing",
