@@ -283,7 +283,15 @@ What exists and what blocks it (2026-11-23):
   replay_run.js matches the recorded sound around each attempt with the level's song from its offset
   (loudness envelopes, 100 Hz): the music's restart pins the attempt's start to ~10 ms (a synthetic test: 2.00 s
   found for 2.00 s), then the press shift is searched +-25 ms; without sound or the song, the bar fit (+-1.5 s).
-  Not yet run on a real recording.
+  First real run (2026-11-24, GDLM 63 dual + movers lab, GD claude-rec 2026-11-24_02-13-32.mkv with the
+  minimal "<unix ms> <down|up> <key>" log, no sound; window 172,94,1600): one clock offset for the whole
+  recording, 842 ms, from the clears. BOTH CLEARS REPLAY TO THE END IN THE SIM with the user's own presses:
+  every station (dual, moving objects, orbs) agrees with the game on that run. The first attempt (died 38.1%)
+  needs a 1.4 s shift: its bar-detected start is late (the first attempt fades in after loading), not physics.
+  The 0.9% / 3.6% "deaths" are quick restarts. Orb stations: at 9 and 11 the user pressed again at the orb
+  instead of holding from the jump, so "a held jump fires an orb" is still unanswered (ask for a hold next
+  time); 10 (press just before, held) fired as the sim expects; 12 fired and the run went on.
+  Attempts are in local/attempts/gdlm_63_dual_and_movers_lab.jsonl (viewer "Your runs", video lines).
 - Practice-mode respawns break time -> x; per-attempt segmentation by the attempt label or a jump in x.
 Lab 2 (to build): the mini cube, the pink orb (clean, at ground level so the camera stays still), 45-degree
 and -53-degree teleports, the swing, dual portals, and a green orb in mid-air.

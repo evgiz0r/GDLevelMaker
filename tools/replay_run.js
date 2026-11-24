@@ -35,8 +35,18 @@ const L = loadLevel(lv), w = GD.makeWorld(L.level.objects, L.level.header);
 // 1. attempts from the progress bar (tools/runs.js output, run it first if missing)
 const runsFile = path.join(__dirname, "..", "local", "runs", path.basename(video).replace(/\.\w+$/, "") + ".json");
 if (!fs.existsSync(runsFile)) execFileSync(process.execPath, [path.join(__dirname, "runs.js"), video].concat(opt("window") ? ["--window", opt("window")] : []), { windowsHide: true, stdio: "inherit" });
-const runs = JSON.parse(fs.readFileSync(runsFile, "utf8")).runs.filter(r => r.mode === "normal" && r.secs > 1)
+// only this level's attempts: a recording holds several levels; the bar gives each attempt's implied length
+// (secs * 100 / pct), which must be near this level's (the sim's run time to the end) within 25%
+const allRuns = JSON.parse(fs.readFileSync(runsFile, "utf8")).runs.filter(r => r.mode === "normal" && r.secs > 1)
   .filter(r => r.start >= +opt("from", -1) && r.start <= +opt("to", 1e9));
+let runs = allRuns;
+if (!opt("from") && !opt("to")) {
+  const lens = allRuns.map(r => r.beaten ? r.secs : r.pct > 5 ? r.secs * 100 / r.pct : null);
+  const beat = allRuns.filter(r => r.beaten).map(r => r.secs);
+  const ref = +opt("secs", beat.length ? beat.sort((a, b) => a - b)[beat.length >> 1] : 0);
+  if (ref) runs = allRuns.filter((r, i) => lens[i] == null ? r.secs < ref * 0.3 : Math.abs(lens[i] - ref) / ref < 0.25);
+  if (runs.length < allRuns.length) console.log(`${allRuns.length - runs.length} attempt(s) left out: another level by their length (this one ~${ref.toFixed(0)} s; --secs or --from/--to to choose)`);
+}
 
 // 2. the input log: press/release times in UTC ms
 // two formats: tools/inputlog.ps1's "ms,utc ISO,down|up,key" and the minimal logger's "<unix ms> <down|up> <key>"
@@ -74,7 +84,7 @@ function songFile() {
 }
 const audioFile = opt("audio", (() => { const d = path.dirname(video), stamp = path.basename(video).match(/\d{4}-\d\d-\d\d_\d\d-\d\d-\d\d/);
   if (!stamp || !fs.existsSync(d)) return null; const all = fs.readdirSync(d).filter(f => /^GD claude-audio .*\.wav$/.test(f)).sort();
-  const before = all.filter(f => f.slice(15, 34) <= stamp[0]); return before.length ? path.join(d, before[before.length - 1]) : null; })());
+  const before = all.filter(f => f.slice(16, 35) <= stamp[0]); return before.length ? path.join(d, before[before.length - 1]) : null; })());
 let audio = null, song = null, songEnv = null;
 if (audioFile && fs.existsSync(audioFile + ".json")) { audio = JSON.parse(fs.readFileSync(audioFile + ".json", "utf8")); audio.file = audioFile; song = songFile(); if (song) songEnv = envelope(song.file, song.off, 3); }
 function pinStart(approxUtc) {   // UTC ms of the music's restart near approxUtc, or null
@@ -92,21 +102,31 @@ function pinStart(approxUtc) {   // UTC ms of the music's restart near approxUtc
 }
 if (audioFile) console.log(`sound: ${path.basename(audioFile)}${song ? ", song " + path.basename(song.file) : " (the level's song is not on this PC: bar fit only)"}`);
 
-for (const r of runs) {
-  let t0 = videoT0 + r.start * 1000;   // the attempt's first frame, UTC, to within the name's second
-  const pinned = pinStart(t0), span = pinned != null ? 25 : 1500;
-  if (pinned != null) t0 = pinned;
+// one clock offset for the whole recording (the log's clock vs the video name's second): found on the attempts
+// that are most constrained -- the clears and long runs -- then every attempt is judged within +-60 ms of it
+function fit(r, center, span) {
+  let t0 = videoT0 + r.start * 1000;
+  const pinned = pinStart(t0); if (pinned != null) { t0 = pinned; center = 0; span = 25; }
   let best = null;
-  for (let sh = -span; sh <= span; sh += 1000 / 240) {
+  for (let sh = center - span; sh <= center + span; sh += 1000 / 240) {
     const start = t0 + sh, list = button.filter(e => e.t >= start - 50 && e.t <= start + r.secs * 1000 + 500)
       .map(e => ({ tick: Math.max(0, Math.round((e.t - start) / 1000 * 240)), type: e.type }));
     if (!list.length) continue;
-    const q = GD.run(w, list), pct = q.done ? 100 : endPct(q), want = r.beaten ? 100 : r.pct;
-    const err = Math.abs(pct - want);
-    if (!best || err < best.err) best = { err, sh, pct, q, list };
+    const q = GD.run(w, list), pct = q.done ? 100 : endPct(q), err = Math.abs(pct - (r.beaten ? 100 : r.pct));
+    if (!best || err < best.err - 1e-9) best = { err, sh, pct, q, list };
+  }
+  return best;
+}
+const anchors = runs.filter(r => r.beaten).concat(runs.filter(r => !r.beaten).sort((a, b) => b.secs - a.secs)).slice(0, 4);
+const shifts = anchors.map(r => fit(r, 0, 1500)).filter(b => b && b.err <= 2.5).map(b => b.sh).sort((a, b) => a - b);
+const OFFSET = +opt("offset", shifts.length ? shifts[shifts.length >> 1] : 0);
+console.log(`clock offset ${Math.round(OFFSET)} ms (from ${shifts.length} anchor attempt(s)${shifts.length ? ": " + shifts.map(Math.round).join(", ") : ""})`);
+for (const r of runs) {
+  const best = fit(r, OFFSET, shifts.length ? 60 : 1500);
+  {
   }
   if (!best) { out.push({ attempt: r.start, note: "no inputs logged in this attempt" }); continue; }
-  const want = r.beaten ? 100 : r.pct, ok = best.err <= 1.5;
+  const want = r.beaten ? 100 : r.pct, ok = best.err <= 2.5;   // GD's % and our x/endX differ by ~1-2%
   const row = { video_t: r.start, video: r.beaten ? "beaten" : `died ${r.pct.toFixed(1)}%`, sim: best.q.done ? "beaten" : `died ${best.pct.toFixed(1)}% (${best.q.why || "?"})`,
     shift_ms: Math.round(best.sh), presses: best.list.filter(e => e.type === "press").length, agree: ok,
     events: best.list, beaten: !!r.beaten, videoPct: r.beaten ? 100 : r.pct, secs: r.secs, x: +(w.endX * (r.beaten ? 100 : r.pct) / 100).toFixed(1), why: best.q.why };
