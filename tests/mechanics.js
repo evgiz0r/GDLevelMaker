@@ -229,4 +229,15 @@ for (const hold of [true, false]) {
   const g = GD.solveAny(GD.makeWorld([DP(300, 60), { id: 8, x: 800, y: 15 }, { id: 8, x: 1100, y: 285, flipY: true }, SOLO(1400, 60), { id: 1, x: 1800, y: 15 }]));
   check("dual: the solver clears a dual part with one button", g.ok, g.ok ? `${g.clicks.filter(c => c.type === "press").length} presses` : `${g.why} ${g.skipped || ""}`);
 }
+// landing buffer (PHYSICS.md "Landing buffer"): a cube's tap in the air made while FALLING jumps on landing, however
+// long before (the user's Clutterfunk clear: 53 ticks); one made while still RISING does not (Geometrical Dominator)
+{
+  const w = GD.makeWorld([{ id: 1, x: 6000, y: 15 }]);
+  const jumps = (tapAt) => { const s = GD.startState(w); let n = 0;
+    for (let t = 0; t < 400; t++) { GD.step(w, s, { press: t === 10 || t === tapAt, held: (t >= 10 && t < 14) || (t >= tapAt && t < tapAt + 6) }); if (s.act === "jump") n++; }
+    return n; };
+  // a flat jump from t 10: rising until ~t 61, lands ~t 113
+  check("landing buffer: a tap while falling, 50 ticks before landing, jumps on landing", jumps(63) === 2, `${jumps(63)} jumps`);
+  check("landing buffer: a tap while still rising does not", jumps(40) === 1, `${jumps(40)} jumps`);
+}
 process.exit(bad ? 1 : 0);
