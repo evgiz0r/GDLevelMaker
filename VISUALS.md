@@ -196,10 +196,11 @@ ground line with `tools/track.py --rows`. Source: Hexagon Force, recording 2026-
 | cube spin in the air | 412 deg/s, clockwise | sim 416.5 deg/s | matches (1 %) |
 | cube landing | eases into square over ~0.1 s (6 frames) | 0.12 per tick toward the nearest 90 (~0.1 s) | matches |
 | ground at rest | 3.0 blocks above the bottom of the view | 3.1 | matches |
-| camera lift (cube) | 0.9 blocks at 4.4 blocks height, 1.7 at 6.6 | 0 and 2.1 (follows s.y - 4.5 blocks) | open: < 1 block off |
+| camera lift (cube) | 0.9 / 0.94 / 1.36 / 1.6 / 1.74 blocks at 4.4 / 5.2 / 5.6 / 6.5 / 6.6 blocks height | was 0 / 0.7 / 1.1 / 2.0 / 2.1 (s.y - 4.5 blocks); now 0.38 x (height - 2 blocks), player at most 5.5 blocks up the screen: 0.91 / 1.22 / 1.37 / 1.71 / 1.75 | fixed (mean error 0.45 -> 0.08 blocks) |
 | trail (streak) | the user's streak 7 (orange texture) added onto the scene: pink over magenta; tapers; ~3.6 blocks behind the ship at 1x = ~0.35 s | was the icon green, 0.22 s | fixed: the user's own streak colour, 0.35 s, tapered |
 | ship tilt | by eye: more than ours | follows the sim's rot, smoothed | open: rot_video's box method fails on the ship's shape |
-| colours | brighter and more magenta at the same moments; ground saws pink, block edges glowing | violet, white saws | open: measure per channel |
+| colours | at 12.2 s the background fade (trigger 29 at x 3795: to 255,91,0 over 10 s) is ~1.6 s along in the game, ~0.2 s in ours; ground saws pink, block edges glowing | violet, white saws | open: needs the video aligned by position first (GD may fire old colour triggers earlier, or the video is ahead) |
+| solver icon | -- | the replay's player and the vs-solver cube use the Claude icon set (viewer/icons/claude, art) | done |
 | frame alignment | -- | the replay sits 2-8 blocks behind the video at the same t | open: the attempt's t0 / tick origin (asked gd-physics) |
 
 ## Facts (checked against the user's recordings)
