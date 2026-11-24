@@ -43,7 +43,16 @@ function chunkOf(c) {
 // flying mode a wall of three (rows 1, 4, 7), so it is taken at any height (tools/structures.js harness)
 const LEAD_AFTER = { cube: 6, ship: 8, ball: 5, ufo: 4, wave: 4, robot: 4 };
 const FLY = new Set(["ship", "ufo", "wave", "swing"]);
-const portalAt = (m, c, from) => FLY.has(from) || from === "ball" ? [1, 4, 7].map(r => [MODE_PORTAL[m], c, r]) : [[MODE_PORTAL[m], c, 1]];
+// Out of a flying mode: ONE portal on the last chunk's exit row, in a funnel of blocks (a 3-row gap), so
+// the player cannot miss it -- a wall of three left two untouched, which score.js "skips" fails (GDLM 61 v2).
+// Out of the ball: one portal on row 1 (the craft ball parts end on the floor: no roof to stay on).
+const portalAt = (m, c, from, exitRow) => {
+  if (!FLY.has(from)) return [[MODE_PORTAL[m], c, 1]];
+  const r = Math.max(2, Math.min(8, exitRow ?? 4)), o = [[MODE_PORTAL[m], c, r]];
+  for (let y = 0; y <= r - 2; y++) o.push(["block", c, y]);
+  for (let y = r + 2; y <= 11; y++) o.push(["block", c, y]);
+  return o;
+};
 const dark = (rgb, k) => rgb.map(v => Math.round(v * k));
 const light = (rgb, k) => rgb.map(v => Math.round(v + (255 - v) * k));
 
@@ -55,7 +64,7 @@ function compose(brief) {
   const bar0 = brief.grid.t0 + k * barSec - brief.offset;  // level seconds of bar 0
   const colOfBar = b => Math.round((bar0 + b * barSec) * blocksPerSec);
   const objects = [], notes = [];
-  let col = brief.lead || 10, bar = 0, mode = "cube", lastEnd = 0;
+  let col = brief.lead || 10, bar = 0, mode = "cube", lastEnd = 0, exitRow = null;
   const lead = brief.lead || 10;
   if (colOfBar(0) < lead) bar = Math.ceil((lead / blocksPerSec - bar0) / barSec);
   brief.sections.forEach((sec, si) => {
@@ -69,12 +78,12 @@ function compose(brief) {
       // a calm floor before the portal (the natural route jumped over a portal 3 blocks after a tower), and
       // the rated lead-in after it (tools/score.js lead-in: cube 6, ship 8, ball 5)
       col = Math.max(col, lastEnd + 6);
-      objects.push(...portalAt(m, col, mode)); mode = m; col += LEAD_AFTER[m] || 4;
+      objects.push(...portalAt(m, col, mode, exitRow)); mode = m; col += LEAD_AFTER[m] || 4;
     }
     sec.chunks.forEach((c, i) => {
       const ch = chunkOf(c);
       objects.push(...shift(ch.objects, col));
-      col += ch.width; lastEnd = col; col += i < sec.chunks.length - 1 ? (sec.gap ?? 4) : 0;
+      col += ch.width; lastEnd = col; exitRow = ch.exitRow ?? null; col += i < sec.chunks.length - 1 ? (sec.gap ?? 4) : 0;
     });
     if (col > end) notes.push(`section ${si} (${m}) runs ${col - end} blocks past its ${sec.bars} bars`);
     // xStep's build-up: hue flashes (a lighter tint and back) on beats, closer together, into the next section
@@ -88,14 +97,18 @@ function compose(brief) {
     bar += sec.bars;
     col = Math.max(col + 3, colOfBar(bar) - 0);
   });
-  if (mode !== "cube") { col = Math.max(col, lastEnd + 6); objects.push(...portalAt("cube", col, mode)); col += 8; }
+  if (mode !== "cube") { col = Math.max(col, lastEnd + 6); objects.push(...portalAt("cube", col, mode, exitRow)); col += 8; }
   const spec = {
     name: brief.name, desc: brief.desc, song: brief.song, offset: brief.offset, grid: brief.grid, seed: brief.seed || 1,
     style: "classic", craft: brief.craft ?? true, colours: { bg: brief.sections[0].hue, ground: dark(brief.sections[0].hue, 0.45) },
     decoDensity: [[0, brief.decoDensity ?? 0.2]], indicators: brief.indicators ?? { all: false },
+    // the 1.x look (CRAFT.md 4): the plain squares background, the plain ground, NO middleground hills (the
+    // template's bg 57 and hill band hid the black pit spikes and fought the black-and-white playfield)
+    art: Object.assign({ bg: 1, ground: 1, mg: 0 }, brief.art || {}),
     notes: (brief.notes || "") + " | composed by tools/craftlevel.js from " + (brief.file || "a brief"),
     objects: [...objects, ...(brief.extra || [])],
   };
+  if (brief.accept) spec.accept = brief.accept;   // gates the level breaks on purpose, each with its reason (score.js)
   if (brief.speed && brief.speed !== "1x") spec.speed = brief.speed;
   return { spec, notes, endCol: col };
 }

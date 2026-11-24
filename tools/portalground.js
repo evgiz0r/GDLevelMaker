@@ -6,7 +6,8 @@
 // sits over flat, continuous ground or a platform -- the surface under it and the 2 columns before it at
 // one height, with no hazard there. Flagged: a PIT (the ground under the portal lower than both 2 columns
 // before and 1 after) or a hazard; a plain step (off a ledge) is only counted, not flagged. Also flagged:
-// a portal whose box starts a cube's height or more above the ground under it (a walking cube passes under it).
+// a portal whose box starts a cube's height or more above the ground under it (a walking cube passes under it),
+// unless the player arrives flying (the previous mode portal is ship / wave / ufo / swing).
 // For each such portal: the surface in each of those 3 columns = the top of the highest solid cell
 // below the portal (or the ground). Flags "pit" when they differ by a row or more or a hazard sits there.
 // Portals more than 5 rows above that surface (reached in the air, inside a corridor) are skipped.
@@ -22,6 +23,11 @@ function check(objs) {
   const solid = objs.filter(o => { const k = (O.objInfo(o.id) || {}).kind; return (k === "solid" || k === "slope") && !(o.props && (o.props[121] === "1" || o.props[134] === "1")); });
   const haz = objs.filter(o => (O.objInfo(o.id) || {}).kind === "hazard");
   const out = [];
+  // the mode the player arrives in: the previous mode portal's (cube 12 included; the level starts as a cube).
+  // "above" only matters for a player on the ground (cube, ball, robot, spider): a ship or wave flies into it.
+  const seq = objs.filter(o => MODE[o.id] || o.id === 12).sort((a, b) => a.x - b.x);
+  const arriving = p => { let m = "cube"; for (const q of seq) { if (q.x >= p.x - 1) break; m = MODE[q.id] || "cube"; } return m; };
+  const FLY = new Set(["ship", "wave", "ufo", "swing"]);
   for (const p of objs.filter(o => MODE[o.id])) {
     const pc = Math.floor(p.x / 30), tops = [];
     let hz = false;
@@ -39,7 +45,7 @@ function check(objs) {
     // passes UNDER it and never changes mode (GDLM 44 round 3: the solver walked under the second wave portal and
     // climbed the corridor as a cube; a secret way). The portal must reach the walking line.
     const sc = +((p.props && p.props[32]) || 1), bottom = p.y - 43 * sc, above = bottom >= Math.max(tops[0], tops[1], tops[2]) + 30;   // the highest of the 2 columns before and under it: a cube dropping off a ledge there is still falling into it
-    if (above && !pit && !hz) out.push({ x: p.x, mode: MODE[p.id], kind: "above", note: `its box starts ${((bottom - Math.max(tops[0], tops[1], tops[2])) / 30).toFixed(1)} rows above the ground: a walking cube passes under it` });
+    if (above && !pit && !hz && !FLY.has(arriving(p))) out.push({ x: p.x, mode: MODE[p.id], kind: "above", note: `its box starts ${((bottom - Math.max(tops[0], tops[1], tops[2])) / 30).toFixed(1)} rows above the ground: a walking cube passes under it` });
     else if (pit || hz) out.push({ x: p.x, mode: MODE[p.id], kind: hz ? "hazard" : "pit", note: hz ? "a hazard under the portal" : `a pit under it (ground rows ${tops.map(t => t / 30).join(", ")}: from 2 before to 1 after)` });
     else if (hi - lo >= 30) out.push({ x: p.x, mode: MODE[p.id], kind: "step", info: true, note: `a step under it (rows ${tops.map(t => t / 30).join(", ")})` });
   }

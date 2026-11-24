@@ -66,8 +66,11 @@ from few long masses on a safe floor, with decoration floating in the background
 - **At Easy/Normal, tap-able pillars** (the user on GDLM 61 v1, blocks 15-60, 2-wide pillars 2 apart:
   "these clicks very unnatural ... the timings seem reallllly awkward"; the saved route was one long hold).
   Jumper's 1-2-wide pillars are a Harder rhythm: they work only as a held bounce. Ours: tops 3-4 wide, a
-  RISE over a 1-column pit (over 2 columns the take-off must come late: ~1 block, ~100 ms of window), a
-  DROP over a 3-column pit (over 2 the cube walks across without a jump and the pit means nothing).
+  RISE is a plain step with NO pit (over any pit the window is cut by the higher pillar's face on one side
+  and the pit on the other: 208 ms over 1 column, ~100 ms over 2 -- score.js "reactive", the user's GDLM 45
+  note "as if I need to time not to hit the block"), a DROP crosses a 3-column pit, +1 per extra row
+  (over 2 the cube walks across without a jump and the pit means nothing). Floating steps go DOWN a row
+  each for the same reason. Checked at 1x only (structures tagged "1x only"): at 2x the widths differ.
 - **Hanging columns cap the jump**: a ceiling of columns from the top, their ends 2-4 blocks over the
   pillar tops, so the arc is framed above and below (Jumper's whole opening).
 - **Symmetric set pieces**: stepped pyramids, a block with spikes on every side, rows of `^#^` (a 1-wide
@@ -151,7 +154,42 @@ From the text maps; each is now (or will be) a structure in `tools/structures.js
   hue flashes (`"build": n` bars) into the next section, `"craft": true` and the classic skins. Writes
   `specs/NN_<name>.json` for make.js.
 
+## The level (step 3): GDLM 61 lantern towers
+
+`briefs/craft_61_lantern_towers.json` -> `tools/craftlevel.js` -> make.js. 72 s, Thumper (Waterflame), cube /
+ship / cube with gravity / ball / cube / ship, one hue per section. v2 (2026-11-24) passes every score.js gate
+(0 fail, 11 warn; Normal, ~2 attempts; tightest window 62 ms). v1's 2-wide pillars were one long held jump
+(the user: "reallllly awkward"); v2's are 4 wide, rises are steps, drops 1 row over 3-wide pits.
+
+Honest verdict from the GD-art renders (`local/shots/craft/compare_v2.jpg`): it does NOT look like Jumper or
+xStep yet. Craft numbers 2/8 (pieces 9 per 100 blocks vs 14-28, hazards 40 vs 62-191, 36% loose deco). Why:
+- tap-able Easy/Normal pillars are 4 wide, so a level has fewer, larger pieces -- the craft targets are
+  Hard/Harder numbers; Easy/Normal targets are not measured yet (taste data: featured EN ~75-81 hazards/100);
+- the classic style's blurred background art and the hill band in front of the floor hide the black pit
+  spikes and fight the black-and-white playfield (Jumper: a flat tinted bg with faint squares);
+- few hanging columns, so the frame above the jump (Jumper's whole opening) is mostly missing.
+
+## Density that costs no timing (tested 2026-11-24, for the art session's dense pieces)
+
+Jumper's density comes from spikes ON the pieces, not from pits alone. Two placements add hazards and
+pieces with the player's windows unchanged (tools/structures.js check, alone):
+- **Hanging spike tips**: a spike under every hanging column's end, its tip 3+ rows over the HIGHER pillar
+  beside the pit (the column's end `cap` = 4 rows over it): `capped-hop-armed` (cap 4) and `capped-hop-armed5`
+  (cap 5) -- 296 ms, no "hazards matter" warning, same as unarmed. Hazards 25 -> 39 per 100 blocks,
+  undersides armed 40% -> 100%. Code: `pillarRun(..., capGap, capSpikes=true)`.
+- **Spike-tipped pit pillars**: a 1-wide pillar in the MIDDLE of a 3-wide drop pit, a row under the lower
+  landing, with a spike on top (the pillar replaces that pit column): `pillar-climb-tipped` -- 300 ms, clean.
+  Adds pieces (11 -> 17 per 100 blocks) and pillar height changes (100%), not hazards (a pit spike becomes
+  the top spike). Code: `pillarRun(..., tips=true)`.
+- **Never a spike on a top the route lands on**: it is a new obstacle (a jump over it), not dressing. A top
+  is dressed for free only when the route never touches it: the tipped pit pillar, a column end overhead.
+
 ## What is open
+
+- **The look of a craft level**: a flat tinted background, no hill band over a pit floor, more hanging
+  columns and armed undersides; then re-render next to Jumper / xStep.
+- **ceiling-hop** fails prejumps (upside-down jumps over its roof pits, at any width tried): out of GDLM 61.
+- **Craft structures at 2x**: checked at 1x only (tag "1x only"; style found capped-hop / stepped-pyramid fail at 2x).
 
 - Not measured: how the pieces sync with the song (Jumper's piece rhythm vs its beat).
 - The 2.2 look (TASTE.md, modern_look.md) and this 1.x craft are not opposed: the craft is about the

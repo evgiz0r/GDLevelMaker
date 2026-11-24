@@ -23,12 +23,19 @@
    ],
    "build": 2,
    "chunks": [
-    "pillar-hop",
+    {
+     "s": "pillar-hop",
+     "args": {
+      "cap": 4
+     }
+    },
     "stepped-pyramid",
     {
-     "rest": 6
+     "s": "capped-hop",
+     "args": {
+      "cap": 4
+     }
     },
-    "capped-hop",
     "lantern-orb"
    ]
   },
@@ -57,7 +64,7 @@
      }
     }
    ],
-   "gap": 2
+   "gap": 1
   },
   {
    "bars": 8,
@@ -69,13 +76,18 @@
    ],
    "build": 1,
    "chunks": [
-    "ceiling-hop",
     "blue-orb-ceiling",
-    "pillar-climb",
+    {
+     "s": "pillar-climb",
+     "args": {
+      "cap": 4
+     }
+    },
     "gravity-pad-gap",
     "red-pad-tower",
     "pink-orb-pit"
-   ]
+   ],
+   "gap": 4
   },
   {
    "bars": 6,
@@ -90,79 +102,7 @@
     "ball-orb",
     "ball-flips",
     {
-     "raw": [
-      [
-       "block",
-       0,
-       5
-      ],
-      [
-       "block",
-       1,
-       5
-      ],
-      [
-       "block",
-       2,
-       5
-      ],
-      [
-       "block",
-       3,
-       5
-      ],
-      [
-       "block",
-       4,
-       5
-      ],
-      [
-       "block",
-       5,
-       5
-      ],
-      [
-       "block",
-       6,
-       5
-      ],
-      [
-       "block",
-       7,
-       5
-      ],
-      [
-       "block",
-       8,
-       5
-      ],
-      [
-       "block",
-       9,
-       5
-      ],
-      [
-       "block",
-       10,
-       5
-      ],
-      [
-       "block",
-       11,
-       5
-      ],
-      [
-       "block",
-       12,
-       5
-      ],
-      [
-       "block",
-       13,
-       5
-      ]
-     ],
-     "w": 14
+     "rest": 4
     }
    ]
   },
@@ -181,27 +121,16 @@
      "args": {
       "heights": [
        1,
-       3,
        2,
-       3,
-       1
-      ]
-     }
-    },
-    "dash-orb-pit",
-    {
-     "s": "capped-hop",
-     "args": {
-      "heights": [
        1,
        2,
        3,
-       2,
-       3
+       2
       ],
       "cap": 4
      }
     },
+    "dash-orb-pit",
     "lantern-orb",
     {
      "s": "slab-steps",
@@ -210,7 +139,8 @@
       "gap": 3
      }
     }
-   ]
+   ],
+   "gap": 3
   },
   {
    "bars": 4,
@@ -241,13 +171,16 @@
        4,
        5,
        6,
-       5,
-       4
+       5
       ]
      }
     }
    ],
    "gap": 2
   }
- ]
+ ],
+ "decoDensity": 0.05,
+ "accept": {
+  "symmetry": "the orbs sit where the jump's arc reaches them (the user: orbs where the arc goes), not on the centre of the pit's spike row"
+ }
 }

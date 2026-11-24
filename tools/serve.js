@@ -325,8 +325,10 @@ const SERVER = http.createServer((req, res) => {
       const all = JT.rows(), hs = H.holders(), ws = H.waiters().sort((a, b) => H.RANK[a.prio] - H.RANK[b.prio] || String(a.since).localeCompare(String(b.since)));
       const est = c => JT.estimate(c, all);
       const hEta = hs.map(h => H.etaOf(h));
-      out.holders = hs.map((h, i) => ({ cmd: short(h.cmd), session: h.session, min: Math.round((now - Date.parse(h.start)) / 60000), left: hEta[i] ? hEta[i].left : null, basis: hEta[i] ? hEta[i].basis : null, over: hEta[i] ? hEta[i].over : false }));
-      out.waiting = ws.map(w => { const e = est(w.cmd); return { cmd: short(w.cmd), session: w.session, prio: w.prio, est: e ? Math.max(1, Math.round(e.secs / 60)) : null, secs: e ? Math.round(e.secs) : null, basis: e ? e.basis : null }; });
+      // the slots ("Go more in parallel", 2026-11-24): 2 while the game is closed and free >= 1.5 GB + one job's memory
+      { const fr = H.freeMB(), game = H.gameRunning(), mb = H.jobMB(); out.slots = !game && fr >= H.MIN_FREE_MB + mb ? 2 : 1; out.freeMB = fr; out.game = game; out.jobMB = mb; out.twoSlotsAt = H.MIN_FREE_MB + mb; }
+      out.holders = hs.map((h, i) => ({ lane: !!h.lane, cmd: short(h.cmd), session: h.session, min: Math.round((now - Date.parse(h.start)) / 60000), left: hEta[i] ? hEta[i].left : null, basis: hEta[i] ? hEta[i].basis : null, over: hEta[i] ? hEta[i].over : false }));
+      out.waiting = ws.map(w => { const e = est(w.cmd); return { fast: e ? e.secs < H.FAST_SECS : false, cmd: short(w.cmd), session: w.session, prio: w.prio, est: e ? Math.max(1, Math.round(e.secs / 60)) : null, secs: e ? Math.round(e.secs) : null, basis: e ? e.basis : null }; });
       // a sum of measured parts; an unmeasured part makes the sum a lower bound ("at least")
       const sum = (parts) => ({ min: Math.round(parts.reduce((n, x) => n + (x || 0), 0)), unknown: parts.filter(x => x == null).length });
       const mh = match && hs.findIndex(h => h.cmd.includes(match)), wi = match ? ws.findIndex(w => w.cmd.includes(match)) : -1;

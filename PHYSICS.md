@@ -130,6 +130,34 @@ Contact sheets and frames: local/shots/lab60/. Read station by station from fram
 Unfair stations to change in v2: 4 (plank row straight over spikes, from flat ground) and 7 (a post that
 punishes holding the dash).
 
+## GDLM 67 physics questions lab (2026-11-24; built by the dual/moving-objects session, NOT played yet)
+
+`tools/lab67.js` -> specs/67_physics_questions_lab.json -> levels/gdlm_67_physics_questions_lab.gdlvl (19 stations; the two ship-entry ones added by the physics session).
+One open question per station; the label says what to do, the station's note what the sim predicts. Every station has
+a ruler (deco 211 squares a block apart) so heights are read against the level in the same frame, not the moving
+camera. Stations whose answer is a choice never kill either way. `node tools/lab67.js --check` plays each station's
+instructed input in the sim and prints the predictions below. To run: practice mode, hitboxes on, tools/record.sh
+(input log + sound); read with tools/replay_run.js and tools/lab_read.js --spec specs/67_physics_questions_lab.json.
+
+| # | station | do | sim predicts | answers |
+|---|---|---|---|---|
+| 1 | landing buffer EARLY | jump, tap again while rising, no more presses | dies at the 2nd spike (a rising press is kept 40 ticks) | how long a rising press is kept |
+| 2 | landing buffer AT THE TOP | tap again at the peak | lives (vy 0 counts as falling: kept until landing) | where "falling" starts |
+| 3 | landing buffer on the way DOWN | tap again falling | lives | the Clutterfunk rule, once more |
+| 4 | orb hold | jump and HOLD into the yellow orb (roof after the apex) | dies in the pit (a held jump press does not fire the orb) | GDLM 63's open orb hold-buffer |
+| 5 | pink orb | one tap, read the apex | launch 0.72 of a ground jump | GDLM 60's 0.5-0.63 vs 0.72 |
+| 6 | green orb in the air | tap it at a jump's top | thrown down first, then falls up to the roof | the mid-air green orb, never seen |
+| 7 | ship heights | rest on floor, hold to roof, slide on a block | y 15 / ~272 / ~118 / back to ~20 | Stereo Madness ~0.5 low, Back On Track ~1 block high |
+| 8 | ship corridor | fly it naturally | (sim needs many fast presses in such corridors) | is the ship's hover/ceiling right |
+| 9 | ship entry RISING | no press: a pad throws the cube up through the ship portal | vy 11.9 -> 5.8 (halved): y ~115 at the 1st ruler, ~103 at the 2nd | how much rising speed a ship keeps on entry |
+| 10 | ship entry FALLING | no press: the pad's arc comes down through the ship portal | vy -8 -> -4 (halved): y ~34 at the 1st ruler; 0.25 (gdsolver's plans) would give ~56 | the rejected falling-entry factor: plans vs the user's runs |
+| 11 | mini step | try to jump onto a step 56 up | cannot land (feet peak 40.7, needs 41) | the mini jump and snap (Dash 106) |
+| 12-15 | UFO, robot, spider, swing | free flight beside rulers | flap 7; hover 67 ticks; teleport; flip a tick after a press | the unmeasured modes |
+| 16 | touch trigger scale | walk under two invisible touch triggers | the scaled (y 1.2) one raises its block, the unscaled one not | touch box = 30 x scale (Dash fix) |
+| 17 | collision trigger | watch a block drop onto another | nothing (collision blocks not modelled) | does 1815 spawn its target group |
+| 18 | stop trigger | watch a rising block | stops halfway (y ~163) | stop acts on moves fired by triggers in its group |
+| 19 | dual ball | two balls | band 8 blocks: player 2 at y 225 | the assumed ball dual band |
+
 ## Trigger firing point (2026-11-24)
 
 Gameplay triggers (move, toggle, spawn...) fire when the player's CENTRE passes their x. gd-visuals saw a colour
@@ -150,8 +178,23 @@ A cube's press made in the air is kept and the cube jumps when it lands, even if
   Clutterfunk 288 -> 294; none less far once an orb or pad that takes the press also clears the buffer
   (without that, ToE 2 fell 105 -> 92). This was the old open item "a cube that walked off a ledge and presses
   shortly before landing: the game jumps, we do not".
-- In the sim: lib/physics.js `LANDBUF` = 40 ticks (cube only; the solvers' state keys carry it).
-  `GDLM_LANDBUF=<ticks>` overrides it for measuring, 0 = off. OPEN: the upper bound (is it "until landing"?),
+- ONLY WHILE FALLING, NO TIME LIMIT (2026-11-24, second Clutterfunk attempt, 18.43 s of 02:45, fixed logger): a tap
+  53 ticks before landing, made just after the peak of a yellow-orb arc (vy -1.6), released in the air: the game jumps
+  on landing (the user clears); with 40 ticks the sim walked onto the yellow pad at 34.5 and was thrown into the
+  hanging spikes (3.5%). A longer buffer for every press broke Geometrical Dominator (taps 45-63 ticks out made while
+  still RISING: 7.3% -> 5.4%, 5.7% -> 2.7%) and Hexagon Force (40.6 -> 38.1 from 80 ticks). Buffering only a press
+  made while falling (vy towards the ground, or 0) fits all 21 recorded attempts for any length from 40 to infinite,
+  and gdsolver's 22 plans reach exactly the same blocks. Clutterfunk now dies at 3.9% (a tap that jumps the cube into
+  a low hanging spike at 38.6: not understood yet; the video clock there needs a frame check).
+- In the sim: lib/physics.js, cube only, the solvers' state keys carry it: a press in the air while FALLING is kept
+  until landing (`LANDBUF`, Infinity); one made while still RISING is kept 40 ticks (`LANDRISE`), as before -- no
+  recording shows a rising press ignored that close to landing, and the solvers' routes rely on it (gd-physics2's
+  bisect: falling-only had broken Time Machine 29, Clubstep 108, Can't Let Go 727, Electroman 407). Cleared by the
+  landing jump, an orb or pad, or leaving the cube. tests/mechanics.js checks a falling tap 50 ticks out (jumps) and a
+  rising one 73 ticks out (does not). Every press of the original evidence (Clutterfunk 1.054 s, 36 ticks; 2.942 s,
+  53 ticks) was made while falling.
+  `GDLM_LANDBUF=<ticks>` makes it a countdown again for measuring, 0 = off. OPEN: the exact falling threshold (vy 0? a
+  little before the peak?),
   and whether a release clears it in other modes. A clean test: tap in the air at several heights before a
   landing in a lab level.
 
@@ -293,6 +336,23 @@ Re-solved with dual (2026-11-24, physics 1d59689, `difficulty_solve --resume`, c
   landing buffer (fee98db) died at 459.8 in the dual ships because the kept prefix was planned without the buffer,
   so after a physics change that alters cube timing, solve dual levels from the start.
 - Deadlocked's wave dual (859-911) is past its current stop (695); not reached yet.
+
+### Solver and trigger fixes from the official re-solves (2026-11-24)
+- **"A portal that changes nothing" is judged at the portal's centre** in the sweep, as skipCheck judges it. Judged 15
+  units past its right edge, a ball flipping gravity in Electroman's lower lane (block 804) had normal gravity there:
+  its untaken normal-gravity portal passed the sweep, won, and the final skipCheck rejected the whole solve. Electroman
+  is beaten since (all 21 portals). `tools/stuck.js <n> --x <units> --sweeps` found it (the real solver from the same
+  start with one setting changed at a time: only `allowSkips` beat it, so the no-skip bookkeeping was the cause).
+- **A touch trigger's box is 30x30 times its scale** (32, 128/129). Dash's touch spawns on its invisible platforms
+  (1268 at y 195, y scale 1.1) were missed by a mini cube standing on the platform (centre 24 above; the unscaled limit
+  15 + 9): the next platform never rose. With it, routes that take the mini portal get to block ~130 (they died by
+  116.5). Dash's spike group 265 also uses a **collision trigger** (1815: blocks 80 = 1 and 95 = 2 collide -> spawn
+  group 545, a stop on the group's drop): collision blocks/triggers are not modelled; here the platform touch spawns
+  the same stop (group 540), so it matters only for timing.
+- **Orbs, pads and dash orbs may be skipped** ("No secret ways" above).
+- `tools/humanroute.js`: every official route's busiest second, shortest gap and holds through jumps. Ship stretches
+  in Stereo Madness (358-386: 14-18 presses a second), Back On Track (459-510) and Polargeist (342-378: gaps 25-46 ms)
+  clear only with inhuman input: the known ship-height mismatches (physics leads, not route bugs).
 
 ## Not in the sim yet (the game has it)
 
@@ -439,11 +499,31 @@ What exists and what blocks it (2026-11-23):
   | 02:33 | Geometrical Dominator | 12.3% / 13.3% | 7.3% / 5.7% | no | unknown (robot; path check too noisy to tell) |
   | 02:45 | Clutterfunk | clear | 3.5% | no | block 34.6: the game's cube uses a pad on a hanging block the sim's does not reach: unknown |
   | 02:26 | Jumper, Cycles, Clutterfunk | clear, clear, 92.6% | 2.6%, 2.2%, 1.9% | no | PIPELINE: first logger (missed clicks), not usable |
+- SHIP ENTRY SPEED, TRIED AND REJECTED (2026-11-24): the ship stretches that need inhuman input (Stereo Madness
+  358-386, Back On Track 459-510, Polargeist 342-378, xStep 211) made the entry the suspect. On gdsolver's plans: moving
+  the ship +-0.5 / 1 unit at entry changes nothing for Stereo Madness (328.8 every time); the factor on LEAVING a flying
+  mode changes nothing; the factor on ENTERING does: keeping 0.25 instead of 0.5 of vy when the entry is FALLING (0.5
+  when rising) takes Dry Out 575 -> 639, Can't Let Go 490 -> 608, Time Machine 363 -> 378, xStep 168 -> 189, Jumper,
+  Clutterfunk a little, none less far (0.1, 0.35, 0 each less good; a smaller factor on rising entries costs Back On
+  Track 50 blocks). BUT the user's own runs say no: Hexagon Force's agreeing attempt (40.4 vs 40.6) dies at 15.9, xStep
+  25.3 -> 20.0. Not adopted. The plans' gain probably stands in for something else at a ship entry -- tools/tas.js
+  replays with GD's 2-tick button latency in ship/UFO (playLatent), the user's replays do not: check that first.
+  Checked: the same ship/UFO latency applied to the user's logged runs breaks two that agree (Hexagon Force 40.6 ->
+  18.9, Base After Base's clear -> 65.8): the user's logs fit best WITHOUT it (each attempt's fitted clock shift already
+  takes the constant delay). So the plans and the user's runs disagree about a ship entry; the next step needs a ship
+  recording with the raw-input logger (tools/inputlog_raw.ps1): GDLM 67 stations 9-10 (pad-thrown ship entries, no input:
+  falling reads y ~34 at the first ruler with 0.5, ~56 with 0.25).
 - PASS CHECK (tools/passcheck.js, 2026-11-24): an exhaustive held / not-held search (states merged on position, speed,
   mode, button, orbs) from an attempt's replayed state through a stretch. NO WAY where the user got through = a physics
   difference there; a way that needs presses the log lacks = a missed input or timing. Fingerdash 550-558: a way exists
   (10 min, 5.6k states at most) -> not a physics fact. xStep 205-216: a way only by 35 presses in 0.9 s -> a
-  physics lead (the search takes any way; judge whether a human could press it). Use --max 5000 (40000 ran out of time).
+  physics lead (the search takes any way; judge whether a human could press it).
+  tools/inputgap.js on that xStep attempt: one extra release+press pair at any spot in the last 3 s gets at most 0.4%
+  further (493 tried, none clears) -> not one missed click: the ship's path there stays a physics lead (the video: the
+  real ship flies 1-2 blocks over the floor clouds; the sim's, with the same presses, bobs between y 41 and 91 and climbs
+  into the hanging saws; a smaller or shifted ship box only delays the hit). passcheck --trail / --mini / --set start
+  from a solver's saved route or a state you give (Dash 22, 2026-11-24: the mini route over the invisible key-135
+  platforms at 106-113 exists up to 116.5, where spikes of group 265 moved by four move triggers kill it -> moving objects). Use --max 5000 (40000 ran out of time).
 - PLANNER GUARDS (2026-11-24, polish on GDLM 44 hellgate): tools/solutions.js fromRun saves a natural plan only when it
   skips no portal / orb (a fresh solve's plan walked under the wave portal at block 292 that the raw route took) and, for
   an incremental or windowed re-plan, adds no jump over nothing (else the whole-level plan). lib/natural.js mergeLegs

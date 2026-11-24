@@ -41,7 +41,9 @@ module.exports = function ({ objects, header, beatX }) {
   const D = require("../decokit.js"), SKY = require("../../briefs/64_golden_hour.json").sections.map(s => s.bg);
   Object.assign(C, { trim: 32, far2: 33, mid: 34, near: 35, grass: 36 });
   const TRIM = [[190, 150, 110], [170, 190, 80], [195, 205, 85], [190, 200, 70], [205, 115, 175], [125, 145, 255], [115, 135, 245], [215, 175, 155]];
-  const SHADE = [[140, 70, 80], [140, 70, 50], [150, 80, 30], [150, 80, 30], [80, 30, 80], [20, 20, 60], [20, 20, 60], [140, 80, 90]];
+  // a second hue (gd-art, GDLM 64 vs Dreamy: "pink scenery on a pink sky"): the day scenes' distance goes cool blue-violet
+  // against the warm sky (aerial perspective), dusk toward deep violet, night stays blue
+  const SHADE = [[90, 90, 150], [80, 90, 150], [90, 110, 160], [90, 110, 160], [60, 40, 120], [20, 20, 60], [20, 20, 60], [100, 100, 160]];
   // the bright day scenes (sunrise, noon): the backdrop steps well down from the sky -- at the kit's default the
   // tree line was mid-gold on a gold sky behind a gold path ("noon is mushy", v1 vs Jumper)
   const DEEP = new Set([1, 2, 3]);
@@ -113,7 +115,7 @@ module.exports = function ({ objects, header, beatX }) {
       out.push(...D.blockPattern(objects, S[i][0], S[i][1], { ch: C.fill, top: C.trim, seed: 40 + i }));
       out.push(...D.tufts(objects, S[i][0], S[i][1], { ch: C.grass, seed: 60 + i, group: 312 }));
     }
-    out.push(...D.backdrop(S[i][0], S[i][1], { far: C.far2, mid: C.mid, near: i === 2 ? null : C.near, trees: i >= 4 ? "dead tree" : "tree", density: DEEP.has(i) ? 2.5 : 3, seed: i }));
+    out.push(...D.backdrop(S[i][0], S[i][1], { far: C.far2, mid: C.mid, near: i === 2 ? null : C.near, trees: i >= 4 ? "dead tree" : "tree", density: 1.5, seed: i }));
   }
   // ---- motion on every screen (gd-art / gd-taste: moving deco is the strongest sign of a featured level,
   // ART.md "Deco study"): the grass sways, the motes bob, the lit block edges pulse on every bar toward a

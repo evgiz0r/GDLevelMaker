@@ -52,3 +52,61 @@ The stage times are also in local/timings.jsonl.
 - result: READY, 1 round(s), variants: 2 section(s)
 - change made: v5 = the structural fix (structures checked in context, compose uses only ready ones): READY in 1 round (v3/v4 needed 2), jumps timed around a block 7 -> 5, hazards still 14/100 -- the pieces that pass in context carry fewer hazards. Density next needs denser pieces that pass in context (new library shapes) or spike floors (craft floorHaz 8% vs 35%).
 
+## GDLM 65 single builder test, 2026-11-24 14:10
+- stages: song 0 s, layout 97 s, path 846 s, deco 1091 s, final 1091 s
+- slowest step: path (750 s); over target: layout 97 s > 60 s
+- result: not ready (prejumps), 8 round(s)
+- change made: none -- this was the single-builder baseline for the collab test below (same brief, one compose).
+
+## GDLM 65 collab test (tools/collab.js), 2026-11-24
+- what: a 51 s brief (6 sections: cube, cube, ship, 2x cube, wave, cube) split into 4 parts of 10-17 s pinned to song
+  time, each part built alone by its own builder agent, joined by time; routes joined, no solve.
+- final round (all fixes in): parts built 2 at a time (2 lock slots): p1 54 s, p2 19 s, p3 3 s of work (p0 4 s earlier),
+  lock waits 34-86 s; join + full check 113 s (most of it fairness). Wall 236 s -> READY, every seam holds.
+- one-builder baseline on the same brief (GDLM 65 single builder test): 1115 s (18.6 min), 8 repair rounds, NOT READY
+  (2 prejumps). Not the same judge: parts are scored alone (exact cube checks), the whole level by the sweep.
+- seams: join 1: 3 of 3 failed; join 2: 3 of 3; join 3: 0 of 3. Part builds: 11 runs, 4 crashed (runcache, fixed by
+  physics2 f6abcdf), 4 failed their own seam (contract and exit fixes), 0 failed on gameplay after the tick fix.
+- the time that went: lock waits (up to 58 and 91 min behind other sessions' long solves, before the 2 slots).
+- what broke and what changed (each now in BUILDING.md 1 and the code): a part's header is dropped at the join (seam
+  speed = arrival speed, a faster part brings its own portal); a portal on a part's first column is touched ~30 units
+  early once joined (portalRoom 3); a flight exit at the section's end leaves the cube on the frame at the seam
+  (exitRoom 4); a hold crossed a seam (release at every seam); seam state read 30 ticks before; parts' deco before
+  their start dropped; plan.json written per part (2 builds at once); --seed did nothing (now reseeds sections);
+  score.js moved presses to fractional ticks (rounded).
+- next: a part's deco by its own builder (today the scene / modern pass runs per part, no art pieces yet); parts of
+  other modes at the seam (a ship seam); the viewer's per-part stage bar; sync drift budget across many seams.
+
+## Collab round 2, 2026-11-24: deco per part, flight seams, drift, the long song, GDLM 64 v6
+- new in tools/collab.js: `deco` (a part's decorator: tools/scenes/kit.js, gd-art's kit in each section's colours;
+  gameplay checked unchanged, route kept: 0 s of work per part); `scene` (one level-wide scene over the joined level,
+  for Golden Hour's: 53-56 s); parts placed on the joined level's own timeline (drift 0 u at every seam, budget 6);
+  the join re-routes a part from the state it is handed (solveSweep start/goal: GDLM 66 p1 re-routed in 9.2-9.6 s);
+  seams inside a flight (`continue` sections, mode-only contract).
+- GDLM 65 (4 parts) decorated part by part and rejoined: READY, 200 s wall.
+- GDLM 64 v6 (Golden Haze, 7 parts, art's dense chains + height pieces): JOINED, READY (0 fail, 11 warn), all 7 parts
+  OK, drift 0. But not better than v5: hazards still 14/100 (the chains are 1x cube pieces; ship / wave / 2x / upside
+  sections stay classic), reactive 8 (v5 5), Normal ~4 attempts. And its picture shows the blocks' raw grid skin
+  (white grid lines over the sun in the noon ship): v5 dressed blocks in its per-level pass; v6's parts were built
+  without it and the scene's fills do not cover every block. Next: build parts with the modern block dressing on.
+- GDLM 66 collab long (100 s, 7 parts incl. a ship seam): every seam holds, drift 0, re-route works -- one spot left:
+  after p1's ship exit the cube falls from high and meets a spike ~2.3 blocks after landing (10 calm columns only moved
+  it 2 blocks): the calm after a flight should scale with the exit height.
+- what broke this round -> fixed: parts "failed" difficulty (level-wide gates now the join's); exit read at the seam's
+  last tick vs the join's -30 (both -30 now); ship exits 6 blocks early; a part did not know the next part continues its
+  flight (brief._continueAfter); upside parts exit 6 early; a cube press right at a flying portal read as a prejump
+  (cued by the portal now); old builder processes on old code overwrote fixed parts (stopped; rule below).
+- builders: lighter-model agents handed back before their builds finished (they could not wait for the notification):
+  the builds ran on, but retries and deco fell to a finisher script. For mechanical part builds a script with named
+  builders is as good and far cheaper; agents earn their cost when a builder has to judge and change its part.
+- the time: lock waits dominate (23 min for p2/p6 of 66 while other sessions' jobs ran); work per part 0-55 s.
+
+## GDLM 66 collab long JOINED (2026-11-24, later)
+- 100 s, 7 parts (cube, ship with a seam inside it, ball, 2x, wave, upside), built and decorated part by part: JOINED,
+  every seam holds, drift 0, full check READY (86 s). p1 re-routed at the join from the state handed over (9.3 s).
+- the last four blockers were all in the checks, not the level, each now fixed for every level:
+  - sightread on a fixed next jump: a flagged press's latest moment is now a player's (lib/windows.js, re-planned);
+  - the saved-route walk crossed a mode change (a ship press walked past its exit, judged as a cube jump): stops there;
+  - a press that walks alive to the next input is a free jump (pointless-jumps' business), not a prejump;
+  - the join saved the joined route through fromRun, which re-planned the WHOLE level (a wave part into 27 short legs):
+    now saved as it is, stamped current; the natural passes run only inside re-routed stretches.

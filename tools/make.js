@@ -26,7 +26,7 @@
 //   "style": "classic" -> outlined block skins + ground decoration; any other style name
 //            (e.g. "hell") -> skins only, the look comes from its colours
 //   "colours": {"bg": [r,g,b], "ground": [r,g,b], ...}   start colours in the header
-//   "art": {"bg": n, "ground": n}                        background / ground art numbers
+//   "art": {"bg": n, "ground": n, "mg": n, "line": n}    background / ground / middleground (0 = none) / ground-line art
 //   "modern": {"sections": [{from, to, kind, fill, light}], "title": "...", "end": "..."}   the modern
 //                          decoration pass (tools/decorate.js modernPass; compose.js fills it in)
 //   "scene": "tools/scenes/<name>.js"   a scene script: fn({objects, header, spec, ctx, tl, beatX, xOfT, GD})
@@ -266,6 +266,8 @@ function build(spec, specFile = "spec") {
   if (spec.offset) header = header.replace(/(^|,)kA13,[-0-9.]+/, "$1kA13," + spec.offset);
   if (spec.colours) header = deco.setHeaderColours(header, spec.colours);
   if (spec.art) header = deco.setHeaderArt(header, spec.art.bg, spec.art.ground);
+  // middleground (kA25: 0 none, 1.. the hill bands) and ground line (kA17)
+  if (spec.art) for (const [k, v] of [["kA25", spec.art.mg], ["kA17", spec.art.line]]) if (v != null) header = header.replace(new RegExp(k + ",\\d+"), k + "," + v);
   const ctx = { grid: song ? gridOf(spec, song) : null, offset: spec.offset || 0, kA4, snap: spec.snap || 0, placements: [] };
 
   // speed portals first, in order along the level, each one updating the timeline
