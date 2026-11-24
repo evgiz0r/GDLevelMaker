@@ -8,7 +8,11 @@
 // for example. he gives them roles, and whether he makes the picture or them is a choice (i guess them to have different
 // possible styles per section if we want)." BUILDING.md section 1 "The coordinator".
 //
-// The brief (the shape is meant to become gd-showcase's storyboard / vibe sheet once tools/storyboard.js exists):
+// A VIBE SHEET (gd-showcase's format, VIBES.md; briefs/<NN>.vibe.json, written by a person in a minute) is read when there
+// is one: its beats' role, energy, place, mood, vehicle, moment, look and must / must-not win over the derived ones; the
+// coordinator adds the build constraints (density, gaps, difficulty, contrast, seam blend). The brief keeps the sheet's
+// field names (title, journey, oneImage, song.shape, lookRule, camera, feel, never; per beat place, vehicle, moment).
+// The brief:
 //   { level, journey, look: "shared" | "per-part", lookRules: { contrast, seamBlendSecs }, moodCurve: [energy per part],
 //     parts: [{ id, t, role: intro|build|drop|calm|finale, energy 0-1, mood, density: { gaps }, difficulty,
 //               look: { style, bg, ground, line } (per-part), transition: { in, out }, must: [...], mustNot: [...],
@@ -57,11 +61,15 @@ function plan(briefFile, opts = {}) {
   const isDrop = p => p.sections.some((i, j) => { const s = secOf(i), prev = secOf(i - 1); return s.flash || (s.mode && s.mode !== "upside" && prev && !prev.mode); });
   const roles = P.parts.map((p, k) => k === 0 ? "intro" : k === n - 1 ? "finale" : isDrop(p) ? "drop" : null);
   for (let k = 1; k < n - 1; k++) if (!roles[k]) roles[k] = roles[k + 1] === "drop" ? "build" : (k % 2 ? "calm" : "build");
-  const look = opts.look || brief.look || "shared", lab = (brief.difficulty || {}).label || "Normal";
+  // a vibe sheet next to the brief: its beats by time (the part whose middle falls in a beat takes it)
+  let vibe = null; try { vibe = readJ(briefFile.replace(/.json$/, ".vibe.json")); } catch (e) {}
+  const beatOf = p => vibe && vibe.beats && vibe.beats.find(b => (p.t[0] + p.t[1]) / 2 >= b.t[0] && (p.t[0] + p.t[1]) / 2 < b.t[1]);
+  if (vibe) P.parts.forEach((p, k) => { const b = beatOf(p); if (b && b.role) roles[k] = b.role === "break" ? "calm" : b.role; });
+  const lookRule = vibe && vibe.lookRule, look = opts.look || (lookRule === "per-part" || lookRule === "shifting" ? "per-part" : lookRule ? "shared" : null) || brief.look || "shared", lab = (brief.difficulty || {}).label || "Normal";
   // each library structure belongs to one part (no repeated set pieces): first come, first served in part order
   const owned = new Set();
   const parts = P.parts.map((p, k) => {
-    const R = ROLE[roles[k]], uses = [...new Set(p.sections.flatMap(i => secOf(i).use || []))].filter(u => u.startsWith("s:"));
+    const R = ROLE[roles[k]] || ROLE.build, vb = beatOf(p) || {}, uses = [...new Set(p.sections.flatMap(i => secOf(i).use || []))].filter(u => u.startsWith("s:"));
     const setPieces = uses.filter(u => !owned.has(u)); setPieces.forEach(u => owned.add(u));
     let st = null;
     if (look === "per-part") {
@@ -69,14 +77,20 @@ function plan(briefFile, opts = {}) {
       for (let g = 0; g < 8 && ratio(st.bg, st.ground) < 3; g++) st.ground = darken(st.ground, 0.8);
     }
     const di = Math.max(0, Math.min(TIERS.length - 1, TIERS.indexOf(lab) + R.diff));
-    return { id: p.id, t: p.t, role: roles[k], energy: R.energy, mood: R.mood, density: { gaps: R.gaps }, difficulty: TIERS[di],
+    if (vb.look && vb.look.palette && look === "per-part") st = Object.assign({ style: vb.look.scene || vb.place || "from the vibe sheet" }, vb.look.palette);
+    const modes = [...new Set(p.sections.map(i => secOf(i).mode || "cube"))];
+    return { id: p.id, t: p.t, role: roles[k], energy: vb.energy ?? R.energy, mood: vb.mood || R.mood, place: vb.place || null,
+      vehicle: vb.vehicle || { mode: modes.join(" + "), speed: p.speedIn }, moment: vb.moment || null, density: { gaps: R.gaps }, difficulty: TIERS[di],
       look: st, transition: { in: k === 0 ? "level start" : `from ${roles[k - 1]}: colours blend over ${brief.seamBlendSecs ?? 1.7} s`, out: k === n - 1 ? "the ending" : `into ${roles[k + 1]}` },
-      must: [k === 0 ? "the title" : null, k === n - 1 ? "the ending: end text + signature" : null, "its seam contracts", `a ${roles[k]}'s density (gaps ${R.gaps.join("-")})`].filter(Boolean),
-      mustNot: [k > 0 ? "a title" : null, k < n - 1 ? "an ending (no 'thanks for playing', no signature)" : null, "another part's set pieces"].filter(Boolean),
+      must: [...(vb.must || []), k === 0 ? "the title" : null, k === n - 1 ? "the ending: end text + signature" : null, "its seam contracts", `a ${roles[k]}'s density (gaps ${R.gaps.join("-")})`].filter(Boolean),
+      mustNot: [...(vb.mustNot || []), k > 0 ? "a title" : null, k < n - 1 ? "an ending (no 'thanks for playing', no signature)" : null, "another part's set pieces"].filter(Boolean),
       setPieces };
   });
-  const coord = { level: brief.name, brief: path.relative(ROOT, briefFile).split(path.sep).join("/"), at: new Date().toISOString(),
-    journey: brief.story || brief.idea || brief.desc || "", look, lookRules: look === "per-part" ? { contrast: 3, seamBlendSecs: brief.seamBlendSecs ?? 1.7 } : { palettes: "the brief's sections" },
+  const coord = { level: brief.name, title: (vibe && vibe.title) || brief.name, brief: path.relative(ROOT, briefFile).split(path.sep).join("/"), at: new Date().toISOString(),
+    vibe: vibe ? path.relative(ROOT, briefFile.replace(/.json$/, ".vibe.json")).split(path.sep).join("/") : null,
+    journey: (vibe && vibe.journey) || brief.story || brief.idea || brief.desc || "", oneImage: (vibe && vibe.oneImage) || null,
+    song: { shape: parts.map(p => ({ t: p.t, part: p.role })) }, lookRule: (vibe && vibe.lookRule) || look, camera: (vibe && vibe.camera) || null,
+    feel: (vibe && vibe.feel) || { tier: (brief.difficulty || {}).label || null }, never: (vibe && vibe.never) || [], look, lookRules: look === "per-part" ? { contrast: 3, seamBlendSecs: brief.seamBlendSecs ?? 1.7 } : { palettes: "the brief's sections" },
     moodCurve: parts.map(p => p.energy), difficultyCurve: parts.map(p => p.difficulty), parts };
   fs.writeFileSync(fileOf(briefFile), JSON.stringify(coord, null, 1));
   return coord;

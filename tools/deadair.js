@@ -2,8 +2,9 @@
 //
 // Also (the user on GDLM 61 v3, 38-46 s, three ~2 s gaps in the click line: "very big breaks with
 // nothing"; the 3 s rule passed them because floor spikes passed under the ball counted as "something"):
-//   input gaps  -- no press or release for longer than max(--inputgap 2 s, 2.5x the level's median gap
-//                  between presses): a hazard rolling by is not play when the player does nothing
+//   input gaps  -- the button up (from a release to the next press) for longer than max(--inputgap 2 s, 2.5x
+//                  the level's median gap between presses): a hazard rolling by is not play when the player does
+//                  nothing; a held press (a dash orb, a ship climb) is play, never a gap
 //   empty screens -- 1+ s with no hazard, orb, pad or structure off the floor in view (the camera's ~6 blocks
 //                  behind to ~13 ahead): an empty field
 // Official levels (official:N, their solver routes): empty screens 1 in all ten (Stereo Madness 1.8 s), so an
@@ -47,13 +48,16 @@ const INPUT_GAP = opt("inputgap", 2), EMPTY = 1;
 // input gaps and empty screens on a route (events), for score.js too
 function quiet(objs, header, ev, path) {
   path = path || GD.run(GD.makeWorld(objs, header), ev).path;
-  const ins = ev.filter(e => e.type === "press" || e.type === "release" || e.down != null).map(e => e.tick / 240).sort((a, b) => a - b);
+  // inputs with their direction: a gap is time with the button UP (a release, or the start, to the next press) --
+  // holding is playing (a dash orb held 2 s, a ship climb, a wave leg up), so a press never opens a gap
+  const ins = ev.filter(e => e.type === "press" || e.type === "release" || e.down != null)
+    .map(e => ({ t: e.tick / 240, down: e.type === "press" || e.down === true })).sort((a, b) => a.t - b.t);
   const presses = ev.filter(e => e.type === "press" || e.down).map(e => e.tick / 240).sort((a, b) => a - b);
   const d = []; for (let i = 1; i < presses.length; i++) d.push(presses[i] - presses[i - 1]);
   d.sort((a, b) => a - b); const med = d.length ? d[d.length >> 1] : 1;
   const lim = Math.max(INPUT_GAP, 2.5 * med), gaps = [];
   const endT = path.length / 240;
-  for (let i = 1; i < ins.length; i++) if (ins[i] - ins[i - 1] > lim) gaps.push([ins[i - 1], ins[i]]);
+  for (let i = 1; i < ins.length; i++) if (!ins[i - 1].down && ins[i].t - ins[i - 1].t > lim) gaps.push([ins[i - 1].t, ins[i].t]);
   // empty screens: sample every 0.25 s, the camera's view ~6 blocks behind to ~13 ahead of the player
   const things = objs.filter(o => { const k = (O.objInfo(o.id) || {}).kind;
     if (o.props && o.props[57] === "990") return false;
