@@ -242,6 +242,36 @@ Open: framecheck into the pipeline for every recording (after replay_run), bars 
 hitbox gaps at every death and near-miss (the "end" lines are the start), ship / wave heights where the ground is out
 of view (camera fit with gd-visuals).
 
+## Handoff: the solver session (2026-11-24, archived; the area goes to gd-physics)
+
+The solver session (official re-solves, human routes, dual / moving objects, labs GDLM 63/67/68) stopped here:
+- **Official levels after 46672ee (no landing buffer): NOT re-solved.** Before it, 20/22 were beaten (all but Deadlocked
+  and Dash); after it, 21/22 saved viewer routes die (they leaned on the old buffer). The raw solves of 6, 7, 10, 12,
+  14, 18, 19, 21 still finish: they need only `node tools/difficulty_solve.js <n> --replan`; the rest (1-5, 8, 9, 11,
+  13, 15-17) need `--resume` (it re-solves from a bit before the first break). Run them at
+  `GDLM_HEAVY_PRIORITY=low`, then `node tools/routes.js status --official` and `node tools/humanroute.js`. The queued
+  batch was stopped unrun at the handoff.
+- **Fingerdash (21) viewer route:** the planner ran 93 min on it (a 6.7 s replay fires 256 triggers). Since 332c674
+  `naturalPlan`'s `budgetMs` (10 min from difficulty_solve) stops inside a pass and returns the last checked route
+  (`tests/natural_tap.js`). Re-run its `--replan` and check it ends within ~10 min; if the budgeted route is poor,
+  profile the passes (`tools/profsum.js`) -- `early` / `fly` over the trigger replays are the suspects.
+- **Open physics leads (not solver gaps):** Deadlocked -- the teleport-spike stretch (`node tools/stuck.js 20 ...`
+  shows no input sequence survives: a teleport / spike-hitbox question). Dash -- the cube portal stack and the mini
+  route need a ball bounce off moving objects (move-trigger platforms; PHYSICS.md "Moving objects"). Theory of
+  Everything 2 -- a UFO release-press gap of 33 ms in the route (`humanroute.js 18`): an inhuman spot, so a physics
+  lead if no other route exists.
+- **Labs:** GDLM 67 (`tools/lab67.js`, 19 stations; the user played v2 = commit 29303a4; stations 1-3 notes now predict
+  no jump for a tap released in the air; v3 built in the tool but not rebuilt / not installed). GDLM 68 camera lab
+  (`tools/lab68.js`, 14 stations, ~103.5 s, 5-wide stairs after the user's "luck based" note; installed by the
+  coordinator). Both: `node tools/labNN.js --check`; rulers are art's ground-colour poles (no white bars: the
+  physics session reads the poles in video). GDLM 63 rebuilt with its marker on channel 1014 (channels gate ok).
+  The saved routes of 67/68 want `tools/solutions.js` again on today's physics.
+- **Tools left:** `tools/stuck.js` (solver vs physics at a stuck spot; `--sweeps --trace`), `tools/humanroute.js`,
+  `tools/shipstyle.js` (user vs route ship flying), `tools/pathpic.js` (before/after route pictures), `tools/profsum.js`,
+  `lib/runcache.js`. Good numbers: `tests/runcache.js` 340 runs 7.7 s -> 0.4 s; `tests/tas_progress.js` all ok
+  (21: 54.3, 22: 81.4 blocks); `tests/natural_tap.js`, `tests/mechanics.js`, `tests/heavy.js` pass; ship routes
+  1.7-2.2 presses/s (the user flies 1.5-1.7/s), 0% taps under 75 ms.
+
 ## Objects
 
 - Hitboxes from OpenGD's 2.1 table, overridden in `lib/objects.js`; GD 2.2's decoration list
