@@ -84,7 +84,7 @@ function build(id, k) {
   try {
     const ST = require("./stages.js"), T = require("./pace.js").load().target;
     ST.put({ session: SESSION, base: `lab_${id}_v${k}`, name: v.name, stage: "layout", levelStr, data: { events: sol && sol.ok ? sol.events : [], kind: "planned" },
-      note: `${v._hook}: ${HOOKS[v._hook].why}. Pace ${pace && pace.cps != null ? pace.cps + " cps" : "-"} (real ${T.cps}), ${pace && pace.obsPerBar != null ? pace.obsPerBar + " obstacles/bar" : "-"} (real ${T.obsPerBar}), ${pace && pace.changesPer10s != null ? pace.changesPer10s + " changes/10 s" : "-"} (real ${T.changesPer10s})${res.ok ? "" : " -- NOT OK: " + fails.join(", ")}` });
+      note: `${v._hook}: ${HOOKS[v._hook].why}. Pace ${pace && pace.perBeat != null ? pace.perBeat + " inputs/beat" : "-"} (real ${T.perBeat}), ${pace && pace.cps != null ? pace.cps + " cps" : "-"} (real ${T.cps}), ${pace && pace.obsPerBar != null ? pace.obsPerBar + " obstacles/bar" : "-"} (real ${T.obsPerBar}), ${pace && pace.changesPer10s != null ? pace.changesPer10s + " changes/10 s" : "-"} (real ${T.changesPer10s})${res.ok ? "" : " -- NOT OK: " + fails.join(", ")}` });
   } catch (e) {}
   try { fs.appendFileSync(path.join(ROOT, "local", "timings.jsonl"), JSON.stringify({ at: res.at, tool: "lab.js", step: "lab-build", level: v.name, secs: res.secs }) + "\n"); } catch (e) {}
   return res;
