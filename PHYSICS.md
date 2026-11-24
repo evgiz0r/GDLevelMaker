@@ -150,8 +150,23 @@ A cube's press made in the air is kept and the cube jumps when it lands, even if
   Clutterfunk 288 -> 294; none less far once an orb or pad that takes the press also clears the buffer
   (without that, ToE 2 fell 105 -> 92). This was the old open item "a cube that walked off a ledge and presses
   shortly before landing: the game jumps, we do not".
-- In the sim: lib/physics.js `LANDBUF` = 40 ticks (cube only; the solvers' state keys carry it).
-  `GDLM_LANDBUF=<ticks>` overrides it for measuring, 0 = off. OPEN: the upper bound (is it "until landing"?),
+- ONLY WHILE FALLING, NO TIME LIMIT (2026-11-24, second Clutterfunk attempt, 18.43 s of 02:45, fixed logger): a tap
+  53 ticks before landing, made just after the peak of a yellow-orb arc (vy -1.6), released in the air: the game jumps
+  on landing (the user clears); with 40 ticks the sim walked onto the yellow pad at 34.5 and was thrown into the
+  hanging spikes (3.5%). A longer buffer for every press broke Geometrical Dominator (taps 45-63 ticks out made while
+  still RISING: 7.3% -> 5.4%, 5.7% -> 2.7%) and Hexagon Force (40.6 -> 38.1 from 80 ticks). Buffering only a press
+  made while falling (vy towards the ground, or 0) fits all 21 recorded attempts for any length from 40 to infinite,
+  and gdsolver's 22 plans reach exactly the same blocks. Clutterfunk now dies at 3.9% (a tap that jumps the cube into
+  a low hanging spike at 38.6: not understood yet; the video clock there needs a frame check).
+- In the sim: lib/physics.js, cube only, the solvers' state keys carry it: a press in the air while FALLING is kept
+  until landing (`LANDBUF`, Infinity); one made while still RISING is kept 40 ticks (`LANDRISE`), as before -- no
+  recording shows a rising press ignored that close to landing, and the solvers' routes rely on it (gd-physics2's
+  bisect: falling-only had broken Time Machine 29, Clubstep 108, Can't Let Go 727, Electroman 407). Cleared by the
+  landing jump, an orb or pad, or leaving the cube. tests/mechanics.js checks a falling tap 50 ticks out (jumps) and a
+  rising one 73 ticks out (does not). Every press of the original evidence (Clutterfunk 1.054 s, 36 ticks; 2.942 s,
+  53 ticks) was made while falling.
+  `GDLM_LANDBUF=<ticks>` makes it a countdown again for measuring, 0 = off. OPEN: the exact falling threshold (vy 0? a
+  little before the peak?),
   and whether a release clears it in other modes. A clean test: tap in the air at several heights before a
   landing in a lab level.
 
@@ -293,6 +308,23 @@ Re-solved with dual (2026-11-24, physics 1d59689, `difficulty_solve --resume`, c
   landing buffer (fee98db) died at 459.8 in the dual ships because the kept prefix was planned without the buffer,
   so after a physics change that alters cube timing, solve dual levels from the start.
 - Deadlocked's wave dual (859-911) is past its current stop (695); not reached yet.
+
+### Solver and trigger fixes from the official re-solves (2026-11-24)
+- **"A portal that changes nothing" is judged at the portal's centre** in the sweep, as skipCheck judges it. Judged 15
+  units past its right edge, a ball flipping gravity in Electroman's lower lane (block 804) had normal gravity there:
+  its untaken normal-gravity portal passed the sweep, won, and the final skipCheck rejected the whole solve. Electroman
+  is beaten since (all 21 portals). `tools/stuck.js <n> --x <units> --sweeps` found it (the real solver from the same
+  start with one setting changed at a time: only `allowSkips` beat it, so the no-skip bookkeeping was the cause).
+- **A touch trigger's box is 30x30 times its scale** (32, 128/129). Dash's touch spawns on its invisible platforms
+  (1268 at y 195, y scale 1.1) were missed by a mini cube standing on the platform (centre 24 above; the unscaled limit
+  15 + 9): the next platform never rose. With it, routes that take the mini portal get to block ~130 (they died by
+  116.5). Dash's spike group 265 also uses a **collision trigger** (1815: blocks 80 = 1 and 95 = 2 collide -> spawn
+  group 545, a stop on the group's drop): collision blocks/triggers are not modelled; here the platform touch spawns
+  the same stop (group 540), so it matters only for timing.
+- **Orbs, pads and dash orbs may be skipped** ("No secret ways" above).
+- `tools/humanroute.js`: every official route's busiest second, shortest gap and holds through jumps. Ship stretches
+  in Stereo Madness (358-386: 14-18 presses a second), Back On Track (459-510) and Polargeist (342-378: gaps 25-46 ms)
+  clear only with inhuman input: the known ship-height mismatches (physics leads, not route bugs).
 
 ## Not in the sim yet (the game has it)
 

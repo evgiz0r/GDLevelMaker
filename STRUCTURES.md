@@ -123,6 +123,33 @@ sunk 13 units): `pillar-hop`, `pillar-climb`, `capped-hop`, `slab-steps`, `lante
 doorstep: a 1-wide first pillar gave a 1.7-block prejump. Dress them with the craft pass (spec `"craft":
 true`, tools/craftkit.js): rods and chains attached to the pieces.
 
+## Dense chains (2026-11-24, the art session)
+
+GDLM 64 v5 had 14 hazards per 100 blocks, with the floor a hazard 8% of the way; the craft target is 45+ and 35%+.
+Packing library pieces tighter made "timed around a block" spots, so these six are built to be dense *and* to sit next
+to each other. Every one passes `check --context` (a spike 2 columns before, an orb pit 2 after), all ready:
+
+| id | tier | hazards / 100 blocks | tightest window | args (steady spacing: set it to the song's beat) |
+|---|---|---|---|---|
+| spike-train | Easy | 17 | 238 ms | n 5, gap 7 |
+| double-train | Normal | 29 | 142 ms | n 4, gap 8 |
+| pit-run | Easy | 42 (floor a hazard ~43%) | 204 ms | n 5, w 4, pit 3 |
+| pit-run-high | Normal | 38 | 246 ms | n 4, w 4, pit 3 |
+| pit-spike-mix | Normal | 32 | 208 ms | n 3, w 10, pit 3 |
+| spike-pit-train | Normal (tight) | 30 | 88 ms | n 3, gap 7 |
+
+How they stay dense and fair:
+- Most of the hazards are pit floor: the low id-9 spikes. A 3-wide pit costs one jump and holds 3 hazards.
+- Every landing is 4+ wide, so the reactive gate's 250 ms press after landing still works.
+- Each starts and ends on the floor with 2 calm columns.
+- At 1x, 7 columns is 0.67 s, one beat at 90 bpm.
+
+Watch:
+- They are flat and repeat themselves. The "height" and "repetition" gates (below) want 10+ floor changes per 10 s and
+  at most 5% repeated 4-move patterns. Use n 3-5 and alternate them with height pieces (pillar-hop, stairs).
+- spike-pit-train's 88 ms window comes from the pit right after the spike's landing. gap 8 should loosen it, but that
+  is not checked yet.
+
 ## Open
 
 - **A structure that passes alone can fail inside a level**: `orb-ladder-2` (ok in the harness) made a fairness
