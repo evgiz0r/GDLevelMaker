@@ -15,10 +15,14 @@ FLAG="$OUT/.gd-record-stop"
 # tools/inputlog.ps1, hidden, its own stop flag; to local/inputs/GD inputs <time>.csv (never committed). For
 # replaying the user's real runs in the sim (USE_CASES 29, PHYSICS.md "Fidelity").
 IFLAG="$OUT/.gd-input-stop"
+# and the PC's own sound (GD's music), WASAPI loopback, no install: tools/audiolog.ps1, hidden, its own stop
+# flag; to Videos/Captures/GD claude-audio <time>.wav (+ .json with the UTC start), ~1.4 GB/h (48 kHz float)
+AFLAG="$OUT/.gd-audio-stop"
 INDIR="$(cd "$(dirname "$0")/.." && pwd)/local/inputs"
 case "$1" in
   start)
-    rm -f "$FLAG" "$IFLAG"; mkdir -p "$INDIR"
+    rm -f "$FLAG" "$IFLAG" "$AFLAG"; mkdir -p "$INDIR"
+    powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "$(cygpath -w "$(dirname "$0")/audiolog.ps1")" -Out "$(cygpath -w "$OUT")\GD claude-audio $(date +%Y-%m-%d_%H-%M-%S).wav" -Stop "$(cygpath -w "$AFLAG")" &
     powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "$(cygpath -w "$(dirname "$0")/inputlog.ps1")"       -Out "$(cygpath -w "$INDIR")\GD inputs $(date +%Y-%m-%d_%H-%M-%S).csv" -Stop "$(cygpath -w "$IFLAG")" &
     while [ ! -f "$FLAG" ]; do
       "$FF" -y -hide_banner -loglevel error -f lavfi -i ddagrab=output_idx=0:framerate=60 \
@@ -27,6 +31,6 @@ case "$1" in
       [ -f "$FLAG" ] || sleep 1
     done
     rm -f "$FLAG" ;;
-  stop) touch "$FLAG" "$IFLAG"; taskkill //IM ffmpeg.exe //F ;;
+  stop) touch "$FLAG" "$IFLAG" "$AFLAG"; taskkill //IM ffmpeg.exe //F ;;
   *) echo "usage: tools/record.sh start|stop" ;;
 esac

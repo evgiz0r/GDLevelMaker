@@ -13,8 +13,9 @@
 //     viewer's ghost and for difficulty; and one line per attempt in local/attempts/<base>.jsonl (the format
 //     shared with the viewer's "you play", agreed with gd-visuals: events, result, pct, video {file, inputs, t,
 //     shift_ms, agree, res, mismatch}).
-// No sound is recorded on this PC (no loopback), so the song can't align it yet; with sound, the music's
-// restart per attempt would pin the clock to a frame.
+// With the recording's sound (tools/audiolog.ps1, WASAPI loopback, next to the video) and the level's song on
+// this PC, the music's restart pins each attempt's clock (~10 ms) and the shift search narrows to +-25 ms;
+// without, the bar fit (+-1.5 s) stands in. --audio <wav> picks the sound file by hand.
 // STATUS 2026-11-24: first version, not yet run on a real log (the first recording with inputs comes next).
 const fs = require("fs"), path = require("path"), { execFileSync } = require("child_process");
 const { GD, readGdlvl, unpack } = require("./io.js");
@@ -52,10 +53,51 @@ if (videoT0 == null) { console.log("the video's name has no start time"); proces
 
 const endPct = q => Math.min(100, Math.max(0, q.end.x / w.endX * 100));
 const out = [];
+// --- the song pins each attempt's clock (when the recording has its sound: tools/audiolog.ps1 next to the
+// video, and the level's song is on this PC). GD restarts the music at every attempt, from the level's song
+// offset (kA13): the loudness envelope of the recorded sound around the bar's start is matched with the song's
+// first 3 s; the best lag is the attempt's start, to ~10 ms.
+const FFMPEG = process.env.FFMPEG || "ffmpeg", ENV_HZ = 100;
+function envelope(file, from, dur) {   // mono loudness, 100 values a second
+  try { const raw = execFileSync(FFMPEG, ["-v", "error", "-ss", String(Math.max(0, from)), "-t", String(dur), "-i", file, "-ac", "1", "-ar", "4000", "-f", "f32le", "-"], { maxBuffer: 1 << 26, windowsHide: true });
+    const f = new Float32Array(raw.buffer, raw.byteOffset, raw.length >> 2), n = Math.floor(f.length / 40), out = new Float32Array(n);
+    for (let i = 0; i < n; i++) { let s = 0; for (let k = 0; k < 40; k++) s += Math.abs(f[i * 40 + k]); out[i] = s / 40; } return out; } catch (e) { return null; }
+}
+function songFile() {
+  const rec = L.rec ? L.rec : null, get = k => { try { return rec ? GD.getField(rec, k) : null; } catch (e) { return null; } };
+  const custom = get("k45"), off = +((L.level.header.match(/(?:^|,)kA13,([-0-9.]+)/) || [])[1] || 0);
+  if (custom && custom !== "0") for (const ext of [".mp3", ".ogg"]) { const f = path.join(__dirname, "..", "local", "songs", custom + ext); if (fs.existsSync(f)) return { file: f, off }; }
+  let n = lv.startsWith("official:") ? +lv.slice(9) - 1 : get("k8") != null ? +get("k8") : null;
+  if (n != null && isFinite(n)) { const { OFFICIAL } = require("./beats.js"), dir = (process.env.GD_LEVELS || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash/Resources/levels/").replace(/levels\/?$/, "");
+    const f = path.join(dir, OFFICIAL[n] + ".mp3"); if (fs.existsSync(f)) return { file: f, off }; }
+  return null;
+}
+const audioFile = opt("audio", (() => { const d = path.dirname(video), stamp = path.basename(video).match(/\d{4}-\d\d-\d\d_\d\d-\d\d-\d\d/);
+  if (!stamp || !fs.existsSync(d)) return null; const all = fs.readdirSync(d).filter(f => /^GD claude-audio .*\.wav$/.test(f)).sort();
+  const before = all.filter(f => f.slice(15, 34) <= stamp[0]); return before.length ? path.join(d, before[before.length - 1]) : null; })());
+let audio = null, song = null, songEnv = null;
+if (audioFile && fs.existsSync(audioFile + ".json")) { audio = JSON.parse(fs.readFileSync(audioFile + ".json", "utf8")); audio.file = audioFile; song = songFile(); if (song) songEnv = envelope(song.file, song.off, 3); }
+function pinStart(approxUtc) {   // UTC ms of the music's restart near approxUtc, or null
+  if (!audio || !songEnv || !songEnv.length) return null;
+  const a0 = Date.parse(audio.start_utc), from = (approxUtc - a0) / 1000 - 1.5, rec = envelope(audio.file, from, 6);
+  if (!rec || rec.length < songEnv.length) return null;
+  const m = songEnv.length; let best = -2, bestLag = 0;
+  const mean = a => a.reduce((s, x) => s + x, 0) / a.length, ms = mean(songEnv), ss = Math.sqrt(songEnv.reduce((s, x) => s + (x - ms) ** 2, 0)) || 1;
+  for (let lag = 0; lag + m <= rec.length; lag++) {
+    let mr = 0; for (let i = 0; i < m; i++) mr += rec[lag + i]; mr /= m; let num = 0, sr = 0;
+    for (let i = 0; i < m; i++) { const d = rec[lag + i] - mr; num += d * (songEnv[i] - ms); sr += d * d; }
+    const c = num / (ss * (Math.sqrt(sr) || 1)); if (c > best) { best = c; bestLag = lag; }
+  }
+  return best > 0.5 ? a0 + (Math.max(0, from) + bestLag / ENV_HZ) * 1000 : null;
+}
+if (audioFile) console.log(`sound: ${path.basename(audioFile)}${song ? ", song " + path.basename(song.file) : " (the level's song is not on this PC: bar fit only)"}`);
+
 for (const r of runs) {
-  const t0 = videoT0 + r.start * 1000;   // the attempt's first frame, UTC, to within the name's second
+  let t0 = videoT0 + r.start * 1000;   // the attempt's first frame, UTC, to within the name's second
+  const pinned = pinStart(t0), span = pinned != null ? 25 : 1500;
+  if (pinned != null) t0 = pinned;
   let best = null;
-  for (let sh = -1500; sh <= 1500; sh += 1000 / 240) {
+  for (let sh = -span; sh <= span; sh += 1000 / 240) {
     const start = t0 + sh, list = button.filter(e => e.t >= start - 50 && e.t <= start + r.secs * 1000 + 500)
       .map(e => ({ tick: Math.max(0, Math.round((e.t - start) / 1000 * 240)), type: e.type }));
     if (!list.length) continue;
