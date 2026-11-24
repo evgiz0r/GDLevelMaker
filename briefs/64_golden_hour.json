@@ -56,10 +56,7 @@
         "double",
         "s:pillar-hop",
         "s:capped-hop",
-        "s:lantern-orb",
-        "s:block-hops",
         "platform",
-        "s:slab-steps",
         "stairs"
       ],
       "args": {
@@ -256,11 +253,9 @@
         "single",
         "spike-block",
         "s:pillar-climb",
-        "s:lantern-orb",
         "s:low-roof-hops",
         "double",
         "s:red-orb-wall",
-        "s:block-hops",
         "orb-pit"
       ],
       "bg": [

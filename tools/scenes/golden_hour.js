@@ -113,7 +113,7 @@ module.exports = function ({ objects, header, beatX }) {
       out.push(...D.blockPattern(objects, S[i][0], S[i][1], { ch: C.fill, top: C.trim, seed: 40 + i }));
       out.push(...D.tufts(objects, S[i][0], S[i][1], { ch: C.grass, seed: 60 + i, group: 312 }));
     }
-    out.push(...D.backdrop(S[i][0], S[i][1], { far: C.far2, mid: C.mid, near: C.near, trees: i >= 4 ? "dead tree" : "tree", density: DEEP.has(i) ? 2.5 : 3, seed: i }));
+    out.push(...D.backdrop(S[i][0], S[i][1], { far: C.far2, mid: C.mid, near: i === 2 || i === 3 ? null : C.near, trees: i >= 4 ? "dead tree" : "tree", density: DEEP.has(i) ? 2.5 : 3, seed: i }));
   }
   // ---- motion on every screen (gd-art / gd-taste: moving deco is the strongest sign of a featured level,
   // ART.md "Deco study"): the grass sways, the motes bob, the lit block edges pulse on every bar toward a
