@@ -229,7 +229,7 @@ SoloPortal cases; PlayerObject `copyAttributes`):
 | gravity portals, blue/green orbs, gravity dash orbs, blue pads flip the other player too while both are in the same mode (they stay mirrored); ball taps, swing flips, spider teleports flip only their own | GJBaseGameLayer::flipGravity vs PlayerObject::flipGravity | yes | tests (portal) |
 | solo portal: the player that touched it goes on (player 1 copies player 2 when player 2 touched it) | toggleDualMode(false) | yes | tests |
 | in dual every mode has a floor and a roof | checkCollisions: `isFlyingMode = ... || m_isDualMode` | yes | - |
-| band height in dual: ASSUMED the larger of the two players' bands, cube/robot 300 like the ship, centred on the portal that set it (dual portal, or a mode portal in dual) like a flying portal's | updateDualGround's body is not in the decompile | yes | NOT checked |
+| band in dual: centred on the DUAL PORTAL for the whole dual part (a mode portal in dual changes only its height); height ASSUMED the larger of the two players' bands, cube/robot 300 like the ship | processCameraObject: in dual the camera object is the dual portal (m_lastActivatedPortal2); updateDualGround's body is not in the decompile | yes | centre: Hexagon Force (re-centring on a player's ship portal opened a gap over its corridor at 432; the solve flew over the spike roof and died at 499); height NOT checked |
 | speed: shared (both players are at one x) | - | yes | - |
 | camera: centred on the band (animateInDualGroundNew, tween 0.4 s) | decompile | viewer only | - |
 Not modelled: two-player mode (level setting, separate buttons), start-in-dual (level setting), the
