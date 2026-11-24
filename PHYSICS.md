@@ -434,7 +434,7 @@ What exists and what blocks it (2026-11-23):
   | 02:33 | Hexagon Force | 40.4% | 40.6% | yes (drift 28 ms) | - |
   | 02:33 | Base After Base | clear | clear | yes (drift 52 ms) | - |
   | 02:33 | Fingerdash | 53.0% / clear | 53.2% / 61.3% | yes (drift) / no | clear: block 555.6, robot launched into ceiling spikes (458). tools/passcheck.js 550-558 from the attempt's state: our physics HAS a way (presses 53.150 53.204 53.233 53.608 53.646 s), the log has 53.158 then 53.388 -- the same recording's hook logger dropped a click in Electroman, so most likely PIPELINE (a missed press); re-check with a raw-input recording |
-  | 02:33 | xStep | clear | 25.3% | no | block 211, ship into a hanging spike, after 3 drift re-fits: unknown (tight ship corridor) |
+  | 02:33 | xStep | clear | 25.3% | no | block 211, ship into a hanging spike, after 3 drift re-fits. passcheck 205-216: our physics passes only with 35 presses in 0.9 s (a jitter no human makes); the user pressed twice there (19.875, 20.554) -> most likely PHYSICS: the ship's line in that corridor (cf. the open ~0.5-unit ship offset, Stereo Madness 328) |
   | 02:33 | Electroman | 33.2% / 10.3% | 3.5% / 1.5% | no | PIPELINE: the hook logger missed a click (2nd saw jump) |
   | 02:33 | Geometrical Dominator | 12.3% / 13.3% | 7.3% / 5.7% | no | unknown (robot; path check too noisy to tell) |
   | 02:45 | Clutterfunk | clear | 3.5% | no | block 34.6: the game's cube uses a pad on a hanging block the sim's does not reach: unknown |
@@ -442,7 +442,13 @@ What exists and what blocks it (2026-11-23):
 - PASS CHECK (tools/passcheck.js, 2026-11-24): an exhaustive held / not-held search (states merged on position, speed,
   mode, button, orbs) from an attempt's replayed state through a stretch. NO WAY where the user got through = a physics
   difference there; a way that needs presses the log lacks = a missed input or timing. Fingerdash 550-558: a way exists
-  (10 min, 5.6k states at most) -> not a physics fact. Use --max 5000 (40000 ran out of time).
+  (10 min, 5.6k states at most) -> not a physics fact. xStep 205-216: a way only by 35 presses in 0.9 s -> a
+  physics lead (the search takes any way; judge whether a human could press it). Use --max 5000 (40000 ran out of time).
+- PLANNER GUARDS (2026-11-24, polish on GDLM 44 hellgate): tools/solutions.js fromRun saves a natural plan only when it
+  skips no portal / orb (a fresh solve's plan walked under the wave portal at block 292 that the raw route took) and, for
+  an incremental or windowed re-plan, adds no jump over nothing (else the whole-level plan). lib/natural.js mergeLegs
+  (after fly): a wave leg split into short presses by the controller's dead band is merged back, the stretch's other
+  inputs nudged by whole frames: hellgate's first corridor 5 presses / 5 short legs / 202 ticks near a wall -> 2 / 0 / 54.
 - FRAME-SNAPPED PRESSES do not help (the user's "Click Between Steps" is off, so GD may apply a press only at a
   frame start): snapping the logged presses to 60/120/144 Hz grids (every phase) makes no stuck replay go further and
   breaks Base After Base's clear (60 Hz: 12.9%). The logged times as they are fit best.

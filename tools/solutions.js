@@ -116,8 +116,17 @@ function fromRun(level, levelStr, r, opts) {
     // an incremental re-solve (r.inc, lib/incsolve.js): the route outside [from, to] is already the old natural
     // route, so only that window is planned again
     const win = r.inc && !r.inc.reused && r.inc.from != null ? [r.inc.from, r.inc.to] : null;
-    try { const n = r.inc && r.inc.reused ? { events: r.events, path: GD.run(w, r.events).path } : GD.naturalPlan(w, r, level.objects, win ? { cost: true, window: win } : { cost: true });
-      if (n && n.path[n.path.length - 1].done) { events = n.events; kind = "human"; why = undefined; } } catch (e) { why = "natural plan failed: " + e.message; }
+    // every candidate is checked before it is saved (polish, GDLM 44 hellgate, 2026-11-24): the plan, not only the solver's
+    // route, must skip no portal or orb (a fresh solve's plan walked under a wave portal the raw route took), and a
+    // windowed re-plan must add no jump over nothing (an incremental re-solve kept 13 old presses that no longer fit):
+    // a windowed or reused plan that fails either is replaced by a whole-level plan
+    const N = GD.pointlessJumps || (() => []);
+    const clean = n => n && n.path[n.path.length - 1].done && !GD.skipCheck(w, n.path, n.events);
+    try { let n = r.inc && r.inc.reused ? { events: r.events, path: GD.run(w, r.events).path } : GD.naturalPlan(w, r, level.objects, win ? { cost: true, window: win } : { cost: true });
+      if ((r.inc || win) && (!clean(n) || N(w, n.events).length)) { const f = GD.naturalPlan(w, r, level.objects, { cost: true });
+        if (clean(f) && (!clean(n) || N(w, f.events).length < N(w, n.events).length)) n = f; }
+      if (clean(n)) { events = n.events; kind = "human"; why = undefined; }
+      else if (n && n.path[n.path.length - 1].done) why = "the natural plan skips a portal or orb the solver's route takes: the solver's raw route"; } catch (e) { why = "natural plan failed: " + e.message; }
     sol = { ok: true, events, kind, why, plan: planCommit() };
   } else sol = { ok: false, kind: "unbeaten", events: (r && r.trail) || [], dieX: r && r.dieAt && r.dieAt.x, why: r && r.why, skipped: r && r.skipped, plan: planCommit() };
   return put(levelStr, sol, level, w);
