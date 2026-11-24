@@ -46,7 +46,7 @@ function shipSection(plan, si, hits, tOf, col) {
   const w = GD.makeWorld(open, GD.DEFAULT_HEADER);
   const sched = [];   // {tick, type}
   let holding = false;
-  const target = t => (t > t1 - 2.2 * 60 / plan.grid.bpm ? 60 : 120);   // mid band, low before the exit
+  const target = t => (t > t1 - 2.2 * 60 / plan.grid.bpm ? 45 : 120);   // mid band, low before the exit
   const yAt = (ev, tick) => { const r = GD.run(w, ev); const q = r.path[Math.min(tick, r.path.length - 1)]; return q; };
   for (let k = 0; k < slots.length; k++) {
     const tick = Math.round(slots[k].t * TPS), nextTick = k + 1 < slots.length ? Math.round(slots[k + 1].t * TPS) : Math.round(t1 * TPS);
@@ -77,7 +77,9 @@ function shipSection(plan, si, hits, tOf, col) {
   }
   // the exit: a cube portal where the path crosses the section's last beat, framed above and below
   const ex = run.find(q => q.x >= endX - 15) || run[run.length - 1];
-  const er = Math.max(1, Math.round((ex.y - 15) / 30));
+  // the exit sits on the floor (row 1, rows 0-2 open), framed above only: a ship riding the floor reaches it
+  // too, so no ship press has the exit's frame as its cue (it was every press's "cue" 16-102 blocks ahead)
+  const er = 1;
   o.push(["cube portal", +col(next.from).toFixed(3), er]);
   for (let r = 0; r < 10; r++) if (r < er - 1 || r > er + 1) o.push(["block", +col(next.from).toFixed(3), r]);
   return { objects: o, sched: sched.map(e => ({ tick: e.tick, type: e.type })), presses: sched.filter(e => e.type === "press").length };
