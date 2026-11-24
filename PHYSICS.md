@@ -511,6 +511,11 @@ skips something, its 99% wrong. and will cause trouble. and anyway not the human
 
 ## How the route is chosen (the natural route)
 
+- FIRST: the level's own planned inputs (tools/planned.js plannedEvents: the build's taps, 14 ticks each as
+  tools/hitbuild.js taps, and its ship schedule's own releases). When they clear the level as-is and skip nothing,
+  they ARE the saved route (kind "human", source "planned"; tools/solutions.js solve), with no solving. GDLM 62:
+  50 presses (43 taps + 7 ship presses), clears, 1.7 s (2026-11-24). Otherwise the natural plan below.
+
 Status of every saved route (official and GDLM: beaten?, kind, how it was made, plan stamp vs today's rules,
 skips, queued): `node tools/routes.js status [--official | --gdlm]` (saved files + one replay each, no solving).
 
