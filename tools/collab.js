@@ -164,7 +164,8 @@ function join(briefFile) {
   parts.forEach(({ p, r, L }, k) => {
     const last = k === parts.length - 1, end = r.L;
     // a part's objects within its own stretch (its run-out past the seam belongs to the next part); the last keeps all
-    for (const o of L.level.objects) if (last || o.x <= end + 15) objects.push(Object.assign({}, o, { x: +(o.x + shift).toFixed(3) }));
+    // (and nothing from before its own start: parts carry deco to x -300, which would spill into the part before)
+    for (const o of L.level.objects) if ((last || o.x <= end + 15) && (k === 0 || o.x >= -15)) objects.push(Object.assign({}, o, { x: +(o.x + shift).toFixed(3) }));
     if (r.events) { const dt = Math.round(p.t[0] * TPS); for (const e of r.events) if (last || e.tick < Math.round(r.dur * TPS)) events.push(Object.assign({}, e, { tick: e.tick + dt })); }
     else { problems.push(`${p.id}: no route`); send.add(p.id); }
     p.shift = +shift.toFixed(2);
@@ -177,7 +178,8 @@ function join(briefFile) {
   const run = GD.run(w, events), path0 = run.path;
   // the seams: the joined run's state at each seam time against the contract
   const seamRes = plan.seams.map((s, i) => {
-    const tick = Math.round(s.t * TPS), q = path0[Math.min(tick, path0.length - 1)] || {}, want = SPEED_IX[s.speed];
+    // the state the player ARRIVES with: 2 ticks before the seam (the next part's first portal may sit on the seam itself)
+    const tick = Math.round(s.t * TPS) - 2, q = path0[Math.min(tick, path0.length - 1)] || {}, want = SPEED_IX[s.speed];
     const xT = SY.xOfT(tl, s.t), xPart = parts[i + 1].p.shift;
     const bad = [];
     if (tick >= path0.length - 1 && run.dead) bad.push("the run died before it");
