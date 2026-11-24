@@ -91,6 +91,7 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 - [ ] **Calm after a flying exit**: ~10 blocks with nothing to jump after the cube lands (compose does it
   since 79635eb). A pattern change that moves the exit later moves the next hazard into a prejump: GDLM 50 v3's
   spike 7 blocks after the wave landing (score.js "prejumps", block 283). (TASTE.md; GDLM 50 v3)
+- [ ] **Open with a plain jump**: the first obstacle has no orb or pad in it; the first orb comes after a few plain jumps (official 1-21: first hazard at block 10-21, first orb at block 12-264). GDLM 52 v2, the user's first real play: 4 of 11 attempts died at 1.4 s on its opening pink-orb pit over four spikes. `node tools/softrules.js` "opener" (3 levels: 46, 52, 68); tools/planlevel.js opens orb-free.
 - [ ] **Orbs**: mostly single (~3/4). A chain of at most 2-3, ~3 blocks apart, climbing ~1 block in
   all, one orb kind, and a hazard-free surface ~1 block after the last orb. Never a chain where a
   normal click falls to death or that carries the cube toward the screen's edge.
@@ -158,6 +159,9 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   GDLM 68's ladder: "those cube ladders are way too bad to play. its almost luck based if i can find where to click".
   Flagged then: all 5 climbs of GDLM 68 (3-wide steps; station 1's top two steps off screen), 1-3 in each Golden Hour,
   41, 66.)
+  Calibrated on the user's GDLM 68 run (recording 2026-11-24 19-47-52, gd-physics): climb 1 (9 steps, 6 short landings, the
+  next landing hidden) took 5 of 6 deaths, nobody past step 3, the sim agreeing; its route was one HELD press bouncing up,
+  the player taps. So score.js "climbs" FAILs a climb with 3+ short landings, or short landings and a hidden next one.
 - [ ] **No stale stretch**: the longest time with no mode / speed / gravity / size change (a blue or green orb or pad
   counts) stays under 35 s at Easy / Normal, 25 Hard, 18 Harder, 15 Insane+ (official levels 1-6: 28-46 s; the later
   ones mostly 4-15 s). compose adds a cued gravity structure (blue pad, gravity portal pair, ceiling run) to cube sections

@@ -2,7 +2,7 @@
  "level": "GDLM 69 time hop",
  "title": "GDLM 69 time hop",
  "brief": "briefs/69_time_hop.json",
- "at": "2026-11-24T18:23:31.821Z",
+ "at": "2026-11-24T20:16:57.628Z",
  "vibe": "briefs/69_time_hop.vibe.json",
  "journey": "A ride through time: each phrase of the song is a new era in a new colour, the middle falls into a dark void between eras, and the end hops eras faster and faster until the ship flies out.",
  "oneImage": "The whole screen switching colour on a phrase start, as if the time machine just jumped.",
@@ -64,7 +64,7 @@
  "feel": {
   "tier": "Normal",
   "modeStretch": 12,
-  "density": "sparse: about one hazard per block at most, with breathing room"
+  "density": "about one hazard per block, two in the ship parts"
  },
  "never": [
   "deco that competes with the path (the look is the colours, not objects)",
@@ -78,12 +78,12 @@
  },
  "moodCurve": [
   0.3,
-  0.45,
-  0.7,
+  0.6,
+  0.6,
   0.4,
   0.6,
-  0.8,
-  0.85
+  1,
+  0.8
  ],
  "difficultyCurve": [
   "Easy",
@@ -158,7 +158,7 @@
     28.531669012104807
    ],
    "role": "build",
-   "energy": 0.45,
+   "energy": 0.6,
    "mood": "steady, on the beat",
    "place": "a deep blue era",
    "vehicle": {
@@ -214,7 +214,7 @@
     41.95814854721295
    ],
    "role": "build",
-   "energy": 0.7,
+   "energy": 0.6,
    "mood": "tense, upside-down logic",
    "place": "a pink era where time runs backwards",
    "vehicle": {
@@ -383,7 +383,7 @@
     85.59420703631443
    ],
    "role": "drop",
-   "energy": 0.8,
+   "energy": 1,
    "mood": "giddy, fast-changing",
    "place": "pink, green, cyan, magenta, green: an era every few seconds",
    "vehicle": {
@@ -439,7 +439,7 @@
     93.98575674575702
    ],
    "role": "finale",
-   "energy": 0.85,
+   "energy": 0.8,
    "mood": "triumphant escape",
    "place": "a blue sky",
    "vehicle": {

@@ -480,6 +480,22 @@ Still open:
 
 ## 5. Open / next (hand-off)
 
+- **Taste, inherited (2026-11-24)**: the style session now owns `tools/taste.js` (+ knowledge/taste_model.json, refit
+  `node tools/taste.js learn`), `tools/compare_sections.js` and `tools/energy.js` (TASTE_DATA.md "Handoff"). Next, in order:
+  the measured gaps in compose -- loosen sync (pulses on a beat 57% vs real 31%; portals on a bar line 100% vs 33%:
+  rated community levels, while SYNC.md's official levels sit on bar starts -- decide per tier before changing), motion
+  triggers per screen (10 vs 45), ~1.5x hazards per block within the tier, fewer repeated chunks -- then re-run
+  `node tools/compare_sections.js` to measure. After lab r2 (the space drop).
+- **Vibe sheets and recompile, inherited (2026-11-24)** from the showcase session: VIBES.md "Handoff" (tools/vibe.js,
+  tools/recompile.js, fixes 1-4 in code but unmeasured, 5 not started; the v1 benchmark table). Next: the collab repair
+  rounds test (`collab.js build briefs/69_time_hop.json 1 --by recompile`), then both round trips for the v2 column.
+  GDLM 69 and 70 in levels/ are still v1 and NOT READY.
+- **Craft, inherited (2026-11-24)** with gd-art (art takes the look): CRAFT.md "Handoff", tools/craft.js, tools/craftlevel.js.
+  Open for style: the solo-check failures of craft structures (slab-steps 208 ms reactive cut, lantern-orb prejump + 67 ms
+  cut, stepped-pyramid 38 ms press; capped-hop and stepped-pyramid fail at 2x: all tagged 1x only); spec drift (41, 43, 44,
+  47, 50, 51, 61 change when rebuilt from spec: re-make and re-check before any edit). GDLM 46 sketch's description is
+  136 characters with the signature (under 180): it builds, the handoff's "too long" was stale.
+
 - **User gates in compose** (visuals 52754fc, VIEWER.md): stages.put(... gate: true) + stages.waitApproval -> ok /
   redo with a note and a spot. Not wired yet: compose is one heavy job, so waiting inside it would hold the lock
   for hours. To do: "compose --until layout" (put the gated layout, save tweaks/plan, exit, free the lock), wait

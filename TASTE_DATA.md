@@ -268,3 +268,29 @@ attempt rows stay in local/real_stats.jsonl (physics owns them); this is the per
 - The user's marks and plays as data: each mark is a labelled spot (bad) on our levels; each played
   level a row with the user's verdict. When there are ~30, fit the user's own weights next to the
   community's (the "my taste" model) and report where they differ.
+
+## Handoff (2026-11-24): the taste session is archived
+
+The taste session is archived (the user freed memory). **gd-style** takes over the taste model, compare_sections.js and
+energy.js; **gd-art** takes over the deco measures (decostudy features in the model) and the look gaps below.
+
+- **Taste model** (`tools/taste.js`, `knowledge/taste_model.json`): static measures over ~330 real levels, effects within a
+  tier band, a logistic score 0-100 per band (EN, 2.2). Held-out AUC 0.64 after the decostudy refit (v2 rows only: the
+  per-screen features dsDress, dsChannels, dsMotion, dsPerScreen; glow dropped, unclear). score.js gate "taste" (info;
+  WARN only when a data-supported rule fails). Our levels score 44-69; Spooky Dash 73. Refit: `node tools/taste.js learn`
+  after new corpus rows or new decostudy rows.
+- **Corpus**: `local/taste/corpus.json` + `local/community/` (never committed); 22 official levels as reference only.
+  Demon list on this PC: `tools/demonlist.js` (190 of 193 levels, 240 MB, manifest `local/community/demonlist.json`;
+  Top 1 history in `knowledge/levels/demonlist_top1.json`). Not in the taste learning (no tier band fits them); for looking.
+- **Sections vs real levels** (`tools/compare_sections.js`, pictures `tools/compare_sheets.py`, output
+  `local/compare_sections/`, local only): see that section above for the ranked gaps. Re-run after a generator change:
+  `node tools/compare_sections.js` (frames are reused; `--fresh` re-renders, `--no-render` numbers only).
+- **Energy curve** (`tools/energy.js`, test `tests/energy.js`): one definition, used by compare_sections and score.js's
+  "energy curve" gate against a vibe sheet. Flying modes count corridor turns and narrowings (corridorEvents).
+- **Open, in order of value**:
+  1. Act on the gaps in compose: loosen sync (pulses and portals off the grid more often), more motion triggers per screen,
+     about 1.5x hazards per block within the tier, fewer repeated chunks. Then re-run compare_sections to measure it.
+  2. Route measures (windows, fairness, sync of presses) in compare_sections need solves of the references.
+  3. Trigger-built 2.2 references (Subwoofer Lullaby) render black and measure as empty: measure at moved positions.
+  4. A viewer page for the comparisons (the sheets carry GD art: serve.js only, never the phone page).
+  5. The "my taste" model once the user has ~30 marked or judged levels; a quality.js row from the taste score.

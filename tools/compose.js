@@ -41,6 +41,8 @@
 // (the rest of the level left out; every section starts and ends as a cube on the ground) and keeps
 // the scores of unchanged sections, so a repair round re-solves only what it changed; the whole
 // level is scored once at the end.
+// "pulses": false (a vibe sheet that says no pulses): the modern look without its beat pulses (tools/vfxkit.js).
+// A section's "structureModes": ["cube"]: its structure only from those modes (tools/vibe.js: the sheet's vehicle).
 // "structures" (default on; false = off): every plain cube section (not rest, no mode) also gets ONE
 // structure from the ranked library (tools/structures.js, STRUCTURES.md) as its newest idea, a
 // different one per section, best-ranked first within the brief's difficulty label, skipping what the
@@ -115,7 +117,9 @@ function structurePicks(brief, tweaks = {}) {
   // spread the mechanics: a mode or tag not yet in the level first
   const tagsUsed = new Set();
   for (const [, i] of want) {
-    const fresh = pool.filter(r => !used.has("s:" + r.id) && (r.needs.speed || "1x") === sp[i]);
+    // a section with "structureModes" (tools/vibe.js: a vibe sheet's vehicle) takes only structures of those modes
+    const sm = brief.sections[i].structureModes;
+    const fresh = pool.filter(r => !used.has("s:" + r.id) && (r.needs.speed || "1x") === sp[i] && (!sm || sm.includes(r.mode)));
     // a reseeded section (tweaks "reseed:<i>", a variant or a backtrack) takes the n-th alternative
     const rs = tweaks["reseed:" + i] || 0, novel = fresh.filter(r => ![r.mode, ...r.tags].some(t => tagsUsed.has(t)));
     const pick = rs ? (novel.length ? novel : fresh)[rs % Math.max(1, (novel.length ? novel : fresh).length)] : (novel[0] || fresh[0]);
@@ -402,10 +406,11 @@ function compose(brief, tweaks = {}) {
   // the signature at the end (tools/signature.js, the visuals session's): in the last rest section
   // on by default; make.js puts it 3 blocks after the last gameplay object and ends the level ~5 blocks after it
   spec.signature = brief.signature === false ? false : {};
-  if (brief.scene) spec.scene = brief.scene;   // a scene script (tools/scenes/<name>.js, SHOWCASE.md): the look by hand, run by make.js
+  if (brief.scene) spec.scene = brief.scene;
+  if (brief.theme) spec.theme = brief.theme;   // a theme kit (tools/scenes/theme.js + tools/themes/<name>.js, ART.md "Theme kits")   // a scene script (tools/scenes/<name>.js, SHOWCASE.md): the look by hand, run by make.js
   if (brief.craft) spec.craft = brief.craft;   // craft pass (tools/craftkit.js, CRAFT.md): rods, chains, lanterns on the structures
   // (a collab part, tools/collab.js: the title only on the first part, the end text only on the last)
-  if (brief.modern !== false) spec.modern = { sections: looks.map(({ bg, ...l }) => l), title: brief._noTitle ? null : brief.name, end: brief._noEnd ? null : "thanks for playing", seed: brief.seed || 3, light: brief.palette === "light" };
+  if (brief.modern !== false) spec.modern = { sections: looks.map(({ bg, ...l }) => l), title: brief._noTitle ? null : brief.name, end: brief._noEnd ? null : "thanks for playing", seed: brief.seed || 3, light: brief.palette === "light", ...(brief.pulses === false ? { pulses: false } : {}) };
   // jump indicators (tools/decorate.js): on jumps that cannot be read in time, and the first jump of
   // each new pattern. Default on; "indicators": false in the brief turns them off.
   if (brief.indicators !== false) spec.indicators = Object.assign({ at: firsts }, brief.indicators || {});
@@ -850,4 +855,4 @@ if (require.main === module) {
     loop(file, ri >= 0 ? +args[ri + 1] : 8, { until: ui >= 0 ? args[ui + 1] : null, resume: args.includes("--resume") });
   }
 }
-module.exports = { compose, loop };
+module.exports = { compose, loop, chunkAt, EASIER };

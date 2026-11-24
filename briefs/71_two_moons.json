@@ -20,7 +20,7 @@
  "structures": true,
  "modern": true,
  "signature": {},
- "scene": "tools/scenes/kit.js",
+ "scene": "tools/scenes/theme.js",
  "parts": [
   [
    0
@@ -551,5 +551,6 @@
     3
    ]
   }
- ]
+ ],
+ "theme": "space"
 }
