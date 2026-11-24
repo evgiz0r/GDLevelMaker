@@ -17,8 +17,9 @@
 // Waits up to GDLM_HEAVY_WAIT minutes (default 120), then gives up with exit code 75.
 // Priority: GDLM_HEAVY_PRIORITY=high|normal|low (or --priority high on the tool's command line); default normal.
 //   Waiters register in the lock folder (w<pid>.json); a free slot goes to the highest priority waiting, first
-//   come first within one priority. A running job is never stopped, so a long low-priority job (batch
-//   re-solves, measuring runs) holds a high one back by at most itself. High: what the user asked for now;
+//   come first within one priority. A running job of lower priority with yield points gives its slot back to a
+//   higher one that has waited 5 min (see "yield, pause, resume" below; nothing is lost); one without yield points is
+//   never stopped, so it holds a high one back by at most itself. High: what the user asked for now;
 //   low: batches and measuring that can wait.
 // Freshness: once a job has its slot, its worktree is compared with origin/main (git fetch at most once a minute,
 //   cached in the lock folder's fetch.json). Behind and clean (no changes to tracked files, nothing of its own
@@ -169,30 +170,56 @@ function syncTree(root, opts = {}) {
 }
 
 let held = null;
-function claim(label) {
-  if (process.env.GDLM_HEAVY === "off" || held) return;
-  lowPriority();   // first of all, also while waiting and in a parent's slot
-  if (process.env.GDLM_HEAVY_HELD && alive(+process.env.GDLM_HEAVY_HELD)) return;   // in the parent's slot
-  const dir = lockDir(), mutex = path.join(dir, "_mutex");
-  fs.mkdirSync(dir, { recursive: true });
-  const cmd = label || process.argv.slice(1).map(a => path.relative(ROOT, a).startsWith("..") ? a : path.relative(ROOT, a).replace(/\\/g, "/")).join(" ");
-  const limit = Date.now() + (+(process.env.GDLM_HEAVY_WAIT || 120)) * 60000;
-  let lastMsg = "", lastAt = 0;
-  const waitStart = Date.now(), prio = myPriority();
-  let est = null;
-  try { est = require("./jobtime.js").estimate(cmd); } catch (e) {}
-  // ver 2: this waiter uses the second slot when decide() allows it. A waiter without it runs older heavy.js code (one
-  // slot unless 6 GB free): put first in line it never took the free second slot, and every newer job queued behind
-  // it (2026-11-24: 15 jobs idle for 20 min behind one). Such a waiter is first in line only when no job runs.
-  const me = { pid: process.pid, prio, since: waitStart, session: sessionName(), cmd, est: est ? Math.round(est.secs) : null, mb: est ? est.mb : null, ver: 2 };
-  const MB = jobMB();
+// ---- yield, pause, resume (the user, 2026-11-24: "We can't pause solver work in the middle if needed? We should be able
+// to stop and resume any search, no?") ----
+// A job pauses IN ITS OWN PROCESS: at a yield point (yieldPoint(), also globalThis.gdlmYield, which lib/physics.js's
+// run / solve and lib/natural.js's passes call) it gives its slot back, waits, takes a slot again and carries on where it
+// was -- nothing is saved or redone, so a pause loses no work, whatever the job. Requests are files in the lock folder:
+// y<slot pid>.json {kind: "yield" | "pause", by, reason, at}.
+//   - yield: a waiter of HIGHER priority that is first in line and has waited YIELD_MIN (GDLM_HEAVY_YIELD_MIN, default
+//     5 min) with no free slot asks the lowest-priority running job that has yield points; that job gives the slot back
+//     and queues again at its own priority (its old place in line), so the waiter goes first.
+//   - pause: `node tools/heavy.js pause <pid | words of its command>` -- the job gives the slot back and waits until
+//     `node tools/heavy.js resume <...>` (or the request file goes). While paused it holds no slot but keeps its memory.
+// A request reaches a job at its next yield point (within ~2 s of work in the solvers and the planner). A job with no
+// yield points ("yields" missing in its slot file) cannot pause: it finishes, or is stopped and re-run (difficulty_solve
+// resumes from its checkpoint; saved_routes keeps every route it fixed).
+const YIELD_MIN = () => +(process.env.GDLM_HEAVY_YIELD_MIN || 5);
+let slot = null;   // { dir, pid (the slot file's pid: this process, or the parent whose slot it runs in), own, rec, me }
+const reqFile = (dir, pid) => path.join(dir, "y" + pid + ".json");
+function readReq(dir, pid) { try { return JSON.parse(fs.readFileSync(reqFile(dir, pid), "utf8")); } catch (e) { return null; } }
+// the live requests; ones for a dead pid are removed
+function requests(dir = lockDir()) {
+  let files = []; try { files = fs.readdirSync(dir).filter(f => /^y\d+\.json$/.test(f)); } catch (e) { return []; }
+  const out = [];
+  for (const f of files) {
+    let r = null; try { r = JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")); } catch (e) {}
+    const pid = +/\d+/.exec(f)[0];
+    if (!r || !alive(pid)) { try { fs.unlinkSync(path.join(dir, f)); } catch (e) {} continue; }
+    out.push(Object.assign({ pid }, r));
+  }
+  return out;
+}
+// the job a long-waiting waiter w asks to yield (pure: tested): the lowest priority below w's, with yield points, not
+// asked already, holding its slot over a minute (so two jobs never swap back and forth)
+function yieldVictim(w, hs, reqs, now, waitedMin) {
+  if (waitedMin < YIELD_MIN()) return null;
+  const asked = new Set((reqs || []).map(r => r.pid));
+  const c = hs.filter(h => h.yields && !asked.has(h.pid) && RANK[h.prio || "normal"] > RANK[w.prio] && now - Date.parse(h.start) > +(process.env.GDLM_HEAVY_YIELD_HOLD_MS || 60000));
+  return c.sort((a, b) => RANK[b.prio || "normal"] - RANK[a.prio || "normal"] || Date.parse(b.start) - Date.parse(a.start))[0] || null;
+}
+const short = cmd => (/tools[\\/].*|tests[\\/].*/.exec(cmd) || [cmd])[0];
+// wait for a slot (the queue, the lanes, memory); returns { lane, light } once this process may run
+function waitTurn(dir, me) {
+  const mutex = path.join(dir, "_mutex"), limit = Date.now() + (+(process.env.GDLM_HEAVY_WAIT || 120)) * 60000, MB = jobMB();
   const wfile = path.join(dir, "w" + process.pid + ".json");
   const unwait = () => { try { fs.unlinkSync(wfile); } catch (e) {} };
   try { fs.writeFileSync(wfile, JSON.stringify(me)); } catch (e) {}
   process.on("exit", unwait);
+  let lastMsg = "", lastAt = 0;
   for (;;) {
     // check-and-take under a short mutex (exclusive create), so two starting at once cannot both get in
-    let got = false;
+    let got = null;
     try {
       const fd = fs.openSync(mutex, "wx");
       try {
@@ -204,14 +231,21 @@ function claim(label) {
         let light = false;
         if (d !== "go" && d !== "memory" && isLight(me) && lightGo(hs, free, game)) { d = "go"; light = true; }
         if (d === "go") {
-          held = path.join(dir, process.pid + ".json");
-          fs.writeFileSync(held, JSON.stringify({ pid: process.pid, session: sessionName(), cmd, prio, lane: pick.lane && !light, light, start: new Date().toISOString(), freeMB: free, est: est ? Math.round(est.secs) : null, basis: est ? est.basis : null }));
+          got = { lane: pick.lane && !light, light };
           if (light) console.log(`heavy: light lane (measured under ${FAST_SECS / 60} min and ${LIGHT_MB} MB): a third slot beside the long jobs`);
           else if (pick.lane) console.log(`heavy: fast lane (measured under ${FAST_SECS / 60} min): going ahead of the long jobs`);
-          got = true; unwait();
+          unwait();
         } else {
+          // first in line and waited long: ask a lower-priority job with yield points to give its slot back
+          if (d === "busy" && first && first.pid === me.pid) {
+            const v = yieldVictim(me, hs, requests(dir), Date.now(), (Date.now() - me.since) / 60000);
+            if (v) try {
+              fs.writeFileSync(reqFile(dir, v.pid), JSON.stringify({ kind: "yield", by: `${me.session} pid ${me.pid}`, reason: `${me.prio} priority ${short(me.cmd)} waited ${Math.round((Date.now() - me.since) / 60000)} min`, at: new Date().toISOString() }));
+              console.log(`heavy: asked ${describe(v)} to yield its slot`);
+            } catch (e) {}
+          }
           const msg = d === "busy" ? `waiting for ${hs.map(describe).join("; ")}${game ? " (the game runs: one job at a time)" : ""}`
-            : d === "queue" ? `waiting: ${first.prio} priority ${(/tools[\\/].*/.exec(first.cmd) || [first.cmd])[0]} (${first.session}) goes first` : `waiting for memory: ${free} MB free, need ${game ? GAME_MIN_FREE_MB + " MB while the game runs" : MIN_FREE_MB + " MB"}`;
+            : d === "queue" ? `waiting: ${first.prio} priority ${short(first.cmd)} (${first.session}) goes first` : `waiting for memory: ${free} MB free, need ${game ? GAME_MIN_FREE_MB + " MB while the game runs" : MIN_FREE_MB + " MB"}`;
           if (msg.replace(/\d+ min in.*$/, "") !== lastMsg || Date.now() - lastAt > 120000) { console.log(`heavy: ${msg}`); lastMsg = msg.replace(/\d+ min in.*$/, ""); lastAt = Date.now(); }
         }
       } finally { fs.closeSync(fd); try { fs.unlinkSync(mutex); } catch (e) { /* removed by a waiter that took it for stale (OneDrive/Windows can be slow): fine */ } }
@@ -219,10 +253,84 @@ function claim(label) {
       if (e.code !== "EEXIST" && e.code !== "EPERM" && e.code !== "EBUSY" && e.code !== "ENOENT") throw e;   // EPERM/EBUSY: Windows while another process deletes it
       try { if (Date.now() - fs.statSync(mutex).mtimeMs > 15000) fs.unlinkSync(mutex); } catch (e2) {}   // a crashed holder of the mutex
     }
-    if (got) break;
+    if (got) return got;
     if (Date.now() > limit) { console.log(`heavy: gave up after ${process.env.GDLM_HEAVY_WAIT || 120} min waiting; try later`); process.exit(75); }
-    sleepSync(3000 + Math.random() * 2000);
+    sleepSync(+(process.env.GDLM_HEAVY_POLL_MS || 0) || 3000 + Math.random() * 2000);
   }
+}
+const writeSlot = (dir, pid, rec) => { const f = path.join(dir, pid + ".json"); fs.writeFileSync(f, JSON.stringify(rec)); return f; };
+let lastYieldCheck = 0, marked = false, pausedMs = 0;   // pausedMs: time without a slot, left out of the measured time
+// call it often from long work: cheap (a clock read; a file read at most every 2 s). Returns true when the job paused.
+function yieldPoint() {
+  if (!slot) return false;
+  if (!marked) {   // the slot file says this job can yield (only such jobs are asked)
+    marked = true;
+    try { const f = path.join(slot.dir, slot.pid + ".json"), r = JSON.parse(fs.readFileSync(f, "utf8")); if (!r.yields) { r.yields = true; fs.writeFileSync(f, JSON.stringify(r)); } slot.rec = r; } catch (e) {}
+  }
+  const now = Date.now();
+  if (now - lastYieldCheck < +(process.env.GDLM_HEAVY_YIELD_CHECK_MS || 2000)) return false;
+  lastYieldCheck = now;
+  const req = readReq(slot.dir, slot.pid);
+  if (!req) return false;
+  const f = path.join(slot.dir, slot.pid + ".json");
+  let rec = slot.rec; try { rec = JSON.parse(fs.readFileSync(f, "utf8")); } catch (e) {}
+  try { fs.unlinkSync(f); } catch (e) {}
+  if (slot.own) held = null;
+  console.log(`heavy: ${req.kind === "pause" ? "PAUSED" : "yielding its slot"} (${req.reason || "asked by " + req.by}); nothing is lost: it carries on from here`);
+  if (req.kind === "pause") { while (readReq(slot.dir, slot.pid)) sleepSync(+(process.env.GDLM_HEAVY_POLL_MS || 0) || 2000); }
+  else { try { fs.unlinkSync(reqFile(slot.dir, slot.pid)); } catch (e) {} }
+  const t1 = Date.now();
+  waitTurn(slot.dir, Object.assign({}, slot.me, { pid: process.pid }));
+  rec = Object.assign({}, rec, { yields: true, yielded: (rec.yielded || 0) + 1 });
+  const file = writeSlot(slot.dir, slot.pid, rec);
+  if (slot.own) held = file;
+  slot.rec = rec;
+  pausedMs += Date.now() - now;
+  console.log(`heavy: resumed after ${((Date.now() - now) / 1000).toFixed(0)} s (${((Date.now() - t1) / 1000).toFixed(0)} s of it waiting for a slot)`);
+  return true;
+}
+// heavy.js pause|resume|yield <pid | words of the command>: the request file for each running job that matches
+function request(kind, what) {
+  const dir = lockDir(), hs = holders(dir), paused = requests(dir).filter(r => r.kind === "pause");
+  const match = x => what && (String(x.pid) === what || (x.cmd || "").includes(what));
+  if (kind === "resume") {
+    const rs = paused.filter(r => String(r.pid) === what || (r.cmd || "").includes(what) || !what);
+    for (const r of rs) { try { fs.unlinkSync(reqFile(dir, r.pid)); } catch (e) {} console.log(`resumed pid ${r.pid} ${short(r.cmd || "")}: it takes a slot as one is free`); }
+    if (!rs.length) console.log(`no paused job matches "${what || ""}"`);
+    return rs.length;
+  }
+  const hit = hs.filter(match);
+  if (!hit.length) { console.log(`no running heavy job matches "${what || ""}" (node tools/heavy.js lists them)`); return 0; }
+  for (const h of hit) {
+    fs.writeFileSync(reqFile(dir, h.pid), JSON.stringify({ kind, by: "heavy.js " + kind, reason: kind === "pause" ? "paused by hand: node tools/heavy.js resume " + h.pid : "asked by hand", at: new Date().toISOString(), cmd: h.cmd }));
+    console.log(`${kind} asked of ${describe(h)}${h.yields ? ": it stops at its next yield point (seconds)" : ": NO YIELD POINTS seen in it yet -- it stops at its first one, or finishes; stopping it (kill) loses the item in progress"}`);
+  }
+  return hit.length;
+}
+function claim(label) {
+  if (process.env.GDLM_HEAVY === "off" || held) return;
+  lowPriority();   // first of all, also while waiting and in a parent's slot
+  const dir = lockDir();
+  const cmd = label || process.argv.slice(1).map(a => path.relative(ROOT, a).startsWith("..") ? a : path.relative(ROOT, a).replace(/\\/g, "/")).join(" ");
+  if (process.env.GDLM_HEAVY_HELD && alive(+process.env.GDLM_HEAVY_HELD)) {   // in the parent's slot: it yields that slot
+    const ppid = +process.env.GDLM_HEAVY_HELD;
+    let rec = null; try { rec = JSON.parse(fs.readFileSync(path.join(dir, ppid + ".json"), "utf8")); } catch (e) {}
+    if (rec) { slot = { dir, pid: ppid, own: false, rec, me: { pid: process.pid, prio: rec.prio || myPriority(), since: Date.parse(rec.start) || Date.now(), session: rec.session, cmd: rec.cmd, est: rec.est, mb: null, ver: 2 } }; globalThis.gdlmYield = yieldPoint; }
+    return;
+  }
+  fs.mkdirSync(dir, { recursive: true });
+  const waitStart = Date.now(), prio = myPriority();
+  let est = null;
+  try { est = require("./jobtime.js").estimate(cmd); } catch (e) {}
+  // ver 2: this waiter uses the second slot when decide() allows it. A waiter without it runs older heavy.js code (one
+  // slot unless 6 GB free): put first in line it never took the free second slot, and every newer job queued behind
+  // it (2026-11-24: 15 jobs idle for 20 min behind one). Such a waiter is first in line only when no job runs.
+  const me = { pid: process.pid, prio, since: waitStart, session: sessionName(), cmd, est: est ? Math.round(est.secs) : null, mb: est ? est.mb : null, ver: 2 };
+  const got = waitTurn(dir, me);
+  const srec = { pid: process.pid, session: sessionName(), cmd, prio, lane: got.lane, light: got.light, start: new Date().toISOString(), freeMB: freeMB(), est: est ? Math.round(est.secs) : null, basis: est ? est.basis : null };
+  held = writeSlot(dir, process.pid, srec);
+  slot = { dir, pid: process.pid, own: true, rec: srec, me };
+  globalThis.gdlmYield = yieldPoint;
   const waited = (Date.now() - waitStart) / 1000;
   if (waited > 2) console.log(`heavy: got the slot after waiting ${waited.toFixed(0)} s`);   // tools/loop.js leaves this out of the step's time
   process.env.GDLM_HEAVY_HELD = String(process.pid);   // children run in this slot
@@ -232,7 +340,7 @@ function claim(label) {
   let recorded = false;
   const rec = ok => { if (recorded || process.env.GDLM_HEAVY_NOREC === "1") return; recorded = true;
     let mb = null; try { mb = Math.round(process.resourceUsage().maxRSS / 1024); } catch (e) {}
-    try { const r = JT.record(cmd, t0, ok, est, { session: sessionName(), mb });
+    try { const r = JT.record(cmd, t0 + pausedMs, ok, est, { session: sessionName(), mb });
       if (r.secs > 30) process.stderr.write(`heavy: took ${JT.fmt(r.secs)}${est ? " (estimate " + JT.fmt(est.secs) + ": " + est.basis + ")" : " (no estimate: not measured before)"}\n`); } catch (e) {} };
   process.on("exit", code => rec(code === 0));
   for (const sig of ["SIGINT", "SIGTERM", "SIGHUP", "SIGBREAK"]) process.on(sig, () => rec(false));
@@ -252,11 +360,15 @@ function claim(label) {
 }
 const release = () => { if (held) { try { fs.unlinkSync(held); } catch (e) {} held = null; delete process.env.GDLM_HEAVY_HELD; } };
 
-module.exports = { claim, release, syncTree, holders, waiters, firstInLine, pickNext, isFast, isLight, lightGo, LIGHT_MB, jobMB, FAST_SECS, STARVE_MIN, myPriority, decide, gameRunning, lowPriority, lockDir, freeMB, describe, minutesLeft, etaOf, RANK, MIN_FREE_MB, TWO_SLOTS_MB, GAME_MIN_FREE_MB };
-if (require.main === module) {
+module.exports = { claim, release, yieldPoint, request, requests, yieldVictim, syncTree, holders, waiters, firstInLine, pickNext, isFast, isLight, lightGo, LIGHT_MB, jobMB, FAST_SECS, STARVE_MIN, myPriority, decide, gameRunning, lowPriority, lockDir, freeMB, describe, minutesLeft, etaOf, RANK, MIN_FREE_MB, TWO_SLOTS_MB, GAME_MIN_FREE_MB };
+if (require.main === module && /^(pause|resume|yield)$/.test(process.argv[2] || "")) {
+  process.exit(request(process.argv[2], process.argv.slice(3).join(" ")) ? 0 : 1);
+} else if (require.main === module) {
   const hs = holders();
   const fr = freeMB(), game = gameRunning(), mb = jobMB(), slots = !game && fr >= MIN_FREE_MB + mb ? 2 : 1;
   console.log(`${fr} MB free${game ? ", the game runs" : ""}; ${slots} slot(s) now (2 when the game is closed and ${MIN_FREE_MB + mb} MB are free; one job ~${mb} MB); ${hs.length ? hs.length + " heavy job(s): " + hs.map(h => (h.light ? "[light lane] " : h.lane ? "[fast lane] " : "") + describe(h)).join("; ") : "no heavy job running"}  (lock dir ${lockDir()})`);
   const ws = waiters().sort((a, b) => (before(a, b) ? -1 : 1));
   if (ws.length) console.log("waiting, in order: " + ws.map(w => `${(/tools[\\/].*/.exec(w.cmd) || [w.cmd])[0]} (${w.session}, ${w.prio}${isFast(w) ? ", fast" : ""}, ${Math.round((Date.now() - w.since) / 60000)} min)`).join("; "));
+  const ps = requests().filter(r => r.kind === "pause");
+  if (ps.length) console.log("PAUSED (no slot; node tools/heavy.js resume <pid>): " + ps.map(r => `pid ${r.pid} ${short(r.cmd || "")} (since ${r.at})`).join("; "));
 }
