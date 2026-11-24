@@ -208,7 +208,21 @@ Deadlocked at 695 on a static spike; the re-solves on the new physics are listed
 
 Lab: GDLM 63 (specs/63_dual_movers_lab.json, made by tools/lab63.js): 1-3 dual, 4 a rising platform,
 5 move to target, 6 pause/resume, 7 a multi-trigger loop, 8 a toggled-off trigger. Each station's note says
-what the sim expects. Not played yet.
+what the sim expects; 9-12 orb buffering (the physics session's question).
+**Played 2026-11-24** (GD claude-rec 2026-11-24_02-13-32.mkv with the input log; physics session, tools/replay_run.js):
+both normal-mode clears replay to the end in the sim with the user's own presses (one clock offset, 842 ms). A station
+only CONFIRMS a rule when the user's real inputs there would have died under the other rule (attempts in
+local/attempts/gdlm_63_dual_and_movers_lab.jsonl; clear 1 made no press from block 88 to 151, clear 2 jumped at 6-7):
+- confirmed: 7 multi-trigger loops (clear 1, no press: fired once, the spike would sit 20 up and kill the cube on the
+  floor); 8 a trigger in a toggled-off group does not fire (clear 1, no press: else the spike lands on the floor);
+  3 the solo portal keeps the player that touched it (keeping player 1 leaves an upside-down cube with no roof,
+  flying out of the level; the game went on normally).
+- consistent but not settled by deaths: dual spawn and mirroring, the band's height (player 2's roof spike is
+  survived at any roof a little higher), 2 gravity portal in dual, 4 riding a rising platform, 5 move to target
+  (the user jumped there anyway), 6 pause/resume (the spike is clear paused or not). Settling these needs the
+  frames: player 2's height on the roof, the spike positions (tools/track.py, the physics session's tracker).
+- open: 9 and 11 (the user tapped at the orb instead of holding from the jump: the hold-buffer question stays; next
+  lab: a roof right after the jump's apex so a second press cannot reach the orb), 12 (the press reached the orb).
 
 ## Dual (lib/dual.js, 2026-11-23; owner: the dual/moving-objects session)
 
@@ -276,9 +290,42 @@ What exists and what blocks it (2026-11-23):
   mouse; down/up, high-resolution, wall-clock) to local/inputs/. tools/replay_run.js <video> <log> <level>
   replays each normal-mode attempt (attempts from the progress bar, tools/runs.js) in the sim: the clock offset
   is the shift at which the sim dies at the video's % (or finishes); an attempt no shift explains is a physics
-  mismatch for this list. Output local/replays/<video>.json (viewer ghost, difficulty). No sound is recorded
-  (no loopback device), so audio alignment waits; the name's start second + the fitted shift stand in.
-  Not yet run on a real log.
+  mismatch for this list. Output local/replays/<video>.json and local/attempts/<base>.jsonl (viewer ghost,
+  difficulty). Sound (2026-11-24, the user's pick: no install): tools/audiolog.ps1 records the PC's own sound by
+  WASAPI loopback with record.sh (Videos/Captures/GD claude-audio <time>.wav + .json with the UTC start; silence
+  is written while nothing plays, so the file's time is wall time; tested: a 1.5 s tone lands where it played).
+  replay_run.js matches the recorded sound around each attempt with the level's song from its offset
+  (loudness envelopes, 100 Hz): the music's restart pins the attempt's start to ~10 ms (a synthetic test: 2.00 s
+  found for 2.00 s), then the press shift is searched +-25 ms; without sound or the song, the bar fit (+-1.5 s).
+  First real run (2026-11-24, GDLM 63 dual + movers lab, GD claude-rec 2026-11-24_02-13-32.mkv with the
+  minimal "<unix ms> <down|up> <key>" log, no sound; window 172,94,1600): one clock offset for the whole
+  recording, 842 ms, from the clears. BOTH CLEARS REPLAY TO THE END IN THE SIM with the user's own presses:
+  every station (dual, moving objects, orbs) agrees with the game on that run. The first attempt (died 38.1%)
+  needs a 1.4 s shift: its bar-detected start is late (the first attempt fades in after loading), not physics.
+  The 0.9% / 3.6% "deaths" are quick restarts. Orb stations: at 9 and 11 the user pressed again at the orb
+  instead of holding from the jump, so "a held jump fires an orb" is still unanswered (ask for a hold next
+  time); 10 (press just before, held) fired as the sim expects; 12 fired and the run went on.
+  Attempts are in local/attempts/gdlm_63_dual_and_movers_lab.jsonl (viewer "Your runs", video lines).
+  Dual band height, measured (frame at 88.0 s, local/shots/rec63/d88.png, window crop 172,94,1600x900): in
+  dual GD draws the roof as a band at the top of the view; floor line y 826 px, roof line y 73 px = 753 px;
+  a floor spike (1 block) is 76 px tall -> 9.9 blocks. The sim's dual band is 10 blocks (player 2's top at
+  y 300): agrees within the measure (+-1 px on each line = +-0.03 blocks... the spike edge, ~+-2%).
+  The same recording also holds GDLM 60 (2 attempts) and Blast Processing (1): identified from the frames.
+  INPUT LOGGER LESSON (02:26 recording, 2026-11-24): the first tools/inputlog.ps1 did its work (a process-name
+  lookup, a file write + flush) inside the low-level hook callback. Jumper, which the user cleared, replays to a
+  death at 2.6% because the log has no press at the route's 2.07 s and 2.44 s jumps: the hook MISSED real
+  clicks (Windows skips a hook that takes too long, and every click waits on it until then). The user, the same
+  session: "a spike killed me, probably we are running something" (Clutterfunk, 92.6%). Fixed 02:34: the
+  callback only queues (clock, foreground pid, key); a writer thread does the rest. Logs from 02:13-02:34 (both
+  loggers' first versions) may miss presses: judge them only where they replay a clear.
+  - The first attempt after a level loads: its bar shows ~0.55 s before the level moves (GDLM 63 +580 ms, BP
+    +520 ms); replay_run.js allows for it (LOAD_MS). With it: GDLM 63 all agree (2 clears, a 38.1% death,
+    2 restarts not judged), Blast Processing's 15.8% death agrees (sim 15.7%, a slope), GDLM 60's 48.1% agrees.
+  - OPEN, a mismatch candidate: GDLM 60 at 456.6 s died 33.9% (the green-orb station) in the game; with the
+    logged presses the sim dies at block 96.9 (the pink-orb station's spike) before the user's jump there, and
+    no clock shift in +-1.5 s reproduces 33.9%. Either the pink-orb station plays differently (the pink orb
+    was already the unsettled lab-60 measurement), or the input log has a gap (it only logs while GD is in
+    front). The other GDLM 60 attempt passes the same station in both. Needs a clean pink-orb recording.
 - Practice-mode respawns break time -> x; per-attempt segmentation by the attempt label or a jump in x.
 Lab 2 (to build): the mini cube, the pink orb (clean, at ground level so the camera stays still), 45-degree
 and -53-degree teleports, the swing, dual portals, and a green orb in mid-air.

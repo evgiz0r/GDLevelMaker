@@ -89,6 +89,11 @@ not after it:
   the viewer's `mute=1` URL flag (music, click sound, every sound), and tests use it by default. Test actions are
   marked test (id "test-..." or test: true) so they stay out of the user's feed. Only the user's own viewer
   plays sound.
+- **Never slow the user's game.** 2026-11-24: the first input logger did work inside its keyboard/mouse hook,
+  delayed and dropped the user's clicks, and likely cost them a death in Clutterfunk at 92.6%. Anything that runs
+  while the user plays (loggers, recorders, jobs) stays off the input path: a hook callback only queues (no I/O,
+  no lookups), recorders only read, heavy jobs run at idle priority with GD open. A new tool of this kind is
+  checked for added input delay before it runs during play.
 - **Hand off.** Before a long pause or when your area changes hands, write where you stopped,
   what is open and the good numbers into your area's doc.
 - **Share, don't duplicate.** Results go into the shared `local/` (see below) so no session redoes
@@ -414,7 +419,7 @@ fixes them (Deadlocked's 1202 ball lanes); the lettered helper blocks (type 40) 
 ## Calibration -- checked against the user's game
 
 How: the user says "record", "reshoot" (close the current file, start a new one) or "stop".
-Run `tools/record.sh start` in the background (it also logs the user's GD inputs, only GD's jump keys/click while GD is in front, to local/inputs/, for tools/replay_run.js; PHYSICS.md "Fidelity") (whole screen, 60 fps, Desktop Duplication, to
+Run `tools/record.sh start` in the background (it also logs the user's GD inputs, only GD's jump keys/click while GD is in front, to local/inputs/, and the PC's own sound by WASAPI loopback, tools/audiolog.ps1, next to the video; both for tools/replay_run.js; PHYSICS.md "Fidelity"; GD's music must be ON in GD's settings for the sound to align attempts -- with it off, the replay falls back to the progress bar) (whole screen, 60 fps, Desktop Duplication, to
 Videos/Captures/GD claude-rec <time>.mkv) and `tools/record.sh stop`. Whole screen rather than
 the GD window by title: a window capture looked "frozen" once, but the user had only tabbed out
 on a paused screen -- and the file was deleted on that wrong guess, losing their run. Never

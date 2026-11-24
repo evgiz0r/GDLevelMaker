@@ -30,6 +30,11 @@ for (const f of ["levels/gdlm_45_first_flight.gdlvl", "examples/cube_timings.gdl
   for (const e of rest) { lp2.advanceTo(e.tick); if (e.type === "press") lp2.press(); else lp2.release(); }
   lp2.advanceTo(ref.path.length + 10);
   check(same(ref.path, lp2.path, ref.path.length) < 0 && !!lp2.state.done === !!ref.done, "practice: from the checkpoint, the same inputs finish the same way");
+  // the attempt's own inputs replay it exactly, a practice attempt from its checkpoint too (its prefix kept)
+  const rp = GD.run(w, lp2.events);
+  check(same(rp.path, lp2.path, lp2.path.length) < 0 && !!rp.done === !!lp2.state.done, `lp.events (${lp2.events.length}) replay the practice attempt from tick 0 = the live run`);
+  const r1 = GD.run(w, lp.events);
+  check(same(r1.path, lp.path, lp.path.length) < 0, "lp.events replay a whole attempt");
   lp2.restart(false);
   check(lp2.path.length === 1 && lp2.cp === null || lp2.path.length === 1, "restart without practice: back to the start");
 }
@@ -39,6 +44,12 @@ for (const f of ["levels/gdlm_45_first_flight.gdlvl", "examples/cube_timings.gdl
   const ref = GD.run(w, [{ tick: 30, type: "press" }, { tick: 31, type: "release" }]), lp = GD.livePlay(w);
   lp.advanceTo(30); lp.press(); lp.release(); lp.advanceTo(200);
   check(same(ref.path, lp.path, 200) < 0, "a tap pressed and released between two frames = press at k, release at k+1");
+}
+// levelHash, comparePresses
+{
+  check(GD.levelHash("abc") === "1a47e90b" && GD.levelHash("abd") !== GD.levelHash("abc"), "levelHash: FNV-1a 32, hex");
+  const c = GD.comparePresses([100, 200, 300], [95, 214, 260, 302]);
+  check(JSON.stringify(c) === JSON.stringify({ pairs: [{ route: 100, run: 95, dt: -5 }, { route: 300, run: 302, dt: 2 }], missing: [200], extra: [214, 260] }), "comparePresses: early / late pairs within 50 ms, missing, extra: " + JSON.stringify(c));
 }
 // planEvents
 {

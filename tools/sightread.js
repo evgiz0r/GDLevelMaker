@@ -43,7 +43,10 @@ function humanize(w, events) {
 }
 
 function sightread(level, limit = 1.5, opts = {}) {
-  const w = GD.makeWorld(level.objects, level.header);
+  const w = opts.world || GD.makeWorld(level.objects, level.header);
+  // opts.route: a verified route whose presses carry their windows ({ ok, events, clicks: [{type, tick, lo, hi, x}] },
+  // tools/score.js from the saved human route): judged as it is, no solving, no re-measuring
+  if (opts.route && opts.route.ok && opts.route.clicks.every(c => c.type !== "press" || c.lo != null)) return judge(w, level, opts.route.clicks.filter(c => c.type === "press"), opts.route.events, limit, false);
   const r = GD.solveAny(w);
   if (!r.ok) return { ok: false };
   let presses = r.clicks.filter(c => c.type === "press");
@@ -64,6 +67,10 @@ function sightread(level, limit = 1.5, opts = {}) {
       presses = pw.windows.map(p => ({ type: "press", tick: p.tick, lo: p.lo, hi: p.hi, x: pw.path[p.tick].x, act: p.act, ms: Math.round((p.hi - p.lo + 1) / GD.PHYS.TPS * 1000) }));
     }
   }
+  return judge(w, level, presses, base, limit, approx);
+}
+
+function judge(w, level, presses, base, limit, approx) {
   const out = [];
   for (const c of presses) {
     // events strictly before this press (with their auto releases)

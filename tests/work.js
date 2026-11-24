@@ -53,8 +53,16 @@ const req = (method, u, body) => new Promise((ok, no) => { const r = http.reques
   const pr = await req("POST", "/play", { level: "GDLM 98 gate test", file, session: "test", stage: "layout", attempt: 3, result: "died", x: 1346, pct: 44.9, t: 4.32, why: "spike", from: 0, practice: true });
   const pa = ACT.read().pop();
   check(pr.status === 200 && pa.type === "play" && pa.result === "died" && pa.pct === 44.9 && /died at 44.9% \(block 45, 4.32 s\): spike -- attempt 3, practice/.test(pa.text), "POST /play: an attempt in the feed: " + pa.text);
-  const n0 = ACT.read().length; await req("POST", "/play", { level: "x", result: "clear", attempt: 1, test: true });
+  const n0 = ACT.read().length; await req("POST", "/play", { level: "x", file, result: "clear", attempt: 1, test: true, events: [{ tick: 5, type: "press" }] });
   check(ACT.read().length === n0, "a test attempt stays out of the feed");
+  // its inputs: kept per level and version (tools/attempts.js), listed without them, one fetched with them
+  const evs = [{ tick: 40, type: "press" }, { tick: 41, type: "release" }, { tick: 300, type: "press" }, { tick: 330, type: "release" }];
+  await req("POST", "/play", { level: "GDLM 98 gate test", file, session: "test", attempt: 4, result: "died", x: 900, pct: 30, t: 2.9, why: "spike", practice: false, fromTick: 0, events: evs, hash: "abcd1234" });
+  const runs = JSON.parse((await req("GET", "/attempts?file=" + encodeURIComponent(file) + "&hash=abcd1234")).body);
+  check(runs.length === 1 && runs[0].presses === 2 && !runs[0].events && runs[0].source === "viewer" && runs[0].result === "died", "GET /attempts: this version's attempts (the test one left out), without inputs");
+  const one = JSON.parse((await req("GET", "/attempts?file=" + encodeURIComponent(file) + "&hash=abcd1234&id=" + runs[0].id)).body)[0];
+  check(one && JSON.stringify(one.events) === JSON.stringify(evs), "GET /attempts&id=: one attempt with its inputs");
+  check(JSON.parse((await req("GET", "/attempts?file=" + encodeURIComponent(file) + "&hash=other")).body).length === 0, "another version's hash: none");
   srv.kill(); fs.rmSync(tmp, { recursive: true, force: true });
   console.log(bad ? `${bad} failed` : "all passed"); process.exit(bad ? 1 : 0);
 })().catch(e => { console.log("FAIL", e.message); srv.kill(); process.exit(1); });
