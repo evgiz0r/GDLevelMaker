@@ -66,8 +66,11 @@ from few long masses on a safe floor, with decoration floating in the background
 - **At Easy/Normal, tap-able pillars** (the user on GDLM 61 v1, blocks 15-60, 2-wide pillars 2 apart:
   "these clicks very unnatural ... the timings seem reallllly awkward"; the saved route was one long hold).
   Jumper's 1-2-wide pillars are a Harder rhythm: they work only as a held bounce. Ours: tops 3-4 wide, a
-  RISE over a 1-column pit (over 2 columns the take-off must come late: ~1 block, ~100 ms of window), a
-  DROP over a 3-column pit (over 2 the cube walks across without a jump and the pit means nothing).
+  RISE is a plain step with NO pit (over any pit the window is cut by the higher pillar's face on one side
+  and the pit on the other: 208 ms over 1 column, ~100 ms over 2 -- score.js "reactive", the user's GDLM 45
+  note "as if I need to time not to hit the block"), a DROP crosses a 3-column pit, +1 per extra row
+  (over 2 the cube walks across without a jump and the pit means nothing). Floating steps go DOWN a row
+  each for the same reason. Checked at 1x only (structures tagged "1x only"): at 2x the widths differ.
 - **Hanging columns cap the jump**: a ceiling of columns from the top, their ends 2-4 blocks over the
   pillar tops, so the arc is framed above and below (Jumper's whole opening).
 - **Symmetric set pieces**: stepped pyramids, a block with spikes on every side, rows of `^#^` (a 1-wide
