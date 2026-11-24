@@ -130,6 +130,23 @@ Contact sheets and frames: local/shots/lab60/. Read station by station from fram
 Unfair stations to change in v2: 4 (plank row straight over spikes, from flat ground) and 7 (a post that
 punishes holding the dash).
 
+## Landing buffer (2026-11-24)
+
+A cube's press made in the air is kept and the cube jumps when it lands, even if the button is already up.
+- Seen in the user's real run: Clutterfunk, 2026-11-24_02-45-05.mkv, level time 1.055 s. The input log has a
+  tap in the air (down 1.055, up 1.167), the cube lands at 1.20 s and the video shows it jump at once, 0.45 s
+  before the next logged press. Without the buffer the sim walks into the saw at x 451 (1.9%); with it the run
+  goes on. The sim needs at least 37 ticks there (36: the saw; 37-1000: through).
+- gdsolver's real-game plans (tests/tas_progress.js), for any length from 24 to 1000 ticks: Polargeist CLEARS
+  (was 909 blocks), Dry Out 415 -> 574, Can't Let Go 303 -> 489, Jumper 210 -> 248, Time Machine 333 -> 362,
+  Clutterfunk 288 -> 294; none less far once an orb or pad that takes the press also clears the buffer
+  (without that, ToE 2 fell 105 -> 92). This was the old open item "a cube that walked off a ledge and presses
+  shortly before landing: the game jumps, we do not".
+- In the sim: lib/physics.js `LANDBUF` = 40 ticks (cube only; the solvers' state keys carry it).
+  `GDLM_LANDBUF=<ticks>` overrides it for measuring, 0 = off. OPEN: the upper bound (is it "until landing"?),
+  and whether a release clears it in other modes. A clean test: tap in the air at several heights before a
+  landing in a lab level.
+
 ## Objects
 
 - Hitboxes from OpenGD's 2.1 table, overridden in `lib/objects.js`; GD 2.2's decoration list
@@ -352,6 +369,15 @@ What exists and what blocks it (2026-11-23):
       or another window also gives (Base After Base "started" 31 s early): now the last frame the bar sat at its
       lowest. replay_run.js: the sound pin locked on the wrong spot for every attempt here (all died in the first
       7% pinned): the bar fit now runs too and the closer one wins; a logger restart resets the keys at its start.
+  - RECORDING 02:45:05 (2026-11-24, 30 min, fixed logger; the video file ends abruptly): 48 attempts by the bar.
+    Clutterfunk 18.4 s CLEAR (81 jumps) -- its replay found the LANDING BUFFER (section above): the sim died at
+    1.9% on the first saw because it dropped an in-air tap the game kept; now it reaches 3.5%, where the game's
+    cube uses a pad on a hanging block that the sim's does not reach (open). The video runs ~1.05 s behind its
+    file name's second here (first jump tracked at 18.28 s, logged at 19.33 s). Other groups: the user's own
+    online levels page, then a 6-12 s level (264-303 s, 6 deaths then a clear) right after GDLM 44's online page
+    (ID 152848491) -- but the repo GDLM 44 runs 42.6 s, so not replayed; the daily "Worldwide" (360-636 s,
+    deaths 37-75%, a practice clear); Bow Wow (668 s, 91.2%); 668-1406 s practice (no attempts from the bar);
+    "IS" by Crenate (1406-1618 s); Sidestep (1741-1791 s). None of the community ones are on this PC.
 - Practice-mode respawns break time -> x; per-attempt segmentation by the attempt label or a jump in x.
 Lab 2 (to build): the mini cube, the pink orb (clean, at ground level so the camera stays still), 45-degree
 and -53-degree teleports, the swing, dual portals, and a green orb in mid-air.
