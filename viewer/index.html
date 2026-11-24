@@ -1320,7 +1320,8 @@ function runCmpText() {
   const gl = g.path[g.path.length - 1], simDead = sim ? sim.result === "died" : !!gl.dead;
   const simPct = sim && sim.pct != null ? sim.pct : Math.max(0, Math.min(100, gl.x / Math.max(1, L.world.endX) * 100)), simWhy = (sim && sim.why) || gl.why || "";
   const youTxt = you === "clear" ? "clear" : "died at " + Math.round(youPct) + "%", simTxt = simDead ? `dies at ${Math.round(simPct)}%${simWhy ? " (" + esc(simWhy) + ")" : ""}` : "clear";
-  const end = (you === "clear") === !simDead ? youTxt : `<b>you: ${youTxt}</b> · sim: ${simTxt}`;
+  const same = R.agree != null ? R.agree : (you === "clear") === !simDead;   // the line's own agree (physics' rule) when it has one
+  const end = same ? youTxt : `<b>you: ${youTxt}</b> · sim: ${simTxt}`;
   if (!c) { el.innerHTML = warn + pre + end; return; }
   const on = c.pairs.filter(p => Math.abs(p.dt) <= 2), early = c.pairs.filter(p => p.dt < -2), late = c.pairs.filter(p => p.dt > 2);
   const parts = [`${on.length} on time`, early.length && `${early.length} early`, late.length && `${late.length} late`, c.missing.length && `${c.missing.length} missed`, c.extra.length && `${c.extra.length} extra`].filter(Boolean);
