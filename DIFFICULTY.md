@@ -565,3 +565,18 @@ Used in:
   floor next to it. Open: fit a per-mode familiarity term once the user's runs cover more modes.
 Our levels by tier floor (2026-11-24): 41/43 Normal; 45, 46 sketch, 62 Harder (ball, wave); 47, 61, 63-66 Insane (2x,
 0.5x, dual, blue orb); 44, 50, 51, 52, 60, 67 Demon (a green orb).
+
+## Main levels kept current (tools/mains.js)
+
+Standing rule (the user, 2026-11-24): RobTop's 22 main levels always have a current, human-like solve, and a main level
+whose route fails is the **highest priority** heavy job ("If we have it failed then its highest priority").
+- `node tools/mains.js status` (~10 s, no solving): each level's raw solve and human route replayed on today's sim, and
+  the cheapest job that makes it current: `ok` (the human route clears, every portal taken), `replan` (the raw solve
+  still clears: `difficulty_solve.js N --replan`, seconds to ~11 min -- Hexagon Force's is the long one), `resume`
+  (the raw solve dies: `--resume` from a bit before the trouble, checkpointed every 30 s).
+- `node tools/mains.js run [n ...]`: does them one after another, replans first, at heavy priority `urgent` (above
+  high, tools/heavy.js); one runner at a time; log and history in `local/mains/`.
+- Automatic: `tools/serve.js`'s self-update starts `mains.js run` when a pull changes the physics or route code
+  (mains.js ROUTE_CODE). A session that changes physics need not do anything else.
+- 2026-11-25, after the no-landing-buffer change (46672ee): 1 ok (Blast Processing), 8 replans, 13 resumes; most raw
+  solves now die in the first 2-11% (they leaned on the old buffer), so those resumes are close to full solves.
