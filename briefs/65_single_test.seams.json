@@ -1,0 +1,553 @@
+{
+ "level": "GDLM 65 single builder test",
+ "brief": "briefs/65_single_test.json",
+ "song": {
+  "custom": 557117,
+  "offset": 0,
+  "bpm": 140.01,
+  "t0": 0.0224
+ },
+ "planOk": true,
+ "sections": [
+  {
+   "id": "s0",
+   "name": "intro",
+   "beats": [
+    1,
+    17
+   ],
+   "t": [
+    0,
+    6.836
+   ],
+   "x": [
+    0,
+    2130
+   ],
+   "in": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      60,
+      120,
+      200
+     ],
+     "ground": [
+      20,
+      40,
+      90
+     ],
+     "line": [
+      200,
+      230,
+      255
+     ],
+     "obj": [
+      255,
+      255,
+      255
+     ]
+    }
+   },
+   "out": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      60,
+      120,
+      200
+     ],
+     "ground": [
+      20,
+      40,
+      90
+     ],
+     "line": [
+      200,
+      230,
+      255
+     ],
+     "obj": [
+      255,
+      255,
+      255
+     ]
+    }
+   },
+   "builder": {
+    "layout": "style",
+    "deco": "style",
+    "playtest": "style"
+   },
+   "status": {
+    "deco": "planned",
+    "playtest": "planned",
+    "layout": "built"
+   }
+  },
+  {
+   "id": "s1",
+   "name": "run",
+   "beats": [
+    17,
+    33
+   ],
+   "t": [
+    6.836,
+    13.672
+   ],
+   "x": [
+    2130,
+    4260
+   ],
+   "in": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      60,
+      120,
+      200
+     ],
+     "ground": [
+      20,
+      40,
+      90
+     ],
+     "line": [
+      200,
+      230,
+      255
+     ],
+     "obj": [
+      255,
+      255,
+      255
+     ]
+    }
+   },
+   "out": {
+    "mode": "ship",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 63.1,
+    "vy": -1,
+    "grounded": false,
+    "scene": {
+     "bg": [
+      60,
+      120,
+      200
+     ],
+     "ground": [
+      20,
+      40,
+      90
+     ],
+     "line": [
+      200,
+      230,
+      255
+     ],
+     "obj": [
+      255,
+      255,
+      255
+     ]
+    }
+   },
+   "builder": {
+    "layout": "style",
+    "deco": "style",
+    "playtest": "style"
+   },
+   "status": {
+    "deco": "planned",
+    "playtest": "planned",
+    "layout": "built"
+   }
+  },
+  {
+   "id": "s2",
+   "name": "flight",
+   "beats": [
+    33,
+    57
+   ],
+   "t": [
+    13.672,
+    23.964
+   ],
+   "x": [
+    4260,
+    7470
+   ],
+   "in": {
+    "mode": "ship",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 62.9,
+    "vy": -0.89,
+    "grounded": false,
+    "scene": {
+     "bg": [
+      120,
+      60,
+      170
+     ],
+     "ground": [
+      40,
+      15,
+      70
+     ],
+     "line": [
+      230,
+      200,
+      255
+     ],
+     "obj": [
+      255,
+      255,
+      255
+     ]
+    }
+   },
+   "out": {
+    "mode": "cube",
+    "speed": "2x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 67.3,
+    "vy": -4.01,
+    "grounded": false,
+    "scene": {
+     "bg": [
+      120,
+      60,
+      170
+     ],
+     "ground": [
+      40,
+      15,
+      70
+     ],
+     "line": [
+      230,
+      200,
+      255
+     ],
+     "obj": [
+      255,
+      255,
+      255
+     ]
+    }
+   },
+   "builder": {
+    "layout": "style",
+    "deco": "style",
+    "playtest": "style"
+   },
+   "status": {
+    "deco": "planned",
+    "playtest": "planned",
+    "layout": "built"
+   }
+  },
+  {
+   "id": "s3",
+   "name": "dash",
+   "beats": [
+    57,
+    73
+   ],
+   "t": [
+    23.964,
+    30.885
+   ],
+   "x": [
+    7470,
+    10140
+   ],
+   "in": {
+    "mode": "cube",
+    "speed": "2x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 66.4,
+    "vy": -4.23,
+    "grounded": false,
+    "scene": {
+     "bg": [
+      200,
+      80,
+      60
+     ],
+     "ground": [
+      70,
+      20,
+      15
+     ],
+     "line": [
+      255,
+      220,
+      200
+     ],
+     "obj": [
+      255,
+      255,
+      255
+     ]
+    }
+   },
+   "out": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      200,
+      80,
+      60
+     ],
+     "ground": [
+      70,
+      20,
+      15
+     ],
+     "line": [
+      255,
+      220,
+      200
+     ],
+     "obj": [
+      255,
+      255,
+      255
+     ]
+    }
+   },
+   "builder": {
+    "layout": "style",
+    "deco": "style",
+    "playtest": "style"
+   },
+   "status": {
+    "deco": "planned",
+    "playtest": "planned",
+    "layout": "built"
+   }
+  },
+  {
+   "id": "s4",
+   "name": "wave",
+   "beats": [
+    73,
+    97
+   ],
+   "t": [
+    30.885,
+    41.091
+   ],
+   "x": [
+    10140,
+    13320
+   ],
+   "in": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      30,
+      140,
+      120
+     ],
+     "ground": [
+      10,
+      50,
+      40
+     ],
+     "line": [
+      200,
+      255,
+      240
+     ],
+     "obj": [
+      255,
+      255,
+      255
+     ]
+    }
+   },
+   "out": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      30,
+      140,
+      120
+     ],
+     "ground": [
+      10,
+      50,
+      40
+     ],
+     "line": [
+      200,
+      255,
+      240
+     ],
+     "obj": [
+      255,
+      255,
+      255
+     ]
+    }
+   },
+   "builder": {
+    "layout": "style",
+    "deco": "style",
+    "playtest": "style"
+   },
+   "status": {
+    "deco": "planned",
+    "playtest": "planned",
+    "layout": "built"
+   }
+  },
+  {
+   "id": "s5",
+   "name": "finale",
+   "beats": [
+    97,
+    121
+   ],
+   "t": [
+    41.091,
+    51.394
+   ],
+   "x": [
+    13320,
+    16530
+   ],
+   "in": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      60,
+      120,
+      200
+     ],
+     "ground": [
+      20,
+      40,
+      90
+     ],
+     "line": [
+      200,
+      230,
+      255
+     ],
+     "obj": [
+      255,
+      255,
+      255
+     ]
+    }
+   },
+   "out": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 20.2,
+    "vy": -10.15,
+    "grounded": false,
+    "scene": {
+     "bg": [
+      60,
+      120,
+      200
+     ],
+     "ground": [
+      20,
+      40,
+      90
+     ],
+     "line": [
+      200,
+      230,
+      255
+     ],
+     "obj": [
+      255,
+      255,
+      255
+     ]
+    }
+   },
+   "builder": {
+    "layout": "style",
+    "deco": "style",
+    "playtest": "style"
+   },
+   "status": {
+    "deco": "planned",
+    "playtest": "planned",
+    "layout": "built"
+   }
+  }
+ ]
+}

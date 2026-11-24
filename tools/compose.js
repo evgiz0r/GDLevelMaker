@@ -179,12 +179,16 @@ function compose(brief, tweaks = {}) {
     // (8 after an upside-down part: the cube falls from the ceiling first; 4 left it mid-air at the next
     // portal, fairness gate, GDLM 47)
     let land = prevFlying && start - flyEnd < 4 ? (prevUpside ? 8 : 4) : 0;
+    // brief.portalRoom: the first section's portals that many columns in (tools/collab.js parts: a portal on a part's
+    // first column is touched ~30 units before the seam once joined, but at time 0 when the part runs alone)
+    const pRoom = si === 0 ? (brief.portalRoom || 0) : 0;
+    land += pRoom;
     // a speed portal where the player passes: on the ground row, before this section's own portal (and
     // after the landing room). Above a corridor (row 5) the wave flew under it and the speed never
     // changed (GDLM 47 round 1: a 0.5x section ran on into the next three).
     if (speeds[si] !== lastSpeed) {
       const flying = sec.mode && sec.mode !== "upside";
-      objects.push([speeds[si] + " speed", flying || sec.mode === "upside" ? start + land - 1 : start, 1]);
+      objects.push([speeds[si] + " speed", flying || sec.mode === "upside" ? start + land - 1 : start + pRoom, 1]);
       // the section's own portal 3 columns later: a speed change is a "switch" too, and the next mode's
       // first input closed 192 ms after it (fairness gate, GDLM 47's 1x speed + wave portal)
       if (flying) land += 3;
@@ -206,7 +210,7 @@ function compose(brief, tweaks = {}) {
       const key = `${si}:0`, t = tweaks[key] || {};
       const name = sec.mode === "ship" ? "ship-tunnel" : "wave-zigzag";
       const base = sec.mode === "ship"
-        ? { w: sec.blocks - 1 - land, gap: 5, amp: 1.5, base: 0, teeth: true, lead: 6 }   // to the section's end: its exit portal on the next bar (sync gate; GDLM 64 had it ~0.5 beat early)
+        ? { w: sec.blocks - 1 - land - (sec.exitRoom || 0), gap: 5, amp: 1.5, base: 0, teeth: true, lead: 6 }   // to the section's end: its exit portal on the next bar (sync gate; GDLM 64 had it ~0.5 beat early)
         : (() => {
           // wave turns need room: level stretches at each peak and valley (2 columns at Easy/Normal,
           // 1 above) and 2 at the entry -- with pure 45-degree legs a turn was 13-88 ms (GDLM 44, physics
@@ -214,9 +218,11 @@ function compose(brief, tweaks = {}) {
           const easy = ["Easy", "Normal"].includes((brief.difficulty || {}).label || "Easy"), flat = easy ? 2 : 1, seg = 4;
           // entry: 4 level columns with 8 rows of room (leadGap, gd-polish): a wave entering with the
           // button held or not has ~300 ms before roof or floor (fairness gate: wave deadline 300 ms)
-          return { seg, flat, lead: 4, leadGap: 8, legs: Math.max(2, Math.floor((sec.blocks - 5 - land) / (seg + flat))), gap: easy ? 5 : 4, low: 2, slopes: true };
+          return { seg, flat, lead: 4, leadGap: 8, legs: Math.max(2, Math.floor((sec.blocks - 5 - land - (sec.exitRoom || 0)) / (seg + flat))), gap: easy ? 5 : 4, low: 2, slopes: true };
         })();
-      const args = Object.assign(base, (sec.args || {})[name] || {}, { portal: true, exit: "cube", portalRow: 1 });
+      // the next section CONTINUES this flight (a collab seam inside a flight, tools/collab.js): no exit portal here
+      const nx = brief.sections[si + 1], cont = !!(nx && nx.continue && nx.mode === sec.mode);
+      const args = Object.assign(base, (sec.args || {})[name] || {}, { portal: true, exit: cont ? null : "cube", portalRow: 1 });
       if (t.room) args.gap = (args.gap || 4) + t.room;
       objects.push(["pattern", name, start + 1 + land, 0, args]);
       placed.push({ key, name, from: start + 1 + land, to: start + 1 + land + widthOf(name, args), section: sec.name, flying: true });
