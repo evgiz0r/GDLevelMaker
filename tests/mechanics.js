@@ -55,9 +55,11 @@ const first = (r, act) => r.path.find(p => p.act === act);
   for (let x = 450; x <= 780; x += 30) dec.push({ id: 8, x, y: 105, flipY: true });
   const g = GD.solveAny(GD.makeWorld(dec));
   check("no-skip: a decoy orb (taking it always kills) is not required", g.ok, g.ok ? "ok" : g.why + " " + (g.skipped || ""));
-  // the same orb with the roof gone is a real one: a route that walks past it is a secret way
-  const real = GD.skipCheck(GD.makeWorld([dec[0], dec[1]]), GD.run(GD.makeWorld([dec[0], dec[1]]), []).path, []);
-  check("no-skip: the same orb without the roof is required", !!real && /skipped an orb/.test(real.why), real ? real.why : "not flagged");
+  // the same orb with the roof gone: walking past it is allowed (orbs, pads and dash orbs are never requirements, the
+  // user 2026-11-24: "skipping an orb or a dash is not bad"), but { orbs: true } still reports it as a design warning
+  const wr = GD.makeWorld([dec[0], dec[1]]), pr = GD.run(wr, []).path;
+  const real = GD.skipCheck(wr, pr, []), warn = GD.skipCheck(wr, pr, [], null, { orbs: true });
+  check("no-skip: an orb walked past is no failure (reported only with orbs: true)", !real && !!warn && /skipped an orb/.test(warn.why), real ? real.why : warn ? "ok" : "not reported");
   const c = GD.solveAny(GD.makeWorld(lvl(5)), { allowSkips: true });
   check("no-skip: allowSkips (debugging) still finds the way around", c.ok, c.ok ? "ok" : c.why);
 }
