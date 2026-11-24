@@ -46,7 +46,7 @@ function shipSection(plan, si, hits, tOf, col) {
   const w = GD.makeWorld(open, GD.DEFAULT_HEADER);
   const sched = [];   // {tick, type}
   let holding = false;
-  const target = t => (t > t1 - 2.2 * 60 / plan.grid.bpm ? 50 : 150);   // mid band, low before the exit
+  const target = t => (t > t1 - 2.2 * 60 / plan.grid.bpm ? 60 : 120);   // mid band, low before the exit
   const yAt = (ev, tick) => { const r = GD.run(w, ev); const q = r.path[Math.min(tick, r.path.length - 1)]; return q; };
   for (let k = 0; k < slots.length; k++) {
     const tick = Math.round(slots[k].t * TPS), nextTick = k + 1 < slots.length ? Math.round(slots[k + 1].t * TPS) : Math.round(t1 * TPS);
@@ -63,8 +63,11 @@ function shipSection(plan, si, hits, tOf, col) {
   for (const q of run) { const c = Math.floor(q.x / 30); if (c < c0 - 1 || c > c1 + 1) continue; lo[c] = Math.min(lo[c] ?? 1e9, q.y); hi[c] = Math.max(hi[c] ?? -1e9, q.y); }
   const o = [["ship portal", +col(s.from).toFixed(3), 1]];
   const fr = {}, rr = {};
+  // one flat tunnel around the whole path: a floor or roof that follows the path puts a step a few blocks
+  // after each press, and the step is then the press's cue 5-8 blocks ahead -- a prejump (GDLM 62 v3, score.js)
+  const L = Math.min(...Object.values(lo)), H = Math.max(...Object.values(hi));
   for (let c = c0; c <= c1; c++) {
-    const l = Math.min(lo[c - 1] ?? 1e9, lo[c] ?? 1e9, lo[c + 1] ?? 1e9), h = Math.max(hi[c - 1] ?? -1e9, hi[c] ?? -1e9, hi[c + 1] ?? -1e9);
+    const l = L, h = H;
     if (!(l < 1e8 && h > -1e8)) throw new Error(`ship path does not reach column ${c} (the open-air run ended early)`);
     fr[c] = Math.max(0, Math.floor((l - 75) / 30)); rr[c] = Math.min(10, Math.ceil((h + 75) / 30));   // 2.5 blocks of air: a press 3+ blocks before a floor rise was a prejump (GDLM 62 v3)
   }
@@ -163,7 +166,15 @@ function main() {
   fs.writeFileSync(path.join("specs", base + ".json"), JSON.stringify(spec, null, 1));
   const rdir = path.join(__dirname, "..", "local", "hitroutes"); fs.mkdirSync(rdir, { recursive: true });
   fs.writeFileSync(path.join(rdir, base + ".json"), JSON.stringify({ events: ev, taps: allTaps(), cleared: !q.dead, opts: { shift: opts.shift, orbShift: opts.orbShift, orbAt: opts.orbAt } }));
-  console.log(`-> specs/${base}.json, local/hitroutes/${base}.json`);
+  // the plan as the level's route (tools/planned.js reads levels/<slug>.planned.json): every input with its hit
+  const slug = make.slug(plan.name), near = t => hits.slots.reduce((b, x) => Math.abs(x.t - t) < Math.abs(b.t - t) ? x : b);
+  const tapSet = new Set(allTaps().map(t => t + TAP));
+  const planned = ev.filter(e => !(e.type === "release" && tapSet.has(e.tick))).map(e => {
+    const t = +(e.tick / TPS).toFixed(4), h = near(t + (plan.offset || 0)), off = +((t + (plan.offset || 0) - h.t) * 1000).toFixed(1);
+    return { t, what: `${e.type} b${h.beat} ${h.kind} (${off} ms)`, offsetMs: off };
+  });
+  if (!q.dead) fs.writeFileSync(path.join("levels", slug + ".planned.json"), JSON.stringify({ note: `${plan.name}: the beat-first plan (tools/hitbuild.js), every input on a hit; t = seconds from the level start`, planned }));
+  console.log(`-> specs/${base}.json, local/hitroutes/${base}.json${q.dead ? "" : `, levels/${slug}.planned.json (${planned.length} inputs, max ${Math.max(...planned.map(p => Math.abs(p.offsetMs))).toFixed(1)} ms off a hit)`}`);
   if (q.dead) process.exit(2);
 }
 if (require.main === module) main();
