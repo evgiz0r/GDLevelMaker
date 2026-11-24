@@ -1681,6 +1681,11 @@ function draw() {
     const off = (groundY - H / 2) / scale, below = (H - groundY) / scale, lo = s.floorY - 30 + below, hi = s.ceilY + 30 - viewH;
     const mid = (s.floorY + s.ceilY) / 2 - off;
     want = s.ceilY - s.floorY + 60 <= H / scale || lo > hi ? mid : Math.max(lo, Math.min(hi, s.y - off));
+  } else if (LS) {
+    // cube and the other ground modes, game look: the camera rises with the player, 0.38 blocks per block above 2 blocks,
+    // and never lets the player above 5.5 blocks on screen (measured: the ground line in 19 frames of the user's Hexagon
+    // Force recording -- lift 0.9 / 1.36 / 1.74 blocks at 4.4 / 5.6 / 6.6 blocks high; VISUALS.md "Render vs game")
+    want = Math.max(0, 0.38 * (s.y - 60), s.y - 30 * 5.5);
   } else want = Math.max(0, s.y - 30 * 4.5);
   if (MAPCAM) { scale = MAPCAM.scale; camX = MAPCAM.x; camY = MAPCAM.y; groundY = MAPCAM.groundY; } else
   if (SHOOT) camY = want + (LS && LS.camOff ? LS.camOff[1] : 0); else
