@@ -96,7 +96,8 @@ function collect(id) {
   if (!a || !a.answer) return { waiting: true, card: R.ask };
   const m = /^v(\d+)/.exec(a.answer), k = m ? +m[1] : null, pick = k ? R.variants.find(x => x.k === k) : null;
   const rows = R.variants.map(x => { try { return readJ(path.join(dir, `v${x.k}.result.json`)); } catch (e) { return { k: x.k, hook: x.hook }; } });
-  const review = { at: new Date().toISOString(), round: id, moment: R.moment, song: R.song, t: R.t, pick: k, hook: pick && pick.hook, reason: a.note || null, answer: a.answer,
+  // the viewer's lab view (#lab=<round>, VIEWER.md) already logged the pick itself ({kind: "lab"}); this adds the details
+  const review = { kind: "lab-detail", at: new Date().toISOString(), round: id, moment: R.moment, song: R.song, t: R.t, pick: k, hook: pick && pick.hook, reason: a.note || null, answer: a.answer,
     variants: rows.map(r => ({ k: r.k, hook: r.hook, ok: r.ok, pace: r.pace, patterns: r.patterns })) };
   fs.appendFileSync(path.join(ROOT, "local", "reviews.jsonl"), JSON.stringify(review) + "\n");
   // the user's taste as data: the picked hook weighted up; the picked section into the approved library
