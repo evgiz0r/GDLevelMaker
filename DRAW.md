@@ -75,6 +75,32 @@ The drawing is intent. The rebuild keeps the user's clicks fixed and moves block
    fixes it"); a jump mark with nothing to jump is an extra press.
 Then "send to Claude" -> the session's full pass (SKETCH.md, BUILDING.md: look, sync, fairness, score.js, viewer stages).
 
+## The layout fitter (built 2026-11-25: `lib/sketchfit.js`, the board's 🧩 layout)
+
+The design above, first version. The user (2026-11-25): "thats one of the important skills to make such things into
+layout"; and on working in parallel: while the user draws, the board does the layout; a Claude session can take the
+synced sketch for the full pass; what the user fixes by hand wins.
+- **Reading (tidy)**: a ground line with orbs, pads, portals, spikes or a lower ground under it is a ceiling (blocks above
+  the line, 2 thick), else a floor filled down. Heights snap to whole blocks, columns to the block grid, a one-column wobble
+  is smoothed; a one-block climb with no sharp rise drawn is a 45° slope, and a floor starting a block up gets a ramp in
+  (freehand lines never start on the ground exactly). Spikes within 2 blocks of a floor stand on it, of a ceiling hang;
+  a free flat spike line gets a block row behind it and points to the play (the nearest orb / portal / other spike line);
+  slanted free lines stay turned spikes (corridor walls). Pads go onto the surface, portals stand on the floor (or hang)
+  when drawn within 5 blocks of one. Jump marks keep only x. In wave and ship a mark toggles hold / release.
+- **Fitting (replay)**: a beam search over each mark's exact tick (±40 ticks, ~1.5 blocks at 1x, 14 states kept, a mark
+  may be left out at a high cost). When nothing gets through: an orb by a mark goes to the path's closest pass and the mark
+  with it; else a jump is added before the death; else the spike that killed is taken out (8 at most); a wall (a block)
+  is never eaten: it stops there and says so. Every change is listed with its block: "~" adjusted, "✕" could not stay.
+- **On the board**: 🧩 layout runs it in the Worker (draw_worker.js `kind: "fit"`), shows the fitted level with the path,
+  ~ / ✕ marks over the board and a list (tap a line to go there); while on, each edit refits a moment later. 🧩 again: back
+  to the drawing. The drawing itself is never changed by the fitter.
+- **Measured** (the user's first real sketch, smwvbb62d, 56 pieces, 15 s at 1x): 12 rounds, ~1 s in node. It reads the
+  orb/ceiling part, the spider part and the portals; stops at block 85, the stairs after the spider part (a spider cannot
+  climb steps: the user had forgotten a robot portal there).
+- **Open**: one-tap choices on a ✕ (make it 3 spikes / add an orb / keep it, Claude fixes it); pinning a piece the user moved
+  on the level view; orbs that the timing could not use are not reported yet; holds drawn as drags in wave parts; ship
+  corridors; the solver's fairness / windows on the fitted level; refit only from the edited mark (now it refits all).
+
 ## Status and open
 
 - Built (first version): the board, pens, areas, stamps, props, deco toggle, sketch / level views, beats + sections +

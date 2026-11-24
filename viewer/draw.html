@@ -23,6 +23,10 @@
   #title { font-weight:600; color:var(--acc); max-width:34vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   #stage { flex:1; position:relative; min-height:0; }
   canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none; display:block; }
+  #fitList { position:absolute; left:8px; right:8px; bottom:8px; max-height:34%; overflow:auto; background:#000d; border:1px solid var(--line); border-radius:8px; padding:4px 8px; font-size:13px; }
+  #fitList .hd { display:flex; justify-content:space-between; gap:8px; align-items:center; padding:3px 0; font-weight:600; }
+  #fitList .c { padding:4px 2px; border-top:1px solid var(--line); cursor:pointer; } #fitList .c b { color:var(--warn); } #fitList .c.x b { color:#ff3b6b; }
+  #fitList.min .c { display:none; }
   #msg { position:absolute; left:50%; top:52px; transform:translateX(-50%); background:#000c; border:1px solid var(--line); border-radius:8px; padding:6px 12px; pointer-events:none; max-width:calc(100% - 32px); text-align:center; }
   #msg[hidden] { display:none; }
   .ovl { position:fixed; inset:0; background:#0009; display:flex; align-items:flex-start; justify-content:center; padding:60px 16px 16px; z-index:50; }
@@ -37,7 +41,7 @@
   .grp { display:flex; gap:4px; flex-wrap:wrap; align-items:center; }
   .grp > .muted { margin-right:2px; }
   @media (max-width: 560px) { button, select, .chip { padding:4px 7px; min-height:30px; } header { padding:5px 6px; gap:4px; } .row { gap:4px; } .sep { display:none; }
-    #title { display:none; } #penRow button:not(.on) .lbl { display:none; } }
+    #title { display:none; } #penRow button:not(.on) .lbl, #fitBtn .lbl { display:none; } }
 </style>
 </head>
 <body>
@@ -60,6 +64,7 @@
     <button id="decoBtn" class="on" title="show or hide every deco (deco lines and props)">deco 👁</button>
     <button id="songBtn" title="the song's beats on the board, and play it">♪</button>
     <button id="listenBtn" title="hear the song with a playhead at level speed">▶♪</button>
+    <button id="fitBtn" title="layout: Claude's fitter turns the drawing into a level that plays with your jump marks (lines onto floors and ceilings, orbs and portals onto your path, your marks timed); every change is listed. On: it redoes it after each edit">🧩<span class="lbl"> layout</span></button>
     <button id="checkBtn" title="is it beatable? replays your jump marks, then asks the solver for a way through, and shows both">✓ check</button>
     <button id="replayBtn" title="replay the last check's route (or your jump marks)" hidden>▶</button>
     <button id="playBtn" title="play it yourself: tap / space / click to jump, Esc to stop">🎮</button>
@@ -68,7 +73,7 @@
   <div class="row" id="stampRow" hidden></div>
   <div class="row" id="selRow" hidden></div>
 </header>
-<div id="stage"><canvas id="cv"></canvas><div id="msg" hidden></div></div>
+<div id="stage"><canvas id="cv"></canvas><div id="msg" hidden></div><div id="fitList" hidden></div></div>
 
 <div class="ovl" id="menu" hidden><div class="box">
   <h3>Sketches</h3>
@@ -107,6 +112,7 @@
 <script src="../lib/pixelart.js"></script>
 <script src="../lib/props.js"></script>
 <script src="../lib/sketch.js"></script>
+<script src="../lib/sketchfit.js"></script>
 <script src="draw_songs.js" onerror="window.DRAW_SONGS = {}"></script>
 <script src="../local/beats.local.js" onerror="window.GD_BEATS = {}"></script>
 <script>
@@ -187,8 +193,8 @@ function mergeRemote(list) {
   } catch (e) { DB = null; }
 })();
 function snapshot() { undo.push(JSON.stringify(sk.items)); if (undo.length > 200) undo.shift(); redo = []; }
-function changed() { conv = null; dirty = true; if (check) { check.stale = true; } save(); refreshButtons(); }
-function convert() { if (!conv) { try { conv = SK.convert(sk); } catch (e) { conv = { objects: [], play: [], deco: [], notes: [], error: e.message }; } } return conv; }
+function changed() { conv = null; dirty = true; if (check) { check.stale = true; } save(); refreshButtons(); if (fit) refit(); }
+function convert() { if (!conv) { try { conv = SK.convert(fit && fit.sketch ? fit.sketch : sk); } catch (e) { conv = { objects: [], play: [], deco: [], notes: [], error: e.message }; } } return conv; }
 
 // ---- view transform ----
 const sx = x => (x - V.x) * V.z, sy = y => H - (y - V.y) * V.z;
@@ -700,6 +706,40 @@ function drawPlayer(s) {
   ctx.restore();
 }
 
+// ---- 🧩 layout: lib/sketchfit.js in a Worker, again a moment after each edit while it is on (DRAW.md "The layout fitter") ----
+let fit = null, fitWk = null, fitT = 0;
+$("fitBtn").onclick = () => {
+  if (fit) { fit = null; conv = null; check = null; $("fitList").hidden = true; $("fitBtn").classList.remove("on"); ui.view = "sketch"; $("viewBtn").textContent = "sketch"; dirty = true; msg("", 0); return; }
+  fit = { sketch: null, busy: false }; $("fitBtn").classList.add("on"); refit(0);
+};
+function refit(delay) {
+  clearTimeout(fitT); fitT = setTimeout(() => {
+    if (!fit) return; if (fitWk) fitWk.terminate();
+    try { fitWk = new Worker(new URL("draw_worker.js", location.href)); } catch (e) { return fitHere(); }
+    fit.busy = true; msg("layout: fitting your drawing…");
+    fitWk.onmessage = e => { fitWk.terminate(); fitWk = null; showFit(e.data); };
+    fitWk.onerror = () => { fitWk = null; fitHere(); };
+    fitWk.postMessage({ kind: "fit", libs: libUrls(), sketch: JSON.parse(JSON.stringify(sk)) });
+  }, delay == null ? 900 : delay);
+}
+function fitHere() { try { const r = GD.SKETCHFIT.fit(JSON.parse(JSON.stringify(sk))); showFit({ ok: true, sketch: JSON.parse(JSON.stringify(r.sketch, (k, v) => k === "src" ? undefined : v)), changes: r.changes, clear: r.clear, dieX: r.dieX, why: r.why, events: r.events }); } catch (e) { showFit({ ok: false, why: e.message }); } }
+function showFit(r) {
+  if (!fit) return;
+  if (!r.ok) { msg("layout failed: " + r.why, 6000); return; }
+  Object.assign(fit, r, { busy: false }); conv = null;
+  const c = convert(), w = GD.makeWorld(c.play, c.header), q = GD.run(w, r.events || []);
+  check = { at: Date.now(), plan: { path: thin(q.path), dead: q.dead, why: q.why, x: q.end.x, y: q.end.y }, route: null, lines: [], changes: r.changes };
+  ui.view = "level"; $("viewBtn").textContent = "level";
+  const n = r.events.filter(e => e.type === "press").length, adj = r.changes.filter(k => k.mark !== "x").length, bad = r.changes.filter(k => k.mark === "x").length;
+  msg(r.clear ? `layout clears with ${n} presses · ${adj} adjusted, ${bad} could not stay` : `layout gets to block ${blk(r.dieX || 0)} (${r.why}) · ${adj} adjusted, ${bad} could not stay`, 7000);
+  const L = $("fitList"); L.hidden = false;
+  L.innerHTML = `<div class="hd"><span>${r.clear ? "✓ plays with your marks" : "✕ stops at block " + blk(r.dieX || 0)} · ${r.changes.length} changes</span><button id="fitMin">▾</button></div>` +
+    r.changes.map((k, i) => `<div class="c ${k.mark === "x" ? "x" : ""}" data-i="${i}"><b>${k.mark === "x" ? "✕" : "~"}</b> ${k.x != null ? "block " + blk(k.x) + ": " : ""}${k.text.replace(/</g, "&lt;")}</div>`).join("");
+  $("fitMin").onclick = e => { e.stopPropagation(); L.classList.toggle("min"); $("fitMin").textContent = L.classList.contains("min") ? "▴" : "▾"; };
+  L.querySelectorAll(".c").forEach(d => d.onclick = () => { const k = r.changes[+d.dataset.i]; if (k.x != null) { V.x = k.x - W / V.z / 2; dirty = true; } });
+  dirty = true;
+}
+
 // ---- check: your jump marks replayed, then the solver's way through (a Worker: the page stays usable) ----
 // It is not 1:1 with what you drew in mind: the board says where the drawing does not work (the plan dies, nothing gets
 // through) instead of pretending. Making it play well is the rebuild's job (DRAW.md "From the board to a level").
@@ -742,6 +782,10 @@ function drawCheck() {
     for (const k of check.route.clicks) { const X = sx(k.x); ctx.fillStyle = "#3dffb0"; ctx.beginPath(); ctx.moveTo(X - 5, sy(0) - 10); ctx.lineTo(X + 5, sy(0) - 10); ctx.lineTo(X, sy(0) - 2); ctx.fill(); }
     if (!check.route.ok && check.route.dieX != null) cross(check.route.dieX, check.route.dieY || 15, "#ff3b6b", "nothing gets past here"); }
   if (check.plan) { line(check.plan.path, "rgba(255,225,77,.9)", [7, 5]); if (check.plan.dead) cross(check.plan.x, check.plan.y, "#ffb020", "your jumps die here"); }
+  if (check.changes) { ctx.font = "bold 13px system-ui"; let row = 0, lastX = -1e9;   // the layout fitter's changes: ~ adjusted, ✕ could not stay
+    for (const c of check.changes) { if (c.x == null) continue; const X = sx(c.x); if (X < -20 || X > W + 20) continue;
+      row = X - lastX < 26 ? row + 1 : 0; lastX = X; ctx.fillStyle = c.mark === "x" ? "#ff3b6b" : "#ffb020";
+      ctx.fillText(c.mark === "x" ? "✕" : "~", X - 4, TOP + 70 + row * 15); ctx.fillRect(X - 0.5, TOP + 74 + row * 15, 1, 6); } }
 }
 $("replayBtn").onclick = () => {
   if (replay) return stopReplay();
@@ -766,7 +810,7 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 resize(); buildRows(); loadAudio(); requestAnimationFrame(frame);
-window.DRAW = { listen,  get sketch() { return sk; }, convert, ui, V, startPlay, stopPlay, toScreen: (x, y) => [sx(x), sy(y)], setItems: items => { snapshot(); sk.items = items; changed(); } };   // for tests (tests/draw_page.js)
+window.DRAW = { listen, get fit() { return fit; }, setCheck: c => { check = c; dirty = true; },  get sketch() { return sk; }, convert, ui, V, startPlay, stopPlay, toScreen: (x, y) => [sx(x), sy(y)], setItems: items => { snapshot(); sk.items = items; changed(); } };   // for tests (tests/draw_page.js)
 </script>
 </body>
 </html>

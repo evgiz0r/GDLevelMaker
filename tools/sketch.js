@@ -1,5 +1,7 @@
 // node tools/sketch.js list                         the whiteboard's saved sketches (local/sketches/, from the PC board)
-// node tools/sketch.js <id | sketch.json> [--out <file.gdlvl>] [--name "GDLM NN ..."] [--wip <session>]
+// node tools/sketch.js <id | sketch.json> [--fit] [--out <file.gdlvl>] [--name "GDLM NN ..."] [--wip <session>]
+//   --fit: through the layout fitter first (lib/sketchfit.js, the board's 🧩 layout): the level written is the fitted
+//   one, its changes are printed, and the plan is the fitted marks. Picture: node tools/sketchshot.js <sketch> --fit
 //   one sketch -> a .gdlvl as drawn (default local/sketches/<id>.gdlvl): what each stroke became, the user's
 //   "I jump here" marks replayed (where they die), the solver's answer, the notes the user wrote for us. --wip puts it in
 //   the viewer's in-progress list with its layout stage (the jump marks as the plan, so it replays at once).
@@ -28,7 +30,14 @@ function list() {
 function main() {
   const a = process.argv[2];
   if (!a || a === "list") return list();
-  const sk = load(a), r = SK.convert(sk), id = sk.id || path.basename(a, ".json");
+  let sk = load(a); const id = sk.id || path.basename(a, ".json"); let fitted = null;
+  if (process.argv.includes("--fit")) {
+    fitted = require("../lib/sketchfit.js").fit(sk);
+    console.log(`layout fitter: ${fitted.clear ? "plays with the marks (" + fitted.presses + " presses)" : "stops at block " + (fitted.dieX / 30).toFixed(1) + " (" + fitted.why + ")"}, ${fitted.changes.length} changes:`);
+    for (const c of fitted.changes) console.log(`  ${c.mark} ${c.x == null ? "" : "block " + (c.x / 30).toFixed(1) + ": "}${c.text}`);
+    sk = Object.assign({}, fitted.sketch, { id });
+  }
+  const r = SK.convert(sk);
   const name = arg("--name", "GDLM sketch " + (sk.name || id));
   const out = arg("--out", path.join(DIR, id + ".gdlvl"));
   fs.mkdirSync(path.dirname(out), { recursive: true });
@@ -38,7 +47,7 @@ function main() {
   const by = {}; for (const it of sk.items) { const k = it.k === "stroke" ? it.pen + (SK.isLoop(it.pts) ? " area" : " line") : it.k === "stamp" ? it.what : it.k; by[k] = (by[k] || 0) + 1; }
   console.log(`${name}: ${sk.items.length} pieces drawn (${Object.entries(by).map(([k, n]) => n + " " + k).join(", ")})`);
   console.log(`  -> ${r.counts.play} gameplay objects, ${r.counts.deco} deco, ${(r.endX / 30).toFixed(0)} blocks, ${SK.xToTime(sk, r.endX).toFixed(1)} s -> ${path.relative(ROOT, out)}`);
-  const w = GD.makeWorld(r.objects, r.header), ev = SK.planEvents(sk);
+  const w = GD.makeWorld(r.objects, r.header), ev = fitted ? fitted.events : SK.planEvents(sk);
   if (ev.length) { const q = GD.run(w, ev), done = q.done || (!q.dead && q.end && q.end.x >= w.endX);
     console.log(`  the user's ${ev.length / 2} jump marks: ${done ? "clear it" : "die at block " + (q.end.x / 30).toFixed(1) + " (" + (q.why || "hit") + ")"}`); }
   const s = GD.solveAny(w);

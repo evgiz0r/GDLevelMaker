@@ -52,6 +52,13 @@ let fail = 0; const ok = (c, m) => { console.log((c ? "ok   " : "FAIL ") + m); i
     const m = await p.locator("#msg").textContent();
     ok(/your jumps/.test(m) && /(beatable|no way through)/.test(m), tag + ": check says " + JSON.stringify(m));
     if (SHOTS) await p.screenshot({ path: path.join(SHOTS, `draw_${tag}_check.png`) });
+    // 🧩 layout: the fitter in the worker, the fitted level shown, its changes listed
+    await p.click("#fitBtn");
+    await p.waitForFunction(() => DRAW.fit && DRAW.fit.changes, null, { timeout: 30000 }).catch(() => {});
+    const fl = await p.evaluate(() => ({ n: DRAW.fit && DRAW.fit.changes ? DRAW.fit.changes.length : -1, list: !document.getElementById("fitList").hidden, clear: DRAW.fit && DRAW.fit.clear }));
+    ok(fl.n >= 0 && fl.list, `${tag}: 🧩 layout fits the drawing (${fl.clear ? "clears" : "stops"}, ${fl.n} changes listed)`);
+    if (SHOTS) await p.screenshot({ path: path.join(SHOTS, `draw_${tag}_layout.png`) });
+    await p.click("#fitBtn");
     await p.click("#playBtn"); await p.waitForTimeout(600);
     ok(await p.evaluate(() => /■/.test(document.getElementById("playBtn").textContent)), tag + ": 🎮 plays");
     await p.keyboard.press("Escape");
