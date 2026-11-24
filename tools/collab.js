@@ -63,10 +63,13 @@ function split(briefFile) {
     const a = secs[g[0]], z = secs[g[g.length - 1]], prev = old && old.parts && old.parts[k];
     // part 0 starts at the level's start (its first beat may come a little after); the others on their first beat
     return { id: "p" + k, name: g.map(i => secs[i].name).join(" + "), sections: g, beats: [a.b0, z.b1], t: [k === 0 ? 0 : a.t0, z.t1],
-      speedIn: sp[g[0]], builder: (prev && prev.builder) || null, status: (prev && prev.status) || { layout: "planned", deco: "planned", playtest: "planned", join: "planned" } };
+      speedIn: sp[g[0]], enter: g[0] > 0 ? sp[g[0] - 1] : (brief.speed || "1x"), builder: (prev && prev.builder) || null, status: (prev && prev.status) || { layout: "planned", deco: "planned", playtest: "planned", join: "planned" } };
   });
-  // a seam: the cube grounded on the floor, normal gravity / size, at the next part's speed, at a song time
-  const seams = parts.slice(1).map(p => ({ t: p.t[0], beat: p.beats[0], mode: "cube", speed: p.speedIn, grav: 1, mini: false, dual: false, y: 15, grounded: true }));
+  // a seam: the cube grounded on the floor, normal gravity / size, at a song time, at the speed the player ARRIVES with
+  // (the part before it ends at that speed); a part that runs at another speed switches with its own portal on its
+  // first column, as compose does inside one level. (GDLM 65: the contract first said the NEXT part's speed, but a
+  // part's own level header is dropped at the join, so part 2 ran its 2x on a header the joined level never had.)
+  const seams = parts.slice(1).map(p => ({ t: p.t[0], beat: p.beats[0], mode: "cube", speed: p.enter, grav: 1, mini: false, dual: false, y: 15, grounded: true }));
   const plan = { brief: path.relative(ROOT, briefFile).split(path.sep).join("/"), name: brief.name, at: new Date().toISOString(), parts, seams };
   writeJ(path.join(dirOf(briefFile), "plan.json"), plan);
   showInViewer(briefFile, plan);
@@ -87,13 +90,17 @@ function showInViewer(briefFile, plan, stage, levelStr, data, note) {
 function partBrief(brief, part, k, nParts, seed) {
   const sub = JSON.parse(JSON.stringify(brief));
   sub.sections = part.sections.map(i => brief.sections[i]);
-  sub.speed = part.speedIn;
+  sub.speed = part.enter || part.speedIn;   // the speed it is handed; compose puts the portal to its own speed on column 0
   sub.offset = (brief.offset || 0) + part.t[0];   // the part's level time 0 = its seam's song time (not rounded: a rounded
   // offset just past the beat makes lib/sync.js's beat 1 the NEXT beat)
   sub.name = brief.name + " part " + (k + 1);
   sub.seed = (brief.seed || 1) * 1000 + k * 37 + (seed || 0);
   if (k > 0) sub.leadIn = brief.partLeadIn ?? 4;                 // not the level's 10-block calm start at every seam
   if (k < nParts - 1) sub.signature = false;                     // the signature ends the last part only
+  // a part that ends in a flying section: its exit portal 4 blocks before the seam, so the cube is down on the floor
+  // when the seam time comes (GDLM 65 p1: the exit at the section's very end left it on the portal's frame block, y 45)
+  const lastSec = sub.sections[sub.sections.length - 1];
+  if (k < nParts - 1 && ["ship", "wave", "ball"].includes(lastSec.mode)) sub.sections[sub.sections.length - 1] = Object.assign({}, lastSec, { exitRoom: lastSec.exitRoom ?? 4 });
   delete sub.parts;
   return sub;
 }
@@ -104,7 +111,10 @@ function build(briefFile, k, opts = {}) {
   const C = require("./compose.js"), { build: mk } = require("./make.js"), { scoreLevel } = require("./score.js");
   const log0 = console.log; let built, spec;
   console.log = () => {};
-  try { spec = C.compose(sub).spec; built = mk(spec, briefFile); } finally { console.log = log0; }
+  // --seed n: every section of the part from its n-th alternative plan (compose's "reseed:<i>" tweak -- the brief's seed
+  // alone does not change a section's chunks: GDLM 65 p2 seeds 1 and 2 came out byte-identical)
+  const tweaks = {}; if (opts.seed) sub.sections.forEach((x, i) => { tweaks["reseed:" + i] = opts.seed; });
+  try { spec = C.compose(sub, tweaks).spec; built = mk(spec, briefFile); } finally { console.log = log0; }
   const level = built.level, levelStr = GD.serializeLevel(level), w = GD.makeWorld(level.objects, level.header), tl = SY.timeline(w);
   const dur = part.t[1] - part.t[0], L = SY.xOfT(tl, dur) - SY.xOfT(tl, 0);
   const tb = Date.now();
@@ -117,14 +127,28 @@ function build(briefFile, k, opts = {}) {
   // the part's own exit: the state its route leaves at the seam time (what the next part will be handed)
   let exit = null;
   if (sol && sol.ok) { const p = GD.run(w, sol.events).path, q = p[Math.min(p.length - 1, Math.round(dur * TPS) - 1)] || {}; exit = { mode: q.mode, sp: q.sp, grav: q.grav, y: q.y != null ? +q.y.toFixed(1) : null, vy: q.vy != null ? +q.vy.toFixed(2) : null, grounded: !!q.grounded, x: q.x }; }
+  // the part's own seam check: what it hands the next part at the seam time against the contract (the builder sees it
+  // before the join does)
+  const out = plan.seams[k];
+  if (out && exit) {
+    const bad = [];
+    if (exit.mode !== out.mode) bad.push(`mode ${exit.mode}`);
+    if (exit.sp !== SPEED_IX[out.speed]) bad.push(`speed ${exit.sp} (contract ${out.speed})`);
+    if ((exit.grav || 1) !== out.grav) bad.push(`gravity ${exit.grav}`);
+    if (exit.y == null || Math.abs(exit.y - out.y) > 8) bad.push(`y ${exit.y} (contract ${out.y})`);
+    if (out.grounded && !exit.grounded) bad.push("in the air");
+    if (bad.length) { gates.seam = "FAIL: at the seam time " + bad.join(", "); fails.push("seam"); }
+  }
   const dir = dirOf(briefFile); fs.mkdirSync(dir, { recursive: true });
   writeGdlvl(path.join(dir, part.id + ".gdlvl"), built.rec, level);
   const res = { part: part.id, by: opts.by || "style", seed: opts.seed || 0, ok: !!(sol && sol.ok) && !fails.length, solved: !!(sol && sol.ok), fails, gates, dur: +dur.toFixed(4), L: +L.toFixed(2),
     events: sol && sol.ok ? sol.events : null, exit, objects: level.objects.length,
     secs: { build: (tb - t0) / 1000, route: (ts - tb) / 1000, check: (Date.now() - ts) / 1000, total: (Date.now() - t0) / 1000 }, at: new Date().toISOString() };
   writeJ(path.join(dir, part.id + ".json"), res);
-  part.builder = res.by; part.status = Object.assign({}, part.status, { layout: "built", deco: "built", playtest: res.ok ? "ok" : "redo", join: "planned" });
-  writeJ(path.join(dir, "plan.json"), plan); showInViewer(briefFile, plan);
+  // two builders can finish at once (the heavy lock has 2 slots): re-read the plan and change only this part's entry
+  const fresh = readJ(path.join(dir, "plan.json")), mine = fresh.parts[k];
+  mine.builder = res.by; mine.status = Object.assign({}, mine.status, { layout: "built", deco: "built", playtest: res.ok ? "ok" : "redo", join: "planned" });
+  writeJ(path.join(dir, "plan.json"), fresh); showInViewer(briefFile, fresh);
   try { fs.appendFileSync(path.join(ROOT, "local", "timings.jsonl"), JSON.stringify({ at: res.at, tool: "collab.js", step: "collab-build", level: brief.name, part: part.id, by: res.by, secs: res.secs.total }) + "\n"); } catch (e) {}
   return res;
 }

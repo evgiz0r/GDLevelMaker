@@ -206,7 +206,7 @@ function compose(brief, tweaks = {}) {
       const key = `${si}:0`, t = tweaks[key] || {};
       const name = sec.mode === "ship" ? "ship-tunnel" : "wave-zigzag";
       const base = sec.mode === "ship"
-        ? { w: sec.blocks - 1 - land, gap: 5, amp: 1.5, base: 0, teeth: true, lead: 6 }   // to the section's end: its exit portal on the next bar (sync gate; GDLM 64 had it ~0.5 beat early)
+        ? { w: sec.blocks - 1 - land - (sec.exitRoom || 0), gap: 5, amp: 1.5, base: 0, teeth: true, lead: 6 }   // to the section's end: its exit portal on the next bar (sync gate; GDLM 64 had it ~0.5 beat early)
         : (() => {
           // wave turns need room: level stretches at each peak and valley (2 columns at Easy/Normal,
           // 1 above) and 2 at the entry -- with pure 45-degree legs a turn was 13-88 ms (GDLM 44, physics
@@ -214,7 +214,7 @@ function compose(brief, tweaks = {}) {
           const easy = ["Easy", "Normal"].includes((brief.difficulty || {}).label || "Easy"), flat = easy ? 2 : 1, seg = 4;
           // entry: 4 level columns with 8 rows of room (leadGap, gd-polish): a wave entering with the
           // button held or not has ~300 ms before roof or floor (fairness gate: wave deadline 300 ms)
-          return { seg, flat, lead: 4, leadGap: 8, legs: Math.max(2, Math.floor((sec.blocks - 5 - land) / (seg + flat))), gap: easy ? 5 : 4, low: 2, slopes: true };
+          return { seg, flat, lead: 4, leadGap: 8, legs: Math.max(2, Math.floor((sec.blocks - 5 - land - (sec.exitRoom || 0)) / (seg + flat))), gap: easy ? 5 : 4, low: 2, slopes: true };
         })();
       const args = Object.assign(base, (sec.args || {})[name] || {}, { portal: true, exit: "cube", portalRow: 1 });
       if (t.room) args.gap = (args.gap || 4) + t.room;
