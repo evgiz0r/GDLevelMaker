@@ -48,7 +48,14 @@ const { chunks } = require("./style.js");
 const LABELS = ["Easy", "Normal", "Hard", "Harder", "Insane", "Demon"];
 const SPIKY_DECO = new Set([18, 19, 20, 21]);
 
+// The saved-route path is new (2026-11-24): any error on it falls back to the full solve, loudly, so a gate run never breaks.
 function scoreLevel(level, brief, opts = {}) {
+  if (opts.saved === false) return scoreLevel0(level, brief, opts);
+  try { return scoreLevel0(level, brief, opts); }
+  catch (e) { console.error(`!!! score.js: saved-route check failed (${e && e.message}); solving the whole level instead`);
+    return scoreLevel0(level, brief, Object.assign({}, opts, { saved: false })); }
+}
+function scoreLevel0(level, brief, opts = {}) {
   brief = brief || {};
   const want = brief.difficulty || {};
   const minMs = want.minWindowMs ?? 60;
