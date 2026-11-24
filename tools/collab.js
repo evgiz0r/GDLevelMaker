@@ -7,6 +7,9 @@
 //                                                                unchanged, its route kept (no solve)
 // node tools/collab.js join <brief>                            -- the parts end to end, the seams checked, one full check
 //                                                                -> levels/<slug>.gdlvl (+ viewer stages)
+// node tools/collab.js scene <brief> [--scene <file>]           -- AFTER the join: one scene over the whole joined level
+//                                                                (a level-wide scene like tools/scenes/golden_hour.js: its
+//                                                                sun and palettes run on global beats); gameplay and route kept
 // node tools/collab.js status <brief>                          -- each part: builder, state, checks, time
 //
 // A level made the way GD collabs are (BUILDING.md section 1; the user, 2026-11-24: "Each section like 10 20 seconds.
@@ -24,7 +27,7 @@
 //   The parts' routes are joined by time (tick offset = seam time x 240) and replayed on the joined level: no solve.
 //   A seam whose state differs from the contract, or a death, sends back only that part.
 "use strict";
-if (require.main === module && /^(build|join|deco)$/.test(process.argv[2] || "")) require("./heavy.js").claim();
+if (require.main === module && /^(build|join|deco|scene)$/.test(process.argv[2] || "")) require("./heavy.js").claim();
 const fs = require("fs"), path = require("path");
 const ROOT = path.join(__dirname, "..");
 const { GD, readGdlvl, writeGdlvl } = require("./io.js");
@@ -292,6 +295,29 @@ function join(briefFile) {
   return res;
 }
 
+// ---- scene: a level-wide scene over the joined level (the parts were built with gameplay and colours only)
+function scene(briefFile, opts = {}) {
+  const t0 = Date.now(), brief = readJ(briefFile), { slug } = require("./make.js");
+  const file = opts.scene || brief.levelScene; if (!file) throw new Error("no scene: --scene <file> or the brief's levelScene");
+  const out = path.join(ROOT, "levels", slug(brief.name) + ".gdlvl"), L = readGdlvl(out);
+  const sol = require("./solutions.js").get(L.levelStr, true);
+  if (!sol || !sol.events) throw new Error("the joined level has no saved route: join it first");
+  const w0 = GD.makeWorld(L.level.objects, L.level.header), tl = SY.timeline(w0), grid = gridOfBrief(brief);
+  const beatX = b => SY.xOfT(tl, SY.beatToTime(grid, brief.offset || 0, b));
+  const PLAY = new Set(["solid", "hazard", "slope", "orb", "pad", "portal", "speed", "mode"]);
+  const play = L.level.objects.filter(o => PLAY.has((GD.objInfo(o.id) || {}).kind));
+  const r = require(path.resolve(ROOT, file))({ objects: play, header: L.level.header, beatX, spec: { objects: [] } });
+  const level = { header: r.header, objects: L.level.objects.concat(r.objects) };
+  const w = GD.makeWorld(level.objects, level.header), run = GD.run(w, sol.events);
+  if (run.dead) throw new Error("the route dies on the decorated level (" + run.why + ") -- not saved");
+  writeGdlvl(out, L.rec, level);
+  const levelStr = GD.serializeLevel(level);
+  try { require("./solutions.js").fromRun(level, levelStr, { ok: true, events: sol.events }, { name: brief.name }); } catch (e) {}
+  const plan = readJ(path.join(dirOf(briefFile), "plan.json"));
+  showInViewer(briefFile, plan, "deco", levelStr, { events: sol.events }, "the level's scene over the joined parts: " + path.basename(file));
+  return { out: path.relative(ROOT, out), added: r.objects.length, objects: level.objects.length, secs: (Date.now() - t0) / 1000 };
+}
+
 function status(briefFile) {
   const dir = dirOf(briefFile), plan = readJ(path.join(dir, "plan.json"));
   for (const p of plan.parts) {
@@ -301,7 +327,7 @@ function status(briefFile) {
   }
 }
 
-module.exports = { split, build, deco, join, status, partBrief };
+module.exports = { split, build, deco, join, scene, status, partBrief };
 
 if (require.main === module) {
   const [cmd, bf, ...rest] = process.argv.slice(2);
@@ -317,5 +343,6 @@ if (require.main === module) {
   }
   else if (cmd === "deco") { const k = +String(rest[0]).replace(/^p/, ""), r = deco(bf, k, { by: opt("--by") || "style", scene: opt("--scene") }); console.log(`${r.part} deco by ${r.decoBy}: ${r.objects} objects (scene ${r.scene}), gameplay unchanged, route kept; ${r.decoSecs.toFixed(0)} s`); }
   else if (cmd === "join") { const r = join(bf); if (r.drift) console.log("   drift per seam: " + r.drift.map(d => `${d.units} u (${d.ms} ms)`).join(", ")); if (r.rerouted && r.rerouted.length) console.log("   re-routed at the join (from the state handed over): " + r.rerouted.map(x => `${x.part} from block ${x.from} in ${x.secs.toFixed(1)} s`).join(", ")); console.log(r.ok ? `JOINED: every seam holds, full check READY -> ${r.out} (${r.secs.toFixed(0)} s)` : `NOT JOINED (${(r.secs || 0).toFixed(0)} s):`); for (const p of r.problems || []) console.log("   " + p); if (r.full) { for (const f of r.full.fails) console.log("   full check FAIL " + f); console.log("   warnings: " + r.full.warns.join(", ")); } if (r.send && r.send.length) console.log("   send back: " + r.send.join(", ")); process.exit(r.ok ? 0 : 2); }
+  else if (cmd === "scene") { const r = scene(bf, { scene: opt("--scene") }); console.log(`scene over the joined level: +${r.added} objects (${r.objects} in all), route kept -> ${r.out} (${r.secs.toFixed(0)} s)`); }
   else if (cmd === "status") status(bf);
 }
