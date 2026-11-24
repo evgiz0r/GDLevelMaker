@@ -2560,6 +2560,15 @@ async function shootRun() {
     const vOf = sp => ((P.SPEEDS[sp] || P.SPEEDS[1]).x) * 60 / P.TPS;
     ghostExtend(L, job.map || job.pcts || job.video ? Math.ceil(L.world.endX / vOf(0)) + 2 : Math.max(...(job.times || [0])) * P.TPS + 2, !!(job.map || job.pcts || job.video));
   }
+  // a ghost through a level whose play is far above the ground (2.2 levels built at y ~1000: Afterlife, Moonlight): the
+  // ghost's height follows the median height of the gameplay objects around it (job.followObjects, tools/shoot.js)
+  if (job.followObjects) {
+    const BIN = 300, med = new Map(), by = new Map();
+    for (const o of L.level.objects) { const k = GD.objInfo(o.id).kind; if (!/solid|hazard|slope|orb|pad/.test(k)) continue; const b = Math.floor(o.x / BIN); if (!by.has(b)) by.set(b, []); by.get(b).push(o.y); }
+    for (const [b, ys] of by) { ys.sort((p, q) => p - q); med.set(b, ys[ys.length >> 1]); }
+    const yAt = x => { const b = Math.floor(x / BIN); let s = 0, n = 0; for (let d = -2; d <= 2; d++) if (med.has(b + d)) { s += med.get(b + d); n++; } return n ? s / n : null; };
+    let last = null; for (const e of L.path) if (e.ghost || L.path.length < 3) { const y = yAt(e.x); if (y != null) last = y; if (last != null) e.y = last; }
+  }
   // spots as % of the level (tools/compare_frames.js): the moment the run passes that share of the level's length
   if (job.pcts) job.times = job.pcts.map(pc => { const x = L.world.endX * pc / 100; let k = L.path.findIndex(q => q.x >= x); if (k < 0) k = L.path.length - 1; return k / P.TPS; });
   const post = (name, url) => fetch("/shoot/" + SHOOT + "/" + name, { method: "POST", body: url });
