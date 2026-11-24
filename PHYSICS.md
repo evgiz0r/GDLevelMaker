@@ -270,7 +270,7 @@ Solvers: the state key has player 2's part (`GD.dualKey`); portal requirements (
 player's used objects and either player's distance; dual levels go to the sweep (the exact cube solver
 knows one player).
 
-Official levels (dual portals): Hexagon Force 351.7-503.4 (cube), 640.3-709.8 (ball), 944.8-995.2 (mini
+Official levels (dual portals): Hexagon Force 351.7-503.4 (cube), 640.3-709.8 (mini ball), 944.8-995.2 (mini
 ship); Blast Processing 512.3-554.0 (wave); Deadlocked 859.2-910.9 (wave). Before this, 286/287 were
 "unsupported" (a death on touch, and NOT on the no-skip list), so Hexagon Force's "beaten" and Blast
 Processing's 78% went around every dual portal: secret ways. Their saved routes, replayed with dual:
@@ -278,10 +278,12 @@ Hexagon Force dies at 362.8 (player 2 on a spike), Blast Processing at 564.4.
 Re-solved with dual (2026-11-24, physics 1d59689, `difficulty_solve --resume`, checked by tools/skips.js and a replay):
 - **Blast Processing: beaten** (was 78%, and that 78% went around its dual): all 18 portals taken, 0 of 46 orbs/pads
   skipped; two players from block 511.6 to 553.3 (wave dual).
-- **Hexagon Force**: the first dual part (351-503, cube then ships) passes, all 16 portals taken up to block 560. It
-  stops at 553.8 on the no-skip rule in a one-player orb chain (541-563: the yellow orb at 553.7, row 16, is passed
-  ~1 block under): orb physics (handed to the physics session), not dual. Its ball dual (640) and mini-ship dual
-  (944) are not reached yet.
+- **Hexagon Force: beaten** (2026-11-24, physics 23634a9, a full solve from the start: 568 s solve, 25 min with the
+  viewer's route): all 37 portals taken (11 of 75 orbs/pads untouched, none of them a skipped portal), through all
+  three dual parts: 350.7-502.4 (cube, then ships), 639.5-708.9 (mini ball), 943.9-994.3 (mini ship); ends at
+  block 1035.5. On 1d59689 it had stopped at 553.8 (a decoy orb, fixed by physics 36ca0ac); a `--resume` after the
+  landing buffer (fee98db) died at 459.8 in the dual ships because the kept prefix was planned without the buffer,
+  so after a physics change that alters cube timing, solve dual levels from the start.
 - Deadlocked's wave dual (859-911) is past its current stop (695); not reached yet.
 
 ## Not in the sim yet (the game has it)
