@@ -100,3 +100,13 @@ The stage times are also in local/timings.jsonl.
   the builds ran on, but retries and deco fell to a finisher script. For mechanical part builds a script with named
   builders is as good and far cheaper; agents earn their cost when a builder has to judge and change its part.
 - the time: lock waits dominate (23 min for p2/p6 of 66 while other sessions' jobs ran); work per part 0-55 s.
+
+## GDLM 66 collab long JOINED (2026-11-24, later)
+- 100 s, 7 parts (cube, ship with a seam inside it, ball, 2x, wave, upside), built and decorated part by part: JOINED,
+  every seam holds, drift 0, full check READY (86 s). p1 re-routed at the join from the state handed over (9.3 s).
+- the last four blockers were all in the checks, not the level, each now fixed for every level:
+  - sightread on a fixed next jump: a flagged press's latest moment is now a player's (lib/windows.js, re-planned);
+  - the saved-route walk crossed a mode change (a ship press walked past its exit, judged as a cube jump): stops there;
+  - a press that walks alive to the next input is a free jump (pointless-jumps' business), not a prejump;
+  - the join saved the joined route through fromRun, which re-planned the WHOLE level (a wave part into 27 short legs):
+    now saved as it is, stamped current; the natural passes run only inside re-routed stretches.
