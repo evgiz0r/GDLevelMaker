@@ -210,7 +210,7 @@ everything else dark). Change:
 More from the user for v7 (same day): "Some richer variety in the structure. A bit less repetitive paths. Bit more orbs
 and reverse gameplay. Some more sync."
 - **Variety**: v6 repeated the red pad + 4 spikes (b21 and b81) and the gate (j25 and j99.5). v7 keeps one of each:
-  b79 is style's `s:pink-orb-pit` (+ a single on the kick at j81.5), b98 `s:red-orb-wall`.
+  b79 is style's `s:pink-orb-pit` (+ a single on the kick at j81.5); the last gate is gone (see the result below).
 - **Orbs and reverse**: b63's yellow orb pit + double -> `s:blue-orb-bounce` (blue orbs, upside down). With
   `s:gravity-pad-gap` (b58), the ball and `s:green-orb-flip` (b94) the level now flips gravity in four places. Orb
   colours: yellow, dash, pink, blue, green, red. Not done: upside-down inside a ship tunnel (ship-tunnel has no
@@ -219,6 +219,19 @@ and reverse gameplay. Some more sync."
   The song (343707) has almost no drum hits before bar 17 (28 s, the drop); from there kicks and snares every
   half-beat, accents at beats 83.5, 84.5, 92.5, 94.5, 109... (local/hits/343707.json). So sync goes in the
   second half; deco pulses stay off the grid (decokit.motion: one pulse group on the beat, the rest off-beat).
+
+**v7 result (2026-11-25, five builds, ~6-10 min each):** score.js NOT READY only on "roles" (33/42 sections: the
+blocks' own dark fill counts as deco against the black bodies -- v6 would fail it too, the gate came after v6).
+Prejumps none, fairness clean, player timing 142 ms (v6 96), tempo 0.60 inputs per beat (v6 0.50; busy 0.50),
+dead air clean, triples 0, 27 objects per block (v6 7.8), ~1100 motion triggers. WARNs: ending 2.9 s from the
+last input (the run-out after the green-orb flip), presses on hits still 2% (median 134 ms off). In the viewer
+as wip polish v7; too big for a phone database row (787 KB > 250 KB), so the phone page needs a republish
+(tools/web.js) to show it.
+What the builds taught: (1) a structure that passes alone can break in context -- b63's blue-orb bounce left the
+press before the wave with nothing to jump (prejump at 278; a single at j67 fixed it), s:red-orb-wall right
+after s:green-orb-flip prejumped (2.7 blocks), s:orb-ladder-2 there made a 3-orb chain under 500 ms (fairness),
+at b100 and b101.5 alike; the level now ends on the green-orb flip. (2) Leave 6+ blocks between two orb
+structures. Copies: local/polish/hg_v6.gdlvl, hg_v7_redorb.gdlvl.
 
 ## Soft rules from the user's notes (CLAUDE.md: each note is a rule, checked everywhere)
 

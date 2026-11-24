@@ -54,6 +54,7 @@
     ["pattern", "ship-tunnel", "b49+1", 0, { "w": 30, "gap": 5, "amp": 1.5, "base": 1, "portal": true, "portalRow": 2, "exit": "cube" }],
     ["pattern", "s:gravity-pad-gap", "b58", 0],
     ["pattern", "s:blue-orb-bounce", "b63", 0],
+    ["pattern", "single", "j67", 0],
 
     ["colour", "b69", { "ch": "bg", "rgb": [90, 26, 8], "secs": 0.2 }],
     ["colour", "b69.5", { "ch": "bg", "rgb": [50, 12, 6], "secs": 0.6 }],
@@ -67,7 +68,6 @@
     ["pattern", "platform", 355, 0, { "w": 9, "h": 2 }],
     ["pattern", "ship-tunnel", "b85+1", 0, { "w": 30, "gap": 5, "amp": 2, "base": 1, "teeth": true, "portal": true, "portalRow": 2, "exit": "cube" }],
     ["pattern", "s:green-orb-flip", "b94", 0],
-    ["pattern", "s:red-orb-wall", "b98", 0],
 
     ["colour", "b101", { "ch": "bg", "rgb": [14, 2, 2], "secs": 1.5 }],
     ["colour", "b101", { "ch": "ground", "rgb": [8, 2, 2], "secs": 1.5 }]
