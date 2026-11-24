@@ -476,6 +476,8 @@ if (require.main === module) {
     after: { name: after.name, level: after.levelStr, solution: sa, song: songOf(after.rec, after.level.header), numbers: Object.assign({}, res.after, { wins: undefined }) },
     windows: { before: res.before.wins, after: res.after.wins }, sync: res.sync, changes: res.log };
   fs.writeFileSync(out.replace(/\.gdlvl$/, ".compare.json"), JSON.stringify(cmp));
+  // the polish against the level's model (tools/model.js, BUILDING.md 1 "Fixes through the model"): a restyle is a large fix
+  try { const mr = require("./model.js").checkFix(file, out); console.log(`model: a ${mr.size} fix -- ${mr.ok ? "keeps the level's model" : mr.next}` + (mr.notes.length ? "; " + mr.notes.slice(0, 4).join("; ") : "")); } catch (e) { /* no model */ }
   console.log(`wrote ${out} ("${name}") and its .compare.json; before/after: node tools/serve.js, http://localhost:8765/viewer/polish.html#c=${encodeURIComponent(cmp.out.replace(/\.gdlvl$/, ".compare.json"))}`);
 }
 module.exports = { polish, inputs, windowOf, allWindows, clears };

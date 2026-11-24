@@ -11,6 +11,7 @@
 //               each frame becomes render | game side by side (VISUALS.md "Facts" for how to find t0)
 //   --shapes    the shape drawing instead of GD art; --hitboxes overlays hitboxes
 //   --input     the viewer's button strip under the ground: presses, holds, each input's timing window
+//   --solve     solve in the page when there is no saved route (default for big levels: a ghost camera at the level's speed)
 // Uses a saved solution when there is one (tools/solutions.js); otherwise the page solves the level.
 // One heavy job at a time (a headless browser with the sheets is ~1 GB).
 if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
@@ -39,6 +40,10 @@ if (require.main === module) (async () => {
   if (!lv.solution) {
     try { const s = require("./solutions.js").get(lv.levelStr, true); if (s && s.events) lv.solution = s; } catch (e) {}
   }
+  // no saved route on a big level (a demon, a community level): never solve in the page (it hung renders for their whole
+  // 10 min: Spooky Dash, Brave Blue) -- the camera runs at the level's speed as a ghost, as compare_frames.js does.
+  // --solve forces the page's solve.
+  if (!lv.solution && !args.includes("--solve") && (lv.levelStr.match(/;/g) || []).length > 3000) { lv.solution = { ok: false, events: [], why: "not solved: the camera runs at the level's speed", pending: true }; lv.ghostFollow = true; }
   // the level's length in seconds, roughly, for the default times (the page clamps to the real end)
   const lenS = (() => { const P = require("../lib/physics.js"); const xs = require("../lib/gd.js").parseLevel(lv.levelStr).objects.map(o => o.x); return Math.max(2, Math.max(...xs) / ((P.PHYS || P).SPEED || 311.58)); })();
   let times;
@@ -46,7 +51,7 @@ if (require.main === module) (async () => {
   else { const step = +(opt("--every") || 2); times = []; for (let s = 0; s <= lenS && times.length < 30; s += step) times.push(+s.toFixed(2)); }
   const id = "j" + Date.now().toString(36);
   const dir = path.join(ROOT, "local", "shoot"); fs.mkdirSync(dir, { recursive: true });
-  const job = { level: lv, times, art: !args.includes("--shapes"), hitboxes: args.includes("--hitboxes"), input: args.includes("--input"), rec: opt("--rec"), t0: +(opt("--t0") || 0) };
+  const job = { level: lv, times, art: !args.includes("--shapes"), hitboxes: args.includes("--hitboxes"), input: args.includes("--input"), followObjects: !!lv.ghostFollow, rec: opt("--rec"), t0: +(opt("--t0") || 0) };
   fs.writeFileSync(path.join(dir, id + ".json"), JSON.stringify(job));
   if (!lv.solution) console.log("(no saved solution: the page solves it, which can take a while for long levels)");
   const r = await headless(`viewer/?shoot=${id}`, path.join(dir, id, ".done"), { port: +(opt("--port") || 8767) });

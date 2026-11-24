@@ -105,7 +105,7 @@ Frames and see-through fronts (asked by the style session for a landscape level,
 own channels; see-through = that channel's opacity below 1 in the header (P.header writes 1) or an alpha
 trigger on the prop's `groups`. The props never use hazard colours; keep fronts off the player's path anyway.
 
-## Colour -- UNCHECKED in the game
+## Colour -- answered in the game (2026-11-24)
 
 **2026-11-24, the cause: key 155.** Our writer put `155,1` on every object. 155 is GD 2.2's colour-batch index: objects
 that share a value share ONE colour in the game. Evidence:
@@ -119,6 +119,20 @@ that share a value share ONE colour in the game. Evidence:
 Fixed: tools/io.js `writeGdlvl` never writes 155. tools/strip155.js rewrote all 112 level files (levels/ and
 local/wip/) and moved 973 saved-route / cache files to the new keys (tools/solutions.js keyOf ignores 155), so nothing
 re-solves. tools/channels.js FAILs a level where 155 is shared across colours.
+
+**The colour test answered, without 155** (`GD claude-rec 2026-11-24_19-30-12.mkv`, ~72-81 s, every letter seen). Each
+row keeps its own colour now:
+- A (211, 21 = ch 5): red. B (211, 21 = ch 988): red. So 21 works, on low and high channels alike.
+- C (211, only 22 = 988): WHITE. A detail key alone is not honoured on an object with no detail part; its main colour
+  falls to the default channel 1. tools/io.js now copies 22 to 21 on such objects when writing.
+- D (211, no key): white (the control).
+- E / F (text, 21 = ch 5 / 988): red. Text takes key 21.
+- G (497 circle, 21 = 989): green. H (497, 989 + HSV darken 41/43): dark green, so the HSV keys work.
+- I (211, 21 = 987, set only by a colour trigger at the start): red. Trigger-set channels work.
+- J (1764 dot, 21 = 988): red.
+- The letter labels (text, no key) are white, as designed.
+So the colour question is closed: key 21 on any defined or trigger-set channel works, as do HSV and text colour. Never
+write 155, and never use 22 without 21.
 
 Correction to the note before: the pink trees and blue hills in the GDLM 67 and colour test recordings are GD's own
 background and ground art (header kA6 / kA7), not our deco. They proved nothing about our colours.

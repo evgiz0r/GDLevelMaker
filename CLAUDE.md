@@ -389,6 +389,13 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   parallax and beat pulses); output in `local/polish/` only. Before/after in GD art: `viewer/polish.html`
   (via tools/serve.js) and shoot.js renders. Helpers: `tools/textmap.js` (a level as text with the
   path), `tools/orbchain_try.js` (forgiving orb chains). Test: `node tests/polish.js`.
+- **Our levels against real ones, section by section** (TASTE_DATA.md "Sections vs real levels"): `tools/compare_sections.js`
+  (cuts each level at its song's section changes, types them intro / build / drop / calm / groove / flight / ending,
+  measures sync, density, variety, look, feel per section, pairs ours with a real section of the same type -- same song
+  first -- renders each pair with compare_frames, ranks "where we're off"; sheets via `tools/compare_sheets.py`; output
+  local/compare_sections/). **The energy curve, one definition**: `tools/energy.js` (obstacle starts per bar, as a
+  percentile in the level; `vsSong` against the song's loudness, `vsSheet` against a vibe sheet's beat energies; test
+  `node tests/energy.js`).
 - **Taste learned from real levels** (TASTE_DATA.md: the corpus of ~330 rated / unrated / official levels with
   likes and downloads, the static measures, which ones separate featured levels from the rest within a tier
   band, the verdict on each of the user's soft rules, what is open; owner: the taste session):

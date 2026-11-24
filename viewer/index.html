@@ -494,6 +494,8 @@ function load(name, levelStr, saved, info) {
     if (e.dead || e.x < world.endX - 30) { const pct = Math.max(0, Math.min(100, e.x / Math.max(1, world.endX) * 100));
       L.planBreak = { x: e.x, y: e.y, t: (path.length - 1) / P.TPS, why: e.why || sol.why || "", label: `the sim dies here: ${pct.toFixed(0)}%` }; ghostExtend(L, null, true); } }
   L.camKeep = null; if (VIEW.cam && !SHOOT) setTimeout(camViewApply, 0);
+  // the parts / sections bar again now that the level (and its timeline) is in: a collab part placed by song time needs it
+  if (!SHOOT && typeof secRender === "function" && STG.data) setTimeout(secRender, 0);
   // colour / alpha / zoom triggers fire when the replayed run passes their x
   L.look = GD.LOOK.timeline(level, x => {
     let lo = 0, hi = path.length - 1;
@@ -754,9 +756,17 @@ function secList() {
   return secs && secs.every(sc => Array.isArray(sc.x)) ? secs : null;
 }
 function secAt(x) { const s = secList(); return s && s.find(c => Array.isArray(c.x) && x >= c.x[0] && x < c.x[1]) || null; }
+// a collab part's own card (tools/collab.js: <level>_p<k>): its level's file, to go back to the whole track
+const partParent = l => l && l.file && /_p\d+\.gdlvl$/.test(l.file) ? ALL.findIndex(x => x.file === l.file.replace(/_p\d+\.gdlvl$/, ".gdlvl")) : -1;
 function secRender() {
   const bar = document.getElementById("secbar"), secs = secList();
-  if (!secs) { bar.hidden = true; return; }
+  if (!secs) {
+    const up = partParent(STG.base);
+    if (up >= 0) { bar.hidden = false; bar.innerHTML = `<span class="muted">a part of</span> <button id="partUp" title="the whole level: every part at its song time">◀ ${esc(ALL[up].name)}</button>`;
+      document.getElementById("partUp").onclick = () => { pick.value = up; pick.dispatchEvent(new Event("change")); }; }
+    else bar.hidden = true;
+    return;
+  }
   bar.hidden = false;
   const lit = STG.cur || STG.data.stages[STG.data.stages.length - 1].stage, role = SEC_ROLE[lit] || "layout";
   const pill = (sc, r, letter) => { const st = (sc.status || {})[r] || "planned", rv = (sc.reviews || {})[r];
@@ -764,6 +774,9 @@ function secRender() {
   const sel = secs.find(c => c.id === SEC.sel);
   bar.innerHTML = `<span class="muted">sections</span>` + secs.map(sc => `<span class="sec${sc.id === SEC.here ? " here" : ""}${sc.id === SEC.sel ? " sel" : ""}" data-sec="${esc(sc.id)}" title="${esc(sc.id)}: blocks ${Math.round(sc.x[0] / 30)}–${Math.round(sc.x[1] / 30)}${Array.isArray(sc.t) ? ", " + (+sc.t[0]).toFixed(1) + "–" + (+sc.t[1]).toFixed(1) + " s" : ""}">${sc.role ? '<i class="muted">' + esc(sc.role) + '</i> ' : ""}${esc(sc.name || sc.id)} ${pill(sc, "layout", "L")}${pill(sc, "deco", "D")}${pill(sc, "playtest", "P")}${sc.status && sc.status.join ? pill(sc, "join", "J") : ""}</span>`).join("") +
     (sel ? `<span class="sep">|</span><b>${esc(sel.name || sel.id)}</b>` + [...new Set([role, "playtest"])].map(r => ` <span class="muted">${esc(r)}:</span><button data-sr="ok" data-role="${r}" title="this section's ${r} is good">✓ ok</button><button data-sr="redo" data-role="${r}" title="send this section's ${r} back with a note">redo…</button>`).join("") : "");
+  // double-click a part: open it alone (its own card: its builder, stages, alternatives)
+  bar.querySelectorAll("[data-sec]").forEach(b => b.ondblclick = () => { const f = STG.base && STG.base.file && STG.base.file.replace(/\.gdlvl$/, "_" + b.dataset.sec + ".gdlvl"), i = ALL.findIndex(x => x.file === f);
+    if (i >= 0) { pick.value = i; pick.dispatchEvent(new Event("change")); } else notice("This part has no card of its own yet (it appears when its builder builds it)."); });
   bar.querySelectorAll("[data-sec]").forEach(b => b.onclick = () => { SEC.sel = SEC.sel === b.dataset.sec ? null : b.dataset.sec; const sc = secs.find(c => c.id === b.dataset.sec); if (SEC.sel && sc && L) varGo(sc.x[0] + 90); secRender(); });
   bar.querySelectorAll("[data-sr]").forEach(b => b.onclick = () => secReview(sel, b.dataset.role, b.dataset.sr, lit));
 }
@@ -2568,6 +2581,15 @@ async function shootRun() {
   if (job.ghost !== false) {
     const vOf = sp => ((P.SPEEDS[sp] || P.SPEEDS[1]).x) * 60 / P.TPS;
     ghostExtend(L, job.map || job.pcts || job.video ? Math.ceil(L.world.endX / vOf(0)) + 2 : Math.max(...(job.times || [0])) * P.TPS + 2, !!(job.map || job.pcts || job.video));
+  }
+  // a ghost through a level whose play is far above the ground (2.2 levels built at y ~1000: Afterlife, Moonlight): the
+  // ghost's height follows the median height of the gameplay objects around it (job.followObjects, tools/shoot.js)
+  if (job.followObjects) {
+    const BIN = 300, med = new Map(), by = new Map();
+    for (const o of L.level.objects) { const k = GD.objInfo(o.id).kind; if (!/solid|hazard|slope|orb|pad/.test(k)) continue; const b = Math.floor(o.x / BIN); if (!by.has(b)) by.set(b, []); by.get(b).push(o.y); }
+    for (const [b, ys] of by) { ys.sort((p, q) => p - q); med.set(b, ys[ys.length >> 1]); }
+    const yAt = x => { const b = Math.floor(x / BIN); let s = 0, n = 0; for (let d = -2; d <= 2; d++) if (med.has(b + d)) { s += med.get(b + d); n++; } return n ? s / n : null; };
+    let last = null; for (const e of L.path) if (e.ghost || L.path.length < 3) { const y = yAt(e.x); if (y != null) last = y; if (last != null) e.y = last; }
   }
   // spots as % of the level (tools/compare_frames.js): the moment the run passes that share of the level's length
   if (job.pcts) job.times = job.pcts.map(pc => { const x = L.world.endX * pc / 100; let k = L.path.findIndex(q => q.x >= x); if (k < 0) k = L.path.length - 1; return k / P.TPS; });

@@ -67,6 +67,30 @@ thinner or an intro / calm denser than the level's middle) and names the parts t
 viewer's sections bar shows each part's role. The brief's shape is meant to become gd-showcase's storyboard / vibe
 sheet (tools/storyboard.js) once that exists.
 
+**Watching a collab build: the combined track** (the user picked option A of local/collab/mockup.svg). While parts
+build, the level's card in the viewer shows ONE track of the whole song: every built part at its song time (placed as
+the join places it, with its route), a placeholder for each part not built yet (a flat floor for its song time at its
+seam speed, with its role and contract written on it; the camera runs through). `collab.js preview <brief>` makes it,
+and every part build refreshes it (light: no solve, no lock). The parts strip under the stage bar is the sections bar:
+role, name, L / D / P / J pills (builder and state on hover); a click jumps to the part, a DOUBLE-click opens the part
+alone (its own card, <level>_p<k>, with its builder's stages), and "◀ <level>" goes back. After the join the same card
+is the joined level. Energy: score.js "energy curve" compares the level's real energy (gd-taste's storyboard measure)
+with the coordinator's intended curve.
+
+**Fixes through the model** -- the user (2026-11-24): "when we fix/reshape a level ... call such person, depending on the
+size of the fix, so that the fix matches the level anyway." Every level has a MODEL next to it (tools/model.js): its
+sections with role, energy (hazards per 100 blocks), look and vehicle -- the coordinator's brief when it has one, else
+derived from the level (bg colour changes cut the sections, energy by rank gives the roles); `node tools/model.js
+<level>` saves it as levels/<slug>.model.json. A fix is sized and checked against it (`model.js check <before> <after>`):
+- **small** (a few objects at one spot): automatic -- the touched section keeps its role (a calm / intro part not much
+  denser, a drop not thinner: 35%), its energy (within 60%), its look (the same colour triggers) and its vehicle;
+- **medium** (a section reworked, 8+ objects or 6+ blocks, a recolour): the coordinator reviews the new section against
+  its role before it lands (`coordinator.js review` for collab levels; else a session reads the model check);
+- **large** (several sections, a mode / speed change, a restyle, a retarget): re-plan the model first, then build.
+tools/edit.js prints it after every edit ("model: a small fix -- keeps the level's model"), so fix.js, markedit.js,
+retarget.js and review.js get it too; tools/polish.js prints it for its output. Open: a level with no brief gets its
+model from gd-showcase's tools/storyboard.js once it lands (richer: moments, places), not only the derived one.
+
 **Rules the first joins taught (GDLM 65, 2026-11-24)** -- each was a failed join, each is now in the code:
 - **A part's level header is dropped at the join**: a part never relies on it. The seam speed is the arrival speed and
   a faster part places its own speed portal (the first contract said "the next part's speed"; part 2 ran 2x off its
