@@ -350,6 +350,12 @@ lit triangle read as an ARROW (misleading) -> a square facet; GD's own middlegro
 brightest thing, pink hazard rims) for GDLM 71's climax. With no variant given, each section takes the variant whose sky
 is nearest the builder's own bg (log luminance + hue), so a brief's parts keep their mood (GDLM 71: dark arrival ->
 dark, launch -> light, nebula -> nebula, deep -> dark, moon -> moon).
+Round 2 renders next to the user's references: local/themes/space_vs_refs.jpg. Verdict: clean and readable, one
+family, the moon and eclipse ring work; but far plainer than the refs -- the refs are dense (spike rows with glowing
+outlines everywhere, saturated blue, jagged foreground silhouettes, a huge crescent), and our nested nebula disks read
+as pink targets -> nebula now only in the nebula variant, sparse and fainter. Next: a soft glow sprite for the nebula
+(no hard disk edges), the GD bg art's grey grid shows through (pick a plainer kA6), foreground silhouettes in front
+(T2-T3, black, away from hazards), denser glowing spike rows from the dense structures.
 **Open:** in-game check of the blend channels (nebula, corona, panels); the "artistic", icy, hellish, forest and colourful
 kits; chevron direction cues as a kit part; a space structure set (floating platforms, satellites as play pieces).
 
