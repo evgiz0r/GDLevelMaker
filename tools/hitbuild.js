@@ -75,6 +75,17 @@ function shipSection(plan, si, hits, tOf, col) {
     for (let r = 0; r < fr[c]; r++) o.push(["block", c, r]);
     for (let r = rr[c]; r < 10; r++) o.push(["block", c, r]);
   }
+  // every ship input gets its cue right in front (sightread: a flying input's cue within 3 blocks): 3 blocks
+  // after a press a floor pillar up to 50 units under the path (a ship that did not press is lower and hits it),
+  // 3 blocks after a release a column hanging to 50 units over it (one that kept holding hits that)
+  const at = x => run.find(q => q.x >= x);
+  for (const e of sched) {
+    const q0 = run[Math.min(e.tick, run.length - 1)], q = at(q0.x + 90);
+    if (!q || q.x > endX - 120) continue;
+    const c = Math.round((q.x - 15) / 30);
+    if (e.type === "press") { const top = Math.floor((q.y - 15 - 50) / 30); for (let r = 0; r < top; r++) o.push(["block", c, r]); }
+    else { const bot = Math.ceil((q.y + 15 + 50) / 30); for (let r = Math.max(bot, 0); r < 10; r++) o.push(["block", c, r]); }
+  }
   // the exit: a cube portal where the path crosses the section's last beat, framed above and below
   const ex = run.find(q => q.x >= endX - 15) || run[run.length - 1];
   // the exit sits on the floor (row 1, rows 0-2 open), framed above only: a ship riding the floor reaches it
