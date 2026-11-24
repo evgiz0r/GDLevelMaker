@@ -280,9 +280,12 @@ Data: recording 2026-11-24_19-47-52, attempt amwv55dc82 (video 22.1-62.4 s, 2399
   - The ship-stretch numbers from tracking are noisy, so the frames are the evidence here. The ship sprite's colour blob
     is not as clean as the cube's, and the sim's ship height may drift from the game's.
 - **Open:**
-  - Does a second portal of the SAME mode move the band? At 56.3 s the ship took the "high" ship portal (x 11565, y 285).
-    The view moved, but the sim keeps 0..300 because "a portal of the mode you are in does nothing" (lib/physics.js
-    enterMode). Asked physics.
+  - A second portal of the SAME mode does NOT move the band. Physics checked it with gdsolver's in-game test (lv20: a wave
+    put at y 600 after the second wave portal is held at the FIRST portal's ceiling), so the sim is right. Whether GD's
+    camera still re-centres on such a portal (GDLM 68 at 56.3 s, x 11565, y 285) is open, and the camera rule only
+    (never the sim). Today's evidence goes both ways: the view looks higher in the frames, but the parallax hills make that
+    unreliable, and the tracked camera after it reads lower (-26 mean, noisy). It needs a frame-exact measure against a
+    static object.
   - The band-change rate, the UFO / wave / ball bands, and the cube camera at speeds other than 1x: other stations of the
     same recording (short attempts) and a longer run.
   - The Hexagon Force lift numbers in "Render vs game" were mid-jump moments; with the slow rise they are transients, not
