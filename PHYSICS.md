@@ -276,9 +276,14 @@ What exists and what blocks it (2026-11-23):
   mouse; down/up, high-resolution, wall-clock) to local/inputs/. tools/replay_run.js <video> <log> <level>
   replays each normal-mode attempt (attempts from the progress bar, tools/runs.js) in the sim: the clock offset
   is the shift at which the sim dies at the video's % (or finishes); an attempt no shift explains is a physics
-  mismatch for this list. Output local/replays/<video>.json (viewer ghost, difficulty). No sound is recorded
-  (no loopback device), so audio alignment waits; the name's start second + the fitted shift stand in.
-  Not yet run on a real log.
+  mismatch for this list. Output local/replays/<video>.json and local/attempts/<base>.jsonl (viewer ghost,
+  difficulty). Sound (2026-11-24, the user's pick: no install): tools/audiolog.ps1 records the PC's own sound by
+  WASAPI loopback with record.sh (Videos/Captures/GD claude-audio <time>.wav + .json with the UTC start; silence
+  is written while nothing plays, so the file's time is wall time; tested: a 1.5 s tone lands where it played).
+  replay_run.js matches the recorded sound around each attempt with the level's song from its offset
+  (loudness envelopes, 100 Hz): the music's restart pins the attempt's start to ~10 ms (a synthetic test: 2.00 s
+  found for 2.00 s), then the press shift is searched +-25 ms; without sound or the song, the bar fit (+-1.5 s).
+  Not yet run on a real recording.
 - Practice-mode respawns break time -> x; per-attempt segmentation by the attempt label or a jump in x.
 Lab 2 (to build): the mini cube, the pink orb (clean, at ground level so the camera stays still), 45-degree
 and -53-degree teleports, the swing, dual portals, and a green orb in mid-air.
