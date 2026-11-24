@@ -119,16 +119,24 @@ function main() {
     while (hi < CAP && survives(w, which, hi + 1, until)) hi++;
     return { lo, hi, open: lo <= -CAP ? (hi >= CAP ? "both" : "early") : hi >= CAP ? "late" : null };
   };
+  opts.orbAt = [];
   for (let k = 0; k < cells.length; k++) {
     const c = cells[k], until = k + 1 < cells.length ? cells[k + 1].tick + 4 : Infinity;
+    // an orb cell: first put the orb where the arc of a jump tapped on the hit is at the orb tap's hit
+    if (c.kind === "orb") {
+      const w = gameplayWorld(plan, opts), taps = allTaps().filter(t => t <= c.tick);
+      const q = GD.run(w, evOf(taps, shipEv)).path[orbTap(c)];
+      if (q) opts.orbAt[c.i] = [(q.x - 15) / 30, (q.y - 15) / 30];
+    }
     for (let round = 0; round < 8; round++) {
-      const w = gameplayWorld(plan, opts), win = windowOf(w, c.tick, c.kind === "orb" ? orbTap(c) - 2 : until);
+      const w = gameplayWorld(plan, opts), win = windowOf(w, c.tick, c.kind === "orb" ? orbTap(c) + 24 : until);
       c.win = win;
       if (!win) { console.log(`   b${c.b} ${c.kind}: no tap near the hit clears it -- check the cell`); break; }
       const mid = aim(win);
       if (win.open === "both") { console.log(`   b${c.b} ${c.kind}: this tap is not needed (any time works) -- the cell is no obstacle`); break; }
       if (Math.abs(mid) <= 1.5 || round === 7) break;
-      opts.shift[c.i] = (opts.shift[c.i] || 0) - mid * UPS / TPS / 30;   // the window centred after the hit: the obstacle is too far, so bring it nearer
+      opts.shift[c.i] = (opts.shift[c.i] || 0) - mid * UPS / TPS / 30;
+      if (c.kind === "orb" && opts.orbAt[c.i]) opts.orbAt[c.i][0] -= mid * UPS / TPS / 30;   // the orb moves with its pit   // the window centred after the hit: the obstacle is too far, so bring it nearer
     }
     if (c.kind === "orb") for (let round = 0; round < 8; round++) {
       const w = gameplayWorld(plan, opts), win = windowOf(w, orbTap(c), until);
@@ -154,7 +162,7 @@ function main() {
   const base = path.basename(planFile).replace(/\.hits\.json$/, "");
   fs.writeFileSync(path.join("specs", base + ".json"), JSON.stringify(spec, null, 1));
   const rdir = path.join(__dirname, "..", "local", "hitroutes"); fs.mkdirSync(rdir, { recursive: true });
-  fs.writeFileSync(path.join(rdir, base + ".json"), JSON.stringify({ events: ev, taps: allTaps(), cleared: !q.dead, opts: { shift: opts.shift, orbShift: opts.orbShift } }));
+  fs.writeFileSync(path.join(rdir, base + ".json"), JSON.stringify({ events: ev, taps: allTaps(), cleared: !q.dead, opts: { shift: opts.shift, orbShift: opts.orbShift, orbAt: opts.orbAt } }));
   console.log(`-> specs/${base}.json, local/hitroutes/${base}.json`);
   if (q.dead) process.exit(2);
 }

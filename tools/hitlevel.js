@@ -75,18 +75,20 @@ function build(plan, opts = {}) {
       return;
     }
     // `off` (spike / up cells on a raised floor): the floor steps down a row partway to the next cell
-    // (a free walk-off: one more height change without a press; STRUCTURES.md "Height and repetition")
-    const offAt = a.off === true ? Math.ceil(span * 0.55) : a.off;
+    // (a free walk-off: one more height change without a press; STRUCTURES.md "Height and repetition"), 6+ blocks
+    // before the next obstacle so the cube has landed before its jump (GDLM 62: a double 3 blocks after a drop was 113 ms)
+    const offAt = a.off === true ? Math.max(3, Math.floor(span - 6)) : a.off;
     const walk = from => { if (offAt && h >= 1) { floor(from, offAt, h); h -= 1; floor(offAt, span, h); } else floor(from, span, h); };
     if (kind === "upoff") { kind = "up"; a.off = true; }
     if (kind === "spike") { o.push(["spike", J, h]); walk(0); }
     else if (kind === "double") { o.push(["spike", J, h]); o.push(["spike", at(1), h]); floor(0, span, h); }
-    else if (kind === "up") { h += 1; if (a.spike) o.push(["spike", at(a.spike), h]); const offA = a.off === true ? Math.ceil(span * 0.55) : a.off; if (offA) { floor(0, offA, h); h -= 1; floor(offA, span, h); } else floor(0, span, h); }
+    else if (kind === "up") { h += 1; if (a.spike) o.push(["spike", at(a.spike), h]); const offA = a.off === true ? Math.max(3, Math.floor(span - 6)) : a.off; if (offA) { floor(0, offA, h); h -= 1; floor(offA, span, h); } else floor(0, span, h); }
     else if (kind === "down") { if (h < 1) throw new Error(`"down" on the floor at beat ${b}`); floor(0, 1, h); o.push(["spike", J, h]); h -= 1; floor(1, span, h); }
     else if (kind === "orb") {
       if (h) throw new Error(`orb off the floor at ${b}`);
       if (!num) o.push(["pattern", "orb-pit", J, 0, { n: a.n || 5 }]);
-      else { const n = a.n || 5; for (let k = 0; k < n; k++) o.push(["spike", at(k), 0]); o.push(["yellow orb", +(J + Math.floor(n / 2) + ((opts.orbShift || [])[i] || 0)).toFixed(3), a.orbRow || 2]); }
+      else { const n = a.n || 5; for (let k = 0; k < n; k++) o.push(["spike", at(k), 0]); const at2 = (opts.orbAt || [])[i];   // [col, row]: where the jump's arc is at the orb tap's hit (tools/hitbuild.js)
+        o.push(["yellow orb", at2 ? +(at2[0] + ((opts.orbShift || [])[i] || 0)).toFixed(3) : +(J + Math.floor(n / 2) + ((opts.orbShift || [])[i] || 0)).toFixed(3), at2 ? +at2[1].toFixed(3) : a.orbRow || 2]); }
     }
     else if (kind === "pad") { if (h) throw new Error(`pad off the floor at ${b}`); o.push(["pattern", "pad-launch", num ? +col(b).toFixed(3) : "b" + b, 0, { n: a.n || 3 }]); }
     else if (kind === "flat") floor(0, span, h);

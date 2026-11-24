@@ -136,6 +136,15 @@ function solve(level, levelStr, opts) {
   const c = opts.fresh ? null : get(levelStr, true);
   if (fresh(c)) return withWindows(level, levelStr, c);
   const w = GD.makeWorld(level.objects, level.header);
+  // the level's own planned inputs (a beat-first build's taps and ship schedule, tools/planned.js plannedEvents), when
+  // they clear it as-is and skip nothing: that IS the route -- the designer's presses, no solving (GDLM 62, 2026-11-24)
+  if (opts.name || opts.file) try {
+    const pe = require("./planned.js").plannedEvents(opts.name, opts.file);
+    if (pe && pe.length) { const q = GD.run(w, pe);
+      if (!q.dead && (q.done || q.end.x >= w.endX) && !GD.skipCheck(w, q.path, pe)) {
+        const sol = { ok: true, events: pe, kind: "human", source: "planned", plan: planCommit() };
+        return withWindows(level, levelStr, put(levelStr, sol, level, w)); } }
+  } catch (e) { /* no plan: as below */ }
   // the saved inputs still finish it: only the replay plan needs redoing
   // (and skip nothing: the no-skip rule; a route that now skips is solved again)
   if (c && c.ok && c.events && c.events.length) {
