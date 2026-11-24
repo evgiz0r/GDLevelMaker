@@ -216,7 +216,7 @@ async function main() {
     const key = `${p.o.L.name}|${p.s.i}`, at = ((p.s.t0 + p.s.t1) / 2 - p.o.E.off).toFixed(2), rat = ((p.rs.t0 + p.rs.t1) / 2 - p.r.E.off).toFixed(2);
     const dir = path.join(OUT, "frames", slug(p.o.L.name) + "_" + p.s.i);
     try {
-      cp.execFileSync(process.execPath, [path.join(__dirname, "compare_frames.js"), p.o.src, p.r.renderId, "--at", "s:" + at, "--ref-at", "s:" + rat, "--out", dir],
+      cp.execFileSync(process.execPath, [path.join(__dirname, "compare_frames.js"), p.o.src, p.r.L.renderId, "--at", "s:" + at, "--ref-at", "s:" + rat, "--out", dir],
         { cwd: ROOT, stdio: ["ignore", "pipe", "pipe"], env: process.env, timeout: 15 * 60e3 });
       const png = fs.readdirSync(dir).filter(f => f.endsWith(".png")).map(f => path.join(dir, f))[0];
       if (png) shots[key] = png;
