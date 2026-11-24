@@ -5,7 +5,8 @@
 // flat ground in such paths"). The user's taste, so a soft rule (a warning): a mode portal (not cube)
 // sits over flat, continuous ground or a platform -- the surface under it and the 2 columns before it at
 // one height, with no hazard there. Flagged: a PIT (the ground under the portal lower than both 2 columns
-// before and 1 after) or a hazard; a plain step (off a ledge) is only counted, not flagged.
+// before and 1 after) or a hazard; a plain step (off a ledge) is only counted, not flagged. Also flagged:
+// a portal whose box starts a cube's height or more above the ground under it (a walking cube passes under it).
 // For each such portal: the surface in each of those 3 columns = the top of the highest solid cell
 // below the portal (or the ground). Flags "pit" when they differ by a row or more or a hazard sits there.
 // Portals more than 5 rows above that surface (reached in the air, inside a corridor) are skipped.
@@ -34,7 +35,12 @@ function check(objs) {
     if ((p.y - hi) / 30 > 5) continue;                       // high in the air: a corridor or an orb jump
     // a pit: the ground under the portal (its column or the one before) lower than on both sides
     const mid = Math.min(tops[1], tops[2]), pit = tops[0] - mid >= 30 && tops[3] - mid >= 30;
-    if (pit || hz) out.push({ x: p.x, mode: MODE[p.id], kind: hz ? "hazard" : "pit", note: hz ? "a hazard under the portal" : `a pit under it (ground rows ${tops.map(t => t / 30).join(", ")}: from 2 before to 1 after)` });
+    // above: the portal's box ends more than a cube's height above the ground under it -- a cube walking there
+    // passes UNDER it and never changes mode (GDLM 44 round 3: the solver walked under the second wave portal and
+    // climbed the corridor as a cube; a secret way). The portal must reach the walking line.
+    const sc = +((p.props && p.props[32]) || 1), bottom = p.y - 43 * sc, above = bottom >= Math.max(tops[0], tops[1], tops[2]) + 30;   // the highest of the 2 columns before and under it: a cube dropping off a ledge there is still falling into it
+    if (above && !pit && !hz) out.push({ x: p.x, mode: MODE[p.id], kind: "above", note: `its box starts ${((bottom - Math.max(tops[0], tops[1], tops[2])) / 30).toFixed(1)} rows above the ground: a walking cube passes under it` });
+    else if (pit || hz) out.push({ x: p.x, mode: MODE[p.id], kind: hz ? "hazard" : "pit", note: hz ? "a hazard under the portal" : `a pit under it (ground rows ${tops.map(t => t / 30).join(", ")}: from 2 before to 1 after)` });
     else if (hi - lo >= 30) out.push({ x: p.x, mode: MODE[p.id], kind: "step", info: true, note: `a step under it (rows ${tops.map(t => t / 30).join(", ")})` });
   }
   return out;

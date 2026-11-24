@@ -164,6 +164,31 @@ timing is unnatural and small"; on block ~85 (v13): "this looks like very bad ju
 What made it better: readability first. A dark, calm scene with white hazards reads at a glance and still
 looks like hell (dim warm haze, dark rocks, lava-edged blocks). What did not: everything that pulsed.
 
+Round 3 (2026-11-24), the user on round 2: "the ending is too long where nothing happens. lets have the
+ending actually ending with gameplay. with the sign still there"; on the ship entry: "not a fan of such ship
+entering. the empty below makes it slightly bad. would probably prefer flat ground in such paths";
+"disconnected structure" at the wave entry; "indicator inside spike".
+- **Gameplay to the end**: the spec runs on from b27 to b101 (slope jump, ball run, dash-orb pit, pink-pad
+  step, a ship tunnel, gravity pad gap, orb pit, a second wave, red pad, a ship tunnel with teeth, a green
+  orb flip, the gate); the scene clips its scenery 6 blocks past the signature, so the level ENDS there
+  (GD ends a level at its furthest object). Last gameplay 41.1 s, sign 42.2 s, end 42.3 s.
+- **Flat ground under every mode portal**: a platform level with the tunnel floor before each later ship
+  portal (`"portalRow": 2`), so the cube walks in -- a ground dip there forced a jump 4 blocks ahead
+  (a prejump). Both wave portals on the walking line (`"portalRow": 1`): the second sat a row up, and a
+  fresh solve walked UNDER it and climbed the corridor as a cube (a secret way; physics now refuses to
+  save such a plan). First wave one row lower (`low` 2): its exit floor is the ground, not a 1-row step
+  the wave had to hop off (a 33 ms double tap).
+- **Routes are part of the level**: three planner bugs showed up only on hellgate's gates (holds
+  through wave exits, wiggled wave legs, jumps over nothing after an incremental re-solve) -- physics
+  fixed them (64e7de3, 6cd11dd, 109f77c); style made sightread treat presses in flight as steering.
+Result: score.js READY, prejumps none, all 13 portals and 6 orbs on the path, fairness clean, player
+timing 96 ms, ending 1.5 s. Open: the FIRST wave portal's box starts 1.1 rows above the ground just past a
+ledge (tools/portalground.js); the route reaches it falling off the ledge, but a walking cube could pass under
+it -- next round: `"portalRow": 1` on that wave-zigzag (the rebuild timed out in the heavy queue).
+What made it better: every fix as a check first (joins, portalground, deadair, indicators), then the
+level. What did not: re-solving and hoping -- each new route showed a different problem until the
+planner was fixed.
+
 ## Soft rules from the user's notes (CLAUDE.md: each note is a rule, checked everywhere)
 
 | family | check | sweep (2026-11-23) |
@@ -172,6 +197,9 @@ looks like hell (dim warm haze, dark rocks, lava-edged blocks). What did not: ev
 | orbs off the natural arc / off-centre | `tools/orbarc.js <level> --gate`: the free arc from the press before each orb, its apex vs the orb; the take-off window with the orbs clicked on reach (`adaptiveTakeoff`); halves / thirds of the hazard row | see below |
 | jump mark on a hazard ("indicator inside spike") | `tools/indicators.js <level ...> [--fix]` = decorate.js indicatorIssues; placement: jumpIndicators keeps INDICATOR.clear (40) in front of the hazard | 13 GDLM levels: 44 v4 1 (fixed), 45 9, 47 20, 50 7, 51 6, polished cube timings 4, the rest clean |
 | uneven spike clusters | `tools/clusters.js <level ...> --gate`: overlap, ragged gaps, a hazard just before a pad (static) | 13 GDLM levels: v13 3 spots (the user's), GDLM 45 1 ragged (block 63), all others clean; round 2 clean |
+| disconnected structure (open step where a slope meets a roof) | `tools/joins.js <level ...> --gate`: each slope's surface ends touch a solid, the ground or the band top (static); showcase's softrules.js "stubs" calls it | 45 7, 46 sketch 2, 47 1, the rest clean; hellgate clean since round 3 |
+| empty ground under a mode portal; portal above the walking line | `tools/portalground.js <level ... \| official \| community> --gate`: a pit or hazard under a non-cube mode portal, or its box a cube's height above the ground (a walking cube passes under) | GDLM: hellgate (fixed round 3), 46 sketch wave portal at block 87 (2.1 rows up); official 68% / community 56% of mode portals flagged (they jump into them: a warning, not a gate) |
+| nothing happens (long ending, empty stretches) | `tools/deadair.js <level ...> --gate`: gaps over 3 s with no press, hazard, orb, pad, portal or corridor wall near the path; the sign over 2 s after the last gameplay; the level running past the sign | 41 1, 43 2, 46 arrow catalogue 1, 46 sketch 1, 47 8, 50 2, 51 1; 42, 44, 45 clean |
 
 Windows: a jump's window should be measured with the NEXT input re-timed (a player reacts), not fixed
 in time: fixed, a take-off before an orb chain read 13-21 ms in a test world where a player has 96-196
