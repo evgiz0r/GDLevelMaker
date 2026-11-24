@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# tools/record.sh start|stop  -- records the whole screen to Videos/Captures/GD claude-rec <time>.mkv
+# tools/record.sh start|stop  -- records the whole screen to Videos/Captures/GD claude-rec <time>.mkv,
+# and the user's GD inputs to GD claude-inputs <time>.log (tools/inputlog.ps1: unix ms, down/up, key)
 # Uses Desktop Duplication (ddagrab): the whole screen, so it keeps recording whatever is shown.
 # Windows drops the duplication ("AcquireNextFrame failed: 887a0026", access lost) whenever a game
 # goes fullscreen or the display mode changes, so "start" restarts the capture in a loop, a new
@@ -11,7 +12,9 @@ OUT="${CAPTURES:-$HOME/Videos/Captures}"
 FLAG="$OUT/.gd-record-stop"
 case "$1" in
   start)
-    rm -f "$FLAG"
+    rm -f "$FLAG" "$OUT/.gd-input-stop"
+    # the user's GD inputs (space/up/W/left click, only while GD is in front), for replaying real runs (USE_CASES 29)
+    powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "$(cygpath -w "$(dirname "$0")/inputlog.ps1")"       -Out "$(cygpath -w "$OUT")\GD claude-inputs $(date +%Y-%m-%d_%H-%M-%S).log" -Stop "$(cygpath -w "$OUT/.gd-input-stop")" &
     while [ ! -f "$FLAG" ]; do
       "$FF" -y -hide_banner -loglevel error -f lavfi -i ddagrab=output_idx=0:framerate=60 \
         -vf hwdownload,format=bgra -c:v libx264 -preset ultrafast -crf 20 -pix_fmt yuv420p \
@@ -19,6 +22,6 @@ case "$1" in
       [ -f "$FLAG" ] || sleep 1
     done
     rm -f "$FLAG" ;;
-  stop) touch "$FLAG"; taskkill //IM ffmpeg.exe //F ;;
+  stop) touch "$FLAG" "$OUT/.gd-input-stop"; taskkill //IM ffmpeg.exe //F ;;
   *) echo "usage: tools/record.sh start|stop" ;;
 esac
