@@ -9,9 +9,11 @@ if (!fs.existsSync(PLANS) || !fs.existsSync(SRC)) { console.log("tas_progress: s
 const { replay } = require("../tools/tas.js");
 
 // block reached (or "clear") per level, with the physics/object table as of this commit
-// 2026-11-24 landing buffer (lib/physics.js LANDBUF): 3 clears, 4 415 -> 574, 6 303 -> 489, 7 210 -> 248, 8 333 -> 362, 11 288 -> 294
-const REACHED = { 1: 328, 2: 493, 3: Infinity, 4: 574, 5: 175, 6: 489, 7: 248, 8: 362, 9: 382, 10: 167,
-  11: 294, 12: 33, 13: 116, 14: 30, 15: 267, 16: 141, 17: 295, 18: 105, 19: 100, 20: 32, 21: 54, 22: 81 };
+// 2026-11-24 morning, a long landing buffer raised 3 (clear), 4 574, 6 489, 7 248, 8 362, 11 294; evening, LOWERED back:
+// GD has no such buffer (the user's GDLM 67 frames + gdsolver's reading of GD's disassembly, PHYSICS.md "Landing
+// buffer"), so those gains were covering a landing the sim makes 4-21 ticks late there -- the open lead, not a ratchet.
+const REACHED = { 1: 328, 2: 493, 3: 909, 4: 415, 5: 175, 6: 303, 7: 210, 8: 333, 9: 382, 10: 167,
+  11: 288, 12: 33, 13: 116, 14: 30, 15: 267, 16: 141, 17: 295, 18: 105, 19: 100, 20: 32, 21: 54, 22: 81 };
 let bad = 0;
 for (const [n, want] of Object.entries(REACHED)) {
   const r = replay(+n, 0);

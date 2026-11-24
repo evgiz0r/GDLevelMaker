@@ -402,6 +402,16 @@ function build(spec, specFile = "spec") {
       if (objects[i].x > limit && (k === "decoration" || k === "trigger")) objects.splice(i, 1);
     }
   }
+  // colour by ROLE (the user: "clear contrasts between the different things (ground, spikes, deco)"; gd-art's tools/roles.js):
+  // spec.colours.path (the block / slope rims, key 21: GD draws a block as a dark see-through body with rims in that colour)
+  // and spec.colours.hazard (the spikes' own colour), each on its own channel -- by default both use the object channel.
+  // decokit.rolePalette(hue) gives a palette that passes the roles gate (pathEdge, hazardEdge).
+  if (spec.colours && (spec.colours.path || spec.colours.hazard)) {
+    const CH_PATH = 70, CH_HAZ = 71, kd = o => (GD.objInfo(o.id) || {}).kind, defs = {};
+    if (spec.colours.path) { defs[CH_PATH] = { rgb: spec.colours.path, blend: false, opacity: 1 }; for (const o of objects) if (kd(o) === "solid" || kd(o) === "slope") o.props = Object.assign({}, o.props, { 21: String(CH_PATH) }); }
+    if (spec.colours.hazard) { defs[CH_HAZ] = { rgb: spec.colours.hazard, blend: false, opacity: 1 }; for (const o of objects) if (kd(o) === "hazard") o.props = Object.assign({}, o.props, { 21: String(CH_HAZ) }); }
+    header = require("./scenekit.js").channels(header, defs);
+  }
   const level = { header, objects };
   let desc = spec.desc || "";
   if (signed) desc = require("./signature.js").describe(desc);

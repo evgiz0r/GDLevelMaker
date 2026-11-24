@@ -41,9 +41,12 @@ const bufferStation = (when, note) => station(`landing buffer: tap again ${when}
   objs.push(["spike", c + 6, 0], ["spike", c + 10, 0]);   // a jump from +3.4..+5.2 lands +7.9..+9.7; a jump there clears +10, walking on hits it
   ruler(c + 15, 0, 5);
 });
-bufferStation("EARLY (going up)", "a tap ~0.1 s after the jump, still rising, ~0.35 s before landing: sim keeps a rising press 40 ticks (0.17 s) -> it has run out: DIES at the second spike. Lives = the game keeps rising presses longer");
-bufferStation("AT THE TOP", "a tap at the peak (vy ~0): sim treats it as falling -> kept until landing: LIVES. Dies = the falling threshold is after the peak");
-bufferStation("on the way DOWN", "a tap while falling: sim keeps it until landing (seen twice in Clutterfunk) -> LIVES");
+// Since 46672ee (gd-physics, from gdsolver's step.hpp and the user's GDLM 67 run) GD keeps NO press made in the air: the
+// cube jumps on landing only if the button is still down then (one tick of grace). So all three predict a death for a
+// tap released in the air; holding through the landing jumps.
+bufferStation("EARLY (going up)", "a tap released in the air, ~0.1 s after the jump: sim (GD's rule, 46672ee): no jump on landing -> DIES at the second spike. Lives = the game keeps a released press after all");
+bufferStation("AT THE TOP", "a tap at the peak, released in the air: sim: no jump on landing -> DIES. (Before 46672ee the sim kept it: the old landing buffer)");
+bufferStation("on the way DOWN", "a tap while falling, released in the air: sim: no jump on landing -> DIES (only a press still held at landing jumps)");
 
 // ---- orb hold (GDLM 63 stations 9/11 left it open: the user tapped). A roof after the jump's apex stops a fresh jump
 // from clearing the pit on its own; holding the jump's press through the orb is the only way over.

@@ -218,12 +218,14 @@ function compose(brief, tweaks = {}) {
       if (flying) land += 3;
       lastSpeed = speeds[si];
     }
-    if (sec.mode === "ball") {
-      const key = `${si}:0`, t = tweaks[key] || {};
-      const args = Object.assign({ w: sec.blocks - 3 - land, gap: 5, every: 9, lead: 6 }, (sec.args || {})["ball-run"] || {}, { portal: true, exit: "cube", portalRow: 1 });
+    // ball, and the ufo and swing corridors (tools/patterns.js; added for the space level, GDLM 71: "more flying")
+    const RUN = { ball: ["ball-run", { gap: 5, every: 9 }], ufo: ["ufo-run", { gap: 7, every: 7 }], swing: ["swing-run", { gap: 6, every: 8 }] }[sec.mode];
+    if (RUN) {
+      const key = `${si}:0`, t = tweaks[key] || {}, pname = RUN[0];
+      const args = Object.assign({ w: sec.blocks - 3 - land, lead: 6 }, RUN[1], (sec.args || {})[pname] || {}, { portal: true, exit: "cube", portalRow: 1 });
       if (t.room) args.every += 2 * t.room;
-      objects.push(["pattern", "ball-run", start + 1 + land, 0, args]);
-      placed.push({ key, name: "ball-run", from: start + 1 + land, to: start + 1 + land + widthOf("ball-run", args), section: sec.name, flying: true });
+      objects.push(["pattern", pname, start + 1 + land, 0, args]);
+      placed.push({ key, name: pname, from: start + 1 + land, to: start + 1 + land + widthOf(pname, args), section: sec.name, flying: true });
       ranges.push([i0, objects.length, start, end]);
       col = end; prevFlying = true; flyEnd = end; prevUpside = false;
       continue;
@@ -321,6 +323,11 @@ function compose(brief, tweaks = {}) {
           for (let i = 0; i < pool.length; i++) { x -= wts[i]; if (x <= 0) { name = pool[i]; break; } }
         }
         if (t.swap) name = t.swap;
+        // few triple spikes (the user, 2026-11-24: "lets do less triple spikes for now"; checklist "Few triple spikes",
+        // tools/triples.js, score.js gate "triples"): at most one per section, never within 4 chunks of the last one;
+        // a double instead. brief.triples: "allow" turns it off.
+        const TRI = n => /triple/.test(n);   // "triple" and the library's "s:triple-spike", "s:robot-triple"
+        if (TRI(name) && brief.triples !== "allow" && (placed.some(p => p.section === sec.name && TRI(p.name)) || placed.slice(-4).some(p => TRI(p.name)))) name = "double";
         const intro = !seen.has(name);
         // Easy/Normal: block-spike-block with 2-wide blocks (land, look, jump: no exact hop off a lone block)
         const LOW_ARGS = { "block-spike-block": { w1: 2, w2: 2 }, "spike-block": { at: 1, w: 3 } };

@@ -9,6 +9,9 @@ screen px, full-frame coordinates), n (pixels), x0,x1,y0,y1 (blob box).
 --rows also prints, per frame, the y of strong horizontal edges in the crop (ground line, ceiling
 rows): GD's camera moves up and down, so heights must be measured against those, not the screen.
 --sheet writes a contact sheet of the frames instead (to look at them).
+--cols also prints, per frame, the white vertical bars (screen x centre:width px): level markers at known x (GDLM 67
+v2's rulers are solid white columns) -- the player's level x = marker x + (cx - marker centre) / px-per-unit, which
+pins each attempt's clock to a fraction of a unit (tools/framecheck.js, PHYSICS.md "Frames").
 
 Facts (CLAUDE.md "Calibration"): at 1080p one unit = 3.375 px (a block is 101 px). Game Bar
 captures are variable ~30 fps, so frame times come from pts, never from an assumed rate; our own
@@ -84,6 +87,24 @@ def rows(img, k=4):
     return sorted(out)
 
 
+def white_cols(img, minw=20):
+    """x centre and width of near-white vertical bars covering >= 60% of the crop's middle band (rows 15-85%)."""
+    h = img.shape[0]
+    band = img[int(h * 0.15):int(h * 0.85)]
+    white = (band.min(axis=2) >= 235).mean(axis=0) >= 0.6
+    out, x = [], 0
+    n = len(white)
+    while x < n:
+        if white[x]:
+            x0 = x
+            while x < n and white[x]:
+                x += 1
+            if x - x0 >= minw and x0 > 0 and x < n:   # whole bars only (not cut by the crop's edge)
+                out.append(((x0 + x - 1) / 2, x - x0))
+        x += 1
+    return out
+
+
 def main():
     a = argparse.ArgumentParser()
     a.add_argument("video")
@@ -93,6 +114,7 @@ def main():
     a.add_argument("--color", default="lime")
     a.add_argument("--tol", type=int, default=60)
     a.add_argument("--rows", action="store_true")
+    a.add_argument("--cols", action="store_true")
     a.add_argument("--sheet")
     a.add_argument("--every", type=int, default=1)
     o = a.parse_args()
@@ -113,13 +135,15 @@ def main():
                         f"{sheet.shape[1]}x{sheet.shape[0]}", "-i", "-", o.sheet], input=sheet.tobytes())
         print(f"{len(imgs)} frames -> {o.sheet}")
         return
-    print("t,cx,cy,n,x0,x1,y0,y1" + (",rows" if o.rows else ""))
+    print("t,cx,cy,n,x0,x1,y0,y1" + (",rows" if o.rows else "") + (",cols" if o.cols else ""))
     for t, im in frames(o.video, o.t0, o.t1, crop):
         b = blob(im, rgb, o.tol)
         line = f"{t:.4f}," + (",".join(f"{v:.1f}" for v in (b[0] + ox, b[1] + oy)) + f",{b[2]}," +
                               ",".join(str(int(v)) for v in (b[3] + ox, b[4] + ox, b[5] + oy, b[6] + oy)) if b else ",,0,,,,")
         if o.rows:
             line += "," + " ".join(str(r + oy) for r in rows(im))
+        if o.cols:
+            line += "," + " ".join(f"{c + ox:.1f}:{wd}" for c, wd in white_cols(im))
         print(line)
 
 
