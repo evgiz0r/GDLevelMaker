@@ -60,6 +60,34 @@ Link: in `local/phone/url.txt` (shared folder; also in Claude's memory). Not in 
   keeps only a plain `#name`, so the phone page opens the short form `#<base>--v5--t40` (LINKS.md; `tools/link.js` prints
   it), and its 🔗 open link box takes any pasted link.
 
+## Offline snapshot: the PC viewer in one file (2026-11-24)
+
+For the phone with no network (the user at work). `node tools/snapshot.js` (~1-2 min) writes
+`local/phone/viewer_snapshot_<date>.html`; add `--no-songs` for the light one. It goes to the user ONLY by the chat's file
+card: never commit, upload or publish it, because RobTop's art, the official levels and the songs are inside.
+- **What's inside**: the PC viewer and its libs; every level the PC viewer lists with its saved route (levels/, the
+  official ones, every session's work in progress); beat grids; the user's runs (local/attempts/) and icons; GD's art
+  (the hd sheets as WebP at 2 px a unit, and only the backgrounds and grounds the levels use); every level's song as AAC
+  mono at 40 kbps (`--kbps`).
+- **Sizes (2026-11-24, 57 levels)**: 35.2 MB with songs (songs 19.3 MB, art 4.2 MB, level data 2.3 MB gzipped, all
+  before base64). 9.5 MB without songs. Build time: 110 s / 72 s.
+- **How**: the level data is gzipped JSON in the page, unpacked with DecompressionStream before the viewer's script runs
+  (needs Chrome 80+ / Safari 16.4+). A fetch shim answers the viewer's server calls from that data. lib/art.js takes its
+  images from `window.GD_ART_EMBED` as data: URLs, which tinting can read; a file:// image could not be read.
+- **Tested**: `node tests/snapshot_offline.js [file] [--level <name>]` opens the file from disk in headless Edge, 375x812,
+  with a phone user agent and every request sent to a dead proxy (no network). It opens a level, checks the route, the
+  art and the song, plays it and catches page errors. Hexagon Force passed: the route, the art, the song decoded (90.5 s)
+  and it played, with no errors. The same file served over http in the app's browser pane, at phone width: GDLM 64 v5
+  played with art and song, and the runs list had the user's Hexagon Force run. The app's browser pane does not open
+  file:// pages, so the from-disk check is the headless one. Headless sometimes reports the song "not decoded" while the
+  PC is busy (it decodes on a real clock while the page runs on virtual time).
+- **Offline, not there**: marks and other writes are accepted and dropped; nothing new is solved (every listed level
+  carries its route); no community or demon-list levels; no Work panel, decision cards or live updates (it is a
+  snapshot); no recordings or "compare"; the timing-window worker cannot start from file://, so windows are computed
+  on the page.
+- **Opening it on the phone**: Android: open the downloaded file in Chrome. iPhone: Files' preview does not run the
+  page's scripts, so it has to open in a browser. Not tried on a real phone yet.
+
 ## What a session does
 
 | when | do |
