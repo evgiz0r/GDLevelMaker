@@ -24,7 +24,7 @@ const FLY = new Set(["ship", "wave", "ufo", "swing"]);
 // measured 2026-11-24 on official 1-22 (`node tools/tempo.js official`): see POLISH.md "Presses vs tempo"
 // official 1-16 + 19 (complete scored routes): inputs per beat over the whole level 0.53-0.87 (median 0.62); in the busy
 // parts 0.50-1.13 (median 0.63); a busy phrase under 0.25 (1 input in 8 beats) in 1 of 17 levels (ToE, once)
-const REF = { all: 0.55, p10: 0.50, median: 0.63, floor: 0.25 };
+const REF = { all: 0.52, p10: 0.50, median: 0.63, floor: 0.25 };
 
 // inputs (s, level time) from a route on a level: [{ t, mode, type }] -> the counted times
 const counted = acts => acts.filter(a => a.type !== "release" || FLY.has(a.mode)).map(a => a.t);
