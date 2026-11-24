@@ -131,3 +131,14 @@ v2 signature (figures standing on the ground, key 21 only), not v3. The colour t
 - Pictures from Blender (tools/blender_model.sh in the GamePlatform kit: render a model small, flat-shaded,
   then tools/pixelart.js) -- not tried yet; PIL drawings and hand-drawn rows work.
 - The signature v3 is built from this library (robot + human, both colour keys, channels 976-989 via props.header, the stage 3 blocks over the path; tools/signature.js, merged 426b12b, checked by visuals on GDLM 45). Unchecked: GD art and the game.
+
+## Claude icons (the solver's own icon set, 2026-11-24)
+
+The user: "lets make an icon set for claude" -- in the viewer the solver plays with its own icons next to the
+user's GD icons. `lib/claude_icons.js`: one original pixel icon per mode (cube 16x16 px, ship, ball, ufo, wave,
+robot, spider, swing), the signature robot's face (a dark visor with two amber eyes, a cream brow plate, an
+antenna light) on a terracotta body, cream plates, dark-brown outline, glow (255,150,80). Our own art: no logos,
+nothing of RobTop's. `node tools/claude_icons.js sheet` -> local/props/claude_icons.png (icon size + 4x, dark and
+GD-blue backgrounds); `png` -> one PNG per mode for the viewer (viewer/icons/claude/, after the user's OK);
+`text <mode>`. STATUS: preview sent for the user's OK; viewer files (for gd-visuals) and an in-level prop
+version (GD objects, like the signature) come after it.
