@@ -211,7 +211,10 @@ Where things stand, so nobody re-derives it:
 
 - **The look of a craft level**: more hanging columns and armed undersides still; Easy/Normal craft targets
   (the table's are Hard/Harder numbers) are not measured.
-- **Untested density**: two armed columns per pit, an armed ceiling run (art offered to carry them over).
+- **Untested density -- done by gd-art (2026-11-24)**: `pit-run-twin-armed` (two hanging spike tips per pit: 70 hazards
+  per 100 blocks, floor 44%, underArmed 100%) and `upside-pit-run-armed` (a spike-tipped column rising under each
+  upside pit: 37/100, underArmed 31%); both pass `structures.js check --context`. CRAFT.md / craft.js / craftlevel.js are
+  now gd-art's and gd-style's (handoff above).
 - **ceiling-hop** fails prejumps (upside-down jumps over its roof pits, at any width tried): out of GDLM 61.
 - **Craft structures at 2x**: checked at 1x only (tag "1x only"; style found capped-hop / stepped-pyramid fail at 2x).
 

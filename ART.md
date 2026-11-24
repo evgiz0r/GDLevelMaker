@@ -295,6 +295,13 @@ OWN hue (scene + 150 degrees), 2.6x off the sky; deco far / mid / near just unde
 luminance: ~2x off the blocks' bodies); accent for motes and rays. `P.check` runs roles.js's pairs on the palette
 itself (all 24 hues pass, tests/decokit.js). midTone (above) is superseded for play colours.
 
+## Taste: the deco side (owned here since 2026-11-24)
+
+gd-taste handed the deco side of the taste work to this session (TASTE_DATA.md "Handoff (2026-11-24)"): the taste model
+reads only decostudy v2's per-screen rows (dsDress, dsChannels, dsMotion, dsPerScreen; glow dropped, its effect unclear).
+**When tools/decostudy.js changes, refit: `node tools/taste.js learn`.** Open: trigger-built 2.2 levels (Subwoofer
+Lullaby) render black and measure empty -- they need measuring at the positions their move triggers put objects.
+
 ## Theme kits (2026-11-24)
 
 The user: **"Do we have some things besides colors to represent higher concepts like icy, hellish, forest, space,
@@ -336,6 +343,19 @@ Lessons on the way (now in roles.js): a fill laid over a block IS its body (meas
 piece (nebula, planet) is sky, judged like the sky; near black every colour looks alike by luminance (the +0.05 in the
 ratio), so deco next to dark bodies must differ by hue family or be clearly lit -- space bodies are a lifted navy so
 black deco (terraces, the planet's night side) stands off them.
+Round 2 after the first renders (local/themes/space_demo_sheet.jpg): the nebula was flat hard-edged disks and blew out
+to white over the moon's corona -> clouds as three nested faint blending disks (opacity 0.2), none under a moon; the rocks'
+lit triangle read as an ARROW (misleading) -> a square facet; GD's own middleground hills drew icy waves along the floor
+-> the kit sets the header art (`HEADER`: kA6 1, kA7 1, kA25 0); a fourth variant `moon` (pale slate sky, the moon the
+brightest thing, pink hazard rims) for GDLM 71's climax. With no variant given, each section takes the variant whose sky
+is nearest the builder's own bg (log luminance + hue), so a brief's parts keep their mood (GDLM 71: dark arrival ->
+dark, launch -> light, nebula -> nebula, deep -> dark, moon -> moon).
+Round 2 renders next to the user's references: local/themes/space_vs_refs.jpg. Verdict: clean and readable, one
+family, the moon and eclipse ring work; but far plainer than the refs -- the refs are dense (spike rows with glowing
+outlines everywhere, saturated blue, jagged foreground silhouettes, a huge crescent), and our nested nebula disks read
+as pink targets -> nebula now only in the nebula variant, sparse and fainter. Next: a soft glow sprite for the nebula
+(no hard disk edges), the GD bg art's grey grid shows through (pick a plainer kA6), foreground silhouettes in front
+(T2-T3, black, away from hazards), denser glowing spike rows from the dense structures.
 **Open:** in-game check of the blend channels (nebula, corona, panels); the "artistic", icy, hellish, forest and colourful
 kits; chevron direction cues as a kit part; a space structure set (floating platforms, satellites as play pieces).
 

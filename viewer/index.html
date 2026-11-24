@@ -217,6 +217,7 @@
 <script src="../lib/physics.js"></script>
 <script src="../lib/sync.js"></script>
 <script src="../lib/look.js"></script>
+<script src="../lib/camera.js"></script>
 <script src="../lib/vfx.js"></script>
 <script src="../lib/objects_art.js"></script>
 <script src="../lib/objects_frames.js"></script>
@@ -1782,25 +1783,14 @@ function draw() {
   // (a screen narrower than 16:9, like a phone held upright, shows GD's 19 blocks across and more sky)
   if (LS) { scale = Math.min(H / (30 * 10.67), W / (30 * 19)) * LS.zoom; groundY = H - 30 * 3.1 * scale; camX = s.x - W / scale * 0.36 + (LS.camOff ? LS.camOff[0] : 0); }
   else { scale = baseScale; groundY = H - 30 * 1.6 * scale; camX = s.x - W / scale * 0.3; }
-  // flying modes: keep the player in view inside its corridor (the corridor is taller than the view)
-  const viewH = groundY / scale;
-  let want;
-  if (isFinite(s.ceilY) && s.mode !== "cube") {
-    const off = (groundY - H / 2) / scale, below = (H - groundY) / scale, lo = s.floorY - 30 + below, hi = s.ceilY + 30 - viewH;
-    const mid = (s.floorY + s.ceilY) / 2 - off;
-    want = s.ceilY - s.floorY + 60 <= H / scale || lo > hi ? mid : Math.max(lo, Math.min(hi, s.y - off));
-  } else if (LS) {
-    // cube and the other ground modes, game look: the camera rises with the player, 0.38 blocks per block above 2 blocks,
-    // and never lets the player above 5.5 blocks on screen (measured: the ground line in 19 frames of the user's Hexagon
-    // Force recording -- lift 0.9 / 1.36 / 1.74 blocks at 4.4 / 5.6 / 6.6 blocks high; VISUALS.md "Render vs game")
-    want = Math.max(0, 0.38 * (s.y - 60), s.y - 30 * 5.5);
-  } else want = Math.max(0, s.y - 30 * 4.5);
+  // the vertical camera: lib/camera.js (one copy with tools/camfit.js, which checks it against the user's recordings)
+  let want = GD.CAM.want(s, { look: !!LS, viewH: H / scale, below: (H - groundY) / scale });
   // no route (a ghost: the camera at the level's speed, height held): follow where the level's objects are instead, or a
   // level built high up (Brave Blue: its playfield ~50 blocks up, moved there by triggers) shows only sky (art, 2026-11-24)
   if (s0.ghost && !MAPCAM && L.level.objects.length > 50) { const cy = contentY(L, s.x + 0.4 * W / scale); if (cy != null && cy > 30 * 6) want = Math.max(0, cy - 0.45 * groundY / scale); }
   if (MAPCAM) { scale = MAPCAM.scale; camX = MAPCAM.x; camY = MAPCAM.y; groundY = MAPCAM.groundY; } else
   if (SHOOT && !window.SHOOT_VIDEO) camY = want + (LS && LS.camOff ? LS.camOff[1] : 0); else
-  camY += (want - camY) * (1 - Math.exp(-9.75 * drawDt)); // 0.15 a frame at 60 fps, at any rate
+  camY = GD.CAM.ease(camY, want, drawDt, s, !!LS); // measured rates (lib/camera.js), at any frame rate
   const view = { W, H, scale, camX, sx, sy };
   const AR = GD.ART_LIB, sc = artOn() ? (L.scenery = L.scenery || AR.scenery(L.level.header)) : null;
   if (sc) { if (!AR.drawBackground(ctx, view, LS, sc)) GD.LOOK.drawBackground(ctx, view, LS); AR.drawMiddleground(ctx, view, LS, sc); }
