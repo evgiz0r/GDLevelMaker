@@ -33,6 +33,13 @@ const ROOT = path.join(__dirname, "..");
 const MIN_FREE_MB = 1500, GAME_MIN_FREE_MB = 2000;
 // one heavy job's peak memory: the 90th percentile of measured ones (20+ rows), else 1.5 GB (a solve: 0.8-1.5 GB, CLAUDE.md)
 const JOB_MB_DEFAULT = 1500, FAST_SECS = 120, STARVE_MIN = 10;
+// LIGHT LANE (the user, 2026-11-24, on the section lab: "Iterating on them like this feels too slow" -- 6 lab builds of
+// 4-77 s and 0.2-0.3 GB waited 27 min behind a 36-min solve): a job whose measured runs take under FAST_SECS and peak
+// under LIGHT_MB may run as a THIRD slot, beside two held ones, when LIGHT_MB more than the usual floor is free. One
+// light job at a time, so the worst extra load is LIGHT_MB.
+const LIGHT_MB = 500;
+const isLight = x => !!x && x.est != null && x.est < FAST_SECS && x.mb != null && x.mb < LIGHT_MB;
+function lightGo(hs, free, gameOn) { return !hs.some(h => h.light) && free >= (gameOn ? GAME_MIN_FREE_MB : MIN_FREE_MB) + LIGHT_MB; }
 function jobMB() {
   try { const mbs = require("./jobtime.js").rows().filter(r => r.by === "heavy" && r.mb > 0).map(r => r.mb).sort((a, b) => a - b);
     if (mbs.length >= 20) return Math.max(500, mbs[Math.floor(mbs.length * 0.9)]); } catch (e) {}
@@ -177,7 +184,7 @@ function claim(label) {
   // ver 2: this waiter uses the second slot when decide() allows it. A waiter without it runs older heavy.js code (one
   // slot unless 6 GB free): put first in line it never took the free second slot, and every newer job queued behind
   // it (2026-11-24: 15 jobs idle for 20 min behind one). Such a waiter is first in line only when no job runs.
-  const me = { pid: process.pid, prio, since: waitStart, session: sessionName(), cmd, est: est ? Math.round(est.secs) : null, ver: 2 };
+  const me = { pid: process.pid, prio, since: waitStart, session: sessionName(), cmd, est: est ? Math.round(est.secs) : null, mb: est ? est.mb : null, ver: 2 };
   const MB = jobMB();
   const wfile = path.join(dir, "w" + process.pid + ".json");
   const unwait = () => { try { fs.unlinkSync(wfile); } catch (e) {} };
@@ -190,14 +197,17 @@ function claim(label) {
       const fd = fs.openSync(mutex, "wx");
       try {
         const hs = holders(dir), free = freeMB(), game = gameRunning();
-        let d = decide(hs.length, free, game, MB);
+        let d = decide(hs.filter(h => !h.light).length, free, game, MB);
         const ws0 = waiters(dir), ws1 = ws0.some(w => w.pid === me.pid) ? ws0 : ws0.concat([me]);
         const ws = hs.length ? ws1.filter(w => (w.ver || 0) >= 2) : ws1, pick = pickNext(ws, hs, Date.now()), first = pick.w;
         if (d === "go" && first && first.pid !== me.pid) d = "queue";
+        let light = false;
+        if (d !== "go" && d !== "memory" && isLight(me) && lightGo(hs, free, game)) { d = "go"; light = true; }
         if (d === "go") {
           held = path.join(dir, process.pid + ".json");
-          fs.writeFileSync(held, JSON.stringify({ pid: process.pid, session: sessionName(), cmd, prio, lane: pick.lane, start: new Date().toISOString(), freeMB: free, est: est ? Math.round(est.secs) : null, basis: est ? est.basis : null }));
-          if (pick.lane) console.log(`heavy: fast lane (measured under ${FAST_SECS / 60} min): going ahead of the long jobs`);
+          fs.writeFileSync(held, JSON.stringify({ pid: process.pid, session: sessionName(), cmd, prio, lane: pick.lane && !light, light, start: new Date().toISOString(), freeMB: free, est: est ? Math.round(est.secs) : null, basis: est ? est.basis : null }));
+          if (light) console.log(`heavy: light lane (measured under ${FAST_SECS / 60} min and ${LIGHT_MB} MB): a third slot beside the long jobs`);
+          else if (pick.lane) console.log(`heavy: fast lane (measured under ${FAST_SECS / 60} min): going ahead of the long jobs`);
           got = true; unwait();
         } else {
           const msg = d === "busy" ? `waiting for ${hs.map(describe).join("; ")}${game ? " (the game runs: one job at a time)" : ""}`
@@ -242,11 +252,11 @@ function claim(label) {
 }
 const release = () => { if (held) { try { fs.unlinkSync(held); } catch (e) {} held = null; delete process.env.GDLM_HEAVY_HELD; } };
 
-module.exports = { claim, release, syncTree, holders, waiters, firstInLine, pickNext, isFast, jobMB, FAST_SECS, STARVE_MIN, myPriority, decide, gameRunning, lowPriority, lockDir, freeMB, describe, minutesLeft, etaOf, RANK, MIN_FREE_MB, TWO_SLOTS_MB, GAME_MIN_FREE_MB };
+module.exports = { claim, release, syncTree, holders, waiters, firstInLine, pickNext, isFast, isLight, lightGo, LIGHT_MB, jobMB, FAST_SECS, STARVE_MIN, myPriority, decide, gameRunning, lowPriority, lockDir, freeMB, describe, minutesLeft, etaOf, RANK, MIN_FREE_MB, TWO_SLOTS_MB, GAME_MIN_FREE_MB };
 if (require.main === module) {
   const hs = holders();
   const fr = freeMB(), game = gameRunning(), mb = jobMB(), slots = !game && fr >= MIN_FREE_MB + mb ? 2 : 1;
-  console.log(`${fr} MB free${game ? ", the game runs" : ""}; ${slots} slot(s) now (2 when the game is closed and ${MIN_FREE_MB + mb} MB are free; one job ~${mb} MB); ${hs.length ? hs.length + " heavy job(s): " + hs.map(h => (h.lane ? "[fast lane] " : "") + describe(h)).join("; ") : "no heavy job running"}  (lock dir ${lockDir()})`);
+  console.log(`${fr} MB free${game ? ", the game runs" : ""}; ${slots} slot(s) now (2 when the game is closed and ${MIN_FREE_MB + mb} MB are free; one job ~${mb} MB); ${hs.length ? hs.length + " heavy job(s): " + hs.map(h => (h.light ? "[light lane] " : h.lane ? "[fast lane] " : "") + describe(h)).join("; ") : "no heavy job running"}  (lock dir ${lockDir()})`);
   const ws = waiters().sort((a, b) => (before(a, b) ? -1 : 1));
   if (ws.length) console.log("waiting, in order: " + ws.map(w => `${(/tools[\\/].*/.exec(w.cmd) || [w.cmd])[0]} (${w.session}, ${w.prio}${isFast(w) ? ", fast" : ""}, ${Math.round((Date.now() - w.since) / 60000)} min)`).join("; "));
 }
