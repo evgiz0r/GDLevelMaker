@@ -60,11 +60,11 @@ if (require.main === module) (async () => {
   const job = { level: R.lv, art: true, width: W, height: H, video, run: run || undefined, ghost: run ? false : undefined };
   fs.writeFileSync(path.join(dir, id + ".json"), JSON.stringify(job));
   const t0 = Date.now();
-  const r = await headless(`viewer/?shoot=${id}`, path.join(dir, id, ".done"), { port: +(opt("--port") || 8767), width: W, height: H, timeoutMs: 60 * 60e3 });
+  const r = await headless(`viewer/?shoot=${id}`, path.join(dir, id, ".done"), { port: +(opt("--port") || 8767), width: W, height: H, timeoutMs: 60 * 60e3, stallMs: 3 * 60e3 });
   const fdir = path.join(dir, id);
   let info = {}; try { info = JSON.parse(fs.readFileSync(path.join(fdir, ".done"), "utf8")); } catch (e) {}
   const frames = fs.existsSync(fdir) ? fs.readdirSync(fdir).filter(f => /^f\d+\.jpg$/.test(f)).length : 0;
-  if (!r.ok || !frames) { console.error(`no frames (${r.ok ? "page finished" : "page timed out"}): open viewer/?shoot=${id} to see why`); process.exit(1); }
+  if (!r.ok || !frames) { console.error(`no frames (${r.ok ? "page finished" : r.stalled ? "no new frame for 3 min: the page hung" : "page timed out"}): open viewer/?shoot=${id} to see why`); process.exit(1); }
   const tRender = (Date.now() - t0) / 1000;
   const safe = s => String(s).replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "_") || "level";
   const out = opt("--out") ? path.resolve(opt("--out")) : path.join(ROOT, "local", "video", safe(R.lv.name) + (run ? "_run_" + run.id : "") + (video.from || video.to != null ? `_${video.from}-${info.to != null ? (+info.to).toFixed(1) : ""}s` : "") + ".mp4");

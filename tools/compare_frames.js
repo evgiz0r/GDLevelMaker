@@ -34,7 +34,7 @@ async function render(lv, sp, flags, port) {
   fs.mkdirSync(dir, { recursive: true });
   const job = Object.assign({ level: lv, art: !flags.shapes, width: 800, height: 450, label: lv.name, layers: flags.layers, decoOnly: flags.decoOnly, times: sp.times || [0] }, sp.pcts ? { pcts: sp.pcts } : {});
   fs.writeFileSync(path.join(dir, id + ".json"), JSON.stringify(job));
-  const r = await headless(`viewer/?shoot=${id}`, path.join(dir, id, ".done"), { port, width: 800, height: 450, timeoutMs: 10 * 60e3 });
+  const r = await headless(`viewer/?shoot=${id}`, path.join(dir, id, ".done"), { port, width: 800, height: 450, timeoutMs: 10 * 60e3, stallMs: 4 * 60e3 });
   const n = (sp.pcts || sp.times).length, out = [];
   for (let i = 0; i < n; i++) { const f = path.join(dir, id, String(i).padStart(3, "0") + ".png"); out.push(fs.existsSync(f) ? f : null); }
   return { files: out, cleanup: () => { try { fs.rmSync(path.join(dir, id), { recursive: true, force: true }); fs.unlinkSync(path.join(dir, id + ".json")); } catch (e) {} }, ok: r.ok };
