@@ -229,7 +229,7 @@ SoloPortal cases; PlayerObject `copyAttributes`):
 | gravity portals, blue/green orbs, gravity dash orbs, blue pads flip the other player too while both are in the same mode (they stay mirrored); ball taps, swing flips, spider teleports flip only their own | GJBaseGameLayer::flipGravity vs PlayerObject::flipGravity | yes | tests (portal) |
 | solo portal: the player that touched it goes on (player 1 copies player 2 when player 2 touched it) | toggleDualMode(false) | yes | tests |
 | in dual every mode has a floor and a roof | checkCollisions: `isFlyingMode = ... || m_isDualMode` | yes | - |
-| band height in dual: ASSUMED the larger of the two players' bands, cube/robot 300 like the ship, centred on the portal that set it (dual portal, or a mode portal in dual) like a flying portal's | updateDualGround's body is not in the decompile | yes | NOT checked |
+| band in dual: centred on the DUAL PORTAL for the whole dual part (a mode portal in dual changes only its height); height ASSUMED the larger of the two players' bands, cube/robot 300 like the ship | processCameraObject: in dual the camera object is the dual portal (m_lastActivatedPortal2); updateDualGround's body is not in the decompile | yes | centre: Hexagon Force (re-centring on a player's ship portal opened a gap over its corridor at 432; the solve flew over the spike roof and died at 499); height NOT checked |
 | speed: shared (both players are at one x) | - | yes | - |
 | camera: centred on the band (animateInDualGroundNew, tween 0.4 s) | decompile | viewer only | - |
 Not modelled: two-player mode (level setting, separate buttons), start-in-dual (level setting), the
@@ -271,9 +271,14 @@ What exists and what blocks it (2026-11-23):
   units/frame^2) and the teleport heights read 478 px against 588 expected. Every per-mode number needs y
   measured against something in the level (the ground line, a block row) in the same frame: track.py
   --rows gives candidate edges; following the right one through camera moves is the next piece of work.
-- Inputs: the user's presses are not recorded (no sound loopback, no input log). Options: read them from
-  the hitbox trail (a press starts a new arc), or fit them (the sim's inputs that best follow the tracked
-  path), then compare the rest of the path.
+- Inputs (USE_CASES 29, built 2026-11-24): tools/record.sh now also runs tools/inputlog.ps1, which logs the
+  user's GD inputs ONLY while recording and ONLY GD's jump keys/click while GD is in front (Space, Up, W, left
+  mouse; down/up, high-resolution, wall-clock) to local/inputs/. tools/replay_run.js <video> <log> <level>
+  replays each normal-mode attempt (attempts from the progress bar, tools/runs.js) in the sim: the clock offset
+  is the shift at which the sim dies at the video's % (or finishes); an attempt no shift explains is a physics
+  mismatch for this list. Output local/replays/<video>.json (viewer ghost, difficulty). No sound is recorded
+  (no loopback device), so audio alignment waits; the name's start second + the fitted shift stand in.
+  Not yet run on a real log.
 - Practice-mode respawns break time -> x; per-attempt segmentation by the attempt label or a jump in x.
 Lab 2 (to build): the mini cube, the pink orb (clean, at ground level so the camera stays still), 45-degree
 and -53-degree teleports, the swing, dual portals, and a green orb in mid-air.
@@ -326,6 +331,9 @@ skips something, its 99% wrong. and will cause trouble. and anyway not the human
 - The shared check is `GD.skipCheck(w, path, events)` (null = clean; else the stuck result).
 
 ## How the route is chosen (the natural route)
+
+Status of every saved route (official and GDLM: beaten?, kind, how it was made, plan stamp vs today's rules,
+skips, queued): `node tools/routes.js status [--official | --gdlm]` (saved files + one replay each, no solving).
 
 THE DEFAULT (the user, 2026-11-23: "let's by default solve with the human route, then in the limits we will
 see"): every route that is saved or shown is the human route below. tools/solutions.js fromRun is the one
