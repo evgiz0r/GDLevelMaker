@@ -37,7 +37,11 @@ say so in the question.
    session died of it). Check before any screenshot:
    `GetWindowRect` on GeometryDash's MainWindowHandle and its style -- windowed = caption bit
    0x00C00000 set (seen: rect 27,0-1893,1080, style 0x16CF0000). If in doubt, ask the user.
-   Never kill GD.
+   Never kill GD. **Windowed is not enough:** on 2026-11-24 the first screenshot right after
+   `Start-Process steam://...` + `open_application` hung for 300 s with GD windowed (style
+   0x16CF0000, rect 152,70-1768,1009, responding), and every later computer-use call was refused
+   as "still in progress". Only restarting the Claude app clears that. Untested idea: wait until
+   GD's main menu has finished loading (~30-60 s after start) before the first screenshot.
 2. Access: `request_access ["Geometry Dash"]` only grants the Steam launcher; the window belongs to
    **`geometrydash.exe`** -- request that basename too, or GD is masked in screenshots.
    `open_application` can't start GD (it maps to steam://); start it with
@@ -106,6 +110,13 @@ replace it for one upload.
 - After that first upload: quit GD via its menu once (it writes k1), read the ID off the level page,
   put it in `slots.lab.id`, and set `holds.shared`. From then on it works like the phone slot (by ID,
   exit 4 if the save doesn't hold it, k79 forced, k15 dropped).
+
+**The slot's record was deleted from the save** (2026-11-24: a cleanup removed every GDLM level,
+and hellgate was re-added without its ID, so `--slot phone` stopped with exit 4): take the online
+keys from an older save or backup with `--ids-from <file.dat>`
+(`%LOCALAPPDATA%/GeometryDash/gdlm_backups/`). The same-named copy is replaced, so the save ends up
+with one record that has the ID back. Tested in `tests/install_keeps_id.js`; used 2026-11-24 with
+`CCLocalLevels.before-cleanup.2026-11-24T17-29-33-529Z.dat`.
 
 ## Install queue: levels go into the save the moment GD closes
 
