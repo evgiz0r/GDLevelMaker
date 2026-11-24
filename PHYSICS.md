@@ -332,6 +332,9 @@ skips something, its 99% wrong. and will cause trouble. and anyway not the human
 
 ## How the route is chosen (the natural route)
 
+Status of every saved route (official and GDLM: beaten?, kind, how it was made, plan stamp vs today's rules,
+skips, queued): `node tools/routes.js status [--official | --gdlm]` (saved files + one replay each, no solving).
+
 THE DEFAULT (the user, 2026-11-23: "let's by default solve with the human route, then in the limits we will
 see"): every route that is saved or shown is the human route below. tools/solutions.js fromRun is the one
 door every saving path goes through (make.js, wip.js, compose via make, polish, tests/saved_routes.js --fix);
