@@ -1279,6 +1279,33 @@ async function runShow(id, play) {
 // the run as a pink ghost beside it. The route is kept in L.runKeep and restored when the run is put away.
 // "camera only" (view menu, remembered): the level from start to end at its speed, no player at all -- for levels the sim
 // cannot beat, to watch the layout and deco without the run. The run is kept in L.camKeep and put back when it is off.
+// a run past the sim's death: step on from the last live state with the run's own presses, every death cleared (lost: true)
+function runThrough(LL, ev, want, toEnd, stopX) {
+  try {
+    let k = LL.path.length - 1; while (k > 0 && LL.path[k].dead) k--;
+    const s = structuredClone(LL.path[k]); s.dead = false; s.why = ""; s.killer = null;
+    const at = new Map(); for (const e of ev) at.set(e.tick, e.type);
+    let held = LL.path[k] && ev.filter(e => e.tick <= k).slice(-1).map(e => e.type === "press")[0] || false;
+    LL.path.length = k + 1;
+    // a died run goes on to its death spot (GD's %), not to the progress bar's time, which can end short of it (Geometrical
+    // Dominator: 11.6 s against 12.3%); the level's length in ticks bounds both
+    const maxT = Math.ceil((LL.world.endX / ((P.SPEEDS[0] || P.SPEEDS[1]).x * 60) + 5) * P.TPS), limit = stopX ? maxT : (want || maxT);
+    while (LL.path.length < limit) {
+      const e = at.get(s.tick); let press = false;
+      if (e === "press") { press = true; held = true; } else if (e === "release") held = false;
+      GD.step(LL.world, s, { press, held });
+      if (s.dead) { s.dead = false; s.why = ""; s.killer = null; }
+      LL.path.push(Object.assign(structuredClone(s), { lost: true }));
+      if (s.done || (toEnd && s.x > LL.world.endX + 60) || (stopX && s.x >= stopX)) break;   // a died run ends where GD's % says
+    }
+    if (!toEnd) LL.path[LL.path.length - 1].dead = true;   // a run that died: the burst where it really ended
+    const path = LL.path;
+    LL.look = GD.LOOK.timeline(LL.level, x => { let lo = 0, hi = path.length - 1; if (path[hi].x < x) return Infinity;
+      while (lo < hi) { const m = (lo + hi) >> 1; if (path[m].x >= x) hi = m; else lo = m + 1; } return lo / P.TPS; });
+    LL.vfx = null;
+    return true;
+  } catch (e) { console.warn("runThrough failed:", e); return false; }
+}
 function camViewApply() {
   const LL = L; if (!LL) return;
   const want = VIEW.cam && !(PLAY && PLAY.on) && !LL.ghost;   // with a run open, the run is shown, not camera-only
@@ -1309,10 +1336,13 @@ function runViewApply() {
     const last = LL.path[LL.path.length - 1], realEnd = R.result === "clear" ? null : Math.ceil((+R.t || 0) * P.TPS) + 2;
     // (a line that agrees -- tools/attempts.js agreeOf -- died where the sim dies: no ghost after it; R.t is the progress
     // bar's end, which lags the real death by ~1.7 s, so it alone must not extend the run)
-    if (last.dead && R.agree !== true && (R.result === "clear" || realEnd > LL.path.length)) {
+    if (last.dead && R.agree !== true && (R.result === "clear" || realEnd > LL.path.length || last.x < deathX(+R.pct || 0) - 60)) {
       const pct = Math.max(0, Math.min(100, last.x / Math.max(1, LL.world.endX) * 100));
       LL.planBreak = { x: last.x, y: last.y, t: (LL.path.length - 1) / P.TPS, why: last.why || "", label: `our sim loses your run here (${pct.toFixed(0)}%): our bug, not your death` };
-      ghostExtend(LL, realEnd, R.result === "clear");
+      // the user's presses go on driving the player past our sim's false death (deaths ignored from there, drawn dimmed), so
+      // their icon stays on screen to the run's real end; only if that fails, the old ghost (camera only, no player): "when i
+      // play my replay in clutterfunk my icon disappears" (the user, 2026-11-24 -- the sim lost both runs at 1.8 / 3.7 s)
+      if (!runThrough(LL, ev, realEnd, R.result === "clear", R.result === "clear" ? null : deathX(+R.pct || 0))) ghostExtend(LL, realEnd, R.result === "clear");
     }
     const held = new Uint8Array(LL.path.length); let h = 0, j = 0;
     for (let k = 0; k < held.length; k++) { while (j < ev.length && ev[j].tick <= k) { h = ev[j].type === "press" ? 1 : 0; j++; } held[k] = h; }
@@ -1857,7 +1887,7 @@ function draw() {
     if (L.noRoute || L.planBreak) { ctx.fillStyle = "rgba(255,255,255,.6)"; ctx.font = `${12 * DPR()}px system-ui`;
       ctx.fillText(L.camKeep ? "camera only: the level at its speed, no player" : L.noRoute ? "no route yet: the camera runs at the level's speed" : "after the death: the camera runs on at the level's speed", gx + 8, 18 * DPR()); } continue; }
   if (MAPCAM || window.SHOOT_DECO_ONLY) {} else if (LS && s.dead && (!SHOOT || window.SHOOT_VIDEO)) {}   // the burst replaces the player; drawn on top of everything below
-  else if (LS) GD.LOOK.drawPlayer(ctx, view, ps, L.held[k], local, (P.SPEEDS[ps.sp] || P.SPEEDS[1]).x, sc ? (L.runKeep || (PLAY && PLAY.on) ? (c, m, st) => GD.ART_LIB.drawIcon(c, m, st, "user") : (c, m, st) => drawClaudeIcon(c, m, st) || GD.ART_LIB.drawIcon(c, m, st)) : null, (L.runKeep || (PLAY && PLAY.on)) && ME && ME.glow === false);
+  else if (LS) { if (s0.lost) ctx.globalAlpha = 0.6; GD.LOOK.drawPlayer(ctx, view, ps, L.held[k], local, (P.SPEEDS[ps.sp] || P.SPEEDS[1]).x, sc ? (L.runKeep || (PLAY && PLAY.on) ? (c, m, st) => GD.ART_LIB.drawIcon(c, m, st, "user") : (c, m, st) => drawClaudeIcon(c, m, st) || GD.ART_LIB.drawIcon(c, m, st)) : null, (L.runKeep || (PLAY && PLAY.on)) && ME && ME.glow === false); ctx.globalAlpha = 1; }
   else if (ps.mode === "ship") drawShip(ps);
   else if (ps.mode === "wave") drawWave(ps);
   else if (ps.mode === "ball") drawBall(ps);
@@ -2420,6 +2450,30 @@ function controlsOutsideTop() {
   return [...document.querySelectorAll("button, select, input, textarea, [contenteditable]")].filter(e => !e.closest(CONTROL_HOMES) && e.id !== "scrub" && !(e.type === "file"))
     .map(e => { let p = e.parentElement; while (p && !p.id) p = p.parentElement; return (p ? "#" + p.id + " " : "") + (e.id ? "#" + e.id : e.tagName.toLowerCase() + " \"" + (e.textContent || "").trim().slice(0, 24) + "\""); });
 }
+// ?check=runs (tests/run_player_drawn.js): every saved run of every level the viewer offers (this version's), played as the
+// user sees it: the player must be drawn on every frame until the run's real end (a died run: GD's death %; a clear: the
+// level's end) -- the user's icon vanished from their Clutterfunk runs where our sim lost them (2026-11-24)
+async function runsCheck() {
+  const wait = ms => new Promise(r => setTimeout(r, ms)), out = [];
+  const orig = GD.LOOK.drawPlayer; let drawn = 0; GD.LOOK.drawPlayer = function () { drawn++; return orig.apply(this, arguments); };
+  let index = []; try { index = await (await fetch("/attempts/index", { cache: "no-store" })).json(); } catch (e) {}
+  for (const lv of index) {
+    const i = ALL.findIndex(l => l.file === lv.file || GD.attemptsBase(l.file) === lv.base); if (i < 0) { out.push({ level: lv.level || lv.base, skip: "not listed" }); continue; }
+    pick.value = i; pick.onchange(); const want = ALL[i].name;
+    for (let k = 0; k < 300 && !(L && L.name === want && L.path.length > 1 && !L.pending); k++) await wait(100);
+    let rows = []; try { rows = await (await fetch("/attempts?file=" + encodeURIComponent(ALL[i].file) + "&hash=" + L.hash, { cache: "no-store" })).json(); } catch (e) {}
+    for (const r of rows) {
+      await runShow(r.id); for (let k = 0; k < 300 && !(L.ghost && L.ghost.row.id === r.id && L.runKeep); k++) await wait(100);
+      if (!(L.ghost && L.ghost.row.id === r.id)) { out.push({ level: want, run: r.id, fail: "the run did not open" }); continue; }
+      const n = L.path.length; let miss = 0, first = null;
+      for (let k = 0; k < n; k += 24) { t = k / P.TPS; drawn = 0; draw(); if (!drawn && !L.path[k].dead) { miss++; if (first == null) first = +(k / P.TPS).toFixed(2); } }
+      const e = L.path[n - 1], endX = r.result === "clear" ? L.world.endX - 60 : r.agree === true ? 0 : deathX(+r.pct || 0) - 60;
+      out.push({ level: want, run: r.id, result: r.result, pct: r.pct, frames: Math.ceil(n / 24), missing: miss, firstMissing: first, reachesEnd: e.x >= endX });
+    }
+  }
+  GD.LOOK.drawPlayer = orig;
+  try { await fetch("/selfcheck?id=" + encodeURIComponent(QS.get("id") || "x"), { method: "POST", body: JSON.stringify(out) }); } catch (e) {}
+}
 async function controlsCheck() {
   const sel = document.getElementById("runPick"); if (sel && sel.options.length > 1) { sel.value = sel.options[1].value; sel.onchange(); await new Promise(r => setTimeout(r, 4000)); }
   if (L && MARKS && levelMarks().length) markPick(levelMarks()[0]);
@@ -2463,11 +2517,12 @@ function openLink(s) {
   const q = parseLink(s), i = linkFind(q); if (i < 0) { if (q) notice("No level here for that link (" + esc(q.file || q.base) + ")."); return false; }
   const l = ALL[i];
   if (q.v && l.version && +l.version !== q.v) notice(`That link was for version ${q.v}; this is version ${l.version} (the newest here).`, 6000);
-  pick.value = i; pick.wantT = q.t; pick.onchange();
-  // the level may open later (unpacked, fetched, its route replayed): seek once it is the one on screen, then the run
+  const before = L; pick.value = i; pick.wantT = q.t; pick.onchange();
+  // the level may open later (unpacked, fetched, its route replayed): seek once it is the one on screen -- a NEW load of it,
+  // not the copy that was showing (a link to the level already open seeked the old one, then the load reset t and the run)
   const want = l.name; let tries = 0;
   const seek = () => { if (ALL[pick.value] !== l) return;
-    if (!L || L.name !== want || !L.path || (q.t && L.path.length < 2)) { if (++tries < 100) setTimeout(seek, 100); return; }
+    if (!L || L === before || L.name !== want || !L.path || (q.t && L.path.length < 2)) { if (++tries < 150) setTimeout(seek, 100); return; }
     playing = false; setPlay(); t = Math.min(q.t, (L.path.length - 1) / P.TPS); lastTick = tick(); draw();
     if (q.run && typeof runShow === "function" && !window.GD_PHONE) runShow(q.run); };
   seek();
@@ -2498,6 +2553,7 @@ setInterval(() => { if (L && !playing) writeHash(); }, 1000);
     document.getElementById("pickName").textContent = "no levels yet";
   }
   if (QS.get("check") === "controls") setTimeout(controlsCheck, 6000);
+  if (QS.get("check") === "runs") setTimeout(runsCheck, 3000);
 })();
 // ---------- shoot mode: tools/shoot.js writes local/shoot/<job>.json {level:{name, levelStr, solution,
 // song}, times:[s], rec, t0, width, height}; each frame goes back as POST /shoot/<job>/<n>.png (the
