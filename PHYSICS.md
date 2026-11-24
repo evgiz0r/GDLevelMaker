@@ -798,6 +798,17 @@ What it says:
   structure). A ship part is searched once to its end (a repair bit by bit cost 132 s on GDLM 45, then 69 s).
 - So the library is a first guess for tap parts. Ship and wave stay with the sweep and natural.js's flying controller.
 
+The PC run (2026-11-24, `test --set all`: 114 of 115 clears -- gdsolver's plans, our main-level routes, the GDLM routes,
+the user's attempts; Hexagon Force, Deadlocked and Dash left out while they are re-solved): taps 4380 presses, recall 26%,
+precision 75% (+-3 frames); flying 1728, 8% / 52%; all 21% / 71%; the state-only baseline 0%. Best on plain cube levels
+(GDLM 42 15/20, GDLM 02 9/11), worst on the later main levels (Clubstep 1/136, Theory of Everything 4/137).
+Read: precision holds across sources (what it presses is right three times in four), recall falls on the dense later
+levels, where the pictures are rarely seen twice in 112 other levels. Likely causes, untested: gdsolver's plans are raw
+solver inputs (holds through landings, presses at a window's edge), so they teach where a press CAN go, not where a
+player puts it, and they disagree with our human routes on the same level; the picture has no memory of what the player
+just did (orb chains, pad-orb pairs). Next for the library: learn from human routes and the user's attempts only and
+compare; add the last action to the state. The rollout test on the main levels waits for the re-solve.
+
 Next (not built): (1) the main-level test on the PC: `node tools/presslib.js test --set all` (light, no slot), then
 `test --set gdsolver --rollout` at low priority -- 22 levels and gdsolver's real-game plans are the data that matters,
 our 11 are a small, alike set. (2) The library inside the sweep instead of beside it: rank the beam's states by how
