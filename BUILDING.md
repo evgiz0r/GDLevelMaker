@@ -70,4 +70,6 @@ each section."
   "not measured" (CLAUDE.md).
 - After each build, BUILDS.md gets a retro: stage times against targets, rounds, what failed, the slowest step,
   and the change made, so the next build is faster.
+- Every level has a song, test labs included: recordings line the user's inputs up with the song's audio
+  (tools/audiolog.ps1, replay_run.js); a level with no song falls back to the progress bar.
 - Viewer first: nothing is installed or uploaded until the user has seen it there and says so.
