@@ -490,6 +490,11 @@ Still open:
   tools/recompile.js, fixes 1-4 in code but unmeasured, 5 not started; the v1 benchmark table). Next: the collab repair
   rounds test (`collab.js build briefs/69_time_hop.json 1 --by recompile`), then both round trips for the v2 column.
   GDLM 69 and 70 in levels/ are still v1 and NOT READY.
+- **Craft, inherited (2026-11-24)** with gd-art (art takes the look): CRAFT.md "Handoff", tools/craft.js, tools/craftlevel.js.
+  Open for style: the solo-check failures of craft structures (slab-steps 208 ms reactive cut, lantern-orb prejump + 67 ms
+  cut, stepped-pyramid 38 ms press; capped-hop and stepped-pyramid fail at 2x: all tagged 1x only); spec drift (41, 43, 44,
+  47, 50, 51, 61 change when rebuilt from spec: re-make and re-check before any edit). GDLM 46 sketch's description is
+  136 characters with the signature (under 180): it builds, the handoff's "too long" was stale.
 
 - **User gates in compose** (visuals 52754fc, VIEWER.md): stages.put(... gate: true) + stages.waitApproval -> ok /
   redo with a note and a spot. Not wired yet: compose is one heavy job, so waiting inside it would hold the lock
