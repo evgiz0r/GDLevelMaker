@@ -123,18 +123,21 @@ const anchors = runs.filter(r => r.beaten).concat(runs.filter(r => !r.beaten).so
 const shifts = anchors.map(r => fit(r, 0, 1500)).filter(b => b && b.err <= 2.5).map(b => b.sh).sort((a, b) => a - b);
 const OFFSET = +opt("offset", shifts.length ? shifts[shifts.length >> 1] : 0);
 console.log(`clock offset ${Math.round(OFFSET)} ms (from ${shifts.length} anchor attempt(s)${shifts.length ? ": " + shifts.map(Math.round).join(", ") : ""})`);
+// the first attempt after a level loads (nothing on the bar for 3 s before): its bar shows ~0.55 s before the
+// level starts moving (GD's fade-in; GDLM 63 +580 ms, Blast Processing +520 ms, 2026-11-24)
+const LOAD_MS = 550;
 for (const r of runs) {
-  const best = fit(r, OFFSET, shifts.length ? 60 : 1500);
-  {
-  }
+  const prev = allRuns.filter(q => q.start < r.start).pop(), afterLoad = !prev || r.start - (prev.start + prev.secs) > 3;
+  const best = fit(r, OFFSET + (afterLoad ? LOAD_MS : 0), shifts.length ? (afterLoad ? 150 : 60) : 1500);
   if (!best) { out.push({ attempt: r.start, note: "no inputs logged in this attempt" }); continue; }
-  const want = r.beaten ? 100 : r.pct, ok = best.err <= 2.5;   // GD's % and our x/endX differ by ~1-2%
+  const want = r.beaten ? 100 : r.pct, restart = !r.beaten && r.secs < 3 && r.pct < 5;   // a quick restart, not a death
+  const ok = best.err <= 2.5 || restart;   // GD's % and our x/endX differ by ~1-2%
   const row = { video_t: r.start, video: r.beaten ? "beaten" : `died ${r.pct.toFixed(1)}%`, sim: best.q.done ? "beaten" : `died ${best.pct.toFixed(1)}% (${best.q.why || "?"})`,
     shift_ms: Math.round(best.sh), presses: best.list.filter(e => e.type === "press").length, agree: ok,
     events: best.list, beaten: !!r.beaten, videoPct: r.beaten ? 100 : r.pct, secs: r.secs, x: +(w.endX * (r.beaten ? 100 : r.pct) / 100).toFixed(1), why: best.q.why };
   if (!ok) { const s = best.q.end; Object.assign(row, { mismatch: `the sim ${best.q.done ? "finishes" : "dies at " + best.pct.toFixed(1) + "% x " + s.x.toFixed(0) + " (" + s.mode + ", " + (best.q.why || "?") + ")"} where the video ${r.beaten ? "beats it" : "dies at " + want.toFixed(1) + "%"}` }); }
   out.push(row);
-  console.log(`${r.start.toFixed(1).padStart(7)} s  video ${row.video.padEnd(12)} sim ${row.sim.padEnd(24)} shift ${row.shift_ms} ms  ${ok ? "agree" : "MISMATCH"}`);
+  console.log(`${r.start.toFixed(1).padStart(7)} s  video ${row.video.padEnd(12)} sim ${row.sim.padEnd(24)} shift ${row.shift_ms} ms  ${restart ? "restart (not judged)" : ok ? "agree" : "MISMATCH"}`);
 }
 // the shared per-attempt file (agreed with gd-visuals: the viewer's "you play" uses the same lines, and shows
 // them as a ghost beside the route): local/attempts/<base>.jsonl, one attempt per line
@@ -151,7 +154,10 @@ for (const r of runs) {
     lines.push(JSON.stringify({ id: "a" + Date.now().toString(36) + lines.length, at: new Date().toISOString(), source: "video", level: L.name || lv, file: lv.startsWith("official:") || /^c\d+$/.test(lv) ? lv : path.relative(path.join(__dirname, ".."), path.resolve(lv)).split(path.sep).join("/"),
       hash: hashOf(L.levelStr), events: o.events, result: o.beaten ? "clear" : "died", x: o.x, pct: o.videoPct, t: o.secs, why: o.why || null, practice: false, from: null,
       video: { file: path.basename(video), inputs: path.basename(logFile), t: o.video_t, shift_ms: o.shift_ms, agree: o.agree, res: o.agree ? "agree" : "mismatch", mismatch: o.mismatch || undefined } })); }
-  if (lines.length) fs.appendFileSync(path.join(adir, base + ".jsonl"), lines.join("\n") + "\n");
+  // re-running a video replaces that video's lines (no duplicates); other lines (the viewer's, other videos) stay
+  const af = path.join(adir, base + ".jsonl"), keep = fs.existsSync(af) ? fs.readFileSync(af, "utf8").split("\n").filter(l => { if (!l.trim()) return false;
+    try { const o = JSON.parse(l); return !(o.source === "video" && o.video && o.video.file === path.basename(video)); } catch (e) { return true; } }) : [];
+  if (lines.length) fs.writeFileSync(af, keep.concat(lines).join("\n") + "\n");
 }
 const dir = path.join(__dirname, "..", "local", "replays"); fs.mkdirSync(dir, { recursive: true });
 fs.writeFileSync(path.join(dir, path.basename(video).replace(/\.\w+$/, "") + ".json"), JSON.stringify({ level: L.name, video: path.basename(video), log: path.basename(logFile), attempts: out }, null, 1));

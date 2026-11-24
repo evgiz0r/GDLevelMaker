@@ -304,6 +304,15 @@ What exists and what blocks it (2026-11-23):
   instead of holding from the jump, so "a held jump fires an orb" is still unanswered (ask for a hold next
   time); 10 (press just before, held) fired as the sim expects; 12 fired and the run went on.
   Attempts are in local/attempts/gdlm_63_dual_and_movers_lab.jsonl (viewer "Your runs", video lines).
+  The same recording also holds GDLM 60 (2 attempts) and Blast Processing (1): identified from the frames.
+  - The first attempt after a level loads: its bar shows ~0.55 s before the level moves (GDLM 63 +580 ms, BP
+    +520 ms); replay_run.js allows for it (LOAD_MS). With it: GDLM 63 all agree (2 clears, a 38.1% death,
+    2 restarts not judged), Blast Processing's 15.8% death agrees (sim 15.7%, a slope), GDLM 60's 48.1% agrees.
+  - OPEN, a mismatch candidate: GDLM 60 at 456.6 s died 33.9% (the green-orb station) in the game; with the
+    logged presses the sim dies at block 96.9 (the pink-orb station's spike) before the user's jump there, and
+    no clock shift in +-1.5 s reproduces 33.9%. Either the pink-orb station plays differently (the pink orb
+    was already the unsettled lab-60 measurement), or the input log has a gap (it only logs while GD is in
+    front). The other GDLM 60 attempt passes the same station in both. Needs a clean pink-orb recording.
 - Practice-mode respawns break time -> x; per-attempt segmentation by the attempt label or a jump in x.
 Lab 2 (to build): the mini cube, the pink orb (clean, at ground level so the camera stays still), 45-degree
 and -53-degree teleports, the swing, dual portals, and a green orb in mid-air.
