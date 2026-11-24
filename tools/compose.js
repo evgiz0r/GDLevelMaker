@@ -179,12 +179,16 @@ function compose(brief, tweaks = {}) {
     // (8 after an upside-down part: the cube falls from the ceiling first; 4 left it mid-air at the next
     // portal, fairness gate, GDLM 47)
     let land = prevFlying && start - flyEnd < 4 ? (prevUpside ? 8 : 4) : 0;
+    // brief.portalRoom: the first section's portals that many columns in (tools/collab.js parts: a portal on a part's
+    // first column is touched ~30 units before the seam once joined, but at time 0 when the part runs alone)
+    const pRoom = si === 0 ? (brief.portalRoom || 0) : 0;
+    land += pRoom;
     // a speed portal where the player passes: on the ground row, before this section's own portal (and
     // after the landing room). Above a corridor (row 5) the wave flew under it and the speed never
     // changed (GDLM 47 round 1: a 0.5x section ran on into the next three).
     if (speeds[si] !== lastSpeed) {
       const flying = sec.mode && sec.mode !== "upside";
-      objects.push([speeds[si] + " speed", flying || sec.mode === "upside" ? start + land - 1 : start, 1]);
+      objects.push([speeds[si] + " speed", flying || sec.mode === "upside" ? start + land - 1 : start + pRoom, 1]);
       // the section's own portal 3 columns later: a speed change is a "switch" too, and the next mode's
       // first input closed 192 ms after it (fairness gate, GDLM 47's 1x speed + wave portal)
       if (flying) land += 3;
@@ -216,7 +220,10 @@ function compose(brief, tweaks = {}) {
           // button held or not has ~300 ms before roof or floor (fairness gate: wave deadline 300 ms)
           return { seg, flat, lead: 4, leadGap: 8, legs: Math.max(2, Math.floor((sec.blocks - 5 - land - (sec.exitRoom || 0)) / (seg + flat))), gap: easy ? 5 : 4, low: 2, slopes: true };
         })();
-      const args = Object.assign(base, (sec.args || {})[name] || {}, { portal: true, exit: "cube", portalRow: 1 });
+      // the next section CONTINUES this flight (a collab seam inside a flight, tools/collab.js): no exit portal here
+      // (a collab part's last section: the next part's first section is not in this brief -- brief._continueAfter says it)
+      const nx = brief.sections[si + 1], cont = !!(nx && nx.continue && nx.mode === sec.mode) || (si === brief.sections.length - 1 && brief._continueAfter === sec.mode);
+      const args = Object.assign(base, (sec.args || {})[name] || {}, { portal: true, exit: cont ? null : "cube", portalRow: 1 });
       if (t.room) args.gap = (args.gap || 4) + t.room;
       objects.push(["pattern", name, start + 1 + land, 0, args]);
       placed.push({ key, name, from: start + 1 + land, to: start + 1 + land + widthOf(name, args), section: sec.name, flying: true });
@@ -227,7 +234,7 @@ function compose(brief, tweaks = {}) {
     const upside = sec.mode === "upside", ceil = (sec.args && sec.args.ceil) || 6;
     if (upside) {
       // ceiling from start+1 to end-1, its gravity portal on the section's first beat, out at its last column
-      objects.push(["pattern", "ceiling", start + 1 + land, 0, { w: sec.blocks - 1 - land, ceil, portal: true, exit: true }]);   // exit on the next bar
+      objects.push(["pattern", "ceiling", start + 1 + land, 0, { w: sec.blocks - 1 - land - (sec.exitRoom || 0), ceil, portal: true, exit: true }]);   // exit on the next bar
     }
     if (!sec.rest && sec.use && sec.use.length) {
       const early = start / total < 0.5;
@@ -238,10 +245,10 @@ function compose(brief, tweaks = {}) {
       if (low) { gMin = Math.max(gMin, 4); gMax = Math.max(gMax, gMin); }
       // after a flying section the cube lands from its exit portal: a calm lead-in first
       // (rated low-tier levels: ~6 blocks after a cube portal, knowledge/levels/modes_low_tier.md)
-      // (8 here: the cube first falls out of the exit portal, ~0.3 s)
+      // (10 here: the cube first falls out of the exit portal, ~0.3 s; 8 left a spike 3 blocks after the landing: a 2.1-block prejump, GDLM 66 p1)
       // upside down: the cube first falls up to the ceiling (~0.3 s), so 8 columns after its portal
       // the level's first section: a calm start (pacing gate: 10+ blocks before the first hazard)
-      let c = upside ? start + 10 + land : start + (prevFlying ? Math.max(3, 8 - (start - flyEnd)) : si === 0 ? (brief.leadIn ?? 10) : 3), k = 0, last = null;
+      let c = upside ? start + 10 + land : start + (prevFlying ? Math.max(3, 10 - (start - flyEnd)) : si === 0 ? (brief.leadIn ?? 10) : 3), k = 0, last = null;
       // upside: room to read and take the exit portal. Terrain: back on the ground well before the next
       // section (a cube jumping off a step into the next mode portal read as a 6-block prejump: 45 v8, block 82)
       const stop = upside ? end - 9 : brief.terrain ? end - 8 : end - 3;

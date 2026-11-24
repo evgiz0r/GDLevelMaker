@@ -192,6 +192,11 @@ for (const hold of [true, false]) {
   // a trigger in a group a toggle switched off does not fire when passed
   o = at([{ id: 1049, x: 30, y: 300, props: { "51": "4", "56": "0" } }, { id: 901, x: 300, y: 300, props: { "51": "7", "29": "60", "10": "0", "57": "4" } }, blk(7, 600, 300)], 400, 1);
   check("a toggled-off trigger does not fire", o && o.y === 300, o && o.y);
+  // a touch trigger's box grows with its scale (129 = y scale): 31 above the walking cube's centre, a 30x30 box (15 + 15)
+  // misses it, scale y 1.2 (18 + 15) touches it (Dash's touch spawns on its invisible platforms, 2026-11-24)
+  const touchAt = sc => at([{ id: 901, x: 300, y: 46, props: Object.assign({ "51": "7", "29": "60", "10": "0", "11": "1" }, sc ? { "129": String(sc) } : {}) }, blk(7, 600, 300)], 400, 1);
+  const tS = touchAt(1.2), t0 = touchAt(0);
+  check("a scaled touch trigger is touched by its scaled box (unscaled: missed)", tS && t0 && tS.y === 360 && t0.y === 300, tS && t0 && `${tS.y} vs ${t0.y}`);
 }
 // ---- dual (lib/dual.js; GD's rules from the 2.2081 decompile, PHYSICS.md "Dual") ----
 {
@@ -223,5 +228,16 @@ for (const hold of [true, false]) {
   // the solver takes the dual portal (no secret way around it) and gets both players past their spikes
   const g = GD.solveAny(GD.makeWorld([DP(300, 60), { id: 8, x: 800, y: 15 }, { id: 8, x: 1100, y: 285, flipY: true }, SOLO(1400, 60), { id: 1, x: 1800, y: 15 }]));
   check("dual: the solver clears a dual part with one button", g.ok, g.ok ? `${g.clicks.filter(c => c.type === "press").length} presses` : `${g.why} ${g.skipped || ""}`);
+}
+// landing buffer (PHYSICS.md "Landing buffer"): a cube's tap in the air made while FALLING jumps on landing, however
+// long before (the user's Clutterfunk clear: 53 ticks); one made while still RISING does not (Geometrical Dominator)
+{
+  const w = GD.makeWorld([{ id: 1, x: 6000, y: 15 }]);
+  const jumps = (tapAt) => { const s = GD.startState(w); let n = 0;
+    for (let t = 0; t < 400; t++) { GD.step(w, s, { press: t === 10 || t === tapAt, held: (t >= 10 && t < 14) || (t >= tapAt && t < tapAt + 6) }); if (s.act === "jump") n++; }
+    return n; };
+  // a flat jump from t 10: rising until ~t 61, lands ~t 113
+  check("landing buffer: a tap while falling, 50 ticks before landing, jumps on landing", jumps(63) === 2, `${jumps(63)} jumps`);
+  check("landing buffer: a tap while still rising does not", jumps(40) === 1, `${jumps(40)} jumps`);
 }
 process.exit(bad ? 1 : 0);

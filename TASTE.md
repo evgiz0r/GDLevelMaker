@@ -88,6 +88,12 @@ ratings once effort is taken out: the calm rule below is the user's, not the dat
   a spike, no lone landing block, no jump over a spike that must also be timed around a block (the user on
   GDLM 45 and 47). checklist.md; score.js "reactive".
 
+- **Calm after a flying exit, and rebuild after a generator change**: pattern changes from other sessions
+  (polish's wave lead gap) moved GDLM 50's wave exit ~5 blocks later, which put the spike after it 7 blocks
+  past the landing (a prejump) and the double after that into a window the robot part squeezed. Both were
+  removed: the dawn opens with a calm run to the robot portal. `node tests/generator_impact.js` says which
+  levels a generator change moves; re-gate them. (GDLM 50 v3, 2026-11-24.)
+
 ## Rounds
 
 ### Round 0 -- GDLM 50 eclipse (cube / ship / cube / wave / cube, Easy, 37 s)
@@ -97,7 +103,14 @@ screen) and a palette per section. Details, numbers and what did not work: SHOWC
 Gameplay was flat in the user's sense: cube on the ground, ship, wave. No gravity, orbs other than
 yellow, UFO, robot, spider, swing or mini.
 
-### Round 1 -- GDLM 51 adrift (in progress)
+### Round 0b -- GDLM 50 eclipse v2/v3 (the user's notes)
+
+v2: signature, an upside-down totality with a blue pad and green orbs, a robot dawn, calm pulses, a short
+description. The user's notes on v2 became four soft rules with checks (arrows a block in front, clean corridor
+mouths, calm pulses, the human route); v3 fixes them and passes every gate (READY 0 fail, Hard 1.11, tightest
+121 ms on the player's route; softrules: arrows 0, stubs 0, flash 0).
+
+### Round 1 -- GDLM 51 adrift (READY; full rebuild pending for the centred orb pit)
 
 New approach: **a journey told by depth instead of one set piece**, and **motion that loops** (bobbing
 jellyfish, swaying kelp, fish swimming past, bubbles) where GDLM 50 only moved things one way. Gameplay

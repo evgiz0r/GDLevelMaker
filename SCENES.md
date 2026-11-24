@@ -63,6 +63,49 @@ cube, robot, ship, UFO, ball), speed portals 2x and 3x four times, gravity flips
 places change faster than our 4-bar default and carry speed changes too -- the planner's phrases may
 want 2-3 bars at high energy (open). Its frames: the user's recording 2026-11-23_20-41-39.
 
+## First planned level vs Spooky Dash (GDLM 52 necromancy, 2026-11-24)
+
+GDLM 52 necromancy (song 216300, haunted theme, 61 s): `tools/scenes.js` -> `tools/planlevel.js` ->
+`tools/scenes/planned.js`, gameplay from ranked structures, props from lib/props.js. score.js READY (0 fail),
+Easy, tightest window 138 ms, sight-readable, every portal on the path. Side by side with frames of the user's
+Spooky Dash recording (sheets: `local/shots/necro_sheet.jpg`, `local/shots/spooky_rec_sheet.jpg`; never
+committed). What the rated level does that ours does not, biggest first:
+
+1. **The screen is full.** Spooky Dash's top half is a layer of big trees and clouds, a mid layer of hills and
+   tombstones, a coloured floor. Ours is ~60% dark empty sky with small props on the floor line (8.2 objects per
+   block; featured 2.2 levels >= 17, `tools/taste.js`). Wanted: a big back layer per place (tree crowns, clouds,
+   factory walls) that covers the top half, behind the play.
+2. **Gameplay blocks ARE the scenery.** Its blocks are stairs and pillars with yellow caps, grass and brick;
+   ours are dark boxes with a lit outline (designBlocks). The craft gate says the same: tops dressed 7% (want
+   12%+). Wanted: a per-place block skin (caps on tops, a texture inside) in planned.js.
+3. **One palette carries the whole level; places change by their props.** Spooky Dash stays purple / teal /
+   yellow all through; ours swaps the whole palette per section (purple, brown, green, teal), so it reads as
+   four levels. Wanted: the theme's one palette, each place a shift of it (not a new one).
+4. **Characters make the moments.** A big ghost, a monster face, a green blob: one per section, at a mode change
+   or a drop. Ours has no set piece per section. Wanted: one set-piece prop per section from props.js (ghost,
+   robot ...), placed at its first bar.
+5. **A prop has to belong to its place.** "house" as the factory's building (x230-x322) read as a village,
+   not a factory. Better none than a wrong one: the planner asks for a factory wall / chimney that props.js
+   does not have yet (gd-art). Same for pipes, arches, stained window, witch silhouette (logged "no picture yet").
+6. **Bright and saturated is fine when the hazards stay readable**: its spikes are white on a light-teal floor
+   and still read; our calm rule (TASTE.md) is about pulses and flashes, not about a dark palette.
+
+Gameplay: Spooky Dash changes mode every ~5 s; GDLM 52's 7 mode changes in 61 s already get style's
+"mode changes" WARN (6.9 a minute, official 1.3-5.2). Taste data favours longer sections, so the planner keeps
+4-bar places but should change MODE only every 2nd place.
+
+**v2 (gaps 1-4 in `tools/scenes/planned.js`, gameplay unchanged):** gd-art's `tools/decokit.js` for three
+backdrop depths (mountains, hills, a tree line, paler than the sky towards the place's edge colour), bricks and lit
+top trims inside the play blocks, grass tufts that sway (motion on every screen); a cloud band over the top half; one
+palette for the level (each place moves 35% from the first place's palette towards its own); a ghost per section,
+bobbing; gd-art's new props for gap 5 (factory wall, pipes, broken arches, stained window, a witch against the moon).
+Numbers: 8 -> 27 objects per block, taste 61 -> 72 (PASS), craft 1/7 -> 3/7, still READY, contrast 98/100 sections.
+Sheets: `local/shots/necro_v2_sheet.jpg`, `local/shots/necro_v2_vs_spooky.jpg`.
+Still open from the v2 pictures: the ghost set piece can sit on a flying path (wave at ~45 s) -- place it clear of
+the route; the cloud band in one dark colour reads as hanging blocks (a ceiling) -- lighter, rounder, or none in
+corridors; the play is still dark next to Spooky Dash's light floor and yellow caps; craft wants more small pieces
+and hazards on the floor (pieces100 8, want 12+).
+
 ## Open
 
 - Props: the gd-art session's `tools/props.js` (props + a picture-to-GD-art converter). The plan names

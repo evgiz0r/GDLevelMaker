@@ -509,7 +509,7 @@ Open mismatches the plans show (not understood yet, do not paper over them):
 - Back On Track's ship ends ~1 block high after a slide (493).
 - SOLVED 2026-11-24, the landing buffer: a cube's press in the air jumps on landing, even released (the user's
   Clutterfunk run shows it on video; Polargeist's plan now clears, Dry Out / Can't Let Go / Jumper / Time Machine
-  much further). In the sim at 40 ticks; the upper bound is open. PHYSICS.md "Landing buffer".
+  much further). In the sim: a press made while falling is kept until landing (Clutterfunk's second run), one made while rising 40 ticks. PHYSICS.md "Landing buffer".
 
 Modes beyond cube/ship come from gdsolver's measured model and the gdp decompile, checked only
 by the plans so far (xStep's ball, Blast Processing's wave): ball, UFO, wave, robot, spider,
