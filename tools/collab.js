@@ -92,7 +92,9 @@ function showInViewer(briefFile, plan, stage, levelStr, data, note) {
     const ST = require("./stages.js"), { slug } = require("./make.js"), base = slug(plan.name);
     if (stage) ST.put({ session: SESSION, base, name: plan.name, stage, levelStr, data, note });
     else ST.put({ session: SESSION, base, name: plan.name, stage: "song", note: `${plan.parts.length} parts of ${plan.parts.map(p => (p.t[1] - p.t[0]).toFixed(0) + " s").join(", ")}, seams pinned to song time` });
-    ST.setSections(SESSION, base, plan.parts.map(p => ({ id: p.id, name: p.name, t: p.t, beats: p.beats, builder: { layout: p.builder || "-", deco: p.decoBy || p.builder || "-", playtest: p.builder || "-" }, status: p.status })));
+    // x: where the join placed the part (p.shift) and its length; before the join the viewer places it by t
+    const lenOf = p => { try { return readJ(path.join(dirOf(briefFile), p.id + ".json")).L; } catch (e) { return null; } };
+    ST.setSections(SESSION, base, plan.parts.map(p => ({ id: p.id, name: p.name, t: p.t, beats: p.beats, x: p.shift != null && lenOf(p) != null ? [p.shift, +(p.shift + lenOf(p)).toFixed(1)] : undefined, builder: { layout: p.builder || "-", deco: p.decoBy || p.builder || "-", playtest: p.builder || "-" }, status: p.status })));
   } catch (e) { console.log("   (viewer stages: " + e.message + ")"); }
 }
 
