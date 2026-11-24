@@ -149,6 +149,7 @@
   <button id="beatsBtn" class="on" title="beat grid of the level's song (songs on this PC, from tools/beats.js)">beats</button>
   <button id="windowsBtn" title="each input's timing window in the button band (the range of moments that still work)">timing windows</button>
   <button id="legendBtn" title="what the marks in the button band mean">band legend</button>
+  <button id="camBtn" title="camera only: the level from start to end at its speed, no player (for levels the sim cannot beat)">camera only</button>
   <button id="viewBtn" title="view options: speed, look, GD art, level map, hitboxes, sounds, beats, the button band's windows and legend (remembered)">⚙ view</button>
   <div id="viewMenu" hidden></div>
   <span id="clock" class="muted"></span>
@@ -433,6 +434,7 @@ function load(name, levelStr, saved, info) {
     if (ALL[pick.value].comm) sol.why = "a community level: not solved (most demons cannot be beaten in our sim); the camera runs through it";
     else if (!ALL[pick.value].stagesOnly) setTimeout(() => solveLater(ALL[pick.value], levelStr), 0);   // a build's stage: its own "find the route"
   }
+  else if (level.objects.length > 3000 && !SHOOT) sol = { ok: false, trail: [], clicks: [], dieAt: { x: 0, tick: 0 }, why: "a large level opened from a file: not solved in the page; the camera runs through it", pending: true, noSolve: true };
   else try { sol = GD.solveAny(world); } catch (e) { sol = { ok: false, clicks: [], trail: [], dieAt: GD.startState(world), why: e.message }; }
   // the replay shows a natural way to play it (lib/natural.js: a tap per jump, no empty jumps, the
   // ship and wave flown along the middle of their corridor), not the solver's fewest-presses run
@@ -467,6 +469,13 @@ function load(name, levelStr, saved, info) {
   // a build stage's plan replayed (no solve): where it breaks, and the camera going on as a ghost after it
   L.planBreak = null;
   if (sol.planReplay && !sol.ok && !SHOOT) { const e = path[Math.min(sol.dieAt.tick, path.length - 1)]; L.planBreak = { x: sol.dieAt.x, y: e.y, t: sol.dieAt.tick / P.TPS, why: sol.why }; ghostExtend(L, null, true); }
+  // a level the sim does not beat (an official one we cannot clear yet, a demon): the run dies, the camera goes on to the
+  // level's end as a ghost, so the whole level can be watched and scrubbed (the user: "how can i view the whole level... it
+  // stops at the death"); the death is marked there
+  else if (!sol.ok && !sol.pending && !SHOOT && path.length > 1) { const e = path[path.length - 1];
+    if (e.dead || e.x < world.endX - 30) { const pct = Math.max(0, Math.min(100, e.x / Math.max(1, world.endX) * 100));
+      L.planBreak = { x: e.x, y: e.y, t: (path.length - 1) / P.TPS, why: e.why || sol.why || "", label: `the sim dies here: ${pct.toFixed(0)}%` }; ghostExtend(L, null, true); } }
+  L.camKeep = null; if (VIEW.cam && !SHOOT) setTimeout(camViewApply, 0);
   // colour / alpha / zoom triggers fire when the replayed run passes their x
   L.look = GD.LOOK.timeline(level, x => {
     let lo = 0, hi = path.length - 1;
@@ -538,7 +547,7 @@ const ALL = (window.GD_LEVELS || []).concat(window.GD_LEVELS_LOCAL || []);
 // only when it is relevant (stages, sections, variants, runs, the plan break)
 const VPREF = (k, def) => { try { const v = localStorage.getItem("gdlm.v." + k); return v == null ? def : v === "1"; } catch (e) { return def; } };
 const VSET = (k, on) => { try { localStorage.setItem("gdlm.v." + k, on ? "1" : "0"); } catch (e) {} };
-const VIEW = { windows: VPREF("windows", false), legend: VPREF("legend", false), route: VPREF("route", false) };
+const VIEW = { windows: VPREF("windows", false), legend: VPREF("legend", false), route: VPREF("route", false), cam: VPREF("cam", false) };
 if (window.GD_PAGES) localReady.then(ok => { if (!ok || !LOCALBASE) return;
   const sc = document.createElement("script"); sc.src = LOCALBASE + "/viewer/levels.local.js";
   sc.onload = () => { for (const l of (window.GD_LEVELS_LOCAL || []).filter(l => /official/.test(String(l.file)))) { ALL.push(l); pick.add(new Option(l.name + "  —  " + l.file, ALL.length - 1)); }
@@ -1240,6 +1249,24 @@ async function runShow(id) {
 // A run picked from "Your runs" replaces the route on screen (the user: "can we remove the solved ones when we replay"):
 // its path is the player and the camera, its presses the button band's; "show route" puts the route back as the player,
 // the run as a pink ghost beside it. The route is kept in L.runKeep and restored when the run is put away.
+// "camera only" (view menu, remembered): the level from start to end at its speed, no player at all -- for levels the sim
+// cannot beat, to watch the layout and deco without the run. The run is kept in L.camKeep and put back when it is off.
+function camViewApply() {
+  const LL = L; if (!LL) return;
+  const want = VIEW.cam && !(PLAY && PLAY.on) && !LL.runKeep;
+  if (LL.camKeep && !want) { Object.assign(LL, LL.camKeep.keep); LL.camKeep = null; }
+  if (want && !LL.camKeep) {
+    const keep = { path: LL.path, held: LL.held, vrot: LL.vrot, sol: LL.sol, noRoute: LL.noRoute, planBreak: LL.planBreak, look: LL.look, vfx: LL.vfx };
+    const tmp = { path: [Object.assign({}, LL.path[0], { dead: false })], level: LL.level, world: LL.world, held: null };
+    ghostExtend(tmp, null, true);
+    LL.camKeep = { keep };
+    Object.assign(LL, { path: tmp.path, held: tmp.held, vrot: tmp.vrot, look: tmp.look, vfx: null, sol: Object.assign({}, keep.sol, { clicks: [] }), noRoute: true, planBreak: null });
+  }
+  t = Math.min(t, (LL.path.length - 1) / P.TPS);
+  const b = document.getElementById("camBtn"); if (b) b.classList.toggle("on", VIEW.cam);
+  if (typeof clickTable === "function") try { clickTable(); } catch (e) {}
+  draw();
+}
 function runViewApply() {
   const LL = L; if (!LL) return;
   const g = LL.ghost, want = !!g && !VIEW.route && !(PLAY && PLAY.on);
@@ -1656,7 +1683,7 @@ function draw() {
   // where a build stage's plan breaks (a red cross at the death spot)
   if (L.planBreak && !MAPCAM) { const bx = sx(L.planBreak.x), by = sy(L.planBreak.y), r = 10 * DPR();
     if (bx > -60 && bx < W + 60) { ctx.strokeStyle = "#ff3b6b"; ctx.lineWidth = 3 * DPR(); ctx.beginPath(); ctx.moveTo(bx - r, by - r); ctx.lineTo(bx + r, by + r); ctx.moveTo(bx + r, by - r); ctx.lineTo(bx - r, by + r); ctx.stroke();
-      ctx.fillStyle = "#ff8fa8"; ctx.font = `bold ${12 * DPR()}px system-ui`; ctx.fillText("the plan breaks here", bx + r + 4, by - r); } }
+      ctx.fillStyle = "#ff8fa8"; ctx.font = `bold ${12 * DPR()}px system-ui`; ctx.fillText(L.planBreak.label || "the plan breaks here", bx + r + 4, by - r); } }
   // your deaths in "you play" (this session of attempts): small red ticks on the ground
   if (PLAY && PLAY.on && PLAY.deaths.length && !MAPCAM) { ctx.fillStyle = "rgba(255,59,107,.8)"; for (const x of PLAY.deaths) { const dx = sx(x); if (dx > -5 && dx < W + 5) ctx.fillRect(dx - 1, groundY - 10 * DPR(), 2 * DPR(), 10 * DPR()); } }
   // the player
@@ -1664,7 +1691,8 @@ function draw() {
   // dual (lib/dual.js): player 2's own fields are in s.p2; it is drawn the same way, at its own height
   for (const ps of s.p2 ? [s, Object.assign({}, s, s.p2)] : [s]) {
   if (s0.ghost && !MAPCAM) { const gx = sx(ps.x); ctx.strokeStyle = "rgba(255,255,255,.35)"; ctx.setLineDash([6, 6]); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, groundY); ctx.stroke(); ctx.setLineDash([]);
-    if (L.noRoute) { ctx.fillStyle = "rgba(255,255,255,.6)"; ctx.font = `${12 * DPR()}px system-ui`; ctx.fillText("no route yet: the camera runs at the level's speed", gx + 8, 18 * DPR()); } continue; }
+    if (L.noRoute || L.planBreak) { ctx.fillStyle = "rgba(255,255,255,.6)"; ctx.font = `${12 * DPR()}px system-ui`;
+      ctx.fillText(L.camKeep ? "camera only: the level at its speed, no player" : L.noRoute ? "no route yet: the camera runs at the level's speed" : "after the death: the camera runs on at the level's speed", gx + 8, 18 * DPR()); } continue; }
   if (MAPCAM) {} else if (LS) GD.LOOK.drawPlayer(ctx, view, ps, L.held[k], local, (P.SPEEDS[ps.sp] || P.SPEEDS[1]).x, sc ? GD.ART_LIB.drawIcon : null);
   else if (ps.mode === "ship") drawShip(ps);
   else if (ps.mode === "wave") drawWave(ps);
@@ -2132,12 +2160,13 @@ async function loadWip(keep) {
 }
 document.getElementById("refresh").onclick = () => loadWip(true);
 { const menu = document.getElementById("viewMenu"), vb = document.getElementById("viewBtn");
-  const extras = [...document.querySelectorAll("header [data-speed]"), document.getElementById("file").parentElement, ...["lookBtn", "artBtn", "mapBtn", "hit", "cmpBtn", "sound", "music", "addSongPc", "lightBtn", "beatsBtn", "windowsBtn", "legendBtn"].map(id => document.getElementById(id))].filter(Boolean);
+  const extras = [...document.querySelectorAll("header [data-speed]"), document.getElementById("file").parentElement, ...["lookBtn", "artBtn", "mapBtn", "hit", "cmpBtn", "sound", "music", "addSongPc", "lightBtn", "beatsBtn", "windowsBtn", "legendBtn", "camBtn"].map(id => document.getElementById(id))].filter(Boolean);
   for (const e of extras) menu.appendChild(e);
   vb.onclick = e => { e.stopPropagation(); menu.hidden = !menu.hidden; vb.classList.toggle("on", !menu.hidden); };
   addEventListener("click", e => { if (!menu.hidden && !menu.contains(e.target) && e.target !== vb) { menu.hidden = true; vb.classList.remove("on"); } });
   const tog = (id, k) => { const b = document.getElementById(id); b.classList.toggle("on", VIEW[k]); b.onclick = () => { VIEW[k] = !VIEW[k]; VSET(k, VIEW[k]); b.classList.toggle("on", VIEW[k]); if (L) draw(); }; };
   tog("windowsBtn", "windows"); tog("legendBtn", "legend");
+  { const cb = document.getElementById("camBtn"); cb.classList.toggle("on", VIEW.cam); cb.onclick = () => { VIEW.cam = !VIEW.cam; VSET("cam", VIEW.cam); camViewApply(); }; }
   // the speed in use shows on the menu button when it is not 1x
   const sp = () => { const on = document.querySelector("#viewMenu [data-speed].on"); vb.textContent = "⚙ view" + (on && on.dataset.speed !== "1" ? " · " + on.textContent : ""); };
   document.querySelectorAll("#viewMenu [data-speed]").forEach(b => b.addEventListener("click", () => setTimeout(sp, 0))); }
