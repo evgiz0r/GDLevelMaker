@@ -63,6 +63,17 @@ function partOf(n, opts) {
   } catch (e) { return null; }
 }
 
+// every solve goes into the measurements store (tools/measures.js, knowledge/measurements.jsonl): beaten or where
+// it stops, stamped with the physics it ran on and the level's version
+function recordSolve(n, level, res) {
+  let name = null; try { name = isCommunity(n) ? null : require("./difficulty.js").RATED[n][0]; } catch (e) { }
+  require("./measures.js").record({ level: isCommunity(n) ? "community:" + String(n).slice(1) : "official:" + n, name, levelStr: level,
+    measure: "solved", value: !!res.ok, stamps: { physics: res.physics },
+    detail: { pct: res.ok ? 100 : res.dieX != null && res.endX ? Math.round(1000 * res.dieX / res.endX) / 10 : null,
+      dieBlock: res.ok || res.dieX == null ? null : Math.round(res.dieX / 3) / 10, why: res.why || null,
+      how: res.resumedFrom != null ? "resume" : res.sweep ? "sweep" : "solve", secs: Math.round(res.secs) } });
+}
+
 function solveOfficial(n, opts) {
   const part = opts.sweep ? null : partOf(n, opts);
   if (part) { const r = continueFrom(n, part.events, part.x, [0, 300, 1200], opts, null); if (r) return r; }
@@ -82,7 +93,7 @@ function solveOfficial(n, opts) {
   };
   fs.mkdirSync(OUT, { recursive: true });
   fs.writeFileSync(path.join(OUT, tag(n) + (opts.sweep ? "_sweep" : "") + ".json"), JSON.stringify(res));
-  toViewer(n, level, res);
+  toViewer(n, level, res); recordSolve(n, level, res);
   return res;
 }
 
@@ -120,7 +131,7 @@ function continueFrom(n, events, trouble, backs, opts, old) {
     const res = { n, ok: r.ok, sweep: true, secs: (Date.now() - t0) / 1000, physics, solvedAt: new Date().toISOString(),
       events: evs, clicks: r.ok ? r.clicks || [] : [], dieX: r.ok ? null : r.dieX, why: r.ok ? null : r.why, endX: w.endX,
       resumedFrom: from, resumedOver: old ? old.physics || null : physics };
-    fs.writeFileSync(file, JSON.stringify(res)); toViewer(n, level, res);
+    fs.writeFileSync(file, JSON.stringify(res)); toViewer(n, level, res); recordSolve(n, level, res);
     if (fs.existsSync(partFile(n))) fs.unlinkSync(partFile(n));
     return res;
   };

@@ -66,6 +66,10 @@ the corpus a few levels a night through the heavy lock, then add those columns.
 
 ## Results (first run, 2026-11-23)
 
+`taste.js score` records each score in the measurements store (`node tools/measures.js`, knowledge/measurements.jsonl),
+stamped with the model's version: a score is STALE once `knowledge/taste_model.json` is relearned. The per-level
+official scores of this run are in local/taste/ only; the store has only the four named below.
+
 Full tables: `local/taste/report.md` (regenerate with `learn`, 2 s). Numbers below are from it.
 
 **Corpus**: 308 community levels measured (0 failed) + 22 official. 248 used in the learning (60 dropped:

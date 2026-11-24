@@ -470,6 +470,14 @@ function taste(F, band = "EN|2.2", model) {
 function scoreCli(file) {
   const r = JSON.parse(cp.execFileSync(process.execPath, ["--max-old-space-size=1200", __filename, "one", file], { windowsHide: true, encoding: "utf8", maxBuffer: 1 << 26, env: Object.assign({}, process.env, { GDLM_HEAVY_HELD: "1" }) }));
   const band = opt("--band") || "EN|2.2", t = taste(r.F, band);
+  // into the measurements store (tools/measures.js): the level's version is a hash of its level string
+  let level = r.name, levelStr = null;
+  try { if (/^official:/.test(file)) { const n = +file.split(":")[1]; level = "official:" + n;
+      levelStr = JSON.parse(fs.readFileSync(path.join(LOCAL, `official_${String(n).padStart(2, "0")}.json`), "utf8")).level; }
+    else levelStr = require("./io.js").readGdlvl(file).levelStr; } catch (e) { }
+  require("./measures.js").record({ level, name: /^official:/.test(level) ? r.name : null, levelStr: levelStr || undefined,
+    file: /^official:/.test(file) ? undefined : path.relative(path.join(__dirname, ".."), path.resolve(file)).replace(/\\/g, "/"),
+    measure: "taste", value: t.score, unit: "0-100", detail: { band } });
   if (args.includes("--json")) { console.log(JSON.stringify(t)); return; }
   console.log(`${r.name}: taste ${t.score}/100 (band ${band}; model held-out AUC ${t.heldOutAuc})`);
   for (const p of t.parts.slice(0, 8)) console.log(`  ${p.contrib >= 0 ? "+" : ""}${p.contrib.toFixed(2)}  ${p.f} = ${p.value} (band percentile ${p.pct})`);
