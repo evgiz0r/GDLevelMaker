@@ -25,10 +25,12 @@ ago · video"); a click opens the level already playing it. While a run is open 
 Hexagon Force · died 40% · 22 min ago ▾" (▾: this level's other runs), ✕ to leave run mode, and "⇄ vs solver" (greyed
 when the level has no solved route). There is no other runs list.
 
+**The solver looks like Claude.** The replay's player (the solver's route) is drawn with the Claude icon set (viewer/icons/claude/<mode>.png, art session, kit "spark"), so it never looks like the user.
+
 **A run looks like you.** A run of the user's (and "you play") is drawn with the user's own icons and colours from their GD
 save (`tools/save_icons.js`, GET /me/icons: cube, ship, ball, UFO, wave, robot, spider, swing, colour 1 / 2; read-only, this
 PC only; colours known for GD's palette indices 0 and 3 so far, another index keeps the default). While a run is open it is
-always the player; "⇄ vs solver" adds the solver as a dashed green outline, both labelled, and the solver's clicks in a lane
+always the player; "⇄ vs solver" adds the solver with its Claude icon (the art session's set, viewer/icons/claude/: cream spark on terracotta), both labelled, and the solver's clicks in a lane
 under "you". When the sim loses the run, a cross says so ("our bug, not your death") and the camera carries on to where
 the real run ended, so every logged click is on the strip. Camera-only steps aside while a run is open.
 
