@@ -323,11 +323,16 @@ function scoreLevel0(level, brief, opts = {}) {
   } catch (e) { /* no corpus on this PC */ }
   // climbs (the user, 2026-11-24: "those cube ladders are way too bad to play. its almost luck based if i can find where to
   // click"): every climb on the route (3+ rising landings) needs a readable press per step -- steady spacing, a landing of
-  // 0.3 s+ on the ground, the next step on screen at the press, no narrow window (tools/climbs.js). WARN.
+  // 0.3 s+ on the ground, the next step on screen at the press, no narrow window (tools/climbs.js). WARN; FAIL for a climb
+  // with 3+ short landings, or short landings AND the next landing hidden -- calibrated on the user's GDLM 68 run
+  // (2026-11-24, recording 19-47-52, gd-physics): climb 1 (6 short, hidden) took 5 of 6 deaths, never passed step 3, the
+  // sim agreeing (play errors, not physics); the route there is ONE held press, so a tapping player gets no cue per step.
   if (r.ok) try {
     const CL = require("./climbs.js"), wins = new Map((r.clicks || []).filter(c => c.type === "press" && c.lo != null).map(c => [c.tick, { lo: c.lo, hi: c.hi }]));
     const cl = CL.climbsOf(runPath(), r.events.filter(e => e.type === "press").map(e => e.tick), level.objects, GD, wins.size ? wins : null), bad = cl.filter(c => c.flags.length);
-    gate("climbs", bad.length ? "WARN" : "PASS", cl.length ? `${cl.length} climb(s), ${bad.length} hard to read` : "no climbs",
+    const nShort = c => { const f = c.flags.find(x => /^short/.test(x)); const m = f && f.match(/short: (\d+)/); return m ? +m[1] : 0; };
+    const worst = bad.filter(c => nShort(c) >= 3 || (nShort(c) && c.flags.some(x => /^hidden/.test(x))));
+    gate("climbs", worst.length ? "FAIL" : bad.length ? "WARN" : "PASS", cl.length ? `${cl.length} climb(s), ${bad.length} hard to read` : "no climbs",
       bad.map(c => `blocks ${c.from}-${c.to}: ${c.flags.join("; ")}`).join(" | "));
   } catch (e) { /* no route path */ }
   // real-level targets (gd-taste's section comparison, local/compare_sections/report.md: 4 of ours vs 7 real levels, 16

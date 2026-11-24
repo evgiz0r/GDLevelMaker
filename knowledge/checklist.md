@@ -159,6 +159,9 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   GDLM 68's ladder: "those cube ladders are way too bad to play. its almost luck based if i can find where to click".
   Flagged then: all 5 climbs of GDLM 68 (3-wide steps; station 1's top two steps off screen), 1-3 in each Golden Hour,
   41, 66.)
+  Calibrated on the user's GDLM 68 run (recording 2026-11-24 19-47-52, gd-physics): climb 1 (9 steps, 6 short landings, the
+  next landing hidden) took 5 of 6 deaths, nobody past step 3, the sim agreeing; its route was one HELD press bouncing up,
+  the player taps. So score.js "climbs" FAILs a climb with 3+ short landings, or short landings and a hidden next one.
 - [ ] **No stale stretch**: the longest time with no mode / speed / gravity / size change (a blue or green orb or pad
   counts) stays under 35 s at Easy / Normal, 25 Hard, 18 Harder, 15 Insane+ (official levels 1-6: 28-46 s; the later
   ones mostly 4-15 s). compose adds a cued gravity structure (blue pad, gravity portal pair, ceiling run) to cube sections
