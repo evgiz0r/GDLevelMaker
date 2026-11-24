@@ -174,7 +174,10 @@ function claim(label) {
   const waitStart = Date.now(), prio = myPriority();
   let est = null;
   try { est = require("./jobtime.js").estimate(cmd); } catch (e) {}
-  const me = { pid: process.pid, prio, since: waitStart, session: sessionName(), cmd, est: est ? Math.round(est.secs) : null };
+  // ver 2: this waiter uses the second slot when decide() allows it. A waiter without it runs older heavy.js code (one
+  // slot unless 6 GB free): put first in line it never took the free second slot, and every newer job queued behind
+  // it (2026-11-24: 15 jobs idle for 20 min behind one). Such a waiter is first in line only when no job runs.
+  const me = { pid: process.pid, prio, since: waitStart, session: sessionName(), cmd, est: est ? Math.round(est.secs) : null, ver: 2 };
   const MB = jobMB();
   const wfile = path.join(dir, "w" + process.pid + ".json");
   const unwait = () => { try { fs.unlinkSync(wfile); } catch (e) {} };
@@ -188,7 +191,8 @@ function claim(label) {
       try {
         const hs = holders(dir), free = freeMB(), game = gameRunning();
         let d = decide(hs.length, free, game, MB);
-        const ws = waiters(dir), pick = pickNext(ws.some(w => w.pid === me.pid) ? ws : ws.concat([me]), hs, Date.now()), first = pick.w;
+        const ws0 = waiters(dir), ws1 = ws0.some(w => w.pid === me.pid) ? ws0 : ws0.concat([me]);
+        const ws = hs.length ? ws1.filter(w => (w.ver || 0) >= 2) : ws1, pick = pickNext(ws, hs, Date.now()), first = pick.w;
         if (d === "go" && first && first.pid !== me.pid) d = "queue";
         if (d === "go") {
           held = path.join(dir, process.pid + ".json");
