@@ -23,7 +23,7 @@
 
     ["colour", "b13", { "ch": "bg", "rgb": [55, 14, 8], "secs": 0.3 }],
     ["colour", "b13.5", { "ch": "bg", "rgb": [36, 8, 6], "secs": 0.6 }],
-    ["pattern", "wave-zigzag", "b13+6", 0, { "seg": 4, "legs": 2, "flat": 3, "lead": 4, "leadGap": 8, "gap": 5, "low": 3, "slopes": true, "portal": true, "exit": "cube" }],
+    ["pattern", "wave-zigzag", "b13+6", 0, { "seg": 4, "legs": 2, "flat": 3, "lead": 4, "leadGap": 8, "gap": 5, "low": 2, "slopes": true, "portal": true, "exit": "cube" }],
 
     ["colour", "b17", { "ch": "bg", "rgb": [55, 12, 8], "secs": 0.3 }],
     ["colour", "b17.5", { "ch": "bg", "rgb": [38, 8, 6], "secs": 0.6 }],
