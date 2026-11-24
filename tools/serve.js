@@ -240,20 +240,28 @@ const SERVER = http.createServer((req, res) => {
     });
     return;
   }
-  // GET /heavy/status?match=<text>: the heavy-job queue (tools/heavy.js) for the viewer's task modal and chip: who
-  // runs, who waits in order, and for the job whose command line holds `match`: its place and a rough ETA (minutes)
+  // GET /heavy/status?match=<text>[&cmd=<command line>]: the heavy-job queue (tools/heavy.js) for the viewer's task modal,
+  // chip and Work panel: who runs, who waits in order, and for the job whose command line holds `match`: its place and an
+  // ETA in minutes WITH ITS BASIS (tools/jobtime.js: measured runs of the same tool + level + flags; null = not
+  // measured). `cmd`: the estimate for a job not queued yet. `recent`: finished jobs, estimate vs actual.
   if (p === "/heavy/status") {
-    const match = new URL(req.url, "http://x").searchParams.get("match") || "";
+    const sp = new URL(req.url, "http://x").searchParams, match = sp.get("match") || "", cmdQ = sp.get("cmd") || "";
     let out = { holders: [], waiting: [], mine: null };
     try {
-      const H = require("./heavy.js"), now = Date.now(), short = c => (/tools[\\/].*/.exec(c) || [c])[0];
-      const hs = H.holders(), ws = H.waiters().sort((a, b) => H.RANK[a.prio] - H.RANK[b.prio] || String(a.since).localeCompare(String(b.since)));
-      const typical = c => H.minutesLeft({ cmd: c, start: new Date(now).toISOString() }) || 2;
-      out.holders = hs.map(h => ({ cmd: short(h.cmd), session: h.session, min: Math.round((now - Date.parse(h.start)) / 60000), left: H.minutesLeft(h) }));
-      out.waiting = ws.map(w => ({ cmd: short(w.cmd), session: w.session, prio: w.prio }));
-      const mh = match && hs.find(h => h.cmd.includes(match)), wi = match ? ws.findIndex(w => w.cmd.includes(match)) : -1;
-      if (mh) out.mine = { running: true, min: Math.round((now - Date.parse(mh.start)) / 60000), eta: H.minutesLeft(mh) || 1 };
-      else if (wi >= 0) out.mine = { running: false, ahead: wi + hs.length, eta: Math.round(hs.reduce((n, h) => n + (H.minutesLeft(h) || 2), 0) + ws.slice(0, wi).reduce((n, w) => n + typical(w.cmd), 0) + typical(ws[wi].cmd)) };
+      const H = require("./heavy.js"), JT = require("./jobtime.js"), now = Date.now(), short = c => (/tools[\\/].*/.exec(c) || [c])[0];
+      const all = JT.rows(), hs = H.holders(), ws = H.waiters().sort((a, b) => H.RANK[a.prio] - H.RANK[b.prio] || String(a.since).localeCompare(String(b.since)));
+      const est = c => JT.estimate(c, all);
+      const hEta = hs.map(h => H.etaOf(h));
+      out.holders = hs.map((h, i) => ({ cmd: short(h.cmd), session: h.session, min: Math.round((now - Date.parse(h.start)) / 60000), left: hEta[i] ? hEta[i].left : null, basis: hEta[i] ? hEta[i].basis : null, over: hEta[i] ? hEta[i].over : false }));
+      out.waiting = ws.map(w => { const e = est(w.cmd); return { cmd: short(w.cmd), session: w.session, prio: w.prio, est: e ? Math.max(1, Math.round(e.secs / 60)) : null, secs: e ? Math.round(e.secs) : null, basis: e ? e.basis : null }; });
+      // a sum of measured parts; an unmeasured part makes the sum a lower bound ("at least")
+      const sum = (parts) => ({ min: Math.round(parts.reduce((n, x) => n + (x || 0), 0)), unknown: parts.filter(x => x == null).length });
+      const mh = match && hs.findIndex(h => h.cmd.includes(match)), wi = match ? ws.findIndex(w => w.cmd.includes(match)) : -1;
+      if (match && mh >= 0) { const e = hEta[mh]; out.mine = { running: true, min: out.holders[mh].min, eta: e ? e.left : null, basis: e ? e.basis : null, over: e ? e.over : false }; }
+      else if (wi >= 0) { const s = sum(out.holders.map(h => h.left).concat(out.waiting.slice(0, wi + 1).map(w => w.est)));
+        out.mine = { running: false, ahead: wi + hs.length, eta: s.min, unknown: s.unknown, basis: out.waiting[wi].basis }; }
+      if (cmdQ) { const e = est(cmdQ), s = sum(out.holders.map(h => h.left)); out.would = { est: e ? Math.max(1, Math.round(e.secs / 60)) : null, secs: e ? Math.round(e.secs) : null, basis: e ? e.basis : null, wait: s.min, unknown: s.unknown }; }
+      out.recent = JT.recent(8).map(r => Object.assign(r, { cmd: undefined }));
       out.free = H.freeMB ? Math.round(H.freeMB()) : null;
     } catch (e) { out.error = e.message; }
     res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify(out));

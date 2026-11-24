@@ -494,11 +494,63 @@ function loop(briefFile, rounds = 8, phase = {}) {
     const s = brief.sections[i];
     return s.use && s.use.length && !s.rest && (!s.mode || s.mode === "upside") && (i === firstCube || s.flash || i === lastPlay || (brief.variantSections || []).includes(s.name));
   });
-  // two phases (user gates, visuals' tools/stages.js): --until layout ends after the layout stage (gate: true),
-  // saving the plan here; tools/gated.js waits for the user outside the heavy lock, then runs --resume
+  // ---- the pipeline (the user: "its a repeatable process, we need to make whatever needed to iterate better next
+  // time. i see layout song quicker, with the path"): song, then the layout with its full plan at once (no scoring
+  // first), then the alternatives being weighed (put into the layout stage as alt[]), the repair rounds, the check
+  // solve, deco, final. Every stage records its seconds against a target (stages data.secs, local/timings.jsonl)
+  // and the build ends with a retro in BUILDS.md. Two phases for user gates (tools/gated.js): --until layout ends
+  // after the layout stage (gate: true), saving the plan; --resume goes on from it.
   const stateFile = path.join(__dirname, "..", "local", "wip", brief.session || "style", slug(brief.name) + ".compose_state.json");
   const saved = phase.resume ? (() => { try { return JSON.parse(fs.readFileSync(stateFile, "utf8")); } catch (e) { return null; } })() : null;
   const K = saved ? 1 : brief.variants ?? 3, start0 = saved ? Object.assign({}, saved.tweaks) : {}, vlog = [];
+  const T0 = Date.now(), TARGET = { song: 10, layout: 60, path: 900, deco: 1200, final: 1200 }, timings = [];
+  const STG = (() => { try { return require("./stages.js"); } catch (e) { return null; } })();
+  const stage = (st, extra) => {
+    const secs = +((Date.now() - T0) / 1000).toFixed(1);
+    timings.push({ stage: st, secs, target: TARGET[st] });
+    try { fs.appendFileSync(path.join(__dirname, "..", "local", "timings.jsonl"), JSON.stringify({ level: brief.name, stage: st, secs, target: TARGET[st], resume: !!phase.resume, at: new Date().toISOString() }) + "\n"); } catch (e) {}
+    if (!STG) return;
+    const timing = timings.map(t => `${t.stage} ${t.secs < 90 ? t.secs.toFixed(0) + " s" : (t.secs / 60).toFixed(1) + " min"}`).join(", ");
+    extra = Object.assign({}, extra); extra.data = Object.assign({}, extra.data || {}, { secs, target: TARGET[st], timing });
+    extra.note = (extra.note || "") + ` [${timing}]`;
+    try { STG.put(Object.assign({ session: brief.session || "style", base: slug(brief.name), name: brief.name, stage: st }, extra)); } catch (e) { console.log("   (stage " + st + " not saved: " + e.message + ")"); }
+  };
+  const gameplayOnly = spec => { const g = JSON.parse(JSON.stringify(spec)); delete g.scene; delete g.craft; delete g.modern; delete g.indicators; delete g.decoDensity; g.signature = false; g.objects = g.objects.filter(o => !Array.isArray(o) || !["colour", "fade", "zoom"].includes(o[0])); return g; };
+  const quiet = fn => { const log0 = console.log; console.log = () => {}; try { return fn(); } finally { console.log = log0; } };
+  // a plan's gameplay level, its planned presses and its driven events (the full plan; cache gaps named)
+  const planOf = (tweaks, drive = true) => {
+    const built = quiet(() => build(gameplayOnly(compose(brief, tweaks).spec), briefFile));
+    const I = require("./intent.js"), wg = GD.makeWorld(built.level.objects, built.level.header), tl = SY.SYNC.timeline(wg);
+    const { intents, missing } = I.intents(built.ctx.placements || [], tl, { raw: built.ctx.raw, cacheOnly: !drive });
+    const planned = intents.map(i => ({ t: +SY.SYNC.tOfX(tl, i.x).toFixed(3), what: i.type === "press" ? "jump" : "release" }));
+    let events = null, vnote = "";
+    if (drive) {
+      const v = I.verify(wg, built.level, intents, { maxRepairs: 6 });
+      events = v.events;
+      vnote = v.ok ? (v.repairs ? `; plays to the end with ${v.repairs} local repair(s) (cache gaps: ${v.log.join("; ")})` : "; plays to the end from the plan alone") : `; the plan stops at block ${((v.dieX || 0) / 30).toFixed(0)} (${v.log.join("; ")})`;
+    }
+    if (missing.length) vnote += `; no intent yet for ${missing.join(", ")}`;
+    return { built, planned, events, vnote };
+  };
+  const layoutStage = (tweaks, alt) => {
+    try {
+      const p = planOf(tweaks);
+      console.log("   layout plan" + p.vnote);
+      stage("layout", Object.assign({ levelStr: GD.serializeLevel(p.built.level), data: Object.assign({ planned: p.planned, events: p.events, kind: "planned" }, alt ? { alt } : {}),
+        note: "gameplay and its planned presses" + p.vnote + (alt ? `; ${alt.length} section(s) with alternatives` : "") + (phase.until === "layout" ? " -- waiting for the user" : "") }, phase.until === "layout" ? { gate: true } : {}));
+    } catch (e) { console.log("   (layout stage: " + e.message + ")"); }
+  };
+  // 1. song
+  {
+    const { songOf, gridOf } = require("./make.js");
+    let grid = null; try { grid = brief._grid || (brief.grid ? gridOf(brief) : gridOf(brief, songOf(brief))); } catch (e) {}
+    let b = 1; const secs = brief.sections.map(s => { const from = grid ? SY.SYNC.beatToTime(grid, brief.offset || 0, b) : null; b += s.beats || 0; const to = grid ? SY.SYNC.beatToTime(grid, brief.offset || 0, b) : null; return { name: s.name, from, to }; });
+    stage("song", { data: { song: { id: brief.song && brief.song.custom, offset: brief.offset || 0 }, grid: grid ? { bpm: brief.grid && brief.grid.bpm, period: grid.period, t0: grid.t0 } : null, sections: secs }, note: "song and its sections" });
+  }
+  // 2. the layout with its full plan, at once
+  layoutStage(start0);
+  // 3. the alternatives being weighed for the important sections: scored alone, kept by score, shown as alt[]
+  const alt = [];
   if (K > 1) for (const si of important) {
     const tried = [], KEYS = "ABCDEFGH";
     const entry = { id: "s" + si, name: brief.sections[si].name, from: null, to: null, variants: [] };
@@ -508,14 +560,15 @@ function loop(briefFile, rounds = 8, phase = {}) {
       const issues = r.sc.gates.filter(g => g.status !== "PASS").map(g => `${g.status} ${g.name}`);
       tried.push({ n, points: r.points, gates: issues, r });
       // the whole level with this section's variant (no solve: the viewer solves it, or the cache has it)
-      const whole = compose(brief, tw), b = build(whole.spec, briefFile);
+      const whole = compose(brief, tw), b = quiet(() => build(whole.spec, briefFile));
       const rg = whole.ranges[si]; entry.from = rg[2] * 30; entry.to = rg[3] * 30;
       fs.mkdirSync(vdir, { recursive: true });
       const file = `s${si}_${KEYS[n]}.gdlvl`;
       require("./io.js").writeGdlvl(path.join(vdir, file), b.rec, b.level);
       const sol = (() => { try { return require("./solutions.js").get(require("./io.js").readGdlvl(path.join(vdir, file)).levelStr); } catch (e) { return null; } })();
       const diffG = r.sc.gates.find(g => g.name === "difficulty");
-      entry.variants.push(Object.assign({ key: KEYS[n], file, scores: { section: r.points, difficulty: diffG ? diffG.value.split(" (")[0] : undefined, issues: issues.length ? issues.join(", ") : "none" },
+      let planned = []; try { planned = planOf(tw, false).planned; } catch (e) {}
+      entry.variants.push(Object.assign({ key: KEYS[n], file, planned, scores: { section: r.points, difficulty: diffG ? diffG.value.split(" (")[0] : undefined, issues: issues.length ? issues.join(", ") : "none" },
         note: n ? `reseed ${n}: other chunks, gaps, terrain heights and library structure` : "the plain plan (baseline)" }, sol ? { solution: sol } : {}));
     }
     vindex.sections.push(entry);
@@ -524,61 +577,27 @@ function loop(briefFile, rounds = 8, phase = {}) {
     if (win.n) start0["reseed:" + si] = win.n;
     const line = `${brief.sections[si].name}: v${win.n} kept (${win.points}) over ` + tried.slice(1).map(t => `v${t.n} ${t.points}` + (t.gates.length ? ` [${t.gates.join(", ")}]` : "")).join(", ") + (close ? " -- CLOSE: a taste call for the user" : "");
     console.log("   variants " + line); vlog.push(line);
-    const e = vindex.sections[vindex.sections.length - 1];
-    for (const v of e.variants) { v.scores.kept = v.key === "ABCDEFGH"[win.n] ? "yes" : "no"; if (close) v.scores.close = "taste call"; }
+    for (const v of entry.variants) { v.scores.kept = v.key === "ABCDEFGH"[win.n] ? "yes" : "no"; if (close) v.scores.close = "taste call"; }
+    alt.push({ section: entry.id, name: entry.name, from: entry.from, to: entry.to, close,
+      options: entry.variants.map(v => ({ key: v.key, points: v.scores.section, why: v.scores.issues, kept: v.scores.kept === "yes", file: path.basename(vdir) + "/" + v.file, planned: v.planned })) });
     log.push(`- variants ${line}${NL}`);
   }
   if (vindex.sections.length) fs.writeFileSync(path.join(vdir, "index.json"), JSON.stringify(vindex, null, 1));
   if (vlog.length) {
     // learn: which variant won and why (knowledge/variants.md, appended per run; the user's picks count double)
     const lf = path.join(__dirname, "..", "knowledge", "variants.md");
-    const head = fs.existsSync(lf) ? "" : "# Section variants: which won and why\n\ncompose.js builds 2-4 versions of the opening, the drops and the finale, scores each section alone\n(100 - 30 per FAIL - 6 per WARN) and keeps the best; all are in local/wip/<session>/<level>.variants/ (index.json, whole-level files s<i>_A/B/C: the viewer's format). A CLOSE\nresult is a taste call for the user; the user's own picks count double (write them here as \"user picked\").\n\n";
+    const head = fs.existsSync(lf) ? "" : "# Section variants: which won and why\n\n";
     fs.appendFileSync(lf, head + `## ${brief.name} (${new Date().toISOString().slice(0, 10)})\n` + vlog.map(l => "- " + l).join("\n") + "\n\n");
   }
-  const failRounds = {};
-  // ---- build stages for the viewer (the user: "partial steps like song/layout/path/deco available in the
-  // process"; visuals' tools/stages.js): song now, layout after the first compose, path when the layout is
-  // kept, deco and final after make. Failures here never stop a build.
-  const STG = (() => { try { return require("./stages.js"); } catch (e) { return null; } })();
-  const stage = (st, extra) => { if (!STG) return; try { STG.put(Object.assign({ session: brief.session || "style", base: slug(brief.name), name: brief.name, stage: st }, extra)); } catch (e) { console.log("   (stage " + st + " not saved: " + e.message + ")"); } };
-  const gameplayOnly = spec => { const g = JSON.parse(JSON.stringify(spec)); delete g.scene; delete g.craft; delete g.modern; delete g.indicators; delete g.decoDensity; g.signature = false; g.objects = g.objects.filter(o => !Array.isArray(o) || !["colour", "fade", "zoom"].includes(o[0])); return g; };
-  const levelStrOf = spec => { const log0 = console.log; console.log = () => {}; try { const { level } = build(spec, briefFile); return GD.serializeLevel(level); } finally { console.log = log0; } };
-  {
-    const { songOf, gridOf } = require("./make.js");
-    let grid = null; try { grid = brief._grid || (brief.grid ? gridOf(brief) : gridOf(brief, songOf(brief))); } catch (e) {}
-    let b = 1; const secs = brief.sections.map(s => { const from = grid ? SY.SYNC.beatToTime(grid, brief.offset || 0, b) : null; b += s.beats || 0; const to = grid ? SY.SYNC.beatToTime(grid, brief.offset || 0, b) : null; return { name: s.name, from, to }; });
-    stage("song", { data: { song: { id: brief.song && brief.song.custom, offset: brief.offset || 0 }, grid: grid ? { bpm: brief.grid && brief.grid.bpm, period: grid.period, t0: grid.t0 } : null, sections: secs }, note: "song and its sections" });
-    // the layout with its planned presses (the user: "the layout doesnt include the clicks themselves?"): each
-    // pattern's intended inputs (tools/intent.js cache, no solve) laid along it
-    try {
-      const g = gameplayOnly(compose(brief, start0).spec), log0 = console.log; console.log = () => {};
-      let built; try { built = build(g, briefFile); } finally { console.log = log0; }
-      let planned = [];
-      try { const I = require("./intent.js"), wg = GD.makeWorld(built.level.objects, built.level.header), tl = SY.SYNC.timeline(wg);
-        planned = I.intents(built.ctx.placements || [], tl, { cacheOnly: true }).intents.map(i => ({ t: +SY.SYNC.tOfX(tl, i.x).toFixed(3), what: i.type === "press" ? "jump" : "release" })); } catch (e) {}
-      // a complete plan the viewer can replay at once (the user: playable "the moment it exists, not almost"):
-      // the intended inputs driven by position through one replay; a spot the plan cannot pass is a gap in the
-      // intent cache, patched by a short local search and named in the note
-      let events = null, vnote = "";
-      try {
-        const I = require("./intent.js"), wg = GD.makeWorld(built.level.objects, built.level.header), tl = SY.SYNC.timeline(wg);
-        const { intents, missing } = I.intents(built.ctx.placements || [], tl, { raw: built.ctx.raw });
-        planned = intents.map(i => ({ t: +SY.SYNC.tOfX(tl, i.x).toFixed(3), what: i.type === "press" ? "jump" : "release" }));
-        const v = I.verify(wg, built.level, intents, { maxRepairs: 6 });
-        events = v.events;
-        vnote = v.ok ? (v.repairs ? `; plays to the end with ${v.repairs} local repair(s) (cache gaps: ${v.log.join("; ")})` : "; plays to the end from the plan alone") : `; the plan stops at block ${((v.dieX || 0) / 30).toFixed(0)} (${v.log.join("; ")})`;
-        if (missing.length) vnote += `; no intent yet for ${missing.join(", ")}`;
-        console.log("   layout plan" + vnote);
-      } catch (e) { vnote = "; plan not driven: " + e.message; }
-      stage("layout", Object.assign({ levelStr: GD.serializeLevel(built.level), data: { planned, events, kind: "planned" }, note: "gameplay and its planned presses" + vnote + (phase.until === "layout" ? " -- waiting for the user" : "") }, phase.until === "layout" ? { gate: true } : {}));
-    } catch (e) {}
-  }
+  // the layout again, now with the alternatives and the kept ones in place
+  if (alt.length) layoutStage(start0, alt);
   if (phase.until === "layout") {
     fs.mkdirSync(path.dirname(stateFile), { recursive: true });
     fs.writeFileSync(stateFile, JSON.stringify({ brief: briefFile, tweaks: start0, at: new Date().toISOString() }, null, 1));
     console.log(`layout stage put (gated); the plan is saved in ${path.relative(process.cwd(), stateFile)}: tools/gated.js waits for the user, then resumes`);
     return null;
   }
+  const failRounds = {};
   let cur = evaluate(start0), best = null;
   for (let round = 1; round <= rounds; round++) {
     const s = cur.s;
@@ -697,6 +716,20 @@ function loop(briefFile, rounds = 8, phase = {}) {
   make(specFile);
   try { const L = require("./io.js").readGdlvl(path.join(__dirname, "..", "levels", slug(brief.name) + ".gdlvl"));
     stage("deco", { levelStr: L.levelStr, note: "with the look" }); stage("final", { levelStr: L.levelStr, note: best.s.ok ? "READY" : "not ready" }); } catch (e) {}
+  // the retro (BUILDS.md): stage times against their targets, rounds, what failed, the slowest step
+  try {
+    const bf = path.join(__dirname, "..", "BUILDS.md");
+    const head = fs.existsSync(bf) ? "" : "# Builds: what each took, what broke, what to change\n\nOne entry per compose run (tools/compose.js writes the numbers; the session adds the change it made after\nreading them). Targets: song 10 s, layout with its full plan 60 s, path (check solve) 15 min, final 20 min.\nThe stage times are also in local/timings.jsonl.\n\n";
+    const steps = timings.map((t, i) => ({ stage: t.stage, d: t.secs - (i ? timings[i - 1].secs : 0) }));
+    const slow = steps.slice().sort((a, b) => b.d - a.d)[0];
+    const over = timings.filter(t => t.target && t.secs > t.target).map(t => `${t.stage} ${t.secs.toFixed(0)} s > ${t.target} s`);
+    const fails = best.s.gates.filter(g => g.status === "FAIL").map(g => g.name);
+    fs.appendFileSync(bf, head + `## ${brief.name}, ${new Date().toISOString().slice(0, 16).replace("T", " ")}${phase.resume ? " (resumed)" : ""}\n` +
+      `- stages: ${timings.map(t => `${t.stage} ${t.secs.toFixed(0)} s`).join(", ")}\n` +
+      `- slowest step: ${slow ? slow.stage + " (" + slow.d.toFixed(0) + " s)" : "-"}${over.length ? "; over target: " + over.join(", ") : ""}\n` +
+      `- result: ${best.s.ok ? "READY" : "not ready (" + fails.join(", ") + ")"}, ${(log.join("").match(/## Round/g) || []).length} round(s)${vlog.length ? ", variants: " + vlog.length + " section(s)" : ""}\n` +
+      `- change made: (the session fills this in)\n\n`);
+  } catch (e) {}
   print(brief.name, best.s);
   return best;
 }

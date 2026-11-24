@@ -77,6 +77,13 @@ not after it:
   viewer replays the plan at once (no solve) and the user can play it themselves. Solving comes after, as a check
   for secret ways and fairness; it never gates seeing or playing a level. A layout whose plan dies is a bug in the
   plan, shown at the death spot.
+- **One way to build a level: BUILDING.md.** Sections with seam contracts (like a collab), presses before
+  blocks (beat-first for synced levels), a playable layout at once, stages shown as they happen, alternatives
+  shown, reuse, measured times, and a retro in BUILDS.md. Read it before any build; change it when a build
+  teaches something.
+- **Process rules go in the repo, never only in a message.** The user (2026-11-24): "never just for one session
+  if its a big repeatable process". A rule, a process step or a lesson that one session was told applies to
+  every session and every future build: write it in CLAUDE.md, BUILDING.md or the topic's doc in the same round.
 - **Hand off.** Before a long pause or when your area changes hands, write where you stopped,
   what is open and the good numbers into your area's doc.
 - **Share, don't duplicate.** Results go into the shared `local/` (see below) so no session redoes
@@ -156,8 +163,12 @@ at once and the PC hung (0.2 GB free), so the rule is now a lock every heavy too
 The user wants to know how long a wait will be. **Before a job over ~30 s, tell the user roughly how long
 it takes** (from this table, or the ETA `tools/loop.js` prints). When a run is far off (over 2x, or under
 half), correct the row here in the same change. Real numbers pile up in `local/timings.jsonl` (every
-`loop.js` step; any other job with `node tools/loop.js --time <step> <command>`); `node tools/loop.js
---times` prints them by level length. Wait for the heavy-job slot comes on top of all of these.
+`loop.js` step; **every heavy job, by itself**: tools/heavy.js logs each finished one keyed by tool + level + flags, with the
+estimate it had); `node tools/loop.js --times` prints them by level length. **Estimates in code:** `tools/jobtime.js`
+(`est <command>` -> "~28 min (last run make jN, this level: 28 min)" or "not measured"; `recent` -> estimate vs actual,
+"!! off 3x" where it drifted); the heavy lock's waiting lines, `/heavy/status` and the viewer's Work panel / task chip use it,
+always with that basis. Runs of another level size or other flags never count (score: 11 s on a short cube level, minutes
+on a long one with modes). Wait for the heavy-job slot comes on top of all of these.
 
 | job | how long | source |
 |---|---|---|
@@ -296,7 +307,8 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   hardest spots first, small edits scored by the difficulty model), `tools/families.js` (every soft-rule family: note words, effect,
   effort, fix, auto-fix). Test: `node tests/editing.js`.
 - **`tools/heavy.js` -- the one-heavy-job lock** every heavy tool takes on start (see "One heavy job at
-  a time"). Test: `node tests/heavy.js`.
+  a time"); it logs every finished job's real time to local/timings.jsonl (`tools/jobtime.js`: measured estimates with
+  their basis, estimate vs actual). Tests: `node tests/heavy.js`, `node tests/jobtime.js`.
 - **`tools/loop.js` -- the whole make/iterate loop in one command** (owner check, ETA, make/compose, score,
   shoot, levelmap, wip; logs under `local/loop/`), `--times` prints the measured time table, `--time <step>
   <cmd>` times any other job into it. Test: `node tests/loop.js`.

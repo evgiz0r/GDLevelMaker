@@ -45,8 +45,9 @@ function eta(step, levelSecs, rows) {
   return { secs: median(near.map(({ r }) => r.secs * Math.min(4, Math.max(0.25, L / r.levelSecs)))), from: near.length };
 }
 const fmt = s => s < 90 ? `${Math.round(s)} s` : s < 5400 ? `${(s / 60).toFixed(s < 600 ? 1 : 0)} min` : `${(s / 3600).toFixed(1)} h`;
+// loop.js's own step rows; tools/heavy.js logs every heavy job to the same file ({by: "heavy", tool, ...}: tools/jobtime.js)
 function readTimings(file = TIMINGS) {
-  try { return fs.readFileSync(file, "utf8").split("\n").filter(Boolean).map(l => { try { return JSON.parse(l); } catch (e) { return null; } }).filter(Boolean); } catch (e) { return []; }
+  try { return fs.readFileSync(file, "utf8").split("\n").filter(Boolean).map(l => { try { return JSON.parse(l); } catch (e) { return null; } }).filter(r => r && r.by !== "heavy"); } catch (e) { return []; }
 }
 // the time table from the log: per step and level-length bucket, median and range
 function table(rows) {

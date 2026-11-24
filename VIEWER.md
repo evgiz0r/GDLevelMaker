@@ -9,12 +9,13 @@ are builds of the same page without these PC-only parts.
 
 | Where | What | Who reads it |
 |---|---|---|
-| **Work** (button / key W; badge = what waits for you) | the decision cards sessions ask; every build with its stage and whether it waits for you; the PC's heavy-job queue with ETAs. Live (5 s). | -- |
+| **Work** (button / key W; badge = what waits for you) | the decision cards sessions ask; every build with its stage and whether it waits for you; the PC's heavy-job queue with ETAs that say their basis ("~28 min (last run make jN, this level)") or "not measured" (tools/jobtime.js), and the last finished jobs, estimate vs actual ("off 3x" in red where it drifted). Live (5 s). | -- |
 | **Decision card** (Work) | answer a session's question with one of its options or "other…" | the asking session (`tools/ask.js wait <id>`), the feed |
 | **Stage bar** (a build being made: song › layout › path › deco › final) | open any stage; **✓ ok** or **redo…** with a note (the moment on screen goes with it); a gated stage shows "⏸ the build waits for you" | the builder (`tools/stages.js wait` / `waitApproval`), the feed |
 | **✎ mark** (key M) | a note at a spot, with a kind (unfair / awkward / ugly / unclear / other) | marks.js, the feed |
 | **Variants bar** | compare a section's variants, "pick" one | style (a variant-pick mark), the feed |
 | Picker (L), level map, timing band, F counter, light | see everything at once (no UI action blocks > ~100 ms; nothing waits on a solve to be visible) | -- |
+| **Level map, "draw it now"** | drawn in the page offscreen, one chunk per task with progress ("12/40"); the view and controls stay usable; GD art's new tints have a 40 ms budget per draw (lib/art.js `budget()`), the rest come on the next pass. GDLM 61, first visit: 3.8 s in all, one task of 140 ms (the first), the rest under 50 ms (was 8.8 s with 13 tasks of 140-280 ms and the view taken over) | -- |
 
 ## For sessions
 
