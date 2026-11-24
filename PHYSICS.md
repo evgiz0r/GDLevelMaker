@@ -166,37 +166,81 @@ video.level_t), and the viewer's look triggers now fire there. Front-edge firing
 gdsolver's real-game plans: nothing gains and Dash falls from 81 to 40 blocks, so the centre stays (colour and
 gameplay triggers may well differ in GD).
 
-## Landing buffer (2026-11-24)
+## Landing buffer (2026-11-24): GD has none -- the button's level, one tick of grace
 
-A cube's press made in the air is kept and the cube jumps when it lands, even if the button is already up.
-- Seen in the user's real run: Clutterfunk, 2026-11-24_02-45-05.mkv, level time 1.055 s. The input log has a
-  tap in the air (down 1.055, up 1.167), the cube lands at 1.20 s and the video shows it jump at once, 0.45 s
-  before the next logged press. Without the buffer the sim walks into the saw at x 451 (1.9%); with it the run
-  goes on. The sim needs at least 37 ticks there (36: the saw; 37-1000: through).
-- gdsolver's real-game plans (tests/tas_progress.js), for any length from 24 to 1000 ticks: Polargeist CLEARS
-  (was 909 blocks), Dry Out 415 -> 574, Can't Let Go 303 -> 489, Jumper 210 -> 248, Time Machine 333 -> 362,
-  Clutterfunk 288 -> 294; none less far once an orb or pad that takes the press also clears the buffer
-  (without that, ToE 2 fell 105 -> 92). This was the old open item "a cube that walked off a ledge and presses
-  shortly before landing: the game jumps, we do not".
-- ONLY WHILE FALLING, NO TIME LIMIT (2026-11-24, second Clutterfunk attempt, 18.43 s of 02:45, fixed logger): a tap
-  53 ticks before landing, made just after the peak of a yellow-orb arc (vy -1.6), released in the air: the game jumps
-  on landing (the user clears); with 40 ticks the sim walked onto the yellow pad at 34.5 and was thrown into the
-  hanging spikes (3.5%). A longer buffer for every press broke Geometrical Dominator (taps 45-63 ticks out made while
-  still RISING: 7.3% -> 5.4%, 5.7% -> 2.7%) and Hexagon Force (40.6 -> 38.1 from 80 ticks). Buffering only a press
-  made while falling (vy towards the ground, or 0) fits all 21 recorded attempts for any length from 40 to infinite,
-  and gdsolver's 22 plans reach exactly the same blocks. Clutterfunk now dies at 3.9% (a tap that jumps the cube into
-  a low hanging spike at 38.6: not understood yet; the video clock there needs a frame check).
-- In the sim: lib/physics.js, cube only, the solvers' state keys carry it: a press in the air while FALLING is kept
-  until landing (`LANDBUF`, Infinity); one made while still RISING is kept 40 ticks (`LANDRISE`), as before -- no
-  recording shows a rising press ignored that close to landing, and the solvers' routes rely on it (gd-physics2's
-  bisect: falling-only had broken Time Machine 29, Clubstep 108, Can't Let Go 727, Electroman 407). Cleared by the
-  landing jump, an orb or pad, or leaving the cube. tests/mechanics.js checks a falling tap 50 ticks out (jumps) and a
-  rising one 73 ticks out (does not). Every press of the original evidence (Clutterfunk 1.054 s, 36 ticks; 2.942 s,
-  53 ticks) was made while falling.
-  `GDLM_LANDBUF=<ticks>` makes it a countdown again for measuring, 0 = off. OPEN: the exact falling threshold (vy 0? a
-  little before the peak?),
-  and whether a release clears it in other modes. A clean test: tap in the air at several heights before a
-  landing in a lab level.
+GD's rule (lib/physics.js `LB_GD`, the default since 2026-11-24 evening): the cube jumps on landing only if the button
+is down -- `m_jumpBuffered` is a LEVEL, set by pushButton and cleared by releaseButton, and the jump gate reads it twice
+a tick, so a press still down on the tick before the first grounded tick jumps (one tick of grace). A press made in the
+air and released before the landing does NOTHING, however close to the landing.
+- Source: gdsolver's `dp/src/dp/step.hpp` (the cube's gate in updateJump is `m_jumpBuffered && m_isOnGround && !spider &&
+  !dashing`, read off GD's disassembly; their rig: a cube held down bounces forever, a robot jumps once).
+- The user's game, measured with no sim (`tools/landbuf.js` on GDLM 67, 18-58-15.mkv, the raw logger, K from take-offs):
+  every press RELEASED in the air before a landing left the cube on the ground -- 14 / 20 / 44 ticks before the landing
+  (released 2-18 ticks before it); every press HELD through the landing jumped (0-26 ticks before). In the frames: video
+  78.00-78.23 s the cube sits on the ground after the press at 77.885 (released 77.932, landing ~77.942) until the next
+  press at 78.20; framecheck's rows show it again at level time 1.22 s of the 76.2 attempt.
+- REPLACED: the long buffer of the morning (a press while falling kept until landing, one while rising 40 ticks).
+  It came from two Clutterfunk moments in 02-45-05.mkv (taps 36 and 53 ticks before landing) whose clock was a death-%
+  fit -- the same kind of fit that was 0.4 s off on 18-58-15 (see "Frames: the video as the reference") -- and from
+  gdsolver's plans getting further with it. The plans' gains were covering something else: each of them is a 2-tick tap
+  4-21 ticks before OUR landing tick (Polargeist block 907.7: 7 ticks; Dry Out 414.5: 10; Can't Let Go 303 and 461.7:
+  9 and 21; Jumper 210: 8; Time Machine 331: 6; Clutterfunk 286: 4), which GD only jumps on if the cube is already
+  down, i.e. OUR CUBE LANDS 4-21 TICKS LATE (or lands somewhere else) at those spots. Open: find why -- a landing
+  height, a snap, a slope or block top the sim reads differently. tools/tas.js and the lbdiff scratch in the session
+  notes find the spots.
+- Cost: tests/tas_progress.js back to the pre-buffer marks (3: clear -> 909, 4: 574 -> 415, 6: 489 -> 303, 7: 248 ->
+  210, 8: 362 -> 333, 11: 294 -> 288). The 37 recorded attempt lines replay as before (one GDLM 60 line was already stale).
+- THE LANDING TICK: a cube that landed on the ground plane last tick cannot jump this tick, so a held cube bounces every
+  104 ticks, not 103. gdsolver's rig (a press at t60 held: jump t61, land t164, jump t165) and the user's held bounce
+  through GDLM 67's stations 1-4 (244.2 s: hops every 104-105 ticks; the sim drifted a tick a hop and fell in the orb
+  pit). framecheck: 114.13 now follows the video to 11.2 s (was 2.4 s), 244.2's height error 18.6 -> 10.0 units rms.
+  Ground only: the same wait on block landings broke an official attempt line (lv21, 02-33-44 @186.7 s); gdsolver's
+  plans reach the same blocks with or without it. `GDLM_LANDWAIT=0` / `=all` for measuring.
+- `GDLM_LANDBUF=old` gives the long buffer back, `=<ticks>` a countdown, for measuring only. tests/mechanics.js checks:
+  a tap released 14 ticks before landing does not jump; a press held through does; one released on the first grounded
+  tick still does.
+
+## Upside-down cube and the ground (2026-11-24): OPEN, not in the sim
+
+GDLM 67's green orb station (18-58-15.mkv) throws the cube down with gravity flipped; it then meets the flat floor head
+first. The game: attempts 58.2, 98.4 and 158.3 burst on the floor (no hazard near, frames 68.45-68.70 and framecheck's
+paths: 58.2 died the frame its box reached the ground line, falling ~5.4 units a frame); attempt 114.13 came down slower
+(~1.5 units a frame), touched (14.7 units, tracking error ~1) and bounced up alive -- the user went on to 95.8%.
+- The sim never kills it (the ground clamps a flipped cube). Two rules were tried and taken out the same evening:
+  "dies on contact" (gets 114.13 wrong) and "dies when its 9x9 inner box reaches the ground" (gets the three deaths
+  wrong). A speed threshold between ~1.5 and ~5.4 units a frame fits the game, but the sim's impact speeds do not
+  separate the cases (158.3 and 114.13 both hit at vy -0.81 in the sim, while the game's differ): the sim's green orb
+  throw is off first -- the game's cube drops ~5 units further in the first 3 frames after the orb (58.2: 59.7 vs 65.1).
+  Next: calibrate the green orb's throw (a lab station: green orb from rest, ruler), then fit the threshold.
+- gdsolver: "GD's ground plane blocks the player from BELOW whatever its gravity is" (an inverted mini ship held at
+  99.000); no flipped-cube floor death in their notes. Their 22 plans have one flipped-cube floor touch (Dry Out block
+  291.6, one tick at vy 0).
+
+## Frames: the video as the reference (2026-11-24)
+
+The user (via the coordinator): "we recorded everything, have the video but never compared? it must be useful for
+hitboxes and realism". Two tools read a recording frame by frame (tools/track.py: the lime icon, the ground line,
+`--cols` white bars; real frame times):
+- `tools/framecheck.js <level> --video <mkv> --inputs <raw csv> --at <bar start>` -- one attempt against the sim:
+  1. K, the input log's clock vs the video's frames (video t = log ms/1000 + K), from ground take-offs; searched only
+     within the files' own start times (the log header's UTC start vs the video name's second, minus a 0.2-1.3 s capture
+     lag). 18-58-15: K = 0.374 from 10/10 take-offs; 0.40 when the take-off is placed from the icon's motion (the
+     first moved frame is already ~3 ticks into the jump) -- use --k 0.40 there.
+  2. D, the attempt's level start vs the progress bar's start, from GEOMETRY: white bars at known level x (GDLM 67
+     v2's rulers) give the icon's level x in every frame where one is in view; 76.2: D = -0.534 s from 10 sightings,
+     x vs sim 1.0 unit rms. Levels without bars fall back to a height fit (weaker; Clutterfunk's lime scenery defeats
+     it). Next: any static object as a marker (spikes, block edges), not only white bars.
+  3. the path (height above the ground line and x, video vs sim, per second and the first parting) and the end
+     (the gap from the sim's player box to the nearest hazard at the video's last frame).
+- `tools/landbuf.js --video --inputs --from --to [--k]` -- every landing with a press before it: how long before, released
+  or held, and whether the game jumped. No sim at all.
+WHAT THIS CHANGED: replay_run.js's clock (one offset per recording, pinned on a clear, then +-60 ms per attempt, judged
+by the death %) was 0.4 s off on 18-58-15 and still showed "10 of 17 agree" -- most deaths are at spots where any clock
+gives the same %. A death-% fit is not a clock: before a recording's attempts are used as physics evidence, check K
+from take-offs (framecheck prints it). The morning's landing buffer was built on exactly such a clock.
+Open: framecheck into the pipeline for every recording (after replay_run), bars or object markers for official levels,
+hitbox gaps at every death and near-miss (the "end" lines are the start), ship / wave heights where the ground is out
+of view (camera fit with gd-visuals).
 
 ## Objects
 

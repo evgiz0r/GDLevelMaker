@@ -229,15 +229,27 @@ for (const hold of [true, false]) {
   const g = GD.solveAny(GD.makeWorld([DP(300, 60), { id: 8, x: 800, y: 15 }, { id: 8, x: 1100, y: 285, flipY: true }, SOLO(1400, 60), { id: 1, x: 1800, y: 15 }]));
   check("dual: the solver clears a dual part with one button", g.ok, g.ok ? `${g.clicks.filter(c => c.type === "press").length} presses` : `${g.why} ${g.skipped || ""}`);
 }
-// landing buffer (PHYSICS.md "Landing buffer"): a cube's tap in the air made while FALLING jumps on landing, however
-// long before (the user's Clutterfunk clear: 53 ticks); one made while still RISING does not (Geometrical Dominator)
+// landing (PHYSICS.md "Landing buffer"): GD's m_jumpBuffered is the button's LEVEL, read again a tick later -- a press
+// still down on the tick before the landing jumps, a press released in the air does not (the user's GDLM 67 run:
+// released 14-44 ticks before a landing, the cube sat down; gdsolver's reading of GD's disassembly)
 {
   const w = GD.makeWorld([{ id: 1, x: 6000, y: 15 }]);
-  const jumps = (tapAt) => { const s = GD.startState(w); let n = 0;
-    for (let t = 0; t < 400; t++) { GD.step(w, s, { press: t === 10 || t === tapAt, held: (t >= 10 && t < 14) || (t >= tapAt && t < tapAt + 6) }); if (s.act === "jump") n++; }
-    return n; };
-  // a flat jump from t 10: rising until ~t 61, lands ~t 113
-  check("landing buffer: a tap while falling, 50 ticks before landing, jumps on landing", jumps(63) === 2, `${jumps(63)} jumps`);
-  check("landing buffer: a tap while still rising does not", jumps(40) === 1, `${jumps(40)} jumps`);
+  const jumps = (tapAt, len) => { const s = GD.startState(w); let n = 0, land = -1;
+    for (let t = 0; t < 400; t++) { const was = s.grounded; GD.step(w, s, { press: t === 10 || t === tapAt, held: (t >= 10 && t < 14) || (t >= tapAt && t < tapAt + len) });
+      if (s.act === "jump") n++; if (!was && s.grounded && land < 0 && t > 20) land = t; }
+    return { n, land }; };
+  // a flat jump from t 10 lands at tick L; a tap released in the air before L does nothing
+  const L = jumps(-99, 0).land;
+  check("landing: a tap released in the air 14 ticks before landing does not jump", jumps(L - 14, 6).n === 1, `${jumps(L - 14, 6).n} jumps (landing tick ${L})`);
+  check("landing: a press held through the landing jumps", jumps(L - 14, 30).n === 2, `${jumps(L - 14, 30).n} jumps`);
+  check("landing: a press still down on the tick before the cube may jump still jumps (GD reads the level a tick late)", jumps(L - 3, 5).n === 2 && jumps(L - 3, 4).n === 1, `${jumps(L - 3, 5).n} / ${jumps(L - 3, 4).n} jumps`);
+}
+// a held cube bounces on the ground every 104 ticks (GD: jump, land 103 ticks later, jump the tick after; gdsolver's
+// rig and the user's GDLM 67 held bounce, 104-105 ticks a hop)
+{
+  const w = GD.makeWorld([{ id: 1, x: 9000, y: 15 }]);
+  const s = GD.startState(w), jumps = [];
+  for (let t = 0; t < 400; t++) { GD.step(w, s, { press: t === 60, held: t >= 60 }); if (s.act === "jump") jumps.push(t); }
+  check("held bounce: a jump every 104 ticks", jumps.length >= 3 && jumps[1] - jumps[0] === 104 && jumps[2] - jumps[1] === 104, jumps.join(" "));
 }
 process.exit(bad ? 1 : 0);
