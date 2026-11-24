@@ -216,6 +216,10 @@ attempt rows stay in local/real_stats.jsonl (physics owns them); this is the per
 ## Open
 
 - Route measures (above). Readability by render for a sample of 30 levels to calibrate the proxy.
+- Per-screen deco measures from the art session's `tools/decostudy.js` (cache `local/decostudy/<id>.json`, run on
+  this corpus queued 2026-11-24): dress (deco near play objects), glow share, z-layer spread, and its contrast
+  score (`tools/contrast.js`, better than contrastProxy). When the cache is filled: add them as features, re-run
+  `learn`, see if they separate featured from the rest within a band. Front/back/HSV/motion stay taste.js's own.
 - 2.2 levels built by move triggers measure as empty: a measure on the moved positions.
 - The user's marks and plays as data: each mark is a labelled spot (bad) on our levels; each played
   level a row with the user's verdict. When there are ~30, fit the user's own weights next to the
