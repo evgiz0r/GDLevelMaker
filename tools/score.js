@@ -294,6 +294,25 @@ function scoreLevel0(level, brief, opts = {}) {
         over.length ? "official levels bring these in at higher ratings: keep them for harder levels, or accept with a reason" : "");
     }
   } catch (e) { /* no corpus on this PC */ }
+  // energy curve (the user, 2026-11-24: "check how compares"): the level's REAL experience curve against the INTENDED one in
+  // its model (the coordinator's brief / vibe sheet: each part's energy). Real energy = gd-taste's measure (tools/vibediff.js
+  // windowStats): the mean "play" of tools/storyboard.js's intensity strip (hazards + orbs + pads per block) over the part.
+  // WARN when the curves correlate under 0.5, or a part intended as a drop plays below the level's median / an intro or
+  // calm part above it. Levels with no intended curve: skipped.
+  try {
+    const name = brief.name || opts.name, M = require("./model.js");
+    const coord = name ? (() => { const dir = require("path").join(__dirname, "..", "briefs"); for (const f of require("fs").readdirSync(dir).filter(f => f.endsWith(".coord.json"))) { try { const c = JSON.parse(require("fs").readFileSync(require("path").join(dir, f), "utf8")); if (c.level === name) return c; } catch (e) {} } return null; })() : null;
+    if (coord && coord.parts && coord.parts.length >= 3) {
+      const SB = require("./storyboard.js"), a = SB.analyse({ levelStr: opts.levelStr || GD.serializeLevel(level) }, { every: 1 });
+      const real = coord.parts.map(p => { const st = a.strip.filter(s => s.t >= p.t[0] - 1e-6 && s.t < p.t[1]); return st.length ? st.reduce((s, v) => s + v.play, 0) / st.length : 0; });
+      const want = coord.parts.map(p => p.energy), n = real.length, mr = real.reduce((s, v) => s + v, 0) / n, mw = want.reduce((s, v) => s + v, 0) / n;
+      let num = 0, dr = 0, dw = 0; for (let i = 0; i < n; i++) { num += (real[i] - mr) * (want[i] - mw); dr += (real[i] - mr) ** 2; dw += (want[i] - mw) ** 2; }
+      const r = dr && dw ? num / Math.sqrt(dr * dw) : 0, med = real.slice().sort((x, y) => x - y)[Math.floor(n / 2)], off = [];
+      coord.parts.forEach((p, i) => { if (p.role === "drop" && real[i] < med) off.push(`${p.id} (a drop) plays ${real[i].toFixed(2)} < the median ${med.toFixed(2)}`); if ((p.role === "intro" || p.role === "calm") && real[i] > med * 1.2) off.push(`${p.id} (${p.role}) plays ${real[i].toFixed(2)} > the median`); });
+      gate("energy curve", r < 0.5 || off.length ? "WARN" : "PASS", `real vs intended energy: r ${r.toFixed(2)} over ${n} parts (real ${real.map(v => v.toFixed(2)).join(" ")}; intended ${want.join(" ")})`,
+        r < 0.5 || off.length ? off.join("; ") || "the level's energy does not follow its intended curve: densify the drops, calm the breathers" : "");
+    }
+  } catch (e) { /* no model or storyboard */ }
 
   // pacing, from hazard columns
   const haz = level.objects.filter(o => GD.objInfo(o.id).kind === "hazard").map(o => Math.floor(o.x / 30)).sort((a, b) => a - b);
