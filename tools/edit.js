@@ -456,6 +456,9 @@ function edit(o) {
   const k = q => q.rule + "|" + q.text.replace(/[\d.]+ ms/g, "").replace(/\d+%/g, "");
   const sb = new Set(qb.map(k)), sa = new Set(qa.map(k));
   rep.checks = { before: qb.length, after: qa.length, fixed: qb.filter(q => !sa.has(k(q))), added: qa.filter(q => !sb.has(k(q))) };
+  // the fix against the level's MODEL (tools/model.js; the user: a fix should "match the level anyway"): its size, and
+  // whether the touched sections keep their role, energy, look and vehicle (BUILDING.md 1 "Fixes through the model")
+  try { rep.model = require("./model.js").checkFix(beforeFile, out); } catch (e) { rep.model = { error: e.message }; }
   if (o.full) {
     const r = cp.spawnSync(process.execPath, [path.join(__dirname, "score.js"), out, "--json"], { windowsHide: true, encoding: "utf8", timeout: 3600000 });
     try { const j = JSON.parse(r.stdout.trim().split("\n").pop()); rep.gates = { ok: j.ok, fails: j.gates.filter(g => g.status === "FAIL").map(g => g.name + ": " + g.value) }; } catch (e) { rep.gates = { error: (r.stderr || "").slice(-300) }; }
@@ -498,6 +501,7 @@ function print(rep) {
   console.log(`   route: ${rep.beaten ? "BEATEN" : "NOT BEATEN" + (rep.dies ? ` -- dies at block ${rep.dies.block} (${rep.dies.why})` : "")}, ${rep.route ? rep.route.presses + " presses, " + rep.route.kind : "no route"}; ${rep.solve} in ${rep.solveS} s` + (rep.beforeRoute ? `  (before: ${rep.beforeRoute.presses} presses)` : ""));
   if (rep.windows.before != null || rep.windows.after != null) console.log(`   tightest window near the spot: ${rep.windows.before ?? "-"} ms -> ${rep.windows.after ?? "-"} ms`);
   console.log(`   checks: ${rep.checks.before} -> ${rep.checks.after}` + (rep.checks.fixed.length ? `; gone: ${rep.checks.fixed.map(q => q.rule + " (" + q.text + ")").join("; ")}` : "") + (rep.checks.added.length ? `; NEW: ${rep.checks.added.map(q => q.rule + " (" + q.text + ")").join("; ")}` : ""));
+  if (rep.model && !rep.model.error) console.log(`   model: a ${rep.model.size} fix -- ${rep.model.ok ? "keeps the level's model" : rep.model.next}` + (rep.model.notes.length ? "; " + rep.model.notes.join("; ") : ""));
   if (rep.gates) console.log(`   score.js: ${rep.gates.ok ? "READY" : "NOT READY"}${rep.gates.fails && rep.gates.fails.length ? " -- " + rep.gates.fails.join("; ") : ""}${rep.gates.error ? rep.gates.error : ""}`);
   if (rep.picture) console.log(`   picture: ${rep.picture.png ? rel(rep.picture.png) : "failed: " + rep.picture.error}`);
   console.log(`   viewer: ${rep.viewer}`);
