@@ -22,3 +22,9 @@ The stage times are also in local/timings.jsonl.
 - result: not ready (prejumps, reactive), 8 round(s), variants: 2 section(s)
 - change made: the round-4 fixes missed their real causes, found by printing the checks. (1) The ship prejump is printed in section-local blocks: block 11 is the cube walking into the ship portal from the section's standing start, a cube press, so the flying-mode filter skipped it; presses in a section's 12-block lead-in now go to the whole level too (the seam). (2) The reactive hazard test read a spike from presses that were fine (their run dies later, past the horizon); it now counts only failing presses. tools/reactive.js on 64: clear.
 
+## GDLM 64 golden hour, 2026-11-24 02:56
+- stages: song 0 s, layout 4 s, layout 235 s, path 696 s, deco 891 s, final 891 s
+- slowest step: path (461 s); over target: layout 235 s > 60 s
+- result: not ready (prejumps), 8 round(s), variants: 2 section(s)
+- change made: ship and reactive fixed; left: three 2x jumps 1.6-1.7 blocks ahead. sightread's limit is a reaction time, so it now scales with speed (x1.24 at 2x). Then the whole-level score on the saved route (54 s, no solve) found the wave mouth: a cube press held into the wave portal; a press whose window crosses into a flying portal is cued by the portal. Deco after: gd-art's decokit (bricks + lit trims, three-depth backdrop, tufts), scalloped cloud bands, three-value palettes, make --look (35 s): 14 -> 24 objects per block, contrast 100 (ground/sky 2.0 -> 4.5). Result: READY (0 fail, 11 warn).
+

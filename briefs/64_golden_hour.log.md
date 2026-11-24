@@ -7,92 +7,102 @@ Target: {"label":"Normal","minWindowMs":60}
 
 ## Round 1: not ready (1 fail, 0 warn)
 - PASS beatable: sunrise: 32 presses
-- FAIL prejumps: noon flight: block 11 (5.6 ahead of block 3 at 18)
+- FAIL prejumps: noon run: block 31 (1.6 ahead of block 3 at 34); block 68 (1.7 ahead of block 3 at 71); block 107 (1.7 ahead of block 3 at 110)
 - PASS timing: sunrise: tightest 137.5 ms over 32 inputs, want >= 60 (measured windows)
 - PASS recovery: sunrise: every press >= 100 ms after landing
 - PASS skips: sunrise: all 0 portals and 2 orbs on the path
 
 Repairs:
-- 1 more row of room in the ship-tunnel at 357 (prejump (5.6 blocks ahead))
+- 2 more columns before single at 506 (prejump (1.6 blocks ahead))
+- 2 more columns before single at 543 (prejump (1.7 blocks ahead))
+- 2 more columns before single at 582 (prejump (1.7 blocks ahead))
 
 ## Round 2: not ready (1 fail, 0 warn)
 - PASS beatable: sunrise: 32 presses
-- FAIL prejumps: noon flight: block 10 (6.1 ahead of block 3 at 18); block 21 (5.6 ahead of spike at 28); block 30 (5.1 ahead of spike at 36); block 103 (3.5 ahead of spike at 108)
+- FAIL prejumps: noon run: block 31 (1.6 ahead of block 3 at 34); block 68 (1.7 ahead of block 3 at 71); block 107 (1.7 ahead of block 3 at 110)
 - PASS timing: sunrise: tightest 137.5 ms over 32 inputs, want >= 60 (measured windows)
 - PASS recovery: sunrise: every press >= 100 ms after landing
 - PASS skips: sunrise: all 0 portals and 2 orbs on the path
 
 Repairs:
-- section noon flight rebuilt from another plan (reseed 3): 2 rounds of patching did not fix it
+- section noon run rebuilt from another plan (reseed 3): 2 rounds of patching did not fix it
 
 ## Round 3: not ready (1 fail, 0 warn)
 - PASS beatable: sunrise: 32 presses
-- FAIL prejumps: noon flight: block 11 (5.6 ahead of block 3 at 18)
+- FAIL prejumps: noon run: block 31 (1.6 ahead of block 3 at 34); block 74 (1.7 ahead of block 3 at 77); block 141 (1.7 ahead of block 3 at 144)
 - PASS timing: sunrise: tightest 137.5 ms over 32 inputs, want >= 60 (measured windows)
 - PASS recovery: sunrise: every press >= 100 ms after landing
 - PASS skips: sunrise: all 0 portals and 2 orbs on the path
 
 Repairs:
-- 1 more row of room in the ship-tunnel at 357 (prejump (5.6 blocks ahead))
+- 2 more columns before single at 506 (prejump (1.6 blocks ahead))
+- 2 more columns before platform at 549 (prejump (1.7 blocks ahead))
+- 2 more columns before single at 616 (prejump (1.7 blocks ahead))
 
 ## Round 4: not ready (1 fail, 0 warn)
 - PASS beatable: sunrise: 32 presses
-- FAIL prejumps: noon flight: block 10 (6.1 ahead of block 3 at 18); block 21 (5.6 ahead of spike at 28); block 30 (5.1 ahead of spike at 36); block 103 (3.5 ahead of spike at 108)
+- FAIL prejumps: noon run: block 31 (1.6 ahead of block 3 at 34); block 74 (1.7 ahead of block 3 at 77); block 141 (1.7 ahead of block 3 at 144)
 - PASS timing: sunrise: tightest 137.5 ms over 32 inputs, want >= 60 (measured windows)
 - PASS recovery: sunrise: every press >= 100 ms after landing
 - PASS skips: sunrise: all 0 portals and 2 orbs on the path
 
 Repairs:
-- section noon flight rebuilt from another plan (reseed 6): 2 rounds of patching did not fix it
+- section noon run rebuilt from another plan (reseed 6): 2 rounds of patching did not fix it
 
 ## Round 5: not ready (1 fail, 0 warn)
 - PASS beatable: sunrise: 32 presses
-- FAIL prejumps: noon flight: block 11 (5.6 ahead of block 3 at 18)
+- FAIL prejumps: noon run: block 31 (1.6 ahead of block 3 at 34); block 68 (1.7 ahead of block 3 at 71); block 92 (1.7 ahead of block 3 at 95); block 122 (1.7 ahead of block 3 at 125)
 - PASS timing: sunrise: tightest 137.5 ms over 32 inputs, want >= 60 (measured windows)
 - PASS recovery: sunrise: every press >= 100 ms after landing
 - PASS skips: sunrise: all 0 portals and 2 orbs on the path
 
 Repairs:
-- 1 more row of room in the ship-tunnel at 357 (prejump (5.6 blocks ahead))
+- 2 more columns before single at 506 (prejump (1.6 blocks ahead))
+- 2 more columns before single at 543 (prejump (1.7 blocks ahead))
+- 2 more columns before platform at 562 (prejump (1.7 blocks ahead))
+- 2 more columns before double at 597 (prejump (1.7 blocks ahead))
 
 ## Round 6: not ready (1 fail, 0 warn)
 - PASS beatable: sunrise: 32 presses
-- FAIL prejumps: noon flight: block 10 (6.1 ahead of block 3 at 18); block 21 (5.6 ahead of spike at 28); block 30 (5.1 ahead of spike at 36); block 103 (3.5 ahead of spike at 108)
+- FAIL prejumps: noon run: block 31 (1.6 ahead of block 3 at 34); block 68 (1.7 ahead of block 3 at 71); block 124 (1.7 ahead of block 3 at 127)
 - PASS timing: sunrise: tightest 137.5 ms over 32 inputs, want >= 60 (measured windows)
 - PASS recovery: sunrise: every press >= 100 ms after landing
 - PASS skips: sunrise: all 0 portals and 2 orbs on the path
 
 Repairs:
-- section noon flight rebuilt from another plan (reseed 9): 2 rounds of patching did not fix it
+- section noon run rebuilt from another plan (reseed 9): 2 rounds of patching did not fix it
 
 ## Round 7: not ready (1 fail, 0 warn)
 - PASS beatable: sunrise: 32 presses
-- FAIL prejumps: noon flight: block 11 (5.6 ahead of block 3 at 18)
+- FAIL prejumps: noon run: block 31 (1.6 ahead of block 3 at 34); block 87 (1.7 ahead of block 3 at 90); block 132 (1.7 ahead of block 3 at 135)
 - PASS timing: sunrise: tightest 137.5 ms over 32 inputs, want >= 60 (measured windows)
 - PASS recovery: sunrise: every press >= 100 ms after landing
 - PASS skips: sunrise: all 0 portals and 2 orbs on the path
 
 Repairs:
-- 1 more row of room in the ship-tunnel at 357 (prejump (5.6 blocks ahead))
+- 2 more columns before single at 506 (prejump (1.6 blocks ahead))
+- 2 more columns before single at 562 (prejump (1.7 blocks ahead))
+- 2 more columns before single at 607 (prejump (1.7 blocks ahead))
 
 ## Round 8: not ready (1 fail, 0 warn)
 - PASS beatable: sunrise: 32 presses
-- FAIL prejumps: noon flight: block 10 (6.1 ahead of block 3 at 18); block 21 (5.6 ahead of spike at 28); block 30 (5.1 ahead of spike at 36); block 103 (3.5 ahead of spike at 108)
+- FAIL prejumps: noon run: block 31 (1.6 ahead of block 3 at 34); block 87 (1.7 ahead of block 3 at 90); block 132 (1.7 ahead of block 3 at 135)
 - PASS timing: sunrise: tightest 137.5 ms over 32 inputs, want >= 60 (measured windows)
 - PASS recovery: sunrise: every press >= 100 ms after landing
 - PASS skips: sunrise: all 0 portals and 2 orbs on the path
 
 Repairs:
-- section noon flight rebuilt from another plan (reseed 12): 2 rounds of patching did not fix it
+- section noon run rebuilt from another plan (reseed 12): 2 rounds of patching did not fix it
 
-## Whole level (244 s to score): not ready
+## Whole level (150 s to score): not ready
 - PASS beatable: 39 presses
-- FAIL prejumps: noon flight: block 11 (5.6 ahead of block 3 at 18) -- from the sections
+- FAIL prejumps: noon run: block 31 (1.6 ahead of block 3 at 34); block 68 (1.7 ahead of block 3 at 71); block 107 (1.7 ahead of block 3 at 110) -- from the sections
 - PASS timing: sunrise: tightest 137.5 ms over 32 inputs, want >= 60 (measured windows) -- from the sections
 - PASS recovery: sunrise: every press >= 100 ms after landing -- from the sections
-- WARN deco coverage: 4 stretch(es) under half the level's 12.2 deco per block -- blocks 16-32: 5.2/block; blocks 24-40: 5.8/block; blocks 536-552: 6.1/block; blocks 544-560: 6.1/block
+- WARN deco coverage: 4 stretch(es) under half the level's 12.3 deco per block -- blocks 16-32: 5.2/block; blocks 24-40: 5.8/block; blocks 536-552: 6.1/block; blocks 544-560: 6.1/block
 - PASS symmetry: orbs centred on their structures
 - PASS jump marks: no jump marks
+- PASS contrast: 100/100 sections readable (official levels: median hazard/bg 3.5-21)
 - WARN height: 11.4 floor changes per 10 s (want 12+; official 12-22); 62% of standing on the bare floor (want 45% or less)
 - PASS repetition: no move patterns
 - PASS length: 94 s (official 78-95 s; want 60+)
@@ -101,9 +111,9 @@ Repairs:
 - PASS orb buffer: every orb can be buffered
 - WARN pointless jumps: 1 jump(s) over nothing -- block 748
 - WARN hazards matter: 27 hazard group(s) that need no action -- blocks 50-50: walked over without a jump (a gap above it is crossed on foot); blocks 94-94: walked over without a jump (a gap above it is crossed on foot); blocks 110-111: walked over without a jump (a gap above it is crossed on foot); blocks 134-134: walked over without a jump (a gap above it is crossed on foot); blocks 165-165: walked over without a jump (a gap above it is crossed on foot); blocks 181-182: walked over without a jump (a gap above it is crossed on foot); blocks 219-220: walked over without a jump (a gap above it is crossed on foot); blocks 227-227: walked over without a jump (a gap above it is crossed on foot); blocks 252-253: walked over without a jump (a gap above it is crossed on foot); blocks 276-276: walked over without a jump (a gap above it is crossed on foot); blocks 297-297: walked over without a jump (a gap above it is crossed on foot); blocks 506-506: walked over without a jump (a gap above it is crossed on foot); blocks 527-527: walked over without a jump (a gap above it is crossed on foot); blocks 543-543: walked over without a jump (a gap above it is crossed on foot); blocks 582-582: walked over without a jump (a gap above it is crossed on foot); blocks 596-597: walked over without a jump (a gap above it is crossed on foot); blocks 624-624: walked over without a jump (a gap above it is crossed on foot); blocks 645-645: walked over without a jump (a gap above it is crossed on foot); blocks 673-673: walked over without a jump (a gap above it is crossed on foot); blocks 683-683: walked over without a jump (a gap above it is crossed on foot); blocks 696-697: walked over without a jump (a gap above it is crossed on foot); blocks 709-709: walked over without a jump (a gap above it is crossed on foot); blocks 721-721: walked over without a jump (a gap above it is crossed on foot); blocks 887-888: walked over without a jump (a gap above it is crossed on foot); blocks 914-914: walked over without a jump (a gap above it is crossed on foot); blocks 941-941: walked over without a jump (a gap above it is crossed on foot); blocks 984-984: walked over without a jump (a gap above it is crossed on foot)
-- FAIL reactive: 1 spot(s) that need exact hops -- block 200: the jump over a hazard must also be timed around a block: its window (225 ms) is split by a block
-- PASS player timing: tightest 63 ms over 78 inputs on the player's route, want >= 60
-- WARN difficulty: Easy (0.27 = ~2 attempts), want Normal
+- PASS reactive: every landing leaves room to react
+- PASS player timing: tightest 71 ms over 78 inputs on the player's route, want >= 60
+- WARN difficulty: Easy (0.26 = ~2 attempts), want Normal
 - WARN pacing: start 38, end 18, longest busy 88, hazards first/last third 27/20 -- 88 blocks with no 6-block rest; last third calmer than the first (20 vs 27 hazards)
 - PASS variety: 9 different chunks in 19, most common 16%
 - PASS readability: decoration clear of hazards
@@ -115,7 +125,7 @@ Repairs:
 - PASS fairness: no unfair spots found
 - WARN route: ship 355-477: 15 presses; wave 749-845: 9 presses, 70 cs within 12 of a wall
 - WARN objects: 3 gameplay objects with unconfirmed hitboxes (ids 35)
-- WARN taste: 61/100 (EN|2.2; distinctIds p0, moveTrigPerMin p30, hazPer10 p10) -- under featured levels on: 2.2 budget: objects per block (13.8283, want >= 17.043)
+- WARN taste: 61/100 (EN|2.2; distinctIds p0, moveTrigPerMin p30, hazPer10 p10) -- under featured levels on: 2.2 budget: objects per block (13.8838, want >= 17.043)
 - WARN craft: 2/6 craft targets -- pieces100 3 (>= 12), floorHaz 4% (>= 0.15), attached 25% (>= 0.9), hazards100 9 (>= 45, <= 110)
 
 ## Kept: not ready, difficulty Easy (target Normal)

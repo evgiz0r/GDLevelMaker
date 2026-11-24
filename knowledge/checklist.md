@@ -139,6 +139,9 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   `node tools/obstacles.js intro --file <level>`. (levels/obstacles.md section 3)
 - [ ] **Sections read as Easy/Normal**, with no "off" or "sparse" ones. `node tools/tiercheck.js <level> --tier Easy`.
   (levels/modes_low_tier.md, tier_ref.json)
+- [ ] **Ultra-synced levels sync the INPUTS, not the obstacles**: build them beat-first (`tools/hitbuild.js`):
+  the planned taps alone, each on a real hit (tools/hits.js), must clear the level in the sim. Sliding
+  obstacles until a window covers the beat left 11% of presses on a hit (GDLM 62 v2: "there is no sync").
 - [ ] **Sync loosely**: portals, speed changes and the drop on the music's moments; most clicks free.
   `node tools/sync.js`. (SYNC.md "How much to sync")
 

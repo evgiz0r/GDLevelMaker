@@ -9,12 +9,15 @@
 // block to land on, an orb), is the press's CUE. The LEAD is how far ahead of the cube's
 // front edge the cue still is at the LATEST moment the press works (the end of its window).
 // Small lead = you jump when the obstacle is in your face = reactable. Big lead = a prejump.
-// Flagged: lead > LIMIT blocks (default 1.5; --limit n; 3 in ship/UFO/wave/swing). A press that
+// Flagged: lead > LIMIT blocks (default 1.5; --limit n; times the speed over 1x at 2x+); presses made in ship/UFO/wave/swing are steering and not judged. A press that
 // fires an orb counts as cued, and so does jumping off the end of a ledge.
 if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const { GD, readGdlvl } = require("./io.js");
 // flying modes turn slowly, so steering starts further ahead of what it is for: allow 3 blocks
 const FLYING = new Set(["ship", "ufo", "wave", "swing"]), FLY_LIMIT = 3;
+// the limit is a reaction TIME: at 2x the same time covers 1.24x the blocks (GDLM 64 round 6: three 2x jumps "1.6-1.7
+// blocks ahead" = 1.3-1.4 blocks of 1x time). Only scaled up: slow speeds keep the 1x limit.
+const speedFactor = st => { const S = GD.SPEEDS; return st && S && S[st.sp] && S[1] ? Math.max(1, S[st.sp].x / S[1].x) : 1; };
 
 // A cube hold that re-jumps on landing -> one press per jump (press on the jump's tick, release
 // the tick after). Returned only if the run is unchanged; else the original events.
@@ -46,7 +49,35 @@ function sightread(level, limit = 1.5, opts = {}) {
   const w = opts.world || GD.makeWorld(level.objects, level.header);
   // opts.route: a verified route whose presses carry their windows ({ ok, events, clicks: [{type, tick, lo, hi, x}] },
   // tools/score.js from the saved human route): judged as it is, no solving, no re-measuring
-  if (opts.route && opts.route.ok && opts.route.clicks.every(c => c.type !== "press" || c.lo != null)) return judge(w, level, opts.route.clicks.filter(c => c.type === "press"), opts.route.events, limit, false);
+  // A saved window that reaches MAX_SHIFT (48 steps) past its press is cut off by the measure, not by the level: its
+  // hi is not "the latest moment the press works", which is what the cue distance needs (the ball corridor of
+  // tests/style_gates.js: saved hi 2.1 blocks before the spike, real latest 0.9). Those are measured on the route
+  // itself by shifting (lib/sync.js pressWindows, later inputs fixed): no solve.
+  if (opts.route && opts.route.ok && opts.route.clicks.every(c => c.type !== "press" || c.lo != null)) {
+    const CAP = require("../lib/difficulty.js").DIFF.MAX_SHIFT;
+    let presses = opts.route.clicks.filter(c => c.type === "press");
+    if (presses.some(c => c.hi - c.tick >= CAP)) {
+      // walk each cut-off press (with its own release) later, one step at a time, while the run lives to the next
+      // input (up to 1 s: a ball press can wait 3+ blocks)
+      const ev = opts.route.events, end = GD.run(w, ev).path.length;
+      presses = presses.map(c => {
+        if (c.hi - c.tick < CAP) return c;
+        const i = ev.findIndex(e => e.type === "press" && e.tick === c.tick); if (i < 0) return c;
+        const rel = ev[i + 1] && ev[i + 1].type === "release" ? i + 1 : -1, dur = rel < 0 ? 0 : ev[rel].tick - c.tick;
+        const next = ev.find((e, j) => j > (rel < 0 ? i : rel)), stop = Math.min(c.tick + 240, next ? next.tick - dur - 1 : end);
+        let hi = c.hi;
+        for (let t = c.hi + 1; t <= stop; t++) {
+          // this press's job ends at the next input: alive until then counts (later inputs belong to later presses;
+          // keeping them fixed in time made a later flip look fatal on the ball corridor)
+          const moved = ev.slice(0, (rel < 0 ? i : rel) + 1).map((e, j) => j === i ? Object.assign({}, e, { tick: t }) : j === rel ? Object.assign({}, e, { tick: t + dur }) : e);
+          const run = GD.run(w, moved);
+          if (run.dead && run.path.length - 1 < (next ? next.tick : end)) break; hi = t;
+        }
+        return Object.assign({}, c, { hi });
+      });
+    }
+    return judge(w, level, presses, opts.route.events, limit, false);
+  }
   const r = GD.solveAny(w);
   if (!r.ok) return { ok: false };
   let presses = r.clicks.filter(c => c.type === "press");
@@ -118,8 +149,14 @@ function judge(w, level, presses, base, limit, approx) {
     }
     // a press that fires an orb is cued by that orb: the cube is touching it
     if (c.act && GD.objInfo && /orb/.test(c.act)) { lead = 0; cue = null; }
+    // A press whose latest moment is in a flying mode (ship, ufo, wave, swing) is steering, not a jump: it has no
+    // one thing it answers, so it is not judged as a prejump -- the route, fairness and timing gates judge flight
+    // (GDLM 44's ship tunnel: the fly controller's centring presses read as "4.1 / 10.1 blocks ahead of a block";
+    // GDLM 64's wave mouth: a cube press held into the wave portal, "4.8 ahead"). A hold that carries out of flight
+    // into a cube jump is still judged: its latest moment is then in cube mode. (polish + physics, 2026-11-24)
+    if (lead != null && hiState && FLYING.has(hiState.mode)) { lead = 0; cue = null; }
     out.push({ act: c.act, block: c.x / 30, from: xLo / 30, to: xHi / 30, ms: c.ms, cue: cue && GD.objInfo(cue.id).name, cueAt: cue && cue.x / 30,
-      mode: hiState && hiState.mode, lead, flag: lead != null && lead > (FLYING.has(hiState && hiState.mode) ? FLY_LIMIT : limit) });
+      mode: hiState && hiState.mode, lead, flag: lead != null && lead > (FLYING.has(hiState && hiState.mode) ? FLY_LIMIT : limit) * speedFactor(hiState) });
   }
   return { ok: true, presses: out, approx };
 }
