@@ -433,12 +433,16 @@ What exists and what blocks it (2026-11-23):
   | 02:13 | Blast Processing | 15.8% | 15.7% (slope) | yes | - (needs the recording's clock) |
   | 02:33 | Hexagon Force | 40.4% | 40.6% | yes (drift 28 ms) | - |
   | 02:33 | Base After Base | clear | clear | yes (drift 52 ms) | - |
-  | 02:33 | Fingerdash | 53.0% / clear | 53.2% / 61.3% | yes (drift) / no | clear: block 555.6, robot launched into ceiling spikes (458): unknown |
+  | 02:33 | Fingerdash | 53.0% / clear | 53.2% / 61.3% | yes (drift) / no | clear: block 555.6, robot launched into ceiling spikes (458). tools/passcheck.js 550-558 from the attempt's state: our physics HAS a way (presses 53.150 53.204 53.233 53.608 53.646 s), the log has 53.158 then 53.388 -- the same recording's hook logger dropped a click in Electroman, so most likely PIPELINE (a missed press); re-check with a raw-input recording |
   | 02:33 | xStep | clear | 25.3% | no | block 211, ship into a hanging spike, after 3 drift re-fits: unknown (tight ship corridor) |
   | 02:33 | Electroman | 33.2% / 10.3% | 3.5% / 1.5% | no | PIPELINE: the hook logger missed a click (2nd saw jump) |
   | 02:33 | Geometrical Dominator | 12.3% / 13.3% | 7.3% / 5.7% | no | unknown (robot; path check too noisy to tell) |
   | 02:45 | Clutterfunk | clear | 3.5% | no | block 34.6: the game's cube uses a pad on a hanging block the sim's does not reach: unknown |
   | 02:26 | Jumper, Cycles, Clutterfunk | clear, clear, 92.6% | 2.6%, 2.2%, 1.9% | no | PIPELINE: first logger (missed clicks), not usable |
+- PASS CHECK (tools/passcheck.js, 2026-11-24): an exhaustive held / not-held search (states merged on position, speed,
+  mode, button, orbs) from an attempt's replayed state through a stretch. NO WAY where the user got through = a physics
+  difference there; a way that needs presses the log lacks = a missed input or timing. Fingerdash 550-558: a way exists
+  (10 min, 5.6k states at most) -> not a physics fact. Use --max 5000 (40000 ran out of time).
 - FRAME-SNAPPED PRESSES do not help (the user's "Click Between Steps" is off, so GD may apply a press only at a
   frame start): snapping the logged presses to 60/120/144 Hz grids (every phase) makes no stuck replay go further and
   breaks Base After Base's clear (60 Hz: 12.9%). The logged times as they are fit best.
