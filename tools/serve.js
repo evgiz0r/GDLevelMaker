@@ -90,8 +90,17 @@ const SERVER = http.createServer((req, res) => {
   // POST /play {level, file, session, stage?, attempt, result: "died" | "clear", x, pct, t, why, from, practice}: one
   // attempt of the viewer's "you play" mode -> the actions feed as type "play" (where the user dies: a soft signal for
   // difficulty; VIEWER.md). test: true -> local/viewer_actions.test.jsonl
+  // GET /attempts?file=<level file>&hash=<GD.levelHash>: the user's attempts at that version (tools/attempts.js), without
+  // their inputs unless &id=<attempt id> (one attempt, with its events)
+  if (p === "/attempts" && req.method === "GET") {
+    const q = new URL(req.url, "http://x").searchParams, A = require("./attempts.js");
+    let rows = A.read(q.get("file") || "", q.get("hash") || "");
+    if (q.get("id")) rows = rows.filter(r => r.id === q.get("id"));
+    else rows = rows.map(r => Object.assign({}, r, { events: undefined, presses: (r.events || []).filter(e => e.type === "press").length }));
+    res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify(rows));
+  }
   if (req.method === "POST" && p === "/play") {
-    let body = ""; req.on("data", c => { body += c; if (body.length > 1e4) req.destroy(); });
+    let body = ""; req.on("data", c => { body += c; if (body.length > 2e6) req.destroy(); });   // an attempt's inputs
     req.on("end", () => {
       try {
         const j = JSON.parse(body), num = v => (isFinite(+v) ? +(+v).toFixed(2) : undefined);
@@ -100,6 +109,9 @@ const SERVER = http.createServer((req, res) => {
           from: num(j.from), practice: !!j.practice };
         a.text = a.result === "clear" ? `cleared on attempt ${a.attempt}${a.practice ? " (practice)" : ""}` : `died at ${a.pct}% (block ${Math.round((a.x || 0) / 30)}, ${a.t} s)${a.why ? ": " + a.why : ""} -- attempt ${a.attempt}${a.practice ? ", practice" : ""}`;
         const ACT = require("./actions.js");
+        // the attempt itself (its inputs, to replay beside the route: tools/attempts.js); not from a test page
+        if (!j.test && Array.isArray(j.events)) try { a.attempt_id = require("./attempts.js").append({ source: "viewer", level: a.level, file: a.file, hash: String(j.hash || ""), events: j.events,
+          result: a.result, x: a.x, pct: a.pct, t: a.t, why: a.why, practice: a.practice, from: j.fromTick != null ? { tick: +j.fromTick, x: a.from } : null, session: a.session || undefined, stage: a.stage }).id; } catch (e) {}
         const out = j.test ? (fs.appendFileSync(ACT.FILE.replace(/\.jsonl$/, ".test.jsonl"), JSON.stringify(a) + "\n"), a) : ACT.append(a);
         res.writeHead(200, { "Content-Type": "application/json" }); res.end(JSON.stringify(out));
       } catch (e) { res.writeHead(400); res.end(String(e.message)); }
