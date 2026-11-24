@@ -2283,12 +2283,12 @@ setInterval(() => { if (L && !playing) writeHash(); }, 1000);
   const h = hashParams(), want = h.get("lv");
   const i = want ? ALL.findIndex(l => l.file === want) : -1;
   if (i >= 0) { pick.value = i; pick.wantT = +h.get("t") || 0; pick.onchange(); t = +h.get("t") || 0; draw(); }
-  if (QS.get("check") === "controls") setTimeout(controlsCheck, 6000);
   else if (ALL.length) { pick.value = 0; pick.onchange(); }
   else if (window.GD_PAGES) {   // the public site with no level published yet (knowledge/public_levels.json is opt-in)
     document.getElementById("summary").innerHTML = "<b>First levels coming soon.</b><br><span class='muted'>Geometry Dash levels made by Claude will appear here once one is good enough to share.</span>";
     document.getElementById("pickName").textContent = "no levels yet";
   }
+  if (QS.get("check") === "controls") setTimeout(controlsCheck, 6000);
 })();
 // ---------- shoot mode: tools/shoot.js writes local/shoot/<job>.json {level:{name, levelStr, solution,
 // song}, times:[s], rec, t0, width, height}; each frame goes back as POST /shoot/<job>/<n>.png (the
