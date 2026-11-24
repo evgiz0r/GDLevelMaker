@@ -19,7 +19,9 @@ const CAT = {};
 for (const line of fs.readFileSync(path.join(ROOT, "knowledge", "objects", "catalogue.tsv"), "utf8").split("\n").slice(1)) { const c = line.split("\t"); if (c.length >= 10) CAT[c[0]] = { main: +c[8] || 0, detail: +c[9] || 0 }; }
 function defined(header) {
   const m = /(?:^|,)kS38,([^,]*)/.exec(header || ""), set = new Set();
-  if (m) for (const s of m[1].split("|")) { const x = /(?:^|_)6_(\d+)/.exec(s); if (x) set.add(+x[1]); }
+  // key/value pairs: a regex like /_6_(\d+)/ also matched a VALUE of 6 ("2_6_3_6_11": green 6, blue 6 -> "channel 11"),
+  // so hellgate's channels 30/34/38 (blue 6) read as undefined
+  if (m) for (const s of m[1].split("|")) { const a = s.split("_"); for (let i = 0; i + 1 < a.length; i += 2) if (a[i] === "6") set.add(+a[i + 1]); }
   return set;
 }
 function check(L) {
