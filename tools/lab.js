@@ -47,9 +47,14 @@ function round(briefFile, opts) {
   fs.mkdirSync(LAB, { recursive: true });
   const n = fs.readdirSync(LAB).filter(f => /^r\d+$/.test(f)).length + 1, id = "r" + n, dir = path.join(LAB, id);
   // the moment's colours: the brief's section there (the look stays the song's)
-  let b = 1, col = {}; for (const s of brief.sections) { if (b <= b0 && b + (s.beats || 0) > b0) col = { bg: s.bg, ground: s.ground, line: s.line, obj: s.obj }; b += s.beats || 0; }
+  let b = 1, col = {};   // (the song's colours there: used with --palette song) for (const s of brief.sections) { if (b <= b0 && b + (s.beats || 0) > b0) col = { bg: s.bg, ground: s.ground, line: s.line, obj: s.obj }; b += s.beats || 0; }
+  // colour by ROLE (gd-art's decokit.rolePalette; the user: "clear contrasts between the different things (ground, spikes,
+  // deco)"): each variant its own hue (~60 degrees apart), mid-tone sky, light path rims, spikes in their own hue
+  const D = require("./decokit.js");
   const variants = names.map((h, k) => {
-    const v = { name: `LAB ${id} v${k + 1} ${h}`, desc: `Section lab ${id}: ${opts.name || "a moment"}, hook: ${h}`, song: brief.song, grid: brief.grid, offset: (brief.offset || 0) + t0,
+    const pal = opts.palette === "song" ? null : D.rolePalette((opts.hue0 ?? 30) + k * 60);
+    if (pal) col = { bg: pal.bg, ground: pal.ground, line: pal.line, obj: pal.pathEdge };
+    const v = { _palette: pal, name: `LAB ${id} v${k + 1} ${h}`, desc: `Section lab ${id}: ${opts.name || "a moment"}, hook: ${h}`, song: brief.song, grid: brief.grid, offset: (brief.offset || 0) + t0,
       seed: (brief.seed || 1) * 100 + k, difficulty: brief.difficulty || { label: "Normal" }, terrain: true, structures: false, modern: true, signature: false, leadIn: 4, flips: false,
       sections: HOOKS[h].make(beats, col), _hook: h };
     writeJ(path.join(dir, `v${k + 1}.json`), v);
@@ -64,12 +69,13 @@ function build(id, k) {
   const t0 = Date.now(), dir = path.join(LAB, id), R = readJ(path.join(dir, "round.json")), vf = path.join(dir, `v${k}.json`), v = readJ(vf);
   const C = require("./compose.js"), { build: mk, slug } = require("./make.js"), { scoreLevel } = require("./score.js"), { GD, writeGdlvl } = require("./io.js");
   const log0 = console.log; let built, placed = []; console.log = () => {};
-  try { const cr = C.compose(v); placed = cr.placed.map(q => q.name); built = mk(cr.spec, vf); } finally { console.log = log0; }
+  // the role palette's path and hazard colours: make.js puts block rims and hazards on their own channels (spec.colours)
+  try { const cr = C.compose(v); placed = cr.placed.map(q => q.name); if (v._palette) cr.spec.colours = Object.assign({}, cr.spec.colours, { path: v._palette.pathEdge, hazard: v._palette.hazardEdge }); built = mk(cr.spec, vf); } finally { console.log = log0; }
   const level = built.level, levelStr = GD.serializeLevel(level), out = path.join(dir, `v${k}.gdlvl`);
   writeGdlvl(out, built.rec, level);
   const sol = require("./solutions.js").solve(level, levelStr, { name: v.name });
   const sc = scoreLevel(level, v, { fairness: false, levelStr });
-  const PART = ["beatable", "prejumps", "timing", "recovery", "skips", "reactive", "fairness", "climbs"];
+  const PART = ["beatable", "prejumps", "timing", "recovery", "skips", "reactive", "fairness", "climbs", "roles"];   // roles: gd-art's colour-by-role gate
   const fails = sc.gates.filter(g => g.status === "FAIL" && PART.includes(g.name)).map(g => g.name), warns = sc.gates.filter(g => g.status === "WARN" && PART.includes(g.name)).map(g => g.name);
   let pace = null; try { const PA = require("./pace.js"), B = require("./beats.js"); pace = PA.paceOf(level, sol && sol.ok ? sol.events : null, B.loadBeats("custom_" + (v.song.custom || v.song))); } catch (e) { pace = { error: e.message }; }
   const res = { round: id, k, hook: v._hook, name: v.name, ok: !!(sol && sol.ok) && !fails.length, fails, warns, patterns: placed, pace, secs: (Date.now() - t0) / 1000, at: new Date().toISOString() };
@@ -78,7 +84,7 @@ function build(id, k) {
   try {
     const ST = require("./stages.js"), T = require("./pace.js").load().target;
     ST.put({ session: SESSION, base: `lab_${id}_v${k}`, name: v.name, stage: "layout", levelStr, data: { events: sol && sol.ok ? sol.events : [], kind: "planned" },
-      note: `${v._hook}: ${HOOKS[v._hook].why}. Pace ${pace && pace.cps != null ? pace.cps + " cps" : "-"} (real ${T.cps}), ${pace && pace.obsPerBar != null ? pace.obsPerBar + " obstacles/bar" : "-"} (real ${T.obsPerBar}), ${pace && pace.changesPer10s != null ? pace.changesPer10s + " changes/10 s" : "-"} (real ${T.changesPer10s})${res.ok ? "" : " -- NOT OK: " + fails.join(", ")}` });
+      note: `${v._hook}: ${HOOKS[v._hook].why}. Pace ${pace && pace.perBeat != null ? pace.perBeat + " inputs/beat" : "-"} (real ${T.perBeat}), ${pace && pace.cps != null ? pace.cps + " cps" : "-"} (real ${T.cps}), ${pace && pace.obsPerBar != null ? pace.obsPerBar + " obstacles/bar" : "-"} (real ${T.obsPerBar}), ${pace && pace.changesPer10s != null ? pace.changesPer10s + " changes/10 s" : "-"} (real ${T.changesPer10s})${res.ok ? "" : " -- NOT OK: " + fails.join(", ")}` });
   } catch (e) {}
   try { fs.appendFileSync(path.join(ROOT, "local", "timings.jsonl"), JSON.stringify({ at: res.at, tool: "lab.js", step: "lab-build", level: v.name, secs: res.secs }) + "\n"); } catch (e) {}
   return res;
@@ -157,7 +163,7 @@ module.exports = { round, build, ask, collect, status, sheet, HOOKS };
 
 if (require.main === module) {
   const [cmd, a, b, ...rest] = process.argv.slice(2), all = [a, b, ...rest], opt = k => { const i = all.indexOf(k); return i >= 0 ? all[i + 1] : null; };
-  if (cmd === "round") { const R = round(a, { beats: opt("--beats"), name: opt("--name"), hooks: opt("--hooks"), n: +(opt("--n") || 6) }); console.log(`${R.id}: ${R.moment} ${R.t[0]}-${R.t[1]} s; variants: ${R.variants.map(v => "v" + v.k + " " + v.hook).join(", ")}`); }
+  if (cmd === "round") { const R = round(a, { beats: opt("--beats"), name: opt("--name"), hooks: opt("--hooks"), n: +(opt("--n") || 6), palette: opt("--palette"), hue0: opt("--hue") != null ? +opt("--hue") : undefined }); console.log(`${R.id}: ${R.moment} ${R.t[0]}-${R.t[1]} s; variants: ${R.variants.map(v => "v" + v.k + " " + v.hook).join(", ")}`); }
   else if (cmd === "build") { const r = build(a, +b); console.log(`${r.name}: ${r.ok ? "OK" : "NOT OK " + r.fails.join(",")} in ${r.secs.toFixed(0)} s; pace ${JSON.stringify(r.pace)}`); }
   else if (cmd === "ask") { const r = ask(a); console.log(`decision card ${r.card}: ${r.options.join(" | ")}`); }
   else if (cmd === "collect") { const r = collect(a); console.log(r.waiting ? `waiting for the user's answer (card ${r.card})` : `picked v${r.pick} ${r.hook}${r.reason ? ' -- "' + r.reason + '"' : ""} -> local/reviews.jsonl, library, prefs`); }
