@@ -545,7 +545,11 @@ function renderList() {
   });
 }
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
-function download(name, blob) { const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); }
+// in the phone page (an Artifact) a file is handed over by its downloads capability; elsewhere a plain link
+let DL = null; if (window.claude && typeof claude.use === "function") claude.use("downloads").then(d => DL = d, () => {});
+function download(name, blob) {
+  if (DL) { DL.save({ filename: name, data: blob }).catch(e => { if (e && e.code !== "declined") msg("not saved: " + (e.message || e.code), 4000); }); return; }
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); }
 const fileBase = () => "sketch_" + sk.name.toLowerCase().replace(/[^\w]+/g, "_").replace(/^_|_$/g, "");
 $("jsonBtn").onclick = () => download(fileBase() + ".json", new Blob([JSON.stringify(sk, null, 1)], { type: "application/json" }));
 async function gz(text) { const cs = new CompressionStream("gzip"); const buf = await new Response(new Blob([text]).stream().pipeThrough(cs)).arrayBuffer(); return new Uint8Array(buf); }
