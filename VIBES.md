@@ -246,7 +246,11 @@ jobs before compose started). The two runs so far:
 3. **Vehicle, never and camera as constraints** -- DONE: `sections[i].structureModes` (compose.js structurePicks only
    takes structures in the sheet's modes, so no stray ufo/ball/wave); `brief.pulses === false` (from `never` / camera)
    reaches make.js (`spec.modern.pulses`) and planned.js (no bar pulses); `modern: false` for plain sheets.
-4. **Repair rounds in collab builds** -- DONE, UNTESTED (tools/collab.js `build`, `--rounds n`, default 3,
+4. **Repair rounds in collab builds** -- DONE, TESTED 2026-11-24 (style): three bugs fixed -- a tight window now swaps the
+   chunk for its easier kind at once (room before a triple left it at 45.8 ms), the swapped kind is banned from the section
+   (compose tweak `ban:<si>`: compose places every unseen kind once, so the triple came back as the next chunk), and the
+   spots of skips / reactive are read from the gate's note. GDLM 69 p1 now passes timing; `reactive` (3-4 spots) survives 5
+   rounds of room and reseeds -- likely the terrain step-ups after landings, not the chunks blamed. Open. Was: UNTESTED (tools/collab.js `build`, `--rounds n`, default 3,
    `brief.partRounds`): compose's blame rules (dies / prejumps / tight / chains / skips / reactive -> room, columns,
    EASIER chunk, another plan after two blamed rounds) on the part, with no files written; a worse round is dropped,
    the best kept, the seam check after. First test: `node tools/collab.js build briefs/69_time_hop.json 1 --by
