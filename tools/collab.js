@@ -96,6 +96,9 @@ function partBrief(brief, part, k, nParts, seed) {
   sub.name = brief.name + " part " + (k + 1);
   sub.seed = (brief.seed || 1) * 1000 + k * 37 + (seed || 0);
   if (k > 0) sub.leadIn = brief.partLeadIn ?? 4;                 // not the level's 10-block calm start at every seam
+  // no portal on a part's first columns: joined, the player reaches a portal's hitbox ~30 units early (from the part
+  // before), alone it starts inside it at time 0 -- 13 ticks of ship physics apart (GDLM 65 p1 died 7 blocks in)
+  if (k > 0) sub.portalRoom = brief.partPortalRoom ?? 3;
   if (k < nParts - 1) sub.signature = false;                     // the signature ends the last part only
   // a part that ends in a flying section: its exit portal 4 blocks before the seam, so the cube is down on the floor
   // when the seam time comes (GDLM 65 p1: the exit at the section's very end left it on the portal's frame block, y 45)
@@ -166,7 +169,10 @@ function join(briefFile) {
     // a part's objects within its own stretch (its run-out past the seam belongs to the next part); the last keeps all
     // (and nothing from before its own start: parts carry deco to x -300, which would spill into the part before)
     for (const o of L.level.objects) if ((last || o.x <= end + 15) && (k === 0 || o.x >= -15)) objects.push(Object.assign({}, o, { x: +(o.x + shift).toFixed(3) }));
-    if (r.events) { const dt = Math.round(p.t[0] * TPS); for (const e of r.events) if (last || e.tick < Math.round(r.dur * TPS)) events.push(Object.assign({}, e, { tick: e.tick + dt })); }
+    // each part's route starts with the button up: a press held at the end of the part before is released at the seam
+    // (its release past the seam was cut with the rest of that part's run-out, and the hold carried into the next
+    // part's ship: GDLM 65, died 7 blocks into p1)
+    if (r.events) { const dt = Math.round(p.t[0] * TPS); if (k > 0) events.push({ tick: dt - 1, type: "release" }); for (const e of r.events) if (last || e.tick < Math.round(r.dur * TPS) - 1) events.push(Object.assign({}, e, { tick: e.tick + dt })); }
     else { problems.push(`${p.id}: no route`); send.add(p.id); }
     p.shift = +shift.toFixed(2);
     shift += end;
@@ -178,8 +184,8 @@ function join(briefFile) {
   const run = GD.run(w, events), path0 = run.path;
   // the seams: the joined run's state at each seam time against the contract
   const seamRes = plan.seams.map((s, i) => {
-    // the state the player ARRIVES with: 2 ticks before the seam (the next part's first portal may sit on the seam itself)
-    const tick = Math.round(s.t * TPS) - 2, q = path0[Math.min(tick, path0.length - 1)] || {}, want = SPEED_IX[s.speed];
+    // the state the player ARRIVES with: 30 ticks (~39 units at 1x) before the seam, before any portal of the next part
+    const tick = Math.round(s.t * TPS) - 30, q = path0[Math.min(tick, path0.length - 1)] || {}, want = SPEED_IX[s.speed];
     const xT = SY.xOfT(tl, s.t), xPart = parts[i + 1].p.shift;
     const bad = [];
     if (tick >= path0.length - 1 && run.dead) bad.push("the run died before it");

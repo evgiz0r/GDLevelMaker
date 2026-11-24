@@ -179,12 +179,16 @@ function compose(brief, tweaks = {}) {
     // (8 after an upside-down part: the cube falls from the ceiling first; 4 left it mid-air at the next
     // portal, fairness gate, GDLM 47)
     let land = prevFlying && start - flyEnd < 4 ? (prevUpside ? 8 : 4) : 0;
+    // brief.portalRoom: the first section's portals that many columns in (tools/collab.js parts: a portal on a part's
+    // first column is touched ~30 units before the seam once joined, but at time 0 when the part runs alone)
+    const pRoom = si === 0 ? (brief.portalRoom || 0) : 0;
+    land += pRoom;
     // a speed portal where the player passes: on the ground row, before this section's own portal (and
     // after the landing room). Above a corridor (row 5) the wave flew under it and the speed never
     // changed (GDLM 47 round 1: a 0.5x section ran on into the next three).
     if (speeds[si] !== lastSpeed) {
       const flying = sec.mode && sec.mode !== "upside";
-      objects.push([speeds[si] + " speed", flying || sec.mode === "upside" ? start + land - 1 : start, 1]);
+      objects.push([speeds[si] + " speed", flying || sec.mode === "upside" ? start + land - 1 : start + pRoom, 1]);
       // the section's own portal 3 columns later: a speed change is a "switch" too, and the next mode's
       // first input closed 192 ms after it (fairness gate, GDLM 47's 1x speed + wave portal)
       if (flying) land += 3;
