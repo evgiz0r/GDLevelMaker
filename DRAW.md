@@ -17,6 +17,11 @@ Tests: `node tests/sketch.js` (the converter), `node tests/draw_page.js [--shots
 - **No grid.** Board units are level units (30 = a block, y up, ground at 0, the player starts at x 0). One finger draws,
   two fingers move and zoom (mouse: right-drag, wheel, Ctrl+wheel). Strokes are smoothed (Ramer-Douglas-Peucker, 1.2 px)
   and keep their exact place; "faint block guides" in ☰ only if wanted.
+- **Moving through the level** (the user: "how do i navigate back and forth, same as the replay"): the seek strip across
+  the top of the board is the whole level in small (bars, sections, what is drawn, deaths, the visible window, the
+  playhead); tap or drag it to jump there (the song marker comes along). The song's current time is the yellow marker:
+  tap or drag the ruler under the strip to put it anywhere; ▶♪ starts there, and a pause leaves it (dashed, with the time). Keys: ←/→ (Shift: bigger steps), Home = the start. **Zoom**: － / ＋ buttons,
+  pinch, Ctrl+wheel, keys - / +.
 - **Pens** (1-6): ground, blocks, spikes, deco (colour, width, behind / in front), I jump here (tap = a jump, drag = a
   hold), note (for Claude, never in the level).
 - **Stamps** (●): orbs, pads, mode portals, gravity / size, speed, spike / saws / block / slab, and every prop of
@@ -27,7 +32,9 @@ Tests: `node tests/sketch.js` (the converter), `node tests/draw_page.js [--shots
 - **♪**: the song and its beat grid. Bar lines, numbered bars, the song's section changes (▲ +10 dB = Ragnarok's drop at
   bar 18) and a loudness strip. Grids: `viewer/draw_songs.js` (committed numbers, Ragnarok's song 343707 for now; add more
   from `local/beats/<key>.json` the same way) and, on the PC, every grid in `local/beats.local.js`. ▶♪ plays the song with a
-  playhead at level speed (the PC serves the mp3; on the phone: pick the file).
+  playhead at level speed (the PC serves the mp3). On the phone / in the Claude app the page cannot fetch songs (they are
+  never published): pick the mp3 once in ♪, or drop the file on the board; the page keeps it in the browser (IndexedDB)
+  and loads it by itself next time. ▶♪ with no song opens the ♪ panel.
 - **✓ check**: the jump marks replayed (yellow dashed path; "your jumps die here"), then the solver in a Worker (green path,
   its presses as green ticks; or "nothing gets past here"); stops after 60 s. ▶ replays it. **🎮** plays it with
   `lib/liveplay.js` (tap / space; deaths stay as red crosses until "clear death marks").

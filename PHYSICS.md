@@ -245,16 +245,10 @@ of view (camera fit with gd-visuals).
 ## Handoff: the solver session (2026-11-24, archived; the area goes to gd-physics)
 
 The solver session (official re-solves, human routes, dual / moving objects, labs GDLM 63/67/68) stopped here:
-- **Official levels after 46672ee (no landing buffer): NOT re-solved.** Before it, 20/22 were beaten (all but Deadlocked
-  and Dash); after it, 21/22 saved viewer routes die (they leaned on the old buffer). The raw solves of 6, 7, 10, 12,
-  14, 18, 19, 21 still finish: they need only `node tools/difficulty_solve.js <n> --replan`; the rest (1-5, 8, 9, 11,
-  13, 15-17) need `--resume` (it re-solves from a bit before the first break). Run them at
-  `GDLM_HEAVY_PRIORITY=low`, then `node tools/routes.js status --official` and `node tools/humanroute.js`. The queued
-  batch was stopped unrun at the handoff.
-- **Fingerdash (21) viewer route:** the planner ran 93 min on it (a 6.7 s replay fires 256 triggers). Since 332c674
-  `naturalPlan`'s `budgetMs` (10 min from difficulty_solve) stops inside a pass and returns the last checked route
-  (`tests/natural_tap.js`). Re-run its `--replan` and check it ends within ~10 min; if the budgeted route is poor,
-  profile the passes (`tools/profsum.js`) -- `early` / `fly` over the trigger replays are the suspects.
+- **Official levels after 46672ee (no landing buffer): re-solved 2026-11-25 by `tools/mains.js run`** (DIFFICULTY.md
+  "Main levels kept current"): 20/22 clear again with a human route, as before the change; Deadlocked and Dash still die
+  at the same spots (open physics leads below). `tools/mains.js` now keeps them current by itself after physics changes.
+- **Fingerdash (21) viewer route:** its `--replan` took 42 min on 2026-11-25 (budget 10 min per plan pass); the route clears.
 - **Open physics leads (not solver gaps):** Deadlocked -- the teleport-spike stretch (`node tools/stuck.js 20 ...`
   shows no input sequence survives: a teleport / spike-hitbox question). Dash -- the cube portal stack and the mini
   route need a ball bounce off moving objects (move-trigger platforms; PHYSICS.md "Moving objects"). Theory of
@@ -797,6 +791,17 @@ What it says:
   local searches in ship and wave parts, which the library cannot play (ship presses are steering, not answers to a
   structure). A ship part is searched once to its end (a repair bit by bit cost 132 s on GDLM 45, then 69 s).
 - So the library is a first guess for tap parts. Ship and wave stay with the sweep and natural.js's flying controller.
+
+The PC run (2026-11-24, `test --set all`: 114 of 115 clears -- gdsolver's plans, our main-level routes, the GDLM routes,
+the user's attempts; Hexagon Force, Deadlocked and Dash left out while they are re-solved): taps 4380 presses, recall 26%,
+precision 75% (+-3 frames); flying 1728, 8% / 52%; all 21% / 71%; the state-only baseline 0%. Best on plain cube levels
+(GDLM 42 15/20, GDLM 02 9/11), worst on the later main levels (Clubstep 1/136, Theory of Everything 4/137).
+Read: precision holds across sources (what it presses is right three times in four), recall falls on the dense later
+levels, where the pictures are rarely seen twice in 112 other levels. Likely causes, untested: gdsolver's plans are raw
+solver inputs (holds through landings, presses at a window's edge), so they teach where a press CAN go, not where a
+player puts it, and they disagree with our human routes on the same level; the picture has no memory of what the player
+just did (orb chains, pad-orb pairs). Next for the library: learn from human routes and the user's attempts only and
+compare; add the last action to the state. The rollout test on the main levels waits for the re-solve.
 
 Next (not built): (1) the main-level test on the PC: `node tools/presslib.js test --set all` (light, no slot), then
 `test --set gdsolver --rollout` at low priority -- 22 levels and gdsolver's real-game plans are the data that matters,
