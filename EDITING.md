@@ -197,3 +197,11 @@ See CLAUDE.md's table. Measured 2026-11-23: see "Results" below.
   The checks after the edit show it (fairness mark / jump marks); re-placing them is not automatic yet.
 - A reviewed official level: the official route is the solver's (`limit` kind on some), so route-based issues there
   are less sure than on ours.
+
+## Fixes through the level's model (2026-11-24)
+
+Every edit is sized and checked against the level's model (tools/model.js; BUILDING.md 1 "Fixes through the model"):
+edit.js (and so fix.js, markedit.js, retarget.js, review.js) prints "model: a <small|medium|large> fix -- keeps the
+level's model" or what it breaks (a calm part made much denser, a drop thinned, a section's look or vehicle changed). A
+small fix that leaves the model is reworked or treated as medium; medium goes to the coordinator's review; large means
+re-planning the model first. polish.js prints the same for its output.

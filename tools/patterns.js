@@ -37,8 +37,10 @@ def("block-spike-block", "jump block to block over two spikes (the spikes punish
 });
 
 // --- terrain ---
-def("stairs", "n one-square steps up, w squares each (default 3), optional spike on the far floor", (a) => {
-  const n = a.n || 3, w = a.w || 3, o = [];
+// steps 4+ wide (readable climbs, tools/climbs.js: a 3-wide step at 1x is 0.29 s on the ground -- the user on GDLM 68's
+// ladder: "almost luck based if i can find where to click"); a.narrow true allows less
+def("stairs", "n one-square steps up, w squares each (default and minimum 4), optional spike on the far floor", (a) => {
+  const n = a.n || 3, w = a.narrow ? (a.w || 3) : Math.max(4, a.w || 4), o = [];
   for (let s = 0; s < n; s++) for (let c = 0; c < w; c++) for (let r = 0; r <= s; r++) o.push(["block", s * w + c, r]);
   return { objects: o, width: n * w };
 });
