@@ -19,7 +19,8 @@ Tests: `node tests/sketch.js` (the converter), `node tests/draw_page.js [--shots
   and keep their exact place; "faint block guides" in ☰ only if wanted.
 - **Moving through the level** (the user: "how do i navigate back and forth, same as the replay"): the seek strip across
   the top of the board is the whole level in small (bars, sections, what is drawn, deaths, the visible window, the
-  playhead); tap or drag it to jump there. Keys: ←/→ (Shift: bigger steps), Home = the start. **Zoom**: － / ＋ buttons,
+  playhead); tap or drag it to jump there (the song marker comes along). The song's current time is the yellow marker:
+  tap or drag the ruler under the strip to put it anywhere; ▶♪ starts there, and a pause leaves it (dashed, with the time). Keys: ←/→ (Shift: bigger steps), Home = the start. **Zoom**: － / ＋ buttons,
   pinch, Ctrl+wheel, keys - / +.
 - **Pens** (1-6): ground, blocks, spikes, deco (colour, width, behind / in front), I jump here (tap = a jump, drag = a
   hold), note (for Claude, never in the level).

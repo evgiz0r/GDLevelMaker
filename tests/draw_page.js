@@ -42,6 +42,11 @@ let fail = 0; const ok = (c, m) => { console.log((c ? "ok   " : "FAIL ") + m); i
     await p.mouse.click(box.x + box.width - 5, box.y + 10); const xr = await p.evaluate(() => DRAW.V.x);
     await p.mouse.click(box.x + 2, box.y + 10); const xl = await p.evaluate(() => DRAW.V.x);
     ok(xr > x0 + 300 && xl < xr - 300, `${tag}: the seek strip moves back and forth (${Math.round(x0)} -> ${Math.round(xr)} -> ${Math.round(xl)})`);
+    // the ruler under the strip puts the song's time (the yellow marker) where it is tapped
+    await p.mouse.click(box.x + box.width * 0.9, box.y + 36);
+    const ph = await p.evaluate(() => ({ x: DRAW.listen.x, kept: DRAW.listen.kept, }));
+    const want = await p.evaluate(w => DRAW.V.x + w * 0.9 / DRAW.V.z, box.width);
+    ok(ph.kept && Math.abs(ph.x - Math.max(0, want)) < 5, `${tag}: a tap on the ruler moves the song marker (${Math.round(ph.x)} vs ${Math.round(want)})`);
     await p.click("#checkBtn");
     await p.waitForFunction(() => !/looking/.test(document.getElementById("msg").textContent), null, { timeout: 30000 }).catch(() => {});
     const m = await p.locator("#msg").textContent();

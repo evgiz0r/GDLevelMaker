@@ -436,7 +436,8 @@ cv.addEventListener("pointerdown", e => {
     gesture = { d: Math.hypot(a.x - b.x, a.y - b.y), cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2, z: V.z, vx: V.x, vy: V.y }; dirty = true; return;
   }
   if (pointers.size > 2) return;
-  if (e.offsetY < SEEK + 4 && pointers.size === 1) { drag = { seek: true }; if (listen.on) stopListen(); seekTo(e.offsetX); return; }
+  if (e.offsetY < SEEK + 4 && pointers.size === 1) { drag = { seek: true }; seekTo(e.offsetX); setPlayhead(wx(W * 0.3)); return; }
+  if (e.offsetY < TOP + 8 && pointers.size === 1) { drag = { time: true }; setPlayhead(wx(e.offsetX)); return; }   // the ruler: put the song's time here
   const x = wx(e.offsetX), y = wy(e.offsetY);
   if (e.button === 1 || e.button === 2 || ui.tool === "pan") { drag = { pan: true, px: e.offsetX, py: e.offsetY, vx: V.x, vy: V.y }; return; }
   if (ui.tool === "pen" && ui.pen === "jump") { snapshot(); const it = { k: "press", x: +x.toFixed(1), y: +y.toFixed(1) }; sk.items.push(it); drag = { press: it, fresh: true }; changed(); return; }
@@ -458,7 +459,8 @@ cv.addEventListener("pointermove", e => {
     V.z = z; V.x = ax - cx / z; V.y = ay - (H - cy) / z; dirty = true; return;
   }
   const x = wx(e.offsetX), y = wy(e.offsetY);
-  if (drag && drag.seek) { seekTo(e.offsetX); return; }
+  if (drag && drag.seek) { seekTo(e.offsetX); setPlayhead(wx(W * 0.3)); return; }
+  if (drag && drag.time) { setPlayhead(wx(e.offsetX)); return; }
   if (drag && drag.pan) { V.x = drag.vx - (e.offsetX - drag.px) / V.z; V.y = drag.vy + (e.offsetY - drag.py) / V.z; dirty = true; return; }
   if (cur) { const l = cur.pts[cur.pts.length - 1]; if (Math.hypot(x - l[0], y - l[1]) * V.z > 2) { cur.pts.push([+x.toFixed(1), +y.toFixed(1)]); dirty = true; } return; }
   if (drag && drag.move != null) { const dx = x - drag.x, dy = y - drag.y; if (!drag.moved && Math.hypot(dx, dy) * V.z < 3) return; drag.moved = true; moveItem(sk.items[drag.move], dx, dy); drag.x = x; drag.y = y; conv = null; dirty = true; return; }
@@ -644,11 +646,12 @@ const listen = { on: false, x: 0, t0: 0, kept: false };   // kept: paused, the m
 $("listenBtn").onclick = () => {
   if (listen.on) return stopListen();
   loadAudio(); if (!audioOk && !audio.src) { $("songBtn").onclick(); $("audioState").textContent = "pick the song's mp3 once (343707.mp3 for Ragnarok's): it is remembered on this device"; return; }
-  const inView = listen.kept && listen.x >= wx(0) && listen.x <= wx(W);
-  listen.on = true; listen.x = inView ? listen.x : Math.max(0, wx(W * 0.3)); audio.currentTime = Math.max(0, songTime(listen.x));
+  listen.on = true; listen.x = listen.kept ? listen.x : Math.max(0, wx(W * 0.3)); audio.currentTime = Math.max(0, songTime(listen.x));
   audio.play().then(() => {}, () => { msg("the song could not start: ♪ → pick the mp3", 4000); stopListen(); });
   $("listenBtn").classList.add("on"); $("listenBtn").textContent = "■♪";
 };
+// the song's current time is the yellow marker: the ruler (tap / drag) and the seek strip move it, playing or paused
+function setPlayhead(x) { listen.x = Math.max(0, x); listen.kept = true; if (listen.on && audio.src) audio.currentTime = Math.max(0, songTime(listen.x)); dirty = true; }
 function stopListen() { listen.on = false; listen.kept = true; audio.pause(); $("listenBtn").classList.remove("on"); $("listenBtn").textContent = "▶♪"; dirty = true; }
 
 // ---- play it: the same sim as the viewer's "you play" ----
@@ -763,7 +766,7 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 resize(); buildRows(); loadAudio(); requestAnimationFrame(frame);
-window.DRAW = { get sketch() { return sk; }, convert, ui, V, startPlay, stopPlay, toScreen: (x, y) => [sx(x), sy(y)], setItems: items => { snapshot(); sk.items = items; changed(); } };   // for tests (tests/draw_page.js)
+window.DRAW = { listen,  get sketch() { return sk; }, convert, ui, V, startPlay, stopPlay, toScreen: (x, y) => [sx(x), sy(y)], setItems: items => { snapshot(); sk.items = items; changed(); } };   // for tests (tests/draw_page.js)
 </script>
 </body>
 </html>
