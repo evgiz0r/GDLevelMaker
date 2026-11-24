@@ -163,7 +163,9 @@ function toViewer(n, level, res) {
   let events = null;
   // the human route's tap length follows the level's stars (lib/natural.js tapMsFor: harder levels, shorter taps)
   const stars = NAMES[n] ? NAMES[n][2] : null;
-  try { const n = require("../lib/natural.js").naturalPlan(w, { ok: res.ok, events: res.events }, L.objects, { cost: true, stars });
+  // the solve is saved: say so now (the viewer route below can take minutes; Fingerdash's ran 36+ min and looked stalled)
+  console.log(`${n}: solve saved (${res.ok ? "beaten" : "stops at block " + (res.dieX / 30).toFixed(1)}); planning the viewer route (budget 10 min)...`);
+  try { const n = require("../lib/natural.js").naturalPlan(w, { ok: res.ok, events: res.events }, L.objects, { cost: true, stars, budgetMs: 10 * 60e3 });
     if (n && (res.ok ? n.path[n.path.length - 1].done : true)) events = n.events; } catch (e) {}
   const kind = events ? "human" : "humanize";   // tools/difficulty.js scores a "human" route as it is
   if (!events) events = require("../lib/difficulty.js").humanize(w, res.events).events;

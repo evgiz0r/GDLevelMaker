@@ -1,5 +1,6 @@
 // node tests/natural_tap.js  -- the human route's tap length (lib/natural.js tapMsFor): 75 ms by default, by the level's
 // stars (easy longer, hard shorter), a per-level override, the user's own habit; and a planned cube jump gets it.
+// Also the planner's time budget (opts.budgetMs).
 const assert = require("assert");
 const { GD } = require("../tools/io.js"), N = require("../lib/natural.js");
 assert.strictEqual(N.tapMsFor(), 75);
@@ -14,4 +15,6 @@ assert.strictEqual(len({ stars: 1 }), Math.round(90 * 0.24), "1 star: 90 ms");
 assert.strictEqual(len({ stars: 12 }), Math.round(60 * 0.24), "demon: 60 ms");
 assert.strictEqual(len({}), Math.round(75 * 0.24), "default 75 ms");
 assert.strictEqual(len({ player: "user" }), Math.round(120 * 0.24), "the user's own tap");
+// a time budget (opts.budgetMs): past it the optional passes are skipped, but the route returned still finishes
+{ const n = N.naturalPlan(w, r, w.objects, { budgetMs: 1 }); assert(n && n.path[n.path.length - 1].done, "a spent budget still returns a finishing route"); }
 console.log("natural_tap: ok");
