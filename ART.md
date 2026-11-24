@@ -305,3 +305,8 @@ At 70%, Dreamy shows 10.4 objects per block and GDLM 64 shows 36.3, yet Dreamy r
    open around the path. Ours fills the whole height behind the path with trees.
 5. **Play blocks get a drop shadow and a light outline** (Dreamy's offset darker copy), so they sit in front of busy art.
 (The how is it october frames came out empty: the camera ghost on a level without a route; visuals is redoing them.)
+Brave Blue and Project Muse were also compared (local/compare/...):
+- Brave Blue's frames show a bare sky and ground while the label counts 8-48 objects per block in view. Its 2.2 groups,
+  moved or toggled by triggers, are not drawn by the camera ghost, so the pair is not usable yet (asked visuals).
+- Project Muse is a text / gimmick level that ranked high on motion alone. It is not a look reference.
+For now, Dreamy is the working side-by-side reference.
