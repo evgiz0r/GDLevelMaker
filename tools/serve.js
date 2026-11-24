@@ -100,6 +100,11 @@ const SERVER = http.createServer((req, res) => {
       res.writeHead(200); res.end("ok"); });
     return;
   }
+  // GET /me/icons: the user's icons and colours from their GD save (tools/save_icons.js; read-only, this PC's viewer only)
+  if (p === "/me/icons" && req.method === "GET") {
+    let o = null; try { o = require("./save_icons.js").read(); } catch (e) {}
+    res.writeHead(o ? 200 : 404, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify(o));
+  }
   // GET /community/list: the community levels on this PC, names and demon-list facts only (tools/community_index.js);
   // the viewer fetches a level's own file (local/community/<id>.gdlvl) when it is opened
   if (p === "/community/list" && req.method === "GET") {

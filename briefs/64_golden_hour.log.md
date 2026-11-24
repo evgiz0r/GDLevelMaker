@@ -14,7 +14,6 @@ Target: {"label":"Normal","minWindowMs":60}
 
 Repairs:
 - 1 more row of room in the ship-tunnel at 357 (prejump (5.6 blocks ahead))
-- 1 more row of room in the wave-zigzag at 751 (prejump (4.8 blocks ahead))
 
 ## Round 2: not ready (1 fail, 0 warn)
 - PASS beatable: sunrise: 32 presses
@@ -25,7 +24,6 @@ Repairs:
 
 Repairs:
 - section noon flight rebuilt from another plan (reseed 3): 2 rounds of patching did not fix it
-- section night wave rebuilt from another plan (reseed 3): 2 rounds of patching did not fix it
 
 ## Round 3: not ready (1 fail, 0 warn)
 - PASS beatable: sunrise: 32 presses
@@ -36,7 +34,6 @@ Repairs:
 
 Repairs:
 - 1 more row of room in the ship-tunnel at 357 (prejump (5.6 blocks ahead))
-- 1 more row of room in the wave-zigzag at 751 (prejump (4.8 blocks ahead))
 
 ## Round 4: not ready (1 fail, 0 warn)
 - PASS beatable: sunrise: 32 presses
@@ -47,7 +44,6 @@ Repairs:
 
 Repairs:
 - section noon flight rebuilt from another plan (reseed 6): 2 rounds of patching did not fix it
-- section night wave rebuilt from another plan (reseed 6): 2 rounds of patching did not fix it
 
 ## Round 5: not ready (1 fail, 0 warn)
 - PASS beatable: sunrise: 32 presses
@@ -58,7 +54,6 @@ Repairs:
 
 Repairs:
 - 1 more row of room in the ship-tunnel at 357 (prejump (5.6 blocks ahead))
-- 1 more row of room in the wave-zigzag at 751 (prejump (4.8 blocks ahead))
 
 ## Round 6: not ready (1 fail, 0 warn)
 - PASS beatable: sunrise: 32 presses
@@ -69,7 +64,6 @@ Repairs:
 
 Repairs:
 - section noon flight rebuilt from another plan (reseed 9): 2 rounds of patching did not fix it
-- section night wave rebuilt from another plan (reseed 9): 2 rounds of patching did not fix it
 
 ## Round 7: not ready (1 fail, 0 warn)
 - PASS beatable: sunrise: 32 presses
@@ -80,7 +74,6 @@ Repairs:
 
 Repairs:
 - 1 more row of room in the ship-tunnel at 357 (prejump (5.6 blocks ahead))
-- 1 more row of room in the wave-zigzag at 751 (prejump (4.8 blocks ahead))
 
 ## Round 8: not ready (1 fail, 0 warn)
 - PASS beatable: sunrise: 32 presses
@@ -91,9 +84,8 @@ Repairs:
 
 Repairs:
 - section noon flight rebuilt from another plan (reseed 12): 2 rounds of patching did not fix it
-- section night wave rebuilt from another plan (reseed 12): 2 rounds of patching did not fix it
 
-## Whole level (145 s to score): not ready
+## Whole level (244 s to score): not ready
 - PASS beatable: 39 presses
 - FAIL prejumps: noon flight: block 11 (5.6 ahead of block 3 at 18) -- from the sections
 - PASS timing: sunrise: tightest 137.5 ms over 32 inputs, want >= 60 (measured windows) -- from the sections

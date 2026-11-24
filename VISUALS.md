@@ -184,6 +184,28 @@ Edge (no GPU: a worst case) in three setups -- GD art + beats, shapes + beats, l
 mode (POST /perf -> local/perf/). Not measured yet: real frame rate with the pane visible (the
 browser pane here was hidden, so no animation frames ran) and on the phone -- read them with F.
 
+## Render vs game (measured from the user's recordings, 2026-11-24)
+
+How: the user's own attempt replayed as the player (viewer run mode), the video frame at the same level time beside it
+(`local/shots/rvg/side_<t>.png`: ours | game; local only, RobTop art); rotations per frame with `python tools/rot_video.py
+VIDEO --from S --to S [--sym 90]` (the angle that makes the player's colour blob's box smallest), heights against the
+ground line with `tools/track.py --rows`. Source: Hexagon Force, recording 2026-11-24_02-33-44, attempt at video 60.6 s.
+
+| what | game (measured) | ours | status |
+|---|---|---|---|
+| cube spin in the air | 412 deg/s, clockwise | sim 416.5 deg/s | matches (1 %) |
+| cube landing | eases into square over ~0.1 s (6 frames) | 0.12 per tick toward the nearest 90 (~0.1 s) | matches |
+| ground at rest | 3.0 blocks above the bottom of the view | 3.1 | matches |
+| camera lift (cube) | 0.9 / 0.94 / 1.36 / 1.6 / 1.74 blocks at 4.4 / 5.2 / 5.6 / 6.5 / 6.6 blocks height | was 0 / 0.7 / 1.1 / 2.0 / 2.1 (s.y - 4.5 blocks); now 0.38 x (height - 2 blocks), player at most 5.5 blocks up the screen: 0.91 / 1.22 / 1.37 / 1.71 / 1.75 | fixed (mean error 0.45 -> 0.08 blocks) |
+| trail (streak) | the user's streak 7 (orange texture) added onto the scene: pink over magenta; tapers; ~3.6 blocks behind the ship at 1x = ~0.35 s | was the icon green, 0.22 s | fixed: the user's own streak colour, 0.35 s, tapered |
+| ship tilt | follows its velocity's angle: gain 0.98, 67 ms behind, rms 7.6 deg (`rot_video.py --axis`, 2x speed, video 72.6-74.05 s) | was gain 0.96, 17 ms behind; now smoothing 0.06 a tick: gain 0.86, 50 ms | fixed (timing); the gain fit drops with the lag, close enough |
+| colours | at 12.2 s the background fade (trigger 29 at x 3795: to 255,91,0 over 10 s) is ~1.6 s along in the game, ~0.2 s in ours; ground saws pink, block edges glowing | violet, white saws | open: needs the video aligned by position first (GD may fire old colour triggers earlier, or the video is ahead) |
+| solver icon | -- | the replay's player and the vs-solver cube use the Claude icon set (viewer/icons/claude, art) | done |
+| frame alignment | video.level_t (gd-physics): the video time of tick 0 (59.403 for this attempt, not the bar start 60.6) | side-by-sides now at level_t + tick / 240 | fixed: frames line up (same position, height, tilt) |
+| antenna balls (rods 15-17) | 22 units across, centre ~10.5 units past the stick's tip, pale cream = lime 1005 added over the purple | were 0.13 scale (3.9 units) at the tip, flat lime | fixed: scale 0.73, placed past the tip, detail parts blend by their own channel |
+| player glow | none (the user's save: playerGlow off) | a halo | fixed for the user's runs and "you play" |
+| lines and block edges | pink glow on the corridor lines and dotted columns | thin white / violet | open: next |
+
 ## Facts (checked against the user's recordings)
 
 How: viewer "compare" panel, level start offset set by eye, "save comparison" -> `local/shots/`.
@@ -242,7 +264,7 @@ Driven from the browser console: load a level (`load(name, levelStr, solution)` 
   ground; some switches fall on presses (level t 2.19, 3.68, 5.32). No trigger in the level does it (only
   bg / ground colour triggers). Cycles shows white edges. Our render draws the white (base) state. Ask
   the user whether a setting does this; else look for GD 2.2 behaviour of 1004 / 1005 on input.
-- The rod (antenna) ball draws as a ring; the game shows a filled pale ball. Ball offsets are by eye.
+- Rod (antenna) balls: size and place measured on Hexagon Force (Render vs game); GDLM 41's earlier note said a filled pale ball -- check it against its recording with the new scale.
 - Order of the player vs T1 objects (we draw the player after everything, OpenGD puts it under T1).
 - The camera's vertical follow and the bg's slower vertical parallax are not the game's.
 - 2.2-only ids (1911+): root frame only, no child sprites, default layer/channel guessed (T1, 1004).

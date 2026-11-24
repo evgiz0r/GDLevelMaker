@@ -34,6 +34,8 @@
 //                in these wave corridors. and way too close to the borders" (lib/natural.js routeCheck).
 //                Also WARN: a press the route can drop and still finish (an arrow would mark a jump
 //                that is not needed; the user on GDLM 44 v12, "some places mark to jump but no need").
+//   contrast     colour readability: hazards / blocks / ground vs the background, by luminance (tools/contrast.js); WARN
+//                under 70/100 sections readable
 //   objects      gameplay objects with unconfirmed hitboxes (sure:false; WARN only)
 //   taste        the taste score learned from rated vs unrated community levels (tools/taste.js, TASTE_DATA.md):
 //                info; WARN when a rule the data supports is missed. Band from the brief's "taste": {"band"}.
@@ -130,6 +132,14 @@ function scoreLevel0(level, brief, opts = {}) {
 
   // static soft rules (deco coverage, symmetry, jump marks): staticRules() below, shared with tools/rules.js
   for (const g of staticRules(level)) gate(g.name, g.status, g.value, g.note);
+
+  // colour readability (the user, 2026-11-24: "its not clear and its all mooshy"): luminance contrast of hazards,
+  // blocks and ground against the background along the level (tools/contrast.js, ART.md "Colour readability"). Soft.
+  try {
+    const C = require("./contrast.js").measure({ header: level.header, objects: level.objects });
+    gate("contrast", C.score < 70 ? "WARN" : "PASS", `${C.score}/100 sections readable (official levels: median hazard/bg 3.5-21)`,
+      C.worst.slice(0, 4).map(s => `~${s.t} s: ${s.fails.join(", ")}`).join("; "));
+  } catch (e) { gate("contrast", "WARN", "tools/contrast.js failed: " + e.message); }
 
   // height and repetition (the user on GDLM 47's upside-down part: "some sections are somewhat boring. all
   // in flat area. no change of height really ... robtop levels do show decent change of height in their
@@ -580,7 +590,7 @@ function reactiveSpots(level, w, r, presses, opts = {}) {
     const cutLo = SOLID.test(lo) && HAZ.test(hi), cutHi = SOLID.test(hi) && HAZ.test(lo);
     // split: another good window beyond a block -- only a problem when a hazard is in play too (a plain step
     // jump from a dip onto stairs has a far second window by nature: GDLM 64 round 4, block 200)
-    const split = res.some((x, j) => x.ok && (j < a - 1 || j > b + 1)) && (SOLID.test(lo) || SOLID.test(hi)) && res.some(x => HAZ.test(x.why));
+    const split = res.some((x, j) => x.ok && (j < a - 1 || j > b + 1)) && (SOLID.test(lo) || SOLID.test(hi)) && res.some(x => !x.ok && HAZ.test(x.why));
     if ((cutLo || cutHi) && ms < REACT_MS || split) out.push({ block: Math.floor(q.x / 30),
       why: `the jump over a hazard must also be timed around a block: its window (${Math.round(ms)} ms) is ${split ? "split" : "cut"} by a ${SOLID.test(hi) ? hi : lo}` });
   }

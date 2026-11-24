@@ -380,6 +380,71 @@ What exists and what blocks it (2026-11-23):
     (ID 152848491) -- but the repo GDLM 44 runs 42.6 s, so not replayed; the daily "Worldwide" (360-636 s,
     deaths 37-75%, a practice clear); Bow Wow (668 s, 91.2%); 668-1406 s practice (no attempts from the bar);
     "IS" by Crenate (1406-1618 s); Sidestep (1741-1791 s). None of the community ones are on this PC.
+- OUTCOMES, TWO SIDES (2026-11-24, after xStep's and Fingerdash's clears were drawn as deaths in the viewer): each
+  attempt line keeps what really happened (result / pct from the video's bar; why null -- the bar does not know the
+  cause) and the sim's replay (`sim: {result, pct, x, why, tick, mode}`) apart; `agree` = tools/attempts.js agreeOf
+  (same result; a death within 2.5 % of the same %); a quick restart is not judged. tests/attempts_consistency.js
+  checks every line, including a fresh replay on today's physics (a physics change makes old verdicts stale).
+  Lines that were wrong were removed (official 2 and 3 @274.5 s: the bad attempt start; GDLM 44 from 02:45: the level
+  is not identified); backup local/attempts.bak-2026-11-24. replay_run.js now filters attempts by the level's own
+  length (lib/sync.js) even with --from/--to (it had put GDLM 60's and Blast Processing's attempts in GDLM 63's file).
+- THE USER'S PLAY AS A ROUTE: a clear the sim replays to the end is saved as kind "player" beside the solver's
+  route (local/solutions/<key>.player.json, replay_run.js). First: GDLM 63 (the clear at 430.3 s, 02:13 recording).
+  Every other clear so far stops in the sim: those first divergences are the best fidelity tests we have (a known
+  good input sequence): Clutterfunk 3.5% (02:45), Base After Base 62.8% (~50 ms clock), xStep 22.7% (ship),
+  Fingerdash 51.9% (ship after a spider), Jumper / Cycles (02:26, old logger with gaps: not usable).
+- PIPELINE DIAGNOSIS (2026-11-24, "diagnose before blaming physics"), on the fixed-logger recordings:
+  - THE HOOK LOGGER STILL MISSES CLICKS. Electroman, 02:33:44 @43.5 s: the video shows two jumps 0.6 s apart over the
+    two half-buried saws (x 307, 439; gdsolver's real-game plan presses there too, 0.43 s apart); the log has the first
+    (44.645) and nothing until 45.573. No clock shift can replay that: the sim dies at the second saw (1.0-1.5%) for
+    every start from 43.4 to 44.4. Cause: Windows skips a low-level hook that does not answer in time (the PC was
+    running solver jobs). Fix: tools/inputlog_raw.ps1 (raw input, never skipped, the event's own time) runs beside
+    the hook logger from now on (tools/record.sh), so the two are compared on the next recording.
+  - THE VIDEO RUNS ~1 s BEHIND ITS FILE NAME's second (0.98 s at 02:33, 1.05 s at 02:45, from tracked launches vs
+    logged presses), and the bar's attempt start is 0.3-1 s late (Electroman 43.25 vs 43.53; Base After Base 305.44
+    vs 306.43). Both are inside replay_run's +-1.5 s search, so they do not cause the mismatches alone.
+  - CLOCK DRIFT inside a run: Base After Base's launches line up -38 ms early in the first 10 s and -9 ms in the last
+    15 s. replay_run.js now re-fits the presses from 2 s before a sim death within +-60 ms (100 ms in all) and reports
+    "agree after drift" apart (video.drift on the line). Hexagon Force's 40.4% death agrees after a 28 ms re-fit.
+  - WHICH LEVEL each attempt is: local/runs/<video>.levels.json ({"<start s>": "official:N | levels/x.gdlvl | ?"}),
+    read off the frames (level page, "Attempt 1"); when it exists replay_run uses it and not the length guess (GDLM 60
+    and 63 are 30 and 21 s: length alone put one's attempts in the other's file). Written for 02:13, 02:26, 02:33, 02:45.
+  - THE LEVEL'S START IN THE VIDEO: video.level_t on each attempt line = bar start + shift - the video's lag behind its
+    file name (clock.json video_lag_s: 0.98 s at 02:33, 1.05 s at 02:45, else 1.0). video.t is the bar start, 0.3-1 s
+    late: never use it for a side-by-side (Hexagon Force: bar 60.6 s, level_t 59.40 s; checked on the frames).
+  - ONE CLOCK PER RECORDING: local/runs/<video>.clock.json (offset from the recording's clears), reused when one level
+    is replayed alone (Blast Processing in 02:13 agreed only with GDLM 63's clock: 15.7% vs 15.8%; alone it picked a
+    far shift and died at 2.0%). 02:33 has none: its bar starts are off by 0.3-1 s per attempt.
+  - The attempt filter by length now keeps an attempt near the level's own length OR this recording's clears of it
+    (40%): a death's implied length (secs x 100 / %) is rough where speed portals change the pace.
+- THE TABLE (2026-11-24 night, physics with the landing buffer, replay_run with drift re-fit, level maps, clocks):
+  | recording | level | you | sim | agree | first divergence / cause |
+  | 02:13 | GDLM 63 | 38.1%, clear, clear (+2 restarts) | 39.7%, clear, clear | yes x3 | - |
+  | 02:13 | GDLM 60 | 48.1% / 33.9% | 49.5% / 30.7% | yes / no | 33.9%: pink-orb station, unknown (log may have a gap) |
+  | 02:13 | Blast Processing | 15.8% | 15.7% (slope) | yes | - (needs the recording's clock) |
+  | 02:33 | Hexagon Force | 40.4% | 40.6% | yes (drift 28 ms) | - |
+  | 02:33 | Base After Base | clear | clear | yes (drift 52 ms) | - |
+  | 02:33 | Fingerdash | 53.0% / clear | 53.2% / 61.3% | yes (drift) / no | clear: block 555.6, robot launched into ceiling spikes (458): unknown |
+  | 02:33 | xStep | clear | 25.3% | no | block 211, ship into a hanging spike, after 3 drift re-fits: unknown (tight ship corridor) |
+  | 02:33 | Electroman | 33.2% / 10.3% | 3.5% / 1.5% | no | PIPELINE: the hook logger missed a click (2nd saw jump) |
+  | 02:33 | Geometrical Dominator | 12.3% / 13.3% | 7.3% / 5.7% | no | unknown (robot; path check too noisy to tell) |
+  | 02:45 | Clutterfunk | clear | 3.5% | no | block 34.6: the game's cube uses a pad on a hanging block the sim's does not reach: unknown |
+  | 02:26 | Jumper, Cycles, Clutterfunk | clear, clear, 92.6% | 2.6%, 2.2%, 1.9% | no | PIPELINE: first logger (missed clicks), not usable |
+- FRAME-SNAPPED PRESSES do not help (the user's "Click Between Steps" is off, so GD may apply a press only at a
+  frame start): snapping the logged presses to 60/120/144 Hz grids (every phase) makes no stuck replay go further and
+  breaks Base After Base's clear (60 Hz: 12.9%). The logged times as they are fit best.
+- HABITS (tools/habits.js): median tap 120 ms (p10 88, p90 161) over 3,094 presses -- the human route's tap is 60 ms.
+- PATHS, not only outcomes (tools/pathcheck.js, 2026-11-24): the icon tracked in the video (track.py) against the
+  sim's path under the same presses. Height against "the lowest strong edge" failed (Base After Base: errors of
+  100-350 units on a run that clears in both -- the camera rises and the edge found is a block row, not the ground),
+  so the robust comparison is LAUNCHES: upward onsets in the video (faster than the camera ever moves) vs the sim's
+  jumps / orb and pad launches, lined up by one time shift. It reports matched launches, the timing drift over the
+  run (clock), and the first launch only in the video (the game launched, the sim did not) or only in the sim.
+  STATUS: NOT RELIABLE YET. Even on Base After Base, which the sim clears with the logged presses, only 75 of ~160
+  launches match: colour tracking is too noisy (lime decoration; the camera). Now: only the player's column is
+  tracked (0.367 of the window; 14 s instead of minutes) and the level start is searched +-0.4 s around the known
+  clock (bar start + shift - the video's ~1 s lag). Next: track the icon by its shape (template match), and the
+  ground / block rows from the level's own geometry at the sim's x, so heights compare too.
 - Practice-mode respawns break time -> x; per-attempt segmentation by the attempt label or a jump in x.
 Lab 2 (to build): the mini cube, the pink orb (clean, at ground level so the camera stays still), 45-degree
 and -53-degree teleports, the swing, dual portals, and a green orb in mid-air.
