@@ -23,7 +23,7 @@ assert.strictEqual(H.firstInLine([{ pid: 4, prio: "normal", since: 9 }, { pid: 5
 
 // 2
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), "gdlm-heavy-test-"));
-const env = Object.assign({}, process.env, { GDLM_HEAVY_NOSYNC: "1", GDLM_LOCKDIR: dir, GDLM_HEAVY_FREE_MB: "4000", GDLM_SESSION: "test", GDLM_GAME: "0" });
+const env = Object.assign({}, process.env, { GDLM_HEAVY_NOSYNC: "1", GDLM_LOCKDIR: dir, GDLM_HEAVY_FREE_MB: "4000", GDLM_SESSION: "test", GDLM_GAME: "0", GDLM_TIMINGS: path.join(dir, "timings.jsonl") });
 delete env.GDLM_HEAVY_HELD; delete env.GDLM_HEAVY;
 const job = (ms, tag) => `require(${JSON.stringify(path.join(__dirname, "..", "tools", "heavy.js"))}).claim(${JSON.stringify(tag)}); console.log("RUN ${tag} " + Date.now()); Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ${ms}); console.log("END ${tag} " + Date.now());`;
 const outOf = ch => new Promise(res => { let o = ""; ch.stdout.on("data", d => o += d); ch.on("close", () => res(o)); });
