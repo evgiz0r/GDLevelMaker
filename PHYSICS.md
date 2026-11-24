@@ -130,6 +130,14 @@ Contact sheets and frames: local/shots/lab60/. Read station by station from fram
 Unfair stations to change in v2: 4 (plank row straight over spikes, from flat ground) and 7 (a post that
 punishes holding the dash).
 
+## Trigger firing point (2026-11-24)
+
+Gameplay triggers (move, toggle, spawn...) fire when the player's CENTRE passes their x. gd-visuals saw a colour
+trigger fire when the FRONT edge (x + 15) reached it (Hexagon Force's colour 1 at x 945, frames aligned by
+video.level_t), and the viewer's look triggers now fire there. Front-edge firing for the sim's triggers was tried on
+gdsolver's real-game plans: nothing gains and Dash falls from 81 to 40 blocks, so the centre stays (colour and
+gameplay triggers may well differ in GD).
+
 ## Landing buffer (2026-11-24)
 
 A cube's press made in the air is kept and the cube jumps when it lands, even if the button is already up.
