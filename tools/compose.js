@@ -508,7 +508,7 @@ function loop(briefFile, rounds = 8, phase = {}) {
   const stage = (st, extra) => {
     const secs = +((Date.now() - T0) / 1000).toFixed(1);
     timings.push({ stage: st, secs, target: TARGET[st] });
-    try { fs.appendFileSync(path.join(__dirname, "..", "local", "timings.jsonl"), JSON.stringify({ level: brief.name, stage: st, secs, target: TARGET[st], resume: !!phase.resume, at: new Date().toISOString() }) + "\n"); } catch (e) {}
+    try { fs.appendFileSync(path.join(__dirname, "..", "local", "timings.jsonl"), JSON.stringify({ level: brief.name, step: "compose-" + st, stage: st, secs, target: TARGET[st], resume: !!phase.resume, at: new Date().toISOString() }) + "\n"); } catch (e) {}
     if (!STG) return;
     const timing = timings.map(t => `${t.stage} ${t.secs < 90 ? t.secs.toFixed(0) + " s" : (t.secs / 60).toFixed(1) + " min"}`).join(", ");
     extra = Object.assign({}, extra); extra.data = Object.assign({}, extra.data || {}, { secs, target: TARGET[st], timing });
