@@ -44,7 +44,7 @@ module.exports = function ({ objects, header, beatX }) {
   const SHADE = [[140, 70, 80], [140, 70, 50], [150, 80, 30], [150, 80, 30], [80, 30, 80], [20, 20, 60], [20, 20, 60], [140, 80, 90]];
   P.forEach((p, i) => { const d = D.depthColours(SKY[i], SHADE[i]); Object.assign(p, { [C.trim]: TRIM[i], [C.grass]: TRIM[i].map(v => Math.round(v * 0.72)), [C.far2]: d.far, [C.mid]: d.mid, [C.near]: d.near }); });
   const defs = {};
-  for (const [ch, rgb] of Object.entries(P[0])) defs[ch] = { rgb, blend: BLEND.has(+ch), opacity: +ch === C.rays ? 0.35 : +ch === C.cloud ? 0.85 : 1 };
+  for (const [ch, rgb] of Object.entries(P[0])) defs[ch] = { rgb, blend: BLEND.has(+ch), opacity: +ch === C.rays ? 0.18 : +ch === C.cloud ? 0.85 : 1 };
   header = K.channels(header, defs);
   // the scene changes at each portal: quick on the drops (S2, S5), slow on the calm turns
   const FADE = [0, 2, 0.15, 0.6, 2.5, 0.15, 1, 3];
@@ -97,7 +97,7 @@ module.exports = function ({ objects, header, beatX }) {
   // a soft dust band in front near the ground (see-through, the bottom frame of every scene)
   out.push(...K.motes(S[0][0], END, { ch: C.halo, z: "T3", group: G.motes, density: 3, y0: -50, y1: 25, sMin: 0.8, sMax: 1.6, ids: [1764], seed: 8 }));
   out.push(...K.motes(S[0][0], END, { ch: C.motes, z: "T3", group: G.motes, density: 0.6, y0: 40, y1: 260, sMin: 0.6, sMax: 1.1, ids: [1764, 1765], seed: 7 }));
-  out.push(K.alpha(T0, G.motes, 0.7, 0));
+  out.push(K.alpha(T0, G.motes, 0.45, 0));
   for (let i = 0; i < S.length; i++) out.push(K.move(S[i][0], G.motes, 0, i % 2 ? -30 : 40, secs(S[i][1] - S[i][0]), 13));
 
   // ---- the gameplay blocks dressed in each scene's colours ----
