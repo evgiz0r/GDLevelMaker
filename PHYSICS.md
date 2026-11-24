@@ -311,6 +311,13 @@ What exists and what blocks it (2026-11-23):
   a floor spike (1 block) is 76 px tall -> 9.9 blocks. The sim's dual band is 10 blocks (player 2's top at
   y 300): agrees within the measure (+-1 px on each line = +-0.03 blocks... the spike edge, ~+-2%).
   The same recording also holds GDLM 60 (2 attempts) and Blast Processing (1): identified from the frames.
+  INPUT LOGGER LESSON (02:26 recording, 2026-11-24): the first tools/inputlog.ps1 did its work (a process-name
+  lookup, a file write + flush) inside the low-level hook callback. Jumper, which the user cleared, replays to a
+  death at 2.6% because the log has no press at the route's 2.07 s and 2.44 s jumps: the hook MISSED real
+  clicks (Windows skips a hook that takes too long, and every click waits on it until then). The user, the same
+  session: "a spike killed me, probably we are running something" (Clutterfunk, 92.6%). Fixed 02:34: the
+  callback only queues (clock, foreground pid, key); a writer thread does the rest. Logs from 02:13-02:34 (both
+  loggers' first versions) may miss presses: judge them only where they replay a clear.
   - The first attempt after a level loads: its bar shows ~0.55 s before the level moves (GDLM 63 +580 ms, BP
     +520 ms); replay_run.js allows for it (LOAD_MS). With it: GDLM 63 all agree (2 clears, a 38.1% death,
     2 restarts not judged), Blast Processing's 15.8% death agrees (sim 15.7%, a slope), GDLM 60's 48.1% agrees.
