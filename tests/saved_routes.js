@@ -25,6 +25,11 @@ function longHold(L, ev, path) {
     if (e[i].type !== "press") continue;
     const j = e.findIndex((x, k) => k > i && x.type === "release"); if (j < 0) continue;
     const len = e[j].tick - e[i].tick, m = (path[e[i].tick] || {}).mode;
+    // a hold that fires several jumps/flips/orbs (an auto-jump chain): a human taps each one (GDLM 62)
+    if (m !== "ship" && m !== "wave" && len > 36) {
+      let n = 0; for (let t = e[i].tick; t < e[j].tick && t + 1 < path.length; t++) { const a = path[t + 1].act || ""; if ((a === "jump" || a === "tap" || a === "flap" || /orb|pad/.test(a)) && a !== (path[t].act || "")) n++; }
+      if (n >= 2) return `HOLD of ${(len / 240).toFixed(2)} s at block ${(path[e[i].tick].x / 30).toFixed(1)} (${m}) through ${n} jumps/flips: a human taps each one`;
+    }
     if (len <= 36 || m === "ship" || m === "wave") continue;   // up to 0.15 s is a tap (a human tap lasts 50-100 ms)
     for (const d of [1, 2, 4, 8]) { if (d >= len) break;
       if (fin(e.map((x, k) => k === j ? { tick: e[i].tick + d, type: "release" } : x)))
