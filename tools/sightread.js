@@ -158,8 +158,23 @@ function judge(w, level, presses, base, limit, approx) {
     // a press right at a flying mode's portal (its latest moment within 2 blocks before the portal, still in cube) is the
     // hold that carries the player into the new mode: cued by the portal (GDLM 66: a cube press at block 141 "4.7 ahead"
     // of the ship corridor's first block, its portal at 142)
-    if (lead != null && lead > 0 && level.objects.some(o => { const i = GD.objInfo(o.id); return i && i.kind === "mode" && FLYING.has(i.mode) && o.x >= xHi - 15 && o.x <= xHi + 75; })) { lead = 0; cue = null; }
-    out.push({ act: c.act, block: c.x / 30, from: xLo / 30, to: xHi / 30, ms: c.ms, cue: cue && GD.objInfo(cue.id).name, cueAt: cue && cue.x / 30,
+    if (lead != null && lead > 0 && level.objects.some(o => { const i = GD.objInfo(o.id); return i && i.kind === "mode" && FLYING.has(i.mode) && o.x >= xHi - 15 && o.x <= xHi + 105; })) { lead = 0; cue = null; }
+    // a press that would be flagged: its latest moment measured as a PLAYER's (lib/windows.js: the later inputs re-planned
+    // around it, as a player corrects). With the later inputs fixed, a later first press breaks the NEXT jump, so the
+    // window ends early and the lead reads long (GDLM 66 p1: "2.3 ahead" with the next jump 4 blocks on; GDLM 50 v3:
+    // "4.2 ahead" before a robot part -- showcase, 2026-11-24). Only for presses over the limit: it costs a replay each.
+    let xHiP = xHi;
+    const lim = (FLYING.has(hiState && hiState.mode) ? FLY_LIMIT : limit) * speedFactor(hiState);
+    if (lead != null && lead > lim) try {
+      const W = require("../lib/windows.js"), ev = base.slice().sort((a, b) => a.tick - b.tick), idx = ev.findIndex(e => e.type === "press" && e.tick === c.tick);
+      const win = idx >= 0 ? (W.inputWindows || GD.inputWindows)(w, ev, GD.run(w, ev).path, { only: i => i === idx }) : null;
+      const pw = win && win.find(x => x.i === idx);
+      if (pw && pw.hi > c.hi) {
+        const st = GD.run(w, ev.filter(e => e.tick < c.tick).concat([{ tick: pw.hi, type: "press" }, { tick: pw.hi + 1, type: "release" }])).path[pw.hi];
+        if (st) { xHiP = st.x; lead = lead - (xHiP - xHi) / 30; }
+      }
+    } catch (e) { /* keep the strict reading */ }
+    out.push({ act: c.act, block: c.x / 30, from: xLo / 30, to: xHiP / 30, ms: c.ms, cue: cue && GD.objInfo(cue.id).name, cueAt: cue && cue.x / 30,
       mode: hiState && hiState.mode, lead, flag: lead != null && lead > (FLYING.has(hiState && hiState.mode) ? FLY_LIMIT : limit) * speedFactor(hiState) });
   }
   return { ok: true, presses: out, approx };
