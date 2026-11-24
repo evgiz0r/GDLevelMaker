@@ -28,12 +28,16 @@ const station = (name, width, metrics, note, build) => {
 };
 const CUBE = 12, SHIP = 13, BALL = 47, UFO = 111, ROBOT = 745, SPIDER = 1331, SWING = 1933, WAVE = 660, MINI = 101, NORMAL = 99;
 const portal = (id, c, row = 1) => objs.push([id, c, row]);
+// a station's EXIT portal is a stack over the whole height (rows 1, 4, 7, 9: y 0-330): in v2 the swing flew over station
+// 15's 3-block cube portal and played 16-19 as a swing (the user's run, 2026-11-24). Stacked portals of one effect are one
+// requirement for the no-skip rule.
+const exitPortal = (id, c) => { for (const r of [1, 4, 7, 9]) objs.push([id, c, r]); };
 
 // ---- landing buffer: how long is a press made in the air kept? (sim: falling = until landing, rising = 40 ticks)
 // A spike to jump, then a spike right where the cube lands: only a jump ON landing clears it. Jump the first spike and
 // tap AGAIN once in the air as the label says, then do not press: a buffered press jumps the second spike.
 const bufferStation = (when, note) => station(`landing buffer: tap again ${when}`, 18, [{ m: "alive" }], note, c => {
-  label(c, `${lab.length + 1} jump, tap again ${when}, then NO press`);
+  label(c, `${lab.length + 1} jump, tap again ${when}: press AND LET GO in the air`);
   objs.push(["spike", c + 6, 0], ["spike", c + 10, 0]);   // a jump from +3.4..+5.2 lands +7.9..+9.7; a jump there clears +10, walking on hits it
   ruler(c + 15, 0, 5);
 });
@@ -72,14 +76,14 @@ station("ship heights: floor, roof, slide", 46, c => [{ m: "yAt", at: [c + 12, c
   ruler(c + 22, 0, 9);
   for (let k = c + 26; k <= c + 34; k++) objs.push(["block", k, 2]);
   ruler(c + 31, 0, 9); ruler(c + 40, 0, 9);
-  portal(CUBE, c + 44);
+  exitPortal(CUBE, c + 44);
 });
 station("ship corridor", 26, [{ m: "alive" }], "ship in a 3-block corridor with spikes top and bottom (Stereo Madness's ship stretch clears only with 14-18 presses a second in the sim): fly it the way you naturally would; the input log shows whether a person needs that many", c => {
   label(c, `${lab.length + 1} ship corridor: fly it naturally`);
   portal(SHIP, c + 2);
   for (let k = c + 6; k <= c + 20; k++) { objs.push(["spike", k, 0], ["block", k, 4], ["spike", k, 3, { rot: 180 }]); }
   ruler(c + 22, 0, 9);
-  portal(CUBE, c + 24);
+  exitPortal(CUBE, c + 24);
 });
 
 // ---- ship ENTRY speed (the physics session's open question, PHYSICS.md "Ship entry speed tried and rejected"): the sim
@@ -91,7 +95,7 @@ const shipEntry = (when, pc, prow, note) => station(`ship entry ${when}`, 22, c 
   objs.push([35, c + 3, -0.4]);
   portal(SHIP, c + 3 + pc - 10, prow);
   ruler(c + 3 + pc - 10 + 2, 0, 6); ruler(c + 3 + pc - 10 + 4, 0, 6);
-  portal(CUBE, c + 20);
+  exitPortal(CUBE, c + 20);
 });
 shipEntry("RISING", 11, 3, "no press: the pad throws the cube up through the ship portal (vy 11.9 -> 5.8: the sim halves it). Sim: the ship coasts up to y ~115 at the first ruler, ~103 at the second, then falls. Lower = the game keeps less of a rising entry speed");
 shipEntry("FALLING", 15, 2, "no press: the pad's arc comes down through the ship portal (vy -8 -> -4: the sim halves it). Sim: y ~34 at the first ruler, on the floor (15) by the second. Higher at the first ruler = the game keeps less of a falling entry speed (gdsolver's plans fit 0.25: y ~56)");
@@ -103,7 +107,7 @@ station("mini step", 20, c => [{ m: "yAt", at: [c + 9.5] }], "mini cube: jump at
   portal(MINI, c + 2);
   objs.push(["block", c + 9, 0.8667], ["block", c + 10, 0.8667]);
   ruler(c + 12, 0, 4);
-  portal(NORMAL, c + 17);
+  exitPortal(NORMAL, c + 17);
 });
 
 // ---- modes nobody has measured in the user's game: UFO, robot, spider, swing. GDLM 60 passed them but the tracker lost
@@ -116,7 +120,7 @@ for (const [id, name, what] of [[UFO, "UFO", "tap 3 times, slow, read each top o
     label(c, `${lab.length + 1} ${name}: ${what.split(":")[0]}`);
     portal(id, c + 2);
     ruler(c + 8, 0, 9); ruler(c + 14, 0, 9);
-    portal(CUBE, c + 20);
+    exitPortal(CUBE, c + 20);
   });
 }
 
@@ -137,7 +141,7 @@ station("collision trigger", 24, [{ m: "alive" }], "watch the falling block meet
   trig(1815, c + 1, 9, { "80": "1", "95": "2", "51": "75", "56": "1" });
   objs.push([1816, c + 14, 6, { group: 73, props: { "80": "1", "94": "1" } }], ["block", c + 14, 6, { group: 73 }]);
   objs.push([1816, c + 14, 1, { props: { "80": "2" } }], ["block", c + 14, 1]);
-  trig(901, c + 2, 9, { "51": "73", "29": "-120", "10": "1.5" });
+  trig(901, c + 2, 9, { "51": "73", "29": "-150", "10": "1.5" });   // down onto the low block: they overlap (v2 stopped edge to edge: no test)
   trig(901, c + 3, 8, { "51": "74", "29": "60", "10": "0.3", "62": "1" }, { group: 75 });
   objs.push(["block", c + 20, 3, { group: 74 }]);
   ruler(c + 17, 0, 7);
@@ -156,12 +160,12 @@ station("dual ball band", 26, c => [{ m: "yAt", at: [c + 10, c + 16] }], "two ba
   label(c, `${lab.length + 1} dual ball: where is the roof?`);
   portal(BALL, c + 2); portal(286, c + 4);   // ball first: a mode portal in dual changes only its toucher
   ruler(c + 10, 0, 10); ruler(c + 16, 0, 10);
-  portal(287, c + 21); portal(CUBE, c + 23);
+  exitPortal(287, c + 21); exitPortal(CUBE, c + 23);
 });
 
 objs.push(["block", col + 2, 0]);
 
-const spec = { name: "GDLM 67 physics questions lab", desc: "Practice, hitboxes on, record. Do what each label says; read heights on the rulers. Dying or not, both answer it.", lab, objects: objs };
+const spec = { name: "GDLM 67 physics questions lab", desc: "Practice, hitboxes on, record. Do what each label says; read heights on the rulers. Dying or not, both answer it.", accept: { "dead air": "lab level: watch-only stations and labels, no gameplay to fill (tools/deadair.js)" }, lab, objects: objs };
 const out = path.join(__dirname, "..", "specs", "67_physics_questions_lab.json");
 if (!process.argv.includes("--check")) {
   fs.writeFileSync(out, JSON.stringify(spec, null, 0).replace(/\],\[/g, "],\n["));
