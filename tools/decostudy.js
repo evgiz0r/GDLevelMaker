@@ -1,4 +1,4 @@
-// node tools/decostudy.js [all | gdlm | official | <id | file.gdlvl> ...] [--refs N]
+// node tools/decostudy.js [all | taste | gdlm | official | <id | file.gdlvl> ...] [--refs N]
 // What makes a real level LOOK good, measured PER SCREEN (20 blocks, about what a 16:9 screen shows), over the local
 // community / demon-list levels (local/community/, never committed), the officials and ours (ART.md "Deco study").
 // The user, 2026-11-24: our levels look like "3 squares and poopy" next to real ones. Per screen:
@@ -7,7 +7,8 @@
 //   back / front   share behind (B5-B3) / in front (T2-T4)
 //   dress    deco pieces within 1.5 blocks of a play object (solid / hazard), per play object: how much a block
 //            or spike is dressed (trims, fills, outlines, glow around it)
-//   glow     share of objects on a blending (additive) channel or from a glow / gradient / light family
+//   glow     share of objects on a blending (additive) channel or from a glow / gradient / fade family (plain 211 / 693
+//            squares and triangles count only when their channel blends)
 //   ch       distinct colour channels used (keys 21/22); hsv share of objects with an HSV shift (41/42)
 //   motion   move / rotate / scale, alpha / toggle, pulse, particle, shader, camera triggers on the screen
 // Per level: the median screen (screens with play objects), plus the contrast score (tools/contrast.js).
@@ -16,6 +17,7 @@
 // readable levels (dress, layers, glow, contrast >= 70) as reference picks.
 // One child process per level (big 2.2 levels); heavy (tools/heavy.js).
 "use strict";
+const MV = 2;   // measure version: cached results of another version are measured again (2: glow no longer counts "light" pieces)
 if (require.main === module && process.argv[2] !== "one") require("./heavy.js").claim();
 const fs = require("fs"), path = require("path"), cp = require("child_process");
 const ROOT = path.join(__dirname, ".."), COMM = path.join(ROOT, "local", "community"), OUT = path.join(ROOT, "local", "decostudy");
@@ -38,7 +40,7 @@ function measure(L) {
   const kind = o => (O.objInfo(o.id) || {}).kind;
   const isPlay = o => { const k = kind(o); return k === "solid" || k === "hazard"; };
   const layerOf = o => { const p = o.props || {}; if (p[24] != null && p[24] !== "") return +p[24]; const c = CAT[o.id]; return c && ZN[c.layer] != null ? ZN[c.layer] : 5; };
-  const glowy = o => { const c = CAT[o.id], ch = +((o.props || {})[21] || 0); return !!flags.blend[ch] || (c && /glow|gradient|light|fade|blur/i.test((c.family || "") + " " + (c.frame || ""))); };
+  const glowy = o => { const c = CAT[o.id], ch = +((o.props || {})[21] || 0); return !!flags.blend[ch] || (c && /glow|gradient|fade|blur/i.test((c.family || "") + " " + (c.frame || ""))); };   // not "light": lightsquare (211) / lighttriangle (693) / block0xx_light are plain pieces (style, 2026-11-24)
   const objs = L.objects.filter(o => o.x != null);
   const play = objs.filter(isPlay);
   if (!play.length) return null;
@@ -77,6 +79,10 @@ function list(spec) {
   const groupOf = id => { const l = meta[id]; if (l) return l.rating === "legendary" && l.era === "2.2" ? "legendary 2.2" : l.era === "2.0-2.1" && l.rating === "featured" ? "featured 2.0-2.1" : "rated other"; return demons.has(id) ? "demon list" : "community other"; };
   const out = [];
   if (spec === "all") for (const f of fs.readdirSync(COMM).filter(f => /^\d+\.gdlvl$/.test(f))) { const id = f.replace(".gdlvl", ""); out.push({ src: path.join(COMM, f), group: groupOf(id), id, likes: (meta[id] || {}).likes }); }
+  else if (spec === "taste") { // gd-taste's corpus (local/taste/corpus.json): the levels it learns from
+    const c = JSON.parse(fs.readFileSync(path.join(ROOT, "local", "taste", "corpus.json"), "utf8"));
+    for (const l of (Array.isArray(c) ? c : c.levels || Object.values(c))) { const f = path.join(COMM, l.id + ".gdlvl"); if (fs.existsSync(f)) out.push({ src: f, group: l.featured ? "taste featured" : "taste other", id: String(l.id), likes: l.likes }); }
+  }
   else if (spec === "official") for (let n = 1; n <= 22; n++) out.push({ src: "official:" + n, group: "official", id: "official" + n });
   else if (spec === "gdlm") for (const f of fs.readdirSync(path.join(ROOT, "levels")).filter(f => /^gdlm.*\.gdlvl$/.test(f))) out.push({ src: path.join(ROOT, "levels", f), group: "gdlm", id: f.replace(".gdlvl", "") });
   else out.push({ src: /^\d+$/.test(spec) ? path.join(COMM, spec + ".gdlvl") : spec, group: "given", id: path.basename(spec).replace(".gdlvl", "") });
@@ -96,10 +102,10 @@ if (process.argv[2] === "one") {
   for (const sp of specs) for (const it of list(sp)) {
     const cache = path.join(OUT, it.id + ".json");
     let r = null;
-    if (fs.existsSync(cache) && it.group !== "gdlm" && it.group !== "given") r = JSON.parse(fs.readFileSync(cache, "utf8"));
+    if (fs.existsSync(cache) && it.group !== "gdlm" && it.group !== "given") { r = JSON.parse(fs.readFileSync(cache, "utf8")); if (r.v !== MV) r = null; }
     else {
       try { r = JSON.parse(cp.execFileSync(process.execPath, ["--max-old-space-size=3000", __filename, "one", it.src], { windowsHide: true, maxBuffer: 1 << 26, timeout: 180000 }).toString() || "null"); } catch (e) { r = null; }
-      if (r) fs.writeFileSync(cache, JSON.stringify(r));
+      if (r) { r.v = MV; fs.writeFileSync(cache, JSON.stringify(r)); }
     }
     if (r) rows.push(Object.assign(r, { group: it.group, id: it.id, likes: it.likes }));
   }
@@ -109,7 +115,7 @@ if (process.argv[2] === "one") {
   console.log("group                levels | n/screen  layers  back  front  dress/play  glow  ch  hsv  motion/screen  contrast");
   for (const [g, a] of Object.entries(groups)) console.log(`${g.padEnd(20)} ${String(a.length).padStart(6)} | ${f(med(a.map(r => r.n)), 0).padStart(8)}  ${f(med(a.map(r => r.layers)), 0).padStart(6)}  ${pc(med(a.map(r => r.back))).padStart(4)}  ${pc(med(a.map(r => r.front))).padStart(5)}  ${f(med(a.map(r => r.dress))).padStart(10)}  ${pc(med(a.map(r => r.glow))).padStart(4)}  ${f(med(a.map(r => r.ch)), 0).padStart(2)}  ${pc(med(a.map(r => r.hsv))).padStart(3)}  ${f(med(a.map(r => r.motion)), 0).padStart(13)}  ${f(med(a.map(r => r.contrast)), 0).padStart(8)}`);
   if (refs) {
-    const cand = rows.filter(r => r.group !== "gdlm" && r.group !== "official" && (r.contrast || 0) >= 70 && r.n >= 300 && r.n <= 3000);
+    const seen = new Set(), cand = rows.filter(r => !seen.has(r.id) && seen.add(r.id)).filter(r => r.group !== "gdlm" && r.group !== "official" && (r.contrast || 0) >= 70 && r.n >= 300 && r.n <= 3000);
     cand.sort((a, b) => (b.dress * Math.min(b.layers, 6) * (0.3 + b.glow)) - (a.dress * Math.min(a.layers, 6) * (0.3 + a.glow)));
     console.log(`\nreference picks (readable, dressed, layered; n 300-3000 per screen):`);
     for (const r of cand.slice(0, refs)) console.log(`  ${r.id.padEnd(10)} ${String(r.name).slice(0, 28).padEnd(28)} ${r.group.padEnd(16)} n ${f(r.n, 0)} layers ${r.layers} dress ${f(r.dress)} glow ${pc(r.glow)} ch ${r.ch} motion ${r.motion} contrast ${r.contrast}`);

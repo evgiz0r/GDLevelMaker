@@ -4,7 +4,7 @@
   "idea": "the user's 'rung 5' of the beauty ladder: the look of Fall Out (knowledge/levels/modern_look.md Worked example 1, ideas only): a new scene per section changed at the portals together with the mode, one motif (drifting light motes) through every scene, frames (cloud bands, light rays, a vignette near the end), bold see-through front layers (~30-40% of deco), HSV on ~half, hazards white/grey on colourful scenes, transitions at portals; gameplay from the intended route with height changes and long sections",
   "story": "a golden-hour day: first light, sunrise on stepped terrain, the noon drop flown and run at double speed, a mauve dusk upside down, the night drop as a wave and a run under the stars, dawn and the signature",
   "difficulty": {
-    "label": "Normal",
+    "label": "Hard",
     "minWindowMs": 60
   },
   "style": "classic",
@@ -53,10 +53,11 @@
       "use": [
         "single",
         "spike-block",
+        "double",
+        "s:pillar-hop",
+        "s:capped-hop",
         "platform",
-        "stairs",
-        "orb-pit",
-        "double"
+        "stairs"
       ],
       "args": {
         "platform": {
@@ -91,7 +92,11 @@
         55,
         55
       ],
-      "deco": 0.3
+      "deco": 0.3,
+      "gaps": [
+        2,
+        4
+      ]
     },
     {
       "name": "noon flight",
@@ -120,8 +125,8 @@
       "flash": true,
       "args": {
         "ship-tunnel": {
-          "waves": 2,
-          "gap": 5
+          "waves": 3,
+          "gap": 4
         }
       }
     },
@@ -131,9 +136,12 @@
       "speed": "2x",
       "use": [
         "double",
+        "s:pillar-pair",
+        "s:pink-orb-pit",
         "pad-launch",
-        "platform",
-        "single"
+        "single",
+        "s:double-rhythm",
+        "platform"
       ],
       "args": {
         "pad-launch": {
@@ -164,7 +172,11 @@
         60,
         35
       ],
-      "deco": 0.3
+      "deco": 0.3,
+      "gaps": [
+        2,
+        4
+      ]
     },
     {
       "name": "dusk",
@@ -196,7 +208,11 @@
         255,
         255
       ],
-      "deco": 0
+      "deco": 0,
+      "gaps": [
+        2,
+        4
+      ]
     },
     {
       "name": "night wave",
@@ -236,9 +252,11 @@
       "use": [
         "single",
         "spike-block",
-        "orb-pit",
-        "platform",
-        "double"
+        "s:pillar-climb",
+        "s:low-roof-hops",
+        "double",
+        "s:red-orb-wall",
+        "orb-pit"
       ],
       "bg": [
         82,
@@ -266,12 +284,15 @@
           "w": 4,
           "h": 1
         }
-      }
+      },
+      "gaps": [
+        2,
+        4
+      ]
     },
     {
       "name": "dawn",
       "beats": 8,
-      "rest": true,
       "bg": [
         255,
         205,
@@ -292,11 +313,20 @@
         55,
         55
       ],
-      "secs": 1.5
+      "secs": 1.5,
+      "use": [
+        "single",
+        "double"
+      ],
+      "gaps": [
+        2,
+        3
+      ]
     }
   ],
   "modern": false,
   "notesV2": "round 2 (2026-11-24): the 2x noon run with craft pieces checked only at 1x failed 8 rounds (25 ms, prejump, land-and-jump chains): classic patterns proven at 2x; pillar-hop out (a jump over a spike timed around the next pillar, the reactive gate)",
   "structures": false,
-  "notesV3": "round 4 (2026-11-24): craft pieces out until their new shapes land (slab-steps / pillar-climb cut jumps by a block, 4 ms); no automatic library picks (a UFO-orb piece added mode changes and tripped skips)"
+  "notesV3": "round 4 (2026-11-24): craft pieces out until their new shapes land (slab-steps / pillar-climb cut jumps by a block, 4 ms); no automatic library picks (a UFO-orb piece added mode changes and tripped skips)",
+  "notes": " v2 (2026-11-24 night): denser toward Jumper -- Hard target, gaps 2-4, structures in every cube section, gameplay through dawn (ending), exits on bars."
 }
