@@ -182,3 +182,21 @@ hazards ~7.7 s); the rest 100. Pictures: local/shots/ (shoot.js at those times).
 4. Colour triggers keep the rule at every moment: check the colour a trigger fades TO against what is behind then.
 5. Glow and deco go behind the play (B layers) near hazards, and are dimmer than the hazards' edges.
 Tool: `require("./tools/contrast.js").ratio(rgbA, rgbB)` for a quick pair check; `measure({header, objects})` for a level.
+
+## Deco library (2026-11-24; the user: our levels look like "3 squares and poopy" next to real ones)
+
+Targets: knowledge/levels/modern_look.md "Recipe" (20-50 objects per block, layers B4-B5 ~20% / B1-B3 ~25% / T1 /
+T2-T4 15-25%, a third of channels blending, HSV on ~40%, motion per minute) and the per-screen study below.
+- `tools/decokit.js` (own compositions, deco only, the caller's channels):
+  `blockPattern(objects, x0, x1, {ch, top})`: running-bond bricks inside closed cells, a lit top trim (band + grass
+  triangles) on open tops, ~2-4 per cell. `backdrop(x0, x1, {far, mid, near, trees})`: three depths of one-colour
+  silhouettes (mountains B5, hills B4, a tree line in two sizes B3), using props' new `silhouette` option (a tree 38 -> 14 objects).
+  `tufts(objects, x0, x1, {ch})`: grass in front at the ground line, 2 blocks clear of hazards / orbs / portals.
+  `depthColours(sky, tint)`: far / mid / near from the sky (aerial perspective).
+- `tools/decowin.js <level> --at b1,b2 [--w 24]`: a quick art-free picture of level windows (flat shapes, start
+  colours, objects per block in view); no solve, not heavy. For GD art: tools/shoot.js (heavy).
+- First pass on a copy of GDLM 64 golden hour (local/deco/gh_before_after.png): 13.7 -> 26.7 objects per block (pattern
+  2.7, backdrop 7.8, tufts 2.5). Lessons: (1) a dark silhouette right behind the path swallows black spikes -- back
+  layers paler toward the sky with distance (depthColours); (2) what reads as "squares" most is BIG FLAT RECTANGLES
+  (sky / frame clouds as one stretched square each): edges need shape -- scalloped "cloud band" props, stepped
+  silhouettes, gradients.
