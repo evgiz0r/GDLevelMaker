@@ -31,7 +31,7 @@ const L = loadLevel(lv), w = GD.makeWorld(L.level.objects, L.level.header);
 
 // 1. attempts from the progress bar (tools/runs.js output, run it first if missing)
 const runsFile = path.join(__dirname, "..", "local", "runs", path.basename(video).replace(/\.\w+$/, "") + ".json");
-if (!fs.existsSync(runsFile)) execFileSync(process.execPath, [path.join(__dirname, "runs.js"), video].concat(opt("window") ? ["--window", opt("window")] : []), { stdio: "inherit" });
+if (!fs.existsSync(runsFile)) execFileSync(process.execPath, [path.join(__dirname, "runs.js"), video].concat(opt("window") ? ["--window", opt("window")] : []), { windowsHide: true, stdio: "inherit" });
 const runs = JSON.parse(fs.readFileSync(runsFile, "utf8")).runs.filter(r => r.mode === "normal" && r.secs > 1)
   .filter(r => r.start >= +opt("from", -1) && r.start <= +opt("to", 1e9));
 

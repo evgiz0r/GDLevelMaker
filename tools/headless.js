@@ -7,7 +7,9 @@ const BROWSERS = ["C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"
   "C:/Program Files/Google/Chrome/Application/chrome.exe", "/usr/bin/chromium", "/usr/bin/google-chrome"];
 const up = port => new Promise(res => http.get(`http://localhost:${port}/viewer/`, r => { r.resume(); res(true); }).on("error", () => res(false)));
 async function headless(pagePath, doneFile, opt = {}) {
-  const port = opt.port || 8767, url = `http://localhost:${port}/${pagePath.replace(/^\//, "")}`;
+  // test=1: silent, and nothing it sends counts as the user's (viewer/index.html; CLAUDE.md: experiments are silent)
+  const tp = pagePath.replace(/^\//, "").replace(/^([^?#]*)(\?[^#]*)?/, (m, a, q) => a + (q ? q + "&" : "?") + "test=1");
+  const port = opt.port || 8767, url = `http://localhost:${port}/${tp}`;
   try { fs.unlinkSync(doneFile); } catch (e) {}
   let server = null;
   if (!(await up(port))) {
@@ -17,7 +19,7 @@ async function headless(pagePath, doneFile, opt = {}) {
   const exe = process.env.BROWSER || BROWSERS.find(b => fs.existsSync(b));
   if (!exe) { if (server) server.kill(); throw new Error("no Edge/Chrome found: open " + url + " in a browser (or set BROWSER=path)"); }
   const prof = fs.mkdtempSync(path.join(os.tmpdir(), "gdlm-headless-"));
-  const br = cp.spawn(exe, ["--headless=new", "--disable-gpu", "--no-first-run", "--hide-scrollbars", "--force-device-scale-factor=1",
+  const br = cp.spawn(exe, ["--headless=new", "--mute-audio", "--disable-gpu", "--no-first-run", "--hide-scrollbars", "--force-device-scale-factor=1",
     "--user-data-dir=" + prof, `--window-size=${opt.width || 1920},${opt.height || 1080}`, url], { windowsHide: true, stdio: "ignore" });
   const t0 = Date.now(), limit = opt.timeoutMs || 10 * 60e3;
   while (!fs.existsSync(doneFile) && Date.now() - t0 < limit) await new Promise(r => setTimeout(r, 400));

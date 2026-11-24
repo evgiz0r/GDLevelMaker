@@ -15,11 +15,20 @@ are builds of the same page without these PC-only parts.
 | **✎ mark** (key M) | a note at a spot, with a kind (unfair / awkward / ugly / unclear / other) | marks.js, the feed |
 | **Variants bar** | compare a section's variants, "pick" one | style (a variant-pick mark), the feed |
 | Picker (L), level map, timing band, F counter, light | see everything at once (no UI action blocks > ~100 ms; nothing waits on a solve to be visible) | -- |
+| **Sections strip** (a level built in sections: the stages index's `sections`, from briefs/NN.seams.json) | one chip per section with its roles' state (L layout, D deco, P playtest: planned / built / ok / redo; hover: the builder); the section under the playhead is outlined; click one to select it and jump there, then **✓ ok / redo…** for the open stage's role and for playtest -- that section only. Seams are dashed lines with the section's name on the level | the section's builder: `tools/stages.js wait <session> <base> <stage> --section s3 [--role playtest]` / `waitApproval(..., {section, role})`; the feed (redo / approve with section + role) |
 | **🎮 you play** (button / key P) | play the open level or build stage yourself in the viewer: space / ↑ / W / Enter / click / tap = the button, R restart (practice: from the last checkpoint; Shift+R from the start), P or Esc back to the replay. **practice** (on by default): checkpoints at each section start and portal. The same sim live (`lib/liveplay.js`: pressing at a route's ticks = GD.run, `tests/liveplay.js`); presses land on the next tick, a frame boundary, as in the user's game. Works with no route at all: a layout can be tried minutes after it exists. Deaths show as red ticks on the ground; an attempt with no press is neither logged nor restarted by itself | the actions feed, type **play** (`{attempt, result: died / clear, x, pct, t, why, from, practice, stage}`; where the user dies = a soft signal for difficulty) |
 | **A stage's plan, replayed at once** | a stage (layout, path) or a section variant with no route but a plan (`data.events`, else `data.planned` [{t, what}]; a variant's `planned`, or the layout's `data.alt[].options[].planned`) replays its planned presses through the sim in slices: no solve, ~a second. If it dies: "▶ The plan breaks here: block N, t s: why", a red cross at the spot, and the camera goes on as a ghost after it. The stage's `data.timing` / `target` show as "build time" | -- |
 | **Level map, "draw it now"** | drawn in the page offscreen, one chunk per task with progress ("12/40"); the view and controls stay usable; GD art's new tints have a 40 ms budget per draw (lib/art.js `budget()`), the rest come on the next pass. GDLM 61, first visit: 3.8 s in all, one task of 140 ms (the first), the rest under 50 ms (was 8.8 s with 13 tasks of 140-280 ms and the view taken over) | -- |
 
 ## For sessions
+
+- **Experiments are silent and not the user's: open the viewer with `?test=1`** (e.g. `http://localhost:8765/viewer/?test=1#lv=...`):
+  no music, no click sound, no preference saved, and every mark, attempt, review and answer it sends is marked as a test
+  (marks and attempts go to the `.test.jsonl` files; reviews and answers are not stored at all). `?mute=1` only silences.
+  tools/headless.js adds test=1 (and `--mute-audio`) to every page it opens (shoot, levelmap, perf, readability, catalogue).
+- **Sections**: put them on the index with `put({..., sections})`, `setSections(session, base, sections)` or
+  `node tools/stages.js sections <session> <base> briefs/NN.seams.json`; a section's status for a role set again to a new
+  state clears its old review. A section's answer: `approve(..., {verdict, note, spot, section, role})`.
 
 - **Ask the user**: `node tools/ask.js put <session> "question" "option A" "option B" ... [--level "GDLM 64 golden hour"]`
   prints the card id; `node tools/ask.js wait <id>` blocks until the answer (prints it; exit 2 on timeout).
