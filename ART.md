@@ -107,6 +107,29 @@ trigger on the prop's `groups`. The props never use hazard colours; keep fronts 
 
 ## Colour -- UNCHECKED in the game
 
+**2026-11-24, GDLM 67 in the real game** (`GD claude-rec 2026-11-24_18-58-15.mkv`, frames at 60-240 s next to
+tools/decowin.js windows):
+- The props come out COLOURED in the game, exactly as in the viewer: pink trees, blue-violet hills. They are 211 squares
+  with keys 21 + 22 on channels 973-989, all defined in the header.
+- The tall WHITE columns are the lab's rulers: 211 squares with NO colour key (tools/lab67.js `ruler`). They take their
+  default channel 1, which no header defines, so GD draws white (the viewer draws them white too).
+- So "keys 21 + 22 on a channel in kS38" works, including 988/989. White deco is deco on a channel nothing defines.
+
+`node tools/channels.js --all` (score.js gate "channels", FAIL) finds every such object.
+- GDLM 67's rulers now: a thin pole with block ticks on channel 1001, the ground colour, which is always in the header
+  (tools/lab67.js, rebuilt with --look). 0 white.
+- `python tools/whiteframes.py <video>` finds tall pure-white shapes inside the game in a recording: 56 of 99 frames of
+  18-58-15, all of them the old rulers. Found:
+- GDLM 64 v6, 65 collab test, 66 collab long: the Claude badge (973-975), 96 objects each. tools/collab.js took
+  the first part's header only, and the badge's channels live in the last part's. Fixed: the join now merges every
+  part's channels (`mergeChannels`). These three levels need a rebuild to pick it up.
+- GDLM 67 (252) and 63 (1): the lab rulers on channel 1.
+- GDLM 44 (36) and 50 (15): a few gradients and squares on a scene channel whose colour trigger comes after them.
+- GDLM 46 arrow catalogue (3): default channel 1.
+- gdlm_prop_test (31): rows that test colour keys on purpose.
+Clean: 41, 43, 46 sketch, 51, 52, 60, 61, 64, 64 v5.
+
+
 The signature came out pure white in the real game (GDLM 60): its 211 squares on channels 988-999, channels
 in the header. Not understood yet; the visuals session's `tools/colourtest.js` (rows A-J) asks the user. Until
 the answer: props set BOTH colour keys (21 main and 22 detail -- either way 211 gets its channel), use channels

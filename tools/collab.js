@@ -27,6 +27,14 @@
 //   The parts' routes are joined by time (tick offset = seam time x 240) and replayed on the joined level: no solve.
 //   A seam whose state differs from the contract, or a death, sends back only that part.
 "use strict";
+// kS38 of several headers into the first: channels the first does not define are added from the later ones (first wins)
+function mergeChannels(headers) {
+  const entries = h => { const m = /(?:^|,)kS38,([^,]*)/.exec(h || ""); return m ? m[1].split("|").filter(Boolean) : []; };
+  const chOf = e => { const m = /(?:^|_)6_(\d+)(?:_|$)/.exec(e); return m ? +m[1] : null; };
+  const out = entries(headers[0]), have = new Set(out.map(chOf));
+  for (const h of headers.slice(1)) for (const e of entries(h)) { const c = chOf(e); if (c != null && !have.has(c)) { have.add(c); out.push(e); } }
+  return headers[0].replace(/kS38,[^,]*/, "kS38," + out.join("|") + "|");
+}
 if (require.main === module && /^(build|join|deco|scene)$/.test(process.argv[2] || "")) require("./heavy.js").claim();
 const fs = require("fs"), path = require("path");
 const ROOT = path.join(__dirname, "..");
@@ -94,7 +102,9 @@ function showInViewer(briefFile, plan, stage, levelStr, data, note) {
     else ST.put({ session: SESSION, base, name: plan.name, stage: "song", note: `${plan.parts.length} parts of ${plan.parts.map(p => (p.t[1] - p.t[0]).toFixed(0) + " s").join(", ")}, seams pinned to song time` });
     // x: where the join placed the part (p.shift) and its length; before the join the viewer places it by t
     const lenOf = p => { try { return readJ(path.join(dirOf(briefFile), p.id + ".json")).L; } catch (e) { return null; } };
-    ST.setSections(SESSION, base, plan.parts.map(p => ({ id: p.id, name: p.name, t: p.t, beats: p.beats, x: p.shift != null && lenOf(p) != null ? [p.shift, +(p.shift + lenOf(p)).toFixed(1)] : undefined, builder: { layout: p.builder || "-", deco: p.decoBy || p.builder || "-", playtest: p.builder || "-" }, status: p.status })));
+    let coord = null; try { coord = require("./coordinator.js").load(briefFile); } catch (e) {}
+    const roleOf = p => coord && (coord.parts.find(q => q.id === p.id) || {}).role;
+    ST.setSections(SESSION, base, plan.parts.map(p => ({ id: p.id, name: p.name, role: roleOf(p) || undefined, t: p.t, beats: p.beats, x: p.shift != null && lenOf(p) != null ? [p.shift, +(p.shift + lenOf(p)).toFixed(1)] : undefined, builder: { layout: p.builder || "-", deco: p.decoBy || p.builder || "-", playtest: p.builder || "-" }, status: p.status })));
   } catch (e) { console.log("   (viewer stages: " + e.message + ")"); }
 }
 
@@ -112,6 +122,10 @@ function partBrief(brief, part, k, nParts, seed) {
   // before), alone it starts inside it at time 0 -- 13 ticks of ship physics apart (GDLM 65 p1 died 7 blocks in)
   if (k > 0) sub.portalRoom = brief.partPortalRoom ?? 3;
   if (k < nParts - 1) sub.signature = false;                     // the signature ends the last part only
+  // the level's title only at the first part's start, its "thanks for playing" only at the last part's end (the user,
+  // 2026-11-24: "in the collab they all put thanks for playing")
+  if (k > 0) sub._noTitle = true;
+  if (k < nParts - 1) sub._noEnd = true;
   // a part that ends in a flying section: its exit portal 4 blocks before the seam, so the cube is down on the floor
   // when the seam time comes (GDLM 65 p1: the exit at the section's very end left it on the portal's frame block, y 45)
   const lastSec = sub.sections[sub.sections.length - 1];
@@ -128,13 +142,16 @@ function build(briefFile, k, opts = {}) {
   const t0 = Date.now(), brief = readJ(briefFile), plan = readJ(path.join(dirOf(briefFile), "plan.json"));
   const part = plan.parts[k]; if (!part) throw new Error("no part " + k);
   const sub = partBrief(brief, part, k, plan.parts.length, opts.seed);
+  // the coordinator's brief (tools/coordinator.js), when there is one: this part's role, density, difficulty, style, set pieces
+  const CO = require("./coordinator.js"), coord = CO.load(briefFile); if (coord) CO.applyTo(sub, coord.parts[k], coord);
   const C = require("./compose.js"), { build: mk } = require("./make.js"), { scoreLevel } = require("./score.js");
   const log0 = console.log; let built, spec;
   console.log = () => {};
   // --seed n: every section of the part from its n-th alternative plan (compose's "reseed:<i>" tweak -- the brief's seed
   // alone does not change a section's chunks: GDLM 65 p2 seeds 1 and 2 came out byte-identical)
   const tweaks = {}; if (opts.seed) sub.sections.forEach((x, i) => { tweaks["reseed:" + i] = opts.seed; });
-  try { spec = C.compose(sub, tweaks).spec; built = mk(spec, briefFile); } finally { console.log = log0; }
+  let placed = [];
+  try { const cr = C.compose(sub, tweaks); spec = cr.spec; placed = cr.placed.map(q => q.name); built = mk(spec, briefFile); } finally { console.log = log0; }
   const level = built.level, levelStr = GD.serializeLevel(level), w = GD.makeWorld(level.objects, level.header), tl = SY.timeline(w);
   const dur = part.t[1] - part.t[0], L = SY.xOfT(tl, dur) - SY.xOfT(tl, 0);
   const tb = Date.now();
@@ -165,7 +182,7 @@ function build(briefFile, k, opts = {}) {
   const dir = dirOf(briefFile); fs.mkdirSync(dir, { recursive: true });
   writeGdlvl(path.join(dir, part.id + ".gdlvl"), built.rec, level);
   const res = { part: part.id, by: opts.by || "style", seed: opts.seed || 0, ok: !!(sol && sol.ok) && !fails.length, solved: !!(sol && sol.ok), fails, gates, dur: +dur.toFixed(4), L: +L.toFixed(2),
-    events: sol && sol.ok ? sol.events : null, exit, objects: level.objects.length,
+    events: sol && sol.ok ? sol.events : null, exit, objects: level.objects.length, patterns: placed, role: sub._role || null,
     secs: { build: (tb - t0) / 1000, route: (ts - tb) / 1000, check: (Date.now() - ts) / 1000, total: (Date.now() - t0) / 1000 }, at: new Date().toISOString() };
   writeJ(path.join(dir, part.id + ".json"), res);
   // two builders can finish at once (the heavy lock has 2 slots): re-read the plan and change only this part's entry
@@ -182,6 +199,7 @@ function deco(briefFile, k, opts = {}) {
   const part = plan.parts[k], prev = readJ(path.join(dir, part.id + ".json"));
   if (!prev.events) throw new Error(part.id + " has no route yet: build it first");
   const sub = partBrief(brief, part, k, plan.parts.length, prev.seed);
+  { const CO = require("./coordinator.js"), coord = CO.load(briefFile); if (coord) CO.applyTo(sub, coord.parts[k], coord); }
   sub.scene = opts.scene || brief.partScene || brief.scene || "tools/scenes/kit.js";
   const C = require("./compose.js"), { build: mk } = require("./make.js");
   const tweaks = {}; if (prev.seed) sub.sections.forEach((x, i) => { tweaks["reseed:" + i] = prev.seed; });
@@ -238,7 +256,10 @@ function join(briefFile) {
   });
   // a press that would hold across a seam: release it there (each part's route is its own)
   events.sort((a, b) => a.tick - b.tick || (a.type === "release" ? -1 : 1));
-  const level = { header: parts[0].L.level.header, objects };
+  // the joined header: the first part's, plus every colour channel a later part defines and the first does not (the
+  // signature's Claude badge, 973-975, lives only in the last part's header: GDLM 64 v6 / 65 / 66 showed it WHITE in
+  // the game -- tools/channels.js)
+  const level = { header: mergeChannels(parts.map(q => q.L.level.header)), objects };
   const levelStr = GD.serializeLevel(level), w = GD.makeWorld(level.objects, level.header), tl = SY.timeline(w);
   let run = GD.run(w, events), path0 = run.path;
   // a part whose own route does not carry over (it was routed from a standing start; joined it is handed the real
@@ -352,7 +373,7 @@ function status(briefFile) {
   }
 }
 
-module.exports = { split, build, deco, join, scene, status, partBrief };
+module.exports = { split, build, deco, join, scene, status, partBrief, mergeChannels };
 
 if (require.main === module) {
   const [cmd, bf, ...rest] = process.argv.slice(2);

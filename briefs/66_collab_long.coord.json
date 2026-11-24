@@ -1,0 +1,378 @@
+{
+ "level": "GDLM 66 collab long",
+ "brief": "briefs/66_collab_long.json",
+ "at": "2026-11-24T17:21:14.398Z",
+ "journey": "the collab pipeline at full length (tools/collab.js): ~100 s, 8 parts of 10-17 s, built in parallel, decorated by their own builders, joined",
+ "look": "per-part",
+ "lookRules": {
+  "contrast": 3,
+  "seamBlendSecs": 1.7
+ },
+ "moodCurve": [
+  0.3,
+  0.6,
+  1,
+  0.6,
+  1,
+  0.4,
+  0.8
+ ],
+ "difficultyCurve": [
+  "Easy",
+  "Normal",
+  "Normal",
+  "Normal",
+  "Normal",
+  "Easy",
+  "Normal"
+ ],
+ "parts": [
+  {
+   "id": "p0",
+   "t": [
+    0,
+    18.87819601457039
+   ],
+   "role": "intro",
+   "energy": 0.3,
+   "mood": "calm, inviting: learn the level",
+   "density": {
+    "gaps": [
+     4,
+     6
+    ]
+   },
+   "difficulty": "Easy",
+   "look": {
+    "style": "forest",
+    "bg": [
+     120,
+     190,
+     130
+    ],
+    "ground": [
+     25,
+     60,
+     30
+    ],
+    "line": [
+     210,
+     255,
+     200
+    ]
+   },
+   "transition": {
+    "in": "level start",
+    "out": "into build"
+   },
+   "must": [
+    "the title",
+    "its seam contracts",
+    "a intro's density (gaps 4-6)"
+   ],
+   "mustNot": [
+    "an ending (no 'thanks for playing', no signature)",
+    "another part's set pieces"
+   ],
+   "setPieces": []
+  },
+  {
+   "id": "p1",
+   "t": [
+    18.87819601457039,
+    37.73399202914077
+   ],
+   "role": "build",
+   "energy": 0.6,
+   "mood": "rising: more each bar",
+   "density": {
+    "gaps": [
+     3,
+     5
+    ]
+   },
+   "difficulty": "Normal",
+   "look": {
+    "style": "crimson",
+    "bg": [
+     210,
+     80,
+     70
+    ],
+    "ground": [
+     50,
+     10,
+     10
+    ],
+    "line": [
+     255,
+     210,
+     200
+    ]
+   },
+   "transition": {
+    "in": "from intro: colours blend over 1.7 s",
+    "out": "into drop"
+   },
+   "must": [
+    "its seam contracts",
+    "a build's density (gaps 3-5)"
+   ],
+   "mustNot": [
+    "a title",
+    "an ending (no 'thanks for playing', no signature)",
+    "another part's set pieces"
+   ],
+   "setPieces": [
+    "s:capped-hop"
+   ]
+  },
+  {
+   "id": "p2",
+   "t": [
+    37.73399202914077,
+    48.018971673451894
+   ],
+   "role": "drop",
+   "energy": 1,
+   "mood": "the peak: dense, fast, on the beat",
+   "density": {
+    "gaps": [
+     2,
+     3
+    ]
+   },
+   "difficulty": "Normal",
+   "look": {
+    "style": "dawn pastel",
+    "bg": [
+     255,
+     190,
+     160
+    ],
+    "ground": [
+     120,
+     60,
+     70
+    ],
+    "line": [
+     255,
+     240,
+     230
+    ]
+   },
+   "transition": {
+    "in": "from build: colours blend over 1.7 s",
+    "out": "into build"
+   },
+   "must": [
+    "its seam contracts",
+    "a drop's density (gaps 2-3)"
+   ],
+   "mustNot": [
+    "a title",
+    "an ending (no 'thanks for playing', no signature)",
+    "another part's set pieces"
+   ],
+   "setPieces": []
+  },
+  {
+   "id": "p3",
+   "t": [
+    48.018971673451894,
+    58.303951317763016
+   ],
+   "role": "build",
+   "energy": 0.6,
+   "mood": "rising: more each bar",
+   "density": {
+    "gaps": [
+     3,
+     5
+    ]
+   },
+   "difficulty": "Normal",
+   "look": {
+    "style": "ice",
+    "bg": [
+     150,
+     210,
+     240
+    ],
+    "ground": [
+     20,
+     60,
+     100
+    ],
+    "line": [
+     235,
+     250,
+     255
+    ]
+   },
+   "transition": {
+    "in": "from drop: colours blend over 1.7 s",
+    "out": "into drop"
+   },
+   "must": [
+    "its seam contracts",
+    "a build's density (gaps 3-5)"
+   ],
+   "mustNot": [
+    "a title",
+    "an ending (no 'thanks for playing', no signature)",
+    "another part's set pieces"
+   ],
+   "setPieces": []
+  },
+  {
+   "id": "p4",
+   "t": [
+    58.303951317763016,
+    68.58893096207414
+   ],
+   "role": "drop",
+   "energy": 1,
+   "mood": "the peak: dense, fast, on the beat",
+   "density": {
+    "gaps": [
+     2,
+     3
+    ]
+   },
+   "difficulty": "Normal",
+   "look": {
+    "style": "violet dusk",
+    "bg": [
+     170,
+     110,
+     190
+    ],
+    "ground": [
+     50,
+     20,
+     70
+    ],
+    "line": [
+     250,
+     220,
+     255
+    ]
+   },
+   "transition": {
+    "in": "from build: colours blend over 1.7 s",
+    "out": "into calm"
+   },
+   "must": [
+    "its seam contracts",
+    "a drop's density (gaps 2-3)"
+   ],
+   "mustNot": [
+    "a title",
+    "an ending (no 'thanks for playing', no signature)",
+    "another part's set pieces"
+   ],
+   "setPieces": []
+  },
+  {
+   "id": "p5",
+   "t": [
+    68.58893096207414,
+    78.87391060638527
+   ],
+   "role": "calm",
+   "energy": 0.4,
+   "mood": "a breather: room to look",
+   "density": {
+    "gaps": [
+     4,
+     6
+    ]
+   },
+   "difficulty": "Easy",
+   "look": {
+    "style": "desert gold",
+    "bg": [
+     250,
+     200,
+     110
+    ],
+    "ground": [
+     120,
+     70,
+     20
+    ],
+    "line": [
+     255,
+     250,
+     220
+    ]
+   },
+   "transition": {
+    "in": "from drop: colours blend over 1.7 s",
+    "out": "into finale"
+   },
+   "must": [
+    "its seam contracts",
+    "a calm's density (gaps 4-6)"
+   ],
+   "mustNot": [
+    "a title",
+    "an ending (no 'thanks for playing', no signature)",
+    "another part's set pieces"
+   ],
+   "setPieces": []
+  },
+  {
+   "id": "p6",
+   "t": [
+    78.87391060638527,
+    99.44386989500751
+   ],
+   "role": "finale",
+   "energy": 0.8,
+   "mood": "a last push, then home",
+   "density": {
+    "gaps": [
+     2,
+     4
+    ]
+   },
+   "difficulty": "Normal",
+   "look": {
+    "style": "neon night",
+    "bg": [
+     70,
+     40,
+     140
+    ],
+    "ground": [
+     2,
+     2,
+     5
+    ],
+    "line": [
+     255,
+     120,
+     240
+    ]
+   },
+   "transition": {
+    "in": "from calm: colours blend over 1.7 s",
+    "out": "the ending"
+   },
+   "must": [
+    "the ending: end text + signature",
+    "its seam contracts",
+    "a finale's density (gaps 2-4)"
+   ],
+   "mustNot": [
+    "a title",
+    "another part's set pieces"
+   ],
+   "setPieces": [
+    "s:pillar-pair"
+   ]
+  }
+ ]
+}

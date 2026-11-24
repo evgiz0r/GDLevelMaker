@@ -1,0 +1,194 @@
+{
+ "note": "first appearance of each feature in the official levels 1-22 (tools/modeorder.js); tier = that level's rating",
+ "order": [
+  {
+   "feature": "mode:ship",
+   "level": 1,
+   "name": "Stereo Madness",
+   "tier": "Easy",
+   "in": 22
+  },
+  {
+   "feature": "mode:cube",
+   "level": 1,
+   "name": "Stereo Madness",
+   "tier": "Easy",
+   "in": 22
+  },
+  {
+   "feature": "pad:yellow",
+   "level": 2,
+   "name": "Back On Track",
+   "tier": "Easy",
+   "in": 21
+  },
+  {
+   "feature": "pad:blue",
+   "level": 2,
+   "name": "Back On Track",
+   "tier": "Easy",
+   "in": 14
+  },
+  {
+   "feature": "orb:yellow",
+   "level": 3,
+   "name": "Polargeist",
+   "tier": "Normal",
+   "in": 20
+  },
+  {
+   "feature": "gravity flip",
+   "level": 4,
+   "name": "Dry Out",
+   "tier": "Normal",
+   "in": 18
+  },
+  {
+   "feature": "pad:pink",
+   "level": 6,
+   "name": "Can't Let Go",
+   "tier": "Hard",
+   "in": 12
+  },
+  {
+   "feature": "orb:pink",
+   "level": 8,
+   "name": "Time Machine",
+   "tier": "Harder",
+   "in": 11
+  },
+  {
+   "feature": "mode:ball",
+   "level": 9,
+   "name": "Cycles",
+   "tier": "Harder",
+   "in": 13
+  },
+  {
+   "feature": "orb:blue",
+   "level": 10,
+   "name": "xStep",
+   "tier": "Insane",
+   "in": 13
+  },
+  {
+   "feature": "mini",
+   "level": 11,
+   "name": "Clutterfunk",
+   "tier": "Insane",
+   "in": 11
+  },
+  {
+   "feature": "mode:ufo",
+   "level": 12,
+   "name": "Theory of Everything",
+   "tier": "Harder",
+   "in": 10
+  },
+  {
+   "feature": "speed:2x",
+   "level": 15,
+   "name": "Electrodynamix",
+   "tier": "Insane",
+   "in": 7
+  },
+  {
+   "feature": "speed:3x",
+   "level": 15,
+   "name": "Electrodynamix",
+   "tier": "Insane",
+   "in": 3
+  },
+  {
+   "feature": "dual",
+   "level": 16,
+   "name": "Hexagon Force",
+   "tier": "Insane",
+   "in": 3
+  },
+  {
+   "feature": "speed:0.5x",
+   "level": 16,
+   "name": "Hexagon Force",
+   "tier": "Insane",
+   "in": 5
+  },
+  {
+   "feature": "mode:wave",
+   "level": 17,
+   "name": "Blast Processing",
+   "tier": "Harder",
+   "in": 6
+  },
+  {
+   "feature": "mode:robot",
+   "level": 19,
+   "name": "Geometrical Dominator",
+   "tier": "Harder",
+   "in": 4
+  },
+  {
+   "feature": "orb:green",
+   "level": 20,
+   "name": "Deadlocked",
+   "tier": "Demon",
+   "in": 3
+  },
+  {
+   "feature": "orb:black",
+   "level": 21,
+   "name": "Fingerdash",
+   "tier": "Insane",
+   "in": 1
+  },
+  {
+   "feature": "orb:green dash",
+   "level": 21,
+   "name": "Fingerdash",
+   "tier": "Insane",
+   "in": 2
+  },
+  {
+   "feature": "pad:red",
+   "level": 21,
+   "name": "Fingerdash",
+   "tier": "Insane",
+   "in": 2
+  },
+  {
+   "feature": "orb:pink dash",
+   "level": 21,
+   "name": "Fingerdash",
+   "tier": "Insane",
+   "in": 2
+  },
+  {
+   "feature": "mode:spider",
+   "level": 21,
+   "name": "Fingerdash",
+   "tier": "Insane",
+   "in": 2
+  },
+  {
+   "feature": "orb:red",
+   "level": 21,
+   "name": "Fingerdash",
+   "tier": "Insane",
+   "in": 2
+  },
+  {
+   "feature": "mode:swing",
+   "level": 22,
+   "name": "Dash",
+   "tier": "Insane",
+   "in": 1
+  },
+  {
+   "feature": "orb:spider",
+   "level": 22,
+   "name": "Dash",
+   "tier": "Insane",
+   "in": 1
+  }
+ ]
+}

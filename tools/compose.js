@@ -153,10 +153,29 @@ function compose(brief, tweaks = {}) {
   // chains and jumps timed around a block beside their neighbours
   let notReady = null; const NOTED = compose.noted || (compose.noted = new Set());
   try { const ST = require("./structures.js"); const rk = ST.rank(Object.values(ST.load().structures)); notReady = new Set(rk.filter(r => !r.rank.ready).map(r => "s:" + r.id)); } catch (e) {}
+  // mode tier (tools/modeorder.js): a section mode or speed that official levels bring in more than one tier above the
+  // brief's difficulty -- a NOTE (an Easy level keeps to cube / ship / pads; later modes come in at higher difficulty)
+  try {
+    const MO = require("./modeorder.js"), T = MO.TIERS, lab = (brief.difficulty || {}).label;
+    if (lab && !compose.tierNoted) {
+      const over = [];
+      for (const s of brief.sections) for (const f of [s.mode && s.mode !== "upside" ? "mode:" + s.mode : s.mode === "upside" ? "gravity flip" : null, s.speed && s.speed !== "1x" ? "speed:" + s.speed : null].filter(Boolean)) {
+        const t = MO.tierOf(f); if (t && T.indexOf(t) > T.indexOf(lab) + 1 && !over.includes(f + " (" + t + ")")) over.push(f + " (" + t + ")");
+      }
+      if (over.length) { console.log(`   NOTE mode tier: ${over.join(", ")} in a ${lab} brief -- official levels bring these in later (DIFFICULTY.md "Mode order")`); compose.tierNoted = true; }
+    }
+  } catch (e) { /* no corpus */ }
   for (const [si, sec0] of brief.sections.entries()) {
     const sec = Object.assign({}, sec0, { blocks: lens[si] });
     if (notReady && sec.use) { const drop = sec.use.filter(u => notReady.has(u)); if (drop.length) { sec.use = sec.use.filter(u => !notReady.has(u)); if (!NOTED.has(sec.name + drop)) NOTED.add(sec.name + drop), console.log(`   NOTE ${sec.name}: ${drop.join(", ")} left out (not ready in the structure library: node tools/structures.js rank)`); } }
     if (extra[si]) sec.use = [...sec.use, extra[si]];
+    // gravity flips inside plain cube sections (the user, 2026-11-24: "a bit more upside down ... almost everything is very
+    // stale"; score.js "stale stretch"): a section of 10+ s at Normal or above gets one ready gravity structure, a
+    // cued flip and back (a blue pad, a gravity portal pair, a ceiling run). brief.flips false = off.
+    { const lab = (brief.difficulty || {}).label || "Normal", secsLen = sec.blocks * 30 / upsOf(speeds[si] || "1x");
+      const FLIPS = ["s:gravity-pad-gap", "s:ceiling-hop", "s:upside-hops", "s:blue-pad-ceiling", "s:gravity-tunnel"];
+      if (brief.flips !== false && sec.flips !== false && !sec.mode && !sec.rest && sec.use && lab !== "Easy" && secsLen >= 10 && (speeds[si] || "1x") === "1x" && !sec.use.some(u => FLIPS.includes(u)))
+        { const m = Math.min(2, sec.use.length); sec.use = [...sec.use.slice(0, m), FLIPS[si % FLIPS.length], ...sec.use.slice(m)]; } }   // early in the list: long lists end before their last item
     const start = col, end = col + sec.blocks, i0 = objects.length;
     const at = si === 0 ? 0 : (sec0.beats ? start : Math.max(0, start - 2));  // on the beat when in beats
     for (const ch of ["bg", "ground", "line", "obj"]) if (sec[ch]) {
@@ -375,7 +394,8 @@ function compose(brief, tweaks = {}) {
   spec.signature = brief.signature === false ? false : {};
   if (brief.scene) spec.scene = brief.scene;   // a scene script (tools/scenes/<name>.js, SHOWCASE.md): the look by hand, run by make.js
   if (brief.craft) spec.craft = brief.craft;   // craft pass (tools/craftkit.js, CRAFT.md): rods, chains, lanterns on the structures
-  if (brief.modern !== false) spec.modern = { sections: looks.map(({ bg, ...l }) => l), title: brief.name, end: "thanks for playing", seed: brief.seed || 3, light: brief.palette === "light" };
+  // (a collab part, tools/collab.js: the title only on the first part, the end text only on the last)
+  if (brief.modern !== false) spec.modern = { sections: looks.map(({ bg, ...l }) => l), title: brief._noTitle ? null : brief.name, end: brief._noEnd ? null : "thanks for playing", seed: brief.seed || 3, light: brief.palette === "light" };
   // jump indicators (tools/decorate.js): on jumps that cannot be read in time, and the first jump of
   // each new pattern. Default on; "indicators": false in the brief turns them off.
   if (brief.indicators !== false) spec.indicators = Object.assign({ at: firsts }, brief.indicators || {});

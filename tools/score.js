@@ -34,6 +34,7 @@
 //                in these wave corridors. and way too close to the borders" (lib/natural.js routeCheck).
 //                Also WARN: a press the route can drop and still finish (an arrow would mark a jump
 //                that is not needed; the user on GDLM 44 v12, "some places mark to jump but no need").
+//   channels     deco on a colour channel nothing defines: white in the game (tools/channels.js); FAIL
 //   contrast     colour readability: hazards / blocks / ground vs the background, by luminance (tools/contrast.js); WARN
 //                under 70/100 sections readable
 //   objects      gameplay objects with unconfirmed hitboxes (sure:false; WARN only)
@@ -140,6 +141,14 @@ function scoreLevel0(level, brief, opts = {}) {
     gate("contrast", C.score < 70 ? "WARN" : "PASS", `${C.score}/100 sections readable (official levels: median hazard/bg 3.5-21)`,
       C.worst.slice(0, 4).map(s => `~${s.t} s: ${s.fails.join(", ")}`).join("; "));
   } catch (e) { gate("contrast", "WARN", "tools/contrast.js failed: " + e.message); }
+  // deco the GAME draws white: a colour channel 1-999 (an object's key or its default) that neither the header nor a
+  // colour trigger before it defines (the user, 2026-11-24, after a real-game run: "our deco being pure white within the
+  // game is still expected?"; tools/channels.js). Hard: the viewer shows a colour the game will not.
+  try {
+    const CC = require("./channels.js").check({ header: level.header, objects: level.objects });
+    gate("channels", CC.ok ? "PASS" : "FAIL", CC.ok ? `every deco colour channel is defined (${CC.deco} deco)` : `${CC.undefinedCount} deco on undefined channels: WHITE in the game`,
+      Object.entries(CC.undefined).map(([k, v]) => `${k} x${v}`).join(", "));
+  } catch (e) { gate("channels", "WARN", "tools/channels.js failed: " + e.message); }
 
   // height and repetition (the user on GDLM 47's upside-down part: "some sections are somewhat boring. all
   // in flat area. no change of height really ... robtop levels do show decent change of height in their
@@ -179,6 +188,18 @@ function scoreLevel0(level, brief, opts = {}) {
       const s = ((tEnd < 0 ? p.length : tEnd) - lastP.tick) / GD.PHYS.TPS;
       gate("ending", s > 2.5 ? "WARN" : "PASS", `${s.toFixed(1)} s from the last input to the end (official median 0.8 s; want 2.5 s or less)`);
     }
+  }
+
+  // dead air (the user on GDLM 61 v3, 38-46 s: "very big breaks with nothing"): no input for longer than the
+  // level's own rhythm allows (max 2 s, 2.5x its median gap between presses) and no empty screen (no hazard,
+  // orb, pad or structure in view for 1+ s; official levels: 1 in ten). tools/deadair.js. WARN; a deliberate
+  // calm is accepted in the brief with its reason.
+  if (r.ok) {
+    try {
+      const Q = require("./deadair.js").quiet(level.objects, level.header, (natural() || r).events);
+      const spots = [...Q.inputGaps.map(([a, b]) => `no input ${a.toFixed(1)}-${b.toFixed(1)} s`), ...Q.empty.map(([a, b]) => `empty screen ${a.toFixed(1)}-${(b + 0.25).toFixed(1)} s`)];
+      gate("dead air", spots.length ? "WARN" : "PASS", spots.length ? `${spots.length} stretch(es) with nothing to do (input limit ${Q.inputLimit.toFixed(1)} s)` : `no input gap over ${Q.inputLimit.toFixed(1)} s, no empty screen`, spots.join("; "));
+    } catch (e) { /* deadair.js missing */ }
   }
 
   // orbs you can buffer, no jumps over nothing (physics, from the user: "usually with orbs, when possible, we
@@ -242,6 +263,37 @@ function scoreLevel0(level, brief, opts = {}) {
     gate("difficulty", off >= 2 ? "FAIL" : off === 1 ? "WARN" : "PASS",
       `${lab} (${diff.logAttempts.toFixed(2)} = ~${Math.round(10 ** diff.logAttempts)} attempts)` + (want.label ? `, want ${want.label}` : ""));
   }
+  // one ending: a level has at most one end text ("thanks for playing") and one signature (GDLM 65 / 66 collab joins
+  // had one after every part: the user, 2026-11-24). FAIL.
+  { const txt = level.objects.filter(o => o.id === 914 && o.props && o.props[31]).map(o => { try { return Buffer.from(String(o.props[31]).replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8"); } catch (e) { return ""; } });
+    const ends = txt.filter(t => /thanks for playing/i.test(t)).length, sigs = txt.filter(t => /made by claude/i.test(t)).length;
+    gate("one ending", ends > 1 || sigs > 1 ? "FAIL" : "PASS", `${ends} end text(s), ${sigs} signature(s)`, ends > 1 || sigs > 1 ? "only the level's last part ends it (tools/collab.js)" : ""); }
+  // mode tier (the user, 2026-11-24: "the difficulty of modes is usually correlated to their appearance in gd main
+  // levels"): each mode / speed / size / gravity / orb / pad has the rating of the first official level it appears in
+  // (tools/modeorder.js, DIFFICULTY.md "Mode order"). A level using a feature MORE than one tier above its target reads
+  // harder than its timing says: WARN (soft: brief.accept["mode tier"] with a reason). One tier above is common.
+  try {
+    const MO = require("./modeorder.js"), fl = MO.floor(MO.features(level.objects, level.header)), T = MO.TIERS;
+    const target = want.label || (r.ok && diff ? GD.difficultyLabel(diff.logAttempts) : null);
+    if (target) {
+      const over = Object.entries(fl.tiers).filter(([, t]) => T.indexOf(t) > T.indexOf(target) + 1);
+      // stale stretch (the user, 2026-11-24: "almost everything is very stale"): the longest time with no change of mode,
+      // speed, gravity, size or dual (a gravity orb / pad counts). Official levels by tier: 1-6 (Easy-Hard) 28-46 s, the
+      // later ones mostly 4-15 s (tools/modeorder.js's levels; median 10.8 s) -> want at most 35 s Easy / Normal, 25 Hard,
+      // 18 Harder, 15 Insane and above.
+      { const isVar = o => { const i = GD.objInfo(o.id) || {}, n = i.name || ""; return ["mode", "speed", "gravity", "dual", "size"].includes(i.kind) || (/dual|mini|size/.test(n) && /portal/.test(n)) || (/(blue|green)/.test(n) && /(orb|pad)/.test(n) && ["orb", "pad", "ring"].includes(i.kind)); };
+        const tl = GD.SYNC.timeline(w), play = level.objects.filter(o => ["solid", "hazard"].includes(GD.objInfo(o.id).kind));
+        if (play.length) {
+          const xs = [0, ...level.objects.filter(isVar).map(o => o.x).sort((a, b) => a - b), Math.max(...play.map(o => o.x))];
+          let best = 0, at = 0; for (let i = 1; i < xs.length; i++) { const d = GD.SYNC.tOfX(tl, xs[i]) - GD.SYNC.tOfX(tl, xs[i - 1]); if (d > best) { best = d; at = xs[i - 1]; } }
+          const lim = { Easy: 35, Normal: 35, Hard: 25, Harder: 18 }[target] || 15;
+          gate("stale stretch", best > lim ? "WARN" : "PASS", `${best.toFixed(1)} s with no mode / speed / gravity change from block ${(at / 30).toFixed(0)} (want ${lim} s or less for ${target})`,
+            best > lim ? "a gravity flip, a mode or speed change in it (compose adds a gravity structure to long cube sections)" : "");
+        } }
+      gate("mode tier", over.length ? "WARN" : "PASS", over.length ? `${over.map(([f, t]) => f + " (" + t + ")").join(", ")} in a ${target} level` : `features up to ${fl.tier} for ${target}`,
+        over.length ? "official levels bring these in at higher ratings: keep them for harder levels, or accept with a reason" : "");
+    }
+  } catch (e) { /* no corpus on this PC */ }
 
   // pacing, from hazard columns
   const haz = level.objects.filter(o => GD.objInfo(o.id).kind === "hazard").map(o => Math.floor(o.x / 30)).sort((a, b) => a - b);

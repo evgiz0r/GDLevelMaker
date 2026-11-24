@@ -46,6 +46,10 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   landing on a lone block that forces the next jump within 250 ms, never 3+ hops in a row each forced
   right after landing. `node tools/reactive.js <level>` (score.js gate "reactive": FAIL at Easy/Normal).
   (critiques.md GDLM 45 v6, blocks 50-75: "very specific cube jumps ... instead of being able to react")
+- [ ] **No dead air**: no input gap longer than the level's own rhythm (max 2 s, 2.5x its median gap between
+  presses) and no empty screen -- no hazard, orb, pad or structure in view for 1+ s (official levels: 1 in ten).
+  A calm is short and deliberate, with deco, and accepted in the brief. `tools/deadair.js`, score.js "dead air";
+  craftlevel fills a short section with its own chunks. (the user on GDLM 61 v3, 38-46 s: "very big breaks with nothing")
 - [ ] **Density without timing**: arm the pieces the route never touches -- spike tips under hanging columns
   (3+ rows over the higher pillar beside them) and spike-tipped 1-wide pillars mid-pit, a row under the lower
   landing; never a spike on a top the route lands on. Checked: windows unchanged (CRAFT.md "Density").
@@ -137,6 +141,15 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 - [ ] **Built on blocks**: a block, slab or slope in ~45-50% of the cube columns; most spikes on
   ledges, steps, pit edges and under overhangs, not lone on the floor. `node tools/obstacles.js structure --file <level>`.
   (levels/obstacles.md section 1; GDLM 41-45 had 13%)
+- [ ] **No stale stretch**: the longest time with no mode / speed / gravity / size change (a blue or green orb or pad
+  counts) stays under 35 s at Easy / Normal, 25 Hard, 18 Harder, 15 Insane+ (official levels 1-6: 28-46 s; the later
+  ones mostly 4-15 s). compose adds a cued gravity structure (blue pad, gravity portal pair, ceiling run) to cube sections
+  of 10+ s at Normal and up. score.js "stale stretch". (The user, 2026-11-24: "a bit more upside down ... almost
+  everything is very stale". Over it then: the Golden Hour versions, 34 s of sunrise at Hard.)
+- [ ] **Modes for the tier**: a level's modes, speeds, sizes, orbs and pads fit its difficulty the way the official levels
+  bring them in (DIFFICULTY.md "Mode order": Easy = cube, ship, yellow / blue pads; Normal adds gravity flips and yellow
+  orbs; Hard pink pads; Harder ball, pink / blue orbs; Insane mini, UFO, wave, 2x...). score.js "mode tier" WARNs a
+  feature more than a tier above. (The user, 2026-11-24: mode difficulty follows its appearance in the main levels.)
 - [ ] **Structures from the library**: compose.js puts a ranked structure (STRUCTURES.md) in every
   plain 1x cube section by default; a hand-made spec names them as `"s:<id>"`. Mechanics our levels
   never had rank first. `node tools/structures.js rank`. **Only ready ones, and ready includes the check in
@@ -174,6 +187,7 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 
 ## Looks like 2.2, not 1.0 (levels/modern_look.md)
 
+- [ ] **No white deco by accident** (the user, 2026-11-24, after GDLM 67 in the real game: "our deco being pure white within the game is still expected?"): every deco object's colour channel -- its key 21/22, or its default (channel 1 for 211 / 693) -- is defined in the header or by a colour trigger before it; otherwise GD draws it WHITE. `node tools/channels.js <level>`, score.js gate "channels" (FAIL).
 - [ ] **Readable colours, not mush** (the user, 2026-11-24: "sometimes its not clear and its all mooshy"): judge by
   BRIGHTNESS, not hue -- hazards and blocks stand out from the background at every moment (luminance ratio hazard/bg
   >= 1.6, block/bg >= 1.5; aim for 3+ like most official sections), the floor shows (ground/bg >= 1.1 or a bright

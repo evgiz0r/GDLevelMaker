@@ -277,6 +277,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   user's labelled deaths, `fairness fit`; tools/score.js gates on it; DIFFICULTY.md "Fairness").
 - `lib/sync.js` -- music sync: level time <-> x through speed portals, beat grid <-> level beats,
   press timing windows from a solution, sync scores. See SYNC.md (also where songs come from).
+- **`tools/channels.js` -- deco the GAME draws white**: a colour channel (key 21/22 or the object's default, 1 for 211/693) that neither the header nor an earlier colour trigger defines. score.js gate "channels" (FAIL); ART.md "Colour".
 - **The public viewer** (https://evgiz0r.github.io/GDLevelMaker/, PAGES.md: GitHub Pages, rebuilt on every push; a level goes on it ONLY when the user says so for that level: `knowledge/public_levels.json`, empty for now, our levels only, songs / GD art / official levels only from the user's own serve.js): `tools/pages.js`, `tests/pages_build.js`, `.github/workflows/pages.yml`.
 - **The viewer is where the user steers the work** (VIEWER.md): the Work panel, ✓ ok / redo on build stages with gates (`tools/stages.js waitApproval`), decision cards (`tools/ask.js put/wait`), and the actions feed every user action goes to (`tools/actions.js tail --since <id>`). Ask the user there, not only in chat. **🎮 you play** (key P): the user plays any level or build stage in the viewer, the same sim live (`lib/liveplay.js`), practice checkpoints per section; each attempt is a `play` line in the feed (where they die). A stage with a plan but no route replays the plan at once and shows where it breaks.
 - **Build stages in the viewer** (`tools/stages.js`: a builder puts song / layout / path / deco / final as each is done -> `local/wip/<session>/<base>.stages/`; the viewer shows a stage bar on the level and the stage on the picker's in-progress cards, even before the first wip put). `require("./stages.js").put({session, base, name, stage, levelStr?, data?, note?})`; test: `node tests/stages.js`.
@@ -446,6 +447,10 @@ runs"): `tools/replay_run.js` writes each attempt with what really happened (top
 presses (`sim`) apart, and `agree` from one rule (tools/attempts.js agreeOf); `node tests/attempts_consistency.js` fails
 on a line whose fields contradict, lack the sim side, or no longer replay the same on today's physics. A user clear the
 sim does not finish is a ⚠ mismatch with the sim's death point, never drawn as the user's death.
+**After every user recording, look for colours the game drew differently** (the user, 2026-11-24: "why we never saw it",
+after GDLM 67's deco came out pure white): `python tools/whiteframes.py <video>` flags frames with tall pure-white shapes
+inside the game (contact sheet + seconds in local/whiteframes/), and `node tools/channels.js <level>` (score.js gate
+"channels") finds deco on a colour channel nothing defines. Compare flagged seconds with the viewer at the same level time.
 Run `tools/record.sh start` in the background (it also logs the user's GD inputs, only GD's jump keys/click while GD is in front, to local/inputs/, and the PC's own sound by WASAPI loopback, tools/audiolog.ps1, next to the video; both for tools/replay_run.js; PHYSICS.md "Fidelity"; GD's music must be ON in GD's settings for the sound to align attempts -- with it off, the replay falls back to the progress bar) (whole screen, 60 fps, Desktop Duplication, to
 Videos/Captures/GD claude-rec <time>.mkv) and `tools/record.sh stop`. Whole screen rather than
 the GD window by title: a window capture looked "frozen" once, but the user had only tabbed out
