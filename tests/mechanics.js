@@ -49,6 +49,15 @@ const first = (r, act) => r.path.find(p => p.act === act);
   // a 1x speed portal at 1x changes nothing: passing it untouched is fine
   const e = GD.solveAny(GD.makeWorld([{ id: 201, x: 400, y: 5 * 30 + 15 }, { id: 1, x: 1500, y: 15 }]));
   check("no-skip: a portal that would change nothing is not required", e.ok, e.ok ? "ok" : e.why + " " + (e.skipped || ""));
+  // a decoy: a yellow orb at head height under a low roof of spikes -- taking it (or jumping) kills, so walking past
+  // it is the way, not a secret one (Hexagon Force 553.7, 2026-11-24)
+  const dec = [{ id: 36, x: 600, y: 40 }, { id: 1, x: 1500, y: 15 }];
+  for (let x = 450; x <= 780; x += 30) dec.push({ id: 8, x, y: 105, flipY: true });
+  const g = GD.solveAny(GD.makeWorld(dec));
+  check("no-skip: a decoy orb (taking it always kills) is not required", g.ok, g.ok ? "ok" : g.why + " " + (g.skipped || ""));
+  // the same orb with the roof gone is a real one: a route that walks past it is a secret way
+  const real = GD.skipCheck(GD.makeWorld([dec[0], dec[1]]), GD.run(GD.makeWorld([dec[0], dec[1]]), []).path, []);
+  check("no-skip: the same orb without the roof is required", !!real && /skipped an orb/.test(real.why), real ? real.why : "not flagged");
   const c = GD.solveAny(GD.makeWorld(lvl(5)), { allowSkips: true });
   check("no-skip: allowSkips (debugging) still finds the way around", c.ok, c.ok ? "ok" : c.why);
 }

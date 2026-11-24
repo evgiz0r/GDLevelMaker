@@ -16,3 +16,9 @@ The stage times are also in local/timings.jsonl.
 - result: not ready (prejumps, reactive), 8 round(s), variants: 2 section(s)
 - change made: both fails were the checks, not the level. (1) The noon-flight ship "prejump" came from scoring the section alone: its own solve climbs early from a standing start (5.6 blocks ahead); in the whole level every tunnel press is 0.4-0.8 blocks ahead. 8 rounds of room / reseed repairs could not fix a false flag. compose.js now judges flying presses in the whole level, not per section. (2) The reactive spot at block 200 was a plain step jump onto stairs with no hazard near; the "split window" rule now needs a hazard in play, as the user note it comes from. Still open: layout took 285 s (target 60); height 11.4/10 s; deco coverage at blocks 16-40 and 536-560; ending 3.1 s; hazards 9 per 100 blocks (craft wants 45+).
 
+## GDLM 64 golden hour, 2026-11-24 01:49
+- stages: song 0 s, layout 2 s, layout 162 s, path 719 s, deco 831 s, final 831 s
+- slowest step: path (557 s); over target: layout 162 s > 60 s
+- result: not ready (prejumps, reactive), 8 round(s), variants: 2 section(s)
+- change made: the round-4 fixes missed their real causes, found by printing the checks. (1) The ship prejump is printed in section-local blocks: block 11 is the cube walking into the ship portal from the section's standing start, a cube press, so the flying-mode filter skipped it; presses in a section's 12-block lead-in now go to the whole level too (the seam). (2) The reactive hazard test read a spike from presses that were fine (their run dies later, past the horizon); it now counts only failing presses. tools/reactive.js on 64: clear.
+
