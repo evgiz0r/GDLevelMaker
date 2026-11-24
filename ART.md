@@ -352,8 +352,8 @@ community levels in local/community/ (local only).
 | 31912642 | Project Muse | 729 | 14 | 21% | 9 | 112 | motion-heavy |
 | 27483789 | First Race | 478 | 5 | 74% | 9 | 5 | glow-based (2.0-2.1 style) |
 
-Brave Blue and Dreamy sit at our target density: compare against them first (tools/decowin.js, or
-tools/shoot.js for GD art).
+Dreamy sits at our target density: compare against it first (tools/decowin.js, or tools/shoot.js for GD art).
+Brave Blue only by numbers (decostudy / decowin), not by rendered frames (below).
 
 Open:
 - deco on a moving group counts at its start x;
@@ -380,6 +380,9 @@ At 70%, Dreamy shows 10.4 objects per block and GDLM 64 shows 36.3, yet Dreamy r
 (The how is it october frames came out empty: the camera ghost on a level without a route; visuals is redoing them.)
 Brave Blue and Project Muse were also compared (local/compare/...):
 - Brave Blue's frames show a bare sky and ground while the label counts 8-48 objects per block in view. Its 2.2 groups,
-  moved or toggled by triggers, are not drawn by the camera ghost, so the pair is not usable yet (asked visuals).
+  moved or toggled by triggers, are not drawn by the camera ghost, so the pair is not usable yet. Visuals (2026-11-24)
+  fixed the ghost camera for routeless levels and re-rendered: still empty. Its playfield sits far above the ground,
+  likely brought down by move triggers or a start position the sim does not place, so it is movers / physics work,
+  not a camera fix. Dropped as a rendered reference.
 - Project Muse is a text / gimmick level that ranked high on motion alone. It is not a look reference.
 For now, Dreamy is the working side-by-side reference.

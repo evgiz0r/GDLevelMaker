@@ -1,0 +1,1084 @@
+{
+ "name": "GDLM 70 candy night",
+ "desc": "Spooky Dash, decompiled and rebuilt from its spec alone.",
+ "notes": "intro (cube then robot, purple place) -> drop (robot then ship then cube then ufo then robot, purple place) -> calm (robot then cube then ufo, purple place) -> drop (cube then ship then cube then ball then robot, purple place) -> finale (robot, purple place)",
+ "idea": "densest deco (51/block) at 56.0 s",
+ "story": "0.05-5 s intro: speed 2x at 3.4 s; 5-8.62 s intro: speed 2x at 3.4 s; 8.62-13.7 s drop: zoom 1 at 10.9 s; 13.7-17.9 s drop: zoom 1 at 10.9 s; 17.9-24.9 s drop: zoom 1 at 10.9 s; 24.9-27.4 s drop: zoom 1 at 10.9 s; 27.4-32.62 s drop: zoom 1 at 10.9 s; 32.62-36.5 s calm: speed 3x at 41.1 s; 36.5-43.4 s calm: speed 3x at 41.1 s; 43.4-46.34 s calm: speed 3x at 41.1 s; 46.34-50 s drop: zoom 1.021 at 53.4 s; 50-53 s drop: zoom 1.021 at 53.4 s; 53-54.8 s drop: zoom 1.021 at 53.4 s; 54.8-58.3 s drop: zoom 1.021 at 53.4 s; 58.3-60.05 s drop: zoom 1.021 at 53.4 s; 60.05-70.25 s finale: densest deco (47/block) at 62 s",
+ "song": {
+  "custom": 183718
+ },
+ "grid": {
+  "bpm": 139.996,
+  "t0": 0.0485
+ },
+ "offset": 0.049,
+ "seed": 31,
+ "difficulty": {
+  "label": "Normal",
+  "minWindowMs": 60
+ },
+ "structures": true,
+ "signature": {},
+ "vibe": {
+  "title": "GDLM 70 candy night",
+  "desc": "Spooky Dash, decompiled and rebuilt from its spec alone.",
+  "journey": "intro (cube then robot, purple place) -> drop (robot then ship then cube then ufo then robot, purple place) -> calm (robot then cube then ufo, purple place) -> drop (cube then ship then cube then ball then robot, purple place) -> finale (robot, purple place)",
+  "oneImage": "densest deco (51/block) at 56.0 s",
+  "never": [],
+  "song": {
+   "custom": 183718,
+   "from": 0
+  },
+  "feel": {
+   "tier": "Normal",
+   "modeStretch": 3.5,
+   "density": "0.15 hazards per block"
+  },
+  "lookRule": "shared",
+  "camera": "zoom pulses",
+  "motifs": [
+   "zoom pulses (88)",
+   "speed changes as punctuation (4)"
+  ],
+  "rhythm": {
+   "sync": "portals",
+   "speed": "3x"
+  },
+  "beats": [
+   {
+    "id": "intro 1",
+    "t": [
+     0.05,
+     5
+    ],
+    "role": "intro",
+    "energy": 0.61,
+    "place": "a purple place",
+    "mood": "driving, dark",
+    "vehicle": {
+     "mode": "cube",
+     "speed": "1x",
+     "at": [
+      5
+     ],
+     "speeds": [
+      "1x",
+      "2x"
+     ]
+    },
+    "moment": "speed 2x at 3.4 s",
+    "look": {
+     "palette": {
+      "bg": "#3c0082"
+     }
+    },
+    "transition": {}
+   },
+   {
+    "id": "intro 1 (robot)",
+    "t": [
+     5,
+     8.62
+    ],
+    "role": "intro",
+    "energy": 0.61,
+    "place": "a purple place",
+    "mood": "driving, dark",
+    "vehicle": {
+     "mode": "robot",
+     "speed": "2x",
+     "at": [
+      5
+     ],
+     "speeds": [
+      "1x",
+      "2x"
+     ]
+    },
+    "moment": "speed 2x at 3.4 s",
+    "look": {
+     "palette": {
+      "bg": "#3c0082"
+     }
+    },
+    "transition": {}
+   },
+   {
+    "id": "drop 2",
+    "t": [
+     8.62,
+     13.7
+    ],
+    "role": "drop",
+    "energy": 0.58,
+    "place": "a purple place",
+    "mood": "steady, dark",
+    "vehicle": {
+     "mode": "robot",
+     "speed": "2x",
+     "at": [
+      13.7,
+      17.9,
+      24.9,
+      27.4
+     ],
+     "speeds": [
+      "2x",
+      "3x",
+      "3x",
+      "3x",
+      "3x"
+     ]
+    },
+    "moment": "zoom 1 at 10.9 s",
+    "look": {
+     "palette": {
+      "bg": "#3c0082"
+     }
+    },
+    "transition": {}
+   },
+   {
+    "id": "drop 2 (ship)",
+    "t": [
+     13.7,
+     17.9
+    ],
+    "role": "drop",
+    "energy": 0.58,
+    "place": "a purple place",
+    "mood": "steady, dark",
+    "vehicle": {
+     "mode": "ship",
+     "speed": "3x",
+     "at": [
+      13.7,
+      17.9,
+      24.9,
+      27.4
+     ],
+     "speeds": [
+      "2x",
+      "3x",
+      "3x",
+      "3x",
+      "3x"
+     ]
+    },
+    "moment": "zoom 1 at 10.9 s",
+    "look": {
+     "palette": {
+      "bg": "#3c0082"
+     }
+    },
+    "transition": {}
+   },
+   {
+    "id": "drop 2 (cube)",
+    "t": [
+     17.9,
+     24.9
+    ],
+    "role": "drop",
+    "energy": 0.58,
+    "place": "a purple place",
+    "mood": "steady, dark",
+    "vehicle": {
+     "mode": "cube",
+     "speed": "3x",
+     "at": [
+      13.7,
+      17.9,
+      24.9,
+      27.4
+     ],
+     "speeds": [
+      "2x",
+      "3x",
+      "3x",
+      "3x",
+      "3x"
+     ]
+    },
+    "moment": "zoom 1 at 10.9 s",
+    "look": {
+     "palette": {
+      "bg": "#3c0082"
+     }
+    },
+    "transition": {}
+   },
+   {
+    "id": "drop 2 (ufo)",
+    "t": [
+     24.9,
+     27.4
+    ],
+    "role": "drop",
+    "energy": 0.58,
+    "place": "a purple place",
+    "mood": "steady, dark",
+    "vehicle": {
+     "mode": "ufo",
+     "speed": "3x",
+     "at": [
+      13.7,
+      17.9,
+      24.9,
+      27.4
+     ],
+     "speeds": [
+      "2x",
+      "3x",
+      "3x",
+      "3x",
+      "3x"
+     ]
+    },
+    "moment": "zoom 1 at 10.9 s",
+    "look": {
+     "palette": {
+      "bg": "#3c0082"
+     }
+    },
+    "transition": {}
+   },
+   {
+    "id": "drop 2 (robot)",
+    "t": [
+     27.4,
+     32.62
+    ],
+    "role": "drop",
+    "energy": 0.58,
+    "place": "a purple place",
+    "mood": "steady, dark",
+    "vehicle": {
+     "mode": "robot",
+     "speed": "3x",
+     "at": [
+      13.7,
+      17.9,
+      24.9,
+      27.4
+     ],
+     "speeds": [
+      "2x",
+      "3x",
+      "3x",
+      "3x",
+      "3x"
+     ]
+    },
+    "moment": "zoom 1 at 10.9 s",
+    "look": {
+     "palette": {
+      "bg": "#3c0082"
+     }
+    },
+    "transition": {}
+   },
+   {
+    "id": "calm 3",
+    "t": [
+     32.62,
+     36.5
+    ],
+    "role": "calm",
+    "energy": 0.39,
+    "place": "a purple place",
+    "mood": "steady, dark",
+    "vehicle": {
+     "mode": "robot",
+     "speed": "2x",
+     "at": [
+      36.5,
+      43.4
+     ],
+     "speeds": [
+      "2x",
+      "2x",
+      "3x"
+     ]
+    },
+    "moment": "speed 3x at 41.1 s",
+    "look": {
+     "palette": {
+      "bg": "#3c0082"
+     }
+    },
+    "transition": {}
+   },
+   {
+    "id": "calm 3 (cube)",
+    "t": [
+     36.5,
+     43.4
+    ],
+    "role": "calm",
+    "energy": 0.39,
+    "place": "a purple place",
+    "mood": "steady, dark",
+    "vehicle": {
+     "mode": "cube",
+     "speed": "2x",
+     "at": [
+      36.5,
+      43.4
+     ],
+     "speeds": [
+      "2x",
+      "2x",
+      "3x"
+     ]
+    },
+    "moment": "speed 3x at 41.1 s",
+    "look": {
+     "palette": {
+      "bg": "#3c0082"
+     }
+    },
+    "transition": {}
+   },
+   {
+    "id": "calm 3 (ufo)",
+    "t": [
+     43.4,
+     46.34
+    ],
+    "role": "calm",
+    "energy": 0.39,
+    "place": "a purple place",
+    "mood": "steady, dark",
+    "vehicle": {
+     "mode": "ufo",
+     "speed": "3x",
+     "at": [
+      36.5,
+      43.4
+     ],
+     "speeds": [
+      "2x",
+      "2x",
+      "3x"
+     ]
+    },
+    "moment": "speed 3x at 41.1 s",
+    "look": {
+     "palette": {
+      "bg": "#3c0082"
+     }
+    },
+    "transition": {}
+   },
+   {
+    "id": "drop 4",
+    "t": [
+     46.34,
+     50
+    ],
+    "role": "drop",
+    "energy": 0.59,
+    "place": "a purple place",
+    "mood": "steady, dark",
+    "vehicle": {
+     "mode": "cube",
+     "speed": "3x",
+     "at": [
+      50,
+      53,
+      54.8,
+      58.3
+     ]
+    },
+    "moment": "zoom 1.021 at 53.4 s",
+    "look": {
+     "palette": {
+      "bg": "#3c0082"
+     }
+    },
+    "transition": {}
+   },
+   {
+    "id": "drop 4 (ship)",
+    "t": [
+     50,
+     53
+    ],
+    "role": "drop",
+    "energy": 0.59,
+    "place": "a purple place",
+    "mood": "steady, dark",
+    "vehicle": {
+     "mode": "ship",
+     "speed": "3x",
+     "at": [
+      50,
+      53,
+      54.8,
+      58.3
+     ]
+    },
+    "moment": "zoom 1.021 at 53.4 s",
+    "look": {
+     "palette": {
+      "bg": "#3c0082"
+     }
+    },
+    "transition": {}
+   },
+   {
+    "id": "drop 4 (cube)",
+    "t": [
+     53,
+     54.8
+    ],
+    "role": "drop",
+    "energy": 0.59,
+    "place": "a purple place",
+    "mood": "steady, dark",
+    "vehicle": {
+     "mode": "cube",
+     "speed": "3x",
+     "at": [
+      50,
+      53,
+      54.8,
+      58.3
+     ]
+    },
+    "moment": "zoom 1.021 at 53.4 s",
+    "look": {
+     "palette": {
+      "bg": "#3c0082"
+     }
+    },
+    "transition": {}
+   },
+   {
+    "id": "drop 4 (ball)",
+    "t": [
+     54.8,
+     58.3
+    ],
+    "role": "drop",
+    "energy": 0.59,
+    "place": "a purple place",
+    "mood": "steady, dark",
+    "vehicle": {
+     "mode": "ball",
+     "speed": "3x",
+     "at": [
+      50,
+      53,
+      54.8,
+      58.3
+     ]
+    },
+    "moment": "zoom 1.021 at 53.4 s",
+    "look": {
+     "palette": {
+      "bg": "#3c0082"
+     }
+    },
+    "transition": {}
+   },
+   {
+    "id": "drop 4 (robot)",
+    "t": [
+     58.3,
+     60.05
+    ],
+    "role": "drop",
+    "energy": 0.59,
+    "place": "a purple place",
+    "mood": "steady, dark",
+    "vehicle": {
+     "mode": "robot",
+     "speed": "3x",
+     "at": [
+      50,
+      53,
+      54.8,
+      58.3
+     ]
+    },
+    "moment": "zoom 1.021 at 53.4 s",
+    "look": {
+     "palette": {
+      "bg": "#3c0082"
+     }
+    },
+    "transition": {}
+   },
+   {
+    "id": "finale 5",
+    "t": [
+     60.05,
+     70.25
+    ],
+    "role": "finale",
+    "energy": 0.21,
+    "place": "a purple place",
+    "mood": "calm, dark",
+    "vehicle": {
+     "mode": "robot",
+     "speed": "3x"
+    },
+    "moment": "densest deco (47/block) at 62 s",
+    "look": {
+     "palette": {
+      "bg": "#3c0082"
+     }
+    },
+    "transition": {}
+   }
+  ],
+  "machine": true
+ },
+ "vibeNotes": [
+  "intro 1 (robot): a purple place: robot as its structure s:robot-steps in a cube section (compose has no robot section)",
+  "drop 2: a purple place: robot as its structure s:robot-steps in a cube section (compose has no robot section)",
+  "drop 2 (ufo): a purple place: ufo as its structure s:ufo-pillars in a cube section (compose has no ufo section)",
+  "drop 2 (robot): a purple place: robot as its structure s:robot-steps in a cube section (compose has no robot section)",
+  "calm 3: a purple place: robot as its structure s:robot-steps in a cube section (compose has no robot section)",
+  "calm 3 (ufo): a purple place: ufo as its structure s:ufo-pillars in a cube section (compose has no ufo section)",
+  "drop 4 (robot): a purple place: robot as its structure s:robot-steps in a cube section (compose has no robot section)",
+  "finale 5: a purple place: robot as its structure s:robot-steps in a cube section (compose has no robot section)"
+ ],
+ "sections": [
+  {
+   "name": "intro 1: a purple place",
+   "beats": 12,
+   "speed": "1x",
+   "use": [
+    "double",
+    "triple",
+    "block-spike-block",
+    "orb-pit",
+    "pad-launch"
+   ],
+   "gaps": [
+    3,
+    5
+   ],
+   "bg": [
+    60,
+    0,
+    130
+   ],
+   "ground": [
+    27,
+    0,
+    59
+   ],
+   "line": [
+    177,
+    153,
+    205
+   ],
+   "obj": [
+    255,
+    255,
+    255
+   ]
+  },
+  {
+   "name": "intro 1 (robot): a purple place",
+   "beats": 8,
+   "speed": "2x",
+   "use": [
+    "s:robot-steps",
+    "double",
+    "triple"
+   ],
+   "gaps": [
+    3,
+    5
+   ],
+   "bg": [
+    60,
+    0,
+    130
+   ],
+   "ground": [
+    27,
+    0,
+    59
+   ],
+   "line": [
+    177,
+    153,
+    205
+   ],
+   "obj": [
+    255,
+    255,
+    255
+   ]
+  },
+  {
+   "name": "drop 2: a purple place",
+   "beats": 12,
+   "speed": "2x",
+   "use": [
+    "s:robot-steps",
+    "single",
+    "double"
+   ],
+   "gaps": [
+    3,
+    6
+   ],
+   "bg": [
+    60,
+    0,
+    130
+   ],
+   "ground": [
+    27,
+    0,
+    59
+   ],
+   "line": [
+    177,
+    153,
+    205
+   ],
+   "obj": [
+    255,
+    255,
+    255
+   ]
+  },
+  {
+   "name": "drop 2 (ship): a purple place",
+   "beats": 8,
+   "speed": "3x",
+   "mode": "ship",
+   "bg": [
+    60,
+    0,
+    130
+   ],
+   "ground": [
+    27,
+    0,
+    59
+   ],
+   "line": [
+    177,
+    153,
+    205
+   ],
+   "obj": [
+    255,
+    255,
+    255
+   ]
+  },
+  {
+   "name": "drop 2 (cube): a purple place",
+   "beats": 16,
+   "speed": "3x",
+   "use": [
+    "single",
+    "double",
+    "spike-block",
+    "hops",
+    "stairs"
+   ],
+   "gaps": [
+    3,
+    6
+   ],
+   "bg": [
+    60,
+    0,
+    130
+   ],
+   "ground": [
+    27,
+    0,
+    59
+   ],
+   "line": [
+    177,
+    153,
+    205
+   ],
+   "obj": [
+    255,
+    255,
+    255
+   ]
+  },
+  {
+   "name": "drop 2 (ufo): a purple place",
+   "beats": 8,
+   "speed": "3x",
+   "use": [
+    "s:ufo-pillars",
+    "single",
+    "double"
+   ],
+   "gaps": [
+    3,
+    6
+   ],
+   "bg": [
+    60,
+    0,
+    130
+   ],
+   "ground": [
+    27,
+    0,
+    59
+   ],
+   "line": [
+    177,
+    153,
+    205
+   ],
+   "obj": [
+    255,
+    255,
+    255
+   ]
+  },
+  {
+   "name": "drop 2 (robot): a purple place",
+   "beats": 12,
+   "speed": "3x",
+   "use": [
+    "s:robot-steps",
+    "single",
+    "double"
+   ],
+   "gaps": [
+    3,
+    6
+   ],
+   "bg": [
+    60,
+    0,
+    130
+   ],
+   "ground": [
+    27,
+    0,
+    59
+   ],
+   "line": [
+    177,
+    153,
+    205
+   ],
+   "obj": [
+    255,
+    255,
+    255
+   ]
+  },
+  {
+   "name": "calm 3: a purple place",
+   "beats": 8,
+   "speed": "2x",
+   "use": [
+    "s:robot-steps",
+    "single",
+    "double"
+   ],
+   "gaps": [
+    3,
+    6
+   ],
+   "bg": [
+    60,
+    0,
+    130
+   ],
+   "ground": [
+    27,
+    0,
+    59
+   ],
+   "line": [
+    177,
+    153,
+    205
+   ],
+   "obj": [
+    255,
+    255,
+    255
+   ],
+   "deco": 0.1
+  },
+  {
+   "name": "calm 3 (cube): a purple place",
+   "beats": 16,
+   "speed": "2x",
+   "use": [
+    "single",
+    "double",
+    "spike-block",
+    "hops",
+    "stairs"
+   ],
+   "gaps": [
+    3,
+    6
+   ],
+   "bg": [
+    60,
+    0,
+    130
+   ],
+   "ground": [
+    27,
+    0,
+    59
+   ],
+   "line": [
+    177,
+    153,
+    205
+   ],
+   "obj": [
+    255,
+    255,
+    255
+   ],
+   "deco": 0.1
+  },
+  {
+   "name": "calm 3 (ufo): a purple place",
+   "beats": 8,
+   "speed": "3x",
+   "use": [
+    "s:ufo-pillars",
+    "single",
+    "double"
+   ],
+   "gaps": [
+    3,
+    6
+   ],
+   "bg": [
+    60,
+    0,
+    130
+   ],
+   "ground": [
+    27,
+    0,
+    59
+   ],
+   "line": [
+    177,
+    153,
+    205
+   ],
+   "obj": [
+    255,
+    255,
+    255
+   ],
+   "deco": 0.1
+  },
+  {
+   "name": "drop 4: a purple place",
+   "beats": 8,
+   "speed": "3x",
+   "use": [
+    "single",
+    "double",
+    "spike-block",
+    "hops",
+    "stairs"
+   ],
+   "gaps": [
+    3,
+    6
+   ],
+   "bg": [
+    60,
+    0,
+    130
+   ],
+   "ground": [
+    27,
+    0,
+    59
+   ],
+   "line": [
+    177,
+    153,
+    205
+   ],
+   "obj": [
+    255,
+    255,
+    255
+   ]
+  },
+  {
+   "name": "drop 4 (ship): a purple place",
+   "beats": 8,
+   "speed": "3x",
+   "mode": "ship",
+   "bg": [
+    60,
+    0,
+    130
+   ],
+   "ground": [
+    27,
+    0,
+    59
+   ],
+   "line": [
+    177,
+    153,
+    205
+   ],
+   "obj": [
+    255,
+    255,
+    255
+   ]
+  },
+  {
+   "name": "drop 4 (cube): a purple place",
+   "beats": 4,
+   "speed": "3x",
+   "use": [
+    "single",
+    "double",
+    "spike-block",
+    "hops",
+    "stairs"
+   ],
+   "gaps": [
+    3,
+    6
+   ],
+   "bg": [
+    60,
+    0,
+    130
+   ],
+   "ground": [
+    27,
+    0,
+    59
+   ],
+   "line": [
+    177,
+    153,
+    205
+   ],
+   "obj": [
+    255,
+    255,
+    255
+   ]
+  },
+  {
+   "name": "drop 4 (ball): a purple place",
+   "beats": 8,
+   "speed": "3x",
+   "mode": "ball",
+   "bg": [
+    60,
+    0,
+    130
+   ],
+   "ground": [
+    27,
+    0,
+    59
+   ],
+   "line": [
+    177,
+    153,
+    205
+   ],
+   "obj": [
+    255,
+    255,
+    255
+   ]
+  },
+  {
+   "name": "drop 4 (robot): a purple place",
+   "beats": 4,
+   "speed": "3x",
+   "use": [
+    "s:robot-steps",
+    "single",
+    "double"
+   ],
+   "gaps": [
+    3,
+    6
+   ],
+   "bg": [
+    60,
+    0,
+    130
+   ],
+   "ground": [
+    27,
+    0,
+    59
+   ],
+   "line": [
+    177,
+    153,
+    205
+   ],
+   "obj": [
+    255,
+    255,
+    255
+   ]
+  },
+  {
+   "name": "finale 5: a purple place",
+   "beats": 24,
+   "speed": "3x",
+   "use": [
+    "s:robot-steps",
+    "single",
+    "spike-block"
+   ],
+   "gaps": [
+    5,
+    8
+   ],
+   "bg": [
+    60,
+    0,
+    130
+   ],
+   "ground": [
+    27,
+    0,
+    59
+   ],
+   "line": [
+    177,
+    153,
+    205
+   ],
+   "obj": [
+    255,
+    255,
+    255
+   ]
+  }
+ ]
+}

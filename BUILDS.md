@@ -116,3 +116,9 @@ The stage times are also in local/timings.jsonl.
 - result: not ready (prejumps, timing, channels, reactive, player timing, skips, fairness), 8 round(s), variants: 1 section(s)
 - change made: (the session fills this in)
 
+## GDLM 70 candy night, 2026-11-24 20:10
+- stages: song 0 s, layout 108 s, layout 208 s, path 793 s, deco 1173 s, final 1173 s
+- slowest step: path (585 s); over target: layout 108 s > 60 s, layout 208 s > 60 s
+- result: not ready (prejumps, timing, channels, reactive, player timing, skips, fairness), 8 round(s), variants: 2 section(s)
+- change made: (the session fills this in)
+
