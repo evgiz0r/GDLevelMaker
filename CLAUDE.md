@@ -351,6 +351,10 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   shoot, levelmap, wip; logs under `local/loop/`), `--times` prints the measured time table, `--time <step>
   <cmd>` times any other job into it. Test: `node tests/loop.js`.
 - **`tools/mains.js` -- RobTop's 22 main levels kept solved** (`status`: which route fails and the cheapest fix; `run`: replans then resumes at heavy priority `urgent`; serve.js starts it after a pull that changes physics or route code; DIFFICULTY.md "Main levels kept current").
+- **`tools/presslib.js` -- the press library: where good players press, learned from clears** (gdsolver's real-game plans,
+  our routes, the user's attempts): a picture of what is ahead -> the share who pressed there; the solver plays a level by it
+  and searches only where that dies; `test` = learn from every other level, predict this one; `hints` = the creator's start
+  positions and jump marks against a route. PHYSICS.md "The press library". Test: `node tests/presslib.js`.
 - `tools/solutions.js` -- solve each level ONCE on the PC (`--all` for every repo level missing one);
   the viewer and the phone replay the saved solution (natural replay, stamped with the physics
   commit; stale ones are re-solved). make.js and wip.js save one whenever they solve.
@@ -416,6 +420,11 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   spec key `"props"` in make.js), `tools/props.js sheet | level`. Test: `node tests/pixelart.js`.
 - **The user's drawings -> levels** (SKETCH.md: reading a drawing into a spec, then making it fair;
   the GDLM 46 lessons).
+- **The whiteboard: draw a level freehand** (DRAW.md: no grid, pens for ground / blocks / spikes / deco / "I jump here" /
+  notes, areas, stamps for orbs, pads, portals and props, deco shown or hidden, the song's beats and drop on the board, ✓ check
+  and play; the cell-builder design): `viewer/draw.html` (⚙ view -> ✏ whiteboard; phone: `tools/draw_web.js`, link in
+  local/phone/draw_url.txt), `lib/sketch.js`, `tools/sketch.js` (a saved sketch from local/sketches/ -> .gdlvl + report).
+  Tests: `node tests/sketch.js`, `node tests/draw_page.js`.
 - **Levels onto the phone** (PUBLISH.md: unlisted upload from the PC game with computer use, where
   the buttons are, GD must be windowed, the user's yes before each upload; ONE phone slot,
   ID 152848491, filled with `install.js <lvl> --slot phone`; and the test slot "Claude Lab", `--slot lab --desc "..."`, not uploaded yet; both in `local/phone_ids.json`). **Install queue** `tools/install_queue.js` (add / watch: installs the moment GD closes, reads the save back; PUBLISH.md). `tools/install.js` keeps a shared level's online ID on re-install, so

@@ -1,0 +1,715 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>GDLM Whiteboard</title>
+<style>
+  :root { --bg:#0b0620; --panel:#160d33; --ink:#e8e4ff; --dim:#8b84b8; --acc:#3dffb0; --line:#2b2060; --warn:#ffb020; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; height:100%; background:var(--bg); color:var(--ink); font:14px/1.35 system-ui, sans-serif; overflow:hidden; }
+  body { display:flex; flex-direction:column; }
+  header { background:var(--panel); border-bottom:1px solid var(--line); padding:6px 8px; display:flex; flex-direction:column; gap:5px; }
+  .row { display:flex; flex-wrap:wrap; gap:5px; align-items:center; }
+  .row[hidden] { display:none; }
+  button, select, .chip { background:#22174a; color:var(--ink); border:1px solid #3a2c78; border-radius:7px; padding:5px 9px; font:inherit; cursor:pointer; min-height:32px; touch-action:manipulation; }
+  button.on, .chip.on { background:#3dffb0; color:#0b0620; border-color:#3dffb0; }
+  button:disabled { opacity:.4; cursor:default; }
+  button.sm { padding:3px 7px; min-height:28px; font-size:13px; }
+  .sep { width:1px; align-self:stretch; background:var(--line); margin:0 2px; }
+  .sw { width:26px; height:26px; min-height:26px; padding:0; border-radius:50%; border:2px solid #fff3; }
+  .sw.on { border-color:#fff; box-shadow:0 0 0 2px #3dffb0; }
+  .muted { color:var(--dim); font-size:12px; }
+  #title { font-weight:600; color:var(--acc); max-width:34vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #stage { flex:1; position:relative; min-height:0; }
+  canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none; display:block; }
+  #msg { position:absolute; left:50%; top:10px; transform:translateX(-50%); background:#000c; border:1px solid var(--line); border-radius:8px; padding:6px 12px; pointer-events:none; max-width:calc(100% - 32px); text-align:center; }
+  #msg[hidden] { display:none; }
+  .ovl { position:fixed; inset:0; background:#0009; display:flex; align-items:flex-start; justify-content:center; padding:60px 16px 16px; z-index:50; }
+  .ovl[hidden] { display:none; }
+  .box { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:12px; width:min(480px, 100%); max-height:calc(100vh - 80px); overflow:auto; display:flex; flex-direction:column; gap:8px; }
+  .box h3 { margin:0; font-size:15px; }
+  .item { display:flex; gap:6px; align-items:center; padding:6px; border-radius:6px; background:#1d1342; }
+  .item .nm { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  input[type=text] { background:#0b0620; color:var(--ink); border:1px solid #3a2c78; border-radius:6px; padding:6px 8px; font:inherit; width:100%; }
+  .filepick { position:relative; overflow:hidden; display:inline-block; }
+  .filepick input { position:absolute; inset:0; opacity:0; font-size:40px; cursor:pointer; }
+  .grp { display:flex; gap:4px; flex-wrap:wrap; align-items:center; }
+  .grp > .muted { margin-right:2px; }
+  @media (max-width: 560px) { button, select, .chip { padding:4px 7px; min-height:30px; } header { padding:5px 6px; gap:4px; } .row { gap:4px; } .sep { display:none; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="row" id="row1">
+    <button id="menuBtn" title="sketches: new, open, rename, export, send to Claude">☰</button>
+    <span id="title">sketch</span>
+    <span class="sep"></span>
+    <button data-tool="pen" class="on" title="draw (1-5 pick a pen)">✏️</button>
+    <button data-tool="stamp" title="place an orb, portal, pad, hazard or a deco prop anywhere">●</button>
+    <button data-tool="select" title="pick something: move, turn, resize, delete">⬚</button>
+    <button data-tool="erase" title="rub out whatever the finger crosses">⌫</button>
+    <button data-tool="pan" title="move the board (two fingers always move and zoom)">✋</button>
+    <span class="sep"></span>
+    <button id="undoBtn" title="undo (Ctrl+Z)">↶</button>
+    <button id="redoBtn" title="redo (Ctrl+Y)">↷</button>
+    <span class="sep"></span>
+    <button id="viewBtn" title="sketch: your strokes · level: what they become in GD">sketch</button>
+    <button id="decoBtn" class="on" title="show or hide every deco (deco lines and props)">deco 👁</button>
+    <button id="songBtn" title="the song's beats on the board, and play it">♪</button>
+    <button id="listenBtn" title="hear the song with a playhead at level speed">▶♪</button>
+    <button id="checkBtn" title="is it beatable? replays your jump marks, then asks the solver for a way through, and shows both">✓ check</button>
+    <button id="replayBtn" title="replay the last check's route (or your jump marks)" hidden>▶</button>
+    <button id="playBtn" title="play it yourself: tap / space / click to jump, Esc to stop">🎮</button>
+  </div>
+  <div class="row" id="penRow"></div>
+  <div class="row" id="stampRow" hidden></div>
+  <div class="row" id="selRow" hidden></div>
+</header>
+<div id="stage"><canvas id="cv"></canvas><div id="msg" hidden></div></div>
+
+<div class="ovl" id="menu" hidden><div class="box">
+  <h3>Sketches</h3>
+  <div class="row"><input type="text" id="nameIn" placeholder="name"><button id="renameBtn" class="sm">rename</button></div>
+  <div class="row">
+    <button id="newBtn" class="sm">＋ new</button><button id="dupBtn" class="sm">duplicate</button>
+    <button id="gdlvlBtn" class="sm" title="the level as a .gdlvl file (install it with tools/install.js on the PC)">⬇ .gdlvl</button>
+    <button id="jsonBtn" class="sm">⬇ sketch .json</button>
+    <button id="sendBtn" class="sm" title="save it where Claude reads it (the PC's local/sketches, or the phone page's database)">✉ send to Claude</button>
+  </div>
+  <div class="row"><span class="muted">start speed</span><select id="speedSel"><option value="0">0.5x</option><option value="1">1x</option><option value="2">2x</option><option value="3">3x</option><option value="4">4x</option></select>
+    <label class="muted"><input type="checkbox" id="guideChk"> faint block guides</label>
+    <button id="clearDeaths" class="sm">clear death marks</button></div>
+  <div id="list"></div>
+  <p class="muted">Draw with one finger, move and zoom with two (mouse: right-drag moves, wheel scrolls, Ctrl+wheel zooms).
+    Nothing snaps: what you draw is where it goes. "level" shows what the strokes become; 🎮 plays it in the same physics as the viewer.</p>
+  <button id="closeMenu">close</button>
+</div></div>
+
+<div class="ovl" id="songs" hidden><div class="box">
+  <h3>Song and beats</h3>
+  <div id="songList"></div>
+  <div class="row"><span class="muted">level starts at</span><input type="text" id="offIn" style="width:80px" placeholder="0"> <span class="muted">s into the song</span><button id="offBtn" class="sm">set</button></div>
+  <div class="row"><span class="filepick"><button class="sm">pick the mp3 from this device</button><input type="file" id="fileIn" accept="audio/*,.mp3,.ogg"></span><span class="muted" id="audioState"></span></div>
+  <div class="row"><label class="muted"><input type="checkbox" id="beatChk" checked> beat lines</label><label class="muted"><input type="checkbox" id="loudChk" checked> loudness strip</label></div>
+  <button id="closeSongs">close</button>
+</div></div>
+
+<script src="../lib/gd.js"></script>
+<script src="../lib/objects_extra.js"></script>
+<script src="../lib/objects_gd22.js"></script>
+<script src="../lib/objects.js"></script>
+<script src="../lib/dual.js"></script>
+<script src="../lib/physics.js"></script>
+<script src="../lib/liveplay.js"></script>
+<script src="../lib/pixelart.js"></script>
+<script src="../lib/props.js"></script>
+<script src="../lib/sketch.js"></script>
+<script src="draw_songs.js" onerror="window.DRAW_SONGS = {}"></script>
+<script src="../local/beats.local.js" onerror="window.GD_BEATS = {}"></script>
+<script>
+"use strict";
+// The whiteboard: draw a level freehand (DRAW.md). Board units = level units (30 = a block), y up, ground at y = 0.
+const SK = GD.SKETCH, $ = id => document.getElementById(id);
+const cv = $("cv"), ctx = cv.getContext("2d");
+const LS = { get(k, d) { try { const v = localStorage.getItem("gdlm.draw." + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+             set(k, v) { try { localStorage.setItem("gdlm.draw." + k, JSON.stringify(v)); } catch (e) {} } };
+const SERVED = /^https?:/.test(location.protocol) && /^(localhost|127\.|192\.168\.|10\.)/.test(location.hostname);
+
+// ---- pens, stamps, colours ----
+const PENS = [
+  { id: "ground", icon: "⛰", label: "ground", tip: "a surface: blocks under it down to the ground; steep bits become slopes" },
+  { id: "platform", icon: "▬", label: "blocks", tip: "blocks along the line wherever it goes: platforms, walls, ceilings" },
+  { id: "spikes", icon: "▲", label: "spikes", tip: "spikes standing on the line (under a ceiling they hang)" },
+  { id: "deco", icon: "🖌", label: "deco", tip: "a coloured line, no hitbox" },
+  { id: "jump", icon: "⤒", label: "I jump here", tip: "tap: a jump at that spot; drag sideways: hold from there to there. The plan the level is built around" },
+  { id: "note", icon: "✎", label: "note", tip: "a note for Claude: never in the level" },
+];
+const DECO_COLS = [[255,255,255],[255,90,90],[255,170,60],[255,230,80],[90,255,140],[80,200,255],[180,120,255],[255,110,210],[30,20,50]];
+const WIDTHS = [[3, "thin"], [7, "mid"], [16, "thick"]];
+const STAMP_GROUPS = [
+  ["orbs", ["orb:yellow", "orb:pink", "orb:red", "orb:blue", "orb:green", "orb:black", "orb:dash"]],
+  ["pads", ["pad:yellow", "pad:pink", "pad:red", "pad:blue"]],
+  ["modes", ["portal:cube", "portal:ship", "portal:ball", "portal:ufo", "portal:wave", "portal:robot", "portal:spider", "portal:swing"]],
+  ["gravity / size", ["grav:up", "grav:down", "size:mini", "size:big"]],
+  ["speed", ["speed:0.5", "speed:1", "speed:2", "speed:3", "speed:4"]],
+  ["hazards", ["spike", "small spike", "saw", "small saw", "big saw", "block", "slab"]],
+];
+const PROP_NAMES = (window.PROPS ? PROPS.list().map(p => p.name) : []);
+const STAMP_COL = w => { const id = SK.STAMPS[w]; const d = id != null && GD.objInfo(id); return (d && d.color) || "#ccc"; };
+const STAMP_LABEL = w => w.replace(/^(orb|pad|portal|grav|size|speed|prop):/, "").replace(/^speed:/, "") + ({ speed: "x" }[w.split(":")[0]] || "");
+
+// ---- state ----
+let store = LS.get("sketches", {}), curId = LS.get("current", null);
+function blank(name) { return { v: 1, id: "s" + Date.now().toString(36), name: name || "sketch " + new Date().toISOString().slice(5, 16).replace("T", " "), speed: 1, song: { url: "/song/custom/343707.mp3", offset: 0 }, items: [], deaths: [], updated: Date.now() }; }
+let sk = store[curId] || null;
+if (!sk) { sk = blank(); store[sk.id] = sk; curId = sk.id; }
+const ui = Object.assign({ tool: "pen", pen: "ground", col: 0, w: 1, front: false, stamp: "orb:yellow", recent: ["orb:yellow", "orb:pink", "portal:ship", "spike", "prop:tree", "prop:cloud"], view: "sketch", deco: true, beats: true, loud: true, guides: false }, LS.get("ui", {}));
+ui.view = "sketch";
+const V = Object.assign({ x: -60, y: -45, z: 0 }, LS.get("view." + sk.id, {}));
+let W = 0, H = 0, DPR = 1, dirty = true, conv = null, convFor = null, sel = null, undo = [], redo = [];
+
+function save() { sk.updated = Date.now(); store[sk.id] = sk; LS.set("sketches", store); LS.set("current", sk.id); LS.set("ui", ui); LS.set("view." + sk.id, V); queueSync(); }
+// Where Claude reads the sketches: the phone page's database (collection "sketches", one doc per sketch: Claude reads it
+// with ArtifactData) or, on the PC, local/sketches/<id>.json through tools/serve.js. Both also bring the sketches drawn on
+// another device: the newest copy of each wins. Saved a moment after each change, one write at a time.
+let DB = null, syncT = 0, sent = {}, syncing = false;
+function queueSync() { clearTimeout(syncT); syncT = setTimeout(syncNow, 1500); }
+async function syncNow() {
+  if (syncing) return queueSync(); syncing = true;
+  try {
+    for (const s of Object.values(store)) {
+      const body = JSON.stringify(s); if (sent[s.id] === body) continue;
+      if (DB) await DB.collection("sketches").doc(s.id).set(JSON.parse(body));
+      else if (SERVED) { const r = await fetch("/sketches?id=" + encodeURIComponent(s.id), { method: "POST", body }); if (!r.ok) throw new Error("PC said " + r.status); }
+      else continue;
+      sent[s.id] = body;
+    }
+  } catch (e) { msg("not saved for Claude yet: " + e.message, 4000); }
+  syncing = false;
+}
+function mergeRemote(list) {
+  let changedCur = false;
+  for (const r of list) { if (!r || !r.id || !Array.isArray(r.items)) continue; const l = store[r.id];
+    if (!l || (r.updated || 0) > (l.updated || 0)) { store[r.id] = r; sent[r.id] = JSON.stringify(r); if (r.id === curId) changedCur = true; } else if (JSON.stringify(l) === JSON.stringify(r)) sent[r.id] = JSON.stringify(r); }
+  LS.set("sketches", store);
+  if (changedCur) { sk = store[curId]; conv = null; dirty = true; buildRows(); }
+  queueSync();
+}
+(async () => {
+  try {
+    if (window.claude && typeof claude.use === "function") {
+      DB = await claude.use("db");
+      if (DB) { const snap = await DB.collection("sketches").get(); mergeRemote(snap.docs.map(d => d.data())); }
+    } else if (SERVED) { const r = await fetch("/sketches/list"); if (r.ok) mergeRemote(await r.json()); }
+  } catch (e) { DB = null; }
+})();
+function snapshot() { undo.push(JSON.stringify(sk.items)); if (undo.length > 200) undo.shift(); redo = []; }
+function changed() { conv = null; dirty = true; if (check) { check.stale = true; } save(); refreshButtons(); }
+function convert() { if (!conv) { try { conv = SK.convert(sk); } catch (e) { conv = { objects: [], play: [], deco: [], notes: [], error: e.message }; } } return conv; }
+
+// ---- view transform ----
+const sx = x => (x - V.x) * V.z, sy = y => H - (y - V.y) * V.z;
+const wx = px => px / V.z + V.x, wy = py => (H - py) / V.z + V.y;
+function resize() {
+  DPR = Math.min(window.devicePixelRatio || 1, 2.5); const r = cv.getBoundingClientRect(); W = r.width; H = r.height;
+  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+  if (!V.z) V.z = Math.max(0.35, Math.min(H / (11 * 30), W / (14 * 30)));
+  dirty = true;
+}
+window.addEventListener("resize", resize);
+if (window.ResizeObserver) new ResizeObserver(resize).observe($("stage"));
+
+// ---- song / beats ----
+function songs() { const all = Object.assign({}, window.GD_BEATS || {}); for (const [u, s] of Object.entries(window.DRAW_SONGS || {})) all[u] = Object.assign({}, all[u] || {}, s); return all; }
+function songName(u, s) { return (s && s.name) || u.replace(/^\/song\/(custom|official)\//, "").replace(/\.\w+$/, ""); }
+function grid() { const s = sk.song && songs()[sk.song.url]; return s && (s.period || s.bpm) ? Object.assign({ period: s.period || 60 / s.bpm }, s) : null; }
+const audio = new Audio(); audio.preload = "auto"; let audioFor = null, audioOk = false;
+function loadAudio() {
+  if (!sk.song || audioFor === sk.song.url) return;
+  audioFor = sk.song.url; audioOk = false;
+  const cached = fileUrls[sk.song.url];
+  if (cached) { audio.src = cached; audioOk = true; return; }
+  if (SERVED) { audio.src = sk.song.url; audio.oncanplay = () => { audioOk = true; $("audioState").textContent = "song loaded from the PC"; }; audio.onerror = () => { audioOk = false; $("audioState").textContent = "not on this PC: pick the file"; }; }
+}
+const fileUrls = {};
+$("fileIn").addEventListener("change", e => {
+  const f = e.target.files[0]; if (!f || !sk.song) return;
+  fileUrls[sk.song.url] = URL.createObjectURL(f); audioFor = null; loadAudio(); $("audioState").textContent = "playing from " + f.name;
+});
+function songTime(x) { return SK.xToTime(sk, x) + ((sk.song && +sk.song.offset) || 0); }
+
+// ---- drawing the board ----
+function draw() {
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  const g0 = ctx.createLinearGradient(0, 0, 0, H); g0.addColorStop(0, "#1a1050"); g0.addColorStop(1, "#2b1a6e");
+  ctx.fillStyle = g0; ctx.fillRect(0, 0, W, H);
+  const x0 = wx(0), x1 = wx(W);
+  if (ui.guides) { ctx.strokeStyle = "rgba(255,255,255,.05)"; ctx.lineWidth = 1; ctx.beginPath();
+    for (let x = Math.floor(x0 / 30) * 30; x < x1; x += 30) { ctx.moveTo(sx(x), 0); ctx.lineTo(sx(x), H); }
+    for (let y = Math.floor(wy(H) / 30) * 30; y < wy(0); y += 30) { ctx.moveTo(0, sy(y)); ctx.lineTo(W, sy(y)); } ctx.stroke(); }
+  drawBeats(x0, x1);
+  // ground
+  ctx.fillStyle = "#0d2a8a"; ctx.fillRect(0, sy(0), W, H - sy(0));
+  ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, sy(0)); ctx.lineTo(W, sy(0)); ctx.stroke();
+  // start
+  ctx.fillStyle = "rgba(61,255,176,.25)"; ctx.fillRect(sx(-15), sy(30), 30 * V.z, 30 * V.z);
+  ctx.strokeStyle = "#3dffb0"; ctx.strokeRect(sx(-15), sy(30), 30 * V.z, 30 * V.z);
+  const c = convert();
+  if (ui.view === "level") {
+    if (ui.deco) for (const o of c.deco) if (o.x > x0 - 400 && o.x < x1 + 400) drawObj(o, c.colours);
+    for (const o of c.play) if (o.x > x0 - 100 && o.x < x1 + 100) drawObj(o, c.colours);
+    ctx.fillStyle = "#0d2a8a"; ctx.fillRect(0, sy(0) + 1, W, H - sy(0));   // the ground in front, as in the game
+    for (const it of sk.items) if (/note|plan/.test(SK.layerOf(it))) drawItem(it);
+  } else {
+    for (const it of sk.items) { const L = SK.layerOf(it); if (L === "deco" && !ui.deco) continue; drawItem(it); }
+  }
+  if (sel != null && sk.items[sel]) drawSel(sk.items[sel]);
+  if (cur) drawItem(cur);
+  for (const d of sk.deaths || []) { ctx.strokeStyle = "#ff3b6b"; ctx.lineWidth = 3; const X = sx(d.x), Y = sy(d.y); ctx.beginPath(); ctx.moveTo(X - 7, Y - 7); ctx.lineTo(X + 7, Y + 7); ctx.moveTo(X + 7, Y - 7); ctx.lineTo(X - 7, Y + 7); ctx.stroke(); }
+  if (check && !play) drawCheck();
+  if (play) drawPlay(); else if (replay && replay.s) drawPlayer(replay.s);
+  if (listen.on) { const X = sx(listen.x); ctx.strokeStyle = "#ffe14d"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X, 0); ctx.lineTo(X, H); ctx.stroke(); }
+  drawRuler(x0, x1);
+  if (c.error) { ctx.fillStyle = "#ff3b6b"; ctx.fillText("conversion: " + c.error, 8, H - 8); }
+}
+function drawBeats(x0, x1) {
+  const gr = grid(); if (!gr || !ui.beats) return;
+  const off = (+sk.song.offset) || 0, P = gr.period, k0 = Math.max(0, Math.floor((SK.xToTime(sk, Math.max(0, x0)) + off - gr.t0) / P) - 1);
+  const pxPerBeat = SK.unitsPerSec(sk.speed == null ? 1 : sk.speed) * P * V.z;
+  const secs = new Map((gr.sections || []).map(s => [s[0], s[1]]));
+  ctx.lineWidth = 1;
+  for (let k = k0; k < (gr.beats || 1e4); k++) {
+    const t = gr.t0 + k * P - off; if (t < 0) continue;
+    const x = SK.timeToX(sk, t); if (x > x1) break;
+    const bar = ((k - (gr.downbeat || 0)) % 4 + 4) % 4 === 0;
+    if (!bar && pxPerBeat < 10) continue;
+    ctx.strokeStyle = bar ? "rgba(255,225,77,.35)" : "rgba(255,225,77,.13)";
+    ctx.beginPath(); ctx.moveTo(sx(x), 22); ctx.lineTo(sx(x), H); ctx.stroke();
+    if (ui.loud && gr.loud && gr.loud[k] != null) { const h = Math.max(1, (gr.loud[k] + 40) * 0.9); ctx.fillStyle = "rgba(255,225,77,.35)"; ctx.fillRect(sx(x), 22, Math.max(1, pxPerBeat - 1), h); }
+    if (secs.has(k)) { const db = secs.get(k); ctx.strokeStyle = db > 0 ? "#ff9030" : "#60b0ff"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(sx(x), 22); ctx.lineTo(sx(x), H); ctx.stroke(); ctx.lineWidth = 1;
+      ctx.fillStyle = ctx.strokeStyle; ctx.font = "bold 12px system-ui"; ctx.fillText((db > 0 ? "▲ +" : "▼ ") + db + " dB", sx(x) + 4, 70); }
+  }
+}
+function drawRuler(x0, x1) {
+  ctx.fillStyle = "rgba(11,6,32,.85)"; ctx.fillRect(0, 0, W, 22); ctx.font = "11px system-ui"; ctx.fillStyle = "#8b84b8";
+  const gr = grid();
+  if (gr && ui.beats) {
+    const off = (+sk.song.offset) || 0, P = gr.period, step = Math.max(1, Math.ceil(70 / (SK.unitsPerSec(sk.speed == null ? 1 : sk.speed) * P * 4 * V.z)));
+    for (let k = 0; k < (gr.beats || 1e4); k += 4) { const t = gr.t0 + (k + (gr.downbeat || 0)) * P - off; if (t < 0) continue; const x = SK.timeToX(sk, t); if (x > x1) break; if (x < x0 || (k / 4) % step) continue;
+      ctx.fillStyle = "#ffe14d"; ctx.fillText("bar " + (k / 4 + 1), sx(x) + 2, 15); }
+  } else {
+    const st = Math.max(1, Math.ceil(80 / (SK.unitsPerSec(1) * V.z)));
+    for (let s = 0; ; s += st) { const x = SK.timeToX(sk, s); if (x > x1) break; if (x < x0) continue; ctx.fillText(s + " s", sx(x) + 2, 15); ctx.fillRect(sx(x), 16, 1, 6); }
+  }
+  if (hover) { const t = SK.xToTime(sk, hover.x); ctx.fillStyle = "#e8e4ff"; ctx.textAlign = "right"; ctx.fillText(t.toFixed(2) + " s · block " + (hover.x / 30).toFixed(1) + " · " + (hover.y / 30).toFixed(1) + " up", W - 6, 15); ctx.textAlign = "left"; }
+}
+function penStyle(it) {
+  if (it.pen === "ground") return { c: "#7fb0ff", w: 4 };
+  if (it.pen === "platform") return { c: "#b9d0ff", w: 6 };
+  if (it.pen === "spikes") return { c: "#ff3b6b", w: 3 };
+  if (it.pen === "deco") { const c = it.col || [255, 255, 255]; return { c: `rgb(${c})`, w: Math.max(1, (it.w || 7) * V.z), world: true }; }
+  return { c: "#ffe14d", w: 3 };
+}
+function path(pts) { ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(sx(p[0]), sy(p[1])) : ctx.moveTo(sx(p[0]), sy(p[1]))); }
+function drawItem(it) {
+  if (it.k === "stroke") {
+    const st = penStyle(it); if (!it.pts.length) return;
+    if (it.pen === "ground" && it.pts.length > 1) {   // shade down to the ground
+      ctx.fillStyle = "rgba(127,176,255,.18)"; path(it.pts); const l = it.pts[it.pts.length - 1], f = it.pts[0];
+      ctx.lineTo(sx(l[0]), sy(0)); ctx.lineTo(sx(f[0]), sy(0)); ctx.closePath(); ctx.fill();
+    }
+    ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.strokeStyle = st.c; ctx.lineWidth = st.w;
+    if (it.pen === "note") ctx.setLineDash([8, 6]);
+    path(it.pts); if (it.pts.length === 1) ctx.lineTo(sx(it.pts[0][0]) + 0.1, sy(it.pts[0][1])); ctx.stroke(); ctx.setLineDash([]);
+    if (it.pen === "spikes") for (const p of SK.walk(it.pts, 30, 15)) {   // little teeth along it
+      let nx = -p.dy, ny = p.dx; if (ny < 0) { nx = -nx; ny = -ny; } if (it.flip) { nx = -nx; ny = -ny; }
+      ctx.fillStyle = "rgba(255,59,107,.6)"; ctx.beginPath(); ctx.moveTo(sx(p.x - p.dx * 10), sy(p.y - p.dy * 10)); ctx.lineTo(sx(p.x + nx * 22), sy(p.y + ny * 22)); ctx.lineTo(sx(p.x + p.dx * 10), sy(p.y + p.dy * 10)); ctx.fill();
+    }
+  } else if (it.k === "press") {
+    const X = sx(it.x), Y = sy(it.y); ctx.fillStyle = "#ffe14d"; ctx.strokeStyle = "#ffe14d"; ctx.lineWidth = 3;
+    if (it.x1 != null) { ctx.globalAlpha = 0.5; ctx.fillRect(X, Y - 3, sx(it.x1) - X, 6); ctx.globalAlpha = 1; }
+    ctx.beginPath(); ctx.moveTo(X - 8, Y - 14); ctx.lineTo(X + 8, Y - 14); ctx.lineTo(X, Y); ctx.closePath(); ctx.fill();
+    ctx.globalAlpha = 0.35; ctx.beginPath(); ctx.moveTo(X, Y); ctx.lineTo(X, sy(0)); ctx.stroke(); ctx.globalAlpha = 1;
+  } else if (it.k === "stamp") {
+    if (/^prop:/.test(it.what)) { const r = propObjs(it); for (const o of r.objects) drawObj(o, r.colours); return; }
+    const id = SK.STAMPS[it.what]; if (id == null) return;
+    drawObj({ id, x: it.x, y: it.y, rot: it.rot || 0, flipX: !!it.flipX, props: it.s ? { 32: it.s } : {} }, {});
+    if (/^speed:/.test(it.what)) { ctx.fillStyle = "#fff"; ctx.font = "bold 11px system-ui"; ctx.fillText(STAMP_LABEL(it.what), sx(it.x) - 9, sy(it.y + 30)); }
+  }
+}
+const propCache = new Map();
+function propObjs(it) {
+  const key = [it.what, it.s || 1, !!it.flipX, it.seed || 0].join("|");
+  let base = propCache.get(key);
+  if (!base) { try { base = PROPS.put(it.what.slice(5), 0, 0, { scale: it.s || 1, flipX: !!it.flipX, seed: it.seed || 0 }); } catch (e) { base = { objects: [], colours: {} }; } propCache.set(key, base); }
+  return { colours: base.colours, objects: base.objects.map(o => Object.assign({}, o, { x: o.x + it.x, y: o.y + it.y })) };
+}
+// one GD object, roughly as the game shows it (no game art)
+function drawObj(o, colours) {
+  const d = GD.objInfo(o.id), p = o.props || {}, k = +p[32] || 1, ks = [+p[128] || k, +p[129] || k];
+  ctx.save(); ctx.translate(sx(o.x), sy(o.y)); ctx.rotate((o.rot || 0) * Math.PI / 180); ctx.scale(V.z * (o.flipX ? -1 : 1) * ks[0], V.z * (o.flipY ? -1 : 1) * ks[1]);
+  ctx.lineWidth = 2 / V.z / Math.max(ks[0], ks[1]); ctx.lineJoin = "round";
+  if (o.id === 211 || d.kind === "decoration") {
+    const ch = +p[21] || 0, c = colours[ch];
+    ctx.fillStyle = c ? `rgb(${c})` : "rgba(255,255,255,.35)";
+    if (o.id === 211 || !c) ctx.fillRect(-15, -15, 30, 30); else ctx.fillRect(-12, -12, 24, 24);
+  } else if (d.kind === "solid") {
+    const h = d.hit || { w: 30, h: 30 }; ctx.fillStyle = "#0a0a1c"; ctx.fillRect(-h.w / 2, -h.h / 2, h.w, h.h); ctx.strokeStyle = "#e8eaff"; ctx.strokeRect(-h.w / 2, -h.h / 2, h.w, h.h);
+  } else if (d.kind === "slope") {
+    const w = d.hit.w, h = d.hit.h; ctx.fillStyle = "#0a0a1c"; ctx.strokeStyle = "#e8eaff"; ctx.beginPath(); ctx.moveTo(-w / 2, h / 2); ctx.lineTo(w / 2, h / 2); ctx.lineTo(w / 2, -h / 2); ctx.closePath(); ctx.fill(); ctx.stroke();
+  } else if (d.kind === "hazard" && d.shape === "saw") {
+    const r = d.r; ctx.fillStyle = "#111"; ctx.strokeStyle = "#ddd"; ctx.beginPath();
+    for (let i = 0; i < 24; i++) { const a = i / 24 * Math.PI * 2, rr = i % 2 ? r * 0.82 : r * 1.05; ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); } ctx.closePath(); ctx.fill(); ctx.stroke();
+  } else if (d.kind === "hazard") {
+    const t = o.id === 39 ? 0 : o.id === 103 ? -6 : -15 - 0; ctx.fillStyle = "#0a0a1c"; ctx.strokeStyle = "#fff";
+    ctx.beginPath(); ctx.moveTo(-14, 15); ctx.lineTo(14, 15); ctx.lineTo(0, o.id === 39 ? 3 : t); ctx.closePath(); ctx.fill(); ctx.stroke();
+  } else if (d.kind === "orb") {
+    ctx.strokeStyle = d.color || "#fff"; ctx.lineWidth = 4 / V.z; ctx.beginPath(); ctx.arc(0, 0, 12, 0, Math.PI * 2); ctx.stroke(); ctx.fillStyle = d.color || "#fff"; ctx.globalAlpha = 0.45; ctx.fill(); ctx.globalAlpha = 1;
+    if (d.act === "dash") { ctx.strokeStyle = "#fff"; ctx.beginPath(); ctx.moveTo(-6, 0); ctx.lineTo(8, 0); ctx.moveTo(3, -5); ctx.lineTo(8, 0); ctx.lineTo(3, 5); ctx.stroke(); }
+  } else if (d.kind === "pad") {
+    ctx.fillStyle = d.color || "#fff"; ctx.beginPath(); ctx.ellipse(0, 13, 13, 4, 0, Math.PI, 0); ctx.fill();
+  } else if (d.kind === "mode" || d.kind === "gravity" || d.kind === "speed" || d.kind === "size" || d.kind === "dual") {
+    const hh = (d.hit && d.hit.h || 80) / 2, ww = d.kind === "speed" ? 14 : 10;
+    ctx.strokeStyle = d.color || "#fff"; ctx.lineWidth = 5 / V.z; ctx.beginPath(); ctx.ellipse(0, 0, ww, hh, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.fillStyle = d.color || "#fff"; ctx.font = "bold 10px system-ui"; ctx.textAlign = "center";
+    if (d.kind === "mode") ctx.fillText(d.mode, sx(o.x), sy(o.y) - hh * V.z - 4); else if (d.kind === "gravity") ctx.fillText(d.grav < 0 ? "⬆ flip" : "⬇ normal", sx(o.x), sy(o.y) - hh * V.z - 4); else if (d.kind === "size") ctx.fillText(d.mini ? "mini" : "big", sx(o.x), sy(o.y) - hh * V.z - 4);
+    ctx.textAlign = "left";
+  } else { ctx.strokeStyle = "rgba(255,255,255,.4)"; ctx.strokeRect(-12, -12, 24, 24); }
+  ctx.restore();
+}
+function bboxOf(it) {
+  if (it.k === "press") return [it.x - 10, it.y - 2, Math.max(it.x + 10, it.x1 || 0), it.y + 16];
+  if (it.k === "stroke") { const xs = it.pts.map(p => p[0]), ys = it.pts.map(p => p[1]); const m = (it.w || 6) / 2 + 4; return [Math.min(...xs) - m, Math.min(...ys) - m, Math.max(...xs) + m, Math.max(...ys) + m]; }
+  if (/^prop:/.test(it.what)) { const r = propObjs(it); if (!r.objects.length) return [it.x - 15, it.y - 15, it.x + 15, it.y + 15];
+    const b = [1e9, 1e9, -1e9, -1e9]; for (const o of r.objects) { const p = o.props || {}, hw = 15 * (+p[128] || 1), hh = 15 * (+p[129] || 1); b[0] = Math.min(b[0], o.x - hw); b[1] = Math.min(b[1], o.y - hh); b[2] = Math.max(b[2], o.x + hw); b[3] = Math.max(b[3], o.y + hh); } return b; }
+  const id = SK.STAMPS[it.what], d = GD.objInfo(id), h = (d.hit && d.hit.h) || 30, w = Math.max(30, (d.hit && d.hit.w) || 30), s = it.s || 1;
+  return [it.x - w / 2 * s, it.y - Math.max(h, 30) / 2 * s, it.x + w / 2 * s, it.y + Math.max(h, 30) / 2 * s];
+}
+function drawSel(it) { const b = bboxOf(it); ctx.strokeStyle = "#3dffb0"; ctx.setLineDash([5, 4]); ctx.lineWidth = 1.5; ctx.strokeRect(sx(b[0]), sy(b[3]), (b[2] - b[0]) * V.z, (b[3] - b[1]) * V.z); ctx.setLineDash([]); }
+
+// ---- hit testing ----
+function distSeg(px, py, a, b) { const dx = b[0] - a[0], dy = b[1] - a[1], L = dx * dx + dy * dy; let t = L ? ((px - a[0]) * dx + (py - a[1]) * dy) / L : 0; t = Math.max(0, Math.min(1, t)); return Math.hypot(px - a[0] - t * dx, py - a[1] - t * dy); }
+function hitItem(x, y, slop) {
+  for (let i = sk.items.length - 1; i >= 0; i--) {
+    const it = sk.items[i], L = SK.layerOf(it); if (L === "deco" && !ui.deco) continue;
+    if (it.k === "stroke") { const r = slop + (it.pen === "deco" ? (it.w || 7) / 2 : 4); if (it.pts.length === 1 ? Math.hypot(x - it.pts[0][0], y - it.pts[0][1]) < r : it.pts.some((p, j) => j && distSeg(x, y, it.pts[j - 1], p) < r)) return i; }
+    else { const b = bboxOf(it); if (x > b[0] - slop && x < b[2] + slop && y > b[1] - slop && y < b[3] + slop) return i; }
+  }
+  return -1;
+}
+
+// ---- input ----
+const pointers = new Map(); let cur = null, drag = null, gesture = null, hover = null, curStart = 0;
+cv.addEventListener("pointerdown", e => {
+  cv.setPointerCapture(e.pointerId); pointers.set(e.pointerId, { x: e.offsetX, y: e.offsetY });
+  if (play) { e.preventDefault(); playPress(); return; }
+  if (pointers.size === 2) {           // a second finger: move / zoom; a stroke just begun is dropped
+    if (cur && (cur.pts.length < 8 || performance.now() - curStart < 250)) cur = null; else finishStroke();
+    drag = null; const [a, b] = [...pointers.values()];
+    gesture = { d: Math.hypot(a.x - b.x, a.y - b.y), cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2, z: V.z, vx: V.x, vy: V.y }; dirty = true; return;
+  }
+  if (pointers.size > 2) return;
+  const x = wx(e.offsetX), y = wy(e.offsetY);
+  if (e.button === 1 || e.button === 2 || ui.tool === "pan") { drag = { pan: true, px: e.offsetX, py: e.offsetY, vx: V.x, vy: V.y }; return; }
+  if (ui.tool === "pen" && ui.pen === "jump") { snapshot(); const it = { k: "press", x: +x.toFixed(1), y: +y.toFixed(1) }; sk.items.push(it); drag = { press: it, fresh: true }; changed(); return; }
+  if (ui.tool === "pen") { cur = { k: "stroke", pen: ui.pen, pts: [[+x.toFixed(1), +y.toFixed(1)]] }; curStart = performance.now();
+    if (ui.pen === "deco") { cur.col = DECO_COLS[ui.col].slice(); cur.w = WIDTHS[ui.w][0]; if (ui.front) cur.front = true; } dirty = true; }
+  else if (ui.tool === "stamp") { snapshot(); const it = { k: "stamp", what: ui.stamp, x: +x.toFixed(1), y: +y.toFixed(1) }; if (/^prop:/.test(ui.stamp)) it.seed = Math.floor(Math.random() * 4);
+    sk.items.push(it); sel = sk.items.length - 1; drag = { move: sel, x, y, moved: false, fresh: true }; changed(); showSelRow(); }
+  else if (ui.tool === "select") { const i = hitItem(x, y, 10 / V.z); sel = i >= 0 ? i : null; if (sel != null) { snapshot(); drag = { move: sel, x, y, moved: false }; } showSelRow(); dirty = true; }
+  else if (ui.tool === "erase") { snapshot(); drag = { erase: true, any: false }; eraseAt(x, y); }
+});
+cv.addEventListener("pointermove", e => {
+  const pt = pointers.get(e.pointerId); hover = { x: wx(e.offsetX), y: wy(e.offsetY) };
+  if (!pt) { dirty = true; return; }
+  pt.x = e.offsetX; pt.y = e.offsetY;
+  if (gesture && pointers.size >= 2) {
+    const [a, b] = [...pointers.values()], d = Math.hypot(a.x - b.x, a.y - b.y), cx = (a.x + b.x) / 2, cy = (a.y + b.y) / 2;
+    const z = Math.max(0.08, Math.min(8, gesture.z * d / (gesture.d || 1)));
+    const ax = gesture.vx + gesture.cx / gesture.z, ay = gesture.vy + (H - gesture.cy) / gesture.z;   // world point under the first centre
+    V.z = z; V.x = ax - cx / z; V.y = ay - (H - cy) / z; dirty = true; return;
+  }
+  const x = wx(e.offsetX), y = wy(e.offsetY);
+  if (drag && drag.pan) { V.x = drag.vx - (e.offsetX - drag.px) / V.z; V.y = drag.vy + (e.offsetY - drag.py) / V.z; dirty = true; return; }
+  if (cur) { const l = cur.pts[cur.pts.length - 1]; if (Math.hypot(x - l[0], y - l[1]) * V.z > 2) { cur.pts.push([+x.toFixed(1), +y.toFixed(1)]); dirty = true; } return; }
+  if (drag && drag.move != null) { const dx = x - drag.x, dy = y - drag.y; if (!drag.moved && Math.hypot(dx, dy) * V.z < 3) return; drag.moved = true; moveItem(sk.items[drag.move], dx, dy); drag.x = x; drag.y = y; conv = null; dirty = true; return; }
+  if (drag && drag.erase) eraseAt(x, y);
+  if (drag && drag.press) { const it = drag.press; if (x > it.x + 6) it.x1 = +x.toFixed(1); else delete it.x1; conv = null; dirty = true; }
+});
+function endPointer(e) {
+  pointers.delete(e.pointerId);
+  if (play) { playRelease(); return; }
+  if (gesture) { if (pointers.size < 2) { gesture = null; save(); } return; }
+  if (cur) finishStroke();
+  if (drag && drag.press) save();
+  if (drag && drag.move != null) { if (drag.moved || drag.fresh) changed(); else if (!drag.moved) undo.pop(); }
+  if (drag && drag.erase && !drag.any) undo.pop();
+  if (drag && drag.pan) save();
+  drag = null;
+}
+cv.addEventListener("pointerup", endPointer); cv.addEventListener("pointercancel", endPointer);
+cv.addEventListener("pointerleave", () => { hover = null; dirty = true; });
+cv.addEventListener("contextmenu", e => e.preventDefault());
+cv.addEventListener("wheel", e => {
+  e.preventDefault();
+  if (e.ctrlKey || e.metaKey) { const ax = wx(e.offsetX), ay = wy(e.offsetY); V.z = Math.max(0.08, Math.min(8, V.z * Math.exp(-e.deltaY * 0.0025))); V.x = ax - e.offsetX / V.z; V.y = ay - (H - e.offsetY) / V.z; }
+  else { V.x += (e.shiftKey ? e.deltaY : e.deltaX || e.deltaY) / V.z; if (e.deltaX && !e.shiftKey) {} }
+  dirty = true; clearTimeout(window._ws); window._ws = setTimeout(save, 300);
+}, { passive: false });
+function finishStroke() {
+  const it = cur; cur = null; if (!it) return;
+  it.pts = SK.simplify(it.pts, 1.2 / V.z).map(p => [p[0], p[1]]);
+  if (it.pen === "ground" && it.pts.length > 1 && it.pts[0][0] > it.pts[it.pts.length - 1][0]) it.pts.reverse();
+  snapshot(); sk.items.push(it); changed();
+}
+function moveItem(it, dx, dy) { if (it.k === "press" && it.x1 != null) it.x1 = +(it.x1 + dx).toFixed(1); if (it.k === "stroke") it.pts = it.pts.map(p => [+(p[0] + dx).toFixed(1), +(p[1] + dy).toFixed(1)]); else { it.x = +(it.x + dx).toFixed(1); it.y = +(it.y + dy).toFixed(1); } }
+function eraseAt(x, y) { const i = hitItem(x, y, 8 / V.z); if (i >= 0) { sk.items.splice(i, 1); drag.any = true; sel = null; showSelRow(); changed(); } }
+document.addEventListener("keydown", e => {
+  if (e.target.tagName === "INPUT") return;
+  if (play) { if (e.key === "Escape" || e.key === "p") stopPlay(); else if ([" ", "ArrowUp", "w", "Enter"].includes(e.key)) { e.preventDefault(); if (!e.repeat) playPress(); } else if (e.key === "r") restartPlay(); return; }
+  if ((e.ctrlKey || e.metaKey) && e.key === "z") { e.preventDefault(); doUndo(); }
+  else if ((e.ctrlKey || e.metaKey) && (e.key === "y" || e.key === "Z")) { e.preventDefault(); doRedo(); }
+  else if ((e.key === "Delete" || e.key === "Backspace") && sel != null) delSel();
+  else if (/^[1-6]$/.test(e.key)) { ui.tool = "pen"; ui.pen = PENS[+e.key - 1].id; buildRows(); }
+  else if (e.key === " ") { e.preventDefault(); startPlay(); }
+});
+document.addEventListener("keyup", e => { if (play && [" ", "ArrowUp", "w", "Enter"].includes(e.key)) playRelease(); });
+function doUndo() { if (!undo.length) return; redo.push(JSON.stringify(sk.items)); sk.items = JSON.parse(undo.pop()); sel = null; showSelRow(); changed(); }
+function doRedo() { if (!redo.length) return; undo.push(JSON.stringify(sk.items)); sk.items = JSON.parse(redo.pop()); sel = null; showSelRow(); changed(); }
+$("undoBtn").onclick = doUndo; $("redoBtn").onclick = doRedo;
+
+// ---- the rows of controls ----
+function chip(label, on, fn, tip, cls) { const b = document.createElement("button"); b.className = (cls || "sm") + (on ? " on" : ""); b.innerHTML = label; if (tip) b.title = tip; b.onclick = fn; return b; }
+function buildRows() {
+  document.querySelectorAll("[data-tool]").forEach(b => b.classList.toggle("on", b.dataset.tool === ui.tool));
+  const pr = $("penRow"), st = $("stampRow"); pr.innerHTML = ""; st.innerHTML = "";
+  pr.hidden = ui.tool !== "pen"; st.hidden = ui.tool !== "stamp";
+  if (ui.tool === "pen") {
+    PENS.forEach(p => pr.appendChild(chip(p.icon + " " + p.label, ui.pen === p.id, () => { ui.pen = p.id; buildRows(); save(); }, p.tip)));
+    if (ui.pen === "deco") {
+      pr.appendChild(Object.assign(document.createElement("span"), { className: "sep" }));
+      DECO_COLS.forEach((c, i) => { const b = chip("", ui.col === i, () => { ui.col = i; buildRows(); save(); }, "colour", "sw"); b.style.background = `rgb(${c})`; pr.appendChild(b); });
+      WIDTHS.forEach((w, i) => pr.appendChild(chip(w[1], ui.w === i, () => { ui.w = i; buildRows(); save(); })));
+      pr.appendChild(chip(ui.front ? "in front" : "behind", ui.front, () => { ui.front = !ui.front; buildRows(); save(); }, "behind the blocks or in front of them"));
+    }
+  }
+  if (ui.tool === "stamp") {
+    const sel2 = document.createElement("select");
+    for (const [g, list] of STAMP_GROUPS) { const og = document.createElement("optgroup"); og.label = g; for (const w of list) og.appendChild(new Option(STAMP_LABEL(w) + (g === "speed" ? "" : ""), w)); sel2.appendChild(og); }
+    const og = document.createElement("optgroup"); og.label = "deco props"; for (const n of PROP_NAMES) og.appendChild(new Option("🌳 " + n, "prop:" + n)); sel2.appendChild(og);
+    sel2.value = ui.stamp; sel2.onchange = () => { pickStamp(sel2.value); };
+    st.appendChild(sel2);
+    // quick picks: the last ones used
+    for (const w of ui.recent) {
+      const isProp = /^prop:/.test(w), b = chip(isProp ? "🌳" + w.slice(5) : STAMP_LABEL(w), ui.stamp === w, () => pickStamp(w), w);
+      if (!isProp) { b.style.borderColor = STAMP_COL(w); if (ui.stamp !== w) b.style.color = STAMP_COL(w); }
+      st.appendChild(b);
+    }
+  }
+  $("viewBtn").textContent = ui.view === "level" ? "level" : "sketch"; $("viewBtn").classList.toggle("on", ui.view === "level");
+  $("decoBtn").classList.toggle("on", ui.deco); $("decoBtn").textContent = ui.deco ? "deco 👁" : "deco ⊘";
+  showSelRow(); refreshButtons(); dirty = true;
+}
+function pickStamp(w) { ui.stamp = w; ui.recent = [w].concat(ui.recent.filter(r => r !== w)).slice(0, 6); buildRows(); save(); }
+function showSelRow() {
+  const r = $("selRow"); r.innerHTML = ""; const it = sel != null && sk.items[sel];
+  r.hidden = !(it && (ui.tool === "select" || ui.tool === "stamp"));
+  if (r.hidden) return;
+  const name = it.k === "stroke" ? PENS.find(p => p.id === it.pen).label + (SK.isLoop(it.pts) && /ground|platform|spikes/.test(it.pen) ? " area" : " line") : it.k === "press" ? (it.x1 != null ? "hold" : "jump") : STAMP_LABEL(it.what);
+  r.appendChild(Object.assign(document.createElement("span"), { className: "muted", textContent: name }));
+  const edit = fn => () => { snapshot(); fn(); changed(); showSelRow(); };
+  if (it.k === "stamp" && /^(orb|pad|portal|grav|size|speed|dual):/.test(it.what)) {
+    const grp = STAMP_GROUPS.find(g => g[1].includes(it.what)), s2 = document.createElement("select");
+    for (const w of grp[1]) s2.appendChild(new Option(STAMP_LABEL(w), w)); s2.value = it.what;
+    s2.onchange = edit(() => it.what = s2.value); r.appendChild(s2);
+  }
+  if (it.k === "stamp") {
+    r.appendChild(chip("⟲ 15°", false, edit(() => it.rot = ((it.rot || 0) - 15 + 360) % 360)));
+    r.appendChild(chip("⟳ 15°", false, edit(() => it.rot = ((it.rot || 0) + 15) % 360)));
+    r.appendChild(chip("−", false, edit(() => it.s = +Math.max(0.25, (it.s || 1) / 1.2).toFixed(2)), "smaller"));
+    r.appendChild(chip("＋", false, edit(() => it.s = +Math.min(6, (it.s || 1) * 1.2).toFixed(2)), "bigger"));
+    r.appendChild(chip("⇋", false, edit(() => it.flipX = !it.flipX), "mirror"));
+  }
+  if (it.k === "stroke" && it.pen === "spikes") r.appendChild(chip("flip spikes", !!it.flip, edit(() => it.flip = !it.flip)));
+  if (it.k === "stroke" && it.pen === "deco") r.appendChild(chip(it.front ? "in front" : "behind", !!it.front, edit(() => it.front = !it.front)));
+  r.appendChild(chip("⧉ copy", false, edit(() => { const c = JSON.parse(JSON.stringify(it)); moveItem(c, 30, 0); sk.items.push(c); sel = sk.items.length - 1; })));
+  r.appendChild(chip("🗑", false, delSel, "delete"));
+}
+function delSel() { if (sel == null) return; snapshot(); sk.items.splice(sel, 1); sel = null; showSelRow(); changed(); }
+function refreshButtons() { $("undoBtn").disabled = !undo.length; $("redoBtn").disabled = !redo.length; $("title").textContent = sk.name; }
+document.querySelectorAll("[data-tool]").forEach(b => b.onclick = () => { ui.tool = b.dataset.tool; if (ui.tool !== "select" && ui.tool !== "stamp") sel = null; buildRows(); save(); });
+$("viewBtn").onclick = () => { ui.view = ui.view === "level" ? "sketch" : "level"; if (ui.view === "level") { const c = convert(); msg(`${c.counts ? c.counts.play : 0} gameplay objects, ${c.counts ? c.counts.deco : 0} deco` + (c.notes && c.notes.length ? ` · ${c.notes.length} notes for Claude` : ""), 2500); } buildRows(); };
+$("decoBtn").onclick = () => { ui.deco = !ui.deco; buildRows(); save(); };
+let msgT = 0; function msg(t, ms) { const m = $("msg"); m.textContent = t; m.hidden = !t; clearTimeout(msgT); if (ms) msgT = setTimeout(() => m.hidden = true, ms); }
+
+// ---- menu: sketches ----
+$("menuBtn").onclick = () => { $("nameIn").value = sk.name; $("speedSel").value = String(sk.speed == null ? 1 : sk.speed); $("guideChk").checked = !!ui.guides; renderList(); $("menu").hidden = false; };
+$("closeMenu").onclick = () => $("menu").hidden = true;
+$("menu").onclick = e => { if (e.target.id === "menu") $("menu").hidden = true; };
+$("renameBtn").onclick = () => { sk.name = $("nameIn").value.trim() || sk.name; changed(); renderList(); };
+$("speedSel").onchange = () => { snapshot(); sk.speed = +$("speedSel").value; changed(); };
+$("guideChk").onchange = () => { ui.guides = $("guideChk").checked; save(); dirty = true; };
+$("clearDeaths").onclick = () => { sk.deaths = []; changed(); };
+function open(id) { save(); sk = store[id]; curId = id; undo = []; redo = []; sel = null; Object.assign(V, { x: -60, y: -45, z: 0 }, LS.get("view." + id, {})); if (!V.z) resize(); changed(); buildRows(); }
+$("newBtn").onclick = () => { const s = blank(); store[s.id] = s; open(s.id); $("menu").hidden = true; };
+$("dupBtn").onclick = () => { const s = JSON.parse(JSON.stringify(sk)); s.id = "s" + Date.now().toString(36); s.name = sk.name + " copy"; store[s.id] = s; open(s.id); renderList(); };
+function renderList() {
+  const l = $("list"); l.innerHTML = "";
+  Object.values(store).sort((a, b) => b.updated - a.updated).forEach(s => {
+    const d = document.createElement("div"); d.className = "item";
+    d.innerHTML = `<span class="nm">${s.id === sk.id ? "▸ " : ""}${esc(s.name)} <span class="muted">${(s.items || []).length} pieces · ${new Date(s.updated).toLocaleString()}</span></span>`;
+    d.appendChild(chip("open", false, () => { open(s.id); $("menu").hidden = true; }));
+    if (Object.keys(store).length > 1) d.appendChild(chip("🗑", false, () => { if (d.dataset.sure) { delete store[s.id]; if (s.id === sk.id) open(Object.keys(store)[0]); else save(); renderList(); } else { d.dataset.sure = 1; d.lastChild.textContent = "sure?"; } }, "delete this sketch"));
+    l.appendChild(d);
+  });
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+// in the phone page (an Artifact) a file is handed over by its downloads capability; elsewhere a plain link
+let DL = null; if (window.claude && typeof claude.use === "function") claude.use("downloads").then(d => DL = d, () => {});
+function download(name, blob) {
+  if (DL) { DL.save({ filename: name, data: blob }).catch(e => { if (e && e.code !== "declined") msg("not saved: " + (e.message || e.code), 4000); }); return; }
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); }
+const fileBase = () => "sketch_" + sk.name.toLowerCase().replace(/[^\w]+/g, "_").replace(/^_|_$/g, "");
+$("jsonBtn").onclick = () => download(fileBase() + ".json", new Blob([JSON.stringify(sk, null, 1)], { type: "application/json" }));
+async function gz(text) { const cs = new CompressionStream("gzip"); const buf = await new Response(new Blob([text]).stream().pipeThrough(cs)).arrayBuffer(); return new Uint8Array(buf); }
+async function gdlvl() {
+  const c = convert(), rec = GD.newRecord("GDLM sketch " + sk.name, "Drawn on the GDLM whiteboard");
+  GD.setField(rec, "k4", "s", GD.bytesToB64url(await gz(c.levelStr)));
+  GD.setField(rec, "k48", "i", String(c.objects.length));
+  const m = /\/song\/custom\/(\d+)\./.exec((sk.song && sk.song.url) || ""); if (m) GD.setField(rec, "k45", "i", m[1]);
+  return GD.bytesToB64url(await gz(GD.serializeRecord(rec)));
+}
+$("gdlvlBtn").onclick = async () => { try { download(fileBase() + ".gdlvl", new Blob([await gdlvl()], { type: "text/plain" })); } catch (e) { msg("could not build the file: " + e.message, 5000); } };
+$("sendBtn").onclick = async () => {
+  sent[sk.id] = null; await syncNow();
+  if (DB) msg("saved in this page's database: Claude reads it from there (sketch " + sk.id + ")", 5000);
+  else if (SERVED) msg("saved to local/sketches/" + sk.id + ".json on the PC", 5000);
+  else msg("no Claude here: use ⬇ sketch .json and send the file", 5000);
+};
+
+// ---- song panel ----
+$("songBtn").onclick = () => { renderSongs(); $("offIn").value = (sk.song && sk.song.offset) || 0; $("beatChk").checked = ui.beats; $("loudChk").checked = ui.loud; $("songs").hidden = false; };
+$("closeSongs").onclick = () => $("songs").hidden = true;
+$("songs").onclick = e => { if (e.target.id === "songs") $("songs").hidden = true; };
+$("offBtn").onclick = () => { sk.song = Object.assign({}, sk.song, { offset: +$("offIn").value || 0 }); changed(); };
+$("beatChk").onchange = () => { ui.beats = $("beatChk").checked; save(); dirty = true; };
+$("loudChk").onchange = () => { ui.loud = $("loudChk").checked; save(); dirty = true; };
+function renderSongs() {
+  const l = $("songList"); l.innerHTML = ""; const all = songs();
+  const keys = Object.keys(all).sort((a, b) => (all[b].name ? 1 : 0) - (all[a].name ? 1 : 0) || a.localeCompare(b));
+  l.appendChild(chip(!sk.song || !sk.song.url ? "▸ no song" : "no song", !sk.song || !sk.song.url, () => { sk.song = { url: "", offset: 0 }; changed(); renderSongs(); }));
+  for (const u of keys) { const s = all[u]; const d = document.createElement("div"); d.className = "item";
+    d.innerHTML = `<span class="nm">${sk.song && sk.song.url === u ? "▸ " : ""}${esc(songName(u, s))} <span class="muted">${s.bpm ? (+s.bpm).toFixed(1) + " BPM" : ""}${s.sections ? " · " + s.sections.length + " sections" : ""}</span></span>`;
+    d.appendChild(chip("use", sk.song && sk.song.url === u, () => { sk.song = { url: u, offset: (sk.song && sk.song.offset) || 0 }; audioFor = null; changed(); renderSongs(); }));
+    l.appendChild(d); }
+  $("audioState").textContent = audioOk ? "song ready" : SERVED ? "" : "on the phone: pick the song's mp3 (343707.mp3 for Ragnarok's)";
+}
+
+// ---- listen: the song with a playhead ----
+const listen = { on: false, x: 0, t0: 0 };
+$("listenBtn").onclick = () => {
+  if (listen.on) return stopListen();
+  loadAudio(); if (!audioOk && !audio.src) { msg("no audio yet: ♪ → pick the mp3", 4000); return; }
+  listen.on = true; listen.x = Math.max(0, wx(W * 0.3)); audio.currentTime = Math.max(0, songTime(listen.x));
+  audio.play().then(() => {}, () => { msg("the song could not start: ♪ → pick the mp3", 4000); stopListen(); });
+  $("listenBtn").classList.add("on"); $("listenBtn").textContent = "■♪";
+};
+function stopListen() { listen.on = false; audio.pause(); $("listenBtn").classList.remove("on"); $("listenBtn").textContent = "▶♪"; dirty = true; }
+
+// ---- play it: the same sim as the viewer's "you play" ----
+let play = null;
+$("playBtn").onclick = () => play ? stopPlay() : startPlay();
+function startPlay() {
+  if (listen.on) stopListen(); if (replay) stopReplay();
+  const c = convert(); let w;
+  try { w = GD.makeWorld(c.objects, c.header); } catch (e) { msg("cannot play: " + e.message, 5000); return; }
+  const lp = GD.livePlay(w, { checkpoints: [] });
+  play = { w, lp, t0: performance.now(), tick: 0, cam: { y: V.y }, saved: { x: V.x, y: V.y, z: V.z }, over: null, attempts: 1 };
+  V.z = Math.max(V.z, H / (13 * 30));
+  $("playBtn").classList.add("on"); $("playBtn").textContent = "■";
+  msg("tap / space to jump · Esc stops", 2000);
+  loadAudio(); if (audioOk || audio.src) { audio.currentTime = Math.max(0, songTime(0)); audio.play().catch(() => {}); }
+}
+function restartPlay() { const p = play; p.lp.restart(false); p.t0 = performance.now(); p.over = null; p.attempts++; if (audio.src) { audio.currentTime = Math.max(0, songTime(0)); audio.play().catch(() => {}); } msg("", 0); }
+function playPress() { if (!play) return; if (play.over) { if (performance.now() - play.overAt > 350) restartPlay(); return; } play.lp.press(); }
+function playRelease() { if (play && !play.over) play.lp.release(); }
+function stopPlay() { if (!play) return; Object.assign(V, play.saved); play = null; audio.pause(); $("playBtn").classList.remove("on"); $("playBtn").textContent = "🎮"; msg("", 0); dirty = true; }
+function stepPlay(now) {
+  const p = play; if (p.over) return;
+  const tick = Math.floor((now - p.t0) / 1000 * GD.PHYS.TPS), s = p.lp.advanceTo(tick);
+  if (s.dead || s.done) {
+    p.over = s.dead ? "dead" : "clear"; p.overAt = now; audio.pause();
+    if (s.dead) { sk.deaths = (sk.deaths || []).concat([{ x: +s.x.toFixed(1), y: +s.y.toFixed(1), why: s.why || "", at: Date.now() }]).slice(-40); save(); }
+    const pct = Math.min(100, Math.round(s.x / p.w.endX * 100));
+    msg(s.dead ? `died at ${pct}% (${s.why || "hit"}) · tap to retry · attempt ${p.attempts}` : `cleared! attempt ${p.attempts} · tap to go again`);
+  }
+  V.x = s.x - W * 0.3 / V.z;
+  const py = sy(s.y); if (py < H * 0.25) V.y += (H * 0.25 - py) / V.z; if (py > H * 0.8) V.y -= (py - H * 0.8) / V.z;
+  V.y = Math.max(V.y, -H * 0.15 / V.z);
+}
+function drawPlay() {
+  const path = play.lp.path; ctx.strokeStyle = "rgba(61,255,176,.35)"; ctx.lineWidth = 2; ctx.beginPath();
+  for (let i = Math.max(0, path.length - 400); i < path.length; i += 2) { const q = path[i]; i ? ctx.lineTo(sx(q.x), sy(q.y)) : ctx.moveTo(sx(q.x), sy(q.y)); } ctx.stroke();
+  drawPlayer(play.lp.state);
+}
+function drawPlayer(s) {
+  const sz = s.mini ? 15 : 30, cols = { cube: "#3dffb0", ship: "#ff5ad2", ball: "#ff3030", ufo: "#ffb020", wave: "#38c8ff", robot: "#e8e4ff", spider: "#c050ff", swing: "#ffe000" };
+  ctx.save(); ctx.translate(sx(s.x), sy(s.y)); ctx.rotate((s.rot || 0) * Math.PI / 180);
+  ctx.fillStyle = cols[s.mode] || "#3dffb0"; ctx.strokeStyle = "#000"; ctx.lineWidth = 2; const h = sz / 2 * V.z;
+  if (s.mode === "wave") { ctx.beginPath(); ctx.moveTo(h, 0); ctx.lineTo(-h, -h * 0.7); ctx.lineTo(-h, h * 0.7); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+  else if (s.mode === "ball") { ctx.beginPath(); ctx.arc(0, 0, h, 0, 7); ctx.fill(); ctx.stroke(); }
+  else { ctx.fillRect(-h, -h, 2 * h, 2 * h); ctx.strokeRect(-h, -h, 2 * h, 2 * h); }
+  ctx.restore();
+}
+
+// ---- check: your jump marks replayed, then the solver's way through (a Worker: the page stays usable) ----
+// It is not 1:1 with what you drew in mind: the board says where the drawing does not work (the plan dies, nothing gets
+// through) instead of pretending. Making it play well is the rebuild's job (DRAW.md "From the board to a level").
+let check = null, solver = null, replay = null;
+const libUrls = () => [...document.scripts].map(s => s.src).filter(u => /\/lib\/[\w.]+\.js$/.test(u));
+const thin = path => path.filter((q, i) => i % 3 === 0 || i === path.length - 1).map(q => ({ x: q.x, y: q.y, mode: q.mode, rot: q.rot, mini: q.mini }));
+const blk = x => (x / 30).toFixed(1);
+$("checkBtn").onclick = () => {
+  if (solver) { solver.w.terminate(); clearInterval(solver.tick); solver = null; }
+  const c = convert(); let w; try { w = GD.makeWorld(c.objects, c.header); } catch (e) { msg("cannot check: " + e.message, 5000); return; }
+  check = { at: Date.now(), plan: null, route: null, lines: [] };
+  const ev = SK.planEvents(sk);
+  if (ev.length) {
+    const q = GD.run(w, ev); check.plan = { path: thin(q.path), dead: q.dead, why: q.why, x: q.end && q.end.x, y: q.end && q.end.y, done: q.done || (!q.dead && q.end && q.end.x >= w.endX) };
+    check.lines.push(check.plan.done ? `your ${ev.length / 2} jumps clear it` : check.plan.dead ? `your jumps die at block ${blk(check.plan.x)} (${check.plan.why || "hit"})` : `your jumps stop at block ${blk(check.plan.x)}`);
+  }
+  check.lines.push("solver: looking for a way through… 0 s"); report();
+  let wk; try { wk = new Worker(new URL("draw_worker.js", location.href)); } catch (e) { check.lines[check.lines.length - 1] = "solver: this browser cannot run it in the background"; report(); return; }
+  const t0 = Date.now();
+  solver = { w: wk, tick: setInterval(() => { const s = Math.round((Date.now() - t0) / 1000);
+    if (s >= 60) { wk.terminate(); clearInterval(solver.tick); solver = null; check.lines[check.lines.length - 1] = "solver: gave up after 60 s (too long to solve here: the PC does it)"; report(); return; }
+    check.lines[check.lines.length - 1] = "solver: looking for a way through… " + s + " s"; report(); }, 1000) };
+  wk.onmessage = e => {
+    clearInterval(solver.tick); wk.terminate(); solver = null; const r = e.data;
+    const q = r.events && r.events.length || r.ok ? GD.run(w, r.events || []) : null;
+    check.route = { ok: r.ok, path: q ? thin(q.path) : [], clicks: (r.clicks || []).filter(k => k.type !== "release"), dieX: r.dieX, dieY: r.dieY, why: r.why, skipped: r.skipped };
+    const n = check.route.clicks.length, tight = check.route.clicks.reduce((m, k) => k.ms != null ? Math.min(m, k.ms) : m, 1e9);
+    check.lines[check.lines.length - 1] = r.ok ? `beatable: ${n} presses (green)` + (tight < 1e9 ? `, tightest window ${tight} ms` + (tight < 40 ? " ⚠ very tight" : "") : "")
+      : `no way through after block ${blk(r.dieX || 0)}${r.why ? " (" + r.why + ")" : ""}${r.skipped ? " · " + r.skipped : ""}`;
+    report(); $("replayBtn").hidden = false;
+  };
+  wk.postMessage({ libs: libUrls(), level: c.levelStr });
+  $("replayBtn").hidden = !check.plan;
+};
+function report() { msg(check.lines.join(" · ")); dirty = true; }
+function drawCheck() {
+  const line = (path, col, dash) => { if (!path || path.length < 2) return; ctx.strokeStyle = col; ctx.lineWidth = 2.5; ctx.setLineDash(dash || []); ctx.beginPath(); path.forEach((q, i) => i ? ctx.lineTo(sx(q.x), sy(q.y)) : ctx.moveTo(sx(q.x), sy(q.y))); ctx.stroke(); ctx.setLineDash([]); };
+  const cross = (x, y, col, label) => { const X = sx(x), Y = sy(y); ctx.strokeStyle = col; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(X, Y, 11, 0, 7); ctx.moveTo(X - 6, Y - 6); ctx.lineTo(X + 6, Y + 6); ctx.moveTo(X + 6, Y - 6); ctx.lineTo(X - 6, Y + 6); ctx.stroke(); ctx.fillStyle = col; ctx.font = "bold 12px system-ui"; ctx.fillText(label, X + 14, Y - 8); };
+  if (check.route) { line(check.route.path, "rgba(61,255,176,.85)");
+    for (const k of check.route.clicks) { const X = sx(k.x); ctx.fillStyle = "#3dffb0"; ctx.beginPath(); ctx.moveTo(X - 5, sy(0) - 10); ctx.lineTo(X + 5, sy(0) - 10); ctx.lineTo(X, sy(0) - 2); ctx.fill(); }
+    if (!check.route.ok && check.route.dieX != null) cross(check.route.dieX, check.route.dieY || 15, "#ff3b6b", "nothing gets past here"); }
+  if (check.plan) { line(check.plan.path, "rgba(255,225,77,.9)", [7, 5]); if (check.plan.dead) cross(check.plan.x, check.plan.y, "#ffb020", "your jumps die here"); }
+}
+$("replayBtn").onclick = () => {
+  if (replay) return stopReplay();
+  const p = check && (check.route && check.route.path.length ? check.route.path : check.plan && check.plan.path); if (!p || !p.length) return;
+  replay = { path: p, t0: performance.now(), saved: { x: V.x, y: V.y, z: V.z } }; $("replayBtn").textContent = "■";
+  loadAudio(); if (audio.src) { audio.currentTime = Math.max(0, songTime(0)); audio.play().catch(() => {}); }
+};
+function stopReplay() { if (!replay) return; Object.assign(V, replay.saved); replay = null; audio.pause(); $("replayBtn").textContent = "▶"; dirty = true; }
+function stepReplay(now) {
+  const i = Math.floor((now - replay.t0) / 1000 * GD.PHYS.TPS / 3);
+  if (i >= replay.path.length) return stopReplay();
+  const s = replay.path[i]; replay.s = s; V.x = s.x - W * 0.3 / V.z;
+  const py = sy(s.y); if (py < H * 0.25) V.y += (H * 0.25 - py) / V.z; if (py > H * 0.8) V.y -= (py - H * 0.8) / V.z; V.y = Math.max(V.y, -H * 0.15 / V.z);
+}
+
+// ---- loop ----
+function frame(now) {
+  if (play) { stepPlay(now); dirty = true; }
+  if (replay) { stepReplay(now); dirty = true; }
+  if (listen.on) { const t = audio.currentTime - ((+sk.song.offset) || 0); listen.x = SK.timeToX(sk, Math.max(0, t)); V.x = listen.x - W * 0.3 / V.z; dirty = true; if (audio.ended) stopListen(); }
+  if (dirty) { dirty = false; draw(); }
+  requestAnimationFrame(frame);
+}
+resize(); buildRows(); loadAudio(); requestAnimationFrame(frame);
+window.DRAW = { get sketch() { return sk; }, convert, ui, V, startPlay, stopPlay, toScreen: (x, y) => [sx(x), sy(y)], setItems: items => { snapshot(); sk.items = items; changed(); } };   // for tests (tests/draw_page.js)
+</script>
+</body>
+</html>

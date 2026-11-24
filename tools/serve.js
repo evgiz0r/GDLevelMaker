@@ -139,6 +139,26 @@ const SERVER = http.createServer((req, res) => {
     else rows = rows.map(r => Object.assign({}, r, { events: undefined, presses: (r.events || []).filter(e => e.type === "press").length }));
     res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify(rows));
   }
+  // POST /sketches?id=<id> {sketch}: the whiteboard's sketch (viewer/draw.html) -> local/sketches/<id>.json, where sessions
+  // read it (tools/sketch.js; DRAW.md). GET /sketches/list: every saved sketch, so the board on another device gets them.
+  if (req.method === "POST" && p === "/sketches") {
+    let body = ""; req.on("data", c => { body += c; if (body.length > 4e6) req.destroy(); });
+    req.on("end", () => {
+      try {
+        const id = String(new URL(req.url, "http://x").searchParams.get("id") || "").replace(/[^\w-]/g, "").slice(0, 40), j = JSON.parse(body);
+        if (!id || !Array.isArray(j.items)) throw new Error("not a sketch");
+        const dir = path.join(root, "local", "sketches"); fs.mkdirSync(dir, { recursive: true });
+        fs.writeFileSync(path.join(dir, id + ".json"), JSON.stringify(j));
+        res.writeHead(200); res.end("ok");
+      } catch (e) { res.writeHead(400); res.end(String(e.message)); }
+    });
+    return;
+  }
+  if (p === "/sketches/list" && req.method === "GET") {
+    const dir = path.join(root, "local", "sketches"), out = [];
+    try { for (const f of fs.readdirSync(dir)) if (f.endsWith(".json")) try { out.push(JSON.parse(fs.readFileSync(path.join(dir, f), "utf8"))); } catch (e) {} } catch (e) {}
+    res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify(out));
+  }
   if (req.method === "POST" && p === "/play") {
     let body = ""; req.on("data", c => { body += c; if (body.length > 2e6) req.destroy(); });   // an attempt's inputs
     req.on("end", () => {
