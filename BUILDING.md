@@ -20,6 +20,9 @@ each section."
   approved on its own, by any builder, in parallel. Joining sections only checks the seams (and the sync at the
   seam). This is also use case 8 (combine / cut).
 - Seams are the incremental solver's checkpoints (lib/incsolve.js), so a changed section re-solves alone.
+- Stored in briefs/<NN_name>.seams.json (committed next to the brief): `node tools/seams.js write <brief>` makes
+  it, `seams.js check <brief> [level]` is the join check (y within 8 units, vy within 0.5, mode/speed/gravity/mini
+  exact), `seams.js status <brief> <section> <role> <state> --by <builder>` records who builds what.
 
 ## 2. Design first: the presses come before the blocks
 
