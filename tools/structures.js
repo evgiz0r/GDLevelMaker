@@ -285,6 +285,46 @@ S("ship-lanterns", { mode: "ship", tags: ["ship", "floating"], tier: "Normal",
   build: a => { const o = []; a.rows.forEach((r, i) => { const x = 3 + i * a.step; o.push(["block", x, r], ["spike", x, r + 1], ["spike", x, r - 1, { rot: 180 }]); });
     const w = 3 + a.rows.length * a.step + 3; o.push(...pit(0, w)); return { objects: o, width: w, exitRow: 5 }; } });
 
+// ---------------------------------------------------------------- dense chains (2026-11-24, the art session): Jumper-like
+// hazard density (craft target 45+ hazards per 100 blocks, floor a hazard 35%+; GDLM 64 v5 had 14 and 8%) from pieces
+// that sit next to each other. Rules that keep them dense AND reactive (tools/score.js reactiveSpots: a press 250 ms
+// after landing must still work, ~2.6 blocks at 1x): (1) most hazards are pit floor (the low id-9 spikes) -- a 3-wide
+// pit costs one jump and holds 3 hazards; (2) every landing surface is 4+ wide; (3) steady spacing, an arg (`gap`,
+// `w`) so a level can set the period to its song's beat (1x: 10.4 blocks/s, so 7 columns = 0.67 s = a beat at 90 bpm);
+// (4) each starts and ends on the ground floor with 2+ calm columns, so a neighbour can follow 2 columns later.
+const train = (n, gap, size) => { const o = []; for (let i = 0; i < n; i++) o.push(...spikes(i * gap, i * gap + size)); return { objects: o, width: (n - 1) * gap + size + 2 }; };
+// platforms `h` high and `w` wide, `pit` apart, over low pit spikes; a 3-wide doorstep a row lower (stepped onto), off
+// the last one into a pit and onto the floor
+function pitRun(n, w, pit3, h) {
+  const o = [], d = Math.max(1, h - 1); let c = 0;
+  o.push(...blocks(0, 3, 0, d)); c = 3;
+  if (h > d) { o.push(...pit(c, c + 1)); c += 1; } else { o.push(...pit(c, c + pit3)); c += pit3; }
+  for (let i = 0; i < n; i++) { o.push(...blocks(c, c + w, 0, h)); c += w; o.push(...pit(c, c + pit3)); c += pit3; }
+  return { objects: o, width: c + 2 };
+}
+S("spike-train", { tags: ["spikes", "dense", "chain"], tier: "Easy",
+  doc: "single floor spikes at a steady spacing (7 columns: a jump, a landing, room to react), 5 of them: a beat-paced row",
+  args: { n: 5, gap: 7 }, build: a => train(a.n, a.gap, 1) });
+S("double-train", { tags: ["spikes", "dense", "chain"], tier: "Normal",
+  doc: "double spikes at a steady spacing (8 columns), 4 of them",
+  args: { n: 4, gap: 8 }, build: a => train(a.n, a.gap, 2) });
+S("pit-run", { tags: ["platforming", "pit", "dense", "chain"], tier: "Easy",
+  doc: "1-high platforms 4 wide over 3-wide spike pits, one jump per pit at a steady beat (7 columns): ~43 hazards per 100 blocks, the floor a hazard ~43%",
+  args: { n: 5, w: 4, pit: 3 }, build: a => pitRun(a.n, a.w, a.pit, 1) });
+S("pit-run-high", { tags: ["platforming", "pit", "pillar", "dense", "chain"], tier: "Normal",
+  doc: "the pit run on 2-high platforms, stepped up to from a 1-high doorstep",
+  args: { n: 4, w: 4, pit: 3 }, build: a => pitRun(a.n, a.w, a.pit, 2) });
+S("pit-spike-mix", { tags: ["platforming", "pit", "spikes", "dense", "chain"], tier: "Normal",
+  doc: "long 1-high platforms over spike pits with a single spike in each one's middle: spike, pit, spike, pit at a steady beat",
+  args: { n: 3, w: 10, pit: 3 },
+  build: a => { const r = pitRun(a.n, a.w, a.pit, 1), o = r.objects; let c = 3 + a.pit;
+    for (let i = 0; i < a.n; i++) { o.push(["spike", c + Math.floor(a.w / 2) - 1, 1]); c += a.w + a.pit; } return r; } });
+S("spike-pit-train", { tags: ["spikes", "pit", "dense", "chain"], tier: "Normal",
+  doc: "on the ground: a single spike, then a 3-wide pit, again and again (7 columns apart): two kinds of jump on one beat",
+  args: { n: 3, gap: 7 },
+  build: a => { const o = []; for (let i = 0; i < a.n; i++) { o.push(...spikes(i * 2 * a.gap, i * 2 * a.gap + 1), ...pit(i * 2 * a.gap + a.gap, i * 2 * a.gap + a.gap + 3)); }
+    return { objects: o, width: (a.n - 1) * 2 * a.gap + a.gap + 3 + 2 }; } });
+
 // ---------------------------------------------------------------- the harness: one small test level per structure
 const MODE_PORTAL = { ship: "ship portal", ball: "ball portal", ufo: "ufo portal", wave: "wave portal", robot: "robot portal", spider: "spider portal", swing: "swing portal", cube: "cube portal" };
 // blocks of calm run after a mode portal before the structure (the lead-in medians of rated low-tier
