@@ -591,7 +591,8 @@ const pickOpen1 = pick.onchange;
 pick.onchange = () => {
   const l = ALL[pick.value];
   if (!l || !l.lazy || l.level != null) return pickOpen1();
-  commOpen(l).then(ok => { if (ok && ALL[pick.value] === l) { pickOpen1(); if (typeof pkTitle === "function") pkTitle(); } });
+  const wantT = pick.wantT; pick.wantT = null;   // a #lv=...&t= link: the moment, once the level is unpacked
+  commOpen(l).then(ok => { if (ok && ALL[pick.value] === l) { pickOpen1(); if (typeof pkTitle === "function") pkTitle(); if (wantT && L) { t = Math.min(wantT, (L.path.length - 1) / P.TPS); draw(); } } });
 };
 // ---------- the level picker (button / key L): cards with a thumbnail strip, length, modes, version, search,
 // filters, pins and recent; the versions of one level under one card, newest first (the user: "the pick level
@@ -2105,7 +2106,7 @@ setInterval(() => { if (L && !playing) writeHash(); }, 1000);
   await loadWip(false);
   const h = hashParams(), want = h.get("lv");
   const i = want ? ALL.findIndex(l => l.file === want) : -1;
-  if (i >= 0) { pick.value = i; pick.onchange(); t = +h.get("t") || 0; draw(); }
+  if (i >= 0) { pick.value = i; pick.wantT = +h.get("t") || 0; pick.onchange(); t = +h.get("t") || 0; draw(); }
   else if (ALL.length) { pick.value = 0; pick.onchange(); }
   else if (window.GD_PAGES) {   // the public site with no level published yet (knowledge/public_levels.json is opt-in)
     document.getElementById("summary").innerHTML = "<b>First levels coming soon.</b><br><span class='muted'>Geometry Dash levels made by Claude will appear here once one is good enough to share.</span>";
