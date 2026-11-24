@@ -744,6 +744,68 @@ or holds longer than needed (over 0.15 s outside ship/wave where a tap finishes)
   (difficulty_solve passes the official stars); `opts.tapMs` a level's own; `opts.player: "user"` the user's habit
   (tools/habits.js: median 120 ms). Was 14 ticks (58 ms) everywhere. tests/natural_tap.js.
 
+## The press library: what good players press at each structure (2026-11-24)
+
+The user: "we should be a good player too, and that should allow us to solve better" and "how can we gain the knowledge
+of the one doing the layout or somebody of that level, that knows how to play and what is expected of structures".
+`tools/presslib.js` learns it from routes that clear levels, and the solver uses it as its first guess.
+- **Examples:** every 60 fps frame of a clearing route (presses happen on frame boundaries in the user's game). Each is
+  the player's picture (a 16 x 12 grid of 15-unit cells ahead of the player, x scaled to 1x speed, y turned with
+  gravity; a cell shows its most telling object: hazard > jump mark > orb > pad > portal > block, the flying band's
+  floor and roof as blocks) and state (mode, button down, on the ground, mini, vertical speed), and the label: did the
+  player press (or let go) on this frame. Kept at four levels of detail: fine grid, 30-unit grid, the near 150 x 120,
+  state only. A share is smoothed from the coarsest level to the finest (ALPHA 3), so a picture seen once counts a
+  little and one seen 50 times nearly decides.
+- **When the library presses:** the share is over `theta` and is at its peak (no higher in the next 3 frames on the
+  path without a press): a player presses at the best moment, once.
+- **Sources** (`--set`): `gdlm` our levels' saved human routes (local/solutions), `official` our main-level human routes,
+  `gdsolver` gdsolver's real-game plans for the 22 (a plan our sim does not finish teaches up to 1 s before where it
+  dies), `user` the user's attempts (local/attempts: viewer and recordings, each on the level version it was played on,
+  a death teaching up to 1 s before it), `all`. RobTop's levels and anything learned from them stay in local/presslib/.
+- **Held-out test** (`test`): each level is predicted by a library built from every OTHER level (all its clears left
+  out together), along its own route: recall = its presses the library makes within 3 frames, precision = the
+  library's presses that are one of them. Taps and flying (ship, wave) reported apart.
+- **Playing by the library** (`solve`, `test --rollout`): the library drives the level frame by frame; where it dies (or
+  skips a portal), a local sweep from a calm point 1 s back (then 2.5, 6) to 6 blocks past, then the library again.
+  The result is a plain replay checked by GD.skipCheck: nothing in the physics changes.
+- **Creator hints** (`hints`): start positions (id 31; kA2 mode, kA4 speed, kA3 mini, kA11 flipped -- sure:false, from
+  memory of the format) are the creator saying "here the player is a ship at 2x": a route that is in another state there
+  is probably off the intended path (`agreeStartPos`). Jump marks (our group 990) go into the picture as their own kind.
+  Coins, orbs, pads, portals are counted. RobTop's main levels have no start positions; community levels do.
+
+Results (cloud, 2026-11-24; our 11 GDLM levels solved there, 10 learned from, 1 predicted, each in turn):
+| level | presses | found +-3 frames | library's extra presses | played by the library | full sweep |
+|---|---|---|---|---|---|
+| GDLM 02 (cube) | 11 | 9 | 0 | clears, 1 repair, 0.1 s | 0.5 s |
+| GDLM 41 (cube) | 16 | 13 | 3 | clears, 2 repairs, 0.2 s | 0.5 s |
+| GDLM 42 (cube) | 20 | 15 | 0 | clears, 5 repairs, 0.1 s | 0.6 s |
+| GDLM 43 (cube) | 26 | 24 | 2 | clears, 4 repairs, 0.5 s | 1.1 s |
+| GDLM 44 (ship, wave) | 37 | 15 | 11 | STUCK at block 426 after 9 repairs, 30 s | 63 s |
+| GDLM 45 (ship, wave, ball) | 45 | 15 | 9 | clears, 9 repairs, 69 s | 77 s |
+| GDLM 46 sketch | 22 | 0 | 1 | clears, 5 repairs, 31 s | 17 s |
+| GDLM 47 (modes, 109 presses) | 109 | 54 | 17 | clears, 11 repairs, 77 s | 89 s |
+| GDLM 50 | 42 | 18 | 12 | clears, 6 repairs, 45 s | 54 s |
+| GDLM 51 | 51 | 15 | 9 | clears, 8 repairs, 90 s | 103 s |
+
+theta 0.2, peak rule on. Over all 11: taps (cube, ball, ufo, robot, spider, swing) 47% of the presses found at 75%
+precision; flying (ship, wave) 18% at 38%. A state-only library (mode, button, ground: no picture) finds 1%: the picture
+is what carries it. theta 0.15 / 0.25 / 0.35 on taps: recall 55 / 40 / 34%, precision 77 / 88 / 93%.
+What it says:
+- Cube levels: the library's own play clears with a few repairs, 2-5x faster than the sweep. Our 5 cube levels are
+  similar, so this is the easy case.
+- Levels with modes: 12-16% faster on 4 of 6, slower on GDLM 46 sketch, stuck on GDLM 44. Almost all the time is the
+  local searches in ship and wave parts, which the library cannot play (ship presses are steering, not answers to a
+  structure). A ship part is searched once to its end (a repair bit by bit cost 132 s on GDLM 45, then 69 s).
+- So the library is a first guess for tap parts. Ship and wave stay with the sweep and natural.js's flying controller.
+
+Next (not built): (1) the main-level test on the PC: `node tools/presslib.js test --set all` (light, no slot), then
+`test --set gdsolver --rollout` at low priority -- 22 levels and gdsolver's real-game plans are the data that matters,
+our 11 are a small, alike set. (2) The library inside the sweep instead of beside it: rank the beam's states by how
+well their presses agree with the library (after portals and wall-hugging), so the search tries the good player's
+press first in every mode, with no repairs. A change to lib/physics.js solveSweep (gd-physics). (3) Real start
+positions from community levels: solve sections from each start position separately, then join (incsolve's section
+cache). (4) The viewer: the library's press share on the button strip beside the route.
+
 ## The intended route (solver ranking)
 
 The sweep solver (solveSweep, used for every level with modes) does not just find the fewest presses:
