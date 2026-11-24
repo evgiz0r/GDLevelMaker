@@ -63,6 +63,23 @@ const req = (method, u, body) => new Promise((ok, no) => { const r = http.reques
   const one = JSON.parse((await req("GET", "/attempts?file=" + encodeURIComponent(file) + "&hash=abcd1234&id=" + runs[0].id)).body)[0];
   check(one && JSON.stringify(one.events) === JSON.stringify(evs), "GET /attempts&id=: one attempt with its inputs");
   check(JSON.parse((await req("GET", "/attempts?file=" + encodeURIComponent(file) + "&hash=other")).body).length === 0, "another version's hash: none");
+  // an official level: a recording line as tools/replay_run.js writes it ("official:7") is found by the viewer's file
+  // (local/official_07.json) -- one key for both (attempts.js baseOf); without &hash every version comes back
+  const AT = require("../tools/attempts.js");
+  AT.append({ source: "video", level: "official 7", file: "official:7", hash: "2fc1df11", events: evs, result: "died", x: 500, pct: 12, practice: false, from: null, video: { file: "v.mkv", inputs: "i.csv", res: "agree" } });
+  AT.append({ source: "video", level: "official 7", file: "official:7", hash: "0ld0ld00", events: evs, result: "died", x: 300, pct: 8, practice: false, from: null });
+  const off = JSON.parse((await req("GET", "/attempts?file=" + encodeURIComponent("local/official_07.json") + "&hash=2fc1df11")).body);
+  check(off.length === 1 && off[0].source === "video" && off[0].presses === 2, "official: a recording's line (official:7) listed for the viewer's local/official_07.json");
+  const offAll = JSON.parse((await req("GET", "/attempts?file=" + encodeURIComponent("local\\official_07.json"))).body);
+  check(offAll.length === 2 && offAll.some(r => r.hash === "0ld0ld00"), "without &hash: every version (the viewer counts the older ones)");
+  check(["official:7", "official_7", "official_07", "local/official_07.json", "local\\official_07.json"].every(f => AT.baseOf(f) === "official_7") && AT.baseOf("local/community/123.gdlvl") === "c123" && AT.baseOf("c123") === "c123", "baseOf: one key per official / community level");
+  // the hash of an official level: the viewer hashes local/official_NN.json's level, replay_run.js the game's own
+  // Resources/levels/N.txt -- the same string (checked here when both are on this PC)
+  const offJson = path.join(ROOT, "local", "official_07.json"), gdTxt = (process.env.GD_LEVELS || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash/Resources/levels/") + "7.txt";
+  if (fs.existsSync(offJson) && fs.existsSync(gdTxt)) { const { levelHash } = require("../lib/liveplay.js"), { unpack } = require("../tools/io.js");
+    let txt = null; try { txt = unpack(fs.readFileSync(gdTxt, "utf8")); } catch (e) {}
+    check(txt != null && levelHash(JSON.parse(fs.readFileSync(offJson, "utf8")).level) === levelHash(txt), "official 7: the viewer's level and the game's file hash the same");
+  } else console.log("skip official hash check (no GD install / local/official_07.json here)");
   srv.kill(); fs.rmSync(tmp, { recursive: true, force: true });
   console.log(bad ? `${bad} failed` : "all passed"); process.exit(bad ? 1 : 0);
 })().catch(e => { console.log("FAIL", e.message); srv.kill(); process.exit(1); });

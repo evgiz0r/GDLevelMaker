@@ -16,7 +16,7 @@
 // With the recording's sound (tools/audiolog.ps1, WASAPI loopback, next to the video) and the level's song on
 // this PC, the music's restart pins each attempt's clock (~10 ms) and the shift search narrows to +-25 ms;
 // without, the bar fit (+-1.5 s) stands in. --audio <wav> picks the sound file by hand.
-// STATUS 2026-11-24: first version, not yet run on a real log (the first recording with inputs comes next).
+// STATUS 2026-11-24: GDLM 63 / Blast Processing / GDLM 60 attempts agree; the 02:33:44 official runs do not yet (PHYSICS.md "Fidelity").
 const fs = require("fs"), path = require("path"), { execFileSync } = require("child_process");
 const { GD, readGdlvl, unpack } = require("./io.js");
 Object.assign(GD, require("../lib/natural.js"));
@@ -49,13 +49,25 @@ if (!opt("from") && !opt("to")) {
 }
 
 // 2. the input log: press/release times in UTC ms
-// two formats: tools/inputlog.ps1's "ms,utc ISO,down|up,key" and the minimal logger's "<unix ms> <down|up> <key>"
-const ev = fs.readFileSync(logFile, "utf8").split(/\r?\n/).filter(l => l.trim() && !l.startsWith("#")).map(l => {
-  if (l.includes(",")) { const [ms, utc, ud, key] = l.split(","); return { t: Date.parse(utc), type: ud === "down" ? "press" : "release", key }; }
-  const [t, ud, key] = l.trim().split(/\s+/); return { t: +t, type: ud === "down" ? "press" : "release", key };
-}).filter(e => isFinite(e.t)).sort((p, q) => p.t - q.t);
-// merge keys: the button is down while any of them is down
-const button = []; { let n = 0; for (const e of ev) { const was = n > 0; n += e.type === "press" ? 1 : -1; n = Math.max(0, n); const is = n > 0; if (is !== was) button.push({ t: e.t, type: is ? "press" : "release" }); } }
+// two formats: tools/inputlog.ps1's "ms,utc ISO,down|up,key" and the minimal logger's "<unix ms> <down|up> <key>";
+// several logs may be concatenated (a logger restarted mid-recording)
+// a header line ("# ...": a logger started) resets every key: a log stopped while a key was down (02:33:44)
+// must not leave the button held through the next file
+const ev = [];
+for (const l of fs.readFileSync(logFile, "utf8").split(/\r?\n/)) {
+  if (!l.trim()) continue;
+  if (l.startsWith("#")) { if (/started/.test(l)) { const iso = (l.match(/started (\S+)/) || [])[1]; ev.push({ t: iso ? Date.parse(iso) : null, reset: true }); } continue; }
+  let e;
+  if (l.includes(",")) { const [ms, utc, ud, key] = l.split(","); e = { t: Date.parse(utc), type: ud === "down" ? "press" : "release", key }; }
+  else { const [t, ud, key] = l.trim().split(/\s+/); e = { t: +t, type: ud === "down" ? "press" : "release", key }; }
+  if (isFinite(e.t)) ev.push(e);
+}
+// the button is down while any key is down (each key down or up, never counted twice)
+const button = []; { const keys = new Set(); for (const e of ev) {
+  const was = keys.size > 0; if (e.reset) { keys.clear(); if (was) button.push({ t: e.t != null ? e.t : (button[button.length - 1] || {}).t || 0, type: "release" }); continue; }
+  if (e.type === "press") keys.add(e.key || "k"); else keys.delete(e.key || "k");
+  const is = keys.size > 0; if (is !== was) button.push({ t: e.t, type: is ? "press" : "release" }); } }
+button.sort((p, q) => p.t - q.t);
 // the video's start in UTC from its name ("GD claude-rec 2026-11-24_00-33-07.mkv", local time)
 const m = path.basename(video).match(/(\d{4})-(\d\d)-(\d\d)_(\d\d)-(\d\d)-(\d\d)/);
 const videoT0 = m ? new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]).getTime() : null;
@@ -107,15 +119,18 @@ if (audioFile) console.log(`sound: ${path.basename(audioFile)}${song ? ", song "
 // one clock offset for the whole recording (the log's clock vs the video name's second): found on the attempts
 // that are most constrained -- the clears and long runs -- then every attempt is judged within +-60 ms of it
 function fit(r, center, span) {
-  let t0 = videoT0 + r.start * 1000;
-  const pinned = pinStart(t0); if (pinned != null) { t0 = pinned; center = 0; span = 25; }
+  // the music's restart pins the clock (+-25 ms) -- but a pin can lock onto the wrong spot (02-33-44: every
+  // pinned attempt died in the first 7%, the bar fit got 23-63%), so the bar fit runs too and the closer one wins
+  const t00 = videoT0 + r.start * 1000, pinned = pinStart(t00);
+  const tries = [[t00, center, span, false]].concat(pinned != null ? [[pinned, 0, 25, true]] : []);
   let best = null;
-  for (let sh = center - span; sh <= center + span; sh += 1000 / 240) {
+  for (const [t0, c0, sp0, pin] of tries)
+  for (let sh = c0 - sp0; sh <= c0 + sp0; sh += 1000 / 240) {
     const start = t0 + sh, list = button.filter(e => e.t >= start - 50 && e.t <= start + r.secs * 1000 + 500)
       .map(e => ({ tick: Math.max(0, Math.round((e.t - start) / 1000 * 240)), type: e.type }));
     if (!list.length) continue;
     const q = GD.run(w, list), pct = q.done ? 100 : endPct(q), err = Math.abs(pct - (r.beaten ? 100 : r.pct));
-    if (!best || err < best.err - 1e-9) best = { err, sh, pct, q, list };
+    if (!best || err < best.err - 1e-9) best = { err, sh: sh + (t0 - t00), pct, q, list, pin };
   }
   return best;
 }

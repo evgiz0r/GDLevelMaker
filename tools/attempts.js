@@ -4,7 +4,8 @@
 //   node tools/attempts.js list <level.gdlvl | official:N | base>      the attempts at that level, newest last
 //   node tools/attempts.js deaths <level...>                          deaths per 5% of the level (all sources)
 //   require("./attempts.js").append(line) / .read(fileOrBase, hash?) / .baseOf(file)
-// File: local/attempts/<base>.jsonl (base: the level file's name without .gdlvl, official_<N>, c<id>), one line each:
+// File: local/attempts/<base>.jsonl (base: baseOf(file) -- the level file's name without .gdlvl; official_<N> with no zero
+//   padding for official:N and the viewer's local/official_NN.json alike; c<id>), one line each:
 //   { id, at, source: "viewer" | "video", level, file, hash: GD.levelHash(levelStr) (lib/liveplay.js; that exact version),
 //     events: [{tick, type: "press" | "release"}] (240 Hz ticks from the level's start; GD.run(world, events) replays it),
 //     result: "died" | "clear", x, pct, t, why, practice, from: {tick, x} | null (a practice attempt still replays from
@@ -19,8 +20,11 @@ const fs = require("fs"), path = require("path");
 const DIR = () => path.join(process.env.GDLM_LOCAL_DIR || path.join(__dirname, "..", "local"), "attempts");
 function baseOf(file) {
   const f = String(file || "");
-  if (/^official:(\d+)$/.test(f)) return "official_" + RegExp.$1;
+  // one key per level whatever names it: official:7, official_7, local/official_07.json (the viewer's file) -> official_7;
+  // c123, local/community/123.gdlvl -> c123
+  let m = /^official[:_]0*(\d+)$/.exec(f) || /(?:^|[\\/])official_0*(\d+)\.(?:json|gdlvl|txt)$/.exec(f); if (m) return "official_" + m[1];
   if (/^c\d+$/.test(f)) return f;
+  m = /(?:^|[\\/])community[\\/](\d+)\.(?:gdlvl|json)$/.exec(f); if (m) return "c" + m[1];
   const st = /([\w.-]+)\.stages[\\/](\w+)\.gdlvl$/.exec(f); if (st) return st[1] + "." + st[2];   // a build stage: <base>.<stage>
   return path.basename(f).replace(/\.(gdlvl|json)$/, "").replace(/[^\w.-]+/g, "_") || "unknown";
 }

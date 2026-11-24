@@ -334,6 +334,24 @@ What exists and what blocks it (2026-11-23):
     no clock shift in +-1.5 s reproduces 33.9%. Either the pink-orb station plays differently (the pink orb
     was already the unsettled lab-60 measurement), or the input log has a gap (it only logs while GD is in
     front). The other GDLM 60 attempt passes the same station in both. Needs a clean pink-orb recording.
+  - FIRST RECORDING ON THE FIXED LOGGER (02:33:44, 2026-11-24): 9 normal attempts on official levels, identified from
+    the frames (level page + "Attempt 1"): Electroman 13.5 s 33.2%, 43.5 s 10.3%; Hexagon Force 60.6 s 40.4%; Geometrical
+    Dominator 102.9 s 12.3%, 115.6 s 13.3%; Fingerdash 138.7 s 53.0%, 186.7 s CLEAR; Base After Base 306.4 s CLEAR
+    (GD: 108 jumps; the log: 126 presses -- ship presses are not jumps); xStep 404.0 s CLEAR. No attempt agrees yet:
+    - Base After Base: the sim dies at 62.8% (ship, a block); the presses from 2 s before it moved +54 ms -> the sim
+      BEATS it. So the log is complete and the physics holds there: a clock drift or lag of ~50 ms over the run.
+    - xStep: dies at 22.7% in the ship, its bottom 0.2 unit into a floor spike's top: the known "sim ship ~0.5 unit
+      low" (Stereo Madness, Hexagon Force). No shift in +-300 ms gets past it. Second real-run case of it.
+    - Fingerdash: dies at 51.9% ~1 s after a spider -> ship portal, flying ~8 units into small ceiling spikes (458);
+      no shift gets past it. Open.
+    - Electroman 1.5%, Geometrical Dominator 6-7% (robot), Hexagon Force 31.4%: deaths on saws with every whole-run
+      shift in +-3 s. The user taps fast there (~70 ms taps, ~0.17 s apart). Tried and ruled out: saws as circle vs
+      the player's circle (the sim dies at the next saw instead) and a 20-40 tick landing buffer (no change).
+      Next: track the cube in the video over the first 2 s of Electroman (tools/track.py) against the sim's path.
+    - Tool fixes from this recording: runs.js started an attempt at the first empty-bar reading, which a menu page
+      or another window also gives (Base After Base "started" 31 s early): now the last frame the bar sat at its
+      lowest. replay_run.js: the sound pin locked on the wrong spot for every attempt here (all died in the first
+      7% pinned): the bar fit now runs too and the closer one wins; a logger restart resets the keys at its start.
 - Practice-mode respawns break time -> x; per-attempt segmentation by the attempt label or a jump in x.
 Lab 2 (to build): the mini cube, the pink orb (clean, at ground level so the camera stays still), 45-degree
 and -53-degree teleports, the swing, dual portals, and a green orb in mid-air.

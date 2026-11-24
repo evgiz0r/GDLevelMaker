@@ -55,7 +55,10 @@ function attempts(series) {
     // the best %): the run ended there, and nothing counts until a bar starts again from 0
     if (cur && last !== null && s.pct > last + 8) { runs.push(cur); cur = null; last = s.pct; continue; }
     if (!cur && s.pct >= 1.5) { last = s.pct; continue; }
-    if (!cur && s.pct < 1.5) cur = { start: s.t, end: s.t, pct: s.pct, mode: s.bar };
+    if (!cur && s.pct < 1.5) cur = { start: s.t, end: s.t, pct: s.pct, low: s.pct, mode: s.bar };
+    // the start is the LAST frame the bar sat at its lowest before rising: a menu page or another window can read
+    // as an empty bar long before the attempt (02-33-44: Base After Base "started" 31 s early, in the Claude app)
+    if (cur && s.pct <= cur.low + 0.2 && cur.pct < 1) { cur.start = s.t; cur.low = Math.min(cur.low, s.pct); }
     if (cur) { cur.end = s.t; if (s.pct >= cur.pct) { cur.pct = s.pct; if (s.bar !== "empty") cur.mode = s.bar; } }
     last = s.pct;
   }
