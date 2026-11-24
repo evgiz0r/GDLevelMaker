@@ -114,10 +114,13 @@ function continueFrom(n, events, trouble, backs, opts, old) {
     if (fs.existsSync(partFile(n))) fs.unlinkSync(partFile(n));
     return res;
   };
-  // the old inputs still beat it: nothing to redo
-  if (old && (endS.done || (!endS.dead && endS.x >= w.endX))) return save({ ok: true, clicks: old.clicks }, old.events, null);
-  // where the change matters: the new death, or the old one if the old inputs now get past it
-  if (trouble == null) trouble = old.dieX != null && endS.x > old.dieX + 1 ? old.dieX : endS.x;
+  // the old inputs still beat it, and take every portal: nothing to redo. A finishing route that skips (a secret
+  // way: made before the no-skip rule, or before a portal kind counted) is redone from a bit before the skip; it
+  // used to be kept as "old inputs still hold" (2026-11-24: Cant Let Go, Cycles, xStep, ... kept their skips)
+  const fin = old && (endS.done || (!endS.dead && endS.x >= w.endX)), sk = fin ? GD.skipCheck(w, rp.st, events) : null;
+  if (fin && !sk) return save({ ok: true, clicks: old.clicks }, old.events, null);
+  // where the change matters: the skip, the new death, or the old one if the old inputs now get past it
+  if (trouble == null) trouble = sk ? sk.dieAt.x : old.dieX != null && endS.x > old.dieX + 1 ? old.dieX : endS.x;
   for (const back of backs) {
     const x0 = trouble - back;
     if (x0 <= 0) break;
