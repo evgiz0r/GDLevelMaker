@@ -72,7 +72,17 @@ function solveNext() {
 // user's own PC -- so there it plays music and can show GD art, while nothing copyrighted is hosted. Only that
 // origin, only those GET paths (Chrome's Private Network Access preflight answered); it may write nothing here.
 const PAGES_ORIGINS = ["https://evgiz0r.github.io"];
+// Who may ask (VIEWER.md "On the home Wi-Fi"): this PC, and devices on the home network (private IPv4 ranges: the user's
+// phone on the Wi-Fi) -- nothing else, so even a port the router forwards by mistake answers no one outside. A device on
+// the LAN gets what the viewer needs (its pages, the libs, levels, runs, songs, GD art, maps, marks) and the viewer's own
+// actions (marks, plays, stage reviews, answers, solve / map requests: each writes only under local/ or starts a fixed
+// tool on a checked level path); any other file of the repo (.git, .claude, local/inputs, local/phone, ...) is refused.
+const isLoop = a => a === "::1" || /^127\./.test(a);
+const isLan = a => /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(a);
+const LAN_FILES = /^\/(viewer\/[\w.\/-]*|lib\/[\w.-]+\.js|levels\/[\w.-]+|examples\/[\w.-]+|local\/(beats\.local\.js|marks\.jsonl|official_\d+\.json|(maps|wip|community)\/[\w.\/ -]+))$/;
 const SERVER = http.createServer((req, res) => {
+  const ra = String(req.socket.remoteAddress || "").replace(/^::ffff:/, ""), lan = !isLoop(ra);
+  if (lan && !isLan(ra)) { res.writeHead(403); return res.end("this viewer answers only this PC and the home network"); }
   let p = decodeURIComponent(req.url.split("?")[0]);
   const origin = req.headers.origin;
   if (origin && PAGES_ORIGINS.includes(origin)) {
@@ -432,6 +442,7 @@ const SERVER = http.createServer((req, res) => {
   if (p.endsWith("/")) p += "index.html";
   // the beat grids live in the shared local/ (tools/beats.js); an older viewer page asks for viewer/beats.local.js
   if (p === "/viewer/beats.local.js") p = "/local/beats.local.js";
+  if (lan && !LAN_FILES.test(p) && !/^\/song\//.test(p)) { res.writeHead(403); return res.end("not shared on the home network"); }
   let f = path.join(root, p);
   const song = /^\/song\/(official|custom)\/([A-Za-z0-9]+)\.(mp3|ogg)$/.exec(p);
   // custom songs: the game's save folder, else the shared cache tools/songs.js fills (either extension)
@@ -449,4 +460,9 @@ SERVER.on("error", e => {
   if (e.code === "EADDRINUSE" && process.env.GDLM_RESTART && ++listenTries < 40) return setTimeout(() => SERVER.listen(port), 500);
   console.error(e.message); process.exit(1);
 });
-SERVER.listen(port, () => console.log(`viewer at http://localhost:${port}/viewer/`));
+// --local-only: this PC alone (no home network)
+const LOCAL_ONLY = process.argv.includes("--local-only");
+SERVER.listen(port, LOCAL_ONLY ? "127.0.0.1" : undefined, () => {
+  const ips = LOCAL_ONLY ? [] : [].concat(...Object.values(require("os").networkInterfaces())).filter(a => a && a.family === "IPv4" && !a.internal && isLan(a.address)).map(a => a.address);
+  console.log(`viewer at http://localhost:${port}/viewer/` + (ips.length ? ` -- on the home Wi-Fi: ${ips.map(i => `http://${i}:${port}/viewer/`).join(" ")}` : ""));
+});

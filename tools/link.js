@@ -55,6 +55,6 @@ if (require.main === module) {
   if (!args.length || args[0].startsWith("--")) { console.log(fs.readFileSync(__filename, "utf8").split("\n").filter(l => l.startsWith("//")).join("\n")); process.exit(1); }
   const r = links(args[0], { t: opt("--t"), v: opt("--v") ? +opt("--v") : 0, run: opt("--run") });
   if (r.level.unknown) console.log(`(no level file found for ${args[0]}: the links use the name as given)`);
-  if (args.includes("--md")) console.log(`[${r.level.base}${r.level.version ? " v" + r.level.version : ""}](${r.phone || r.pc})`);
+  if (args.includes("--md")) console.log(`[${r.level.base}${r.level.version ? " v" + r.level.version : ""}](${r.phone || r.pc})` + (r.lan ? ` ([home Wi-Fi, full viewer](${r.lan}))` : ""));
   else { if (r.phone) console.log("phone: " + r.phone); console.log("pc:    " + r.pc); if (r.lan) console.log("lan:   " + r.lan); }
 }

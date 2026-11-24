@@ -64,6 +64,29 @@ hidden until it matters, never one more always-on layer. Beat lines, timing wind
 | **A stage's plan, replayed at once** | a stage (layout, path) or a section variant with no route but a plan (`data.events`, else `data.planned` [{t, what}]; a variant's `planned`, or the layout's `data.alt[].options[].planned`) replays its planned presses through the sim in slices: no solve, ~a second. If it dies: "▶ The plan breaks here: block N, t s: why", a red cross at the spot, and the camera goes on as a ghost after it. The stage's `data.timing` / `target` show as "build time" | -- |
 | **Level map, "draw it now"** | drawn in the page offscreen, one chunk per task with progress ("12/40"); the view and controls stay usable; GD art's new tints have a 40 ms budget per draw (lib/art.js `budget()`), the rest come on the next pass. GDLM 61, first visit: 3.8 s in all, one task of 140 ms (the first), the rest under 50 ms (was 8.8 s with 13 tasks of 140-280 ms and the view taken over) | -- |
 
+## On the home Wi-Fi (the phone gets the whole PC viewer)
+
+The user said yes on 2026-11-24 to serving the PC viewer on the home Wi-Fi. That covers official levels, the demon list,
+GD art, songs and their runs. It is not public: not on Pages, not on the internet.
+- **Address**: `http://192.168.1.189:8765/viewer/` while `tools/serve.js` runs. The router hands out that address (DHCP),
+  so it can change. serve.js prints the current one when it starts, and `node tools/link.js <level>` gives the "lan:" link.
+- **Who may ask**: only this PC (loopback) and private IPv4 addresses (192.168/16, 10/8, 172.16-31). Anything else gets 403.
+- **What a LAN device gets**: the viewer pages, libs, levels/, examples/, `local/` beats, marks, official levels, maps,
+  wip and community levels, songs, GD art, the API the viewer uses, and the viewer's own actions (marks, plays, stage
+  reviews, answers, solve and map requests). Every one of these writes only under `local/` or starts a fixed tool on a
+  level path that has been checked. Any other file of the repo is refused: `.git`, `.claude`, CLAUDE.md, `local/inputs`,
+  `local/phone`, ... No sign-in, no installs, no uploads: nothing of that kind exists in serve.js.
+- `--local-only`: this PC alone (listens on 127.0.0.1).
+- **Firewall**: nothing to change. Windows already has an inbound allow rule for `C:\program files
+odejs
+ode.exe` (TCP,
+  any port) on the Public profile, and the PC's network is set to Public. If a phone still cannot connect, the user can add
+  this rule in an admin PowerShell:
+  `New-NetFirewallRule -DisplayName "GDLM viewer (home Wi-Fi)" -Direction Inbound -Protocol TCP -LocalPort 8765 -RemoteAddress LocalSubnet -Action Allow -Profile Any`
+- **Checked (2026-11-24)**: from the PC through its LAN address (192.168.1.189), the viewer loaded 568 levels, GD art and
+  the user's icons, and a link opened Hexagon Force at 20 s. `.git/config`, CLAUDE.md, `local/inputs` and `local/phone/url.txt`
+  were 403 there and still served on localhost. Not yet opened from the phone itself.
+
 ## For sessions
 
 - **Experiments are silent and not the user's: open the viewer with `?test=1`** (e.g. `http://localhost:8765/viewer/?test=1#lv=...`):

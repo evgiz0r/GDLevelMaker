@@ -39,4 +39,4 @@ phone over the home wifi, and on the phone page from anywhere.
 
 - Whether claude.ai passes the short hash into the Artifact's frame on the phone. If it does not, the 🔗 open link box
   is the way in. Test it once the page is republished, then write the answer here.
-- The LAN link from the user's phone (never tried).
+- The LAN link from the user's phone (never tried). serve.js serves the LAN on purpose: it lets in only private addresses, and only the viewer's files (VIEWER.md "On the home Wi-Fi"). `tools/link.js --md` adds the home Wi-Fi link beside the phone page's.
