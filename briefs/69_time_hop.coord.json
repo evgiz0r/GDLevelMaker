@@ -2,7 +2,7 @@
  "level": "GDLM 69 time hop",
  "title": "GDLM 69 time hop",
  "brief": "briefs/69_time_hop.json",
- "at": "2026-11-24T17:43:47.360Z",
+ "at": "2026-11-24T18:23:31.821Z",
  "vibe": "briefs/69_time_hop.vibe.json",
  "journey": "A ride through time: each phrase of the song is a new era in a new colour, the middle falls into a dark void between eras, and the end hops eras faster and faster until the ship flies out.",
  "oneImage": "The whole screen switching colour on a phrase start, as if the time machine just jumped.",
@@ -120,7 +120,21 @@
    "difficulty": "Easy",
    "look": {
     "style": "a bright teal present",
-    "bg": "#00f0b5"
+    "bg": [
+     0,
+     240,
+     181
+    ],
+    "ground": [
+     0,
+     108,
+     81
+    ],
+    "line": [
+     153,
+     249,
+     225
+    ]
    },
    "transition": {
     "in": "level start",
@@ -162,7 +176,21 @@
    "difficulty": "Normal",
    "look": {
     "style": "a deep blue era",
-    "bg": "#0063fd"
+    "bg": [
+     0,
+     99,
+     253
+    ],
+    "ground": [
+     0,
+     29,
+     73
+    ],
+    "line": [
+     153,
+     193,
+     254
+    ]
    },
    "transition": {
     "in": "from intro: colours blend over 1.7 s",
@@ -205,7 +233,21 @@
    "difficulty": "Normal",
    "look": {
     "style": "a pink era where time runs backwards",
-    "bg": "#ff00bf"
+    "bg": [
+     255,
+     0,
+     191
+    ],
+    "ground": [
+     115,
+     0,
+     86
+    ],
+    "line": [
+     255,
+     153,
+     229
+    ]
    },
    "transition": {
     "in": "from build: colours blend over 1.7 s",
@@ -247,7 +289,21 @@
    "difficulty": "Easy",
    "look": {
     "style": "the dark between eras",
-    "bg": "#180017"
+    "bg": [
+     24,
+     0,
+     23
+    ],
+    "ground": [
+     2,
+     0,
+     2
+    ],
+    "line": [
+     163,
+     153,
+     162
+    ]
    },
    "transition": {
     "in": "from build: colours blend over 1.7 s",
@@ -289,7 +345,21 @@
    "difficulty": "Normal",
    "look": {
     "style": "a purple dawn",
-    "bg": "#9a0082"
+    "bg": [
+     154,
+     0,
+     130
+    ],
+    "ground": [
+     11,
+     0,
+     10
+    ],
+    "line": [
+     215,
+     153,
+     205
+    ]
    },
    "transition": {
     "in": "from calm: colours blend over 1.7 s",
@@ -331,7 +401,21 @@
    "difficulty": "Normal",
    "look": {
     "style": "pink, green, cyan, magenta, green: an era every few seconds",
-    "bg": "#fb00d1"
+    "bg": [
+     251,
+     0,
+     209
+    ],
+    "ground": [
+     113,
+     0,
+     94
+    ],
+    "line": [
+     253,
+     153,
+     237
+    ]
    },
    "transition": {
     "in": "from build: colours blend over 1.7 s",
@@ -373,7 +457,21 @@
    "difficulty": "Normal",
    "look": {
     "style": "a blue sky",
-    "bg": "#0076fc"
+    "bg": [
+     0,
+     118,
+     252
+    ],
+    "ground": [
+     0,
+     42,
+     90
+    ],
+    "line": [
+     153,
+     200,
+     254
+    ]
    },
    "transition": {
     "in": "from drop: colours blend over 1.7 s",
