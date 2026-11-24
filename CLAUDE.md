@@ -416,8 +416,8 @@ Keep it that way: one copy of the physics, used by the checker and the viewer al
   description (base64url), `k4` level string (base64url(gzip)), `k45` custom song id,
   `k48` object count, `k21` 2 = local level, `kCEK` 4 = level.
 - Level string: `header;obj;obj;...;`. Object = `key,value,...`: 1 id, 2 x, 3 y,
-  4 flipX, 5 flipY, 6 rotation (deg), 21 colour channel, 155 (seen as 1 or 2 on every
-  object; meaning unconfirmed). Header `kA4` = start speed (0 = 1x).
+  4 flipX, 5 flipY, 6 rotation (deg), 21 colour channel. 155 = GD 2.2's colour-batch
+  index: objects sharing a value get ONE colour in the game -- never write it (tools/io.js strips it; ART.md "Colour"). Header `kA4` = start speed (0 = 1x).
 - One grid square = 30 units; x,y are object centres; ground top is y=0.
 - `node tools/roundtrip.js examples/*.gdlvl` must print `ok` -- re-serialising a real level
   gives back the same record and the same objects.
