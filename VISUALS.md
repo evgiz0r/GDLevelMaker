@@ -194,6 +194,31 @@ looks barer than the game). --layers: every object in view as a box in its z-lay
 bottom); --deco-only: decoration only. Built for the art session's deco study (2026-11-24). The viewer's shoot mode
 takes the options (job.pcts, label, layers, decoOnly).
 
+## Video (tools/video.js, 2026-11-24)
+
+`node tools/video.js <level> [--run <id | last> | --route] [--from s --to s] [--fps 60] [--size 1280x720] [--vs-rec]`
+-> `local/video/<level>[_run_<id>].mp4`, LOCAL ONLY (GD's art and the song are in it). It renders the viewer's shoot mode
+headless (test=1, hidden) on a virtual clock (`job.video`, `window.VCLOCK`): every frame is exactly 1/fps apart whatever
+the render speed. The camera eases as in the page, the death burst plays, and a run is drawn with the user's own icon. Frames
+are JPEG, then ffmpeg (x264 crf 22 + the song as AAC, from the level's song offset). If the result is over 30 MB, it is
+re-encoded at the bitrate that fits. `--vs-rec` puts the run's recording beside it: `video.level_t` from the attempt line
+(physics' alignment), 2 x 960x540, the recording's own sound.
+- **Measured**: the user's Hexagon Force run (35.8 s, died 40%) at 60 fps 1280x720 rendered in 156 s (~73 ms a frame,
+  heavy slot ~3 min) to a 23.6 MB file. The side-by-side is 18.8 MB. A 100 s level at 60 fps would pass 30 MB at crf 22,
+  so it gets the re-encode.
+- **Checked against the recording** (side-by-side, frames at 5 / 20 / 35 s): the same moment and layout at 5 and 20 s.
+  At 35 s the run has died: ours shows the end of the burst, the recording shows dual. Differences: the recording is
+  GD windowed on the desktop (another scale and framing), GD's progress bar is not drawn in ours, a collected coin shows
+  dashed in GD, and orb rings differ (see the table below).
+- **Two bugs found by it, fixed**: the death burst asked for one more redraw chain per drawn frame, so frames after a death
+  took ~30 s each (a render held the heavy slot 60 min); headless renders now give up after 3-4 min with no new frame
+  (`stallMs` in tools/headless.js).
+- **No-route camera follows the level** (2026-11-24, art's Brave Blue): a level with no route runs as a ghost with its height
+  held, so a level built high up (Brave Blue's playfield ~50 blocks up, moved there by triggers) showed only sky in the
+  viewer and in compare_frames. The ghost's camera now looks at the median height of the level's objects in each 600-unit
+  stretch (`contentY`) when that is above 6 blocks.
+- Open: an art-free version, so a video can be shared publicly; cropping a windowed recording in `--vs-rec`; the progress bar.
+
 ## Render vs game (measured from the user's recordings, 2026-11-24)
 
 How: the user's own attempt replayed as the player (viewer run mode), the video frame at the same level time beside it
