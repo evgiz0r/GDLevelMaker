@@ -222,6 +222,13 @@ function scoreLevel0(level, brief, opts = {}) {
     } catch (e) { /* no beat grid / tempo.js missing */ }
   }
 
+  // few triple spikes (the user, 2026-11-24: "lets do less triple spikes for now"): at most one per 15 s, never two within
+  // 4 s (tools/triples.js; knowledge/checklist.md "Few triple spikes"). WARN: soft, a level may keep one with a reason.
+  try {
+    const q = require("./triples.js").check(level);
+    gate("triples", q.flags.length ? "WARN" : "PASS", `${q.n} triple spikes in ${q.secs} s (at most ${q.allowed})`, q.flags.join("; "));
+  } catch (e) { /* static; never blocks */ }
+
   // orbs you can buffer, no jumps over nothing (physics, from the user: "usually with orbs, when possible, we
   // want to buffer"; stairs and step-downs are walked off, not jumped). lib/natural.js on the player's route:
   // an orb only a precise mid-orb click takes, a cube jump from the ground over nothing. WARN.

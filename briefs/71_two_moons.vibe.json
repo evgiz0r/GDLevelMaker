@@ -1,0 +1,30 @@
+{
+ "title": "GDLM 71 two moons",
+ "desc": "A ride through space under two moons: dark, then lighter, then the nebula, then the moon at the drop.",
+ "journey": "dark space arrival (cube, almost black, a few stars) -> launch into light space (ship then wave, planets close by, navy) -> the nebula (ufo / ball / cube, violet haze) -> deep space climb (wave then ship, darkest part, speed rising) -> the moon rises (a calm cube breath, the moon comes up behind) -> the drop in front of the moon (ship / wave / swing at full pace, moonlit) -> end",
+ "oneImage": "the drop at 105 s: a huge pale moon filling the back, the ship threading a corridor across its face",
+ "never": ["a bright sky: the background stays near black, lighter only as navy or violet", "cube for more than ~20 s in a row", "deco or stars in the path's value (roles gate)"],
+ "song": { "custom": 1175526, "name": "Two Moons ft. Geyser (jamatar)", "from": 0, "to": 128.3,
+   "why": "166 BPM, the clearest beat of the local space-named songs (clarity 2.95, 4% beatless), quiet intro then clear drops at 12.6, 35.8 and 105.2 s and a break at 99.4 s: sections for dark / light / nebula variants and one drop for the moon (songmap, 2026-11-24). Alternative: Ocean of Stars (537202, 171 BPM): bigger loud/quiet contrast (17 dB), but its quiet parts are nearly beatless." },
+ "feel": { "tier": "Normal", "modeStretch": 4, "density": "2.4-3 obstacles per bar (real levels' median 3.04, tools/pace.js)", "pace": "0.63 inputs per beat (official median, tools/tempo.js); busy parts 0.5+", "flying": "flying modes (ship, ufo, wave, swing, ball) at least 60% of the time" },
+ "lookRule": "shifting",
+ "camera": "slow zoom-out on the launch, zoom pulses on the drop's bars, a still camera for the moon rise",
+ "motifs": ["stars drifting at three depths (parallax)", "planets close to the path in the light parts", "the moon growing from the break into the drop"],
+ "rhythm": { "sync": "portals on section starts and bars; orbs loosely on beats; flying follows the loudness", "speed": "1x intro, 2x from the launch, 3x only in the drop" },
+ "beats": [
+  { "id": "dark arrival", "t": [0, 12.6], "role": "intro", "energy": 0.25, "place": "dark space", "mood": "quiet, dark, waiting",
+    "vehicle": { "mode": "cube", "speeds": ["1x"] }, "moment": "the title, a few stars fade in", "look": { "palette": { "bg": "#05060d", "ground": "#0a0c18", "line": "#8090c0" }, "scene": "space-dark" }, "transition": { "out": "zoom out, the stars thicken" } },
+  { "id": "launch", "t": [12.6, 35.75], "role": "drop", "energy": 0.8, "place": "light space", "mood": "driving, open, lighter",
+    "vehicle": { "mode": "ship then wave then cube", "speeds": ["2x"] }, "moment": "the ship portal on the drop at 12.6 s, a planet passing under the corridor", "look": { "palette": { "bg": "#0e1a3c", "ground": "#101833", "line": "#a8c4ff" }, "scene": "space-light" }, "transition": { "out": "2 bars of cube breath before the nebula" } },
+  { "id": "nebula", "t": [35.75, 58.9], "role": "calm", "energy": 0.6, "place": "the nebula", "mood": "floating, strange, violet",
+    "vehicle": { "mode": "ufo then ball then cube", "speeds": ["2x"] }, "moment": "the ufo hopping between gas clouds", "look": { "palette": { "bg": "#1b0b30", "ground": "#160a26", "line": "#d0a8ff" }, "scene": "space-nebula" }, "transition": {} },
+  { "id": "deep climb", "t": [58.9, 79.1], "role": "build", "energy": 0.75, "place": "deep space", "mood": "dark, rising, tense",
+    "vehicle": { "mode": "wave then ship", "speeds": ["2x"] }, "moment": "the darkest frame of the level, only the path's rim and the stars", "look": { "palette": { "bg": "#02030a", "ground": "#06070f", "line": "#7fa0ff" }, "scene": "space-dark" }, "transition": {} },
+  { "id": "climb to the moon", "t": [79.1, 99.4], "role": "build", "energy": 0.85, "place": "deep space, lighter towards the moon", "mood": "rising, loudest before the break",
+    "vehicle": { "mode": "swing then cube", "speeds": ["2x"] }, "moment": "the sky lightens a step every 4 bars", "look": { "palette": { "bg": "#0a1022", "ground": "#0b1020", "line": "#b0c8ff" }, "scene": "space-light" }, "transition": { "out": "everything drops away for the break" } },
+  { "id": "moon rise", "t": [99.4, 105.2], "role": "calm", "energy": 0.3, "place": "the moon's horizon", "mood": "still, awed",
+    "vehicle": { "mode": "cube", "speeds": ["1x"] }, "moment": "the moon comes up behind, the camera still", "look": { "palette": { "bg": "#141c30", "ground": "#1c2236", "line": "#e0e8ff" }, "scene": "space-moon" }, "transition": { "out": "the drop on the bar at 105.2 s" } },
+  { "id": "moon drop", "t": [105.2, 128.3], "role": "finale", "energy": 1, "place": "in front of the moon", "mood": "full pace, bright moonlight on black",
+    "vehicle": { "mode": "ship then wave then swing then cube", "speeds": ["3x", "2x"] }, "moment": "THE SET PIECE: the moon fills the back, zoom pulses on bars", "look": { "palette": { "bg": "#1b2436", "ground": "#141a28", "line": "#f0f4ff" }, "scene": "space-moon" }, "transition": { "out": "the end text and signature" } }
+ ]
+}
