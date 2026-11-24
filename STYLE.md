@@ -490,6 +490,9 @@ Still open:
   tools/recompile.js, fixes 1-4 in code but unmeasured, 5 not started; the v1 benchmark table). Next: the collab repair
   rounds test (`collab.js build briefs/69_time_hop.json 1 --by recompile`), then both round trips for the v2 column.
   GDLM 69 and 70 in levels/ are still v1 and NOT READY.
+- **Polish, inherited (2026-11-24)**: POLISH.md "Handoff" -- polish.js, tempo.js (exports stable for pace.js), deadair.js,
+  portalground.js, tools/scenes/hellgate.js. Hellgate v7 NOT READY only on roles (33/42 sections: the blocks' dark fill reads
+  as deco); open: 62's dead-air diff, 51's spare spike at block 253, upside-down inside ship tunnels, sync on the drop's hits.
 - **Craft, inherited (2026-11-24)** with gd-art (art takes the look): CRAFT.md "Handoff", tools/craft.js, tools/craftlevel.js.
   Open for style: the solo-check failures of craft structures (slab-steps 208 ms reactive cut, lantern-orb prejump + 67 ms
   cut, stepped-pyramid 38 ms press; capped-hop and stepped-pyramid fail at 2x: all tagged 1x only); spec drift (41, 43, 44,

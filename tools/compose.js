@@ -346,6 +346,9 @@ function compose(brief, tweaks = {}) {
         // an orb chain at 2x landed 3 blocks before a step with a double on it)
         const launched = last && /orb|pad/.test(last) ? 3 : 0;
         let gap = gMin + Math.floor(r2 * (gMax - gMin + 1)) + (intro && k > 0 ? 2 : 0) + (t.gap || 0) + (drop >= 2 ? drop + 1 : 0) + launched;
+        // two orb structures in a row: 6+ blocks between them (gd-polish on hellgate v7, 2026-11-24: s:red-orb-wall right
+        // after s:green-orb-flip prejumped; s:orb-ladder-2 there made a 3-orb chain under 500 ms). checklist "Orb spacing"
+        if (last && /orb/.test(last) && /orb/.test(name)) gap = Math.max(gap, 6);
         let newH = h, stepAt = null, ledge = false;
         if (terrain) {
           const [t1, t2] = tdraws[k];

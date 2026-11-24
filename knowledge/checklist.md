@@ -134,6 +134,9 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 
 ## Not bland (rated Easy/Normal 2.0-2.1 medians)
 
+- [ ] **Orb spacing**: 6+ blocks between two orb structures (gd-polish, hellgate v7: s:red-orb-wall right after
+  s:green-orb-flip prejumped; s:orb-ladder-2 there made a 3-orb chain under 500 ms). compose enforces it; the prejumps and
+  chains gates catch the rest.
 - [ ] **Few triple spikes** (the user, 2026-11-24: "lets do less triple spikes for now"): at most one per ~15 s, never two
   within 4 s; singles, doubles, pits, pillars and orbs carry the jumps. `tools/triples.js` (sweep: `--all`), score.js
   "triples" (WARN); compose turns a second triple in a section, or one within 4 chunks of the last, into a double
