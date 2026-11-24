@@ -73,6 +73,18 @@ user plays it.
 A structure with no press at all (a pad-only stretch) is something to watch, not to play: its score is
 multiplied by 0.85.
 
+## In context (2026-11-24)
+
+A structure checked alone can still fail beside its neighbours. GDLM 64 v2/v3 (gaps of 2-4 columns at Hard)
+showed it: `orb-ladder-2` made 3-tap orb chains with the orb pit after it (fairness FAIL), and `block-hops`,
+`slab-steps`, `lantern-orb` gave 10 of 15 "jump over a hazard timed around a block" spots. So every cube-in /
+cube-out structure is also built between a single spike 2 columns before it and an orb pit 2 after (the
+tightest gap compose uses), and the gates a neighbour changes -- beatable, prejumps, reactive, fairness,
+recovery, skips -- go to the entry's `context` (`node tools/structures.js check --context [id ...]`).
+A piece that FAILs any of them there, or is not PASS on reactive, is `context.ok = false`: ranked down
+(readability -0.5) and not ready. compose.js only uses ready pieces, also when a brief names one by hand
+(it prints a NOTE). Results: see "Results in context" below once run.
+
 ## In levels
 
 `tools/patterns.js` registers every structure that starts and ends as a normal-size cube in normal

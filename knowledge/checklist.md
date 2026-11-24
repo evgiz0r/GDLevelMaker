@@ -130,7 +130,10 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   (levels/obstacles.md section 1; GDLM 41-45 had 13%)
 - [ ] **Structures from the library**: compose.js puts a ranked structure (STRUCTURES.md) in every
   plain 1x cube section by default; a hand-made spec names them as `"s:<id>"`. Mechanics our levels
-  never had rank first. `node tools/structures.js rank`.
+  never had rank first. `node tools/structures.js rank`. **Only ready ones, and ready includes the check in
+  context** (a spike before, an orb pit after, 2 columns each: `check --context`): a piece that passes alone
+  can make orb chains or jumps timed around a block beside its neighbours (GDLM 64 v2/v3). compose leaves out
+  a not-ready `s:` piece even when a brief names it by hand.
 - [ ] **Variety**: ~15 kinds of gameplay thing; 4-5 modes and 2-3 speeds; a portal every ~2-3 s;
   ~25 orbs and pads per minute; at least ~90% of the chunks new. `node tools/variety.js <level>`.
   (levels/variety.md)

@@ -147,8 +147,14 @@ function compose(brief, tweaks = {}) {
   const total = lens.reduce((a, n) => a + n, 0);
   let lastSpeed = brief.speed || "1x", h = 0, prevUpside = false;
   const extra = structurePicks(brief, tweaks);
+  // a library structure named in a brief is used only when the library calls it ready -- which includes the check in
+  // context (tools/structures.js check --context): GDLM 64 v2/v3 took pieces by hand that passed alone but made orb
+  // chains and jumps timed around a block beside their neighbours
+  let notReady = null; const NOTED = compose.noted || (compose.noted = new Set());
+  try { const ST = require("./structures.js"); const rk = ST.rank(Object.values(ST.load().structures)); notReady = new Set(rk.filter(r => !r.rank.ready).map(r => "s:" + r.id)); } catch (e) {}
   for (const [si, sec0] of brief.sections.entries()) {
     const sec = Object.assign({}, sec0, { blocks: lens[si] });
+    if (notReady && sec.use) { const drop = sec.use.filter(u => notReady.has(u)); if (drop.length) { sec.use = sec.use.filter(u => !notReady.has(u)); if (!NOTED.has(sec.name + drop)) NOTED.add(sec.name + drop), console.log(`   NOTE ${sec.name}: ${drop.join(", ")} left out (not ready in the structure library: node tools/structures.js rank)`); } }
     if (extra[si]) sec.use = [...sec.use, extra[si]];
     const start = col, end = col + sec.blocks, i0 = objects.length;
     const at = si === 0 ? 0 : (sec0.beats ? start : Math.max(0, start - 2));  // on the beat when in beats

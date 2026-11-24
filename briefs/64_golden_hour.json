@@ -54,8 +54,12 @@
         "single",
         "spike-block",
         "double",
-        "s:pillar-hop",
         "s:capped-hop",
+        "s:double-rhythm",
+        "s:pillar-pair",
+        "s:pink-orb-pit",
+        "s:ledge-drop",
+        "s:slope-down-spike",
         "platform",
         "stairs"
       ],
@@ -136,11 +140,11 @@
       "speed": "2x",
       "use": [
         "double",
+        "single",
         "s:pillar-pair",
         "s:pink-orb-pit",
-        "pad-launch",
-        "single",
         "s:double-rhythm",
+        "pad-launch",
         "platform"
       ],
       "args": {
@@ -252,10 +256,12 @@
       "use": [
         "single",
         "spike-block",
-        "s:pillar-climb",
-        "s:low-roof-hops",
         "double",
-        "s:red-orb-wall",
+        "s:capped-hop",
+        "s:low-roof-hops",
+        "s:dash-orb-pit",
+        "s:pink-pad-step",
+        "s:descend-steps",
         "orb-pit"
       ],
       "bg": [
@@ -328,5 +334,5 @@
   "notesV2": "round 2 (2026-11-24): the 2x noon run with craft pieces checked only at 1x failed 8 rounds (25 ms, prejump, land-and-jump chains): classic patterns proven at 2x; pillar-hop out (a jump over a spike timed around the next pillar, the reactive gate)",
   "structures": false,
   "notesV3": "round 4 (2026-11-24): craft pieces out until their new shapes land (slab-steps / pillar-climb cut jumps by a block, 4 ms); no automatic library picks (a UFO-orb piece added mode changes and tripped skips)",
-  "notes": " v2 (2026-11-24 night): denser toward Jumper -- Hard target, gaps 2-4, structures in every cube section, gameplay through dawn (ending), exits on bars."
+  "notes": " v2 (2026-11-24 night): denser toward Jumper -- Hard target, gaps 2-4, structures in every cube section, gameplay through dawn (ending), exits on bars. v5: only structures ready in context (tools/structures.js check --context)."
 }
