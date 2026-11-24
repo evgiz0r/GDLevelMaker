@@ -256,7 +256,9 @@ Check any level with `node tools/decostudy.js <file.gdlvl>`.
 - Channels next: +0.18.
 - Dress counts mostly as effort (+0.12).
 - Glow helps featured over the rest (+0.14), but the best levels use LESS of it (epic+ against featured -0.26). Keep it
-  moderate: 10-25%, not something to maximise. These coefficients were fitted on v1 glow and are waiting for gd-taste's refit.
+  moderate: 10-25%, not something to maximise. gd-taste's refit on v2 glow (370c634): glow is unclear within a band. Featured against the rest is +0.05 with effort out
+  (-0.10..0.20); epic+ against featured is -0.17 (-0.32..0.02). So the pooled 25% vs 5% gap comes from era and effort,
+  and glow is out of the taste model. Use it as a look choice, not a score.
 - Layer count says nothing.
 score.js's "taste" gate now includes these measures.
 
