@@ -215,6 +215,9 @@ gd-taste's corpus is local/taste/corpus.json. The results stay in local/decostud
 | official 1-22 | 22 | 112 (5.6) | 3 | 0.5 | 1% | 0 | 2 | 93 |
 | **GDLM (ours)** | 16 | **31 (1.5)** | 2 | **0.2** | **0%** | 0 | **0** | 100 |
 
+**The glow column above is inflated.** It counted plain 211 / 693 pieces as glow (their catalogue family is lightsquare /
+lighttriangle). This was fixed in 034a6a5, and the numbers are being measured again (local/decostudy_run2.txt).
+
 Quartiles (p25-p75):
 - taste featured: n 242-632, dress 2.0-6.2, motion p75 35;
 - legendary 2.2: n 341-623, dress 3.8-16.9, motion p75 82;

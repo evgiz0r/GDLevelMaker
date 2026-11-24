@@ -184,6 +184,16 @@ Edge (no GPU: a worst case) in three setups -- GD art + beats, shapes + beats, l
 mode (POST /perf -> local/perf/). Not measured yet: real frame rate with the pane visible (the
 browser pane here was hidden, so no animation frames ran) and on the phone -- read them with F.
 
+## Comparing levels by picture (tools/compare_frames.js)
+
+`node tools/compare_frames.js <ours> <ref | official:N | community id> [--at pct:10,30,50,70,90 | s:5,12] [--ref-at ...]
+[--layers] [--deco-only]`: one 1600x450 PNG per spot in local/compare/, ours left, the reference right, both in the game
+look with GD art at the same zoom (800x450, 16:9), each labelled with level, time, % and objects per block in view, and
+how many 2.2 deco objects are drawn without their child sprites (only the root sprite is in our tables: such a frame
+looks barer than the game). --layers: every object in view as a box in its z-layer's colour (B5..T4, legend at the
+bottom); --deco-only: decoration only. Built for the art session's deco study (2026-11-24). The viewer's shoot mode
+takes the options (job.pcts, label, layers, decoOnly).
+
 ## Render vs game (measured from the user's recordings, 2026-11-24)
 
 How: the user's own attempt replayed as the player (viewer run mode), the video frame at the same level time beside it

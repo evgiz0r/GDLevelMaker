@@ -109,7 +109,8 @@ function dsFeatures(d) {
   if (!d) return {};
   return { dsDress: d.dress, dsGlow: d.glow, dsLayers: d.layers, dsChannels: d.ch, dsMotion: d.motion, dsPerScreen: d.n };
 }
-function dsCached(id) { try { return dsFeatures(JSON.parse(fs.readFileSync(path.join(DSDIR, id + ".json"), "utf8"))); } catch (e) { return {}; } }
+// rows before v:2 counted plain 211/693 "light" squares as glow (fixed in decostudy 034a6a5): skip them
+function dsCached(id) { try { const d = JSON.parse(fs.readFileSync(path.join(DSDIR, id + ".json"), "utf8")); return (d.v || 1) >= 2 ? dsFeatures(d) : {}; } catch (e) { return {}; } }
 
 function measureOne(file) {
   const { GD, readGdlvl } = require("./io.js"), style = require("./style.js"), craft = require("./craft.js"), clusters = require("./clusters.js");
