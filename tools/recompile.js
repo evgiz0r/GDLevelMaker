@@ -81,7 +81,7 @@ function abstract(D, o = {}) {
     const sw0 = s.bgSwitches[0], fade = (s.moments.find(m => /^palette/.test(m.what) && /fade/.test(m.what)) || {}).what;
     const trans = sw0 != null && sw0 - s.t[0] < 1.5 ? { in: fade && /(\d+(\.\d+)?)s fade/.test(fade) ? "fade " + Math.round(+/(\d+(\.\d+)?)s fade/.exec(fade)[1]) : "instant" } : {};
     const rel = t => +(t - D.song.offset).toFixed(2);
-    return { id: `${role} ${i + 1}`, t: [rel(s.t[0]), rel(s.t[1])], role, energy: +e.toFixed(2), place: `a ${hueName(bg)} place`, mood, vehicle,
+    return { id: `${role} ${i + 1}`, t: [rel(s.t[0]), rel(s.t[1])], role, energy: +e.toFixed(2), density: s.hazPerBlock, place: `a ${hueName(bg)} place`, mood, vehicle,
       moment: pick ? `${pick.what} at ${rel(pick.t)} s` : "", look, transition: trans };
   });
   if (beats.length) { beats[0].role = "intro"; beats[beats.length - 1].role = "finale"; }
@@ -182,6 +182,9 @@ function main() {
     const plan = rd(path.join(ROOT, "local", "collab", path.basename(briefFile, ".json"), "plan.json")); wr(path.join(dir, "plan.json"), plan);
     stage("plan", { note: `3 plan: ${b.sections.length} sections in ${plan.parts.length} parts, seams on song time`, data: { song: songData(D), sections: plan.parts.map(p => ({ name: `${p.id} ${p.name}`, from: p.t[0], to: p.t[1] })) } });
   });
+  // the scene from the spec's places (tools/vibe.js scenePlan -> tools/scenes/planned.js) over the built level, route kept
+  const dress = bf => { const b = rd(path.join(ROOT, bf)); if (!b.levelScene) return;
+    const r = run("collab.js", ["scene", bf]); console.log(r.out.split("\n").filter(l => l.trim() && !/heavy: waiting/.test(l)).slice(-3).map(l => "   " + l).join("\n")); };
   step(3, () => {
     const plan = rd(path.join(dir, "plan.json")), bf = path.relative(ROOT, briefFile); let collabFailed = null;
     try { fs.unlinkSync(path.join(dir, "build_note.txt")); } catch (e) {}
@@ -193,7 +196,7 @@ function main() {
         console.log(r.out.split("\n").filter(l => l.trim() && !/heavy: waiting/.test(l)).slice(-4).map(l => "   " + l).join("\n"));
         if (r.ok) break;
       }
-      if (!r.ok) { collabFailed = `part ${k} failed its gates 3 times (collab builds a part in one try, no repair rounds)`; break; }
+      if (!r.ok) { collabFailed = `part ${k} failed its gates on 3 seeds (each with collab's repair rounds)`; break; }
     }
     // the fallback: the same brief as ONE level through compose's repair rounds (a pipeline gap, said in compare.md)
     if (collabFailed) {
@@ -202,11 +205,11 @@ function main() {
       const r = run("compose.js", [bf]); console.log(r.out.split("\n").filter(l => l.trim() && !/heavy: waiting/.test(l)).slice(-8).map(l => "   " + l).join("\n"));
       const out = path.join("levels", slug + ".gdlvl");
       if (!fs.existsSync(path.join(ROOT, out))) throw new Error("compose made no " + out);
-      levelOut = out; fs.writeFileSync(path.join(dir, "level.txt"), levelOut + "\n"); return;
+      levelOut = out; fs.writeFileSync(path.join(dir, "level.txt"), levelOut + "\n"); dress(bf); return;
     }
     const r = run("collab.js", ["join", bf]); console.log(r.out.split("\n").map(l => "   " + l).join("\n"));
     const m = /-> (levels[\\/][^\s]+\.gdlvl)/.exec(r.out); if (!m) throw new Error("join made no level");
-    levelOut = m[1]; fs.writeFileSync(path.join(dir, "level.txt"), levelOut + "\n");
+    levelOut = m[1]; fs.writeFileSync(path.join(dir, "level.txt"), levelOut + "\n"); dress(bf);
   });
   step(4, () => {
     D = D || rd(path.join(dir, "sections.json")); V = V || rd(path.join(dir, "spec.json"));

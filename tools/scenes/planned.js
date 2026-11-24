@@ -24,14 +24,18 @@ const CHARACTER = { haunted: "ghost" };
 const SHIFT = 0.35;
 const MOTES = { fog: 0.8, mist: 0.8, "green smoke": 1.2, embers: 2.5, fireflies: 2, "glowing plankton": 3, bubbles: 2.5, "fast bubbles": 4, "wind lines": 1.5 };
 
-module.exports = function ({ objects, header, spec }) {
+module.exports = function ({ objects, header, spec, xOfT }) {
   const plan = spec.scenePlan, out = [], T0 = 3;
-  const secs = plan.sections.map(s => ({ ...s, x0: s.t[0] * SPEED, x1: s.t[1] * SPEED }));
+  // x from level time through the level's speed portals when make.js / collab.js scene gives xOfT (a vibe sheet's
+  // level at 2x / 3x, VIBES.md); 1x otherwise (the section planner's levels)
+  const X = typeof xOfT === "function" ? xOfT : t => t * SPEED;
+  const secs = plan.sections.map(s => ({ ...s, x0: X(s.t[0]), x1: X(s.t[1]) }));
   const END = secs[secs.length - 1].x1, have = new Set(P.list().map(p => p.name));
   const alias = n => PICK[n] || P.ALIAS && P.ALIAS[n] || n;
   // gap 3: every section's palette is the level's (the first place's) moved SHIFT of the way to its own place
   const base = secs[0].palette, mixP = (a, b, t) => Object.fromEntries(Object.keys(a).map(k => [k, mix(a[k], b[k], t)]));
-  secs.forEach((s, i) => { s.place0 = s.palette; s.palette = i ? mixP(base, s.palette, SHIFT) : base; });
+  // (a vibe sheet whose look is per part -- scenePlan.onePalette false -- keeps each section's own palette)
+  if (plan.onePalette !== false) secs.forEach((s, i) => { s.place0 = s.palette; s.palette = i ? mixP(base, s.palette, SHIFT) : base; });
   // ---- channels: the level's own (props take theirs from 600 up, one block of 30 per section) ----
   const C = { glow: 1, far: 2, edge: 9, fill: 10, motes: 13, stars: 8, rays: 12, dFar: 70, dMid: 71, dNear: 72, trim: 73, grass: 74, cloud: 75 };
   const pal = s => ({ 1000: s.palette.bg, 1001: s.palette.ground, 1009: mix(s.palette.ground, s.palette.bg, 0.3), 1002: mix(s.palette.edge, [255, 255, 255], 0.2),
@@ -101,8 +105,8 @@ module.exports = function ({ objects, header, spec }) {
 
   // ---- calm pulses: the glow swells on bar starts (a tint of the place's own edge, never white); the
   // level's one sky shift on the biggest loudness jump (the planner marks it) ----
-  const barX = plan.barSec * SPEED;
-  for (let x = 0, k = 0; x < END; x += barX, k++) out.push(K.pulse(x, C.glow, mix(secs.find(s => x >= s.x0 && x < s.x1 + 1)?.palette.edge || [200, 200, 200], [255, 255, 255], 0.25), 0.1, 0.1, 0.8));
+  // (scenePlan.pulses false: a sheet that says no pulses -- never / camera "plain" -- gets none)
+  if (plan.pulses !== false) for (let k = 0, x = 0; (x = X(k * plan.barSec)) < END; k++) out.push(K.pulse(x, C.glow, mix(secs.find(s => x >= s.x0 && x < s.x1 + 1)?.palette.edge || [200, 200, 200], [255, 255, 255], 0.25), 0.1, 0.1, 0.8));
   const big = plan.sections.findIndex(s => (s.effects || []).some(e => /sky tint/.test(e)));
   if (big > 0) out.push(K.pulse(secs[big].x0, 1000, mix(secs[big].palette.bg, [255, 255, 255], 0.25), 0.05, 0.1, 1));
 

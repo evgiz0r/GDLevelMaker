@@ -349,7 +349,7 @@ function build(spec, specFile = "spec") {
     const kit = require("./vfxkit.js");
     const speed = tl[0].v;   // units per second at the start (the timeline's first segment)
     objects.push(...kit.parallax(secs, Object.assign({ speed }, spec.modern.light ? { value: [0.95, 1] } : {})));  // light palette: no darkened layers
-    if (ctx.grid) objects.push(...kit.beatPulses(secs, ctx.grid, { speed, songOffset: spec.offset || 0, xOfT: t => GD.SYNC.xOfT(tl, t) }));
+    if (ctx.grid && spec.modern.pulses !== false) objects.push(...kit.beatPulses(secs, ctx.grid, { speed, songOffset: spec.offset || 0, xOfT: t => GD.SYNC.xOfT(tl, t) }));
   }
   // The signature (tools/signature.js): robot + human, "Made by Claude (and some humans)", after the end.
   // On by default for every "GDLM ..." level (the user approved it for all, 2026-11-23); a spec opts out
