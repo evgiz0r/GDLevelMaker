@@ -173,6 +173,25 @@ the model's probability that a level of this band is featured+, 0-100. compose a
 the band's featured medians in `targets` (p25 / median / p75 per measure). The model is retrained with
 `learn` whenever the corpus grows; each user play (`taste.js user`) and later each mark becomes data.
 
+### Per-screen deco measures from the art session (2026-11-24)
+
+The deco study (`tools/decostudy.js`, ART.md "Deco study") measures each 20-block screen; taste.js reads its
+medians as `ds*` features (from `local/decostudy/<id>.json` for the corpus, computed on the spot for a scored level).
+Within-band delta, featured+ vs the rest; then with effort taken out; then epic+ vs featured:
+
+| feature | raw | effort-adjusted (90%) | epic+ vs featured (90%) | reading |
+|---|---|---|---|---|
+| dsMotion (motion triggers per screen) | 0.43 | **0.32** (0.15..0.46) | **0.36** (0.22..0.53) | strongest new one: moving deco on every screen, not only the effort it costs |
+| dsChannels (colour channels per screen) | 0.35 | 0.18 (0.03..0.34) | 0.16 (-0.01..0.30) | mild yes |
+| dsDress (deco near play objects, per play object) | 0.24 | 0.12 (-0.06..0.25) | 0.09 | mostly effort |
+| dsGlow (glow / blending share) | 0.17 | 0.14 (-0.01..0.29) | **-0.26** (-0.39..-0.10) | epic levels use LESS glow than featured ones: glow is a featured-level habit, not the top |
+| dsLayers (z-layers with >= 5%) | 0.14 | -0.01 | 0.03 | nothing |
+| dsPerScreen (objects per screen) | 0.22 | (an effort measure) | 0.41 | effort |
+
+Its contrast score runs the other way (featured 45 vs other 63), so it is not a feature. The model barely moves
+(held-out AUC 0.633 -> 0.639): what these see, the effort measures already saw. For a level: **put motion on every
+screen** (move / rotate / pulse triggers on deco) before adding glow.
+
 ## Our GDLM levels through the taste score (2026-11-24, band EN|2.2)
 
 `node tools/taste.js score levels/gdlm_4*.gdlvl levels/gdlm_5*.gdlvl levels/gdlm_60*.gdlvl` (full output in
@@ -216,10 +235,7 @@ attempt rows stay in local/real_stats.jsonl (physics owns them); this is the per
 ## Open
 
 - Route measures (above). Readability by render for a sample of 30 levels to calibrate the proxy.
-- Per-screen deco measures from the art session's `tools/decostudy.js` (cache `local/decostudy/<id>.json`, run on
-  this corpus queued 2026-11-24): dress (deco near play objects), glow share, z-layer spread, and its contrast
-  score (`tools/contrast.js`, better than contrastProxy). When the cache is filled: add them as features, re-run
-  `learn`, see if they separate featured from the rest within a band. Front/back/HSV/motion stay taste.js's own.
+
 - 2.2 levels built by move triggers measure as empty: a measure on the moved positions.
 - The user's marks and plays as data: each mark is a labelled spot (bad) on our levels; each played
   level a row with the user's verdict. When there are ~30, fit the user's own weights next to the
