@@ -138,7 +138,7 @@ function scoreLevel0(level, brief, opts = {}) {
   // blocks and ground against the background along the level (tools/contrast.js, ART.md "Colour readability"). Soft.
   try {
     const C = require("./contrast.js").measure({ header: level.header, objects: level.objects });
-    gate("contrast", C.score < 70 ? "WARN" : "PASS", `${C.score}/100 sections readable (official levels: median hazard/bg 3.5-21)`,
+    gate("contrast", C.score < 70 || C.stark ? "WARN" : "PASS", `${C.score}/100 sections readable (official levels: median hazard/bg 3.5-21)` + (C.stark ? `; STARK: median block/bg ${C.median.blockBg} > ${require("./contrast.js").STARK} (rated 2.2 levels: 1.35-6.2) -- a mid-tone scene, hazards kept clear (decokit.midTone)` : ""),
       C.worst.slice(0, 4).map(s => `~${s.t} s: ${s.fails.join(", ")}`).join("; "));
   } catch (e) { gate("contrast", "WARN", "tools/contrast.js failed: " + e.message); }
   // deco the GAME draws white: a colour channel 1-999 (an object's key or its default) that neither the header nor a

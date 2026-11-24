@@ -18,11 +18,15 @@
 const fs = require("fs"), path = require("path");
 const ROOT = path.join(__dirname, ".."), LOOK = require("../lib/look.js").LOOK, O = require("../lib/objects.js");
 const SPEED = 311.58;   // units / s at 1x: trigger fades are timed in seconds, we walk in x
+const STARK = 6.5;   // median block/bg above every rated 2.2 level in compare_sections (ART.md "Colour readability")
 
 const lin = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
 const lum = c => 0.2126 * lin(c[0]) + 0.7152 * lin(c[1]) + 0.0722 * lin(c[2]);
 const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
-const THRESH = { hazardBg: 1.6, blockBg: 1.5, hazardBlock: 1.3, groundBg: 1.1, drown: 40 };   // drown: official p90 (deco near hazards is common there: a weak signal)   // official 10th percentiles (ART.md)
+// blockBg 1.5 -> 1.15 (2026-11-24, gd-taste's section comparison, local/compare_sections): rated 2.2 levels set their
+// blocks close to a mid-tone background and let the blocks read by their outlines (Spooky Dash block/bg median 1.55,
+// Subwoofer Lullaby 1.62; p10 1.08-1.42), so 1.5 failed a third of their sections. Hazards keep their floor.
+const THRESH = { hazardBg: 1.6, blockBg: 1.15, hazardBlock: 1.3, groundBg: 1.1, drown: 40 };   // drown: official p90 (deco near hazards is common there: a weak signal)   // official 10th percentiles (ART.md)
 
 function load(w) {
   let m;
@@ -70,7 +74,10 @@ function measure(L) {
   }
   const pass = secs.filter(s => !s.fails.length).length;
   const fin = v => v != null && isFinite(v) ? +v.toFixed(2) : null, med = a => { a = a.filter(isFinite).sort((p, q) => p - q); return a.length ? a[Math.floor(a.length / 2)] : null; };
-  return { name: L.name, score: secs.length ? Math.round(100 * pass / secs.length) : 100, sections: secs.length,
+  // stark: the opposite fault (ours, not theirs): blocks far from the background everywhere (black on bright). Rated 2.2
+  // levels' block/bg medians 1.35-6.2 (compare_sections); ours were 5.6-15. A soft note: mid-tone scene, clear hazards.
+  const mb = med(secs.map(s => s.blockBg)), stark = mb != null && mb > STARK;
+  return { name: L.name, score: secs.length ? Math.round(100 * pass / secs.length) : 100, sections: secs.length, stark,
     median: { hazardBg: fin(med(secs.map(s => s.hazardBg))), blockBg: fin(med(secs.map(s => s.blockBg))), groundBg: fin(med(secs.map(s => s.groundBg))) },
     worst: secs.filter(s => s.fails.length).sort((a, b) => b.bad - a.bad), secs };
 }
@@ -85,9 +92,9 @@ if (require.main === module) {
   for (const w of list) {
     let r; try { r = measure(load(w)); } catch (e) { console.log(`${w}: ${e.message}`); continue; }
     out.push(Object.assign({ src: w }, r, { secs: undefined }));
-    console.log(`${String(r.score).padStart(3)}  ${r.name}  (${r.sections} sections; median hazard/bg ${r.median.hazardBg}, block/bg ${r.median.blockBg}, ground/bg ${r.median.groundBg})`);
+    console.log(`${String(r.score).padStart(3)}  ${r.name}  (${r.sections} sections; median hazard/bg ${r.median.hazardBg}, block/bg ${r.median.blockBg}, ground/bg ${r.median.groundBg})${r.stark ? "  STARK: blocks far from the background everywhere -- try a mid-tone scene" : ""}`);
     for (const s of r.worst.slice(0, N)) console.log(`       x ${s.x0}-${s.x0 + 300} (~${s.t} s): ${s.fails.join(", ")}`);
   }
   if (opt("--json")) fs.writeFileSync(opt("--json"), JSON.stringify(out.map(r => Object.assign({}, r, { worst: r.worst.slice(0, 10) })), null, 1));
 }
-module.exports = { measure, load, ratio, lum, THRESH };
+module.exports = { measure, load, ratio, lum, THRESH, STARK };
