@@ -197,13 +197,37 @@ a plain-look option. Next, in that order: the sheet's density as hazards per blo
 measured curve as the default energies), the vehicle and the motifs as constraints compose obeys, repair rounds
 in collab builds.
 
-**GDLM 70 candy night: Spooky Dash from the machine's spec**: running (`local/recompile/gdlm_70_candy_night/`).
+**GDLM 70 candy night: Spooky Dash rebuilt from the machine's own spec (2026-11-24).** Steps 1-2 by the machine
+(`local/recompile/gdlm_70_candy_night/spec.md`), no person in the loop; collab failed part 0 on 3 seeds (prejumps,
+timing, reactive, skips) and compose built it whole; `levels/gdlm_70_candy_night.gdlvl` is NOT READY (`skips`,
+`fairness`). Sheet: `local/recompile/gdlm_70_candy_night/compare_sections/sheet_gdlm_70_candy_night.jpg`.
+
+- The machine's spec matches the original on every beat by construction (roles, energy, the mode sequence with its
+  switch times, the sky colour): **what it cannot hold is the scene**. Its places are "a purple place" five times;
+  the forest, the candy meadow, the town at night, the witch, the ghost and the zombie blocks are nowhere in it. A
+  person's sheet carries them in `place`, `moment` and `oneImage`; the machine cannot read them from objects yet.
+- The build then had nothing to dress with: 2-10 objects per block against Spooky Dash's 19-45, deco around play
+  objects 0.4-1 against 4-9, colour channels 3-4 against 10-13. vibe.js's brief sets no scene script, so a place in the
+  sheet changes nothing in the level yet (tools/scenes/planned.js could take it).
+- The gameplay layer came through closer than in GDLM 69: hazards per block 0.06-0.29 against 0.02-0.33, obstacles
+  on a beat 13-39% against 24-67%, the modes in roughly the right order (robot only as a structure in cube sections).
+  Energy shape r 0.18: the rebuild is flat where Spooky Dash rises.
+- Our level pulses its deco on the beat (55-89% on a beat, up to 392 a minute; Spooky Dash 13-30%, while its camera
+  pulses instead) and changes mode 17-51 times a minute where Spooky Dash changes 6-17.
+
+**Both together.** The vibe sheet holds the song structure, the look rule and (from a person) the scene; the
+machine's abstraction holds gameplay numbers but loses the scene. The pipeline loses density numbers, scene, the
+sheet's constraints (vehicle, never, camera) and collab parts on hard gates. Next, in order: (1) the sheet's density as
+hazards and objects per block, measured energies as the default; (2) a scene from `place` (planned.js) in the brief;
+(3) vehicle, never and camera as constraints compose obeys (no extra modes from structures, no beat pulses unless asked);
+(4) repair rounds in collab builds; (5) the machine's abstraction naming places from the deco it sees.
 
 ## Open
 
-- Step 2: turn a vibe sheet into a scene plan (`tools/scenes.js --vibe sheet.md`), then sections with seams
-  (BUILDING.md), presses on the song, blocks. Not built: waits for the user to see step 1.
-- The songs of these levels are not on this PC (local/songs): the song shape here is read from the level (speed
-  changes, beat shakes and zoom pulses, palette switches), not heard.
+- The five fixes at the end of "Results" (density numbers, scene from place, constraints, collab repair rounds,
+  machine-named places); then run the round trip again on Time Machine and Spooky Dash and compare with these rows.
+- Step 2 of the user's idea beyond the benchmark: a person's vibe sheet for a NEW level -> recompile.js --from plan.
+- The songs of the demon levels (Acheron, Tidal Wave, Moonlight, Afterlife) are not on this PC: they cannot be
+  round-tripped (the cut needs the song's beat grid). Spooky Dash, Bloodbath and every official level can.
 - 2.2 levels time many effects by spawn / touch trigger groups (Afterlife: 820), which storyboard.js counts but
-  cannot place in time; their moments come from the pictures.
+  cannot place in time, and our viewer does not draw what they show.
