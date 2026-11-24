@@ -76,7 +76,11 @@ function sightread(level, limit = 1.5, opts = {}) {
           const run = GD.run(w, moved);
           if (run.dead && run.path.length - 1 < (next ? next.tick : end)) break; hi = t;
         }
-        return Object.assign({}, c, { hi });
+        // walked all the way to the next input (or the mode change) and still alive: the press answers nothing at its
+        // moment -- a free jump (score.js's "pointless jumps" judges those), not a prejump (GDLM 66: a free hop at 967.9
+        // walked to 978 read "11.5 ahead" of a spike 22 blocks after the press)
+        const free = hi >= stop || (basePath[hi + 1] || {}).mode !== m0;
+        return Object.assign({}, c, { hi, free });
       });
     }
     return judge(w, level, presses, opts.route.events, limit, false);
@@ -152,6 +156,7 @@ function judge(w, level, presses, base, limit, approx) {
     }
     // a press that fires an orb is cued by that orb: the cube is touching it
     if (c.act && GD.objInfo && /orb/.test(c.act)) { lead = 0; cue = null; }
+    if (c.free) { lead = 0; cue = null; }
     // A press whose latest moment is in a flying mode (ship, ufo, wave, swing) is steering, not a jump: it has no
     // one thing it answers, so it is not judged as a prejump -- the route, fairness and timing gates judge flight
     // (GDLM 44's ship tunnel: the fly controller's centring presses read as "4.1 / 10.1 blocks ahead of a block";
