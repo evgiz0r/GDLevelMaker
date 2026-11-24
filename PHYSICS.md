@@ -480,6 +480,10 @@ What exists and what blocks it (2026-11-23):
   Track 50 blocks). BUT the user's own runs say no: Hexagon Force's agreeing attempt (40.4 vs 40.6) dies at 15.9, xStep
   25.3 -> 20.0. Not adopted. The plans' gain probably stands in for something else at a ship entry -- tools/tas.js
   replays with GD's 2-tick button latency in ship/UFO (playLatent), the user's replays do not: check that first.
+  Checked: the same ship/UFO latency applied to the user's logged runs breaks two that agree (Hexagon Force 40.6 ->
+  18.9, Base After Base's clear -> 65.8): the user's logs fit best WITHOUT it (each attempt's fitted clock shift already
+  takes the constant delay). So the plans and the user's runs disagree about a ship entry; the next step needs a ship
+  recording with the raw-input logger (tools/inputlog_raw.ps1), e.g. a lab level with ship entries falling and rising.
 - PASS CHECK (tools/passcheck.js, 2026-11-24): an exhaustive held / not-held search (states merged on position, speed,
   mode, button, orbs) from an attempt's replayed state through a stretch. NO WAY where the user got through = a physics
   difference there; a way that needs presses the log lacks = a missed input or timing. Fingerdash 550-558: a way exists
