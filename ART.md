@@ -295,6 +295,50 @@ OWN hue (scene + 150 degrees), 2.6x off the sky; deco far / mid / near just unde
 luminance: ~2x off the blocks' bodies); accent for motes and rays. `P.check` runs roles.js's pairs on the palette
 itself (all 24 hues pass, tests/decokit.js). midTone (above) is superseded for play colours.
 
+## Theme kits (2026-11-24)
+
+The user: **"Do we have some things besides colors to represent higher concepts like icy, hellish, forest, space,
+artistic, just colorful... we will make sure some versions of spikes, ground and deco are available for those moods. And
+a matching song with those. Together with more unique scenery, if needed. Let's take the motif of space. Somewhat black
+background. [...] Bit more flying with space. Sections may give different vibes of space, a bit lighter, a bit darker.
+Bit more planets or deco. Different structures and objects. But in all, trying to create a cohesive experience."**
+
+**The format** (one module per mood, `tools/themes/<name>.js`; `node tools/theme.js` loads, checks and demos them):
+- `VARIANTS`: the moods of the theme as palettes of ONE family (space: `dark` | `light` | `nebula`), each with its mood
+  words, default motion energy and set piece. Every variant is a role palette (bg, ground, line, pathEdge = the blocks'
+  rim, blockFill = their body, hazardEdge, deco depths) and must pass `node tools/theme.js check <name>` (tools/roles.js's
+  pairs on the palette: the path, hazards and deco never mix);
+- `CH`, `G`, `BLEND`, `channelMap(v)`, `palette(v)`: its channels and groups (space: channels 80-97, groups 420-433),
+  and the palette in the shape decokit.rolePalette returns (the section lab and compose read the same keys);
+- `SONG`: the song brief -- bpm range, length, mood, energy shape, pad stretches, loud/quiet range, title words.
+  `node tools/theme.js song <name>` ranks the local songs against it (local/songmap/ + local/songs/ titles);
+- `MODES`: the mode mix (space: more flying, `flyShare` 0.5, ship / wave / UFO first);
+- `dress(ctx, section)`: one section's look -- the play's colours (key 21 rims, key 22 bodies), the dress on the blocks,
+  sky layers, the set piece, mid-ground pieces, terraces; `MOTION`: its groups for decokit.motion;
+- `pieces`: the parts by name, for hand-made scene scripts.
+**Applied** by `tools/scenes/theme.js`: spec `"scene": "tools/scenes/theme.js"` with `"theme": "space"`, or
+`{"name": "space", "variant": "dark"}`, `{"name": "space", "variants": ["dark", "nebula", "light"]}` (cycled over the
+sections), or `{"name": "space", "sections": [{"from": <block>, "variant", "piece", "energy"}, ...]}`. It removes the
+builder's own sky / ground / line colour triggers, defines the kit's channels, fades each section's palette in just
+before it, dresses each section and adds the motion. compose (brief "scene" + "theme"), collab parts and the lab use it
+the same way. `node tools/theme.js demo <name> <level>` dresses a copy of any level's gameplay (local/themes/).
+
+**Space** (`tools/themes/space.js`), from the user's references (local/refs/space/, local only: "The Moon" and a set of
+space-themed demons): near-black / navy sky with stars; one huge set piece per section (an eclipse ring in `dark`, a
+ringed planet in `light`, a glowing moon in `nebula`, a station now and then), carried with the player so it stays in
+view; blocks as lifted-navy bodies with bright cyan rims, inner glow panels on stacks and a glow under open tops;
+spikes with a pale lavender rim of their own; asteroid fields (rough rocks, two bobbing / turning groups) and stepped
+black terraces only under open sky; nebula clouds in magenta and teal (other hue families than the path, so their glow
+never reads as path); shooting-star streaks; stars twinkling on two groups. Nothing warm: orbs and portals stay the only
+warm colours. Measured on demos over GDLM 45, 62 and lab r1 v1 / v4: roles 0% of sections mix (each variant's
+palette: rim/sky 10.7-12.5, hazard/sky 12.8-15.2, body/sky 1.5-2.4).
+Lessons on the way (now in roles.js): a fill laid over a block IS its body (measure that, not the skin's); a huge B5
+piece (nebula, planet) is sky, judged like the sky; near black every colour looks alike by luminance (the +0.05 in the
+ratio), so deco next to dark bodies must differ by hue family or be clearly lit -- space bodies are a lifted navy so
+black deco (terraces, the planet's night side) stands off them.
+**Open:** in-game check of the blend channels (nebula, corona, panels); the "artistic", icy, hellish, forest and colourful
+kits; chevron direction cues as a kit part; a space structure set (floating platforms, satellites as play pieces).
+
 ## Deco library (2026-11-24; the user: our levels look like "3 squares and poopy" next to real ones)
 
 Targets: knowledge/levels/modern_look.md "Recipe" (20-50 objects per block, layers B4-B5 ~20% / B1-B3 ~25% / T1 /

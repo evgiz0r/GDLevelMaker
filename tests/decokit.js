@@ -32,4 +32,12 @@ ok(!mush.ok && mush.byPair.pathDeco, `dark-grey deco on dark-grey block bodies f
 ok(clear.ok, `the same deco at the sky's value passes (${JSON.stringify(clear.byPair)})`);
 for (let n = 1; n <= 12; n++) { let r; try { r = RL.measure(require("../tools/contrast.js").load("official:" + n)); } catch (e) { continue; }
   ok(r.ok, `official ${n} ${r.name}: ${r.failed}/${r.sections} sections`); }
+// theme kits: every variant's palette passes the role pairs; the space kit on a repo level's gameplay mixes nothing
+const TH = require("../tools/theme.js");
+for (const t of TH.list()) for (const [v, r] of Object.entries(TH.check(t))) ok(r.ok, `theme ${t}/${v} palette${r.ok ? "" : " mixes " + r.mixes.join(",")}`);
+{ const out = require("path").join(__dirname, "..", "local", "tmp", "theme_test.gdlvl");
+  const r = TH.demo("space", require("path").join(__dirname, "..", "levels", "gdlm_45_first_flight.gdlvl"), { out });
+  const R = RL.measure(require("../tools/contrast.js").load(r.out)), ch = require("../tools/channels.js").check(require("../tools/io.js").readGdlvl(r.out).level);
+  ok(R.ok, `space demo on GDLM 45: ${R.failed}/${R.sections} sections mix ${JSON.stringify(R.byPair)}`);
+  ok(ch.ok, `space demo: no deco on an undefined channel (${ch.undefinedCount})`); }
 console.log(bad ? `${bad} FAILED` : "all passed"); process.exit(bad ? 1 : 0);
