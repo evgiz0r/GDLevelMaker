@@ -36,10 +36,14 @@ const q = GD.run(w, line.events), sim = q.path;   // sim[k]: state after tick k
 // the video: the icon and the ground line per frame
 const t0 = line.video.t - 2, t1 = line.video.t + line.t + 2;
 const OUT = path.join(ROOT, "local", "pathcheck"); fs.mkdirSync(OUT, { recursive: true });
-const stem = path.basename(videoFile).replace(/\.\w+$/, "") + "_" + line.video.t, cache = path.join(OUT, stem + ".track.csv");
+// only a column around the player: once GD's camera follows, the icon stays at ~0.367 of the window's width (760 px in a
+// 1600 px window at x 172, measured on 4 runs); the whole width let lime decoration pull the blob (Geometrical
+// Dominator: ~40 "launches" in 14 s). The first ~0.6 s, before the camera follows, falls outside it: not compared.
+const colX = Math.round(win[0] + W * +opt("track-x", 0.367) - 65 * W / 1600), colW = Math.round(130 * W / 1600);
+const stem = path.basename(videoFile).replace(/\.\w+$/, "") + "_" + line.video.t, cache = path.join(OUT, stem + `.col${colX}.track.csv`);
 // the tracker reads every frame (~4 s of work per s of video at 1600 px): its output is kept and reused
 const csv = fs.existsSync(cache) ? fs.readFileSync(cache, "utf8") : execFileSync("python", [path.join(__dirname, "track.py"), videoFile, "--from", String(t0), "--to", String(t1),
-  "--crop", `${win[0]},${win[1]},${W},${H}`, "--rows", "--color", opt("color", "lime")], { windowsHide: true, encoding: "utf8", maxBuffer: 1 << 28, stdio: ["ignore", "pipe", "ignore"] });
+  "--crop", `${colX},${win[1]},${colW},${H}`, "--rows", "--color", opt("color", "lime")], { windowsHide: true, encoding: "utf8", maxBuffer: 1 << 28, stdio: ["ignore", "pipe", "ignore"] });
 if (!fs.existsSync(cache)) fs.writeFileSync(cache, csv);
 const frames = [];
 for (const l of csv.split(/\r?\n/).slice(1)) {
@@ -62,7 +66,7 @@ function score(L0) {
   return n > 20 ? e / n : Infinity;
 }
 let best = null;
-for (let L0 = line.video.t - 2; L0 <= line.video.t + 2; L0 += 1 / 240) { const sc = score(L0); if (!best || sc < best.sc) best = { L0, sc }; }
+for (let L0 = line.video.t + (line.video.shift_ms || 0) / 1000 - +opt("lag", 1.0) - 0.4; L0 <= line.video.t + (line.video.shift_ms || 0) / 1000 - +opt("lag", 1.0) + 0.4; L0 += 1 / 240) { const sc = score(L0); if (!best || sc < best.sc) best = { L0, sc }; }
 if (!best || !isFinite(best.sc)) { console.log("too few comparable frames (no ground in view?)"); process.exit(1); }
 // per frame residuals
 const rows = [];
@@ -99,7 +103,10 @@ const simL = [];
 for (let k = 1; k < sim.length; k++) { const p = sim[k - 1], s = sim[k], g = s.grav || 1;
   if ((s.vy - p.vy) * g > 4 && !(simL.length && k - simL[simL.length - 1].k < 29)) simL.push({ k, mode: s.mode, x: s.x, act: s.act || "" }); }
 let bestM = null;
-for (let L0 = line.video.t - 2; L0 <= line.video.t + 2; L0 += 1 / 240) {
+// the level start is known to ~0.3 s: the bar start + the attempt's fitted shift - the video's lag behind its file
+// name's second (0.98 s at 02:33, 1.05 s at 02:45: --lag); a wider search lets noise line up (GD: 2 s off)
+const L0c = line.video.t + (line.video.shift_ms || 0) / 1000 - +opt("lag", 1.0);
+for (let L0 = L0c - 0.4; L0 <= L0c + 0.4; L0 += 1 / 240) {
   let m = 0; for (const e of simL) { const tv = L0 + e.k / 240; if (vid.some(t => Math.abs(t - tv) < 0.06)) m++; }
   if (!bestM || m > bestM.m) bestM = { L0, m };
 }
