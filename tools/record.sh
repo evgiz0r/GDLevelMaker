@@ -24,6 +24,9 @@ case "$1" in
     rm -f "$FLAG" "$IFLAG" "$AFLAG"; mkdir -p "$INDIR"
     powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "$(cygpath -w "$(dirname "$0")/audiolog.ps1")" -Out "$(cygpath -w "$OUT")\GD claude-audio $(date +%Y-%m-%d_%H-%M-%S).wav" -Stop "$(cygpath -w "$AFLAG")" &
     powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "$(cygpath -w "$(dirname "$0")/inputlog.ps1")"       -Out "$(cygpath -w "$INDIR")\GD inputs $(date +%Y-%m-%d_%H-%M-%S).csv" -Stop "$(cygpath -w "$IFLAG")" &
+    # the same inputs by raw input too (tools/inputlog_raw.ps1: never skipped when the PC is busy, unlike a hook;
+    # 2026-11-24 the hook logger missed a click in Electroman) -- compared with the hook log on the next recordings
+    powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "$(cygpath -w "$(dirname "$0")/inputlog_raw.ps1")"   -Out "$(cygpath -w "$INDIR")\GD inputs raw $(date +%Y-%m-%d_%H-%M-%S).csv" -Stop "$(cygpath -w "$IFLAG")" &
     while [ ! -f "$FLAG" ]; do
       "$FF" -y -hide_banner -loglevel error -f lavfi -i ddagrab=output_idx=0:framerate=60 \
         -vf hwdownload,format=bgra -c:v libx264 -preset ultrafast -crf 20 -pix_fmt yuv420p \
