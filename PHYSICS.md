@@ -130,6 +130,14 @@ Contact sheets and frames: local/shots/lab60/. Read station by station from fram
 Unfair stations to change in v2: 4 (plank row straight over spikes, from flat ground) and 7 (a post that
 punishes holding the dash).
 
+## Trigger firing point (2026-11-24)
+
+Gameplay triggers (move, toggle, spawn...) fire when the player's CENTRE passes their x. gd-visuals saw a colour
+trigger fire when the FRONT edge (x + 15) reached it (Hexagon Force's colour 1 at x 945, frames aligned by
+video.level_t), and the viewer's look triggers now fire there. Front-edge firing for the sim's triggers was tried on
+gdsolver's real-game plans: nothing gains and Dash falls from 81 to 40 blocks, so the centre stays (colour and
+gameplay triggers may well differ in GD).
+
 ## Landing buffer (2026-11-24)
 
 A cube's press made in the air is kept and the cube jumps when it lands, even if the button is already up.
@@ -410,7 +418,8 @@ What exists and what blocks it (2026-11-23):
     read off the frames (level page, "Attempt 1"); when it exists replay_run uses it and not the length guess (GDLM 60
     and 63 are 30 and 21 s: length alone put one's attempts in the other's file). Written for 02:13, 02:26, 02:33, 02:45.
   - THE LEVEL'S START IN THE VIDEO: video.level_t on each attempt line = bar start + shift - the video's lag behind its
-    file name (clock.json video_lag_s: 0.98 s at 02:33, 1.05 s at 02:45, else 1.0). video.t is the bar start, 0.3-1 s
+    file name (clock.json video_lag_s: 0.82 s at 02:13 from two death frames, 0.98 s at 02:33, 1.05 s at 02:45, else 1.0;
+    it differs per recording, so measure it on each new one: one death or clear frame is enough). video.t is the bar start, 0.3-1 s
     late: never use it for a side-by-side (Hexagon Force: bar 60.6 s, level_t 59.40 s; checked on the frames).
   - ONE CLOCK PER RECORDING: local/runs/<video>.clock.json (offset from the recording's clears), reused when one level
     is replayed alone (Blast Processing in 02:13 agreed only with GDLM 63's clock: 15.7% vs 15.8%; alone it picked a
