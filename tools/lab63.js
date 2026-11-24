@@ -32,7 +32,7 @@ trig(901, O + 6, { "51": "21", "29": "60", "10": "1", "30": "0" });
 lab.push({ n: 4, name: "rising platform", from: O, to: O + 18, metrics: [{ m: "alive" }, { m: "yAt", at: [O + 12] }], note: "sim: the cube rides the block up 60 units in 1 s" });
 // 5 move to target (100): a spike high up moves onto a marker on the floor
 label(O + 18, "5 move to target");
-objs.push(["spike", O + 28, 8, { group: 22 }], [211, O + 28, 0, { group: 23 }]);
+objs.push(["spike", O + 28, 8, { group: 22 }], [211, O + 28, 0, { group: 23, props: { "21": "1014" } }]);
 trig(901, O + 18, { "51": "22", "100": "1", "71": "23", "10": "0.5" });
 lab.push({ n: 5, name: "move to target", from: O + 18, to: O + 32, metrics: [{ m: "alive" }], note: "sim: the spike lands on the marker at the floor (jump it)" });
 // 6 pause / resume (stop trigger 580): a rising spike paused low, so the cube passes UNDER it (do not jump)
