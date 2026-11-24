@@ -69,12 +69,12 @@ function solveOfficial(n, opts) {
   const level = levelText(n);
   const L = GD.parseLevel(level);
   const w = GD.makeWorld(L.objects, L.header);
-  const t0 = Date.now();
-  const ck = { onCheckpoint: opts.sweep ? null : checkpointer(n, [], physicsCommit()) };
+  const t0 = Date.now(), physics = physicsCommit();   // read at the start: a physics commit landing mid-solve must not stamp this run
+  const ck = { onCheckpoint: opts.sweep ? null : checkpointer(n, [], physics) };
   const r = opts.sweep ? GD.solveSweep(w) : GD.solveAny(w, ck);
   if (!opts.sweep && fs.existsSync(partFile(n))) fs.unlinkSync(partFile(n));
   const res = {
-    n, ok: r.ok, sweep: !!r.sweep, secs: (Date.now() - t0) / 1000, physics: physicsCommit(), solvedAt: new Date().toISOString(),
+    n, ok: r.ok, sweep: !!r.sweep, secs: (Date.now() - t0) / 1000, physics, solvedAt: new Date().toISOString(),
     events: r.ok ? r.events : (r.trail || []),
     clicks: r.ok ? r.clicks : [],
     dieX: r.ok ? null : r.dieAt && r.dieAt.x, why: r.ok ? null : r.why,
