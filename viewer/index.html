@@ -10,6 +10,9 @@
   body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.4 system-ui, sans-serif; }
   header { display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:10px 16px; background:var(--panel); }
   header h1 { font-size:15px; margin:0 8px 0 0; letter-spacing:.04em; color:var(--cube); }
+  header { position:relative; }
+  #viewMenu { position:absolute; right:16px; top:100%; z-index:60; display:flex; flex-wrap:wrap; gap:6px; max-width:min(440px, calc(100vw - 32px)); padding:10px; background:var(--panel); border:1px solid #2b2060; border-radius:8px; box-shadow:0 6px 24px rgba(0,0,0,.5); }
+  #viewMenu[hidden] { display:none; }
   select, button, label.btn { background:#24184f; color:var(--ink); border:1px solid #3b2d78; border-radius:6px; padding:6px 10px; font:inherit; cursor:pointer; }
   button.on { background:#3b2d78; border-color:var(--cube); }
   #wrap { position:relative; }
@@ -144,6 +147,10 @@
   <button id="music" class="on">music</button><label class="btn" id="addSongPc" hidden>add song<input id="songFilePc" type="file" accept="audio/*,.mp3,.ogg,.m4a,.wav" hidden></label>
   <button id="lightBtn" title="light mode: no GD art, no beat lines -- for a slow moment (the PC busy, the phone)">light</button>
   <button id="beatsBtn" class="on" title="beat grid of the level's song (songs on this PC, from tools/beats.js)">beats</button>
+  <button id="windowsBtn" title="each input's timing window in the button band (the range of moments that still work)">timing windows</button>
+  <button id="legendBtn" title="what the marks in the button band mean">band legend</button>
+  <button id="viewBtn" title="view options: speed, look, GD art, level map, hitboxes, sounds, beats, the button band's windows and legend (remembered)">⚙ view</button>
+  <div id="viewMenu" hidden></div>
   <span id="clock" class="muted"></span>
 </header>
 <div id="views"><div id="wrap"><canvas id="cv"></canvas><canvas id="inbar" title="the button. Middle lane: what the replay presses -- a tap is a short white mark with a dot, a hold a yellow bar with its length. Top lane: each input's timing window, the whole range of moments that still work (cyan for a press, pink for a release): a long window is room, not a long press."></canvas><div id="drop">drop a .gdlvl here</div></div>
@@ -526,6 +533,12 @@ async function loadFile(f) {
 }
 const pick = document.getElementById("pick");
 const ALL = (window.GD_LEVELS || []).concat(window.GD_LEVELS_LOCAL || []);
+// ---------- a minimal view by default (VIEWER.md "Minimal by default"): the level, the player and the timeline; every
+// extra layer is a toggle in the "view" menu, remembered per browser (localStorage, every access in try/catch), or shows
+// only when it is relevant (stages, sections, variants, runs, the plan break)
+const VPREF = (k, def) => { try { const v = localStorage.getItem("gdlm.v." + k); return v == null ? def : v === "1"; } catch (e) { return def; } };
+const VSET = (k, on) => { try { localStorage.setItem("gdlm.v." + k, on ? "1" : "0"); } catch (e) {} };
+const VIEW = { windows: VPREF("windows", false), legend: VPREF("legend", false), route: VPREF("route", false) };
 if (window.GD_PAGES) localReady.then(ok => { if (!ok || !LOCALBASE) return;
   const sc = document.createElement("script"); sc.src = LOCALBASE + "/viewer/levels.local.js";
   sc.onload = () => { for (const l of (window.GD_LEVELS_LOCAL || []).filter(l => /official/.test(String(l.file)))) { ALL.push(l); pick.add(new Option(l.name + "  —  " + l.file, ALL.length - 1)); }
@@ -1141,8 +1154,9 @@ document.getElementById("hit").onclick = e => { showHit = !showHit; e.target.cla
 document.getElementById("sound").onclick = e => { sound = !sound; e.target.classList.toggle("on", sound); };
 if (MUTED) { document.getElementById("sound").classList.remove("on"); document.getElementById("music").classList.remove("on"); }
 document.getElementById("music").onclick = e => { music = !music; e.target.classList.toggle("on", music); syncSong(true); };
-let showBeats = true;
-document.getElementById("beatsBtn").onclick = e => { showBeats = !showBeats; e.target.classList.toggle("on", showBeats); draw(); };
+let showBeats = VPREF("beats", false);
+document.getElementById("beatsBtn").classList.toggle("on", showBeats);
+document.getElementById("beatsBtn").onclick = e => { showBeats = !showBeats; e.target.classList.toggle("on", showBeats); VSET("beats", showBeats); draw(); };
 // light mode: GD art and beat lines off in one press, back as they were in the next (remembered in this browser)
 let LIGHT = null;
 function setLight(on) {
@@ -1194,43 +1208,70 @@ async function runsFor(LL) {
   const worst = Object.entries(b).sort((x, y) => y[1] - x[1])[0];
   el.hidden = false;
   el.innerHTML = `<p class="muted" style="margin:6px 0 2px">Your runs at this version: ${rows.length} (${rows.filter(r => r.result === "clear").length} clear${worst ? `, most deaths at ${worst[0]}-${+worst[0] + 10}%` : ""})${older ? ` · ${older} at older versions` : ""}</p>` +
-    `<select id="runPick"><option value="">replay one beside the route…</option>` + rows.slice().reverse().map(r => `<option value="${esc(r.id)}">${r.source === "video" ? "🎥 " : "🎮 "}${r.video && r.video.res === "mismatch" ? "⚠ " : ""}${r.result === "clear" ? "clear" : "died " + Math.round(r.pct) + "%"} · ${r.presses} presses${r.practice ? " · practice" : ""} · ${ago(r.at)}</option>`).join("") + `</select> <span id="runCmp" class="muted"></span>`;
+    `<select id="runPick"><option value="">replay one beside the route…</option>` + rows.slice().reverse().map(r => `<option value="${esc(r.id)}">${r.source === "video" ? "🎥 " : "🎮 "}${r.video && r.video.res === "mismatch" ? "⚠ " : ""}${r.result === "clear" ? "clear" : "died " + Math.round(r.pct) + "%"} · ${r.presses} presses${r.practice ? " · practice" : ""} · ${ago(r.at)}</option>`).join("") + `</select> <button id="runRoute" hidden title="show the solved route's player, trail and presses next to your run (your run is then the pink ghost)">show route</button> <span id="runCmp" class="muted"></span>`;
   const sel = document.getElementById("runPick");
   if (PK.openRun && PK.openRun.base === GD.attemptsBase(f)) { const want = rows.find(r => r.id === PK.openRun.id) || rows[rows.length - 1]; PK.openRun = null; sel.value = want.id; runShow(want.id); }
   if (LL.ghost) sel.value = LL.ghost.row.id;
   sel.onchange = () => runShow(sel.value);
+  const rb = document.getElementById("runRoute"); rb.hidden = !LL.ghost; rb.classList.toggle("on", VIEW.route);
+  rb.onclick = () => { VIEW.route = !VIEW.route; VSET("route", VIEW.route); runViewApply(); runCmpText(); };
   runCmpText();
 }
 async function runShow(id) {
   const LL = L; if (!LL) return;
-  if (!id) { LL.ghost = null; runCmpText(); draw(); return; }
+  if (!id) { LL.ghost = null; runCmpText(); runViewApply(); return; }
   let row = null; try { row = (await (await fetch("/attempts?file=" + encodeURIComponent(runsFile()) + "&hash=" + LL.hash + "&id=" + encodeURIComponent(id), { cache: "no-store" })).json())[0]; } catch (e) {}
   if (!row || LL !== L) return;
   // a practice attempt with no inputs before its checkpoint (a GD recording only has the presses after it): the route's
   // own presses take it there, and only the part from the checkpoint is compared
   const from = row.practice && row.from && row.from.tick > 0 && !row.events.some(e => e.tick < row.from.tick) ? row.from.tick : 0;
-  const pre = from && LL.sol.ok ? replayEvents(LL.sol).filter(e => e.tick < from) : [];
+  const RS = (LL.runKeep || LL).sol;   // the route (while a run is shown, L.sol is the run's own)
+  const pre = from && RS.ok ? replayEvents(RS).filter(e => e.tick < from) : [];
   const r = GD.runSliced(LL.world, pre.concat(row.events));
   const step = () => { if (LL !== L) return; if (!r.advance(12)) return setTimeout(step, 0);
     const end = r.result.path.length - 1;   // the route's presses after the run ended are not "missed"
-    const route = LL.sol.ok ? LL.sol.clicks.filter(c => c.type !== "release" && c.tick <= end && c.tick >= from).map(c => c.tick) : null;
+    const route = RS.ok ? RS.clicks.filter(c => c.type !== "release" && c.tick <= end && c.tick >= from).map(c => c.tick) : null;
     const runP = row.events.filter(e => e.type === "press" && e.tick <= end).map(e => e.tick);
-    LL.ghost = { row, path: r.result.path, cmp: route ? GD.comparePresses(route, runP) : null, runP, from: pre.length ? from : 0 };
+    LL.ghost = { row, path: r.result.path, cmp: route ? GD.comparePresses(route, runP) : null, runP, from: pre.length ? from : 0, events: pre.concat(row.events) };
     const sp = document.getElementById("runPick"); if (sp) sp.value = row.id;
-    runCmpText(); draw(); };
+    runCmpText(); runViewApply(); };
   setTimeout(step, 0);
 }
+// A run picked from "Your runs" replaces the route on screen (the user: "can we remove the solved ones when we replay"):
+// its path is the player and the camera, its presses the button band's; "show route" puts the route back as the player,
+// the run as a pink ghost beside it. The route is kept in L.runKeep and restored when the run is put away.
+function runViewApply() {
+  const LL = L; if (!LL) return;
+  const g = LL.ghost, want = !!g && !VIEW.route && !(PLAY && PLAY.on);
+  if (LL.runKeep && (!want || LL.runKeep.g !== g)) { const k0 = LL.runKeep; Object.assign(LL, { path: k0.path, held: k0.held, vrot: k0.vrot, sol: k0.sol, noRoute: k0.noRoute, planBreak: k0.planBreak }); LL.runKeep = null; }
+  if (want && !LL.runKeep) {
+    LL.runKeep = { g, path: LL.path, held: LL.held, vrot: LL.vrot, sol: LL.sol, noRoute: LL.noRoute, planBreak: LL.planBreak };
+    const ev = (g.events || []).slice().sort((a, b) => a.tick - b.tick), held = new Uint8Array(g.path.length); let h = 0, j = 0;
+    for (let k = 0; k < held.length; k++) { while (j < ev.length && ev[j].tick <= k) { h = ev[j].type === "press" ? 1 : 0; j++; } held[k] = h; }
+    const clicks = ev.filter(e => e.tick < g.path.length).map(e => ({ type: e.type, tick: e.tick, lo: e.tick, hi: e.tick, ms: 0, x: g.path[e.tick].x, act: e.type === "press" ? "your press" : "" }));
+    Object.assign(LL, { path: g.path, held, vrot: typeof visualRot === "function" ? visualRot(g.path) : null, sol: Object.assign({}, LL.runKeep.sol, { clicks, run: true }), noRoute: false, planBreak: null });
+  }
+  t = Math.min(t, (LL.path.length - 1) / P.TPS);
+  const b = document.getElementById("runRoute"); if (b) { b.hidden = !g; b.classList.toggle("on", VIEW.route); }
+  if (typeof clickTable === "function") try { clickTable(); } catch (e) {}
+  draw();
+}
+// one compact line: "12 on time · 3 early · 1 missed"; each press's offset on hover
 function runCmpText() {
   const el = document.getElementById("runCmp"); if (!el) return;
   const g = L && L.ghost; if (!g) { el.textContent = ""; return; }
-  const ms = dt => Math.round(dt / P.TPS * 1000), c = g.cmp;
-  // a recording whose logged inputs the sim does not reproduce (tools/replay_run.js "mismatch"): the ghost is not what
-  // happened in the game, so the comparison only holds up to where it dies
-  const v = g.row.video, warn = v && v.res === "mismatch" ? `<b style="color:#ffb35a">⚠ the sim does not reproduce this recording</b> (${esc(v.mismatch || "it differs from the video")}; the ghost stops there) · ` : "";
-  if (!c) { el.innerHTML = warn + `the ghost: ${g.row.result === "clear" ? "clears" : "dies at " + Math.round(g.row.pct) + "%"} (no route to compare with)`; return; }
+  const ms = dt => Math.round(dt / P.TPS * 1000), c = g.cmp, v = g.row.video;
+  const warn = v && v.res === "mismatch" ? `<span style="color:#ffb35a;cursor:help" title="${esc("the sim does not reproduce this recording: " + (v.mismatch || "it differs from the video") + ". The run stops where the sim dies.")}">⚠ sim disagrees</span> · ` : "";
+  const pre = g.from ? `<span title="the route's presses take it to the checkpoint">practice from ${(g.from / P.TPS).toFixed(1)} s</span> · ` : "";
+  const end = g.row.result === "clear" ? "clear" : "died at " + Math.round(g.row.pct) + "%";
+  if (!c) { el.innerHTML = warn + pre + end; return; }
   const on = c.pairs.filter(p => Math.abs(p.dt) <= 2), early = c.pairs.filter(p => p.dt < -2), late = c.pairs.filter(p => p.dt > 2);
-  const avg = a => a.length ? Math.round(a.reduce((n, p) => n + ms(p.dt), 0) / a.length) : 0;
-  el.innerHTML = warn + (g.from ? `practice from ${(g.from / P.TPS).toFixed(1)} s (the route's presses take it there) · ` : "") + `vs the route: <b style="color:#7dff9a">${on.length} on time</b> · <b style="color:#7ab8ff">${early.length} early</b>${early.length ? ` (avg ${avg(early)} ms)` : ""} · <b style="color:#ffb35a">${late.length} late</b>${late.length ? ` (avg +${avg(late)} ms)` : ""} · <b style="color:#ff5c82">${c.extra.length} extra, ${c.missing.length} missing</b>`;
+  const parts = [`${on.length} on time`, early.length && `${early.length} early`, late.length && `${late.length} late`, c.missing.length && `${c.missing.length} missed`, c.extra.length && `${c.extra.length} extra`].filter(Boolean);
+  const lines = c.pairs.map(p => ({ t: p.route, s: `${(p.route / P.TPS).toFixed(2)} s: ${Math.abs(p.dt) <= 2 ? "on time" : (p.dt > 0 ? "+" : "") + ms(p.dt) + " ms"}` }))
+    .concat(c.missing.map(tk => ({ t: tk, s: `${(tk / P.TPS).toFixed(2)} s: missed` })), c.extra.map(tk => ({ t: tk, s: `${(tk / P.TPS).toFixed(2)} s: extra press` })))
+    .sort((a, b) => a.t - b.t).map(x => x.s);
+  const detail = "vs the route, press by press:\n" + lines.slice(0, 60).join("\n") + (lines.length > 60 ? `\n… ${lines.length - 60} more` : "");
+  el.innerHTML = warn + pre + `${end} · <span style="cursor:help;text-decoration:underline dotted" title="${esc(detail)}">${parts.join(" · ")}</span>`;
 }
 // ---------- "you play" (button / key P): the user plays the level here, the same sim live (lib/liveplay.js) ----------
 // space / ↑ / W / Enter / click / tap = the button (presses land on the next tick: a frame boundary, as in the user's
@@ -1609,9 +1650,9 @@ function draw() {
   }
   // a run of the user's beside the route: a pink ghost cube (its path), a cross where it died
   if (L.ghost && !MAPCAM && !(PLAY && PLAY.on)) { const gp = L.ghost.path, gk = Math.min(k, gp.length - 1), q = gp[gk], gx = sx(q.x), gy = sy(q.y), z = 15 * scale;
-    ctx.save(); ctx.globalAlpha = gk < k && q.dead ? 0.8 : 0.55; ctx.strokeStyle = "#ff7ad9"; ctx.fillStyle = "rgba(255,122,217,.25)"; ctx.lineWidth = 2.5 * DPR();
-    ctx.translate(gx, gy); ctx.rotate(-(q.rot || 0) * Math.PI / 180); ctx.fillRect(-z, -z, 2 * z, 2 * z); ctx.strokeRect(-z, -z, 2 * z, 2 * z); ctx.restore();
-    if (q.dead) { ctx.strokeStyle = "#ff3b6b"; ctx.lineWidth = 3 * DPR(); ctx.beginPath(); ctx.moveTo(gx - z, gy - z); ctx.lineTo(gx + z, gy + z); ctx.moveTo(gx + z, gy - z); ctx.lineTo(gx - z, gy + z); ctx.stroke(); } }
+    if (!L.runKeep) { ctx.save(); ctx.globalAlpha = gk < k && q.dead ? 0.8 : 0.55; ctx.strokeStyle = "#ff7ad9"; ctx.fillStyle = "rgba(255,122,217,.25)"; ctx.lineWidth = 2.5 * DPR();
+    ctx.translate(gx, gy); ctx.rotate(-(q.rot || 0) * Math.PI / 180); ctx.fillRect(-z, -z, 2 * z, 2 * z); ctx.strokeRect(-z, -z, 2 * z, 2 * z); ctx.restore(); }
+    if (q.dead && gk === gp.length - 1 && k >= gk) { ctx.strokeStyle = "#ff3b6b"; ctx.lineWidth = 3 * DPR(); ctx.beginPath(); ctx.moveTo(gx - z, gy - z); ctx.lineTo(gx + z, gy + z); ctx.moveTo(gx + z, gy - z); ctx.lineTo(gx - z, gy + z); ctx.stroke(); } }
   // where a build stage's plan breaks (a red cross at the death spot)
   if (L.planBreak && !MAPCAM) { const bx = sx(L.planBreak.x), by = sy(L.planBreak.y), r = 10 * DPR();
     if (bx > -60 && bx < W + 60) { ctx.strokeStyle = "#ff3b6b"; ctx.lineWidth = 3 * DPR(); ctx.beginPath(); ctx.moveTo(bx - r, by - r); ctx.lineTo(bx + r, by + r); ctx.moveTo(bx + r, by - r); ctx.lineTo(bx - r, by + r); ctx.stroke();
@@ -1668,8 +1709,9 @@ function drawDeaths() {
 // are part of the ui and are annoying. put the timings below the level"): holds, presses, each input's timing
 // window, the button light; x follows the level's camera, so a window sits under the spot it is for
 function drawInput(k) {
-  const d = DPR(), ib = document.getElementById("inbar"), IH = Math.round(58 * d);
-  if (ib.width !== W) ib.width = W; if (ib.height !== IH) ib.height = IH;
+  // the windows lane and the legend only when switched on (the view menu): the band is then just the presses
+  const d = DPR(), ib = document.getElementById("inbar"), IH = Math.round((VIEW.windows || VIEW.legend || L.hits || L.planned ? 58 : 34) * d);
+  if (ib.width !== W) ib.width = W; if (ib.height !== IH) { ib.height = IH; ib.style.height = Math.round(IH / d) + "px"; }
   const ix = ib.getContext("2d"), n = L.path.length;
   ix.clearRect(0, 0, W, IH); ix.fillStyle = "#0b0620"; ix.fillRect(0, 0, W, IH);
   // three lanes, so a long window never reads as a long press (the user: "the clicks expand too long"):
@@ -1677,9 +1719,9 @@ function drawInput(k) {
   //         releases pink) with end ticks, its length in ms at the bottom
   //  middle what the replay presses: a tap = a short white mark with a dot; a hold = a yellow bar, its length
   //         in ms on it
-  const wy = 2 * d, wh = 9 * d, py = 15 * d, ph = 15 * d;
+  const wy = 2 * d, wh = 9 * d, py = (IH < 40 * d ? 9 : 15) * d, ph = 15 * d;
   ix.font = `${10 * d}px system-ui`; ix.textAlign = "center"; ix.textBaseline = "alphabetic";
-  for (const c of L.sol.clicks) {
+  if (VIEW.windows) for (const c of L.sol.clicks) {
     if (c.hi <= c.lo || c.tapOf) continue;
     const x0 = sx(L.path[Math.min(c.lo, n - 1)].x), x1 = sx(L.path[Math.min(c.hi + 1, n - 1)].x);
     if (x1 < 0 || x0 > W) continue;
@@ -1717,23 +1759,20 @@ function drawInput(k) {
   if (L.planned) { ix.strokeStyle = "#c8b8ff"; ix.lineWidth = 1.5 * d;
     for (const pl of L.planned) { const x = sx(xAtT(pl.t)); if (x < -10 || x > W + 10) continue;
       ix.beginPath(); ix.moveTo(x, 2 * d); ix.lineTo(x + 4 * d, 6 * d); ix.lineTo(x, 10 * d); ix.lineTo(x - 4 * d, 6 * d); ix.closePath(); ix.stroke(); } }
-  // a run beside the route: its presses in the lower lane, coloured by how they compare with the route's
-  if (L.ghost) { const g = L.ghost, gp = g.path, xT = tk => sx(tk < n ? L.path[tk].x : gp[Math.min(tk, gp.length - 1)].x), y = 33 * d, ms = dt => Math.round(dt / P.TPS * 1000);
-    const mark = (tk, col, lab) => { const x = xT(tk); if (x < -30 || x > W + 30) return; ix.fillStyle = col; ix.beginPath(); ix.moveTo(x, y - 5 * d); ix.lineTo(x + 4 * d, y + 2 * d); ix.lineTo(x - 4 * d, y + 2 * d); ix.closePath(); ix.fill();
-      if (lab) { ix.font = `${9 * d}px system-ui`; ix.fillText(lab, x, y + 11 * d); } };
-    if (g.cmp) { for (const p of g.cmp.pairs) mark(p.run, Math.abs(p.dt) <= 2 ? "#7dff9a" : p.dt < 0 ? "#7ab8ff" : "#ffb35a", Math.abs(p.dt) <= 2 ? "" : (p.dt > 0 ? "+" : "") + ms(p.dt));
-      for (const tk of g.cmp.extra) { const x = xT(tk); if (x < -10 || x > W + 10) continue; ix.strokeStyle = "#ff5c82"; ix.lineWidth = 2 * d; ix.beginPath(); ix.moveTo(x - 4 * d, y - 4 * d); ix.lineTo(x + 4 * d, y + 4 * d); ix.moveTo(x + 4 * d, y - 4 * d); ix.lineTo(x - 4 * d, y + 4 * d); ix.stroke(); }
-      for (const tk of g.cmp.missing) { const x = xT(tk); if (x < -10 || x > W + 10) continue; ix.strokeStyle = "#ff5c82"; ix.lineWidth = 1.5 * d; ix.beginPath(); ix.arc(x, y, 5 * d, 0, 7); ix.stroke(); } }
-    else for (const tk of g.runP) mark(tk, "#ff7ad9", ""); }
+  // a run of the user's: no marks here (the user: "i dont like the replays on the bottom"); the compact line beside
+  // the runs picker says how its presses compare, with the details on hover
   ix.fillStyle = "#fff"; ix.fillRect(sx(L.path[k].x) - 1, 0, 2, IH); // now
   // the legend, bottom left
   ix.textAlign = "left"; ix.font = `${10 * d}px system-ui`;
   let lx = 4 * d; const ly = IH - 3 * d, leg = (col, txt) => { ix.fillStyle = col; ix.fillText(txt, lx, ly); lx += ix.measureText(txt).width + 8 * d; };
-  if (L.planned) leg("#c8b8ff", "◇ planned");
-  if (L.ghost) { leg("#7dff9a", "▲ your press on time"); leg("#7ab8ff", "▲ early"); leg("#ffb35a", "▲ late (ms)"); leg("#ff5c82", "× extra ○ missed"); }
-  if (L.hits) { leg("#ff9a3d", "▮ kick"); leg("#5fd8ff", "▮ snare"); leg("#ffffff", "▮ accent"); }
-  leg("rgba(255,255,255,.75)", "┃● tap"); leg("rgba(255,225,77,.95)", "▬ hold"); leg("rgba(90,220,255,.9)", "▭ window (press)"); leg("rgba(255,120,200,.9)", "▭ window (release)");
-  if (L.windowsBusy) leg("rgba(255,255,255,.5)", "measuring windows…");
+  if (VIEW.legend) {
+    if (L.sol.run) leg("#ff9ad9", "your run's presses");
+    if (L.planned) leg("#c8b8ff", "◇ planned");
+    if (L.hits) { leg("#ff9a3d", "▮ kick"); leg("#5fd8ff", "▮ snare"); leg("#ffffff", "▮ accent"); }
+    leg("rgba(255,255,255,.75)", "┃● tap"); leg("rgba(255,225,77,.95)", "▬ hold");
+    if (VIEW.windows) { leg("rgba(90,220,255,.9)", "▭ window (press)"); leg("rgba(255,120,200,.9)", "▭ window (release)"); }
+  }
+  if (L.windowsBusy && VIEW.windows) leg("rgba(255,255,255,.5)", "measuring windows…");
   // button light, at the right end of the band
   const on = L.held[k], bx = W - 24 * d;
   let since = k; while (since > 0 && L.held[since - 1] === on) since--;
@@ -2092,6 +2131,16 @@ async function loadWip(keep) {
   else if (cur) pick.value = Math.max(0, ALL.findIndex(l => l.file === cur.file));
 }
 document.getElementById("refresh").onclick = () => loadWip(true);
+{ const menu = document.getElementById("viewMenu"), vb = document.getElementById("viewBtn");
+  const extras = [...document.querySelectorAll("header [data-speed]"), document.getElementById("file").parentElement, ...["lookBtn", "artBtn", "mapBtn", "hit", "cmpBtn", "sound", "music", "addSongPc", "lightBtn", "beatsBtn", "windowsBtn", "legendBtn"].map(id => document.getElementById(id))].filter(Boolean);
+  for (const e of extras) menu.appendChild(e);
+  vb.onclick = e => { e.stopPropagation(); menu.hidden = !menu.hidden; vb.classList.toggle("on", !menu.hidden); };
+  addEventListener("click", e => { if (!menu.hidden && !menu.contains(e.target) && e.target !== vb) { menu.hidden = true; vb.classList.remove("on"); } });
+  const tog = (id, k) => { const b = document.getElementById(id); b.classList.toggle("on", VIEW[k]); b.onclick = () => { VIEW[k] = !VIEW[k]; VSET(k, VIEW[k]); b.classList.toggle("on", VIEW[k]); if (L) draw(); }; };
+  tog("windowsBtn", "windows"); tog("legendBtn", "legend");
+  // the speed in use shows on the menu button when it is not 1x
+  const sp = () => { const on = document.querySelector("#viewMenu [data-speed].on"); vb.textContent = "⚙ view" + (on && on.dataset.speed !== "1" ? " · " + on.textContent : ""); };
+  document.querySelectorAll("#viewMenu [data-speed]").forEach(b => b.addEventListener("click", () => setTimeout(sp, 0))); }
 function hashParams() { return new URLSearchParams(location.hash.slice(1)); }
 function writeHash() { const l = ALL[pick.value]; if (!l || !L) return; history.replaceState(null, "", "#lv=" + encodeURIComponent(l.file) + "&t=" + (tick() / P.TPS).toFixed(2)); }
 document.getElementById("linkBtn").onclick = async () => {
