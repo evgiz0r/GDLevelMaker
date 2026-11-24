@@ -54,10 +54,9 @@
         "single",
         "spike-block",
         "platform",
-        "s:slab-steps",
-        "orb-pit",
         "stairs",
-        "s:pillar-climb"
+        "orb-pit",
+        "double"
       ],
       "args": {
         "platform": {
@@ -66,6 +65,10 @@
         },
         "orb-pit": {
           "n": 5
+        },
+        "stairs": {
+          "n": 2,
+          "w": 3
         }
       },
       "bg": [
@@ -232,10 +235,10 @@
       "beats": 32,
       "use": [
         "single",
-        "s:slab-steps",
-        "orb-pit",
         "spike-block",
-        "s:lantern-orb"
+        "orb-pit",
+        "platform",
+        "double"
       ],
       "bg": [
         32,
@@ -257,7 +260,13 @@
         255,
         255
       ],
-      "deco": 0.3
+      "deco": 0.3,
+      "args": {
+        "platform": {
+          "w": 4,
+          "h": 1
+        }
+      }
     },
     {
       "name": "dawn",
@@ -287,5 +296,7 @@
     }
   ],
   "modern": false,
-  "notesV2": "round 2 (2026-11-24): the 2x noon run with craft pieces checked only at 1x failed 8 rounds (25 ms, prejump, land-and-jump chains): classic patterns proven at 2x; pillar-hop out (a jump over a spike timed around the next pillar, the reactive gate)"
+  "notesV2": "round 2 (2026-11-24): the 2x noon run with craft pieces checked only at 1x failed 8 rounds (25 ms, prejump, land-and-jump chains): classic patterns proven at 2x; pillar-hop out (a jump over a spike timed around the next pillar, the reactive gate)",
+  "structures": false,
+  "notesV3": "round 4 (2026-11-24): craft pieces out until their new shapes land (slab-steps / pillar-climb cut jumps by a block, 4 ms); no automatic library picks (a UFO-orb piece added mode changes and tripped skips)"
 }

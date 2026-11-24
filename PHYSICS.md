@@ -257,7 +257,15 @@ Official levels (dual portals): Hexagon Force 351.7-503.4 (cube), 640.3-709.8 (b
 ship); Blast Processing 512.3-554.0 (wave); Deadlocked 859.2-910.9 (wave). Before this, 286/287 were
 "unsupported" (a death on touch, and NOT on the no-skip list), so Hexagon Force's "beaten" and Blast
 Processing's 78% went around every dual portal: secret ways. Their saved routes, replayed with dual:
-Hexagon Force dies at 362.8 (player 2 on a spike), Blast Processing at 564.4. Re-solves: see below.
+Hexagon Force dies at 362.8 (player 2 on a spike), Blast Processing at 564.4.
+Re-solved with dual (2026-11-24, physics 1d59689, `difficulty_solve --resume`, checked by tools/skips.js and a replay):
+- **Blast Processing: beaten** (was 78%, and that 78% went around its dual): all 18 portals taken, 0 of 46 orbs/pads
+  skipped; two players from block 511.6 to 553.3 (wave dual).
+- **Hexagon Force**: the first dual part (351-503, cube then ships) passes, all 16 portals taken up to block 560. It
+  stops at 553.8 on the no-skip rule in a one-player orb chain (541-563: the yellow orb at 553.7, row 16, is passed
+  ~1 block under): orb physics (handed to the physics session), not dual. Its ball dual (640) and mini-ship dual
+  (944) are not reached yet.
+- Deadlocked's wave dual (859-911) is past its current stop (695); not reached yet.
 
 ## Not in the sim yet (the game has it)
 

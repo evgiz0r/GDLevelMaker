@@ -109,6 +109,11 @@ the answer: props set BOTH colour keys (21 main and 22 detail -- either way 211 
 does), **B** key 21 only, **C** key 22 only, **D** keys 21+22 on channels 40+. Which are orange in the game
 decides the default (`chKeys`, `ch0`). Write the answer here.
 
+2026-11-24, recording `GD claude-rec 2026-11-24_02-45-05.mkv` (~238 s): the user played the ONLINE GDLM 44 hellgate
+(My Online Levels, "version 3") and its signature figures were pure white again -- but that upload carries the
+v2 signature (figures standing on the ground, key 21 only), not v3. The colour test (rows A-J) and the prop test
+(pumpkins A-D) were not played in that recording, so the question is still open.
+
 ## Open
 
 - GD-art render of the first 18 props (local/props/props_gdart.png, from local/maps/gdlm_prop_test.jpg, 2026-11-23):

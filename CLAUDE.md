@@ -89,6 +89,11 @@ not after it:
   the viewer's `mute=1` URL flag (music, click sound, every sound), and tests use it by default. Test actions are
   marked test (id "test-..." or test: true) so they stay out of the user's feed. Only the user's own viewer
   plays sound.
+- **Never slow the user's game.** 2026-11-24: the first input logger did work inside its keyboard/mouse hook,
+  delayed and dropped the user's clicks, and likely cost them a death in Clutterfunk at 92.6%. Anything that runs
+  while the user plays (loggers, recorders, jobs) stays off the input path: a hook callback only queues (no I/O,
+  no lookups), recorders only read, heavy jobs run at idle priority with GD open. A new tool of this kind is
+  checked for added input delay before it runs during play.
 - **Hand off.** Before a long pause or when your area changes hands, write where you stopped,
   what is open and the good numbers into your area's doc.
 - **Share, don't duplicate.** Results go into the shared `local/` (see below) so no session redoes
@@ -183,7 +188,8 @@ on a long one with modes). Wait for the heavy-job slot comes on top of all of th
 | cut or join of solved levels (section cache) | 0.5-10 s (full: 1-70 s) | PHYSICS.md "Incremental solving" |
 | make (= the solve), 40-100 s level with ship / wave / ball | ~2 min since the state-copy fix (was 5-7 min) | GDLM 45 106 s, GDLM 61 124 s (cloud, 2026-11-23); before: PHONE.md, SHOWCASE.md |
 | score.js, every gate, short cube level | 10-20 s | loop.js, GDLM 02 / 41 |
-| score.js, level with modes | ~2 solves + ~1 min fairness: 10-15 min | score.js header; not timed yet |
+| score.js, level with modes, saved route current (checks the route, no solve) | ~1.5 min (GDLM 45, 40 s level: 89 s) | difficulty session, 2026-11-24 |
+| score.js, level with modes, no saved route (`opts.saved:false` or nothing to build on) | ~2 solves + ~1 min fairness: 10-15 min | score.js header |
 | compose.js (brief, repair rounds) | one make + score per round | not timed yet |
 | solve an official level (`difficulty_solve.js`) | minutes to an hour+ (checkpoints every 30 s) | not timed yet: use `--time solve-official` |
 | render frames (`shoot.js`, 8 frames) | ~10 s; ~1 min with before/after | SHOWCASE.md, POLISH.md |

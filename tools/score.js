@@ -578,7 +578,9 @@ function reactiveSpots(level, w, r, presses, opts = {}) {
     const HAZ = /^(spike|saw)$/;
     const lo = a > 0 ? res[a - 1].why : "", hi = b < res.length - 1 ? res[b + 1].why : "";
     const cutLo = SOLID.test(lo) && HAZ.test(hi), cutHi = SOLID.test(hi) && HAZ.test(lo);
-    const split = res.some((x, j) => x.ok && (j < a - 1 || j > b + 1)) && (SOLID.test(lo) || SOLID.test(hi));
+    // split: another good window beyond a block -- only a problem when a hazard is in play too (a plain step
+    // jump from a dip onto stairs has a far second window by nature: GDLM 64 round 4, block 200)
+    const split = res.some((x, j) => x.ok && (j < a - 1 || j > b + 1)) && (SOLID.test(lo) || SOLID.test(hi)) && res.some(x => HAZ.test(x.why));
     if ((cutLo || cutHi) && ms < REACT_MS || split) out.push({ block: Math.floor(q.x / 30),
       why: `the jump over a hazard must also be timed around a block: its window (${Math.round(ms)} ms) is ${split ? "split" : "cut"} by a ${SOLID.test(hi) ? hi : lo}` });
   }

@@ -55,12 +55,16 @@ function build(plan, opts = {}) {
   // cells
   let h = 0;
   const cells = plan.cells;
+  // numeric: every cell's obstacle column first, so each cell's terrain runs exactly to the next one's
+  const Jof = i => +(col(cells[i][0]) + (LEAD[cells[i][1]] ?? 2.22) + ((opts.shift || [])[i] || 0)).toFixed(3);
   cells.forEach(([b, kind, a0], i) => {
     const a = Object.assign({}, a0 || {});
-    const s = secAt(b), J = num ? +(col(b) + (LEAD[kind] ?? 2.22) + ((opts.shift || [])[i] || 0)).toFixed(3) : "j" + b;
+    const s = secAt(b), J = num ? Jof(i) : "j" + b;
     const o0 = o.length; ranges[i] = [o0, o0];
     const nextB = i + 1 < cells.length && secAt(cells[i + 1][0]) === s ? cells[i + 1][0] : null;
-    const span = Math.ceil(((nextB || (secs[secs.indexOf(s) + 1] || { from: plan.last + 4 }).from) - b) * bpb) + 1;
+    let span = Math.ceil(((nextB || (secs[secs.indexOf(s) + 1] || { from: plan.last + 4 }).from) - b) * bpb) + 1;
+    if (num && nextB) span = Math.ceil(Jof(i + 1) - J) + 1;   // to the next obstacle (one column of overlap)
+    else if (num) span = Math.ceil(col((secs[secs.indexOf(s) + 1] || { from: plan.last + 4 }).from) - J) + 1;
     const at = k => num ? +(J + k).toFixed(3) : J + (k >= 0 ? "+" : "") + k;
     const floor = (from, to, hh) => { for (let k = from; k < to; k++) for (let r = 0; r < hh; r++) o.push(["block", at(k), r]); };
     if (s.kind === "ball") {
