@@ -9,7 +9,11 @@
 //     events: [{tick, type: "press" | "release"}] (240 Hz ticks from the level's start; GD.run(world, events) replays it),
 //     result: "died" | "clear", x, pct, t, why, practice, from: {tick, x} | null (a practice attempt still replays from
 //     tick 0: the presses that reached its checkpoint are kept), session?, stage?,
-//     video?: { file, t, shift_ms, agree, mismatch? } }
+//     video?: { file, inputs (the input log's file name), t (start in the video, s), shift_ms, agree, res: "agree" | "mismatch",
+//              mismatch? } }   (tools/replay_run.js, source "video"; agreed with physics 2026-11-24)
+//   pct as GD shows it (0-100), x in units, for both sources. A practice attempt from a recording only has the inputs
+//   after its checkpoint: events start at from.tick, and the viewer prepends the route's own presses up to from.tick
+//   (and compares only from there); a viewer attempt carries its own presses before it.
 // GDLM_LOCAL_DIR: tests.
 const fs = require("fs"), path = require("path");
 const DIR = () => path.join(process.env.GDLM_LOCAL_DIR || path.join(__dirname, "..", "local"), "attempts");

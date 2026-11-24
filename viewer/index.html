@@ -1149,12 +1149,16 @@ async function runShow(id) {
   if (!id) { LL.ghost = null; runCmpText(); draw(); return; }
   let row = null; try { row = (await (await fetch("/attempts?file=" + encodeURIComponent(runsFile()) + "&hash=" + LL.hash + "&id=" + encodeURIComponent(id), { cache: "no-store" })).json())[0]; } catch (e) {}
   if (!row || LL !== L) return;
-  const r = GD.runSliced(LL.world, row.events);
+  // a practice attempt with no inputs before its checkpoint (a GD recording only has the presses after it): the route's
+  // own presses take it there, and only the part from the checkpoint is compared
+  const from = row.practice && row.from && row.from.tick > 0 && !row.events.some(e => e.tick < row.from.tick) ? row.from.tick : 0;
+  const pre = from && LL.sol.ok ? replayEvents(LL.sol).filter(e => e.tick < from) : [];
+  const r = GD.runSliced(LL.world, pre.concat(row.events));
   const step = () => { if (LL !== L) return; if (!r.advance(12)) return setTimeout(step, 0);
     const end = r.result.path.length - 1;   // the route's presses after the run ended are not "missed"
-    const route = LL.sol.ok ? LL.sol.clicks.filter(c => c.type !== "release" && c.tick <= end).map(c => c.tick) : null;
+    const route = LL.sol.ok ? LL.sol.clicks.filter(c => c.type !== "release" && c.tick <= end && c.tick >= from).map(c => c.tick) : null;
     const runP = row.events.filter(e => e.type === "press").map(e => e.tick);
-    LL.ghost = { row, path: r.result.path, cmp: route ? GD.comparePresses(route, runP) : null, runP };
+    LL.ghost = { row, path: r.result.path, cmp: route ? GD.comparePresses(route, runP) : null, runP, from: pre.length ? from : 0 };
     runCmpText(); draw(); };
   setTimeout(step, 0);
 }
@@ -1165,7 +1169,7 @@ function runCmpText() {
   if (!c) { el.textContent = `the ghost: ${g.row.result === "clear" ? "clears" : "dies at " + Math.round(g.row.pct) + "%"} (no route to compare with)`; return; }
   const on = c.pairs.filter(p => Math.abs(p.dt) <= 2), early = c.pairs.filter(p => p.dt < -2), late = c.pairs.filter(p => p.dt > 2);
   const avg = a => a.length ? Math.round(a.reduce((n, p) => n + ms(p.dt), 0) / a.length) : 0;
-  el.innerHTML = `vs the route: <b style="color:#7dff9a">${on.length} on time</b> · <b style="color:#7ab8ff">${early.length} early</b>${early.length ? ` (avg ${avg(early)} ms)` : ""} · <b style="color:#ffb35a">${late.length} late</b>${late.length ? ` (avg +${avg(late)} ms)` : ""} · <b style="color:#ff5c82">${c.extra.length} extra, ${c.missing.length} missing</b>`;
+  el.innerHTML = (g.from ? `practice from ${(g.from / P.TPS).toFixed(1)} s (the route's presses take it there) · ` : "") + `vs the route: <b style="color:#7dff9a">${on.length} on time</b> · <b style="color:#7ab8ff">${early.length} early</b>${early.length ? ` (avg ${avg(early)} ms)` : ""} · <b style="color:#ffb35a">${late.length} late</b>${late.length ? ` (avg +${avg(late)} ms)` : ""} · <b style="color:#ff5c82">${c.extra.length} extra, ${c.missing.length} missing</b>`;
 }
 // ---------- "you play" (button / key P): the user plays the level here, the same sim live (lib/liveplay.js) ----------
 // space / ↑ / W / Enter / click / tap = the button (presses land on the next tick: a frame boundary, as in the user's
