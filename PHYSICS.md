@@ -294,6 +294,23 @@ Re-solved with dual (2026-11-24, physics 1d59689, `difficulty_solve --resume`, c
   so after a physics change that alters cube timing, solve dual levels from the start.
 - Deadlocked's wave dual (859-911) is past its current stop (695); not reached yet.
 
+### Solver and trigger fixes from the official re-solves (2026-11-24)
+- **"A portal that changes nothing" is judged at the portal's centre** in the sweep, as skipCheck judges it. Judged 15
+  units past its right edge, a ball flipping gravity in Electroman's lower lane (block 804) had normal gravity there:
+  its untaken normal-gravity portal passed the sweep, won, and the final skipCheck rejected the whole solve. Electroman
+  is beaten since (all 21 portals). `tools/stuck.js <n> --x <units> --sweeps` found it (the real solver from the same
+  start with one setting changed at a time: only `allowSkips` beat it, so the no-skip bookkeeping was the cause).
+- **A touch trigger's box is 30x30 times its scale** (32, 128/129). Dash's touch spawns on its invisible platforms
+  (1268 at y 195, y scale 1.1) were missed by a mini cube standing on the platform (centre 24 above; the unscaled limit
+  15 + 9): the next platform never rose. With it, routes that take the mini portal get to block ~130 (they died by
+  116.5). Dash's spike group 265 also uses a **collision trigger** (1815: blocks 80 = 1 and 95 = 2 collide -> spawn
+  group 545, a stop on the group's drop): collision blocks/triggers are not modelled; here the platform touch spawns
+  the same stop (group 540), so it matters only for timing.
+- **Orbs, pads and dash orbs may be skipped** ("No secret ways" above).
+- `tools/humanroute.js`: every official route's busiest second, shortest gap and holds through jumps. Ship stretches
+  in Stereo Madness (358-386: 14-18 presses a second), Back On Track (459-510) and Polargeist (342-378: gaps 25-46 ms)
+  clear only with inhuman input: the known ship-height mismatches (physics leads, not route bugs).
+
 ## Not in the sim yet (the game has it)
 
 Modes/portals: mirror. Teleport portals (747) are in, unchecked: same x, speed kept, exit height = portal y + key 54 along the portal's turned axis (54 x cos(rotation)), but the full 54 straight up/down when key 55 is set or the portal is turned a quarter (90/-90/270: cos would make it a no-op; Deadlocked's ball part 441-561 passes only so, neither "no move" nor "x moves by 54" does -- "angle mod 90" fits the same cases) (fitted on Deadlocked, 2026-11-23: its -53 degree portal at block 76.5 needs the turned offset to pass under a spike; its -46 degree portal with 55 at 360.8 lands exactly on the gravity + speed portals 224 below; whether GD also moves x is not known; smooth teleport and the 2.2 options 345+ not modelled); first used by Deadlocked at block 77, Fingerdash 205, Dash 435. Triggers: count/pickup items,
