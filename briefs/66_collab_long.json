@@ -1,0 +1,332 @@
+{
+  "name": "GDLM 66 collab long",
+  "desc": "Eight parts, eight builders, one song: built apart and joined on the beat.",
+  "idea": "the collab pipeline at full length (tools/collab.js): ~100 s, 8 parts of 10-17 s, built in parallel, decorated by their own builders, joined",
+  "song": {
+    "custom": 557117
+  },
+  "grid": {
+    "bpm": 140.01,
+    "t0": 0.0224
+  },
+  "offset": 0,
+  "seed": 66,
+  "difficulty": {
+    "label": "Normal",
+    "minWindowMs": 60
+  },
+  "terrain": true,
+  "craft": false,
+  "structures": false,
+  "modern": true,
+  "signature": {},
+  "scene": "tools/scenes/kit.js",
+  "sections": [
+    {
+      "name": "dawn run",
+      "beats": 32,
+      "use": [
+        "single",
+        "spike-block",
+        "platform"
+      ],
+      "bg": [
+        255,
+        170,
+        110
+      ],
+      "ground": [
+        90,
+        40,
+        30
+      ],
+      "line": [
+        240,
+        190,
+        180
+      ],
+      "obj": [
+        255,
+        255,
+        255
+      ]
+    },
+    {
+      "name": "first flight",
+      "beats": 12,
+      "mode": "ship",
+      "bg": [
+        255,
+        200,
+        120
+      ],
+      "ground": [
+        110,
+        60,
+        20
+      ],
+      "line": [
+        255,
+        210,
+        170
+      ],
+      "obj": [
+        255,
+        255,
+        255
+      ]
+    },
+    {
+      "name": "high flight",
+      "beats": 12,
+      "mode": "ship",
+      "bg": [
+        255,
+        200,
+        120
+      ],
+      "ground": [
+        110,
+        60,
+        20
+      ],
+      "line": [
+        255,
+        210,
+        170
+      ],
+      "obj": [
+        255,
+        255,
+        255
+      ],
+      "continue": true
+    },
+    {
+      "name": "hills",
+      "beats": 32,
+      "use": [
+        "single",
+        "double",
+        "platform",
+        "orb-pit",
+        "s:capped-hop"
+      ],
+      "bg": [
+        120,
+        190,
+        120
+      ],
+      "ground": [
+        30,
+        70,
+        30
+      ],
+      "line": [
+        180,
+        220,
+        180
+      ],
+      "obj": [
+        255,
+        255,
+        255
+      ]
+    },
+    {
+      "name": "bounce",
+      "beats": 24,
+      "mode": "ball",
+      "bg": [
+        90,
+        170,
+        200
+      ],
+      "ground": [
+        20,
+        60,
+        80
+      ],
+      "line": [
+        170,
+        210,
+        230
+      ],
+      "obj": [
+        255,
+        255,
+        255
+      ]
+    },
+    {
+      "name": "sprint",
+      "beats": 24,
+      "speed": "2x",
+      "use": [
+        "single",
+        "double",
+        "platform"
+      ],
+      "bg": [
+        210,
+        90,
+        70
+      ],
+      "ground": [
+        70,
+        20,
+        15
+      ],
+      "line": [
+        220,
+        170,
+        165
+      ],
+      "obj": [
+        255,
+        255,
+        255
+      ]
+    },
+    {
+      "name": "slide",
+      "beats": 24,
+      "speed": "1x",
+      "mode": "wave",
+      "bg": [
+        60,
+        140,
+        130
+      ],
+      "ground": [
+        10,
+        50,
+        45
+      ],
+      "line": [
+        160,
+        200,
+        195
+      ],
+      "obj": [
+        255,
+        255,
+        255
+      ]
+    },
+    {
+      "name": "upside",
+      "beats": 24,
+      "mode": "upside",
+      "use": [
+        "single",
+        "double"
+      ],
+      "bg": [
+        150,
+        90,
+        180
+      ],
+      "ground": [
+        50,
+        20,
+        70
+      ],
+      "line": [
+        200,
+        170,
+        220
+      ],
+      "obj": [
+        255,
+        255,
+        255
+      ]
+    },
+    {
+      "name": "night run",
+      "beats": 32,
+      "use": [
+        "single",
+        "spike-block",
+        "double",
+        "s:pillar-pair",
+        "orb-pit"
+      ],
+      "bg": [
+        60,
+        60,
+        140
+      ],
+      "ground": [
+        10,
+        10,
+        40
+      ],
+      "line": [
+        160,
+        160,
+        190
+      ],
+      "obj": [
+        255,
+        255,
+        255
+      ]
+    },
+    {
+      "name": "home",
+      "beats": 16,
+      "use": [
+        "single",
+        "double"
+      ],
+      "bg": [
+        255,
+        190,
+        140
+      ],
+      "ground": [
+        100,
+        50,
+        40
+      ],
+      "line": [
+        250,
+        200,
+        190
+      ],
+      "obj": [
+        255,
+        255,
+        255
+      ]
+    }
+  ],
+  "parts": [
+    [
+      0,
+      1
+    ],
+    [
+      2,
+      3
+    ],
+    [
+      4
+    ],
+    [
+      5
+    ],
+    [
+      6
+    ],
+    [
+      7
+    ],
+    [
+      8,
+      9
+    ]
+  ]
+}

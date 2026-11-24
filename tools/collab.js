@@ -72,7 +72,11 @@ function split(briefFile) {
   // (the part before it ends at that speed); a part that runs at another speed switches with its own portal on its
   // first column, as compose does inside one level. (GDLM 65: the contract first said the NEXT part's speed, but a
   // part's own level header is dropped at the join, so part 2 ran its 2x on a header the joined level never had.)
-  const seams = parts.slice(1).map(p => ({ t: p.t[0], beat: p.beats[0], mode: "cube", speed: p.enter, grav: 1, mini: false, dual: false, y: 15, grounded: true }));
+  // a seam inside a flight (the next part's first section "continue"s the same mode): mode and speed only -- the height
+  // it is handed varies, and the join re-routes the next part from it
+  const seams = parts.slice(1).map(p => { const s0 = brief.sections[p.sections[0]];
+    return s0.continue && s0.mode && s0.mode !== "upside" ? { t: p.t[0], beat: p.beats[0], mode: s0.mode, speed: p.enter, grav: 1, mini: false, dual: false, y: null, grounded: false }
+      : { t: p.t[0], beat: p.beats[0], mode: "cube", speed: p.enter, grav: 1, mini: false, dual: false, y: 15, grounded: true }; });
   const plan = { brief: path.relative(ROOT, briefFile).split(path.sep).join("/"), name: brief.name, at: new Date().toISOString(), parts, seams };
   writeJ(path.join(dirOf(briefFile), "plan.json"), plan);
   showInViewer(briefFile, plan);
@@ -106,7 +110,8 @@ function partBrief(brief, part, k, nParts, seed) {
   // a part that ends in a flying section: its exit portal 4 blocks before the seam, so the cube is down on the floor
   // when the seam time comes (GDLM 65 p1: the exit at the section's very end left it on the portal's frame block, y 45)
   const lastSec = sub.sections[sub.sections.length - 1];
-  if (k < nParts - 1 && ["ship", "wave", "ball"].includes(lastSec.mode)) sub.sections[sub.sections.length - 1] = Object.assign({}, lastSec, { exitRoom: lastSec.exitRoom ?? 4 });
+  const nextSec = brief.sections[part.sections[part.sections.length - 1] + 1];
+  if (k < nParts - 1 && ["ship", "wave", "ball"].includes(lastSec.mode) && !(nextSec && nextSec.continue && nextSec.mode === lastSec.mode)) sub.sections[sub.sections.length - 1] = Object.assign({}, lastSec, { exitRoom: lastSec.exitRoom ?? 4 });
   delete sub.parts;
   return sub;
 }
@@ -141,7 +146,7 @@ function build(briefFile, k, opts = {}) {
     if (exit.mode !== out.mode) bad.push(`mode ${exit.mode}`);
     if (exit.sp !== SPEED_IX[out.speed]) bad.push(`speed ${exit.sp} (contract ${out.speed})`);
     if ((exit.grav || 1) !== out.grav) bad.push(`gravity ${exit.grav}`);
-    if (exit.y == null || Math.abs(exit.y - out.y) > 8) bad.push(`y ${exit.y} (contract ${out.y})`);
+    if (out.y != null && (exit.y == null || Math.abs(exit.y - out.y) > 8)) bad.push(`y ${exit.y} (contract ${out.y})`);
     if (out.grounded && !exit.grounded) bad.push("in the air");
     if (bad.length) { gates.seam = "FAIL: at the seam time " + bad.join(", "); fails.push("seam"); }
   }
@@ -192,7 +197,7 @@ function join(briefFile) {
   const parts = plan.parts.map(p => ({ p, r: (() => { try { return readJ(path.join(dir, p.id + ".json")); } catch (e) { return null; } })(), L: (() => { try { return readGdlvl(path.join(dir, p.id + ".gdlvl")); } catch (e) { return null; } })() }));
   const missing = parts.filter(q => !q.r || !q.L).map(q => q.p.id);
   if (missing.length) return { ok: false, problems: ["not built yet: " + missing.join(", ")] };
-  const objects = [], events = [], problems = [], send = new Set();
+  const objects = [], problems = [], send = new Set(); let events = [];
   // each part is placed where the JOINED level's own timeline (every earlier part's portals in) has the player at the
   // part's song time -- so every seam is on its song time by construction and nothing adds up over many seams. What is
   // left is the gap between where the part before ends (its own length) and that place: the drift, kept per seam
@@ -223,7 +228,26 @@ function join(briefFile) {
   events.sort((a, b) => a.tick - b.tick || (a.type === "release" ? -1 : 1));
   const level = { header: parts[0].L.level.header, objects };
   const levelStr = GD.serializeLevel(level), w = GD.makeWorld(level.objects, level.header), tl = SY.timeline(w);
-  const run = GD.run(w, events), path0 = run.path;
+  let run = GD.run(w, events), path0 = run.path;
+  // a part whose own route does not carry over (it was routed from a standing start; joined it is handed the real
+  // state at its seam -- a flight entered at another height, a cube landing a little later): re-route ONLY that part,
+  // from the player's real state just before its seam to its end (the solver's start / goal, as lib/incsolve.js does).
+  // Its builder's route stays the plan; the repair is named in the join's result.
+  const rerouted = [];
+  for (let guard = 0; run.dead && guard < parts.length; guard++) {
+    const xd = path0[path0.length - 1].x, k = parts.findIndex(({ p }, i) => i === parts.length - 1 || xd < parts[i + 1].p.shift);
+    if (k <= 0 || rerouted.some(r => r.part === parts[k].p.id)) break;
+    const c = Math.max(1, Math.min(path0.length - 1, Math.round(parts[k].p.t[0] * TPS) - 30));
+    let held = false; for (const e of events) { if (e.tick >= c) break; held = e.type === "press" ? true : e.type === "release" ? false : held; }
+    const last = k === parts.length - 1, endX = last ? w.endX : parts[k + 1].p.shift - 45;
+    const t0r = Date.now(), sv = GD.solveSweep(w, { start: path0[c], held, cap: 8000, goal: last ? undefined : (st) => st.x >= endX && st.mode === "cube" && !!st.grounded });
+    if (!sv || !sv.ok) { problems.push(`${parts[k].p.id}: no route from the state it is handed at its seam`); break; }
+    const T = last ? Infinity : (sv.goalTick ?? (sv.events.length ? sv.events[sv.events.length - 1].tick + 1 : c));
+    events = events.filter(e => e.tick < c || e.tick >= T).concat(sv.events.filter(e => e.tick >= c && e.tick < T)).sort((a, b) => a.tick - b.tick || (a.type === "release" ? -1 : 1));
+    if (!last && T < Infinity) events.push({ tick: T, type: "release" }), events.sort((a, b) => a.tick - b.tick || (a.type === "release" ? -1 : 1));
+    rerouted.push({ part: parts[k].p.id, from: +(path0[c].x / 30).toFixed(1), secs: (Date.now() - t0r) / 1000 });
+    run = GD.run(w, events); path0 = run.path;
+  }
   // the seams: the joined run's state at each seam time against the contract
   const seamRes = plan.seams.map((s, i) => {
     // the state the player ARRIVES with: 30 ticks (~39 units at 1x) before the seam, before any portal of the next part
@@ -235,7 +259,7 @@ function join(briefFile) {
       if (q.mode !== s.mode) bad.push(`mode ${q.mode} (contract ${s.mode})`);
       if (want != null && q.sp !== want) bad.push(`speed ${q.sp} (contract ${s.speed})`);
       if ((q.grav || 1) !== s.grav) bad.push(`gravity ${q.grav}`);
-      if (q.y != null && Math.abs(q.y - s.y) > 8) bad.push(`y ${q.y.toFixed(1)} (contract ${s.y})`);
+      if (s.y != null && q.y != null && Math.abs(q.y - s.y) > 8) bad.push(`y ${q.y.toFixed(1)} (contract ${s.y})`);
       if (s.grounded && q.vy != null && Math.abs(q.vy) > 0.5) bad.push(`vy ${q.vy.toFixed(2)} (contract grounded)`);
     }
     // sync at the seam: the joined level's x at the seam time is where the next part starts
@@ -261,7 +285,7 @@ function join(briefFile) {
   }
   for (const { p } of parts) p.status = Object.assign({}, p.status, { join: send.has(p.id) ? "redo" : (run.dead ? "waiting" : "joined") });
   writeJ(path.join(dir, "plan.json"), plan);
-  const res = { ok: !problems.length && full && full.ok, problems, send: [...send], seams: seamRes, drift, full, out: path.relative(ROOT, out), objects: objects.length, secs: (Date.now() - t0) / 1000, at: new Date().toISOString() };
+  const res = { ok: !problems.length && full && full.ok, problems, send: [...send], seams: seamRes, drift, rerouted, full, out: path.relative(ROOT, out), objects: objects.length, secs: (Date.now() - t0) / 1000, at: new Date().toISOString() };
   writeJ(path.join(dir, "join.json"), res);
   showInViewer(briefFile, plan, "final", levelStr, { events }, `joined ${parts.length} parts: ${res.ok ? "every seam holds, full check READY" : problems.length + " problem(s)" + (full && full.fails.length ? ", full check: " + full.fails.length + " FAIL" : "")}`);
   try { fs.appendFileSync(path.join(ROOT, "local", "timings.jsonl"), JSON.stringify({ at: res.at, tool: "collab.js", step: "collab-join", level: brief.name, secs: res.secs }) + "\n"); } catch (e) {}
@@ -292,6 +316,6 @@ if (require.main === module) {
     process.exit(r.ok ? 0 : 2);
   }
   else if (cmd === "deco") { const k = +String(rest[0]).replace(/^p/, ""), r = deco(bf, k, { by: opt("--by") || "style", scene: opt("--scene") }); console.log(`${r.part} deco by ${r.decoBy}: ${r.objects} objects (scene ${r.scene}), gameplay unchanged, route kept; ${r.decoSecs.toFixed(0)} s`); }
-  else if (cmd === "join") { const r = join(bf); if (r.drift) console.log("   drift per seam: " + r.drift.map(d => `${d.units} u (${d.ms} ms)`).join(", ")); console.log(r.ok ? `JOINED: every seam holds, full check READY -> ${r.out} (${r.secs.toFixed(0)} s)` : `NOT JOINED (${(r.secs || 0).toFixed(0)} s):`); for (const p of r.problems || []) console.log("   " + p); if (r.full) { for (const f of r.full.fails) console.log("   full check FAIL " + f); console.log("   warnings: " + r.full.warns.join(", ")); } if (r.send && r.send.length) console.log("   send back: " + r.send.join(", ")); process.exit(r.ok ? 0 : 2); }
+  else if (cmd === "join") { const r = join(bf); if (r.drift) console.log("   drift per seam: " + r.drift.map(d => `${d.units} u (${d.ms} ms)`).join(", ")); if (r.rerouted && r.rerouted.length) console.log("   re-routed at the join (from the state handed over): " + r.rerouted.map(x => `${x.part} from block ${x.from} in ${x.secs.toFixed(1)} s`).join(", ")); console.log(r.ok ? `JOINED: every seam holds, full check READY -> ${r.out} (${r.secs.toFixed(0)} s)` : `NOT JOINED (${(r.secs || 0).toFixed(0)} s):`); for (const p of r.problems || []) console.log("   " + p); if (r.full) { for (const f of r.full.fails) console.log("   full check FAIL " + f); console.log("   warnings: " + r.full.warns.join(", ")); } if (r.send && r.send.length) console.log("   send back: " + r.send.join(", ")); process.exit(r.ok ? 0 : 2); }
   else if (cmd === "status") status(bf);
 }
