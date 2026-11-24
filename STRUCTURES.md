@@ -204,6 +204,25 @@ as the library does.
   already move the corridor.
 - Checked: `compose --dry` on a copy of v6 with these args places them. No full build was run.
 
+### Armed dense pieces (2026-11-24, from craft's "density that costs no timing", CRAFT.md)
+
+pitRun takes craft's two moves as args:
+- `cap`: over each pit, a hanging column from `cap` rows over the platform up to row 12, with a spike under its end;
+- `tips`: in a pit next to a 2+ high landing, a spike-tipped 1-wide pillar in the pit's middle, a row under the landing.
+
+The windows are the same as the unarmed pieces, with no "hazards matter" warning. All are ready and pass `check --context`:
+
+| id | hazards / 100 (unarmed) | tightest |
+|---|---|---|
+| pit-run-armed | 53 (42) | 204 ms |
+| pit-run-high-armed | 50 (38); its tips swap a pit spike for a pillar top | 246 ms |
+| pit-spike-mix-armed | 38 (32) | 208 ms |
+| pit-run-2x-armed | 48 (40) | 192 ms |
+
+Not for upside pieces: mirrored, the columns would stand on the floor. Featured Easy/Normal levels run ~75-81 and Jumper
+121 (craft's `tools/craft.js pieces`), so the cube pieces are still short of that. The next step is more than one armed
+column per pit, or armed ceilings over the platforms, both untested.
+
 ## Open
 
 - **A structure that passes alone can fail inside a level**: `orb-ladder-2` (ok in the harness) made a fairness
