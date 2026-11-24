@@ -32,6 +32,8 @@ function selfUpdate() {
     const before = git(["rev-parse", "HEAD"]);
     git(["merge", "-q", "--ff-only", "origin/main"]);
     UPD.note = "updated " + behind + " commit(s)"; console.log(`self-update: ${before.slice(0, 7)} -> ${git(["rev-parse", "--short", "HEAD"])} (${behind} commits)`);
+    // physics or route code changed: re-check RobTop's main levels and redo the stale ones (tools/mains.js, urgent priority)
+    try { require("./mains.js").afterUpdate(before, "HEAD", git); } catch (e) { console.log("mains check failed: " + e.message); }
     // this file changed: start the new code (same arguments), then leave
     if (git(["diff", "--name-only", before, "HEAD", "--", "tools/serve.js", "tools/wip.js", "tools/index_levels.js", "tools/solutions.js"])) {
       console.log("self-update: serve.js or what it loads changed -- restarting");

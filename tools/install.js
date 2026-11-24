@@ -1,5 +1,5 @@
 // node tools/install.js <level.gdlvl> [...] [--save <path>] [--dry]
-// node tools/install.js <level.gdlvl> --slot phone|lab [--desc "what is tested"] [--ids <phone_ids.json>]
+// node tools/install.js <level.gdlvl> --slot phone|lab [--desc "what is tested"] [--ids <phone_ids.json>] [--ids-from <older save .dat>]
 //   (the online slots, PUBLISH.md: the level goes in under the slot's fixed name; --desc sets the
 //   description, with the signature line)
 //
@@ -132,12 +132,25 @@ function main() {
     // made; its first Share creates the ID (record it in phone_ids.json after GD has exited once)
     const fresh = !slot.id;
     if (fresh && !slot.name) { console.log(`slot "${slotName}" has neither an id nor a name`); process.exit(1); }
-    const at = fresh ? parts.items.findIndex(it => nameOf(it.inner) === slot.name)
-      : parts.items.findIndex(it => (entry(it.inner, "k1") || "").includes(`<i>${slot.id}</i>`));
-    if (at < 0 && !fresh) { console.log(`no level with online ID ${slot.id} in the save. GD writes the ID when it exits after the upload; close GD once, then retry.`); process.exit(4); }
+    const hasId = it => (entry(it.inner, "k1") || "").includes(`<i>${slot.id}</i>`);
+    let at = fresh ? parts.items.findIndex(it => nameOf(it.inner) === slot.name) : parts.items.findIndex(hasId);
+    // --ids-from <older save .dat>: the record holding the slot's ID was deleted from the save (2026-11-24:
+    // a cleanup removed every GDLM level). Take its online keys from an older save / backup instead; a
+    // same-named copy in the save (the level re-added without its ID) is replaced, so there is one record.
+    let fromOld = null;
+    const fi = args.indexOf("--ids-from");
+    if (at < 0 && !fresh && fi >= 0) {
+      const oldParts = splitLevels(decodeSave(fs.readFileSync(args[fi + 1])));
+      const o = oldParts.items.find(hasId);
+      if (!o) { console.log(`no level with online ID ${slot.id} in ${args[fi + 1]} either`); process.exit(4); }
+      fromOld = o.inner;
+      at = parts.items.findIndex(it => nameOf(it.inner) === slot.name);
+      console.log(`online ID ${slot.id} taken from ${args[fi + 1]} ("${nameOf(o.inner)}")` + (at >= 0 ? `; replaces the same-named copy at position ${at + 1}` : ""));
+    }
+    if (at < 0 && !fresh && !fromOld) { console.log(`no level with online ID ${slot.id} in the save. GD writes the ID when it exits after the upload; close GD once, then retry (or --ids-from <older save> if the record was deleted).`); process.exit(4); }
     const rec = unpack(fs.readFileSync(files[0], "utf8"));
     let inner = rec.match(/<plist[^>]*><dict>([\s\S]*)<\/dict><\/plist>/)[1];
-    const old = at >= 0 ? parts.items[at].inner : "";
+    const old = fromOld || (at >= 0 ? parts.items[at].inner : "");
     const own = nameOf(inner), was = at >= 0 ? nameOf(old) : "(new)";
     const name = slot.name || was;
     inner = inner.replace(/<k>k2<\/k><s>[^<]*<\/s>/, `<k>k2</k><s>${name}</s>`);

@@ -1,6 +1,6 @@
 {
  "note": "pace of real levels (tools/pace.js): official solved routes, energy.js obstacles per bar, flow.js changes per 10 s",
- "at": "2026-11-24T21:21:37.909Z",
+ "at": "2026-11-24T21:57:33.585Z",
  "rows": [
   {
    "level": "Jumper",
@@ -48,7 +48,7 @@
   }
  ],
  "target": {
-  "cps": 42.96,
+  "cps": null,
   "obsPerBar": 3.04,
   "changesPer10s": 11.8,
   "modeChangesPerMin": 135.5,

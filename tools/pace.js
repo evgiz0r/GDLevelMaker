@@ -39,7 +39,9 @@ function targets() {
   }
   const med = k => { const v = rows.map(r => r[k]).filter(x => x != null).sort((a, b) => a - b); return v.length ? v[Math.floor(v.length / 2)] : null; };
   const out = { note: "pace of real levels (tools/pace.js): official solved routes, energy.js obstacles per bar, flow.js changes per 10 s", at: new Date().toISOString(), rows,
-    target: { cps: med("cps"), obsPerBar: med("obsPerBar"), changesPer10s: med("changesPer10s"), modeChangesPerMin: med("modeChangesPerMin"),
+    // cps: no target -- the official cached routes are the solver's raw presses (median 43 per s), not a human's; inputs per
+    // beat (tempo.js, the human route) is the press target
+    target: { cps: null, obsPerBar: med("obsPerBar"), changesPer10s: med("changesPer10s"), modeChangesPerMin: med("modeChangesPerMin"),
       perBeat: (() => { try { return require("./tempo.js").REF.median; } catch (e) { return null; } })(), perBeatFloor: (() => { try { return require("./tempo.js").REF.all; } catch (e) { return null; } })() } };
   fs.writeFileSync(OUT, JSON.stringify(out, null, 1));
   return out;

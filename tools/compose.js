@@ -171,6 +171,11 @@ function compose(brief, tweaks = {}) {
   } catch (e) { /* no corpus */ }
   for (const [si, sec0] of brief.sections.entries()) {
     const sec = Object.assign({}, sec0, { blocks: lens[si] });
+    // tweaks["ban:<si>"]: chunk kinds a repair took out of this section (a tight window is the chunk's own jump; swapping
+    // one placement only moved it on: compose places every unseen kind once, so the triple came back as the next chunk --
+    // GDLM 69 p1, 2026-11-24): each becomes its easier kind for the whole section
+    const ban = tweaks["ban:" + si] || [];
+    if (ban.length && sec.use) sec.use = [...new Set(sec.use.map(n => ban.includes(n) ? (EASIER[n] || n) : n))];
     if (notReady && sec.use) { const drop = sec.use.filter(u => notReady.has(u)); if (drop.length) { sec.use = sec.use.filter(u => !notReady.has(u)); if (!NOTED.has(sec.name + drop)) NOTED.add(sec.name + drop), console.log(`   NOTE ${sec.name}: ${drop.join(", ")} left out (not ready in the structure library: node tools/structures.js rank)`); } }
     if (extra[si]) sec.use = [...sec.use, extra[si]];
     // gravity flips inside plain cube sections (the user, 2026-11-24: "a bit more upside down ... almost everything is very
