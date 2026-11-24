@@ -217,7 +217,7 @@ async function main() {
     const dir = path.join(OUT, "frames", slug(p.o.L.name) + "_" + p.s.i);
     try {
       cp.execFileSync(process.execPath, [path.join(__dirname, "compare_frames.js"), p.o.src, p.r.L.renderId, "--at", "s:" + at, "--ref-at", "s:" + rat, "--out", dir],
-        { cwd: ROOT, stdio: ["ignore", "pipe", "pipe"], env: process.env, timeout: 15 * 60e3 });
+        { windowsHide: true, cwd: ROOT, stdio: ["ignore", "pipe", "pipe"], env: process.env, timeout: 15 * 60e3 });
       const png = fs.readdirSync(dir).filter(f => f.endsWith(".png")).map(f => path.join(dir, f))[0];
       if (png) shots[key] = png;
     } catch (e) { console.log("render failed", key, String(e.stderr || e.message).slice(-400)); }
@@ -234,7 +234,7 @@ async function main() {
   gaps.slice(0, 6).forEach((g, i) => sheetIn.gaps.push({ rank: i + 1, title: `${i + 1}. ${g.label}: ours ${fmt(g.ours, g.u)}, real ${fmt(g.ref, g.u)} (${g.same}/${g.n} pairs the same way)`,
     png: shots[`${g.worst.o.L.name}|${g.worst.s.i}`] || null, sub: `shown: ${g.worst.o.L.name} #${g.worst.s.i} ${g.worst.s.type} (${fmt(g.worst.s.M[g.k], g.u)}) vs ${g.worst.r.L.name} #${g.worst.rs.i} (${fmt(g.worst.rs.M[g.k], g.u)})` }));
   fs.writeFileSync(path.join(OUT, "sheets.json"), JSON.stringify(sheetIn));
-  try { cp.execFileSync("python", [path.join(__dirname, "compare_sheets.py"), path.join(OUT, "sheets.json"), OUT], { stdio: "inherit" }); } catch (e) { console.log("sheets failed:", e.message); }
+  try { cp.execFileSync("python", [path.join(__dirname, "compare_sheets.py"), path.join(OUT, "sheets.json"), OUT], { windowsHide: true, stdio: "inherit" }); } catch (e) { console.log("sheets failed:", e.message); }
   // report
   const lines = ["# Sections: ours vs real levels", "", `Made ${data.made.slice(0, 16)} by tools/compare_sections.js. Luck for "on a beat" (60 ms) is ~${Math.round(mean(pairs.map(p => p.s.M.luck60)) * 100)}%.`, "",
     "## Where we're off (biggest first)", "", "| # | measure | ours | real | pairs the same way | shown by |", "|---|---|---|---|---|---|"];
