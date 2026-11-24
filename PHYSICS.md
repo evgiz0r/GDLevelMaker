@@ -369,6 +369,15 @@ What exists and what blocks it (2026-11-23):
       or another window also gives (Base After Base "started" 31 s early): now the last frame the bar sat at its
       lowest. replay_run.js: the sound pin locked on the wrong spot for every attempt here (all died in the first
       7% pinned): the bar fit now runs too and the closer one wins; a logger restart resets the keys at its start.
+  - RECORDING 02:45:05 (2026-11-24, 30 min, fixed logger; the video file ends abruptly): 48 attempts by the bar.
+    Clutterfunk 18.4 s CLEAR (81 jumps) -- its replay found the LANDING BUFFER (section above): the sim died at
+    1.9% on the first saw because it dropped an in-air tap the game kept; now it reaches 3.5%, where the game's
+    cube uses a pad on a hanging block that the sim's does not reach (open). The video runs ~1.05 s behind its
+    file name's second here (first jump tracked at 18.28 s, logged at 19.33 s). Other groups: the user's own
+    online levels page, then a 6-12 s level (264-303 s, 6 deaths then a clear) right after GDLM 44's online page
+    (ID 152848491) -- but the repo GDLM 44 runs 42.6 s, so not replayed; the daily "Worldwide" (360-636 s,
+    deaths 37-75%, a practice clear); Bow Wow (668 s, 91.2%); 668-1406 s practice (no attempts from the bar);
+    "IS" by Crenate (1406-1618 s); Sidestep (1741-1791 s). None of the community ones are on this PC.
 - Practice-mode respawns break time -> x; per-attempt segmentation by the attempt label or a jump in x.
 Lab 2 (to build): the mini cube, the pink orb (clean, at ground level so the camera stays still), 45-degree
 and -53-degree teleports, the swing, dual portals, and a green orb in mid-air.
