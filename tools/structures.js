@@ -227,18 +227,26 @@ const pit = (c0, c1) => range(c0, c1).map(c => [9, c, 0, { dy: -13 }]);
 // The first pillar is a 5-wide doorstep (stepped onto from the floor: a 1-wide one asked for a jump 1.7
 // blocks ahead of it, a prejump; a 3-wide one followed by a step up left 38 ms to land early enough).
 // Drops are 1 row: a 2-row drop is walked across over 3 columns and cut by the face over 4 (242 ms).
-function pillarRun(heights, w, riseGap = 0, dropGap = 3, capGap) {
+function pillarRun(heights, w, riseGap = 0, dropGap = 3, capGap, capSpikes, tips) {
   const o = [], xs = [0], wd = i => i ? w : 5;
   // a drop of k rows falls longer and carries farther: its pit is dropGap + k - 1 wide
   const gapTo = (a, b) => b > a ? riseGap : dropGap + Math.max(0, a - b - 1);
   for (let i = 1; i < heights.length; i++) xs.push(xs[i - 1] + wd(i - 1) + gapTo(heights[i - 1], heights[i]));
   heights.forEach((h, i) => o.push(...blocks(xs[i], xs[i] + wd(i), 0, h)));
-  for (let i = 1; i < heights.length; i++) o.push(...pit(xs[i - 1] + wd(i - 1), xs[i]));
+  for (let i = 1; i < heights.length; i++) {
+    const c0 = xs[i - 1] + wd(i - 1), c1 = xs[i], lo = Math.min(heights[i - 1], heights[i]) - 1;
+    // tips: a 1-wide spike-tipped pillar in the middle of a drop pit, a row under the lower landing
+    // (Jumper's "^ on a pillar" in a pit; the tipped-pillar test, 2026-11-24)
+    if (tips && c1 - c0 >= 3 && lo >= 1) { const m = c0 + ((c1 - c0) >> 1);
+      o.push(...pit(c0, m), ...blocks(m, m + 1, 0, lo), ["spike", m, lo], ...pit(m + 1, c1)); }
+    else o.push(...pit(c0, c1));
+  }
   const end = xs[xs.length - 1] + w, last = heights[heights.length - 1];
   // capGap: hanging columns over each pit, their ends capGap rows over the higher pillar beside it
   if (capGap) for (let i = 1; i < heights.length; i++) {
     const c = xs[i - 1] + wd(i - 1), r = Math.max(heights[i - 1], heights[i]) + capGap;
     o.push(...blocks(c, c + 1, r, 12));
+    if (capSpikes) o.push(["spike", c, r - 1, { rot: 180 }]);   // a spike tip under the column's end (Jumper's armed undersides)
   }
   // off the last pillar: a 3-wide pit and a landing block (a drop), or straight down onto the floor run
   const g = gapTo(last, 1);
@@ -257,6 +265,20 @@ S("capped-hop", { tags: ["1x only", "platforming", "pillar", "pit", "ceiling"], 
   doc: "pillars over a pit under hanging columns: the column ends sit 4 rows over the pillars, framing every arc",
   args: { heights: [1, 2, 1, 2, 3, 2], w: 4, cap: 4 },
   build: a => pillarRun(a.heights, a.w, 0, 3, a.cap) });
+// the hanging-spike test (art + craft, 2026-11-24): capped-hop with a spike under each column end, its tip
+// `cap - 1` rows over the higher pillar beside it. Does a spike no sane route touches pass "hazards matter"?
+S("capped-hop-armed", { tags: ["1x only", "platforming", "pillar", "pit", "ceiling"], tier: "Normal",
+  doc: "capped-hop with a hanging spike under every column end (armed undersides): the arcs are framed by spike tips",
+  args: { heights: [1, 2, 1, 2, 3, 2], w: 4, cap: 4 },
+  build: a => pillarRun(a.heights, a.w, 0, 3, a.cap, true) });
+S("pillar-climb-tipped", { tags: ["1x only", "platforming", "pillar", "pit"], tier: "Normal",
+  doc: "pillar-climb with a spike-tipped 1-wide pillar in the middle of each drop pit, a row under the lower landing",
+  args: { heights: [1, 2, 3, 4, 3, 2], w: 4 },
+  build: a => pillarRun(a.heights, a.w, 0, 3, null, false, true) });
+S("capped-hop-armed5", { tags: ["1x only", "platforming", "pillar", "pit", "ceiling"], tier: "Normal",
+  doc: "capped-hop-armed with the columns a row higher (tips 4 rows over the pillars)",
+  args: { heights: [1, 2, 1, 2, 3, 2], w: 4, cap: 5 },
+  build: a => pillarRun(a.heights, a.w, 0, 3, a.cap, true) });
 S("slab-steps", { tags: ["1x only", "platforming", "pit", "floating"], tier: "Normal",
   doc: "floating 4-wide slabs over a pit at one height, 3 apart, off the top of a stair, onto a 3-wide tower (the craft pass hangs them on chains). Slabs a row higher each cut every window with the next slab's face (208 ms), a row lower each gave 42 ms",
   args: { n: 3, gap: 3, w: 4, h: 2 },

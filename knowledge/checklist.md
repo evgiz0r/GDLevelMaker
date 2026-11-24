@@ -46,6 +46,9 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   landing on a lone block that forces the next jump within 250 ms, never 3+ hops in a row each forced
   right after landing. `node tools/reactive.js <level>` (score.js gate "reactive": FAIL at Easy/Normal).
   (critiques.md GDLM 45 v6, blocks 50-75: "very specific cube jumps ... instead of being able to react")
+- [ ] **Density without timing**: arm the pieces the route never touches -- spike tips under hanging columns
+  (3+ rows over the higher pillar beside them) and spike-tipped 1-wide pillars mid-pit, a row under the lower
+  landing; never a spike on a top the route lands on. Checked: windows unchanged (CRAFT.md "Density").
 - [ ] **Pillar hops are tapped, not held**: at Easy/Normal, pillar tops 3-4 wide; a rise is a plain
   step with no pit (any pit cuts its window with the next face: 208 ms over 1 column), a drop crosses a
   3-column pit, +1 per extra row (2-column ones were walked across); floating steps go down, not up. Jumper's 1-2-wide pillars are a Harder rhythm that only works as a held bounce. Generated
