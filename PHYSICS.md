@@ -391,6 +391,27 @@ What exists and what blocks it (2026-11-23):
   Every other clear so far stops in the sim: those first divergences are the best fidelity tests we have (a known
   good input sequence): Clutterfunk 3.5% (02:45), Base After Base 62.8% (~50 ms clock), xStep 22.7% (ship),
   Fingerdash 51.9% (ship after a spider), Jumper / Cycles (02:26, old logger with gaps: not usable).
+- PIPELINE DIAGNOSIS (2026-11-24, "diagnose before blaming physics"), on the fixed-logger recordings:
+  - THE HOOK LOGGER STILL MISSES CLICKS. Electroman, 02:33:44 @43.5 s: the video shows two jumps 0.6 s apart over the
+    two half-buried saws (x 307, 439; gdsolver's real-game plan presses there too, 0.43 s apart); the log has the first
+    (44.645) and nothing until 45.573. No clock shift can replay that: the sim dies at the second saw (1.0-1.5%) for
+    every start from 43.4 to 44.4. Cause: Windows skips a low-level hook that does not answer in time (the PC was
+    running solver jobs). Fix: tools/inputlog_raw.ps1 (raw input, never skipped, the event's own time) runs beside
+    the hook logger from now on (tools/record.sh), so the two are compared on the next recording.
+  - THE VIDEO RUNS ~1 s BEHIND ITS FILE NAME's second (0.98 s at 02:33, 1.05 s at 02:45, from tracked launches vs
+    logged presses), and the bar's attempt start is 0.3-1 s late (Electroman 43.25 vs 43.53; Base After Base 305.44
+    vs 306.43). Both are inside replay_run's +-1.5 s search, so they do not cause the mismatches alone.
+  - CLOCK DRIFT inside a run: Base After Base's launches line up -38 ms early in the first 10 s and -9 ms in the last
+    15 s. replay_run.js now re-fits the presses from 2 s before a sim death within +-60 ms (100 ms in all) and reports
+    "agree after drift" apart (video.drift on the line). Hexagon Force's 40.4% death agrees after a 28 ms re-fit.
+  - WHICH LEVEL each attempt is: local/runs/<video>.levels.json ({"<start s>": "official:N | levels/x.gdlvl | ?"}),
+    read off the frames (level page, "Attempt 1"); when it exists replay_run uses it and not the length guess (GDLM 60
+    and 63 are 30 and 21 s: length alone put one's attempts in the other's file). Written for 02:13, 02:26, 02:33, 02:45.
+  - ONE CLOCK PER RECORDING: local/runs/<video>.clock.json (offset from the recording's clears), reused when one level
+    is replayed alone (Blast Processing in 02:13 agreed only with GDLM 63's clock: 15.7% vs 15.8%; alone it picked a
+    far shift and died at 2.0%). 02:33 has none: its bar starts are off by 0.3-1 s per attempt.
+  - The attempt filter by length now keeps an attempt near the level's own length OR this recording's clears of it
+    (40%): a death's implied length (secs x 100 / %) is rough where speed portals change the pace.
 - PATHS, not only outcomes (tools/pathcheck.js, 2026-11-24): the icon tracked in the video (track.py) against the
   sim's path under the same presses. Height against "the lowest strong edge" failed (Base After Base: errors of
   100-350 units on a run that clears in both -- the camera rises and the edge found is a block row, not the ground),

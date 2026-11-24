@@ -43,14 +43,28 @@ if (!fs.existsSync(runsFile)) execFileSync(process.execPath, [path.join(__dirnam
 const allRuns = JSON.parse(fs.readFileSync(runsFile, "utf8")).runs.filter(r => r.mode === "normal" && r.secs > 1)
   .filter(r => r.start >= +opt("from", -1) && r.start <= +opt("to", 1e9));
 let runs = allRuns;
-{
+// which level each attempt is, read off the frames (the level page, "Attempt 1"): local/runs/<video>.levels.json
+// {"<attempt start s>": "<official:N | levels/x.gdlvl | c<id> | ?>", ...}. When it exists it decides, and the length
+// guess below is not used (short labs of 21 and 30 s, and levels of the same length, cannot be told apart by length).
+const levelsFile = runsFile.replace(/\.json$/, ".levels.json"), ATT = require("./attempts.js");
+const idMap = fs.existsSync(levelsFile) ? JSON.parse(fs.readFileSync(levelsFile, "utf8")) : null;
+if (idMap) {
+  const me = ATT.baseOf(lv), of = r => { const k = Object.keys(idMap).find(k => Math.abs(+k - r.start) < 1.5); return k ? idMap[k] : null; };
+  runs = allRuns.filter(r => { const l = of(r); return l && l !== "?" && ATT.baseOf(l) === me; });
+  console.log(`attempts by ${path.basename(levelsFile)}: ${runs.length} of ${allRuns.length} are this level`);
+}
+if (!idMap) {
   // the reference length: the level's own (its end x through its speed portals, lib/sync.js), else --secs; a
   // recording holds several levels, and --from/--to alone once let GDLM 60's and Blast Processing's attempts into
   // GDLM 63's file (2026-11-24). --any turns the filter off.
   const lens = allRuns.map(r => r.beaten ? r.secs : r.pct > 5 ? r.secs * 100 / r.pct : null);
   let own = 0; try { const S = require("../lib/sync.js").SYNC; own = S.tOfX(S.timeline(w), w.endX); } catch (e) {}
-  const ref = a.includes("--any") ? 0 : +opt("secs", own || 0);
-  if (ref) runs = allRuns.filter((r, i) => lens[i] == null ? r.secs < ref * 0.3 : Math.abs(lens[i] - ref) / ref < 0.25);
+  // a death's implied length (secs * 100 / %) is rough where speed portals change the pace (GD's % is by distance):
+  // an attempt stays if it is near the level's own length OR this recording's clears of it (40%)
+  const beat = allRuns.filter(r => r.beaten).map(r => r.secs).filter(v => !own || Math.abs(v - own) / own < 0.3);
+  const ref = a.includes("--any") ? 0 : +opt("secs", own || 0), ref2 = beat.length ? beat.sort((p, q) => p - q)[beat.length >> 1] : 0;
+  const near = (v, r0) => r0 && Math.abs(v - r0) / r0 < 0.4;
+  if (ref) runs = allRuns.filter((r, i) => lens[i] == null ? r.secs < ref * 0.3 : near(lens[i], ref) || near(lens[i], ref2));
   if (runs.length < allRuns.length) console.log(`${allRuns.length - runs.length} attempt(s) left out: another level by their length (this one ~${ref.toFixed(0)} s; --secs or --any to choose)`);
 }
 
@@ -142,7 +156,16 @@ function fit(r, center, span) {
 }
 const anchors = runs.filter(r => r.beaten).concat(runs.filter(r => !r.beaten).sort((a, b) => b.secs - a.secs)).slice(0, 4);
 const shifts = anchors.map(r => fit(r, 0, 1500)).filter(b => b && b.err <= 2.5).map(b => b.sh).sort((a, b) => a - b);
-const OFFSET = +opt("offset", shifts.length ? shifts[shifts.length >> 1] : 0);
+// one clock offset per RECORDING, not per level (the log's clock vs the video's): kept in local/runs/<video>.clock.json
+// from the first run whose anchors include a clear, and reused by every later run on that recording -- a level replayed
+// alone has no clear of its own to anchor on (Blast Processing in 02:13: 2.0% alone, 15.7% = the video with GDLM 63's
+// clock). --offset overrides it.
+const clockFile = runsFile.replace(/\.json$/, ".clock.json");
+const clearAnchor = anchors.some(r => r.beaten) && shifts.length;
+let saved = null; try { saved = JSON.parse(fs.readFileSync(clockFile, "utf8")); } catch (e) {}
+if (clearAnchor && !opt("offset") && !saved) fs.writeFileSync(clockFile, JSON.stringify({ offset_ms: Math.round(shifts[shifts.length >> 1]), from: L.name || lv, anchors: shifts.map(Math.round) }));
+const OFFSET = +opt("offset", saved ? saved.offset_ms : shifts.length ? shifts[shifts.length >> 1] : 0);
+if (saved && !opt("offset")) { shifts.length = 0; shifts.push(saved.offset_ms); console.log(`recording clock: ${saved.offset_ms} ms (${path.basename(clockFile)}, from ${saved.from})`); }
 console.log(`clock offset ${Math.round(OFFSET)} ms (from ${shifts.length} anchor attempt(s)${shifts.length ? ": " + shifts.map(Math.round).join(", ") : ""})`);
 // the first attempt after a level loads (nothing on the bar for 3 s before): its bar shows ~0.55 s before the
 // level starts moving (GD's fade-in; GDLM 63 +580 ms, Blast Processing +520 ms, 2026-11-24)
@@ -151,16 +174,41 @@ for (const r of runs) {
   const prev = allRuns.filter(q => q.start < r.start).pop(), afterLoad = !prev || r.start - (prev.start + prev.secs) > 3;
   const best = fit(r, OFFSET + (afterLoad ? LOAD_MS : 0), shifts.length ? (afterLoad ? 150 : 60) : 1500);
   if (!best) { out.push({ attempt: r.start, note: "no inputs logged in this attempt" }); continue; }
+  // CLOCK DRIFT (2026-11-24): the input log's clock and the video's frame times drift apart over a run (Base After Base:
+  // its launches line up -38 ms early in the first 10 s and -9 ms in the last 15 s, tools/pathcheck.js), so one offset
+  // per attempt is not enough. Where the sim dies before the video says, the presses from 2 s before that death are
+  // re-fitted within +-DRIFT_STEP ms (at most DRIFT_MAX in all), and again at the next death. Every re-fit is kept
+  // on the line (video.drift) and reported as "agree after drift" apart from a plain agree: a physics error that a
+  // timing shift could hide stays visible there. --no-drift turns it off.
+  const drift = [];
+  if (!a.includes("--no-drift")) {
+    const DRIFT_STEP = 60, DRIFT_MAX = 100, want0 = r.beaten ? 100 : r.pct;
+    let ev = best.list, q = best.q, total = 0;
+    for (let round = 0; round < 6; round++) {
+      const pct = q.done ? 100 : endPct(q);
+      if (pct >= want0 - 2.5) break;                       // the sim already gets as far as the video
+      const cut = (q.path ? q.path.length : 0) - 480; let pick = null;
+      for (let d = -DRIFT_STEP; d <= DRIFT_STEP; d += 1000 / 240) {
+        if (Math.abs(total + d) > DRIFT_MAX) continue;
+        const k = Math.round(d * 240 / 1000), e2 = ev.map(e => e.tick >= cut ? { ...e, tick: e.tick + k } : e), q2 = GD.run(w, e2);
+        const p2 = q2.done ? 100 : endPct(q2);
+        if (p2 > pct + 0.05 && (!pick || p2 > pick.p || (p2 === pick.p && Math.abs(d) < Math.abs(pick.d)))) pick = { d, k, e2, q2, p: p2 };
+      }
+      if (!pick) break;
+      drift.push({ from_tick: cut, ms: Math.round(pick.d) }); total += pick.d; ev = pick.e2; q = pick.q2;
+    }
+    if (drift.length) { best.list = ev; best.q = q; best.pct = q.done ? 100 : endPct(q); best.err = Math.abs(best.pct - want0); }
+  }
   const want = r.beaten ? 100 : r.pct, restart = !r.beaten && r.secs < 3 && r.pct < 5;   // a quick restart, not a death
   const ok = restart || agreeOf({ result: r.beaten ? "clear" : "died", pct: want, sim: { result: best.q.done ? "clear" : "died", pct: best.pct } });
   const row = { video_t: r.start, video: r.beaten ? "beaten" : `died ${r.pct.toFixed(1)}%`, sim: best.q.done ? "beaten" : `died ${best.pct.toFixed(1)}% (${best.q.why || "?"})`,
-    shift_ms: Math.round(best.sh), presses: best.list.filter(e => e.type === "press").length, agree: ok,
+    shift_ms: Math.round(best.sh), drift, presses: best.list.filter(e => e.type === "press").length, agree: ok,
     events: best.list, beaten: !!r.beaten, videoPct: r.beaten ? 100 : r.pct, secs: r.secs, x: +(w.endX * (r.beaten ? 100 : r.pct) / 100).toFixed(1),
     restart, simOut: { result: best.q.done ? "clear" : "died", pct: +best.pct.toFixed(1), x: +(best.q.done ? w.endX : best.q.end.x).toFixed(1),
       why: best.q.done ? null : (best.q.why || "?"), tick: best.q.path ? best.q.path.length - 1 : null, mode: best.q.end.mode } };
   if (!ok) { const s = best.q.end; Object.assign(row, { mismatch: `the sim ${best.q.done ? "finishes" : "dies at " + best.pct.toFixed(1) + "% x " + s.x.toFixed(0) + " (" + s.mode + ", " + (best.q.why || "?") + ")"} where the video ${r.beaten ? "beats it" : "dies at " + want.toFixed(1) + "%"}` }); }
   out.push(row);
-  console.log(`${r.start.toFixed(1).padStart(7)} s  video ${row.video.padEnd(12)} sim ${row.sim.padEnd(24)} shift ${row.shift_ms} ms  ${restart ? "restart (not judged)" : ok ? "agree" : "MISMATCH"}`);
+  console.log(`${r.start.toFixed(1).padStart(7)} s  video ${row.video.padEnd(12)} sim ${row.sim.padEnd(24)} shift ${row.shift_ms} ms  ${restart ? "restart (not judged)" : ok ? (drift.length ? "agree after drift " + drift.map(x => x.ms + " ms @" + (x.from_tick / 240).toFixed(1) + " s").join(", ") : "agree") : "MISMATCH" + (drift.length ? " (drift tried: " + drift.map(x => x.ms).join(", ") + " ms)" : "")}`);
 }
 // the shared per-attempt file (agreed with gd-visuals: the viewer's "you play" uses the same lines, and shows
 // them as a ghost beside the route): local/attempts/<base>.jsonl, one attempt per line
@@ -181,7 +229,7 @@ for (const r of runs) {
       // computed from the two (agreeOf), never set by hand. A quick restart is not judged (agree null).
       result: o.beaten ? "clear" : "died", x: o.x, pct: o.videoPct, t: o.secs, why: null, practice: false, from: null,
       sim: o.simOut, agree: o.restart ? null : agreeOf({ result: o.beaten ? "clear" : "died", pct: o.videoPct, sim: o.simOut }),
-      video: { file: path.basename(video), inputs: path.basename(logFile), t: o.video_t, shift_ms: o.shift_ms, agree: o.agree, res: o.restart ? "restart" : o.agree ? "agree" : "mismatch", mismatch: o.mismatch || undefined } })); }
+      video: { file: path.basename(video), inputs: path.basename(logFile), t: o.video_t, shift_ms: o.shift_ms, drift: o.drift && o.drift.length ? o.drift : undefined, agree: o.agree, res: o.restart ? "restart" : o.agree ? "agree" : "mismatch", mismatch: o.mismatch || undefined } })); }
   // re-running a video replaces that video's lines (no duplicates); other lines (the viewer's, other videos) stay
   const af = path.join(adir, base + ".jsonl"), keep = fs.existsSync(af) ? fs.readFileSync(af, "utf8").split("\n").filter(l => { if (!l.trim()) return false;
     try { const o = JSON.parse(l); return !(o.source === "video" && o.video && o.video.file === path.basename(video)); } catch (e) { return true; } }) : [];
