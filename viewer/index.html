@@ -185,7 +185,8 @@
 <script>
 "use strict";
 const P = GD.PHYS;
-const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
+const cv = document.getElementById("cv"), ctx0 = cv.getContext("2d");
+let ctx = ctx0;   // mapRender swaps in its own offscreen canvas, so drawing a map never takes over the view
 // shoot mode (tools/shoot.js): ?shoot=<job> renders a level's frames headless, without the overlays
 const SHOOT = new URLSearchParams(location.search).get("shoot");
 let MAPCAM = null; // level map (tools/levelmap.js): a fixed camera {x, y, scale, groundY}, no player
@@ -252,18 +253,23 @@ function taskAsk(o) {
     box.hidden = false;
     const close = v => { box.hidden = true; done(v); };
     go.onclick = () => close("go"); alt.onclick = () => close("alt"); document.getElementById("taskCancel").onclick = () => close(null);
-    if (o.match !== undefined) queueText(o.match, o.typical).then(t => { const e = document.getElementById("taskEta"); if (e && !box.hidden) e.innerHTML = t; });
+    if (o.match !== undefined) queueText(o.match, o.cmd).then(t => { const e = document.getElementById("taskEta"); if (e && !box.hidden) e.innerHTML = t; });
   });
 }
-// the queue in words: who runs, how many wait, a rough time until this job is done
-async function queueText(match, typical) {
-  let q = null; try { q = await (await fetch("/heavy/status?match=" + encodeURIComponent(match || "\u0000"), { cache: "no-store" })).json(); } catch (e) {}
+// the queue in words: who runs, how many wait, and the time until this job is done -- only from measurements (the
+// server's tools/jobtime.js: earlier runs of the same tool + level + flags), always with their basis; "not measured"
+// otherwise (CLAUDE.md: estimates come from measurements). cmd: the command line the job will run, for its estimate.
+const etaWords = (min, basis, unknown) => min == null ? "time not measured" : `${unknown ? "at least " : "about "}${min} min <span class="muted">(${esc(basis || "measured")}${unknown ? `; ${unknown} job${unknown === 1 ? "" : "s"} ahead not measured` : ""})</span>`;
+async function queueText(match, cmd) {
+  let q = null; try { q = await (await fetch("/heavy/status?match=" + encodeURIComponent(match || "\u0000") + (cmd ? "&cmd=" + encodeURIComponent(cmd) : ""), { cache: "no-store" })).json(); } catch (e) {}
   if (!q) return "The PC's queue could not be read.";
-  const n = q.holders.length + q.waiting.length, run = q.holders[0];
-  if (q.mine) return q.mine.running ? `It is running now (${q.mine.min} min in, about ${q.mine.eta} min left).` : `It waits its turn: ${q.mine.ahead} job${q.mine.ahead === 1 ? "" : "s"} ahead, done in about ${q.mine.eta} min.`;
-  const wait = q.holders.reduce((m, h) => m + (h.left || 2), 0) + q.waiting.filter(w => w.prio !== "low").length * 2;
-  return !n ? `The PC is free: it starts at once and takes about ${typical} min.`
-    : `The PC is busy (${run ? esc(run.cmd.slice(0, 60)) + " runs" : ""}${q.waiting.length ? ", " + q.waiting.length + " waiting" : ""}). Your job goes ahead of the routine ones: roughly ${Math.max(1, Math.round(wait / 2)) + typical}–${wait + typical} min.`;
+  const n = q.holders.length + q.waiting.length, run = q.holders[0], m = q.mine;
+  if (m) return m.running ? `It is running now (${m.min} min in; ${m.eta == null ? "time not measured" : m.over ? "past its estimate: " + esc(m.basis) : etaWords(m.eta, m.basis) + " left"}).`
+    : `It waits its turn: ${m.ahead} job${m.ahead === 1 ? "" : "s"} ahead, done in ${etaWords(m.eta, m.basis, m.unknown)}.`;
+  const w = q.would || {}, takes = w.est == null ? "its time is not measured yet" : w.secs < 90 ? `it takes about ${w.secs} s <span class="muted">(${esc(w.basis)})</span>` : `it takes ${etaWords(w.est, w.basis)}`;
+  return !n ? `The PC is free: it starts at once; ${takes}.`
+    : `The PC is busy (${[run ? esc(run.cmd.slice(0, 60)) + " runs" : "", q.waiting.length ? q.waiting.length + " waiting" : ""].filter(Boolean).join(", ")}). Your job goes ahead of the routine ones` +
+      (q.holders.length ? `; the running job${q.holders.length === 1 ? "" : "s"} need${q.holders.length === 1 ? "s" : ""} ${etaWords(w.wait, "their measured runs", w.unknown)} more` : "") + `, then ${takes}.`;
 }
 function taskAdd(t) {
   if (TASKS.find(x => x.id === t.id)) return; TASKS.push(t); t.state = "queued"; t.t0 = Date.now(); chipTick();
@@ -279,14 +285,15 @@ async function chipTick() {
   chip.hidden = !live.length;
   if (live.length) {
     const t = live[0], q = t.q;
-    chip.textContent = `⏳ ${t.label}: ` + (q ? (q.running ? `running, ~${q.eta} min` : `${q.ahead} ahead, ~${q.eta} min`) : "starting…") + (live.length > 1 ? ` (+${live.length - 1})` : "");
+    const left = q && (q.eta == null ? "time not measured" : q.over ? "past its estimate" : (q.unknown ? "≥" : "~") + q.eta + " min");
+    chip.textContent = `⏳ ${t.label}: ` + (q ? (q.running ? `running, ${left}` : `${q.ahead} ahead, ${left}`) : "starting…") + (live.length > 1 ? ` (+${live.length - 1})` : "");
     chipTick.timer = setTimeout(chipTick, 5000);
   }
 }
 document.addEventListener("DOMContentLoaded", () => {
   const chip = document.getElementById("taskChip"); if (!chip) return;
   chip.onclick = async () => { const live = TASKS.filter(t => t.state !== "done"); if (!live.length) return;
-    const lines = await Promise.all(live.map(async t => `<p><b>${esc(t.label)}</b>: ${await queueText(t.match, 2)}</p>`));
+    const lines = await Promise.all(live.map(async t => `<p><b>${esc(t.label)}</b>: ${await queueText(t.match, t.cmd)}</p>`));
     const box = document.getElementById("taskBox");
     document.getElementById("taskTitle").textContent = "What the PC is doing for you";
     document.getElementById("taskBody").innerHTML = lines.join("") + "<p class='muted'>Each opens here when it is ready; you can keep using the viewer.</p>";
@@ -352,14 +359,14 @@ async function solveLater(l, levelStr) {
   const match = "solutions.js", objs = (levelStr.match(/;/g) || []).length;
   const ans = await taskAsk({ title: "Find the route of " + l.name,
     what: `This level has no saved route yet, so there is nothing to replay. The PC can find it: the route a person would take, saved so the viewer, the phone and the scores all use it. (${objs} objects.)`,
-    after: "The replay starts here when it is ready; you can keep using the viewer meanwhile.", match, typical: objs > 2000 ? 5 : 2,
+    after: "The replay starts here when it is ready; you can keep using the viewer meanwhile.", match, cmd: "tools/solutions.js " + l.file,
     go: "Solve on the PC", alt: "Solve here now (the page freezes until done)" });
   if (ans === "alt") { const tt = t; load(l.name, l.level, (() => { try { return GD.solveAny(GD.makeWorld(GD.parseLevel(l.level).objects, GD.parseLevel(l.level).header)); } catch (e) { return null; } })() || undefined, l.song); t = tt; draw(); return; }
   if (ans !== "go") { if (L) { L.sol.why = "not solved: no saved route (pick the level again to solve it)"; summary(); } return; }
   try { const r = await fetch("/solve", { method: "POST", body: JSON.stringify({ file: l.file }) }); if (!r.ok) throw new Error(); } catch (e) { notice("Could not ask the PC (is tools/serve.js running?)."); return; }
   if (L) { L.sol.why = "solving on the PC…"; summary(); }
   let sol = null;
-  taskAdd({ id: "solve:" + l.file, label: "route of " + l.name, match: "solutions.js",
+  taskAdd({ id: "solve:" + l.file, label: "route of " + l.name, match: "solutions.js", cmd: "tools/solutions.js " + l.file,
     ready: async () => { try { sol = (await (await fetch("/solution?file=" + encodeURIComponent(l.file), { cache: "no-store" })).json()).solution; } catch (e) {} return !!sol; },
     done: () => { l.solution = sol; notice("The route of " + esc(l.name) + " is ready.", 4000); if (ALL[pick.value] === l) { const tt = t; pick.dispatchEvent(new Event("change")); t = Math.min(tt, (L.path.length - 1) / P.TPS); draw(); } } });
 }
@@ -576,8 +583,11 @@ function workRender() {
   h += `<h3>Builds · ${d.wip.length}</h3>` + d.wip.sort((a, b) => (!!b.waiting - !!a.waiting) || String(b.updated || "").localeCompare(String(a.updated || ""))).map(l =>
     `<div class="wkRow" data-file="${esc(l.file)}"><span class="nm">${esc(l.name)}</span><span class="pkBadge">${esc(l.session || "")}</span>${l.stage ? `<span class="pkBadge" style="background:#2b3a66;color:#cfe0ff">stage: ${esc(l.stage)}</span>` : ""}${l.waiting ? `<span class="pkBadge wip">waits for your ✓ on ${esc(l.waiting)}</span>` : ""}<span class="muted">${ago(l.updated || l.made)}</span></div>`).join("");
   const q = d.heavy;
-  h += `<h3>The PC's queue</h3>` + (!q ? "<p class='muted'>not readable</p>" : (q.holders.length ? q.holders.map(x => `<div>▶ <b>${esc(x.cmd.slice(0, 90))}</b> <span class="muted">${esc(x.session)} · ${x.min} min in${x.left ? ", ~" + x.left + " min left" : ""}</span></div>`).join("") : "<p class='muted'>nothing running</p>") +
-    q.waiting.map((x, i) => `<div class="muted">${i + 1}. ${esc(x.cmd.slice(0, 90))} · ${esc(x.session)}${x.prio && x.prio !== "normal" ? " · " + esc(x.prio) : ""}</div>`).join("") + (q.free ? `<div class="muted">${q.free} MB free</div>` : ""));
+  h += `<h3>The PC's queue</h3>` + (!q ? "<p class='muted'>not readable</p>" : (q.holders.length ? q.holders.map(x => `<div>▶ <b>${esc(x.cmd.slice(0, 90))}</b> <span class="muted">${esc(x.session)} · ${x.min} min in · ${x.left == null ? "time not measured" : x.over ? "past its estimate (" + esc(x.basis) + ")" : "~" + x.left + " min left (" + esc(x.basis) + ")"}</span></div>`).join("") : "<p class='muted'>nothing running</p>") +
+    q.waiting.map((x, i) => `<div class="muted">${i + 1}. ${esc(x.cmd.slice(0, 90))} · ${esc(x.session)}${x.prio && x.prio !== "normal" ? " · " + esc(x.prio) : ""} · ${x.est == null ? "not measured" : "~" + (x.secs < 90 ? x.secs + " s" : x.est + " min") + " (" + esc(x.basis) + ")"}</div>`).join("") + (q.free ? `<div class="muted">${q.free} MB free</div>` : "") +
+    // estimate vs actual of the last finished jobs, so drift shows (tools/jobtime.js recent)
+    ((q.recent || []).length ? `<h3>Finished: estimate vs actual</h3>` + q.recent.map(r => { const f = s => s < 90 ? Math.round(s) + " s" : Math.round(s / 60) + " min", off = r.est && (r.secs > 2 * r.est || r.secs < r.est / 2);
+      return `<div class="muted">${esc(r.tool)} ${esc(r.level || "")}${(r.flags || []).length ? " " + esc(r.flags.join(" ")) : ""} · took <b>${f(r.secs)}</b>${r.ok === false ? " (failed)" : ""} · estimate ${r.est ? f(r.est) : "none"}${off ? ` <b style="color:#ffb3b3">off ${(r.secs / r.est).toFixed(1)}x</b>` : ""} · ${ago(r.at)}</div>`; }).join("") : ""));
   el.innerHTML = h;
   el.querySelectorAll("[data-card]").forEach(b => b.onclick = async () => {
     let ans = b.dataset.ans, note;
@@ -678,11 +688,11 @@ function stageHits() {
 }
 async function stageSolve(st) {
   const ans = await taskAsk({ title: "Find the route of stage " + st.stage, what: "The PC finds the route of this stage's level (as a person would play it) and saves it, so the stage replays here.",
-    after: "It replays here when ready; you can keep using the viewer.", match: "solutions.js", typical: 2, go: "Solve on the PC" });
+    after: "It replays here when ready; you can keep using the viewer.", match: "solutions.js", cmd: "tools/solutions.js " + (st.file || "stage.gdlvl"), go: "Solve on the PC" });
   if (ans !== "go") return;
   try { const r = await fetch("/solve", { method: "POST", body: JSON.stringify({ file: st.file }) }); if (!r.ok) throw new Error(); } catch (e) { notice("Could not ask the PC (is tools/serve.js running?)."); return; }
   let sol = null;
-  taskAdd({ id: "solve:" + st.file, label: "route of stage " + st.stage, match: "solutions.js",
+  taskAdd({ id: "solve:" + st.file, label: "route of stage " + st.stage, match: "solutions.js", cmd: "tools/solutions.js " + st.file,
     ready: async () => { try { sol = (await (await fetch("/solution?file=" + encodeURIComponent(st.file), { cache: "no-store" })).json()).solution; } catch (e) {} return !!sol; },
     done: () => { st.solution = sol; notice("The route of stage " + esc(st.stage) + " is ready.", 4000); if (STG.cur === st.stage) stageOpen(st.stage); } });
 }
@@ -944,16 +954,22 @@ if (document.getElementById("mapBtn")) document.getElementById("mapBtn").onclick
   drawMapHere(l);
 };
 // the level map drawn in this page (the shots' mapRender), for the level on screen; the view is restored after
+// drawn in the page without freezing it (the ~100 ms rule): offscreen, one chunk per task with a yield between, progress
+// in the notice; the view, the clock and the controls stay usable; another level opened meanwhile cancels it.
 async function drawMapHere(l) {
-  if (!L) return;
+  if (!L || drawMapHere.busy) return;
+  drawMapHere.busy = true;
   notice("drawing the level map…", 0);
-  const keep = { t, playing, W, H };
+  const keep = { t, playing };
   playing = false; setPlay();
   if (L.path[L.path.length - 1].x < L.world.endX - 30 && !L.noRoute) ghostExtend(L, null, true);   // a run that stops early: the rest as a ghost
-  let url = null; try { url = await mapRender({ scale: 0.5 }); } catch (e) { console.warn(e); }
-  resize(); t = keep.t; draw();
+  let url = null, why = "";
+  try { url = await mapRender({ scale: 0.5, blob: true, progress: (i, n) => { if (!document.getElementById("notice").hidden) notice(`drawing the level map… ${i}/${n}`, 0); } }); }
+  catch (e) { why = e.message; console.warn(e); }
+  drawMapHere.busy = false;
+  t = keep.t; draw();
   const n = document.getElementById("notice"); if (n) n.hidden = true;
-  if (url) showMap(url); else notice("The map could not be drawn here.");
+  if (url) showMap(url); else notice(why === "cancelled" ? "Map cancelled: another level was opened." : "The map could not be drawn here.");
 };
 // no map yet: explain, then the PC's tools/serve.js makes it (tools/levelmap.js under the heavy lock, high priority)
 async function makeMap(l, name, url) {
@@ -961,11 +977,11 @@ async function makeMap(l, name, url) {
   const match = "levelmap.js " + l.file;
   const ans = await taskAsk({ title: "Make the level map of " + l.name,
     what: "The PC solves the level's route if it has none saved, then draws the whole level as one long picture, with the route drawn over it: every press, the modes, the portals.",
-    after: "It opens here when ready; you can keep using the viewer meanwhile. A small chip in the corner shows how far it is.", match, typical: 2 });
+    after: "It opens here when ready; you can keep using the viewer meanwhile. A small chip in the corner shows how far it is.", match, cmd: "tools/levelmap.js " + l.file + " --name " + name });
   if (ans !== "go") return;
   let r = null; try { r = await fetch("/maps/make", { method: "POST", body: JSON.stringify({ file: l.file, name }) }); } catch (e) {}
   if (!r || !r.ok) { notice("The map could not be started (is tools/serve.js running?)."); return; }
-  taskAdd({ id: "map:" + l.file, label: "map of " + l.name, match,
+  taskAdd({ id: "map:" + l.file, label: "map of " + l.name, match, cmd: "tools/levelmap.js " + l.file + " --name " + name,
     ready: async () => { try { return (await fetch(url, { method: "HEAD", cache: "no-store" })).ok; } catch (e) { return false; } },
     done: () => { notice("The map of " + esc(l.name) + " is ready.", 4000); showMap(url); } });
 }
@@ -1814,17 +1830,36 @@ async function mapRender(job) {
   // the scene, chunk by chunk
   const CH = 600;
   const timeAtX = x => { let lo = 0, hi = path.length - 1; if (path[hi].x < x) return hi / P.TPS; while (lo < hi) { const m = (lo + hi) >> 1; if (path[m].x >= x) hi = m; else lo = m + 1; } return lo / P.TPS; };
-  W = cv.width = Math.round(CH * S); H = cv.height = sceneH;
-  let first = true;
-  for (let r = 0; r < rows; r++) for (let a = r * rowU; a < (r + 1) * rowU && a < endX; a += CH) {
-    MAPCAM = { x: a, y: camY0, scale: S, groundY: H - GROUND * S };
-    t = timeAtX(a + CH / 2); playing = false;
-    for (let k = 0; k < (first ? 6 : 2); k++) { draw(); await new Promise(res => setTimeout(res, first ? 150 : 20)); }
-    first = false;
-    const w = Math.min(CH, (r + 1) * rowU - a);
-    X.drawImage(cv, 0, 0, Math.round(w * S), H, 10 + Math.round((a - r * rowU) * S), HEAD + r * (rowH + GAP) + TOP, Math.round(w * S), H);
-  }
-  MAPCAM = null;
+  // each chunk is drawn into an offscreen canvas (draw() paints into ctx), so the page's own view is untouched; the
+  // view's ctx / W / H come back between chunks, so a redraw the user causes meanwhile paints the view as usual
+  const off = document.createElement("canvas"); off.width = Math.round(CH * S); off.height = sceneH;
+  const offCtx = off.getContext("2d"), keepV = { W, H, t }, L0 = L;
+  let nChunks = 0; for (let r = 0; r < rows; r++) for (let a = r * rowU; a < (r + 1) * rowU && a < endX; a += CH) nChunks++;
+  let first = true, done = 0;
+  const yieldNow = ms => new Promise(res => setTimeout(res, ms));
+  try {
+    for (let r = 0; r < rows; r++) for (let a = r * rowU; a < (r + 1) * rowU && a < endX; a += CH) {
+      // the first chunk waits for images (GD art) to load; then each chunk is drawn again while the art's time budget
+      // left tinted sprites out (lib/art.js budget(): new colours cost a canvas op each), so no task runs long
+      const AR = GD.ART_LIB;
+      for (let k = 0, again = true; again && k < 40; k++) {
+        if (L !== L0) throw new Error("cancelled");
+        ctx = offCtx; W = off.width; H = off.height;
+        MAPCAM = { x: a, y: camY0, scale: S, groundY: H - GROUND * S };
+        t = timeAtX(a + CH / 2); playing = false;
+        if (AR && AR.budget) AR.budget(40);
+        try { draw(); } finally { if (AR && AR.budget) AR.budget(0); ctx = ctx0; MAPCAM = null; W = keepV.W; H = keepV.H; t = keepV.t; }
+        again = (first && k < 5) || k < 1 || !!(AR && AR.S && AR.S.missed);
+        await yieldNow(first ? 150 : 0);
+      }
+      first = false;
+      const w = Math.min(CH, (r + 1) * rowU - a);
+      X.drawImage(off, 0, 0, Math.round(w * S), sceneH, 10 + Math.round((a - r * rowU) * S), HEAD + r * (rowH + GAP) + TOP, Math.round(w * S), sceneH);
+      if (job.progress) job.progress(++done, nChunks);
+    }
+  } finally { ctx = ctx0; MAPCAM = null; W = keepV.W; H = keepV.H; }
+  if (L !== L0) throw new Error("cancelled");
+  await yieldNow(0);
   // overlay: level x, y -> map pixels
   const rowOf = x => Math.min(rows - 1, Math.max(0, Math.floor(x / rowU)));
   const mx = x => 10 + (x - rowOf(x) * rowU) * S, my = (x, y) => HEAD + rowOf(x) * (rowH + GAP) + TOP + (sceneH - GROUND * S) - (y - camY0) * S;
@@ -1909,6 +1944,8 @@ async function mapRender(job) {
   X.fillStyle = "#fff"; X.beginPath(); X.arc(lx + 6, 42, 5, 0, 7); X.fill(); X.fillStyle = "#ddd"; X.fillText("press", lx + 15, 46); lx += 62;
   X.strokeStyle = "#fff"; X.lineWidth = 2; X.strokeRect(lx, 38, 8, 8); X.fillText("release", lx + 13, 46); lx += 70;
   X.fillStyle = "#ffe14d"; X.fillText("◆ orb / pad", lx, 46);
+  // in the page: encoded off the main thread (toBlob) -- toDataURL of a big map blocked for long; tools/shoot.js wants a data url
+  if (job.blob) return await new Promise(res => out.toBlob(b => res(b ? URL.createObjectURL(b) : null), "image/png"));
   return out.toDataURL("image/png");
 }
 loadMarks();
