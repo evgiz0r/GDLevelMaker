@@ -161,3 +161,31 @@ model from gd-showcase's tools/storyboard.js once it lands (richer: moments, pla
 - Every level has a song, test labs included: recordings line the user's inputs up with the song's audio
   (tools/audiolog.ps1, replay_run.js); a level with no song falls back to the progress bar.
 - Viewer first: nothing is installed or uploaded until the user has seen it there and says so.
+
+## 6. Reverse: decompile a real level, rebuild it from its spec, diff (tools/recompile.js)
+
+The benchmark for this whole way of building (the user, 2026-11-24: "level -> sections -> spec -> sections -> level ->
+compare to original"; VIBES.md, USE_CASES 31). One command, one artifact per step, each a stage of the rebuild in the
+viewer (stage bar: original > spec > plan > layout ... final > compare), so the user can stop at any step, edit, and
+go on:
+
+    node tools/recompile.js <official:N | c<id> | level.gdlvl> --name "GDLM NN name" [--spec sheet.vibe.json]
+                            [--from decompile|abstract|plan|build|compare] [--to ...] [--pictures]
+
+1. **Decompile** (level -> sections): cut at the song's sections (taste's cut, tools/compare_sections.js), each with
+   its type, modes, speeds, energy (tools/energy.js), density, colours, moments (tools/storyboard.js).
+   `local/recompile/<slug>/sections.json`; stage **original** (the real level with its sections on the track).
+2. **Abstract** (sections -> spec): the vibe sheet in the user's layers (intent, experience curve, scenes and roles,
+   motifs, rhythm; VIBES.md). The lossy step: no blocks, no positions. The machine writes one; a person's sheet
+   (`--spec`) replaces it. `spec.json`, `spec.md`, `briefs/<NN>_<name>.vibe.json`; stage **spec**.
+3. **Plan** (spec -> sections): tools/vibe.js makes the compose brief, tools/collab.js split pins the parts' seams to
+   song time, tools/coordinator.js plan gives each part its role -- from the spec ALONE. `briefs/<NN>_<name>.json`,
+   `plan.json`; stage **plan**.
+4. **Build** (sections -> level): each part built alone, then joined (section 1). The level; stages layout ... final.
+5. **Compare**: the original vs the spec used (what the spec dropped), the spec vs the rebuild decompiled by steps 1-2
+   (what the build could not deliver), tools/vibediff.js beat by beat and taste's section comparison
+   (`--pictures`: the side-by-side sheets). `compare.md`; stage **compare**.
+
+A gap found in the spec is a missing layer or field (VIBES.md "The vibe sheet"); a gap found in the build is something
+the pipeline cannot make yet (a mode compose has no section for, mirror portals, per-beat effects): both go into
+VIBES.md "Results" with the level they came from.

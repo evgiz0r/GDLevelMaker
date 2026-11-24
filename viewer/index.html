@@ -710,7 +710,7 @@ else document.getElementById("workBtn").hidden = true;
 // is a click away. The song stage is an empty level with the song, its beats and sections; the path stage draws the
 // planned presses (◇) beside the measured route.
 const STG = { base: null, data: null, cur: null };
-const STAGE_ORDER = ["song", "layout", "path", "deco", "final"];
+const STAGE_ORDER = ["original", "spec", "plan", "song", "layout", "path", "deco", "final", "compare"];   // original/spec/plan/compare: tools/recompile.js
 async function stagesFor(l) {
   const bar = document.getElementById("stagebar");
   if (!l || !l.wip || window.GD_PAGES || window.GD_PHONE || !location.protocol.startsWith("http")) { if (!STG.cur) { bar.hidden = true; STG.base = null; } return; }
@@ -727,7 +727,7 @@ function stageRender() {
   bar.hidden = false;
   const have = new Map(STG.data.stages.map(x => [x.stage, x])), last = STG.data.stages[STG.data.stages.length - 1].stage;
   const lit = STG.cur || (STG.base && STG.base.stagesOnly ? last : null);
-  bar.innerHTML = `<span class="muted">stages</span>` + STAGE_ORDER.map((n, i) => (i ? `<span class="sep">›</span>` : "") + (have.has(n)
+  bar.innerHTML = `<span class="muted">stages</span>` + STAGE_ORDER.filter(n => have.has(n) || !/^(original|spec|plan|compare)$/.test(n)).map((n, i) => (i ? `<span class="sep">›</span>` : "") + (have.has(n)
     ? `<button data-stage="${n}" class="${lit === n ? "cur" : ""}" title="${esc((have.get(n).note || "") + " · " + new Date(have.get(n).at).toLocaleString())}">${n}${n === last ? " ●" : ""}</button>`
     : `<span class="todo" title="not made yet">${n}</span>`)).join("") +
     (STG.cur && !STG.base.stagesOnly ? `<button id="stageBack" title="back to the level as it is now">current level</button>` : "") +
@@ -818,6 +818,8 @@ function stageOpen(name) {
     if (secs && secs.length || st.note || tm) document.getElementById("summary").insertAdjacentHTML("beforeend",
       `<p class="muted">stage <b>${esc(name)}</b>${st.note ? ": " + esc(st.note) : ""}${secs && secs.length ? "<br>sections: " + secs.map(x => esc(x.name) + " " + (+x.from).toFixed(1) + "–" + (+x.to).toFixed(1) + " s").join(" · ") : ""}` +
       (tm ? `<br>build time: ${esc(tm)}${st.data.target ? ` (this stage's target ${esc(st.data.target)} s${st.data.secs > st.data.target ? ", <b>over</b>" : ""})` : ""}` : "") + `</p>`);
+    // a round-trip stage's one-pager (tools/recompile.js: the spec, the comparison) as text under the level
+    if (st.data && typeof st.data.md === "string") document.getElementById("summary").insertAdjacentHTML("beforeend", `<pre class="stageMd" style="white-space:pre-wrap;font-size:12px;max-height:50vh;overflow:auto">${esc(st.data.md)}</pre>`);
   };
   const pending = { ok: false, events: [], pending: true, why: "this stage has no route yet (find the route: the button above)" };
   // no route yet, but a plan (the layout / path stage: the patterns' intended presses): replay it at once, no solve

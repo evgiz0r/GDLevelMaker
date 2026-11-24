@@ -45,7 +45,7 @@ if (require.main === module) (async () => {
   // --solve forces the page's solve.
   if (!lv.solution && !args.includes("--solve") && (lv.levelStr.match(/;/g) || []).length > 3000) { lv.solution = { ok: false, events: [], why: "not solved: the camera runs at the level's speed", pending: true }; lv.ghostFollow = true; }
   // the level's length in seconds, roughly, for the default times (the page clamps to the real end)
-  const lenS = (() => { const P = require("../lib/physics.js"); const xs = require("../lib/gd.js").parseLevel(lv.levelStr).objects.map(o => o.x); return Math.max(2, Math.max(...xs) / ((P.PHYS || P).SPEED || 311.58)); })();
+  const lenS = (() => { const P = require("../lib/physics.js"); const xs = require("../lib/gd.js").parseLevel(lv.levelStr).objects.map(o => o.x); return Math.max(2, xs.reduce((m, v) => v > m ? v : m, 0) / ((P.PHYS || P).SPEED || 311.58)); })();
   let times;
   if (opt("--at")) times = opt("--at").split(",").map(Number).filter(isFinite);
   else { const step = +(opt("--every") || 2); times = []; for (let s = 0; s <= lenS && times.length < 30; s += step) times.push(+s.toFixed(2)); }

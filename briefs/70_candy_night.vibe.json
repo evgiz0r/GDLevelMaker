@@ -1,0 +1,174 @@
+{
+ "title": "GDLM 70 candy night",
+ "desc": "Spooky Dash, decompiled and rebuilt from its spec alone.",
+ "journey": "intro (cube then robot, purple place) -> drop (robot then ship then cube then ufo then robot, purple place) -> calm (robot then cube then ufo, purple place) -> drop (cube then ship then cube then ball then robot, purple place) -> finale (robot, purple place)",
+ "oneImage": "densest deco (51/block) at 56.0 s",
+ "never": [],
+ "song": {
+  "custom": 183718,
+  "from": 0
+ },
+ "feel": {
+  "tier": "Normal",
+  "modeStretch": 3.5,
+  "density": "0.15 hazards per block"
+ },
+ "lookRule": "shared",
+ "camera": "zoom pulses",
+ "motifs": [
+  "zoom pulses (88)",
+  "speed changes as punctuation (4)"
+ ],
+ "rhythm": {
+  "sync": "portals",
+  "speed": "3x"
+ },
+ "beats": [
+  {
+   "id": "intro 1",
+   "t": [
+    0.05,
+    8.62
+   ],
+   "role": "intro",
+   "energy": 0.61,
+   "place": "a purple place",
+   "mood": "driving, dark",
+   "vehicle": {
+    "mode": "cube then robot",
+    "speed": "1x",
+    "at": [
+     5
+    ],
+    "speeds": [
+     "1x",
+     "2x"
+    ]
+   },
+   "moment": "speed 2x at 3.4 s",
+   "look": {
+    "palette": {
+     "bg": "#3c0082"
+    }
+   },
+   "transition": {}
+  },
+  {
+   "id": "drop 2",
+   "t": [
+    8.62,
+    32.62
+   ],
+   "role": "drop",
+   "energy": 0.58,
+   "place": "a purple place",
+   "mood": "steady, dark",
+   "vehicle": {
+    "mode": "robot then ship then cube then ufo then robot",
+    "speed": "2x",
+    "at": [
+     13.7,
+     17.9,
+     24.9,
+     27.4
+    ],
+    "speeds": [
+     "2x",
+     "3x",
+     "3x",
+     "3x",
+     "3x"
+    ]
+   },
+   "moment": "zoom 1 at 10.9 s",
+   "look": {
+    "palette": {
+     "bg": "#3c0082"
+    }
+   },
+   "transition": {}
+  },
+  {
+   "id": "calm 3",
+   "t": [
+    32.62,
+    46.34
+   ],
+   "role": "calm",
+   "energy": 0.39,
+   "place": "a purple place",
+   "mood": "steady, dark",
+   "vehicle": {
+    "mode": "robot then cube then ufo",
+    "speed": "2x",
+    "at": [
+     36.5,
+     43.4
+    ],
+    "speeds": [
+     "2x",
+     "2x",
+     "3x"
+    ]
+   },
+   "moment": "speed 3x at 41.1 s",
+   "look": {
+    "palette": {
+     "bg": "#3c0082"
+    }
+   },
+   "transition": {}
+  },
+  {
+   "id": "drop 4",
+   "t": [
+    46.34,
+    60.05
+   ],
+   "role": "drop",
+   "energy": 0.59,
+   "place": "a purple place",
+   "mood": "steady, dark",
+   "vehicle": {
+    "mode": "cube then ship then cube then ball then robot",
+    "speed": "3x",
+    "at": [
+     50,
+     53,
+     54.8,
+     58.3
+    ]
+   },
+   "moment": "zoom 1.021 at 53.4 s",
+   "look": {
+    "palette": {
+     "bg": "#3c0082"
+    }
+   },
+   "transition": {}
+  },
+  {
+   "id": "finale 5",
+   "t": [
+    60.05,
+    70.25
+   ],
+   "role": "finale",
+   "energy": 0.21,
+   "place": "a purple place",
+   "mood": "calm, dark",
+   "vehicle": {
+    "mode": "robot",
+    "speed": "3x"
+   },
+   "moment": "densest deco (47/block) at 62 s",
+   "look": {
+    "palette": {
+     "bg": "#3c0082"
+    }
+   },
+   "transition": {}
+  }
+ ],
+ "machine": true
+}

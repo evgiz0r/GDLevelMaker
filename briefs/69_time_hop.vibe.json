@@ -1,42 +1,250 @@
 {
-  "title": "GDLM 69 time hop",
-  "desc": "A ride through time: a new era in a new colour on every phrase.",
-  "journey": "A ride through time: each phrase of the song is a new era in a new colour, the middle falls into a dark void between eras, and the end hops eras faster and faster until the ship flies out.",
-  "oneImage": "The whole screen switching colour on a phrase start, as if the time machine just jumped.",
-  "never": ["deco that competes with the path (the look is the colours, not objects)", "speed changes (the song's steady 143 BPM is the clock)", "a long flying part before the middle"],
-  "song": { "official": 8, "from": 0, "shape": [
-    { "t": [0, 10], "part": "intro" }, { "t": [10, 41.6], "part": "build" }, { "t": [41.6, 61.4], "part": "break" },
-    { "t": [61.4, 88], "part": "drop" }, { "t": [88, 94.6], "part": "finale" } ] },
-  "feel": { "tier": "Normal", "modeStretch": 12, "density": "sparse: about one hazard per block at most, with breathing room" },
-  "lookRule": "per-part",
-  "camera": "plain: the camera follows the player, no zoom or shake; the colours do all the telling",
-  "motifs": [
-    "a palette switch on a phrase start = a jump to a new era (instant when hopping, a 10 s fade when sinking into or out of the void)",
-    "upside-down cube moments as short 'the world turned over' interludes",
-    "flipped screen (mirror) once time runs backwards"
-  ],
-  "rhythm": { "sync": "portals", "speed": "1x" },
-  "beats": [
-    { "id": "departure", "t": [0, 10], "role": "intro", "energy": 0.3, "place": "a bright teal present", "mood": "light, curious",
-      "vehicle": { "mode": "cube", "speed": "1x", "why": "on foot before the machine starts" },
-      "moment": "a short upside-down hop at 4 s: a taste of the world turning", "look": { "palette": { "bg": "#00f0b5" } } },
-    { "id": "first era", "t": [10, 28], "role": "build", "energy": 0.45, "place": "a deep blue era", "mood": "steady, on the beat",
-      "vehicle": { "mode": "cube", "speed": "1x", "why": "the rhythm of the machine: jumps on the beat" },
-      "moment": "the first jump in time: the screen turns blue", "look": { "palette": { "bg": "#0063fd" } }, "transition": { "in": "instant" } },
-    { "id": "reversal", "t": [28, 41.6], "role": "build", "energy": 0.7, "place": "a pink era where time runs backwards", "mood": "tense, upside-down logic",
-      "vehicle": { "mode": "cube then ship", "at": 34, "speed": "1x", "why": "the ship is the hardest early stretch: the machine takes off" },
-      "moment": "the screen flips (mirror) and turns pink; a ship at 34 s", "look": { "palette": { "bg": "#ff00bf" } }, "transition": { "in": "instant" } },
-    { "id": "the void", "t": [41.6, 61.4], "role": "break", "energy": 0.4, "place": "the dark between eras", "mood": "quiet, lost, slow fade to black",
-      "vehicle": { "mode": "cube", "speed": "1x", "why": "back on foot, finding the way in the dark" },
-      "moment": "a 10 s fade to near black", "look": { "palette": { "bg": "#180017" } }, "transition": { "in": "fade 10" } },
-    { "id": "re-emergence", "t": [61.4, 68.3], "role": "build", "energy": 0.6, "place": "a purple dawn", "mood": "rising again",
-      "vehicle": { "mode": "upside cube", "speed": "1x", "why": "the world turns over as the machine restarts" },
-      "moment": "a 10 s fade up from black into purple", "look": { "palette": { "bg": "#9a0082" } }, "transition": { "in": "fade 10" } },
-    { "id": "era hopping", "t": [68.3, 88.2], "role": "drop", "energy": 0.8, "place": "pink, green, cyan, magenta, green: an era every few seconds", "mood": "giddy, fast-changing",
-      "vehicle": { "mode": "cube", "speed": "1x", "why": "the colours move fast, the cube keeps its feet so the player can watch them" },
-      "moment": "an instant palette switch every 3-7 s, flipped and upside-down moments between", "look": { "palette": { "bg": "#fb00d1" }, "palettes": ["#fb00d1", "#0fff00", "#00fcfc", "#ff00d6", "#31ff00"] }, "transition": { "in": "instant" } },
-    { "id": "lift-off", "t": [88.2, 94.6], "role": "finale", "energy": 0.85, "place": "a blue sky", "mood": "triumphant escape",
-      "vehicle": { "mode": "ship", "speed": "1x", "why": "the machine flies out of time" },
-      "moment": "ship, then upside-down ship to the end", "look": { "palette": { "bg": "#0076fc" } }, "transition": { "in": "fade 5" } }
+ "title": "GDLM 69 time hop",
+ "desc": "A ride through time: a new era in a new colour on every phrase.",
+ "journey": "A ride through time: each phrase of the song is a new era in a new colour, the middle falls into a dark void between eras, and the end hops eras faster and faster until the ship flies out.",
+ "oneImage": "The whole screen switching colour on a phrase start, as if the time machine just jumped.",
+ "never": [
+  "deco that competes with the path (the look is the colours, not objects)",
+  "speed changes (the song's steady 143 BPM is the clock)",
+  "a long flying part before the middle"
+ ],
+ "song": {
+  "official": 8,
+  "from": 0,
+  "shape": [
+   {
+    "t": [
+     0,
+     10
+    ],
+    "part": "intro"
+   },
+   {
+    "t": [
+     10,
+     41.6
+    ],
+    "part": "build"
+   },
+   {
+    "t": [
+     41.6,
+     61.4
+    ],
+    "part": "break"
+   },
+   {
+    "t": [
+     61.4,
+     88
+    ],
+    "part": "drop"
+   },
+   {
+    "t": [
+     88,
+     94.6
+    ],
+    "part": "finale"
+   }
   ]
+ },
+ "feel": {
+  "tier": "Normal",
+  "modeStretch": 12,
+  "density": "sparse: about one hazard per block at most, with breathing room"
+ },
+ "lookRule": "per-part",
+ "camera": "plain: the camera follows the player, no zoom or shake; the colours do all the telling",
+ "motifs": [
+  "a palette switch on a phrase start = a jump to a new era (instant when hopping, a 10 s fade when sinking into or out of the void)",
+  "upside-down cube moments as short 'the world turned over' interludes",
+  "flipped screen (mirror) once time runs backwards"
+ ],
+ "rhythm": {
+  "sync": "portals",
+  "speed": "1x"
+ },
+ "beats": [
+  {
+   "id": "departure",
+   "t": [
+    0,
+    10
+   ],
+   "role": "intro",
+   "energy": 0.3,
+   "place": "a bright teal present",
+   "mood": "light, curious",
+   "vehicle": {
+    "mode": "cube",
+    "speed": "1x",
+    "why": "on foot before the machine starts"
+   },
+   "moment": "a short upside-down hop at 4 s: a taste of the world turning",
+   "look": {
+    "palette": {
+     "bg": "#00f0b5"
+    }
+   }
+  },
+  {
+   "id": "first era",
+   "t": [
+    10,
+    28
+   ],
+   "role": "build",
+   "energy": 0.45,
+   "place": "a deep blue era",
+   "mood": "steady, on the beat",
+   "vehicle": {
+    "mode": "cube",
+    "speed": "1x",
+    "why": "the rhythm of the machine: jumps on the beat"
+   },
+   "moment": "the first jump in time: the screen turns blue",
+   "look": {
+    "palette": {
+     "bg": "#0063fd"
+    }
+   },
+   "transition": {
+    "in": "instant"
+   }
+  },
+  {
+   "id": "reversal",
+   "t": [
+    28,
+    41.6
+   ],
+   "role": "build",
+   "energy": 0.7,
+   "place": "a pink era where time runs backwards",
+   "mood": "tense, upside-down logic",
+   "vehicle": {
+    "mode": "cube then ship",
+    "at": 34,
+    "speed": "1x",
+    "why": "the ship is the hardest early stretch: the machine takes off"
+   },
+   "moment": "the screen flips (mirror) and turns pink; a ship at 34 s",
+   "look": {
+    "palette": {
+     "bg": "#ff00bf"
+    }
+   },
+   "transition": {
+    "in": "instant"
+   }
+  },
+  {
+   "id": "the void",
+   "t": [
+    41.6,
+    61.4
+   ],
+   "role": "break",
+   "energy": 0.4,
+   "place": "the dark between eras",
+   "mood": "quiet, lost, slow fade to black",
+   "vehicle": {
+    "mode": "cube",
+    "speed": "1x",
+    "why": "back on foot, finding the way in the dark"
+   },
+   "moment": "a 10 s fade to near black",
+   "look": {
+    "palette": {
+     "bg": "#180017"
+    }
+   },
+   "transition": {
+    "in": "fade 10"
+   }
+  },
+  {
+   "id": "re-emergence",
+   "t": [
+    61.4,
+    68.3
+   ],
+   "role": "build",
+   "energy": 0.6,
+   "place": "a purple dawn",
+   "mood": "rising again",
+   "vehicle": {
+    "mode": "upside cube",
+    "speed": "1x",
+    "why": "the world turns over as the machine restarts"
+   },
+   "moment": "a 10 s fade up from black into purple",
+   "look": {
+    "palette": {
+     "bg": "#9a0082"
+    }
+   },
+   "transition": {
+    "in": "fade 10"
+   }
+  },
+  {
+   "id": "era hopping",
+   "t": [
+    68.3,
+    88.2
+   ],
+   "role": "drop",
+   "energy": 0.8,
+   "place": "pink, green, cyan, magenta, green: an era every few seconds",
+   "mood": "giddy, fast-changing",
+   "vehicle": {
+    "mode": "cube",
+    "speed": "1x",
+    "why": "the colours move fast, the cube keeps its feet so the player can watch them"
+   },
+   "moment": "an instant palette switch every 3-7 s, flipped and upside-down moments between",
+   "look": {
+    "palette": {
+     "bg": "#fb00d1"
+    },
+    "palettes": [
+     "#fb00d1",
+     "#0fff00",
+     "#00fcfc",
+     "#ff00d6",
+     "#31ff00"
+    ]
+   },
+   "transition": {
+    "in": "instant"
+   }
+  },
+  {
+   "id": "lift-off",
+   "t": [
+    88.2,
+    94.6
+   ],
+   "role": "finale",
+   "energy": 0.85,
+   "place": "a blue sky",
+   "mood": "triumphant escape",
+   "vehicle": {
+    "mode": "ship",
+    "speed": "1x",
+    "why": "the machine flies out of time"
+   },
+   "moment": "ship, then upside-down ship to the end",
+   "look": {
+    "palette": {
+     "bg": "#0076fc"
+    }
+   },
+   "transition": {
+    "in": "fade 5"
+   }
+  }
+ ]
 }
