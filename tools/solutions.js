@@ -51,9 +51,10 @@ function windowsCommit() {
   return WINC;
 }
 // every input's window of a beaten solution, measured now (seconds to a minute: a heavy job's work)
-function measureWindows(level, sol) {
+function measureWindows(level, sol, wIn) {
   if (!sol || !sol.ok || !sol.events || !sol.events.length) return sol;
-  const w = GD.makeWorld(level.objects, level.header), ev = sol.events.slice().sort((a, b) => a.tick - b.tick);
+  // wIn: the world the natural plan costed its routes on (its window cache is warm: the windows are already there)
+  const w = wIn || GD.makeWorld(level.objects, level.header), ev = sol.events.slice().sort((a, b) => a.tick - b.tick);
   const path0 = GD.run(w, ev).path;
   sol.windows = WIN.inputWindows(w, ev, path0, {}).map(x => [x.type === "release" ? 1 : 0, x.tick, x.lo, x.hi, x.j]);
   sol.win = windowsCommit();
@@ -67,12 +68,14 @@ function get(levelStr, any) {
   if (!any && s.physics && physicsCommit() && s.physics !== physicsCommit()) return null; // stale
   return s;
 }
-function put(levelStr, sol, level) {
+function put(levelStr, sol, level, w) {
   // the plan stamp says which lib/natural.js made this route: only fromRun (which runs the natural plan) sets
   // it; a copied route keeps its own, so it shows up stale and is re-planned (make.js --look once copied an
   // old one-long-hold route and stamped it current: GDLM 45 wip v8, 2026-11-23)
   sol.physics = physicsCommit(); if (sol.plan === undefined) sol.plan = null; sol.solvedAt = new Date().toISOString();
-  if (level) { try { measureWindows(level, sol); } catch (e) { delete sol.windows; } }
+  if (level) { try { measureWindows(level, sol, w); } catch (e) { delete sol.windows; } }
+  // the window cache of that world goes along (local/solutions/wc/), so a later edit of this level starts warm
+  if (w && GD.exportWindowCache) try { require("./inc_store.js").saveWindowCache(keyOf(levelStr), GD.exportWindowCache(w)); } catch (e) { /* a cache */ }
   if (level) incSave(levelStr, sol, level);
   fs.mkdirSync(DIR, { recursive: true });
   fs.writeFileSync(path.join(DIR, keyOf(levelStr) + ".json"), JSON.stringify(sol));
@@ -92,8 +95,16 @@ function incSave(levelStr, sol, level) {
   } catch (e) { delete sol.checkpoints; }
 }
 // from a solver result already in hand (make.js has one): natural plan, saved
-function fromRun(level, levelStr, r) {
+// opts.name (the level's name) or opts.planned: the build's planned presses (tools/planned.js), which the
+// human route presses on where they clear
+function fromRun(level, levelStr, r, opts) {
+  opts = opts || {};
+  const planned = opts.planned || (opts.name ? require("./planned.js").plannedFor(opts.name, opts.file) : []);
   const w = GD.makeWorld(level.objects, level.header);
+  // an incremental re-solve hands its world (r.world): its timing windows carry over to this one (make.js adds
+  // jump indicators after the check, decoration that changes no window)
+  if (r && r.world) try { const INC = require("../lib/incsolve.js").incsolve, d = INC.diffObjects(r.world.objects, level.objects);
+    INC.carryWindows(r.world, w, INC.influence(r.world, w, d, level.header, level.header), d); } catch (e) { /* cold */ }
   let sol;
   // THE DEFAULT (the user, 2026-11-23: "let's by default solve with the human route, then in the limits we
   // will see"): every saved route is the human route -- lib/natural.js with humanCost (no skips, no unneeded
@@ -102,11 +113,14 @@ function fromRun(level, levelStr, r) {
   // "unbeaten" when the solver itself is stuck.
   if (r && r.ok) {
     let events = r.events, kind = "limit", why = "the natural plan could not finish the level: the solver's raw route";
-    try { const n = GD.naturalPlan(w, r, level.objects, { cost: true });
+    // an incremental re-solve (r.inc, lib/incsolve.js): the route outside [from, to] is already the old natural
+    // route, so only that window is planned again
+    const win = r.inc && !r.inc.reused && r.inc.from != null ? [r.inc.from, r.inc.to] : null;
+    try { const n = r.inc && r.inc.reused ? { events: r.events, path: GD.run(w, r.events).path } : GD.naturalPlan(w, r, level.objects, win ? { cost: true, window: win } : { cost: true });
       if (n && n.path[n.path.length - 1].done) { events = n.events; kind = "human"; why = undefined; } } catch (e) { why = "natural plan failed: " + e.message; }
     sol = { ok: true, events, kind, why, plan: planCommit() };
   } else sol = { ok: false, kind: "unbeaten", events: (r && r.trail) || [], dieX: r && r.dieAt && r.dieAt.x, why: r && r.why, skipped: r && r.skipped, plan: planCommit() };
-  return put(levelStr, sol, level);
+  return put(levelStr, sol, level, w);
 }
 // a saved solution's windows, measured and saved when missing or from older window code (no re-solving)
 function withWindows(level, levelStr, sol) {
@@ -130,10 +144,16 @@ function solve(level, levelStr, opts) {
       // same replay plan code: only the physics stamp was old -- restamp, no work (a physics change no longer
       // makes every viewer page solve its levels again)
       if (c.plan === planCommit()) { const keep = Object.assign({}, c); delete keep.physics; delete keep.solvedAt; return put(levelStr, keep); }
-      return fromRun(level, levelStr, { ok: true, events: c.events });
+      return fromRun(level, levelStr, { ok: true, events: c.events }, opts);
     }
   }
-  return fromRun(level, levelStr, GD.solveAny(w));
+  // the saved route breaks under the new physics: re-solve only from its first changed stretch, back onto
+  // its saved checkpoints (lib/incsolve.js refresh), before solving the whole level
+  if (c && c.ok && c.checkpoints) try {
+    const r = require("../lib/incsolve.js").incsolve.refresh(w, c.events, c.checkpoints);
+    if (r.ok && !r.kept) return fromRun(level, levelStr, { ok: true, events: r.events, inc: { from: r.from, to: r.to, rejoined: r.rejoined } }, opts);
+  } catch (e) { /* solve it whole */ }
+  return fromRun(level, levelStr, GD.solveAny(w), opts);
 }
 
 module.exports = { get, put, fromRun, solve, keyOf, physicsCommit, planCommit, fresh, withWindows, windowsFresh, measureWindows };

@@ -48,7 +48,14 @@ const { chunks } = require("./style.js");
 const LABELS = ["Easy", "Normal", "Hard", "Harder", "Insane", "Demon"];
 const SPIKY_DECO = new Set([18, 19, 20, 21]);
 
+// The saved-route path is new (2026-11-24): any error on it falls back to the full solve, loudly, so a gate run never breaks.
 function scoreLevel(level, brief, opts = {}) {
+  if (opts.saved === false) return scoreLevel0(level, brief, opts);
+  try { return scoreLevel0(level, brief, opts); }
+  catch (e) { console.error(`!!! score.js: saved-route check failed (${e && e.message}); solving the whole level instead`);
+    return scoreLevel0(level, brief, Object.assign({}, opts, { saved: false })); }
+}
+function scoreLevel0(level, brief, opts = {}) {
   brief = brief || {};
   const want = brief.difficulty || {};
   const minMs = want.minWindowMs ?? 60;
@@ -56,7 +63,12 @@ function scoreLevel(level, brief, opts = {}) {
   const gate = (name, status, value, note) => gates.push({ name, status, value, note: note || "" });
 
   const w = GD.makeWorld(level.objects, level.header);
-  const r = GD.solveAny(w);
+  // VERIFY the saved route instead of solving (the user: a full check in seconds, not 10-15 min): tools/solutions.js
+  // solve() returns the saved human route when it is current, re-plans it when only the planner changed, re-solves
+  // only from its first broken stretch (lib/incsolve.js) when the physics changed, and solves the whole level only
+  // when there is nothing to build on. Its saved timing windows stand in for measuring. opts.saved === false: solve.
+  const saved = opts.saved === false ? null : savedRoute(w, level, opts.levelStr);
+  const r = saved || GD.solveAny(w);
   gate("beatable", r.ok ? "PASS" : "FAIL", r.ok ? `${r.clicks.filter(c => c.type === "press").length} presses` :
     `dies at block ${(r.dieAt.x / 30).toFixed(1)} (${r.why})`);
   const presses = r.ok ? r.clicks.filter(c => c.type === "press") : [];
@@ -65,6 +77,7 @@ function scoreLevel(level, brief, opts = {}) {
   let natCache;
   const natural = () => {
     if (natCache !== undefined) return natCache;
+    if (saved) return (natCache = { ok: true, events: r.events });   // the saved route IS the player's route
     natCache = null;
     try { const N = require("../lib/natural.js"), n = N.naturalPlan(w, r, level.objects); if (n && n.path[n.path.length - 1].done) natCache = { ok: true, events: n.events }; } catch (e) {}
     return natCache;
@@ -72,7 +85,7 @@ function scoreLevel(level, brief, opts = {}) {
 
   let bad = [];
   if (r.ok) {
-    const s = sightread(level);
+    const s = sightread(level, 1.5, saved ? { route: r, world: w } : {});
     bad = s.ok ? s.presses.filter(p => p.flag) : [];
     // approximate on levels with modes (sweep solver, fixed later inputs): a WARN, not a FAIL
     gate("prejumps", bad.length ? (s.approx ? "WARN" : "FAIL") : "PASS", bad.length ? bad.map(p => `block ${p.to.toFixed(0)} (${p.lead.toFixed(1)} ahead of ${p.cue} at ${p.cueAt.toFixed(0)})`).join("; ") + (s.approx ? " (approximate: level with modes)" : "") : "none");
@@ -82,7 +95,7 @@ function scoreLevel(level, brief, opts = {}) {
   // not, so take lib/difficulty.js's measured windows for every input (press and release)
   let diff = null, pathCache = null;
   const runPath = () => pathCache || (pathCache = GD.run(w, r.events).path);
-  if (r.ok) diff = GD.difficulty(w, r);
+  if (r.ok) diff = saved ? GD.difficulty(w, r, { raw: true, route: false, actions: saved.actions }) : GD.difficulty(w, r);
   const exact = presses.length && presses.every(c => c.ms > 0);
   const inputs = exact ? presses.map(c => ({ x: c.x, ms: c.ms, kind: "press" }))
     : (diff ? diff.actions.map(a => ({ x: (runPath()[a.tick] || {}).x || 0, ms: a.ms, kind: a.type || "input" })) : []);
@@ -156,6 +169,19 @@ function scoreLevel(level, brief, opts = {}) {
       const s = ((tEnd < 0 ? p.length : tEnd) - lastP.tick) / GD.PHYS.TPS;
       gate("ending", s > 2.5 ? "WARN" : "PASS", `${s.toFixed(1)} s from the last input to the end (official median 0.8 s; want 2.5 s or less)`);
     }
+  }
+
+  // orbs you can buffer, no jumps over nothing (physics, from the user: "usually with orbs, when possible, we
+  // want to buffer"; stairs and step-downs are walked off, not jumped). lib/natural.js on the player's route:
+  // an orb only a precise mid-orb click takes, a cube jump from the ground over nothing. WARN.
+  if (r.ok && natural()) {
+    const N = require("../lib/natural.js"), ev = natural().events;
+    try {
+      const ub = N.unbufferedOrbs ? N.unbufferedOrbs(w, ev) : [];
+      gate("orb buffer", ub.length ? "WARN" : "PASS", ub.length ? `${ub.length} orb(s) that only a precise click takes` : "every orb can be buffered", ub.map(o => `block ${(o.x / 30).toFixed(0)}`).join("; "));
+      const pj = N.pointlessJumps ? N.pointlessJumps(w, ev) : [];
+      gate("pointless jumps", pj.length ? "WARN" : "PASS", pj.length ? `${pj.length} jump(s) over nothing` : "no jumps over nothing", pj.map(j => `block ${(j.x / 30).toFixed(0)}${j.down ? " (off a step)" : ""}`).join("; "));
+    } catch (e) { /* older natural.js */ }
   }
 
   // hazards matter: every hazard either needs an action or clearly reads as scenery (the user on GDLM 47
@@ -322,7 +348,7 @@ function scoreLevel(level, brief, opts = {}) {
   // GDLM 44/46 deaths: forced inputs after a portal, misleading marks, sloped portal exits, orb
   // chains with nothing to correct, blind two-step openers, too-fast wave turns)
   if (r.ok && opts.fairness !== false) {
-    const FA = require("./fairness.js"), fl = FA.flags(FA.analyse(w, r));
+    const FA = require("./fairness.js"), fl = FA.flags(FA.analyse(w, r, saved ? { natural: true, diff: GD.difficulty(w, r, { raw: true, route: false, chains: false, actions: saved.actions.map(a => Object.assign({}, a)) }) } : {}));
     const fail = fl.filter(f => f.severity === "FAIL");
     gate("fairness", fail.length ? "FAIL" : fl.length ? "WARN" : "PASS",
       fl.length ? fl.map(f => `${f.family} at block ${(f.x0 / 30).toFixed(0)}: ${f.note}`).join("; ") : "no unfair spots found");
@@ -331,7 +357,7 @@ function scoreLevel(level, brief, opts = {}) {
   if (r.ok && opts.route !== false) {
     const N = require("../lib/natural.js");
     let ev = r.events;
-    try { const n = N.naturalPlan(w, r, level.objects); if (n && n.path[n.path.length - 1].done) ev = n.events; } catch (e) {}
+    if (!saved) try { const n = N.naturalPlan(w, r, level.objects); if (n && n.path[n.path.length - 1].done) ev = n.events; } catch (e) {}
     const st = N.routeCheck(w, ev, level.objects), jit = st.filter(x => x.shortLegs), close = st.filter(x => x.closeTicks);
     const extra = N.extraPresses(w, ev);
     if (extra.length) st.push({ mode: "presses not needed", from: extra[0].x, to: extra[extra.length - 1].x, presses: extra.length, closeTicks: 0, shortLegs: 0 });
@@ -450,6 +476,24 @@ function inertHazards(level, w, r) {
   return out;
 }
 
+// The saved route of this level, verified (tools/solutions.js solve: current, re-planned, or re-solved from its
+// first broken stretch), shaped as a solver result with its saved timing windows: clicks carry lo / hi (sightread),
+// actions carry lo / hi / ms (lib/difficulty.js opts.actions). null when nothing beats the level that way.
+function savedRoute(w, level, levelStr) {
+  let s;
+  try { s = require("./solutions.js").solve(level, levelStr || GD.serializeLevel(level)); } catch (e) { return null; }
+  if (!s || !s.ok || !s.events || !Array.isArray(s.windows)) return null;
+  const path = GD.run(w, s.events).path, TPS = GD.PHYS.TPS, ms = (lo, hi) => (hi - lo + 1) / TPS * 1000;
+  const win = new Map(s.windows.map(([k, tick, lo, hi]) => [(k ? "r" : "p") + tick, { lo, hi }]));
+  const clicks = s.events.map(e => { const v = win.get((e.type === "release" ? "r" : "p") + e.tick) || {};
+    return { type: e.type, tick: e.tick, x: (path[e.tick] || {}).x, lo: v.lo, hi: v.hi }; });
+  const actions = GD.actionsOf(s.events).map(a => { const v = win.get((a.type === "release" ? "r" : "p") + a.tick);
+    const s0 = path[Math.min(a.tick, path.length - 1)] || {};
+    return v ? Object.assign(a, { lo: v.lo, hi: v.hi, ms: ms(v.lo, v.hi), x: s0.x, mode: s0.mode, sp: s0.sp }) : null; });
+  if (actions.some(a => !a)) return null;   // windows from another route: measure instead
+  return { ok: true, events: s.events, clicks, actions, saved: true };
+}
+
 // landings that force an exact hop (the "reactive" gate). Exported for tools/structures.js.
 const REACT_MS = 250;
 function reactiveSpots(level, w, r, presses, opts = {}) {
@@ -534,7 +578,9 @@ function reactiveSpots(level, w, r, presses, opts = {}) {
     const HAZ = /^(spike|saw)$/;
     const lo = a > 0 ? res[a - 1].why : "", hi = b < res.length - 1 ? res[b + 1].why : "";
     const cutLo = SOLID.test(lo) && HAZ.test(hi), cutHi = SOLID.test(hi) && HAZ.test(lo);
-    const split = res.some((x, j) => x.ok && (j < a - 1 || j > b + 1)) && (SOLID.test(lo) || SOLID.test(hi));
+    // split: another good window beyond a block -- only a problem when a hazard is in play too (a plain step
+    // jump from a dip onto stairs has a far second window by nature: GDLM 64 round 4, block 200)
+    const split = res.some((x, j) => x.ok && (j < a - 1 || j > b + 1)) && (SOLID.test(lo) || SOLID.test(hi)) && res.some(x => HAZ.test(x.why));
     if ((cutLo || cutHi) && ms < REACT_MS || split) out.push({ block: Math.floor(q.x / 30),
       why: `the jump over a hazard must also be timed around a block: its window (${Math.round(ms)} ms) is ${split ? "split" : "cut"} by a ${SOLID.test(hi) ? hi : lo}` });
   }

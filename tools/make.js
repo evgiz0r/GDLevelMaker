@@ -1,4 +1,6 @@
-// node tools/make.js specs/<name>.json [--look]  -> levels/<name>.gdlvl, checked, and added to the viewer
+// node tools/make.js specs/<name>.json [--look] [--full]  -> levels/<name>.gdlvl, checked, and added to the viewer
+//   an existing level with a saved route is re-solved only where the spec changed it (lib/incsolve.js);
+//   --full: solve the whole level
 //   --look: decoration-only change: keep the last solve if the gameplay is the same (see lookOnly)
 //
 // A spec is written in grid squares, not GD units: column 0 is where the player starts,
@@ -264,7 +266,7 @@ function build(spec, specFile = "spec") {
   if (spec.offset) header = header.replace(/(^|,)kA13,[-0-9.]+/, "$1kA13," + spec.offset);
   if (spec.colours) header = deco.setHeaderColours(header, spec.colours);
   if (spec.art) header = deco.setHeaderArt(header, spec.art.bg, spec.art.ground);
-  const ctx = { grid: song ? gridOf(spec, song) : null, offset: spec.offset || 0, kA4, snap: spec.snap || 0 };
+  const ctx = { grid: song ? gridOf(spec, song) : null, offset: spec.offset || 0, kA4, snap: spec.snap || 0, placements: [] };
 
   // speed portals first, in order along the level, each one updating the timeline
   const timelineOf = objs => GD.SYNC.timeline(GD.makeWorld(objs, header));
@@ -285,6 +287,9 @@ function build(spec, specFile = "spec") {
     const start = objects.length;
     const col = toCol(entry[colAt(entry)], ctx, tl);
     const [type, , row] = entry;
+    // where each pattern lands: its intended inputs come with it (tools/intent.js)
+    if (type === "pattern") ctx.placements.push({ name: entry[1], col, row: entry[3] || 0, args: entry[4] || {} });
+    else if (type === "block" || type === "spike") (ctx.raw || (ctx.raw = [])).push({ type, col, row: row || 0 });   // terrain: intents from its rises (tools/intent.js)
     if (speedObj.has(entry)) objects.push(speedObj.get(entry));
     else if (type === "pattern" && /^orb-(ladder|pit)$/.test(entry[1]) && !(entry[4] || {}).fixed && !entry[3]) objects.push(...arcOrbs(entry[1], col, entry[4] || {}, header, specFile, placed));
     else if (type === "pattern") { for (const e of expand(entry[1], col, entry[3], entry[4], entry[5])) objects.push(toObj(e, specFile)); }
@@ -415,13 +420,51 @@ function build(spec, specFile = "spec") {
 }
 
 // spec file (or an already parsed spec) -> levels/<name>.gdlvl, checked, added to the viewer
+// Every build puts its stages for the viewer (the user: "partial steps like song/layout/path/deco available in
+// the process, not just the end result"; visuals' tools/stages.js): layout (the gameplay objects), path (the
+// layout and its planned presses, tools/intent.js), deco (the whole level before the check), final (after it).
+// The song stage comes from compose (it has the sections). Session: spec.session, GDLM_SESSION, or the
+// worktree's name. A failure here never stops a build.
+const STAGE_PLAY = new Set(["solid", "hazard", "orb", "pad", "mode", "gravity", "speed", "size", "teleport", "slope", "dual"]);
+function putStages(spec, level, ctx, which) {
+  let STG; try { STG = require("./stages.js"); } catch (e) { return; }
+  const session = spec.session || process.env.GDLM_SESSION || path.basename(path.join(__dirname, "..")).replace(/-[0-9a-f]{6}$/, "") || "make";
+  const base = slug(spec.name), put = (stage, extra) => { try { STG.put(Object.assign({ session, base, name: spec.name, stage }, extra)); } catch (e) {} };
+  if (which.includes("layout") || which.includes("path")) {
+    const layout = { header: level.header, objects: level.objects.filter(o => STAGE_PLAY.has(GD.objInfo(o.id).kind)) };
+    const ls = GD.serializeLevel(layout);
+    // the planned presses: cached intents only, never a solve (patterns not yet in local/intent/ are left out;
+    // node tools/intent.js <spec> fills the cache through the heavy lock). Shown with the layout too (the user:
+    // "the layout doesnt include the clicks themselves?")
+    let planned = [], missing = [];
+    try {
+      const I = require("./intent.js"), w = GD.makeWorld(layout.objects, layout.header), tl = GD.SYNC.timeline(w);
+      const r = I.intents(ctx.placements || [], tl, { cacheOnly: true }); missing = r.missing;
+      planned = r.intents.map(i => ({ t: +GD.SYNC.tOfX(tl, i.x).toFixed(3), what: i.type === "press" ? "jump" : "release" }));
+    } catch (e) {}
+    const pnote = missing.length ? ` (${missing.length} pattern(s) not planned yet)` : "";
+    if (which.includes("layout")) put("layout", { levelStr: ls, data: { planned }, note: "gameplay and its planned presses" + pnote });
+    if (which.includes("path")) put("path", { levelStr: ls, data: { planned }, note: "planned presses from each pattern's intended inputs" + pnote });
+  }
+  if (which.includes("deco")) put("deco", { levelStr: GD.serializeLevel(level), note: "with the look" });
+  if (which.includes("final")) put("final", { levelStr: GD.serializeLevel(level), note: which.note || "built" });
+}
+
 function make(specFile, specObj) {
   const spec = specObj || JSON.parse(fs.readFileSync(specFile, "utf8"));
   const { level, rec, ctx, objects, header } = build(spec, specFile);
   const out = path.join(__dirname, "..", "levels", slug(spec.name) + ".gdlvl");
+  putStages(spec, level, ctx, ["layout", "path", "deco"]);
   if (LOOK_ONLY && lookOnly(out, rec, level, spec)) return { out, r: { ok: true } };
+  // the previous build and its saved route: an edit re-solves only what it changed (lib/incsolve.js,
+  // PHYSICS.md "Incremental solving"); --full solves the whole level
+  let base = null;
+  if (!process.argv.includes("--full") && fs.existsSync(out)) try {
+    const old = require("./io.js").readGdlvl(out), sol = require("./solutions.js").get(old.levelStr, true);
+    if (sol && sol.ok && sol.events && sol.events.length) base = { level: old.level, levelStr: old.levelStr, events: sol.events };
+  } catch (e) { /* no base: solve whole */ }
   writeGdlvl(out, rec, level);
-  let r = report(out);
+  let r = report(out, { base });
   if (spec.indicators && r.ok) {
     // jump indicators come from the solved run, so they go in after the first check (no hitbox:
     // the solution does not change); then the file is written again. Without the arrow's id yet,
@@ -448,7 +491,8 @@ function make(specFile, specObj) {
   }
   // save the solution (natural replay) so the viewer and the phone replay it, not solve it again
   // r: the check's solve (indicators have no hitbox, so it still holds)
-  try { const L2 = require("./io.js").readGdlvl(out); require("./solutions.js").fromRun(L2.level, L2.levelStr, r); } catch (e) { console.log("   (solution not saved: " + e.message + ")"); }
+  try { const L2 = require("./io.js").readGdlvl(out); require("./solutions.js").fromRun(L2.level, L2.levelStr, r, { name: L2.name, file: out }); } catch (e) { console.log("   (solution not saved: " + e.message + ")"); }
+  putStages(spec, level, ctx, Object.assign(["final"], { note: r && r.ok ? "beaten" : "not beaten" }));
   buildIndex();
   return { out, r };
 }
@@ -550,8 +594,8 @@ function beatReport(objects, header, r, ctx) {
 }
 
 if (require.main === module) {
-  const specs = process.argv.slice(2).filter(a => a !== "--look");
+  const specs = process.argv.slice(2).filter(a => a !== "--look" && a !== "--full");
   if (!specs.length) { console.log("usage: node tools/make.js specs/<name>.json [...]"); process.exit(1); }
   for (const s of specs) make(s);
 }
-module.exports = { make, build, slug, TYPES, songOf, gridOf, checkDesc };
+module.exports = { make, build, slug, TYPES, songOf, gridOf, checkDesc, putStages };

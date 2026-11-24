@@ -16,11 +16,11 @@
     { "from": 129, "kind": "cube", "bg": [40, 50, 110], "ground": [28, 35, 85], "line": [170, 185, 255], "fill": [55, 68, 135], "light": [180, 195, 255], "secs": 3, "deco": 0.2 }
   ],
   "cells": [
-    [13, "spike"], [17, "upoff"], [19, "upoff"], [21, "up"], [23, "spike", {"off": true}], [25, "up"], [27, "down"], [29, "pad"], [31, "upoff"],
+    [13, "spike"], [17, "up"], [19, "spike", {"off": true}], [21, "up"], [23, "down"], [25, "upoff"], [27, "double"], [29, "pad"], [31, "upoff"],
     [37, "floor"], [39, "roof"], [41, "floor"], [43, "roof"], [45, "floor"], [47, "roof"], [49, "floor"], [51, "roof"],
-    [55, "up"], [57, "down"], [59, "orb"], [63, "upoff"], [65, "up"], [67, "down"],
-    [99, "upoff"], [101, "up"], [103, "up"], [105, "down"], [107, "spike", {"off": true}], [111, "upoff"], [113, "up"], [115, "up"], [117, "down"], [119, "down"], [121, "spike"], [123, "orb"], [127, "upoff"],
-    [129, "up"], [133, "spike", {"off": true}], [137, "upoff"], [141, "up"], [145, "down"], [149, "spike"]
+    [55, "up"], [57, "down"], [59, "orb"], [63, "up"], [65, "spike", {"off": true}], [67, "upoff"],
+    [99, "up"], [101, "up"], [103, "down"], [105, "spike", {"off": true}], [107, "double"], [111, "upoff"], [113, "spike"], [115, "up"], [117, "down"], [119, "upoff"], [121, "spike"], [123, "orb"], [127, "upoff"],
+    [129, "up"], [133, "spike", {"off": true}], [137, "upoff"], [141, "spike"], [145, "up"], [149, "down"]
   ],
   "pulses": [
     [37, [105, 60, 150]], [57, [40, 105, 140]], [81, [45, 65, 135]], [89, [45, 65, 135]],

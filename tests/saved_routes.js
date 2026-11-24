@@ -6,7 +6,8 @@
 // the page's own solve failed. Fix: node tools/solutions.js <level> (heavy, waits for the lock), or --all.
 // Checks levels/*.gdlvl and examples/*.gdlvl (with --all also local/wip/*/*.gdlvl). One replay each: seconds.
 // A route that skips a portal or an orb/pad on its line (the no-skip rule, GD.skipCheck) fails too, and so does
-// one with a hold (outside ship/wave) longer than needed: every saved route is the human route.
+// one with a hold (outside ship/wave) longer than needed: every saved route is the human route. A cube jump over
+// nothing (lib/natural.js pointlessJumps: walking off the step would do) is a warning.
 // --fix: refresh every route that fails or carries an old physics stamp (tools/solutions.js solve(): a clean
 // route is only restamped, instant; one that dies or skips is solved again, heavy, through the lock). Run
 // `node tests/saved_routes.js --all --fix` after any physics change, then push viewer/levels.js.
@@ -24,6 +25,11 @@ function longHold(L, ev, path) {
     if (e[i].type !== "press") continue;
     const j = e.findIndex((x, k) => k > i && x.type === "release"); if (j < 0) continue;
     const len = e[j].tick - e[i].tick, m = (path[e[i].tick] || {}).mode;
+    // a hold that fires several jumps/flips/orbs (an auto-jump chain): a human taps each one (GDLM 62)
+    if (m !== "ship" && m !== "wave" && len > 36) {
+      let n = 0; for (let t = e[i].tick; t < e[j].tick && t + 1 < path.length; t++) { const a = path[t + 1].act || ""; if ((a === "jump" || a === "tap" || a === "flap" || /orb|pad/.test(a)) && a !== (path[t].act || "")) n++; }
+      if (n >= 2) return `HOLD of ${(len / 240).toFixed(2)} s at block ${(path[e[i].tick].x / 30).toFixed(1)} (${m}) through ${n} jumps/flips: a human taps each one`;
+    }
     if (len <= 36 || m === "ship" || m === "wave") continue;   // up to 0.15 s is a tap (a human tap lasts 50-100 ms)
     for (const d of [1, 2, 4, 8]) { if (d >= len) break;
       if (fin(e.map((x, k) => k === j ? { tick: e[i].tick + d, type: "release" } : x)))
@@ -53,12 +59,19 @@ for (const dir of dirs) {
     const stale = s && (s.physics !== sols.physicsCommit() || s.plan !== sols.planCommit());   // old physics or an old route planner
     if (FIX && (what || stale)) {
       // a long hold: re-plan the same run (the human-route pass); a skip or a death: solve again from scratch
-      const t0 = Date.now(), r = what && /^HOLD/.test(what) ? sols.fromRun(L.level, L.levelStr, { ok: true, events: s.events })
-        : sols.solve(L.level, L.levelStr, { fresh: !!(what && /^SKIPS|DIES|NO SAVED|does not finish/.test(what)) });
+      const t0 = Date.now(), r = what && /^HOLD/.test(what) ? sols.fromRun(L.level, L.levelStr, { ok: true, events: s.events }, { name: L.name, file: path.join(d, f) })
+        : sols.solve(L.level, L.levelStr, { name: L.name, file: path.join(d, f), fresh: !!(what && /^SKIPS|DIES|NO SAVED|does not finish/.test(what)) });
       console.log(`fixed ${dir}/${f}: ${what || "old stamp"} -> ${r.ok ? "finishes" : "NOT beaten (" + (r.why || "?") + ")"} in ${((Date.now() - t0) / 1000).toFixed(0)} s`);
       if (r.ok) what = null;
     }
     if (what) { bad++; console.log(`FAIL ${dir}/${f} (${L.name}): ${what}`); }
+    else if (s && s.ok) {   // a warning, not a failure: a jump over nothing (walking off would do)
+      const pj = require("../lib/natural.js").pointlessJumps(GD.makeWorld(L.level.objects, L.level.header), s.events);
+      if (pj.length) console.log(`warn ${dir}/${f}: ${pj.length} jump(s) over nothing at block ${pj.map(j => (j.x / 30).toFixed(0) + (j.down ? " (off a step)" : "")).join(", ")}`);
+      // orbs only a precise click takes (no buffered press works): a level-design warning (the user: buffer orbs)
+      const ub = require("../lib/natural.js").unbufferedOrbs(GD.makeWorld(L.level.objects, L.level.header), s.events);
+      if (ub.length) console.log(`warn ${dir}/${f}: ${ub.length} orb(s) that cannot be buffered at block ${ub.map(o => (o.x / 30).toFixed(0) + " (" + o.act + ")").join(", ")}`);
+    }
   }
 }
 if (FIX) require("../tools/index_levels.js").buildIndex();

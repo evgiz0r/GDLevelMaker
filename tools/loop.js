@@ -45,8 +45,10 @@ function eta(step, levelSecs, rows) {
   return { secs: median(near.map(({ r }) => r.secs * Math.min(4, Math.max(0.25, L / r.levelSecs)))), from: near.length };
 }
 const fmt = s => s < 90 ? `${Math.round(s)} s` : s < 5400 ? `${(s / 60).toFixed(s < 600 ? 1 : 0)} min` : `${(s / 3600).toFixed(1)} h`;
+// loop.js's own step rows; tools/heavy.js logs every heavy job to the same file ({by: "heavy", tool, ...}: tools/jobtime.js),
+// compose.js its build stages ({stage, target}): neither has a step
 function readTimings(file = TIMINGS) {
-  try { return fs.readFileSync(file, "utf8").split("\n").filter(Boolean).map(l => { try { return JSON.parse(l); } catch (e) { return null; } }).filter(Boolean); } catch (e) { return []; }
+  try { return fs.readFileSync(file, "utf8").split("\n").filter(Boolean).map(l => { try { return JSON.parse(l); } catch (e) { return null; } }).filter(r => r && r.by !== "heavy" && r.step); } catch (e) { return []; }
 }
 // the time table from the log: per step and level-length bucket, median and range
 function table(rows) {
@@ -100,6 +102,9 @@ function specInfo(file) {
   const out = path.join(ROOT, "levels", make.slug(spec.name) + ".gdlvl");
   // the last build's length when there is one (building a scene level just for the ETA took minutes)
   if (fs.existsSync(out)) { try { return Object.assign({ out, name: spec.name }, lengthOf(require("./io.js").readGdlvl(out).level)); } catch (e) {} }
+  // "jN" columns make build() solve the whole level several times (make.js nudgeJumps: ~1.3 GB, minutes)
+  // outside the heavy lock -- GDLM 62 stalled the queue that way (2026-11-24). No ETA from those then.
+  if (/"j-?\d/.test(JSON.stringify(spec.objects || []))) return { out, name: spec.name };
   const log = console.log; console.log = () => {};
   try { const b = make.build(spec, file); return Object.assign({ out, name: spec.name }, lengthOf(b.level)); }
   catch (e) { return { out, name: spec.name }; }

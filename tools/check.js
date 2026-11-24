@@ -2,7 +2,9 @@
 if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const { GD, readGdlvl } = require("./io.js");
 
-function report(file) {
+// opts.base: { level, events } -- the level's previous version and its saved route: only the stretch the edit
+// changed is solved again (lib/incsolve.js; PHYSICS.md "Incremental solving"), the whole level when it cannot
+function report(file, opts) {
   const L = readGdlvl(file);
   const w = GD.makeWorld(L.level.objects, L.level.header);
   const counts = {};
@@ -12,16 +14,30 @@ function report(file) {
   console.log("   " + Object.entries(counts).map(([k, v]) => `${k} x${v}`).join(", "));
   const unsim = L.level.objects.filter(o => GD.objInfo(o.id).kind === "unknown");
   if (unsim.length) console.log(`   NOTE ${unsim.length} objects have unknown ids and are ignored: ${[...new Set(unsim.map(o => o.id))].join(", ")}`);
-  const r = GD.solveAny(w);
+  let r = null;
+  if (opts && opts.base && opts.base.events && opts.base.events.length) {
+    try {
+      const wc = opts.base.levelStr ? require("./inc_store.js").loadWindowCache(require("./solutions.js").keyOf(opts.base.levelStr)) : null;
+      const inc = require("../lib/incsolve.js").incsolve.fromBase(opts.base.level, opts.base.events, L.level, { windowCache: wc });
+      if (inc.ok) {
+        const p = GD.run(w, inc.events).path;
+        r = { ok: true, events: inc.events, world: inc.w, inc: { from: inc.from, to: inc.to, rejoined: inc.rejoined, reused: inc.reused || null },
+          clicks: inc.events.map(e => ({ type: e.type, tick: e.tick, x: p[Math.min(e.tick, p.length - 1)].x, ms: null })) };
+        console.log(`   incremental: ${inc.reused ? "gameplay unchanged, route kept" : "re-solved ticks " + inc.from + "-" + inc.to + (inc.rejoined ? ", rejoined the old route" : " to the end")} in ${(inc.ms / 1000).toFixed(1)} s`);
+      } else console.log("   incremental re-solve not possible (" + inc.fallback + "): solving it whole");
+    } catch (e) { console.log("   incremental re-solve failed (" + e.message + "): solving it whole"); }
+  }
+  if (!r) r = GD.solveAny(w);
   if (!r.ok) {
     console.log(`   NOT BEATABLE with cube physics: the furthest run dies at x=${r.dieAt.x.toFixed(0)} (block ${(r.dieAt.x / 30).toFixed(1)}, ${(r.dieAt.tick / GD.PHYS.TPS).toFixed(2)} s), hit a ${r.why}${r.killer ? " at x=" + r.killer.x : ""}`);
     return r;
   }
   console.log(`   beatable: ${r.clicks.filter(c => c.type === "press").length} presses`);
   for (const c of r.clicks) {
-    console.log(`     t=${(c.tick / GD.PHYS.TPS).toFixed(3)} s  block ${(c.x / 30).toFixed(1)}  window ${c.ms} ms`);
+    console.log(`     t=${(c.tick / GD.PHYS.TPS).toFixed(3)} s  block ${(c.x / 30).toFixed(1)}  window ${c.ms == null ? "(measured when saved)" : c.ms + " ms"}`);
   }
-  if (r.clicks.length) console.log(`   tightest window: ${Math.min(...r.clicks.map(c => c.ms))} ms`);
+  const ms = r.clicks.map(c => c.ms).filter(m => m != null);
+  if (ms.length) console.log(`   tightest window: ${Math.min(...ms)} ms`);
   return r;
 }
 

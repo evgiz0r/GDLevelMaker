@@ -87,6 +87,41 @@ const SERVER = http.createServer((req, res) => {
     res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" });
     return res.end(JSON.stringify(Object.assign(v, { checked: UPD.checked ? new Date(UPD.checked).toISOString() : null, note: UPD.off ? "self-update off" : UPD.note })));
   }
+  // POST /play {level, file, session, stage?, attempt, result: "died" | "clear", x, pct, t, why, from, practice}: one
+  // attempt of the viewer's "you play" mode -> the actions feed as type "play" (where the user dies: a soft signal for
+  // difficulty; VIEWER.md). test: true -> local/viewer_actions.test.jsonl
+  // GET /attempts?file=<level file>&hash=<GD.levelHash>: the user's attempts at that version (tools/attempts.js), without
+  // their inputs unless &id=<attempt id> (one attempt, with its events)
+  // GET /attempts/index: every level with attempts, one small row each, newest played first (the "my runs" tab)
+  if (p === "/attempts/index" && req.method === "GET") {
+    res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify(require("./attempts.js").index()));
+  }
+  if (p === "/attempts" && req.method === "GET") {
+    const q = new URL(req.url, "http://x").searchParams, A = require("./attempts.js");
+    let rows = A.read(q.get("file") || "", q.get("hash") || "");
+    if (q.get("id")) rows = rows.filter(r => r.id === q.get("id"));
+    else rows = rows.map(r => Object.assign({}, r, { events: undefined, presses: (r.events || []).filter(e => e.type === "press").length }));
+    res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify(rows));
+  }
+  if (req.method === "POST" && p === "/play") {
+    let body = ""; req.on("data", c => { body += c; if (body.length > 2e6) req.destroy(); });   // an attempt's inputs
+    req.on("end", () => {
+      try {
+        const j = JSON.parse(body), num = v => (isFinite(+v) ? +(+v).toFixed(2) : undefined);
+        const a = { type: "play", session: String(j.session || ""), level: String(j.level || ""), file: String(j.file || ""), stage: j.stage ? String(j.stage) : undefined,
+          attempt: num(j.attempt), result: j.result === "clear" ? "clear" : "died", x: num(j.x), pct: num(j.pct), t: num(j.t), why: j.why ? String(j.why).slice(0, 120) : undefined,
+          from: num(j.from), practice: !!j.practice };
+        a.text = a.result === "clear" ? `cleared on attempt ${a.attempt}${a.practice ? " (practice)" : ""}` : `died at ${a.pct}% (block ${Math.round((a.x || 0) / 30)}, ${a.t} s)${a.why ? ": " + a.why : ""} -- attempt ${a.attempt}${a.practice ? ", practice" : ""}`;
+        const ACT = require("./actions.js");
+        // the attempt itself (its inputs, to replay beside the route: tools/attempts.js); not from a test page
+        if (!j.test && Array.isArray(j.events)) try { a.attempt_id = require("./attempts.js").append({ source: "viewer", level: a.level, file: a.file, hash: String(j.hash || ""), events: j.events,
+          result: a.result, x: a.x, pct: a.pct, t: a.t, why: a.why, practice: a.practice, from: j.fromTick != null ? { tick: +j.fromTick, x: a.from } : null, session: a.session || undefined, stage: a.stage }).id; } catch (e) {}
+        const out = j.test ? (fs.appendFileSync(ACT.FILE.replace(/\.jsonl$/, ".test.jsonl"), JSON.stringify(a) + "\n"), a) : ACT.append(a);
+        res.writeHead(200, { "Content-Type": "application/json" }); res.end(JSON.stringify(out));
+      } catch (e) { res.writeHead(400); res.end(String(e.message)); }
+    });
+    return;
+  }
   if (req.method === "POST" && p === "/marks") {
     let body = "";
     req.on("data", c => { body += c; if (body.length > 1e5) req.destroy(); });
@@ -99,6 +134,9 @@ const SERVER = http.createServer((req, res) => {
         // user (a "TEST mark from Claude" pin sat on hellgate in the user's viewer, 2026-11-23)
         const testMark = m.test === true || /^test-/.test(String(m.id));
         fs.appendFileSync(testMark ? MARKS.replace(/\.jsonl$/, ".test.jsonl") : MARKS, JSON.stringify(m) + "\n");
+        // the actions feed (tools/actions.js): a real mark or variant pick reaches its session at once
+        if (!testMark && m.note != null) try { require("./actions.js").append({ type: m.type || "mark", session: m.session || "", level: m.level || "", file: m.file || "",
+          text: m.note + (m.kind ? " (" + m.kind + ")" : ""), mark: m.id, t: m.t, x: m.x, section: m.section, key: m.key }); } catch (e) {}
         res.writeHead(200, { "Content-Type": "application/json" }); res.end('{"ok":true}');
       } catch (e) { res.writeHead(400); res.end(String(e.message)); }
     });
@@ -187,20 +225,82 @@ const SERVER = http.createServer((req, res) => {
     } catch (e) {}
     res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify(out));
   }
-  // GET /heavy/status?match=<text>: the heavy-job queue (tools/heavy.js) for the viewer's task modal and chip: who
-  // runs, who waits in order, and for the job whose command line holds `match`: its place and a rough ETA (minutes)
+  // GET /wip/stages?file=local/wip/<session>/<base>.gdlvl: a build's stages (tools/stages.js): each with its level
+  // string (the song stage: an empty level), its data and its saved solution when the shared cache has one
+  if (p === "/wip/stages") {
+    const q = new URL(req.url, "http://x").searchParams.get("file") || "";
+    if (!/^local\/wip\/[\w-]+\/[\w.-]+\.gdlvl$/.test(q)) { res.writeHead(400); return res.end("bad file"); }
+    let out = { stages: [] };
+    try {
+      const dir = process.env.GDLM_WIP_DIR ? path.join(process.env.GDLM_WIP_DIR, q.replace(/^local\/wip\//, "").replace(/\.gdlvl$/, ".stages")) : path.join(root, q.replace(/\.gdlvl$/, ".stages")), idx = JSON.parse(fs.readFileSync(path.join(dir, "index.json"), "utf8"));
+      const { readGdlvl } = require("./io.js"), S = require("./solutions.js"), GDL = require("../lib/gd.js");
+      out = Object.assign({}, idx, { stages: idx.stages.map(st => {
+        let level = null, solution = null, file = null;
+        if (st.file) try { const abs = path.join(dir, path.basename(st.file)); file = path.relative(root, abs).split(path.sep).join("/"); level = readGdlvl(abs).levelStr; solution = S.get(level) || null; } catch (e) {}
+        if (!level) { level = require("./stages.js").emptyLevel(st.data); solution = { ok: true, events: [] }; }   // the song stage: an empty level as long as the song (no presses needed)
+        const data = st.data && st.data.song ? Object.assign({}, st.data, { song: require("./stages.js").songOf(st.data) }) : st.data;
+        return Object.assign({}, st, { level, solution, file, data });
+      }) });
+    } catch (e) {}
+    res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify(out));
+  }
+  // POST /stages/review {file: local/wip/<s>/<base>.gdlvl, stage, verdict: ok | redo, note?, spot?}: the user's answer
+  // on a build stage (tools/stages.js approve; a gated build waits for it), also to the actions feed
+  if (req.method === "POST" && p === "/stages/review") {
+    let body = ""; req.on("data", c => { body += c; if (body.length > 1e5) req.destroy(); });
+    req.on("end", () => {
+      try {
+        const j = JSON.parse(body), m = /^local\/wip\/([\w-]+)\/([\w.-]+)\.gdlvl$/.exec(String(j.file || ""));
+        if (!m) throw new Error("bad file");
+        if (j.test) { res.writeHead(200, { "Content-Type": "application/json" }); return res.end(JSON.stringify({ verdict: j.verdict, test: true })); }   // a test page (?test=1): nothing stored
+        const r = require("./stages.js").approve(m[1], m[2], String(j.stage), { verdict: j.verdict, note: j.note, spot: j.spot, section: j.section ? String(j.section) : undefined, role: j.role ? String(j.role) : undefined });
+        require("./actions.js").append({ type: j.verdict === "ok" ? "approve" : "redo", session: m[1], level: j.level || m[2], file: j.file, stage: j.stage, section: r.section, role: r.role,
+          text: (r.section ? `section ${r.section}${j.sectionName ? " " + j.sectionName : ""} ${r.role}: ` : "") + (j.note || (j.verdict === "ok" ? "ok" : "")), spot: j.spot });
+        res.writeHead(200, { "Content-Type": "application/json" }); res.end(JSON.stringify(r));
+      } catch (e) { res.writeHead(400); res.end(String(e.message)); }
+    });
+    return;
+  }
+  // decision cards (tools/ask.js): GET /asks -> every card, open first; POST /asks/answer {id, answer, note?}
+  if (p === "/asks" && req.method === "GET") {
+    let out = []; try { out = require("./ask.js").list(); } catch (e) {}
+    res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify(out));
+  }
+  if (req.method === "POST" && p === "/asks/answer") {
+    let body = ""; req.on("data", c => { body += c; if (body.length > 1e5) req.destroy(); });
+    req.on("end", () => {
+      try {
+        const j = JSON.parse(body);
+        if (j.test) { res.writeHead(200, { "Content-Type": "application/json" }); return res.end(JSON.stringify({ id: j.id, answer: j.answer, test: true })); }   // a test page: nothing stored
+        const c = require("./ask.js").answer(j.id, j.answer, j.note);
+        require("./actions.js").append({ type: "answer", session: c.session, level: c.level, file: c.file, card: c.id, question: c.question, answer: c.answer, text: c.question + " -> " + c.answer + (c.note ? " (" + c.note + ")" : "") });
+        res.writeHead(200, { "Content-Type": "application/json" }); res.end(JSON.stringify(c));
+      } catch (e) { res.writeHead(400); res.end(String(e.message)); }
+    });
+    return;
+  }
+  // GET /heavy/status?match=<text>[&cmd=<command line>]: the heavy-job queue (tools/heavy.js) for the viewer's task modal,
+  // chip and Work panel: who runs, who waits in order, and for the job whose command line holds `match`: its place and an
+  // ETA in minutes WITH ITS BASIS (tools/jobtime.js: measured runs of the same tool + level + flags; null = not
+  // measured). `cmd`: the estimate for a job not queued yet. `recent`: finished jobs, estimate vs actual.
   if (p === "/heavy/status") {
-    const match = new URL(req.url, "http://x").searchParams.get("match") || "";
+    const sp = new URL(req.url, "http://x").searchParams, match = sp.get("match") || "", cmdQ = sp.get("cmd") || "";
     let out = { holders: [], waiting: [], mine: null };
     try {
-      const H = require("./heavy.js"), now = Date.now(), short = c => (/tools[\\/].*/.exec(c) || [c])[0];
-      const hs = H.holders(), ws = H.waiters().sort((a, b) => H.RANK[a.prio] - H.RANK[b.prio] || String(a.since).localeCompare(String(b.since)));
-      const typical = c => H.minutesLeft({ cmd: c, start: new Date(now).toISOString() }) || 2;
-      out.holders = hs.map(h => ({ cmd: short(h.cmd), session: h.session, min: Math.round((now - Date.parse(h.start)) / 60000), left: H.minutesLeft(h) }));
-      out.waiting = ws.map(w => ({ cmd: short(w.cmd), session: w.session, prio: w.prio }));
-      const mh = match && hs.find(h => h.cmd.includes(match)), wi = match ? ws.findIndex(w => w.cmd.includes(match)) : -1;
-      if (mh) out.mine = { running: true, min: Math.round((now - Date.parse(mh.start)) / 60000), eta: H.minutesLeft(mh) || 1 };
-      else if (wi >= 0) out.mine = { running: false, ahead: wi + hs.length, eta: Math.round(hs.reduce((n, h) => n + (H.minutesLeft(h) || 2), 0) + ws.slice(0, wi).reduce((n, w) => n + typical(w.cmd), 0) + typical(ws[wi].cmd)) };
+      const H = require("./heavy.js"), JT = require("./jobtime.js"), now = Date.now(), short = c => (/tools[\\/].*/.exec(c) || [c])[0];
+      const all = JT.rows(), hs = H.holders(), ws = H.waiters().sort((a, b) => H.RANK[a.prio] - H.RANK[b.prio] || String(a.since).localeCompare(String(b.since)));
+      const est = c => JT.estimate(c, all);
+      const hEta = hs.map(h => H.etaOf(h));
+      out.holders = hs.map((h, i) => ({ cmd: short(h.cmd), session: h.session, min: Math.round((now - Date.parse(h.start)) / 60000), left: hEta[i] ? hEta[i].left : null, basis: hEta[i] ? hEta[i].basis : null, over: hEta[i] ? hEta[i].over : false }));
+      out.waiting = ws.map(w => { const e = est(w.cmd); return { cmd: short(w.cmd), session: w.session, prio: w.prio, est: e ? Math.max(1, Math.round(e.secs / 60)) : null, secs: e ? Math.round(e.secs) : null, basis: e ? e.basis : null }; });
+      // a sum of measured parts; an unmeasured part makes the sum a lower bound ("at least")
+      const sum = (parts) => ({ min: Math.round(parts.reduce((n, x) => n + (x || 0), 0)), unknown: parts.filter(x => x == null).length });
+      const mh = match && hs.findIndex(h => h.cmd.includes(match)), wi = match ? ws.findIndex(w => w.cmd.includes(match)) : -1;
+      if (match && mh >= 0) { const e = hEta[mh]; out.mine = { running: true, min: out.holders[mh].min, eta: e ? e.left : null, basis: e ? e.basis : null, over: e ? e.over : false }; }
+      else if (wi >= 0) { const s = sum(out.holders.map(h => h.left).concat(out.waiting.slice(0, wi + 1).map(w => w.est)));
+        out.mine = { running: false, ahead: wi + hs.length, eta: s.min, unknown: s.unknown, basis: out.waiting[wi].basis }; }
+      if (cmdQ) { const e = est(cmdQ), s = sum(out.holders.map(h => h.left)); out.would = { est: e ? Math.max(1, Math.round(e.secs / 60)) : null, secs: e ? Math.round(e.secs) : null, basis: e ? e.basis : null, wait: s.min, unknown: s.unknown }; }
+      out.recent = JT.recent(8).map(r => Object.assign(r, { cmd: undefined }));
       out.free = H.freeMB ? Math.round(H.freeMB()) : null;
     } catch (e) { out.error = e.message; }
     res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify(out));
@@ -212,7 +312,7 @@ const SERVER = http.createServer((req, res) => {
     req.on("end", () => {
       let j = {}; try { j = JSON.parse(body); } catch (e) {}
       const file = String(j.file || "");
-      if (!/^(levels|examples|local\/wip\/[\w-]+|local)\/[\w.-]+\.(gdlvl|json)$/.test(file) || !fs.existsSync(path.join(root, file))) { res.writeHead(400); return res.end("bad level"); }
+      if (!/^(levels|examples|local\/wip\/[\w-]+(?:\/[\w.-]+\.stages)?|local)\/[\w.-]+\.(gdlvl|json)$/.test(file) || !fs.existsSync(path.join(root, file))) { res.writeHead(400); return res.end("bad level"); }
       const abs = path.join(root, file); SOLVE.high.add(abs);
       if (!SOLVE.seen.has(abs)) { SOLVE.seen.add(abs); SOLVE.queue.unshift(abs); if (!SOLVE.running) solveNext(); }
       res.writeHead(200, { "Content-Type": "application/json" }); res.end('{"queued":true}');
@@ -222,7 +322,7 @@ const SERVER = http.createServer((req, res) => {
   if (p === "/solution") {
     const file = new URL(req.url, "http://x").searchParams.get("file") || "";
     let sol = null;
-    try { if (/^(levels|examples|local\/wip\/[\w-]+|local)\/[\w.-]+\.gdlvl$/.test(file)) { const { readGdlvl } = require("./io.js"); sol = require("./solutions.js").get(readGdlvl(path.join(root, file)).levelStr) || null; } } catch (e) {}
+    try { if (/^(levels|examples|local\/wip\/[\w-]+(?:\/[\w.-]+\.stages)?|local)\/[\w.-]+\.gdlvl$/.test(file)) { const { readGdlvl } = require("./io.js"); sol = require("./solutions.js").get(readGdlvl(path.join(root, file)).levelStr) || null; } } catch (e) {}
     res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify({ solution: sol }));
   }
   // POST /maps/make {file, name}: the viewer's "level map" for a level that has none yet -> tools/levelmap.js
@@ -251,6 +351,21 @@ const SERVER = http.createServer((req, res) => {
               try { const c = require("./solutions.js").get(L.levelStr, true);
                 if (solution && !solution.windows && c && c.windows && JSON.stringify(c.events) === JSON.stringify(solution.events)) solution = Object.assign({}, solution, { windows: c.windows, win: c.win }); } catch (e) {}
               out.push(Object.assign({}, m, { name: m.name, file: "local/wip/" + m.session + "/" + m.file, level: L.levelStr, song: songOf(L.rec, L.level.header), wip: true, solution })); } catch (e) {}
+      }
+      // build stages (tools/stages.js): the stage each build has reached; a build with stages but no wip level yet
+      // is listed too, as its latest stage (the song stage alone: an empty level with the song)
+      const ST = require("./stages.js"), GDL = require("../lib/gd.js");
+      for (const b of ST.list()) {
+        const last = b.index.stages[b.index.stages.length - 1]; if (!last) continue;
+        const file = "local/wip/" + b.session + "/" + b.base + ".gdlvl", have = out.find(o => o.file === file);
+        const waiting = b.index.stages.filter(s => s.gate && !s.review).map(s => s.stage)[0];   // a gate the user has not answered
+        if (have) { have.stage = last.stage; have.waiting = waiting; continue; }
+        const withLevel = b.index.stages.filter(s => s.file).pop(), songSt = b.index.stages.find(s => s.stage === "song");
+        let level = ST.emptyLevel(songSt && songSt.data), solution = { ok: true, events: [] };
+        if (withLevel) try { level = readGdlvl(path.join(b.dir, withLevel.file)).levelStr; solution = require("./solutions.js").get(level) || undefined; } catch (e) {}
+        out.push({ name: b.index.name, session: b.session, file, wip: true, stagesOnly: true, stage: last.stage, level, solution,
+          song: songSt && ST.songOf(songSt.data), version: 0, note: "building: " + b.index.stages.map(s => s.stage).join(" > "),
+          made: b.index.stages[0].at, updated: last.at, waiting });
       }
     } catch (e) {}
     res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify(out));
