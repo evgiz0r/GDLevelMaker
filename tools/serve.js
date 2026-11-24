@@ -236,8 +236,10 @@ const SERVER = http.createServer((req, res) => {
       try {
         const j = JSON.parse(body), m = /^local\/wip\/([\w-]+)\/([\w.-]+)\.gdlvl$/.exec(String(j.file || ""));
         if (!m) throw new Error("bad file");
-        const r = require("./stages.js").approve(m[1], m[2], String(j.stage), { verdict: j.verdict, note: j.note, spot: j.spot });
-        require("./actions.js").append({ type: j.verdict === "ok" ? "approve" : "redo", session: m[1], level: j.level || m[2], file: j.file, stage: j.stage, text: j.note || (j.verdict === "ok" ? "ok" : ""), spot: j.spot });
+        if (j.test) { res.writeHead(200, { "Content-Type": "application/json" }); return res.end(JSON.stringify({ verdict: j.verdict, test: true })); }   // a test page (?test=1): nothing stored
+        const r = require("./stages.js").approve(m[1], m[2], String(j.stage), { verdict: j.verdict, note: j.note, spot: j.spot, section: j.section ? String(j.section) : undefined, role: j.role ? String(j.role) : undefined });
+        require("./actions.js").append({ type: j.verdict === "ok" ? "approve" : "redo", session: m[1], level: j.level || m[2], file: j.file, stage: j.stage, section: r.section, role: r.role,
+          text: (r.section ? `section ${r.section}${j.sectionName ? " " + j.sectionName : ""} ${r.role}: ` : "") + (j.note || (j.verdict === "ok" ? "ok" : "")), spot: j.spot });
         res.writeHead(200, { "Content-Type": "application/json" }); res.end(JSON.stringify(r));
       } catch (e) { res.writeHead(400); res.end(String(e.message)); }
     });
@@ -252,7 +254,9 @@ const SERVER = http.createServer((req, res) => {
     let body = ""; req.on("data", c => { body += c; if (body.length > 1e5) req.destroy(); });
     req.on("end", () => {
       try {
-        const j = JSON.parse(body), c = require("./ask.js").answer(j.id, j.answer, j.note);
+        const j = JSON.parse(body);
+        if (j.test) { res.writeHead(200, { "Content-Type": "application/json" }); return res.end(JSON.stringify({ id: j.id, answer: j.answer, test: true })); }   // a test page: nothing stored
+        const c = require("./ask.js").answer(j.id, j.answer, j.note);
         require("./actions.js").append({ type: "answer", session: c.session, level: c.level, file: c.file, card: c.id, question: c.question, answer: c.answer, text: c.question + " -> " + c.answer + (c.note ? " (" + c.note + ")" : "") });
         res.writeHead(200, { "Content-Type": "application/json" }); res.end(JSON.stringify(c));
       } catch (e) { res.writeHead(400); res.end(String(e.message)); }

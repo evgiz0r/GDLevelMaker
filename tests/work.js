@@ -38,6 +38,17 @@ const req = (method, u, body) => new Promise((ok, no) => { const r = http.reques
   // the feed, as the coordinator's monitor reads it
   const out = cp.spawnSync(process.execPath, [path.join(ROOT, "tools", "actions.js"), "tail", "--since", since, "--once"], { encoding: "utf8", windowsHide: true, env: Object.assign({}, process.env) }).stdout.trim().split("\n").filter(Boolean);
   check(out.length === 1 && /answer \[test · GDLM 98 gate test\] Which song\? -> B: driving/.test(out[0]), "actions tail --since prints exactly the new line: " + out[0]);
+  // sections (collab-style building): a section strip from the seam contract; one section sent back, its own answer
+  ST.setSections("test", "gdlm_98_gate", [{ id: "s1", name: "intro", x: [0, 900], t: [0, 3], builder: { layout: "style" }, status: { layout: "built" }, in: { mode: "cube" } },
+    { id: "s2", name: "drop", x: [900, 2400], t: [3, 8], builder: { layout: "style", playtest: "human" }, status: { layout: "built" } }]);
+  const secWait = ST.waitApproval("test", "gdlm_98_gate", "layout", { everyMs: 100, timeoutMin: 1, section: "s2" });
+  const sr = await req("POST", "/stages/review", { file, level: "GDLM 98 gate test", stage: "layout", section: "s2", sectionName: "drop", verdict: "redo", note: "the drop needs a ship", spot: { t: 5, x: 1500 } });
+  const srv2 = await secWait, secs = JSON.parse((await req("GET", "/wip/stages?file=" + encodeURIComponent(file))).body).sections;
+  check(sr.status === 200 && srv2.verdict === "redo" && srv2.note === "the drop needs a ship", "a section's redo: waitApproval({section}) returns it");
+  check(secs && secs[1].status.layout === "redo" && secs[1].reviews.layout.note === "the drop needs a ship" && secs[0].status.layout === "built" && !secs[0].in, "the index's sections: s2 redo, s1 untouched (only the viewer's fields kept)");
+  check(/section s2 drop layout: the drop needs a ship/.test(ACT.read().pop().text), "the feed line names the section and role");
+  ST.setSections("test", "gdlm_98_gate", [{ id: "s2", name: "drop", x: [900, 2400], status: { layout: "built" } }]);
+  check(!JSON.parse((await req("GET", "/wip/stages?file=" + encodeURIComponent(file))).body).sections[0].reviews, "a rebuilt section (status built again) clears its old review");
   // "you play": an attempt is one "play" line in the feed (a test attempt goes to the test file instead)
   const pr = await req("POST", "/play", { level: "GDLM 98 gate test", file, session: "test", stage: "layout", attempt: 3, result: "died", x: 1346, pct: 44.9, t: 4.32, why: "spike", from: 0, practice: true });
   const pa = ACT.read().pop();

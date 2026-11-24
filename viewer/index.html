@@ -85,6 +85,13 @@
   .wkRow .nm { font-weight:600; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   #stagebar .rev { padding:3px 8px; font-size:12px; }
   #stagebar .gate { color:#ffd58a; }
+  #secbar { display:flex; flex-wrap:wrap; gap:6px; align-items:center; padding:4px 10px 6px; background:#120a2e; font-size:12px; }
+  #secbar .sec { display:inline-flex; gap:3px; align-items:center; padding:2px 6px; border:1px solid #2b2060; border-radius:6px; cursor:pointer; }
+  #secbar .sec.here { border-color:#6b5bd0; }
+  #secbar .sec.sel { border-color:var(--cube); background:#2a1f5c; }
+  #secbar .role { font-size:10px; padding:0 4px; border-radius:4px; background:#2b2a44; color:#aaa; }
+  #secbar .role.built { background:#24356b; color:#cfe0ff; } #secbar .role.ok { background:#16402c; color:#9cf5c4; } #secbar .role.redo { background:#5a1424; color:#ffb3c2; }
+  #secbar button { padding:2px 8px; font-size:12px; }
   #picker { position:fixed; inset:0; z-index:50; background:rgba(6,3,20,.72); display:flex; justify-content:center; align-items:flex-start; padding:4vh 12px; }
   #picker[hidden] { display:none; }
   #pk { width:min(860px,100%); max-height:92vh; display:flex; flex-direction:column; background:#160d3a; border:1px solid #3b2d78; border-radius:10px; overflow:hidden; }
@@ -145,7 +152,7 @@
   <button data-dt="-1">-1 s</button><button data-dt="-0.1">-0.1</button><button data-dt="0.1">+0.1</button><button data-dt="1">+1 s</button>
   <button id="cmpShot" title="replay + game frame as one PNG in local/shots/">save comparison</button>
   <span id="cmpAt" class="muted"></span></div><img id="cmpImg" alt="game frame"></div></div>
-<div id="stagebar" hidden></div>
+<div id="stagebar" hidden></div><div id="secbar" hidden></div>
 <div id="varbar" hidden></div>
 <div id="notice" hidden></div>
 <div id="taskBox" hidden><div class="card"><h2 id="taskTitle"></h2><div id="taskBody"></div>
@@ -194,6 +201,22 @@ const SHOOT = new URLSearchParams(location.search).get("shoot");
 let MAPCAM = null; // level map (tools/levelmap.js): a fixed camera {x, y, scale, groundY}, no player
 let L = null;          // {name, objects, world, sol, path}
 let t = 0, playing = false, speed = 1, showHit = false, sound = true, lastTick = -1;
+// ?mute=1: silent (no music, no click sound); ?test=1: silent too, and every action the page sends is marked as a test
+// (marks, attempts, reviews, answers: kept out of the actions feed) and no preference is saved. Sessions' experiments,
+// tools/headless.js and every check in the browser pane open the viewer with test=1 (CLAUDE.md: experiments are silent).
+const QS = new URLSearchParams(location.search), TESTPAGE = QS.get("test") === "1", MUTED = TESTPAGE || QS.get("mute") === "1";
+if (MUTED) sound = false;
+if (TESTPAGE) {
+  try { Storage.prototype.setItem = function () {}; } catch (e) {}   // the user's preferences stay as they are
+  const f0 = window.fetch.bind(window);
+  window.fetch = (u, o) => {
+    if (o && o.method === "POST" && /\/(marks|play|stages\/review|asks\/answer)$/.test(String(u)) && typeof o.body === "string") try {
+      const j = JSON.parse(o.body); j.test = true; if (/\/marks$/.test(String(u)) && j.id && !/^test-/.test(j.id)) j.id = "test-" + j.id;
+      o = Object.assign({}, o, { body: JSON.stringify(j) });
+    } catch (e) {}
+    return f0(u, o);
+  };
+}
 
 // ---------- loading ----------
 async function gunzipB64(b64) {
@@ -321,9 +344,9 @@ async function keptSong(key) { try { const db = await songDb(); return await new
 async function keepSong(key, bytes) { try { const db = await songDb(); db.transaction("songs", "readwrite").objectStore("songs").put(bytes, key); } catch (e) {} }
 // the level's song: fetched from tools/serve.js once, decoded, played sample-exact by lib/song.js (Web Audio);
 // while playing, the replay's clock IS the song's clock (frame()), so they cannot drift apart
-let song = null, songInfo = null, music = true;
+let song = null, songInfo = null, music = !MUTED;
 const SONGS = (GD.SONGBUF = GD.SONGBUF || {}), songKeyOf = info => decodeURIComponent(String(info.url).split("/").pop()).toLowerCase();
-function audioCtx() { actx = actx || new AudioContext(); return actx; }
+function audioCtx() { actx = actx || new AudioContext(); if (MUTED && actx.state === "running") actx.suspend(); return actx; }
 function viewerSong(info) {
   const buf = SONGS[songKeyOf(info)];
   if (buf) return GD.songPlayer(buf, audioCtx);
@@ -651,7 +674,7 @@ async function stagesFor(l) {
 }
 function stageRender() {
   const bar = document.getElementById("stagebar");
-  if (!STG.data) { bar.hidden = true; return; }
+  if (!STG.data) { bar.hidden = true; secRender(); return; }
   bar.hidden = false;
   const have = new Map(STG.data.stages.map(x => [x.stage, x])), last = STG.data.stages[STG.data.stages.length - 1].stage;
   const lit = STG.cur || (STG.base && STG.base.stagesOnly ? last : null);
@@ -665,6 +688,43 @@ function stageRender() {
   const back = document.getElementById("stageBack"); if (back) back.onclick = () => { STG.cur = null; const tt = t; pick.dispatchEvent(new Event("change")); t = Math.min(tt, (L.path.length - 1) / P.TPS); draw(); };
   const sv = document.getElementById("stageSolve"); if (sv) sv.onclick = () => stageSolve(have.get(STG.cur));
   bar.querySelectorAll("[data-review]").forEach(b => b.onclick = () => stageReview(have.get(b.dataset.stage), b.dataset.review));
+  secRender();
+}
+// ---------- sections (collab-style building: tools/seams.js; the stages index's "sections", tools/stages.js) ----------
+// One chip per section: its name, blocks, and each role's state (L layout, D deco, P playtest: planned / built / ok /
+// redo; hover: who builds it). The section under the playhead is outlined; a click selects it and jumps there; the
+// selected one gets ✓ / redo for the open stage's role and for playtest -- the answer goes to that section only (POST
+// /stages/review with section + role), so one section can be sent back while the others go on. Seams are drawn on the
+// level as dashed lines with the section's name.
+var SEC = { sel: null, here: null };
+var SEC_ROLE = { layout: "layout", path: "playtest", deco: "deco", final: "deco", song: "layout" };
+function secList() { return STG.data && Array.isArray(STG.data.sections) && STG.data.sections.length ? STG.data.sections : null; }
+function secAt(x) { const s = secList(); return s && s.find(c => Array.isArray(c.x) && x >= c.x[0] && x < c.x[1]) || null; }
+function secRender() {
+  const bar = document.getElementById("secbar"), secs = secList();
+  if (!secs) { bar.hidden = true; return; }
+  bar.hidden = false;
+  const lit = STG.cur || STG.data.stages[STG.data.stages.length - 1].stage, role = SEC_ROLE[lit] || "layout";
+  const pill = (sc, r, letter) => { const st = (sc.status || {})[r] || "planned", rv = (sc.reviews || {})[r];
+    return `<span class="role ${esc(st)}" title="${esc(r)}: ${esc(st)}${sc.builder && sc.builder[r] ? " · by " + esc(sc.builder[r]) : ""}${rv && rv.note ? " · " + esc(rv.note) : ""}">${letter}</span>`; };
+  const sel = secs.find(c => c.id === SEC.sel);
+  bar.innerHTML = `<span class="muted">sections</span>` + secs.map(sc => `<span class="sec${sc.id === SEC.here ? " here" : ""}${sc.id === SEC.sel ? " sel" : ""}" data-sec="${esc(sc.id)}" title="${esc(sc.id)}: blocks ${Math.round(sc.x[0] / 30)}–${Math.round(sc.x[1] / 30)}${Array.isArray(sc.t) ? ", " + (+sc.t[0]).toFixed(1) + "–" + (+sc.t[1]).toFixed(1) + " s" : ""}">${esc(sc.name || sc.id)} ${pill(sc, "layout", "L")}${pill(sc, "deco", "D")}${pill(sc, "playtest", "P")}</span>`).join("") +
+    (sel ? `<span class="sep">|</span><b>${esc(sel.name || sel.id)}</b>` + [...new Set([role, "playtest"])].map(r => ` <span class="muted">${esc(r)}:</span><button data-sr="ok" data-role="${r}" title="this section's ${r} is good">✓ ok</button><button data-sr="redo" data-role="${r}" title="send this section's ${r} back with a note">redo…</button>`).join("") : "");
+  bar.querySelectorAll("[data-sec]").forEach(b => b.onclick = () => { SEC.sel = SEC.sel === b.dataset.sec ? null : b.dataset.sec; const sc = secs.find(c => c.id === b.dataset.sec); if (SEC.sel && sc && L) varGo(sc.x[0] + 90); secRender(); });
+  bar.querySelectorAll("[data-sr]").forEach(b => b.onclick = () => secReview(sel, b.dataset.role, b.dataset.sr, lit));
+}
+async function secReview(sc, role, verdict, stage) {
+  if (!sc || !STG.base) return;
+  let note;
+  if (verdict === "redo") { const a = await askNote(`What should change in ${sc.name || sc.id} (${role})?`); if (!a) return; note = a.note + (a.kind && a.kind !== a.note ? " (" + a.kind + ")" : ""); }
+  const spot = L && L.path.length ? { t: +(tick() / P.TPS).toFixed(2), x: Math.round(L.path[tick()].x) } : undefined;
+  try {
+    const r = await fetch("/stages/review", { method: "POST", body: JSON.stringify({ file: STG.base.file, level: STG.base.name, stage, section: sc.id, sectionName: sc.name, role, verdict, note, spot }) });
+    if (!r.ok) throw new Error(await r.text());
+    const rv = await r.json(); if (!rv.test) { sc.reviews = Object.assign({}, sc.reviews, { [role]: rv }); sc.status = Object.assign({}, sc.status, { [role]: verdict }); }
+    notice(`${verdict === "ok" ? "✓" : "↺"} ${esc(sc.name || sc.id)} · ${esc(role)}: ${verdict === "ok" ? "approved" : "sent back with your note"} -- ${rv.test ? "a test page: nothing stored" : esc((sc.builder && sc.builder[role]) || STG.base.session || "the session") + " hears it now"}.`, 5000);
+    secRender();
+  } catch (e) { notice("Could not send it (is tools/serve.js running?)."); }
 }
 // the user's answer on the stage shown: ✓ ok, or redo with a note (and the moment / spot on screen); a gated stage
 // says the build waits for it
@@ -1031,6 +1091,7 @@ async function makeMap(l, name, url) {
 }
 document.getElementById("hit").onclick = e => { showHit = !showHit; e.target.classList.toggle("on", showHit); draw(); };
 document.getElementById("sound").onclick = e => { sound = !sound; e.target.classList.toggle("on", sound); };
+if (MUTED) { document.getElementById("sound").classList.remove("on"); document.getElementById("music").classList.remove("on"); }
 document.getElementById("music").onclick = e => { music = !music; e.target.classList.toggle("on", music); syncSong(true); };
 let showBeats = true;
 document.getElementById("beatsBtn").onclick = e => { showBeats = !showBeats; e.target.classList.toggle("on", showBeats); draw(); };
@@ -1115,7 +1176,7 @@ function playEnd(s) {
     x: Math.round(s.x), pct: +pct.toFixed(1), t: +((lp.path.length - 1) / P.TPS).toFixed(2), why: s.why || "", from: Math.round(PLAY.from), practice: PLAY.practice };
   // an attempt with no press at all (nobody playing) is not logged, and does not restart by itself
   const idle = !PLAY.pressed; PLAY.pressed = false;
-  if (!idle && location.protocol.startsWith("http") && !window.GD_PAGES && !window.GD_PHONE) fetch("/play", { method: "POST", body: JSON.stringify(Object.assign(rec, window.PLAY_TEST ? { test: true } : {})) }).catch(() => {});
+  if (!idle && location.protocol.startsWith("http") && !window.GD_PAGES && !window.GD_PHONE) fetch("/play", { method: "POST", body: JSON.stringify(rec) }).catch(() => {});
   PLAY.last = rec;
   if (clear) { notice(`✓ Cleared on attempt ${lp.attempts}${PLAY.practice ? " (practice)" : ""}! Space or R plays again, P goes back to the replay.`, 0); return; }
   PLAY.deaths.push(s.x); draw();
@@ -1147,7 +1208,7 @@ document.getElementById("practiceBtn").onclick = e => { e.currentTarget.blur(); 
 
 let actx = null;
 function beep() {
-  if (!sound) return;
+  if (!sound || MUTED) return;
   actx = actx || new AudioContext();
   const o = actx.createOscillator(), g = actx.createGain();
   o.type = "square"; o.frequency.value = 1320;
@@ -1418,6 +1479,15 @@ function draw() {
   if ((s.mode === "ship" || s.dualBand) && !SHOOT) {
     ctx.strokeStyle = "rgba(255,90,210,.6)"; ctx.lineWidth = 3;
     for (const yy of [s.floorY, s.ceilY]) { ctx.beginPath(); ctx.moveTo(0, sy(yy)); ctx.lineTo(W, sy(yy)); ctx.stroke(); }
+  }
+  // the seams of a level built in sections (tools/seams.js): a dashed line and the section's name where each one starts
+  const secsNow = !MAPCAM && typeof secList === "function" && STG.base && (STG.cur || ALL[pick.value] === STG.base) ? secList() : null;
+  if (secsNow) {
+    ctx.save(); ctx.strokeStyle = "rgba(160,140,255,.55)"; ctx.setLineDash([3 * DPR(), 5 * DPR()]); ctx.lineWidth = 1.5 * DPR(); ctx.fillStyle = "rgba(200,190,255,.85)"; ctx.font = `${11 * DPR()}px system-ui`;
+    for (const sc of secsNow) { if (!Array.isArray(sc.x)) continue; const gx = sx(sc.x[0]); if (gx < -200 || gx > W + 10) continue;
+      ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, groundY); ctx.stroke(); ctx.fillText(sc.name || sc.id, gx + 4, 30 * DPR()); }
+    ctx.restore();
+    const here = secAt(s.x); if ((here && here.id) !== SEC.here) { SEC.here = here && here.id; secRender(); }
   }
   // where a build stage's plan breaks (a red cross at the death spot)
   if (L.planBreak && !MAPCAM) { const bx = sx(L.planBreak.x), by = sy(L.planBreak.y), r = 10 * DPR();
