@@ -247,6 +247,16 @@ What it says:
 
 Check any level with `node tools/decostudy.js <file.gdlvl>`.
 
+**Order of work** (gd-taste's model with these measures in, TASTE_DATA.md "Per-screen deco measures", 2026-11-24):
+- Motion first: put move, rotate or pulse triggers on deco on every screen. It is the strongest signal for featured
+  levels, with effort taken out (+0.32), and holds for epic+ too (+0.36).
+- Channels next: +0.18.
+- Dress counts mostly as effort (+0.12).
+- Glow helps featured over the rest (+0.14), but the best levels use LESS of it (epic+ against featured -0.26). Keep it
+  moderate: 30% is the target's low end, not something to maximise.
+- Layer count says nothing.
+score.js's "taste" gate now includes these measures.
+
 **Reference levels**: readable (contrast 70 or more), dressed and layered, with n 300-3000 per screen. Ids are
 community levels in local/community/ (local only).
 
