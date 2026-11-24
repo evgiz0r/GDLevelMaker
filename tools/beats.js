@@ -304,7 +304,8 @@ else if (require.main === module) {
   const args = process.argv.slice(2);
   const force = args.includes("--force");
   const files = args.filter(a => !a.startsWith("--"));
-  const songs = files.length ? files.map(f => ({ key: "file_" + path.basename(f).replace(/\W+/g, "_"), file: f })) : allSongs();
+  // a GD song file (<id>.mp3, as GD and tools/songs.js name them) gets its song key, so songmap and sync find it
+  const songs = files.length ? files.map(f => ({ key: /^\d+\.mp3$/.test(path.basename(f)) ? "custom_" + path.basename(f, ".mp3") : "file_" + path.basename(f).replace(/\W+/g, "_"), file: f })) : allSongs();
   fs.mkdirSync(OUT, { recursive: true });
   for (const s of songs) {
     const out = path.join(OUT, s.key + ".json");

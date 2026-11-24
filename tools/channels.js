@@ -6,7 +6,9 @@
 // (1004), so the two can differ. Flags, per level:
 //   undefined   an object's channel (its key, or its default) is a user channel 1-999 not in the header and not set
 //               by a colour trigger at or before it (one by x 60 counts from the start)
-//   nokey       deco with no channel key (it takes its default: white unless that channel is defined)
+//   nokey       deco with no MAIN key (it takes its default: white unless that channel is defined) -- a detail key
+//               (22) alone does not count on an object with no detail part (the colour test's row C: white; tools/io.js
+//               now copies it to 21 when writing)
 //   shared155   objects of different colours that share a key-155 value (GD 2.2's colour-batch index): the game draws
 //               them all in ONE colour (the user's colour test, 2026-11-24). --fix rewrites the file without key 155.
 // FAIL when any deco lands on an undefined channel or key 155 is shared (score.js gate "channels"); `nokey` alone is a note.
@@ -17,7 +19,9 @@ const CAT = {};
 for (const line of fs.readFileSync(path.join(ROOT, "knowledge", "objects", "catalogue.tsv"), "utf8").split("\n").slice(1)) { const c = line.split("\t"); if (c.length >= 10) CAT[c[0]] = { main: +c[8] || 0, detail: +c[9] || 0 }; }
 function defined(header) {
   const m = /(?:^|,)kS38,([^,]*)/.exec(header || ""), set = new Set();
-  if (m) for (const s of m[1].split("|")) { const x = /(?:^|_)6_(\d+)/.exec(s); if (x) set.add(+x[1]); }
+  // key/value pairs: a regex like /_6_(\d+)/ also matched a VALUE of 6 ("2_6_3_6_11": green 6, blue 6 -> "channel 11"),
+  // so hellgate's channels 30/34/38 (blue 6) read as undefined
+  if (m) for (const s of m[1].split("|")) { const a = s.split("_"); for (let i = 0; i + 1 < a.length; i += 2) if (a[i] === "6") set.add(+a[i + 1]); }
   return set;
 }
 function check(L) {

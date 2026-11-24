@@ -59,9 +59,14 @@ function quiet(objs, header, ev, path) {
   const endT = path.length / 240;
   for (let i = 1; i < ins.length; i++) if (!ins[i - 1].down && ins[i].t - ins[i - 1].t > lim) gaps.push([ins[i - 1].t, ins[i].t]);
   // empty screens: sample every 0.25 s, the camera's view ~6 blocks behind to ~13 ahead of the player
+  // a block on the ground row counts at its edges (a step up or down: GDLM 62's outro steps read as empty before);
+  // a run of them is a raised floor, only its ends are something to do
+  const isWall = o => { const k = (O.objInfo(o.id) || {}).kind; return (k === "solid" || k === "slope") && !(o.props && (o.props[121] === "1" || o.props[134] === "1")); };
+  const low = new Set(objs.filter(o => isWall(o) && o.y <= 20).map(o => Math.round(o.x / 30)));
   const things = objs.filter(o => { const k = (O.objInfo(o.id) || {}).kind;
     if (o.props && o.props[57] === "990") return false;
-    return k === "hazard" || k === "orb" || k === "pad" || ((k === "solid" || k === "slope") && o.y > 20); }).map(o => o.x).sort((a, b) => a - b);
+    if (isWall(o) && o.y <= 20) { const c = Math.round(o.x / 30); return !low.has(c - 1) || !low.has(c + 1); }
+    return k === "hazard" || k === "orb" || k === "pad" || (isWall(o) && o.y > 20); }).map(o => o.x).sort((a, b) => a - b);
   const seen = x => { let lo = 0, hi = things.length; while (lo < hi) { const m = (lo + hi) >> 1; if (things[m] < x - 180) lo = m + 1; else hi = m; } return lo < things.length && things[lo] <= x + 390; };
   const empty = []; let run = null;
   for (let t = 0; t < endT; t += 0.25) {

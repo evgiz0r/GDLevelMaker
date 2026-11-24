@@ -10,6 +10,8 @@
 // node tools/collab.js scene <brief> [--scene <file>]           -- AFTER the join: one scene over the whole joined level
 //                                                                (a level-wide scene like tools/scenes/golden_hour.js: its
 //                                                                sun and palettes run on global beats); gameplay and route kept
+// node tools/collab.js preview <brief>                         -- the COMBINED TRACK now: built parts in place, placeholders
+//                                                                for the rest (also refreshed after every part build)
 // node tools/collab.js status <brief>                          -- each part: builder, state, checks, time
 //
 // A level made the way GD collabs are (BUILDING.md section 1; the user, 2026-11-24: "Each section like 10 20 seconds.
@@ -189,6 +191,9 @@ function build(briefFile, k, opts = {}) {
   const fresh = readJ(path.join(dir, "plan.json")), mine = fresh.parts[k];
   mine.builder = res.by; mine.status = Object.assign({}, mine.status, { layout: "built", deco: "built", playtest: res.ok ? "ok" : "redo", join: "planned" });
   writeJ(path.join(dir, "plan.json"), fresh); showInViewer(briefFile, fresh);
+  // the part's own card in the viewer (double-click it on the combined track), and the combined track refreshed
+  try { const ST = require("./stages.js"), { slug } = require("./make.js"); ST.put({ session: SESSION, base: slug(brief.name) + "_" + part.id, name: brief.name + " · " + part.id + " " + (sub._role || part.name), stage: "layout", levelStr, data: { events: res.events, kind: "planned" }, note: part.name + ": " + (res.ok ? "ok" : "redo: " + res.fails.join(", ")) + " (by " + res.by + ")" }); } catch (e) {}
+  try { preview(briefFile); } catch (e) {}
   try { fs.appendFileSync(path.join(ROOT, "local", "timings.jsonl"), JSON.stringify({ at: res.at, tool: "collab.js", step: "collab-build", level: brief.name, part: part.id, by: res.by, secs: res.secs.total }) + "\n"); } catch (e) {}
   return res;
 }
@@ -219,6 +224,41 @@ function deco(briefFile, k, opts = {}) {
   mine.status = Object.assign({}, mine.status, { deco: "ok", join: "planned" }); mine.decoBy = res.decoBy;
   writeJ(path.join(dir, "plan.json"), fresh); showInViewer(briefFile, fresh);
   return res;
+}
+
+// ---- preview: the COMBINED TRACK while parts build (the user picked "A": one track of the whole song, every part at
+// its song time, a placeholder for a part not built yet; after the join the track is the level). Light: no solve, no lock.
+// Built parts are placed as the join places them (on the joined timeline), with their routes; a part not built yet is a
+// flat floor for its song time at its seam speed, with a label (its role and contract); the cube runs through it.
+function preview(briefFile) {
+  const dir = dirOf(briefFile), plan = readJ(path.join(dir, "plan.json"));
+  const K = require("./scenekit.js");
+  let coord = null; try { coord = require("./coordinator.js").load(briefFile); } catch (e) {}
+  const objects = [], events = []; let header = null, built = 0, prevEnd = 0;
+  const ups = sp => [251.16, 311.58, 387.42, 468.0, 576.0][SPEED_IX[sp] ?? 1];
+  plan.parts.forEach((p, k) => {
+    let r = null, L = null; try { r = readJ(path.join(dir, p.id + ".json")); L = readGdlvl(path.join(dir, p.id + ".gdlvl")); } catch (e) {}
+    const shift = k === 0 ? 0 : (header ? SY.xOfT(SY.timeline(GD.makeWorld(objects, header)), p.t[0]) : prevEnd);
+    const role = coord && (coord.parts.find(q => q.id === p.id) || {}).role;
+    if (r && L && r.L) {
+      built++; if (!header) header = L.level.header;
+      // the part's own card (a part built before cards existed gets one here)
+      try { const ST = require("./stages.js"), { slug } = require("./make.js"), b = readJ(briefFile); ST.put({ session: SESSION, base: slug(b.name) + "_" + p.id, name: b.name + " · " + p.id + " " + (role || p.name), stage: "layout", levelStr: L.levelStr, data: { events: r.events, kind: "planned" }, note: p.name + " (by " + (r.by || "-") + ")" }); } catch (e) {}
+      for (const o of L.level.objects) if ((k === plan.parts.length - 1 || o.x <= r.L + 15) && (k === 0 || o.x >= -15)) objects.push(Object.assign({}, o, { x: +(o.x + shift).toFixed(3) }));
+      if (r.events) { const dt = Math.round(p.t[0] * TPS); if (k > 0) events.push({ tick: dt - 1, type: "release" }); for (const e of r.events) if (e.tick < Math.round(r.dur * TPS) - 1 || k === plan.parts.length - 1) events.push(Object.assign({}, e, { tick: e.tick + dt })); }
+      prevEnd = shift + r.L;
+    } else {
+      const len = (p.t[1] - p.t[0]) * ups(p.enter || p.speedIn);
+      objects.push(K.text(shift + Math.min(400, len / 2), 160, p.id + (role ? " " + role : "") + ": not built yet", 0.6));
+      objects.push(K.text(shift + Math.min(400, len / 2), 120, "in: cube " + (p.enter || p.speedIn) + ", grounded", 0.45));
+      prevEnd = shift + len;
+    }
+  });
+  if (!header) header = GD.DEFAULT_HEADER;
+  events.sort((a, b) => a.tick - b.tick || (a.type === "release" ? -1 : 1));
+  const level = { header, objects: objects.filter(o => o && o.id) }, levelStr = GD.serializeLevel(level);
+  showInViewer(briefFile, plan, "layout", levelStr, { events, kind: "planned" }, "combined track: " + built + "/" + plan.parts.length + " parts built" + (built < plan.parts.length ? " (placeholders for the rest)" : ""));
+  return { built, parts: plan.parts.length, objects: level.objects.length };
 }
 
 // ---- join
@@ -373,7 +413,7 @@ function status(briefFile) {
   }
 }
 
-module.exports = { split, build, deco, join, scene, status, partBrief, mergeChannels };
+module.exports = { split, build, deco, join, scene, status, partBrief, mergeChannels, preview };
 
 if (require.main === module) {
   const [cmd, bf, ...rest] = process.argv.slice(2);
@@ -390,5 +430,6 @@ if (require.main === module) {
   else if (cmd === "deco") { const k = +String(rest[0]).replace(/^p/, ""), r = deco(bf, k, { by: opt("--by") || "style", scene: opt("--scene") }); console.log(`${r.part} deco by ${r.decoBy}: ${r.objects} objects (scene ${r.scene}), gameplay unchanged, route kept; ${r.decoSecs.toFixed(0)} s`); }
   else if (cmd === "join") { const r = join(bf); if (r.drift) console.log("   drift per seam: " + r.drift.map(d => `${d.units} u (${d.ms} ms)`).join(", ")); if (r.rerouted && r.rerouted.length) console.log("   re-routed at the join (from the state handed over): " + r.rerouted.map(x => `${x.part} from block ${x.from} in ${x.secs.toFixed(1)} s`).join(", ")); console.log(r.ok ? `JOINED: every seam holds, full check READY -> ${r.out} (${r.secs.toFixed(0)} s)` : `NOT JOINED (${(r.secs || 0).toFixed(0)} s):`); for (const p of r.problems || []) console.log("   " + p); if (r.full) { for (const f of r.full.fails) console.log("   full check FAIL " + f); console.log("   warnings: " + r.full.warns.join(", ")); } if (r.send && r.send.length) console.log("   send back: " + r.send.join(", ")); process.exit(r.ok ? 0 : 2); }
   else if (cmd === "scene") { const r = scene(bf, { scene: opt("--scene") }); console.log(`scene over the joined level: +${r.added} objects (${r.objects} in all), route kept -> ${r.out} (${r.secs.toFixed(0)} s)`); }
+  else if (cmd === "preview") { const r = preview(bf); console.log("combined track: " + r.built + "/" + r.parts + " parts built, " + r.objects + " objects -> the viewer (layout stage)"); }
   else if (cmd === "status") status(bf);
 }
