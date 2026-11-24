@@ -64,6 +64,17 @@ song (speed portals may ruin if we add), location of the switch. Other than that
   release at the seam; a hold carried into the next part's ship.
 - **The seam state is read 30 ticks before the seam**, before the next part's first portal can touch the player.
 - **Nothing from before a part's start** joins (parts carry deco to x -300).
+- **A part fails only on part gates** (beatable, prejumps, timing, recovery, skips, reactive, fairness, seam); the
+  level-wide ones (difficulty, length, pacing, sync) are judged at the join.
+- **Parts are placed on the joined timeline** (each part where the joined level, earlier parts' portals in, has the player
+  at its song time): drift cannot add up; the gap left per seam is reported against a 6-unit budget.
+- **The join re-routes a part from the state it is handed** when its own route does not carry over (solveSweep from
+  30 ticks before the seam to the part's end): flight seams and small landing differences need no rebuild.
+- **Seams inside a flight**: the next part's first section has `"continue": true` (same mode): no exit portal before
+  the seam (the part brief carries `_continueAfter`), a mode-only contract, the next part re-routed from the real state.
+- **Decoration**: `collab.js deco` per part (kit scene in each section's colours) or `collab.js scene` once over the
+  joined level (a level-wide scene). Build parts with the modern block dressing on, or blocks show their raw grid skin.
+- **Upside-down and flying parts exit 6 blocks before their seam**; the exit is read 30 ticks before the seam, as the join reads it.
 - **Builders write only their own entry of plan.json** (re-read, change, write): two builds finish at once now. An old
   builder process still running old code rewrote the whole plan once and put the old seams back -- stop old builders
   before changing the contract.
