@@ -243,7 +243,7 @@ ground line with `tools/track.py --rows`. Source: Hexagon Force, recording 2026-
 | cube spin in the air | 412 deg/s, clockwise | sim 416.5 deg/s | matches (1 %) |
 | cube landing | eases into square over ~0.1 s (6 frames) | 0.12 per tick toward the nearest 90 (~0.1 s) | matches |
 | ground at rest | 3.0 blocks above the bottom of the view | 3.1 | matches |
-| camera lift (cube) | 0.9 / 0.94 / 1.36 / 1.6 / 1.74 blocks at 4.4 / 5.2 / 5.6 / 6.5 / 6.6 blocks height | was 0 / 0.7 / 1.1 / 2.0 / 2.1 (s.y - 4.5 blocks); now 0.38 x (height - 2 blocks), player at most 5.5 blocks up the screen: 0.91 / 1.22 / 1.37 / 1.71 / 1.75 | fixed (mean error 0.45 -> 0.08 blocks) |
+| camera lift (cube) | 0.9 / 0.94 / 1.36 / 1.6 / 1.74 blocks at 4.4 / 5.2 / 5.6 / 6.5 / 6.6 blocks height | was 0 / 0.7 / 1.1 / 2.0 / 2.1 (s.y - 4.5 blocks); now 0.38 x (height - 2 blocks), player at most 5.5 blocks up the screen: 0.91 / 1.22 / 1.37 / 1.71 / 1.75 | superseded 2026-11-24 by the GDLM 68 fit ("Camera" below): follow at 205 units above the window's bottom, eased up 3/s, down 10/s |
 | trail (streak) | the user's streak 7 (orange texture) added onto the scene: pink over magenta; tapers; ~3.6 blocks behind the ship at 1x = ~0.35 s | was the icon green, 0.22 s | fixed: the user's own streak colour, 0.35 s, tapered |
 | ship tilt | follows its velocity's angle: gain 0.98, 67 ms behind, rms 7.6 deg (`rot_video.py --axis`, 2x speed, video 72.6-74.05 s) | was gain 0.96, 17 ms behind; now smoothing 0.06 a tick: gain 0.86, 50 ms | fixed (timing); the gain fit drops with the lag, close enough |
 | colours | at 12.2 s the background fade (trigger 29 at x 3795: to 255,91,0 over 10 s) is ~1.6 s along in the game, ~0.2 s in ours; ground saws pink, block edges glowing | violet, white saws | open: needs the video aligned by position first (GD may fire old colour triggers earlier, or the video is ahead) |
@@ -257,6 +257,36 @@ ground line with `tools/track.py --rows`. Source: Hexagon Force, recording 2026-
 | antenna ball, short rod (17) | 12.9 units across | 22 (0.73 after the first fix) | fixed: 0.43; rod 15 not measured yet |
 | block outlines | white with a soft glow | thin white | open |
 | death burst | GDLM 60's 48 % death, video 492.55 s (level_t + the sim's death tick): white disc with a blue glow 1.2 -> 2.6 blocks in 0.25 s, then 2-3 offset thin rings to ~3.7 blocks, gone by 0.7 s; shards in the player's colour; small square sparks | "✖ died on a spike" only | fixed: drawn on top at the death, on the wall clock while the replay rests there; picture local/shots/rvg/death_compare.png |
+
+## Camera (measured on the user's GDLM 68 camera-lab run, 2026-11-24)
+
+The vertical camera is one copy, `lib/camera.js`, used by the viewer. `tools/camfit.js` checks it against a recording.
+Data: recording 2026-11-24_19-47-52, attempt amwv55dc82 (video 22.1-62.4 s, 2399 frames). Steps:
+- `python tools/track.py VIDEO --from 22 --to 64.5 --crop 160,141,1600,860 --rows > track.csv` (the GD window minus its
+  progress bar).
+- `node tools/camfit.js amwv55dc82 track.csv --fit-shift`. Per frame, the sim's player y (the attempt's own presses) minus
+  the player's height on screen gives the game's camera.
+- **Clock:** the attempt's `level_t` was 360 ms early. The shift that makes the measured camera smoothest is -360 ms; the
+  cube stretch alone gives -380 and the ship stretch -310. A wrong clock makes the "camera" jump with every jump.
+- **Cube and ground modes:** the game keeps the player 205 units (6.8 blocks) above the window's bottom, and never shows
+  less than the ground's rest view. It eases up at ~3/s and down at ~10/s. Standing still at y 165 the window's bottom is
+  at -34.5; at y 315 it is at 106.5.
+  - The old rule (0.38 x (height - 2 blocks), fitted on 19 Hexagon Force frames, eased at 9.75/s) had a mean error of
+    0.47 blocks on 1800 frames.
+  - Fitted follow: 0.27 blocks. Dead-zone models fit no better; their best is the follow rule.
+- **Flying modes:** GD centres the camera on the portal's band and holds it there. The band's floor and ceiling bars sit at
+  the window's top and bottom edges (frames 54.4 s and 55.4 s), and the camera does not follow the ship inside the band.
+  Ours used to follow it within 40 units. Entering the band took ~0.5 s (rate ~4/s used).
+  - The ship-stretch numbers from tracking are noisy, so the frames are the evidence here. The ship sprite's colour blob
+    is not as clean as the cube's, and the sim's ship height may drift from the game's.
+- **Open:**
+  - Does a second portal of the SAME mode move the band? At 56.3 s the ship took the "high" ship portal (x 11565, y 285).
+    The view moved, but the sim keeps 0..300 because "a portal of the mode you are in does nothing" (lib/physics.js
+    enterMode). Asked physics.
+  - The band-change rate, the UFO / wave / ball bands, and the cube camera at speeds other than 1x: other stations of the
+    same recording (short attempts) and a longer run.
+  - The Hexagon Force lift numbers in "Render vs game" were mid-jump moments; with the slow rise they are transients, not
+    the steady follow.
 
 ## Facts (checked against the user's recordings)
 
@@ -318,7 +348,7 @@ Driven from the browser console: load a level (`load(name, levelStr, solution)` 
   the user whether a setting does this; else look for GD 2.2 behaviour of 1004 / 1005 on input.
 - Rod (antenna) balls: size and place measured on Hexagon Force (Render vs game); GDLM 41's earlier note said a filled pale ball -- check it against its recording with the new scale.
 - Order of the player vs T1 objects (we draw the player after everything, OpenGD puts it under T1).
-- The camera's vertical follow and the bg's slower vertical parallax are not the game's.
+- The camera's vertical follow is fitted ("Camera"); the bg's slower vertical parallax is not the game's yet.
 - 2.2-only ids (1911+): root frame only, no child sprites, default layer/channel guessed (T1, 1004).
   2.2 objects made of several sprites (most of the 2.2 deco families, animated objects) will look partial.
 - Not drawn: particles (portals, orbs, pads), animated objects (fire, saws turning, pulsing), HSV (keys
