@@ -16,10 +16,16 @@
 // With the recording's sound (tools/audiolog.ps1, WASAPI loopback, next to the video) and the level's song on
 // this PC, the music's restart pins each attempt's clock (~10 ms) and the shift search narrows to +-25 ms;
 // without, the bar fit (+-1.5 s) stands in. --audio <wav> picks the sound file by hand.
-// STATUS 2026-11-24: first version, not yet run on a real log (the first recording with inputs comes next).
+// STATUS 2026-11-24: GDLM 63 / Blast Processing / GDLM 60 attempts agree; the 02:33:44 official runs do not yet (PHYSICS.md "Fidelity").
 const fs = require("fs"), path = require("path"), { execFileSync } = require("child_process");
 const { GD, readGdlvl, unpack } = require("./io.js");
 Object.assign(GD, require("../lib/natural.js"));
+// the one agreement rule (tests/attempts_consistency.js uses it too): same result, and a death within AGREE_PCT of the same %
+// (GD's % and our x / endX differ by ~1-2%)
+const { agreeOf } = require("./attempts.js");
+// the video starts ~1 s after the second in its file name (ffmpeg's start-up): per recording in
+// local/runs/<video>.clock.json "video_lag_s", else --lag, else 1.0 (PHYSICS.md "Fidelity")
+let VIDEO_LAG = 1.0;
 const a = process.argv.slice(2), opt = (k, d) => { const i = a.indexOf("--" + k); return i < 0 ? d : a[i + 1]; };
 const [video, logFile, lv] = a.filter((x, i) => !x.startsWith("--") && !(a[i - 1] || "").startsWith("--"));
 if (!video || !logFile || !lv) { console.log(fs.readFileSync(__filename, "utf8").split("\n").slice(0, 2).join("\n")); process.exit(1); }
@@ -40,22 +46,51 @@ if (!fs.existsSync(runsFile)) execFileSync(process.execPath, [path.join(__dirnam
 const allRuns = JSON.parse(fs.readFileSync(runsFile, "utf8")).runs.filter(r => r.mode === "normal" && r.secs > 1)
   .filter(r => r.start >= +opt("from", -1) && r.start <= +opt("to", 1e9));
 let runs = allRuns;
-if (!opt("from") && !opt("to")) {
+// which level each attempt is, read off the frames (the level page, "Attempt 1"): local/runs/<video>.levels.json
+// {"<attempt start s>": "<official:N | levels/x.gdlvl | c<id> | ?>", ...}. When it exists it decides, and the length
+// guess below is not used (short labs of 21 and 30 s, and levels of the same length, cannot be told apart by length).
+const levelsFile = runsFile.replace(/\.json$/, ".levels.json"), ATT = require("./attempts.js");
+const idMap = fs.existsSync(levelsFile) ? JSON.parse(fs.readFileSync(levelsFile, "utf8")) : null;
+if (idMap) {
+  const me = ATT.baseOf(lv), of = r => { const k = Object.keys(idMap).find(k => Math.abs(+k - r.start) < 1.5); return k ? idMap[k] : null; };
+  runs = allRuns.filter(r => { const l = of(r); return l && l !== "?" && ATT.baseOf(l) === me; });
+  console.log(`attempts by ${path.basename(levelsFile)}: ${runs.length} of ${allRuns.length} are this level`);
+}
+if (!idMap) {
+  // the reference length: the level's own (its end x through its speed portals, lib/sync.js), else --secs; a
+  // recording holds several levels, and --from/--to alone once let GDLM 60's and Blast Processing's attempts into
+  // GDLM 63's file (2026-11-24). --any turns the filter off.
   const lens = allRuns.map(r => r.beaten ? r.secs : r.pct > 5 ? r.secs * 100 / r.pct : null);
-  const beat = allRuns.filter(r => r.beaten).map(r => r.secs);
-  const ref = +opt("secs", beat.length ? beat.sort((a, b) => a - b)[beat.length >> 1] : 0);
-  if (ref) runs = allRuns.filter((r, i) => lens[i] == null ? r.secs < ref * 0.3 : Math.abs(lens[i] - ref) / ref < 0.25);
-  if (runs.length < allRuns.length) console.log(`${allRuns.length - runs.length} attempt(s) left out: another level by their length (this one ~${ref.toFixed(0)} s; --secs or --from/--to to choose)`);
+  let own = 0; try { const S = require("../lib/sync.js").SYNC; own = S.tOfX(S.timeline(w), w.endX); } catch (e) {}
+  // a death's implied length (secs * 100 / %) is rough where speed portals change the pace (GD's % is by distance):
+  // an attempt stays if it is near the level's own length OR this recording's clears of it (40%)
+  const beat = allRuns.filter(r => r.beaten).map(r => r.secs).filter(v => !own || Math.abs(v - own) / own < 0.3);
+  const ref = a.includes("--any") ? 0 : +opt("secs", own || 0), ref2 = beat.length ? beat.sort((p, q) => p - q)[beat.length >> 1] : 0;
+  const near = (v, r0) => r0 && Math.abs(v - r0) / r0 < 0.4;
+  if (ref) runs = allRuns.filter((r, i) => lens[i] == null ? r.secs < ref * 0.3 : near(lens[i], ref) || near(lens[i], ref2));
+  if (runs.length < allRuns.length) console.log(`${allRuns.length - runs.length} attempt(s) left out: another level by their length (this one ~${ref.toFixed(0)} s; --secs or --any to choose)`);
 }
 
 // 2. the input log: press/release times in UTC ms
-// two formats: tools/inputlog.ps1's "ms,utc ISO,down|up,key" and the minimal logger's "<unix ms> <down|up> <key>"
-const ev = fs.readFileSync(logFile, "utf8").split(/\r?\n/).filter(l => l.trim() && !l.startsWith("#")).map(l => {
-  if (l.includes(",")) { const [ms, utc, ud, key] = l.split(","); return { t: Date.parse(utc), type: ud === "down" ? "press" : "release", key }; }
-  const [t, ud, key] = l.trim().split(/\s+/); return { t: +t, type: ud === "down" ? "press" : "release", key };
-}).filter(e => isFinite(e.t)).sort((p, q) => p.t - q.t);
-// merge keys: the button is down while any of them is down
-const button = []; { let n = 0; for (const e of ev) { const was = n > 0; n += e.type === "press" ? 1 : -1; n = Math.max(0, n); const is = n > 0; if (is !== was) button.push({ t: e.t, type: is ? "press" : "release" }); } }
+// two formats: tools/inputlog.ps1's "ms,utc ISO,down|up,key" and the minimal logger's "<unix ms> <down|up> <key>";
+// several logs may be concatenated (a logger restarted mid-recording)
+// a header line ("# ...": a logger started) resets every key: a log stopped while a key was down (02:33:44)
+// must not leave the button held through the next file
+const ev = [];
+for (const l of fs.readFileSync(logFile, "utf8").split(/\r?\n/)) {
+  if (!l.trim()) continue;
+  if (l.startsWith("#")) { if (/started/.test(l)) { const iso = (l.match(/started (\S+)/) || [])[1]; ev.push({ t: iso ? Date.parse(iso) : null, reset: true }); } continue; }
+  let e;
+  if (l.includes(",")) { const [ms, utc, ud, key] = l.split(","); e = { t: Date.parse(utc), type: ud === "down" ? "press" : "release", key }; }
+  else { const [t, ud, key] = l.trim().split(/\s+/); e = { t: +t, type: ud === "down" ? "press" : "release", key }; }
+  if (isFinite(e.t)) ev.push(e);
+}
+// the button is down while any key is down (each key down or up, never counted twice)
+const button = []; { const keys = new Set(); for (const e of ev) {
+  const was = keys.size > 0; if (e.reset) { keys.clear(); if (was) button.push({ t: e.t != null ? e.t : (button[button.length - 1] || {}).t || 0, type: "release" }); continue; }
+  if (e.type === "press") keys.add(e.key || "k"); else keys.delete(e.key || "k");
+  const is = keys.size > 0; if (is !== was) button.push({ t: e.t, type: is ? "press" : "release" }); } }
+button.sort((p, q) => p.t - q.t);
 // the video's start in UTC from its name ("GD claude-rec 2026-11-24_00-33-07.mkv", local time)
 const m = path.basename(video).match(/(\d{4})-(\d\d)-(\d\d)_(\d\d)-(\d\d)-(\d\d)/);
 const videoT0 = m ? new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]).getTime() : null;
@@ -107,21 +142,34 @@ if (audioFile) console.log(`sound: ${path.basename(audioFile)}${song ? ", song "
 // one clock offset for the whole recording (the log's clock vs the video name's second): found on the attempts
 // that are most constrained -- the clears and long runs -- then every attempt is judged within +-60 ms of it
 function fit(r, center, span) {
-  let t0 = videoT0 + r.start * 1000;
-  const pinned = pinStart(t0); if (pinned != null) { t0 = pinned; center = 0; span = 25; }
+  // the music's restart pins the clock (+-25 ms) -- but a pin can lock onto the wrong spot (02-33-44: every
+  // pinned attempt died in the first 7%, the bar fit got 23-63%), so the bar fit runs too and the closer one wins
+  const t00 = videoT0 + r.start * 1000, pinned = pinStart(t00);
+  const tries = [[t00, center, span, false]].concat(pinned != null ? [[pinned, 0, 25, true]] : []);
   let best = null;
-  for (let sh = center - span; sh <= center + span; sh += 1000 / 240) {
+  for (const [t0, c0, sp0, pin] of tries)
+  for (let sh = c0 - sp0; sh <= c0 + sp0; sh += 1000 / 240) {
     const start = t0 + sh, list = button.filter(e => e.t >= start - 50 && e.t <= start + r.secs * 1000 + 500)
       .map(e => ({ tick: Math.max(0, Math.round((e.t - start) / 1000 * 240)), type: e.type }));
     if (!list.length) continue;
     const q = GD.run(w, list), pct = q.done ? 100 : endPct(q), err = Math.abs(pct - (r.beaten ? 100 : r.pct));
-    if (!best || err < best.err - 1e-9) best = { err, sh, pct, q, list };
+    if (!best || err < best.err - 1e-9) best = { err, sh: sh + (t0 - t00), pct, q, list, pin };
   }
   return best;
 }
 const anchors = runs.filter(r => r.beaten).concat(runs.filter(r => !r.beaten).sort((a, b) => b.secs - a.secs)).slice(0, 4);
 const shifts = anchors.map(r => fit(r, 0, 1500)).filter(b => b && b.err <= 2.5).map(b => b.sh).sort((a, b) => a - b);
-const OFFSET = +opt("offset", shifts.length ? shifts[shifts.length >> 1] : 0);
+// one clock offset per RECORDING, not per level (the log's clock vs the video's): kept in local/runs/<video>.clock.json
+// from the first run whose anchors include a clear, and reused by every later run on that recording -- a level replayed
+// alone has no clear of its own to anchor on (Blast Processing in 02:13: 2.0% alone, 15.7% = the video with GDLM 63's
+// clock). --offset overrides it.
+const clockFile = runsFile.replace(/\.json$/, ".clock.json");
+const clearAnchor = anchors.some(r => r.beaten) && shifts.length;
+let saved = null; try { saved = JSON.parse(fs.readFileSync(clockFile, "utf8")); } catch (e) {} VIDEO_LAG = +opt("lag", saved && saved.video_lag_s != null ? saved.video_lag_s : 1.0);
+const hasOff = saved && isFinite(saved.offset_ms);
+if (clearAnchor && !opt("offset") && !hasOff) fs.writeFileSync(clockFile, JSON.stringify(Object.assign(saved || {}, { offset_ms: Math.round(shifts[shifts.length >> 1]), from: L.name || lv, anchors: shifts.map(Math.round) })));
+const OFFSET = +opt("offset", hasOff ? saved.offset_ms : shifts.length ? shifts[shifts.length >> 1] : 0);
+if (hasOff && !opt("offset")) { shifts.length = 0; shifts.push(saved.offset_ms); console.log(`recording clock: ${saved.offset_ms} ms (${path.basename(clockFile)}, from ${saved.from})`); }
 console.log(`clock offset ${Math.round(OFFSET)} ms (from ${shifts.length} anchor attempt(s)${shifts.length ? ": " + shifts.map(Math.round).join(", ") : ""})`);
 // the first attempt after a level loads (nothing on the bar for 3 s before): its bar shows ~0.55 s before the
 // level starts moving (GD's fade-in; GDLM 63 +580 ms, Blast Processing +520 ms, 2026-11-24)
@@ -130,14 +178,41 @@ for (const r of runs) {
   const prev = allRuns.filter(q => q.start < r.start).pop(), afterLoad = !prev || r.start - (prev.start + prev.secs) > 3;
   const best = fit(r, OFFSET + (afterLoad ? LOAD_MS : 0), shifts.length ? (afterLoad ? 150 : 60) : 1500);
   if (!best) { out.push({ attempt: r.start, note: "no inputs logged in this attempt" }); continue; }
+  // CLOCK DRIFT (2026-11-24): the input log's clock and the video's frame times drift apart over a run (Base After Base:
+  // its launches line up -38 ms early in the first 10 s and -9 ms in the last 15 s, tools/pathcheck.js), so one offset
+  // per attempt is not enough. Where the sim dies before the video says, the presses from 2 s before that death are
+  // re-fitted within +-DRIFT_STEP ms (at most DRIFT_MAX in all), and again at the next death. Every re-fit is kept
+  // on the line (video.drift) and reported as "agree after drift" apart from a plain agree: a physics error that a
+  // timing shift could hide stays visible there. --no-drift turns it off.
+  const drift = [];
+  if (!a.includes("--no-drift")) {
+    const DRIFT_STEP = 60, DRIFT_MAX = 100, want0 = r.beaten ? 100 : r.pct;
+    let ev = best.list, q = best.q, total = 0;
+    for (let round = 0; round < 6; round++) {
+      const pct = q.done ? 100 : endPct(q);
+      if (pct >= want0 - 2.5) break;                       // the sim already gets as far as the video
+      const cut = (q.path ? q.path.length : 0) - 480; let pick = null;
+      for (let d = -DRIFT_STEP; d <= DRIFT_STEP; d += 1000 / 240) {
+        if (Math.abs(total + d) > DRIFT_MAX) continue;
+        const k = Math.round(d * 240 / 1000), e2 = ev.map(e => e.tick >= cut ? { ...e, tick: e.tick + k } : e), q2 = GD.run(w, e2);
+        const p2 = q2.done ? 100 : endPct(q2);
+        if (p2 > pct + 0.05 && (!pick || p2 > pick.p || (p2 === pick.p && Math.abs(d) < Math.abs(pick.d)))) pick = { d, k, e2, q2, p: p2 };
+      }
+      if (!pick) break;
+      drift.push({ from_tick: cut, ms: Math.round(pick.d) }); total += pick.d; ev = pick.e2; q = pick.q2;
+    }
+    if (drift.length) { best.list = ev; best.q = q; best.pct = q.done ? 100 : endPct(q); best.err = Math.abs(best.pct - want0); }
+  }
   const want = r.beaten ? 100 : r.pct, restart = !r.beaten && r.secs < 3 && r.pct < 5;   // a quick restart, not a death
-  const ok = best.err <= 2.5 || restart;   // GD's % and our x/endX differ by ~1-2%
+  const ok = restart || agreeOf({ result: r.beaten ? "clear" : "died", pct: want, sim: { result: best.q.done ? "clear" : "died", pct: best.pct } });
   const row = { video_t: r.start, video: r.beaten ? "beaten" : `died ${r.pct.toFixed(1)}%`, sim: best.q.done ? "beaten" : `died ${best.pct.toFixed(1)}% (${best.q.why || "?"})`,
-    shift_ms: Math.round(best.sh), presses: best.list.filter(e => e.type === "press").length, agree: ok,
-    events: best.list, beaten: !!r.beaten, videoPct: r.beaten ? 100 : r.pct, secs: r.secs, x: +(w.endX * (r.beaten ? 100 : r.pct) / 100).toFixed(1), why: best.q.why };
+    shift_ms: Math.round(best.sh), drift, presses: best.list.filter(e => e.type === "press").length, agree: ok,
+    events: best.list, beaten: !!r.beaten, videoPct: r.beaten ? 100 : r.pct, secs: r.secs, x: +(w.endX * (r.beaten ? 100 : r.pct) / 100).toFixed(1),
+    restart, simOut: { result: best.q.done ? "clear" : "died", pct: +best.pct.toFixed(1), x: +(best.q.done ? w.endX : best.q.end.x).toFixed(1),
+      why: best.q.done ? null : (best.q.why || "?"), tick: best.q.path ? best.q.path.length - 1 : null, mode: best.q.end.mode } };
   if (!ok) { const s = best.q.end; Object.assign(row, { mismatch: `the sim ${best.q.done ? "finishes" : "dies at " + best.pct.toFixed(1) + "% x " + s.x.toFixed(0) + " (" + s.mode + ", " + (best.q.why || "?") + ")"} where the video ${r.beaten ? "beats it" : "dies at " + want.toFixed(1) + "%"}` }); }
   out.push(row);
-  console.log(`${r.start.toFixed(1).padStart(7)} s  video ${row.video.padEnd(12)} sim ${row.sim.padEnd(24)} shift ${row.shift_ms} ms  ${restart ? "restart (not judged)" : ok ? "agree" : "MISMATCH"}`);
+  console.log(`${r.start.toFixed(1).padStart(7)} s  video ${row.video.padEnd(12)} sim ${row.sim.padEnd(24)} shift ${row.shift_ms} ms  ${restart ? "restart (not judged)" : ok ? (drift.length ? "agree after drift " + drift.map(x => x.ms + " ms @" + (x.from_tick / 240).toFixed(1) + " s").join(", ") : "agree") : "MISMATCH" + (drift.length ? " (drift tried: " + drift.map(x => x.ms).join(", ") + " ms)" : "")}`);
 }
 // the shared per-attempt file (agreed with gd-visuals: the viewer's "you play" uses the same lines, and shows
 // them as a ghost beside the route): local/attempts/<base>.jsonl, one attempt per line
@@ -147,17 +222,37 @@ for (const r of runs) {
   if (!hashOf) hashOf = str => { let h = 2166136261; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(16).padStart(8, "0"); };
   // a build stage (local/wip/<session>/<base>.stages/<stage>.gdlvl) lists as "<base>.<stage>"
   const stage = lv.split(path.sep).join("/").match(/([^/]+)\.stages\/([^/]+)\.gdlvl$/);
-  const base = stage ? stage[1] + "." + stage[2] : /^c\d+$/.test(lv) ? lv : lv.startsWith("official:") ? "official_" + lv.slice(9) : path.basename(lv).replace(/\.gdlvl$/, "");
+  const base = stage ? stage[1] + "." + stage[2] : require("./attempts.js").baseOf(lv);
   const adir = path.join(__dirname, "..", "local", "attempts"); fs.mkdirSync(adir, { recursive: true });
   const lines = [];
   for (const o of out) { if (!o.events) continue;
     lines.push(JSON.stringify({ id: "a" + Date.now().toString(36) + lines.length, at: new Date().toISOString(), source: "video", level: L.name || lv, file: lv.startsWith("official:") || /^c\d+$/.test(lv) ? lv : path.relative(path.join(__dirname, ".."), path.resolve(lv)).split(path.sep).join("/"),
-      hash: hashOf(L.levelStr), events: o.events, result: o.beaten ? "clear" : "died", x: o.x, pct: o.videoPct, t: o.secs, why: o.why || null, practice: false, from: null,
-      video: { file: path.basename(video), inputs: path.basename(logFile), t: o.video_t, shift_ms: o.shift_ms, agree: o.agree, res: o.agree ? "agree" : "mismatch", mismatch: o.mismatch || undefined } })); }
+      hash: hashOf(L.levelStr), events: o.events,
+      // two sides (tools/attempts.js header, agreed with gd-visuals 2026-11-24): top level = what really happened in the game
+      // (the video's bar; its cause is not known, so why is null), sim = our replay of the same logged presses; agree is
+      // computed from the two (agreeOf), never set by hand. A quick restart is not judged (agree null).
+      result: o.beaten ? "clear" : "died", x: o.x, pct: o.videoPct, t: o.secs, why: null, practice: false, from: null,
+      sim: o.simOut, agree: o.restart ? null : agreeOf({ result: o.beaten ? "clear" : "died", pct: o.videoPct, sim: o.simOut }),
+      video: { file: path.basename(video), inputs: path.basename(logFile), t: o.video_t, shift_ms: o.shift_ms,
+        // level_t: the video time of tick 0 (the level's real start) = bar start + shift - the video's lag behind its file
+        // name's second (VIDEO_LAG; measured 0.98 s at 02:33, 1.05 s at 02:45 from tracked jumps vs logged presses).
+        // t (the bar start) is 0.3-1 s late: use level_t for side-by-sides (gd-visuals, 2026-11-24)
+        level_t: +(o.video_t + o.shift_ms / 1000 - VIDEO_LAG).toFixed(3), lag_s: VIDEO_LAG, drift: o.drift && o.drift.length ? o.drift : undefined, agree: o.agree, res: o.restart ? "restart" : o.agree ? "agree" : "mismatch", mismatch: o.mismatch || undefined } })); }
   // re-running a video replaces that video's lines (no duplicates); other lines (the viewer's, other videos) stay
   const af = path.join(adir, base + ".jsonl"), keep = fs.existsSync(af) ? fs.readFileSync(af, "utf8").split("\n").filter(l => { if (!l.trim()) return false;
     try { const o = JSON.parse(l); return !(o.source === "video" && o.video && o.video.file === path.basename(video)); } catch (e) { return true; } }) : [];
   if (lines.length) fs.writeFileSync(af, keep.concat(lines).join("\n") + "\n");
+}
+// the user's own play as a route (the coordinator, 2026-11-24: "my 'human' play was decent"): a clear the sim replays to the
+// end is saved as the level's route of kind "player", beside the solver's (local/solutions/<key>.player.json, the same
+// content key as tools/solutions.js); the viewer offers it next to the solver's route. The latest agreeing clear wins.
+{
+  const sols = require("./solutions.js"), clears = out.filter(o => o.beaten && o.agree && o.simOut && o.simOut.result === "clear");
+  if (clears.length) { const c = clears[clears.length - 1], f = path.join(__dirname, "..", "local", "solutions", sols.keyOf(L.levelStr) + ".player.json");
+    fs.mkdirSync(path.dirname(f), { recursive: true });
+    fs.writeFileSync(f, JSON.stringify({ ok: true, kind: "player", events: c.events, physics: sols.physicsCommit(), name: L.name || lv,
+      from: { video: path.basename(video), t: c.video_t, inputs: path.basename(logFile), shift_ms: c.shift_ms } }));
+    console.log(`player route saved: ${path.relative(path.join(__dirname, ".."), f)} (the clear at ${c.video_t} s)`); }
 }
 const dir = path.join(__dirname, "..", "local", "replays"); fs.mkdirSync(dir, { recursive: true });
 fs.writeFileSync(path.join(dir, path.basename(video).replace(/\.\w+$/, "") + ".json"), JSON.stringify({ level: L.name, video: path.basename(video), log: path.basename(logFile), attempts: out }, null, 1));

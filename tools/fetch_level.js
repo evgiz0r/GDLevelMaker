@@ -29,30 +29,41 @@ function parse(resp) {
   return kv;
 }
 
+// download one level into dir; returns { id, name, file, bytes, song, skipped } or throws
+async function fetchOne(id, out = "local/community") {
+  fs.mkdirSync(out, { recursive: true });
+  const file = path.join(out, id + ".gdlvl");
+  if (fs.existsSync(file)) return { id, file, bytes: fs.statSync(file).size, skipped: true };
+  const r = await post(id);
+  if (r.trim() === "-1" || !r.includes(":4:")) throw new Error("server said " + r.slice(0, 20));
+  const kv = parse(r);
+  let lvl = kv[4];
+  if (!lvl.startsWith("H4sI")) lvl = pack(lvl); // very old levels are stored uncompressed
+  // some old levels hold one more layer inside: base64(zlib(level string)) ("eJ...")
+  let inner = unpack(lvl);
+  while (/^(eJ|H4sI)/.test(inner)) inner = require("zlib").unzipSync(Buffer.from(GD.b64urlToBytes(inner))).toString("utf8");
+  lvl = pack(inner);
+  const rec = GD.newRecord(kv[2] || id, GD.decodeDesc(kv[3]));
+  GD.setField(rec, "k4", "s", lvl);
+  const custom = kv[35] && kv[35] !== "0";
+  if (custom) GD.setField(rec, "k45", "i", kv[35]);
+  else GD.setField(rec, "k8", "i", kv[12] || "0");
+  fs.writeFileSync(file, pack(GD.serializeRecord(rec)));
+  return { id, name: (kv[2] || "").trim(), file, bytes: fs.statSync(file).size, song: custom ? "custom " + kv[35] : "official " + (kv[12] || 0), objects: inner.split(";").length - 2 };
+}
+
 async function main() {
   const args = process.argv.slice(2);
   let out = "local/community";
   const oi = args.indexOf("--out"); if (oi >= 0) { out = args[oi + 1]; args.splice(oi, 2); }
-  fs.mkdirSync(out, { recursive: true });
   for (const id of args) {
-    const file = path.join(out, id + ".gdlvl");
-    if (fs.existsSync(file)) { console.log(id, "already here"); continue; }
-    let kv;
-    try { const r = await post(id); if (r.trim() === "-1" || !r.includes(":4:")) throw new Error("server said " + r.slice(0, 20)); kv = parse(r); }
-    catch (e) { console.log(id, "FAILED:", e.message); continue; }
-    let lvl = kv[4];
-    if (!lvl.startsWith("H4sI")) lvl = pack(lvl); // very old levels are stored uncompressed
-    // some old levels hold one more layer inside: base64(zlib(level string)) ("eJ...")
-    let inner = unpack(lvl);
-    while (/^(eJ|H4sI)/.test(inner)) inner = require("zlib").unzipSync(Buffer.from(GD.b64urlToBytes(inner))).toString("utf8");
-    lvl = pack(inner);
-    const rec = GD.newRecord(kv[2] || id, GD.decodeDesc(kv[3]));
-    GD.setField(rec, "k4", "s", lvl);
-    if (kv[35] && kv[35] !== "0") GD.setField(rec, "k45", "i", kv[35]);
-    else GD.setField(rec, "k8", "i", kv[12] || "0");
-    fs.writeFileSync(file, pack(GD.serializeRecord(rec)));
-    console.log(id, (kv[2] || "").trim(), "->", file, "song", kv[35] && kv[35] !== "0" ? "custom " + kv[35] : "official " + (kv[12] || 0));
+    try {
+      const r = await fetchOne(id, out);
+      if (r.skipped) { console.log(id, "already here"); continue; }
+      console.log(id, r.name, "->", r.file, "song", r.song);
+    } catch (e) { console.log(id, "FAILED:", e.message); continue; }
     await new Promise(r => setTimeout(r, 2000));
   }
 }
-main();
+module.exports = { fetchOne };
+if (require.main === module) main();

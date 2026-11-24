@@ -109,6 +109,11 @@ the answer: props set BOTH colour keys (21 main and 22 detail -- either way 211 
 does), **B** key 21 only, **C** key 22 only, **D** keys 21+22 on channels 40+. Which are orange in the game
 decides the default (`chKeys`, `ch0`). Write the answer here.
 
+2026-11-24, recording `GD claude-rec 2026-11-24_02-45-05.mkv` (~238 s): the user played the ONLINE GDLM 44 hellgate
+(My Online Levels, "version 3") and its signature figures were pure white again -- but that upload carries the
+v2 signature (figures standing on the ground, key 21 only), not v3. The colour test (rows A-J) and the prop test
+(pumpkins A-D) were not played in that recording, so the question is still open.
+
 ## Open
 
 - GD-art render of the first 18 props (local/props/props_gdart.png, from local/maps/gdlm_prop_test.jpg, 2026-11-23):
@@ -126,3 +131,72 @@ decides the default (`chKeys`, `ch0`). Write the answer here.
 - Pictures from Blender (tools/blender_model.sh in the GamePlatform kit: render a model small, flat-shaded,
   then tools/pixelart.js) -- not tried yet; PIL drawings and hand-drawn rows work.
 - The signature v3 is built from this library (robot + human, both colour keys, channels 976-989 via props.header, the stage 3 blocks over the path; tools/signature.js, merged 426b12b, checked by visuals on GDLM 45). Unchecked: GD art and the game.
+
+## Claude icons (the solver's own icon set, 2026-11-24)
+
+The user: "lets make an icon set for claude" -- in the viewer the solver plays with its own icons next to the
+user's GD icons. `lib/claude_icons.js`: one original pixel icon per mode (cube 16x16 px, ship, ball, ufo, wave,
+robot, spider, swing), the signature robot's face (a dark visor with two amber eyes, a cream brow plate, an
+antenna light) on a terracotta body, cream plates, dark-brown outline, glow (255,150,80). Our own art: no logos,
+nothing of RobTop's. `node tools/claude_icons.js sheet` -> local/props/claude_icons.png (icon size + 4x, dark and
+GD-blue backgrounds); `png` -> one PNG per mode for the viewer (viewer/icons/claude/, after the user's OK);
+`text <mode> [kit]`. Then the user's reference pictures (a player's icon kits; a sheet of GD-style faces): it
+must read as ONE kit -- one motif on every mode, one palette, thick dark outlines, simple shapes. So
+lib/claude_icons.js is now bodies with a face slot + a kit's motif: kits A visor bot, B a cream "C" mark with a
+spark dot, C a happy face; `node tools/claude_icons.js kits` -> local/props/claude_kits.png (one row per kit).
+Then the user's "main traits": Claude's spark -- a radial starburst of thin rays, terracotta and cream. Kits
+D (cream rays on terracotta), E (terracotta rays on a cream disc), F (D with two eyes at the hub); drawn as our own
+pixel rays (8, long / short; 12 smear below a 16-px slot), each body's bigger "spark slot".
+`node tools/claude_icons.js kits --only spark,spark2,sparkface` -> local/props/claude_spark_kits.png. The spark
+evokes Anthropic's Claude mark: fine in our viewer and levels; think before it goes on anything public as "official".
+The user: "your icons are ok" -> kit D ("spark": cream rays on terracotta) chosen by the art session. Viewer files:
+`node tools/claude_icons.js png --kit spark` -> viewer/icons/claude/<mode>.png (8 px a pixel, glow included, for
+gd-visuals' "solver" icon). The end sign (tools/signature.js) carries the spark as a round badge above the title
+(`CI.badge(24)`: 12 rays, 2 blocks, channels 973-975, ~30 objects; `badge: false` turns it off). Private levels only
+for now (the spark evokes Anthropic's mark). Unchecked in the game.
+STATUS (older): viewer files (for gd-visuals) and an in-level prop
+version (GD objects, like the signature) come after it.
+
+## Colour readability (the user, 2026-11-24: "sometimes its not clear and its all mooshy")
+
+A soft rule, scored by `node tools/contrast.js <level ...> [--all] [--official] [--worst N]` (also score.js gate
+"contrast", WARN under 70). Every 10 blocks, with the colours the header and colour triggers give there (time ~ x at
+1x: approximate on levels with speed portals), it measures LUMINANCE contrast (WCAG ratio): hazard/bg, block/bg,
+ground/bg (or the ground line), a hazard against a differently-coloured block next to it, and deco in front of hazards.
+Thresholds = the official levels' 10th percentile: hazard/bg 1.6, block/bg 1.5, ground/bg 1.1 (or line/bg 3),
+hazard/block 1.3 (only when their colours differ: one colour for both is normal GD, told apart by shape), 40+ deco
+pieces on hazards in a section. Official medians: hazard/bg 2.1-21 (most 3.5-7), ground/bg 1.0-3.9.
+Official section scores: 4-100, median ~88 (Fingerdash 4 and Dash 26: heavy colour-trigger / copy-colour effects the
+approximation reads badly -- a known limit; Stereo Madness .. Hexagon Force 67-100).
+
+GDLM sweep (2026-11-24): 47 sunny side 38 (blocks / spikes at the sky's brightness, block/bg ~1.3; a spike and its
+block in two hues at one value, ~27-28 s and ~97 s), 45 first flight 74 (block/bg 1.08 at ~31 s), 44 hellgate 75
+(ground at the background's brightness, ~1-3 s and ~10 s; its bright line saves part of it), 51 adrift 97 (deco over
+hazards ~7.7 s); the rest 100. Pictures: local/shots/ (shoot.js at those times).
+
+**The palette rule** (for compose / scenes / anyone picking colours):
+1. Pick the background first, then put hazards and block edges at the OTHER end of brightness: dark bg -> light
+   hazards (or white edges), light bg (a sunny sky) -> dark blocks and spikes. Ratio >= 3 is safe, 1.6 is the floor.
+2. Hue is for mood, value is for reading: two colours one step apart in hue but equal in brightness are mush.
+3. Ground: a step darker or lighter than the bg (ratio >= 1.1), or a bright ground line.
+4. Colour triggers keep the rule at every moment: check the colour a trigger fades TO against what is behind then.
+5. Glow and deco go behind the play (B layers) near hazards, and are dimmer than the hazards' edges.
+Tool: `require("./tools/contrast.js").ratio(rgbA, rgbB)` for a quick pair check; `measure({header, objects})` for a level.
+
+## Deco library (2026-11-24; the user: our levels look like "3 squares and poopy" next to real ones)
+
+Targets: knowledge/levels/modern_look.md "Recipe" (20-50 objects per block, layers B4-B5 ~20% / B1-B3 ~25% / T1 /
+T2-T4 15-25%, a third of channels blending, HSV on ~40%, motion per minute) and the per-screen study below.
+- `tools/decokit.js` (own compositions, deco only, the caller's channels):
+  `blockPattern(objects, x0, x1, {ch, top})`: running-bond bricks inside closed cells, a lit top trim (band + grass
+  triangles) on open tops, ~2-4 per cell. `backdrop(x0, x1, {far, mid, near, trees})`: three depths of one-colour
+  silhouettes (mountains B5, hills B4, a tree line in two sizes B3), using props' new `silhouette` option (a tree 38 -> 14 objects).
+  `tufts(objects, x0, x1, {ch})`: grass in front at the ground line, 2 blocks clear of hazards / orbs / portals.
+  `depthColours(sky, tint)`: far / mid / near from the sky (aerial perspective).
+- `tools/decowin.js <level> --at b1,b2 [--w 24]`: a quick art-free picture of level windows (flat shapes, start
+  colours, objects per block in view); no solve, not heavy. For GD art: tools/shoot.js (heavy).
+- First pass on a copy of GDLM 64 golden hour (local/deco/gh_before_after.png): 13.7 -> 26.7 objects per block (pattern
+  2.7, backdrop 7.8, tufts 2.5). Lessons: (1) a dark silhouette right behind the path swallows black spikes -- back
+  layers paler toward the sky with distance (depthColours); (2) what reads as "squares" most is BIG FLAT RECTANGLES
+  (sky / frame clouds as one stretched square each): edges need shape -- scalloped "cloud band" props, stepped
+  silhouettes, gradients.

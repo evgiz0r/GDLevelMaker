@@ -462,6 +462,13 @@ widest-moment scan skipped. Flying presses and releases are now scanned too.
    Back On Track are the best. Keep mouse and keyboard apart (`--device`).
    - Loop: record → `node tools/runs.js <files> --join --level N --device mouse` →
      `node tools/difficulty_fit.js` → update SIGMA and LAPSE.
+   - 2026-11-24, recording 02:33:44, 9 attempts on official levels (`node tools/real_stats.js`).
+     Base After Base and xStep were cleared first try. Fingerdash was cleared on attempt 2.
+     Deaths: Electroman 33.2% and 10.3%, Hexagon Force 40.4%, Geometrical Dominator 12.3% and
+     13.3%, Fingerdash 53.0%. The death %s are solid (from the progress bar). No attempt replays in
+     the sim yet, so don't fit SIGMA on them (physics, PHYSICS.md "Fidelity"). Use them for
+     predicted vs real places only: does the model's hardest stretch sit where the user died?
+     Electroman, Hexagon Force and Dash wait on re-solved routes (skips and a stale route).
 3. **Surprise.** Inputs forced right after a portal are in the score (The measure, item 5); refit
    SETTLE on `local/real_stats.jsonl` as it grows (the physics session adds every analysed
    recording) and with `node tools/difficulty.js --cached --settle MS` (seconds, from the

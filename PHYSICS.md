@@ -130,6 +130,31 @@ Contact sheets and frames: local/shots/lab60/. Read station by station from fram
 Unfair stations to change in v2: 4 (plank row straight over spikes, from flat ground) and 7 (a post that
 punishes holding the dash).
 
+## Trigger firing point (2026-11-24)
+
+Gameplay triggers (move, toggle, spawn...) fire when the player's CENTRE passes their x. gd-visuals saw a colour
+trigger fire when the FRONT edge (x + 15) reached it (Hexagon Force's colour 1 at x 945, frames aligned by
+video.level_t), and the viewer's look triggers now fire there. Front-edge firing for the sim's triggers was tried on
+gdsolver's real-game plans: nothing gains and Dash falls from 81 to 40 blocks, so the centre stays (colour and
+gameplay triggers may well differ in GD).
+
+## Landing buffer (2026-11-24)
+
+A cube's press made in the air is kept and the cube jumps when it lands, even if the button is already up.
+- Seen in the user's real run: Clutterfunk, 2026-11-24_02-45-05.mkv, level time 1.055 s. The input log has a
+  tap in the air (down 1.055, up 1.167), the cube lands at 1.20 s and the video shows it jump at once, 0.45 s
+  before the next logged press. Without the buffer the sim walks into the saw at x 451 (1.9%); with it the run
+  goes on. The sim needs at least 37 ticks there (36: the saw; 37-1000: through).
+- gdsolver's real-game plans (tests/tas_progress.js), for any length from 24 to 1000 ticks: Polargeist CLEARS
+  (was 909 blocks), Dry Out 415 -> 574, Can't Let Go 303 -> 489, Jumper 210 -> 248, Time Machine 333 -> 362,
+  Clutterfunk 288 -> 294; none less far once an orb or pad that takes the press also clears the buffer
+  (without that, ToE 2 fell 105 -> 92). This was the old open item "a cube that walked off a ledge and presses
+  shortly before landing: the game jumps, we do not".
+- In the sim: lib/physics.js `LANDBUF` = 40 ticks (cube only; the solvers' state keys carry it).
+  `GDLM_LANDBUF=<ticks>` overrides it for measuring, 0 = off. OPEN: the upper bound (is it "until landing"?),
+  and whether a release clears it in other modes. A clean test: tap in the air at several heights before a
+  landing in a lab level.
+
 ## Objects
 
 - Hitboxes from OpenGD's 2.1 table, overridden in `lib/objects.js`; GD 2.2's decoration list
@@ -253,7 +278,7 @@ Solvers: the state key has player 2's part (`GD.dualKey`); portal requirements (
 player's used objects and either player's distance; dual levels go to the sweep (the exact cube solver
 knows one player).
 
-Official levels (dual portals): Hexagon Force 351.7-503.4 (cube), 640.3-709.8 (ball), 944.8-995.2 (mini
+Official levels (dual portals): Hexagon Force 351.7-503.4 (cube), 640.3-709.8 (mini ball), 944.8-995.2 (mini
 ship); Blast Processing 512.3-554.0 (wave); Deadlocked 859.2-910.9 (wave). Before this, 286/287 were
 "unsupported" (a death on touch, and NOT on the no-skip list), so Hexagon Force's "beaten" and Blast
 Processing's 78% went around every dual portal: secret ways. Their saved routes, replayed with dual:
@@ -261,10 +286,12 @@ Hexagon Force dies at 362.8 (player 2 on a spike), Blast Processing at 564.4.
 Re-solved with dual (2026-11-24, physics 1d59689, `difficulty_solve --resume`, checked by tools/skips.js and a replay):
 - **Blast Processing: beaten** (was 78%, and that 78% went around its dual): all 18 portals taken, 0 of 46 orbs/pads
   skipped; two players from block 511.6 to 553.3 (wave dual).
-- **Hexagon Force**: the first dual part (351-503, cube then ships) passes, all 16 portals taken up to block 560. It
-  stops at 553.8 on the no-skip rule in a one-player orb chain (541-563: the yellow orb at 553.7, row 16, is passed
-  ~1 block under): orb physics (handed to the physics session), not dual. Its ball dual (640) and mini-ship dual
-  (944) are not reached yet.
+- **Hexagon Force: beaten** (2026-11-24, physics 23634a9, a full solve from the start: 568 s solve, 25 min with the
+  viewer's route): all 37 portals taken (11 of 75 orbs/pads untouched, none of them a skipped portal), through all
+  three dual parts: 350.7-502.4 (cube, then ships), 639.5-708.9 (mini ball), 943.9-994.3 (mini ship); ends at
+  block 1035.5. On 1d59689 it had stopped at 553.8 (a decoy orb, fixed by physics 36ca0ac); a `--resume` after the
+  landing buffer (fee98db) died at 459.8 in the dual ships because the kept prefix was planned without the buffer,
+  so after a physics change that alters cube timing, solve dual levels from the start.
 - Deadlocked's wave dual (859-911) is past its current stop (695); not reached yet.
 
 ## Not in the sim yet (the game has it)
@@ -334,6 +361,99 @@ What exists and what blocks it (2026-11-23):
     no clock shift in +-1.5 s reproduces 33.9%. Either the pink-orb station plays differently (the pink orb
     was already the unsettled lab-60 measurement), or the input log has a gap (it only logs while GD is in
     front). The other GDLM 60 attempt passes the same station in both. Needs a clean pink-orb recording.
+  - FIRST RECORDING ON THE FIXED LOGGER (02:33:44, 2026-11-24): 9 normal attempts on official levels, identified from
+    the frames (level page + "Attempt 1"): Electroman 13.5 s 33.2%, 43.5 s 10.3%; Hexagon Force 60.6 s 40.4%; Geometrical
+    Dominator 102.9 s 12.3%, 115.6 s 13.3%; Fingerdash 138.7 s 53.0%, 186.7 s CLEAR; Base After Base 306.4 s CLEAR
+    (GD: 108 jumps; the log: 126 presses -- ship presses are not jumps); xStep 404.0 s CLEAR. No attempt agrees yet:
+    - Base After Base: the sim dies at 62.8% (ship, a block); the presses from 2 s before it moved +54 ms -> the sim
+      BEATS it. So the log is complete and the physics holds there: a clock drift or lag of ~50 ms over the run.
+    - xStep: dies at 22.7% in the ship, its bottom 0.2 unit into a floor spike's top: the known "sim ship ~0.5 unit
+      low" (Stereo Madness, Hexagon Force). No shift in +-300 ms gets past it. Second real-run case of it.
+    - Fingerdash: dies at 51.9% ~1 s after a spider -> ship portal, flying ~8 units into small ceiling spikes (458);
+      no shift gets past it. Open.
+    - Electroman 1.5%, Geometrical Dominator 6-7% (robot), Hexagon Force 31.4%: deaths on saws with every whole-run
+      shift in +-3 s. The user taps fast there (~70 ms taps, ~0.17 s apart). Tried and ruled out: saws as circle vs
+      the player's circle (the sim dies at the next saw instead) and a 20-40 tick landing buffer (no change).
+      Next: track the cube in the video over the first 2 s of Electroman (tools/track.py) against the sim's path.
+    - Tool fixes from this recording: runs.js started an attempt at the first empty-bar reading, which a menu page
+      or another window also gives (Base After Base "started" 31 s early): now the last frame the bar sat at its
+      lowest. replay_run.js: the sound pin locked on the wrong spot for every attempt here (all died in the first
+      7% pinned): the bar fit now runs too and the closer one wins; a logger restart resets the keys at its start.
+  - RECORDING 02:45:05 (2026-11-24, 30 min, fixed logger; the video file ends abruptly): 48 attempts by the bar.
+    Clutterfunk 18.4 s CLEAR (81 jumps) -- its replay found the LANDING BUFFER (section above): the sim died at
+    1.9% on the first saw because it dropped an in-air tap the game kept; now it reaches 3.5%, where the game's
+    cube uses a pad on a hanging block that the sim's does not reach (open). The video runs ~1.05 s behind its
+    file name's second here (first jump tracked at 18.28 s, logged at 19.33 s). Other groups: the user's own
+    online levels page, then a 6-12 s level (264-303 s, 6 deaths then a clear) right after GDLM 44's online page
+    (ID 152848491) -- but the repo GDLM 44 runs 42.6 s, so not replayed; the daily "Worldwide" (360-636 s,
+    deaths 37-75%, a practice clear); Bow Wow (668 s, 91.2%); 668-1406 s practice (no attempts from the bar);
+    "IS" by Crenate (1406-1618 s); Sidestep (1741-1791 s). None of the community ones are on this PC.
+- OUTCOMES, TWO SIDES (2026-11-24, after xStep's and Fingerdash's clears were drawn as deaths in the viewer): each
+  attempt line keeps what really happened (result / pct from the video's bar; why null -- the bar does not know the
+  cause) and the sim's replay (`sim: {result, pct, x, why, tick, mode}`) apart; `agree` = tools/attempts.js agreeOf
+  (same result; a death within 2.5 % of the same %); a quick restart is not judged. tests/attempts_consistency.js
+  checks every line, including a fresh replay on today's physics (a physics change makes old verdicts stale).
+  Lines that were wrong were removed (official 2 and 3 @274.5 s: the bad attempt start; GDLM 44 from 02:45: the level
+  is not identified); backup local/attempts.bak-2026-11-24. replay_run.js now filters attempts by the level's own
+  length (lib/sync.js) even with --from/--to (it had put GDLM 60's and Blast Processing's attempts in GDLM 63's file).
+- THE USER'S PLAY AS A ROUTE: a clear the sim replays to the end is saved as kind "player" beside the solver's
+  route (local/solutions/<key>.player.json, replay_run.js). First: GDLM 63 (the clear at 430.3 s, 02:13 recording).
+  Every other clear so far stops in the sim: those first divergences are the best fidelity tests we have (a known
+  good input sequence): Clutterfunk 3.5% (02:45), Base After Base 62.8% (~50 ms clock), xStep 22.7% (ship),
+  Fingerdash 51.9% (ship after a spider), Jumper / Cycles (02:26, old logger with gaps: not usable).
+- PIPELINE DIAGNOSIS (2026-11-24, "diagnose before blaming physics"), on the fixed-logger recordings:
+  - THE HOOK LOGGER STILL MISSES CLICKS. Electroman, 02:33:44 @43.5 s: the video shows two jumps 0.6 s apart over the
+    two half-buried saws (x 307, 439; gdsolver's real-game plan presses there too, 0.43 s apart); the log has the first
+    (44.645) and nothing until 45.573. No clock shift can replay that: the sim dies at the second saw (1.0-1.5%) for
+    every start from 43.4 to 44.4. Cause: Windows skips a low-level hook that does not answer in time (the PC was
+    running solver jobs). Fix: tools/inputlog_raw.ps1 (raw input, never skipped, the event's own time) runs beside
+    the hook logger from now on (tools/record.sh), so the two are compared on the next recording.
+  - THE VIDEO RUNS ~1 s BEHIND ITS FILE NAME's second (0.98 s at 02:33, 1.05 s at 02:45, from tracked launches vs
+    logged presses), and the bar's attempt start is 0.3-1 s late (Electroman 43.25 vs 43.53; Base After Base 305.44
+    vs 306.43). Both are inside replay_run's +-1.5 s search, so they do not cause the mismatches alone.
+  - CLOCK DRIFT inside a run: Base After Base's launches line up -38 ms early in the first 10 s and -9 ms in the last
+    15 s. replay_run.js now re-fits the presses from 2 s before a sim death within +-60 ms (100 ms in all) and reports
+    "agree after drift" apart (video.drift on the line). Hexagon Force's 40.4% death agrees after a 28 ms re-fit.
+  - WHICH LEVEL each attempt is: local/runs/<video>.levels.json ({"<start s>": "official:N | levels/x.gdlvl | ?"}),
+    read off the frames (level page, "Attempt 1"); when it exists replay_run uses it and not the length guess (GDLM 60
+    and 63 are 30 and 21 s: length alone put one's attempts in the other's file). Written for 02:13, 02:26, 02:33, 02:45.
+  - THE LEVEL'S START IN THE VIDEO: video.level_t on each attempt line = bar start + shift - the video's lag behind its
+    file name (clock.json video_lag_s: 0.82 s at 02:13 from two death frames, 0.98 s at 02:33, 1.05 s at 02:45, else 1.0;
+    it differs per recording, so measure it on each new one: one death or clear frame is enough). video.t is the bar start, 0.3-1 s
+    late: never use it for a side-by-side (Hexagon Force: bar 60.6 s, level_t 59.40 s; checked on the frames).
+  - ONE CLOCK PER RECORDING: local/runs/<video>.clock.json (offset from the recording's clears), reused when one level
+    is replayed alone (Blast Processing in 02:13 agreed only with GDLM 63's clock: 15.7% vs 15.8%; alone it picked a
+    far shift and died at 2.0%). 02:33 has none: its bar starts are off by 0.3-1 s per attempt.
+  - The attempt filter by length now keeps an attempt near the level's own length OR this recording's clears of it
+    (40%): a death's implied length (secs x 100 / %) is rough where speed portals change the pace.
+- THE TABLE (2026-11-24 night, physics with the landing buffer, replay_run with drift re-fit, level maps, clocks):
+  | recording | level | you | sim | agree | first divergence / cause |
+  | 02:13 | GDLM 63 | 38.1%, clear, clear (+2 restarts) | 39.7%, clear, clear | yes x3 | - |
+  | 02:13 | GDLM 60 | 48.1% / 33.9% | 49.5% / 30.7% | yes / no | 33.9%: pink-orb station, unknown (log may have a gap) |
+  | 02:13 | Blast Processing | 15.8% | 15.7% (slope) | yes | - (needs the recording's clock) |
+  | 02:33 | Hexagon Force | 40.4% | 40.6% | yes (drift 28 ms) | - |
+  | 02:33 | Base After Base | clear | clear | yes (drift 52 ms) | - |
+  | 02:33 | Fingerdash | 53.0% / clear | 53.2% / 61.3% | yes (drift) / no | clear: block 555.6, robot launched into ceiling spikes (458): unknown |
+  | 02:33 | xStep | clear | 25.3% | no | block 211, ship into a hanging spike, after 3 drift re-fits: unknown (tight ship corridor) |
+  | 02:33 | Electroman | 33.2% / 10.3% | 3.5% / 1.5% | no | PIPELINE: the hook logger missed a click (2nd saw jump) |
+  | 02:33 | Geometrical Dominator | 12.3% / 13.3% | 7.3% / 5.7% | no | unknown (robot; path check too noisy to tell) |
+  | 02:45 | Clutterfunk | clear | 3.5% | no | block 34.6: the game's cube uses a pad on a hanging block the sim's does not reach: unknown |
+  | 02:26 | Jumper, Cycles, Clutterfunk | clear, clear, 92.6% | 2.6%, 2.2%, 1.9% | no | PIPELINE: first logger (missed clicks), not usable |
+- FRAME-SNAPPED PRESSES do not help (the user's "Click Between Steps" is off, so GD may apply a press only at a
+  frame start): snapping the logged presses to 60/120/144 Hz grids (every phase) makes no stuck replay go further and
+  breaks Base After Base's clear (60 Hz: 12.9%). The logged times as they are fit best.
+- HABITS (tools/habits.js): median tap 120 ms (p10 88, p90 161) over 3,094 presses -- the human route's tap is 60 ms.
+- PATHS, not only outcomes (tools/pathcheck.js, 2026-11-24): the icon tracked in the video (track.py) against the
+  sim's path under the same presses. Height against "the lowest strong edge" failed (Base After Base: errors of
+  100-350 units on a run that clears in both -- the camera rises and the edge found is a block row, not the ground),
+  so the robust comparison is LAUNCHES: upward onsets in the video (faster than the camera ever moves) vs the sim's
+  jumps / orb and pad launches, lined up by one time shift. It reports matched launches, the timing drift over the
+  run (clock), and the first launch only in the video (the game launched, the sim did not) or only in the sim.
+  STATUS: NOT RELIABLE YET. Even on Base After Base, which the sim clears with the logged presses, only 75 of ~160
+  launches match: colour tracking is too noisy (lime decoration; the camera). Now: only the player's column is
+  tracked (0.367 of the window; 14 s instead of minutes) and the level start is searched +-0.4 s around the known
+  clock (bar start + shift - the video's ~1 s lag). Next: track the icon by its shape (template match), and the
+  ground / block rows from the level's own geometry at the sim's x, so heights compare too.
 - Practice-mode respawns break time -> x; per-attempt segmentation by the attempt label or a jump in x.
 Lab 2 (to build): the mini cube, the pink orb (clean, at ground level so the camera stays still), 45-degree
 and -53-degree teleports, the swing, dual portals, and a green orb in mid-air.
@@ -376,7 +496,11 @@ skips something, its 99% wrong. and will cause trouble. and anyway not the human
 - An **orb or pad** is "clearly meant to be taken" when the route's player box comes within 15 units of it
   (on the route's own line). The sweep already takes as many orbs as any route can, so a finished route that
   still leaves one like that is reported stuck: `why: "skipped an orb/pad"`, `skipped: "<name> at x <x>"`.
-  An orb far off the line (above a corridor, a decoration orb) is not required. Optional orbs a level means
+  An orb far off the line (above a corridor, a decoration orb) is not required. Nor is a **decoy**: an orb or
+  pad that kills whatever you press after taking it -- an exhaustive held/not-held search from a block before it
+  finds no state that took it and got 90 units past it (`decoy()` in skipCheck, 2026-11-24). Found on Hexagon
+  Force's yellow orb at block 553.7 (y 478.7): every taking dies in the ceiling spikes by 556.4, the ~4,500 ways
+  through take 551.5 -> 556.0 or 551.5 -> 558.4. Optional orbs a level means
   as optional: none marked yet (a spec key "optional" on the object would be the way; not built).
 - On official and rated levels a stuck like that is a **physics bug at that object**: our sim cannot take
   what the game's players take. Never report a % or "beaten" that came from a skip.
