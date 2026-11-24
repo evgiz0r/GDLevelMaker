@@ -20,7 +20,8 @@
   header.compact > button .lbl, header.compact > label .lbl { display:none; }
   header.compact h1 { display:none; }
   #pickBtn { max-width:min(34vw, 300px); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  #runPick { max-width:min(30vw, 240px); }
+  #runChip { max-width:min(40vw, 380px); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  header.compact #pickBtn { max-width:20vw; } header.compact #runChip { max-width:30vw; }
   #ctxbar { flex-basis:100%; display:flex; flex-direction:column; gap:0; margin:2px -16px -10px; }
   #ctxbar:not(:has(> :not([hidden]))) { display:none; }
   header #taskChip { position:static; border-radius:8px; }
@@ -1349,7 +1350,7 @@ function runBtnState() {
   const b = document.getElementById("runRoute"), g = L && L.ghost; if (!b) return;
   const solved = !!(L && (L.runKeep || L).sol && (L.runKeep || L).sol.ok);
   b.disabled = !g || !solved; b.classList.toggle("on", !!g && solved && VIEW.route);
-  b.textContent = "⇄ vs solver";
+  b.innerHTML = '⇄ <span class="lbl">vs solver</span>';
   b.title = !g ? "pick a run first" : !solved ? "this level has no solved route to compare with" : "vs solver: the solver's route as a dashed green cube beside yours, its clicks in a lane under yours (remembered)";
 }
 document.getElementById("runRoute").onclick = () => { if (!L || !L.ghost) return; VIEW.route = !VIEW.route; VSET("route", VIEW.route); runBtnState(); runCmpText(); draw(); };
