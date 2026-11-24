@@ -17,4 +17,11 @@ assert.strictEqual(len({}), Math.round(75 * 0.24), "default 75 ms");
 assert.strictEqual(len({ player: "user" }), Math.round(120 * 0.24), "the user's own tap");
 // a time budget (opts.budgetMs): past it the optional passes are skipped, but the route returned still finishes
 { const n = N.naturalPlan(w, r, w.objects, { budgetMs: 1 }); assert(n && n.path[n.path.length - 1].done, "a spent budget still returns a finishing route"); }
+// and the budget stops inside a pass too (Fingerdash's --replan ran 93 min past a 10 min budget: it was checked only
+// between passes): 120 spikes, 40 ms budget -> back within about one replay of it, with a route that finishes
+{ const objs = [{ id: 1, x: 120 * 300 + 900, y: 15 }]; for (let i = 0; i < 120; i++) objs.push({ id: 8, x: 300 + i * 300, y: 15 });
+  const w2 = GD.makeWorld(objs), r2 = GD.solveAny(w2); assert(r2.ok, "120 spikes are jumped");
+  const t0 = Date.now(), n2 = N.naturalPlan(w2, r2, w2.objects, { budgetMs: 40 }), dt = Date.now() - t0;
+  assert(n2 && n2.path[n2.path.length - 1].done, "the route returned finishes");
+  assert(dt < 1500, "stopped near its budget: " + dt + " ms"); }
 console.log("natural_tap: ok");

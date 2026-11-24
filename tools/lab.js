@@ -34,7 +34,15 @@ const HOOKS = {
   "gravity-play": { why: "gravity flips: a blue pad, a ceiling run, flips and back", make: (b, col) => [Object.assign({ name: "gravity", beats: b, use: ["s:gravity-pad-gap", "s:ceiling-hop", "s:upside-hops", "s:blue-pad-ceiling", "s:gravity-tunnel", "double"] }, PACE, col)] },
   "set-piece": { why: "one dense armed chain: hanging columns over spike pits", make: (b, col) => [Object.assign({ name: "chain", beats: b, use: ["s:pit-run-armed", "s:pit-spike-mix-armed", "s:pit-run-high-armed", "double"], args: { "s:pit-run-armed": { n: 4 }, "s:pit-spike-mix-armed": { n: 3 } } }, PACE, col)] },
   "wave-drop": { why: "the drop as a wave corridor with teeth", make: (b, col) => [Object.assign({ name: "wave", beats: b, mode: "wave", args: { "wave-zigzag": { seg: 3, flat: 1, gap: 4, teeth: true } } }, col)] },
+  // flying hooks (the space level, GDLM 71; the user: "Bit more flying with space")
+  "ship-corridor": { why: "a ship corridor with teeth, rising and falling with the phrase", make: (b, col) => [Object.assign({ name: "ship", beats: b, mode: "ship", args: { "ship-tunnel": { waves: 2, teethEvery: 6 } } }, col)] },
+  "ufo-hops": { why: "the ufo hopping over pillars and sinking under hangers", make: (b, col) => [Object.assign({ name: "ufo", beats: b, mode: "ufo" }, col)] },
+  "swing-flips": { why: "the swing flipping between floor and roof spikes", make: (b, col) => [Object.assign({ name: "swing", beats: b, mode: "swing" }, col)] },
+  "ship-into-wave": { why: "ship for the first phrase, wave for the second", make: (b, col) => [Object.assign({ name: "ship", beats: Math.floor(b / 2), mode: "ship", args: { "ship-tunnel": { teethEvery: 6 } } }, col), Object.assign({ name: "wave", beats: b - Math.floor(b / 2), mode: "wave", args: { "wave-zigzag": { seg: 3, flat: 1, gap: 4, teeth: true } } }, col)] },
 };
+// a round's palette set: "space" = near-black skies in blue to violet, a little lighter or darker per variant (the user:
+// "Somewhat black background ... bit lighter bit darker"), each still separated by role (decokit.rolePalette)
+const PALETTES = { space: k => [215 + k * 14, { bgLum: [0.02, 0.035, 0.05][k % 3], sat: 0.55 }] };
 const prefs = () => { try { return readJ(path.join(ROOT, "knowledge", "lab_prefs.json")); } catch (e) { return { hooks: {}, picks: 0 }; } };
 
 function round(briefFile, opts) {
@@ -52,7 +60,7 @@ function round(briefFile, opts) {
   // deco)"): each variant its own hue (~60 degrees apart), mid-tone sky, light path rims, spikes in their own hue
   const D = require("./decokit.js");
   const variants = names.map((h, k) => {
-    const pal = opts.palette === "song" ? null : D.rolePalette((opts.hue0 ?? 30) + k * 60);
+    const pal = opts.palette === "song" ? null : PALETTES[opts.palette] ? D.rolePalette(...PALETTES[opts.palette](k)) : D.rolePalette((opts.hue0 ?? 30) + k * 60);
     if (pal) col = { bg: pal.bg, ground: pal.ground, line: pal.line, obj: pal.pathEdge };
     const v = { _palette: pal, name: `LAB ${id} v${k + 1} ${h}`, desc: `Section lab ${id}: ${opts.name || "a moment"}, hook: ${h}`, song: brief.song, grid: brief.grid, offset: (brief.offset || 0) + t0,
       seed: (brief.seed || 1) * 100 + k, difficulty: brief.difficulty || { label: "Normal" }, terrain: true, structures: false, modern: true, signature: false, leadIn: 4, flips: false,
@@ -84,7 +92,7 @@ function build(id, k) {
   try {
     const ST = require("./stages.js"), T = require("./pace.js").load().target;
     ST.put({ session: SESSION, base: `lab_${id}_v${k}`, name: v.name, stage: "layout", levelStr, data: { events: sol && sol.ok ? sol.events : [], kind: "planned" },
-      note: `${v._hook}: ${HOOKS[v._hook].why}. Pace ${pace && pace.cps != null ? pace.cps + " cps" : "-"} (real ${T.cps}), ${pace && pace.obsPerBar != null ? pace.obsPerBar + " obstacles/bar" : "-"} (real ${T.obsPerBar}), ${pace && pace.changesPer10s != null ? pace.changesPer10s + " changes/10 s" : "-"} (real ${T.changesPer10s})${res.ok ? "" : " -- NOT OK: " + fails.join(", ")}` });
+      note: `${v._hook}: ${HOOKS[v._hook].why}. Pace ${pace && pace.perBeat != null ? pace.perBeat + " inputs/beat" : "-"} (real ${T.perBeat}), ${pace && pace.cps != null ? pace.cps + " cps" : "-"} (real ${T.cps}), ${pace && pace.obsPerBar != null ? pace.obsPerBar + " obstacles/bar" : "-"} (real ${T.obsPerBar}), ${pace && pace.changesPer10s != null ? pace.changesPer10s + " changes/10 s" : "-"} (real ${T.changesPer10s})${res.ok ? "" : " -- NOT OK: " + fails.join(", ")}` });
   } catch (e) {}
   try { fs.appendFileSync(path.join(ROOT, "local", "timings.jsonl"), JSON.stringify({ at: res.at, tool: "lab.js", step: "lab-build", level: v.name, secs: res.secs }) + "\n"); } catch (e) {}
   return res;

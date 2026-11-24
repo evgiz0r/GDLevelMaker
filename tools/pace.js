@@ -23,8 +23,12 @@ function paceOf(level, events, grid) {
   const obsPerBar = c.bars.length ? c.bars.reduce((s, b) => s + b.n, 0) / c.bars.length : null;
   let changes = null; try { changes = F.measure(level, events).changesPer10s; } catch (e) {}
   const modes = level.objects.filter(o => (GD.objInfo(o.id) || {}).kind === "mode").length;
+  // inputs per beat (gd-polish's tools/tempo.js, the user: "the cps is very small, compared to beat of the song"): the
+  // human route's inputs against the song's beat -- comparable across songs where clicks per second is not
+  let perBeat = null, busyPerBeat = null;
+  try { if (events && grid && grid.ok) { const TE = require("./tempo.js"), a = TE.analyse({ header: level.header, objects: level.objects, grid }, TE.inputs(level.objects, level.header, events)); if (!a.error) { perBeat = a.perBeat; busyPerBeat = a.busyPerBeat; } } } catch (e) {}
   return { secs: secs && +secs.toFixed(1), cps: secs ? +(presses.length / secs).toFixed(2) : null, obsPerBar: obsPerBar != null ? +obsPerBar.toFixed(2) : null, unit: c.unit,
-    changesPer10s: changes, modeChangesPerMin: secs ? +(modes / (secs / 60)).toFixed(1) : null };
+    changesPer10s: changes, modeChangesPerMin: secs ? +(modes / (secs / 60)).toFixed(1) : null, perBeat: perBeat != null ? +(+perBeat).toFixed(2) : null, busyPerBeat: busyPerBeat != null ? +(+busyPerBeat).toFixed(2) : null };
 }
 function targets() {
   const E = require("./energy.js"), rows = [];
@@ -35,7 +39,8 @@ function targets() {
   }
   const med = k => { const v = rows.map(r => r[k]).filter(x => x != null).sort((a, b) => a - b); return v.length ? v[Math.floor(v.length / 2)] : null; };
   const out = { note: "pace of real levels (tools/pace.js): official solved routes, energy.js obstacles per bar, flow.js changes per 10 s", at: new Date().toISOString(), rows,
-    target: { cps: med("cps"), obsPerBar: med("obsPerBar"), changesPer10s: med("changesPer10s"), modeChangesPerMin: med("modeChangesPerMin") } };
+    target: { cps: med("cps"), obsPerBar: med("obsPerBar"), changesPer10s: med("changesPer10s"), modeChangesPerMin: med("modeChangesPerMin"),
+      perBeat: (() => { try { return require("./tempo.js").REF.median; } catch (e) { return null; } })(), perBeatFloor: (() => { try { return require("./tempo.js").REF.all; } catch (e) { return null; } })() } };
   fs.writeFileSync(OUT, JSON.stringify(out, null, 1));
   return out;
 }
@@ -50,7 +55,7 @@ module.exports = { paceOf, targets, load, ofFile, REFS };
 
 if (require.main === module) {
   const files = process.argv.slice(2), T = files.length ? load() : targets();
-  const row = r => `${String(r.level).padEnd(32)} ${String(r.cps ?? "-").padStart(5)} cps  ${String(r.obsPerBar ?? "-").padStart(5)} obstacles/${r.unit || "bar"}  ${String(r.changesPer10s ?? "-").padStart(5)} changes/10 s  ${String(r.modeChangesPerMin ?? "-").padStart(4)} mode changes/min`;
+  const row = r => `${String(r.level).padEnd(32)} ${String(r.perBeat ?? "-").padStart(5)} inputs/beat  ${String(r.cps ?? "-").padStart(5)} cps  ${String(r.obsPerBar ?? "-").padStart(5)} obstacles/${r.unit || "bar"}  ${String(r.changesPer10s ?? "-").padStart(5)} changes/10 s  ${String(r.modeChangesPerMin ?? "-").padStart(4)} mode changes/min`;
   for (const r of T.rows) console.log(row(r));
   console.log(row(Object.assign({ level: "TARGET (median)" }, T.target)));
   for (const f of files) console.log(row(ofFile(f)));

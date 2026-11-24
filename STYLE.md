@@ -204,6 +204,26 @@ So the default is **fair memory**: memory helps, it is never the only way to see
 8. "Unfair memory" (whole phrases blind, off-grid spacing like spikes 1.1 squares apart) only
    when a deliberately unfair level is asked for.
 
+### Theme kits by mood: SPACE first (2026-11-24)
+
+The user: "Somewhat black background... Bit more flying with space. Sections may give different vibe of space, bit
+lighter bit darker. Bit more planets or deco. Different structures and objects. But in all trying to create a cohesive
+experience." Split: gd-art builds the kit (art, palettes per section, set pieces) from the user's references in
+`local/refs/space/`; the style session does the song, the vibe sheet, the brief and the gameplay.
+- **Song:** Two Moons ft. Geyser (1175526, 166 BPM): the clearest beat of the local space-named songs (songmap clarity
+  2.95, 4% beatless), quiet intro, drops at 12.6 / 35.8 / 105.2 s, a break at 99.4 s. Alternative: Ocean of Stars
+  (537202), bigger loud/quiet contrast but nearly beatless in its quiet parts.
+- **Vibe sheet / brief:** `briefs/71_two_moons.vibe.json` (dark arrival -> light space launch -> nebula -> deep climb ->
+  moon rise -> the drop in front of the moon), `briefs/71_two_moons.json` (16 sections, 9 parts, 67% flying), the
+  coordinator's plan `briefs/71_two_moons.coord.json`. Space look = near-black skies (luminance 0.02-0.05) in blue to violet,
+  lighter or darker per section, still split by role (decokit.rolePalette; lab `--palette space`).
+- **More flying:** compose now builds `"mode": "ufo"` (patterns.js `ufo-run`: floor pillars and roof hangers) and
+  `"mode": "swing"` (`swing-run`: the ball's floor / roof flips with more room), next to ship, wave and ball.
+- **Lab round r2:** six versions of the moon drop (105.2-121.1 s): ship corridor, ufo hops, swing flips, ship into wave,
+  wave drop, cube into ship. Build them when the space kit lands (viewer first).
+- Brief section beats start at the song grid's first beat (0.33 s here), not at the songmap's `bar0`: check section starts
+  with `beatToTime` against the songmap's section times (GDLM 71's first try was 2 beats early).
+
 ## 2b. The loop: idea -> finished level, before a person sees it
 
 Goal: the whole loop settled before a person looks for the first time. A person gives an
