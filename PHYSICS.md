@@ -412,6 +412,19 @@ What exists and what blocks it (2026-11-23):
     far shift and died at 2.0%). 02:33 has none: its bar starts are off by 0.3-1 s per attempt.
   - The attempt filter by length now keeps an attempt near the level's own length OR this recording's clears of it
     (40%): a death's implied length (secs x 100 / %) is rough where speed portals change the pace.
+- THE TABLE (2026-11-24 night, physics with the landing buffer, replay_run with drift re-fit, level maps, clocks):
+  | recording | level | you | sim | agree | first divergence / cause |
+  | 02:13 | GDLM 63 | 38.1%, clear, clear (+2 restarts) | 39.7%, clear, clear | yes x3 | - |
+  | 02:13 | GDLM 60 | 48.1% / 33.9% | 49.5% / 30.7% | yes / no | 33.9%: pink-orb station, unknown (log may have a gap) |
+  | 02:13 | Blast Processing | 15.8% | 15.7% (slope) | yes | - (needs the recording's clock) |
+  | 02:33 | Hexagon Force | 40.4% | 40.6% | yes (drift 28 ms) | - |
+  | 02:33 | Base After Base | clear | clear | yes (drift 52 ms) | - |
+  | 02:33 | Fingerdash | 53.0% / clear | 53.2% / 61.3% | yes (drift) / no | clear: block 555.6, robot launched into ceiling spikes (458): unknown |
+  | 02:33 | xStep | clear | 25.3% | no | block 211, ship into a hanging spike, after 3 drift re-fits: unknown (tight ship corridor) |
+  | 02:33 | Electroman | 33.2% / 10.3% | 3.5% / 1.5% | no | PIPELINE: the hook logger missed a click (2nd saw jump) |
+  | 02:33 | Geometrical Dominator | 12.3% / 13.3% | 7.3% / 5.7% | no | unknown (robot; path check too noisy to tell) |
+  | 02:45 | Clutterfunk | clear | 3.5% | no | block 34.6: the game's cube uses a pad on a hanging block the sim's does not reach: unknown |
+  | 02:26 | Jumper, Cycles, Clutterfunk | clear, clear, 92.6% | 2.6%, 2.2%, 1.9% | no | PIPELINE: first logger (missed clicks), not usable |
 - FRAME-SNAPPED PRESSES do not help (the user's "Click Between Steps" is off, so GD may apply a press only at a
   frame start): snapping the logged presses to 60/120/144 Hz grids (every phase) makes no stuck replay go further and
   breaks Base After Base's clear (60 Hz: 12.9%). The logged times as they are fit best.
