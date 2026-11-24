@@ -1295,9 +1295,12 @@ function runCmpText() {
   const pre = g.from ? `<span title="the route's presses take it to the checkpoint">practice from ${(g.from / P.TPS).toFixed(1)} s</span> · ` : "";
   // what happened (the game, or the viewer's play) and what the sim makes of the same inputs, apart when they differ
   // (physics may split the fields: video.result / sim.result; until then the ghost's own end is the sim's outcome)
-  const you = (v && v.result) || g.row.result, youPct = (v && v.pct != null ? v.pct : g.row.pct);
-  const gl = g.path[g.path.length - 1], simDead = g.row.sim ? g.row.sim.result === "died" : !!gl.dead;
-  const simPct = g.row.sim && g.row.sim.pct != null ? g.row.sim.pct : Math.max(0, Math.min(100, gl.x / Math.max(1, L.world.endX) * 100)), simWhy = (g.row.sim && g.row.sim.why) || gl.why || "";
+  // the agreed line shape (tools/attempts.js): result / pct = what really happened, sim {result, pct, x, why} = the sim on the
+  // same inputs, agree; user_result / sim_result (flat) read too
+  const R = g.row, sim = R.sim || (R.sim_result ? { result: R.sim_result, pct: R.sim_pct, why: R.sim_why } : null);
+  const you = R.user_result || R.result, youPct = R.user_pct != null ? R.user_pct : R.pct;
+  const gl = g.path[g.path.length - 1], simDead = sim ? sim.result === "died" : !!gl.dead;
+  const simPct = sim && sim.pct != null ? sim.pct : Math.max(0, Math.min(100, gl.x / Math.max(1, L.world.endX) * 100)), simWhy = (sim && sim.why) || gl.why || "";
   const youTxt = you === "clear" ? "clear" : "died at " + Math.round(youPct) + "%", simTxt = simDead ? `dies at ${Math.round(simPct)}%${simWhy ? " (" + esc(simWhy) + ")" : ""}` : "clear";
   const end = (you === "clear") === !simDead ? youTxt : `<b>you: ${youTxt}</b> · sim: ${simTxt}`;
   if (!c) { el.innerHTML = warn + pre + end; return; }
