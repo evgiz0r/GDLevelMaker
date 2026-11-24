@@ -17,7 +17,8 @@ checklist it was built against.
 [--session <name> --note "..."]` (make -> every score.js gate -> pictures -> wip, stops at the first
 failure, prints an ETA first and waits while the PC is busy). A level is ready for the user when it says
 READY and the items below that no gate checks are gone through by eye.
-**One heavy job at a time is enforced** (tools/heavy.js): every solve / score / render tool waits for the
+**The heavy-job lock is enforced** (tools/heavy.js: two slots while the game is closed and ~3 GB are free, one while it
+runs; a fast lane for jobs measured under 2 min): every solve / score / render tool waits for a
 shared slot by itself and prints whom it waits for. Don't get around it with `node -e` solves or scratch
 scripts, and build timing or test runs from copies in `local/tmp/`, never another session's level.
 

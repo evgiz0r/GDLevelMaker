@@ -146,13 +146,18 @@ things take" below). The tools below still work one by one.
 Every level the tool makes is named `GDLM NN ...` so it is easy to find (and delete) in the
 user's created-levels list.
 
-## One heavy job at a time -- in code (tools/heavy.js)
+## Heavy jobs: two at most, in code (tools/heavy.js)
 
 The PC has 16 GB; a solve takes ~0.8-1.5 GB. On 2026-11-23 five heavy jobs from different sessions ran
 at once and the PC hung (0.2 GB free), so the rule is now a lock every heavy tool takes ITSELF on start
 (`make`, `compose`, `score`, `solutions`, `wip put`, `shoot`, `levelmap`, the `difficulty*` / `fairness*` /
 `tas*` solvers, `windows`, `press_window`, `stop`, `polish`, `structures`, `check`, `sightread`, ...):
-- one heavy job at a time (two while more than 6 GB is free), and none starts under 1.5 GB free;
+- **"Go more in parallel"** (the user, 2026-11-24): two slots while the game is closed and a second job would still leave
+  1.5 GB free (free >= 1.5 GB + one job's peak memory: ~3 GB; each finished job's peak memory is logged as `mb` in
+  local/timings.jsonl and the threshold follows their 90th percentile), else one; none starts under 1.5 GB free;
+- **fast lane**: a waiter whose measured runs take under 2 min may take a free slot ahead of the long ones -- one lane job
+  at a time, and never ahead of a long job that has waited 10 min (no starving); `node tools/heavy.js` and
+  `/heavy/status` show the slots, the lane job and the fast waiters;
 - while the user plays (GeometryDash.exe runs): one job whatever is free, and none starts under 2 GB free;
 - every heavy job lowers itself to idle CPU priority at start, so the game and the desktop always win;
 - the others wait and say so: `heavy: waiting for tools/make.js ... (<session>, pid, N min in, ~M min left)`;
