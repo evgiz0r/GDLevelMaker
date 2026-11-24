@@ -24,6 +24,32 @@ each section."
   it, `seams.js check <brief> [level]` is the join check (y within 8 units, vy within 0.5, mode/speed/gravity/mini
   exact), `seams.js status <brief> <section> <role> <state> --by <builder>` records who builds what.
 
+### Building in parts, one builder each: tools/collab.js (2026-11-24)
+
+The user: "Each section like 10 20 seconds. Done by a different agent just connected together. Need to align the
+song (speed portals may ruin if we add), location of the switch. Other than that those can be completely isolated."
+
+- **Split** (`node tools/collab.js split <brief>`): compose's sections (in beats) are grouped into **parts of 10-20 s**
+  on section boundaries (or the brief's `"parts": [[0,1],[2],...]`). Each part boundary is a seam pinned to a
+  **song time** (its beat), never an x. The contract at a seam: the cube, grounded on the floor (y 15), normal
+  gravity and size, at the speed of the next part's first section. Mode portals live inside a part (a ship section
+  enters and leaves the ship itself). -> local/collab/<base>/plan.json; the viewer card shows one section per part
+  with its builder and state.
+- **Build** (`node tools/collab.js build <brief> <part> --by <builder>`): the part is its own small level whose time 0
+  is its seam's song time (the brief's offset moved to the part's first beat, unrounded), so its beats, sync and
+  speed portals are its own business and its length in blocks follows from its speeds. Composed, built, routed and
+  checked alone (a few seconds of solving), -> p<i>.gdlvl + p<i>.json (its route, its exit state, its time).
+  A part after the first starts with a short lead-in (`partLeadIn`, 4 blocks), not the level's 10-block calm start.
+- **Join** (`node tools/collab.js join <brief>`): part i's objects move by the x the player has covered when part i
+  starts (the sum of the parts before, each measured on its own speed timeline), so every seam lands on its song
+  time whatever speeds a part used inside. The parts' routes join by time (tick offset = seam time x 240) and replay
+  on the joined level: no solve. Checked: the state at every seam against the contract (mode, speed, gravity exact;
+  y within 8; vy ~0) and the sync (the joined level's x at the seam time = the next part's start, within 6 units),
+  then the joined route is saved and score.js runs once on the whole level. A failed seam or a death sends back only that part.
+- **Builders**: one agent per part, given only its part (the brief's sections for it) and its two seams; it runs
+  `build`, reads its checks, and may retry with `--seed n`. Builds take the heavy lock one at a time, so parts build
+  in turn even when the agents run at once; each is short.
+
 ## 2. Design first: the presses come before the blocks
 
 - A section's gameplay is built from its **planned presses** (the intended route), with each pattern's input
