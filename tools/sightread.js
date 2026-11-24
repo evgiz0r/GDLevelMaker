@@ -59,14 +59,17 @@ function sightread(level, limit = 1.5, opts = {}) {
     if (presses.some(c => c.hi - c.tick >= CAP)) {
       // walk each cut-off press (with its own release) later, one step at a time, while the run lives to the next
       // input (up to 1 s: a ball press can wait 3+ blocks)
-      const ev = opts.route.events, end = GD.run(w, ev).path.length;
+      const ev = opts.route.events, basePath = GD.run(w, ev).path, end = basePath.length;
       presses = presses.map(c => {
         if (c.hi - c.tick < CAP) return c;
+        // never across a mode change: a ship press walked past the exit portal was judged as a cube jump "2.3 ahead"
+        // (GDLM 66 p1, block 52 -> 60.6)
+        const m0 = (basePath[c.tick] || {}).mode;
         const i = ev.findIndex(e => e.type === "press" && e.tick === c.tick); if (i < 0) return c;
         const rel = ev[i + 1] && ev[i + 1].type === "release" ? i + 1 : -1, dur = rel < 0 ? 0 : ev[rel].tick - c.tick;
         const next = ev.find((e, j) => j > (rel < 0 ? i : rel)), stop = Math.min(c.tick + 240, next ? next.tick - dur - 1 : end);
         let hi = c.hi;
-        for (let t = c.hi + 1; t <= stop; t++) {
+        for (let t = c.hi + 1; t <= stop && (basePath[t] || {}).mode === m0; t++) {
           // this press's job ends at the next input: alive until then counts (later inputs belong to later presses;
           // keeping them fixed in time made a later flip look fatal on the ball corridor)
           const moved = ev.slice(0, (rel < 0 ? i : rel) + 1).map((e, j) => j === i ? Object.assign({}, e, { tick: t }) : j === rel ? Object.assign({}, e, { tick: t + dur }) : e);
