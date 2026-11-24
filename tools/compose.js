@@ -245,10 +245,10 @@ function compose(brief, tweaks = {}) {
       if (low) { gMin = Math.max(gMin, 4); gMax = Math.max(gMax, gMin); }
       // after a flying section the cube lands from its exit portal: a calm lead-in first
       // (rated low-tier levels: ~6 blocks after a cube portal, knowledge/levels/modes_low_tier.md)
-      // (8 here: the cube first falls out of the exit portal, ~0.3 s)
+      // (10 here: the cube first falls out of the exit portal, ~0.3 s; 8 left a spike 3 blocks after the landing: a 2.1-block prejump, GDLM 66 p1)
       // upside down: the cube first falls up to the ceiling (~0.3 s), so 8 columns after its portal
       // the level's first section: a calm start (pacing gate: 10+ blocks before the first hazard)
-      let c = upside ? start + 10 + land : start + (prevFlying ? Math.max(3, 8 - (start - flyEnd)) : si === 0 ? (brief.leadIn ?? 10) : 3), k = 0, last = null;
+      let c = upside ? start + 10 + land : start + (prevFlying ? Math.max(3, 10 - (start - flyEnd)) : si === 0 ? (brief.leadIn ?? 10) : 3), k = 0, last = null;
       // upside: room to read and take the exit portal. Terrain: back on the ground well before the next
       // section (a cube jumping off a step into the next mode portal read as a 6-block prejump: 45 v8, block 82)
       const stop = upside ? end - 9 : brief.terrain ? end - 8 : end - 3;
