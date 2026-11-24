@@ -145,6 +145,10 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 - [ ] **Ultra-synced levels sync the INPUTS, not the obstacles**: build them beat-first (`tools/hitbuild.js`):
   the planned taps alone, each on a real hit (tools/hits.js), must clear the level in the sim. Sliding
   obstacles until a window covers the beat left 11% of presses on a hit (GDLM 62 v2: "there is no sync").
+- [ ] **Every ship press has something at the ship's height right in front of it** (a pillar it must rise over,
+  or for a press that only stops a fall, a roof coming down past the dip), within 3 blocks of the latest
+  moment it works. A tunnel floor far below or a step 5+ blocks on is a prejump. `score.js` gate `prejumps`;
+  built in by `tools/hitbuild.js` (SYNC.md section 8).
 - [ ] **Sync loosely**: portals, speed changes and the drop on the music's moments; most clicks free.
   `node tools/sync.js`. (SYNC.md "How much to sync")
 

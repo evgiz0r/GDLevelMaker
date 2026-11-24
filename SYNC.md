@@ -355,13 +355,24 @@ into the inputs, not the obstacles.
 - An open-sided window (a ball flip: flipping early just waits on the roof; a step after a walk-off) has
   no middle. Search +-300 ms and put the closed side 100 ms from the hit.
 - A ship part: a press/release schedule on its hits, flown in open air; the corridor is built around that
-  path (2 blocks of air each side).
+  path. One flat tunnel (2.5 blocks of air over the path's lowest and highest point): a floor or roof that
+  follows the path puts a step a few blocks after each press, and that step reads as the press's cue 5-8
+  blocks ahead (a prejump).
+- Every ship press needs its own cue within 3 blocks of the latest moment it still works (tools/sightread.js).
+  Sightread counts only an object a ship flying level would hit (top above the ship's bottom, at most 120
+  units over it) that starts half a block or more past that moment. So: a floor pillar AT the ship's height,
+  in the first column the path has climbed 10+ units over it (a pillar 50 units under the path counted as
+  nothing: 6 prejumps 14-44 blocks ahead). A press that only stops a fall (the path dips and never climbs
+  back to the press height) gets a column hanging 10 units over the path, 2 columns past the dip's bottom:
+  the latest moment is in the dip's own block, and one column on was still "behind" it.
+- The ship's exit portal on the floor, framed above only: a ship riding the floor reaches it, and no press
+  takes the exit frame as its cue.
 - An orb: where the arc of the jump tapped on its hit is at the orb tap's hit. A half-beat orb (0.2 s)
   sits over the pit's first spike, so the pit is 4 spikes: a plain jump lands in it, the orb clears it.
 - A walk-off 6+ blocks before the next obstacle (a double 3 blocks after a drop had 142 ms), and never a
   walk-off right before a step up: the jump lands past both and the step vanishes.
-- Done when the planned inputs alone clear the level. GDLM 62 v3: 43 taps + 7 ship presses, max 2.1 ms
-  off a hit (tick rounding), every window >= 225 ms. 8 rounds of ~1-3 min each (plus the heavy-slot waits).
+- Done when the planned inputs alone clear the level. GDLM 62 v3: 43 taps + 8 ship presses (and 8 releases), max
+  2.1 ms off a hit (tick rounding), every window >= 208 ms, every score gate passes. 8 rounds of ~1-3 min each (plus the heavy-slot waits).
 - Then the usual make (one check solve) and score. `levels/<slug>.planned.json` carries the plan, so the
   human route presses on it (tools/planned.js).
 
