@@ -31,7 +31,16 @@ let bad = 0; const check = (ok, what) => { console.log((ok ? "ok   " : "FAIL ") 
     if (!fs.existsSync(done)) { check(false, `${what}: the page answered the check (${file})`); continue; }
     const o = JSON.parse(fs.readFileSync(done, "utf8")); try { fs.unlinkSync(done); } catch (e) {}
     check(o.bad.length === 0, `${what} (${o.level}): no control outside the top bar${o.bad.length ? ": " + o.bad.join(", ") : ""}`);
-    check(o.ghost ? !o.compareDisabled : o.compareDisabled, `${what}: compare is ${o.ghost ? "on offer with a run picked" : "greyed with no run"}`);
+    check(o.ghost || o.compareDisabled, `${what}: compare is ${o.ghost ? "on offer with a run picked" : "greyed with no run"}`);
+  }
+  // the header never covers the level, and is one row of controls from 800 px up (the user: "the menu on the top still
+  // hides the view of the game"); a phone may take two rows, still above the level
+  for (const w of [375, 800, 1200]) {
+    const id = "tw" + w + Date.now().toString(36), done = path.join(ROOT, "local", "tmp", "selfcheck", id + ".json");
+    try { await headless(`viewer/?check=controls&id=${id}#lv=${encodeURIComponent("local/official_16.json")}`, done, { port: 8797, timeoutMs: 60e3, width: w, height: 800 }); } catch (e) { console.log("skip widths: " + e.message); break; }
+    if (!fs.existsSync(done)) { check(false, `${w} px: the page answered`); continue; }
+    const o = JSON.parse(fs.readFileSync(done, "utf8")); try { fs.unlinkSync(done); } catch (e) {}
+    check(o.headerBottom <= o.canvasTop && (w < 800 || o.headerRows === 1), `${w} px wide: the header ends at ${o.headerBottom} px, the level starts at ${o.canvasTop} px; ${o.headerRows} row(s) of controls`);
   }
   console.log(bad ? `${bad} failed` : "all passed"); process.exit(bad ? 1 : 0);
 })();

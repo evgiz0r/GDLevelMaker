@@ -26,6 +26,11 @@ const fs = require("fs"), path = require("path");
 const DIR = () => path.join(process.env.GDLM_LOCAL_DIR || path.join(__dirname, "..", "local"), "attempts");
 // the key: lib/liveplay.js attemptsBase (the viewer uses the same function to find a level's runs)
 const baseOf = file => require("../lib/liveplay.js").attemptsBase(file);
+// the one agreement rule between what really happened and our sim's replay of the same presses (tools/replay_run.js
+// writes agree with it, tests/attempts_consistency.js checks every line with it): same result, and a death within
+// AGREE_PCT of the same % (GD's % and our x / endX differ by ~1-2%)
+const AGREE_PCT = 2.5;
+const agreeOf = a => !!a.sim && a.sim.result === a.result && (a.result === "clear" || Math.abs(a.sim.pct - a.pct) <= AGREE_PCT);
 function append(a) {
   const line = Object.assign({ id: "a" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), at: new Date().toISOString() }, a);
   if (!Array.isArray(line.events)) throw new Error("events needed");
@@ -58,7 +63,7 @@ function index() {
   rows.sort((a, b) => String(b.last).localeCompare(String(a.last)));
   IDX = { stamp, dir: DIR(), rows }; return rows;
 }
-module.exports = { append, read, baseOf, index, DIR };
+module.exports = { append, read, baseOf, index, DIR, agreeOf, AGREE_PCT };
 
 if (require.main === module) {
   const a = process.argv.slice(2);

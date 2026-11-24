@@ -378,6 +378,25 @@ What exists and what blocks it (2026-11-23):
     (ID 152848491) -- but the repo GDLM 44 runs 42.6 s, so not replayed; the daily "Worldwide" (360-636 s,
     deaths 37-75%, a practice clear); Bow Wow (668 s, 91.2%); 668-1406 s practice (no attempts from the bar);
     "IS" by Crenate (1406-1618 s); Sidestep (1741-1791 s). None of the community ones are on this PC.
+- OUTCOMES, TWO SIDES (2026-11-24, after xStep's and Fingerdash's clears were drawn as deaths in the viewer): each
+  attempt line keeps what really happened (result / pct from the video's bar; why null -- the bar does not know the
+  cause) and the sim's replay (`sim: {result, pct, x, why, tick, mode}`) apart; `agree` = tools/attempts.js agreeOf
+  (same result; a death within 2.5 % of the same %); a quick restart is not judged. tests/attempts_consistency.js
+  checks every line, including a fresh replay on today's physics (a physics change makes old verdicts stale).
+  Lines that were wrong were removed (official 2 and 3 @274.5 s: the bad attempt start; GDLM 44 from 02:45: the level
+  is not identified); backup local/attempts.bak-2026-11-24. replay_run.js now filters attempts by the level's own
+  length (lib/sync.js) even with --from/--to (it had put GDLM 60's and Blast Processing's attempts in GDLM 63's file).
+- THE USER'S PLAY AS A ROUTE: a clear the sim replays to the end is saved as kind "player" beside the solver's
+  route (local/solutions/<key>.player.json, replay_run.js). First: GDLM 63 (the clear at 430.3 s, 02:13 recording).
+  Every other clear so far stops in the sim: those first divergences are the best fidelity tests we have (a known
+  good input sequence): Clutterfunk 3.5% (02:45), Base After Base 62.8% (~50 ms clock), xStep 22.7% (ship),
+  Fingerdash 51.9% (ship after a spider), Jumper / Cycles (02:26, old logger with gaps: not usable).
+- PATHS, not only outcomes (tools/pathcheck.js, 2026-11-24): the icon tracked in the video (track.py) against the
+  sim's path under the same presses. Height against "the lowest strong edge" failed (Base After Base: errors of
+  100-350 units on a run that clears in both -- the camera rises and the edge found is a block row, not the ground),
+  so the robust comparison is LAUNCHES: upward onsets in the video (faster than the camera ever moves) vs the sim's
+  jumps / orb and pad launches, lined up by one time shift. It reports matched launches, the timing drift over the
+  run (clock), and the first launch only in the video (the game launched, the sim did not) or only in the sim.
 - Practice-mode respawns break time -> x; per-attempt segmentation by the attempt label or a jump in x.
 Lab 2 (to build): the mini cube, the pink orb (clean, at ground level so the camera stays still), 45-degree
 and -53-degree teleports, the swing, dual portals, and a green orb in mid-air.
