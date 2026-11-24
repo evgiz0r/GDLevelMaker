@@ -184,6 +184,24 @@ Edge (no GPU: a worst case) in three setups -- GD art + beats, shapes + beats, l
 mode (POST /perf -> local/perf/). Not measured yet: real frame rate with the pane visible (the
 browser pane here was hidden, so no animation frames ran) and on the phone -- read them with F.
 
+## Render vs game (measured from the user's recordings, 2026-11-24)
+
+How: the user's own attempt replayed as the player (viewer run mode), the video frame at the same level time beside it
+(`local/shots/rvg/side_<t>.png`: ours | game; local only, RobTop art); rotations per frame with `python tools/rot_video.py
+VIDEO --from S --to S [--sym 90]` (the angle that makes the player's colour blob's box smallest), heights against the
+ground line with `tools/track.py --rows`. Source: Hexagon Force, recording 2026-11-24_02-33-44, attempt at video 60.6 s.
+
+| what | game (measured) | ours | status |
+|---|---|---|---|
+| cube spin in the air | 412 deg/s, clockwise | sim 416.5 deg/s | matches (1 %) |
+| cube landing | eases into square over ~0.1 s (6 frames) | 0.12 per tick toward the nearest 90 (~0.1 s) | matches |
+| ground at rest | 3.0 blocks above the bottom of the view | 3.1 | matches |
+| camera lift (cube) | 0.9 blocks at 4.4 blocks height, 1.7 at 6.6 | 0 and 2.1 (follows s.y - 4.5 blocks) | open: < 1 block off |
+| trail (streak) | the user's streak 7 (orange texture) added onto the scene: pink over magenta; tapers; ~3.6 blocks behind the ship at 1x = ~0.35 s | was the icon green, 0.22 s | fixed: the user's own streak colour, 0.35 s, tapered |
+| ship tilt | by eye: more than ours | follows the sim's rot, smoothed | open: rot_video's box method fails on the ship's shape |
+| colours | brighter and more magenta at the same moments; ground saws pink, block edges glowing | violet, white saws | open: measure per channel |
+| frame alignment | -- | the replay sits 2-8 blocks behind the video at the same t | open: the attempt's t0 / tick origin (asked gd-physics) |
+
 ## Facts (checked against the user's recordings)
 
 How: viewer "compare" panel, level start offset set by eye, "save comparison" -> `local/shots/`.

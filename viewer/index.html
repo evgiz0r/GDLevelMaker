@@ -1744,7 +1744,7 @@ function draw() {
     for (const b of L.world.hazards) { ctx.strokeStyle = "#ff2050"; rectW(b); }
   }
   // trail: in the game look, GD's own kind (lib/look.js drawTrail); otherwise yellow where the button is held
-  if (MAPCAM) {} else if (LS) GD.LOOK.drawTrail(ctx, view, L.path, k, f, s);
+  if (MAPCAM) {} else if (LS) GD.LOOK.drawTrail(ctx, view, L.path, k, f, s, (L.runKeep || (PLAY && PLAY.on)) && GD.ART_LIB && GD.ART_LIB.USER && GD.ART_LIB.USER.streak ? GD.ART_LIB.USER.streak.join(",") : null);
   else { ctx.lineWidth = 4;
   for (let i = Math.max(0, k - 120); i < k; i += 2) {
     const p = L.path[i], q = L.path[Math.min(i + 2, k)];
