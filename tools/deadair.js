@@ -6,7 +6,7 @@
 // path, unless it is a deliberate breather; and the last gameplay ends <= ~2 s (--tail) before the level's
 // end (the signature, tools/signature.js, stands right after it).
 // "Something happens" = an input of the saved natural plan (tools/solutions.js), or a hazard, orb, pad or
-// portal passed within 2 blocks of the path. Time from the path (240 Hz ticks). The sign = the signature's
+// portal passed within 2 blocks of the path, or flying (ship / wave) with a wall within 2.5 blocks. Time from the path (240 Hz ticks). The sign = the signature's
 // text (914) after the last hazard; the level's end = its furthest object (GD ends a level there, deco
 // included): want <= --after 2 s past the sign. Static + one replay: ~a second a level.
 // POLISH.md "Soft rules from the user's notes".
@@ -31,6 +31,14 @@ function check(file) {
     if (o.props && o.props[57] === "990") continue;
     const t = tOfX(o.x), q = path[Math.min(path.length - 1, Math.round(t * 240))];
     if (q && Math.abs(q.y - o.y) <= 75) events.push(t);
+  }
+  // flying between walls is gameplay too: a wave or ship corridor's slopes and blocks within 2.5 blocks of the
+  // path (GDLM 44's second wave, 4 s with 2 presses and no hazard, read as "nothing happens")
+  const walls = objs.filter(o => { const k = (O.objInfo(o.id) || {}).kind; return (k === "solid" || k === "slope") && !(o.props && (o.props[121] === "1" || o.props[134] === "1")); });
+  for (let i = 0; i < path.length; i += 60) {
+    const q = path[i];
+    if (!q || (q.mode !== "wave" && q.mode !== "ship")) continue;
+    if (walls.some(o => Math.abs(o.x - q.x) <= 30 && Math.abs(o.y - q.y) <= 75)) events.push(i / 240);
   }
   events.sort((a, b) => a - b);
   // the sign: the signature's text after the last hazard (a title text at the start does not count);
