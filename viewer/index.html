@@ -2238,7 +2238,9 @@ function perfText() {
   return ` · ${PERF.frames.length} fps, draw ${med.toFixed(1)} ms`;
 }
 function frame(now) {
-  const dt = Math.min(0.1, (now - prev) / 1000); prev = now; drawDt = dt || 1 / 60;
+  // a frame stamped before the last one (rAF's frame time can be earlier than a performance.now() taken since) must not
+  // run time backwards: a negative step made the smoothed player NaN (offline snapshot test, 2026-11-24)
+  const dt = Math.max(0, Math.min(0.1, (now - prev) / 1000)); prev = Math.max(prev, now); drawDt = dt || 1 / 60;
   if (PERF.on && playing) PERF.frames.push(now);
   if (L && playing) {
     // frame time, pulled towards the song's clock when it plays (lib/song.js: sample-exact). Not the song's
