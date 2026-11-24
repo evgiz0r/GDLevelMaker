@@ -66,14 +66,13 @@
    ],
    "build": 1,
    "chunks": [
-    "ceiling-hop",
     "blue-orb-ceiling",
     "pillar-climb",
     "gravity-pad-gap",
     "red-pad-tower",
     "pink-orb-pit"
    ],
-   "gap": 2
+   "gap": 4
   },
   {
    "bars": 6,
