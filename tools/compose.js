@@ -221,7 +221,8 @@ function compose(brief, tweaks = {}) {
           return { seg, flat, lead: 4, leadGap: 8, legs: Math.max(2, Math.floor((sec.blocks - 5 - land - (sec.exitRoom || 0)) / (seg + flat))), gap: easy ? 5 : 4, low: 2, slopes: true };
         })();
       // the next section CONTINUES this flight (a collab seam inside a flight, tools/collab.js): no exit portal here
-      const nx = brief.sections[si + 1], cont = !!(nx && nx.continue && nx.mode === sec.mode);
+      // (a collab part's last section: the next part's first section is not in this brief -- brief._continueAfter says it)
+      const nx = brief.sections[si + 1], cont = !!(nx && nx.continue && nx.mode === sec.mode) || (si === brief.sections.length - 1 && brief._continueAfter === sec.mode);
       const args = Object.assign(base, (sec.args || {})[name] || {}, { portal: true, exit: cont ? null : "cube", portalRow: 1 });
       if (t.room) args.gap = (args.gap || 4) + t.room;
       objects.push(["pattern", name, start + 1 + land, 0, args]);
@@ -233,7 +234,7 @@ function compose(brief, tweaks = {}) {
     const upside = sec.mode === "upside", ceil = (sec.args && sec.args.ceil) || 6;
     if (upside) {
       // ceiling from start+1 to end-1, its gravity portal on the section's first beat, out at its last column
-      objects.push(["pattern", "ceiling", start + 1 + land, 0, { w: sec.blocks - 1 - land, ceil, portal: true, exit: true }]);   // exit on the next bar
+      objects.push(["pattern", "ceiling", start + 1 + land, 0, { w: sec.blocks - 1 - land - (sec.exitRoom || 0), ceil, portal: true, exit: true }]);   // exit on the next bar
     }
     if (!sec.rest && sec.use && sec.use.length) {
       const early = start / total < 0.5;

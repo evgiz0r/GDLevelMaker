@@ -114,6 +114,10 @@ function partBrief(brief, part, k, nParts, seed) {
   // when the seam time comes (GDLM 65 p1: the exit at the section's very end left it on the portal's frame block, y 45)
   const lastSec = sub.sections[sub.sections.length - 1];
   const nextSec = brief.sections[part.sections[part.sections.length - 1] + 1];
+  // the next part continues this part's flight: say so (compose cannot see the next part's sections) -- no exit portal
+  if (nextSec && nextSec.continue && nextSec.mode === lastSec.mode) sub._continueAfter = lastSec.mode;
+  // an upside-down part's exit: the cube falls from the ceiling (~3 blocks) -- 6 blocks of room (GDLM 66 p5: in the air at the seam)
+  if (k < nParts - 1 && lastSec.mode === "upside") sub.sections[sub.sections.length - 1] = Object.assign({}, lastSec, { exitRoom: lastSec.exitRoom ?? 6 });
   if (k < nParts - 1 && ["ship", "wave", "ball"].includes(lastSec.mode) && !(nextSec && nextSec.continue && nextSec.mode === lastSec.mode)) sub.sections[sub.sections.length - 1] = Object.assign({}, lastSec, { exitRoom: lastSec.exitRoom ?? 4 });
   delete sub.parts;
   return sub;
