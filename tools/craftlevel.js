@@ -16,7 +16,8 @@
 //                               {"rest": n} ] } ... ] }
 // A chunk's columns are relative to its start; "rest" is n blocks of calm floor. Between chunks the composer
 // adds `gap` (default 4: the 4+ column run-up between groups of the reactive rule) calm blocks. A section shorter than its bars is padded with calm floor (the lead-in
-// to the next portal); a longer one is reported (the next section starts late).
+// to the next portal) after its chunks are cycled into the space ("fill": false: a deliberate calm); a longer
+// one is reported (the next section starts late).
 const fs = require("fs"), path = require("path");
 const { GD } = require("./io.js");
 const ST = require("./structures.js");
@@ -85,6 +86,18 @@ function compose(brief) {
       objects.push(...shift(ch.objects, col));
       col += ch.width; lastEnd = col; exitRow = ch.exitRow ?? null; col += i < sec.chunks.length - 1 ? (sec.gap ?? 4) : 0;
     });
+    // fill: a section shorter than its bars was padded with flat floor -- the user on GDLM 61 v3, 38-46 s:
+    // "very big breaks with nothing". Cycle the section's own chunks into the space (leaving the next
+    // portal's calm floor); "fill": false keeps a deliberate calm (then accept "dead air" with the reason).
+    if (sec.fill !== false) {
+      const room = () => end - 8 - (col + (sec.gap ?? 4));
+      for (let i = 0, tries = 0; tries < sec.chunks.length * 3; i++, tries++) {
+        const c = sec.chunks[i % sec.chunks.length]; if (c && c.rest != null) continue;
+        const ch = chunkOf(c); if (ch.width > room()) continue;
+        col += sec.gap ?? 4; objects.push(...shift(ch.objects, col)); col += ch.width; lastEnd = col; exitRow = ch.exitRow ?? null; tries = 0;
+      }
+      if (end - col > 30) notes.push(`section ${si} (${m}) leaves ${end - col} blocks of flat floor: add chunks or mark it "fill": false`);
+    }
     if (col > end) notes.push(`section ${si} (${m}) runs ${col - end} blocks past its ${sec.bars} bars`);
     // xStep's build-up: hue flashes (a lighter tint and back) on beats, closer together, into the next section
     if (sec.build) {

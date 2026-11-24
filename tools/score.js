@@ -190,6 +190,18 @@ function scoreLevel0(level, brief, opts = {}) {
     }
   }
 
+  // dead air (the user on GDLM 61 v3, 38-46 s: "very big breaks with nothing"): no input for longer than the
+  // level's own rhythm allows (max 2 s, 2.5x its median gap between presses) and no empty screen (no hazard,
+  // orb, pad or structure in view for 1+ s; official levels: 1 in ten). tools/deadair.js. WARN; a deliberate
+  // calm is accepted in the brief with its reason.
+  if (r.ok) {
+    try {
+      const Q = require("./deadair.js").quiet(level.objects, level.header, (natural() || r).events);
+      const spots = [...Q.inputGaps.map(([a, b]) => `no input ${a.toFixed(1)}-${b.toFixed(1)} s`), ...Q.empty.map(([a, b]) => `empty screen ${a.toFixed(1)}-${(b + 0.25).toFixed(1)} s`)];
+      gate("dead air", spots.length ? "WARN" : "PASS", spots.length ? `${spots.length} stretch(es) with nothing to do (input limit ${Q.inputLimit.toFixed(1)} s)` : `no input gap over ${Q.inputLimit.toFixed(1)} s, no empty screen`, spots.join("; "));
+    } catch (e) { /* deadair.js missing */ }
+  }
+
   // orbs you can buffer, no jumps over nothing (physics, from the user: "usually with orbs, when possible, we
   // want to buffer"; stairs and step-downs are walked off, not jumped). lib/natural.js on the player's route:
   // an orb only a precise mid-orb click takes, a cube jump from the ground over nothing. WARN.
