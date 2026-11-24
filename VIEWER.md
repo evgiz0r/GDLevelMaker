@@ -20,6 +20,11 @@ tooltip; the least used buttons move into ⋯), two at phone width, and never ov
 timeline. In flying modes the camera centres the corridor when it fits, else follows the player with a block of ceiling
 and floor in view. tests/top_controls.js checks 375, 800 and 1200 px.
 
+**Runs: picked in one place.** A run is picked only from L → "my runs" (each level one sentence: "you died at 40% · 22 min
+ago · video"); a click opens the level already playing it. While a run is open the top bar has one chip, "▶ your run:
+Hexagon Force · died 40% · 22 min ago ▾" (▾: this level's other runs), ✕ to leave run mode, and "⇄ vs solver" (greyed
+when the level has no solved route). There is no other runs list.
+
 **A run looks like you.** A run of the user's (and "you play") is drawn with the user's own icons and colours from their GD
 save (`tools/save_icons.js`, GET /me/icons: cube, ship, ball, UFO, wave, robot, spider, swing, colour 1 / 2; read-only, this
 PC only; colours known for GD's palette indices 0 and 3 so far, another index keeps the default). While a run is open it is

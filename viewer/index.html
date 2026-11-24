@@ -152,7 +152,7 @@
   <label class="btn">open .gdlvl<input id="file" type="file" accept=".gdlvl,.txt" hidden></label>
   <button id="play">▶ play</button>
   <button id="restart">⟲</button>
-  <select id="runPick" hidden title="your runs at this version: pick one to replay it as the player"></select><button id="runRoute" class="cmpBtn" disabled title="pick a run first">⇄ compare</button>
+  <select id="runPick" hidden></select><button id="runChip" class="cmpBtn" hidden title="the run you are watching; ▾ your other runs of this level"></button><button id="runClose" class="cmpBtn" hidden title="leave run mode (back to the level)">✕</button><div id="runMenu" class="cmpbar" hidden style="position:absolute;z-index:65;flex-direction:column;align-items:stretch;border:1px solid #6b5bd0;border-radius:8px;max-height:60vh;overflow:auto"></div><button id="runRoute" class="cmpBtn" disabled title="pick a run first">⇄ compare</button>
   <button id="youPlay" title="play it yourself here: space / click / tap = jump, R = restart, P = back to the replay (practice checkpoints at each section)">🎮 you play</button><button id="practiceBtn" class="on" hidden title="practice: after a death, start again from the last checkpoint (each section / portal)">practice</button>
   <button data-speed="0.25">¼×</button><button data-speed="0.5">½×</button><button data-speed="1" class="on">1×</button>
   <button id="lookBtn" class="on" title="colours, triggers, block skins as in the game (off: the schematic view)">game look</button>
@@ -914,6 +914,8 @@ function pkRunRows(q) {
   PK.runsMissing = missing; return out;
 }
 function pkRunLine(run) {
+  const last = run.lastResult === "clear" ? "you cleared it" : run.lastResult ? `you died at ${Math.round(run.lastPct || 0)}%` : "";
+  if (last) return `<div class="pkMeta" style="color:#ffd0f0;font-size:13px">${last} · ${pkAgo(Date.parse(run.last))} · ${run.lastSource === "video" ? "video" : "played here"}${run.attempts > 1 ? ` <span class="muted">(${run.attempts} runs, best ${Math.round(run.best)}%)</span>` : ""} <span class="muted">▶ opens playing it</span></div>`;
   const src = (run.viewer ? `🎮 ${run.viewer}` : "") + (run.viewer && run.video ? " " : "") + (run.video ? `🎥 ${run.video}` : "");
   return `<div class="pkMeta" style="color:#ffd0f0">${src} · ${run.attempts} attempt${run.attempts === 1 ? "" : "s"} · ${run.clears} clear · best ${Math.round(run.best)}% · played ${pkAgo(Date.parse(run.last))}` +
     (run.hashes && run.hashes.length > 1 ? ` · ${run.hashes.length} versions` : "") + (run.mismatch ? ` · <span title="recordings the sim does not reproduce">⚠ ${run.mismatch}</span>` : "") + `</div>`;
@@ -1234,18 +1236,18 @@ async function runsFor(LL) {
   const dead = rows.filter(r => r.result === "died"), b = {}; for (const r of dead) { const k = Math.floor(r.pct / 10) * 10; b[k] = (b[k] || 0) + 1; }
   const worst = Object.entries(b).sort((x, y) => y[1] - x[1])[0];
   el.hidden = false;
-  const selEl = document.getElementById("runPick"); selEl.hidden = false;
-  selEl.innerHTML = `<option value="">🎮 your runs (${rows.length})…</option>` + rows.slice().reverse().map(r => `<option value="${esc(r.id)}">${r.source === "video" ? "🎥 " : "🎮 "}${r.video && r.video.res === "mismatch" ? "⚠ " : ""}${r.result === "clear" ? "clear" : "died " + Math.round(r.pct) + "%"} · ${r.presses} presses${r.practice ? " · practice" : ""} · ${ago(r.at)}</option>`).join("");
+  const selEl = document.getElementById("runPick");
+  selEl.innerHTML = `<option value=""></option>` + rows.slice().reverse().map(r => `<option value="${esc(r.id)}">${r.result === "clear" ? "you cleared it" : "you died at " + Math.round(r.pct) + "%"} · ${ago(r.at)} · ${r.source === "video" ? "video" : "played here"}${r.practice ? " · practice" : ""}</option>`).join("");
   el.innerHTML = `<p class="muted" style="margin:6px 0 2px">Your runs at this version: ${rows.length} (${rows.filter(r => r.result === "clear").length} clear${worst ? `, most deaths at ${worst[0]}-${+worst[0] + 10}%` : ""})${older ? ` · ${older} at older versions` : ""}</p>` +
     `<span id="runCmp" class="muted"></span>`;
   const sel = document.getElementById("runPick");
-  if (PK.openRun && PK.openRun.base === GD.attemptsBase(f)) { const want = rows.find(r => r.id === PK.openRun.id) || rows[rows.length - 1]; PK.openRun = null; sel.value = want.id; runShow(want.id); }
+  if (PK.openRun && PK.openRun.base === GD.attemptsBase(f)) { const want = rows.find(r => r.id === PK.openRun.id) || rows[rows.length - 1]; PK.openRun = null; sel.value = want.id; runShow(want.id, true); }
   if (LL.ghost) sel.value = LL.ghost.row.id;
   sel.onchange = () => runShow(sel.value);
   runBtnState();
   runCmpText();
 }
-async function runShow(id) {
+async function runShow(id, play) {
   const LL = L; if (!LL) return;
   if (!id) { LL.ghost = null; runCmpText(); runViewApply(); return; }
   let row = null; try { row = (await (await fetch("/attempts?file=" + encodeURIComponent(runsFile()) + "&hash=" + LL.hash + "&id=" + encodeURIComponent(id), { cache: "no-store" })).json())[0]; } catch (e) {}
@@ -1262,7 +1264,8 @@ async function runShow(id) {
     const runP = row.events.filter(e => e.type === "press" && e.tick <= end).map(e => e.tick);
     LL.ghost = { row, path: r.result.path, cmp: route ? GD.comparePresses(route, runP) : null, runP, from: pre.length ? from : 0, events: pre.concat(row.events) };
     const sp = document.getElementById("runPick"); if (sp) sp.value = row.id;
-    runCmpText(); runViewApply(); };
+    runCmpText(); runViewApply();
+    if (play && !TESTPAGE) { t = 0; lastTick = -1; playing = true; setPlay(); syncSong(true); } };
   setTimeout(step, 0);
 }
 // A run picked from "Your runs" replaces the route on screen (the user: "can we remove the solved ones when we replay"):
@@ -1323,7 +1326,26 @@ function meLoad() {
     if (GD.ART_LIB && GD.ART_LIB.loadUserIcons) GD.ART_LIB.loadUserIcons(p).then(() => { if (L) draw(); }); }).catch(() => {});
 }
 // the compare button (top bar): greyed with "pick a run first" until a run is loaded; on = the run and the solver together
+// the run chip (top bar): "▶ your run: <level> · clear · 42 min ago ▾" while a run is open, ✕ beside it; ▾ lists this
+// level's other runs. Runs are picked from L → "my runs" (the picker); there is no other runs list (the user: "the UI of
+// replays is too confusing, both by choosing, and understanding what we see")
+function runAgo(iso) { const m = (Date.now() - Date.parse(iso)) / 60000; return m < 60 ? Math.max(1, Math.round(m)) + " min ago" : m < 1440 ? Math.round(m / 60) + " h ago" : Math.round(m / 1440) + " d ago"; }
+function runChipState() {
+  const c = document.getElementById("runChip"), x = document.getElementById("runClose"), g = L && L.ghost; if (!c) return;
+  c.hidden = x.hidden = !g; const rb = document.getElementById("runRoute"); if (rb) rb.hidden = !g;
+  if (!g) { document.getElementById("runMenu").hidden = true; return; }
+  const r = g.row, n = document.getElementById("runPick").options.length - 1;
+  c.textContent = `▶ your run: ${L.name.replace(/^official \d+: /, "")} · ${r.result === "clear" ? "clear" : "died " + Math.round(r.pct) + "%"} · ${runAgo(r.at)}${n > 1 ? " ▾" : ""}`;
+}
+document.getElementById("runChip").onclick = e => { e.stopPropagation(); const m = document.getElementById("runMenu"), sel = document.getElementById("runPick");
+  if (!m.hidden) { m.hidden = true; return; }
+  m.innerHTML = [...sel.options].filter(o => o.value).map(o => `<button data-run="${esc(o.value)}" style="text-align:left${L.ghost && L.ghost.row.id === o.value ? ";border-color:#ff7ad9" : ""}">${esc(o.textContent)}</button>`).join("");
+  const r = e.currentTarget.getBoundingClientRect(), hr = document.querySelector("header").getBoundingClientRect(); m.style.left = (r.left - hr.left) + "px"; m.style.top = (r.bottom - hr.top + 4) + "px"; m.hidden = false;
+  m.querySelectorAll("[data-run]").forEach(b => b.onclick = () => { m.hidden = true; sel.value = b.dataset.run; runShow(b.dataset.run); }); };
+addEventListener("click", e => { const m = document.getElementById("runMenu"); if (m && !m.hidden && !m.contains(e.target)) m.hidden = true; });
+document.getElementById("runClose").onclick = () => { const sel = document.getElementById("runPick"); sel.value = ""; runShow(""); };
 function runBtnState() {
+  runChipState();
   const b = document.getElementById("runRoute"), g = L && L.ghost; if (!b) return;
   const solved = !!(L && (L.runKeep || L).sol && (L.runKeep || L).sol.ok);
   b.disabled = !g || !solved; b.classList.toggle("on", !!g && solved && VIEW.route);
@@ -2322,7 +2344,7 @@ function controlsOutsideTop() {
     .map(e => { let p = e.parentElement; while (p && !p.id) p = p.parentElement; return (p ? "#" + p.id + " " : "") + (e.id ? "#" + e.id : e.tagName.toLowerCase() + " \"" + (e.textContent || "").trim().slice(0, 24) + "\""); });
 }
 async function controlsCheck() {
-  const sel = document.getElementById("runPick"); if (sel && !sel.hidden && sel.options.length > 1) { sel.value = sel.options[1].value; sel.onchange(); await new Promise(r => setTimeout(r, 4000)); }
+  const sel = document.getElementById("runPick"); if (sel && sel.options.length > 1) { sel.value = sel.options[1].value; sel.onchange(); await new Promise(r => setTimeout(r, 4000)); }
   if (L && MARKS && levelMarks().length) markPick(levelMarks()[0]);
   // for pictures of a run (headless --screenshot): &vs=1 turns "vs solver" on (not saved), &at=<s> goes to that moment
   if (QS.get("vs") === "1" && L && L.ghost) { VIEW.route = true; runBtnState(); runCmpText(); }

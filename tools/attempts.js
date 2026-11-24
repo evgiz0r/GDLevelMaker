@@ -57,6 +57,7 @@ function index() {
     const last = all.reduce((a, b) => (b.at || "") >= (a.at || "") ? b : a);
     rows.push({ base: f.replace(/\.jsonl$/, ""), level: last.level || "", file: last.file || "", attempts: all.length, clears: all.filter(r => r.result === "clear").length,
       best: Math.max(...all.map(r => r.result === "clear" ? 100 : +r.pct || 0)), last: last.at, lastId: last.id, lastHash: last.hash || "",
+      lastResult: last.result, lastPct: last.pct, lastSource: last.source,
       viewer: all.filter(r => r.source !== "video").length, video: all.filter(r => r.source === "video").length,
       mismatch: all.filter(r => r.video && r.video.res === "mismatch").length, hashes: [...new Set(all.map(r => r.hash))] });
   }
