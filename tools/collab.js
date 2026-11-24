@@ -281,6 +281,13 @@ function join(briefFile) {
     const x = run.end ? run.end.x : (path0[path0.length - 1] || {}).x || 0, k = parts.findIndex(({ p }, i) => i === parts.length - 1 || x < parts[i + 1].p.shift);
     problems.push(`the joined route dies at block ${(x / 30).toFixed(1)} in ${parts[k].p.id} (${run.why || "?"})`); send.add(parts[k].p.id);
   }
+  // a re-routed part's route is the solver's (holds through auto-jump chains, a hold across a flight's exit): as a player
+  // presses it -- lib/natural.js's passes, one tap per jump -- where the run still finishes (GDLM 66: a re-routed hold
+  // read as an "8.7-block prejump" after the ship exit)
+  if (rerouted.length && !run.dead) try {
+    const N = require("../lib/natural.js"), n = N.naturalPlan(w, { ok: true, events }, level.objects);
+    if (n && n.events && n.path && n.path[n.path.length - 1].done) { events = n.events; run = GD.run(w, events); path0 = run.path; }
+  } catch (e) { /* keep the solver's */ }
   const skip = !run.dead ? GD.skipCheck(w, path0, events) : null;
   if (skip) problems.push("the joined route skips " + JSON.stringify(skip).slice(0, 120));
   // the joined level: the first part's record, renamed
