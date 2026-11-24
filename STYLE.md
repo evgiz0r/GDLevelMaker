@@ -486,6 +486,10 @@ Still open:
   rated community levels, while SYNC.md's official levels sit on bar starts -- decide per tier before changing), motion
   triggers per screen (10 vs 45), ~1.5x hazards per block within the tier, fewer repeated chunks -- then re-run
   `node tools/compare_sections.js` to measure. After lab r2 (the space drop).
+- **Vibe sheets and recompile, inherited (2026-11-24)** from the showcase session: VIBES.md "Handoff" (tools/vibe.js,
+  tools/recompile.js, fixes 1-4 in code but unmeasured, 5 not started; the v1 benchmark table). Next: the collab repair
+  rounds test (`collab.js build briefs/69_time_hop.json 1 --by recompile`), then both round trips for the v2 column.
+  GDLM 69 and 70 in levels/ are still v1 and NOT READY.
 
 - **User gates in compose** (visuals 52754fc, VIEWER.md): stages.put(... gate: true) + stages.waitApproval -> ok /
   redo with a note and a spot. Not wired yet: compose is one heavy job, so waiting inside it would hold the lock
