@@ -118,8 +118,8 @@ module.exports = function ({ objects, header, beatX }) {
   // ---- motion on every screen (gd-art / gd-taste: moving deco is the strongest sign of a featured level,
   // ART.md "Deco study"): the grass sways, the motes bob, the lit block edges pulse on every bar toward a
   // brighter tint of their own colour every second bar (calm: under 0.5 a second, never white) -- ~10 triggers per 20-block screen
-  out.push(...K.sway(S[0][0], END, 312, 7, 120, 0.4));
-  out.push(...K.bob(S[0][0], END, G.motes, 12, 200, 0.65));
+  out.push(...K.sway(S[0][0], END, 312, 7, 100, 0.35));
+  out.push(...K.bob(S[0][0], END, G.motes, 12, 160, 0.5));
   { const spb = 8, bars = []; for (let b = 1; beatX(b) < END - 60; b += spb) bars.push(b);
     for (const b of bars) { const x = beatX(b), i = Math.max(0, S.findIndex(([a, z]) => x >= a && x < z)), e = P[i][C.edge];
       out.push(K.pulse(x, C.edge, e.map(v => Math.round(v + (255 - v) * 0.35)), 0.05, 0.1, 0.5)); } }
