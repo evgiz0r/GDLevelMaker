@@ -27,6 +27,14 @@
 //   The parts' routes are joined by time (tick offset = seam time x 240) and replayed on the joined level: no solve.
 //   A seam whose state differs from the contract, or a death, sends back only that part.
 "use strict";
+// kS38 of several headers into the first: channels the first does not define are added from the later ones (first wins)
+function mergeChannels(headers) {
+  const entries = h => { const m = /(?:^|,)kS38,([^,]*)/.exec(h || ""); return m ? m[1].split("|").filter(Boolean) : []; };
+  const chOf = e => { const m = /(?:^|_)6_(\d+)(?:_|$)/.exec(e); return m ? +m[1] : null; };
+  const out = entries(headers[0]), have = new Set(out.map(chOf));
+  for (const h of headers.slice(1)) for (const e of entries(h)) { const c = chOf(e); if (c != null && !have.has(c)) { have.add(c); out.push(e); } }
+  return headers[0].replace(/kS38,[^,]*/, "kS38," + out.join("|") + "|");
+}
 if (require.main === module && /^(build|join|deco|scene)$/.test(process.argv[2] || "")) require("./heavy.js").claim();
 const fs = require("fs"), path = require("path");
 const ROOT = path.join(__dirname, "..");
@@ -238,7 +246,10 @@ function join(briefFile) {
   });
   // a press that would hold across a seam: release it there (each part's route is its own)
   events.sort((a, b) => a.tick - b.tick || (a.type === "release" ? -1 : 1));
-  const level = { header: parts[0].L.level.header, objects };
+  // the joined header: the first part's, plus every colour channel a later part defines and the first does not (the
+  // signature's Claude badge, 973-975, lives only in the last part's header: GDLM 64 v6 / 65 / 66 showed it WHITE in
+  // the game -- tools/channels.js)
+  const level = { header: mergeChannels(parts.map(q => q.L.level.header)), objects };
   const levelStr = GD.serializeLevel(level), w = GD.makeWorld(level.objects, level.header), tl = SY.timeline(w);
   let run = GD.run(w, events), path0 = run.path;
   // a part whose own route does not carry over (it was routed from a standing start; joined it is handed the real
@@ -352,7 +363,7 @@ function status(briefFile) {
   }
 }
 
-module.exports = { split, build, deco, join, scene, status, partBrief };
+module.exports = { split, build, deco, join, scene, status, partBrief, mergeChannels };
 
 if (require.main === module) {
   const [cmd, bf, ...rest] = process.argv.slice(2);

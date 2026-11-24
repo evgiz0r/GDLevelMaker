@@ -141,6 +141,10 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 - [ ] **Built on blocks**: a block, slab or slope in ~45-50% of the cube columns; most spikes on
   ledges, steps, pit edges and under overhangs, not lone on the floor. `node tools/obstacles.js structure --file <level>`.
   (levels/obstacles.md section 1; GDLM 41-45 had 13%)
+- [ ] **Modes for the tier**: a level's modes, speeds, sizes, orbs and pads fit its difficulty the way the official levels
+  bring them in (DIFFICULTY.md "Mode order": Easy = cube, ship, yellow / blue pads; Normal adds gravity flips and yellow
+  orbs; Hard pink pads; Harder ball, pink / blue orbs; Insane mini, UFO, wave, 2x...). score.js "mode tier" WARNs a
+  feature more than a tier above. (The user, 2026-11-24: mode difficulty follows its appearance in the main levels.)
 - [ ] **Structures from the library**: compose.js puts a ranked structure (STRUCTURES.md) in every
   plain 1x cube section by default; a hand-made spec names them as `"s:<id>"`. Mechanics our levels
   never had rank first. `node tools/structures.js rank`. **Only ready ones, and ready includes the check in
@@ -178,6 +182,7 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 
 ## Looks like 2.2, not 1.0 (levels/modern_look.md)
 
+- [ ] **No white deco by accident** (the user, 2026-11-24, after GDLM 67 in the real game: "our deco being pure white within the game is still expected?"): every deco object's colour channel -- its key 21/22, or its default (channel 1 for 211 / 693) -- is defined in the header or by a colour trigger before it; otherwise GD draws it WHITE. `node tools/channels.js <level>`, score.js gate "channels" (FAIL).
 - [ ] **Readable colours, not mush** (the user, 2026-11-24: "sometimes its not clear and its all mooshy"): judge by
   BRIGHTNESS, not hue -- hazards and blocks stand out from the background at every moment (luminance ratio hazard/bg
   >= 1.6, block/bg >= 1.5; aim for 3+ like most official sections), the floor shows (ground/bg >= 1.1 or a bright

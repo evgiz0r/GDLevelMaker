@@ -34,6 +34,7 @@
 //                in these wave corridors. and way too close to the borders" (lib/natural.js routeCheck).
 //                Also WARN: a press the route can drop and still finish (an arrow would mark a jump
 //                that is not needed; the user on GDLM 44 v12, "some places mark to jump but no need").
+//   channels     deco on a colour channel nothing defines: white in the game (tools/channels.js); FAIL
 //   contrast     colour readability: hazards / blocks / ground vs the background, by luminance (tools/contrast.js); WARN
 //                under 70/100 sections readable
 //   objects      gameplay objects with unconfirmed hitboxes (sure:false; WARN only)
@@ -140,6 +141,14 @@ function scoreLevel0(level, brief, opts = {}) {
     gate("contrast", C.score < 70 ? "WARN" : "PASS", `${C.score}/100 sections readable (official levels: median hazard/bg 3.5-21)`,
       C.worst.slice(0, 4).map(s => `~${s.t} s: ${s.fails.join(", ")}`).join("; "));
   } catch (e) { gate("contrast", "WARN", "tools/contrast.js failed: " + e.message); }
+  // deco the GAME draws white: a colour channel 1-999 (an object's key or its default) that neither the header nor a
+  // colour trigger before it defines (the user, 2026-11-24, after a real-game run: "our deco being pure white within the
+  // game is still expected?"; tools/channels.js). Hard: the viewer shows a colour the game will not.
+  try {
+    const CC = require("./channels.js").check({ header: level.header, objects: level.objects });
+    gate("channels", CC.ok ? "PASS" : "FAIL", CC.ok ? `every deco colour channel is defined (${CC.deco} deco)` : `${CC.undefinedCount} deco on undefined channels: WHITE in the game`,
+      Object.entries(CC.undefined).map(([k, v]) => `${k} x${v}`).join(", "));
+  } catch (e) { gate("channels", "WARN", "tools/channels.js failed: " + e.message); }
 
   // height and repetition (the user on GDLM 47's upside-down part: "some sections are somewhat boring. all
   // in flat area. no change of height really ... robtop levels do show decent change of height in their
@@ -254,6 +263,19 @@ function scoreLevel0(level, brief, opts = {}) {
     gate("difficulty", off >= 2 ? "FAIL" : off === 1 ? "WARN" : "PASS",
       `${lab} (${diff.logAttempts.toFixed(2)} = ~${Math.round(10 ** diff.logAttempts)} attempts)` + (want.label ? `, want ${want.label}` : ""));
   }
+  // mode tier (the user, 2026-11-24: "the difficulty of modes is usually correlated to their appearance in gd main
+  // levels"): each mode / speed / size / gravity / orb / pad has the rating of the first official level it appears in
+  // (tools/modeorder.js, DIFFICULTY.md "Mode order"). A level using a feature MORE than one tier above its target reads
+  // harder than its timing says: WARN (soft: brief.accept["mode tier"] with a reason). One tier above is common.
+  try {
+    const MO = require("./modeorder.js"), fl = MO.floor(MO.features(level.objects, level.header)), T = MO.TIERS;
+    const target = want.label || (r.ok && diff ? GD.difficultyLabel(diff.logAttempts) : null);
+    if (target) {
+      const over = Object.entries(fl.tiers).filter(([, t]) => T.indexOf(t) > T.indexOf(target) + 1);
+      gate("mode tier", over.length ? "WARN" : "PASS", over.length ? `${over.map(([f, t]) => f + " (" + t + ")").join(", ")} in a ${target} level` : `features up to ${fl.tier} for ${target}`,
+        over.length ? "official levels bring these in at higher ratings: keep them for harder levels, or accept with a reason" : "");
+    }
+  } catch (e) { /* no corpus on this PC */ }
 
   // pacing, from hazard columns
   const haz = level.objects.filter(o => GD.objInfo(o.id).kind === "hazard").map(o => Math.floor(o.x / 30)).sort((a, b) => a - b);

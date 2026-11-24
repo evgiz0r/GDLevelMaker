@@ -1,4 +1,4 @@
-// node tools/snapshot.js [--no-songs] [--kbps 40] [--out local/phone/viewer_snapshot_<date>.html] [--port 8790]
+// node tools/snapshot.js [--no-songs] [--kbps 40] [--max-mb 29] [--out local/phone/viewer_snapshot_<date>.html] [--port 8790]
 // The PC viewer as ONE self-contained HTML file that opens from disk (file://) with no server and no network -- for the
 // user's phone at work (the user, 2026-11-24, via the main session). Inside: the viewer and its libs, every level the PC
 // viewer lists (our levels/, the official ones, every session's work in progress, with their saved routes), the beat
@@ -16,7 +16,7 @@ const GAME = process.env.GD_GAME || "C:/Program Files (x86)/Steam/steamapps/comm
 const SAVE = process.env.GD_SAVE || path.join(process.env.LOCALAPPDATA || "", "GeometryDash");
 const day = new Date().toISOString().slice(0, 10);
 const OUT = path.resolve(opt("--out") || path.join(ROOT, "local", "phone", `viewer_snapshot_${day}${args.includes("--no-songs") ? "_nosongs" : ""}.html`));
-const KBPS = +(opt("--kbps") || 40), SONGS = !args.includes("--no-songs");
+const KBPS = +(opt("--kbps") || 40), SONGS = !args.includes("--no-songs"), MAX_MB = +(opt("--max-mb") || 29);
 const get = (port, p) => new Promise(res => http.get(`http://localhost:${port}${p}`, r => { let b = ""; r.on("data", d => b += d); r.on("end", () => res(r.statusCode === 200 ? b : null)); }).on("error", () => res(null)));
 const up = port => get(port, "/version").then(b => b != null);
 const mb = n => (n / 1048576).toFixed(1) + " MB";
@@ -59,20 +59,23 @@ const PY = process.env.PYTHON || "python";
   if (py.status !== 0) throw new Error("WebP conversion failed (needs python + Pillow): " + String(py.stderr).slice(0, 300));
   let artBytes = 0; imgs.forEach(([k], i) => { const b = fs.readFileSync(path.join(tmp, i + ".webp")); artBytes += b.length; art[k] = "data:image/webp;base64," + b.toString("base64"); });
   // ---- songs: every song a listed level uses, AAC mono ----
-  const songs = {}; let songBytes = 0, songMiss = [];
+  const songs = {}; let songBytes = 0, songMiss = [], kbps = KBPS;
+  const srcs = [];
   if (SONGS) {
     const urls = new Set(lvls.filter(l => l.song && l.song.url).map(l => l.song.url));
     for (const u of urls) {
       const m = /^\/song\/(official|custom)\/(\w+)\.(mp3|ogg)$/.exec(u); if (!m) continue;
       const f = m[1] === "official" ? path.join(RES, m[2] + ".mp3") : (require("./songs.js").songFile(m[2]) || [".mp3", ".ogg"].map(e => path.join(SAVE, m[2] + e)).find(x => fs.existsSync(x)));
       if (!f || !fs.existsSync(f)) { songMiss.push(u); continue; }
-      const o = path.join(tmp, m[2] + ".m4a");
-      const r = cp.spawnSync(process.env.FFMPEG || "ffmpeg", ["-v", "error", "-y", "-i", f, "-vn", "-ac", "1", "-c:a", "aac", "-b:a", KBPS + "k", o], { windowsHide: true });
-      if (r.status !== 0) { songMiss.push(u); continue; }
-      const b = fs.readFileSync(o); songBytes += b.length; songs[u] = b.toString("base64");
+      srcs.push([u, f, m[2]]);
     }
   }
-  fs.rmSync(tmp, { recursive: true, force: true });
+  const encode = k => { songBytes = 0; for (const [u, f, id] of srcs) {
+    const o = path.join(tmp, id + ".m4a");
+    const r = cp.spawnSync(process.env.FFMPEG || "ffmpeg", ["-v", "error", "-y", "-i", f, "-vn", "-ac", "1", "-c:a", "aac", "-b:a", k + "k", o], { windowsHide: true });
+    if (r.status !== 0) { if (!songMiss.includes(u)) songMiss.push(u); delete songs[u]; continue; }
+    const b = fs.readFileSync(o); songBytes += b.length; songs[u] = b.toString("base64"); } };
+  encode(kbps);
   // ---- the page ----
   const data = zlib.gzipSync(JSON.stringify({ levelsJs, localJs, beatsJs, wip, attIndex, attempts, me, gdres }), { level: 9 });
   const meta = { snapshot: day, commit: ver.commit || "", levels: lvls.length, songs: SONGS ? Object.keys(songs).length : 0, songsLeftOut: !SONGS };
@@ -129,7 +132,16 @@ window.GD_SONGS_B64 = ${JSON.stringify(songs)};
   html = html.replace("</body>", boot + "\n</body>");
   html = html.replace("<title>GD Level Viewer</title>", `<title>GDLM viewer (offline ${day})</title>`);
   fs.mkdirSync(path.dirname(OUT), { recursive: true }); fs.writeFileSync(OUT, html);
-  const size = fs.statSync(OUT).size;
+  let size = fs.statSync(OUT).size;
+  // over --max-mb (default 29: the chat's file card takes 30 MB): the songs again at the bitrate that fits (base64 = 4/3)
+  if (SONGS && size > MAX_MB * 1048576 && songBytes) {
+    const room = MAX_MB * 1048576 - (size - songBytes * 4 / 3), k = Math.floor(kbps * room / (songBytes * 4 / 3) * 0.97);
+    if (k < 16) throw new Error(`songs would need ${k} kbps to fit ${MAX_MB} MB: use --no-songs`);
+    kbps = k; encode(kbps);
+    const songsJs = `window.GD_SONGS_B64 = ${JSON.stringify(songs)};`;
+    html = html.replace(/window\.GD_SONGS_B64 = \{[\s\S]*?\};\n/, () => songsJs + "\n"); fs.writeFileSync(OUT, html); size = fs.statSync(OUT).size;
+  }
+  fs.rmSync(tmp, { recursive: true, force: true });
   console.log(`${path.relative(ROOT, OUT)}: ${mb(size)} -- ${lvls.length} levels (data ${mb(data.length)} gzipped), art ${imgs.length} pictures ${mb(artBytes)}, ` +
-    (SONGS ? `${Object.keys(songs).length} songs ${mb(songBytes)} at ${KBPS} kbps` + (songMiss.length ? ` (missing: ${songMiss.join(", ")})` : "") : "no songs") + `; ${((Date.now() - t0) / 1000).toFixed(0)} s`);
+    (SONGS ? `${Object.keys(songs).length} songs ${mb(songBytes)} at ${kbps} kbps` + (songMiss.length ? ` (missing: ${songMiss.join(", ")})` : "") : "no songs") + `; ${((Date.now() - t0) / 1000).toFixed(0)} s`);
 })().catch(e => { console.error(e.stack || e.message); process.exit(1); });
