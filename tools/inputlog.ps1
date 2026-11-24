@@ -1,32 +1,53 @@
-# tools/inputlog.ps1 -- logs the user's GD inputs while recording (started/stopped by tools/record.sh).
-# Only space, up arrow, W and the left mouse button, and only while Geometry Dash is the foreground window.
-# No other keys, no text. One line per change: "<unix ms> <down|up> <key>". Polls every ~1 ms.
-# The user asked for it (2026-11-24: "record, with inputs from now on"). Output: next to the videos.
-param([string]$Out, [string]$Stop)
-Add-Type @"
-using System; using System.Runtime.InteropServices;
-public static class GdKeys {
-  [DllImport("user32.dll")] public static extern short GetAsyncKeyState(int vk);
-  [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
-  [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
-  [DllImport("winmm.dll")] public static extern uint timeBeginPeriod(uint p);
+# tools/inputlog.ps1 -Out <file.csv> -Stop <flagfile>
+# Logs the user's Geometry Dash inputs while a recording runs (started and stopped by tools/record.sh; only on
+# the user's "record"): Space, Up, W and the left mouse button, down and up, ONLY while GeometryDash.exe is the
+# foreground window. No other key, no text, nothing while another window is in front. Each line:
+#   ms since the logger started (high-resolution), the wall-clock time (UTC, ISO), down|up, space|up|w|mouse
+# The first line is a header with the start time, so the log lines up with the video (its name holds its start
+# time; frame times are pts). Stops when the flag file appears. Written to local/inputs/ (never committed).
+# Use: USE_CASES 29 -- replay the user's real runs in the sim (tools/replay_run.js), PHYSICS.md "Fidelity".
+param([Parameter(Mandatory = $true)][string]$Out, [Parameter(Mandatory = $true)][string]$Stop)
+Add-Type -ReferencedAssemblies System.Windows.Forms -TypeDefinition @"
+using System; using System.Diagnostics; using System.IO; using System.Runtime.InteropServices; using System.Windows.Forms;
+public static class GdInputLog {
+  delegate IntPtr Proc(int code, IntPtr w, IntPtr l);
+  [DllImport("user32.dll")] static extern IntPtr SetWindowsHookEx(int id, Proc fn, IntPtr mod, uint tid);
+  [DllImport("user32.dll")] static extern bool UnhookWindowsHookEx(IntPtr h);
+  [DllImport("user32.dll")] static extern IntPtr CallNextHookEx(IntPtr h, int code, IntPtr w, IntPtr l);
+  [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
+  [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
+  [DllImport("kernel32.dll")] static extern IntPtr GetModuleHandle(string n);
+  static Proc kp = KeyHook, mp = MouseHook; static IntPtr kh, mh; static StreamWriter log; static Stopwatch sw;
+  static bool[] down = new bool[4]; static uint lastPid; static bool lastGd; static long lastCheck = -1000;
+  static bool GdInFront() {
+    long now = sw.ElapsedMilliseconds; if (now - lastCheck < 200) return lastGd;   // checked at most 5x a second
+    lastCheck = now; uint pid; GetWindowThreadProcessId(GetForegroundWindow(), out pid);
+    if (pid != lastPid) { lastPid = pid; try { lastGd = Process.GetProcessById((int)pid).ProcessName.ToLower() == "geometrydash"; } catch { lastGd = false; } }
+    return lastGd;
+  }
+  static void Put(int k, bool isDown, string name) {
+    if (down[k] == isDown) return;   // key repeat
+    down[k] = isDown; if (!GdInFront()) return;
+    log.WriteLine(string.Format("{0:F3},{1:o},{2},{3}", sw.Elapsed.TotalMilliseconds, DateTime.UtcNow, isDown ? "down" : "up", name)); log.Flush();
+  }
+  static IntPtr KeyHook(int code, IntPtr w, IntPtr l) {
+    if (code >= 0) { int vk = Marshal.ReadInt32(l), msg = (int)w; bool d = msg == 0x100 || msg == 0x104, u = msg == 0x101 || msg == 0x105;
+      if (d || u) { if (vk == 0x20) Put(0, d, "space"); else if (vk == 0x26) Put(1, d, "up"); else if (vk == 0x57) Put(2, d, "w"); } }
+    return CallNextHookEx(kh, code, w, l);
+  }
+  static IntPtr MouseHook(int code, IntPtr w, IntPtr l) {
+    if (code >= 0) { int msg = (int)w; if (msg == 0x201) Put(3, true, "mouse"); else if (msg == 0x202) Put(3, false, "mouse"); }
+    return CallNextHookEx(mh, code, w, l);
+  }
+  public static void Run(string outFile, string stopFile) {
+    sw = Stopwatch.StartNew(); log = new StreamWriter(outFile, true);
+    log.WriteLine("# GD input log, started " + DateTime.UtcNow.ToString("o") + " UTC; ms,utc,down|up,key; only while GeometryDash.exe is in front"); log.Flush();
+    IntPtr mod = GetModuleHandle(null); kh = SetWindowsHookEx(13, kp, mod, 0); mh = SetWindowsHookEx(14, mp, mod, 0);
+    var t = new Timer(); t.Interval = 500; t.Tick += (s, e) => { if (File.Exists(stopFile)) Application.Exit(); }; t.Start();
+    Application.Run();
+    UnhookWindowsHookEx(kh); UnhookWindowsHookEx(mh); log.WriteLine("# stopped " + DateTime.UtcNow.ToString("o")); log.Close();
+  }
 }
 "@
-[GdKeys]::timeBeginPeriod(1) | Out-Null
-$keys = @{ 0x20 = "space"; 0x26 = "up"; 0x57 = "w"; 0x01 = "mouse" }
-$state = @{}; foreach ($k in $keys.Keys) { $state[$k] = $false }
-$w = [System.IO.StreamWriter]::new($Out, $true); $w.AutoFlush = $true
-$w.WriteLine("# GD inputs, unix ms, started " + [DateTimeOffset]::Now.ToString("o"))
-$gdPid = 0; $lastPidCheck = 0
-while (-not (Test-Path $Stop)) {
-  $now = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
-  if ($now - $lastPidCheck -gt 2000) { $p = Get-Process GeometryDash -ErrorAction SilentlyContinue; $gdPid = if ($p) { $p[0].Id } else { 0 }; $lastPidCheck = $now }
-  $fg = 0; [void][GdKeys]::GetWindowThreadProcessId([GdKeys]::GetForegroundWindow(), [ref]$fg)
-  $inGd = ($gdPid -ne 0 -and $fg -eq $gdPid)
-  foreach ($k in $keys.Keys) {
-    $down = $inGd -and (([GdKeys]::GetAsyncKeyState($k) -band 0x8000) -ne 0)
-    if ($down -ne $state[$k]) { $state[$k] = $down; $w.WriteLine("$now " + ($(if ($down) { "down" } else { "up" })) + " " + $keys[$k]) }
-  }
-  Start-Sleep -Milliseconds 1
-}
-$w.WriteLine("# stopped " + [DateTimeOffset]::Now.ToString("o")); $w.Close()
+New-Item -ItemType Directory -Force (Split-Path $Out) | Out-Null
+[GdInputLog]::Run($Out, $Stop)
