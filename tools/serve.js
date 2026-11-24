@@ -92,6 +92,10 @@ const SERVER = http.createServer((req, res) => {
   // difficulty; VIEWER.md). test: true -> local/viewer_actions.test.jsonl
   // GET /attempts?file=<level file>&hash=<GD.levelHash>: the user's attempts at that version (tools/attempts.js), without
   // their inputs unless &id=<attempt id> (one attempt, with its events)
+  // GET /attempts/index: every level with attempts, one small row each, newest played first (the "my runs" tab)
+  if (p === "/attempts/index" && req.method === "GET") {
+    res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify(require("./attempts.js").index()));
+  }
   if (p === "/attempts" && req.method === "GET") {
     const q = new URL(req.url, "http://x").searchParams, A = require("./attempts.js");
     let rows = A.read(q.get("file") || "", q.get("hash") || "");
