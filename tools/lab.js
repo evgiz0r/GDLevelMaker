@@ -5,6 +5,9 @@
 // node tools/lab.js ask <round>                      -- the decision card for the user: which variant, and why
 // node tools/lab.js collect <round>                  -- the user's pick and reason -> local/reviews.jsonl, the picked variant
 //                                                       into the approved library (local/lab/library.json), hook weights
+// node tools/lab.js sheet <round>                   -- the round's picture sheet: 4 GD-art frames per variant, labelled with
+//                                                       its hook and pace -> local/lab/<round>/sheet.jpg (heavy: shoot.js)
+// node tools/lab.js finish <round>                  -- when a round's builds are done: status, the sheet, the decision card
 // node tools/lab.js status [<round>]                 -- the rounds / a round's variants with their pace and checks
 //
 // SECTION LAB (the user, 2026-11-24: the levels feel "pretty dim. Slow, too low CPS, nothing interesting. Iterating on them like
@@ -111,6 +114,37 @@ function collect(id) {
   return review;
 }
 
+// the round's picture sheet (the user, on the phone: "pictures of the new sections"): per variant 4 frames across its
+// moment in GD art (tools/shoot.js), labelled with its hook and pace -> local/lab/<round>/sheet.jpg
+function sheet(id) {
+  const cp = require("child_process"), dir = path.join(LAB, id), R = readJ(path.join(dir, "round.json")), T = require("./pace.js").load().target;
+  const at = [0.15, 0.4, 0.62, 0.85].map(p => +((R.t[1] - R.t[0]) * p).toFixed(2)), rows = [];
+  for (const x of R.variants) {
+    const lvl = path.join(dir, `v${x.k}.gdlvl`); if (!fs.existsSync(lvl)) continue;
+    const out = path.join(dir, "shots", "v" + x.k);
+    cp.spawnSync(process.execPath, [path.join(__dirname, "shoot.js"), lvl, "--at", at.join(","), "--out", out], { windowsHide: true, encoding: "utf8", timeout: 900000 });
+    const frames = at.map(t => path.join(out, "t" + t.toFixed(2).padStart(6, "0") + ".png")).filter(p => fs.existsSync(p));
+    if (!frames.length) continue;
+    let r = null; try { r = readJ(path.join(dir, `v${x.k}.result.json`)); } catch (e) {}
+    const p = (r && r.pace) || {};
+    const label = `v${x.k}  ${x.hook}   ${p.cps ?? "-"} clicks per s   ${p.obsPerBar ?? "-"} obstacles per bar   ${p.changesPer10s ?? "-"} changes per 10 s   (real ${T.cps} / ${T.obsPerBar} / ${T.changesPer10s})${r && !r.ok ? "   NOT OK " + r.fails.join(" ") : ""}`;
+    rows.push({ frames, label });
+  }
+  if (!rows.length) return null;
+  const outJpg = path.join(dir, "sheet.jpg"), args = ["-y", "-loglevel", "error"], parts = []; let n = 0;
+  const font = "C\\:/Windows/Fonts/arial.ttf";
+  rows.forEach((row, i) => {
+    const ins = row.frames.map(fr => { args.push("-i", fr); return n++; });
+    while (ins.length < 4) { args.push("-f", "lavfi", "-i", "color=c=black:s=480x270"); ins.push(n++); }
+    parts.push(ins.map((j, q) => `[${j}]scale=480:270[s${i}_${q}]`).join(";") + ";" + ins.map((j, q) => `[s${i}_${q}]`).join("") + `hstack=inputs=4,pad=1920:310:0:40:color=0x14182a,drawtext=fontfile='${font}':text='${row.label.replace(/[':\\]/g, " ")}':fontcolor=white:fontsize=22:x=12:y=10[r${i}]`);
+  });
+  const filter = parts.join(";") + ";" + rows.map((r, i) => `[r${i}]`).join("") + `vstack=inputs=${rows.length},scale=1600:-1[out]`;
+  args.push("-filter_complex", filter, "-map", "[out]", "-q:v", "3", outJpg);
+  const r = cp.spawnSync("ffmpeg", args, { windowsHide: true, encoding: "utf8" });
+  if (r.status !== 0) throw new Error("ffmpeg: " + (r.stderr || "").slice(0, 300));
+  return outJpg;
+}
+
 function status(id) {
   if (!id) { for (const f of fs.existsSync(LAB) ? fs.readdirSync(LAB).filter(f => /^r\d+$/.test(f)) : []) { const R = readJ(path.join(LAB, f, "round.json")); console.log(`${f}: ${R.moment} ${R.t[0]}-${R.t[1]} s, ${R.variants.length} variants${R.ask ? ", card " + R.ask : ""}`); } return; }
   const dir = path.join(LAB, id), R = readJ(path.join(dir, "round.json")), T = require("./pace.js").load().target;
@@ -119,7 +153,7 @@ function status(id) {
     console.log(`  v${x.k} ${x.hook.padEnd(13)} ${r ? (r.ok ? "ok  " : "FAIL") + ` ${r.secs.toFixed(0)} s  ${r.pace && r.pace.cps != null ? r.pace.cps + " cps " : ""}${r.pace && r.pace.obsPerBar != null ? r.pace.obsPerBar + " obs/bar " : ""}${r.pace && r.pace.changesPer10s != null ? r.pace.changesPer10s + " ch/10s" : ""}${r.fails.length ? "  fails " + r.fails.join(",") : ""}` : "not built"}`); }
 }
 
-module.exports = { round, build, ask, collect, status, HOOKS };
+module.exports = { round, build, ask, collect, status, sheet, HOOKS };
 
 if (require.main === module) {
   const [cmd, a, b, ...rest] = process.argv.slice(2), all = [a, b, ...rest], opt = k => { const i = all.indexOf(k); return i >= 0 ? all[i + 1] : null; };
@@ -127,6 +161,8 @@ if (require.main === module) {
   else if (cmd === "build") { const r = build(a, +b); console.log(`${r.name}: ${r.ok ? "OK" : "NOT OK " + r.fails.join(",")} in ${r.secs.toFixed(0)} s; pace ${JSON.stringify(r.pace)}`); }
   else if (cmd === "ask") { const r = ask(a); console.log(`decision card ${r.card}: ${r.options.join(" | ")}`); }
   else if (cmd === "collect") { const r = collect(a); console.log(r.waiting ? `waiting for the user's answer (card ${r.card})` : `picked v${r.pick} ${r.hook}${r.reason ? ' -- "' + r.reason + '"' : ""} -> local/reviews.jsonl, library, prefs`); }
+  else if (cmd === "sheet") { const p = sheet(a); console.log(p ? "-> " + path.relative(ROOT, p) : "no built variants"); }
+  else if (cmd === "finish") { status(a); const p = sheet(a); console.log(p ? "sheet -> " + path.relative(ROOT, p) : "no sheet"); const r = ask(a); console.log("decision card " + r.card); }
   else if (cmd === "status") status(a);
   else console.log(fs.readFileSync(__filename, "utf8").split("\n").filter(l => l.startsWith("// node")).join("\n"));
 }
