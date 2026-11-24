@@ -44,7 +44,7 @@ if (!a.includes("--official")) {
     if (fs.existsSync(path.join(ROOT, d))) for (const f of fs.readdirSync(path.join(ROOT, d)).filter(f => /^gdlm_.*\.gdlvl$/.test(f)).sort()) files.push(path.join(d, f));
   for (const f of files) {
     const L = readGdlvl(path.join(ROOT, f)), s = sols.get(L.levelStr, true), w = GD.makeWorld(L.level.objects, L.level.header);
-    const label = (f.startsWith("local") ? f.split(/[\/]/)[2] + ":" : "") + L.name.replace(/^GDLM /, "");
+    const label = (f.startsWith("local") ? f.split(path.sep).join("/").split("/")[2] + ":" : "") + L.name.replace(/^GDLM /, "");
     if (!s) { row({ level: label, sim: "-", kind: "none", by: "-", plan: "-", old: "-", skips: "-", queued: queued(/saved_routes|solutions\.js/) }); continue; }
     const sk = s.ok ? skipOf(w, s.events) : { sk: "-", done: false };
     row({ level: label, sim: s.ok ? (sk.done ? "beaten" : "replay dies") : `stuck ${s.dieX ? (s.dieX / w.endX * 100).toFixed(1) + "%" : ""}`,
