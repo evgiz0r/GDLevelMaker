@@ -84,6 +84,11 @@ not after it:
 - **Process rules go in the repo, never only in a message.** The user (2026-11-24): "never just for one session
   if its a big repeatable process". A rule, a process step or a lesson that one session was told applies to
   every session and every future build: write it in CLAUDE.md, BUILDING.md or the topic's doc in the same round.
+- **Experiments are silent.** The user (2026-11-24): "when some claude is experimenting, can it mute?" A session
+  that opens the viewer or plays anything to test it (browser pane, headless, shots, play mode) runs it muted:
+  the viewer's `mute=1` URL flag (music, click sound, every sound), and tests use it by default. Test actions are
+  marked test (id "test-..." or test: true) so they stay out of the user's feed. Only the user's own viewer
+  plays sound.
 - **Hand off.** Before a long pause or when your area changes hands, write where you stopped,
   what is open and the good numbers into your area's doc.
 - **Share, don't duplicate.** Results go into the shared `local/` (see below) so no session redoes
