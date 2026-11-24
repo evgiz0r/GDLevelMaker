@@ -121,7 +121,8 @@ function measure(L) {
       if (ds.w <= 32 && ds.h <= 32 && sol.some(b => Math.abs(b.x - d.x) < 3 && Math.abs(b.y - d.y) < 3)) continue;
       // a huge piece on the farthest layer (B5, 25+ blocks^2: a nebula, a planet) is part of the SKY: judged as the sky is
       // (path/bg: lost only when the body matches it AND the rim is under 3x off it)
-      const sky = +((d.props || {})[24] || 0) <= -5 && area >= 25;
+      // (a glow on a blending channel on B5 too: light in the sky, however small)
+      const sky = +((d.props || {})[24] || 0) <= -5 && (area >= 25 || !!(st.blend && st.blend[mainCh(d)]));
       // ... and so are its rim lines (thin lines 1753 along a block's side) and the glow under an open top (1293)
       if ((d.id === 1753 || d.id === 1293) && sol.some(b => Math.abs(b.x - d.x) <= 16 && Math.abs(b.y - d.y) <= 16)) continue;
       const hitB = SC.find(([b, cs]) => touch(d, b, ds) && similar(cs[0], dc, LIM.pathDeco) && !(sky && cs.length > 1 && C.ratio(cs[cs.length - 1], dc) >= 3));   // deco in the body's value and family: the mass merges

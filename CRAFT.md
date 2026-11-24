@@ -157,17 +157,14 @@ From the text maps; each is now (or will be) a structure in `tools/structures.js
 ## The level (step 3): GDLM 61 lantern towers
 
 `briefs/craft_61_lantern_towers.json` -> `tools/craftlevel.js` -> make.js. 72 s, Thumper (Waterflame), cube /
-ship / cube with gravity / ball / cube / ship, one hue per section. v2 (2026-11-24) passes every score.js gate
-(0 fail, 11 warn; Normal, ~2 attempts; tightest window 62 ms). v1's 2-wide pillars were one long held jump
-(the user: "reallllly awkward"); v2's are 4 wide, rises are steps, drops 1 row over 3-wide pits.
-
-Honest verdict from the GD-art renders (`local/shots/craft/compare_v2.jpg`): it does NOT look like Jumper or
-xStep yet. Craft numbers 2/8 (pieces 9 per 100 blocks vs 14-28, hazards 40 vs 62-191, 36% loose deco). Why:
-- tap-able Easy/Normal pillars are 4 wide, so a level has fewer, larger pieces -- the craft targets are
-  Hard/Harder numbers; Easy/Normal targets are not measured yet (taste data: featured EN ~75-81 hazards/100);
-- the classic style's blurred background art and the hill band in front of the floor hide the black pit
-  spikes and fight the black-and-white playfield (Jumper: a flat tinted bg with faint squares);
-- few hanging columns, so the frame above the jump (Jumper's whole opening) is mostly missing.
+ship / cube with gravity / ball / cube / ship, one hue per section.
+- v1: 2-wide pillars were one long held jump (the user: "reallllly awkward") -> v2 4-wide, tap-able, rises are steps.
+- v2 render: did NOT look like Jumper / xStep (craft 2/8; blurred bg art and hill band hid the pit spikes).
+- v3: the 1.x look (header bg 1, ground 1, middleground 0 -- craftlevel's default `art`), armed column ends.
+- v4 (fef925c, 2026-11-24, the current one): the user's mark at 38.25 s "very big breaks with nothing" -> the
+  composer refills a section with its own chunks instead of flat floor, and "dead air" is a score.js WARN gate
+  (tools/deadair.js). 0 fail, 11 warn, 55 presses, craft 4/8 with hazards in range. Pictures (local only):
+  `local/shots/craft/compare_v3.jpg`, `mark_38s.jpg` (v3 vs v4 at 38-44 s).
 
 ## Density that costs no timing (tested 2026-11-24, for the art session's dense pieces)
 
@@ -184,10 +181,40 @@ pieces with the player's windows unchanged (tools/structures.js check, alone):
 - **Never a spike on a top the route lands on**: it is a new obstacle (a jump over it), not dressing. A top
   is dressed for free only when the route never touches it: the tipped pit pillar, a column end overhead.
 
+## Handoff (2026-11-24: the craft session is archived; gd-art and gd-style take over)
+
+Where things stand, so nobody re-derives it:
+- **Numbers**: the table above (Jumper / xStep / official range vs ours) and the targets by look and tier.
+  `node tools/craft.js check <level>` scores a level; `node tools/craft.js pieces <structure id...>` scores
+  single structures (hazards/100, floor hazards, pieces/100, pillar height changes, armed undersides), no solve.
+  Measured pieces: cube 18-45 hazards per 100 blocks, ship 124-137 (STRUCTURES.md "Dense chains").
+- **Structures** (tools/structures.js, all tagged "1x only"): pillar-hop, pillar-climb, capped-hop,
+  capped-hop-armed (cap 4), capped-hop-armed5, pillar-climb-tipped, slab-steps, lantern-orb, stepped-pyramid,
+  ceiling-hop (fails prejumps). Last solo check (`structures.js check`): pillar-hop clean; pillar-climb,
+  capped-hop, slab-steps, ceiling-hop warn "hazards matter" (one pit walked over on foot); slab-steps also
+  "reactive" (208 ms cut by a block at its block 14); lantern-orb a prejump (block 9) and a 67 ms reactive cut;
+  stepped-pyramid a 38 ms press (block 11). These solo warnings did not show inside GDLM 61, but fix them before
+  leaning on those pieces elsewhere.
+- **Composer** (tools/craftlevel.js): brief sections -> chunks; exits from fly modes are ONE portal on the last
+  chunk's exitRow in a 3-row funnel (a wall of portals failed skips); ball exits on row 1; `brief.accept`
+  passes through; leftover bars are refilled with the section's own chunks (`"fill": false` = off).
+- **GDLM 61 open items**: four input gaps of 2.7-3.9 s at 32, 48, 55, 62 s (portal approaches, one dash-orb
+  hold; dead-air warnings); 61 rebuilt from its spec on today's main WOULD CHANGE from block 21 (the
+  structures merged from main differ) -- re-make and re-check before any edit, don't trust the pushed .gdlvl
+  to match the spec; the user's 38.25 s mark is fixed but not closed in local/marks.jsonl (the coordinator has it).
+- **Dead air sweep** (tools/deadair.js, POLISH.md): 45 input gaps and 22 empty screens over 25 GDLM levels; clean
+  only 01, 42, 46. Not fixed in the other levels. The polish session owns deadair.js.
+- **Spec drift found by the same sweep**: 41, 43, 44, 47, 50, 51 also change when rebuilt from their spec; 46
+  sketch no longer builds (its desc is 225 chars, GD's limit ~180).
+
 ## What is open
 
-- **The look of a craft level**: a flat tinted background, no hill band over a pit floor, more hanging
-  columns and armed undersides; then re-render next to Jumper / xStep.
+- **The look of a craft level**: more hanging columns and armed undersides still; Easy/Normal craft targets
+  (the table's are Hard/Harder numbers) are not measured.
+- **Untested density -- done by gd-art (2026-11-24)**: `pit-run-twin-armed` (two hanging spike tips per pit: 70 hazards
+  per 100 blocks, floor 44%, underArmed 100%) and `upside-pit-run-armed` (a spike-tipped column rising under each
+  upside pit: 37/100, underArmed 31%); both pass `structures.js check --context`. CRAFT.md / craft.js / craftlevel.js are
+  now gd-art's and gd-style's (handoff above).
 - **ceiling-hop** fails prejumps (upside-down jumps over its roof pits, at any width tried): out of GDLM 61.
 - **Craft structures at 2x**: checked at 1x only (tag "1x only"; style found capped-hop / stepped-pyramid fail at 2x).
 

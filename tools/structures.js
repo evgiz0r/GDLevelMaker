@@ -335,14 +335,14 @@ const train = (n, gap, size) => { const o = []; for (let i = 0; i < n; i++) o.pu
 // spike under its end -- craft's "density that costs no timing" (CRAFT.md; capped-hop-armed: no hazards-matter warning,
 // same windows). tips: in a pit next to a 2+ high landing, a 1-wide spike-tipped pillar a row under it in the pit's
 // middle (craft's pillar-climb-tipped). Neither goes in an upside piece (mirrored, the columns would stand on the floor).
-function pitRun(n, w, pit3, h, lead = 0, cap = 0, tips = false) {   // lead: flat floor first (2x: a jump over a neighbour's spike lands 7 blocks on, right before a doorstep there)
+function pitRun(n, w, pit3, h, lead = 0, cap = 0, tips = false, q = {}) {   // q.twin: a hanging column at both ends of a pit; q.capTop: the column's top row (12)   // lead: flat floor first (2x: a jump over a neighbour's spike lands 7 blocks on, right before a doorstep there)
   const o = [], d = Math.max(1, h - 1); let c = lead;
   o.push(...blocks(lead, lead + 3, 0, d)); c = lead + 3;
   if (h > d) { o.push(...pit(c, c + 1)); c += 1; } else { o.push(...pit(c, c + pit3)); c += pit3; }
   const pitAt = (c0, c1) => {
     if (tips && h >= 2 && c1 - c0 >= 3) { const m = c0 + ((c1 - c0) >> 1); o.push(...pit(c0, m), ...blocks(m, m + 1, 0, h - 1), ["spike", m, h - 1], ...pit(m + 1, c1)); }
     else o.push(...pit(c0, c1));
-    if (cap) { o.push(...blocks(c0, c0 + 1, h + cap, 12), ["spike", c0, h + cap - 1, { rot: 180 }]); }
+    if (cap) for (const cc of q.twin && c1 - c0 >= 3 ? [c0, c1 - 1] : [c0]) o.push(...blocks(cc, cc + 1, h + cap, q.capTop ?? 12), ["spike", cc, h + cap - 1, { rot: 180 }]);
   };
   for (let i = 0; i < n; i++) { o.push(...blocks(c, c + w, 0, h)); c += w; pitAt(c, c + pit3); c += pit3; }
   return { objects: o, width: c + 2 };
@@ -406,6 +406,17 @@ S("pit-spike-mix-armed", { tags: ["platforming", "pit", "spikes", "ceiling", "de
   args: { n: 3, w: 10, pit: 3, cap: 4 },
   build: a => { const r = pitRun(a.n, a.w, a.pit, 1, 0, a.cap), o = r.objects; let c = 3 + a.pit;
     for (let i = 0; i < a.n; i++) { o.push(["spike", c + Math.floor(a.w / 2) - 1, 1]); c += a.w + a.pit; } return r; } });
+// craft's untested density (CRAFT.md "Handoff"), carried over by gd-art 2026-11-24
+S("pit-run-twin-armed", { tags: ["platforming", "pit", "ceiling", "dense", "chain"], tier: "Normal",
+  doc: "the pit run with TWO spike-tipped hanging columns per pit (over its first and last column), 4 rows over the platforms",
+  args: { n: 5, w: 4, pit: 3, cap: 4 }, build: a => pitRun(a.n, a.w, a.pit, 1, 0, a.cap, false, { twin: true }) });
+S("upside-pit-run-armed", { tags: ["gravity", "gravity portal", "ceiling run", "pit", "dense", "chain"], tier: "Normal",
+  doc: "the upside pit run, armed: a spike-tipped column rising from the floor under each pit (the hanging column, mirrored)",
+  args: { n: 4, w: 4, pit: 3, ceil: 6, cap: 3 },
+  build: a => { const r = pitRun(a.n, a.w, a.pit, 1, 0, a.cap, false, { capTop: a.ceil }), W = r.width + 10 + 6, M = require("./patterns.js").mirrorUp;
+    const o = [["pattern", "ceiling", 1, 0, { w: W, ceil: a.ceil, portal: true, exit: true }]];
+    for (const [t, c, rr, e] of M(r.objects, a.ceil)) o.push([t, c + 11, rr, e]);
+    return { objects: o, width: W + 3 }; } });
 S("pit-run-2x-armed", { tags: ["platforming", "pit", "ceiling", "dense", "chain", "2x"], tier: "Normal", needs: { speed: "2x" },
   doc: "the 2x pit run with hanging spike tips over the pits", args: { n: 5, w: 5, pit: 4, lead: 6, cap: 4 },
   build: a => pitRun(a.n, a.w, a.pit, 1, a.lead, a.cap) });

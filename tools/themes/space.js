@@ -32,7 +32,7 @@ const VARIANTS = {
     rock: [70, 80, 140], rockLit: [120, 140, 210], station: [76, 88, 150], lights: [120, 230, 255], terrace: [3, 4, 12] },
   // light: a lit navy sky; the blocks LIGHTER than it (a lit side), deco darker than the blocks
   light: { mood: "a lit side, near a planet", energy: 0.6, piece: "planet",
-    bg: [20, 32, 84], ground: [6, 10, 30], line: [160, 235, 255], pathEdge: [160, 235, 255], blockFill: [66, 90, 172], panel: [90, 160, 240],
+    bg: [14, 26, 64], ground: [6, 10, 30], line: [160, 235, 255], pathEdge: [160, 235, 255], blockFill: [66, 90, 172], panel: [90, 160, 240],
     glow: [90, 170, 255], hazardEdge: [255, 225, 255], stars: [220, 235, 255], nebula: [140, 50, 150], nebula2: [30, 120, 110],
     planet: [110, 170, 240], shade: [8, 12, 34], ring: [170, 210, 255], moon: [230, 240, 255], corona: [120, 170, 255],
     rock: [26, 34, 74], rockLit: [80, 110, 190], station: [24, 32, 70], lights: [170, 240, 255], terrace: [8, 12, 34] },
@@ -42,9 +42,17 @@ const VARIANTS = {
     glow: [150, 90, 255], hazardEdge: [255, 215, 245], stars: [235, 220, 255], nebula: [170, 40, 120], nebula2: [20, 110, 120],
     planet: [130, 90, 210], shade: [3, 1, 8], ring: [190, 150, 255], moon: [220, 225, 255], corona: [170, 110, 255],
     rock: [90, 70, 160], rockLit: [150, 120, 230], station: [92, 76, 170], lights: [140, 235, 255], terrace: [3, 1, 8] },
+  // moon: the climax under a huge moon -- a pale blue-grey sky, the moon the brightest thing, blocks lifted slate
+  moon: { mood: "under the moon, the climax", energy: 1, piece: "moon",
+    bg: [27, 36, 54], ground: [8, 10, 20], line: [235, 242, 255], pathEdge: [235, 242, 255], blockFill: [72, 88, 136], panel: [120, 170, 240],
+    glow: [140, 180, 255], hazardEdge: [255, 150, 215], stars: [235, 240, 255], nebula: [130, 50, 140], nebula2: [30, 120, 120],
+    planet: [110, 150, 220], shade: [6, 8, 18], ring: [190, 210, 255], moon: [240, 245, 255], corona: [150, 190, 255],
+    rock: [22, 28, 56], rockLit: [90, 110, 170], station: [20, 26, 52], lights: [180, 240, 255], terrace: [6, 8, 18] },
 };
 // blending channels (additive glow), with their opacity
-const BLEND = { [CH.glow]: 0.6, [CH.nebula]: 0.45, [CH.nebula2]: 0.4, [CH.corona]: 0.55, [CH.panel]: 0.8, [CH.lights]: 1 };
+const BLEND = { [CH.glow]: 0.6, [CH.nebula]: 0.12, [CH.nebula2]: 0.1, [CH.corona]: 0.45, [CH.panel]: 0.8, [CH.lights]: 1 };
+// header: plain background art, no middleground hills (GD's own art drew icy hills along the floor), the plain ground
+const HEADER = { kA6: "1", kA7: "1", kA25: "0" };
 
 // the colour map of a variant: channel -> rgb (bg 1000, ground 1001, line 1002, and the kit's own)
 function channelMap(v) {
@@ -100,7 +108,7 @@ function eclipseRing(x, y, r, o = {}) {
 function rock(x, y, s, o = {}) {
   const R = K.rng(o.seed || 1), gs = o.groups || [], z = o.z || "B2", out = [];
   for (let i = 0; i < 3; i++) out.push(K.obj(211, x + (R() - 0.5) * 8 * s, y + (R() - 0.5) * 8 * s, { ch: CH.rock, z, zo: 1, s: s * (0.55 + R() * 0.35), rot: R() * 90, groups: gs, hsv: i === 1 ? "0a1a0.8a0a0" : null }));
-  out.push(K.obj(693, x - 4 * s, y + 4 * s, { ch: CH.rockLit, z, zo: 2, s: s * 0.35, rot: 45 + R() * 30, groups: gs }));
+  out.push(K.obj(211, x - 3 * s, y + 3 * s, { ch: CH.rockLit, z, zo: 2, s: s * 0.22, rot: R() * 90, groups: gs }));   // a lit facet: a square, never a triangle (it read as an arrow)
   return out;
 }
 // an asteroid field across [x0, x1): rocks in the open sky, kept off the play (2 blocks from any play object)
@@ -130,7 +138,9 @@ function station(x, y, s = 1, o = {}) {
 // nebula: big soft blending disks, two colours, behind everything
 function nebula(x0, x1, o = {}) {
   const R = K.rng(o.seed || 23), out = [], n = Math.round((x1 - x0) / 300 * (o.density ?? 2));
-  for (let i = 0; i < n; i++) out.push(K.obj(497, x0 + R() * (x1 - x0), 60 + R() * 260, { ch: R() < 0.55 ? CH.nebula : CH.nebula2, z: "B5", zo: -15, s: 3 + R() * 5, groups: [G.nebula], hsv: R() < 0.4 ? "15a1a0.8a0a0" : null }));
+  // a cloud: three nested disks on a blending channel (each adds a little light: soft-ish edges, no blow-out)
+  for (let i = 0; i < n; i++) { const x = x0 + R() * (x1 - x0), y = 60 + R() * 260, s = 2.5 + R() * 3.5, ch = R() < 0.55 ? CH.nebula : CH.nebula2;
+    for (const [k, v] of [[1, "0a1a0.45a0a0"], [0.72, "0a1a0.7a0a0"], [0.45, null]]) out.push(K.obj(497, x + (1 - k) * 12, y, { ch, z: "B5", zo: -15 + Math.round(k * 2), s: s * k, groups: [G.nebula], hsv: v })); }
   return out;
 }
 // light streaks: long thin lines on a slant (shooting stars), faint, behind the play
@@ -177,13 +187,14 @@ function dress(ctx, sec) {
   out.push(...dressPlay(objects, x0, x1, { seed }));
   // far: stars (two twinkle sets), nebula, streaks -- drifting back slowly (locked to the player's x at 0.9 / 0.8)
   out.push(...K.starfield(x0 - 60, x1 + 400, { ch: CH.stars, y0: -20, y1: 360, density: v === "light" ? 3 : 5, base: [G.dust], groups: [G.twinkleA, G.twinkleB], seed: seed + 1 }));
-  out.push(...nebula(x0, x1 + 300, { density: v === "nebula" ? 4 : v === "light" ? 1 : 1.5, seed: seed + 2 }));
+  // nebula only in the nebula variant, sparse: the round-2 renders read nested disks as pink targets / polka dots
+  if (v === "nebula") out.push(...nebula(x0, x1 + 300, { density: 0.7, seed: seed + 2 }));
   out.push(...streaks(x0, x1, { seed: seed + 3 }));
   // the set piece of this section: one, big, high on the screen, carried with the player (it stays in view)
-  const px = x0 + 330, py = 230, piece = sec.piece || vv.piece;
+  const px = x0 + 360, py = 210, piece = sec.piece || vv.piece;
   if (piece === "planet") out.push(...planet(px, py, 95, { groups: [G.piece], ringGroups: [G.piece], seed }));
   else if (piece === "moon") out.push(...moon(px, py, 85, { groups: [G.piece], coronaGroups: [G.piece, G.corona], seed }));
-  else if (piece === "eclipse") out.push(...eclipseRing(px, py, 75, { group: G.piece }));
+  else if (piece === "eclipse") out.push(...eclipseRing(px, py, 55, { group: G.piece }));
   else if (piece === "station") out.push(...station(px, py + 20, 1.3, { groups: [G.piece] }));
   out.push(K.lockX(x0 - 30, G.piece, secs + 1, 0.92));
   // mid: an asteroid field (busier in the drops), a station now and then, terraces under the open sky
@@ -210,5 +221,5 @@ function playCells(objects) {
 function near(cells, x, y, r) { const c = Math.floor(x / 30), w = Math.floor(y / 30), n = Math.ceil(r);
   for (let i = -n; i <= n; i++) for (let j = -n; j <= n; j++) if (cells.has((c + i) + ":" + (w + j))) return true; return false; }
 
-module.exports = { name: "space", mood: "space: a dark, wide sky, glowing rims, planets", CH, G, VARIANTS, BLEND, channelMap, palette, SONG, MODES, MOTION,
+module.exports = { name: "space", mood: "space: a dark, wide sky, glowing rims, planets", CH, G, VARIANTS, BLEND, HEADER, channelMap, palette, SONG, MODES, MOTION,
   dress, pieces: { planet, moon, eclipseRing, rock, asteroids, station, nebula, streaks, terraces, dressPlay } };

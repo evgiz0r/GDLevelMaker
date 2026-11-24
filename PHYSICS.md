@@ -573,6 +573,13 @@ What exists and what blocks it (2026-11-23):
   | 02:33 | Geometrical Dominator | 12.3% / 13.3% | 7.3% / 5.7% | no | unknown (robot; path check too noisy to tell) |
   | 02:45 | Clutterfunk | clear | 3.5% | no | block 34.6: the game's cube uses a pad on a hanging block the sim's does not reach: unknown |
   | 02:26 | Jumper, Cycles, Clutterfunk | clear, clear, 92.6% | 2.6%, 2.2%, 1.9% | no | PIPELINE: first logger (missed clicks), not usable |
+  | 19:34 | GDLM 52 Necromancy (showcase v2) | 11 attempts | same | 11/11 | - (raw-input logger, landing rule of 46672ee) |
+  | 19:34 | GDLM 64 Golden Hour v5 | 10.7%, 12% | 3.6-4.8% | no | CLOCK unsettled (framecheck pending), not counted as physics |
+  | 19:47 | GDLM 68 camera lab (28ffa9d) | 6 deaths, 2.2-43.9% | same | 6/6 (4 judged) | - (clock -687 ms; 5 deaths in climb 1, blocks 22-32) |
+  | 19:47 | Hexagon Force, Dash | 8 / 7 attempts | | 1/8, 3/7 | NOT TRUSTED: per-attempt shifts scatter -637..+1683 ms with the -687 ms clock, Hexagon "beaten" 3x by the bar (practice/menu misread) -- attempt splitting, not physics; not in the fidelity count |
+- PIPELINE LESSON (19:47, 2026-11-24): `replay_run --any/--from/--to` over a free-play stretch wrote candidate lines into
+  every official level it tried (official_15..21 got 7-9 wrong lines each; cleaned, backups `.bak-19-47-52`). Identify
+  each attempt's level from the frames first (local/runs/<video>.levels.json), then replay per level.
 - SHIP ENTRY SPEED, TRIED AND REJECTED (2026-11-24): the ship stretches that need inhuman input (Stereo Madness
   358-386, Back On Track 459-510, Polargeist 342-378, xStep 211) made the entry the suspect. On gdsolver's plans: moving
   the ship +-0.5 / 1 unit at entry changes nothing for Stereo Madness (328.8 every time); the factor on LEAVING a flying

@@ -316,7 +316,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   `node tests/style_gates.js`.
 - **Craft: how RobTop builds and dresses a level** (CRAFT.md: Jumper and xStep studied object by object;
   many small pieces over a hazard floor, deco attached to structures, black-and-white playfield on one
-  hue; the numbers vs ours; owner: the craft session): `tools/craft.js` (`roles`, `map` -- a text picture
+  hue; the numbers vs ours; owners since 2026-11-24: the gd-art and gd-style sessions, handoff in CRAFT.md): `tools/craft.js` (`roles`, `map` -- a text picture
   with the deco --, `check` -- the craft targets).
 - **Scene levels, decorated by hand** (SHOWCASE.md: GDLM 50 eclipse, what made it look good, numbers,
   what is unchecked in the game): `tools/scenekit.js` (recipes: own colour channels, palettes per section,

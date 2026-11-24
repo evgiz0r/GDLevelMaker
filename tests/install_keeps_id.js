@@ -71,5 +71,24 @@ if (fs.existsSync(other)) {
     && dflt === "Lab default. -- Made by Claude (and some humans)";
   console.log(ok3 ? "ok: --slot lab (no ID yet) installs under its name with the description" : "FAIL: --slot lab\n" + desc + "\n" + first.slice(0, 300));
 }
+// --ids-from: the slot's record was deleted and the level re-added without its ID (2026-11-24 cleanup);
+// the online keys come from an older save, and the same-named copy is replaced (one record, ID back)
+let ok4 = true;
+if (fs.existsSync(other) && ok2) {
+  const ids = path.join(dir, "phone_ids4.json");
+  fs.writeFileSync(ids, JSON.stringify({ slots: { phone: { id: 999000111, name: NAME, holds: null, history: [] } } }));
+  const older = path.join(dir, "older.dat");
+  fs.copyFileSync(copy, older);   // holds NAME with k1 999000111 (from the --slot phone test)
+  const cur = dec(fs.readFileSync(copy)).replace(/<k>k(1|16|60)<\/k><i>999000111<\/i>/g, "").replace(/<k>k1<\/k><i>999000111<\/i>/g, "");
+  fs.writeFileSync(copy, enc(cur));
+  const run = extra => { try { execFileSync(process.execPath, [path.join(__dirname, "..", "tools", "install.js"), level, "--save", copy, "--slot", "phone", "--ids", ids, ...extra], { stdio: "pipe", windowsHide: true }); return 0; } catch (e) { return e.status; } };
+  const without = run([]);
+  const code = run(["--ids-from", older]);
+  const z = dec(fs.readFileSync(copy));
+  const first = z.slice(z.indexOf("<k>k_0</k><d>"), z.indexOf("<k>k_1</k><d>"));
+  ok4 = without === 4 && code === 0 && first.includes("<k>k1</k><i>999000111</i>") && first.includes("<k>k79</k><t />")
+    && (z.match(new RegExp(`<s>${NAME}</s>`, "g")) || []).length === 1;
+  console.log(ok4 ? "ok: --ids-from puts a deleted slot record's online ID back on the re-added level" : `FAIL: --ids-from (exit ${without}/${code})\n` + first.slice(0, 300));
+}
 fs.rmSync(dir, { recursive: true, force: true });
-process.exit(ok && ok2 && ok3 ? 0 : 1);
+process.exit(ok && ok2 && ok3 && ok4 ? 0 : 1);

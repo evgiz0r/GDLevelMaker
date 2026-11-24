@@ -186,6 +186,9 @@ function build(briefFile, k, opts = {}) {
       const t = tw[ch.key] || (tw[ch.key] = {});
       if (ch.flying) { if ((t.room || 0) < 2) { t.room = (t.room || 0) + 1; fixes.push({ key: ch.key, what: `room +1 in the ${ch.name} (${b.why})` }); } continue; }
       t.tries = (t.tries || 0) + 1;
+      // a tight window is the chunk's own jump (a triple at 1x: 45.8 ms however much room is before it -- GDLM 69 p1, the
+      // first test, 2026-11-24: two rounds of "2 columns before triple" left it at 45.8 ms): the easier chunk at once
+      if (/ms window$/.test(b.why) && C.EASIER[t.swap || ch.name]) { t.swap = C.EASIER[t.swap || ch.name]; t.tries = 0; fixes.push({ key: ch.key, what: `${ch.name} -> ${t.swap} (${b.why})` }); continue; }
       if (t.tries <= 2) { t.gap = (t.gap || 0) + 2; fixes.push({ key: ch.key, what: `2 columns before ${t.swap || ch.name} (${b.why})` }); }
       else if (C.EASIER[t.swap || ch.name]) { t.swap = C.EASIER[t.swap || ch.name]; t.tries = 0; fixes.push({ key: ch.key, what: `${ch.name} -> ${t.swap} (${b.why})` }); }
     }
