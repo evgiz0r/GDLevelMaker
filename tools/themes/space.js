@@ -50,7 +50,7 @@ const VARIANTS = {
     rock: [22, 28, 56], rockLit: [90, 110, 170], station: [20, 26, 52], lights: [180, 240, 255], terrace: [6, 8, 18] },
 };
 // blending channels (additive glow), with their opacity
-const BLEND = { [CH.glow]: 0.6, [CH.nebula]: 0.22, [CH.nebula2]: 0.2, [CH.corona]: 0.45, [CH.panel]: 0.8, [CH.lights]: 1 };
+const BLEND = { [CH.glow]: 0.6, [CH.nebula]: 0.12, [CH.nebula2]: 0.1, [CH.corona]: 0.45, [CH.panel]: 0.8, [CH.lights]: 1 };
 // header: plain background art, no middleground hills (GD's own art drew icy hills along the floor), the plain ground
 const HEADER = { kA6: "1", kA7: "1", kA25: "0" };
 
@@ -187,7 +187,8 @@ function dress(ctx, sec) {
   out.push(...dressPlay(objects, x0, x1, { seed }));
   // far: stars (two twinkle sets), nebula, streaks -- drifting back slowly (locked to the player's x at 0.9 / 0.8)
   out.push(...K.starfield(x0 - 60, x1 + 400, { ch: CH.stars, y0: -20, y1: 360, density: v === "light" ? 3 : 5, base: [G.dust], groups: [G.twinkleA, G.twinkleB], seed: seed + 1 }));
-  if ((sec.piece || vv.piece) !== "moon" || v === "nebula") out.push(...nebula(x0, x1 + 300, { density: v === "nebula" ? 2.5 : v === "light" ? 0.8 : 1.2, seed: seed + 2 }));
+  // nebula only in the nebula variant, sparse: the round-2 renders read nested disks as pink targets / polka dots
+  if (v === "nebula") out.push(...nebula(x0, x1 + 300, { density: 0.7, seed: seed + 2 }));
   out.push(...streaks(x0, x1, { seed: seed + 3 }));
   // the set piece of this section: one, big, high on the screen, carried with the player (it stays in view)
   const px = x0 + 360, py = 210, piece = sec.piece || vv.piece;
