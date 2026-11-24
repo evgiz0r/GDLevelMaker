@@ -217,10 +217,10 @@ async function main() {
     const dir = path.join(OUT, "frames", slug(p.o.L.name) + "_" + p.s.i);
     try {
       cp.execFileSync(process.execPath, [path.join(__dirname, "compare_frames.js"), p.o.src, p.r.renderId, "--at", "s:" + at, "--ref-at", "s:" + rat, "--out", dir],
-        { cwd: ROOT, stdio: ["ignore", "pipe", "pipe"], env: Object.assign({}, process.env, { GDLM_HEAVY_HELD: "1" }), timeout: 15 * 60e3 });
+        { cwd: ROOT, stdio: ["ignore", "pipe", "pipe"], env: process.env, timeout: 15 * 60e3 });
       const png = fs.readdirSync(dir).filter(f => f.endsWith(".png")).map(f => path.join(dir, f))[0];
       if (png) shots[key] = png;
-    } catch (e) { console.log("render failed", key, String(e.stderr || e.message).slice(0, 200)); }
+    } catch (e) { console.log("render failed", key, String(e.stderr || e.message).slice(-400)); }
   }
   const data = { made: new Date().toISOString(), levels: Object.values(lv).map(v => ({ src: v.src, name: v.L.name, song: v.L.songKey, ours: v.ours, energyLoud: r2(v.rho), routed: !!v.E.presses,
       sections: v.secs.map(s => ({ i: s.i, type: s.type, t0: r2(s.t0), t1: r2(s.t1), mode: s.mainMode, loudPct: r2(s.loudPct), M: Object.fromEntries(Object.entries(s.M).map(([k, x]) => [k, r2(x)])) })) })),
