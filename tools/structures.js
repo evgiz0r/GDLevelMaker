@@ -304,9 +304,9 @@ S("ship-lanterns", { mode: "ship", tags: ["ship", "floating"], tier: "Normal",
 const train = (n, gap, size) => { const o = []; for (let i = 0; i < n; i++) o.push(...spikes(i * gap, i * gap + size)); return { objects: o, width: (n - 1) * gap + size + 2 }; };
 // platforms `h` high and `w` wide, `pit` apart, over low pit spikes; a 3-wide doorstep a row lower (stepped onto), off
 // the last one into a pit and onto the floor
-function pitRun(n, w, pit3, h) {
-  const o = [], d = Math.max(1, h - 1); let c = 0;
-  o.push(...blocks(0, 3, 0, d)); c = 3;
+function pitRun(n, w, pit3, h, lead = 0) {   // lead: flat floor first (2x: a jump over a neighbour's spike lands 7 blocks on, right before a doorstep there)
+  const o = [], d = Math.max(1, h - 1); let c = lead;
+  o.push(...blocks(lead, lead + 3, 0, d)); c = lead + 3;
   if (h > d) { o.push(...pit(c, c + 1)); c += 1; } else { o.push(...pit(c, c + pit3)); c += pit3; }
   for (let i = 0; i < n; i++) { o.push(...blocks(c, c + w, 0, h)); c += w; o.push(...pit(c, c + pit3)); c += pit3; }
   return { objects: o, width: c + 2 };
@@ -333,6 +333,43 @@ S("spike-pit-train", { tags: ["spikes", "pit", "dense", "chain"], tier: "Normal"
   args: { n: 3, gap: 7 },
   build: a => { const o = []; for (let i = 0; i < a.n; i++) { o.push(...spikes(i * 2 * a.gap, i * 2 * a.gap + 1), ...pit(i * 2 * a.gap + a.gap, i * 2 * a.gap + a.gap + 3)); }
     return { objects: o, width: (a.n - 1) * 2 * a.gap + a.gap + 3 + 2 }; } });
+
+// ---------------------------------------------------------------- dense chains, other modes (2026-11-24, the art session)
+// The same density for the sections compose does not fill from the library: 2x cube (the pieces re-spaced for 2x:
+// ~1.25x the run per second, so a jump and the 250 ms to react are ~1.25x as long), upside cube (the pit run under a
+// ceiling, low spikes hung from it; compose's mirrorUp now turns them over too), and the corridor generators' new
+// dense args -- ship-tunnel {teethEvery: 6, pit: true} (a hazard floor of low spikes under the ship), wave-zigzag
+// {teeth: true} (a spike on the side the wave is not on at each flat turn), ball-run {pit: true} (low spikes on the
+// side the ball is riding away from). A brief sets those per section: "args": {"ship-tunnel": {"pit": true, ...}}.
+S("pit-run-2x", { tags: ["platforming", "pit", "dense", "chain", "2x"], tier: "Normal", needs: { speed: "2x" },
+  doc: "the pit run at 2x: 5-wide platforms over 4-wide spike pits", args: { n: 5, w: 5, pit: 4, lead: 6 }, build: a => pitRun(a.n, a.w, a.pit, 1, a.lead) });
+S("spike-train-2x", { tags: ["spikes", "dense", "chain", "2x"], tier: "Normal", needs: { speed: "2x" },
+  doc: "single spikes 9 columns apart at 2x", args: { n: 5, gap: 9 }, build: a => train(a.n, a.gap, 1) });
+S("double-train-2x", { tags: ["spikes", "dense", "chain", "2x"], tier: "Normal", needs: { speed: "2x" },
+  doc: "double spikes 10 columns apart at 2x", args: { n: 4, gap: 10 }, build: a => train(a.n, a.gap, 2) });
+S("pit-spike-mix-2x", { tags: ["platforming", "pit", "spikes", "dense", "chain", "2x"], tier: "Normal", needs: { speed: "2x" },
+  doc: "long platforms with a spike in the middle over 4-wide pits, at 2x", args: { n: 3, w: 12, pit: 4, lead: 6 },
+  build: a => { const r = pitRun(a.n, a.w, a.pit, 1, a.lead), o = r.objects; let c = a.lead + 3 + a.pit;
+    for (let i = 0; i < a.n; i++) { o.push(["spike", c + Math.floor(a.w / 2) - 1, 1]); c += a.w + a.pit; } return r; } });
+S("upside-pit-run", { tags: ["gravity", "gravity portal", "ceiling run", "pit", "dense", "chain"], tier: "Normal",
+  doc: "upside down under a ceiling: 1-high platforms hung from it over 3-wide pits of low spikes (the pit run, mirrored), gravity portals in and out",
+  args: { n: 4, w: 4, pit: 3, ceil: 6 },
+  build: a => { const r = pitRun(a.n, a.w, a.pit, 1), W = r.width + 10 + 6, M = require("./patterns.js").mirrorUp;
+    const o = [["pattern", "ceiling", 1, 0, { w: W, ceil: a.ceil, portal: true, exit: true }]];
+    for (const [t, c, rr, e] of M(r.objects, a.ceil)) o.push([t, c + 11, rr, e]);
+    return { objects: o, width: W + 3 }; } });
+S("ship-dense", { mode: "ship", tags: ["ship", "pit", "dense"], tier: "Normal",
+  doc: "a ship corridor over a hazard floor of low spikes, teeth every 6 columns on the flats",
+  args: { w: 40, gap: 5, amp: 1.5, base: 1, teeth: true, teethEvery: 6, pit: true, lead: 6, waves: 1 },
+  build: a => ({ objects: [["pattern", "ship-tunnel", 0, 0, a]], width: a.w, exitRow: 3 }) });
+S("wave-dense", { mode: "wave", tags: ["wave", "dense"], tier: "Normal",
+  doc: "the wave zigzag with a spike at every flat turn, on the side the wave is not on",
+  args: { seg: 4, flat: 2, legs: 6, gap: 5, low: 2, slopes: true, lead: 4, leadGap: 8, teeth: true },
+  build: a => ({ objects: [["pattern", "wave-zigzag", 0, 0, a]], width: a.lead + (a.seg + a.flat) * a.legs, exitRow: 2 }) });
+S("ball-dense", { mode: "ball", tags: ["ball", "pit", "dense"], tier: "Normal",
+  doc: "the ball run with low spikes along the side the ball rides away from after each flip",
+  args: { w: 40, gap: 5, every: 9, lead: 5, pit: true, pitClear: 2 },
+  build: a => ({ objects: [["pattern", "ball-run", 0, 0, a]], width: a.w, exitRow: 1 }) });
 
 // ---------------------------------------------------------------- the harness: one small test level per structure
 const MODE_PORTAL = { ship: "ship portal", ball: "ball portal", ufo: "ufo portal", wave: "wave portal", robot: "robot portal", spider: "spider portal", swing: "swing portal", cube: "cube portal" };
@@ -554,7 +591,7 @@ function asPattern(st, P) {
 function register(P) {
   for (const st of LIB) {
     const n = st.needs, l = st.leaves;
-    if (n.grav !== 1 || l.grav !== 1 || n.mini || l.mini || n.speed !== "1x") continue;
+    if (n.grav !== 1 || l.grav !== 1 || n.mini || l.mini || n.speed !== l.speed || !/^(1x|2x)$/.test(n.speed)) continue;   // 2x pieces: placed only in 2x sections (compose structurePicks)
     P["s:" + st.id] = { doc: st.doc, fn: asPattern(st, P), structure: st.id };
   }
   return P;
@@ -564,7 +601,7 @@ const TIERS = ["Easy", "Normal", "Hard", "Harder", "Insane", "Demon"];
 function ranked(opts = {}) {
   const res = rank(Object.values(load().structures)).filter(r => r.rank.ready);
   return res.filter(r => (!opts.mode || r.mode === opts.mode) && (!opts.maxTier || TIERS.indexOf(r.tier) <= TIERS.indexOf(opts.maxTier))
-    && (!opts.registered || (r.needs.grav === 1 && !r.needs.mini && r.needs.speed === "1x")));
+    && (!opts.registered || (r.needs.grav === 1 && !r.needs.mini && /^(1x|2x)$/.test(r.needs.speed) && r.leaves.speed === r.needs.speed)));
 }
 
 function load() { try { return JSON.parse(fs.readFileSync(OUT, "utf8")); } catch (e) { return { structures: {} }; } }
