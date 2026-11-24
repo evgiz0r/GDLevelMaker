@@ -69,14 +69,8 @@ function build(id, k) {
   const t0 = Date.now(), dir = path.join(LAB, id), R = readJ(path.join(dir, "round.json")), vf = path.join(dir, `v${k}.json`), v = readJ(vf);
   const C = require("./compose.js"), { build: mk, slug } = require("./make.js"), { scoreLevel } = require("./score.js"), { GD, writeGdlvl } = require("./io.js");
   const log0 = console.log; let built, placed = []; console.log = () => {};
-  try { const cr = C.compose(v); placed = cr.placed.map(q => q.name); built = mk(cr.spec, vf); } finally { console.log = log0; }
-  // the role palette's play colours: block rims (key 21) one channel, hazards another (make.js colours both with the
-  // object channel), defined in the header
-  if (v._palette) {
-    const K = require("./scenekit.js"), kindOf = o => (GD.objInfo(o.id) || {}).kind, CH_PATH = 70, CH_HAZ = 71;
-    for (const o of built.level.objects) { const kd = kindOf(o); if (kd === "solid" || kd === "slope") { o.props = Object.assign({}, o.props, { 21: String(CH_PATH) }); } else if (kd === "hazard") { o.props = Object.assign({}, o.props, { 21: String(CH_HAZ) }); } }
-    built.level.header = K.channels(built.level.header, { [CH_PATH]: { rgb: v._palette.pathEdge, blend: false, opacity: 1 }, [CH_HAZ]: { rgb: v._palette.hazardEdge, blend: false, opacity: 1 } });
-  }
+  // the role palette's path and hazard colours: make.js puts block rims and hazards on their own channels (spec.colours)
+  try { const cr = C.compose(v); placed = cr.placed.map(q => q.name); if (v._palette) cr.spec.colours = Object.assign({}, cr.spec.colours, { path: v._palette.pathEdge, hazard: v._palette.hazardEdge }); built = mk(cr.spec, vf); } finally { console.log = log0; }
   const level = built.level, levelStr = GD.serializeLevel(level), out = path.join(dir, `v${k}.gdlvl`);
   writeGdlvl(out, built.rec, level);
   const sol = require("./solutions.js").solve(level, levelStr, { name: v.name });
