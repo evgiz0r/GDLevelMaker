@@ -73,10 +73,15 @@ function channelsOf(opts = {}) {
     metal: [196, 204, 220], metal2: [118, 126, 146], light: [236, 242, 255], dark: [18, 18, 26], glow: [64, 226, 255],
     skin: [255, 204, 160], hair: [96, 56, 30], shirt: opts.shirt || [255, 122, 48], trousers: [40, 64, 150] };
   RGB.eye = RGB.glow; RGB.roof = RGB.dark;
+  // the Claude spark badge (lib/claude_icons.js kit "spark": cream rays on a terracotta disc), on the three channels just
+  // below ch0 (973-975 by default: kept out of 988-999 while the colour question is open, ART.md "Colour")
+  BADGE.forEach((n, i) => CH[n] = C0 - BADGE.length + i);
+  Object.assign(RGB, { claude: [210, 112, 80], claude2: [162, 78, 54], claudeRay: [248, 240, 226] });
   return { CH, RGB, blend: { spot: true, spark: true } };
 }
+const BADGE = ["claude", "claude2", "claudeRay"];
 // {channel: rgb} of every channel the signature uses
-function colours(opts = {}) { const { CH, RGB } = channelsOf(opts), c = {}; for (const n of NAMES) c[CH[n]] = RGB[n]; return c; }
+function colours(opts = {}) { const { CH, RGB } = channelsOf(opts), c = {}; for (const n of NAMES.concat(BADGE)) c[CH[n]] = RGB[n]; return c; }
 
 // the signature's channels into a level header (kS38), through props.header (one channel scheme); the
 // spotlight and the spark blend (additive light)
@@ -120,6 +125,15 @@ function signature(opts = {}) {
     31: Buffer.from(s).toString("base64").replace(/\+/g, "-").replace(/\//g, "_") }));
   txt(opts.text || "MADE BY CLAUDE", ty + 20, 0.62, CH.text);
   txt(opts.text2 || "(and some humans)", ty, 0.4, 1011);
+  // the Claude spark crowning the sign (the user, 2026-11-24: "add such icon also in the sign in the end of the level"):
+  // a round terracotta badge with 12 cream rays, 2 blocks, above the gold title; it hops with the spark group on the beat.
+  // Private levels only for now: the spark evokes Anthropic's Claude mark (ART.md "Claude icons").
+  if (opts.badge !== false) {
+    const CI = require("../lib/claude_icons.js"), PA = require("../lib/pixelart.js");
+    const b = PA.toObjects(CI.badge(24), { x: cx, y: ty + 20 + 48, px: 2.5, anchor: "center", z: "B1", zo: 10, groups: [G.spark],
+      ch: { outline: CH.outline, body: CH.claude, shade: CH.claude2, mark: CH.claudeRay } });
+    out.push(...b.objects);
+  }
   // on the beat: both hop 4 units and land, the spark and the stage edge flash, the spotlight breathes
   // (every other beat). Only the beats heard in the last ~26 blocks before it.
   if (opts.beats && opts.xOfT) {

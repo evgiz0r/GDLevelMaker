@@ -92,6 +92,25 @@ const SERVER = http.createServer((req, res) => {
   // difficulty; VIEWER.md). test: true -> local/viewer_actions.test.jsonl
   // GET /attempts?file=<level file>&hash=<GD.levelHash>: the user's attempts at that version (tools/attempts.js), without
   // their inputs unless &id=<attempt id> (one attempt, with its events)
+  // POST /selfcheck?id=<id>: a viewer self-check's result (?check=controls, tests/top_controls.js) -> local/tmp/selfcheck/<id>.json
+  if (req.method === "POST" && p === "/selfcheck") {
+    let body = ""; req.on("data", c => { body += c; if (body.length > 1e6) req.destroy(); });
+    req.on("end", () => { const id = String(new URL(req.url, "http://x").searchParams.get("id") || "x").replace(/[^\w-]/g, "");
+      const dir = path.join(root, "local", "tmp", "selfcheck"); try { fs.mkdirSync(dir, { recursive: true }); fs.writeFileSync(path.join(dir, id + ".json"), body); } catch (e) {}
+      res.writeHead(200); res.end("ok"); });
+    return;
+  }
+  // GET /me/icons: the user's icons and colours from their GD save (tools/save_icons.js; read-only, this PC's viewer only)
+  if (p === "/me/icons" && req.method === "GET") {
+    let o = null; try { o = require("./save_icons.js").read(); } catch (e) {}
+    res.writeHead(o ? 200 : 404, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify(o));
+  }
+  // GET /community/list: the community levels on this PC, names and demon-list facts only (tools/community_index.js);
+  // the viewer fetches a level's own file (local/community/<id>.gdlvl) when it is opened
+  if (p === "/community/list" && req.method === "GET") {
+    let rows = []; try { rows = require("./community_index.js").list(); } catch (e) {}
+    res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify(rows));
+  }
   // GET /attempts/index: every level with attempts, one small row each, newest played first (the "my runs" tab)
   if (p === "/attempts/index" && req.method === "GET") {
     res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify(require("./attempts.js").index()));

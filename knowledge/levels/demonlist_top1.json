@@ -207,7 +207,8 @@
    "uploaded": "20 November 2015",
    "id": 13612299,
    "top1For": "12 days",
-   "kind": "top1"
+   "kind": "top1",
+   "onServer": false
   },
   {
    "name": "Bloodbath",
@@ -231,7 +232,8 @@
    "uploaded": "20 July 2015",
    "id": 9704784,
    "top1For": "18 days",
-   "kind": "top1"
+   "kind": "top1",
+   "onServer": false
   },
   {
    "name": "Future demoness (unnerfed)",
@@ -279,7 +281,8 @@
    "uploaded": "7 April 2014",
    "id": 498620,
    "top1For": "1 day",
-   "kind": "top1"
+   "kind": "top1",
+   "onServer": false
   },
   {
    "name": "Stereo Demoness (unnerfed)",
