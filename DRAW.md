@@ -100,6 +100,8 @@ synced sketch for the full pass; what the user fixes by hand wins.
 - **Open**: one-tap choices on a ✕ (make it 3 spikes / add an orb / keep it, Claude fixes it); pinning a piece the user moved
   on the level view; orbs that the timing could not use are not reported yet; holds drawn as drags in wave parts; ship
   corridors; the solver's fairness / windows on the fitted level; refit only from the edited mark (now it refits all).
+  Seen on smwvbb62d (picture: `node tools/sketchshot.js local/sketches/smwvbb62d.json --fit`): the sim's spider flips
+  from the floor at 130 to ~284 and runs there, not to the ceiling drawn at 460: check the spider teleport (PHYSICS.md).
 
 ## Status and open
 
