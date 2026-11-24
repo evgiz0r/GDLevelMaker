@@ -118,7 +118,7 @@ function partBrief(brief, part, k, nParts, seed) {
   if (nextSec && nextSec.continue && nextSec.mode === lastSec.mode) sub._continueAfter = lastSec.mode;
   // an upside-down part's exit: the cube falls from the ceiling (~3 blocks) -- 6 blocks of room (GDLM 66 p5: in the air at the seam)
   if (k < nParts - 1 && lastSec.mode === "upside") sub.sections[sub.sections.length - 1] = Object.assign({}, lastSec, { exitRoom: lastSec.exitRoom ?? 6 });
-  if (k < nParts - 1 && ["ship", "wave", "ball"].includes(lastSec.mode) && !(nextSec && nextSec.continue && nextSec.mode === lastSec.mode)) sub.sections[sub.sections.length - 1] = Object.assign({}, lastSec, { exitRoom: lastSec.exitRoom ?? 4 });
+  if (k < nParts - 1 && ["ship", "wave", "ball"].includes(lastSec.mode) && !(nextSec && nextSec.continue && nextSec.mode === lastSec.mode)) sub.sections[sub.sections.length - 1] = Object.assign({}, lastSec, { exitRoom: lastSec.exitRoom ?? 6 });   // 6: a ship exit high up still falls ~4 blocks (v6 p2)
   delete sub.parts;
   return sub;
 }
@@ -141,10 +141,13 @@ function build(briefFile, k, opts = {}) {
   const sc = scoreLevel(level, sub, { fairness: false, levelStr });
   const BLOCK = ["beatable", "prejumps", "timing", "recovery", "skips", "reactive", "fairness"];
   const gates = Object.fromEntries(sc.gates.filter(g => BLOCK.includes(g.name) && g.status !== "PASS").map(g => [g.name, g.status + ": " + String(g.value).slice(0, 160)]));
-  const fails = sc.gates.filter(g => g.status === "FAIL").map(g => g.name);
+  // a part fails only on what a part can fail by itself: the level-wide gates (difficulty, length, pacing, sync...) are
+  // the join's (a 12 s part "failed" difficulty against the level's Hard target, GDLM 64 v6)
+  const fails = sc.gates.filter(g => g.status === "FAIL" && BLOCK.includes(g.name)).map(g => g.name);
   // the part's own exit: the state its route leaves at the seam time (what the next part will be handed)
   let exit = null;
-  if (sol && sol.ok) { const p = GD.run(w, sol.events).path, q = p[Math.min(p.length - 1, Math.round(dur * TPS) - 1)] || {}; exit = { mode: q.mode, sp: q.sp, grav: q.grav, y: q.y != null ? +q.y.toFixed(1) : null, vy: q.vy != null ? +q.vy.toFixed(2) : null, grounded: !!q.grounded, x: q.x }; }
+  // read where the join reads it: 30 ticks before the seam (GDLM 64 v6 p2 passed at the seam's last tick, failed at the join)
+  if (sol && sol.ok) { const p = GD.run(w, sol.events).path, q = p[Math.min(p.length - 1, Math.round(dur * TPS) - 30)] || {}; exit = { mode: q.mode, sp: q.sp, grav: q.grav, y: q.y != null ? +q.y.toFixed(1) : null, vy: q.vy != null ? +q.vy.toFixed(2) : null, grounded: !!q.grounded, x: q.x }; }
   // the part's own seam check: what it hands the next part at the seam time against the contract (the builder sees it
   // before the join does)
   const out = plan.seams[k];

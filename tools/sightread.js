@@ -155,6 +155,10 @@ function judge(w, level, presses, base, limit, approx) {
     // GDLM 64's wave mouth: a cube press held into the wave portal, "4.8 ahead"). A hold that carries out of flight
     // into a cube jump is still judged: its latest moment is then in cube mode. (polish + physics, 2026-11-24)
     if (lead != null && hiState && FLYING.has(hiState.mode)) { lead = 0; cue = null; }
+    // a press right at a flying mode's portal (its latest moment within 2 blocks before the portal, still in cube) is the
+    // hold that carries the player into the new mode: cued by the portal (GDLM 66: a cube press at block 141 "4.7 ahead"
+    // of the ship corridor's first block, its portal at 142)
+    if (lead != null && lead > 0 && level.objects.some(o => { const i = GD.objInfo(o.id); return i && i.kind === "mode" && FLYING.has(i.mode) && o.x >= xHi - 15 && o.x <= xHi + 75; })) { lead = 0; cue = null; }
     out.push({ act: c.act, block: c.x / 30, from: xLo / 30, to: xHi / 30, ms: c.ms, cue: cue && GD.objInfo(cue.id).name, cueAt: cue && cue.x / 30,
       mode: hiState && hiState.mode, lead, flag: lead != null && lead > (FLYING.has(hiState && hiState.mode) ? FLY_LIMIT : limit) * speedFactor(hiState) });
   }
