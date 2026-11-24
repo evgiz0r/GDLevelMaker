@@ -105,34 +105,41 @@ function main() {
     const q = lastOf(GD.run(w, evOf(taps, shipEv)));
     return !q.dead || q.tick > until;
   };
+  // windows are searched within +-300 ms: a ball flip or a step after a walk-off has an open early side
+  // (flipping early just waits on the roof), so "the middle" means nothing there; then the closed side is
+  // put 100 ms from the hit instead (aim(): the tap offset to move the window by)
+  const CAP = 72, EDGE = 24;
+  const aim = v => v.open === "both" ? 0 : v.open === "early" ? v.hi - EDGE : v.open === "late" ? v.lo + EDGE : (v.lo + v.hi) / 2;
   const windowOf = (w, which, until) => {
     let start = null;
-    for (const d of [0, -8, 8, -16, 16, -24, 24, -32, 32, -40, 40, -48, 48, -60, 60]) if (survives(w, which, d, until)) { start = d; break; }
+    for (let k = 0, d = 0; k < 40; k++, d = (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 6) if (survives(w, which, d, until)) { start = d; break; }
     if (start === null) return null;
     let lo = start, hi = start;
-    while (lo > -100 && survives(w, which, lo - 1, until)) lo--;
-    while (hi < 100 && survives(w, which, hi + 1, until)) hi++;
-    return { lo, hi };
+    while (lo > -CAP && survives(w, which, lo - 1, until)) lo--;
+    while (hi < CAP && survives(w, which, hi + 1, until)) hi++;
+    return { lo, hi, open: lo <= -CAP ? (hi >= CAP ? "both" : "early") : hi >= CAP ? "late" : null };
   };
   for (let k = 0; k < cells.length; k++) {
     const c = cells[k], until = k + 1 < cells.length ? cells[k + 1].tick + 4 : Infinity;
-    for (let round = 0; round < 4; round++) {
+    for (let round = 0; round < 8; round++) {
       const w = gameplayWorld(plan, opts), win = windowOf(w, c.tick, c.kind === "orb" ? orbTap(c) - 2 : until);
-      if (!win) { console.log(`   b${c.b} ${c.kind}: no tap near the hit clears it -- check the cell`); break; }
-      const mid = (win.lo + win.hi) / 2;
       c.win = win;
-      if (Math.abs(mid) <= 1.5) break;
-      opts.shift[c.i] = (opts.shift[c.i] || 0) + mid * UPS / TPS / 30;   // window centre later -> obstacle later
+      if (!win) { console.log(`   b${c.b} ${c.kind}: no tap near the hit clears it -- check the cell`); break; }
+      const mid = aim(win);
+      if (win.open === "both") { console.log(`   b${c.b} ${c.kind}: this tap is not needed (any time works) -- the cell is no obstacle`); break; }
+      if (Math.abs(mid) <= 1.5 || round === 7) break;
+      opts.shift[c.i] = (opts.shift[c.i] || 0) - mid * UPS / TPS / 30;   // the window centred after the hit: the obstacle is too far, so bring it nearer
     }
-    if (c.kind === "orb") for (let round = 0; round < 4; round++) {
+    if (c.kind === "orb") for (let round = 0; round < 8; round++) {
       const w = gameplayWorld(plan, opts), win = windowOf(w, orbTap(c), until);
+      c.orbWin = win;
       if (!win) { console.log(`   b${c.b + 0.5} orb tap: no tap near the hit takes the orb`); break; }
-      const mid = (win.lo + win.hi) / 2; c.orbWin = win;
-      if (Math.abs(mid) <= 1.5) break;
-      opts.orbShift[c.i] = (opts.orbShift[c.i] || 0) + mid * UPS / TPS / 30;
+      const mid = aim(win);
+      if (Math.abs(mid) <= 1.5 || round === 7) break;
+      opts.orbShift[c.i] = (opts.orbShift[c.i] || 0) - mid * UPS / TPS / 30;
     }
     const ms = v => (v / TPS * 1000).toFixed(0);
-    if (c.win) console.log(`   b${String(c.b).padEnd(5)} ${c.kind.padEnd(6)} window ${ms(c.win.hi - c.win.lo + 1).padStart(4)} ms, hit ${ms(-c.win.lo)} ms after its start${c.orbWin ? `; orb tap b${c.b + 0.5} window ${ms(c.orbWin.hi - c.orbWin.lo + 1)} ms` : ""}`);
+    if (c.win) console.log(`   b${String(c.b).padEnd(5)} ${c.kind.padEnd(6)} window ${c.win.open ? ">=" : "  "}${ms(c.win.hi - c.win.lo + 1).padStart(4)} ms, hit ${c.win.open === "early" || c.win.open === "both" ? ">=" : ""}${ms(-c.win.lo)} ms after its start, ${c.win.open === "late" || c.win.open === "both" ? ">=" : ""}${ms(c.win.hi)} ms before its end${c.orbWin ? `; orb tap b${c.b + 0.5} window ${ms(c.orbWin.hi - c.orbWin.lo + 1)} ms` : ""}`);
   }
   // 3. the planned taps, nothing else
   const w = gameplayWorld(plan, opts), ev = evOf(allTaps(), shipEv), q = lastOf(GD.run(w, ev));
@@ -152,3 +159,4 @@ function main() {
   if (q.dead) process.exit(2);
 }
 if (require.main === module) main();
+module.exports = { gameplayWorld, evOf };
