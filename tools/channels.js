@@ -6,7 +6,9 @@
 // (1004), so the two can differ. Flags, per level:
 //   undefined   an object's channel (its key, or its default) is a user channel 1-999 not in the header and not set
 //               by a colour trigger at or before it (one by x 60 counts from the start)
-//   nokey       deco with no channel key (it takes its default: white unless that channel is defined)
+//   nokey       deco with no MAIN key (it takes its default: white unless that channel is defined) -- a detail key
+//               (22) alone does not count on an object with no detail part (the colour test's row C: white; tools/io.js
+//               now copies it to 21 when writing)
 //   shared155   objects of different colours that share a key-155 value (GD 2.2's colour-batch index): the game draws
 //               them all in ONE colour (the user's colour test, 2026-11-24). --fix rewrites the file without key 155.
 // FAIL when any deco lands on an undefined channel or key 155 is shared (score.js gate "channels"); `nokey` alone is a note.
