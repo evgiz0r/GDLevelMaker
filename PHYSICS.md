@@ -407,6 +407,9 @@ What exists and what blocks it (2026-11-23):
   - WHICH LEVEL each attempt is: local/runs/<video>.levels.json ({"<start s>": "official:N | levels/x.gdlvl | ?"}),
     read off the frames (level page, "Attempt 1"); when it exists replay_run uses it and not the length guess (GDLM 60
     and 63 are 30 and 21 s: length alone put one's attempts in the other's file). Written for 02:13, 02:26, 02:33, 02:45.
+  - THE LEVEL'S START IN THE VIDEO: video.level_t on each attempt line = bar start + shift - the video's lag behind its
+    file name (clock.json video_lag_s: 0.98 s at 02:33, 1.05 s at 02:45, else 1.0). video.t is the bar start, 0.3-1 s
+    late: never use it for a side-by-side (Hexagon Force: bar 60.6 s, level_t 59.40 s; checked on the frames).
   - ONE CLOCK PER RECORDING: local/runs/<video>.clock.json (offset from the recording's clears), reused when one level
     is replayed alone (Blast Processing in 02:13 agreed only with GDLM 63's clock: 15.7% vs 15.8%; alone it picked a
     far shift and died at 2.0%). 02:33 has none: its bar starts are off by 0.3-1 s per attempt.

@@ -23,6 +23,9 @@ Object.assign(GD, require("../lib/natural.js"));
 // the one agreement rule (tests/attempts_consistency.js uses it too): same result, and a death within AGREE_PCT of the same %
 // (GD's % and our x / endX differ by ~1-2%)
 const { agreeOf } = require("./attempts.js");
+// the video starts ~1 s after the second in its file name (ffmpeg's start-up): per recording in
+// local/runs/<video>.clock.json "video_lag_s", else --lag, else 1.0 (PHYSICS.md "Fidelity")
+let VIDEO_LAG = 1.0;
 const a = process.argv.slice(2), opt = (k, d) => { const i = a.indexOf("--" + k); return i < 0 ? d : a[i + 1]; };
 const [video, logFile, lv] = a.filter((x, i) => !x.startsWith("--") && !(a[i - 1] || "").startsWith("--"));
 if (!video || !logFile || !lv) { console.log(fs.readFileSync(__filename, "utf8").split("\n").slice(0, 2).join("\n")); process.exit(1); }
@@ -162,10 +165,11 @@ const shifts = anchors.map(r => fit(r, 0, 1500)).filter(b => b && b.err <= 2.5).
 // clock). --offset overrides it.
 const clockFile = runsFile.replace(/\.json$/, ".clock.json");
 const clearAnchor = anchors.some(r => r.beaten) && shifts.length;
-let saved = null; try { saved = JSON.parse(fs.readFileSync(clockFile, "utf8")); } catch (e) {}
-if (clearAnchor && !opt("offset") && !saved) fs.writeFileSync(clockFile, JSON.stringify({ offset_ms: Math.round(shifts[shifts.length >> 1]), from: L.name || lv, anchors: shifts.map(Math.round) }));
-const OFFSET = +opt("offset", saved ? saved.offset_ms : shifts.length ? shifts[shifts.length >> 1] : 0);
-if (saved && !opt("offset")) { shifts.length = 0; shifts.push(saved.offset_ms); console.log(`recording clock: ${saved.offset_ms} ms (${path.basename(clockFile)}, from ${saved.from})`); }
+let saved = null; try { saved = JSON.parse(fs.readFileSync(clockFile, "utf8")); } catch (e) {} VIDEO_LAG = +opt("lag", saved && saved.video_lag_s != null ? saved.video_lag_s : 1.0);
+const hasOff = saved && isFinite(saved.offset_ms);
+if (clearAnchor && !opt("offset") && !hasOff) fs.writeFileSync(clockFile, JSON.stringify(Object.assign(saved || {}, { offset_ms: Math.round(shifts[shifts.length >> 1]), from: L.name || lv, anchors: shifts.map(Math.round) })));
+const OFFSET = +opt("offset", hasOff ? saved.offset_ms : shifts.length ? shifts[shifts.length >> 1] : 0);
+if (hasOff && !opt("offset")) { shifts.length = 0; shifts.push(saved.offset_ms); console.log(`recording clock: ${saved.offset_ms} ms (${path.basename(clockFile)}, from ${saved.from})`); }
 console.log(`clock offset ${Math.round(OFFSET)} ms (from ${shifts.length} anchor attempt(s)${shifts.length ? ": " + shifts.map(Math.round).join(", ") : ""})`);
 // the first attempt after a level loads (nothing on the bar for 3 s before): its bar shows ~0.55 s before the
 // level starts moving (GD's fade-in; GDLM 63 +580 ms, Blast Processing +520 ms, 2026-11-24)
@@ -229,7 +233,11 @@ for (const r of runs) {
       // computed from the two (agreeOf), never set by hand. A quick restart is not judged (agree null).
       result: o.beaten ? "clear" : "died", x: o.x, pct: o.videoPct, t: o.secs, why: null, practice: false, from: null,
       sim: o.simOut, agree: o.restart ? null : agreeOf({ result: o.beaten ? "clear" : "died", pct: o.videoPct, sim: o.simOut }),
-      video: { file: path.basename(video), inputs: path.basename(logFile), t: o.video_t, shift_ms: o.shift_ms, drift: o.drift && o.drift.length ? o.drift : undefined, agree: o.agree, res: o.restart ? "restart" : o.agree ? "agree" : "mismatch", mismatch: o.mismatch || undefined } })); }
+      video: { file: path.basename(video), inputs: path.basename(logFile), t: o.video_t, shift_ms: o.shift_ms,
+        // level_t: the video time of tick 0 (the level's real start) = bar start + shift - the video's lag behind its file
+        // name's second (VIDEO_LAG; measured 0.98 s at 02:33, 1.05 s at 02:45 from tracked jumps vs logged presses).
+        // t (the bar start) is 0.3-1 s late: use level_t for side-by-sides (gd-visuals, 2026-11-24)
+        level_t: +(o.video_t + o.shift_ms / 1000 - VIDEO_LAG).toFixed(3), lag_s: VIDEO_LAG, drift: o.drift && o.drift.length ? o.drift : undefined, agree: o.agree, res: o.restart ? "restart" : o.agree ? "agree" : "mismatch", mismatch: o.mismatch || undefined } })); }
   // re-running a video replaces that video's lines (no duplicates); other lines (the viewer's, other videos) stay
   const af = path.join(adir, base + ".jsonl"), keep = fs.existsSync(af) ? fs.readFileSync(af, "utf8").split("\n").filter(l => { if (!l.trim()) return false;
     try { const o = JSON.parse(l); return !(o.source === "video" && o.video && o.video.file === path.basename(video)); } catch (e) { return true; } }) : [];
