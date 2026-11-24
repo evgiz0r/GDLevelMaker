@@ -154,7 +154,27 @@ From the text maps; each is now (or will be) a structure in `tools/structures.js
   hue flashes (`"build": n` bars) into the next section, `"craft": true` and the classic skins. Writes
   `specs/NN_<name>.json` for make.js.
 
+## The level (step 3): GDLM 61 lantern towers
+
+`briefs/craft_61_lantern_towers.json` -> `tools/craftlevel.js` -> make.js. 72 s, Thumper (Waterflame), cube /
+ship / cube with gravity / ball / cube / ship, one hue per section. v2 (2026-11-24) passes every score.js gate
+(0 fail, 11 warn; Normal, ~2 attempts; tightest window 62 ms). v1's 2-wide pillars were one long held jump
+(the user: "reallllly awkward"); v2's are 4 wide, rises are steps, drops 1 row over 3-wide pits.
+
+Honest verdict from the GD-art renders (`local/shots/craft/compare_v2.jpg`): it does NOT look like Jumper or
+xStep yet. Craft numbers 2/8 (pieces 9 per 100 blocks vs 14-28, hazards 40 vs 62-191, 36% loose deco). Why:
+- tap-able Easy/Normal pillars are 4 wide, so a level has fewer, larger pieces -- the craft targets are
+  Hard/Harder numbers; Easy/Normal targets are not measured yet (taste data: featured EN ~75-81 hazards/100);
+- the classic style's blurred background art and the hill band in front of the floor hide the black pit
+  spikes and fight the black-and-white playfield (Jumper: a flat tinted bg with faint squares);
+- few hanging columns, so the frame above the jump (Jumper's whole opening) is mostly missing.
+
 ## What is open
+
+- **The look of a craft level**: a flat tinted background, no hill band over a pit floor, more hanging
+  columns and armed undersides; then re-render next to Jumper / xStep.
+- **ceiling-hop** fails prejumps (upside-down jumps over its roof pits, at any width tried): out of GDLM 61.
+- **Craft structures at 2x**: checked at 1x only (tag "1x only"; style found capped-hop / stepped-pyramid fail at 2x).
 
 - Not measured: how the pieces sync with the song (Jumper's piece rhythm vs its beat).
 - The 2.2 look (TASTE.md, modern_look.md) and this 1.x craft are not opposed: the craft is about the
