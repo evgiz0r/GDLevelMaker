@@ -5,6 +5,7 @@
 // 4. every heavy tool claims the lock itself
 // 6. freshness: a clean worktree behind origin/main is fast-forwarded; a dirty one gets a warning naming what it lacks
 // 5. priority: a free slot goes to the highest-priority waiter (GDLM_HEAVY_PRIORITY), first come within one
+// 7. a waiter from older heavy.js code (no ver) does not hold the second slot back
 const assert = require("assert"), fs = require("fs"), path = require("path"), os = require("os"), cp = require("child_process");
 const H = require("../tools/heavy.js");
 
@@ -64,6 +65,24 @@ assert.strictEqual(H.holders(dir).length, 0, "slots released on exit");
   const runL = +/RUN L (\d+)/.exec(lo)[1], runH = +/RUN H (\d+)/.exec(hi)[1], endH = +/END H (\d+)/.exec(hi)[1];
   assert(runH < runL && runL >= endH, `the high-priority job ran first (H ${runH}, L ${runL})`);
   assert.strictEqual(H.waiters(dir).length, 0, "waiter files removed");
+}
+
+// 7 (live): a waiter from older heavy.js code (no ver: it never takes the second slot) first in line does not hold the
+// second slot back: with A running, B starts beside it (2026-11-24: 15 jobs sat behind one such waiter)
+{
+  const sleeper = cp.spawn(process.execPath, ["-e", "setTimeout(() => {}, 20000)"], { windowsHide: true });
+  fs.writeFileSync(path.join(dir, "w" + sleeper.pid + ".json"), JSON.stringify({ pid: sleeper.pid, prio: "high", since: 1, session: "old", cmd: "old.js" }));
+  const env2 = Object.assign({}, env, { GDLM_HEAVY_FREE_MB: "9000" });   // room for two jobs whatever this PC's measured job size
+  const A = cp.spawn(process.execPath, ["-e", job(4000, "A")], { windowsHide: true, env: env2 });
+  let aO = ""; A.stdout.on("data", d => aO += d); const aClosed = new Promise(r => A.on("close", r));
+  const t1 = Date.now();
+  while (!/RUN A/.test(aO) && Date.now() - t1 < 10000) await new Promise(r => setTimeout(r, 100));
+  const bOut = await outOf(cp.spawn(process.execPath, ["-e", job(10, "B")], { windowsHide: true, env: env2 }));
+  const runB = +/RUN B (\d+)/.exec(bOut)[1];
+  await aClosed;
+  const endA = +/END A (\d+)/.exec(aO)[1];
+  assert(runB < endA, `B used the second slot past an old-code waiter (B ${runB}, A ended ${endA})`);
+  sleeper.kill(); try { fs.unlinkSync(path.join(dir, "w" + sleeper.pid + ".json")); } catch (e) {}
 }
 
 // 3

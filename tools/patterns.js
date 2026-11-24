@@ -157,8 +157,13 @@ def("ship-tunnel", "a ship corridor (band rows 0-9): floor and roof follow `wave
     // tooth on top of that is a trap (GDLM 44: the user's ship crashed into a spike hanging under a
     // ceiling step, real_stats 2026-11-23)
     const flatHere = [c - 1, c + 1].every(k => k < 0 || k >= w || floorAt(k) === f);
-    if (a.teeth && flatHere && c >= lead && (c - lead) % 8 === 0) o.push(["spike", c, f]);
-    if (a.teeth && flatHere && c >= lead && (c - lead) % 8 === 4) o.push(["spike", c, roof - 1, { rot: 180 }]);
+    const te = a.teethEvery || 8;   // dense: 6 (STRUCTURES.md "Dense chains, other modes")
+    const tooth = a.teeth && flatHere && c >= lead && ((c - lead) % te === 0 || (c - lead) % te === te / 2);
+    if (a.teeth && flatHere && c >= lead && (c - lead) % te === 0) o.push(["spike", c, f]);
+    if (a.teeth && flatHere && c >= lead && (c - lead) % te === te / 2) o.push(["spike", c, roof - 1, { rot: 180 }]);
+    // `pit`: the low spikes (id 9, sunk 13 units) along the flat floor after the lead-in, as a hazard floor
+    // (Jumper / xStep ships fly over one): not on a step, not next to a tooth, not in the last 3 columns
+    if (a.pit && flatHere && !tooth && c >= lead && c < w - 3 && f >= 0) o.push([9, c, f, { dy: -13 }]);
   }
   const mid = c => floorAt(c) + (gap - 1) / 2;
   portals(o, "ship", a.portalRow ?? Math.min(5, Math.round(mid(0))), Math.round(mid(w - 1)), w, a);
@@ -204,6 +209,13 @@ def("wave-zigzag", "a wave corridor (band rows 0-9): the path climbs and falls 4
         let roof = f0 + gap;
         if (!joined) { if (roof < leadRoof) roof = leadRoof; else joined = true; }
         for (let r = roof; r < 10; r++) o.push(["block", c, r]);
+        // `teeth`: at a flat turn, a spike on the side the wave is NOT on (a floor spike under a peak, where the
+        // wave slides along the roof; a hanging one over a valley), only with 4+ rows of room
+        if (a.teeth && c >= lead && gap >= 4 && f0 >= 0) {
+          const peak = midAt(c) > low && (c - lead) % L >= seg;
+          const kk = (c - lead) % L - seg, leg = Math.floor((c - lead) / L);
+          if (kk === Math.floor(flat / 2)) { if (leg % 2 === 0) o.push(["spike", c, f]); else o.push(["spike", c, roof - 1, { rot: 180 }]); }
+        }
         continue;
       }
       const fl = Math.min(m0, m1) - Math.floor(gap / 2);       // floor slope row
@@ -251,6 +263,11 @@ def("ball-run", "a ball corridor (band rows 0-7 from a portal on the ground): a 
       if (k % 2 === 0) o.push(["spike", c + i, 0]);
       else o.push(["spike", c + i, gap - 1, { rot: 180 }]);
     }
+    // `pit`: after a floor spike the ball rides the roof until the next (roof) spike, so the floor under that ride
+    // is a hazard floor of low spikes (and the roof after a roof spike) -- 2 columns clear after the spike, and
+    // `pitClear` (3) before the next one, where the ball flips back
+    if (a.pit && c + every < w - 6) for (let x = c + n + 2; x < c + every - (a.pitClear ?? 3); x++)
+      o.push(k % 2 === 0 ? [9, x, 0, { dy: -13 }] : [9, x, gap - 1, { dy: 13, rot: 180 }]);
   }
   // exit on the floor (the frame forces a last flip down when the ball rides the roof)
   portals(o, "ball", a.portalRow ?? 1, 1, w, a);
@@ -277,9 +294,11 @@ def("ceiling", "a ceiling `w` long whose lower face is row `ceil` (default 6), 2
 // (pads and orbs upside down are not checked in the sim).
 function mirrorUp(objs, ceil) {
   return objs.map(([t, c, r, e]) => {
-    if (t !== "block" && t !== "spike") throw new Error(`mirrorUp: ${t} upside down is not supported`);
+    const low = t === 9 || t === 61;   // the low pit spikes (sunk with dy): turned over, sunk into the ceiling
+    if (t !== "block" && t !== "spike" && !low) throw new Error(`mirrorUp: ${t} upside down is not supported`);
     const e2 = Object.assign({}, e || {});
-    if (t === "spike") e2.rot = ((e2.rot || 0) + 180) % 360;
+    if (t === "spike" || low) e2.rot = ((e2.rot || 0) + 180) % 360;
+    if (low && e2.dy) e2.dy = -e2.dy;
     return [t, c, ceil - 1 - r, e2];
   });
 }

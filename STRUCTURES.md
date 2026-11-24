@@ -150,6 +150,36 @@ Watch:
 - spike-pit-train's 88 ms window comes from the pit right after the spike's landing. gap 8 should loosen it, but that
   is not checked yet.
 
+### Dense chains, other modes (2026-11-24)
+
+Golden Hour v6 stayed at 14 hazards per 100 blocks: its 2x, upside, ship and wave sections were not taking the library
+pieces. All of these are ready. The 2x and upside pieces also pass `check --context`; mode pieces are checked alone,
+as the library does.
+
+| id | where | hazards / 100 | tightest | how to use |
+|---|---|---|---|---|
+| pit-run-2x | 2x cube | 40 | 192 ms | `use: ["s:pit-run-2x"]`: w 5, pit 4 (1.25x the 1x run), 6 flat columns first |
+| pit-spike-mix-2x | 2x cube | 30 | 192 ms | w 12, pit 4, lead 6 |
+| double-train-2x | 2x cube | 24 | 196 ms | gap 10 |
+| spike-train-2x | 2x cube | 13 | 271 ms | gap 9 |
+| upside-pit-run | cube, its own gravity portals | 27 (with its 10-column lead) | 242 ms | in an upside section, the 1x `s:pit-run` etc. are mirrored by compose (mirrorUp now turns the low pit spikes over too) |
+| ship-dense | ship | 63 | 192 ms | a ship section's `"args": {"ship-tunnel": {"pit": true, "teethEvery": 6}}` |
+| ball-dense | ball | 43 | 342 ms | `"args": {"ball-run": {"pit": true, "pitClear": 2}}` (every 9) |
+| wave-dense | wave | 15 | 321 ms | `"args": {"wave-zigzag": {"teeth": true}}` |
+
+- **Pits on the side the player is not on.**
+  - ship: a floor of low spikes under the corridor (not on steps, not next to a tooth, not in the last 3 columns);
+  - ball: low spikes along the side the ball rides away from after each flip, 2 columns clear after the spike and
+    `pitClear` before the next one;
+  - wave: one spike at each flat turn, on the far side from the wave. The wave stays low on density: spikes on its
+    path would be the unfair kind.
+- **compose:** 2x sections now take 2x pieces (structurePicks matches the piece's `needs.speed` to the section's), and
+  `register` includes the 2x pieces as `s:<id>`. A 2x pit run needed 6 flat columns first: a jump over the
+  neighbour's spike landed right before its doorstep (reactive WARN in context).
+- **Height:** these are flat. In 2x and upside sections, mix them with the height pieces. In ship, `amp`/`waves`
+  already move the corridor.
+- Checked: `compose --dry` on a copy of v6 with these args places them. No full build was run.
+
 ## Open
 
 - **A structure that passes alone can fail inside a level**: `orb-ladder-2` (ok in the harness) made a fairness

@@ -106,15 +106,16 @@ function structurePicks(brief, tweaks = {}) {
   let pool;
   try { pool = require("./structures.js").ranked({ registered: true, maxTier: (brief.difficulty || {}).label || "Normal" }); } catch (e) { return out; }
   const used = new Set(brief.sections.flatMap(s => s.use || []));
-  // checked at 1x only: sections at another speed get none, and speed-changing ones (they end on a 1x
-  // portal) are never placed automatically
+  // each piece was checked at its own speed: 1x and 2x sections get pieces of their speed, others none; speed-changing
+  // ones (they end on a 1x portal) are never placed automatically
   const sp = speedsOf(brief);
   pool = pool.filter(r => !r.tags.includes("speed"));
-  const want = brief.sections.map((s, i) => [s, i]).filter(([s, i]) => !s.rest && !s.mode && s.use && s.use.length && s.structures !== false && sp[i] === "1x");
+  // 2x sections take the 2x pieces (needs.speed "2x", tools/structures.js "dense chains, other modes"), 1x ones the 1x pieces
+  const want = brief.sections.map((s, i) => [s, i]).filter(([s, i]) => !s.rest && !s.mode && s.use && s.use.length && s.structures !== false && /^(1x|2x)$/.test(sp[i]));
   // spread the mechanics: a mode or tag not yet in the level first
   const tagsUsed = new Set();
   for (const [, i] of want) {
-    const fresh = pool.filter(r => !used.has("s:" + r.id));
+    const fresh = pool.filter(r => !used.has("s:" + r.id) && (r.needs.speed || "1x") === sp[i]);
     // a reseeded section (tweaks "reseed:<i>", a variant or a backtrack) takes the n-th alternative
     const rs = tweaks["reseed:" + i] || 0, novel = fresh.filter(r => ![r.mode, ...r.tags].some(t => tagsUsed.has(t)));
     const pick = rs ? (novel.length ? novel : fresh)[rs % Math.max(1, (novel.length ? novel : fresh).length)] : (novel[0] || fresh[0]);
