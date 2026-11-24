@@ -42,9 +42,12 @@ module.exports = function ({ objects, header, beatX }) {
   Object.assign(C, { trim: 32, far2: 33, mid: 34, near: 35, grass: 36 });
   const TRIM = [[190, 150, 110], [170, 190, 80], [195, 205, 85], [190, 200, 70], [205, 115, 175], [125, 145, 255], [115, 135, 245], [215, 175, 155]];
   const SHADE = [[140, 70, 80], [140, 70, 50], [150, 80, 30], [150, 80, 30], [80, 30, 80], [20, 20, 60], [20, 20, 60], [140, 80, 90]];
-  P.forEach((p, i) => { const d = D.depthColours(SKY[i], SHADE[i]); Object.assign(p, { [C.trim]: TRIM[i], [C.grass]: TRIM[i].map(v => Math.round(v * 0.72)), [C.far2]: d.far, [C.mid]: d.mid, [C.near]: d.near }); });
+  // the bright day scenes (sunrise, noon): the backdrop steps well down from the sky -- at the kit's default the
+  // tree line was mid-gold on a gold sky behind a gold path ("noon is mushy", v1 vs Jumper)
+  const DEEP = new Set([1, 2, 3]);
+  P.forEach((p, i) => { const d = D.depthColours(SKY[i], SHADE[i], DEEP.has(i) ? [0.32, 0.48, 0.62] : undefined); Object.assign(p, { [C.trim]: TRIM[i], [C.grass]: TRIM[i].map(v => Math.round(v * 0.72)), [C.far2]: d.far, [C.mid]: d.mid, [C.near]: d.near }); });
   const defs = {};
-  for (const [ch, rgb] of Object.entries(P[0])) defs[ch] = { rgb, blend: BLEND.has(+ch), opacity: +ch === C.rays ? 0.35 : +ch === C.cloud ? 0.85 : 1 };
+  for (const [ch, rgb] of Object.entries(P[0])) defs[ch] = { rgb, blend: BLEND.has(+ch), opacity: +ch === C.rays ? 0.18 : +ch === C.cloud ? 0.85 : 1 };
   header = K.channels(header, defs);
   // the scene changes at each portal: quick on the drops (S2, S5), slow on the calm turns
   const FADE = [0, 2, 0.15, 0.6, 2.5, 0.15, 1, 3];
@@ -97,21 +100,29 @@ module.exports = function ({ objects, header, beatX }) {
   // a soft dust band in front near the ground (see-through, the bottom frame of every scene)
   out.push(...K.motes(S[0][0], END, { ch: C.halo, z: "T3", group: G.motes, density: 3, y0: -50, y1: 25, sMin: 0.8, sMax: 1.6, ids: [1764], seed: 8 }));
   out.push(...K.motes(S[0][0], END, { ch: C.motes, z: "T3", group: G.motes, density: 0.6, y0: 40, y1: 260, sMin: 0.6, sMax: 1.1, ids: [1764, 1765], seed: 7 }));
-  out.push(K.alpha(T0, G.motes, 0.7, 0));
+  out.push(K.alpha(T0, G.motes, 0.45, 0));
   for (let i = 0; i < S.length; i++) out.push(K.move(S[i][0], G.motes, 0, i % 2 ? -30 : 40, secs(S[i][1] - S[i][0]), 13));
 
   // ---- the gameplay blocks dressed in each scene's colours ----
   for (let i = 0; i < S.length; i++) out.push(...K.designBlocks(objects, S[i][0], S[i][1], { fill: C.fill, edge: C.edge, glow: C.halo, win: i >= 5 ? C.win : null, windows: 0.3, seed: 30 + i }));
   // gd-art's kit: bricks in closed cells + lit top trims and grass tufts in the cube scenes; three backdrop depths
   // in every scene (mountains B5 / hills B4 / tree line B3)
-  const CUBE = new Set([0, 1, 3, 6, 7]);
+  const CUBE = new Set([0, 1, 3, 4, 6, 7]);
   for (let i = 0; i < S.length; i++) {
     if (CUBE.has(i)) {
       out.push(...D.blockPattern(objects, S[i][0], S[i][1], { ch: C.fill, top: C.trim, seed: 40 + i }));
-      out.push(...D.tufts(objects, S[i][0], S[i][1], { ch: C.grass, seed: 60 + i }));
+      out.push(...D.tufts(objects, S[i][0], S[i][1], { ch: C.grass, seed: 60 + i, group: 312 }));
     }
-    out.push(...D.backdrop(S[i][0], S[i][1], { far: C.far2, mid: C.mid, near: C.near, trees: i >= 4 ? "dead tree" : "tree", density: 2, seed: i }));
+    out.push(...D.backdrop(S[i][0], S[i][1], { far: C.far2, mid: C.mid, near: C.near, trees: i >= 4 ? "dead tree" : "tree", density: DEEP.has(i) ? 2.5 : 3, seed: i }));
   }
+  // ---- motion on every screen (gd-art / gd-taste: moving deco is the strongest sign of a featured level,
+  // ART.md "Deco study"): the grass sways, the motes bob, the lit block edges pulse on every bar toward a
+  // brighter tint of their own colour every second bar (calm: under 0.5 a second, never white) -- ~10 triggers per 20-block screen
+  out.push(...K.sway(S[0][0], END, 312, 7, 100, 0.35));
+  out.push(...K.bob(S[0][0], END, G.motes, 12, 160, 0.5));
+  { const spb = 8, bars = []; for (let b = 1; beatX(b) < END - 60; b += spb) bars.push(b);
+    for (const b of bars) { const x = beatX(b), i = Math.max(0, S.findIndex(([a, z]) => x >= a && x < z)), e = P[i][C.edge];
+      out.push(K.pulse(x, C.edge, e.map(v => Math.round(v + (255 - v) * 0.35)), 0.05, 0.1, 0.5)); } }
 
   // ---- a vignette closing in at the end of the night (top and bottom bands, locked to the screen) ----
   const vx = S[6][0] + 0.6 * (S[6][1] - S[6][0]);
@@ -150,5 +161,12 @@ module.exports = function ({ objects, header, beatX }) {
     if (o.id === 1753) o.props[24] = "7";
     if (!o.props[41] && (k++ % 2 === 0)) { o.props[41] = "1"; o.props[43] = (k % 3 === 0 ? "-8" : "6") + "a1a" + (k % 5 === 0 ? "0.9" : "1.05") + "a0a0"; }
   }
-  return { objects: out, header };
+  // nothing in front of a hazard (tools/contrast.js "deco over hazards": v2 had 58 at x 2400-2700): deco on B2 or
+  // in front within a block of a spike / saw goes, except what dresses a solid block (its fill and edges)
+  const GDo = require("../../lib/objects.js"), kindOf = o => (GDo.objInfo(o.id) || {}).kind;
+  const haz = objects.filter(o => kindOf(o) === "hazard"), solidCell = new Set(objects.filter(o => kindOf(o) === "solid").map(o => Math.floor(o.x / 30) + ":" + Math.floor(o.y / 30)));
+  const front = o => { const z = o.props && o.props[24]; return z != null && z !== "" && +z >= 1; };
+  const kept = out.filter(o => !(o.x != null && o.id !== 1346 && kindOf(o) !== "trigger" && front(o) && !solidCell.has(Math.floor(o.x / 30) + ":" + Math.floor(o.y / 30))
+    && haz.some(h => Math.abs(h.x - o.x) < 30 && Math.abs(h.y - o.y) < 30)));
+  return { objects: kept, header };
 };
