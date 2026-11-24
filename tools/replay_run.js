@@ -166,6 +166,10 @@ const shifts = anchors.map(r => fit(r, 0, 1500)).filter(b => b && b.err <= 2.5).
 const clockFile = runsFile.replace(/\.json$/, ".clock.json");
 const clearAnchor = anchors.some(r => r.beaten) && shifts.length;
 let saved = null; try { saved = JSON.parse(fs.readFileSync(clockFile, "utf8")); } catch (e) {} VIDEO_LAG = +opt("lag", saved && saved.video_lag_s != null ? saved.video_lag_s : 1.0);
+// the lag only sets each attempt's level_t (where the level starts in the video: the viewer's video sync, camfit, framecheck);
+// a death or clear agrees with the sim whatever it is, so nothing else catches a wrong one. Measured so far 0.64-1.05 s
+// (19:47: gd-visuals' camfit --fit-shift, the camera smoothest at +0.36 s; 18:58: framecheck's take-offs, ~0.4 s off)
+if (opt("lag") == null && !(saved && saved.video_lag_s != null)) console.log(`!! level_t assumes a ${VIDEO_LAG} s video lag, NOT MEASURED for this recording (seen 0.64-1.05 s): pin it with tools/framecheck.js (K from take-offs) or tools/camfit.js --fit-shift, then put "video_lag_s" in ${path.basename(clockFile)}`);
 const hasOff = saved && isFinite(saved.offset_ms);
 if (clearAnchor && !opt("offset") && !hasOff) fs.writeFileSync(clockFile, JSON.stringify(Object.assign(saved || {}, { offset_ms: Math.round(shifts[shifts.length >> 1]), from: L.name || lv, anchors: shifts.map(Math.round) })));
 const OFFSET = +opt("offset", hasOff ? saved.offset_ms : shifts.length ? shifts[shifts.length >> 1] : 0);
