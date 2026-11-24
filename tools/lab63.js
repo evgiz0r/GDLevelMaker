@@ -10,7 +10,7 @@ const trig = (id, col, props) => objs.push([id, col, 7, { props }]);
 const lab = [];
 
 // 1 dual cube: player 2 spawns mirrored and rides the roof of the dual band (ASSUMED 300 units: row 9's top)
-label(6, "1 dual: where does player 2 ride?");
+label(9, "1 dual: where does player 2 ride?");
 objs.push([286, 10, 1]);
 objs.push(["spike", 20, 0], ["spike", 20, 9, { rot: 180 }]);
 lab.push({ n: 1, name: "dual cube", from: 8, to: 26, metrics: [{ m: "alive" }], note: "sim: player 2 rides upside down with its top at y 300 (10 blocks); one press jumps both, mirrored" });
@@ -55,9 +55,32 @@ trig(1049, O + 68, { "51": "27", "56": "0" });
 objs.push([901, O + 72, 7, { group: 27, props: { "51": "28", "29": "-150", "10": "0" } }]);
 objs.push(["spike", O + 80, 5, { group: 28 }]);
 lab.push({ n: 8, name: "toggled-off trigger", from: O + 66, to: O + 84, metrics: [{ m: "alive" }], note: "sim: the move never fires, the spike stays 5 blocks up; if it drops to the floor, GD fires triggers in a disabled group" });
-objs.push(["block", O + 100, 0]);
+// 9-12 orb buffering (asked by the physics session: the user, "usually with orbs ... we want to buffer").
+// Each: an orb 2 rows up, a 4-spike pit under it. A plain jump lands in the pit (block ~21.3 of 19-22 in the
+// sim's own test), a jump that takes the orb clears it. Jump about 2.3 blocks before the orb, then do what the
+// label says; a death in the pit means the orb did not fire for that input.
+// The sim today: a press arms the orb flag while held, but a ground jump uses it up, so (9) jump-and-hold does
+// NOT fire the orb, (10) a fresh press in the air before the orb, held, does, (11) the same with a pink orb,
+// (12) a tap released before the orb touches it does not.
+const P = O + 86;
+const orbStation = (n, at, orbId, text, note) => {
+  label(at - 6, text);
+  objs.push([orbId, at, 2]);
+  for (let c = at - 1; c <= at + 2; c++) objs.push(["spike", c, 0]);
+  lab.push({ n, name: "orb buffer: " + text, from: at - 6, to: at + 5, metrics: [{ m: "alive" }], note });
+};
+orbStation(9, P + 8, 36, "9 jump and HOLD, do not tap", "yellow orb reached holding the jump's press: sim says it does NOT fire (death in the pit)");
+orbStation(10, P + 22, 36, "10 jump, press again before the orb, hold", "a fresh press in the air ~0.1 s before the orb, held: sim fires it on first contact");
+orbStation(11, P + 36, 141, "11 pink: jump and HOLD, do not tap", "pink orb, held from the jump: sim does NOT fire it");
+orbStation(12, P + 50, 36, "12 tap in the air, let go before the orb, do not tap it", "a press released before the orb: sim does NOT fire it (no buffer once released)");
+objs.push(["block", P + 64, 0]);
 
-const spec = { name: "GDLM 63 dual and movers lab", desc: "A test course: play once in practice mode with hitboxes on. Dual mode (1-3) and moving objects (4-8). At 6, 7 and 8, do not jump.", lab, objects: objs };
+// keep the first label clear of GD's "Attempt N" text (it covers the first ~12 blocks)
+const SHIFT = 8;
+for (const o of objs) o[1] += SHIFT;
+for (const l of lab) { l.from += SHIFT; l.to += SHIFT; }
+
+const spec = { name: "GDLM 63 dual and movers lab", desc: "Practice + hitboxes. Dual 1-3, movers 4-8, orbs 9-12. No jump at 6-8. At 9 and 11 jump and HOLD, never tap the orb.", lab, objects: objs };
 const out = path.join(__dirname, "..", "specs", "63_dual_movers_lab.json");
 fs.writeFileSync(out, JSON.stringify(spec, null, 0).replace(/\],\[/g, "],\n["));
 console.log("wrote", out, objs.length, "objects");

@@ -508,7 +508,7 @@ function loop(briefFile, rounds = 8, phase = {}) {
   const stage = (st, extra) => {
     const secs = +((Date.now() - T0) / 1000).toFixed(1);
     timings.push({ stage: st, secs, target: TARGET[st] });
-    try { fs.appendFileSync(path.join(__dirname, "..", "local", "timings.jsonl"), JSON.stringify({ level: brief.name, stage: st, secs, target: TARGET[st], resume: !!phase.resume, at: new Date().toISOString() }) + "\n"); } catch (e) {}
+    try { fs.appendFileSync(path.join(__dirname, "..", "local", "timings.jsonl"), JSON.stringify({ level: brief.name, step: "compose-" + st, stage: st, secs, target: TARGET[st], resume: !!phase.resume, at: new Date().toISOString() }) + "\n"); } catch (e) {}
     if (!STG) return;
     const timing = timings.map(t => `${t.stage} ${t.secs < 90 ? t.secs.toFixed(0) + " s" : (t.secs / 60).toFixed(1) + " min"}`).join(", ");
     extra = Object.assign({}, extra); extra.data = Object.assign({}, extra.data || {}, { secs, target: TARGET[st], timing });
@@ -519,23 +519,42 @@ function loop(briefFile, rounds = 8, phase = {}) {
   const quiet = fn => { const log0 = console.log; console.log = () => {}; try { return fn(); } finally { console.log = log0; } };
   // a plan's gameplay level, its planned presses and its driven events (the full plan; cache gaps named)
   const planOf = (tweaks, drive = true) => {
-    const built = quiet(() => build(gameplayOnly(compose(brief, tweaks).spec), briefFile));
+    const comp = compose(brief, tweaks), built = quiet(() => build(gameplayOnly(comp.spec), briefFile));
     const I = require("./intent.js"), wg = GD.makeWorld(built.level.objects, built.level.header), tl = SY.SYNC.timeline(wg);
     const { intents, missing } = I.intents(built.ctx.placements || [], tl, { raw: built.ctx.raw, cacheOnly: !drive });
     const planned = intents.map(i => ({ t: +SY.SYNC.tOfX(tl, i.x).toFixed(3), what: i.type === "press" ? "jump" : "release" }));
     let events = null, vnote = "";
     if (drive) {
-      const v = I.verify(wg, built.level, intents, { maxRepairs: 6 });
+      const v = I.verify(wg, built.level, intents, { maxRepairs: 20 });   // flying parts start from another height than their cached test: repairs expected there
       events = v.events;
       vnote = v.ok ? (v.repairs ? `; plays to the end with ${v.repairs} local repair(s) (cache gaps: ${v.log.join("; ")})` : "; plays to the end from the plan alone") : `; the plan stops at block ${((v.dieX || 0) / 30).toFixed(0)} (${v.log.join("; ")})`;
     }
     if (missing.length) vnote += `; no intent yet for ${missing.join(", ")}`;
-    return { built, planned, events, vnote };
+    return { built, planned, events, vnote, ranges: comp.ranges, tl, world: wg };
   };
   const layoutStage = (tweaks, alt) => {
     try {
       const p = planOf(tweaks);
       console.log("   layout plan" + p.vnote);
+      // the seam contract (tools/seams.js; briefs/<NN>.seams.json) and the viewer's section strip: the state at
+      // every section boundary on this plan; a section's builder and status survive a rewrite
+      try {
+        const SM = require("./seams.js"), path0 = p.events ? GD.run(p.world, p.events).path : null;
+        let old = null; try { old = JSON.parse(fs.readFileSync(SM.fileOf(briefFile), "utf8")); } catch (e) {}
+        let bb = 1;
+        const sections = brief.sections.map((sx, i) => {
+          const b0 = bb; bb += sx.beats || 0;
+          const rg = p.ranges[i], x0 = rg[2] * 30, x1 = rg[3] * 30, prev = old && old.sections && old.sections[i];
+          const scene = { bg: sx.bg, ground: sx.ground, line: sx.line, obj: sx.obj };
+          return { id: "s" + i, name: sx.name, beats: sx.beats ? [b0, bb] : null, t: [+SY.SYNC.tOfX(p.tl, x0).toFixed(3), +SY.SYNC.tOfX(p.tl, x1).toFixed(3)], x: [x0, x1],
+            in: Object.assign(path0 ? SM.stateAt(path0, x0) || {} : {}, { scene }), out: Object.assign(path0 ? SM.stateAt(path0, x1 - 1) || {} : {}, { scene }),
+            builder: (prev && prev.builder) || { layout: brief.session || "style", deco: brief.session || "style", playtest: brief.session || "style" },
+            status: Object.assign({}, (prev && prev.status) || { deco: "planned", playtest: "planned" }, { layout: "built" }) };
+        });
+        fs.writeFileSync(SM.fileOf(briefFile), JSON.stringify({ level: brief.name, brief: path.relative(path.join(__dirname, ".."), briefFile).split(path.sep).join("/"),
+          song: { custom: brief.song && brief.song.custom, offset: brief.offset || 0, bpm: brief.grid && brief.grid.bpm, t0: brief.grid && brief.grid.t0 }, planOk: !!p.events, sections }, null, 1));
+        if (STG && STG.setSections) STG.setSections(brief.session || "style", slug(brief.name), sections);
+      } catch (e) { console.log("   (seams: " + e.message + ")"); }
       stage("layout", Object.assign({ levelStr: GD.serializeLevel(p.built.level), data: Object.assign({ planned: p.planned, events: p.events, kind: "planned" }, alt ? { alt } : {}),
         note: "gameplay and its planned presses" + p.vnote + (alt ? `; ${alt.length} section(s) with alternatives` : "") + (phase.until === "layout" ? " -- waiting for the user" : "") }, phase.until === "layout" ? { gate: true } : {}));
     } catch (e) { console.log("   (layout stage: " + e.message + ")"); }

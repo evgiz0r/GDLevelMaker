@@ -35,11 +35,13 @@ const SEVERITY = { switch: "FAIL", mark: "FAIL", floor: "FAIL", chain: "FAIL", w
 const MARK_GROUP = "990";
 
 // Everything the thresholds need, measured once (slow part).
-function analyse(w, sol) {
+function analyse(w, sol, opts = {}) {
   // judged on the route a person plays (lib/natural.js: taps, no empty jumps, flying through the
-  // middle) -- the solver's route has jumps nobody needs (the GDLM 46 v2 mark at 825 sits on one)
-  const nat = naturalPlan(w, sol, w.objects);
-  const d = DF.difficulty(w, nat ? { ok: true, events: nat.events } : sol, { chains: false });
+  // middle) -- the solver's route has jumps nobody needs (the GDLM 46 v2 mark at 825 sits on one).
+  // opts.natural: sol IS that route already (a saved human route, tools/score.js); opts.diff: its difficulty
+  // report, measured already -- then nothing is planned or measured again
+  const nat = opts.natural ? null : naturalPlan(w, sol, w.objects);
+  const d = opts.diff || DF.difficulty(w, nat ? { ok: true, events: nat.events } : sol, { chains: false });
   const run = GD.run(w, d.events), P = run.path;
   const orbNames = new Set(Object.values(GD.OBJECTS || {}).filter(o => o.kind === "orb").map(o => o.name));
   // what each input did: the first jump/orb act while it is held

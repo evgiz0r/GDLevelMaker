@@ -241,8 +241,9 @@ hard spot at 90% costs more attempts than at 10%). The user's own attempts follo
 Which windows: measureWindows in lib/difficulty.js (lenient: a moved input counts as hit when the rest of
 the run can still be re-planned around it, as a player corrects). Since main 05abaf7 it is THE window for
 every tool: lib/windows.js inputWindows calls it (viewer, tools/windows.js, score.js); the strict variant
-(every other input fixed) is opt-in. Open, from physics: a land-and-jump tap moved earlier reads 1 tick
-(it should stay held until the jump fires), and a re-planned window can come out narrower than the strict
+(every other input fixed) is opt-in. A tap moved earlier is held until its own release (2026-11-24): a
+player holds through a landing or into an orb, which fires on contact -- GDLM 50's land-and-jump taps went
+from 25 ms (no early side) to 221 ms; buffered orb takes read wide. Open, from physics: a re-planned window can come out narrower than the strict
 one (GDLM 60's dash-orb release, tick 3052): it should contain it.
 
 ### Human cost: which valid route a person plays (2026-11-23)
@@ -259,7 +260,8 @@ band's floor/roof than the corridor forces (closer than min(12, room / 4) units,
 a tight corridor is not punished for being tight); presses in a flying mode cost 0.002 (hover taps are how a
 person flies). Stereo Madness's first ship (the user: "it's unnatural to wait so late and fly up"): the solver's
 floor-rider costs 1.4 in clearance; the natural plan now takes the centred line in both ship parts (close to a
-surface 62% -> 2%, 43% -> 0%). The late climb at block 399.5 has a 213 ms window, so the window term does not
+surface 62% -> 2%, 43% -> 0%). `pointless` 0.05 per cube jump over nothing (lib/natural.js pointlessJumps: from the
+ground, lands no higher, nothing under or near the arc; the user: dropping down a staircase is the intended way). The late climb at block 399.5 has a 213 ms window, so the window term does not
 see that "fake timing"; riding the floor up to the wall is what makes it, and clearance charges for that.
 Physics calls it from lib/natural.js to pick among candidate routes.
 Speed: measureWindows keeps an exact cache per world (an input's window depends only on the state where its

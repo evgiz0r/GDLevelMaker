@@ -101,6 +101,7 @@ function verify(w, level, list, opts = {}) {
   const t0 = Date.now(), log = [];
   const I = INC();
   let events = drive(w, list, GD.startState(w), false), repairs = 0;
+  let lastX = 0;
   for (; repairs <= (opts.maxRepairs ?? 12); repairs++) {
     const res = GD.run(w, events), p = res.path;
     const skip = GD.skipCheck ? GD.skipCheck(w, p, events) : null;
@@ -108,7 +109,7 @@ function verify(w, level, list, opts = {}) {
     if (repairs === (opts.maxRepairs ?? 12)) break;
     // the failure: death, or the first skipped portal
     const td = res.dead ? p.length - 1 : Math.max(0, skip.dieAt.tick ?? p.findIndex(q => q.x >= skip.dieAt.x));
-    const xd = p[Math.max(0, td)].x;
+    const xd = p[Math.max(0, td)].x; lastX = xd;
     let c = Math.max(0, td - GD.PHYS.TPS);
     while (c > 0 && !I.calm(w, p[c])) c--;
     const heldAt = I.heldBefore ? I.heldBefore(events, c) : false;
@@ -122,7 +123,7 @@ function verify(w, level, list, opts = {}) {
     events = prefix.concat(drive(w, list.filter(e => e.x > st.x), st, h));
     log.push(`block ${(xd / 30).toFixed(1)}: repaired by a local search (ticks ${c}-${T}, ${res.dead ? res.why : skip.why})`);
   }
-  return { ok: false, events, repairs, ms: Date.now() - t0, log };
+  return { ok: false, events, repairs, ms: Date.now() - t0, log, dieX: lastX };
 }
 
 // ---- 4. secret ways: before each portal, a short search for a way past it without taking it ----

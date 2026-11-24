@@ -85,6 +85,13 @@
   .wkRow .nm { font-weight:600; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   #stagebar .rev { padding:3px 8px; font-size:12px; }
   #stagebar .gate { color:#ffd58a; }
+  #secbar { display:flex; flex-wrap:wrap; gap:6px; align-items:center; padding:4px 10px 6px; background:#120a2e; font-size:12px; }
+  #secbar .sec { display:inline-flex; gap:3px; align-items:center; padding:2px 6px; border:1px solid #2b2060; border-radius:6px; cursor:pointer; }
+  #secbar .sec.here { border-color:#6b5bd0; }
+  #secbar .sec.sel { border-color:var(--cube); background:#2a1f5c; }
+  #secbar .role { font-size:10px; padding:0 4px; border-radius:4px; background:#2b2a44; color:#aaa; }
+  #secbar .role.built { background:#24356b; color:#cfe0ff; } #secbar .role.ok { background:#16402c; color:#9cf5c4; } #secbar .role.redo { background:#5a1424; color:#ffb3c2; }
+  #secbar button { padding:2px 8px; font-size:12px; }
   #picker { position:fixed; inset:0; z-index:50; background:rgba(6,3,20,.72); display:flex; justify-content:center; align-items:flex-start; padding:4vh 12px; }
   #picker[hidden] { display:none; }
   #pk { width:min(860px,100%); max-height:92vh; display:flex; flex-direction:column; background:#160d3a; border:1px solid #3b2d78; border-radius:10px; overflow:hidden; }
@@ -125,6 +132,7 @@
   <label class="btn">open .gdlvl<input id="file" type="file" accept=".gdlvl,.txt" hidden></label>
   <button id="play">▶ play</button>
   <button id="restart">⟲</button>
+  <button id="youPlay" title="play it yourself here: space / click / tap = jump, R = restart, P = back to the replay (practice checkpoints at each section)">🎮 you play</button><button id="practiceBtn" class="on" hidden title="practice: after a death, start again from the last checkpoint (each section / portal)">practice</button>
   <button data-speed="0.25">¼×</button><button data-speed="0.5">½×</button><button data-speed="1" class="on">1×</button>
   <button id="lookBtn" class="on" title="colours, triggers, block skins as in the game (off: the schematic view)">game look</button>
   <button id="artBtn" title="draw objects, background, ground and icon with GD's own sprites from your game install (needs tools/serve.js; VISUALS.md)">GD art</button>
@@ -144,7 +152,7 @@
   <button data-dt="-1">-1 s</button><button data-dt="-0.1">-0.1</button><button data-dt="0.1">+0.1</button><button data-dt="1">+1 s</button>
   <button id="cmpShot" title="replay + game frame as one PNG in local/shots/">save comparison</button>
   <span id="cmpAt" class="muted"></span></div><img id="cmpImg" alt="game frame"></div></div>
-<div id="stagebar" hidden></div>
+<div id="stagebar" hidden></div><div id="secbar" hidden></div>
 <div id="varbar" hidden></div>
 <div id="notice" hidden></div>
 <div id="taskBox" hidden><div class="card"><h2 id="taskTitle"></h2><div id="taskBody"></div>
@@ -157,7 +165,7 @@
 <canvas id="strip"></canvas>
 <input id="scrub" type="range" min="0" max="1000" value="0">
 <main>
-  <div class="card"><h2>Level</h2><div id="summary"></div></div>
+  <div class="card"><h2>Level</h2><div id="summary"></div><div id="runsRow" hidden></div></div>
   <div class="card"><h2>Clicks</h2><div id="clicks"></div></div>
   <div class="card" style="grid-column:1/-1"><h2>Marks — what to change</h2><div id="marks"></div></div>
 </main>
@@ -177,6 +185,7 @@
 <script src="../lib/natural.js"></script>
 <script src="../lib/song.js"></script>
 <script src="../lib/runner.js"></script>
+<script src="../lib/liveplay.js"></script>
 <script src="../lib/difficulty.js"></script>
 <script src="../lib/windows.js"></script>
 <script src="levels.js"></script>
@@ -192,6 +201,22 @@ const SHOOT = new URLSearchParams(location.search).get("shoot");
 let MAPCAM = null; // level map (tools/levelmap.js): a fixed camera {x, y, scale, groundY}, no player
 let L = null;          // {name, objects, world, sol, path}
 let t = 0, playing = false, speed = 1, showHit = false, sound = true, lastTick = -1;
+// ?mute=1: silent (no music, no click sound); ?test=1: silent too, and every action the page sends is marked as a test
+// (marks, attempts, reviews, answers: kept out of the actions feed) and no preference is saved. Sessions' experiments,
+// tools/headless.js and every check in the browser pane open the viewer with test=1 (CLAUDE.md: experiments are silent).
+const QS = new URLSearchParams(location.search), TESTPAGE = QS.get("test") === "1", MUTED = TESTPAGE || QS.get("mute") === "1";
+if (MUTED) sound = false;
+if (TESTPAGE) {
+  try { Storage.prototype.setItem = function () {}; } catch (e) {}   // the user's preferences stay as they are
+  const f0 = window.fetch.bind(window);
+  window.fetch = (u, o) => {
+    if (o && o.method === "POST" && /\/(marks|play|stages\/review|asks\/answer)$/.test(String(u)) && typeof o.body === "string") try {
+      const j = JSON.parse(o.body); j.test = true; if (/\/marks$/.test(String(u)) && j.id && !/^test-/.test(j.id)) j.id = "test-" + j.id;
+      o = Object.assign({}, o, { body: JSON.stringify(j) });
+    } catch (e) {}
+    return f0(u, o);
+  };
+}
 
 // ---------- loading ----------
 async function gunzipB64(b64) {
@@ -319,9 +344,9 @@ async function keptSong(key) { try { const db = await songDb(); return await new
 async function keepSong(key, bytes) { try { const db = await songDb(); db.transaction("songs", "readwrite").objectStore("songs").put(bytes, key); } catch (e) {} }
 // the level's song: fetched from tools/serve.js once, decoded, played sample-exact by lib/song.js (Web Audio);
 // while playing, the replay's clock IS the song's clock (frame()), so they cannot drift apart
-let song = null, songInfo = null, music = true;
+let song = null, songInfo = null, music = !MUTED;
 const SONGS = (GD.SONGBUF = GD.SONGBUF || {}), songKeyOf = info => decodeURIComponent(String(info.url).split("/").pop()).toLowerCase();
-function audioCtx() { actx = actx || new AudioContext(); return actx; }
+function audioCtx() { actx = actx || new AudioContext(); if (MUTED && actx.state === "running") actx.suspend(); return actx; }
 function viewerSong(info) {
   const buf = SONGS[songKeyOf(info)];
   if (buf) return GD.songPlayer(buf, audioCtx);
@@ -393,7 +418,8 @@ function load(name, levelStr, saved, info) {
   const level = pre && pre.level || GD.parseLevel(levelStr);
   const world = pre && pre.world || GD.makeWorld(level.objects, level.header);
   let sol;
-  if (saved) sol = saved.ok ? { ok: true, events: saved.events, clicks: [] } : { ok: false, trail: saved.events, clicks: [], dieAt: { x: saved.dieX || 0, tick: 0 }, why: saved.why || "", pending: !!saved.pending };
+  if (PLAY && PLAY.on) playStop(true);   // another level opened while the user played
+  if (saved) sol = saved.ok ? { ok: true, events: saved.events, clicks: [], planReplay: !!saved.planReplay } : { ok: false, trail: saved.events, clicks: [], dieAt: { x: saved.dieX || 0, tick: saved.dieTick || 0 }, why: saved.why || "", pending: !!saved.pending, planReplay: !!saved.planReplay };
   else if (location.protocol.startsWith("http") && !window.GD_PAGES && !window.GD_PHONE && !SHOOT && ALL[pick.value] && ALL[pick.value].level === levelStr) {
     // no saved route: ask the PC instead of freezing the page for minutes (solveLater explains first)
     sol = { ok: false, trail: [], clicks: [], dieAt: { x: 0, tick: 0 }, why: "not solved yet: no saved route", pending: true };
@@ -425,11 +451,14 @@ function load(name, levelStr, saved, info) {
   const held = new Uint8Array(path.length);
   { const ev = (events || []).slice().sort((a, b) => a.tick - b.tick); let h = 0, j = 0;
     for (let k = 0; k < path.length; k++) { while (j < ev.length && ev[j].tick <= k) { h = ev[j].type === "press" ? 1 : 0; j++; } held[k] = h; } }
-  L = { name, level, world, sol, path, held };
+  L = { name, level, world, sol, path, held, hash: GD.levelHash ? GD.levelHash(levelStr) : "", ghost: null };
   L.vrot = visualRot(path);
   L.routeKind = routeKindOf(saved, sol, world);
   // no route yet (a level or build stage still being made): the camera runs through it at the level's speed
   if (sol.pending && !SHOOT) { L.path.length = 1; ghostExtend(L, null, true); L.noRoute = true; }
+  // a build stage's plan replayed (no solve): where it breaks, and the camera going on as a ghost after it
+  L.planBreak = null;
+  if (sol.planReplay && !sol.ok && !SHOOT) { const e = path[Math.min(sol.dieAt.tick, path.length - 1)]; L.planBreak = { x: sol.dieAt.x, y: e.y, t: sol.dieAt.tick / P.TPS, why: sol.why }; ghostExtend(L, null, true); }
   // colour / alpha / zoom triggers fire when the replayed run passes their x
   L.look = GD.LOOK.timeline(level, x => {
     let lo = 0, hi = path.length - 1;
@@ -443,6 +472,7 @@ function load(name, levelStr, saved, info) {
   t = 0; lastTick = -1; playing = false; setPlay();
   summary(); clickTable(); markTable(); if (cmpOn) cmpLoadSetting(); draw();
   windowsLater(L, events, saved);
+  setTimeout(() => runsFor(L), 0);
 }
 // every input's whole timing window (lib/windows.js: a player's window, later inputs re-planned), worked out after
 // the level shows, a slice at a time so the page stays live; the button strip shades each one and the
@@ -451,7 +481,7 @@ function load(name, levelStr, saved, info) {
 // A saved solution carries them already (tools/solutions.js measures them once per level content, as it
 // solves): then they show at once and nothing is measured here ("it resolves every time I select a level?").
 function windowsLater(LL, events, saved) {
-  if (window.SHOOT_MAP || !LL.sol.ok || !events || !events.length || LL.sol.clicks.some(c => c.hi > c.lo)) return;
+  if (window.SHOOT_MAP || LL.sol.planReplay || !LL.sol.ok || !events || !events.length || LL.sol.clicks.some(c => c.hi > c.lo)) return;
   const byKey = new Map(LL.sol.clicks.map(c => [c.type + c.tick, c])), sorted = events.slice().sort((a, b) => a.tick - b.tick);
   const take = wins => { for (const wv of wins) { const c = byKey.get(wv.type + wv.tick); if (!c || c.ms) continue;
     Object.assign(c, { lo: wv.lo, hi: wv.hi, ms: Math.round((wv.hi - wv.lo + 1) / P.TPS * 1000) });
@@ -512,6 +542,24 @@ pick.onchange = () => { const l = ALL[pick.value]; load(l.name, l.level, l.solut
 const PATHCACHE = new Map();
 // the inputs the replay plays: the solution's, or for a level the sim cannot beat its furthest run (each press
 // released a tick later unless a release follows)
+// a build stage's (or a variant's) plan replayed at once: the sim on its planned presses (lib/liveplay.js planEvents),
+// in slices, no solve -- the first check of a layout, free. done(saved) gets a saved-route-like object for load():
+// {ok, events, planReplay: true, dieX, dieTick, why} ("plan" is taken: saved solutions carry their own); the run is put in PATHCACHE so load() does not run it again.
+function planSaved(levelStr, plan, done) {
+  const ev0 = GD.planEvents && GD.planEvents(plan); if (!ev0 || !GD.runSliced) return false;
+  const ev = replayEvents({ ok: false, trail: ev0 });   // a tap is released a tick later, as load() replays an unfinished run
+  let lv = null, w = null, r = null;
+  const slow = setTimeout(() => notice("replaying the plan…", 0), 150);
+  const step = () => {
+    if (!r) { lv = GD.parseLevel(levelStr); w = GD.makeWorld(lv.objects, lv.header); r = GD.runSliced(w, ev); return setTimeout(step, 0); }
+    if (!r.advance(12)) return setTimeout(step, 0);
+    clearTimeout(slow); const n = document.getElementById("notice"); if (n && /^replaying the plan/.test(n.textContent)) n.hidden = true;
+    const res = r.result, ok = !!res.done && !res.dead;
+    PATHCACHE.set(levelStr, { key: JSON.stringify(ev), result: res, level: lv, world: w });
+    done({ ok, events: ev, planReplay: true, dieX: res.end.x, dieTick: res.path.length - 1, why: ok ? "" : res.dead ? (res.why || "dies") : "the run does not reach the end" });
+  };
+  setTimeout(step, 0); return true;
+}
 function replayEvents(sol) {
   if (sol.ok) return sol.events;
   const events = [];
@@ -627,7 +675,7 @@ async function stagesFor(l) {
 }
 function stageRender() {
   const bar = document.getElementById("stagebar");
-  if (!STG.data) { bar.hidden = true; return; }
+  if (!STG.data) { bar.hidden = true; secRender(); return; }
   bar.hidden = false;
   const have = new Map(STG.data.stages.map(x => [x.stage, x])), last = STG.data.stages[STG.data.stages.length - 1].stage;
   const lit = STG.cur || (STG.base && STG.base.stagesOnly ? last : null);
@@ -641,6 +689,43 @@ function stageRender() {
   const back = document.getElementById("stageBack"); if (back) back.onclick = () => { STG.cur = null; const tt = t; pick.dispatchEvent(new Event("change")); t = Math.min(tt, (L.path.length - 1) / P.TPS); draw(); };
   const sv = document.getElementById("stageSolve"); if (sv) sv.onclick = () => stageSolve(have.get(STG.cur));
   bar.querySelectorAll("[data-review]").forEach(b => b.onclick = () => stageReview(have.get(b.dataset.stage), b.dataset.review));
+  secRender();
+}
+// ---------- sections (collab-style building: tools/seams.js; the stages index's "sections", tools/stages.js) ----------
+// One chip per section: its name, blocks, and each role's state (L layout, D deco, P playtest: planned / built / ok /
+// redo; hover: who builds it). The section under the playhead is outlined; a click selects it and jumps there; the
+// selected one gets ✓ / redo for the open stage's role and for playtest -- the answer goes to that section only (POST
+// /stages/review with section + role), so one section can be sent back while the others go on. Seams are drawn on the
+// level as dashed lines with the section's name.
+var SEC = { sel: null, here: null };
+var SEC_ROLE = { layout: "layout", path: "playtest", deco: "deco", final: "deco", song: "layout" };
+function secList() { return STG.data && Array.isArray(STG.data.sections) && STG.data.sections.length ? STG.data.sections : null; }
+function secAt(x) { const s = secList(); return s && s.find(c => Array.isArray(c.x) && x >= c.x[0] && x < c.x[1]) || null; }
+function secRender() {
+  const bar = document.getElementById("secbar"), secs = secList();
+  if (!secs) { bar.hidden = true; return; }
+  bar.hidden = false;
+  const lit = STG.cur || STG.data.stages[STG.data.stages.length - 1].stage, role = SEC_ROLE[lit] || "layout";
+  const pill = (sc, r, letter) => { const st = (sc.status || {})[r] || "planned", rv = (sc.reviews || {})[r];
+    return `<span class="role ${esc(st)}" title="${esc(r)}: ${esc(st)}${sc.builder && sc.builder[r] ? " · by " + esc(sc.builder[r]) : ""}${rv && rv.note ? " · " + esc(rv.note) : ""}">${letter}</span>`; };
+  const sel = secs.find(c => c.id === SEC.sel);
+  bar.innerHTML = `<span class="muted">sections</span>` + secs.map(sc => `<span class="sec${sc.id === SEC.here ? " here" : ""}${sc.id === SEC.sel ? " sel" : ""}" data-sec="${esc(sc.id)}" title="${esc(sc.id)}: blocks ${Math.round(sc.x[0] / 30)}–${Math.round(sc.x[1] / 30)}${Array.isArray(sc.t) ? ", " + (+sc.t[0]).toFixed(1) + "–" + (+sc.t[1]).toFixed(1) + " s" : ""}">${esc(sc.name || sc.id)} ${pill(sc, "layout", "L")}${pill(sc, "deco", "D")}${pill(sc, "playtest", "P")}</span>`).join("") +
+    (sel ? `<span class="sep">|</span><b>${esc(sel.name || sel.id)}</b>` + [...new Set([role, "playtest"])].map(r => ` <span class="muted">${esc(r)}:</span><button data-sr="ok" data-role="${r}" title="this section's ${r} is good">✓ ok</button><button data-sr="redo" data-role="${r}" title="send this section's ${r} back with a note">redo…</button>`).join("") : "");
+  bar.querySelectorAll("[data-sec]").forEach(b => b.onclick = () => { SEC.sel = SEC.sel === b.dataset.sec ? null : b.dataset.sec; const sc = secs.find(c => c.id === b.dataset.sec); if (SEC.sel && sc && L) varGo(sc.x[0] + 90); secRender(); });
+  bar.querySelectorAll("[data-sr]").forEach(b => b.onclick = () => secReview(sel, b.dataset.role, b.dataset.sr, lit));
+}
+async function secReview(sc, role, verdict, stage) {
+  if (!sc || !STG.base) return;
+  let note;
+  if (verdict === "redo") { const a = await askNote(`What should change in ${sc.name || sc.id} (${role})?`); if (!a) return; note = a.note + (a.kind && a.kind !== a.note ? " (" + a.kind + ")" : ""); }
+  const spot = L && L.path.length ? { t: +(tick() / P.TPS).toFixed(2), x: Math.round(L.path[tick()].x) } : undefined;
+  try {
+    const r = await fetch("/stages/review", { method: "POST", body: JSON.stringify({ file: STG.base.file, level: STG.base.name, stage, section: sc.id, sectionName: sc.name, role, verdict, note, spot }) });
+    if (!r.ok) throw new Error(await r.text());
+    const rv = await r.json(); if (!rv.test) { sc.reviews = Object.assign({}, sc.reviews, { [role]: rv }); sc.status = Object.assign({}, sc.status, { [role]: verdict }); }
+    notice(`${verdict === "ok" ? "✓" : "↺"} ${esc(sc.name || sc.id)} · ${esc(role)}: ${verdict === "ok" ? "approved" : "sent back with your note"} -- ${rv.test ? "a test page: nothing stored" : esc((sc.builder && sc.builder[role]) || STG.base.session || "the session") + " hears it now"}.`, 5000);
+    secRender();
+  } catch (e) { notice("Could not send it (is tools/serve.js running?)."); }
 }
 // the user's answer on the stage shown: ✓ ok, or redo with a note (and the moment / spot on screen); a gated stage
 // says the build waits for it
@@ -670,13 +755,21 @@ function stageOpen(name) {
   if (st.data && st.data.grid && song && song.url) { const g = st.data.grid;
     (window.GD_BEATS = window.GD_BEATS || {})[song.url] = Object.assign({ downbeat: 0, conf: "plan", sections: [] }, g, { period: g.period || 60 / g.bpm, bpm: g.bpm || 60 / g.period }); }
   STG.cur = name;
-  load(base.name + " · " + name, st.level, st.solution || { ok: false, events: [], pending: true, why: "this stage has no route yet (find the route: the button above)" }, song);
-  L.planned = st.data && st.data.planned || null;
-  L.hits = stageHits();
-  t = Math.min(tt, Math.max(0, (L.path.length - 1) / P.TPS)); lastTick = tick(); draw(); stageRender();
-  const secs = st.data && st.data.sections;
-  if (secs && secs.length || st.note) document.getElementById("summary").insertAdjacentHTML("beforeend",
-    `<p class="muted">stage <b>${esc(name)}</b>${st.note ? ": " + esc(st.note) : ""}${secs && secs.length ? "<br>sections: " + secs.map(x => esc(x.name) + " " + (+x.from).toFixed(1) + "–" + (+x.to).toFixed(1) + " s").join(" · ") : ""}</p>`);
+  const show = saved => {
+    if (STG.cur !== name) return;
+    load(base.name + " · " + name, st.level, saved, song);
+    L.planned = st.data && st.data.planned || null;
+    L.hits = stageHits();
+    t = Math.min(tt, Math.max(0, (L.path.length - 1) / P.TPS)); lastTick = tick(); draw(); stageRender();
+    const secs = st.data && st.data.sections, tm = st.data && st.data.timing;
+    if (secs && secs.length || st.note || tm) document.getElementById("summary").insertAdjacentHTML("beforeend",
+      `<p class="muted">stage <b>${esc(name)}</b>${st.note ? ": " + esc(st.note) : ""}${secs && secs.length ? "<br>sections: " + secs.map(x => esc(x.name) + " " + (+x.from).toFixed(1) + "–" + (+x.to).toFixed(1) + " s").join(" · ") : ""}` +
+      (tm ? `<br>build time: ${esc(tm)}${st.data.target ? ` (this stage's target ${esc(st.data.target)} s${st.data.secs > st.data.target ? ", <b>over</b>" : ""})` : ""}` : "") + `</p>`);
+  };
+  const pending = { ok: false, events: [], pending: true, why: "this stage has no route yet (find the route: the button above)" };
+  // no route yet, but a plan (the layout / path stage: the patterns' intended presses): replay it at once, no solve
+  if (!st.solution && planSaved(st.level, st.data, saved => { if (STG.cur === name && !(PLAY && PLAY.on)) show(saved); })) show(Object.assign({}, pending, { why: "replaying the plan…" }));
+  else show(st.solution || pending);
 }
 // the song's real hits (tools/hits.js slots {beat, t: song seconds, kind}, put with the song stage as data.hits):
 // kicks, snares and accents as ticks under the presses, in level time (song time - the song's offset)
@@ -732,8 +825,16 @@ function varOpen(secId, key) {
   const sc = VAR.data.sections.find(x => x.id === secId), v = sc && sc.variants.find(x => x.key === key); if (!v || !v.level) return;
   const tt = t, base = VAR.base;
   VAR.cur = { sec: secId, key };
-  load(base.name + " · " + (sc.name || sc.id) + " " + key, v.level, v.solution || null, base.song);
-  t = Math.min(tt, (L.path.length - 1) / P.TPS); lastTick = tick(); draw(); varRender();
+  const open = saved => { if (!VAR.cur || VAR.cur.sec !== secId || VAR.cur.key !== key) return;
+    load(base.name + " · " + (sc.name || sc.id) + " " + key, v.level, saved, base.song);
+    t = Math.min(tt, (L.path.length - 1) / P.TPS); lastTick = tick(); draw(); varRender(); };
+  if (v.solution) return open(v.solution);
+  // no route: replay its plan (the variants index's planned presses, or the layout stage's data.alt option's)
+  const lay = STG.data && STG.data.stages.find(x => x.stage === "layout"), alt = lay && lay.data && (lay.data.alt || []).find(a => a.section === secId),
+    opt = alt && (alt.options || []).find(o => o.key === key), plan = v.planned || (opt && opt.planned);
+  const pend = { ok: false, events: [], pending: true, why: "no route for this variant" };
+  if (plan && planSaved(v.level, { planned: plan }, open)) open(Object.assign({}, pend, { why: "replaying the plan…" }));
+  else open(pend);   // never a solve in the page (it froze for minutes)
 }
 async function varPick() {
   if (!VAR.cur || !VAR.base) return;
@@ -875,7 +976,9 @@ function summary() {
   let h = `<b>${esc(L.name)}</b><br><span class="muted">${L.level.objects.length} objects · ${(L.world.endX / 30).toFixed(0)} blocks · ${(L.world.endX / P.SPEED).toFixed(1)} s at 1×</span><br>`;
   // presses only (a saved solution lists releases too); windows only where known (saved ones have none)
   const nP = s.clicks.filter(c => c.type !== "release").length, ws = s.clicks.map(c => c.ms).filter(ms => ms > 0);
-  h += s.ok ? `<p class="ok">Beatable in ${nP} click${nP === 1 ? "" : "s"} ${kind}` +
+  h += s.planReplay ? (s.ok ? `<p class="ok">▶ The plan plays to the end: the planned presses replayed (${nP} presses, no solve).</p>`
+      : `<p class="bad">▶ The plan breaks here: block ${(s.dieAt.x / 30).toFixed(1)} (x ${Math.round(s.dieAt.x)}), ${(s.dieAt.tick / P.TPS).toFixed(2)} s${s.why ? ": " + esc(s.why) : ""}. After it the camera goes on as a ghost.</p>`)
+    : s.ok ? `<p class="ok">Beatable in ${nP} click${nP === 1 ? "" : "s"} ${kind}` +
               (ws.length ? ` · tightest window ${Math.min(...ws)} ms` : "") + `</p>`
             : s.pending ? `<p class="muted">${esc(s.why)}</p>` : `<p class="bad">${kind} Not beatable in the simulation. The furthest run dies at block ${(s.dieAt.x / 30).toFixed(1)} (${(s.dieAt.tick / P.TPS).toFixed(2)} s): ${s.why}. The replay shows that furthest run.</p>`;
   if (L.deaths && L.deaths.length) h += `<p class="bad">Your real deaths (normal mode, from recordings): ${L.deaths.length} at ${L.deaths.slice().sort((a, b) => a - b).map(p => p.toFixed(0) + "%").join(", ")} (red marks).</p>`;
@@ -905,8 +1008,10 @@ function esc(s) { return String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": 
 // ---------- controls ----------
 const playBtn = document.getElementById("play");
 function setPlay() { playBtn.textContent = playing ? "❚❚ pause" : "▶ play"; }
-playBtn.onclick = () => { if (!L) return; if (tick() >= L.path.length - 1) t = 0; playing = !playing; setPlay(); syncSong(true); };
-document.getElementById("restart").onclick = () => { if (!L) return; t = 0; lastTick = -1; playing = true; setPlay(); syncSong(true); };
+playBtn.onclick = () => { if (!L) return;
+  if (PLAY && PLAY.on) { const st = PLAY.lp.state; if (st.dead || st.done) playRestart(PLAY.practice); else { playing = !playing; setPlay(); syncSong(true); } return; }
+  if (tick() >= L.path.length - 1) t = 0; playing = !playing; setPlay(); syncSong(true); };
+document.getElementById("restart").onclick = () => { if (!L) return; if (PLAY && PLAY.on) return playRestart(false); t = 0; lastTick = -1; playing = true; setPlay(); syncSong(true); };
 document.querySelectorAll("[data-speed]").forEach(b => b.onclick = () => {
   speed = +b.dataset.speed; document.querySelectorAll("[data-speed]").forEach(x => x.classList.toggle("on", x === b)); syncSong(true);
 });
@@ -987,6 +1092,7 @@ async function makeMap(l, name, url) {
 }
 document.getElementById("hit").onclick = e => { showHit = !showHit; e.target.classList.toggle("on", showHit); draw(); };
 document.getElementById("sound").onclick = e => { sound = !sound; e.target.classList.toggle("on", sound); };
+if (MUTED) { document.getElementById("sound").classList.remove("on"); document.getElementById("music").classList.remove("on"); }
 document.getElementById("music").onclick = e => { music = !music; e.target.classList.toggle("on", music); syncSong(true); };
 let showBeats = true;
 document.getElementById("beatsBtn").onclick = e => { showBeats = !showBeats; e.target.classList.toggle("on", showBeats); draw(); };
@@ -1012,9 +1118,154 @@ addEventListener("keydown", e => {
   if (e.key === "ArrowLeft") { t = Math.max(0, t - 1 / P.TPS * (e.shiftKey ? 24 : 1)); playing = false; setPlay(); draw(); }
 });
 
+// ---------- your runs beside the route (USE_CASES 29; tools/attempts.js: "you play" attempts and real GD recordings in
+// one format). A level's attempts at this exact version (its hash) are listed under the summary; one picked replays as a
+// pink ghost cube next to the route, and the button band marks each of its presses against the route's: on time
+// (within 2 ticks, green), early / late (blue / orange, with the offset in ms), extra (red ×), and the route's presses
+// it missed (red ring). Pairs are within 50 ms (GD.comparePresses).
+function runsFile() {
+  if (STG.cur && STG.base && STG.data) { const st = STG.data.stages.find(x => x.stage === STG.cur); if (st && st.file) return STG.base.file.replace(/\.gdlvl$/, ".stages/" + st.file); }
+  const l = ALL[pick.value]; return VAR.cur ? null : l && l.file;
+}
+async function runsFor(LL) {
+  const el = document.getElementById("runsRow"), f = runsFile();
+  if (!LL || LL !== L || !f || !location.protocol.startsWith("http") || window.GD_PAGES || window.GD_PHONE) { el.hidden = true; return; }
+  let rows = []; try { rows = await (await fetch("/attempts?file=" + encodeURIComponent(f) + "&hash=" + LL.hash, { cache: "no-store" })).json(); } catch (e) {}
+  if (LL !== L) return;
+  if (!rows.length) { el.hidden = true; return; }
+  const ago = iso => { const m = (Date.now() - Date.parse(iso)) / 60000; return m < 60 ? Math.max(1, Math.round(m)) + " min ago" : m < 1440 ? Math.round(m / 60) + " h ago" : Math.round(m / 1440) + " d ago"; };
+  const dead = rows.filter(r => r.result === "died"), b = {}; for (const r of dead) { const k = Math.floor(r.pct / 10) * 10; b[k] = (b[k] || 0) + 1; }
+  const worst = Object.entries(b).sort((x, y) => y[1] - x[1])[0];
+  el.hidden = false;
+  el.innerHTML = `<p class="muted" style="margin:6px 0 2px">Your runs at this version: ${rows.length} (${rows.filter(r => r.result === "clear").length} clear${worst ? `, most deaths at ${worst[0]}-${+worst[0] + 10}%` : ""})</p>` +
+    `<select id="runPick"><option value="">replay one beside the route…</option>` + rows.slice().reverse().map(r => `<option value="${esc(r.id)}">${r.source === "video" ? "🎥 " : "🎮 "}${r.result === "clear" ? "clear" : "died " + Math.round(r.pct) + "%"} · ${r.presses} presses${r.practice ? " · practice" : ""} · ${ago(r.at)}</option>`).join("") + `</select> <span id="runCmp" class="muted"></span>`;
+  const sel = document.getElementById("runPick");
+  if (LL.ghost) sel.value = LL.ghost.row.id;
+  sel.onchange = () => runShow(sel.value);
+  runCmpText();
+}
+async function runShow(id) {
+  const LL = L; if (!LL) return;
+  if (!id) { LL.ghost = null; runCmpText(); draw(); return; }
+  let row = null; try { row = (await (await fetch("/attempts?file=" + encodeURIComponent(runsFile()) + "&hash=" + LL.hash + "&id=" + encodeURIComponent(id), { cache: "no-store" })).json())[0]; } catch (e) {}
+  if (!row || LL !== L) return;
+  // a practice attempt with no inputs before its checkpoint (a GD recording only has the presses after it): the route's
+  // own presses take it there, and only the part from the checkpoint is compared
+  const from = row.practice && row.from && row.from.tick > 0 && !row.events.some(e => e.tick < row.from.tick) ? row.from.tick : 0;
+  const pre = from && LL.sol.ok ? replayEvents(LL.sol).filter(e => e.tick < from) : [];
+  const r = GD.runSliced(LL.world, pre.concat(row.events));
+  const step = () => { if (LL !== L) return; if (!r.advance(12)) return setTimeout(step, 0);
+    const end = r.result.path.length - 1;   // the route's presses after the run ended are not "missed"
+    const route = LL.sol.ok ? LL.sol.clicks.filter(c => c.type !== "release" && c.tick <= end && c.tick >= from).map(c => c.tick) : null;
+    const runP = row.events.filter(e => e.type === "press").map(e => e.tick);
+    LL.ghost = { row, path: r.result.path, cmp: route ? GD.comparePresses(route, runP) : null, runP, from: pre.length ? from : 0 };
+    runCmpText(); draw(); };
+  setTimeout(step, 0);
+}
+function runCmpText() {
+  const el = document.getElementById("runCmp"); if (!el) return;
+  const g = L && L.ghost; if (!g) { el.textContent = ""; return; }
+  const ms = dt => Math.round(dt / P.TPS * 1000), c = g.cmp;
+  if (!c) { el.textContent = `the ghost: ${g.row.result === "clear" ? "clears" : "dies at " + Math.round(g.row.pct) + "%"} (no route to compare with)`; return; }
+  const on = c.pairs.filter(p => Math.abs(p.dt) <= 2), early = c.pairs.filter(p => p.dt < -2), late = c.pairs.filter(p => p.dt > 2);
+  const avg = a => a.length ? Math.round(a.reduce((n, p) => n + ms(p.dt), 0) / a.length) : 0;
+  el.innerHTML = (g.from ? `practice from ${(g.from / P.TPS).toFixed(1)} s (the route's presses take it there) · ` : "") + `vs the route: <b style="color:#7dff9a">${on.length} on time</b> · <b style="color:#7ab8ff">${early.length} early</b>${early.length ? ` (avg ${avg(early)} ms)` : ""} · <b style="color:#ffb35a">${late.length} late</b>${late.length ? ` (avg +${avg(late)} ms)` : ""} · <b style="color:#ff5c82">${c.extra.length} extra, ${c.missing.length} missing</b>`;
+}
+// ---------- "you play" (button / key P): the user plays the level here, the same sim live (lib/liveplay.js) ----------
+// space / ↑ / W / Enter / click / tap = the button (presses land on the next tick: a frame boundary, as in the user's
+// game); R = restart (practice: from the last checkpoint), Shift+R from the start; P or Esc = back to the replay.
+// Practice checkpoints at each section start and portal. Every attempt goes to the actions feed as type "play" (POST
+// /play): where the user dies is a soft signal for difficulty. Works on any level or build stage, with or without a
+// route: a layout can be tried minutes after it exists (VIEWER.md).
+var PLAY = { on: false, lp: null, practice: true, keep: null, timer: null, deaths: [], from: 0 };
+try { PLAY.practice = localStorage.getItem("gdlm.practice") !== "0"; } catch (e) {}
+function playCheckpoints() {
+  const xs = [];
+  for (const o of L.level.objects) { const k = GD.objInfo(o.id).kind; if (k === "mode" || k === "speed" || k === "gravity" || k === "size") xs.push(o.x + 20); }
+  const withSecs = STG.data && STG.data.stages.find(x => x.data && Array.isArray(x.data.sections) && x.data.sections.length);
+  if (withSecs) { const tl = GD.SYNC.timeline(L.world); for (const sc of withSecs.data.sections) xs.push(GD.SYNC.xOfT(tl, +sc.from || 0)); }
+  if (VAR.data) for (const sc of VAR.data.sections) xs.push(+sc.from || 0);
+  if (!xs.length) for (let i = 1; i < 10; i++) xs.push(L.world.endX * i / 10);
+  const out = []; for (const x of xs.filter(x => x > 90 && x < L.world.endX - 60).sort((a, b) => a - b)) if (!out.length || x - out[out.length - 1] > 150) out.push(x);
+  return out;
+}
+function playUse() { L.path = PLAY.lp.path; L.held = PLAY.lp.held; }
+function playButtons() {
+  const b = document.getElementById("youPlay"), pr = document.getElementById("practiceBtn");
+  b.classList.toggle("on", PLAY.on); b.textContent = PLAY.on ? "🎮 playing (P: stop)" : "🎮 you play";
+  pr.hidden = !PLAY.on; pr.classList.toggle("on", PLAY.practice); cv.style.touchAction = PLAY.on ? "none" : "";
+}
+function playStart() {
+  if (!L || PLAY.on) return;
+  if (marking) setMarking(false);
+  PLAY.keep = { path: L.path, held: L.held, vrot: L.vrot, sol: L.sol, noRoute: L.noRoute, planBreak: L.planBreak, t };
+  PLAY.lp = GD.livePlay(L.world, { checkpoints: playCheckpoints() }); PLAY.deaths = []; PLAY.from = 0; PLAY.on = true;
+  playUse(); L.sol = Object.assign({}, L.sol, { clicks: [] }); L.noRoute = false; L.planBreak = null; L.vrot = null;
+  t = 0; lastTick = -1; playing = true; setPlay(); syncSong(true); playButtons();
+  notice("🎮 You play: <b>space</b> / <b>click</b> / <b>tap</b> = jump · <b>R</b> restart (Shift+R: from the start) · <b>P</b> back to the replay" + (PLAY.practice ? " · practice: checkpoints at each section" : ""), 6000);
+}
+function playStop(quiet) {
+  if (!PLAY.on) return;
+  clearTimeout(PLAY.timer); PLAY.on = false;
+  if (!quiet && L && PLAY.keep) { Object.assign(L, { path: PLAY.keep.path, held: PLAY.keep.held, vrot: PLAY.keep.vrot, sol: PLAY.keep.sol, noRoute: PLAY.keep.noRoute, planBreak: PLAY.keep.planBreak });
+    t = Math.min(PLAY.keep.t, (L.path.length - 1) / P.TPS); lastTick = tick(); playing = false; setPlay(); syncSong(); summary(); draw(); }
+  PLAY.keep = null; playButtons();
+}
+function playPress() {
+  const st = PLAY.lp.state;
+  if (st.dead) { if (!PLAY.timer) playRestart(PLAY.practice); return; }   // a death with no press waits for one
+  PLAY.pressed = true;
+  if (st.done) return playRestart(false);
+  if (!playing) { playing = true; setPlay(); syncSong(true); }
+  PLAY.lp.press();
+}
+function playFrame() {
+  const lp = PLAY.lp, want = Math.floor(t * P.TPS), s = lp.advanceTo(want);
+  if (lp.path.length - 1 < want) t = (lp.path.length - 1) / P.TPS;   // it stopped: a death or the end
+  if (s.dead || s.done) { playing = false; setPlay(); syncSong(); playEnd(s); }
+}
+function playEnd(s) {
+  const lp = PLAY.lp, clear = s.done && !s.dead, pct = Math.max(0, Math.min(100, s.x / Math.max(1, L.world.endX - 90) * 100)), l = STG.base || ALL[pick.value] || {};
+  const rec = { level: l.name || L.name, file: l.file || "", session: l.session || "", stage: STG.cur || undefined, attempt: lp.attempts, result: clear ? "clear" : "died",
+    x: Math.round(s.x), pct: +pct.toFixed(1), t: +((lp.path.length - 1) / P.TPS).toFixed(2), why: s.why || "", from: Math.round(PLAY.from), practice: PLAY.practice,
+    fromTick: PLAY.fromTick || 0, events: lp.events.slice(), hash: L.hash };
+  if (STG.cur && STG.base) { const st = STG.data.stages.find(x => x.stage === STG.cur); if (st && st.file) rec.file = STG.base.file.replace(/\.gdlvl$/, ".stages/" + st.file); }
+  // an attempt with no press at all (nobody playing) is not logged, and does not restart by itself
+  const idle = !PLAY.pressed; PLAY.pressed = false;
+  if (!idle && location.protocol.startsWith("http") && !window.GD_PAGES && !window.GD_PHONE) fetch("/play", { method: "POST", body: JSON.stringify(rec) }).catch(() => {});
+  PLAY.last = rec;
+  if (!idle) setTimeout(() => runsFor(L), 400);   // the runs list gets the new attempt
+  if (clear) { notice(`✓ Cleared on attempt ${lp.attempts}${PLAY.practice ? " (practice)" : ""}! Space or R plays again, P goes back to the replay.`, 0); return; }
+  PLAY.deaths.push(s.x); draw();
+  if (idle) { PLAY.timer = null; notice(`✕ ${pct.toFixed(0)}%${s.why ? " · " + esc(s.why) : ""} -- press space / click to try again`, 0); return; }
+  notice(`✕ ${pct.toFixed(0)}% · attempt ${lp.attempts}${s.why ? " · " + esc(s.why) : ""}`, 1500);
+  PLAY.timer = setTimeout(() => playRestart(PLAY.practice), 800);
+}
+function playRestart(practice) {
+  if (!PLAY.on) return;
+  clearTimeout(PLAY.timer); PLAY.timer = null; PLAY.pressed = false; const lp = PLAY.lp;
+  lp.restart(practice); playUse(); PLAY.from = lp.path[lp.path.length - 1].x; PLAY.fromTick = lp.path.length - 1;
+  t = (lp.path.length - 1) / P.TPS; lastTick = -1; playing = true; setPlay(); syncSong(true); draw();
+}
+const PLAYKEYS = new Set(["Space", "ArrowUp", "KeyW", "Enter", "NumpadEnter"]);
+addEventListener("keydown", e => {
+  if (/INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName || "") || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.code === "KeyP") { e.preventDefault(); e.stopImmediatePropagation(); return PLAY.on ? playStop() : playStart(); }
+  if (!PLAY.on) return;
+  e.stopImmediatePropagation();   // in "you play" these keys are the game's, not the viewer's
+  if (PLAYKEYS.has(e.code)) { e.preventDefault(); if (!e.repeat) playPress(); return; }
+  if (e.code === "KeyR") { e.preventDefault(); return playRestart(!e.shiftKey && PLAY.practice); }
+  if (e.code === "Escape") return playStop();
+}, true);
+addEventListener("keyup", e => { if (PLAY.on && PLAYKEYS.has(e.code)) { e.preventDefault(); e.stopImmediatePropagation(); PLAY.lp.release(); } }, true);
+cv.addEventListener("pointerdown", e => { if (!PLAY.on || marking) return; e.preventDefault(); playPress(); });
+for (const ev of ["pointerup", "pointercancel"]) addEventListener(ev, () => { if (PLAY.on) PLAY.lp.release(); });
+document.getElementById("youPlay").onclick = e => { e.currentTarget.blur(); PLAY.on ? playStop() : playStart(); };
+document.getElementById("practiceBtn").onclick = e => { e.currentTarget.blur(); PLAY.practice = !PLAY.practice; try { localStorage.setItem("gdlm.practice", PLAY.practice ? "1" : "0"); } catch (err) {} playButtons(); };
+
 let actx = null;
 function beep() {
-  if (!sound) return;
+  if (!sound || MUTED) return;
   actx = actx || new AudioContext();
   const o = actx.createOscillator(), g = actx.createGain();
   o.type = "square"; o.frequency.value = 1320;
@@ -1286,6 +1537,26 @@ function draw() {
     ctx.strokeStyle = "rgba(255,90,210,.6)"; ctx.lineWidth = 3;
     for (const yy of [s.floorY, s.ceilY]) { ctx.beginPath(); ctx.moveTo(0, sy(yy)); ctx.lineTo(W, sy(yy)); ctx.stroke(); }
   }
+  // the seams of a level built in sections (tools/seams.js): a dashed line and the section's name where each one starts
+  const secsNow = !MAPCAM && typeof secList === "function" && STG.base && (STG.cur || ALL[pick.value] === STG.base) ? secList() : null;
+  if (secsNow) {
+    ctx.save(); ctx.strokeStyle = "rgba(160,140,255,.55)"; ctx.setLineDash([3 * DPR(), 5 * DPR()]); ctx.lineWidth = 1.5 * DPR(); ctx.fillStyle = "rgba(200,190,255,.85)"; ctx.font = `${11 * DPR()}px system-ui`;
+    for (const sc of secsNow) { if (!Array.isArray(sc.x)) continue; const gx = sx(sc.x[0]); if (gx < -200 || gx > W + 10) continue;
+      ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, groundY); ctx.stroke(); ctx.fillText(sc.name || sc.id, gx + 4, 30 * DPR()); }
+    ctx.restore();
+    const here = secAt(s.x); if ((here && here.id) !== SEC.here) { SEC.here = here && here.id; secRender(); }
+  }
+  // a run of the user's beside the route: a pink ghost cube (its path), a cross where it died
+  if (L.ghost && !MAPCAM && !(PLAY && PLAY.on)) { const gp = L.ghost.path, gk = Math.min(k, gp.length - 1), q = gp[gk], gx = sx(q.x), gy = sy(q.y), z = 15 * scale;
+    ctx.save(); ctx.globalAlpha = gk < k && q.dead ? 0.8 : 0.55; ctx.strokeStyle = "#ff7ad9"; ctx.fillStyle = "rgba(255,122,217,.25)"; ctx.lineWidth = 2.5 * DPR();
+    ctx.translate(gx, gy); ctx.rotate(-(q.rot || 0) * Math.PI / 180); ctx.fillRect(-z, -z, 2 * z, 2 * z); ctx.strokeRect(-z, -z, 2 * z, 2 * z); ctx.restore();
+    if (q.dead) { ctx.strokeStyle = "#ff3b6b"; ctx.lineWidth = 3 * DPR(); ctx.beginPath(); ctx.moveTo(gx - z, gy - z); ctx.lineTo(gx + z, gy + z); ctx.moveTo(gx + z, gy - z); ctx.lineTo(gx - z, gy + z); ctx.stroke(); } }
+  // where a build stage's plan breaks (a red cross at the death spot)
+  if (L.planBreak && !MAPCAM) { const bx = sx(L.planBreak.x), by = sy(L.planBreak.y), r = 10 * DPR();
+    if (bx > -60 && bx < W + 60) { ctx.strokeStyle = "#ff3b6b"; ctx.lineWidth = 3 * DPR(); ctx.beginPath(); ctx.moveTo(bx - r, by - r); ctx.lineTo(bx + r, by + r); ctx.moveTo(bx + r, by - r); ctx.lineTo(bx - r, by + r); ctx.stroke();
+      ctx.fillStyle = "#ff8fa8"; ctx.font = `bold ${12 * DPR()}px system-ui`; ctx.fillText("the plan breaks here", bx + r + 4, by - r); } }
+  // your deaths in "you play" (this session of attempts): small red ticks on the ground
+  if (PLAY && PLAY.on && PLAY.deaths.length && !MAPCAM) { ctx.fillStyle = "rgba(255,59,107,.8)"; for (const x of PLAY.deaths) { const dx = sx(x); if (dx > -5 && dx < W + 5) ctx.fillRect(dx - 1, groundY - 10 * DPR(), 2 * DPR(), 10 * DPR()); } }
   // the player
   // the player, drawn by its mode (a cube in every mode read wrong: "the wave looks like cube")
   // dual (lib/dual.js): player 2's own fields are in s.p2; it is drawn the same way, at its own height
@@ -1385,11 +1656,20 @@ function drawInput(k) {
   if (L.planned) { ix.strokeStyle = "#c8b8ff"; ix.lineWidth = 1.5 * d;
     for (const pl of L.planned) { const x = sx(xAtT(pl.t)); if (x < -10 || x > W + 10) continue;
       ix.beginPath(); ix.moveTo(x, 2 * d); ix.lineTo(x + 4 * d, 6 * d); ix.lineTo(x, 10 * d); ix.lineTo(x - 4 * d, 6 * d); ix.closePath(); ix.stroke(); } }
+  // a run beside the route: its presses in the lower lane, coloured by how they compare with the route's
+  if (L.ghost) { const g = L.ghost, gp = g.path, xT = tk => sx(tk < n ? L.path[tk].x : gp[Math.min(tk, gp.length - 1)].x), y = 33 * d, ms = dt => Math.round(dt / P.TPS * 1000);
+    const mark = (tk, col, lab) => { const x = xT(tk); if (x < -30 || x > W + 30) return; ix.fillStyle = col; ix.beginPath(); ix.moveTo(x, y - 5 * d); ix.lineTo(x + 4 * d, y + 2 * d); ix.lineTo(x - 4 * d, y + 2 * d); ix.closePath(); ix.fill();
+      if (lab) { ix.font = `${9 * d}px system-ui`; ix.fillText(lab, x, y + 11 * d); } };
+    if (g.cmp) { for (const p of g.cmp.pairs) mark(p.run, Math.abs(p.dt) <= 2 ? "#7dff9a" : p.dt < 0 ? "#7ab8ff" : "#ffb35a", Math.abs(p.dt) <= 2 ? "" : (p.dt > 0 ? "+" : "") + ms(p.dt));
+      for (const tk of g.cmp.extra) { const x = xT(tk); if (x < -10 || x > W + 10) continue; ix.strokeStyle = "#ff5c82"; ix.lineWidth = 2 * d; ix.beginPath(); ix.moveTo(x - 4 * d, y - 4 * d); ix.lineTo(x + 4 * d, y + 4 * d); ix.moveTo(x + 4 * d, y - 4 * d); ix.lineTo(x - 4 * d, y + 4 * d); ix.stroke(); }
+      for (const tk of g.cmp.missing) { const x = xT(tk); if (x < -10 || x > W + 10) continue; ix.strokeStyle = "#ff5c82"; ix.lineWidth = 1.5 * d; ix.beginPath(); ix.arc(x, y, 5 * d, 0, 7); ix.stroke(); } }
+    else for (const tk of g.runP) mark(tk, "#ff7ad9", ""); }
   ix.fillStyle = "#fff"; ix.fillRect(sx(L.path[k].x) - 1, 0, 2, IH); // now
   // the legend, bottom left
   ix.textAlign = "left"; ix.font = `${10 * d}px system-ui`;
   let lx = 4 * d; const ly = IH - 3 * d, leg = (col, txt) => { ix.fillStyle = col; ix.fillText(txt, lx, ly); lx += ix.measureText(txt).width + 8 * d; };
   if (L.planned) leg("#c8b8ff", "◇ planned");
+  if (L.ghost) { leg("#7dff9a", "▲ your press on time"); leg("#7ab8ff", "▲ early"); leg("#ffb35a", "▲ late (ms)"); leg("#ff5c82", "× extra ○ missed"); }
   if (L.hits) { leg("#ff9a3d", "▮ kick"); leg("#5fd8ff", "▮ snare"); leg("#ffffff", "▮ accent"); }
   leg("rgba(255,255,255,.75)", "┃● tap"); leg("rgba(255,225,77,.95)", "▬ hold"); leg("rgba(90,220,255,.9)", "▭ window (press)"); leg("rgba(255,120,200,.9)", "▭ window (release)");
   if (L.windowsBusy) leg("rgba(255,255,255,.5)", "measuring windows…");
@@ -1658,6 +1938,7 @@ function frame(now) {
       const err = Math.max(0, song.currentTime - (songInfo.offset || 0)) - t;
       t = Math.abs(err) > 0.1 ? t + err : t + err * 0.1;
     }
+    if (PLAY && PLAY.on) { playFrame(); syncSong(false); draw(); requestAnimationFrame(frame); return; }
     const k = tick();
     let clicks = 0; for (const c of L.sol.clicks) if (c.type === "press" && c.tick > lastTick && c.tick <= k) clicks++;
     if (clicks && k - lastTick < P.TPS / 4) beep(); // one beep a frame at most, none after a jump
@@ -1807,7 +2088,8 @@ function ghostExtend(LL, want, toEnd) {
     if (toEnd && x > LL.world.endX + 60) break;
     LL.path.push(Object.assign({}, base, { x, sp, tick: j, dead: false, ghost: true }));
   }
-  LL.held = new Uint8Array(LL.path.length);
+  const h0 = LL.held; LL.held = new Uint8Array(LL.path.length);
+  if (h0) LL.held.set(Array.prototype.slice.call(h0, 0, Math.min(h0.length, k + 1)));   // the presses before the ghost part stay lit
   const path = LL.path;
   LL.look = GD.LOOK.timeline(LL.level, x => { let lo = 0, hi = path.length - 1; if (path[hi].x < x) return Infinity;
     while (lo < hi) { const m = (lo + hi) >> 1; if (path[m].x >= x) hi = m; else lo = m + 1; } return lo / P.TPS; });

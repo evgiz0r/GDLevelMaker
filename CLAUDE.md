@@ -84,6 +84,16 @@ not after it:
 - **Process rules go in the repo, never only in a message.** The user (2026-11-24): "never just for one session
   if its a big repeatable process". A rule, a process step or a lesson that one session was told applies to
   every session and every future build: write it in CLAUDE.md, BUILDING.md or the topic's doc in the same round.
+- **Experiments are silent.** The user (2026-11-24): "when some claude is experimenting, can it mute?" A session
+  that opens the viewer or plays anything to test it (browser pane, headless, shots, play mode) runs it muted:
+  the viewer's `mute=1` URL flag (music, click sound, every sound), and tests use it by default. Test actions are
+  marked test (id "test-..." or test: true) so they stay out of the user's feed. Only the user's own viewer
+  plays sound.
+- **Never slow the user's game.** 2026-11-24: the first input logger did work inside its keyboard/mouse hook,
+  delayed and dropped the user's clicks, and likely cost them a death in Clutterfunk at 92.6%. Anything that runs
+  while the user plays (loggers, recorders, jobs) stays off the input path: a hook callback only queues (no I/O,
+  no lookups), recorders only read, heavy jobs run at idle priority with GD open. A new tool of this kind is
+  checked for added input delay before it runs during play.
 - **Hand off.** Before a long pause or when your area changes hands, write where you stopped,
   what is open and the good numbers into your area's doc.
 - **Share, don't duplicate.** Results go into the shared `local/` (see below) so no session redoes
@@ -178,7 +188,8 @@ on a long one with modes). Wait for the heavy-job slot comes on top of all of th
 | cut or join of solved levels (section cache) | 0.5-10 s (full: 1-70 s) | PHYSICS.md "Incremental solving" |
 | make (= the solve), 40-100 s level with ship / wave / ball | ~2 min since the state-copy fix (was 5-7 min) | GDLM 45 106 s, GDLM 61 124 s (cloud, 2026-11-23); before: PHONE.md, SHOWCASE.md |
 | score.js, every gate, short cube level | 10-20 s | loop.js, GDLM 02 / 41 |
-| score.js, level with modes | ~2 solves + ~1 min fairness: 10-15 min | score.js header; not timed yet |
+| score.js, level with modes, saved route current (checks the route, no solve) | ~1.5 min (GDLM 45, 40 s level: 89 s) | difficulty session, 2026-11-24 |
+| score.js, level with modes, no saved route (`opts.saved:false` or nothing to build on) | ~2 solves + ~1 min fairness: 10-15 min | score.js header |
 | compose.js (brief, repair rounds) | one make + score per round | not timed yet |
 | solve an official level (`difficulty_solve.js`) | minutes to an hour+ (checkpoints every 30 s) | not timed yet: use `--time solve-official` |
 | render frames (`shoot.js`, 8 frames) | ~10 s; ~1 min with before/after | SHOWCASE.md, POLISH.md |
@@ -252,7 +263,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 - `lib/sync.js` -- music sync: level time <-> x through speed portals, beat grid <-> level beats,
   press timing windows from a solution, sync scores. See SYNC.md (also where songs come from).
 - **The public viewer** (https://evgiz0r.github.io/GDLevelMaker/, PAGES.md: GitHub Pages, rebuilt on every push; a level goes on it ONLY when the user says so for that level: `knowledge/public_levels.json`, empty for now, our levels only, songs / GD art / official levels only from the user's own serve.js): `tools/pages.js`, `tests/pages_build.js`, `.github/workflows/pages.yml`.
-- **The viewer is where the user steers the work** (VIEWER.md): the Work panel, ✓ ok / redo on build stages with gates (`tools/stages.js waitApproval`), decision cards (`tools/ask.js put/wait`), and the actions feed every user action goes to (`tools/actions.js tail --since <id>`). Ask the user there, not only in chat.
+- **The viewer is where the user steers the work** (VIEWER.md): the Work panel, ✓ ok / redo on build stages with gates (`tools/stages.js waitApproval`), decision cards (`tools/ask.js put/wait`), and the actions feed every user action goes to (`tools/actions.js tail --since <id>`). Ask the user there, not only in chat. **🎮 you play** (key P): the user plays any level or build stage in the viewer, the same sim live (`lib/liveplay.js`), practice checkpoints per section; each attempt is a `play` line in the feed (where they die). A stage with a plan but no route replays the plan at once and shows where it breaks.
 - **Build stages in the viewer** (`tools/stages.js`: a builder puts song / layout / path / deco / final as each is done -> `local/wip/<session>/<base>.stages/`; the viewer shows a stage bar on the level and the stage on the picker's in-progress cards, even before the first wip put). `require("./stages.js").put({session, base, name, stage, levelStr?, data?, note?})`; test: `node tests/stages.js`.
 - **The phone page** (PHONE.md: what is on it, what a session does after `wip.js put`, phone
   marks, how it was tested, what is open): `tools/web.js` builds it from the viewer.
@@ -409,7 +420,7 @@ fixes them (Deadlocked's 1202 ball lanes); the lettered helper blocks (type 40) 
 ## Calibration -- checked against the user's game
 
 How: the user says "record", "reshoot" (close the current file, start a new one) or "stop".
-Run `tools/record.sh start` in the background (whole screen, 60 fps, Desktop Duplication, to
+Run `tools/record.sh start` in the background (it also logs the user's GD inputs, only GD's jump keys/click while GD is in front, to local/inputs/, and the PC's own sound by WASAPI loopback, tools/audiolog.ps1, next to the video; both for tools/replay_run.js; PHYSICS.md "Fidelity"; GD's music must be ON in GD's settings for the sound to align attempts -- with it off, the replay falls back to the progress bar) (whole screen, 60 fps, Desktop Duplication, to
 Videos/Captures/GD claude-rec <time>.mkv) and `tools/record.sh stop`. Whole screen rather than
 the GD window by title: a window capture looked "frozen" once, but the user had only tabbed out
 on a paused screen -- and the file was deleted on that wrong guess, losing their run. Never

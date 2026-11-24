@@ -12,6 +12,17 @@
 // answer is stored on the stage as review {verdict: "ok" | "redo", note, spot?: {t, x}, at} (approve() below, from
 // tools/serve.js POST /stages/review). Without a gate an approval is optional and just recorded.
 //
+// Sections (collab-style building, tools/seams.js: fixed seams, each section with its own builders and roles): the index
+// holds a top-level "sections" array copied from briefs/<NN>.seams.json -- [{ id, name, x: [x0, x1], t: [t0, t1],
+// builder: { layout, deco, playtest }, status: { layout, deco, playtest }: planned | built | ok | redo }] -- set with
+// put({..., sections}) or setSections(); the viewer shows them as a strip under the stage bar. A per-section answer:
+// approve(session, base, stage, { verdict, note, spot, section: "s3", role? }) stores sections[i].reviews[role] (role:
+// layout | deco | playtest; default the stage's own: layout -> layout, deco / final -> deco, path -> playtest) and sets
+// status[role] to ok / redo. A builder waits on one section: waitApproval(session, base, stage, { section, role }), or
+//   node tools/stages.js wait <session> <base> <stage> --section s3 [--role playtest]
+//   node tools/stages.js sections <session> <base> <briefs/NN.seams.json>    copy the seam contract's sections in
+// setSections() keeps a section's reviews while its status for that role is unchanged; a new status clears them.
+//
 // stage: song | layout | path | deco | final (that order). Files: local/wip/<session>/<base>.stages/
 //   index.json      { level: "<base>.gdlvl", name, session, stages: [{ stage, at, note, file?, data? }] } -- a later
 //                   put of the same stage replaces it; stages are kept in the order above
@@ -46,6 +57,7 @@ function put(o) {
     entry.file = o.stage + ".gdlvl";
   }
   if (o.data) entry.data = o.data;
+  if (Array.isArray(o.sections)) idx.sections = mergeSections(idx.sections, o.sections);
   idx.stages = idx.stages.filter(s => s.stage !== o.stage).concat([entry]).sort((a, b) => ORDER.indexOf(a.stage) - ORDER.indexOf(b.stage));
   fs.writeFileSync(path.join(dir, "index.json"), JSON.stringify(idx, null, 1));
   return idx;
@@ -75,11 +87,39 @@ function songOf(data) {
   const sg = data && data.song; if (!sg) return undefined;
   return sg.url ? sg : Object.assign({}, sg, sg.id ? { url: "/song/custom/" + sg.id + ".mp3" } : {});
 }
-// the user's answer on a stage: {verdict: "ok" | "redo", note?, spot?} -> stored on the stage as review
+// sections from the seam contract (or compose): the fields the viewer needs; a section's reviews stay while its status for
+// that role is the same (a rebuilt section, status "built" again, asks again)
+const SEC_FIELDS = ["id", "name", "x", "t", "builder", "status", "beats"];
+function mergeSections(old, secs) {
+  const byId = new Map((old || []).map(s => [s.id, s]));
+  return secs.map(s => {
+    const n = {}; for (const k of SEC_FIELDS) if (s[k] !== undefined) n[k] = s[k];
+    const o = byId.get(s.id);
+    if (o && o.reviews) { const keep = {}; for (const [role, r] of Object.entries(o.reviews)) if ((n.status || {})[role] === r.verdict) keep[role] = r; if (Object.keys(keep).length) n.reviews = keep; }
+    return n;
+  });
+}
+function setSections(session, base, secs) {
+  const dir = dirOf(session, base), idx = read(dir); if (!idx) throw new Error("no stages for " + session + "/" + base);
+  idx.sections = mergeSections(idx.sections, secs);
+  fs.writeFileSync(path.join(dir, "index.json"), JSON.stringify(idx, null, 1));
+  return idx.sections;
+}
+const ROLE_OF = { layout: "layout", path: "playtest", deco: "deco", final: "deco", song: "layout" };
+// the user's answer on a stage: {verdict: "ok" | "redo", note?, spot?} -> stored on the stage as review; with section
+// (and role) -> on that section
 function approve(session, base, stage, r) {
   const dir = dirOf(session, base), idx = read(dir); if (!idx) throw new Error("no stages for " + session + "/" + base);
   const st = idx.stages.find(x => x.stage === stage); if (!st) throw new Error("no stage " + stage);
   if (!["ok", "redo"].includes(r.verdict)) throw new Error("verdict must be ok or redo");
+  if (r.section) {
+    const sec = (idx.sections || []).find(s => s.id === r.section); if (!sec) throw new Error("no section " + r.section);
+    const role = r.role || ROLE_OF[stage] || stage;
+    const rev = { verdict: r.verdict, stage, note: r.note || undefined, spot: r.spot || undefined, at: new Date().toISOString() };
+    sec.reviews = Object.assign({}, sec.reviews, { [role]: rev }); sec.status = Object.assign({}, sec.status, { [role]: r.verdict });
+    fs.writeFileSync(path.join(dir, "index.json"), JSON.stringify(idx, null, 1));
+    return Object.assign({ section: sec.id, role }, rev);
+  }
   st.review = { verdict: r.verdict, note: r.note || undefined, spot: r.spot || undefined, at: new Date().toISOString() };
   fs.writeFileSync(path.join(dir, "index.json"), JSON.stringify(idx, null, 1));
   return st.review;
@@ -90,12 +130,14 @@ function waitApproval(session, base, stage, opts = {}) {
   const until = Date.now() + (opts.timeoutMin || 120) * 60e3;
   return new Promise((ok, no) => { const tick = () => {
     const idx = read(dirOf(session, base)), st = idx && idx.stages.find(x => x.stage === stage);
-    if (st && st.review) return ok(st.review);
+    if (opts.section) { const sec = idx && (idx.sections || []).find(s => s.id === opts.section), rv = sec && sec.reviews && sec.reviews[opts.role || ROLE_OF[stage] || stage];
+      if (rv) return ok(rv); }
+    else if (st && st.review) return ok(st.review);
     if (Date.now() > until) return no(new Error("no answer on " + stage + " yet"));
     setTimeout(tick, opts.everyMs || 2000);
   }; tick(); });
 }
-module.exports = { put, list, dirOf, ORDER, emptyLevel, songOf, approve, waitApproval };
+module.exports = { put, list, dirOf, ORDER, emptyLevel, songOf, approve, waitApproval, setSections, ROLE_OF };
 
 if (require.main === module) {
   const a = process.argv.slice(2), opt = n => { const i = a.indexOf(n); return i >= 0 ? a[i + 1] : null; };
@@ -106,8 +148,11 @@ if (require.main === module) {
     const idx = put({ session, base, name, stage, levelStr, data, note: opt("--note") });
     console.log(`stage ${stage} of ${idx.name} saved (${idx.stages.map(s => s.stage).join(" > ")}) -> ${path.relative(ROOT, dirOf(session, base))}`);
   } else if (a[0] === "wait" && a[3]) {
-    waitApproval(a[1], a[2].replace(/\.gdlvl$/, ""), a[3], { timeoutMin: +opt("--timeout-min") || 120 })
+    waitApproval(a[1], a[2].replace(/\.gdlvl$/, ""), a[3], { timeoutMin: +opt("--timeout-min") || 120, section: opt("--section"), role: opt("--role") })
       .then(r => { console.log(r.verdict + (r.note ? "	" + r.note : "")); process.exit(0); }, e => { console.error(e.message); process.exit(2); });
+  } else if (a[0] === "sections" && a[3]) {
+    const secs = setSections(a[1], a[2].replace(/\.gdlvl$/, ""), JSON.parse(fs.readFileSync(a[3], "utf8")).sections || []);
+    console.log(`${secs.length} section(s): ` + secs.map(s => s.id + " " + (s.name || "") + " " + JSON.stringify(s.status || {})).join("; "));
   } else if (a[0] === "list") {
     for (const b of list(a[1])) console.log(`${b.session.padEnd(14)} ${b.index.name.padEnd(30)} ${b.index.stages.map(s => s.stage).join(" > ")}`);
   } else console.log(fs.readFileSync(__filename, "utf8").split("\n").filter(l => l.startsWith("//")).join("\n"));
