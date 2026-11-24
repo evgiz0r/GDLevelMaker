@@ -144,5 +144,10 @@ GD-blue backgrounds); `png` -> one PNG per mode for the viewer (viewer/icons/cla
 must read as ONE kit -- one motif on every mode, one palette, thick dark outlines, simple shapes. So
 lib/claude_icons.js is now bodies with a face slot + a kit's motif: kits A visor bot, B a cream "C" mark with a
 spark dot, C a happy face; `node tools/claude_icons.js kits` -> local/props/claude_kits.png (one row per kit).
-STATUS: the three kits sent for the user's pick; viewer files (for gd-visuals) and an in-level prop
+Then the user's "main traits": Claude's spark -- a radial starburst of thin rays, terracotta and cream. Kits
+D (cream rays on terracotta), E (terracotta rays on a cream disc), F (D with two eyes at the hub); drawn as our own
+pixel rays (8, long / short; 12 smear below a 16-px slot), each body's bigger "spark slot".
+`node tools/claude_icons.js kits --only spark,spark2,sparkface` -> local/props/claude_spark_kits.png. The spark
+evokes Anthropic's Claude mark: fine in our viewer and levels; think before it goes on anything public as "official".
+STATUS: the spark kits sent for the user's pick; viewer files (for gd-visuals) and an in-level prop
 version (GD objects, like the signature) come after it.
