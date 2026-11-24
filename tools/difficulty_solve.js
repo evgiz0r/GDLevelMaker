@@ -51,7 +51,16 @@ function partOf(n, opts) {
   const f = partFile(n);
   if (!fs.existsSync(f)) return null;
   if (opts.fresh) { fs.unlinkSync(f); return null; }
-  try { const p = JSON.parse(fs.readFileSync(f, "utf8")); return p.physics === physicsCommit() && p.events ? p : null; } catch (e) { return null; }
+  try {
+    const p = JSON.parse(fs.readFileSync(f, "utf8")); if (!p.events) return null;
+    if (p.physics === physicsCommit()) return p;
+    // an older stamp (a solver-only change to physics.js bumps it too): keep it when its inputs still get alive to where
+    // it stopped in today's sim (Fingerdash's 90-minute checkpoint at block 582, 2026-11-24)
+    const L = GD.parseLevel(levelText(n)), w = GD.makeWorld(L.objects, L.header), q = GD.run(w, p.events), e = q.path[q.path.length - 1];
+    const ok = e.done || (!e.dead && e.x >= p.x - 1) || q.path.some(s => !s.dead && s.x >= p.x - 1);
+    console.log(`  (checkpoint from physics ${p.physics} at block ${(p.x / 30).toFixed(1)}: ${ok ? "still replays there, carrying on" : "no longer replays there, solving without it"})`);
+    return ok ? p : null;
+  } catch (e) { return null; }
 }
 
 function solveOfficial(n, opts) {
