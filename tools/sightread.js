@@ -9,12 +9,15 @@
 // block to land on, an orb), is the press's CUE. The LEAD is how far ahead of the cube's
 // front edge the cue still is at the LATEST moment the press works (the end of its window).
 // Small lead = you jump when the obstacle is in your face = reactable. Big lead = a prejump.
-// Flagged: lead > LIMIT blocks (default 1.5; --limit n; 3 in ship/UFO/wave/swing). A press that
+// Flagged: lead > LIMIT blocks (default 1.5; --limit n; 3 in ship/UFO/wave/swing; times the speed over 1x at 2x+). A press that
 // fires an orb counts as cued, and so does jumping off the end of a ledge.
 if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const { GD, readGdlvl } = require("./io.js");
 // flying modes turn slowly, so steering starts further ahead of what it is for: allow 3 blocks
 const FLYING = new Set(["ship", "ufo", "wave", "swing"]), FLY_LIMIT = 3;
+// the limit is a reaction TIME: at 2x the same time covers 1.24x the blocks (GDLM 64 round 6: three 2x jumps "1.6-1.7
+// blocks ahead" = 1.3-1.4 blocks of 1x time). Only scaled up: slow speeds keep the 1x limit.
+const speedFactor = st => { const S = GD.SPEEDS; return st && S && S[st.sp] && S[1] ? Math.max(1, S[st.sp].x / S[1].x) : 1; };
 
 // A cube hold that re-jumps on landing -> one press per jump (press on the jump's tick, release
 // the tick after). Returned only if the run is unchanged; else the original events.
@@ -118,8 +121,16 @@ function judge(w, level, presses, base, limit, approx) {
     }
     // a press that fires an orb is cued by that orb: the cube is touching it
     if (c.act && GD.objInfo && /orb/.test(c.act)) { lead = 0; cue = null; }
+    // a press held into a flying mode's portal is cued by that portal: its latest moment is at the portal, and
+    // what follows is the new mode's steering (GDLM 64's wave mouth: a cube press at 748-750 held into the wave
+    // portal at 750 read as "4.8 ahead" of the corridor's first slope). The fairness gate judges the input
+    // forced right after a portal; this only stops the hold from counting as a prejump.
+    if (lead != null && hiState && FLYING.has(hiState.mode)) {
+      const before = res.path[c.lo];
+      if (before && before.mode !== hiState.mode) { lead = 0; cue = null; }
+    }
     out.push({ act: c.act, block: c.x / 30, from: xLo / 30, to: xHi / 30, ms: c.ms, cue: cue && GD.objInfo(cue.id).name, cueAt: cue && cue.x / 30,
-      mode: hiState && hiState.mode, lead, flag: lead != null && lead > (FLYING.has(hiState && hiState.mode) ? FLY_LIMIT : limit) });
+      mode: hiState && hiState.mode, lead, flag: lead != null && lead > (FLYING.has(hiState && hiState.mode) ? FLY_LIMIT : limit) * speedFactor(hiState) });
   }
   return { ok: true, presses: out, approx };
 }
