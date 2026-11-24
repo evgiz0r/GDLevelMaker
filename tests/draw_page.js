@@ -37,6 +37,11 @@ let fail = 0; const ok = (c, m) => { console.log((c ? "ok   " : "FAIL ") + m); i
     await p.click("#decoBtn"); await p.waitForTimeout(100);
     ok(await p.evaluate(() => !DRAW.ui.deco), tag + ": deco hidden");
     await p.click("#decoBtn");
+    // the seek strip: a tap far right moves the board there, far left back to the start
+    const x0 = await p.evaluate(() => DRAW.V.x);
+    await p.mouse.click(box.x + box.width - 5, box.y + 10); const xr = await p.evaluate(() => DRAW.V.x);
+    await p.mouse.click(box.x + 2, box.y + 10); const xl = await p.evaluate(() => DRAW.V.x);
+    ok(xr > x0 + 300 && xl < xr - 300, `${tag}: the seek strip moves back and forth (${Math.round(x0)} -> ${Math.round(xr)} -> ${Math.round(xl)})`);
     await p.click("#checkBtn");
     await p.waitForFunction(() => !/looking/.test(document.getElementById("msg").textContent), null, { timeout: 30000 }).catch(() => {});
     const m = await p.locator("#msg").textContent();

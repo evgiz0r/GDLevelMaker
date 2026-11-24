@@ -23,7 +23,7 @@
   #title { font-weight:600; color:var(--acc); max-width:34vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   #stage { flex:1; position:relative; min-height:0; }
   canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none; display:block; }
-  #msg { position:absolute; left:50%; top:10px; transform:translateX(-50%); background:#000c; border:1px solid var(--line); border-radius:8px; padding:6px 12px; pointer-events:none; max-width:calc(100% - 32px); text-align:center; }
+  #msg { position:absolute; left:50%; top:52px; transform:translateX(-50%); background:#000c; border:1px solid var(--line); border-radius:8px; padding:6px 12px; pointer-events:none; max-width:calc(100% - 32px); text-align:center; }
   #msg[hidden] { display:none; }
   .ovl { position:fixed; inset:0; background:#0009; display:flex; align-items:flex-start; justify-content:center; padding:60px 16px 16px; z-index:50; }
   .ovl[hidden] { display:none; }
@@ -36,7 +36,8 @@
   .filepick input { position:absolute; inset:0; opacity:0; font-size:40px; cursor:pointer; }
   .grp { display:flex; gap:4px; flex-wrap:wrap; align-items:center; }
   .grp > .muted { margin-right:2px; }
-  @media (max-width: 560px) { button, select, .chip { padding:4px 7px; min-height:30px; } header { padding:5px 6px; gap:4px; } .row { gap:4px; } .sep { display:none; } }
+  @media (max-width: 560px) { button, select, .chip { padding:4px 7px; min-height:30px; } header { padding:5px 6px; gap:4px; } .row { gap:4px; } .sep { display:none; }
+    #title { display:none; } #penRow button:not(.on) .lbl { display:none; } }
 </style>
 </head>
 <body>
@@ -50,6 +51,7 @@
     <button data-tool="select" title="pick something: move, turn, resize, delete">⬚</button>
     <button data-tool="erase" title="rub out whatever the finger crosses">⌫</button>
     <button data-tool="pan" title="move the board (two fingers always move and zoom)">✋</button>
+    <button id="zoomOut" title="zoom out (or pinch, or Ctrl+wheel)">－</button><button id="zoomIn" title="zoom in">＋</button>
     <span class="sep"></span>
     <button id="undoBtn" title="undo (Ctrl+Z)">↶</button>
     <button id="redoBtn" title="redo (Ctrl+Y)">↷</button>
@@ -210,13 +212,26 @@ function loadAudio() {
   audioFor = sk.song.url; audioOk = false;
   const cached = fileUrls[sk.song.url];
   if (cached) { audio.src = cached; audioOk = true; return; }
+  if (!SERVED) { const u = sk.song.url; idbSong(u).then(b => { if (b && audioFor === u && !fileUrls[u]) { fileUrls[u] = URL.createObjectURL(b); audio.src = fileUrls[u]; audioOk = true; $("audioState").textContent = "song remembered on this device"; } }); return; }
   if (SERVED) { audio.src = sk.song.url; audio.oncanplay = () => { audioOk = true; $("audioState").textContent = "song loaded from the PC"; }; audio.onerror = () => { audioOk = false; $("audioState").textContent = "not on this PC: pick the file"; }; }
 }
 const fileUrls = {};
-$("fileIn").addEventListener("change", e => {
-  const f = e.target.files[0]; if (!f || !sk.song) return;
-  fileUrls[sk.song.url] = URL.createObjectURL(f); audioFor = null; loadAudio(); $("audioState").textContent = "playing from " + f.name;
-});
+// a song picked on this device is kept in its browser (IndexedDB, by the song's url): picked once, there next time.
+// The phone page cannot fetch songs (they are never published), so the file comes from the device.
+function idb() { return new Promise((ok, no) => { try { const r = indexedDB.open("gdlm-draw", 1); r.onupgradeneeded = () => r.result.createObjectStore("songs"); r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); } catch (e) { no(e); } }); }
+async function idbSong(url, blob) {
+  try { const db = await idb(); return await new Promise(ok => { const tx = db.transaction("songs", blob ? "readwrite" : "readonly"), st = tx.objectStore("songs");
+    const r = blob ? st.put(blob, url) : st.get(url); r.onsuccess = () => ok(blob ? true : r.result || null); r.onerror = () => ok(null); }); } catch (e) { return null; }
+}
+function useSongFile(f) {
+  if (!f || !sk.song || !sk.song.url) { msg("pick a song in ♪ first", 3000); return; }
+  fileUrls[sk.song.url] = URL.createObjectURL(f); idbSong(sk.song.url, f); audioFor = null; loadAudio(); $("audioState").textContent = "playing from " + f.name + " (remembered)";
+}
+$("fileIn").addEventListener("change", e => useSongFile(e.target.files[0]));
+// or drop the file on the page (the Claude app may not open a file picker)
+addEventListener("dragover", e => e.preventDefault());
+addEventListener("drop", e => { e.preventDefault(); const f = [...(e.dataTransfer.files || [])].find(f => /audio|\.mp3$|\.ogg$/i.test(f.type + f.name)); if (f) useSongFile(f); });
+function fmtT(t) { t = Math.max(0, t); return Math.floor(t / 60) + ":" + (t % 60).toFixed(1).padStart(4, "0"); }
 function songTime(x) { return SK.xToTime(sk, x) + ((sk.song && +sk.song.offset) || 0); }
 
 // ---- drawing the board ----
@@ -249,7 +264,8 @@ function draw() {
   for (const d of sk.deaths || []) { ctx.strokeStyle = "#ff3b6b"; ctx.lineWidth = 3; const X = sx(d.x), Y = sy(d.y); ctx.beginPath(); ctx.moveTo(X - 7, Y - 7); ctx.lineTo(X + 7, Y + 7); ctx.moveTo(X + 7, Y - 7); ctx.lineTo(X - 7, Y + 7); ctx.stroke(); }
   if (check && !play) drawCheck();
   if (play) drawPlay(); else if (replay && replay.s) drawPlayer(replay.s);
-  if (listen.on) { const X = sx(listen.x); ctx.strokeStyle = "#ffe14d"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X, 0); ctx.lineTo(X, H); ctx.stroke(); }
+  if (listen.on || listen.kept) { const X = sx(listen.x); ctx.strokeStyle = "#ffe14d"; ctx.lineWidth = 2; ctx.setLineDash(listen.on ? [] : [6, 5]); ctx.beginPath(); ctx.moveTo(X, 0); ctx.lineTo(X, H); ctx.stroke(); ctx.setLineDash([]);
+    if (!listen.on) { ctx.fillStyle = "#ffe14d"; ctx.font = "11px sans-serif"; ctx.fillText(fmtT(songTime(listen.x)), X + 4, SEEK + 34); } }
   drawRuler(x0, x1);
   if (c.error) { ctx.fillStyle = "#ff3b6b"; ctx.fillText("conversion: " + c.error, 8, H - 8); }
 }
@@ -265,24 +281,54 @@ function drawBeats(x0, x1) {
     const bar = ((k - (gr.downbeat || 0)) % 4 + 4) % 4 === 0;
     if (!bar && pxPerBeat < 10) continue;
     ctx.strokeStyle = bar ? "rgba(255,225,77,.35)" : "rgba(255,225,77,.13)";
-    ctx.beginPath(); ctx.moveTo(sx(x), 22); ctx.lineTo(sx(x), H); ctx.stroke();
-    if (ui.loud && gr.loud && gr.loud[k] != null) { const h = Math.max(1, (gr.loud[k] + 40) * 0.9); ctx.fillStyle = "rgba(255,225,77,.35)"; ctx.fillRect(sx(x), 22, Math.max(1, pxPerBeat - 1), h); }
-    if (secs.has(k)) { const db = secs.get(k); ctx.strokeStyle = db > 0 ? "#ff9030" : "#60b0ff"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(sx(x), 22); ctx.lineTo(sx(x), H); ctx.stroke(); ctx.lineWidth = 1;
-      ctx.fillStyle = ctx.strokeStyle; ctx.font = "bold 12px system-ui"; ctx.fillText((db > 0 ? "▲ +" : "▼ ") + db + " dB", sx(x) + 4, 70); }
+    ctx.beginPath(); ctx.moveTo(sx(x), TOP); ctx.lineTo(sx(x), H); ctx.stroke();
+    if (ui.loud && gr.loud && gr.loud[k] != null) { const h = Math.max(1, (gr.loud[k] + 40) * 0.9); ctx.fillStyle = "rgba(255,225,77,.35)"; ctx.fillRect(sx(x), TOP, Math.max(1, pxPerBeat - 1), h); }
+    if (secs.has(k)) { const db = secs.get(k); ctx.strokeStyle = db > 0 ? "#ff9030" : "#60b0ff"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(sx(x), TOP); ctx.lineTo(sx(x), H); ctx.stroke(); ctx.lineWidth = 1;
+      ctx.fillStyle = ctx.strokeStyle; ctx.font = "bold 12px system-ui"; ctx.fillText((db > 0 ? "▲ +" : "▼ ") + db + " dB", sx(x) + 4, TOP + 48); }
   }
 }
+// ---- the seek strip: the whole level (and the song's bars) in one row; drag on it to go back and forth ----
+const SEEK = 26, TOP = 46;   // strip 0..SEEK, ruler SEEK..TOP, the board under it
+function extent() {
+  let x1 = 900; const c = convert();
+  for (const it of sk.items) { if (it.k === "stroke") for (const p of it.pts) x1 = Math.max(x1, p[0]); else x1 = Math.max(x1, it.x1 || it.x || 0); }
+  if (c.endX) x1 = Math.max(x1, c.endX);
+  return [-60, Math.max(x1 + 900, wx(W) + 60)];
+}
+function drawSeek() {
+  const [a, b] = extent(), px = x => (x - a) / (b - a) * W;
+  ctx.fillStyle = "#0b0620"; ctx.fillRect(0, 0, W, SEEK);
+  const gr = grid();
+  if (gr) { const off = (+sk.song.offset) || 0, P = gr.period * 4, stepPx = SK.unitsPerSec(sk.speed == null ? 1 : sk.speed) * P / (b - a) * W;
+    const every = Math.max(1, Math.ceil(4 / stepPx)); ctx.fillStyle = "rgba(255,225,77,.25)";
+    for (let k = 0; ; k += every) { const t = gr.t0 + ((gr.downbeat || 0) + 4 * k) * gr.period - off; if (t < 0) continue; const x = SK.timeToX(sk, t); if (x > b) break; ctx.fillRect(px(x), 0, 1, SEEK); }
+    for (const [k, db] of gr.sections || []) { const t = gr.t0 + k * gr.period - off; if (t < 0) continue; const x = SK.timeToX(sk, t); if (x > b) break; ctx.fillStyle = db > 0 ? "#ff9030" : "#60b0ff"; ctx.fillRect(px(x) - 1, 0, 3, SEEK); } }
+  for (const it of sk.items) {
+    const L = SK.layerOf(it); if (L === "deco" && !ui.deco) continue;
+    if (it.k === "stroke") { const xs = it.pts.map(p => p[0]); ctx.fillStyle = it.pen === "spikes" ? "#ff3b6b" : it.pen === "deco" ? "rgba(255,255,255,.35)" : it.pen === "note" ? "#ffe14d" : "#7fb0ff";
+      ctx.fillRect(px(Math.min(...xs)), it.pen === "deco" ? 4 : 14, Math.max(2, px(Math.max(...xs)) - px(Math.min(...xs))), 5); }
+    else if (it.k === "press") { ctx.fillStyle = "#ffe14d"; ctx.fillRect(px(it.x) - 1, 8, 2, 12); }
+    else { ctx.fillStyle = L === "deco" ? "rgba(140,255,140,.6)" : STAMP_COL(it.what); ctx.fillRect(px(it.x) - 2, 9, 4, 4); }
+  }
+  for (const d of sk.deaths || []) { ctx.fillStyle = "#ff3b6b"; ctx.fillRect(px(d.x) - 1, 0, 2, 7); }
+  const v0 = px(wx(0)), v1 = px(wx(W)); ctx.strokeStyle = "#fff"; ctx.lineWidth = 1.5; ctx.fillStyle = "rgba(255,255,255,.12)";
+  ctx.fillRect(v0, 1, Math.max(4, v1 - v0), SEEK - 2); ctx.strokeRect(v0, 1, Math.max(4, v1 - v0), SEEK - 2);
+  if (listen.on || listen.kept) { ctx.fillStyle = "#ffe14d"; ctx.fillRect(px(listen.x) - 1, 0, 2, SEEK); }
+}
+function seekTo(offsetX) { const [a, b] = extent(), x = a + offsetX / W * (b - a); V.x = x - (W / V.z) / 2; dirty = true; }
 function drawRuler(x0, x1) {
-  ctx.fillStyle = "rgba(11,6,32,.85)"; ctx.fillRect(0, 0, W, 22); ctx.font = "11px system-ui"; ctx.fillStyle = "#8b84b8";
+  drawSeek();
+  ctx.fillStyle = "rgba(11,6,32,.85)"; ctx.fillRect(0, SEEK, W, TOP - SEEK); ctx.font = "11px system-ui"; ctx.fillStyle = "#8b84b8";
   const gr = grid();
   if (gr && ui.beats) {
     const off = (+sk.song.offset) || 0, P = gr.period, step = Math.max(1, Math.ceil(70 / (SK.unitsPerSec(sk.speed == null ? 1 : sk.speed) * P * 4 * V.z)));
     for (let k = 0; k < (gr.beats || 1e4); k += 4) { const t = gr.t0 + (k + (gr.downbeat || 0)) * P - off; if (t < 0) continue; const x = SK.timeToX(sk, t); if (x > x1) break; if (x < x0 || (k / 4) % step) continue;
-      ctx.fillStyle = "#ffe14d"; ctx.fillText("bar " + (k / 4 + 1), sx(x) + 2, 15); }
+      ctx.fillStyle = "#ffe14d"; ctx.fillText("bar " + (k / 4 + 1), sx(x) + 2, SEEK + 14); }
   } else {
     const st = Math.max(1, Math.ceil(80 / (SK.unitsPerSec(1) * V.z)));
-    for (let s = 0; ; s += st) { const x = SK.timeToX(sk, s); if (x > x1) break; if (x < x0) continue; ctx.fillText(s + " s", sx(x) + 2, 15); ctx.fillRect(sx(x), 16, 1, 6); }
+    for (let s = 0; ; s += st) { const x = SK.timeToX(sk, s); if (x > x1) break; if (x < x0) continue; ctx.fillText(s + " s", sx(x) + 2, SEEK + 14); ctx.fillRect(sx(x), SEEK + 14, 1, 6); }
   }
-  if (hover) { const t = SK.xToTime(sk, hover.x); ctx.fillStyle = "#e8e4ff"; ctx.textAlign = "right"; ctx.fillText(t.toFixed(2) + " s · block " + (hover.x / 30).toFixed(1) + " · " + (hover.y / 30).toFixed(1) + " up", W - 6, 15); ctx.textAlign = "left"; }
+  if (hover) { const t = SK.xToTime(sk, hover.x); ctx.fillStyle = "#e8e4ff"; ctx.textAlign = "right"; ctx.fillText(t.toFixed(2) + " s · block " + (hover.x / 30).toFixed(1) + " · " + (hover.y / 30).toFixed(1) + " up", W - 6, SEEK + 14); ctx.textAlign = "left"; }
 }
 function penStyle(it) {
   if (it.pen === "ground") return { c: "#7fb0ff", w: 4 };
@@ -390,6 +436,7 @@ cv.addEventListener("pointerdown", e => {
     gesture = { d: Math.hypot(a.x - b.x, a.y - b.y), cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2, z: V.z, vx: V.x, vy: V.y }; dirty = true; return;
   }
   if (pointers.size > 2) return;
+  if (e.offsetY < SEEK + 4 && pointers.size === 1) { drag = { seek: true }; if (listen.on) stopListen(); seekTo(e.offsetX); return; }
   const x = wx(e.offsetX), y = wy(e.offsetY);
   if (e.button === 1 || e.button === 2 || ui.tool === "pan") { drag = { pan: true, px: e.offsetX, py: e.offsetY, vx: V.x, vy: V.y }; return; }
   if (ui.tool === "pen" && ui.pen === "jump") { snapshot(); const it = { k: "press", x: +x.toFixed(1), y: +y.toFixed(1) }; sk.items.push(it); drag = { press: it, fresh: true }; changed(); return; }
@@ -411,6 +458,7 @@ cv.addEventListener("pointermove", e => {
     V.z = z; V.x = ax - cx / z; V.y = ay - (H - cy) / z; dirty = true; return;
   }
   const x = wx(e.offsetX), y = wy(e.offsetY);
+  if (drag && drag.seek) { seekTo(e.offsetX); return; }
   if (drag && drag.pan) { V.x = drag.vx - (e.offsetX - drag.px) / V.z; V.y = drag.vy + (e.offsetY - drag.py) / V.z; dirty = true; return; }
   if (cur) { const l = cur.pts[cur.pts.length - 1]; if (Math.hypot(x - l[0], y - l[1]) * V.z > 2) { cur.pts.push([+x.toFixed(1), +y.toFixed(1)]); dirty = true; } return; }
   if (drag && drag.move != null) { const dx = x - drag.x, dy = y - drag.y; if (!drag.moved && Math.hypot(dx, dy) * V.z < 3) return; drag.moved = true; moveItem(sk.items[drag.move], dx, dy); drag.x = x; drag.y = y; conv = null; dirty = true; return; }
@@ -425,7 +473,7 @@ function endPointer(e) {
   if (drag && drag.press) save();
   if (drag && drag.move != null) { if (drag.moved || drag.fresh) changed(); else if (!drag.moved) undo.pop(); }
   if (drag && drag.erase && !drag.any) undo.pop();
-  if (drag && drag.pan) save();
+  if (drag && (drag.pan || drag.seek)) save();
   drag = null;
 }
 cv.addEventListener("pointerup", endPointer); cv.addEventListener("pointercancel", endPointer);
@@ -453,10 +501,15 @@ document.addEventListener("keydown", e => {
   else if ((e.key === "Delete" || e.key === "Backspace") && sel != null) delSel();
   else if (/^[1-6]$/.test(e.key)) { ui.tool = "pen"; ui.pen = PENS[+e.key - 1].id; buildRows(); }
   else if (e.key === " ") { e.preventDefault(); startPlay(); }
+  else if (e.key === "ArrowRight" || e.key === "ArrowLeft") { e.preventDefault(); V.x += (e.key === "ArrowRight" ? 1 : -1) * (W / V.z) * (e.shiftKey ? 0.9 : 0.25); dirty = true; save(); }
+  else if (e.key === "-" || e.key === "+" || e.key === "=") zoomBy(e.key === "-" ? 1 / 1.5 : 1.5);
+  else if (e.key === "Home") { V.x = -60; dirty = true; save(); }
 });
 document.addEventListener("keyup", e => { if (play && [" ", "ArrowUp", "w", "Enter"].includes(e.key)) playRelease(); });
 function doUndo() { if (!undo.length) return; redo.push(JSON.stringify(sk.items)); sk.items = JSON.parse(undo.pop()); sel = null; showSelRow(); changed(); }
 function doRedo() { if (!redo.length) return; undo.push(JSON.stringify(sk.items)); sk.items = JSON.parse(redo.pop()); sel = null; showSelRow(); changed(); }
+function zoomBy(k) { const cx = wx(W / 2), cy = wy(H * 0.6); V.z = Math.max(0.08, Math.min(8, V.z * k)); V.x = cx - (W / 2) / V.z; V.y = cy - (H - H * 0.6) / V.z; V.y = Math.max(V.y, -H * 0.5 / V.z); dirty = true; save(); }
+$("zoomOut").onclick = () => zoomBy(1 / 1.5); $("zoomIn").onclick = () => zoomBy(1.5);
 $("undoBtn").onclick = doUndo; $("redoBtn").onclick = doRedo;
 
 // ---- the rows of controls ----
@@ -466,7 +519,7 @@ function buildRows() {
   const pr = $("penRow"), st = $("stampRow"); pr.innerHTML = ""; st.innerHTML = "";
   pr.hidden = ui.tool !== "pen"; st.hidden = ui.tool !== "stamp";
   if (ui.tool === "pen") {
-    PENS.forEach(p => pr.appendChild(chip(p.icon + " " + p.label, ui.pen === p.id, () => { ui.pen = p.id; buildRows(); save(); }, p.tip)));
+    PENS.forEach(p => pr.appendChild(chip(p.icon + ' <span class="lbl">' + p.label + "</span>", ui.pen === p.id, () => { ui.pen = p.id; buildRows(); save(); }, p.tip)));
     if (ui.pen === "deco") {
       pr.appendChild(Object.assign(document.createElement("span"), { className: "sep" }));
       DECO_COLS.forEach((c, i) => { const b = chip("", ui.col === i, () => { ui.col = i; buildRows(); save(); }, "colour", "sw"); b.style.background = `rgb(${c})`; pr.appendChild(b); });
@@ -587,15 +640,16 @@ function renderSongs() {
 }
 
 // ---- listen: the song with a playhead ----
-const listen = { on: false, x: 0, t0: 0 };
+const listen = { on: false, x: 0, t0: 0, kept: false };   // kept: paused, the marker stays where the song stopped
 $("listenBtn").onclick = () => {
   if (listen.on) return stopListen();
-  loadAudio(); if (!audioOk && !audio.src) { msg("no audio yet: ♪ → pick the mp3", 4000); return; }
-  listen.on = true; listen.x = Math.max(0, wx(W * 0.3)); audio.currentTime = Math.max(0, songTime(listen.x));
+  loadAudio(); if (!audioOk && !audio.src) { $("songBtn").onclick(); $("audioState").textContent = "pick the song's mp3 once (343707.mp3 for Ragnarok's): it is remembered on this device"; return; }
+  const inView = listen.kept && listen.x >= wx(0) && listen.x <= wx(W);
+  listen.on = true; listen.x = inView ? listen.x : Math.max(0, wx(W * 0.3)); audio.currentTime = Math.max(0, songTime(listen.x));
   audio.play().then(() => {}, () => { msg("the song could not start: ♪ → pick the mp3", 4000); stopListen(); });
   $("listenBtn").classList.add("on"); $("listenBtn").textContent = "■♪";
 };
-function stopListen() { listen.on = false; audio.pause(); $("listenBtn").classList.remove("on"); $("listenBtn").textContent = "▶♪"; dirty = true; }
+function stopListen() { listen.on = false; listen.kept = true; audio.pause(); $("listenBtn").classList.remove("on"); $("listenBtn").textContent = "▶♪"; dirty = true; }
 
 // ---- play it: the same sim as the viewer's "you play" ----
 let play = null;
