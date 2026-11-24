@@ -102,6 +102,16 @@ function fetch() {
 }
 
 // ---------------- measures of one level (static) ----------------
+// the art session's per-screen deco study (tools/decostudy.js, cache local/decostudy/<id>.json): medians per screen.
+// Its contrast score is left out: it runs the other way (featured levels have lower contrast), ART.md "Deco study".
+const DSDIR = path.join(LOCAL, "decostudy");
+function dsFeatures(d) {
+  if (!d) return {};
+  return { dsDress: d.dress, dsGlow: d.glow, dsLayers: d.layers, dsChannels: d.ch, dsMotion: d.motion, dsPerScreen: d.n };
+}
+// rows before v:2 counted plain 211/693 "light" squares as glow (fixed in decostudy 034a6a5): skip them
+function dsCached(id) { try { const d = JSON.parse(fs.readFileSync(path.join(DSDIR, id + ".json"), "utf8")); return (d.v || 1) >= 2 ? dsFeatures(d) : {}; } catch (e) { return {}; } }
+
 function measureOne(file) {
   const { GD, readGdlvl } = require("./io.js"), style = require("./style.js"), craft = require("./craft.js"), clusters = require("./clusters.js");
   let L;
@@ -254,6 +264,7 @@ function measureOne(file) {
   F.chunkRepeat = ch.length ? rep / ch.length : NaN;
   F.staticEmpty = hz.length < 20 || (F.moveTrigPerMin > 60 && F.hazPer10 < 1) ? 1 : 0;   // trigger-built 2.2 levels measure as empty
   for (const k in F) if (typeof F[k] === "number" && Number.isFinite(F[k])) F[k] = +F[k].toFixed(4);
+  Object.assign(F, dsFeatures((() => { try { return require("./decostudy.js").measure(L); } catch (e) { return null; } })()));
   return { name: L.name, v: VERSION, F };
 }
 
@@ -285,7 +296,7 @@ const FEATURES = ["objPerBlock", "decoShare", "modes", "speeds", "sectionsPerMin
   "triggersPerMin", "moveTrigPerMin", "colourTrigPerMin", "alphaPerMin", "pieces100", "pieceCells", "floorHaz", "underArmed", "topsDressed", "attached",
   "pillarDelta", "backDeco", "structuralDeco", "frontShare", "hsvShare", "colouredDeco", "pulsesPerMin", "flashesPerMin", "contrastProxy",
   "clusterIssues100", "portalFlat", "orbCentred", "orbOffset", "spikeStepBad", "spikeStepNear", "heightChanges10", "groundShare", "heightRange",
-  "decoCoverage", "chunkRepeat", "secs"];
+  "decoCoverage", "chunkRepeat", "secs", "dsDress", "dsGlow", "dsLayers", "dsChannels", "dsMotion", "dsPerScreen"];
 // the user's soft rules (knowledge/checklist.md) as hypotheses: feature and the direction the rule wants
 const RULES = [
   { rule: "flat ground under mode portals", f: "portalFlat", dir: +1 },
@@ -328,9 +339,9 @@ function contrast(bands, val, pos, inc = () => true, seed = 7) {
 function loadRows() {
   const L = JSON.parse(fs.readFileSync(CORPUS, "utf8")), rows = [];
   for (const l of L) { const f = path.join(FEAT, l.id + ".json"); if (!fs.existsSync(f)) continue;
-    const m = JSON.parse(fs.readFileSync(f, "utf8")); rows.push(Object.assign({}, l, { F: m.F, band: bandOf(l) })); }
+    const m = JSON.parse(fs.readFileSync(f, "utf8")); rows.push(Object.assign({}, l, { F: Object.assign(dsCached(l.id), m.F), band: bandOf(l) })); }
   const off = [];
-  for (let n = 1; n <= 22; n++) { const f = path.join(FEAT, "official" + n + ".json"); if (fs.existsSync(f)) off.push({ id: "official" + n, n, name: JSON.parse(fs.readFileSync(f, "utf8")).name, F: JSON.parse(fs.readFileSync(f, "utf8")).F }); }
+  for (let n = 1; n <= 22; n++) { const f = path.join(FEAT, "official" + n + ".json"); if (fs.existsSync(f)) off.push({ id: "official" + n, n, name: JSON.parse(fs.readFileSync(f, "utf8")).name, F: Object.assign(dsCached("official" + n), JSON.parse(fs.readFileSync(f, "utf8")).F) }); }
   return { rows, off };
 }
 // within-band percentile of a value (0..1), from the band's sorted values
@@ -397,7 +408,7 @@ function learn() {
   P("\n| feature | weight (per 1.0 of band percentile) |\n|---|---|"); strong.forEach((f, i) => P(`| ${f} | ${fmt(M.w[i])} |`));
   // ---- effort: featured levels have more of everything (objects, triggers, ids). A rule's measure is judged after
   // taking effort out: its within-band percentile minus what the band's effort percentile predicts (least squares) ----
-  const EFF = ["objPerBlock", "triggersPerMin", "distinctIds"];
+  const EFF = ["objPerBlock", "triggersPerMin", "distinctIds", "dsPerScreen"];
   for (const [b, R] of Object.entries(bands)) for (const r of R) r.effort = mean(EFF.map(f => pct(sorted[b][f], r.F[f])));
   const resid = {};
   for (const f of FEATURES) { resid[f] = new Map();

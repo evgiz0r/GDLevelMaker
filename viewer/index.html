@@ -1748,11 +1748,11 @@ function draw() {
     // GD's own sprites in its z-layers (B layers, glow, then T layers); ids without a known frame are
     // drawn with the shapes below. Triggers and editor-only objects are not drawn (as in the game).
     const on = objsNow.filter(o => sx(o.x) > -150 && sx(o.x) < W + 150);
-    const skip = o => { const d = GD.objInfo(o.id); if (d.kind === "trigger") return true; const i = AR.info(o.id); return !!i && /^edit_/.test(i.frame); };
+    const skip = o => { const d = GD.objInfo(o.id); if (d.kind === "trigger" || (window.SHOOT_DECO_ONLY && d.kind !== "decoration")) return true; const i = AR.info(o.id); return !!i && /^edit_/.test(i.frame); };
     const res = AR.drawObjects(ctx, on, LS, local, o => GD.LOOK.objAlpha(o, LS.alpha), skip);
     for (const o of res.rest) { const d = GD.objInfo(o.id);
       if (GD.LOOK.isMark(o.id)) { const a = GD.LOOK.objAlpha(o, LS.alpha); if (a > 0.01) { ctx.globalAlpha = a; local(o, () => GD.LOOK.drawMark(ctx, o, LS)); ctx.globalAlpha = 1; } continue; } // text (GD's font) or an arrow with no sprite: lib/look.js
-      if (d.kind === "decoration" || d.kind === "trigger") continue;
+      if (d.kind === "decoration" || d.kind === "trigger" || window.SHOOT_DECO_ONLY) continue;
       const a = GD.LOOK.objAlpha(o, LS.alpha); if (a <= 0.01) continue; ctx.globalAlpha = a; drawObj(o); ctx.globalAlpha = 1; ctx.shadowBlur = 0; }
     res.after();
     if (!AR.drawGround(ctx, view, LS, sc)) GD.LOOK.drawGround(ctx, view, LS);
@@ -1839,7 +1839,7 @@ function draw() {
   if (s0.ghost && !MAPCAM) { const gx = sx(ps.x); ctx.strokeStyle = "rgba(255,255,255,.35)"; ctx.setLineDash([6, 6]); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, groundY); ctx.stroke(); ctx.setLineDash([]);
     if (L.noRoute || L.planBreak) { ctx.fillStyle = "rgba(255,255,255,.6)"; ctx.font = `${12 * DPR()}px system-ui`;
       ctx.fillText(L.camKeep ? "camera only: the level at its speed, no player" : L.noRoute ? "no route yet: the camera runs at the level's speed" : "after the death: the camera runs on at the level's speed", gx + 8, 18 * DPR()); } continue; }
-  if (MAPCAM) {} else if (LS && s.dead && !SHOOT) {}   // the burst replaces the player; drawn on top of everything below
+  if (MAPCAM || window.SHOOT_DECO_ONLY) {} else if (LS && s.dead && !SHOOT) {}   // the burst replaces the player; drawn on top of everything below
   else if (LS) GD.LOOK.drawPlayer(ctx, view, ps, L.held[k], local, (P.SPEEDS[ps.sp] || P.SPEEDS[1]).x, sc ? (L.runKeep || (PLAY && PLAY.on) ? (c, m, st) => GD.ART_LIB.drawIcon(c, m, st, "user") : (c, m, st) => drawClaudeIcon(c, m, st) || GD.ART_LIB.drawIcon(c, m, st)) : null, (L.runKeep || (PLAY && PLAY.on)) && ME && ME.glow === false);
   else if (ps.mode === "ship") drawShip(ps);
   else if (ps.mode === "wave") drawWave(ps);
@@ -2438,6 +2438,32 @@ setInterval(() => { if (L && !playing) writeHash(); }, 1000);
 // ---------- shoot mode: tools/shoot.js writes local/shoot/<job>.json {level:{name, levelStr, solution,
 // song}, times:[s], rec, t0, width, height}; each frame goes back as POST /shoot/<job>/<n>.png (the
 // GD-art render, or render | recording frame side by side when rec is given), then /shoot/<job>/done ----------
+// the frame's own facts, for comparing levels side by side (tools/compare_frames.js): what is in view -- objects
+// per block (triggers left out), how many of them are 2.2 deco drawn as their root sprite only (their child sprites
+// are not in our tables yet), and the z-layer of each object as a coloured box (--layers)
+const LAYER_NAME = { "-5": "B5", "-3": "B4", "-1": "B3", "1": "B2", "3": "B1", "5": "T1", "7": "T2", "9": "T3", "11": "T4" };
+const LAYER_COL = { B5: "#1b2a8f", B4: "#2546d6", B3: "#2f8cff", B2: "#2fd0ff", B1: "#7fffd4", T1: "#ffe14d", T2: "#ffa040", T3: "#ff5a5a", T4: "#ff2fbf" };
+function shootView() {
+  const x0 = camX, x1 = camX + W / scale, A = GD.ART_LIB, inView = [];
+  for (const o of L.level.objects) { if (o.x < x0 - 15 || o.x > x1 + 15) continue; const d = GD.objInfo(o.id); if (d.kind === "trigger") continue; inView.push(o); }
+  const only22 = inView.filter(o => o.id >= 1911 && A && A.info(o.id) && A.info(o.id).src === "gd22").length;
+  return { inView, blocks: (x1 - x0) / 30, only22 };
+}
+function shootLayers() {
+  const A = GD.ART_LIB, v = shootView(), z = 30 * scale; ctx.save();
+  for (const o of v.inView) { const t = A && A.treeOf(o.id); const L1 = LAYER_NAME[String(t ? A.layerOf(o, t) : 5)] || "T1";
+    ctx.fillStyle = LAYER_COL[L1]; ctx.globalAlpha = 0.45; ctx.fillRect(sx(o.x) - z / 2, sy(o.y) - z / 2, z, z); }
+  ctx.globalAlpha = 1; ctx.font = `bold ${12 * DPR()}px system-ui`; let lx = 8;
+  for (const n of Object.keys(LAYER_COL)) { ctx.fillStyle = LAYER_COL[n]; ctx.fillRect(lx, H - 22, 14, 14); ctx.fillStyle = "#fff"; ctx.fillText(n, lx + 18, H - 10); lx += 52; }
+  ctx.restore();
+}
+function shootLabel(job, i) {
+  const v = shootView(), k = tick(), pct = Math.round(L.path[k].x / Math.max(1, L.world.endX) * 100);
+  const txt = `${job.label || L.name} · ${(k / P.TPS).toFixed(1)} s (${pct}%) · ${(v.inView.length / v.blocks).toFixed(1)} objects / block` +
+    (job.decoOnly ? " · deco only" : "") + (v.only22 ? ` · ${v.only22} 2.2 deco drawn without their child sprites` : "");
+  ctx.save(); ctx.font = `bold ${Math.max(12, Math.round(H / 34))}px system-ui`; const w = ctx.measureText(txt).width + 16;
+  ctx.fillStyle = "rgba(0,0,0,.65)"; ctx.fillRect(0, 0, Math.min(W, w), Math.round(H / 34) + 14); ctx.fillStyle = "#fff"; ctx.fillText(txt, 8, Math.round(H / 34) + 4); ctx.restore();
+}
 async function shootRun() {
   const job = await (await fetch("/shoot/job/" + SHOOT + ".json", { cache: "no-store" })).json();
   document.body.style.margin = "0";
@@ -2446,20 +2472,24 @@ async function shootRun() {
   if (art) { await artLoad(); await GD.ART_LIB.preload(); }
   resize();
   const lv = job.level;
-  window.SHOOT_MAP = !!job.map; window.SHOOT_INPUT = !!job.input; // a map draws its own path, no button strip: no windows to work out
+  window.SHOOT_MAP = !!job.map; window.SHOOT_INPUT = !!job.input; window.SHOOT_DECO_ONLY = !!job.decoOnly; // a map draws its own path, no button strip: no windows to work out
   load(lv.name, lv.levelStr, lv.solution || null, null);
   // a run the sim cannot finish (2.2 levels it does not model yet) goes on as a ghost: same speed, height
   // held, so the camera keeps moving through the level as in the game (job.ghost false: stop at the death)
   if (job.ghost !== false) {
     const vOf = sp => ((P.SPEEDS[sp] || P.SPEEDS[1]).x) * 60 / P.TPS;
-    ghostExtend(L, job.map ? Math.ceil(L.world.endX / vOf(0)) + 2 : Math.max(...job.times) * P.TPS + 2, !!job.map);
+    ghostExtend(L, job.map || job.pcts ? Math.ceil(L.world.endX / vOf(0)) + 2 : Math.max(...job.times) * P.TPS + 2, !!(job.map || job.pcts));
   }
+  // spots as % of the level (tools/compare_frames.js): the moment the run passes that share of the level's length
+  if (job.pcts) job.times = job.pcts.map(pc => { const x = L.world.endX * pc / 100; let k = L.path.findIndex(q => q.x >= x); if (k < 0) k = L.path.length - 1; return k / P.TPS; });
   const post = (name, url) => fetch("/shoot/" + SHOOT + "/" + name, { method: "POST", body: url });
   if (job.map) { await post("000.png", await mapRender(job)); return post("done", "1"); }
   for (let i = 0; i < job.times.length; i++) {
     t = Math.max(0, Math.min(job.times[i], (L.path.length - 1) / P.TPS)); playing = false;
     // draw until every lazily loaded picture (background, ground, tinted frames) is in
     for (let k = 0; k < 6; k++) { draw(); await new Promise(r => setTimeout(r, k < 2 ? 150 : 60)); }
+    if (job.layers) shootLayers();
+    if (job.label) shootLabel(job, i);
     let url = cv.toDataURL("image/png");
     if (job.rec) {
       const im = new Image(); im.src = "/rec/frame?f=" + encodeURIComponent(job.rec) + "&t=" + (job.t0 + job.times[i]).toFixed(3);

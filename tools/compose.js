@@ -200,7 +200,7 @@ function compose(brief, tweaks = {}) {
       const key = `${si}:0`, t = tweaks[key] || {};
       const name = sec.mode === "ship" ? "ship-tunnel" : "wave-zigzag";
       const base = sec.mode === "ship"
-        ? { w: sec.blocks - 3 - land, gap: 5, amp: 1.5, base: 0, teeth: true, lead: 6 }
+        ? { w: sec.blocks - 1 - land, gap: 5, amp: 1.5, base: 0, teeth: true, lead: 6 }   // to the section's end: its exit portal on the next bar (sync gate; GDLM 64 had it ~0.5 beat early)
         : (() => {
           // wave turns need room: level stretches at each peak and valley (2 columns at Easy/Normal,
           // 1 above) and 2 at the entry -- with pure 45-degree legs a turn was 13-88 ms (GDLM 44, physics
@@ -221,7 +221,7 @@ function compose(brief, tweaks = {}) {
     const upside = sec.mode === "upside", ceil = (sec.args && sec.args.ceil) || 6;
     if (upside) {
       // ceiling from start+1 to end-1, its gravity portal on the section's first beat, out at its last column
-      objects.push(["pattern", "ceiling", start + 1 + land, 0, { w: sec.blocks - 2 - land, ceil, portal: true, exit: true }]);
+      objects.push(["pattern", "ceiling", start + 1 + land, 0, { w: sec.blocks - 1 - land, ceil, portal: true, exit: true }]);   // exit on the next bar
     }
     if (!sec.rest && sec.use && sec.use.length) {
       const early = start / total < 0.5;
@@ -538,6 +538,14 @@ function loop(briefFile, rounds = 8, phase = {}) {
     if (drive) {
       const v = I.verify(wg, built.level, intents, { maxRepairs: 20 });   // flying parts start from another height than their cached test: repairs expected there
       events = v.events;
+      // the plan as a player would press it: the local repairs (solveSweep) leave holds through auto-jump chains,
+      // and since solutions.js adopts a clearing plan as the level's human route, a hold from block 984 to the end
+      // became "the last input" (ending 6.1 s) and 14-27-block "prejumps" (GDLM 64 v2). lib/natural.js's passes
+      // (one tap per jump, tapsEach last) turn them into taps where the run still finishes.
+      if (v.ok) try {
+        const N = require("../lib/natural.js"), n = N.naturalPlan(wg, { ok: true, events: v.events }, built.level.objects);
+        if (n && n.events && n.path && n.path[n.path.length - 1].done) events = n.events;
+      } catch (e) { /* keep the verified plan */ }
       vnote = v.ok ? (v.repairs ? `; plays to the end with ${v.repairs} local repair(s) (cache gaps: ${v.log.join("; ")})` : "; plays to the end from the plan alone") : `; the plan stops at block ${((v.dieX || 0) / 30).toFixed(0)} (${v.log.join("; ")})`;
     }
     if (missing.length) vnote += `; no intent yet for ${missing.join(", ")}`;

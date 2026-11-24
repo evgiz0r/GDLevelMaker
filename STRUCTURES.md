@@ -113,6 +113,12 @@ true`, tools/craftkit.js): rods and chains attached to the pieces.
 
 ## Open
 
+- **A structure that passes alone can fail inside a level**: `orb-ladder-2` (ok in the harness) made a fairness
+  FAIL twice in GDLM 64 v2 (blocks 213, 325: 3 orb taps 208-292 ms windows under 500 ms apart -- the natural
+  route takes the ladder's orbs and the pit's next orb as one chain). The harness should run each structure with a
+  neighbour on each side (an orb-pit, a single) and rank on that; until then it is left out of dense briefs.
+  Same in GDLM 64 v3 (gaps 2-4) for the reactive gate: block-hops 4 spots, slab-steps 3, lantern-orb 3 of 15
+  ("a jump over a hazard timed around a block", 58-208 ms windows) -- each passes the harness alone.
 - **Swing**: one structure (swing-wiggle). Until 49fa848 `solveAny` found no path past any
   wall (the sweep merged a pending flip away; fixed by the physics session). More swing shapes to add.
 - **Green orb**: the sim (gdp decompile, gdsolver) flips gravity and jumps toward the new gravity's

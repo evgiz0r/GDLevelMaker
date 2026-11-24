@@ -248,6 +248,14 @@ one (GDLM 60's dash-orb release, tick 3052): it should contain it.
 
 ### Human cost: which valid route a person plays (2026-11-23)
 
+**Known flaw (2026-11-24): a cube hold through an auto-jump chain is ONE input** to humanCost, where the same
+jumps tapped are one input each. So the solver's raw holds look cheaper. naturalPlan's last step ("keep the
+solver's route when its cost is lower") saved GDLM 64 v2's 14 holds, up to 6.5 s each, as its "human" route.
+score.js then read them as 14-27 block prejumps and a 6 s ending. Guard in lib/natural.js: the raw route can't win
+with more cube holds over 0.6 s. With the guard, 64's route has 0 holds and still finishes (153 presses, 56 s
+re-plan). Still open: humanCost itself should count each jump a hold rides, e.g. the landing-buffer window per
+re-jump. Then the guard can go.
+
 The user: the natural route is "the valid route with the lowest human cost". `humanCost(w, events, opts)` in
 lib/difficulty.js returns `{ cost, terms, actions, complete }`, lower is better, in log10-attempts units:
 `windows` (the difficulty score of exactly this route: lenient windows, settling after portals; no humanize, no
