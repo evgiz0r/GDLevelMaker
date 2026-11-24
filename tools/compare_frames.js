@@ -64,4 +64,4 @@ if (require.main === module) (async () => {
   console.log(`${made.length} pictures in ${((Date.now() - t0) / 1000).toFixed(0)} s (${ours.name} | ${ref.name}):`);
   for (const f of made) console.log("  " + f);
   process.exit(made.length ? 0 : 1);
-})().catch(e => { console.error(e.message); process.exit(1); });
+})().catch(e => { console.error(process.env.GDLM_DEBUG ? e.stack : e.message); process.exit(1); });

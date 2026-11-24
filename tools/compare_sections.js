@@ -181,7 +181,7 @@ async function main() {
       const L = load(src), E = events(L), secs = sections(L, E);
       for (const s of secs) s.M = measure(L, E, s);
       const rho = feel(L, E, secs);
-      lv[src] = { L, E, secs, rho, ours: OURS.includes(src) };
+      lv[src] = { src, L, E, secs, rho, ours: OURS.includes(src) };
       console.log(`${L.name.padEnd(28)} ${L.songKey.padEnd(18)} ${secs.map(s => s.type).join(" ")}  energy~loudness ${r2(rho)}` + (E.presses ? "" : "  (no saved route)"));
     } catch (e) { console.log(src, "skipped:", e.message); }
   }
