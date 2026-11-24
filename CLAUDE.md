@@ -278,6 +278,9 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 - **Videos and links**: `tools/video.js <level> [--run <id> | --route] [--from s --to s] [--vs-rec]` -- an mp4 of the level
   playing in the game look with its song (local only: GD's art and the song are in it; VISUALS.md "Video"); `tools/link.js`
   -- links that open a level at a version / moment / run on the PC, the phone page and the home wifi (LINKS.md).
+- **Offline snapshot** (PHONE.md "Offline snapshot"): `node tools/snapshot.js [--no-songs]` -> one HTML file with the PC
+  viewer, every level, the user's runs, GD's art and the songs, which opens from disk with no network (local only, sent to
+  the user by file card); `node tests/snapshot_offline.js` checks it from disk with no network at phone size.
 - **The phone page** (PHONE.md: what is on it, what a session does after `wip.js put`, phone
   marks, how it was tested, what is open): `tools/web.js` builds it from the viewer.
 - `tools/` -- node CLIs: `make`, `check`, `roundtrip`, `index_levels`, `serve`, `beats` (beat grid
