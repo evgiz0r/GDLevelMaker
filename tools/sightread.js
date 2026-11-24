@@ -49,7 +49,35 @@ function sightread(level, limit = 1.5, opts = {}) {
   const w = opts.world || GD.makeWorld(level.objects, level.header);
   // opts.route: a verified route whose presses carry their windows ({ ok, events, clicks: [{type, tick, lo, hi, x}] },
   // tools/score.js from the saved human route): judged as it is, no solving, no re-measuring
-  if (opts.route && opts.route.ok && opts.route.clicks.every(c => c.type !== "press" || c.lo != null)) return judge(w, level, opts.route.clicks.filter(c => c.type === "press"), opts.route.events, limit, false);
+  // A saved window that reaches MAX_SHIFT (48 steps) past its press is cut off by the measure, not by the level: its
+  // hi is not "the latest moment the press works", which is what the cue distance needs (the ball corridor of
+  // tests/style_gates.js: saved hi 2.1 blocks before the spike, real latest 0.9). Those are measured on the route
+  // itself by shifting (lib/sync.js pressWindows, later inputs fixed): no solve.
+  if (opts.route && opts.route.ok && opts.route.clicks.every(c => c.type !== "press" || c.lo != null)) {
+    const CAP = require("../lib/difficulty.js").DIFF.MAX_SHIFT;
+    let presses = opts.route.clicks.filter(c => c.type === "press");
+    if (presses.some(c => c.hi - c.tick >= CAP)) {
+      // walk each cut-off press (with its own release) later, one step at a time, while the run lives to the next
+      // input (up to 1 s: a ball press can wait 3+ blocks)
+      const ev = opts.route.events, end = GD.run(w, ev).path.length;
+      presses = presses.map(c => {
+        if (c.hi - c.tick < CAP) return c;
+        const i = ev.findIndex(e => e.type === "press" && e.tick === c.tick); if (i < 0) return c;
+        const rel = ev[i + 1] && ev[i + 1].type === "release" ? i + 1 : -1, dur = rel < 0 ? 0 : ev[rel].tick - c.tick;
+        const next = ev.find((e, j) => j > (rel < 0 ? i : rel)), stop = Math.min(c.tick + 240, next ? next.tick - dur - 1 : end);
+        let hi = c.hi;
+        for (let t = c.hi + 1; t <= stop; t++) {
+          // this press's job ends at the next input: alive until then counts (later inputs belong to later presses;
+          // keeping them fixed in time made a later flip look fatal on the ball corridor)
+          const moved = ev.slice(0, (rel < 0 ? i : rel) + 1).map((e, j) => j === i ? Object.assign({}, e, { tick: t }) : j === rel ? Object.assign({}, e, { tick: t + dur }) : e);
+          const run = GD.run(w, moved);
+          if (run.dead && run.path.length - 1 < (next ? next.tick : end)) break; hi = t;
+        }
+        return Object.assign({}, c, { hi });
+      });
+    }
+    return judge(w, level, presses, opts.route.events, limit, false);
+  }
   const r = GD.solveAny(w);
   if (!r.ok) return { ok: false };
   let presses = r.clicks.filter(c => c.type === "press");
