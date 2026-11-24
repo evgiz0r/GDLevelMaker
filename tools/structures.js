@@ -223,10 +223,11 @@ const pit = (c0, c1) => range(c0, c1).map(c => [9, c, 0, { dy: -13 }]);
 //      face by nature and is not flagged;
 //   a DROP (or the same height) crosses a 3-column pit, one more per extra row dropped: over 2 columns the
 //      cube walks off the edge and lands across without a jump (the pit "needs no action": hazards matter).
-// The first pillar is a 3-wide doorstep (stepped onto from the floor: a 1-wide one asked for a jump 1.7
-// blocks ahead of it, a prejump).
+// The first pillar is a 5-wide doorstep (stepped onto from the floor: a 1-wide one asked for a jump 1.7
+// blocks ahead of it, a prejump; a 3-wide one followed by a step up left 38 ms to land early enough).
+// Drops are 1 row: a 2-row drop is walked across over 3 columns and cut by the face over 4 (242 ms).
 function pillarRun(heights, w, riseGap = 0, dropGap = 3, capGap) {
-  const o = [], xs = [0], wd = i => i ? w : 3;
+  const o = [], xs = [0], wd = i => i ? w : 5;
   // a drop of k rows falls longer and carries farther: its pit is dropGap + k - 1 wide
   const gapTo = (a, b) => b > a ? riseGap : dropGap + Math.max(0, a - b - 1);
   for (let i = 1; i < heights.length; i++) xs.push(xs[i - 1] + wd(i - 1) + gapTo(heights[i - 1], heights[i]));
@@ -248,21 +249,21 @@ S("pillar-hop", { tags: ["1x only", "platforming", "pillar", "pit"], tier: "Norm
   args: { heights: [1, 2, 3, 2, 1], w: 4 },
   build: a => pillarRun(a.heights, a.w) });
 S("pillar-climb", { tags: ["1x only", "platforming", "pillar", "pit"], tier: "Normal",
-  doc: "a climb of pillars, up a step at each, then a drop over a pit to a low one",
-  args: { heights: [1, 2, 3, 4, 2], w: 4 },
+  doc: "a climb of pillars, up a step at each, then down a row at a time over pits",
+  args: { heights: [1, 2, 3, 4, 3, 2], w: 4 },
   build: a => pillarRun(a.heights, a.w) });
 S("capped-hop", { tags: ["1x only", "platforming", "pillar", "pit", "ceiling"], tier: "Normal",
   doc: "pillars over a pit under hanging columns: the column ends sit 4 rows over the pillars, framing every arc",
-  args: { heights: [1, 2, 1, 2, 3], w: 4, cap: 4 },
+  args: { heights: [1, 2, 1, 2, 3, 2], w: 4, cap: 4 },
   build: a => pillarRun(a.heights, a.w, 0, 3, a.cap) });
 S("slab-steps", { tags: ["1x only", "platforming", "pit", "floating"], tier: "Normal",
-  doc: "floating 4-wide steps over a pit, a row LOWER each, off the top of a stair (the craft pass hangs them on chains); rising floating steps cut every jump's window with the next slab's face (score.js reactive, 208 ms)",
-  args: { n: 3, gap: 3, w: 4 },
+  doc: "floating 4-wide slabs over a pit at one height, 3 apart, off the top of a stair, onto a 3-wide tower (the craft pass hangs them on chains). Slabs a row higher each cut every window with the next slab's face (208 ms), a row lower each gave 42 ms",
+  args: { n: 3, gap: 3, w: 4, h: 2 },
   build: a => { const o = []; let c = 0;
-    for (let h = 1; h <= a.n + 1; h++, c += 3) o.push(...blocks(c, c + 3, 0, h));   // stairs up to the top step
+    for (let h = 1; h <= a.h + 1; h++, c += 3) o.push(...blocks(c, c + 3, 0, h));   // stairs up to the slab height
     // pits only in the gaps: one under a slab is never reached ("needs no action")
-    for (let i = 0; i < a.n; i++) { o.push(...pit(c, c + a.gap)); c += a.gap; o.push(...blocks(c, c + a.w, a.n - i, a.n - i + 1)); c += a.w; }
-    o.push(...pit(c, c + a.gap), ...blocks(c + a.gap, c + a.gap + 3, 0, 1)); return { objects: o, width: c + a.gap + 3 }; } });
+    for (let i = 0; i < a.n; i++) { o.push(...pit(c, c + a.gap)); c += a.gap; o.push(...blocks(c, c + a.w, a.h, a.h + 1)); c += a.w; }
+    o.push(...pit(c, c + a.gap), ...blocks(c + a.gap, c + a.gap + 3, 0, a.h + 1)); return { objects: o, width: c + a.gap + 3 }; } });
 S("lantern-orb", { tags: ["1x only", "orb", "yellow orb", "pit", "pillar"], tier: "Normal",
   doc: "a yellow orb hung on a chain over a pit between two pillars: jump off the first, tap the orb, land on the second",
   build: () => ({ objects: [...blocks(0, 4, 0, 2), ...pit(4, 11), ["yellow orb", 7, 4], ...blocks(11, 15, 0, 2), ...blocks(15, 19, 0, 1)], width: 19 }) });
