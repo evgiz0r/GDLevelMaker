@@ -201,7 +201,14 @@ ground line with `tools/track.py --rows`. Source: Hexagon Force, recording 2026-
 | ship tilt | follows its velocity's angle: gain 0.98, 67 ms behind, rms 7.6 deg (`rot_video.py --axis`, 2x speed, video 72.6-74.05 s) | was gain 0.96, 17 ms behind; now smoothing 0.06 a tick: gain 0.86, 50 ms | fixed (timing); the gain fit drops with the lag, close enough |
 | colours | at 12.2 s the background fade (trigger 29 at x 3795: to 255,91,0 over 10 s) is ~1.6 s along in the game, ~0.2 s in ours; ground saws pink, block edges glowing | violet, white saws | open: needs the video aligned by position first (GD may fire old colour triggers earlier, or the video is ahead) |
 | solver icon | -- | the replay's player and the vs-solver cube use the Claude icon set (viewer/icons/claude, art) | done |
-| frame alignment | -- | the replay sits 2-8 blocks behind the video at the same t | open: the attempt's t0 / tick origin (asked gd-physics) |
+| frame alignment | video.level_t (gd-physics): the video time of tick 0 (59.403 for this attempt, not the bar start 60.6) | side-by-sides now at level_t + tick / 240 | fixed: frames line up (same position, height, tilt) |
+| antenna balls (rods 15-17) | 22 units across, centre ~10.5 units past the stick's tip, pale cream = lime 1005 added over the purple | were 0.13 scale (3.9 units) at the tip, flat lime | fixed: scale 0.73, placed past the tip, detail parts blend by their own channel |
+| player glow | none (the user's save: playerGlow off) | a halo | fixed for the user's runs and "you play" |
+| LBG (1007) parts: dotted-column links, ground waves | (238,43,238), brightest (255,89,255) = our LBG (190,78,252) + background (117,0,180) | drawn flat, lavender | fixed: 1007 blends by default, like 1005 / 1006; each part blends by its own channel (the columns' dots, channel 1, stay solid) |
+| 1.x colour triggers 221 / 717 / 718 / 743 / 744 (colour 1-4, 3DL) | Hexagon Force flashes colour 1 blue on its beats (20 triggers) | ignored | fixed: read like 29 / 30 |
+| when a trigger fires | the colour-1 flash at x 945 shows between frames 2.983 and 3.000 s | at 3.033 (the player's centre passing) | fixed: at the player's front edge (x - 15), 2.985 s; the look's colour / alpha / zoom triggers only (the sim's triggers are gd-physics') |
+| antenna ball, short rod (17) | 12.9 units across | 22 (0.73 after the first fix) | fixed: 0.43; rod 15 not measured yet |
+| block outlines | white with a soft glow | thin white | open |
 
 ## Facts (checked against the user's recordings)
 
@@ -261,7 +268,7 @@ Driven from the browser console: load a level (`load(name, levelStr, solution)` 
   ground; some switches fall on presses (level t 2.19, 3.68, 5.32). No trigger in the level does it (only
   bg / ground colour triggers). Cycles shows white edges. Our render draws the white (base) state. Ask
   the user whether a setting does this; else look for GD 2.2 behaviour of 1004 / 1005 on input.
-- The rod (antenna) ball draws as a ring; the game shows a filled pale ball. Ball offsets are by eye.
+- Rod (antenna) balls: size and place measured on Hexagon Force (Render vs game); GDLM 41's earlier note said a filled pale ball -- check it against its recording with the new scale.
 - Order of the player vs T1 objects (we draw the player after everything, OpenGD puts it under T1).
 - The camera's vertical follow and the bg's slower vertical parallax are not the game's.
 - 2.2-only ids (1911+): root frame only, no child sprites, default layer/channel guessed (T1, 1004).
