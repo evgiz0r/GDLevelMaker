@@ -1339,8 +1339,9 @@ function drawClaudeIcon(c, mode, st) {
 const DFX = { key: "", t0: 0 };
 function deathFx(ps) {
   const k = tick(), key = L.name + ":" + k + ":" + Math.round(ps.x);
-  if (DFX.key !== key) { DFX.key = key; DFX.t0 = performance.now(); }
-  const age = (performance.now() - DFX.t0) / 1000; if (age > 0.9) return;
+  const now = window.VCLOCK != null ? window.VCLOCK : performance.now();   // a video (tools/video.js) runs on its own clock
+  if (DFX.key !== key) { DFX.key = key; DFX.t0 = now; }
+  const age = (now - DFX.t0) / 1000; if (age > 0.9) return;
   requestAnimationFrame(() => { if (!playing) draw(); });   // keep it moving while the replay rests on the death
   const X = sx(ps.x), Y = sy(ps.y), B = 30 * scale, rnd = (i, q) => { const v = Math.sin(i * 12.9898 + q * 78.233) * 43758.5453; return v - Math.floor(v); };
   const col = (L.runKeep || (PLAY && PLAY.on)) && ME && ME.color1 && ME.color1.rgb ? ME.color1.rgb.join(",") : "125,255,0";
@@ -1722,7 +1723,7 @@ function draw() {
     want = Math.max(0, 0.38 * (s.y - 60), s.y - 30 * 5.5);
   } else want = Math.max(0, s.y - 30 * 4.5);
   if (MAPCAM) { scale = MAPCAM.scale; camX = MAPCAM.x; camY = MAPCAM.y; groundY = MAPCAM.groundY; } else
-  if (SHOOT) camY = want + (LS && LS.camOff ? LS.camOff[1] : 0); else
+  if (SHOOT && !window.SHOOT_VIDEO) camY = want + (LS && LS.camOff ? LS.camOff[1] : 0); else
   camY += (want - camY) * (1 - Math.exp(-9.75 * drawDt)); // 0.15 a frame at 60 fps, at any rate
   const view = { W, H, scale, camX, sx, sy };
   const AR = GD.ART_LIB, sc = artOn() ? (L.scenery = L.scenery || AR.scenery(L.level.header)) : null;
@@ -1839,7 +1840,7 @@ function draw() {
   if (s0.ghost && !MAPCAM) { const gx = sx(ps.x); ctx.strokeStyle = "rgba(255,255,255,.35)"; ctx.setLineDash([6, 6]); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, groundY); ctx.stroke(); ctx.setLineDash([]);
     if (L.noRoute || L.planBreak) { ctx.fillStyle = "rgba(255,255,255,.6)"; ctx.font = `${12 * DPR()}px system-ui`;
       ctx.fillText(L.camKeep ? "camera only: the level at its speed, no player" : L.noRoute ? "no route yet: the camera runs at the level's speed" : "after the death: the camera runs on at the level's speed", gx + 8, 18 * DPR()); } continue; }
-  if (MAPCAM || window.SHOOT_DECO_ONLY) {} else if (LS && s.dead && !SHOOT) {}   // the burst replaces the player; drawn on top of everything below
+  if (MAPCAM || window.SHOOT_DECO_ONLY) {} else if (LS && s.dead && (!SHOOT || window.SHOOT_VIDEO)) {}   // the burst replaces the player; drawn on top of everything below
   else if (LS) GD.LOOK.drawPlayer(ctx, view, ps, L.held[k], local, (P.SPEEDS[ps.sp] || P.SPEEDS[1]).x, sc ? (L.runKeep || (PLAY && PLAY.on) ? (c, m, st) => GD.ART_LIB.drawIcon(c, m, st, "user") : (c, m, st) => drawClaudeIcon(c, m, st) || GD.ART_LIB.drawIcon(c, m, st)) : null, (L.runKeep || (PLAY && PLAY.on)) && ME && ME.glow === false);
   else if (ps.mode === "ship") drawShip(ps);
   else if (ps.mode === "wave") drawWave(ps);
@@ -1853,7 +1854,7 @@ function draw() {
     const age = (k - c.tick) / P.TPS;
     const row = document.getElementById("c" + i); if (row) row.classList.toggle("now", age >= 0 && age < 0.35);
   });
-  if (SHOOT) {} else if (s.dead) {
+  if (SHOOT) { if (window.SHOOT_VIDEO && s.dead && LS && !MAPCAM) for (const ps of s.p2 ? [s, Object.assign({}, s, s.p2)] : [s]) deathFx(ps); } else if (s.dead) {
     if (LS && !MAPCAM) for (const ps of s.p2 ? [s, Object.assign({}, s, s.p2)] : [s]) deathFx(ps);
     ctx.fillStyle = "rgba(255,59,107,.9)"; ctx.font = "bold 22px system-ui"; ctx.fillText("✖ died on a " + s.why, sx(s.x) - 60, sy(s.y) - 50);
   } else if (s.done) {
@@ -2414,10 +2415,57 @@ async function controlsCheck() {
   try { await fetch("/selfcheck?id=" + encodeURIComponent(QS.get("id") || "x"), { method: "POST", body: JSON.stringify(out) }); } catch (e) {}
 }
 function hashParams() { return new URLSearchParams(location.hash.slice(1)); }
-function writeHash() { const l = ALL[pick.value]; if (!l || !L) return; history.replaceState(null, "", "#lv=" + encodeURIComponent(l.file) + "&t=" + (tick() / P.TPS).toFixed(2)); }
+function writeHash() { const l = ALL[pick.value]; if (!l || !L) return; history.replaceState(null, "", "#lv=" + encodeURIComponent(l.file) + (l.version ? "&v=" + l.version : "") + "&t=" + (tick() / P.TPS).toFixed(2) + (L.ghost ? "&run=" + encodeURIComponent(L.ghost.row.id) : "")); }
+// Level links (LINKS.md): one parser for the PC viewer, the PC over the LAN and the phone page.
+//   long:  #lv=<file>&v=<version>&t=<seconds>&run=<attempt id>   (the PC viewer's address bar, 🔗)
+//   short: #<level base>--v5--t40--r<attempt id>                  (letters, digits, _ and - only: a claude.ai Artifact
+//          address keeps a plain #name and drops the rest, so the phone page's links use this one)
+// A whole URL, or just its # part, may be given (the phone page's "open link" box). The level is found by its file, else
+// by its base name (local/wip/<session>/<base>.gdlvl or levels/<base>.gdlvl), the version asked for first, then the
+// newest; a version that is gone says so.
+function parseLink(s) {
+  s = String(s || "").trim(); const i = s.indexOf("#"); if (i >= 0) s = s.slice(i + 1); if (!s) return null;
+  if (/(^|&)lv=/.test(s)) { const h = new URLSearchParams(s); return { file: h.get("lv"), v: +h.get("v") || 0, t: +h.get("t") || 0, run: h.get("run") || "" }; }
+  const parts = s.split("--"), out = { base: parts[0], v: 0, t: 0, run: "" };
+  for (const p of parts.slice(1)) { let m; if ((m = /^v(\d+)$/.exec(p))) out.v = +m[1]; else if ((m = /^t([\d.]+)$/.exec(p))) out.t = +m[1]; else if ((m = /^r([\w-]+)$/.exec(p))) out.run = m[1]; }
+  return /^[\w.-]+$/.test(out.base) ? out : null;
+}
+function linkFind(q) {
+  if (!q) return -1;
+  if (q.file) { const i = ALL.findIndex(l => l.file === q.file); if (i >= 0) return i; q.base = q.file.split(/[\\/]/).pop().replace(/\.(gdlvl|json)$/, "").replace(/^official:0*(\d+)$/, (m, n) => "official_" + n.padStart(2, "0")); }
+  const baseOf = l => String(l.file || "").split(/[\\/]/).pop().replace(/\.(gdlvl|json)$/, "");
+  const cand = ALL.map((l, i) => ({ l, i })).filter(c => baseOf(c.l) === q.base || (c.l.name || "").toLowerCase().replace(/\W+/g, "_") === q.base.toLowerCase());
+  if (!cand.length) return -1;
+  const hit = q.v && cand.find(c => +c.l.version === q.v);
+  return (hit || cand.sort((a, b) => (+b.l.version || 0) - (+a.l.version || 0) || (b.l.wip ? 1 : 0) - (a.l.wip ? 1 : 0))[0]).i;
+}
+function shortLink() { const l = ALL[pick.value]; if (!l || !L) return ""; const b = String(l.file || "").split(/[\\/]/).pop().replace(/\.(gdlvl|json)$/, "");
+  return "#" + b + (l.version ? "--v" + l.version : "") + "--t" + (tick() / P.TPS).toFixed(1) + (L.ghost ? "--r" + L.ghost.row.id : ""); }
+function openLink(s) {
+  const q = parseLink(s), i = linkFind(q); if (i < 0) { if (q) notice("No level here for that link (" + esc(q.file || q.base) + ")."); return false; }
+  const l = ALL[i];
+  if (q.v && l.version && +l.version !== q.v) notice(`That link was for version ${q.v}; this is version ${l.version} (the newest here).`, 6000);
+  pick.value = i; pick.wantT = q.t; pick.onchange();
+  // the level may open later (unpacked, fetched, its route replayed): seek once it is the one on screen, then the run
+  const want = l.name; let tries = 0;
+  const seek = () => { if (ALL[pick.value] !== l) return;
+    if (!L || L.name !== want || !L.path || (q.t && L.path.length < 2)) { if (++tries < 100) setTimeout(seek, 100); return; }
+    playing = false; setPlay(); t = Math.min(q.t, (L.path.length - 1) / P.TPS); lastTick = tick(); draw();
+    if (q.run && typeof runShow === "function" && !window.GD_PHONE) runShow(q.run); };
+  seek();
+  if (typeof pkTitle === "function") try { pkTitle(); } catch (e) {}
+  return true;
+}
+addEventListener("hashchange", () => { if (!SHOOT && location.hash.length > 1) openLink(location.hash); });
 document.getElementById("linkBtn").onclick = async () => {
+  if (window.GD_PHONE) {   // the phone page: its address can't carry a link, so a pasted one opens here
+    const a = await askNote("Paste a level link (from a chat or the PC)"); if (a && a.note) openLink(a.note); return;
+  }
   writeHash();
-  try { await navigator.clipboard.writeText(location.href); document.getElementById("linkBtn").textContent = "✓ copied"; } catch (e) { notice('Link to this moment: <input readonly style="width:28em" value="' + esc(location.href) + '" onclick="this.select()">', 15000); }
+  const box = (lab, v) => `${lab}: <input readonly style="width:26em;max-width:70vw" value="${esc(v)}" onclick="this.select()">`;
+  let phone = ""; try { const u = await (await fetch("/phone/url", { cache: "no-store" })).text(); if (/^https:\/\/claude\.ai\//.test(u.trim())) phone = u.trim() + shortLink(); } catch (e) {}
+  try { await navigator.clipboard.writeText(location.href); document.getElementById("linkBtn").textContent = "✓ copied"; } catch (e) {}
+  notice(box("This PC", location.href) + (phone ? "<br>" + box("Phone", phone) : ""), 15000);
   setTimeout(() => document.getElementById("linkBtn").textContent = "🔗 link", 1500);
 };
 setInterval(() => { if (L && !playing) writeHash(); }, 1000);
@@ -2425,9 +2473,7 @@ setInterval(() => { if (L && !playing) writeHash(); }, 1000);
   if (SHOOT) return shootRun();
   if (hashParams().get("embed")) return; // the parent page loads the level (viewer/polish.html)
   await loadWip(false); meLoad();
-  const h = hashParams(), want = h.get("lv");
-  const i = want ? ALL.findIndex(l => l.file === want) : -1;
-  if (i >= 0) { pick.value = i; pick.wantT = +h.get("t") || 0; pick.onchange(); t = +h.get("t") || 0; draw(); }
+  if (location.hash.length > 1 && !hashParams().get("embed") && linkFind(parseLink(location.hash)) >= 0) openLink(location.hash);
   else if (ALL.length) { pick.value = 0; pick.onchange(); }
   else if (window.GD_PAGES) {   // the public site with no level published yet (knowledge/public_levels.json is opt-in)
     document.getElementById("summary").innerHTML = "<b>First levels coming soon.</b><br><span class='muted'>Geometry Dash levels made by Claude will appear here once one is good enough to share.</span>";
@@ -2464,6 +2510,31 @@ function shootLabel(job, i) {
   ctx.save(); ctx.font = `bold ${Math.max(12, Math.round(H / 34))}px system-ui`; const w = ctx.measureText(txt).width + 16;
   ctx.fillStyle = "rgba(0,0,0,.65)"; ctx.fillRect(0, 0, Math.min(W, w), Math.round(H / 34) + 14); ctx.fillStyle = "#fff"; ctx.fillText(txt, 8, Math.round(H / 34) + 4); ctx.restore();
 }
+// a video (tools/video.js): job.video {fps, from, to}, frames as JPEG f00000.jpg.. on a virtual clock -- the camera eases,
+// the death burst plays and the trail follows exactly as at that frame rate in the page, whatever the render speed.
+// job.run: one of the user's attempts (tools/attempts.js row with its events): the run is the player, drawn as the user
+// (the viewer's own run view, the solver hidden). The song is muxed in by tools/video.js, not played here.
+async function shootVideo(job, post) {
+  const v = job.video, fps = v.fps || 60;
+  if (job.run) {
+    meLoad(); for (let i = 0; i < 40 && !ME; i++) await new Promise(r => setTimeout(r, 50));
+    if (ME && GD.ART_LIB.loadUserIcons) await GD.ART_LIB.loadUserIcons(ME);
+    const row = job.run, RS = L.sol, from = row.practice && row.from && row.from.tick > 0 && !row.events.some(e => e.tick < row.from.tick) ? row.from.tick : 0;
+    const pre = from && RS.ok ? replayEvents(RS).filter(e => e.tick < from) : [];
+    const r = GD.run(L.world, pre.concat(row.events));
+    VIEW.route = false; L.ghost = { row, path: r.path, cmp: null, runP: [], from: pre.length ? from : 0, events: pre.concat(row.events) }; runViewApply();
+  }
+  const end = (L.path.length - 1) / P.TPS, t1 = Math.min(v.to != null ? v.to : end + 1, end + 1.2), t0 = Math.max(0, v.from || 0);
+  const n = Math.max(1, Math.round((t1 - t0) * fps));
+  drawDt = 1 / fps; window.SHOOT_VIDEO = false; t = t0; draw(); window.SHOOT_VIDEO = true;   // the first frame's camera in place
+  for (let k = 0; k < 4; k++) { draw(); await new Promise(r => setTimeout(r, 120)); }         // lazily loaded pictures in
+  const T0 = performance.now();
+  for (let i = 0; i < n; i++) {
+    const tt = t0 + i / fps; t = Math.min(tt, end); window.VCLOCK = tt * 1000; drawDt = 1 / fps; draw();
+    await post("f" + String(i).padStart(5, "0") + ".jpg", cv.toDataURL("image/jpeg", v.quality || 0.88));
+  }
+  await post("done", JSON.stringify({ frames: n, from: t0, to: t1, fps, ms: Math.round(performance.now() - T0), end }));
+}
 async function shootRun() {
   const job = await (await fetch("/shoot/job/" + SHOOT + ".json", { cache: "no-store" })).json();
   document.body.style.margin = "0";
@@ -2478,12 +2549,13 @@ async function shootRun() {
   // held, so the camera keeps moving through the level as in the game (job.ghost false: stop at the death)
   if (job.ghost !== false) {
     const vOf = sp => ((P.SPEEDS[sp] || P.SPEEDS[1]).x) * 60 / P.TPS;
-    ghostExtend(L, job.map || job.pcts ? Math.ceil(L.world.endX / vOf(0)) + 2 : Math.max(...job.times) * P.TPS + 2, !!(job.map || job.pcts));
+    ghostExtend(L, job.map || job.pcts || job.video ? Math.ceil(L.world.endX / vOf(0)) + 2 : Math.max(...(job.times || [0])) * P.TPS + 2, !!(job.map || job.pcts || job.video));
   }
   // spots as % of the level (tools/compare_frames.js): the moment the run passes that share of the level's length
   if (job.pcts) job.times = job.pcts.map(pc => { const x = L.world.endX * pc / 100; let k = L.path.findIndex(q => q.x >= x); if (k < 0) k = L.path.length - 1; return k / P.TPS; });
   const post = (name, url) => fetch("/shoot/" + SHOOT + "/" + name, { method: "POST", body: url });
   if (job.map) { await post("000.png", await mapRender(job)); return post("done", "1"); }
+  if (job.video) return shootVideo(job, post);
   for (let i = 0; i < job.times.length; i++) {
     t = Math.max(0, Math.min(job.times[i], (L.path.length - 1) / P.TPS)); playing = false;
     // draw until every lazily loaded picture (background, ground, tinted frames) is in

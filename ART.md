@@ -281,3 +281,22 @@ Open:
 - deco on a moving group counts at its start x;
 - glow is counted by family and blending only, not by how it looks;
 - the dress radius (1.5 blocks) was not tuned.
+
+### Side by side: GDLM 64 vs Dreamy (2026-11-24, tools/compare_frames.js, local/compare/GDLM_64_golden_hour_vs_Dreamy/)
+
+At 70%, Dreamy shows 10.4 objects per block and GDLM 64 shows 36.3, yet Dreamy reads as designed and ours as noise.
+**Density is not the gap: the shapes are.** The lessons are soft rules for decokit / props / scenes:
+1. **No visible pixel steps.** Our trees, hills and clouds are pixel art on a 6-7.5-unit grid, so every edge is a
+   staircase, and at screen size that reads as low-res. Dreamy's edges are smooth: round puffs (circles), straight
+   facets (rotated triangles), long clean curves. Big organic shapes should be circles and rotated pieces, not grids.
+   Pixel art stays for small props (house, robot), where the pixel look is the point.
+2. **Fewer, bigger shapes.** One cloud is about 6 overlapping circles, and one tree is a trunk plus 3 facets. Many small
+   squares of one colour become texture, not a shape.
+3. **Hue separation.** Dreamy puts saturated play blocks on a pastel field, and its scenery comes in 4-6 distinct hues
+   (white clouds, blue sky, a rainbow). Ours puts pink scenery on a pink sky, with the play the same hue as both. Keep the
+   backdrop in one hue family and give play and focal props a contrasting hue. tools/contrast.js checks value only;
+   hue is not checked yet.
+4. **A frame, not a wall.** Dreamy's white cloud bank runs along the bottom edge and leaves the middle of the screen
+   open around the path. Ours fills the whole height behind the path with trees.
+5. **Play blocks get a drop shadow and a light outline** (Dreamy's offset darker copy), so they sit in front of busy art.
+(The how is it october frames came out empty: the camera ghost on a level without a route; visuals is redoing them.)
