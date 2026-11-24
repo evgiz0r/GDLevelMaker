@@ -180,7 +180,8 @@ function build(briefFile, k, opts = {}) {
     for (const c of sc0.tight || []) blame.push({ col: c.x / 30 + 1.5, why: `${c.ms} ms window` });
     for (const c of sc0.chains || []) blame.push({ col: c.x / 30 + 1.5, why: `jump ${c.ms} ms after landing` });
     for (const g of sc0.gates.filter(g => g.status === "FAIL" && (g.name === "skips" || g.name === "reactive")))
-      for (const m of String(g.value).matchAll(/block (\d+(\.\d+)?)/g)) blame.push({ col: +m[1] - 2, why: g.name });
+      // (the spots are in the gate's note, score.js)
+      for (const m of (String(g.value) + " " + (g.note || "")).matchAll(/block (\d+(\.\d+)?)/g)) blame.push({ col: +m[1] - 2, why: g.name });
     for (const b of blame) {
       const ch = C.chunkAt(cur.cr.placed, b.col); if (!ch || fixes.some(f => f.key === ch.key)) continue;
       const t = tw[ch.key] || (tw[ch.key] = {});
@@ -188,7 +189,7 @@ function build(briefFile, k, opts = {}) {
       t.tries = (t.tries || 0) + 1;
       // a tight window is the chunk's own jump (a triple at 1x: 45.8 ms however much room is before it -- GDLM 69 p1, the
       // first test, 2026-11-24: two rounds of "2 columns before triple" left it at 45.8 ms): the easier chunk at once
-      if (/ms window$/.test(b.why) && C.EASIER[t.swap || ch.name]) { t.swap = C.EASIER[t.swap || ch.name]; t.tries = 0; fixes.push({ key: ch.key, what: `${ch.name} -> ${t.swap} (${b.why})` }); continue; }
+      if (/ms window$/.test(b.why) && C.EASIER[t.swap || ch.name]) { const bk = "ban:" + String(ch.key).split(":")[0]; tw[bk] = [...new Set([...(tw[bk] || []), t.swap || ch.name])]; t.swap = C.EASIER[t.swap || ch.name]; t.tries = 0; fixes.push({ key: ch.key, what: `${ch.name} -> ${t.swap} (${b.why})` }); continue; }
       if (t.tries <= 2) { t.gap = (t.gap || 0) + 2; fixes.push({ key: ch.key, what: `2 columns before ${t.swap || ch.name} (${b.why})` }); }
       else if (C.EASIER[t.swap || ch.name]) { t.swap = C.EASIER[t.swap || ch.name]; t.tries = 0; fixes.push({ key: ch.key, what: `${ch.name} -> ${t.swap} (${b.why})` }); }
     }

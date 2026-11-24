@@ -147,7 +147,7 @@ function sheet(id) {
     if (!frames.length) continue;
     let r = null; try { r = readJ(path.join(dir, `v${x.k}.result.json`)); } catch (e) {}
     const p = (r && r.pace) || {};
-    const label = `v${x.k}  ${x.hook}   ${p.cps ?? "-"} clicks per s   ${p.obsPerBar ?? "-"} obstacles per bar   ${p.changesPer10s ?? "-"} changes per 10 s   (real ${T.cps} / ${T.obsPerBar} / ${T.changesPer10s})${r && !r.ok ? "   NOT OK " + r.fails.join(" ") : ""}`;
+    const label = `v${x.k}  ${x.hook}   ${p.perBeat ?? "-"} inputs per beat   ${p.obsPerBar ?? "-"} obstacles per bar   ${p.changesPer10s ?? "-"} changes per 10 s   (real ${T.perBeat} / ${T.obsPerBar} / ${T.changesPer10s})${r && !r.ok ? "   NOT OK " + r.fails.join(" ") : ""}`;
     rows.push({ frames, label });
   }
   if (!rows.length) return null;
@@ -168,9 +168,9 @@ function sheet(id) {
 function status(id) {
   if (!id) { for (const f of fs.existsSync(LAB) ? fs.readdirSync(LAB).filter(f => /^r\d+$/.test(f)) : []) { const R = readJ(path.join(LAB, f, "round.json")); console.log(`${f}: ${R.moment} ${R.t[0]}-${R.t[1]} s, ${R.variants.length} variants${R.ask ? ", card " + R.ask : ""}`); } return; }
   const dir = path.join(LAB, id), R = readJ(path.join(dir, "round.json")), T = require("./pace.js").load().target;
-  console.log(`${id}: ${R.moment} (${R.t[0]}-${R.t[1]} s); real pace ${T.cps} cps, ${T.obsPerBar} obstacles/bar, ${T.changesPer10s} changes/10 s`);
+  console.log(`${id}: ${R.moment} (${R.t[0]}-${R.t[1]} s); real pace ${T.perBeat} inputs/beat, ${T.obsPerBar} obstacles/bar, ${T.changesPer10s} changes/10 s`);
   for (const x of R.variants) { let r = null; try { r = readJ(path.join(dir, `v${x.k}.result.json`)); } catch (e) {}
-    console.log(`  v${x.k} ${x.hook.padEnd(13)} ${r ? (r.ok ? "ok  " : "FAIL") + ` ${r.secs.toFixed(0)} s  ${r.pace && r.pace.cps != null ? r.pace.cps + " cps " : ""}${r.pace && r.pace.obsPerBar != null ? r.pace.obsPerBar + " obs/bar " : ""}${r.pace && r.pace.changesPer10s != null ? r.pace.changesPer10s + " ch/10s" : ""}${r.fails.length ? "  fails " + r.fails.join(",") : ""}` : "not built"}`); }
+    console.log(`  v${x.k} ${x.hook.padEnd(13)} ${r ? (r.ok ? "ok  " : "FAIL") + ` ${r.secs.toFixed(0)} s  ${r.pace && r.pace.perBeat != null ? r.pace.perBeat + " in/beat " : ""}${r.pace && r.pace.obsPerBar != null ? r.pace.obsPerBar + " obs/bar " : ""}${r.pace && r.pace.changesPer10s != null ? r.pace.changesPer10s + " ch/10s" : ""}${r.fails.length ? "  fails " + r.fails.join(",") : ""}` : "not built"}`); }
 }
 
 module.exports = { round, build, ask, collect, status, sheet, HOOKS };
