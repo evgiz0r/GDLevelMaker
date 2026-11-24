@@ -140,5 +140,9 @@ robot, spider, swing), the signature robot's face (a dark visor with two amber e
 antenna light) on a terracotta body, cream plates, dark-brown outline, glow (255,150,80). Our own art: no logos,
 nothing of RobTop's. `node tools/claude_icons.js sheet` -> local/props/claude_icons.png (icon size + 4x, dark and
 GD-blue backgrounds); `png` -> one PNG per mode for the viewer (viewer/icons/claude/, after the user's OK);
-`text <mode>`. STATUS: preview sent for the user's OK; viewer files (for gd-visuals) and an in-level prop
+`text <mode> [kit]`. Then the user's reference pictures (a player's icon kits; a sheet of GD-style faces): it
+must read as ONE kit -- one motif on every mode, one palette, thick dark outlines, simple shapes. So
+lib/claude_icons.js is now bodies with a face slot + a kit's motif: kits A visor bot, B a cream "C" mark with a
+spark dot, C a happy face; `node tools/claude_icons.js kits` -> local/props/claude_kits.png (one row per kit).
+STATUS: the three kits sent for the user's pick; viewer files (for gd-visuals) and an in-level prop
 version (GD objects, like the signature) come after it.
