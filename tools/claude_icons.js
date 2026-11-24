@@ -16,7 +16,7 @@ function kits(out, only) {
   const job = { kits: CI.KITS.filter(k => !only || only.split(",").includes(k)).map(k => ({ kit: k, title: CI.KIT_DEFS[k].title, palette: CI.palette(k), glow: CI.glow(k),
     icons: CI.MODES.map(m => { const g = CI.grid(m, k); return { mode: m, w: g.w, h: g.h, c: g.c }; }) })) };
   const jf = out.replace(/\.png$/, "_job.json"); fs.writeFileSync(jf, JSON.stringify(job));
-  cp.execFileSync("python", [path.join(__dirname, "claude_kits_sheet.py"), jf, out], { stdio: "inherit" });
+  cp.execFileSync("python", [path.join(__dirname, "claude_kits_sheet.py"), jf, out], { stdio: "inherit", windowsHide: true });
   return out;
 }
 function sheet(out, kit) {
@@ -24,7 +24,7 @@ function sheet(out, kit) {
   fs.mkdirSync(path.dirname(out), { recursive: true });
   const job = { palette: CI.palette(kit), glow: CI.glow(kit), icons: CI.MODES.map(m => { const g = CI.grid(m, kit); return { mode: m, w: g.w, h: g.h, c: g.c }; }) };
   const jf = out.replace(/\.png$/, "_job.json"); fs.writeFileSync(jf, JSON.stringify(job));
-  cp.execFileSync("python", [path.join(__dirname, "claude_icons_sheet.py"), jf, out], { stdio: "inherit" });
+  cp.execFileSync("python", [path.join(__dirname, "claude_icons_sheet.py"), jf, out], { stdio: "inherit", windowsHide: true });
   return out;
 }
 function pngs(dir, kit) {
