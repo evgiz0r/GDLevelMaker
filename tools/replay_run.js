@@ -91,6 +91,8 @@ function pinStart(approxUtc) {   // UTC ms of the music's restart near approxUtc
   if (!audio || !songEnv || !songEnv.length) return null;
   const a0 = Date.parse(audio.start_utc), from = (approxUtc - a0) / 1000 - 1.5, rec = envelope(audio.file, from, 6);
   if (!rec || rec.length < songEnv.length) return null;
+  // GD's music off (the user, 2026-11-24): the recording's sound is silence there; say so once, bar fit instead
+  if (Math.max(...rec) < 1e-4) { if (!pinStart.warned) { console.log("the recording's sound is silent around the attempts: GD's music is off? (bar fit instead)"); pinStart.warned = true; } return null; }
   const m = songEnv.length; let best = -2, bestLag = 0;
   const mean = a => a.reduce((s, x) => s + x, 0) / a.length, ms = mean(songEnv), ss = Math.sqrt(songEnv.reduce((s, x) => s + (x - ms) ** 2, 0)) || 1;
   for (let lag = 0; lag + m <= rec.length; lag++) {
