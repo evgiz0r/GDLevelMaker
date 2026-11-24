@@ -1686,6 +1686,12 @@ function resize() {
 addEventListener("resize", resize);
 const sx = x => (x - camX) * scale, sy = y => groundY - (y - camY) * scale;
 
+// the median height of a level's objects (no triggers) per 600-unit stretch: where a camera with no route should look
+function contentY(LL, x) {
+  if (!LL.cy) { const m = new Map(); for (const o of LL.level.objects) { if (GD.objInfo(o.id).kind === "trigger") continue; const c = Math.floor(o.x / 600); (m.get(c) || m.set(c, []).get(c)).push(o.y); }
+    LL.cy = new Map(); for (const [c, ys] of m) { ys.sort((a, b) => a - b); LL.cy.set(c, ys[ys.length >> 1]); } }
+  return LL.cy.has(Math.floor(x / 600)) ? LL.cy.get(Math.floor(x / 600)) : null;
+}
 function draw() {
   if (!L) return;
   // a canvas with no size yet (a hidden pane, an iframe before layout) made scale 0, the camera NaN,
@@ -1729,6 +1735,9 @@ function draw() {
     // Force recording -- lift 0.9 / 1.36 / 1.74 blocks at 4.4 / 5.6 / 6.6 blocks high; VISUALS.md "Render vs game")
     want = Math.max(0, 0.38 * (s.y - 60), s.y - 30 * 5.5);
   } else want = Math.max(0, s.y - 30 * 4.5);
+  // no route (a ghost: the camera at the level's speed, height held): follow where the level's objects are instead, or a
+  // level built high up (Brave Blue: its playfield ~50 blocks up, moved there by triggers) shows only sky (art, 2026-11-24)
+  if (s0.ghost && !MAPCAM && L.level.objects.length > 50) { const cy = contentY(L, s.x + 0.4 * W / scale); if (cy != null && cy > 30 * 6) want = Math.max(0, cy - 0.45 * groundY / scale); }
   if (MAPCAM) { scale = MAPCAM.scale; camX = MAPCAM.x; camY = MAPCAM.y; groundY = MAPCAM.groundY; } else
   if (SHOOT && !window.SHOOT_VIDEO) camY = want + (LS && LS.camOff ? LS.camOff[1] : 0); else
   camY += (want - camY) * (1 - Math.exp(-9.75 * drawDt)); // 0.15 a frame at 60 fps, at any rate
@@ -2559,6 +2568,15 @@ async function shootRun() {
   if (job.ghost !== false) {
     const vOf = sp => ((P.SPEEDS[sp] || P.SPEEDS[1]).x) * 60 / P.TPS;
     ghostExtend(L, job.map || job.pcts || job.video ? Math.ceil(L.world.endX / vOf(0)) + 2 : Math.max(...(job.times || [0])) * P.TPS + 2, !!(job.map || job.pcts || job.video));
+  }
+  // a ghost through a level whose play is far above the ground (2.2 levels built at y ~1000: Afterlife, Moonlight): the
+  // ghost's height follows the median height of the gameplay objects around it (job.followObjects, tools/shoot.js)
+  if (job.followObjects) {
+    const BIN = 300, med = new Map(), by = new Map();
+    for (const o of L.level.objects) { const k = GD.objInfo(o.id).kind; if (!/solid|hazard|slope|orb|pad/.test(k)) continue; const b = Math.floor(o.x / BIN); if (!by.has(b)) by.set(b, []); by.get(b).push(o.y); }
+    for (const [b, ys] of by) { ys.sort((p, q) => p - q); med.set(b, ys[ys.length >> 1]); }
+    const yAt = x => { const b = Math.floor(x / BIN); let s = 0, n = 0; for (let d = -2; d <= 2; d++) if (med.has(b + d)) { s += med.get(b + d); n++; } return n ? s / n : null; };
+    let last = null; for (const e of L.path) if (e.ghost || L.path.length < 3) { const y = yAt(e.x); if (y != null) last = y; if (last != null) e.y = last; }
   }
   // spots as % of the level (tools/compare_frames.js): the moment the run passes that share of the level's length
   if (job.pcts) job.times = job.pcts.map(pc => { const x = L.world.endX * pc / 100; let k = L.path.findIndex(q => q.x >= x); if (k < 0) k = L.path.length - 1; return k / P.TPS; });
