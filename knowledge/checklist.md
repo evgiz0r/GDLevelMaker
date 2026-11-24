@@ -189,6 +189,12 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   that looks like an orb, pad or hazard: fires only far back, small and dim. Hazards keep their contrast
   on the drop's brightest frame (one sky flash, not two). Behind a portal a dark disc, never a lit one.
   `node tools/shoot.js` the drop. (design.md; players_say.md: saws taken for orbs; POLISH.md hellgate)
+- [ ] **Three values, never mooshy**: per section the sky, the path (ground + block fills) and the scenery behind
+  it sit at clearly different brightness: sky vs path and sky vs blocks >= 3 (luminance contrast ratio), sky vs
+  spikes >= 4. Far scenery sits BETWEEN sky and path, never as dark as the path (a silhouette as dark as the floor
+  reads as floor). A dark night sky cannot separate from a dark floor: lift the sky to a mid blue (GDLM 64: night
+  sky/floor 1.2 -> 3.2 with sky 82,86,184 over floor 8,8,24). (The user, 2026-11-24: "your color choices sometimes
+  are bad according to background/path/spikes ... its all mooshy".) gd-art's contrast check codes it.
 
 - [ ] **A generator change does not silently change other levels**: before pushing a change to
   patterns.js / structures.js / compose.js / decorate.js / make.js, `node tests/generator_impact.js` lists
