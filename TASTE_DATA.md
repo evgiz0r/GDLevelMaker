@@ -173,6 +173,33 @@ the model's probability that a level of this band is featured+, 0-100. compose a
 the band's featured medians in `targets` (p25 / median / p75 per measure). The model is retrained with
 `learn` whenever the corpus grows; each user play (`taste.js user`) and later each mark becomes data.
 
+## Our GDLM levels through the taste score (2026-11-24, band EN|2.2)
+
+`node tools/taste.js score levels/gdlm_4*.gdlvl levels/gdlm_5*.gdlvl levels/gdlm_60*.gdlvl` (full output in
+local/taste/gdlm_scores.txt). The officials score 49-83; two community levels the user played are given for scale.
+
+| level | taste | what pulls it down most |
+|---|---|---|
+| GDLM 41 classic | 47 | no move triggers, 14 distinct ids, deco 31 %, 0.6 objects per block |
+| GDLM 42 seen then gone | 47 | the same, and 87 % repeated chunks |
+| GDLM 43 climb | 47 | the same, and 71 % repeated chunks |
+| GDLM 46 sketch | 44 | plain blocks, no deco |
+| GDLM 60 physics lab | 53 | a test level, no look |
+| GDLM 46 arrow catalogue | 57 | no triggers (all deco, no hazards) |
+| GDLM 47 sunny side | 57 | 56 distinct ids, deco 52 % |
+| GDLM 45 first flight | 62 | deco 49 %, little front deco, 7.6 objects per block |
+| GDLM 44 hellgate | 65 | 40 distinct ids (band median far higher), 7.9 objects per block |
+| GDLM 51 adrift | 67 | 33 distinct ids, height range 7 (top of the band) |
+| GDLM 50 eclipse | 69 | 33 distinct ids, deco 76 % |
+| Spooky Dash (community, the user stayed) | 73 | |
+| NOT A MONOCHROME (community, the user left at 25 %) | 69 | |
+
+Reading: the score tracks effort and the 2.2 look. The early cube levels (41-43) sit at the bottom, and the
+decorated scene levels (50, 51) near the officials' middle. Every GDLM level is still far under featured 2.2
+levels on objects per block (0.2-8 against >= 17), the one rule the data supports. The level the user left
+scores almost as high as the one they stayed on: the static score does not see what made them leave (gameplay,
+not look), so it is a hint, not a verdict (held-out AUC 0.63).
+
 ## The user's own plays (the "my taste" data)
 
 `node tools/taste.js user <id> --note "..." [--finished] [--attempts N] [--liked|--disliked]` adds a level
@@ -189,6 +216,10 @@ attempt rows stay in local/real_stats.jsonl (physics owns them); this is the per
 ## Open
 
 - Route measures (above). Readability by render for a sample of 30 levels to calibrate the proxy.
+- Per-screen deco measures from the art session's `tools/decostudy.js` (cache `local/decostudy/<id>.json`, run on
+  this corpus queued 2026-11-24): dress (deco near play objects), glow share, z-layer spread, and its contrast
+  score (`tools/contrast.js`, better than contrastProxy). When the cache is filled: add them as features, re-run
+  `learn`, see if they separate featured from the rest within a band. Front/back/HSV/motion stay taste.js's own.
 - 2.2 levels built by move triggers measure as empty: a measure on the moved positions.
 - The user's marks and plays as data: each mark is a labelled spot (bad) on our levels; each played
   level a row with the user's verdict. When there are ~30, fit the user's own weights next to the
