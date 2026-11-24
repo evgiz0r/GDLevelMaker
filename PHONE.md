@@ -68,8 +68,10 @@ card: never commit, upload or publish it, because RobTop's art, the official lev
 - **What's inside**: the PC viewer and its libs; every level the PC viewer lists with its saved route (levels/, the
   official ones, every session's work in progress); beat grids; the user's runs (local/attempts/) and icons; GD's art
   (the hd sheets as WebP at 2 px a unit, and only the backgrounds and grounds the levels use); every level's song as AAC
-  mono at 40 kbps (`--kbps`).
-- **Sizes (2026-11-24, 57 levels)**: 35.2 MB with songs (songs 19.3 MB, art 4.2 MB, level data 2.3 MB gzipped, all
+  mono at 40 kbps (`--kbps`), lowered by itself until the file fits `--max-mb` (default 29: the chat's file card takes 30 MB).
+  Below 16 kbps it stops and says to use `--no-songs`.
+- **Sizes (2026-11-24, 76 levels)**: 27.2 MB with songs at 25 kbps (the limit picked the bitrate; 175 s to build).
+  At 57 levels and 40 kbps it was 35.2 MB, too big for the chat: 35.2 MB with songs (songs 19.3 MB, art 4.2 MB, level data 2.3 MB gzipped, all
   before base64). 9.5 MB without songs. Build time: 110 s / 72 s.
 - **How**: the level data is gzipped JSON in the page, unpacked with DecompressionStream before the viewer's script runs
   (needs Chrome 80+ / Safari 16.4+). A fetch shim answers the viewer's server calls from that data. lib/art.js takes its

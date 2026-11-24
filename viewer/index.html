@@ -1342,7 +1342,9 @@ function deathFx(ps) {
   const now = window.VCLOCK != null ? window.VCLOCK : performance.now();   // a video (tools/video.js) runs on its own clock
   if (DFX.key !== key) { DFX.key = key; DFX.t0 = now; }
   const age = (now - DFX.t0) / 1000; if (age > 0.9) return;
-  requestAnimationFrame(() => { if (!playing) draw(); });   // keep it moving while the replay rests on the death
+  // keep it moving while the replay rests on the death -- not in a video (tools/video.js draws every frame on its own clock:
+  // one more redraw chain per frame made the frames after a death take ~30 s each)
+  if (window.VCLOCK == null) requestAnimationFrame(() => { if (!playing) draw(); });
   const X = sx(ps.x), Y = sy(ps.y), B = 30 * scale, rnd = (i, q) => { const v = Math.sin(i * 12.9898 + q * 78.233) * 43758.5453; return v - Math.floor(v); };
   const col = (L.runKeep || (PLAY && PLAY.on)) && ME && ME.color1 && ME.color1.rgb ? ME.color1.rgb.join(",") : "125,255,0";
   ctx.save(); ctx.globalCompositeOperation = "lighter";
