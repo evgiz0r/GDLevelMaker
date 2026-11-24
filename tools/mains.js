@@ -62,8 +62,13 @@ function run(only, dry) {
   const done = new Set();
   try {
     for (let round = 0; round < 3; round++) {   // re-check after a pass: physics may have moved again meanwhile
-      const st = status().filter(s => s.need !== "ok" && (!only.length || only.includes(s.n)) && !done.has(s.n + s.need));
-      if (!st.length) { log("mains: every main level clears on today's sim"); break; }
+      const all = status().filter(s => s.need !== "ok" && (!only.length || only.includes(s.n)));
+      const st = all.filter(s => !done.has(s.n + s.need));
+      if (!st.length) {
+        // what a resume could not fix on this physics is an open physics lead (PHYSICS.md), not a solver gap
+        log(all.length ? `mains: still failing after their job: ${all.map(s => `${s.n} ${s.name} (${fmt(s.raw)})`).join(", ")} -- open physics leads, not re-run until physics changes`
+          : "mains: every main level clears on today's sim");
+        break; }
       // cheap first: replans, then resumes (a level with a checkpoint waiting first: it carries on from there)
       st.sort((a, b) => (a.need === "replan" ? 0 : 1) - (b.need === "replan" ? 0 : 1) || (b.part != null) - (a.part != null) || a.n - b.n);
       log(`mains: to do: ${st.map(s => `${s.n} ${s.need}`).join(", ")}`);

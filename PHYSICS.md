@@ -245,16 +245,10 @@ of view (camera fit with gd-visuals).
 ## Handoff: the solver session (2026-11-24, archived; the area goes to gd-physics)
 
 The solver session (official re-solves, human routes, dual / moving objects, labs GDLM 63/67/68) stopped here:
-- **Official levels after 46672ee (no landing buffer): NOT re-solved.** Before it, 20/22 were beaten (all but Deadlocked
-  and Dash); after it, 21/22 saved viewer routes die (they leaned on the old buffer). The raw solves of 6, 7, 10, 12,
-  14, 18, 19, 21 still finish: they need only `node tools/difficulty_solve.js <n> --replan`; the rest (1-5, 8, 9, 11,
-  13, 15-17) need `--resume` (it re-solves from a bit before the first break). Run them at
-  `GDLM_HEAVY_PRIORITY=low`, then `node tools/routes.js status --official` and `node tools/humanroute.js`. The queued
-  batch was stopped unrun at the handoff.
-- **Fingerdash (21) viewer route:** the planner ran 93 min on it (a 6.7 s replay fires 256 triggers). Since 332c674
-  `naturalPlan`'s `budgetMs` (10 min from difficulty_solve) stops inside a pass and returns the last checked route
-  (`tests/natural_tap.js`). Re-run its `--replan` and check it ends within ~10 min; if the budgeted route is poor,
-  profile the passes (`tools/profsum.js`) -- `early` / `fly` over the trigger replays are the suspects.
+- **Official levels after 46672ee (no landing buffer): re-solved 2026-11-25 by `tools/mains.js run`** (DIFFICULTY.md
+  "Main levels kept current"): 20/22 clear again with a human route, as before the change; Deadlocked and Dash still die
+  at the same spots (open physics leads below). `tools/mains.js` now keeps them current by itself after physics changes.
+- **Fingerdash (21) viewer route:** its `--replan` took 42 min on 2026-11-25 (budget 10 min per plan pass); the route clears.
 - **Open physics leads (not solver gaps):** Deadlocked -- the teleport-spike stretch (`node tools/stuck.js 20 ...`
   shows no input sequence survives: a teleport / spike-hitbox question). Dash -- the cube portal stack and the mini
   route need a ball bounce off moving objects (move-trigger platforms; PHYSICS.md "Moving objects"). Theory of

@@ -579,4 +579,8 @@ whose route fails is the **highest priority** heavy job ("If we have it failed t
 - Automatic: `tools/serve.js`'s self-update starts `mains.js run` when a pull changes the physics or route code
   (mains.js ROUTE_CODE). A session that changes physics need not do anything else.
 - 2026-11-25, after the no-landing-buffer change (46672ee): 1 ok (Blast Processing), 8 replans, 13 resumes; most raw
-  solves now die in the first 2-11% (they leaned on the old buffer), so those resumes are close to full solves.
+  solves now died in the first 2-11% (they leaned on the old buffer). Measured (local/mains/history.jsonl): replans
+  5-97 s (Fingerdash 42 min), resumes 29-95 s (Hexagon Force 21 min, Deadlocked 5 min): the whole batch took 84 min.
+  Result: 20/22 clear with a human route; Deadlocked (59%) and Dash (15%) still die at their open physics leads
+  (PHYSICS.md handoff), which `run` reports and leaves until physics changes. `humanroute.js` still flags 33 ms UFO
+  gaps (13, 15, 18) and holds through jumps (16, 21): spots where only an inhuman way was found.
