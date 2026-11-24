@@ -117,8 +117,12 @@ for (const r of runs) {
 // the shared per-attempt file (agreed with gd-visuals: the viewer's "you play" uses the same lines, and shows
 // them as a ghost beside the route): local/attempts/<base>.jsonl, one attempt per line
 {
-  const fnv = str => { let h = 2166136261; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(16); };
-  const hashOf = GD.levelHash || fnv, base = /^c\d+$/.test(lv) ? lv : lv.startsWith("official:") ? "official_" + lv.slice(9) : path.basename(lv).replace(/\.gdlvl$/, "");
+  // visuals' lib/liveplay.js levelHash (FNV-1a 32, 8 hex digits): the viewer lists lines by base + hash
+  let hashOf; try { hashOf = require("../lib/liveplay.js").levelHash; } catch (e) {}
+  if (!hashOf) hashOf = str => { let h = 2166136261; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(16).padStart(8, "0"); };
+  // a build stage (local/wip/<session>/<base>.stages/<stage>.gdlvl) lists as "<base>.<stage>"
+  const stage = lv.split(path.sep).join("/").match(/([^/]+)\.stages\/([^/]+)\.gdlvl$/);
+  const base = stage ? stage[1] + "." + stage[2] : /^c\d+$/.test(lv) ? lv : lv.startsWith("official:") ? "official_" + lv.slice(9) : path.basename(lv).replace(/\.gdlvl$/, "");
   const adir = path.join(__dirname, "..", "local", "attempts"); fs.mkdirSync(adir, { recursive: true });
   const lines = [];
   for (const o of out) { if (!o.events) continue;
