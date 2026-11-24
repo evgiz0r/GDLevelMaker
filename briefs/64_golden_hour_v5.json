@@ -1,0 +1,338 @@
+{
+  "name": "GDLM 64 golden hour v5",
+  "desc": "One day in golden light: run the sunrise, fly the blazing noon, drift through dusk and dash into the night.",
+  "idea": "the user's 'rung 5' of the beauty ladder: the look of Fall Out (knowledge/levels/modern_look.md Worked example 1, ideas only): a new scene per section changed at the portals together with the mode, one motif (drifting light motes) through every scene, frames (cloud bands, light rays, a vignette near the end), bold see-through front layers (~30-40% of deco), HSV on ~half, hazards white/grey on colourful scenes, transitions at portals; gameplay from the intended route with height changes and long sections",
+  "story": "a golden-hour day: first light, sunrise on stepped terrain, the noon drop flown and run at double speed, a mauve dusk upside down, the night drop as a wave and a run under the stars, dawn and the signature",
+  "difficulty": {
+    "label": "Hard",
+    "minWindowMs": 60
+  },
+  "style": "classic",
+  "song": {
+    "custom": 557117
+  },
+  "offset": 0,
+  "grid": {
+    "bpm": 140.01,
+    "t0": 0.0224
+  },
+  "songNotes": "557117 Detious - Golden Haze (Prev) by DeadRewind, user-approved 2026-11-24: 140 BPM, high-confidence grid (drift 18 ms), downbeat on beat index 0 (bars start b1, b5 ...), bar 1.714 s, clarity 4.7 (the clearest of 96 songs). songmap: drop at 34 s (bar start b81, 34.3 s), break at 58 s (b137), second drop at 69 s (b161), break at 108 s. The level runs to b229 (~98 s).",
+  "seed": 64,
+  "terrain": true,
+  "craft": true,
+  "scene": "tools/scenes/golden_hour.js",
+  "sections": [
+    {
+      "name": "first light",
+      "beats": 8,
+      "rest": true,
+      "bg": [
+        255,
+        176,
+        120
+      ],
+      "ground": [
+        105,
+        52,
+        45
+      ],
+      "line": [
+        255,
+        240,
+        220
+      ],
+      "obj": [
+        70,
+        55,
+        55
+      ]
+    },
+    {
+      "name": "sunrise",
+      "beats": 72,
+      "use": [
+        "single",
+        "spike-block",
+        "double",
+        "s:capped-hop",
+        "s:double-rhythm",
+        "s:pillar-pair",
+        "s:pink-orb-pit",
+        "s:ledge-drop",
+        "s:slope-down-spike",
+        "platform",
+        "stairs"
+      ],
+      "args": {
+        "platform": {
+          "w": 4,
+          "h": 1
+        },
+        "orb-pit": {
+          "n": 5
+        },
+        "stairs": {
+          "n": 2,
+          "w": 3
+        }
+      },
+      "bg": [
+        255,
+        160,
+        90
+      ],
+      "ground": [
+        115,
+        55,
+        32
+      ],
+      "line": [
+        255,
+        240,
+        210
+      ],
+      "obj": [
+        70,
+        55,
+        55
+      ],
+      "deco": 0.3,
+      "gaps": [
+        2,
+        4
+      ]
+    },
+    {
+      "name": "noon flight",
+      "beats": 28,
+      "mode": "ship",
+      "bg": [
+        255,
+        214,
+        110
+      ],
+      "ground": [
+        128,
+        72,
+        18
+      ],
+      "line": [
+        255,
+        255,
+        230
+      ],
+      "obj": [
+        80,
+        65,
+        40
+      ],
+      "flash": true,
+      "args": {
+        "ship-tunnel": {
+          "waves": 3,
+          "gap": 4
+        }
+      }
+    },
+    {
+      "name": "noon run",
+      "beats": 28,
+      "speed": "2x",
+      "use": [
+        "double",
+        "single",
+        "s:pillar-pair",
+        "s:pink-orb-pit",
+        "s:double-rhythm",
+        "pad-launch",
+        "platform"
+      ],
+      "args": {
+        "pad-launch": {
+          "n": 3
+        },
+        "platform": {
+          "w": 4,
+          "h": 1
+        }
+      },
+      "bg": [
+        255,
+        196,
+        70
+      ],
+      "ground": [
+        122,
+        66,
+        14
+      ],
+      "line": [
+        255,
+        255,
+        220
+      ],
+      "obj": [
+        80,
+        60,
+        35
+      ],
+      "deco": 0.3,
+      "gaps": [
+        2,
+        4
+      ]
+    },
+    {
+      "name": "dusk",
+      "beats": 24,
+      "mode": "upside",
+      "speed": "1x",
+      "use": [
+        "single",
+        "double",
+        "spike-block"
+      ],
+      "bg": [
+        176,
+        96,
+        150
+      ],
+      "ground": [
+        62,
+        22,
+        55
+      ],
+      "line": [
+        255,
+        210,
+        240
+      ],
+      "obj": [
+        255,
+        255,
+        255
+      ],
+      "deco": 0,
+      "gaps": [
+        2,
+        4
+      ]
+    },
+    {
+      "name": "night wave",
+      "beats": 28,
+      "mode": "wave",
+      "bg": [
+        92,
+        98,
+        200
+      ],
+      "ground": [
+        10,
+        10,
+        30
+      ],
+      "line": [
+        190,
+        200,
+        255
+      ],
+      "obj": [
+        255,
+        255,
+        255
+      ],
+      "flash": true,
+      "args": {
+        "wave-zigzag": {
+          "seg": 3,
+          "flat": 2
+        }
+      }
+    },
+    {
+      "name": "night run",
+      "beats": 32,
+      "use": [
+        "single",
+        "spike-block",
+        "double",
+        "s:capped-hop",
+        "s:low-roof-hops",
+        "s:dash-orb-pit",
+        "s:pink-pad-step",
+        "s:descend-steps",
+        "orb-pit"
+      ],
+      "bg": [
+        82,
+        86,
+        184
+      ],
+      "ground": [
+        8,
+        8,
+        24
+      ],
+      "line": [
+        180,
+        190,
+        255
+      ],
+      "obj": [
+        255,
+        255,
+        255
+      ],
+      "deco": 0.3,
+      "args": {
+        "platform": {
+          "w": 4,
+          "h": 1
+        }
+      },
+      "gaps": [
+        2,
+        4
+      ]
+    },
+    {
+      "name": "dawn",
+      "beats": 8,
+      "bg": [
+        255,
+        205,
+        175
+      ],
+      "ground": [
+        125,
+        72,
+        68
+      ],
+      "line": [
+        255,
+        245,
+        235
+      ],
+      "obj": [
+        70,
+        55,
+        55
+      ],
+      "secs": 1.5,
+      "use": [
+        "single",
+        "double"
+      ],
+      "gaps": [
+        2,
+        3
+      ]
+    }
+  ],
+  "modern": false,
+  "notesV2": "round 2 (2026-11-24): the 2x noon run with craft pieces checked only at 1x failed 8 rounds (25 ms, prejump, land-and-jump chains): classic patterns proven at 2x; pillar-hop out (a jump over a spike timed around the next pillar, the reactive gate)",
+  "structures": false,
+  "notesV3": "round 4 (2026-11-24): craft pieces out until their new shapes land (slab-steps / pillar-climb cut jumps by a block, 4 ms); no automatic library picks (a UFO-orb piece added mode changes and tripped skips)",
+  "notes": " v2 (2026-11-24 night): denser toward Jumper -- Hard target, gaps 2-4, structures in every cube section, gameplay through dawn (ending), exits on bars. v5: only structures ready in context (tools/structures.js check --context)."
+}
