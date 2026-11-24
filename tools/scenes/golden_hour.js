@@ -42,7 +42,10 @@ module.exports = function ({ objects, header, beatX }) {
   Object.assign(C, { trim: 32, far2: 33, mid: 34, near: 35, grass: 36 });
   const TRIM = [[190, 150, 110], [170, 190, 80], [195, 205, 85], [190, 200, 70], [205, 115, 175], [125, 145, 255], [115, 135, 245], [215, 175, 155]];
   const SHADE = [[140, 70, 80], [140, 70, 50], [150, 80, 30], [150, 80, 30], [80, 30, 80], [20, 20, 60], [20, 20, 60], [140, 80, 90]];
-  P.forEach((p, i) => { const d = D.depthColours(SKY[i], SHADE[i]); Object.assign(p, { [C.trim]: TRIM[i], [C.grass]: TRIM[i].map(v => Math.round(v * 0.72)), [C.far2]: d.far, [C.mid]: d.mid, [C.near]: d.near }); });
+  // the bright day scenes (sunrise, noon): the backdrop steps well down from the sky -- at the kit's default the
+  // tree line was mid-gold on a gold sky behind a gold path ("noon is mushy", v1 vs Jumper)
+  const DEEP = new Set([1, 2, 3]);
+  P.forEach((p, i) => { const d = D.depthColours(SKY[i], SHADE[i], DEEP.has(i) ? [0.32, 0.48, 0.62] : undefined); Object.assign(p, { [C.trim]: TRIM[i], [C.grass]: TRIM[i].map(v => Math.round(v * 0.72)), [C.far2]: d.far, [C.mid]: d.mid, [C.near]: d.near }); });
   const defs = {};
   for (const [ch, rgb] of Object.entries(P[0])) defs[ch] = { rgb, blend: BLEND.has(+ch), opacity: +ch === C.rays ? 0.18 : +ch === C.cloud ? 0.85 : 1 };
   header = K.channels(header, defs);
@@ -104,14 +107,22 @@ module.exports = function ({ objects, header, beatX }) {
   for (let i = 0; i < S.length; i++) out.push(...K.designBlocks(objects, S[i][0], S[i][1], { fill: C.fill, edge: C.edge, glow: C.halo, win: i >= 5 ? C.win : null, windows: 0.3, seed: 30 + i }));
   // gd-art's kit: bricks in closed cells + lit top trims and grass tufts in the cube scenes; three backdrop depths
   // in every scene (mountains B5 / hills B4 / tree line B3)
-  const CUBE = new Set([0, 1, 3, 6, 7]);
+  const CUBE = new Set([0, 1, 3, 4, 6, 7]);
   for (let i = 0; i < S.length; i++) {
     if (CUBE.has(i)) {
       out.push(...D.blockPattern(objects, S[i][0], S[i][1], { ch: C.fill, top: C.trim, seed: 40 + i }));
-      out.push(...D.tufts(objects, S[i][0], S[i][1], { ch: C.grass, seed: 60 + i }));
+      out.push(...D.tufts(objects, S[i][0], S[i][1], { ch: C.grass, seed: 60 + i, group: 312 }));
     }
-    out.push(...D.backdrop(S[i][0], S[i][1], { far: C.far2, mid: C.mid, near: C.near, trees: i >= 4 ? "dead tree" : "tree", density: 2, seed: i }));
+    out.push(...D.backdrop(S[i][0], S[i][1], { far: C.far2, mid: C.mid, near: C.near, trees: i >= 4 ? "dead tree" : "tree", density: DEEP.has(i) ? 2.5 : 3, seed: i }));
   }
+  // ---- motion on every screen (gd-art / gd-taste: moving deco is the strongest sign of a featured level,
+  // ART.md "Deco study"): the grass sways, the motes bob, the lit block edges pulse on every bar toward a
+  // brighter tint of their own colour every second bar (calm: under 0.5 a second, never white) -- ~10 triggers per 20-block screen
+  out.push(...K.sway(S[0][0], END, 312, 7, 120, 0.4));
+  out.push(...K.bob(S[0][0], END, G.motes, 12, 200, 0.65));
+  { const spb = 8, bars = []; for (let b = 1; beatX(b) < END - 60; b += spb) bars.push(b);
+    for (const b of bars) { const x = beatX(b), i = Math.max(0, S.findIndex(([a, z]) => x >= a && x < z)), e = P[i][C.edge];
+      out.push(K.pulse(x, C.edge, e.map(v => Math.round(v + (255 - v) * 0.35)), 0.05, 0.1, 0.5)); } }
 
   // ---- a vignette closing in at the end of the night (top and bottom bands, locked to the screen) ----
   const vx = S[6][0] + 0.6 * (S[6][1] - S[6][0]);
