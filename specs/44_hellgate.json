@@ -49,7 +49,8 @@
     ["pattern", "s:pink-pad-step", "b46", 0],
 
     ["colour", "b49", { "ch": "bg", "rgb": [55, 12, 10], "secs": 0.3 }],
-    ["pattern", "ship-tunnel", "b49+1", 0, { "w": 30, "gap": 5, "amp": 1.5, "base": 1, "portal": true, "exit": "cube" }],
+    ["pattern", "platform", 200, 0, { "w": 9, "h": 2 }],
+    ["pattern", "ship-tunnel", "b49+1", 0, { "w": 30, "gap": 5, "amp": 1.5, "base": 1, "portal": true, "portalRow": 2, "exit": "cube" }],
     ["pattern", "s:gravity-pad-gap", "b58", 0],
     ["pattern", "orb-pit", "b63", 0, { "n": 5 }],
     ["pattern", "double", "j66.5", 0],
