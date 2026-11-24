@@ -154,6 +154,13 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 
 ## Looks like 2.2, not 1.0 (levels/modern_look.md)
 
+- [ ] **Readable colours, not mush** (the user, 2026-11-24: "sometimes its not clear and its all mooshy"): judge by
+  BRIGHTNESS, not hue -- hazards and blocks stand out from the background at every moment (luminance ratio hazard/bg
+  >= 1.6, block/bg >= 1.5; aim for 3+ like most official sections), the floor shows (ground/bg >= 1.1 or a bright
+  ground line), a spike and its block are one colour or clearly different in brightness (never two hues at one value),
+  no glow/deco in front of hazards. Colour triggers included. `node tools/contrast.js <level>` (score.js gate
+  "contrast"); palette rule in ART.md "Colour readability".
+
 - [ ] **Budget**: ~10-50 objects per block. Fall Out, the user's own example, has 13; the levels the
   user played have a median 46. GDLM was at 1. `node tools/modern_look.js <level>`.
 - [ ] **Layers**: ~40-60% behind the play (B5-B1), ~15-40% in front (T2-T4: glow, dots, particles,
@@ -189,6 +196,12 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   that looks like an orb, pad or hazard: fires only far back, small and dim. Hazards keep their contrast
   on the drop's brightest frame (one sky flash, not two). Behind a portal a dark disc, never a lit one.
   `node tools/shoot.js` the drop. (design.md; players_say.md: saws taken for orbs; POLISH.md hellgate)
+- [ ] **Three values, never mooshy**: per section the sky, the path (ground + block fills) and the scenery behind
+  it sit at clearly different brightness: sky vs path and sky vs blocks >= 3 (luminance contrast ratio), sky vs
+  spikes >= 4. Far scenery sits BETWEEN sky and path, never as dark as the path (a silhouette as dark as the floor
+  reads as floor). A dark night sky cannot separate from a dark floor: lift the sky to a mid blue (GDLM 64: night
+  sky/floor 1.2 -> 3.2 with sky 82,86,184 over floor 8,8,24). (The user, 2026-11-24: "your color choices sometimes
+  are bad according to background/path/spikes ... its all mooshy".) gd-art's contrast check codes it.
 
 - [ ] **A generator change does not silently change other levels**: before pushing a change to
   patterns.js / structures.js / compose.js / decorate.js / make.js, `node tests/generator_impact.js` lists
