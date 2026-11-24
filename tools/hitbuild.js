@@ -87,7 +87,7 @@ function shipSection(plan, si, hits, tOf, col) {
       // the pillar must stand at the ship's own height when it pressed (sightread counts only what a ship flying on
       // level would hit; a pillar 50 units under the path was no cue at all, GDLM 62 v3): the first column after
       // the press where the path has risen enough to pass 10 units over a top above the press height
-      const yP = q0.y;
+      const yP = q0.y; let placed = false;
       for (let cc = Math.floor(q0.x / 30) + 1; cc <= Math.floor(q0.x / 30) + 8; cc++) {
         const cx = cc * 30 + 15, seg = run.filter(p => p.x >= cx - 30 && p.x <= cx + 30);
         if (!seg.length || cx > endX - 120) break;
@@ -95,7 +95,18 @@ function shipSection(plan, si, hits, tOf, col) {
         if (top <= yP - 15 + 3) continue;
         const tr = top / 30;
         for (let r = tr - 1; r > -1; r--) o.push(["block", cc, +Math.max(0, r).toFixed(3)]);
-        break;
+        placed = true; break;
+      }
+      // a press that only stops a fall (GDLM 62 b-373: the path dips under the press height and never climbs back
+      // over it within 8 blocks) has no pillar at its height: frame the dip from above instead, a column hanging
+      // 10 units over the path 2 columns past the dip's bottom (the press's latest moment is in the dip's block, and sightread counts only what starts half a block ahead of it: one column on was still "behind") (a bend in the tunnel, inside what sightread reads as in front)
+      if (!placed) {
+        const dip = run.filter(p => p.x > q0.x && p.x < q0.x + 240).reduce((m, p) => p.y < m.y ? p : m, q0);
+        const cc = Math.floor(dip.x / 30) + 2, cx = cc * 30 + 15, seg = run.filter(p => p.x >= cx - 30 && p.x <= cx + 30);
+        if (seg.length && cx <= endX - 120) {
+          const bot = Math.max(...seg.map(p => p.y)) + 15 + 10;
+          for (let r = bot / 30; r < 10; r++) o.push(["block", cc, +r.toFixed(3)]);
+        }
       }
       continue;
     }
@@ -108,7 +119,8 @@ function shipSection(plan, si, hits, tOf, col) {
   const er = 1;
   o.push(["cube portal", +col(next.from).toFixed(3), er]);
   for (let r = 0; r < 10; r++) if (r < er - 1 || r > er + 1) o.push(["block", +col(next.from).toFixed(3), r]);
-  return { objects: o, sched: sched.map(e => ({ tick: e.tick, type: e.type })), presses: sched.filter(e => e.type === "press").length };
+  const seen = new Set(), uniq = o.filter(e => { const k = JSON.stringify(e); return !seen.has(k) && seen.add(k); });   // cue blocks inside the tunnel's roof
+  return { objects: uniq, sched: sched.map(e => ({ tick: e.tick, type: e.type })), presses: sched.filter(e => e.type === "press").length };
 }
 
 function main() {
