@@ -248,11 +248,11 @@ function pillarRun(heights, w, riseGap = 0, dropGap = 3, capGap) {
 S("pillar-hop", { tags: ["1x only", "platforming", "pillar", "pit"], tier: "Normal",
   doc: "pillars 4 wide, each a row higher or lower than the last: up a plain step, down over a pit; every jump changes height, with room to react on each top (Jumper's opening at Easy/Normal: its 1-2 wide pillars only work as a held bounce)",
   args: { heights: [1, 2, 3, 2, 1], w: 4 },
-  build: a => pillarRun(a.heights, a.w) });
+  build: a => pillarRun(a.heights, a.w, 0, 3, a.cap) });
 S("pillar-climb", { tags: ["1x only", "platforming", "pillar", "pit"], tier: "Normal",
   doc: "a climb of pillars, up a step at each, then down a row at a time over pits",
   args: { heights: [1, 2, 3, 4, 3, 2], w: 4 },
-  build: a => pillarRun(a.heights, a.w) });
+  build: a => pillarRun(a.heights, a.w, 0, 3, a.cap) });
 S("capped-hop", { tags: ["1x only", "platforming", "pillar", "pit", "ceiling"], tier: "Normal",
   doc: "pillars over a pit under hanging columns: the column ends sit 4 rows over the pillars, framing every arc",
   args: { heights: [1, 2, 1, 2, 3, 2], w: 4, cap: 4 },

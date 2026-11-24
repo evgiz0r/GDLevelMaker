@@ -1,5 +1,7 @@
 // node tools/craft.js roles <level> [--per 30] [--json]      every object's role, per screen
 // node tools/craft.js check <level> [--look=1.x|2.2]          the craft numbers vs the targets for its look
+// node tools/craft.js pieces <structure id> ...                the craft numbers of library structures alone
+//      (tools/structures.js, built with the craft pass, cropped to the structure: no solve, seconds)
 //
 // How a level USES its objects (CRAFT.md). Object count is not what separates our levels from RobTop's
 // (Jumper 3.2 objects/block, ours 5-9): the difference is where the objects go. Every object gets one role:
@@ -202,6 +204,22 @@ function load(spec) {
 if (require.main === module) {
   const [cmd, spec, ...rest] = process.argv.slice(2);
   if (!cmd || !spec) { console.log(fs.readFileSync(__filename, "utf8").split("\n").filter(l => l.startsWith("//")).join("\n")); process.exit(1); }
+  if (cmd === "pieces") {
+    const ST = require("./structures.js"), { build } = require("./make.js"), pc = x => Number.isFinite(x) ? Math.round(100 * x) + "%" : "-";
+    const log = console.log;
+    log("id".padEnd(20) + "blocks hazards/100 floorHaz pieces/100 pillarDelta underArmed");
+    for (const id of [spec, ...rest.filter(a => !a.startsWith("--"))]) {
+      const st = ST.byId(id); if (!st) { log(id + ": no such structure"); continue; }
+      const t = ST.testSpec(st); t.spec.craft = true; console.log = () => {};
+      let lv; try { lv = build(t.spec, "structure " + id).level; } finally { console.log = log; }
+      const x0 = t.s0 * 30, x1 = t.s1 * 30;
+      const objs = lv.objects.filter(o => o.x >= x0 && o.x < x1).map(o => Object.assign({}, o, { x: o.x - x0 }));
+      const N = numbers(objs);
+      log(id.padEnd(20) + String(t.width).padStart(6) + N.hazards100.toFixed(0).padStart(12) + pc(N.floorHaz).padStart(9) + N.pieces100.toFixed(0).padStart(11) + pc(N.pillarDelta).padStart(12) + pc(N.underArmed).padStart(11));
+    }
+    log("targets (CRAFT.md): hazards/100 45-110 (featured Easy/Normal ~75-81, Jumper 121, xStep 191), floorHaz >= 35%, pieces/100 >= 12, pillarDelta >= 70%, underArmed >= 35%");
+    process.exit(0);
+  }
   const { name, level } = load(spec), R = roles(level.objects);
   if (rest.includes("--json")) { delete R.roles; console.log(JSON.stringify(R)); process.exit(0); }
   const N = level.objects.length, pc = x => Math.round(100 * x) + "%";

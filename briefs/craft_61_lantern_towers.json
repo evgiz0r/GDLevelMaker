@@ -23,9 +23,19 @@
    ],
    "build": 2,
    "chunks": [
-    "pillar-hop",
+    {
+     "s": "pillar-hop",
+     "args": {
+      "cap": 4
+     }
+    },
     "stepped-pyramid",
-    "capped-hop",
+    {
+     "s": "capped-hop",
+     "args": {
+      "cap": 4
+     }
+    },
     "lantern-orb"
    ]
   },
@@ -67,7 +77,12 @@
    "build": 1,
    "chunks": [
     "blue-orb-ceiling",
-    "pillar-climb",
+    {
+     "s": "pillar-climb",
+     "args": {
+      "cap": 4
+     }
+    },
     "gravity-pad-gap",
     "red-pad-tower",
     "pink-orb-pit"
@@ -111,7 +126,8 @@
        2,
        3,
        2
-      ]
+      ],
+      "cap": 4
      }
     },
     "dash-orb-pit",
