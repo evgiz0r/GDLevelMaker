@@ -242,9 +242,9 @@
     "grav": 1,
     "mini": false,
     "dual": false,
-    "y": 55.5,
-    "vy": -0.42,
-    "grounded": false,
+    "y": 45,
+    "vy": 0,
+    "grounded": true,
     "scene": {
      "bg": [
       255,
@@ -300,9 +300,9 @@
     "grav": 1,
     "mini": false,
     "dual": false,
-    "y": 55.4,
-    "vy": -0.63,
-    "grounded": false,
+    "y": 45,
+    "vy": 0,
+    "grounded": true,
     "scene": {
      "bg": [
       255,
@@ -512,9 +512,9 @@
     "grav": 1,
     "mini": false,
     "dual": false,
-    "y": 55.9,
-    "vy": -8.42,
-    "grounded": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
     "scene": {
      "bg": [
       92,
@@ -570,9 +570,9 @@
     "grav": 1,
     "mini": false,
     "dual": false,
-    "y": 53.9,
-    "vy": -8.63,
-    "grounded": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
     "scene": {
      "bg": [
       82,
@@ -602,9 +602,9 @@
     "grav": 1,
     "mini": false,
     "dual": false,
-    "y": 59.4,
-    "vy": 6.21,
-    "grounded": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
     "scene": {
      "bg": [
       82,
@@ -660,9 +660,9 @@
     "grav": 1,
     "mini": false,
     "dual": false,
-    "y": 59.4,
-    "vy": 6.21,
-    "grounded": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
     "scene": {
      "bg": [
       255,
@@ -692,9 +692,9 @@
     "grav": 1,
     "mini": false,
     "dual": false,
-    "y": 59.4,
-    "vy": 6.21,
-    "grounded": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
     "scene": {
      "bg": [
       255,

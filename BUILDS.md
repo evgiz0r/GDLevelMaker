@@ -40,3 +40,9 @@ The stage times are also in local/timings.jsonl.
 - result: READY, 2 round(s), variants: 2 section(s)
 - change made: v3: READY in 2 rounds, Hard reached, ending and sync now PASS, hazards 18/100. Left: 15 reactive spots (jumps over spikes timed around a block, 67-108 ms windows) at gaps 2-4 -- the next generator change. Deco after: hazard-clear rule, motion ~11/screen.
 
+## GDLM 64 golden hour, 2026-11-24 06:10
+- stages: song 0 s, layout 47 s, layout 309 s, path 809 s, deco 1003 s, final 1003 s
+- slowest step: path (500 s); over target: layout 309 s > 60 s
+- result: READY, 2 round(s), variants: 2 section(s)
+- change made: v4 (block-hops / slab-steps / lantern-orb out): READY in 2 rounds, reactive 15 -> 7, hazards 18 -> 14 per 100 blocks (those pieces carried hazards); noon ship without the near tree line reads cleaner; noon run kept it (coverage). Kept v4 over v3: fairness first. Next: hazards back up with pieces that pass reactive in context (harness with neighbours, STRUCTURES.md open).
+
