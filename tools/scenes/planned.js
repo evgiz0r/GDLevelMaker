@@ -15,9 +15,9 @@ const O = require("../../lib/objects.js");
 const SPEED = 311.58;
 const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
 // scenekit stand-ins for prop names lib/props.js has no picture for (SCENES.md)
-const SKY = new Set(["moon", "sun"]);
+const SKY = new Set(["moon", "sun", "witch silhouette"]);   // the witch flies against the moon (gd-art)
 // v2 (SCENES.md "First planned level vs Spooky Dash"): our own picks where props.js's alias is wrong for the place
-const PICK = { chimneys: "tower", "broken arches": "ruin" };
+const PICK = { chimneys: "factory wall" };
 // one set piece per section: a character at its first bar, high, bobbing (gap 4)
 const CHARACTER = { haunted: "ghost" };
 // how far each place's palette moves away from the level's own (gap 3: one palette carries the level)
@@ -77,7 +77,7 @@ module.exports = function ({ objects, header, spec }) {
       const n = alias(name);
       if (SKY.has(n)) {
         // one moon / sun per section, high and to the right, drifting slowly with the screen (parallax 0.9)
-        const r = P.put(n, s.x0 + 420, 170, { palette: s.palette, alloc, groups: [450 + i], layer: "B5" });
+        const lit = n === "moon" || n === "sun", r = P.put(n, s.x0 + (lit ? 420 : 440), lit ? 170 : 182, { palette: s.palette, alloc, groups: [450 + i], layer: lit ? "B5" : "B4" });
         out.push(...r.objects, K.lockX(s.x0 - 300, 450 + i, (s.x1 - s.x0 + 600) / SPEED, 0.9)); header = P.header(header, r.colours);
         log.push(`${s.place}: one ${n}`);
       } else if (have.has(n)) {

@@ -94,6 +94,18 @@ Gameplay: Spooky Dash changes mode every ~5 s; GDLM 52's 7 mode changes in 61 s 
 "mode changes" WARN (6.9 a minute, official 1.3-5.2). Taste data favours longer sections, so the planner keeps
 4-bar places but should change MODE only every 2nd place.
 
+**v2 (gaps 1-4 in `tools/scenes/planned.js`, gameplay unchanged):** gd-art's `tools/decokit.js` for three
+backdrop depths (mountains, hills, a tree line, paler than the sky towards the place's edge colour), bricks and lit
+top trims inside the play blocks, grass tufts that sway (motion on every screen); a cloud band over the top half; one
+palette for the level (each place moves 35% from the first place's palette towards its own); a ghost per section,
+bobbing; gd-art's new props for gap 5 (factory wall, pipes, broken arches, stained window, a witch against the moon).
+Numbers: 8 -> 27 objects per block, taste 61 -> 72 (PASS), craft 1/7 -> 3/7, still READY, contrast 98/100 sections.
+Sheets: `local/shots/necro_v2_sheet.jpg`, `local/shots/necro_v2_vs_spooky.jpg`.
+Still open from the v2 pictures: the ghost set piece can sit on a flying path (wave at ~45 s) -- place it clear of
+the route; the cloud band in one dark colour reads as hanging blocks (a ceiling) -- lighter, rounder, or none in
+corridors; the play is still dark next to Spooky Dash's light floor and yellow caps; craft wants more small pieces
+and hazards on the floor (pieces100 8, want 12+).
+
 ## Open
 
 - Props: the gd-art session's `tools/props.js` (props + a picture-to-GD-art converter). The plan names
