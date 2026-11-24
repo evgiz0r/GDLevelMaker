@@ -78,6 +78,9 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   not the look. make.js centres orb-pit orbs itself; score.js gate "symmetry". (GDLM 45 v6 ~28.4 s)
 - [ ] **A flying mode's exit portal is framed on all sides**: a roof AND a wall up to the band's top,
   so no route flies over it. The skips gate also runs the player's route. (TASTE.md; GDLM 51)
+- [ ] **Calm after a flying exit**: ~10 blocks with nothing to jump after the cube lands (compose does it
+  since 79635eb). A pattern change that moves the exit later moves the next hazard into a prejump: GDLM 50 v3's
+  spike 7 blocks after the wave landing (score.js "prejumps", block 283). (TASTE.md; GDLM 50 v3)
 - [ ] **Orbs**: mostly single (~3/4). A chain of at most 2-3, ~3 blocks apart, climbing ~1 block in
   all, one orb kind, and a hazard-free surface ~1 block after the last orb. Never a chain where a
   normal click falls to death or that carries the cube toward the screen's edge.
