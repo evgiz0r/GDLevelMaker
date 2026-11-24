@@ -272,6 +272,19 @@ function scoreLevel0(level, brief, opts = {}) {
     const target = want.label || (r.ok && diff ? GD.difficultyLabel(diff.logAttempts) : null);
     if (target) {
       const over = Object.entries(fl.tiers).filter(([, t]) => T.indexOf(t) > T.indexOf(target) + 1);
+      // stale stretch (the user, 2026-11-24: "almost everything is very stale"): the longest time with no change of mode,
+      // speed, gravity, size or dual (a gravity orb / pad counts). Official levels by tier: 1-6 (Easy-Hard) 28-46 s, the
+      // later ones mostly 4-15 s (tools/modeorder.js's levels; median 10.8 s) -> want at most 35 s Easy / Normal, 25 Hard,
+      // 18 Harder, 15 Insane and above.
+      { const isVar = o => { const i = GD.objInfo(o.id) || {}, n = i.name || ""; return ["mode", "speed", "gravity", "dual", "size"].includes(i.kind) || (/dual|mini|size/.test(n) && /portal/.test(n)) || (/(blue|green)/.test(n) && /(orb|pad)/.test(n) && ["orb", "pad", "ring"].includes(i.kind)); };
+        const tl = GD.SYNC.timeline(w), play = level.objects.filter(o => ["solid", "hazard"].includes(GD.objInfo(o.id).kind));
+        if (play.length) {
+          const xs = [0, ...level.objects.filter(isVar).map(o => o.x).sort((a, b) => a - b), Math.max(...play.map(o => o.x))];
+          let best = 0, at = 0; for (let i = 1; i < xs.length; i++) { const d = GD.SYNC.tOfX(tl, xs[i]) - GD.SYNC.tOfX(tl, xs[i - 1]); if (d > best) { best = d; at = xs[i - 1]; } }
+          const lim = { Easy: 35, Normal: 35, Hard: 25, Harder: 18 }[target] || 15;
+          gate("stale stretch", best > lim ? "WARN" : "PASS", `${best.toFixed(1)} s with no mode / speed / gravity change from block ${(at / 30).toFixed(0)} (want ${lim} s or less for ${target})`,
+            best > lim ? "a gravity flip, a mode or speed change in it (compose adds a gravity structure to long cube sections)" : "");
+        } }
       gate("mode tier", over.length ? "WARN" : "PASS", over.length ? `${over.map(([f, t]) => f + " (" + t + ")").join(", ")} in a ${target} level` : `features up to ${fl.tier} for ${target}`,
         over.length ? "official levels bring these in at higher ratings: keep them for harder levels, or accept with a reason" : "");
     }
