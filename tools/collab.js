@@ -255,7 +255,7 @@ function join(briefFile) {
     const T = last ? Infinity : (sv.goalTick ?? (sv.events.length ? sv.events[sv.events.length - 1].tick + 1 : c));
     events = events.filter(e => e.tick < c || e.tick >= T).concat(sv.events.filter(e => e.tick >= c && e.tick < T)).sort((a, b) => a.tick - b.tick || (a.type === "release" ? -1 : 1));
     if (!last && T < Infinity) events.push({ tick: T, type: "release" }), events.sort((a, b) => a.tick - b.tick || (a.type === "release" ? -1 : 1));
-    rerouted.push({ part: parts[k].p.id, from: +(path0[c].x / 30).toFixed(1), secs: (Date.now() - t0r) / 1000 });
+    rerouted.push({ part: parts[k].p.id, from: +(path0[c].x / 30).toFixed(1), secs: (Date.now() - t0r) / 1000, ticks: [c, T] });
     run = GD.run(w, events); path0 = run.path;
   }
   // the seams: the joined run's state at each seam time against the contract
@@ -281,6 +281,19 @@ function join(briefFile) {
     const x = run.end ? run.end.x : (path0[path0.length - 1] || {}).x || 0, k = parts.findIndex(({ p }, i) => i === parts.length - 1 || x < parts[i + 1].p.shift);
     problems.push(`the joined route dies at block ${(x / 30).toFixed(1)} in ${parts[k].p.id} (${run.why || "?"})`); send.add(parts[k].p.id);
   }
+  // a re-routed part's route is the solver's (holds through auto-jump chains, a hold across a flight's exit): as a player
+  // presses it -- lib/natural.js's passes, one tap per jump -- where the run still finishes (GDLM 66: a re-routed hold
+  // read as an "8.7-block prejump" after the ship exit)
+  if (rerouted.length && !run.dead) try {
+    const N = require("../lib/natural.js"), n = N.naturalPlan(w, { ok: true, events }, level.objects);
+    // only inside the re-routed stretches: the other parts keep their builders' routes (the whole level through the
+    // passes re-planned a good wave part into 27 legs under 100 ms)
+    const inR = t => rerouted.some(r => t >= r.ticks[0] && t < r.ticks[1]);
+    if (n && n.events && n.path && n.path[n.path.length - 1].done) {
+      const mixed = events.filter(e => !inR(e.tick)).concat(n.events.filter(e => inR(e.tick))).sort((a, b) => a.tick - b.tick || (a.type === "release" ? -1 : 1));
+      const q = GD.run(w, mixed); if (!q.dead) { events = mixed; run = q; path0 = q.path; }
+    }
+  } catch (e) { /* keep the solver's */ }
   const skip = !run.dead ? GD.skipCheck(w, path0, events) : null;
   if (skip) problems.push("the joined route skips " + JSON.stringify(skip).slice(0, 120));
   // the joined level: the first part's record, renamed
