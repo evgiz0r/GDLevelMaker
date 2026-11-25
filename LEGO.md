@@ -253,6 +253,19 @@ decoing, first the actual objects according to the themes of the section". Where
 | 5 | the layout gives a defined path | every piece carries its route; a join is solved end to end | -- |
 | 6 | deco: the structural objects themed per section first, then the rest | block skins and deco (`tools/decorate.js`, `tools/scenekit.js`, themes, props), the deco study thread | per-section skins for the pieces' own blocks |
 
+**First level through it: GDLM 44 hellgate v3 (2026-11-25, `tools/hellgate_build.js`).** Song part chosen (Infertehno 2 from
+19.3 s, a local grid: SYNC.md), six sections at the song's bar / drop boundaries, cube and ball sections filled by
+`tools/brickpick.js` from OUR verified structures only (44 is uploaded: no main-level bricks), ship and wave as fly-path
+corridors, then the hell scene. Lessons:
+- **A brick's presses in structures.json are the solver's, mid-window, and miss presses before the picture** (pic.presses
+  starts 2 blocks before the brick; a brick that opens with a jump onto a block has that jump earlier). So "presses on a
+  hit" before solving (58-80%) is not what the solved route does (7% within a frame of a hit). What counts is whether a
+  press's WINDOW holds a hit: `tools/onbeat.js` (41% of cube windows held a strong hit, 22% a lesser one) -- and then the
+  human route must press there: onbeat --write -> <level>.planned.json -> solutions.js (which had ignored a level's
+  planned presses: fixed) -> 20% of presses within a frame of a hit.
+- Next for the picker: score a brick by its press WINDOWS against the hits (from a solve of its test level), not by its
+  mid-window presses; then nudge each placed brick a column either way where a window misses its hit.
+
 The main levels' pieces are RobTop's: a level built from them stays on the PC (never pushed or uploaded) until we have pieces
 of our own made the same way -- varied from theirs by the difficulty knobs (LEGO.md "Difficulty knobs").
 

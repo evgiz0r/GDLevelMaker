@@ -14,6 +14,15 @@ const OFFICIAL_SONGS = ["StereoMadness", "BackOnTrack", "Polargeist", "DryOut", 
 // physics) that still replays to the end on today's physics -- one run, cheap. get() alone drops every
 // route after any physics commit, and the page then solves the level itself; when that fails it replays
 // "the run that got furthest", which dies (the user, 2026-11-23: "why when I play the cube timings it dies").
+function specGrid(name) {
+  const dir = path.join(__dirname, "..", "specs");
+  for (const f of fs.readdirSync(dir).filter(f => /\.json$/.test(f) && !/\.plan\.json$/.test(f))) {
+    let sp; try { sp = JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")); } catch (e) { continue; }
+    if (sp.name === name && sp.grid && sp.grid.bpm && sp.grid.t0 != null)
+      return { bpm: sp.grid.bpm, period: 60 / sp.grid.bpm, t0: sp.grid.t0, downbeat: sp.grid.downbeat || 0, conf: "spec", sections: [] };
+  }
+  return null;
+}
 function savedRoute(L) {
   const sols = require("./solutions.js"), now = sols.get(L.levelStr);
   if (now) return now;
@@ -48,7 +57,11 @@ function buildIndex() {
       let solution; try { solution = savedRoute(L) || undefined; } catch (e) {}
       // when this level was made: the last commit that changed its file (not mtimes, index rebuilds or re-solves)
       let made; try { const ct = +require("child_process").execSync(`git log -1 --format=%ct -- "${dir}/${f}"`, { windowsHide: true, cwd: root, encoding: "utf8" }).trim(); if (ct) made = new Date(ct * 1000).toISOString(); } catch (e) {}
-      list.push({ name: L.name, file: dir + "/" + f, level: L.levelStr, song: songOf(L.rec, L.level.header), solution, made });
+      const song = songOf(L.rec, L.level.header), g = specGrid(L.name);
+      // a spec that pins a local beat grid (its "grid": {bpm, t0} in song seconds) -- where the song's whole-song grid
+      // drifts (Infertehno 2 for GDLM 44 v3: half a beat off) -- carries it, so the viewer's beat lines follow it
+      if (song && g) song.grid = g;
+      list.push({ name: L.name, file: dir + "/" + f, level: L.levelStr, song, solution, made });
     }
   }
   const local = [];

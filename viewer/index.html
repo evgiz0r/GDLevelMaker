@@ -578,7 +578,7 @@ function load(name, levelStr, saved, info) {
     return lo / P.TPS;
   });
   // the song's beat grid, when tools/beats.js has analysed it on this PC
-  const grid = info && (window.GD_BEATS || {})[info.url];
+  const grid = info && (info.grid || (window.GD_BEATS || {})[info.url]);   // a level's own grid (its spec pinned one) first
   L.beats = grid ? { grid, offset: info.offset || 0, tl: GD.SYNC.timeline(world) } : null;
   t = 0; lastTick = -1; playing = false; setPlay();
   summary(); clickTable(); markTable(); if (cmpOn) cmpLoadSetting(); draw();
