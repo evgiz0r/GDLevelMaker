@@ -206,6 +206,9 @@ re-encoded at the bitrate that fits. `--vs-rec` puts the run's recording beside 
 - **Measured**: the user's Hexagon Force run (35.8 s, died 40%) at 60 fps 1280x720 rendered in 156 s (~73 ms a frame,
   heavy slot ~3 min) to a 23.6 MB file. The side-by-side is 18.8 MB. A 100 s level at 60 fps would pass 30 MB at crf 22,
   so it gets the re-encode.
+- **Measured, a whole official level** (2026-11-25): Jumper (`official:7 --route`, 86.6 s) at 60 fps 1280x720, 5197 frames,
+  407.6 s in all with the heavy slot held (~78 ms a frame, render + encode; peak 56 MB), 28.9 MB: under the 30 MB cap, so no
+  re-encode at crf 22 (so the guess above was pessimistic for Jumper). Rule of thumb: ~4.7x the level's length.
 - **Checked against the recording** (side-by-side, frames at 5 / 20 / 35 s): the same moment and layout at 5 and 20 s.
   At 35 s the run has died: ours shows the end of the burst, the recording shows dual. Differences: the recording is
   GD windowed on the desktop (another scale and framing), GD's progress bar is not drawn in ours, a collected coin shows
