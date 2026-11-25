@@ -15,3 +15,4 @@ Data (ArtifactData, collection `board`):
   - `levels[]`: `{name, state, status, note, link}` -- our levels in progress, each linking to the phone viewer (`viewer_url` + `#<file base>`)
   - `usage`: `{pct|null, cap_pct: 70, resets_at?, note?}` -- the user's rule (2026-11-25): don't go past 70% of his Claude usage
 - `board/picks`, written by the page only, never by Claude: `{selected[ids, first = do first], ideas[{id, title, added_at}], changed_at}`
+  - `played`: `{at, note, levels[]}` -- every level the user finished, from their save (read only): `{id, name, creator?, kind: main|online, tier, stars?, attempts, jumps, best, practice}`. Mains from local/difficulty/user_stats.json; online from local/difficulty/user_stats_online.json (PC). Private: the board only, never committed.

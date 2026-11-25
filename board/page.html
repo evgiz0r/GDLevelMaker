@@ -152,6 +152,17 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
     </details>
   </section>
 
+  <section aria-labelledby="h-y" class="wide">
+    <details id="d-played" open>
+      <summary><div class="sum-row"><h2 id="h-y">Your levels</h2><span class="hint" id="y-sum"></span></div></summary>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
+        <div class="filters" id="y-filters" role="toolbar" aria-label="Filter your levels by difficulty"></div>
+        <div class="tbl-wrap"><table id="ytable"><tbody><tr><td class="l dim">Your finished levels appear here after Claude's next update.</td></tr></tbody></table></div>
+        <div class="legend" id="y-legend">Every level you've finished, from your save (read only, never changed). Tries: lifetime attempts; Best: your normal-mode best %; Practice: your practice best %.</div>
+      </div>
+    </details>
+  </section>
+
   <section aria-labelledby="h-p">
     <details id="d-phys" open>
       <summary><div class="sum-row"><h2 id="h-p">Physics vs the real game</h2><span class="hint" id="p-sum"></span></div></summary>
@@ -421,7 +432,44 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
       box.appendChild(row);
     });
   }
-  function renderAll(){ renderLevels(); renderUsage(); renderFresh(); renderWs(); renderMains(); renderPhys(); renderQueue(); renderFilters(); renderCands(); }
+  var TIERS=["Auto","Easy","Normal","Hard","Harder","Insane","Easy Demon","Medium Demon","Hard Demon","Insane Demon","Extreme Demon","Demon"];
+  var yFilter="All";
+  function tierGroup(t){ return /Demon/.test(t||"")? "Demons" : (t||"Other"); }
+  function renderPlayed(){
+    var P=state && state.played; if(!P || !P.levels || !P.levels.length) return;
+    var L=P.levels.slice().sort(function(a,b){ var ta=TIERS.indexOf(a.tier), tb=TIERS.indexOf(b.tier); if(ta!==tb) return tb-ta; return (b.attempts||0)-(a.attempts||0); });
+    var groups=["All"], seen={}, counts={};
+    L.forEach(function(r){ var g=tierGroup(r.tier); counts[g]=(counts[g]||0)+1; if(/Demon/.test(r.tier||"")){ counts[r.tier]=(counts[r.tier]||0)+1; } });
+    ["Easy","Normal","Hard","Harder","Insane","Demons","Easy Demon","Medium Demon","Hard Demon","Insane Demon","Extreme Demon"].forEach(function(g){ if(counts[g]) groups.push(g); });
+    if(groups.indexOf(yFilter)<0) yFilter="All";
+    var fb=$("y-filters"); fb.textContent="";
+    groups.forEach(function(g){ var c=el("button","chip",g+(g==="All"?" "+L.length:" "+counts[g])); c.type="button"; c.setAttribute("aria-pressed",String(g===yFilter)); c.onclick=function(){ yFilter=g; renderPlayed(); }; fb.appendChild(c); });
+    var show=L.filter(function(r){ return yFilter==="All" || (yFilter==="Demons"? /Demon/.test(r.tier||"") : r.tier===yFilter); });
+    var t=$("ytable"); t.textContent="";
+    var head=el("thead"), hr=el("tr");
+    [["Level","l"],["Difficulty"],["Kind"],["Tries"],["Jumps"],["Best"],["Practice"]].forEach(function(h){ hr.appendChild(el("th",h[1]||null,h[0])); });
+    head.appendChild(hr); t.appendChild(head);
+    var body=el("tbody");
+    show.forEach(function(r){
+      var tr=el("tr"), nm=td(null,"l");
+      if(r.link && /^https:\/\//.test(r.link)){ var a=el("a",null,r.name); a.href=r.link; a.target="_blank"; a.rel="noopener"; a.style.color="inherit"; nm.appendChild(a); } else nm.appendChild(document.createTextNode(r.name||("ID "+r.id)));
+      nm.title=(r.name||"")+(r.id?" · ID "+r.id:"");
+      if(r.id && r.kind!=="main") nm.appendChild(el("span","sm","ID "+r.id+(r.creator?" · "+r.creator:"")));
+      tr.appendChild(nm);
+      tr.appendChild(td((r.tier||"–")+(r.stars?" · "+r.stars+"★":""), /Demon/.test(r.tier||"")?"bad":"dim"));
+      tr.appendChild(td(r.kind==="main"?"main":"online","dim"));
+      tr.appendChild(td(r.attempts==null?"–":String(r.attempts)));
+      tr.appendChild(td(r.jumps==null?"–":String(r.jumps),"dim"));
+      tr.appendChild(td(r.best==null?"–":(r.best>=100?"✓ 100%":r.best+"%"), r.best>=100?"ok":null));
+      tr.appendChild(td(r.practice==null?"–":r.practice+"%","dim"));
+      body.appendChild(tr);
+    });
+    t.appendChild(body);
+    var fin=L.filter(function(r){ return r.best>=100; }).length, dem=L.filter(function(r){ return /Demon/.test(r.tier||"") && r.best>=100; }).length;
+    $("y-sum").textContent=fin+" finished · "+dem+" demons"+(P.at?" · from your save "+fmtWhen(new Date(P.at)):"");
+    if(P.note) $("y-legend").textContent=P.note;
+  }
+  function renderAll(){ renderPlayed(); renderLevels(); renderUsage(); renderFresh(); renderWs(); renderMains(); renderPhys(); renderQueue(); renderFilters(); renderCands(); }
 
   // ---- writes (one at a time, coalesced) ----
   var writing=false, dirty=false;
