@@ -34,6 +34,10 @@ function songOf(rec, header) {
 function buildIndex() {
   const root = path.join(__dirname, "..");
   const list = [];
+  // the routes already in the committed viewer/levels.js: a fresh clone has no local/ solutions, and rebuilding the
+  // list (tools/setup.js, make.js) must not drop the replays everyone else gets from git (SETUP.md)
+  const prev = {}; try { const w = {}; new Function("window", fs.readFileSync(path.join(root, "viewer", "levels.js"), "utf8"))(w);
+    for (const l of w.GD_LEVELS || []) if (l.solution) prev[l.file] = l; } catch (e) {}
   for (const dir of ["levels", "examples"]) {
     const d = path.join(root, dir);
     if (!fs.existsSync(d)) continue;
@@ -46,6 +50,7 @@ function buildIndex() {
       // today's physics (savedRoute): without any, the page solved the level itself for minutes and looked
       // hung, and replayed a death when its solve failed (the user: "why when I play the cube timings it dies").
       let solution; try { solution = savedRoute(L) || undefined; } catch (e) {}
+      const was = prev[dir + "/" + f]; if (!solution && was && was.level === L.levelStr) solution = was.solution;
       // when this level was made: the last commit that changed its file (not mtimes, index rebuilds or re-solves)
       let made; try { const ct = +require("child_process").execSync(`git log -1 --format=%ct -- "${dir}/${f}"`, { windowsHide: true, cwd: root, encoding: "utf8" }).trim(); if (ct) made = new Date(ct * 1000).toISOString(); } catch (e) {}
       list.push({ name: L.name, file: dir + "/" + f, level: L.levelStr, song: songOf(L.rec, L.level.header), solution, made });

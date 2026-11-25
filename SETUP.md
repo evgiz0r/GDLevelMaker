@@ -47,6 +47,32 @@ Stop and tell the user at any step that fails, with the line the script printed.
 That is the whole setup. Re-running `node tools/setup.js` is safe: it keeps routes already in `local/` (`--force`
 replaces them with the ones from git).
 
+## Rebuilding local data: what a new computer has, and how long the rest takes
+
+The owner's PC has a lot in `local/` that is not in git. A new computer starts with what git carries and rebuilds the
+rest only when it needs it. Times come from measured runs on the owner's PC (16 GB) or in the cloud. "Not measured"
+means nobody has timed it yet. Heavy jobs run one or two at a time (`tools/heavy.js`), so a batch adds up.
+
+| what | on a fresh clone | rebuild with | how long | basis |
+|---|---|---|---|---|
+| our levels (GDLM) with their replays | in git (`levels/`, routes in `viewer/levels.js`) | nothing | 0 | |
+| main levels 1-22 + their routes | levels from your game, routes from git | `node tools/setup.js` | seconds: one replay per level | `mains.js status` replays the same routes in ~10 s |
+| a main level whose route dies on today's sim | replays to the death spot | `node tools/mains.js run <n>` | replan 5-97 s; resume 29-95 s; the slow ones: Fingerdash replan 42 min, Hexagon Force resume 21 min, Deadlocked resume 5-32 min | DIFFICULTY.md "Main levels kept current", 2026-11-25 batch: 22 levels in 84 min |
+| a main level with no route at all | listed, no replay | `node tools/difficulty_solve.js <n>` | one full solve: Hexagon Force 25 min (568 s search + route); all 22 from scratch: not measured, hours | PHYSICS.md "Hexagon Force: beaten" |
+| Dash (22) | its route still dies partway (open physics, being worked on) | waits on that physics work | | DIFFICULTY.md, PHYSICS.md |
+| difficulty scores of the main levels | not in git | `node tools/difficulty.js` | levels 1-20: ~16 min; Fingerdash's score hung past 60 min (open) | DIFFICULTY.md, 2026-11-25 |
+| main levels' timing windows (lego) | in git (`knowledge/lego_windows/`) | nothing; re-measure only after a physics change | 0; re-measure 10-60 s a level, Geometrical Dominator 5.5 min, Deadlocked 15.5 min (35-45 min for all) | LEGO.md |
+| bricks cut from levels (lego pieces) | not in git | `node tools/lego.js mine` | ~20 s (~0.3 s a level) with the windows from git | LEGO.md |
+| main songs | read from your game's `Resources/` in place | nothing | 0 | |
+| beat grids of the songs | in git (`viewer/song_grids.js`) | nothing | 0 | |
+| custom songs our levels use | GD downloads each one the first time you play the level | or `node tools/songs.js <id>` | the tool waits 3 s between songs; the download itself is not measured | tools/songs.js |
+| community levels (taste corpus, demon list) | not in git (other people's levels); the learned numbers are (`knowledge/taste_model.json`) | `node tools/taste.js fetch`, `tools/fetch_level.js`, `tools/demonlist.js` | rate-limited: 1.2-2.5 s wait per request, so ~330 levels take 10+ min of waits alone; total not measured | the tools' built-in waits |
+| gdsolver's real-game plans | not in git | copy `data/` from github.com/gdsolver/gdsolver into `local/gdsolver/` | seconds | |
+| the owner's recordings, attempts, marks, save stats | personal | cannot be rebuilt | | |
+
+For the main levels the short answer: with the routes in git, a new computer plays all of them after a few seconds of
+setup. Without them, solving everything again is hours of heavy jobs. That is why the routes are committed.
+
 ## Putting our levels into your game
 
 Our levels are the `levels/gdlm_*.gdlvl` files (named "GDLM NN ..." in the game).
