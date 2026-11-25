@@ -65,7 +65,15 @@ module.exports = function ({ objects, header, beatX }) {
     const m = sp[2], base = m === "cube" ? (cubeN++ % 2 ? PAL.molten : PAL.ember) : PAL[m] || PAL.ember;
     return hasDrop && sp[0] >= dropX - 30 && m !== "end" ? hot(base) : base;
   };
-  const pals = S.map(palOf);
+  // Round 4 (2026-11-25, roles gate: 30/42 sections had deco in the block bodies' value): every dark scenery channel (ruins,
+  // dead trees, backdrop, debris, the brick caps -- what touches the path) is lifted to at least 1.5x the block fill's luminance, in its
+  // own hue, so the path reads as one dark mass against lava-lit rock (ART.md "Colour by role"; the far layer and the
+  // sky stay dark, so it is not the round-1 flash)
+  const CT = require("../contrast.js");
+  const lift = (rgb, under, want) => { let k = 1, c = rgb; while (CT.ratio(c, under) < want && k < 8) { k += 0.05; c = rgb.map(v => Math.min(255, Math.round(v * k))); } return c; };
+  const LIFT = [C.near, C.top, C.horizon, C.far, C.chain, C.skull, 1013, 1014];   // every dark deco channel (top: the brick pattern's caps)
+  const roleFix = p => Object.assign({}, p, Object.fromEntries(LIFT.filter(ch => p[ch]).map(ch => [ch, lift(p[ch], p[C.fill], 1.5)])));
+  const pals = S.map(palOf).map(roleFix);
   const defs = {};
   for (const [ch, rgb] of Object.entries(Object.assign({}, PAL.ember, pals[0]))) defs[ch] = { rgb, blend: BLEND.has(+ch) };
   header = K.channels(header, defs);

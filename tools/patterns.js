@@ -7,6 +7,192 @@
 const P = {};
 function def(name, doc, fn) { P[name] = { doc, fn }; }
 
+// --- varied flying corridors (`vary`: a seed) ---
+// The user on GDLM 71 (2026-11-25, 12 viewer marks): "too repetitive, same height corridor. we have x6 of the same mini
+// structure", "structure is 4 times. should be 2 max", "no heights change. all on 2 levels. with ball/spider/wave there
+// should be different corridors (where top and bottom not same height)". So with `vary` a corridor is a run of
+// segments, each with its own floor and roof heights (moved independently) and its own obstacle motif, and no motif or
+// shape comes more than twice in a row (checklist "Flying variety"; tools/flyvariety.js measures it).
+function vrng(seed) { let s = ((seed | 0) * 9301 + 49297) % 233280 || 1; return () => (s = (s * 16807) % 2147483647) / 2147483647; }
+const vint = (r, lo, hi) => lo + Math.floor(r() * (hi - lo + 1));
+// pick from `opts`, never one of the last `maxRun` picks when all of them were the same, and not the last one when
+// there is a choice and r() says so
+function vpick(r, opts, hist, maxRun = 2) {
+  const tail = hist.slice(-maxRun), same = tail.length === maxRun && tail.every(x => x === tail[0]);
+  let pool = opts.filter(o => !(same && o === tail[0]));
+  if (pool.length > 1 && hist.length && r() < 0.75) pool = pool.filter(o => o !== hist[hist.length - 1]);
+  return pool[Math.floor(r() * pool.length)];
+}
+// floor F / roof R (first roof row) per column moving from (f0, r0) to (f1, r1), a row every 2 columns: first the moves
+// that open the room (floor down, roof up), then the ones that close it, so the room never drops below the smaller end
+function vtransit(f0, r0, f1, r1) {
+  const out = [];
+  let f = f0, rr = r0, k = 0;
+  const step = (want, cur) => cur + Math.sign(want - cur);
+  // phase 1: floor down, roof up
+  while ((f1 < f && f !== f1) || (r1 > rr && rr !== r1)) {
+    if (k % 2 === 1) { if (f1 < f) f = step(f1, f); if (r1 > rr) rr = step(r1, rr); }
+    out.push([f, rr]); k++;
+  }
+  while (f !== f1 || rr !== r1) {
+    if (k % 2 === 1) { if (f1 !== f) f = step(f1, f); if (r1 !== rr) rr = step(r1, rr); }
+    out.push([f, rr]); k++;
+  }
+  return out;
+}
+function shipVary(a) {
+  const r = vrng(a.vary), w = a.w || 16, g0 = a.gap || 5, lead = a.lead ?? 6, base = a.base ?? 0, o = [];
+  const F = new Array(w).fill(base), R = new Array(w).fill(base + g0), mot = [];
+  const shapes = [], motifs = [];
+  let c = Math.min(lead, w), f = base, rf = base + g0;
+  while (c < w) {
+    let nf, ng, key, tries = 0;
+    do {
+      // floor and roof each move at most 2 rows (a 3-row move took ~14 columns of stairs: no room left for anything else)
+      nf = Math.max(0, Math.min(3, f + vint(r, -2, 2))); ng = g0 + vint(r, 0, 2); if (nf + ng > 9) ng = 9 - nf;
+      if (Math.abs(nf + ng - rf) > 2) ng = rf + Math.sign(nf + ng - rf) * 2 - nf;
+      if (ng < g0) ng = g0;
+      key = nf + ":" + ng; tries++;
+    } while (tries < 30 && ((nf === f && nf + ng === rf) || shapes.slice(-2).includes(key) || (Math.abs(nf - f) < 1 && tries < 10)));
+    let tr = vtransit(f, rf, nf, nf + ng);
+    let len = Math.max(vint(r, 8, 12), tr.length + 6);
+    if (w - (c + len) < 8) {
+      len = w - c;
+      // the last segment ends at the entry heights: the next corridor's mouth meets it (a direct mode switch,
+      // compose.js `endLow`)
+      // and always: an exit high up left the cube falling past the next part's seam (GDLM 71 p4)
+      { nf = base; ng = g0; key = nf + ":" + ng; tr = vtransit(f, rf, nf, nf + ng); }
+    }
+    for (let i = 0; i < len && c + i < w; i++) { const [ff, rr] = i < tr.length ? tr[i] : [nf, nf + ng]; F[c + i] = ff; R[c + i] = rr; }
+    shapes.push(key);
+    const s0 = c + tr.length + 1, s1 = Math.min(c + len, w - 3) - 1;   // the flat stretch, a column clear at each end
+    // spikes twice as likely as the block shapes (a ship needs hazards to steer around, not only walls)
+    const opts = ["floor-spike", "roof-spike", "floor-spike", "roof-spike", "bump", "hang", "calm"].concat(a.teeth !== false ? ["teeth", "teeth"] : [], a.pit ? ["pit"] : []);
+    // a motif per ~5 columns of the level stretch (one per segment left the ship ~2 s with nothing to do), calm at most
+    // once in a row
+    const parts = Math.max(1, Math.floor((s1 - s0 + 1) / 4));
+    for (let q = 0; q < parts; q++) {
+      const a0 = s0 + Math.floor(q * (s1 - s0 + 1) / parts), a1 = s0 + Math.floor((q + 1) * (s1 - s0 + 1) / parts) - 1;
+      const m = a1 - a0 >= 1 ? vpick(r, opts.filter(x => !(x === "calm" && motifs.slice(-2).includes("calm"))), motifs) : "calm";
+      motifs.push(m); mot.push([m, a0 + (q ? 1 : 0), a1, nf, nf + ng]);
+    }
+    f = nf; rf = nf + ng; c += len;
+  }
+  for (let cc = 0; cc < w; cc++) { for (let rr = 0; rr < F[cc]; rr++) o.push(["block", cc, rr]); for (let rr = R[cc]; rr < 10; rr++) o.push(["block", cc, rr]); }
+  for (const [m, s0, s1, ff, rr] of mot) {
+    const mid = Math.floor((s0 + s1) / 2);
+    if (m === "floor-spike") o.push(["spike", mid, ff]);
+    else if (m === "roof-spike") o.push(["spike", mid, rr - 1, { rot: 180 }]);
+    else if (m === "teeth") { o.push(["spike", s0, ff]); if (s1 - s0 >= 3) o.push(["spike", Math.min(s1, s0 + 3), rr - 1, { rot: 180 }]); }
+    else if (m === "bump" && rr - ff >= 6) { for (let x = mid - 1; x <= mid; x++) o.push(["block", x, ff]); }
+    else if (m === "hang" && rr - ff >= 6) { for (let x = mid - 1; x <= mid; x++) o.push(["block", x, rr - 1]); }
+    else if (m === "pit") for (let x = s0; x <= s1; x++) o.push([9, x, ff, { dy: -13 }]);
+  }
+  const mid = c => F[c] + (R[c] - F[c] - 1) / 2;
+  portals(o, "ship", a.portalRow ?? Math.min(5, Math.round(mid(0))), Math.round(mid(w - 1)), w, a);
+  return { objects: o, width: w + (a.exit ? 1 : 0) };
+}
+// the wave's path height per column with legs of their own length and peaks / valleys at their own heights
+function waveVaryPath(a, W) {
+  const r = vrng(a.vary), lead = a.lead || 0, low = a.low ?? 2, flat = a.flat || 0, lo = low, hi = low + (a.seg || 4);
+  const M = new Array(W).fill(low);
+  let c = lead, cur = low, up = true; const hist = [];
+  while (c < W) {
+    const room = up ? hi - cur : cur - lo;
+    // legs of 3+ rows: 2-row legs at 2x were turns under 100 ms (GDLM 71 v2, score.js "route")
+    let d = room < 3 ? room : vint(r, 3, room);
+    const key = (up ? "u" : "d") + d;
+    if (hist.slice(-2).every(k => k === key) && hist.length >= 2 && room > 3) d = d > 3 ? d - 1 : d + 1;
+    hist.push((up ? "u" : "d") + d);
+    const fl = flat ? flat + (r() < 0.4 ? 1 : 0) : 0;
+    for (let i = 1; i <= d && c < W; i++, c++) M[c] = cur + (up ? i : -i);
+    cur += up ? d : -d;
+    for (let i = 0; i < fl && c < W; i++, c++) M[c] = cur;
+    up = !up;
+    // the last leg: a level end of at least `flat` columns (the exit fills the mouth there)
+    if (W - c < d + fl + Math.max(1, flat) && c < W) { while (c < W) M[c++] = cur; }
+  }
+  // `endLow`: back down to `low` and level for the last columns (a direct switch into the next mode's corridor)
+  if (a.endLow) {
+    // from the last point where the path is at a turn's level run or rising, with room after it for a level turn
+    // (`flat`), the fall to `low` and 2 level columns: turns without a level run meet the slope head-on
+    let e = W - 1;
+    const fits = x => W - 1 - x >= flat + (M[x] - low) + 2;
+    while (e > lead && (!fits(e) || (M[e - 1] > M[e]))) e--;
+    let x = e + 1;
+    if (M[e] > low) for (let i = 0; i < flat && x < W; i++) M[x++] = M[e];
+    let cur2 = M[e];
+    for (; x < W; x++) { cur2 = Math.max(low, cur2 - 1); M[x] = cur2; }
+  }
+  return M;
+}
+// ball / swing / spider: hazards alternate floor / roof as before, but their spacing and count vary, and the floor moves
+// while the player rides the roof (after a floor hazard) and the roof while it rides the floor, so the corridor's top and
+// bottom change apart (the user: "different corridors (where top and bottom not same height)")
+function ballVary(a, mode) {
+  const r = vrng(a.vary), w = a.w || 32, g = a.gap || 5, every = a.every || 9, lead = a.lead ?? 5, o = [];
+  const top = mode === "swing" ? 8 : 7;
+  const F = new Array(w).fill(0), R = new Array(w).fill(g), haz = [];
+  const set = (arr, from, v) => { for (let x = from; x < w; x++) arr[x] = v; };
+  let k = 0, c = lead; const hist = [];
+  while (c < w - 6) {
+    let n = vpick(r, [1, 2, 2, 3].filter(x => x < 3 || every >= 8), hist.map(h => h.n));
+    if (c + n > w - 6) n = 1;
+    hist.push({ n }); haz.push([c, n, k % 2 === 0]);
+    const p = c + n + 1;
+    if (p < w - 6) {
+      if (k % 2 === 0) {   // floor hazard: the player rides the roof from here, the floor may move
+        const opts = [0, 1, 2].filter(v => v !== F[p] && v <= R[p] - g);
+        if (opts.length && r() < 0.75) set(F, p, opts[Math.floor(r() * opts.length)]);
+      } else {             // roof hazard: on the floor now, the roof may move
+        const opts = [F[p] + g, F[p] + g + 1, F[p] + g + 2].filter(v => v !== R[p] && v <= top);
+        if (opts.length && r() < 0.75) set(R, p, opts[Math.floor(r() * opts.length)]);
+      }
+    }
+    c += every + vint(r, -1, 2); k++;
+  }
+  // back to the ground for the exit (a step down: safe on either side)
+  const last = haz.length ? haz[haz.length - 1][0] + haz[haz.length - 1][1] + 1 : lead;
+  if (last < w) set(F, Math.min(w - 3, last), 0);
+  for (let x = 0; x < w; x++) { for (let rr = 0; rr < F[x]; rr++) o.push(["block", x, rr]); for (let rr = R[x]; rr <= top; rr++) o.push(["block", x, rr]); }
+  for (const [x, n, floor] of haz) for (let i = 0; i < n; i++)
+    o.push(floor ? ["spike", x + i, F[x + i]] : ["spike", x + i, R[x + i] - 1, { rot: 180 }]);
+  if (a.pit) for (let j = 0; j + 1 < haz.length; j++) {
+    const [x, n, floor] = haz[j], nx = haz[j + 1][0];
+    for (let xx = x + n + 2; xx < nx - (a.pitClear ?? 3); xx++) o.push(floor ? [9, xx, F[xx], { dy: -13 }] : [9, xx, R[xx] - 1, { dy: 13, rot: 180 }]);
+  }
+  portals(o, mode, a.portalRow ?? 1, 1, w, a);
+  return { objects: o, width: w + (a.exit ? 1 : 0), R };
+}
+// ufo: obstacles of several kinds (pillar, hanger, a gate of both, floor spikes, a raised step), heights and widths
+// varied, the roof up and down a row between them
+function ufoVary(a) {
+  const r = vrng(a.vary), w = a.w || 32, g = a.gap || 7, every = a.every || 7, lead = a.lead ?? 6, o = [];
+  const R = new Array(w).fill(g), obs = [];
+  let c = lead; const hist = [];
+  while (c < w - 5) {
+    const roof = R[c];
+    const kinds = ["pillar", "hanger", "gate", "spikes", "step"].filter(kd => kd !== "gate" || roof >= 7);
+    const kd = vpick(r, kinds, hist);
+    hist.push(kd);
+    let wd = vint(r, 1, 3), used = wd;
+    if (kd === "pillar") { const h = Math.min(vint(r, 2, 3), roof - 4); for (let i = 0; i < wd; i++) for (let rr = 0; rr < h; rr++) o.push(["block", c + i, rr]); }
+    else if (kd === "hanger") { const h = Math.min(vint(r, 1, 3), roof - 4); for (let i = 0; i < wd; i++) for (let rr = roof - h; rr < roof; rr++) o.push(["block", c + i, rr]); }
+    else if (kd === "gate") { const h1 = vint(r, 1, 2), h2 = Math.max(1, Math.min(2, roof - 4 - h1)); wd = 1; used = 1; for (let rr = 0; rr < h1; rr++) o.push(["block", c, rr]); for (let rr = roof - h2; rr < roof; rr++) o.push(["block", c, rr]); }
+    else if (kd === "spikes") { wd = vint(r, 2, 3); used = wd; for (let i = 0; i < wd; i++) o.push(["spike", c + i, 0]); }
+    else if (kd === "step") { wd = vint(r, 4, 6); used = wd; for (let i = 0; i < wd && c + i < w - 4; i++) o.push(["block", c + i, 0]); }
+    obs.push([c, used]);
+    // the roof moves a row up or down after this obstacle, before the next one
+    const nx = c + used + every - 2 + vint(r, -1, 2);
+    if (r() < 0.5) { const nr = Math.max(6, Math.min(8, roof + (r() < 0.5 ? -1 : 1))); for (let x = c + used + 2; x < w; x++) R[x] = nr; }
+    c = Math.max(nx, c + used + 4);
+  }
+  for (let x = 0; x < w; x++) for (let rr = R[x]; rr < 9; rr++) o.push(["block", x, rr]);
+  portals(o, "ufo", a.portalRow ?? 1, 1, w, a);
+  return { objects: o, width: w + (a.exit ? 1 : 0) };
+}
+
+
 // --- spikes on a floor ---
 def("spikes", "n spikes side by side (n 1..3 is one jump at 1x; 4+ needs an orb/pad)", (a) => {
   const n = a.n || 1, o = [];
@@ -143,7 +329,8 @@ function portals(o, mode, entryRow, exitRow, w, a) {
     for (let r = 0; r < 10; r++) if (r < r0 || r > r1) o.push(["block", w, r]);
   }
 }
-def("ship-tunnel", "a ship corridor (band rows 0-9): floor and roof follow `waves` sine waves, `gap` rows of air, teeth on the bends; portal/exit options", (a) => {
+def("ship-tunnel", "a ship corridor (band rows 0-9): floor and roof follow `waves` sine waves, `gap` rows of air, teeth on the bends; portal/exit options; `vary` (a seed): segments with their own floor / roof heights and motifs instead", (a) => {
+  if (a.vary) return shipVary(a);
   const w = a.w || 16, gap = a.gap || 5, amp = a.amp ?? 1.5, base = a.base ?? 1, o = [];
   // `waves`: how many rises and falls over the corridor (one over a 120-block ship is flat)
   const floorAt = c => Math.max(0, Math.round(base + amp * Math.sin(c / w * 2 * Math.PI * (a.waves || 1))));
@@ -183,7 +370,10 @@ def("wave-zigzag", "a wave corridor (band rows 0-9): the path climbs and falls 4
   // ceiling (the user, GDLM 44 round 2: "disconnected structure"; tools/joins.js checks it)
   let leadRoof = null, joined = true;
   if (a.slopes && a.leadGap && lead) { leadRoof = low - Math.floor(a.leadGap / 2) + a.leadGap; joined = false; }   // unclamped, as the entry's roof
-  const midAt = c => { if (c < lead) return low; c -= lead; const leg = Math.floor(c / L), k = Math.min(c % L, seg); return low + (leg % 2 === 0 ? k : seg - k); };
+  const midAt0 = c => { if (c < lead) return low; c -= lead; const leg = Math.floor(c / L), k = Math.min(c % L, seg); return low + (leg % 2 === 0 ? k : seg - k); };
+  // : legs of their own length and height (the user on GDLM 71: "structure is 4 times. should be 2 max")
+  const VM = a.vary ? waveVaryPath(a, w) : null;
+  const midAt = c => VM ? VM[Math.max(0, Math.min(w - 1, c))] : midAt0(c);
   for (let c = 0; c < w; c++) {
     if (a.slopes) {
       // walls of 45-degree slopes along the legs, so the corridor is a straight diagonal (square
@@ -213,7 +403,11 @@ def("wave-zigzag", "a wave corridor (band rows 0-9): the path climbs and falls 4
         for (let r = roof; r < 10; r++) o.push(["block", c, r]);
         // `teeth`: at a flat turn, a spike on the side the wave is NOT on (a floor spike under a peak, where the
         // wave slides along the roof; a hanging one over a valley), only with 4+ rows of room
-        if (a.teeth && c >= lead && gap >= 4 && f0 >= 0) {
+        if (VM && a.teeth && c >= lead && gap >= 4 && f0 >= 0) {
+          // the middle of each level run: a floor spike under a peak, a hanging one over a valley
+          let s0 = c, s1 = c; while (s0 > lead && VM[s0 - 1] === VM[c]) s0--; while (s1 < w - 1 && VM[s1 + 1] === VM[c]) s1++;
+          if (c === Math.floor((s0 + s1) / 2) && s1 < w - 3 && s0 > lead) { if (VM[s0 - 1] < VM[c]) o.push(["spike", c, f]); else o.push(["spike", c, roof - 1, { rot: 180 }]); }
+        } else if (a.teeth && c >= lead && gap >= 4 && f0 >= 0) {
           const peak = midAt(c) > low && (c - lead) % L >= seg;
           const kk = (c - lead) % L - seg, leg = Math.floor((c - lead) / L);
           if (kk === Math.floor(flat / 2)) { if (leg % 2 === 0) o.push(["spike", c, f]); else o.push(["spike", c, roof - 1, { rot: 180 }]); }
@@ -256,6 +450,7 @@ def("ball-run", "a ball corridor (band rows 0-7 from a portal on the ground): a 
   // so hazards come `every` (default 9) columns apart at Easy. The roof is solid all along: a
   // ball rolling on the band's invisible ceiling would not read. Floor spikes come in pairs or
   // alone (variety), the roof's hang one row under it.
+  if (a.vary) { const { R, ...res } = ballVary(a, a._mode || "ball"); return res; }
   const w = a.w || 32, gap = a.gap || 5, every = a.every || 9, lead = a.lead ?? 5, o = [];
   for (let c = 0; c < w; c++) for (let r = gap; r < 8; r++) o.push(["block", c, r]);
   let k = 0;
@@ -299,6 +494,7 @@ def("spider-run", "a spider corridor (band rows 0-7 from a portal on the ground)
 // floor (2 or 3 rows, 2 wide) alternate with hangers from the roof (2 rows), `every` columns apart after `lead`, so
 // the player hops over a pillar, then lets the UFO sink under a hanger.
 def("ufo-run", "a ufo corridor (band rows 0-8 from a portal on the ground): roof `gap` (7) rows up, floor pillars (2-3 rows) alternating with roof hangers (2 rows) every `every` (7) columns; portal/exit options", (a) => {
+  if (a.vary) return ufoVary(a);
   const w = a.w || 32, gap = a.gap || 7, every = a.every || 7, lead = a.lead ?? 6, o = [];
   for (let c = 0; c < w; c++) for (let r = gap; r < 9; r++) o.push(["block", c, r]);
   let k = 0;

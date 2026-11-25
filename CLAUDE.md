@@ -177,6 +177,11 @@ at once and the PC hung (0.2 GB free), so the rule is now a lock every heavy too
   warning listing the tools/lib commits it lacks. `GDLM_HEAVY_NOSYNC=1` skips it;
 - the slot is a file in the shared `local/locks/heavy/` (real path, all worktrees); a dead pid's slot is
   cleared, a child of a holder runs in its parent's slot. `node tools/heavy.js` shows who holds it.
+- **Overdue holders get reported** (the user, 2026-11-25, after a presslib rollout held a slot 17 h: "lets check whats
+  happening in my pc once in awhile if such thing occurs its really a bottleneck"): a holder over 3x its measured estimate,
+  or over 3 h with none, shows `!! overdue` in `node tools/heavy.js` and the waiting lines. A session that sees one checks
+  whether it still makes progress (its output file, CPU time) and tells the user (pid, command, how long, stuck or just
+  big); it stops another session's job only on the user's own yes. A long batch job writes each result as it finishes.
 - **A new heavy tool adds the line** `if (require.main === module) require("./heavy.js").claim();` after
   its header (tests/heavy.js checks the main ones). Never run heavy work outside a tool that claims it
   (`node -e` solves, scratch scripts); `GDLM_HEAVY=off` only when the user says so.
@@ -199,10 +204,10 @@ on a long one with modes). Wait for the heavy-job slot comes on top of all of th
 | job | how long | source |
 |---|---|---|
 | make, short cube level (15-20 s) | 15-30 s (the solve itself ~2 s since the state-copy fix) | loop.js, GDLM 02 / 41, 2026-11-23 |
-| make `--look` (decoration only, gameplay unchanged) | ~1 s | showcase notes, GDLM 50 |
+| make `--look` (decoration only, gameplay unchanged) | ~1 s on a short level; 7-8 min on GDLM 44 (43 s, 11.7k objects: it replays the saved plan to the end) | showcase notes, GDLM 50; cloud, GDLM 44, 2026-11-25 |
 | make, an existing level after a one-spot edit (incremental) | 1-5 s in cube or ball; an edit inside or just before a ship stretch 25-65 s (the stretch is re-planned) | PHYSICS.md "Incremental solving", cloud 2026-11-23 |
 | cut or join of solved levels (section cache) | 0.5-10 s (full: 1-70 s) | PHYSICS.md "Incremental solving" |
-| make (= the solve), 40-100 s level with ship / wave / ball | ~2 min since the state-copy fix (was 5-7 min) | GDLM 45 106 s, GDLM 61 124 s (cloud, 2026-11-23); before: PHONE.md, SHOWCASE.md |
+| make (= the solve), 40-100 s level with ship / wave / ball | ~2 min since the state-copy fix (was 5-7 min); 13 min for GDLM 44 v2 with no saved route (cloud, 2026-11-25) | GDLM 45 106 s, GDLM 61 124 s (cloud, 2026-11-23); before: PHONE.md, SHOWCASE.md |
 | score.js, every gate, short cube level | 10-20 s | loop.js, GDLM 02 / 41 |
 | score.js, level with modes, saved route current (checks the route, no solve) | ~1.5 min (GDLM 45, 40 s level: 89 s) | difficulty session, 2026-11-24 |
 | score.js, level with modes, no saved route (`opts.saved:false` or nothing to build on) | ~2 solves + ~1 min fairness: 10-15 min | score.js header |
@@ -215,6 +220,7 @@ on a long one with modes). Wait for the heavy-job slot comes on top of all of th
 | wip put (solution cached by make) | a few s | wip.js |
 | install into the game (`install.js`, game closed) | not timed yet (publisher: `--time install`) | |
 | a server upload | not timed yet (publisher: `--time upload`) | |
+| video of a whole official level (`video.js official:N --route`, 1280x720 60 fps) | ~4.7x the level's length (Jumper 86.6 s: 408 s, 28.9 MB) | timings.jsonl, 2026-11-25 |
 | build a Geode mod (`tools/geode_build.cmd`, cold) | ~60-95 s | GDLM Probe, 2026-11-25 |
 | git pull + push | ~10 s | 2026-11-23 |
 | edit.js, one edit, the old route still clears (re-plan + checks) | see EDITING.md "Results" | 2026-11-23 |
@@ -356,6 +362,14 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   the safe fixes on a copy -> review again), `tools/retarget.js <level> --to easier|harder|<tier>|<stars>` (the
   hardest spots first, small edits scored by the difficulty model), `tools/families.js` (every soft-rule family: note words, effect,
   effort, fix, auto-fix). Test: `node tests/editing.js`.
+- **The measurements store: every number we measure about a level, with the version it was measured on**
+  (the user, 2026-11-24: "for every level we go through, save some data somewhere about measurements. With the
+  version as it may change"): `knowledge/measurements.jsonl` (committed, merge=union; numbers only, never level
+  data), `tools/measures.js` (`node tools/measures.js [level]`: newest value per measure with STALE marks;
+  `stale`: why and the command to redo it; `history <level>`). Each line has the level's version (hash of its
+  level string) and a commit per code group it depends on (physics, route, difficulty, taste); STALE = a file of
+  that group changed since, or the level did. `difficulty_solve.js`, `difficulty.js` and `taste.js score` record
+  by themselves; a new measuring tool calls `require("./measures.js").record({...})`. Test: `node tests/measures.js`.
 - **`tools/heavy.js` -- the one-heavy-job lock** every heavy tool takes on start (see "One heavy job at
   a time"); it logs every finished job's real time to local/timings.jsonl (`tools/jobtime.js`: measured estimates with
   their basis, estimate vs actual). Tests: `node tests/heavy.js`, `node tests/jobtime.js`.
@@ -446,6 +460,9 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   ID 152848491, filled with `install.js <lvl> --slot phone`; and the test slot "Claude Lab", `--slot lab --desc "..."`, not uploaded yet; both in `local/phone_ids.json`). **Install queue** `tools/install_queue.js` (add / watch: installs the moment GD closes, reads the save back; PUBLISH.md). `tools/install.js` keeps a shared level's online ID on re-install, so
   Share again updates the same upload (`tests/install_keeps_id.js`).
 - **Geode mods** (GEODE.md: which index mods help -- GDShare import, Eclipse / GDH bots, Pathfinder -- which must NOT be installed because they change gameplay, and our own probe mod `mods/gdlm-probe/` that logs the player's state every tick, read by `tools/probe.js`, built by `tools/geode_build.cmd` + packed by `tools/geode_pack.js` (no Geode CLI: Smart App Control blocks it); playback of routes next).
+- **Practice -> full run** (GEODE.md "Practice -> full run"): `tools/stitch.js` joins the user's real-game practice attempts
+  (probe mod v0.4.0 logs checkpoints) into one start-to-end input route, checks it in our sim, `--save` -> viewer ghost and
+  `video.js --run`; `probe.js play ... --events <stitched>` plays it unbroken in the game. Test: `node tests/stitch.js`.
 - `examples/` -- levels the user made in the game, for reference and as format ground truth.
 
 All the library code runs in both node and the browser (no build step, no dependencies).
