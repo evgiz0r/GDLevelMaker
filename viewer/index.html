@@ -737,7 +737,10 @@ const STAGE_ORDER = ["original", "spec", "plan", "song", "layout", "path", "deco
 async function stagesFor(l) {
   const bar = document.getElementById("stagebar");
   if (!l || !l.wip || window.GD_PAGES || window.GD_PHONE || !location.protocol.startsWith("http")) { if (!STG.cur) { bar.hidden = true; STG.base = null; } return; }
-  let d = null; try { const r = await fetch("/wip/stages?file=" + encodeURIComponent(l.file), { cache: "no-store" }); if (r.ok) d = await r.json(); } catch (e) {}
+  // one fetch per level at a time: load() and summary() ask again while it is in flight, and each answer used to open the
+  // stage again (three plan replays, each stopping the play the lab had started)
+  if (STG.want === l) return; STG.want = l;
+  let d = null; try { const r = await fetch("/wip/stages?file=" + encodeURIComponent(l.file), { cache: "no-store" }); if (r.ok) d = await r.json(); } catch (e) {} finally { if (STG.want === l) STG.want = null; }
   if (ALL[pick.value] !== l) return;
   STG.base = l; STG.data = d && d.stages && d.stages.length ? d : null; STG.cur = null; stageRender();
   if (L && STG.data) { L.hits = stageHits(); draw(); }
@@ -878,7 +881,8 @@ async function stageSolve(st) {
     ready: async () => { try { sol = (await (await fetch("/solution?file=" + encodeURIComponent(st.file), { cache: "no-store" })).json()).solution; } catch (e) {} return !!sol; },
     done: () => { st.solution = sol; notice("The route of stage " + esc(st.stage) + " is ready.", 4000); if (STG.cur === st.stage) stageOpen(st.stage); } });
 }
-pick.addEventListener("change", () => { if (!STG.cur) stagesFor(ALL[pick.value]); });
+// another level picked while a stage of the last one was open (the lab's variants, the Work panel): its own stages
+pick.addEventListener("change", () => { if (!STG.cur || STG.base !== ALL[pick.value]) stagesFor(ALL[pick.value]); });
 // ---------- section variants (style's compose: local/wip/<session>/<level>.variants/, served by /wip/variants) ----------
 // For a work-in-progress level with variants: one row per section, A/B/C with the section's score (hover: difficulty,
 // issues); a click replays that variant from the same moment; "go" jumps to the section; "pick this one" leaves a
@@ -932,7 +936,7 @@ async function varPick() {
   let ok = false; try { ok = (await fetch("/marks", { method: "POST", body: JSON.stringify(m) })).ok; } catch (e) {}
   const pb = document.getElementById("varPick"); if (pb) pb.textContent = ok ? "✓ picked: " + m.section + " " + m.key : "not saved (is serve.js running?)";
 }
-pick.addEventListener("change", () => { if (!VAR.cur) variantsFor(ALL[pick.value]); });
+pick.addEventListener("change", () => { if (!VAR.cur || VAR.base !== ALL[pick.value]) variantsFor(ALL[pick.value]); });
 // the default view ("main"): official levels + in progress + ours; "recent" and "pinned" are tabs of their own
 // (the user: "keep only the official level + some that we working on. recent is a separate tab")
 const PK = { f: "main", sel: 0, rows: [], meta: new Map(), runs: null, bases: null, hash: new Map(), openRun: null };
@@ -2412,7 +2416,11 @@ async function loadWip(keep) {
     groups.get(g).appendChild(new Option(label, i));
   });
   const again = keep && cur ? ALL.findIndex(l => l.file === cur.file) : -1;
-  if (again >= 0) { const tt = t; pick.value = again; pick.onchange(); t = Math.min(tt, (L.path.length - 1) / P.TPS); draw(); }
+  // a build stage or a section variant of this level is open (the lab's variants are stage cards): keep it on screen, only
+  // point it at the refreshed card -- reopening the card here replaced the stage's replay with "no route yet"
+  if (again >= 0 && (STG.cur && STG.base && STG.base.file === cur.file || VAR.cur && VAR.base && VAR.base.file === cur.file)) {
+    pick.value = again; if (STG.base && STG.base.file === cur.file) STG.base = ALL[again]; if (VAR.base && VAR.base.file === cur.file) VAR.base = ALL[again]; }
+  else if (again >= 0) { const tt = t; pick.value = again; pick.onchange(); t = Math.min(tt, (L.path.length - 1) / P.TPS); draw(); }
   else if (cur) pick.value = Math.max(0, ALL.findIndex(l => l.file === cur.file));
 }
 document.getElementById("refresh").onclick = () => loadWip(true);
@@ -2619,9 +2627,13 @@ function labGo(k) {
   LAB.k = k; labRender();
   const i = ALL.findIndex(l => l.file === v.file); if (i < 0) return notice(`v${k} ${esc(v.hook || "")} is still building; it shows up here when it is ready.`, 5000);
   if (PLAY.on) playStop(true);
-  const before = L, l = ALL[i]; pick.value = i; pick.onchange();
+  // a change EVENT, not pick.onchange(): the stages listener opens the variant's stage, whose saved plan (the route
+  // tools/lab.js solved, data.events) replays at once; onchange() alone loaded the bare card -- "no route yet", no player
+  const before = L, l = ALL[i]; pick.value = i; pick.dispatchEvent(new Event("change"));
   let tries = 0; const go = () => { if (ALL[pick.value] !== l || LAB.k !== k) return;
-    if (!L || L === before || !L.path || L.path.length < 2) { if (++tries < 150) setTimeout(go, 100); return; }
+    // wait for the stage's replay (a route or its plan), not the card's routeless ghost; after ~15 s play what is there
+    const ready = L && L !== before && L.path && L.path.length >= 2 && (!L.noRoute || tries >= 150);
+    if (!ready) { if (++tries <= 150) setTimeout(go, 100); return; }
     t = 0; lastTick = -1; playing = true; setPlay(); syncSong(true); draw(); };
   go();
 }

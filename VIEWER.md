@@ -98,6 +98,13 @@ as ~6 variants, each with its own hook (speed-up, mode switch, orb trick, ...). 
 the variants one tap apart (keys 1-9). A tap opens that variant and plays it from the start. Each variant has a line with
 its hook, why, and its pace against real levels. **🎮 play it** (P) lets the user play it. A **why** box has chips (boring,
 too slow, too hard, feels good, love the hook). **♥ pick vN** / **none: all dull** answers the round.
+- How a variant plays (fixed 2026-11-25, the user: "running different sections is bugged cant see the play"): a variant is
+  a stage-only card, so its route lives in its layout stage (`data.events`, the route `tools/lab.js build` solved), not in
+  the solutions cache (a physics change makes that stale). The lab opens the variant with a change EVENT so the stage bar
+  opens the stage and replays that route at once, and starts playing once the route (not the card's "no route yet" ghost)
+  is loaded. Picking another level while a stage is open now opens that level's own stages; a stages fetch already in flight
+  is not started again (three fetches each reopened the stage and stopped the play); the in-progress refresh (the lab's 15 s
+  poll) keeps an open stage on screen. `node tests/lab_play.js` (headless, muted) checks all of it.
 - Open: `#lab=r1` (`#lab` = the newest round), or the Work panel's "Section lab" rows. Works on the phone over the home
   Wi-Fi (the /lab routes and local/wip files are allowed from the LAN). Not on the phone page (no serve.js there).
 - Data: `local/lab/r<N>/round.json` {id, moment, t, variants:[{k, hook, why, file?}], ask}, `v<k>.result.json` {ok, pace}.
@@ -133,6 +140,6 @@ too slow, too hard, feels good, love the hook). **♥ pick vN** / **none: all du
 
 `lib/liveplay.js` (live play with each attempt's inputs, planEvents, levelHash, comparePresses; `node tests/liveplay.js`), POST /play and GET /attempts (tools/serve.js), `tools/attempts.js`, `tools/actions.js`, `tools/ask.js` (local/asks/), `tools/stages.js` (approve, waitApproval, gate), `tools/serve.js`
 (POST /stages/review, GET /asks, POST /asks/answer; marks also go to the feed), viewer/index.html (Work, stage review).
-Section lab: GET /lab/list, GET /lab/r<N>, POST /lab/pick (tools/serve.js; GDLM_LAB_DIR for tests), `labOpen` in viewer/index.html; `node tests/lab_view.js`.
+Section lab: GET /lab/list, GET /lab/r<N>, POST /lab/pick (tools/serve.js; GDLM_LAB_DIR for tests), `labOpen` in viewer/index.html; `node tests/lab_view.js`, `node tests/lab_play.js` (each variant plays its route).
 Tests: `node tests/work.js` (gate -> waiting -> review -> waitApproval; card put -> list -> answer; the feed and tail),
 `node tests/stages.js`, `node tests/no_dialogs.js`.
