@@ -56,7 +56,7 @@ means nobody has timed it yet. Heavy jobs run one or two at a time (`tools/heavy
 | what | on a fresh clone | rebuild with | how long | basis |
 |---|---|---|---|---|
 | our levels (GDLM) with their replays | in git (`levels/`, routes in `viewer/levels.js`) | nothing | 0 | |
-| main levels 1-21 + their routes | levels from your game, routes from git (`knowledge/mains/routes.json`, kept current by the owner's PC) | `node tools/setup.js` | seconds: one replay per level | `mains.js status` replays the same routes in ~10 s |
+| main levels 1-21 + their routes | levels from your game, routes from git (`knowledge/mains/routes.json`, kept current by the owner's PC) | `node tools/setup.js` | ~15 s: 21 of 22 replay to the end in 14.6 s (Fingerdash 9.9 s, the others 0.1-1.3 s) | `mains_routes.js check` on the owner's PC, 2026-11-25 |
 | a main level whose route dies on today's sim | replays to the death spot | `node tools/mains.js run <n>` | replan 5-97 s; resume 29-95 s; the slow ones: Fingerdash replan 42 min, Hexagon Force resume 21 min, Deadlocked resume 5-32 min | DIFFICULTY.md "Main levels kept current", 2026-11-25 batch: 22 levels in 84 min |
 | a main level with no route at all | listed, no replay | `node tools/difficulty_solve.js <n>` | one full solve: Hexagon Force 25 min (568 s search + route); all 22 from scratch: not measured, hours | PHYSICS.md "Hexagon Force: beaten" |
 | Dash (22) | listed without a replay: not beaten in our sim yet (open physics, being worked on) | waits on that physics work | | DIFFICULTY.md, PHYSICS.md |
@@ -110,4 +110,4 @@ built yet (PHONE.md for what the phone page does today). The public site (PAGES.
   the same). `node tools/mains_routes.js check` replays them on today's sim and writes nothing. On import, a human route
   that dies falls back to the file's raw solve when that still clears (shown as kind "raw").
 - Test: `node tests/setup.js` (a copy of the repo with no `local/`, a fake GD folder made from our own GDLM 01).
-- Timing: setup is a few seconds plus one replay per main level (not measured on the real 22 yet).
+- Timing: setup is a few seconds plus the replays (14.6 s for the real 22 on the owner's PC, 2026-11-25: 21 clear, Dash has no route yet).
