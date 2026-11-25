@@ -253,7 +253,7 @@ function open(i) {
   const presses = (p.clicks || []).filter(c => c[2]).map(c => c[3].toFixed(2) + " s");
   $("binfo").innerHTML = `<b>${esc(p.sig)}</b><br>${esc(p.src)} · ${esc(p.level)} at block ${p.x} · ${esc(meta(p))}${p.family === "fly" ? ` · path ${esc(p.pathKind)}, ${p.turns} turns, ${p.gates} gates` : ""}${p.flips ? ` · ${p.flips} gravity flips` : ""}${p.mech.length ? ` · ${esc(p.mech.join(", "))}` : ""}<br>` +
     (p.verified ? "✓ verified: the cyan line is a route our physics replays alive through it; white dots are presses, rings releases" : "not verified: " + esc(p.why)) +
-    (p.routeKind && p.routeKind !== "ours" ? ` · route: ${esc(p.routeKind)}${p.routeAt ? " (" + esc(p.routeAt) + ")" : ""}` : "") + (p.jitter ? ` · ⚠ ${p.jitter} wave taps under 0.1 s apart: not a human line` : "") +
+    (p.routeKind && p.routeKind !== "ours" ? ` · route: ${esc(p.routeKind)}${p.routeAt ? " (" + esc(p.routeAt) + ")" : ""}` : "") + (p.routePlan === "" ? " · planned before the wave planner (re-plan pending)" : "") + (p.jitter ? ` · ⚠ ${p.jitter} wave taps under 0.1 s apart: not a human line` : "") +
     (presses.length ? `<br>presses at ${esc(presses.join(", "))}` : "") + (p.alsoIn && p.alsoIn.length ? `<br>the same layout also in ${esc(p.alsoIn.join(", "))}` : "") + (p.smooth ? "" : `<br>stair walls: ${p.steps} block steps per 10 columns`);
   $("bplay").disabled = !p.path.length || p.path[p.path.length - 1][2] == null;
   showVote(p);

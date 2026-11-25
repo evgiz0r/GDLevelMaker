@@ -47,7 +47,7 @@ function officialSources() {
     if (!fs.existsSync(f)) continue;
     const j = JSON.parse(fs.readFileSync(f, "utf8"));
     if (!j.solution || !j.solution.events) continue;
-    out.push({ src: "official", name: `${n} ${j.name}`, level: GD.parseLevel(j.level), events: j.solution.events, windowsKey: "official_" + n, routeKind: j.solution.kind || "unknown", routeAt: j.solution.at || j.solution.planned || fs.statSync(f).mtime.toISOString().slice(0, 10) });
+    out.push({ src: "official", name: `${n} ${j.name}`, level: GD.parseLevel(j.level), events: j.solution.events, windowsKey: "official_" + n, routeKind: j.solution.kind || "unknown", routePlan: j.solution.plan || "", routeAt: j.solution.at || j.solution.planned || fs.statSync(f).mtime.toISOString().slice(0, 10) });
   }
   return out;
 }
@@ -338,6 +338,7 @@ function measure(src, w, r, inputs, i0, i1) {
   // 0.1 s apart (a wave leg is one press: knowledge/checklist.md). The page hides jittery and non-human pieces by default.
   P.routeKind = src.routeKind || (src.src === "official" ? "unknown" : "ours");
   if (src.routeAt) P.routeAt = src.routeAt;
+  if (src.src === "official") P.routePlan = src.routePlan || "";   // the planner commit (difficulty_solve.js); "" = planned before the 2026-11-25 wave planner
   { const pr = P.clicks.filter(c => c[2]).map(c => c[3]); P.jitter = mode === "wave" ? pr.filter((t, i) => i && t - pr[i - 1] < 0.1).length : 0; }
   // inner cut points (the user, 2026-11-25: "what we could cut from start or the end, like checkpoints where we could
   // take even smaller parts (on demand)"): calm moments between two presses where the brick can be trimmed -- the button
