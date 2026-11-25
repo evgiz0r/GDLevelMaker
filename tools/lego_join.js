@@ -191,4 +191,4 @@ if (require.main === module) {
   console.log(JSON.stringify(sum.causes));
   console.log(`\n${rows.length} joins: ${sum.clear}% clear (${sum.secret}% by a secret way), ${sum.broken}% broken, ${sum.openSeam}% with open space at the seam; same mode ${sum.sameMode.clear}% of ${sum.sameMode.n}, mode change ${sum.modeChange.clear}% of ${sum.modeChange.n}`);
 }
-module.exports = { join, joinDirect, check, checkFilled, entryState, pool, pairs, fits };
+module.exports = { join, joinDirect, check, checkFilled, entryState, pool, pairs, fits, objectsOf, portal, spike, official, MODE_ID, SPEED_ID };
