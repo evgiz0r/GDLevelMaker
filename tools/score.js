@@ -504,8 +504,10 @@ function scoreLevel0(level, brief, opts = {}) {
     const st = N.routeCheck(w, ev, level.objects), jit = st.filter(x => x.shortLegs), close = st.filter(x => x.closeTicks);
     const extra = N.extraPresses(w, ev);
     if (extra.length) st.push({ mode: "presses not needed", from: extra[0].x, to: extra[extra.length - 1].x, presses: extra.length, closeTicks: 0, shortLegs: 0 });
-    gate("route", jit.length ? "FAIL" : close.length || extra.length ? "WARN" : "PASS",
-      st.length ? st.map(x => `${x.mode} ${(x.from / 30).toFixed(0)}-${(x.to / 30).toFixed(0)}: ${x.presses} presses` + (x.shortLegs ? `, ${x.shortLegs} legs under 100 ms` : "") + (x.closeTicks ? `, ${(x.closeTicks / 2.4).toFixed(0)} cs within 12 of a wall` : "")).join("; ") : "no flying parts",
+    // a wave that changes button more often than its corridor turns (+2) is off the level's pattern (the user, 2026-11-25)
+    const offp = st.filter(x => x.offPattern);
+    gate("route", jit.length ? "FAIL" : close.length || extra.length || offp.length ? "WARN" : "PASS",
+      st.length ? st.map(x => `${x.mode} ${(x.from / 30).toFixed(0)}-${(x.to / 30).toFixed(0)}: ${x.presses} presses` + (x.shortLegs ? `, ${x.shortLegs} legs under 100 ms` : "") + (x.closeTicks ? `, ${(x.closeTicks / 2.4).toFixed(0)} cs within 12 of a wall` : "") + (x.offPattern ? `, ${x.inputs} inputs for ${x.turns} corridor turns (off the pattern)` : "")).join("; ") : "no flying parts",
       jit.length ? "a wave corridor that needs extra presses per leg: widen it or straighten it (tell style)" : "");
   }
 
