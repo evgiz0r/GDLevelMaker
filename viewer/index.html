@@ -2847,20 +2847,26 @@ async function shootRun() {
 // at once ("where is the layout", the user on GDLM 64's layout stage: play and the timeline stayed at 0).
 // The look timeline and the trigger runtime are rebuilt on the longer path (triggers past the stop never fired).
 function ghostExtend(LL, want, toEnd) {
-  const portals = LL.level.objects.filter(o => GD.objInfo(o.id).kind === "speed").sort((a, b) => a.x - b.x);
+  // speed portals set the camera's pace; mode and gravity portals what the ghost is drawn as (the user, 2026-11-25: "in
+  // ball mode the viewer stays cube": past the run's end the ghost kept the last state's mode for the rest of the level)
+  const portals = LL.level.objects.filter(o => /^(speed|mode|gravity)$/.test(GD.objInfo(o.id).kind)).sort((a, b) => a.x - b.x);
   const vOf = sp => ((P.SPEEDS[sp] || P.SPEEDS[1]).x) * 60 / P.TPS;
   want = want || Math.ceil(LL.world.endX / vOf(0)) + 2;
   const last = LL.path[LL.path.length - 1];
   if (!(last.dead || LL.path.length < want)) return false;
   let k = LL.path.length - 1; while (k > 0 && LL.path[k].dead) k--;
   const base = LL.path[k];
-  let x = base.x, sp = base.sp, pi = portals.findIndex(o => o.x > x); if (pi < 0) pi = portals.length;
+  let x = base.x, sp = base.sp, mode = base.mode, grav = base.grav, y = base.y, pi = portals.findIndex(o => o.x > x); if (pi < 0) pi = portals.length;
   LL.path.length = k + 1;
   for (let j = k + 1; j < want; j++) {
     x += vOf(sp);
-    while (pi < portals.length && portals[pi].x <= x) { sp = GD.objInfo(portals[pi].id).speed; pi++; }
+    while (pi < portals.length && portals[pi].x <= x) { const o = portals[pi], d = GD.objInfo(o.id);
+      if (d.kind === "speed") sp = d.speed;
+      else if (d.kind === "mode") { mode = d.mode; y = o.y; }
+      else if (d.kind === "gravity") grav = d.grav === 0 ? -(grav || 1) : d.grav;
+      pi++; }
     if (toEnd && x > LL.world.endX + 60) break;
-    LL.path.push(Object.assign({}, base, { x, sp, tick: j, dead: false, ghost: true }));
+    LL.path.push(Object.assign({}, base, { x, y, sp, mode, grav, tick: j, dead: false, ghost: true }));
   }
   const h0 = LL.held; LL.held = new Uint8Array(LL.path.length);
   if (h0) LL.held.set(Array.prototype.slice.call(h0, 0, Math.min(h0.length, k + 1)));   // the presses before the ghost part stay lit
