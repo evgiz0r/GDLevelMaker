@@ -128,6 +128,10 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 - [ ] **Wave**: zigzag turns wider than ~100 ms apart; no head-on slopes at a portal exit; the exit
   portal over a flat floor, level stretches at the turns (patterns.js wave-zigzag `flat`, `leadGap`).
   (design.md; GDLM 44/46 real-game deaths)
+- [ ] **The wave route follows the corridor's pattern**: one input per leg of the corridor (hold up one slope, let go down
+  the next), tight lines only where the gap asks for them; no small corrections (re-presses under 150 ms) beyond the
+  corridor's turns + 2. score.js route gate WARNs "off the pattern"; `node tools/flystyle.js <level>` per stretch.
+  (the user, 2026-11-25: "these corridors should be just few holds and releases"; PHYSICS.md "The wave like a person")
 - [ ] **Jump marks clear of hazards**: a mark shows the take-off, its centre >= ~1 block in front of the
   hazard's hitbox, never on or touching one. Placed by decorate.js jumpIndicators (INDICATOR.clear);
   `node tools/indicators.js <level> [--fix]`. (the user, hellgate round 2: "indicator inside spike")
