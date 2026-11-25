@@ -5,8 +5,15 @@
 // Only the repo's own levels (viewer/levels.js) go in: never levels.local.js (RobTop's official
 // levels) and never songs ("add song" plays a file from the phone). The beat grids (numbers
 // measured from the songs) do go in, so the beat lines show.
+// --private [--local <levels.local.js>] [--songs <dir>]: ALSO the 22 main levels with their saved routes (from
+// levels.local.js) and their songs (the game's Resources folder), for the user's OWN private viewer Artifact only
+// (the user, 2026-11-25: "Yes, private viewer only"). Never commit that build, never publish it anywhere public
+// or shared (PHONE.md "Private build").
 const fs = require("fs"), path = require("path");
 const ROOT = path.join(__dirname, ".."), oi = process.argv.indexOf("--out");
+const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : d; };
+const PRIV = process.argv.includes("--private");
+const GAME = process.env.GD_GAME || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash";
 const OUT = oi > 0 ? path.resolve(process.argv[oi + 1]) : path.join(ROOT, "local", "web");
 fs.rmSync(OUT, { recursive: true, force: true });
 fs.mkdirSync(path.join(OUT, "lib"), { recursive: true });
@@ -26,7 +33,23 @@ swap("<body>\n", ""); swap("</body>\n", ""); swap("</html>\n", "");
 swap('<meta charset="utf-8">\n', ""); swap('<meta name="viewport" content="width=device-width, initial-scale=1">\n', "");
 swap("<title>GD Level Viewer</title>", "<title>GDLM Level Replays</title>");
 swap('src="../lib/', 'src="lib/');
-swap('<script src="levels.local.js" onerror="window.GD_LEVELS_LOCAL = []"></script>', "<script>window.GD_LEVELS_LOCAL = [];</script>");
+const privSongs = [];
+if (PRIV) {
+  // the main levels: only the official entries of levels.local.js (never community levels or anything else on the PC)
+  const vm = require("vm"), ctx = { window: {} };
+  vm.runInNewContext(fs.readFileSync(path.resolve(arg("--local", path.join(ROOT, "viewer", "levels.local.js"))), "utf8"), ctx);
+  const off = (ctx.window.GD_LEVELS_LOCAL || []).filter(l => /official/.test(String(l.file)));
+  fs.writeFileSync(path.join(OUT, "levels.local.js"), "window.GD_LEVELS_LOCAL = " + JSON.stringify(off) + ";\n");
+  const SONGDIR = path.resolve(arg("--songs", path.join(GAME, "Resources")));
+  fs.mkdirSync(path.join(OUT, "songs"), { recursive: true });
+  for (const l of off) {
+    const name = l.song && decodeURIComponent(String(l.song.url).split("/").pop()); if (!name || privSongs.includes(name.toLowerCase())) continue;
+    const f = path.join(SONGDIR, name);
+    if (!fs.existsSync(f)) { console.log("private: no song file " + f); continue; }
+    fs.copyFileSync(f, path.join(OUT, "songs", name.toLowerCase())); privSongs.push(name.toLowerCase());
+  }
+  console.log(`private build: ${off.length} main levels, ${privSongs.length} songs -- the user's own private viewer only`);
+} else swap('<script src="levels.local.js" onerror="window.GD_LEVELS_LOCAL = []"></script>', "<script>window.GD_LEVELS_LOCAL = [];</script>");
 // no GD art on the published page: RobTop's sprites never leave the user's PC (VISUALS.md "Phone")
 // Level maps: only the art-free shape drawings (tools/levelmap.js <level> --shapes ->
 // local/maps/<name>_shapes.jpg) of our own levels (gdlm_*) go out; the GD-art maps and official
@@ -68,7 +91,16 @@ const SONGBUF = (GD.SONGBUF = GD.SONGBUF || {}); // song key -> decoded AudioBuf
 const songKey = info => decodeURIComponent(String(info.url).split("/").pop()).toLowerCase();
 function audio() { actx = actx || new AudioContext(); return actx; }
 // the player is lib/song.js, shared with the viewer (sample-exact; the replay's clock reads it)
-function songPlayer(info) { const buf = SONGBUF[songKey(info)]; return buf ? GD.songPlayer(buf, audio) : null; }
+// the private build (--private) carries the main levels' songs next to the page: fetched and decoded on first use
+const PRIV_SONGS = ${JSON.stringify(privSongs)}, privLoading = {};
+async function privSong(key) {
+  if (privLoading[key]) return; privLoading[key] = true;
+  try { const r = await fetch("songs/" + encodeURIComponent(key)); if (!r.ok) throw new Error(r.status);
+    if (!(await addSongBytes(key, await r.arrayBuffer()))) throw new Error("decode");
+  } catch (e) { privLoading[key] = false; return; }
+  if (songInfo && songKey(songInfo) === key && !song) { const was = playing; setSong(songInfo); syncSong(true); playing = was; }
+}
+function songPlayer(info) { const k = songKey(info), buf = SONGBUF[k]; if (!buf && PRIV_SONGS.includes(k)) privSong(k); return buf ? GD.songPlayer(buf, audio) : null; }
 function updateSongBtn() {
   const b = document.getElementById("addSong"); if (!b || !b.firstChild) return;
   const have = songInfo && SONGBUF[songKey(songInfo)];
@@ -92,7 +124,7 @@ function songMsg(text) {
 async function takeSongFiles(files) {
   files = [...(files || [])].filter(f => f && f.size);
   if (!files.length) return;
-  const known = new Set((window.GD_LEVELS || []).filter(l => l.song).map(l => songKey(l.song)));
+  const known = new Set((window.GD_LEVELS || []).concat(window.GD_LEVELS_LOCAL || []).filter(l => l.song).map(l => songKey(l.song)));
   const b = document.getElementById("addSong"); b.firstChild.nodeValue = "loading…"; songMsg("");
   let bad = 0, ok = 0, skipped = 0;
   for (const f of files) {
@@ -278,5 +310,6 @@ const files = { "levels.js": "levels.js", "beats.js": "beats.js", "solve_worker.
   "draw.html": "draw.html", "draw_worker.js": "draw_worker.js", "draw_songs.js": "draw_songs.js", "song_grids.js": "song_grids.js" };
 for (const m of maps) files["maps/" + m + "_shapes.jpg"] = "maps/" + m + "_shapes.jpg";
 for (const f of libs) files["lib/" + f] = "lib/" + f;
+if (PRIV) { files["levels.local.js"] = "levels.local.js"; for (const k of privSongs) files["songs/" + k] = "songs/" + k; }
 fs.writeFileSync(path.join(OUT, "publish.json"), JSON.stringify({ file_path: path.join(OUT, "index.html"), root: OUT, files, capabilities: { db: {} } }, null, 1));
 console.log(`${OUT}: index.html + ${Object.keys(files).length} files; publish.json has the Artifact call's file_path, root, files and capabilities`);
