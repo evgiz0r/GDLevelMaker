@@ -305,6 +305,16 @@ presses to the solver and measuring how much faster it gets.
 
 ## Joining and connecting: what the test says, and Evgeni's plan (2026-11-25)
 
+Evgeni's join rules (2026-11-25, "when we combine, i guess we either need to make a small corridor with a proper portal,
+or just have mode ready. need to be careful of orbdashes, as holding them can skip a lot of gameplay which is intended"):
+- **Mode at the seam**: either the next brick starts in the mode the last one ends in, or the join gets a short connector
+  -- a small corridor with the proper portal in it (the portal entered in the air, 0.4-0.5 s quiet around it, as the main
+  levels do) -- never a portal dropped on the seam.
+- **Dash orbs are a skip risk**: holding a dash orb (or releasing it late) can fly over much of the next brick. A brick with
+  a dash orb near its end is joined only with a wall or ceiling that ends the dash where it is meant to end, and the join
+  check holds the dash to its longest and to every later release: a route that skips the next brick's presses is a secret
+  way. Not in lego_join.js yet.
+
 `node tools/lego_join.js --grain brick [--n 40] [--seed 7] [--any]` joins two main-level bricks (with 10 blocks of A's own
 level before it as the lead-in, so the player arrives in A's entry state), solves the join and checks it
 (knowledge/lego_joins.json):
@@ -361,6 +371,48 @@ paths", and "what we could cut from start or the end, like checkpoints where we 
   picker yet).
 - Open: the wave routes of the main levels still tap a lot in corridors (Evgeni: "thats obviously not the human path");
   that comes from lib/natural.js's wave controller (step 3b merges legs only within a 15 s budget per level).
+
+## Variants: every brick reversed or upside down (Evgeni 2026-11-25, not built yet)
+
+Evgeni: "all our structures can be reversed with reverse portal, so its double the options in a way (just need to be
+careful of other reverse portals in the path)". A brick played backwards (the player runs -X after a reverse) is the same
+brick mirrored left to right, with the same presses; our sim runs reversed gameplay as frame hd 1 (lib/physics.js "Rotated
+gameplay", PHYSICS.md), so a reversed brick can be checked like any other. Likewise upside down (gravity portal): the brick
+mirrored top to bottom. So each brick gives up to four variants: as is, reversed, upside down, both.
+- The picker treats a variant as a choice of the same brick (votes and difficulty carry over), and checks the variant's
+  join in the sim, never assumes it.
+- Careful (Evgeni): another reverse in the path flips it back, so a reversed stretch needs its own reverse out and no
+  stray reverse inside it; while reversed the camera and the music still run forward, and the level's x runs back over
+  what was built before (no overlap with earlier bricks, the filler must keep the two apart).
+- Open: the main levels' own reversed stretches (Fingerdash, Dash use turns) as a check of how RobTop does it.
+
+## Lego hints in the solver: first measurement (2026-11-25)
+
+Evgeni: "do we plan to somehow use the structures and the info in the solver?" `node tools/lego_solve.js official:N
+[--min 0.85] [--no-full]` matches the catalogue's bricks into a level (its own bricks left out), then solves it with
+tools/presslib.js `solveWithLib` and an empty library, once plain and once with `opts.hints` (inside a matched stretch
+the button follows the matched brick's clicks by x; `lego_match.js hintsFor`), and with the full sweep. Results in
+knowledge/lego_solve.json.
+
+| level | matched | plain | lego hints | full sweep |
+|---|---|---|---|---|
+| 1 Stereo Madness, min 0.85 | 13 bricks, 19% | 52 s, 50 repairs, 45 presses | 56 s, 41 repairs, 63 presses | 110 s |
+| 1 Stereo Madness, min 0.6 | 52 bricks, 72% | 53 s, 50 repairs, 45 presses | 65 s, 34 repairs, 95 presses | - |
+| 2 Back On Track, min 0.85 | 20 bricks, 27% | 96 s, 57 repairs, 50 presses | 95 s, 46 repairs, 67 presses | 78 s |
+| 1 Stereo Madness, min 0.6, needed-only | 52 bricks, 72% | 52 s, 50 repairs, 45 presses | 59 s, 33 repairs, 82 presses | - |
+| 2 Back On Track, min 0.6, needed-only | 65 bricks, 85% | 98 s, 57 repairs, 50 presses | 107 s, 33 repairs, 82 presses | - |
+
+"needed-only" (`hints.needed`): a hinted press is taken only when the run dies within 1 s without it (the solver thread
+agreed; in flying parts it would also keep a press that widens a window under 100 ms, lib/natural.js EASY_MS -- not in
+yet). It barely changes the presses: in a cube level some obstacle comes within any second, so "dies without it" is
+almost always true at a brick's press x. Verdict for now: on cube levels the plain local repair is as fast, and layout
+hints don't pay; worth trying again on flying stretches (where the search is costly) and with route-matched bricks
+(match by layout AND the player's height on entry), not more of the same.
+
+So far the hints cut repairs (up to 40%) but not time, and they add presses: a brick's clicks fire where the level
+needs fewer (the match is by layout, not by the route). Next: take a hinted press only where the sim says it is needed
+(a death within ~1 s without it), and score hints by how often the level's real presses agree (`lego_match.js --test`
+precision 50-75% today). Times are one cloud run each, with another session's job running.
 
 ## Open
 

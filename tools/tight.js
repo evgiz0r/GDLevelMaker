@@ -12,7 +12,7 @@
 if (require.main === module) require("./heavy.js").claim();
 const fs = require("fs"), path = require("path"), crypto = require("crypto");
 const { GD } = require("./io.js");
-require("../lib/difficulty.js"); require("../lib/windows.js");
+require("../lib/difficulty.js"); const WIN = require("../lib/windows.js");
 const ROOT = path.join(__dirname, ".."), TPS = GD.PHYS.TPS;
 const FLOOR = { Easy: 40, Normal: 40, Hard: 40, Harder: 40, Insane: 30, Demon: 20 };
 const tag = n => String(n).padStart(2, "0");
@@ -23,7 +23,7 @@ function windowsOf(n, w, events, runPath, kind) {
   const key = crypto.createHash("sha1").update(JSON.stringify(events) + S.physicsCommit() + (S.windowsCommit ? S.windowsCommit() : "")).digest("hex").slice(0, 16);
   const f = path.join(ROOT, "local", "mains", "windows", `official_${tag(n)}${kind}.json`);
   try { const c = JSON.parse(fs.readFileSync(f, "utf8")); if (c.key === key) return c.windows; } catch (e) {}
-  const ws = GD.inputWindows(w, events, runPath, {}).map(x => ({ type: x.type, tick: x.tick, lo: x.lo, hi: x.hi }));
+  const ws = WIN.inputWindows(w, events, runPath, {}).map(x => ({ type: x.type, tick: x.tick, lo: x.lo, hi: x.hi }));
   fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, JSON.stringify({ key, windows: ws }));
   return ws;
 }

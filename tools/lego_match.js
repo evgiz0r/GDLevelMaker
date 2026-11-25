@@ -61,7 +61,8 @@ function match(level, bricks, o = {}) {
   for (const f of found) if (!kept.some(k => Math.min(k.at + k.brick.w, f.at + f.brick.w) - Math.max(k.at, f.at) > Math.min(k.brick.w, f.brick.w) / 2)) kept.push(f);
   kept.sort((a, b) => a.at - b.at);
   // the brick's presses moved to the level: x in blocks (the brick's own x0 is its first column)
-  for (const k of kept) { const x0 = Math.floor(k.brick.xa + 1e-3), off = k.brick.xa - x0; k.presses = (k.brick.clicks || []).filter(c => c[2]).map(c => Math.round((k.at + off + c[0]) * 10) / 10); }
+  for (const k of kept) { const x0 = Math.floor(k.brick.xa + 1e-3), off = k.brick.xa - x0; k.presses = (k.brick.clicks || []).filter(c => c[2]).map(c => Math.round((k.at + off + c[0]) * 10) / 10);
+    k.clicksX = (k.brick.clicks || []).map(c => [Math.round((k.at + off + c[0]) * 10) / 10, c[2] ? 1 : 0]); }
   return { kept, cols: cols.length };
 }
 
@@ -84,4 +85,10 @@ if (require.main === module) {
     console.log(`TEST ${src.name}: real presses inside matched stretches ${inMatched.length} of ${realX.length}; of those, ${hit} (${Math.round(hit / Math.max(1, inMatched.length) * 100)}%) have a predicted press within 1 block; ${prec} of ${pred.length} predicted presses (${Math.round(prec / Math.max(1, pred.length) * 100)}%) are real`);
   }
 }
-module.exports = { match, levelColumns };
+// the solver's hints from a match: inside each matched stretch [x0, x1] (blocks) the button follows the brick's own clicks
+// (x where it goes down / up). tools/presslib.js solveWithLib({ hints }) drives by them there and by its library elsewhere.
+function hintsFor(level, bricks, o = {}) {
+  const R = match(level, bricks, o);
+  return R.kept.map(k => ({ x0: k.at, x1: k.at + k.brick.w, clicks: k.clicksX, brick: k.brick.id, score: k.score }));
+}
+module.exports = { match, levelColumns, hintsFor };

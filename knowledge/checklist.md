@@ -122,9 +122,22 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 - [ ] **The shown route clicks where a human would**: early in a wide window (~40% in), never at its
   last safe frame -- the replay, the arrows and the level map all follow it. `node tools/windows.js <level>`
   ("pressed N% in"; lib/natural.js step 4). (the user on GDLM 45's ball: "i would prefer to click way earlier")
-- [ ] **A wave leg is one press** (Evgeni 2026-11-25 on a catalogue brick: "thats obviously not the human path"): no two wave
-  presses under 0.1 s apart in a shown route; 18 of the main levels' 60 wave bricks break it (Deadlocked 13), from
-  lib/natural.js's corridor steering. A brick's layout may be reused, its wave taps are re-planned (LEGO.md "The replay").
+- [ ] **No dash-orb skips** (Evgeni 2026-11-25: "holding them can skip a lot of gameplay which is intended"): a dash orb held
+  to its longest, or released at any later tick, must not fly over the intended presses that follow; a wall or ceiling ends
+  the dash where it is meant to. Checked per join in the lego plan (LEGO.md); not a score.js gate yet.
+- [ ] **The human route flies on easy timings, not on fewest presses** (Evgeni 2026-11-25: "its better to get an extra
+  click or two than having a terrible timing ... mostly in the flying sections (wave ship ufo swing). we can have a tas doing
+  little clicks but human route should avoid bad timings at the cost of an easy timing"; and on a jittery wave brick: "thats
+  obviously not the human path"). So: an extra press or two is fine when it widens the windows; a run of tiny taps is not
+  (3+ presses under 0.1 s apart in one brick, or close taps where a window is under 60 ms). By that rule 4 of the main levels' 218 flying bricks fail (18 of 60 wave
+  bricks have some close taps, Deadlocked 13), from lib/natural.js's corridor steering; the solver thread re-plans them. A brick's
+  layout may be reused, its flying taps are re-planned (LEGO.md "The replay"). **Slide where you can** (Evgeni: "many places
+  wave avoids ground but probably in many of them we can slide on it avoiding the clicks in the middle"): a wave (or ship)
+  riding a flat floor or ceiling instead of zigzagging over it saves presses; leave before the block's end (the wave dies
+  sliding off a corner, CLAUDE.md calibration) and never into a rising slope. In the planner (lib/natural.js fly, EASY_MS 100):
+  a flying line never wins on fewer presses when its tightest window is under 100 ms and tighter than the old one, and a line
+  with up to 2 more presses wins when it widens a window under 100 ms by half. `node tools/flystyle.js <level>`: tightest
+  window per stretch (PHYSICS.md "The wave like a person").
 - [ ] **Wave**: zigzag turns wider than ~100 ms apart; no head-on slopes at a portal exit; the exit
   portal over a flat floor, level stretches at the turns (patterns.js wave-zigzag `flat`, `leadGap`).
   (design.md; GDLM 44/46 real-game deaths)

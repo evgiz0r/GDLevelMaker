@@ -203,13 +203,27 @@ function predictAlong(lib, w, frames, theta, kind) {
 }
 
 // ---- driving a level by the library, repaired locally where it dies ----
-function drive(lib, w, s0, held0, theta, untilX) {
+// hints (tools/lego_match.js hintsFor, the reverse lego): inside a matched brick's stretch the button follows that brick's
+// own clicks by x instead of the library; outside, the library as before
+function hintAt(hints, xb) { for (const h of hints || []) if (xb >= h.x0 && xb < h.x1) return h; return null; }
+function drive(lib, w, s0, held0, theta, untilX, hints) {
   const s = { ...s0, used: s0.used.slice() }; let held = !!held0;   // spread, never Object.assign (CLAUDE.md)
   const ev = [], max = Math.ceil((w.endX / (GD.SPEEDS[0].x * 60) + 5) * GD.PHYS.TPS);
   let last = -99;
   for (let t = s.tick || 0; t < max && !s.dead && !s.done && !(untilX && s.x >= untilX); t++) {
     let press = false;
-    if (t % 4 === 0 && t - last > 8) {
+    const xb = (GD.progressX ? GD.progressX(s) : s.x) / 30, h = hints && hintAt(hints, xb);
+    if (h) {   // the brick's next click whose x the player has reached (and not passed by more than a block)
+      let c = h.clicks.filter(c => c[0] <= xb && c[0] > xb - 1 && !!c[1] !== held).pop();
+      // a hinted press is taken only where the run dies within ~1 s without it (the brick was matched by its layout,
+      // not its route, so its extra presses are not this level's); releases are always followed
+      if (c && c[1] && hints.needed) {
+        const q = { ...s, used: s.used.slice() };
+        for (let k = 0; k < 240 && !q.dead && !q.done; k++) GD.step(w, q, { press: false, held });
+        if (!q.dead) c = null;
+      }
+      if (c && t - last > 2) { held = !!c[1]; press = held; last = t; ev.push({ tick: t, type: held ? "press" : "release" }); }
+    } else if (t % 4 === 0 && t - last > 8) {
       const p0 = share(lib, w, s, held).p;
       let act = p0 >= theta;
       if (act) {   // a peak: the share is not higher a few frames on, the button left as it is
@@ -225,7 +239,7 @@ function drive(lib, w, s0, held0, theta, untilX) {
 function heldAt(ev, t) { let h = false; for (const e of ev) { if (e.tick >= t) break; h = e.type === "press"; } return h; }
 function solveWithLib(lib, w, theta, opts = {}) {
   const I = require("../lib/incsolve.js").incsolve, t0 = Date.now(), log = [];
-  let events = drive(lib, w, GD.startState(w), false, theta), repairs = 0, searched = 0;
+  let events = drive(lib, w, GD.startState(w), false, theta, null, opts.hints), repairs = 0, searched = 0;
   const FLYR = { ship: 1, wave: 1, ufo: 1, swing: 1 };
   for (;;) {
     const res = GD.run(w, events), p = res.path, end = p[p.length - 1];
@@ -256,7 +270,7 @@ function solveWithLib(lib, w, theta, opts = {}) {
       const prefix = events.filter(e => e.tick < c).concat(sv.events.filter(e => e.tick >= c && e.tick < T));
       const pp = GD.run(w, prefix).path, st = pp[Math.min(T, pp.length - 1)];
       if (st.dead) continue;
-      events = prefix.concat(drive(lib, w, st, heldAt(prefix, T + 1), theta));
+      events = prefix.concat(drive(lib, w, st, heldAt(prefix, T + 1), theta, null, opts.hints));
       log.push(`block ${(xd / 30).toFixed(1)}: repaired from ${(p[c].x / 30).toFixed(1)} (${secs} s back)`);
       fixed = true; break;
     }

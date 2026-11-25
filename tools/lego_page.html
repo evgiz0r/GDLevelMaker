@@ -89,7 +89,7 @@ button.vote.on.up{background:#1f6b3a;border-color:#7dff9c}button.vote.on.down{ba
     <label title="nothing to react to: no hazard, orb, pad or portal, flat ground or open air"><input type="checkbox" id="femp"> empty</label>
     <label title="the same layout again (another phase of a repeated chunk, or another level)"><input type="checkbox" id="fdup"> repeats</label>
     <label title="flying pieces whose walls step in blocks instead of ramps"><input type="checkbox" id="frough"> stair walls</label>
-    <label title="routes that are not a human plan, or wave legs tapped more than once (presses under 0.1 s apart)"><input type="checkbox" id="fjit"> jittery routes</label></div>
+    <label title="routes that are not a human plan, or flying taps under 0.1 s apart (3+, or with a tight timing)"><input type="checkbox" id="fjit"> jittery routes</label></div>
 </div>
 <div class="band drawer">
   <div class="grid" id="grid"></div>
@@ -132,8 +132,8 @@ const PAGE = 60;
   $("notes").innerHTML = `<p><b>Flat cube is a third of ours (${pct("jump · cube · flat", "ours")}%), and ${pct("jump · cube · flat", "official")}% of the official levels.</b> The official cube is mostly steps (${pct("jump · cube · steps", "official")}%) and pits.</p>
   <p><b>Official ships are spiky corridors with gates</b> (${pct("fly · ship · corridor +spikes +gates", "official")}% of all their pieces); ours fly plain corridors (${pct("fly · ship · corridor", "ours")}%) and never a spiky one with gates.</p>
   <p><b>Fly family</b>: one path, wrapped as open air, a floor path, a roof path or a corridor, then +spikes (hazards are 30%+ of the walls), +gates (narrowings) and +flips (gravity). The same wrappers fit ship, wave and swing.</p>
-  <p>By default the drawer shows <b>verified</b> pieces only (a route through them, the solver's or a real clear, is replayed by our physics and lives), and hides <b>empty</b> ones (nothing to react to), <b>repeats</b> (the same layout again, shown once with ×N) flying pieces with <b>stair walls</b>, and <b>jittery routes</b> (a route that is not a human plan, or a wave leg tapped more than once). The checkboxes bring them back.</p>
-  <p><b>Difficulty</b> = log10 of the expected attempts to get through the piece in one go, from the timing window of each of its inputs (our difficulty model, fitted on Evgeni's runs): 0.1 is a gimme, 0.5 takes a few tries, 1 about ten.</p>
+  <p>By default the drawer shows <b>verified</b> pieces only (a route through them, the solver's or a real clear, is replayed by our physics and lives), and hides <b>empty</b> ones (nothing to react to), <b>repeats</b> (the same layout again, shown once with ×N) flying pieces with <b>stair walls</b>, and <b>jittery routes</b> (a route that is not a human plan, or flying taps under 0.1 s apart: three or more, or where a timing is tight; an extra press on easy timings is fine). The checkboxes bring them back.</p>
+  <p><b>Difficulty</b> = log10 of the expected attempts to get through the piece in one go, from the timing window of each of its inputs (our difficulty model, fitted on Evgeni's runs): 0.1 is a gimme, 0.5 takes a few tries, 1 about ten. Under 0.01 it says "easy timing"; "~" means measured on older physics; "not measured" means no timing windows yet. The tightest window says the most about a brick.</p>
   <p>Tap a tray to see it large: <b>▶ play</b> replays the route at its real speed, white dots are presses, rings releases; the player is drawn as the game draws each mode (flipped when gravity is reversed) over the level's own colours, and dashed ✂ lines are cut points where a brick can be trimmed into a smaller one. <b>👍 / 👎 and a comment</b> are saved for us to read; a vote is a preference weight, never a ban. ← → step through pieces, space plays.</p>`;
 }
 
@@ -160,6 +160,9 @@ function draw(cv, p, big) {
   (p.walls || []).forEach(([f, r], c) => { if (f > 0) g.fillRect(X(c), Y(f), z + 0.5, f * z); if (r != null) g.fillRect(X(c), Y(yhi + 2), z + 0.5, (yhi + 2 - r) * z); });
   for (const s of p.shape) {
     const [k, x0, y0, x1, y1, , corner] = s, c = COL[k] || "#888";
+    // objects past the brick's two ends belong to its neighbours in the level: drawn faint (the brick is cut by time
+    // around its presses, so its route runs from end to end and the level's objects carry on past it)
+    g.globalAlpha = x1 <= 0.05 || x0 >= p.w - 0.05 ? 0.25 : 1;
     if (k === "H") { g.fillStyle = c; g.beginPath(); g.moveTo(X(x0), Y(y0)); g.lineTo(X(x1), Y(y0)); g.lineTo(X((x0 + x1) / 2), Y(y1)); g.closePath(); g.fill(); continue; }
     if (k === "O") { g.strokeStyle = c; g.lineWidth = big ? 3 : 1.5; g.beginPath(); g.arc(X((x0 + x1) / 2), Y((y0 + y1) / 2), Math.max(2, (x1 - x0) * z / 2.6), 0, 7); g.stroke(); continue; }
     if (k === "M" || k === "G" || k === "V" || k === "Z") { g.strokeStyle = c; g.lineWidth = big ? 3 : 1.5; g.beginPath(); g.ellipse(X((x0 + x1) / 2), Y((y0 + y1) / 2), Math.max(1.5, (x1 - x0) * z / 2), Math.max(3, (y1 - y0) * z / 2), 0, 0, 7); g.stroke(); continue; }
@@ -167,8 +170,9 @@ function draw(cv, p, big) {
       const pts = { "/": [[x0, y0], [x1, y0], [x1, y1]], "\\": [[x0, y0], [x1, y0], [x0, y1]], "7": [[x0, y1], [x1, y1], [x1, y0]], "r": [[x0, y1], [x1, y1], [x0, y0]] }[corner];
       g.fillStyle = c; g.beginPath(); pts.forEach(([a, b], i) => i ? g.lineTo(X(a), Y(b)) : g.moveTo(X(a), Y(b))); g.closePath(); g.fill(); continue;
     }
-    g.fillStyle = c; g.globalAlpha = k === "L" ? .7 : 1; g.fillRect(X(x0), Y(y1), Math.max(1, (x1 - x0) * z), Math.max(1, (y1 - y0) * z)); g.globalAlpha = 1;
+    g.fillStyle = c; if (k === "L") g.globalAlpha *= .7; g.fillRect(X(x0), Y(y1), Math.max(1, (x1 - x0) * z), Math.max(1, (y1 - y0) * z));
   }
+  g.globalAlpha = 1;
   g.strokeStyle = "#4fe3ff"; g.lineWidth = big ? 3 : 2; g.setLineDash(p.midline ? [4, 4] : []); g.beginPath();
   // a jump of more than 3 blocks between two samples is a teleport: the line breaks there instead of crossing the picture
   p.path.forEach((q, i) => i && !jumpAt(p.path, i) ? g.lineTo(X(q[0]), Y(q[1])) : g.moveTo(X(q[0]), Y(q[1]))); g.stroke(); g.setLineDash([]);
@@ -214,7 +218,9 @@ function refreshVotes() {
 // ---- the drawer
 function meta(p) {
   const bits = [`${p.w} blocks`, `${p.s.toFixed(1)} s`, `${p.presses} presses`];
-  if (p.diff != null) bits.unshift(`difficulty ${p.diff.toFixed(2)}` + (p.tightMs != null ? ` (tightest ${p.tightMs} ms)` : ""));
+  // no measured window = no difficulty (not "0.00"); an easy brick says so; a number from older code says "~"
+  if (p.tightMs == null) bits.unshift("difficulty not measured");
+  else bits.unshift((p.diff < 0.01 ? "easy timing" : `difficulty ${p.diffStale ? "~" : ""}${p.diff.toFixed(2)}`) + ` (tightest ${p.tightMs} ms)`);
   if (p.hold != null && p.family === "fly") bits.push(`held ${Math.round(p.hold * 100)}%`);
   if (p.gap != null) bits.push(`gap ${p.gap}`);
   if (p.yRange) bits.push(`climbs ${p.yRange}`);
@@ -253,7 +259,7 @@ function open(i) {
   const presses = (p.clicks || []).filter(c => c[2]).map(c => c[3].toFixed(2) + " s");
   $("binfo").innerHTML = `<b>${esc(p.sig)}</b><br>${esc(p.src)} · ${esc(p.level)} at block ${p.x} · ${esc(meta(p))}${p.family === "fly" ? ` · path ${esc(p.pathKind)}, ${p.turns} turns, ${p.gates} gates` : ""}${p.flips ? ` · ${p.flips} gravity flips` : ""}${p.mech.length ? ` · ${esc(p.mech.join(", "))}` : ""}<br>` +
     (p.verified ? "✓ verified: the cyan line is a route our physics replays alive through it; white dots are presses, rings releases" : "not verified: " + esc(p.why)) +
-    (p.routeKind && p.routeKind !== "ours" ? ` · route: ${esc(p.routeKind)}${p.routeAt ? " (" + esc(p.routeAt) + ")" : ""}` : "") + (p.routePlan === "" ? " · planned before the wave planner (re-plan pending)" : "") + (p.jitter ? ` · ⚠ ${p.jitter} wave taps under 0.1 s apart: not a human line` : "") +
+    (p.routeKind && p.routeKind !== "ours" ? ` · route: ${esc(p.routeKind)}${p.routeAt ? " (" + esc(p.routeAt) + ")" : ""}` : "") + (p.routePlan === "" ? " · planned before the wave planner (re-plan pending)" : "") + (p.jitter ? ` · ⚠ ${p.jitter} presses under 0.1 s apart: not a human line` : "") +
     (presses.length ? `<br>presses at ${esc(presses.join(", "))}` : "") + (p.alsoIn && p.alsoIn.length ? `<br>the same layout also in ${esc(p.alsoIn.join(", "))}` : "") + (p.smooth ? "" : `<br>stair walls: ${p.steps} block steps per 10 columns`);
   $("bplay").disabled = !p.path.length || p.path[p.path.length - 1][2] == null;
   showVote(p);

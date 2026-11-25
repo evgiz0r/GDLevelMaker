@@ -683,6 +683,10 @@ whose route fails is the **highest priority** heavy job ("If we have it failed t
   (the raw solve dies: `--resume` from a bit before the trouble, checkpointed every 30 s).
 - `node tools/mains.js run [n ...]`: does them one after another, replans first, at heavy priority `urgent` (above
   high, tools/heavy.js); one runner at a time; log and history in `local/mains/`.
+- **In git** (2026-11-25, the user: "why dont we put the solutions on git?"): `knowledge/mains/routes.json` holds every main
+  level's human route, raw solve and coin route as press timings only (no level data; a hash of the level text and the
+  physics commit per route). `mains.js export [--push]` writes it; run and replan export and push it at their end; a new
+  PC replays them on its own game (tools/mains_routes.js import, SETUP.md) instead of hours of solving.
 - Automatic: `tools/serve.js`'s self-update starts `mains.js run` when a pull changes the physics or route code
   (mains.js ROUTE_CODE). A session that changes physics need not do anything else.
 - 2026-11-25, after the no-landing-buffer change (46672ee): 1 ok (Blast Processing), 8 replans, 13 resumes; most raw
