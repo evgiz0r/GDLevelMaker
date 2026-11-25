@@ -137,9 +137,18 @@ function songInfo(id) {
 function addSongs(ids, levelSave, dry) {
   const gm = path.join(path.dirname(levelSave), "CCGameManager.dat");
   if (!ids.length || !fs.existsSync(gm)) return [];
-  const xml = decodeSave(fs.readFileSync(gm)), tag = "<k>MDLM_001</k><d>", at = xml.indexOf(tag);
-  if (at < 0) return ["no song list (MDLM_001) in CCGameManager.dat: songs not added"];
   const out = [], add = [];
+  // the mp3 itself: GD plays <id>.mp3 from its own folder and had never downloaded Dot ("no music", GDLM 72, 2026-11-25);
+  // our song cache (local/songs, tools/songs.js) holds the same file GD would fetch
+  for (const id of ids) {
+    const mp3 = path.join(path.dirname(levelSave), id + ".mp3"), src = path.join(__dirname, "..", "local", "songs", id + ".mp3");
+    if (fs.existsSync(mp3)) continue;
+    if (!fs.existsSync(src)) { out.push(`song ${id}: no mp3 in local/songs (node tools/songs.js ${id}); GD downloads it on a tap`); continue; }
+    if (!dry) fs.copyFileSync(src, mp3);
+    out.push(`song ${id}: mp3 copied into GD's folder`);
+  }
+  const xml = decodeSave(fs.readFileSync(gm)), tag = "<k>MDLM_001</k><d>", at = xml.indexOf(tag);
+  if (at < 0) return out.concat(["no song list (MDLM_001) in CCGameManager.dat: songs not added"]);
   for (const id of ids) {
     if (xml.includes(`<k>${id}</k><d><k>kCEK</k><i>6</i>`)) { out.push(`song ${id} already in the game's song list`); continue; }
     const e = songInfo(id); if (!e) { out.push(`song ${id}: no info found, not added (download it in the editor)`); continue; }
