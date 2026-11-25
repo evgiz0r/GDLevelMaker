@@ -23,7 +23,9 @@ shared slot by itself and prints whom it waits for. Don't get around it with `no
 scripts, and build timing or test runs from copies in `local/tmp/`, never another session's level.
 
 ## Fair (the user's playtests: a death must be the player's fault)
-
+- [ ] **Fly corridors are smooth: no one-block stair steps in a ship or wave wall** (2026-11-25: GDLM 44's ship died in the real
+  game at a stepped roof's corner where our sim passed, PHYSICS.md "probe mod"). Build them with `fly-path` (45-degree slopes
+  on both walls), not `ship-tunnel`; the margin our sim gives at a block corner is not to be trusted.
 - [ ] **`node tools/fairness.js <level>` passes** (also `tools/score.js` gate "fairness"). It
   flags (FAIL): an input forced right after a portal (into a jumping mode: the first input's window
   closes < 250 ms after it; into the wave: the button must change within 300 ms); a jump mark where
@@ -159,6 +161,14 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   range in every 10 s, no flat 10 s, at most ~45% of standing on the bare floor, at most 5% of 4-move
   patterns repeated within 10 s (official medians: 13.6, 7 blocks, 0, 28%, 0%). `node tools/flow.js
   <level>`; score.js gates "height" / "repetition". (STRUCTURES.md; the user on GDLM 47's upside part)
+- [ ] **No structure 3 times, corridors that move** (the user on GDLM 71, 2026-11-25, 12 marks: "x6 of the same mini
+  structure", "should be 2 max", "with ball/spider/wave there should be different corridors (where top and bottom not
+  same height)"): in every flying corridor the floor and roof change heights apart, obstacles vary, and no stretch
+  repeats back to back more than twice. compose.js gives every ship / wave / ufo / ball / swing / spider corridor a
+  `vary` seed (tools/patterns.js: segments with their own floor / roof and motif; `"vary": false` in a brief or section =
+  the old periodic shapes). Measure: `node tools/repeat.js <level>` (loop, motif, corridor, R). Two flying modes back to
+  back switch directly (no cube portal and run between them; `"directSwitch": false` = off), and a cube section whose
+  next chunk does not fit ends with a single instead of an empty run.
 
 - [ ] **Built on blocks**: a block, slab or slope in ~45-50% of the cube columns; most spikes on
   ledges, steps, pit edges and under overhangs, not lone on the floor. `node tools/obstacles.js structure --file <level>`.
