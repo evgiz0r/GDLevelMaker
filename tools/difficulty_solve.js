@@ -15,6 +15,8 @@
 //   resume point is the old one, so a change that opens a better route earlier is not seen; run
 //   a full solve (no --resume) now and then. `all ... --resume` passes it on.
 // node tools/difficulty_solve.js <n> --resume ... --fine  -- the resumed sweep merges states finer (y 1/4, vy 0.05; slower).
+// ... --no-traps  -- no second, skips-allowed sweep when the strict one finds no way (lib/physics.js solveSweep: trap portals;
+//   that retry took Dash's resume from minutes to 2 h on 2026-11-25). Use it while a level still dies on physics.
 // node tools/difficulty_solve.js <n> --replan  -- only the viewer's route again (natural plan + humanCost) from
 //   the saved run, when it still finishes and skips nothing; else it says to solve again.
 // Checkpoints: every 30 s a sweep writes its best route so far to local/difficulty/NN.part.json (with
@@ -156,7 +158,7 @@ function continueFrom(n, events, trouble, backs, opts, old) {
     for (let k = t; k > Math.max(0, t - 60); k--) if (!rp.helds[k]) { t = k; break; }
     const start = rp.st[t], prefix = events.filter(e => e.tick < t);
     if (!opts.quiet) console.log(`  (solving from block ${(GD.progressX(start) / 30).toFixed(1)})`);
-    const r = GD.solveFrom(w, start, { held: rp.helds[t], onCheckpoint: checkpointer(n, prefix, physics), fine: !!opts.fine });
+    const r = GD.solveFrom(w, start, { held: rp.helds[t], onCheckpoint: checkpointer(n, prefix, physics), fine: !!opts.fine, noTraps: !!opts.noTraps });
     const evs = prefix.concat(r.ok ? r.events : r.trail || []);
     const dieX = r.ok ? null : r.dieAt && GD.progressX(r.dieAt);
     // the kept prefix comes from the old run: if it went around a portal (made before the no-skip rule, or before
@@ -219,7 +221,7 @@ if (require.main === module) {
       toViewer(n, level, r); const v = JSON.parse(fs.readFileSync(path.join(OUT, "..", `official_${tag(n)}${COINS ? "_coins" : ""}.json`), "utf8"));
       console.log(`${n}: viewer route re-planned: ${r.events.filter(e => e.type === "press").length} raw presses -> ${v.solution.events.filter(e => e.type === "press").length}`); return;
     }
-    const fi = args.indexOf("--from"), o = { sweep: args.includes("--sweep"), fresh: args.includes("--fresh"), fine: args.includes("--fine"), from: fi < 0 ? null : +args[fi + 1] };
+    const fi = args.indexOf("--from"), o = { sweep: args.includes("--sweep"), fresh: args.includes("--fresh"), fine: args.includes("--fine"), noTraps: args.includes("--no-traps"), from: fi < 0 ? null : +args[fi + 1] };
     const r = args.includes("--resume") || fi >= 0 ? resumeOfficial(n, o) : solveOfficial(n, o);
     console.log(`${n}: ${r.ok ? "beaten" : "stops at block " + (r.dieX / 30).toFixed(1) + " (" + r.why + ")"}, ${r.events.length} events, ${r.secs.toFixed(0)} s, physics ${r.physics}` +
       (r.resumedFrom != null ? `, resumed from block ${(r.resumedFrom / 30).toFixed(1)}` : r.resumedOver !== undefined ? ", old inputs still hold" : ""));
