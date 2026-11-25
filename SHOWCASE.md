@@ -120,6 +120,37 @@ later; 6 blocks fixed it.
 - **How much of the sky the game shows**: our viewer shows ~7.5 blocks above the ground; Fall Out's frames
   show more. The sun's height (y 150) and the title (y 190) were placed for our view.
 
+## v2-v4 (2026-11-25): from taste 64 to 80, every gate READY
+
+The user: "lets do few iterations till get to like 80? gameplay and some deco improvements. some spaces are bit dead".
+Measured with `node tools/taste.js score` (model of 2026-11-24: Eclipse was 64 on it, not the 69 of the older model)
+and `node tools/score.js`. Each round's change and what moved:
+
+| version | change | taste | gates |
+|---|---|---|---|
+| v1 (pushed before) | -- | 64 | 2 FAIL (prejumps at 29-33, roles 19/30 sections) |
+| v2 | dawn climbs (stairs, ledge, step: the ending was 50 flat columns); `tools/scenes/eclipse_fill.js` per section: GD shapes of the section's theme (clouds, planets, ring segments, rays, gradients, grass, bushes, flowers, antennas), 4 own colour channels, one soft pulse a beat, two drifting groups, spins | 76 | flashes rule tripped (pulse fade-in 0.05 counts as a flash) |
+| v3 | pulses swell (fade-in 0.15), denser totality, brick texture in the block bodies (decokit.blockPattern), a second shade per section (6 channels), a third drift group on the off-beats | 80 | roles still failing (22/34) |
+| v3b | colour by role: path rims and ground lines in S1 / S4 cool blue / cyan against the warm glow and gold light; near skylines and S2's clouds lifted off the block bodies | 80 | roles 0/34 |
+| v4 | the old prejump at 29-33 (spike under the drop off the h2 ledge: removed), a hop at 290 in the 2.7 s with no input, sub-scores below | 80 | READY, 0 FAIL, 13 WARN |
+
+v4 sub-scores (band EN|2.2 percentile, contribution): move triggers/min 394 (p80, +0.18), hazards/10 blocks 1.5 (p15, +0.11),
+motion triggers per screen 27 (p65, +0.07; was 2), colour channels per screen 12 (p65; was 6), distinct ids 118 (p45; was 33),
+deco share 0.85 (p35), objects/block 17.3 (was 11.3), flashes/min 74 (was 81; the old rule miss is gone). Flow (tools/flow.js):
+10.1 floor changes per 10 s (was 7.3), no flat 10 s window (was 14%), 72% on the bare floor (was 85%). Fairness: no unfair
+spots; difficulty Normal (~4 attempts).
+
+Lessons (in knowledge/checklist.md):
+- The static deco measures count by x: motion and channels must be spread through the level, not set once at the start
+  (Eclipse's 106 move triggers a minute were mostly locked-to-camera ones at x 3: 2 per screen in the median).
+- The taste model pulls against height (heightRange -0.08, heightChanges10 -0.05: "against (static proxy)" in TASTE_DATA.md).
+  Height was raised anyway (the user's rule and flow.js are the judges there); do not flatten a level to please the model.
+- A warm glow behind warm rims hides the path (roles.js pathDeco): give the rims a cool hue when the light is warm.
+
+Still open: the height gate (want 12+ changes per 10 s, 45% or less on the floor), the totality stretch (blocks 144-208) is the
+sparsest by design (black sky) and stays under half the level's deco per block, block/bg contrast STARK (16 > 6.5), not seen in
+the game yet.
+
 ## Open
 
 - A soft cloud-frame recipe (round clouds in tones, no outlines) like Fall Out's.

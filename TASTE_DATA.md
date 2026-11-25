@@ -188,6 +188,9 @@ Within-band delta, featured+ vs the rest; then with effort taken out; then epic+
 | dsLayers (z-layers with >= 5%) | 0.14 | -0.01 | 0.03 | nothing |
 | dsPerScreen (objects per screen) | 0.22 | (an effort measure) | 0.41 | effort |
 
+(Fix 2026-11-25: `taste.js score` crashed with "Unexpected non-whitespace character after JSON": decostudy.js ran its own
+"one" CLI when required by taste.js's child, printing its JSON first. Its CLI now runs only as the main module.)
+
 Its contrast score runs the other way (featured 45 vs other 63), so it is not a feature. The model barely moves
 (held-out AUC 0.633 -> 0.64; glow left out of the model as not strong): what these see, the effort measures already saw. For a level: **put motion on every
 screen** (move / rotate / pulse triggers on deco). Glow: keep it moderate (10-25 %), it is not a lever.
