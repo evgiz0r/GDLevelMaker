@@ -17,3 +17,12 @@ Data (ArtifactData, collection `board`):
 - `board/picks`, written by the page only, never by Claude: `{selected[ids, first = do first], ideas[{id, title, added_at}], changed_at}`
   - `played` (its own doc, board/played; state.played is the fallback): `{at, totals, note, levels[]}` -- finished levels only (done) -- every level the user finished, from their save (read only): `{id, name, creator?, kind: main|online, tier, stars?, attempts, jumps, best, practice}`. Mains from local/difficulty/user_stats.json; online from local/difficulty/user_stats_online.json (PC). Private: the board only, never committed.
 - `board/picks.study`: level keys the user ticked in "Your levels" to study slowly (online ID as a string-number, `m<n>` for a main level). The page writes it with the rest of picks. Each refresh, Claude passes new keys to a PC session: fetch (tools/fetch_level.js), cut into structures (tools/lego.js), score (difficulty), at low heavy priority.
+
+## Features (2026-11-25)
+
+`board/state.features` (Claude writes): `{updated_at, flows: [{id, name, maturity 1-5, time, note}], ideas: [{id, title,
+status: "idea" | "in progress" | "done", note}]}`. The flows mirror the README's welcome table; ideas come from
+Claude and the coordinator. The page writes Evgeni's side into `board/picks`: `feat_picks` (idea ids he ticked) and
+`feat_ideas` (`[{id: "fidea-...", title, added_at}]`, ideas he typed). On each refresh: a picked idea gets a thread
+(through the coordinator) and its state entry goes to "in progress", then "done"; a typed idea gets a state entry.
+A ticked idea with no state change shows as "picked".

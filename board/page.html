@@ -46,6 +46,9 @@ section{display:flex;flex-direction:column;gap:10px}
 .p-running{color:var(--run);background:var(--run-soft)} .p-waiting{color:var(--wait);background:var(--wait-soft)}
 .p-blocked{color:var(--block);background:var(--block-soft)} .p-idle,.p-done{color:var(--idle);background:var(--idle-soft)}
 .p-scheduled{color:var(--accent);background:var(--accent-soft)}
+.p-picked{color:var(--accent);background:var(--accent-soft)} .p-in-progress{color:var(--run);background:var(--run-soft)} .p-done{color:var(--muted);background:var(--line)}
+.mat{letter-spacing:2px;color:var(--accent);white-space:nowrap} .mat .off{color:var(--line)}
+#ftable td.l{white-space:normal;min-width:180px;width:100%} #ftable td.l .dim{font-size:.84rem}
 .eta{grid-column:1 / -1;display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;font-size:.82rem;color:var(--muted)}
 .eta .t{color:var(--ink)}
 .est{font-size:.7rem;color:var(--muted);border:1px dashed var(--line);border-radius:4px;padding:0 5px}
@@ -138,6 +141,25 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
 
 
 
+  <section aria-labelledby="h-f" class="wide">
+    <details id="d-feat" open>
+      <summary><div class="sum-row"><h2 id="h-f">Features</h2><span class="hint" id="f-sum"></span></div></summary>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
+        <div class="tbl-wrap" style="max-height:none"><table id="ftable"><tbody><tr><td class="l dim">The features appear after Claude's next update.</td></tr></tbody></table></div>
+        <div class="legend">Maturity: 5 = used all the time and checked in the real game, 4 = works and is used, 3 = works, first version, 2 = built but barely tried, 1 = started. Times are from measured runs where there are some.</div>
+        <h2 style="font-size:.95rem;margin-top:6px">Ideas</h2>
+        <div class="hint">Tick an idea to pick it; Claude starts picked ones and shows them as in progress, then done.</div>
+        <div class="list" id="fideas"><div class="queue-empty">Ideas appear after Claude's next update.</div></div>
+        <form class="add" id="faddform">
+          <label for="fidea" hidden>Add a feature idea</label>
+          <input id="fidea" maxlength="160" placeholder="Add a feature idea…" autocomplete="off">
+          <button class="addbtn" id="faddbtn" type="submit" disabled>Add</button>
+        </form>
+        <div class="saved" id="fsaved" aria-live="polite"></div>
+      </div>
+    </details>
+  </section>
+
   <section aria-labelledby="h-l">
     <div class="sec-head"><h2 id="h-l">Our levels</h2><a class="vlink" id="vlink" href="https://claude.ai/artifact/7bXiT1gGnJWjESC8fy3oZH" target="_blank" rel="noopener">Open the level viewer ↗</a></div>
     <div class="list" id="levels"><div class="queue-empty">Levels in progress appear here after Claude's next update.</div></div>
@@ -202,7 +224,7 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
 <script>
 (function(){
   var state = null;            // board/state: written by Claude
-  var picks = {selected:[], ideas:[], study:[]}; // board/picks: written by this page
+  var picks = {selected:[], ideas:[], study:[], feat_picks:[], feat_ideas:[]}; // board/picks: written by this page
   var db = null, filter = "All", canWrite = true;
   var $ = function(id){ return document.getElementById(id); };
   function el(tag, cls, text){ var e=document.createElement(tag); if(cls) e.className=cls; if(text!=null) e.textContent=text; return e; }
@@ -483,7 +505,44 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
     if(P.note) $("y-legend").textContent=P.note;
   }
   function studyCount(){ var n=(picks.study||[]).length, e=$("y-study"); if(e) e.textContent=n? n+" queued for study (slowly, low priority)" : "Tick levels to queue them for study: fetch, cut into structures, score."; }
-  function renderAll(){ renderPlayed(); renderLevels(); renderUsage(); renderFresh(); renderWs(); renderMains(); renderPhys(); renderQueue(); renderFilters(); renderCands(); }
+  // ---- features: Claude's flows and ideas (state.features) + the ideas Evgeni adds and picks (picks.feat_*) ----
+  function featIdeas(){
+    var F=state && state.features || {}, seen={}, out=[];
+    (F.ideas||[]).forEach(function(i){ seen[i.id]=1; out.push(i); });
+    (picks.feat_ideas||[]).forEach(function(i){ if(!seen[i.id]) out.push({id:i.id,title:i.title,status:"idea",mine:true}); });
+    var pk={}; (picks.feat_picks||[]).forEach(function(x){ pk[x]=1; });
+    out.forEach(function(i){ i._on=!!pk[i.id] || i.status==="in progress" || i.status==="done"; if((!i.status || i.status==="idea") && pk[i.id]) i._st="picked"; else i._st=i.status||"idea"; });
+    var rank={"in progress":0,"picked":1,"idea":2,"done":3};
+    return out.sort(function(a,b){ return (rank[a._st]!=null?rank[a._st]:2)-(rank[b._st]!=null?rank[b._st]:2); });
+  }
+  function renderFeatures(){
+    var F=state && state.features; if(!F) return;
+    var t=$("ftable"); t.textContent="";
+    var th=el("thead"), hr=el("tr"); ["Flow","Maturity"].forEach(function(h,i){ var c=el("th",i?null:"l",h); hr.appendChild(c); }); th.appendChild(hr); t.appendChild(th);
+    var tb=el("tbody");
+    (F.flows||[]).forEach(function(f){
+      var r=el("tr"), c=td(null,"l"); c.appendChild(el("div",null,f.name)); if(f.note) c.appendChild(el("div","dim",f.note)); c.appendChild(el("div","dim","⏱ "+(f.time||"not measured"))); r.appendChild(c);
+      var m=td(null), d=el("span","mat"); d.title=f.maturity+" of 5";
+      for(var k=1;k<=5;k++) d.appendChild(el("span",k<=f.maturity?null:"off","●"));
+      m.appendChild(d); r.appendChild(m); tb.appendChild(r);
+    });
+    t.appendChild(tb);
+    var ideas=featIdeas(), box=$("fideas"); box.textContent="";
+    var n={}; ideas.forEach(function(i){ n[i._st]=(n[i._st]||0)+1; });
+    $("f-sum").textContent=(F.flows||[]).length+" flows · "+ideas.length+" ideas"+(n["in progress"]?" · "+n["in progress"]+" in progress":"")+(n.picked?" · "+n.picked+" picked":"");
+    ideas.forEach(function(i){
+      var lab=el("label","cand"+(i._on?" on":""));
+      var cb=document.createElement("input"); cb.type="checkbox"; cb.checked=i._on; cb.disabled=!canWrite || i._st==="in progress" || i._st==="done";
+      cb.onchange=function(){ var s=(picks.feat_picks||[]).filter(function(x){ return x!==i.id; }); if(cb.checked) s.push(i.id); picks.feat_picks=s; renderFeatures(); save(); };
+      lab.appendChild(cb);
+      var b=el("div","body"); b.appendChild(el("span","title",i.title));
+      if(i.note) b.appendChild(el("span","note",i.note));
+      var sub=el("span","sub"); if(i.mine) sub.appendChild(el("span","area","Your idea"));
+      sub.appendChild(el("span","pill p-"+i._st.replace(/ /g,"-"),i._st));
+      b.appendChild(sub); lab.appendChild(b); box.appendChild(lab);
+    });
+  }
+  function renderAll(){ renderFeatures(); renderPlayed(); renderLevels(); renderUsage(); renderFresh(); renderWs(); renderMains(); renderPhys(); renderQueue(); renderFilters(); renderCands(); }
 
   // ---- writes (one at a time, coalesced) ----
   var writing=false, dirty=false;
@@ -492,9 +551,9 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
     dirty=true; if(writing) return;
     writing=true; dirty=false;
     $("saved").textContent="Saving…";
-    var body={selected:picks.selected.slice(), ideas:(picks.ideas||[]).slice(), study:(picks.study||[]).slice(), changed_at:new Date().toISOString()};
+    var body={selected:picks.selected.slice(), ideas:(picks.ideas||[]).slice(), study:(picks.study||[]).slice(), feat_picks:(picks.feat_picks||[]).slice(), feat_ideas:(picks.feat_ideas||[]).slice(), changed_at:new Date().toISOString()};
     db.doc("board/picks").set(body).then(function(){
-      $("saved").textContent="Saved "+fmtClock(new Date())+". Claude picks it up on the next update.";
+      $("saved").textContent=$("fsaved").textContent="Saved "+fmtClock(new Date())+". Claude picks it up on the next update.";
     }).catch(function(e){
       if(e && e.code==="invalid_argument"){ canWrite=false; renderAll(); $("saved").textContent="This board is read-only for you."; }
       else $("saved").textContent="Couldn't save ("+(e&&e.code||"error")+"). Try again in a moment.";
@@ -521,6 +580,15 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
     renderAll(); save();
   });
 
+  $("fidea").addEventListener("input",function(){ $("faddbtn").disabled=!this.value.trim()||!canWrite; });
+  $("faddform").addEventListener("submit",function(ev){
+    ev.preventDefault();
+    var v=$("fidea").value.trim(); if(!v) return;
+    var id="fidea-"+Date.now().toString(36);
+    picks.feat_ideas=(picks.feat_ideas||[]).concat([{id:id,title:v,added_at:new Date().toISOString()}]);
+    $("fidea").value=""; $("faddbtn").disabled=true;
+    renderFeatures(); save();
+  });
   $("y-all").addEventListener("click",function(){ if(!canWrite) return; var keys=Array.prototype.map.call(document.querySelectorAll("#ytable tbody input[type=checkbox]"),function(c){ return c; });
     var st=(picks.study||[]).slice(), have={}; st.forEach(function(x){ have[x]=1; });
     var P=played || (state && state.played), q=($("y-q").value||"").trim().toLowerCase();
@@ -547,7 +615,7 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
     db.doc("board/picks").onSnapshot(function(s){
       if(writing || dirty) return; // don't overwrite a local edit in flight
       var p=s.exists? s.data() : null;
-      picks={selected:(p&&p.selected||[]).slice(), ideas:(p&&p.ideas||[]).slice(), study:(p&&p.study||[]).slice()};
+      picks={selected:(p&&p.selected||[]).slice(), ideas:(p&&p.ideas||[]).slice(), study:(p&&p.study||[]).slice(), feat_picks:(p&&p.feat_picks||[]).slice(), feat_ideas:(p&&p.feat_ideas||[]).slice()};
       renderAll();
     }, function(){});
     window.claude.use("user").then(function(u){
