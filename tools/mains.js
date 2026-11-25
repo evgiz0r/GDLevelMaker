@@ -67,7 +67,7 @@ function run(only, dry) {
       if (!st.length) {
         // what a resume could not fix on this physics is an open physics lead (PHYSICS.md), not a solver gap
         log(all.length ? `mains: still failing after their job: ${all.map(s => `${s.n} ${s.name} (${fmt(s.raw)})`).join(", ")} -- open physics leads, not re-run until physics changes`
-          : "mains: every main level clears on today's sim");
+          : only.length ? `mains: ${only.join(", ")} clear on today's sim` : "mains: every main level clears on today's sim");
         break; }
       // cheap first: replans, then resumes (a level with a checkpoint waiting first: it carries on from there)
       st.sort((a, b) => (a.need === "replan" ? 0 : 1) - (b.need === "replan" ? 0 : 1) || (b.part != null) - (a.part != null) || a.n - b.n);

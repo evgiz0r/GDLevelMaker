@@ -512,6 +512,9 @@ Confirmed:
   (2026-11-23_02-51-50.mkv, 17.6 s and 24.38 s). The sim slid off and lived until then.
 - The wave dies flying head-on into a slope (down into a rising 45-degree floor): GDLM 44's zigzag,
   2026-11-23_03-11-47.mkv ~25 s. The sim had let it ride up the slope.
+- The teleport portal (747) fires on a 25 x 90 box centred 12 units right of the object: the user's hitbox-on Deadlocked
+  practice run (2026-11-24_00-33-07.mkv, 196.33 s) shows the ship leave the exit ~10 units further right than a centred
+  box gives; with it Deadlocked is beaten in the sim (2026-11-25).
 - Flipping gravity halves vertical speed (blue orb and ceiling blue pad in the recording move at
   half the decompile's velocity). The decompile's ringJump alone does not show this.
 

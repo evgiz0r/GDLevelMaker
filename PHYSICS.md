@@ -249,8 +249,12 @@ The solver session (official re-solves, human routes, dual / moving objects, lab
   "Main levels kept current"): 20/22 clear again with a human route, as before the change; Deadlocked and Dash still die
   at the same spots (open physics leads below). `tools/mains.js` now keeps them current by itself after physics changes.
 - **Fingerdash (21) viewer route:** its `--replan` took 42 min on 2026-11-25 (budget 10 min per plan pass); the route clears.
-- **Open physics leads (not solver gaps):** Deadlocked -- the teleport-spike stretch (`node tools/stuck.js 20 ...`
-  shows no input sequence survives: a teleport / spike-hitbox question). Dash -- ROTATED GAMEPLAY (2026-11-25): from block ~75 (x ~2266) Dash turns
+- **Deadlocked: BEATEN (2026-11-25).** The teleport-spike stretch at block 695 was the teleport portal's box: the user's
+  hitbox-on practice video (GD claude-rec 2026-11-24_00-33-07.mkv, ~196.33 s) shows the ship come out of the 747 at
+  x 20887 ~10 units further right than the sim's, clear of spike 421. 747's box is now 25 x 90 centred 12 right of the
+  object (gdsolver's 25 x 90, OpenGD's +12 offset); the resume then cleared it (32 min). Its route still has 33 ms gaps
+  (`humanroute.js 20`).
+- **Open physics leads (not solver gaps):** Dash -- ROTATED GAMEPLAY (2026-11-25): from block ~75 (x ~2266) Dash turns
   its gameplay 90 degrees (rotate gameplay trigger 2900, frames 0-3); GD takes the spider's tap there in the turned frame.
   The sim has no frames, so the route cannot pass. gdsolver models it (dp/src/dp/frames.hpp, cli --rotgameplay; notes at
   step.hpp "lv22 t=1,745", "t=1,753", "t=1,813"): the next big physics piece for Dash. (The older note here -- a ball
