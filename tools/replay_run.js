@@ -32,7 +32,7 @@ if (!video || !logFile || !lv) { console.log(fs.readFileSync(__filename, "utf8")
 
 function loadLevel(s) {
   if (/^c\d+$/.test(s)) return readGdlvl(path.join(__dirname, "..", "local", "community", s.slice(1) + ".gdlvl"));
-  if (s.startsWith("official:")) { const n = +s.slice(9), src = process.env.GD_LEVELS || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash/Resources/levels/";
+  if (s.startsWith("official:")) { const n = +s.slice(9), src = require("./gdpaths.js").LEVELS;
     const levelStr = unpack(fs.readFileSync(src + n + ".txt", "utf8")); return { levelStr, level: GD.parseLevel(levelStr), name: "official " + n }; }
   return readGdlvl(s);
 }
@@ -113,7 +113,7 @@ function songFile() {
   const custom = get("k45"), off = +((L.level.header.match(/(?:^|,)kA13,([-0-9.]+)/) || [])[1] || 0);
   if (custom && custom !== "0") for (const ext of [".mp3", ".ogg"]) { const f = path.join(__dirname, "..", "local", "songs", custom + ext); if (fs.existsSync(f)) return { file: f, off }; }
   let n = lv.startsWith("official:") ? +lv.slice(9) - 1 : get("k8") != null ? +get("k8") : null;
-  if (n != null && isFinite(n)) { const { OFFICIAL } = require("./beats.js"), dir = (process.env.GD_LEVELS || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash/Resources/levels/").replace(/levels\/?$/, "");
+  if (n != null && isFinite(n)) { const { OFFICIAL } = require("./beats.js"), dir = (require("./gdpaths.js").LEVELS).replace(/levels\/?$/, "");
     const f = path.join(dir, OFFICIAL[n] + ".mp3"); if (fs.existsSync(f)) return { file: f, off }; }
   return null;
 }

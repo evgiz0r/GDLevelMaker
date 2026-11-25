@@ -23,8 +23,8 @@
 const fs = require("fs"), path = require("path"), { spawnSync } = require("child_process");
 
 const SR = 22050, N = 2048, HOP = 256, FPS = SR / HOP, CENTER = N / 2 / HOP; // frame f is centred at (f + CENTER) / FPS
-const GAME = process.env.GD_GAME || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash";
-const SAVE = process.env.GD_SAVE || path.join(process.env.LOCALAPPDATA || "", "GeometryDash");
+const GAME = require("./gdpaths.js").GAME;
+const SAVE = require("./gdpaths.js").SAVE;
 const ROOT = path.join(__dirname, "..");
 const OUT = path.join(ROOT, "local", "beats");
 

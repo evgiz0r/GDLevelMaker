@@ -12,8 +12,8 @@
 // by the chat's file card only. Measured sizes and what works offline: PHONE.md "Offline snapshot".
 const fs = require("fs"), path = require("path"), zlib = require("zlib"), cp = require("child_process"), http = require("http"), os = require("os");
 const ROOT = path.join(__dirname, ".."), args = process.argv.slice(2), opt = n => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] : null; };
-const GAME = process.env.GD_GAME || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash", RES = path.join(GAME, "Resources");
-const SAVE = process.env.GD_SAVE || path.join(process.env.LOCALAPPDATA || "", "GeometryDash");
+const GAME = require("./gdpaths.js").GAME, RES = path.join(GAME, "Resources");
+const SAVE = require("./gdpaths.js").SAVE;
 const day = new Date().toISOString().slice(0, 10);
 const OUT = path.resolve(opt("--out") || path.join(ROOT, "local", "phone", `viewer_snapshot_${day}${args.includes("--no-songs") ? "_nosongs" : ""}.html`));
 const KBPS = +(opt("--kbps") || 40), SONGS = !args.includes("--no-songs"), MAX_MB = +(opt("--max-mb") || 29);

@@ -15,7 +15,7 @@ const fs = require("fs"), path = require("path");
 const ROOT = path.join(__dirname, ".."), C = require("../lib/catalogue.js").CATALOGUE, O = require("../lib/objects.js");
 const ART = require("../lib/art.js").ART_LIB;
 const OUT = path.join(ROOT, "knowledge", "objects");
-const GAME = process.env.GD_GAME || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash";
+const GAME = require("./gdpaths.js").GAME;
 const step = process.argv[2];
 
 function sheetsFrames() {

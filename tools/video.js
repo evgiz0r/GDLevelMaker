@@ -17,8 +17,8 @@ const fs = require("fs"), path = require("path"), cp = require("child_process");
 const ROOT = path.join(__dirname, ".."), { headless } = require("./headless.js"), { levelOf } = require("./shoot.js");
 const args = process.argv.slice(2), opt = n => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] : null; };
 if (require.main === module && (!args.length || args[0].startsWith("--"))) { console.log(fs.readFileSync(__filename, "utf8").split("\n").filter(l => l.startsWith("//")).join("\n")); process.exit(1); }
-const GAME = process.env.GD_GAME || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash";
-const SAVE = process.env.GD_SAVE || path.join(process.env.LOCALAPPDATA || "", "GeometryDash");
+const GAME = require("./gdpaths.js").GAME;
+const SAVE = require("./gdpaths.js").SAVE;
 const MAX_MB = 30;
 
 // the level, its saved route and its song file + offset
