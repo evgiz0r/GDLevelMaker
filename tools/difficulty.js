@@ -4,6 +4,8 @@
 // node tools/difficulty.js --cached [--sigma S] [--settle MS]  -- the same comparison from the inputs the last
 //   full report cached (local/difficulty/scored_NN.json), with another chance model: seconds, not an hour
 // node tools/difficulty.js some.gdlvl [...]             -- scores your own levels (solves them first).
+// node tools/difficulty.js c<id> [...] [--stars 10]     -- scores a community level from its cached solve
+//   (difficulty_solve.js c<id>) on the mains' basis (human route); -> local/difficulty/community.jsonl + measurements.
 // Levels the sim cannot finish are scored on the part it gets through ("per minute" compares them).
 if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const fs = require("fs"), path = require("path");
@@ -73,6 +75,36 @@ function scoreOfficial(n, sigma) {
   return Object.assign(d, { n, sol, levelBlocks: w.endX / 30 });
 }
 
+// a downloaded community level solved by `difficulty_solve.js c<id>` (local/difficulty/c<id>.json), scored on the same
+// basis as the mains: the human route (lib/natural.js naturalPlan with humanCost, tap length for the level's stars, 10 min
+// budget), else the solver's route humanized. Nothing goes to the viewer (other people's levels); the number goes to
+// local/difficulty/community.jsonl and the measurements store. Built 2026-11-25 (DIFFICULTY.md "Community demons").
+function scoreCommunity(c, sigma) {
+  const file = path.join(OUT, c + ".json");
+  if (!fs.existsSync(file)) { console.log(`${c}: no solution cached, run: node tools/difficulty_solve.js ${c}`); return null; }
+  const sol = JSON.parse(fs.readFileSync(file, "utf8"));
+  const L = readGdlvl(path.join(__dirname, "..", "local", "community", c.slice(1) + ".gdlvl")), w = GD.makeWorld(L.level.objects, L.level.header);
+  const si = process.argv.indexOf("--stars"), stars = si >= 0 ? +process.argv[si + 1] : 10;
+  let events = null;
+  try { const p = require("../lib/natural.js").naturalPlan(w, { ok: sol.ok, events: sol.events }, L.level.objects, { cost: true, stars, budgetMs: 10 * 60e3 });
+    if (p && (sol.ok ? p.path[p.path.length - 1].done : true)) events = p.events; } catch (e) {}
+  const route = events ? "human" : "solver + humanize";
+  const d = events ? DF.difficulty(w, { ok: sol.ok !== false, events }, { sigma, raw: true, route: false }) : DF.difficulty(w, sol, { sigma });
+  const ms = d.actions.map(a => a.ms);
+  console.log(`== ${L.name} (${c}): ${d.complete ? "" : "PARTIAL (sim stops at block " + f1(d.blocks) + " of " + f1(w.endX / 30) + "), "}score ${d.logAttempts.toFixed(2)} (~${Math.round(10 ** d.logAttempts)} attempts, ${DF.difficultyLabel(d.logAttempts)}), /min ${d.perMinute.toFixed(2)}; route ${route}`);
+  console.log(`   ${d.inputs} inputs in ${f1(d.seconds)} s, tightest ${f0(d.tightest)} ms, median ${f0(d.medianMs)} ms, ${d.tight} under ${DF.DIFF.TIGHT} ms, under 100 ms ${ms.filter(m => m < 100).length}, longest tight streak ${d.streak}, busiest 5 s ${f1(d.peak5s)}/s`);
+  for (const a of d.actions.slice().sort((p, q) => p.ms - q.ms).slice(0, 5))
+    console.log(`     tight: ${(a.tick / 240).toFixed(2)} s  block ${f1(a.x / 30)} (${(100 * a.x / w.endX).toFixed(0)}%)  ${a.type.padEnd(7)} ${a.mode.padEnd(6)} window ${f0(a.ms)} ms`);
+  const row = { id: c.slice(1), name: L.name, stars, covers: Math.round(100 * d.blocks / (w.endX / 30)) + "%", secs: Math.round(d.seconds), inputs: d.inputs,
+    tight: d.tight, minMs: Math.round(d.tightest || 0), score: +d.logAttempts.toFixed(2), perMin: +d.perMinute.toFixed(2), route, physics: sol.physics || null, at: new Date().toISOString() };
+  fs.appendFileSync(path.join(OUT, "community.jsonl"), JSON.stringify(row) + "\n");
+  require("./measures.js").record({ level: "community:" + c.slice(1), name: L.name, levelStr: L.levelStr,
+    measure: "difficulty", value: +d.logAttempts.toFixed(3), unit: "log10 attempts", stamps: { physics: sol.physics || null },
+    detail: { perMin: +d.perMinute.toFixed(3), inputs: d.inputs, tight: d.tight, minMs: d.tightest != null ? Math.round(d.tightest) : null,
+      complete: !!d.complete, coverBlocks: d.blocks != null ? Math.round(d.blocks) : null, route } });
+  return d;
+}
+
 function main() {
   const args = process.argv.slice(2);
   const si = args.indexOf("--sigma"), sigma = si >= 0 ? +args.splice(si, 2)[1] : DF.DIFF.SIGMA;
@@ -114,6 +146,8 @@ function main() {
     }
     return;
   }
+  const comm = args.filter(a => /^c\d+$/.test(a));
+  if (comm.length) { for (const c of comm) scoreCommunity(c, sigma); return; }
   const ns = args.length ? args.map(Number) : Object.keys(RATED).map(Number);
   const rows = [];
   for (const n of ns) {

@@ -37,7 +37,11 @@ function skipsOf(objects, header, events) {
   // off the play is decoration, not a requirement -- ClockWood's ball portal at y 675)
   const REACH = 60, near = b => P.some(p => p.x + 15 > b.x0 - REACH && p.x - 15 < b.x1 + REACH && p.y + 15 > b.y0 - REACH && p.y - 15 < b.y1 + REACH);
   const desc = b => ({ id: b.o.id, far: !near(b), name: b.d.name, block: +((b.o.x - 15) / 30).toFixed(1), y: Math.round(b.o.y), moves: !!movesOf(b.o), noop: noop(b),
-    lane: portals.some(c => c !== b && used.has(c.i) && eff(c) === eff(b) && Math.abs(cx(c) - cx(b)) < 30) });
+    lane: portals.some(c => c !== b && used.has(c.i) && eff(c) === eff(b) && Math.abs(cx(c) - cx(b)) < 30),
+    // a stack: on the same spot a portal of the same kind with another effect (ship + cube, normal + upside-down gravity),
+    // that the run never fired either -- they cancel, so it is scenery off the path (THE LIGHTNING ROAD, 55520: 47 such
+    // "skips", all in deco group 69, 2026-11-25 community demon study)
+    stack: portals.some(c => c !== b && !used.has(c.i) && c.kind === b.kind && eff(c) !== eff(b) && Math.abs(cx(c) - cx(b)) < 5 && Math.abs(c.o.y - b.o.y) < 5) });
   return { reach, complete: !!run.done, portals: portals.length, orbs: orbs.length,
     missedPortals: portals.filter(b => !used.has(b.i)).map(desc), missedOrbs: orbs.filter(b => !used.has(b.i)).map(desc),
     shared: GD.skipCheck ? (GD.skipCheck(w, P, events) || {}).skipped || null : undefined };
@@ -65,13 +69,13 @@ function main() {
     out.push(r);
     if (process.argv.includes("--json")) continue;
     if (r.none) { console.log(`${r.name}: no saved route`); continue; }
-    const mp = r.missedPortals.filter(o => !o.moves && !o.noop && !o.lane && !o.far), mm = r.missedPortals.filter(o => o.moves), nn = r.missedPortals.filter(o => !o.moves && (o.noop || o.lane || o.far));
+    const mp = r.missedPortals.filter(o => !o.moves && !o.noop && !o.lane && !o.far && !o.stack), mm = r.missedPortals.filter(o => o.moves), nn = r.missedPortals.filter(o => !o.moves && (o.noop || o.lane || o.far || o.stack));
     console.log(`${(r.n ? String(r.n).padStart(2) + " " : "") + r.name}: ${mp.length ? "SKIPS " + mp.length + " of " + r.portals + " portals" : "takes all " + r.portals + " portals"}` +
-      (mm.length ? ` (+${mm.length} moved by triggers, unsure)` : "") + (nn.length ? ` (${nn.length} passed that change nothing, are another lane or lie over 2 blocks off the route)` : "") + `, ${r.missedOrbs.length} of ${r.orbs} orbs/pads untouched${r.complete ? "" : ", route ends at block " + (r.reach / 30).toFixed(0)}`);
+      (mm.length ? ` (+${mm.length} moved by triggers, unsure)` : "") + (nn.length ? ` (${nn.length} passed that change nothing, are another lane, a stack of cancelling portals or lie over 2 blocks off the route)` : "") + `, ${r.missedOrbs.length} of ${r.orbs} orbs/pads untouched${r.complete ? "" : ", route ends at block " + (r.reach / 30).toFixed(0)}`);
     for (const o of mp) console.log(`     portal ${o.name} (${o.id}) at block ${o.block}, y ${o.y}`);
   }
   if (process.argv.includes("--json")) console.log(JSON.stringify(out));
 }
 if (require.main === module) main();
-const realSkips = r => (r.missedPortals || []).filter(o => !o.moves && !o.noop && !o.lane && !o.far);
+const realSkips = r => (r.missedPortals || []).filter(o => !o.moves && !o.noop && !o.lane && !o.far && !o.stack);
 module.exports = { skipsOf, official, file, realSkips };
