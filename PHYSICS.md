@@ -463,7 +463,8 @@ test: `node tests/rotated.js`.
   portal) is not a requirement: at 1x the mini cube meets spikes a move trigger lowers into its lane at x ~3460, at 3x it
   passes first; gdsolver's real-game plan goes under it. When a strict sweep finds no way, it sweeps again ranking skips
   last; a route found that way names its skipped portals in `trapSkips` -- check them against a real-game plan, then
-  add them to TRAPS.
+  add them to TRAPS. Cost: a sweep that fails runs twice, and the second (skips allowed) is much wider: Dash from block
+  67 took 44 min in all against ~40 s for the strict one alone (2026-11-25). `noTraps: true` skips it.
 - **Checked so far:** gdsolver's real-game plan (tools/tas.js 22) goes down Dash's first turned stretch and back with
   GD's own landings (world x 2143.5 after the first tap, the turn back at y 135), but only with two spider presses
   moved 3-5 ticks later (`tr22`-style nudges): our tap comes ~2-3 ticks before GD's relative to position there, while
