@@ -1,5 +1,5 @@
 // node tools/lego_pick.js --sections "cube:15,ship:10,cube:20,wave:15" [--song <id> | --bpm 150 --t0 0.03] [--every 1]
-//                         [--diff 0.05] [--seed 1] [--name hellgate_try] [--no-solve]
+//                         [--diff 0.05] [--seed 1] [--name hellgate_try] [--no-solve] [--no-breathers]
 // The brick picker (LEGO.md "The picker"; Evgeni's pipeline: sections -> fill each from the big lego by the section's
 // beats -> filler). For each section (mode : seconds) it chains main-level bricks so their presses land on the song's
 // beats, then joins the chain into one level, solves it from the first brick's real entry state and fills secret ways
@@ -64,6 +64,7 @@ function beatCost(b, T, targets) {
 }
 // rest = { prefix, banned }: carry on after the bricks already kept (a repair after the whole chain broke), never
 // taking a banned brick again
+const GROUND = { cube: 1, ball: 1, robot: 1, spider: 1 }, GAPS = [0, 0.25, 0.5, 0.75, 1, 1.5];
 function pick(o, rest = {}) {
   const P = pool(o.src), R = rng(o.seed || 1), { targets } = o.hits ? { targets: o.hits } : beatTargets(o), W = L.sigWeights(L.readVotes());
   const chain = (rest.prefix || []).slice(), used = new Set([...(rest.banned || []), ...chain.map(c => c.b.id)]);
@@ -83,15 +84,26 @@ function pick(o, rest = {}) {
         // auto bricks (no press) are breathers: never two in a row, and at most a fifth of the time so far
         (!b.auto || (!(prev && prev.auto) && autoT + b.s <= 0.2 * (T + b.s) + 1)));
       if (!cand.length) { console.log(`  section ${sec.mode}: nothing fits at ${T.toFixed(1)} s, ends ${(end - T).toFixed(1)} s short`); break; }
-      const scored = cand.map(b => { const bc = beatCost(b, T, targets), dd = Math.abs((b.diff || 0) - (o.diff != null ? o.diff : 0.03));
-        const vote = W[b.sig] || 1; return { b, bc, score: bc.cost + dd * 300 - (vote - 1) * 20 + R() * 15 }; }).sort((a, b) => a.score - b.score);
+      // a breather before the brick (Evgeni 2026-11-25: "if we have too much space between structures it would feel wierd,
+      // we can always buffer with some auto area"): on the ground in a ground mode, a run of plain floor of 0.25-1.5 s
+      // may come first when it puts the brick's presses on the beat; it costs a little per second so it is not the default
+      const scored = [];
+      for (const b of cand) {
+        const dd = Math.abs((b.diff || 0) - (o.diff != null ? o.diff : 0.03)), vote = W[b.sig] || 1, base = dd * 300 - (vote - 1) * 20 + R() * 15;
+        const canGap = prev && !b.auto && !prev.auto && GROUND[b.mode] && prev.mode === b.mode && prev.exit.ground && b.entry.ground && prev.exit.grav > 0 && b.entry.grav > 0 && Math.abs(prev.exit.y - b.entry.y) < 0.5;
+        for (const gap of canGap && o.breathers !== false ? GAPS : [0]) {
+          if (T + gap + b.s > end + 0.6) continue;
+          const bc = beatCost(b, T + gap, targets); scored.push({ b, bc, gap, score: bc.cost + base + gap * 25 });
+        }
+      }
+      scored.sort((a, b) => a.score - b.score);
       // with o.verify: the join with the brick before is solved (lego_join checkFilled: real entry state + filler); the
       // best few candidates are tried in order, the first clean join wins
       let c = null;
       for (const s of scored.slice(0, o.verify && prev ? 6 : 1)) { if (!o.verify || !prev || o.verify(prev, s.b)) { c = s; break; } }
       if (!c) { used.add(scored[0].b.id); continue; }
-      chain.push({ b: c.b, T: Math.round(T * 1000) / 1000, beat: c.bc, section: sec.mode });
-      used.add(c.b.id); prev = c.b; if (c.b.auto) autoT += c.b.s; T += c.b.s; first = false;
+      chain.push({ b: c.b, T: Math.round((T + c.gap) * 1000) / 1000, gap: c.gap || 0, beat: c.bc, section: sec.mode });
+      used.add(c.b.id); prev = c.b; if (c.b.auto) autoT += c.b.s; T += c.b.s + (c.gap || 0); if (c.gap) autoT += c.gap; first = false;
     }
   }
   return { chain, targets, len: T };
@@ -102,6 +114,11 @@ function assemble(chain, fill) {
   const seams = [];
   chain.forEach((c, i) => {
     const b = c.b, p = i ? chain[i - 1].b : null;
+    if (p && c.gap) {   // the breather: plain floor at the height the last brick left the player on, at its speed
+      const gw = Math.round(c.gap * p.w / p.s) * B, fy = Math.round((p.exit.y - 0.5) * B / B) * B - B / 2;
+      if (fy > 0) for (let gx = x + B / 2; gx < x + gw; gx += B) objs.push(Object.assign(J.portal(1, gx, fy), {}));
+      x += gw;
+    }
     if (p && (b.speed || 1) !== (p.speed || 1)) objs.push(J.portal(J.SPEED_ID[b.speed || 1] || 201, x - 20, Math.max(15, b.path[0][1] * B)));
     // a section boundary may change gravity too: a gravity portal stacked over the height (10 normal, 11 upside down)
     if (p && b.entry.grav !== p.exit.grav) { const top = Math.max(...p.path.map(q => q[1]), ...b.path.map(q => q[1])) * B + 120; for (let y = 45; y <= top; y += 90) objs.push(J.portal(b.entry.grav < 0 ? 11 : 10, x - 40, y)); }
@@ -143,13 +160,14 @@ if (require.main === module) {
   const len = sections.reduce((s, x) => s + x.s, 0), name = opt("name", "pick_" + (opt("seed", "1")));
   const hitsF = opt("hits"), hits = hitsF ? JSON.parse(fs.readFileSync(hitsF, "utf8")) : null;
   const o = { sections, src: opt("src", "official"), hits: hits ? (Array.isArray(hits) ? hits : hits.times || hits.hits).map(Number).sort((x, y) => x - y) : null, song: opt("song"), bpm: +opt("bpm", 0) || undefined, t0: +opt("t0", 0), every: +opt("every", 1), diff: opt("diff") != null ? +opt("diff") : undefined, seed: +opt("seed", 1), len };
+  if (a.includes("--no-breathers")) o.breathers = false;
   if (!a.includes("--no-solve") && !a.includes("--no-verify")) { let nv = 0, bad = 0; o.verify = (A, Bp) => { nv++; const r = J.checkFilled(A, Bp).res; const ok = r.ok && !r.secret; if (!ok) bad++; process.stdout.write(`  join ${A.id} + ${Bp.id}: ${ok ? "ok" : "no (" + (r.why || "secret way") + ")"}\n`); return ok; }; }
   const t0 = Date.now(), Pk = pick(o);
   const on = Pk.chain.reduce((s, c) => s + c.beat.on, 0), np = Pk.chain.reduce((s, c) => s + c.beat.n, 0);
   for (const c of Pk.chain) console.log(`${c.T.toFixed(2).padStart(6)} s  ${c.section.padEnd(6)} ${c.b.id.padEnd(40)} ${c.b.sig.padEnd(34)} presses ${c.beat.n}, on a beat ${c.beat.on}, off by ${Math.round(c.beat.cost)} ms avg`);
   console.log(`${Pk.chain.length} bricks, ${Pk.len.toFixed(1)} s of ${len} s asked; ${on} of ${np} presses within 50 ms of a beat (${Math.round(on / Math.max(1, np) * 100)}%); picked in ${Date.now() - t0} ms`);
   const dir = path.join(ROOT, "local", "lego", "picks"); fs.mkdirSync(dir, { recursive: true });
-  const plan = { name, sections, song: o.song || null, bpm: o.bpm || null, every: o.every, bricks: Pk.chain.map(c => ({ id: c.b.id, sig: c.b.sig, mode: c.b.mode, T: c.T, s: c.b.s, w: c.b.w, presses: c.beat.n, onBeat: c.beat.on, offMs: Math.round(c.beat.cost) })) };
+  const plan = { name, sections, song: o.song || null, bpm: o.bpm || null, every: o.every, bricks: Pk.chain.map(c => ({ id: c.b.id, sig: c.b.sig, mode: c.b.mode, T: c.T, s: c.b.s, w: c.b.w, presses: c.beat.n, onBeat: c.beat.on, offMs: Math.round(c.beat.cost), gap: c.gap || 0 })) };
   if (!a.includes("--no-solve")) {
     // the whole chain: a brick entered from its neighbour is not in its own entry state, so a chain can break where every
     // pair joined cleanly; then that brick is banned and the rest re-picked from there (up to 8 repairs)
@@ -160,7 +178,7 @@ if (require.main === module) {
       const P2 = pick(o, { prefix: Pk.chain.slice(0, i), banned }); Pk.chain = P2.chain; Pk.len = P2.len;
       S = solveFilled(Pk.chain);
     }
-    plan.bricks = Pk.chain.map(c => ({ id: c.b.id, sig: c.b.sig, mode: c.b.mode, T: c.T, s: c.b.s, w: c.b.w, presses: c.beat.n, onBeat: c.beat.on, offMs: Math.round(c.beat.cost) })); plan.repairs = banned;
+    plan.bricks = Pk.chain.map(c => ({ id: c.b.id, sig: c.b.sig, mode: c.b.mode, T: c.T, s: c.b.s, w: c.b.w, presses: c.beat.n, onBeat: c.beat.on, offMs: Math.round(c.beat.cost), gap: c.gap || 0 })); plan.repairs = banned;
     plan.solve = { ok: S.res.ok, secret: !!S.res.secret, spikes: S.res.spikes, rounds: S.res.rounds, why: S.res.why || null, dieBrick: S.res.dieBrick, dieBlock: S.res.dieBlock, s: Math.round((Date.now() - t1) / 100) / 10 };
     plan.seams = S.A.seams; plan.events = S.res.events || null; plan.start = { x: S.A.start.x, y: S.A.start.y, mode: S.A.start.mode, held: S.A.held };
     console.log(S.res.ok ? `solved from the first brick's entry state: ${S.res.secret ? "still a secret way after" : "clean after"} ${S.res.rounds} filler rounds, ${S.res.spikes} spikes, ${plan.solve.s} s`

@@ -446,11 +446,24 @@ First 60 s run (main-level bricks, cube 15 / ship 10 / cube 20 / wave 15, 150 bp
 50 ms of a beat, every join ok, whole chain clean with 0 filler spikes. Times: picking 4 min, the final solve 21 min
 (25 min in all; the heavy lock had estimated 4 min from two short runs).
 
+**Smaller bricks (same night).** Bricks are now cut wherever the presses pause for over 0.6 s, and a lone press is a
+one-press brick: Evgeni saw ToE 586 as "the structure itself is like 1/10 of the window" (13 blocks, two pairs 7 blocks apart).
+Main-level bricks: 883 -> 1326, mean 22 -> 12 blocks, 568 with one press. The page frames each picture on the presses and
+objects (a block of space), as tall as the route.
+
 **Evgeni's notes leave bricks out.** A brick with a 👎, or with a note and no 👍 (every note so far is a complaint: "wrong
 path", "too many clicks", "too close to spikes"), is not picked; a note on a longer piece of the same level covers the
 bricks under it. It comes back once its route is re-planned after the note (routeAt newer). Before picking, fetch the
 phone notes (ArtifactData list legovotes -> local/lego/votes_phone.json). The first run above was made before this and
 took three noted bricks (Deadlocked 926b / 920b, Blast Processing 211b): with 26 notes, 31 of 1065 main bricks are out.
+
+**Breathers.** Bricks are placed back to back. In a ground mode (cube, ball, robot, spider), when the last brick leaves the
+player on the floor or a platform and the next one starts at the same height, the picker may put 0.25-1.5 s of plain floor
+first (blocks under it when it is up on a platform) if that lands the next presses on the beat. It costs a little per second,
+so it is used only when it helps the beat. Tested: two pairs with a 1 s breather, one on the ground and one up on a platform
+3.5 blocks high, both clear with no filler. `--no-breathers` turns them off. Auto bricks mined from the main levels (pads,
+portals, big drops with no press) are the other breather: never two in a row, at most a fifth of the time. Not yet: a flying
+breather (an open corridor of the right length).
 
 ## Open
 
