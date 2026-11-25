@@ -87,6 +87,22 @@
   @media (max-width: 700px) { main { grid-template-columns: 1fr; } }
   .card { background:var(--panel); border-radius:8px; padding:12px; }
   .card h2 { font-size:13px; margin:0 0 8px; color:var(--dim); text-transform:uppercase; letter-spacing:.08em; }
+  /* the clicks table: closed until asked for (the user: "all these clicks are still open"; it ran to 188 rows) */
+  #clicksBox > summary { cursor:pointer; list-style-position:inside; color:var(--dim); }
+  #clicksBox > summary h2 { display:inline; margin:0; }
+  #clicksBox[open] > summary { margin-bottom:8px; }
+  /* a wide screen (the PC): the level as GD frames it, 16:9 and as tall as the window allows, in the middle of the page
+     with a gap under the top bar, and the bars and cards under it the same width (the user, 2026-11-25: "i want the ui
+     more in the middle", "its way too stuck to the top, and the top ui hides the level a bit": a 1910 x 460 strip
+     showed 44 blocks across and only 10 up, the top of the level cut at the canvas edge) */
+  @media (min-width: 900px) {
+    :root { --col: min(100%, max(640px, calc((100vh - 230px) * 16 / 9))); }
+    #views:not(.split), #strip, #scrub, #clock, main, #labbar, #ver { width:var(--col); max-width:100%; margin-left:auto; margin-right:auto; box-sizing:border-box; }
+    #views:not(.split) { margin-top:10px; }
+    #scrub, #clock { display:block; }
+    #views:not(.split) #cv { height:auto; aspect-ratio:16/9; }
+    main { padding-left:0; padding-right:0; }
+  }
   .ok { color:var(--cube); } .bad { color:var(--spike); }
   table { border-collapse:collapse; width:100%; font-variant-numeric:tabular-nums; }
   td, th { text-align:left; padding:3px 6px; border-bottom:1px solid #2a1f57; }
@@ -154,7 +170,7 @@
   <div id="wkList"></div></div></div>
 <div id="picker" hidden><div id="pk" role="dialog" aria-label="choose a level">
   <div id="pkTop"><input id="pkQ" type="search" placeholder="search levels…" autocomplete="off">
-    <button data-f="main" class="on" title="official levels, the levels being worked on and ours">main</button><button data-f="recent">recent</button><button data-f="pinned">★ pinned</button><button data-f="runs" title="every level you played -- here (🎮) or in GD recordings (🎥) -- newest first; opens on your latest run as a ghost">my runs</button><button data-f="wip">in progress</button><button data-f="ours">ours</button><button data-f="official">official</button><button data-f="community">community</button><button data-f="demons" title="the demon list's top 150 and every former Top 1 that is on this PC (local/community, tools/demonlist.js), by list place">demon list</button><button data-f="all">all</button>
+    <button data-f="main" class="on" title="our finished levels and the official ones (work in progress, the lab and experiments have their own tabs)">main</button><button data-f="recent">recent</button><button data-f="pinned">★ pinned</button><button data-f="runs" title="every level you played -- here (🎮) or in GD recordings (🎥) -- newest first; opens on your latest run as a ghost">my runs</button><button data-f="wip">in progress</button><button data-f="lab" title="the section lab's variants, the lab and test levels">lab</button><button data-f="ours">ours</button><button data-f="official">official</button><button data-f="community">community</button><button data-f="demons" title="the demon list's top 150 and every former Top 1 that is on this PC (local/community, tools/demonlist.js), by list place">demon list</button><button data-f="all">all</button>
     <button id="pkClose" title="close (Esc)">✕</button></div>
   <div id="pkList"></div></div></div>
 <header>
@@ -205,7 +221,7 @@
 <input id="scrub" type="range" min="0" max="1000" value="0"><div id="clock" class="muted" style="font-size:12px;padding:2px 16px 0"></div>
 <main>
   <div class="card"><h2>Level</h2><div id="summary"></div><div id="runsRow" hidden></div></div>
-  <div class="card"><h2>Clicks</h2><div id="clicks"></div></div>
+  <div class="card"><details id="clicksBox"><summary><h2>Clicks <span id="clicksN" class="muted"></span></h2></summary><div id="clicks"></div></details></div>
   <div class="card" style="grid-column:1/-1"><h2>Marks — what to change</h2><div id="marks"></div></div>
 </main>
 <div id="ver" class="muted" style="font-size:12px;padding:6px 16px 14px"></div>
@@ -968,6 +984,8 @@ function pkRunLine(run) {
 }
 const pkStore = (k, v) => { try { if (v === undefined) return JSON.parse(localStorage.getItem("gdlm." + k) || "[]"); localStorage.setItem("gdlm." + k, JSON.stringify(v)); } catch (e) { return []; } };
 const pkCat = l => l.wip || (l.session && l.version) ? "wip" : /official/.test(String(l.file)) || l.official != null ? "official" : /community/.test(String(l.file)) ? "community" : "ours";
+// the lab and experiments: the section lab's variants (LAB rN vK), the lab / test / catalogue levels
+const pkLab = l => /^LAB r\d/i.test(String(l.name || "")) || /(^|\/)lab_r\d|_lab(\.|_|$)|test|catalogue|sketch/i.test(String(l.file || ""));
 const pkKey = l => String(l.name || l.file).toLowerCase().replace(/\s+v\d+$/, "").trim();
 // when the level (this version) was made: wip `made` (first put of this content), a pushed level's commit time;
 // officials and community levels have none. Never a re-stamp (wip `updated` is only a fallback for old rows)
@@ -1020,9 +1038,17 @@ function pkRows() {
   const q = document.getElementById("pkQ").value.trim().toLowerCase(), pins = pkStore("pins"), recent = pkStore("recent");
   if (PK.f === "runs") return { rec: [], rest: pkRunRows(q), pins };
   const groups = new Map();
+  // "main" = our finished levels + the official ones (the user, 2026-11-25: "main has too many songs now ... its just spam.
+  // Lets do main for ready levels + official. Rest in the different tabs"): no work in progress of its own (a newer wip of
+  // a main level still sits on its card), no lab variants, parts or experiments
+  const readyKeys = new Set(ALL.filter(l => pkCat(l) === "ours" && !pkLab(l)).map(pkKey));
   ALL.forEach((l, i) => {
     const c = pkCat(l);
-    if (PK.f === "pinned" ? !pins.includes(pkKey(l)) : PK.f === "recent" ? !recent.includes(pkKey(l)) : PK.f === "main" ? c === "community" : PK.f === "demons" ? !l.demon : PK.f !== "all" && c !== PK.f) return;
+    const out = PK.f === "pinned" ? !pins.includes(pkKey(l)) : PK.f === "recent" ? !recent.includes(pkKey(l))
+      : PK.f === "main" ? !(c === "official" || readyKeys.has(pkKey(l)) && !pkLab(l))
+      : PK.f === "lab" ? !pkLab(l) : PK.f === "wip" ? c !== "wip" || pkLab(l)
+      : PK.f === "demons" ? !l.demon : PK.f !== "all" && c !== PK.f;
+    if (out) return;
     if (q && l.demon && (String(l.demon.creator) + " " + l.demon.verifier).toLowerCase().includes(q)) { const k = pkKey(l); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(i); return; }
     if (q && !(String(l.name) + " " + l.file + " " + (l.session || "")).toLowerCase().includes(q)) return;
     const k = pkKey(l); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(i);
@@ -1052,7 +1078,7 @@ function pkRender() {
       `</div><button class="pkPin${pins.includes(r.k) ? " on" : ""}" data-pin="${pkEsc(r.k)}" title="pin">★</button></div>`; };
   el.innerHTML = (rec.length ? `<div class="pkHead">recent</div>` + rec.map((r, n) => card(r, n)).join("") : "") +
     (PK.f === "recent" ? "" : PK.f === "runs" ? `<div class="pkHead">my runs, newest played first · ${rest.length}${PK.runs === null ? " (loading…)" : ""}${PK.runsNote ? " · " + pkEsc(PK.runsNote) : ""}${PK.runsMissing ? ` · ${PK.runsMissing} more not in this list (build stages, levels not on this PC)` : ""}</div>`
-      : `<div class="pkHead">${PK.f === "main" ? "official, in progress and ours" : PK.f === "all" ? "all levels" : PK.f === "demons" ? "demon list (on this PC), by list place; no route: the camera runs through" : PK.f} · ${rest.length}</div>`) + rest.map((r, n) => card(r, n + rec.length)).join("");
+      : `<div class="pkHead">${PK.f === "main" ? "our finished levels and the official ones" : PK.f === "all" ? "all levels" : PK.f === "demons" ? "demon list (on this PC), by list place; no route: the camera runs through" : PK.f} · ${rest.length}</div>`) + rest.map((r, n) => card(r, n + rec.length)).join("");
   el.querySelectorAll(".pkCard").forEach(c => c.onclick = e => { if (e.target.dataset.pin || e.target.dataset.open) return; const r = PK.rows[+c.dataset.n]; pkOpen(r.is[0], r.run); });
   el.querySelectorAll("[data-open]").forEach(b => b.onclick = () => pkOpen(+b.dataset.open));
   el.querySelectorAll("[data-pin]").forEach(b => b.onclick = () => { const p = pkStore("pins"), k = b.dataset.pin; pkStore("pins", p.includes(k) ? p.filter(x => x !== k) : p.concat(k)); pkRender(); });
@@ -1130,6 +1156,7 @@ function clickTable() {
   const el = document.getElementById("clicks");
   if (!L.sol.clicks.length) { el.innerHTML = `<span class="muted">none</span>`; return; }
   const bt = c => L.beats ? `<td>${beatOf(c.tick / P.TPS).toFixed(2)}</td>` : "";
+  { const n = document.getElementById("clicksN"); if (n) n.textContent = `· ${L.sol.clicks.length}`; }
   el.innerHTML = `<table><tr><th>#</th><th>time</th>${L.beats ? "<th>beat</th>" : ""}<th>block</th><th>what</th><th>window</th></tr>` +
     L.sol.clicks.map((c, i) => `<tr id="c${i}"><td>${i + 1}</td><td>${(c.tick / P.TPS).toFixed(3)} s</td>${bt(c)}<td>${(c.x / 30).toFixed(1)}</td><td>${c.type === "release" ? "release" : esc(c.act || "press")}</td><td>${c.ms ? c.ms + " ms" : ""}</td></tr>`).join("") + `</table>`;
 }
@@ -1246,7 +1273,11 @@ document.getElementById("lightBtn").onclick = () => setLight(!LIGHT);
 try { if (localStorage.getItem("gdlm.light") === "1") setTimeout(() => setLight(true), 0); } catch (e) {}
 const scrub = document.getElementById("scrub");
 scrub.oninput = () => { t = scrub.value / 1000 * (L.path.length - 1) / P.TPS; lastTick = tick(); playing = false; setPlay(); syncSong(); draw(); };
+// the replay keys, never while typing (the user, 2026-11-25: typing a mark's note "repeats the levels and hangs the ui":
+// every space toggled play and every "r" restarted the replay)
+const typing = e => /INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName || "") || !!(e.target && e.target.isContentEditable);
 addEventListener("keydown", e => {
+  if (typing(e)) return;
   if (e.code === "Space") { e.preventDefault(); playBtn.onclick(); }
   if (e.key === "r") document.getElementById("restart").onclick();
   if (e.key === "ArrowRight") { t += 1 / P.TPS * (e.shiftKey ? 24 : 1); playing = false; setPlay(); draw(); }
@@ -1660,7 +1691,7 @@ const markBtn = document.getElementById("markBtn");
 function setMarking(on) { marking = on; markBtn.classList.toggle("on", on); cv.classList.toggle("marking", on); if (on) { playing = false; setPlay(); syncSong(); notice("✎ Click the spot in the level that should change (Esc: cancel).", 0); } else { const n = document.getElementById("notice"); if (n && /Click the spot/.test(n.textContent)) n.hidden = true; } }
 addEventListener("keydown", e => { if (e.key === "Escape" && marking) setMarking(false); });
 markBtn.onclick = () => setMarking(!marking);
-addEventListener("keydown", e => { if ((e.key === "m" || e.key === "M") && e.target.tagName !== "INPUT") setMarking(!marking); });
+addEventListener("keydown", e => { if ((e.key === "m" || e.key === "M") && !typing(e)) setMarking(!marking); });
 cv.addEventListener("click", async e => {
   if (!marking || !L) return;
   const r = cv.getBoundingClientRect(), d = DPR();
