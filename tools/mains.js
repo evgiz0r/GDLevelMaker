@@ -103,6 +103,7 @@ function run(only, dry) {
     // the all-coins routes (DIFFICULTY.md "Coin routes"), after the plain ones and at low priority: a level whose coin route
     // does not clear with every coin gets a resume (from its plain route when it has none); one try per physics commit
     if (!only.length || process.argv.includes("--coins")) coinPass(only);
+    exportRoutes(true);
   } finally { if (!dry) { const r = readJ(path.join(DIR, "runner.json")); if (r && r.pid === process.pid) fs.unlinkSync(path.join(DIR, "runner.json")); } }
 }
 
@@ -162,6 +163,41 @@ function replanAll(ns) {
     job("tight", ["tight.js", String(n), "--fix"], prio);
     fs.appendFileSync(out, `=== ${n} ${NAMES[n]} (${new Date().toISOString()})\n--- before\n${before}\n--- replan: ${String(r.stdout || "").trim().split("\n").filter(l => /^\d+:/.test(l)).pop() || "?"}\n--- after\n${after}\n`);
   }
+  exportRoutes(true);
+}
+
+// `mains.js export [--push]`: the 22 main levels' routes into git, knowledge/mains/routes.json (the user, 2026-11-25: "why
+// dont we put the solutions on git?"). Press timings only -- our solver's output, no RobTop level data: per level its
+// human route (events), the raw solve (raw), the all-coins human route when there is one (coins), a hash of the level text
+// it was solved on and the physics commit. Same format as tools/mains_routes.js (PR #2: `import` replays them on a new PC's
+// own game). --push commits just that file and pushes. run and replan do it at their end.
+function exportRoutes(push) {
+  const crypto = require("crypto"), sha = t => crypto.createHash("sha1").update(t).digest("hex").slice(0, 12);
+  const out = { note: "Human routes (press timings) for RobTop's 22 main levels, made by our solver. No level data: the levels come from the player's own game (tools/mains_routes.js import, SETUP.md).", exported: new Date().toISOString(), levels: [] };
+  for (let n = 1; n <= 22; n++) {
+    const o = readJ(path.join(ROOT, "local", `official_${tag(n)}.json`));
+    if (!o || !o.solution || !o.solution.events) continue;
+    const raw = readJ(path.join(ROOT, "local", "difficulty", tag(n) + ".json")), c = readJ(path.join(ROOT, "local", `official_${tag(n)}_coins.json`));
+    const row = { n, name: NAMES[n], levelSha: sha(o.level), physics: o.physics || null, ok: !!o.solution.ok, kind: o.solution.kind || null, events: o.solution.events };
+    if (raw && raw.events) row.raw = { ok: !!raw.ok, physics: raw.physics || null, events: raw.events };
+    if (c && c.solution && c.solution.events) row.coins = { ok: !!c.solution.ok, kind: c.solution.kind || null, physics: c.physics || null, events: c.solution.events };
+    out.levels.push(row);
+  }
+  const file = path.join(ROOT, "knowledge", "mains", "routes.json");
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  const prev = fs.existsSync(file) ? fs.readFileSync(file, "utf8") : "";
+  const strip = t => t.replace(/"exported":"[^"]*",?/, "");
+  const next = JSON.stringify(out);
+  if (strip(prev) === strip(next)) { log("mains: export: routes unchanged"); return; }
+  fs.writeFileSync(file, next);
+  log(`mains: export: ${out.levels.length} routes -> knowledge/mains/routes.json`);
+  if (!push) return;
+  const git = a => cp.execFileSync("git", a, { windowsHide: true, cwd: ROOT, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+  try {
+    git(["add", "knowledge/mains/routes.json"]);
+    git(["commit", "-m", "knowledge/mains/routes.json: main levels' routes re-exported by tools/mains.js", "--", "knowledge/mains/routes.json"]);
+    for (let i = 0; i < 4; i++) { try { git(["pull", "-q", "--no-edit", "origin", "main"]); git(["push", "-q", "origin", "HEAD:main"]); log("mains: export: pushed"); return; } catch (e) { if (i === 3) throw e; } }
+  } catch (e) { log("mains: export: commit/push failed: " + String(e.message).split("\n")[0]); }
 }
 
 // serve.js calls this after a self-update// serve.js calls this after a self-update: start a detached runner when the update touched route code
@@ -185,6 +221,7 @@ if (require.main === module) {
     const r = runner(); if (r) console.log(`runner working: pid ${r.pid} since ${r.since}`);
   } else if (a[0] === "run") run(nums, a.includes("--dry"));
   else if (a[0] === "replan") replanAll(nums);
+  else if (a[0] === "export") exportRoutes(a.includes("--push"));
   else if (a[0] === "own" || a[0] === "free") {   // mains.js own <n> "<who>" | free <n>: another session owns a level's solve
     const f = path.join(DIR, "owned.json"), o = readJ(f) || {};
     if (a[0] === "own") o[nums[0]] = a.slice(2).join(" ") || "another session"; else delete o[nums[0]];
