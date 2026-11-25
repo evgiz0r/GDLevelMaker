@@ -1,6 +1,6 @@
 # GD Work Board
 
-Evgeni's control page, a private claude.ai artifact: https://claude.ai/artifact/NTEEv6GZHJpETBLbfQADFJ
+Evgeni's control page, a private claude.ai artifact: https://claude.ai/artifact/4e7ry3R14UDe7ae677QcaC
 (source: `board/page.html`; republish it with the Artifact tool to that url). He ticks and orders next tasks; Claude schedules from them.
 No Start buttons. Refresh about every 10 min while he works, about hourly when not.
 
