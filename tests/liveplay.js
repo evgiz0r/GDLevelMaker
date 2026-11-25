@@ -8,7 +8,7 @@ const { GD, readGdlvl } = require("../tools/io.js"); Object.assign(GD, require("
 const ROOT = path.join(__dirname, "..");
 let bad = 0; const check = (ok, what) => { console.log((ok ? "ok   " : "FAIL ") + what); if (!ok) bad++; };
 const same = (a, b, n) => { for (let k = 0; k < n; k++) { const p = a[k], q = b[k]; if (!p || !q || p.x !== q.x || p.y !== q.y || p.vy !== q.vy || p.mode !== q.mode) return k; } return -1; };
-for (const f of ["levels/gdlm_45_first_flight.gdlvl", "examples/cube_timings.gdlvl"].filter(f => fs.existsSync(path.join(ROOT, f)))) {
+for (const f of ["levels/archive/gdlm_45_first_flight.gdlvl", "examples/cube_timings.gdlvl"].filter(f => fs.existsSync(path.join(ROOT, f)))) {
   const L = readGdlvl(path.join(ROOT, f)), w = GD.makeWorld(L.level.objects, L.level.header);
   let sol = null; try { sol = require("../tools/solutions.js").get(L.levelStr, true); } catch (e) {}
   if (!sol || !sol.ok) { console.log("skip " + f + " (no saved route on this PC)"); continue; }
@@ -40,7 +40,7 @@ for (const f of ["levels/gdlm_45_first_flight.gdlvl", "examples/cube_timings.gdl
 }
 // a tap within one frame
 {
-  const L = readGdlvl(path.join(ROOT, "levels", "gdlm_01_one_jump.gdlvl")), w = GD.makeWorld(L.level.objects, L.level.header);
+  const L = readGdlvl(path.join(ROOT, "levels", "archive", "gdlm_01_one_jump.gdlvl")), w = GD.makeWorld(L.level.objects, L.level.header);
   const ref = GD.run(w, [{ tick: 30, type: "press" }, { tick: 31, type: "release" }]), lp = GD.livePlay(w);
   lp.advanceTo(30); lp.press(); lp.release(); lp.advanceTo(200);
   check(same(ref.path, lp.path, 200) < 0, "a tap pressed and released between two frames = press at k, release at k+1");

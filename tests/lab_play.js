@@ -10,7 +10,7 @@ const { GD, readGdlvl } = require("../tools/io.js"), ST = require("../tools/stag
 const lab = fs.mkdtempSync(path.join(os.tmpdir(), "gdlm-labplay-")), port = 8890 + Math.floor(Math.random() * 100);
 let fails = 0; const check = (c, m) => { console.log((c ? "ok   " : "FAIL ") + m); if (!c) fails++; };
 // two variants from two small repo levels, each with its route as the builder's planned events
-const src = ["levels/gdlm_01_one_jump.gdlvl", "levels/gdlm_02_on_the_beat.gdlvl"].map((f, i) => {
+const src = ["levels/archive/gdlm_01_one_jump.gdlvl", "levels/archive/gdlm_02_on_the_beat.gdlvl"].map((f, i) => {
   const L = readGdlvl(path.join(ROOT, f)), lv = GD.parseLevel(L.levelStr), sol = GD.solveAny(GD.makeWorld(lv.objects, lv.header));
   if (!sol.ok) throw new Error(f + " is not beaten in the sim");
   ST.put({ session: SESSION, base: `lab_r7_v${i + 1}`, name: `LAB r7 v${i + 1} test`, stage: "layout", levelStr: L.levelStr, data: { events: sol.events, kind: "planned" }, note: "test" });

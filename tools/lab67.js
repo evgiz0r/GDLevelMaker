@@ -179,7 +179,7 @@ if (!process.argv.includes("--check")) {
 // at the station's start) and prints what the sim does: the predictions in the notes, checked. Light: a few runs.
 function check() {
   const { GD, readGdlvl } = require("./io.js"), sols = require("./solutions.js");
-  const lv = readGdlvl(path.join(__dirname, "..", "levels", "gdlm_67_physics_questions_lab.gdlvl"));
+  const lv = readGdlvl(path.join(__dirname, "..", "levels", "archive", "gdlm_67_physics_questions_lab.gdlvl"));
   const sol = sols.get(lv.levelStr, true); if (!sol) { console.log("no saved route: build it first (make.js)"); return; }
   const w = GD.makeWorld(lv.level.objects, lv.level.header), route = GD.run(w, sol.events).path;
   const at = c => { const i = route.findIndex(s => s.x >= c * 30); return { ...route[i], used: route[i].used.slice() }; };

@@ -35,7 +35,7 @@ const ROOT = path.join(__dirname, "..");
 const args = process.argv.slice(2);
 const opt = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : d; };
 const OUT = path.resolve(ROOT, opt("--out", "local/compare_sections"));
-const OURS = opt("--ours", "levels/gdlm_64_golden_hour_v5.gdlvl,levels/gdlm_62_low_end_lullaby.gdlvl,levels/gdlm_52_necromancy.gdlvl,levels/gdlm_61_lantern_towers.gdlvl").split(",");
+const OURS = opt("--ours", "levels/archive/gdlm_64_golden_hour_v5.gdlvl,levels/archive/gdlm_62_low_end_lullaby.gdlvl,levels/archive/gdlm_52_necromancy.gdlvl,levels/archive/gdlm_61_lantern_towers.gdlvl").split(",");
 // Jumper, Time Machine, Spooky Dash, Dreamy; SLAM (same song as GDLM 52), Subwoofer Lullaby (same song as GDLM 62), boogie
 const REFS = opt("--refs", "official:7,official:8,c150941693,c92555035,c43908596,c100157619,c114694142").split(",");
 const FLY = new Set(["ship", "wave", "ufo", "swing"]);

@@ -83,7 +83,7 @@ function background(theme, n, objs) {
 
 function build() {
   fs.mkdirSync(OUT, { recursive: true });
-  const rec = io.readGdlvl(path.join(ROOT, "levels", "gdlm_50_eclipse.gdlvl")).rec, rows = [];
+  const rec = io.readGdlvl(path.join(ROOT, "levels", "archive", "gdlm_50_eclipse.gdlvl")).rec, rows = [];
   const put = (el, theme, n, label, objs, deco) => {
     for (const o of objs) o.props[21] = String(o.id === 1 ? CH.rim : CH.hazard);
     const T = THEMES[theme], defs = {}; for (const [ch, rgb] of Object.entries(T.map)) defs[ch] = { rgb, blend: T.blend[ch] != null, opacity: T.blend[ch] ?? 1 };

@@ -3,7 +3,7 @@
 // seconds in each setup (GD art + beats, shapes + beats, light = no art, no beats) through the viewer's
 // ?perf= mode, which posts frame and draw times to local/perf/. Prints fps, frame time percentiles (p50/p90/
 // p99, frames over 33 ms), draw() time and the JS heap. The level is named as the viewer's #lv= does:
-// levels/gdlm_45_first_flight.gdlvl, local/wip/style/gdlm_45_first_flight.gdlvl, ...
+// levels/archive/gdlm_45_first_flight.gdlvl, local/wip/style/gdlm_45_first_flight.gdlvl, ...
 // Headless runs without a GPU (software canvas): absolute numbers are a worst case; compare setups, and read the
 // real numbers in the user's browser with key F. One heavy job at a time (a browser, ~0.5-1 GB).
 // VISUALS.md "Viewer speed".

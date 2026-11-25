@@ -6,7 +6,7 @@ const path = require("path"), fs = require("fs");
 const { GD, readGdlvl } = require("../tools/io.js"), R = require("../lib/runner.js");
 const ROOT = path.join(__dirname, "..");
 let bad = 0; const check = (ok, what) => { console.log((ok ? "ok   " : "FAIL ") + what); if (!ok) bad++; };
-const files = ["levels/gdlm_45_first_flight.gdlvl", "levels/gdlm_44_hellgate.gdlvl", "examples/cube_timings.gdlvl"].filter(f => fs.existsSync(path.join(ROOT, f)));
+const files = ["levels/archive/gdlm_45_first_flight.gdlvl", "levels/gdlm_44_hellgate.gdlvl", "examples/cube_timings.gdlvl"].filter(f => fs.existsSync(path.join(ROOT, f)));
 for (const f of files) {
   const L = readGdlvl(path.join(ROOT, f)), w = GD.makeWorld(L.level.objects, L.level.header);
   let sol = null; try { sol = require("../tools/solutions.js").get(L.levelStr, true); } catch (e) {}

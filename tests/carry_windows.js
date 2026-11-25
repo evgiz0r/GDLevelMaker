@@ -4,7 +4,7 @@
 require("../tools/heavy.js").claim();
 const { GD, readGdlvl } = require("../tools/io.js");
 const DF = require("../lib/difficulty.js"), S = require("../tools/solutions.js");
-const L = readGdlvl(__dirname + "/../levels/gdlm_45_first_flight.gdlvl"), s = S.get(L.levelStr, true), ev = s.events;
+const L = readGdlvl(__dirname + "/../levels/archive/gdlm_45_first_flight.gdlvl"), s = S.get(L.levelStr, true), ev = s.events;
 const objs = L.level.objects;
 const wOld = GD.makeWorld(objs, L.level.header);
 let t = Date.now(); DF.measureWindows(wOld, ev); console.log("old level measured", Date.now() - t, "ms");

@@ -7,7 +7,7 @@ const ROOT = path.join(__dirname, ".."), tmp = fs.mkdtempSync(path.join(os.tmpdi
 process.env.GDLM_WIP_DIR = tmp;
 const ST = require("../tools/stages.js"), { readGdlvl } = require("../tools/io.js");
 let bad = 0; const check = (ok, what) => { console.log((ok ? "ok   " : "FAIL ") + what); if (!ok) bad++; };
-const lv = readGdlvl(path.join(ROOT, "levels", "gdlm_01_one_jump.gdlvl"));
+const lv = readGdlvl(path.join(ROOT, "levels", "archive", "gdlm_01_one_jump.gdlvl"));
 ST.put({ session: "test", base: "gdlm_99_stagetest", name: "GDLM 99 stage test", stage: "layout", levelStr: lv.levelStr, note: "first" });
 ST.put({ session: "test", base: "gdlm_99_stagetest", stage: "song", data: { song: { url: "/song/official/StereoMadness.mp3", offset: 0 }, sections: [{ name: "intro", from: 0, to: 4 }] } });
 ST.put({ session: "test", base: "gdlm_99_stagetest", stage: "path", levelStr: lv.levelStr, data: { planned: [{ t: 1.2, what: "jump" }] } });

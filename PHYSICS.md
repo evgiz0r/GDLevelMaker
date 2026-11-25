@@ -132,7 +132,7 @@ punishes holding the dash).
 
 ## GDLM 67 physics questions lab (2026-11-24; built by the dual/moving-objects session, NOT played yet)
 
-`tools/lab67.js` -> specs/67_physics_questions_lab.json -> levels/gdlm_67_physics_questions_lab.gdlvl (19 stations; the two ship-entry ones added by the physics session).
+`tools/lab67.js` -> specs/67_physics_questions_lab.json -> levels/archive/gdlm_67_physics_questions_lab.gdlvl (19 stations; the two ship-entry ones added by the physics session).
 One open question per station; the label says what to do, the station's note what the sim predicts. Every station has
 a ruler (deco 211 squares a block apart) so heights are read against the level in the same frame, not the moving
 camera. Stations whose answer is a choice never kill either way. `node tools/lab67.js --check` plays each station's
