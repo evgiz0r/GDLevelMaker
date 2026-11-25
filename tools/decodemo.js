@@ -160,4 +160,4 @@ if (require.main === module) {
     page(rows, at); console.log("sheet: local/decodemo/index.html (http://localhost:8765/local/decodemo/index.html)");
   }
 }
-module.exports = { build, RUNGS };
+module.exports = { build, RUNGS, THEMES, FIRE };

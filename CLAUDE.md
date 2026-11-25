@@ -440,7 +440,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   local/compare_sections/). **The energy curve, one definition**: `tools/energy.js` (obstacle starts per bar, as a
   percentile in the level; `vsSong` against the song's loudness, `vsSheet` against a vibe sheet's beat energies; test
   `node tests/energy.js`).
-- **Deco options and composition** (ART.md "Deco options and composition"): `tools/decodemo.js` (one stretch dressed rung by rung, ice / fire, `--shots` sheet), `tools/decocomp.js` (how deco is arranged vs the officials), `tools/lane.js` (the play lane, clutter, edge art, framing; spec `"lane": true`).
+- **Deco options and composition** (ART.md "Deco options and composition"): `tools/decogallery.js` (one element at a time -- blocks, spikes, backgrounds -- in ice and fire, `--shots` gallery page), `tools/decodemo.js` (one stretch dressed rung by rung, ice / fire, `--shots` sheet), `tools/decocomp.js` (how deco is arranged vs the officials), `tools/lane.js` (the play lane, clutter, edge art, framing; spec `"lane": true`).
 - **`tools/repeat.js` -- gameplay repetition** (repeated play windows, the most used mini-structure, back-to-back loops, same-height corridors -> R 0..1; `--top N` pictures; `--ref` the officials' reference -> knowledge/repeat_ref.json); taste.js applies it as the user's rule on top of the model (TASTE_DATA.md "Repetition").
 - **Taste learned from real levels** (TASTE_DATA.md: the corpus of ~330 rated / unrated / official levels with
   likes and downloads, the static measures, which ones separate featured levels from the rest within a tier

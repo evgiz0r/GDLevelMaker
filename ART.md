@@ -530,6 +530,9 @@ we can do, for bricks, for deco. the best features so far. idk for ice/fire."
   in ice (the kit) and fire (the ice kit's shapes in lava colours plus Hellgate's chains, skulls, ruins, embers). `--shots`
   renders them with shoot.js and writes the sheet `local/decodemo/index.html` (GD art: PC only). All 14 pass roles.js and
   channels.js. Fire has no kit of its own yet: if the user picks it, it becomes `tools/themes/fire.js`.
+- **`tools/decogallery.js [--shots]`** (the user: "like firy blocks or spikes, some options of how it might look. background"):
+  one small strip, one element changed at a time -- 5 block dressings, 5 hazard treatments (incl. the ice spike 177-179 and
+  thorn pit 9 skins), 6 backgrounds -- each in ice and fire; page local/decogallery/index.html (GD art, PC only).
 - **`tools/decocomp.js`**: how deco is ARRANGED (rhythm cv, quiet stretches, peaks, focal share, clumping, set pieces,
   deco at transitions, following the play); `--ref` the officials' and the corpus' numbers -> knowledge/decocomp_ref.json.
   Our levels: quiet ~0 (no breathing space), focal 0.25-0.29 (near even, 0.2).
