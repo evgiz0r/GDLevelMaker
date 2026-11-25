@@ -274,8 +274,11 @@ for (const [x, y] of [['src="../lib/', 'src="lib/'], ['<script src="../local/bea
   if (!draw.includes(x)) throw new Error("draw.html changed, update tools/web.js: " + x); draw = draw.split(x).join(y); }
 fs.writeFileSync(path.join(OUT, "draw.html"), draw);
 for (const f of ["draw_worker.js", "draw_songs.js", "song_grids.js", "bricks.js"]) fs.copyFileSync(path.join(ROOT, "viewer", f), path.join(OUT, f));
+// the main levels' bricks (RobTop's, tools/brickset.js --main): this page is Evgeni's private Artifact, so they may go on it
+const BM = path.join(ROOT, "local", "bricks_main.js"), hasBM = fs.existsSync(BM); if (hasBM) fs.copyFileSync(BM, path.join(OUT, "bricks_main.js"));
 const files = { "levels.js": "levels.js", "beats.js": "beats.js", "solve_worker.js": "solve_worker.js", "windows_worker.js": "windows_worker.js",
   "draw.html": "draw.html", "draw_worker.js": "draw_worker.js", "draw_songs.js": "draw_songs.js", "song_grids.js": "song_grids.js", "bricks.js": "bricks.js" };
+if (hasBM) files["bricks_main.js"] = "bricks_main.js";
 for (const m of maps) files["maps/" + m + "_shapes.jpg"] = "maps/" + m + "_shapes.jpg";
 for (const f of libs) files["lib/" + f] = "lib/" + f;
 fs.writeFileSync(path.join(OUT, "publish.json"), JSON.stringify({ file_path: path.join(OUT, "index.html"), root: OUT, files, capabilities: { db: {} } }, null, 1));

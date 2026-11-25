@@ -1,9 +1,10 @@
-// node tests/intent.js [--save <dir>]   -- the ✨ one pen (lib/intent.js, DRAW.md "One pen: path or shape"): hand-drawn
+// node tests/intent.js [--save <dir>] [--main]   (--main: with the private main-level bricks, local/bricks_main.js)   -- the ✨ one pen (lib/intent.js, DRAW.md "One pen: path or shape"): hand-drawn
 // strokes (a little wobble) are read as path or shape, turned into bricks / corridors with their presses, and the result
 // must play with those presses alone. --save writes each result as a sketch (for tools/sketchshot.js pictures).
 "use strict";
 const fs = require("fs"), path = require("path"), R = path.join(__dirname, "..");
 global.window = global.window || {}; require(path.join(R, "viewer", "bricks.js"));
+const BR = window.GD_BRICKS.concat(process.argv.includes("--main") && fs.existsSync(path.join(R, "local", "bricks_main.js")) ? (require(path.join(R, "local", "bricks_main.js")), window.GD_BRICKS_MAIN) : []);
 const I = require(path.join(R, "lib", "intent.js")), SK = require(path.join(R, "lib", "sketch.js"));
 const G = Object.assign({}, require(path.join(R, "lib", "gd.js")), require(path.join(R, "lib", "objects.js")), require(path.join(R, "lib", "physics.js")));
 const A = process.argv.slice(2), save = A.includes("--save") ? A[A.indexOf("--save") + 1] : null;
@@ -21,7 +22,7 @@ let bad = 0;
 for (const c of CASES) {
   const sk = { v: 1, id: "intent-" + c.name.replace(/\W+/g, "-"), name: "✨ " + c.name, speed: 1, items: [] }, it = { k: "stroke", pen: "auto", pts: c.pts };
   sk.items.push(it);
-  const t0 = Date.now(), r = I.apply(sk, it, window.GD_BRICKS), ms = Date.now() - t0;
+  const t0 = Date.now(), r = I.apply(sk, it, BR), ms = Date.now() - t0;
   // a shape built as drawn has no presses of its own: the layout fitter (what the board runs) makes it play
   let play = sk, ev = null;
   if (r.placed.length && !sk.items.some(i => i.k === "press")) { const f = require(path.join(R, "lib", "sketchfit.js")).fit(JSON.parse(JSON.stringify(sk))); play = f.sketch; ev = f.events; }

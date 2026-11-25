@@ -340,12 +340,19 @@ What it showed first (FROSTBITE 2.66 vs Electrodynamix 2.65, same model):
   - flying presses (ship, ufo, wave, swing) cost only the slip; the flight is scored by how open it is: per second,
     p = erf(slack / 2 / (FLY_SPREAD * sqrt2)), slack = free height around the player minus its size
     (`lib/difficulty.js flyRoom`; FLY_SIZE ship/ufo/swing 30, wave 10, mini x0.6; FLY_SPREAD 12 units, ASSUMED);
-  - the after-portal cut only on a jumping press whose window opens after the portal and really closes.
-  FROSTBITE: v1 2.66 -> v2 0.63 (presses 0.56 + flight 0.07 over 38 s of 60-unit-slack ship). On the mains, v2's
+  - the after-portal cut only on a jumping press whose window opens after the portal and really closes;
+  - gravity play (the user: "gravity play should be counted as increased difficulty slightly somehow"): a jumping press
+    made upside down or within 1 s of a gravity flip has its chance x 0.99 (GRAV_PEN, ASSUMED; FROSTBITE: 20 presses,
+    +0.09).
+  FROSTBITE: v1 2.66 -> v2 0.72 (presses 0.65 incl. gravity 0.09 + flight 0.07 over 38 s of 60-unit-slack ship). On the mains, v2's
   presses alone (no flight: RobTop's levels are only on the PC) rank worse (Spearman vs stars 0.57, v1 0.83):
   Clubstep's and ToE 2's difficulty is in their corridors, so the flight part is needed before v2 replaces v1.
   NEXT: run `node tools/balance.js official:1 ... official:22 --json` on the PC (it has the levels), fit FLY_SPREAD on
   stars and the user's attempts from `flyRaw`, then decide. score.js and the board still use v1.
+- **The timing curve is too steep for ordinary jumps** (2026-11-25, Dry Out 4* vs Time Machine 8*): with SIGMA 13 ms a
+  window over ~70 ms is a near-certain hit, so Time Machine's eight 83 ms jumps cost 0.004 each, like a 300 ms one, and
+  the two levels differ only by press count (v2 presses 0.48 vs 0.50). Refit SIGMA (or a spread that grows with
+  speed / density) together with FLY_SPREAD on the mains' stars and the user's attempts.
 - **Lone spike (fairness, not score)**: a jumping press under 60 ms among neighbours (±5 s) of 150 ms median or more
   is printed as SPIKE (knowledge/checklist.md "Fair"). FROSTBITE 8.2 s (the triple spike, 46 ms among ~296 ms).
   Sweep of the 29 GDLM levels with a saved route (2026-11-25): 9 spikes in 6 levels -- GDLM 43 (24.4, 25.6 s), 45 (3.9 s),

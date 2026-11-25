@@ -399,8 +399,17 @@ knowledge/lego_solve.json.
 | 1 Stereo Madness, min 0.85 | 13 bricks, 19% | 52 s, 50 repairs, 45 presses | 56 s, 41 repairs, 63 presses | 110 s |
 | 1 Stereo Madness, min 0.6 | 52 bricks, 72% | 53 s, 50 repairs, 45 presses | 65 s, 34 repairs, 95 presses | - |
 | 2 Back On Track, min 0.85 | 20 bricks, 27% | 96 s, 57 repairs, 50 presses | 95 s, 46 repairs, 67 presses | 78 s |
+| 1 Stereo Madness, min 0.6, needed-only | 52 bricks, 72% | 52 s, 50 repairs, 45 presses | 59 s, 33 repairs, 82 presses | - |
+| 2 Back On Track, min 0.6, needed-only | 65 bricks, 85% | 98 s, 57 repairs, 50 presses | 107 s, 33 repairs, 82 presses | - |
 
-So far the hints cut repairs (up to a third) but not time, and they add presses: a brick's clicks fire where the level
+"needed-only" (`hints.needed`): a hinted press is taken only when the run dies within 1 s without it (the solver thread
+agreed; in flying parts it would also keep a press that widens a window under 100 ms, lib/natural.js EASY_MS -- not in
+yet). It barely changes the presses: in a cube level some obstacle comes within any second, so "dies without it" is
+almost always true at a brick's press x. Verdict for now: on cube levels the plain local repair is as fast, and layout
+hints don't pay; worth trying again on flying stretches (where the search is costly) and with route-matched bricks
+(match by layout AND the player's height on entry), not more of the same.
+
+So far the hints cut repairs (up to 40%) but not time, and they add presses: a brick's clicks fire where the level
 needs fewer (the match is by layout, not by the route). Next: take a hinted press only where the sim says it is needed
 (a death within ~1 s without it), and score hints by how often the level's real presses agree (`lego_match.js --test`
 precision 50-75% today). Times are one cloud run each, with another session's job running.

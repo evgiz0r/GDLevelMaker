@@ -214,7 +214,14 @@ function drive(lib, w, s0, held0, theta, untilX, hints) {
     let press = false;
     const xb = (GD.progressX ? GD.progressX(s) : s.x) / 30, h = hints && hintAt(hints, xb);
     if (h) {   // the brick's next click whose x the player has reached (and not passed by more than a block)
-      const c = h.clicks.filter(c => c[0] <= xb && c[0] > xb - 1 && !!c[1] !== held).pop();
+      let c = h.clicks.filter(c => c[0] <= xb && c[0] > xb - 1 && !!c[1] !== held).pop();
+      // a hinted press is taken only where the run dies within ~1 s without it (the brick was matched by its layout,
+      // not its route, so its extra presses are not this level's); releases are always followed
+      if (c && c[1] && hints.needed) {
+        const q = { ...s, used: s.used.slice() };
+        for (let k = 0; k < 240 && !q.dead && !q.done; k++) GD.step(w, q, { press: false, held });
+        if (!q.dead) c = null;
+      }
       if (c && t - last > 2) { held = !!c[1]; press = held; last = t; ev.push({ tick: t, type: held ? "press" : "release" }); }
     } else if (t % 4 === 0 && t - last > 8) {
       const p0 = share(lib, w, s, held).p;
