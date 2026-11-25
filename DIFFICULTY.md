@@ -348,6 +348,11 @@ What it showed first (FROSTBITE 2.66 vs Electrodynamix 2.65, same model):
   stars and the user's attempts from `flyRaw`, then decide. score.js and the board still use v1.
 - **Lone spike (fairness, not score)**: a jumping press under 60 ms among neighbours (±5 s) of 150 ms median or more
   is printed as SPIKE (knowledge/checklist.md "Fair"). FROSTBITE 8.2 s (the triple spike, 46 ms among ~296 ms).
+  Sweep of the 29 GDLM levels with a saved route (2026-11-25): 9 spikes in 6 levels -- GDLM 43 (24.4, 25.6 s), 45 (3.9 s),
+  69 (28.7 s), 70 (1.8 s; robot 28.3 and 61.6 s, 58 ms), 72 (8.2 s). Seven of them are 46 ms cube jumps: the triple spike at
+  1x (45.8 ms whatever the run-up, tools/collab.js) dropped into a calm stretch. So the family is "a 1x triple in an easy
+  part"; compose / collab should not place one there. v2 on the same sweep: every GDLM level 0.0-0.9 except GDLM 62
+  (1.18: its hit-timed ship corridor, flight 0.98 over 13 s).
 - Also open: a press whose window starts well before the portal (the 69 s one opens ~200 ms before it) can be pressed
   before the switch; the rule still counts it as forced.
 
