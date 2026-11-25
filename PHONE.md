@@ -63,6 +63,10 @@ Link: in `local/phone/url.txt` (shared folder; also in Claude's memory). Not in 
 - Not on the phone: official RobTop levels (`levels.local.js`), recordings and "compare". Links: a published page's address
   keeps only a plain `#name`, so the phone page opens the short form `#<base>--v5--t40` (LINKS.md; `tools/link.js` prints
   it), and its 🔗 open link box takes any pasted link.
+- **Deco options** (2026-11-25): the "deco" button (or #deco) opens deco/index.html over the page: tools/decogallery.js
+  and tools/decodemo.js frames (GD art) as 960 px JPGs, ice and fire side by side. Build: run both with --shots, then
+  `node tools/deco_page.js` (-> local/phone_deco/), then tools/web.js carries it as deco/. GD art: only on this private page
+  (VISUALS.md, the one exception). To add or refresh just the pictures, publish with `files` = the deco/ paths only.
 
 ## Offline snapshot: the PC viewer in one file (2026-11-24)
 
