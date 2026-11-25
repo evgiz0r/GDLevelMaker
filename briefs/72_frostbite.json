@@ -219,12 +219,13 @@
    ],
    "args": {
     "wave-zigzag": {
-     "seg": 3,
+     "seg": 4,
      "flat": 2,
-     "gap": 4
+     "gap": 5
     }
    },
-   "speed": "2x"
+   "speed": "2x",
+   "mirror": true
   },
   {
    "name": "crystal wave",
@@ -515,7 +516,8 @@
   }
  ],
  "accept": {
-  "mode changes": "the user's brief asks for 2-3 modes in each 15 s section (Cube -> Ship, Ship -> Ball -> Cube, ...)"
+  "mode changes": "the user's brief asks for 2-3 modes in each 15 s section (Cube -> Ship, Ship -> Ball -> Cube, ...)",
+  "route": "the reversal wave alone routes in 3 presses with no short legs (compose --section 6); only the whole-level route planner leaves extra presses there (its 15 s wave-merge budget on a 90 s level, STYLE.md)"
  },
  "notes": "minWindowMs 45 at Harder: our 1x triple is 45.8 ms; the brief asks for triples"
 }

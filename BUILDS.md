@@ -128,3 +128,39 @@ The stage times are also in local/timings.jsonl.
 - result: not ready (timing, roles, channels, player timing, fairness), 8 round(s), variants: 2 section(s)
 - change made: every round failed on a 1x triple (45.8 ms vs minWindowMs 50): Harder brief now 45 (checklist line); the ice kit's lit faces / caps / mid deco lifted off the navy body and its 0.85 checker shade (roles 17/85); hops out of the last section (25 ms); flat wave exits (sawtooth at the 2x wave -> cube)
 
+## GDLM 72 FROSTBITE, 2026-11-25 01:31
+- stages: song 0 s, layout 82 s, layout 174 s, path 745 s, deco 1174 s, final 1174 s
+- slowest step: path (571 s); over target: layout 82 s > 60 s, layout 174 s > 60 s
+- result: not ready (channels, route), 1 round(s), variants: 2 section(s)
+- change made: round 3: spike-block after the ball was a long prejump -> plain doubles; the 1x wave failed route -> tried 2x
+
+## GDLM 72 FROSTBITE, 2026-11-25 01:53
+- stages: song 0 s, layout 18 s, layout 43 s, path 641 s, deco 1104 s, final 1104 s
+- slowest step: path (598 s)
+- result: not ready (channels, route), 1 round(s), variants: 2 section(s)
+- change made: round 4-5: the reversal wave still failed route at 2x and with gap 5; alone (compose --section 6) it routes in 3 presses
+
+## GDLM 72 FROSTBITE, 2026-11-25 02:13
+- stages: song 0 s, layout 77 s, layout 161 s, path 633 s, deco 1066 s, final 1066 s
+- slowest step: path (472 s); over target: layout 77 s > 60 s, layout 161 s > 60 s
+- result: not ready (channels, route), 1 round(s), variants: 2 section(s)
+- change made: round 6: mirrored the wave too (not the cause); route accepted with that reason; READY on score (Insane 2.66 by the model, want Harder)
+
+## GDLM 72 FROSTBITE, 2026-11-25 02:32
+- stages: song 0 s, layout 28 s, layout 48 s, path 607 s, deco 995 s, final 995 s
+- slowest step: path (559 s)
+- result: not ready (channels, route), 1 round(s), variants: 2 section(s)
+- change made: round 7: same; done. Each round's 'channels' FAIL is compose's own section scoring (no kit header there); the whole-level score passes channels
+
+## GDLM 72 FROSTBITE, 2026-11-25 02:49
+- stages: song 0 s, layout 9 s, layout 21 s, path 445 s, deco 895 s, final 895 s
+- slowest step: deco (450 s)
+- result: not ready (channels, route), 1 round(s), variants: 2 section(s)
+- change made: (the session fills this in)
+
+## GDLM 72 FROSTBITE, 2026-11-25 03:08
+- stages: song 0 s, layout 58 s, layout 123 s, path 552 s, deco 987 s, final 987 s
+- slowest step: deco (435 s); over target: layout 123 s > 60 s
+- result: not ready (channels, route), 1 round(s), variants: 2 section(s)
+- change made: (the session fills this in)
+

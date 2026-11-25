@@ -51,3 +51,27 @@ result is a taste call for the user; the user's own picks count double (write th
 - frozen entrance: v0 kept (4) over v1 4 [FAIL timing, WARN deco coverage, FAIL channels, WARN height, WARN length, WARN ending, FAIL player timing, FAIL difficulty, WARN pacing, WARN taste, WARN craft], v2 4 [FAIL timing, WARN deco coverage, FAIL channels, WARN height, WARN length, WARN ending, FAIL player timing, FAIL difficulty, WARN pacing, WARN taste, WARN craft] -- CLOSE: a taste call for the user
 - final jumps: v0 kept (0) over v1 0 [FAIL timing, WARN deco coverage, FAIL channels, WARN length, WARN ending, WARN hazards matter, WARN reactive, FAIL player timing, FAIL difficulty, WARN pacing, WARN taste, WARN craft], v2 0 [FAIL timing, FAIL channels, WARN length, WARN ending, WARN hazards matter, WARN reactive, FAIL player timing, FAIL difficulty, WARN taste, WARN craft] -- CLOSE: a taste call for the user
 
+## GDLM 72 FROSTBITE (2026-11-25)
+- frozen entrance: v0 kept (64) over v1 64 [WARN deco coverage, FAIL channels, WARN height, WARN length, WARN ending, FAIL difficulty, WARN pacing, WARN taste, WARN craft], v2 64 [WARN deco coverage, FAIL channels, WARN height, WARN length, WARN ending, FAIL difficulty, WARN pacing, WARN taste, WARN craft] -- CLOSE: a taste call for the user
+- final jumps: v2 kept (70) over v1 64 [FAIL channels, WARN length, WARN ending, WARN reactive, FAIL difficulty, WARN pacing, WARN taste, WARN craft], v0 58 [FAIL channels, WARN length, WARN ending, WARN reactive, FAIL difficulty, WARN climbs, WARN pacing, WARN taste, WARN craft]
+
+## GDLM 72 FROSTBITE (2026-11-25)
+- frozen entrance: v0 kept (64) over v1 64 [WARN deco coverage, FAIL channels, WARN height, WARN length, WARN ending, FAIL difficulty, WARN pacing, WARN taste, WARN craft], v2 64 [WARN deco coverage, FAIL channels, WARN height, WARN length, WARN ending, FAIL difficulty, WARN pacing, WARN taste, WARN craft] -- CLOSE: a taste call for the user
+- final jumps: v2 kept (70) over v1 64 [FAIL channels, WARN length, WARN ending, WARN reactive, FAIL difficulty, WARN pacing, WARN taste, WARN craft], v0 58 [FAIL channels, WARN length, WARN ending, WARN reactive, FAIL difficulty, WARN climbs, WARN pacing, WARN taste, WARN craft]
+
+## GDLM 72 FROSTBITE (2026-11-25)
+- frozen entrance: v0 kept (64) over v1 64 [WARN deco coverage, FAIL channels, WARN height, WARN length, WARN ending, FAIL difficulty, WARN pacing, WARN taste, WARN craft], v2 64 [WARN deco coverage, FAIL channels, WARN height, WARN length, WARN ending, FAIL difficulty, WARN pacing, WARN taste, WARN craft] -- CLOSE: a taste call for the user
+- final jumps: v2 kept (70) over v1 64 [FAIL channels, WARN length, WARN ending, WARN reactive, FAIL difficulty, WARN pacing, WARN taste, WARN craft], v0 58 [FAIL channels, WARN length, WARN ending, WARN reactive, FAIL difficulty, WARN climbs, WARN pacing, WARN taste, WARN craft]
+
+## GDLM 72 FROSTBITE (2026-11-25)
+- frozen entrance: v0 kept (64) over v1 64 [WARN deco coverage, FAIL channels, WARN height, WARN length, WARN ending, FAIL difficulty, WARN pacing, WARN taste, WARN craft], v2 64 [WARN deco coverage, FAIL channels, WARN height, WARN length, WARN ending, FAIL difficulty, WARN pacing, WARN taste, WARN craft] -- CLOSE: a taste call for the user
+- final jumps: v1 kept (64) over v2 64 [FAIL channels, WARN length, WARN ending, WARN reactive, FAIL difficulty, WARN pacing, WARN taste, WARN craft], v0 58 [FAIL channels, WARN length, WARN ending, WARN reactive, FAIL difficulty, WARN climbs, WARN pacing, WARN taste, WARN craft] -- CLOSE: a taste call for the user
+
+## GDLM 72 FROSTBITE (2026-11-25)
+- frozen entrance: v0 kept (64) over v1 64 [WARN deco coverage, FAIL channels, WARN height, WARN length, WARN ending, FAIL difficulty, WARN pacing, WARN taste, WARN craft], v2 64 [WARN deco coverage, FAIL channels, WARN height, WARN length, WARN ending, FAIL difficulty, WARN pacing, WARN taste, WARN craft] -- CLOSE: a taste call for the user
+- final jumps: v1 kept (64) over v2 64 [FAIL channels, WARN length, WARN ending, WARN reactive, FAIL difficulty, WARN pacing, WARN taste, WARN craft], v0 58 [FAIL channels, WARN length, WARN ending, WARN reactive, FAIL difficulty, WARN climbs, WARN pacing, WARN taste, WARN craft] -- CLOSE: a taste call for the user
+
+## GDLM 72 FROSTBITE (2026-11-25)
+- frozen entrance: v0 kept (64) over v1 64 [WARN deco coverage, FAIL channels, WARN height, WARN length, WARN ending, FAIL difficulty, WARN pacing, WARN taste, WARN craft], v2 64 [WARN deco coverage, FAIL channels, WARN height, WARN length, WARN ending, FAIL difficulty, WARN pacing, WARN taste, WARN craft] -- CLOSE: a taste call for the user
+- final jumps: v1 kept (64) over v2 64 [FAIL channels, WARN length, WARN ending, WARN reactive, FAIL difficulty, WARN pacing, WARN taste, WARN craft], v0 58 [FAIL channels, WARN length, WARN ending, WARN reactive, FAIL difficulty, WARN climbs, WARN pacing, WARN taste, WARN craft] -- CLOSE: a taste call for the user
+
