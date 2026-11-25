@@ -339,7 +339,7 @@ function measure(src, w, r, inputs, i0, i1) {
   P.routeKind = src.routeKind || (src.src === "official" ? "unknown" : "ours");
   if (src.routeAt) P.routeAt = src.routeAt;
   if (src.src === "official") P.routePlan = src.routePlan || "";   // the planner commit (difficulty_solve.js); "" = planned before the 2026-11-25 wave planner
-  { const pr = P.clicks.filter(c => c[2]).map(c => c[3]); P.jitter = mode === "wave" ? pr.filter((t, i) => i && t - pr[i - 1] < 0.1).length : 0; }
+  { const pr = P.clicks.filter(c => c[2]).map(c => c[3]); P.jitter = FAMILY[mode] === "fly" ? pr.filter((t, i) => i && t - pr[i - 1] < 0.1).length : 0; }
   // inner cut points (the user, 2026-11-25: "what we could cut from start or the end, like checkpoints where we could
   // take even smaller parts (on demand)"): calm moments between two presses where the brick can be trimmed -- the button
   // up, at least 0.2 s to the next press, and (cube family) on the ground. [x blocks, seconds, presses before it]; a
@@ -427,9 +427,9 @@ function mine(which, sketchFiles) {
     let R; try { R = route(s); } catch (e) { console.log("  skip", s.name, e.message); continue; }
     const cuts = cut(R.r, R.inputs, s.whole);
     let ws = []; try { ws = windowsOf(s, R.w, R.r); } catch (e) { console.log("  no windows for", s.name, e.message); }
-    for (const [i0, i1] of cuts) { const P = measure(s, R.w, R.r, R.inputs, i0, i1); Object.assign(P, pieceDifficulty(ws, R.r.path[i0].tick, R.r.path[i1].tick)); P.grain = "piece"; pieces.push(P); }
+    for (const [i0, i1] of cuts) { const P = measure(s, R.w, R.r, R.inputs, i0, i1); Object.assign(P, pieceDifficulty(ws, R.r.path[i0].tick, R.r.path[i1].tick)); P.grain = "piece"; if (P.jitter && P.jitter < 3 && !P.tight) P.jitter = 0; pieces.push(P); }
     // bricks: the same route cut finer (not for the library's whole pieces)
-    if (!s.whole) for (const [i0, i1, kind] of cut(R.r, R.inputs, { auto: true, items: R.w.items }, "brick")) { const P = measure(s, R.w, R.r, R.inputs, i0, i1); Object.assign(P, pieceDifficulty(ws, R.r.path[i0].tick, R.r.path[i1].tick)); P.grain = "brick"; if (kind === "auto") { P.auto = true; P.sig = "auto / " + P.sig; P.empty = false; } pieces.push(P); }
+    if (!s.whole) for (const [i0, i1, kind] of cut(R.r, R.inputs, { auto: true, items: R.w.items }, "brick")) { const P = measure(s, R.w, R.r, R.inputs, i0, i1); Object.assign(P, pieceDifficulty(ws, R.r.path[i0].tick, R.r.path[i1].tick)); P.grain = "brick"; if (P.jitter && P.jitter < 3 && !P.tight) P.jitter = 0; if (kind === "auto") { P.auto = true; P.sig = "auto / " + P.sig; P.empty = false; } pieces.push(P); }
     console.log(`  ${s.src.padEnd(8)} ${s.name.padEnd(34)} ${String(cuts.length).padStart(3)} pieces${R.r.dead ? " (route dies at block " + Math.round(R.r.path[R.r.path.length - 1].x / B) + ")" : ""}  ${Date.now() - t0} ms`);
   }
   pieces.forEach((p, i) => p.id = ({ official: "r", ours: "u", sketch: "s", library: "l" }[p.src] + "-" + p.level.replace(/[^a-z0-9]+/gi, "_").toLowerCase() + "-" + p.x + (p.grain === "brick" ? (p.auto ? "a" : "b") : "")));
