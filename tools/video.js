@@ -72,7 +72,7 @@ if (require.main === module) (async () => {
   const dur = frames / fps;
   const enc = vb => {
     const a = ["-v", "error", "-y", "-framerate", String(fps), "-i", path.join(fdir, "f%05d.jpg")];
-    if (R.song) a.push("-ss", String(R.song.offset + (info.from || 0)), "-i", R.song.file, "-map", "0:v", "-map", "1:a", "-c:a", "aac", "-b:a", "160k", "-shortest");
+    if (R.song) a.push("-ss", String(R.song.offset + (info.from || 0)), "-i", R.song.file, "-map", "0:v", "-map", "1:a", "-c:a", "aac", "-b:a", "160k", "-af", "apad", "-t", dur.toFixed(3));   // the frames set the length: a song that ends before the end screen is padded with silence (-shortest cut Jumper's card off, 2026-11-25)
     a.push("-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "medium");
     if (vb) a.push("-b:v", vb + "k", "-maxrate", Math.round(vb * 1.3) + "k", "-bufsize", Math.round(vb * 2) + "k"); else a.push("-crf", "22");
     a.push("-movflags", "+faststart", out);

@@ -12,6 +12,7 @@ node tools/difficulty_solve.js 7 --resume             # after a physics change: 
 # a stopped solve carries on from its 30 s checkpoint (local/difficulty/NN.part.json); --fresh starts over
 node tools/difficulty.js                              # all cached official levels vs ratings and your attempts
 node tools/save_stats.js                              # your lifetime attempts per official level (save, read-only)
+node tools/save_stats.js --demons                     # every level in your save (main + online): tier, done, attempts, best %; --done, --diff Insane, --list
 node tools/runs.js <rec.mkv> [...] --join --level 7 --device mouse   # your deaths in a recording
 ```
 
@@ -132,6 +133,12 @@ timing misses.
 (read-only, kept in `local/`). All 22 are beaten; Clubstep took 1886 attempts, ToE 2 3258 and
 Deadlocked 3951. The others took 39-560. The game writes the save only now and then, so a
 session's attempts show up there late.
+
+The same tool also writes `local/difficulty/user_stats_online.json`: every level in the save (the 22 main ones and every
+online level he played, GLM_03), its tier from stars / demon type, done (normal 100 or `c_<id>` in GS_completed), attempts,
+jumps, best normal and practice %, and the save's totals (GS_value 5 = demons beaten). His beaten demons with attempt
+counts are calibration data for the model: `tools/fetch_level.js <id>` pulls one for measuring. Unconfirmed: that the
+save's k76 demon type uses the server's numbers (3 easy, 4 medium, 0 hard, 5 insane, 6 extreme) -- check a known demon.
 
 ## Against the official levels (the player's route, SIGMA 13, LAPSE 0.75 %, SETTLE 300 ms)
 
