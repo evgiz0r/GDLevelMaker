@@ -3,7 +3,12 @@
 // folder (<GD save dir>/geode/mods/gdlm.probe/). Read them with tools/probe.js (GEODE.md).
 //
 // Line types in attempts/*.jsonl (all one JSON object per line):
-//   {"t":"start", level, id, attempt, practice, dual, platformer, playback, wall_ms, x, y}
+//   {"t":"start", level, id, attempt, practice, dual, platformer, playback, wall_ms, x, y, lt, step, from, cps, hold}
+//        lt = level time at the start (s; > 0 when a practice attempt starts at a checkpoint), step = m_currentStep,
+//        from = the unique id of the checkpoint it starts from (-1: the level's start), cps = checkpoints in the list,
+//        hold = the jump button was down as the attempt began
+//   {"t":"cp", n, id, lt, x, y}               a practice checkpoint stored (lt = the level time it restores to)
+//   {"t":"cpdel", n, id}  /  {"t":"cpclear", n}   a checkpoint removed (the delete key) / all removed
 //   {"t":"tick", n, step, lt, p:[x,y,vy,mode,up,ground,size,speed,px,py], p2:[...] (dual only), cam:[x,y]}
 //   {"t":"btn", n, down, button, p1}          a press / release made after n ticks: it acts in tick n+1
 //   {"t":"death", n, obj, ox, oy, x, y}       obj = the id of what killed (-1 unknown)
@@ -51,6 +56,7 @@ struct Attempt {
     long long n = 0;
     std::string buf;
     std::string file;
+    int lastCp = -1;          // the newest checkpoint's unique id already in the log
 };
 
 Attempt g_att;
@@ -260,6 +266,23 @@ void openPlayLevel() {
     if (g_openNext) { g_openNext = false; Loader::get()->queueInMainThread([] { openPlayLevel(); }); }
 }
 
+int lastCheckpointId(PlayLayer* pl) {
+    if (!pl || !pl->m_checkpointArray || pl->m_checkpointArray->count() == 0) return -1;
+    auto* cp = static_cast<CheckpointObject*>(pl->m_checkpointArray->lastObject());
+    return cp ? cp->m_uniqueID : -1;
+}
+
+void logCheckpoint(CheckpointObject* cp, char const* via) {
+    if (!g_att.active || !cp || cp->m_uniqueID == g_att.lastCp) return;
+    g_att.lastCp = cp->m_uniqueID;
+    float x = 0.f, y = 0.f;
+    if (cp->m_player1Checkpoint) { x = cp->m_player1Checkpoint->m_position.x; y = cp->m_player1Checkpoint->m_position.y; }
+    char b[224];
+    std::snprintf(b, sizeof b, "{\"t\":\"cp\",\"n\":%lld,\"id\":%d,\"lt\":%.6f,\"x\":%.4f,\"y\":%.4f,\"via\":\"%s\"}\n",
+        g_att.n, cp->m_uniqueID, cp->m_gameState.m_levelTime, x, y, via);
+    g_att.buf += b;
+}
+
 void begin(PlayLayer* pl) {
     if (g_att.active) flush("reset");
     g_play.active = false;
@@ -271,18 +294,24 @@ void begin(PlayLayer* pl) {
     if (!wanted(pl) && !g_play.active) return;
     g_att.active = true;
     g_att.n = 0;
+    g_att.lastCp = lastCheckpointId(pl);
     std::string name = pl->m_level->m_levelName;
     long long ms = wallMs();
     auto dir = saveDir() / "attempts";
     g_att.file = (dir / fmt::format("{}_{}_{}.jsonl", ms, safeName(name), g_seq++)).string();
     auto* p = pl->m_player1;
-    char b[512];
+    int held = 0;
+    if (p) { auto it = p->m_holdingButtons.find(1); held = (it != p->m_holdingButtons.end() && it->second) ? 1 : 0; }
+    char b[640];
     std::snprintf(b, sizeof b,
         "{\"t\":\"start\",\"level\":\"%s\",\"id\":%d,\"attempt\":%d,\"practice\":%d,\"dual\":%d,"
-        "\"platformer\":%d,\"playback\":%d,\"wall_ms\":%lld,\"x\":%.4f,\"y\":%.4f}\n",
+        "\"platformer\":%d,\"playback\":%d,\"wall_ms\":%lld,\"x\":%.4f,\"y\":%.4f,"
+        "\"lt\":%.6f,\"step\":%d,\"from\":%d,\"cps\":%d,\"hold\":%d}\n",
         esc(name).c_str(), static_cast<int>(pl->m_level->m_levelID.value()), pl->m_attempts,
         pl->m_isPracticeMode ? 1 : 0, pl->m_gameState.m_isDualMode ? 1 : 0, p && p->m_isPlatformer ? 1 : 0,
-        g_play.active ? 1 : 0, ms, p ? p->m_position.x : 0.f, p ? p->m_position.y : 0.f);
+        g_play.active ? 1 : 0, ms, p ? p->m_position.x : 0.f, p ? p->m_position.y : 0.f,
+        pl->m_gameState.m_levelTime, pl->m_currentStep, lastCheckpointId(pl),
+        pl->m_checkpointArray ? static_cast<int>(pl->m_checkpointArray->count()) : 0, held);
     g_att.buf.reserve(1 << 20);
     g_att.buf += b;
 }
@@ -316,6 +345,11 @@ class $modify(ProbeBase, GJBaseGameLayer) {
         std::snprintf(b, sizeof b, ",\"cam\":[%.3f,%.3f]}\n",
             m_gameState.m_cameraPosition.x, m_gameState.m_cameraPosition.y);
         o += b;
+        // a checkpoint stored where the storeCheckpoint hook did not see it (an inlined call): caught on the next tick
+        if (pl->m_isPracticeMode && pl->m_checkpointArray && pl->m_checkpointArray->count() > 0) {
+            auto* cp = static_cast<CheckpointObject*>(pl->m_checkpointArray->lastObject());
+            if (cp && cp->m_uniqueID != g_att.lastCp) logCheckpoint(cp, "tick");
+        }
     }
 
     void handleButton(bool down, int button, bool isPlayer1) {
@@ -356,6 +390,36 @@ class $modify(ProbePlay, PlayLayer) {
     void pauseGame(bool unfocused) {
         if (unfocused && g_play.loaded && !g_play.done) return;
         PlayLayer::pauseGame(unfocused);
+    }
+
+    // practice checkpoints, for tools/stitch.js (a full run from practice attempts): which checkpoint each attempt
+    // reached and placed; the checkpoint's own level time is what a respawn restores
+    void storeCheckpoint(CheckpointObject* cp) {
+        PlayLayer::storeCheckpoint(cp);
+        logCheckpoint(cp, "store");
+    }
+
+    void removeCheckpoint(bool first) {
+        int id = -1;
+        if (m_checkpointArray && m_checkpointArray->count() > 0) {
+            auto* cp = static_cast<CheckpointObject*>(first ? m_checkpointArray->objectAtIndex(0) : m_checkpointArray->lastObject());
+            if (cp) id = cp->m_uniqueID;
+        }
+        PlayLayer::removeCheckpoint(first);
+        if (!g_att.active) return;
+        g_att.lastCp = lastCheckpointId(this);   // the one now last was logged when it was stored
+        char b[96];
+        std::snprintf(b, sizeof b, "{\"t\":\"cpdel\",\"n\":%lld,\"id\":%d}\n", g_att.n, id);
+        g_att.buf += b;
+    }
+
+    void removeAllCheckpoints() {
+        PlayLayer::removeAllCheckpoints();
+        if (!g_att.active) return;
+        g_att.lastCp = -1;
+        char b[64];
+        std::snprintf(b, sizeof b, "{\"t\":\"cpclear\",\"n\":%lld}\n", g_att.n);
+        g_att.buf += b;
     }
 
     void levelComplete() {

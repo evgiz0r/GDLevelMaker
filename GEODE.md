@@ -128,6 +128,32 @@ After a stopped run, check `play.json` is not left waiting in the mod's folder (
 - Open: levels not in the save (import a .gmd); official levels in practice mode only.
 
 
+## Practice -> full run (v0.4.0, 2026-11-25; USE_CASES 11)
+
+The user asked (2026-11-25): "do we have something that can make a run from a practice run from start to end?" Built:
+- **The mod (v0.4.0)** logs practice checkpoints: each attempt's start line gets `lt` (the level time it starts at: > 0 when
+  a practice respawn restored a checkpoint), `step`, `from` (the unique id of the checkpoint it started from, -1 = the
+  level's start), `cps` and `hold` (jump button down as it began); a `cp` line when a checkpoint is stored (`id`, `lt` =
+  the level time that checkpoint restores to, the player's x, y; `via` store = the PlayLayer::storeCheckpoint hook, tick =
+  caught on the next tick when the hook did not fire), `cpdel` / `cpclear` when the delete key removes one / all.
+- **`node tools/stitch.js [<level name>] [--level <what>] [--save] [--partial]`** walks back from the newest practice
+  attempt that reached the end: its start checkpoint -> the attempt that stored it -> that one's start checkpoint ... ->
+  the level's start, and joins each attempt's presses up to the next checkpoint. Ticks are absolute (attempt start =
+  round(checkpoint level time x 240) + the log's n). At a seam the button is set to what the next attempt began with.
+  Then our sim plays the joined run (cleared, or where it dies) and prints, at each checkpoint, the game's x against the
+  sim's (how far the sim has drifted from the real run). Output `local/stitched/<level>_<ms>.json`; `--save` adds it
+  to local/attempts/ (source "stitch") so the viewer shows it as a ghost and `tools/video.js <level> --run <id>` films it.
+- **In the real game:** `node tools/probe.js play save:<GDLM name> --events local/stitched/<file>.json --launch` plays the
+  stitched run unbroken in normal mode (GDLM levels only; announce it and get the user's go first, see "Playback").
+- Test: `node tests/stitch.js` (a solved level's route cut at three checkpoints with wasted attempts and junk presses
+  stitches back to the route and clears; a held seam; old logs refused).
+- **Not checked in the game yet** (needs v0.4.0 built + installed, then the user plays a level in practice): whether
+  storeCheckpoint fires for both Z-key and auto checkpoints, whether a respawn's level time is exactly the checkpoint's
+  (stitch.js warns on a mismatch or drift), and whether presses on the seam tick belong before or after it (warned as
+  "+-1 tick is unsure"). Known limits: one player and the jump button (no dual / platformer), no time-warp levels.
+  GD restores a checkpoint from saved state, so a stitched run may still part from the practice run where a respawn
+  is not exact (rotation, moving objects): the real-game playback is the final word.
+
 ## Building on this PC (2026-11-25)
 
 - Installed: Geode loader **v6.0.0** in the game (`Geode.dll` 6.0.0.0, changelog), GD **2.2091**. Toolchain: CMake 4.4.4,
