@@ -31,6 +31,7 @@ presses and the taste parts that move each score most.
 |---|---|---|
 | GDLM 41 classic vs GDLM 43 climb (17 s and 31 s, cube) | cloud, with --thumbs | ~20 s (tests/compare.js without pictures: 10 s) |
 | GDLM 70 candy night vs GDLM 72 FROSTBITE (70 s and 86 s, 5-6 modes) | cloud, with --thumbs | 149 s (43 s + 106 s: the windows of every press) |
+| official:4 Dry Out vs official:8 Time Machine | cloud, the PC's local/ files staged, with --thumbs | 31 s (the windows come cached from scored_NN.json) |
 
 GDLM 41 vs 43: 43 is harder (0.37 Normal vs 0.05 Easy: eight windows of 46 ms, two of them lone spikes among ~190 ms
 presses) and scores lower on taste (17 vs 39), mostly from repetition (R 0.65 vs 0.38).
@@ -38,6 +39,10 @@ presses) and scores lower on taste (17 vs 39), mostly from repetition (R 0.65 vs
 GDLM 70 vs 72: 72 is far harder by the current score (2.66 Insane vs 1.23 Hard), but almost all of that is the after-portal
 part (2.11): by v2 (after-portal only when forced, flying by room) the two are close (0.63 vs 0.58 Normal). 72 scores higher on
 taste (47 vs 21), has more distinct pieces (46% vs 32%) and a third of its seconds flying; 70 is 86% jumping. The verdict now says when v1 and v2 disagree like this.
+
+Dry Out vs Time Machine: the model puts them close (0.66 vs 0.78, both Normal) though they are rated Normal 4 and Harder 8;
+the costliest press in each is a wide (404 ms) ship press right after a portal (the after-portal part). Time Machine varies its
+pieces more (51% distinct vs 38%) and repeats less (R 0.10 vs 0.34). The "official rating" row shows the real rating beside ours.
 
 ## Open
 

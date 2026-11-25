@@ -148,6 +148,7 @@ const ROWS = [
   ["presses / s", L => L.size.pps, null],
   ["modes", L => L.size.modeKinds.join(" "), null],
   ["mode switches", L => Math.max(0, L.size.modes.length - 1), "high"],
+  ["official rating", L => L.difficulty.rating || null, null],
   ["difficulty", L => L.difficulty.score, null, L => L.difficulty.none ? "-" : `${L.difficulty.score.toFixed(2)} ${L.difficulty.label} (~${L.difficulty.attempts} att.)`],
   ["  v2 (flying by room)", L => L.difficulty.v2, null, L => L.difficulty.none ? "-" : `${L.difficulty.v2.toFixed(2)} ${L.difficulty.v2label}`],
   ["  timing / lapse / after-portal", L => L.difficulty.parts && L.difficulty.parts.timing, null, L => L.difficulty.none ? "-" : `${L.difficulty.parts.timing.toFixed(2)} / ${L.difficulty.parts.lapse.toFixed(2)} / ${L.difficulty.parts.settle.toFixed(2)}`],

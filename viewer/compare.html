@@ -61,7 +61,7 @@ function render(D) {
   h += `<div class="cards">` + L.map((l, i) => `<div class="card" style="--k:${K[i % 4]}">${l.thumb ? `<img src="${l.thumb}" alt="${esc(l.name)}">` : ""}
     <div class="in"><div class="nm"><span class="dot"></span>${esc(l.name)}</div>
     <div class="meta">${l.size.seconds != null ? l.size.seconds + " s · " : ""}${l.size.objects} objects · ${esc(l.size.modes.join(" › "))}</div>
-    <div class="figs"><div><b>${l.difficulty.none ? "–" : l.difficulty.score.toFixed(2)}</b><span>${l.difficulty.none ? "no route" : esc(l.difficulty.label)}</span></div>
+    <div class="figs"><div><b>${l.difficulty.none ? "–" : l.difficulty.score.toFixed(2)}</b><span>${l.difficulty.none ? "no route" : esc(l.difficulty.label)}${l.difficulty.rating ? " · rated " + esc(l.difficulty.rating) : ""}</span></div>
     <div><b>${l.taste.none ? "–" : l.taste.score}</b><span>taste /100</span></div>
     <div><b>${l.difficulty.none ? "–" : l.difficulty.tightestMs + "<small style='font-size:13px'> ms</small>"}</b><span>tightest window</span></div></div></div></div>`).join("") + `</div>`;
   h += `<h2>Side by side</h2><div class="tbl"><table><tr><th></th>${L.map((l, i) => `<th style="--k:${K[i % 4]}"><span class="dot"></span>${esc(l.name)}</th>`).join("")}</tr>` +
