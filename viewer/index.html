@@ -1867,7 +1867,8 @@ function markPick(m) {
   bar.querySelector("#markClose").onclick = () => markPick(null);
 }
 const markBtn = document.getElementById("markBtn");
-function setMarking(on) { marking = on; markBtn.classList.toggle("on", on); cv.classList.toggle("marking", on); if (on) { playing = false; setPlay(); syncSong(); notice("✎ Click the spot in the level that should change (Esc: cancel).", 0); } else { const n = document.getElementById("notice"); if (n && /Click the spot/.test(n.textContent)) n.hidden = true; } }
+function setMarking(on) { if (on && typeof DRAWM !== "undefined" && DRAWM.on) drawMode(false);   // the board covers the level: marks need it closed
+  marking = on; markBtn.classList.toggle("on", on); cv.classList.toggle("marking", on); if (on) { playing = false; setPlay(); syncSong(); notice("✎ Click the spot in the level that should change (Esc: cancel).", 0); } else { const n = document.getElementById("notice"); if (n && /Click the spot/.test(n.textContent)) n.hidden = true; } }
 addEventListener("keydown", e => { if (e.key === "Escape" && marking) setMarking(false); });
 markBtn.onclick = () => setMarking(!marking);
 addEventListener("keydown", e => { if ((e.key === "m" || e.key === "M") && !typing(e)) setMarking(!marking); });
