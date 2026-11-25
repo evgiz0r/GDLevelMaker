@@ -69,7 +69,7 @@ function demo(name, src, o = {}) {
   for (const b of objects) if (b.props) { delete b.props[21]; delete b.props[22]; delete b.props[41]; delete b.props[43]; delete b.props[24]; delete b.props[25]; delete b.props[57]; }
   const S = require("../lib/sync.js"); Object.assign(GD, S);
   let tl = null; try { tl = GD.SYNC.timeline(GD.makeWorld(objects, L.level.header)); } catch (e) {}
-  const end = Math.max(...objects.map(b => b.x)), vs = (o.variants || "dark,light,nebula").split(","), n = Math.max(vs.length, Math.round(end / 1800));
+  const end = Math.max(...objects.map(b => b.x)), vs = (o.variants || Object.keys(get(name).VARIANTS).join(",")).split(","), n = Math.max(vs.length, Math.round(end / 1800));
   const sections = Array.from({ length: n }, (_, i) => ({ from: Math.round(i * end / n / 30), variant: vs[i % vs.length] }));
   const scene = require("./scenes/theme.js");
   const r = scene({ objects, header: L.level.header, spec: { theme: { name, sections } }, tl, beatX: null, GD });

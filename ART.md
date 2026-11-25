@@ -533,6 +533,11 @@ we can do, for bricks, for deco. the best features so far. idk for ice/fire."
 - **`tools/decogallery.js [--shots]`** (the user: "like firy blocks or spikes, some options of how it might look. background"):
   one small strip, one element changed at a time -- 5 block dressings, 5 hazard treatments (incl. the ice spike 177-179 and
   thorn pit 9 skins), 6 backgrounds -- each in ice and fire; page local/decogallery/index.html (GD art, PC only).
+- **The picks became kits (2026-11-25, the user: "continue with your picks")**: `tools/themes/fire.js` (new: obsidian + lava rim,
+  molten seams, plain spikes with a few sparks, two rock ranges, lava haze, rising embers; chains and rays as quiet extras;
+  variants molten / inferno / ash) and ice's dressPlay gained small icicles under open bottom edges. Use with brief/spec
+  `"theme": "fire"`. Fire demo on Eclipse's play: roles 0/35, white 0, decocomp quiet 0.15, focal 0.36 (officials' p50
+  0.08 / 0.33).
 - **`tools/decocomp.js`**: how deco is ARRANGED (rhythm cv, quiet stretches, peaks, focal share, clumping, set pieces,
   deco at transitions, following the play); `--ref` the officials' and the corpus' numbers -> knowledge/decocomp_ref.json.
   Our levels: quiet ~0 (no breathing space), focal 0.25-0.29 (near even, 0.2). Reference (2026-11-25, p25/p50/p75):
