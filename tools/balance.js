@@ -12,6 +12,7 @@ if (require.main === module) require("./heavy.js").claim();   // one heavy job a
 const fs = require("fs"), path = require("path"), vm = require("vm");
 const R = path.join(__dirname, "..");
 const DF = require("../lib/difficulty.js");
+const { cleanFly, flyCost } = require("./difficulty_fit_v2.js");   // the flight room, glitch-proof, at a given spread
 const D = DF.DIFF;
 const SCORED = process.env.GDLM_SCORED_DIR || path.join(R, "local", "difficulty");
 const RATED = {
@@ -38,7 +39,7 @@ function costOf(a) {
   const lapse = lg(1 - D.LAPSE), timing = lg(erf(a.ms / 2 / (D.SIGMA * Math.SQRT2))), set = lg(settle);
   return { t: +(a.tick / TPS).toFixed(3), block: +(a.x / 30).toFixed(1), mode: a.mode, type: a.type, ms: Math.round(a.ms),
     afterSwitchMs: a.afterSwitchMs === undefined ? null : a.afterSwitchMs === null ? null : Math.round(a.afterSwitchMs),
-    ...v2Of(a, lateOpen, lapse, timing, set),
+    ...v2Of(a, lateOpen, lapse, lg(erf(a.ms / 2 / (V2.SIGMA * Math.SQRT2))), set),
     p: +p.toFixed(4), cost: +lg(p).toFixed(4), lateOpen, costIfOpenExempt: +lg(pOpen).toFixed(4), lapse: +lapse.toFixed(4), timing: +timing.toFixed(4), settle: +set.toFixed(4) };
 }
 
@@ -60,16 +61,22 @@ function v2Of(a, lateOpen, lapse, timing, set) {
 // press made upside down, or within GRAV_RECENT_MS after a gravity flip (portal, orb or pad), costs a little more: its
 // chance x (1 - GRAV_PEN). ASSUMED (0.01 a press, about the slip itself, x3 the slip cost), not fitted. Needs the run's path,
 // so only where the level is here (our levels everywhere, the mains on the PC).
-const GRAV_PEN = 0.01, GRAV_RECENT_MS = 1000;
+const GRAV_RECENT_MS = 1000;
+// FITTED 2026-11-25 (tools/difficulty_fit_v2.js on the 21 measured main levels against Evgeni's ranking x2, the stars and his
+// attempts; DIFFICULTY.md "Balance: the v2 fit"): the plateau within 0.01 of the best is SIGMA 25-30 ms, FLY_SPREAD 16-20,
+// GRAV_PEN 0-0.01, DUAL_PEN 0-0.01. Picked inside it, on the side of his notes (gravity and duals add "a bit"). The v2
+// SIGMA is the spread that ranks LEVELS best, not the one fitted on his runs (13 ms, the v1 score keeps it).
+const V2 = { SIGMA: 28, FLY_SPREAD: 16, GRAV_PEN: 0.01, DUAL_PEN: 0.01, DUAL_ASYM_PEN: 0.02, MIRROR_PEN: 0.02 };
+const GRAV_PEN = V2.GRAV_PEN;
 // Dual (the user, 2026-11-25: "some people think hexagon force is harder than the demons because the two hard duals"):
 // one button moves two players, so each press in a dual stretch is two things to get right. A press made while dual
 // has its chance x (1 - DUAL_PEN), ASSUMED 0.05, flying presses too (they are cheap otherwise). Not fitted.
-const DUAL_PEN = 0.05;
+const DUAL_PEN = V2.DUAL_PEN;   // was ASSUMED 0.05; the fit puts it at 0-0.01
 // The user, 2026-11-25: "duals = bit more difficult, assymetric duals = even more, reverse screen = bit more difficult (not
 // very but it does add as its a bit unnatural)". Asymmetric dual = the two players in different modes: x (1 - DUAL_ASYM_PEN)
 // instead of DUAL_PEN. Reverse screen = after a mirror portal (45 on, 46 off; the sim does not flip the screen, only
 // the cost does): x (1 - MIRROR_PEN). All ASSUMED, ordered as he said.
-const DUAL_ASYM_PEN = 0.10, MIRROR_PEN = 0.02;
+const DUAL_ASYM_PEN = V2.DUAL_ASYM_PEN, MIRROR_PEN = V2.MIRROR_PEN;   // asym = 2x dual (his order); mirror not fitted (no main has one)
 function mirrorOf(actions, w) {
   const m = w.objects.filter(o => o.id === 45 || o.id === 46).sort((a, b) => a.x - b.x);
   for (const a of actions) { let on = false; for (const o of m) { if (o.x > a.x) break; on = o.id === 45; } a.mirror = on; }
@@ -123,26 +130,30 @@ function balance(name, actions, meta) {
     const g = inputs.filter(a => a.ms >= lo && a.ms < hi);
     return { lo, hi: hi > 1e8 ? null : hi, inputs: g.length, cost: +g.reduce((s, a) => s + a.cost, 0).toFixed(3) };
   });
-  const { fly: _fly, ...metaOut } = meta;
+  const { fly: _fly, lump: _lump, ...metaOut } = meta;
   return { name, ...metaOut, score: +total.toFixed(3), attempts: Math.round(10 ** total), label: DF.difficultyLabel(total),
     // the open question in lib/difficulty.js settleOf: the score if late-open windows were not counted as forced
     ifOpenExempt: +sum("costIfOpenExempt").toFixed(3), openForced: inputs.filter(a => a.lateOpen && a.settle > 0).length,
     parts: { lapse: +sum("lapse").toFixed(3), timing: +sum("timing").toFixed(3), settle: +sum("settle").toFixed(3) },
     model: { SIGMA: D.SIGMA, LAPSE: D.LAPSE, SETTLE: D.SETTLE, FLY_SPREAD: DF.FLY_SPREAD, FLY_SIZE: DF.FLY_SIZE }, inputs, sections, top, bands, curve,
-    v2: v2Total(inputs, meta.fly), spikes: spikes(inputs),
+    v2: v2Total(inputs, meta.fly, meta.lump || 0), spikes: spikes(inputs),
     flyRaw: meta.fly ? meta.fly.map(f => [f.t, f.mode, f.slack, f.n]) : null };   // [s, mode, slack units, samples]: for refitting FLY_SPREAD
 }
 
-function v2Total(inputs, fly) {
-  const presses = inputs.reduce((s, a) => s + a.v2, 0), flyCost = fly ? fly.reduce((s, f) => s + f.cost, 0) : null;
+function v2Total(inputs, fly, lump = 0) {
+  if (fly) { const cl = cleanFly(fly.map(f => [f.t, f.mode, f.slack, f.n]));   // glitch-proof slack, cost at the fitted spread
+    fly.forEach((f, i) => { f.slackClean = cl[i][2]; f.cost = flyCost([cl[i]], V2.FLY_SPREAD); f.p = Math.pow(10, -f.cost); }); }
+  const presses = inputs.reduce((s, a) => s + a.v2, 0) + lump, flyTot = fly ? fly.reduce((s, f) => s + f.cost, 0) : null;
   const worstFly = fly && fly.length ? fly.slice().sort((x, y) => y.cost - x.cost).slice(0, 5) : [];
-  const grav = inputs.reduce((s, a) => s + (a.grav || 0), 0);
+  const grav = inputs.reduce((s, a) => s + (a.grav || 0), 0) + lump;   // lump: gravity + dual of a main measured elsewhere
   const dual = inputs.reduce((s, a) => s + (a.dual || 0), 0);
-  return { score: +(presses + (flyCost || 0)).toFixed(3), presses: +presses.toFixed(3), dual: +dual.toFixed(3), dualPresses: inputs.filter(a => a.dual > 0).length, grav: +grav.toFixed(3), gravPresses: inputs.filter(a => a.grav > 0).length, fly: flyCost === null ? null : +flyCost.toFixed(3),
-    flySeconds: fly ? fly.length : null, worstFly, label: DF.difficultyLabel(presses + (flyCost || 0)) };
+  return { score: +(presses + (flyTot || 0)).toFixed(3), presses: +presses.toFixed(3), dual: +dual.toFixed(3), dualPresses: inputs.filter(a => a.dual > 0).length, grav: +grav.toFixed(3), gravPresses: inputs.filter(a => a.grav > 0).length, fly: flyTot === null ? null : +flyTot.toFixed(3),
+    flySeconds: fly ? fly.length : null, worstFly, lump: +lump.toFixed(3), flyItems: fly ? fly.map(f => ({ t: f.t, mode: f.mode, slack: f.slackClean, n: f.n, cost: +f.cost.toFixed(4) })) : null, label: DF.difficultyLabel(presses + (flyTot || 0)) };
 }
 
 const LEVELS = process.env.GD_LEVELS || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash/Resources/levels/";
+let MV2 = null;
+const mainsV2 = () => MV2 || (MV2 = Object.fromEntries(JSON.parse(fs.readFileSync(path.join(R, "knowledge", "balance_mains_v2.json"), "utf8")).levels.map(m => [m.n, m])));
 function official(n) {
   const f = path.join(SCORED, `scored_${String(n).padStart(2, "0")}.json`);
   if (!fs.existsSync(f)) return null;
@@ -156,7 +167,14 @@ function official(n) {
     const w = GD.makeWorld(L.objects, L.header), v = JSON.parse(fs.readFileSync(vf, "utf8")).solution;
     if (v && v.events) { const pth = GD.run(w, v.events).path; fly = DF.flyRoom(w, pth); gravOf(c.actions, pth); mirrorOf(c.actions, w); }
   }
-  return balance(nm, c.actions, { fly, kind: "official", n, rating: `${face} ${stars}`, stars, seconds: c.seconds, complete: c.complete, scoredAt: c.scoredAt, physics: c.physics });
+  // elsewhere: the flight room and the gravity / dual counts the PC measured (knowledge/balance_mains_v2.json, numbers only);
+  // their gravity / dual cost comes as one lump (which presses they touch needs the level)
+  let lump = 0;
+  if (!fly) { const m = mainsV2()[n];
+    if (m) { fly = m.flyRaw.map(([t, mode, slack, k]) => ({ t, mode, slack, n: k, x: null }));
+      const c1 = lg(1 - 0.05), c2 = lg(1 - 0.10), nAsym = Math.max(0, Math.round((m.dual - m.dualPresses * c1) / (c2 - c1)));
+      lump = m.gravPresses * lg(1 - GRAV_PEN) + (m.dualPresses - nAsym) * lg(1 - DUAL_PEN) + nAsym * lg(1 - DUAL_ASYM_PEN); } }
+  return balance(nm, c.actions, { fly, lump, kind: "official", n, rating: `${face} ${stars}`, stars, seconds: c.seconds, complete: c.complete, scoredAt: c.scoredAt, physics: c.physics });
 }
 
 function ours(arg) {
@@ -194,6 +212,32 @@ function print(b) {
   for (const s of b.sections) console.log(`     ${s.from.toFixed(1).padStart(6)}-${s.to.toFixed(1).padEnd(6)} s ${s.mode.padEnd(6)} ${String(s.inputs).padStart(3)} inputs  cost ${s.cost.toFixed(2)} (${Math.round(s.share * 100)}%)  tightest ${s.minMs} ms`);
 }
 
+// The page shows the fitted v2 as THE score (the user looked at the page for it); v1 stays as a small comparison. Flight
+// seconds join the presses as items of their own (kind "fly": cost from the room, no window).
+function asV2(b) {
+  const n = b.inputs.length, lumpEach = (b.v2.lump || 0) / Math.max(1, n);
+  const items = b.inputs.map(a => { const jump = !FLY.has(a.mode);
+    const timing = jump ? lg(erf(a.ms / 2 / (V2.SIGMA * Math.SQRT2))) : 0, settle = jump && !(a.opensBefore || a.lateOpen) ? a.settle : 0;
+    const extra = (a.grav || 0) + (a.dual || 0) + lumpEach, cost = a.lapse + timing + settle + extra;
+    return { ...a, kind: "press", timing: +timing.toFixed(4), settle: +settle.toFixed(4), extra: +extra.toFixed(4), cost: +cost.toFixed(4), p: +(10 ** -cost).toFixed(4), v1cost: a.cost }; });
+  const flys = (b.v2.flyItems || []).map(f => ({ kind: "fly", t: f.t + 0.5, block: null, mode: f.mode, type: "flying", ms: null, slack: f.slack, afterSwitchMs: null,
+    lapse: 0, timing: 0, settle: 0, extra: 0, flight: f.cost, cost: f.cost, p: +(10 ** -f.cost).toFixed(4) }));
+  const all = [...items, ...flys].sort((x, y) => x.t - y.t), total = all.reduce((s, a) => s + a.cost, 0);
+  const sum = k => +all.reduce((s, a) => s + (a[k] || 0), 0).toFixed(3);
+  const sections = [];
+  for (const a of all) { const last = sections[sections.length - 1];
+    if (last && last.mode === a.mode) { last.to = a.t; last.inputs += a.kind === "press"; last.cost += a.cost; if (a.ms !== null) last.minMs = Math.min(last.minMs ?? 1e9, a.ms); if (a.slack != null) last.minRoom = Math.min(last.minRoom ?? 1e9, a.slack); }
+    else sections.push({ mode: a.mode, from: a.t, to: a.t, inputs: +(a.kind === "press"), cost: a.cost, minMs: a.ms, minRoom: a.slack ?? null }); }
+  for (const x of sections) { x.cost = +x.cost.toFixed(3); x.share = +(x.cost / total).toFixed(3); }
+  let run = 0; const curve = all.map(a => +(run += a.cost).toFixed(3));
+  const top = all.map((a, i) => ({ i, ...a })).sort((x, y) => y.cost - x.cost).slice(0, 10).map(a => ({ ...a, share: +(a.cost / total).toFixed(3) }));
+  const bands = [[0, 30], [30, 60], [60, 100], [100, 200], [200, 1e9]].map(([lo, hi]) => { const g = items.filter(a => a.ms >= lo && a.ms < hi);
+    return { lo, hi: hi > 1e8 ? null : hi, inputs: g.length, cost: +g.reduce((s, a) => s + a.cost, 0).toFixed(3) }; });
+  return { ...b, v1score: b.score, score: +total.toFixed(3), attempts: Math.round(10 ** total), label: DF.difficultyLabel(total), inputs: all, presses: n,
+    parts: { lapse: sum("lapse"), timing: sum("timing"), settle: sum("settle"), flight: sum("flight"), extra: sum("extra") },
+    sections, top, bands, curve, model: { ...b.model, SIGMA: V2.SIGMA, FLY_SPREAD: V2.FLY_SPREAD, GRAV_PEN: V2.GRAV_PEN, DUAL_PEN: V2.DUAL_PEN } };
+}
+
 function main() {
   const args = process.argv.slice(2);
   const take = k => { const i = args.indexOf(k); return i >= 0 ? args.splice(i, 2)[1] : null; };
@@ -206,7 +250,10 @@ function main() {
   if (json) fs.writeFileSync(json, JSON.stringify(data));
   if (html) {
     const tpl = fs.readFileSync(path.join(R, "viewer", "balance.html"), "utf8");
-    fs.writeFileSync(html, tpl.replace("/*BALANCE_DATA*/null", JSON.stringify(data)));
+    try { data.fitV2 = require("./difficulty_fit_v2.js").pageData({ SIGMA: V2.SIGMA, FLY: V2.FLY_SPREAD, GRAV: V2.GRAV_PEN, DUAL: V2.DUAL_PEN }); } catch (e) { console.error("no v2 fit on the page:", e.message); }
+    const page = { ...data, levels: levels.map(asV2) };
+    if (data.fitV2) page.mains = data.fitV2.levels.map(l => ({ n: l.n, name: l.name, rating: `${RATED[l.n][1]} ${l.stars}`, stars: l.stars, score: l.v2, v1: l.v1, his: l.his, complete: true }));
+    fs.writeFileSync(html, tpl.replace("/*BALANCE_DATA*/null", JSON.stringify(page)));
     console.log("page:", html);
   }
 }
