@@ -307,7 +307,7 @@ killing object and what the sim thinks it is; `node tools/levelmap.js <level>` d
 | level | stop | killed by | cause | owner |
 |---|---|---|---|---|
 | Deadlocked | beaten since 2026-11-25 | (was: sideways spike 421 behind a teleport exit) | the teleport portal's box sits 12 right of the object (the user's hitbox-on video); fixed in lib/objects.js | - |
-| Dash | 9.5%, block 75 (2026-11-25; rotated gameplay is in the sim since the same day: the solver gets through the first turned stretch to x ~3890, block 130, where a red-pad jump meets a ceiling: fixed the same day, it was GD's flip-on-head-hit modifier 2866, PHYSICS.md "Gameplay modifiers"; the real-game plan now goes on to a swing stretch at block 179) | the id-392 spike row under the spider's down-tap | Dash turns its gameplay 90 degrees there (rotate gameplay, id 2900): GD takes the tap in the turned frame, sideways; the sim has no turned frames, and GD's own search kills an unturned tap on that row (gdsolver, lv22 t=1,737/1,745). Before the teleport was made GD's it reached 28% by a wrong landing | physics: rotated gameplay (PHYSICS.md) |
+| Dash | 9.5%, block 75 (2026-11-25; rotated gameplay is in the sim since the same day: the solver gets through the first turned stretch to x ~3890, block 130, where a red-pad jump meets a ceiling: fixed the same day, it was GD's flip-on-head-hit modifier 2866, PHYSICS.md "Gameplay modifiers"; the real-game plan now goes on to a swing stretch at block 179. Our solver's resume after it (2.0 h, the trap retry included) passes the ceiling, the slow-motion stretch and the swing, and stops 30 ticks into the SECOND turned stretch: x 6746, a swing turned to travel up at x 6735, block 225 -- next) | the id-392 spike row under the spider's down-tap | Dash turns its gameplay 90 degrees there (rotate gameplay, id 2900): GD takes the tap in the turned frame, sideways; the sim has no turned frames, and GD's own search kills an unturned tap on that row (gdsolver, lv22 t=1,737/1,745). Before the teleport was made GD's it reached 28% by a wrong landing | physics: rotated gameplay (PHYSICS.md) |
 | Fingerdash | 6%, block 55 | id 1813, nothing visible there | 1755 / 1813 / 1829 / 1859 are GD's lettered helper blocks (OpenGD type 40), imported as 30x30 hazards by the "hitbox = hazard" fallback; Fingerdash has 36, Dash 22 | physics (lib/objects.js) |
 
 With the helper blocks left out, Fingerdash's old clicks get to 6.7% (a saw: those clicks were planned
@@ -577,6 +577,17 @@ Used in:
   floor next to it. Open: fit a per-mode familiarity term once the user's runs cover more modes.
 Our levels by tier floor (2026-11-24): 41/43 Normal; 45, 46 sketch, 62 Harder (ball, wave); 47, 61, 63-66 Insane (2x,
 0.5x, dual, blue orb); 44, 50, 51, 52, 60, 67 Demon (a green orb).
+
+## Too tight for the level (2026-11-25)
+
+The user: "in the main levels, wherever a timing is too hard for the level, its probably not the path". A press whose player
+window is under the level's tier floor -- 40 ms Easy to Harder, 30 Insane, 20 Demon (the board's first cut) -- marks a
+spot where the route is probably not the intended one. `node tools/tight.js [n ...] [--fix] [--coins]` lists them per
+main level; --fix re-searches each (lib/difficulty.js easierRoute with `below: floor`: drop / move / add taps nearby that
+rejoin the route, judged by windows and joint chance) and saves the route when it is easier and still takes every portal.
+What stays under the floor is a physics lead or a branch further back than the local search reaches. Flagged first
+(board, 2026-11-25): xStep 25 ms, Electroman Adventures 8, Hexagon Force 8, Deadlocked 17, Dash 8. tools/mains.js runs
+--fix after every job. Results: local/mains/tight.json.
 
 ## Main levels kept current (tools/mains.js)
 
