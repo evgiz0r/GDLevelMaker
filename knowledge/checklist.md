@@ -188,6 +188,8 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   context** (a spike before, an orb pit after, 2 columns each: `check --context`): a piece that passes alone
   can make orb chains or jumps timed around a block beside its neighbours (GDLM 64 v2/v3). compose leaves out
   a not-ready `s:` piece even when a brief names it by hand.
+- [ ] **No piece kind on repeat**: at most ~25% of the level's 2 s pieces repeat a signature from the 4 before
+  (official median 20%, ours 43%); few flat-cube pieces (official 2%, ours 33%). `node tools/lego.js variety <level>` (LEGO.md)
 - [ ] **Variety**: ~15 kinds of gameplay thing; 4-5 modes and 2-3 speeds; a portal every ~2-3 s;
   ~25 orbs and pads per minute; at least ~90% of the chunks new. `node tools/variety.js <level>`.
   (levels/variety.md)
