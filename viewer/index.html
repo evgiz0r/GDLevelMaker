@@ -3253,13 +3253,14 @@ function drawMode(on) {
         if (!up && DRAWM.on) notice("The board did not open here (this page may not allow it). The whiteboard also works as a page of its own.", 8000); }, 6000);
     }
     DRAWM.fr.style.top = cv.offsetTop + "px"; DRAWM.fr.style.height = cv.style.height; DRAWM.fr.hidden = false;
-    if (DRAWM.lv && (!L || L.name !== DRAWM.lv.name)) BOARDHOST.setLevel(DRAWM.lv.name, DRAWM.lv.levelStr, DRAWM.lv.saved, DRAWM.lv.song);
+    // opening the board keeps the level on screen (Evgeni, 2026-11-25: "when i move to drawing it switches"): the last
+    // sketch comes back only when nothing else is open; drawing a stroke then shows the sketch, as before
+    if (DRAWM.lv && !L) BOARDHOST.setLevel(DRAWM.lv.name, DRAWM.lv.levelStr, DRAWM.lv.saved, DRAWM.lv.song);
     if (DRAWM.last) BOARDHOST.view(DRAWM.last.V, DRAWM.last.rect, DRAWM.last.Hb);
     try { DRAWM.fr.contentWindow.focus(); } catch (e) {}
   } else {
     if (DRAWM.fr) DRAWM.fr.hidden = true; MAPCAM = null; cv.style.height = ""; resize();
-    if (DRAWM.lv && L && L.name !== DRAWM.lv.name) BOARDHOST.setLevel(DRAWM.lv.name, DRAWM.lv.levelStr, DRAWM.lv.saved, DRAWM.lv.song);
-    if (L) draw();
+    if (L) draw();   // closing the board keeps what is on screen too
   }
 }
 document.getElementById("drawBtn").onclick = () => drawMode(!DRAWM.on);
