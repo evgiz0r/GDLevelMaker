@@ -434,6 +434,24 @@ needs fewer (the match is by layout, not by the route). Next: take a hinted pres
 (a death within ~1 s without it), and score hints by how often the level's real presses agree (`lego_match.js --test`
 precision 50-75% today). Times are one cloud run each, with another session's job running.
 
+## The picker: a section's beats filled from the catalogue (2026-11-25 night)
+
+`node tools/lego_pick.js --sections "cube:15,ship:10,..." (--song id | --bpm N --t0 s | --hits file.json) [--src official|ours|library] [--diff 0.03] [--seed N] --name X`
+-> local/lego/picks/X.json + .gdlvl. Song first: each slot takes the brick whose presses land nearest the beats (or hits),
+near the target difficulty, weighted by Evgeni's votes; then every join is checked in physics (lego_join checkFilled, next
+candidate if it fails); then the whole chain is solved from the first brick's entry state with spike filler, and where it
+breaks that brick is banned and the rest re-picked (up to 8 times). Not yet: energy, sections read from the song (given by hand).
+
+First 60 s run (main-level bricks, cube 15 / ship 10 / cube 20 / wave 15, 150 bpm): 39 bricks, 64% of 113 presses within
+50 ms of a beat, every join ok, whole chain clean with 0 filler spikes. Times: picking 4 min, the final solve 21 min
+(25 min in all; the heavy lock had estimated 4 min from two short runs).
+
+**Evgeni's notes leave bricks out.** A brick with a 👎, or with a note and no 👍 (every note so far is a complaint: "wrong
+path", "too many clicks", "too close to spikes"), is not picked; a note on a longer piece of the same level covers the
+bricks under it. It comes back once its route is re-planned after the note (routeAt newer). Before picking, fetch the
+phone notes (ArtifactData list legovotes -> local/lego/votes_phone.json). The first run above was made before this and
+took three noted bricks (Deadlocked 926b / 920b, Blast Processing 211b): with 26 notes, 31 of 1065 main bricks are out.
+
 ## Open
 
 - Compose does not place fly pieces from the catalogue yet: ship / wave / swing sections still use ship-tunnel /

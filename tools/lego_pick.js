@@ -33,9 +33,25 @@ function beatTargets(o) {
   const out = []; for (let t = t0; t < (o.len || 600) + 2; t += period * (o.every || 1)) out.push(t);
   return { targets: out, period };
 }
+// Evgeni's notes on the catalogue (phone + PC votes): a brick with a 👎, or a note with no 👍 (so far every note is a
+// complaint: "wrong path", "too many clicks", "too close to spikes"), is left out -- also when the note sits on a longer
+// piece of the same level that covers the brick. Back in once its route is re-planned and re-mined (the note is older).
+function flagged() {
+  const out = [];
+  for (const v of Object.values(L.readVotes())) if (v.vote < 0 || (v.comment && !(v.vote > 0))) out.push(v);
+  return out;
+}
+function isFlagged(p, F) {
+  for (const v of F) {
+    if (p.routeAt && String(p.routeAt) > String(v.at)) continue;   // re-planned after the note
+    if (v.id === p.id) return v;
+    if (v.level === p.level && v.x != null && p.x != null && v.x + 1 >= p.x && v.x <= p.x + (p.w || 0) + 1) return v;
+  }
+  return null;
+}
 function pool(src) {
-  const want = new Set(String(src || "official").split(","));
-  return L.load().filter(p => want.has(p.src) && (p.grain === "brick" || p.src === "library") && p.verified && !p.dupOf && !p.empty && !p.jitter &&
+  const want = new Set(String(src || "official").split(",")), F = flagged();
+  return L.load().filter(p => want.has(p.src) && !isFlagged(p, F) && (p.grain === "brick" || p.src === "library") && p.verified && !p.dupOf && !p.empty && !p.jitter &&
     p.smooth !== false && (!p.routeKind || p.routeKind === "human" || p.routeKind === "ours") && J.MODE_ID[p.mode] && p.path && p.path.length > 2 && p.entry && p.exit && p.s > 0.4);
 }
 // how well a brick's presses sit on the beats if it starts at time T: mean distance (ms) of each press to its nearest target
@@ -155,4 +171,4 @@ if (require.main === module) {
   fs.writeFileSync(path.join(dir, name + ".json"), JSON.stringify(plan, null, 1));
   console.log(`-> local/lego/picks/${name}.json` + (a.includes("--no-solve") ? "" : ` and .gdlvl`));
 }
-module.exports = { pick, assemble, solveFilled, beatTargets, beatCost, pool };
+module.exports = { pick, assemble, solveFilled, beatTargets, beatCost, pool, flagged, isFlagged };

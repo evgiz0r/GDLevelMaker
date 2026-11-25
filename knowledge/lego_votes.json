@@ -1,4 +1,265 @@
 {
  "note": "Evgeni's votes on lego pieces (tools/lego.js votes). A vote is a preference weight, never a ban.",
- "votes": []
+ "votes": [
+  {
+   "at": "2026-11-25T19:35:28.149Z",
+   "comment": "",
+   "from": "phone",
+   "id": "r-22_dash-92",
+   "level": "22 Dash",
+   "sig": "jump / cube / pits / pink-pad",
+   "vote": -1,
+   "x": 92
+  },
+  {
+   "at": "2026-11-25T19:36:01.365Z",
+   "comment": "lines are wierd",
+   "from": "phone",
+   "id": "r-22_dash-68",
+   "level": "22 Dash",
+   "sig": "flip / spider / steps / flips / yellow-pad",
+   "vote": 0,
+   "x": 68
+  },
+  {
+   "at": "2026-11-25T19:36:51.790Z",
+   "comment": "",
+   "from": "phone",
+   "id": "r-18_theory_of_everything_2-908",
+   "level": "18 Theory of Everything 2",
+   "sig": "fly / wave / corridor / zigzag / narrow",
+   "vote": -1,
+   "x": 908
+  },
+  {
+   "at": "2026-11-25T19:37:25.365Z",
+   "comment": "path could fly on top, more room there, would make it bit easier",
+   "from": "phone",
+   "id": "r-10_xstep-324",
+   "level": "10 xStep",
+   "sig": "fly / ship / corridor / zigzag / spikes / gates / wide / blue-pad",
+   "vote": 0,
+   "x": 324
+  },
+  {
+   "at": "2026-11-25T19:39:36.761Z",
+   "comment": "this is not it",
+   "from": "phone",
+   "id": "r-20_deadlocked-926",
+   "level": "20 Deadlocked",
+   "sig": "fly / wave / corridor / zigzag / gates / mid",
+   "vote": 0,
+   "x": 926
+  },
+  {
+   "at": "2026-11-25T19:40:00.424Z",
+   "comment": "also secret way within the strcutures unnatural",
+   "from": "phone",
+   "id": "r-20_deadlocked-169",
+   "level": "20 Deadlocked",
+   "sig": "fly / wave / corridor / zigzag / narrow / flips",
+   "vote": 0,
+   "x": 169
+  },
+  {
+   "at": "2026-11-25T19:40:21.061Z",
+   "comment": "path too tight to the walls",
+   "from": "phone",
+   "id": "r-17_blast_processing-254",
+   "level": "17 Blast Processing",
+   "sig": "fly / wave / corridor / zigzag / mid",
+   "vote": 0,
+   "x": 254
+  },
+  {
+   "at": "2026-11-25T19:40:50.933Z",
+   "comment": "cant see the top structure where i fly to",
+   "from": "phone",
+   "id": "r-9_cycles-301",
+   "level": "9 Cycles",
+   "sig": "flip / ball / flat / flips",
+   "vote": 0,
+   "x": 301
+  },
+  {
+   "at": "2026-11-25T19:41:54.045Z",
+   "comment": "wrong path",
+   "from": "phone",
+   "id": "r-20_deadlocked-938b",
+   "level": "20 Deadlocked",
+   "sig": "fly / wave / corridor / straight / wide",
+   "vote": 0,
+   "x": 938
+  },
+  {
+   "at": "2026-11-25T19:42:00.806Z",
+   "comment": "wrong path",
+   "from": "phone",
+   "id": "r-20_deadlocked-920b",
+   "level": "20 Deadlocked",
+   "sig": "fly / wave / corridor / slope / gates / mid",
+   "vote": 0,
+   "x": 920
+  },
+  {
+   "at": "2026-11-25T19:42:17.688Z",
+   "comment": "wrong path",
+   "from": "phone",
+   "id": "r-20_deadlocked-926b",
+   "level": "20 Deadlocked",
+   "sig": "fly / wave / corridor / bend / narrow",
+   "vote": 0,
+   "x": 926
+  },
+  {
+   "at": "2026-11-25T19:42:41.229Z",
+   "comment": "path not human, too close to spikes",
+   "from": "phone",
+   "id": "r-17_blast_processing-211b",
+   "level": "17 Blast Processing",
+   "sig": "fly / wave / corridor / zigzag / mid",
+   "vote": 0,
+   "x": 211
+  },
+  {
+   "at": "2026-11-25T19:42:57.186Z",
+   "comment": "same here too close to spikes, creates unnatural timing",
+   "from": "phone",
+   "id": "r-17_blast_processing-191b",
+   "level": "17 Blast Processing",
+   "sig": "fly / wave / corridor / zigzag / spikes / mid",
+   "vote": 0,
+   "x": 191
+  },
+  {
+   "at": "2026-11-25T20:37:20.457Z",
+   "comment": "the strcuture window(border i guess!?) is too big. the structure itself is like 1/10 of the window",
+   "from": "phone",
+   "id": "r-12_theory_of_everything-586b",
+   "level": "12 Theory of Everything",
+   "sig": "jump / ufo / pits",
+   "vote": 0,
+   "x": 586
+  },
+  {
+   "at": "2026-11-25T20:39:13.909Z",
+   "comment": "its a dash orb or a regular in the end? seems wierd path for an orb. and there is a green somewhere. need proper colors for orbs and portals",
+   "from": "phone",
+   "id": "r-20_deadlocked-583b",
+   "level": "20 Deadlocked",
+   "sig": "jump / robot / pits / flips / green-orb+yellow-orb",
+   "vote": 0,
+   "x": 583
+  },
+  {
+   "at": "2026-11-25T20:40:13.715Z",
+   "comment": "the ending of the path is wrong, it should go from the top, more room there ( unless some very specific reasons unclear from here )",
+   "from": "phone",
+   "id": "r-10_xstep-312b",
+   "level": "10 xStep",
+   "sig": "fly / ship / corridor / zigzag / spikes / gates / wide",
+   "vote": 0,
+   "x": 312
+  },
+  {
+   "at": "2026-11-25T21:43:07.430Z",
+   "comment": "some wierd ufo jumps on the clif, he slides?! it shouldnt",
+   "from": "phone",
+   "id": "r-18_theory_of_everything_2-237b",
+   "level": "18 Theory of Everything 2",
+   "sig": "jump / ufo / steps / flips",
+   "vote": 0,
+   "x": 237
+  },
+  {
+   "at": "2026-11-25T21:44:25.070Z",
+   "comment": "way too close in some of the clicks creating a \"fake\" timing. its harder staying \"straight\" with the ufo, and not always possible. but in rather wide areas, you can have way less of timings",
+   "from": "phone",
+   "id": "r-21_fingerdash-798b",
+   "level": "21 Fingerdash",
+   "sig": "jump / ufo / pits",
+   "vote": 0,
+   "x": 798
+  },
+  {
+   "at": "2026-11-25T21:45:29.110Z",
+   "comment": "bad path",
+   "from": "phone",
+   "id": "r-20_deadlocked-176b",
+   "level": "20 Deadlocked",
+   "sig": "fly / wave / roof path / bend / narrow",
+   "vote": 0,
+   "x": 176
+  },
+  {
+   "at": "2026-11-25T21:45:48.166Z",
+   "comment": "could probably slide on the floor here",
+   "from": "phone",
+   "id": "r-20_deadlocked-861b",
+   "level": "20 Deadlocked",
+   "sig": "fly / wave / corridor / slope / narrow",
+   "vote": 0,
+   "x": 861
+  },
+  {
+   "at": "2026-11-25T21:46:01.958Z",
+   "comment": "wrong path",
+   "from": "phone",
+   "id": "r-20_deadlocked-930b",
+   "level": "20 Deadlocked",
+   "sig": "fly / wave / corridor / slope / narrow",
+   "vote": 0,
+   "x": 930
+  },
+  {
+   "at": "2026-11-25T21:46:18.318Z",
+   "comment": "bad clicks",
+   "from": "phone",
+   "id": "r-20_deadlocked-936b",
+   "level": "20 Deadlocked",
+   "sig": "fly / wave / corridor / straight / narrow",
+   "vote": 0,
+   "x": 936
+  },
+  {
+   "at": "2026-11-25T21:46:44.822Z",
+   "comment": "bad pattern",
+   "from": "phone",
+   "id": "r-20_deadlocked-911b",
+   "level": "20 Deadlocked",
+   "sig": "fly / wave / corridor / slope / narrow",
+   "vote": 0,
+   "x": 911
+  },
+  {
+   "at": "2026-11-25T21:47:01.126Z",
+   "comment": "too many clicks",
+   "from": "phone",
+   "id": "r-18_theory_of_everything_2-908b",
+   "level": "18 Theory of Everything 2",
+   "sig": "fly / wave / corridor / bend / narrow",
+   "vote": 0,
+   "x": 908
+  },
+  {
+   "at": "2026-11-25T21:47:13.494Z",
+   "comment": "wave seems sliding , wrong",
+   "from": "phone",
+   "id": "r-18_theory_of_everything_2-530b",
+   "level": "18 Theory of Everything 2",
+   "sig": "fly / wave / corridor / zigzag / narrow",
+   "vote": 0,
+   "x": 530
+  },
+  {
+   "at": "2026-11-25T21:48:36.822Z",
+   "comment": "unneeded extra click (3rd)",
+   "from": "phone",
+   "id": "r-1_stereo_madness-653b",
+   "level": "1 Stereo Madness",
+   "sig": "jump / cube / pits",
+   "vote": 0,
+   "x": 653
+  }
+ ]
 }
