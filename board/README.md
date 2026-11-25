@@ -55,3 +55,15 @@ states and offers "Allow data access" / "Permissions" when one is off.
 ## Menus (2026-11-26)
 
 Every section is a collapsible menu (`<details>`), closed by default (Evgeni: "make all menus collapsible and they will be by default"); each closed header shows a count. Two bugs fixed then: the page had two functions named `isDone` (the played-row one, now `rowDone`, overwrote the archive's, so nothing ever went to Done), and database objects are read-only, so the page tags copies of the feature ideas (Features threw "Cannot read properties of undefined (reading 'replace')").
+
+## Local board, no artifact (2026-11-26)
+
+Evgeni: "can you give me non artifact thingy" (the artifact pane kept failing to load). The same page runs locally:
+`node tools/board_local.js` -> http://localhost:8770/ (this PC only), or http://localhost:8765/board/ once
+`tools/serve.js` runs a version with the mount. A shim stands in for the artifact runtime: each document is a file
+`local/board/<name>.json` holding the same object ArtifactData stores (`state`, `picks`, `played`, `played_2..N`,
+`latest`), polled every 15 s; the page writes only `picks`. Test: `node tests/board_local.js`.
+
+**Every board refresh writes both**: the artifact (ArtifactData) and `local/board/<doc>.json` (same JSON). For picks,
+read both `local/board/picks.json` and the artifact's `board/picks` and act on the one with the newer `changed_at`
+(Evgeni may tick on either page). `local/board/` holds his save stats: never commit it.
