@@ -61,7 +61,10 @@ function buildIndex() {
       let solution; try { solution = savedRoute(L) || undefined; } catch (e) {}
       const was = prev[dir + "/" + f]; if (!solution && was && was.level === L.levelStr) solution = was.solution;
       // when this level was made: the last commit that changed its file (not mtimes, index rebuilds or re-solves)
-      let made; try { const ct = +require("child_process").execSync(`git log -1 --format=%ct -- "${dir}/${f}"`, { windowsHide: true, cwd: root, encoding: "utf8" }).trim(); if (ct) made = new Date(ct * 1000).toISOString(); } catch (e) {}
+      // -- unless the file differs from HEAD (a level being committed: index_levels runs before the commit, so git log
+      // gave the PREVIOUS version's time and GDLM 44 v4 showed "made" as v3's, 2026-11-26): then the file's own time
+      let made; try { if (require("child_process").execSync(`git status --porcelain -- "${dir}/${f}"`, { windowsHide: true, cwd: root, encoding: "utf8" }).trim()) made = fs.statSync(path.join(root, dir, f)).mtime.toISOString(); } catch (e) {}
+      if (!made) try { const ct = +require("child_process").execSync(`git log -1 --format=%ct -- "${dir}/${f}"`, { windowsHide: true, cwd: root, encoding: "utf8" }).trim(); if (ct) made = new Date(ct * 1000).toISOString(); } catch (e) {}
       const song = songOf(L.rec, L.level.header), g = specGrid(L.name);
       // a spec that pins a local beat grid (its "grid": {bpm, t0} in song seconds) -- where the song's whole-song grid
       // drifts (Infertehno 2 for GDLM 44 v3: half a beat off) -- carries it, so the viewer's beat lines follow it

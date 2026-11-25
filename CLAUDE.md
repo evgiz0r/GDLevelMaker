@@ -253,7 +253,11 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   --note "what changed"` after every change.** It goes to `local/wip/<session>/`, and the viewer
   (`node tools/serve.js`, http://localhost:8765/viewer/) lists it under "in progress" with its
   version; the user presses ⟳ refresh to see the newest, before anything is pushed. **Then run
-  the ArtifactData call it prints**, so the phone page shows it too (PHONE.md).
+  the ArtifactData call it prints**, so the phone page shows it too (PHONE.md). Once a copy is overtaken (pushed, or
+  a newer copy elsewhere), take it out of the list: `node tools/wip.js archive <session>/<base>` (or `--superseded [--dry]`
+  for all) MOVES its files to `local/wip_archive/<session>/`, never deletes; the viewer's "in progress" tab already hides
+  wip copies older than the pushed level of the same name. An open viewer tab reloads itself when the PC's checkout moves
+  on (it polls /version), and warns when serve.js can't self-update (dirty checkout, not on main).
 - **Real-game stats go to every owner, at once** (the user: "anytime we have stats about a new level
   from real game, lets send it to physics/difficulty/style and so on for analyzing"). After analysing a
   recording (the physics session owns recordings), add each attempt to `local/real_stats.jsonl` with
@@ -392,7 +396,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 - **`tools/loop.js` -- the whole make/iterate loop in one command** (owner check, ETA, make/compose, score,
   shoot, levelmap, wip; logs under `local/loop/`), `--times` prints the measured time table, `--time <step>
   <cmd>` times any other job into it. Test: `node tests/loop.js`.
-- **The GD Work Board** (board/README.md: Evgeni's private control page -- workstreams, main levels, physics vs the game, the task queue he picks; data schema): `tools/board_mains.js` (the main-levels table for it).
+- **The GD Work Board** (board/README.md: Evgeni's private control page -- workstreams, main levels, physics vs the game, the task queue he picks; data schema): `tools/board_mains.js` (the main-levels table for it); `tools/board_local.js` (the same board as a local page, http://localhost:8770/ or serve.js /board/, data in local/board/).
 - **`tools/mains.js` -- RobTop's 22 main levels kept solved** (`status`: which route fails and the cheapest fix; `run`: replans then resumes at heavy priority `urgent`; serve.js starts it after a pull that changes physics or route code; DIFFICULTY.md "Main levels kept current").
 - **`tools/flystyle.js` -- how a route flies its ship / wave stretches** (presses a second, legs, near-wall ticks, wave inputs vs the corridor's turns: OFF PATTERN; `--replan` = today's plan beside the saved one). The wave planner in lib/natural.js flies one input per corridor leg (the user: "few holds and releases"); PHYSICS.md "The wave like a person".
 - **`tools/presslib.js` -- the press library: where good players press, learned from clears** (gdsolver's real-game plans,

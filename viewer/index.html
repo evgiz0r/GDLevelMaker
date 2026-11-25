@@ -1118,11 +1118,16 @@ function pkRows() {
   // Lets do main for ready levels + official. Rest in the different tabs"): no work in progress of its own (a newer wip of
   // a main level still sits on its card), no lab variants, parts or experiments
   const readyKeys = new Set(ALL.filter(l => pkCat(l) === "ours" && !pkLab(l)).map(pkKey));
+  // "in progress" lists work still ahead of what is pushed: a wip copy older than the pushed level of the same name was
+  // overtaken by it (GDLM 44's style v12, polish v7 and a build sat there after v4 was pushed, 2026-11-26); it stays
+  // reachable from the level's card in the other tabs. Old copies' files: node tools/wip.js archive --superseded
+  const pushedWhen = new Map(); ALL.forEach(l => { if (pkCat(l) === "ours") pushedWhen.set(pkKey(l), Math.max(pushedWhen.get(pkKey(l)) || 0, pkWhen(l))); });
+  const overtaken = l => pkCat(l) === "wip" && pkWhen(l) < (pushedWhen.get(pkKey(l)) || 0);
   ALL.forEach((l, i) => {
     const c = pkCat(l);
     const out = PK.f === "pinned" ? !pins.includes(pkKey(l)) : PK.f === "recent" ? !recent.includes(pkKey(l))
       : PK.f === "main" ? !(c === "official" || readyKeys.has(pkKey(l)) && !pkLab(l))
-      : PK.f === "lab" ? !pkLab(l) : PK.f === "wip" ? c !== "wip" || pkLab(l)
+      : PK.f === "lab" ? !pkLab(l) : PK.f === "wip" ? c !== "wip" || pkLab(l) || overtaken(l)
       : PK.f === "demons" ? !l.demon : PK.f !== "all" && c !== PK.f;
     if (out) return;
     if (q && l.demon && (String(l.demon.creator) + " " + l.demon.verifier).toLowerCase().includes(q)) { const k = pkKey(l); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(i); return; }
@@ -2571,7 +2576,28 @@ if (window.GD_PAGES) document.getElementById("ver").textContent = "public viewer
 else if (location.protocol.startsWith("http") && !window.GD_PHONE) fetch("/version", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(v => {
   if (!v || !v.commit) return;
   document.getElementById("ver").textContent = `viewer ${v.note === "up to date" || /^updated/.test(v.note || "") ? "up to date" : "at"}: ${v.commit} -- ${v.subject}` + (v.note && !/^up to date|^updated/.test(v.note) ? ` (${v.note})` : "");
+  verWatch(v);
 }).catch(() => {});
+// A tab left open keeps the level list (levels.js) it loaded: the user opened GDLM 44 in a day-old Chrome tab and saw
+// v3 after v4 was pushed (2026-11-26). So the page asks /version every minute and when it comes back into view; when the
+// PC's checkout moved on it reloads itself (the address keeps the level and the moment) unless the user is playing,
+// then it says so with a reload button. A checkout that cannot update (local changes, not on main) is said out loud too.
+function verWatch(v0) {
+  if (verWatch.on) return; verWatch.on = true;
+  let warned = "";
+  const stuck = v => v.note && /skipped|not on main|failed|off/.test(v.note);
+  const check = () => fetch("/version", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(v => {
+    if (!v || !v.commit) return;
+    if (stuck(v) && warned !== v.note) { warned = v.note; notice(`⚠ the PC's viewer is not updating (${v.note}): levels pushed since ${v.commit} are not shown here yet`, 0); }
+    if (v.commit === v0.commit) return;
+    const busy = (typeof PLAY !== "undefined" && PLAY && PLAY.on) || document.querySelector("textarea:focus, input[type=text]:focus");
+    if (!busy && (document.visibilityState === "visible" || verWatch.hidden)) { try { writeHash(); } catch (e) {} location.reload(); return; }
+    if (busy) notice(`newer levels and code on the PC (${v.commit}: ${String(v.subject || "").replace(/</g, "&lt;")}) <button onclick="location.reload()">⟳ reload</button>`, 0);
+  }).catch(() => {});
+  setInterval(() => { verWatch.hidden = document.visibilityState !== "visible"; check(); }, 60e3);
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") check(); });
+  if (stuck(v0)) { warned = v0.note; notice(`⚠ the PC's viewer is not updating (${v0.note}): levels pushed since ${v0.commit} are not shown here yet`, 0); }
+}
 // ?perf=<id>&secs=8&art=1&beats=1&light=0 (tools/perf.js): play the level in the hash from its t for `secs`
 // seconds with real animation frames and POST the frame and draw times to /perf/<id>
 (() => {
@@ -2778,7 +2804,9 @@ function linkFind(q) {
   const cand = ALL.map((l, i) => ({ l, i })).filter(c => baseOf(c.l) === q.base || (c.l.name || "").toLowerCase().replace(/\W+/g, "_") === q.base.toLowerCase());
   if (!cand.length) return -1;
   const hit = q.v && cand.find(c => +c.l.version === q.v);
-  return (hit || cand.sort((a, b) => (+b.l.version || 0) - (+a.l.version || 0) || (b.l.wip ? 1 : 0) - (a.l.wip ? 1 : 0))[0]).i;
+  // no version asked: the newest MADE copy (wip versions count per session, so style's v12 from 2026-11-23 outranked the
+  // pushed GDLM 44 v4 of 2026-11-25 on version number and every short link opened it); version only breaks ties
+  return (hit || cand.sort((a, b) => pkWhen(b.l) - pkWhen(a.l) || (+b.l.version || 0) - (+a.l.version || 0) || (b.l.wip ? 1 : 0) - (a.l.wip ? 1 : 0))[0]).i;
 }
 function shortLink() { const l = ALL[pick.value]; if (!l || !L) return ""; const b = String(l.file || "").split(/[\\/]/).pop().replace(/\.(gdlvl|json)$/, "");
   return "#" + b + (l.version ? "--v" + l.version : "") + "--t" + (tick() / P.TPS).toFixed(1) + (L.ghost ? "--r" + L.ghost.row.id : ""); }

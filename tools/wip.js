@@ -2,6 +2,13 @@
 //   --plan: the level's own planned presses ({ok, events, dieX?, why?}: a layout's plan, e.g. the whiteboard's layout fitter)
 //   go with it instead of a solve, so the viewer replays the plan at once (CLAUDE.md "A layout is playable the moment it exists")
 // node tools/wip.js list
+// node tools/wip.js archive <session>/<base> [...]      -- take entries out of the viewer's in-progress list
+// node tools/wip.js archive --superseded [--dry]       -- every entry a newer copy of the same level replaced
+//   Files are MOVED (never deleted) to local/wip_archive/<session>/: the .gdlvl, its .json, .stages, .variants. The
+//   viewer never reads that folder. "Same level" = the same file name without _vN/_polished (collab parts _pN and
+//   lab_* variants are left alone);
+//   the newest copy stays -- a wip entry or the pushed levels/ file (its last commit) -- and nothing touched in the
+//   last 3 hours is moved by --superseded (a session may be working on it; name it to move it anyway).
 // node tools/wip.js phone                     -- rows for the phone page for every current level (PHONE.md)
 //
 // Work in progress: the level a session is working on, shown live in the viewer's level list
@@ -55,7 +62,59 @@ if (args[0] === "put") {
   for (const m of list()) phoneRow(m.session, m.file, readGdlvl(path.join(WIP, m.session, m.file)), m.version, m.note || "", m.solution, m.made || m.updated);
 } else if (args[0] === "list" || !args.length) {
   for (const l of list()) console.log(`${l.session.padEnd(14)} ${l.name.padEnd(28)} v${l.version}  ${l.updated}  ${l.note || ""}`);
-} else console.log("usage: node tools/wip.js put|list");
+} else if (args[0] === "archive") {
+  const dry = args.includes("--dry"), names = args.slice(1).filter(a => !a.startsWith("--"));
+  const todo = args.includes("--superseded") ? superseded() : names.map(n => { const [session, b] = n.split("/"); return { session, base: (b || "").replace(/\.(gdlvl|json)$/, ""), why: "asked" }; });
+  if (!todo.length) console.log(args.includes("--superseded") ? "wip archive: nothing superseded" : "usage: node tools/wip.js archive <session>/<base> ... | --superseded [--dry]");
+  for (const t of todo) {
+    const moved = archive(t.session, t.base, dry);
+    console.log(`${dry ? "would move" : "moved"} ${t.session}/${t.base} (${t.why}): ${moved.join(", ") || "nothing there"}`);
+  }
+} else console.log("usage: node tools/wip.js put|list|phone|archive");
+
+// the level an entry is a copy of: its file name without _vN / _polished ("gdlm_44_hellgate_polished" -> "gdlm_44_hellgate");
+// null for what is meant to sit side by side: a collab build's parts (_p0, _p1 ...) and the section lab's variants (lab_*)
+function levelKey(name, base) {
+  base = String(base).replace(/\.gdlvl$/, "");
+  if (/^lab_|_p\d+$/i.test(base)) return null;
+  return base.toLowerCase().replace(/(_v\d+|_polished)+$/i, "");
+}
+// entries (wip levels and stage-only builds) that a newer copy of the same level replaced: [{session, base, why}]
+function superseded() {
+  const ROOT = path.join(__dirname, ".."), cp = require("child_process"), recent = Date.now() - 3 * 3600e3, copies = [];
+  for (const m of list()) copies.push({ session: m.session, base: m.file.replace(/\.gdlvl$/, ""), key: levelKey(m.name, m.file), when: Date.parse(m.updated || m.made) || 0 });
+  for (const b of require("./stages.js").list()) {
+    if (copies.some(c => c.session === b.session && c.base === b.base)) continue;
+    const st = b.index.stages || [], last = st[st.length - 1];
+    copies.push({ session: b.session, base: b.base, key: levelKey(b.index.name, b.base), when: Date.parse(last && last.at) || 0 });
+  }
+  for (const f of fs.existsSync(path.join(ROOT, "levels")) ? fs.readdirSync(path.join(ROOT, "levels")).filter(f => f.endsWith(".gdlvl")) : []) {
+    let when = 0; try { when = 1000 * +cp.execSync(`git log -1 --format=%ct -- "levels/${f}"`, { windowsHide: true, cwd: ROOT, encoding: "utf8" }).trim(); } catch (e) {}
+    let name = ""; try { name = readGdlvl(path.join(ROOT, "levels", f)).name; } catch (e) {}
+    copies.push({ session: null, base: "levels/" + f.replace(/\.gdlvl$/, ""), key: levelKey(name, f), when });
+  }
+  const out = [];
+  for (const key of new Set(copies.map(c => c.key))) {
+    const same = copies.filter(c => c.key === key).sort((a, b) => b.when - a.when), top = same[0];
+    if (key === null) continue;
+    for (const c of same.slice(1)) if (c.session && c.when < recent)
+      out.push({ session: c.session, base: c.base, why: "newer: " + (top.session ? top.session + "/" : "") + top.base + " " + new Date(top.when).toISOString().slice(0, 16) });
+  }
+  return out;
+}
+// move one entry's files to local/wip_archive/<session>/ (never delete); a name already there gets a time suffix
+function archive(session, base, dry) {
+  session = String(session || "").replace(/[^\w-]+/g, ""); base = String(base || "").replace(/[^\w.-]+/g, "");
+  const from = path.join(WIP, session), to = path.join(WIP, "..", "wip_archive", session), moved = [];
+  if (!session || !base || !fs.existsSync(from)) return moved;
+  for (const ext of [".gdlvl", ".json", ".stages", ".variants"]) {
+    const src = path.join(from, base + ext); if (!fs.existsSync(src)) continue;
+    let dst = path.join(to, base + ext); if (fs.existsSync(dst)) dst = path.join(to, base + "." + Date.now() + ext);
+    if (!dry) { fs.mkdirSync(to, { recursive: true }); fs.renameSync(src, dst); }
+    moved.push(path.relative(path.join(WIP, "..", ".."), dst).replace(/\\/g, "/"));
+  }
+  return moved;
+}
 
 function list() {
   const out = [];
@@ -95,4 +154,4 @@ function phoneRow(session, base, L, version, note, solution, made) {
   console.log(url ? `phone: send it with ArtifactData {action: "set", url: "${url}", collection: "wip", doc_id: "${doc}", file_path: "${fs.realpathSync(f).split(path.sep).join("/")}"}` +
     ` (add if_version from a read when the row exists; see PHONE.md)` : "phone: no local/phone/url.txt (the phone page is not published yet; see PHONE.md)");
 }
-module.exports = { list, WIP, phoneRow };
+module.exports = { list, WIP, phoneRow, archive, superseded, levelKey };
