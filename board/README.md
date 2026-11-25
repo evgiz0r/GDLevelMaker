@@ -46,7 +46,7 @@ states and offers "Allow data access" / "Permissions" when one is off.
 
 - `board/latest` (Claude writes): GD's recently rated list, compact `{at, source, cols, rows}` from
   `node tools/latest_rated.js` on the PC (gdbrowser.com, metadata only; the cloud can't reach it) ->
-  `local/community/latest_rated.json`. The page's "Latest rated" section: Study ticks go to the same `picks.study`
+  `local/community/latest_rated.json`; `node tools/board_docs.js --out <dir>` builds both compact docs to write. The page's "Latest rated" section: Study ticks go to the same `picks.study`
   (key = online id), a "Not played" filter against Your levels.
 - `board/played` now holds every level with attempts, finished or not (col `done`), ~170 KB; "Finished" /
   "Not finished" filters. Refresh: `node tools/save_stats.js` on the PC (GD writes its save when it closes, so a session's
