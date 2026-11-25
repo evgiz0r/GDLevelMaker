@@ -7,6 +7,7 @@
 //                                                      vs the official levels' mix
 // node tools/lego.js knobs                          -- what makes a main-level piece harder or easier, per mode -> knowledge/lego_knobs.json
 // node tools/lego.js votes                          -- Evgeni's 👍 / 👎 / comments (PC page + phone page) -> knowledge/lego_votes.json
+// node tools/lego.js page --private                 -- everything incl. main-level bricks, for Evgeni's PRIVATE claude.ai page only
 // node tools/lego.js page [--public] [--out f.html]  -- a page of thumbnails, filterable by family / mode / wrapper /
 //                                                      source. Default: everything, local only (official pieces are
 //                                                      RobTop's layouts: local/lego/page.html, opened on the PC or via
@@ -558,6 +559,6 @@ if (require.main === module) {
   else if (cmd === "variety") variety(A[1]);
   else if (cmd === "votes") votesCmd();
   else if (cmd === "knobs") knobs(load());
-  else if (cmd === "page") require("./lego_page.js").build(load(), { pub: A.includes("--public"), out: opt("out") });
+  else if (cmd === "page") require("./lego_page.js").build(load(), { pub: A.includes("--public"), priv: A.includes("--private"), out: opt("out") });
   else console.log(fs.readFileSync(__filename, "utf8").split("\n").filter(l => l.startsWith("// node")).join("\n"));
 }
