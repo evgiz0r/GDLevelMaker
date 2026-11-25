@@ -63,7 +63,8 @@ not after it:
   [--run <id>] --md` (the phone page's link: opens that level, version and moment on the phone from anywhere); the PC and
   home-wifi links when the user is at the PC. LINKS.md: the two forms, what works where. **Showing a layout or a level for him to look at: the link opens the view he can mark in, a bit zoomed out** (Evgeni,
   2026-11-25: "i want to mark points, whenever you show me. open in that view i can mark, and its bit zoomed out"):
-  `node tools/link.js <level> --zoom 0.5 --beats --md` (the viewer's `&z=` and `&beats=1`); a picture (levelmap) only beside it.
+  `node tools/link.js <level> --zoom 0.5 --beats --md` (the viewer's `&z=` and `&beats=1`); a picture (levelmap) only beside it. But when he is already working in the viewer, do not send links (2026-11-25: "stop giving me the link im working
+  here"): name the level and the entry to pick in its list.
 - **Viewer first, always.** The user (2026-11-24): "i want to see in the viewer first always". Every new
   level or version goes to the viewer (in-progress list, and the phone page) first. Never install into GD,
   queue an install or upload until the user has seen it there and says "install" (or "upload") for it. When
