@@ -155,6 +155,107 @@ gates, height changes), which become pieces the picker can use anywhere -- his d
 the variety measure. **Not built yet:** the slot picker in compose (steps 1-2), parametric cube pieces from the mined
 official kinds (steps and pits), the variety rule as a gate.
 
+## The catalogue as Evgeni browses it: clean, replayed, voted (2026-11-25)
+
+The user, the same evening: "there are too many empty structures, and some patterns are not smooth", "many duplications like
+this", then "lets have a catalog of strcutures, and i can vote up down ( doesnt mean dont use ). maybe comment. all with
+clicks and physics". What changed (tools/lego.js, tools/lego_page.*, tools/serve.js):
+
+- **Empty** pieces (no hazard, orb, pad or portal, and flat ground or open air) are flagged `empty` and hidden by default:
+  official 7 of 838, ours 87 of 751, sketches 3.
+- **Repeats**: each piece is a row of block columns (what is in each column, in level coordinates); two pieces of one mode
+  are the same layout when, at some shift, 80% of the shorter overlaps and every overlapping column matches (so a chunk cut
+  at a different phase still counts). Shown once with ×N and where else it is. **Ours repeat a lot: 90 of 751 pieces are a
+  layout we already had (12%; GDLM 64 golden hour has one wave corridor 8 times), the official levels 1 of 838.** Same
+  lesson as the signature repeat number, now on exact layouts.
+- **"Not smooth" was mostly the drawing**: ramps were drawn as boxes, so 45-degree corridors (GDLM 47's wave) looked like
+  stairs. Slopes now carry their corner and are drawn as triangles. Real stair walls (a wall height jump of a block or more
+  between two non-slope columns, more than 1 per 10 columns) are flagged `smooth: false` and hidden by default: official
+  50, ours 27, sketches 4, library 0.
+- **Clicks and physics**: each piece carries its route's presses and releases ([x, y, down, seconds]) and the route with
+  its time. The big view replays it at real speed (▶, 1x / 0.5x / 0.25x, ← → steps through pieces, space plays), white
+  dots are presses, rings releases.
+- **Votes**: 👍 / 👎 and a comment per piece. PC page: POST /lego/vote -> local/lego/votes.jsonl (and the actions feed,
+  type "lego-vote"). Phone page: its database, collection `legovotes` (doc id = piece id). `node tools/lego.js votes`
+  merges both (fetch the phone's first: ArtifactData list `legovotes` into local/lego/votes_phone.json), prints them and
+  saves knowledge/lego_votes.json; knowledge/lego.json then carries per signature `vote: {up, down, weight, comments}`,
+  weight = 1 + 0.5 x (ups - downs) within 0.25..3. **A vote is a weight, never a ban** (the user's words).
+- Piece ids are now `r-` official (RobTop), `u-` ours, `s-` sketch, `l-` library + level + block (before, ours and
+  official both began with `o-`).
+- Default view after all this: official 782, ours 559, library 12 (`shown` in knowledge/lego.json).
+
+## Combining: how the main levels join their pieces (2026-11-25)
+
+The user: "do we know how to combine structures [...] i want to focus on mainlevel and then think how to invent more", "it
+could be kind of a big lego in some way, if we dont want to invent on the fly", "remember we could also go higher in gd".
+`node tools/lego_seams.js [--level <n>]` measures every seam of every route (official saved clears and our solver's,
+replayed by our physics, so each seam is one a player got through) -> knowledge/lego_seams.json (numbers only).
+Pieces are 1-3 s, intensity = presses per second + hazards per block.
+
+| measure | official 1-22 | ours (28 levels) |
+|---|---|---|
+| intensity p20 / median / p80 | 2.1 / 2.8 / 3.8 | 0.6 / 1.3 / 1.8 |
+| next piece harder / easier / about the same | 25% / 22% / 53% | 28% / 35% / 38% |
+| after a top-20% piece: easier / harder | 42% / 6% | 53% / 6% |
+| mode changes per level | 7.4 | 6.1 |
+| quiet before a portal (last press -> portal), p20 / median | 0.15 / 0.37 s | 0.10 / 0.70 s |
+| quiet after a portal (portal -> first press), p20 / median | 0.25 / 0.48 s | 0.29 / 0.58 s |
+| a press forced within 0.25 s after the portal | 19% | 12% |
+| portal entered from the ground (not mid-jump / mid-flight) | **7%** | **46%** |
+| speed change at the portal | **22%** | **2%** |
+| breathers (1 s+ without a press) per minute | 11 | 14 |
+| next piece same family / same mode | 83% / 80% | 81% / 77% |
+| next piece same signature | **16%** | **37%** |
+| same mode, another kind of piece | **80%** | **52%** |
+| how high: the level's top, median level | **12.9 blocks** (5 of 22 above 20) | **7.2** (none above 20) |
+| level shape: hardest 3 pieces at / first piece's rank / last piece's rank | 0.54 / 0.02 / 0.17 | 0.39 / 0.11 / 0.00 |
+
+The rules this gives (soft: a level may break one with a stated reason):
+
+1. **Keep the pressure, vary the piece.** The official next piece is about as hard as this one half the time (53%), and
+   only 22% of the time easier; but it is another kind of piece 84% of the time (same signature only 16%). Ours drop
+   intensity more often and repeat the kind more than twice as often. Combine by changing the piece, not the pressure.
+2. **Density first.** The official median piece has 2.8 intensity, ours 1.3: their pieces are fuller (more presses and
+   hazards per second). A combination of sparse pieces is a sparse level, however well it joins.
+3. **Portals are entered on the move.** 93% of official mode changes are taken mid-jump or mid-flight (a jump into the
+   portal, an orb or pad launch, a ship flying in), ours 46% walking on the ground. The quiet before a portal is short
+   (median 0.37 s, ours 0.70), the quiet after it about half a second (0.48 s): the player has a moment to read the new
+   mode, but the flow does not stop. 19% of official portals still want a press within 0.25 s (ours fairness gate allows
+   it only with a cue).
+4. **A mode change is often a speed change too** (22% official, 2% ours): the seam is marked twice.
+5. **Mode stretches**: cube ~10 s (p80 27), ship ~7 s, ball ~6, ufo ~4.5, wave ~4, robot ~9, spider ~4.6. Most changes
+   go through cube or ship (cube<->ship 54 of 162 seams); the mode-to-mode matrix is in knowledge/lego_seams.json.
+6. **Breathers** about 11 a minute, mostly NOT at mode changes (20%): the rest comes inside a stretch, not at its seam.
+7. **Shape of a level**: the first piece is the easiest (rank 0.02), the hardest run sits in the middle-to-late part
+   (median 0.54 of the way), the last piece is easy again (rank 0.17). Peaks are single pieces, ~40 blocks apart
+   (p20 22, p80 124); after a peak the next is easier 42% of the time and harder only 6%.
+8. **Go higher.** 5 of 22 main levels climb above 20 blocks (Theory of Everything 37, Clubstep 26, Hexagon Force 28,
+   Geometrical Dominator 17 for half its time, Dash's rotated 116), and Hexagon Force spends 73% of its time above 10
+   blocks. Ours never pass ~8. Height is free in GD: a stretch can climb and the camera follows (the user, 2026-11-25).
+
+Not measured yet: what a seam looks like in blocks (the last 2 columns of one piece next to the first 2 of the next),
+and how the official levels vary one piece into the next (same shape, a parameter changed). Next: the big-lego test,
+joining main-level pieces by these rules and checking each join in our physics.
+
+## The build pipeline Evgeni set (2026-11-25): theme -> sections -> big lego -> fill -> path -> deco
+
+His words: "some entity designing over a theme / breaking into sections with soft differences, on the limits of strong beats
+(!?) or small breaks in the song (!?) / an ultra big lego we can combine, and fill that section according to the section
+beats / fill the gap with hazards if needed / thats the layout basically / then we have a defined path / then we start
+decoing, first the actual objects according to the themes of the section". Where each step stands (2026-11-25):
+
+| step | what | exists today | missing |
+|---|---|---|---|
+| 1 | a designer sets the theme | theme kits (`tools/themes/`, `tools/theme.js`: space, ice), the section planner (`tools/scenes.js`: per section role, place, palette, mode) | themes that also choose gameplay pieces, not only looks |
+| 2 | sections with soft differences, cut at strong beats or small breaks | `tools/songmap.js` (sections, drops), `tools/hits.js` (hits per half-beat), compose briefs in beats | which cut the main levels use (strong beat vs a break in the song): to be measured on the 22 against their songs |
+| 3 | fill each section from the big lego by pieces whose clicks match its beats | the catalogue (838 main-level pieces, each with its clicks, difficulty, verified route), the combining rules (LEGO.md "Combining"), the join test (`tools/lego_join.js`) | a picker: song hits of a section -> pieces whose clicks land on them, joined by the rules, checked in physics |
+| 4 | fill the gaps with hazards, no secret ways | the solver's skip check, the join test's secret-way and open-seam flags | the filler itself (hazards / walls in the open space so the only way is the piece's route) |
+| 5 | the layout gives a defined path | every piece carries its route; a join is solved end to end | -- |
+| 6 | deco: the structural objects themed per section first, then the rest | block skins and deco (`tools/decorate.js`, `tools/scenekit.js`, themes, props), the deco study thread | per-section skins for the pieces' own blocks |
+
+The main levels' pieces are RobTop's: a level built from them stays on the PC (never pushed or uploaded) until we have pieces
+of our own made the same way -- varied from theirs by the difficulty knobs (LEGO.md "Difficulty knobs").
+
 ## Open
 
 - Compose does not place fly pieces from the catalogue yet: ship / wave / swing sections still use ship-tunnel /

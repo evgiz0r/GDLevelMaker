@@ -520,8 +520,14 @@ step. `node tools/probe.js result [n]` compares a log with our sim's run of the 
   +1 jumps are the ones made by a held button on landing (GD jumps no sooner than the step after a landing, see
   "Landing buffer"), the 0s are fresh presses. The probe log has the presses: split the jumps by "button already
   down" to settle it.
-- **GDLM 44 (wave) dies in the game at x 6638, y 267** while the sim clears; the first height parting is at step 313
-  (x 405: dx 1.0). To study with `probe.js show` around the death.
+- **GDLM 44 dies in the game at x 6638, y 267** while the sim clears; the first height parting is at step 313
+  (x 405: dx 1.0). Read from the level (2026-11-25, hellgate thread): x 6638 is in the SECOND SHIP (ship portal 6209,
+  cube portal 7139), not the wave, 6 units before a one-block stair step of the old `ship-tunnel` corridor: at x 6644
+  the roof's underside drops from y 210 to 180 (and the floor from 60 to 30). With the game's y about 90 above ours
+  (confirm with `probe.js result`'s "y offset"), y 267 is ~177: the ship's top at the stepped roof's corner. It fits the
+  open ship mismatch below (the game's ship rides ~0.5 unit higher than ours). Hellgate v2 replaces all three ship
+  tunnels with `fly-path` slope corridors (no stair steps), so the spot is gone; the real-game re-check with the probe
+  is still to run on the PC. Not yet settled: the exact ship height gap that made the corner kill.
 
 ## Fidelity: measuring the sim against the user's game (goal: "as close as possible")
 

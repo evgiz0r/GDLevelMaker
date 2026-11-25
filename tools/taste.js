@@ -476,14 +476,14 @@ function taste(F, band = "EN|2.2", model) {
     const ok = r.dir > 0 ? F[r.feature] >= t.p25 : F[r.feature] <= t.p75; return { rule: r.rule, verdict: r.verdict, ok, value: F[r.feature], target: r.dir > 0 ? ">= " + t.p25 : "<= " + t.p75 }; }).filter(Boolean);
   return { score: Math.round(100 / (1 + Math.exp(-z))), band, parts, rules, heldOutAuc: model.heldOut.auc };
 }
-// Repetition penalty: R (tools/repeat.js, 0..1) over the official levels' median R, scaled to the room above it, times REP_W.
+// Repetition penalty: R (tools/repeat.js, 0..1) over the official levels' 75th percentile R, scaled to the room above it, times REP_W.
 // The reference comes from knowledge/repeat_ref.json (tools/repeat.js --ref on the PC); until it exists, 0.3 is assumed.
 const REP_W = 3;
 let REF = undefined;
 function repPenalty(F) {
   if (!Number.isFinite(F.repR)) return null;
   if (REF === undefined) { try { REF = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "knowledge", "repeat_ref.json"), "utf8")); } catch (e) { REF = null; } }
-  const q = REF && REF.groups && REF.groups.official && REF.groups.official.R, base = q ? q[2] : 0.3;
+  const q = REF && REF.groups && REF.groups.official && REF.groups.official.R, base = q ? q[3] : 0.3;   // the officials' p75 (0.31): most of them pay nothing
   const over = Math.max(0, (F.repR - base) / Math.max(0.05, 1 - base));
   const pct = q ? Math.round(100 * (F.repR <= q[0] ? 0.1 : F.repR <= q[1] ? 0.25 : F.repR <= q[2] ? 0.5 : F.repR <= q[3] ? 0.75 : F.repR <= q[4] ? 0.9 : 1)) : null;
   return { contrib: +(REP_W * over).toFixed(2), pct, base };

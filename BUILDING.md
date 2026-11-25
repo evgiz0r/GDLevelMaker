@@ -7,6 +7,13 @@ steps. Nothing here is for one level or one session. When a build teaches someth
 Owner of the tooling: gd-style (compose, tools/gated.js). Viewer side: gd-visuals (VIEWER.md). Measured step
 times and the retro log: BUILDS.md.
 
+## 0. The pipeline Evgeni set (2026-11-25)
+
+Theme -> sections (soft differences, cut at strong beats or small breaks in the song) -> fill each section from the big lego
+(verified pieces whose clicks match the section's beats) -> fill leftover gaps with hazards (no secret ways) = the layout and
+its path -> deco, the structural objects themed per section first. What exists per step and what is missing: LEGO.md
+"The build pipeline Evgeni set".
+
 ## 1. Sections first, like a collab
 
 The user: "usually it is easy to make a level in sections, where those section stops are defined... thats how
