@@ -390,6 +390,53 @@ Good numbers: portals on bar starts 60-76% (luck 25%); orbs R 0.08 (x2 luck); pr
 Asked of others: the style session's `score.js` sync gate warns below 60% of presses on a beat;
 asked them (Nov 22) to grade portals and drops instead, per the user's "not forced" rule.
 
+## 9. Impact points: where the song hits hard, not just its beats (Nov 25 2026)
+
+The user (2026-11-25, on GDLM 44 hellgate): "on some high beats it should enter a different section. the more
+'heavy' it is, the more chances we can increase speed for effect ... in 53-54 there are big drums like we are
+entering new section, but in the level its nothing"; "there are also a lot of dead moments, like transition of
+2 seconds of nothing"; and: not a one-off fix for that drum, but a general reading of the song's events.
+
+`node tools/impacts.js <song | --spec specs/x.json | --level levels/x.gdlvl>` (test: `node tests/impacts.js`).
+Per level beat (b1 = first beat at or after the song offset, as make.js), the boundary just before the beat gets
+four signs, each squashed to 0..1 (x / (x + k)):
+- **rise**: loudness after minus before, averaged over windows of 2, 4 and 8 beats (a real step peaks on its own
+  beat at every width; a slow swell does not), k = 4 dB;
+- **entry**: the same per band (8 log bands, 40 Hz-10 kHz, each floored 40 dB under its own loud level so a
+  silent band "entering" is not +80 dB), the biggest band's jump, low bands weighted 1, others 0.8; k = 8 dB.
+  This is the drum / kick / new-instrument entry even when the overall loudness barely moves;
+- **accent**: the hit on the beat (onset flux, z over the song) against the median of the 8 beats before it:
+  a crash after quiet bars stands out, a steady kick does not; k = 1.5;
+- **change**: Foote novelty (kernels 4 + 8 beats) on the standardised band vectors: a new timbre / section.
+Score = half the strongest single sign + half the weighted sum (0.3 rise, 0.25 entry, 0.25 accent, 0.2 change);
+impacts are the beats that are the best within +-3 beats; strength = score / the song's top. A **break** is the
+mirror (loudness falling). **Heaviness** per bar: percentile in the song of loudness (0.35), low end (0.25), onset
+density (0.2) and kick strength (0.2).
+
+Planner suggestions: section starts from impacts with strength >= 0.5 (and breaks), at least 16 beats apart,
+the strongest first, off-bar-start ones at 0.85; each section with its heaviness, "fast" when it is in the
+song's top quarter (and >= 0.7), "calm" in the bottom quarter, a speed-up candidate where heaviness jumps 0.15+
+into a heavy part. **Everything is in level beats**: a speed portal changes x per beat, never when a beat
+happens, so a spec written in beats stays on the music when a speed change goes in (make.js turns beats into x
+through the portals); x positions written by hand do NOT, which is why "adding a speed-up changes the sync of the
+rest" (the user, 2026-11-25).
+
+`--level` (or `--spec` when its level exists) adds the level side: each impact (strength >= 0.3) with what the
+level does within 1 beat (portal, speed, gravity, orb, pad, colour) or NOTHING -- MISSED when no portal or speed
+change is there -- and the **dead stretches**: 1.5 s+ with no hazard, orb, pad or portal, marked "DEAD in a heavy
+part" (song heaviness >= 0.5) or "breather" (quiet music: fine).
+
+Checked: a made-up song with known events (tests/impacts.js: kick in at b21, a crash at b37, a drum fill at b53,
+louder at b61, a break at b89, loudest from b93) -- all found on their beat, nothing in the quiet intro, the
+offset moves them to the right level beat. A real CC song (557117, 140 BPM): impacts land on 4-bar phrase starts
+(b81, b117, b161, b225, b321), heaviness follows its two drops. Infertehno 2 (343707, GDLM 44): see below.
+
+Open: the song lives only on the PC, so a cloud session cannot run it (Newgrounds is blocked there); the
+thresholds are set on two songs only; impacts are not drawn in the viewer yet (next to the beat lines, batched
+so the user's viewer does not reload while they use it); compose / the section planner do not read impacts by
+themselves yet; a score.js gate for "strong impact, level does nothing" and "dead in a heavy part" once the
+thresholds are checked against the user's notes.
+
 ## Open
 
 - **Presses, more levels**: redone after the physics change (Nov 22, 1503b03) for 2-17. Stereo

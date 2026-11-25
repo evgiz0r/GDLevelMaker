@@ -262,6 +262,10 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   or for a press that only stops a fall, a roof coming down past the dip), within 3 blocks of the latest
   moment it works. A tunnel floor far below or a step 5+ blocks on is a prejump. `score.js` gate `prejumps`;
   built in by `tools/hitbuild.js` (SYNC.md section 8).
+- [ ] **The level answers the song's impacts, and has no dead stretch in a heavy part** (the user on GDLM 44, 2026-11-25:
+  "in 53-54 there are big drums like we are entering new section, but in the level its nothing"; "2 seconds of nothing"):
+  every impact of strength >= 0.5 gets a section start, portal or speed change within 1 beat, heavier parts may speed up,
+  and 1.5 s with nothing to do sits only where the music is quiet. `node tools/impacts.js --level <level>` (SYNC.md 9).
 - [ ] **Sync loosely**: portals, speed changes and the drop on the music's moments; most clicks free.
   `node tools/sync.js`. (SYNC.md "How much to sync")
 
