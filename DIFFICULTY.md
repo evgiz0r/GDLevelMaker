@@ -135,6 +135,11 @@ session's attempts show up there late.
 
 ## Against the official levels (the player's route, SIGMA 13, LAPSE 0.75 %, SETTLE 300 ms)
 
+**Current status of every official level: `node tools/measures.js official` (knowledge/measurements.jsonl).** It
+shows solved / difficulty / taste per level with STALE where the physics, route or model changed since. As of
+2026-11-24 night every row below is stale: no official level has been re-solved since 46672ee (no landing buffer),
+see PHYSICS.md "Handoff: the solver session". `difficulty_solve.js` and `difficulty.js` record there by themselves.
+
 Report7, 2026-11-23, with route choice and the settle factor. Solved into the shared `local/` and
 tagged with their physics commit (`tools/difficulty_solve.js`). Rows 7, 17, 19 and 20 were re-solved
 by the physics session (7, 17 on 7924db0-61f17d3; 19, 20, 22 on 119344c: wave edge rules, the

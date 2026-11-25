@@ -357,6 +357,14 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   the safe fixes on a copy -> review again), `tools/retarget.js <level> --to easier|harder|<tier>|<stars>` (the
   hardest spots first, small edits scored by the difficulty model), `tools/families.js` (every soft-rule family: note words, effect,
   effort, fix, auto-fix). Test: `node tests/editing.js`.
+- **The measurements store: every number we measure about a level, with the version it was measured on**
+  (the user, 2026-11-24: "for every level we go through, save some data somewhere about measurements. With the
+  version as it may change"): `knowledge/measurements.jsonl` (committed, merge=union; numbers only, never level
+  data), `tools/measures.js` (`node tools/measures.js [level]`: newest value per measure with STALE marks;
+  `stale`: why and the command to redo it; `history <level>`). Each line has the level's version (hash of its
+  level string) and a commit per code group it depends on (physics, route, difficulty, taste); STALE = a file of
+  that group changed since, or the level did. `difficulty_solve.js`, `difficulty.js` and `taste.js score` record
+  by themselves; a new measuring tool calls `require("./measures.js").record({...})`. Test: `node tests/measures.js`.
 - **`tools/heavy.js` -- the one-heavy-job lock** every heavy tool takes on start (see "One heavy job at
   a time"); it logs every finished job's real time to local/timings.jsonl (`tools/jobtime.js`: measured estimates with
   their basis, estimate vs actual). Tests: `node tests/heavy.js`, `node tests/jobtime.js`.

@@ -43,7 +43,7 @@ function scoreOfficial(n, sigma) {
   const file = path.join(OUT, String(n).padStart(2, "0") + ".json");
   if (!fs.existsSync(file)) return null;
   const sol = JSON.parse(fs.readFileSync(file, "utf8"));
-  const L = GD.parseLevel(unpack(fs.readFileSync(path.join(SRC, n + ".txt"), "utf8")));
+  const levelStr = unpack(fs.readFileSync(path.join(SRC, n + ".txt"), "utf8")), L = GD.parseLevel(levelStr);
   const w = GD.makeWorld(L.objects, L.header);
   // score the route the viewer shows: since main fd26076 that is the human route (difficulty_solve.js toViewer:
   // lib/natural.js + humanCost, PHYSICS.md "How the route is chosen"), so it is scored as it is -- no humanize,
@@ -65,6 +65,11 @@ function scoreOfficial(n, sigma) {
   fs.writeFileSync(path.join(OUT, `scored_${String(n).padStart(2, "0")}.json`), JSON.stringify({
     n, physics: sol.physics || null, route: human ? "human (viewer)" : "solver + humanize", scoredAt: new Date().toISOString(), seconds: d.seconds, complete: d.complete, blocks: d.blocks,
     actions: d.actions.map(a => ({ tick: a.tick, type: a.type, ms: a.ms, x: Math.round(a.x), mode: a.mode, afterSwitchMs: a.afterSwitchMs })) }));
+  // into the measurements store (tools/measures.js), stamped with the physics the scored route was solved on
+  require("./measures.js").record({ level: "official:" + n, name: RATED[n] ? RATED[n][0] : null, levelStr,
+    measure: "difficulty", value: +d.logAttempts.toFixed(3), unit: "log10 attempts", stamps: { physics: sol.physics || null },
+    detail: { perMin: +d.perMinute.toFixed(3), inputs: d.inputs, tight: d.tight, minMs: d.tightest != null ? Math.round(d.tightest) : null,
+      complete: !!d.complete, coverBlocks: d.blocks != null ? Math.round(d.blocks) : null, route: human ? "human" : "solver + humanize" } });
   return Object.assign(d, { n, sol, levelBlocks: w.endX / 30 });
 }
 
