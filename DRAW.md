@@ -209,3 +209,12 @@ spikes or gates yet: LEGO.md wrappers); presses from bricks are not synced to th
 Idea (from the structure-library thread): match a fitted sketch's block columns against the catalogue with
 `tools/lego_match.js` (match / hintsFor, no route needed) to say "this stretch is built like brick X"; it matches exact
 column contents, so it would help shapes that are close to a brick, not new ones. Not tried yet.
+
+## The standalone whiteboard page is retired (2026-11-25)
+
+Evgeni: "should i delete the gdlm whiteboard? we have the level replays". Everything it had is in the viewer's ✏ draw
+mode (the same viewer/draw.html, embedded): the ✨ pen, pens, one-tap palette, deco toggle, 🧩 layout panel, songs,
+export. Its one sketch (smwvbb62d, newer there) was copied into the phone viewer's `sketches` collection, and the phone
+viewer now declares `downloads` too so the board's .gdlvl / .json export works there. Not lost but not carried: songs
+added on the phone to the whiteboard page live in that page's browser storage (add them again in the viewer).
+`tools/draw_web.js` still builds the page for local use; nobody republishes the old Artifact.
