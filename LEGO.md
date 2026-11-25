@@ -237,6 +237,25 @@ Not measured yet: what a seam looks like in blocks (the last 2 columns of one pi
 and how the official levels vary one piece into the next (same shape, a parameter changed). Next: the big-lego test,
 joining main-level pieces by these rules and checking each join in our physics.
 
+## The build pipeline Evgeni set (2026-11-25): theme -> sections -> big lego -> fill -> path -> deco
+
+His words: "some entity designing over a theme / breaking into sections with soft differences, on the limits of strong beats
+(!?) or small breaks in the song (!?) / an ultra big lego we can combine, and fill that section according to the section
+beats / fill the gap with hazards if needed / thats the layout basically / then we have a defined path / then we start
+decoing, first the actual objects according to the themes of the section". Where each step stands (2026-11-25):
+
+| step | what | exists today | missing |
+|---|---|---|---|
+| 1 | a designer sets the theme | theme kits (`tools/themes/`, `tools/theme.js`: space, ice), the section planner (`tools/scenes.js`: per section role, place, palette, mode) | themes that also choose gameplay pieces, not only looks |
+| 2 | sections with soft differences, cut at strong beats or small breaks | `tools/songmap.js` (sections, drops), `tools/hits.js` (hits per half-beat), compose briefs in beats | which cut the main levels use (strong beat vs a break in the song): to be measured on the 22 against their songs |
+| 3 | fill each section from the big lego by pieces whose clicks match its beats | the catalogue (838 main-level pieces, each with its clicks, difficulty, verified route), the combining rules (LEGO.md "Combining"), the join test (`tools/lego_join.js`) | a picker: song hits of a section -> pieces whose clicks land on them, joined by the rules, checked in physics |
+| 4 | fill the gaps with hazards, no secret ways | the solver's skip check, the join test's secret-way and open-seam flags | the filler itself (hazards / walls in the open space so the only way is the piece's route) |
+| 5 | the layout gives a defined path | every piece carries its route; a join is solved end to end | -- |
+| 6 | deco: the structural objects themed per section first, then the rest | block skins and deco (`tools/decorate.js`, `tools/scenekit.js`, themes, props), the deco study thread | per-section skins for the pieces' own blocks |
+
+The main levels' pieces are RobTop's: a level built from them stays on the PC (never pushed or uploaded) until we have pieces
+of our own made the same way -- varied from theirs by the difficulty knobs (LEGO.md "Difficulty knobs").
+
 ## Open
 
 - Compose does not place fly pieces from the catalogue yet: ship / wave / swing sections still use ship-tunnel /

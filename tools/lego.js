@@ -5,6 +5,7 @@
 // node tools/lego.js families [--src official|ours|sketch]   -- the family table: how often, typical parameters
 // node tools/lego.js variety <level.gdlvl>           -- a level's piece sequence by signature: repeats, what is missing
 //                                                      vs the official levels' mix
+// node tools/lego.js knobs                          -- what makes a main-level piece harder or easier, per mode -> knowledge/lego_knobs.json
 // node tools/lego.js votes                          -- Evgeni's 👍 / 👎 / comments (PC page + phone page) -> knowledge/lego_votes.json
 // node tools/lego.js page [--public] [--out f.html]  -- a page of thumbnails, filterable by family / mode / wrapper /
 //                                                      source. Default: everything, local only (official pieces are
@@ -45,7 +46,7 @@ function officialSources() {
     if (!fs.existsSync(f)) continue;
     const j = JSON.parse(fs.readFileSync(f, "utf8"));
     if (!j.solution || !j.solution.events) continue;
-    out.push({ src: "official", name: `${n} ${j.name}`, level: GD.parseLevel(j.level), events: j.solution.events });
+    out.push({ src: "official", name: `${n} ${j.name}`, level: GD.parseLevel(j.level), events: j.solution.events, windowsKey: "official_" + n });
   }
   return out;
 }
@@ -54,7 +55,7 @@ function ourSources() {
   for (const f of fs.readdirSync(path.join(ROOT, "levels")).filter(f => /^gdlm_.*\.gdlvl$/.test(f)).sort()) {
     const L = readGdlvl(path.join(ROOT, "levels", f)), sol = S.get(L.levelStr, true);
     if (!sol || !sol.events) continue;
-    out.push({ src: "ours", name: f.replace(/^gdlm_|\.gdlvl$/g, ""), file: "levels/" + f, level: L.level || GD.parseLevel(L.levelStr), events: sol.events });
+    out.push({ src: "ours", name: f.replace(/^gdlm_|\.gdlvl$/g, ""), file: "levels/" + f, level: L.level || GD.parseLevel(L.levelStr), events: sol.events, windows: sol.windows || null });
   }
   return out;
 }
@@ -68,7 +69,7 @@ function librarySources() {
     // verified by the solver: the saved route, else solve it now (cached in local/solutions for next time)
     let sol = S.get(L.levelStr, true);
     if (!sol || !sol.ok) try { sol = S.solve(level, L.levelStr); } catch (e) { sol = null; }
-    out.push({ src: "library", name: f.replace(/\.gdlvl$/, ""), file: "tools/structures.js " + f.replace(/\.gdlvl$/, ""), level, events: sol && sol.ok ? sol.events : null, whole: true, unsolved: !(sol && sol.ok) });
+    out.push({ src: "library", name: f.replace(/\.gdlvl$/, ""), file: "tools/structures.js " + f.replace(/\.gdlvl$/, ""), level, events: sol && sol.ok ? sol.events : null, windows: sol && sol.windows || null, whole: true, unsolved: !(sol && sol.ok) });
   }
   return out;
 }
@@ -155,6 +156,34 @@ function cut(r, inputs, whole) {
     }
   }
   return out;
+}
+
+// ---------------------------------------------------------------- timing windows (a piece's difficulty)
+// every input's player window (lib/windows.js, the one definition the viewer, score.js and difficulty share): ours come
+// saved with their route; an official route's are measured once (~7 s a level) and kept in local/lego/windows/, keyed by
+// the route and the physics / windows commits. Format as tools/solutions.js: [0 press / 1 release, tick, lo, hi, j].
+function windowsOf(src, w, r) {
+  if (src.windows) return src.windows;
+  if (!src.events || r.midline) return [];
+  const S = require("./solutions.js"), crypto = require("crypto");
+  const key = crypto.createHash("sha1").update(JSON.stringify(src.events) + S.physicsCommit() + (S.windowsCommit ? S.windowsCommit() : "")).digest("hex").slice(0, 16);
+  const f = path.join(OUTDIR, "windows", (src.windowsKey || src.name.replace(/[^a-z0-9]+/gi, "_")) + ".json");
+  try { const c = JSON.parse(fs.readFileSync(f, "utf8")); if (c.key === key) return c.windows; } catch (e) {}
+  const WIN = require("../lib/windows.js");
+  const t0 = Date.now();
+  const ws = WIN.inputWindows(w, src.events, r.path, {}).map(x => [x.type === "release" ? 1 : 0, x.tick, x.lo, x.hi, x.j]);
+  fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, JSON.stringify({ key, windows: ws }));
+  console.log(`    windows of ${src.name}: ${ws.length} inputs, ${Date.now() - t0} ms`);
+  return ws;
+}
+// a piece's difficulty from the windows of its inputs: log10 of the expected attempts to get through it in one go
+// (lib/difficulty.js hitChance: the user's fitted timing spread and lapse), its tightest window and the tight ones (< 60 ms)
+function pieceDifficulty(ws, t0, t1) {
+  const Dif = require("../lib/difficulty.js");
+  const ms = ws.filter(x => x[1] >= t0 && x[1] <= t1).map(x => (x[3] - x[2] + 1) / TPS * 1000);
+  if (!ms.length) return { diff: 0, tightMs: null, tight: 0, windows: 0 };
+  const diff = ms.reduce((c, m) => c - Math.log10(Math.max(Dif.hitChance(m), 1e-9)), 0);
+  return { diff: r2(diff), tightMs: Math.round(Math.min(...ms)), tight: ms.filter(m => m < 60).length, windows: ms.length };
 }
 
 // ---------------------------------------------------------------- measuring one piece
@@ -290,7 +319,8 @@ function mine(which, sketchFiles) {
     const t0 = Date.now();
     let R; try { R = route(s); } catch (e) { console.log("  skip", s.name, e.message); continue; }
     const cuts = cut(R.r, R.inputs, s.whole);
-    for (const [i0, i1] of cuts) pieces.push(measure(s, R.w, R.r, R.inputs, i0, i1));
+    let ws = []; try { ws = windowsOf(s, R.w, R.r); } catch (e) { console.log("  no windows for", s.name, e.message); }
+    for (const [i0, i1] of cuts) { const P = measure(s, R.w, R.r, R.inputs, i0, i1); Object.assign(P, pieceDifficulty(ws, R.r.path[i0].tick, R.r.path[i1].tick)); pieces.push(P); }
     console.log(`  ${s.src.padEnd(8)} ${s.name.padEnd(34)} ${String(cuts.length).padStart(3)} pieces${R.r.dead ? " (route dies at block " + Math.round(R.r.path[R.r.path.length - 1].x / B) + ")" : ""}  ${Date.now() - t0} ms`);
   }
   pieces.forEach((p, i) => p.id = ({ official: "r", ours: "u", sketch: "s", library: "l" }[p.src] + "-" + p.level.replace(/[^a-z0-9]+/gi, "_").toLowerCase() + "-" + p.x));
@@ -414,7 +444,44 @@ function votesCmd() {
   for (const [k, e] of Object.entries(w).sort((a, b) => b[1].weight - a[1].weight)) console.log(`  weight ${e.weight.toFixed(2)}  ${k}`);
   try { writeKnowledge(load()); } catch (e) {}
 }
-module.exports = { officialSources, ourSources, heldAt, readVotes, sigWeights, cut, measure, route, signature, FAMILY, mine, load, dedupe, columns, sameLayout };
+// knobs: what makes a piece harder or easier, per mode, on the main levels' pieces. Each parameter against the piece's
+// difficulty (log10 attempts from its timing windows): the rank correlation, and the parameter's median in the easiest
+// and the hardest quarter. The user, 2026-11-25: "maybe think what parameters they have to make harder or easier.
+// probably dont want to copy same structures just with small diff for difficulty" -- so the knobs worth turning are the
+// ones that change the piece's kind (gap, speed, mechanics), not a shifted spike. -> knowledge/lego_knobs.json
+const KNOBS = {
+  "presses/s": p => p.presses / Math.max(0.3, p.s), "hazards/100": p => p.hzPer100, "speed": p => p.speed, "corridor gap": p => p.gap,
+  "climb": p => p.yRange, "path turns": p => p.turns, "gates": p => p.gates, "held share": p => p.hold, "orbs+pads": p => Object.values(p.mech || {}).reduce((a, b) => a + b, 0),
+  "floors (steps)": p => p.floors, "pits share": p => p.pitShare, "width (blocks)": p => p.w,
+};
+function rankCorr(xs, ys) {
+  const rk = a => { const o = a.map((v, i) => [v, i]).sort((p, q) => p[0] - q[0]), r = new Array(a.length); o.forEach(([v, i], k) => r[i] = k); return r; };
+  const n = xs.length; if (n < 8) return null; const a = rk(xs), b = rk(ys), ma = (n - 1) / 2;
+  let sab = 0, sa = 0, sb = 0; for (let i = 0; i < n; i++) { sab += (a[i] - ma) * (b[i] - ma); sa += (a[i] - ma) ** 2; sb += (b[i] - ma) ** 2; }
+  return sa && sb ? r2(sab / Math.sqrt(sa * sb)) : null;
+}
+function knobs(all) {
+  const out = { made: new Date().toISOString().slice(0, 10), note: "LEGO.md 'Difficulty knobs'. Main-level pieces only; diff = log10 attempts from timing windows.", modes: {} };
+  const P = all.filter(p => p.src === "official" && p.verified && !p.dupOf && p.diff != null);
+  for (const mode of [...new Set(P.map(p => p.mode))]) {
+    const ps = P.filter(p => p.mode === mode); if (ps.length < 12) continue;
+    const ds = ps.map(p => p.diff), sorted = ds.slice().sort((a, b) => a - b), lo = sorted[Math.floor(ds.length / 4)], hi = sorted[Math.floor(ds.length * 3 / 4)];
+    const row = { n: ps.length, diff: { p25: lo, median: sorted[ds.length >> 1], p75: hi, max: sorted[sorted.length - 1] }, tightMs: median(ps.map(p => p.tightMs).filter(v => v != null)), knobs: {} };
+    for (const [k, f] of Object.entries(KNOBS)) {
+      const pairs = ps.map(p => [f(p), p.diff]).filter(([v]) => v != null && isFinite(v)); if (pairs.length < 12) continue;
+      const easy = pairs.filter(x => x[1] <= lo).map(x => x[0]), hard = pairs.filter(x => x[1] >= hi).map(x => x[0]);
+      row.knobs[k] = { corr: rankCorr(pairs.map(x => x[0]), pairs.map(x => x[1])), easy: r2(median(easy)), hard: r2(median(hard)) };
+    }
+    out.modes[mode] = row;
+  }
+  fs.writeFileSync(path.join(ROOT, "knowledge", "lego_knobs.json"), JSON.stringify(out, null, 1));
+  for (const [m, r] of Object.entries(out.modes)) {
+    console.log(`\n${m}: ${r.n} pieces, difficulty p25 ${r.diff.p25} / median ${r.diff.median} / p75 ${r.diff.p75} / max ${r.diff.max}, tightest window median ${r.tightMs} ms`);
+    for (const [k, v] of Object.entries(r.knobs).sort((a, b) => Math.abs(b[1].corr || 0) - Math.abs(a[1].corr || 0)).slice(0, 6)) console.log(`   ${k.padEnd(16)} corr ${String(v.corr).padStart(5)}   easy quarter ${v.easy}  hard quarter ${v.hard}`);
+  }
+  return out;
+}
+module.exports = { knobs, officialSources, ourSources, heldAt, readVotes, sigWeights, cut, measure, route, signature, FAMILY, mine, load, dedupe, columns, sameLayout };
 
 if (require.main === module) {
   const A = process.argv.slice(2), cmd = A[0];
@@ -426,6 +493,7 @@ if (require.main === module) {
   } else if (cmd === "families") families(load(), opt("src"));
   else if (cmd === "variety") variety(A[1]);
   else if (cmd === "votes") votesCmd();
+  else if (cmd === "knobs") knobs(load());
   else if (cmd === "page") require("./lego_page.js").build(load(), { pub: A.includes("--public"), out: opt("out") });
   else console.log(fs.readFileSync(__filename, "utf8").split("\n").filter(l => l.startsWith("// node")).join("\n"));
 }
