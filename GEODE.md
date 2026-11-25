@@ -169,6 +169,10 @@ The user asked (2026-11-25): "do we have something that can make a run from a pr
   `%USERPROFILE%\geode-build\<mod>`, outside OneDrive). Cold build ~60-95 s (configure fetches the bindings, then compile);
   output `%USERPROFILE%\geode-build\gdlm-probe\gdlm.probe.geode`. `--install` copies it to the game's geode/mods and refuses
   while GeometryDash.exe runs.
+  **Gotcha:** the build dir is keyed by the mod folder's NAME only, so building the same mod from another worktree fails at
+  configure ("source ... does not match the source ... used to generate cache"). Build from a copy with another folder name
+  (`mods\gdlm-probe-v040`: its own build dir, cold ~2 min with the 36 s configure) or from the main checkout. v0.4.0 (checkpoint
+  logging) built this way with no source changes, 2026-11-25.
 - **MSVC cl does not compile Geode 6.0.0's headers** (C3615 constexpr in utils/file.hpp, FileError over asp::fs::Error):
   use clang-cl. main.cpp built as written (no changes needed for 6.0.0 / bindings 2.2091).
 - The SDK's CMake prints a notice for AI-agent builds: building and using the mod locally is fine; a mod mostly written by
