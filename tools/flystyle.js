@@ -1,3 +1,7 @@
+// node tools/flystyle.js --cases [--replan] [--level N]  -- Evgeni's route comments on main-level bricks (knowledge/lego_votes.json)
+//   as planner test cases: per comment its flying stretch, saved route vs today's re-plan (PC only: the levels are local).
+// node tools/flystyle.js <level | official:N> --trace <block>[-<block>] [--replan]  -- the route tick by tick there: mode, x, y,
+//   vertical speed, button, grounded / sliding / on a slope, the free space (sim questions: "the wave seems sliding").
 // node tools/flystyle.js <level.gdlvl | official:N | spec.json> [...] [--replan] [--cost]  -- how a level's route flies its ship / wave /
 //   UFO / swing stretches: per stretch its presses, presses a second, mean leg (ms between inputs), legs under 100 ms,
 //   ticks within 12 units of a wall, the tightest player window (ms; lib/difficulty.js measureWindows). --replan: the route planned again by today's lib/natural.js from the saved route
@@ -47,13 +51,62 @@ function stretches(w, ev) {
 }
 const line = s => `${s.mode.padEnd(5)} blocks ${String(s.from).padStart(6)}-${String(s.to).padEnd(6)} ${String(s.secs).padStart(5)} s  presses ${String(s.presses).padStart(3)} (${s.perSec}/s)  mean leg ${s.legMs ?? "-"} ms  legs<100ms ${s.short}  tightest ${s.tight ?? "-"} ms  near a wall ${s.close} ticks` + (s.mode === "wave" ? `  slides ${s.slide} ticks  inputs ${s.inputs} for ${s.turns} turns${s.off ? " OFF PATTERN" : ""}` : "");
 
+// the route around blocks [b0, b1]: one line every 4 ticks
+function trace(lv, ev, b0, b1) {
+  const p = GD.run(lv.w, ev).path, held = new Array(p.length).fill(false), sorted = ev.slice().sort((x, y) => x.tick - y.tick);
+  { let h = false, j = 0; for (let t = 0; t < p.length; t++) { while (j < sorted.length && sorted[j].tick === t) { h = sorted[j].type === "press"; j++; } held[t] = h; } }
+  for (let t = 0; t < p.length; t += 4) {
+    const q = p[t], bx = GD.progressX ? GD.progressX(q) / 30 : q.x / 30;
+    if (bx < b0 || bx > b1) continue;
+    const [lo, hi] = GD.flyFree(lv.w, q);
+    console.log(`  t ${String(t).padStart(6)}  block ${bx.toFixed(2).padStart(7)}  ${q.mode.padEnd(5)} y ${q.y.toFixed(1).padStart(7)}  vy ${(+q.vy).toFixed(2).padStart(6)}  ${held[t] ? "HELD" : "    "}` +
+      `${q.grounded ? " grounded" : ""}${q.waveOn ? " slid-on-block" : ""}${q.onSlope ? " on-slope" : ""}${q.grav === -1 ? " upside-down" : ""}${q.dead ? " DEAD" : ""}  free ${lo.toFixed(0)}..${hi.toFixed(0)}`);
+  }
+}
+// Evgeni's comments on main-level bricks -> per level, the stretch each one is in (knowledge/lego_votes.json; ids r-<n>_<name>-<block>)
+function cases(only) {
+  let v = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "knowledge", "lego_votes.json"), "utf8"));
+  v = Array.isArray(v) ? v : Object.values(v.votes || v);
+  const by = new Map();
+  for (const c of v) {
+    const m = /^r-(\d+)_/.exec(c.id || ""); if (!m || !(c.comment || c.vote < 0)) continue;
+    if (only && +m[1] !== only) continue;
+    if (!by.has(+m[1])) by.set(+m[1], []); by.get(+m[1]).push(c);
+  }
+  return by;
+}
+
 if (require.main === module) {
-  const a = process.argv.slice(2), files = a.filter(x => !x.startsWith("--"));
-  if (!files.length) { console.log(fs.readFileSync(__filename, "utf8").split("\n").filter(l => l.startsWith("//")).slice(0, 4).join("\n")); process.exit(1); }
+  const a = process.argv.slice(2), files = a.filter((x, i) => !x.startsWith("--") && !/^--(trace|level)$/.test(a[i - 1] || ""));
+  const tr = a.includes("--trace") ? a[a.indexOf("--trace") + 1].split("-").map(Number) : null;
+  if (a.includes("--cases")) {
+    const only = a.includes("--level") ? +a[a.indexOf("--level") + 1] : null;
+    for (const [n, cs] of [...cases(only)].sort((x, y) => x[0] - y[0])) {
+      let lv; try { lv = load("official:" + n); } catch (e) { console.log(`official ${n}: level not on this machine (${e.code || e.message})`); continue; }
+      if (!lv.events) { console.log(`official ${n}: no saved route`); continue; }
+      const before = stretches(lv.w, lv.events);
+      let after = null;
+      if (a.includes("--replan")) { const r = GD.naturalPlan(lv.w, { ok: true, events: lv.events }, lv.objects, { cost: a.includes("--cost") }); after = r ? stretches(lv.w, r.events) : null; }
+      console.log(`== official ${n}: ${cs.length} comment(s)`);
+      for (const c of cs) {
+        const i = before.findIndex(s => c.x >= s.from - 3 && c.x <= s.to + 3);
+        console.log(`  block ${c.x} "${c.comment || "(thumbs down)"}"  [${c.sig}]`);
+        if (i < 0) { console.log("    not in a flying stretch"); continue; }
+        console.log("    saved  " + line(before[i])); if (after && after[i]) console.log("    replan " + line(after[i]));
+      }
+    }
+    process.exit(0);
+  }
+  if (!files.length) { console.log(fs.readFileSync(__filename, "utf8").split("\n").filter(l => l.startsWith("//")).slice(0, 8).join("\n")); process.exit(1); }
   for (const f of files) {
     const lv = load(f);
     let ev = lv.events, t0 = Date.now();
     if (!ev) { const r = GD.solveAny(lv.w); if (!r.ok) { console.log(`${f}: not beaten (${r.why})`); continue; } ev = r.events; console.log(`${f}: no saved route; solved in ${((Date.now() - t0) / 1000).toFixed(1)} s`); }
+    if (tr) {
+      console.log(`${f}: saved route, blocks ${tr[0]}-${tr[1] ?? tr[0] + 3}`); trace(lv, ev, tr[0], tr[1] ?? tr[0] + 3);
+      if (a.includes("--replan")) { const r = GD.naturalPlan(lv.w, { ok: true, events: ev }, lv.objects, {}); if (r) { console.log("re-planned:"); trace(lv, r.events, tr[0], tr[1] ?? tr[0] + 3); } }
+      continue;
+    }
     const before = stretches(lv.w, ev);
     console.log(`${f}: ${before.length} flying stretches${a.includes("--replan") ? " -- saved route, then re-planned" : ""}`);
     if (!a.includes("--replan")) { for (const s of before) console.log("  " + line(s)); continue; }
