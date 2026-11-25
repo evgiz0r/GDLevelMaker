@@ -335,6 +335,15 @@ entry / exit fit (the contract), connectors (y shift, portal) where they don't, 
 filler last (close the open space, wall the portals, continue the outlines), every join checked by the solver
 (clear, no secret way). Not built yet: the connectors and the filler.
 
+## Where the catalogue lives (2026-11-25)
+
+- PC: http://localhost:8765/lego/ (tools/serve.js builds it; votes to local/lego/votes.jsonl).
+- Evgeni's PRIVATE claude.ai page: https://claude.ai/artifact/HNZF2JRKi7XkQ8SawvF4Kr, everything incl. the main-level
+  bricks (his choice, 2026-11-25: "Yes, private page only"; "just the fact its not native in the app is annoying"). Build
+  with `node tools/lego.js page --private` and publish local/lego/page_private/ (index.html + pieces.json) to that URL.
+  Votes go to its database (`legovotes`). RobTop's layouts are on it, so it is never shared, never made public, and the
+  repo and the public site still never carry them (`page --public` is the copy without them).
+
 ## Open
 
 - Compose does not place fly pieces from the catalogue yet: ship / wave / swing sections still use ship-tunnel /

@@ -125,7 +125,7 @@ const PAGE = 60;
     return `<div class="mrow" title="${esc(r.k)}: official ${r.official} (${Math.round(o*100)}%), ours ${r.ours} (${Math.round(u*100)}%)"><span class="k">${esc(r.k)}</span><span class="bars"><span class="bar o" style="width:${o/max*100}%"></span><span class="bar u" style="width:${u/max*100}%"></span></span></div>`;
   }).join("");
   const pct = (k, s) => { const r = MIX.rows.find(x => x.k === k); return r ? Math.round(r[s] / Math.max(1, t[s]) * 100) : 0; };
-  $("lede").textContent = `${t.official + t.ours + t.sketch + (t.library || 0)} pieces of 1-3 s, cut from the routes of the 22 official levels (${t.official}), our GDLM levels (${t.ours}), Evgeni's whiteboard sketches (${t.sketch}) and the lego pieces we built from one shared path (${t.library}, first in the drawer). Each one is classified by family, mode and wrapper and measured: width, seconds, presses, hold share, corridor gap, height range, hazards.` + (PUB ? " This copy leaves out the official layouts (RobTop's): only their numbers are in the chart." : "");
+  $("lede").textContent = `${t.official + t.ours + t.sketch + (t.library || 0)} pieces of 1-3 s, cut from the routes of the 22 official levels (${t.official}), our GDLM levels (${t.ours}), Evgeni's whiteboard sketches (${t.sketch}) and the lego pieces we built from one shared path (${t.library}, first in the drawer). Each one is classified by family, mode and wrapper and measured: width, seconds, presses, hold share, corridor gap, height range, hazards.` + (PUB && !/*PRIV*/false ? " This copy leaves out the official layouts (RobTop's): only their numbers are in the chart." : "");
   $("notes").innerHTML = `<p><b>Flat cube is a third of ours (${pct("jump · cube · flat", "ours")}%), and ${pct("jump · cube · flat", "official")}% of the official levels.</b> The official cube is mostly steps (${pct("jump · cube · steps", "official")}%) and pits.</p>
   <p><b>Official ships are spiky corridors with gates</b> (${pct("fly · ship · corridor +spikes +gates", "official")}% of all their pieces); ours fly plain corridors (${pct("fly · ship · corridor", "ours")}%) and never a spiky one with gates.</p>
   <p><b>Fly family</b>: one path, wrapped as open air, a floor path, a roof path or a corridor, then +spikes (hazards are 30%+ of the walls), +gates (narrowings) and +flips (gravity). The same wrappers fit ship, wave and swing.</p>
@@ -302,7 +302,7 @@ fetch("pieces.json").then(r => r.json()).then(d => {
   // the main levels first (the user, 2026-11-25: "i want to focus on mainlevel"); ours are one pick away
   // our own pieces only under "also show: our own pieces" (the user, 2026-11-25: "Lets not show our own structures for now
   // in the catalog. or under some option"); the phone copy has no official layouts, so it shows ours from the start
-  if (PUB || !ALL.some(p => p.src === "official")) $("fours").checked = true;
+  if (!ALL.some(p => p.src === "official")) $("fours").checked = true;
   filter();
   loadVotes().then(() => { refreshVotes(); if ($("fvote").value) filter(); });
 }).catch(() => { $("count").textContent = "pieces.json did not load"; });
