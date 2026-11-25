@@ -105,6 +105,10 @@ too slow, too hard, feels good, love the hook). **♥ pick vN** / **none: all du
   is loaded. Picking another level while a stage is open now opens that level's own stages; a stages fetch already in flight
   is not started again (three fetches each reopened the stage and stopped the play); the in-progress refresh (the lab's 15 s
   poll) keeps an open stage on screen. `node tests/lab_play.js` (headless, muted) checks all of it.
+- Variants end ~0.5 s after their gameplay (`tools/lab.js trimEnd`, done by `build`; `node tools/lab.js trim <round>` for
+  rounds built before 2026-11-25).
+- Typing in any text box (a mark's note, the lab's why) never drives the replay: the replay keys (space, r, arrows) and
+  m skip while a text field has focus (`node tests/note_typing.js`).
 - Open: `#lab=r1` (`#lab` = the newest round), or the Work panel's "Section lab" rows. Works on the phone over the home
   Wi-Fi (the /lab routes and local/wip files are allowed from the LAN). Not on the phone page (no serve.js there).
 - Data: `local/lab/r<N>/round.json` {id, moment, t, variants:[{k, hook, why, file?}], ask}, `v<k>.result.json` {ok, pace}.
@@ -143,3 +147,27 @@ too slow, too hard, feels good, love the hook). **♥ pick vN** / **none: all du
 Section lab: GET /lab/list, GET /lab/r<N>, POST /lab/pick (tools/serve.js; GDLM_LAB_DIR for tests), `labOpen` in viewer/index.html; `node tests/lab_view.js`, `node tests/lab_play.js` (each variant plays its route).
 Tests: `node tests/work.js` (gate -> waiting -> review -> waitApproval; card put -> list -> answer; the feed and tail),
 `node tests/stages.js`, `node tests/no_dialogs.js`.
+
+## Layout on the PC (2026-11-25)
+
+The user: "i want the ui more in the middle", "its way too stuck to the top, and the top ui hides the level a bit", "all
+these clicks are still open". On a screen 900 px wide or more the level view is 16:9 (as GD frames it: 19 blocks across,
+10.67 up), as tall as the window allows (window height - 230 px, at least 640 px wide), centred with a gap under the top
+bar; the button strip, scrub bar, lab bar and the cards below share its width. The Clicks card is closed by default (its
+title shows the count). Phones keep the old full-width layout.
+
+## The level list's tabs (2026-11-25)
+
+The user: "main has too many songs now ... its just spam. Lets do main for ready levels + official. Rest in the different
+tabs". **main** = our pushed levels that are not lab / test / catalogue / sketch levels (a newer wip of one still sits on
+its card) + the official ones; **in progress** = work in progress that is not the lab; **lab** = the section lab's
+variants (LAB rN vK) and the lab / test levels (`pkLab` in viewer/index.html); ours, official, community, demon list, all
+as before.
+
+## Zoom the level only (2026-11-25)
+
+The user: "how do i zoom out of the level? the big zoom of the whole ui is messy". The level view has its own zoom: the
+mouse wheel or a trackpad pinch over the level, the − / 100% / + buttons in its top right corner (100% = the game's own
+view), keys - and =. The page around it stays as it is; the zoom is remembered in this browser (localStorage gdlm.zoom).
+Shots (tools/shoot.js) ignore it.
+

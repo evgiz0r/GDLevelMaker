@@ -19,6 +19,14 @@ progress -- and no GD sprite, image or song file. The build refuses (exit 1) whe
 from local/, an image / audio / plist / video, or a level that is not ours; `node tests/pages_build.js` checks a
 build and plants forbidden files to prove the refusal works. A scan of a build found no name, e-mail or PC path.
 
+## Songs on the site (2026-11-25)
+
+The user: "what songs can we put in git that [are] free ... those can be published freely". A level whose song is in
+`knowledge/free_songs.json` (Creative Commons, `hostable`) with its file in `songs/free/<id>.mp3` gets that file at
+`songs/<id>.mp3` on the site (`free_songs.js` maps id -> file + credit) and plays it at once; the credit shows under the
+player. `checkDir` allows exactly those files (byte-equal to songs/free/); any other audio is still refused. Every other
+song: "add song" as before. The list and rules: knowledge/free_songs.md.
+
 ## On the user's own PC
 
 With `tools/serve.js` running (http://localhost:8765), the public page fetches from it: the songs (music in
