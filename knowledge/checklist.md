@@ -137,7 +137,8 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   sliding off a corner, CLAUDE.md calibration) and never into a rising slope. In the planner (lib/natural.js fly, EASY_MS 100):
   a flying line never wins on fewer presses when its tightest window is under 100 ms and tighter than the old one, and a line
   with up to 2 more presses wins when it widens a window under 100 ms by half. `node tools/flystyle.js <level>`: tightest
-  window per stretch (PHYSICS.md "The wave like a person").
+  window per stretch (PHYSICS.md "The wave like a person"). The wave slides on flat floors and roofs instead of hovering above
+  them with corrections (Evgeni: "we can slide on it avoiding the clicks in the middle"); a slide is not a near-wall tick.
 - [ ] **Wave**: zigzag turns wider than ~100 ms apart; no head-on slopes at a portal exit; the exit
   portal over a flat floor, level stretches at the turns (patterns.js wave-zigzag `flat`, `leadGap`).
   (design.md; GDLM 44/46 real-game deaths)

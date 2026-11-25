@@ -1,0 +1,274 @@
+{
+ "made": "2026-11-25",
+ "physics": "62ec280",
+ "n": 40,
+ "clear": 93,
+ "secret": 0,
+ "broken": 8,
+ "openSeam": 0,
+ "modeChange": {
+  "n": 33,
+  "clear": 91
+ },
+ "sameMode": {
+  "n": 7,
+  "clear": 100
+ },
+ "causes": {
+  "clear": 37,
+  "broken: spike": 2,
+  "broken: block": 1
+ },
+ "rows": [
+  {
+   "modes": "cube>wave",
+   "ok": true,
+   "secret": false,
+   "open": 0
+  },
+  {
+   "modes": "cube>cube",
+   "ok": true,
+   "secret": false,
+   "open": 0
+  },
+  {
+   "modes": "cube>cube",
+   "ok": true,
+   "secret": false,
+   "open": 0
+  },
+  {
+   "modes": "cube>ship",
+   "ok": true,
+   "secret": false,
+   "open": 0
+  },
+  {
+   "modes": "ship>cube",
+   "ok": true,
+   "secret": false,
+   "open": 0
+  },
+  {
+   "modes": "cube>ship",
+   "ok": true,
+   "secret": false,
+   "open": 0
+  },
+  {
+   "modes": "robot>ship",
+   "ok": true,
+   "secret": false,
+   "open": 0
+  },
+  {
+   "modes": "cube>wave",
+   "ok": true,
+   "secret": false,
+   "open": 0
+  },
+  {
+   "modes": "wave>cube",
+   "ok": false,
+   "secret": false,
+   "open": 0,
+   "dieAt": 7.3,
+   "why": "spike"
+  },
+  {
+   "modes": "ufo>cube",
+   "ok": true,
+   "secret": false,
+   "open": 0
+  },
+  {
+   "modes": "ship>ufo",
+   "ok": true,
+   "secret": false,
+   "open": 0
+  },
+  {
+   "modes": "cube>wave",
+   "ok": true,
+   "secret": false,
+   "open": 0
+  },
+  {
+   "modes": "ship>cube",
+   "ok": true,
+   "secret": false,
+   "open": 0
+  },
+  {
+   "modes": "cube>cube",
+   "ok": true,
+   "secret": false,
+   "open": 0
+  },
+  {
+   "modes": "cube>ufo",
+   "ok": true,
+   "secret": false,
+   "open": 0
+  },
+  {
+   "modes": "cube>cube",
+   "ok": true,
+   "secret": false,
+   "open": 0
+  },
+  {
+   "modes": "cube>ufo",
+   "ok": true,
+   "secret": false,
+   "open": 0
+  },
+  {
+   "modes": "cube>cube",
+   "ok": true,
+   "secret": false,
+   "open": 0
+  },
+  {
+   "modes": "cube>wave",
+   "ok": true,
+   "secret": false,
+   "open": 0
+  },
+  {
+   "modes": "cube>ship",
+   "ok": true,
+   "secret": false,
+   "open": 0
+  },
+  {
+   "modes": "cube>ball",
+   "ok": true,
+   "secret": false,
+   "open": 0
+  },
+  {
+   "modes": "wave>cube",
+   "ok": false,
+   "secret": false,
+   "open": 0,
+   "dieAt": 1,
+   "why": "block"
+  },
+  {
+   "modes": "cube>wave",
+   "ok": false,
+   "secret": false,
+   "open": 0,
+   "dieAt": -12.2,
+   "why": "spike"
+  },
+  {
+   "modes": "ship>cube",
+   "ok": true,
+   "secret": false,
+   "open": 0
+  },
+  {
+   "modes": "wave>cube",
+   "ok": true,
+   "secret": false,
+   "open": 0
+  },
+  {
+   "modes": "cube>cube",
+   "ok": true,
+   "secret": false,
+   "open": 0
+  },
+  {
+   "modes": "cube>ship",
+   "ok": true,
+   "secret": false,
+   "open": 0
+  },
+  {
+   "modes": "cube>cube",
+   "ok": true,
+   "secret": false,
+   "open": 0
+  },
+  {
+   "modes": "ufo>ship",
+   "ok": true,
+   "secret": false,
+   "open": 0
+  },
+  {
+   "modes": "cube>ship",
+   "ok": true,
+   "secret": false,
+   "open": 0
+  },
+  {
+   "modes": "ship>wave",
+   "ok": true,
+   "secret": false,
+   "open": 0
+  },
+  {
+   "modes": "cube>wave",
+   "ok": true,
+   "secret": false,
+   "open": 0
+  },
+  {
+   "modes": "ufo>cube",
+   "ok": true,
+   "secret": false,
+   "open": 0
+  },
+  {
+   "modes": "cube>ship",
+   "ok": true,
+   "secret": false,
+   "open": 0
+  },
+  {
+   "modes": "cube>robot",
+   "ok": true,
+   "secret": false,
+   "open": 0
+  },
+  {
+   "modes": "cube>ufo",
+   "ok": true,
+   "secret": false,
+   "open": 0
+  },
+  {
+   "modes": "cube>ufo",
+   "ok": true,
+   "secret": false,
+   "open": 0
+  },
+  {
+   "modes": "ship>cube",
+   "ok": true,
+   "secret": false,
+   "open": 0
+  },
+  {
+   "modes": "cube>robot",
+   "ok": true,
+   "secret": false,
+   "open": 0
+  },
+  {
+   "modes": "ship>cube",
+   "ok": true,
+   "secret": false,
+   "open": 0
+  }
+ ],
+ "contract": true,
+ "grain": "brick",
+ "fill": true,
+ "spikes": 85
+}

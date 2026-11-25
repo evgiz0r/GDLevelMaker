@@ -281,5 +281,5 @@ const files = { "levels.js": "levels.js", "beats.js": "beats.js", "solve_worker.
 if (hasBM) files["bricks_main.js"] = "bricks_main.js";
 for (const m of maps) files["maps/" + m + "_shapes.jpg"] = "maps/" + m + "_shapes.jpg";
 for (const f of libs) files["lib/" + f] = "lib/" + f;
-fs.writeFileSync(path.join(OUT, "publish.json"), JSON.stringify({ file_path: path.join(OUT, "index.html"), root: OUT, files, capabilities: { db: {} } }, null, 1));
+fs.writeFileSync(path.join(OUT, "publish.json"), JSON.stringify({ file_path: path.join(OUT, "index.html"), root: OUT, files, capabilities: { db: {}, downloads: true } }, null, 1));
 console.log(`${OUT}: index.html + ${Object.keys(files).length} files; publish.json has the Artifact call's file_path, root, files and capabilities`);

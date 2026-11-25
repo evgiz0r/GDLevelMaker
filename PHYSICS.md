@@ -882,6 +882,14 @@ or holds longer than needed (over 0.15 s outside ship/wave where a tap finishes)
   window is under EASY_MS (100) and over 4 ms tighter than the old one is never taken, and a line with up to 2 more presses
   is taken when the old line's tightest is under 100 ms and the new one's is at least 1.5x it (and no closer to the walls).
   Fewest presses is a tie-breaker among easy lines, never bought with a tight window. Lab: tightest 146 -> 183 ms.
+- **Slide, don't hover** (the user, 2026-11-25: "many places wave avoids ground but probably in many of them we can slide on
+  it avoiding the clicks in the middle"). The sim slides the wave as GD does: along a block's top or bottom face
+  (physics.js `waveOn`) and the band's floor and roof, and kills it sliding off a block's end and flying head-on into a
+  slope (both from the user's recordings, Calibration in CLAUDE.md). natural.js `sliding` (a wave with vertical speed 0)
+  is never a near-wall tick and no stray for the wave planner, so a line that rests on a floor and lets the corridor come
+  to it wins over one hovering above it with corrections. A slide off an edge shows in the planner's look-ahead as a death,
+  so a slide ends with a press before the corner. Our levels, re-planned: GDLM 45 presses 18 -> 16, slides 37 -> 76 ticks;
+  GDLM 64 39 -> 37, slides 45 -> 88; GDLM 47 and 52 unchanged in presses.
 - **Off the pattern** (routeCheck `offPattern`, score.js route gate WARN "N inputs for M corridor turns (off the
   pattern)"): a wave stretch's inputs beyond the corridor's turns + 2 (turns: the free space's middle changing
   direction by 20+ units, sampled every 8 ticks, open air over 280 units skipped), counted only up to the number of
@@ -896,7 +904,11 @@ or holds longer than needed (over 0.15 s outside ship/wave where a tap finishes)
   re-plan of the main levels with waves on the PC is the real test.
 - OPEN: re-planning some of our levels from their saved routes flies worse than the saved route by near-wall ticks,
   with or without this change (GDLM 44: 0 -> 636 ticks today, 0 -> 932 before it, presses 15 -> 16 vs 22), and GDLM 68's
-  re-plan skips a ship portal at x 14715 and takes ~11 min (cloud). Not the wave planner's (no wave stretch there is off
+  re-plan skips a ship portal at x 14715 and takes ~11 min (cloud), and GDLM 71's re-plan takes over 30 min (also before
+  this change: the commit before it, run side by side, was still going at 40 min).
+- OPEN: GDLM 44's ship at block 206 keeps the solver's line in fly() (the easier line came 121 ticks closer to the walls),
+  but its tightest window still went 96 -> 79 ms in the re-plan: a pass after fly() (early / spreadPresses / mergeLegs)
+  moved a press there. Those passes do not check the tightest window yet. Not the wave planner's (no wave stretch there is off
   pattern); the fly()/solveFrom re-plan of the ship stretches. Nothing is saved by flystyle; solutions.js keeps a saved
   route whose re-plan skips.
 
