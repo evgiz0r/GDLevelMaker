@@ -461,7 +461,10 @@ function putStages(spec, level, ctx, which) {
     if (which.includes("path")) put("path", { levelStr: ls, data: { planned }, note: "planned presses from each pattern's intended inputs" + pnote });
   }
   if (which.includes("deco")) put("deco", { levelStr: GD.serializeLevel(level), note: "with the look" });
+  if (which.includes("layout") && !which.includes("final")) try { STG.drop(session, base, "final"); } catch (e) {}   // the last build's final is another level
   if (which.includes("final")) put("final", { levelStr: GD.serializeLevel(level), note: which.note || "built" });
+  // the checked route onto every stage it clears (the plan alone can die: its unrepaired intents)
+  if (which.events) try { const got = STG.route(session, base, which.events, GD); if (got.length) console.log("   stages with the route: " + got.join(", ")); } catch (e) {}
 }
 
 function make(specFile, specObj) {
@@ -469,7 +472,12 @@ function make(specFile, specObj) {
   const { level, rec, ctx, objects, header } = build(spec, specFile);
   const out = path.join(__dirname, "..", "levels", slug(spec.name) + ".gdlvl");
   putStages(spec, level, ctx, ["layout", "path", "deco"]);
-  if (LOOK_ONLY && lookOnly(out, rec, level, spec)) return { out, r: { ok: true } };
+  if (LOOK_ONLY && lookOnly(out, rec, level, spec)) {
+    // --look keeps the saved route: the final stage and the route on every stage, as a full build does
+    let ev = null; try { const s = require("./solutions.js").get(require("./io.js").readGdlvl(out).levelStr, true); ev = s && s.ok ? s.events : null; } catch (e) {}
+    putStages(spec, level, ctx, Object.assign(["final"], { note: "beaten (--look: the saved route)", events: ev }));
+    return { out, r: { ok: true } };
+  }
   // the previous build and its saved route: an edit re-solves only what it changed (lib/incsolve.js,
   // PHYSICS.md "Incremental solving"); --full solves the whole level
   let base = null;
@@ -506,7 +514,7 @@ function make(specFile, specObj) {
   // save the solution (natural replay) so the viewer and the phone replay it, not solve it again
   // r: the check's solve (indicators have no hitbox, so it still holds)
   try { const L2 = require("./io.js").readGdlvl(out); require("./solutions.js").fromRun(L2.level, L2.levelStr, r, { name: L2.name, file: out }); } catch (e) { console.log("   (solution not saved: " + e.message + ")"); }
-  putStages(spec, level, ctx, Object.assign(["final"], { note: r && r.ok ? "beaten" : "not beaten" }));
+  putStages(spec, level, ctx, Object.assign(["final"], { note: r && r.ok ? "beaten" : "not beaten", events: r && r.ok ? r.events : null }));
   buildIndex();
   return { out, r };
 }

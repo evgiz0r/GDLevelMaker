@@ -63,6 +63,32 @@ function put(o) {
   fs.writeFileSync(path.join(dir, "index.json"), JSON.stringify(idx, null, 1));
   return idx;
 }
+// the build's checked route onto its stages (data.events, the plan kept): make.js calls it once the check clears, so
+// every stage replays a route that works instead of the unrepaired planned presses (FROSTBITE 2026-11-25: the path
+// plan died at the second spike and deco / final had none). Only stages whose level the route clears get it.
+function route(session, base, events, GDm) {
+  base = String(base).replace(/\.gdlvl$/, ""); const dir = dirOf(session, base), idx = read(dir);
+  if (!idx || !Array.isArray(events) || !events.length) return [];
+  const { readGdlvl } = require("./io.js"), got = [];
+  for (const st of idx.stages) {
+    if (!st.file) continue;
+    try {
+      const L = readGdlvl(path.join(dir, st.file)), w = GDm.makeWorld(L.level.objects, L.level.header), r = GDm.run(w, events);
+      if (r.done && !r.dead) { st.data = Object.assign({}, st.data, { events: events.map(e => ({ tick: e.tick, type: e.type })) }); got.push(st.stage); }
+    } catch (e) {}
+  }
+  fs.writeFileSync(path.join(dir, "index.json"), JSON.stringify(idx, null, 1));
+  return got;
+}
+// a stage left from an earlier build (a new layout came in, its final is not built yet): dropped, so the bar never
+// shows a final that is another level
+function drop(session, base, stage) {
+  base = String(base).replace(/\.gdlvl$/, ""); const dir = dirOf(session, base), idx = read(dir);
+  if (!idx || !idx.stages.some(s => s.stage === stage)) return;
+  idx.stages = idx.stages.filter(s => s.stage !== stage);
+  try { fs.unlinkSync(path.join(dir, stage + ".gdlvl")); } catch (e) {}
+  fs.writeFileSync(path.join(dir, "index.json"), JSON.stringify(idx, null, 1));
+}
 // every build with stages: [{ session, base, dir, index }]
 function list(session) {
   const out = [];
@@ -138,7 +164,7 @@ function waitApproval(session, base, stage, opts = {}) {
     setTimeout(tick, opts.everyMs || 2000);
   }; tick(); });
 }
-module.exports = { put, list, dirOf, ORDER, emptyLevel, songOf, approve, waitApproval, setSections, ROLE_OF };
+module.exports = { put, route, drop, list, dirOf, ORDER, emptyLevel, songOf, approve, waitApproval, setSections, ROLE_OF };
 
 if (require.main === module) {
   const a = process.argv.slice(2), opt = n => { const i = a.indexOf(n); return i >= 0 ? a[i + 1] : null; };
