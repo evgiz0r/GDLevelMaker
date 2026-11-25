@@ -340,8 +340,11 @@ What it showed first (FROSTBITE 2.66 vs Electrodynamix 2.65, same model):
   - flying presses (ship, ufo, wave, swing) cost only the slip; the flight is scored by how open it is: per second,
     p = erf(slack / 2 / (FLY_SPREAD * sqrt2)), slack = free height around the player minus its size
     (`lib/difficulty.js flyRoom`; FLY_SIZE ship/ufo/swing 30, wave 10, mini x0.6; FLY_SPREAD 12 units, ASSUMED);
-  - the after-portal cut only on a jumping press whose window opens after the portal and really closes.
-  FROSTBITE: v1 2.66 -> v2 0.63 (presses 0.56 + flight 0.07 over 38 s of 60-unit-slack ship). On the mains, v2's
+  - the after-portal cut only on a jumping press whose window opens after the portal and really closes;
+  - gravity play (the user: "gravity play should be counted as increased difficulty slightly somehow"): a jumping press
+    made upside down or within 1 s of a gravity flip has its chance x 0.99 (GRAV_PEN, ASSUMED; FROSTBITE: 20 presses,
+    +0.09).
+  FROSTBITE: v1 2.66 -> v2 0.72 (presses 0.65 incl. gravity 0.09 + flight 0.07 over 38 s of 60-unit-slack ship). On the mains, v2's
   presses alone (no flight: RobTop's levels are only on the PC) rank worse (Spearman vs stars 0.57, v1 0.83):
   Clubstep's and ToE 2's difficulty is in their corridors, so the flight part is needed before v2 replaces v1.
   NEXT: run `node tools/balance.js official:1 ... official:22 --json` on the PC (it has the levels), fit FLY_SPREAD on
