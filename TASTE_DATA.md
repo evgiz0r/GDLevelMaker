@@ -195,6 +195,25 @@ Its contrast score runs the other way (featured 45 vs other 63), so it is not a 
 (held-out AUC 0.633 -> 0.64; glow left out of the model as not strong): what these see, the effort measures already saw. For a level: **put motion on every
 screen** (move / rotate / pulse triggers on deco). Glow: keep it moderate (10-25 %), it is not a lever.
 
+## Repetition (2026-11-25, `tools/repeat.js`)
+
+The user, after Eclipse reached taste 80: "our score is too high... we are way too repetitive, in the gameplay and
+structures" (his GDLM 71 mark: "x6 of the same mini structure"). The corpus model cannot see this: rated levels reuse
+whole-level chunks MORE than unrated ones (chunkRepeat +0.22 above), and its chunk test only caught identical chunks between
+empty columns. `tools/repeat.js` reads repetition from the objects: 6-column play windows (solids only at their surfaces),
+the share repeated anywhere (`rep`) and within ~10 s (`near`), the most used window (`motif`), back-to-back loops (`loop`),
+same-height corridors in the flying modes (`corridor`), and an index R 0..1. taste.js measures them (`repR`, `repRate`,
+`repNear`, `repMotif`, `repLoop`, `repCorridor`; VERSION 5, so the next `measure` + `learn` lets the model weigh them too)
+and applies the user's rule on top of the model: a logit penalty of 3 x (R - official median R) / (1 - official median R)
+when R is above the officials' median (part "repetition (user rule)"). The reference is `knowledge/repeat_ref.json`
+(`node tools/repeat.js --ref` on the PC: officials, featured+, plain); until it exists the median is taken as 0.3.
+
+First scores with the provisional reference (R / taste before -> after): GDLM 50 eclipse 0.48 / 80 -> 65 (wave zigzag legs x5,
+a step x5), 64 golden hour v6 0.74 -> 30, 66 collab long 0.72 -> 23, 69 time hop 0.56 -> 27, 70 candy night 0.68 -> 20,
+71 two moons 0.81 -> 29 (one mini-structure x19 in its middle), 72 FROSTBITE 0.65 -> 46; 52 necromancy 0.27 and 61 lantern
+towers 0.29 lose nothing. `node tools/repeat.js all --top 3` shows the repeated windows as pictures. Open: the weight 3 is
+the user's rule, not fitted; check it against the officials' spread once repeat_ref.json is in.
+
 ## Sections vs real levels (2026-11-24, `tools/compare_sections.js`)
 
 Ours: GDLM 64 golden hour v5, 62 low end lullaby, 52 necromancy, 61 lantern towers. Real: Jumper, Time Machine, Spooky

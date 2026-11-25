@@ -25,7 +25,8 @@ const ROOT = path.join(__dirname, "..");
 const LOCAL = (() => { try { return fs.realpathSync(path.join(ROOT, "local")); } catch (e) { return path.join(ROOT, "local"); } })();
 const DIR = path.join(LOCAL, "taste"), FEAT = path.join(DIR, "feat"), COMM = path.join(LOCAL, "community");
 const CORPUS = path.join(DIR, "corpus.json"), MODEL = path.join(ROOT, "knowledge", "taste_model.json");
-const VERSION = 4;   // bump when a measure changes: cached rows of an older version are re-measured
+const VERSION = 5;   // 5: the repetition measures (tools/repeat.js)
+//   // bump when a measure changes: cached rows of an older version are re-measured
 
 const args = process.argv.slice(2), opt = n => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] : null; };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -262,6 +263,10 @@ function measureOne(file) {
   const ch = style.chunks(L), seen = new Set(); let rep = 0;
   for (const k of ch) { if (seen.has(k.pic)) rep++; seen.add(k.pic); }
   F.chunkRepeat = ch.length ? rep / ch.length : NaN;
+  // --- repetition the user sees (tools/repeat.js, 2026-11-25: "we are way too repetitive, in the gameplay and structures"):
+  // repeated play windows anywhere / within ~10 s, the most used mini-structure, back-to-back loops, same-height corridors ---
+  { const RP = require("./repeat.js").measure(L);
+    F.repR = RP.R; F.repRate = RP.rep; F.repNear = RP.near; F.repMotif = RP.motif; F.repLoop = RP.loop; F.repCorridor = RP.corridor; }
   F.staticEmpty = hz.length < 20 || (F.moveTrigPerMin > 60 && F.hazPer10 < 1) ? 1 : 0;   // trigger-built 2.2 levels measure as empty
   for (const k in F) if (typeof F[k] === "number" && Number.isFinite(F[k])) F[k] = +F[k].toFixed(4);
   Object.assign(F, dsFeatures((() => { try { return require("./decostudy.js").measure(L); } catch (e) { return null; } })()));
@@ -296,7 +301,7 @@ const FEATURES = ["objPerBlock", "decoShare", "modes", "speeds", "sectionsPerMin
   "triggersPerMin", "moveTrigPerMin", "colourTrigPerMin", "alphaPerMin", "pieces100", "pieceCells", "floorHaz", "underArmed", "topsDressed", "attached",
   "pillarDelta", "backDeco", "structuralDeco", "frontShare", "hsvShare", "colouredDeco", "pulsesPerMin", "flashesPerMin", "contrastProxy",
   "clusterIssues100", "portalFlat", "orbCentred", "orbOffset", "spikeStepBad", "spikeStepNear", "heightChanges10", "groundShare", "heightRange",
-  "decoCoverage", "chunkRepeat", "secs", "dsDress", "dsGlow", "dsLayers", "dsChannels", "dsMotion", "dsPerScreen"];
+  "decoCoverage", "chunkRepeat", "repR", "repRate", "repNear", "repMotif", "repLoop", "repCorridor", "secs", "dsDress", "dsGlow", "dsLayers", "dsChannels", "dsMotion", "dsPerScreen"];
 // the user's soft rules (knowledge/checklist.md) as hypotheses: feature and the direction the rule wants
 const RULES = [
   { rule: "flat ground under mode portals", f: "portalFlat", dir: +1 },
@@ -461,11 +466,27 @@ function taste(F, band = "EN|2.2", model) {
   const pq = (f, v) => { const q = Q[f]; if (!q || !Number.isFinite(v)) return 0.5; let i = 0; while (i < 20 && q[i + 1] <= v) i++; return i / 20; };
   let z = model.bias; const parts = [];
   model.features.forEach((f, i) => { const p = pq(f, F[f]), c = (p - 0.5) * model.weights[i]; z += c; parts.push({ f, value: F[f], pct: Math.round(p * 100), contrib: +c.toFixed(2) }); });
+  // the user's rule on repetition, on top of the model (the corpus model alone rewards reused chunks: TASTE_DATA.md
+  // "Repetition"): a level more repetitive than the median official level loses up to REP_W in the logit
+  const rp = repPenalty(F);
+  if (rp) { z -= rp.contrib; parts.push({ f: "repetition (user rule)", value: F.repR, pct: rp.pct, contrib: -rp.contrib }); }
   parts.sort((a, b) => Math.abs(b.contrib) - Math.abs(a.contrib));
   const T = model.targets[band] || {};
   const rules = model.rules.map(r => { const t = T[r.feature]; if (!t || !Number.isFinite(F[r.feature])) return null;
     const ok = r.dir > 0 ? F[r.feature] >= t.p25 : F[r.feature] <= t.p75; return { rule: r.rule, verdict: r.verdict, ok, value: F[r.feature], target: r.dir > 0 ? ">= " + t.p25 : "<= " + t.p75 }; }).filter(Boolean);
   return { score: Math.round(100 / (1 + Math.exp(-z))), band, parts, rules, heldOutAuc: model.heldOut.auc };
+}
+// Repetition penalty: R (tools/repeat.js, 0..1) over the official levels' median R, scaled to the room above it, times REP_W.
+// The reference comes from knowledge/repeat_ref.json (tools/repeat.js --ref on the PC); until it exists, 0.3 is assumed.
+const REP_W = 3;
+let REF = undefined;
+function repPenalty(F) {
+  if (!Number.isFinite(F.repR)) return null;
+  if (REF === undefined) { try { REF = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "knowledge", "repeat_ref.json"), "utf8")); } catch (e) { REF = null; } }
+  const q = REF && REF.groups && REF.groups.official && REF.groups.official.R, base = q ? q[2] : 0.3;
+  const over = Math.max(0, (F.repR - base) / Math.max(0.05, 1 - base));
+  const pct = q ? Math.round(100 * (F.repR <= q[0] ? 0.1 : F.repR <= q[1] ? 0.25 : F.repR <= q[2] ? 0.5 : F.repR <= q[3] ? 0.75 : F.repR <= q[4] ? 0.9 : 1)) : null;
+  return { contrib: +(REP_W * over).toFixed(2), pct, base };
 }
 function scoreCli(file) {
   const r = JSON.parse(cp.execFileSync(process.execPath, ["--max-old-space-size=1200", __filename, "one", file], { windowsHide: true, encoding: "utf8", maxBuffer: 1 << 26, env: Object.assign({}, process.env, { GDLM_HEAVY_HELD: "1" }) }));

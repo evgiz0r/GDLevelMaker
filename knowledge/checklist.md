@@ -137,6 +137,9 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 - [ ] **Motion and colour on every screen, not only at the start** (Eclipse v2-v4, 2026-11-25): one calm pulse a beat, a drift and a
   spin per section, 10+ colour channels a screen; triggers placed along x, since the measures (decostudy, taste) count by x.
   `node tools/taste.js score <level>` (dsMotion, dsChannels). Warm light behind the path: cool rims (`tools/roles.js`).
+- [ ] **Not repetitive** (the user, 2026-11-25: "way too repetitive, in the gameplay and structures"): no mini-structure
+  over ~4 times, no zigzag / tunnel of identical legs, corridors change height. `node tools/repeat.js <level> --top 3`
+  (R; taste.js "repetition (user rule)").
 - [ ] **Orb spacing**: 6+ blocks between two orb structures (gd-polish, hellgate v7: s:red-orb-wall right after
   s:green-orb-flip prejumped; s:orb-ladder-2 there made a 3-orb chain under 500 ms). compose enforces it; the prejumps and
   chains gates catch the rest.
