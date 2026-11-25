@@ -4,6 +4,7 @@
 //     ok      the human route clears and takes every portal (the raw solve may be stale: nothing uses it then)
 //     replan  the raw solve still clears, only the human route fails (or is a fallback "humanize"): --replan
 //     resume  the raw solve dies (or skips a portal) on today's physics: --resume from a bit before the trouble
+// node tools/mains.js own <n> "<who>" | free <n>  -- a level another session is solving: shown, never given a job here.
 // node tools/mains.js run [n ...] [--dry]   -- does those jobs one after another (cheap replans first, then resumes),
 //   each a tools/difficulty_solve.js run at heavy priority "urgent" (the user, 2026-11-24: "If we have it failed then
 //   its highest priority"), so a failed main level goes ahead of every other waiting heavy job. One runner at a time
@@ -48,6 +49,10 @@ const fmt = p => p.done ? (p.skip ? "skips " + p.skip : "clears") : "dies " + p.
 function status() {
   const out = [];
   for (let n = 1; n <= 22; n++) { try { out.push(stateOf(n)); } catch (e) { out.push({ n, name: NAMES[n], need: "resume", error: String(e.message).split("\n")[0] }); } }
+  // a level another session owns (local/mains/owned.json: { "22": "the Dash thread" }, edited by hand or `mains.js own`)
+  // is shown but never given a job here: its own solve is running
+  const owned = readJ(path.join(DIR, "owned.json")) || {};
+  for (const s of out) if (owned[s.n] && s.need !== "ok") { s.owner = owned[s.n]; s.need = "owned"; }
   fs.mkdirSync(DIR, { recursive: true });
   fs.writeFileSync(path.join(DIR, "status.json"), JSON.stringify({ at: new Date().toISOString(), levels: out }, null, 1));
   return out;
@@ -64,7 +69,7 @@ function run(only, dry) {
   const done = new Set();
   try {
     for (let round = 0; round < 3; round++) {   // re-check after a pass: physics may have moved again meanwhile
-      const all = status().filter(s => s.need !== "ok" && (!only.length || only.includes(s.n)));
+      const all = status().filter(s => s.need !== "ok" && s.need !== "owned" && (!only.length || only.includes(s.n)));
       const st = all.filter(s => !done.has(s.n + s.need));
       if (!st.length) {
         // what a resume could not fix on this physics is an open physics lead (PHYSICS.md), not a solver gap
@@ -147,6 +152,9 @@ function replanAll(ns) {
     env: Object.assign({}, process.env, { GDLM_HEAVY_PRIORITY: prio }), maxBuffer: 64 << 20 });
     return String(r.stdout || "").split("\n").filter(l => l.trim() && !/^heavy|waiting|^ {4}[A-Z]/.test(l)).join("\n"); };
   for (const n of order) {
+    const own = (readJ(path.join(DIR, "owned.json")) || {})[n];
+    if (own) { fs.appendFileSync(out, `=== ${n} ${NAMES[n]}: skipped, owned by ${own}
+`); continue; }
     const prio = FLY.includes(n) ? "normal" : "low";
     const before = fly(n, prio);
     const r = job("replan", ["difficulty_solve.js", String(n), "--replan"], prio);
@@ -177,5 +185,10 @@ if (require.main === module) {
     const r = runner(); if (r) console.log(`runner working: pid ${r.pid} since ${r.since}`);
   } else if (a[0] === "run") run(nums, a.includes("--dry"));
   else if (a[0] === "replan") replanAll(nums);
+  else if (a[0] === "own" || a[0] === "free") {   // mains.js own <n> "<who>" | free <n>: another session owns a level's solve
+    const f = path.join(DIR, "owned.json"), o = readJ(f) || {};
+    if (a[0] === "own") o[nums[0]] = a.slice(2).join(" ") || "another session"; else delete o[nums[0]];
+    fs.mkdirSync(DIR, { recursive: true }); fs.writeFileSync(f, JSON.stringify(o, null, 1)); console.log(JSON.stringify(o));
+  }
   else { console.log(fs.readFileSync(__filename, "utf8").split("\n").slice(0, 10).join("\n")); process.exit(1); }
 }
