@@ -33,4 +33,14 @@ const line = (pen, pts) => ({ k: "stroke", pen, pts });
   const r = F.fit(sk, { maxRemove: 2 });
   ok(!r.clear ? r.changes.some(c => /stopped here|taken out/.test(c.text)) : true, "a wall it cannot get past: it says where (" + (r.clear ? "cleared" : "block " + (r.dieX / 30).toFixed(1)) + ")");
 }
+{ // one-tap choices: a ✕ / ~ carries plain ops; "📌 keep mine" pins the piece and the next fit leaves it alone
+  const sk = { v: 1, speed: 1, items: [line("ground", [[0, 0], [900, 0]]), { k: "stamp", what: "orb:yellow", x: 400, y: 200 }, { k: "press", x: 380, y: 60 }, line("spikes", [[420, 0], [480, 0]])] };
+  const r = F.fit(sk), withC = r.changes.filter(c => (c.choices || []).length);
+  ok(withC.length === r.changes.filter(c => c.mark).length - r.changes.filter(c => c.mark && c.x == null).length, `every placed change offers a choice (${withC.length}/${r.changes.length})`);
+  const mv = r.changes.find(c => c.item === 1 && c.choices);
+  if (mv) { F.apply(sk, mv.choices.find(c => c.ops[0].op === "pin").ops); const r2 = F.fit(sk);
+    ok(sk.items[1].pin && !r2.changes.some(c => c.item === 1 && c.mark === "~"), "a pinned orb is not moved again"); }
+  F.apply(sk, [{ op: "press", x: 300 }, { op: "delete", item: 2 }]);
+  ok(sk.items.filter(i => i.k === "press").length === 1 && sk.items.some(i => i.k === "press" && i.x === 300), "apply: add a jump, delete a mark");
+}
 console.log(fail ? fail + " failed" : "all ok"); process.exit(fail ? 1 : 0);

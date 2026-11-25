@@ -98,8 +98,7 @@ synced sketch for the full pass; what the user fixes by hand wins.
 - **Measured** (the user's first real sketch, smwvbb62d, 56 pieces, 15 s at 1x): 12 rounds, ~1 s in node. It reads the
   orb/ceiling part, the spider part and the portals; stops at block 85, the stairs after the spider part (a spider cannot
   climb steps: the user had forgotten a robot portal there).
-- **Open**: one-tap choices on a ✕ (make it 3 spikes / add an orb / keep it, Claude fixes it); pinning a piece the user moved
-  on the level view; orbs that the timing could not use are not reported yet; holds drawn as drags in wave parts; ship
+- **Open**: orbs that the timing could not use are not reported yet; holds drawn as drags in wave parts; ship
   corridors; the solver's fairness / windows on the fitted level; refit only from the edited mark (now it refits all).
 - **Bands** (2026-11-25, the user: "things are off with the spider"): a ship / UFO / wave / swing / ball / spider portal sets
   GD's band (lib/physics.js BAND: 10 / 8 / 9 blocks from the portal's height). The fitter puts such a portal as high as a
@@ -125,7 +124,12 @@ synced sketch for the full pass; what the user fixes by hand wins.
   - tools/web.js ships draw.html, its worker, libs and draw_songs.js beside the viewer. If a page does not allow the frame,
     the viewer says so after 6 s; the standalone page (draw.html) still works.
   - Not yet on the sketch: the section lab, stages and 🔗 links (the sketch level is not in the level list).
-  Then: choices on a ✕, pinning hand fixes.
+- **Choices and 📌 pins** (2026-11-25): every ~ / ✕ in the 🧩 list carries one-tap choices (plain ops on the drawing,
+  `SKETCHFIT.apply`: move / pin / unpin / press / delete / note / lower): "✓ take it" writes the fitter's fix into the drawing,
+  "📌 keep mine" pins the piece, "+ jump before it" adds a mark, "✎ Claude fixes it" leaves a note stroke for the session. A
+  pinned piece (📌 on the board; ⬚ select → 📌 pin; or moved by hand while 🧩 is on, pinned by itself) is never moved,
+  lowered or taken out by the fitter: where it blocks, the fitter stops there with a ✕ (choices: a jump, unpin).
+  The 🧩 list sits at the top of the board (controls only at the top, VIEWER.md).
 
 ## Status and open
 

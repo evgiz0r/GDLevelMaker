@@ -25,10 +25,11 @@
   #title { font-weight:600; color:var(--acc); max-width:34vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   #stage { flex:1; position:relative; min-height:0; }
   canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none; display:block; }
-  #fitList { position:absolute; left:8px; right:8px; bottom:8px; max-height:34%; overflow:auto; background:#000d; border:1px solid var(--line); border-radius:8px; padding:4px 8px; font-size:13px; }
+  #fitList { position:absolute; left:8px; right:8px; top:52px; max-height:38%; overflow:auto; background:#000d; border:1px solid var(--line); border-radius:8px; padding:4px 8px; font-size:13px; }
   #fitList .hd { display:flex; justify-content:space-between; gap:8px; align-items:center; padding:3px 0; font-weight:600; }
   #fitList .c { padding:4px 2px; border-top:1px solid var(--line); cursor:pointer; } #fitList .c b { color:var(--warn); } #fitList .c.x b { color:#ff3b6b; }
   #fitList.min .c { display:none; }
+  #fitList .ch { display:flex; flex-wrap:wrap; gap:5px; margin:4px 0 2px 16px; } #fitList .ch button { padding:3px 8px; font-size:12px; min-height:0; }
   #msg { position:absolute; left:50%; top:52px; transform:translateX(-50%); background:#000c; border:1px solid var(--line); border-radius:8px; padding:6px 12px; pointer-events:none; max-width:calc(100% - 32px); text-align:center; }
   #msg[hidden] { display:none; }
   .ovl { position:fixed; inset:0; background:#0009; display:flex; align-items:flex-start; justify-content:center; padding:60px 16px 16px; z-index:50; }
@@ -295,6 +296,7 @@ function draw() {
     for (const it of sk.items) { const L = SK.layerOf(it); if (L === "deco" && !ui.deco) continue; drawItem(it); }
     ctx.globalAlpha = 1;
   }
+  ctx.font = "12px system-ui"; for (const it of sk.items) if (it.pin) { const b = bboxOf(it), X = sx(b[2]), Y = sy(b[3]); if (X > -10 && X < W + 10) ctx.fillText("📌", X - 4, Y + 2); }
   if (sel != null && sk.items[sel]) drawSel(sk.items[sel]);
   if (cur) drawItem(cur);
   for (const d of sk.deaths || []) { ctx.strokeStyle = "#ff3b6b"; ctx.lineWidth = 3; const X = sx(d.x), Y = sy(d.y); ctx.beginPath(); ctx.moveTo(X - 7, Y - 7); ctx.lineTo(X + 7, Y + 7); ctx.moveTo(X + 7, Y - 7); ctx.lineTo(X - 7, Y + 7); ctx.stroke(); }
@@ -509,7 +511,8 @@ function endPointer(e) {
   if (gesture) { if (pointers.size < 2) { gesture = null; save(); } return; }
   if (cur) finishStroke();
   if (drag && drag.press) save();
-  if (drag && drag.move != null) { if (drag.moved || drag.fresh) changed(); else if (!drag.moved) undo.pop(); }
+  if (drag && drag.move != null) { if (drag.moved && fit && !drag.fresh && sk.items[drag.move]) sk.items[drag.move].pin = true;   // fixed by hand while 🧩 is on: 📌 it stays
+    if (drag.moved || drag.fresh) changed(); else if (!drag.moved) undo.pop(); }
   if (drag && drag.erase && !drag.any) undo.pop();
   if (drag && (drag.pan || drag.seek)) save();
   drag = null;
@@ -605,6 +608,7 @@ function showSelRow() {
   }
   if (it.k === "stroke" && it.pen === "spikes") r.appendChild(chip("flip spikes", !!it.flip, edit(() => it.flip = !it.flip)));
   if (it.k === "stroke" && it.pen === "deco") r.appendChild(chip(it.front ? "in front" : "behind", !!it.front, edit(() => it.front = !it.front)));
+  r.appendChild(chip(it.pin ? "📌 pinned" : "📌 pin", !!it.pin, edit(() => { if (it.pin) delete it.pin; else it.pin = true; }), "pinned: 🧩 layout never moves or removes it (a piece you move while 🧩 is on is pinned by itself)"));
   r.appendChild(chip("⧉ copy", false, edit(() => { const c = JSON.parse(JSON.stringify(it)); moveItem(c, 30, 0); sk.items.push(c); sel = sk.items.length - 1; })));
   r.appendChild(chip("🗑", false, delSel, "delete"));
 }
@@ -765,9 +769,13 @@ function showFit(r) {
   msg(r.clear ? `layout clears with ${n} presses · ${adj} adjusted, ${bad} could not stay` : `layout gets to block ${blk(r.dieX || 0)} (${r.why}) · ${adj} adjusted, ${bad} could not stay`, 7000);
   const L = $("fitList"); L.hidden = false;
   L.innerHTML = `<div class="hd"><span>${r.clear ? "✓ plays with your marks" : "✕ stops at block " + blk(r.dieX || 0)} · ${r.changes.length} changes</span><button id="fitMin">▾</button></div>` +
-    r.changes.map((k, i) => `<div class="c ${k.mark === "x" ? "x" : ""}" data-i="${i}"><b>${k.mark === "x" ? "✕" : "~"}</b> ${k.x != null ? "block " + blk(k.x) + ": " : ""}${k.text.replace(/</g, "&lt;")}</div>`).join("");
+    r.changes.map((k, i) => `<div class="c ${k.mark === "x" ? "x" : ""}" data-i="${i}"><b>${k.mark === "x" ? "✕" : "~"}</b> ${k.x != null ? "block " + blk(k.x) + ": " : ""}${k.text.replace(/</g, "&lt;")}` +
+      ((k.choices || []).length ? `<div class="ch">${k.choices.map((c, j) => `<button data-c="${i}.${j}">${esc(c.label)}</button>`).join("")}</div>` : "") + `</div>`).join("");
   $("fitMin").onclick = e => { e.stopPropagation(); L.classList.toggle("min"); $("fitMin").textContent = L.classList.contains("min") ? "▴" : "▾"; };
   L.querySelectorAll(".c").forEach(d => d.onclick = () => { const k = r.changes[+d.dataset.i]; if (k.x != null) { V.x = k.x - W / V.z / 2; dirty = true; } });
+  // one tap: the choice's ops go into the drawing itself (lib/sketchfit.js apply), then it fits again
+  L.querySelectorAll("[data-c]").forEach(b => b.onclick = e => { e.stopPropagation(); const [i, j] = b.dataset.c.split(".").map(Number), c = r.changes[i] && r.changes[i].choices[j]; if (!c) return;
+    snapshot(); GD.SKETCHFIT.apply(sk, c.ops); msg(c.label.replace(/^\S+\s/, "") + ": done, fitting again…", 2500); changed(); });
   dirty = true;
 }
 
