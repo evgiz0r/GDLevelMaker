@@ -307,7 +307,7 @@ killing object and what the sim thinks it is; `node tools/levelmap.js <level>` d
 | level | stop | killed by | cause | owner |
 |---|---|---|---|---|
 | Deadlocked | beaten since 2026-11-25 | (was: sideways spike 421 behind a teleport exit) | the teleport portal's box sits 12 right of the object (the user's hitbox-on video); fixed in lib/objects.js | - |
-| Dash | 9.5%, block 75 (2026-11-25; rotated gameplay is in the sim since the same day: the solver gets through the first turned stretch to x ~3890, block 130, where a red-pad jump meets a ceiling: fixed the same day, it was GD's flip-on-head-hit modifier 2866, PHYSICS.md "Gameplay modifiers"; the real-game plan now goes on to a swing stretch at block 179) | the id-392 spike row under the spider's down-tap | Dash turns its gameplay 90 degrees there (rotate gameplay, id 2900): GD takes the tap in the turned frame, sideways; the sim has no turned frames, and GD's own search kills an unturned tap on that row (gdsolver, lv22 t=1,737/1,745). Before the teleport was made GD's it reached 28% by a wrong landing | physics: rotated gameplay (PHYSICS.md) |
+| Dash | 9.5%, block 75 (2026-11-25; rotated gameplay is in the sim since the same day: the solver gets through the first turned stretch to x ~3890, block 130, where a red-pad jump meets a ceiling: fixed the same day, it was GD's flip-on-head-hit modifier 2866, PHYSICS.md "Gameplay modifiers"; the real-game plan now goes on to a swing stretch at block 179. Our solver's resume after it (2.0 h, the trap retry included) passes the ceiling, the slow-motion stretch and the swing, and stops 30 ticks into the SECOND turned stretch: x 6746, a swing turned to travel up at x 6735, block 225 -- next) | the id-392 spike row under the spider's down-tap | Dash turns its gameplay 90 degrees there (rotate gameplay, id 2900): GD takes the tap in the turned frame, sideways; the sim has no turned frames, and GD's own search kills an unturned tap on that row (gdsolver, lv22 t=1,737/1,745). Before the teleport was made GD's it reached 28% by a wrong landing | physics: rotated gameplay (PHYSICS.md) |
 | Fingerdash | 6%, block 55 | id 1813, nothing visible there | 1755 / 1813 / 1829 / 1859 are GD's lettered helper blocks (OpenGD type 40), imported as 30x30 hazards by the "hitbox = hazard" fallback; Fingerdash has 36, Dash 22 | physics (lib/objects.js) |
 
 With the helper blocks left out, Fingerdash's old clicks get to 6.7% (a saw: those clicks were planned
@@ -501,6 +501,44 @@ which fits "Hard = density, not tightness".
 On the first pass Dreamland's tightest input came out at 4 ms: a ship release that the
 widest-moment scan skipped. Flying presses and releases are now scanned too.
 
+## Community demons (2026-11-25)
+
+Four rated Easy Demons and one Extreme Demon, fetched into `local/community/` (never committed; IDs checked on the server:
+name, creator, rating). Solved with `node tools/difficulty_solve.js c<id>`, scored with `node tools/difficulty.js c<id>` (the
+mains' basis: the human route, natural plan + humanCost, tap length for 10 stars), physics 21a4b06. Numbers also in
+`knowledge/measurements.jsonl` (`node tools/measures.js latest community`). Modes from `node tools/portals.js`.
+
+| level (ID, creator) | modes / specials | solved | solve | score (log10 att.) | /min | tightest | taste | rep. R |
+|---|---|---|---|---|---|---|---|---|
+| The Nightmare (13519, Jax) | cube ball ship, mirror, 2x | yes | 50 s | 2.47 | 1.66 | 67 ms | 43 | 0.05 |
+| Demon Park (10109, M2coL) | cube ship ball, mirror | yes | 16 s | 0.83 | 0.52 | 46 ms | 40 | 0.00 |
+| THE LIGHTNING ROAD (55520, timeless real) | ship cube ball, 69 mirror | yes | 62 s | 1.54 (route check open) | 1.15 | 79 ms | 44 | 0.06 |
+| Problematic (7116121, Dhafin) | ship cube wave, dual, mini, 0.5-3x, toggles | yes | 5 min | 4.86 (suspect) | 5.43 | 13 ms | 55 | 0.02 |
+| Bloodbath (10565740, Riot) | all but robot/spider/swing, dual, mini, 0.5-3x | no: 1.4% | - | - | - | - | 49 | 0.01 |
+
+Mains for scale: Clubstep 3.51, Electrodynamix 2.65, ToE 2 2.35, Hexagon Force 2.09 (Deadlocked's 10.69 is an outlier).
+- **The model does not see "demon" in Easy Demons.** Demon Park scores like a Hard main (0.83), Lightning Road like
+  Geometrical Dominator. Only The Nightmare sits near the main demons. Easy Demons from 1.7-1.9 were made for 1.x
+  players: density (Nightmare 160 inputs in 89 s) and long runs, not tight windows (median 240-310 ms). Same finding as
+  "Hard = density, not tightness" above: the score needs density / length / no-rest terms before it can rank demons.
+- **Problematic's 4.86 rests on three wave taps at 50% (block 321-323: 13, 17, 33 ms)**, under a 60 fps frame. An Easy
+  Demon does not ask that; the score is not trusted until that spot is checked (mini wave at speed: a sim gap or a route
+  the solver chose badly; `tools/press_window.js` there).
+- **Lightning Road "skips" 47 portals**: stacks of 4 portals on one spot, off the route. tools/skips.js now calls a
+  stack of portals of the same kind with different effects (ship + cube, normal + upside-down gravity) scenery (31 of
+  them); 16 remain (4-stacks of one kind, 100-190 units off the route's y) and still block a trusted number.
+- **Bloodbath blockers, in order** (a map, not a full solve):
+  1. *Unsimulated feature*: the level header's start mode. Bloodbath starts as a ship (`kA2,1`); lib/physics.js reads
+     only `kA4` (speed), so every level starts as a cube and Bloodbath dies at block 18. Also unread: kA3 mini, kA8 dual,
+     kA11 upside-down. Fix: startState0 from the header (changes the physics stamp: every saved route goes stale).
+  2. With a ship portal put at the start (a copy, `local/tmp/demons/`): dies at block 85.5 (6.6%), a mini ship into a
+     22-degree slope turned 90 degrees (id 311), next to a blue pad turned 119 degrees. Every state dies there (the solve
+     ends in 4 s), so physics, not the search: turned slopes and the ship on slopes are unchecked (CLAUDE.md "Not
+     simulated yet": spike slopes; slopes are checked only flat). 314 slopes and 123 gameplay objects turned off the
+     grid in this level.
+  No move / toggle / spawn triggers (only colour, pulse, alpha). So what blocks the extreme demons we have looked at
+  is object geometry (turned slopes and pads, thin lines) and the header, not triggers.
+
 ## Open (hand-off)
 
 0. **Route choice: done for the jumping modes** (The measure, item 4). Open:
@@ -615,6 +653,17 @@ Used in:
   floor next to it. Open: fit a per-mode familiarity term once the user's runs cover more modes.
 Our levels by tier floor (2026-11-24): 41/43 Normal; 45, 46 sketch, 62 Harder (ball, wave); 47, 61, 63-66 Insane (2x,
 0.5x, dual, blue orb); 44, 50, 51, 52, 60, 67 Demon (a green orb).
+
+## Too tight for the level (2026-11-25)
+
+The user: "in the main levels, wherever a timing is too hard for the level, its probably not the path". A press whose player
+window is under the level's tier floor -- 40 ms Easy to Harder, 30 Insane, 20 Demon (the board's first cut) -- marks a
+spot where the route is probably not the intended one. `node tools/tight.js [n ...] [--fix] [--coins]` lists them per
+main level; --fix re-searches each (lib/difficulty.js easierRoute with `below: floor`: drop / move / add taps nearby that
+rejoin the route, judged by windows and joint chance) and saves the route when it is easier and still takes every portal.
+What stays under the floor is a physics lead or a branch further back than the local search reaches. Flagged first
+(board, 2026-11-25): xStep 25 ms, Electroman Adventures 8, Hexagon Force 8, Deadlocked 17, Dash 8. tools/mains.js runs
+--fix after every job. Results: local/mains/tight.json.
 
 ## Main levels kept current (tools/mains.js)
 

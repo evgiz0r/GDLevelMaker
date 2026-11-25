@@ -474,10 +474,23 @@ test: `node tests/rotated.js`.
 - **Block ~127 (fixed 2026-11-25):** not the move units or the touch box -- a "flip on head hit" modifier (2866) locked
   to the player there; see "Gameplay modifiers" below. With it and the time warp at x 4535 the nudged plan goes on to
   block 179 (x 5366), where it dies in a swing stretch (swing physics, open).
+  Our solver (difficulty_solve 22 --resume, 2026-11-25, 2.0 h) gets further than the plan: through that swing to the
+  second turned stretch, where a swing turned to travel +Y dies on a block 30 ticks after the turn (world 6746, 266).
 - **Not modelled yet:** touch-activated 2900s (none in Dash), a 2900 inside a toggled-off group, the dash orb's angle
   clamp in turned frames (gdsolver --dashframe3), the 2899 options trigger (disables P1 controls; consumed, no effect),
   moving objects' lock-to-player / move-to-target state across a turn, the camera turning with the gameplay (the viewer
   draws turned stretches in world coordinates, unturned).
+
+## Start settings from the level header: IN the sim (2026-11-25)
+
+GD 2.2081 LevelSettingsObject reads kA2 start mode (0 cube, 1 ship, 2 ball, 3 UFO, 4 wave, 5 robot, 6 spider, 7 swing),
+kA3 mini, kA8 dual, kA11 flipped gravity; GJBaseGameLayer::setupLevelStart applies them: flip, dual (player 2 the other
+way up), mini (both), then the mode with no portal. lib/physics.js startOf() / startState0(); test `node tests/start_settings.js`.
+Before this only kA4 (speed) was read and every level started as a normal cube: Bloodbath (community 10565740, kA2 1)
+died at block 18 as a cube. No official or GDLM level sets any of them, so no saved route changes.
+- ASSUMED: the flying band of a portal-less start sits on the ground (floor 0, ceiling the mode's band); in dual it is
+  the dual band at the start y. Not measured in the game.
+- Not read: kA20 reverse gameplay, kA28 mirror (view only), kA2 values in platformer levels.
 
 ## Gameplay modifiers (2866, 1813) and the time warp (1935): IN the sim (2026-11-25)
 

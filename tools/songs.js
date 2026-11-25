@@ -106,6 +106,8 @@ async function main() {
     for (const f of fs.readdirSync(path.join(ROOT, "levels")).filter(f => f.endsWith(".gdlvl"))) {
       const rec = GD.parseRecord(unpack(fs.readFileSync(path.join(ROOT, "levels", f), "utf8")));
       const c = GD.getField(rec, "k45"), o = GD.getField(rec, "k8");
+      // the songs its Song triggers switch to too (k104, lib/music.js)
+      for (const x of String(GD.getField(rec, "k104") || "").split(",").filter(x => +x > 0 && x !== c)) { const s = songFile(x); if (s) want.add(s); else console.log(`${f}: song ${x} not on this PC (node tools/songs.js ${x})`); }
       if (c && +c > 0) { const s = songFile(c); if (s) want.add(s); else console.log(`${f}: song ${c} not on this PC (node tools/songs.js ${c})`); }
       else { const n = NAMES[+(o || 0)]; if (n) want.add(path.join(OFFICIAL_DIR, n + ".mp3")); }
     }
