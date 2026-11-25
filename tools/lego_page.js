@@ -7,6 +7,13 @@
 const fs = require("fs"), path = require("path");
 const ROOT = path.join(__dirname, "..");
 
+// the build stamp: a hash of the code that makes the page, written into it; tools/serve.js rebuilds when it differs
+// (an mtime check let a build started by older code overwrite the page after newer code had arrived, 2026-11-25)
+function stamp() {
+  const h = require("crypto").createHash("sha1");
+  for (const f of ["lego.js", "lego_page.js", "lego_page.html"]) h.update(fs.readFileSync(path.join(__dirname, f)));
+  return h.digest("hex").slice(0, 12);
+}
 function build(all, o = {}) {
   const dir = o.out || path.join(ROOT, "local", "lego", o.pub ? "page_public" : "page");
   fs.mkdirSync(dir, { recursive: true });
@@ -26,9 +33,9 @@ function build(all, o = {}) {
   fs.writeFileSync(path.join(dir, "pieces.json"), "[\n" + pieces.map(p => JSON.stringify(p)).join(",\n") + "\n]\n");
   const html = fs.readFileSync(path.join(__dirname, "lego_page.html"), "utf8")
     .replace("/*MIX*/null", JSON.stringify({ rows, tot }))
-    .replace("/*PUB*/false", o.pub ? "true" : "false");
+    .replace("/*PUB*/false", o.pub ? "true" : "false") + `\n<!--lego-build:${stamp()}-->\n`;
   fs.writeFileSync(path.join(dir, "index.html"), html);
   console.log(`${pieces.length} pieces -> ${path.relative(ROOT, dir)}/index.html${o.pub ? " (public: no official layouts)" : " (local only: official layouts inside)"}`);
   return dir;
 }
-module.exports = { build };
+module.exports = { build, stamp };
