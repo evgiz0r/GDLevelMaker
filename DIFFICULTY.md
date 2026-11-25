@@ -354,6 +354,12 @@ What it showed first (FROSTBITE 2.66 vs Electrodynamix 2.65, same model):
   Clubstep's and ToE 2's difficulty is in their corridors, so the flight part is needed before v2 replaces v1.
   NEXT: run `node tools/balance.js official:1 ... official:22 --json` on the PC (it has the levels), fit FLY_SPREAD on
   stars and the user's attempts from `flyRaw`, then decide. score.js and the board still use v1.
+- **Stats first, rules only name the features** (the user, 2026-11-25: "i dont want it to be too rule based, but rather
+  more based on stats. but as humans play it the feeling of difficulty does make some difference, besides the timing
+  themselves"). The v2 terms (flight room, gravity, dual, asymmetric dual, mirror, after-portal) are features, not
+  verdicts: their weights get FITTED, never hand-set for good. Data, in order of weight: the user's real deaths
+  (real_stats, recordings), the rated community levels with stars (the taste corpus, ~330; the 91 low-tier ones), the
+  mains' stars and community tier lists, his own ranking. A feature whose fitted weight is ~0 is dropped.
 - **The user's own ranking of the mains** (2026-11-25): `knowledge/difficulty_rank_user.json`, easiest first (Back On
   Track ... Dash, then Hexagon Force = Electrodynamix, then Clubstep / ToE 2 / Deadlocked, Deadlocked hardest). A rough
   target, not an exact one (the user: "its not about fitting exactly, its just around. some are debatable in the
