@@ -474,6 +474,8 @@ test: `node tests/rotated.js`.
 - **Block ~127 (fixed 2026-11-25):** not the move units or the touch box -- a "flip on head hit" modifier (2866) locked
   to the player there; see "Gameplay modifiers" below. With it and the time warp at x 4535 the nudged plan goes on to
   block 179 (x 5366), where it dies in a swing stretch (swing physics, open).
+  Our solver (difficulty_solve 22 --resume, 2026-11-25, 2.0 h) gets further than the plan: through that swing to the
+  second turned stretch, where a swing turned to travel +Y dies on a block 30 ticks after the turn (world 6746, 266).
 - **Not modelled yet:** touch-activated 2900s (none in Dash), a 2900 inside a toggled-off group, the dash orb's angle
   clamp in turned frames (gdsolver --dashframe3), the 2899 options trigger (disables P1 controls; consumed, no effect),
   moving objects' lock-to-player / move-to-target state across a turn, the camera turning with the gameplay (the viewer
