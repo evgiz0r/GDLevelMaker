@@ -173,7 +173,10 @@ function continueFrom(n, events, trouble, backs, opts, old) {
 
 // also show it in the viewer (local/official_NN.json, the format tools/official.js writes)
 function toViewer(n, level, res) {
-  if (isCommunity(n)) return;   // other people's levels: numbers only, not in the viewer's official list
+  // every saved route is cut into lego bricks at once (Evgeni 2026-11-25: "part of each level analysis. if its fast
+  // enough, just grab"); GDLM_LEGO=0 skips it. Community bricks stay local and on the private catalogue page.
+  const lego = () => { if (process.env.GDLM_LEGO !== "0") require("./lego.js").mineLevel(isCommunity(n) ? "community" : "official", String(n)); };
+  if (isCommunity(n)) { if (res.ok) lego(); return; }   // other people's levels: numbers only, not in the viewer's official list
   const NAMES = require("./difficulty.js").RATED;
   // the viewer shows the route a person would play: the natural plan judged by humanCost (lib/natural.js:
   // no unneeded press, short taps, early in each window, wave/ship lines off the walls; PHYSICS.md "How the
@@ -196,6 +199,7 @@ function toViewer(n, level, res) {
   fs.writeFileSync(path.join(OUT, "..", `official_${String(n).padStart(2, "0")}${COINS ? "_coins" : ""}.json`),
     JSON.stringify({ n, name: NAMES[n] ? NAMES[n][0] : "level " + n, level, solution, physics: res.physics || null }));
   require("./index_levels.js").buildIndex();
+  lego();
 }
 
 function freeGB() {

@@ -1,4 +1,4 @@
-// node tools/lego.js mine [official] [ours] [sketches] [library] [--sketch <file.json> ...]   -- cut levels into 1-3 s pieces,
+// node tools/lego.js mine [official] [ours] [sketches] [library] [community] [--level 18,c123,name] [--sketch <file.json> ...]   -- cut levels into 1-3 s pieces,
 //                                                  classify and measure each -> local/lego/pieces.json (all, with shapes)
 //                                                  + knowledge/lego.json (committed: families, parameters, counts; shapes
 //                                                  only for OUR levels and the user's sketches, never RobTop's)
@@ -48,6 +48,34 @@ function officialSources() {
     const j = JSON.parse(fs.readFileSync(f, "utf8"));
     if (!j.solution || !j.solution.events) continue;
     out.push({ src: "official", name: `${n} ${j.name}`, level: GD.parseLevel(j.level), events: j.solution.events, windowsKey: "official_" + n, routeKind: j.solution.kind || "unknown", routePlan: j.solution.plan || "", routeAt: j.solution.at || j.solution.planned || fs.statSync(f).mtime.toISOString().slice(0, 10) });
+  }
+  return out;
+}
+// community levels with a finished solve (tools/difficulty_solve.js c<id>: local/difficulty/c<id>.json, the level in
+// local/community/<id>.gdlvl). Their human route is planned once here (lib/natural.js, as the main levels get) and cached in
+// local/lego/routes/c<id>.json. Other people's levels: local and the private page only, never git or the public page.
+function communitySources(only) {
+  const dir = path.join(LOCAL, "difficulty"), out = [];
+  if (!fs.existsSync(dir)) return out;
+  for (const f of fs.readdirSync(dir).filter(f => /^c\d+\.json$/.test(f)).sort()) {
+    const id = f.slice(1, -5);
+    if (only && !only(id)) continue;
+    let res; try { res = JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")); } catch (e) { continue; }
+    if (!res.ok || !res.events) continue;
+    const lf = path.join(LOCAL, "community", id + ".gdlvl"); if (!fs.existsSync(lf)) continue;
+    const L = readGdlvl(lf), level = L.level || GD.parseLevel(L.levelStr), cf = path.join(OUTDIR, "routes", "c" + id + ".json");
+    let r = null; try { r = JSON.parse(fs.readFileSync(cf, "utf8")); if (r.solvedAt !== res.solvedAt) r = null; } catch (e) {}
+    if (!r) {
+      let events = null, kind = "humanize";
+      try { const w = GD.makeWorld(level.objects, level.header), n = require("../lib/natural.js").naturalPlan(w, { ok: true, events: res.events }, level.objects, { cost: true, budgetMs: 5 * 60e3 });
+        if (n && n.path[n.path.length - 1].done) { events = n.events; kind = "human"; }
+        if (!events) events = require("../lib/difficulty.js").humanize(w, res.events).events; } catch (e) { console.log("  no human route for c" + id, e.message); continue; }
+      let plan = null; try { plan = require("./solutions.js").planCommit() || null; } catch (e) {}
+      r = { solvedAt: res.solvedAt, events, kind, plan, at: new Date().toISOString() };
+      fs.mkdirSync(path.dirname(cf), { recursive: true }); fs.writeFileSync(cf, JSON.stringify(r));
+    }
+    const name = (L.name || (L.record && L.record.k2) || "").replace(/\s+/g, " ").trim();
+    out.push({ src: "community", name: `c${id}${name ? " " + name : ""}`, level, events: r.events, windowsKey: "community_" + id, routeKind: r.kind, routePlan: r.plan || "", routeAt: r.at });
   }
   return out;
 }
@@ -430,12 +458,18 @@ function signature(P) {
 }
 
 // ---------------------------------------------------------------- commands
-function mine(which, sketchFiles) {
-  const srcs = [];
+// only: mine just the levels whose name matches (a number, a community id c123, or part of a name) and keep every other
+// level's pieces -- the per-level grab after a solve or re-plan (tools/difficulty_solve.js calls mineLevel)
+function mine(which, sketchFiles, only) {
+  let srcs = [];
+  const match = only ? (s => only.some(k => { k = String(k).toLowerCase(); const nm = s.name.toLowerCase(); return nm === k || nm.startsWith(k + " ") || (k.length > 3 && nm.includes(k)); })) : null;
   if (which.includes("official")) srcs.push(...officialSources());
   if (which.includes("ours")) srcs.push(...ourSources());
+  if (which.includes("community")) srcs.push(...communitySources(only ? (id => only.some(k => String(k).toLowerCase() === "c" + id)) : null));
   if (which.includes("sketches") || sketchFiles.length) srcs.push(...sketchSources(sketchFiles));
   if (which.includes("library")) srcs.push(...librarySources());
+  if (match) srcs = srcs.filter(match);
+  if (only && !srcs.length) { console.log("lego mine: no level matches " + only.join(", ")); return null; }
   const pieces = [];
   for (const s of srcs) {
     const t0 = Date.now();
@@ -447,10 +481,10 @@ function mine(which, sketchFiles) {
     if (!s.whole) for (const [i0, i1, kind] of cut(R.r, R.inputs, { auto: true, items: R.w.items }, "brick")) { const P = measure(s, R.w, R.r, R.inputs, i0, i1); Object.assign(P, pieceDifficulty(ws, R.r.path[i0].tick, R.r.path[i1].tick)); P.grain = "brick"; if (P.jitter && P.jitter < 3 && !P.tight) P.jitter = 0; if (kind === "auto") { P.auto = true; P.sig = "auto / " + P.sig; P.empty = false; } pieces.push(P); }
     console.log(`  ${s.src.padEnd(8)} ${s.name.padEnd(34)} ${String(cuts.length).padStart(3)} pieces${R.r.dead ? " (route dies at block " + Math.round(R.r.path[R.r.path.length - 1].x / B) + ")" : ""}  ${Date.now() - t0} ms`);
   }
-  pieces.forEach((p, i) => p.id = ({ official: "r", ours: "u", sketch: "s", library: "l" }[p.src] + "-" + p.level.replace(/[^a-z0-9]+/gi, "_").toLowerCase() + "-" + p.x + (p.grain === "brick" ? (p.auto ? "a" : "b") : "")));
+  pieces.forEach((p, i) => p.id = ({ official: "r", ours: "u", sketch: "s", library: "l", community: "c" }[p.src] + "-" + p.level.replace(/[^a-z0-9]+/gi, "_").toLowerCase() + "-" + p.x + (p.grain === "brick" ? (p.auto ? "a" : "b") : "")));
   fs.mkdirSync(OUTDIR, { recursive: true });
   const prev = fs.existsSync(path.join(OUTDIR, "pieces.json")) ? JSON.parse(fs.readFileSync(path.join(OUTDIR, "pieces.json"), "utf8")) : [];
-  const keep = prev.filter(p => !srcs.some(s => s.src === p.src));   // mining one source keeps the others
+  const keep = prev.filter(p => only ? !srcs.some(s => s.src === p.src && s.name === p.level) : !srcs.some(s => s.src === p.src));   // mining one source (or level) keeps the others
   const all = keep.concat(pieces);
   dedupe(all);
   fs.writeFileSync(path.join(OUTDIR, "pieces.json"), JSON.stringify(all));
@@ -516,9 +550,9 @@ function writeKnowledge(allG) {
   const W = sigWeights(readVotes());
   for (const f of families) if (W[f.sig]) { const e = W[f.sig]; f.vote = { up: e.up, down: e.down, weight: e.weight, comments: e.comments.slice(0, 5) }; }
   const mix = {}; for (const p of all) { const m = mix[p.src] = mix[p.src] || {}; const k = p.family + "/" + p.mode + "/" + p.wrap; m[k] = (m[k] || 0) + 1; }
-  const pub = all.filter(p => p.src !== "official").map(p => { const q = Object.assign({}, p); delete q.cols; if (p.src === "ours") { delete q.shape; delete q.path; } return q; });   // our levels are in the repo: rebuild their shapes with mine
+  const pub = all.filter(p => p.src !== "official" && p.src !== "community").map(p => { const q = Object.assign({}, p); delete q.cols; if (p.src === "ours") { delete q.shape; delete q.path; } return q; });   // our levels are in the repo: rebuild their shapes with mine
   const out = { made: new Date().toISOString().slice(0, 10), physics: require("./solutions.js").physicsCommit(), note: "LEGO.md. Families and parameters of 1-3 s pieces cut from routes; official pieces as numbers only (no layouts).",
-    counts: { official: all.filter(p => p.src === "official").length, ours: all.filter(p => p.src === "ours").length, sketch: all.filter(p => p.src === "sketch").length, library: all.filter(p => p.src === "library").length },
+    counts: { official: all.filter(p => p.src === "official").length, ours: all.filter(p => p.src === "ours").length, sketch: all.filter(p => p.src === "sketch").length, library: all.filter(p => p.src === "library").length, community: all.filter(p => p.src === "community").length },
     bricks: { official: bricks.filter(p => p.src === "official").length, ours: bricks.filter(p => p.src === "ours").length,
       distinctOfficial: bricks.filter(p => p.src === "official" && !p.dupOf && !p.empty).length,
       mostRepeated: bricks.filter(p => p.src === "official" && p.copies > 1).sort((a, b) => b.copies - a.copies).slice(0, 12).map(p => ({ sig: p.sig, copies: p.copies, w: p.w, presses: p.presses })) },
@@ -611,15 +645,17 @@ function knobs(all) {
   }
   return out;
 }
-module.exports = { knobs, officialSources, ourSources, heldAt, readVotes, sigWeights, cut, measure, route, signature, FAMILY, mine, load, dedupe, columns, sameLayout };
+// one level's grab, quietly safe to call from a solver: never throws
+function mineLevel(src, key) { try { const t0 = Date.now(), r = mine([src], [], [String(key)]); if (r) console.log(`lego: ${src} ${key} cut into bricks in ${Date.now() - t0} ms`); return r; } catch (e) { console.log("lego: could not cut " + key + ": " + e.message); return null; } }
+module.exports = { mineLevel, communitySources, knobs, officialSources, ourSources, heldAt, readVotes, sigWeights, cut, measure, route, signature, FAMILY, mine, load, dedupe, columns, sameLayout };
 
 if (require.main === module) {
   const A = process.argv.slice(2), cmd = A[0];
   const opt = k => { const i = A.indexOf("--" + k); return i >= 0 ? A[i + 1] : null; };
   if (cmd === "mine") {
-    const which = A.slice(1).filter(a => !a.startsWith("--") && !/\.json$/.test(a));
+    const which = A.slice(1).filter((a, i) => !a.startsWith("--") && !/\.json$/.test(a) && !["--level", "--sketch"].includes(A[i]));
     const sk = A.filter((a, i) => A[i - 1] === "--sketch");
-    mine(which.length ? which : ["official", "ours", "sketches", "library"], sk);
+    mine(which.length ? which : ["official", "ours", "sketches", "library", "community"], sk, opt("level") ? opt("level").split(",") : null);
   } else if (cmd === "families") families(load(), opt("src"));
   else if (cmd === "variety") variety(A[1]);
   else if (cmd === "votes") votesCmd();
