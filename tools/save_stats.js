@@ -5,7 +5,7 @@
 // k36 jumps, k19 normal-mode best %, k20 practice best %, k88 the normal-mode new-best steps
 // (e.g. "1,15,84": 1%, then +15 to 16%, then +84 to 100%).
 const fs = require("fs"), path = require("path"), zlib = require("zlib");
-const SAVE = process.env.GD_SAVE_FILE || path.join(process.env.LOCALAPPDATA || "", "GeometryDash", "CCGameManager.dat");
+const SAVE = process.env.GD_SAVE_FILE || path.join(require("./gdpaths.js").SAVE, "CCGameManager.dat");
 const OUT = path.join(__dirname, "..", "local", "difficulty", "user_stats.json");
 
 function readSave(file) {

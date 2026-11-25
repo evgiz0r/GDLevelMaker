@@ -1,5 +1,8 @@
 # GDLevelMaker -- instructions for the AI
 
+**New computer, or not the owner's PC? Read SETUP.md first** (`node tools/setup.js`: finds GD, loads the main
+levels with their routes, checks the viewer). Most of this file describes the owner's own setup and workflow.
+
 Claude writes Geometry Dash levels from a description, checks they can be beaten, shows them
 replaying with their clicks, and hands back a file the user imports into their real game.
 The user plays it and tells us what was off. Read this fully first.
@@ -260,6 +263,10 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 
 ## Files
 
+- **Setup on any computer** (SETUP.md: the steps an AI agent follows): `tools/setup.js` (find GD, load the main levels,
+  check), `tools/gdpaths.js` (where GD's game, levels and save are; every tool reads GD's files through it -- never hardcode
+  the Steam path), `tools/mains_routes.js` (the main levels' routes in git, `knowledge/mains/routes.json`: `export` on
+  the PC after a re-solve, `import` on a new computer). Test: `node tests/setup.js`.
 - `lib/gd.js` -- the format: base64url + gzip layers, the record (plist) and the level string.
 - `lib/objects.js` -- object ids: name, kind, hitbox. `sure:false` = from memory, unconfirmed.
 - `lib/physics.js` -- physics of every mode, triggers + solver (fewest clicks, each in the middle of its window;

@@ -10,7 +10,7 @@ const fs = require("fs"), path = require("path");
 const { GD, unpack, readGdlvl } = require("./io.js");
 const SK = require("./skips.js");
 const DF = require("../lib/difficulty.js");
-const SRC = process.env.GD_LEVELS || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash/Resources/levels/";
+const SRC = require("./gdpaths.js").LEVELS;
 const OUT = path.join(__dirname, "..", "local", "difficulty");
 
 // In-game ratings of the official levels (GD 2.2): face and stars. From memory of the game's

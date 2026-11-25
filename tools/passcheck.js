@@ -13,7 +13,7 @@ const { GD, readGdlvl, unpack } = require("./io.js");
 const a = process.argv.slice(2), opt = (k, d) => { const i = a.indexOf("--" + k); return i < 0 ? d : a[i + 1]; };
 const lv = a.find((x, i) => !x.startsWith("--") && !(a[i - 1] || "").startsWith("--"));
 if (!lv || opt("from") == null || opt("to") == null) { console.log(fs.readFileSync(__filename, "utf8").split("\n").slice(0, 2).join("\n")); process.exit(1); }
-const SRC = process.env.GD_LEVELS || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash/Resources/levels/";
+const SRC = require("./gdpaths.js").LEVELS;
 const levelStr = lv.startsWith("official:") ? unpack(fs.readFileSync(SRC + lv.slice(9) + ".txt", "utf8"))
   : /^c\d+$/.test(lv) ? readGdlvl(path.join(__dirname, "..", "local", "community", lv.slice(1) + ".gdlvl")).levelStr : readGdlvl(lv).levelStr;
 const L = GD.parseLevel(levelStr), w = GD.makeWorld(L.objects, L.header);

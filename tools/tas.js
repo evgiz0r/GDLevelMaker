@@ -9,7 +9,7 @@
 if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const fs = require("fs"), path = require("path");
 const { GD, unpack } = require("./io.js");
-const SRC = process.env.GD_LEVELS || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash/Resources/levels/";
+const SRC = require("./gdpaths.js").LEVELS;
 const PLANS = process.env.GDSOLVER_PLANS || path.join(__dirname, "..", "local", "gdsolver");
 
 function loadPlan(n) {

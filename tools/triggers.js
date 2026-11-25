@@ -3,7 +3,7 @@
 // triggers to simulate first (PHYSICS.md, "Triggers").
 const fs = require("fs"), path = require("path");
 const { GD, unpack, readGdlvl } = require("./io.js");
-const SRC = process.env.GD_LEVELS || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash/Resources/levels/";
+const SRC = require("./gdpaths.js").LEVELS;
 const SIM = { 901: "move", 1346: "rotate", 1049: "toggle", 1268: "spawn", 1616: "stop" };
 const cnt = new Map(), where = new Map();
 function add(objects, name) {

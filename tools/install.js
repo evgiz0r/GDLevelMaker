@@ -104,7 +104,7 @@ function main() {
   const args = process.argv.slice(2);
   const dry = args.includes("--dry");
   const si = args.indexOf("--save");
-  const save = si >= 0 ? args[si + 1] : path.join(process.env.LOCALAPPDATA || "", "GeometryDash", "CCLocalLevels.dat");
+  const save = si >= 0 ? args[si + 1] : path.join(require("./gdpaths.js").SAVE, "CCLocalLevels.dat");
   const files = args.filter((a, n) => a.endsWith(".gdlvl") && args[n - 1] !== "--save");
   if (!files.length) { console.log("usage: node tools/install.js <level.gdlvl> [...] [--save path] [--dry]"); process.exit(1); }
   if (!dry && si < 0 && gameRunning()) { console.log("Geometry Dash is running. Close it first (it overwrites the save on exit)."); process.exit(3); }

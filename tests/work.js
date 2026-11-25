@@ -89,7 +89,7 @@ const req = (method, u, body) => new Promise((ok, no) => { const r = http.reques
   check(["official:7", "official_7", "official_07", "local/official_07.json", "local\\official_07.json"].every(f => AT.baseOf(f) === "official_7") && AT.baseOf("local/community/123.gdlvl") === "c123" && AT.baseOf("c123") === "c123", "baseOf: one key per official / community level");
   // the hash of an official level: the viewer hashes local/official_NN.json's level, replay_run.js the game's own
   // Resources/levels/N.txt -- the same string (checked here when both are on this PC)
-  const offJson = path.join(ROOT, "local", "official_07.json"), gdTxt = (process.env.GD_LEVELS || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash/Resources/levels/") + "7.txt";
+  const offJson = path.join(ROOT, "local", "official_07.json"), gdTxt = (require("../tools/gdpaths.js").LEVELS) + "7.txt";
   if (fs.existsSync(offJson) && fs.existsSync(gdTxt)) { const { levelHash } = require("../lib/liveplay.js"), { unpack } = require("../tools/io.js");
     let txt = null; try { txt = unpack(fs.readFileSync(gdTxt, "utf8")); } catch (e) {}
     check(txt != null && levelHash(JSON.parse(fs.readFileSync(offJson, "utf8")).level) === levelHash(txt), "official 7: the viewer's level and the game's file hash the same");

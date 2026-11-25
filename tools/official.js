@@ -3,7 +3,7 @@
 // They are RobTop's levels: local/ is gitignored and nothing from it is ever committed.
 const fs = require("fs"), path = require("path");
 const { GD, unpack } = require("./io.js");
-const SRC = process.env.GD_LEVELS || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash/Resources/levels/";
+const SRC = require("./gdpaths.js").LEVELS;
 const OUT = path.join(__dirname, "..", "local");
 const NAMES = { 1: "Stereo Madness", 2: "Back On Track", 3: "Polargeist", 4: "Dry Out", 5: "Base After Base",
   6: "Cant Let Go", 7: "Jumper", 8: "Time Machine", 9: "Cycles", 10: "xStep", 11: "Clutterfunk",

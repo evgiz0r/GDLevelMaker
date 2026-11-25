@@ -15,7 +15,7 @@ if (!file) { console.log(fs.readFileSync(__filename, "utf8").split("\n").slice(0
 let L, cached = null;
 if (file.startsWith("official:")) {
   const n = +file.slice(9), path = require("path"), { unpack } = require("./io.js");
-  const src = path.join(process.env.GD_LEVELS || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash/Resources/levels/", n + ".txt");
+  const src = path.join(require("./gdpaths.js").LEVELS, n + ".txt");
   L = { name: "official " + n, level: GD.parseLevel(unpack(fs.readFileSync(src, "utf8"))) };
   try { cached = require(path.join(__dirname, "..", "local", "difficulty", String(n).padStart(2, "0") + ".json")); } catch (e) {}
 } else L = readGdlvl(file);

@@ -7,7 +7,7 @@
 // Also a library: stats(path, events, mode) for lib/natural.js / tests (a ship stretch scores on smoothness).
 const fs = require("fs"), path = require("path");
 const { GD, unpack } = require("./io.js");
-const SRC = process.env.GD_LEVELS || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash/Resources/levels/";
+const SRC = require("./gdpaths.js").LEVELS;
 const TPS = 240;
 const pc = (a, p) => { if (!a.length) return null; const s = a.slice().sort((x, y) => x - y); return s[Math.min(s.length - 1, Math.floor(s.length * p))]; };
 const ms = t => Math.round(t / TPS * 1000);

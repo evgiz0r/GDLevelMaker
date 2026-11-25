@@ -13,7 +13,7 @@ const fs = require("fs"), path = require("path"), { execFileSync } = require("ch
 const { GD, readGdlvl, unpack } = require("./io.js");
 const DF = require("../lib/difficulty.js");
 const { spearman, RATED } = require("./difficulty.js");
-const OFFICIAL = process.env.GD_LEVELS || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash/Resources/levels/";
+const OFFICIAL = require("./gdpaths.js").LEVELS;
 const COMM = process.env.GD_COMMUNITY || path.join(__dirname, "..", "local", "community");
 const OUT = path.join(__dirname, "..", "local", "difficulty", "layout.json");
 const TIER = { Easy: 1, Normal: 2, Hard: 3, Harder: 4, Insane: 5, Demon: 6 };

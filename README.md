@@ -9,6 +9,13 @@ clicks; songs and the game's art are not hosted -- pick a level's song file from
 
 Unofficial; not affiliated with RobTop Games.
 
+## Set it up on your own computer
+
+You need your own Geometry Dash (Steam, 2.2) and Node 18+. **[SETUP.md](SETUP.md)** is written so an AI agent can do
+the whole setup itself: open Claude Code (or another coding agent) in this folder and say *"Read SETUP.md and set
+GDLevelMaker up on this computer"*. By hand: `node tools/setup.js`, then `node tools/serve.js`. The main levels, GD's
+art and songs come from your own game; nothing of RobTop's is in this repo.
+
 ## Try it
 
 Needs Node 18+ (no packages).

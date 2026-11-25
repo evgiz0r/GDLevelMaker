@@ -26,7 +26,7 @@ const win = (opt("window", "0,0,1920")).split(",").map(Number), k = win[2] / 192
 
 function loadLevel(s) {
   if (/^c\d+$/.test(s)) return readGdlvl(path.join(__dirname, "..", "local", "community", s.slice(1) + ".gdlvl"));
-  if (s.startsWith("official:")) { const n = +s.slice(9), src = process.env.GD_LEVELS || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash/Resources/levels/";
+  if (s.startsWith("official:")) { const n = +s.slice(9), src = require("./gdpaths.js").LEVELS;
     const levelStr = unpack(fs.readFileSync(src + n + ".txt", "utf8")); return { levelStr, level: GD.parseLevel(levelStr) }; }
   return readGdlvl(s);
 }

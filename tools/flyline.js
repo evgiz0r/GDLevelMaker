@@ -16,7 +16,7 @@ const lv = a[0];
 if (!lv) { console.log(fs.readFileSync(__filename, "utf8").split("\n").slice(0, 2).join("\n")); process.exit(1); }
 let L, ev = null;
 if (lv.startsWith("official:")) {
-  const n = +lv.slice(9), src = process.env.GD_LEVELS || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash/Resources/levels/";
+  const n = +lv.slice(9), src = require("./gdpaths.js").LEVELS;
   const levelStr = unpack(fs.readFileSync(src + n + ".txt", "utf8")); L = { levelStr, level: GD.parseLevel(levelStr) };
   try { ev = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "local", `official_${String(n).padStart(2, "0")}.json`), "utf8")).solution.events; } catch (e) {}
   if (!ev) try { ev = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "local", "difficulty", String(n).padStart(2, "0") + ".json"), "utf8")).events; } catch (e) {}
