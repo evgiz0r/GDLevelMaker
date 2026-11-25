@@ -81,7 +81,33 @@ src/main.cpp), written on a thread when the attempt ends; nothing is written dur
 levels. `node tools/probe.js list | show <n> | presses <n>` reads them.
 Build (on the PC): `cd mods/gdlm-probe && geode build --ninja` (installs into the game when `geode config setup` was done).
 `mod.json`'s "gd" and "geode" fields must match the installed game and loader (check them on the PC before building).
-Next: playback of a route (press on exact ticks), and a sim-vs-game diff per tick (the PHYSICS.md "Fidelity" scoreboard).
+Next: a full sim-vs-game diff per tick (the PHYSICS.md "Fidelity" scoreboard).
+
+## Playback: Claude plays a level in the real game (v0.2.0, 2026-11-25)
+
+- `node tools/probe.js play save:<GDLM name> [--attempts N] [--offset k] [--stay] [--launch]` writes
+  `%LOCALAPPDATA%/GeometryDash/geode/mods/gdlm.probe/play.json` from the level's saved route (local/solutions):
+  `{level, autostart, attempts, quit, offset, presses: [[tick, down, p2]]}`. `--launch` starts GD through Steam (refused
+  while it runs) and waits for `play.finished.json`, then prints `result`.
+- The mod reads play.json once, at the first main menu, renames it `play.taken.json` (one shot), opens the level from
+  Create by name (LocalLevelManager, PlayLayer::scene), presses each route event right before the processCommands call that
+  runs once n == tick + offset ticks are done (n = the log's n; our sim's event at tick t acts in the step t -> t+1, so
+  offset 0 is the same convention), ignores the user's presses meanwhile, and after the attempts (or a complete) writes
+  play.finished.json and exits GD without saving (`--stay`: stays open). Only levels named "GDLM...", so no progress on
+  official or other people's levels. Attempt logs get `"playback":1`.
+- `node tools/probe.js result [n]`: cleared or died (x, y, killer), and heights game vs sim at the same x.
+- **First runs (GDLM 62 low end lullaby, 62 s, 102 presses): CLEARED in the real game twice** (offset 0 and offset 1),
+  73 s each from launch to result. Smart App Control let the unsigned mod DLL load.
+- **Found on the first run:** GD 2.2091's `PlayerObject::m_position` changes only every 4th processCommands (once per
+  60 fps frame) and trails the step by 1-2 ticks, so the log's per-tick x/y are per-frame values; result compares at the
+  same x. Heights then agree to 0.5 unit except around some jumps, where the game's jump runs one tick ahead of ours
+  (offset 0: the first jump, at tick ~1240, game vy 10.532 vs sim 10.748 = one tick of gravity; with offset 1 that jump
+  matches and a later one, tick ~1825, is one tick behind). So the press-to-jump delay is not a constant tick count in
+  this mapping -- likely frame-phase dependent (the 4-tick frame). Open, for the physics session: log the real per-tick
+  position (the player's position before the frame sync, or log at isLastTick only) and settle the press latency.
+- Open: a batch file of several levels in one launch; levels not in the save (import a .gmd); official levels in
+  practice mode only.
+
 
 ## Building on this PC (2026-11-25)
 
@@ -111,7 +137,7 @@ Next: playback of a route (press on exact ticks), and a sim-vs-game diff per tic
    the game is 2.2091 -- check for a 2.2091 build first.
 2. **The probe mod, logging first**: settles the landing, ship height, orbs and camera at once, and makes every
    recording exact. Then `tools/probe.js` + the fidelity diff. Biggest payoff.
-3. **The probe's playback**: our routes in the real game, tick-exact (USE_CASES 26), the main levels and every
+3. **The probe's playback** (built, v0.2.0: "Playback" above): our routes in the real game, tick-exact (USE_CASES 26), the main levels and every
    GDLM level before it goes to the user.
 4. **Interim, no C++**: Eclipse Menu's show hitboxes / trajectory / startpos for quick looks; its replay bot to
    play a route only once we know how to write its file (GDR2: check before relying on it).
