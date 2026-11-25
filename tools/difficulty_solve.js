@@ -15,6 +15,8 @@
 //   resume point is the old one, so a change that opens a better route earlier is not seen; run
 //   a full solve (no --resume) now and then. `all ... --resume` passes it on.
 // node tools/difficulty_solve.js <n> --resume ... --fine  -- the resumed sweep merges states finer (y 1/4, vy 0.05; slower).
+// ... --no-traps  -- no second, skips-allowed sweep when the strict one finds no way (lib/physics.js solveSweep: trap portals;
+//   that retry took Dash's resume from minutes to 2 h on 2026-11-25). Use it while a level still dies on physics.
 // node tools/difficulty_solve.js <n> --replan  -- only the viewer's route again (natural plan + humanCost) from
 //   the saved run, when it still finishes and skips nothing; else it says to solve again.
 // Checkpoints: every 30 s a sweep writes its best route so far to local/difficulty/NN.part.json (with
@@ -41,7 +43,12 @@ function levelText(n) {
   if (isCommunity(n)) return readGdlvl(path.join(__dirname, "..", "local", "community", String(n).slice(1) + ".gdlvl")).levelStr;
   return unpack(fs.readFileSync(path.join(SRC, n + ".txt"), "utf8"));   // was levelText(n): endless recursion for every official level
 }
-const partFile = n => path.join(OUT, tag(n) + ".part.json");
+// --coins: the all-coins route (the user, 2026-11-25: "solve all main levels with 3 coins"): a world with needCoins (passing
+// a secret coin without it is a dead end, lib/physics.js), saved beside the plain route as NN.coins.json /
+// official_NN_coins.json; a resume with no coin route yet starts from the plain route (it breaks at the first missed coin)
+const COINS = process.argv.includes("--coins"), SUF = COINS ? ".coins" : "";
+const mkW = L => { const w = GD.makeWorld(L.objects, L.header); if (COINS) w.needCoins = true; return w; };
+const partFile = n => path.join(OUT, tag(n) + SUF + ".part.json");
 function checkpointer(n, prefix, physics) {
   return (ev, st) => { fs.mkdirSync(OUT, { recursive: true });
     fs.writeFileSync(partFile(n), JSON.stringify({ n, physics, events: prefix.concat(ev), x: GD.progressX(st), savedAt: new Date().toISOString() })); };
@@ -56,11 +63,22 @@ function partOf(n, opts) {
     if (p.physics === physicsCommit()) return p;
     // an older stamp (a solver-only change to physics.js bumps it too): keep it when its inputs still get alive to where
     // it stopped in today's sim (Fingerdash's 90-minute checkpoint at block 582, 2026-11-24)
-    const L = GD.parseLevel(levelText(n)), w = GD.makeWorld(L.objects, L.header), q = GD.run(w, p.events), e = q.path[q.path.length - 1];
+    const L = GD.parseLevel(levelText(n)), w = mkW(L), q = GD.run(w, p.events), e = q.path[q.path.length - 1];
     const ok = e.done || (!e.dead && GD.progressX(e) >= p.x - 1) || q.path.some(s => !s.dead && GD.progressX(s) >= p.x - 1);
     console.log(`  (checkpoint from physics ${p.physics} at block ${(p.x / 30).toFixed(1)}: ${ok ? "still replays there, carrying on" : "no longer replays there, solving without it"})`);
     return ok ? p : null;
   } catch (e) { return null; }
+}
+
+// every solve goes into the measurements store (tools/measures.js, knowledge/measurements.jsonl): beaten or where
+// it stops, stamped with the physics it ran on and the level's version
+function recordSolve(n, level, res) {
+  let name = null; try { name = isCommunity(n) ? null : require("./difficulty.js").RATED[n][0]; } catch (e) { }
+  require("./measures.js").record({ level: isCommunity(n) ? "community:" + String(n).slice(1) : "official:" + n, name, levelStr: level,
+    measure: "solved", value: !!res.ok, stamps: { physics: res.physics },
+    detail: { pct: res.ok ? 100 : res.dieX != null && res.endX ? Math.round(1000 * res.dieX / res.endX) / 10 : null,
+      dieBlock: res.ok || res.dieX == null ? null : Math.round(res.dieX / 3) / 10, why: res.why || null,
+      how: res.resumedFrom != null ? "resume" : res.sweep ? "sweep" : "solve", secs: Math.round(res.secs) } });
 }
 
 function solveOfficial(n, opts) {
@@ -68,7 +86,7 @@ function solveOfficial(n, opts) {
   if (part) { const r = continueFrom(n, part.events, part.x, [0, 300, 1200], opts, null); if (r) return r; }
   const level = levelText(n);
   const L = GD.parseLevel(level);
-  const w = GD.makeWorld(L.objects, L.header);
+  const w = mkW(L);
   const t0 = Date.now(), physics = physicsCommit();   // read at the start: a physics commit landing mid-solve must not stamp this run
   const ck = { onCheckpoint: opts.sweep ? null : checkpointer(n, [], physics) };
   const r = opts.sweep ? GD.solveSweep(w) : GD.solveAny(w, ck);
@@ -82,7 +100,7 @@ function solveOfficial(n, opts) {
   };
   fs.mkdirSync(OUT, { recursive: true });
   fs.writeFileSync(path.join(OUT, tag(n) + (opts.sweep ? "_sweep" : "") + ".json"), JSON.stringify(res));
-  toViewer(n, level, res);
+  toViewer(n, level, res); recordSolve(n, level, res);
   return res;
 }
 
@@ -102,9 +120,10 @@ function replay(w, events) {
 function resumeOfficial(n, opts) {
   const part = partOf(n, opts);
   if (part) { const r = continueFrom(n, part.events, part.x, [0, 300, 1200], opts, null); if (r) return r; }
-  const file = path.join(OUT, tag(n) + ".json");
-  if (!fs.existsSync(file)) return solveOfficial(n, opts);
-  const old = JSON.parse(fs.readFileSync(file, "utf8"));
+  const file = path.join(OUT, tag(n) + SUF + ".json");
+  const seed = COINS && !fs.existsSync(file) ? path.join(OUT, tag(n) + ".json") : file;   // a coin route starts from the plain one
+  if (!fs.existsSync(seed)) return solveOfficial(n, opts);
+  const old = JSON.parse(fs.readFileSync(seed, "utf8"));
   return continueFrom(n, old.events, opts.from, opts.from != null ? [0] : [300, 900, 2700], opts, old) || solveOfficial(n, opts);
 }
 
@@ -112,15 +131,15 @@ function resumeOfficial(n, opts) {
 // in turn. old: the saved result being redone (trouble left null: found by replaying its events in
 // the current physics). Null when every start gets stuck within 2 blocks of the trouble spot.
 function continueFrom(n, events, trouble, backs, opts, old) {
-  const file = path.join(OUT, tag(n) + ".json"), physics = physicsCommit();
+  const file = path.join(OUT, tag(n) + SUF + ".json"), physics = physicsCommit();
   const level = levelText(n);
-  const L = GD.parseLevel(level), w = GD.makeWorld(L.objects, L.header), t0 = Date.now();
+  const L = GD.parseLevel(level), w = mkW(L), t0 = Date.now();
   const rp = replay(w, events), endS = rp.end;
   const save = (r, evs, from) => {
     const res = { n, ok: r.ok, sweep: true, secs: (Date.now() - t0) / 1000, physics, solvedAt: new Date().toISOString(),
       events: evs, clicks: r.ok ? r.clicks || [] : [], dieX: r.ok ? null : r.dieX, why: r.ok ? null : r.why, endX: w.endX,
       resumedFrom: from, resumedOver: old ? old.physics || null : physics };
-    fs.writeFileSync(file, JSON.stringify(res)); toViewer(n, level, res);
+    fs.writeFileSync(file, JSON.stringify(res)); toViewer(n, level, res); recordSolve(n, level, res);
     if (fs.existsSync(partFile(n))) fs.unlinkSync(partFile(n));
     return res;
   };
@@ -139,7 +158,7 @@ function continueFrom(n, events, trouble, backs, opts, old) {
     for (let k = t; k > Math.max(0, t - 60); k--) if (!rp.helds[k]) { t = k; break; }
     const start = rp.st[t], prefix = events.filter(e => e.tick < t);
     if (!opts.quiet) console.log(`  (solving from block ${(GD.progressX(start) / 30).toFixed(1)})`);
-    const r = GD.solveFrom(w, start, { held: rp.helds[t], onCheckpoint: checkpointer(n, prefix, physics), fine: !!opts.fine });
+    const r = GD.solveFrom(w, start, { held: rp.helds[t], onCheckpoint: checkpointer(n, prefix, physics), fine: !!opts.fine, noTraps: !!opts.noTraps });
     const evs = prefix.concat(r.ok ? r.events : r.trail || []);
     const dieX = r.ok ? null : r.dieAt && GD.progressX(r.dieAt);
     // the kept prefix comes from the old run: if it went around a portal (made before the no-skip rule, or before
@@ -159,7 +178,7 @@ function toViewer(n, level, res) {
   // the viewer shows the route a person would play: the natural plan judged by humanCost (lib/natural.js:
   // no unneeded press, short taps, early in each window, wave/ship lines off the walls; PHYSICS.md "How the
   // route is chosen"), as the GDLM levels get; difficulty's humanize when the natural plan fails
-  const L = GD.parseLevel(level), w = GD.makeWorld(L.objects, L.header);
+  const L = GD.parseLevel(level), w = mkW(L);
   let events = null;
   // the human route's tap length follows the level's stars (lib/natural.js tapMsFor: harder levels, shorter taps)
   const stars = NAMES[n] ? NAMES[n][2] : null;
@@ -169,8 +188,12 @@ function toViewer(n, level, res) {
     if (n && (res.ok ? n.path[n.path.length - 1].done : true)) events = n.events; } catch (e) {}
   const kind = events ? "human" : "humanize";   // tools/difficulty.js scores a "human" route as it is
   if (!events) events = require("../lib/difficulty.js").humanize(w, res.events).events;
-  const solution = res.ok ? { ok: true, events, kind } : { ok: false, events, dieX: res.dieX, why: res.why, kind };
-  fs.writeFileSync(path.join(OUT, "..", `official_${String(n).padStart(2, "0")}.json`),
+  // stamped with the route planner's commit (tools/solutions.js planCommit) and the date, so a reader (tools/lego.js) can tell
+  // a route planned before a planner change (e.g. the wave planner, 2026-11-25) from a current one
+  let plan = null; try { plan = require("./solutions.js").planCommit() || null; } catch (e) {}
+  const stamp = { plan, at: new Date().toISOString() };
+  const solution = res.ok ? { ok: true, events, kind, ...stamp } : { ok: false, events, dieX: res.dieX, why: res.why, kind, ...stamp };
+  fs.writeFileSync(path.join(OUT, "..", `official_${String(n).padStart(2, "0")}${COINS ? "_coins" : ""}.json`),
     JSON.stringify({ n, name: NAMES[n] ? NAMES[n][0] : "level " + n, level, solution, physics: res.physics || null }));
   require("./index_levels.js").buildIndex();
 }
@@ -188,21 +211,21 @@ if (require.main === module) {
     for (const n of list) {
       let waited = 0;
       while (freeGB() < 2.5) { if (waited++ % 6 === 0) console.log(`  (waiting: under 2.5 GB free)`); sleep(10000); }
-      try { process.stdout.write(execFileSync(process.execPath, ["--max-old-space-size=2000", __filename, String(n)].concat(args.filter(a => a === "--resume" || a === "--fresh")), { windowsHide: true, encoding: "utf8" })); }
+      try { process.stdout.write(execFileSync(process.execPath, ["--max-old-space-size=2000", __filename, String(n)].concat(args.filter(a => a === "--resume" || a === "--fresh" || a === "--coins")), { windowsHide: true, encoding: "utf8" })); }
       catch (e) { console.log(`${n}: failed: ${String(e.message).split("\n")[0]}`); }
     }
   } else {
     const n = isCommunity(args[0]) ? args[0] : +args[0];
     if (args.includes("--replan")) {   // the viewer's route again from the saved run, no solve (it must still finish and skip nothing)
-      const file = path.join(OUT, tag(n) + ".json"), r = JSON.parse(fs.readFileSync(file, "utf8")), level = levelText(n);
-      const L = GD.parseLevel(level), w = GD.makeWorld(L.objects, L.header), q = GD.run(w, r.events);
+      const file = path.join(OUT, tag(n) + SUF + ".json"), r = JSON.parse(fs.readFileSync(file, "utf8")), level = levelText(n);
+      const L = GD.parseLevel(level), w = mkW(L), q = GD.run(w, r.events);
       const sk = r.ok && GD.skipCheck(w, q.path, r.events);
       if (r.ok && (q.dead || !(q.done || q.end.x >= w.endX))) { console.log(`${n}: the saved run no longer finishes: solve it again (--resume)`); process.exit(1); }
       if (sk) { console.log(`${n}: the saved run skips ${sk.skipped}: a secret way, solve it again`); process.exit(1); }
-      toViewer(n, level, r); const v = JSON.parse(fs.readFileSync(path.join(OUT, "..", `official_${tag(n)}.json`), "utf8"));
+      toViewer(n, level, r); const v = JSON.parse(fs.readFileSync(path.join(OUT, "..", `official_${tag(n)}${COINS ? "_coins" : ""}.json`), "utf8"));
       console.log(`${n}: viewer route re-planned: ${r.events.filter(e => e.type === "press").length} raw presses -> ${v.solution.events.filter(e => e.type === "press").length}`); return;
     }
-    const fi = args.indexOf("--from"), o = { sweep: args.includes("--sweep"), fresh: args.includes("--fresh"), fine: args.includes("--fine"), from: fi < 0 ? null : +args[fi + 1] };
+    const fi = args.indexOf("--from"), o = { sweep: args.includes("--sweep"), fresh: args.includes("--fresh"), fine: args.includes("--fine"), noTraps: args.includes("--no-traps"), from: fi < 0 ? null : +args[fi + 1] };
     const r = args.includes("--resume") || fi >= 0 ? resumeOfficial(n, o) : solveOfficial(n, o);
     console.log(`${n}: ${r.ok ? "beaten" : "stops at block " + (r.dieX / 30).toFixed(1) + " (" + r.why + ")"}, ${r.events.length} events, ${r.secs.toFixed(0)} s, physics ${r.physics}` +
       (r.resumedFrom != null ? `, resumed from block ${(r.resumedFrom / 30).toFixed(1)}` : r.resumedOver !== undefined ? ", old inputs still hold" : ""));

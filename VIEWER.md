@@ -98,6 +98,17 @@ as ~6 variants, each with its own hook (speed-up, mode switch, orb trick, ...). 
 the variants one tap apart (keys 1-9). A tap opens that variant and plays it from the start. Each variant has a line with
 its hook, why, and its pace against real levels. **🎮 play it** (P) lets the user play it. A **why** box has chips (boring,
 too slow, too hard, feels good, love the hook). **♥ pick vN** / **none: all dull** answers the round.
+- How a variant plays (fixed 2026-11-25, the user: "running different sections is bugged cant see the play"): a variant is
+  a stage-only card, so its route lives in its layout stage (`data.events`, the route `tools/lab.js build` solved), not in
+  the solutions cache (a physics change makes that stale). The lab opens the variant with a change EVENT so the stage bar
+  opens the stage and replays that route at once, and starts playing once the route (not the card's "no route yet" ghost)
+  is loaded. Picking another level while a stage is open now opens that level's own stages; a stages fetch already in flight
+  is not started again (three fetches each reopened the stage and stopped the play); the in-progress refresh (the lab's 15 s
+  poll) keeps an open stage on screen. `node tests/lab_play.js` (headless, muted) checks all of it.
+- Variants end ~0.5 s after their gameplay (`tools/lab.js trimEnd`, done by `build`; `node tools/lab.js trim <round>` for
+  rounds built before 2026-11-25).
+- Typing in any text box (a mark's note, the lab's why) never drives the replay: the replay keys (space, r, arrows) and
+  m skip while a text field has focus (`node tests/note_typing.js`).
 - Open: `#lab=r1` (`#lab` = the newest round), or the Work panel's "Section lab" rows. Works on the phone over the home
   Wi-Fi (the /lab routes and local/wip files are allowed from the LAN). Not on the phone page (no serve.js there).
 - Data: `local/lab/r<N>/round.json` {id, moment, t, variants:[{k, hook, why, file?}], ask}, `v<k>.result.json` {ok, pace}.
@@ -133,6 +144,51 @@ too slow, too hard, feels good, love the hook). **♥ pick vN** / **none: all du
 
 `lib/liveplay.js` (live play with each attempt's inputs, planEvents, levelHash, comparePresses; `node tests/liveplay.js`), POST /play and GET /attempts (tools/serve.js), `tools/attempts.js`, `tools/actions.js`, `tools/ask.js` (local/asks/), `tools/stages.js` (approve, waitApproval, gate), `tools/serve.js`
 (POST /stages/review, GET /asks, POST /asks/answer; marks also go to the feed), viewer/index.html (Work, stage review).
-Section lab: GET /lab/list, GET /lab/r<N>, POST /lab/pick (tools/serve.js; GDLM_LAB_DIR for tests), `labOpen` in viewer/index.html; `node tests/lab_view.js`.
+Section lab: GET /lab/list, GET /lab/r<N>, POST /lab/pick (tools/serve.js; GDLM_LAB_DIR for tests), `labOpen` in viewer/index.html; `node tests/lab_view.js`, `node tests/lab_play.js` (each variant plays its route).
 Tests: `node tests/work.js` (gate -> waiting -> review -> waitApproval; card put -> list -> answer; the feed and tail),
 `node tests/stages.js`, `node tests/no_dialogs.js`.
+
+## Layout on the PC (2026-11-25)
+
+The user: "i want the ui more in the middle", "its way too stuck to the top, and the top ui hides the level a bit", "all
+these clicks are still open". On a screen 900 px wide or more the level view is 16:9 (as GD frames it: 19 blocks across,
+10.67 up), as tall as the window allows (window height - 230 px, at least 640 px wide), centred with a gap under the top
+bar; the button strip, scrub bar, lab bar and the cards below share its width. The Clicks card is closed by default (its
+title shows the count). Phones keep the old full-width layout.
+
+## The level list's tabs (2026-11-25)
+
+The user: "main has too many songs now ... its just spam. Lets do main for ready levels + official. Rest in the different
+tabs". **main** = our pushed levels that are not lab / test / catalogue / sketch levels (a newer wip of one still sits on
+its card) + the official ones; **in progress** = work in progress that is not the lab; **lab** = the section lab's
+variants (LAB rN vK) and the lab / test levels (`pkLab` in viewer/index.html); ours, official, community, demon list, all
+as before.
+
+## Zoom the level only (2026-11-25)
+
+The user: "how do i zoom out of the level? the big zoom of the whole ui is messy". The level view has its own zoom: the
+mouse wheel or a trackpad pinch over the level, the − / 100% / + buttons in its top right corner (100% = the game's own
+view), keys - and =. The page around it stays as it is; the zoom is remembered in this browser (localStorage gdlm.zoom).
+Shots (tools/shoot.js) ignore it.
+
+## Compact bars (2026-11-25)
+
+The user: "The sections/stages take too much space in the ui". The stage bar, the sections bar and the variants bar are
+one line each (scrolling sideways when long). The sections bar is folded by default: "▸ sections · N" plus the section
+under the playhead (and the picked one, with its ✓ ok / redo); ▸ shows every chip, remembered per browser
+(localStorage gdlm.secOpen).
+
+
+## A build stage without its own route borrows one (2026-11-25)
+
+The user, on FROSTBITE's stage bar: "path deco ... if i click them then it either dies and doesnt jump or not shown at
+all". The path stage had only a plan that died at the second spike (its planned taps were not the layout's), and deco /
+final had no plan and no fresh saved route, so they opened as a ghost. Now `stageOpen` (viewer/index.html) with no saved
+route tries, on that stage's own level and without a solve: its own plan, then the nearest stages' routes and plans,
+then the level's saved route (`stageRouteCands`). The first that clears is shown (a notice names whose route it is);
+if none clears, the one that gets furthest, with where it dies. A builder should still put each stage's route
+(`data.events`) with it; this only keeps the bar usable when it didn't. Test: `node tests/stage_borrow.js`.
+Since the same day, `tools/make.js` also puts the checked route on every stage it clears (`stages.route`, after the check
+and on `--look`), and a new layout drops the previous build's final (`stages.drop`): FROSTBITE's next build was a new
+layout whose planned presses (the unrepaired intents, tools/intent.js) die at block 15.9, with no final yet and the
+15-hour-old final of the earlier build still on the bar. Test: `node tests/stage_route.js`.

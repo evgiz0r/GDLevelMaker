@@ -3,7 +3,8 @@
 // usage: node tools/probe.js [list] [--dir <folder>]          every attempt: level, ticks, presses, result
 //        node tools/probe.js show <file|index> [--every N]     the ticks (every Nth) and the presses
 //        node tools/probe.js presses <file|index>              press / release ticks, for the sim's replay
-//        node tools/probe.js play <level.gdlvl | save:<name>> ... | --all-gdlm [--attempts N] [--offset k] [--max-seconds s] [--stay] [--launch]
+//        node tools/probe.js play <level.gdlvl | save:<name>> ... | --all-gdlm [--attempts N] [--offset k] [--max-seconds s] [--stay] [--launch] [--events <file>]
+//            --events: play these inputs instead of the saved route (a stitched practice run: tools/stitch.js)
 //            several levels = one batch in one GD launch (--all-gdlm: every GDLM level in the save with a saved route);
 //            writes the mod's play.json from the level's saved route (local/solutions): GD opens the level from the
 //            menu, the mod presses on the route's ticks, then GD quits without saving (--stay: no quit).
@@ -22,7 +23,7 @@ function defaultDir() {
 }
 
 function read(file) {
-  const out = { file, start: null, ticks: [], btn: [], death: null, end: null };
+  const out = { file, start: null, ticks: [], btn: [], death: null, end: null, cps: [], cpdel: [] };
   for (const line of fs.readFileSync(file, "utf8").split("\n")) {
     if (!line.trim()) continue;
     let o;
@@ -32,6 +33,8 @@ function read(file) {
     else if (o.t === "btn") out.btn.push(o);
     else if (o.t === "death") out.death = o;
     else if (o.t === "end") out.end = o;
+    else if (o.t === "cp") out.cps.push(o);                       // v0.4.0+: practice checkpoints (tools/stitch.js)
+    else if (o.t === "cpdel" || o.t === "cpclear") out.cpdel.push(o);
   }
   return out;
 }
@@ -42,10 +45,11 @@ function files(dir) {
 }
 
 // the level, its route (saved solution) and our sim's run of it
-function routeOf(what) {
+function routeOf(what, eventsFile) {
   const { levelOf } = require("./shoot.js");
   const L = levelOf(what);
-  const sol = L.solution || require("./solutions.js").get(L.levelStr, true);
+  // --events <file>: a stitched run (tools/stitch.js, local/stitched/*.json) or any {events: [{tick, type}]} instead of the saved route
+  const sol = eventsFile ? Object.assign({ ok: true }, JSON.parse(fs.readFileSync(eventsFile, "utf8"))) : L.solution || require("./solutions.js").get(L.levelStr, true);
   if (!sol || !sol.ok || !sol.events) throw new Error(`no saved route for ${L.name}: node tools/solutions.js <level> first`);
   const { GD } = require("./io.js");
   const lv = GD.parseLevel(L.levelStr);
@@ -62,7 +66,7 @@ function gdRunning() {
 function play(args, dir) {
   const opt = (k, d) => { const i = args.indexOf(k); if (i < 0) return d; const v = args[i + 1]; args.splice(i, 2); return v; };
   const attempts = Number(opt("--attempts", 1)), offset = Number(opt("--offset", 0));
-  const maxSec = Number(opt("--max-seconds", 0));
+  const maxSec = Number(opt("--max-seconds", 0)), eventsFile = opt("--events", null);
   const stay = args.includes("--stay"), launch = args.includes("--launch"), allGdlm = args.includes("--all-gdlm");
   let whats = args.filter((x) => !x.startsWith("--"));
   if (allGdlm) whats = require("./corpus.js").mine().map((l) => l.short).filter((n) => /^GDLM/.test(n)).map((n) => "save:" + n);
@@ -71,7 +75,7 @@ function play(args, dir) {
   let ticks = 0;
   for (const what of whats) {
     let R;
-    try { R = routeOf(what); } catch (e) { console.log(`skip ${what}: ${e.message}`); continue; }
+    try { R = routeOf(what, eventsFile); } catch (e) { console.log(`skip ${what}: ${e.message}`); continue; }
     if (!/^GDLM/.test(R.name)) { console.log(`skip ${R.name}: playback is for GDLM levels only`); continue; }
     const len = (R.run.path.length - 1) / 240;
     if (maxSec && len > maxSec) { console.log(`skip ${R.name}: ${len.toFixed(0)} s > --max-seconds`); continue; }
@@ -81,24 +85,49 @@ function play(args, dir) {
     console.log(`  ${R.name}: ${presses.length / 2 | 0} presses, ${len.toFixed(0)} s, our sim ${R.run.done ? "clears" : "dies at x " + R.run.end.x.toFixed(1)}`);
   }
   if (!entries.length) { console.error("nothing to play"); process.exit(1); }
-  const cmd = { autostart: true, quit: !stay, entries, made: new Date().toISOString() };
+  // one GD launch per level: the in-game switch to the next entry (onQuit -> edit page -> open) stalled twice on
+  // 2026-11-25 after a death, so --launch plays the batch as a chain of single-entry launches
   const modDir = path.dirname(dir);
   fs.mkdirSync(modDir, { recursive: true });
-  for (const f of ["play.finished.json", "play.results.jsonl"]) try { fs.unlinkSync(path.join(modDir, f)); } catch {}
-  fs.writeFileSync(path.join(modDir, "play.json"), JSON.stringify(cmd));
-  fs.writeFileSync(path.join(modDir, "play.batch.json"), JSON.stringify({ made: cmd.made, since: Date.now(), levels: entries.map((e) => e.level) }));
-  console.log(`play.json: ${entries.length} level(s)`);
-  if (!launch) { console.log("start GD: it opens the first level from the main menu"); return; }
-  if (gdRunning()) { console.error("GeometryDash.exe is running: not launched (play.json waits for the next start)"); process.exit(1); }
-  require("child_process").spawn("cmd", ["/c", "start", "", "steam://rungameid/322170"], { windowsHide: true, detached: true, stdio: "ignore" }).unref();
-  const t0 = Date.now(), limit = (ticks / 240) * attempts * 1000 + 60000 + 15000 * entries.length;
-  const fin = path.join(modDir, "play.finished.json");
-  const wait = () => {
-    if (fs.existsSync(fin)) { console.log(`finished in ${Math.round((Date.now() - t0) / 1000)} s`); setTimeout(() => batch(dir), 500); return; }
-    if (Date.now() - t0 > limit) { console.error(`no result after ${Math.round(limit / 1000)} s (did the mod load? see GD's geode/logs)`); process.exit(1); }
-    setTimeout(wait, 1000);
+  const made = new Date().toISOString();
+  const resFile = path.join(modDir, "play.results.jsonl");
+  try { fs.unlinkSync(resFile); } catch {}
+  fs.writeFileSync(path.join(modDir, "play.batch.json"), JSON.stringify({ made, since: Date.now(), levels: entries.map((e) => e.level) }));
+  const writeCmd = (list) => {
+    try { fs.unlinkSync(path.join(modDir, "play.finished.json")); } catch {}
+    fs.writeFileSync(path.join(modDir, "play.json"), JSON.stringify({ autostart: true, quit: !stay, entries: list, made }));
   };
-  wait();
+  if (!launch) { writeCmd(entries); console.log(`play.json: ${entries.length} level(s); start GD: it opens the first level from the main menu`); return; }
+  const all = [];
+  let i = 0;
+  const next = () => {
+    if (i >= entries.length) {
+      fs.writeFileSync(resFile, all.join(""));
+      setTimeout(() => batch(dir), 300);
+      return;
+    }
+    if (gdRunning()) { console.error("GeometryDash.exe is running: stopping the batch here (play.json not written)"); fs.writeFileSync(resFile, all.join("")); process.exit(1); }
+    const e = entries[i];
+    writeCmd([e]);
+    require("child_process").spawn("cmd", ["/c", "start", "", "steam://rungameid/322170"], { windowsHide: true, detached: true, stdio: "ignore" }).unref();
+    const t0 = Date.now(), limit = (e.presses.length ? e.presses[e.presses.length - 1][0] / 240 : 60) * e.attempts * 1000 + 90000;
+    const fin = path.join(modDir, "play.finished.json");
+    const wait = () => {
+      if (fs.existsSync(fin)) {
+        let line = ""; try { line = fs.readFileSync(resFile, "utf8"); } catch {}
+        all.push(line.replace(/"entry":0/, `"entry":${i}`));
+        console.log(`  ${e.level}: done in ${Math.round((Date.now() - t0) / 1000)} s`);
+        i++;
+        // GD needs a moment to exit before the next launch
+        const gone = () => (gdRunning() ? setTimeout(gone, 1000) : setTimeout(next, 2000));
+        return gone();
+      }
+      if (Date.now() - t0 > limit) { console.error(`${e.level}: no result after ${Math.round(limit / 1000)} s (did the mod load? see GD's geode/logs)`); fs.writeFileSync(resFile, all.join("")); process.exit(1); }
+      setTimeout(wait, 1000);
+    };
+    wait();
+  };
+  next();
 }
 
 // the last batch: one line per level, then each playback attempt's comparison
@@ -130,7 +159,7 @@ function result(f) {
   // GD's y has its ground elsewhere: compare heights from the first tick's offset
   const t1 = r.ticks[0];
   if (!t1 || !P[t1.n]) return;
-  if (t1.p.length >= 10) return perTick(r, R);
+  if (t1.p.length >= 10 || r.ticks.some((t) => t.n > 1 && t.p[2] !== 0 && t.p[0] === r.ticks[t.n - 2]?.p[0])) return perTick(r, R);
   // GD 2.2091 updates m_position once per frame (every 4th processCommands at 60 fps), a tick or two behind
   // the step it ran: compare heights at the same x (the sim's state where it reaches the game's x)
   const dy0 = t1.p[1] - P[0].y;
@@ -156,53 +185,56 @@ function result(f) {
   if (!shown) console.log("game and sim agree to 0.5 unit on every compared tick");
 }
 
-// per-step comparison with the physics position (px, py: probe v0.3.0+): the lag that lines x up, the first tick where
-// the heights part, and every jump's start in the game vs the sim, against the press's place in the 60 fps frame
+// per-step comparison (probe v0.3+ logs). Measured on GD 2.2091 (2026-11-25): the player's vy (m_yVelocity) changes every
+// step, but its position (m_position, and GameObject's m_positionX/Y, which stay 0) only once per 60 fps frame: at the
+// first step of a frame it shows where the sim is one step earlier. So vy is compared step by step (game n vs sim n),
+// and x / y on those frame steps against the sim's step n-1.
 function perTick(r, R) {
   const P = R.run.path, T = r.ticks;
-  // lag k: game tick n is the sim's tick n + k (from x)
-  const lags = {};
-  for (const t of T.slice(0, 2000)) {
-    let j = Math.max(0, t.n - 8);
-    while (j + 1 < P.length && P[j + 1].x <= t.p[8] + 1e-6) j++;
-    if (Math.abs(P[j].x - t.p[8]) < 0.01) lags[j - t.n] = (lags[j - t.n] || 0) + 1;
-  }
-  const k = Number(Object.entries(lags).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 0);
-  const step = T.length > 2 ? T[2].p[8] - T[1].p[8] : 0;
-  const dy0 = T[0].p[9] - P[Math.max(0, T[0].n + k)].y;
-  console.log(`per-step position: x moves ${step.toFixed(4)} a step (sim ${(P[2].x - P[1].x).toFixed(4)}); game tick n = sim tick n${k >= 0 ? "+" : ""}${k} (x matches on ${lags[k] || 0} of the first ${Math.min(2000, T.length)} ticks); y offset ${dy0.toFixed(2)}`);
-  let part = null, maxDy = 0;
+  const fresh = T.filter((t, i) => i > 0 && t.p[0] !== T[i - 1].p[0]);
+  const dy0 = T[0].p[1] - P[0].y;
+  let xlag = {};
+  for (const t of fresh.slice(0, 400)) for (const k of [-2, -1, 0]) { const q = P[t.n + k]; if (q && Math.abs(q.x - t.p[0]) < 0.01) xlag[k] = (xlag[k] || 0) + 1; }
+  const k = Number(Object.entries(xlag).sort((a, b) => b[1] - a[1])[0]?.[0] ?? -1);
+  console.log(`frame steps: ${fresh.length}; drawn x = sim step n${k} on ${xlag[k] || 0} of the first ${Math.min(400, fresh.length)}; y offset ${dy0.toFixed(2)}`);
+  // vy step by step
+  let vpart = null, ypart = null, maxDy = 0;
   for (const t of T) {
+    const q = P[t.n];
+    if (!q) break;
+    if (!vpart && (Math.abs(t.p[2] - q.vy) > 0.01 || t.p[3] !== q.mode)) vpart = { t, q };
+  }
+  for (const t of fresh) {
     const q = P[t.n + k];
     if (!q) break;
-    const dy = t.p[9] - q.y - dy0, dx = t.p[8] - q.x;
+    const dy = t.p[1] - q.y - dy0;
     if (Math.abs(dy) > maxDy) maxDy = Math.abs(dy);
-    if (!part && (Math.abs(dy) > 0.5 || Math.abs(dx) > 0.5 || t.p[3] !== q.mode)) part = { n: t.n, dx, dy, t, q };
+    if (!ypart && (Math.abs(dy) > 0.5 || Math.abs(t.p[0] - q.x) > 0.5)) ypart = { t, q, dy };
   }
-  if (part) console.log(`first parting: tick ${part.n} (x ${part.t.p[8].toFixed(1)}): game y ${part.t.p[9].toFixed(2)} vy ${part.t.p[2].toFixed(3)} ${part.t.p[3]} | sim y ${(part.q.y + dy0).toFixed(2)} vy ${part.q.vy.toFixed(3)} ${part.q.mode} | dx ${part.dx.toFixed(2)} dy ${part.dy.toFixed(2)}`);
-  else console.log("game and sim agree to 0.5 unit on every step");
+  if (vpart) console.log(`first vy parting: step ${vpart.t.n} (x ${vpart.t.p[0].toFixed(1)}): game vy ${vpart.t.p[2].toFixed(3)} ${vpart.t.p[3]} | sim vy ${vpart.q.vy.toFixed(3)} ${vpart.q.mode}`);
+  else console.log("vy agrees on every step (0.01)");
+  if (ypart) console.log(`first position parting: step ${ypart.t.n}: game x ${ypart.t.p[0].toFixed(2)} y ${ypart.t.p[1].toFixed(2)} | sim x ${ypart.q.x.toFixed(2)} y ${(ypart.q.y + dy0).toFixed(2)} | dy ${ypart.dy.toFixed(2)}`);
+  else console.log("position agrees to 0.5 unit on every frame step");
   console.log(`largest height gap ${maxDy.toFixed(2)}`);
-  // jump starts: vy rises by more than 2 in one step
+  // jump starts by vy: a rise of more than 2 in one step
   const gj = [], sj = [];
   for (let i = 1; i < T.length; i++) if (T[i].p[2] - T[i - 1].p[2] > 2) gj.push(T[i].n);
   for (let i = 1; i < P.length; i++) if (P[i].vy - P[i - 1].vy > 2) sj.push(i);
-  // the frame phase: the drawn x changes on the step that ends a frame
-  const fr = new Set();
-  for (let i = 1; i < T.length; i++) if (T[i].p[0] !== T[i - 1].p[0]) fr.add(T[i].n);
-  const phaseOf = (n) => { for (let d = 0; d < 8; d++) if (fr.has(n + d)) return d; return -1; };
-  const presses = r.btn.filter((b) => b.down).map((b) => b.n);
+  const frameStart = new Set(fresh.map((t) => t.n));
+  const phaseOf = (n) => { for (let d = 0; d < 8; d++) if (frameStart.has(n - d)) return d; return -1; };
   const tab = {};
+  let paired = 0;
   for (const s0 of sj) {
-    const g = gj.reduce((best, x) => (Math.abs(x + k - s0) < Math.abs(best + k - s0) ? x : best), -1e9);
-    const d = g + k - s0;
+    const g = gj.reduce((best, x) => (Math.abs(x - s0) < Math.abs(best - s0) ? x : best), -1e9);
+    const d = g - s0;
     if (Math.abs(d) > 6) continue;
-    const pr = presses.filter((p) => p <= s0 - k).pop();
-    const key = `phase ${pr == null ? "?" : phaseOf(pr)}`;
+    paired++;
+    const key = `step ${phaseOf(s0)} of its frame`;
     tab[key] = tab[key] || {};
     tab[key][d] = (tab[key][d] || 0) + 1;
   }
-  console.log(`jump starts, game minus sim in steps (${sj.length} in the sim, ${gj.length} in the game), by the press's steps to the end of its frame:`);
-  for (const [ph, m] of Object.entries(tab).sort()) console.log(`  ${ph}: ${Object.entries(m).sort((a, b) => a[0] - b[0]).map(([d, c]) => (d > 0 ? "+" : "") + d + " x" + c).join(", ")}`);
+  console.log(`jump starts (vy), game minus sim in steps: ${sj.length} in the sim, ${gj.length} in the game, ${paired} paired`);
+  for (const [ph, m] of Object.entries(tab).sort()) console.log(`  sim jump on ${ph}: ${Object.entries(m).sort((a, b) => a[0] - b[0]).map(([d, c]) => (d > 0 ? "+" : "") + d + " x" + c).join(", ")}`);
 }
 
 function main() {
@@ -221,7 +253,7 @@ function main() {
       const last = r.ticks[r.ticks.length - 1];
       const res = r.end ? r.end.result : "cut";
       const where = r.death ? ` at x ${r.death.x.toFixed(1)} (obj ${r.death.obj})` : last ? ` x ${last.p[0].toFixed(1)}` : "";
-      console.log(`${i}\t${s.level} #${s.attempt}${s.practice ? " practice" : ""}\t${r.ticks.length} ticks\t` +
+      console.log(`${i}\t${s.level} #${s.attempt}${s.practice ? ` practice${s.lt ? ` from ${s.lt.toFixed(2)} s` : ""}${r.cps.length ? `, ${r.cps.length} checkpoint(s)` : ""}` : ""}\t${r.ticks.length} ticks\t` +
         `${r.btn.filter((b) => b.down).length} presses\t${res}${where}\t${path.basename(f)}`);
     });
   } else if (cmd === "show" || cmd === "presses") {

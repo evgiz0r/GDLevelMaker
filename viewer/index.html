@@ -34,6 +34,9 @@
   select, button, label.btn { background:#24184f; color:var(--ink); border:1px solid #3b2d78; border-radius:6px; padding:6px 10px; font:inherit; cursor:pointer; }
   button.on { background:#3b2d78; border-color:var(--cube); }
   #wrap { position:relative; }
+  #vz { position:absolute; right:8px; top:8px; z-index:5; display:flex; gap:2px; opacity:.55; }
+  #vz:hover { opacity:1; }
+  #vz button { padding:2px 8px; font-size:12px; min-width:2em; background:#1a1240cc; }
   canvas { display:block; width:100%; height:min(60vh, 460px); background:#0e0828; touch-action:none; }
   #scrub { width:100%; margin:0; accent-color:var(--cube); }
   #strip { display:block; width:100%; height:34px; background:#120a2e; cursor:pointer; }
@@ -41,7 +44,7 @@
   #notice[hidden] { display:none; }
   #notice a { color:#9cf5c4; }
   #noteBox { position:fixed; inset:0; z-index:70; display:grid; place-items:center; background:rgba(11,6,32,.8); padding:16px; }
-  #noteBox[hidden] { display:none; }
+  #noteBox[hidden], #noteBox.at[hidden] { display:none; }   /* .at's display:block beat [hidden]: a pinned note box stayed on screen after save, its buttons dead */
   #noteBox .card { width:min(100%, 420px); background:#160d3a; border:1px solid #3b2d78; border-radius:10px; padding:12px; }
   #noteBox h2 { font-size:15px; margin:0 0 8px; }
   #noteBox textarea { width:100%; box-sizing:border-box; background:#0e0828; color:var(--ink); border:1px solid #3b2d78; border-radius:6px; padding:8px; font:inherit; font-size:16px; }
@@ -59,12 +62,12 @@
   #taskBox .row { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
   #taskChip { position:fixed; right:14px; bottom:14px; z-index:55; border-radius:16px; padding:6px 12px; background:#24184f; border:1px solid #6b5bd0; font-size:12px; }
   #taskChip[hidden] { display:none; }
-  #stagebar { display:flex; flex-wrap:wrap; gap:6px; align-items:center; padding:6px 10px; background:#120a2e; border-top:1px solid #2b2060; font-size:13px; }
+  #stagebar { display:flex; flex-wrap:nowrap; overflow-x:auto; white-space:nowrap; scrollbar-width:thin; gap:6px; align-items:center; padding:3px 10px; background:#120a2e; border-top:1px solid #2b2060; font-size:13px; }
   #stagebar button { padding:3px 10px; font-size:12px; }
   #stagebar button.cur { border-color:var(--cube); background:#3b2d78; }
   #stagebar .todo { color:#6b5bd0; padding:3px 6px; }
   #stagebar .sep { color:#6b5bd0; }
-  #varbar { display:flex; flex-wrap:wrap; gap:6px 14px; align-items:center; padding:6px 10px; background:#140b33; border-top:1px solid #2b2060; font-size:13px; }
+  #varbar { display:flex; flex-wrap:nowrap; overflow-x:auto; white-space:nowrap; scrollbar-width:thin; gap:6px 14px; align-items:center; padding:3px 10px; background:#140b33; border-top:1px solid #2b2060; font-size:13px; }
   #labbar { display:flex; flex-wrap:wrap; gap:6px 10px; align-items:center; padding:6px 10px; background:#0f2a2a; border-top:1px solid #1f5a55; font-size:13px; }
   #labbar[hidden] { display:none; }
   #labbar .vname { color:#9ff0e2; }
@@ -87,6 +90,22 @@
   @media (max-width: 700px) { main { grid-template-columns: 1fr; } }
   .card { background:var(--panel); border-radius:8px; padding:12px; }
   .card h2 { font-size:13px; margin:0 0 8px; color:var(--dim); text-transform:uppercase; letter-spacing:.08em; }
+  /* the clicks table: closed until asked for (the user: "all these clicks are still open"; it ran to 188 rows) */
+  #clicksBox > summary { cursor:pointer; list-style-position:inside; color:var(--dim); }
+  #clicksBox > summary h2 { display:inline; margin:0; }
+  #clicksBox[open] > summary { margin-bottom:8px; }
+  /* a wide screen (the PC): the level as GD frames it, 16:9 and as tall as the window allows, in the middle of the page
+     with a gap under the top bar, and the bars and cards under it the same width (the user, 2026-11-25: "i want the ui
+     more in the middle", "its way too stuck to the top, and the top ui hides the level a bit": a 1910 x 460 strip
+     showed 44 blocks across and only 10 up, the top of the level cut at the canvas edge) */
+  @media (min-width: 900px) {
+    :root { --col: min(100%, max(640px, calc((100vh - 230px) * 16 / 9))); }
+    #views:not(.split), #strip, #scrub, #clock, main, #labbar, #ver { width:var(--col); max-width:100%; margin-left:auto; margin-right:auto; box-sizing:border-box; }
+    #views:not(.split) { margin-top:10px; }
+    #scrub, #clock { display:block; }
+    #views:not(.split) #cv { height:auto; aspect-ratio:16/9; }
+    main { padding-left:0; padding-right:0; }
+  }
   .ok { color:var(--cube); } .bad { color:var(--spike); }
   table { border-collapse:collapse; width:100%; font-variant-numeric:tabular-nums; }
   td, th { text-align:left; padding:3px 6px; border-bottom:1px solid #2a1f57; }
@@ -118,7 +137,9 @@
   .wkRow .nm { font-weight:600; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   #stagebar .rev { padding:3px 8px; font-size:12px; }
   #stagebar .gate { color:#ffd58a; }
-  #secbar { display:flex; flex-wrap:wrap; gap:6px; align-items:center; padding:4px 10px 6px; background:#120a2e; font-size:12px; }
+  #secbar { display:flex; flex-wrap:nowrap; overflow-x:auto; gap:6px; align-items:center; padding:3px 10px; background:#120a2e; font-size:12px; white-space:nowrap; scrollbar-width:thin; }
+  #secbar > * { flex:none; }
+  #secbar .secT { background:none; border-color:#2b2060; color:var(--dim); }
   #secbar .sec { display:inline-flex; gap:3px; align-items:center; padding:2px 6px; border:1px solid #2b2060; border-radius:6px; cursor:pointer; }
   #secbar .sec.here { border-color:#6b5bd0; }
   #secbar .sec.sel { border-color:var(--cube); background:#2a1f5c; }
@@ -154,7 +175,7 @@
   <div id="wkList"></div></div></div>
 <div id="picker" hidden><div id="pk" role="dialog" aria-label="choose a level">
   <div id="pkTop"><input id="pkQ" type="search" placeholder="search levels…" autocomplete="off">
-    <button data-f="main" class="on" title="official levels, the levels being worked on and ours">main</button><button data-f="recent">recent</button><button data-f="pinned">★ pinned</button><button data-f="runs" title="every level you played -- here (🎮) or in GD recordings (🎥) -- newest first; opens on your latest run as a ghost">my runs</button><button data-f="wip">in progress</button><button data-f="ours">ours</button><button data-f="official">official</button><button data-f="community">community</button><button data-f="demons" title="the demon list's top 150 and every former Top 1 that is on this PC (local/community, tools/demonlist.js), by list place">demon list</button><button data-f="all">all</button>
+    <button data-f="main" class="on" title="our finished levels and the official ones (work in progress, the lab and experiments have their own tabs)">main</button><button data-f="recent">recent</button><button data-f="pinned">★ pinned</button><button data-f="runs" title="every level you played -- here (🎮) or in GD recordings (🎥) -- newest first; opens on your latest run as a ghost">my runs</button><button data-f="wip">in progress</button><button data-f="lab" title="the section lab's variants, the lab and test levels">lab</button><button data-f="ours">ours</button><button data-f="official">official</button><button data-f="community">community</button><button data-f="demons" title="the demon list's top 150 and every former Top 1 that is on this PC (local/community, tools/demonlist.js), by list place">demon list</button><button data-f="all">all</button>
     <button id="pkClose" title="close (Esc)">✕</button></div>
   <div id="pkList"></div></div></div>
 <header>
@@ -185,7 +206,7 @@
   <button id="viewBtn" title="view options: speed, look, GD art, level map, hitboxes, sounds, beats, the button band's windows and legend (remembered)">⚙ view</button>
   <div id="viewMenu" hidden></div>
 </header>
-<div id="views"><div id="wrap"><canvas id="cv"></canvas><canvas id="inbar" title="the button. Middle lane: what the replay presses -- a tap is a short white mark with a dot, a hold a yellow bar with its length. Top lane: each input's timing window, the whole range of moments that still work (cyan for a press, pink for a release): a long window is room, not a long press."></canvas><div id="drop">drop a .gdlvl here</div></div>
+<div id="views"><div id="wrap"><canvas id="cv"></canvas><div id="vz" title="zoom the level only (wheel or pinch on the level, keys - and =)"><button id="vzOut">−</button><button id="vzFit" title="back to the game's view (100%)">100%</button><button id="vzIn">+</button></div><canvas id="inbar" title="the button. Middle lane: what the replay presses -- a tap is a short white mark with a dot, a hold a yellow bar with its length. Top lane: each input's timing window, the whole range of moments that still work (cyan for a press, pink for a release): a long window is room, not a long press."></canvas><div id="drop">drop a .gdlvl here</div></div>
 <div id="cmp" hidden><div class="cmpbar"><select id="cmpRec"></select>
   <label title="where this level's attempt starts in the video: replay time t shows video second (start + t)">level starts at <input id="cmpT0" type="number" step="0.1" value="0" style="width:5em"> s</label>
   <button data-dt="-1">-1 s</button><button data-dt="-0.1">-0.1</button><button data-dt="0.1">+0.1</button><button data-dt="1">+1 s</button>
@@ -205,9 +226,10 @@
 <input id="scrub" type="range" min="0" max="1000" value="0"><div id="clock" class="muted" style="font-size:12px;padding:2px 16px 0"></div>
 <main>
   <div class="card"><h2>Level</h2><div id="summary"></div><div id="runsRow" hidden></div></div>
-  <div class="card"><h2>Clicks</h2><div id="clicks"></div></div>
+  <div class="card"><details id="clicksBox"><summary><h2>Clicks <span id="clicksN" class="muted"></span></h2></summary><div id="clicks"></div></details></div>
   <div class="card" style="grid-column:1/-1"><h2>Marks — what to change</h2><div id="marks"></div></div>
 </main>
+<div id="songCredit" class="muted" hidden style="font-size:12px;padding:6px 16px 0"></div>
 <div id="ver" class="muted" style="font-size:12px;padding:6px 16px 14px"></div>
 <script src="../lib/gd.js"></script>
 <script src="../lib/objects_extra.js"></script>
@@ -223,6 +245,7 @@
 <script src="../lib/objects_frames.js"></script>
 <script src="../lib/art.js"></script>
 <script src="../lib/natural.js"></script>
+<script src="../lib/music.js"></script>
 <script src="../lib/song.js"></script>
 <script src="../lib/runner.js"></script>
 <script src="../lib/liveplay.js"></script>
@@ -287,7 +310,7 @@ function askNote(title, at) {
     if (at) { const w = Math.min(420, innerWidth - 24); card.style.width = w + "px"; card.style.left = Math.max(12, Math.min(innerWidth - w - 12, at.x - w / 2)) + "px";
       card.style.top = Math.max(12, Math.min(innerHeight - 260, at.y + 18)) + "px"; } else { card.style.left = card.style.top = card.style.width = ""; }
     ta.focus();
-    const close = v => { box.hidden = true; ta.onkeydown = null; done(v); };
+    const close = v => { box.hidden = true; box.classList.remove("at"); ta.onkeydown = null; done(v); };
     document.getElementById("noteSave").onclick = () => close(ta.value.trim() || kind ? { note: ta.value.trim() || kind, kind } : null);
     document.getElementById("noteCancel").onclick = () => close(null);
     ta.onkeydown = e => { if (e.key === "Escape") close(null); if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) document.getElementById("noteSave").click(); };
@@ -398,11 +421,15 @@ async function loadSong(info) {
   const k = songKeyOf(info); if (songLoading[k]) return; songLoading[k] = true;
   try {
     let bytes = await keptSong(k);
+    // the public site: a Creative Commons song hosted next to the page (tools/pages.js, knowledge/free_songs.json)
+    const free = window.GD_FREE_SONGS && info.id && window.GD_FREE_SONGS[info.id];
+    if (!bytes && free) { try { const r = await fetch(free.url); if (r.ok) bytes = await r.arrayBuffer(); } catch (e) {} }
     if (!bytes) { const ok = await localReady; if (!ok || (window.GD_PAGES && !LOCALBASE)) { songLoading[k] = false; songAsk(true); return; }
       const r = await fetch(LOCALBASE + info.url); if (!r.ok) { songLoading[k] = false; songAsk(true); return; } bytes = await r.arrayBuffer(); }
     SONGS[k] = await audioCtx().decodeAudioData(bytes.slice(0));
   } catch (e) { songLoading[k] = false; songAsk(true); return; }
   songAsk(false);
+  if (songInfo && songInfo.music && (k === songKeyOf(songInfo) || songInfo.music.some(s => musicKey(s.song) === k))) { musicRebuild(); return; }
   if (songInfo && songKeyOf(songInfo) === k && !song) { song = GD.songPlayer(SONGS[k], audioCtx); syncSong(true); }
 }
 // "add song": shown when the level has a song this page cannot get (the public site away from the user's PC).
@@ -436,12 +463,38 @@ async function solveLater(l, levelStr) {
     ready: async () => { try { sol = (await (await fetch("/solution?file=" + encodeURIComponent(l.file), { cache: "no-store" })).json()).solution; } catch (e) {} return !!sol; },
     done: () => { l.solution = sol; notice("The route of " + esc(l.name) + " is ready.", 4000); if (ALL[pick.value] === l) { const tt = t; pick.dispatchEvent(new Event("change")); t = Math.min(tt, (L.path.length - 1) / P.TPS); draw(); } } });
 }
+// a hosted free song's credit line (its license asks for one), under the player
+function songCredit(info) {
+  const el = document.getElementById("songCredit"); if (!el) return;
+  const free = info && window.GD_FREE_SONGS && window.GD_FREE_SONGS[info.id];
+  el.hidden = !free; if (free) el.innerHTML = "Music: " + esc(free.credit) + ' (<a href="' + esc(free.link) + '" target="_blank" rel="noopener">Newgrounds</a>)';
+}
 function setSong(info) {
   if (song) { song.pause(); song = null; }
   songInfo = info || null;
+  songCredit(info);
   if (!info) { songAsk(false); return; }
   if (location.protocol === "file:") return; // songs come from tools/serve.js
   song = viewerSong(info);
+  if (info.music) musicRebuild();
+}
+// a level whose song changes mid-way (GD 2.2 Song / Edit Song triggers: switch, seek, fade, stop; lib/music.js, MUSIC.md):
+// one player for every span, on the main song's clock, so the replay reads it as before
+const musicKey = id => id === "main" ? songKeyOf(songInfo) : String(id) + ".mp3";
+function setMusic(level, world) {
+  if (songInfo) delete songInfo.music;
+  if (!songInfo || !GD.MUSIC || !GD.MUSIC.usesTriggers(level) || location.protocol === "file:") return;
+  const tl = GD.SYNC.timeline(world), mu = GD.MUSIC.parse(level);
+  mu.main.offset = songInfo.offset || 0;
+  songInfo.music = GD.MUSIC.spans(mu, x => GD.SYNC.tOfX(tl, x));
+  for (const id of GD.MUSIC.songs(songInfo.music)) if (!SONGS[musicKey(id)] && typeof loadSong === "function") loadSong({ url: "/song/custom/" + id + ".mp3", id });
+  musicRebuild();
+}
+function musicRebuild() {
+  if (!songInfo || !songInfo.music) return;
+  if (song) song.pause();
+  song = GD.musicPlayer(songInfo.music, id => SONGS[musicKey(id)] || null, audioCtx, songInfo.offset || 0);
+  syncSong(true);
 }
 // keep the song where the replay is: level time t plays song second offset + t. Seeks only when asked
 // (play, restart, scrub, speed): never from the frame loop, which reads the song's clock instead
@@ -458,6 +511,7 @@ function load(name, levelStr, saved, info) {
   const pre = PATHCACHE.get(levelStr);   // a sliced pre-run (pick.onchange below): its level, world and path
   const level = pre && pre.level || GD.parseLevel(levelStr);
   const world = pre && pre.world || GD.makeWorld(level.objects, level.header);
+  setMusic(level, world);
   let sol;
   if (PLAY && PLAY.on) playStop(true);   // another level opened while the user played
   if (saved) sol = saved.ok ? { ok: true, events: saved.events, clicks: [], planReplay: !!saved.planReplay } : { ok: false, trail: saved.events, clicks: [], dieAt: { x: saved.dieX || 0, tick: saved.dieTick || 0 }, why: saved.why || "", pending: !!saved.pending, planReplay: !!saved.planReplay };
@@ -737,7 +791,10 @@ const STAGE_ORDER = ["original", "spec", "plan", "song", "layout", "path", "deco
 async function stagesFor(l) {
   const bar = document.getElementById("stagebar");
   if (!l || !l.wip || window.GD_PAGES || window.GD_PHONE || !location.protocol.startsWith("http")) { if (!STG.cur) { bar.hidden = true; STG.base = null; } return; }
-  let d = null; try { const r = await fetch("/wip/stages?file=" + encodeURIComponent(l.file), { cache: "no-store" }); if (r.ok) d = await r.json(); } catch (e) {}
+  // one fetch per level at a time: load() and summary() ask again while it is in flight, and each answer used to open the
+  // stage again (three plan replays, each stopping the play the lab had started)
+  if (STG.want === l) return; STG.want = l;
+  let d = null; try { const r = await fetch("/wip/stages?file=" + encodeURIComponent(l.file), { cache: "no-store" }); if (r.ok) d = await r.json(); } catch (e) {} finally { if (STG.want === l) STG.want = null; }
   if (ALL[pick.value] !== l) return;
   STG.base = l; STG.data = d && d.stages && d.stages.length ? d : null; STG.cur = null; stageRender();
   if (L && STG.data) { L.hits = stageHits(); draw(); }
@@ -768,7 +825,7 @@ function stageRender() {
 // selected one gets ✓ / redo for the open stage's role and for playtest -- the answer goes to that section only (POST
 // /stages/review with section + role), so one section can be sent back while the others go on. Seams are drawn on the
 // level as dashed lines with the section's name.
-var SEC = { sel: null, here: null };
+var SEC = { sel: null, here: null, open: (() => { try { return localStorage.getItem("gdlm.secOpen") === "1"; } catch (e) { return false; } })() };
 var SEC_ROLE = { layout: "layout", path: "playtest", deco: "deco", final: "deco", song: "layout" };
 // a section without x (a collab part is pinned to song TIME, tools/collab.js) gets it from its t on the level's own timeline
 function secList() {
@@ -793,13 +850,18 @@ function secRender() {
   const pill = (sc, r, letter) => { const st = (sc.status || {})[r] || "planned", rv = (sc.reviews || {})[r];
     return `<span class="role ${esc(st)}" title="${esc(r)}: ${esc(st)}${sc.builder && sc.builder[r] ? " · by " + esc(sc.builder[r]) : ""}${rv && rv.note ? " · " + esc(rv.note) : ""}">${letter}</span>`; };
   const sel = secs.find(c => c.id === SEC.sel);
-  bar.innerHTML = `<span class="muted">sections</span>` + secs.map(sc => `<span class="sec${sc.id === SEC.here ? " here" : ""}${sc.id === SEC.sel ? " sel" : ""}" data-sec="${esc(sc.id)}" title="${esc(sc.id)}: blocks ${Math.round(sc.x[0] / 30)}–${Math.round(sc.x[1] / 30)}${Array.isArray(sc.t) ? ", " + (+sc.t[0]).toFixed(1) + "–" + (+sc.t[1]).toFixed(1) + " s" : ""}">${sc.role ? '<i class="muted">' + esc(sc.role) + '</i> ' : ""}${esc(sc.name || sc.id)} ${pill(sc, "layout", "L")}${pill(sc, "deco", "D")}${pill(sc, "playtest", "P")}${sc.status && sc.status.join ? pill(sc, "join", "J") : ""}</span>`).join("") +
+  // compact by default (the user, 2026-11-25: "The sections/stages take too much space in the ui"): one line with the
+  // section under the playhead (and the picked one); ▸ opens every chip, still on one scrolling line
+  const open = SEC.open, here = secs.find(c => c.id === SEC.here), shown = open ? secs : secs.filter(c => c === here || c === sel);
+  bar.classList.toggle("open", !!open);
+  bar.innerHTML = `<button id="secToggle" class="secT" title="${open ? "fold the sections" : "show every section"}">${open ? "▾" : "▸"} sections · ${secs.length}</button>` + shown.map(sc => `<span class="sec${sc.id === SEC.here ? " here" : ""}${sc.id === SEC.sel ? " sel" : ""}" data-sec="${esc(sc.id)}" title="${esc(sc.id)}: blocks ${Math.round(sc.x[0] / 30)}–${Math.round(sc.x[1] / 30)}${Array.isArray(sc.t) ? ", " + (+sc.t[0]).toFixed(1) + "–" + (+sc.t[1]).toFixed(1) + " s" : ""}">${sc.role ? '<i class="muted">' + esc(sc.role) + '</i> ' : ""}${esc(sc.name || sc.id)} ${pill(sc, "layout", "L")}${pill(sc, "deco", "D")}${pill(sc, "playtest", "P")}${sc.status && sc.status.join ? pill(sc, "join", "J") : ""}</span>`).join("") +
     (sel ? `<span class="sep">|</span><b>${esc(sel.name || sel.id)}</b>` + [...new Set([role, "playtest"])].map(r => ` <span class="muted">${esc(r)}:</span><button data-sr="ok" data-role="${r}" title="this section's ${r} is good">✓ ok</button><button data-sr="redo" data-role="${r}" title="send this section's ${r} back with a note">redo…</button>`).join("") : "");
   // double-click a part: open it alone (its own card: its builder, stages, alternatives)
   bar.querySelectorAll("[data-sec]").forEach(b => b.ondblclick = () => { const f = STG.base && STG.base.file && STG.base.file.replace(/\.gdlvl$/, "_" + b.dataset.sec + ".gdlvl"), i = ALL.findIndex(x => x.file === f);
     if (i >= 0) { pick.value = i; pick.dispatchEvent(new Event("change")); } else notice("This part has no card of its own yet (it appears when its builder builds it)."); });
   bar.querySelectorAll("[data-sec]").forEach(b => b.onclick = () => { SEC.sel = SEC.sel === b.dataset.sec ? null : b.dataset.sec; const sc = secs.find(c => c.id === b.dataset.sec); if (SEC.sel && sc && L) varGo(sc.x[0] + 90); secRender(); });
   bar.querySelectorAll("[data-sr]").forEach(b => b.onclick = () => secReview(sel, b.dataset.role, b.dataset.sr, lit));
+  document.getElementById("secToggle").onclick = () => { SEC.open = !SEC.open; try { localStorage.setItem("gdlm.secOpen", SEC.open ? "1" : "0"); } catch (e) {} secRender(); };
 }
 async function secReview(sc, role, verdict, stage) {
   if (!sc || !STG.base) return;
@@ -856,9 +918,41 @@ function stageOpen(name) {
     if (st.data && typeof st.data.md === "string") document.getElementById("summary").insertAdjacentHTML("beforeend", `<pre class="stageMd" style="white-space:pre-wrap;font-size:12px;max-height:50vh;overflow:auto">${esc(st.data.md)}</pre>`);
   };
   const pending = { ok: false, events: [], pending: true, why: "this stage has no route yet (find the route: the button above)" };
-  // no route yet, but a plan (the layout / path stage: the patterns' intended presses): replay it at once, no solve
-  if (!st.solution && planSaved(st.level, st.data, saved => { if (STG.cur === name && !(PLAY && PLAY.on)) show(saved); })) show(Object.assign({}, pending, { why: "replaying the plan…" }));
-  else show(st.solution || pending);
+  if (st.solution) return show(st.solution);
+  // no saved route: try its own plan, then the routes and plans of the build's other stages and the level's own route
+  // (path / deco / final mostly keep the layout's gameplay), each replayed on THIS stage's level, no solve. The first
+  // that clears wins; none -> the one that gets furthest, with where it dies (FROSTBITE, 2026-11-25: path's own plan
+  // died at the second spike and deco / final had no plan at all, so they "die and don't jump or are not shown")
+  const cands = stageRouteCands(st, base);
+  if (!cands.length) return show(pending);
+  show(Object.assign({}, pending, { why: "replaying the plan…" }));
+  let best = null, i = 0;
+  const next = () => {
+    if (STG.cur !== name) return;
+    const c = cands[i++];
+    if (!c) { show(Object.assign({}, best.saved, { why: (best.saved.why || "dies") + " — no route of its own; the furthest one is " + best.from + "'s" })); return; }
+    planSaved(st.level, c.data, saved => {
+      if (STG.cur !== name || (PLAY && PLAY.on)) return;
+      if (saved.ok) { saved.from = c.from; show(saved); if (c.from !== "its own plan") notice("stage " + esc(name) + ": no route of its own, replaying " + esc(c.from) + " (it clears this stage)", 4000); return; }
+      if (!best || saved.dieX > best.saved.dieX) best = { saved, from: c.from };
+      next();
+    });
+  };
+  next();
+}
+// the routes a stage without its own can borrow: [{from, data: {events} | plan data}], its own plan first, then the
+// nearest stages' routes / plans, then the level's saved route; one copy of each distinct input list
+function stageRouteCands(st, base) {
+  const out = [], seen = new Set(), stages = (STG.data && STG.data.stages) || [], me = stages.indexOf(st);
+  const add = (from, data) => { const ev = data && GD.planEvents && GD.planEvents(data); if (!ev || !ev.length) return; const k = JSON.stringify(ev); if (seen.has(k)) return; seen.add(k); out.push({ from, data }); };
+  add("its own plan", st.data);
+  stages.map((o, j) => ({ o, d: Math.abs(j - me) })).filter(x => x.o !== st).sort((a, b) => a.d - b.d).forEach(({ o }) => {
+    if (o.solution && o.solution.ok && o.solution.events && o.solution.events.length) add("the " + o.stage + " stage's route", { events: o.solution.events });
+    add("the " + o.stage + " stage's plan", o.data);
+  });
+  const bs = base && base.solution;
+  if (bs && bs.ok && bs.events && bs.events.length) add("the level's saved route", { events: bs.events });
+  return out;
 }
 // the song's real hits (tools/hits.js slots {beat, t: song seconds, kind}, put with the song stage as data.hits):
 // kicks, snares and accents as ticks under the presses, in level time (song time - the song's offset)
@@ -878,7 +972,8 @@ async function stageSolve(st) {
     ready: async () => { try { sol = (await (await fetch("/solution?file=" + encodeURIComponent(st.file), { cache: "no-store" })).json()).solution; } catch (e) {} return !!sol; },
     done: () => { st.solution = sol; notice("The route of stage " + esc(st.stage) + " is ready.", 4000); if (STG.cur === st.stage) stageOpen(st.stage); } });
 }
-pick.addEventListener("change", () => { if (!STG.cur) stagesFor(ALL[pick.value]); });
+// another level picked while a stage of the last one was open (the lab's variants, the Work panel): its own stages
+pick.addEventListener("change", () => { if (!STG.cur || STG.base !== ALL[pick.value]) stagesFor(ALL[pick.value]); });
 // ---------- section variants (style's compose: local/wip/<session>/<level>.variants/, served by /wip/variants) ----------
 // For a work-in-progress level with variants: one row per section, A/B/C with the section's score (hover: difficulty,
 // issues); a click replays that variant from the same moment; "go" jumps to the section; "pick this one" leaves a
@@ -932,7 +1027,7 @@ async function varPick() {
   let ok = false; try { ok = (await fetch("/marks", { method: "POST", body: JSON.stringify(m) })).ok; } catch (e) {}
   const pb = document.getElementById("varPick"); if (pb) pb.textContent = ok ? "✓ picked: " + m.section + " " + m.key : "not saved (is serve.js running?)";
 }
-pick.addEventListener("change", () => { if (!VAR.cur) variantsFor(ALL[pick.value]); });
+pick.addEventListener("change", () => { if (!VAR.cur || VAR.base !== ALL[pick.value]) variantsFor(ALL[pick.value]); });
 // the default view ("main"): official levels + in progress + ours; "recent" and "pinned" are tabs of their own
 // (the user: "keep only the official level + some that we working on. recent is a separate tab")
 const PK = { f: "main", sel: 0, rows: [], meta: new Map(), runs: null, bases: null, hash: new Map(), openRun: null };
@@ -964,6 +1059,8 @@ function pkRunLine(run) {
 }
 const pkStore = (k, v) => { try { if (v === undefined) return JSON.parse(localStorage.getItem("gdlm." + k) || "[]"); localStorage.setItem("gdlm." + k, JSON.stringify(v)); } catch (e) { return []; } };
 const pkCat = l => l.wip || (l.session && l.version) ? "wip" : /official/.test(String(l.file)) || l.official != null ? "official" : /community/.test(String(l.file)) ? "community" : "ours";
+// the lab and experiments: the section lab's variants (LAB rN vK), the lab / test / catalogue levels
+const pkLab = l => /^LAB r\d/i.test(String(l.name || "")) || /(^|\/)lab_r\d|_lab(\.|_|$)|test|catalogue|sketch/i.test(String(l.file || ""));
 const pkKey = l => String(l.name || l.file).toLowerCase().replace(/\s+v\d+$/, "").trim();
 // when the level (this version) was made: wip `made` (first put of this content), a pushed level's commit time;
 // officials and community levels have none. Never a re-stamp (wip `updated` is only a fallback for old rows)
@@ -1016,9 +1113,17 @@ function pkRows() {
   const q = document.getElementById("pkQ").value.trim().toLowerCase(), pins = pkStore("pins"), recent = pkStore("recent");
   if (PK.f === "runs") return { rec: [], rest: pkRunRows(q), pins };
   const groups = new Map();
+  // "main" = our finished levels + the official ones (the user, 2026-11-25: "main has too many songs now ... its just spam.
+  // Lets do main for ready levels + official. Rest in the different tabs"): no work in progress of its own (a newer wip of
+  // a main level still sits on its card), no lab variants, parts or experiments
+  const readyKeys = new Set(ALL.filter(l => pkCat(l) === "ours" && !pkLab(l)).map(pkKey));
   ALL.forEach((l, i) => {
     const c = pkCat(l);
-    if (PK.f === "pinned" ? !pins.includes(pkKey(l)) : PK.f === "recent" ? !recent.includes(pkKey(l)) : PK.f === "main" ? c === "community" : PK.f === "demons" ? !l.demon : PK.f !== "all" && c !== PK.f) return;
+    const out = PK.f === "pinned" ? !pins.includes(pkKey(l)) : PK.f === "recent" ? !recent.includes(pkKey(l))
+      : PK.f === "main" ? !(c === "official" || readyKeys.has(pkKey(l)) && !pkLab(l))
+      : PK.f === "lab" ? !pkLab(l) : PK.f === "wip" ? c !== "wip" || pkLab(l)
+      : PK.f === "demons" ? !l.demon : PK.f !== "all" && c !== PK.f;
+    if (out) return;
     if (q && l.demon && (String(l.demon.creator) + " " + l.demon.verifier).toLowerCase().includes(q)) { const k = pkKey(l); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(i); return; }
     if (q && !(String(l.name) + " " + l.file + " " + (l.session || "")).toLowerCase().includes(q)) return;
     const k = pkKey(l); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(i);
@@ -1048,7 +1153,7 @@ function pkRender() {
       `</div><button class="pkPin${pins.includes(r.k) ? " on" : ""}" data-pin="${pkEsc(r.k)}" title="pin">★</button></div>`; };
   el.innerHTML = (rec.length ? `<div class="pkHead">recent</div>` + rec.map((r, n) => card(r, n)).join("") : "") +
     (PK.f === "recent" ? "" : PK.f === "runs" ? `<div class="pkHead">my runs, newest played first · ${rest.length}${PK.runs === null ? " (loading…)" : ""}${PK.runsNote ? " · " + pkEsc(PK.runsNote) : ""}${PK.runsMissing ? ` · ${PK.runsMissing} more not in this list (build stages, levels not on this PC)` : ""}</div>`
-      : `<div class="pkHead">${PK.f === "main" ? "official, in progress and ours" : PK.f === "all" ? "all levels" : PK.f === "demons" ? "demon list (on this PC), by list place; no route: the camera runs through" : PK.f} · ${rest.length}</div>`) + rest.map((r, n) => card(r, n + rec.length)).join("");
+      : `<div class="pkHead">${PK.f === "main" ? "our finished levels and the official ones" : PK.f === "all" ? "all levels" : PK.f === "demons" ? "demon list (on this PC), by list place; no route: the camera runs through" : PK.f} · ${rest.length}</div>`) + rest.map((r, n) => card(r, n + rec.length)).join("");
   el.querySelectorAll(".pkCard").forEach(c => c.onclick = e => { if (e.target.dataset.pin || e.target.dataset.open) return; const r = PK.rows[+c.dataset.n]; pkOpen(r.is[0], r.run); });
   el.querySelectorAll("[data-open]").forEach(b => b.onclick = () => pkOpen(+b.dataset.open));
   el.querySelectorAll("[data-pin]").forEach(b => b.onclick = () => { const p = pkStore("pins"), k = b.dataset.pin; pkStore("pins", p.includes(k) ? p.filter(x => x !== k) : p.concat(k)); pkRender(); });
@@ -1126,6 +1231,7 @@ function clickTable() {
   const el = document.getElementById("clicks");
   if (!L.sol.clicks.length) { el.innerHTML = `<span class="muted">none</span>`; return; }
   const bt = c => L.beats ? `<td>${beatOf(c.tick / P.TPS).toFixed(2)}</td>` : "";
+  { const n = document.getElementById("clicksN"); if (n) n.textContent = `· ${L.sol.clicks.length}`; }
   el.innerHTML = `<table><tr><th>#</th><th>time</th>${L.beats ? "<th>beat</th>" : ""}<th>block</th><th>what</th><th>window</th></tr>` +
     L.sol.clicks.map((c, i) => `<tr id="c${i}"><td>${i + 1}</td><td>${(c.tick / P.TPS).toFixed(3)} s</td>${bt(c)}<td>${(c.x / 30).toFixed(1)}</td><td>${c.type === "release" ? "release" : esc(c.act || "press")}</td><td>${c.ms ? c.ms + " ms" : ""}</td></tr>`).join("") + `</table>`;
 }
@@ -1242,7 +1348,12 @@ document.getElementById("lightBtn").onclick = () => setLight(!LIGHT);
 try { if (localStorage.getItem("gdlm.light") === "1") setTimeout(() => setLight(true), 0); } catch (e) {}
 const scrub = document.getElementById("scrub");
 scrub.oninput = () => { t = scrub.value / 1000 * (L.path.length - 1) / P.TPS; lastTick = tick(); playing = false; setPlay(); syncSong(); draw(); };
+// the replay keys, never while typing (the user, 2026-11-25: typing a mark's note "repeats the levels and hangs the ui":
+// every space toggled play and every "r" restarted the replay)
+const typing = e => /INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName || "") || !!(e.target && e.target.isContentEditable);
 addEventListener("keydown", e => {
+  if (typing(e)) return;
+  if ((e.key === "-" || e.key === "=" || e.key === "+") && !e.ctrlKey && !e.metaKey) { vzSet(e.key === "-" ? VZ.z / 1.25 : VZ.z * 1.25); return; }
   if (e.code === "Space") { e.preventDefault(); playBtn.onclick(); }
   if (e.key === "r") document.getElementById("restart").onclick();
   if (e.key === "ArrowRight") { t += 1 / P.TPS * (e.shiftKey ? 24 : 1); playing = false; setPlay(); draw(); }
@@ -1436,6 +1547,92 @@ function deathFx(ps) {
   for (let i = 0; i < 14; i++) { const ang = rnd(i, 5) * 6.283, d = (0.5 + 2.2 * rnd(i, 6)) * Math.min(1, age / 0.5) * B, a = Math.max(0, 1 - age / 0.8), z = (0.05 + 0.08 * rnd(i, 7)) * B;
     ctx.fillStyle = `rgba(${rnd(i, 8) > 0.5 ? "255,255,255" : "140,170,255"},${a})`; ctx.fillRect(X + Math.cos(ang) * d - z / 2, Y - Math.sin(ang) * d - z / 2, z, z); }
   ctx.restore();
+}
+// The end of a cleared level (the user, 2026-11-25, on the Jumper video: "no end screen like in the real game, it just falls
+// on the ground"). Our own drawing, no GD art: a wall of light ~9 blocks past the last object; when the run clears, the
+// camera stops, the player is pulled up into the wall on a curve (spinning, shrinking), a flash where it goes in, then
+// "LEVEL COMPLETE!" and a card with attempt, jumps, time and coins. Driven by t past the clear (END_LEN seconds): the page
+// plays on through it (frame()), a video records it (shootVideo), scrubbing back shows the level again. VISUALS.md "The end".
+const END_LEN = 4.5, END_FLY = 0.6;
+function endTime() {
+  if (!L || !L.path || !L.path.length || MAPCAM || (PLAY && PLAY.on)) return null;
+  if (L._endFor === L.path) return L._endT;
+  const e = L.path[L.path.length - 1], ok = !e.dead && !e.ghost && (e.done || e.x >= L.world.endX - 30);
+  L._endFor = L.path; L._endT = ok ? (L.path.length - 1) / P.TPS : null; L._endStats = null; return L._endT;
+}
+function endStats() {
+  if (L._endStats) return L._endStats;
+  const last = L.path.length - 1, evs = L.ghost && L.ghost.events ? L.ghost.events : (L.sol && L.sol.clicks) || [];
+  const jumps = evs.filter(e => e.type === "press" && e.tick <= last).length;
+  const coins = L.level.objects.filter(o => o.id === 142 || o.id === 1329).sort((a, b) => a.x - b.x).map(o => {
+    let got = false; for (let i = 0; i < L.path.length && !got; i += 2) { const q = L.path[i]; if (Math.abs(q.x - o.x) < 30 && Math.abs(q.y - o.y) < 30) got = true; }
+    return got; });
+  const sec = last / P.TPS;
+  return (L._endStats = { jumps, coins, time: `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, "0")}`, attempt: 1 });
+}
+// the wall: drawn whenever it is in view, before and after the clear; age < 0 = not reached yet
+function endWall(age) {
+  const B = 30 * scale, WX = sx(L.world.endX + 270); if (WX < -3 * B || WX > W + 3 * B) return;
+  const pulse = age > END_FLY ? Math.max(0, 1 - (age - END_FLY) / 0.8) : 0, now = (window.VCLOCK != null ? window.VCLOCK : performance.now()) / 1000;
+  ctx.save(); ctx.globalCompositeOperation = "lighter";
+  const g = ctx.createLinearGradient(WX - 2.5 * B, 0, WX + 2.5 * B, 0);
+  g.addColorStop(0, "rgba(90,200,255,0)"); g.addColorStop(0.42, `rgba(90,200,255,${0.25 + 0.3 * pulse})`); g.addColorStop(0.5, `rgba(220,250,255,${0.75 + 0.25 * pulse})`);
+  g.addColorStop(0.58, `rgba(90,200,255,${0.25 + 0.3 * pulse})`); g.addColorStop(1, "rgba(90,200,255,0)");
+  ctx.fillStyle = g; ctx.fillRect(WX - 2.5 * B, 0, 5 * B, groundY);
+  // motes drifting into it from the left
+  for (let i = 0; i < 18; i++) { const r = Math.sin(i * 91.7) * 43758.5453, fr = r - Math.floor(r), ph = (now * (0.5 + fr) + fr * 7) % 1;
+    const x = WX - (1 - ph) * 3 * B, y = groundY * ((i * 0.618) % 1), z = (0.06 + 0.06 * fr) * B;
+    ctx.fillStyle = `rgba(200,240,255,${0.7 * ph})`; ctx.fillRect(x - z / 2, y - z / 2, z, z); }
+  ctx.restore();
+}
+function endFx(s, age, drawP) {
+  const B = 30 * scale, X0 = sx(s.x), Y0 = sy(s.y), X1 = Math.min(sx(L.world.endX + 270), W - B), Y1 = Math.min(groundY * 0.55, H * 0.45);
+  const cx = X0 + (X1 - X0) * 0.35, cy = Math.min(Y0, Y1) - 2.5 * B;
+  if (age < END_FLY) {   // the pull into the wall: faster and faster, spinning, shrinking
+    const u = age / END_FLY, p = u * u, q = 1 - p, X = q * q * X0 + 2 * q * p * cx + p * p * X1, Y = q * q * Y0 + 2 * q * p * cy + p * p * Y1, k = 1 - 0.65 * p;
+    const ps = Object.assign({}, s, { x: camX + X / scale, y: camY + (groundY - Y) / scale, rot: (s.rot || 0) + 900 * age * age });
+    ctx.save(); ctx.translate(X, Y); ctx.scale(k, k); ctx.translate(-X, -Y); try { drawP(ps); } catch (e) {} ctx.restore();
+    ctx.save(); ctx.globalCompositeOperation = "lighter";
+    for (let i = 1; i <= 8; i++) { const pu = Math.max(0, u - i * 0.04), pp = pu * pu, qq = 1 - pp;
+      const tx = qq * qq * X0 + 2 * qq * pp * cx + pp * pp * X1, ty = qq * qq * Y0 + 2 * qq * pp * cy + pp * pp * Y1, z = (0.22 - i * 0.02) * B;
+      ctx.fillStyle = `rgba(160,230,255,${0.5 - i * 0.05})`; ctx.fillRect(tx - z / 2, ty - z / 2, z, z); }
+    ctx.restore();
+  } else if (age < END_FLY + 0.8) {   // the flash where it went in
+    const v = (age - END_FLY) / 0.8, R = (0.6 + 3.5 * Math.sqrt(v)) * B;
+    ctx.save(); ctx.globalCompositeOperation = "lighter";
+    const g = ctx.createRadialGradient(X1, Y1, 0, X1, Y1, R); g.addColorStop(0, `rgba(255,255,255,${1 - v})`); g.addColorStop(0.5, `rgba(120,220,255,${0.6 * (1 - v)})`); g.addColorStop(1, "rgba(120,220,255,0)");
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(X1, Y1, R, 0, 7); ctx.fill();
+    ctx.strokeStyle = `rgba(255,255,255,${0.9 * (1 - v)})`; ctx.lineWidth = Math.max(1.5, 0.25 * B * (1 - v)); ctx.beginPath(); ctx.arc(X1, Y1, R * 1.1, 0, 7); ctx.stroke();
+    ctx.restore();
+    if (v < 0.4) { ctx.fillStyle = `rgba(255,255,255,${0.35 * (1 - v / 0.4)})`; ctx.fillRect(0, 0, W, H); }
+  }
+  // LEVEL COMPLETE!
+  if (age > END_FLY + 0.3) {
+    const v = Math.min(1, (age - END_FLY - 0.3) / 0.35), c1 = 1.70158, back = 1 + (c1 + 1) * Math.pow(v - 1, 3) + c1 * Math.pow(v - 1, 2), fs = Math.round(H / 9);
+    ctx.save(); ctx.translate(W / 2, H * 0.27); ctx.scale(back, back); ctx.globalAlpha = Math.min(1, v * 1.5);
+    ctx.font = `900 ${fs}px system-ui, sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.shadowColor = "rgba(120,220,255,.9)"; ctx.shadowBlur = fs * 0.4;
+    ctx.lineJoin = "round"; ctx.lineWidth = fs * 0.14; ctx.strokeStyle = "#0a0620"; ctx.strokeText("LEVEL COMPLETE!", 0, 0); ctx.shadowBlur = 0;
+    const g = ctx.createLinearGradient(0, -fs / 2, 0, fs / 2); g.addColorStop(0, "#ffffff"); g.addColorStop(0.55, "#bff6ff"); g.addColorStop(1, "#3dffb0");
+    ctx.fillStyle = g; ctx.fillText("LEVEL COMPLETE!", 0, 0); ctx.restore();
+  }
+  // the card
+  if (age > END_FLY + 1.1) {
+    const v = Math.min(1, (age - END_FLY - 1.1) / 0.45), e = 1 - Math.pow(1 - v, 3), st = endStats();
+    const cw = Math.min(W * 0.9, H * 1.15), ch = H * 0.27, x0 = (W - cw) / 2, y0 = H * 0.42 + (1 - e) * H * 0.5, r = ch * 0.12;
+    ctx.save(); ctx.globalAlpha = e;
+    ctx.fillStyle = "rgba(10,6,32,.84)"; ctx.strokeStyle = "rgba(160,230,255,.45)"; ctx.lineWidth = Math.max(1.5, H / 360);
+    ctx.beginPath(); ctx.moveTo(x0 + r, y0); ctx.arcTo(x0 + cw, y0, x0 + cw, y0 + ch, r); ctx.arcTo(x0 + cw, y0 + ch, x0, y0 + ch, r); ctx.arcTo(x0, y0 + ch, x0, y0, r); ctx.arcTo(x0, y0, x0 + cw, y0, r); ctx.closePath(); ctx.fill(); ctx.stroke();
+    const cols = [["ATTEMPT", String(st.attempt)], ["JUMPS", String(st.jumps)], ["TIME", st.time]]; if (st.coins.length) cols.push(["COINS", null]);
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    cols.forEach(([lab, val], i) => { const cx = x0 + cw * (i + 0.5) / cols.length;
+      ctx.fillStyle = "rgba(190,200,255,.75)"; ctx.font = `700 ${Math.round(ch * 0.13)}px system-ui, sans-serif`; ctx.fillText(lab, cx, y0 + ch * 0.3);
+      if (val != null) { ctx.fillStyle = "#fff"; ctx.font = `800 ${Math.round(ch * 0.3)}px system-ui, sans-serif`; ctx.fillText(val, cx, y0 + ch * 0.64); }
+      else { const n = st.coins.length, rr = ch * 0.1, gap = rr * 2.6; st.coins.forEach((got, j) => { const qx = cx + (j - (n - 1) / 2) * gap, qy = y0 + ch * 0.64;
+        ctx.beginPath(); ctx.arc(qx, qy, rr, 0, 7); ctx.lineWidth = Math.max(1.5, rr * 0.25);
+        if (got) { ctx.fillStyle = "#ffd84a"; ctx.fill(); ctx.strokeStyle = "#a8780a"; ctx.stroke(); } else { ctx.strokeStyle = "rgba(255,255,255,.4)"; ctx.setLineDash([rr * 0.5, rr * 0.4]); ctx.stroke(); ctx.setLineDash([]); } }); } });
+    ctx.restore();
+  }
 }
 // the user's look, from their GD save (GET /me/icons, tools/save_icons.js): runs and "you play" are drawn with their icons
 let ME = null;
@@ -1656,7 +1853,7 @@ const markBtn = document.getElementById("markBtn");
 function setMarking(on) { marking = on; markBtn.classList.toggle("on", on); cv.classList.toggle("marking", on); if (on) { playing = false; setPlay(); syncSong(); notice("✎ Click the spot in the level that should change (Esc: cancel).", 0); } else { const n = document.getElementById("notice"); if (n && /Click the spot/.test(n.textContent)) n.hidden = true; } }
 addEventListener("keydown", e => { if (e.key === "Escape" && marking) setMarking(false); });
 markBtn.onclick = () => setMarking(!marking);
-addEventListener("keydown", e => { if ((e.key === "m" || e.key === "M") && e.target.tagName !== "INPUT") setMarking(!marking); });
+addEventListener("keydown", e => { if ((e.key === "m" || e.key === "M") && !typing(e)) setMarking(!marking); });
 cv.addEventListener("click", async e => {
   if (!marking || !L) return;
   const r = cv.getBoundingClientRect(), d = DPR();
@@ -1744,6 +1941,15 @@ cmp.querySelectorAll("[data-dt]").forEach(b => b.onclick = () => { cmpT0.value =
 function tick() { return Math.min(L.path.length - 1, Math.floor(t * P.TPS)); }
 const DPR = () => Math.min(2, devicePixelRatio || 1);
 let W = 0, H = 0, scale = 1, baseScale = 1, camX = 0, camY = 0, groundY = 0, LS = null;
+const VZ = { z: (() => { try { const v = +localStorage.getItem("gdlm.zoom"); return v >= 0.25 && v <= 3 ? v : 1; } catch (e) { return 1; } })() };
+function vzSet(z) { VZ.z = Math.max(0.25, Math.min(3, Math.round(z * 100) / 100)); try { localStorage.setItem("gdlm.zoom", String(VZ.z)); } catch (e) {}
+  const l = document.getElementById("vzFit"); if (l) l.textContent = Math.round(VZ.z * 100) + "%"; if (L) draw(); }
+// the level's own zoom: wheel / trackpad pinch (ctrl+wheel) over the level, the buttons, keys - and =
+document.getElementById("vzOut").onclick = e => { e.currentTarget.blur(); vzSet(VZ.z / 1.25); };
+document.getElementById("vzIn").onclick = e => { e.currentTarget.blur(); vzSet(VZ.z * 1.25); };
+document.getElementById("vzFit").onclick = e => { e.currentTarget.blur(); vzSet(1); };
+cv.addEventListener("wheel", e => { if (SHOOT) return; e.preventDefault(); vzSet(VZ.z * Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0015))); }, { passive: false });
+vzSet(VZ.z);
 function resize() {
   const r = cv.getBoundingClientRect(), d = DPR();
   cv.width = r.width * d; cv.height = r.height * d; W = cv.width; H = cv.height;
@@ -1787,8 +1993,11 @@ function draw() {
   } else objsNow = posedNow(s0);   // objects that triggers move, turn or switch off: where they are now
   // the game look frames like GD at 16:9: 10.67 blocks tall, ground 3.1 blocks up, player 36% across
   // (a screen narrower than 16:9, like a phone held upright, shows GD's 19 blocks across and more sky)
-  if (LS) { scale = Math.min(H / (30 * 10.67), W / (30 * 19)) * LS.zoom; groundY = H - 30 * 3.1 * scale; camX = s.x - W / scale * 0.36 + (LS.camOff ? LS.camOff[0] : 0); }
-  else { scale = baseScale; groundY = H - 30 * 1.6 * scale; camX = s.x - W / scale * 0.3; }
+  // VZ: the user's own zoom of the level view (wheel or pinch on the level, the − / + / fit buttons, keys - and =), the page
+  // around it untouched (the user, 2026-11-25: "how do i zoom out of the level? the big zoom of the whole ui is messy")
+  const vz = SHOOT ? 1 : VZ.z;
+  if (LS) { scale = Math.min(H / (30 * 10.67), W / (30 * 19)) * LS.zoom * vz; groundY = H - 30 * 3.1 * scale; camX = s.x - W / scale * 0.36 + (LS.camOff ? LS.camOff[0] : 0); }
+  else { scale = baseScale * vz; groundY = H - 30 * 1.6 * scale; camX = s.x - W / scale * 0.3; }
   // the vertical camera: lib/camera.js (one copy with tools/camfit.js, which checks it against the user's recordings)
   let want = GD.CAM.want(s, { look: !!LS, viewH: H / scale, below: (H - groundY) / scale });
   // no route (a ghost: the camera at the level's speed, height held): follow where the level's objects are instead, or a
@@ -1905,15 +2114,24 @@ function draw() {
       ctx.fillStyle = "#ff8fa8"; ctx.font = `bold ${12 * DPR()}px system-ui`; ctx.fillText(L.planBreak.label || "the plan breaks here", bx + r + 4, by - r); } }
   // your deaths in "you play" (this session of attempts): small red ticks on the ground
   if (PLAY && PLAY.on && PLAY.deaths.length && !MAPCAM) { ctx.fillStyle = "rgba(255,59,107,.8)"; for (const x of PLAY.deaths) { const dx = sx(x); if (dx > -5 && dx < W + 5) ctx.fillRect(dx - 1, groundY - 10 * DPR(), 2 * DPR(), 10 * DPR()); } }
+  // the end of a cleared level: the wall of light (in view before the clear too), then endFx on top below
+  const endT = LS && !s0.ghost ? endTime() : null, endAge = endT != null ? t - endT : -1;
+  const drawPL = ps => GD.LOOK.drawPlayer(ctx, view, ps, L.held[k], local, (P.SPEEDS[ps.sp] || P.SPEEDS[1]).x, sc ? (L.runKeep || (PLAY && PLAY.on) ? (c, m, st) => GD.ART_LIB.drawIcon(c, m, st, "user") : (c, m, st) => drawClaudeIcon(c, m, st) || GD.ART_LIB.drawIcon(c, m, st)) : null, (L.runKeep || (PLAY && PLAY.on)) && ME && ME.glow === false);
+  if (endT != null && !MAPCAM && !window.SHOOT_DECO_ONLY && (!SHOOT || window.SHOOT_VIDEO)) endWall(endAge);
   // the player
   // the player, drawn by its mode (a cube in every mode read wrong: "the wave looks like cube")
   // dual (lib/dual.js): player 2's own fields are in s.p2; it is drawn the same way, at its own height
   for (const ps of s.p2 ? [s, Object.assign({}, s, s.p2)] : [s]) {
   if (s0.ghost && !MAPCAM) { const gx = sx(ps.x); ctx.strokeStyle = "rgba(255,255,255,.35)"; ctx.setLineDash([6, 6]); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, groundY); ctx.stroke(); ctx.setLineDash([]);
     if (L.noRoute || L.planBreak) { ctx.fillStyle = "rgba(255,255,255,.6)"; ctx.font = `${12 * DPR()}px system-ui`;
-      ctx.fillText(L.camKeep ? "camera only: the level at its speed, no player" : L.noRoute ? "no route yet: the camera runs at the level's speed" : "after the death: the camera runs on at the level's speed", gx + 8, 18 * DPR()); } continue; }
+      ctx.fillText(L.camKeep ? "camera only: the level at its speed, no player" : L.noRoute ? "no route yet: the camera runs at the level's speed" : "after the death" + (L.planBreak ? " at block " + (L.planBreak.x / 30).toFixed(1) : "") + ": no route past it, the camera runs on at the level's speed", gx + 8, 18 * DPR()); }
+    // a faint stand-in of the player on the ghost line (the user, 2026-11-25: "the char is not seen"): where a player at
+    // the level's speed would be, not a real run (no physics: it floats at the held height)
+    if (LS && !L.camKeep && !SHOOT) { ctx.globalAlpha = 0.3; try { GD.LOOK.drawPlayer(ctx, view, Object.assign({}, ps, { dead: false }), false, local, (P.SPEEDS[ps.sp] || P.SPEEDS[1]).x, null, true); } catch (e) {} ctx.globalAlpha = 1; }
+    continue; }
   if (MAPCAM || window.SHOOT_DECO_ONLY) {} else if (LS && s.dead && (!SHOOT || window.SHOOT_VIDEO)) {}   // the burst replaces the player; drawn on top of everything below
-  else if (LS) { if (s0.lost) ctx.globalAlpha = 0.6; GD.LOOK.drawPlayer(ctx, view, ps, L.held[k], local, (P.SPEEDS[ps.sp] || P.SPEEDS[1]).x, sc ? (L.runKeep || (PLAY && PLAY.on) ? (c, m, st) => GD.ART_LIB.drawIcon(c, m, st, "user") : (c, m, st) => drawClaudeIcon(c, m, st) || GD.ART_LIB.drawIcon(c, m, st)) : null, (L.runKeep || (PLAY && PLAY.on)) && ME && ME.glow === false); ctx.globalAlpha = 1; }
+  else if (endAge > 0) {}   // the end: endFx flies the player into the wall
+  else if (LS) { if (s0.lost) ctx.globalAlpha = 0.6; drawPL(ps); ctx.globalAlpha = 1; }
   else if (ps.mode === "ship") drawShip(ps);
   else if (ps.mode === "wave") drawWave(ps);
   else if (ps.mode === "ball") drawBall(ps);
@@ -1929,9 +2147,10 @@ function draw() {
   if (SHOOT) { if (window.SHOOT_VIDEO && s.dead && LS && !MAPCAM) for (const ps of s.p2 ? [s, Object.assign({}, s, s.p2)] : [s]) deathFx(ps); } else if (s.dead) {
     if (LS && !MAPCAM) for (const ps of s.p2 ? [s, Object.assign({}, s, s.p2)] : [s]) deathFx(ps);
     ctx.fillStyle = "rgba(255,59,107,.9)"; ctx.font = "bold 22px system-ui"; ctx.fillText("✖ died on a " + s.why, sx(s.x) - 60, sy(s.y) - 50);
-  } else if (s.done) {
+  } else if (s.done && !(endT != null)) {
     ctx.fillStyle = "rgba(61,255,176,.95)"; ctx.font = "bold 22px system-ui"; ctx.fillText("LEVEL COMPLETE", W / 2 - 90, 40);
   }
+  if (endAge > 0 && !MAPCAM && !window.SHOOT_DECO_ONLY && (!SHOOT || window.SHOOT_VIDEO)) endFx(s, endAge, drawPL);
   document.getElementById("clock").textContent = `${(k / P.TPS).toFixed(2)} s · block ${(s.x / 30).toFixed(1)}` + (L.beats ? ` · beat ${beatOf(k / P.TPS).toFixed(1)}` : "") + ` · ${speed}×` + perfText();
   drawStrip(k);
   cmpUpdate();
@@ -2267,29 +2486,8 @@ function drawCube(s) {
 // how the icon turns on screen (the physics' own rot snaps flat on landing, in one step): in the air it
 // turns as the physics turns, on the ground it eases onto the nearest side in ~0.1 s, as in GD; the
 // ship eases to its pitch
-function visualRot(path) {
-  const v = new Float32Array(path.length); let r = 0;
-  const near = (a, b) => b + ((((a - b) % 360) + 540) % 360) - 180; // a, moved by turns of 360 to be closest to b
-  // drawn rotation per mode (VISUALS.md "Player motion"; the sim's own s.rot spins every mode but the ship in
-  // the air, which its hitbox needs, not what the game draws): cube spins in the air and lands square; ship
-  // and swing tilt with their velocity; UFO nearly level, a quarter of the ship's tilt (the user first missed
-  // a tilt, then still noticed half of it; no clean UFO clip measured yet); ball rolls with its distance; robot and spider stay upright (their legs move instead)
-  const tilt = (s, p, k) => p ? -Math.atan2((s.y - p.y), Math.max(0.1, s.x - p.x)) * 180 / Math.PI * k : 0;
-  for (let i = 0; i < path.length; i++) {
-    const s = path[i], p = path[i - 1];
-    // the ship follows its velocity's angle about 67 ms behind (measured: the user's Hexagon Force ship, gain 0.98, lag 4
-    // frames; was 0.12 a tick = ~17 ms; VISUALS.md "Render vs game"); the wave points along its velocity at once
-    if (s.mode === "ship") { r = near(r, s.rot); r += (s.rot - r) * 0.06; }
-    else if (s.mode === "wave") { r = near(r, s.rot); r += (s.rot - r) * 0.12; }
-    else if (s.mode === "swing" || s.mode === "ufo") { const T = tilt(s, p, s.mode === "ufo" ? 0.25 : 1); r = near(r, T); r += (T - r) * 0.12; }
-    else if (s.mode === "robot" || s.mode === "spider") { r = near(r, 0); r += (0 - r) * 0.25; }
-    else if (s.mode === "ball") { if (p) r += (s.grav || 1) * (s.x - p.x) * 180 / (Math.PI * 15); }
-    else if (s.grounded || s.dashing || !p || p.mode !== s.mode) { const T = Math.round(r / 90) * 90; r += (T - r) * 0.12; }
-    else { const d = s.rot - p.rot; if (Math.abs(d) < 30) r += d; }
-    v[i] = r;
-  }
-  return v;
-}
+// the drawn rotation per step: lib/look.js visualRot (one copy, the lego catalogue uses it too)
+function visualRot(path) { return GD.LOOK.visualRot(path); }
 // ---------- loop ----------
 let prev = performance.now(), drawDt = 1 / 60;
 // a hidden tab: stop (the song keeps playing in the background, frames do not); back: carry on from a fresh
@@ -2328,7 +2526,7 @@ function frame(now) {
     let clicks = 0; for (const c of L.sol.clicks) if (c.type === "press" && c.tick > lastTick && c.tick <= k) clicks++;
     if (clicks && k - lastTick < P.TPS / 4) beep(); // one beep a frame at most, none after a jump
     lastTick = k;
-    if (k >= L.path.length - 1) { playing = false; setPlay(); }
+    if (k >= L.path.length - 1) { const et = endTime(); if (et == null || t >= et + END_LEN) { playing = false; setPlay(); } }   // a clear plays its end (endFx)
     syncSong(false);
     const d0 = performance.now(); draw(); if (PERF.on) { PERF.draws.push(performance.now() - d0); if (PERF.draws.length > 120) PERF.draws.splice(0, 60); }
   }
@@ -2412,7 +2610,11 @@ async function loadWip(keep) {
     groups.get(g).appendChild(new Option(label, i));
   });
   const again = keep && cur ? ALL.findIndex(l => l.file === cur.file) : -1;
-  if (again >= 0) { const tt = t; pick.value = again; pick.onchange(); t = Math.min(tt, (L.path.length - 1) / P.TPS); draw(); }
+  // a build stage or a section variant of this level is open (the lab's variants are stage cards): keep it on screen, only
+  // point it at the refreshed card -- reopening the card here replaced the stage's replay with "no route yet"
+  if (again >= 0 && (STG.cur && STG.base && STG.base.file === cur.file || VAR.cur && VAR.base && VAR.base.file === cur.file)) {
+    pick.value = again; if (STG.base && STG.base.file === cur.file) STG.base = ALL[again]; if (VAR.base && VAR.base.file === cur.file) VAR.base = ALL[again]; }
+  else if (again >= 0) { const tt = t; pick.value = again; pick.onchange(); t = Math.min(tt, (L.path.length - 1) / P.TPS); draw(); }
   else if (cur) pick.value = Math.max(0, ALL.findIndex(l => l.file === cur.file));
 }
 document.getElementById("refresh").onclick = () => loadWip(true);
@@ -2464,7 +2666,11 @@ hdrIcons();
   // the whiteboard (viewer/draw.html, DRAW.md): where this viewer itself is served (the PC, the home Wi-Fi, a file)
   if (location.protocol === "file:" || /^(localhost|127\.|192\.168\.|10\.)/.test(location.hostname)) {
     const d = document.createElement("button"); d.textContent = "✏ whiteboard page"; d.title = "the whiteboard on its own page (the same board as ✏ draw here)";
-    d.onclick = () => { location.href = "draw.html"; }; menu.appendChild(d); }
+    d.onclick = () => { location.href = "draw.html"; }; menu.appendChild(d);
+    // the structure catalogue (LEGO.md): every 1-3 s piece of the official levels, ours, the sketches and the lego library,
+    // built on the PC by serve.js at /lego/ (official layouts stay on the PC)
+    if (location.protocol !== "file:") { const g = document.createElement("button"); g.textContent = "🧱 structures"; g.title = "the structure catalogue: every 1-3 s piece by family, mode and wrapper (LEGO.md)";
+      g.onclick = () => { location.href = "/lego/"; }; menu.appendChild(g); } }
   vb.onclick = e => { e.stopPropagation(); menu.hidden = !menu.hidden; vb.classList.toggle("on", !menu.hidden); };
   addEventListener("click", e => { if (!menu.hidden && !menu.contains(e.target) && e.target !== vb) { menu.hidden = true; vb.classList.remove("on"); } });
   const tog = (id, k) => { const b = document.getElementById(id); b.classList.toggle("on", VIEW[k]); b.onclick = () => { VIEW[k] = !VIEW[k]; VSET(k, VIEW[k]); b.classList.toggle("on", VIEW[k]); if (L) draw(); }; };
@@ -2619,9 +2825,13 @@ function labGo(k) {
   LAB.k = k; labRender();
   const i = ALL.findIndex(l => l.file === v.file); if (i < 0) return notice(`v${k} ${esc(v.hook || "")} is still building; it shows up here when it is ready.`, 5000);
   if (PLAY.on) playStop(true);
-  const before = L, l = ALL[i]; pick.value = i; pick.onchange();
+  // a change EVENT, not pick.onchange(): the stages listener opens the variant's stage, whose saved plan (the route
+  // tools/lab.js solved, data.events) replays at once; onchange() alone loaded the bare card -- "no route yet", no player
+  const before = L, l = ALL[i]; pick.value = i; pick.dispatchEvent(new Event("change"));
   let tries = 0; const go = () => { if (ALL[pick.value] !== l || LAB.k !== k) return;
-    if (!L || L === before || !L.path || L.path.length < 2) { if (++tries < 150) setTimeout(go, 100); return; }
+    // wait for the stage's replay (a route or its plan), not the card's routeless ghost; after ~15 s play what is there
+    const ready = L && L !== before && L.path && L.path.length >= 2 && (!L.noRoute || tries >= 150);
+    if (!ready) { if (++tries <= 150) setTimeout(go, 100); return; }
     t = 0; lastTick = -1; playing = true; setPlay(); syncSong(true); draw(); };
   go();
 }
@@ -2705,13 +2915,13 @@ async function shootVideo(job, post) {
     const r = GD.run(L.world, pre.concat(row.events));
     VIEW.route = false; L.ghost = { row, path: r.path, cmp: null, runP: [], from: pre.length ? from : 0, events: pre.concat(row.events) }; runViewApply();
   }
-  const end = (L.path.length - 1) / P.TPS, t1 = Math.min(v.to != null ? v.to : end + 1, end + 1.2), t0 = Math.max(0, v.from || 0);
+  const end = (L.path.length - 1) / P.TPS, endT = endTime(), tail = endT != null ? END_LEN : 1.2, t1 = Math.min(v.to != null ? v.to : end + tail, end + tail), t0 = Math.max(0, v.from || 0);
   const n = Math.max(1, Math.round((t1 - t0) * fps));
   drawDt = 1 / fps; window.SHOOT_VIDEO = false; t = t0; draw(); window.SHOOT_VIDEO = true;   // the first frame's camera in place
   for (let k = 0; k < 4; k++) { draw(); await new Promise(r => setTimeout(r, 120)); }         // lazily loaded pictures in
   const T0 = performance.now();
   for (let i = 0; i < n; i++) {
-    const tt = t0 + i / fps; t = Math.min(tt, end); window.VCLOCK = tt * 1000; drawDt = 1 / fps; draw();
+    const tt = t0 + i / fps; t = endT != null ? tt : Math.min(tt, end); window.VCLOCK = tt * 1000; drawDt = 1 / fps; draw();
     await post("f" + String(i).padStart(5, "0") + ".jpg", cv.toDataURL("image/jpeg", v.quality || 0.88));
   }
   await post("done", JSON.stringify({ frames: n, from: t0, to: t1, fps, ms: Math.round(performance.now() - T0), end }));
@@ -2777,20 +2987,27 @@ async function shootRun() {
 // at once ("where is the layout", the user on GDLM 64's layout stage: play and the timeline stayed at 0).
 // The look timeline and the trigger runtime are rebuilt on the longer path (triggers past the stop never fired).
 function ghostExtend(LL, want, toEnd) {
-  const portals = LL.level.objects.filter(o => GD.objInfo(o.id).kind === "speed").sort((a, b) => a.x - b.x);
+  // speed portals set the camera's pace; mode and gravity portals what the ghost is drawn as (the user, 2026-11-25: "in
+  // ball mode the viewer stays cube": past the run's end the ghost kept the last state's mode for the rest of the level)
+  const portals = LL.level.objects.filter(o => /^(speed|mode|gravity)$/.test(GD.objInfo(o.id).kind)).sort((a, b) => a.x - b.x);
   const vOf = sp => ((P.SPEEDS[sp] || P.SPEEDS[1]).x) * 60 / P.TPS;
   want = want || Math.ceil(LL.world.endX / vOf(0)) + 2;
   const last = LL.path[LL.path.length - 1];
   if (!(last.dead || LL.path.length < want)) return false;
+  if (last.done && !last.dead && !last.ghost) return false;   // a clear needs no ghost after it: it ends with endFx (the Jumper video's player walked on past the end and fell to the ground)
   let k = LL.path.length - 1; while (k > 0 && LL.path[k].dead) k--;
   const base = LL.path[k];
-  let x = base.x, sp = base.sp, pi = portals.findIndex(o => o.x > x); if (pi < 0) pi = portals.length;
+  let x = base.x, sp = base.sp, mode = base.mode, grav = base.grav, y = base.y, pi = portals.findIndex(o => o.x > x); if (pi < 0) pi = portals.length;
   LL.path.length = k + 1;
   for (let j = k + 1; j < want; j++) {
     x += vOf(sp);
-    while (pi < portals.length && portals[pi].x <= x) { sp = GD.objInfo(portals[pi].id).speed; pi++; }
+    while (pi < portals.length && portals[pi].x <= x) { const o = portals[pi], d = GD.objInfo(o.id);
+      if (d.kind === "speed") sp = d.speed;
+      else if (d.kind === "mode") { mode = d.mode; y = o.y; }
+      else if (d.kind === "gravity") grav = d.grav === 0 ? -(grav || 1) : d.grav;
+      pi++; }
     if (toEnd && x > LL.world.endX + 60) break;
-    LL.path.push(Object.assign({}, base, { x, sp, tick: j, dead: false, ghost: true }));
+    LL.path.push(Object.assign({}, base, { x, y, sp, mode, grav, tick: j, dead: false, ghost: true }));
   }
   const h0 = LL.held; LL.held = new Uint8Array(LL.path.length);
   if (h0) LL.held.set(Array.prototype.slice.call(h0, 0, Math.min(h0.length, k + 1)));   // the presses before the ghost part stay lit
@@ -2942,6 +3159,9 @@ requestAnimationFrame(frame);
 // viewer drawing the level the sketch becomes (or its 🧩 layout) underneath, with the game look, at the board's camera.
 // ▶ / 🎮 on the board leave draw mode and replay / play that level here; ✏ draw goes back to the drawing.
 const DRAWM = { on: false, fr: null, last: null, lv: null };
+// while drawing, the viewer's own ▶ play and 🎮 you play leave the board first and then run the sketch (one way to play
+// it, never a replay hidden under the board)
+document.addEventListener("click", e => { if (DRAWM.on && e.target.closest && e.target.closest("#play, #youPlay")) drawMode(false); }, true);
 window.BOARDHOST = {
   get claude() { return window.claude || null; },
   view(V, rect, Hb) {   // the board's camera: V {x, y, z} in its canvas' css px; rect = its canvas in the frame
@@ -2957,6 +3177,10 @@ window.BOARDHOST = {
     // the sketch carries its song's beat grid (sk.song.grid): bars and sections show even where no grid file is
     if (song && song.url && song.grid && !(window.GD_BEATS || {})[song.url]) (window.GD_BEATS = window.GD_BEATS || {})[song.url] = song.grid;
     try { load(name, levelStr, saved, song || null); } catch (e) { console.warn("draw: the level did not load", e); return; }
+    // the sketch is the level now: the last level's build stages, sections and variants are not its own (they stayed on
+    // screen over the board and acted on that other level: the user, 2026-11-25 "something buggy with sections")
+    STG.base = STG.data = STG.cur = null; VAR.base = VAR.data = VAR.cur = null; clearTimeout(VAR.poll);
+    stageRender(); varRender();
     t = 0; playing = false; setPlay(); if (typeof summary === "function") summary();
     document.getElementById("pickName").textContent = name;
     if (DRAWM.on && DRAWM.last) BOARDHOST.view(DRAWM.last.V, DRAWM.last.rect, DRAWM.last.Hb); else if (L) draw();
@@ -2976,6 +3200,7 @@ window.BOARDHOST = {
 function drawMode(on) {
   if (on === DRAWM.on) return; DRAWM.on = on;
   const b = document.getElementById("drawBtn"); b.classList.toggle("on", on); b.textContent = on ? "✏ drawing (D: done)" : "✏ draw";
+  for (const id of ["stagebar", "secbar", "varbar"]) { const e = document.getElementById(id); if (on) { e.dataset.drawHid = e.hidden ? "" : "1"; e.hidden = true; } }
   if (on) {
     if (PLAY && PLAY.on) playStop(true); if (marking) setMarking(false); playing = false; setPlay(); syncSong(false);
     const top = cv.getBoundingClientRect().top + scrollY;

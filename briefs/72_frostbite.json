@@ -1,6 +1,6 @@
 {
  "name": "GDLM 72 FROSTBITE",
- "desc": "An icy journey: frozen peaks, ice caves, a mirrored reversal, a crystal rush, the frozen descent and a final blizzard.",
+ "desc": "An icy journey: frozen peaks, ice caves, a mirrored reversal, a crystal rush and a final blizzard.",
  "idea": "the user's FROSTBITE brief (2026-11-25): Harder (~7 stars), ~1:30, six sections each with its own identity under one icy theme; good mode variety, reverse (mirror) parts and gravity changes, consistent sync, fair but challenging timings, no frame-perfect inputs; ice theme kit (tools/themes/ice.js) for blocks, spikes and the six backgrounds",
  "story": "S1 0-10 s frozen entrance (cube) -> ship at 10 s into the caves; S2 caverns: ship, ball, a tighter cube; S3 27.5 s frozen reversal: mirrored upside-down cube, mirrored ship, wave; S4 41.2 s (the drop) crystal rush: wave 2x, spider, fast cube; a hush on the song's silence; S5 58.4 s (second drop) frozen descent: mirrored ball, ufo, ship; S6 72 s final blizzard: cube, wave 2x, synced cube jumps onto a big frozen platform, the song breaks at 85.8 s",
  "song": {

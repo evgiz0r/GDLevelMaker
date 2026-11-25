@@ -4,10 +4,13 @@
 //     ok      the human route clears and takes every portal (the raw solve may be stale: nothing uses it then)
 //     replan  the raw solve still clears, only the human route fails (or is a fallback "humanize"): --replan
 //     resume  the raw solve dies (or skips a portal) on today's physics: --resume from a bit before the trouble
+// node tools/mains.js own <n> "<who>" | free <n>  -- a level another session is solving: shown, never given a job here.
 // node tools/mains.js run [n ...] [--dry]   -- does those jobs one after another (cheap replans first, then resumes),
 //   each a tools/difficulty_solve.js run at heavy priority "urgent" (the user, 2026-11-24: "If we have it failed then
 //   its highest priority"), so a failed main level goes ahead of every other waiting heavy job. One runner at a time
 //   (local/mains/runner.json); log local/mains/log.txt; each finished job: local/mains/history.jsonl.
+// After the jobs: tools/tight.js --fix on every route it redid (timings too hard for the level), then the all-coins routes
+// (coinPass: a resume --coins at low priority for a level whose coin route misses a coin; one try per physics commit).
 // Automatic: tools/serve.js starts `mains.js run` after its self-update pulls a change to the physics or route code
 // (ROUTE_CODE below). DIFFICULTY.md "Main levels kept current".
 // RobTop's levels: everything stays in local/, nothing is committed.
@@ -46,6 +49,10 @@ const fmt = p => p.done ? (p.skip ? "skips " + p.skip : "clears") : "dies " + p.
 function status() {
   const out = [];
   for (let n = 1; n <= 22; n++) { try { out.push(stateOf(n)); } catch (e) { out.push({ n, name: NAMES[n], need: "resume", error: String(e.message).split("\n")[0] }); } }
+  // a level another session owns (local/mains/owned.json: { "22": "the Dash thread" }, edited by hand or `mains.js own`)
+  // is shown but never given a job here: its own solve is running
+  const owned = readJ(path.join(DIR, "owned.json")) || {};
+  for (const s of out) if (owned[s.n] && s.need !== "ok") { s.owner = owned[s.n]; s.need = "owned"; }
   fs.mkdirSync(DIR, { recursive: true });
   fs.writeFileSync(path.join(DIR, "status.json"), JSON.stringify({ at: new Date().toISOString(), levels: out }, null, 1));
   return out;
@@ -62,7 +69,7 @@ function run(only, dry) {
   const done = new Set();
   try {
     for (let round = 0; round < 3; round++) {   // re-check after a pass: physics may have moved again meanwhile
-      const all = status().filter(s => s.need !== "ok" && (!only.length || only.includes(s.n)));
+      const all = status().filter(s => s.need !== "ok" && s.need !== "owned" && (!only.length || only.includes(s.n)));
       const st = all.filter(s => !done.has(s.n + s.need));
       if (!st.length) {
         // what a resume could not fix on this physics is an open physics lead (PHYSICS.md), not a solver gap
@@ -89,10 +96,75 @@ function run(only, dry) {
         // a replan that found the raw solve no longer finishes falls through to a resume next round
       }
     }
+    if (dry) return;
+    // timings too hard for the level (DIFFICULTY.md "Too tight for the level"): re-search the spots on every route redone
+    const redone = [...new Set([...done].map(k => parseInt(k, 10)))];
+    if (redone.length) job("tight", ["tight.js"].concat(redone.map(String), ["--fix"]), "normal");
+    // the all-coins routes (DIFFICULTY.md "Coin routes"), after the plain ones and at low priority: a level whose coin route
+    // does not clear with every coin gets a resume (from its plain route when it has none); one try per physics commit
+    if (!only.length || process.argv.includes("--coins")) coinPass(only);
   } finally { if (!dry) { const r = readJ(path.join(DIR, "runner.json")); if (r && r.pid === process.pid) fs.unlinkSync(path.join(DIR, "runner.json")); } }
 }
 
-// serve.js calls this after a self-update: start a detached runner when the update touched route code
+function job(what, args, prio) {
+  const t0 = Date.now();
+  const r = cp.spawnSync(process.execPath, ["--max-old-space-size=3000", path.join(__dirname, args[0])].concat(args.slice(1)), { windowsHide: true, cwd: ROOT,
+    encoding: "utf8", env: Object.assign({}, process.env, { GDLM_HEAVY_PRIORITY: prio }), maxBuffer: 64 << 20 });
+  const lines = String(r.stdout || "").trim().split("\n").filter(l => /^\s*\d+[ :]/.test(l));
+  log(`mains: ${what} ${args.slice(1).join(" ")} took ${Math.round((Date.now() - t0) / 1000)} s` + (lines.length ? "\n  " + lines.join("\n  ") : ""));
+  return r;
+}
+// a level's coin route on today's sim: { total, got, done } (local/official_NN_coins.json replayed with needCoins)
+function coinState(n) {
+  const { GD } = require("./io.js"), ds = require("./difficulty_solve.js");
+  const L = GD.parseLevel(ds.levelText(n)), w = GD.makeWorld(L.objects, L.header); w.needCoins = true;
+  const total = GD.coinList(w).length, v = readJ(path.join(ROOT, "local", `official_${tag(n)}_coins.json`));
+  if (!v || !v.solution) return { total, got: 0, done: false, none: true };
+  const q = GD.run(w, v.solution.events), e = q.end || q.path[q.path.length - 1];
+  return { total, got: GD.coinCount(e), done: !!q.done };
+}
+function coinPass(only) {
+  const triedF = path.join(DIR, "coins_tried.json"), tried = readJ(triedF) || {}, phys = require("./difficulty_solve.js").physicsCommit();
+  const st = status();
+  for (const s of st) {
+    if (s.need !== "ok" || (only.length && !only.includes(s.n))) continue;
+    let c; try { c = coinState(s.n); } catch (e) { continue; }
+    if (!c.total || (c.done && c.got === c.total)) continue;
+    if (tried[s.n] === phys) continue;   // already tried on this physics: a coin lead (reported by tools/coins.js status)
+    tried[s.n] = phys; fs.writeFileSync(triedF, JSON.stringify(tried));
+    log(`mains: ${s.n} ${s.name}: coin route ${c.none ? "none yet" : (c.done ? "clears" : "dies") + " with " + c.got + "/" + c.total} -> resume --coins`);
+    job("coins", ["difficulty_solve.js", String(s.n), "--resume", "--coins"], "low");
+    const a = coinState(s.n);
+    log(`mains: ${s.n} ${s.name}: coin route now ${a.done ? "clears" : "dies"} with ${a.got}/${a.total} coins`);
+    if (a.done && a.got === a.total) job("tight coins", ["tight.js", String(s.n), "--fix", "--coins"], "low");
+  }
+}
+
+// `mains.js replan [n ...]`: the human routes planned again from the saved solves (no new solve), e.g. after the route
+// planner (lib/natural.js) changes, which mains' status does not see when the old routes still clear. Flying levels first
+// (wave: 20 18 17 21 19 22) at normal priority, the rest at low; tools/flystyle.js before and after each (presses, legs
+// under 100 ms, off-pattern stretches), then tools/tight.js --fix. Log: local/mains/replan.txt.
+function replanAll(ns) {
+  const FLY = [20, 18, 17, 21, 19, 22], order = ns.length ? ns : FLY.concat(Array.from({ length: 22 }, (_, i) => i + 1).filter(n => !FLY.includes(n)));
+  const out = path.join(DIR, "replan.txt");
+  fs.mkdirSync(DIR, { recursive: true });
+  const fly = (n, prio) => { const r = cp.spawnSync(process.execPath, [path.join(__dirname, "flystyle.js"), "official:" + n], { windowsHide: true, cwd: ROOT, encoding: "utf8",
+    env: Object.assign({}, process.env, { GDLM_HEAVY_PRIORITY: prio }), maxBuffer: 64 << 20 });
+    return String(r.stdout || "").split("\n").filter(l => l.trim() && !/^heavy|waiting|^ {4}[A-Z]/.test(l)).join("\n"); };
+  for (const n of order) {
+    const own = (readJ(path.join(DIR, "owned.json")) || {})[n];
+    if (own) { fs.appendFileSync(out, `=== ${n} ${NAMES[n]}: skipped, owned by ${own}
+`); continue; }
+    const prio = FLY.includes(n) ? "normal" : "low";
+    const before = fly(n, prio);
+    const r = job("replan", ["difficulty_solve.js", String(n), "--replan"], prio);
+    const after = fly(n, prio);
+    job("tight", ["tight.js", String(n), "--fix"], prio);
+    fs.appendFileSync(out, `=== ${n} ${NAMES[n]} (${new Date().toISOString()})\n--- before\n${before}\n--- replan: ${String(r.stdout || "").trim().split("\n").filter(l => /^\d+:/.test(l)).pop() || "?"}\n--- after\n${after}\n`);
+  }
+}
+
+// serve.js calls this after a self-update// serve.js calls this after a self-update: start a detached runner when the update touched route code
 function afterUpdate(before, after, git) {
   let changed = "";
   try { changed = git(["diff", "--name-only", before, after, "--"].concat(ROUTE_CODE)); } catch (e) { return false; }
@@ -102,7 +174,7 @@ function afterUpdate(before, after, git) {
   return true;
 }
 
-module.exports = { stateOf, status, afterUpdate, ROUTE_CODE, NAMES };
+module.exports = { stateOf, status, afterUpdate, coinState, ROUTE_CODE, NAMES };
 
 if (require.main === module) {
   const a = process.argv.slice(2), nums = a.filter(x => /^\d+$/.test(x)).map(Number);
@@ -112,5 +184,11 @@ if (require.main === module) {
     else for (const s of st) console.log(`${String(s.n).padStart(2)} ${(s.name || "").padEnd(24)} ${s.need.padEnd(7)} raw ${s.raw ? fmt(s.raw).padEnd(14) : "?".padEnd(14)} route ${s.view ? fmt(s.view).padEnd(14) : "?".padEnd(14)} ${s.kind || ""}${s.part != null ? `  checkpoint at block ${s.part}` : ""}${s.error ? "  " + s.error : ""}`);
     const r = runner(); if (r) console.log(`runner working: pid ${r.pid} since ${r.since}`);
   } else if (a[0] === "run") run(nums, a.includes("--dry"));
+  else if (a[0] === "replan") replanAll(nums);
+  else if (a[0] === "own" || a[0] === "free") {   // mains.js own <n> "<who>" | free <n>: another session owns a level's solve
+    const f = path.join(DIR, "owned.json"), o = readJ(f) || {};
+    if (a[0] === "own") o[nums[0]] = a.slice(2).join(" ") || "another session"; else delete o[nums[0]];
+    fs.mkdirSync(DIR, { recursive: true }); fs.writeFileSync(f, JSON.stringify(o, null, 1)); console.log(JSON.stringify(o));
+  }
   else { console.log(fs.readFileSync(__filename, "utf8").split("\n").slice(0, 10).join("\n")); process.exit(1); }
 }

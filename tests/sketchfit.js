@@ -43,4 +43,12 @@ const line = (pen, pts) => ({ k: "stroke", pen, pts });
   F.apply(sk, [{ op: "press", x: 300 }, { op: "delete", item: 2 }]);
   ok(sk.items.filter(i => i.k === "press").length === 1 && sk.items.some(i => i.k === "press" && i.x === 300), "apply: add a jump, delete a mark");
 }
+{ // the spikes pen means any hazard: three short spike runs, one jump each -> spikes, kill-ground and saws, and it still clears
+  const sk = { v: 1, speed: 1, items: [line("ground", [[0, 0], [1500, 0]]), line("spikes", [[300, 0], [330, 0]]), { k: "press", x: 270 }, line("spikes", [[600, 0], [630, 0]]), { k: "press", x: 570 },
+    line("spikes", [[900, 0], [930, 0]]), { k: "press", x: 870 }] };
+  const r = F.fit(sk), ids = new Set(r.level.play.map(o => o.id));
+  const mix = r.changes.find(c => /mix of hazards/.test(c.text));
+  ok(r.clear && mix && (ids.has(9) || ids.has(89) || ids.has(98)) && ids.has(8), `spikes become a mix of hazards and the marks still clear it (${[...ids].join(",")}; ${mix && mix.text})`);
+  if (mix) { F.apply(sk, mix.choices[0].ops); const r2 = F.fit(sk); ok(!r2.level.play.some(o => [9, 89, 98].includes(o.id)), "▲ spikes only: back to spikes"); }
+}
 console.log(fail ? fail + " failed" : "all ok"); process.exit(fail ? 1 : 0);

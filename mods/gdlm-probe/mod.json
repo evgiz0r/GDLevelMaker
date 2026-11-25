@@ -3,7 +3,7 @@
 	"gd": { "win": "2.2091" },
 	"id": "gdlm.probe",
 	"name": "GDLM Probe",
-	"version": "v0.3.0",
+	"version": "v0.4.0",
 	"developer": "GDLevelMaker",
 	"description": "Logs the player's state every physics tick and every press to a file, and plays GDLM routes back on exact ticks when GDLevelMaker asks (a play.json command file). For GDLevelMaker's sim checks.",
 	"settings": {

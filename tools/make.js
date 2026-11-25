@@ -47,6 +47,14 @@
 //   "grid": {"bpm": 165.01, "t0": 0.064}  // the song's beat grid; left out = taken from
 //                          // local/beats (node tools/beats.js) and printed, so it can be pinned here
 //   "snap": 0              // round beat positions to this many units (0 = exact, 15 = half a block)
+//   "music": [             // the song changing mid-level: GD 2.2 Song / Edit Song triggers (MUSIC.md)
+//     {"at": "b65", "song": 1234567, "from": 42.5, "fadeIn": 0.3},   // switch to another custom song at beat 65,
+//                          // from its second 42.5 ("grid": {...} for its beats; else local/beats). "song": "main" = jump
+//                          // within the main song (a seek). "to": end second, "fadeOut", "volume", "channel" (0 = the
+//                          // main song's; 1-4 play on top), "prep": seconds of preload before (default 2, 0 = none)
+//     {"at": "t40", "volume": 0.2, "over": 1.5},   // fade what plays to 20% over 1.5 s;  {"at": "s95", "stop": true}
+//   ]                      // "at": "b.." a beat (counting on through the switched songs' own beats), "t.." level
+//                          // seconds, "s.." a second of the main song. After a switch, "b" columns use the new song's beats.
 // With a song, any column (also a pattern's or a trigger's) can be a beat instead of a number:
 //   "b12"     the column where the player's centre is on beat 12 (beat 1 = the first beat at or
 //             after the level start; "b12.5" = halfway to beat 13). Orbs, pads and portals put
@@ -128,6 +136,40 @@ function gridOf(spec, song) {
   return { period: b.period, t0: b.t0, bpm: b.bpm, conf: b.conf };
 }
 
+// level beat <-> level time: on the main song's grid, or, when "music" switches the song, through each song's own
+// grid in turn (lib/sync.js beatToTimeSegs; MUSIC.md "Beats after a switch")
+function beatTime(ctx, b) { return ctx.segs ? GD.SYNC.beatToTimeSegs(ctx.segs, b) : GD.SYNC.beatToTime(ctx.grid, ctx.offset, b); }
+function timeBeat(ctx, t) { return ctx.segs ? GD.SYNC.timeToBeatSegs(ctx.segs, t) : GD.SYNC.timeToBeat(ctx.grid, ctx.offset, t); }
+// spec "music" (MUSIC.md): song switches, seeks, stops and volume changes at level times. Resolved in time first
+// (each entry's "at" may be a beat of what plays before it), placed in x once the speed timeline is known.
+function musicPlan(spec, ctx, song) {
+  if (!Array.isArray(spec.music) || !spec.music.length) return null;
+  const mainId = spec.song && spec.song.custom ? +spec.song.custom : null, out = [];
+  const segs = [{ from: 0, grid: ctx.grid, songStart: ctx.offset }];
+  for (const e of spec.music) {
+    if (typeof e === "string") continue;   // a comment
+    const at = String(e.at), m = /^([bts])(-?\d+(?:\.\d+)?)$/.exec(at);
+    if (!m) throw new Error(`music: "at" must be "b33" (a beat), "t20.5" (level seconds) or "s95" (a second of the main song), not ${JSON.stringify(e.at)}`);
+    const t = m[1] === "t" ? +m[2] : m[1] === "s" ? +m[2] - ctx.offset : GD.SYNC.beatToTimeSegs(segs, +m[2]);
+    if (!(t >= 0)) throw new Error(`music: ${at} is before the level starts`);
+    let id = e.song;
+    if (id === "main") { if (!mainId) throw new Error('music: "song": "main" needs a custom main song (GD does not let Song triggers play official songs)'); id = mainId; }
+    const ch = e.channel || 0, r = Object.assign({}, e, { t, song: id != null ? +id : undefined, channel: ch });
+    out.push(r);
+    if (ch !== 0) continue;
+    if (id != null) {
+      let grid = null;
+      if (e.grid) grid = gridOf({ grid: e.grid });
+      else if (+id === mainId) grid = ctx.grid;
+      else try { grid = gridOf({}, { url: "/song/custom/" + id + ".mp3" }); } catch (err) { console.log(`   music: no beat grid for song ${id} (beats after ${at} cannot be used): ${err.message.split(":")[0]}`); }
+      segs.push({ from: t, grid, songStart: e.from || 0 });
+    } else if (e.stop) segs.push({ from: t, grid: null, songStart: 0 });
+  }
+  segs.sort((a, b) => a.from - b.from);
+  if (segs.length > 1) ctx.segs = segs;
+  return out;
+}
+
 // a spec column -> a (possibly fractional) column number. Numbers pass through; "b12", "j12.5+2"
 // are beats. tl = the speed timeline so far.
 function toCol(col, ctx, tl) {
@@ -135,7 +177,7 @@ function toCol(col, ctx, tl) {
   const m = /^([bj])(-?\d+(?:\.\d+)?)([+-]\d+(?:\.\d+)?)?$/.exec(String(col).trim());
   if (!m) throw new Error(`bad column "${col}": use a number, "b12", "j12" or "b12+3"`);
   if (!ctx.grid) throw new Error(`column "${col}" needs a "song" in the spec`);
-  const t = GD.SYNC.beatToTime(ctx.grid, ctx.offset, +m[2]);
+  const t = beatTime(ctx, +m[2]);
   if (t < 0) throw new Error(`beat ${m[2]} is before the level starts`);
   let x = GD.SYNC.xOfT(tl, t);
   if (m[1] === "j") x += jumpAt(ctx.kA4).lead;
@@ -269,6 +311,7 @@ function build(spec, specFile = "spec") {
   // middleground (kA25: 0 none, 1.. the hill bands) and ground line (kA17)
   if (spec.art) for (const [k, v] of [["kA25", spec.art.mg], ["kA17", spec.art.line]]) if (v != null) header = header.replace(new RegExp(k + ",\\d+"), k + "," + v);
   const ctx = { grid: song ? gridOf(spec, song) : null, offset: spec.offset || 0, kA4, snap: spec.snap || 0, placements: [] };
+  const music = musicPlan(spec, ctx, song);
 
   // speed portals first, in order along the level, each one updating the timeline
   const timelineOf = objs => GD.SYNC.timeline(GD.makeWorld(objs, header));
@@ -315,10 +358,16 @@ function build(spec, specFile = "spec") {
     for (const s of require("./clusters.js").check(objects)) console.log(`   WARN ${s.kind} at block ${(s.x / 30 - 0.5).toFixed(1)}: ${s.note} (tools/clusters.js)`);
   }
 
+  if (music) {   // Song / Edit Song triggers where the player is at each entry's time; a prep trigger loads a new song early
+    const M = require("../lib/music.js").MUSIC, row = 40;
+    objects.push(...M.objects(music.map(e => Object.assign({}, e, { x: GD.SYNC.xOfT(tl, e.t),
+      prep: e.song != null && e.prep !== 0 ? Math.min(e.prep != null ? e.prep : 2, e.t) * GD.SYNC.speedAtT(tl, e.t) / 30 : 0 })), { y: row * 30 + 15 }));
+    console.log(`   music: ${music.length} change(s): ` + music.map(e => `${e.at} ${e.song != null ? "song " + e.song + (e.from ? " from " + e.from + " s" : "") : e.stop ? "stop" : "volume " + e.volume}${e.channel ? " ch " + e.channel : ""}`).join(", "));
+  }
   let sceneSig = null;  // a scene may place the signature itself (its scenery runs on past the end): {col, shirt}
   if (spec.scene) { // a scene script (tools/scenes/<name>.js, SHOWCASE.md): deco + triggers + header channels
     const scene = require(path.resolve(__dirname, "..", spec.scene));
-    const beatX = b => GD.SYNC.xOfT(tl, GD.SYNC.beatToTime(ctx.grid, ctx.offset, b));
+    const beatX = b => GD.SYNC.xOfT(tl, beatTime(ctx, b));
     const r = scene({ objects, header, spec, ctx, tl, beatX, xOfT: t => GD.SYNC.xOfT(tl, t), GD });
     objects.push(...r.objects);
     if (r.header) header = r.header;
@@ -374,7 +423,7 @@ function build(spec, specFile = "spec") {
     // bob / flash on the song's beats the player hears while running up to it
     if (ctx.grid) {
       const xOfT = t => GD.SYNC.xOfT(tl, t), tOfX = x => GD.SYNC.tOfX(tl, x), beats = [];
-      for (let b = 1; b < 4000; b++) { const t = GD.SYNC.beatToTime(ctx.grid, ctx.offset, b); if (xOfT(t) > col * 30 + 300) break; if (t > 0) beats.push(t); }
+      for (let b = 1; b < 4000; b++) { const t = beatTime(ctx, b); if (xOfT(t) > col * 30 + 300) break; if (t > 0) beats.push(t); }
       Object.assign(sopts, { beats, period: ctx.grid.period, xOfT, tOfX });
     }
     objects.push(...sig.signature(sopts));
@@ -430,6 +479,8 @@ function build(spec, specFile = "spec") {
   const rec = GD.newRecord(spec.name, desc);
   if (song && song.k45) GD.setField(rec, "k45", "i", song.k45);
   if (song && song.k8) GD.setField(rec, "k8", "i", song.k8);
+  // every custom song the level plays, so GD fetches the switched-to ones too (gdlib: k104 = the song list; MUSIC.md)
+  if (music) { const ids = [...new Set([song && song.k45 && +song.k45].concat(music.map(e => e.song)).filter(Boolean))]; GD.setField(rec, "k104", "s", ids.join(",")); }
   return { level, rec, ctx, objects, header };
 }
 
@@ -461,7 +512,10 @@ function putStages(spec, level, ctx, which) {
     if (which.includes("path")) put("path", { levelStr: ls, data: { planned }, note: "planned presses from each pattern's intended inputs" + pnote });
   }
   if (which.includes("deco")) put("deco", { levelStr: GD.serializeLevel(level), note: "with the look" });
+  if (which.includes("layout") && !which.includes("final")) try { STG.drop(session, base, "final"); } catch (e) {}   // the last build's final is another level
   if (which.includes("final")) put("final", { levelStr: GD.serializeLevel(level), note: which.note || "built" });
+  // the checked route onto every stage it clears (the plan alone can die: its unrepaired intents)
+  if (which.events) try { const got = STG.route(session, base, which.events, GD); if (got.length) console.log("   stages with the route: " + got.join(", ")); } catch (e) {}
 }
 
 function make(specFile, specObj) {
@@ -469,7 +523,12 @@ function make(specFile, specObj) {
   const { level, rec, ctx, objects, header } = build(spec, specFile);
   const out = path.join(__dirname, "..", "levels", slug(spec.name) + ".gdlvl");
   putStages(spec, level, ctx, ["layout", "path", "deco"]);
-  if (LOOK_ONLY && lookOnly(out, rec, level, spec)) return { out, r: { ok: true } };
+  if (LOOK_ONLY && lookOnly(out, rec, level, spec)) {
+    // --look keeps the saved route: the final stage and the route on every stage, as a full build does
+    let ev = null; try { const s = require("./solutions.js").get(require("./io.js").readGdlvl(out).levelStr, true); ev = s && s.ok ? s.events : null; } catch (e) {}
+    putStages(spec, level, ctx, Object.assign(["final"], { note: "beaten (--look: the saved route)", events: ev }));
+    return { out, r: { ok: true } };
+  }
   // the previous build and its saved route: an edit re-solves only what it changed (lib/incsolve.js,
   // PHYSICS.md "Incremental solving"); --full solves the whole level
   let base = null;
@@ -496,6 +555,7 @@ function make(specFile, specObj) {
       console.log(`   ${ind.length} jump indicators (object ${iid}): ` + ind.map(o => `${(o.x / 30).toFixed(0)} ${o.why}`).join("; "));
     } else console.log(`   ${ind.length} jump indicators planned (arrow object id not known yet): ` + ind.map(o => `${(o.x / 30).toFixed(0)} ${o.why}`).join("; "));
   }
+  if (r.ok) { lanePass(level, r.events, spec); writeGdlvl(out, rec, level); }
   if (ctx.grid && r.ok) beatReport(objects, header, r, ctx);
   if (r.ok) { // the user's fairness rule: no prejumps (see tools/sightread.js)
     const s = sightread(level);
@@ -506,9 +566,24 @@ function make(specFile, specObj) {
   // save the solution (natural replay) so the viewer and the phone replay it, not solve it again
   // r: the check's solve (indicators have no hitbox, so it still holds)
   try { const L2 = require("./io.js").readGdlvl(out); require("./solutions.js").fromRun(L2.level, L2.levelStr, r, { name: L2.name, file: out }); } catch (e) { console.log("   (solution not saved: " + e.message + ")"); }
-  putStages(spec, level, ctx, Object.assign(["final"], { note: r && r.ok ? "beaten" : "not beaten" }));
+  putStages(spec, level, ctx, Object.assign(["final"], { note: r && r.ok ? "beaten" : "not beaten", events: r && r.ok ? r.events : null }));
   buildIndex();
   return { out, r };
+}
+
+// The lane pass (tools/lane.js, ART.md "The play lane"): from the route, keep the strip the player moves through clear of
+// front deco and frame it -- the densest art at its edges, fading out; lit trims on flying corridors' walls. OFF unless the
+// spec asks ("lane": true, or {"frame": false} = only clear; other keys go to lane.pass: density, ids, ch, seed): the user,
+// 2026-11-25, "just evenly putting things is not good enough" -- the composition model (ART.md "Deco composition") comes first.
+function lanePass(level, events, spec) {
+  if (!spec.lane || !events) return;
+  try {
+    const LN = require("./lane.js"), L = LN.lane(level, events), before = LN.measure(level, L);
+    const p = LN.pass(level.objects, L, typeof spec.lane === "object" ? spec.lane : {});
+    level.objects = p.objects;
+    const after = LN.measure(level, L);
+    console.log(`   lane: cleared ${p.removed.length} front deco from the play lane, framed it with ${p.added.length} pieces; clutter ${before.clutter} -> ${after.clutter}, edge share ${before.edge} -> ${after.edge}, unseen ${before.waste} -> ${after.waste}`);
+  } catch (e) { console.log("   lane: skipped (" + e.message + ")"); }
 }
 
 // --look: only the look changed (decoration, colours, triggers that move deco). Keeps the last build's
@@ -538,6 +613,7 @@ function lookOnly(out, rec, level, spec) {
     placed = true;
   } catch (e) { console.log("   --look: could not place the jump indicators again (" + e.message + "), keeping the old ones"); }
   if (!placed) level.objects.push(...old.level.objects.filter(o => o.props && (o.props[57] === IG || (o.id === 1007 && o.props[51] === IG))));
+  lanePass(level, sol.events, spec || {});
   const q = GD.run(GD.makeWorld(level.objects, level.header), sol.events);
   if (!(q.done || (q.end && !q.dead))) { console.log("   --look: the saved plan no longer clears it, solving"); return false; }
   writeGdlvl(out, rec, level);
@@ -561,7 +637,7 @@ function nudgeJumps(groups, objects, header, ctx, tl) {
     let moved = 0;
     for (const [beat, idx] of groups) {
       const x0 = Math.min(...idx.map(i => objects[i].x));
-      const want = GD.SYNC.xOfT(tl, GD.SYNC.beatToTime(ctx.grid, ctx.offset, +beat));
+      const want = GD.SYNC.xOfT(tl, beatTime(ctx, +beat));
       // the press that clears this group: the last one before it, if it is near the beat
       const before = pw.windows.filter(p => pw.path[p.tick].x < x0);
       const p = before[before.length - 1];
@@ -581,7 +657,7 @@ function beatReport(objects, header, r, ctx) {
   const w = GD.makeWorld(objects, header);
   const pw = GD.SYNC.pressWindows(w, r.events);
   if (!pw) return;
-  const b = t => GD.SYNC.timeToBeat(ctx.grid, ctx.offset, t);
+  const b = t => timeBeat(ctx, t);
   console.log(`   beats (${ctx.grid.bpm.toFixed(2)} BPM, beat 1 = first beat after the start):`);
   let on = 0;
   for (const p of pw.windows) {

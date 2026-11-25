@@ -21,21 +21,21 @@ module.exports = function ({ objects, header, beatX }) {
   const BLEND = new Set([C.glow, C.win, C.sun, C.corona, C.stars, C.edge, C.rays, C.motes, C.rings]);
   // palettes per section (also 1000 bg, 1001 ground, 1009 ground 2, 1002 line, 1004 objects = spikes)
   const P = [
-    { 1000: [52, 22, 78], 1001: [30, 12, 48], 1009: [44, 18, 66], 1002: [255, 160, 110], 1004: [255, 245, 235],
-      [C.glow]: [255, 95, 45], [C.far]: [86, 36, 104], [C.near]: [42, 16, 62], [C.win]: [255, 180, 80], [C.sun]: [255, 196, 90],
-      [C.moon]: [34, 14, 54], [C.corona]: [255, 210, 140], [C.stars]: [220, 190, 255], [C.edge]: [255, 140, 100], [C.fill]: [36, 14, 56],
+    { 1000: [52, 22, 78], 1001: [30, 12, 48], 1009: [44, 18, 66], 1002: [160, 205, 255], 1004: [255, 245, 235],
+      [C.glow]: [255, 95, 45], [C.far]: [112, 54, 130], [C.near]: [80, 34, 104], [C.win]: [255, 180, 80], [C.sun]: [255, 196, 90],
+      [C.moon]: [34, 14, 54], [C.corona]: [255, 210, 140], [C.stars]: [220, 190, 255], [C.edge]: [160, 205, 255], [C.fill]: [36, 14, 56],
       [C.cloud]: [120, 52, 120], [C.rays]: [255, 160, 90], [C.motes]: [255, 150, 90], [C.rings]: [255, 200, 140], [C.frame]: [20, 6, 34] },
     { 1000: [24, 14, 58], 1001: [14, 8, 36], 1009: [20, 12, 48], 1002: [190, 150, 255], 1004: [245, 245, 255],
-      [C.glow]: [150, 50, 130], [C.cloud]: [64, 40, 112], [C.stars]: [230, 230, 255], [C.edge]: [180, 130, 255], [C.fill]: [22, 12, 50],
+      [C.glow]: [150, 50, 130], [C.cloud]: [104, 72, 160], [C.stars]: [230, 230, 255], [C.edge]: [180, 130, 255], [C.fill]: [22, 12, 50],
       [C.moon]: [18, 10, 44], [C.corona]: [255, 230, 190], [C.motes]: [190, 160, 255], [C.win]: [255, 160, 70] },
     { 1000: [4, 3, 12], 1001: [0, 0, 0], 1009: [6, 4, 14], 1002: [255, 255, 255], 1004: [255, 255, 255],
       [C.glow]: [70, 40, 160], [C.moon]: [0, 0, 0], [C.corona]: [215, 205, 235], [C.rays]: [150, 140, 210], [C.rings]: [130, 115, 210],
       [C.stars]: [150, 140, 200], [C.edge]: [140, 120, 230], [C.fill]: [14, 10, 30], [C.cloud]: [20, 14, 40], [C.motes]: [130, 120, 200], [C.frame]: [0, 0, 0] },
-    { 1000: [8, 22, 48], 1001: [4, 12, 30], 1009: [8, 20, 42], 1002: [255, 210, 120], 1004: [255, 250, 235],
+    { 1000: [8, 22, 48], 1001: [4, 12, 30], 1009: [8, 20, 42], 1002: [150, 225, 255], 1004: [255, 250, 235],
       [C.glow]: [255, 170, 60], [C.moon]: [6, 16, 38], [C.corona]: [255, 215, 120], [C.rays]: [255, 200, 90], [C.rings]: [255, 190, 90],
-      [C.stars]: [200, 230, 255], [C.edge]: [255, 205, 110], [C.fill]: [6, 18, 40], [C.cloud]: [30, 60, 96], [C.motes]: [255, 210, 110] },
+      [C.stars]: [200, 230, 255], [C.edge]: [150, 225, 255], [C.fill]: [6, 18, 40], [C.cloud]: [30, 60, 96], [C.motes]: [255, 210, 110] },
     { 1000: [214, 104, 120], 1001: [96, 34, 70], 1009: [130, 50, 86], 1002: [255, 230, 200], 1004: [255, 255, 255],
-      [C.glow]: [255, 200, 130], [C.far]: [170, 80, 120], [C.near]: [110, 40, 84], [C.win]: [255, 220, 150], [C.sun]: [255, 230, 160],
+      [C.glow]: [255, 200, 130], [C.far]: [190, 100, 136], [C.near]: [150, 64, 110], [C.win]: [255, 220, 150], [C.sun]: [255, 230, 160],
       [C.moon]: [190, 90, 120], [C.corona]: [255, 235, 190], [C.stars]: [255, 230, 240], [C.edge]: [255, 230, 210], [C.fill]: [92, 32, 70],
       [C.cloud]: [255, 170, 170], [C.rays]: [255, 220, 170], [C.motes]: [255, 220, 230], [C.rings]: [255, 220, 190], [C.frame]: [120, 40, 80] },
   ];
@@ -44,6 +44,8 @@ module.exports = function ({ objects, header, beatX }) {
   for (const [ch, rgb] of Object.entries(P[0])) defs[ch] = { rgb, blend: BLEND.has(+ch) };
   header = K.channels(header, defs);
   header = K.art(header, { bg: 1, ground: 1, line: 1 });
+  // 2026-11-25 (v3): path rims and ground lines in S1 / S4 moved to a cool blue / cyan, away from the warm glow and
+  // gold light behind them; the near skylines and S2's clouds lifted off the block bodies (tools/roles.js "pathDeco")
   // palette changes: S2 over 3 s (dusk deepening), S3 at once (the drop), S4 over 1 s, S5 over 4 s (dawn)
   const FADE = [0, 3, 0, 1, 4];
   for (let i = 1; i < 5; i++) out.push(...K.palette(S[i][0], P[i], FADE[i]));
@@ -165,6 +167,12 @@ module.exports = function ({ objects, header, beatX }) {
   out.push(K.text(cx, 125, "made with GDLevelMaker", 0.45, { z: "B1", groups: [G.credits] }));
   out.push(K.alpha(T0, G.credits, 0, 0), K.alpha(barX(20), G.credits, 1, 1.5));
   // where the level ends: an invisible marker past the credits, so the end comes after them
+
+  // ---- v2 (2026-11-25): the fill pass -- set pieces, dress, flora and calm motion on every screen, per section
+  // in its own colours (tools/scenes/eclipse_fill.js) ----
+  const F = require("./eclipse_fill.js")({ objects, S, beatX, secs, T0 });
+  out.push(...F.objects);
+  header = K.channels(header, F.channels);
 
   // the signature (make.js places it) right after the credits, its shirt in the dawn's pink
   return { objects: out, header, signature: { col: Math.ceil((cx + 300) / 30), shirt: [255, 150, 170] } };
