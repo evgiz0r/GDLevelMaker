@@ -367,6 +367,20 @@ as pink targets -> nebula now only in the nebula variant, sparse and fainter. Ne
 **Open:** in-game check of the blend channels (nebula, corona, panels); the "artistic", icy, hellish, forest and colourful
 kits; chevron direction cues as a kit part; a space structure set (floating platforms, satellites as play pieces).
 
+**Ice** (`tools/themes/ice.js`, 2026-11-25, for GDLM 72 FROSTBITE from the user's brief: "Ice blue, cyan, white, dark
+navy, and occasional purple accents [...] Backgrounds should remain darker and less detailed than the gameplay"). Six
+variants, one per background style the user listed: `peaks` (distant snowy mountains), `caves` (dark blue, icicles,
+cyan crystal clusters), `shards` (abstract geometry mirrored about the middle of the view, purple + cyan: the reversal),
+`crystal` (glowing crystal formations, brighter), `descent` (dark navy, frozen pillars, icicles, dimmer), `blizzard` (a
+big mountain over a range, the most snow). Shapes are our own: a mountain, a crystal or an icicle is a PAIR of light
+triangles (693 and its flipX side by side, scaled; one face lit), snow caps the same, smaller, on a pale channel. The
+play: dark navy body, light cyan rim, a white frost line on every open top, a crack through some inner blocks, a few tiny
+glowing crystals (designBlocks windows at 0.12); hazards on a near-white rim. Snow: dots in two groups carried down-left
+over each section by one move trigger each (B2, a few in front only away from the play). Palettes: the dark variants
+first failed roles (deco in the bodies' value); the deco depths were lifted until `node tools/theme.js check ice` passed
+(far / mid / near 1.35x+ off the navy body). Open: not yet seen in the game; whether GD draws 693 scaled non-uniformly
+as the viewer does.
+
 ## Deco library (2026-11-24; the user: our levels look like "3 squares and poopy" next to real ones)
 
 Targets: knowledge/levels/modern_look.md "Recipe" (20-50 objects per block, layers B4-B5 ~20% / B1-B3 ~25% / T1 /
