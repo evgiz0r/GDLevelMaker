@@ -535,7 +535,11 @@ we can do, for bricks, for deco. the best features so far. idk for ice/fire."
   thorn pit 9 skins), 6 backgrounds -- each in ice and fire; page local/decogallery/index.html (GD art, PC only).
 - **`tools/decocomp.js`**: how deco is ARRANGED (rhythm cv, quiet stretches, peaks, focal share, clumping, set pieces,
   deco at transitions, following the play); `--ref` the officials' and the corpus' numbers -> knowledge/decocomp_ref.json.
-  Our levels: quiet ~0 (no breathing space), focal 0.25-0.29 (near even, 0.2).
+  Our levels: quiet ~0 (no breathing space), focal 0.25-0.29 (near even, 0.2). Reference (2026-11-25, p25/p50/p75):
+  officials quiet 0.02/0.08/0.20, focal 0.30/0.33/0.36, cv 0.56/0.77/1.22, big 0/0/0; 2.2 featured (n=77) quiet
+  0.03/0.12/0.22, focal 0.30/0.35/0.39, cv 0.63/0.94/1.30, big (set pieces per screen) 3/11/28, clump median 4.5 (officials
+  0.5), ~21% on back layers and ~22% in front (officials ~0). So: targets quiet >= 0.1, focal >= 0.33, cv >= 0.8, and set
+  pieces are what separates modern featured levels.
 - **`tools/lane.js`**: the play lane from the route (where the player can be), clutter in it, art at its edges, corridor
   framing; make.js runs its pass only with spec `"lane": true` (off until the composition model is agreed).
 - **Visible play first** (the user, 2026-11-25: "if you dont see a spike the timing is obviously harder"): every rung keeps
