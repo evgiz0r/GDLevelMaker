@@ -118,6 +118,7 @@
 <script src="../lib/sketchfit.js"></script>
 <script src="draw_songs.js" onerror="window.DRAW_SONGS = {}"></script>
 <script src="../local/beats.local.js" onerror="window.GD_BEATS = {}"></script>
+<script src="song_grids.js"></script>
 <script>
 "use strict";
 // The whiteboard: draw a level freehand (DRAW.md). Board units = level units (30 = a block), y up, ground at y = 0.
@@ -217,7 +218,7 @@ function pushLevel(now) {
     const ok = !q.dead && !!(q.done || (q.end && q.end.x >= w.endX));
     const m = /\/song\/custom\/(\d+)\./.exec((sk.song && sk.song.url) || "");
     HOST.setLevel("✏ " + sk.name, c.levelStr, { ok, events: ev, planReplay: true, dieX: q.end ? q.end.x : 0, dieTick: q.path.length - 1, why: ok ? "" : q.dead ? (q.why || "dies") : "the plan does not reach the end" },
-      sk.song && sk.song.url ? { url: sk.song.url, id: m ? +m[1] : undefined, offset: +sk.song.offset || 0 } : null);
+      sk.song && sk.song.url ? { url: sk.song.url, id: m ? +m[1] : undefined, offset: +sk.song.offset || 0, grid: sk.song.grid || undefined } : null);
   } catch (e) { console.warn("board: level not sent", e); } }, now ? 0 : 350);
 }
 function convert() { if (!conv) { try { conv = SK.convert(fit && fit.sketch ? fit.sketch : sk); } catch (e) { conv = { objects: [], play: [], deco: [], notes: [], error: e.message }; } } return conv; }
@@ -237,14 +238,17 @@ if (window.ResizeObserver) new ResizeObserver(resize).observe($("stage"));
 // ---- song / beats ----
 function songs() { const all = Object.assign({}, window.GD_BEATS || {}); for (const [u, s] of Object.entries(window.DRAW_SONGS || {})) all[u] = Object.assign({}, all[u] || {}, s); return all; }
 function songName(u, s) { return (s && s.name) || u.replace(/^\/song\/(custom|official)\//, "").replace(/\.\w+$/, ""); }
-function grid() { const s = sk.song && songs()[sk.song.url]; return s && (s.period || s.bpm) ? Object.assign({ period: s.period || 60 / s.bpm }, s) : null; }
+// the sketch keeps its song's grid (numbers only) when the song is picked: beats show on any device, mp3 or not
+const GRIDKEYS = ["name", "bpm", "period", "t0", "beats", "downbeat", "conf", "sections", "dur"];
+function gridOf(u) { const s = songs()[u]; if (!s || !(s.period || s.bpm)) return null; const g = {}; for (const k of GRIDKEYS) if (s[k] != null) g[k] = s[k]; return g; }
+function grid() { if (sk.song && sk.song.url && !sk.song.grid) { const g = gridOf(sk.song.url); if (g) sk.song.grid = g; } const s = sk.song && (songs()[sk.song.url] || sk.song.grid); return s && (s.period || s.bpm) ? Object.assign({ period: s.period || 60 / s.bpm }, s) : null; }
 const audio = new Audio(); audio.preload = "auto"; let audioFor = null, audioOk = false;
 function loadAudio() {
   if (!sk.song || audioFor === sk.song.url) return;
   audioFor = sk.song.url; audioOk = false;
   const cached = fileUrls[sk.song.url];
   if (cached) { audio.src = cached; audioOk = true; return; }
-  if (!SERVED) { const u = sk.song.url; idbSong(u).then(b => { if (b && audioFor === u && !fileUrls[u]) { fileUrls[u] = URL.createObjectURL(b); audio.src = fileUrls[u]; audioOk = true; $("audioState").textContent = "song remembered on this device"; } }); return; }
+  if (!SERVED) { const u = sk.song.url; idbSong(u).then(b => b || viewerSong(u)).then(b => { if (b && audioFor === u && !fileUrls[u]) { fileUrls[u] = URL.createObjectURL(b); audio.src = fileUrls[u]; audioOk = true; $("audioState").textContent = "song remembered on this device"; } }); return; }
   if (SERVED) { audio.src = sk.song.url; audio.oncanplay = () => { audioOk = true; $("audioState").textContent = "song loaded from the PC"; }; audio.onerror = () => { audioOk = false; $("audioState").textContent = "not on this PC: pick the file"; }; }
 }
 const fileUrls = {};
@@ -255,9 +259,17 @@ async function idbSong(url, blob) {
   try { const db = await idb(); return await new Promise(ok => { const tx = db.transaction("songs", blob ? "readwrite" : "readonly"), st = tx.objectStore("songs");
     const r = blob ? st.put(blob, url) : st.get(url); r.onsuccess = () => ok(blob ? true : r.result || null); r.onerror = () => ok(null); }); } catch (e) { return null; }
 }
+// the viewer keeps songs by file name in "gdlm-songs" (ArrayBuffers): one song picked in either page works in both
+const songFileKey = u => decodeURIComponent(String(u).split("/").pop()).toLowerCase();
+function vdb() { return new Promise((ok, no) => { try { const r = indexedDB.open("gdlm-songs", 1); r.onupgradeneeded = () => r.result.createObjectStore("songs"); r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); } catch (e) { no(e); } }); }
+async function viewerSong(u, bytes) {
+  try { const db = await vdb(); return await new Promise(ok => { const st = db.transaction("songs", bytes ? "readwrite" : "readonly").objectStore("songs");
+    const r = bytes ? st.put(bytes, songFileKey(u)) : st.get(songFileKey(u)); r.onsuccess = () => ok(bytes ? true : r.result ? new Blob([r.result]) : null); r.onerror = () => ok(null); }); } catch (e) { return null; }
+}
 function useSongFile(f) {
   if (!f || !sk.song || !sk.song.url) { msg("pick a song in ♪ first", 3000); return; }
-  fileUrls[sk.song.url] = URL.createObjectURL(f); idbSong(sk.song.url, f); audioFor = null; loadAudio(); $("audioState").textContent = "playing from " + f.name + " (remembered)";
+  fileUrls[sk.song.url] = URL.createObjectURL(f); idbSong(sk.song.url, f);
+  if (HOST && HOST.addSongFile) { try { HOST.addSongFile(f); } catch (e) {} } else f.arrayBuffer().then(b => viewerSong(sk.song.url, b)); audioFor = null; loadAudio(); $("audioState").textContent = "playing from " + f.name + " (remembered)";
 }
 $("fileIn").addEventListener("change", e => useSongFile(e.target.files[0]));
 // or drop the file on the page (the Claude app may not open a file picker)
@@ -677,7 +689,7 @@ function renderSongs() {
   l.appendChild(chip(!sk.song || !sk.song.url ? "▸ no song" : "no song", !sk.song || !sk.song.url, () => { sk.song = { url: "", offset: 0 }; changed(); renderSongs(); }));
   for (const u of keys) { const s = all[u]; const d = document.createElement("div"); d.className = "item";
     d.innerHTML = `<span class="nm">${sk.song && sk.song.url === u ? "▸ " : ""}${esc(songName(u, s))} <span class="muted">${s.bpm ? (+s.bpm).toFixed(1) + " BPM" : ""}${s.sections ? " · " + s.sections.length + " sections" : ""}</span></span>`;
-    d.appendChild(chip("use", sk.song && sk.song.url === u, () => { sk.song = { url: u, offset: (sk.song && sk.song.offset) || 0 }; audioFor = null; changed(); renderSongs(); }));
+    d.appendChild(chip("use", sk.song && sk.song.url === u, () => { sk.song = { url: u, offset: (sk.song && sk.song.offset) || 0, grid: gridOf(u) || undefined }; audioFor = null; changed(); renderSongs(); }));
     l.appendChild(d); }
   $("audioState").textContent = audioOk ? "song ready" : SERVED ? "" : "on the phone: pick the song's mp3 (343707.mp3 for Ragnarok's)";
 }

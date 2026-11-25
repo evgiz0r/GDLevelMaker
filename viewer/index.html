@@ -231,6 +231,7 @@
 <script src="levels.js"></script>
 <script src="levels.local.js" onerror="window.GD_LEVELS_LOCAL = []"></script>
 <script src="../local/beats.local.js" onerror="window.GD_BEATS = {}"></script>
+<script src="song_grids.js"></script>
 <script>
 "use strict";
 const P = GD.PHYS;
@@ -2948,10 +2949,16 @@ window.BOARDHOST = {
   },
   setLevel(name, levelStr, saved, song) {   // the sketch as a level (converted or fitted), with the plan to replay
     DRAWM.lv = { name, levelStr, saved, song };
+    // the sketch carries its song's beat grid (sk.song.grid): bars and sections show even where no grid file is
+    if (song && song.url && song.grid && !(window.GD_BEATS || {})[song.url]) (window.GD_BEATS = window.GD_BEATS || {})[song.url] = song.grid;
     try { load(name, levelStr, saved, song || null); } catch (e) { console.warn("draw: the level did not load", e); return; }
     t = 0; playing = false; setPlay(); if (typeof summary === "function") summary();
     document.getElementById("pickName").textContent = name;
     if (DRAWM.on && DRAWM.last) BOARDHOST.view(DRAWM.last.V, DRAWM.last.rect, DRAWM.last.Hb); else if (L) draw();
+  },
+  addSongFile(f) {   // a song picked on the board: the viewer plays it too (the phone page's add song)
+    if (typeof takeSongFiles === "function") return takeSongFiles([f]);
+    if (typeof keepSong === "function" && songInfo) f.arrayBuffer().then(b => { keepSong(songKeyOf(songInfo), b); delete songLoading[songKeyOf(songInfo)]; syncSong(true); });
   },
   play(kind, x) {   // "replay" from x (the board's view), "you" = 🎮 from the start
     if (!L) return; drawMode(false);
