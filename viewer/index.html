@@ -208,6 +208,7 @@
   <div class="card"><h2>Clicks</h2><div id="clicks"></div></div>
   <div class="card" style="grid-column:1/-1"><h2>Marks — what to change</h2><div id="marks"></div></div>
 </main>
+<div id="songCredit" class="muted" hidden style="font-size:12px;padding:6px 16px 0"></div>
 <div id="ver" class="muted" style="font-size:12px;padding:6px 16px 14px"></div>
 <script src="../lib/gd.js"></script>
 <script src="../lib/objects_extra.js"></script>
@@ -398,6 +399,9 @@ async function loadSong(info) {
   const k = songKeyOf(info); if (songLoading[k]) return; songLoading[k] = true;
   try {
     let bytes = await keptSong(k);
+    // the public site: a Creative Commons song hosted next to the page (tools/pages.js, knowledge/free_songs.json)
+    const free = window.GD_FREE_SONGS && info.id && window.GD_FREE_SONGS[info.id];
+    if (!bytes && free) { try { const r = await fetch(free.url); if (r.ok) bytes = await r.arrayBuffer(); } catch (e) {} }
     if (!bytes) { const ok = await localReady; if (!ok || (window.GD_PAGES && !LOCALBASE)) { songLoading[k] = false; songAsk(true); return; }
       const r = await fetch(LOCALBASE + info.url); if (!r.ok) { songLoading[k] = false; songAsk(true); return; } bytes = await r.arrayBuffer(); }
     SONGS[k] = await audioCtx().decodeAudioData(bytes.slice(0));
@@ -436,9 +440,16 @@ async function solveLater(l, levelStr) {
     ready: async () => { try { sol = (await (await fetch("/solution?file=" + encodeURIComponent(l.file), { cache: "no-store" })).json()).solution; } catch (e) {} return !!sol; },
     done: () => { l.solution = sol; notice("The route of " + esc(l.name) + " is ready.", 4000); if (ALL[pick.value] === l) { const tt = t; pick.dispatchEvent(new Event("change")); t = Math.min(tt, (L.path.length - 1) / P.TPS); draw(); } } });
 }
+// a hosted free song's credit line (its license asks for one), under the player
+function songCredit(info) {
+  const el = document.getElementById("songCredit"); if (!el) return;
+  const free = info && window.GD_FREE_SONGS && window.GD_FREE_SONGS[info.id];
+  el.hidden = !free; if (free) el.innerHTML = "Music: " + esc(free.credit) + ' (<a href="' + esc(free.link) + '" target="_blank" rel="noopener">Newgrounds</a>)';
+}
 function setSong(info) {
   if (song) { song.pause(); song = null; }
   songInfo = info || null;
+  songCredit(info);
   if (!info) { songAsk(false); return; }
   if (location.protocol === "file:") return; // songs come from tools/serve.js
   song = viewerSong(info);

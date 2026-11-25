@@ -10,11 +10,15 @@
 // music and can show GD art; for everyone else that fails quietly: shapes look, a song picked from the visitor's
 // own device (kept per song in their browser), or the click sound.
 // The build refuses (exit 1) when the output would hold a file from local/, an image, audio or a plist, or a
-// level that is not ours.
+// level that is not ours. One exception (the user, 2026-11-25: "songs ... that can be published freely"): a song in
+// knowledge/free_songs.json (Creative Commons on its Newgrounds page, credited) whose file is committed in songs/free/,
+// published at songs/<id>.mp3 for the public levels that use it, with its credit line under the player.
 const fs = require("fs"), path = require("path"), cp = require("child_process");
 const ROOT = path.join(__dirname, ".."), oi = process.argv.indexOf("--out");
 const OUT = path.resolve(oi >= 0 ? process.argv[oi + 1] : path.join(ROOT, "_site"));
 // the levels the user said may be public (opt-in, per level)
+// songs anyone may share (knowledge/free_songs.json: a Creative Commons license on the song's Newgrounds page)
+function freeSongs() { try { return JSON.parse(fs.readFileSync(path.join(ROOT, "knowledge", "free_songs.json"), "utf8")).songs.filter(x => x.hostable); } catch (e) { return []; } }
 function publicLevels() { try { return (JSON.parse(fs.readFileSync(path.join(ROOT, "knowledge", "public_levels.json"), "utf8")).levels || []).map(String); } catch (e) { return []; } }
 // the refusal check: what in `dir` must never be published (also used by tests/pages_build.js)
 function checkDir(dir) {
@@ -23,6 +27,8 @@ function checkDir(dir) {
   function one(p) {
     const rel = path.relative(dir, p).split(path.sep).join("/");
     if (/(^|\/)local\//.test(rel)) bad.push(rel + ": from local/");
+    const fm = /^songs\/(\d+)\.mp3$/.exec(rel), free = fm && freeSongs().find(x => String(x.id) === fm[1]);
+    if (free && fs.existsSync(path.join(ROOT, "songs", "free", fm[1] + ".mp3")) && fs.readFileSync(p).equals(fs.readFileSync(path.join(ROOT, "songs", "free", fm[1] + ".mp3")))) return;
     if (/\.(png|jpe?g|gif|webp|plist|mp3|ogg|wav|m4a|flac|mkv|mp4)$/i.test(rel)) bad.push(rel + ": images, sprites, songs and videos are never published");
     if (rel === "levels.js") { const w = {}; new Function("window", fs.readFileSync(p, "utf8"))(w);
       const ok = publicLevels();
@@ -32,7 +38,7 @@ function checkDir(dir) {
   walk(dir);
   return bad;
 }
-module.exports = { checkDir, publicLevels };
+module.exports = { checkDir, publicLevels, freeSongs };
 if (require.main === module) {
 fs.rmSync(OUT, { recursive: true, force: true }); fs.mkdirSync(path.join(OUT, "lib"), { recursive: true });
 let html = fs.readFileSync(path.join(ROOT, "viewer", "index.html"), "utf8");
@@ -46,7 +52,7 @@ for (const f of libs) fs.copyFileSync(path.join(ROOT, "lib", f), path.join(OUT, 
 swap('src="../lib/', 'src="lib/');
 // the public-site flag (before the viewer's own script) and the build commit
 swap('<script src="levels.local.js" onerror="window.GD_LEVELS_LOCAL = []"></script>',
-  `<script>window.GD_LEVELS_LOCAL = []; window.GD_PAGES = true; window.GD_BUILD = ${JSON.stringify(sha)};</script>`);
+  `<script src="free_songs.js" onerror="window.GD_FREE_SONGS = {}"></script><script>window.GD_LEVELS_LOCAL = []; window.GD_PAGES = true; window.GD_BUILD = ${JSON.stringify(sha)};</script>`);
 // beat grids: from the PC's server only (they are measured from the songs on that PC)
 swap('<script src="../local/beats.local.js" onerror="window.GD_BEATS = {}"></script>', '<script>window.GD_BEATS = {};</script>');
 // what needs the PC's own server is hidden here: work in progress, marks, level maps, recordings
@@ -63,6 +69,14 @@ global.window = {}; require(path.join(ROOT, "viewer", "levels.js"));
 const allowed = publicLevels();
 const ours = (global.window.GD_LEVELS || []).filter(l => /^(levels|examples)\//.test(String(l.file)) && allowed.includes(String(l.file)));
 fs.writeFileSync(path.join(OUT, "levels.js"), "// built by tools/pages.js: our levels (levels/, examples/) only\nwindow.GD_LEVELS = " + JSON.stringify(ours) + ";\n");
+// the free songs these levels use: the file next to the page, and its credit (the license asks for it)
+const FREE = {}, used = new Set(ours.map(l => l.song && l.song.id ? String(l.song.id) : null).filter(Boolean));
+for (const x of freeSongs()) { const src = path.join(ROOT, "songs", "free", x.id + ".mp3");
+  if (!fs.existsSync(src)) continue;
+  if (!used.has(String(x.id))) continue; // only songs a public level uses
+  fs.mkdirSync(path.join(OUT, "songs"), { recursive: true }); fs.copyFileSync(src, path.join(OUT, "songs", x.id + ".mp3"));
+  FREE[x.id] = { url: "songs/" + x.id + ".mp3", credit: x.credit, link: "https://www.newgrounds.com/audio/listen/" + x.id }; }
+fs.writeFileSync(path.join(OUT, "free_songs.js"), "// built by tools/pages.js: Creative Commons songs hosted here, with their credit\nwindow.GD_FREE_SONGS = " + JSON.stringify(FREE) + ";\n");
 fs.writeFileSync(path.join(OUT, ".nojekyll"), "");
 
 const bad = checkDir(OUT);
