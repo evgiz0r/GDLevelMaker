@@ -36,9 +36,46 @@ function resolve(w) {
     if (sm) { const f = sm[1] === "official" ? path.join(GAME, "Resources", sm[2] + ".mp3")
       : (require("./songs.js").songFile(sm[2]) || [".mp3", ".ogg"].map(e => path.join(SAVE, sm[2] + e)).find(f => fs.existsSync(f)));
       if (f) song = { file: f, offset: s.offset || 0 }; }
+    // Song triggers (GD 2.2: switch, seek, fade, stop mid-level; lib/music.js): every span with its own song file
+    const M = require("../lib/music.js").MUSIC, GD = require("./io.js").GD;
+    if (song && M.usesTriggers(L.level)) {
+      if (!GD.SYNC) Object.assign(GD, require("../lib/sync.js"));
+      const tl = GD.SYNC.timeline(GD.makeWorld(L.level.objects, L.level.header)), mu = M.parse(L.level); mu.main.offset = song.offset;
+      const fileOf = id => id === "main" ? song.file : (require("./songs.js").songFile(String(id)) || [".mp3", ".ogg"].map(e => path.join(SAVE, id + e)).find(f => fs.existsSync(f)));
+      song.music = M.spans(mu, x => GD.SYNC.tOfX(tl, x)).map(sp => Object.assign(sp, { file: fileOf(sp.song) }));
+      for (const sp of song.music) if (!sp.file) console.log(`song ${sp.song} is not on this PC (node tools/songs.js ${sp.song}): silent from level ${sp.from.toFixed(1)} s`);
+    }
   }
   if (song && !fs.existsSync(song.file)) song = null;
   return { lv, song, file: w };
+}
+// ffmpeg inputs + filter for a level whose song changes: each span cut from its song, its fades and volume ramps as a
+// piecewise-linear volume (lib/music.js gain(), sampled at its corners and every 0.1 s inside a change), delayed to its
+// level time and mixed. from0 = the video's first level second, dur = its length, first = the ffmpeg input index of the
+// first song (1: the frames are input 0).
+function musicArgs(spans, from0, dur, first = 1) {
+  const M = require("../lib/music.js").MUSIC, inputs = [], parts = [];
+  for (const s of spans) {
+    if (!s.file || s.to <= from0) continue;
+    let lf = Math.max(s.from, from0), off = s.songStart + (lf - s.from);
+    if (off < 0) { lf -= off; off = 0; }
+    const end = Math.min(s.to, from0 + dur); if (end <= lf) continue;
+    const corners = new Set([lf, end]);
+    const win = (a, b) => { for (let x = a; x < b; x += 0.1) if (x > lf && x < end) corners.add(x); corners.add(Math.min(end, Math.max(lf, b))); };
+    if (s.fadeIn) win(s.from, s.from + s.fadeIn);
+    for (const r of s.ramps) win(r.t, r.t + r.over);
+    if (s.fadeOut && isFinite(s.to)) win(s.to - s.fadeOut, s.to);
+    const pts = [...corners].filter(x => x >= lf && x <= end).sort((a, b) => a - b).map(x => [x - lf, M.gain(s, Math.min(x, end - 1e-6))]);
+    let expr = String(pts[pts.length - 1][1].toFixed(4));
+    for (let i = pts.length - 2; i >= 0; i--) { const [x0, v0] = pts[i], [x1, v1] = pts[i + 1]; if (x1 <= x0) continue;
+      expr = `if(lt(t,${x1.toFixed(3)}),${v0.toFixed(4)}+(${(v1 - v0).toFixed(4)})*(t-${x0.toFixed(3)})/${(x1 - x0).toFixed(3)},${expr})`; }
+    const k = inputs.length / 4 + first, ms = Math.round((lf - from0) * 1000);
+    inputs.push("-ss", off.toFixed(3), "-i", s.file);
+    parts.push(`[${k}:a]atrim=0:${(end - lf).toFixed(3)},asetpts=PTS-STARTPTS,volume=eval=frame:volume='${expr}',adelay=${ms}|${ms}[m${k}]`);
+  }
+  if (!parts.length) return null;
+  const n = parts.length, labels = parts.map((p, i) => `[m${i + first}]`).join("");
+  return { inputs, filter: parts.join(";") + `;${labels}amix=inputs=${n}:duration=longest:normalize=0[aout]` };
 }
 function attempt(file, want) {
   const A = require("./attempts.js"), GD = require("../lib/gd.js");
@@ -72,7 +109,8 @@ if (require.main === module) (async () => {
   const dur = frames / fps;
   const enc = vb => {
     const a = ["-v", "error", "-y", "-framerate", String(fps), "-i", path.join(fdir, "f%05d.jpg")];
-    if (R.song) a.push("-ss", String(R.song.offset + (info.from || 0)), "-i", R.song.file, "-map", "0:v", "-map", "1:a", "-c:a", "aac", "-b:a", "160k", "-shortest");
+    if (R.song && R.song.music) { const m = musicArgs(R.song.music, info.from || 0, dur); if (m) a.push(...m.inputs, "-filter_complex", m.filter, "-map", "0:v", "-map", "[aout]", "-c:a", "aac", "-b:a", "160k", "-t", dur.toFixed(3)); }
+    else if (R.song) a.push("-ss", String(R.song.offset + (info.from || 0)), "-i", R.song.file, "-map", "0:v", "-map", "1:a", "-c:a", "aac", "-b:a", "160k", "-shortest");
     a.push("-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "medium");
     if (vb) a.push("-b:v", vb + "k", "-maxrate", Math.round(vb * 1.3) + "k", "-bufsize", Math.round(vb * 2) + "k"); else a.push("-crf", "22");
     a.push("-movflags", "+faststart", out);
@@ -99,4 +137,4 @@ if (require.main === module) (async () => {
   }
   process.exit(0);
 })().catch(e => { console.error(e.message); process.exit(1); });
-module.exports = { resolve };
+module.exports = { resolve, musicArgs };

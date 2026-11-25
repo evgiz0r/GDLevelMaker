@@ -290,6 +290,10 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   level has an easier way), **`fairness`** (deaths that are not the player's fault: forced input after
   a portal, misleading marks, sloped portal exits, orb chains with nothing to correct; fitted on the
   user's labelled deaths, `fairness fit`; tools/score.js gates on it; DIFFICULTY.md "Fairness").
+- **Music control** (MUSIC.md: the song's start point `kA13` and GD 2.2 Song / Edit Song triggers -- switch, seek, fade, stop
+  mid-level; their keys read from rated levels): `lib/music.js` (the spans over time), spec / brief key `"music"` in make.js,
+  beats through a switch (`GD.SYNC.beatToTimeSegs`), heard in the viewer / phone (`lib/song.js` musicPlayer) and video.js.
+  Test: `node tests/music.js`.
 - `viewer/song_grids.js` -- every measured song's beat grid as committed numbers (no audio), so beats show on the phone and public site without the mp3 or local/; `node tools/song_grids.js` (tools/beats.js runs it).
 - `lib/sync.js` -- music sync: level time <-> x through speed portals, beat grid <-> level beats,
   press timing windows from a solution, sync scores. See SYNC.md (also where songs come from).
