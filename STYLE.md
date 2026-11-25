@@ -4,6 +4,9 @@
   in the exit funnel) and `"mirror": true` (mirror portal 45 at the section's start on the ground row, 46 at the next
   section without it; after a speed portal in the same column it goes one column later). `compose.js --dry` no longer
   takes the heavy lock (it solves nothing). First used by briefs/72_frostbite.json; check them against your own builds.
+  Also from GDLM 72 (rounds 2-4): a 1x wave-zigzag right after a ship (seg 3-4, flat 2, gap 4-5) kept failing score.js
+  "route" (4-11 legs under 100 ms: the natural replay wiggles), while the same corridors at 2x passed. Moved to 2x;
+  why 1x fails is open.
  it is, and how Claude writes a level with one
 
 GDLM levels follow general GD design, not one person's taste: what makes levels good and fair

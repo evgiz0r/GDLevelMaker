@@ -114,7 +114,6 @@
    "name": "cave cube",
    "beats": 8,
    "use": [
-    "block-spike-block",
     "double",
     "single"
    ],
@@ -136,7 +135,10 @@
    "gaps": [
     2,
     3
-   ]
+   ],
+   "args": {
+    "double": {}
+   }
   },
   {
    "name": "mirror upside",
@@ -217,11 +219,12 @@
    ],
    "args": {
     "wave-zigzag": {
-     "seg": 4,
+     "seg": 3,
      "flat": 2,
-     "gap": 5
+     "gap": 4
     }
-   }
+   },
+   "speed": "2x"
   },
   {
    "name": "crystal wave",
