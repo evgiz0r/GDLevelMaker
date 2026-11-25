@@ -107,6 +107,12 @@ details>summary::-webkit-details-marker{display:none}
 .sum-row{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
 .sum-row h2::after{content:" ▾";color:var(--muted);font-size:.8em}
 details:not([open]) .sum-row h2::after{content:" ▸"}
+.lv{padding:11px 14px;display:grid;grid-template-columns:1fr auto;gap:3px 12px;align-items:start}
+.lv .name{font-weight:600;min-width:0}
+.lv .note{grid-column:1 / -1;font-size:.84rem;color:var(--muted);min-width:0}
+.lv a,.vlink{color:var(--accent);font-weight:600;text-decoration:none}
+.lv a:hover,.vlink:hover{text-decoration:underline}
+.lv .open{grid-column:1 / -1;font-size:.86rem}
 @media (prefers-reduced-motion:no-preference){.cand,.q{transition:background-color .15s}}
 </style>
 
@@ -126,6 +132,12 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
     <div class="list" id="ws"><div class="queue-empty">Workstreams appear here once Claude posts the first update.</div></div>
   </section>
 
+
+
+  <section aria-labelledby="h-l">
+    <div class="sec-head"><h2 id="h-l">Our levels</h2><a class="vlink" id="vlink" href="https://claude.ai/artifact/7bXiT1gGnJWjESC8fy3oZH" target="_blank" rel="noopener">Open the level viewer ↗</a></div>
+    <div class="list" id="levels"><div class="queue-empty">Levels in progress appear here after Claude's next update.</div></div>
+  </section>
 
   <section aria-labelledby="h-m">
     <details id="d-mains" open>
@@ -383,7 +395,20 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
     box.appendChild(t);
     if(u.note) box.appendChild(el("span",null,u.note));
   }
-  function renderAll(){ renderUsage(); renderFresh(); renderWs(); renderMains(); renderPhys(); renderQueue(); renderFilters(); renderCands(); }
+  function renderLevels(){
+    var L=state && state.levels; if(!L || !L.length) return;
+    var box=$("levels"); box.textContent="";
+    if(state.viewer_url && /^https:\/\//.test(state.viewer_url)) $("vlink").href=state.viewer_url;
+    L.forEach(function(l){
+      var row=el("div","lv");
+      row.appendChild(el("div","name",l.name||""));
+      var st=(l.state||"idle").toLowerCase(); row.appendChild(el("span","pill p-"+st,l.status||st));
+      if(l.note) row.appendChild(el("div","note",l.note));
+      if(l.link && /^https:\/\//.test(l.link)){ var o=el("div","open"), a=el("a",null,"Open in the viewer ↗"); a.href=l.link; a.target="_blank"; a.rel="noopener"; o.appendChild(a); row.appendChild(o); }
+      box.appendChild(row);
+    });
+  }
+  function renderAll(){ renderLevels(); renderUsage(); renderFresh(); renderWs(); renderMains(); renderPhys(); renderQueue(); renderFilters(); renderCands(); }
 
   // ---- writes (one at a time, coalesced) ----
   var writing=false, dirty=false;

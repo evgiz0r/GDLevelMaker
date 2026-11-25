@@ -150,6 +150,7 @@ takes ~5 min to solve on the PC, and the page looked hung on the phone (user, No
   the user is to try Chrome). If it never does, a song could come another way: a phone-side
   upload into the page's store (the asset store takes no audio) is not possible today.
 
+- A level whose wip row is over 250 KB never reaches the phone's `wip` (wip.js prints "too big" and sends nothing; GDLM 72 FROSTBITE: 662 KB, 2026-11-25): it shows on the phone only after it is pushed and the page is republished with web.js.
 - A session forgetting the ArtifactData call leaves the phone a version behind; nothing checks it.
   A check could compare `local/wip/` versions with the rows (one `list`).
 - Marks made on the desktop viewer are not shown on the phone (they live in `local/marks.jsonl`);
