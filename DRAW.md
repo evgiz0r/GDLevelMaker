@@ -168,3 +168,8 @@ synced sketch for the full pass; what the user fixes by hand wins.
   acted on that other level. Now the sketch's level clears them (BOARDHOST.setLevel) and draw mode hides them; the board's own
   ▶ / 🎮 are gone inside the viewer, and the viewer's ▶ play / 🎮 you play leave the board and run the sketch.
   tests/viewer_draw.js checks all three; tests/sketchfit.js the hazard mix.
+- No questions after each stroke (the user, 2026-11-25: "i aint going to click every time"): the fitter's changes are
+  already in the level that plays, so its list is a closed badge in the corner ("🧩 ✓ plays · N auto changes"), opened by a
+  tap (remembered); the per-change choices live inside it for when they are wanted. No toast after every stroke. In the
+  viewer with 🧩 on, the user's strokes go faint (0.4) over the fitted level, so a moved orb or lowered ceiling shows where
+  it really is instead of looking like the change did not happen.

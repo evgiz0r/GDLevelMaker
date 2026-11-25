@@ -35,6 +35,9 @@
   #fitList .hd { display:flex; justify-content:space-between; gap:8px; align-items:center; padding:3px 0; font-weight:600; }
   #fitList .c { padding:4px 2px; border-top:1px solid var(--line); cursor:pointer; } #fitList .c b { color:var(--warn); } #fitList .c.x b { color:#ff3b6b; }
   #fitList.min .c { display:none; }
+  /* closed by default: a small badge in the corner (the user, 2026-11-25: "i aint going to click every time") */
+  #fitList.min { left:auto; right:8px; padding:2px 6px; font-size:12px; cursor:pointer; background:#000a; }
+  #fitList.min .hd { padding:1px 0; font-weight:500; }
   #fitList .ch { display:flex; flex-wrap:wrap; gap:5px; margin:4px 0 2px 16px; } #fitList .ch button { padding:3px 8px; font-size:12px; min-height:0; }
   #msg { position:absolute; left:50%; top:52px; transform:translateX(-50%); background:#000c; border:1px solid var(--line); border-radius:8px; padding:6px 12px; pointer-events:none; max-width:calc(100% - 32px); text-align:center; }
   #msg[hidden] { display:none; }
@@ -311,7 +314,9 @@ function draw() {
     ctx.fillStyle = "#0d2a8a"; ctx.fillRect(0, sy(0) + 1, W, H - sy(0));   // the ground in front, as in the game
     for (const it of sk.items) if (/note|plan/.test(SK.layerOf(it))) drawItem(it);
   } else {
-    if (EMBED) ctx.globalAlpha = 0.85;
+    // in the viewer with 🧩 on, the level under the board is what plays (the fitter's changes already in it): your strokes
+    // go faint over it, a guide, so a moved orb or a lowered ceiling shows where it really is
+    if (EMBED) ctx.globalAlpha = fit ? 0.4 : 0.85;
     for (const it of sk.items) { const L = SK.layerOf(it); if (L === "deco" && !ui.deco) continue; drawItem(it); }
     ctx.globalAlpha = 1;
   }
@@ -807,12 +812,14 @@ function showFit(r) {
   check = { at: Date.now(), plan: { path: thin(q.path), dead: q.dead, why: q.why, x: q.end.x, y: q.end.y }, route: null, lines: [], changes: r.changes };
   if (!EMBED) { ui.view = "level"; $("viewBtn").textContent = "level"; }
   const n = r.events.filter(e => e.type === "press").length, adj = r.changes.filter(k => k.mark !== "x").length, bad = r.changes.filter(k => k.mark === "x").length;
-  msg(r.clear ? `layout clears with ${n} presses · ${adj} adjusted, ${bad} could not stay` : `layout gets to block ${blk(r.dieX || 0)} (${r.why}) · ${adj} adjusted, ${bad} could not stay`, 7000);
-  const L = $("fitList"); L.hidden = false;
-  L.innerHTML = `<div class="hd"><span>${r.clear ? "✓ plays with your marks" : "✕ stops at block " + blk(r.dieX || 0)} · ${r.changes.length} changes</span><button id="fitMin">▾</button></div>` +
+  void n, adj, bad;   // no toast after every stroke: the corner badge says it
+  // the changes are already in the level (it plays as listed): the list stays a closed badge unless opened, nothing to answer
+  const L = $("fitList"); L.hidden = false; L.classList.toggle("min", !ui.fitOpen);
+  L.innerHTML = `<div class="hd"><span>🧩 ${r.clear ? "✓ plays" : "✕ stops at block " + blk(r.dieX || 0)}${r.changes.length ? " · " + r.changes.length + " auto changes" : ""}</span><button id="fitMin">${ui.fitOpen ? "▾" : "▸"}</button></div>` +
     r.changes.map((k, i) => `<div class="c ${k.mark === "x" ? "x" : ""}" data-i="${i}"><b>${k.mark === "x" ? "✕" : "~"}</b> ${k.x != null ? "block " + blk(k.x) + ": " : ""}${k.text.replace(/</g, "&lt;")}` +
       ((k.choices || []).length ? `<div class="ch">${k.choices.map((c, j) => `<button data-c="${i}.${j}">${esc(c.label)}</button>`).join("")}</div>` : "") + `</div>`).join("");
-  $("fitMin").onclick = e => { e.stopPropagation(); L.classList.toggle("min"); $("fitMin").textContent = L.classList.contains("min") ? "▴" : "▾"; };
+  const tog = e => { e.stopPropagation(); ui.fitOpen = !ui.fitOpen; save(); L.classList.toggle("min", !ui.fitOpen); $("fitMin").textContent = ui.fitOpen ? "▾" : "▸"; };
+  $("fitMin").onclick = tog; L.querySelector(".hd").onclick = tog;
   L.querySelectorAll(".c").forEach(d => d.onclick = () => { const k = r.changes[+d.dataset.i]; if (k.x != null) { V.x = k.x - W / V.z / 2; dirty = true; } });
   // one tap: the choice's ops go into the drawing itself (lib/sketchfit.js apply), then it fits again
   L.querySelectorAll("[data-c]").forEach(b => b.onclick = e => { e.stopPropagation(); const [i, j] = b.dataset.c.split(".").map(Number), c = r.changes[i] && r.changes[i].choices[j]; if (!c) return;
