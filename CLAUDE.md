@@ -177,6 +177,11 @@ at once and the PC hung (0.2 GB free), so the rule is now a lock every heavy too
   warning listing the tools/lib commits it lacks. `GDLM_HEAVY_NOSYNC=1` skips it;
 - the slot is a file in the shared `local/locks/heavy/` (real path, all worktrees); a dead pid's slot is
   cleared, a child of a holder runs in its parent's slot. `node tools/heavy.js` shows who holds it.
+- **Overdue holders get reported** (the user, 2026-11-25, after a presslib rollout held a slot 17 h: "lets check whats
+  happening in my pc once in awhile if such thing occurs its really a bottleneck"): a holder over 3x its measured estimate,
+  or over 3 h with none, shows `!! overdue` in `node tools/heavy.js` and the waiting lines. A session that sees one checks
+  whether it still makes progress (its output file, CPU time) and tells the user (pid, command, how long, stuck or just
+  big); it stops another session's job only on the user's own yes. A long batch job writes each result as it finishes.
 - **A new heavy tool adds the line** `if (require.main === module) require("./heavy.js").claim();` after
   its header (tests/heavy.js checks the main ones). Never run heavy work outside a tool that claims it
   (`node -e` solves, scratch scripts); `GDLM_HEAVY=off` only when the user says so.
