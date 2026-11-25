@@ -1,4 +1,10 @@
-# Style in GD levels -- what it is, and how Claude writes a level with one
+# Style in GD levels -- what
+- **For gd-style (compose owner), from the FROSTBITE session (2026-11-25, commit 92e65c0):** compose has two new section
+  keys: `"mode": "spider"` (tools/patterns.js spider-run: ball-run's floor / roof run with a spider portal, gravity put back
+  in the exit funnel) and `"mirror": true` (mirror portal 45 at the section's start on the ground row, 46 at the next
+  section without it; after a speed portal in the same column it goes one column later). `compose.js --dry` no longer
+  takes the heavy lock (it solves nothing). First used by briefs/72_frostbite.json; check them against your own builds.
+ it is, and how Claude writes a level with one
 
 GDLM levels follow general GD design, not one person's taste: what makes levels good and fair
 in general (see `knowledge/design.md`, sourced). Playtest remarks below are evidence about
