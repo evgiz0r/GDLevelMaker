@@ -496,6 +496,7 @@ function make(specFile, specObj) {
       console.log(`   ${ind.length} jump indicators (object ${iid}): ` + ind.map(o => `${(o.x / 30).toFixed(0)} ${o.why}`).join("; "));
     } else console.log(`   ${ind.length} jump indicators planned (arrow object id not known yet): ` + ind.map(o => `${(o.x / 30).toFixed(0)} ${o.why}`).join("; "));
   }
+  if (r.ok) { lanePass(level, r.events, spec); writeGdlvl(out, rec, level); }
   if (ctx.grid && r.ok) beatReport(objects, header, r, ctx);
   if (r.ok) { // the user's fairness rule: no prejumps (see tools/sightread.js)
     const s = sightread(level);
@@ -509,6 +510,21 @@ function make(specFile, specObj) {
   putStages(spec, level, ctx, Object.assign(["final"], { note: r && r.ok ? "beaten" : "not beaten" }));
   buildIndex();
   return { out, r };
+}
+
+// The lane pass (tools/lane.js, ART.md "The play lane"): from the route, keep the strip the player moves through clear of
+// front deco and frame it -- the densest art at its edges, fading out; lit trims on flying corridors' walls. OFF unless the
+// spec asks ("lane": true, or {"frame": false} = only clear; other keys go to lane.pass: density, ids, ch, seed): the user,
+// 2026-11-25, "just evenly putting things is not good enough" -- the composition model (ART.md "Deco composition") comes first.
+function lanePass(level, events, spec) {
+  if (!spec.lane || !events) return;
+  try {
+    const LN = require("./lane.js"), L = LN.lane(level, events), before = LN.measure(level, L);
+    const p = LN.pass(level.objects, L, typeof spec.lane === "object" ? spec.lane : {});
+    level.objects = p.objects;
+    const after = LN.measure(level, L);
+    console.log(`   lane: cleared ${p.removed.length} front deco from the play lane, framed it with ${p.added.length} pieces; clutter ${before.clutter} -> ${after.clutter}, edge share ${before.edge} -> ${after.edge}, unseen ${before.waste} -> ${after.waste}`);
+  } catch (e) { console.log("   lane: skipped (" + e.message + ")"); }
 }
 
 // --look: only the look changed (decoration, colours, triggers that move deco). Keeps the last build's
@@ -538,6 +554,7 @@ function lookOnly(out, rec, level, spec) {
     placed = true;
   } catch (e) { console.log("   --look: could not place the jump indicators again (" + e.message + "), keeping the old ones"); }
   if (!placed) level.objects.push(...old.level.objects.filter(o => o.props && (o.props[57] === IG || (o.id === 1007 && o.props[51] === IG))));
+  lanePass(level, sol.events, spec || {});
   const q = GD.run(GD.makeWorld(level.objects, level.header), sol.events);
   if (!(q.done || (q.end && !q.dead))) { console.log("   --look: the saved plan no longer clears it, solving"); return false; }
   writeGdlvl(out, rec, level);
