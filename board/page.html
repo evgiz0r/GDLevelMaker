@@ -46,6 +46,9 @@ section{display:flex;flex-direction:column;gap:10px}
 .p-running{color:var(--run);background:var(--run-soft)} .p-waiting{color:var(--wait);background:var(--wait-soft)}
 .p-blocked{color:var(--block);background:var(--block-soft)} .p-idle,.p-done{color:var(--idle);background:var(--idle-soft)}
 .p-scheduled{color:var(--accent);background:var(--accent-soft)}
+.done-h{font-size:.85rem;margin:8px 0 0;color:var(--muted);font-weight:600}
+.done-row{display:flex;flex-direction:column;gap:2px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);font-size:.88rem}
+.done-row .dim{font-size:.8rem;color:var(--muted)}
 .p-picked{color:var(--accent);background:var(--accent-soft)} .p-in-progress{color:var(--run);background:var(--run-soft)} .p-done{color:var(--muted);background:var(--line)}
 .mat{letter-spacing:2px;color:var(--accent);white-space:nowrap} .mat .off{color:var(--line)}
 #ftable td.l{white-space:normal;min-width:180px;width:100%} #ftable td.l .dim{font-size:.84rem}
@@ -220,6 +223,13 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
     </form>
   </section>
 
+  <section aria-labelledby="h-done">
+    <details id="d-done">
+      <summary><div class="sum-row"><h2 id="h-done">Done</h2><span class="hint" id="done-sum"></span></div></summary>
+      <div id="donelist" style="display:flex;flex-direction:column;gap:6px;margin-top:10px"></div>
+    </details>
+  </section>
+
   <footer>Times marked <span class="est">estimate</span> are rough guesses, not measured runs. "Ready ≈" is a clock time in your time zone. Claude reads your queue on each update and starts the top items as slots free up; their state changes to scheduled, then running.</footer>
 </div>
 
@@ -257,8 +267,15 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
     return s;
   }
 
+  // ---- the Done archive (Evgeni, 2026-11-25: finished things stay around too long): an item that is done or archived
+  // leaves the main view a day after its done_at (at once when it has none) and is listed in the collapsed "Done" section
+  var DAY=24*3600e3;
+  function isDone(x){ var st=String(x.status||x.state||"").toLowerCase(); return st==="done"||st==="archived"; }
+  function archived(x){ if(!isDone(x)) return false; if(String(x.state||x.status).toLowerCase()==="archived") return true;
+    var d=x.done_at? new Date(x.done_at).getTime() : 0; return !d || Date.now()-d>DAY; }
+  function live(a){ return (a||[]).filter(function(x){ return !archived(x); }); }
   function allTasks(){
-    var list=(state && state.candidates)||[];
+    var list=live((state && state.candidates)||[]);
     var ideas=(picks.ideas||[]).map(function(i){ return {id:i.id, title:i.title, area:"Your idea", eta_min:null, eta_basis:"Claude will estimate", status:"open", mine:true}; });
     return list.concat(ideas);
   }
@@ -278,7 +295,7 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
   }
 
   function renderWs(){
-    var box=$("ws"), ws=(state && state.workstreams)||[];
+    var box=$("ws"), ws=live((state && state.workstreams)||[]);
     if(!ws.length) return;
     box.textContent="";
     var running=0;
@@ -447,7 +464,7 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
     if(u.note) box.appendChild(el("span",null,u.note));
   }
   function renderLevels(){
-    var L=state && state.levels; if(!L || !L.length) return;
+    var L=state && state.levels; if(!L || !L.length) return; L=live(L);
     var box=$("levels"); box.textContent="";
     if(state.viewer_url && /^https:\/\//.test(state.viewer_url)) $("vlink").href=state.viewer_url;
     L.forEach(function(l){
@@ -510,7 +527,7 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
   // ---- features: Claude's flows and ideas (state.features) + the ideas Evgeni adds and picks (picks.feat_*) ----
   function featIdeas(){
     var F=state && state.features || {}, seen={}, out=[];
-    (F.ideas||[]).forEach(function(i){ seen[i.id]=1; out.push(i); });
+    (F.ideas||[]).forEach(function(i){ seen[i.id]=1; }); live(F.ideas).forEach(function(i){ out.push(i); });
     (picks.feat_ideas||[]).forEach(function(i){ if(!seen[i.id]) out.push({id:i.id,title:i.title,status:"idea",mine:true}); });
     var pk={}; (picks.feat_picks||[]).forEach(function(x){ pk[x]=1; });
     out.forEach(function(i){ i._on=!!pk[i.id] || i.status==="in progress" || i.status==="done"; if((!i.status || i.status==="idea") && pk[i.id]) i._st="picked"; else i._st=i.status||"idea"; });
@@ -544,7 +561,20 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
       b.appendChild(sub); lab.appendChild(b); box.appendChild(lab);
     });
   }
-  function renderAll(){ renderFeatures(); renderPlayed(); renderLevels(); renderUsage(); renderFresh(); renderWs(); renderMains(); renderPhys(); renderQueue(); renderFilters(); renderCands(); }
+  function renderDone(){
+    if(!state) return;
+    var groups=[["Workstreams",state.workstreams,"name"],["Tasks",state.candidates,"title"],["Feature ideas",state.features&&state.features.ideas,"title"],["Levels",state.levels,"name"]];
+    var box=$("donelist"); box.textContent=""; var n=0;
+    groups.forEach(function(g){
+      var items=(g[1]||[]).filter(archived); if(!items.length) return; n+=items.length;
+      box.appendChild(el("h3","done-h",g[0]+" · "+items.length));
+      items.forEach(function(x){ var r=el("div","done-row"); r.appendChild(el("span","t",x[g[2]]||x.name||x.title||x.id));
+        var w=x.note||x.summary; if(w) r.appendChild(el("span","dim",w)); box.appendChild(r); });
+    });
+    $("done-sum").textContent=n? n+" finished, kept out of the way" : "nothing yet";
+    if(!n) box.appendChild(el("div","queue-empty","Finished items land here a day after they're done."));
+  }
+  function renderAll(){ renderDone(); renderFeatures(); renderPlayed(); renderLevels(); renderUsage(); renderFresh(); renderWs(); renderMains(); renderPhys(); renderQueue(); renderFilters(); renderCands(); }
 
   // ---- writes (one at a time, coalesced) ----
   var writing=false, dirty=false;

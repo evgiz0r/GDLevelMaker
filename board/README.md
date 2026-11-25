@@ -26,3 +26,10 @@ Claude and the coordinator. The page writes Evgeni's side into `board/picks`: `f
 `feat_ideas` (`[{id: "fidea-...", title, added_at}]`, ideas he typed). On each refresh: a picked idea gets a thread
 (through the coordinator) and its state entry goes to "in progress", then "done"; a typed idea gets a state entry.
 A ticked idea with no state change shows as "picked".
+
+## Done archive (2026-11-25)
+
+Evgeni: finished things stayed on the board too long. Any workstream, candidate, feature idea or level whose
+`state`/`status` is "done" leaves the main view 24 h after its `done_at` (ISO time; set it when you mark something
+done), or at once when it has none; "archived" leaves at once. They are listed in the collapsed "Done" section at the
+bottom. So: when marking an item done, write `done_at`. Levels moved to levels/archive get `state: "archived"`.
