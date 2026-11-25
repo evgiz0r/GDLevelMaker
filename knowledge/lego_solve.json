@@ -3,29 +3,6 @@
  "when": "2026-11-25",
  "rows": [
   {
-   "level": "2 Back On Track",
-   "hints": 20,
-   "cover": 27,
-   "plain": {
-    "ok": true,
-    "presses": 50,
-    "repairs": 57,
-    "s": 96.1,
-    "dieBlock": null
-   },
-   "lego": {
-    "ok": true,
-    "presses": 67,
-    "repairs": 46,
-    "s": 94.8,
-    "dieBlock": null
-   },
-   "full": {
-    "ok": true,
-    "s": 77.8
-   }
-  },
-  {
    "level": "1 Stereo Madness",
    "hints": 52,
    "cover": 72,
@@ -33,14 +10,47 @@
     "ok": true,
     "presses": 45,
     "repairs": 50,
-    "s": 53.3,
+    "s": 51.6,
     "dieBlock": null
    },
    "lego": {
     "ok": true,
     "presses": 95,
     "repairs": 34,
-    "s": 64.9,
+    "s": 67.2,
+    "dieBlock": null
+   },
+   "needed": {
+    "ok": true,
+    "presses": 82,
+    "repairs": 33,
+    "s": 59.4,
+    "dieBlock": null
+   }
+  },
+  {
+   "level": "2 Back On Track",
+   "hints": 65,
+   "cover": 85,
+   "plain": {
+    "ok": true,
+    "presses": 50,
+    "repairs": 57,
+    "s": 98,
+    "dieBlock": null
+   },
+   "lego": {
+    "ok": true,
+    "presses": 84,
+    "repairs": 38,
+    "s": 104.2,
+    "dieBlock": null
+   },
+   "needed": {
+    "ok": true,
+    "presses": 82,
+    "repairs": 33,
+    "s": 107.3,
     "dieBlock": null
    }
   }
