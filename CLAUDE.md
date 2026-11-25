@@ -285,7 +285,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   or all official levels vs ratings and the user's attempts), `difficulty_solve` (cache an official
   solution, one at a time; `--resume` after a physics change solves only from a bit before where it matters), `difficulty_fit` (refit on the user's runs), `difficulty_community`
   (score downloaded community levels), `runs` (the user's deaths from a recording, via the progress
-  bar), `save_stats` (the user's lifetime attempts per official level, read-only from the save),
+  bar), `save_stats` (the user's lifetime attempts per official level, read-only from the save; also the catalogue of every level in his save -- main + every online level played, tier, done, attempts, best % -- with demon count, local/difficulty/user_stats_online.json, `--demons` / `--done` / `--diff Insane`; `node tests/save_stats.js`),
   `difficulty_parts` (how much windows and CPS alone explain the stars), `skips` (does a saved route skip a portal: then no number from it), `quality` (the scorecard: official 1-10 vs every GDLM level, QUALITY.md), `stop` (where a level's saved solution dies in the sim and what killed it), `difficulty_route` (a level with and without route choice: a player avoids a hard timing when the
   level has an easier way), **`fairness`** (deaths that are not the player's fault: forced input after
   a portal, misleading marks, sloped portal exits, orb chains with nothing to correct; fitted on the
