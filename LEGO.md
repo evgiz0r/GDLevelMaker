@@ -305,6 +305,16 @@ presses to the solver and measuring how much faster it gets.
 
 ## Joining and connecting: what the test says, and Evgeni's plan (2026-11-25)
 
+Evgeni's join rules (2026-11-25, "when we combine, i guess we either need to make a small corridor with a proper portal,
+or just have mode ready. need to be careful of orbdashes, as holding them can skip a lot of gameplay which is intended"):
+- **Mode at the seam**: either the next brick starts in the mode the last one ends in, or the join gets a short connector
+  -- a small corridor with the proper portal in it (the portal entered in the air, 0.4-0.5 s quiet around it, as the main
+  levels do) -- never a portal dropped on the seam.
+- **Dash orbs are a skip risk**: holding a dash orb (or releasing it late) can fly over much of the next brick. A brick with
+  a dash orb near its end is joined only with a wall or ceiling that ends the dash where it is meant to end, and the join
+  check holds the dash to its longest and to every later release: a route that skips the next brick's presses is a secret
+  way. Not in lego_join.js yet.
+
 `node tools/lego_join.js --grain brick [--n 40] [--seed 7] [--any]` joins two main-level bricks (with 10 blocks of A's own
 level before it as the lead-in, so the player arrives in A's entry state), solves the join and checks it
 (knowledge/lego_joins.json):

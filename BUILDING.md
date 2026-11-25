@@ -18,6 +18,9 @@ What the lego taught so far, for any builder filling a section from it (LEGO.md 
 - **Join only bricks whose seams agree** (mode, speed, gravity, y, vy, ground): with that contract 35% of joins are clean,
   without it 15%. A third of joins still leave a secret way or an open seam: every join gets the hazard filler and is
   re-checked by the solver (secret way = route more than 2.5 blocks off the bricks' own routes).
+- **At a mode change, a connector, not a bare portal**: the next brick starts in the mode the last ends in, or a short
+  corridor carries the proper portal (Evgeni). **Dash orbs** near a seam: hold them to the longest in the join check; a
+  dash that flies over the next brick's presses is a secret way (LEGO.md "Joining and connecting").
 - **Cut bricks at their ✂ cut points** (`P.cuts`: button up, 0.2 s to the next press, on the ground) to fit a section's
   beats with fewer presses; a slice keeps its route but its join is checked again.
 - **Combine like the main levels**: next brick a different signature (official 16% repeat vs ours 37%), portals entered in
