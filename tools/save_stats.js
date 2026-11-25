@@ -19,7 +19,7 @@
 // Circles, Jawbreaker, Future Funk, Deadly Clubstep... -- so a demon with k76 missing is Hard. The raw value stays demonType).
 // Every printed level has --list form: id, name, difficulty, done, attempts, normal %, practice %.
 const fs = require("fs"), path = require("path"), zlib = require("zlib");
-const SAVE = process.env.GD_SAVE_FILE || path.join(process.env.LOCALAPPDATA || "", "GeometryDash", "CCGameManager.dat");
+const SAVE = process.env.GD_SAVE_FILE || path.join(require("./gdpaths.js").SAVE, "CCGameManager.dat");
 const OUT = path.join(__dirname, "..", "local", "difficulty", "user_stats.json");
 const OUT_ALL = path.join(__dirname, "..", "local", "difficulty", "user_stats_online.json");
 

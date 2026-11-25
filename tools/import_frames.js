@@ -10,7 +10,7 @@
 // sprite GD swaps in its setup (OpenGD's table has the swapped one, e.g. 40 plank -> colorPlank),
 // so lib/art.js prefers OpenGD's entry where there is one. Re-run after a GD update.
 const fs = require("fs"), path = require("path");
-const GAME = process.env.GD_GAME || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash";
+const GAME = require("./gdpaths.js").GAME;
 const exe = process.argv[2] || path.join(GAME, "GeometryDash.exe");
 const b = fs.readFileSync(exe);
 

@@ -4,7 +4,7 @@
 // local/gdsolver/ (not committed); skips when they are missing.
 const fs = require("fs"), path = require("path");
 const PLANS = process.env.GDSOLVER_PLANS || path.join(__dirname, "..", "local", "gdsolver");
-const SRC = process.env.GD_LEVELS || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash/Resources/levels/";
+const SRC = require("../tools/gdpaths.js").LEVELS;
 if (!fs.existsSync(PLANS) || !fs.existsSync(SRC)) { console.log("tas_progress: skipped (no plans or no GD install)"); process.exit(0); }
 const { replay } = require("../tools/tas.js");
 

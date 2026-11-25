@@ -16,7 +16,7 @@ const DIR = path.join(process.env.GDLM_LOCAL_DIR || path.join(__dirname, "..", "
 if (!fs.existsSync(DIR)) { console.log("attempts_consistency: skipped (no local/attempts)"); process.exit(0); }
 const replay = !process.argv.includes("--no-replay");
 const { GD, readGdlvl, unpack } = require("../tools/io.js");
-const SRC = process.env.GD_LEVELS || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash/Resources/levels/";
+const SRC = require("../tools/gdpaths.js").LEVELS;
 const worlds = new Map();
 function worldOf(file) {
   if (worlds.has(file)) return worlds.get(file);

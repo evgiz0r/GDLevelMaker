@@ -11,7 +11,7 @@ const path = require("path");
 const zlib = require("zlib");
 const { spawnSync } = require("child_process");
 
-const GD_DIR = "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash";
+const GD_DIR = require("./gdpaths.js").GAME;
 
 const CRC = (() => {
   const t = new Uint32Array(256);
