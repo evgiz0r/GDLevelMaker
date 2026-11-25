@@ -429,10 +429,21 @@ part" (song heaviness >= 0.5) or "breather" (quiet music: fine).
 Checked: a made-up song with known events (tests/impacts.js: kick in at b21, a crash at b37, a drum fill at b53,
 louder at b61, a break at b89, loudest from b93) -- all found on their beat, nothing in the quiet intro, the
 offset moves them to the right level beat. A real CC song (557117, 140 BPM): impacts land on 4-bar phrase starts
-(b81, b117, b161, b225, b321), heaviness follows its two drops. Infertehno 2 (343707, GDLM 44): see below.
+(b81, b117, b161, b225, b321), heaviness follows its two drops.
+
+**Infertehno 2** (343707, GDLM 44's song, local grid 145.012 BPM t0 1.101, offset 19.3064; run on the PC 2026-11-25). In
+level beats, the three biggest impacts of the part the level uses are exactly the hand-picked ones: **b21** kick entry
+(1.00, the song's strongest: +8.9 dB loud, +40 dB in the low bands), **b37** (0.78, +4.1 dB) and **b53** (0.82, +4.4 dB:
+the drums the user heard at 53-54). Then b81 (0.49) / **b85** (0.65, +3.1 dB: the user's "louder from b89" starts 4
+beats early in the song), b92 accent, b124 / b128 accents (the "loudest from b121" part; it is a long heavy plateau,
+heaviness 0.6-0.7, more than one step). The whole-song grid (low confidence) puts the same impacts half a beat off,
+so a song with a pinned local grid must be run with it (`--spec` or `--bpm --t0`). GDLM 44 v3 against them: the ship
+portal sits 1.1 beats BEFORE the b21 kick, the cube portal 2 beats before b37, and b53, b85, b124 have nothing
+(MISSED); dead stretches b88-92 (1.6 s), b107-112 and b127-132 (2 s each). Kinds: on this song nearly every impact
+reads as "entry" (instruments come in band by band); the kind label is a hint, the strength is the number to use.
 
 Open: the song lives only on the PC, so a cloud session cannot run it (Newgrounds is blocked there); the
-thresholds are set on two songs only; impacts are not drawn in the viewer yet (next to the beat lines, batched
+thresholds are set on three songs only; impacts are not drawn in the viewer yet (next to the beat lines, batched
 so the user's viewer does not reload while they use it); compose / the section planner do not read impacts by
 themselves yet; a score.js gate for "strong impact, level does nothing" and "dead in a heavy part" once the
 thresholds are checked against the user's notes.

@@ -8,7 +8,8 @@
 //      to start a new section / change mode, and which sections are heavy enough for a faster speed.
 //   Everything is in LEVEL BEATS (b1 = the first beat at or after the level's song offset, as make.js / specs), so
 //   it stays true when speed portals move x: plan in beats, make.js turns beats into x through the speed portals.
-//   --level also lists every strong impact with what the level does there (portal, speed, colour change) or
+//   --level also lists every strong impact with what the level does within 2 beats (portal, speed, colour change; +-N =
+//   that many beats off; MISSED = no portal or speed change within 1 beat) or
 //   "NOTHING", and the dead stretches (no hazard / orb / pad / portal for 1.5 s+) with the song's heaviness there.
 //   Writes local/impacts/<song key>[_off<offset>].json (made from the song: never committed). Light job (one decode).
 //   Method, the Infertehno 2 check and what is open: SYNC.md section 9.
@@ -205,9 +206,11 @@ function levelSide(levelStr, res) {
   ev.sort((a, b) => a.beat - b.beat);
   const endBeat = beatOfT(S.tOfX(tl, world.endX));
   const atImpact = res.impacts.filter(i => i.beat <= endBeat && i.strength >= 0.3).map(i => {
-    const near = ev.filter(e => Math.abs(e.beat - i.beat) <= 1);
-    const big = near.filter(e => !e.small);
-    return { beat: i.beat, strength: i.strength, kind: i.kind, level: near.length ? [...new Set(near.map(e => e.what))].join(", ") : "NOTHING", missed: !big.length };
+    // within 2 beats, with how far off when over half a beat ("ship portal -1.1": a beat before the impact)
+    const near = ev.filter(e => Math.abs(e.beat - i.beat) <= 2);
+    const big = near.filter(e => !e.small && Math.abs(e.beat - i.beat) <= 1);
+    const say = e => e.what + (Math.abs(e.beat - i.beat) > 0.5 ? " " + (e.beat - i.beat >= 0 ? "+" : "") + (e.beat - i.beat).toFixed(1) : "");
+    return { beat: i.beat, strength: i.strength, kind: i.kind, level: near.length ? [...new Set(near.map(say))].join(", ") : "NOTHING", missed: !big.length };
   });
   // dead stretches: no hazard / orb / pad / portal for 1.5 s+, with the song's heaviness there
   const xs = world.items.filter(b => b.kind !== "solid" && b.kind !== "deco" && b.kind !== "trigger").map(b => (b.x0 + b.x1) / 2).sort((a, b) => a - b);
@@ -287,7 +290,7 @@ function print(res, topN) {
     console.log(`\nLEVEL ${res.level} (ends at b${L.endBeat}): what it does at each impact (str >= 0.3)`);
     for (const a of L.atImpact) console.log(`  b${String(a.beat).padEnd(4)} ${a.strength.toFixed(2)} ${a.kind.padEnd(7)} ${a.missed ? "MISSED  " : "        "}${a.level}`);
     const m = L.atImpact.filter(a => a.missed).length;
-    console.log(`  ${m} of ${L.atImpact.length} impacts have no portal / speed change within 1 beat`);
+    console.log(`  ${m} of ${L.atImpact.length} impacts have no portal / speed change within 1 beat (what is within 2 beats is listed, +-beats off)`);
     if (L.dead.length) { console.log("  dead stretches (1.5 s+ with no hazard, orb, pad or portal):"); for (const d of L.dead) console.log(`    b${d.from}-b${d.to}  ${d.seconds}s  heavy ${d.heavy}  ${d.verdict}`); }
   }
 }
