@@ -3,12 +3,20 @@
  "desc": "An icy journey: frozen peaks, ice caves, a mirrored reversal, a crystal rush, the frozen descent and a final blizzard.",
  "idea": "the user's FROSTBITE brief (2026-11-25): Harder (~7 stars), ~1:30, six sections each with its own identity under one icy theme; good mode variety, reverse (mirror) parts and gravity changes, consistent sync, fair but challenging timings, no frame-perfect inputs; ice theme kit (tools/themes/ice.js) for blocks, spikes and the six backgrounds",
  "story": "S1 0-10 s frozen entrance (cube) -> ship at 10 s into the caves; S2 caverns: ship, ball, a tighter cube; S3 27.5 s frozen reversal: mirrored upside-down cube, mirrored ship, wave; S4 41.2 s (the drop) crystal rush: wave 2x, spider, fast cube; a hush on the song's silence; S5 58.4 s (second drop) frozen descent: mirrored ball, ufo, ship; S6 72 s final blizzard: cube, wave 2x, synced cube jumps onto a big frozen platform, the song breaks at 85.8 s",
- "song": {"custom": 1290936},
- "grid": {"bpm": 140.022, "t0": 0.0794},
+ "song": {
+  "custom": 1290936
+ },
+ "grid": {
+  "bpm": 140.022,
+  "t0": 0.0794
+ },
  "offset": 0,
  "seed": 72,
  "session": "frostbite",
- "difficulty": {"label": "Harder", "minWindowMs": 50},
+ "difficulty": {
+  "label": "Harder",
+  "minWindowMs": 45
+ },
  "terrain": true,
  "craft": false,
  "structures": true,
@@ -17,23 +25,487 @@
  "scene": "tools/scenes/theme.js",
  "theme": "ice",
  "sections": [
-  {"name": "frozen entrance", "beats": 24, "speed": "1x", "use": ["single", "double", "platform", "orb-pit", "triple", "hops"], "bg": [34, 78, 128], "ground": [10, 20, 42], "line": [170, 235, 255], "gaps": [3, 5]},
-  {"name": "into the caves", "beats": 20, "mode": "ship", "bg": [8, 18, 46], "ground": [3, 8, 22], "line": [110, 210, 255], "args": {"ship-tunnel": {"waves": 2, "gap": 4, "teethEvery": 6}}},
-  {"name": "cave ball", "beats": 12, "mode": "ball", "bg": [8, 18, 46], "ground": [3, 8, 22], "line": [110, 210, 255], "args": {"ball-run": {"every": 7}}},
-  {"name": "cave cube", "beats": 8, "use": ["double", "spike-block", "block-spike-block"], "bg": [8, 18, 46], "ground": [3, 8, 22], "line": [110, 210, 255], "gaps": [2, 3]},
-  {"name": "mirror upside", "beats": 12, "mode": "upside", "mirror": true, "use": ["single", "double", "spike-block"], "bg": [26, 12, 54], "ground": [8, 3, 20], "line": [140, 220, 255], "gaps": [3, 4]},
-  {"name": "mirror ship", "beats": 12, "mode": "ship", "mirror": true, "bg": [26, 12, 54], "ground": [8, 3, 20], "line": [140, 220, 255], "args": {"ship-tunnel": {"waves": 2, "gap": 4, "teethEvery": 6}}},
-  {"name": "reversal wave", "beats": 8, "mode": "wave", "bg": [26, 12, 54], "ground": [8, 3, 20], "line": [140, 220, 255]},
-  {"name": "crystal wave", "beats": 12, "speed": "2x", "mode": "wave", "flash": true, "bg": [18, 64, 102], "ground": [6, 18, 36], "line": [200, 245, 255], "args": {"wave-zigzag": {"seg": 3, "gap": 4}}},
-  {"name": "crystal spider", "beats": 12, "mode": "spider", "bg": [18, 64, 102], "ground": [6, 18, 36], "line": [200, 245, 255], "args": {"spider-run": {"every": 8}}},
-  {"name": "crystal cube", "beats": 8, "use": ["double", "spike-block", "platform"], "bg": [18, 64, 102], "ground": [6, 18, 36], "line": [200, 245, 255], "gaps": [3, 4]},
-  {"name": "the hush", "beats": 8, "speed": "1x", "use": ["single"], "deco": 0, "bg": [5, 10, 28], "ground": [2, 4, 12], "line": [110, 200, 240], "gaps": [5, 7]},
-  {"name": "mirror ball", "beats": 12, "mode": "ball", "mirror": true, "flash": true, "bg": [5, 10, 28], "ground": [2, 4, 12], "line": [110, 200, 240]},
-  {"name": "descent ufo", "beats": 12, "mode": "ufo", "bg": [5, 10, 28], "ground": [2, 4, 12], "line": [110, 200, 240]},
-  {"name": "descent ship", "beats": 8, "mode": "ship", "bg": [5, 10, 28], "ground": [2, 4, 12], "line": [110, 200, 240], "args": {"ship-tunnel": {"waves": 2, "gap": 4}}},
-  {"name": "blizzard cube", "beats": 8, "use": ["double", "orb-pit", "spike-block"], "bg": [30, 84, 124], "ground": [8, 20, 40], "line": [220, 248, 255], "gaps": [3, 4]},
-  {"name": "blizzard wave", "beats": 12, "speed": "2x", "mode": "wave", "bg": [30, 84, 124], "ground": [8, 20, 40], "line": [220, 248, 255], "args": {"wave-zigzag": {"seg": 3, "gap": 4}}},
-  {"name": "final jumps", "beats": 12, "speed": "1x", "use": ["double", "platform", "hops", "orb-pit"], "bg": [30, 84, 124], "ground": [8, 20, 40], "line": [220, 248, 255], "gaps": [3, 4]},
-  {"name": "end", "beats": 6, "rest": true, "use": ["single"], "bg": [30, 84, 124], "ground": [8, 20, 40], "line": [220, 248, 255]}
- ]
+  {
+   "name": "frozen entrance",
+   "beats": 24,
+   "speed": "1x",
+   "use": [
+    "single",
+    "double",
+    "platform",
+    "orb-pit",
+    "triple",
+    "hops"
+   ],
+   "bg": [
+    34,
+    78,
+    128
+   ],
+   "ground": [
+    10,
+    20,
+    42
+   ],
+   "line": [
+    170,
+    235,
+    255
+   ],
+   "gaps": [
+    3,
+    5
+   ]
+  },
+  {
+   "name": "into the caves",
+   "beats": 20,
+   "mode": "ship",
+   "bg": [
+    8,
+    18,
+    46
+   ],
+   "ground": [
+    3,
+    8,
+    22
+   ],
+   "line": [
+    110,
+    210,
+    255
+   ],
+   "args": {
+    "ship-tunnel": {
+     "waves": 2,
+     "gap": 4,
+     "teethEvery": 6
+    }
+   }
+  },
+  {
+   "name": "cave ball",
+   "beats": 12,
+   "mode": "ball",
+   "bg": [
+    8,
+    18,
+    46
+   ],
+   "ground": [
+    3,
+    8,
+    22
+   ],
+   "line": [
+    110,
+    210,
+    255
+   ],
+   "args": {
+    "ball-run": {
+     "every": 7
+    }
+   },
+   "exitRoom": 4
+  },
+  {
+   "name": "cave cube",
+   "beats": 8,
+   "use": [
+    "double",
+    "spike-block",
+    "block-spike-block"
+   ],
+   "bg": [
+    8,
+    18,
+    46
+   ],
+   "ground": [
+    3,
+    8,
+    22
+   ],
+   "line": [
+    110,
+    210,
+    255
+   ],
+   "gaps": [
+    2,
+    3
+   ]
+  },
+  {
+   "name": "mirror upside",
+   "beats": 12,
+   "mode": "upside",
+   "mirror": true,
+   "use": [
+    "single",
+    "double",
+    "spike-block"
+   ],
+   "bg": [
+    26,
+    12,
+    54
+   ],
+   "ground": [
+    8,
+    3,
+    20
+   ],
+   "line": [
+    140,
+    220,
+    255
+   ],
+   "gaps": [
+    3,
+    4
+   ]
+  },
+  {
+   "name": "mirror ship",
+   "beats": 12,
+   "mode": "ship",
+   "mirror": true,
+   "bg": [
+    26,
+    12,
+    54
+   ],
+   "ground": [
+    8,
+    3,
+    20
+   ],
+   "line": [
+    140,
+    220,
+    255
+   ],
+   "args": {
+    "ship-tunnel": {
+     "waves": 2,
+     "gap": 4,
+     "teethEvery": 6
+    }
+   }
+  },
+  {
+   "name": "reversal wave",
+   "beats": 8,
+   "mode": "wave",
+   "bg": [
+    26,
+    12,
+    54
+   ],
+   "ground": [
+    8,
+    3,
+    20
+   ],
+   "line": [
+    140,
+    220,
+    255
+   ]
+  },
+  {
+   "name": "crystal wave",
+   "beats": 12,
+   "speed": "2x",
+   "mode": "wave",
+   "flash": true,
+   "bg": [
+    18,
+    64,
+    102
+   ],
+   "ground": [
+    6,
+    18,
+    36
+   ],
+   "line": [
+    200,
+    245,
+    255
+   ],
+   "args": {
+    "wave-zigzag": {
+     "seg": 3,
+     "gap": 4,
+     "flat": 2
+    }
+   }
+  },
+  {
+   "name": "crystal spider",
+   "beats": 12,
+   "mode": "spider",
+   "bg": [
+    18,
+    64,
+    102
+   ],
+   "ground": [
+    6,
+    18,
+    36
+   ],
+   "line": [
+    200,
+    245,
+    255
+   ],
+   "args": {
+    "spider-run": {
+     "every": 8
+    }
+   }
+  },
+  {
+   "name": "crystal cube",
+   "beats": 8,
+   "use": [
+    "double",
+    "spike-block",
+    "platform"
+   ],
+   "bg": [
+    18,
+    64,
+    102
+   ],
+   "ground": [
+    6,
+    18,
+    36
+   ],
+   "line": [
+    200,
+    245,
+    255
+   ],
+   "gaps": [
+    3,
+    4
+   ]
+  },
+  {
+   "name": "the hush",
+   "beats": 8,
+   "speed": "1x",
+   "use": [
+    "single"
+   ],
+   "deco": 0,
+   "bg": [
+    5,
+    10,
+    28
+   ],
+   "ground": [
+    2,
+    4,
+    12
+   ],
+   "line": [
+    110,
+    200,
+    240
+   ],
+   "gaps": [
+    5,
+    7
+   ]
+  },
+  {
+   "name": "mirror ball",
+   "beats": 12,
+   "mode": "ball",
+   "mirror": true,
+   "flash": true,
+   "bg": [
+    5,
+    10,
+    28
+   ],
+   "ground": [
+    2,
+    4,
+    12
+   ],
+   "line": [
+    110,
+    200,
+    240
+   ]
+  },
+  {
+   "name": "descent ufo",
+   "beats": 12,
+   "mode": "ufo",
+   "bg": [
+    5,
+    10,
+    28
+   ],
+   "ground": [
+    2,
+    4,
+    12
+   ],
+   "line": [
+    110,
+    200,
+    240
+   ]
+  },
+  {
+   "name": "descent ship",
+   "beats": 8,
+   "mode": "ship",
+   "bg": [
+    5,
+    10,
+    28
+   ],
+   "ground": [
+    2,
+    4,
+    12
+   ],
+   "line": [
+    110,
+    200,
+    240
+   ],
+   "args": {
+    "ship-tunnel": {
+     "waves": 2,
+     "gap": 4
+    }
+   }
+  },
+  {
+   "name": "blizzard cube",
+   "beats": 8,
+   "use": [
+    "double",
+    "orb-pit",
+    "spike-block"
+   ],
+   "bg": [
+    30,
+    84,
+    124
+   ],
+   "ground": [
+    8,
+    20,
+    40
+   ],
+   "line": [
+    220,
+    248,
+    255
+   ],
+   "gaps": [
+    3,
+    4
+   ]
+  },
+  {
+   "name": "blizzard wave",
+   "beats": 12,
+   "speed": "2x",
+   "mode": "wave",
+   "bg": [
+    30,
+    84,
+    124
+   ],
+   "ground": [
+    8,
+    20,
+    40
+   ],
+   "line": [
+    220,
+    248,
+    255
+   ],
+   "args": {
+    "wave-zigzag": {
+     "seg": 3,
+     "gap": 4,
+     "flat": 2
+    }
+   }
+  },
+  {
+   "name": "final jumps",
+   "beats": 12,
+   "speed": "1x",
+   "use": [
+    "double",
+    "platform",
+    "orb-pit",
+    "spike-block"
+   ],
+   "bg": [
+    30,
+    84,
+    124
+   ],
+   "ground": [
+    8,
+    20,
+    40
+   ],
+   "line": [
+    220,
+    248,
+    255
+   ],
+   "gaps": [
+    3,
+    4
+   ]
+  },
+  {
+   "name": "end",
+   "beats": 6,
+   "rest": true,
+   "use": [
+    "single"
+   ],
+   "bg": [
+    30,
+    84,
+    124
+   ],
+   "ground": [
+    8,
+    20,
+    40
+   ],
+   "line": [
+    220,
+    248,
+    255
+   ]
+  }
+ ],
+ "accept": {
+  "mode changes": "the user's brief asks for 2-3 modes in each 15 s section (Cube -> Ship, Ship -> Ball -> Cube, ...)"
+ },
+ "notes": "minWindowMs 45 at Harder: our 1x triple is 45.8 ms; the brief asks for triples"
 }

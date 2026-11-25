@@ -122,3 +122,9 @@ The stage times are also in local/timings.jsonl.
 - result: not ready (prejumps, timing, channels, reactive, player timing, skips, fairness), 8 round(s), variants: 2 section(s)
 - change made: (the session fills this in)
 
+## GDLM 72 FROSTBITE, 2026-11-25 01:08
+- stages: song 0 s, layout 140 s, layout 226 s, path 848 s, deco 1252 s, final 1252 s
+- slowest step: path (622 s); over target: layout 140 s > 60 s, layout 226 s > 60 s, deco 1252 s > 1200 s, final 1252 s > 1200 s
+- result: not ready (timing, roles, channels, player timing, fairness), 8 round(s), variants: 2 section(s)
+- change made: every round failed on a 1x triple (45.8 ms vs minWindowMs 50): Harder brief now 45 (checklist line); the ice kit's lit faces / caps / mid deco lifted off the navy body and its 0.85 checker shade (roles 17/85); hops out of the last section (25 ms); flat wave exits (sawtooth at the 2x wave -> cube)
+
