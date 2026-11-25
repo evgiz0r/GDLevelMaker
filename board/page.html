@@ -158,7 +158,8 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
       <summary><div class="sum-row"><h2 id="h-y">Your levels</h2><span class="hint" id="y-sum"></span></div></summary>
       <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
         <div class="filters" id="y-filters" role="toolbar" aria-label="Filter your levels by difficulty" style="flex-wrap:wrap"></div>
-        <div class="add"><label for="y-q" hidden>Search your levels</label><input id="y-q" placeholder="Search by name, creator or ID…" autocomplete="off"></div>
+        <div class="add"><label for="y-q" hidden>Search your levels</label><input id="y-q" placeholder="Search by name, creator or ID…" autocomplete="off"><button class="addbtn" id="y-all" type="button" title="Queue every level shown by the current filter and search">Queue shown</button></div>
+        <div class="saved" id="y-study"></div>
         <div class="tbl-wrap"><table id="ytable"><tbody><tr><td class="l dim">Your finished levels appear here after Claude's next update.</td></tr></tbody></table></div>
         <div class="legend" id="y-legend">Every level you've finished, from your save (read only, never changed). Tries: lifetime attempts; Best: your normal-mode best %; Practice: your practice best %.</div>
       </div>
@@ -201,7 +202,7 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
 <script>
 (function(){
   var state = null;            // board/state: written by Claude
-  var picks = {selected:[], ideas:[]}; // board/picks: written by this page
+  var picks = {selected:[], ideas:[], study:[]}; // board/picks: written by this page
   var db = null, filter = "All", canWrite = true;
   var $ = function(id){ return document.getElementById(id); };
   function el(tag, cls, text){ var e=document.createElement(tag); if(cls) e.className=cls; if(text!=null) e.textContent=text; return e; }
@@ -451,11 +452,17 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
     var total=show.length; show=show.slice(0,yShow);
     var t=$("ytable"); t.textContent="";
     var head=el("thead"), hr=el("tr");
-    [["Level","l"],["Difficulty"],["Kind"],["Tries"],["Jumps"],["Best"],["Practice"]].forEach(function(h){ hr.appendChild(el("th",h[1]||null,h[0])); });
+    var sset={}; (picks.study||[]).forEach(function(x){ sset[x]=1; });
+    var th0=el("th","l"); th0.style.width="34px"; th0.title="Queue for study: fetch, cut into structures, score (slowly, low priority)"; th0.textContent="Study"; hr.appendChild(th0);
+    [["Level"],["Difficulty"],["Kind"],["Tries"],["Jumps"],["Best"],["Practice"]].forEach(function(h){ var th=el("th",null,h[0]); if(h[0]==="Level") th.style.textAlign="left"; hr.appendChild(th); });
     head.appendChild(hr); t.appendChild(head);
     var body=el("tbody");
     show.forEach(function(r){
-      var tr=el("tr"), nm=td(null,"l");
+      var tr=el("tr"), key=(r.kind==="main"?"m":"")+r.id, ck=td(null,"l"), cb=document.createElement("input");
+      cb.type="checkbox"; cb.checked=!!sset[key]; cb.disabled=!canWrite; cb.setAttribute("aria-label","Queue "+(r.name||r.id)+" for study"); cb.style.cssText="width:18px;height:18px;accent-color:var(--accent);cursor:pointer";
+      cb.onchange=function(){ var st=(picks.study||[]).filter(function(x){ return x!==key; }); if(cb.checked) st.push(key); picks.study=st; studyCount(); save(); };
+      ck.appendChild(cb); tr.appendChild(ck);
+      var nm=td(null); nm.style.textAlign="left"; nm.style.maxWidth="240px"; nm.style.overflow="hidden"; nm.style.textOverflow="ellipsis";
       if(r.link && /^https:\/\//.test(r.link)){ var a=el("a",null,r.name); a.href=r.link; a.target="_blank"; a.rel="noopener"; a.style.color="inherit"; nm.appendChild(a); } else nm.appendChild(document.createTextNode(r.name||("ID "+r.id)));
       nm.title=(r.name||"")+(r.id?" · ID "+r.id:"");
       if(r.id && r.kind!=="main") nm.appendChild(el("span","sm","ID "+r.id+(r.creator?" · "+r.creator:"")));
@@ -468,12 +475,14 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
       tr.appendChild(td(r.practice==null?"–":r.practice+"%","dim"));
       body.appendChild(tr);
     });
-    if(total>show.length){ var mr=el("tr"), mc=el("td","l"); mc.colSpan=7; var mb=el("button","chip","Show more ("+(total-show.length)+" left)"); mb.type="button"; mb.onclick=function(){ yShow+=300; renderPlayed(); }; mc.appendChild(mb); mr.appendChild(mc); body.appendChild(mr); }
+    if(total>show.length){ var mr=el("tr"), mc=el("td","l"); mc.colSpan=8; var mb=el("button","chip","Show more ("+(total-show.length)+" left)"); mb.type="button"; mb.onclick=function(){ yShow+=300; renderPlayed(); }; mc.appendChild(mb); mr.appendChild(mc); body.appendChild(mr); }
     t.appendChild(body);
+    studyCount();
     var fin=L.filter(function(r){ return r.best>=100; }).length, dem=L.filter(function(r){ return /Demon/.test(r.tier||"") && r.best>=100; }).length;
     $("y-sum").textContent=(P.totals? (P.totals.officialDone+P.totals.onlineDone)+" finished · "+P.totals.demons+" demons" : fin+" finished · "+dem+" demons")+(P.at?" · from your save "+fmtWhen(new Date(P.at)):"");
     if(P.note) $("y-legend").textContent=P.note;
   }
+  function studyCount(){ var n=(picks.study||[]).length, e=$("y-study"); if(e) e.textContent=n? n+" queued for study (slowly, low priority)" : "Tick levels to queue them for study: fetch, cut into structures, score."; }
   function renderAll(){ renderPlayed(); renderLevels(); renderUsage(); renderFresh(); renderWs(); renderMains(); renderPhys(); renderQueue(); renderFilters(); renderCands(); }
 
   // ---- writes (one at a time, coalesced) ----
@@ -483,7 +492,7 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
     dirty=true; if(writing) return;
     writing=true; dirty=false;
     $("saved").textContent="Saving…";
-    var body={selected:picks.selected.slice(), ideas:(picks.ideas||[]).slice(), changed_at:new Date().toISOString()};
+    var body={selected:picks.selected.slice(), ideas:(picks.ideas||[]).slice(), study:(picks.study||[]).slice(), changed_at:new Date().toISOString()};
     db.doc("board/picks").set(body).then(function(){
       $("saved").textContent="Saved "+fmtClock(new Date())+". Claude picks it up on the next update.";
     }).catch(function(e){
@@ -512,6 +521,12 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
     renderAll(); save();
   });
 
+  $("y-all").addEventListener("click",function(){ if(!canWrite) return; var keys=Array.prototype.map.call(document.querySelectorAll("#ytable tbody input[type=checkbox]"),function(c){ return c; });
+    var st=(picks.study||[]).slice(), have={}; st.forEach(function(x){ have[x]=1; });
+    var P=played || (state && state.played), q=($("y-q").value||"").trim().toLowerCase();
+    (P&&P.levels||[]).forEach(function(r){ var ok=(yFilter==="All" || (yFilter==="Demons"? /Demon/.test(r.tier||"") : r.tier===yFilter)) && (!q || (r.name||"").toLowerCase().indexOf(q)>=0 || (r.creator||"").toLowerCase().indexOf(q)>=0 || String(r.id)===q);
+      var k=(r.kind==="main"?"m":"")+r.id; if(ok && !have[k]){ st.push(k); have[k]=1; } });
+    picks.study=st; renderPlayed(); save(); });
   $("y-q").addEventListener("input",function(){ yShow=200; renderPlayed(); });
   setInterval(renderFresh, 60000);
 
@@ -532,7 +547,7 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
     db.doc("board/picks").onSnapshot(function(s){
       if(writing || dirty) return; // don't overwrite a local edit in flight
       var p=s.exists? s.data() : null;
-      picks={selected:(p&&p.selected||[]).slice(), ideas:(p&&p.ideas||[]).slice()};
+      picks={selected:(p&&p.selected||[]).slice(), ideas:(p&&p.ideas||[]).slice(), study:(p&&p.study||[]).slice()};
       renderAll();
     }, function(){});
     window.claude.use("user").then(function(u){
