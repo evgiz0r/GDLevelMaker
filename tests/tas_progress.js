@@ -18,6 +18,9 @@ const REACHED = { 1: 328, 2: 493, 3: 909, 4: 415, 5: 175, 6: 303, 7: 210, 8: 333
 // lands the plan's tap at tick 1743 on the id-392 spike row and kills it -- as gdsolver measured GD doing in an unturned
 // frame (step.hpp, lv22 t=1,737). In GD the tap is taken in the ROTATED frame that starts there (rotate gameplay 2900,
 // lv22 t=1,745): the old 81 was reached by a wrong landing. Raise it when rotated gameplay is simulated.
+// 2026-11-25 rotated gameplay is in the sim (PHYSICS.md): the plan turns there now, but our spider tap comes 2-3 ticks before
+// GD's relative to position (two presses moved 3-5 ticks later take it down and back out of the first turned stretch, and
+// on to block 126); earlier taps need today's timing. Raise 22 once that timing is understood.
 let bad = 0;
 for (const [n, want] of Object.entries(REACHED)) {
   const r = replay(+n, 0);

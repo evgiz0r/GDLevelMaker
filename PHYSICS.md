@@ -254,9 +254,8 @@ The solver session (official re-solves, human routes, dual / moving objects, lab
   x 20887 ~10 units further right than the sim's, clear of spike 421. 747's box is now 25 x 90 centred 12 right of the
   object (gdsolver's 25 x 90, OpenGD's +12 offset); the resume then cleared it (32 min). Its route still has 33 ms gaps
   (`humanroute.js 20`).
-- **Open physics leads (not solver gaps):** Dash -- ROTATED GAMEPLAY (2026-11-25): from block ~75 (x ~2266) Dash turns
-  its gameplay 90 degrees (rotate gameplay trigger 2900, frames 0-3); GD takes the spider's tap there in the turned frame.
-  The sim has no frames, so the route cannot pass. gdsolver models it (dp/src/dp/frames.hpp, cli --rotgameplay; notes at
+- **Open physics leads (not solver gaps):** Dash -- ROTATED GAMEPLAY: in the sim since 2026-11-25 (section "Rotated
+  gameplay" above); the route passes the first turned stretch. gdsolver models it (dp/src/dp/frames.hpp, cli --rotgameplay; notes at
   step.hpp "lv22 t=1,745", "t=1,753", "t=1,813"): the next big physics piece for Dash. (The older note here -- a ball
   bounce off moving platforms -- was about a later stretch the sim reached only by a wrong spider landing.) Theory of
   Everything 2 -- a UFO release-press gap of 33 ms in the route (`humanroute.js 18`): an inhuman spot, so a physics
@@ -429,37 +428,57 @@ Re-solved with dual (2026-11-24, physics 1d59689, `difficulty_solve --resume`, c
   in Stereo Madness (358-386: 14-18 presses a second), Back On Track (459-510) and Polargeist (342-378: gaps 25-46 ms)
   clear only with inhuman input: the known ship-height mismatches (physics leads, not route bugs).
 
-## Rotated gameplay (id 2900): NOT in the sim -- the design (2026-11-25)
+## Rotated gameplay (id 2900): IN the sim (2026-11-25, first version)
 
-Only Dash (lv22) of the 22 main levels uses it, 20 triggers from block ~71; it is why Dash stops at block 75
-(tests/tas_progress.js, DIFFICULTY.md). Everything below is from gdsolver (github.com/gdsolver/gdsolver, MIT;
-dp/src/dp/frames.hpp, step.hpp, cli.hpp, measured on lv22 and custom levels with a mod), not from our own runs.
-- GD turns the gameplay frame, not the world: the player's travel direction and gravity turn. The trigger's
-  rotation is the ABSOLUTE screen angle (8 of Dash's 20 are rot 0 = turn back). Travel = the x axis turned clockwise
-  by rot: 0 -> +X, 90 -> -Y, 180 -> -X, 270 -> +Y. Dash's first (x 2265, y 226, rot 90): from that tick x stays
-  at 2266.5 and y falls 1.298 a tick (the section's speed).
-- Fires on the tick after the player's FORWARD coordinate crosses the trigger's (the x-crossing + 1 rule of every
-  autonomous trigger); one shot (a re-crossing does nothing); touch-activated ones fire when the player's CENTRE is
-  inside the trigger's box, also on a teleport's landing; GD keeps them in a queue walked in order per channel
-  (checkSpawnObjects), and a Toggle'd-off one is skipped.
-- Speed carries over: the forward speed becomes the new forward, the old perpendicular is dropped; 169 "edit
-  velocity" with 583 (velocity mod Y) scales or (584) sets vy.
-- A frame can also REVERSE the run (travel -x in the frame; gdsolver: the trigger's ground direction gnddir 2 or 3).
-  Our sim only ever moves +x: reverse travel is part of this.
-- In a turned frame the spider's tap searches along world x (Dash t=1,813 lands on a block's side 27 px away), a
-  spider's tap on the turn tick is taken in the new frame (t=1,745), and the turn is tested BEFORE the tap warps.
-- Other triggers in a turned section do not fire on the world-x crossing (world x stops while the camera's does not):
-  gdsolver takes their ticks from GD's recording there. An open question for us.
-- Level keys on Dash's 2900s (raw, our reading): 6 rotation, 5 flipY, 166 and 167 (1-4: gdsolver's mvdir / gnddir,
-  which of the two is which is UNCONFIRMED), 169 edit velocity, 582 / 583 velocity mod, 170 / 173 (a chain: 173 =
-  this trigger's id, 170 = the one before it?), 171, 13; 2899 (gameplay options, 165 / 199) also appears.
-Design for our sim (gdsolver's shape): keep the state in the CURRENT frame's coordinates, so every rule stays "x is the
-clock, y is height"; build the world once per frame from the objects turned by -rot about the origin ((u, v) = the
-world turned; an AABB stays an AABB with w / h swapped; an object's GD rotation becomes rot - frame*90; quarter turns
-need no new hitbox code since makeWorld turns slopes and boxes already). A 2900 crossing: state -> world -> new frame,
-velocities as above. Needed with it: reverse travel (s.x decreasing: the columns, near(), crossings), the queue and
-touch rules, triggers inside turned sections, the camera and the viewer drawing the turned frame. Not started: it is
-a feature of its own (Dash has other gaps after it: gdsolver lists many lv22-only rules), so it wants its own session.
+Only Dash (lv22) of the 22 main levels uses it: 20 triggers from block ~71 (before this, Dash stopped at block 75). The
+rules are gdsolver's (github.com/gdsolver/gdsolver, MIT; dp/src/dp/frames.hpp, step.hpp, level_loader.hpp: GD's
+disassembly and their mod's dumps on lv22), not yet our own recordings. Code: lib/physics.js "rotated gameplay";
+test: `node tests/rotated.js`.
+- **Frames.** GD turns the gameplay, not the world. A state is stepped in its FRAME's coordinates (s.hd: 0 = +X, 1 =
+  -X "reverse", 2 = -Y, 3 = +Y), against the level turned into that frame (`frameWorld(w, hd)`, built once per frame and
+  kept on the world: objects moved, mirrored (flipX toggled, rotation negated) and turned a quarter, move-trigger
+  offsets and touch boxes turned too). So every rule stays "x is the travel, y is up". GD's local up is +Y for the two
+  horizontal headings and +X for the two vertical ones (gdsolver: frames 1 and 3 both have up = +X), so 1 and 3 are
+  mirrors, and s.grav / s.vy keep meaning GD's upside-down flag and y speed. `GD.worldXY(s)` = the world position.
+- **Keys** (settled by gdsolver against GD's members): 167 = travel direction (gnddir: 1 up, 2 down, 3 left, 4 right;
+  this, not the rotation, picks the frame), 166 = gravity direction (mvdir, same numbers: upside down when it points
+  along the new frame's up), 169 edit velocity with 583 (velocity mod Y; 169 without 583 = 0), 584 override, 170
+  channel, 171 change channel, 173 target channel, 172 channel only (switch, no turn), 115 ord.
+- **The turn** (PlayerObject::rotateGameplay): the world point carries over; onto the other axis the y speed becomes
+  583 x the travel speed (GD's local sign); a turn that only reverses keeps it (halved if the gravity flips); ground
+  contact and the flying band end (floor = the ground again in a horizontal frame, none in a vertical one).
+- **GD's trigger queue** (checkSpawnObjects): the triggers the player passes sit in per-channel buckets (170), each
+  sorted once (ord, then the channel's axis from the first 2900 that switches to it), and each tick GD walks ONLY the
+  active channel from its cursor, stopping at the first element not passed -- along world x, or world y while the frame
+  is vertical, backwards when the channel's reverse bit (set by a switch whose travel is -X / -Y) is on. So Dash's move,
+  spawn and toggle triggers inside turned stretches fire by their channel, and channel 0's wait. A level with no 2900
+  and no channel keeps the old plain x walk (T.byX): nothing changes for the other levels (tests/tas_progress.js,
+  `mains.js status`: 21/21 still clear). The turn applies at the start of the tick after the crossing (= GD's "after the
+  move, before the button"), so a spider tap on that tick is taken in the new frame.
+- **Progress.** x is not "how far" in such a level, so states carry s.d (distance travelled) and tools use
+  `GD.progressX(s)` (= s.x elsewhere): the sweep's furthest state, difficulty_solve's resume points and dieX.
+  Run length: `GD.maxTicksOf(w)` (3x the usual for a level that turns). The no-skip rule there counts a portal as passed
+  when the player crosses it in its frame within 150 units across (skipsTurned / skipCheckTurned).
+- **Trap portals** (lib/physics.js TRAPS, solveSweep's fallback): Dash's 1x speed portal at x 2745 (beside the cube
+  portal) is not a requirement: at 1x the mini cube meets spikes a move trigger lowers into its lane at x ~3460, at 3x it
+  passes first; gdsolver's real-game plan goes under it. When a strict sweep finds no way, it sweeps again ranking skips
+  last; a route found that way names its skipped portals in `trapSkips` -- check them against a real-game plan, then
+  add them to TRAPS.
+- **Checked so far:** gdsolver's real-game plan (tools/tas.js 22) goes down Dash's first turned stretch and back with
+  GD's own landings (world x 2143.5 after the first tap, the turn back at y 135), but only with two spider presses
+  moved 3-5 ticks later (`tr22`-style nudges): our tap comes ~2-3 ticks before GD's relative to position there, while
+  earlier spider taps in the same plan need today's timing (one tick later dies at block 40 on a saw). OPEN: the spider's
+  input timing vs GD; tas_progress stays at 75 until it is understood.
+  `node tools/tas_trace.js 1740,1790 22 --nudge 1742:3,1744:3,1906:5,1908:5` shows it.
+- **Where Dash stops now (not a turn):** both the nudged plan and a strict sweep started on it die at x ~3790-3890
+  (block ~127-130): a red pad launches the mini cube into a ceiling (groups 229 / 233) that a touch spawn (x 3787, y 251)
+  lifts by a move of 9 over 0.2 s; in the sim the touch fires at tick 2750 and the ceiling has barely moved when the
+  cube's inner box reaches it. Suspects: the move's units (is 29 = 9 really 9 units?), the touch box, the mini cube's
+  inner box (9x9 here, GD may scale it). Next step there.
+- **Not modelled yet:** touch-activated 2900s (none in Dash), a 2900 inside a toggled-off group, the dash orb's angle
+  clamp in turned frames (gdsolver --dashframe3), the 2899 options trigger (disables P1 controls; consumed, no effect),
+  moving objects' lock-to-player / move-to-target state across a turn, the camera turning with the gameplay (the viewer
+  draws turned stretches in world coordinates, unturned).
 
 ## Not in the sim yet (the game has it)
 

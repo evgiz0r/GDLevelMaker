@@ -30,9 +30,9 @@ function stateOf(n) {
   const raw = readJ(path.join(ROOT, "local", "difficulty", tag(n) + ".json")), view = readJ(path.join(ROOT, "local", `official_${tag(n)}.json`));
   const level = ds.levelText(n), L = GD.parseLevel(level), w = GD.makeWorld(L.objects, L.header);
   const play = ev => { if (!ev) return { done: false, pct: 0, skip: null };
-    const q = GD.run(w, ev), e = q.end || q.path[q.path.length - 1], done = !!(q.done || (!q.dead && e.x >= w.endX));
+    const q = GD.run(w, ev), e = q.end || q.path[q.path.length - 1], done = !!(q.done || (!q.dead && !e.hd && e.x >= w.endX)), ex = GD.worldXY(e)[0];
     let skip = null; if (done) { const s = GD.skipCheck(w, q.path, ev); skip = s ? s.skipped : null; }
-    return { done, pct: +Math.min(100, e.x / w.endX * 100).toFixed(1), skip }; };
+    return { done, pct: +Math.min(100, ex / w.endX * 100).toFixed(1), skip }; };
   const r = play(raw && raw.events), v = play(view && view.solution && view.solution.events);
   const kind = view && view.solution ? view.solution.kind || "?" : "none";
   const part = readJ(path.join(ROOT, "local", "difficulty", tag(n) + ".part.json"));

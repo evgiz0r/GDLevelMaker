@@ -44,7 +44,7 @@ function levelText(n) {
 const partFile = n => path.join(OUT, tag(n) + ".part.json");
 function checkpointer(n, prefix, physics) {
   return (ev, st) => { fs.mkdirSync(OUT, { recursive: true });
-    fs.writeFileSync(partFile(n), JSON.stringify({ n, physics, events: prefix.concat(ev), x: st.x, savedAt: new Date().toISOString() })); };
+    fs.writeFileSync(partFile(n), JSON.stringify({ n, physics, events: prefix.concat(ev), x: GD.progressX(st), savedAt: new Date().toISOString() })); };
 }
 // a checkpoint of this level on this physics, if one is waiting
 function partOf(n, opts) {
@@ -57,7 +57,7 @@ function partOf(n, opts) {
     // an older stamp (a solver-only change to physics.js bumps it too): keep it when its inputs still get alive to where
     // it stopped in today's sim (Fingerdash's 90-minute checkpoint at block 582, 2026-11-24)
     const L = GD.parseLevel(levelText(n)), w = GD.makeWorld(L.objects, L.header), q = GD.run(w, p.events), e = q.path[q.path.length - 1];
-    const ok = e.done || (!e.dead && e.x >= p.x - 1) || q.path.some(s => !s.dead && s.x >= p.x - 1);
+    const ok = e.done || (!e.dead && GD.progressX(e) >= p.x - 1) || q.path.some(s => !s.dead && GD.progressX(s) >= p.x - 1);
     console.log(`  (checkpoint from physics ${p.physics} at block ${(p.x / 30).toFixed(1)}: ${ok ? "still replays there, carrying on" : "no longer replays there, solving without it"})`);
     return ok ? p : null;
   } catch (e) { return null; }
@@ -77,7 +77,7 @@ function solveOfficial(n, opts) {
     n, ok: r.ok, sweep: !!r.sweep, secs: (Date.now() - t0) / 1000, physics, solvedAt: new Date().toISOString(),
     events: r.ok ? r.events : (r.trail || []),
     clicks: r.ok ? r.clicks : [],
-    dieX: r.ok ? null : r.dieAt && r.dieAt.x, why: r.ok ? null : r.why,
+    dieX: r.ok ? null : r.dieAt && GD.progressX(r.dieAt), why: r.ok ? null : r.why,
     endX: w.endX,
   };
   fs.mkdirSync(OUT, { recursive: true });
@@ -89,7 +89,7 @@ function solveOfficial(n, opts) {
 // the saved run replayed in the current physics: its states by tick, and where it ends
 function replay(w, events) {
   const ev = new Map(events.map(e => [e.tick, e.type])), s = GD.startState(w), st = [structuredClone(s)];
-  const max = Math.ceil((w.endX / (GD.SPEEDS[0].x * 60) + 5) * GD.PHYS.TPS);
+  const max = GD.maxTicksOf(w);
   let held = false; const helds = [false];
   while (!s.dead && !s.done && s.tick < max) {
     const e = ev.get(s.tick); let press = false;
@@ -130,23 +130,23 @@ function continueFrom(n, events, trouble, backs, opts, old) {
   const fin = old && (endS.done || (!endS.dead && endS.x >= w.endX)), sk = fin ? GD.skipCheck(w, rp.st, events) : null;
   if (fin && !sk) return save({ ok: true, clicks: old.clicks }, old.events, null);
   // where the change matters: the skip, the new death, or the old one if the old inputs now get past it
-  if (trouble == null) trouble = sk ? sk.dieAt.x : old.dieX != null && endS.x > old.dieX + 1 ? old.dieX : endS.x;
+  if (trouble == null) trouble = sk ? GD.progressX(sk.dieAt) : old.dieX != null && GD.progressX(endS) > old.dieX + 1 ? old.dieX : GD.progressX(endS);
   for (const back of backs) {
     const x0 = trouble - back;
     if (x0 <= 0) break;
-    let t = rp.st.findIndex(s => s.x >= x0); if (t < 0) t = rp.st.length - 1;
+    let t = rp.st.findIndex(s => GD.progressX(s) >= x0); if (t < 0) t = rp.st.length - 1;
     // start on a tick with the button released if one is near (nothing mid-hold)
     for (let k = t; k > Math.max(0, t - 60); k--) if (!rp.helds[k]) { t = k; break; }
     const start = rp.st[t], prefix = events.filter(e => e.tick < t);
-    if (!opts.quiet) console.log(`  (solving from block ${(start.x / 30).toFixed(1)})`);
+    if (!opts.quiet) console.log(`  (solving from block ${(GD.progressX(start) / 30).toFixed(1)})`);
     const r = GD.solveFrom(w, start, { held: rp.helds[t], onCheckpoint: checkpointer(n, prefix, physics), fine: !!opts.fine });
     const evs = prefix.concat(r.ok ? r.events : r.trail || []);
-    const dieX = r.ok ? null : r.dieAt && r.dieAt.x;
+    const dieX = r.ok ? null : r.dieAt && GD.progressX(r.dieAt);
     // the kept prefix comes from the old run: if it went around a portal (made before the no-skip rule, or before
     // dual portals counted), the stitched route is a secret way. Check the whole route; then a full solve.
     if (r.ok) { const q = GD.run(w, evs), sk = GD.skipCheck(w, q.path, evs);
       if (sk) { if (!opts.quiet) console.log(`  (the kept old run skips ${sk.skipped}: solving from the start)`); return null; } }
-    if (r.ok || dieX > trouble + 60) return save({ ok: r.ok, clicks: r.clicks, dieX, why: r.why }, evs, +start.x.toFixed(1));
+    if (r.ok || dieX > trouble + 60) return save({ ok: r.ok, clicks: r.clicks, dieX, why: r.why }, evs, +GD.progressX(start).toFixed(1));
     if (!opts.quiet) console.log(`  (stuck at block ${dieX && (dieX / 30).toFixed(1)}, backing off)`);
   }
   return null;
