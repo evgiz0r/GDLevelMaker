@@ -2778,7 +2778,9 @@ function linkFind(q) {
   const cand = ALL.map((l, i) => ({ l, i })).filter(c => baseOf(c.l) === q.base || (c.l.name || "").toLowerCase().replace(/\W+/g, "_") === q.base.toLowerCase());
   if (!cand.length) return -1;
   const hit = q.v && cand.find(c => +c.l.version === q.v);
-  return (hit || cand.sort((a, b) => (+b.l.version || 0) - (+a.l.version || 0) || (b.l.wip ? 1 : 0) - (a.l.wip ? 1 : 0))[0]).i;
+  // no version asked: the newest MADE copy (wip versions count per session, so style's v12 from 2026-11-23 outranked the
+  // pushed GDLM 44 v4 of 2026-11-25 on version number and every short link opened it); version only breaks ties
+  return (hit || cand.sort((a, b) => pkWhen(b.l) - pkWhen(a.l) || (+b.l.version || 0) - (+a.l.version || 0) || (b.l.wip ? 1 : 0) - (a.l.wip ? 1 : 0))[0]).i;
 }
 function shortLink() { const l = ALL[pick.value]; if (!l || !L) return ""; const b = String(l.file || "").split(/[\\/]/).pop().replace(/\.(gdlvl|json)$/, "");
   return "#" + b + (l.version ? "--v" + l.version : "") + "--t" + (tick() / P.TPS).toFixed(1) + (L.ghost ? "--r" + L.ghost.row.id : ""); }
