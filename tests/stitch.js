@@ -8,7 +8,7 @@ const path = require("path");
 const { GD, readGdlvl } = require("../tools/io.js");
 const { stitch } = require("../tools/stitch.js");
 
-const L = readGdlvl(path.join(__dirname, "..", "levels", "gdlm_02_on_the_beat.gdlvl"));
+const L = readGdlvl(path.join(__dirname, "..", "levels", "archive", "gdlm_02_on_the_beat.gdlvl"));
 const lv = GD.parseLevel(L.levelStr);
 const w = GD.makeWorld(lv.objects, lv.header);
 const route = GD.solve(w).events;

@@ -170,7 +170,7 @@ deliver; tools/vibediff.js and taste's tools/compare_sections.js side by side). 
 **GDLM 69 time hop: Time Machine rebuilt from a person's vibe sheet (2026-11-24).** `briefs/69_time_hop.vibe.json`
 (written from the storyboard above, never from the blocks) -> 12 sections, 7 collab parts -> built -> compared
 (`local/recompile/gdlm_69_time_hop/compare.md`, sheet `compare_sections/sheet_gdlm_69_time_hop.jpg`). The level
-`levels/gdlm_69_time_hop.gdlvl` is NOT READY (score.js: `skips` and `fairness` fail) -- a benchmark result, not a
+`levels/archive/gdlm_69_time_hop.gdlvl` is NOT READY (score.js: `skips` and `fairness` fail) -- a benchmark result, not a
 level for the user to play yet.
 
 What came through (the spec carried it and the pipeline built it):
@@ -199,7 +199,7 @@ in collab builds.
 
 **GDLM 70 candy night: Spooky Dash rebuilt from the machine's own spec (2026-11-24).** Steps 1-2 by the machine
 (`local/recompile/gdlm_70_candy_night/spec.md`), no person in the loop; collab failed part 0 on 3 seeds (prejumps,
-timing, reactive, skips) and compose built it whole; `levels/gdlm_70_candy_night.gdlvl` is NOT READY (`skips`,
+timing, reactive, skips) and compose built it whole; `levels/archive/gdlm_70_candy_night.gdlvl` is NOT READY (`skips`,
 `fairness`). Sheet: `local/recompile/gdlm_70_candy_night/compare_sections/sheet_gdlm_70_candy_night.jpg`.
 
 - The machine's spec matches the original on every beat by construction (roles, energy, the mode sequence with its

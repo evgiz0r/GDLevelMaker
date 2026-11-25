@@ -26,7 +26,7 @@ section is its own scene with its own palette, and mode changes and scene change
 | 12-16 | wave | the "diamond ring": navy and gold, a sliver of sun on the right, light rays from above in front of the play | rays pulse every 2 beats, gold dust rises |
 | 16-22 | cube | dawn: pink sky, the city rises again, the moon fades, credits (title, song, "made with GDLevelMaker") | city moves up, palette fades over 4 s |
 
-Render: `node tools/shoot.js levels/gdlm_50_eclipse.gdlvl --at 0.6,9,15,22.5,29,35.5` (shoot a few frames
+Render: `node tools/shoot.js levels/archive/gdlm_50_eclipse.gdlvl --at 0.6,9,15,22.5,29,35.5` (shoot a few frames
 per call; see "Tools" below). The comparison frames of Fall Out are in `local/shots/fallout_ref/`.
 
 ## Recipes (tools/scenekit.js) -- reusable, with what they cost
@@ -70,7 +70,7 @@ run by make.js after the gameplay is placed: `fn({objects, header, beatX, ...}) 
 - Ray sprites 1021 at 16 rays, scaled fat: a grey starburst mess. 12 thin ones, faint before the drop.
 - Crosses (1765) as stars or motes: read as hazards next to an orb.
 
-## Numbers (final build, `node tools/modern_look.js levels/gdlm_50_eclipse.gdlvl`)
+## Numbers (final build, `node tools/modern_look.js levels/archive/gdlm_50_eclipse.gdlvl`)
 
 | | GDLM 50 | Fall Out | played median | GDLM 41-46 |
 |---|---|---|---|---|

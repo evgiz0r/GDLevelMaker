@@ -6,8 +6,8 @@ const ROOT = path.join(__dirname, ".."), SESSION = "test-stageroute", WIPD = pat
 const { GD, readGdlvl } = require("../tools/io.js"), ST = require("../tools/stages.js");
 let fails = 0; const check = (c, m) => { console.log((c ? "ok   " : "FAIL ") + m); if (!c) fails++; };
 try {
-  const L = readGdlvl(path.join(ROOT, "levels/gdlm_02_on_the_beat.gdlvl")), sol = GD.solveAny(GD.makeWorld(L.level.objects, L.level.header));
-  const other = readGdlvl(path.join(ROOT, "levels/gdlm_01_one_jump.gdlvl")).levelStr;
+  const L = readGdlvl(path.join(ROOT, "levels/archive/gdlm_02_on_the_beat.gdlvl")), sol = GD.solveAny(GD.makeWorld(L.level.objects, L.level.header));
+  const other = readGdlvl(path.join(ROOT, "levels/archive/gdlm_01_one_jump.gdlvl")).levelStr;
   ST.put({ session: SESSION, base: "b", name: "t", stage: "final", levelStr: other, note: "old build" });
   ST.put({ session: SESSION, base: "b", name: "t", stage: "layout", levelStr: L.levelStr, data: { planned: [{ t: 0.2, what: "jump" }] } });
   ST.put({ session: SESSION, base: "b", name: "t", stage: "deco", levelStr: L.levelStr + "1,211,2,300,3,150;" });

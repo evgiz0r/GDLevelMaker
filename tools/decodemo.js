@@ -150,7 +150,7 @@ function page(rows, at) {
 
 if (require.main === module) {
   const a = process.argv.slice(2), opt = (k, d) => { const i = a.indexOf(k); return i >= 0 ? a[i + 1] : d; };
-  const src = a[0] && !a[0].startsWith("--") ? a[0] : path.join(ROOT, "levels", "gdlm_50_eclipse.gdlvl");
+  const src = a[0] && !a[0].startsWith("--") ? a[0] : path.join(ROOT, "levels", "archive", "gdlm_50_eclipse.gdlvl");
   const rows = build(src, { to: +opt("--to", 150), themes: opt("--themes", "ice,fire").split(",") });
   for (const r of rows) console.log(`${r.file}  ${r.deco} deco`);
   const at = opt("--at", "3.5,9.5").split(",").map(Number);

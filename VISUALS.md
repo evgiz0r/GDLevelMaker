@@ -319,7 +319,7 @@ Driven from the browser console: load a level (`load(name, levelStr, solution)` 
 - GDLM 41 vs `18-48-19.mkv` (attempt 1 at 7.62 s): the recording shows the level as of commit
   6a9b8b0 (125 objects; the repo and the save now hold a later 95-object version -- identical to each
   other). `node tools/shoot.js local/tmp/gdlm41_v1.gdlvl --rec "GD claude-rec 2026-11-22_18-48-19.mkv"
-  --t0 7.62 --at 5.4,6.6` (after `git show 6a9b8b0:levels/gdlm_41_classic.gdlvl > local/tmp/gdlm41_v1.gdlvl`):
+  --t0 7.62 --at 5.4,6.6` (after `git show 6a9b8b0:levels/archive/gdlm_41_classic.gdlvl > local/tmp/gdlm41_v1.gdlvl`):
   layout, antennas, crystals, background, hills, grid blocks and ground match.
 - **Channels 1005/1006 are the player's own colours** whatever the header stores (GDLM 41's header
   says orange for 1005; its P1 deco is lime in the game). They **blend (additive) by default**: Cycles'

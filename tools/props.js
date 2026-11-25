@@ -4,7 +4,7 @@
 //   show    one prop as text pixels + its objects per colour
 //   sheet   contact sheet of every prop (art-free drawing of the objects) -> local/props/props_<theme>.png
 //   level   "GDLM prop test": every prop on a flat floor, spaced out, the player runs past them
-//           (levels/gdlm_prop_test.gdlvl; to check in the real game; installing is the coordinator's job)
+//           (levels/archive/gdlm_prop_test.gdlvl; to check in the real game; installing is the coordinator's job)
 // In a spec: "props": [{"prop": "pumpkin", "col": 30}, {"prop": "dead tree", "from": 40, "to": 80, "density": 2}]
 // (tools/make.js; col / from / to in columns, row = the block row it stands on, default the ground).
 "use strict";
@@ -60,7 +60,7 @@ function level(out) {
   header = K.channels(header, { 1000: { rgb: [40, 30, 64] }, 1001: { rgb: [30, 24, 44] } });
   header = P.header(header, colours);
   const rec = GD.newRecord("GDLM prop test", "Every prop of lib/props.js once (ART.md), spooky colours. No gameplay. Safe to delete.");
-  out = out || path.join(ROOT, "levels", "gdlm_prop_test.gdlvl");
+  out = out || path.join(ROOT, "levels", "archive", "gdlm_prop_test.gdlvl");
   writeGdlvl(out, rec, { header, objects: objects.concat([{ id: 1, x: x + 300, y: 15, rot: 0, flipX: false, flipY: false, props: { 155: "1" } }]) });
   console.log(`wrote ${path.relative(ROOT, out)}: ${objects.length} objects, ${Object.keys(colours).length} channels (${Object.keys(colours).join(",")}), ${(x / 30).toFixed(0)} blocks`);
   for (const [mx, n, c] of marks) console.log(`  x ${String(Math.round(mx)).padStart(5)}  ${n} (${c})`);

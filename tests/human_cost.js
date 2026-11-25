@@ -2,9 +2,9 @@
 // their windows must cost more than with them in the middle, and the cost must be the difficulty score plus small terms.
 const { GD, readGdlvl } = require("../tools/io.js");
 const DF = require("../lib/difficulty.js"), S = require("../tools/solutions.js");
-const L = readGdlvl(__dirname + "/../levels/gdlm_41_classic.gdlvl"), w = GD.makeWorld(L.level.objects, L.level.header);
+const L = readGdlvl(__dirname + "/../levels/archive/gdlm_41_classic.gdlvl"), w = GD.makeWorld(L.level.objects, L.level.header);
 const sol = S.get(L.levelStr, true);
-if (!sol || !sol.events) { console.log("skip: no saved solution for GDLM 41 (node tools/solutions.js levels/gdlm_41_classic.gdlvl)"); process.exit(0); }
+if (!sol || !sol.events) { console.log("skip: no saved solution for GDLM 41 (node tools/solutions.js levels/archive/gdlm_41_classic.gdlvl)"); process.exit(0); }
 const base = DF.humanCost(w, sol.events);
 let ok = true;
 const check = (c, m) => { console.log((c ? "ok   " : "FAIL ") + m); if (!c) ok = false; };

@@ -125,7 +125,7 @@ if (!process.argv.includes("--check")) {
 } else {
   // the sim on the built level's solved route: per station, its start time, the mode, band (floor / roof), the route's y range
   const { GD, readGdlvl } = require("./io.js"), sols = require("./solutions.js");
-  const lv = readGdlvl(path.join(__dirname, "..", "levels", "gdlm_68_camera_lab.gdlvl")), sol = sols.get(lv.levelStr, true);
+  const lv = readGdlvl(path.join(__dirname, "..", "levels", "archive", "gdlm_68_camera_lab.gdlvl")), sol = sols.get(lv.levelStr, true);
   if (!sol) { console.log("no saved route: build it first"); process.exit(1); }
   const w = GD.makeWorld(lv.level.objects, lv.level.header), p = GD.run(w, sol.events).path;
   for (const L of lab) {

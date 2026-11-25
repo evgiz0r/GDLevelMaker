@@ -168,7 +168,7 @@ so a replay needs the pre-fix commit (`git log -- levels/<file>`), as above.
    it only if the main session copies them into a message or a fixture.
 3. 2 with 4: `review.js` then `fix.js` on GDLM 61 (dry: 8 safe fixes -- 7 jump marks too close to spikes, 1 orb off
    centre), then on 44/45/47 and an official level; check every kept fix in the picture.
-4. 13: `retarget.js levels/gdlm_61_lantern_towers.gdlvl --to easier` (Normal 0.365 -> Easy); then structure swaps by
+4. 13: `retarget.js levels/archive/gdlm_61_lantern_towers.gdlvl --to easier` (Normal 0.365 -> Easy); then structure swaps by
    the library's difficulty tags (knowledge/structures.json has tier, difficulty, minWindowMs per structure).
 
 **Coordination:**
