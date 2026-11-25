@@ -1,0 +1,48 @@
+{
+ "about": "tools/lego_solve.js: solve time with and without reverse-lego hints",
+ "when": "2026-11-25",
+ "rows": [
+  {
+   "level": "2 Back On Track",
+   "hints": 20,
+   "cover": 27,
+   "plain": {
+    "ok": true,
+    "presses": 50,
+    "repairs": 57,
+    "s": 96.1,
+    "dieBlock": null
+   },
+   "lego": {
+    "ok": true,
+    "presses": 67,
+    "repairs": 46,
+    "s": 94.8,
+    "dieBlock": null
+   },
+   "full": {
+    "ok": true,
+    "s": 77.8
+   }
+  },
+  {
+   "level": "1 Stereo Madness",
+   "hints": 52,
+   "cover": 72,
+   "plain": {
+    "ok": true,
+    "presses": 45,
+    "repairs": 50,
+    "s": 53.3,
+    "dieBlock": null
+   },
+   "lego": {
+    "ok": true,
+    "presses": 95,
+    "repairs": 34,
+    "s": 64.9,
+    "dieBlock": null
+   }
+  }
+ ]
+}
