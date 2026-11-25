@@ -21,10 +21,20 @@ let fail = 0; const ok = (c, m) => { console.log((c ? "ok   " : "FAIL ") + m); i
     // a real stroke with the pointer
     const box = await p.locator("#cv").boundingBox(), V = await p.evaluate(() => ({ x: DRAW.V.x, y: DRAW.V.y, z: DRAW.V.z }));
     const X = x => box.x + (x - V.x) * V.z, Y = y => box.y + box.height - (y - V.y) * V.z;
+    await p.evaluate(() => { DRAW.ui.tool = "pen"; DRAW.ui.pen = "ground"; });
     await p.mouse.move(X(120), Y(0)); await p.mouse.down();
     for (const [x, y] of [[150, 20], [200, 50], [260, 60], [300, 20], [330, 0]]) await p.mouse.move(X(x), Y(y), { steps: 4 });
     await p.mouse.up();
     ok(await p.evaluate(() => DRAW.sketch.items.length === 1 && DRAW.sketch.items[0].pen === "ground"), tag + ": a finger stroke becomes a ground line");
+    // the ✨ one pen: a line through the air becomes a corridor with its holds (lib/intent.js, DRAW.md "One pen")
+    const keep = await p.evaluate(() => JSON.stringify(DRAW.sketch.items)); await p.evaluate(() => { DRAW.ui.pen = "auto"; DRAW.setItems([]); });
+    const a0 = V.x + 0.05 * box.width / V.z, a1 = V.x + 0.95 * box.width / V.z, st = (a1 - a0) / 20;   // across what is on screen
+    await p.mouse.move(X(a0), Y(15)); await p.mouse.down();
+    for (let x = a0 + st; x <= a1; x += st) await p.mouse.move(X(x), Y(110 + 30 * Math.sin((x - a0) / 120)), { steps: 2 });
+    await p.mouse.up(); await p.waitForFunction(() => DRAW.sketch.items.some(i => i.pen === "auto" && i.built), null, { timeout: 15000 }).catch(() => {});
+    if (process.env.DBG) console.log(await p.evaluate(() => JSON.stringify([DRAW.V, document.getElementById("msg").textContent, DRAW.sketch.items.map(i => [i.k, i.pen, i.pts && i.pts.length, i.built && i.built.length])])));
+    ok(await p.evaluate(() => DRAW.sketch.items.some(i => i.pen === "auto" && i.built && i.built.length > 20) && DRAW.sketch.items.some(i => i.k === "press")), tag + ": a ✨ line through the air becomes a corridor with presses");
+    await p.evaluate(k => DRAW.setItems(JSON.parse(k)), keep);
     await p.evaluate(() => DRAW.setItems(DRAW.sketch.items.concat([
       { k: "stroke", pen: "spikes", pts: [[500, 0], [500, 30], [590, 30], [590, 0], [502, 1]] },
       { k: "stamp", what: "orb:yellow", x: 760, y: 70 }, { k: "stroke", pen: "spikes", pts: [[700, 0], [820, 0]] },
