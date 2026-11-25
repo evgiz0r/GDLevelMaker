@@ -105,8 +105,19 @@ Next: a full sim-vs-game diff per tick (the PHYSICS.md "Fidelity" scoreboard).
   matches and a later one, tick ~1825, is one tick behind). So the press-to-jump delay is not a constant tick count in
   this mapping -- likely frame-phase dependent (the 4-tick frame). Open, for the physics session: log the real per-tick
   position (the player's position before the frame sync, or log at isLastTick only) and settle the press latency.
-- Open: a batch file of several levels in one launch; levels not in the save (import a .gmd); official levels in
-  practice mode only.
+- **v0.3.0 (2026-11-25, built, NOT loaded):** logs the per-step physics position too (GameObject's `m_positionX/Y`
+  doubles, as `px, py` at the end of each tick's `p`), and plays a batch: `play.json` `{"entries": [{level, attempts,
+  offset, presses}, ...]}`; after each entry the mod leaves the level (onQuit -> its edit page, EditLevelLayer::init hook)
+  and opens the next, one line per entry in `play.results.jsonl`, `play.finished.json` after the last. `node tools/probe.js
+  play <level> <level> ... | --all-gdlm [--max-seconds s] --launch`, `result --last-batch`; `result` on a v0.3 log prints
+  the x lag, the first parting step, and every jump's start game-minus-sim by the press's place in its 60 fps frame.
+- **Smart App Control blocked v0.3.0's DLL** (Geode log 08:59:25: "Blocked by Windows Smart App Control (4551)";
+  CodeIntegrity 3033/3077). v0.2.0's DLL had loaded with no event. SAC judges each new unsigned file by cloud reputation,
+  so any rebuild of the mod may or may not load. We do not try to get around it (no rebuild-until-it-passes). The ways
+  forward are the user's: turn Smart App Control off (Windows Security > App & browser control; Windows can only turn it
+  back on with a reinstall), or sign the DLL with a trusted code-signing certificate (paid). Until then the installed
+  v0.3.0 shows a load error in Geode and logs nothing.
+- Open: levels not in the save (import a .gmd); official levels in practice mode only.
 
 
 ## Building on this PC (2026-11-25)

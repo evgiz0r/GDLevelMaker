@@ -4,7 +4,7 @@
 //
 // Line types in attempts/*.jsonl (all one JSON object per line):
 //   {"t":"start", level, id, attempt, practice, dual, platformer, playback, wall_ms, x, y}
-//   {"t":"tick", n, step, lt, p:[x,y,vy,mode,up,ground,size,speed], p2:[...] (dual only), cam:[x,y]}
+//   {"t":"tick", n, step, lt, p:[x,y,vy,mode,up,ground,size,speed,px,py], p2:[...] (dual only), cam:[x,y]}
 //   {"t":"btn", n, down, button, p1}          a press / release made after n ticks: it acts in tick n+1
 //   {"t":"death", n, obj, ox, oy, x, y}       obj = the id of what killed (-1 unknown)
 //   {"t":"end", n, result}                    result: death | complete | reset | quit
@@ -12,7 +12,9 @@
 //
 // Playback (GEODE.md "Playback"): a command file <mod save dir>/play.json, written by `node tools/probe.js play`:
 //   {"level": "<name of a level in Create>", "autostart": true, "attempts": 1, "quit": true, "offset": 0,
-//    "presses": [[tick, down 1/0, p2 0/1], ...]}
+//    "presses": [[tick, down 1/0, p2 0/1], ...]}   or a batch: {"autostart", "quit", "entries": [{level, attempts,
+//    offset, presses}, ...]}: after each entry GD leaves the level and opens the next; one line per entry goes to
+//    play.results.jsonl, and play.finished.json is written after the last.
 // It is read once, when the main menu first shows, and renamed play.taken.json (one shot: a later normal start
 // of GD plays nothing). autostart opens the level from the menu. In that level a press with tick T is made right
 // before the processCommands call that runs once n == T + offset ticks are done -- the same n as the log's btn
@@ -27,6 +29,7 @@
 #include <Geode/modify/GJBaseGameLayer.hpp>
 #include <Geode/modify/PlayLayer.hpp>
 #include <Geode/modify/MenuLayer.hpp>
+#include <Geode/modify/EditLevelLayer.hpp>
 
 #include <array>
 #include <chrono>
@@ -64,7 +67,15 @@ struct Play {
     size_t idx = 0;
     std::vector<std::array<int, 3>> presses;
 };
+struct Entry {
+    std::string level;
+    int attempts = 1, offset = 0;
+    std::vector<std::array<int, 3>> presses;
+};
 Play g_play;
+std::vector<Entry> g_entries;  // the batch; g_play holds the current one
+size_t g_entry = 0;
+bool g_openNext = false;       // the next entry opens when the level's edit page shows
 bool g_menuSeen = false;
 
 long long wallMs() {
@@ -102,9 +113,12 @@ char const* modeOf(PlayerObject* p) {
 
 void appendPlayer(std::string& out, PlayerObject* p) {
     char b[256];
-    std::snprintf(b, sizeof b, "[%.4f,%.4f,%.5f,\"%s\",%d,%d,%.3f,%.4f]",
+    // x, y: m_position (the drawn position: in 2.2091 it moves once per 60 fps frame, 1-2 steps behind);
+    // px, py (last two): GameObject's m_positionX / m_positionY doubles, the physics position of this step
+    std::snprintf(b, sizeof b, "[%.4f,%.4f,%.5f,\"%s\",%d,%d,%.3f,%.4f,%.4f,%.4f]",
         p->m_position.x, p->m_position.y, p->m_yVelocity, modeOf(p),
-        p->m_isUpsideDown ? 1 : 0, p->m_isOnGround ? 1 : 0, p->m_vehicleSize, p->m_playerSpeed);
+        p->m_isUpsideDown ? 1 : 0, p->m_isOnGround ? 1 : 0, p->m_vehicleSize, p->m_playerSpeed,
+        p->m_positionX, p->m_positionY);
     out += b;
 }
 
@@ -133,11 +147,25 @@ void writeFile(std::string const& data, std::string const& file) {
 void finishPlayback(std::string const& result) {
     g_play.active = false;
     if (g_play.done) return;
-    bool last = g_play.started >= g_play.attempts || result == "complete" || result == "quit";
+    bool last = g_play.started >= g_play.attempts || result == "complete" || result == "quit" || result == "missing";
     if (!last) return;
     g_play.done = true;
-    writeFile(fmt::format("{{\"level\":\"{}\",\"attempts\":{},\"last\":\"{}\",\"wall_ms\":{}}}\n",
-        esc(g_play.level), g_play.started, result, wallMs()), (saveDir() / "play.finished.json").string());
+    {
+        std::ofstream f(saveDir() / "play.results.jsonl", std::ios::binary | std::ios::app);
+        f << fmt::format("{{\"entry\":{},\"level\":\"{}\",\"attempts\":{},\"last\":\"{}\",\"wall_ms\":{}}}\n",
+            g_entry, esc(g_play.level), g_play.started, result, wallMs());
+    }
+    if (g_entry + 1 < g_entries.size()) {
+        // the next level: leave this one (to its edit page), open the next from there
+        auto const& e = g_entries[++g_entry];
+        g_play.level = e.level; g_play.attempts = e.attempts; g_play.offset = e.offset; g_play.presses = e.presses;
+        g_play.started = 0; g_play.idx = 0; g_play.done = false;
+        g_openNext = true;
+        Loader::get()->queueInMainThread([] { if (auto* pl = PlayLayer::get()) pl->onQuit(); });
+        return;
+    }
+    writeFile(fmt::format("{{\"level\":\"{}\",\"entries\":{},\"last\":\"{}\",\"wall_ms\":{}}}\n",
+        esc(g_play.level), g_entries.size(), result, wallMs()), (saveDir() / "play.finished.json").string());
     if (g_play.quit) {
         // after the end screen / death effect has had a moment; exit without saving GD's data
         Loader::get()->queueInMainThread([] { geode::utils::game::exit(false); });
@@ -179,16 +207,39 @@ void loadPlay() {
     g_play.level = j["level"].asString().unwrapOr("");
     g_play.autostart = j["autostart"].asBool().unwrapOr(false);
     g_play.quit = j["quit"].asBool().unwrapOr(false);
-    g_play.attempts = static_cast<int>(j["attempts"].asInt().unwrapOr(1));
-    g_play.offset = static_cast<int>(j["offset"].asInt().unwrapOr(0));
-    if (j["presses"].isArray()) {
-        for (auto& e : j["presses"]) {
-            g_play.presses.push_back({static_cast<int>(e[0].asInt().unwrapOr(0)),
-                static_cast<int>(e[1].asInt().unwrapOr(0)), static_cast<int>(e[2].asInt().unwrapOr(0))});
+    // one entry at the top level, or a batch: "entries": [{level, attempts, offset, presses}, ...]
+    auto readEntry = [](matjson::Value& v) {
+        Entry e;
+        e.level = v["level"].asString().unwrapOr("");
+        e.attempts = static_cast<int>(v["attempts"].asInt().unwrapOr(1));
+        e.offset = static_cast<int>(v["offset"].asInt().unwrapOr(0));
+        if (v["presses"].isArray()) {
+            for (auto& p : v["presses"]) {
+                e.presses.push_back({static_cast<int>(p[0].asInt().unwrapOr(0)),
+                    static_cast<int>(p[1].asInt().unwrapOr(0)), static_cast<int>(p[2].asInt().unwrapOr(0))});
+            }
         }
+        return e;
+    };
+    g_entries.clear();
+    g_entry = 0;
+    if (j["entries"].isArray()) {
+        for (auto& v : j["entries"]) {
+            auto e = readEntry(v);
+            if (e.level.rfind("GDLM", 0) == 0) g_entries.push_back(std::move(e));
+        }
+    } else {
+        auto e = readEntry(j);
+        if (e.level.rfind("GDLM", 0) == 0) g_entries.push_back(std::move(e));
     }
-    g_play.loaded = !g_play.level.empty() && g_play.level.rfind("GDLM", 0) == 0;
-    log::info("gdlm probe: play.json for '{}', {} presses, loaded {}", g_play.level, g_play.presses.size(), g_play.loaded);
+    g_play.loaded = !g_entries.empty();
+    if (g_play.loaded) {
+        auto const& e = g_entries[0];
+        g_play.level = e.level; g_play.attempts = e.attempts; g_play.offset = e.offset; g_play.presses = e.presses;
+    }
+    std::error_code ec2;
+    std::filesystem::remove(saveDir() / "play.results.jsonl", ec2);
+    log::info("gdlm probe: play.json with {} GDLM entries", g_entries.size());
 }
 
 void openPlayLevel() {
@@ -203,7 +254,10 @@ void openPlayLevel() {
         }
     }
     log::warn("gdlm probe: no local level named '{}'", g_play.level);
-    if (g_play.quit) { g_play.done = true; geode::utils::game::exit(false); }
+    // skip it: record it and go on with the next entry (or end the batch)
+    g_play.started = 0;
+    finishPlayback("missing");
+    if (g_openNext) { g_openNext = false; Loader::get()->queueInMainThread([] { openPlayLevel(); }); }
 }
 
 void begin(PlayLayer* pl) {
@@ -318,6 +372,18 @@ class $modify(ProbeMenu, MenuLayer) {
             if (g_play.loaded && g_play.autostart) {
                 Loader::get()->queueInMainThread([] { openPlayLevel(); });
             }
+        }
+        return true;
+    }
+};
+
+class $modify(ProbeEdit, EditLevelLayer) {
+    bool init(GJGameLevel* level) {
+        if (!EditLevelLayer::init(level)) return false;
+        // a batch left the previous level: open the next one
+        if (g_openNext) {
+            g_openNext = false;
+            Loader::get()->queueInMainThread([] { openPlayLevel(); });
         }
         return true;
     }
