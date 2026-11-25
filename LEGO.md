@@ -256,6 +256,53 @@ decoing, first the actual objects according to the themes of the section". Where
 The main levels' pieces are RobTop's: a level built from them stays on the PC (never pushed or uploaded) until we have pieces
 of our own made the same way -- varied from theirs by the difficulty knobs (LEGO.md "Difficulty knobs").
 
+## Difficulty knobs (2026-11-25)
+
+The user: "we have difficulty of structures? [...] think what parameters they have to make harder or easier. probably dont
+want to copy same structures just with small diff for difficulty". Every piece and brick now has a **difficulty** (log10
+of the expected attempts to get through it in one go, from the timing window of each of its inputs: lib/windows.js +
+lib/difficulty.js hitChance, the model fitted on the user's runs) and its **tightest window**. The windows of the main
+levels' routes are measured once (`windowsOf` in tools/lego.js: 10-60 s a level, Geometrical Dominator 5.5 min,
+Deadlocked 15.5 min in the cloud) and committed as numbers in knowledge/lego_windows/. `node tools/lego.js knobs` ->
+knowledge/lego_knobs.json: per mode, each parameter's rank correlation with the difficulty and with the tightness
+(minus the tightest window), and its median in the easiest and hardest quarter.
+
+What it shows on the main levels' pieces (1-3 s):
+- **The main levels are mostly gentle, with a few tight spots.** Median piece: difficulty 0.01-0.02 (a gimme), tightest
+  window ~170-200 ms; the tightest tenth: 60-125 ms (ship and robot 63 ms, wave 79, ufo 88, cube 104, ball 125).
+  Difficulty lives in a few pieces, which fits "peaks are single pieces, ~40 blocks apart" (Combining rule 7).
+- **More inputs per second** makes every mode harder (corr 0.56-0.72); that is the plain knob, and the one that only
+  makes "the same piece, busier".
+- **The knobs that change the piece's kind** (what the user wants turned instead): wave -- a narrower corridor (gap
+  4.7 -> 4 blocks, tightness corr -0.63) and gates (+0.49); ship -- more climb (+0.46) and more hazards per block
+  (+0.43: spiky walls, not a busier path); ufo -- longer holds (+0.53); robot -- orbs and pads (+0.53); cube and robot --
+  speed (+0.26 / +0.33).
+- So a harder version of a brick is a different brick: a corridor that narrows into a gate, a ship stretch that climbs
+  between spiky walls, an orb added to a robot jump, a speed portal -- not a spike moved by a block.
+
+## The reverse lego: which bricks a level is built from (2026-11-25)
+
+The user: "given a structure (in a new or old level), find a matching one. and in that way we can also try to help the
+solver of the level". `node tools/lego_match.js <level | official:N> [--min 0.6] [--src official|ours|all] [--test]`:
+the level as block columns (no route needed), every catalogue brick slid along it (a column votes for level columns
+with the same contents, the best shifts scored by shared objects / all objects per column), the best match per
+stretch kept, and the brick's clicks moved to the level's x as predicted presses. ~0.3 s a level.
+
+Test: leave level N's own bricks out, match it against the other main levels' bricks, compare with N's real route.
+
+| min score | real presses inside matched stretches (of all) | of those, a predicted press within 1 block | predicted presses that are real |
+|---|---|---|---|
+| 0.60 | Stereo Madness 64/122, Polargeist 96/144, Base After Base 99/126, Jumper 90/155, Clutterfunk 99/163; Hexagon Force 12/138, Geometrical Dominator 10/138 | 64-77% | 31-51% |
+| 0.75 | SM 51, Polargeist 66, BAB 69, Jumper 65, Clutterfunk 23 | 57-88% | 28-67% |
+| 0.85 | SM 25, Polargeist 22, BAB 25, Jumper 11, the rest 0-11 | 72-100% | 19-80% |
+
+So: **RobTop reuses his cube bricks across the early levels** (half to three quarters of Stereo Madness, Polargeist, Base
+After Base, Jumper is built like bricks from other levels), the later ones are their own (Hexagon Force, Geometrical
+Dominator under 10%). Where a brick matches well (0.85), its clicks predict the real press within a block 72-100% of the
+time: a usable hint for the solver (seed the search there first, as tools/presslib.js does from its learned picture).
+Open: matching that allows a height shift (a brick placed higher), which the fly modes need; feeding the predicted
+presses to the solver and measuring how much faster it gets.
+
 ## Open
 
 - Compose does not place fly pieces from the catalogue yet: ship / wave / swing sections still use ship-tunnel /

@@ -113,6 +113,7 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   a pattern), consistently, small and softer than the level. `node tools/obstacles.js indicators --file <level>`.
   (levels/obstacles.md section 4, design.md "Telegraph"; GDLM 45 v4, GDLM 46 v2)
 - [ ] **The shown route is the human route** (the default; route.kind "human", or "limit" with why): no skips, no unneeded press, taps not holds outside ship/wave (a tap ~60 ms, like a real one; family: "human taps"), orbs buffered, no jumps over nothing, flying the safe line. `node tests/saved_routes.js --all` (PHYSICS.md "How the route is chosen").
+- [ ] **No timing harder than the level's tier** (the user, 2026-11-25, on the main levels: "wherever a timing is too hard for the level, its probably not the path"): every press of the shown route has a window of at least the tier floor -- 40 ms Easy..Harder, 30 Insane, 20 Demon; under it, the route is probably not the intended one, so re-search there. `node tools/tight.js [n] --fix` for the main levels (tools/mains.js runs it after each job); DIFFICULTY.md "Too tight for the level".
 - [ ] **The shown route clicks where a human would**: early in a wide window (~40% in), never at its
   last safe frame -- the replay, the arrows and the level map all follow it. `node tools/windows.js <level>`
   ("pressed N% in"; lib/natural.js step 4). (the user on GDLM 45's ball: "i would prefer to click way earlier")

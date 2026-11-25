@@ -12,6 +12,7 @@ node tools/difficulty_solve.js 7 --resume             # after a physics change: 
 # a stopped solve carries on from its 30 s checkpoint (local/difficulty/NN.part.json); --fresh starts over
 node tools/difficulty.js                              # all cached official levels vs ratings and your attempts
 node tools/save_stats.js                              # your lifetime attempts per official level (save, read-only)
+node tools/save_stats.js --demons                     # every level in your save (main + online): tier, done, attempts, best %; --done, --diff Insane, --list
 node tools/runs.js <rec.mkv> [...] --join --level 7 --device mouse   # your deaths in a recording
 ```
 
@@ -132,6 +133,12 @@ timing misses.
 (read-only, kept in `local/`). All 22 are beaten; Clubstep took 1886 attempts, ToE 2 3258 and
 Deadlocked 3951. The others took 39-560. The game writes the save only now and then, so a
 session's attempts show up there late.
+
+The same tool also writes `local/difficulty/user_stats_online.json`: every level in the save (the 22 main ones and every
+online level he played, GLM_03), its tier from stars / demon type, done (normal 100 or `c_<id>` in GS_completed), attempts,
+jumps, best normal and practice %, and the save's totals (GS_value 5 = demons beaten). His beaten demons with attempt
+counts are calibration data for the model: `tools/fetch_level.js <id>` pulls one for measuring. Unconfirmed: that the
+save's k76 demon type uses the server's numbers (3 easy, 4 medium, 0 hard, 5 insane, 6 extreme) -- check a known demon.
 
 ## Against the official levels (the player's route, SIGMA 13, LAPSE 0.75 %, SETTLE 300 ms)
 
@@ -300,11 +307,34 @@ killing object and what the sim thinks it is; `node tools/levelmap.js <level>` d
 | level | stop | killed by | cause | owner |
 |---|---|---|---|---|
 | Deadlocked | beaten since 2026-11-25 | (was: sideways spike 421 behind a teleport exit) | the teleport portal's box sits 12 right of the object (the user's hitbox-on video); fixed in lib/objects.js | - |
-| Dash | 9.5%, block 75 (2026-11-25; rotated gameplay is in the sim since the same day: the solver gets through the first turned stretch to x ~3890, block 130, where a red-pad jump meets a ceiling: fixed the same day, it was GD's flip-on-head-hit modifier 2866, PHYSICS.md "Gameplay modifiers"; the real-game plan now goes on to a swing stretch at block 179) | the id-392 spike row under the spider's down-tap | Dash turns its gameplay 90 degrees there (rotate gameplay, id 2900): GD takes the tap in the turned frame, sideways; the sim has no turned frames, and GD's own search kills an unturned tap on that row (gdsolver, lv22 t=1,737/1,745). Before the teleport was made GD's it reached 28% by a wrong landing | physics: rotated gameplay (PHYSICS.md) |
+| Dash | 9.5%, block 75 (2026-11-25; rotated gameplay is in the sim since the same day: the solver gets through the first turned stretch to x ~3890, block 130, where a red-pad jump meets a ceiling: fixed the same day, it was GD's flip-on-head-hit modifier 2866, PHYSICS.md "Gameplay modifiers"; the real-game plan now goes on to a swing stretch at block 179. Our solver's resume after it (2.0 h, the trap retry included) passes the ceiling, the slow-motion stretch and the swing, and stops 30 ticks into the SECOND turned stretch: x 6746, a swing turned to travel up at x 6735, block 225 -- next) | the id-392 spike row under the spider's down-tap | Dash turns its gameplay 90 degrees there (rotate gameplay, id 2900): GD takes the tap in the turned frame, sideways; the sim has no turned frames, and GD's own search kills an unturned tap on that row (gdsolver, lv22 t=1,737/1,745). Before the teleport was made GD's it reached 28% by a wrong landing | physics: rotated gameplay (PHYSICS.md) |
 | Fingerdash | 6%, block 55 | id 1813, nothing visible there | 1755 / 1813 / 1829 / 1859 are GD's lettered helper blocks (OpenGD type 40), imported as 30x30 hazards by the "hitbox = hazard" fallback; Fingerdash has 36, Dash 22 | physics (lib/objects.js) |
 
 With the helper blocks left out, Fingerdash's old clicks get to 6.7% (a saw: those clicks were planned
 for the old death); it needs a re-solve once physics settles what the blocks do.
+
+## Balance: how the score is built (tools/balance.js, 2026-11-25)
+
+The user: "i want to see how the difficulty is decided". `node tools/balance.js <level | "GDLM NN" | official:N> [...]
+[--html out.html]` splits a score into its presses: each press costs -log10 p, and that cost is three parts that add up:
+**slips** (-log10(1 - LAPSE), the same 0.0033 for every press), **timing** (-log10 erf(...), a narrow window) and
+**after-portal** (-log10 of the SETTLE factor). It prints the costliest presses and the cost per mode stretch; `--html`
+fills `viewer/balance.html` (a page per level given, tabs between them, the main levels' scores as a ladder). GDLM levels
+use the saved route in viewer/levels.js (FROSTBITE: 88 s in the cloud); official levels the cached
+local/difficulty/scored_NN.json (seconds). The score it adds up equals lib/difficulty.js's (it warns when not).
+
+What it showed first (FROSTBITE 2.66 vs Electrodynamix 2.65, same model):
+- **The after-portal rule decides both.** FROSTBITE = slips 0.51 + timing 0.05 + after-portal 2.11; Electrodynamix =
+  0.48 + 0.04 + 2.13. Without it both are ~0.55 (Polargeist level). FROSTBITE's "spike" at 69 s (block 760) is a ship
+  press with a 275 ms window: wide, but it closes 71 ms after the ship portal, so its chance is cut to 23%.
+- **Part of it is a measuring artifact.** A window's late end is searched up to MAX_SHIFT (200 ms). A press whose window
+  is still open there gets `afterSwitchMs` = the search limit, and the rule calls it forced. 6 of FROSTBITE's 9
+  after-portal presses are 404 ms windows "closing" exactly 200 ms after the portal: 1.06 of its 2.66. Exempting
+  late-open windows (`settleOf(a, settle, true)`, `D.SETTLE_LATE_OPEN`) gives FROSTBITE ~1.6, Electrodynamix 2.35, and on
+  the 21 main levels Spearman vs stars 0.82 -> 0.84 but vs the user's attempts 0.87 -> 0.80. **Open, off by default**:
+  the rule was fitted (SETTLE 300 ms) with the artifact in; exempting needs a refit of SETTLE on real_stats first.
+- Also open: a press whose window starts well before the portal (the 69 s one opens ~200 ms before it) can be pressed
+  before the switch; the rule still counts it as forced.
 
 ## Fairness: deaths that are not the player's fault
 
@@ -570,6 +600,17 @@ Used in:
   floor next to it. Open: fit a per-mode familiarity term once the user's runs cover more modes.
 Our levels by tier floor (2026-11-24): 41/43 Normal; 45, 46 sketch, 62 Harder (ball, wave); 47, 61, 63-66 Insane (2x,
 0.5x, dual, blue orb); 44, 50, 51, 52, 60, 67 Demon (a green orb).
+
+## Too tight for the level (2026-11-25)
+
+The user: "in the main levels, wherever a timing is too hard for the level, its probably not the path". A press whose player
+window is under the level's tier floor -- 40 ms Easy to Harder, 30 Insane, 20 Demon (the board's first cut) -- marks a
+spot where the route is probably not the intended one. `node tools/tight.js [n ...] [--fix] [--coins]` lists them per
+main level; --fix re-searches each (lib/difficulty.js easierRoute with `below: floor`: drop / move / add taps nearby that
+rejoin the route, judged by windows and joint chance) and saves the route when it is easier and still takes every portal.
+What stays under the floor is a physics lead or a branch further back than the local search reaches. Flagged first
+(board, 2026-11-25): xStep 25 ms, Electroman Adventures 8, Hexagon Force 8, Deadlocked 17, Dash 8. tools/mains.js runs
+--fix after every job. Results: local/mains/tight.json.
 
 ## Main levels kept current (tools/mains.js)
 

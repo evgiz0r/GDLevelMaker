@@ -64,7 +64,7 @@ function scoreOfficial(n, sigma) {
   // LAPSE, SETTLE) can be re-checked without re-measuring windows: node tools/difficulty.js --cached
   fs.writeFileSync(path.join(OUT, `scored_${String(n).padStart(2, "0")}.json`), JSON.stringify({
     n, physics: sol.physics || null, route: human ? "human (viewer)" : "solver + humanize", scoredAt: new Date().toISOString(), seconds: d.seconds, complete: d.complete, blocks: d.blocks,
-    actions: d.actions.map(a => ({ tick: a.tick, type: a.type, ms: a.ms, x: Math.round(a.x), mode: a.mode, afterSwitchMs: a.afterSwitchMs })) }));
+    actions: d.actions.map(a => ({ tick: a.tick, type: a.type, ms: a.ms, x: Math.round(a.x), mode: a.mode, afterSwitchMs: a.afterSwitchMs, lateOpen: a.lateOpen })) }));
   // into the measurements store (tools/measures.js), stamped with the physics the scored route was solved on
   require("./measures.js").record({ level: "official:" + n, name: RATED[n] ? RATED[n][0] : null, levelStr,
     measure: "difficulty", value: +d.logAttempts.toFixed(3), unit: "log10 attempts", stamps: { physics: sol.physics || null },
@@ -86,7 +86,7 @@ function main() {
       const c = JSON.parse(fs.readFileSync(f, "utf8"));
       let la = 0;
       for (const a of c.actions) {
-        const k = a.afterSwitchMs !== null && a.afterSwitchMs !== undefined && a.afterSwitchMs < settle ? Math.max(0.02, a.afterSwitchMs / settle) : 1;
+        const k = DF.settleOf(a, settle);
         la -= Math.log10(Math.max(DF.hitChance(a.ms, sigma) * k, 1e-9));
       }
       // the user's rule (2026-11-23): a route that skips a portal is a physics bug, never a number
