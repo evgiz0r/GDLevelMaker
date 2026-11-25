@@ -1,6 +1,6 @@
 {
-	"geode": "5.0.0",
-	"gd": { "win": "2.2081" },
+	"geode": "6.0.0",
+	"gd": { "win": "2.2091" },
 	"id": "gdlm.probe",
 	"name": "GDLM Probe",
 	"version": "v0.1.0",

@@ -131,7 +131,7 @@ things take" below). The tools below still work one by one.
 4. With the game closed, `node tools/install.js levels/<name>.gdlvl` puts it at the top of
    My Levels (backs the save up first; refuses while GeometryDash.exe runs -- then queue it:
    `node tools/install_queue.js add <file> --by <who>`, the watcher installs it when GD closes). The user plays it
-   and reports. The user's game is GD 2.2081 on Steam (Windows); Geode was installed 2026-11-25, but no tool uses a mod yet (GEODE.md: GDShare would give in-game .gmd import).
+   and reports. The user's game is GD **2.2091** on Steam (Windows; Steam updated it 2026-10-21 -- older notes say 2.2081) with Geode 6.0.0 (2026-11-25); our probe mod `mods/gdlm-probe` is built with `tools\geode_build.cmd` and installed, not run yet (GEODE.md "Building on this PC": Smart App Control blocks the Geode CLI, so `tools/geode_pack.js` packs).
    Or the bot plays it: `node tools/bot.js levels/<name>.gdlvl` presses Space at the solver's
    click times in the real game (no mod; it syncs to each attempt's start on screen and measures
    its own lag from ground jumps). A clear confirms the sim; a death is where they disagree --
@@ -211,6 +211,7 @@ on a long one with modes). Wait for the heavy-job slot comes on top of all of th
 | wip put (solution cached by make) | a few s | wip.js |
 | install into the game (`install.js`, game closed) | not timed yet (publisher: `--time install`) | |
 | a server upload | not timed yet (publisher: `--time upload`) | |
+| build a Geode mod (`tools/geode_build.cmd`, cold) | ~60-95 s | GDLM Probe, 2026-11-25 |
 | git pull + push | ~10 s | 2026-11-23 |
 | edit.js, one edit, the old route still clears (re-plan + checks) | see EDITING.md "Results" | 2026-11-23 |
 | edit.js, an edit that needs a full solve | as "make" above for that level | |
@@ -431,7 +432,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   the buttons are, GD must be windowed, the user's yes before each upload; ONE phone slot,
   ID 152848491, filled with `install.js <lvl> --slot phone`; and the test slot "Claude Lab", `--slot lab --desc "..."`, not uploaded yet; both in `local/phone_ids.json`). **Install queue** `tools/install_queue.js` (add / watch: installs the moment GD closes, reads the save back; PUBLISH.md). `tools/install.js` keeps a shared level's online ID on re-install, so
   Share again updates the same upload (`tests/install_keeps_id.js`).
-- **Geode mods** (GEODE.md: which index mods help -- GDShare import, Eclipse / GDH bots, Pathfinder -- which must NOT be installed because they change gameplay, and our own probe mod `mods/gdlm-probe/` that logs the player's state every tick, read by `tools/probe.js`; playback of routes next).
+- **Geode mods** (GEODE.md: which index mods help -- GDShare import, Eclipse / GDH bots, Pathfinder -- which must NOT be installed because they change gameplay, and our own probe mod `mods/gdlm-probe/` that logs the player's state every tick, read by `tools/probe.js`, built by `tools/geode_build.cmd` + packed by `tools/geode_pack.js` (no Geode CLI: Smart App Control blocks it); playback of routes next).
 - `examples/` -- levels the user made in the game, for reference and as format ground truth.
 
 All the library code runs in both node and the browser (no build step, no dependencies).

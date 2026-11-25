@@ -1,12 +1,13 @@
 # Geode: mods as ground truth from the real game
 
-The user installed Geode (GD's mod loader) on the PC on 2026-11-25. Until then the game was plain GD 2.2081 on
-Steam, and everything we know about the real game came from screen recordings (tools/track.py, framecheck,
+The user installed Geode (GD's mod loader) on the PC on 2026-11-25. Until then the game was plain GD on Steam (2.2091 since Steam's
+2026-10-21 update -- not 2.2081 as older notes say; Geode maps the exe's PE timestamp 1792203143 to 2.2091), and everything we know about the real game came from screen recordings (tools/track.py, framecheck,
 landbuf), a keyboard input logger with a clock fitted afterwards (tools/inputlog.ps1, replay_run.js), gdsolver's
 published plans, and a keyboard bot nobody trusts yet (tools/bot.js). A mod runs INSIDE the game: it can read the
 player's state every physics tick and press the button on an exact tick. That removes most of the guesswork.
 
-Status (2026-11-25): the user OK'd installing the C++ toolchain and building our probe mod. Source: `mods/gdlm-probe/`; reader: `tools/probe.js`. Every mod install and every build needs the
+Status (2026-11-25): the toolchain is installed and GDLM Probe v0.1.0 is built and installed in the game's geode/mods
+(see "Building on this PC"); not run in the game yet. Source: `mods/gdlm-probe/`; reader: `tools/probe.js`. Every mod install and every build needs the
 user's OK first. The phone's GD still has no Geode (PUBLISH.md), so this is a PC-only tool.
 
 ## What it can settle (our open questions)
@@ -24,7 +25,8 @@ user's OK first. The phone's GD still has no Geode (PUBLISH.md), so this is a PC
 
 ## Existing mods (official index, geode-sdk.org/mods), checked 2026-11-25
 
-GD target is the one the index page lists; the user's Steam game is 2.2081.
+GD target is the one the index page lists; the user's Steam game is **2.2091** (checked 2026-11-25), so a mod built
+only for 2.2081 does not load: check each mod's 2.2091 build before relying on it (the rows below were read as 2.2081).
 
 | mod | what it gives us | caveats |
 |---|---|---|
@@ -81,9 +83,32 @@ Build (on the PC): `cd mods/gdlm-probe && geode build --ninja` (installs into th
 `mod.json`'s "gd" and "geode" fields must match the installed game and loader (check them on the PC before building).
 Next: playback of a route (press on exact ticks), and a sim-vs-game diff per tick (the PHYSICS.md "Fidelity" scoreboard).
 
+## Building on this PC (2026-11-25)
+
+- Installed: Geode loader **v6.0.0** in the game (`Geode.dll` 6.0.0.0, changelog), GD **2.2091**. Toolchain: CMake 4.4.4,
+  Ninja 1.13.2, LLVM/clang-cl 23.1.6 (winget: 37 / 4 / 82 s), VS 2022 Build Tools + "Desktop development with C++"
+  (MSVC 14.44, SDK 10.0.26100; winget, 219 s), Geode CLI (winget, 4 s).
+- **Smart App Control is ON and blocks the Geode CLI** (`geode.exe` is unsigned; Code Integrity events 3033/3077). Nothing
+  else was blocked (CMake, Ninja, LLVM, GD and Geode.dll run). So no `geode config/sdk/build`: the SDK was set up by hand --
+  `git clone --branch v6.0.0 geode-sdk/geode C:\Users\evgbo\geode-sdk`, the release's `geode-v6.0.0-win.zip` unpacked into
+  `bin/6.0.0/` (what `install-binaries` does), `GEODE_SDK` set for the user -- and the build runs with
+  `-DGEODE_DISABLE_CLI_CALLS=ON`; `tools/geode_pack.js` does the CLI's packaging (zip of mod.json, about.md, `<id>.dll`).
+  With CLI calls off, CMake does NOT check mod.json's "gd"/"geode" against the SDK: keep them right by hand.
+- **Build:** `tools\geode_build.cmd [mod dir] [--install]` (vcvars64 + clang-cl + Ninja, build dir
+  `%USERPROFILE%\geode-build\<mod>`, outside OneDrive). Cold build ~60-95 s (configure fetches the bindings, then compile);
+  output `%USERPROFILE%\geode-build\gdlm-probe\gdlm.probe.geode`. `--install` copies it to the game's geode/mods and refuses
+  while GeometryDash.exe runs.
+- **MSVC cl does not compile Geode 6.0.0's headers** (C3615 constexpr in utils/file.hpp, FileError over asp::fs::Error):
+  use clang-cl. main.cpp built as written (no changes needed for 6.0.0 / bindings 2.2091).
+- The SDK's CMake prints a notice for AI-agent builds: building and using the mod locally is fine; a mod mostly written by
+  an AI is not accepted on the Geode Index. We don't submit it.
+- Open: Smart App Control may still refuse to load our freshly built, unsigned `gdlm.probe.dll` inside GD (no reputation
+  yet). If Geode says the mod failed to load, look in Event Viewer > CodeIntegrity for gdlm.probe.dll.
+
 ## Plan (ranked)
 
-1. **GDShare now** (no code): import our levels in the game while it runs. 1.6.0 supports 2.2081 (checked 2026-11-25).
+1. **GDShare now** (no code): import our levels in the game while it runs. 1.6.0 supports 2.2081 (checked 2026-11-25);
+   the game is 2.2091 -- check for a 2.2091 build first.
 2. **The probe mod, logging first**: settles the landing, ship height, orbs and camera at once, and makes every
    recording exact. Then `tools/probe.js` + the fidelity diff. Biggest payoff.
 3. **The probe's playback**: our routes in the real game, tick-exact (USE_CASES 26), the main levels and every
