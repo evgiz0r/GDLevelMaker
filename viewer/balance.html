@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Difficulty balance</title>
+<!-- made by tools/balance.js (node tools/balance.js <level> ... --html out.html); DIFFICULTY.md "Balance" -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* VOICE work: a breakdown the user reads to see how one number is built
+   IDEA a ledger: the score is a sum of per-press costs, shown as a receipt along the level
+   PICTURE every press as a bar at its moment (height = its cost), the running total climbing over it, mode stretches as bands
+   COLOUR white / night ground, ink #10223a, sky #4fb3e8 band, orange #ff7a1a for the costly presses
+   TYPE Outfit 600 + Inter
+   LAYOUT sky band with finding + figures; full-width chart; then two columns (top spots | sections), then the mains ladder and the formula */
+:root{color-scheme:light dark;--bg:light-dark(#ffffff,#0b1726);--ink:light-dark(#10223a,#e8eef6);--mute:light-dark(#53627a,#9db0c6);--line:light-dark(#dfe6ee,#22344d);--sky:light-dark(#4fb3e8,#173f63);--skyink:light-dark(#0b1d33,#eaf4fc);--hot:#ff7a1a;--panel:light-dark(#f4f8fb,#102038);--bar:light-dark(#9fb4c9,#4d6a8a)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Inter,system-ui,sans-serif;overflow-x:clip}
+h1,h2,.big{font-family:Outfit,Inter,sans-serif;letter-spacing:-.02em;line-height:1.08;margin:0}
+h1{font-size:clamp(28px,4.4vw,46px);font-weight:600}
+h2{font-size:24px;font-weight:600;margin-bottom:10px}
+p{margin:.4em 0}
+.band{padding-block:clamp(22px,3.5vw,48px);padding-left:max(5vw,16px,env(safe-area-inset-left,0px));padding-right:max(5vw,16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1240px;margin:0 auto}
+.top{background:var(--sky);color:var(--skyink);margin-top:calc(-1*env(safe-area-inset-top,0px));padding-top:calc(env(safe-area-inset-top,0px) + clamp(22px,3.5vw,44px))}
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
+.tabs button{font:600 15px Inter,sans-serif;border:1.5px solid currentColor;background:transparent;color:inherit;border-radius:999px;padding:8px 16px;min-height:40px;cursor:pointer}
+.tabs button[aria-pressed=true]{background:var(--skyink);color:var(--sky)}
+.lede{font-size:17px;max-width:70ch;margin-top:10px}
+.figs{display:grid;grid-template-columns:repeat(auto-fit,minmax(9em,1fr));gap:14px 22px;margin-top:22px}
+.fig1 .big{font-size:clamp(28px,4vw,40px);font-weight:700;white-space:nowrap}
+.fig1 div:last-child{font-size:14px;opacity:.85}
+.parts{display:flex;height:14px;border-radius:7px;overflow:hidden;margin-top:18px;background:color-mix(in srgb,var(--skyink) 15%,transparent)}
+.parts i{display:block;height:100%}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:14px;margin-top:8px}
+.sw{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.chart{position:relative;height:360px}
+.chart svg{position:absolute;inset:0;width:100%;height:100%}
+svg text{font:13px Inter,sans-serif;fill:var(--mute);paint-order:stroke;stroke:var(--bg);stroke-width:4px}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font-size:13px;padding:6px 9px;border-radius:6px;white-space:nowrap;display:none;z-index:2}
+.cols{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:clamp(20px,4vw,48px)}
+@media(max-width:820px){.cols{grid-template-columns:minmax(0,1fr)}}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{text-align:left;font-weight:600;color:var(--mute);padding:6px 8px;border-bottom:1px solid var(--line)}
+td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.meter{height:10px;border-radius:5px;background:var(--hot)}
+.meter.q{background:var(--bar)}
+.note{font-size:14px;color:var(--mute)}
+.ladder .row{display:grid;grid-template-columns:minmax(9em,13em) minmax(0,1fr) 3.4em;gap:10px;align-items:center;padding:3px 0;font-size:14px}
+.ladder .trk{position:relative;height:16px;border-radius:3px;background:var(--panel)}
+.ladder .trk i{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--bar)}
+.ladder .row.me .trk i{background:var(--hot)}
+.ladder .row.me{font-weight:600}
+.formula{background:var(--panel);border-radius:10px;padding:18px 20px}
+.formula code{font:14px ui-monospace,Menlo,monospace}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(15em,1fr));gap:18px;margin-top:12px}
+.steps b{display:block;font-family:Outfit,Inter,sans-serif;font-size:18px;margin-bottom:2px}
+.pw{position:relative;height:220px}
+.pw svg{position:absolute;inset:0;width:100%;height:100%}
+@media(max-width:600px){table{font-size:13px}th,td{padding:6px 4px}.chart{height:300px}.ladder .row{grid-template-columns:8.5em minmax(0,1fr) 3em}}
+</style></head><body>
+<section class="band top"><div class="wrap">
+  <div class="tabs" id="tabs"></div>
+  <h1 id="head"></h1>
+  <p class="lede" id="lede"></p>
+  <div class="figs" id="figs"></div>
+  <div class="parts" id="parts"></div>
+  <div class="legend" id="partsLegend"></div>
+  <p class="lede" id="openNote" style="font-size:15px"></p>
+</div></section>
+
+<section class="band"><div class="wrap">
+  <h2 id="chartHead">Every press, and what it costs</h2>
+  <p class="note">One bar per press at its moment in the level; the taller, the more it adds to the score. The line is the running total, ending at the score. Shaded stretches are the game modes. Hover or tap a bar.</p>
+  <div class="legend" id="modeLegend"></div>
+  <div class="chart" id="chart"><svg></svg><div class="tip" id="tip"></div></div>
+</div></section>
+
+<section class="band" style="padding-top:0"><div class="wrap cols">
+  <div><h2>The costliest presses</h2>
+    <div class="scroll"><table id="topT"><thead><tr><th>Time</th><th>Block</th><th>Mode</th><th>Window</th><th>Chance</th><th>Cost</th><th style="width:28%">Share</th></tr></thead><tbody></tbody></table></div>
+    <p class="note" id="topNote"></p></div>
+  <div><h2>By stretch of the level</h2>
+    <div class="scroll"><table id="secT"><thead><tr><th>Seconds</th><th>Mode</th><th>Presses</th><th>Tightest</th><th>Cost</th><th style="width:30%">Share</th></tr></thead><tbody></tbody></table></div></div>
+</div></section>
+
+<section class="band" style="padding-top:0"><div class="wrap cols">
+  <div><h2>Where it sits among the main levels</h2>
+    <p class="note">Same model, same SIGMA and LAPSE, on the route the viewer shows for each main level. Stars are the in-game rating.</p>
+    <div class="ladder" id="ladder"></div></div>
+  <div><h2>Window size decides the chance</h2>
+    <p class="note">The chance to hit one press against its window (in ms). Dots are this level's presses.</p>
+    <div class="pw" id="pw"><svg></svg></div>
+    <div class="scroll"><table id="bandT"><thead><tr><th>Window</th><th>Presses</th><th>Cost</th><th style="width:40%">Share</th></tr></thead><tbody></tbody></table></div></div>
+</div></section>
+
+<section class="band" style="padding-top:0"><div class="wrap formula">
+  <h2>How the number is decided</h2>
+  <p><code>score = log10(expected attempts) = &Sigma; over presses of &minus;log10 p</code>. Every press must work in one run, so the chances multiply; the log turns that product into a sum, and each press adds its own cost. 1.0 means about 10 attempts, 2.0 about 100, 3.0 about 1000.</p>
+  <div class="steps">
+    <div><b>1. The route a person plays</b>The solver's route, turned into taps (one per jump or orb), and where a tight press has an easier way (an orb instead of a frame-perfect jump), that way.</div>
+    <div><b>2. A window per press</b>Each press is moved earlier and later and replayed; the window is how far it can move and the run still lives (up to 200 ms each way).</div>
+    <div><b>3. A chance per press</b><code>p = (1 &minus; LAPSE) &middot; erf(window/2 / (SIGMA&middot;&radic;2))</code>. SIGMA is your timing spread, LAPSE the chance to fluff any press. Both were fitted on your own recorded runs.</div>
+    <div><b>4. Settling after a portal</b>A press whose window closes under SETTLE ms after a mode, speed or size portal has its chance scaled down by the time left, since you have not settled into the new mode yet.</div>
+  </div>
+  <p class="note" id="modelNote" style="margin-top:14px"></p>
+</div></section>
+
+<script>
+{
+const DATA = /*BALANCE_DATA*/null;
+const MODE = {cube:"#2f7de1",ship:"#e0457b",ball:"#e0a100",ufo:"#8a5cf0",wave:"#13a89e",robot:"#7a8699",spider:"#b45309",swing:"#0ea5e9"};
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const f2 = x => x.toFixed(2), pct = x => Math.round(x * 100) + "%";
+const mmss = t => t < 60 ? t.toFixed(1) + " s" : Math.floor(t / 60) + ":" + String(Math.floor(t % 60)).padStart(2, "0");
+let cur = 0;
+const lv = () => DATA.levels[cur];
+function hdr() {
+  const b = lv(), t = b.top[0], tot = b.score;
+  document.getElementById("tabs").innerHTML = DATA.levels.map((l, i) => `<button aria-pressed="${i === cur}" data-i="${i}">${esc(l.name)} &middot; ${f2(l.score)}</button>`).join("");
+  document.querySelectorAll("#tabs button").forEach(x => x.onclick = () => { cur = +x.dataset.i; try { localStorage.setItem("bal-cur", cur); } catch (e) {} all(); });
+  const top3 = b.top.slice(0, 3).reduce((s, a) => s + a.cost, 0);
+  document.getElementById("head").textContent = `${b.name}: ${f2(tot)}, about ${b.attempts.toLocaleString()} attempts. ` +
+    (t.share >= 0.15 ? `One press at ${mmss(t.t)} is ${pct(t.share)} of it.` : `The top three presses make ${pct(top3 / tot)} of it.`);
+  const n = b.inputs.length, flat = b.parts.lapse;
+  document.getElementById("lede").textContent = `${n} presses over ${Math.round(b.seconds)} s${b.rating ? ` (in-game ${b.rating} stars)` : ""}. ` +
+    `Just pressing ${n} times costs ${f2(flat)} (slips), narrow windows add ${f2(b.parts.timing)}, and presses due right after a portal add ${f2(b.parts.settle)}. ` +
+    `The hardest press, ${t.mode} ${t.type} at block ${Math.round(t.block)}, has a ${t.ms} ms window${t.settle > 0.001 ? `, closing ${t.afterSwitchMs} ms after a portal` : ""}: you hit it ${pct(t.p)} of the time.`;
+  const tight = b.inputs.filter(a => a.ms < 60).length;
+  document.getElementById("figs").innerHTML = [[f2(tot), b.label], ["~" + b.attempts.toLocaleString(), "expected attempts"], [n, "presses"], [tight, "windows under 60 ms"], [Math.min(...b.inputs.map(a => a.ms)) + " ms", "tightest window"]]
+    .map(([v, l]) => `<div class="fig1"><div class="big">${esc(v)}</div><div>${esc(l)}</div></div>`).join("");
+  const P = [["lapse", "slips (every press)", "#7fa7c8"], ["timing", "narrow windows", "var(--hot)"], ["settle", "right after a portal", "#c0265a"]];
+  document.getElementById("parts").innerHTML = P.map(([k, , c]) => `<i style="width:${b.parts[k] / tot * 100}%;background:${c}"></i>`).join("");
+  document.getElementById("partsLegend").innerHTML = P.map(([k, l, c]) => `<span><span class="sw" style="background:${c}"></span>${esc(l)} ${f2(b.parts[k])}</span>`).join("");
+  const on = document.getElementById("openNote");
+  on.hidden = !b.openForced;
+  on.textContent = b.openForced ? `Open question: ${b.openForced} of the after-portal presses have a window that runs to the edge of the search (200 ms each way), so the "closes N ms after the portal" number there is the search limit, not the level. Not counting those as forced, the score would be ${f2(b.ifOpenExempt)}.` : "";
+  const modes = [...new Set(b.inputs.map(a => a.mode))];
+  document.getElementById("modeLegend").innerHTML = modes.map(m => `<span><span class="sw" style="background:${MODE[m] || "#888"};opacity:.5"></span>${esc(m)}</span>`).join("") + `<span><span class="sw" style="background:var(--hot)"></span>costly press (10% of the score or more)</span>`;
+}
+const chartEl = document.getElementById("chart"), tip = document.getElementById("tip");
+function drawChart() {
+  const b = lv(), s = chartEl.querySelector("svg"), W = chartEl.clientWidth, H = chartEl.clientHeight;
+  const m = {l: 44, r: 54, t: 14, b: 32}, iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const T = Math.max(b.seconds, b.inputs[b.inputs.length - 1].t + 1), maxC = Math.max(...b.inputs.map(a => a.cost)) * 1.08, tot = b.score;
+  const X = t => m.l + t / T * iw, Yc = c => m.t + ih - c / maxC * ih, Yr = c => m.t + ih - c / tot * ih;
+  let g = "";
+  for (const sc of b.sections) g += `<rect x="${X(sc.from) - 2}" y="${m.t}" width="${Math.max(3, X(sc.to) - X(sc.from) + 4)}" height="${ih}" fill="${MODE[sc.mode] || "#888"}" opacity=".12"/>`;
+  const step = T > 90 ? 20 : T > 40 ? 10 : 5;
+  for (let t = 0; t <= T; t += step) g += `<line x1="${X(t)}" x2="${X(t)}" y1="${m.t + ih}" y2="${m.t + ih + 5}" stroke="var(--mute)"/><text x="${X(t)}" y="${H - 8}" text-anchor="middle">${t} s</text>`;
+  const cstep = maxC > 1 ? 0.5 : maxC > 0.4 ? 0.2 : 0.05;
+  for (let c = 0; c <= maxC; c += cstep) g += `<line x1="${m.l}" x2="${m.l + iw}" y1="${Yc(c)}" y2="${Yc(c)}" stroke="var(--line)"/><text x="${m.l - 6}" y="${Yc(c) + 4}" text-anchor="end">${+c.toFixed(2)}</text>`;
+  const bw = Math.max(2, Math.min(6, iw / b.inputs.length * 0.7));
+  b.inputs.forEach((a, i) => { const hot = a.cost / tot >= 0.1;
+    g += `<rect data-i="${i}" x="${X(a.t) - bw / 2}" y="${Yc(a.cost)}" width="${bw}" height="${Math.max(1, m.t + ih - Yc(a.cost))}" fill="${hot ? "var(--hot)" : "var(--bar)"}"/>`; });
+  let d = `M${X(0)},${Yr(0)}`; b.inputs.forEach((a, i) => d += `L${X(a.t)},${Yr(b.curve[i])}`);
+  g += `<path d="${d}" fill="none" stroke="var(--ink)" stroke-width="2"/>`;
+  g += `<text x="${X(b.inputs[b.inputs.length - 1].t) + 6}" y="${Yr(tot) + 4}" style="fill:var(--ink);font-weight:600">${f2(tot)}</text>`;
+  g += `<text x="${m.l + iw + 6}" y="${m.t + ih}" >0</text><text x="${m.l}" y="${m.t + 10}" >cost per press</text>`;
+  const t0 = b.top[0]; if (t0) g += `<text x="${Math.min(X(t0.t), W - 140)}" y="${Math.max(m.t + 12, Yc(t0.cost) - 8)}" text-anchor="${X(t0.t) > W - 140 ? "start" : "middle"}" style="fill:var(--ink)">${t0.mode} ${t0.ms} ms, block ${Math.round(t0.block)}</text>`;
+  s.innerHTML = g;
+  s.onpointermove = e => { const r = e.target.dataset && e.target.dataset.i; if (r === undefined) { tip.style.display = "none"; return; }
+    const a = b.inputs[+r], box = chartEl.getBoundingClientRect();
+    tip.textContent = `${mmss(a.t)}, block ${Math.round(a.block)}, ${a.mode} ${a.type}: window ${a.ms} ms${a.afterSwitchMs !== null && a.settle > 0.001 ? `, ${a.afterSwitchMs} ms after a portal` : ""}, chance ${pct(a.p)}, cost ${a.cost.toFixed(3)}`;
+    tip.style.display = "block"; const x = e.clientX - box.left; tip.style.left = Math.min(Math.max(0, x - 120), W - 260) + "px"; tip.style.top = Math.max(0, e.clientY - box.top - 44) + "px"; };
+  s.onpointerleave = () => tip.style.display = "none";
+}
+function tables() {
+  const b = lv(), tot = b.score, mx = b.top[0].cost;
+  document.querySelector("#topT tbody").innerHTML = b.top.map(a => `<tr><td class="n">${mmss(a.t)}</td><td class="n">${Math.round(a.block)}</td><td>${esc(a.mode)} ${esc(a.type)}</td><td class="n">${a.lateOpen ? "&ge;" : ""}${a.ms} ms${a.settle > 0.001 ? "*" : ""}</td><td class="n">${pct(a.p)}</td><td class="n">${a.cost.toFixed(2)}</td><td><div class="meter" style="width:${a.cost / mx * 100}%"></div></td></tr>`).join("");
+  const s10 = b.top.reduce((s, a) => s + a.cost, 0);
+  document.getElementById("topNote").textContent = `These ${b.top.length} presses make ${pct(s10 / tot)} of the score; the other ${b.inputs.length - b.top.length} make the rest. * = due right after a portal (the after-portal cut is in its chance); &ge; = the window reaches the search limit.`.replace("&ge;", "\u2265");
+  const smx = Math.max(...b.sections.map(x => x.cost));
+  document.querySelector("#secT tbody").innerHTML = b.sections.map(x => `<tr><td class="n">${x.from.toFixed(0)}&ndash;${x.to.toFixed(0)}</td><td><span class="sw" style="background:${MODE[x.mode] || "#888"}"></span>${esc(x.mode)}</td><td class="n">${x.inputs}</td><td class="n">${x.minMs} ms</td><td class="n">${x.cost.toFixed(2)}</td><td><div class="meter ${x.share >= 0.15 ? "" : "q"}" style="width:${x.cost / smx * 100}%"></div></td></tr>`).join("");
+  const bmx = Math.max(...b.bands.map(x => x.cost));
+  document.querySelector("#bandT tbody").innerHTML = b.bands.map(x => `<tr><td>${x.hi ? `${x.lo}&ndash;${x.hi} ms` : `${x.lo} ms +`}</td><td class="n">${x.inputs}</td><td class="n">${x.cost.toFixed(2)}</td><td><div class="meter ${x.hi && x.hi <= 60 ? "" : "q"}" style="width:${bmx ? x.cost / bmx * 100 : 0}%"></div></td></tr>`).join("");
+  const rows = DATA.mains.filter(r => r.complete && r.score < 20).map(r => ({...r, me: false}));
+  for (const l of DATA.levels) if (l.kind !== "official") rows.push({name: l.name, rating: "ours", score: l.score, me: l === b});
+  for (const r of rows) if (b.kind === "official" && r.n === b.n) r.me = true;
+  rows.sort((p, q) => p.score - q.score);
+  const lmx = Math.min(4, Math.max(...rows.map(r => r.score))); // Deadlocked's 10+ would flatten the rest
+  document.getElementById("ladder").innerHTML = rows.map(r => `<div class="row ${r.me ? "me" : ""}"><span>${esc(r.name)} <span class="note">${esc(r.rating === "ours" ? "ours" : r.rating.replace(/ (\d+)$/, " $1★"))}</span></span><div class="trk"><i style="width:${Math.min(1, r.score / lmx) * 100}%"></i></div><span class="n">${f2(r.score)}</span></div>`).join("");
+  const M = b.model; document.getElementById("modelNote").textContent = `Model now: SIGMA ${M.SIGMA} ms, LAPSE ${(M.LAPSE * 100).toFixed(2)}%, SETTLE ${M.SETTLE} ms. Fingerdash and main levels whose saved route does not finish are left out of the ladder. Page made ${DATA.made.slice(0, 16).replace("T", " ")} UTC by tools/balance.js.`;
+}
+const pwEl = document.getElementById("pw");
+function drawPw() {
+  const b = lv(), s = pwEl.querySelector("svg"), W = pwEl.clientWidth, H = pwEl.clientHeight, M = b.model;
+  const m = {l: 40, r: 30, t: 10, b: 30}, iw = W - m.l - m.r, ih = H - m.t - m.b, MX = 200;
+  const X = ms => m.l + Math.min(ms, MX) / MX * iw, Y = p => m.t + ih - p * ih;
+  const erf = x => { const t = 1 / (1 + 0.3275911 * x); return 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x); };
+  let g = "", d = "";
+  for (let ms = 0; ms <= MX; ms += 2) d += (ms ? "L" : "M") + X(ms) + "," + Y((1 - M.LAPSE) * erf(ms / 2 / (M.SIGMA * Math.SQRT2)));
+  for (const p of [0, .5, 1]) g += `<line x1="${m.l}" x2="${m.l + iw}" y1="${Y(p)}" y2="${Y(p)}" stroke="var(--line)"/><text x="${m.l - 6}" y="${Y(p) + 4}" text-anchor="end">${p * 100}%</text>`;
+  for (const ms of [0, 50, 100, 150, 200]) g += `<text x="${X(ms)}" y="${H - 8}" text-anchor="middle">${ms}${ms === 200 ? "+" : ""} ms</text>`;
+  g += `<line x1="${X(60)}" x2="${X(60)}" y1="${m.t}" y2="${m.t + ih}" stroke="var(--hot)" stroke-dasharray="3 3"/><text x="${X(60) + 4}" y="${Y(.15)}" style="fill:var(--hot)">60 ms: tight</text>`;
+  for (const a of b.inputs) g += `<circle cx="${X(a.ms)}" cy="${Y(a.p)}" r="3.5" fill="${a.cost / b.score >= .1 ? "var(--hot)" : "var(--bar)"}" opacity=".8"/>`;
+  g += `<path d="${d}" fill="none" stroke="var(--ink)" stroke-width="2"/>`;
+  s.innerHTML = g;
+}
+function all() { hdr(); drawChart(); tables(); drawPw(); }
+try { const v = +localStorage.getItem("bal-cur"); if (v > 0 && v < DATA.levels.length) cur = v; } catch (e) {}
+all();
+const ro1 = new ResizeObserver(drawChart); ro1.observe(chartEl);
+const ro2 = new ResizeObserver(drawPw); ro2.observe(pwEl);
+}
+</script>
+</body></html>

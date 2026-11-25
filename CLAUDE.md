@@ -220,7 +220,7 @@ on a long one with modes). Wait for the heavy-job slot comes on top of all of th
 | wip put (solution cached by make) | a few s | wip.js |
 | install into the game (`install.js`, game closed) | not timed yet (publisher: `--time install`) | |
 | a server upload | not timed yet (publisher: `--time upload`) | |
-| video of a whole official level (`video.js official:N --route`, 1280x720 60 fps) | ~4.7x the level's length (Jumper 86.6 s: 408 s, 28.9 MB) | timings.jsonl, 2026-11-25 |
+| video of a whole official level (`video.js official:N --route`, 1280x720 60 fps) | ~2.2-4.7x the level's length, the more other jobs run (Jumper 90 s with its 4.5 s end screen: 202 s and 346 s, ~27 MB; first run 408 s) | timings.jsonl, 2026-11-25 |
 | build a Geode mod (`tools/geode_build.cmd`, cold) | ~60-95 s | GDLM Probe, 2026-11-25 |
 | git pull + push | ~10 s | 2026-11-23 |
 | edit.js, one edit, the old route still clears (re-plan + checks) | see EDITING.md "Results" | 2026-11-23 |
@@ -319,6 +319,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   classified by family (fly: ship/wave/swing paths and corridors; jump; flip) with parameters, the official mix vs ours,
   the variety rule; one path built as ship / wave / swing with wrappers and click- or portal-turns): `tools/lego.js`
   (`mine`, `families`, `variety <level>`, `page [--public]`, `votes`: Evgeni's 👍/👎/comments from the PC /lego/ page and the phone page, a weight not a ban), `tools/lego_match.js` (the reverse lego: which bricks a level is built from, their clicks as press hints), `tools/lego_join.js` (joins checked in physics), `tools/lego_seams.js` (how levels combine pieces: portals, rhythm, breathers, variety, height; official vs ours, LEGO.md "Combining"), the `fly-path` pattern, `lego-*` structures.
+- **How a difficulty score is built** (DIFFICULTY.md "Balance"): `tools/balance.js <level | official:N> ... --html out.html` -- every press's cost (slips + timing + after-portal), the costliest presses, cost per mode stretch, the main levels' ladder; page template `viewer/balance.html`.
 - **Quality vs the official levels** (QUALITY.md: one scorecard, official 1-10 next to every GDLM level --
   gameplay, flow, look, fairness, soft rules -- with a verdict per metric and the biggest gaps; owner: the
   difficulty session): `node tools/quality.js` (a new level gets a row by itself; `--cached` prints only).

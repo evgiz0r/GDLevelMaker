@@ -313,6 +313,29 @@ killing object and what the sim thinks it is; `node tools/levelmap.js <level>` d
 With the helper blocks left out, Fingerdash's old clicks get to 6.7% (a saw: those clicks were planned
 for the old death); it needs a re-solve once physics settles what the blocks do.
 
+## Balance: how the score is built (tools/balance.js, 2026-11-25)
+
+The user: "i want to see how the difficulty is decided". `node tools/balance.js <level | "GDLM NN" | official:N> [...]
+[--html out.html]` splits a score into its presses: each press costs -log10 p, and that cost is three parts that add up:
+**slips** (-log10(1 - LAPSE), the same 0.0033 for every press), **timing** (-log10 erf(...), a narrow window) and
+**after-portal** (-log10 of the SETTLE factor). It prints the costliest presses and the cost per mode stretch; `--html`
+fills `viewer/balance.html` (a page per level given, tabs between them, the main levels' scores as a ladder). GDLM levels
+use the saved route in viewer/levels.js (FROSTBITE: 88 s in the cloud); official levels the cached
+local/difficulty/scored_NN.json (seconds). The score it adds up equals lib/difficulty.js's (it warns when not).
+
+What it showed first (FROSTBITE 2.66 vs Electrodynamix 2.65, same model):
+- **The after-portal rule decides both.** FROSTBITE = slips 0.51 + timing 0.05 + after-portal 2.11; Electrodynamix =
+  0.48 + 0.04 + 2.13. Without it both are ~0.55 (Polargeist level). FROSTBITE's "spike" at 69 s (block 760) is a ship
+  press with a 275 ms window: wide, but it closes 71 ms after the ship portal, so its chance is cut to 23%.
+- **Part of it is a measuring artifact.** A window's late end is searched up to MAX_SHIFT (200 ms). A press whose window
+  is still open there gets `afterSwitchMs` = the search limit, and the rule calls it forced. 6 of FROSTBITE's 9
+  after-portal presses are 404 ms windows "closing" exactly 200 ms after the portal: 1.06 of its 2.66. Exempting
+  late-open windows (`settleOf(a, settle, true)`, `D.SETTLE_LATE_OPEN`) gives FROSTBITE ~1.6, Electrodynamix 2.35, and on
+  the 21 main levels Spearman vs stars 0.82 -> 0.84 but vs the user's attempts 0.87 -> 0.80. **Open, off by default**:
+  the rule was fitted (SETTLE 300 ms) with the artifact in; exempting needs a refit of SETTLE on real_stats first.
+- Also open: a press whose window starts well before the portal (the 69 s one opens ~200 ms before it) can be pressed
+  before the switch; the rule still counts it as forced.
+
 ## Fairness: deaths that are not the player's fault
 
 The user, after GDLM 46 v2: "I mostly died deaths not really my fault". The physics session
