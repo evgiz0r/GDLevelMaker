@@ -12,6 +12,7 @@ if (require.main === module) require("./heavy.js").claim();   // one heavy job a
 const fs = require("fs"), path = require("path"), vm = require("vm");
 const R = path.join(__dirname, "..");
 const DF = require("../lib/difficulty.js");
+const { cleanFly, flyCost } = require("./difficulty_fit_v2.js");   // the flight room, glitch-proof, at a given spread
 const D = DF.DIFF;
 const SCORED = process.env.GDLM_SCORED_DIR || path.join(R, "local", "difficulty");
 const RATED = {
@@ -38,7 +39,7 @@ function costOf(a) {
   const lapse = lg(1 - D.LAPSE), timing = lg(erf(a.ms / 2 / (D.SIGMA * Math.SQRT2))), set = lg(settle);
   return { t: +(a.tick / TPS).toFixed(3), block: +(a.x / 30).toFixed(1), mode: a.mode, type: a.type, ms: Math.round(a.ms),
     afterSwitchMs: a.afterSwitchMs === undefined ? null : a.afterSwitchMs === null ? null : Math.round(a.afterSwitchMs),
-    ...v2Of(a, lateOpen, lapse, timing, set),
+    ...v2Of(a, lateOpen, lapse, lg(erf(a.ms / 2 / (V2.SIGMA * Math.SQRT2))), set),
     p: +p.toFixed(4), cost: +lg(p).toFixed(4), lateOpen, costIfOpenExempt: +lg(pOpen).toFixed(4), lapse: +lapse.toFixed(4), timing: +timing.toFixed(4), settle: +set.toFixed(4) };
 }
 
@@ -60,16 +61,22 @@ function v2Of(a, lateOpen, lapse, timing, set) {
 // press made upside down, or within GRAV_RECENT_MS after a gravity flip (portal, orb or pad), costs a little more: its
 // chance x (1 - GRAV_PEN). ASSUMED (0.01 a press, about the slip itself, x3 the slip cost), not fitted. Needs the run's path,
 // so only where the level is here (our levels everywhere, the mains on the PC).
-const GRAV_PEN = 0.01, GRAV_RECENT_MS = 1000;
+const GRAV_RECENT_MS = 1000;
+// FITTED 2026-11-25 (tools/difficulty_fit_v2.js on the 21 measured main levels against Evgeni's ranking x2, the stars and his
+// attempts; DIFFICULTY.md "Balance: the v2 fit"): the plateau within 0.01 of the best is SIGMA 25-30 ms, FLY_SPREAD 16-20,
+// GRAV_PEN 0-0.01, DUAL_PEN 0-0.01. Picked inside it, on the side of his notes (gravity and duals add "a bit"). The v2
+// SIGMA is the spread that ranks LEVELS best, not the one fitted on his runs (13 ms, the v1 score keeps it).
+const V2 = { SIGMA: 28, FLY_SPREAD: 16, GRAV_PEN: 0.01, DUAL_PEN: 0.01, DUAL_ASYM_PEN: 0.02, MIRROR_PEN: 0.02 };
+const GRAV_PEN = V2.GRAV_PEN;
 // Dual (the user, 2026-11-25: "some people think hexagon force is harder than the demons because the two hard duals"):
 // one button moves two players, so each press in a dual stretch is two things to get right. A press made while dual
 // has its chance x (1 - DUAL_PEN), ASSUMED 0.05, flying presses too (they are cheap otherwise). Not fitted.
-const DUAL_PEN = 0.05;
+const DUAL_PEN = V2.DUAL_PEN;   // was ASSUMED 0.05; the fit puts it at 0-0.01
 // The user, 2026-11-25: "duals = bit more difficult, assymetric duals = even more, reverse screen = bit more difficult (not
 // very but it does add as its a bit unnatural)". Asymmetric dual = the two players in different modes: x (1 - DUAL_ASYM_PEN)
 // instead of DUAL_PEN. Reverse screen = after a mirror portal (45 on, 46 off; the sim does not flip the screen, only
 // the cost does): x (1 - MIRROR_PEN). All ASSUMED, ordered as he said.
-const DUAL_ASYM_PEN = 0.10, MIRROR_PEN = 0.02;
+const DUAL_ASYM_PEN = V2.DUAL_ASYM_PEN, MIRROR_PEN = V2.MIRROR_PEN;   // asym = 2x dual (his order); mirror not fitted (no main has one)
 function mirrorOf(actions, w) {
   const m = w.objects.filter(o => o.id === 45 || o.id === 46).sort((a, b) => a.x - b.x);
   for (const a of actions) { let on = false; for (const o of m) { if (o.x > a.x) break; on = o.id === 45; } a.mirror = on; }
@@ -134,12 +141,14 @@ function balance(name, actions, meta) {
 }
 
 function v2Total(inputs, fly) {
-  const presses = inputs.reduce((s, a) => s + a.v2, 0), flyCost = fly ? fly.reduce((s, f) => s + f.cost, 0) : null;
+  if (fly) { const cl = cleanFly(fly.map(f => [f.t, f.mode, f.slack, f.n]));   // glitch-proof slack, cost at the fitted spread
+    fly.forEach((f, i) => { f.slackClean = cl[i][2]; f.cost = flyCost([cl[i]], V2.FLY_SPREAD); f.p = Math.pow(10, -f.cost); }); }
+  const presses = inputs.reduce((s, a) => s + a.v2, 0), flyTot = fly ? fly.reduce((s, f) => s + f.cost, 0) : null;
   const worstFly = fly && fly.length ? fly.slice().sort((x, y) => y.cost - x.cost).slice(0, 5) : [];
   const grav = inputs.reduce((s, a) => s + (a.grav || 0), 0);
   const dual = inputs.reduce((s, a) => s + (a.dual || 0), 0);
-  return { score: +(presses + (flyCost || 0)).toFixed(3), presses: +presses.toFixed(3), dual: +dual.toFixed(3), dualPresses: inputs.filter(a => a.dual > 0).length, grav: +grav.toFixed(3), gravPresses: inputs.filter(a => a.grav > 0).length, fly: flyCost === null ? null : +flyCost.toFixed(3),
-    flySeconds: fly ? fly.length : null, worstFly, label: DF.difficultyLabel(presses + (flyCost || 0)) };
+  return { score: +(presses + (flyTot || 0)).toFixed(3), presses: +presses.toFixed(3), dual: +dual.toFixed(3), dualPresses: inputs.filter(a => a.dual > 0).length, grav: +grav.toFixed(3), gravPresses: inputs.filter(a => a.grav > 0).length, fly: flyTot === null ? null : +flyCost.toFixed(3),
+    flySeconds: fly ? fly.length : null, worstFly, label: DF.difficultyLabel(presses + (flyTot || 0)) };
 }
 
 const LEVELS = process.env.GD_LEVELS || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash/Resources/levels/";
