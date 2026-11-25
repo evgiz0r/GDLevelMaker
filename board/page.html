@@ -204,6 +204,19 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
     </details>
   </section>
 
+  <section aria-labelledby="h-r" class="wide">
+    <details id="d-latest" open>
+      <summary><div class="sum-row"><h2 id="h-r">Latest rated</h2><span class="hint" id="r-sum"></span></div></summary>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
+        <div class="filters" id="r-filters" role="toolbar" aria-label="Filter latest rated levels" style="flex-wrap:wrap"></div>
+        <div class="add"><label for="r-q" hidden>Search latest rated</label><input id="r-q" placeholder="Search by name, creator or ID…" autocomplete="off"></div>
+        <div class="tbl-wrap"><table id="rtable"><tbody><tr><td class="l dim ph">Loading…</td></tr></tbody></table></div>
+        <div class="legend">GD's newest star-rated online levels, newest first (the game's Awarded list). Tick a level to queue it for study, like Your levels. Played: your best % if it's in your save.</div>
+      </div>
+    </details>
+  </section>
+
+
   <section aria-labelledby="h-p">
     <details id="d-phys" open>
       <summary><div class="sum-row"><h2 id="h-p">Physics vs the real game</h2><span class="hint" id="p-sum"></span></div></summary>
@@ -489,18 +502,20 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
   }
   var TIERS=["Unrated","Auto","Easy","Normal","Hard","Harder","Insane","Easy Demon","Medium Demon","Hard Demon","Insane Demon","Extreme Demon","Demon"];
   var yFilter="All", yShow=200, played=null;
+  function isDone(r){ return r.done!=null? !!r.done : r.best>=100; }
+  function yMatch(r,q){ return (yFilter==="All" || (yFilter==="Not finished"? !isDone(r) : yFilter==="Finished"? isDone(r) : yFilter==="Demons"? /Demon/.test(r.tier||"") : r.tier===yFilter)) && (!q || (r.name||"").toLowerCase().indexOf(q)>=0 || (r.creator||"").toLowerCase().indexOf(q)>=0 || String(r.id)===q); }
   function tierGroup(t){ return /Demon/.test(t||"")? "Demons" : (t||"Other"); }
   function renderPlayed(){
     var P=played || (state && state.played); if(!P || !P.levels || !P.levels.length) return;
     var L=P.levels.slice().sort(function(a,b){ var ta=TIERS.indexOf(a.tier), tb=TIERS.indexOf(b.tier); if(ta!==tb) return tb-ta; return (b.attempts||0)-(a.attempts||0); });
-    var groups=["All"], seen={}, counts={};
+    var groups=["All"], seen={}, counts={}; counts["Finished"]=L.filter(isDone).length; counts["Not finished"]=L.length-counts["Finished"]; if(counts["Not finished"]) groups.push("Finished","Not finished");
     L.forEach(function(r){ var g=tierGroup(r.tier); counts[g]=(counts[g]||0)+1; if(/Demon/.test(r.tier||"")){ counts[r.tier]=(counts[r.tier]||0)+1; } });
     ["Auto","Easy","Normal","Hard","Harder","Insane","Demons","Easy Demon","Medium Demon","Hard Demon","Insane Demon","Extreme Demon","Unrated"].forEach(function(g){ if(counts[g]) groups.push(g); });
     if(groups.indexOf(yFilter)<0) yFilter="All";
     var fb=$("y-filters"); fb.textContent="";
     groups.forEach(function(g){ var c=el("button","chip",g+(g==="All"?" "+L.length:" "+counts[g])); c.type="button"; c.setAttribute("aria-pressed",String(g===yFilter)); c.onclick=function(){ yFilter=g; yShow=200; renderPlayed(); }; fb.appendChild(c); });
     var q=($("y-q").value||"").trim().toLowerCase();
-    var show=L.filter(function(r){ return (yFilter==="All" || (yFilter==="Demons"? /Demon/.test(r.tier||"") : r.tier===yFilter)) && (!q || (r.name||"").toLowerCase().indexOf(q)>=0 || (r.creator||"").toLowerCase().indexOf(q)>=0 || String(r.id)===q); });
+    var show=L.filter(function(r){ return yMatch(r,q); });
     var total=show.length; show=show.slice(0,yShow);
     var t=$("ytable"); t.textContent="";
     var head=el("thead"), hr=el("tr");
@@ -512,7 +527,7 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
     show.forEach(function(r){
       var tr=el("tr"), key=(r.kind==="main"?"m":"")+r.id, ck=td(null,"l"), cb=document.createElement("input");
       cb.type="checkbox"; cb.checked=!!sset[key]; cb.disabled=!canWrite; cb.setAttribute("aria-label","Queue "+(r.name||r.id)+" for study"); cb.style.cssText="width:18px;height:18px;accent-color:var(--accent);cursor:pointer";
-      cb.onchange=function(){ var st=(picks.study||[]).filter(function(x){ return x!==key; }); if(cb.checked) st.push(key); picks.study=st; studyCount(); save(); };
+      cb.onchange=function(){ var st=(picks.study||[]).filter(function(x){ return x!==key; }); if(cb.checked) st.push(key); picks.study=st; studyCount(); try{ renderLatest(); }catch(e){} save(); };
       ck.appendChild(cb); tr.appendChild(ck);
       var nm=td(null); nm.style.textAlign="left"; nm.style.maxWidth="240px"; nm.style.overflow="hidden"; nm.style.textOverflow="ellipsis";
       if(r.link && /^https:\/\//.test(r.link)){ var a=el("a",null,r.name); a.href=r.link; a.target="_blank"; a.rel="noopener"; a.style.color="inherit"; nm.appendChild(a); } else nm.appendChild(document.createTextNode(r.name||("ID "+r.id)));
@@ -530,9 +545,66 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
     if(total>show.length){ var mr=el("tr"), mc=el("td","l"); mc.colSpan=8; var mb=el("button","chip","Show more ("+(total-show.length)+" left)"); mb.type="button"; mb.onclick=function(){ yShow+=300; renderPlayed(); }; mc.appendChild(mb); mr.appendChild(mc); body.appendChild(mr); }
     t.appendChild(body);
     studyCount();
-    var fin=L.filter(function(r){ return r.best>=100; }).length, dem=L.filter(function(r){ return /Demon/.test(r.tier||"") && r.best>=100; }).length;
+    var fin=L.filter(isDone).length, dem=L.filter(function(r){ return /Demon/.test(r.tier||"") && isDone(r); }).length;
     $("y-sum").textContent=(P.totals? (P.totals.officialDone+P.totals.onlineDone)+" finished · "+P.totals.demons+" demons" : fin+" finished · "+dem+" demons")+(P.at?" · from your save "+fmtWhen(new Date(P.at)):"");
     if(P.note) $("y-legend").textContent=P.note;
+  }
+
+  // ---- latest rated (board/latest: GD's Awarded list, compact {cols, rows}; written by Claude from tools/latest_rated.js) ----
+  var latest=null, rFilter="All", rShow=100, latestLoading=false;
+  function renderLatest(){
+    if(!latest || !latest.levels) return;
+    var mine={}; var P=played || (state && state.played); (P&&P.levels||[]).forEach(function(r){ if(r.kind!=="main") mine[String(r.id)]=r; });
+    var L=latest.levels.filter(function(r){ return !r.platformer; });
+    var counts={}, groups=["All","Not played"];
+    L.forEach(function(r){ var g=tierGroup(r.tier); counts[g]=(counts[g]||0)+1; });
+    counts["Not played"]=L.filter(function(r){ return !mine[r.id]; }).length;
+    ["Auto","Easy","Normal","Hard","Harder","Insane","Demons"].forEach(function(g){ if(counts[g]) groups.push(g); });
+    if(groups.indexOf(rFilter)<0) rFilter="All";
+    var fb=$("r-filters"); fb.textContent="";
+    groups.forEach(function(g){ var c=el("button","chip",g+" "+(g==="All"?L.length:counts[g])); c.type="button"; c.setAttribute("aria-pressed",String(g===rFilter)); c.onclick=function(){ rFilter=g; rShow=100; renderLatest(); }; fb.appendChild(c); });
+    var q=($("r-q").value||"").trim().toLowerCase();
+    var show=L.filter(function(r){ return (rFilter==="All" || (rFilter==="Not played"? !mine[r.id] : tierGroup(r.tier)===rFilter)) && (!q || (r.name||"").toLowerCase().indexOf(q)>=0 || (r.creator||"").toLowerCase().indexOf(q)>=0 || String(r.id)===q); });
+    var total=show.length; show=show.slice(0,rShow);
+    var sset={}; (picks.study||[]).forEach(function(x){ sset[x]=1; });
+    var t=$("rtable"); t.textContent=""; var head=el("thead"), hr=el("tr");
+    var th0=el("th","l"); th0.style.width="34px"; th0.textContent="Study"; hr.appendChild(th0);
+    ["Level","Difficulty","Rating","Likes","Length","Played"].forEach(function(h){ var th=el("th",null,h); if(h==="Level") th.style.textAlign="left"; hr.appendChild(th); });
+    head.appendChild(hr); t.appendChild(head); var body=el("tbody");
+    show.forEach(function(r){
+      var tr=el("tr"), key=String(r.id), ck=td(null,"l"), cb=document.createElement("input");
+      cb.type="checkbox"; cb.checked=!!sset[key]; cb.disabled=!canWrite; cb.setAttribute("aria-label","Queue "+(r.name||r.id)+" for study"); cb.style.cssText="width:18px;height:18px;accent-color:var(--accent);cursor:pointer";
+      cb.onchange=function(){ var st=(picks.study||[]).filter(function(x){ return x!==key; }); if(cb.checked) st.push(key); picks.study=st; studyCount(); try{ renderPlayed(); }catch(e){} save(); };
+      ck.appendChild(cb); tr.appendChild(ck);
+      var nm=td(null); nm.style.textAlign="left"; nm.style.maxWidth="240px"; nm.style.overflow="hidden"; nm.style.textOverflow="ellipsis";
+      nm.appendChild(document.createTextNode(r.name||("ID "+r.id))); nm.title=(r.name||"")+" · ID "+r.id+(r.song?" · "+r.song:"");
+      nm.appendChild(el("span","sm","ID "+r.id+(r.creator?" · "+r.creator:""))); tr.appendChild(nm);
+      tr.appendChild(td((r.tier||"–")+(r.stars?" · "+r.stars+"★":""), /Demon/.test(r.tier||"")?"bad":"dim"));
+      tr.appendChild(td(r.rank||"rated", r.rank==="rated"?"dim":null));
+      tr.appendChild(td(r.likes==null?"–":(r.likes>=1000? Math.round(r.likes/100)/10+"k" : String(r.likes)),"dim"));
+      tr.appendChild(td(r.length||"–","dim"));
+      var m=mine[r.id]; tr.appendChild(td(m? (m.best>=100?"✓ 100%":(m.best||0)+"%") : "–", m&&m.best>=100?"ok":"dim"));
+      body.appendChild(tr);
+    });
+    if(total>show.length){ var mr=el("tr"), mc=el("td","l"); mc.colSpan=7; var mb=el("button","chip","Show more ("+(total-show.length)+" left)"); mb.type="button"; mb.onclick=function(){ rShow+=200; renderLatest(); }; mc.appendChild(mb); mr.appendChild(mc); body.appendChild(mr); }
+    t.appendChild(body);
+    var np=L.filter(function(r){ return !mine[r.id]; }).length;
+    $("r-sum").textContent=L.length+" levels · "+np+" not played"+(latest.at?" · list from "+fmtWhen(new Date(latest.at)):"");
+  }
+  function latestMsg(t, retry){ var e=$("r-sum"); if(!e) return; e.textContent=t; if(retry){ var b=el("button","chip","Retry"); b.type="button"; b.onclick=function(){ latestLoading=false; loadLatest(); }; e.appendChild(document.createTextNode(" ")); e.appendChild(b); } }
+  function loadLatest(){
+    if(latest || latestLoading || !db) return; var ref=db.doc("board/latest"); if(!ref) return;
+    latestLoading=true; latestMsg("Loading…");
+    function got(s,how){ latestLoading=false; if(s && s.exists){ window.__st("latest ok ("+how+")"); latest=unpackPlayed(s.data()); renderLatest(); } else { window.__st("latest missing"); latestMsg("No list yet."); var t=$("rtable"); t.textContent=""; var tb=el("tbody"), tr=el("tr"); tr.appendChild(td("No list yet: Claude adds it on the next refresh.","l dim")); tb.appendChild(tr); t.appendChild(tb); } }
+    setTimeout(function(){
+      var p=typeof ref.get==="function"? ref.get() : Promise.reject({code:"no get"});
+      Promise.race([p, new Promise(function(_,no){ setTimeout(function(){ no({code:"timeout"}); },10000); })]).then(function(s){ got(s,"read"); }).catch(function(e){
+        var done=false, un=null, tm=setTimeout(function(){ if(done) return; done=true; try{ un&&un(); }catch(x){} latestLoading=false; window.__err("Latest rated: no answer"); latestMsg("Didn't load (no answer).", true); },12000);
+        try{ un=ref.onSnapshot(function(s){ if(done || (s.metadata && s.metadata.fromCache && !s.exists)) return; done=true; clearTimeout(tm); try{ un&&un(); }catch(x){} got(s,"live"); },
+          function(e2){ if(done) return; done=true; clearTimeout(tm); latestLoading=false; window.__err("Latest rated: "+(e2&&e2.code||e2)); latestMsg("Didn't load ("+(e2&&e2.code||"error")+").", true); }); }
+        catch(x){ done=true; clearTimeout(tm); latestLoading=false; latestMsg("Didn't load.", true); }
+      });
+    }, 2500);
   }
   function studyCount(){ var n=(picks.study||[]).length, e=$("y-study"); if(e) e.textContent=n? n+" queued for study (slowly, low priority)" : "Tick levels to queue them for study: fetch, cut into structures, score."; }
   // ---- features: Claude's flows and ideas (state.features) + the ideas Evgeni adds and picks (picks.feat_*) ----
@@ -586,7 +658,7 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
     if(!n) box.appendChild(el("div","queue-empty","Finished items land here a day after they're done."));
   }
   // each part renders on its own: one part that fails shows its error and the rest still render
-  var RENDERS={Done:function(){renderDone();},Features:function(){renderFeatures();},Played:function(){renderPlayed();},Levels:function(){renderLevels();},Usage:function(){renderUsage();},Fresh:function(){renderFresh();},Workstreams:function(){renderWs();},Mains:function(){renderMains();},Physics:function(){renderPhys();},Queue:function(){renderQueue();},Filters:function(){renderFilters();},Candidates:function(){renderCands();}};
+  var RENDERS={Done:function(){renderDone();},Features:function(){renderFeatures();},Played:function(){renderPlayed();},Levels:function(){renderLevels();},Usage:function(){renderUsage();},Fresh:function(){renderFresh();},Workstreams:function(){renderWs();},Mains:function(){renderMains();},Physics:function(){renderPhys();},Latest:function(){renderLatest();},Queue:function(){renderQueue();},Filters:function(){renderFilters();},Candidates:function(){renderCands();}};
   var renderErrs={};
   function renderAll(){ Object.keys(RENDERS).forEach(function(k){ try{ RENDERS[k](); }catch(e){ if(!renderErrs[k]){ renderErrs[k]=1; window.__err("render "+k+": "+(e&&e.message||e)+(e&&e.stack? " @ "+String(e.stack).split("\n").slice(0,2).join(" "):"")); } } }); }
 
@@ -638,10 +710,11 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
   $("y-all").addEventListener("click",function(){ if(!canWrite) return; var keys=Array.prototype.map.call(document.querySelectorAll("#ytable tbody input[type=checkbox]"),function(c){ return c; });
     var st=(picks.study||[]).slice(), have={}; st.forEach(function(x){ have[x]=1; });
     var P=played || (state && state.played), q=($("y-q").value||"").trim().toLowerCase();
-    (P&&P.levels||[]).forEach(function(r){ var ok=(yFilter==="All" || (yFilter==="Demons"? /Demon/.test(r.tier||"") : r.tier===yFilter)) && (!q || (r.name||"").toLowerCase().indexOf(q)>=0 || (r.creator||"").toLowerCase().indexOf(q)>=0 || String(r.id)===q);
+    (P&&P.levels||[]).forEach(function(r){ var ok=yMatch(r,q);
       var k=(r.kind==="main"?"m":"")+r.id; if(ok && !have[k]){ st.push(k); have[k]=1; } });
     picks.study=st; renderPlayed(); save(); });
   $("y-q").addEventListener("input",function(){ yShow=200; renderPlayed(); });
+  $("r-q").addEventListener("input",function(){ rShow=100; renderLatest(); });
   setInterval(renderFresh, 60000);
 
   // ---- connect ----
@@ -725,7 +798,7 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
     }, function(e){ clearTimeout(watchdog); lastErr="state: "+(e&&e.code||"error"); failed("the connection dropped ("+(e&&e.code||"error")+")"); }));
     // "Your levels" is a big document (~340 KB): read it once, after the small live ones answer, never as a live
     // subscription (a big live document is the likeliest thing to stall the page's whole data connection)
-    loadPlayed();
+    loadPlayed(); loadLatest();
     unsubs.push(db.doc("board/picks").onSnapshot(function(s){
       if(!window.__pk){ window.__pk=1; window.__st("picks "+(s.exists?"ok":"missing")); }
       if(writing || dirty) return; // don't overwrite a local edit in flight

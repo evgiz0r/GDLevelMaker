@@ -1,4 +1,4 @@
-// node tools/latest_rated.js [--pages 4] [--out local/community/latest_rated.json]
+// node tools/latest_rated.js [--pages 10] [--out local/community/latest_rated.json]
 // GD's "recently rated" list (the game's Awarded search: the newest star-rated online levels, newest first) via gdbrowser's
 // API, 50 per page -> a compact table for the work board's "Latest rated" section (board/README.md), where Evgeni ticks
 // levels to study. Metadata only (names, tiers, likes): no level data is downloaded or committed. Self-contained (node's
@@ -6,7 +6,7 @@
 // Output: {at, source, cols:[...], rows:[[...]]} -- one row per level, in the list's order (newest rated first).
 const https = require("https"), fs = require("fs"), path = require("path");
 const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : d; };
-const PAGES = +arg("--pages", 4);
+const PAGES = +arg("--pages", 10);
 const OUT = arg("--out", path.join(__dirname, "..", "local", "community", "latest_rated.json"));
 const COLS = ["id", "name", "creator", "tier", "stars", "rank", "likes", "downloads", "length", "song", "platformer"];
 
