@@ -157,6 +157,8 @@ function replanAll(ns) {
     if (own) { fs.appendFileSync(out, `=== ${n} ${NAMES[n]}: skipped, owned by ${own}
 `); continue; }
     const prio = FLY.includes(n) ? "normal" : "low";
+    // the planner changes often: every level re-plans on the latest main (the jobs are fresh processes, so a pull is enough)
+    try { cp.execFileSync("git", ["pull", "-q", "--no-edit", "origin", "main"], { windowsHide: true, cwd: ROOT, stdio: "ignore" }); } catch (e) { log("mains: replan: git pull failed, re-planning on the code here"); }
     const before = fly(n, prio);
     const r = job("replan", ["difficulty_solve.js", String(n), "--replan"], prio);
     const after = fly(n, prio);
