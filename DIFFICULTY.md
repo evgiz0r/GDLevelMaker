@@ -352,8 +352,25 @@ What it showed first (FROSTBITE 2.66 vs Electrodynamix 2.65, same model):
   FROSTBITE: v1 2.66 -> v2 0.72 (presses 0.65 incl. gravity 0.09 + flight 0.07 over 38 s of 60-unit-slack ship). On the mains, v2's
   presses alone (no flight: RobTop's levels are only on the PC) rank worse (Spearman vs stars 0.57, v1 0.83):
   Clubstep's and ToE 2's difficulty is in their corridors, so the flight part is needed before v2 replaces v1.
-  NEXT: run `node tools/balance.js official:1 ... official:22 --json` on the PC (it has the levels), fit FLY_SPREAD on
-  stars and the user's attempts from `flyRaw`, then decide. score.js and the board still use v1.
+  Mains measured on the PC 2026-11-25 (commit 0b7d53d): `knowledge/balance_mains_v2.json` (per level v1, v2, gravity and
+  dual counts, flight room per second = `flyRaw`; numbers only). Fitted below. score.js and the board still use v1.
+- **The v2 fit (2026-11-25, `node tools/difficulty_fit_v2.js`, ~0.2 s, cached numbers)**: a grid over SIGMA, FLY_SPREAD,
+  GRAV_PEN, DUAL_PEN (asymmetric = 2x) on 21 mains (Fingerdash not measured), objective = Spearman with the user's rank
+  (x2), stars and his attempts. Results (rank / stars / attempts -> objective):
+  v1 today 0.88 / 0.83 / 0.87 -> 0.86; v2 at the assumed weights 0.76 / 0.83 / 0.63 -> 0.75;
+  **v2 fitted 0.92 / 0.94 / 0.80 -> 0.90**. Plateau within 0.01 of the best: SIGMA 25-30 ms, FLY_SPREAD 16-20, GRAV 0-0.01,
+  DUAL 0-0.01. Picked SIGMA 28, FLY_SPREAD 16, GRAV 0.01, DUAL 0.01 (asym 0.02) inside it, on the side of his notes;
+  tools/balance.js `V2`. What each feature earns (dropped from the best set): flight room -0.18, window width -0.10,
+  gravity -0.01, duals 0.00. So **the data say duals add ~nothing** beyond their windows (Hexagon Force stays high on its
+  timing alone), and gravity a little; the flight room and the timing carry the ranking.
+  Two lessons: (1) the timing spread that ranks LEVELS is ~28 ms, twice the 13 ms fitted on the user's own runs -- a level's
+  hard spots are judged by everyone who plays it, and 13 ms made every window over ~70 ms free (the Dry Out vs Time
+  Machine problem); v1 keeps 13 until the runs are refitted with it. (2) The flight room's per-second min slack glitches
+  (ToE 2 second 34 read 0 in a corridor the route flies: cost 9.6 alone); a 3-second median within one mode stretch
+  (`cleanFly`) fixes it. Still off at the fit (his rank vs ours): ToE 3.09 (his 11th, ours 17th: its UFO seconds at 30
+  units of slack), xStep 0.85 (his 13th, ours 7th), Jumper (7th vs 11th). 21 points and 4 weights: treat it as "around",
+  his words; add community tier lists and his real deaths before trusting the third decimal.
+  NEXT: readability features (below), the survival horizon (1-2 s) for windows, then v2 into score.js / the board.
 - **Stats first, rules only name the features** (the user, 2026-11-25: "i dont want it to be too rule based, but rather
   more based on stats. but as humans play it the feeling of difficulty does make some difference, besides the timing
   themselves"). The v2 terms (flight room, gravity, dual, asymmetric dual, mirror, after-portal) are features, not
@@ -370,7 +387,7 @@ What it showed first (FROSTBITE 2.66 vs Electrodynamix 2.65, same model):
   Track ... Dash, then Hexagon Force = Electrodynamix, then Clubstep / ToE 2 / Deadlocked, Deadlocked hardest). A rough
   target, not an exact one (the user: "its not about fitting exactly, its just around. some are debatable in the
   community. there are many such tierlists in the net"): fit to tiers (a level within ~2 places is fine), and average it
-  with community tier lists when we gather some. Spearman with it -- Spearman with it -- in-game stars 0.95, his attempts 0.80, v1 0.88, v2 presses only 0.58.
+  with community tier lists when we gather some. Spearman with it -- in-game stars 0.95, his attempts 0.80, v1 0.88, v2 presses only 0.58, v2 fitted (with flight) 0.92.
 - **The timing curve is too steep for ordinary jumps** (2026-11-25, Dry Out 4* vs Time Machine 8*): with SIGMA 13 ms a
   window over ~70 ms is a near-certain hit, so Time Machine's eight 83 ms jumps cost 0.004 each, like a 300 ms one, and
   the two levels differ only by press count (v2 presses 0.48 vs 0.50). Refit SIGMA (or a spread that grows with
