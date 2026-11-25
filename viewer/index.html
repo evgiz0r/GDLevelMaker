@@ -87,6 +87,22 @@
   @media (max-width: 700px) { main { grid-template-columns: 1fr; } }
   .card { background:var(--panel); border-radius:8px; padding:12px; }
   .card h2 { font-size:13px; margin:0 0 8px; color:var(--dim); text-transform:uppercase; letter-spacing:.08em; }
+  /* the clicks table: closed until asked for (the user: "all these clicks are still open"; it ran to 188 rows) */
+  #clicksBox > summary { cursor:pointer; list-style-position:inside; color:var(--dim); }
+  #clicksBox > summary h2 { display:inline; margin:0; }
+  #clicksBox[open] > summary { margin-bottom:8px; }
+  /* a wide screen (the PC): the level as GD frames it, 16:9 and as tall as the window allows, in the middle of the page
+     with a gap under the top bar, and the bars and cards under it the same width (the user, 2026-11-25: "i want the ui
+     more in the middle", "its way too stuck to the top, and the top ui hides the level a bit": a 1910 x 460 strip
+     showed 44 blocks across and only 10 up, the top of the level cut at the canvas edge) */
+  @media (min-width: 900px) {
+    :root { --col: min(100%, max(640px, calc((100vh - 230px) * 16 / 9))); }
+    #views:not(.split), #strip, #scrub, #clock, main, #labbar, #ver { width:var(--col); max-width:100%; margin-left:auto; margin-right:auto; box-sizing:border-box; }
+    #views:not(.split) { margin-top:10px; }
+    #scrub, #clock { display:block; }
+    #views:not(.split) #cv { height:auto; aspect-ratio:16/9; }
+    main { padding-left:0; padding-right:0; }
+  }
   .ok { color:var(--cube); } .bad { color:var(--spike); }
   table { border-collapse:collapse; width:100%; font-variant-numeric:tabular-nums; }
   td, th { text-align:left; padding:3px 6px; border-bottom:1px solid #2a1f57; }
@@ -205,7 +221,7 @@
 <input id="scrub" type="range" min="0" max="1000" value="0"><div id="clock" class="muted" style="font-size:12px;padding:2px 16px 0"></div>
 <main>
   <div class="card"><h2>Level</h2><div id="summary"></div><div id="runsRow" hidden></div></div>
-  <div class="card"><h2>Clicks</h2><div id="clicks"></div></div>
+  <div class="card"><details id="clicksBox"><summary><h2>Clicks <span id="clicksN" class="muted"></span></h2></summary><div id="clicks"></div></details></div>
   <div class="card" style="grid-column:1/-1"><h2>Marks — what to change</h2><div id="marks"></div></div>
 </main>
 <div id="ver" class="muted" style="font-size:12px;padding:6px 16px 14px"></div>
@@ -1130,6 +1146,7 @@ function clickTable() {
   const el = document.getElementById("clicks");
   if (!L.sol.clicks.length) { el.innerHTML = `<span class="muted">none</span>`; return; }
   const bt = c => L.beats ? `<td>${beatOf(c.tick / P.TPS).toFixed(2)}</td>` : "";
+  { const n = document.getElementById("clicksN"); if (n) n.textContent = `· ${L.sol.clicks.length}`; }
   el.innerHTML = `<table><tr><th>#</th><th>time</th>${L.beats ? "<th>beat</th>" : ""}<th>block</th><th>what</th><th>window</th></tr>` +
     L.sol.clicks.map((c, i) => `<tr id="c${i}"><td>${i + 1}</td><td>${(c.tick / P.TPS).toFixed(3)} s</td>${bt(c)}<td>${(c.x / 30).toFixed(1)}</td><td>${c.type === "release" ? "release" : esc(c.act || "press")}</td><td>${c.ms ? c.ms + " ms" : ""}</td></tr>`).join("") + `</table>`;
 }

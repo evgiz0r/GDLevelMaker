@@ -147,3 +147,12 @@ too slow, too hard, feels good, love the hook). **♥ pick vN** / **none: all du
 Section lab: GET /lab/list, GET /lab/r<N>, POST /lab/pick (tools/serve.js; GDLM_LAB_DIR for tests), `labOpen` in viewer/index.html; `node tests/lab_view.js`, `node tests/lab_play.js` (each variant plays its route).
 Tests: `node tests/work.js` (gate -> waiting -> review -> waitApproval; card put -> list -> answer; the feed and tail),
 `node tests/stages.js`, `node tests/no_dialogs.js`.
+
+## Layout on the PC (2026-11-25)
+
+The user: "i want the ui more in the middle", "its way too stuck to the top, and the top ui hides the level a bit", "all
+these clicks are still open". On a screen 900 px wide or more the level view is 16:9 (as GD frames it: 19 blocks across,
+10.67 up), as tall as the window allows (window height - 230 px, at least 640 px wide), centred with a gap under the top
+bar; the button strip, scrub bar, lab bar and the cards below share its width. The Clicks card is closed by default (its
+title shows the count). Phones keep the old full-width layout.
+
