@@ -271,7 +271,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 - `lib/physics.js` -- physics of every mode, triggers + solver (fewest clicks, each in the middle of its window;
   every window is replay-checked tick by tick: `solve` merges near-twin states, which once claimed ticks that die).
   PHYSICS.md: per mode and trigger, its constants, sources, checks and what is open.
-- **Rotated gameplay (2900) and GD's trigger channels** are in lib/physics.js (2026-11-25): a state steps in its frame's coordinates against the level turned into that frame (`frameWorld`); `GD.worldXY(s)` gives the world position and `GD.progressX(s)` how far a run has come (use it, not s.x, for progress in tools); trap portals (`TRAPS`). PHYSICS.md "Rotated gameplay"; `node tests/rotated.js`; `tools/tas_trace.js` (a real-game plan tick by tick, with timing nudges). Gameplay modifiers (2866 flip on head hit, 1813 no auto jump) and the time warp (1935): PHYSICS.md "Gameplay modifiers", `node tests/modifiers.js`; `tools/dyn_near.js` (moving objects and their triggers near an x).
+- **Rotated gameplay (2900) and GD's trigger channels** are in lib/physics.js (2026-11-25): a state steps in its frame's coordinates against the level turned into that frame (`frameWorld`); `GD.worldXY(s)` gives the world position and `GD.progressX(s)` how far a run has come (use it, not s.x, for progress in tools); trap portals (`TRAPS`). PHYSICS.md "Rotated gameplay"; `node tests/rotated.js`; `tools/tas_trace.js` (a real-game plan tick by tick, with timing nudges). The level header's start mode / mini / dual / gravity (kA2, kA3, kA8, kA11): PHYSICS.md "Start settings", `node tests/start_settings.js`. Gameplay modifiers (2866 flip on head hit, 1813 no auto jump) and the time warp (1935): PHYSICS.md "Gameplay modifiers", `node tests/modifiers.js`; `tools/dyn_near.js` (moving objects and their triggers near an x).
 - `lib/dual.js` -- dual mode (two players, one button; GD 2.2's rules read from the 2.2081 decompile), stepped from
   physics.js's step() only in levels with dual portals. Moving objects (move, move to target, follow, rotate, toggle,
   spawn, multi-trigger, stop/pause/resume) live in physics.js's trigger code. `tools/movers.js`: which levels' triggers
@@ -608,7 +608,7 @@ spider orb + pad, the upside-down red-orb dive under a hanging column.
 
 ## Not simulated yet
 
-The level header's start mode, mini, dual and gravity (kA2 / kA3 / kA8 / kA11; only kA4 speed is read: Bloodbath starts as a ship and dies at block 18, DIFFICULTY.md "Community demons"). Mirror and dual portals, teleport portal variants 2902/2064 and the teleport trigger 3022; follow and "move to target" triggers, and a player carried sideways by a moving
+Mirror and dual portals, teleport portal variants 2902/2064 and the teleport trigger 3022; follow and "move to target" triggers, and a player carried sideways by a moving
 block; speed-dependent ring scaling for ball/UFO; spike slopes (any slope skin that kills is
 treated as a plain slope -- unchecked).
 Simulated but checked only by the plans: mini size (gdsolver's measured values), move/toggle/spawn
