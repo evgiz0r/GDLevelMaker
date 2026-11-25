@@ -3,7 +3,7 @@
 "use strict";
 const path = require("path"), assert = require("assert");
 const { readGdlvl } = require("../tools/io.js"), { analyse } = require("../tools/storyboard.js");
-const a = analyse(readGdlvl(path.join(__dirname, "..", "levels", "gdlm_50_eclipse.gdlvl")), { every: 2 });
+const a = analyse(readGdlvl(path.join(__dirname, "..", "levels", "archive", "gdlm_50_eclipse.gdlvl")), { every: 2 });
 assert(a.seconds > 30 && a.seconds < 45, "eclipse is ~37 s long, got " + a.seconds);
 const modes = a.sections.map(s => s.mode);
 for (const m of ["ship", "wave", "robot"]) assert(modes.some(x => x.includes(m)), "a " + m + " section");

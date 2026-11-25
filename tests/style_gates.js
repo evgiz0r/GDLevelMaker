@@ -15,11 +15,11 @@ const ok = (msg) => { n++; console.log("ok  " + msg); };
   assert(pad.length === 1 && Math.abs(pad[0].to - 110) < 3, "GDLM 41 v1's pad prejump is flagged");
   ok("GDLM 41 v1: the pad prejump the user hit is flagged"); }
 // 2. the fixed GDLM 41 has none
-{ const s = sightread(at("levels/gdlm_41_classic.gdlvl"));
+{ const s = sightread(at("levels/archive/gdlm_41_classic.gdlvl"));
   assert(!s.presses.some(p => p.flag), "GDLM 41 is sight-readable");
   ok("GDLM 41 (fixed): sight-readable"); }
 // 3. GDLM 42 v4: every press >= 100 ms after landing (the chain that was the wall in v3 is gone)
-{ const s = scoreLevel(at("levels/gdlm_42_seen_then_gone.gdlvl"), { difficulty: { label: "Normal" } });
+{ const s = scoreLevel(at("levels/archive/gdlm_42_seen_then_gone.gdlvl"), { difficulty: { label: "Normal" } });
   assert.strictEqual(s.gates.find(g => g.name === "recovery").status, "PASS");
   ok("GDLM 42: no land-and-jump-at-once chains"); }
 // 4. GDLM 44: every portal and orb on the solved path (no secret ways)

@@ -36,7 +36,7 @@ console.log(ok ? "ok: online ID and version kept" : "FAIL: re-install dropped th
 // --slot phone: another level goes into the record holding the slot's ID, keeping the slot's
 // server name (the server refuses a rename) and the unlisted flag, without the "this version is
 // uploaded" flag k15 (GD refuses to re-share with it), at the top
-const other = path.join(__dirname, "..", "levels", "gdlm_43_climb.gdlvl");
+const other = path.join(__dirname, "..", "levels", "archive", "gdlm_43_climb.gdlvl");
 let ok2 = true;
 if (fs.existsSync(other)) {
   const ids = path.join(dir, "phone_ids.json");

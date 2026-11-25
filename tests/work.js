@@ -9,7 +9,7 @@ const ROOT = path.join(__dirname, ".."), tmp = fs.mkdtempSync(path.join(os.tmpdi
 process.env.GDLM_WIP_DIR = path.join(tmp, "wip"); process.env.GDLM_LOCAL_DIR = tmp;
 const ST = require("../tools/stages.js"), ASK = require("../tools/ask.js"), ACT = require("../tools/actions.js"), { readGdlvl } = require("../tools/io.js");
 let bad = 0; const check = (ok, what) => { console.log((ok ? "ok   " : "FAIL ") + what); if (!ok) bad++; };
-const lv = readGdlvl(path.join(ROOT, "levels", "gdlm_01_one_jump.gdlvl"));
+const lv = readGdlvl(path.join(ROOT, "levels", "archive", "gdlm_01_one_jump.gdlvl"));
 ST.put({ session: "test", base: "gdlm_98_gate", name: "GDLM 98 gate test", stage: "layout", levelStr: lv.levelStr, gate: true });
 const PORT = 8794, srv = cp.spawn(process.execPath, [path.join(ROOT, "tools", "serve.js"), String(PORT), "--no-update"], { stdio: "ignore", windowsHide: true, env: Object.assign({}, process.env) });
 const req = (method, u, body) => new Promise((ok, no) => { const r = http.request({ host: "localhost", port: PORT, path: u, method }, res => { let b = ""; res.on("data", c => b += c); res.on("end", () => ok({ status: res.statusCode, body: b })); }); r.on("error", no); if (body) r.write(JSON.stringify(body)); r.end(); });
@@ -74,8 +74,8 @@ const req = (method, u, body) => new Promise((ok, no) => { const r = http.reques
   check(offAll.length === 2 && offAll.some(r => r.hash === "0ld0ld00"), "without &hash: every version (the viewer counts the older ones)");
   // community levels: listed with names and demon-list facts, no level strings (tools/community_index.js)
   fs.mkdirSync(path.join(tmp, "community"), { recursive: true });
-  fs.copyFileSync(path.join(ROOT, "levels", "gdlm_01_one_jump.gdlvl"), path.join(tmp, "community", "123.gdlvl"));
-  fs.copyFileSync(path.join(ROOT, "levels", "gdlm_01_one_jump.gdlvl"), path.join(tmp, "community", "456.gdlvl"));
+  fs.copyFileSync(path.join(ROOT, "levels", "archive", "gdlm_01_one_jump.gdlvl"), path.join(tmp, "community", "123.gdlvl"));
+  fs.copyFileSync(path.join(ROOT, "levels", "archive", "gdlm_01_one_jump.gdlvl"), path.join(tmp, "community", "456.gdlvl"));
   fs.writeFileSync(path.join(tmp, "community", "demonlist.json"), JSON.stringify({ levels: [{ id: 456, name: "Test Demon", position: 2, creator: "someone", verifier: "x", top1: { kind: "top1", for: "Incumbent" }, file: "local/community/456.gdlvl", objects: 9 }, { id: 789, name: "Not here", position: 1, missing: true }] }));
   const com = JSON.parse((await req("GET", "/community/list")).body), c123 = com.find(r => r.id === 123), c456 = com.find(r => r.id === 456);
   check(com.length === 2 && c123 && c123.file === "local/community/123.gdlvl" && c123.name === lv.name && !c123.demon && c456 && c456.name === "Test Demon" && c456.demon.position === 2 && c456.demon.creator === "someone" && !JSON.stringify(com).includes(lv.levelStr.slice(0, 40)),

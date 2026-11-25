@@ -196,7 +196,8 @@ takes the options (job.pcts, label, layers, decoOnly).
 
 ## Video (tools/video.js, 2026-11-24)
 
-`node tools/video.js <level> [--run <id | last> | --route] [--from s --to s] [--fps 60] [--size 1280x720] [--vs-rec]`
+`node tools/video.js <level> [--run <id | last> | --route] [--from s --to s] [--fps 60] [--size 1280x720] [--vs-rec] [--clicks mouse|keyboard]`
+`--clicks`: a click on each press and release (lib/clicks.js, self-made samples) mixed under the song, like the click-sound bots players use (2026-11-25).
 -> `local/video/<level>[_run_<id>].mp4`, LOCAL ONLY (GD's art and the song are in it). It renders the viewer's shoot mode
 headless (test=1, hidden) on a virtual clock (`job.video`, `window.VCLOCK`): every frame is exactly 1/fps apart whatever
 the render speed. The camera eases as in the page, the death burst plays, and a run is drawn with the user's own icon. Frames
@@ -319,7 +320,7 @@ Driven from the browser console: load a level (`load(name, levelStr, solution)` 
 - GDLM 41 vs `18-48-19.mkv` (attempt 1 at 7.62 s): the recording shows the level as of commit
   6a9b8b0 (125 objects; the repo and the save now hold a later 95-object version -- identical to each
   other). `node tools/shoot.js local/tmp/gdlm41_v1.gdlvl --rec "GD claude-rec 2026-11-22_18-48-19.mkv"
-  --t0 7.62 --at 5.4,6.6` (after `git show 6a9b8b0:levels/gdlm_41_classic.gdlvl > local/tmp/gdlm41_v1.gdlvl`):
+  --t0 7.62 --at 5.4,6.6` (after `git show 6a9b8b0:levels/archive/gdlm_41_classic.gdlvl > local/tmp/gdlm41_v1.gdlvl`):
   layout, antennas, crystals, background, hills, grid blocks and ground match.
 - **Channels 1005/1006 are the player's own colours** whatever the header stores (GDLM 41's header
   says orange for 1005; its P1 deco is lime in the game). They **blend (additive) by default**: Cycles'

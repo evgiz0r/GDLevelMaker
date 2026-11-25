@@ -9,7 +9,7 @@ const ROOT = path.join(__dirname, ".."), SESSION = "test-stageborrow", WIPD = pa
 const { GD, readGdlvl } = require("../tools/io.js"), ST = require("../tools/stages.js");
 const port = 8790 + Math.floor(Math.random() * 90);
 let fails = 0; const check = (c, m) => { console.log((c ? "ok   " : "FAIL ") + m); if (!c) fails++; };
-const L = readGdlvl(path.join(ROOT, "levels/gdlm_02_on_the_beat.gdlvl")), lv = GD.parseLevel(L.levelStr), sol = GD.solveAny(GD.makeWorld(lv.objects, lv.header));
+const L = readGdlvl(path.join(ROOT, "levels/archive/gdlm_02_on_the_beat.gdlvl")), lv = GD.parseLevel(L.levelStr), sol = GD.solveAny(GD.makeWorld(lv.objects, lv.header));
 if (!sol.ok) throw new Error("gdlm 02 is not beaten in the sim");
 const deco = L.levelStr + "1,211,2,300,3,150;";
 ST.put({ session: SESSION, base: BASE, name: "GDLM 99 borrow test", stage: "layout", levelStr: L.levelStr, data: { events: sol.events }, note: "test" });

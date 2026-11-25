@@ -64,7 +64,7 @@ for (const [note, fam] of NOTES) { const c = FAM.classify(note).map(f => f.id); 
 ok(FAM.classify("the colours feel off").length === 0, "no family for an unknown note");
 
 // 3. dry edits on GDLM 61
-const F61 = path.join(ROOT, "levels", "gdlm_61_lantern_towers.gdlvl");
+const F61 = path.join(ROOT, "levels", "archive", "gdlm_61_lantern_towers.gdlvl");
 const hash = f => crypto.createHash("sha1").update(fs.readFileSync(f)).digest("hex");
 const h0 = hash(F61);
 const L = E.loadLevel(F61), route = E.routeOf(L);

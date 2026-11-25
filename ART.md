@@ -17,7 +17,7 @@ one palette per scene. Our levels could not draw anything. This is the start of 
 - `lib/props.js` -- the prop library: `list()`, `put(name, x, y, opts)`, `place(name, x0, x1, opts)`,
   `header(header, colours)`, `allocator(ch0)`. API and options at the top of the file.
 - `tools/props.js list | show <name> | sheet [--theme spooky] | level` -- table, text pixels, contact sheet
-  (`local/props/props_<theme>.png`, art-free), the test level `levels/gdlm_prop_test.gdlvl`.
+  (`local/props/props_<theme>.png`, art-free), the test level `levels/archive/gdlm_prop_test.gdlvl`.
 - `tools/props_sheet.py` -- draws the contact sheet (PIL).
 - In a spec (tools/make.js): `"props": [{"prop": "pumpkin", "col": 30}, {"prop": "tree", "from": 40, "to": 80,
   "density": 2}]`, `"propTheme": "spooky"`, `"propsCh0": 600`. make.js puts the channels in the header and
@@ -47,7 +47,7 @@ prop objects per screen.
 ## The props (2026-11-23)
 
 Contact sheet: `node tools/props.js sheet` (day colours) / `--theme spooky`. GD art: the test level through
-`node tools/levelmap.js levels/gdlm_prop_test.gdlvl --scale 2 --rows 1` (local/maps/, not committed).
+`node tools/levelmap.js levels/archive/gdlm_prop_test.gdlvl --scale 2 --rows 1` (local/maps/, not committed).
 
 | prop | attach | blocks w x h | objects | colours |
 |---|---|---|---|---|
@@ -171,7 +171,7 @@ v2 signature (figures standing on the ground, key 21 only), not v3. The colour t
   are too small and dark to read (a few pixels on the dark sky), the hanging block's chain is faint, and the
   bush / rock / tombstone sink into the ground hills. Next: bat and eyes 2x, ground props on B1 or a lighter
   edge. The 5 newer props (crow, candle, flower, sun, windmill) and the A-D pumpkins are not rendered yet (the
-  PC was full: re-run `node tools/solutions.js levels/gdlm_prop_test.gdlvl`, then levelmap).
+  PC was full: re-run `node tools/solutions.js levels/archive/gdlm_prop_test.gdlvl`, then levelmap).
 - The colour answer (above); then the in-game look of the test level (sizes, z order, seams between stretched
   squares at non-integer scales).
 - More props for the showcase planner's places (crow, candle, windmill, flower, sun are in): kelp / coral (or wrap

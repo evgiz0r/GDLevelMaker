@@ -20,7 +20,7 @@ let bad = 0; const check = (ok, what) => { console.log((ok ? "ok   " : "FAIL ") 
 // 2. headless
 (async () => {
   let headless; try { headless = require("../tools/headless.js").headless; } catch (e) {}
-  const pages = [["official 10 with runs", "local/official_10.json"], ["a build with stages", null], ["a level of ours", "levels/gdlm_45_first_flight.gdlvl"]];
+  const pages = [["official 10 with runs", "local/official_10.json"], ["a build with stages", null], ["a level of ours", "levels/archive/gdlm_45_first_flight.gdlvl"]];
   // a build with stages, from the shared wip folder when there is one
   try { const wip = path.join(ROOT, "local", "wip"); for (const s of fs.readdirSync(wip)) { let fl = []; try { fl = fs.readdirSync(path.join(wip, s)); } catch (e) { continue; } for (const f of fl) if (f.endsWith(".stages") && !pages[1][1]) pages[1][1] = `local/wip/${s}/${f.replace(/\.stages$/, ".gdlvl")}`; } } catch (e) {}   // listed from its stages even before a wip put
   for (const [what, file] of pages) {

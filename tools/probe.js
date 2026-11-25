@@ -12,6 +12,9 @@
 //            The level must be in the user's save (Create) under the same name and start with "GDLM".
 //        node tools/probe.js result [file|index] | --last-batch the last playback attempt (or the one given, or the whole batch):
 //            cleared or where it died, and the first ticks where the game and our sim differ
+//        node tools/probe.js diff <file|index> [--level <level | official:N>]  replay THIS attempt's own presses in our
+//            sim (attempts from the level start only) and show where game and sim part: x first, then y / vy, and every
+//            jump start game-minus-sim split by held (button down before it) vs fresh press
 // Default folder: %LOCALAPPDATA%/GeometryDash/geode/mods/gdlm.probe/attempts (GD's save folder on Windows).
 "use strict";
 const fs = require("fs");
@@ -237,6 +240,45 @@ function perTick(r, R) {
   for (const [ph, m] of Object.entries(tab).sort()) console.log(`  sim jump on ${ph}: ${Object.entries(m).sort((a, b) => a[0] - b[0]).map(([d, c]) => (d > 0 ? "+" : "") + d + " x" + c).join(", ")}`);
 }
 
+function diff(f, levelArg) {
+  const r = read(f), st = r.start || {};
+  if (st.practice) { console.log("practice attempt: starts at a checkpoint, the sim can't start there yet -- use a from-start one"); return; }
+  const OFF = ["Stereo Madness","Back On Track","Polargeist","Dry Out","Base After Base","Cant Let Go","Jumper","Time Machine","Cycles","xStep","Clutterfunk","Theory of Everything","Electroman Adventures","Clubstep","Electrodynamix","Hexagon Force","Blast Processing","Theory of Everything 2","Geometrical Dominator","Deadlocked","Fingerdash","Dash"];
+  let what = levelArg;
+  if (!what) { const i = OFF.findIndex((n) => n.toLowerCase() === String(st.level).replace(/'/g, "").toLowerCase()); what = i >= 0 ? "official:" + (i + 1) : "save:" + st.level; }
+  const { levelOf } = require("./shoot.js"), { GD } = require("./io.js");
+  const L = levelOf(what), lv = GD.parseLevel(L.levelStr), w = GD.makeWorld(lv.objects, lv.header);
+  const ev = r.btn.filter((b) => b.button === 1 && b.p1).map((b) => ({ tick: b.n, type: b.down ? "press" : "release" }));
+  const run = GD.run(w, ev), P = run.path, T = r.ticks;
+  console.log(`${st.level} attempt ${st.attempt}: game ${r.end ? r.end.result : "cut"} after ${T.length} steps${r.death ? " at x " + r.death.x.toFixed(1) : ""}; sim of the same ${ev.length} inputs: ${run.done ? "clears" : "dies at x " + run.end.x.toFixed(1) + " step " + (P.length - 1) + " (" + run.why + ")"}`);
+  const dy0 = T[0].p[1] - P[0].y;
+  const fresh = T.filter((t, i) => i > 0 && t.p[0] !== T[i - 1].p[0]);
+  let px = null, py = null, pv = null;
+  for (const t of fresh) { const q = P[t.n - 1]; if (!q) break; if (!px && Math.abs(t.p[0] - q.x) > 0.05) px = { t, q }; if (!py && Math.abs(t.p[1] - q.y - dy0) > 0.5) py = { t, q }; }
+  for (const t of T) { const q = P[t.n]; if (!q) break; if (Math.abs(t.p[2] - q.vy) > 0.01 || t.p[3] !== q.mode) { pv = { t, q }; break; } }
+  const fmt = (o, k) => o ? `step ${o.t.n} (t ${(o.t.n / 240).toFixed(2)} s): game x ${o.t.p[0].toFixed(2)} y ${o.t.p[1].toFixed(2)} vy ${o.t.p[2].toFixed(3)} ${o.t.p[3]} | sim x ${o.q.x.toFixed(2)} y ${(o.q.y + dy0).toFixed(2)} vy ${o.q.vy.toFixed(3)} ${o.q.mode}` : "none";
+  console.log("first x parting (> 0.05): " + fmt(px));
+  console.log("first y parting (> 0.5):  " + fmt(py));
+  console.log("first vy / mode parting:  " + fmt(pv));
+  // x drift over time: game minus sim at each second
+  const drift = [];
+  for (const t of fresh) { const q = P[t.n - 1]; if (!q) break; if (t.n % 240 < 4) drift.push(`${(t.n / 240).toFixed(0)}s ${(t.p[0] - q.x).toFixed(2)}`); }
+  console.log("x game-sim per second: " + drift.join(", "));
+  // jump starts: held vs fresh
+  const down = new Set(), held = (n) => { let d = false; for (const e of ev) { if (e.tick >= n) break; d = e.type === "press"; } return d; };
+  const gj = [], sj = [];
+  for (let i = 1; i < T.length; i++) if (T[i].p[2] - T[i - 1].p[2] > 2) gj.push(T[i].n);
+  for (let i = 1; i < P.length; i++) if (P[i].vy - P[i - 1].vy > 2) sj.push(i);
+  const tab = { fresh: {}, held: {} };
+  for (const s0 of sj) {
+    const g = gj.reduce((b, x) => (Math.abs(x - s0) < Math.abs(b - s0) ? x : b), -1e9), d = g - s0;
+    if (Math.abs(d) > 6) continue;
+    const kind = ev.some((e) => e.type === "press" && e.tick === s0 - 1) ? "fresh" : held(s0 - 1) ? "held" : "fresh";
+    tab[kind][d] = (tab[kind][d] || 0) + 1;
+  }
+  for (const k of ["fresh", "held"]) console.log(`jumps ${k}: ${Object.entries(tab[k]).sort((a, b) => a[0] - b[0]).map(([d, c]) => (d > 0 ? "+" : "") + d + " x" + c).join(", ") || "-"}  (game minus sim, steps)`);
+}
+
 function main() {
   const a = process.argv.slice(2);
   const opt = (k, d) => { const i = a.indexOf(k); if (i < 0) return d; const v = a[i + 1]; a.splice(i, 2); return v; };
@@ -274,6 +316,11 @@ function main() {
     if (r.end) console.log(JSON.stringify(r.end));
   } else if (cmd === "play") {
     play(a.slice(1), dir);
+  } else if (cmd === "diff") {
+    const lv = opt("--level", null);
+    const f = pick(a[1]);
+    if (!f || !fs.existsSync(f)) { console.error("no such attempt: " + a[1]); process.exit(1); }
+    diff(f, lv);
   } else if (cmd === "result" && a.includes("--last-batch")) {
     batch(dir);
   } else if (cmd === "result") {

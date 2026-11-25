@@ -10,7 +10,7 @@ const path = require("path");
 const { GD, readGdlvl } = require("../tools/io.js");
 Object.assign(GD, require("../lib/difficulty.js"));
 const W = require("../lib/windows.js");
-const files = process.argv.slice(2).length ? process.argv.slice(2) : ["levels/gdlm_44_hellgate.gdlvl", "levels/gdlm_60_physics_lab.gdlvl"];
+const files = process.argv.slice(2).length ? process.argv.slice(2) : ["levels/gdlm_44_hellgate.gdlvl", "levels/archive/gdlm_60_physics_lab.gdlvl"];
 let bad = 0;
 for (const f of files) {
   const L = readGdlvl(path.join(__dirname, "..", f)), w = GD.makeWorld(L.level.objects, L.level.header);

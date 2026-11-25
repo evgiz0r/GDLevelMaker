@@ -5,9 +5,9 @@
 // Line types in attempts/*.jsonl (all one JSON object per line):
 //   {"t":"start", level, id, attempt, practice, dual, platformer, playback, wall_ms, x, y, lt, step, from, cps, hold}
 //        lt = level time at the start (s; > 0 when a practice attempt starts at a checkpoint), step = m_currentStep,
-//        from = the unique id of the checkpoint it starts from (-1: the level's start), cps = checkpoints in the list,
+//        from = the tick (round(lt x 240)) of the checkpoint it starts from (-1: the level's start), cps = checkpoints in the list,
 //        hold = the jump button was down as the attempt began
-//   {"t":"cp", n, id, lt, x, y}               a practice checkpoint stored (lt = the level time it restores to)
+//   {"t":"cp", n, id, lt, x, y, via}          a practice checkpoint stored (id = its tick, lt = the level time it restores to)
 //   {"t":"cpdel", n, id}  /  {"t":"cpclear", n}   a checkpoint removed (the delete key) / all removed
 //   {"t":"tick", n, step, lt, p:[x,y,vy,mode,up,ground,size,speed,px,py], p2:[...] (dual only), cam:[x,y]}
 //   {"t":"btn", n, down, button, p1}          a press / release made after n ticks: it acts in tick n+1
@@ -56,7 +56,7 @@ struct Attempt {
     long long n = 0;
     std::string buf;
     std::string file;
-    int lastCp = -1;          // the newest checkpoint's unique id already in the log
+    void* lastCp = nullptr;   // the newest checkpoint already in the log (by pointer: m_uniqueID reads 0 on 2.2091)
 };
 
 Attempt g_att;
@@ -266,20 +266,25 @@ void openPlayLevel() {
     if (g_openNext) { g_openNext = false; Loader::get()->queueInMainThread([] { openPlayLevel(); }); }
 }
 
-int lastCheckpointId(PlayLayer* pl) {
-    if (!pl || !pl->m_checkpointArray || pl->m_checkpointArray->count() == 0) return -1;
-    auto* cp = static_cast<CheckpointObject*>(pl->m_checkpointArray->lastObject());
-    return cp ? cp->m_uniqueID : -1;
+CheckpointObject* lastCheckpoint(PlayLayer* pl) {
+    if (!pl || !pl->m_checkpointArray || pl->m_checkpointArray->count() == 0) return nullptr;
+    return static_cast<CheckpointObject*>(pl->m_checkpointArray->lastObject());
 }
+// a checkpoint's id in the logs = its tick, round(level time x 240): CheckpointObject::m_uniqueID reads 0 for every
+// checkpoint on GD 2.2091 (Clubstep practice, 2026-11-25), so it cannot tell them apart
+int cpTick(CheckpointObject* cp) {
+    return cp ? static_cast<int>(cp->m_gameState.m_levelTime * 240.0 + 0.5) : -1;
+}
+int lastCheckpointId(PlayLayer* pl) { return cpTick(lastCheckpoint(pl)); }
 
 void logCheckpoint(CheckpointObject* cp, char const* via) {
-    if (!g_att.active || !cp || cp->m_uniqueID == g_att.lastCp) return;
-    g_att.lastCp = cp->m_uniqueID;
+    if (!g_att.active || !cp || cp == g_att.lastCp) return;
+    g_att.lastCp = cp;
     float x = 0.f, y = 0.f;
     if (cp->m_player1Checkpoint) { x = cp->m_player1Checkpoint->m_position.x; y = cp->m_player1Checkpoint->m_position.y; }
     char b[224];
     std::snprintf(b, sizeof b, "{\"t\":\"cp\",\"n\":%lld,\"id\":%d,\"lt\":%.6f,\"x\":%.4f,\"y\":%.4f,\"via\":\"%s\"}\n",
-        g_att.n, cp->m_uniqueID, cp->m_gameState.m_levelTime, x, y, via);
+        g_att.n, cpTick(cp), cp->m_gameState.m_levelTime, x, y, via);
     g_att.buf += b;
 }
 
@@ -294,7 +299,7 @@ void begin(PlayLayer* pl) {
     if (!wanted(pl) && !g_play.active) return;
     g_att.active = true;
     g_att.n = 0;
-    g_att.lastCp = lastCheckpointId(pl);
+    g_att.lastCp = lastCheckpoint(pl);
     std::string name = pl->m_level->m_levelName;
     long long ms = wallMs();
     auto dir = saveDir() / "attempts";
@@ -348,7 +353,7 @@ class $modify(ProbeBase, GJBaseGameLayer) {
         // a checkpoint stored where the storeCheckpoint hook did not see it (an inlined call): caught on the next tick
         if (pl->m_isPracticeMode && pl->m_checkpointArray && pl->m_checkpointArray->count() > 0) {
             auto* cp = static_cast<CheckpointObject*>(pl->m_checkpointArray->lastObject());
-            if (cp && cp->m_uniqueID != g_att.lastCp) logCheckpoint(cp, "tick");
+            if (cp && cp != g_att.lastCp) logCheckpoint(cp, "tick");
         }
     }
 
@@ -403,11 +408,11 @@ class $modify(ProbePlay, PlayLayer) {
         int id = -1;
         if (m_checkpointArray && m_checkpointArray->count() > 0) {
             auto* cp = static_cast<CheckpointObject*>(first ? m_checkpointArray->objectAtIndex(0) : m_checkpointArray->lastObject());
-            if (cp) id = cp->m_uniqueID;
+            if (cp) id = cpTick(cp);
         }
         PlayLayer::removeCheckpoint(first);
         if (!g_att.active) return;
-        g_att.lastCp = lastCheckpointId(this);   // the one now last was logged when it was stored
+        g_att.lastCp = lastCheckpoint(this);   // the one now last was logged when it was stored
         char b[96];
         std::snprintf(b, sizeof b, "{\"t\":\"cpdel\",\"n\":%lld,\"id\":%d}\n", g_att.n, id);
         g_att.buf += b;
@@ -416,7 +421,7 @@ class $modify(ProbePlay, PlayLayer) {
     void removeAllCheckpoints() {
         PlayLayer::removeAllCheckpoints();
         if (!g_att.active) return;
-        g_att.lastCp = -1;
+        g_att.lastCp = nullptr;
         char b[64];
         std::snprintf(b, sizeof b, "{\"t\":\"cpclear\",\"n\":%lld}\n", g_att.n);
         g_att.buf += b;

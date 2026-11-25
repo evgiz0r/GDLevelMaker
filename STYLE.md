@@ -318,17 +318,17 @@ Short sections work: 8 beats (~33 blocks at 1x, 145 BPM) still hold a mode with 
 
 ## 3. The examples
 
-- `briefs/43_climb.json` -> `levels/gdlm_43_climb.gdlvl`: the first level made by the loop.
+- `briefs/43_climb.json` -> `levels/archive/gdlm_43_climb.gdlvl`: the first level made by the loop.
   Brief: classic cube, ground spikes -> platforms/stairs -> orbs/pads/gate, blue -> violet -> red,
   target Normal with a 40 ms floor. First run: Normal (0.33) in 16 rounds. With the recovery gate
   (no land-and-jump-at-once), Normal is out of reach: 28 rounds, 89 s, kept Easy (0.20),
   26 presses, tightest 46 ms. Log: `briefs/43_climb.log.md`.
 
-- `specs/41_classic.json` -> `levels/gdlm_41_classic.gdlvl`: 3 sections (blue, purple, red),
+- `specs/41_classic.json` -> `levels/archive/gdlm_41_classic.gdlvl`: 3 sections (blue, purple, red),
   spikes -> stairs/hops/gate/orb -> pad/triple/platform, back to blue for the ending.
   16 presses, tightest window 63 ms, 17 s, sight-readable. v2: hops moved off the stairs, pad
   run 4 -> 3 spikes, sparser decoration. v3 (easier, for testing): no triples, wider stairs and hops.
-- `specs/42_seen_then_gone.json` -> `levels/gdlm_42_seen_then_gone.gdlvl`: the phrase
+- `specs/42_seen_then_gone.json` -> `levels/archive/gdlm_42_seen_then_gone.gdlvl`: the phrase
   single-double-platform-double: seen, then ghosted at its door, then ghosted from afar with
   only its last double fully hidden; then the reversed phrase, seen once (red), then ghosted.
   20 presses, tightest window 129 ms, 17 s, sight-readable (v3, easier for testing: no triples, more room after
