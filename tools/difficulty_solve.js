@@ -47,7 +47,7 @@ function levelText(n) {
 // a secret coin without it is a dead end, lib/physics.js), saved beside the plain route as NN.coins.json /
 // official_NN_coins.json; a resume with no coin route yet starts from the plain route (it breaks at the first missed coin)
 const COINS = process.argv.includes("--coins"), SUF = COINS ? ".coins" : "";
-const mkW = L => { const w = mkW(L); if (COINS) w.needCoins = true; return w; };
+const mkW = L => { const w = GD.makeWorld(L.objects, L.header); if (COINS) w.needCoins = true; return w; };
 const partFile = n => path.join(OUT, tag(n) + SUF + ".part.json");
 function checkpointer(n, prefix, physics) {
   return (ev, st) => { fs.mkdirSync(OUT, { recursive: true });
