@@ -212,7 +212,14 @@ First scores with the provisional reference (R / taste before -> after): GDLM 50
 a step x5), 64 golden hour v6 0.74 -> 30, 66 collab long 0.72 -> 23, 69 time hop 0.56 -> 27, 70 candy night 0.68 -> 20,
 71 two moons 0.81 -> 29 (one mini-structure x19 in its middle), 72 FROSTBITE 0.65 -> 46; 52 necromancy 0.27 and 61 lantern
 towers 0.29 lose nothing. `node tools/repeat.js all --top 3` shows the repeated windows as pictures. Open: the weight 3 is
-the user's rule, not fitted; check it against the officials' spread once repeat_ref.json is in.
+the user's rule, not fitted.
+
+Reference (knowledge/repeat_ref.json, 2026-11-25, the PC; p10 / p50 / p90): officials (22) R 0.007 / 0.195 / 0.368, motif
+2 / 4 / 6, loop 2 / 3 / 5; featured+ (182) R 0.003 / 0.148 / 0.46; plain (96) R 0 / 0.122 / 0.658, motif up to 18, loop up to 10.
+The medians are alike; the tail separates: no official goes past motif 6, loop 5 or R 0.37, and same-height corridors are almost
+absent (2 of 22 officials, Back On Track 0.12, Stereo Madness 0.05). The penalty now starts at the officials' p75 (R 0.314), so
+most officials pay nothing. With it: eclipse 65, golden hour v6 31, collab long 23, time hop 27, candy night 21, two moons 29,
+FROSTBITE 47; lantern towers 46, necromancy 72, hellgate 79 pay nothing. Our worst all sit past every official (R 0.56-0.81).
 
 ## Sections vs real levels (2026-11-24, `tools/compare_sections.js`)
 
