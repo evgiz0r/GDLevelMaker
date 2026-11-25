@@ -147,7 +147,7 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
       <summary><div class="sum-row"><h2 id="h-m">Main levels</h2><span class="hint" id="m-sum"></span></div></summary>
       <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
         <div class="tbl-wrap"><table id="mtable"><tbody><tr><td class="l dim">The table appears after Claude's next update.</td></tr></tbody></table></div>
-        <div class="legend" id="m-legend">Solved: our solver's raw route / the human-like route the viewer plays, on today's physics. Coins: the secret coins (3 per level) our route collects; grey = not collected or no coin route yet. Score: log10 of expected attempts (higher is harder), per minute below. Tight: inputs under 60 ms, tightest window below (red under 34 ms = two frames). Real game: how far gdsolver's real-game inputs carry our sim, i.e. how well our physics matches the game on that level. Scroll inside the table; hover a header for its meaning.</div>
+        <div class="legend" id="m-legend">Beaten: bot / human = does the solver's raw route, and the human-like route the viewer plays, clear the level in our sim on today's physics. Coins: the secret coins (3 per level) our route collects; grey = not collected or no coin route yet. Score: log10 of expected attempts (higher is harder), per minute below. Tight: inputs under 60 ms, tightest window below (red under 34 ms = two frames). Real game: how far gdsolver's real-game inputs carry our sim, i.e. how well our physics matches the game on that level. Scroll inside the table; hover a header for its meaning.</div>
       </div>
     </details>
   </section>
@@ -338,7 +338,7 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
     var m=state && state.mains; if(!m || !m.levels || !m.levels.length) return;
     var t=$("mtable"); t.textContent="";
     var head=el("thead"), hr=el("tr");
-    [["#","l"],["Rating"],["Solved","","sim route / human route"],["Coins","","secret coins our route takes (of 3)"],["Score","","log10 of expected attempts; /min below"],["Inputs"],["Tight","","inputs under 60 ms; tightest window below"],["Real game","","how far gdsolver's real-game inputs carry our sim"],["Your tries"]].forEach(function(h){ var th=el("th",h[1]||null,h[0]); if(h[2]) th.title=h[2]; hr.appendChild(th); });
+    [["#","l"],["Rating"],["Beaten: bot / human","","bot = the solver's raw route clears the level in our sim; human = the human-like route the viewer plays clears it"],["Coins","","secret coins our route takes (of 3)"],["Score","","log10 of expected attempts; /min below"],["Inputs"],["Tight","","inputs under 60 ms; tightest window below"],["Real game","","how far gdsolver's real-game inputs carry our sim"],["Your tries"]].forEach(function(h){ var th=el("th",h[1]||null,h[0]); if(h[2]) th.title=h[2]; hr.appendChild(th); });
     head.appendChild(hr); t.appendChild(head);
     var body=el("tbody"), clear=0;
     m.levels.forEach(function(r){
@@ -347,7 +347,7 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
       var nm=td(null,"l"); nm.appendChild(document.createTextNode(r.n+" "+r.name)); nm.title=r.n+" "+r.name; if(r.flag){ var f=el("span","sm","⚠ "+r.flag); nm.appendChild(f); } tr.appendChild(nm);
       tr.appendChild(td(r.rating,"dim"));
       var sv=td(null); var a=r.solve_pct, b=r.route_pct;
-      if(a>=100 && b>=100) { sv.className="ok"; sv.textContent="✓ both"; }
+      if(a>=100 && b>=100) { sv.className="ok"; sv.textContent="✓ / ✓"; }
       else { sv.appendChild(document.createTextNode((a==null?"–":a>=100?"✓":a+"%")+" / "+(b==null?"–":b>=100?"✓":b+"%"))); sv.className=(a!=null&&a<100)||(b!=null&&b<100)?"bad":"dim"; }
       tr.appendChild(sv);
       var co=r.coins, cc=td(null,"coins");
