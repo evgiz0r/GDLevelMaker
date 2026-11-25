@@ -535,5 +535,8 @@ we can do, for bricks, for deco. the best features so far. idk for ice/fire."
   Our levels: quiet ~0 (no breathing space), focal 0.25-0.29 (near even, 0.2).
 - **`tools/lane.js`**: the play lane from the route (where the player can be), clutter in it, art at its edges, corridor
   framing; make.js runs its pass only with spec `"lane": true` (off until the composition model is agreed).
+- **Visible play first** (the user, 2026-11-25: "if you dont see a spike the timing is obviously harder"): every rung keeps
+  the lane clear (lane.js clutter 0) and hazards in their own value; composition puts its weight at the lane's EDGES and
+  thins behind hazards. A taste "readability" part (lane clutter + hazard contrast) is the next step in tools/taste.js.
 - Composition rung 7 (first cut): focal spots at portals and mid-screen, back layers thinned to a quarter between them,
   one set piece + a light gather per spot. Bricks on the play dominate the counts, so decocomp moves little; judge by picture.

@@ -137,6 +137,10 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 
 ## Not bland (rated Easy/Normal 2.0-2.1 medians)
 
+- [ ] **The play stays visible: deco never hides the path or a hazard** (the user, 2026-11-25: RobTop's levels are amazing
+  for "the visible play"; "if you dont see a spike the timing is obviously harder"). No deco in front of the lane the player
+  can be in, none behind a hazard in its value or hue (it must stand out), the richest art at the lane's edges, quiet behind
+  the hazards. `node tools/lane.js <level>` (clutter = 0), `tools/roles.js` (pathDeco, hazards), `tools/readability.js --gate`.
 - [ ] **Motion and colour on every screen, not only at the start** (Eclipse v2-v4, 2026-11-25): one calm pulse a beat, a drift and a
   spin per section, 10+ colour channels a screen; triggers placed along x, since the measures (decostudy, taste) count by x.
   `node tools/taste.js score <level>` (dsMotion, dsChannels). Warm light behind the path: cool rims (`tools/roles.js`).
