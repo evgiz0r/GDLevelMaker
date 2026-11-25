@@ -1,6 +1,6 @@
 // node tools/latest_rated.js [--pages 10] [--out local/community/latest_rated.json]
 // GD's "recently rated" list (the game's Awarded search: the newest star-rated online levels, newest first) via gdbrowser's
-// API, 50 per page -> a compact table for the work board's "Latest rated" section (board/README.md), where Evgeni ticks
+// API (10 per page, whatever count says) -> a compact table for the work board's "Latest rated" section (board/README.md), where Evgeni ticks
 // levels to study. Metadata only (names, tiers, likes): no level data is downloaded or committed. Self-contained (node's
 // https + fs only) so it runs from any checkout. Evgeni (2026-11-25): "latest rated, these are usually good levels".
 // Output: {at, source, cols:[...], rows:[[...]]} -- one row per level, in the list's order (newest rated first).
