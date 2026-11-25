@@ -1526,6 +1526,92 @@ function deathFx(ps) {
     ctx.fillStyle = `rgba(${rnd(i, 8) > 0.5 ? "255,255,255" : "140,170,255"},${a})`; ctx.fillRect(X + Math.cos(ang) * d - z / 2, Y - Math.sin(ang) * d - z / 2, z, z); }
   ctx.restore();
 }
+// The end of a cleared level (the user, 2026-11-25, on the Jumper video: "no end screen like in the real game, it just falls
+// on the ground"). Our own drawing, no GD art: a wall of light ~9 blocks past the last object; when the run clears, the
+// camera stops, the player is pulled up into the wall on a curve (spinning, shrinking), a flash where it goes in, then
+// "LEVEL COMPLETE!" and a card with attempt, jumps, time and coins. Driven by t past the clear (END_LEN seconds): the page
+// plays on through it (frame()), a video records it (shootVideo), scrubbing back shows the level again. VISUALS.md "The end".
+const END_LEN = 4.5, END_FLY = 0.6;
+function endTime() {
+  if (!L || !L.path || !L.path.length || MAPCAM || (PLAY && PLAY.on)) return null;
+  if (L._endFor === L.path) return L._endT;
+  const e = L.path[L.path.length - 1], ok = !e.dead && !e.ghost && (e.done || e.x >= L.world.endX - 30);
+  L._endFor = L.path; L._endT = ok ? (L.path.length - 1) / P.TPS : null; L._endStats = null; return L._endT;
+}
+function endStats() {
+  if (L._endStats) return L._endStats;
+  const last = L.path.length - 1, evs = L.ghost && L.ghost.events ? L.ghost.events : (L.sol && L.sol.clicks) || [];
+  const jumps = evs.filter(e => e.type === "press" && e.tick <= last).length;
+  const coins = L.level.objects.filter(o => o.id === 142 || o.id === 1329).sort((a, b) => a.x - b.x).map(o => {
+    let got = false; for (let i = 0; i < L.path.length && !got; i += 2) { const q = L.path[i]; if (Math.abs(q.x - o.x) < 30 && Math.abs(q.y - o.y) < 30) got = true; }
+    return got; });
+  const sec = last / P.TPS;
+  return (L._endStats = { jumps, coins, time: `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, "0")}`, attempt: 1 });
+}
+// the wall: drawn whenever it is in view, before and after the clear; age < 0 = not reached yet
+function endWall(age) {
+  const B = 30 * scale, WX = sx(L.world.endX + 270); if (WX < -3 * B || WX > W + 3 * B) return;
+  const pulse = age > END_FLY ? Math.max(0, 1 - (age - END_FLY) / 0.8) : 0, now = (window.VCLOCK != null ? window.VCLOCK : performance.now()) / 1000;
+  ctx.save(); ctx.globalCompositeOperation = "lighter";
+  const g = ctx.createLinearGradient(WX - 2.5 * B, 0, WX + 2.5 * B, 0);
+  g.addColorStop(0, "rgba(90,200,255,0)"); g.addColorStop(0.42, `rgba(90,200,255,${0.25 + 0.3 * pulse})`); g.addColorStop(0.5, `rgba(220,250,255,${0.75 + 0.25 * pulse})`);
+  g.addColorStop(0.58, `rgba(90,200,255,${0.25 + 0.3 * pulse})`); g.addColorStop(1, "rgba(90,200,255,0)");
+  ctx.fillStyle = g; ctx.fillRect(WX - 2.5 * B, 0, 5 * B, groundY);
+  // motes drifting into it from the left
+  for (let i = 0; i < 18; i++) { const r = Math.sin(i * 91.7) * 43758.5453, fr = r - Math.floor(r), ph = (now * (0.5 + fr) + fr * 7) % 1;
+    const x = WX - (1 - ph) * 3 * B, y = groundY * ((i * 0.618) % 1), z = (0.06 + 0.06 * fr) * B;
+    ctx.fillStyle = `rgba(200,240,255,${0.7 * ph})`; ctx.fillRect(x - z / 2, y - z / 2, z, z); }
+  ctx.restore();
+}
+function endFx(s, age, drawP) {
+  const B = 30 * scale, X0 = sx(s.x), Y0 = sy(s.y), X1 = Math.min(sx(L.world.endX + 270), W - B), Y1 = Math.min(groundY * 0.55, H * 0.45);
+  const cx = X0 + (X1 - X0) * 0.35, cy = Math.min(Y0, Y1) - 2.5 * B;
+  if (age < END_FLY) {   // the pull into the wall: faster and faster, spinning, shrinking
+    const u = age / END_FLY, p = u * u, q = 1 - p, X = q * q * X0 + 2 * q * p * cx + p * p * X1, Y = q * q * Y0 + 2 * q * p * cy + p * p * Y1, k = 1 - 0.65 * p;
+    const ps = Object.assign({}, s, { x: camX + X / scale, y: camY + (groundY - Y) / scale, rot: (s.rot || 0) + 900 * age * age });
+    ctx.save(); ctx.translate(X, Y); ctx.scale(k, k); ctx.translate(-X, -Y); try { drawP(ps); } catch (e) {} ctx.restore();
+    ctx.save(); ctx.globalCompositeOperation = "lighter";
+    for (let i = 1; i <= 8; i++) { const pu = Math.max(0, u - i * 0.04), pp = pu * pu, qq = 1 - pp;
+      const tx = qq * qq * X0 + 2 * qq * pp * cx + pp * pp * X1, ty = qq * qq * Y0 + 2 * qq * pp * cy + pp * pp * Y1, z = (0.22 - i * 0.02) * B;
+      ctx.fillStyle = `rgba(160,230,255,${0.5 - i * 0.05})`; ctx.fillRect(tx - z / 2, ty - z / 2, z, z); }
+    ctx.restore();
+  } else if (age < END_FLY + 0.8) {   // the flash where it went in
+    const v = (age - END_FLY) / 0.8, R = (0.6 + 3.5 * Math.sqrt(v)) * B;
+    ctx.save(); ctx.globalCompositeOperation = "lighter";
+    const g = ctx.createRadialGradient(X1, Y1, 0, X1, Y1, R); g.addColorStop(0, `rgba(255,255,255,${1 - v})`); g.addColorStop(0.5, `rgba(120,220,255,${0.6 * (1 - v)})`); g.addColorStop(1, "rgba(120,220,255,0)");
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(X1, Y1, R, 0, 7); ctx.fill();
+    ctx.strokeStyle = `rgba(255,255,255,${0.9 * (1 - v)})`; ctx.lineWidth = Math.max(1.5, 0.25 * B * (1 - v)); ctx.beginPath(); ctx.arc(X1, Y1, R * 1.1, 0, 7); ctx.stroke();
+    ctx.restore();
+    if (v < 0.4) { ctx.fillStyle = `rgba(255,255,255,${0.35 * (1 - v / 0.4)})`; ctx.fillRect(0, 0, W, H); }
+  }
+  // LEVEL COMPLETE!
+  if (age > END_FLY + 0.3) {
+    const v = Math.min(1, (age - END_FLY - 0.3) / 0.35), c1 = 1.70158, back = 1 + (c1 + 1) * Math.pow(v - 1, 3) + c1 * Math.pow(v - 1, 2), fs = Math.round(H / 9);
+    ctx.save(); ctx.translate(W / 2, H * 0.27); ctx.scale(back, back); ctx.globalAlpha = Math.min(1, v * 1.5);
+    ctx.font = `900 ${fs}px system-ui, sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.shadowColor = "rgba(120,220,255,.9)"; ctx.shadowBlur = fs * 0.4;
+    ctx.lineJoin = "round"; ctx.lineWidth = fs * 0.14; ctx.strokeStyle = "#0a0620"; ctx.strokeText("LEVEL COMPLETE!", 0, 0); ctx.shadowBlur = 0;
+    const g = ctx.createLinearGradient(0, -fs / 2, 0, fs / 2); g.addColorStop(0, "#ffffff"); g.addColorStop(0.55, "#bff6ff"); g.addColorStop(1, "#3dffb0");
+    ctx.fillStyle = g; ctx.fillText("LEVEL COMPLETE!", 0, 0); ctx.restore();
+  }
+  // the card
+  if (age > END_FLY + 1.1) {
+    const v = Math.min(1, (age - END_FLY - 1.1) / 0.45), e = 1 - Math.pow(1 - v, 3), st = endStats();
+    const cw = Math.min(W * 0.9, H * 1.15), ch = H * 0.27, x0 = (W - cw) / 2, y0 = H * 0.42 + (1 - e) * H * 0.5, r = ch * 0.12;
+    ctx.save(); ctx.globalAlpha = e;
+    ctx.fillStyle = "rgba(10,6,32,.84)"; ctx.strokeStyle = "rgba(160,230,255,.45)"; ctx.lineWidth = Math.max(1.5, H / 360);
+    ctx.beginPath(); ctx.moveTo(x0 + r, y0); ctx.arcTo(x0 + cw, y0, x0 + cw, y0 + ch, r); ctx.arcTo(x0 + cw, y0 + ch, x0, y0 + ch, r); ctx.arcTo(x0, y0 + ch, x0, y0, r); ctx.arcTo(x0, y0, x0 + cw, y0, r); ctx.closePath(); ctx.fill(); ctx.stroke();
+    const cols = [["ATTEMPT", String(st.attempt)], ["JUMPS", String(st.jumps)], ["TIME", st.time]]; if (st.coins.length) cols.push(["COINS", null]);
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    cols.forEach(([lab, val], i) => { const cx = x0 + cw * (i + 0.5) / cols.length;
+      ctx.fillStyle = "rgba(190,200,255,.75)"; ctx.font = `700 ${Math.round(ch * 0.13)}px system-ui, sans-serif`; ctx.fillText(lab, cx, y0 + ch * 0.3);
+      if (val != null) { ctx.fillStyle = "#fff"; ctx.font = `800 ${Math.round(ch * 0.3)}px system-ui, sans-serif`; ctx.fillText(val, cx, y0 + ch * 0.64); }
+      else { const n = st.coins.length, rr = ch * 0.1, gap = rr * 2.6; st.coins.forEach((got, j) => { const qx = cx + (j - (n - 1) / 2) * gap, qy = y0 + ch * 0.64;
+        ctx.beginPath(); ctx.arc(qx, qy, rr, 0, 7); ctx.lineWidth = Math.max(1.5, rr * 0.25);
+        if (got) { ctx.fillStyle = "#ffd84a"; ctx.fill(); ctx.strokeStyle = "#a8780a"; ctx.stroke(); } else { ctx.strokeStyle = "rgba(255,255,255,.4)"; ctx.setLineDash([rr * 0.5, rr * 0.4]); ctx.stroke(); ctx.setLineDash([]); } }); } });
+    ctx.restore();
+  }
+}
 // the user's look, from their GD save (GET /me/icons, tools/save_icons.js): runs and "you play" are drawn with their icons
 let ME = null;
 const youCol = () => ME && ME.color1 && ME.color1.rgb ? `rgb(${ME.color1.rgb.join(",")})` : "#ff9ad9";
@@ -2006,6 +2092,10 @@ function draw() {
       ctx.fillStyle = "#ff8fa8"; ctx.font = `bold ${12 * DPR()}px system-ui`; ctx.fillText(L.planBreak.label || "the plan breaks here", bx + r + 4, by - r); } }
   // your deaths in "you play" (this session of attempts): small red ticks on the ground
   if (PLAY && PLAY.on && PLAY.deaths.length && !MAPCAM) { ctx.fillStyle = "rgba(255,59,107,.8)"; for (const x of PLAY.deaths) { const dx = sx(x); if (dx > -5 && dx < W + 5) ctx.fillRect(dx - 1, groundY - 10 * DPR(), 2 * DPR(), 10 * DPR()); } }
+  // the end of a cleared level: the wall of light (in view before the clear too), then endFx on top below
+  const endT = LS && !s0.ghost ? endTime() : null, endAge = endT != null ? t - endT : -1;
+  const drawPL = ps => GD.LOOK.drawPlayer(ctx, view, ps, L.held[k], local, (P.SPEEDS[ps.sp] || P.SPEEDS[1]).x, sc ? (L.runKeep || (PLAY && PLAY.on) ? (c, m, st) => GD.ART_LIB.drawIcon(c, m, st, "user") : (c, m, st) => drawClaudeIcon(c, m, st) || GD.ART_LIB.drawIcon(c, m, st)) : null, (L.runKeep || (PLAY && PLAY.on)) && ME && ME.glow === false);
+  if (endT != null && !MAPCAM && !window.SHOOT_DECO_ONLY && (!SHOOT || window.SHOOT_VIDEO)) endWall(endAge);
   // the player
   // the player, drawn by its mode (a cube in every mode read wrong: "the wave looks like cube")
   // dual (lib/dual.js): player 2's own fields are in s.p2; it is drawn the same way, at its own height
@@ -2018,7 +2108,8 @@ function draw() {
     if (LS && !L.camKeep && !SHOOT) { ctx.globalAlpha = 0.3; try { GD.LOOK.drawPlayer(ctx, view, Object.assign({}, ps, { dead: false }), false, local, (P.SPEEDS[ps.sp] || P.SPEEDS[1]).x, null, true); } catch (e) {} ctx.globalAlpha = 1; }
     continue; }
   if (MAPCAM || window.SHOOT_DECO_ONLY) {} else if (LS && s.dead && (!SHOOT || window.SHOOT_VIDEO)) {}   // the burst replaces the player; drawn on top of everything below
-  else if (LS) { if (s0.lost) ctx.globalAlpha = 0.6; GD.LOOK.drawPlayer(ctx, view, ps, L.held[k], local, (P.SPEEDS[ps.sp] || P.SPEEDS[1]).x, sc ? (L.runKeep || (PLAY && PLAY.on) ? (c, m, st) => GD.ART_LIB.drawIcon(c, m, st, "user") : (c, m, st) => drawClaudeIcon(c, m, st) || GD.ART_LIB.drawIcon(c, m, st)) : null, (L.runKeep || (PLAY && PLAY.on)) && ME && ME.glow === false); ctx.globalAlpha = 1; }
+  else if (endAge > 0) {}   // the end: endFx flies the player into the wall
+  else if (LS) { if (s0.lost) ctx.globalAlpha = 0.6; drawPL(ps); ctx.globalAlpha = 1; }
   else if (ps.mode === "ship") drawShip(ps);
   else if (ps.mode === "wave") drawWave(ps);
   else if (ps.mode === "ball") drawBall(ps);
@@ -2034,9 +2125,10 @@ function draw() {
   if (SHOOT) { if (window.SHOOT_VIDEO && s.dead && LS && !MAPCAM) for (const ps of s.p2 ? [s, Object.assign({}, s, s.p2)] : [s]) deathFx(ps); } else if (s.dead) {
     if (LS && !MAPCAM) for (const ps of s.p2 ? [s, Object.assign({}, s, s.p2)] : [s]) deathFx(ps);
     ctx.fillStyle = "rgba(255,59,107,.9)"; ctx.font = "bold 22px system-ui"; ctx.fillText("✖ died on a " + s.why, sx(s.x) - 60, sy(s.y) - 50);
-  } else if (s.done) {
+  } else if (s.done && !(endT != null)) {
     ctx.fillStyle = "rgba(61,255,176,.95)"; ctx.font = "bold 22px system-ui"; ctx.fillText("LEVEL COMPLETE", W / 2 - 90, 40);
   }
+  if (endAge > 0 && !MAPCAM && !window.SHOOT_DECO_ONLY && (!SHOOT || window.SHOOT_VIDEO)) endFx(s, endAge, drawPL);
   document.getElementById("clock").textContent = `${(k / P.TPS).toFixed(2)} s · block ${(s.x / 30).toFixed(1)}` + (L.beats ? ` · beat ${beatOf(k / P.TPS).toFixed(1)}` : "") + ` · ${speed}×` + perfText();
   drawStrip(k);
   cmpUpdate();
@@ -2433,7 +2525,7 @@ function frame(now) {
     let clicks = 0; for (const c of L.sol.clicks) if (c.type === "press" && c.tick > lastTick && c.tick <= k) clicks++;
     if (clicks && k - lastTick < P.TPS / 4) beep(); // one beep a frame at most, none after a jump
     lastTick = k;
-    if (k >= L.path.length - 1) { playing = false; setPlay(); }
+    if (k >= L.path.length - 1) { const et = endTime(); if (et == null || t >= et + END_LEN) { playing = false; setPlay(); } }   // a clear plays its end (endFx)
     syncSong(false);
     const d0 = performance.now(); draw(); if (PERF.on) { PERF.draws.push(performance.now() - d0); if (PERF.draws.length > 120) PERF.draws.splice(0, 60); }
   }
@@ -2822,13 +2914,13 @@ async function shootVideo(job, post) {
     const r = GD.run(L.world, pre.concat(row.events));
     VIEW.route = false; L.ghost = { row, path: r.path, cmp: null, runP: [], from: pre.length ? from : 0, events: pre.concat(row.events) }; runViewApply();
   }
-  const end = (L.path.length - 1) / P.TPS, t1 = Math.min(v.to != null ? v.to : end + 1, end + 1.2), t0 = Math.max(0, v.from || 0);
+  const end = (L.path.length - 1) / P.TPS, endT = endTime(), tail = endT != null ? END_LEN : 1.2, t1 = Math.min(v.to != null ? v.to : end + tail, end + tail), t0 = Math.max(0, v.from || 0);
   const n = Math.max(1, Math.round((t1 - t0) * fps));
   drawDt = 1 / fps; window.SHOOT_VIDEO = false; t = t0; draw(); window.SHOOT_VIDEO = true;   // the first frame's camera in place
   for (let k = 0; k < 4; k++) { draw(); await new Promise(r => setTimeout(r, 120)); }         // lazily loaded pictures in
   const T0 = performance.now();
   for (let i = 0; i < n; i++) {
-    const tt = t0 + i / fps; t = Math.min(tt, end); window.VCLOCK = tt * 1000; drawDt = 1 / fps; draw();
+    const tt = t0 + i / fps; t = endT != null ? tt : Math.min(tt, end); window.VCLOCK = tt * 1000; drawDt = 1 / fps; draw();
     await post("f" + String(i).padStart(5, "0") + ".jpg", cv.toDataURL("image/jpeg", v.quality || 0.88));
   }
   await post("done", JSON.stringify({ frames: n, from: t0, to: t1, fps, ms: Math.round(performance.now() - T0), end }));
@@ -2901,6 +2993,7 @@ function ghostExtend(LL, want, toEnd) {
   want = want || Math.ceil(LL.world.endX / vOf(0)) + 2;
   const last = LL.path[LL.path.length - 1];
   if (!(last.dead || LL.path.length < want)) return false;
+  if (last.done && !last.dead && !last.ghost) return false;   // a clear needs no ghost after it: it ends with endFx (the Jumper video's player walked on past the end and fell to the ground)
   let k = LL.path.length - 1; while (k > 0 && LL.path[k].dead) k--;
   const base = LL.path[k];
   let x = base.x, sp = base.sp, mode = base.mode, grav = base.grav, y = base.y, pi = portals.findIndex(o => o.x > x); if (pi < 0) pi = portals.length;
