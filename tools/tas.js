@@ -12,10 +12,10 @@ const { GD, unpack } = require("./io.js");
 const SRC = process.env.GD_LEVELS || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash/Resources/levels/";
 const PLANS = process.env.GDSOLVER_PLANS || path.join(__dirname, "..", "local", "gdsolver");
 
-function loadPlan(n) {
+function loadPlan(n, kind) {   // kind: "dp" (the plain clear, default) or "coins" (gdsolver's all-coins plan)
   const ev = [];
   let held = false;
-  for (const line of fs.readFileSync(path.join(PLANS, `solution_lv${n}_dp.txt`), "utf8").split(/\r?\n/)) {
+  for (const line of fs.readFileSync(path.join(PLANS, `solution_lv${n}_${kind || "dp"}.txt`), "utf8").split(/\r?\n/)) {
     const m = /^input=(\d+),(\d+)/.exec(line);
     if (!m) continue;
     const h = (+m[2] & 1) === 1;
@@ -52,11 +52,11 @@ function playLatent(w, ev, late) {
   return { path, dead: s.dead, done: s.done, why: s.why, killer: s.killer, end: path[path.length - 1] };
 }
 
-function replay(n, shift) {
+function replay(n, shift, kind) {
   const level = unpack(fs.readFileSync(path.join(SRC, n + ".txt"), "utf8"));
   const L = GD.parseLevel(level);
   const w = GD.makeWorld(L.objects, L.header);
-  const ev = loadPlan(n).map(e => ({ tick: e.tick + shift, type: e.type }));
+  const ev = loadPlan(n, kind).map(e => ({ tick: e.tick + shift, type: e.type }));
   const r = playLatent(w, ev);
   const e = r.end;
   return { n, w, r, ev, x: e.x, done: r.done, why: r.why, killer: r.killer, tick: e.tick, mode: e.mode };
