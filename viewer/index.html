@@ -34,6 +34,9 @@
   select, button, label.btn { background:#24184f; color:var(--ink); border:1px solid #3b2d78; border-radius:6px; padding:6px 10px; font:inherit; cursor:pointer; }
   button.on { background:#3b2d78; border-color:var(--cube); }
   #wrap { position:relative; }
+  #vz { position:absolute; right:8px; top:8px; z-index:5; display:flex; gap:2px; opacity:.55; }
+  #vz:hover { opacity:1; }
+  #vz button { padding:2px 8px; font-size:12px; min-width:2em; background:#1a1240cc; }
   canvas { display:block; width:100%; height:min(60vh, 460px); background:#0e0828; touch-action:none; }
   #scrub { width:100%; margin:0; accent-color:var(--cube); }
   #strip { display:block; width:100%; height:34px; background:#120a2e; cursor:pointer; }
@@ -201,7 +204,7 @@
   <button id="viewBtn" title="view options: speed, look, GD art, level map, hitboxes, sounds, beats, the button band's windows and legend (remembered)">⚙ view</button>
   <div id="viewMenu" hidden></div>
 </header>
-<div id="views"><div id="wrap"><canvas id="cv"></canvas><canvas id="inbar" title="the button. Middle lane: what the replay presses -- a tap is a short white mark with a dot, a hold a yellow bar with its length. Top lane: each input's timing window, the whole range of moments that still work (cyan for a press, pink for a release): a long window is room, not a long press."></canvas><div id="drop">drop a .gdlvl here</div></div>
+<div id="views"><div id="wrap"><canvas id="cv"></canvas><div id="vz" title="zoom the level only (wheel or pinch on the level, keys - and =)"><button id="vzOut">−</button><button id="vzFit" title="back to the game's view (100%)">100%</button><button id="vzIn">+</button></div><canvas id="inbar" title="the button. Middle lane: what the replay presses -- a tap is a short white mark with a dot, a hold a yellow bar with its length. Top lane: each input's timing window, the whole range of moments that still work (cyan for a press, pink for a release): a long window is room, not a long press."></canvas><div id="drop">drop a .gdlvl here</div></div>
 <div id="cmp" hidden><div class="cmpbar"><select id="cmpRec"></select>
   <label title="where this level's attempt starts in the video: replay time t shows video second (start + t)">level starts at <input id="cmpT0" type="number" step="0.1" value="0" style="width:5em"> s</label>
   <button data-dt="-1">-1 s</button><button data-dt="-0.1">-0.1</button><button data-dt="0.1">+0.1</button><button data-dt="1">+1 s</button>
@@ -1278,6 +1281,7 @@ scrub.oninput = () => { t = scrub.value / 1000 * (L.path.length - 1) / P.TPS; la
 const typing = e => /INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName || "") || !!(e.target && e.target.isContentEditable);
 addEventListener("keydown", e => {
   if (typing(e)) return;
+  if ((e.key === "-" || e.key === "=" || e.key === "+") && !e.ctrlKey && !e.metaKey) { vzSet(e.key === "-" ? VZ.z / 1.25 : VZ.z * 1.25); return; }
   if (e.code === "Space") { e.preventDefault(); playBtn.onclick(); }
   if (e.key === "r") document.getElementById("restart").onclick();
   if (e.key === "ArrowRight") { t += 1 / P.TPS * (e.shiftKey ? 24 : 1); playing = false; setPlay(); draw(); }
@@ -1779,6 +1783,15 @@ cmp.querySelectorAll("[data-dt]").forEach(b => b.onclick = () => { cmpT0.value =
 function tick() { return Math.min(L.path.length - 1, Math.floor(t * P.TPS)); }
 const DPR = () => Math.min(2, devicePixelRatio || 1);
 let W = 0, H = 0, scale = 1, baseScale = 1, camX = 0, camY = 0, groundY = 0, LS = null;
+const VZ = { z: (() => { try { const v = +localStorage.getItem("gdlm.zoom"); return v >= 0.25 && v <= 3 ? v : 1; } catch (e) { return 1; } })() };
+function vzSet(z) { VZ.z = Math.max(0.25, Math.min(3, Math.round(z * 100) / 100)); try { localStorage.setItem("gdlm.zoom", String(VZ.z)); } catch (e) {}
+  const l = document.getElementById("vzFit"); if (l) l.textContent = Math.round(VZ.z * 100) + "%"; if (L) draw(); }
+// the level's own zoom: wheel / trackpad pinch (ctrl+wheel) over the level, the buttons, keys - and =
+document.getElementById("vzOut").onclick = e => { e.currentTarget.blur(); vzSet(VZ.z / 1.25); };
+document.getElementById("vzIn").onclick = e => { e.currentTarget.blur(); vzSet(VZ.z * 1.25); };
+document.getElementById("vzFit").onclick = e => { e.currentTarget.blur(); vzSet(1); };
+cv.addEventListener("wheel", e => { if (SHOOT) return; e.preventDefault(); vzSet(VZ.z * Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0015))); }, { passive: false });
+vzSet(VZ.z);
 function resize() {
   const r = cv.getBoundingClientRect(), d = DPR();
   cv.width = r.width * d; cv.height = r.height * d; W = cv.width; H = cv.height;
@@ -1822,8 +1835,11 @@ function draw() {
   } else objsNow = posedNow(s0);   // objects that triggers move, turn or switch off: where they are now
   // the game look frames like GD at 16:9: 10.67 blocks tall, ground 3.1 blocks up, player 36% across
   // (a screen narrower than 16:9, like a phone held upright, shows GD's 19 blocks across and more sky)
-  if (LS) { scale = Math.min(H / (30 * 10.67), W / (30 * 19)) * LS.zoom; groundY = H - 30 * 3.1 * scale; camX = s.x - W / scale * 0.36 + (LS.camOff ? LS.camOff[0] : 0); }
-  else { scale = baseScale; groundY = H - 30 * 1.6 * scale; camX = s.x - W / scale * 0.3; }
+  // VZ: the user's own zoom of the level view (wheel or pinch on the level, the − / + / fit buttons, keys - and =), the page
+  // around it untouched (the user, 2026-11-25: "how do i zoom out of the level? the big zoom of the whole ui is messy")
+  const vz = SHOOT ? 1 : VZ.z;
+  if (LS) { scale = Math.min(H / (30 * 10.67), W / (30 * 19)) * LS.zoom * vz; groundY = H - 30 * 3.1 * scale; camX = s.x - W / scale * 0.36 + (LS.camOff ? LS.camOff[0] : 0); }
+  else { scale = baseScale * vz; groundY = H - 30 * 1.6 * scale; camX = s.x - W / scale * 0.3; }
   // the vertical camera: lib/camera.js (one copy with tools/camfit.js, which checks it against the user's recordings)
   let want = GD.CAM.want(s, { look: !!LS, viewH: H / scale, below: (H - groundY) / scale });
   // no route (a ghost: the camera at the level's speed, height held): follow where the level's objects are instead, or a

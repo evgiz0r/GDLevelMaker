@@ -164,3 +164,10 @@ its card) + the official ones; **in progress** = work in progress that is not th
 variants (LAB rN vK) and the lab / test levels (`pkLab` in viewer/index.html); ours, official, community, demon list, all
 as before.
 
+## Zoom the level only (2026-11-25)
+
+The user: "how do i zoom out of the level? the big zoom of the whole ui is messy". The level view has its own zoom: the
+mouse wheel or a trackpad pinch over the level, the − / 100% / + buttons in its top right corner (100% = the game's own
+view), keys - and =. The page around it stays as it is; the zoom is remembered in this browser (localStorage gdlm.zoom).
+Shots (tools/shoot.js) ignore it.
+
