@@ -295,6 +295,10 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   section, ~5 s of empty run (the user, 2026-11-25: "leaves way too much space ... should end almost instantly")
 - [ ] **The signature ends every GDLM level** (robot + human): make.js adds it by default; opt out
   only with `"signature": false`.
+- [ ] **Nothing the player should read above the view** (the user on GDLM 72, 2026-11-25: "the sign is offscreen"): for a
+  cube on the ground the game shows y -93 .. ~227 (lib/camera.js), so text and set pieces stay under ~210. The signature's
+  stage floated 90 units up and put its title at y 232; now 50 (title ~192). 21 of 30 GDLM levels carry the old one until
+  rebuilt (`make.js <spec> --look`).
 
 ## Ratable (rating.md)
 
