@@ -100,7 +100,8 @@ function compose(theme, back, objects, ends) {
     const fly = ends.fly.some(([a, b]) => x >= a && x < b);
     if (!fire) {
       if (fly) out.push(...I.cluster(x, 330, { seed: 100 + i, size: 2.2, n: 5, down: true, ch: CH.far, lit: CH.crystal, z: "B2", groups: [] }));
-      else { out.push(...I.peak(x + 120, 520, 300, { z: "B4", zo: 6, seed: i, groups: [] })); out.push(...I.cluster(x + 60, -10, { seed: 50 + i, size: 1.8, n: 5, ch: CH.mid, lit: CH.crystal, z: "B3", groups: [] })); }
+      // dark and lower: a pale peak sat behind a ceiling spike (PC review, rung 7)
+      else { out.push(...I.peak(x + 120, 520, 220, { z: "B5", zo: 6, ch: CH.mid, lit: CH.far, cap: false, seed: i, groups: [] })); out.push(...I.cluster(x + 60, -10, { seed: 50 + i, size: 1.8, n: 5, ch: CH.mid, lit: CH.crystal, z: "B3", groups: [] })); }
     } else {
       if (fly) for (let k = -2; k <= 2; k++) out.push(...I.crystal(x + k * 40, 330, 26, 120 - Math.abs(k) * 30, { down: true, ch: CH.mid, lit: CH.crystal, z: "B2", groups: [] }));
       else { out.push(...P.put("broken arches", x + 100, 0, { silhouette: CH.far, layer: "B3", zo: -2, scale: 1.6, seed: i }).objects);
