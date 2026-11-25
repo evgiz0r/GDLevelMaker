@@ -62,8 +62,8 @@
     <button id="menuBtn" title="sketches: new, open, rename, export, send to Claude">☰</button>
     <span id="title">sketch</span>
     <span class="sep"></span>
-    <button data-tool="pen" class="on" title="draw (1-5 pick a pen)">✏️</button>
-    <button data-tool="stamp" title="place an orb, portal, pad, hazard or a deco prop anywhere">●</button>
+    <button data-tool="pen" class="on" hidden title="draw (1-5 pick a pen)">✏️</button>
+    <button data-tool="stamp" hidden title="place an orb, portal, pad, hazard or a deco prop anywhere">●</button>
     <button data-tool="select" title="pick something: move, turn, resize, delete">⬚</button>
     <button data-tool="erase" title="rub out whatever the finger crosses">⌫</button>
     <button data-tool="pan" title="move the board (two fingers always move and zoom)">✋</button>
@@ -583,10 +583,12 @@ function chip(label, on, fn, tip, cls) { const b = document.createElement("butto
 function buildRows() {
   document.querySelectorAll("[data-tool]").forEach(b => b.classList.toggle("on", b.dataset.tool === ui.tool));
   const pr = $("penRow"), st = $("stampRow"); pr.innerHTML = ""; st.innerHTML = "";
-  pr.hidden = ui.tool !== "pen"; st.hidden = ui.tool !== "stamp";
-  if (ui.tool === "pen") {
-    PENS.forEach(p => pr.appendChild(chip(p.icon + ' <span class="lbl">' + p.label + "</span>", ui.pen === p.id, () => { ui.pen = p.id; buildRows(); save(); }, p.tip)));
-    if (ui.pen === "deco") {
+  // no pen / stamp switch (the user, 2026-11-25: "dont want to swap between those two"): the pens are always on screen,
+  // a pen draws, a palette item places; whichever was tapped last is what the next touch does
+  pr.hidden = false; st.hidden = ui.tool !== "stamp";
+  {
+    PENS.forEach(p => pr.appendChild(chip(p.icon + ' <span class="lbl">' + p.label + "</span>", ui.tool === "pen" && ui.pen === p.id, () => { ui.tool = "pen"; ui.pen = p.id; sel = null; buildRows(); save(); }, p.tip)));
+    if (ui.tool === "pen" && ui.pen === "deco") {
       pr.appendChild(Object.assign(document.createElement("span"), { className: "sep" }));
       DECO_COLS.forEach((c, i) => { const b = chip("", ui.col === i, () => { ui.col = i; buildRows(); save(); }, "colour", "sw"); b.style.background = `rgb(${c})`; pr.appendChild(b); });
       WIDTHS.forEach((w, i) => pr.appendChild(chip(w[1], ui.w === i, () => { ui.w = i; buildRows(); save(); })));
