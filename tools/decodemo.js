@@ -150,12 +150,22 @@ function page(rows, at) {
 
 if (require.main === module) {
   const a = process.argv.slice(2), opt = (k, d) => { const i = a.indexOf(k); return i >= 0 ? a[i + 1] : d; };
-  const src = a[0] && !a[0].startsWith("--") ? a[0] : path.join(ROOT, "levels", "gdlm_50_eclipse.gdlvl");
+  const src = a[0] && !a[0].startsWith("--") ? a[0] : path.join(ROOT, "levels", "archive", "gdlm_50_eclipse.gdlvl");
   const rows = build(src, { to: +opt("--to", 150), themes: opt("--themes", "ice,fire").split(",") });
   for (const r of rows) console.log(`${r.file}  ${r.deco} deco`);
   const at = opt("--at", "3.5,9.5").split(",").map(Number);
   if (a.includes("--shots")) {
     require("./heavy.js").claim();
+    // every rung has the same gameplay (only deco differs): solve it ONCE and save that route under each rung's key, so
+    // shoot.js never solves in the page (it did per rung, slower with more deco: 27 s, 34 s, 208 s, then a 600 s timeout
+    // on fire 5, 2026-11-25)
+    try {
+      const io = require("./io.js"), GDl = require("../lib/gd.js"), S = require("./solutions.js");
+      const str0 = io.readGdlvl(path.join(ROOT, rows[0].file)).levelStr, sol = S.solve(GDl.parseLevel(str0), str0);
+      if (sol && sol.events) for (const r of rows.slice(1)) { const s = io.readGdlvl(path.join(ROOT, r.file)).levelStr;
+        if (!S.get(s, true)) { const c = { ...sol }; delete c.windows; delete c.checkpoints; S.put(s, c); } }
+      console.log(`route: ${sol && sol.ok ? "solved" : "NOT solved"} once (${sol && sol.events ? sol.events.length : 0} inputs), shared by every rung`);
+    } catch (e) { console.log("route: could not share one route (" + e.message + "): shoot.js solves each rung"); }
     for (const r of rows) cp.execFileSync(process.execPath, [path.join(__dirname, "shoot.js"), path.join(ROOT, r.file), "--at", at.join(","), "--out", path.join(OUT, path.basename(r.file, ".gdlvl") + "_shots")], { stdio: "inherit", windowsHide: true });
     page(rows, at); console.log("sheet: local/decodemo/index.html (http://localhost:8765/local/decodemo/index.html)");
   }

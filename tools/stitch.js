@@ -16,6 +16,7 @@
 // round(level time * 240) (the checkpoint's level time, logged by the mod), a press logged after n ticks is at start + n
 // (the probe's convention: it acts in the step n -> n+1, like our sim's event tick). At a seam the button is set to the
 // state the next attempt began with (a hold carried through a respawn, or a press the respawn dropped).
+// Checkpoints are matched by their level time (GD's checkpoint ids read 0 on 2.2091), so probe v0.4.0 logs work as they are.
 // Limits: one player, the jump button (button 1), no time warp (a level-time drift is reported); GD restores a checkpoint
 // from its saved state, so a run that only works because of a respawn's small differences may not clear unbroken -- the
 // sim check below, and a real-game playback (probe.js play, GDLM levels only, with the user's go) settle it.
@@ -27,15 +28,23 @@ const TPS = 240;
 
 // attempts (probe.js read() objects) -> the stitched run, or { error }
 function stitch(attempts, opts = {}) {
-  const prac = attempts.filter((a) => a.start && a.start.practice);
-  if (!prac.length) return { error: "no practice attempts" };
-  const old = prac.filter((a) => a.start.lt == null);
-  if (old.length === prac.length) return { error: "these logs are from probe v0.3 or older: no checkpoint data (install v0.4.0, then play practice again)" };
-  const atts = prac.filter((a) => a.start.lt != null);
+  // every attempt counts, practice or not: an attempt started in normal mode and switched to practice stores checkpoints too
+  const all = attempts.filter((a) => a.start);
+  if (!all.some((a) => a.start.practice)) return { error: "no practice attempts" };
+  const atts = all.filter((a) => a.start.lt != null);
+  if (!atts.length) return { error: "these logs are from probe v0.3 or older: no checkpoint data (install v0.4.0, then play practice again)" };
   const baseOf = (a) => Math.round(a.start.lt * TPS);
-  // checkpoint id -> the attempt that stored it and its tick
-  const cpBy = new Map();
-  atts.forEach((a, i) => { for (const c of a.cps || []) cpBy.set(c.id, { att: i, tick: Math.round(c.lt * TPS), x: c.x, y: c.y, n: c.n }); });
+  // A checkpoint is known by its tick (round(level time x 240)), not by GD's id: CheckpointObject::m_uniqueID reads 0 for
+  // every checkpoint on 2.2091 (Clubstep, 2026-11-25). The attempt that stored the checkpoint an attempt starts from =
+  // the newest earlier attempt that ran past that tick (only the newest checkpoint is ever restored, so no later attempt
+  // can have passed it again unless it was deleted and placed anew -- then the newest pass is the right one).
+  const cpAt = new Map();   // tick -> logged cp line (x, y), when the mod saw it stored
+  atts.forEach((a) => { for (const c of a.cps || []) cpAt.set(Math.round(c.lt * TPS), { x: c.x, y: c.y }); });
+  const parentOf = (i) => {
+    const T = baseOf(atts[i]);
+    for (let j = i - 1; j >= 0; j--) { const b = baseOf(atts[j]); if (b < T && b + lastN(atts[j]) >= T) return j; }
+    return -1;
+  };
   // the final attempt: the newest that completed (else, with partial, the one that got furthest)
   let fin = -1;
   for (let i = atts.length - 1; i >= 0; i--) if (atts[i].end && atts[i].end.result === "complete") { fin = i; break; }
@@ -46,16 +55,16 @@ function stitch(attempts, opts = {}) {
     atts.forEach((a, i) => { const t = baseOf(a) + lastN(a); if (t > best) { best = t; fin = i; } });
   }
   // walk back
-  const chain = [];   // { att, from (tick), cp (the id it started from) }
+  const chain = [];   // { att, from (tick), cp (tick of the checkpoint it started from, -1 = the level's start) }
   let i = fin, guard = 0;
   while (true) {
     const a = atts[i];
-    chain.unshift({ att: i, from: baseOf(a), cp: a.start.from });
-    if (a.start.from == null || a.start.from < 0) break;
-    const c = cpBy.get(a.start.from);
-    if (!c) return { error: `attempt ${path.basename(a.file || "?")} starts at checkpoint ${a.start.from}, but no logged attempt stored it (was the mod off then, or are older logs missing?)` };
-    if (c.tick !== baseOf(a)) chain[0].tickMismatch = { cp: c.tick, start: baseOf(a) };
-    i = c.att;
+    const T = baseOf(a);
+    chain.unshift({ att: i, from: T, cp: T > 0 ? T : -1 });
+    if (T <= 0) break;
+    const j = parentOf(i);
+    if (j < 0) return { error: `attempt ${path.basename(a.file || "?")} starts at a checkpoint at ${(T / TPS).toFixed(2)} s, but no earlier logged attempt got there (was the mod off then, or are older logs missing?)` };
+    i = j;
     if (++guard > 100000) return { error: "checkpoint loop" };
   }
   if (chain[0].from !== 0) return { error: `the chain's first attempt starts at tick ${chain[0].from}, not at the level's start (a start position?)` };
@@ -89,7 +98,7 @@ function stitch(attempts, opts = {}) {
     segments.push({ file: a.file ? path.basename(a.file) : null, attempt: a.start.attempt, from: s.from, to: isFinite(to) ? to : end,
       inputs: n, result: a.end ? a.end.result : "cut", checkpoint: s.cp, drift: +drift.toFixed(2), tickMismatch: s.tickMismatch });
     if (k + 1 < chain.length) {
-      const c = cpBy.get(chain[k + 1].cp);
+      const c = cpAt.get(to) || { x: atts[chain[k + 1].att].start.x, y: atts[chain[k + 1].att].start.y };
       const near = a.btn.filter((b) => b.button === 1 && b.p1 && Math.abs(s.from + b.n - to) <= 2).map((b) => s.from + b.n - to);
       seams.push({ tick: to, cp: chain[k + 1].cp, gx: c.x, gy: c.y, pressNear: near.length ? near : undefined });
     }
@@ -156,7 +165,7 @@ function main() {
   if (!mine.length) { console.error(`no attempts at '${want}'; levels there: ` + [...new Set(all.map((r) => r.start.level))].slice(-12).join(", ")); process.exit(1); }
   const S = stitch(mine, { partial });
   if (S.error) { console.error(`${want}: ${S.error}`); process.exit(1); }
-  console.log(`${S.level}: ${S.complete ? "a full run" : "a PARTIAL run (no practice clear yet)"} from ${S.segments.length} practice attempt(s) of ${S.attempts}, ` +
+  console.log(`${S.level}: ${S.complete ? "a full run" : "a PARTIAL run (no practice clear yet)"} from ${S.segments.length} of ${S.attempts} attempts, ` +
     `${S.events.filter((e) => e.type === "press").length} presses, ${(S.endTick / TPS).toFixed(2)} s`);
   for (const g of S.segments) console.log(`  ${(g.from / TPS).toFixed(2)}-${(g.to / TPS).toFixed(2)} s  attempt #${g.attempt} (${g.result})  ${g.inputs} inputs` +
     `${g.drift > 1 ? `  !! level time drifts ${g.drift} ticks (time warp?)` : ""}${g.tickMismatch ? `  !! starts at ${g.tickMismatch.start}, checkpoint says ${g.tickMismatch.cp}` : ""}`);

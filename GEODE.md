@@ -145,6 +145,18 @@ The user asked (2026-11-25): "do we have something that can make a run from a pr
   to local/attempts/ (source "stitch") so the viewer shows it as a ghost and `tools/video.js <level> --run <id>` films it.
 - **In the real game:** `node tools/probe.js play save:<GDLM name> --events local/stitched/<file>.json --launch` plays the
   stitched run unbroken in normal mode (GDLM levels only; announce it and get the user's go first, see "Playback").
+- **First real session (Clubstep, 2026-11-25, 41 attempts, cleared in practice from 83.78 s):** v0.4.0 logged only ONE
+  checkpoint: `CheckpointObject::m_uniqueID` reads 0 for every checkpoint on 2.2091, and the mod skipped a checkpoint whose
+  id equalled the last one. Fixed twice: stitch.js matches checkpoints by their tick (an attempt's start level time ->
+  the newest earlier attempt that ran past that tick), so v0.4.0 logs stitch as they are; mod v0.4.1 tells checkpoints
+  apart by pointer and logs a checkpoint's id and `from` as its tick. Also seen: attempt #1 began in normal mode and was
+  switched to practice mid-run, storing the first checkpoints -- stitch.js counts every attempt, not only practice ones.
+- **Clubstep stitched (2026-11-25):** 14 of 41 attempts -> one 86.56 s run, 173 presses, two seams where the respawn let
+  go of a held button (release added). Our sim dies on a saw at 24.91 s (29%); at the checkpoints the sim's x trails the
+  game's by 1.5 / 3.3 / 6.2 units (9.8 / 15.8 / 21.7 s) and its height is 19 units off by 21.7 s. So the joined run is
+  the user's, the gap is our physics on Clubstep (for the physics session: a real 2.2091 run to compare against, attempt
+  `stitchmwwml7sr` in local/attempts/official_14.jsonl, logs in the mod's attempts folder). Open: is the x lag the drawn
+  position's 1-2 tick lag or a real speed difference.
 - Test: `node tests/stitch.js` (a solved level's route cut at three checkpoints with wasted attempts and junk presses
   stitches back to the route and clears; a held seam; old logs refused).
 - **Not checked in the game yet** (needs v0.4.0 built + installed, then the user plays a level in practice): whether

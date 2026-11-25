@@ -27,7 +27,7 @@ In the viewer: space plays/pauses, R restarts, arrow keys step (shift = bigger s
 On Windows, with the game **closed**:
 
 ```
-node tools/install.js levels/gdlm_01_one_jump.gdlvl
+node tools/install.js levels/archive/gdlm_01_one_jump.gdlvl
 ```
 
 This writes the level into the game's save (`%LOCALAPPDATA%\GeometryDash\CCLocalLevels.dat`),
@@ -42,7 +42,7 @@ The game must be closed because it rewrites the save when it exits.
 To check in the real game that a level is beatable, without playing it yourself:
 
 ```
-node tools/bot.js levels/gdlm_01_one_jump.gdlvl
+node tools/bot.js levels/archive/gdlm_01_one_jump.gdlvl
 ```
 
 Open the level's page in the game, run this, press Play and take your hands off. The bot watches

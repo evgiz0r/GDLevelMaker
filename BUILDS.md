@@ -164,3 +164,9 @@ The stage times are also in local/timings.jsonl.
 - result: not ready (channels, route), 1 round(s), variants: 2 section(s)
 - change made: (the session fills this in)
 
+## GDLM 72 FROSTBITE, 2026-11-25 19:36
+- stages: song 0 s, layout 258 s, layout 516 s, path 1799 s, deco 1799 s, final 1799 s
+- slowest step: path (1282 s); over target: layout 258 s > 60 s, layout 516 s > 60 s, path 1799 s > 900 s, deco 1799 s > 1200 s, final 1799 s > 1200 s
+- result: not ready (channels), 1 round(s), variants: 2 section(s)
+- change made: v2 with compose's varied corridors (vary, 7442948): repetition R 0.65 -> 0.25 (repeats 0.45 -> 0.20, near 0.27 -> 0.07, motifs 11 -> 4, loops 5 -> 3; tools/repeat.js). Stopped before score: the user paused FROSTBITE (2026-11-25, starting over from GDLM 44 hellgate); v2 kept in local/frostbite/, levels/ keeps v1
+

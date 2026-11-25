@@ -22,7 +22,7 @@ for (const dir of ["lib", "tools"]) for (const f of fs.readdirSync(path.join(ROO
 const isFast = new Function("o", "return %HasFastProperties(o)");
 const { GD, readGdlvl } = require("../tools/io.js");
 Object.assign(GD, require("../lib/difficulty.js"));
-const L = readGdlvl(path.join(ROOT, "levels", "gdlm_45_first_flight.gdlvl"));   // modes and triggers: the most fields
+const L = readGdlvl(path.join(ROOT, "levels", "archive", "gdlm_45_first_flight.gdlvl"));   // modes and triggers: the most fields
 const w = GD.makeWorld(L.level.objects, L.level.header);
 const r = GD.run(w, [{ tick: 40, type: "press" }, { tick: 44, type: "release" }]);
 const slow = r.path.filter(s => s && !isFast(s)).length;
