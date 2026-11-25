@@ -1,0 +1,23 @@
+{
+	"geode": "5.0.0",
+	"gd": { "win": "2.2081" },
+	"id": "gdlm.probe",
+	"name": "GDLM Probe",
+	"version": "v0.1.0",
+	"developer": "GDLevelMaker",
+	"description": "Logs the player's state every physics tick and every press to a file, for GDLevelMaker's sim checks. Changes nothing in the game.",
+	"settings": {
+		"enabled": {
+			"name": "Log attempts",
+			"description": "Write one JSON-lines file per attempt to the mod's save folder.",
+			"type": "bool",
+			"default": true
+		},
+		"only-gdlm": {
+			"name": "Only GDLM levels",
+			"description": "Log only levels whose name starts with GDLM.",
+			"type": "bool",
+			"default": false
+		}
+	}
+}

@@ -6,7 +6,7 @@ landbuf), a keyboard input logger with a clock fitted afterwards (tools/inputlog
 published plans, and a keyboard bot nobody trusts yet (tools/bot.js). A mod runs INSIDE the game: it can read the
 player's state every physics tick and press the button on an exact tick. That removes most of the guesswork.
 
-Status: research only (2026-11-25). Nothing installed or built. Every mod install and every build needs the
+Status (2026-11-25): the user OK'd installing the C++ toolchain and building our probe mod. Source: `mods/gdlm-probe/`; reader: `tools/probe.js`. Every mod install and every build needs the
 user's OK first. The phone's GD still has no Geode (PUBLISH.md), so this is a PC-only tool.
 
 ## What it can settle (our open questions)
@@ -65,6 +65,21 @@ The mod (C++, small, one file to start, kept in this repo under `mods/gdlm-probe
 - Our side: `tools/probe.js` reads the logs into the shape replay_run.js / attempts.js already use, and a
   `fidelity` diff (sim vs game, per tick, first parting) -- the scoreboard PHYSICS.md "Fidelity" planned.
 Effort: not measured. A first logger is ~200 lines of C++ plus the toolchain; playback is a second step.
+
+## The probe mod as written (mods/gdlm-probe, v0.1.0, logger only)
+
+Hooks (names checked in geode-sdk/bindings for 2.2081 and 2.2091, identical there): `GJBaseGameLayer::processCommands(float
+dt, bool isHalfTick, bool isLastTick)` (one call per physics step: logs after the step), `GJBaseGameLayer::handleButton(bool
+down, int button, bool isPlayer1)` (presses, with the tick they apply in), `PlayLayer::resetLevel` (an attempt starts),
+`destroyPlayer` (only when it sets `m_isDead`: GD also calls it with its anti-cheat object at the start), `levelComplete`,
+`onQuit`. Fields: PlayerObject `m_position`, `m_yVelocity`, `m_isShip/Bird/Ball/Dart/Robot/Spider/Swing`, `m_isUpsideDown`,
+`m_isOnGround`, `m_vehicleSize`, `m_playerSpeed`; GJGameState `m_levelTime`, `m_cameraPosition`, `m_isDualMode`.
+Output: one JSON-lines file per attempt in `<GD save>/geode/mods/gdlm.probe/attempts/` (line types at the top of
+src/main.cpp), written on a thread when the attempt ends; nothing is written during play. Settings: log on/off, only GDLM
+levels. `node tools/probe.js list | show <n> | presses <n>` reads them.
+Build (on the PC): `cd mods/gdlm-probe && geode build --ninja` (installs into the game when `geode config setup` was done).
+`mod.json`'s "gd" and "geode" fields must match the installed game and loader (check them on the PC before building).
+Next: playback of a route (press on exact ticks), and a sim-vs-game diff per tick (the PHYSICS.md "Fidelity" scoreboard).
 
 ## Plan (ranked)
 
