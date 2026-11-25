@@ -8,6 +8,10 @@
 const fs = require("fs"), path = require("path");
 const ROOT = path.join(__dirname, ".."), oi = process.argv.indexOf("--out");
 const OUT = oi > 0 ? path.resolve(process.argv[oi + 1]) : path.join(ROOT, "local", "web");
+// --private: the user's own private phone viewer (PHONE.md "Private build"): it also loads levels.local.js (the main
+// levels, already published next to the page, never in git) and fetches their songs from songs/ on first use.
+// Never for a shared or public page.
+const PRIVATE = process.argv.includes("--private");
 fs.rmSync(OUT, { recursive: true, force: true });
 fs.mkdirSync(path.join(OUT, "lib"), { recursive: true });
 
@@ -26,7 +30,7 @@ swap("<body>\n", ""); swap("</body>\n", ""); swap("</html>\n", "");
 swap('<meta charset="utf-8">\n', ""); swap('<meta name="viewport" content="width=device-width, initial-scale=1">\n', "");
 swap("<title>GD Level Viewer</title>", "<title>GDLM Level Replays</title>");
 swap('src="../lib/', 'src="lib/');
-swap('<script src="levels.local.js" onerror="window.GD_LEVELS_LOCAL = []"></script>', "<script>window.GD_LEVELS_LOCAL = [];</script>");
+if (!PRIVATE) swap('<script src="levels.local.js" onerror="window.GD_LEVELS_LOCAL = []"></script>', "<script>window.GD_LEVELS_LOCAL = [];</script>");
 // no GD art on the published page: RobTop's sprites never leave the user's PC (VISUALS.md "Phone")
 // Level maps: only the art-free shape drawings (tools/levelmap.js <level> --shapes ->
 // local/maps/<name>_shapes.jpg) of our own levels (gdlm_*) go out; the GD-art maps and official
@@ -68,7 +72,17 @@ const SONGBUF = (GD.SONGBUF = GD.SONGBUF || {}); // song key -> decoded AudioBuf
 const songKey = info => decodeURIComponent(String(info.url).split("/").pop()).toLowerCase();
 function audio() { actx = actx || new AudioContext(); return actx; }
 // the player is lib/song.js, shared with the viewer (sample-exact; the replay's clock reads it)
-function songPlayer(info) { const buf = SONGBUF[songKey(info)]; return buf ? GD.songPlayer(buf, audio) : null; }
+${PRIVATE ? `// the private build (--private) carries the main levels' songs next to the page: fetched and decoded on first use
+const PRIV_SONGS = ["stereomadness.mp3","backontrack.mp3","polargeist.mp3","dryout.mp3","baseafterbase.mp3","cantletgo.mp3","jumper.mp3","timemachine.mp3","cycles.mp3","xstep.mp3","clutterfunk.mp3","theoryofeverything.mp3","electroman.mp3","clubstep.mp3","electrodynamix.mp3","hexagonforce.mp3","blastprocessing.mp3","theoryofeverything2.mp3","geometricaldominator.mp3","deadlocked.mp3","fingerdash.mp3","dash.mp3"], privLoading = {};
+async function privSong(key) {
+  if (privLoading[key]) return; privLoading[key] = true;
+  try { const r = await fetch("songs/" + encodeURIComponent(key)); if (!r.ok) throw new Error(r.status);
+    if (!(await addSongBytes(key, await r.arrayBuffer()))) throw new Error("decode");
+  } catch (e) { privLoading[key] = false; return; }
+  if (songInfo && songKey(songInfo) === key && !song) { const was = playing; setSong(songInfo); syncSong(true); playing = was; }
+}
+function songPlayer(info) { const k = songKey(info), buf = SONGBUF[k]; if (!buf && PRIV_SONGS.includes(k)) privSong(k); return buf ? GD.songPlayer(buf, audio) : null; }` :
+`function songPlayer(info) { const buf = SONGBUF[songKey(info)]; return buf ? GD.songPlayer(buf, audio) : null; }`}
 function updateSongBtn() {
   const b = document.getElementById("addSong"); if (!b || !b.firstChild) return;
   const have = songInfo && SONGBUF[songKey(songInfo)];
@@ -92,7 +106,7 @@ function songMsg(text) {
 async function takeSongFiles(files) {
   files = [...(files || [])].filter(f => f && f.size);
   if (!files.length) return;
-  const known = new Set((window.GD_LEVELS || []).filter(l => l.song).map(l => songKey(l.song)));
+  const known = new Set((window.GD_LEVELS || [])${PRIVATE ? ".concat(window.GD_LEVELS_LOCAL || [])" : ""}.filter(l => l.song).map(l => songKey(l.song)));
   const b = document.getElementById("addSong"); b.firstChild.nodeValue = "loading…"; songMsg("");
   let bad = 0, ok = 0, skipped = 0;
   for (const f of files) {
