@@ -26,6 +26,16 @@ let fails = 0; const check = (c, m) => { console.log((c ? "ok   " : "FAIL ") + m
   await p.evaluate(() => { playing = true; setPlay(); askNote("again"); }); await p.waitForSelector("#noteText", { state: "visible" });
   await p.keyboard.type("a b"); await p.keyboard.press("Escape"); await p.waitForTimeout(100);
   check(await p.evaluate(() => document.getElementById("noteBox").hidden), "Escape closes it while the replay plays");
+  // a note pinned at a spot (the mark flow): after save the box is gone from the screen, not just flagged hidden (its
+  // display:block kept it up with dead buttons: the user, 2026-11-25 "cancel doesnt work after i save mark")
+  await p.route("**/marks", r => r.request().method() === "POST" ? r.fulfill({ status: 200, body: "{}" }) : r.continue());
+  const gone = () => p.evaluate(() => getComputedStyle(document.getElementById("noteBox")).display === "none");
+  await p.keyboard.press("m"); const bb = await (await p.$("#cv")).boundingBox(); await p.mouse.click(bb.x + bb.width / 2, bb.y + bb.height / 2);
+  await p.waitForSelector("#noteText", { state: "visible" }); await p.type("#noteText", "test-note"); await p.click("#noteSave"); await p.waitForTimeout(200);
+  check(await gone(), "a pinned mark box is off the screen after save");
+  await p.keyboard.press("m"); await p.mouse.click(bb.x + bb.width / 3, bb.y + bb.height / 2);
+  check(await p.evaluate(() => !document.getElementById("noteBox").hidden), "the next mark opens its box (nothing invisible over the level)");
+  await p.click("#noteCancel"); await p.waitForTimeout(100); check(await gone(), "and cancel closes it");
   await b.close(); srv.kill();
   console.log(fails ? fails + " failed" : "all ok"); process.exit(fails ? 1 : 0);
 })().catch(e => { console.error(e); srv.kill(); process.exit(1); });

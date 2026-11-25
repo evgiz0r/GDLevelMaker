@@ -44,7 +44,7 @@
   #notice[hidden] { display:none; }
   #notice a { color:#9cf5c4; }
   #noteBox { position:fixed; inset:0; z-index:70; display:grid; place-items:center; background:rgba(11,6,32,.8); padding:16px; }
-  #noteBox[hidden] { display:none; }
+  #noteBox[hidden], #noteBox.at[hidden] { display:none; }   /* .at's display:block beat [hidden]: a pinned note box stayed on screen after save, its buttons dead */
   #noteBox .card { width:min(100%, 420px); background:#160d3a; border:1px solid #3b2d78; border-radius:10px; padding:12px; }
   #noteBox h2 { font-size:15px; margin:0 0 8px; }
   #noteBox textarea { width:100%; box-sizing:border-box; background:#0e0828; color:var(--ink); border:1px solid #3b2d78; border-radius:6px; padding:8px; font:inherit; font-size:16px; }
@@ -306,7 +306,7 @@ function askNote(title, at) {
     if (at) { const w = Math.min(420, innerWidth - 24); card.style.width = w + "px"; card.style.left = Math.max(12, Math.min(innerWidth - w - 12, at.x - w / 2)) + "px";
       card.style.top = Math.max(12, Math.min(innerHeight - 260, at.y + 18)) + "px"; } else { card.style.left = card.style.top = card.style.width = ""; }
     ta.focus();
-    const close = v => { box.hidden = true; ta.onkeydown = null; done(v); };
+    const close = v => { box.hidden = true; box.classList.remove("at"); ta.onkeydown = null; done(v); };
     document.getElementById("noteSave").onclick = () => close(ta.value.trim() || kind ? { note: ta.value.trim() || kind, kind } : null);
     document.getElementById("noteCancel").onclick = () => close(null);
     ta.onkeydown = e => { if (e.key === "Escape") close(null); if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) document.getElementById("noteSave").click(); };
