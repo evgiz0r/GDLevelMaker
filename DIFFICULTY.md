@@ -360,6 +360,12 @@ What it showed first (FROSTBITE 2.66 vs Electrodynamix 2.65, same model):
   verdicts: their weights get FITTED, never hand-set for good. Data, in order of weight: the user's real deaths
   (real_stats, recordings), the rated community levels with stars (the taste corpus, ~330; the 91 low-tier ones), the
   mains' stars and community tier lists, his own ranking. A feature whose fitted weight is ~0 is dropped.
+- **Readability is a feature too** (the user, 2026-11-25: "we didnt even get to the visuals ... robtop levels which are
+  like amazing for (besides geometrical) is the visible play"): how clearly the path and its hazards can be read adds to
+  difficulty beside timing (Geometrical Dominator is the main level that hides it). Feature candidates, from tools we
+  have: hiding triggers on the path (`hiddenTriggers` in lib/difficulty.js), prejumps (tools/sightread.js), hazard vs
+  background contrast (tools/roles.js), deco clutter in the play lane (tools/lane.js), look-ahead seconds at speed
+  (`lookAhead`). NEXT: compute them per main level and fit with the rest; not in v2 yet.
 - **The user's own ranking of the mains** (2026-11-25): `knowledge/difficulty_rank_user.json`, easiest first (Back On
   Track ... Dash, then Hexagon Force = Electrodynamix, then Clubstep / ToE 2 / Deadlocked, Deadlocked hardest). A rough
   target, not an exact one (the user: "its not about fitting exactly, its just around. some are debatable in the
