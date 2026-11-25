@@ -8,6 +8,8 @@
 // node tools/lab.js sheet <round>                   -- the round's picture sheet: 4 GD-art frames per variant, labelled with
 //                                                       its hook and pace -> local/lab/<round>/sheet.jpg (heavy: shoot.js)
 // node tools/lab.js finish <round>                  -- when a round's builds are done: status, the sheet, the decision card
+// node tools/lab.js trim <round> [<k>]              -- end built variants right after their gameplay (no solve: the route
+//                                                       is replayed on the cut level); build does this itself
 // node tools/lab.js status [<round>]                 -- the rounds / a round's variants with their pace and checks
 //
 // SECTION LAB (the user, 2026-11-24: the levels feel "pretty dim. Slow, too low CPS, nothing interesting. Iterating on them like
@@ -85,9 +87,13 @@ function build(id, k) {
   const log0 = console.log; let built, placed = []; console.log = () => {};
   // the role palette's path and hazard colours: make.js puts block rims and hazards on their own channels (spec.colours)
   try { const cr = C.compose(v); placed = cr.placed.map(q => q.name); if (v._palette && !v.theme) cr.spec.colours = Object.assign({}, cr.spec.colours, { path: v._palette.pathEdge, hazard: v._palette.hazardEdge }); built = mk(cr.spec, vf); } finally { console.log = log0; }
-  const level = built.level, levelStr = GD.serializeLevel(level), out = path.join(dir, `v${k}.gdlvl`);
+  const level = built.level, out = path.join(dir, `v${k}.gdlvl`); let levelStr = GD.serializeLevel(level);
   writeGdlvl(out, built.rec, level);
-  const sol = require("./solutions.js").solve(level, levelStr, { name: v.name });
+  let sol = require("./solutions.js").solve(level, levelStr, { name: v.name });
+  // end right after the gameplay (the user, 2026-11-25: "leaves way too much space ... should end almost instantly after
+  // the gameplay"): the moment's beats ran ~2 s past the last obstacle; cut there, the same route replayed on the cut level
+  if (sol && sol.ok) { const tr = trimEnd(level, sol.events); if (tr) { level.objects = tr.level.objects; levelStr = GD.serializeLevel(level); writeGdlvl(out, built.rec, level);
+    try { sol = require("./solutions.js").fromRun(level, levelStr, { ok: true, events: tr.events }, { name: v.name }); } catch (e) { sol = { ok: true, events: tr.events }; } } }
   const sc = scoreLevel(level, v, { fairness: false, levelStr });
   const PART = ["beatable", "prejumps", "timing", "recovery", "skips", "reactive", "fairness", "climbs", "roles"];   // roles: gd-art's colour-by-role gate
   const fails = sc.gates.filter(g => g.status === "FAIL" && PART.includes(g.name)).map(g => g.name), warns = sc.gates.filter(g => g.status === "WARN" && PART.includes(g.name)).map(g => g.name);
@@ -173,7 +179,43 @@ function status(id) {
     console.log(`  v${x.k} ${x.hook.padEnd(13)} ${r ? (r.ok ? "ok  " : "FAIL") + ` ${r.secs.toFixed(0)} s  ${r.pace && r.pace.perBeat != null ? r.pace.perBeat + " in/beat " : ""}${r.pace && r.pace.obsPerBar != null ? r.pace.obsPerBar + " obs/bar " : ""}${r.pace && r.pace.changesPer10s != null ? r.pace.changesPer10s + " ch/10s" : ""}${r.fails.length ? "  fails " + r.fails.join(",") : ""}` : "not built"}`); }
 }
 
-module.exports = { round, build, ask, collect, status, sheet, HOOKS };
+// A section ends right after its gameplay (the user, 2026-11-25, on round 2: "the sections are cut too much apart probably,
+// leaves way too much space between such sections. probably should end almost instantly after the gameplay"). The cut is
+// TAIL blocks after the later of the last hazard / orb / pad / portal and the route's last input (a section of blocks
+// only, like ufo hops, has no hazard); everything past it goes, so the level (GD ends at its furthest object, the sim at
+// that + 3 blocks) ends ~0.5 s after the last input, as official levels do (~0.8 s, tools/make.js). The route is replayed
+// on the cut level and must still finish without dying; else null (nothing cut). Returns { level, events, cutX, before, after }.
+const TAIL = 3;
+function trimEnd(level, events) {
+  const { GD } = require("./io.js"), w0 = GD.makeWorld(level.objects, level.header);
+  if (!events || !events.length) return null;
+  const p0 = GD.run(w0, events).path, lastIn = Math.max(...events.map(e => e.tick)), xIn = GD.progressX ? GD.progressX(p0[Math.min(lastIn, p0.length - 1)]) : p0[Math.min(lastIn, p0.length - 1)].x;
+  const KEY = new Set(["hazard", "orb", "pad", "mode", "gravity", "speed", "size", "dual", "teleport", "special"]);
+  const xKey = Math.max(0, ...level.objects.filter(o => KEY.has((GD.objInfo(o.id) || {}).kind)).map(o => o.x));
+  const cutX = Math.max(xKey, xIn) + TAIL * 30;
+  if (w0.endX - (cutX + 90) < 3 * 30) return null;   // already ends about there
+  const objects = level.objects.filter(o => o.x <= cutX), lv = Object.assign({}, level, { objects }), w = GD.makeWorld(objects, level.header);
+  const q = GD.run(w, events.filter(e => e.tick <= lastIn)), e = q.path[q.path.length - 1];
+  if (q.dead || !(q.done || e.x >= w.endX)) return null;
+  return { level: lv, events: events.filter(e => e.tick <= lastIn), cutX, before: w0.endX, after: w.endX };
+}
+// trim already built variants in place: v<k>.gdlvl and the viewer's stage card (no solve; the stage keeps the route)
+function trim(id, only) {
+  const dir = path.join(LAB, id), R = readJ(path.join(dir, "round.json")), { GD, readGdlvl, writeGdlvl } = require("./io.js"), ST = require("./stages.js"), out = [];
+  for (const x of R.variants) { if (only && x.k !== only) continue;
+    const base = `lab_${id}_v${x.k}`, sdir = ST.dirOf(SESSION, base); let idx = null; try { idx = readJ(path.join(sdir, "index.json")); } catch (e) {}
+    const st = idx && idx.stages.find(s => s.stage === "layout"), ev = st && st.data && st.data.events;
+    if (!st || !ev || !ev.length) { out.push({ k: x.k, skip: "no built route" }); continue; }
+    const L = readGdlvl(path.join(sdir, "layout.gdlvl")), tr = trimEnd(L.level, ev);
+    if (!tr) { out.push({ k: x.k, skip: "already ends at its gameplay, or the cut route would not finish" }); continue; }
+    const levelStr = GD.serializeLevel(tr.level), vf = path.join(dir, `v${x.k}.gdlvl`);
+    try { if (fs.existsSync(vf)) writeGdlvl(vf, readGdlvl(vf).rec, tr.level); } catch (e) {}
+    ST.put({ session: SESSION, base, name: idx.name, stage: "layout", levelStr, data: Object.assign({}, st.data, { events: tr.events }), note: st.note });
+    out.push({ k: x.k, from: +(tr.before / 30).toFixed(1), to: +(tr.after / 30).toFixed(1) });
+  }
+  return out;
+}
+module.exports = { round, build, ask, collect, status, sheet, trim, trimEnd, HOOKS };
 
 if (require.main === module) {
   const [cmd, a, b, ...rest] = process.argv.slice(2), all = [a, b, ...rest], opt = k => { const i = all.indexOf(k); return i >= 0 ? all[i + 1] : null; };
@@ -183,6 +225,7 @@ if (require.main === module) {
   else if (cmd === "collect") { const r = collect(a); console.log(r.waiting ? `waiting for the user's answer (card ${r.card})` : `picked v${r.pick} ${r.hook}${r.reason ? ' -- "' + r.reason + '"' : ""} -> local/reviews.jsonl, library, prefs`); }
   else if (cmd === "sheet") { const p = sheet(a); console.log(p ? "-> " + path.relative(ROOT, p) : "no built variants"); }
   else if (cmd === "finish") { status(a); const p = sheet(a); console.log(p ? "sheet -> " + path.relative(ROOT, p) : "no sheet"); const r = ask(a); console.log("decision card " + r.card); }
+  else if (cmd === "trim") for (const r of trim(a, b ? +b : null)) console.log(`v${r.k}: ` + (r.skip ? r.skip : `ends at block ${r.to} (was ${r.from})`));
   else if (cmd === "status") status(a);
   else console.log(fs.readFileSync(__filename, "utf8").split("\n").filter(l => l.startsWith("// node")).join("\n"));
 }

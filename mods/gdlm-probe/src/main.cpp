@@ -352,6 +352,12 @@ class $modify(ProbePlay, PlayLayer) {
         flush("death");
     }
 
+    // GD pauses a level when its window loses focus; a playback must not stop because the user works in another window
+    void pauseGame(bool unfocused) {
+        if (unfocused && g_play.loaded && !g_play.done) return;
+        PlayLayer::pauseGame(unfocused);
+    }
+
     void levelComplete() {
         flush("complete");
         PlayLayer::levelComplete();

@@ -504,6 +504,25 @@ keys and user coins (collectables only), start positions (levels always start at
 checkpoints, speed portals touched mid-air at a slant, force blocks, platformer mode, dash orbs'
 unknown props 586/588, spike slopes.
 
+## The probe mod: the game's own state per step (2026-11-25)
+
+The GDLM Probe Geode mod (GEODE.md) plays our saved route inside GD 2.2091 on exact steps and logs the player every
+step. `node tools/probe.js result [n]` compares a log with our sim's run of the same route. What the first logs show
+(GDLM 62 low end lullaby: 2 clears, 102 presses; GDLM 44 hellgate: 2 runs, both died at x 6638 where our sim clears):
+- **What is per step:** the player's `m_yVelocity` changes every step (240 Hz), the level time too. Its position
+  (`m_position`) changes only once per 60 fps frame, and at a frame's first step it shows the sim's state of the step
+  before; GameObject's `m_positionX/Y` doubles stay 0 on the player. So timing is read from vy, positions per frame.
+- **Press timing:** a route press made after n steps starts the jump in step n+1 in the game, as in our sim (GDLM 44's
+  first press: n 104 -> vy 11.18 at step 105). Positions agree to 0.5 unit for the first 8588 steps of GDLM 62.
+- **But many jumps start one step late in the game:** GDLM 62 (offset 0): of 94 jumps, 39 start on the sim's step, 48
+  one step later, 7 two or three later; the share does not depend on where the step falls in its 60 fps frame (each of
+  the 4 frame steps: about half 0, half +1). GDLM 44: 15 of 25 on the sim's step. A likely reading, to check next: the
+  +1 jumps are the ones made by a held button on landing (GD jumps no sooner than the step after a landing, see
+  "Landing buffer"), the 0s are fresh presses. The probe log has the presses: split the jumps by "button already
+  down" to settle it.
+- **GDLM 44 (wave) dies in the game at x 6638, y 267** while the sim clears; the first height parting is at step 313
+  (x 405: dx 1.0). To study with `probe.js show` around the death.
+
 ## Fidelity: measuring the sim against the user's game (goal: "as close as possible")
 
 The user's standing goal (2026-11-23). Plan: a scoreboard (tools/fidelity.js, not built yet) giving, per

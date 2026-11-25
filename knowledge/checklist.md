@@ -290,8 +290,15 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   level over ~5 blocks after the sign (make.js clips scenery and triggers past it: GD ends a level at its
   furthest object). ~1.5 s from the last input to the end; official median 0.8 s, rated community 0.9 s.
   score.js gate "ending" (WARN over 2.5 s). (the user on 45 v7: "ending still bit too long")
+  A section (the lab's variants, unsigned): cut ~3 blocks after its last hazard / orb / pad / portal or input
+  (tools/lab.js trimEnd), and its corridor fills the section it was given -- a wave corridor stopped at 2/3 of its
+  section, ~5 s of empty run (the user, 2026-11-25: "leaves way too much space ... should end almost instantly")
 - [ ] **The signature ends every GDLM level** (robot + human): make.js adds it by default; opt out
   only with `"signature": false`.
+- [ ] **Nothing the player should read above the view** (the user on GDLM 72, 2026-11-25: "the sign is offscreen"): for a
+  cube on the ground the game shows y -93 .. ~227 (lib/camera.js), so text and set pieces stay under ~210. The signature's
+  stage floated 90 units up and put its title at y 232; now 50 (title ~192). 21 of 30 GDLM levels carry the old one until
+  rebuilt (`make.js <spec> --look`).
 
 ## Ratable (rating.md)
 

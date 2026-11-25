@@ -22,7 +22,7 @@
 // our header template lists as white: now a channel of its own.
 //
 // opts.col      column where the signature starts (default 0); it is ~8 blocks wide
-// opts.floorY   the ground / block top under it (default 0); the stage floats opts.lift (default 90) above it
+// opts.floorY   the ground / block top under it (default 0); the stage floats opts.lift (default 50) above it
 // opts.ch0      first of its 14 channels (default 976: 976 .. 989)
 // opts.shirt    [r,g,b] of the human's shirt (e.g. the level's accent colour; default orange)
 // opts.beats    level times (s) of the beats near the end, with opts.xOfT(t) -> x and opts.tOfX(x) -> t:
@@ -92,12 +92,14 @@ function header(h, opts = {}) {
   return h;
 }
 
-// opts.lift  how high the stage floats over opts.floorY (default 90 = 3 blocks): the level's end line lies
+// opts.lift  how high the stage floats over opts.floorY (default 50; was 90, which put the title at y 232, above the game's view top
+//            ~227 for a cube on the ground -- lib/camera.js: bottom 93 under the ground, 320 tall; cut off in GDLM 72, the
+//            user 2026-11-25): the level's end line lies
 //            past the signature, so the player runs on under it -- the figures stand clear of the path
 //            (GDLM 60: the cube ran through v2's figures standing on the ground)
 function signature(opts = {}) {
   const { CH, RGB } = channelsOf(opts);
-  const col = opts.col != null ? opts.col : 0, floorY = (opts.floorY || 0) + (opts.lift == null ? 90 : opts.lift), g0 = opts.group0 || 960;
+  const col = opts.col != null ? opts.col : 0, floorY = (opts.floorY || 0) + (opts.lift == null ? 50 : opts.lift), g0 = opts.group0 || 960;
   const G = { robot: g0, human: g0 + 1, spark: g0 + 2, spot: g0 + 3, stageEdge: g0 + 4 };
   const out = [], r3 = v => String(+(+v).toFixed(3));
   const o = (id, x, y, p) => out.push({ id, x: +x.toFixed(2), y: +y.toFixed(2), rot: 0, flipX: false, flipY: false, props: Object.assign({ 155: "1" }, p) });
