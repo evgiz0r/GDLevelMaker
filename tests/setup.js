@@ -20,12 +20,14 @@ try {
   const win = {}; new Function("window", fs.readFileSync(path.join(ROOT, "viewer", "levels.js"), "utf8"))(win);
   const sol = win.GD_LEVELS.find(l => /gdlm_01_/.test(l.file)).solution;
   ok(sol && sol.events && sol.events.length, "GDLM 01 has a saved route to use as a fixture");
-  const sha = require("../tools/mains_routes.js").sha;
+  const sha = require("../tools/mains_routes.js").sha, early = [{ type: "press", tick: 1 }, { type: "release", tick: 4 }];
   fs.mkdirSync(path.join(repo, "knowledge", "mains"), { recursive: true });
   fs.writeFileSync(path.join(repo, "knowledge", "mains", "routes.json"), JSON.stringify({ levels: [
     { n: 1, name: "Stereo Madness", levelSha: sha(lv), ok: true, kind: "human", events: sol.events },
     { n: 2, name: "Back On Track", levelSha: "different", ok: true, kind: "human", events: sol.events },
-    { n: 3, name: "Polargeist", levelSha: sha(lv), ok: true, kind: "human", events: [] } ] }));   // no press: dies at the spike
+    { n: 3, name: "Polargeist", levelSha: sha(lv), ok: true, kind: "human", events: early },     // jumps at the start: dies at the spike
+    { n: 4, name: "Dry Out", levelSha: sha(lv), ok: true, kind: "human", events: early, raw: { ok: true, events: sol.events } },   // human dies, raw clears
+    { n: 5, name: "Base After Base", levelSha: sha(lv), ok: false, kind: "human", events: [] } ] }));   // not beaten yet
   const env = Object.assign({}, process.env); delete env.GD_GAME; delete env.GD_LEVELS; delete env.GD_SAVE;
   env.GDLM_HEAVY = "off"; env.LOCALAPPDATA = path.join(tmp, "appdata"); env.HOME = tmp; env.USERPROFILE = tmp;
   const run = (a) => cp.spawnSync(process.execPath, [path.join(repo, "tools", "setup.js"), ...a], { cwd: repo, env, encoding: "utf8", windowsHide: true });
@@ -39,8 +41,11 @@ try {
   ok(rows[0] && rows[0].state === "clears" && rows[0].sameLevel, "level 1: the route from git clears");
   ok(rows[1] && rows[1].state === "clears" && rows[1].sameLevel === false, "level 2: clears, flagged as a different level");
   ok(rows[2] && rows[2].state === "fails", "level 3: a route that dies is marked fails");
-  ok(rows.filter(x => x.state === "no route").length === 19, "levels 4-22: listed without a route");
-  ok(r.status === 1 && rep && rep.mains.ready === 2, "not READY while 20 levels lack a working route (exit 1)");
+  ok(rows[3] && rows[3].state === "clears" && rows[3].kind === "raw", "level 4: the human route dies, the raw solve from git clears and is used");
+  ok(rows[4] && rows[4].state === "no route", "level 5: an empty route counts as no route");
+  ok(rows.filter(x => x.state === "no route").length === 18, "levels 5-22: listed without a route");
+  ok(r.status === 1 && rep && rep.mains.ready === 3, "not READY while a route from git dies (exit 1)");
+  ok(c("main levels without a route in git") && !c("main levels without a route in git").needed, "levels without a route: a warning, not a failure");
   const o1 = JSON.parse(fs.readFileSync(path.join(repo, "local", "official_01.json"), "utf8"));
   ok(o1.level === lv && o1.solution.ok, "local/official_01.json has the level from the game and the route");
   const o3 = JSON.parse(fs.readFileSync(path.join(repo, "local", "official_03.json"), "utf8"));

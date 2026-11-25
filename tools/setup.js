@@ -59,9 +59,11 @@ if (gp.found.game && !missingLevels.length) {
   const failing = rows.filter(r => r.state === "fails" || (r.state === "kept" && !r.ok)).map(r => r.n);
   const noRoute = rows.filter(r => r.state === "no route").map(r => r.n);
   report.mains = { ready, failing, noRoute, rows };
-  check("main levels playable in the viewer", ready === 22, ready + " of 22 replay to the end",
-    (failing.length ? "re-solve the ones that die: node tools/mains.js run " + failing.join(" ") + " (minutes to an hour each). " : "") +
-    (noRoute.length ? "solve the ones without a route: node tools/difficulty_solve.js all " + noRoute.join(" ") : ""));
+  check("main levels playable in the viewer", !failing.length && ready > 0, ready + " of 22 replay to the end",
+    "re-solve the ones that die: node tools/mains.js run " + failing.join(" ") + " (5 s to 40 min each, SETUP.md \"Rebuilding local data\")");
+  // a level with no route in git (not beaten in our sim yet, e.g. Dash): shown without a replay, not a setup failure
+  if (noRoute.length) check("main levels without a route in git", false, noRoute.join(", ") + " (listed without a replay)",
+    "not beaten in the sim yet, or routes.json is missing: node tools/difficulty_solve.js all " + noRoute.join(" ") + " (long, see SETUP.md)", false);
 } else {
   try { require("./index_levels.js").buildIndex(); } catch (e) {}
 }

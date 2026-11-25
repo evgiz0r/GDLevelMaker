@@ -26,12 +26,12 @@ Stop and tell the user at any step that fails, with the line the script printed.
      app's `Contents` folder (`.../Geometry Dash.app/Contents`). The right folder is the one with `Resources/levels/1.txt`.
    - `warn` lines are optional parts (GD's art in the viewer, songs, the save folder): report them, carry on.
    - It ends with `READY` (exit 0) or `NOT READY` (exit 1). `--json` prints the same as JSON.
-3. **If some main levels did not get a working route** (the line `main levels playable in the viewer` says fewer than
-   22): the script prints the command that fixes them. Two cases:
+3. **If some main levels did not get a working route**: the script prints the command that fixes them. Two cases:
    - *Dies at N%*: the sim changed since the route was saved. `node tools/mains.js run <n ...>` re-solves from a bit
      before the trouble. Minutes to an hour per level; heavy, runs one at a time. Ask the user before starting a long
      batch.
-   - *No route in git*: `node tools/difficulty_solve.js all <n ...>` solves them from scratch (long: up to an hour+ each).
+   - *No route in git* (a `warn` line, not a failure): our sim has not beaten that level yet (Dash, 2026-11-25), or the
+     routes file is missing. `node tools/difficulty_solve.js all <n ...>` solves from scratch (long: up to an hour+ each).
    The level still shows in the viewer meanwhile: it just has no replay until it is solved.
 4. **Start the viewer:** `node tools/serve.js` (leave it running), then open http://localhost:8765/viewer/ .
    - Main levels are in the level picker under "official". A link straight to one:
@@ -56,10 +56,10 @@ means nobody has timed it yet. Heavy jobs run one or two at a time (`tools/heavy
 | what | on a fresh clone | rebuild with | how long | basis |
 |---|---|---|---|---|
 | our levels (GDLM) with their replays | in git (`levels/`, routes in `viewer/levels.js`) | nothing | 0 | |
-| main levels 1-22 + their routes | levels from your game, routes from git | `node tools/setup.js` | seconds: one replay per level | `mains.js status` replays the same routes in ~10 s |
+| main levels 1-21 + their routes | levels from your game, routes from git (`knowledge/mains/routes.json`, kept current by the owner's PC) | `node tools/setup.js` | seconds: one replay per level | `mains.js status` replays the same routes in ~10 s |
 | a main level whose route dies on today's sim | replays to the death spot | `node tools/mains.js run <n>` | replan 5-97 s; resume 29-95 s; the slow ones: Fingerdash replan 42 min, Hexagon Force resume 21 min, Deadlocked resume 5-32 min | DIFFICULTY.md "Main levels kept current", 2026-11-25 batch: 22 levels in 84 min |
 | a main level with no route at all | listed, no replay | `node tools/difficulty_solve.js <n>` | one full solve: Hexagon Force 25 min (568 s search + route); all 22 from scratch: not measured, hours | PHYSICS.md "Hexagon Force: beaten" |
-| Dash (22) | its route still dies partway (open physics, being worked on) | waits on that physics work | | DIFFICULTY.md, PHYSICS.md |
+| Dash (22) | listed without a replay: not beaten in our sim yet (open physics, being worked on) | waits on that physics work | | DIFFICULTY.md, PHYSICS.md |
 | difficulty scores of the main levels | not in git | `node tools/difficulty.js` | levels 1-20: ~16 min; Fingerdash's score hung past 60 min (open) | DIFFICULTY.md, 2026-11-25 |
 | main levels' timing windows (lego) | in git (`knowledge/lego_windows/`) | nothing; re-measure only after a physics change | 0; re-measure 10-60 s a level, Geometrical Dominator 5.5 min, Deadlocked 15.5 min (35-45 min for all) | LEGO.md |
 | bricks cut from levels (lego pieces) | not in git | `node tools/lego.js mine` | ~20 s (~0.3 s a level) with the windows from git | LEGO.md |
@@ -71,7 +71,9 @@ means nobody has timed it yet. Heavy jobs run one or two at a time (`tools/heavy
 | the owner's recordings, attempts, marks, save stats | personal | cannot be rebuilt | | |
 
 For the main levels the short answer: with the routes in git, a new computer plays all of them after a few seconds of
-setup. Without them, solving everything again is hours of heavy jobs. That is why the routes are committed.
+setup (Dash excepted, until the sim beats it). Without them, solving everything again would be hours of heavy jobs.
+The solve rows above are only for a route that no longer replays (after a physics change the owner's PC re-solves and
+re-exports by itself) or for a level git has no route for.
 
 ## Putting our levels into your game
 
@@ -103,8 +105,9 @@ built yet (PHONE.md for what the phone page does today). The public site (PAGES.
 
 - `node tools/gdpaths.js` prints where GD was found and how. A new tool that reads GD's files takes its folders from
   `require("./gdpaths.js")` (`GAME`, `LEVELS`, `SAVE`), never a hardcoded Steam path.
-- **Keep the routes in git current:** after `tools/mains.js run` re-solves levels on the owner's PC, run
-  `node tools/mains_routes.js export` and commit `knowledge/mains/routes.json`. `node tools/mains_routes.js check`
-  replays them on today's sim and writes nothing.
+- **The routes in git stay current by themselves:** `tools/mains.js run` and `replan` re-export
+  `knowledge/mains/routes.json` and push it (`node tools/mains.js export [--push]` by hand; `mains_routes.js export` is
+  the same). `node tools/mains_routes.js check` replays them on today's sim and writes nothing. On import, a human route
+  that dies falls back to the file's raw solve when that still clears (shown as kind "raw").
 - Test: `node tests/setup.js` (a copy of the repo with no `local/`, a fake GD folder made from our own GDLM 01).
 - Timing: setup is a few seconds plus one replay per main level (not measured on the real 22 yet).

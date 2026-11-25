@@ -271,8 +271,8 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 
 - **Setup on any computer** (SETUP.md: the steps an AI agent follows): `tools/setup.js` (find GD, load the main levels,
   check), `tools/gdpaths.js` (where GD's game, levels and save are; every tool reads GD's files through it -- never hardcode
-  the Steam path), `tools/mains_routes.js` (the main levels' routes in git, `knowledge/mains/routes.json`: `export` on
-  the PC after a re-solve, `import` on a new computer). Test: `node tests/setup.js`.
+  the Steam path), `tools/mains_routes.js` (the main levels' routes in git, `knowledge/mains/routes.json`, written by
+  `mains.js export`: `import` replays them on a new computer's own game). Test: `node tests/setup.js`.
 - `lib/gd.js` -- the format: base64url + gzip layers, the record (plist) and the level string.
 - `lib/objects.js` -- object ids: name, kind, hitbox. `sure:false` = from memory, unconfirmed.
 - `lib/physics.js` -- physics of every mode, triggers + solver (fewest clicks, each in the middle of its window;

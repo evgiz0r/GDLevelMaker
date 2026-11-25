@@ -1,6 +1,6 @@
-// node tools/mains_routes.js export      -- (on a PC that has them solved) RobTop's 22 main levels' human routes, from
-//   local/official_NN.json, into knowledge/mains/routes.json: our own press timings only, NO level data (each route
-//   carries a hash of the level text it was solved on). Commit that file so a fresh clone needs no hours of solving.
+// node tools/mains_routes.js export      -- same as `node tools/mains.js export` (the one writer): RobTop's 22 main levels'
+//   routes from local/ into knowledge/mains/routes.json, our own press timings only, NO level data (each route carries a
+//   hash of the level text it was solved on). tools/mains.js run / replan re-export and push it by themselves.
 // node tools/mains_routes.js import [--force] [--json]   -- (on a new computer, tools/setup.js runs it) reads each main
 //   level from the player's OWN game (tools/gdpaths.js LEVELS), replays the route from git on today's sim and writes
 //   local/official_NN.json (level + route), which the viewer lists under "official". Keeps an existing local file
@@ -33,18 +33,9 @@ function replay(level, events) {
   return { done, pct: +Math.min(100, x / w.endX * 100).toFixed(1), dieX: done ? null : x };
 }
 
+// one writer of the file: tools/mains.js export (it adds the raw solve and the all-coins route; run and replan call it)
 function exportRoutes() {
-  const out = { note: "Human routes (press timings) for RobTop's 22 main levels, made by our solver. No level data: the levels come from the player's own game (tools/mains_routes.js import, SETUP.md).", exported: new Date().toISOString(), levels: [] };
-  for (let n = 1; n <= 22; n++) {
-    const o = readJ(path.join(LOCAL, `official_${tag(n)}.json`));
-    if (!o || !o.solution || !o.solution.events) { console.log(`${n} ${NAMES[n - 1]}: no route in local/ -- skipped`); continue; }
-    const s = o.solution;
-    out.levels.push({ n, name: NAMES[n - 1], levelSha: sha(o.level), physics: o.physics || null, ok: !!s.ok, kind: s.kind || null, events: s.events });
-    console.log(`${n} ${NAMES[n - 1]}: ${s.ok ? "clears" : "fails"} (${s.kind || "?"}, ${s.events.length} events)`);
-  }
-  fs.mkdirSync(path.dirname(FILE), { recursive: true });
-  fs.writeFileSync(FILE, JSON.stringify(out));
-  console.log(`-> ${path.relative(ROOT, FILE)}: ${out.levels.length} routes. Commit it.`);
+  require("child_process").execFileSync(process.execPath, [path.join(__dirname, "mains.js"), "export"], { stdio: "inherit", windowsHide: true, cwd: ROOT });
 }
 
 // one row per main level; writes local/official_NN.json unless dry
@@ -64,12 +55,19 @@ function importRoutes({ force = false, dry = false, log = console.log } = {}) {
     if (!r) { row.state = "no route";
       if (!dry) fs.writeFileSync(dest, JSON.stringify({ n, name, level, solution: undefined, physics: null }));
       log(`${tag(n)} ${name}: no route in git -- listed without one (solve: node tools/difficulty_solve.js ${n})`); continue; }
-    const t0 = Date.now(), p = replay(level, r.events), secs = ((Date.now() - t0) / 1000).toFixed(1);
+    if (!r.events || !r.events.length) { row.state = "no route";
+      if (!dry) fs.writeFileSync(dest, JSON.stringify({ n, name, level, solution: undefined, physics: null }));
+      log(`${tag(n)} ${name}: the route in git is empty (not beaten in the sim yet) -- listed without one`); continue; }
+    const t0 = Date.now(); let p = replay(level, r.events), kind = r.kind, events = r.events;
+    // the human route dies but the raw solve still clears: replay that (not human-like, better than a death)
+    if (!p.done && r.raw && r.raw.events && r.raw.events.length) { const q = replay(level, r.raw.events); if (q.done) { p = q; kind = "raw"; events = r.raw.events; } }
+    const secs = ((Date.now() - t0) / 1000).toFixed(1);
     row.sameLevel = r.levelSha === sha(level); row.ok = p.done; row.pct = p.pct; row.secs = +secs;
     row.state = p.done ? "clears" : "fails";
-    const solution = p.done ? { ok: true, events: r.events, kind: r.kind } : { ok: false, events: r.events, dieX: p.dieX, why: "route from git dies here on this sim", kind: r.kind };
+    row.kind = kind;
+    const solution = p.done ? { ok: true, events, kind } : { ok: false, events, dieX: p.dieX, why: "route from git dies here on this sim", kind };
     if (!dry) fs.writeFileSync(dest, JSON.stringify({ n, name, level, solution, physics: p.done ? r.physics : null, from: "knowledge/mains/routes.json" }));
-    log(`${tag(n)} ${name}: ${p.done ? "clears" : "DIES at " + p.pct + "%"} (${secs} s)${row.sameLevel ? "" : " -- your game's level differs from the one the route was made on"}${r.physics && phys && r.physics !== phys ? " [route physics " + r.physics + ", sim " + phys + "]" : ""}`);
+    log(`${tag(n)} ${name}: ${p.done ? "clears" + (kind === "raw" ? " (raw solve: the human route dies)" : "") : "DIES at " + p.pct + "%"} (${secs} s)${row.sameLevel ? "" : " -- your game's level differs from the one the route was made on"}${r.physics && phys && r.physics !== phys ? " [route physics " + r.physics + ", sim " + phys + "]" : ""}`);
   }
   if (!dry) try { require("./index_levels.js").buildIndex(); } catch (e) { log("index: " + e.message); }
   return rows;

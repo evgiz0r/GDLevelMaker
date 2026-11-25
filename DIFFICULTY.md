@@ -686,8 +686,6 @@ whose route fails is the **highest priority** heavy job ("If we have it failed t
   PC replays them on its own game (tools/mains_routes.js import, SETUP.md) instead of hours of solving.
 - Automatic: `tools/serve.js`'s self-update starts `mains.js run` when a pull changes the physics or route code
   (mains.js ROUTE_CODE). A session that changes physics need not do anything else.
-- The routes go to git for other computers (SETUP.md): after a run re-solved levels, `node tools/mains_routes.js export`
-  and commit `knowledge/mains/routes.json` (press timings only, no level data).
 - 2026-11-25, after the no-landing-buffer change (46672ee): 1 ok (Blast Processing), 8 replans, 13 resumes; most raw
   solves now died in the first 2-11% (they leaned on the old buffer). Measured (local/mains/history.jsonl): replans
   5-97 s (Fingerdash 42 min), resumes 29-95 s (Hexagon Force 21 min, Deadlocked 5 min): the whole batch took 84 min.
