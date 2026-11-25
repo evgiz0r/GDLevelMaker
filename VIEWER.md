@@ -171,3 +171,10 @@ mouse wheel or a trackpad pinch over the level, the − / 100% / + buttons in it
 view), keys - and =. The page around it stays as it is; the zoom is remembered in this browser (localStorage gdlm.zoom).
 Shots (tools/shoot.js) ignore it.
 
+## Compact bars (2026-11-25)
+
+The user: "The sections/stages take too much space in the ui". The stage bar, the sections bar and the variants bar are
+one line each (scrolling sideways when long). The sections bar is folded by default: "▸ sections · N" plus the section
+under the playhead (and the picked one, with its ✓ ok / redo); ▸ shows every chip, remembered per browser
+(localStorage gdlm.secOpen).
+
