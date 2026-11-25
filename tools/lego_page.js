@@ -7,15 +7,24 @@
 const fs = require("fs"), path = require("path");
 const ROOT = path.join(__dirname, "..");
 
+// the build stamp: a hash of the code that makes the page, written into it; tools/serve.js rebuilds when it differs
+// (an mtime check let a build started by older code overwrite the page after newer code had arrived, 2026-11-25)
+function stamp() {
+  const h = require("crypto").createHash("sha1");
+  for (const f of ["lego.js", "lego_page.js", "lego_page.html"]) h.update(fs.readFileSync(path.join(__dirname, f)));
+  return h.digest("hex").slice(0, 12);
+}
 function build(all, o = {}) {
-  const dir = o.out || path.join(ROOT, "local", "lego", o.pub ? "page_public" : "page");
+  // --private: everything (main-level bricks included) for Evgeni's PRIVATE claude.ai catalogue page (his choice,
+  // 2026-11-25: "Yes, private page only"); votes go to the page's database like the public copy. Never published elsewhere.
+  const dir = o.out || path.join(ROOT, "local", "lego", o.priv ? "page_private" : o.pub ? "page_public" : "page");
   fs.mkdirSync(dir, { recursive: true });
   // the mix: family / mode / wrap shares per source (numbers only, safe to publish)
   const mix = {}, tot = { official: 0, ours: 0, sketch: 0, library: 0 };
   for (const p of all) { if (p.grain === "brick") continue; const k = p.family + " · " + p.mode + " · " + p.wrap + (p.spiky ? " +spikes" : "") + (p.gates ? " +gates" : ""); const m = mix[k] = mix[k] || { k, official: 0, ours: 0, sketch: 0, library: 0 }; m[p.src]++; tot[p.src]++; }
   const rows = Object.values(mix).sort((a, b) => (b.official / tot.official + b.ours / tot.ours) - (a.official / tot.official + a.ours / tot.ours)).slice(0, 26);
   const pieces = all.filter(p => !o.pub || p.src !== "official").map(p => ({
-    id: p.id, grain: p.grain || "piece", src: p.src, level: p.level, mode: p.mode, family: p.family, wrap: p.wrap, sig: p.sig, x: p.x, w: p.w, s: p.s,
+    id: p.id, grain: p.grain || "piece", auto: !!p.auto, src: p.src, level: p.level, mode: p.mode, family: p.family, wrap: p.wrap, sig: p.sig, x: p.x, w: p.w, s: p.s,
     presses: p.presses, hold: p.hold, gap: p.gap, yRange: p.yRange, hz: p.hzPer100, flips: p.flips, gates: p.gates || 0, spiky: !!p.spiky,
     turns: p.turns, pathKind: p.pathKind, mech: Object.keys(p.mech || {}), midline: p.midline, verified: !!p.verified, why: p.why || "",
     shape: (p.shape || []).slice(0, 500), path: p.path || [], clicks: p.clicks || [], diff: p.diff == null ? null : p.diff, tightMs: p.tightMs == null ? null : p.tightMs, tight: p.tight || 0, speed: p.speed,
@@ -26,9 +35,9 @@ function build(all, o = {}) {
   fs.writeFileSync(path.join(dir, "pieces.json"), "[\n" + pieces.map(p => JSON.stringify(p)).join(",\n") + "\n]\n");
   const html = fs.readFileSync(path.join(__dirname, "lego_page.html"), "utf8")
     .replace("/*MIX*/null", JSON.stringify({ rows, tot }))
-    .replace("/*PUB*/false", o.pub ? "true" : "false");
+    .replace("/*PUB*/false", o.pub || o.priv ? "true" : "false").replace("/*PRIV*/false", o.priv ? "true" : "false") + `\n<!--lego-build:${stamp()}-->\n`;
   fs.writeFileSync(path.join(dir, "index.html"), html);
   console.log(`${pieces.length} pieces -> ${path.relative(ROOT, dir)}/index.html${o.pub ? " (public: no official layouts)" : " (local only: official layouts inside)"}`);
   return dir;
 }
-module.exports = { build };
+module.exports = { build, stamp };

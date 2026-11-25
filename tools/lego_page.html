@@ -74,7 +74,7 @@ button.vote.on.up{background:#1f6b3a;border-color:#7dff9c}button.vote.on.down{ba
 
 </div>
 <div class="band filters" id="filters">
-  <select id="fgrain"><option value="brick">bricks (~1 s: one move)</option><option value="piece">pieces (1-3 s: a screen)</option></select>
+  <select id="fgrain"><option value="brick">bricks (~1 s: one move)</option><option value="auto">auto bricks (no clicks: pads, portals, falls)</option><option value="piece">pieces (1-3 s: a screen)</option></select>
   <select id="fsrc"><option value="">every source</option><option>official</option><option>ours</option><option>sketch</option><option>library</option></select>
   <select id="ffam"><option value="">every family</option><option value="fly">fly: ship, wave, swing</option><option value="jump">jump: cube, robot, ufo</option><option value="flip">flip: ball, spider</option></select>
   <select id="fmode"><option value="">every mode</option></select>
@@ -125,7 +125,7 @@ const PAGE = 60;
     return `<div class="mrow" title="${esc(r.k)}: official ${r.official} (${Math.round(o*100)}%), ours ${r.ours} (${Math.round(u*100)}%)"><span class="k">${esc(r.k)}</span><span class="bars"><span class="bar o" style="width:${o/max*100}%"></span><span class="bar u" style="width:${u/max*100}%"></span></span></div>`;
   }).join("");
   const pct = (k, s) => { const r = MIX.rows.find(x => x.k === k); return r ? Math.round(r[s] / Math.max(1, t[s]) * 100) : 0; };
-  $("lede").textContent = `${t.official + t.ours + t.sketch + (t.library || 0)} pieces of 1-3 s, cut from the routes of the 22 official levels (${t.official}), our GDLM levels (${t.ours}), Evgeni's whiteboard sketches (${t.sketch}) and the lego pieces we built from one shared path (${t.library}, first in the drawer). Each one is classified by family, mode and wrapper and measured: width, seconds, presses, hold share, corridor gap, height range, hazards.` + (PUB ? " This copy leaves out the official layouts (RobTop's): only their numbers are in the chart." : "");
+  $("lede").textContent = `${t.official + t.ours + t.sketch + (t.library || 0)} pieces of 1-3 s, cut from the routes of the 22 official levels (${t.official}), our GDLM levels (${t.ours}), Evgeni's whiteboard sketches (${t.sketch}) and the lego pieces we built from one shared path (${t.library}, first in the drawer). Each one is classified by family, mode and wrapper and measured: width, seconds, presses, hold share, corridor gap, height range, hazards.` + (PUB && !/*PRIV*/false ? " This copy leaves out the official layouts (RobTop's): only their numbers are in the chart." : "");
   $("notes").innerHTML = `<p><b>Flat cube is a third of ours (${pct("jump · cube · flat", "ours")}%), and ${pct("jump · cube · flat", "official")}% of the official levels.</b> The official cube is mostly steps (${pct("jump · cube · steps", "official")}%) and pits.</p>
   <p><b>Official ships are spiky corridors with gates</b> (${pct("fly · ship · corridor +spikes +gates", "official")}% of all their pieces); ours fly plain corridors (${pct("fly · ship · corridor", "ours")}%) and never a spiky one with gates.</p>
   <p><b>Fly family</b>: one path, wrapped as open air, a floor path, a roof path or a corridor, then +spikes (hazards are 30%+ of the walls), +gates (narrowings) and +flips (gravity). The same wrappers fit ship, wave and swing.</p>
@@ -217,7 +217,7 @@ function render(reset) {
   shown += part.length;
   for (const cv of $("grid").querySelectorAll("canvas:not([data-o])")) { cv.dataset.o = 1; io.observe(cv); }
   $("more").hidden = shown >= VIEW.length;
-  const hid = ALL.filter(p => (p.grain || "piece") === $("fgrain").value).length - VIEW.length;
+  const gr = $("fgrain").value, hid = ALL.filter(p => gr === "auto" ? p.auto : (p.grain || "piece") === gr && !p.auto).length - VIEW.length;
   $("count").textContent = `${VIEW.length} pieces` + (hid ? ` (${hid} hidden)` : "");
 }
 function filter() {
@@ -225,7 +225,8 @@ function filter() {
   const ours = $("fours").checked || (s && s !== "official"), un = $("fun").checked, em = $("femp").checked, du = $("fdup").checked, ro = $("frough").checked;
   const vok = p => { const v = VOTES[p.id]; return !fv || (fv === "up" ? v && v.vote > 0 : fv === "down" ? v && v.vote < 0 : fv === "com" ? v && v.comment : !v); };
   const gr = $("fgrain").value;
-  VIEW = ALL.filter(p => (p.grain || "piece") === gr && (ours || p.src === "official") && (un || p.verified) && (em || !p.empty) && (du || !p.dupOf) && (ro || p.smooth) && vok(p) && (!s || p.src === s) && (!f || p.family === f) && (!m || p.mode === m) && (!w || p.wrap === w) && (!q || (p.sig + " " + p.level + " " + p.mech.join(" ")).toLowerCase().includes(q)));
+  const gOk = p => gr === "auto" ? p.auto : (p.grain || "piece") === gr && !p.auto;
+  VIEW = ALL.filter(p => gOk(p) && (ours || p.src === "official") && (un || p.verified) && (em || !p.empty) && (du || !p.dupOf) && (ro || p.smooth) && vok(p) && (!s || p.src === s) && (!f || p.family === f) && (!m || p.mode === m) && (!w || p.wrap === w) && (!q || (p.sig + " " + p.level + " " + p.mech.join(" ")).toLowerCase().includes(q)));
   const so = $("fsort").value;
   if (so) VIEW.sort((a, b) => so === "easy" ? (a.diff ?? 99) - (b.diff ?? 99) : (b.diff ?? -1) - (a.diff ?? -1));
   render(true);
@@ -301,7 +302,7 @@ fetch("pieces.json").then(r => r.json()).then(d => {
   // the main levels first (the user, 2026-11-25: "i want to focus on mainlevel"); ours are one pick away
   // our own pieces only under "also show: our own pieces" (the user, 2026-11-25: "Lets not show our own structures for now
   // in the catalog. or under some option"); the phone copy has no official layouts, so it shows ours from the start
-  if (PUB || !ALL.some(p => p.src === "official")) $("fours").checked = true;
+  if (!ALL.some(p => p.src === "official")) $("fours").checked = true;
   filter();
   loadVotes().then(() => { refreshVotes(); if ($("fvote").value) filter(); });
 }).catch(() => { $("count").textContent = "pieces.json did not load"; });
