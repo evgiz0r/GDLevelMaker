@@ -280,6 +280,29 @@ What it shows on the main levels' pieces (1-3 s):
 - So a harder version of a brick is a different brick: a corridor that narrows into a gate, a ship stretch that climbs
   between spiky walls, an orb added to a robot jump, a speed portal -- not a spike moved by a block.
 
+## The reverse lego: which bricks a level is built from (2026-11-25)
+
+The user: "given a structure (in a new or old level), find a matching one. and in that way we can also try to help the
+solver of the level". `node tools/lego_match.js <level | official:N> [--min 0.6] [--src official|ours|all] [--test]`:
+the level as block columns (no route needed), every catalogue brick slid along it (a column votes for level columns
+with the same contents, the best shifts scored by shared objects / all objects per column), the best match per
+stretch kept, and the brick's clicks moved to the level's x as predicted presses. ~0.3 s a level.
+
+Test: leave level N's own bricks out, match it against the other main levels' bricks, compare with N's real route.
+
+| min score | real presses inside matched stretches (of all) | of those, a predicted press within 1 block | predicted presses that are real |
+|---|---|---|---|
+| 0.60 | Stereo Madness 64/122, Polargeist 96/144, Base After Base 99/126, Jumper 90/155, Clutterfunk 99/163; Hexagon Force 12/138, Geometrical Dominator 10/138 | 64-77% | 31-51% |
+| 0.75 | SM 51, Polargeist 66, BAB 69, Jumper 65, Clutterfunk 23 | 57-88% | 28-67% |
+| 0.85 | SM 25, Polargeist 22, BAB 25, Jumper 11, the rest 0-11 | 72-100% | 19-80% |
+
+So: **RobTop reuses his cube bricks across the early levels** (half to three quarters of Stereo Madness, Polargeist, Base
+After Base, Jumper is built like bricks from other levels), the later ones are their own (Hexagon Force, Geometrical
+Dominator under 10%). Where a brick matches well (0.85), its clicks predict the real press within a block 72-100% of the
+time: a usable hint for the solver (seed the search there first, as tools/presslib.js does from its learned picture).
+Open: matching that allows a height shift (a brick placed higher), which the fly modes need; feeding the predicted
+presses to the solver and measuring how much faster it gets.
+
 ## Open
 
 - Compose does not place fly pieces from the catalogue yet: ship / wave / swing sections still use ship-tunnel /
