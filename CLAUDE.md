@@ -220,7 +220,7 @@ on a long one with modes). Wait for the heavy-job slot comes on top of all of th
 | wip put (solution cached by make) | a few s | wip.js |
 | install into the game (`install.js`, game closed) | not timed yet (publisher: `--time install`) | |
 | a server upload | not timed yet (publisher: `--time upload`) | |
-| video of a whole official level (`video.js official:N --route`, 1280x720 60 fps) | ~4.7x the level's length (Jumper 86.6 s: 408 s, 28.9 MB) | timings.jsonl, 2026-11-25 |
+| video of a whole official level (`video.js official:N --route`, 1280x720 60 fps) | ~2.2-4.7x the level's length, the more other jobs run (Jumper 90 s with its 4.5 s end screen: 202 s and 346 s, ~27 MB; first run 408 s) | timings.jsonl, 2026-11-25 |
 | build a Geode mod (`tools/geode_build.cmd`, cold) | ~60-95 s | GDLM Probe, 2026-11-25 |
 | git pull + push | ~10 s | 2026-11-23 |
 | edit.js, one edit, the old route still clears (re-plan + checks) | see EDITING.md "Results" | 2026-11-23 |
@@ -285,11 +285,15 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   or all official levels vs ratings and the user's attempts), `difficulty_solve` (cache an official
   solution, one at a time; `--resume` after a physics change solves only from a bit before where it matters), `difficulty_fit` (refit on the user's runs), `difficulty_community`
   (score downloaded community levels), `runs` (the user's deaths from a recording, via the progress
-  bar), `save_stats` (the user's lifetime attempts per official level, read-only from the save),
+  bar), `save_stats` (the user's lifetime attempts per official level, read-only from the save; also the catalogue of every level in his save -- main + every online level played, tier, done, attempts, best % -- with demon count, local/difficulty/user_stats_online.json, `--demons` / `--done` / `--diff Insane`; `node tests/save_stats.js`),
   `difficulty_parts` (how much windows and CPS alone explain the stars), `skips` (does a saved route skip a portal: then no number from it), `quality` (the scorecard: official 1-10 vs every GDLM level, QUALITY.md), `stop` (where a level's saved solution dies in the sim and what killed it), `difficulty_route` (a level with and without route choice: a player avoids a hard timing when the
   level has an easier way), **`fairness`** (deaths that are not the player's fault: forced input after
   a portal, misleading marks, sloped portal exits, orb chains with nothing to correct; fitted on the
   user's labelled deaths, `fairness fit`; tools/score.js gates on it; DIFFICULTY.md "Fairness").
+- **Music control** (MUSIC.md: the song's start point `kA13` and GD 2.2 Song / Edit Song triggers -- switch, seek, fade, stop
+  mid-level; their keys read from rated levels): `lib/music.js` (the spans over time), spec / brief key `"music"` in make.js,
+  beats through a switch (`GD.SYNC.beatToTimeSegs`), heard in the viewer / phone (`lib/song.js` musicPlayer) and video.js.
+  Test: `node tests/music.js`.
 - `viewer/song_grids.js` -- every measured song's beat grid as committed numbers (no audio), so beats show on the phone and public site without the mp3 or local/; `node tools/song_grids.js` (tools/beats.js runs it).
 - `lib/sync.js` -- music sync: level time <-> x through speed portals, beat grid <-> level beats,
   press timing windows from a solution, sync scores. See SYNC.md (also where songs come from).
@@ -318,7 +322,8 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 - **Lego: structure research** (LEGO.md: every level cut into 1-3 s pieces -- official, ours, the user's sketches --,
   classified by family (fly: ship/wave/swing paths and corridors; jump; flip) with parameters, the official mix vs ours,
   the variety rule; one path built as ship / wave / swing with wrappers and click- or portal-turns): `tools/lego.js`
-  (`mine`, `families`, `variety <level>`, `page [--public]`, `votes`: Evgeni's 👍/👎/comments from the PC /lego/ page and the phone page, a weight not a ban), `tools/lego_seams.js` (how levels combine pieces: portals, rhythm, breathers, variety, height; official vs ours, LEGO.md "Combining"), the `fly-path` pattern, `lego-*` structures.
+  (`mine`, `families`, `variety <level>`, `page [--public]`, `votes`: Evgeni's 👍/👎/comments from the PC /lego/ page and the phone page, a weight not a ban), `tools/lego_match.js` (the reverse lego: which bricks a level is built from, their clicks as press hints), `tools/lego_join.js` (joins checked in physics), `tools/lego_seams.js` (how levels combine pieces: portals, rhythm, breathers, variety, height; official vs ours, LEGO.md "Combining"), the `fly-path` pattern, `lego-*` structures.
+- **How a difficulty score is built** (DIFFICULTY.md "Balance"): `tools/balance.js <level | official:N> ... --html out.html` -- every press's cost (slips + timing + after-portal), the costliest presses, cost per mode stretch, the main levels' ladder; page template `viewer/balance.html`.
 - **Quality vs the official levels** (QUALITY.md: one scorecard, official 1-10 next to every GDLM level --
   gameplay, flow, look, fairness, soft rules -- with a verdict per metric and the biggest gaps; owner: the
   difficulty session): `node tools/quality.js` (a new level gets a row by itself; `--cached` prints only).
