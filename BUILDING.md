@@ -22,8 +22,9 @@ What the lego taught so far, for any builder filling a section from it (LEGO.md 
   beats with fewer presses; a slice keeps its route but its join is checked again.
 - **Combine like the main levels**: next brick a different signature (official 16% repeat vs ours 37%), portals entered in
   the air, a speed change at a portal, 0.4-0.5 s quiet around it, and use the height (official up to 13 blocks, ours 7).
-- **Don't copy a brick's wave taps blindly**: some main-level wave routes tap in corridors (18 of 60 wave bricks have
-  presses under 0.1 s apart, mostly Deadlocked). A wave leg is one press; take the layout, re-plan the presses.
+- **Don't copy a brick's flying taps blindly**: some main-level wave routes tap in corridors (18 of 60 wave bricks have
+  presses under 0.1 s apart, mostly Deadlocked). Take the layout and re-plan the presses for easy timings: an extra press
+  or two is fine, a run of tiny taps or a tight window is not (Evgeni; knowledge/checklist.md).
 
 ## 1. Sections first, like a collab
 

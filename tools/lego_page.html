@@ -89,7 +89,7 @@ button.vote.on.up{background:#1f6b3a;border-color:#7dff9c}button.vote.on.down{ba
     <label title="nothing to react to: no hazard, orb, pad or portal, flat ground or open air"><input type="checkbox" id="femp"> empty</label>
     <label title="the same layout again (another phase of a repeated chunk, or another level)"><input type="checkbox" id="fdup"> repeats</label>
     <label title="flying pieces whose walls step in blocks instead of ramps"><input type="checkbox" id="frough"> stair walls</label>
-    <label title="routes that are not a human plan, or wave legs tapped more than once (presses under 0.1 s apart)"><input type="checkbox" id="fjit"> jittery routes</label></div>
+    <label title="routes that are not a human plan, or flying taps under 0.1 s apart (3+, or with a tight timing)"><input type="checkbox" id="fjit"> jittery routes</label></div>
 </div>
 <div class="band drawer">
   <div class="grid" id="grid"></div>
@@ -132,7 +132,7 @@ const PAGE = 60;
   $("notes").innerHTML = `<p><b>Flat cube is a third of ours (${pct("jump · cube · flat", "ours")}%), and ${pct("jump · cube · flat", "official")}% of the official levels.</b> The official cube is mostly steps (${pct("jump · cube · steps", "official")}%) and pits.</p>
   <p><b>Official ships are spiky corridors with gates</b> (${pct("fly · ship · corridor +spikes +gates", "official")}% of all their pieces); ours fly plain corridors (${pct("fly · ship · corridor", "ours")}%) and never a spiky one with gates.</p>
   <p><b>Fly family</b>: one path, wrapped as open air, a floor path, a roof path or a corridor, then +spikes (hazards are 30%+ of the walls), +gates (narrowings) and +flips (gravity). The same wrappers fit ship, wave and swing.</p>
-  <p>By default the drawer shows <b>verified</b> pieces only (a route through them, the solver's or a real clear, is replayed by our physics and lives), and hides <b>empty</b> ones (nothing to react to), <b>repeats</b> (the same layout again, shown once with ×N) flying pieces with <b>stair walls</b>, and <b>jittery routes</b> (a route that is not a human plan, or a wave leg tapped more than once). The checkboxes bring them back.</p>
+  <p>By default the drawer shows <b>verified</b> pieces only (a route through them, the solver's or a real clear, is replayed by our physics and lives), and hides <b>empty</b> ones (nothing to react to), <b>repeats</b> (the same layout again, shown once with ×N) flying pieces with <b>stair walls</b>, and <b>jittery routes</b> (a route that is not a human plan, or flying taps under 0.1 s apart: three or more, or where a timing is tight; an extra press on easy timings is fine). The checkboxes bring them back.</p>
   <p><b>Difficulty</b> = log10 of the expected attempts to get through the piece in one go, from the timing window of each of its inputs (our difficulty model, fitted on Evgeni's runs): 0.1 is a gimme, 0.5 takes a few tries, 1 about ten.</p>
   <p>Tap a tray to see it large: <b>▶ play</b> replays the route at its real speed, white dots are presses, rings releases; the player is drawn as the game draws each mode (flipped when gravity is reversed) over the level's own colours, and dashed ✂ lines are cut points where a brick can be trimmed into a smaller one. <b>👍 / 👎 and a comment</b> are saved for us to read; a vote is a preference weight, never a ban. ← → step through pieces, space plays.</p>`;
 }
@@ -253,7 +253,7 @@ function open(i) {
   const presses = (p.clicks || []).filter(c => c[2]).map(c => c[3].toFixed(2) + " s");
   $("binfo").innerHTML = `<b>${esc(p.sig)}</b><br>${esc(p.src)} · ${esc(p.level)} at block ${p.x} · ${esc(meta(p))}${p.family === "fly" ? ` · path ${esc(p.pathKind)}, ${p.turns} turns, ${p.gates} gates` : ""}${p.flips ? ` · ${p.flips} gravity flips` : ""}${p.mech.length ? ` · ${esc(p.mech.join(", "))}` : ""}<br>` +
     (p.verified ? "✓ verified: the cyan line is a route our physics replays alive through it; white dots are presses, rings releases" : "not verified: " + esc(p.why)) +
-    (p.routeKind && p.routeKind !== "ours" ? ` · route: ${esc(p.routeKind)}${p.routeAt ? " (" + esc(p.routeAt) + ")" : ""}` : "") + (p.routePlan === "" ? " · planned before the wave planner (re-plan pending)" : "") + (p.jitter ? ` · ⚠ ${p.jitter} wave taps under 0.1 s apart: not a human line` : "") +
+    (p.routeKind && p.routeKind !== "ours" ? ` · route: ${esc(p.routeKind)}${p.routeAt ? " (" + esc(p.routeAt) + ")" : ""}` : "") + (p.routePlan === "" ? " · planned before the wave planner (re-plan pending)" : "") + (p.jitter ? ` · ⚠ ${p.jitter} presses under 0.1 s apart: not a human line` : "") +
     (presses.length ? `<br>presses at ${esc(presses.join(", "))}` : "") + (p.alsoIn && p.alsoIn.length ? `<br>the same layout also in ${esc(p.alsoIn.join(", "))}` : "") + (p.smooth ? "" : `<br>stair walls: ${p.steps} block steps per 10 columns`);
   $("bplay").disabled = !p.path.length || p.path[p.path.length - 1][2] == null;
   showVote(p);
