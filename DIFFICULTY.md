@@ -333,6 +333,55 @@ What it showed first (FROSTBITE 2.66 vs Electrodynamix 2.65, same model):
   late-open windows (`settleOf(a, settle, true)`, `D.SETTLE_LATE_OPEN`) gives FROSTBITE ~1.6, Electrodynamix 2.35, and on
   the 21 main levels Spearman vs stars 0.82 -> 0.84 but vs the user's attempts 0.87 -> 0.80. **Open, off by default**:
   the rule was fitted (SETTLE 300 ms) with the artifact in; exempting needs a refit of SETTLE on real_stats first.
+- **The user's verdict (2026-11-25), and the v2 model it led to.** "The ship is very open, usually the timings there
+  are almost fake. You could straight fly by tighter clicking ... the more it is open, the easier it is." "If all
+  clicks are 200 ms, then its never a 7 star." "And even then, it can't spike the difficulty that much here. So some
+  math is wrong." So `tools/balance.js` scores a second model, **v2**, beside the current one:
+  - flying presses (ship, ufo, wave, swing) cost only the slip; the flight is scored by how open it is: per second,
+    p = erf(slack / 2 / (FLY_SPREAD * sqrt2)), slack = free height around the player minus its size
+    (`lib/difficulty.js flyRoom`; FLY_SIZE ship/ufo/swing 30, wave 10, mini x0.6; FLY_SPREAD 12 units, ASSUMED);
+  - the after-portal cut only on a jumping press whose window opens after the portal and really closes;
+  - gravity play (the user: "gravity play should be counted as increased difficulty slightly somehow"): a jumping press
+    made upside down or within 1 s of a gravity flip has its chance x 0.99 (GRAV_PEN, ASSUMED; FROSTBITE: 20 presses,
+    +0.09);
+  - dual (the user: "some people think hexagon force is harder than the demons because the two hard duals"): a press
+    made while two players are on screen has its chance x 0.95 (DUAL_PEN, ASSUMED), flying presses too; "assymetric duals
+    = even more" (the two in different modes: x 0.90, DUAL_ASYM_PEN); "reverse screen = bit more difficult (not very but
+    it does add as its a bit unnatural)": a press after a mirror portal (45, until 46) x 0.98 (MIRROR_PEN). All assumed,
+    ordered as he said; fitted with the rest.
+  FROSTBITE: v1 2.66 -> v2 0.72 (presses 0.65 incl. gravity 0.09 + flight 0.07 over 38 s of 60-unit-slack ship). On the mains, v2's
+  presses alone (no flight: RobTop's levels are only on the PC) rank worse (Spearman vs stars 0.57, v1 0.83):
+  Clubstep's and ToE 2's difficulty is in their corridors, so the flight part is needed before v2 replaces v1.
+  NEXT: run `node tools/balance.js official:1 ... official:22 --json` on the PC (it has the levels), fit FLY_SPREAD on
+  stars and the user's attempts from `flyRaw`, then decide. score.js and the board still use v1.
+- **Stats first, rules only name the features** (the user, 2026-11-25: "i dont want it to be too rule based, but rather
+  more based on stats. but as humans play it the feeling of difficulty does make some difference, besides the timing
+  themselves"). The v2 terms (flight room, gravity, dual, asymmetric dual, mirror, after-portal) are features, not
+  verdicts: their weights get FITTED, never hand-set for good. Data, in order of weight: the user's real deaths
+  (real_stats, recordings), the rated community levels with stars (the taste corpus, ~330; the 91 low-tier ones), the
+  mains' stars and community tier lists, his own ranking. A feature whose fitted weight is ~0 is dropped.
+- **Readability is a feature too** (the user, 2026-11-25: "we didnt even get to the visuals ... robtop levels which are
+  like amazing for (besides geometrical) is the visible play"): how clearly the path and its hazards can be read adds to
+  difficulty beside timing (Geometrical Dominator is the main level that hides it). Feature candidates, from tools we
+  have: hiding triggers on the path (`hiddenTriggers` in lib/difficulty.js), prejumps (tools/sightread.js), hazard vs
+  background contrast (tools/roles.js), deco clutter in the play lane (tools/lane.js), look-ahead seconds at speed
+  (`lookAhead`). NEXT: compute them per main level and fit with the rest; not in v2 yet.
+- **The user's own ranking of the mains** (2026-11-25): `knowledge/difficulty_rank_user.json`, easiest first (Back On
+  Track ... Dash, then Hexagon Force = Electrodynamix, then Clubstep / ToE 2 / Deadlocked, Deadlocked hardest). A rough
+  target, not an exact one (the user: "its not about fitting exactly, its just around. some are debatable in the
+  community. there are many such tierlists in the net"): fit to tiers (a level within ~2 places is fine), and average it
+  with community tier lists when we gather some. Spearman with it -- Spearman with it -- in-game stars 0.95, his attempts 0.80, v1 0.88, v2 presses only 0.58.
+- **The timing curve is too steep for ordinary jumps** (2026-11-25, Dry Out 4* vs Time Machine 8*): with SIGMA 13 ms a
+  window over ~70 ms is a near-certain hit, so Time Machine's eight 83 ms jumps cost 0.004 each, like a 300 ms one, and
+  the two levels differ only by press count (v2 presses 0.48 vs 0.50). Refit SIGMA (or a spread that grows with
+  speed / density) together with FLY_SPREAD on the mains' stars and the user's attempts.
+- **Lone spike (fairness, not score)**: a jumping press under 60 ms among neighbours (±5 s) of 150 ms median or more
+  is printed as SPIKE (knowledge/checklist.md "Fair"). FROSTBITE 8.2 s (the triple spike, 46 ms among ~296 ms).
+  Sweep of the 29 GDLM levels with a saved route (2026-11-25): 9 spikes in 6 levels -- GDLM 43 (24.4, 25.6 s), 45 (3.9 s),
+  69 (28.7 s), 70 (1.8 s; robot 28.3 and 61.6 s, 58 ms), 72 (8.2 s). Seven of them are 46 ms cube jumps: the triple spike at
+  1x (45.8 ms whatever the run-up, tools/collab.js) dropped into a calm stretch. So the family is "a 1x triple in an easy
+  part"; compose / collab should not place one there. v2 on the same sweep: every GDLM level 0.0-0.9 except GDLM 62
+  (1.18: its hit-timed ship corridor, flight 0.98 over 13 s).
 - Also open: a press whose window starts well before the portal (the 69 s one opens ~200 ms before it) can be pressed
   before the switch; the rule still counts it as forced.
 
@@ -660,6 +709,10 @@ whose route fails is the **highest priority** heavy job ("If we have it failed t
   (the raw solve dies: `--resume` from a bit before the trouble, checkpointed every 30 s).
 - `node tools/mains.js run [n ...]`: does them one after another, replans first, at heavy priority `urgent` (above
   high, tools/heavy.js); one runner at a time; log and history in `local/mains/`.
+- **In git** (2026-11-25, the user: "why dont we put the solutions on git?"): `knowledge/mains/routes.json` holds every main
+  level's human route, raw solve and coin route as press timings only (no level data; a hash of the level text and the
+  physics commit per route). `mains.js export [--push]` writes it; run and replan export and push it at their end; a new
+  PC replays them on its own game (tools/mains_routes.js import, SETUP.md) instead of hours of solving.
 - Automatic: `tools/serve.js`'s self-update starts `mains.js run` when a pull changes the physics or route code
   (mains.js ROUTE_CODE). A session that changes physics need not do anything else.
 - 2026-11-25, after the no-landing-buffer change (46672ee): 1 ok (Blast Processing), 8 replans, 13 resumes; most raw

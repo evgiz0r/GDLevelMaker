@@ -305,6 +305,16 @@ presses to the solver and measuring how much faster it gets.
 
 ## Joining and connecting: what the test says, and Evgeni's plan (2026-11-25)
 
+Evgeni's join rules (2026-11-25, "when we combine, i guess we either need to make a small corridor with a proper portal,
+or just have mode ready. need to be careful of orbdashes, as holding them can skip a lot of gameplay which is intended"):
+- **Mode at the seam**: either the next brick starts in the mode the last one ends in, or the join gets a short connector
+  -- a small corridor with the proper portal in it (the portal entered in the air, 0.4-0.5 s quiet around it, as the main
+  levels do) -- never a portal dropped on the seam.
+- **Dash orbs are a skip risk**: holding a dash orb (or releasing it late) can fly over much of the next brick. A brick with
+  a dash orb near its end is joined only with a wall or ceiling that ends the dash where it is meant to end, and the join
+  check holds the dash to its longest and to every later release: a route that skips the next brick's presses is a secret
+  way. Not in lego_join.js yet.
+
 `node tools/lego_join.js --grain brick [--n 40] [--seed 7] [--any]` joins two main-level bricks (with 10 blocks of A's own
 level before it as the lead-in, so the player arrives in A's entry state), solves the join and checks it
 (knowledge/lego_joins.json):
@@ -334,6 +344,95 @@ Plan: the path of a section first (its height curve, from the beat and the energ
 entry / exit fit (the contract), connectors (y shift, portal) where they don't, auto bricks between sections, and the
 filler last (close the open space, wall the portals, continue the outlines), every join checked by the solver
 (clear, no secret way). Not built yet: the connectors and the filler.
+
+## Where the catalogue lives (2026-11-25)
+
+- PC: http://localhost:8765/lego/ (tools/serve.js builds it; votes to local/lego/votes.jsonl).
+- Evgeni's PRIVATE claude.ai page: https://claude.ai/artifact/HNZF2JRKi7XkQ8SawvF4Kr, everything incl. the main-level
+  bricks (his choice, 2026-11-25: "Yes, private page only"; "just the fact its not native in the app is annoying"). Build
+  with `node tools/lego.js page --private` and publish local/lego/page_private/ (index.html + pieces.json) to that URL.
+  Votes go to its database (`legovotes`). RobTop's layouts are on it, so it is never shared, never made public, and the
+  repo and the public site still never carry them (`page --public` is the copy without them).
+
+## The replay: icons, level colours, teleports, cut points (2026-11-25 evening)
+
+Evgeni: "need proper icons in the replays of the structures", "colors and player icons + reverse", "something weird with
+paths", and "what we could cut from start or the end, like checkpoints where we could take even smaller parts".
+- Each route sample is `[x, y, t, mode, gravity, drawn rotation, grounded, mini]`. The page draws the player with
+  lib/look.js `drawPlayer` (the viewer's icons of every mode, mirrored when gravity is reversed, wave pointing along its
+  flight), turned by `visualRot` (moved from the viewer to lib/look.js so both use one copy).
+- `P.colors`: the level's background / ground / line colours where the piece starts (header + colour triggers fired by
+  then, lib/look.js timeline). Blocks are drawn as dark silhouettes on that background.
+- Route samples are world positions (`GD.worldXY`), and a jump of more than 3 blocks between samples (Deadlocked,
+  Fingerdash, Dash teleports: 52 pieces) breaks the line instead of drawing it across the picture.
+- `P.cuts`: calm points inside a brick (button up, at least 0.2 s to the next press, cube family on the ground)
+  `[x, seconds, presses before]`, drawn as dashed ✂ lines. 982 of 1337 bricks have at least one (1939 in all). A slice
+  between two cuts is a smaller brick with the same route; joining one is checked like any join (not built into the
+  picker yet).
+- Open: the wave routes of the main levels still tap a lot in corridors (Evgeni: "thats obviously not the human path");
+  that comes from lib/natural.js's wave controller (step 3b merges legs only within a 15 s budget per level).
+
+## Variants: every brick reversed or upside down (Evgeni 2026-11-25, not built yet)
+
+Evgeni: "all our structures can be reversed with reverse portal, so its double the options in a way (just need to be
+careful of other reverse portals in the path)". A brick played backwards (the player runs -X after a reverse) is the same
+brick mirrored left to right, with the same presses; our sim runs reversed gameplay as frame hd 1 (lib/physics.js "Rotated
+gameplay", PHYSICS.md), so a reversed brick can be checked like any other. Likewise upside down (gravity portal): the brick
+mirrored top to bottom. So each brick gives up to four variants: as is, reversed, upside down, both.
+- The picker treats a variant as a choice of the same brick (votes and difficulty carry over), and checks the variant's
+  join in the sim, never assumes it.
+- Careful (Evgeni): another reverse in the path flips it back, so a reversed stretch needs its own reverse out and no
+  stray reverse inside it; while reversed the camera and the music still run forward, and the level's x runs back over
+  what was built before (no overlap with earlier bricks, the filler must keep the two apart).
+- Open: the main levels' own reversed stretches (Fingerdash, Dash use turns) as a check of how RobTop does it.
+
+## The filler: joins from the real entry state, secret ways spiked (2026-11-25 evening)
+
+`node tools/lego_join.js --grain brick --n 40 --seed 7 --fill` (knowledge/lego_joins_filled.json; 5 min in the cloud).
+Two changes to the join test:
+- **No made-up lead-in.** The player starts in brick A's real entry state, taken from the main level's own route at A's
+  start (`entryState`). Every "broken" join of the earlier runs died before the seam, inside the lead-in (13 of 13), so
+  they measured the test, not the join.
+- **The filler.** Solve; where the route leaves the bricks' own routes by more than 2.5 blocks for a block or more (a secret
+  way), put a spike on each block of the way it took, and solve again (up to 6 rounds). Spikes only: blocks would give the
+  cube new floors.
+
+| 40 brick pairs (contract on, seed 7) | clean | secret way | broken |
+|---|---|---|---|
+| before (lead-in, no filler) | 35% | 33% | 33% |
+| real entry state + filler | **93%** (37) | 0% (85 spikes placed in all) | 8% (3: spike 2, block 1) |
+
+Same mode 7 of 7 clean, mode change 30 of 33. Open: the spikes sit where the solver went, not where a designer would put
+them (they still need the look pass: rows on a floor or ceiling, not loose spikes in the air); the seam's open space is
+not filled yet; the y-shift / portal connectors (Evgeni's corridor with the portal) and the dash-orb hold check are next.
+
+## Lego hints in the solver: first measurement (2026-11-25)
+
+Evgeni: "do we plan to somehow use the structures and the info in the solver?" `node tools/lego_solve.js official:N
+[--min 0.85] [--no-full]` matches the catalogue's bricks into a level (its own bricks left out), then solves it with
+tools/presslib.js `solveWithLib` and an empty library, once plain and once with `opts.hints` (inside a matched stretch
+the button follows the matched brick's clicks by x; `lego_match.js hintsFor`), and with the full sweep. Results in
+knowledge/lego_solve.json.
+
+| level | matched | plain | lego hints | full sweep |
+|---|---|---|---|---|
+| 1 Stereo Madness, min 0.85 | 13 bricks, 19% | 52 s, 50 repairs, 45 presses | 56 s, 41 repairs, 63 presses | 110 s |
+| 1 Stereo Madness, min 0.6 | 52 bricks, 72% | 53 s, 50 repairs, 45 presses | 65 s, 34 repairs, 95 presses | - |
+| 2 Back On Track, min 0.85 | 20 bricks, 27% | 96 s, 57 repairs, 50 presses | 95 s, 46 repairs, 67 presses | 78 s |
+| 1 Stereo Madness, min 0.6, needed-only | 52 bricks, 72% | 52 s, 50 repairs, 45 presses | 59 s, 33 repairs, 82 presses | - |
+| 2 Back On Track, min 0.6, needed-only | 65 bricks, 85% | 98 s, 57 repairs, 50 presses | 107 s, 33 repairs, 82 presses | - |
+
+"needed-only" (`hints.needed`): a hinted press is taken only when the run dies within 1 s without it (the solver thread
+agreed; in flying parts it would also keep a press that widens a window under 100 ms, lib/natural.js EASY_MS -- not in
+yet). It barely changes the presses: in a cube level some obstacle comes within any second, so "dies without it" is
+almost always true at a brick's press x. Verdict for now: on cube levels the plain local repair is as fast, and layout
+hints don't pay; worth trying again on flying stretches (where the search is costly) and with route-matched bricks
+(match by layout AND the player's height on entry), not more of the same.
+
+So far the hints cut repairs (up to 40%) but not time, and they add presses: a brick's clicks fire where the level
+needs fewer (the match is by layout, not by the route). Next: take a hinted press only where the sim says it is needed
+(a death within ~1 s without it), and score hints by how often the level's real presses agree (`lego_match.js --test`
+precision 50-75% today). Times are one cloud run each, with another session's job running.
 
 ## Open
 

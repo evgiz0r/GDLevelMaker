@@ -322,7 +322,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 - **Lego: structure research** (LEGO.md: every level cut into 1-3 s pieces -- official, ours, the user's sketches --,
   classified by family (fly: ship/wave/swing paths and corridors; jump; flip) with parameters, the official mix vs ours,
   the variety rule; one path built as ship / wave / swing with wrappers and click- or portal-turns): `tools/lego.js`
-  (`mine`, `families`, `variety <level>`, `page [--public]`, `votes`: Evgeni's 👍/👎/comments from the PC /lego/ page and the phone page, a weight not a ban), `tools/lego_match.js` (the reverse lego: which bricks a level is built from, their clicks as press hints), `tools/lego_join.js` (joins checked in physics), `tools/lego_seams.js` (how levels combine pieces: portals, rhythm, breathers, variety, height; official vs ours, LEGO.md "Combining"), the `fly-path` pattern, `lego-*` structures.
+  (`mine`, `families`, `variety <level>`, `page [--public]`, `votes`: Evgeni's 👍/👎/comments from the PC /lego/ page and the phone page, a weight not a ban), `tools/lego_match.js` (the reverse lego: which bricks a level is built from, their clicks as press hints; `hintsFor` -> presslib `solveWithLib({hints})`), `tools/lego_solve.js` (does it speed the solver: plain vs hints vs full, LEGO.md "Lego hints in the solver"), `tools/lego_join.js` (joins checked in physics), `tools/lego_seams.js` (how levels combine pieces: portals, rhythm, breathers, variety, height; official vs ours, LEGO.md "Combining"), the `fly-path` pattern, `lego-*` structures.
 - **How a difficulty score is built** (DIFFICULTY.md "Balance"): `tools/balance.js <level | official:N> ... --html out.html` -- every press's cost (slips + timing + after-portal), the costliest presses, cost per mode stretch, the main levels' ladder; page template `viewer/balance.html`.
 - **Quality vs the official levels** (QUALITY.md: one scorecard, official 1-10 next to every GDLM level --
   gameplay, flow, look, fairness, soft rules -- with a verdict per metric and the biggest gaps; owner: the
@@ -382,6 +382,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   shoot, levelmap, wip; logs under `local/loop/`), `--times` prints the measured time table, `--time <step>
   <cmd>` times any other job into it. Test: `node tests/loop.js`.
 - **`tools/mains.js` -- RobTop's 22 main levels kept solved** (`status`: which route fails and the cheapest fix; `run`: replans then resumes at heavy priority `urgent`; serve.js starts it after a pull that changes physics or route code; DIFFICULTY.md "Main levels kept current").
+- **`tools/flystyle.js` -- how a route flies its ship / wave stretches** (presses a second, legs, near-wall ticks, wave inputs vs the corridor's turns: OFF PATTERN; `--replan` = today's plan beside the saved one). The wave planner in lib/natural.js flies one input per corridor leg (the user: "few holds and releases"); PHYSICS.md "The wave like a person".
 - **`tools/presslib.js` -- the press library: where good players press, learned from clears** (gdsolver's real-game plans,
   our routes, the user's attempts): a picture of what is ahead -> the share who pressed there; the solver plays a level by it
   and searches only where that dies; `test` = learn from every other level, predict this one; `hints` = the creator's start
@@ -457,10 +458,13 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   notes, areas, stamps for orbs, pads, portals and props, deco shown or hidden, the song's beats and drop on the board, ✓ check
   and play; the cell-builder design): `viewer/draw.html`, **inside the viewer as ✏ draw** (key D: the board a see-through layer
   over the viewer's canvas, the viewer draws the level and replays / plays it; DRAW.md "In the viewer", `tests/viewer_draw.js`;
-  on the phone in the phone viewer, built by tools/web.js; the standalone page: ⚙ view -> ✏ whiteboard page, `tools/draw_web.js`), `lib/sketch.js`, `tools/sketch.js` (a saved sketch from local/sketches/ -> .gdlvl + report).
+  on the phone in the phone viewer, built by tools/web.js; the standalone page `tools/draw_web.js` is local only since 2026-11-25, its Artifact retired), `lib/sketch.js`, `tools/sketch.js` (a saved sketch from local/sketches/ -> .gdlvl + report).
   **The layout fitter** (sketch -> a layout that plays with the user's own jump marks; the board's 🧩 layout, redone after each
   edit; DRAW.md "The layout fitter"): `lib/sketchfit.js`, `tools/sketch.js <id> --fit`, `tools/sketchshot.js <sketch> [--fit]`
   (a picture of a sketch / its fitted level). Tests: `node tests/sketch.js`, `node tests/sketchfit.js`, `node tests/draw_page.js`.
+  **The ✨ one pen** (DRAW.md "One pen: path or shape"): `lib/intent.js` reads a stroke as a path (bricks + corridors with
+  their presses) or a shape (nearest brick, else as drawn); `tools/brickset.js` builds `viewer/bricks.js` (our verified lego
+  pieces with routes; rerun after `lego.js mine`); test `node tests/intent.js`.
 - **Levels onto the phone** (PUBLISH.md: unlisted upload from the PC game with computer use, where
   the buttons are, GD must be windowed, the user's yes before each upload; ONE phone slot,
   ID 152848491, filled with `install.js <lvl> --slot phone`; and the test slot "Claude Lab", `--slot lab --desc "..."`, not uploaded yet; both in `local/phone_ids.json`). **Install queue** `tools/install_queue.js` (add / watch: installs the moment GD closes, reads the save back; PUBLISH.md). `tools/install.js` keeps a shared level's online ID on re-install, so

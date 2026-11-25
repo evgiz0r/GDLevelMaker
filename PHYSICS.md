@@ -517,6 +517,16 @@ keys and user coins (collectables only), start positions (levels always start at
 checkpoints, speed portals touched mid-air at a slant, force blocks, platformer mode, dash orbs'
 unknown props 586/588, spike slopes.
 
+OPEN, found by the community demon study (2026-11-25, DIFFICULTY.md "Community demons"):
+- **An upside-down wave on the band floor meeting a floor slope goes UNDER the ground.** Problematic (7116121), dual
+  wave at 2x, tick 6655, block 325.9: player 2 (gravity -1) slides on the dual band's floor at y 10, meets a rising
+  45-degree slope (id 305, y 0..30) and the slope code seats it on the slope's underside at y -5 (onSlope, grounded):
+  below the ground. The slope code takes the slope as the surface facing the player's gravity. What GD does there is
+  not known (slide up the slope as a right-way-up wave does, or die head-on). Until then routes through upside-down
+  waves along floor slopes are not trusted (Problematic's 13/17/33 ms wave taps at blocks 321-323 lead into it).
+- **Slopes turned 90 degrees and a ship on them** are unchecked: Bloodbath (10565740) dies at block 85.5, a mini ship
+  into a 22-degree slope turned 90 degrees (id 311) beside a blue pad turned 119 degrees; every state dies there.
+
 ## The probe mod: the game's own state per step (2026-11-25)
 
 The GDLM Probe Geode mod (GEODE.md) plays our saved route inside GD 2.2091 on exact steps and logs the player every
@@ -851,6 +861,56 @@ or holds longer than needed (over 0.15 s outside ship/wave where a tap finishes)
   depends on the level". `tapMsFor`: 75 ms by default; by stars 1-2: 90, 3-5: 80, 6-7: 75, 8-9: 70, 10+: 60
   (difficulty_solve passes the official stars); `opts.tapMs` a level's own; `opts.player: "user"` the user's habit
   (tools/habits.js: median 120 ms). Was 14 ticks (58 ms) everywhere. tests/natural_tap.js.
+
+### The wave like a person (2026-11-25)
+- The user, on a GDLM wave corridor of 45-degree slopes: "really unnatural 'human' play, these corridors should be just
+  few holds and releases. in tighter corridors we will need to fly tighter but in general we want to follow the pattern
+  of the level". The solver's wave line zigzagged with small corrections inside each leg of the corridor.
+- **The wave planner** (lib/natural.js waveLine, tried first in a stretch that is all wave): it looks WAVE_LOOK (150)
+  units ahead and compares keeping the button, switching once, or switching twice, at any frame; each plan scores how
+  far the wave strays out of the corridor's comfortable middle (the middle of the free space less WAVE_MARGIN (45) from
+  each wall, so a wide corridor leaves room to hold on and a tight one asks for a tight line) plus WAVE_SWITCH (6) per
+  switch. It follows the best plan and plans again at each switch and every 16 ticks, so each leg runs until the
+  corridor turns. The free space now knows slopes (slopeY) and the wave's own hitbox (halfSize: 5, mini 3; was 15).
+- **When its line is taken:** only where the solver's line is off the pattern (below), the new line needs no more
+  presses, no more near-wall ticks in the stretch (+24) and in every flying stretch after it (+24: a new line re-solves
+  the rest of the level), and at most 30% more humanCost.
+- **Timing before presses** (the user, 2026-11-25: "its better to get an extra click or two than having a terrible timing
+  ... mostly in the flying sections ... we can have a tas doing little clicks but human route should avoid bad timings").
+  Every flying-stretch choice in fly() (wave planner, ship dwell controller, the humanCost / cleaner choice) checks the
+  tightest player window of both lines (lib/difficulty.js measureWindows, as the viewer and score.js): a line whose tightest
+  window is under EASY_MS (100) and over 4 ms tighter than the old one is never taken, and a line with up to 2 more presses
+  is taken when the old line's tightest is under 100 ms and the new one's is at least 1.5x it (and no closer to the walls).
+  Fewest presses is a tie-breaker among easy lines, never bought with a tight window. Lab: tightest 146 -> 183 ms.
+- **Slide, don't hover** (the user, 2026-11-25: "many places wave avoids ground but probably in many of them we can slide on
+  it avoiding the clicks in the middle"). The sim slides the wave as GD does: along a block's top or bottom face
+  (physics.js `waveOn`) and the band's floor and roof, and kills it sliding off a block's end and flying head-on into a
+  slope (both from the user's recordings, Calibration in CLAUDE.md). natural.js `sliding` (a wave with vertical speed 0)
+  is never a near-wall tick and no stray for the wave planner, so a line that rests on a floor and lets the corridor come
+  to it wins over one hovering above it with corrections. A slide off an edge shows in the planner's look-ahead as a death,
+  so a slide ends with a press before the corner. Our levels, re-planned: GDLM 45 presses 18 -> 16, slides 37 -> 76 ticks;
+  GDLM 64 39 -> 37, slides 45 -> 88; GDLM 47 and 52 unchanged in presses.
+- **Off the pattern** (routeCheck `offPattern`, score.js route gate WARN "N inputs for M corridor turns (off the
+  pattern)"): a wave stretch's inputs beyond the corridor's turns + 2 (turns: the free space's middle changing
+  direction by 20+ units, sampled every 8 ticks, open air over 280 units skipped), counted only up to the number of
+  quick re-presses (legs under 150 ms). Half-second legs over open hills (GDLM 52) follow their own pattern.
+- **`node tools/flystyle.js <level | official:N | spec.json> [--replan] [--cost]`**: per flying stretch presses, presses
+  a second, mean leg, legs under 100 ms, the tightest window, near-wall ticks, and the wave's inputs / turns / OFF PATTERN; --replan puts
+  today's plan beside the saved route.
+- Results (cloud, 2026-11-25): a lab of three zigzag corridors (gaps 6, 4, 3 blocks; local/tmp/wavelab.json, made with
+  patterns.js wave-zigzag): off-pattern inputs 17 -> 4, legs under 100 ms 14 -> 1, presses 18 -> 13. Our wave levels'
+  saved routes were already mostly on pattern by this measure: GDLM 45 off-pattern 3 -> 1, the rest unchanged by the
+  planner (it is not tried where the line is on pattern). The user's corridor screenshot came from a re-plan, so the
+  re-plan of the main levels with waves on the PC is the real test.
+- OPEN: re-planning some of our levels from their saved routes flies worse than the saved route by near-wall ticks,
+  with or without this change (GDLM 44: 0 -> 636 ticks today, 0 -> 932 before it, presses 15 -> 16 vs 22), and GDLM 68's
+  re-plan skips a ship portal at x 14715 and takes ~11 min (cloud), and GDLM 71's re-plan takes over 30 min (also before
+  this change: the commit before it, run side by side, was still going at 40 min).
+- OPEN: GDLM 44's ship at block 206 keeps the solver's line in fly() (the easier line came 121 ticks closer to the walls),
+  but its tightest window still went 96 -> 79 ms in the re-plan: a pass after fly() (early / spreadPresses / mergeLegs)
+  moved a press there. Those passes do not check the tightest window yet. Not the wave planner's (no wave stretch there is off
+  pattern); the fly()/solveFrom re-plan of the ship stretches. Nothing is saved by flystyle; solutions.js keeps a saved
+  route whose re-plan skips.
 
 ## The press library: what good players press at each structure (2026-11-24)
 

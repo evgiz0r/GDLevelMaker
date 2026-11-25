@@ -102,7 +102,7 @@ card: never commit, upload or publish it, because RobTop's art, the official lev
 | a new database, or rows lost | `node tools/wip.js phone` writes rows for every current level; send them (one `batch` with `file_path` entries). |
 | before handling marks | ArtifactData `{action: "list", collection: "marks", out_dir: "<main checkout>/local/phone"}` -- the REAL path of the shared folder (`node -e "console.log(require('fs').realpathSync('local'))"`), not the worktree's `local/` link: ArtifactData refuses paths under `.claude/`. Then `node tools/marks.js` lists them with the rest ("from the phone"). |
 | closing a phone mark | `node tools/marks.js done <id> "reply"` as usual, AND ArtifactData `update` on `marks/<id>` with `{done: true, reply}` so the phone shows it closed. |
-| the viewer code or pushed levels changed | `node tools/web.js --out <scratchpad>/web`, then publish with what `publish.json` says (`file_path`, `root`, `files`, `capabilities: {db: {}}`) and `url` from `local/phone/url.txt`. From a new conversation, `read` the artifact first. Tell the user the page changed. |
+| the viewer code or pushed levels changed | `node tools/web.js --out <scratchpad>/web`, then publish with what `publish.json` says (`file_path`, `root`, `files`, `capabilities: {db: {}, downloads: true}`: downloads lets the ✏ board save .gdlvl / .json) and `url` from `local/phone/url.txt`. From a new conversation, `read` the artifact first. Tell the user the page changed. |
 
 `tools/web.js` builds the page from `viewer/index.html` by exact text swaps; when the viewer
 changes, a swap that no longer matches stops the build with the text to update ("viewer changed,
