@@ -48,6 +48,6 @@ states and offers "Allow data access" / "Permissions" when one is off.
   `node tools/latest_rated.js` on the PC (gdbrowser.com, metadata only; the cloud can't reach it) ->
   `local/community/latest_rated.json`; `node tools/board_docs.js --out <dir>` builds both compact docs to write. The page's "Latest rated" section: Study ticks go to the same `picks.study`
   (key = online id), a "Not played" filter against Your levels.
-- `board/played` now holds every level with attempts, finished or not (col `done`), ~170 KB; "Finished" /
+- `board/played` holds every level with attempts, finished or not (col `done`), split in parts of 600 rows (~40 KB): `board/played` = head (`parts`, totals, note, cols) + first rows, `board/played_2..N` = `{part, rows}`; one 170 KB doc did not load in his app (2026-11-25), so keep parts small. state.played is gone (it was a stale 22-row copy); "Finished" /
   "Not finished" filters. Refresh: `node tools/save_stats.js` on the PC (GD writes its save when it closes, so a session's
   plays show up after GD is closed or saves).

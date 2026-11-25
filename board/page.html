@@ -506,7 +506,7 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
   function yMatch(r,q){ return (yFilter==="All" || (yFilter==="Not finished"? !isDone(r) : yFilter==="Finished"? isDone(r) : yFilter==="Demons"? /Demon/.test(r.tier||"") : r.tier===yFilter)) && (!q || (r.name||"").toLowerCase().indexOf(q)>=0 || (r.creator||"").toLowerCase().indexOf(q)>=0 || String(r.id)===q); }
   function tierGroup(t){ return /Demon/.test(t||"")? "Demons" : (t||"Other"); }
   function renderPlayed(){
-    var P=played || (state && state.played); if(!P || !P.levels || !P.levels.length) return;
+    var P=played; if(!P || !P.levels || !P.levels.length) return;
     var L=P.levels.slice().sort(function(a,b){ var ta=TIERS.indexOf(a.tier), tb=TIERS.indexOf(b.tier); if(ta!==tb) return tb-ta; return (b.attempts||0)-(a.attempts||0); });
     var groups=["All"], seen={}, counts={}; counts["Finished"]=L.filter(isDone).length; counts["Not finished"]=L.length-counts["Finished"]; if(counts["Not finished"]) groups.push("Finished","Not finished");
     L.forEach(function(r){ var g=tierGroup(r.tier); counts[g]=(counts[g]||0)+1; if(/Demon/.test(r.tier||"")){ counts[r.tier]=(counts[r.tier]||0)+1; } });
@@ -554,7 +554,7 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
   var latest=null, rFilter="All", rShow=100, latestLoading=false;
   function renderLatest(){
     if(!latest || !latest.levels) return;
-    var mine={}; var P=played || (state && state.played); (P&&P.levels||[]).forEach(function(r){ if(r.kind!=="main") mine[String(r.id)]=r; });
+    var mine={}; var P=played; (P&&P.levels||[]).forEach(function(r){ if(r.kind!=="main") mine[String(r.id)]=r; });
     var L=latest.levels.filter(function(r){ return !r.platformer; });
     var counts={}, groups=["All","Not played"];
     L.forEach(function(r){ var g=tierGroup(r.tier); counts[g]=(counts[g]||0)+1; });
@@ -709,7 +709,7 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
   });
   $("y-all").addEventListener("click",function(){ if(!canWrite) return; var keys=Array.prototype.map.call(document.querySelectorAll("#ytable tbody input[type=checkbox]"),function(c){ return c; });
     var st=(picks.study||[]).slice(), have={}; st.forEach(function(x){ have[x]=1; });
-    var P=played || (state && state.played), q=($("y-q").value||"").trim().toLowerCase();
+    var P=played, q=($("y-q").value||"").trim().toLowerCase();
     (P&&P.levels||[]).forEach(function(r){ var ok=yMatch(r,q);
       var k=(r.kind==="main"?"m":"")+r.id; if(ok && !have[k]){ st.push(k); have[k]=1; } });
     picks.study=st; renderPlayed(); save(); });
@@ -752,22 +752,38 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
   // either way the section says what happened and offers Retry
   var playedTries=0;
   function playedMsg(t, retry){ var e=$("y-sum"); if(!e) return; e.textContent=t; if(retry){ var b=el("button","chip","Retry"); b.type="button"; b.onclick=function(){ playedLoading=false; loadPlayed(); }; e.appendChild(document.createTextNode(" ")); e.appendChild(b); } }
-  function gotPlayed(s, how){ playedLoading=false; if(s && s.exists){ window.__st("played ok ("+how+")"); played=unpackPlayed(s.data()); renderPlayed(); } else { window.__st("played missing"); playedMsg("No levels saved yet."); } }
+  // one document, read with a time limit, then a one-shot live read if the plain read doesn't answer
+  function getDoc(p, ok, bad){
+    var ref=db.doc(p);
+    var g=typeof ref.get==="function"? ref.get() : Promise.reject({code:"no get"});
+    Promise.race([g, new Promise(function(_,no){ setTimeout(function(){ no({code:"timeout"}); },10000); })]).then(function(s){ ok(s,"read"); }).catch(function(e){
+      window.__st(p+" read "+(e&&e.code||e));
+      var done=false, un=null, tm=setTimeout(function(){ if(done) return; done=true; try{ un&&un(); }catch(x){} bad("no answer"); },12000);
+      try{ un=ref.onSnapshot(function(s){ if(done || (s.metadata && s.metadata.fromCache && !s.exists)) return; done=true; clearTimeout(tm); try{ un&&un(); }catch(x){} ok(s,"live"); },
+        function(e2){ if(done) return; done=true; clearTimeout(tm); bad(e2&&e2.code||String(e2)); }); }
+      catch(x){ done=true; clearTimeout(tm); bad(String(x)); }
+    });
+  }
+  // board/played is split in parts (board/played, board/played_2, ...): each stays small
   function loadPlayed(){
-    if(played || playedLoading || !db) return; var ref=db.doc("board/played"); if(!ref) return;
+    if(played || playedLoading || !db) return;
     playedLoading=true; playedTries++; playedMsg("Loading your levels…");
+    function fail(why){ playedLoading=false; window.__err("Your levels: "+why); playedMsg("Your levels didn't load ("+why+").", true); }
     setTimeout(function(){
-      var p=typeof ref.get==="function"? ref.get() : Promise.reject({code:"no get"});
-      Promise.race([p, new Promise(function(_,no){ setTimeout(function(){ no({code:"timeout"}); },10000); })]).then(function(s){ gotPlayed(s,"read"); }).catch(function(e){
-        window.__st("played read "+(e&&e.code||e)); lastErr="Your levels: "+(e&&e.code||"error");
-        var done=false, un=null, tm=setTimeout(function(){ if(done) return; done=true; try{ un&&un(); }catch(x){}
-          playedLoading=false; window.__err("Your levels: no answer (read and live)"); playedMsg("Your levels didn't load (no answer).", true); },12000);
-        try{ un=ref.onSnapshot(function(s){ if(done || (s.metadata && s.metadata.fromCache && !s.exists)) return; done=true; clearTimeout(tm); try{ un&&un(); }catch(x){} gotPlayed(s,"live"); },
-          function(e2){ if(done) return; done=true; clearTimeout(tm); playedLoading=false; window.__err("Your levels: "+(e2&&e2.code||e2)); playedMsg("Your levels didn't load ("+(e2&&e2.code||"error")+").", true); }); }
-        catch(x){ done=true; clearTimeout(tm); playedLoading=false; window.__err("Your levels: "+x); playedMsg("Your levels didn't load.", true); }
-      });
+      getDoc("board/played", function(s,how){
+        if(!s || !s.exists){ playedLoading=false; window.__st("played missing"); playedMsg("No levels saved yet."); return; }
+        var head=s.data(), n=head.parts||1, rows=(head.rows||[]).slice(), got=1;
+        window.__st("played 1/"+n+" ("+how+")");
+        if(n<=1){ playedLoading=false; played=unpackPlayed(head); renderAll(); return; }
+        var parts=[]; playedMsg("Loading your levels… 1 of "+n);
+        (function next(k){
+          if(k>n){ head.rows=rows.concat.apply(rows, parts); playedLoading=false; played=unpackPlayed(head); window.__st("played ok"); renderAll(); return; }
+          getDoc("board/played_"+k, function(s2){ if(s2 && s2.exists){ parts.push(s2.data().rows||[]); } playedMsg("Loading your levels… "+k+" of "+n); next(k+1); }, function(w){ fail("part "+k+": "+w); });
+        })(2);
+      }, fail);
     }, gotLive? 0 : 1500);
   }
+
   // when live updates never connect but a plain read works: read again every minute
   var poller=null;
   function startPolling(){
