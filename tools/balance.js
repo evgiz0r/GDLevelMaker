@@ -49,10 +49,11 @@ function costOf(a) {
 //    and whose window really closes (not at the search limit).
 const FLY = new Set(["ship", "ufo", "wave", "swing"]);
 function v2Of(a, lateOpen, lapse, timing, set) {
-  if (FLY.has(a.mode)) return { v2: +lapse.toFixed(4) };
+  const dual = a.dual ? lg(1 - DUAL_PEN) : 0;
+  if (FLY.has(a.mode)) return { v2: +(lapse + dual).toFixed(4), dual: +dual.toFixed(4) };
   const opensBefore = a.afterSwitchMs !== null && a.afterSwitchMs !== undefined && a.ms > a.afterSwitchMs + 1;
   const grav = a.upside || (a.sinceFlipMs !== null && a.sinceFlipMs !== undefined && a.sinceFlipMs < GRAV_RECENT_MS) ? lg(1 - GRAV_PEN) : 0;
-  return { v2: +(lapse + timing + grav + (opensBefore || lateOpen ? 0 : set)).toFixed(4), opensBefore, grav: +grav.toFixed(4) };
+  return { v2: +(lapse + timing + grav + dual + (opensBefore || lateOpen ? 0 : set)).toFixed(4), opensBefore, grav: +grav.toFixed(4), dual: +dual.toFixed(4) };
 }
 
 // Gravity play (the user, 2026-11-25: "gravity play should be counted as increased difficulty slightly somehow"): a jumping
@@ -60,6 +61,10 @@ function v2Of(a, lateOpen, lapse, timing, set) {
 // chance x (1 - GRAV_PEN). ASSUMED (0.01 a press, about the slip itself, x3 the slip cost), not fitted. Needs the run's path,
 // so only where the level is here (our levels everywhere, the mains on the PC).
 const GRAV_PEN = 0.01, GRAV_RECENT_MS = 1000;
+// Dual (the user, 2026-11-25: "some people think hexagon force is harder than the demons because the two hard duals"):
+// one button moves two players, so each press in a dual stretch is two things to get right. A press made while dual
+// has its chance x (1 - DUAL_PEN), ASSUMED 0.05, flying presses too (they are cheap otherwise). Not fitted.
+const DUAL_PEN = 0.05;
 function gravOf(actions, path) {
   let lastFlip = -1e9;
   const flipAt = [];
@@ -67,7 +72,7 @@ function gravOf(actions, path) {
   for (const a of actions) {
     const s = path[Math.min(a.tick, path.length - 1)];
     let f = -1e9; for (const t of flipAt) { if (t <= a.tick) f = t; else break; }
-    a.upside = !!(s && s.grav < 0); a.sinceFlipMs = f < 0 ? null : (a.tick - f) / TPS * 1000;
+    a.upside = !!(s && s.grav < 0); a.dual = !!(s && s.p2); a.sinceFlipMs = f < 0 ? null : (a.tick - f) / TPS * 1000;
   }
   return flipAt.length;
 }
@@ -122,7 +127,8 @@ function v2Total(inputs, fly) {
   const presses = inputs.reduce((s, a) => s + a.v2, 0), flyCost = fly ? fly.reduce((s, f) => s + f.cost, 0) : null;
   const worstFly = fly && fly.length ? fly.slice().sort((x, y) => y.cost - x.cost).slice(0, 5) : [];
   const grav = inputs.reduce((s, a) => s + (a.grav || 0), 0);
-  return { score: +(presses + (flyCost || 0)).toFixed(3), presses: +presses.toFixed(3), grav: +grav.toFixed(3), gravPresses: inputs.filter(a => a.grav > 0).length, fly: flyCost === null ? null : +flyCost.toFixed(3),
+  const dual = inputs.reduce((s, a) => s + (a.dual || 0), 0);
+  return { score: +(presses + (flyCost || 0)).toFixed(3), presses: +presses.toFixed(3), dual: +dual.toFixed(3), dualPresses: inputs.filter(a => a.dual > 0).length, grav: +grav.toFixed(3), gravPresses: inputs.filter(a => a.grav > 0).length, fly: flyCost === null ? null : +flyCost.toFixed(3),
     flySeconds: fly ? fly.length : null, worstFly, label: DF.difficultyLabel(presses + (flyCost || 0)) };
 }
 
@@ -169,7 +175,7 @@ function mains() {
 function print(b) {
   console.log(`== ${b.name}: score ${b.score.toFixed(2)} (~${b.attempts} attempts, ${b.label}) = lapse ${b.parts.lapse.toFixed(2)} + timing ${b.parts.timing.toFixed(2)} + after-portal ${b.parts.settle.toFixed(2)}; ${b.inputs.length} inputs in ${Math.round(b.seconds)} s`);
   if (b.openForced) console.log(`   ${b.openForced} after-portal press(es) have a window whose late end is the search limit; not counting them as forced: ${b.ifOpenExempt.toFixed(2)}`);
-  console.log(`   v2 (flying by room, after-portal only when forced): ${b.v2.score.toFixed(2)} = presses ${b.v2.presses.toFixed(2)} (gravity ${b.v2.grav.toFixed(2)} over ${b.v2.gravPresses}) + flight ${b.v2.fly === null ? "not measured (no level data here)" : b.v2.fly.toFixed(2) + " over " + b.v2.flySeconds + " s"}`);
+  console.log(`   v2 (flying by room, after-portal only when forced): ${b.v2.score.toFixed(2)} = presses ${b.v2.presses.toFixed(2)} (gravity ${b.v2.grav.toFixed(2)} over ${b.v2.gravPresses}, dual ${b.v2.dual.toFixed(2)} over ${b.v2.dualPresses}) + flight ${b.v2.fly === null ? "not measured (no level data here)" : b.v2.fly.toFixed(2) + " over " + b.v2.flySeconds + " s"}`);
   for (const f of b.v2.worstFly.slice(0, 3)) console.log(`     flight ${f.t} s ${f.mode} block ${Math.round(f.x / 30)}: ${f.slack} units of slack, p=${f.p.toFixed(2)}`);
   for (const k of b.spikes) console.log(`   SPIKE ${k.t.toFixed(1)} s block ${Math.round(k.block)} ${k.mode}: ${k.ms} ms among presses of ~${k.calm} ms (unfair: a lone hard press)`);
   console.log("   top spots:");

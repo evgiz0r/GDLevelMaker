@@ -343,7 +343,9 @@ What it showed first (FROSTBITE 2.66 vs Electrodynamix 2.65, same model):
   - the after-portal cut only on a jumping press whose window opens after the portal and really closes;
   - gravity play (the user: "gravity play should be counted as increased difficulty slightly somehow"): a jumping press
     made upside down or within 1 s of a gravity flip has its chance x 0.99 (GRAV_PEN, ASSUMED; FROSTBITE: 20 presses,
-    +0.09).
+    +0.09);
+  - dual (the user: "some people think hexagon force is harder than the demons because the two hard duals"): a press
+    made while two players are on screen has its chance x 0.95 (DUAL_PEN, ASSUMED), flying presses too.
   FROSTBITE: v1 2.66 -> v2 0.72 (presses 0.65 incl. gravity 0.09 + flight 0.07 over 38 s of 60-unit-slack ship). On the mains, v2's
   presses alone (no flight: RobTop's levels are only on the PC) rank worse (Spearman vs stars 0.57, v1 0.83):
   Clubstep's and ToE 2's difficulty is in their corridors, so the flight part is needed before v2 replaces v1.
