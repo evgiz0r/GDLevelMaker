@@ -929,8 +929,16 @@ or holds longer than needed (over 0.15 s outside ship/wave where a tap finishes)
   9x9 inner box enters the block, so its outer box can overlap a wall while it rises or falls past it (drawn, that looks
   like sliding up a cliff); it lands on a top only from at most FLY_SNAP (6) below. A wave slides along flat block faces
   and the band's floor / roof (calibrated on GDLM 44, see Calibration in CLAUDE.md) and along a slope it meets at a glancing
-  angle. Which one each comment is, and whether GD does the same, is open until the PC traces them (and, for the UFO,
-  a hitbox-on recording or a probe-mod run of that spot).
+  angle. Traced (2026-11-25, `--trace`): ToE2 237 is no sim error -- the UFO stands on the cliff while any part of its
+  30-unit box is on it (the cliff ends ~237.3, the box leaves it ~237.8) and the route jumps at 237.54, off the very edge,
+  which reads as sliding. Planner rule from it (built 2026-11-25, lib/natural.js `edgeJumps`): a cube / UFO / robot press made
+  while its centre is already past the support's end moves earlier, 4 ticks at a time up to 48, to the first tick still
+  over the block that clears (later inputs shift with it). `GD.edgePresses(w, events)` lists such presses. Sweep of our
+  archive levels: 3 (GDLM 51 at block 214.5, 61 at 637.5, 64 at 952.4), all a landing on the corner with the jump at
+  once, so there is no earlier standing tick and the pass leaves them. Main levels: after the PC re-plan. ToE2 530: the saved route does not slide there (one slide tick in 500-551); it flies parallel to the slope
+  ~45 units above it. The re-plan slides 66 ticks in that stretch: to be judged by Evgeni in the viewer.
+- Mixed flying stretches (ship -> wave -> ship, one span in fly()): the wave planner now takes the stretch's wave part
+  (ToE2 895-924, 31 inputs for 9 turns, was never given to it while it asked for an all-wave stretch).
 - OPEN: GDLM 44's ship at block 206 keeps the solver's line in fly() (the easier line came 121 ticks closer to the walls),
   but its tightest window still went 96 -> 79 ms in the re-plan: a pass after fly() (early / spreadPresses / mergeLegs)
   moved a press there. Those passes do not check the tightest window yet. Not the wave planner's (no wave stretch there is off

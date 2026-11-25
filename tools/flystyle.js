@@ -22,8 +22,9 @@ function load(spec) {
   let levelStr, events = null;
   if (m) {
     const SRC = process.env.GD_LEVELS || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash/Resources/levels/";
-    levelStr = unpack(fs.readFileSync(path.join(SRC, m[1] + ".txt"), "utf8"));
-    try { const j = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "local", `official_${m[1].padStart(2, "0")}.json`), "utf8")); events = j.solution && j.solution.events; } catch (e) {}
+    let j = null; try { j = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "local", `official_${m[1].padStart(2, "0")}.json`), "utf8")); events = j.solution && j.solution.events; } catch (e) {}
+    // the game's own file on the PC; elsewhere (a cloud session with local/ staged) the level string saved beside the route
+    try { levelStr = unpack(fs.readFileSync(path.join(SRC, m[1] + ".txt"), "utf8")); } catch (e) { if (!j || !j.level) throw e; levelStr = j.level; }
   } else if (spec.endsWith(".json")) {   // a spec, built in memory (a lab level; nothing written)
     const log = console.log; console.log = () => {};
     try { const b = require("./make.js").build(JSON.parse(fs.readFileSync(spec, "utf8")), spec); levelStr = GD.serializeLevel(b.level); } finally { console.log = log; }
