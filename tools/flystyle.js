@@ -1,6 +1,6 @@
 // node tools/flystyle.js <level.gdlvl | official:N | spec.json> [...] [--replan] [--cost]  -- how a level's route flies its ship / wave /
 //   UFO / swing stretches: per stretch its presses, presses a second, mean leg (ms between inputs), legs under 100 ms,
-//   ticks within 12 units of a wall. --replan: the route planned again by today's lib/natural.js from the saved route
+//   ticks within 12 units of a wall, the tightest player window (ms; lib/difficulty.js measureWindows). --replan: the route planned again by today's lib/natural.js from the saved route
 //   (or a fresh solve when there is none) and both shown side by side; --cost uses humanCost as solutions.js does.
 // The user (2026-11-25, a wave corridor of 45-degree slopes): "really unnatural 'human' play, these corridors should be just
 // few holds and releases. in tighter corridors we will need to fly tighter but in general we want to follow the pattern
@@ -10,6 +10,7 @@ if (require.main === module) require("./heavy.js").claim();   // replays and pla
 const fs = require("fs"), path = require("path");
 const { GD, readGdlvl, unpack } = require("./io.js");
 Object.assign(GD, require("../lib/natural.js"));
+const DIFF = require("../lib/difficulty.js");
 const FLY = { ship: 1, wave: 1, ufo: 1, swing: 1 };
 
 function load(spec) {
@@ -31,7 +32,7 @@ function load(spec) {
 }
 // per flying stretch of a run
 function stretches(w, ev) {
-  const rc = GD.routeCheck(w, ev), p = GD.run(w, ev).path, out = [];
+  const rc = GD.routeCheck(w, ev), p = GD.run(w, ev).path, out = [], sorted = ev.slice().sort((x, y) => x.tick - y.tick);
   let k = 0;
   for (let t = 0; t < p.length; t++) {
     if (!FLY[p[t].mode]) continue;
@@ -40,11 +41,11 @@ function stretches(w, ev) {
     const legs = ins.slice(1).map((e, i) => e.tick - ins[i].tick);
     out.push({ mode, from: +(p[a].x / 30).toFixed(1), to: +(p[t - 1].x / 30).toFixed(1), secs: +secs.toFixed(2), presses: r.presses,
       perSec: +(r.presses / Math.max(secs, 1e-9)).toFixed(2), legMs: legs.length ? Math.round(legs.reduce((x, y) => x + y, 0) / legs.length / 0.24) : null,
-      short: legs.filter(d => d < 24).length, close: r.closeTicks, inputs: r.inputs, turns: r.turns, off: r.offPattern });
+      short: legs.filter(d => d < 24).length, tight: (() => { try { const m = DIFF.measureWindows(w, sorted, { range: [a, t - 1] }).map(q => q.ms).filter(v => v != null); return m.length ? Math.round(Math.min(...m)) : null; } catch (e) { return null; } })(), close: r.closeTicks, inputs: r.inputs, turns: r.turns, off: r.offPattern });
   }
   return out;
 }
-const line = s => `${s.mode.padEnd(5)} blocks ${String(s.from).padStart(6)}-${String(s.to).padEnd(6)} ${String(s.secs).padStart(5)} s  presses ${String(s.presses).padStart(3)} (${s.perSec}/s)  mean leg ${s.legMs ?? "-"} ms  legs<100ms ${s.short}  near a wall ${s.close} ticks` + (s.mode === "wave" ? `  inputs ${s.inputs} for ${s.turns} turns${s.off ? " OFF PATTERN" : ""}` : "");
+const line = s => `${s.mode.padEnd(5)} blocks ${String(s.from).padStart(6)}-${String(s.to).padEnd(6)} ${String(s.secs).padStart(5)} s  presses ${String(s.presses).padStart(3)} (${s.perSec}/s)  mean leg ${s.legMs ?? "-"} ms  legs<100ms ${s.short}  tightest ${s.tight ?? "-"} ms  near a wall ${s.close} ticks` + (s.mode === "wave" ? `  inputs ${s.inputs} for ${s.turns} turns${s.off ? " OFF PATTERN" : ""}` : "");
 
 if (require.main === module) {
   const a = process.argv.slice(2), files = a.filter(x => !x.startsWith("--"));
@@ -63,7 +64,8 @@ if (require.main === module) {
     const after = stretches(lv.w, n.events), sk = GD.skipCheck(lv.w, n.path, n.events);
     before.forEach((s, i) => { console.log("  before " + line(s)); if (after[i]) console.log("  after  " + line(after[i])); });
     const sum = (xs, k) => xs.reduce((x, s) => x + (s[k] || 0), 0);
-    console.log(`  total presses in flying parts ${sum(before, "presses")} -> ${sum(after, "presses")}, legs<100ms ${sum(before, "short")} -> ${sum(after, "short")}, near a wall ${sum(before, "close")} -> ${sum(after, "close")} ticks, off-pattern inputs ${sum(before, "off")} -> ${sum(after, "off")}; finishes ${!!(n.path[n.path.length - 1].done)}, skips ${sk ? sk.skipped : "nothing"}; planned in ${(ms / 1000).toFixed(1)} s`);
+    const mn = xs => { const v = xs.map(s => s.tight).filter(x => x != null); return v.length ? Math.min(...v) : "-"; }, under = xs => xs.filter(s => s.tight != null && s.tight < 100).length;
+    console.log(`  total presses in flying parts ${sum(before, "presses")} -> ${sum(after, "presses")}, legs<100ms ${sum(before, "short")} -> ${sum(after, "short")}, near a wall ${sum(before, "close")} -> ${sum(after, "close")} ticks, off-pattern inputs ${sum(before, "off")} -> ${sum(after, "off")}, tightest window ${mn(before)} -> ${mn(after)} ms, stretches under 100 ms ${under(before)} -> ${under(after)}; finishes ${!!(n.path[n.path.length - 1].done)}, skips ${sk ? sk.skipped : "nothing"}; planned in ${(ms / 1000).toFixed(1)} s`);
   }
 }
 module.exports = { stretches };
