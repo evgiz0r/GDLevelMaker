@@ -520,6 +520,8 @@ step. `node tools/probe.js result [n]` compares a log with our sim's run of the 
   +1 jumps are the ones made by a held button on landing (GD jumps no sooner than the step after a landing, see
   "Landing buffer"), the 0s are fresh presses. The probe log has the presses: split the jumps by "button already
   down" to settle it.
+- **Heights:** the game's y is our y + 90 exactly (start: game 105, sim 15), so the death at game y 267.3 is our y 177.3.
+- **GDLM 52 necromancy** (playback, 2026-11-25 18:39 UTC): dies in the game at x 10765 where the sim clears; not studied yet.
 - **GDLM 44 dies in the game at x 6638, y 267** while the sim clears; the first height parting is at step 313
   (x 405: dx 1.0). Read from the level (2026-11-25, hellgate thread): x 6638 is in the SECOND SHIP (ship portal 6209,
   cube portal 7139), not the wave, 6 units before a one-block stair step of the old `ship-tunnel` corridor: at x 6644
