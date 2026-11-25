@@ -8,19 +8,22 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "gdlm-setup-")), repo = path.j
 let fails = 0; const ok = (c, m) => { console.log((c ? "ok   " : "FAIL ") + m); if (!c) fails++; };
 try {
   // a fresh copy: code and our levels, no local/
-  for (const d of ["tools", "lib", "levels"]) fs.cpSync(path.join(ROOT, d), path.join(repo, d), { recursive: true });
+  for (const d of ["tools", "lib", "levels", "specs"]) fs.cpSync(path.join(ROOT, d), path.join(repo, d), { recursive: true });
   fs.mkdirSync(path.join(repo, "viewer")); fs.mkdirSync(path.join(repo, "knowledge", "objects"), { recursive: true });
   fs.copyFileSync(path.join(ROOT, "knowledge", "objects", "catalogue.tsv"), path.join(repo, "knowledge", "objects", "catalogue.tsv"));
   // fake game: every main level is GDLM 01 (one jump), packed as GD ships them
   const { readGdlvl, pack } = require("../tools/io.js");
-  const lv = readGdlvl(path.join(ROOT, "levels", "gdlm_01_one_jump.gdlvl")).levelStr;
+  // (levels/archive/ since 2026-11-25: the fixture must not depend on which levels are current)
+  const lv = readGdlvl(path.join(ROOT, "levels", "archive", "gdlm_01_one_jump.gdlvl")).levelStr;
   fs.mkdirSync(path.join(game, "Resources", "levels"), { recursive: true });
   for (let n = 1; n <= 22; n++) fs.writeFileSync(path.join(game, "Resources", "levels", n + ".txt"), pack(lv));
-  // its route: the saved one from the committed viewer list
-  const win = {}; new Function("window", fs.readFileSync(path.join(ROOT, "viewer", "levels.js"), "utf8"))(win);
-  const sol = win.GD_LEVELS.find(l => /gdlm_01_/.test(l.file)).solution;
-  ok(sol && sol.events && sol.events.length, "GDLM 01 has a saved route to use as a fixture");
-  const sha = require("../tools/mains_routes.js").sha, early = [{ type: "press", tick: 1 }, { type: "release", tick: 4 }];
+  // its route: one jump, found by trying each press tick (GDLM 01 is one jump; no saved route needed, which the committed
+  // viewer list stopped carrying once the level was archived)
+  const { replay, sha } = require("../tools/mains_routes.js");
+  let sol = null;
+  for (let t = 10; t < 3000 && !sol; t += 2) { const ev = [{ type: "press", tick: t }, { type: "release", tick: t + 4 }]; if (replay(lv, ev).done) sol = { events: ev }; }
+  ok(sol, "GDLM 01: a one-jump route to use as a fixture");
+  const early = [{ type: "press", tick: 1 }, { type: "release", tick: 4 }];
   fs.mkdirSync(path.join(repo, "knowledge", "mains"), { recursive: true });
   fs.writeFileSync(path.join(repo, "knowledge", "mains", "routes.json"), JSON.stringify({ levels: [
     { n: 1, name: "Stereo Madness", levelSha: sha(lv), ok: true, kind: "human", events: sol.events },
