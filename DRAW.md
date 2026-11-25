@@ -28,6 +28,10 @@ Tests: `node tests/sketch.js` (the converter), `node tests/draw_page.js [--shots
 - **Stamps** (●): orbs, pads, mode portals, gravity / size, speed, spike / saws / block / slab, and every prop of
   `lib/props.js` (tree, cloud, house, moon...). The last 6 used stay one tap away. ⬚ select: move, turn 15°, size,
   mirror, copy, delete, and change an orb / pad / portal's type.
+- **Teleport portal** (2026-11-25, the user: "can we also show teleport portals"): the `teleport` stamp in modes is GD's 747
+  with its exit (key 54, default 4 blocks up): the blue entrance, the orange exit and a dashed link; `exit ↑` / `exit ↓`
+  move the exit a block (below the entrance works too). The viewer draws every level's teleport exits the same way (and
+  with GD's own exit sprite, 749, in GD art); before, only the entrance showed.
 - **sketch / level**: the strokes, or what they become as GD objects (drawn like the game, no game art).
   **deco 👁 / ⊘**: every deco (lines and props) shown or hidden, in both views.
 - **♪**: the song and its beat grid. Bar lines, numbered bars, the song's section changes (▲ +10 dB = Ragnarok's drop at

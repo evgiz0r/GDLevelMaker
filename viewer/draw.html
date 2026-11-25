@@ -160,7 +160,7 @@ const WIDTHS = [[3, "thin"], [7, "mid"], [16, "thick"]];
 const STAMP_GROUPS = [
   ["orbs", ["orb:yellow", "orb:pink", "orb:red", "orb:blue", "orb:green", "orb:black", "orb:dash"]],
   ["pads", ["pad:yellow", "pad:pink", "pad:red", "pad:blue"]],
-  ["modes", ["portal:cube", "portal:ship", "portal:ball", "portal:ufo", "portal:wave", "portal:robot", "portal:spider", "portal:swing"]],
+  ["modes", ["portal:cube", "portal:ship", "portal:ball", "portal:ufo", "portal:wave", "portal:robot", "portal:spider", "portal:swing", "portal:teleport"]],
   ["gravity / size", ["grav:up", "grav:down", "size:mini", "size:big"]],
   ["speed", ["speed:0.5", "speed:1", "speed:2", "speed:3", "speed:4"]],
   ["hazards", ["spike", "small spike", "saw", "small saw", "big saw", "block", "slab"]],
@@ -426,9 +426,17 @@ function drawItem(it) {
   } else if (it.k === "stamp") {
     if (/^prop:/.test(it.what)) { const r = propObjs(it); for (const o of r.objects) drawObj(o, r.colours); return; }
     const id = SK.STAMPS[it.what]; if (id == null) return;
-    drawObj({ id, x: it.x, y: it.y, rot: it.rot || 0, flipX: !!it.flipX, props: it.s ? { 32: it.s } : {} }, {});
+    const props = it.s ? { 32: it.s } : {}; if (id === 747) props[54] = it.dy != null ? it.dy : SK.TELE_DY;
+    drawObj({ id, x: it.x, y: it.y, rot: it.rot || 0, flipX: !!it.flipX, props }, {});
     if (/^speed:/.test(it.what)) { ctx.fillStyle = "#fff"; ctx.font = "bold 11px system-ui"; ctx.fillText(STAMP_LABEL(it.what), sx(it.x) - 9, sy(it.y + 30)); }
   }
+}
+// a teleport portal's exit (GD's orange half): dashed link from the entrance, the player comes out there at the same x
+function drawTeleExit(x, y, dy) {
+  ctx.save(); ctx.setLineDash([5, 5]); ctx.strokeStyle = "rgba(255,160,60,.6)"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(sx(x), sy(y)); ctx.lineTo(sx(x), sy(y + dy)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.strokeStyle = "#ffa03c"; ctx.lineWidth = 5; ctx.beginPath(); ctx.ellipse(sx(x), sy(y + dy), 10 * V.z, 40 * V.z, 0, 0, Math.PI * 2); ctx.stroke();
+  ctx.restore();
 }
 const propCache = new Map();
 function propObjs(it) {
@@ -440,6 +448,7 @@ function propObjs(it) {
 // one GD object, roughly as the game shows it (no game art)
 function drawObj(o, colours) {
   const d = GD.objInfo(o.id), p = o.props || {}, k = +p[32] || 1, ks = [+p[128] || k, +p[129] || k];
+  if (o.id === 747 && +p[54]) drawTeleExit(o.x, o.y, +p[54]);
   ctx.save(); ctx.translate(sx(o.x), sy(o.y)); ctx.rotate((o.rot || 0) * Math.PI / 180); ctx.scale(V.z * (o.flipX ? -1 : 1) * ks[0], V.z * (o.flipY ? -1 : 1) * ks[1]);
   ctx.lineWidth = 2 / V.z / Math.max(ks[0], ks[1]); ctx.lineJoin = "round";
   if (o.id === 211 || d.kind === "decoration") {
@@ -461,7 +470,7 @@ function drawObj(o, colours) {
     if (d.act === "dash") { ctx.strokeStyle = "#fff"; ctx.beginPath(); ctx.moveTo(-6, 0); ctx.lineTo(8, 0); ctx.moveTo(3, -5); ctx.lineTo(8, 0); ctx.lineTo(3, 5); ctx.stroke(); }
   } else if (d.kind === "pad") {
     ctx.fillStyle = d.color || "#fff"; ctx.beginPath(); ctx.ellipse(0, 13, 13, 4, 0, Math.PI, 0); ctx.fill();
-  } else if (d.kind === "mode" || d.kind === "gravity" || d.kind === "speed" || d.kind === "size" || d.kind === "dual") {
+  } else if (d.kind === "mode" || d.kind === "gravity" || d.kind === "speed" || d.kind === "size" || d.kind === "dual" || d.kind === "teleport") {
     const hh = (d.hit && d.hit.h || 80) / 2, ww = d.kind === "speed" ? 14 : 10;
     ctx.strokeStyle = d.color || "#fff"; ctx.lineWidth = 5 / V.z; ctx.beginPath(); ctx.ellipse(0, 0, ww, hh, 0, 0, Math.PI * 2); ctx.stroke();
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.fillStyle = d.color || "#fff"; ctx.font = "bold 10px system-ui"; ctx.textAlign = "center";
@@ -638,7 +647,7 @@ function buildRows() {
 }
 // the palette bar: one tap picks the stamp (and the stamp tool), no menu to open
 const PALETTE = [
-  ["modes", ["portal:cube", "portal:ship", "portal:ball", "portal:ufo", "portal:wave", "portal:robot", "portal:spider", "portal:swing"]],
+  ["modes", ["portal:cube", "portal:ship", "portal:ball", "portal:ufo", "portal:wave", "portal:robot", "portal:spider", "portal:swing", "portal:teleport"]],
   ["gravity", ["grav:down", "grav:up"]], ["size", ["size:mini", "size:big"]],
   ["speed", ["speed:0.5", "speed:1", "speed:2", "speed:3", "speed:4"]],
   ["orbs", ["orb:yellow", "orb:pink", "orb:red", "orb:blue", "orb:green", "orb:black", "orb:dash", "orb:spider"]],
@@ -677,6 +686,11 @@ function showSelRow() {
     r.appendChild(chip("−", false, edit(() => it.s = +Math.max(0.25, (it.s || 1) / 1.2).toFixed(2)), "smaller"));
     r.appendChild(chip("＋", false, edit(() => it.s = +Math.min(6, (it.s || 1) * 1.2).toFixed(2)), "bigger"));
     r.appendChild(chip("⇋", false, edit(() => it.flipX = !it.flipX), "mirror"));
+  }
+  if (it.k === "stamp" && it.what === "portal:teleport") {
+    const dy = () => it.dy != null ? it.dy : SK.TELE_DY;
+    r.appendChild(chip("exit ↑", false, edit(() => it.dy = dy() + 30), "the exit (orange) one block higher"));
+    r.appendChild(chip("exit ↓", false, edit(() => it.dy = dy() - 30), "the exit one block lower (below the entrance is fine)"));
   }
   if (it.k === "stroke" && it.pen === "spikes") r.appendChild(chip("flip spikes", !!it.flip, edit(() => it.flip = !it.flip)));
   if (it.k === "stroke" && it.pen === "deco") r.appendChild(chip(it.front ? "in front" : "behind", !!it.front, edit(() => it.front = !it.front)));
