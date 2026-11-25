@@ -476,7 +476,7 @@ function compose(brief, tweaks = {}) {
   // jump indicators (tools/decorate.js): on jumps that cannot be read in time, and the first jump of
   // each new pattern. Default on; "indicators": false in the brief turns them off.
   if (brief.indicators !== false) spec.indicators = Object.assign({ at: firsts }, brief.indicators || {});
-  for (const k of ["style", "colours", "art", "speed", "song", "offset", "grid", "snap", "seed"]) if (brief[k] != null) spec[k] = brief[k];
+  for (const k of ["style", "colours", "art", "speed", "song", "offset", "music", "grid", "snap", "seed"]) if (brief[k] != null) spec[k] = brief[k];
   if (brief.sections[0] && brief.sections[0].bg && !spec.colours) spec.colours = { bg: brief.sections[0].bg, ground: brief.sections[0].ground || brief.sections[0].bg };
   return { spec, placed, ranges };
 }
