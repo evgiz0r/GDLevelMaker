@@ -82,6 +82,7 @@ const PAGES_ORIGINS = ["https://evgiz0r.github.io"];
 const isLoop = a => a === "::1" || /^127\./.test(a);
 const isLan = a => /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(a);
 const LAN_FILES = /^\/(viewer\/[\w.\/-]*|lib\/[\w.-]+\.js|levels\/[\w.-]+|examples\/[\w.-]+|local\/(beats\.local\.js|marks\.jsonl|official_\d+\.json|(maps|wip|community)\/[\w.\/ -]+))$/;
+const LEGO = { building: false };
 const SERVER = http.createServer((req, res) => {
   const ra = String(req.socket.remoteAddress || "").replace(/^::ffff:/, ""), lan = !isLoop(ra);
   if (lan && !isLan(ra)) { res.writeHead(403); return res.end("this viewer answers only this PC and the home network"); }
@@ -492,6 +493,23 @@ const SERVER = http.createServer((req, res) => {
       res.writeHead(200, { "Content-Type": f.endsWith(".png") ? "image/png" : "text/xml", "Cache-Control": "max-age=3600" });
       res.end(data);
     });
+  }
+  // GET /lego/ : the structure catalogue (LEGO.md), every piece incl. the official layouts (this PC and the home network
+  // only). Built by tools/lego.js (mine + page, ~20 s) when missing or older than the lego tools or the newest level;
+  // meanwhile a "building" page that reloads itself.
+  if (p === "/lego") { res.writeHead(302, { Location: "/lego/" }); return res.end(); }
+  if (p === "/lego/" || p === "/lego/pieces.json") {
+    const dir = path.join(root, "local", "lego", "page"), idx = path.join(dir, "index.html"), mt = f => { try { return fs.statSync(f).mtimeMs; } catch (e) { return 0; } };
+    const newest = Math.max(...["tools/lego.js", "tools/lego_page.js", "tools/lego_page.html"].map(f => mt(path.join(root, f))), ...fs.readdirSync(path.join(root, "levels")).filter(f => /^gdlm_/.test(f)).map(f => mt(path.join(root, "levels", f))));
+    if (mt(idx) < newest && !LEGO.building) {
+      LEGO.building = true;
+      const ch = cp.spawn(process.execPath, ["-e", `require(${JSON.stringify(path.join(__dirname, "lego.js"))}).mine(["official","ours","sketches","library"],[]);require(${JSON.stringify(path.join(__dirname, "lego_page.js"))}).build(require(${JSON.stringify(path.join(__dirname, "lego.js"))}).load(),{})`], { cwd: root, stdio: "ignore", windowsHide: true });
+      ch.on("exit", () => { LEGO.building = false; });
+    }
+    if (LEGO.building || !mt(idx)) { res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" }); return res.end('<meta http-equiv="refresh" content="5"><body style="background:#16123a;color:#eee;font:18px sans-serif;padding:40px">Building the structure catalogue from every level (about 20 s, measured in the cloud) ... this page reloads itself.</body>'); }
+    const f = p.endsWith(".json") ? path.join(dir, "pieces.json") : idx;
+    res.writeHead(200, { "Content-Type": p.endsWith(".json") ? "application/json" : "text/html; charset=utf-8", "Cache-Control": "no-store" });
+    return fs.createReadStream(f).pipe(res);
   }
   if (p === "/" || p === "/viewer") { res.writeHead(302, { Location: "/viewer/" }); return res.end(); }
   if (p.endsWith("/")) p += "index.html";

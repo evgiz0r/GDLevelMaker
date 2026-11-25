@@ -2569,7 +2569,11 @@ hdrIcons();
   // the whiteboard (viewer/draw.html, DRAW.md): where this viewer itself is served (the PC, the home Wi-Fi, a file)
   if (location.protocol === "file:" || /^(localhost|127\.|192\.168\.|10\.)/.test(location.hostname)) {
     const d = document.createElement("button"); d.textContent = "✏ whiteboard page"; d.title = "the whiteboard on its own page (the same board as ✏ draw here)";
-    d.onclick = () => { location.href = "draw.html"; }; menu.appendChild(d); }
+    d.onclick = () => { location.href = "draw.html"; }; menu.appendChild(d);
+    // the structure catalogue (LEGO.md): every 1-3 s piece of the official levels, ours, the sketches and the lego library,
+    // built on the PC by serve.js at /lego/ (official layouts stay on the PC)
+    if (location.protocol !== "file:") { const g = document.createElement("button"); g.textContent = "🧱 structures"; g.title = "the structure catalogue: every 1-3 s piece by family, mode and wrapper (LEGO.md)";
+      g.onclick = () => { location.href = "/lego/"; }; menu.appendChild(g); } }
   vb.onclick = e => { e.stopPropagation(); menu.hidden = !menu.hidden; vb.classList.toggle("on", !menu.hidden); };
   addEventListener("click", e => { if (!menu.hidden && !menu.contains(e.target) && e.target !== vb) { menu.hidden = true; vb.classList.remove("on"); } });
   const tog = (id, k) => { const b = document.getElementById(id); b.classList.toggle("on", VIEW[k]); b.onclick = () => { VIEW[k] = !VIEW[k]; VSET(k, VIEW[k]); b.classList.toggle("on", VIEW[k]); if (L) draw(); }; };

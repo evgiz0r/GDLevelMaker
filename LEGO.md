@@ -149,5 +149,7 @@ official kinds (steps and pits), the variety rule as a gate.
   can fit flying sketches, use its route.
 - The phone page: a private Artifact (link in project memory); republish with `node tools/lego.js page --public` and
   the Artifact tool (index.html + pieces.json).
+- On the PC: http://localhost:8765/lego/ (serve.js builds it when stale, ~20 s; viewer ⚙ view -> 🧱 structures). The
+  library pieces show there after `node tools/structures.js build lego-...` for each.
 - Official pieces are shown only on the PC page (local/lego/page/index.html): RobTop's layouts stay local. The phone
   page has ours, the sketches and the official numbers.

@@ -132,6 +132,40 @@ From the text maps; each is now (or will be) a structure in `tools/structures.js
 - **ship spike frames**: hollow boxes and diamonds of spikes in the ship's lane, floating blocks with
   spikes on 3 sides.
 
+## Structuring: what creators call it, and what we had (2026-11-25)
+
+In the GD community a level is made in three passes: **layout** (the gameplay, plain blocks and spikes), **structuring**
+(turning those raw blocks into designed shapes: outlines, silhouettes, how pieces join and frame the path) and
+**decoration** (background, glow, effects). Our stages match (layout -> path -> deco); structuring is our craft pass
+(tools/craftkit.js, decorate.js skinBlocks) plus the piece shapes of STRUCTURES.md / LEGO.md. The user asked whether we
+have this knowledge (a Reddit thread "Need help on structuring, any tips?"; Reddit is blocked from the cloud sessions,
+so it is not read yet -- paste its text or read it on the PC).
+
+Sources: the GJ guide (a community editor course, a-zalt.github.io/gdknowledge, GJGuide_new.pdf; lessons 1, 5, 12-14,
+19), VidishGD's short "How to make good structures" (youtube.com/shorts/ePyBcmbh3L4, via the user), ludo.guide's editor
+pages (mostly generic; little GD-specific).
+
+| rule | had it? | where / check |
+|---|---|---|
+| Blocks outlined on their open sides, a fill behind | yes | "Outlines and corners" above; decorate.js skinBlocks, craft.js |
+| Many small pieces, not masses; symmetric set pieces | yes | "Structure: many small pieces" |
+| Deco attached to structures, nothing floats loose | yes | "Deco attached"; craft.js |
+| Not repetitive ("the #1 tip for gameplay"); copy-pasted chunks are "frowned upon" | yes | tools/repeat.js, LEGO.md variety rule (repeats within 4 pieces) |
+| A long string of orbs comes out bland | partly | fairness "orb chains" (a timing rule, not a variety one): NEW as a variety rule: no more than 2-3 orbs in a row as the only mechanic |
+| Time to react at a mode change; no spam wave straight into ship | yes | fairness "switch", "mode entry", lead-in gates |
+| Mode bands: ship / wave / UFO 10 blocks, spider 9, ball 8; cube / robot none | yes | lib/physics.js bands; patterns build in rows 0-9 |
+| **Vary the outline: not plain rectangles** (notches, steps, overhangs, a broken edge) | **NEW** | not checked: our pieces are mostly rectangles. Check to build: share of solid pieces whose shape fills its bounding box |
+| **Connect the structures together** (a pillar meets the ceiling band, a floating slab hangs from a column, floor and roof of a corridor share an outline) | **NEW** for solids (we had it for deco) | not checked: a measure of solid "islands" per screen |
+| **Go beyond standard shapes**: slopes, diagonals, curves, not only squares | partly | wave/ship corridors use 45-degree slopes; cube pieces rarely do |
+| **Lean into the theme in the gameplay itself** (a forest: irregular ground, branches as the platforms) | **NEW** | theme kits (ART.md "Theme kits") skin the look, not the gameplay shapes. Next: a theme's own piece shapes (branches, roots, ice shelves) as lego pieces |
+| Plan the look before decorating; layout first | yes | BUILDING.md stages |
+| Too many blending (glow) objects turn white; mix blending and plain colours | **NEW** | not checked (ART.md colour work; whiteframes.py catches pure white in recordings) |
+| Bottom ground (G1) darker than the top ground (G2) | **NEW** | not checked |
+| Moving or sideways spikes and sudden move triggers are "frowned upon"; not memory-based | yes | knowledge/design.md fairness, sight-read gate |
+
+Next steps (owners: the art and style sessions): the two NEW checks that are cheap (plain-rectangle share, solid islands)
+in craft.js, then pieces whose outline is varied and joined in the lego library.
+
 ## Generator and checks (step 2)
 
 - **`tools/craft.js check <level>`** and score.js's **`craft` gate** (WARN when 3+ targets missed): the
