@@ -24,7 +24,7 @@
   color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45}
-.wrap{max-width:680px;margin:0 auto;padding-block:18px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:22px}
+.wrap{max-width:1072px;margin:0 auto;padding-block:18px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:22px}
 header{display:flex;flex-direction:column;gap:6px}
 h1{font-family:var(--f-head);font-size:1.6rem;margin:0;letter-spacing:-.01em}
 h2{font-family:var(--f-head);font-size:1.05rem;margin:0;text-wrap:balance}
@@ -84,7 +84,9 @@ button{font:inherit;color:inherit;cursor:pointer}
 .saved{font-size:.8rem;color:var(--muted);min-height:1.2em}
 footer{font-size:.8rem;color:var(--muted);line-height:1.5}
 .tbl-wrap{overflow:auto;max-height:72vh;background:var(--panel);border:1px solid var(--line);border-radius:12px;scrollbar-gutter:stable}
-.wide{width:min(1040px,calc(100vw - 32px));align-self:center}
+.wrap>*{width:100%;max-width:680px;align-self:center;min-width:0}
+.wrap>.wide{max-width:none}
+.banner button{margin-left:8px;font:inherit;font-weight:600;border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:3px 10px;cursor:pointer}
 .coins{letter-spacing:1px}.coins .c1{color:var(--wait)}.coins .c0{color:var(--muted);opacity:.6}
 table{border-collapse:collapse;font-size:.82rem;font-variant-numeric:tabular-nums;width:100%}
 th,td{padding:7px 9px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line)}
@@ -136,7 +138,7 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
 
   <section aria-labelledby="h-ws">
     <div class="sec-head"><h2 id="h-ws">Workstreams</h2><span class="hint" id="ws-count"></span></div>
-    <div class="list" id="ws"><div class="queue-empty">Workstreams appear here once Claude posts the first update.</div></div>
+    <div class="list" id="ws"><div class="queue-empty ph">Loading…</div></div>
   </section>
 
 
@@ -145,11 +147,11 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
     <details id="d-feat" open>
       <summary><div class="sum-row"><h2 id="h-f">Features</h2><span class="hint" id="f-sum"></span></div></summary>
       <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
-        <div class="tbl-wrap" style="max-height:none"><table id="ftable"><tbody><tr><td class="l dim">The features appear after Claude's next update.</td></tr></tbody></table></div>
+        <div class="tbl-wrap" style="max-height:none"><table id="ftable"><tbody><tr><td class="l dim ph">Loading…</td></tr></tbody></table></div>
         <div class="legend">Maturity: 5 = used all the time and checked in the real game, 4 = works and is used, 3 = works, first version, 2 = built but barely tried, 1 = started. Times are from measured runs where there are some.</div>
         <h2 style="font-size:.95rem;margin-top:6px">Ideas</h2>
         <div class="hint">Tick an idea to pick it; Claude starts picked ones and shows them as in progress, then done.</div>
-        <div class="list" id="fideas"><div class="queue-empty">Ideas appear after Claude's next update.</div></div>
+        <div class="list" id="fideas"><div class="queue-empty ph">Loading…</div></div>
         <form class="add" id="faddform">
           <label for="fidea" hidden>Add a feature idea</label>
           <input id="fidea" maxlength="160" placeholder="Add a feature idea…" autocomplete="off">
@@ -162,14 +164,14 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
 
   <section aria-labelledby="h-l">
     <div class="sec-head"><h2 id="h-l">Our levels</h2><a class="vlink" id="vlink" href="https://claude.ai/artifact/7bXiT1gGnJWjESC8fy3oZH" target="_blank" rel="noopener">Open the level viewer ↗</a></div>
-    <div class="list" id="levels"><div class="queue-empty">Levels in progress appear here after Claude's next update.</div></div>
+    <div class="list" id="levels"><div class="queue-empty ph">Loading…</div></div>
   </section>
 
   <section aria-labelledby="h-m" class="wide">
     <details id="d-mains" open>
       <summary><div class="sum-row"><h2 id="h-m">Main levels</h2><span class="hint" id="m-sum"></span></div></summary>
       <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
-        <div class="tbl-wrap"><table id="mtable"><tbody><tr><td class="l dim">The table appears after Claude's next update.</td></tr></tbody></table></div>
+        <div class="tbl-wrap"><table id="mtable"><tbody><tr><td class="l dim ph">Loading…</td></tr></tbody></table></div>
         <div class="legend" id="m-legend">Beaten: bot / human = does the solver's raw route, and the human-like route the viewer plays, clear the level in our sim on today's physics. Coins: the secret coins (3 per level) our route collects; grey = not collected or no coin route yet. Score: log10 of expected attempts (higher is harder), per minute below. Tight: inputs under 60 ms, tightest window below (red under 34 ms = two frames). Real game: how far gdsolver's real-game inputs carry our sim, i.e. how well our physics matches the game on that level. Scroll inside the table; hover a header for its meaning.</div>
       </div>
     </details>
@@ -182,7 +184,7 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
         <div class="filters" id="y-filters" role="toolbar" aria-label="Filter your levels by difficulty" style="flex-wrap:wrap"></div>
         <div class="add"><label for="y-q" hidden>Search your levels</label><input id="y-q" placeholder="Search by name, creator or ID…" autocomplete="off"><button class="addbtn" id="y-all" type="button" title="Queue every level shown by the current filter and search">Queue shown</button></div>
         <div class="saved" id="y-study"></div>
-        <div class="tbl-wrap"><table id="ytable"><tbody><tr><td class="l dim">Your finished levels appear here after Claude's next update.</td></tr></tbody></table></div>
+        <div class="tbl-wrap"><table id="ytable"><tbody><tr><td class="l dim ph">Loading…</td></tr></tbody></table></div>
         <div class="legend" id="y-legend">Every level you've finished, from your save (read only, never changed). Tries: lifetime attempts; Best: your normal-mode best %; Practice: your practice best %.</div>
       </div>
     </details>
@@ -193,9 +195,9 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
       <summary><div class="sum-row"><h2 id="h-p">Physics vs the real game</h2><span class="hint" id="p-sum"></span></div></summary>
       <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px">
         <div class="legend">Bars: 4 = measured in your own game and matches. 3 = matches real-game input plans. 2 = works, with a known mismatch. 1 = from the decompile or gdsolver, not checked yet.</div>
-        <div class="list" id="feats"><div class="queue-empty">Physics features appear after Claude's next update.</div></div>
+        <div class="list" id="feats"><div class="queue-empty ph">Loading…</div></div>
         <h2 style="font-size:.95rem;margin-top:6px">Missing from the physics</h2>
-        <div class="list" id="missing"><div class="queue-empty">The missing list appears after Claude's next update.</div></div>
+        <div class="list" id="missing"><div class="queue-empty ph">Loading…</div></div>
       </div>
     </details>
   </section>
@@ -210,7 +212,7 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
   <section aria-labelledby="h-c">
     <div class="sec-head"><h2 id="h-c">Next tasks to pick from</h2><span class="hint">Tick to queue, untick to drop</span></div>
     <div class="filters" id="filters" role="toolbar" aria-label="Filter by area"></div>
-    <div class="list" id="cands"><div class="queue-empty">Task ideas appear here once Claude posts them.</div></div>
+    <div class="list" id="cands"><div class="queue-empty ph">Loading…</div></div>
     <form class="add" id="addform">
       <label for="idea" hidden>Add your own task</label>
       <input id="idea" maxlength="160" placeholder="Add your own task idea…" autocomplete="off">
@@ -265,7 +267,7 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
   function renderFresh(){
     var f=$("fresh"); f.textContent="";
     var dot=el("span","dot");
-    if(!state || !state.updated_at){ f.appendChild(dot); f.appendChild(document.createTextNode("Waiting for the first update")); return; }
+    if(!state || !state.updated_at){ f.appendChild(dot); f.appendChild(document.createTextNode(loadFailed? "Couldn't load the board's data" : "Loading…")); return; }
     var d=new Date(state.updated_at);
     var stale=(Date.now()-d.getTime())>75*60*1000;
     dot.className="dot "+(stale?"stale":"fresh");
@@ -599,30 +601,59 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
   setInterval(renderFresh, 60000);
 
   // ---- connect ----
-  function showBanner(t){ var b=$("banner"); b.textContent=t; b.hidden=false; }
-  if(!window.claude || !window.claude.use){ showBanner("Open this board on claude.ai to see live data."); renderAll(); return; }
-  window.claude.use("db").then(function(d){
-    if(!d){ showBanner("Live data isn't available in this view. Open the board on claude.ai while signed in."); renderAll(); return; }
-    db=d;
-    var timer=setTimeout(function(){ showBanner("Can't reach the board's data yet. It may be out of date."); },10000);
-    var gotState=false;
-    db.doc("board/state").onSnapshot(function(s){
-      if(!s.metadata.fromCache){ clearTimeout(timer); $("banner").hidden=true; }
-      gotState=true;
-      state=s.exists? s.data() : null; renderAll();
-    }, function(e){ clearTimeout(timer); showBanner("Lost the live connection ("+e.code+"). Reload to reconnect."); });
-    db.doc("board/played").onSnapshot(function(s){ if(s.exists){ played=s.data(); renderPlayed(); } }, function(){});
-    db.doc("board/picks").onSnapshot(function(s){
+  // The data comes from three live subscriptions. A subscription can hang (the app's frame kept in the background,
+  // a dropped connection): then the page used to sit on placeholders forever. Now: a 12 s watchdog, a real error with a
+  // Retry button, a one-shot read as a fallback, and a fresh connection whenever the page comes back into view stale.
+  var loadFailed=false, unsubs=[], gotLive=0, watchdog=null, tries=0;
+  function showBanner(t, retry){ var b=$("banner"); b.textContent=t; if(retry){ var r=el("button",null,"Retry"); r.type="button"; r.onclick=function(){ connect(true); }; b.appendChild(r); } b.hidden=false; }
+  function phText(t){ Array.prototype.forEach.call(document.querySelectorAll(".ph"),function(e){ e.textContent=t; }); }
+  function failed(why){
+    if(state) { showBanner("Live updates stopped ("+why+"). What you see may be out of date.", true); return; }
+    loadFailed=true; renderFresh(); phText("Couldn't load: "+why+". Tap Retry at the top.");
+    showBanner("Couldn't load the board's data: "+why+".", true);
+  }
+  function gotState(s){
+    gotLive=Date.now(); clearTimeout(watchdog); loadFailed=false; $("banner").hidden=true;
+    state=s.exists? s.data() : null; if(!state) phText("No data yet: Claude hasn't posted the first update."); renderAll();
+  }
+  function connect(manual){
+    if(!db) return;
+    tries++; unsubs.forEach(function(u){ try{ if(typeof u==="function") u(); }catch(e){} }); unsubs=[];
+    if(manual){ $("banner").hidden=true; if(!state){ loadFailed=false; renderFresh(); phText("Loading…"); } }
+    clearTimeout(watchdog);
+    watchdog=setTimeout(function(){
+      // the live subscription is silent: try one plain read before giving up
+      var ref=db.doc("board/state");
+      if(ref && typeof ref.get==="function") Promise.race([ref.get(), new Promise(function(_,no){ setTimeout(function(){ no({code:"timeout"}); },8000); })])
+        .then(function(s){ if(s && !gotLive){ gotState(s); showBanner("Showing a one-time read: live updates aren't connected.", true); } })
+        .catch(function(e){ failed(e && e.code==="timeout"? "no answer after 20 s" : "the read failed ("+(e&&e.code||"error")+")"); });
+      else failed("no answer after 12 s");
+    },12000);
+    unsubs.push(db.doc("board/state").onSnapshot(function(s){
+      if(s.metadata && s.metadata.fromCache && !s.exists) return; // an empty cache is not an answer: keep waiting for the server
+      if(s.metadata && s.metadata.fromCache){ state=s.data(); renderAll(); return; }
+      gotState(s);
+    }, function(e){ clearTimeout(watchdog); failed("the connection dropped ("+(e&&e.code||"error")+")"); }));
+    unsubs.push(db.doc("board/played").onSnapshot(function(s){ if(s.exists){ played=s.data(); renderPlayed(); } }, function(){}));
+    unsubs.push(db.doc("board/picks").onSnapshot(function(s){
       if(writing || dirty) return; // don't overwrite a local edit in flight
       var p=s.exists? s.data() : null;
       picks={selected:(p&&p.selected||[]).slice(), ideas:(p&&p.ideas||[]).slice(), study:(p&&p.study||[]).slice(), feat_picks:(p&&p.feat_picks||[]).slice(), feat_ideas:(p&&p.feat_ideas||[]).slice()};
       renderAll();
-    }, function(){});
+    }, function(){}));
+  }
+  // back in view after a long time with no live answer: connect again
+  document.addEventListener("visibilitychange",function(){ if(!document.hidden && db && (!state || loadFailed)) connect(true); });
+  if(!window.claude || !window.claude.use){ showBanner("Open this board on claude.ai to see live data."); phText("Open this board on claude.ai to see its data."); renderAll(); return; }
+  Promise.race([window.claude.use("db"), new Promise(function(ok){ setTimeout(function(){ ok("timeout"); },12000); })]).then(function(d){
+    if(d==="timeout"){ failed("the page's database didn't start"); return; }
+    if(!d){ showBanner("Live data isn't available in this view. Open the board on claude.ai while signed in."); phText("Open the board on claude.ai while signed in."); renderAll(); return; }
+    db=d; connect(false);
     window.claude.use("user").then(function(u){
       if(!u || !u.can) return;
       u.can("data.write").then(function(ok){ if(ok===false){ canWrite=false; renderAll(); } });
-    });
-  });
+    }).catch(function(){});
+  }).catch(function(e){ failed("the page's database didn't start ("+(e&&e.code||"error")+")"); });
   renderAll();
 })();
 </script>
