@@ -173,3 +173,10 @@ synced sketch for the full pass; what the user fixes by hand wins.
   tap (remembered); the per-change choices live inside it for when they are wanted. No toast after every stroke. In the
   viewer with 🧩 on, the user's strokes go faint (0.4) over the fitted level, so a moved orb or lowered ceiling shows where
   it really is instead of looking like the change did not happen.
+
+## No pen / stamp switch (2026-11-25)
+
+The user: "dont want to swap between those two" (the ✏ and ● tool buttons). Both buttons are gone (hidden, kept for
+keys 1-5): the pen row is always on screen next to the one-tap palette. Tapping a pen (ground, blocks, hazards, deco,
+jump, note) makes the next touch draw; tapping a palette item (portal, orb, pad, speed, size, hazard) makes the next
+tap place it. Whichever was tapped last is lit. Select, erase and pan stay as they were.

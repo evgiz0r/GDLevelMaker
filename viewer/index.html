@@ -896,9 +896,41 @@ function stageOpen(name) {
     if (st.data && typeof st.data.md === "string") document.getElementById("summary").insertAdjacentHTML("beforeend", `<pre class="stageMd" style="white-space:pre-wrap;font-size:12px;max-height:50vh;overflow:auto">${esc(st.data.md)}</pre>`);
   };
   const pending = { ok: false, events: [], pending: true, why: "this stage has no route yet (find the route: the button above)" };
-  // no route yet, but a plan (the layout / path stage: the patterns' intended presses): replay it at once, no solve
-  if (!st.solution && planSaved(st.level, st.data, saved => { if (STG.cur === name && !(PLAY && PLAY.on)) show(saved); })) show(Object.assign({}, pending, { why: "replaying the plan…" }));
-  else show(st.solution || pending);
+  if (st.solution) return show(st.solution);
+  // no saved route: try its own plan, then the routes and plans of the build's other stages and the level's own route
+  // (path / deco / final mostly keep the layout's gameplay), each replayed on THIS stage's level, no solve. The first
+  // that clears wins; none -> the one that gets furthest, with where it dies (FROSTBITE, 2026-11-25: path's own plan
+  // died at the second spike and deco / final had no plan at all, so they "die and don't jump or are not shown")
+  const cands = stageRouteCands(st, base);
+  if (!cands.length) return show(pending);
+  show(Object.assign({}, pending, { why: "replaying the plan…" }));
+  let best = null, i = 0;
+  const next = () => {
+    if (STG.cur !== name) return;
+    const c = cands[i++];
+    if (!c) { show(Object.assign({}, best.saved, { why: (best.saved.why || "dies") + " — no route of its own; the furthest one is " + best.from + "'s" })); return; }
+    planSaved(st.level, c.data, saved => {
+      if (STG.cur !== name || (PLAY && PLAY.on)) return;
+      if (saved.ok) { saved.from = c.from; show(saved); if (c.from !== "its own plan") notice("stage " + esc(name) + ": no route of its own, replaying " + esc(c.from) + " (it clears this stage)", 4000); return; }
+      if (!best || saved.dieX > best.saved.dieX) best = { saved, from: c.from };
+      next();
+    });
+  };
+  next();
+}
+// the routes a stage without its own can borrow: [{from, data: {events} | plan data}], its own plan first, then the
+// nearest stages' routes / plans, then the level's saved route; one copy of each distinct input list
+function stageRouteCands(st, base) {
+  const out = [], seen = new Set(), stages = (STG.data && STG.data.stages) || [], me = stages.indexOf(st);
+  const add = (from, data) => { const ev = data && GD.planEvents && GD.planEvents(data); if (!ev || !ev.length) return; const k = JSON.stringify(ev); if (seen.has(k)) return; seen.add(k); out.push({ from, data }); };
+  add("its own plan", st.data);
+  stages.map((o, j) => ({ o, d: Math.abs(j - me) })).filter(x => x.o !== st).sort((a, b) => a.d - b.d).forEach(({ o }) => {
+    if (o.solution && o.solution.ok && o.solution.events && o.solution.events.length) add("the " + o.stage + " stage's route", { events: o.solution.events });
+    add("the " + o.stage + " stage's plan", o.data);
+  });
+  const bs = base && base.solution;
+  if (bs && bs.ok && bs.events && bs.events.length) add("the level's saved route", { events: bs.events });
+  return out;
 }
 // the song's real hits (tools/hits.js slots {beat, t: song seconds, kind}, put with the song stage as data.hits):
 // kicks, snares and accents as ticks under the presses, in level time (song time - the song's offset)

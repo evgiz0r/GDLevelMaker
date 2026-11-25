@@ -822,17 +822,29 @@ function loop(briefFile, rounds = 8, phase = {}) {
   fs.writeFileSync(specFile, JSON.stringify(best.spec, null, 0).replace(/,\["/g, ',\n  ["').replace('"objects":[', '"objects": [\n  ') + "\n");
   fs.writeFileSync(path.join(path.dirname(briefFile), base + ".log.md"), log.join(""));
   console.log(`spec: ${path.relative(process.cwd(), specFile)}  log: ${path.relative(process.cwd(), path.join(path.dirname(briefFile), base + ".log.md"))}`);
-  // the path stage: the kept layout with its planned presses (tools/intent.js: each pattern's intended inputs)
+  // the path, deco and final stages, each with ITS OWN working route as data.events (the viewer replays a stage's route;
+  // GDLM 72's path stage carried only the pattern intents -- its second jump 0.6 s late, dead at x 478 -- and deco / final
+  // carried no route at all, 2026-11-25). The route is the final level's saved solution: deco has no collision, so the
+  // same inputs clear the gameplay-only path level; it is replayed there before it is attached. data.planned = that
+  // route's presses; the patterns' intended inputs stay as data.intended (tools/intent.js), for comparison only.
+  make(specFile);
+  let L = null, events = null;
+  try { L = require("./io.js").readGdlvl(path.join(__dirname, "..", "levels", slug(brief.name) + ".gdlvl"));
+    const sol = require("./solutions.js").get(L.levelStr, true); if (sol && sol.ok && sol.events) events = sol.events; } catch (e) {}
+  const pressesOf = (ev, tl) => ev.filter(e => e.type === "press").map(e => ({ t: +(e.tick / 240).toFixed(3), what: "jump" }));
   try {
     const g = gameplayOnly(best.spec), log0 = console.log; console.log = () => {};
     let built; try { built = build(g, briefFile); } finally { console.log = log0; }
     const I = require("./intent.js"), wg = GD.makeWorld(built.level.objects, built.level.header), tl = SY.SYNC.timeline(wg);
     const { intents } = I.intents(built.ctx.placements || [], tl, { cacheOnly: true });
-    stage("path", { levelStr: GD.serializeLevel(built.level), data: { planned: intents.map(i => ({ t: +SY.SYNC.tOfX(tl, i.x).toFixed(3), what: i.type === "press" ? "jump" : "release" })) }, note: "the kept layout and its planned presses" });
+    const intended = intents.map(i => ({ t: +SY.SYNC.tOfX(tl, i.x).toFixed(3), what: i.type === "press" ? "jump" : "release" }));
+    let ev = null; try { if (events) { const r = GD.run(wg, events); if (r && r.ok) ev = events; } } catch (e) {}
+    stage("path", { levelStr: GD.serializeLevel(built.level), data: ev ? { events: ev, planned: pressesOf(ev), intended } : { planned: intended, intended },
+      note: ev ? "the kept layout and its route" : "the kept layout and its intended presses (no route cleared it)" });
   } catch (e) { console.log("   (path stage skipped: " + e.message + ")"); }
-  make(specFile);
-  try { const L = require("./io.js").readGdlvl(path.join(__dirname, "..", "levels", slug(brief.name) + ".gdlvl"));
-    stage("deco", { levelStr: L.levelStr, note: "with the look" }); stage("final", { levelStr: L.levelStr, note: best.s.ok ? "READY" : "not ready" }); } catch (e) {}
+  if (L) try {
+    const data = events ? { events, planned: pressesOf(events) } : {};
+    stage("deco", { levelStr: L.levelStr, data, note: "with the look" }); stage("final", { levelStr: L.levelStr, data, note: best.s.ok ? "READY" : "not ready" }); } catch (e) {}
   // the retro (BUILDS.md): stage times against their targets, rounds, what failed, the slowest step
   try {
     const bf = path.join(__dirname, "..", "BUILDS.md");

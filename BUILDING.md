@@ -153,6 +153,10 @@ model from gd-showcase's tools/storyboard.js once it lands (richer: moments, pla
 
 ## 4. Stages are shown as they happen
 
+- **Every stage carries its own working route** (data.events) once one exists: the viewer replays a stage's own route.
+  compose attaches the final level's saved route to path / deco / final after replaying it on each stage's level
+  (data.planned = its presses; the patterns' intents only as data.intended). GDLM 72's path stage had only the intents
+  (dead at x 478) and deco / final none. Old builds: `node tools/restage.js <level> --session <name>`.
 - Every build puts its stages with tools/stages.js: song, layout (with planned presses), path, deco, final.
   Each records its seconds, shown next to its target. Targets: song in seconds, playable layout in about a
   minute.
