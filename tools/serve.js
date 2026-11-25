@@ -523,9 +523,9 @@ const SERVER = http.createServer((req, res) => {
   // only). Built by tools/lego.js (mine + page, ~20 s) when missing or older than the lego tools or the newest level;
   // meanwhile a "building" page that reloads itself.
   if (p === "/lego") { res.writeHead(302, { Location: "/lego/" }); return res.end(); }
-  if (p === "/lego/" || p === "/lego/pieces.json") {
+  if (p === "/lego/" || p === "/lego/pieces.json" || p === "/lego/pieces_more.json") {
     const dir = path.join(root, "local", "lego", "page"), idx = path.join(dir, "index.html"), mt = f => { try { return fs.statSync(f).mtimeMs; } catch (e) { return 0; } };
-    const newest = Math.max(...["tools/lego.js", "tools/lego_page.js", "tools/lego_page.html"].map(f => mt(path.join(root, f))), ...fs.readdirSync(path.join(root, "levels")).filter(f => /^gdlm_/.test(f)).map(f => mt(path.join(root, "levels", f))));
+    const newest = Math.max(...["tools/lego.js", "tools/lego_page.js", "tools/lego_page.html", "lib/look.js"].map(f => mt(path.join(root, f))), ...fs.readdirSync(path.join(root, "levels")).filter(f => /^gdlm_/.test(f)).map(f => mt(path.join(root, "levels", f))));
     // stale: older than the newest level, or built by other code than what is here now (the stamp in the page)
     let stale = mt(idx) < newest;
     if (!stale && mt(idx)) try { const st = require("./lego_page.js").stamp(); stale = !fs.readFileSync(idx, "utf8").includes("<!--lego-build:" + st + "-->"); } catch (e) {}
@@ -538,7 +538,8 @@ const SERVER = http.createServer((req, res) => {
     // a page built before stays visible while a new one builds; with none yet, a page that reloads itself (and says why
     // the last build failed, if it did)
     if (!mt(idx)) { if (LEGO.error) { res.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" }); return res.end("The structure catalogue build failed:\n" + LEGO.error); } res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" }); return res.end('<meta http-equiv="refresh" content="5"><body style="background:#16123a;color:#eee;font:18px sans-serif;padding:40px">Building the structure catalogue from every level (about 20 s, measured in the cloud) ... this page reloads itself.</body>'); }
-    const f = p.endsWith(".json") ? path.join(dir, "pieces.json") : idx;
+    const f = p.endsWith(".json") ? path.join(dir, path.basename(p)) : idx;
+    if (!mt(f)) { res.writeHead(404); return res.end(); }
     res.writeHead(200, { "Content-Type": p.endsWith(".json") ? "application/json" : "text/html; charset=utf-8", "Cache-Control": "no-store" });
     return fs.createReadStream(f).pipe(res);
   }
@@ -546,6 +547,9 @@ const SERVER = http.createServer((req, res) => {
   if (p.endsWith("/")) p += "index.html";
   // the beat grids live in the shared local/ (tools/beats.js); an older viewer page asks for viewer/beats.local.js
   if (p === "/viewer/beats.local.js") p = "/local/beats.local.js";
+  // the ✨ pen's main-level bricks (private: this PC and Evgeni's private pages): built from the catalogue's pieces on first ask
+  if (p === "/local/bricks_main.js" && !fs.existsSync(path.join(root, "local", "bricks_main.js")) && fs.existsSync(path.join(root, "local", "lego", "pieces.json")))
+    try { require("child_process").spawnSync(process.execPath, [path.join(__dirname, "brickset.js"), "--main"], { windowsHide: true, timeout: 120000 }); } catch (e) {}
   if (lan && !LAN_FILES.test(p) && !/^\/song\//.test(p)) { res.writeHead(403); return res.end("not shared on the home network"); }
   let f = path.join(root, p);
   const song = /^\/song\/(official|custom)\/([A-Za-z0-9]+)\.(mp3|ogg)$/.exec(p);

@@ -862,6 +862,44 @@ or holds longer than needed (over 0.15 s outside ship/wave where a tap finishes)
   (difficulty_solve passes the official stars); `opts.tapMs` a level's own; `opts.player: "user"` the user's habit
   (tools/habits.js: median 120 ms). Was 14 ticks (58 ms) everywhere. tests/natural_tap.js.
 
+### The wave like a person (2026-11-25)
+- The user, on a GDLM wave corridor of 45-degree slopes: "really unnatural 'human' play, these corridors should be just
+  few holds and releases. in tighter corridors we will need to fly tighter but in general we want to follow the pattern
+  of the level". The solver's wave line zigzagged with small corrections inside each leg of the corridor.
+- **The wave planner** (lib/natural.js waveLine, tried first in a stretch that is all wave): it looks WAVE_LOOK (150)
+  units ahead and compares keeping the button, switching once, or switching twice, at any frame; each plan scores how
+  far the wave strays out of the corridor's comfortable middle (the middle of the free space less WAVE_MARGIN (45) from
+  each wall, so a wide corridor leaves room to hold on and a tight one asks for a tight line) plus WAVE_SWITCH (6) per
+  switch. It follows the best plan and plans again at each switch and every 16 ticks, so each leg runs until the
+  corridor turns. The free space now knows slopes (slopeY) and the wave's own hitbox (halfSize: 5, mini 3; was 15).
+- **When its line is taken:** only where the solver's line is off the pattern (below), the new line needs no more
+  presses, no more near-wall ticks in the stretch (+24) and in every flying stretch after it (+24: a new line re-solves
+  the rest of the level), and at most 30% more humanCost.
+- **Timing before presses** (the user, 2026-11-25: "its better to get an extra click or two than having a terrible timing
+  ... mostly in the flying sections ... we can have a tas doing little clicks but human route should avoid bad timings").
+  Every flying-stretch choice in fly() (wave planner, ship dwell controller, the humanCost / cleaner choice) checks the
+  tightest player window of both lines (lib/difficulty.js measureWindows, as the viewer and score.js): a line whose tightest
+  window is under EASY_MS (100) and over 4 ms tighter than the old one is never taken, and a line with up to 2 more presses
+  is taken when the old line's tightest is under 100 ms and the new one's is at least 1.5x it (and no closer to the walls).
+  Fewest presses is a tie-breaker among easy lines, never bought with a tight window. Lab: tightest 146 -> 183 ms.
+- **Off the pattern** (routeCheck `offPattern`, score.js route gate WARN "N inputs for M corridor turns (off the
+  pattern)"): a wave stretch's inputs beyond the corridor's turns + 2 (turns: the free space's middle changing
+  direction by 20+ units, sampled every 8 ticks, open air over 280 units skipped), counted only up to the number of
+  quick re-presses (legs under 150 ms). Half-second legs over open hills (GDLM 52) follow their own pattern.
+- **`node tools/flystyle.js <level | official:N | spec.json> [--replan] [--cost]`**: per flying stretch presses, presses
+  a second, mean leg, legs under 100 ms, the tightest window, near-wall ticks, and the wave's inputs / turns / OFF PATTERN; --replan puts
+  today's plan beside the saved route.
+- Results (cloud, 2026-11-25): a lab of three zigzag corridors (gaps 6, 4, 3 blocks; local/tmp/wavelab.json, made with
+  patterns.js wave-zigzag): off-pattern inputs 17 -> 4, legs under 100 ms 14 -> 1, presses 18 -> 13. Our wave levels'
+  saved routes were already mostly on pattern by this measure: GDLM 45 off-pattern 3 -> 1, the rest unchanged by the
+  planner (it is not tried where the line is on pattern). The user's corridor screenshot came from a re-plan, so the
+  re-plan of the main levels with waves on the PC is the real test.
+- OPEN: re-planning some of our levels from their saved routes flies worse than the saved route by near-wall ticks,
+  with or without this change (GDLM 44: 0 -> 636 ticks today, 0 -> 932 before it, presses 15 -> 16 vs 22), and GDLM 68's
+  re-plan skips a ship portal at x 14715 and takes ~11 min (cloud). Not the wave planner's (no wave stretch there is off
+  pattern); the fly()/solveFrom re-plan of the ship stretches. Nothing is saved by flystyle; solutions.js keeps a saved
+  route whose re-plan skips.
+
 ## The press library: what good players press at each structure (2026-11-24)
 
 The user: "we should be a good player too, and that should allow us to solve better" and "how can we gain the knowledge

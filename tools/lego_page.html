@@ -88,7 +88,8 @@ button.vote.on.up{background:#1f6b3a;border-color:#7dff9c}button.vote.on.down{ba
     <label title="no route of our physics lives through it"><input type="checkbox" id="fun"> unverified</label>
     <label title="nothing to react to: no hazard, orb, pad or portal, flat ground or open air"><input type="checkbox" id="femp"> empty</label>
     <label title="the same layout again (another phase of a repeated chunk, or another level)"><input type="checkbox" id="fdup"> repeats</label>
-    <label title="flying pieces whose walls step in blocks instead of ramps"><input type="checkbox" id="frough"> stair walls</label></div>
+    <label title="flying pieces whose walls step in blocks instead of ramps"><input type="checkbox" id="frough"> stair walls</label>
+    <label title="routes that are not a human plan, or flying taps under 0.1 s apart (3+, or with a tight timing)"><input type="checkbox" id="fjit"> jittery routes</label></div>
 </div>
 <div class="band drawer">
   <div class="grid" id="grid"></div>
@@ -109,12 +110,14 @@ button.vote.on.up{background:#1f6b3a;border-color:#7dff9c}button.vote.on.down{ba
   <div id="bvote"><button class="vote up" id="bup" title="I like it (a weight, not a rule)">👍</button><button class="vote down" id="bdown" title="not this one so much (still allowed)">👎</button><textarea id="bcom" placeholder="a comment (optional): what is good or off about it"></textarea><button id="bsave">Save</button><span id="bsaved"></span></div>
   <div class="info" id="binfo"></div></div>
 
+<script>/*LOOK*/</script>
 <script>
 {
 const MIX = /*MIX*/null, PUB = /*PUB*/false;
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const $ = id => document.getElementById(id);
 let ALL = [], VIEW = [], shown = 0;
+window.__lego = { view: () => VIEW, open: i => open(i), play: () => play(), stop: () => stop() };   // for tests and screenshots
 const PAGE = 60;
 
 // ---- the mix chart (numbers only)
@@ -129,9 +132,9 @@ const PAGE = 60;
   $("notes").innerHTML = `<p><b>Flat cube is a third of ours (${pct("jump · cube · flat", "ours")}%), and ${pct("jump · cube · flat", "official")}% of the official levels.</b> The official cube is mostly steps (${pct("jump · cube · steps", "official")}%) and pits.</p>
   <p><b>Official ships are spiky corridors with gates</b> (${pct("fly · ship · corridor +spikes +gates", "official")}% of all their pieces); ours fly plain corridors (${pct("fly · ship · corridor", "ours")}%) and never a spiky one with gates.</p>
   <p><b>Fly family</b>: one path, wrapped as open air, a floor path, a roof path or a corridor, then +spikes (hazards are 30%+ of the walls), +gates (narrowings) and +flips (gravity). The same wrappers fit ship, wave and swing.</p>
-  <p>By default the drawer shows <b>verified</b> pieces only (a route through them, the solver's or a real clear, is replayed by our physics and lives), and hides <b>empty</b> ones (nothing to react to), <b>repeats</b> (the same layout again, shown once with ×N) and flying pieces with <b>stair walls</b>. The checkboxes bring them back.</p>
+  <p>By default the drawer shows <b>verified</b> pieces only (a route through them, the solver's or a real clear, is replayed by our physics and lives), and hides <b>empty</b> ones (nothing to react to), <b>repeats</b> (the same layout again, shown once with ×N) flying pieces with <b>stair walls</b>, and <b>jittery routes</b> (a route that is not a human plan, or flying taps under 0.1 s apart: three or more, or where a timing is tight; an extra press on easy timings is fine). The checkboxes bring them back.</p>
   <p><b>Difficulty</b> = log10 of the expected attempts to get through the piece in one go, from the timing window of each of its inputs (our difficulty model, fitted on Evgeni's runs): 0.1 is a gimme, 0.5 takes a few tries, 1 about ten.</p>
-  <p>Tap a tray to see it large: <b>▶ play</b> replays the route at its real speed, white dots are presses, rings releases. <b>👍 / 👎 and a comment</b> are saved for us to read; a vote is a preference weight, never a ban. ← → step through pieces, space plays.</p>`;
+  <p>Tap a tray to see it large: <b>▶ play</b> replays the route at its real speed, white dots are presses, rings releases; the player is drawn as the game draws each mode (flipped when gravity is reversed) over the level's own colours, and dashed ✂ lines are cut points where a brick can be trimmed into a smaller one. <b>👍 / 👎 and a comment</b> are saved for us to read; a vote is a preference weight, never a ban. ← → step through pieces, space plays.</p>`;
 }
 
 // ---- drawing one piece: returns the block -> pixel mapping so the replay can draw on top
@@ -140,14 +143,20 @@ function draw(cv, p, big) {
   const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight;
   cv.width = W * dpr; cv.height = H * dpr;
   const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
-  const py = p.path.map(q => q[1]);
+  // the height range from the route inside the piece only (a sample out past its ends must not zoom the picture out)
+  const py = p.path.filter(q => q[0] >= -1 && q[0] <= p.w + 1).map(q => q[1]); if (!py.length) py.push(0);
   const ylo = Math.max(-0.5, Math.min(...py, 0) - 2), yhi = Math.max(...py, 3) + 3;
   const z = Math.min(W / (p.w + 2), H / (yhi - ylo + 0.5));
   const ox = (W - p.w * z) / 2, oy = big ? (H + (yhi - ylo) * z) / 2 + ylo * z : H - 4 + ylo * z;
   const X = x => ox + x * z, Y = y => oy - y * z;
-  g.fillStyle = "#2a2466"; g.fillRect(0, Y(0), W, H);   // ground
+  // the level's own colours where the piece starts (background, ground: header + colour triggers), when known
+  const LC = p.colors || {}, sky = LC.bg || "#0f0c2b";
+  g.fillStyle = sky; g.fillRect(0, 0, W, H);
+  if (LC.bg) { g.fillStyle = "rgba(0,0,0,.35)"; g.fillRect(0, 0, W, H); }   // a little darker, so the route and icon stand out
+  g.fillStyle = LC.ground || "#2a2466"; g.fillRect(0, Y(0), W, H);   // ground
+  if (LC.line) { g.strokeStyle = LC.line; g.lineWidth = 1.5; g.beginPath(); g.moveTo(0, Y(0)); g.lineTo(W, Y(0)); g.stroke(); }
   // the walls right under and over the route, column by column (the sim culls blocks nobody can touch)
-  g.fillStyle = "#3b3480";
+  g.fillStyle = LC.bg ? "rgba(0,0,0,.55)" : "#3b3480";
   (p.walls || []).forEach(([f, r], c) => { if (f > 0) g.fillRect(X(c), Y(f), z + 0.5, f * z); if (r != null) g.fillRect(X(c), Y(yhi + 2), z + 0.5, (yhi + 2 - r) * z); });
   for (const s of p.shape) {
     const [k, x0, y0, x1, y1, , corner] = s, c = COL[k] || "#888";
@@ -161,7 +170,11 @@ function draw(cv, p, big) {
     g.fillStyle = c; g.globalAlpha = k === "L" ? .7 : 1; g.fillRect(X(x0), Y(y1), Math.max(1, (x1 - x0) * z), Math.max(1, (y1 - y0) * z)); g.globalAlpha = 1;
   }
   g.strokeStyle = "#4fe3ff"; g.lineWidth = big ? 3 : 2; g.setLineDash(p.midline ? [4, 4] : []); g.beginPath();
-  p.path.forEach((q, i) => i ? g.lineTo(X(q[0]), Y(q[1])) : g.moveTo(X(q[0]), Y(q[1]))); g.stroke(); g.setLineDash([]);
+  // a jump of more than 3 blocks between two samples is a teleport: the line breaks there instead of crossing the picture
+  p.path.forEach((q, i) => i && !jumpAt(p.path, i) ? g.lineTo(X(q[0]), Y(q[1])) : g.moveTo(X(q[0]), Y(q[1]))); g.stroke(); g.setLineDash([]);
+  // inner cut points: where the brick can be trimmed into a smaller one (dashed, big view only)
+  if (big) for (const [x, , n] of p.cuts || []) { g.strokeStyle = "rgba(255,255,255,.55)"; g.lineWidth = 1.5; g.setLineDash([6, 6]); g.beginPath(); g.moveTo(X(x), 0); g.lineTo(X(x), H); g.stroke(); g.setLineDash([]);
+    g.fillStyle = "rgba(255,255,255,.8)"; g.font = "600 12px Archivo,sans-serif"; g.fillText("✂ " + n, X(x) + 4, H - 8); }
   // the clicks: a filled dot where the button goes down, a ring where it comes up
   for (const [x, y, down] of p.clicks || []) {
     g.beginPath(); g.arc(X(x), Y(y), big ? 6 : 3, 0, 7);
@@ -222,11 +235,11 @@ function render(reset) {
 }
 function filter() {
   const s = $("fsrc").value, f = $("ffam").value, m = $("fmode").value, w = $("fwrap").value, q = $("fq").value.trim().toLowerCase(), fv = $("fvote").value;
-  const ours = $("fours").checked || (s && s !== "official"), un = $("fun").checked, em = $("femp").checked, du = $("fdup").checked, ro = $("frough").checked;
+  const ours = $("fours").checked || (s && s !== "official"), un = $("fun").checked, em = $("femp").checked, du = $("fdup").checked, ro = $("frough").checked, ji = $("fjit").checked;
   const vok = p => { const v = VOTES[p.id]; return !fv || (fv === "up" ? v && v.vote > 0 : fv === "down" ? v && v.vote < 0 : fv === "com" ? v && v.comment : !v); };
   const gr = $("fgrain").value;
   const gOk = p => gr === "auto" ? p.auto : (p.grain || "piece") === gr && !p.auto;
-  VIEW = ALL.filter(p => gOk(p) && (ours || p.src === "official") && (un || p.verified) && (em || !p.empty) && (du || !p.dupOf) && (ro || p.smooth) && vok(p) && (!s || p.src === s) && (!f || p.family === f) && (!m || p.mode === m) && (!w || p.wrap === w) && (!q || (p.sig + " " + p.level + " " + p.mech.join(" ")).toLowerCase().includes(q)));
+  VIEW = ALL.filter(p => gOk(p) && (ours || p.src === "official") && (un || p.verified) && (em || !p.empty) && (du || !p.dupOf) && (ro || p.smooth) && (ji || (!p.jitter && (!p.routeKind || p.routeKind === "human" || p.routeKind === "ours"))) && vok(p) && (!s || p.src === s) && (!f || p.family === f) && (!m || p.mode === m) && (!w || p.wrap === w) && (!q || (p.sig + " " + p.level + " " + p.mech.join(" ")).toLowerCase().includes(q)));
   const so = $("fsort").value;
   if (so) VIEW.sort((a, b) => so === "easy" ? (a.diff ?? 99) - (b.diff ?? 99) : (b.diff ?? -1) - (a.diff ?? -1));
   render(true);
@@ -240,6 +253,7 @@ function open(i) {
   const presses = (p.clicks || []).filter(c => c[2]).map(c => c[3].toFixed(2) + " s");
   $("binfo").innerHTML = `<b>${esc(p.sig)}</b><br>${esc(p.src)} · ${esc(p.level)} at block ${p.x} · ${esc(meta(p))}${p.family === "fly" ? ` · path ${esc(p.pathKind)}, ${p.turns} turns, ${p.gates} gates` : ""}${p.flips ? ` · ${p.flips} gravity flips` : ""}${p.mech.length ? ` · ${esc(p.mech.join(", "))}` : ""}<br>` +
     (p.verified ? "✓ verified: the cyan line is a route our physics replays alive through it; white dots are presses, rings releases" : "not verified: " + esc(p.why)) +
+    (p.routeKind && p.routeKind !== "ours" ? ` · route: ${esc(p.routeKind)}${p.routeAt ? " (" + esc(p.routeAt) + ")" : ""}` : "") + (p.routePlan === "" ? " · planned before the wave planner (re-plan pending)" : "") + (p.jitter ? ` · ⚠ ${p.jitter} presses under 0.1 s apart: not a human line` : "") +
     (presses.length ? `<br>presses at ${esc(presses.join(", "))}` : "") + (p.alsoIn && p.alsoIn.length ? `<br>the same layout also in ${esc(p.alsoIn.join(", "))}` : "") + (p.smooth ? "" : `<br>stair walls: ${p.steps} block steps per 10 columns`);
   $("bplay").disabled = !p.path.length || p.path[p.path.length - 1][2] == null;
   showVote(p);
@@ -256,10 +270,29 @@ async function vote(n) {
   $("bsaved").textContent = "saving ...";
   try { await saveVote(p, nv, $("bcom").value.trim()); } catch (e) { $("bsaved").textContent = "not saved: " + e.message; }
 }
+function jumpAt(P, i) { return Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]) > 3; }
 function at(p, t) {   // the route's position at t seconds (linear between samples)
   const P = p.path; if (t <= P[0][2]) return P[0];
-  for (let i = 1; i < P.length; i++) if (P[i][2] >= t) { const a = P[i - 1], b = P[i], u = (t - a[2]) / Math.max(1e-6, b[2] - a[2]); return [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, t]; }
+  for (let i = 1; i < P.length; i++) if (P[i][2] >= t) { const a = P[i - 1], b = P[i]; if (jumpAt(P, i)) return t - a[2] < b[2] - t ? a : b; const u = (t - a[2]) / Math.max(1e-6, b[2] - a[2]); return [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, t]; }
   return P[P.length - 1];
+}
+// the player as the viewer draws it (lib/look.js drawPlayer: the icon of each mode, GD's default lime and cyan), turned
+// as the game turns it (visualRot from tools/lego.js) and mirrored top to bottom when gravity is reversed.
+// path rows: [x, y, t, drawn rotation] (older catalogues: [x, y, t] -> a cube)
+const MODES = ["cube", "ship", "ball", "ufo", "wave", "robot", "spider", "swing"];
+function drawIcon(g, m, p, q) {
+  const P = p.path, i = Math.max(0, P.findIndex(r => r[2] >= q[2])), r = P[i] || P[P.length - 1], r0 = P[Math.max(0, i - 1)];
+  // the player's state where it last changed (tools/lego_page.js packPath: [from row, mode, gravity, grounded, mini])
+  let S = null; for (const x of p.st || []) { if (x[0] > i) break; S = x; }
+  const mode = S ? MODES[S[1]] || "cube" : (p.mode || "cube");
+  const B = 30, s = { x: q[0] * B, y: q[1] * B, mode, grav: S ? S[2] : 1, rot: r.length > 3 ? r[3] : 0, grounded: !!(S && S[3]), mini: !!(S && S[4]),
+    vy: (r[1] - r0[1]) * B / Math.max(1e-3, r[2] - r0[2]), tick: Math.round(q[2] * 240) };
+  const dx = (r[0] - r0[0]) * B / Math.max(1e-3, r[2] - r0[2]);
+  const view = { sx: x => m.X(x / B), sy: y => m.Y(y / B), scale: m.z / B };
+  const local = (o, fn) => { g.save(); g.translate(view.sx(o.x), view.sy(o.y)); g.rotate((o.rot || 0) * Math.PI / 180);
+    g.scale(view.scale * (o.flipX ? -1 : 1), -view.scale * (o.flipY ? -1 : 1)); fn(); g.restore(); };
+  if (window.GD && GD.LOOK) GD.LOOK.drawPlayer(g, view, s, false, local, dx || 311.58, null, true);
+  else { g.fillStyle = "#7dff00"; g.fillRect(m.X(q[0]) - m.z / 2, m.Y(q[1]) - m.z / 2, m.z, m.z); }
 }
 function frame(now) {
   const p = CUR, cv = $("bigc"); if (!p || $("big").hidden) return stop();
@@ -270,9 +303,7 @@ function frame(now) {
   // the clicks already passed light up
   for (const c of p.clicks || []) if (c[3] <= tNow && tNow - c[3] < 0.25) { g.strokeStyle = c[2] ? "#ffd84a" : "#ffffff"; g.lineWidth = 3; g.beginPath(); g.arc(m.X(c[0]), m.Y(c[1]), 8 + (tNow - c[3]) * 60, 0, 7); g.stroke(); }
   const held = (p.clicks || []).filter(c => c[3] <= tNow).slice(-1)[0];
-  const s = p.family === "fly" && p.mode === "wave" ? .6 : 1;
-  g.save(); g.translate(m.X(q[0]), m.Y(q[1])); g.fillStyle = held && held[2] ? "#ffd84a" : "#7dff9c"; g.strokeStyle = "#0c0a24"; g.lineWidth = 2;
-  g.fillRect(-m.z * s / 2, -m.z * s / 2, m.z * s, m.z * s); g.strokeRect(-m.z * s / 2, -m.z * s / 2, m.z * s, m.z * s); g.restore();
+  drawIcon(g, m, p, q);
   g.fillStyle = "#f3f1ff"; g.font = "600 14px Archivo,sans-serif"; g.fillText(`${Math.min(tNow, end).toFixed(2)} s` + (held && held[2] ? "  · held" : ""), 10, 20);
   anim = requestAnimationFrame(frame);
 }
@@ -291,10 +322,13 @@ document.addEventListener("keydown", e => {
   if (e.key === "Escape") $("close").onclick(); else if (e.key === "ArrowRight") $("bnext").onclick(); else if (e.key === "ArrowLeft") $("bprev").onclick(); else if (e.key === " ") { e.preventDefault(); play(); }
 });
 $("more").onclick = () => render(false);
-for (const id of ["fgrain", "fsrc", "fsort", "ffam", "fmode", "fwrap", "fours", "fun", "femp", "fdup", "frough", "fvote"]) $(id).onchange = filter;
+for (const id of ["fgrain", "fsrc", "fsort", "ffam", "fmode", "fwrap", "fours", "fun", "femp", "fdup", "frough", "fjit", "fvote"]) $(id).onchange = filter;
 $("fq").oninput = filter;
-fetch("pieces.json").then(r => r.json()).then(d => {
+Promise.all(["pieces.json", "pieces_more.json"].map(f => fetch(f).then(r => r.ok ? r.json() : []).catch(() => []))).then(([a, b]) => a.concat(b)).then(d => {
+  if (!d.length) throw new Error("no pieces");
   const first = p => p.src === "official" ? 0 : p.src === "sketch" ? 1 : p.src === "library" ? 2 : 3;
+  // put back each row's time where tools/lego_page.js packPath left it out (evenly spaced rows: t0 + i * dt)
+  for (const p of d) if (p.dt != null) p.path.forEach((r, i) => { if (r.length === 2) r.push(p.t0 + i * p.dt); else if (r[2] == null) r[2] = p.t0 + i * p.dt; });
   ALL = d.sort((a, b) => first(a) - first(b));
   const modes = [...new Set(ALL.map(p => p.mode))].sort(), wraps = [...new Set(ALL.map(p => p.wrap))].sort();
   $("fmode").insertAdjacentHTML("beforeend", modes.map(m => `<option>${esc(m)}</option>`).join(""));

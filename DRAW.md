@@ -180,3 +180,29 @@ The user: "dont want to swap between those two" (the ✏ and ● tool buttons). 
 keys 1-5): the pen row is always on screen next to the one-tap palette. Tapping a pen (ground, blocks, hazards, deco,
 jump, note) makes the next touch draw; tapping a palette item (portal, orb, pad, speed, size, hazard) makes the next
 tap place it. Whichever was tapped last is lit. Select, erase and pan stay as they were.
+
+## One pen: path or shape (2026-11-25)
+
+The user: "all im thinking is a path, or just sketch [...] i dont want to swap colors, or to do 5 clicks every time [...]
+somehow the result will match my thought". The ✨ **draw** pen (first pen, the default) reads each stroke itself
+(`lib/intent.js`, test `node tests/intent.js`, ~5-50 ms a stroke):
+- **Path** (a curve moving right): cut into ground parts and air parts (the line over 1.3 blocks for 6+ blocks is a flight;
+  a cube hop is back down within ~4). Ground parts are filled with **bricks**: our own verified lego pieces
+  (`viewer/bricks.js`, built by `node tools/brickset.js` from knowledge/lego.json + the levels' saved routes; 603 bricks,
+  our levels only, never RobTop's; Evgeni's 👎 votes left out), each scored by how close its replayed route runs to the
+  drawn line, chained by the seam contract (a ground brick starts where the last one left the player), and the best one
+  that still plays when the sketch so far is replayed with it (the next best when it dies). Air parts become a corridor
+  around the line (the fly-path idea: 45-degree slopes on both walls, gap 5 ship / 4 wave; straight 45-degree legs read as
+  wave, smooth curves as ship), a portal in and a cube portal out, and the holds that fly it from a small steering run in
+  the sim. Every brick brings its presses, so the stroke plays at once.
+- **Shape** (flat and upright lines standing on the ground, or a closed outline): snapped to the brick whose tops, column
+  by column, are nearest; when none is within ~3/4 block on average it is built as drawn (the ground pen) and left to
+  the layout fitter.
+- The old pens stay for exact work (ground, blocks, hazards, deco, I jump here, note), and the one-tap bar for objects.
+**Main-level bricks, private only** (the user OK'd them on his private claude.ai pages, 2026-11-25): `node tools/brickset.js
+--main [pieces.json]` turns the catalogue's official pieces (their hitbox boxes) back into objects -> `local/bricks_main.js`
+(1820 bricks; 126 of 133 cube bricks that start on the ground replay clean on their own). tools/web.js and tools/draw_web.js
+put it on the phone viewer and the whiteboard Artifact (both private); serve.js builds it on first ask on the PC. Never in
+git, never on the public site (tools/pages.js does not copy it). `node tests/intent.js --main` runs with it.
+Open: shapes rarely match a brick (a pillar, steps: built as drawn); bricks are only 1x speed; the corridor is plain (no
+spikes or gates yet: LEGO.md wrappers); presses from bricks are not synced to the song.

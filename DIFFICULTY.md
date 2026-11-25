@@ -348,6 +348,11 @@ What it showed first (FROSTBITE 2.66 vs Electrodynamix 2.65, same model):
   stars and the user's attempts from `flyRaw`, then decide. score.js and the board still use v1.
 - **Lone spike (fairness, not score)**: a jumping press under 60 ms among neighbours (±5 s) of 150 ms median or more
   is printed as SPIKE (knowledge/checklist.md "Fair"). FROSTBITE 8.2 s (the triple spike, 46 ms among ~296 ms).
+  Sweep of the 29 GDLM levels with a saved route (2026-11-25): 9 spikes in 6 levels -- GDLM 43 (24.4, 25.6 s), 45 (3.9 s),
+  69 (28.7 s), 70 (1.8 s; robot 28.3 and 61.6 s, 58 ms), 72 (8.2 s). Seven of them are 46 ms cube jumps: the triple spike at
+  1x (45.8 ms whatever the run-up, tools/collab.js) dropped into a calm stretch. So the family is "a 1x triple in an easy
+  part"; compose / collab should not place one there. v2 on the same sweep: every GDLM level 0.0-0.9 except GDLM 62
+  (1.18: its hit-timed ship corridor, flight 0.98 over 13 s).
 - Also open: a press whose window starts well before the portal (the 69 s one opens ~200 ms before it) can be pressed
   before the switch; the rule still counts it as forced.
 
@@ -675,6 +680,10 @@ whose route fails is the **highest priority** heavy job ("If we have it failed t
   (the raw solve dies: `--resume` from a bit before the trouble, checkpointed every 30 s).
 - `node tools/mains.js run [n ...]`: does them one after another, replans first, at heavy priority `urgent` (above
   high, tools/heavy.js); one runner at a time; log and history in `local/mains/`.
+- **In git** (2026-11-25, the user: "why dont we put the solutions on git?"): `knowledge/mains/routes.json` holds every main
+  level's human route, raw solve and coin route as press timings only (no level data; a hash of the level text and the
+  physics commit per route). `mains.js export [--push]` writes it; run and replan export and push it at their end; a new
+  PC replays them on its own game (tools/mains_routes.js import, SETUP.md) instead of hours of solving.
 - Automatic: `tools/serve.js`'s self-update starts `mains.js run` when a pull changes the physics or route code
   (mains.js ROUTE_CODE). A session that changes physics need not do anything else.
 - 2026-11-25, after the no-landing-buffer change (46672ee): 1 ok (Blast Processing), 8 replans, 13 resumes; most raw
