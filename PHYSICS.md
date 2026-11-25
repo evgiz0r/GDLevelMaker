@@ -935,7 +935,10 @@ or holds longer than needed (over 0.15 s outside ship/wave where a tap finishes)
   while its centre is already past the support's end moves earlier, 4 ticks at a time up to 48, to the first tick still
   over the block that clears (later inputs shift with it). `GD.edgePresses(w, events)` lists such presses. Sweep of our
   archive levels: 3 (GDLM 51 at block 214.5, 61 at 637.5, 64 at 952.4), all a landing on the corner with the jump at
-  once, so there is no earlier standing tick and the pass leaves them. Main levels: after the PC re-plan. ToE2 530: the saved route does not slide there (one slide tick in 500-551); it flies parallel to the slope
+  once, so there is no earlier standing tick and the pass leaves them. ToE2 237 itself was not caught at first: the UFO
+  walks 0.1 unit off the cliff and flaps in the air a few ticks later, so a UFO press within 12 ticks of walking off
+  (falling, no press between) counts too. Main routes (`node tools/edge_presses.js`, saved routes on 058065f): 65 edge
+  presses, Fingerdash 11, GD 7, ToE2 and Deadlocked 6. They go when the PC re-plans the mains. ToE2 530: the saved route does not slide there (one slide tick in 500-551); it flies parallel to the slope
   ~45 units above it. The re-plan slides 66 ticks in that stretch: to be judged by Evgeni in the viewer.
 - Mixed flying stretches (ship -> wave -> ship, one span in fly()): the wave planner now takes the stretch's wave part
   (ToE2 895-924, 31 inputs for 9 turns, was never given to it while it asked for an all-wave stretch).
