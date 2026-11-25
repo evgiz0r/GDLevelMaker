@@ -96,6 +96,18 @@ td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
     <div class="scroll"><table id="bandT"><thead><tr><th>Window</th><th>Presses</th><th>Cost</th><th style="width:40%">Share</th></tr></thead><tbody></tbody></table></div></div>
 </div></section>
 
+<section class="band" style="padding-top:0" id="fitSec" hidden><div class="wrap">
+  <h2>The new model, fitted on the main levels</h2>
+  <p class="note" id="fitNote"></p>
+  <div class="cols" style="margin-top:12px">
+    <div class="scroll"><table id="fitT"><thead><tr><th>Level (your order)</th><th class="n">Yours</th><th class="n">New</th><th class="n">Old</th><th class="n">Score</th><th class="n">Flight</th></tr></thead><tbody></tbody></table></div>
+    <div><h3 style="margin:0 0 8px">What each part earns</h3>
+      <p class="note">How much worse the new model matches the targets with that part left out (0.10 is a lot; 0 means the data do not need it).</p>
+      <div class="scroll"><table id="earnT"><thead><tr><th>Part</th><th class="n">Earns</th><th style="width:45%"></th></tr></thead><tbody></tbody></table></div>
+      <p class="note" id="fitW" style="margin-top:12px"></p></div>
+  </div>
+</div></section>
+
 <section class="band" style="padding-top:0"><div class="wrap formula">
   <h2>How the number is decided</h2>
   <p><code>score = log10(expected attempts) = &Sigma; over presses of &minus;log10 p</code>. Every press must work in one run, so the chances multiply; the log turns that product into a sum, and each press adds its own cost. 1.0 means about 10 attempts, 2.0 about 100, 3.0 about 1000.</p>
@@ -199,9 +211,20 @@ function drawPw() {
   g += `<path d="${d}" fill="none" stroke="var(--ink)" stroke-width="2"/>`;
   s.innerHTML = g;
 }
+function fitPart() {
+  const F = DATA.fitV2; if (!F) return;
+  document.getElementById("fitSec").hidden = false;
+  const r2 = x => x == null ? "-" : x.toFixed(2);
+  document.getElementById("fitNote").textContent = `Match with your ranking: old ${r2(F.v1.rank)}, new ${r2(F.fit.rank)}. With the stars: old ${r2(F.v1.stars)}, new ${r2(F.fit.stars)}. With your attempts: old ${r2(F.v1.att)}, new ${r2(F.fit.att)} (1.0 = the same order). Flying is scored by how open it is, a press only when it is a jump, and the weights come from the data, not from hand-set rules.`;
+  const off = (a, b) => Math.abs(a - b) > 3 ? ' style="color:var(--hot);font-weight:600"' : "";
+  document.querySelector("#fitT tbody").innerHTML = F.levels.map(l => `<tr><td>${esc(l.name)}</td><td class="n">${l.his}</td><td class="n"${off(l.v2r, l.his)}>${l.v2r}</td><td class="n"${off(l.v1r, l.his)}>${l.v1r}</td><td class="n">${l.v2.toFixed(2)}</td><td class="n">${l.fly.toFixed(2)}</td></tr>`).join("");
+  const mx = Math.max(...Object.values(F.earns), 0.01);
+  document.querySelector("#earnT tbody").innerHTML = Object.entries(F.earns).map(([k, v]) => `<tr><td>${esc(k)}</td><td class="n">${v.toFixed(2)}</td><td><div class="meter" style="width:${Math.max(0, v) / mx * 100}%"></div></td></tr>`).join("");
+  document.getElementById("fitW").textContent = `Fitted: timing spread ${F.w.SIGMA} ms (the old one is 13), flight spread ${F.w.FLY} units, gravity ${F.w.GRAV} a press, duals ${F.w.DUAL} a press. Highlighted ranks are more than 3 places from yours. Rank 1 = easiest.`;
+}
 function all() { hdr(); drawChart(); tables(); drawPw(); }
 try { const v = +localStorage.getItem("bal-cur"); if (v > 0 && v < DATA.levels.length) cur = v; } catch (e) {}
-all();
+all(); fitPart();
 const ro1 = new ResizeObserver(drawChart); ro1.observe(chartEl);
 const ro2 = new ResizeObserver(drawPw); ro2.observe(pwEl);
 }

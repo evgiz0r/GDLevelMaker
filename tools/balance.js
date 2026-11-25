@@ -215,6 +215,7 @@ function main() {
   if (json) fs.writeFileSync(json, JSON.stringify(data));
   if (html) {
     const tpl = fs.readFileSync(path.join(R, "viewer", "balance.html"), "utf8");
+    try { data.fitV2 = require("./difficulty_fit_v2.js").pageData({ SIGMA: V2.SIGMA, FLY: V2.FLY_SPREAD, GRAV: V2.GRAV_PEN, DUAL: V2.DUAL_PEN }); } catch (e) { console.error("no v2 fit on the page:", e.message); }
     fs.writeFileSync(html, tpl.replace("/*BALANCE_DATA*/null", JSON.stringify(data)));
     console.log("page:", html);
   }
