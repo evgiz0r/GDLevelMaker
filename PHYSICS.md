@@ -429,6 +429,38 @@ Re-solved with dual (2026-11-24, physics 1d59689, `difficulty_solve --resume`, c
   in Stereo Madness (358-386: 14-18 presses a second), Back On Track (459-510) and Polargeist (342-378: gaps 25-46 ms)
   clear only with inhuman input: the known ship-height mismatches (physics leads, not route bugs).
 
+## Rotated gameplay (id 2900): NOT in the sim -- the design (2026-11-25)
+
+Only Dash (lv22) of the 22 main levels uses it, 20 triggers from block ~71; it is why Dash stops at block 75
+(tests/tas_progress.js, DIFFICULTY.md). Everything below is from gdsolver (github.com/gdsolver/gdsolver, MIT;
+dp/src/dp/frames.hpp, step.hpp, cli.hpp, measured on lv22 and custom levels with a mod), not from our own runs.
+- GD turns the gameplay frame, not the world: the player's travel direction and gravity turn. The trigger's
+  rotation is the ABSOLUTE screen angle (8 of Dash's 20 are rot 0 = turn back). Travel = the x axis turned clockwise
+  by rot: 0 -> +X, 90 -> -Y, 180 -> -X, 270 -> +Y. Dash's first (x 2265, y 226, rot 90): from that tick x stays
+  at 2266.5 and y falls 1.298 a tick (the section's speed).
+- Fires on the tick after the player's FORWARD coordinate crosses the trigger's (the x-crossing + 1 rule of every
+  autonomous trigger); one shot (a re-crossing does nothing); touch-activated ones fire when the player's CENTRE is
+  inside the trigger's box, also on a teleport's landing; GD keeps them in a queue walked in order per channel
+  (checkSpawnObjects), and a Toggle'd-off one is skipped.
+- Speed carries over: the forward speed becomes the new forward, the old perpendicular is dropped; 169 "edit
+  velocity" with 583 (velocity mod Y) scales or (584) sets vy.
+- A frame can also REVERSE the run (travel -x in the frame; gdsolver: the trigger's ground direction gnddir 2 or 3).
+  Our sim only ever moves +x: reverse travel is part of this.
+- In a turned frame the spider's tap searches along world x (Dash t=1,813 lands on a block's side 27 px away), a
+  spider's tap on the turn tick is taken in the new frame (t=1,745), and the turn is tested BEFORE the tap warps.
+- Other triggers in a turned section do not fire on the world-x crossing (world x stops while the camera's does not):
+  gdsolver takes their ticks from GD's recording there. An open question for us.
+- Level keys on Dash's 2900s (raw, our reading): 6 rotation, 5 flipY, 166 and 167 (1-4: gdsolver's mvdir / gnddir,
+  which of the two is which is UNCONFIRMED), 169 edit velocity, 582 / 583 velocity mod, 170 / 173 (a chain: 173 =
+  this trigger's id, 170 = the one before it?), 171, 13; 2899 (gameplay options, 165 / 199) also appears.
+Design for our sim (gdsolver's shape): keep the state in the CURRENT frame's coordinates, so every rule stays "x is the
+clock, y is height"; build the world once per frame from the objects turned by -rot about the origin ((u, v) = the
+world turned; an AABB stays an AABB with w / h swapped; an object's GD rotation becomes rot - frame*90; quarter turns
+need no new hitbox code since makeWorld turns slopes and boxes already). A 2900 crossing: state -> world -> new frame,
+velocities as above. Needed with it: reverse travel (s.x decreasing: the columns, near(), crossings), the queue and
+touch rules, triggers inside turned sections, the camera and the viewer drawing the turned frame. Not started: it is
+a feature of its own (Dash has other gaps after it: gdsolver lists many lv22-only rules), so it wants its own session.
+
 ## Not in the sim yet (the game has it)
 
 Modes/portals: mirror. Teleport portals (747) are in, unchecked: same x, speed kept, exit height = portal y + key 54 along the portal's turned axis (54 x cos(rotation)), but the full 54 straight up/down when key 55 is set or the portal is turned a quarter (90/-90/270: cos would make it a no-op; Deadlocked's ball part 441-561 passes only so, neither "no move" nor "x moves by 54" does -- "angle mod 90" fits the same cases) (fitted on Deadlocked, 2026-11-23: its -53 degree portal at block 76.5 needs the turned offset to pass under a spike; its -46 degree portal with 55 at 360.8 lands exactly on the gravity + speed portals 224 below; whether GD also moves x is not known; smooth teleport and the 2.2 options 345+ not modelled); first used by Deadlocked at block 77, Fingerdash 205, Dash 435. Triggers: count/pickup items,
