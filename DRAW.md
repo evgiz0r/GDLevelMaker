@@ -199,6 +199,10 @@ somehow the result will match my thought". The ✨ **draw** pen (first pen, the 
   by column, are nearest; when none is within ~3/4 block on average it is built as drawn (the ground pen) and left to
   the layout fitter.
 - The old pens stay for exact work (ground, blocks, hazards, deco, I jump here, note), and the one-tap bar for objects.
-Open: the brick set is small for shapes (pillars, pits rarely match); bricks are only cube-speed 1x; the corridor is plain
-(no spikes or gates yet: LEGO.md wrappers); presses from bricks are not synced to the song; RobTop's bricks could match
-far better but may not leave the PC (a PC-only brick set via serve.js would be the next step).
+**Main-level bricks, private only** (the user OK'd them on his private claude.ai pages, 2026-11-25): `node tools/brickset.js
+--main [pieces.json]` turns the catalogue's official pieces (their hitbox boxes) back into objects -> `local/bricks_main.js`
+(1820 bricks; 126 of 133 cube bricks that start on the ground replay clean on their own). tools/web.js and tools/draw_web.js
+put it on the phone viewer and the whiteboard Artifact (both private); serve.js builds it on first ask on the PC. Never in
+git, never on the public site (tools/pages.js does not copy it). `node tests/intent.js --main` runs with it.
+Open: shapes rarely match a brick (a pillar, steps: built as drawn); bricks are only 1x speed; the corridor is plain (no
+spikes or gates yet: LEGO.md wrappers); presses from bricks are not synced to the song.
