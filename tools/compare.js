@@ -221,7 +221,8 @@ function main() {
   const out = html || path.join(ROOT, "local", "compare", levels.map(L => safe(L.name)).join("_vs_") + ".html");
   fs.mkdirSync(path.dirname(out), { recursive: true });
   const tpl = fs.readFileSync(path.join(ROOT, "viewer", "compare.html"), "utf8");
-  fs.writeFileSync(out, tpl.replace("/*COMPARE_DATA*/null", JSON.stringify(data).replace(/</g, "\\u003c")));
+  const esc = t => String(t).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
+  fs.writeFileSync(out, tpl.replace("<title>Level compare</title>", `<title>${esc(levels.map(L => L.name).join(" vs "))}</title>`).replace("/*COMPARE_DATA*/null", JSON.stringify(data).replace(/</g, "\\u003c")));
   console.log("\npage:", path.relative(ROOT, out));
 }
 module.exports = { measureLevel, table, verdict, resolve };
