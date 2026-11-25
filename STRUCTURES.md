@@ -238,8 +238,8 @@ column per pit, or armed ceilings over the platforms, both untested.
   from the ground sends the cube to the CEILING (physics, 2026-11-23). The sim and the game disagree:
   green-orb-flip (met high, after a pad) is to be re-checked once physics settles it.
 - **Dual** portals are not simulated: no dual structures yet.
-- Mining real levels for shapes (the most common 1-3 s layouts in official and community levels, by
-  mode) to add what they use and to rank by "how often real levels use this shape".
+- Mining real levels for shapes: started in LEGO.md (`tools/lego.js`: official and our levels cut into pieces by
+  family and wrapper; the `lego-*` flying pieces). Community levels and ranking by shape use are still open.
 - More per mode (ship, wave, ball, UFO, spider have 2-4 each) and harder tiers: everything so far reads
   Easy on lib/difficulty.js's scale (1-3 s pieces); the windows say more.
 - Fake-outs (deco that looks like a path, a portal that is not taken) are not in: the fairness rules

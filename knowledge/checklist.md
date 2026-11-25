@@ -24,6 +24,13 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 
 ## Fair (the user's playtests: a death must be the player's fault)
 
+- [ ] **No lone hard press among easy ones** (the user, 2026-11-25: "like jogging for 2 miles, and then having to jump
+  2 meters. yes its hard ... but it feels unfair"): no jumping press under 60 ms whose neighbours within 5 s have a
+  median window of 150 ms or more. FROSTBITE's triple spike at 8.2 s (46 ms among ~296 ms) is one. Check:
+  `node tools/balance.js <level>` prints `SPIKE` (DIFFICULTY.md "Balance"). A hard part is a stretch, not one press.
+- [ ] **Fly corridors are smooth: no one-block stair steps in a ship or wave wall** (2026-11-25: GDLM 44's ship died in the real
+  game at a stepped roof's corner where our sim passed, PHYSICS.md "probe mod"). Build them with `fly-path` (45-degree slopes
+  on both walls), not `ship-tunnel`; the margin our sim gives at a block corner is not to be trusted.
 - [ ] **`node tools/fairness.js <level>` passes** (also `tools/score.js` gate "fairness"). It
   flags (FAIL): an input forced right after a portal (into a jumping mode: the first input's window
   closes < 250 ms after it; into the wave: the button must change within 300 ms); a jump mark where
@@ -111,12 +118,27 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   a pattern), consistently, small and softer than the level. `node tools/obstacles.js indicators --file <level>`.
   (levels/obstacles.md section 4, design.md "Telegraph"; GDLM 45 v4, GDLM 46 v2)
 - [ ] **The shown route is the human route** (the default; route.kind "human", or "limit" with why): no skips, no unneeded press, taps not holds outside ship/wave (a tap ~60 ms, like a real one; family: "human taps"), orbs buffered, no jumps over nothing, flying the safe line. `node tests/saved_routes.js --all` (PHYSICS.md "How the route is chosen").
+- [ ] **No timing harder than the level's tier** (the user, 2026-11-25, on the main levels: "wherever a timing is too hard for the level, its probably not the path"): every press of the shown route has a window of at least the tier floor -- 40 ms Easy..Harder, 30 Insane, 20 Demon; under it, the route is probably not the intended one, so re-search there. `node tools/tight.js [n] --fix` for the main levels (tools/mains.js runs it after each job); DIFFICULTY.md "Too tight for the level".
 - [ ] **The shown route clicks where a human would**: early in a wide window (~40% in), never at its
   last safe frame -- the replay, the arrows and the level map all follow it. `node tools/windows.js <level>`
   ("pressed N% in"; lib/natural.js step 4). (the user on GDLM 45's ball: "i would prefer to click way earlier")
+- [ ] **No dash-orb skips** (Evgeni 2026-11-25: "holding them can skip a lot of gameplay which is intended"): a dash orb held
+  to its longest, or released at any later tick, must not fly over the intended presses that follow; a wall or ceiling ends
+  the dash where it is meant to. Checked per join in the lego plan (LEGO.md); not a score.js gate yet.
+- [ ] **The human route flies on easy timings, not on fewest presses** (Evgeni 2026-11-25: "its better to get an extra
+  click or two than having a terrible timing ... mostly in the flying sections (wave ship ufo swing). we can have a tas doing
+  little clicks but human route should avoid bad timings at the cost of an easy timing"; and on a jittery wave brick: "thats
+  obviously not the human path"). So: an extra press or two is fine when it widens the windows; a run of tiny taps is not
+  (3+ presses under 0.1 s apart in one brick, or close taps where a window is under 60 ms). By that rule 4 of the main levels' 218 flying bricks fail (18 of 60 wave
+  bricks have some close taps, Deadlocked 13), from lib/natural.js's corridor steering; the solver thread re-plans them. A brick's
+  layout may be reused, its flying taps are re-planned (LEGO.md "The replay").
 - [ ] **Wave**: zigzag turns wider than ~100 ms apart; no head-on slopes at a portal exit; the exit
   portal over a flat floor, level stretches at the turns (patterns.js wave-zigzag `flat`, `leadGap`).
   (design.md; GDLM 44/46 real-game deaths)
+- [ ] **The wave route follows the corridor's pattern**: one input per leg of the corridor (hold up one slope, let go down
+  the next), tight lines only where the gap asks for them; no small corrections (re-presses under 150 ms) beyond the
+  corridor's turns + 2. score.js route gate WARNs "off the pattern"; `node tools/flystyle.js <level>` per stretch.
+  (the user, 2026-11-25: "these corridors should be just few holds and releases"; PHYSICS.md "The wave like a person")
 - [ ] **Jump marks clear of hazards**: a mark shows the take-off, its centre >= ~1 block in front of the
   hazard's hitbox, never on or touching one. Placed by decorate.js jumpIndicators (INDICATOR.clear);
   `node tools/indicators.js <level> [--fix]`. (the user, hellgate round 2: "indicator inside spike")
@@ -134,6 +156,12 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 
 ## Not bland (rated Easy/Normal 2.0-2.1 medians)
 
+- [ ] **Motion and colour on every screen, not only at the start** (Eclipse v2-v4, 2026-11-25): one calm pulse a beat, a drift and a
+  spin per section, 10+ colour channels a screen; triggers placed along x, since the measures (decostudy, taste) count by x.
+  `node tools/taste.js score <level>` (dsMotion, dsChannels). Warm light behind the path: cool rims (`tools/roles.js`).
+- [ ] **Not repetitive** (the user, 2026-11-25: "way too repetitive, in the gameplay and structures"): no mini-structure
+  over ~4 times, no zigzag / tunnel of identical legs, corridors change height. `node tools/repeat.js <level> --top 3`
+  (R; taste.js "repetition (user rule)").
 - [ ] **Orb spacing**: 6+ blocks between two orb structures (gd-polish, hellgate v7: s:red-orb-wall right after
   s:green-orb-flip prejumped; s:orb-ladder-2 there made a 3-orb chain under 500 ms). compose enforces it; the prejumps and
   chains gates catch the rest.
@@ -153,6 +181,14 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   range in every 10 s, no flat 10 s, at most ~45% of standing on the bare floor, at most 5% of 4-move
   patterns repeated within 10 s (official medians: 13.6, 7 blocks, 0, 28%, 0%). `node tools/flow.js
   <level>`; score.js gates "height" / "repetition". (STRUCTURES.md; the user on GDLM 47's upside part)
+- [ ] **No structure 3 times, corridors that move** (the user on GDLM 71, 2026-11-25, 12 marks: "x6 of the same mini
+  structure", "should be 2 max", "with ball/spider/wave there should be different corridors (where top and bottom not
+  same height)"): in every flying corridor the floor and roof change heights apart, obstacles vary, and no stretch
+  repeats back to back more than twice. compose.js gives every ship / wave / ufo / ball / swing / spider corridor a
+  `vary` seed (tools/patterns.js: segments with their own floor / roof and motif; `"vary": false` in a brief or section =
+  the old periodic shapes). Measure: `node tools/repeat.js <level>` (loop, motif, corridor, R). Two flying modes back to
+  back switch directly (no cube portal and run between them; `"directSwitch": false` = off), and a cube section whose
+  next chunk does not fit ends with a single instead of an empty run.
 
 - [ ] **Built on blocks**: a block, slab or slope in ~45-50% of the cube columns; most spikes on
   ledges, steps, pit edges and under overhangs, not lone on the floor. `node tools/obstacles.js structure --file <level>`.
@@ -182,6 +218,17 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   context** (a spike before, an orb pit after, 2 columns each: `check --context`): a piece that passes alone
   can make orb chains or jumps timed around a block beside its neighbours (GDLM 64 v2/v3). compose leaves out
   a not-ready `s:` piece even when a brief names it by hand.
+- [ ] **Structuring** (CRAFT.md "Structuring"): outlines varied (not plain rectangles), structures joined to each other, not only
+  square shapes, the theme in the gameplay shapes, no long orb strings as the only mechanic. Not checked by a tool yet.
+- [ ] **No piece kind on repeat**: at most ~25% of the level's 2 s pieces repeat a signature from the 4 before
+  (official median 20%, ours 43%); few flat-cube pieces (official 2%, ours 33%). `node tools/lego.js variety <level>` (LEGO.md)
+- **No layout twice** (Evgeni, 2026-11-25: "many duplications like this"): the same block-for-block chunk again is a repeat
+  even at another phase; ours had 90 of 751 pieces (12%) vs official 1 of 838. `node tools/lego.js mine ours` flags `dupOf`
+  (LEGO.md "The catalogue as Evgeni browses it"). Pieces he voted on: `node tools/lego.js votes` (a weight, not a ban).
+- **Combining like the main levels** (LEGO.md "Combining", `node tools/lego_seams.js`): the next piece another kind but about
+  as hard (official: same signature 16%, ours 37%); portals entered on the move, not walking in (official 93%, ours 54%),
+  ~0.4 s quiet before and ~0.5 s after; some portals change speed too; use height (5 of 22 main levels climb past 20 blocks,
+  ours never pass 8).
 - [ ] **Variety**: ~15 kinds of gameplay thing; 4-5 modes and 2-3 speeds; a portal every ~2-3 s;
   ~25 orbs and pads per minute; at least ~90% of the chunks new. `node tools/variety.js <level>`.
   (levels/variety.md)
@@ -290,8 +337,15 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   level over ~5 blocks after the sign (make.js clips scenery and triggers past it: GD ends a level at its
   furthest object). ~1.5 s from the last input to the end; official median 0.8 s, rated community 0.9 s.
   score.js gate "ending" (WARN over 2.5 s). (the user on 45 v7: "ending still bit too long")
+  A section (the lab's variants, unsigned): cut ~3 blocks after its last hazard / orb / pad / portal or input
+  (tools/lab.js trimEnd), and its corridor fills the section it was given -- a wave corridor stopped at 2/3 of its
+  section, ~5 s of empty run (the user, 2026-11-25: "leaves way too much space ... should end almost instantly")
 - [ ] **The signature ends every GDLM level** (robot + human): make.js adds it by default; opt out
   only with `"signature": false`.
+- [ ] **Nothing the player should read above the view** (the user on GDLM 72, 2026-11-25: "the sign is offscreen"): for a
+  cube on the ground the game shows y -93 .. ~227 (lib/camera.js), so text and set pieces stay under ~210. The signature's
+  stage floated 90 units up and put its title at y 232; now 50 (title ~192). 21 of 30 GDLM levels carry the old one until
+  rebuilt (`make.js <spec> --look`).
 
 ## Ratable (rating.md)
 

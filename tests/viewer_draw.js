@@ -19,6 +19,7 @@ let fail = 0; const ok = (c, m) => { console.log((c ? "ok   " : "FAIL ") + m); i
     });
     const errs = []; p.on("pageerror", e => errs.push(e.message));
     await p.goto("http://draw.test/viewer/index.html?test=1"); await p.waitForTimeout(800);
+    if (await p.evaluate(() => !document.getElementById("taskBox").hidden)) await p.click("#taskCancel");   // "find the route?" (no local/ here)
     await p.click("#drawBtn"); await p.waitForTimeout(800);
     const fr = p.frameLocator("#drawFrame"), frame = p.frame({ url: /draw\.html/ });
     ok(!!frame && await frame.evaluate(() => !!window.DRAW && document.documentElement.classList.contains("embed")), tag + ": ✏ draw opens the board over the canvas");
@@ -38,14 +39,16 @@ let fail = 0; const ok = (c, m) => { console.log((c ? "ok   " : "FAIL ") + m); i
     await frame.evaluate(() => { DRAW.V.x += 200; DRAW.V.z *= 1.3; }); await frame.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
     await frame.evaluate(() => { window.__d = 1; }); await p.waitForTimeout(100);
     if (SHOTS) await p.screenshot({ path: path.join(SHOTS, `viewer_draw_${tag}.png`) });
-    // ▶ on the board: replay in the viewer
-    await fr.locator("#replayBtn").click(); await p.waitForTimeout(600);
+    ok(await p.evaluate(() => ["stagebar", "secbar", "varbar"].every(id => document.getElementById(id).hidden)) && !await fr.locator("#playBtn").isVisible(),
+      tag + ": while drawing, no other level's stages / sections / variants, and one ▶ / 🎮 (the viewer's)");
+    // the viewer's ▶ play while drawing: leaves the board and replays the sketch
+    await p.evaluate(() => document.getElementById("play").click()); await p.waitForTimeout(600);
     const rp = await p.evaluate(() => ({ hidden: document.getElementById("drawFrame").hidden, playing, t, cam: MAPCAM }));
     ok(rp.hidden && rp.playing && rp.t > 0 && !rp.cam, `${tag}: ▶ replays it in the viewer (t ${rp.t.toFixed(2)} s)`);
     if (SHOTS) await p.screenshot({ path: path.join(SHOTS, `viewer_draw_${tag}_replay.png`) });
     await p.click("#drawBtn"); await p.waitForTimeout(300);
     ok(await p.evaluate(() => !document.getElementById("drawFrame").hidden && !!MAPCAM), tag + ": ✏ draw goes back to the drawing");
-    await fr.locator("#playBtn").click(); await p.waitForTimeout(500);
+    await p.evaluate(() => document.getElementById("youPlay").click()); await p.waitForTimeout(500);   // in a menu at phone size
     ok(await p.evaluate(() => PLAY.on && document.getElementById("drawFrame").hidden), tag + ": 🎮 plays it in the viewer");
     await p.keyboard.press("Space"); await p.waitForTimeout(300);
     // songs: the grid comes from the repo (viewer/song_grids.js, no mp3, no local/), is kept in the sketch, reaches the

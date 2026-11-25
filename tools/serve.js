@@ -82,6 +82,7 @@ const PAGES_ORIGINS = ["https://evgiz0r.github.io"];
 const isLoop = a => a === "::1" || /^127\./.test(a);
 const isLan = a => /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(a);
 const LAN_FILES = /^\/(viewer\/[\w.\/-]*|lib\/[\w.-]+\.js|levels\/[\w.-]+|examples\/[\w.-]+|local\/(beats\.local\.js|marks\.jsonl|official_\d+\.json|(maps|wip|community)\/[\w.\/ -]+))$/;
+const LEGO = { building: false, error: "" };
 const SERVER = http.createServer((req, res) => {
   const ra = String(req.socket.remoteAddress || "").replace(/^::ffff:/, ""), lan = !isLoop(ra);
   if (lan && !isLan(ra)) { res.writeHead(403); return res.end("this viewer answers only this PC and the home network"); }
@@ -177,6 +178,31 @@ const SERVER = http.createServer((req, res) => {
       } catch (e) { res.writeHead(400); res.end(String(e.message)); }
     });
     return;
+  }
+  // POST /lego/vote: a 👍 / 👎 / comment on one structure from the catalogue (tools/lego_page.html) -> local/lego/votes.jsonl
+  // (the newest line per piece wins; `node tools/lego.js votes` merges them with the phone page's and saves
+  // knowledge/lego_votes.json). A vote is a preference weight, never a ban (the user, 2026-11-25).
+  if (req.method === "POST" && p === "/lego/vote") {
+    let body = "";
+    req.on("data", c => { body += c; if (body.length > 2e4) req.destroy(); });
+    req.on("end", () => {
+      try {
+        const v = JSON.parse(body);
+        if (!v || typeof v.id !== "string" || ![-1, 0, 1].includes(v.vote)) throw new Error("not a vote");
+        const line = { id: v.id.slice(0, 120), vote: v.vote, comment: String(v.comment || "").slice(0, 2000), sig: String(v.sig || "").slice(0, 200), level: String(v.level || "").slice(0, 120), x: +v.x || 0, at: new Date().toISOString(), from: "pc" };
+        const test = v.test === true || /^test-/.test(line.id);
+        const vf = path.join(root, "local", "lego", test ? "votes.test.jsonl" : "votes.jsonl");
+        fs.mkdirSync(path.dirname(vf), { recursive: true }); fs.appendFileSync(vf, JSON.stringify(line) + "\n");
+        if (!test) try { require("./actions.js").append({ type: "lego-vote", session: "lego", level: line.level, text: (line.vote > 0 ? "👍 " : line.vote < 0 ? "👎 " : "") + line.sig + (line.comment ? ": " + line.comment : ""), x: line.x }); } catch (e) {}
+        res.writeHead(200, { "Content-Type": "application/json" }); res.end('{"ok":true}');
+      } catch (e) { res.writeHead(400); res.end(String(e.message)); }
+    });
+    return;
+  }
+  if (p === "/lego/votes.json") {
+    const vf = path.join(root, "local", "lego", "votes.jsonl"), last = {};
+    try { for (const l of fs.readFileSync(vf, "utf8").split("\n")) { if (!l.trim()) continue; try { const v = JSON.parse(l); last[v.id] = v; } catch (e) {} } } catch (e) {}
+    res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify(last));
   }
   if (req.method === "POST" && p === "/marks") {
     let body = "";
@@ -492,6 +518,30 @@ const SERVER = http.createServer((req, res) => {
       res.writeHead(200, { "Content-Type": f.endsWith(".png") ? "image/png" : "text/xml", "Cache-Control": "max-age=3600" });
       res.end(data);
     });
+  }
+  // GET /lego/ : the structure catalogue (LEGO.md), every piece incl. the official layouts (this PC and the home network
+  // only). Built by tools/lego.js (mine + page, ~20 s) when missing or older than the lego tools or the newest level;
+  // meanwhile a "building" page that reloads itself.
+  if (p === "/lego") { res.writeHead(302, { Location: "/lego/" }); return res.end(); }
+  if (p === "/lego/" || p === "/lego/pieces.json" || p === "/lego/pieces_more.json") {
+    const dir = path.join(root, "local", "lego", "page"), idx = path.join(dir, "index.html"), mt = f => { try { return fs.statSync(f).mtimeMs; } catch (e) { return 0; } };
+    const newest = Math.max(...["tools/lego.js", "tools/lego_page.js", "tools/lego_page.html", "lib/look.js"].map(f => mt(path.join(root, f))), ...fs.readdirSync(path.join(root, "levels")).filter(f => /^gdlm_/.test(f)).map(f => mt(path.join(root, "levels", f))));
+    // stale: older than the newest level, or built by other code than what is here now (the stamp in the page)
+    let stale = mt(idx) < newest;
+    if (!stale && mt(idx)) try { const st = require("./lego_page.js").stamp(); stale = !fs.readFileSync(idx, "utf8").includes("<!--lego-build:" + st + "-->"); } catch (e) {}
+    if (stale && !LEGO.building) {
+      LEGO.building = true;
+      const ch = cp.spawn(process.execPath, ["-e", `require(${JSON.stringify(path.join(__dirname, "lego.js"))}).mine(["official","ours","sketches","library"],[]);require(${JSON.stringify(path.join(__dirname, "lego_page.js"))}).build(require(${JSON.stringify(path.join(__dirname, "lego.js"))}).load(),{})`], { cwd: root, stdio: ["ignore", "ignore", "pipe"], windowsHide: true, env: Object.assign({}, process.env, { LEGO_CACHED_WINDOWS: "1" }) });
+      let err = ""; ch.stderr.on("data", d => { err = (err + d).slice(-3000); });   // only windows already measured (knowledge/lego_windows): the page in seconds, never a 40-min first measure
+      ch.on("exit", code => { LEGO.building = false; LEGO.error = code ? err || ("exit " + code) : ""; });
+    }
+    // a page built before stays visible while a new one builds; with none yet, a page that reloads itself (and says why
+    // the last build failed, if it did)
+    if (!mt(idx)) { if (LEGO.error) { res.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" }); return res.end("The structure catalogue build failed:\n" + LEGO.error); } res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" }); return res.end('<meta http-equiv="refresh" content="5"><body style="background:#16123a;color:#eee;font:18px sans-serif;padding:40px">Building the structure catalogue from every level (about 20 s, measured in the cloud) ... this page reloads itself.</body>'); }
+    const f = p.endsWith(".json") ? path.join(dir, path.basename(p)) : idx;
+    if (!mt(f)) { res.writeHead(404); return res.end(); }
+    res.writeHead(200, { "Content-Type": p.endsWith(".json") ? "application/json" : "text/html; charset=utf-8", "Cache-Control": "no-store" });
+    return fs.createReadStream(f).pipe(res);
   }
   if (p === "/" || p === "/viewer") { res.writeHead(302, { Location: "/viewer/" }); return res.end(); }
   if (p.endsWith("/")) p += "index.html";

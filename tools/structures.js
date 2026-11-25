@@ -433,6 +433,32 @@ S("ball-dense", { mode: "ball", tags: ["ball", "pit", "dense"], tier: "Normal",
   args: { w: 40, gap: 5, every: 9, lead: 5, pit: true, pitClear: 2 },
   build: a => ({ objects: [["pattern", "ball-run", 0, 0, a]], width: a.w, exitRow: 1 }) });
 
+// ---------------------------------------------------------------- lego: one path, many pieces (LEGO.md)
+// The same path ([2, 6, 2, 6, 2]: two hills) built by the `fly-path` pattern for ship, wave and swing, in different
+// wrappers, so the catalogue can be compared piece by piece: what the mode changes, what the wrapper changes, and turns
+// made by a click or by a gravity portal at the meeting point (the user's sketch 11-25 17:06).
+const LEGO_PATH = [2, 6, 2, 6, 2];
+const lego = (id, mode, doc, args, tags = []) => S(id, { mode, tags: [mode, "lego", ...tags], tier: "Normal", doc,
+  args: Object.assign({ mode, rows: LEGO_PATH }, args),
+  build: a => { const r = require("./patterns.js").PATTERNS["fly-path"].fn(a); return { objects: [["pattern", "fly-path", 0, 0, a]], width: r.width, exitRow: r.exitRow }; } });
+lego("lego-wave-corridor", "wave", "two hills as a 45-degree wave corridor, the player turns at each top and bottom", { gap: 5, flat: 2 });
+lego("lego-wave-flip", "wave", "the same two hills, a gravity portal at every turn: held all the way, the portals turn it", { gap: 5, flat: 2, turns: "flip" }, ["gravity", "gravity portal"]);
+lego("lego-wave-mix", "wave", "the same hills, every other turn by a portal: click, hold through, click", { gap: 5, flat: 2, turns: "mix" }, ["gravity", "gravity portal"]);
+lego("lego-wave-teeth", "wave", "the wave hills with a spike at each turn, on the side the wave is not on", { gap: 5, flat: 2, spikes: "turns" });
+lego("lego-ship-corridor", "ship", "the same two hills as a ship corridor (5-column legs)", { gap: 5, seg: 5, flat: 2 });
+lego("lego-ship-spiky-gates", "ship", "the ship hills with spikes on both walls and a gate (a 4-row squeeze) at each hilltop: the official levels' most common ship piece", { gap: 5, seg: 5, flat: 3, spikes: "both", every: 5, gates: [1, 3], gateGap: 4 }, ["spikes", "gates"]);
+lego("lego-ship-floor", "ship", "the ship hills as a floor path only (open above), spikes on the level stretches", { gap: 5, seg: 5, flat: 3, wrap: "floor", spikes: "floor", every: 4 }, ["spikes"]);
+lego("lego-ship-flip", "ship", "the ship hills with gravity portals at the hilltops: the ship flies upside down between them", { gap: 5, seg: 5, flat: 3, turns: "mix" }, ["gravity", "gravity portal"]);
+lego("lego-swing-corridor", "swing", "the same two hills as a swing corridor (6 rows of room)", { gap: 6, seg: 6, flat: 2 });
+lego("lego-swing-gates", "swing", "the swing hills with a gate at each hilltop", { gap: 6, seg: 6, flat: 3, gates: [1, 3], gateGap: 4 }, ["gates"]);
+
+// The user's sketch 11-25 17:06 (local/sketches/smwwdlwm3.json), rebuilt as smooth lego (the user: "i wanted smooth play in
+// those corridors"): the knots are the centre line between his drawn walls (rounded to rows), the gaps his drawn gaps,
+// gravity portals where he stamped them; 45-degree walls, no spikes on the walls (he drew spike lines as the walls).
+lego("sk1706-wave", "wave", "Evgeni's wave sketch (11-25 17:06): five hills of different heights, gravity portals at the meeting points from the third hill on", { rows: [3, 7, 4, 7, 4, 6, 3, 6, 4, 6], gap: 5, flat: 2, flipAt: [4, 5, 6, 7] }, ["gravity", "gravity portal", "sketch"]);
+lego("sk1706-ship", "ship", "Evgeni's ship sketch (11-25 17:06): down into a valley, up over a hill, then three squeezes at different heights", { rows: [6, 3, 7, 6, 5, 7], gap: 5, flat: 4, gates: [3, 4, 5], gateGap: 4 }, ["gates", "sketch"]);
+lego("sk1706-swing", "swing", "Evgeni's swing sketch (11-25 17:06): a high run, a long fall, then three squeezes at different heights", { rows: [5, 6, 2, 4, 6, 3], gap: 6, flat: 4, gates: [3, 4, 5], gateGap: 4 }, ["gates", "sketch"]);
+
 // ---------------------------------------------------------------- the harness: one small test level per structure
 const MODE_PORTAL = { ship: "ship portal", ball: "ball portal", ufo: "ufo portal", wave: "wave portal", robot: "robot portal", spider: "spider portal", swing: "swing portal", cube: "cube portal" };
 // blocks of calm run after a mode portal before the structure (the lead-in medians of rated low-tier

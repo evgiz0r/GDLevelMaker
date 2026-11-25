@@ -19,7 +19,7 @@ for (const n of Object.keys(RATED).map(Number)) {
   if (!fs.existsSync(f)) continue;
   const c = JSON.parse(fs.readFileSync(f, "utf8")), A = c.actions, sec = Math.max(c.seconds, 1e-9);
   const miss = (a, settle) => {
-    const k = settle && a.afterSwitchMs != null && a.afterSwitchMs < SET ? Math.max(0.02, a.afterSwitchMs / SET) : 1;
+    const k = settle ? DF.settleOf(a, SET) : 1;
     return -Math.log10(Math.max(DF.hitChance(a.ms, SIG) * k, 1e-9));
   };
   const win = A.reduce((s, a) => s + miss(a, false), 0), full = A.reduce((s, a) => s + miss(a, true), 0);

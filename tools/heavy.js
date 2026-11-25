@@ -143,7 +143,14 @@ function etaOf(h) {
   return { left: Math.max(1, Math.round((est.secs - elapsed) / 60)), basis: est.basis, over: elapsed > est.secs * 1.2, secs: est.secs };
 }
 function minutesLeft(h) { const e = etaOf(h); return e ? e.left : null; }
-const describe = h => { const e = etaOf(h); return `${(/tools[\\/].*/.exec(h.cmd) || [h.cmd])[0]} (${h.session}, ${h.prio && h.prio !== "normal" ? h.prio + " priority, " : ""}pid ${h.pid}, ${Math.round((Date.now() - Date.parse(h.start)) / 60000)} min in` +
+// a holder far past what it should take: over 3x its measured estimate, or over 3 h with none (the user, 2026-11-25, after
+// a presslib rollout held a slot 17 h: "lets check whats happening in my pc once in awhile ... its really a bottleneck").
+// Sessions that see "!! overdue" report it to the user (CLAUDE.md "Heavy jobs").
+function overdue(h, e = etaOf(h)) {
+  const secs = h.start ? (Date.now() - Date.parse(h.start)) / 1000 : 0;
+  return e ? secs > 3 * e.secs && secs > 600 : secs > 3 * 3600;
+}
+const describe = h => { const e = etaOf(h); return `${overdue(h, e) ? "!! overdue " : ""}${(/tools[\\/].*/.exec(h.cmd) || [h.cmd])[0]} (${h.session}, ${h.prio && h.prio !== "normal" ? h.prio + " priority, " : ""}pid ${h.pid}, ${Math.round((Date.now() - Date.parse(h.start)) / 60000)} min in` +
   (!e ? ", time not measured)" : e.over ? `, past its estimate: ${e.basis})` : `, ~${e.left} min left: ${e.basis})`); };
 
 // is the worktree at root behind origin/main? fast-forward when it is clean. Returns

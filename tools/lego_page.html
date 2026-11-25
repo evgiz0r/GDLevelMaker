@@ -1,0 +1,344 @@
+<meta charset="utf-8">
+<title>Structure lego catalogue</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..800&display=swap" rel="stylesheet">
+<style>
+/* VOICE work: a research catalogue Evgeni browses and argues with
+   IDEA a parts drawer: every piece in its own labelled tray, sorted by family like lego bins
+   PICTURE the mix chart (official vs ours per family) on top, then the drawer of thumbnails drawn from the pieces
+   COLOUR game-night indigo ground, white blocks, coral hazards, yellow orbs, cyan path
+   TYPE Archivo wide 800 + Archivo
+   LAYOUT laptop: finding + mix chart across, filters bar, grid of trays; phone: one column of trays */
+:root{color-scheme:dark;--bg:#16123a;--panel:#211b52;--line:#3a3378;--ink:#f3f1ff;--mute:#b9b3e6;--blk:#e9e6ff;--haz:#ff5d78;--orb:#ffd84a;--path:#4fe3ff;--ours:#7dff9c;--off:#c9a6ff}
+*{box-sizing:border-box;min-width:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 Archivo,system-ui,sans-serif;margin:0;overflow-x:clip}
+.band{padding-block:clamp(20px,3vw,40px);padding-left:max(4vw,16px,env(safe-area-inset-left,0px));padding-right:max(4vw,16px,env(safe-area-inset-right,0px));max-width:1400px;margin:0 auto}
+h1{font-stretch:115%;font-weight:800;font-size:clamp(22px,3vw,32px);line-height:1.05;letter-spacing:-.02em;margin:0 0 6px}
+.band.head{padding-block:14px 4px}
+.drawer{padding-top:6px}
+.stats{border-top:1px solid var(--line);margin-top:24px}
+.stitle{font-size:20px;margin:0 0 10px}
+.lede{color:var(--mute);max-width:70ch;margin:0 0 18px}
+.top{display:grid;grid-template-columns:minmax(0,1fr);gap:24px}
+@media(min-width:980px){.top{grid-template-columns:minmax(0,5fr) minmax(0,7fr)}}
+.mix{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.mix h2,.drawer h2{font-size:17px;margin:0 0 8px;font-weight:700}
+.mrow{display:grid;grid-template-columns:minmax(9em,15em) minmax(0,1fr);gap:10px;align-items:center;font-size:13px;padding:2px 0}
+.mrow .k{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--mute)}
+.bars{display:grid;gap:2px}
+.bar{height:7px;border-radius:2px;min-width:1px}
+.bar.o{background:var(--off)}.bar.u{background:var(--ours)}
+.key{display:flex;gap:16px;font-size:13px;color:var(--mute);margin-top:8px;flex-wrap:wrap}
+.key i{display:inline-block;width:12px;height:8px;border-radius:2px;margin-right:6px}
+.notes p{margin:0 0 10px}
+.notes b{color:var(--ink)}
+.filters{position:sticky;top:env(safe-area-inset-top,0px);z-index:3;background:var(--bg);border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding-block:10px}
+select,input{font:15px Archivo,sans-serif;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:7px 9px;min-height:38px}
+input{flex:1 1 180px}
+.count{color:var(--mute);font-size:14px;white-space:nowrap}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;margin-top:14px}
+.tray{background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden;cursor:pointer}
+.tray:hover,.tray:focus{border-color:var(--path);outline:none}
+.tray canvas{display:block;width:100%;height:120px;background:#0f0c2b}
+.tray .t{padding:7px 10px 9px;font-size:13px;line-height:1.35}
+.tray .sig{color:var(--ink);font-weight:600}
+.tray .m{color:var(--mute)}
+.src{display:inline-block;font-size:12px;padding:0 6px;border-radius:4px;margin-right:6px;color:#16123a;font-weight:700}
+.ok{color:#7dff9c;font-weight:700;margin-right:4px}.no{color:#ff9db0;font-weight:700;margin-right:4px}
+.src.official{background:var(--off)}.src.ours{background:var(--ours)}.src.sketch{background:var(--orb)}.src.library{background:var(--path)}
+.more{margin:16px 0;text-align:center}
+button{font:600 15px Archivo,sans-serif;background:var(--path);color:#0c0a24;border:0;border-radius:6px;padding:10px 18px;min-height:44px;cursor:pointer}
+#big{position:fixed;inset:0;background:rgba(10,8,30,.92);z-index:9;display:flex;flex-direction:column;padding:max(16px,env(safe-area-inset-top,0px)) max(4vw,16px) 16px}
+[hidden]{display:none!important}
+#big canvas{width:100%;flex:1 1 auto;min-height:200px;background:#0f0c2b;border-radius:8px}
+#big .info{font-size:14px;color:var(--mute);margin-top:10px;overflow-wrap:anywhere}
+#big .info b{color:var(--ink)}
+#big .close{margin-left:auto}
+#big .bar1{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+#big .bar1 button{padding:8px 14px}
+button.ghost{background:var(--panel);color:var(--ink);border:1px solid var(--line)}
+button.vote{font-size:20px;background:var(--panel);color:var(--ink);border:1px solid var(--line);padding:6px 14px}
+button.vote.on.up{background:#1f6b3a;border-color:#7dff9c}button.vote.on.down{background:#7a1f33;border-color:#ff9db0}
+#bvote{display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;margin-top:10px}
+#bcom{flex:1 1 260px;min-height:44px;font:15px Archivo,sans-serif;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:8px}
+#bsaved{color:var(--mute);font-size:13px;align-self:center}
+.vt{float:right;font-size:14px}
+.chk{display:flex;gap:12px;flex-wrap:wrap;width:100%}
+.chk label{display:flex;gap:5px;align-items:center}
+.chk input{min-height:0;width:auto;flex:none}
+</style>
+
+<div class="band head">
+  <h1>Structure lego catalogue</h1>
+
+</div>
+<div class="band filters" id="filters">
+  <select id="fgrain"><option value="brick">bricks (~1 s: one move)</option><option value="auto">auto bricks (no clicks: pads, portals, falls)</option><option value="piece">pieces (1-3 s: a screen)</option></select>
+  <select id="fsrc"><option value="">every source</option><option>official</option><option>ours</option><option>sketch</option><option>library</option></select>
+  <select id="ffam"><option value="">every family</option><option value="fly">fly: ship, wave, swing</option><option value="jump">jump: cube, robot, ufo</option><option value="flip">flip: ball, spider</option></select>
+  <select id="fmode"><option value="">every mode</option></select>
+  <select id="fwrap"><option value="">every wrapper</option></select>
+  <input id="fq" placeholder="search: spikes, gates, blue-orb, level name">
+  <select id="fsort"><option value="">level order</option><option value="easy">easiest first</option><option value="hard">hardest first</option></select>
+  <select id="fvote"><option value="">any vote</option><option value="up">👍 liked</option><option value="down">👎 disliked</option><option value="com">with a comment</option><option value="none">not voted yet</option></select>
+  <span class="count" id="count"></span>
+  <div class="chk count"><span>also show:</span>
+    <label title="pieces from our GDLM levels, the lego library and the sketches"><input type="checkbox" id="fours"> our own pieces</label>
+    <label title="no route of our physics lives through it"><input type="checkbox" id="fun"> unverified</label>
+    <label title="nothing to react to: no hazard, orb, pad or portal, flat ground or open air"><input type="checkbox" id="femp"> empty</label>
+    <label title="the same layout again (another phase of a repeated chunk, or another level)"><input type="checkbox" id="fdup"> repeats</label>
+    <label title="flying pieces whose walls step in blocks instead of ramps"><input type="checkbox" id="frough"> stair walls</label>
+    <label title="routes that are not a human plan, or flying taps under 0.1 s apart (3+, or with a tight timing)"><input type="checkbox" id="fjit"> jittery routes</label></div>
+</div>
+<div class="band drawer">
+  <div class="grid" id="grid"></div>
+  <div class="more"><button id="more" hidden>Show more</button></div>
+</div>
+<div class="band stats">
+  <h2 class="stitle">About these pieces, and the mix of official vs ours</h2>
+  <p class="lede" id="lede"></p>
+  <div class="top">
+    <div class="notes" id="notes"></div>
+    <div class="mix"><h2>Where the pieces are: share of each source's pieces</h2><div id="mix"></div>
+      <div class="key"><span><i style="background:var(--off)"></i>official 1-22</span><span><i style="background:var(--ours)"></i>our GDLM levels</span></div></div>
+  </div>
+</div>
+<div id="big" hidden>
+  <div class="bar1"><button id="bplay">▶ play</button><button class="ghost" id="bslow">speed 1x</button><button class="ghost" id="bprev" title="previous (←)">←</button><button class="ghost" id="bnext" title="next (→)">→</button><button class="ghost close" id="close">Close</button></div>
+  <canvas id="bigc"></canvas>
+  <div id="bvote"><button class="vote up" id="bup" title="I like it (a weight, not a rule)">👍</button><button class="vote down" id="bdown" title="not this one so much (still allowed)">👎</button><textarea id="bcom" placeholder="a comment (optional): what is good or off about it"></textarea><button id="bsave">Save</button><span id="bsaved"></span></div>
+  <div class="info" id="binfo"></div></div>
+
+<script>/*LOOK*/</script>
+<script>
+{
+const MIX = /*MIX*/null, PUB = /*PUB*/false;
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const $ = id => document.getElementById(id);
+let ALL = [], VIEW = [], shown = 0;
+window.__lego = { view: () => VIEW, open: i => open(i), play: () => play(), stop: () => stop() };   // for tests and screenshots
+const PAGE = 60;
+
+// ---- the mix chart (numbers only)
+{
+  const t = MIX.tot, max = Math.max(...MIX.rows.map(r => Math.max(r.official / Math.max(1, t.official), r.ours / Math.max(1, t.ours))));
+  $("mix").innerHTML = MIX.rows.map(r => {
+    const o = r.official / Math.max(1, t.official), u = r.ours / Math.max(1, t.ours);
+    return `<div class="mrow" title="${esc(r.k)}: official ${r.official} (${Math.round(o*100)}%), ours ${r.ours} (${Math.round(u*100)}%)"><span class="k">${esc(r.k)}</span><span class="bars"><span class="bar o" style="width:${o/max*100}%"></span><span class="bar u" style="width:${u/max*100}%"></span></span></div>`;
+  }).join("");
+  const pct = (k, s) => { const r = MIX.rows.find(x => x.k === k); return r ? Math.round(r[s] / Math.max(1, t[s]) * 100) : 0; };
+  $("lede").textContent = `${t.official + t.ours + t.sketch + (t.library || 0)} pieces of 1-3 s, cut from the routes of the 22 official levels (${t.official}), our GDLM levels (${t.ours}), Evgeni's whiteboard sketches (${t.sketch}) and the lego pieces we built from one shared path (${t.library}, first in the drawer). Each one is classified by family, mode and wrapper and measured: width, seconds, presses, hold share, corridor gap, height range, hazards.` + (PUB && !/*PRIV*/false ? " This copy leaves out the official layouts (RobTop's): only their numbers are in the chart." : "");
+  $("notes").innerHTML = `<p><b>Flat cube is a third of ours (${pct("jump · cube · flat", "ours")}%), and ${pct("jump · cube · flat", "official")}% of the official levels.</b> The official cube is mostly steps (${pct("jump · cube · steps", "official")}%) and pits.</p>
+  <p><b>Official ships are spiky corridors with gates</b> (${pct("fly · ship · corridor +spikes +gates", "official")}% of all their pieces); ours fly plain corridors (${pct("fly · ship · corridor", "ours")}%) and never a spiky one with gates.</p>
+  <p><b>Fly family</b>: one path, wrapped as open air, a floor path, a roof path or a corridor, then +spikes (hazards are 30%+ of the walls), +gates (narrowings) and +flips (gravity). The same wrappers fit ship, wave and swing.</p>
+  <p>By default the drawer shows <b>verified</b> pieces only (a route through them, the solver's or a real clear, is replayed by our physics and lives), and hides <b>empty</b> ones (nothing to react to), <b>repeats</b> (the same layout again, shown once with ×N) flying pieces with <b>stair walls</b>, and <b>jittery routes</b> (a route that is not a human plan, or flying taps under 0.1 s apart: three or more, or where a timing is tight; an extra press on easy timings is fine). The checkboxes bring them back.</p>
+  <p><b>Difficulty</b> = log10 of the expected attempts to get through the piece in one go, from the timing window of each of its inputs (our difficulty model, fitted on Evgeni's runs): 0.1 is a gimme, 0.5 takes a few tries, 1 about ten.</p>
+  <p>Tap a tray to see it large: <b>▶ play</b> replays the route at its real speed, white dots are presses, rings releases; the player is drawn as the game draws each mode (flipped when gravity is reversed) over the level's own colours, and dashed ✂ lines are cut points where a brick can be trimmed into a smaller one. <b>👍 / 👎 and a comment</b> are saved for us to read; a vote is a preference weight, never a ban. ← → step through pieces, space plays.</p>`;
+}
+
+// ---- drawing one piece: returns the block -> pixel mapping so the replay can draw on top
+const COL = { S: "#e9e6ff", L: "#c9c2ff", H: "#ff5d78", O: "#ffd84a", P: "#ffd84a", M: "#4fe3ff", G: "#7dff9c", V: "#ffb020", Z: "#ff7de9" };
+function draw(cv, p, big) {
+  const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight;
+  cv.width = W * dpr; cv.height = H * dpr;
+  const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
+  // the height range from the route inside the piece only (a sample out past its ends must not zoom the picture out)
+  const py = p.path.filter(q => q[0] >= -1 && q[0] <= p.w + 1).map(q => q[1]); if (!py.length) py.push(0);
+  const ylo = Math.max(-0.5, Math.min(...py, 0) - 2), yhi = Math.max(...py, 3) + 3;
+  const z = Math.min(W / (p.w + 2), H / (yhi - ylo + 0.5));
+  const ox = (W - p.w * z) / 2, oy = big ? (H + (yhi - ylo) * z) / 2 + ylo * z : H - 4 + ylo * z;
+  const X = x => ox + x * z, Y = y => oy - y * z;
+  // the level's own colours where the piece starts (background, ground: header + colour triggers), when known
+  const LC = p.colors || {}, sky = LC.bg || "#0f0c2b";
+  g.fillStyle = sky; g.fillRect(0, 0, W, H);
+  if (LC.bg) { g.fillStyle = "rgba(0,0,0,.35)"; g.fillRect(0, 0, W, H); }   // a little darker, so the route and icon stand out
+  g.fillStyle = LC.ground || "#2a2466"; g.fillRect(0, Y(0), W, H);   // ground
+  if (LC.line) { g.strokeStyle = LC.line; g.lineWidth = 1.5; g.beginPath(); g.moveTo(0, Y(0)); g.lineTo(W, Y(0)); g.stroke(); }
+  // the walls right under and over the route, column by column (the sim culls blocks nobody can touch)
+  g.fillStyle = LC.bg ? "rgba(0,0,0,.55)" : "#3b3480";
+  (p.walls || []).forEach(([f, r], c) => { if (f > 0) g.fillRect(X(c), Y(f), z + 0.5, f * z); if (r != null) g.fillRect(X(c), Y(yhi + 2), z + 0.5, (yhi + 2 - r) * z); });
+  for (const s of p.shape) {
+    const [k, x0, y0, x1, y1, , corner] = s, c = COL[k] || "#888";
+    if (k === "H") { g.fillStyle = c; g.beginPath(); g.moveTo(X(x0), Y(y0)); g.lineTo(X(x1), Y(y0)); g.lineTo(X((x0 + x1) / 2), Y(y1)); g.closePath(); g.fill(); continue; }
+    if (k === "O") { g.strokeStyle = c; g.lineWidth = big ? 3 : 1.5; g.beginPath(); g.arc(X((x0 + x1) / 2), Y((y0 + y1) / 2), Math.max(2, (x1 - x0) * z / 2.6), 0, 7); g.stroke(); continue; }
+    if (k === "M" || k === "G" || k === "V" || k === "Z") { g.strokeStyle = c; g.lineWidth = big ? 3 : 1.5; g.beginPath(); g.ellipse(X((x0 + x1) / 2), Y((y0 + y1) / 2), Math.max(1.5, (x1 - x0) * z / 2), Math.max(3, (y1 - y0) * z / 2), 0, 0, 7); g.stroke(); continue; }
+    if (k === "L" && corner) {   // a ramp: the triangle with its square corner where the slope has it
+      const pts = { "/": [[x0, y0], [x1, y0], [x1, y1]], "\\": [[x0, y0], [x1, y0], [x0, y1]], "7": [[x0, y1], [x1, y1], [x1, y0]], "r": [[x0, y1], [x1, y1], [x0, y0]] }[corner];
+      g.fillStyle = c; g.beginPath(); pts.forEach(([a, b], i) => i ? g.lineTo(X(a), Y(b)) : g.moveTo(X(a), Y(b))); g.closePath(); g.fill(); continue;
+    }
+    g.fillStyle = c; g.globalAlpha = k === "L" ? .7 : 1; g.fillRect(X(x0), Y(y1), Math.max(1, (x1 - x0) * z), Math.max(1, (y1 - y0) * z)); g.globalAlpha = 1;
+  }
+  g.strokeStyle = "#4fe3ff"; g.lineWidth = big ? 3 : 2; g.setLineDash(p.midline ? [4, 4] : []); g.beginPath();
+  // a jump of more than 3 blocks between two samples is a teleport: the line breaks there instead of crossing the picture
+  p.path.forEach((q, i) => i && !jumpAt(p.path, i) ? g.lineTo(X(q[0]), Y(q[1])) : g.moveTo(X(q[0]), Y(q[1]))); g.stroke(); g.setLineDash([]);
+  // inner cut points: where the brick can be trimmed into a smaller one (dashed, big view only)
+  if (big) for (const [x, , n] of p.cuts || []) { g.strokeStyle = "rgba(255,255,255,.55)"; g.lineWidth = 1.5; g.setLineDash([6, 6]); g.beginPath(); g.moveTo(X(x), 0); g.lineTo(X(x), H); g.stroke(); g.setLineDash([]);
+    g.fillStyle = "rgba(255,255,255,.8)"; g.font = "600 12px Archivo,sans-serif"; g.fillText("✂ " + n, X(x) + 4, H - 8); }
+  // the clicks: a filled dot where the button goes down, a ring where it comes up
+  for (const [x, y, down] of p.clicks || []) {
+    g.beginPath(); g.arc(X(x), Y(y), big ? 6 : 3, 0, 7);
+    if (down) { g.fillStyle = "#ffffff"; g.fill(); } else { g.strokeStyle = "#ffffff"; g.lineWidth = big ? 2 : 1.2; g.stroke(); }
+  }
+  return { X, Y, z, W, H };
+}
+
+// ---- votes: the PC page posts to tools/serve.js (local/lego/votes.jsonl); the phone page keeps them in its database
+let VOTES = {}, DB = null;
+const vkey = id => id.replace(/[^A-Za-z0-9_-]/g, "_").slice(0, 120);
+async function loadVotes() {
+  if (location.protocol.startsWith("http") && !PUB) {
+    try { VOTES = await (await fetch("votes.json", { cache: "no-store" })).json(); } catch (e) {}
+    return;
+  }
+  for (let k = 0; k < 15 && !(window.claude && window.claude.use); k++) await new Promise(r => setTimeout(r, 200));
+  if (!window.claude || !window.claude.use) return;
+  const db = await window.claude.use("db"); if (!db) return;
+  DB = db;
+  db.collection("legovotes").onSnapshot(snap => { const v = {}; for (const d of snap.docs) { const b = d.data(); if (b && b.id) v[b.id] = b; } VOTES = v; refreshVotes(); }, () => {});
+}
+async function saveVote(p, vote, comment) {
+  const v = { id: p.id, vote, comment, sig: p.sig, level: p.level, x: p.x };
+  if (DB) { await DB.collection("legovotes").doc(vkey(p.id)).set(Object.assign({ at: new Date().toISOString(), from: "phone" }, v)); }
+  else if (location.protocol.startsWith("http") && !PUB) { const r = await fetch("vote", { method: "POST", body: JSON.stringify(v) }); if (!r.ok) throw new Error(await r.text()); }
+  else throw new Error("votes can be saved on the PC page or the phone page");
+  VOTES[p.id] = Object.assign({}, v, { at: new Date().toISOString() });
+  refreshVotes();
+}
+function vmark(p) { const v = VOTES[p.id]; if (!v) return ""; return (v.vote > 0 ? "👍" : v.vote < 0 ? "👎" : "") + (v.comment ? " 💬" : ""); }
+function refreshVotes() {
+  for (const t of $("grid").querySelectorAll(".tray")) { const p = VIEW[+t.dataset.i], e = t.querySelector(".vt"); if (p && e) e.textContent = vmark(p); }
+  if (CUR) showVote(CUR);
+}
+
+// ---- the drawer
+function meta(p) {
+  const bits = [`${p.w} blocks`, `${p.s.toFixed(1)} s`, `${p.presses} presses`];
+  if (p.diff != null) bits.unshift(`difficulty ${p.diff.toFixed(2)}` + (p.tightMs != null ? ` (tightest ${p.tightMs} ms)` : ""));
+  if (p.hold != null && p.family === "fly") bits.push(`held ${Math.round(p.hold * 100)}%`);
+  if (p.gap != null) bits.push(`gap ${p.gap}`);
+  if (p.yRange) bits.push(`climbs ${p.yRange}`);
+  if (p.hz) bits.push(`${p.hz} hazards/100`);
+  if (p.copies > 1) bits.push(`×${p.copies} in the levels`);
+  return bits.join(" · ");
+}
+const io = new IntersectionObserver(es => { for (const e of es) if (e.isIntersecting) { const cv = e.target; draw(cv, VIEW[+cv.dataset.i]); io.unobserve(cv); } }, { rootMargin: "300px" });
+function render(reset) {
+  if (reset) { $("grid").innerHTML = ""; shown = 0; }
+  const part = VIEW.slice(shown, shown + PAGE);
+  $("grid").insertAdjacentHTML("beforeend", part.map((p, j) => `<div class="tray" tabindex="0" data-i="${shown + j}"><canvas data-i="${shown + j}"></canvas><div class="t"><div><span class="vt">${esc(vmark(p))}</span><span class="src ${esc(p.src)}">${esc(p.src)}</span>${p.verified ? '<span class="ok" title="a route replayed by our physics goes through it alive">✓ verified</span> ' : `<span class="no" title="${esc(p.why)}">not verified</span> `}<span class="sig">${esc(p.sig)}</span></div><div class="m">${esc(p.level)} at block ${p.x} · ${esc(meta(p))}</div></div></div>`).join(""));
+  shown += part.length;
+  for (const cv of $("grid").querySelectorAll("canvas:not([data-o])")) { cv.dataset.o = 1; io.observe(cv); }
+  $("more").hidden = shown >= VIEW.length;
+  const gr = $("fgrain").value, hid = ALL.filter(p => gr === "auto" ? p.auto : (p.grain || "piece") === gr && !p.auto).length - VIEW.length;
+  $("count").textContent = `${VIEW.length} pieces` + (hid ? ` (${hid} hidden)` : "");
+}
+function filter() {
+  const s = $("fsrc").value, f = $("ffam").value, m = $("fmode").value, w = $("fwrap").value, q = $("fq").value.trim().toLowerCase(), fv = $("fvote").value;
+  const ours = $("fours").checked || (s && s !== "official"), un = $("fun").checked, em = $("femp").checked, du = $("fdup").checked, ro = $("frough").checked, ji = $("fjit").checked;
+  const vok = p => { const v = VOTES[p.id]; return !fv || (fv === "up" ? v && v.vote > 0 : fv === "down" ? v && v.vote < 0 : fv === "com" ? v && v.comment : !v); };
+  const gr = $("fgrain").value;
+  const gOk = p => gr === "auto" ? p.auto : (p.grain || "piece") === gr && !p.auto;
+  VIEW = ALL.filter(p => gOk(p) && (ours || p.src === "official") && (un || p.verified) && (em || !p.empty) && (du || !p.dupOf) && (ro || p.smooth) && (ji || (!p.jitter && (!p.routeKind || p.routeKind === "human" || p.routeKind === "ours"))) && vok(p) && (!s || p.src === s) && (!f || p.family === f) && (!m || p.mode === m) && (!w || p.wrap === w) && (!q || (p.sig + " " + p.level + " " + p.mech.join(" ")).toLowerCase().includes(q)));
+  const so = $("fsort").value;
+  if (so) VIEW.sort((a, b) => so === "easy" ? (a.diff ?? 99) - (b.diff ?? 99) : (b.diff ?? -1) - (a.diff ?? -1));
+  render(true);
+}
+
+// ---- the big view: the piece, its clicks, and a replay of the route as our physics played it
+let CUR = null, CI = -1, anim = null, speed = 1, t0 = 0, tNow = 0, base = null;
+function open(i) {
+  stop(); CI = i; const p = CUR = VIEW[i]; $("big").hidden = false;
+  requestAnimationFrame(() => { base = draw($("bigc"), p, true); tNow = 0; });
+  const presses = (p.clicks || []).filter(c => c[2]).map(c => c[3].toFixed(2) + " s");
+  $("binfo").innerHTML = `<b>${esc(p.sig)}</b><br>${esc(p.src)} · ${esc(p.level)} at block ${p.x} · ${esc(meta(p))}${p.family === "fly" ? ` · path ${esc(p.pathKind)}, ${p.turns} turns, ${p.gates} gates` : ""}${p.flips ? ` · ${p.flips} gravity flips` : ""}${p.mech.length ? ` · ${esc(p.mech.join(", "))}` : ""}<br>` +
+    (p.verified ? "✓ verified: the cyan line is a route our physics replays alive through it; white dots are presses, rings releases" : "not verified: " + esc(p.why)) +
+    (p.routeKind && p.routeKind !== "ours" ? ` · route: ${esc(p.routeKind)}${p.routeAt ? " (" + esc(p.routeAt) + ")" : ""}` : "") + (p.routePlan === "" ? " · planned before the wave planner (re-plan pending)" : "") + (p.jitter ? ` · ⚠ ${p.jitter} presses under 0.1 s apart: not a human line` : "") +
+    (presses.length ? `<br>presses at ${esc(presses.join(", "))}` : "") + (p.alsoIn && p.alsoIn.length ? `<br>the same layout also in ${esc(p.alsoIn.join(", "))}` : "") + (p.smooth ? "" : `<br>stair walls: ${p.steps} block steps per 10 columns`);
+  $("bplay").disabled = !p.path.length || p.path[p.path.length - 1][2] == null;
+  showVote(p);
+}
+function showVote(p) {
+  const v = VOTES[p.id] || {};
+  $("bup").classList.toggle("on", v.vote > 0); $("bdown").classList.toggle("on", v.vote < 0);
+  if (document.activeElement !== $("bcom")) $("bcom").value = v.comment || "";
+  $("bsaved").textContent = v.at ? "saved " + v.at.slice(0, 16).replace("T", " ") : "";
+}
+async function vote(n) {
+  const p = CUR; if (!p) return; const old = VOTES[p.id] || {};
+  const nv = n === undefined ? (old.vote || 0) : (old.vote === n ? 0 : n);
+  $("bsaved").textContent = "saving ...";
+  try { await saveVote(p, nv, $("bcom").value.trim()); } catch (e) { $("bsaved").textContent = "not saved: " + e.message; }
+}
+function jumpAt(P, i) { return Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]) > 3; }
+function at(p, t) {   // the route's position at t seconds (linear between samples)
+  const P = p.path; if (t <= P[0][2]) return P[0];
+  for (let i = 1; i < P.length; i++) if (P[i][2] >= t) { const a = P[i - 1], b = P[i]; if (jumpAt(P, i)) return t - a[2] < b[2] - t ? a : b; const u = (t - a[2]) / Math.max(1e-6, b[2] - a[2]); return [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, t]; }
+  return P[P.length - 1];
+}
+// the player as the viewer draws it (lib/look.js drawPlayer: the icon of each mode, GD's default lime and cyan), turned
+// as the game turns it (visualRot from tools/lego.js) and mirrored top to bottom when gravity is reversed.
+// path rows: [x, y, t, drawn rotation] (older catalogues: [x, y, t] -> a cube)
+const MODES = ["cube", "ship", "ball", "ufo", "wave", "robot", "spider", "swing"];
+function drawIcon(g, m, p, q) {
+  const P = p.path, i = Math.max(0, P.findIndex(r => r[2] >= q[2])), r = P[i] || P[P.length - 1], r0 = P[Math.max(0, i - 1)];
+  // the player's state where it last changed (tools/lego_page.js packPath: [from row, mode, gravity, grounded, mini])
+  let S = null; for (const x of p.st || []) { if (x[0] > i) break; S = x; }
+  const mode = S ? MODES[S[1]] || "cube" : (p.mode || "cube");
+  const B = 30, s = { x: q[0] * B, y: q[1] * B, mode, grav: S ? S[2] : 1, rot: r.length > 3 ? r[3] : 0, grounded: !!(S && S[3]), mini: !!(S && S[4]),
+    vy: (r[1] - r0[1]) * B / Math.max(1e-3, r[2] - r0[2]), tick: Math.round(q[2] * 240) };
+  const dx = (r[0] - r0[0]) * B / Math.max(1e-3, r[2] - r0[2]);
+  const view = { sx: x => m.X(x / B), sy: y => m.Y(y / B), scale: m.z / B };
+  const local = (o, fn) => { g.save(); g.translate(view.sx(o.x), view.sy(o.y)); g.rotate((o.rot || 0) * Math.PI / 180);
+    g.scale(view.scale * (o.flipX ? -1 : 1), -view.scale * (o.flipY ? -1 : 1)); fn(); g.restore(); };
+  if (window.GD && GD.LOOK) GD.LOOK.drawPlayer(g, view, s, false, local, dx || 311.58, null, true);
+  else { g.fillStyle = "#7dff00"; g.fillRect(m.X(q[0]) - m.z / 2, m.Y(q[1]) - m.z / 2, m.z, m.z); }
+}
+function frame(now) {
+  const p = CUR, cv = $("bigc"); if (!p || $("big").hidden) return stop();
+  tNow = (now - t0) / 1000 * speed;
+  const end = p.path[p.path.length - 1][2];
+  if (tNow > end + 0.6) { t0 = now; tNow = 0; }
+  const m = draw(cv, p, true), g = cv.getContext("2d"), q = at(p, Math.min(tNow, end));
+  // the clicks already passed light up
+  for (const c of p.clicks || []) if (c[3] <= tNow && tNow - c[3] < 0.25) { g.strokeStyle = c[2] ? "#ffd84a" : "#ffffff"; g.lineWidth = 3; g.beginPath(); g.arc(m.X(c[0]), m.Y(c[1]), 8 + (tNow - c[3]) * 60, 0, 7); g.stroke(); }
+  const held = (p.clicks || []).filter(c => c[3] <= tNow).slice(-1)[0];
+  drawIcon(g, m, p, q);
+  g.fillStyle = "#f3f1ff"; g.font = "600 14px Archivo,sans-serif"; g.fillText(`${Math.min(tNow, end).toFixed(2)} s` + (held && held[2] ? "  · held" : ""), 10, 20);
+  anim = requestAnimationFrame(frame);
+}
+function play() { if (anim) return stop(); t0 = performance.now() - tNow * 1000 / speed; anim = requestAnimationFrame(frame); $("bplay").textContent = "❚❚ pause"; }
+function stop() { if (anim) cancelAnimationFrame(anim); anim = null; $("bplay").textContent = "▶ play"; }
+$("bplay").onclick = play;
+$("bslow").onclick = () => { speed = speed === 1 ? 0.5 : speed === 0.5 ? 0.25 : 1; $("bslow").textContent = "speed " + speed + "x"; if (anim) t0 = performance.now() - tNow * 1000 / speed; };
+$("bprev").onclick = () => { if (CI > 0) open(CI - 1); };
+$("bnext").onclick = () => { if (CI < VIEW.length - 1) { if (CI + 1 >= shown) render(false); open(CI + 1); } };
+$("bup").onclick = () => vote(1); $("bdown").onclick = () => vote(-1); $("bsave").onclick = () => vote();
+$("grid").addEventListener("click", e => { const t = e.target.closest(".tray"); if (t) open(+t.dataset.i); });
+$("grid").addEventListener("keydown", e => { const t = e.target.closest(".tray"); if (t && e.key === "Enter") open(+t.dataset.i); });
+$("close").onclick = () => { stop(); $("big").hidden = true; CUR = null; };
+document.addEventListener("keydown", e => {
+  if ($("big").hidden || e.target === $("bcom")) return;
+  if (e.key === "Escape") $("close").onclick(); else if (e.key === "ArrowRight") $("bnext").onclick(); else if (e.key === "ArrowLeft") $("bprev").onclick(); else if (e.key === " ") { e.preventDefault(); play(); }
+});
+$("more").onclick = () => render(false);
+for (const id of ["fgrain", "fsrc", "fsort", "ffam", "fmode", "fwrap", "fours", "fun", "femp", "fdup", "frough", "fjit", "fvote"]) $(id).onchange = filter;
+$("fq").oninput = filter;
+Promise.all(["pieces.json", "pieces_more.json"].map(f => fetch(f).then(r => r.ok ? r.json() : []).catch(() => []))).then(([a, b]) => a.concat(b)).then(d => {
+  if (!d.length) throw new Error("no pieces");
+  const first = p => p.src === "official" ? 0 : p.src === "sketch" ? 1 : p.src === "library" ? 2 : 3;
+  // put back each row's time where tools/lego_page.js packPath left it out (evenly spaced rows: t0 + i * dt)
+  for (const p of d) if (p.dt != null) p.path.forEach((r, i) => { if (r.length === 2) r.push(p.t0 + i * p.dt); else if (r[2] == null) r[2] = p.t0 + i * p.dt; });
+  ALL = d.sort((a, b) => first(a) - first(b));
+  const modes = [...new Set(ALL.map(p => p.mode))].sort(), wraps = [...new Set(ALL.map(p => p.wrap))].sort();
+  $("fmode").insertAdjacentHTML("beforeend", modes.map(m => `<option>${esc(m)}</option>`).join(""));
+  $("fwrap").insertAdjacentHTML("beforeend", wraps.map(m => `<option>${esc(m)}</option>`).join(""));
+  // the main levels first (the user, 2026-11-25: "i want to focus on mainlevel"); ours are one pick away
+  // our own pieces only under "also show: our own pieces" (the user, 2026-11-25: "Lets not show our own structures for now
+  // in the catalog. or under some option"); the phone copy has no official layouts, so it shows ours from the start
+  if (!ALL.some(p => p.src === "official")) $("fours").checked = true;
+  filter();
+  loadVotes().then(() => { refreshVotes(); if ($("fvote").value) filter(); });
+}).catch(() => { $("count").textContent = "pieces.json did not load"; });
+}
+</script>

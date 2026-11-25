@@ -1,4 +1,4 @@
-// node tools/install.js <level.gdlvl> [...] [--save <path>] [--dry]
+// node tools/install.js <level.gdlvl> [...] [--save <path>] [--dry]   (also: the length label k23 and the song in the game's song list, PUBLISH.md)
 // node tools/install.js <level.gdlvl> --slot phone|lab [--desc "what is tested"] [--ids <phone_ids.json>] [--ids-from <older save .dat>]
 //   (the online slots, PUBLISH.md: the level goes in under the slot's fixed name; --desc sets the
 //   description, with the signature line)
@@ -100,6 +100,69 @@ function keepOnline(oldInner, newInner) {
   return { inner, id };
 }
 
+// GD's length label (k23: 0 Tiny < 10 s, 1 Short < 30, 2 Medium < 60, 3 Long < 120, 4 XL), from the level's own time to its
+// last object (speed portals counted). Our records were all written Short (lib/gd.js newRecord): GDLM 72, 1:27, showed
+// "Short" in the game (the user, 2026-11-25).
+function lengthCode(file) {
+  try {
+    const io = require("./io.js"), GD = io.GD, L = io.readGdlvl(file); Object.assign(GD, require("../lib/sync.js"));
+    const xs = L.level.objects.map(o => o.x).filter(x => x != null), end = Math.max(...xs);
+    let t; try { t = GD.SYNC.tOfX(GD.SYNC.timeline(GD.makeWorld(L.level.objects, L.level.header)), end); } catch (e) { t = end / 311.58; }
+    return { code: t < 10 ? 0 : t < 30 ? 1 : t < 60 ? 2 : t < 120 ? 3 : 4, secs: t };
+  } catch (e) { return null; }
+}
+function setLength(inner, code) {
+  return /<k>k23<\/k><i>/.test(inner) ? inner.replace(/<k>k23<\/k><i>[^<]*<\/i>/, `<k>k23</k><i>${code}</i>`)
+    : inner.replace(/^(<k>kCEK<\/k><i>4<\/i>)?/, m => m + `<k>k23</k><i>${code}</i>`);
+}
+// A custom song (k45) shows "Unknown" in the game until its info is in the game's song list (CCGameManager.dat, MDLM_001):
+// the user has to find the song in the editor and download it (GDLM 72's Dot, 2026-11-25). So install adds the entry,
+// from GD's own song server (getGJSongInfo: name, artist, artist id, size, url), local/songs/<id>.json as the fallback.
+function songIds(inners) { return [...new Set(inners.map(i => (i.match(/<k>k45<\/k><i>(\d+)<\/i>/) || [])[1]).filter(Boolean))]; }
+function songInfo(id) {
+  const esc = v => String(v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  let info = null;
+  try {
+    const r = require("child_process").spawnSync("curl", ["-s", "-m", "15", "-A", "", "-X", "POST", "https://www.boomlings.com/database/getGJSongInfo.php",
+      "--data", `songID=${id}&secret=Wmfd2893gb7`], { windowsHide: true, encoding: "utf8" });
+    const p = (r.stdout || "").split("~|~"), m = {}; for (let i = 0; i + 1 < p.length; i += 2) m[p[i]] = p[i + 1];
+    if (m[1] == id) info = { name: m[2], artistId: m[3], artist: m[4], mb: m[5], url: decodeURIComponent(m[10] || "") };
+  } catch (e) {}
+  if (!info) try { const j = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "local", "songs", id + ".json"), "utf8")); info = { name: j.name, artist: j.artist, mb: j.mb, url: j.url }; } catch (e) {}
+  if (!info || !info.name) return null;
+  return `<k>${id}</k><d><k>kCEK</k><i>6</i><k>1</k><i>${id}</i><k>2</k><s>${esc(info.name)}</s><k>4</k><s>${esc(info.artist || "")}</s>` +
+    (info.artistId ? `<k>3</k><i>${info.artistId}</i>` : "") + (info.mb ? `<k>5</k><r>${info.mb}</r>` : "") + (info.url ? `<k>10</k><s>${esc(info.url)}</s>` : "") + "</d>";
+}
+// adds the missing songs to CCGameManager.dat next to the level save (backed up first); returns what it did
+function addSongs(ids, levelSave, dry) {
+  const gm = path.join(path.dirname(levelSave), "CCGameManager.dat");
+  if (!ids.length || !fs.existsSync(gm)) return [];
+  const out = [], add = [];
+  // the mp3 itself: GD plays <id>.mp3 from its own folder and had never downloaded Dot ("no music", GDLM 72, 2026-11-25);
+  // our song cache (local/songs, tools/songs.js) holds the same file GD would fetch
+  for (const id of ids) {
+    const mp3 = path.join(path.dirname(levelSave), id + ".mp3"), src = path.join(__dirname, "..", "local", "songs", id + ".mp3");
+    if (fs.existsSync(mp3)) continue;
+    if (!fs.existsSync(src)) { out.push(`song ${id}: no mp3 in local/songs (node tools/songs.js ${id}); GD downloads it on a tap`); continue; }
+    if (!dry) fs.copyFileSync(src, mp3);
+    out.push(`song ${id}: mp3 copied into GD's folder`);
+  }
+  const xml = decodeSave(fs.readFileSync(gm)), tag = "<k>MDLM_001</k><d>", at = xml.indexOf(tag);
+  if (at < 0) return out.concat(["no song list (MDLM_001) in CCGameManager.dat: songs not added"]);
+  for (const id of ids) {
+    if (xml.includes(`<k>${id}</k><d><k>kCEK</k><i>6</i>`)) { out.push(`song ${id} already in the game's song list`); continue; }
+    const e = songInfo(id); if (!e) { out.push(`song ${id}: no info found, not added (download it in the editor)`); continue; }
+    add.push(e); out.push(`song ${id} added to the game's song list`);
+  }
+  if (!add.length || dry) return out;
+  const nx = xml.slice(0, at + tag.length) + add.join("") + xml.slice(at + tag.length), enc = encodeSave(nx);
+  if (decodeSave(enc) !== nx) throw new Error("re-encoded CCGameManager does not decode back; not writing");
+  const bdir = path.join(path.dirname(gm), "gdlm_backups"); fs.mkdirSync(bdir, { recursive: true });
+  fs.copyFileSync(gm, path.join(bdir, `CCGameManager.${new Date().toISOString().replace(/[:.]/g, "-")}.dat`));
+  fs.writeFileSync(gm, enc);
+  return out;
+}
+
 function main() {
   const args = process.argv.slice(2);
   const dry = args.includes("--dry");
@@ -170,12 +233,16 @@ function main() {
     slotDone = { ids, slot, entry: { level: own, name, file: files[0].replace(/\\/g, "/"), installed: new Date().toISOString().slice(0, 10), shared: null, ...(descText ? { desc: descText } : {}) } };
   }
 
+  const installed = [];
   for (const f of slotName ? [] : files) {
     const rec = unpack(fs.readFileSync(f, "utf8"));
     let inner = rec.match(/<plist[^>]*><dict>([\s\S]*)<\/dict><\/plist>/)[1];
     const name = nameOf(inner);
     const sd = specDesc(name);
     if (sd) inner = setDesc(inner, sd);   // the spec's short description wins over an old one in the file
+    const len = lengthCode(f);
+    if (len) { inner = setLength(inner, len.code); console.log(`length: ${["Tiny", "Short", "Medium", "Long", "XL"][len.code]} (${len.secs.toFixed(0)} s)`); }
+    installed.push(inner);
     const at = parts.items.findIndex(it => nameOf(it.inner) === name);
     if (at >= 0) {
       const kept = keepOnline(parts.items[at].inner, inner);
@@ -188,7 +255,8 @@ function main() {
   const enc = encodeSave(out);
   if (decodeSave(enc) !== out) throw new Error("re-encoded save does not decode back; not writing");
   console.log("levels now:", levelNames(out).slice(0, 8).join(" | "), levelNames(out).length > 8 ? `... (${levelNames(out).length})` : "");
-  if (dry) { console.log("dry run: nothing written"); return; }
+  const songIdsNow = songIds(installed.concat(slotDone ? [parts.items[0].inner] : []));
+  if (dry) { for (const l of addSongs(songIdsNow, save, true)) console.log(l); console.log("dry run: nothing written"); return; }
 
   const bdir = path.join(path.dirname(save), "gdlm_backups");
   fs.mkdirSync(bdir, { recursive: true });
@@ -197,6 +265,7 @@ function main() {
   fs.copyFileSync(save, backup);
   fs.writeFileSync(save, enc);
   console.log(`written. backup: ${backup}`);
+  try { for (const l of addSongs(songIdsNow, save, false)) console.log(l); } catch (e) { console.log("songs: " + e.message); }
   if (slotDone) {
     const { ids, slot, entry: e } = slotDone;
     if (slot.holds) (slot.history = slot.history || []).push(slot.holds);
@@ -206,4 +275,4 @@ function main() {
   }
 }
 if (require.main === module) main();
-module.exports = { decodeSave, splitLevels, nameOf, entry, gameRunning };
+module.exports = { decodeSave, splitLevels, nameOf, entry, gameRunning, lengthCode, songInfo, addSongs };

@@ -89,7 +89,7 @@ function list(spec) {
   return out;
 }
 
-if (process.argv[2] === "one") {
+if (require.main === module && process.argv[2] === "one") {
   const C = require("./contrast.js"); let L;
   try { L = C.load(process.argv[3]); } catch (e) { process.stdout.write("null"); process.exit(0); }
   process.stdout.write(JSON.stringify(measure(L)));

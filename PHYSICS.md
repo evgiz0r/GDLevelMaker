@@ -474,10 +474,23 @@ test: `node tests/rotated.js`.
 - **Block ~127 (fixed 2026-11-25):** not the move units or the touch box -- a "flip on head hit" modifier (2866) locked
   to the player there; see "Gameplay modifiers" below. With it and the time warp at x 4535 the nudged plan goes on to
   block 179 (x 5366), where it dies in a swing stretch (swing physics, open).
+  Our solver (difficulty_solve 22 --resume, 2026-11-25, 2.0 h) gets further than the plan: through that swing to the
+  second turned stretch, where a swing turned to travel +Y dies on a block 30 ticks after the turn (world 6746, 266).
 - **Not modelled yet:** touch-activated 2900s (none in Dash), a 2900 inside a toggled-off group, the dash orb's angle
   clamp in turned frames (gdsolver --dashframe3), the 2899 options trigger (disables P1 controls; consumed, no effect),
   moving objects' lock-to-player / move-to-target state across a turn, the camera turning with the gameplay (the viewer
   draws turned stretches in world coordinates, unturned).
+
+## Start settings from the level header: IN the sim (2026-11-25)
+
+GD 2.2081 LevelSettingsObject reads kA2 start mode (0 cube, 1 ship, 2 ball, 3 UFO, 4 wave, 5 robot, 6 spider, 7 swing),
+kA3 mini, kA8 dual, kA11 flipped gravity; GJBaseGameLayer::setupLevelStart applies them: flip, dual (player 2 the other
+way up), mini (both), then the mode with no portal. lib/physics.js startOf() / startState0(); test `node tests/start_settings.js`.
+Before this only kA4 (speed) was read and every level started as a normal cube: Bloodbath (community 10565740, kA2 1)
+died at block 18 as a cube. No official or GDLM level sets any of them, so no saved route changes.
+- ASSUMED: the flying band of a portal-less start sits on the ground (floor 0, ceiling the mode's band); in dual it is
+  the dual band at the start y. Not measured in the game.
+- Not read: kA20 reverse gameplay, kA28 mirror (view only), kA2 values in platformer levels.
 
 ## Gameplay modifiers (2866, 1813) and the time warp (1935): IN the sim (2026-11-25)
 
@@ -503,6 +516,33 @@ scale, follow, on death, collision blocks, area triggers, gravity trigger. Other
 keys and user coins (collectables only), start positions (levels always start at x 0), practice
 checkpoints, speed portals touched mid-air at a slant, force blocks, platformer mode, dash orbs'
 unknown props 586/588, spike slopes.
+
+## The probe mod: the game's own state per step (2026-11-25)
+
+The GDLM Probe Geode mod (GEODE.md) plays our saved route inside GD 2.2091 on exact steps and logs the player every
+step. `node tools/probe.js result [n]` compares a log with our sim's run of the same route. What the first logs show
+(GDLM 62 low end lullaby: 2 clears, 102 presses; GDLM 44 hellgate: 2 runs, both died at x 6638 where our sim clears):
+- **What is per step:** the player's `m_yVelocity` changes every step (240 Hz), the level time too. Its position
+  (`m_position`) changes only once per 60 fps frame, and at a frame's first step it shows the sim's state of the step
+  before; GameObject's `m_positionX/Y` doubles stay 0 on the player. So timing is read from vy, positions per frame.
+- **Press timing:** a route press made after n steps starts the jump in step n+1 in the game, as in our sim (GDLM 44's
+  first press: n 104 -> vy 11.18 at step 105). Positions agree to 0.5 unit for the first 8588 steps of GDLM 62.
+- **But many jumps start one step late in the game:** GDLM 62 (offset 0): of 94 jumps, 39 start on the sim's step, 48
+  one step later, 7 two or three later; the share does not depend on where the step falls in its 60 fps frame (each of
+  the 4 frame steps: about half 0, half +1). GDLM 44: 15 of 25 on the sim's step. A likely reading, to check next: the
+  +1 jumps are the ones made by a held button on landing (GD jumps no sooner than the step after a landing, see
+  "Landing buffer"), the 0s are fresh presses. The probe log has the presses: split the jumps by "button already
+  down" to settle it.
+- **Heights:** the game's y is our y + 90 exactly (start: game 105, sim 15), so the death at game y 267.3 is our y 177.3.
+- **GDLM 52 necromancy** (playback, 2026-11-25 18:39 UTC): dies in the game at x 10765 where the sim clears; not studied yet.
+- **GDLM 44 dies in the game at x 6638, y 267** while the sim clears; the first height parting is at step 313
+  (x 405: dx 1.0). Read from the level (2026-11-25, hellgate thread): x 6638 is in the SECOND SHIP (ship portal 6209,
+  cube portal 7139), not the wave, 6 units before a one-block stair step of the old `ship-tunnel` corridor: at x 6644
+  the roof's underside drops from y 210 to 180 (and the floor from 60 to 30). With the game's y about 90 above ours
+  (confirm with `probe.js result`'s "y offset"), y 267 is ~177: the ship's top at the stepped roof's corner. It fits the
+  open ship mismatch below (the game's ship rides ~0.5 unit higher than ours). Hellgate v2 replaces all three ship
+  tunnels with `fly-path` slope corridors (no stair steps), so the spot is gone; the real-game re-check with the probe
+  is still to run on the PC. Not yet settled: the exact ship height gap that made the corner kill.
 
 ## Fidelity: measuring the sim against the user's game (goal: "as close as possible")
 
@@ -811,6 +851,37 @@ or holds longer than needed (over 0.15 s outside ship/wave where a tap finishes)
   depends on the level". `tapMsFor`: 75 ms by default; by stars 1-2: 90, 3-5: 80, 6-7: 75, 8-9: 70, 10+: 60
   (difficulty_solve passes the official stars); `opts.tapMs` a level's own; `opts.player: "user"` the user's habit
   (tools/habits.js: median 120 ms). Was 14 ticks (58 ms) everywhere. tests/natural_tap.js.
+
+### The wave like a person (2026-11-25)
+- The user, on a GDLM wave corridor of 45-degree slopes: "really unnatural 'human' play, these corridors should be just
+  few holds and releases. in tighter corridors we will need to fly tighter but in general we want to follow the pattern
+  of the level". The solver's wave line zigzagged with small corrections inside each leg of the corridor.
+- **The wave planner** (lib/natural.js waveLine, tried first in a stretch that is all wave): it looks WAVE_LOOK (150)
+  units ahead and compares keeping the button, switching once, or switching twice, at any frame; each plan scores how
+  far the wave strays out of the corridor's comfortable middle (the middle of the free space less WAVE_MARGIN (45) from
+  each wall, so a wide corridor leaves room to hold on and a tight one asks for a tight line) plus WAVE_SWITCH (6) per
+  switch. It follows the best plan and plans again at each switch and every 16 ticks, so each leg runs until the
+  corridor turns. The free space now knows slopes (slopeY) and the wave's own hitbox (halfSize: 5, mini 3; was 15).
+- **When its line is taken:** only where the solver's line is off the pattern (below), the new line needs no more
+  presses, no more near-wall ticks in the stretch (+24) and in every flying stretch after it (+24: a new line re-solves
+  the rest of the level), and at most 30% more humanCost.
+- **Off the pattern** (routeCheck `offPattern`, score.js route gate WARN "N inputs for M corridor turns (off the
+  pattern)"): a wave stretch's inputs beyond the corridor's turns + 2 (turns: the free space's middle changing
+  direction by 20+ units, sampled every 8 ticks, open air over 280 units skipped), counted only up to the number of
+  quick re-presses (legs under 150 ms). Half-second legs over open hills (GDLM 52) follow their own pattern.
+- **`node tools/flystyle.js <level | official:N | spec.json> [--replan] [--cost]`**: per flying stretch presses, presses
+  a second, mean leg, legs under 100 ms, near-wall ticks, and the wave's inputs / turns / OFF PATTERN; --replan puts
+  today's plan beside the saved route.
+- Results (cloud, 2026-11-25): a lab of three zigzag corridors (gaps 6, 4, 3 blocks; local/tmp/wavelab.json, made with
+  patterns.js wave-zigzag): off-pattern inputs 17 -> 4, legs under 100 ms 14 -> 1, presses 18 -> 13. Our wave levels'
+  saved routes were already mostly on pattern by this measure: GDLM 45 off-pattern 3 -> 1, the rest unchanged by the
+  planner (it is not tried where the line is on pattern). The user's corridor screenshot came from a re-plan, so the
+  re-plan of the main levels with waves on the PC is the real test.
+- OPEN: re-planning some of our levels from their saved routes flies worse than the saved route by near-wall ticks,
+  with or without this change (GDLM 44: 0 -> 636 ticks today, 0 -> 932 before it, presses 15 -> 16 vs 22), and GDLM 68's
+  re-plan skips a ship portal at x 14715 and takes ~11 min (cloud). Not the wave planner's (no wave stretch there is off
+  pattern); the fly()/solveFrom re-plan of the ship stretches. Nothing is saved by flystyle; solutions.js keeps a saved
+  route whose re-plan skips.
 
 ## The press library: what good players press at each structure (2026-11-24)
 

@@ -76,7 +76,7 @@ the fit slides to 178.00 with no drift.
 
 `lib/sync.js` (node and browser), driven by `tools/sync.js`:
 
-- **Level time to song time.** Song second = level offset (`kA13`) + level time; level time
+- **Level time to song time.** (A level whose song changes mid-way -- Song triggers -- maps through MUSIC.md's spans instead.) Song second = level offset (`kA13`) + level time; level time
   comes from x through the speed portals (`timeline`), as the physics moves the cube. It
   matches the replayed run exactly (0 units off) on every solved level. A scan of an "effective
   speed" factor 0.8-1.2 over all 22 official levels peaks at exactly 1.000, and the portals sit
