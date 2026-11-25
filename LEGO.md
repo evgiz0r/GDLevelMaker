@@ -101,6 +101,24 @@ The pieces as pictures: `node tools/lego.js mine library` after `structures.js b
 "library"). The classifier reads ship-spiky-gates as a plain corridor (its spikes are under 30% of the wall and a 4-row
 gate is not 2 rows under the 5-row gap): the thresholds came from the official pieces and are open to tuning.
 
+## Verified pieces only (the user, 2026-11-25: "lets have structures which are verified by physics and the solver")
+
+A piece is **verified** when a route through it -- the solver's, a real clear, or the level's planned presses -- is
+replayed by lib/physics.js and lives through the whole piece. The page shows only verified pieces unless "show
+unverified" is ticked, and each card says ✓ verified or why not. Official and our pieces use the levels' saved routes;
+library pieces (lego-*, sk*) are solved (tools/solutions.js, cached) when mined. A raw sketch is never verified: it
+has no route, only the drawn corridor's midline -- its smooth rebuild is.
+
+## The user's sketch 11-25 17:06, rebuilt smooth ("i wanted smooth play in those corridors")
+
+The first page drew his raw strokes (spike lines as walls, a jittery midline) and ship legs were block stairs. Now:
+fly-path legs are 45-degree slopes on both walls for every mode (`stairs: true` for the old block steps), and the sketch
+is three library pieces with his shape and portals: `sk1706-wave` (hills [3,7,4,7,4,6,3,6,4,6], gap 5, gravity portals
+at the meeting points of hills 3-5), `sk1706-ship` (valley, hill, three 4-row squeezes at different heights),
+`sk1706-swing` (the same idea, rows lowered to stay under the band roof). All three beaten (250 / 313 / 196 ms
+tightest windows). Knots were read by hand from the centre line between his drawn walls; a converter (sketch -> knots)
+is the next step so a new drawing becomes a piece by itself.
+
 ## How the building process uses the pieces (plan, 2026-11-25; the user: "lets think how the building process involves the structures")
 
 The pieces slot into BUILDING.md's stages; nothing new for the user to learn, the stages just get a vocabulary:

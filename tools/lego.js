@@ -62,9 +62,12 @@ function ourSources() {
 function librarySources() {
   const S = require("./solutions.js"), dir = path.join(LOCAL, "structures"), out = [];
   if (!fs.existsSync(dir)) return out;
-  for (const f of fs.readdirSync(dir).filter(f => /^lego-.*\.gdlvl$/.test(f)).sort()) {
-    const L = readGdlvl(path.join(dir, f)), sol = S.get(L.levelStr, true);
-    out.push({ src: "library", name: f.replace(/\.gdlvl$/, ""), file: "tools/structures.js " + f.replace(/\.gdlvl$/, ""), level: GD.parseLevel(L.levelStr), events: sol && sol.ok !== false ? sol.events : null, whole: true });
+  for (const f of fs.readdirSync(dir).filter(f => /^(lego|sk\d+)-.*\.gdlvl$/.test(f)).sort()) {
+    const L = readGdlvl(path.join(dir, f)), level = GD.parseLevel(L.levelStr);
+    // verified by the solver: the saved route, else solve it now (cached in local/solutions for next time)
+    let sol = S.get(L.levelStr, true);
+    if (!sol || !sol.ok) try { sol = S.solve(level, L.levelStr); } catch (e) { sol = null; }
+    out.push({ src: "library", name: f.replace(/\.gdlvl$/, ""), file: "tools/structures.js " + f.replace(/\.gdlvl$/, ""), level, events: sol && sol.ok ? sol.events : null, whole: true, unsolved: !(sol && sol.ok) });
   }
   return out;
 }
@@ -199,6 +202,11 @@ function measure(src, w, r, inputs, i0, i1) {
   const pyS = cols.map(c => c.py), yRange = r1(Math.max(...pyS) - Math.min(...pyS));
   const P = { src: src.src, level: src.name, file: src.file, mode, family: fam, speed: a.sp, x: Math.round(xa / B), w: W,
     s: r2(seconds), presses, toggles, hold, flips, hazards, hzPer100: Math.round(hazards / W * 100), mech, portals, yRange, midline: !!r.midline };
+  // verified = a route (the solver's, a real clear's or the level's planned one) replayed by our physics goes through the
+  // whole piece alive; a sketch's midline is drawn, never played (the user: "lets have structures which are verified by
+  // physics and the solver")
+  P.verified = !r.midline && !src.unsolved && !p.slice(i0, i1 + 1).some(q => q.dead);
+  P.why = P.verified ? "" : r.midline ? (src.unsolved ? "the solver found no way through" : "drawn, not played: no route") : "the route dies here";
   if (fam === "fly") Object.assign(P, flyShape(cols, mode));
   else Object.assign(P, groundShape(cols, p, i0, i1));
   P.sig = signature(P);

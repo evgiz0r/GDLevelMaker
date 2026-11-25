@@ -41,6 +41,7 @@ input{flex:1 1 180px}
 .tray .sig{color:var(--ink);font-weight:600}
 .tray .m{color:var(--mute)}
 .src{display:inline-block;font-size:12px;padding:0 6px;border-radius:4px;margin-right:6px;color:#16123a;font-weight:700}
+.ok{color:#7dff9c;font-weight:700;margin-right:4px}.no{color:#ff9db0;font-weight:700;margin-right:4px}
 .src.official{background:var(--off)}.src.ours{background:var(--ours)}.src.sketch{background:var(--orb)}.src.library{background:var(--path)}
 .more{margin:16px 0;text-align:center}
 button{font:600 15px Archivo,sans-serif;background:var(--path);color:#0c0a24;border:0;border-radius:6px;padding:10px 18px;min-height:44px;cursor:pointer}
@@ -67,6 +68,7 @@ button{font:600 15px Archivo,sans-serif;background:var(--path);color:#0c0a24;bor
   <select id="fmode"><option value="">every mode</option></select>
   <select id="fwrap"><option value="">every wrapper</option></select>
   <input id="fq" placeholder="search: spikes, gates, blue-orb, level name">
+  <label class="count"><input type="checkbox" id="fun" style="min-height:0;width:auto;flex:none"> show unverified</label>
   <span class="count" id="count"></span>
 </div>
 <div class="band drawer">
@@ -91,11 +93,11 @@ const PAGE = 60;
     return `<div class="mrow" title="${esc(r.k)}: official ${r.official} (${Math.round(o*100)}%), ours ${r.ours} (${Math.round(u*100)}%)"><span class="k">${esc(r.k)}</span><span class="bars"><span class="bar o" style="width:${o/max*100}%"></span><span class="bar u" style="width:${u/max*100}%"></span></span></div>`;
   }).join("");
   const pct = (k, s) => { const r = MIX.rows.find(x => x.k === k); return r ? Math.round(r[s] / Math.max(1, t[s]) * 100) : 0; };
-  $("lede").textContent = `${t.official + t.ours + t.sketch} pieces of 1-3 s, cut from the routes of the 22 official levels (${t.official}), our GDLM levels (${t.ours}) Evgeni's whiteboard sketches (${t.sketch}) and the lego pieces we built from one shared path (${t.library}, first in the drawer). Each one is classified by family, mode and wrapper and measured: width, seconds, presses, hold share, corridor gap, height range, hazards.` + (PUB ? " This copy leaves out the official layouts (RobTop's): only their numbers are in the chart." : "");
+  $("lede").textContent = `${t.official + t.ours + t.sketch + (t.library || 0)} pieces of 1-3 s, cut from the routes of the 22 official levels (${t.official}), our GDLM levels (${t.ours}), Evgeni's whiteboard sketches (${t.sketch}) and the lego pieces we built from one shared path (${t.library}, first in the drawer). Each one is classified by family, mode and wrapper and measured: width, seconds, presses, hold share, corridor gap, height range, hazards.` + (PUB ? " This copy leaves out the official layouts (RobTop's): only their numbers are in the chart." : "");
   $("notes").innerHTML = `<p><b>Flat cube is a third of ours (${pct("jump · cube · flat", "ours")}%), and ${pct("jump · cube · flat", "official")}% of the official levels.</b> The official cube is mostly steps (${pct("jump · cube · steps", "official")}%) and pits.</p>
   <p><b>Official ships are spiky corridors with gates</b> (${pct("fly · ship · corridor +spikes +gates", "official")}% of all their pieces); ours fly plain corridors (${pct("fly · ship · corridor", "ours")}%) and never a spiky one with gates.</p>
   <p><b>Fly family</b>: one path, wrapped as open air, a floor path, a roof path or a corridor, then +spikes (hazards are 30%+ of the walls), +gates (narrowings) and +flips (gravity). The same wrappers fit ship, wave and swing.</p>
-  <p>Tap a tray to see it large with its numbers. The cyan line is the route (on sketches, the drawn corridor's midline).</p>`;
+  <p>Only <b>verified</b> pieces show by default: a route through them (the solver's, or a real clear) is replayed by our physics and lives. Tap a tray to see it large. The cyan line is that route; on an unverified sketch it is only the drawn corridor's midline.</p>`;
 }
 
 // ---- drawing one piece
@@ -142,7 +144,7 @@ const io = new IntersectionObserver(es => { for (const e of es) if (e.isIntersec
 function render(reset) {
   if (reset) { $("grid").innerHTML = ""; shown = 0; }
   const part = VIEW.slice(shown, shown + PAGE);
-  $("grid").insertAdjacentHTML("beforeend", part.map((p, j) => `<div class="tray" tabindex="0" data-i="${shown + j}"><canvas data-i="${shown + j}"></canvas><div class="t"><div><span class="src ${esc(p.src)}">${esc(p.src)}</span><span class="sig">${esc(p.sig)}</span></div><div class="m">${esc(p.level)} at block ${p.x} · ${esc(meta(p))}</div></div></div>`).join(""));
+  $("grid").insertAdjacentHTML("beforeend", part.map((p, j) => `<div class="tray" tabindex="0" data-i="${shown + j}"><canvas data-i="${shown + j}"></canvas><div class="t"><div><span class="src ${esc(p.src)}">${esc(p.src)}</span>${p.verified ? '<span class="ok" title="a route replayed by our physics goes through it alive">✓ verified</span> ' : `<span class="no" title="${esc(p.why)}">not verified</span> `}<span class="sig">${esc(p.sig)}</span></div><div class="m">${esc(p.level)} at block ${p.x} · ${esc(meta(p))}</div></div></div>`).join(""));
   shown += part.length;
   for (const cv of $("grid").querySelectorAll("canvas:not([data-o])")) { cv.dataset.o = 1; io.observe(cv); }
   $("more").hidden = shown >= VIEW.length;
@@ -150,20 +152,21 @@ function render(reset) {
 }
 function filter() {
   const s = $("fsrc").value, f = $("ffam").value, m = $("fmode").value, w = $("fwrap").value, q = $("fq").value.trim().toLowerCase();
-  VIEW = ALL.filter(p => (!s || p.src === s) && (!f || p.family === f) && (!m || p.mode === m) && (!w || p.wrap === w) && (!q || (p.sig + " " + p.level + " " + p.mech.join(" ")).toLowerCase().includes(q)));
+  const un = $("fun").checked;
+  VIEW = ALL.filter(p => (un || p.verified) && (!s || p.src === s) && (!f || p.family === f) && (!m || p.mode === m) && (!w || p.wrap === w) && (!q || (p.sig + " " + p.level + " " + p.mech.join(" ")).toLowerCase().includes(q)));
   render(true);
 }
 function open(i) {
   const p = VIEW[i]; $("big").hidden = false;
   requestAnimationFrame(() => draw($("bigc"), p, true));
-  $("binfo").innerHTML = `<b>${esc(p.sig)}</b><br>${esc(p.src)} · ${esc(p.level)} at block ${p.x} · ${esc(meta(p))}${p.family === "fly" ? ` · path ${esc(p.pathKind)}, ${p.turns} turns, ${p.gates} gates` : ""}${p.flips ? ` · ${p.flips} gravity flips` : ""}${p.mech.length ? ` · ${esc(p.mech.join(", "))}` : ""}${p.midline ? " · path: drawn midline, not played" : ""}`;
+  $("binfo").innerHTML = `<b>${esc(p.sig)}</b><br>${esc(p.src)} · ${esc(p.level)} at block ${p.x} · ${esc(meta(p))}${p.family === "fly" ? ` · path ${esc(p.pathKind)}, ${p.turns} turns, ${p.gates} gates` : ""}${p.flips ? ` · ${p.flips} gravity flips` : ""}${p.mech.length ? ` · ${esc(p.mech.join(", "))}` : ""}${p.verified ? " · ✓ verified: the route (dotted) is replayed by our physics and clears it" : " · not verified: " + esc(p.why)}`;
 }
 $("grid").addEventListener("click", e => { const t = e.target.closest(".tray"); if (t) open(+t.dataset.i); });
 $("grid").addEventListener("keydown", e => { const t = e.target.closest(".tray"); if (t && e.key === "Enter") open(+t.dataset.i); });
 $("close").onclick = () => { $("big").hidden = true; };
 document.addEventListener("keydown", e => { if (e.key === "Escape") $("big").hidden = true; });
 $("more").onclick = () => render(false);
-for (const id of ["fsrc", "ffam", "fmode", "fwrap"]) $(id).onchange = filter;
+for (const id of ["fsrc", "ffam", "fmode", "fwrap", "fun"]) $(id).onchange = filter;
 $("fq").oninput = filter;
 fetch("pieces.json").then(r => r.json()).then(d => {
   const first = p => p.src === "sketch" ? 0 : p.src === "library" ? 1 : 2;

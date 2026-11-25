@@ -17,9 +17,9 @@ function build(all, o = {}) {
   const pieces = all.filter(p => !o.pub || p.src !== "official").map(p => ({
     id: p.id, src: p.src, level: p.level, mode: p.mode, family: p.family, wrap: p.wrap, sig: p.sig, x: p.x, w: p.w, s: p.s,
     presses: p.presses, hold: p.hold, gap: p.gap, yRange: p.yRange, hz: p.hzPer100, flips: p.flips, gates: p.gates || 0, spiky: !!p.spiky,
-    turns: p.turns, pathKind: p.pathKind, mech: Object.keys(p.mech || {}), midline: p.midline,
+    turns: p.turns, pathKind: p.pathKind, mech: Object.keys(p.mech || {}), midline: p.midline, verified: !!p.verified, why: p.why || "",
     shape: (p.shape || []).slice(0, 500), path: p.path || [],
-    walls: (p.cols || []).map(c => [c.fk === "G" ? 0 : c.f, c.r == null || c.rk === "E" ? null : c.r]) }));   // floor / roof per column: drawn as filled walls (the sim culls inner blocks)
+    walls: (p.cols || []).map(c => [c.fk === "S" ? c.f : 0, c.rk === "S" ? c.r : null]) }));   // solid floor / roof only (spikes are not walls)   // floor / roof per column: drawn as filled walls (the sim culls inner blocks)
   fs.writeFileSync(path.join(dir, "pieces.json"), "[\n" + pieces.map(p => JSON.stringify(p)).join(",\n") + "\n]\n");
   const html = fs.readFileSync(path.join(__dirname, "lego_page.html"), "utf8")
     .replace("/*MIX*/null", JSON.stringify({ rows, tot }))

@@ -362,6 +362,7 @@ require("./structures.js").register(P);
 //          "floor" / "roof" / "both" (along that wall's level stretches, `every` columns apart)
 //   gates  a list of knot indexes where the room narrows to `gateGap` rows for one column (a pillar from the floor and a
 //          hanger from the roof, the path threading between)
+//   flipAt knot indexes that get a gravity portal (instead of turns: "flip" = every inner knot)
 //   turns  "click" (the player turns the path) | "flip" (a gravity portal at every turn: the same path is flown
 //          holding through -- the user's sketch 11-25 17:06, "portals are on the meeting point so you can hold/release
 //          more for the same path") | "mix" (every other turn); wave and ship only
@@ -372,7 +373,10 @@ def("fly-path", "one path for ship / wave / swing (`mode`), wrapped as corridor 
   const m = [], knots = [];
   for (let c = 0; c < lead; c++) m.push(rows[0]);
   rows.forEach((r, i) => {
-    if (i) { const d = r - rows[i - 1], n = wave ? Math.abs(d) : Math.max(Math.abs(d), seg); for (let k = 1; k <= n; k++) m.push(rows[i - 1] + Math.round(d * k / n)); }
+    // legs are 45 degrees (|rise| columns, slopes on both walls: smooth for every mode -- the user on a stair-stepped
+    // ship corridor: "i wanted smooth play in those corridors"); `stairs: true` (ship / swing) spreads a leg over `seg`
+    // columns of block steps instead
+    if (i) { const d = r - rows[i - 1], n = wave || !a.stairs ? Math.abs(d) : Math.max(Math.abs(d), seg); for (let k = 1; k <= n; k++) m.push(rows[i - 1] + Math.round(d * k / n)); }
     knots.push(m.length);
     if (i < rows.length - 1) for (let k = 0; k < flat; k++) m.push(r);
   });
@@ -405,11 +409,12 @@ def("fly-path", "one path for ship / wave / swing (`mode`), wrapped as corridor 
   }
   // turns by portal: a gravity portal on the path at the turn (the middle of the flat): going up into a peak it turns
   // the player upside down, so the held button now flies down (and back at the next valley)
-  if ((a.turns === "flip" || a.turns === "mix") && mode !== "swing") {
+  if ((a.turns === "flip" || a.turns === "mix" || a.flipAt) && mode !== "swing") {
     let g = 1;
     rows.forEach((r, i) => {
       if (i === 0 || i === rows.length - 1) return;
       if (a.turns === "mix" && i % 2 === 0) return;
+      if (a.flipAt && !a.flipAt.includes(i)) return;   // only at these knots (the user's sketch puts them where he wants)
       const c = knots[i] + Math.floor(flat / 2);
       g = -g; o.push([g === -1 ? "gravity down" : "gravity up", c, r]);
     });
