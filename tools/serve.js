@@ -94,6 +94,8 @@ const SERVER = http.createServer((req, res) => {
     if (req.method !== "GET" || !readable) { res.writeHead(403); return res.end("not for the public page"); }
     res.setHeader("Access-Control-Allow-Origin", origin); res.setHeader("Access-Control-Allow-Private-Network", "true"); res.setHeader("Vary", "Origin");
   }
+  // the work board without the artifact (tools/board_local.js): this PC only, it carries the user's save stats
+  if (!lan && !origin && (p === "/board" || p.startsWith("/board/")) && require("./board_local.js").handle(req, res, "/board")) return;
   if (p === "/viewer/" && Date.now() - UPD.checked > 60e3) selfUpdate();   // a page load after a quiet spell
   if (p === "/version") {
     let v = {}; try { v = { commit: git(["rev-parse", "--short", "HEAD"]), subject: git(["log", "-1", "--format=%s"]).slice(0, 80), at: git(["log", "-1", "--format=%cI"]) }; } catch (e) {}
