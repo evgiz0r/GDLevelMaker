@@ -36,7 +36,7 @@ A plan's tick t is our step t-1 (`tools/tas.js` shifts it). Plans reach, in bloc
 | UFO | flap to 7, gravity 0.086 / 0.129 (see UFO below) | gdsolver | plans only |
 | wave | 1 unit up per unit forward (mini 2); contact half 5 (mini 3), dies on a solid with half 1.5, band clamp 10 (mini 6) | gdsolver + video | video: mini wave trail 2.00:1 |
 | robot | jump 0.5x, gravity 0.9x, hover 67 ticks while held | gdsolver | plans only |
-| spider | half 13.5, teleports to the facing surface | gdsolver | plans only |
+| spider | half 13.5; teleport = GD's spiderTestJumpInternal search (solids in a strip from the centre to 14.5 ahead, a landing up to 10 behind, hazards in +-4 kill, band face / ground when nothing; rests at face +- half, vy 1 the way it went, not grounded) | gdsolver step.hpp spiderTargetGd (2026-11-25; was a guessed +-4.5 strip at +-15) | plans only |
 | swing | flips gravity a tick after a press, vy x0.8, gravity 0.086, limit 8 | gdsolver | plans only |
 
 Swing and the solver (2026-11-23, style's report): the sweep's state key left out the pending flip, so a
@@ -250,8 +250,11 @@ The solver session (official re-solves, human routes, dual / moving objects, lab
   at the same spots (open physics leads below). `tools/mains.js` now keeps them current by itself after physics changes.
 - **Fingerdash (21) viewer route:** its `--replan` took 42 min on 2026-11-25 (budget 10 min per plan pass); the route clears.
 - **Open physics leads (not solver gaps):** Deadlocked -- the teleport-spike stretch (`node tools/stuck.js 20 ...`
-  shows no input sequence survives: a teleport / spike-hitbox question). Dash -- the cube portal stack and the mini
-  route need a ball bounce off moving objects (move-trigger platforms; PHYSICS.md "Moving objects"). Theory of
+  shows no input sequence survives: a teleport / spike-hitbox question). Dash -- ROTATED GAMEPLAY (2026-11-25): from block ~75 (x ~2266) Dash turns
+  its gameplay 90 degrees (rotate gameplay trigger 2900, frames 0-3); GD takes the spider's tap there in the turned frame.
+  The sim has no frames, so the route cannot pass. gdsolver models it (dp/src/dp/frames.hpp, cli --rotgameplay; notes at
+  step.hpp "lv22 t=1,745", "t=1,753", "t=1,813"): the next big physics piece for Dash. (The older note here -- a ball
+  bounce off moving platforms -- was about a later stretch the sim reached only by a wrong spider landing.) Theory of
   Everything 2 -- a UFO release-press gap of 33 ms in the route (`humanroute.js 18`): an inhuman spot, so a physics
   lead if no other route exists.
 - **Labs:** GDLM 67 (`tools/lab67.js`, 19 stations; the user played v2 = commit 29303a4; stations 1-3 notes now predict

@@ -132,7 +132,10 @@ things take" below). The tools below still work one by one.
    My Levels (backs the save up first; refuses while GeometryDash.exe runs -- then queue it:
    `node tools/install_queue.js add <file> --by <who>`, the watcher installs it when GD closes). The user plays it
    and reports. The user's game is GD **2.2091** on Steam (Windows; Steam updated it 2026-10-21 -- older notes say 2.2081) with Geode 6.0.0 (2026-11-25); our probe mod `mods/gdlm-probe` is built with `tools\geode_build.cmd` and installed, not run yet (GEODE.md "Building on this PC": Smart App Control blocks the Geode CLI, so `tools/geode_pack.js` packs).
-   Or the bot plays it: `node tools/bot.js levels/<name>.gdlvl` presses Space at the solver's
+   **Or Claude plays it in the real game (2026-11-25):** `node tools/probe.js play save:<GDLM name> --launch` (GD closed; the
+   level must be in the save): the probe mod (GEODE.md "Playback") opens it, presses the saved route on exact ticks, logs every
+   tick and quits without saving; `node tools/probe.js result` says cleared / died where, and game vs sim. GDLM 62 cleared first try.
+   The old keyboard bot: `node tools/bot.js levels/<name>.gdlvl` presses Space at the solver's
    click times in the real game (no mod; it syncs to each attempt's start on screen and measures
    its own lag from ground jumps). A clear confirms the sim; a death is where they disagree --
    unless the window there is under ~30 ms (the bot is good to about a frame). Ask the user
@@ -560,7 +563,6 @@ swing. Each still wants a recording of the user's own play.
 
 Assumed (not yet checked):
 - Object keys 121 = No Touch and 134 = Passable (both make an object not collide).
-- Spider teleport searches a 9-unit strip above/below the cube.
 - Dash orbs: horizontal at the orb's angle while held; the props 586/588 on them are unknown.
 - "Click Between Steps" is OFF in the user's settings: presses land on a frame boundary, not any
   240 Hz step. The solver still allows any step.
@@ -573,7 +575,7 @@ spider orb + pad, the upside-down red-orb dive under a hanging column.
 
 ## Not simulated yet
 
-Mirror and dual portals, teleport portal variants 2902/2064 and the teleport trigger 3022; follow and "move to target" triggers, and a player carried sideways by a moving
+Rotated gameplay (rotate-gameplay trigger 2900: Dash turns its gameplay 90 degrees from block ~75, so Dash cannot get past there; gdsolver's dp/src/dp/frames.hpp models it), mirror and dual portals, teleport portal variants 2902/2064 and the teleport trigger 3022; follow and "move to target" triggers, and a player carried sideways by a moving
 block; speed-dependent ring scaling for ball/UFO; spike slopes (any slope skin that kills is
 treated as a plain slope -- unchecked).
 Simulated but checked only by the plans: mini size (gdsolver's measured values), move/toggle/spawn
