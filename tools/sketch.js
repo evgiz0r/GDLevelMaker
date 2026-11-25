@@ -54,6 +54,11 @@ function main() {
   console.log(`  solver: ${s.ok ? "beatable, " + s.clicks.filter(c => !c.auto && c.type !== "release").length + " presses" : "no way through after block " + ((s.dieAt && s.dieAt.x || 0) / 30).toFixed(1) + (s.why ? " (" + s.why + ")" : "")}`);
   if (r.notes.length) console.log(`  notes the user drew: ${r.notes.length} (look at them on the board: they are not in the level)`);
   const sess = arg("--wip");
+  if (sess && fitted) {   // the fitted layout with its plan: in the viewer's in-progress list (and the phone's, via the printed call)
+    const planF = out.replace(/\.gdlvl$/, ".plan.json");
+    fs.writeFileSync(planF, JSON.stringify({ ok: fitted.clear, events: fitted.events, dieX: fitted.dieX, why: fitted.why, changes: fitted.changes }));
+    require("child_process").execFileSync(process.execPath, [path.join(__dirname, "wip.js"), "put", out, "--session", sess, "--plan", planF, "--note", "the whiteboard's layout fitter: " + (fitted.clear ? "plays with the marks" : "stops at block " + (fitted.dieX / 30).toFixed(1)) + ", " + fitted.changes.length + " changes"], { stdio: "inherit", windowsHide: true });
+  }
   if (sess) {
     require("./stages.js").put({ session: sess, base: path.basename(out, ".gdlvl"), name, stage: "layout", levelStr: GD.serializeLevel({ header: r.header, objects: r.objects }), data: { events: ev, from: "whiteboard", sketch: id }, note: "as drawn on the whiteboard" });
     console.log(`  put as a layout stage for ${sess} (the viewer shows it; run tools/wip.js put once it is rebuilt)`);

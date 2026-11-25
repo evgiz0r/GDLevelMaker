@@ -100,8 +100,18 @@ synced sketch for the full pass; what the user fixes by hand wins.
 - **Open**: one-tap choices on a ✕ (make it 3 spikes / add an orb / keep it, Claude fixes it); pinning a piece the user moved
   on the level view; orbs that the timing could not use are not reported yet; holds drawn as drags in wave parts; ship
   corridors; the solver's fairness / windows on the fitted level; refit only from the edited mark (now it refits all).
-  Seen on smwvbb62d (picture: `node tools/sketchshot.js local/sketches/smwvbb62d.json --fit`): the sim's spider flips
-  from the floor at 130 to ~284 and runs there, not to the ceiling drawn at 460: check the spider teleport (PHYSICS.md).
+- **Bands** (2026-11-25, the user: "things are off with the spider"): a ship / UFO / wave / swing / ball / spider portal sets
+  GD's band (lib/physics.js BAND: 10 / 8 / 9 blocks from the portal's height). The fitter puts such a portal as high as a
+  floor player still touches, so the band starts on that floor, and brings a ceiling drawn above the band down to it (the
+  user's spider ceiling at 11 blocks came down 5). Robot marks try holds (1 / 15 / 30 / 45 ticks). A drawn portal the plan
+  goes past costs as much as a left-out mark; one within 4 blocks of the path moves onto it.
+- **In the viewer**: `node tools/sketch.js <id> --fit --wip whiteboard` puts the fitted level with its plan (`wip.js put
+  --plan`) in the viewer's in-progress list and prints the ArtifactData call for the phone viewer.
+- **Next (the user, 2026-11-25: "i thought we are doing the viewer and thing we draw at the same play ... they converge
+  into that gd creation + lab")**: the board moves INTO the viewer as a ✏ draw mode on the same canvas: the pens, stamps and
+  marks a layer over the level, 🧩 layout filling the level live, and the viewer's replay, play, zoom, seek, stages and
+  section lab on what is drawn; one page on PC and phone, sketches stored with the viewer's levels. Then: choices on a ✕,
+  pinning hand fixes.
 
 ## Status and open
 

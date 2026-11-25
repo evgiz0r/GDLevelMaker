@@ -13,7 +13,7 @@ const line = (pen, pts) => ({ k: "stroke", pen, pts });
   ok(sk.items[0].role === "ceiling" && sk.items[2].role === "floor", "a line with an orb under it is a ceiling, the other a floor");
   ok(sk.items[0].built.every(b => b.y >= 200), "the ceiling's blocks are above its line");
   ok(sk.items[3].built.some(b => b.id === 1) && sk.items[3].built.some(b => b.id === 8), "a floating spike line gets blocks under it");
-  ok(Math.abs(sk.items[4].y - (60 + 43)) < 1, "the portal stands on the floor next to it (" + sk.items[4].y + ")");
+  ok(Math.abs(sk.items[4].y - (60 + 60)) < 1, "the ship portal sits where a player on the floor still touches it, so its band starts there (" + sk.items[4].y + ")");
 }
 // 2. a mark drawn a bit late over spikes: timed, clears, the mark kept
 {

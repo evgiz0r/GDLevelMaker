@@ -1,4 +1,6 @@
-// node tools/wip.js put <level.gdlvl> --session <name> [--note "what changed"] [--no-solve]
+// node tools/wip.js put <level.gdlvl> --session <name> [--note "what changed"] [--no-solve] [--plan <plan.json>]
+//   --plan: the level's own planned presses ({ok, events, dieX?, why?}: a layout's plan, e.g. the whiteboard's layout fitter)
+//   go with it instead of a solve, so the viewer replays the plan at once (CLAUDE.md "A layout is playable the moment it exists")
 // node tools/wip.js list
 // node tools/wip.js phone                     -- rows for the phone page for every current level (PHONE.md)
 //
@@ -20,7 +22,7 @@ const args = process.argv.slice(2);
 const opt = k => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : undefined; };
 
 if (args[0] === "put") {
-  require("./heavy.js").claim();   // the solve below is heavy: one heavy job at a time (tools/heavy.js)
+  if (!args.includes("--plan")) require("./heavy.js").claim();   // the solve below is heavy: one heavy job at a time (tools/heavy.js)
   const file = args[1], session = (opt("--session") || "").replace(/[^\w-]+/g, "");
   if (!file || !file.endsWith(".gdlvl") || !session) { console.log('usage: node tools/wip.js put <level.gdlvl> --session <name> [--note "..."]'); process.exit(1); }
   const L = readGdlvl(file);
@@ -43,7 +45,7 @@ if (args[0] === "put") {
   const made = same.length ? same[0].made || same[0].at : now;
   history[history.length - 1].made = made;
   fs.copyFileSync(file, path.join(dir, base));
-  const solution = args.includes("--no-solve") ? undefined : solveFor(L);
+  const solution = opt("--plan") ? Object.assign({ kind: "plan" }, JSON.parse(fs.readFileSync(opt("--plan"), "utf8"))) : args.includes("--no-solve") ? undefined : solveFor(L);
   fs.writeFileSync(metaFile, JSON.stringify({ name: L.name, session, file: base, from: path.relative(path.join(__dirname, ".."), path.resolve(file)).replace(/\\/g, "/"),
     updated: now, made, note, checklist, version: history.length, history: history.slice(-20), solution }, null, 1));
   console.log(`wip: ${session}/${base} v${history.length} ("${L.name}") -- refresh the viewer to see it`);
