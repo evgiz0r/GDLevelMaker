@@ -105,6 +105,10 @@ too slow, too hard, feels good, love the hook). **♥ pick vN** / **none: all du
   is loaded. Picking another level while a stage is open now opens that level's own stages; a stages fetch already in flight
   is not started again (three fetches each reopened the stage and stopped the play); the in-progress refresh (the lab's 15 s
   poll) keeps an open stage on screen. `node tests/lab_play.js` (headless, muted) checks all of it.
+- Variants end ~0.5 s after their gameplay (`tools/lab.js trimEnd`, done by `build`; `node tools/lab.js trim <round>` for
+  rounds built before 2026-11-25).
+- Typing in any text box (a mark's note, the lab's why) never drives the replay: the replay keys (space, r, arrows) and
+  m skip while a text field has focus (`node tests/note_typing.js`).
 - Open: `#lab=r1` (`#lab` = the newest round), or the Work panel's "Section lab" rows. Works on the phone over the home
   Wi-Fi (the /lab routes and local/wip files are allowed from the LAN). Not on the phone page (no serve.js there).
 - Data: `local/lab/r<N>/round.json` {id, moment, t, variants:[{k, hook, why, file?}], ask}, `v<k>.result.json` {ok, pace}.

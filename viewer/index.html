@@ -1246,7 +1246,11 @@ document.getElementById("lightBtn").onclick = () => setLight(!LIGHT);
 try { if (localStorage.getItem("gdlm.light") === "1") setTimeout(() => setLight(true), 0); } catch (e) {}
 const scrub = document.getElementById("scrub");
 scrub.oninput = () => { t = scrub.value / 1000 * (L.path.length - 1) / P.TPS; lastTick = tick(); playing = false; setPlay(); syncSong(); draw(); };
+// the replay keys, never while typing (the user, 2026-11-25: typing a mark's note "repeats the levels and hangs the ui":
+// every space toggled play and every "r" restarted the replay)
+const typing = e => /INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName || "") || !!(e.target && e.target.isContentEditable);
 addEventListener("keydown", e => {
+  if (typing(e)) return;
   if (e.code === "Space") { e.preventDefault(); playBtn.onclick(); }
   if (e.key === "r") document.getElementById("restart").onclick();
   if (e.key === "ArrowRight") { t += 1 / P.TPS * (e.shiftKey ? 24 : 1); playing = false; setPlay(); draw(); }
@@ -1660,7 +1664,7 @@ const markBtn = document.getElementById("markBtn");
 function setMarking(on) { marking = on; markBtn.classList.toggle("on", on); cv.classList.toggle("marking", on); if (on) { playing = false; setPlay(); syncSong(); notice("✎ Click the spot in the level that should change (Esc: cancel).", 0); } else { const n = document.getElementById("notice"); if (n && /Click the spot/.test(n.textContent)) n.hidden = true; } }
 addEventListener("keydown", e => { if (e.key === "Escape" && marking) setMarking(false); });
 markBtn.onclick = () => setMarking(!marking);
-addEventListener("keydown", e => { if ((e.key === "m" || e.key === "M") && e.target.tagName !== "INPUT") setMarking(!marking); });
+addEventListener("keydown", e => { if ((e.key === "m" || e.key === "M") && !typing(e)) setMarking(!marking); });
 cv.addEventListener("click", async e => {
   if (!marking || !L) return;
   const r = cv.getBoundingClientRect(), d = DPR();

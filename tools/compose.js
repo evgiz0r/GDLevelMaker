@@ -274,6 +274,10 @@ function compose(brief, tweaks = {}) {
       const nx = brief.sections[si + 1], cont = !!(nx && nx.continue && nx.mode === sec.mode) || (si === brief.sections.length - 1 && brief._continueAfter === sec.mode);
       const args = Object.assign(base, (sec.args || {})[name] || {}, { portal: true, exit: cont ? null : "cube", portalRow: 1 });
       if (t.room) args.gap = (args.gap || 4) + t.room;
+      // the wave's legs fill the section with the seg / flat in force: the count was worked out from the defaults
+      // (seg 4 + flat 2) before a brief's own seg / flat (the lab's wave-drop: 3 + 1) went in, and the corridor stopped at
+      // 2/3 of its section, ~5 s of empty run after it (the user, 2026-11-25: "leaves way too much space")
+      if (name === "wave-zigzag" && !((sec.args || {})[name] || {}).legs) args.legs = Math.max(2, Math.floor((sec.blocks - (args.lead || 0) - 1 - land - (sec.exitRoom || 0)) / ((args.seg || 4) + (args.flat || 0))));
       objects.push(["pattern", name, start + 1 + land, 0, args]);
       placed.push({ key, name, from: start + 1 + land, to: start + 1 + land + widthOf(name, args), section: sec.name, flying: true });
       ranges.push([i0, objects.length, start, end]);
