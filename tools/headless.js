@@ -32,6 +32,14 @@ async function headless(pagePath, doneFile, opt = {}) {
   // kill and let go: on Windows Edge's broker can outlive the kill, and a live child handle kept node
   // running after the PNGs were written (gd-polish, 2026-11-23)
   try { br.kill(); } catch (e) {} br.unref();
+  // ...and it does: Edge's launcher hands off to a broker that kill() never reaches, so every headless run left a browser
+  // behind (14 of them, ~2 h old, one still solving a page, 2026-11-25). On Windows, stop every process of THIS run's own
+  // profile (the temp dir in its command line), nothing else.
+  if (process.platform === "win32") try {
+    cp.execFileSync("powershell", ["-NoProfile", "-Command", `Get-CimInstance Win32_Process -Filter "name='${path.basename(exe)}'" | ` +
+      `Where-Object { $_.CommandLine -like '*${path.basename(prof)}*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }`],
+      { windowsHide: true, stdio: "ignore", timeout: 20000 });
+  } catch (e) { /* best effort */ }
   if (server) { try { server.kill(); } catch (e) {} server.unref(); }
   await new Promise(r => setTimeout(r, 300));
   try { fs.rmSync(prof, { recursive: true, force: true }); } catch (e) {}

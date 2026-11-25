@@ -26,9 +26,27 @@ function official(n) {
   if (!LEVELS[n]) { const j = JSON.parse(fs.readFileSync(path.join(LOCAL, `official_${String(n).padStart(2, "0")}.json`), "utf8")); LEVELS[n] = GD.parseLevel(j.level); }
   return LEVELS[n];
 }
+// a piece's source level and its route: a main level (local/official_NN.json), one of ours (levels/ or levels/archive/,
+// route from local/solutions) or a structure-library piece (local/structures/<id>.gdlvl)
+const SRC = {};
+function sourceOf(p) {
+  const key = p.src + ":" + (p.src === "official" ? p.level.split(" ")[0] : p.file || p.level);
+  if (SRC[key]) return SRC[key];
+  let level, events;
+  if (p.src === "official") { const n = +p.level.split(" ")[0]; level = official(n); events = JSON.parse(fs.readFileSync(path.join(LOCAL, `official_${String(n).padStart(2, "0")}.json`), "utf8")).solution.events; }
+  else {
+    const { readGdlvl } = require("./io.js"), S = require("./solutions.js");
+    let f = p.src === "library" ? path.join(LOCAL, "structures", String(p.file || "").split(" ").pop() + ".gdlvl") : path.join(ROOT, p.file || "");
+    if (!fs.existsSync(f) && p.src === "ours") f = path.join(ROOT, "levels", "archive", path.basename(p.file || ""));
+    if (!fs.existsSync(f)) throw new Error("no source level for " + p.id + " (" + f + ")");
+    const L = readGdlvl(f); level = L.level || GD.parseLevel(L.levelStr); const sol = S.get(L.levelStr, true); events = sol && sol.events;
+    if (!events) throw new Error("no saved route for " + p.id);
+  }
+  return (SRC[key] = { level, events });
+}
 // the gameplay objects of a piece, moved so the piece starts at x = at (units)
 function objectsOf(p, at, pre) {
-  const L = official(+p.level.split(" ")[0]), x0 = p.xa * B - (pre || 0) * B, x1 = p.xa * B + p.w * B, out = [];
+  const L = sourceOf(p).level, x0 = p.xa * B - (pre || 0) * B, x1 = p.xa * B + p.w * B, out = [];
   for (const o of L.objects) {
     if (o.x < x0 - 15 || o.x >= x1) continue;
     const d = GD.objInfo(o.id); if (!d || !KEEP.has(d.kind)) continue;
@@ -41,8 +59,8 @@ function objectsOf(p, at, pre) {
 // join is not broken by a made-up lead-in; the first runs died inside the lead-in: 13 of 13 "broken" joins, 2026-11-25)
 const RUNS = {};
 function entryState(p) {
-  const n = +p.level.split(" ")[0];
-  if (!RUNS[n]) { const j = JSON.parse(fs.readFileSync(path.join(LOCAL, `official_${String(n).padStart(2, "0")}.json`), "utf8")); const L = official(n), w = GD.makeWorld(L.objects, L.header); RUNS[n] = { path: GD.run(w, j.solution.events).path, events: j.solution.events }; }
+  const n = p.src + ":" + (p.src === "official" ? p.level.split(" ")[0] : p.file || p.level);
+  if (!RUNS[n]) { const S = sourceOf(p), w = GD.makeWorld(S.level.objects, S.level.header); RUNS[n] = { path: GD.run(w, S.events).path, events: S.events }; }
   const R = RUNS[n], i = R.path.findIndex(s => s.x >= p.xa * B);
   if (i < 0) return null;
   let held = false; for (const e of R.events) { if (e.tick > R.path[i].tick) break; held = e.type === "press"; }
@@ -63,7 +81,7 @@ function joinDirect(A, Bp, fill) {
   objs.push(...(fill || []));
   const e = entryState(A); if (!e) return null;
   const start = { ...e.s, used: [], x: e.s.x - A.xa * B + lead, tick: 0 };   // used: object indices of the other world
-  return { level: { header: official(+A.level.split(" ")[0]).header, objects: objs }, bx, end: bx + Bp.w * B, lead, start, held: e.held };
+  return { level: { header: sourceOf(A).level.header, objects: objs }, bx, end: bx + Bp.w * B, lead, start, held: e.held };
 }
 function join(A, Bp) {
   const lead = (8 + PRE) * B, gap = 0;
@@ -77,7 +95,7 @@ function join(A, Bp) {
   // them in instead; this is the simplest filler). First join run: 2 of 12 broke on "skipped a portal".
   if (Bp.mode !== A.mode) { const top = Math.max(...A.path.map(q => q[1]), ...Bp.path.map(q => q[1])) * B + 120; for (let y = 45; y <= top; y += 90) objs.push(portal(MODE_ID[Bp.mode], bx - 10, y)); }
   objs.push(...objectsOf(Bp, bx));
-  const header = official(+A.level.split(" ")[0]).header;
+  const header = sourceOf(A).level.header;
   return { level: { header, objects: objs }, bx, end: bx + Bp.w * B };
 }
 // the pieces' own route height at x (units, joined coordinates)
@@ -191,4 +209,4 @@ if (require.main === module) {
   console.log(JSON.stringify(sum.causes));
   console.log(`\n${rows.length} joins: ${sum.clear}% clear (${sum.secret}% by a secret way), ${sum.broken}% broken, ${sum.openSeam}% with open space at the seam; same mode ${sum.sameMode.clear}% of ${sum.sameMode.n}, mode change ${sum.modeChange.clear}% of ${sum.modeChange.n}`);
 }
-module.exports = { join, joinDirect, check, checkFilled, entryState, pool, pairs, fits, objectsOf, portal, spike, official, MODE_ID, SPEED_ID };
+module.exports = { sourceOf, join, joinDirect, check, checkFilled, entryState, pool, pairs, fits, objectsOf, portal, spike, official, MODE_ID, SPEED_ID };

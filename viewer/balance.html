@@ -73,7 +73,7 @@ td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 
 <section class="band"><div class="wrap">
   <h2 id="chartHead">Every press, and what it costs</h2>
-  <p class="note">One bar per press at its moment in the level; the taller, the more it adds to the score. The line is the running total, ending at the score. Shaded stretches are the game modes. Hover or tap a bar.</p>
+  <p class="note">One bar per press at its moment in the level, and a coloured bar per second of flying; the taller, the more it adds to the score. The line is the running total, ending at the score. Shaded stretches are the game modes. Hover or tap a bar.</p>
   <div class="legend" id="modeLegend"></div>
   <div class="chart" id="chart"><svg></svg><div class="tip" id="tip"></div></div>
 </div></section>
@@ -88,12 +88,24 @@ td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 
 <section class="band" style="padding-top:0"><div class="wrap cols">
   <div><h2>Where it sits among the main levels</h2>
-    <p class="note">Same model, same SIGMA and LAPSE, on the route the viewer shows for each main level. Stars are the in-game rating.</p>
+    <p class="note">The fitted model on every main level (Fingerdash not measured yet). Stars are the in-game rating, # your own order (1 = easiest).</p>
     <div class="ladder" id="ladder"></div></div>
   <div><h2>Window size decides the chance</h2>
     <p class="note">The chance to hit one press against its window (in ms). Dots are this level's presses.</p>
     <div class="pw" id="pw"><svg></svg></div>
     <div class="scroll"><table id="bandT"><thead><tr><th>Window</th><th>Presses</th><th>Cost</th><th style="width:40%">Share</th></tr></thead><tbody></tbody></table></div></div>
+</div></section>
+
+<section class="band" style="padding-top:0" id="fitSec" hidden><div class="wrap">
+  <h2>The new model, fitted on the main levels</h2>
+  <p class="note" id="fitNote"></p>
+  <div class="cols" style="margin-top:12px">
+    <div class="scroll"><table id="fitT"><thead><tr><th>Level (your order)</th><th class="n">Yours</th><th class="n">New</th><th class="n">Old</th><th class="n">Score</th><th class="n">Flight</th></tr></thead><tbody></tbody></table></div>
+    <div><h3 style="margin:0 0 8px">What each part earns</h3>
+      <p class="note">How much worse the new model matches the targets with that part left out (0.10 is a lot; 0 means the data do not need it).</p>
+      <div class="scroll"><table id="earnT"><thead><tr><th>Part</th><th class="n">Earns</th><th style="width:45%"></th></tr></thead><tbody></tbody></table></div>
+      <p class="note" id="fitW" style="margin-top:12px"></p></div>
+  </div>
 </div></section>
 
 <section class="band" style="padding-top:0"><div class="wrap formula">
@@ -102,8 +114,10 @@ td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
   <div class="steps">
     <div><b>1. The route a person plays</b>The solver's route, turned into taps (one per jump or orb), and where a tight press has an easier way (an orb instead of a frame-perfect jump), that way.</div>
     <div><b>2. A window per press</b>Each press is moved earlier and later and replayed; the window is how far it can move and the run still lives (up to 200 ms each way).</div>
-    <div><b>3. A chance per press</b><code>p = (1 &minus; LAPSE) &middot; erf(window/2 / (SIGMA&middot;&radic;2))</code>. SIGMA is your timing spread, LAPSE the chance to fluff any press. Both were fitted on your own recorded runs.</div>
-    <div><b>4. Settling after a portal</b>A press whose window closes under SETTLE ms after a mode, speed or size portal has its chance scaled down by the time left, since you have not settled into the new mode yet.</div>
+    <div><b>3. A chance per jump</b><code>p = (1 &minus; LAPSE) &middot; erf(window/2 / (SIGMA&middot;&radic;2))</code>. SIGMA is the timing spread (28 ms, fitted on the main levels against your ranking, the stars and your attempts), LAPSE the chance to fluff any press (fitted on your runs).</div>
+    <div><b>4. Flying is scored by room, not clicks</b>A ship, UFO or wave press costs only the slip. Each flown second costs by how much space there is around the player at the tightest spot: the more open, the cheaper.</div>
+    <div><b>5. Gravity and duals</b>A jump made upside down or right after a gravity flip, or a press in a dual, costs a little more. The fit says gravity matters a bit and duals almost nothing beyond their timing.</div>
+    <div><b>6. Forced after a portal</b>Only a jump that cannot be made before a portal and closes under SETTLE ms after it is cut, since you have not settled into the new mode yet.</div>
   </div>
   <p class="note" id="modelNote" style="margin-top:14px"></p>
 </div></section>
@@ -124,19 +138,21 @@ function hdr() {
   const top3 = b.top.slice(0, 3).reduce((s, a) => s + a.cost, 0);
   document.getElementById("head").textContent = `${b.name}: ${f2(tot)}, about ${b.attempts.toLocaleString()} attempts. ` +
     (t.share >= 0.15 ? `One press at ${mmss(t.t)} is ${pct(t.share)} of it.` : `The top three presses make ${pct(top3 / tot)} of it.`);
-  const n = b.inputs.length, flat = b.parts.lapse;
+  const PR = b.inputs.filter(a => a.kind !== "fly"), n = PR.length, flat = b.parts.lapse;
   document.getElementById("lede").textContent = `${n} presses over ${Math.round(b.seconds)} s${b.rating ? ` (in-game ${b.rating} stars)` : ""}. ` +
-    `Just pressing ${n} times costs ${f2(flat)} (slips), narrow windows add ${f2(b.parts.timing)}, and presses due right after a portal add ${f2(b.parts.settle)}. ` +
-    `The hardest press, ${t.mode} ${t.type} at block ${Math.round(t.block)}, has a ${t.ms} ms window${t.settle > 0.001 ? `, closing ${t.afterSwitchMs} ms after a portal` : ""}: you hit it ${pct(t.p)} of the time.`;
-  const tight = b.inputs.filter(a => a.ms < 60).length;
-  document.getElementById("figs").innerHTML = [[f2(tot), b.label], ["~" + b.attempts.toLocaleString(), "expected attempts"], [n, "presses"], [tight, "windows under 60 ms"], [Math.min(...b.inputs.map(a => a.ms)) + " ms", "tightest window"]]
+    `Just pressing ${n} times costs ${f2(flat)} (slips), narrow windows add ${f2(b.parts.timing)}, tight flying adds ${f2(b.parts.flight)}, gravity and duals ${f2(b.parts.extra)}, presses forced right after a portal ${f2(b.parts.settle)}. ` +
+    (t.kind === "fly" ? `The costliest moment is flying the ${t.mode} at ${mmss(t.t)}, with ${Math.round(t.slack)} units of room to spare.` :
+    `The hardest press, ${t.mode} ${t.type} at block ${Math.round(t.block)}, has a ${t.ms} ms window${t.settle > 0.001 ? `, closing ${t.afterSwitchMs} ms after a portal` : ""}: you hit it ${pct(t.p)} of the time.`) +
+    (b.v1score != null ? ` (The old model said ${f2(b.v1score)}.)` : "");
+  const tight = PR.filter(a => a.ms < 60).length;
+  document.getElementById("figs").innerHTML = [[f2(tot), b.label], ["~" + b.attempts.toLocaleString(), "expected attempts"], [n, "presses"], [tight, "windows under 60 ms"], [Math.min(...PR.map(a => a.ms)) + " ms", "tightest window"]]
     .map(([v, l]) => `<div class="fig1"><div class="big">${esc(v)}</div><div>${esc(l)}</div></div>`).join("");
-  const P = [["lapse", "slips (every press)", "#7fa7c8"], ["timing", "narrow windows", "var(--hot)"], ["settle", "right after a portal", "#c0265a"]];
+  const P = [["lapse", "slips (every press)", "#7fa7c8"], ["timing", "narrow windows", "var(--hot)"], ["flight", "tight flying", "#13a89e"], ["extra", "gravity and duals", "#8a5cf0"], ["settle", "forced right after a portal", "#c0265a"]].filter(([k]) => b.parts[k] !== undefined);
   document.getElementById("parts").innerHTML = P.map(([k, , c]) => `<i style="width:${b.parts[k] / tot * 100}%;background:${c}"></i>`).join("");
   document.getElementById("partsLegend").innerHTML = P.map(([k, l, c]) => `<span><span class="sw" style="background:${c}"></span>${esc(l)} ${f2(b.parts[k])}</span>`).join("");
   const on = document.getElementById("openNote");
-  on.hidden = !b.openForced;
-  on.textContent = b.openForced ? `Open question: ${b.openForced} of the after-portal presses have a window that runs to the edge of the search (200 ms each way), so the "closes N ms after the portal" number there is the search limit, not the level. Not counting those as forced, the score would be ${f2(b.ifOpenExempt)}.` : "";
+  on.hidden = !b.openForced || b.v1score != null;
+  on.textContent = b.openForced && b.v1score == null ? `Open question: ${b.openForced} of the after-portal presses have a window that runs to the edge of the search (200 ms each way), so the "closes N ms after the portal" number there is the search limit, not the level. Not counting those as forced, the score would be ${f2(b.ifOpenExempt)}.` : "";
   const modes = [...new Set(b.inputs.map(a => a.mode))];
   document.getElementById("modeLegend").innerHTML = modes.map(m => `<span><span class="sw" style="background:${MODE[m] || "#888"};opacity:.5"></span>${esc(m)}</span>`).join("") + `<span><span class="sw" style="background:var(--hot)"></span>costly press (10% of the score or more)</span>`;
 }
@@ -154,35 +170,36 @@ function drawChart() {
   for (let c = 0; c <= maxC; c += cstep) g += `<line x1="${m.l}" x2="${m.l + iw}" y1="${Yc(c)}" y2="${Yc(c)}" stroke="var(--line)"/><text x="${m.l - 6}" y="${Yc(c) + 4}" text-anchor="end">${+c.toFixed(2)}</text>`;
   const bw = Math.max(2, Math.min(6, iw / b.inputs.length * 0.7));
   b.inputs.forEach((a, i) => { const hot = a.cost / tot >= 0.1;
-    g += `<rect data-i="${i}" x="${X(a.t) - bw / 2}" y="${Yc(a.cost)}" width="${bw}" height="${Math.max(1, m.t + ih - Yc(a.cost))}" fill="${hot ? "var(--hot)" : "var(--bar)"}"/>`; });
+    g += `<rect data-i="${i}" x="${X(a.t) - bw / 2}" y="${Yc(a.cost)}" width="${bw}" height="${Math.max(1, m.t + ih - Yc(a.cost))}" fill="${hot ? "var(--hot)" : a.kind === "fly" ? MODE[a.mode] || "var(--bar)" : "var(--bar)"}"${a.kind === "fly" ? ' opacity=".75"' : ""}/>`; });
   let d = `M${X(0)},${Yr(0)}`; b.inputs.forEach((a, i) => d += `L${X(a.t)},${Yr(b.curve[i])}`);
   g += `<path d="${d}" fill="none" stroke="var(--ink)" stroke-width="2"/>`;
   g += `<text x="${X(b.inputs[b.inputs.length - 1].t) + 6}" y="${Yr(tot) + 4}" style="fill:var(--ink);font-weight:600">${f2(tot)}</text>`;
   g += `<text x="${m.l + iw + 6}" y="${m.t + ih}" >0</text><text x="${m.l}" y="${m.t + 10}" >cost per press</text>`;
-  const t0 = b.top[0]; if (t0) g += `<text x="${Math.min(X(t0.t), W - 140)}" y="${Math.max(m.t + 12, Yc(t0.cost) - 8)}" text-anchor="${X(t0.t) > W - 140 ? "start" : "middle"}" style="fill:var(--ink)">${t0.mode} ${t0.ms} ms, block ${Math.round(t0.block)}</text>`;
+  const t0 = b.top[0]; if (t0 && t0.kind !== "fly") g += `<text x="${Math.min(X(t0.t), W - 140)}" y="${Math.max(m.t + 12, Yc(t0.cost) - 8)}" text-anchor="${X(t0.t) > W - 140 ? "start" : "middle"}" style="fill:var(--ink)">${t0.mode} ${t0.ms} ms, block ${Math.round(t0.block)}</text>`;
   s.innerHTML = g;
   s.onpointermove = e => { const r = e.target.dataset && e.target.dataset.i; if (r === undefined) { tip.style.display = "none"; return; }
     const a = b.inputs[+r], box = chartEl.getBoundingClientRect();
-    tip.textContent = `${mmss(a.t)}, block ${Math.round(a.block)}, ${a.mode} ${a.type}: window ${a.ms} ms${a.afterSwitchMs !== null && a.settle > 0.001 ? `, ${a.afterSwitchMs} ms after a portal` : ""}, chance ${pct(a.p)}, cost ${a.cost.toFixed(3)}`;
+    tip.textContent = a.kind === "fly" ? `${mmss(a.t)}, flying the ${a.mode}: ${Math.round(a.slack)} units of room at the tightest, cost ${a.cost.toFixed(3)}` : `${mmss(a.t)}, block ${Math.round(a.block)}, ${a.mode} ${a.type}: window ${a.ms} ms${a.afterSwitchMs !== null && a.settle > 0.001 ? `, ${a.afterSwitchMs} ms after a portal` : ""}, chance ${pct(a.p)}, cost ${a.cost.toFixed(3)}`;
     tip.style.display = "block"; const x = e.clientX - box.left; tip.style.left = Math.min(Math.max(0, x - 120), W - 260) + "px"; tip.style.top = Math.max(0, e.clientY - box.top - 44) + "px"; };
   s.onpointerleave = () => tip.style.display = "none";
 }
 function tables() {
   const b = lv(), tot = b.score, mx = b.top[0].cost;
-  document.querySelector("#topT tbody").innerHTML = b.top.map(a => `<tr><td class="n">${mmss(a.t)}</td><td class="n">${Math.round(a.block)}</td><td>${esc(a.mode)} ${esc(a.type)}</td><td class="n">${a.lateOpen ? "&ge;" : ""}${a.ms} ms${a.settle > 0.001 ? "*" : ""}</td><td class="n">${pct(a.p)}</td><td class="n">${a.cost.toFixed(2)}</td><td><div class="meter" style="width:${a.cost / mx * 100}%"></div></td></tr>`).join("");
+  document.querySelector("#topT tbody").innerHTML = b.top.map(a => `<tr><td class="n">${mmss(a.t)}</td><td class="n">${a.block == null ? "" : Math.round(a.block)}</td><td>${esc(a.mode)} ${esc(a.type)}</td><td class="n">${a.kind === "fly" ? `room ${Math.round(a.slack)}` : `${a.lateOpen ? "&ge;" : ""}${a.ms} ms${a.settle > 0.001 ? "*" : ""}`}</td><td class="n">${pct(a.p)}</td><td class="n">${a.cost.toFixed(2)}</td><td><div class="meter" style="width:${a.cost / mx * 100}%"></div></td></tr>`).join("");
   const s10 = b.top.reduce((s, a) => s + a.cost, 0);
-  document.getElementById("topNote").textContent = `These ${b.top.length} presses make ${pct(s10 / tot)} of the score; the other ${b.inputs.length - b.top.length} make the rest. * = due right after a portal (the after-portal cut is in its chance); &ge; = the window reaches the search limit.`.replace("&ge;", "\u2265");
+  document.getElementById("topNote").textContent = `These ${b.top.length} make ${pct(s10 / tot)} of the score; everything else makes the rest. A flying row is one second of flight, scored by its room (units of space around the ship at the tightest). * = forced right after a portal; &ge; = the window reaches the search limit.`.replace("&ge;", "\u2265");
   const smx = Math.max(...b.sections.map(x => x.cost));
-  document.querySelector("#secT tbody").innerHTML = b.sections.map(x => `<tr><td class="n">${x.from.toFixed(0)}&ndash;${x.to.toFixed(0)}</td><td><span class="sw" style="background:${MODE[x.mode] || "#888"}"></span>${esc(x.mode)}</td><td class="n">${x.inputs}</td><td class="n">${x.minMs} ms</td><td class="n">${x.cost.toFixed(2)}</td><td><div class="meter ${x.share >= 0.15 ? "" : "q"}" style="width:${x.cost / smx * 100}%"></div></td></tr>`).join("");
+  document.querySelector("#secT tbody").innerHTML = b.sections.map(x => `<tr><td class="n">${x.from.toFixed(0)}&ndash;${x.to.toFixed(0)}</td><td><span class="sw" style="background:${MODE[x.mode] || "#888"}"></span>${esc(x.mode)}</td><td class="n">${x.inputs}</td><td class="n">${x.minMs != null ? x.minMs + " ms" : x.minRoom != null ? "room " + Math.round(x.minRoom) : ""}</td><td class="n">${x.cost.toFixed(2)}</td><td><div class="meter ${x.share >= 0.15 ? "" : "q"}" style="width:${x.cost / smx * 100}%"></div></td></tr>`).join("");
   const bmx = Math.max(...b.bands.map(x => x.cost));
   document.querySelector("#bandT tbody").innerHTML = b.bands.map(x => `<tr><td>${x.hi ? `${x.lo}&ndash;${x.hi} ms` : `${x.lo} ms +`}</td><td class="n">${x.inputs}</td><td class="n">${x.cost.toFixed(2)}</td><td><div class="meter ${x.hi && x.hi <= 60 ? "" : "q"}" style="width:${bmx ? x.cost / bmx * 100 : 0}%"></div></td></tr>`).join("");
   const rows = DATA.mains.filter(r => r.complete && r.score < 20).map(r => ({...r, me: false}));
   for (const l of DATA.levels) if (l.kind !== "official") rows.push({name: l.name, rating: "ours", score: l.score, me: l === b});
+  for (const r of rows) if (r.his != null) r.rating = r.rating + ", your #" + r.his;
   for (const r of rows) if (b.kind === "official" && r.n === b.n) r.me = true;
   rows.sort((p, q) => p.score - q.score);
   const lmx = Math.min(4, Math.max(...rows.map(r => r.score))); // Deadlocked's 10+ would flatten the rest
   document.getElementById("ladder").innerHTML = rows.map(r => `<div class="row ${r.me ? "me" : ""}"><span>${esc(r.name)} <span class="note">${esc(r.rating === "ours" ? "ours" : r.rating.replace(/ (\d+)$/, " $1★"))}</span></span><div class="trk"><i style="width:${Math.min(1, r.score / lmx) * 100}%"></i></div><span class="n">${f2(r.score)}</span></div>`).join("");
-  const M = b.model; document.getElementById("modelNote").textContent = `Model now: SIGMA ${M.SIGMA} ms, LAPSE ${(M.LAPSE * 100).toFixed(2)}%, SETTLE ${M.SETTLE} ms. Fingerdash and main levels whose saved route does not finish are left out of the ladder. Page made ${DATA.made.slice(0, 16).replace("T", " ")} UTC by tools/balance.js.`;
+  const M = b.model; document.getElementById("modelNote").textContent = `Model now: SIGMA ${M.SIGMA} ms, LAPSE ${(M.LAPSE * 100).toFixed(2)}%, SETTLE ${M.SETTLE} ms. Fingerdash and main levels whose saved route does not finish are left out of the ladder. Old model (v1, in brackets above) keeps SIGMA 13 ms; score.js still uses it. Page made ${DATA.made.slice(0, 16).replace("T", " ")} UTC by tools/balance.js.`;
 }
 const pwEl = document.getElementById("pw");
 function drawPw() {
@@ -195,13 +212,24 @@ function drawPw() {
   for (const p of [0, .5, 1]) g += `<line x1="${m.l}" x2="${m.l + iw}" y1="${Y(p)}" y2="${Y(p)}" stroke="var(--line)"/><text x="${m.l - 6}" y="${Y(p) + 4}" text-anchor="end">${p * 100}%</text>`;
   for (const ms of [0, 50, 100, 150, 200]) g += `<text x="${X(ms)}" y="${H - 8}" text-anchor="middle">${ms}${ms === 200 ? "+" : ""} ms</text>`;
   g += `<line x1="${X(60)}" x2="${X(60)}" y1="${m.t}" y2="${m.t + ih}" stroke="var(--hot)" stroke-dasharray="3 3"/><text x="${X(60) + 4}" y="${Y(.15)}" style="fill:var(--hot)">60 ms: tight</text>`;
-  for (const a of b.inputs) g += `<circle cx="${X(a.ms)}" cy="${Y(a.p)}" r="3.5" fill="${a.cost / b.score >= .1 ? "var(--hot)" : "var(--bar)"}" opacity=".8"/>`;
+  for (const a of b.inputs.filter(a => a.kind !== "fly")) g += `<circle cx="${X(a.ms)}" cy="${Y(a.p)}" r="3.5" fill="${a.cost / b.score >= .1 ? "var(--hot)" : "var(--bar)"}" opacity=".8"/>`;
   g += `<path d="${d}" fill="none" stroke="var(--ink)" stroke-width="2"/>`;
   s.innerHTML = g;
 }
+function fitPart() {
+  const F = DATA.fitV2; if (!F) return;
+  document.getElementById("fitSec").hidden = false;
+  const r2 = x => x == null ? "-" : x.toFixed(2);
+  document.getElementById("fitNote").textContent = `Match with your ranking: old ${r2(F.v1.rank)}, new ${r2(F.fit.rank)}. With the stars: old ${r2(F.v1.stars)}, new ${r2(F.fit.stars)}. With your attempts: old ${r2(F.v1.att)}, new ${r2(F.fit.att)} (1.0 = the same order). Flying is scored by how open it is, a press only when it is a jump, and the weights come from the data, not from hand-set rules.`;
+  const off = (a, b) => Math.abs(a - b) > 3 ? ' style="color:var(--hot);font-weight:600"' : "";
+  document.querySelector("#fitT tbody").innerHTML = F.levels.map(l => `<tr><td>${esc(l.name)}</td><td class="n">${l.his}</td><td class="n"${off(l.v2r, l.his)}>${l.v2r}</td><td class="n"${off(l.v1r, l.his)}>${l.v1r}</td><td class="n">${l.v2.toFixed(2)}</td><td class="n">${l.fly.toFixed(2)}</td></tr>`).join("");
+  const mx = Math.max(...Object.values(F.earns), 0.01);
+  document.querySelector("#earnT tbody").innerHTML = Object.entries(F.earns).map(([k, v]) => `<tr><td>${esc(k)}</td><td class="n">${v.toFixed(2)}</td><td><div class="meter" style="width:${Math.max(0, v) / mx * 100}%"></div></td></tr>`).join("");
+  document.getElementById("fitW").textContent = `Fitted: timing spread ${F.w.SIGMA} ms (the old one is 13), flight spread ${F.w.FLY} units, gravity ${F.w.GRAV} a press, duals ${F.w.DUAL} a press. Highlighted ranks are more than 3 places from yours. Rank 1 = easiest.`;
+}
 function all() { hdr(); drawChart(); tables(); drawPw(); }
 try { const v = +localStorage.getItem("bal-cur"); if (v > 0 && v < DATA.levels.length) cur = v; } catch (e) {}
-all();
+all(); fitPart();
 const ro1 = new ResizeObserver(drawChart); ro1.observe(chartEl);
 const ro2 = new ResizeObserver(drawPw); ro2.observe(pwEl);
 }

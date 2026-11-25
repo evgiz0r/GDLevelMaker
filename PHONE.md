@@ -63,6 +63,10 @@ Link: in `local/phone/url.txt` (shared folder; also in Claude's memory). Not in 
 - Not on the phone: official RobTop levels (`levels.local.js`), recordings and "compare". Links: a published page's address
   keeps only a plain `#name`, so the phone page opens the short form `#<base>--v5--t40` (LINKS.md; `tools/link.js` prints
   it), and its 🔗 open link box takes any pasted link.
+- **Deco options** (2026-11-25): the "deco" button (or #deco) opens deco/index.html over the page: tools/decogallery.js
+  and tools/decodemo.js frames (GD art) as 960 px JPGs, ice and fire side by side. Build: run both with --shots, then
+  `node tools/deco_page.js` (-> local/phone_deco/), then tools/web.js carries it as deco/. GD art: only on this private page
+  (VISUALS.md, the one exception). To add or refresh just the pictures, publish with `files` = the deco/ paths only.
 
 ## Offline snapshot: the PC viewer in one file (2026-11-24)
 
@@ -102,7 +106,7 @@ card: never commit, upload or publish it, because RobTop's art, the official lev
 | a new database, or rows lost | `node tools/wip.js phone` writes rows for every current level; send them (one `batch` with `file_path` entries). |
 | before handling marks | ArtifactData `{action: "list", collection: "marks", out_dir: "<main checkout>/local/phone"}` -- the REAL path of the shared folder (`node -e "console.log(require('fs').realpathSync('local'))"`), not the worktree's `local/` link: ArtifactData refuses paths under `.claude/`. Then `node tools/marks.js` lists them with the rest ("from the phone"). |
 | closing a phone mark | `node tools/marks.js done <id> "reply"` as usual, AND ArtifactData `update` on `marks/<id>` with `{done: true, reply}` so the phone shows it closed. |
-| the viewer code or pushed levels changed | `node tools/web.js --out <scratchpad>/web`, then publish with what `publish.json` says (`file_path`, `root`, `files`, `capabilities: {db: {}, downloads: true}`: downloads lets the ✏ board save .gdlvl / .json) and `url` from `local/phone/url.txt`. From a new conversation, `read` the artifact first. Tell the user the page changed. |
+| the viewer code or pushed levels changed | `node tools/web.js --private --out <scratchpad>/web` (the user's own phone viewer is the private build: it also loads `levels.local.js`, the 22 main levels, and fetches their songs from `songs/`; both are already published next to the page and are kept when a publish leaves them out, so never list them. Without `--private` the page loses the main levels and their music. `--private` is only for that page, never a shared or public one), then publish with what `publish.json` says (`file_path`, `root`, `files`, `capabilities: {db: {}, downloads: true}`: downloads lets the ✏ board save .gdlvl / .json) and `url` from `local/phone/url.txt`. From a new conversation, `read` the artifact first. Tell the user the page changed. |
 
 `tools/web.js` builds the page from `viewer/index.html` by exact text swaps; when the viewer
 changes, a swap that no longer matches stops the build with the text to update ("viewer changed,

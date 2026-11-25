@@ -5,7 +5,8 @@
 // beats, then joins the chain into one level, solves it from the first brick's real entry state and fills secret ways
 // with spikes (tools/lego_join.js). Rules it follows:
 //   - the seam contract (lego_join.js fits: same gravity; same mode -> same ground state and height within a block),
-//     a mode change only at a section boundary, with the mode portal stacked over the height (a connector corridor is open)
+//     a mode change (and a gravity change) only at a section boundary, with the portals stacked over the height
+//     (a connector corridor is the Hellgate thread's, in lego_join.js)
 //   - beats: each press of a brick is scored by its distance to the nearest beat target (--every N: every Nth beat is a
 //     target; 1 = every beat); the brick whose presses sit best on beats wins, ties broken by the seed
 //   - variety: never the same signature twice in a row, and no brick twice (the officials repeat 16% of neighbours, ours 37%)
@@ -32,9 +33,10 @@ function beatTargets(o) {
   const out = []; for (let t = t0; t < (o.len || 600) + 2; t += period * (o.every || 1)) out.push(t);
   return { targets: out, period };
 }
-function pool() {
-  return L.load().filter(p => p.src === "official" && p.grain === "brick" && p.verified && !p.dupOf && !p.empty && !p.jitter &&
-    p.smooth !== false && (!p.routeKind || p.routeKind === "human") && J.MODE_ID[p.mode] && p.path && p.path.length > 2 && p.entry && p.exit && p.s > 0.4);
+function pool(src) {
+  const want = new Set(String(src || "official").split(","));
+  return L.load().filter(p => want.has(p.src) && (p.grain === "brick" || p.src === "library") && p.verified && !p.dupOf && !p.empty && !p.jitter &&
+    p.smooth !== false && (!p.routeKind || p.routeKind === "human" || p.routeKind === "ours") && J.MODE_ID[p.mode] && p.path && p.path.length > 2 && p.entry && p.exit && p.s > 0.4);
 }
 // how well a brick's presses sit on the beats if it starts at time T: mean distance (ms) of each press to its nearest target
 function beatCost(b, T, targets) {
@@ -44,18 +46,23 @@ function beatCost(b, T, targets) {
   for (const t of pr) { let d = Infinity; for (const g of targets) { const e = Math.abs(g - t); if (e < d) d = e; if (g > t + 1) break; } sum += Math.min(d * 1000, 250); if (d <= 0.05) on++; }
   return { cost: sum / pr.length, n: pr.length, on };
 }
-function pick(o) {
-  const P = pool(), R = rng(o.seed || 1), { targets } = beatTargets(o), W = L.sigWeights(L.readVotes());
-  const chain = [], used = new Set(); let T = 0, prev = null, autoT = 0;
+// rest = { prefix, banned }: carry on after the bricks already kept (a repair after the whole chain broke), never
+// taking a banned brick again
+function pick(o, rest = {}) {
+  const P = pool(o.src), R = rng(o.seed || 1), { targets } = o.hits ? { targets: o.hits } : beatTargets(o), W = L.sigWeights(L.readVotes());
+  const chain = (rest.prefix || []).slice(), used = new Set([...(rest.banned || []), ...chain.map(c => c.b.id)]);
+  const last = chain[chain.length - 1];
+  let T = last ? last.T + last.b.s : 0, prev = last ? last.b : null, autoT = chain.filter(c => c.b.auto).reduce((s, c) => s + c.b.s, 0), secStart = 0;
   for (const sec of o.sections) {
-    const end = T + sec.s;
-    let first = true;
+    const end = secStart + sec.s; secStart = end;
+    if (end - 0.4 <= T) continue;
+    let first = !prev || prev.mode !== sec.mode || !chain.length || chain[chain.length - 1].section !== sec.mode;
     while (T < end - 0.4) {
       // relax step by step when nothing fits: 0 = every rule; 1 = a signature may come back after 2 others; 2 = only the
       // same gravity at the seam (the join check decides); then the section ends short
       let cand = [];
       for (let relax = 0; relax <= 2 && !cand.length; relax++) cand = P.filter(b => b.mode === sec.mode && !used.has(b.id) &&
-        (!prev || (b.sig !== prev.sig && (first || relax >= 2 ? b.entry.grav === prev.exit.grav : J.fits(prev, b)))) &&
+        (!prev || (b.sig !== prev.sig && (first ? true : relax >= 2 ? b.entry.grav === prev.exit.grav : J.fits(prev, b)))) &&
         !chain.slice(relax ? -2 : -4).some(c => c.b.sig === b.sig) && T + b.s <= end + 0.6 &&
         // auto bricks (no press) are breathers: never two in a row, and at most a fifth of the time so far
         (!b.auto || (!(prev && prev.auto) && autoT + b.s <= 0.2 * (T + b.s) + 1)));
@@ -80,6 +87,8 @@ function assemble(chain, fill) {
   chain.forEach((c, i) => {
     const b = c.b, p = i ? chain[i - 1].b : null;
     if (p && (b.speed || 1) !== (p.speed || 1)) objs.push(J.portal(J.SPEED_ID[b.speed || 1] || 201, x - 20, Math.max(15, b.path[0][1] * B)));
+    // a section boundary may change gravity too: a gravity portal stacked over the height (10 normal, 11 upside down)
+    if (p && b.entry.grav !== p.exit.grav) { const top = Math.max(...p.path.map(q => q[1]), ...b.path.map(q => q[1])) * B + 120; for (let y = 45; y <= top; y += 90) objs.push(J.portal(b.entry.grav < 0 ? 11 : 10, x - 40, y)); }
     if (p && b.mode !== p.mode) { const top = Math.max(...p.path.map(q => q[1]), ...b.path.map(q => q[1])) * B + 120; for (let y = 45; y <= top; y += 90) objs.push(J.portal(J.MODE_ID[b.mode], x - 10, y)); }
     objs.push(...J.objectsOf(b, i ? x : x - 2 * B, i ? 0 : 2));
     seams.push(x); x += b.w * B;
@@ -87,7 +96,7 @@ function assemble(chain, fill) {
   objs.push(...(fill || []));
   const e = J.entryState(chain[0].b);
   const start = { ...e.s, used: [], x: e.s.x - chain[0].b.xa * B + lead, tick: 0 };
-  return { level: { header: J.official(+chain[0].b.level.split(" ")[0]).header, objects: objs }, seams, end: x, lead, start, held: e.held };
+  return { level: { header: J.sourceOf(chain[0].b).level.header, objects: objs }, seams, end: x, lead, start, held: e.held };
 }
 function ownY(chain, A, xw) {
   let i = A.seams.length - 1; while (i > 0 && A.seams[i] > xw) i--;
@@ -116,7 +125,8 @@ if (require.main === module) {
   const a = process.argv.slice(2), opt = (k, d) => { const i = a.indexOf("--" + k); return i >= 0 ? a[i + 1] : d; };
   const sections = String(opt("sections", "cube:20")).split(",").map(s => { const [m, t] = s.split(":"); return { mode: m, s: +t }; });
   const len = sections.reduce((s, x) => s + x.s, 0), name = opt("name", "pick_" + (opt("seed", "1")));
-  const o = { sections, song: opt("song"), bpm: +opt("bpm", 0) || undefined, t0: +opt("t0", 0), every: +opt("every", 1), diff: opt("diff") != null ? +opt("diff") : undefined, seed: +opt("seed", 1), len };
+  const hitsF = opt("hits"), hits = hitsF ? JSON.parse(fs.readFileSync(hitsF, "utf8")) : null;
+  const o = { sections, src: opt("src", "official"), hits: hits ? (Array.isArray(hits) ? hits : hits.times || hits.hits).map(Number).sort((x, y) => x - y) : null, song: opt("song"), bpm: +opt("bpm", 0) || undefined, t0: +opt("t0", 0), every: +opt("every", 1), diff: opt("diff") != null ? +opt("diff") : undefined, seed: +opt("seed", 1), len };
   if (!a.includes("--no-solve") && !a.includes("--no-verify")) { let nv = 0, bad = 0; o.verify = (A, Bp) => { nv++; const r = J.checkFilled(A, Bp).res; const ok = r.ok && !r.secret; if (!ok) bad++; process.stdout.write(`  join ${A.id} + ${Bp.id}: ${ok ? "ok" : "no (" + (r.why || "secret way") + ")"}\n`); return ok; }; }
   const t0 = Date.now(), Pk = pick(o);
   const on = Pk.chain.reduce((s, c) => s + c.beat.on, 0), np = Pk.chain.reduce((s, c) => s + c.beat.n, 0);
@@ -125,7 +135,16 @@ if (require.main === module) {
   const dir = path.join(ROOT, "local", "lego", "picks"); fs.mkdirSync(dir, { recursive: true });
   const plan = { name, sections, song: o.song || null, bpm: o.bpm || null, every: o.every, bricks: Pk.chain.map(c => ({ id: c.b.id, sig: c.b.sig, mode: c.b.mode, T: c.T, s: c.b.s, w: c.b.w, presses: c.beat.n, onBeat: c.beat.on, offMs: Math.round(c.beat.cost) })) };
   if (!a.includes("--no-solve")) {
-    const t1 = Date.now(), S = solveFilled(Pk.chain);
+    // the whole chain: a brick entered from its neighbour is not in its own entry state, so a chain can break where every
+    // pair joined cleanly; then that brick is banned and the rest re-picked from there (up to 8 repairs)
+    const t1 = Date.now(); let S = solveFilled(Pk.chain), banned = [];
+    for (let k = 0; k < 8 && !S.res.ok && S.res.dieBrick != null; k++) {
+      const i = Math.max(1, S.res.dieBrick); banned.push(Pk.chain[i].b.id);
+      console.log(`  whole chain breaks at brick ${i} (${Pk.chain[i].b.id}): ${S.res.why}; re-picking from there`);
+      const P2 = pick(o, { prefix: Pk.chain.slice(0, i), banned }); Pk.chain = P2.chain; Pk.len = P2.len;
+      S = solveFilled(Pk.chain);
+    }
+    plan.bricks = Pk.chain.map(c => ({ id: c.b.id, sig: c.b.sig, mode: c.b.mode, T: c.T, s: c.b.s, w: c.b.w, presses: c.beat.n, onBeat: c.beat.on, offMs: Math.round(c.beat.cost) })); plan.repairs = banned;
     plan.solve = { ok: S.res.ok, secret: !!S.res.secret, spikes: S.res.spikes, rounds: S.res.rounds, why: S.res.why || null, dieBrick: S.res.dieBrick, dieBlock: S.res.dieBlock, s: Math.round((Date.now() - t1) / 100) / 10 };
     plan.seams = S.A.seams; plan.events = S.res.events || null; plan.start = { x: S.A.start.x, y: S.A.start.y, mode: S.A.start.mode, held: S.A.held };
     console.log(S.res.ok ? `solved from the first brick's entry state: ${S.res.secret ? "still a secret way after" : "clean after"} ${S.res.rounds} filler rounds, ${S.res.spikes} spikes, ${plan.solve.s} s`
