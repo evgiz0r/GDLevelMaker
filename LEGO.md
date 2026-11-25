@@ -465,6 +465,21 @@ so it is used only when it helps the beat. Tested: two pairs with a 1 s breather
 portals, big drops with no press) are the other breather: never two in a row, at most a fifth of the time. Not yet: a flying
 breather (an open corridor of the right length).
 
+## Collecting bricks as part of every level's analysis (2026-11-25 night)
+
+Evgeni: "do we have a plan to keep collecting structures? part of each level analysys. if its fast enough, just grab". It is:
+cutting one level with its route takes ~0.35 s (`node tools/lego.js mine official --level 18`: ToE2, cached windows). So
+`tools/difficulty_solve.js` cuts every route it saves -- a main level's solve, resume or `--replan`, and a community level's
+solve (`c<id>`) -- into bricks itself (`lego.mineLevel`; `GDLM_LEGO=0` skips it). A level whose route was re-planned gets its
+bricks re-cut, so Evgeni's notes are checked against the new path (a note older than the route lets the brick back in).
+
+Community levels (`src: "community"`, ids `c-...`): the solver's raw run is turned into a human route once (lib/natural.js,
+5 min budget, else humanize), cached in local/lego/routes/c<id>.json. Other people's levels: local/, the PC page and the
+private catalogue only -- left out of knowledge/lego.json's shapes and of `page --public`. Queue for the PC, low priority:
+Evgeni's beaten demons first (local/difficulty/user_stats_online.json `--demons --done`, `tools/fetch_level.js`, then
+`GDLM_HEAVY_PRIORITY=low node tools/difficulty_solve.js c<id>`). Our levels: `node tools/lego.js mine ours --level <name>`
+after a build (not hooked into make.js yet).
+
 ## Open
 
 - Compose does not place fly pieces from the catalogue yet: ship / wave / swing sections still use ship-tunnel /
