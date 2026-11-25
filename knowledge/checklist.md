@@ -131,7 +131,10 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   obviously not the human path"). So: an extra press or two is fine when it widens the windows; a run of tiny taps is not
   (3+ presses under 0.1 s apart in one brick, or close taps where a window is under 60 ms). By that rule 4 of the main levels' 218 flying bricks fail (18 of 60 wave
   bricks have some close taps, Deadlocked 13), from lib/natural.js's corridor steering; the solver thread re-plans them. A brick's
-  layout may be reused, its flying taps are re-planned (LEGO.md "The replay"). In the planner (lib/natural.js fly, EASY_MS 100):
+  layout may be reused, its flying taps are re-planned (LEGO.md "The replay"). **Slide where you can** (Evgeni: "many places
+  wave avoids ground but probably in many of them we can slide on it avoiding the clicks in the middle"): a wave (or ship)
+  riding a flat floor or ceiling instead of zigzagging over it saves presses; leave before the block's end (the wave dies
+  sliding off a corner, CLAUDE.md calibration) and never into a rising slope. In the planner (lib/natural.js fly, EASY_MS 100):
   a flying line never wins on fewer presses when its tightest window is under 100 ms and tighter than the old one, and a line
   with up to 2 more presses wins when it widens a window under 100 ms by half. `node tools/flystyle.js <level>`: tightest
   window per stretch (PHYSICS.md "The wave like a person"). The wave slides on flat floors and roofs instead of hovering above

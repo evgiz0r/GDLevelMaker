@@ -27,7 +27,7 @@ function build(all, o = {}) {
     id: p.id, grain: p.grain || "piece", auto: !!p.auto, src: p.src, level: p.level, mode: p.mode, family: p.family, wrap: p.wrap, sig: p.sig, x: p.x, w: p.w, s: p.s,
     presses: p.presses, hold: p.hold, gap: p.gap, yRange: p.yRange, hz: p.hzPer100, flips: p.flips, gates: p.gates || 0, spiky: !!p.spiky,
     turns: p.turns, pathKind: p.pathKind, mech: Object.keys(p.mech || {}), midline: p.midline, verified: !!p.verified, why: p.why || "",
-    shape: (p.shape || []).slice(0, 500), ...packPath(p.path || []), clicks: p.clicks || [], diff: p.diff == null ? null : p.diff, tightMs: p.tightMs == null ? null : p.tightMs, tight: p.tight || 0, speed: p.speed,
+    shape: (p.shape || []).slice(0, 500), ...packPath(p.path || []), clicks: p.clicks || [], diff: p.diff == null ? null : p.diff, diffStale: !!p.diffStale, tightMs: p.tightMs == null ? null : p.tightMs, tight: p.tight || 0, speed: p.speed,
     colors: p.colors || null, routeKind: p.routeKind || "", routeAt: p.routeAt || "", routePlan: p.routePlan == null ? null : p.routePlan, jitter: p.jitter || 0, cuts: p.cuts || [], empty: !!p.empty, smooth: p.smooth !== false, steps: p.steps || 0, dupOf: p.dupOf || "", copies: p.copies || 1, alsoIn: (p.alsoIn || []).slice(0, 12),
     // solid floor / roof right under / over the route per column, drawn as filled walls (the sim culls inner blocks);
     // spikes are not walls, and a slope column's wall stops under the ramp (the ramp itself is drawn as a triangle)

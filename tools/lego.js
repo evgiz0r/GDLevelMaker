@@ -220,13 +220,18 @@ function windowsOf(src, w, r) {
   const f = path.join(OUTDIR, "windows", (src.windowsKey || src.name.replace(/[^a-z0-9]+/gi, "_")) + ".json");
   // measured windows are committed in knowledge/lego_windows/ (timing numbers only, no layouts), so the PC does not
   // measure them again (~40 min for the 22 main levels the first time)
-  for (const g of [f, path.join(ROOT, "knowledge", "lego_windows", path.basename(f))]) try { const c = JSON.parse(fs.readFileSync(g, "utf8")); if (c.key === key) return c.windows; } catch (e) {}
-  if (process.env.LEGO_CACHED_WINDOWS) return [];   // only what is measured already (a quick rebuild while a long one runs)
+  const ev = crypto.createHash("sha1").update(JSON.stringify(src.events)).digest("hex").slice(0, 16);
+  let stale = null;
+  for (const g of [f, path.join(ROOT, "knowledge", "lego_windows", path.basename(f))]) try { const c = JSON.parse(fs.readFileSync(g, "utf8")); if (c.key === key) return c.windows; if (!stale && (!c.ev || c.ev === ev)) stale = c.windows; } catch (e) {}
+  // only what is measured already (a quick rebuild while a long one runs). Windows measured on older physics / windows code
+  // are kept (the same route's, when the file says which), marked stale: a code change elsewhere must not wipe every
+  // brick's difficulty to 0 (it did, 2026-11-25 evening: Evgeni "what is difficulty 0.00?")
+  if (process.env.LEGO_CACHED_WINDOWS) { src.windowsStale = !!stale; return stale || []; }
   const WIN = require("../lib/windows.js");
   const t0 = Date.now();
   const ws = WIN.inputWindows(w, src.events, r.path, {}).map(x => [x.type === "release" ? 1 : 0, x.tick, x.lo, x.hi, x.j]);
-  fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, JSON.stringify({ key, windows: ws }));
-  const kf = path.join(ROOT, "knowledge", "lego_windows", path.basename(f)); fs.mkdirSync(path.dirname(kf), { recursive: true }); fs.writeFileSync(kf, JSON.stringify({ key, windows: ws }));
+  fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, JSON.stringify({ key, ev, windows: ws }));
+  const kf = path.join(ROOT, "knowledge", "lego_windows", path.basename(f)); fs.mkdirSync(path.dirname(kf), { recursive: true }); fs.writeFileSync(kf, JSON.stringify({ key, ev, windows: ws }));
   console.log(`    windows of ${src.name}: ${ws.length} inputs, ${Date.now() - t0} ms`);
   return ws;
 }
@@ -336,6 +341,7 @@ function measure(src, w, r, inputs, i0, i1) {
   // which route the piece was cut from (the solver thread, 2026-11-25): its kind ("human" = lib/natural.js planned it,
   // "humanize" = the raw solve patched, keeps its flying jitter) and when it was planned; jitter = wave presses under
   // 0.1 s apart (a wave leg is one press: knowledge/checklist.md). The page hides jittery and non-human pieces by default.
+  if (src.windowsStale) P.diffStale = true;   // difficulty from windows measured on older code (see windowsOf)
   P.routeKind = src.routeKind || (src.src === "official" ? "unknown" : "ours");
   if (src.routeAt) P.routeAt = src.routeAt;
   if (src.src === "official") P.routePlan = src.routePlan || "";   // the planner commit (difficulty_solve.js); "" = planned before the 2026-11-25 wave planner

@@ -14,7 +14,8 @@ for (const f of libs) fs.copyFileSync(path.join(ROOT, "lib", f), path.join(OUT, 
 fs.copyFileSync(path.join(ROOT, "viewer", "draw_worker.js"), path.join(OUT, "draw_worker.js"));
 fs.copyFileSync(path.join(ROOT, "viewer", "draw_songs.js"), path.join(OUT, "draw_songs.js"));
 fs.copyFileSync(path.join(ROOT, "viewer", "song_grids.js"), path.join(OUT, "song_grids.js"));
-fs.copyFileSync(path.join(ROOT, "viewer", "bricks.js"), path.join(OUT, "bricks.js"));   // the ✨ pen's brick set (our levels only), loaded on first use // every measured song's grid, committed numbers
+fs.copyFileSync(path.join(ROOT, "viewer", "bricks.js"), path.join(OUT, "bricks.js"));
+const BM = path.join(ROOT, "local", "bricks_main.js"); if (fs.existsSync(BM)) fs.copyFileSync(BM, path.join(OUT, "bricks_main.js"));   // private page only   // the ✨ pen's brick set (our levels only), loaded on first use // every measured song's grid, committed numbers
 const beats = path.join(ROOT, "local", "beats.local.js");
 fs.writeFileSync(path.join(OUT, "beats.js"), fs.existsSync(beats) ? fs.readFileSync(beats) : "window.GD_BEATS = {};\n");
 const swap = (a, b) => { if (!html.includes(a)) throw new Error("draw.html changed, update tools/draw_web.js: " + a); html = html.split(a).join(b); };
@@ -25,4 +26,4 @@ swap('src="../lib/', 'src="lib/');
 swap('<script src="../local/beats.local.js" onerror="window.GD_BEATS = {}"></script>', '<script src="beats.js"></script>');
 fs.writeFileSync(path.join(OUT, "draw.html"), html);
 console.log(`built ${path.relative(process.cwd(), OUT) || OUT}: draw.html + ${libs.length} libs + worker + beat grids`);
-console.log("files: " + JSON.stringify(Object.fromEntries(["draw_worker.js", "draw_songs.js", "song_grids.js", "bricks.js", "beats.js"].concat(libs.map(f => "lib/" + f)).map(f => [f, path.join(OUT, f)]))));
+console.log("files: " + JSON.stringify(Object.fromEntries(["draw_worker.js", "draw_songs.js", "song_grids.js", "bricks.js", "beats.js"].concat(fs.existsSync(path.join(OUT, "bricks_main.js")) ? ["bricks_main.js"] : []).concat(libs.map(f => "lib/" + f)).map(f => [f, path.join(OUT, f)]))));

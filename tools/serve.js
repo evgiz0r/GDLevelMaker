@@ -547,6 +547,9 @@ const SERVER = http.createServer((req, res) => {
   if (p.endsWith("/")) p += "index.html";
   // the beat grids live in the shared local/ (tools/beats.js); an older viewer page asks for viewer/beats.local.js
   if (p === "/viewer/beats.local.js") p = "/local/beats.local.js";
+  // the ✨ pen's main-level bricks (private: this PC and Evgeni's private pages): built from the catalogue's pieces on first ask
+  if (p === "/local/bricks_main.js" && !fs.existsSync(path.join(root, "local", "bricks_main.js")) && fs.existsSync(path.join(root, "local", "lego", "pieces.json")))
+    try { require("child_process").spawnSync(process.execPath, [path.join(__dirname, "brickset.js"), "--main"], { windowsHide: true, timeout: 120000 }); } catch (e) {}
   if (lan && !LAN_FILES.test(p) && !/^\/song\//.test(p)) { res.writeHead(403); return res.end("not shared on the home network"); }
   let f = path.join(root, p);
   const song = /^\/song\/(official|custom)\/([A-Za-z0-9]+)\.(mp3|ogg)$/.exec(p);
