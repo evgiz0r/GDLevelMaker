@@ -17,6 +17,10 @@ Link: in `local/phone/url.txt` (shared folder; also in Claude's memory). Not in 
 - **Marks**: ✎ mark, tap the spot, type the note (an in-page box: `prompt()` is refused inside an
   Artifact). Saved to the collection `marks`, same fields as `local/marks.jsonl` plus
   `from: "phone"`; "done"/"reopen" on the phone updates the row.
+- **✏ draw (the whiteboard)**: draw.html, its worker and libs ship beside the page (tools/web.js); sketches drawn there
+  go to the page's collection `sketches` (one doc per sketch, as local/sketches/<id>.json): read them with ArtifactData
+  `list` on this page. DRAW.md "In the viewer". When republishing from a cloud session that has no local/beats.local.js,
+  leave `beats.js` (and maps/) out of `files`: files left out keep their published copy (the PC's beat grids).
 - **Songs**: none are published (they belong to their artists). "add song" plays an mp3 from the
   phone itself, in sync, remembered in that browser (IndexedDB). A file named like the game's copy
   (`StereoMadness.mp3`, `343707.mp3`) goes to every level on that song. `node tools/songs.js --phone`

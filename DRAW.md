@@ -10,7 +10,8 @@ Page: `viewer/draw.html` (PC: http://localhost:8765/viewer/draw.html, or ⚙ vie
 private Artifact, link in `local/phone/draw_url.txt`). Code: `lib/sketch.js` (sketch -> level, node and browser),
 `viewer/draw_worker.js` (the solver off the page's thread), `viewer/draw_songs.js` (beat grids known everywhere),
 `tools/sketch.js` (a saved sketch -> .gdlvl + report, `--wip` as a layout stage), `tools/draw_web.js` (the phone build).
-Tests: `node tests/sketch.js` (the converter), `node tests/draw_page.js [--shots dir]` (the page headless, phone and PC).
+Tests: `node tests/sketch.js` (the converter), `node tests/draw_page.js [--shots dir]` (the page headless, phone and PC),
+`node tests/viewer_draw.js [--shots dir]` (✏ draw inside the viewer).
 
 ## What is on the board
 
@@ -107,17 +108,30 @@ synced sketch for the full pass; what the user fixes by hand wins.
   goes past costs as much as a left-out mark; one within 4 blocks of the path moves onto it.
 - **In the viewer**: `node tools/sketch.js <id> --fit --wip whiteboard` puts the fitted level with its plan (`wip.js put
   --plan`) in the viewer's in-progress list and prints the ArtifactData call for the phone viewer.
-- **Next (the user, 2026-11-25: "i thought we are doing the viewer and thing we draw at the same play ... they converge
-  into that gd creation + lab")**: the board moves INTO the viewer as a ✏ draw mode on the same canvas: the pens, stamps and
-  marks a layer over the level, 🧩 layout filling the level live, and the viewer's replay, play, zoom, seek, stages and
-  section lab on what is drawn; one page on PC and phone, sketches stored with the viewer's levels. Then: choices on a ✕,
-  pinning hand fixes.
+- **In the viewer: ✏ draw** (built 2026-11-25; the user: "i thought we are doing the viewer and thing we draw at the same
+  play ... they converge into that gd creation + lab"). The viewer's ✏ draw button (key D) opens the board as a see-through
+  layer over the viewer's canvas (`draw.html?embed=1` in a frame; `window.BOARDHOST` in viewer/index.html is the bridge):
+  - the board keeps its pens, stamps, marks, seek strip, ruler, song and 🧩 (on by default there); the VIEWER draws the
+    level underneath with the game look, at the board's camera (MAPCAM from the board's V and canvas offset: a block lands
+    on the same pixel, `tests/viewer_draw.js` checks to 1.5 px);
+  - each change (or each fit) sends the level and its plan (🧩's timed marks, else the drawn marks) to the viewer as the
+    level "✏ <sketch name>" (`BOARDHOST.setLevel`, planReplay: no solve);
+  - ▶ on the board leaves draw mode and replays it in the viewer from where the board was; 🎮 plays it there (practice,
+    deaths, the song); ✏ draw (or D) goes back to the drawing. "sketch" shows the strokes over the level, "level" only the
+    level.
+  - Sketches: on the PC as before (local/sketches through serve.js); on the phone the board uses the viewer page's runtime,
+    so they go to the phone VIEWER's db collection `sketches` (the old whiteboard Artifact's sketches were copied there).
+    A fresh empty board opens the newest drawn sketch.
+  - tools/web.js ships draw.html, its worker, libs and draw_songs.js beside the viewer. If a page does not allow the frame,
+    the viewer says so after 6 s; the standalone page (draw.html) still works.
+  - Not yet on the sketch: the section lab, stages and 🔗 links (the sketch level is not in the level list).
+  Then: choices on a ✕, pinning hand fixes.
 
 ## Status and open
 
 - Built (first version): the board, pens, areas, stamps, props, deco toggle, sketch / level views, beats + sections +
   loudness for Ragnarok's song, song playhead, check (marks + solver), replay, play, sync to local/sketches and the
   phone's db, .gdlvl export, `tools/sketch.js`.
-- Open, in order: the cell builder above (path -> spikes / ground cells -> orbs / pads -> ✕ choices); the board inside the
-  viewer itself (the user: "all in one place"); tracing over an existing level; flying modes (the ground pen means little
+- Open, in order: the cell builder above (path -> spikes / ground cells -> orbs / pads -> ✕ choices); the section lab,
+  stages and links on a sketch in the viewer; tracing over an existing level; flying modes (the ground pen means little
   in a ship part: corridor pens); undo across reloads; more songs in draw_songs.js; timing not measured yet.

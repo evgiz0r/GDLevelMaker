@@ -7,6 +7,8 @@
 <style>
   :root { --bg:#0b0620; --panel:#160d33; --ink:#e8e4ff; --dim:#8b84b8; --acc:#3dffb0; --line:#2b2060; --warn:#ffb020; }
   * { box-sizing: border-box; }
+  html.embed, html.embed body { background:transparent; }
+  html.embed header { background:rgba(20,12,52,.92); }
   html, body { margin:0; height:100%; background:var(--bg); color:var(--ink); font:14px/1.35 system-ui, sans-serif; overflow:hidden; }
   body { display:flex; flex-direction:column; }
   header { background:var(--panel); border-bottom:1px solid var(--line); padding:6px 8px; display:flex; flex-direction:column; gap:5px; }
@@ -123,6 +125,12 @@ const cv = $("cv"), ctx = cv.getContext("2d");
 const LS = { get(k, d) { try { const v = localStorage.getItem("gdlm.draw." + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
              set(k, v) { try { localStorage.setItem("gdlm.draw." + k, JSON.stringify(v)); } catch (e) {} } };
 const SERVED = /^https?:/.test(location.protocol) && /^(localhost|127\.|192\.168\.|10\.)/.test(location.hostname);
+// Inside the viewer (✏ draw, viewer/index.html BOARDHOST): this board is a see-through layer over the viewer's canvas. The
+// viewer draws the level (with the game look) at this board's camera; ▶ / 🎮 replay and play it there (DRAW.md "In the viewer").
+const HOST = (() => { try { return window.parent !== window && /embed=1/.test(location.search) && window.parent.BOARDHOST || null; } catch (e) { return null; } })();
+const EMBED = !!HOST, MUTE = /(^|[?&])(mute|test)=1/.test(location.search);
+if (EMBED) document.documentElement.classList.add("embed");
+const CL = (() => { const c = window.claude || (HOST && HOST.claude); return c && typeof c.use === "function" ? c : null; })();   // the Artifact runtime (phone)
 
 // ---- pens, stamps, colours ----
 const PENS = [
@@ -181,19 +189,36 @@ function mergeRemote(list) {
   for (const r of list) { if (!r || !r.id || !Array.isArray(r.items)) continue; const l = store[r.id];
     if (!l || (r.updated || 0) > (l.updated || 0)) { store[r.id] = r; sent[r.id] = JSON.stringify(r); if (r.id === curId) changedCur = true; } else if (JSON.stringify(l) === JSON.stringify(r)) sent[r.id] = JSON.stringify(r); }
   LS.set("sketches", store);
-  if (changedCur) { sk = store[curId]; conv = null; dirty = true; buildRows(); }
+  if (changedCur) { sk = store[curId]; conv = null; dirty = true; buildRows(); if (fit) refit(0); else pushLevel(true); }
+  // a fresh, empty board (a new device, or the board inside the viewer the first time) opens the newest drawn sketch
+  if (!sk.items.length) { const best = Object.values(store).filter(s => s.items && s.items.length).sort((a, b) => (b.updated || 0) - (a.updated || 0))[0];
+    if (best && best.id !== sk.id) { const blankId = sk.id; open(best.id); delete store[blankId]; delete sent[blankId]; LS.set("sketches", store); } }
   queueSync();
 }
 (async () => {
   try {
-    if (window.claude && typeof claude.use === "function") {
-      DB = await claude.use("db");
+    if (CL) {
+      DB = await CL.use("db");
       if (DB) { const snap = await DB.collection("sketches").get(); mergeRemote(snap.docs.map(d => d.data())); }
     } else if (SERVED) { const r = await fetch("/sketches/list"); if (r.ok) mergeRemote(await r.json()); }
   } catch (e) { DB = null; }
 })();
 function snapshot() { undo.push(JSON.stringify(sk.items)); if (undo.length > 200) undo.shift(); redo = []; }
-function changed() { conv = null; dirty = true; if (check) { check.stale = true; } save(); refreshButtons(); if (fit) refit(); }
+function changed() { conv = null; dirty = true; if (check) { check.stale = true; } save(); refreshButtons(); if (fit) refit(); else pushLevel(); }
+// to the viewer (embedded): the level the sketch is now, with the plan to replay -- the 🧩 layout's timed marks, or the
+// drawn marks as they are -- a moment after each change
+let pushT = 0;
+function pushLevel(now) {
+  if (!HOST) return; clearTimeout(pushT);
+  pushT = setTimeout(() => { try {
+    const c = convert(); if (c.error) return;
+    const ev = (fit && fit.events) || SK.planEvents(fit && fit.sketch ? fit.sketch : sk), w = GD.makeWorld(c.objects, c.header), q = GD.run(w, ev);
+    const ok = !q.dead && !!(q.done || (q.end && q.end.x >= w.endX));
+    const m = /\/song\/custom\/(\d+)\./.exec((sk.song && sk.song.url) || "");
+    HOST.setLevel("✏ " + sk.name, c.levelStr, { ok, events: ev, planReplay: true, dieX: q.end ? q.end.x : 0, dieTick: q.path.length - 1, why: ok ? "" : q.dead ? (q.why || "dies") : "the plan does not reach the end" },
+      sk.song && sk.song.url ? { url: sk.song.url, id: m ? +m[1] : undefined, offset: +sk.song.offset || 0 } : null);
+  } catch (e) { console.warn("board: level not sent", e); } }, now ? 0 : 350);
+}
 function convert() { if (!conv) { try { conv = SK.convert(fit && fit.sketch ? fit.sketch : sk); } catch (e) { conv = { objects: [], play: [], deco: [], notes: [], error: e.message }; } } return conv; }
 
 // ---- view transform ----
@@ -243,27 +268,32 @@ function songTime(x) { return SK.xToTime(sk, x) + ((sk.song && +sk.song.offset) 
 // ---- drawing the board ----
 function draw() {
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-  const g0 = ctx.createLinearGradient(0, 0, 0, H); g0.addColorStop(0, "#1a1050"); g0.addColorStop(1, "#2b1a6e");
-  ctx.fillStyle = g0; ctx.fillRect(0, 0, W, H);
+  if (EMBED) { ctx.clearRect(0, 0, W, H); if (HOST) { const r = cv.getBoundingClientRect(); HOST.view(V, { left: r.left, top: r.top }, H); } }
+  else { const g0 = ctx.createLinearGradient(0, 0, 0, H); g0.addColorStop(0, "#1a1050"); g0.addColorStop(1, "#2b1a6e");
+    ctx.fillStyle = g0; ctx.fillRect(0, 0, W, H); }
   const x0 = wx(0), x1 = wx(W);
   if (ui.guides) { ctx.strokeStyle = "rgba(255,255,255,.05)"; ctx.lineWidth = 1; ctx.beginPath();
     for (let x = Math.floor(x0 / 30) * 30; x < x1; x += 30) { ctx.moveTo(sx(x), 0); ctx.lineTo(sx(x), H); }
     for (let y = Math.floor(wy(H) / 30) * 30; y < wy(0); y += 30) { ctx.moveTo(0, sy(y)); ctx.lineTo(W, sy(y)); } ctx.stroke(); }
   drawBeats(x0, x1);
   // ground
-  ctx.fillStyle = "#0d2a8a"; ctx.fillRect(0, sy(0), W, H - sy(0));
-  ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, sy(0)); ctx.lineTo(W, sy(0)); ctx.stroke();
+  if (!EMBED) { ctx.fillStyle = "#0d2a8a"; ctx.fillRect(0, sy(0), W, H - sy(0));
+    ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, sy(0)); ctx.lineTo(W, sy(0)); ctx.stroke(); }
   // start
   ctx.fillStyle = "rgba(61,255,176,.25)"; ctx.fillRect(sx(-15), sy(30), 30 * V.z, 30 * V.z);
   ctx.strokeStyle = "#3dffb0"; ctx.strokeRect(sx(-15), sy(30), 30 * V.z, 30 * V.z);
   const c = convert();
-  if (ui.view === "level") {
+  if (ui.view === "level" && EMBED) {   // the viewer under this layer draws the level: only notes and marks here
+    for (const it of sk.items) if (/note|plan/.test(SK.layerOf(it))) drawItem(it);
+  } else if (ui.view === "level") {
     if (ui.deco) for (const o of c.deco) if (o.x > x0 - 400 && o.x < x1 + 400) drawObj(o, c.colours);
     for (const o of c.play) if (o.x > x0 - 100 && o.x < x1 + 100) drawObj(o, c.colours);
     ctx.fillStyle = "#0d2a8a"; ctx.fillRect(0, sy(0) + 1, W, H - sy(0));   // the ground in front, as in the game
     for (const it of sk.items) if (/note|plan/.test(SK.layerOf(it))) drawItem(it);
   } else {
+    if (EMBED) ctx.globalAlpha = 0.85;
     for (const it of sk.items) { const L = SK.layerOf(it); if (L === "deco" && !ui.deco) continue; drawItem(it); }
+    ctx.globalAlpha = 1;
   }
   if (sel != null && sk.items[sel]) drawSel(sk.items[sel]);
   if (cur) drawItem(cur);
@@ -508,7 +538,8 @@ document.addEventListener("keydown", e => {
   else if ((e.ctrlKey || e.metaKey) && (e.key === "y" || e.key === "Z")) { e.preventDefault(); doRedo(); }
   else if ((e.key === "Delete" || e.key === "Backspace") && sel != null) delSel();
   else if (/^[1-6]$/.test(e.key)) { ui.tool = "pen"; ui.pen = PENS[+e.key - 1].id; buildRows(); }
-  else if (e.key === " ") { e.preventDefault(); startPlay(); }
+  else if (e.key === " ") { e.preventDefault(); $("playBtn").onclick(); }
+  else if (EMBED && e.key === "d" && !e.ctrlKey && !e.metaKey) HOST.exit();
   else if (e.key === "ArrowRight" || e.key === "ArrowLeft") { e.preventDefault(); V.x += (e.key === "ArrowRight" ? 1 : -1) * (W / V.z) * (e.shiftKey ? 0.9 : 0.25); dirty = true; save(); }
   else if (e.key === "-" || e.key === "+" || e.key === "=") zoomBy(e.key === "-" ? 1 / 1.5 : 1.5);
   else if (e.key === "Home") { V.x = -60; dirty = true; save(); }
@@ -607,7 +638,7 @@ function renderList() {
 }
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 // in the phone page (an Artifact) a file is handed over by its downloads capability; elsewhere a plain link
-let DL = null; if (window.claude && typeof claude.use === "function") claude.use("downloads").then(d => DL = d, () => {});
+let DL = null; if (CL) CL.use("downloads").then(d => DL = d, () => {});
 function download(name, blob) {
   if (DL) { DL.save({ filename: name, data: blob }).catch(e => { if (e && e.code !== "declined") msg("not saved: " + (e.message || e.code), 4000); }); return; }
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); }
@@ -662,7 +693,7 @@ function stopListen() { listen.on = false; listen.kept = true; audio.pause(); $(
 
 // ---- play it: the same sim as the viewer's "you play" ----
 let play = null;
-$("playBtn").onclick = () => play ? stopPlay() : startPlay();
+$("playBtn").onclick = () => HOST ? (save(), pushLevel(true), setTimeout(() => HOST.play("you"), 30)) : play ? stopPlay() : startPlay();
 function startPlay() {
   if (listen.on) stopListen(); if (replay) stopReplay();
   const c = convert(); let w;
@@ -709,8 +740,8 @@ function drawPlayer(s) {
 // ---- 🧩 layout: lib/sketchfit.js in a Worker, again a moment after each edit while it is on (DRAW.md "The layout fitter") ----
 let fit = null, fitWk = null, fitT = 0;
 $("fitBtn").onclick = () => {
-  if (fit) { fit = null; conv = null; check = null; $("fitList").hidden = true; $("fitBtn").classList.remove("on"); ui.view = "sketch"; $("viewBtn").textContent = "sketch"; dirty = true; msg("", 0); return; }
-  fit = { sketch: null, busy: false }; $("fitBtn").classList.add("on"); refit(0);
+  if (fit) { fit = null; conv = null; check = null; $("fitList").hidden = true; $("fitBtn").classList.remove("on"); ui.view = "sketch"; ui.fitOn = false; $("viewBtn").textContent = "sketch"; dirty = true; msg("", 0); save(); pushLevel(true); return; }
+  fit = { sketch: null, busy: false }; ui.fitOn = true; $("fitBtn").classList.add("on"); save(); refit(0);
 };
 function refit(delay) {
   clearTimeout(fitT); fitT = setTimeout(() => {
@@ -725,11 +756,11 @@ function refit(delay) {
 function fitHere() { try { const r = GD.SKETCHFIT.fit(JSON.parse(JSON.stringify(sk))); showFit({ ok: true, sketch: JSON.parse(JSON.stringify(r.sketch, (k, v) => k === "src" ? undefined : v)), changes: r.changes, clear: r.clear, dieX: r.dieX, why: r.why, events: r.events }); } catch (e) { showFit({ ok: false, why: e.message }); } }
 function showFit(r) {
   if (!fit) return;
-  if (!r.ok) { msg("layout failed: " + r.why, 6000); return; }
-  Object.assign(fit, r, { busy: false }); conv = null;
+  if (!r.ok) { msg("layout failed: " + r.why, 6000); pushLevel(true); return; }
+  Object.assign(fit, r, { busy: false }); conv = null; pushLevel(true);
   const c = convert(), w = GD.makeWorld(c.play, c.header), q = GD.run(w, r.events || []);
   check = { at: Date.now(), plan: { path: thin(q.path), dead: q.dead, why: q.why, x: q.end.x, y: q.end.y }, route: null, lines: [], changes: r.changes };
-  ui.view = "level"; $("viewBtn").textContent = "level";
+  if (!EMBED) { ui.view = "level"; $("viewBtn").textContent = "level"; }
   const n = r.events.filter(e => e.type === "press").length, adj = r.changes.filter(k => k.mark !== "x").length, bad = r.changes.filter(k => k.mark === "x").length;
   msg(r.clear ? `layout clears with ${n} presses · ${adj} adjusted, ${bad} could not stay` : `layout gets to block ${blk(r.dieX || 0)} (${r.why}) · ${adj} adjusted, ${bad} could not stay`, 7000);
   const L = $("fitList"); L.hidden = false;
@@ -772,7 +803,7 @@ $("checkBtn").onclick = () => {
     report(); $("replayBtn").hidden = false;
   };
   wk.postMessage({ libs: libUrls(), level: c.levelStr });
-  $("replayBtn").hidden = !check.plan;
+  $("replayBtn").hidden = !check.plan && !EMBED;
 };
 function report() { msg(check.lines.join(" · ")); dirty = true; }
 function drawCheck() {
@@ -788,6 +819,7 @@ function drawCheck() {
       ctx.fillText(c.mark === "x" ? "✕" : "~", X - 4, TOP + 70 + row * 15); ctx.fillRect(X - 0.5, TOP + 74 + row * 15, 1, 6); } }
 }
 $("replayBtn").onclick = () => {
+  if (HOST) { save(); pushLevel(true); setTimeout(() => HOST.play("replay", Math.max(0, wx(W * 0.3) - 30)), 30); return; }
   if (replay) return stopReplay();
   const p = check && (check.route && check.route.path.length ? check.route.path : check.plan && check.plan.path); if (!p || !p.length) return;
   replay = { path: p, t0: performance.now(), saved: { x: V.x, y: V.y, z: V.z } }; $("replayBtn").textContent = "■";
@@ -809,7 +841,10 @@ function frame(now) {
   if (dirty) { dirty = false; draw(); }
   requestAnimationFrame(frame);
 }
+if (MUTE) audio.muted = true;
 resize(); buildRows(); loadAudio(); requestAnimationFrame(frame);
+if (EMBED) { $("replayBtn").hidden = false; $("replayBtn").title = "replay it in the viewer from here (the plan: your marks, timed by 🧩 layout)"; $("playBtn").title = "play it yourself in the viewer"; $("viewBtn").title = "sketch: your strokes over the level · level: only the level";
+  if (ui.fitOn !== false) $("fitBtn").onclick(); else pushLevel(true); }
 window.DRAW = { listen, get fit() { return fit; }, setCheck: c => { check = c; dirty = true; },  get sketch() { return sk; }, convert, ui, V, startPlay, stopPlay, toScreen: (x, y) => [sx(x), sy(y)], setItems: items => { snapshot(); sk.items = items; changed(); } };   // for tests (tests/draw_page.js)
 </script>
 </body>
