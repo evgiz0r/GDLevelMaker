@@ -245,6 +245,7 @@
 <script src="../lib/objects_frames.js"></script>
 <script src="../lib/art.js"></script>
 <script src="../lib/natural.js"></script>
+<script src="../lib/music.js"></script>
 <script src="../lib/song.js"></script>
 <script src="../lib/runner.js"></script>
 <script src="../lib/liveplay.js"></script>
@@ -428,6 +429,7 @@ async function loadSong(info) {
     SONGS[k] = await audioCtx().decodeAudioData(bytes.slice(0));
   } catch (e) { songLoading[k] = false; songAsk(true); return; }
   songAsk(false);
+  if (songInfo && songInfo.music && (k === songKeyOf(songInfo) || songInfo.music.some(s => musicKey(s.song) === k))) { musicRebuild(); return; }
   if (songInfo && songKeyOf(songInfo) === k && !song) { song = GD.songPlayer(SONGS[k], audioCtx); syncSong(true); }
 }
 // "add song": shown when the level has a song this page cannot get (the public site away from the user's PC).
@@ -474,6 +476,25 @@ function setSong(info) {
   if (!info) { songAsk(false); return; }
   if (location.protocol === "file:") return; // songs come from tools/serve.js
   song = viewerSong(info);
+  if (info.music) musicRebuild();
+}
+// a level whose song changes mid-way (GD 2.2 Song / Edit Song triggers: switch, seek, fade, stop; lib/music.js, MUSIC.md):
+// one player for every span, on the main song's clock, so the replay reads it as before
+const musicKey = id => id === "main" ? songKeyOf(songInfo) : String(id) + ".mp3";
+function setMusic(level, world) {
+  if (songInfo) delete songInfo.music;
+  if (!songInfo || !GD.MUSIC || !GD.MUSIC.usesTriggers(level) || location.protocol === "file:") return;
+  const tl = GD.SYNC.timeline(world), mu = GD.MUSIC.parse(level);
+  mu.main.offset = songInfo.offset || 0;
+  songInfo.music = GD.MUSIC.spans(mu, x => GD.SYNC.tOfX(tl, x));
+  for (const id of GD.MUSIC.songs(songInfo.music)) if (!SONGS[musicKey(id)] && typeof loadSong === "function") loadSong({ url: "/song/custom/" + id + ".mp3", id });
+  musicRebuild();
+}
+function musicRebuild() {
+  if (!songInfo || !songInfo.music) return;
+  if (song) song.pause();
+  song = GD.musicPlayer(songInfo.music, id => SONGS[musicKey(id)] || null, audioCtx, songInfo.offset || 0);
+  syncSong(true);
 }
 // keep the song where the replay is: level time t plays song second offset + t. Seeks only when asked
 // (play, restart, scrub, speed): never from the frame loop, which reads the song's clock instead
@@ -490,6 +511,7 @@ function load(name, levelStr, saved, info) {
   const pre = PATHCACHE.get(levelStr);   // a sliced pre-run (pick.onchange below): its level, world and path
   const level = pre && pre.level || GD.parseLevel(levelStr);
   const world = pre && pre.world || GD.makeWorld(level.objects, level.header);
+  setMusic(level, world);
   let sol;
   if (PLAY && PLAY.on) playStop(true);   // another level opened while the user played
   if (saved) sol = saved.ok ? { ok: true, events: saved.events, clicks: [], planReplay: !!saved.planReplay } : { ok: false, trail: saved.events, clicks: [], dieAt: { x: saved.dieX || 0, tick: saved.dieTick || 0 }, why: saved.why || "", pending: !!saved.pending, planReplay: !!saved.planReplay };
