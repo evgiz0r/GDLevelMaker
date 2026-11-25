@@ -1,4 +1,14 @@
 <title>GD Work Board</title>
+<script>
+// show every script error and each loading step on the page itself (the app hides the console)
+window.__t0=Date.now(); window.__errs=[]; window.__steps=[];
+window.__paint=function(){ var b=document.getElementById("diagbox"); if(!b) return;
+  b.textContent=(window.__errs.length? "Errors:\n"+window.__errs.join("\n")+"\n" : "")+"Steps: "+window.__steps.join(" · "); b.hidden=!window.__errs.length; };
+window.__st=function(m){ window.__steps.push(m+" "+((Date.now()-window.__t0)/1000).toFixed(1)+"s"); window.__paint(); };
+window.__err=function(m){ window.__errs.push(m); window.__paint(); };
+window.addEventListener("error",function(e){ window.__err("error: "+(e.message||e)+(e.lineno? " (line "+e.lineno+")":"")); });
+window.addEventListener("unhandledrejection",function(e){ var r=e.reason; window.__err("rejection: "+(r&&(r.code||r.message)||String(r))); });
+</script>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@500&display=swap">
@@ -137,6 +147,7 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
     <div class="meta" style="gap:6px 16px"><a class="vlink" href="https://claude.ai/artifact/7bXiT1gGnJWjESC8fy3oZH" target="_blank" rel="noopener">🎮 Level viewer ↗</a><a class="vlink" href="https://claude.ai/artifact/HNZF2JRKi7XkQ8SawvF4Kr" target="_blank" rel="noopener" title="Bricks of 2-6 clicks, a difficulty per brick, replay with clicks, votes and comments. Our own pieces only.">🧱 Structure catalogue (bricks, difficulty, votes) ↗</a><a class="vlink" href="http://localhost:8765/lego/" target="_blank" rel="noopener" title="With the main levels' bricks (RobTop's layouts stay on your PC). Needs tools/serve.js running.">🧱 + main-level bricks (PC only) ↗</a></div>
     <div class="meta" id="usage" hidden></div>
     <div id="banner" class="banner" hidden></div>
+    <pre id="diagbox" hidden style="white-space:pre-wrap;font-size:.75rem;margin:0;padding:8px 10px;border-radius:8px;background:var(--card,#f4f4f6);color:inherit;max-height:30vh;overflow:auto"></pre>
   </header>
 
   <section aria-labelledby="h-ws">
@@ -574,7 +585,10 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
     $("done-sum").textContent=n? n+" finished, kept out of the way" : "nothing yet";
     if(!n) box.appendChild(el("div","queue-empty","Finished items land here a day after they're done."));
   }
-  function renderAll(){ renderDone(); renderFeatures(); renderPlayed(); renderLevels(); renderUsage(); renderFresh(); renderWs(); renderMains(); renderPhys(); renderQueue(); renderFilters(); renderCands(); }
+  // each part renders on its own: one part that fails shows its error and the rest still render
+  var RENDERS={Done:function(){renderDone();},Features:function(){renderFeatures();},Played:function(){renderPlayed();},Levels:function(){renderLevels();},Usage:function(){renderUsage();},Fresh:function(){renderFresh();},Workstreams:function(){renderWs();},Mains:function(){renderMains();},Physics:function(){renderPhys();},Queue:function(){renderQueue();},Filters:function(){renderFilters();},Candidates:function(){renderCands();}};
+  var renderErrs={};
+  function renderAll(){ Object.keys(RENDERS).forEach(function(k){ try{ RENDERS[k](); }catch(e){ if(!renderErrs[k]){ renderErrs[k]=1; window.__err("render "+k+": "+(e&&e.message||e)+(e&&e.stack? " @ "+String(e.stack).split("\n").slice(0,2).join(" "):"")); } } }); }
 
   // ---- writes (one at a time, coalesced) ----
   var writing=false, dirty=false;
@@ -664,7 +678,7 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
   function loadPlayed(){
     if(played || playedLoading || !db) return; var ref=db.doc("board/played"); if(!ref || typeof ref.get!=="function") return;
     playedLoading=true;
-    setTimeout(function(){ ref.get().then(function(s){ playedLoading=false; if(s && s.exists){ played=unpackPlayed(s.data()); renderPlayed(); } }).catch(function(e){ playedLoading=false; lastErr="Your levels: "+(e&&e.code||"error"); }); }, gotLive? 0 : 3000);
+    setTimeout(function(){ ref.get().then(function(s){ playedLoading=false; if(s && s.exists){ window.__st("played ok"); played=unpackPlayed(s.data()); renderPlayed(); } }).catch(function(e){ playedLoading=false; lastErr="Your levels: "+(e&&e.code||"error"); window.__st("played failed "+(e&&e.code||e)); }); }, gotLive? 0 : 3000);
   }
   // when live updates never connect but a plain read works: read again every minute
   var poller=null;
@@ -672,7 +686,7 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
     if(poller) return;
     poller=setInterval(function(){ var r=db.doc("board/state"); if(r && r.get) r.get().then(function(s){ if(s){ state=s.exists? s.data():null; renderAll(); } }).catch(function(){}); }, 60000);
   }
-  function gotState(s){
+  function gotState(s){ window.__st("state "+(s.exists?"ok":"missing"));
     gotLive=Date.now(); clearTimeout(watchdog); loadFailed=false; $("banner").hidden=true;
     state=s.exists? s.data() : null; if(!state) phText("No data yet: Claude hasn't posted the first update."); renderAll();
   }
@@ -698,6 +712,7 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
     // subscription (a big live document is the likeliest thing to stall the page's whole data connection)
     loadPlayed();
     unsubs.push(db.doc("board/picks").onSnapshot(function(s){
+      if(!window.__pk){ window.__pk=1; window.__st("picks "+(s.exists?"ok":"missing")); }
       if(writing || dirty) return; // don't overwrite a local edit in flight
       var p=s.exists? s.data() : null;
       picks={selected:(p&&p.selected||[]).slice(), ideas:(p&&p.ideas||[]).slice(), study:(p&&p.study||[]).slice(), feat_picks:(p&&p.feat_picks||[]).slice(), feat_ideas:(p&&p.feat_ideas||[]).slice()};
@@ -706,11 +721,12 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
   }
   // back in view after a long time with no live answer: connect again
   document.addEventListener("visibilitychange",function(){ if(!document.hidden && db && (!state || loadFailed)) connect(true); });
+  window.__st("script start");
   if(!window.claude || !window.claude.use){ showBanner("Open this board on claude.ai to see live data."); phText("Open this board on claude.ai to see its data."); renderAll(); return; }
   Promise.race([window.claude.use("db"), new Promise(function(ok){ setTimeout(function(){ ok("timeout"); },12000); })]).then(function(d){
-    if(d==="timeout"){ failed("the page's database didn't start"); return; }
-    if(!d){ lastErr="db not granted to this view"; showBanner("This view didn't get access to the board's data (signed out, or the permission is off).", true); phText("Open the board on claude.ai while signed in."); renderAll(); return; }
-    db=d; connect(false);
+    if(d==="timeout"){ window.__st("db timeout"); failed("the page's database didn't start"); return; }
+    if(!d){ window.__st("db null"); lastErr="db not granted to this view"; showBanner("This view didn't get access to the board's data (signed out, or the permission is off).", true); phText("Open the board on claude.ai while signed in."); renderAll(); return; }
+    db=d; window.__st("db ready"); connect(false);
     window.claude.use("user").then(function(u){
       if(!u || !u.can) return;
       u.can("data.write").then(function(ok){ if(ok===false){ canWrite=false; renderAll(); } });
