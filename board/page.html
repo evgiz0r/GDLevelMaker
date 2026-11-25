@@ -635,18 +635,36 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
   // a dropped connection): then the page used to sit on placeholders forever. Now: a 12 s watchdog, a real error with a
   // Retry button, a one-shot read as a fallback, and a fresh connection whenever the page comes back into view stale.
   var loadFailed=false, unsubs=[], gotLive=0, watchdog=null, tries=0;
-  function showBanner(t, retry){ var b=$("banner"); b.textContent=t; if(retry){ var r=el("button",null,"Retry"); r.type="button"; r.onclick=function(){ connect(true); }; b.appendChild(r); } b.hidden=false; }
+  function showBanner(t, retry){ var b=$("banner"); b.textContent=t; if(retry){ var r=el("button",null,"Retry"); r.type="button"; r.onclick=function(){ connect(true); }; b.appendChild(r); diag(b); } b.hidden=false; }
+  // what the platform says about this page's permissions, and a way to the Permissions panel
+  function diag(b){
+    window.claude.use("permissions").then(function(pm){
+      if(!pm) return;
+      pm.state().then(function(m){ var keys=Object.keys(m||{}); var line=el("div","dim");
+        line.style.marginTop="6px"; line.style.fontSize=".8rem";
+        line.textContent="Permissions: "+(keys.length? keys.map(function(k){ return k+" "+m[k]; }).join(", ") : "none reported")+(lastErr? " · last error: "+lastErr : "");
+        b.appendChild(line);
+        if(keys.some(function(k){ return m[k]==="denied"||m[k]==="prompt"; })){
+          var a=el("button",null,"Allow data access"); a.type="button";
+          a.onclick=function(){ pm.request(["db","user"]).then(function(){ connect(true); }); }; b.appendChild(a);
+          var mg=el("button",null,"Permissions"); mg.type="button"; mg.onclick=function(){ pm.manage().then(function(){ connect(true); }).catch(function(){}); }; b.appendChild(mg);
+        }
+      }).catch(function(){});
+    }).catch(function(){});
+  }
   function phText(t){ Array.prototype.forEach.call(document.querySelectorAll(".ph"),function(e){ e.textContent=t; }); }
   function failed(why){
     if(state) { showBanner("Live updates stopped ("+why+"). What you see may be out of date.", true); return; }
     loadFailed=true; renderFresh(); phText("Couldn't load: "+why+". Tap Retry at the top.");
     showBanner("Couldn't load the board's data: "+why+".", true);
   }
-  var playedLoading=false;
+  var playedLoading=false, lastErr="";
+  // board/played is stored compact ({cols, rows}: a document must stay under 256 KB); older copies have levels[]
+  function unpackPlayed(d){ if(d && d.rows && d.cols && !d.levels) d.levels=d.rows.map(function(r){ var o={}; d.cols.forEach(function(c,i){ if(r[i]!=null) o[c]=r[i]; }); return o; }); return d; }
   function loadPlayed(){
     if(played || playedLoading || !db) return; var ref=db.doc("board/played"); if(!ref || typeof ref.get!=="function") return;
     playedLoading=true;
-    setTimeout(function(){ ref.get().then(function(s){ playedLoading=false; if(s && s.exists){ played=s.data(); renderPlayed(); } }).catch(function(){ playedLoading=false; }); }, gotLive? 0 : 3000);
+    setTimeout(function(){ ref.get().then(function(s){ playedLoading=false; if(s && s.exists){ played=unpackPlayed(s.data()); renderPlayed(); } }).catch(function(e){ playedLoading=false; lastErr="Your levels: "+(e&&e.code||"error"); }); }, gotLive? 0 : 3000);
   }
   // when live updates never connect but a plain read works: read again every minute
   var poller=null;
@@ -675,7 +693,7 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
       if(s.metadata && s.metadata.fromCache && !s.exists) return; // an empty cache is not an answer: keep waiting for the server
       if(s.metadata && s.metadata.fromCache){ state=s.data(); renderAll(); return; }
       gotState(s);
-    }, function(e){ clearTimeout(watchdog); failed("the connection dropped ("+(e&&e.code||"error")+")"); }));
+    }, function(e){ clearTimeout(watchdog); lastErr="state: "+(e&&e.code||"error"); failed("the connection dropped ("+(e&&e.code||"error")+")"); }));
     // "Your levels" is a big document (~340 KB): read it once, after the small live ones answer, never as a live
     // subscription (a big live document is the likeliest thing to stall the page's whole data connection)
     loadPlayed();
@@ -691,7 +709,7 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
   if(!window.claude || !window.claude.use){ showBanner("Open this board on claude.ai to see live data."); phText("Open this board on claude.ai to see its data."); renderAll(); return; }
   Promise.race([window.claude.use("db"), new Promise(function(ok){ setTimeout(function(){ ok("timeout"); },12000); })]).then(function(d){
     if(d==="timeout"){ failed("the page's database didn't start"); return; }
-    if(!d){ showBanner("Live data isn't available in this view. Open the board on claude.ai while signed in."); phText("Open the board on claude.ai while signed in."); renderAll(); return; }
+    if(!d){ lastErr="db not granted to this view"; showBanner("This view didn't get access to the board's data (signed out, or the permission is off).", true); phText("Open the board on claude.ai while signed in."); renderAll(); return; }
     db=d; connect(false);
     window.claude.use("user").then(function(u){
       if(!u || !u.can) return;

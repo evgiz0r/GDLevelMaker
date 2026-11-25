@@ -33,3 +33,11 @@ Evgeni: finished things stayed on the board too long. Any workstream, candidate,
 `state`/`status` is "done" leaves the main view 24 h after its `done_at` (ISO time; set it when you mark something
 done), or at once when it has none; "archived" leaves at once. They are listed in the collapsed "Done" section at the
 bottom. So: when marking an item done, write `done_at`. Levels moved to levels/archive get `state: "archived"`.
+
+## Size limit and loading (2026-11-25)
+
+A db document must stay under 256 KiB. `board/played` was 343 KB with one object per level and is now stored compact:
+`{at, note, totals, cols: ["id","name","creator","kind","tier","stars","attempts","jumps","best","practice"], rows: [[...]]}`
+(~100 KB); the page unpacks it. The page reads `played` once (not live), watches `state` and `picks` live, shows an
+error with Retry after ~20 s, then falls back to re-reading every minute; the banner lists the page's permission
+states and offers "Allow data access" / "Permissions" when one is off.
