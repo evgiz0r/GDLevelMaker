@@ -414,7 +414,7 @@ function votesCmd() {
   for (const [k, e] of Object.entries(w).sort((a, b) => b[1].weight - a[1].weight)) console.log(`  weight ${e.weight.toFixed(2)}  ${k}`);
   try { writeKnowledge(load()); } catch (e) {}
 }
-module.exports = { readVotes, sigWeights, cut, measure, route, signature, FAMILY, mine, load, dedupe, columns, sameLayout };
+module.exports = { officialSources, ourSources, heldAt, readVotes, sigWeights, cut, measure, route, signature, FAMILY, mine, load, dedupe, columns, sameLayout };
 
 if (require.main === module) {
   const A = process.argv.slice(2), cmd = A[0];

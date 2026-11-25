@@ -184,6 +184,59 @@ clicks and physics". What changed (tools/lego.js, tools/lego_page.*, tools/serve
   official both began with `o-`).
 - Default view after all this: official 782, ours 559, library 12 (`shown` in knowledge/lego.json).
 
+## Combining: how the main levels join their pieces (2026-11-25)
+
+The user: "do we know how to combine structures [...] i want to focus on mainlevel and then think how to invent more", "it
+could be kind of a big lego in some way, if we dont want to invent on the fly", "remember we could also go higher in gd".
+`node tools/lego_seams.js [--level <n>]` measures every seam of every route (official saved clears and our solver's,
+replayed by our physics, so each seam is one a player got through) -> knowledge/lego_seams.json (numbers only).
+Pieces are 1-3 s, intensity = presses per second + hazards per block.
+
+| measure | official 1-22 | ours (28 levels) |
+|---|---|---|
+| intensity p20 / median / p80 | 2.1 / 2.8 / 3.8 | 0.6 / 1.3 / 1.8 |
+| next piece harder / easier / about the same | 25% / 22% / 53% | 28% / 35% / 38% |
+| after a top-20% piece: easier / harder | 42% / 6% | 53% / 6% |
+| mode changes per level | 7.4 | 6.1 |
+| quiet before a portal (last press -> portal), p20 / median | 0.15 / 0.37 s | 0.10 / 0.70 s |
+| quiet after a portal (portal -> first press), p20 / median | 0.25 / 0.48 s | 0.29 / 0.58 s |
+| a press forced within 0.25 s after the portal | 19% | 12% |
+| portal entered from the ground (not mid-jump / mid-flight) | **7%** | **46%** |
+| speed change at the portal | **22%** | **2%** |
+| breathers (1 s+ without a press) per minute | 11 | 14 |
+| next piece same family / same mode | 83% / 80% | 81% / 77% |
+| next piece same signature | **16%** | **37%** |
+| same mode, another kind of piece | **80%** | **52%** |
+| how high: the level's top, median level | **12.9 blocks** (5 of 22 above 20) | **7.2** (none above 20) |
+| level shape: hardest 3 pieces at / first piece's rank / last piece's rank | 0.54 / 0.02 / 0.17 | 0.39 / 0.11 / 0.00 |
+
+The rules this gives (soft: a level may break one with a stated reason):
+
+1. **Keep the pressure, vary the piece.** The official next piece is about as hard as this one half the time (53%), and
+   only 22% of the time easier; but it is another kind of piece 84% of the time (same signature only 16%). Ours drop
+   intensity more often and repeat the kind more than twice as often. Combine by changing the piece, not the pressure.
+2. **Density first.** The official median piece has 2.8 intensity, ours 1.3: their pieces are fuller (more presses and
+   hazards per second). A combination of sparse pieces is a sparse level, however well it joins.
+3. **Portals are entered on the move.** 93% of official mode changes are taken mid-jump or mid-flight (a jump into the
+   portal, an orb or pad launch, a ship flying in), ours 46% walking on the ground. The quiet before a portal is short
+   (median 0.37 s, ours 0.70), the quiet after it about half a second (0.48 s): the player has a moment to read the new
+   mode, but the flow does not stop. 19% of official portals still want a press within 0.25 s (ours fairness gate allows
+   it only with a cue).
+4. **A mode change is often a speed change too** (22% official, 2% ours): the seam is marked twice.
+5. **Mode stretches**: cube ~10 s (p80 27), ship ~7 s, ball ~6, ufo ~4.5, wave ~4, robot ~9, spider ~4.6. Most changes
+   go through cube or ship (cube<->ship 54 of 162 seams); the mode-to-mode matrix is in knowledge/lego_seams.json.
+6. **Breathers** about 11 a minute, mostly NOT at mode changes (20%): the rest comes inside a stretch, not at its seam.
+7. **Shape of a level**: the first piece is the easiest (rank 0.02), the hardest run sits in the middle-to-late part
+   (median 0.54 of the way), the last piece is easy again (rank 0.17). Peaks are single pieces, ~40 blocks apart
+   (p20 22, p80 124); after a peak the next is easier 42% of the time and harder only 6%.
+8. **Go higher.** 5 of 22 main levels climb above 20 blocks (Theory of Everything 37, Clubstep 26, Hexagon Force 28,
+   Geometrical Dominator 17 for half its time, Dash's rotated 116), and Hexagon Force spends 73% of its time above 10
+   blocks. Ours never pass ~8. Height is free in GD: a stretch can climb and the camera follows (the user, 2026-11-25).
+
+Not measured yet: what a seam looks like in blocks (the last 2 columns of one piece next to the first 2 of the next),
+and how the official levels vary one piece into the next (same shape, a parameter changed). Next: the big-lego test,
+joining main-level pieces by these rules and checking each join in our physics.
+
 ## Open
 
 - Compose does not place fly pieces from the catalogue yet: ship / wave / swing sections still use ship-tunnel /

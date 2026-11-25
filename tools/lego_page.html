@@ -282,6 +282,8 @@ fetch("pieces.json").then(r => r.json()).then(d => {
   const modes = [...new Set(ALL.map(p => p.mode))].sort(), wraps = [...new Set(ALL.map(p => p.wrap))].sort();
   $("fmode").insertAdjacentHTML("beforeend", modes.map(m => `<option>${esc(m)}</option>`).join(""));
   $("fwrap").insertAdjacentHTML("beforeend", wraps.map(m => `<option>${esc(m)}</option>`).join(""));
+  // the main levels first (the user, 2026-11-25: "i want to focus on mainlevel"); ours are one pick away
+  if (!PUB && ALL.some(p => p.src === "official")) $("fsrc").value = "official";
   filter();
   loadVotes().then(() => { refreshVotes(); if ($("fvote").value) filter(); });
 }).catch(() => { $("count").textContent = "pieces.json did not load"; });

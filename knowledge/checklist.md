@@ -195,6 +195,10 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 - **No layout twice** (Evgeni, 2026-11-25: "many duplications like this"): the same block-for-block chunk again is a repeat
   even at another phase; ours had 90 of 751 pieces (12%) vs official 1 of 838. `node tools/lego.js mine ours` flags `dupOf`
   (LEGO.md "The catalogue as Evgeni browses it"). Pieces he voted on: `node tools/lego.js votes` (a weight, not a ban).
+- **Combining like the main levels** (LEGO.md "Combining", `node tools/lego_seams.js`): the next piece another kind but about
+  as hard (official: same signature 16%, ours 37%); portals entered on the move, not walking in (official 93%, ours 54%),
+  ~0.4 s quiet before and ~0.5 s after; some portals change speed too; use height (5 of 22 main levels climb past 20 blocks,
+  ours never pass 8).
 - [ ] **Variety**: ~15 kinds of gameplay thing; 4-5 modes and 2-3 speeds; a portal every ~2-3 s;
   ~25 orbs and pads per minute; at least ~90% of the chunks new. `node tools/variety.js <level>`.
   (levels/variety.md)
