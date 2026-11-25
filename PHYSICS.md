@@ -865,12 +865,19 @@ or holds longer than needed (over 0.15 s outside ship/wave where a tap finishes)
 - **When its line is taken:** only where the solver's line is off the pattern (below), the new line needs no more
   presses, no more near-wall ticks in the stretch (+24) and in every flying stretch after it (+24: a new line re-solves
   the rest of the level), and at most 30% more humanCost.
+- **Timing before presses** (the user, 2026-11-25: "its better to get an extra click or two than having a terrible timing
+  ... mostly in the flying sections ... we can have a tas doing little clicks but human route should avoid bad timings").
+  Every flying-stretch choice in fly() (wave planner, ship dwell controller, the humanCost / cleaner choice) checks the
+  tightest player window of both lines (lib/difficulty.js measureWindows, as the viewer and score.js): a line whose tightest
+  window is under EASY_MS (100) and over 4 ms tighter than the old one is never taken, and a line with up to 2 more presses
+  is taken when the old line's tightest is under 100 ms and the new one's is at least 1.5x it (and no closer to the walls).
+  Fewest presses is a tie-breaker among easy lines, never bought with a tight window. Lab: tightest 146 -> 183 ms.
 - **Off the pattern** (routeCheck `offPattern`, score.js route gate WARN "N inputs for M corridor turns (off the
   pattern)"): a wave stretch's inputs beyond the corridor's turns + 2 (turns: the free space's middle changing
   direction by 20+ units, sampled every 8 ticks, open air over 280 units skipped), counted only up to the number of
   quick re-presses (legs under 150 ms). Half-second legs over open hills (GDLM 52) follow their own pattern.
 - **`node tools/flystyle.js <level | official:N | spec.json> [--replan] [--cost]`**: per flying stretch presses, presses
-  a second, mean leg, legs under 100 ms, near-wall ticks, and the wave's inputs / turns / OFF PATTERN; --replan puts
+  a second, mean leg, legs under 100 ms, the tightest window, near-wall ticks, and the wave's inputs / turns / OFF PATTERN; --replan puts
   today's plan beside the saved route.
 - Results (cloud, 2026-11-25): a lab of three zigzag corridors (gaps 6, 4, 3 blocks; local/tmp/wavelab.json, made with
   patterns.js wave-zigzag): off-pattern inputs 17 -> 4, legs under 100 ms 14 -> 1, presses 18 -> 13. Our wave levels'
