@@ -41,7 +41,7 @@ input{flex:1 1 180px}
 .tray .sig{color:var(--ink);font-weight:600}
 .tray .m{color:var(--mute)}
 .src{display:inline-block;font-size:12px;padding:0 6px;border-radius:4px;margin-right:6px;color:#16123a;font-weight:700}
-.src.official{background:var(--off)}.src.ours{background:var(--ours)}.src.sketch{background:var(--orb)}
+.src.official{background:var(--off)}.src.ours{background:var(--ours)}.src.sketch{background:var(--orb)}.src.library{background:var(--path)}
 .more{margin:16px 0;text-align:center}
 button{font:600 15px Archivo,sans-serif;background:var(--path);color:#0c0a24;border:0;border-radius:6px;padding:10px 18px;min-height:44px;cursor:pointer}
 #big{position:fixed;inset:0;background:rgba(10,8,30,.92);z-index:9;display:flex;flex-direction:column;padding:max(16px,env(safe-area-inset-top,0px)) max(4vw,16px) 16px}
@@ -62,7 +62,7 @@ button{font:600 15px Archivo,sans-serif;background:var(--path);color:#0c0a24;bor
   </div>
 </div>
 <div class="band filters" id="filters">
-  <select id="fsrc"><option value="">every source</option><option>official</option><option>ours</option><option>sketch</option></select>
+  <select id="fsrc"><option value="">every source</option><option>official</option><option>ours</option><option>sketch</option><option>library</option></select>
   <select id="ffam"><option value="">every family</option><option value="fly">fly: ship, wave, swing</option><option value="jump">jump: cube, robot, ufo</option><option value="flip">flip: ball, spider</option></select>
   <select id="fmode"><option value="">every mode</option></select>
   <select id="fwrap"><option value="">every wrapper</option></select>
@@ -91,7 +91,7 @@ const PAGE = 60;
     return `<div class="mrow" title="${esc(r.k)}: official ${r.official} (${Math.round(o*100)}%), ours ${r.ours} (${Math.round(u*100)}%)"><span class="k">${esc(r.k)}</span><span class="bars"><span class="bar o" style="width:${o/max*100}%"></span><span class="bar u" style="width:${u/max*100}%"></span></span></div>`;
   }).join("");
   const pct = (k, s) => { const r = MIX.rows.find(x => x.k === k); return r ? Math.round(r[s] / Math.max(1, t[s]) * 100) : 0; };
-  $("lede").textContent = `${t.official + t.ours + t.sketch} pieces of 1-3 s, cut from the routes of the 22 official levels (${t.official}), our GDLM levels (${t.ours}) and Evgeni's whiteboard sketches (${t.sketch}). Each one is classified by family, mode and wrapper and measured: width, seconds, presses, hold share, corridor gap, height range, hazards.` + (PUB ? " This copy leaves out the official layouts (RobTop's): only their numbers are in the chart." : "");
+  $("lede").textContent = `${t.official + t.ours + t.sketch} pieces of 1-3 s, cut from the routes of the 22 official levels (${t.official}), our GDLM levels (${t.ours}) Evgeni's whiteboard sketches (${t.sketch}) and the lego pieces we built from one shared path (${t.library}, first in the drawer). Each one is classified by family, mode and wrapper and measured: width, seconds, presses, hold share, corridor gap, height range, hazards.` + (PUB ? " This copy leaves out the official layouts (RobTop's): only their numbers are in the chart." : "");
   $("notes").innerHTML = `<p><b>Flat cube is a third of ours (${pct("jump · cube · flat", "ours")}%), and ${pct("jump · cube · flat", "official")}% of the official levels.</b> The official cube is mostly steps (${pct("jump · cube · steps", "official")}%) and pits.</p>
   <p><b>Official ships are spiky corridors with gates</b> (${pct("fly · ship · corridor +spikes +gates", "official")}% of all their pieces); ours fly plain corridors (${pct("fly · ship · corridor", "ours")}%) and never a spiky one with gates.</p>
   <p><b>Fly family</b>: one path, wrapped as open air, a floor path, a roof path or a corridor, then +spikes (hazards are 30%+ of the walls), +gates (narrowings) and +flips (gravity). The same wrappers fit ship, wave and swing.</p>
@@ -112,9 +112,12 @@ function draw(cv, p, big) {
   // keep what is near the path in view
   const span = Math.max(p.w + 2, (yhi - ylo) * W / H);
   const z = Math.min(W / (p.w + 2), H / (yhi - ylo + 0.5));
-  const ox = (W - (p.w) * z) / 2, oy = H - 4 + ylo * z;
+  const ox = (W - (p.w) * z) / 2, oy = big ? (H + (yhi - ylo) * z) / 2 + ylo * z : H - 4 + ylo * z;
   const X = x => ox + x * z, Y = y => oy - y * z;
   g.fillStyle = "#2a2466"; g.fillRect(0, Y(0), W, H);   // ground
+  // the walls right under and over the route, column by column (the sim culls blocks nobody can touch)
+  g.fillStyle = "#3b3480";
+  (p.walls || []).forEach(([f, r], c) => { if (f > 0) g.fillRect(X(c), Y(f), z + 0.5, f * z); if (r != null) g.fillRect(X(c), Y(yhi + 2), z + 0.5, (yhi + 2 - r) * z); });
   for (const s of p.shape) {
     const [k, x0, y0, x1, y1] = s, c = COL[k] || "#888";
     if (k === "H") { g.fillStyle = c; g.beginPath(); g.moveTo(X(x0), Y(y0)); g.lineTo(X(x1), Y(y0)); g.lineTo(X((x0 + x1) / 2), Y(y1)); g.closePath(); g.fill(); continue; }
@@ -163,7 +166,8 @@ $("more").onclick = () => render(false);
 for (const id of ["fsrc", "ffam", "fmode", "fwrap"]) $(id).onchange = filter;
 $("fq").oninput = filter;
 fetch("pieces.json").then(r => r.json()).then(d => {
-  ALL = d.sort((a, b) => (a.src === "sketch" ? -1 : 0) - (b.src === "sketch" ? -1 : 0));
+  const first = p => p.src === "sketch" ? 0 : p.src === "library" ? 1 : 2;
+  ALL = d.sort((a, b) => first(a) - first(b));
   const modes = [...new Set(ALL.map(p => p.mode))].sort(), wraps = [...new Set(ALL.map(p => p.wrap))].sort();
   $("fmode").insertAdjacentHTML("beforeend", modes.map(m => `<option>${esc(m)}</option>`).join(""));
   $("fwrap").insertAdjacentHTML("beforeend", wraps.map(m => `<option>${esc(m)}</option>`).join(""));

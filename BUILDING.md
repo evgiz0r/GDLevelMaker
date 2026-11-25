@@ -140,6 +140,10 @@ model from gd-showcase's tools/storyboard.js once it lands (richer: moments, pla
   each press goes to the nearest planned tick inside its window, else ~40% in. GDLM 62: 1 -> 33 of 62 presses
   on a planned time.
 
+- **Pieces (LEGO.md "How the building process uses the pieces")**: a section's layout is a row of 1-3 s pieces, each
+  a kind (family / wrapper / mechanics) picked by the section's role, the official mix and the variety rule (no kind
+  from the 4 before), then sized by the tier; fly sections are built path-first and wrapped. Picker not built yet.
+
 ## 3. A layout is playable the moment it exists
 
 - The layout stage carries its full planned presses (data.planned). The viewer replays them at once (no solve),

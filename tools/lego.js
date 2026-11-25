@@ -1,4 +1,4 @@
-// node tools/lego.js mine [official] [ours] [sketches] [--sketch <file.json> ...]   -- cut levels into 1-3 s pieces,
+// node tools/lego.js mine [official] [ours] [sketches] [library] [--sketch <file.json> ...]   -- cut levels into 1-3 s pieces,
 //                                                  classify and measure each -> local/lego/pieces.json (all, with shapes)
 //                                                  + knowledge/lego.json (committed: families, parameters, counts; shapes
 //                                                  only for OUR levels and the user's sketches, never RobTop's)
@@ -57,6 +57,17 @@ function ourSources() {
   }
   return out;
 }
+// the lego-* pieces of the structure library (tools/structures.js build <id> -> local/structures/), each as ONE piece
+// (its mode's stretch); the saved route when the check left one, else the corridor's midline
+function librarySources() {
+  const S = require("./solutions.js"), dir = path.join(LOCAL, "structures"), out = [];
+  if (!fs.existsSync(dir)) return out;
+  for (const f of fs.readdirSync(dir).filter(f => /^lego-.*\.gdlvl$/.test(f)).sort()) {
+    const L = readGdlvl(path.join(dir, f)), sol = S.get(L.levelStr, true);
+    out.push({ src: "library", name: f.replace(/\.gdlvl$/, ""), file: "tools/structures.js " + f.replace(/\.gdlvl$/, ""), level: GD.parseLevel(L.levelStr), events: sol && sol.ok !== false ? sol.events : null, whole: true });
+  }
+  return out;
+}
 function sketchSources(files) {
   const SK = require("../lib/sketch.js"), out = [];
   const dir = path.join(LOCAL, "sketches");
@@ -105,7 +116,7 @@ function route(s) {
 
 // ---------------------------------------------------------------- cutting
 const TARGET = 2.2, MINS = 0.6;
-function cut(r, inputs) {
+function cut(r, inputs, whole) {
   const p = r.path, spans = [];
   if (!p.length) return spans;
   let a = 0;
@@ -117,6 +128,7 @@ function cut(r, inputs) {
     return d + (p[i].grounded && FAMILY[p[i].mode] !== "fly" ? 0.3 : 0);
   };
   const out = [];
+  if (whole) return spans.filter(([i0, i1]) => r.path[i0].mode !== "cube" && secs(i0, i1) >= MINS);
   for (const [i0, i1] of spans) {
     const D = secs(i0, i1);
     if (D < MINS) continue;
@@ -237,11 +249,12 @@ function mine(which, sketchFiles) {
   if (which.includes("official")) srcs.push(...officialSources());
   if (which.includes("ours")) srcs.push(...ourSources());
   if (which.includes("sketches") || sketchFiles.length) srcs.push(...sketchSources(sketchFiles));
+  if (which.includes("library")) srcs.push(...librarySources());
   const pieces = [];
   for (const s of srcs) {
     const t0 = Date.now();
     let R; try { R = route(s); } catch (e) { console.log("  skip", s.name, e.message); continue; }
-    const cuts = cut(R.r, R.inputs);
+    const cuts = cut(R.r, R.inputs, s.whole);
     for (const [i0, i1] of cuts) pieces.push(measure(s, R.w, R.r, R.inputs, i0, i1));
     console.log(`  ${s.src.padEnd(8)} ${s.name.padEnd(34)} ${String(cuts.length).padStart(3)} pieces${R.r.dead ? " (route dies at block " + Math.round(R.r.path[R.r.path.length - 1].x / B) + ")" : ""}  ${Date.now() - t0} ms`);
   }
@@ -259,7 +272,7 @@ function mine(which, sketchFiles) {
 function writeKnowledge(all) {
   const fam = {};
   for (const p of all) {
-    const k = p.sig, e = fam[k] = fam[k] || { sig: k, family: p.family, mode: p.mode, wrap: p.wrap, n: { official: 0, ours: 0, sketch: 0 }, levels: { official: new Set(), ours: new Set(), sketch: new Set() }, s: [], w: [], presses: [], hold: [], gap: [], yRange: [], hz: [] };
+    const k = p.sig, e = fam[k] = fam[k] || { sig: k, family: p.family, mode: p.mode, wrap: p.wrap, n: { official: 0, ours: 0, sketch: 0, library: 0 }, levels: { official: new Set(), ours: new Set(), sketch: new Set(), library: new Set() }, s: [], w: [], presses: [], hold: [], gap: [], yRange: [], hz: [] };
     e.n[p.src]++; e.levels[p.src].add(p.level);
     e.s.push(p.s); e.w.push(p.w); e.presses.push(p.presses); if (p.hold != null) e.hold.push(p.hold); if (p.gap != null) e.gap.push(p.gap); e.yRange.push(p.yRange); e.hz.push(p.hzPer100);
   }
@@ -269,15 +282,15 @@ function writeKnowledge(all) {
     seconds: range(e.s), width: range(e.w), presses: range(e.presses), hold: range(e.hold), gap: range(e.gap), yRange: range(e.yRange), hazardsPer100: range(e.hz) }))
     .sort((a, b) => (b.n.official - a.n.official) || (b.n.ours - a.n.ours));
   const mix = {}; for (const p of all) { const m = mix[p.src] = mix[p.src] || {}; const k = p.family + "/" + p.mode + "/" + p.wrap; m[k] = (m[k] || 0) + 1; }
-  const pub = all.filter(p => p.src !== "official").map(p => { const q = Object.assign({}, p); delete q.cols; if (p.src !== "sketch") { delete q.shape; delete q.path; } return q; });   // our levels are in the repo: rebuild their shapes with mine
+  const pub = all.filter(p => p.src !== "official").map(p => { const q = Object.assign({}, p); delete q.cols; if (p.src === "ours") { delete q.shape; delete q.path; } return q; });   // our levels are in the repo: rebuild their shapes with mine
   const out = { made: new Date().toISOString().slice(0, 10), physics: require("./solutions.js").physicsCommit(), note: "LEGO.md. Families and parameters of 1-3 s pieces cut from routes; official pieces as numbers only (no layouts).",
-    counts: { official: all.filter(p => p.src === "official").length, ours: all.filter(p => p.src === "ours").length, sketch: all.filter(p => p.src === "sketch").length }, mix, families, pieces: pub };
+    counts: { official: all.filter(p => p.src === "official").length, ours: all.filter(p => p.src === "ours").length, sketch: all.filter(p => p.src === "sketch").length, library: all.filter(p => p.src === "library").length }, mix, families, pieces: pub };
   fs.writeFileSync(KNOW, JSON.stringify(out, null, 0).replace(/\},\{"sig"/g, '},\n{"sig"').replace(/\},\{"src"/g, '},\n{"src"'));
 }
 function load() { const f = path.join(OUTDIR, "pieces.json"); if (!fs.existsSync(f)) { console.log("no local/lego/pieces.json: run `node tools/lego.js mine official ours sketches` first"); process.exit(1); } return JSON.parse(fs.readFileSync(f, "utf8")); }
 function families(all, src) {
   const rows = {};
-  for (const p of all) { if (src && p.src !== src) continue; const k = p.family + " / " + p.mode + " / " + p.wrap + (p.spiky ? " +spikes" : "") + (p.gates ? " +gates" : "") + (p.flips ? " +flips" : ""); const r = rows[k] = rows[k] || { official: 0, ours: 0, sketch: 0 }; r[p.src]++; }
+  for (const p of all) { if (src && p.src !== src) continue; const k = p.family + " / " + p.mode + " / " + p.wrap + (p.spiky ? " +spikes" : "") + (p.gates ? " +gates" : "") + (p.flips ? " +flips" : ""); const r = rows[k] = rows[k] || { official: 0, ours: 0, sketch: 0, library: 0 }; r[p.src]++; }
   const tot = { official: 0, ours: 0, sketch: 0 }; for (const r of Object.values(rows)) for (const k in tot) tot[k] += r[k];
   console.log("family / mode / wrap".padEnd(48) + "official   ours   sketch");
   for (const [k, r] of Object.entries(rows).sort((a, b) => b[1].official - a[1].official || b[1].ours - a[1].ours))
@@ -302,7 +315,7 @@ if (require.main === module) {
   if (cmd === "mine") {
     const which = A.slice(1).filter(a => !a.startsWith("--") && !/\.json$/.test(a));
     const sk = A.filter((a, i) => A[i - 1] === "--sketch");
-    mine(which.length ? which : ["official", "ours", "sketches"], sk);
+    mine(which.length ? which : ["official", "ours", "sketches", "library"], sk);
   } else if (cmd === "families") families(load(), opt("src"));
   else if (cmd === "variety") variety(A[1]);
   else if (cmd === "page") require("./lego_page.js").build(load(), { pub: A.includes("--public"), out: opt("out") });

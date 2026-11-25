@@ -82,7 +82,60 @@ which ours never had), -floor, -flip; lego-swing-corridor, -gates. Results: see 
 
 ## Lego results
 
-(filled in from the first check, below)
+All ten are beaten in the sim (`structures.js check`, 2026-11-25; gap 5 for the wave ones, 4-row gates for ship):
+
+| piece | presses | tightest window | notes |
+|---|---|---|---|
+| lego-wave-corridor | 3 | 333 ms | Easy |
+| lego-wave-flip | 5 on the solver's route | 283 ms | **held through, the whole two hills need ONE press** (checked by replay: hold from the climb on, every portal turns it). fairness FAIL "switch": a player who lets go at a hilltop by habit has 117-133 ms to press again. That is the piece's point and its risk: it needs a cue (the portal colour, an arrow) and is Hard for a first try |
+| lego-wave-mix | 8 | 258 ms | fairness FAIL, same reason |
+| lego-wave-teeth | 3 | 333 ms | Easy |
+| lego-ship-corridor | 8 | 329 ms | Easy |
+| lego-ship-spiky-gates | 8 | 254 ms | with 3-row gates it was 63 ms: 4 rows is the floor at 1x |
+| lego-ship-floor | 3 | 267 ms | Easy |
+| lego-ship-flip | 6 | 317 ms | upside-down ship between the portals |
+| lego-swing-corridor | 8 | 371 ms | Easy |
+| lego-swing-gates | 10 | 263 ms | Easy |
+
+The pieces as pictures: `node tools/lego.js mine library` after `structures.js build lego-...`, then the page (source
+"library"). The classifier reads ship-spiky-gates as a plain corridor (its spikes are under 30% of the wall and a 4-row
+gate is not 2 rows under the 5-row gap): the thresholds came from the official pieces and are open to tuning.
+
+## How the building process uses the pieces (plan, 2026-11-25; the user: "lets think how the building process involves the structures")
+
+The pieces slot into BUILDING.md's stages; nothing new for the user to learn, the stages just get a vocabulary:
+
+1. **Song -> sections** (as now): each section gets its role (intro / build / drop / breather ...), mode, length.
+   New: a **piece budget** (seconds / ~2.2 s) and a **target mix** for its mode from the official levels
+   (`knowledge/lego.json` "mix": e.g. cube mostly steps and pits, flat cube rare; ship mostly spiky corridors with
+   gates).
+2. **Layout (presses first)**: each piece slot gets a KIND (signature) and then PARAMETERS:
+   - kind: from the target mix, steered by the section's role (build: narrowing gaps, more gates; drop: the level's
+     newest mechanic; breather: an open path or a floor path) and by the **variety rule** (no signature from the 4
+     slots before; prefer kinds the level has not used yet);
+   - parameters from the tier: gap, gate rows, leg length, flat turn length (the windows in the table above are the
+     calibration: e.g. ship gates under 4 rows are too tight at 1x);
+   - presses land on the song's hits (beat-first, as now); a piece's knots are where its presses go;
+   - seams between pieces: the exit row (fly) or floor height (jump) of one is the entry of the next, so pieces
+     chain like lego studs.
+   **Fly sections are built path-first**: the section's path is drawn as knots that follow the song (rise on a build,
+   dip at a drop), cut into slots, and each slot gets a wrapper (open / floor / roof / corridor, +spikes, +gates, turns
+   by click or by portal). A mode change on the same path (ship -> wave -> swing) keeps the path and swaps the mode,
+   which is what the user's sketch shows.
+   The layout stage shows the alternatives per slot as thumbnails (BUILDING.md 4, layout.alt[]) so the user can swap a
+   piece for another of the same seams.
+3. **Path / check**: the solve and the gates as now; a piece that fails is swapped for the next of its kind, not
+   searched.
+4. **Deco**: the craft pass dresses by kind (gates get a frame, pits armed undersides, flip turns a portal cue).
+5. **After**: `lego.js variety <level>` (repeats <= ~25%, distinct >= ~0.55) and the mix against the official one.
+
+**The user's sketches feed in two ways:** a sketch drawn for a section is fitted and used as is (DRAW.md); and small
+patterns he draws (like 11-25 17:06) are mined into new kinds with his parameters (flip turns at meeting points,
+gates, height changes), which become pieces the picker can use anywhere -- his drawings grow the library.
+
+**Built so far:** the catalogue and its page, `fly-path` (one path, three modes, wrappers, turns), ten lego pieces,
+the variety measure. **Not built yet:** the slot picker in compose (steps 1-2), parametric cube pieces from the mined
+official kinds (steps and pits), the variety rule as a gate.
 
 ## Open
 
@@ -94,5 +147,7 @@ which ours never had), -floor, -flip; lego-swing-corridor, -gates. Results: see 
   the official cube's bread and butter: pillarRun / pitRun in structures.js are close).
 - Pieces of the user's sketches: their routes come from the drawn midline; once the layout fitter (lib/sketchfit.js)
   can fit flying sketches, use its route.
+- The phone page: a private Artifact (link in project memory); republish with `node tools/lego.js page --public` and
+  the Artifact tool (index.html + pieces.json).
 - Official pieces are shown only on the PC page (local/lego/page/index.html): RobTop's layouts stay local. The phone
   page has ours, the sketches and the official numbers.

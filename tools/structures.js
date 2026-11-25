@@ -441,12 +441,12 @@ const LEGO_PATH = [2, 6, 2, 6, 2];
 const lego = (id, mode, doc, args, tags = []) => S(id, { mode, tags: [mode, "lego", ...tags], tier: "Normal", doc,
   args: Object.assign({ mode, rows: LEGO_PATH }, args),
   build: a => { const r = require("./patterns.js").PATTERNS["fly-path"].fn(a); return { objects: [["pattern", "fly-path", 0, 0, a]], width: r.width, exitRow: r.exitRow }; } });
-lego("lego-wave-corridor", "wave", "two hills as a 45-degree wave corridor, the player turns at each top and bottom", { gap: 4, flat: 2 });
-lego("lego-wave-flip", "wave", "the same two hills, a gravity portal at every turn: held all the way, the portals turn it", { gap: 4, flat: 2, turns: "flip" }, ["gravity", "gravity portal"]);
-lego("lego-wave-mix", "wave", "the same hills, every other turn by a portal: click, hold through, click", { gap: 4, flat: 2, turns: "mix" }, ["gravity", "gravity portal"]);
+lego("lego-wave-corridor", "wave", "two hills as a 45-degree wave corridor, the player turns at each top and bottom", { gap: 5, flat: 2 });
+lego("lego-wave-flip", "wave", "the same two hills, a gravity portal at every turn: held all the way, the portals turn it", { gap: 5, flat: 2, turns: "flip" }, ["gravity", "gravity portal"]);
+lego("lego-wave-mix", "wave", "the same hills, every other turn by a portal: click, hold through, click", { gap: 5, flat: 2, turns: "mix" }, ["gravity", "gravity portal"]);
 lego("lego-wave-teeth", "wave", "the wave hills with a spike at each turn, on the side the wave is not on", { gap: 5, flat: 2, spikes: "turns" });
 lego("lego-ship-corridor", "ship", "the same two hills as a ship corridor (5-column legs)", { gap: 5, seg: 5, flat: 2 });
-lego("lego-ship-spiky-gates", "ship", "the ship hills with spikes on both walls and a gate (a 3-row squeeze) at each hilltop: the official levels' most common ship piece", { gap: 5, seg: 5, flat: 3, spikes: "both", every: 5, gates: [1, 3], gateGap: 3 }, ["spikes", "gates"]);
+lego("lego-ship-spiky-gates", "ship", "the ship hills with spikes on both walls and a gate (a 4-row squeeze) at each hilltop: the official levels' most common ship piece", { gap: 5, seg: 5, flat: 3, spikes: "both", every: 5, gates: [1, 3], gateGap: 4 }, ["spikes", "gates"]);
 lego("lego-ship-floor", "ship", "the ship hills as a floor path only (open above), spikes on the level stretches", { gap: 5, seg: 5, flat: 3, wrap: "floor", spikes: "floor", every: 4 }, ["spikes"]);
 lego("lego-ship-flip", "ship", "the ship hills with gravity portals at the hilltops: the ship flies upside down between them", { gap: 5, seg: 5, flat: 3, turns: "mix" }, ["gravity", "gravity portal"]);
 lego("lego-swing-corridor", "swing", "the same two hills as a swing corridor (6 rows of room)", { gap: 6, seg: 6, flat: 2 });
