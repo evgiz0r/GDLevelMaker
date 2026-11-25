@@ -163,7 +163,7 @@ function draw(cv, p, big) {
   g.fillStyle = LC.bg ? "rgba(0,0,0,.55)" : "#3b3480";
   (p.walls || []).forEach(([f, r], c) => { if (f > 0) g.fillRect(X(c), Y(f), z + 0.5, f * z); if (r != null) g.fillRect(X(c), Y(yhi + 2), z + 0.5, (yhi + 2 - r) * z); });
   for (const s of p.shape) {
-    const [k, x0, y0, x1, y1, , corner] = s, c = COL[k] || "#888";
+    const [k, x0, y0, x1, y1, oc, corner] = s, c = (k !== "S" && k !== "L" && k !== "H" && oc) || COL[k] || "#888";   // orbs, pads, portals in their own colour (Evgeni: "need proper colors for orbs and portals")
     // objects past the brick's two ends belong to its neighbours in the level: drawn faint (the brick is cut by time
     // around its presses, so its route runs from end to end and the level's objects carry on past it)
     g.globalAlpha = x1 <= 0.05 || x0 >= p.w - 0.05 ? 0.25 : 1;
