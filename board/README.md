@@ -51,3 +51,7 @@ states and offers "Allow data access" / "Permissions" when one is off.
 - `board/played` holds every level with attempts, finished or not (col `done`), split in parts of 600 rows (~40 KB): `board/played` = head (`parts`, totals, note, cols) + first rows, `board/played_2..N` = `{part, rows}`; one 170 KB doc did not load in his app (2026-11-25), so keep parts small. state.played is gone (it was a stale 22-row copy); "Finished" /
   "Not finished" filters. Refresh: `node tools/save_stats.js` on the PC (GD writes its save when it closes, so a session's
   plays show up after GD is closed or saves).
+
+## Menus (2026-11-26)
+
+Every section is a collapsible menu (`<details>`), closed by default (Evgeni: "make all menus collapsible and they will be by default"); each closed header shows a count. Two bugs fixed then: the page had two functions named `isDone` (the played-row one, now `rowDone`, overwrote the archive's, so nothing ever went to Done), and database objects are read-only, so the page tags copies of the feature ideas (Features threw "Cannot read properties of undefined (reading 'replace')").

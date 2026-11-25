@@ -13,7 +13,7 @@ window.addEventListener("unhandledrejection",function(e){ var r=e.reason; window
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@500&display=swap">
 <style>
-/* Layout: one phone-width column; status first, then the queue the user orders, then the menu of tasks to tick. */
+/* Layout: one phone-width column; every section is a menu (<details>), closed by default (the user, 2026-11-26). */
 :root{
   --bg:#F2F4F7; --panel:#FFFFFF; --ink:#152131; --muted:#5B6878; --line:#DDE2EA;
   --accent:#2563D9; --accent-soft:#E3ECFB;
@@ -151,14 +151,16 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
   </header>
 
   <section aria-labelledby="h-ws">
-    <div class="sec-head"><h2 id="h-ws">Workstreams</h2><span class="hint" id="ws-count"></span></div>
-    <div class="list" id="ws"><div class="queue-empty ph">Loading…</div></div>
+    <details id="d-ws">
+      <summary><div class="sum-row"><h2 id="h-ws">Workstreams</h2><span class="hint" id="ws-count"></span></div></summary>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px"><div class="list" id="ws"><div class="queue-empty ph">Loading…</div></div></div>
+    </details>
   </section>
 
 
 
   <section aria-labelledby="h-f" class="wide">
-    <details id="d-feat" open>
+    <details id="d-feat">
       <summary><div class="sum-row"><h2 id="h-f">Features</h2><span class="hint" id="f-sum"></span></div></summary>
       <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
         <div class="tbl-wrap" style="max-height:none"><table id="ftable"><tbody><tr><td class="l dim ph">Loading…</td></tr></tbody></table></div>
@@ -177,12 +179,15 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
   </section>
 
   <section aria-labelledby="h-l">
-    <div class="sec-head"><h2 id="h-l">Our levels</h2><a class="vlink" id="vlink" href="https://claude.ai/artifact/7bXiT1gGnJWjESC8fy3oZH" target="_blank" rel="noopener">Open the level viewer ↗</a></div>
-    <div class="list" id="levels"><div class="queue-empty ph">Loading…</div></div>
+    <details id="d-levels">
+      <summary><div class="sum-row"><h2 id="h-l">Our levels</h2><span class="hint" id="l-sum"></span></div></summary>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px"><a class="vlink" id="vlink" href="https://claude.ai/artifact/7bXiT1gGnJWjESC8fy3oZH" target="_blank" rel="noopener">Open the level viewer ↗</a>
+        <div class="list" id="levels"><div class="queue-empty ph">Loading…</div></div></div>
+    </details>
   </section>
 
   <section aria-labelledby="h-m" class="wide">
-    <details id="d-mains" open>
+    <details id="d-mains">
       <summary><div class="sum-row"><h2 id="h-m">Main levels</h2><span class="hint" id="m-sum"></span></div></summary>
       <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
         <div class="tbl-wrap"><table id="mtable"><tbody><tr><td class="l dim ph">Loading…</td></tr></tbody></table></div>
@@ -192,7 +197,7 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
   </section>
 
   <section aria-labelledby="h-y" class="wide">
-    <details id="d-played" open>
+    <details id="d-played">
       <summary><div class="sum-row"><h2 id="h-y">Your levels</h2><span class="hint" id="y-sum"></span></div></summary>
       <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
         <div class="filters" id="y-filters" role="toolbar" aria-label="Filter your levels by difficulty" style="flex-wrap:wrap"></div>
@@ -205,7 +210,7 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
   </section>
 
   <section aria-labelledby="h-r" class="wide">
-    <details id="d-latest" open>
+    <details id="d-latest">
       <summary><div class="sum-row"><h2 id="h-r">Latest rated</h2><span class="hint" id="r-sum"></span></div></summary>
       <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
         <div class="filters" id="r-filters" role="toolbar" aria-label="Filter latest rated levels" style="flex-wrap:wrap"></div>
@@ -218,7 +223,7 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
 
 
   <section aria-labelledby="h-p">
-    <details id="d-phys" open>
+    <details id="d-phys">
       <summary><div class="sum-row"><h2 id="h-p">Physics vs the real game</h2><span class="hint" id="p-sum"></span></div></summary>
       <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px">
         <div class="legend">Bars: 4 = measured in your own game and matches. 3 = matches real-game input plans. 2 = works, with a known mismatch. 1 = from the decompile or gdsolver, not checked yet.</div>
@@ -230,21 +235,25 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
   </section>
 
   <section aria-labelledby="h-q">
-    <div class="sec-head"><h2 id="h-q">Your queue</h2><span class="hint">Top runs first. Claude schedules from this.</span></div>
-    <div class="list" id="queue"><div class="queue-empty">Nothing picked yet. Tick tasks below and they line up here.</div></div>
-    <div class="total" id="total" hidden></div>
+    <details id="d-queue">
+      <summary><div class="sum-row"><h2 id="h-q">Your queue</h2><span class="hint" id="q-sum">Top runs first. Claude schedules from this.</span></div></summary>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px"><div class="list" id="queue"><div class="queue-empty">Nothing picked yet. Tick tasks below and they line up here.</div></div>
+        <div class="total" id="total" hidden></div></div>
+    </details>
     <div class="saved" id="saved" aria-live="polite"></div>
   </section>
 
   <section aria-labelledby="h-c">
-    <div class="sec-head"><h2 id="h-c">Next tasks to pick from</h2><span class="hint">Tick to queue, untick to drop</span></div>
-    <div class="filters" id="filters" role="toolbar" aria-label="Filter by area"></div>
-    <div class="list" id="cands"><div class="queue-empty ph">Loading…</div></div>
-    <form class="add" id="addform">
-      <label for="idea" hidden>Add your own task</label>
-      <input id="idea" maxlength="160" placeholder="Add your own task idea…" autocomplete="off">
-      <button class="addbtn" id="addbtn" type="submit" disabled>Add</button>
-    </form>
+    <details id="d-cands">
+      <summary><div class="sum-row"><h2 id="h-c">Next tasks to pick from</h2><span class="hint" id="c-sum">Tick to queue, untick to drop</span></div></summary>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px"><div class="filters" id="filters" role="toolbar" aria-label="Filter by area"></div>
+        <div class="list" id="cands"><div class="queue-empty ph">Loading…</div></div>
+        <form class="add" id="addform">
+          <label for="idea" hidden>Add your own task</label>
+          <input id="idea" maxlength="160" placeholder="Add your own task idea…" autocomplete="off">
+          <button class="addbtn" id="addbtn" type="submit" disabled>Add</button>
+        </form></div>
+    </details>
   </section>
 
   <section aria-labelledby="h-done">
@@ -368,6 +377,7 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
       mv.appendChild(up); mv.appendChild(dn); row.appendChild(mv);
       box.appendChild(row);
     });
+    $("q-sum").textContent=sel.length+" picked · top runs first";
     var tot=$("total"); tot.hidden=false; tot.textContent="";
     var a=el("span"); a.appendChild(document.createTextNode("Queue total ")); a.appendChild(el("b",null,fmtDur(sum))); if(unknown) a.appendChild(document.createTextNode(" + "+unknown+" not estimated")); tot.appendChild(a);
     tot.appendChild(el("span",null,"Several run side by side, so wall-clock is shorter"));
@@ -389,6 +399,7 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
     var box=$("cands"), tasks=allTasks().filter(function(t){ return filter==="All" || (t.area||"Other")===filter; });
     if(!tasks.length && !(state && state.candidates)) return;
     box.textContent="";
+    $("c-sum").textContent=allTasks().length+" tasks · tick to queue";
     if(!tasks.length){ box.appendChild(el("div","queue-empty","No tasks in this area.")); return; }
     var selSet={}; (picks.selected||[]).forEach(function(id){ selSet[id]=1; });
     tasks.forEach(function(t){
@@ -499,16 +510,17 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
       if(l.link && /^https:\/\//.test(l.link)){ var o=el("div","open"), a=el("a",null,"Open in the viewer ↗"); a.href=l.link; a.target="_blank"; a.rel="noopener"; o.appendChild(a); row.appendChild(o); }
       box.appendChild(row);
     });
+    $("l-sum").textContent=L.length+" in progress";
   }
   var TIERS=["Unrated","Auto","Easy","Normal","Hard","Harder","Insane","Easy Demon","Medium Demon","Hard Demon","Insane Demon","Extreme Demon","Demon"];
   var yFilter="All", yShow=200, played=null;
-  function isDone(r){ return r.done!=null? !!r.done : r.best>=100; }
-  function yMatch(r,q){ return (yFilter==="All" || (yFilter==="Not finished"? !isDone(r) : yFilter==="Finished"? isDone(r) : yFilter==="Demons"? /Demon/.test(r.tier||"") : r.tier===yFilter)) && (!q || (r.name||"").toLowerCase().indexOf(q)>=0 || (r.creator||"").toLowerCase().indexOf(q)>=0 || String(r.id)===q); }
+  function rowDone(r){ return r.done!=null? !!r.done : r.best>=100; }
+  function yMatch(r,q){ return (yFilter==="All" || (yFilter==="Not finished"? !rowDone(r) : yFilter==="Finished"? rowDone(r) : yFilter==="Demons"? /Demon/.test(r.tier||"") : r.tier===yFilter)) && (!q || (r.name||"").toLowerCase().indexOf(q)>=0 || (r.creator||"").toLowerCase().indexOf(q)>=0 || String(r.id)===q); }
   function tierGroup(t){ return /Demon/.test(t||"")? "Demons" : (t||"Other"); }
   function renderPlayed(){
     var P=played; if(!P || !P.levels || !P.levels.length) return;
     var L=P.levels.slice().sort(function(a,b){ var ta=TIERS.indexOf(a.tier), tb=TIERS.indexOf(b.tier); if(ta!==tb) return tb-ta; return (b.attempts||0)-(a.attempts||0); });
-    var groups=["All"], seen={}, counts={}; counts["Finished"]=L.filter(isDone).length; counts["Not finished"]=L.length-counts["Finished"]; if(counts["Not finished"]) groups.push("Finished","Not finished");
+    var groups=["All"], seen={}, counts={}; counts["Finished"]=L.filter(rowDone).length; counts["Not finished"]=L.length-counts["Finished"]; if(counts["Not finished"]) groups.push("Finished","Not finished");
     L.forEach(function(r){ var g=tierGroup(r.tier); counts[g]=(counts[g]||0)+1; if(/Demon/.test(r.tier||"")){ counts[r.tier]=(counts[r.tier]||0)+1; } });
     ["Auto","Easy","Normal","Hard","Harder","Insane","Demons","Easy Demon","Medium Demon","Hard Demon","Insane Demon","Extreme Demon","Unrated"].forEach(function(g){ if(counts[g]) groups.push(g); });
     if(groups.indexOf(yFilter)<0) yFilter="All";
@@ -545,7 +557,7 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
     if(total>show.length){ var mr=el("tr"), mc=el("td","l"); mc.colSpan=8; var mb=el("button","chip","Show more ("+(total-show.length)+" left)"); mb.type="button"; mb.onclick=function(){ yShow+=300; renderPlayed(); }; mc.appendChild(mb); mr.appendChild(mc); body.appendChild(mr); }
     t.appendChild(body);
     studyCount();
-    var fin=L.filter(isDone).length, dem=L.filter(function(r){ return /Demon/.test(r.tier||"") && isDone(r); }).length;
+    var fin=L.filter(rowDone).length, dem=L.filter(function(r){ return /Demon/.test(r.tier||"") && rowDone(r); }).length;
     $("y-sum").textContent=(P.totals? (P.totals.officialDone+P.totals.onlineDone)+" finished · "+P.totals.demons+" demons" : fin+" finished · "+dem+" demons")+(P.at?" · from your save "+fmtWhen(new Date(P.at)):"");
     if(P.note) $("y-legend").textContent=P.note;
   }
@@ -610,7 +622,7 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
   // ---- features: Claude's flows and ideas (state.features) + the ideas Evgeni adds and picks (picks.feat_*) ----
   function featIdeas(){
     var F=state && state.features || {}, seen={}, out=[];
-    (F.ideas||[]).forEach(function(i){ seen[i.id]=1; }); live(F.ideas).forEach(function(i){ out.push(i); });
+    (F.ideas||[]).forEach(function(i){ seen[i.id]=1; }); live(F.ideas).forEach(function(i){ out.push(Object.assign({}, i)); });
     (picks.feat_ideas||[]).forEach(function(i){ if(!seen[i.id]) out.push({id:i.id,title:i.title,status:"idea",mine:true}); });
     var pk={}; (picks.feat_picks||[]).forEach(function(x){ pk[x]=1; });
     out.forEach(function(i){ i._on=!!pk[i.id] || i.status==="in progress" || i.status==="done"; if((!i.status || i.status==="idea") && pk[i.id]) i._st="picked"; else i._st=i.status||"idea"; });
@@ -640,7 +652,7 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
       var b=el("div","body"); b.appendChild(el("span","title",i.title));
       if(i.note) b.appendChild(el("span","note",i.note));
       var sub=el("span","sub"); if(i.mine) sub.appendChild(el("span","area","Your idea"));
-      sub.appendChild(el("span","pill p-"+i._st.replace(/ /g,"-"),i._st));
+      sub.appendChild(el("span","pill p-"+String(i._st||"idea").replace(/ /g,"-"),i._st));
       b.appendChild(sub); lab.appendChild(b); box.appendChild(lab);
     });
   }
