@@ -349,6 +349,10 @@ What it showed first (FROSTBITE 2.66 vs Electrodynamix 2.65, same model):
   Clubstep's and ToE 2's difficulty is in their corridors, so the flight part is needed before v2 replaces v1.
   NEXT: run `node tools/balance.js official:1 ... official:22 --json` on the PC (it has the levels), fit FLY_SPREAD on
   stars and the user's attempts from `flyRaw`, then decide. score.js and the board still use v1.
+- **The timing curve is too steep for ordinary jumps** (2026-11-25, Dry Out 4* vs Time Machine 8*): with SIGMA 13 ms a
+  window over ~70 ms is a near-certain hit, so Time Machine's eight 83 ms jumps cost 0.004 each, like a 300 ms one, and
+  the two levels differ only by press count (v2 presses 0.48 vs 0.50). Refit SIGMA (or a spread that grows with
+  speed / density) together with FLY_SPREAD on the mains' stars and the user's attempts.
 - **Lone spike (fairness, not score)**: a jumping press under 60 ms among neighbours (±5 s) of 150 ms median or more
   is printed as SPIKE (knowledge/checklist.md "Fair"). FROSTBITE 8.2 s (the triple spike, 46 ms among ~296 ms).
   Sweep of the 29 GDLM levels with a saved route (2026-11-25): 9 spikes in 6 levels -- GDLM 43 (24.4, 25.6 s), 45 (3.9 s),
