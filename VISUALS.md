@@ -222,6 +222,19 @@ re-encoded at the bitrate that fits. `--vs-rec` puts the run's recording beside 
   stretch (`contentY`) when that is above 6 blocks.
 - Open: an art-free version, so a video can be shared publicly; cropping a windowed recording in `--vs-rec`; the progress bar.
 
+## The end (2026-11-25)
+
+The user, on the Jumper video: "no end screen like in the real game, it just falls on the ground". Two causes: a cleared
+route got a ghost run after it (`ghostExtend` padded every path to the level's length at the slowest speed, so past the
+clear a camera-only ghost walked on and "fell"), and nothing marked the clear. Now (viewer/index.html `endWall` / `endFx`,
+our own drawing, no GD art): a wall of light 9 blocks past the last object, in view as the run comes up to it; at the clear
+the camera stops, the player is pulled up into the wall on a curve (spinning, shrinking, 0.6 s), a flash where it goes in,
+then "LEVEL COMPLETE!" and a card: attempt, jumps (presses), time, coins (filled when the route passes a coin). The page plays
+on `END_LEN` (4.5 s) past the clear and stops; a video (tools/video.js) records it to the end; scrubbing back shows the level.
+Game look only (the schematic view keeps its small text). A cleared path is never ghost-extended any more.
+Test: `node tests/end_screen.js`. Open: GD's own end (the camera's exact stop, the wall's look, the card's layout) is drawn
+from memory, not measured from a recording; attempts are 1 for a route, the user's real count for a run is not known.
+
 ## A run the sim loses (2026-11-24)
 
 The user: "when i play my replay in clutterfunk my icon disappears". Where our sim loses a run (a recording it does not
