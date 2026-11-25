@@ -350,6 +350,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 - **`tools/loop.js` -- the whole make/iterate loop in one command** (owner check, ETA, make/compose, score,
   shoot, levelmap, wip; logs under `local/loop/`), `--times` prints the measured time table, `--time <step>
   <cmd>` times any other job into it. Test: `node tests/loop.js`.
+- **The GD Work Board** (board/README.md: Evgeni's private control page -- workstreams, main levels, physics vs the game, the task queue he picks; data schema): `tools/board_mains.js` (the main-levels table for it).
 - **`tools/mains.js` -- RobTop's 22 main levels kept solved** (`status`: which route fails and the cheapest fix; `run`: replans then resumes at heavy priority `urgent`; serve.js starts it after a pull that changes physics or route code; DIFFICULTY.md "Main levels kept current").
 - **`tools/presslib.js` -- the press library: where good players press, learned from clears** (gdsolver's real-game plans,
   our routes, the user's attempts): a picture of what is ahead -> the share who pressed there; the solver plays a level by it
