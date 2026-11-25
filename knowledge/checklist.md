@@ -31,6 +31,7 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 - [ ] **Fly corridors are smooth: no one-block stair steps in a ship or wave wall** (2026-11-25: GDLM 44's ship died in the real
   game at a stepped roof's corner where our sim passed, PHYSICS.md "probe mod"). Build them with `fly-path` (45-degree slopes
   on both walls), not `ship-tunnel`; the margin our sim gives at a block corner is not to be trusted.
+- [ ] **Brick joins get 3+ flat blocks, and a brick whose own check found a prejump is not used** (2026-11-25, GDLM 44 v3: 1-2 block joins made 5 prejumps and a tap 183 ms after a gravity portal). `tools/brickpick.js` enforces it; score.js "prejumps" / "fairness" check it.
 - [ ] **`node tools/fairness.js <level>` passes** (also `tools/score.js` gate "fairness"). It
   flags (FAIL): an input forced right after a portal (into a jumping mode: the first input's window
   closes < 250 ms after it; into the wave: the button must change within 300 ms); a jump mark where

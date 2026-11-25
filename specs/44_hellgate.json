@@ -1,75 +1,264 @@
 {
-  "name": "GDLM 44 hellgate",
-  "desc": "Through the gates of hell: climb, fly and wave into the fire, a new trick every bar.",
-  "notes": "hellish, a new idea every bar: climb, the ship on the hit, orbs, wave, drop, red pad",
-  "style": "hell", "indicators": {}, "signature": true, "scene": "tools/scenes/hellgate.js",
-  "song": { "custom": 343707 }, "offset": 0, "grid": { "bpm": 145.012, "t0": 0.0662 },
-  "colours": { "bg": [30, 6, 6], "ground": [12, 0, 0], "ground2": [12, 0, 0], "line": [170, 60, 20] },
-  "objects": [
-    ["pattern", "climb", 8, 0, { "n": 2, "w": 3, "gap": 2 }],
-
-    ["colour", "b5", { "ch": "bg", "rgb": [60, 12, 8], "secs": 0.3 }],
-    ["colour", "b5", { "ch": "ground", "rgb": [30, 6, 4], "secs": 0.3 }],
-    ["colour", "b5.5", { "ch": "bg", "rgb": [40, 8, 8], "secs": 0.8 }],
-    ["pattern", "platform", 16, 0, { "w": 3, "h": 2 }],
-    ["pattern", "fly-path", "b5+1", 0, { "mode": "ship", "rows": [2, 4, 2, 4], "flat": 2, "lead": 3, "tail": 2, "gap": 5, "spikes": "turns", "portal": true, "exit": "cube" }],
-
-    ["colour", "b9", { "ch": "bg", "rgb": [55, 12, 8], "secs": 0.3 }],
-    ["colour", "b9.5", { "ch": "bg", "rgb": [38, 8, 6], "secs": 0.6 }],
-    ["pattern", "spikes", "b10+2", 0, { "n": 9 }],
-    ["yellow orb", "b10+4", 2],
-    ["yellow orb", "b10+7", 3],
-    ["pattern", "platform", "b10+11", 0, { "w": 5, "h": 1 }],
-
-    ["colour", "b13", { "ch": "bg", "rgb": [55, 14, 8], "secs": 0.3 }],
-    ["colour", "b13.5", { "ch": "bg", "rgb": [36, 8, 6], "secs": 0.6 }],
-    ["pattern", "wave-zigzag", "b13+6", 0, { "seg": 2, "legs": 4, "flat": 2, "lead": 4, "leadGap": 8, "gap": 5, "low": 2, "slopes": true, "portal": true, "portalRow": 1, "exit": "cube" }],
-
-    ["colour", "b17", { "ch": "bg", "rgb": [55, 12, 8], "secs": 0.3 }],
-    ["colour", "b17.5", { "ch": "bg", "rgb": [38, 8, 6], "secs": 0.6 }],
-    ["pattern", "single", "b20", 0],
-
-    ["colour", "b21", { "ch": "bg", "rgb": [80, 24, 8], "secs": 0.3 }],
-    ["colour", "b21", { "ch": "ground", "rgb": [36, 8, 4], "secs": 0.3 }],
-    ["colour", "b21.5", { "ch": "bg", "rgb": [50, 12, 6], "secs": 0.5 }],
-    ["red pad", "b21", 0],
-    ["pattern", "spikes", "b21+2", 0, { "n": 4 }],
-    ["pattern", "single", "j23", 0],
-    ["pattern", "gate", "j25", 0, { "w": 2, "open": 4 }],
-
-    ["colour", "b25", { "ch": "bg", "rgb": [20, 4, 4], "secs": 0.8 }],
-    ["colour", "b25", { "ch": "ground", "rgb": [5, 0, 0], "secs": 0.8 }],
-    ["colour", "b27", { "ch": "bg", "rgb": [40, 8, 8], "secs": 1.5 }],
-    ["colour", "b27", { "ch": "ground", "rgb": [30, 6, 4], "secs": 1.5 }],
-    ["pattern", "double", "j27", 0],
-    ["pattern", "s:slope-up-jump", "b29", 0],
-
-    ["colour", "b33", { "ch": "bg", "rgb": [55, 12, 14], "secs": 0.3 }],
-    ["pattern", "ball-run", "b33+1", 0, { "w": 30, "gap": 5, "every": 6, "lead": 5, "portal": true, "exit": "cube" }],
-    ["pattern", "s:dash-orb-pit", "b42", 0],
-    ["pattern", "s:pink-pad-step", "b46", 0],
-
-    ["colour", "b49", { "ch": "bg", "rgb": [55, 12, 10], "secs": 0.3 }],
-    ["pattern", "platform", 200, 0, { "w": 9, "h": 2 }],
-    ["pattern", "fly-path", "b49+1", 0, { "mode": "ship", "rows": [2, 5, 2, 6, 3], "flat": 3, "lead": 3, "tail": 2, "gap": 5, "spikes": "both", "every": 5, "gates": [1, 3], "gateGap": 4, "portal": true, "portalRow": 2, "exit": "cube" }],
-    ["pattern", "s:gravity-pad-gap", "b58", 0],
-    ["pattern", "s:blue-orb-bounce", "b63", 0],
-    ["pattern", "single", "j67", 0],
-
-    ["colour", "b69", { "ch": "bg", "rgb": [90, 26, 8], "secs": 0.2 }],
-    ["colour", "b69.5", { "ch": "bg", "rgb": [50, 12, 6], "secs": 0.6 }],
-    ["pattern", "wave-zigzag", "b69+1", 0, { "seg": 3, "legs": 6, "flat": 2, "lead": 4, "leadGap": 8, "gap": 5, "slopes": true, "portal": true, "portalRow": 1, "exit": "cube" }],
-    ["colour", "b81", { "ch": "bg", "rgb": [80, 24, 8], "secs": 0.3 }],
-    ["colour", "b81.5", { "ch": "bg", "rgb": [50, 12, 6], "secs": 0.5 }],
-    ["pattern", "s:pink-orb-pit", "b79", 0],
-    ["pattern", "single", "j81.5", 0],
-
-    ["colour", "b85", { "ch": "bg", "rgb": [60, 12, 10], "secs": 0.3 }],
-    ["pattern", "platform", 355, 0, { "w": 9, "h": 2 }],
-    ["pattern", "fly-path", "b85+1", 0, { "mode": "ship", "rows": [3, 6, 2, 5, 3], "flat": 3, "lead": 3, "tail": 2, "gap": 5, "wrap": "floor", "spikes": "floor", "every": 4, "portal": true, "portalRow": 3, "exit": "cube" }],
-    ["pattern", "s:green-orb-flip", "b94", 0],
-
-    ["colour", "b101", { "ch": "bg", "rgb": [14, 2, 2], "secs": 1.5 }],
-    ["colour", "b101", { "ch": "ground", "rgb": [8, 2, 2], "secs": 1.5 }]
+ "name": "GDLM 44 hellgate",
+ "desc": "Down through the gates of hell: every jump on the beat. Made by Claude.",
+ "notes": "v3, rebuilt from scratch by tools/hellgate_build.js (sections at the song's boundaries, our verified bricks on its hits)",
+ "style": "hell",
+ "indicators": {},
+ "signature": true,
+ "scene": "tools/scenes/theme.js",
+ "theme": {
+  "name": "fire",
+  "sections": [
+   {
+    "from": 0,
+    "variant": "molten"
+   },
+   {
+    "from": 83,
+    "variant": "inferno"
+   },
+   {
+    "from": 154,
+    "variant": "molten"
+   },
+   {
+    "from": 255,
+    "variant": "inferno"
+   },
+   {
+    "from": 382,
+    "variant": "molten"
+   },
+   {
+    "from": 447,
+    "variant": "inferno"
+   },
+   {
+    "from": 603,
+    "variant": "ash"
+   }
   ]
+ },
+ "song": {
+  "custom": 343707
+ },
+ "offset": 19.3064,
+ "grid": {
+  "bpm": 145.012,
+  "t0": 1.101
+ },
+ "drop": 21,
+ "pulseZones": [
+  [
+   21,
+   37
+  ],
+  [
+   117,
+   145
+  ]
+ ],
+ "colours": {
+  "bg": [
+   30,
+   6,
+   6
+  ],
+  "ground": [
+   12,
+   0,
+   0
+  ],
+  "ground2": [
+   12,
+   0,
+   0
+  ],
+  "line": [
+   170,
+   60,
+   20
+  ]
+ },
+ "objects": [
+  [
+   "pattern",
+   "s:pillar-climb",
+   12,
+   0
+  ],
+  [
+   "pattern",
+   "s:blue-pad-ceiling",
+   53,
+   0
+  ],
+  [
+   "pattern",
+   "s:pad-launch",
+   69,
+   0
+  ],
+  [
+   "pattern",
+   "fly-path",
+   87,
+   0,
+   {
+    "mode": "ship",
+    "rows": [
+     3,
+     6,
+     2,
+     5,
+     3,
+     6,
+     4
+    ],
+    "flat": 7,
+    "lead": 3,
+    "tail": 2,
+    "gap": 5,
+    "spikes": "both",
+    "every": 5,
+    "gates": [
+     2,
+     4
+    ],
+    "gateGap": 4,
+    "portal": true,
+    "portalRow": 3,
+    "exit": "cube"
+   }
+  ],
+  [
+   "pattern",
+   "s:low-roof-hops",
+   162,
+   0
+  ],
+  [
+   "pattern",
+   "s:capped-hop-armed",
+   181,
+   0
+  ],
+  [
+   "pattern",
+   "single",
+   "j52",
+   0
+  ],
+  [
+   "pattern",
+   "s:block-hops",
+   229,
+   0
+  ],
+  [
+   "pattern",
+   "single",
+   "j59",
+   0
+  ],
+  [
+   "pattern",
+   "fly-path",
+   259,
+   0,
+   {
+    "mode": "wave",
+    "rows": [
+     2,
+     6,
+     3,
+     7,
+     2,
+     5,
+     4,
+     8,
+     3,
+     6,
+     2,
+     7,
+     4,
+     6,
+     2,
+     8,
+     3,
+     5,
+     2,
+     6,
+     3
+    ],
+    "flat": 2,
+    "lead": 4,
+    "tail": 3,
+    "gap": 5,
+    "spikes": "turns",
+    "portal": true,
+    "portalRow": 2,
+    "exit": "ball"
+   }
+  ],
+  [
+   "pattern",
+   "s:ball-flips",
+   392,
+   0,
+   {
+    "raw": true
+   }
+  ],
+  [
+   "pattern",
+   "s:ball-flips",
+   416,
+   0,
+   {
+    "raw": true
+   }
+  ],
+  [
+   "cube portal",
+   447,
+   1
+  ],
+  [
+   "pattern",
+   "s:slope-up-jump",
+   456,
+   0
+  ],
+  [
+   "pattern",
+   "s:pillar-hop",
+   469,
+   0
+  ],
+  [
+   "pattern",
+   "s:spike-pit-train",
+   509,
+   0
+  ],
+  [
+   "pattern",
+   "single",
+   "j131.5",
+   0
+  ],
+  [
+   "pattern",
+   "s:capped-hop-armed5",
+   570,
+   0
+  ],
+  [
+   "pattern",
+   "single",
+   "j143",
+   0
+  ]
+ ]
 }

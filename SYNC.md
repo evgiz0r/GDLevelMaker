@@ -409,7 +409,9 @@ asked them (Nov 22) to grade portals and drops instead, per the user's "not forc
 - make.js / compose.js do not yet read songmap's sections: a spec could say "new section at the
   song's next section change" instead of a beat number.
 - Songs with tempo changes need local grids. Low-confidence songs: custom 343707 (GDLM 44
-  hellgate, 145 BPM, drifts 100 ms), 685746, 850364, 10000912, 10007496, 10010007, and Clubstep.
+  hellgate, 145 BPM, drifts 100 ms; its 20-80 s alone, cut with ffmpeg and run through beats.js: 145.01 BPM, drift 5 ms,
+  high, beats HALF A BEAT off the whole-song grid -- GDLM 44 v3 pins grid {bpm 145.012, t0 1.101} and `tools/hits.js
+  --bpm --t0 --downbeat` takes such a local grid), 685746, 850364, 10000912, 10007496, 10010007, and Clubstep.
 - Beatless or ambient parts: the rule is "follow loudness and sections", but nothing yet places
   objects by loudness; a spec key for it (e.g. density per section) would make that writable.
 - Not felt in the game yet: GDLM 02 (built as a test of "on the beat", not as a style).

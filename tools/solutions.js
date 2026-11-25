@@ -124,8 +124,8 @@ function fromRun(level, levelStr, r, opts) {
     // a windowed or reused plan that fails either is replaced by a whole-level plan
     const N = GD.pointlessJumps || (() => []);
     const clean = n => n && n.path[n.path.length - 1].done && !GD.skipCheck(w, n.path, n.events);
-    try { let n = r.inc && r.inc.reused ? { events: r.events, path: GD.run(w, r.events).path } : GD.naturalPlan(w, r, level.objects, win ? { cost: true, window: win } : { cost: true });
-      if ((r.inc || win) && (!clean(n) || N(w, n.events).length)) { const f = GD.naturalPlan(w, r, level.objects, { cost: true });
+    try { let n = r.inc && r.inc.reused ? { events: r.events, path: GD.run(w, r.events).path } : GD.naturalPlan(w, r, level.objects, win ? { cost: true, window: win, planned } : { cost: true, planned });
+      if ((r.inc || win) && (!clean(n) || N(w, n.events).length)) { const f = GD.naturalPlan(w, r, level.objects, { cost: true, planned });
         if (clean(f) && (!clean(n) || N(w, f.events).length < N(w, n.events).length)) n = f; }
       if (clean(n)) { events = n.events; kind = "human"; why = undefined; }
       else if (n && n.path[n.path.length - 1].done) why = "the natural plan skips a portal or orb the solver's route takes: the solver's raw route"; } catch (e) { why = "natural plan failed: " + e.message; }
