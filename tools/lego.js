@@ -273,7 +273,10 @@ function measure(src, w, r, inputs, i0, i1) {
   const hold = r.midline ? null : r2(heldT / Math.max(1, (i1 - i0) / 4));
   const hazards = items.filter(it => it.kind === "hazard" && it.x0 >= xa && it.x0 < xb).length;
   const pyS = cols.map(c => c.py), yRange = r1(Math.max(...pyS) - Math.min(...pyS));
-  const P = { src: src.src, level: src.name, file: src.file, mode, family: fam, speed: a.sp, x: Math.round(xa / B), xa: r2(xa / B), w: W,
+  // the seam contract: the player's state where the piece starts and ends (mode, speed, gravity, height in blocks, vertical
+  // speed, on the ground or not) -- two pieces join cleanly when one's exit matches the next one's entry (BUILDING.md)
+  const st = q => ({ mode: q.mode, sp: q.sp, grav: q.grav, y: r1(q.y / B), vy: r1(q.vy || 0), ground: !!q.grounded });
+  const P = { src: src.src, level: src.name, file: src.file, mode, family: fam, speed: a.sp, x: Math.round(xa / B), xa: r2(xa / B), w: W, entry: st(a), exit: st(b),
     s: r2(seconds), presses, toggles, hold, flips, hazards, hzPer100: Math.round(hazards / W * 100), mech, portals, yRange, midline: !!r.midline };
   // verified = a route (the solver's, a real clear's or the level's planned one) replayed by our physics goes through the
   // whole piece alive; a sketch's midline is drawn, never played (the user: "lets have structures which are verified by
@@ -514,18 +517,20 @@ function knobs(all) {
   for (const mode of [...new Set(P.map(p => p.mode))]) {
     const ps = P.filter(p => p.mode === mode); if (ps.length < 12) continue;
     const ds = ps.map(p => p.diff), sorted = ds.slice().sort((a, b) => a - b), lo = sorted[Math.floor(ds.length / 4)], hi = sorted[Math.floor(ds.length * 3 / 4)];
-    const row = { n: ps.length, diff: { p25: lo, median: sorted[ds.length >> 1], p75: hi, max: sorted[sorted.length - 1] }, tightMs: median(ps.map(p => p.tightMs).filter(v => v != null)), knobs: {} };
+    const tw = ps.map(p => p.tightMs).filter(v => v != null).sort((a, b) => a - b);
+    const row = { n: ps.length, tightestMs: { p10: tw[Math.floor(tw.length / 10)], p25: tw[Math.floor(tw.length / 4)], median: tw[tw.length >> 1] }, diff: { p25: lo, median: sorted[ds.length >> 1], p75: hi, max: sorted[sorted.length - 1] }, tightMs: median(ps.map(p => p.tightMs).filter(v => v != null)), knobs: {} };
     for (const [k, f] of Object.entries(KNOBS)) {
       const pairs = ps.map(p => [f(p), p.diff]).filter(([v]) => v != null && isFinite(v)); if (pairs.length < 12) continue;
       const easy = pairs.filter(x => x[1] <= lo).map(x => x[0]), hard = pairs.filter(x => x[1] >= hi).map(x => x[0]);
-      row.knobs[k] = { corr: rankCorr(pairs.map(x => x[0]), pairs.map(x => x[1])), easy: r2(median(easy)), hard: r2(median(hard)) };
+      const tp = ps.filter(p => p.tightMs != null).map(p => [f(p), -p.tightMs]).filter(([v]) => v != null && isFinite(v));
+      row.knobs[k] = { corr: rankCorr(pairs.map(x => x[0]), pairs.map(x => x[1])), tightCorr: rankCorr(tp.map(x => x[0]), tp.map(x => x[1])), easy: r2(median(easy)), hard: r2(median(hard)) };
     }
     out.modes[mode] = row;
   }
   fs.writeFileSync(path.join(ROOT, "knowledge", "lego_knobs.json"), JSON.stringify(out, null, 1));
   for (const [m, r] of Object.entries(out.modes)) {
-    console.log(`\n${m}: ${r.n} pieces, difficulty p25 ${r.diff.p25} / median ${r.diff.median} / p75 ${r.diff.p75} / max ${r.diff.max}, tightest window median ${r.tightMs} ms`);
-    for (const [k, v] of Object.entries(r.knobs).sort((a, b) => Math.abs(b[1].corr || 0) - Math.abs(a[1].corr || 0)).slice(0, 6)) console.log(`   ${k.padEnd(16)} corr ${String(v.corr).padStart(5)}   easy quarter ${v.easy}  hard quarter ${v.hard}`);
+    console.log(`\n${m}: ${r.n} pieces, difficulty p25 ${r.diff.p25} / median ${r.diff.median} / p75 ${r.diff.p75} / max ${r.diff.max}, tightest window p10 ${r.tightestMs.p10} / p25 ${r.tightestMs.p25} / median ${r.tightestMs.median} ms`);
+    for (const [k, v] of Object.entries(r.knobs).sort((a, b) => Math.abs(b[1].corr || 0) - Math.abs(a[1].corr || 0)).slice(0, 6)) console.log(`   ${k.padEnd(16)} corr ${String(v.corr).padStart(5)}  vs tightness ${String(v.tightCorr).padStart(5)}   easy quarter ${v.easy}  hard quarter ${v.hard}`);
   }
   return out;
 }
