@@ -3,7 +3,8 @@
 // usage: node tools/probe.js [list] [--dir <folder>]          every attempt: level, ticks, presses, result
 //        node tools/probe.js show <file|index> [--every N]     the ticks (every Nth) and the presses
 //        node tools/probe.js presses <file|index>              press / release ticks, for the sim's replay
-//        node tools/probe.js play <level.gdlvl | save:<name>> ... | --all-gdlm [--attempts N] [--offset k] [--max-seconds s] [--stay] [--launch]
+//        node tools/probe.js play <level.gdlvl | save:<name>> ... | --all-gdlm [--attempts N] [--offset k] [--max-seconds s] [--stay] [--launch] [--events <file>]
+//            --events: play these inputs instead of the saved route (a stitched practice run: tools/stitch.js)
 //            several levels = one batch in one GD launch (--all-gdlm: every GDLM level in the save with a saved route);
 //            writes the mod's play.json from the level's saved route (local/solutions): GD opens the level from the
 //            menu, the mod presses on the route's ticks, then GD quits without saving (--stay: no quit).
@@ -22,7 +23,7 @@ function defaultDir() {
 }
 
 function read(file) {
-  const out = { file, start: null, ticks: [], btn: [], death: null, end: null };
+  const out = { file, start: null, ticks: [], btn: [], death: null, end: null, cps: [], cpdel: [] };
   for (const line of fs.readFileSync(file, "utf8").split("\n")) {
     if (!line.trim()) continue;
     let o;
@@ -32,6 +33,8 @@ function read(file) {
     else if (o.t === "btn") out.btn.push(o);
     else if (o.t === "death") out.death = o;
     else if (o.t === "end") out.end = o;
+    else if (o.t === "cp") out.cps.push(o);                       // v0.4.0+: practice checkpoints (tools/stitch.js)
+    else if (o.t === "cpdel" || o.t === "cpclear") out.cpdel.push(o);
   }
   return out;
 }
@@ -42,10 +45,11 @@ function files(dir) {
 }
 
 // the level, its route (saved solution) and our sim's run of it
-function routeOf(what) {
+function routeOf(what, eventsFile) {
   const { levelOf } = require("./shoot.js");
   const L = levelOf(what);
-  const sol = L.solution || require("./solutions.js").get(L.levelStr, true);
+  // --events <file>: a stitched run (tools/stitch.js, local/stitched/*.json) or any {events: [{tick, type}]} instead of the saved route
+  const sol = eventsFile ? Object.assign({ ok: true }, JSON.parse(fs.readFileSync(eventsFile, "utf8"))) : L.solution || require("./solutions.js").get(L.levelStr, true);
   if (!sol || !sol.ok || !sol.events) throw new Error(`no saved route for ${L.name}: node tools/solutions.js <level> first`);
   const { GD } = require("./io.js");
   const lv = GD.parseLevel(L.levelStr);
@@ -62,7 +66,7 @@ function gdRunning() {
 function play(args, dir) {
   const opt = (k, d) => { const i = args.indexOf(k); if (i < 0) return d; const v = args[i + 1]; args.splice(i, 2); return v; };
   const attempts = Number(opt("--attempts", 1)), offset = Number(opt("--offset", 0));
-  const maxSec = Number(opt("--max-seconds", 0));
+  const maxSec = Number(opt("--max-seconds", 0)), eventsFile = opt("--events", null);
   const stay = args.includes("--stay"), launch = args.includes("--launch"), allGdlm = args.includes("--all-gdlm");
   let whats = args.filter((x) => !x.startsWith("--"));
   if (allGdlm) whats = require("./corpus.js").mine().map((l) => l.short).filter((n) => /^GDLM/.test(n)).map((n) => "save:" + n);
@@ -71,7 +75,7 @@ function play(args, dir) {
   let ticks = 0;
   for (const what of whats) {
     let R;
-    try { R = routeOf(what); } catch (e) { console.log(`skip ${what}: ${e.message}`); continue; }
+    try { R = routeOf(what, eventsFile); } catch (e) { console.log(`skip ${what}: ${e.message}`); continue; }
     if (!/^GDLM/.test(R.name)) { console.log(`skip ${R.name}: playback is for GDLM levels only`); continue; }
     const len = (R.run.path.length - 1) / 240;
     if (maxSec && len > maxSec) { console.log(`skip ${R.name}: ${len.toFixed(0)} s > --max-seconds`); continue; }
@@ -249,7 +253,7 @@ function main() {
       const last = r.ticks[r.ticks.length - 1];
       const res = r.end ? r.end.result : "cut";
       const where = r.death ? ` at x ${r.death.x.toFixed(1)} (obj ${r.death.obj})` : last ? ` x ${last.p[0].toFixed(1)}` : "";
-      console.log(`${i}\t${s.level} #${s.attempt}${s.practice ? " practice" : ""}\t${r.ticks.length} ticks\t` +
+      console.log(`${i}\t${s.level} #${s.attempt}${s.practice ? ` practice${s.lt ? ` from ${s.lt.toFixed(2)} s` : ""}${r.cps.length ? `, ${r.cps.length} checkpoint(s)` : ""}` : ""}\t${r.ticks.length} ticks\t` +
         `${r.btn.filter((b) => b.down).length} presses\t${res}${where}\t${path.basename(f)}`);
     });
   } else if (cmd === "show" || cmd === "presses") {

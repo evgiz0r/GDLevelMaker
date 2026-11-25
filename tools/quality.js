@@ -44,7 +44,7 @@ function measure(spec) {
   const cached = /^official:/.test(spec) && path.join(ROOT, "local", "difficulty", `scored_${String(+spec.split(":")[1]).padStart(2, "0")}.json`);
   if (cached && fs.existsSync(cached)) {
     const c = JSON.parse(fs.readFileSync(cached, "utf8")), DF = require("../lib/difficulty.js"), ms = c.actions.map(a => a.ms).sort((a, b) => a - b);
-    let la = 0; for (const a of c.actions) { const k = a.afterSwitchMs != null && a.afterSwitchMs < DF.DIFF.SETTLE ? Math.max(0.02, a.afterSwitchMs / DF.DIFF.SETTLE) : 1; la -= Math.log10(Math.max(DF.hitChance(a.ms, DF.DIFF.SIGMA) * k, 1e-9)); }
+    let la = 0; for (const a of c.actions) { const k = DF.settleOf(a); la -= Math.log10(Math.max(DF.hitChance(a.ms, DF.DIFF.SIGMA) * k, 1e-9)); }
     A = { events: sol.events, complete: c.complete, seconds: c.seconds, tightest: ms[0], medianMs: ms[Math.floor(ms.length / 2)], logAttempts: la };
   } else { A = FA.analyse(w, sol); fl = FA.flags(A); }
   const run = GD.run(w, A.events), P = run.path, TPS = 240, secs = P.length / TPS;

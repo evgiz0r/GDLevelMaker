@@ -237,6 +237,104 @@ Not measured yet: what a seam looks like in blocks (the last 2 columns of one pi
 and how the official levels vary one piece into the next (same shape, a parameter changed). Next: the big-lego test,
 joining main-level pieces by these rules and checking each join in our physics.
 
+## The build pipeline Evgeni set (2026-11-25): theme -> sections -> big lego -> fill -> path -> deco
+
+His words: "some entity designing over a theme / breaking into sections with soft differences, on the limits of strong beats
+(!?) or small breaks in the song (!?) / an ultra big lego we can combine, and fill that section according to the section
+beats / fill the gap with hazards if needed / thats the layout basically / then we have a defined path / then we start
+decoing, first the actual objects according to the themes of the section". Where each step stands (2026-11-25):
+
+| step | what | exists today | missing |
+|---|---|---|---|
+| 1 | a designer sets the theme | theme kits (`tools/themes/`, `tools/theme.js`: space, ice), the section planner (`tools/scenes.js`: per section role, place, palette, mode) | themes that also choose gameplay pieces, not only looks |
+| 2 | sections with soft differences, cut at strong beats or small breaks | `tools/songmap.js` (sections, drops), `tools/hits.js` (hits per half-beat), compose briefs in beats | which cut the main levels use (strong beat vs a break in the song): to be measured on the 22 against their songs |
+| 3 | fill each section from the big lego by pieces whose clicks match its beats | the catalogue (838 main-level pieces, each with its clicks, difficulty, verified route), the combining rules (LEGO.md "Combining"), the join test (`tools/lego_join.js`) | a picker: song hits of a section -> pieces whose clicks land on them, joined by the rules, checked in physics |
+| 4 | fill the gaps with hazards, no secret ways | the solver's skip check, the join test's secret-way and open-seam flags | the filler itself (hazards / walls in the open space so the only way is the piece's route) |
+| 5 | the layout gives a defined path | every piece carries its route; a join is solved end to end | -- |
+| 6 | deco: the structural objects themed per section first, then the rest | block skins and deco (`tools/decorate.js`, `tools/scenekit.js`, themes, props), the deco study thread | per-section skins for the pieces' own blocks |
+
+The main levels' pieces are RobTop's: a level built from them stays on the PC (never pushed or uploaded) until we have pieces
+of our own made the same way -- varied from theirs by the difficulty knobs (LEGO.md "Difficulty knobs").
+
+## Difficulty knobs (2026-11-25)
+
+The user: "we have difficulty of structures? [...] think what parameters they have to make harder or easier. probably dont
+want to copy same structures just with small diff for difficulty". Every piece and brick now has a **difficulty** (log10
+of the expected attempts to get through it in one go, from the timing window of each of its inputs: lib/windows.js +
+lib/difficulty.js hitChance, the model fitted on the user's runs) and its **tightest window**. The windows of the main
+levels' routes are measured once (`windowsOf` in tools/lego.js: 10-60 s a level, Geometrical Dominator 5.5 min,
+Deadlocked 15.5 min in the cloud) and committed as numbers in knowledge/lego_windows/. `node tools/lego.js knobs` ->
+knowledge/lego_knobs.json: per mode, each parameter's rank correlation with the difficulty and with the tightness
+(minus the tightest window), and its median in the easiest and hardest quarter.
+
+What it shows on the main levels' pieces (1-3 s):
+- **The main levels are mostly gentle, with a few tight spots.** Median piece: difficulty 0.01-0.02 (a gimme), tightest
+  window ~170-200 ms; the tightest tenth: 60-125 ms (ship and robot 63 ms, wave 79, ufo 88, cube 104, ball 125).
+  Difficulty lives in a few pieces, which fits "peaks are single pieces, ~40 blocks apart" (Combining rule 7).
+- **More inputs per second** makes every mode harder (corr 0.56-0.72); that is the plain knob, and the one that only
+  makes "the same piece, busier".
+- **The knobs that change the piece's kind** (what the user wants turned instead): wave -- a narrower corridor (gap
+  4.7 -> 4 blocks, tightness corr -0.63) and gates (+0.49); ship -- more climb (+0.46) and more hazards per block
+  (+0.43: spiky walls, not a busier path); ufo -- longer holds (+0.53); robot -- orbs and pads (+0.53); cube and robot --
+  speed (+0.26 / +0.33).
+- So a harder version of a brick is a different brick: a corridor that narrows into a gate, a ship stretch that climbs
+  between spiky walls, an orb added to a robot jump, a speed portal -- not a spike moved by a block.
+
+## The reverse lego: which bricks a level is built from (2026-11-25)
+
+The user: "given a structure (in a new or old level), find a matching one. and in that way we can also try to help the
+solver of the level". `node tools/lego_match.js <level | official:N> [--min 0.6] [--src official|ours|all] [--test]`:
+the level as block columns (no route needed), every catalogue brick slid along it (a column votes for level columns
+with the same contents, the best shifts scored by shared objects / all objects per column), the best match per
+stretch kept, and the brick's clicks moved to the level's x as predicted presses. ~0.3 s a level.
+
+Test: leave level N's own bricks out, match it against the other main levels' bricks, compare with N's real route.
+
+| min score | real presses inside matched stretches (of all) | of those, a predicted press within 1 block | predicted presses that are real |
+|---|---|---|---|
+| 0.60 | Stereo Madness 64/122, Polargeist 96/144, Base After Base 99/126, Jumper 90/155, Clutterfunk 99/163; Hexagon Force 12/138, Geometrical Dominator 10/138 | 64-77% | 31-51% |
+| 0.75 | SM 51, Polargeist 66, BAB 69, Jumper 65, Clutterfunk 23 | 57-88% | 28-67% |
+| 0.85 | SM 25, Polargeist 22, BAB 25, Jumper 11, the rest 0-11 | 72-100% | 19-80% |
+
+So: **RobTop reuses his cube bricks across the early levels** (half to three quarters of Stereo Madness, Polargeist, Base
+After Base, Jumper is built like bricks from other levels), the later ones are their own (Hexagon Force, Geometrical
+Dominator under 10%). Where a brick matches well (0.85), its clicks predict the real press within a block 72-100% of the
+time: a usable hint for the solver (seed the search there first, as tools/presslib.js does from its learned picture).
+Open: matching that allows a height shift (a brick placed higher), which the fly modes need; feeding the predicted
+presses to the solver and measuring how much faster it gets.
+
+## Joining and connecting: what the test says, and Evgeni's plan (2026-11-25)
+
+`node tools/lego_join.js --grain brick [--n 40] [--seed 7] [--any]` joins two main-level bricks (with 10 blocks of A's own
+level before it as the lead-in, so the player arrives in A's entry state), solves the join and checks it
+(knowledge/lego_joins.json):
+
+| 40 random brick pairs, about as hard, another kind | clear, the bricks' own way | clear by a secret way | broken |
+|---|---|---|---|
+| any pair, one portal at the seam (first run) | 15% | 35% | 50% (6 skipped the portal, 7 hit a block, 5 a spike) |
+| with the seam contract (exit state fits entry state) and portals stacked over the height | 35% | 33% | 33% |
+
+Same-mode joins that meet the contract: 86% clear (6 of 7). So: **joining needs a contract, a connector and a filler**:
+the exit and entry must fit (or a connector makes them fit), a mode seam must be unskippable, and the open space around
+a small brick must be closed or the player flies around it (a third of the joins).
+
+Evgeni's notes for the connecting step (2026-11-25):
+- **Y shift between bricks, sometimes**: a step, a slope, a drop, a pad -- to fit the next brick's entry height.
+- **A portal to fit, more rarely** (the main levels change mode ~7 times a level). Each brick has its mode in and out.
+- **Fluid, not cut off every small structure**: the bricks hang on one path; the floor and roof lines run on across a
+  seam (the community's "connect your structures", CRAFT.md "Structuring"), so the joins are not visible as cuts.
+- **Auto stretches** between sections, no clicks, with interesting movement: falls, pad chains (blue pads in a corridor),
+  gravity portal ping-pong, slopes -- "doesnt have to be a spam, could be much more interesting".
+  Now mined as **auto bricks** (0.8 s+ with no press where pads, portals or a 3+ block rise / fall move the player):
+  220 in the main levels (~10 a level), most of them a yellow pad launch in cube (50), plain falls / rises (31 cube, 26
+  ship), portal pairs; the catalogue shows them as "auto bricks". In all 30 min of main-level routes there are ~600
+  press-free stretches of 0.8 s+, a third of them moved by pads or gravity portals.
+
+Plan: the path of a section first (its height curve, from the beat and the energy), then bricks hung on it where their
+entry / exit fit (the contract), connectors (y shift, portal) where they don't, auto bricks between sections, and the
+filler last (close the open space, wall the portals, continue the outlines), every join checked by the solver
+(clear, no secret way). Not built yet: the connectors and the filler.
+
 ## Open
 
 - Compose does not place fly pieces from the catalogue yet: ship / wave / swing sections still use ship-tunnel /

@@ -5,6 +5,7 @@
 // node tools/lego.js families [--src official|ours|sketch]   -- the family table: how often, typical parameters
 // node tools/lego.js variety <level.gdlvl>           -- a level's piece sequence by signature: repeats, what is missing
 //                                                      vs the official levels' mix
+// node tools/lego.js knobs                          -- what makes a main-level piece harder or easier, per mode -> knowledge/lego_knobs.json
 // node tools/lego.js votes                          -- Evgeni's 👍 / 👎 / comments (PC page + phone page) -> knowledge/lego_votes.json
 // node tools/lego.js page [--public] [--out f.html]  -- a page of thumbnails, filterable by family / mode / wrapper /
 //                                                      source. Default: everything, local only (official pieces are
@@ -45,7 +46,7 @@ function officialSources() {
     if (!fs.existsSync(f)) continue;
     const j = JSON.parse(fs.readFileSync(f, "utf8"));
     if (!j.solution || !j.solution.events) continue;
-    out.push({ src: "official", name: `${n} ${j.name}`, level: GD.parseLevel(j.level), events: j.solution.events });
+    out.push({ src: "official", name: `${n} ${j.name}`, level: GD.parseLevel(j.level), events: j.solution.events, windowsKey: "official_" + n });
   }
   return out;
 }
@@ -54,7 +55,7 @@ function ourSources() {
   for (const f of fs.readdirSync(path.join(ROOT, "levels")).filter(f => /^gdlm_.*\.gdlvl$/.test(f)).sort()) {
     const L = readGdlvl(path.join(ROOT, "levels", f)), sol = S.get(L.levelStr, true);
     if (!sol || !sol.events) continue;
-    out.push({ src: "ours", name: f.replace(/^gdlm_|\.gdlvl$/g, ""), file: "levels/" + f, level: L.level || GD.parseLevel(L.levelStr), events: sol.events });
+    out.push({ src: "ours", name: f.replace(/^gdlm_|\.gdlvl$/g, ""), file: "levels/" + f, level: L.level || GD.parseLevel(L.levelStr), events: sol.events, windows: sol.windows || null });
   }
   return out;
 }
@@ -68,7 +69,7 @@ function librarySources() {
     // verified by the solver: the saved route, else solve it now (cached in local/solutions for next time)
     let sol = S.get(L.levelStr, true);
     if (!sol || !sol.ok) try { sol = S.solve(level, L.levelStr); } catch (e) { sol = null; }
-    out.push({ src: "library", name: f.replace(/\.gdlvl$/, ""), file: "tools/structures.js " + f.replace(/\.gdlvl$/, ""), level, events: sol && sol.ok ? sol.events : null, whole: true, unsolved: !(sol && sol.ok) });
+    out.push({ src: "library", name: f.replace(/\.gdlvl$/, ""), file: "tools/structures.js " + f.replace(/\.gdlvl$/, ""), level, events: sol && sol.ok ? sol.events : null, windows: sol && sol.windows || null, whole: true, unsolved: !(sol && sol.ok) });
   }
   return out;
 }
@@ -119,8 +120,57 @@ function route(s) {
 }
 
 // ---------------------------------------------------------------- cutting
-const TARGET = 2.2, MINS = 0.6;
-function cut(r, inputs, whole) {
+// two sizes: a piece (1-3 s, about a screen) and a brick (~0.8 s: one obstacle or move -- the user, 2026-11-25: "all the
+// structures all full screen? hmm i thought the point is that they are smaller")
+const GRAIN = { piece: { target: 2.2, mins: 0.6, slack: 0.5 }, brick: { target: 0.8, mins: 0.35, slack: 0.3 } };
+let TARGET = 2.2, MINS = 0.6, SLACK = 0.5;
+// a brick: 2-6 presses, cut in the longest pause between presses that keeps the count in range (the user, 2026-11-25:
+// "not even whole screen length [...] short ones. with like 2-6 clicks"). Within one mode stretch; a stretch with fewer
+// than 2 presses is one brick if it lasts 0.35 s or more.
+function cutBricks(r, inputs, o) {
+  const p = r.path, out = [];
+  if (!p.length || r.midline) return out;
+  const presses = [], idxOf = tk => Math.max(0, Math.min(p.length - 1, tk - p[0].tick));
+  { let h = false; const ev = (inputs.ticks || []); for (const t of ev) { const nh = inputs.held(t); if (nh && !h) presses.push(t); h = nh; } }
+  let a = 0;
+  const spans = [];
+  for (let t = 1; t <= p.length; t++) if (t === p.length || p[t].mode !== p[a].mode || p[t].dead) { spans.push([a, t - 1]); if (t < p.length && p[t].dead) break; a = t; }
+  for (const [i0, i1] of spans) {
+    const ps = presses.filter(t => t >= p[i0].tick && t <= p[i1].tick);
+    if (ps.length < 2) { if ((p[i1].tick - p[i0].tick) / TPS >= 0.35 && ps.length) out.push([i0, i1]); continue; }
+    // groups of 2-6 presses, split in the longest pause; a brick runs from a little before its first press (0.3 s, or half
+    // the pause before) to a little after its last (0.45 s -- the landing --, or half the pause after): long walks
+    // between bricks are left out
+    const groups = []; let k = 0;
+    while (k < ps.length) {
+      const left = ps.length - k;
+      if (left <= 6) { groups.push([k, ps.length - 1]); break; }
+      let best = -1, bj = 2;
+      for (let j = 2; j <= 6 && k + j < ps.length; j++) { if (ps.length - (k + j) < 2) break; const g = (ps[k + j] - ps[k + j - 1]) * (j <= 3 ? 1 : j === 4 ? 0.75 : 0.55); if (g > best) { best = g; bj = j; } }   // short bricks preferred
+      groups.push([k, k + bj - 1]); k += bj;
+    }
+    // auto bricks: 0.8 s or more with no press where the level moves the player itself (pads, gravity / mode / speed
+    // portals, or a rise or fall of 3+ blocks) -- the user, 2026-11-25: "sections without clicks but with interesting
+    // patterns of pads portals slopes that create some interesting movement". Marked [i0, i1, "auto"].
+    if (o && o.auto) for (let k = 0; k <= ps.length; k++) {
+      const a = k ? ps[k - 1] + 0.2 * TPS : p[i0].tick, b = k < ps.length ? ps[k] - 0.15 * TPS : p[i1].tick;
+      if ((b - a) / TPS < 0.8) continue;
+      const ia = idxOf(Math.round(a)), ib = idxOf(Math.round(b)), xa = p[ia].x, xb = p[ib].x;
+      const moves = o.items.filter(it => it.x0 >= xa && it.x0 < xb && (it.kind === "pad" || it.kind === "gravity" || it.kind === "mode" || it.kind === "speed")).length;
+      let lo = 1e9, hi = -1e9; for (let i = ia; i <= ib; i++) { lo = Math.min(lo, p[i].y); hi = Math.max(hi, p[i].y); }
+      if (moves || hi - lo >= 3 * B) out.push([ia, ib, "auto"]);
+    }
+    for (const [g0, g1] of groups) {
+      const prev = g0 ? ps[g0 - 1] : p[i0].tick, next = g1 + 1 < ps.length ? ps[g1 + 1] : p[i1].tick;
+      const t0 = Math.max(p[i0].tick, ps[g0] - Math.min(0.3 * TPS, (ps[g0] - prev) / 2)), t1 = Math.min(p[i1].tick, ps[g1] + Math.min(0.45 * TPS, (next - ps[g1]) / 2));
+      out.push([idxOf(Math.round(t0)), idxOf(Math.round(t1))]);
+    }
+  }
+  return out;
+}
+function cut(r, inputs, whole, grain) {
+  if (grain === "brick") return cutBricks(r, inputs, whole);
+  const G = GRAIN[grain || "piece"]; TARGET = G.target; MINS = G.mins; SLACK = G.slack;
   const p = r.path, spans = [];
   if (!p.length) return spans;
   let a = 0;
@@ -144,7 +194,7 @@ function cut(r, inputs, whole) {
         // target end, snapped to the calmest state within +-0.5 s
         let best = -1, bi = -1;
         for (let j = s; j <= i1; j++) {
-          const dt = secs(s, j); if (dt < D / n - 0.5) continue; if (dt > D / n + 0.5) break;
+          const dt = secs(s, j); if (dt < D / n - SLACK) continue; if (dt > D / n + SLACK) break;
           if (j % 4) continue;
           const c = calm(j); if (c > best) { best = c; bi = j; }
         }
@@ -155,6 +205,38 @@ function cut(r, inputs, whole) {
     }
   }
   return out;
+}
+
+// ---------------------------------------------------------------- timing windows (a piece's difficulty)
+// every input's player window (lib/windows.js, the one definition the viewer, score.js and difficulty share): ours come
+// saved with their route; an official route's are measured once (~7 s a level) and kept in local/lego/windows/, keyed by
+// the route and the physics / windows commits. Format as tools/solutions.js: [0 press / 1 release, tick, lo, hi, j].
+function windowsOf(src, w, r) {
+  if (src.windows) return src.windows;
+  if (!src.events || r.midline) return [];
+  const S = require("./solutions.js"), crypto = require("crypto");
+  const key = crypto.createHash("sha1").update(JSON.stringify(src.events) + S.physicsCommit() + (S.windowsCommit ? S.windowsCommit() : "")).digest("hex").slice(0, 16);
+  const f = path.join(OUTDIR, "windows", (src.windowsKey || src.name.replace(/[^a-z0-9]+/gi, "_")) + ".json");
+  // measured windows are committed in knowledge/lego_windows/ (timing numbers only, no layouts), so the PC does not
+  // measure them again (~40 min for the 22 main levels the first time)
+  for (const g of [f, path.join(ROOT, "knowledge", "lego_windows", path.basename(f))]) try { const c = JSON.parse(fs.readFileSync(g, "utf8")); if (c.key === key) return c.windows; } catch (e) {}
+  if (process.env.LEGO_CACHED_WINDOWS) return [];   // only what is measured already (a quick rebuild while a long one runs)
+  const WIN = require("../lib/windows.js");
+  const t0 = Date.now();
+  const ws = WIN.inputWindows(w, src.events, r.path, {}).map(x => [x.type === "release" ? 1 : 0, x.tick, x.lo, x.hi, x.j]);
+  fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, JSON.stringify({ key, windows: ws }));
+  const kf = path.join(ROOT, "knowledge", "lego_windows", path.basename(f)); fs.mkdirSync(path.dirname(kf), { recursive: true }); fs.writeFileSync(kf, JSON.stringify({ key, windows: ws }));
+  console.log(`    windows of ${src.name}: ${ws.length} inputs, ${Date.now() - t0} ms`);
+  return ws;
+}
+// a piece's difficulty from the windows of its inputs: log10 of the expected attempts to get through it in one go
+// (lib/difficulty.js hitChance: the user's fitted timing spread and lapse), its tightest window and the tight ones (< 60 ms)
+function pieceDifficulty(ws, t0, t1) {
+  const Dif = require("../lib/difficulty.js");
+  const ms = ws.filter(x => x[1] >= t0 && x[1] <= t1).map(x => (x[3] - x[2] + 1) / TPS * 1000);
+  if (!ms.length) return { diff: 0, tightMs: null, tight: 0, windows: 0 };
+  const diff = ms.reduce((c, m) => c - Math.log10(Math.max(Dif.hitChance(m), 1e-9)), 0);
+  return { diff: r2(diff), tightMs: Math.round(Math.min(...ms)), tight: ms.filter(m => m < 60).length, windows: ms.length };
 }
 
 // ---------------------------------------------------------------- measuring one piece
@@ -202,7 +284,10 @@ function measure(src, w, r, inputs, i0, i1) {
   const hold = r.midline ? null : r2(heldT / Math.max(1, (i1 - i0) / 4));
   const hazards = items.filter(it => it.kind === "hazard" && it.x0 >= xa && it.x0 < xb).length;
   const pyS = cols.map(c => c.py), yRange = r1(Math.max(...pyS) - Math.min(...pyS));
-  const P = { src: src.src, level: src.name, file: src.file, mode, family: fam, speed: a.sp, x: Math.round(xa / B), xa: r2(xa / B), w: W,
+  // the seam contract: the player's state where the piece starts and ends (mode, speed, gravity, height in blocks, vertical
+  // speed, on the ground or not) -- two pieces join cleanly when one's exit matches the next one's entry (BUILDING.md)
+  const st = q => ({ mode: q.mode, sp: q.sp, grav: q.grav, y: r1(q.y / B), vy: r1(q.vy || 0), ground: !!q.grounded });
+  const P = { src: src.src, level: src.name, file: src.file, mode, family: fam, speed: a.sp, x: Math.round(xa / B), xa: r2(xa / B), w: W, entry: st(a), exit: st(b),
     s: r2(seconds), presses, toggles, hold, flips, hazards, hzPer100: Math.round(hazards / W * 100), mech, portals, yRange, midline: !!r.midline };
   // verified = a route (the solver's, a real clear's or the level's planned one) replayed by our physics goes through the
   // whole piece alive; a sketch's midline is drawn, never played (the user: "lets have structures which are verified by
@@ -290,10 +375,13 @@ function mine(which, sketchFiles) {
     const t0 = Date.now();
     let R; try { R = route(s); } catch (e) { console.log("  skip", s.name, e.message); continue; }
     const cuts = cut(R.r, R.inputs, s.whole);
-    for (const [i0, i1] of cuts) pieces.push(measure(s, R.w, R.r, R.inputs, i0, i1));
+    let ws = []; try { ws = windowsOf(s, R.w, R.r); } catch (e) { console.log("  no windows for", s.name, e.message); }
+    for (const [i0, i1] of cuts) { const P = measure(s, R.w, R.r, R.inputs, i0, i1); Object.assign(P, pieceDifficulty(ws, R.r.path[i0].tick, R.r.path[i1].tick)); P.grain = "piece"; pieces.push(P); }
+    // bricks: the same route cut finer (not for the library's whole pieces)
+    if (!s.whole) for (const [i0, i1, kind] of cut(R.r, R.inputs, { auto: true, items: R.w.items }, "brick")) { const P = measure(s, R.w, R.r, R.inputs, i0, i1); Object.assign(P, pieceDifficulty(ws, R.r.path[i0].tick, R.r.path[i1].tick)); P.grain = "brick"; if (kind === "auto") { P.auto = true; P.sig = "auto / " + P.sig; P.empty = false; } pieces.push(P); }
     console.log(`  ${s.src.padEnd(8)} ${s.name.padEnd(34)} ${String(cuts.length).padStart(3)} pieces${R.r.dead ? " (route dies at block " + Math.round(R.r.path[R.r.path.length - 1].x / B) + ")" : ""}  ${Date.now() - t0} ms`);
   }
-  pieces.forEach((p, i) => p.id = ({ official: "r", ours: "u", sketch: "s", library: "l" }[p.src] + "-" + p.level.replace(/[^a-z0-9]+/gi, "_").toLowerCase() + "-" + p.x));
+  pieces.forEach((p, i) => p.id = ({ official: "r", ours: "u", sketch: "s", library: "l" }[p.src] + "-" + p.level.replace(/[^a-z0-9]+/gi, "_").toLowerCase() + "-" + p.x + (p.grain === "brick" ? (p.auto ? "a" : "b") : "")));
   fs.mkdirSync(OUTDIR, { recursive: true });
   const prev = fs.existsSync(path.join(OUTDIR, "pieces.json")) ? JSON.parse(fs.readFileSync(path.join(OUTDIR, "pieces.json"), "utf8")) : [];
   const keep = prev.filter(p => !srcs.some(s => s.src === p.src));   // mining one source keeps the others
@@ -339,14 +427,15 @@ function dedupe(pieces) {
   const reps = {};
   for (const p of pieces) {
     if (!(p.shape || []).length) continue;
-    const C = columns(p), R = reps[p.mode] = reps[p.mode] || [];
+    const C = columns(p), gk = p.mode + "|" + (p.grain || "piece"), R = reps[gk] = reps[gk] || [];
     const f = R.find(r => sameLayout(r.C, C));
     if (f) { p.dupOf = f.p.id; f.p.copies = (f.p.copies || 1) + 1; (f.p.alsoIn = f.p.alsoIn || []).push(p.level + " @" + p.x); }
     else R.push({ p, C });
   }
 }
 // committed: per family / signature, counts by source and parameter ranges; shapes of ours and sketches only
-function writeKnowledge(all) {
+function writeKnowledge(allG) {
+  const bricks = allG.filter(p => p.grain === "brick"), all = allG.filter(p => p.grain !== "brick");
   const fam = {};
   for (const p of all) {
     const k = p.sig, e = fam[k] = fam[k] || { sig: k, family: p.family, mode: p.mode, wrap: p.wrap, n: { official: 0, ours: 0, sketch: 0, library: 0 }, levels: { official: new Set(), ours: new Set(), sketch: new Set(), library: new Set() }, s: [], w: [], presses: [], hold: [], gap: [], yRange: [], hz: [] };
@@ -364,6 +453,9 @@ function writeKnowledge(all) {
   const pub = all.filter(p => p.src !== "official").map(p => { const q = Object.assign({}, p); delete q.cols; if (p.src === "ours") { delete q.shape; delete q.path; } return q; });   // our levels are in the repo: rebuild their shapes with mine
   const out = { made: new Date().toISOString().slice(0, 10), physics: require("./solutions.js").physicsCommit(), note: "LEGO.md. Families and parameters of 1-3 s pieces cut from routes; official pieces as numbers only (no layouts).",
     counts: { official: all.filter(p => p.src === "official").length, ours: all.filter(p => p.src === "ours").length, sketch: all.filter(p => p.src === "sketch").length, library: all.filter(p => p.src === "library").length },
+    bricks: { official: bricks.filter(p => p.src === "official").length, ours: bricks.filter(p => p.src === "ours").length,
+      distinctOfficial: bricks.filter(p => p.src === "official" && !p.dupOf && !p.empty).length,
+      mostRepeated: bricks.filter(p => p.src === "official" && p.copies > 1).sort((a, b) => b.copies - a.copies).slice(0, 12).map(p => ({ sig: p.sig, copies: p.copies, w: p.w, presses: p.presses })) },
     shown: { note: "what the catalogue shows by default: verified, not empty, not a duplicate, smooth when flying", n: all.filter(p => p.verified && !p.empty && !p.dupOf && p.smooth !== false).length,
       empty: all.filter(p => p.empty).length, duplicates: all.filter(p => p.dupOf).length, notSmooth: all.filter(p => p.smooth === false).length }, mix, families, pieces: pub };
   fs.writeFileSync(KNOW, JSON.stringify(out, null, 0).replace(/\},\{"sig"/g, '},\n{"sig"').replace(/\},\{"src"/g, '},\n{"src"'));
@@ -414,7 +506,46 @@ function votesCmd() {
   for (const [k, e] of Object.entries(w).sort((a, b) => b[1].weight - a[1].weight)) console.log(`  weight ${e.weight.toFixed(2)}  ${k}`);
   try { writeKnowledge(load()); } catch (e) {}
 }
-module.exports = { officialSources, ourSources, heldAt, readVotes, sigWeights, cut, measure, route, signature, FAMILY, mine, load, dedupe, columns, sameLayout };
+// knobs: what makes a piece harder or easier, per mode, on the main levels' pieces. Each parameter against the piece's
+// difficulty (log10 attempts from its timing windows): the rank correlation, and the parameter's median in the easiest
+// and the hardest quarter. The user, 2026-11-25: "maybe think what parameters they have to make harder or easier.
+// probably dont want to copy same structures just with small diff for difficulty" -- so the knobs worth turning are the
+// ones that change the piece's kind (gap, speed, mechanics), not a shifted spike. -> knowledge/lego_knobs.json
+const KNOBS = {
+  "presses/s": p => p.presses / Math.max(0.3, p.s), "hazards/100": p => p.hzPer100, "speed": p => p.speed, "corridor gap": p => p.gap,
+  "climb": p => p.yRange, "path turns": p => p.turns, "gates": p => p.gates, "held share": p => p.hold, "orbs+pads": p => Object.values(p.mech || {}).reduce((a, b) => a + b, 0),
+  "floors (steps)": p => p.floors, "pits share": p => p.pitShare, "width (blocks)": p => p.w,
+};
+function rankCorr(xs, ys) {
+  const rk = a => { const o = a.map((v, i) => [v, i]).sort((p, q) => p[0] - q[0]), r = new Array(a.length); o.forEach(([v, i], k) => r[i] = k); return r; };
+  const n = xs.length; if (n < 8) return null; const a = rk(xs), b = rk(ys), ma = (n - 1) / 2;
+  let sab = 0, sa = 0, sb = 0; for (let i = 0; i < n; i++) { sab += (a[i] - ma) * (b[i] - ma); sa += (a[i] - ma) ** 2; sb += (b[i] - ma) ** 2; }
+  return sa && sb ? r2(sab / Math.sqrt(sa * sb)) : null;
+}
+function knobs(all) {
+  const out = { made: new Date().toISOString().slice(0, 10), note: "LEGO.md 'Difficulty knobs'. Main-level pieces only; diff = log10 attempts from timing windows.", modes: {} };
+  const P = all.filter(p => p.src === "official" && p.verified && !p.dupOf && p.diff != null);
+  for (const mode of [...new Set(P.map(p => p.mode))]) {
+    const ps = P.filter(p => p.mode === mode); if (ps.length < 12) continue;
+    const ds = ps.map(p => p.diff), sorted = ds.slice().sort((a, b) => a - b), lo = sorted[Math.floor(ds.length / 4)], hi = sorted[Math.floor(ds.length * 3 / 4)];
+    const tw = ps.map(p => p.tightMs).filter(v => v != null).sort((a, b) => a - b);
+    const row = { n: ps.length, tightestMs: { p10: tw[Math.floor(tw.length / 10)], p25: tw[Math.floor(tw.length / 4)], median: tw[tw.length >> 1] }, diff: { p25: lo, median: sorted[ds.length >> 1], p75: hi, max: sorted[sorted.length - 1] }, tightMs: median(ps.map(p => p.tightMs).filter(v => v != null)), knobs: {} };
+    for (const [k, f] of Object.entries(KNOBS)) {
+      const pairs = ps.map(p => [f(p), p.diff]).filter(([v]) => v != null && isFinite(v)); if (pairs.length < 12) continue;
+      const easy = pairs.filter(x => x[1] <= lo).map(x => x[0]), hard = pairs.filter(x => x[1] >= hi).map(x => x[0]);
+      const tp = ps.filter(p => p.tightMs != null).map(p => [f(p), -p.tightMs]).filter(([v]) => v != null && isFinite(v));
+      row.knobs[k] = { corr: rankCorr(pairs.map(x => x[0]), pairs.map(x => x[1])), tightCorr: rankCorr(tp.map(x => x[0]), tp.map(x => x[1])), easy: r2(median(easy)), hard: r2(median(hard)) };
+    }
+    out.modes[mode] = row;
+  }
+  fs.writeFileSync(path.join(ROOT, "knowledge", "lego_knobs.json"), JSON.stringify(out, null, 1));
+  for (const [m, r] of Object.entries(out.modes)) {
+    console.log(`\n${m}: ${r.n} pieces, difficulty p25 ${r.diff.p25} / median ${r.diff.median} / p75 ${r.diff.p75} / max ${r.diff.max}, tightest window p10 ${r.tightestMs.p10} / p25 ${r.tightestMs.p25} / median ${r.tightestMs.median} ms`);
+    for (const [k, v] of Object.entries(r.knobs).sort((a, b) => Math.abs(b[1].corr || 0) - Math.abs(a[1].corr || 0)).slice(0, 6)) console.log(`   ${k.padEnd(16)} corr ${String(v.corr).padStart(5)}  vs tightness ${String(v.tightCorr).padStart(5)}   easy quarter ${v.easy}  hard quarter ${v.hard}`);
+  }
+  return out;
+}
+module.exports = { knobs, officialSources, ourSources, heldAt, readVotes, sigWeights, cut, measure, route, signature, FAMILY, mine, load, dedupe, columns, sameLayout };
 
 if (require.main === module) {
   const A = process.argv.slice(2), cmd = A[0];
@@ -426,6 +557,7 @@ if (require.main === module) {
   } else if (cmd === "families") families(load(), opt("src"));
   else if (cmd === "variety") variety(A[1]);
   else if (cmd === "votes") votesCmd();
+  else if (cmd === "knobs") knobs(load());
   else if (cmd === "page") require("./lego_page.js").build(load(), { pub: A.includes("--public"), out: opt("out") });
   else console.log(fs.readFileSync(__filename, "utf8").split("\n").filter(l => l.startsWith("// node")).join("\n"));
 }

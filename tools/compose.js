@@ -31,6 +31,9 @@
 // ceiling (only block/spike patterns). The cube section after any of these starts with a lead-in.
 // `mode`: "spider" = a spider corridor (spider-run: the ball's floor / roof run, a teleport each). A section's
 // "mirror": true runs it mirrored (mirror portal 45 at its start, 46 at the next section without it; GDLM 72).
+// Every flying corridor is VARIED (patterns.js `vary`, seeded per section: floor and roof heights apart, mixed obstacles,
+// no shape 3 times in a row; GDLM 71's marks); "vary": false (brief or section) = the old periodic shape. Two flying
+// sections in a row (same speed) switch directly, portal to portal ("directSwitch": false = through a cube run).
 // Song-driven sections: `"beats": n` instead of "blocks" (the brief needs a "song"; the grid comes
 // from local/beats like make.js's "b12" columns), so every section starts on a beat of the song --
 // put the boundaries on the song's own section changes (local/beats/<song>.json "sections") and its
@@ -137,6 +140,24 @@ function compose(brief, tweaks = {}) {
   const objects = [], placed = [], ranges = [], deco = [], firsts = [], looks = [];
   const seen = new Set();
   let col = 0, prevFlying = false, flyEnd = -99;
+  // a direct mode switch (the user on GDLM 71's wave -> cube -> ship: "no point in that portal there"): a flying section
+  // followed by another flying mode at the same speed exits straight into it -- its exit portal is the next mode's, its
+  // corridor ends low (`endLow`) so the next one's mouth meets it, and the next section has no entry portal and no landing
+  // room. brief.directSwitch false = the old way (a cube portal and a run between them).
+  const FLY = new Set(["ship", "wave", "ball", "ufo", "swing", "spider"]);
+  const directTo = si => {
+    const s0 = brief.sections[si], n = brief.sections[si + 1];
+    return brief.directSwitch !== false && n && FLY.has(s0.mode) && FLY.has(n.mode) && n.mode !== s0.mode && !n.continue &&
+      (n.speed || null) == null && !!n.mirror === !!s0.mirror && n.mode === "ship" ? n.mode : null;   // into a ship only: a
+      // direct ship -> wave left 117 ms to change the button (GDLM 71 v2, fairness "switch"); the ship forgives either
+  };
+  let direct = false, corrEnd = null;   // corrEnd: the column after the last corridor's exit
+  // the roof carried over the short cube run between two corridors (the user on GDLM 71 at 119.4 s, ship -> cube -> swing:
+  // "feels like a hole in the ceiling structure"): blocks on rows 8-9 from the last exit to the next corridor
+  const bridge = (from, to) => { if (corrEnd != null && from - corrEnd >= 0 && to - corrEnd < 16) for (let x = corrEnd; x < to; x++) for (const r of [8, 9]) objects.push(["block", x, r]); };
+  // varied corridors (patterns.js `vary`; the user on GDLM 71: "too repetitive, same height corridor ... x6 of the same mini
+  // structure"): every flying section's corridor gets a seed of its own; brief or section "vary": false = the old periodic one
+  const varyOf = (sec, si) => brief.vary === false || sec.vary === false ? undefined : (brief.seed || 1) * 977 + si * 131 + (tweaks["reseed:" + si] || 0) * 7919;
   const lens = sectionBlocks(brief), speeds = speedsOf(brief);
   // no dead air at the end (polish's tools/deadair.js; the user on hellgate: "the ending is too long where
   // nothing happens"; GD ends a level at its furthest object): the closing rest holds the signature (3
@@ -210,7 +231,7 @@ function compose(brief, tweaks = {}) {
     // (8 after an upside-down part: the cube falls from the ceiling first; 4 left it mid-air at the next
     // portal, fairness gate, GDLM 47)
     // at 2x+ a flying exit needs more room: GDLM 71's wave -> cube left a tap closing 113 ms after the portal (fairness)
-    let land = prevFlying && start - flyEnd < 4 ? (prevUpside ? 8 : /^[234]x$/.test(speeds[si] || "") ? 7 : 4) : 0;
+    let land = direct ? 0 : prevFlying && start - flyEnd < 4 ? (prevUpside ? 8 : /^[234]x$/.test(speeds[si] || "") ? 7 : 4) : 0;
     // brief.portalRoom: the first section's portals that many columns in (tools/collab.js parts: a portal on a part's
     // first column is touched ~30 units before the seam once joined, but at time 0 when the part runs alone)
     const pRoom = si === 0 ? (brief.portalRoom || 0) : 0;
@@ -245,12 +266,15 @@ function compose(brief, tweaks = {}) {
     if (RUN) {
       const key = `${si}:0`, t = tweaks[key] || {}, pname = RUN[0];
       // lead 10 for ufo / swing: a swing entered from the ground had to change the button within 183 ms (GDLM 71, fairness)
-      const args = Object.assign({ w: sec.blocks - 3 - land - (sec.exitRoom || 0), lead: sec.mode === "ball" ? 6 : 10 }, RUN[1], (sec.args || {})[pname] || {}, { portal: true, exit: "cube", portalRow: 1 });
+      const dn = directTo(si);
+      const args = Object.assign({ w: sec.blocks - 3 - land - (sec.exitRoom || 0), lead: sec.mode === "ball" ? 6 : 10, vary: varyOf(sec, si) }, RUN[1], (sec.args || {})[pname] || {}, { portal: !direct, exit: dn || "cube", portalRow: 1 }, dn ? { endLow: true } : {});
       if (t.room) args.every += 2 * t.room;
+      if (!direct && prevFlying) bridge(start, start + 1 + land);
       objects.push(["pattern", pname, start + 1 + land, 0, args]);
+      corrEnd = start + 1 + land + widthOf(pname, args);
       placed.push({ key, name: pname, from: start + 1 + land, to: start + 1 + land + widthOf(pname, args), section: sec.name, flying: true });
       ranges.push([i0, objects.length, start, end]);
-      col = end; prevFlying = true; flyEnd = end; prevUpside = false;
+      col = end; prevFlying = true; flyEnd = end; prevUpside = false; direct = !!dn;
       continue;
     }
     // a flying section: one corridor with its own portal (entered from the ground) and a framed
@@ -259,7 +283,7 @@ function compose(brief, tweaks = {}) {
       const key = `${si}:0`, t = tweaks[key] || {};
       const name = sec.mode === "ship" ? "ship-tunnel" : "wave-zigzag";
       const base = sec.mode === "ship"
-        ? { w: sec.blocks - 1 - land - (sec.exitRoom || 0), gap: 5, amp: 1.5, base: 0, teeth: true, lead: 6 }   // to the section's end: its exit portal on the next bar (sync gate; GDLM 64 had it ~0.5 beat early)
+        ? { w: sec.blocks - 1 - land - (sec.exitRoom || 0), gap: varyOf(sec, si) != null && ["Easy", "Normal"].includes((brief.difficulty || {}).label || "Easy") ? 6 : 5, amp: 1.5, base: 0, teeth: true, lead: 6 }   // varied at Easy/Normal: 6 rows (5 with its bumps; 5 rated Harder, 121 cs near a wall: GDLM 71 v2)   // to the section's end: its exit portal on the next bar (sync gate; GDLM 64 had it ~0.5 beat early)
         : (() => {
           // wave turns need room: level stretches at each peak and valley (2 columns at Easy/Normal,
           // 1 above) and 2 at the entry -- with pure 45-degree legs a turn was 13-88 ms (GDLM 44, physics
@@ -272,18 +296,23 @@ function compose(brief, tweaks = {}) {
       // the next section CONTINUES this flight (a collab seam inside a flight, tools/collab.js): no exit portal here
       // (a collab part's last section: the next part's first section is not in this brief -- brief._continueAfter says it)
       const nx = brief.sections[si + 1], cont = !!(nx && nx.continue && nx.mode === sec.mode) || (si === brief.sections.length - 1 && brief._continueAfter === sec.mode);
-      const args = Object.assign(base, (sec.args || {})[name] || {}, { portal: true, exit: cont ? null : "cube", portalRow: 1 });
+      const dn = cont ? null : directTo(si);
+      base.vary = varyOf(sec, si);
+      const args = Object.assign(base, (sec.args || {})[name] || {}, { portal: !direct, exit: cont ? null : dn || "cube", portalRow: 1 }, dn ? { endLow: true } : {});
       if (t.room) args.gap = (args.gap || 4) + t.room;
       // the wave's legs fill the section with the seg / flat in force: the count was worked out from the defaults
       // (seg 4 + flat 2) before a brief's own seg / flat (the lab's wave-drop: 3 + 1) went in, and the corridor stopped at
       // 2/3 of its section, ~5 s of empty run after it (the user, 2026-11-25: "leaves way too much space")
       if (name === "wave-zigzag" && !((sec.args || {})[name] || {}).legs) args.legs = Math.max(2, Math.floor((sec.blocks - (args.lead || 0) - 1 - land - (sec.exitRoom || 0)) / ((args.seg || 4) + (args.flat || 0))));
+      if (!direct && prevFlying) bridge(start, start + 1 + land);
       objects.push(["pattern", name, start + 1 + land, 0, args]);
+      corrEnd = start + 1 + land + widthOf(name, args);
       placed.push({ key, name, from: start + 1 + land, to: start + 1 + land + widthOf(name, args), section: sec.name, flying: true });
       ranges.push([i0, objects.length, start, end]);
-      col = end; prevFlying = true; flyEnd = end; prevUpside = false;
+      col = end; prevFlying = true; flyEnd = end; prevUpside = false; direct = !!dn;
       continue;
     }
+    direct = false; corrEnd = null;
     const upside = sec.mode === "upside", ceil = (sec.args && sec.args.ceil) || 6;
     if (upside) {
       // ceiling from start+1 to end-1, its gravity portal on the section's first beat, out at its last column
@@ -359,7 +388,7 @@ function compose(brief, tweaks = {}) {
         // Easy/Normal: block-spike-block with 2-wide blocks (land, look, jump: no exact hop off a lone block)
         const LOW_ARGS = { "block-spike-block": { w1: 2, w2: 2 }, "spike-block": { at: 1, w: 3 } };
         const args = Object.assign(low && LOW_ARGS[name] ? LOW_ARGS[name] : {}, (sec.args || {})[name] || {});
-        const wdt = widthOf(name, args);
+        let wdt = widthOf(name, args);
         // landing room: after a chunk that ends h rows up, the cube falls h rows; nothing may need a
         // jump before it has landed and seen it (GDLM 45 v4: a spike-block right past a 3-high stair,
         // the user died there 3 times "cant tell where to jump")
@@ -397,6 +426,9 @@ function compose(brief, tweaks = {}) {
           }
         }
         if (k > 0) c += gap; else if (stepAt != null) { stepAt = c + 2; c += 5; }
+        // the chunk does not fit before the section's end: a plain single instead when one fits, so the section does not
+        // end in ~2 s of empty run (the user on GDLM 71 at 56.8 s: "too big pause")
+        if (c + wdt > stop && name !== "single" && !upside && stepAt == null && c + 1 <= stop) { name = "single"; for (const k2 in args) delete args[k2]; wdt = widthOf("single", {}); }
         if (c + wdt > stop) break;
         if (terrain) {
           if (stepAt == null) fill(filledTo, c + wdt, h);
@@ -444,7 +476,7 @@ function compose(brief, tweaks = {}) {
   // jump indicators (tools/decorate.js): on jumps that cannot be read in time, and the first jump of
   // each new pattern. Default on; "indicators": false in the brief turns them off.
   if (brief.indicators !== false) spec.indicators = Object.assign({ at: firsts }, brief.indicators || {});
-  for (const k of ["style", "colours", "art", "speed", "song", "offset", "grid", "snap", "seed"]) if (brief[k] != null) spec[k] = brief[k];
+  for (const k of ["style", "colours", "art", "speed", "song", "offset", "music", "grid", "snap", "seed"]) if (brief[k] != null) spec[k] = brief[k];
   if (brief.sections[0] && brief.sections[0].bg && !spec.colours) spec.colours = { bg: brief.sections[0].bg, ground: brief.sections[0].ground || brief.sections[0].bg };
   return { spec, placed, ranges };
 }

@@ -85,6 +85,11 @@ Next: a full sim-vs-game diff per tick (the PHYSICS.md "Fidelity" scoreboard).
 
 ## Playback: Claude plays a level in the real game (v0.2.0, 2026-11-25)
 
+**Rule (the user, 2026-11-25 18:40 UTC): no real-game run starts without being announced in the chat first and the user
+saying go.** That covers every `probe.js play ... --launch`, a batch, and any GD launch. Say which levels, how many
+launches and how long (measured: ~40-75 s per level incl. start-up); a GD window opens on the user's screen each time.
+After a stopped run, check `play.json` is not left waiting in the mod's folder (the next GD start would play it).
+
 - `node tools/probe.js play save:<GDLM name> [--attempts N] [--offset k] [--stay] [--launch]` writes
   `%LOCALAPPDATA%/GeometryDash/geode/mods/gdlm.probe/play.json` from the level's saved route (local/solutions):
   `{level, autostart, attempts, quit, offset, presses: [[tick, down, p2]]}`. `--launch` starts GD through Steam (refused
@@ -123,6 +128,32 @@ Next: a full sim-vs-game diff per tick (the PHYSICS.md "Fidelity" scoreboard).
 - Open: levels not in the save (import a .gmd); official levels in practice mode only.
 
 
+## Practice -> full run (v0.4.0, 2026-11-25; USE_CASES 11)
+
+The user asked (2026-11-25): "do we have something that can make a run from a practice run from start to end?" Built:
+- **The mod (v0.4.0)** logs practice checkpoints: each attempt's start line gets `lt` (the level time it starts at: > 0 when
+  a practice respawn restored a checkpoint), `step`, `from` (the unique id of the checkpoint it started from, -1 = the
+  level's start), `cps` and `hold` (jump button down as it began); a `cp` line when a checkpoint is stored (`id`, `lt` =
+  the level time that checkpoint restores to, the player's x, y; `via` store = the PlayLayer::storeCheckpoint hook, tick =
+  caught on the next tick when the hook did not fire), `cpdel` / `cpclear` when the delete key removes one / all.
+- **`node tools/stitch.js [<level name>] [--level <what>] [--save] [--partial]`** walks back from the newest practice
+  attempt that reached the end: its start checkpoint -> the attempt that stored it -> that one's start checkpoint ... ->
+  the level's start, and joins each attempt's presses up to the next checkpoint. Ticks are absolute (attempt start =
+  round(checkpoint level time x 240) + the log's n). At a seam the button is set to what the next attempt began with.
+  Then our sim plays the joined run (cleared, or where it dies) and prints, at each checkpoint, the game's x against the
+  sim's (how far the sim has drifted from the real run). Output `local/stitched/<level>_<ms>.json`; `--save` adds it
+  to local/attempts/ (source "stitch") so the viewer shows it as a ghost and `tools/video.js <level> --run <id>` films it.
+- **In the real game:** `node tools/probe.js play save:<GDLM name> --events local/stitched/<file>.json --launch` plays the
+  stitched run unbroken in normal mode (GDLM levels only; announce it and get the user's go first, see "Playback").
+- Test: `node tests/stitch.js` (a solved level's route cut at three checkpoints with wasted attempts and junk presses
+  stitches back to the route and clears; a held seam; old logs refused).
+- **Not checked in the game yet** (needs v0.4.0 built + installed, then the user plays a level in practice): whether
+  storeCheckpoint fires for both Z-key and auto checkpoints, whether a respawn's level time is exactly the checkpoint's
+  (stitch.js warns on a mismatch or drift), and whether presses on the seam tick belong before or after it (warned as
+  "+-1 tick is unsure"). Known limits: one player and the jump button (no dual / platformer), no time-warp levels.
+  GD restores a checkpoint from saved state, so a stitched run may still part from the practice run where a respawn
+  is not exact (rotation, moving objects): the real-game playback is the final word.
+
 ## Building on this PC (2026-11-25)
 
 - Installed: Geode loader **v6.0.0** in the game (`Geode.dll` 6.0.0.0, changelog), GD **2.2091**. Toolchain: CMake 4.4.4,
@@ -138,6 +169,10 @@ Next: a full sim-vs-game diff per tick (the PHYSICS.md "Fidelity" scoreboard).
   `%USERPROFILE%\geode-build\<mod>`, outside OneDrive). Cold build ~60-95 s (configure fetches the bindings, then compile);
   output `%USERPROFILE%\geode-build\gdlm-probe\gdlm.probe.geode`. `--install` copies it to the game's geode/mods and refuses
   while GeometryDash.exe runs.
+  **Gotcha:** the build dir is keyed by the mod folder's NAME only, so building the same mod from another worktree fails at
+  configure ("source ... does not match the source ... used to generate cache"). Build from a copy with another folder name
+  (`mods\gdlm-probe-v040`: its own build dir, cold ~2 min with the 36 s configure) or from the main checkout. v0.4.0 (checkpoint
+  logging) built this way with no source changes, 2026-11-25.
 - **MSVC cl does not compile Geode 6.0.0's headers** (C3615 constexpr in utils/file.hpp, FileError over asp::fs::Error):
   use clang-cl. main.cpp built as written (no changes needed for 6.0.0 / bindings 2.2091).
 - The SDK's CMake prints a notice for AI-agent builds: building and using the mod locally is fine; a mod mostly written by

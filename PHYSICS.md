@@ -474,10 +474,23 @@ test: `node tests/rotated.js`.
 - **Block ~127 (fixed 2026-11-25):** not the move units or the touch box -- a "flip on head hit" modifier (2866) locked
   to the player there; see "Gameplay modifiers" below. With it and the time warp at x 4535 the nudged plan goes on to
   block 179 (x 5366), where it dies in a swing stretch (swing physics, open).
+  Our solver (difficulty_solve 22 --resume, 2026-11-25, 2.0 h) gets further than the plan: through that swing to the
+  second turned stretch, where a swing turned to travel +Y dies on a block 30 ticks after the turn (world 6746, 266).
 - **Not modelled yet:** touch-activated 2900s (none in Dash), a 2900 inside a toggled-off group, the dash orb's angle
   clamp in turned frames (gdsolver --dashframe3), the 2899 options trigger (disables P1 controls; consumed, no effect),
   moving objects' lock-to-player / move-to-target state across a turn, the camera turning with the gameplay (the viewer
   draws turned stretches in world coordinates, unturned).
+
+## Start settings from the level header: IN the sim (2026-11-25)
+
+GD 2.2081 LevelSettingsObject reads kA2 start mode (0 cube, 1 ship, 2 ball, 3 UFO, 4 wave, 5 robot, 6 spider, 7 swing),
+kA3 mini, kA8 dual, kA11 flipped gravity; GJBaseGameLayer::setupLevelStart applies them: flip, dual (player 2 the other
+way up), mini (both), then the mode with no portal. lib/physics.js startOf() / startState0(); test `node tests/start_settings.js`.
+Before this only kA4 (speed) was read and every level started as a normal cube: Bloodbath (community 10565740, kA2 1)
+died at block 18 as a cube. No official or GDLM level sets any of them, so no saved route changes.
+- ASSUMED: the flying band of a portal-less start sits on the ground (floor 0, ceiling the mode's band); in dual it is
+  the dual band at the start y. Not measured in the game.
+- Not read: kA20 reverse gameplay, kA28 mirror (view only), kA2 values in platformer levels.
 
 ## Gameplay modifiers (2866, 1813) and the time warp (1935): IN the sim (2026-11-25)
 
@@ -520,8 +533,16 @@ step. `node tools/probe.js result [n]` compares a log with our sim's run of the 
   +1 jumps are the ones made by a held button on landing (GD jumps no sooner than the step after a landing, see
   "Landing buffer"), the 0s are fresh presses. The probe log has the presses: split the jumps by "button already
   down" to settle it.
-- **GDLM 44 (wave) dies in the game at x 6638, y 267** while the sim clears; the first height parting is at step 313
-  (x 405: dx 1.0). To study with `probe.js show` around the death.
+- **Heights:** the game's y is our y + 90 exactly (start: game 105, sim 15), so the death at game y 267.3 is our y 177.3.
+- **GDLM 52 necromancy** (playback, 2026-11-25 18:39 UTC): dies in the game at x 10765 where the sim clears; not studied yet.
+- **GDLM 44 dies in the game at x 6638, y 267** while the sim clears; the first height parting is at step 313
+  (x 405: dx 1.0). Read from the level (2026-11-25, hellgate thread): x 6638 is in the SECOND SHIP (ship portal 6209,
+  cube portal 7139), not the wave, 6 units before a one-block stair step of the old `ship-tunnel` corridor: at x 6644
+  the roof's underside drops from y 210 to 180 (and the floor from 60 to 30). With the game's y about 90 above ours
+  (confirm with `probe.js result`'s "y offset"), y 267 is ~177: the ship's top at the stepped roof's corner. It fits the
+  open ship mismatch below (the game's ship rides ~0.5 unit higher than ours). Hellgate v2 replaces all three ship
+  tunnels with `fly-path` slope corridors (no stair steps), so the spot is gone; the real-game re-check with the probe
+  is still to run on the PC. Not yet settled: the exact ship height gap that made the corner kill.
 
 ## Fidelity: measuring the sim against the user's game (goal: "as close as possible")
 

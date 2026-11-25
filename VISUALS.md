@@ -206,6 +206,9 @@ re-encoded at the bitrate that fits. `--vs-rec` puts the run's recording beside 
 - **Measured**: the user's Hexagon Force run (35.8 s, died 40%) at 60 fps 1280x720 rendered in 156 s (~73 ms a frame,
   heavy slot ~3 min) to a 23.6 MB file. The side-by-side is 18.8 MB. A 100 s level at 60 fps would pass 30 MB at crf 22,
   so it gets the re-encode.
+- **Measured, a whole official level** (2026-11-25): Jumper (`official:7 --route`, 86.6 s) at 60 fps 1280x720, 5197 frames,
+  407.6 s in all with the heavy slot held (~78 ms a frame, render + encode; peak 56 MB), 28.9 MB: under the 30 MB cap, so no
+  re-encode at crf 22 (so the guess above was pessimistic for Jumper). Rule of thumb: ~4.7x the level's length.
 - **Checked against the recording** (side-by-side, frames at 5 / 20 / 35 s): the same moment and layout at 5 and 20 s.
   At 35 s the run has died: ours shows the end of the burst, the recording shows dual. Differences: the recording is
   GD windowed on the desktop (another scale and framing), GD's progress bar is not drawn in ours, a collected coin shows
@@ -218,6 +221,19 @@ re-encoded at the bitrate that fits. `--vs-rec` puts the run's recording beside 
   viewer and in compare_frames. The ghost's camera now looks at the median height of the level's objects in each 600-unit
   stretch (`contentY`) when that is above 6 blocks.
 - Open: an art-free version, so a video can be shared publicly; cropping a windowed recording in `--vs-rec`; the progress bar.
+
+## The end (2026-11-25)
+
+The user, on the Jumper video: "no end screen like in the real game, it just falls on the ground". Two causes: a cleared
+route got a ghost run after it (`ghostExtend` padded every path to the level's length at the slowest speed, so past the
+clear a camera-only ghost walked on and "fell"), and nothing marked the clear. Now (viewer/index.html `endWall` / `endFx`,
+our own drawing, no GD art): a wall of light 9 blocks past the last object, in view as the run comes up to it; at the clear
+the camera stops, the player is pulled up into the wall on a curve (spinning, shrinking, 0.6 s), a flash where it goes in,
+then "LEVEL COMPLETE!" and a card: attempt, jumps (presses), time, coins (filled when the route passes a coin). The page plays
+on `END_LEN` (4.5 s) past the clear and stops; a video (tools/video.js) records it to the end; scrubbing back shows the level.
+Game look only (the schematic view keeps its small text). A cleared path is never ghost-extended any more.
+Test: `node tests/end_screen.js`. Open: GD's own end (the camera's exact stop, the wall's look, the card's layout) is drawn
+from memory, not measured from a recording; attempts are 1 for a route, the user's real count for a run is not known.
 
 ## A run the sim loses (2026-11-24)
 

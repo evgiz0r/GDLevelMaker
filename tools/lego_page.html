@@ -74,11 +74,13 @@ button.vote.on.up{background:#1f6b3a;border-color:#7dff9c}button.vote.on.down{ba
 
 </div>
 <div class="band filters" id="filters">
+  <select id="fgrain"><option value="brick">bricks (~1 s: one move)</option><option value="auto">auto bricks (no clicks: pads, portals, falls)</option><option value="piece">pieces (1-3 s: a screen)</option></select>
   <select id="fsrc"><option value="">every source</option><option>official</option><option>ours</option><option>sketch</option><option>library</option></select>
   <select id="ffam"><option value="">every family</option><option value="fly">fly: ship, wave, swing</option><option value="jump">jump: cube, robot, ufo</option><option value="flip">flip: ball, spider</option></select>
   <select id="fmode"><option value="">every mode</option></select>
   <select id="fwrap"><option value="">every wrapper</option></select>
   <input id="fq" placeholder="search: spikes, gates, blue-orb, level name">
+  <select id="fsort"><option value="">level order</option><option value="easy">easiest first</option><option value="hard">hardest first</option></select>
   <select id="fvote"><option value="">any vote</option><option value="up">👍 liked</option><option value="down">👎 disliked</option><option value="com">with a comment</option><option value="none">not voted yet</option></select>
   <span class="count" id="count"></span>
   <div class="chk count"><span>also show:</span>
@@ -128,6 +130,7 @@ const PAGE = 60;
   <p><b>Official ships are spiky corridors with gates</b> (${pct("fly · ship · corridor +spikes +gates", "official")}% of all their pieces); ours fly plain corridors (${pct("fly · ship · corridor", "ours")}%) and never a spiky one with gates.</p>
   <p><b>Fly family</b>: one path, wrapped as open air, a floor path, a roof path or a corridor, then +spikes (hazards are 30%+ of the walls), +gates (narrowings) and +flips (gravity). The same wrappers fit ship, wave and swing.</p>
   <p>By default the drawer shows <b>verified</b> pieces only (a route through them, the solver's or a real clear, is replayed by our physics and lives), and hides <b>empty</b> ones (nothing to react to), <b>repeats</b> (the same layout again, shown once with ×N) and flying pieces with <b>stair walls</b>. The checkboxes bring them back.</p>
+  <p><b>Difficulty</b> = log10 of the expected attempts to get through the piece in one go, from the timing window of each of its inputs (our difficulty model, fitted on Evgeni's runs): 0.1 is a gimme, 0.5 takes a few tries, 1 about ten.</p>
   <p>Tap a tray to see it large: <b>▶ play</b> replays the route at its real speed, white dots are presses, rings releases. <b>👍 / 👎 and a comment</b> are saved for us to read; a vote is a preference weight, never a ban. ← → step through pieces, space plays.</p>`;
 }
 
@@ -198,6 +201,7 @@ function refreshVotes() {
 // ---- the drawer
 function meta(p) {
   const bits = [`${p.w} blocks`, `${p.s.toFixed(1)} s`, `${p.presses} presses`];
+  if (p.diff != null) bits.unshift(`difficulty ${p.diff.toFixed(2)}` + (p.tightMs != null ? ` (tightest ${p.tightMs} ms)` : ""));
   if (p.hold != null && p.family === "fly") bits.push(`held ${Math.round(p.hold * 100)}%`);
   if (p.gap != null) bits.push(`gap ${p.gap}`);
   if (p.yRange) bits.push(`climbs ${p.yRange}`);
@@ -213,14 +217,18 @@ function render(reset) {
   shown += part.length;
   for (const cv of $("grid").querySelectorAll("canvas:not([data-o])")) { cv.dataset.o = 1; io.observe(cv); }
   $("more").hidden = shown >= VIEW.length;
-  const hid = ALL.length - VIEW.length;
+  const gr = $("fgrain").value, hid = ALL.filter(p => gr === "auto" ? p.auto : (p.grain || "piece") === gr && !p.auto).length - VIEW.length;
   $("count").textContent = `${VIEW.length} pieces` + (hid ? ` (${hid} hidden)` : "");
 }
 function filter() {
   const s = $("fsrc").value, f = $("ffam").value, m = $("fmode").value, w = $("fwrap").value, q = $("fq").value.trim().toLowerCase(), fv = $("fvote").value;
   const ours = $("fours").checked || (s && s !== "official"), un = $("fun").checked, em = $("femp").checked, du = $("fdup").checked, ro = $("frough").checked;
   const vok = p => { const v = VOTES[p.id]; return !fv || (fv === "up" ? v && v.vote > 0 : fv === "down" ? v && v.vote < 0 : fv === "com" ? v && v.comment : !v); };
-  VIEW = ALL.filter(p => (ours || p.src === "official") && (un || p.verified) && (em || !p.empty) && (du || !p.dupOf) && (ro || p.smooth) && vok(p) && (!s || p.src === s) && (!f || p.family === f) && (!m || p.mode === m) && (!w || p.wrap === w) && (!q || (p.sig + " " + p.level + " " + p.mech.join(" ")).toLowerCase().includes(q)));
+  const gr = $("fgrain").value;
+  const gOk = p => gr === "auto" ? p.auto : (p.grain || "piece") === gr && !p.auto;
+  VIEW = ALL.filter(p => gOk(p) && (ours || p.src === "official") && (un || p.verified) && (em || !p.empty) && (du || !p.dupOf) && (ro || p.smooth) && vok(p) && (!s || p.src === s) && (!f || p.family === f) && (!m || p.mode === m) && (!w || p.wrap === w) && (!q || (p.sig + " " + p.level + " " + p.mech.join(" ")).toLowerCase().includes(q)));
+  const so = $("fsort").value;
+  if (so) VIEW.sort((a, b) => so === "easy" ? (a.diff ?? 99) - (b.diff ?? 99) : (b.diff ?? -1) - (a.diff ?? -1));
   render(true);
 }
 
@@ -283,7 +291,7 @@ document.addEventListener("keydown", e => {
   if (e.key === "Escape") $("close").onclick(); else if (e.key === "ArrowRight") $("bnext").onclick(); else if (e.key === "ArrowLeft") $("bprev").onclick(); else if (e.key === " ") { e.preventDefault(); play(); }
 });
 $("more").onclick = () => render(false);
-for (const id of ["fsrc", "ffam", "fmode", "fwrap", "fours", "fun", "femp", "fdup", "frough", "fvote"]) $(id).onchange = filter;
+for (const id of ["fgrain", "fsrc", "fsort", "ffam", "fmode", "fwrap", "fours", "fun", "femp", "fdup", "frough", "fvote"]) $(id).onchange = filter;
 $("fq").oninput = filter;
 fetch("pieces.json").then(r => r.json()).then(d => {
   const first = p => p.src === "official" ? 0 : p.src === "sketch" ? 1 : p.src === "library" ? 2 : 3;

@@ -8,6 +8,8 @@
 //   each a tools/difficulty_solve.js run at heavy priority "urgent" (the user, 2026-11-24: "If we have it failed then
 //   its highest priority"), so a failed main level goes ahead of every other waiting heavy job. One runner at a time
 //   (local/mains/runner.json); log local/mains/log.txt; each finished job: local/mains/history.jsonl.
+// After the jobs: tools/tight.js --fix on every route it redid (timings too hard for the level), then the all-coins routes
+// (coinPass: a resume --coins at low priority for a level whose coin route misses a coin; one try per physics commit).
 // Automatic: tools/serve.js starts `mains.js run` after its self-update pulls a change to the physics or route code
 // (ROUTE_CODE below). DIFFICULTY.md "Main levels kept current".
 // RobTop's levels: everything stays in local/, nothing is committed.
@@ -89,10 +91,51 @@ function run(only, dry) {
         // a replan that found the raw solve no longer finishes falls through to a resume next round
       }
     }
+    if (dry) return;
+    // timings too hard for the level (DIFFICULTY.md "Too tight for the level"): re-search the spots on every route redone
+    const redone = [...new Set([...done].map(k => parseInt(k, 10)))];
+    if (redone.length) job("tight", ["tight.js"].concat(redone.map(String), ["--fix"]), "normal");
+    // the all-coins routes (DIFFICULTY.md "Coin routes"), after the plain ones and at low priority: a level whose coin route
+    // does not clear with every coin gets a resume (from its plain route when it has none); one try per physics commit
+    if (!only.length || process.argv.includes("--coins")) coinPass(only);
   } finally { if (!dry) { const r = readJ(path.join(DIR, "runner.json")); if (r && r.pid === process.pid) fs.unlinkSync(path.join(DIR, "runner.json")); } }
 }
 
-// serve.js calls this after a self-update: start a detached runner when the update touched route code
+function job(what, args, prio) {
+  const t0 = Date.now();
+  const r = cp.spawnSync(process.execPath, ["--max-old-space-size=3000", path.join(__dirname, args[0])].concat(args.slice(1)), { windowsHide: true, cwd: ROOT,
+    encoding: "utf8", env: Object.assign({}, process.env, { GDLM_HEAVY_PRIORITY: prio }), maxBuffer: 64 << 20 });
+  const lines = String(r.stdout || "").trim().split("\n").filter(l => /^\s*\d+[ :]/.test(l));
+  log(`mains: ${what} ${args.slice(1).join(" ")} took ${Math.round((Date.now() - t0) / 1000)} s` + (lines.length ? "\n  " + lines.join("\n  ") : ""));
+  return r;
+}
+// a level's coin route on today's sim: { total, got, done } (local/official_NN_coins.json replayed with needCoins)
+function coinState(n) {
+  const { GD } = require("./io.js"), ds = require("./difficulty_solve.js");
+  const L = GD.parseLevel(ds.levelText(n)), w = GD.makeWorld(L.objects, L.header); w.needCoins = true;
+  const total = GD.coinList(w).length, v = readJ(path.join(ROOT, "local", `official_${tag(n)}_coins.json`));
+  if (!v || !v.solution) return { total, got: 0, done: false, none: true };
+  const q = GD.run(w, v.solution.events), e = q.end || q.path[q.path.length - 1];
+  return { total, got: GD.coinCount(e), done: !!q.done };
+}
+function coinPass(only) {
+  const triedF = path.join(DIR, "coins_tried.json"), tried = readJ(triedF) || {}, phys = require("./difficulty_solve.js").physicsCommit();
+  const st = status();
+  for (const s of st) {
+    if (s.need !== "ok" || (only.length && !only.includes(s.n))) continue;
+    let c; try { c = coinState(s.n); } catch (e) { continue; }
+    if (!c.total || (c.done && c.got === c.total)) continue;
+    if (tried[s.n] === phys) continue;   // already tried on this physics: a coin lead (reported by tools/coins.js status)
+    tried[s.n] = phys; fs.writeFileSync(triedF, JSON.stringify(tried));
+    log(`mains: ${s.n} ${s.name}: coin route ${c.none ? "none yet" : (c.done ? "clears" : "dies") + " with " + c.got + "/" + c.total} -> resume --coins`);
+    job("coins", ["difficulty_solve.js", String(s.n), "--resume", "--coins"], "low");
+    const a = coinState(s.n);
+    log(`mains: ${s.n} ${s.name}: coin route now ${a.done ? "clears" : "dies"} with ${a.got}/${a.total} coins`);
+    if (a.done && a.got === a.total) job("tight coins", ["tight.js", String(s.n), "--fix", "--coins"], "low");
+  }
+}
+
+// serve.js calls this after a self-update// serve.js calls this after a self-update: start a detached runner when the update touched route code
 function afterUpdate(before, after, git) {
   let changed = "";
   try { changed = git(["diff", "--name-only", before, after, "--"].concat(ROUTE_CODE)); } catch (e) { return false; }
@@ -102,7 +145,7 @@ function afterUpdate(before, after, git) {
   return true;
 }
 
-module.exports = { stateOf, status, afterUpdate, ROUTE_CODE, NAMES };
+module.exports = { stateOf, status, afterUpdate, coinState, ROUTE_CODE, NAMES };
 
 if (require.main === module) {
   const a = process.argv.slice(2), nums = a.filter(x => /^\d+$/.test(x)).map(Number);
