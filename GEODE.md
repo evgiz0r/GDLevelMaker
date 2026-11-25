@@ -85,6 +85,11 @@ Next: a full sim-vs-game diff per tick (the PHYSICS.md "Fidelity" scoreboard).
 
 ## Playback: Claude plays a level in the real game (v0.2.0, 2026-11-25)
 
+**Rule (the user, 2026-11-25 18:40 UTC): no real-game run starts without being announced in the chat first and the user
+saying go.** That covers every `probe.js play ... --launch`, a batch, and any GD launch. Say which levels, how many
+launches and how long (measured: ~40-75 s per level incl. start-up); a GD window opens on the user's screen each time.
+After a stopped run, check `play.json` is not left waiting in the mod's folder (the next GD start would play it).
+
 - `node tools/probe.js play save:<GDLM name> [--attempts N] [--offset k] [--stay] [--launch]` writes
   `%LOCALAPPDATA%/GeometryDash/geode/mods/gdlm.probe/play.json` from the level's saved route (local/solutions):
   `{level, autostart, attempts, quit, offset, presses: [[tick, down, p2]]}`. `--launch` starts GD through Steam (refused
