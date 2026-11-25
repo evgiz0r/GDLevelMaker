@@ -34,7 +34,7 @@ function strip(o = {}) {
 
 const ICEB = ["navy body, lit cyan rim", "+ bricks and frost tops", "+ crystal windows", "+ cracks and icicles under the edges", "glowing ice: light body, dark rim"];
 const FIREB = ["obsidian, lava rim", "+ bricks and a crust top", "+ molten seams", "+ thorns on the tops (charred)", "magma: hot body, dark rim"];
-const SPK = ["plain (white)", "theme skin (ice spikes / thorn pits)", "a glow pool under each", "a dark halo behind each", "sparks around (clear of the lane)"];
+const SPK = ["plain (white)", "theme skin (ice spikes / hot-tinted outline)", "a round glow under each", "a lit strip under the row", "sparks around (clear of the lane)"];
 const BGS = ["flat sky + horizon haze", "two mountain ranges", "big set piece (peak / ruined arch)", "near silhouettes (crystals / dead trees, ruins)", "hanging from above (icicles / chains)", "particles (snow / embers) + rays"];
 
 function blocks(theme, n, objs) {
@@ -60,8 +60,9 @@ function spikes(theme, n, objs) {
   const fire = theme === "fire", out = [], R = K.rng(9);
   const haz = objs.filter(o => o.id === 8 || o.id === 177 || o.id === 9);
   for (const h of haz) {
-    if (n === 3) out.push(K.obj(1293, h.x, h.y - 6, { ch: CH.glow, z: "B1", zo: 0, sx: 1.6, sy: 0.9, flipY: true }));
-    if (n === 4) out.push(K.obj(1764, h.x, h.y - 2, { ch: CH.fill, z: "B1", zo: 0, s: 1.6 }));
+    // v2 (the PC review): the 1293 gradient drew a square box, a dark 1764 halo showed nothing -> a round glow dot, a lit strip
+    if (n === 3) out.push(K.obj(1764, h.x, h.y - 4, { ch: CH.glow, z: "B1", zo: 0, s: 2.2 }));
+    if (n === 4) out.push(K.obj(1753, h.x, h.y - 16, { ch: CH.rim, z: "B1", zo: 1, sx: 1.2 }));
     if (n === 5) for (let k = 0; k < 4; k++) { const a = R() * Math.PI, d = 26 + R() * 14; out.push(K.obj(1764, h.x + Math.cos(a) * d, h.y + 6 + Math.sin(a) * d * 0.6, { ch: fire ? CH.snow : CH.crystal, z: "B1", zo: 1, s: 0.18 + R() * 0.15 })); }
   }
   return out;
@@ -70,8 +71,8 @@ function background(theme, n, objs) {
   const fire = theme === "fire", out = [], x0 = -300, x1 = 1800, R = K.rng(17);
   out.push(...I.haze(x0, x1));
   if (n === 2) { out.push(...I.range(x0, x1, { seed: 4, z: "B5", hMin: 100, hMax: 210, groups: [] }), ...I.range(x0, x1, { seed: 6, z: "B4", zo: 4, hMin: 40, hMax: 90, wMin: 90, wMax: 180, ch: CH.mid, lit: CH.midLit, cap: false, groups: [] })); }
-  if (n === 3) { if (!fire) { out.push(...I.peak(700, 900, 380, { z: "B5", groups: [] }), ...I.cluster(560, -10, { seed: 2, size: 2, n: 5, ch: CH.mid, lit: CH.crystal, z: "B3", groups: [] })); }
-    else { out.push(...P.put("broken arches", 700, 0, { silhouette: CH.far, layer: "B4", zo: -2, scale: 2.4, seed: 1 }).objects); out.push(...K.horizonGlow(450, 950, { ch: CH.glow, y: 0, h: 7, z: "B5", step: 120 })); } }
+  if (n === 3) { if (!fire) { out.push(...I.peak(700, 900, 380, { z: "B5", groups: [] }), ...I.cluster(1100, -10, { seed: 2, size: 1.4, n: 5, ch: CH.mid, lit: CH.midLit, z: "B4", groups: [] })); }   // crystals off the lane, dimmer
+    else { out.push(...I.peak(700, 760, 360, { z: "B5", groups: [] })); out.push(...K.horizonGlow(450, 950, { ch: CH.glow, y: 0, h: 7, z: "B5", step: 120 })); } }   // a volcano (the scaled arch prop drew flat red rectangles)
   if (n === 4) { if (!fire) for (let x = 80; x < x1; x += 160 + R() * 80) out.push(...I.cluster(x, -10, { seed: x, size: 1.2, ch: CH.mid, lit: CH.midLit, z: "B3", groups: [] }));
     else { out.push(...D.backdrop(x0, x1, { near: CH.mid, trees: "dead tree", density: 1.4, seed: 30 })); for (let x = 200; x < x1; x += 520) out.push(...P.put("ruin", x, 0, { silhouette: CH.mid, layer: "B3", zo: -4, scale: 1, seed: x }).objects); } }
   if (n === 5) { if (!fire) out.push(...I.icicles(objs, x0, x1, { seed: 2, hMin: 30, hMax: 130, ch: CH.far, lit: CH.farLit, z: "B2", groups: [] }));
@@ -85,7 +86,7 @@ function build() {
   fs.mkdirSync(OUT, { recursive: true });
   const rec = io.readGdlvl(path.join(ROOT, "levels", "archive", "gdlm_50_eclipse.gdlvl")).rec, rows = [];
   const put = (el, theme, n, label, objs, deco) => {
-    for (const o of objs) o.props[21] = String(o.id === 1 ? CH.rim : CH.hazard);
+    for (const o of objs) { o.props[21] = String(o.id === 1 ? CH.rim : o.hot ? CH.frost : CH.hazard); delete o.hot; }
     const T = THEMES[theme], defs = {}; for (const [ch, rgb] of Object.entries(T.map)) defs[ch] = { rgb, blend: T.blend[ch] != null, opacity: T.blend[ch] ?? 1 };
     let header = K.channels(GD.DEFAULT_HEADER, defs);
     for (const [k, v] of Object.entries(ICE.HEADER)) header = new RegExp("(^|,)" + k + ",").test(header) ? header.replace(new RegExp("(^|,)" + k + ",[^,;]*"), "$1" + k + "," + v) : header + "," + k + "," + v;
@@ -96,7 +97,8 @@ function build() {
   };
   for (const theme of ["ice", "fire"]) {
     (theme === "ice" ? ICEB : FIREB).forEach((label, i) => { const o = strip(); put("blocks", theme, i + 1, label, o, blocks(theme, i + 1, o)); });
-    SPK.forEach((label, i) => { const o = strip({ spike: i === 1 ? (theme === "ice" ? 177 : 9) : 8 }); put("spikes", theme, i + 1, label, o, blocks(theme, 1, o).concat(spikes(theme, i + 1, o))); });
+    SPK.forEach((label, i) => { const o = strip({ spike: i === 1 && theme === "ice" ? 177 : 8 });   // fire thorn pits (9) drew black blobs on dark ground: the spike read was lost
+      if (i === 1 && theme === "fire") for (const q of o) if (q.id === 8) q.hot = true; put("spikes", theme, i + 1, label, o, blocks(theme, 1, o).concat(spikes(theme, i + 1, o))); });
     BGS.forEach((label, i) => { const o = strip(); put("background", theme, i + 1, label, o, blocks(theme, 2, o).concat(background(theme, i + 1, o))); });
   }
   fs.writeFileSync(path.join(OUT, "options.json"), JSON.stringify(rows, null, 1));

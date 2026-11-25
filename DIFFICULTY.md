@@ -370,6 +370,8 @@ What it showed first (FROSTBITE 2.66 vs Electrodynamix 2.65, same model):
   (`cleanFly`) fixes it. Still off at the fit (his rank vs ours): ToE 3.09 (his 11th, ours 17th: its UFO seconds at 30
   units of slack), xStep 0.85 (his 13th, ours 7th), Jumper (7th vs 11th). 21 points and 4 weights: treat it as "around",
   his words; add community tier lists and his real deaths before trusting the third decimal.
+  The balance page (`tools/balance.js ... --html`) shows the fitted v2 as the score, flight seconds as bars of their own,
+  v1 in brackets; a main level measured only on the PC gets its flight and gravity / dual lump from balance_mains_v2.json.
   NEXT: readability features (below), the survival horizon (1-2 s) for windows, then v2 into score.js / the board.
 - **Stats first, rules only name the features** (the user, 2026-11-25: "i dont want it to be too rule based, but rather
   more based on stats. but as humans play it the feeling of difficulty does make some difference, besides the timing

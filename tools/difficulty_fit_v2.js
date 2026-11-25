@@ -90,6 +90,18 @@ function search(Ls) {
   return all.sort((a, b) => b.obj - a.obj);
 }
 
+// the page's part (tools/balance.js --html): the picked weights against v1, what each feature earns, and the ladder
+function pageData(w) {
+  const Ls = load(); if (!Ls.length) return null;
+  const r = fit(Ls, w), cor = k => ({ rank: spearman(Ls.map(L => L[k]), Ls.map(L => L.rank)), stars: spearman(Ls.map(L => L[k]), Ls.map(L => L.stars)), att: spearman(Ls.map(L => L[k]), Ls.map(L => L.att)) });
+  const drop = { "window width": { ...w, timing: false }, "flight room": { ...w, FLY: 0 }, gravity: { ...w, GRAV: 0 }, duals: { ...w, DUAL: 0 } };
+  const v2r = ranks(r.scores), v1r = ranks(Ls.map(L => L.v1));
+  return { w, fit: { rank: r.rank, stars: r.stars, att: r.att }, v1: cor("v1"),
+    earns: Object.fromEntries(Object.entries(drop).map(([k, x]) => [k, +(r.obj - fit(Ls, x).obj).toFixed(3)])),
+    levels: Ls.map((L, i) => ({ n: L.n, name: L.name, his: L.rank, stars: L.stars, att: L.att, v1: L.v1, v1r: v1r[i], v2: +r.scores[i].toFixed(3), v2r: v2r[i],
+      fly: +flyCost(L.fly, w.FLY).toFixed(3) })).sort((a, b) => a.his - b.his) };
+}
+
 if (require.main === module) {
   const Ls = load(), top = +(opt("--top") || 8);
   const assumed = { SIGMA: D.SIGMA, FLY: DF.FLY_SPREAD, GRAV: 0.01, DUAL: 0.05 };
@@ -118,4 +130,4 @@ if (require.main === module) {
     v1, plateau: plateau.map(r => ({ w: r.w, obj: r.obj })), levels: Ls.map((L, i) => ({ n: L.n, name: L.name, rank: L.rank, stars: L.stars, att: L.att, v1: L.v1, v2assumed: +f0.scores[i].toFixed(3), v2fit: +best.scores[i].toFixed(3),
       fly: +flyCost(L.fly, best.w.FLY).toFixed(3) })) }, null, 1));
 }
-module.exports = { cleanFly, flyCost, load, fit, scoreOf, spearman };
+module.exports = { cleanFly, flyCost, load, fit, scoreOf, spearman, pageData };

@@ -11,6 +11,11 @@ of the art is copied into the repo, onto the phone page or into an Artifact. Ren
 (`local/shots/`, `local/catalogue/`) live in the never-committed `local/`. Committed are only facts:
 object id -> frame names, offsets, colour roles, layers.
 
+**One exception (the user approved it on a decision card, 2026-11-25):** rendered pictures (JPGs of shoot.js frames, never
+the sprite sheets themselves) may go on the user's PRIVATE claude.ai pages, the ones only he can open, such as the phone
+viewer's "deco" page (`tools/deco_page.js` -> `tools/web.js`). They still never go into git, onto the public site
+(PAGES.md) or onto a shared page.
+
 "GD art (not found)" in the viewer: the page could not fetch `/gdres/`. Seen 2026-11-23: the user's
 `serve.js` on 8765 had run since before `/gdres/` existed (a node server keeps the code it started with),
 so every sprite was a 404. Check `curl -s -o /dev/null -w "%{http_code}" localhost:8765/gdres/GJ_GameSheet-uhd.plist`;
