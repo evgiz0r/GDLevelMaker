@@ -23,7 +23,16 @@ fs.writeFileSync(path.join(copy, "lib", "GJ_GameSheet-uhd.png"), "x");
 fs.writeFileSync(path.join(copy, "343707.mp3"), "x");
 fs.mkdirSync(path.join(copy, "local"), { recursive: true }); fs.writeFileSync(path.join(copy, "local", "marks.jsonl"), "x");
 fs.writeFileSync(path.join(copy, "levels.js"), "window.GD_LEVELS = " + JSON.stringify([{ name: "official 1", file: "local/official_01.json" }, { name: "GDLM 99 not chosen", file: "levels/gdlm_99_not_chosen.gdlvl" }]) + ";");
+// a free song (knowledge/free_songs.json, file in songs/free/) may sit at songs/<id>.mp3; a changed copy of it may not
+const { freeSongs } = require("../tools/pages.js"), fs1 = freeSongs().find(x => fs.existsSync(path.join(ROOT, "songs", "free", x.id + ".mp3")));
+if (fs1) { fs.mkdirSync(path.join(copy, "songs"), { recursive: true }); fs.copyFileSync(path.join(ROOT, "songs", "free", fs1.id + ".mp3"), path.join(copy, "songs", fs1.id + ".mp3"));
+  check(!checkDir(copy).some(b => b.includes("songs/" + fs1.id)), "a free song (" + fs1.id + ") at songs/<id>.mp3 is allowed");
+  fs.writeFileSync(path.join(copy, "songs", "1290936.mp3"), "x"); }
 const got = checkDir(copy);
+if (fs1) check(got.some(b => /songs\/1290936/.test(b)), "a song not on the free list is refused even under songs/");
+for (const x of freeSongs()) check(x.credit && x.license && /^cc-/.test(x.license), `free song ${x.id} has a credit and a CC license`);
+for (const f of fs.existsSync(path.join(ROOT, "songs", "free")) ? fs.readdirSync(path.join(ROOT, "songs", "free")) : [])
+  check(freeSongs().some(x => f === x.id + ".mp3"), `songs/free/${f} is on the free list`);
 check(got.some(b => /GameSheet/.test(b)) && got.some(b => /\.mp3/.test(b)) && got.some(b => /^local\//.test(b)) && got.some(b => /official_01/.test(b)), `planted sprite, song, local/ file and official level all refused (${got.length})`);
 check(got.some(b => /gdlm_99_not_chosen/.test(b) && /public_levels/.test(b)), "a level of ours that the user did not choose is refused");
 fs.rmSync(copy, { recursive: true, force: true });
