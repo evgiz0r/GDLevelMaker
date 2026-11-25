@@ -2054,6 +2054,9 @@ function draw() {
       if (d.kind === "decoration" || d.kind === "trigger" || window.SHOOT_DECO_ONLY) continue;
       const a = GD.LOOK.objAlpha(o, LS.alpha); if (a <= 0.01) continue; ctx.globalAlpha = a; drawObj(o); ctx.globalAlpha = 1; ctx.shadowBlur = 0; }
     res.after();
+    // a teleport portal's exit is the same object's other half (key 54 away): GD draws it with its own sprite (749)
+    const exits = on.filter(o => GD.objInfo(o.id).kind === "teleport" && +(o.props && o.props["54"])).map(o => ({ id: 749, x: o.x, y: o.y + +o.props["54"], rot: o.rot || 0, flipX: !!o.flipX, flipY: !!o.flipY, props: {} }));
+    if (exits.length) try { AR.drawObjects(ctx, exits, LS, local, () => 1, () => false).after(); } catch (e) {}
     if (!AR.drawGround(ctx, view, LS, sc)) GD.LOOK.drawGround(ctx, view, LS);
   } else if (LS) {
     // objects as the game draws them: decoration, then blocks (fills, then outlines), then the rest;
@@ -2413,6 +2416,7 @@ function posedNow(s) {
 function drawObj(o) {
   const d = GD.objInfo(o.id);
   if (d.kind === "decoration" || d.kind === "trigger") return;
+  if (d.kind === "teleport") drawTeleExit(o);
   if (LS && d.kind === "hazard" && !d.shape.match(/saw|box/)) return local(o, () => GD.LOOK.drawSpike(ctx, null, LS, o, d, scale));
   if (LS && (d.kind === "solid" || d.kind === "slope" || (d.kind === "hazard" && d.shape === "saw"))) return local(o, () => {
     const c = GD.LOOK.css(LS.col[+(o.props && o.props[21])] || LS.col[1004]), hb = d.hit || { w: 30, h: 30 };
@@ -2459,6 +2463,17 @@ function drawObj(o) {
     }
   });
   if (d.kind === "unknown") { ctx.fillStyle = "#aaa"; ctx.font = "11px system-ui"; ctx.fillText(o.id, sx(o.x) - 12, sy(o.y) + 4); }
+}
+// a teleport portal's exit (GD's orange half, key 54 above the entrance; below when negative): the player comes out
+// there at the same x. Drawn with a dashed link so the pair reads as one portal.
+function drawTeleExit(o) {
+  const off = +(o.props && o.props["54"]) || 0; if (!off) return;
+  ctx.save(); ctx.setLineDash([5, 5]); ctx.strokeStyle = "rgba(255,160,60,.55)"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(sx(o.x), sy(o.y)); ctx.lineTo(sx(o.x), sy(o.y + off)); ctx.stroke(); ctx.restore();
+  local({ x: o.x, y: o.y + off, rot: o.rot }, () => {
+    ctx.shadowColor = "#ffa03c"; ctx.shadowBlur = 12; ctx.strokeStyle = "#ffa03c"; ctx.lineWidth = 3 / scale;
+    ctx.beginPath(); ctx.ellipse(0, 0, 9, 36, 0, 0, 7); ctx.stroke();
+  });
 }
 function drawShip(s) {
   local({ x: s.x, y: s.y, rot: s.rot }, () => {

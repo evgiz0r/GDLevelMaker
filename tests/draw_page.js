@@ -74,6 +74,10 @@ let fail = 0; const ok = (c, m) => { console.log((c ? "ok   " : "FAIL ") + m); i
     await p.keyboard.press("Escape");
     const top = await p.evaluate(() => Math.max(...[...document.querySelectorAll("header button, header select")].filter(e => e.offsetParent).map(e => e.getBoundingClientRect().bottom)));
     ok(top <= document_h(h), `${tag}: controls stay in the top bar (lowest at ${Math.round(top)} px)`);
+    // a teleport stamp: the entrance and its orange exit (key 54 above) on the board and in the level
+    await p.evaluate(() => { DRAW.ui.view = "sketch"; DRAW.V.x = 0; DRAW.V.y = -60; DRAW.setItems([{ k: "stroke", pen: "ground", pts: [[0, 0], [600, 0]] }, { k: "stamp", what: "portal:teleport", x: 300, y: 30, dy: 150 }]); });
+    await p.waitForTimeout(150); if (SHOTS) await p.screenshot({ path: path.join(SHOTS, `draw_${tag}_teleport.png`) });
+    ok(await p.evaluate(() => DRAW.convert().objects.some(o => o.id === 747 && +o.props[54] === 150)), tag + ": a teleport stamp keeps its exit height");
     ok(!errs.length, tag + ": no page errors " + (errs.length ? JSON.stringify(errs) : ""));
     await p.close();
   }
