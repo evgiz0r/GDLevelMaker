@@ -4,6 +4,7 @@
 // out, so it is a fair test), then solve three ways and time them:
 //   plain  -- tools/presslib.js solveWithLib with an empty library: no guess at all, every stretch found by local search
 //   lego   -- the same, but inside each matched stretch the button follows the matched brick's own clicks
+//   needed -- lego, but a hinted press only where the run dies within ~1 s without it
 //   full   -- GD.solveSweep, the solver's normal whole-level search (--no-full skips it)
 // Prints clear / stuck, presses, repairs and seconds per way. Results go to knowledge/lego_solve.json (numbers only).
 "use strict";
@@ -29,13 +30,14 @@ if (require.main === module) {
     const hints = M.hintsFor(lv.level, bricks, { min: +opt("min", 0.85) });
     const cover = hints.reduce((s, h) => s + (h.x1 - h.x0), 0) / Math.max(1, lv.w.endX / 30);
     const row = { level: lv.name, hints: hints.length, cover: Math.round(cover * 100) };
-    for (const [k, h] of [["plain", null], ["lego", hints]]) {
+    const needed = Object.assign(hints.slice(), { needed: true });
+    for (const [k, h] of [["plain", null], ["lego", hints], ["needed", needed]]) {
       const r = PL.solveWithLib(PL.emptyLib(), lv.w, 0.3, { hints: h });
       row[k] = { ok: r.ok, presses: r.events.filter(e => e.type === "press").length, repairs: r.repairs, s: Math.round(r.ms / 100) / 10, dieBlock: r.ok ? null : Math.round(r.dieX / 3) / 10 };
     }
     if (!A.includes("--no-full")) { const t0 = Date.now(), f = GD.solveSweep(lv.w); row.full = { ok: !!(f && f.ok), s: Math.round((Date.now() - t0) / 100) / 10 }; }
     const f = x => x ? `${x.ok ? "clears" : "stuck" + (x.dieBlock != null ? " at " + x.dieBlock : "")} ${x.s} s` + (x.repairs != null ? ` (${x.repairs} repairs, ${x.presses} presses)` : "") : "-";
-    console.log(`${row.level}: ${row.hints} matched bricks over ${row.cover}% of the level | plain ${f(row.plain)} | lego ${f(row.lego)} | full ${f(row.full)}`);
+    console.log(`${row.level}: ${row.hints} matched bricks over ${row.cover}% of the level | plain ${f(row.plain)} | lego ${f(row.lego)} | needed-only ${f(row.needed)} | full ${f(row.full)}`);
     out.push(row);
   }
   const file = path.join(ROOT, "knowledge", "lego_solve.json");
