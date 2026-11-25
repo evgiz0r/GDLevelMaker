@@ -9,11 +9,17 @@
   * { box-sizing: border-box; }
   html.embed, html.embed body { background:transparent; }
   html.embed header { background:rgba(20,12,52,.92); }
+  html.embed #playBtn, html.embed #replayBtn { display:none !important; }  /* in the viewer: its own ▶ play and 🎮 run the sketch */
   html, body { margin:0; height:100%; background:var(--bg); color:var(--ink); font:14px/1.35 system-ui, sans-serif; overflow:hidden; }
   body { display:flex; flex-direction:column; }
   header { background:var(--panel); border-bottom:1px solid var(--line); padding:6px 8px; display:flex; flex-direction:column; gap:5px; }
   .row { display:flex; flex-wrap:wrap; gap:5px; align-items:center; }
   .row[hidden] { display:none; }
+  /* the palette: everything placeable, one tap each (the user, 2026-11-25), one line that scrolls sideways */
+  #palRow { flex-wrap:nowrap; overflow-x:auto; gap:3px; scrollbar-width:thin; -webkit-overflow-scrolling:touch; }
+  #palRow button { flex:0 0 auto; padding:2px 6px; min-height:26px; font-size:12px; }
+  @media (min-width: 700px) { #palRow { flex-wrap:wrap; overflow-x:visible; } }   /* a wide screen shows all of it */
+  #palRow .pg { flex:0 0 auto; font-size:10px; opacity:.55; margin:0 1px 0 4px; }
   button, select, .chip { background:#22174a; color:var(--ink); border:1px solid #3a2c78; border-radius:7px; padding:5px 9px; font:inherit; cursor:pointer; min-height:32px; touch-action:manipulation; }
   button.on, .chip.on { background:#3dffb0; color:#0b0620; border-color:#3dffb0; }
   button:disabled { opacity:.4; cursor:default; }
@@ -72,6 +78,7 @@
     <button id="replayBtn" title="replay the last check's route (or your jump marks)" hidden>▶</button>
     <button id="playBtn" title="play it yourself: tap / space / click to jump, Esc to stop">🎮</button>
   </div>
+  <div class="row" id="palRow" title="one tap: every mode, gravity, size, speed, orb, pad and hazard"></div>
   <div class="row" id="penRow"></div>
   <div class="row" id="stampRow" hidden></div>
   <div class="row" id="selRow" hidden></div>
@@ -138,7 +145,7 @@ const CL = (() => { const c = window.claude || (HOST && HOST.claude); return c &
 const PENS = [
   { id: "ground", icon: "⛰", label: "ground", tip: "a surface: blocks under it down to the ground; steep bits become slopes" },
   { id: "platform", icon: "▬", label: "blocks", tip: "blocks along the line wherever it goes: platforms, walls, ceilings" },
-  { id: "spikes", icon: "▲", label: "spikes", tip: "spikes standing on the line (under a ceiling they hang)" },
+  { id: "spikes", icon: "▲", label: "hazards", tip: "a hazard along the line: spikes, and with 🧩 layout on also kill-ground and saws, whatever fits your jumps (under a ceiling they hang)" },
   { id: "deco", icon: "🖌", label: "deco", tip: "a coloured line, no hitbox" },
   { id: "jump", icon: "⤒", label: "I jump here", tip: "tap: a jump at that spot; drag sideways: hold from there to there. The plan the level is built around" },
   { id: "note", icon: "✎", label: "note", tip: "a note for Claude: never in the level" },
@@ -596,7 +603,29 @@ function buildRows() {
   }
   $("viewBtn").textContent = ui.view === "level" ? "level" : "sketch"; $("viewBtn").classList.toggle("on", ui.view === "level");
   $("decoBtn").classList.toggle("on", ui.deco); $("decoBtn").textContent = ui.deco ? "deco 👁" : "deco ⊘";
-  showSelRow(); refreshButtons(); dirty = true;
+  buildPalette(); showSelRow(); refreshButtons(); dirty = true;
+}
+// the palette bar: one tap picks the stamp (and the stamp tool), no menu to open
+const PALETTE = [
+  ["modes", ["portal:cube", "portal:ship", "portal:ball", "portal:ufo", "portal:wave", "portal:robot", "portal:spider", "portal:swing"]],
+  ["gravity", ["grav:down", "grav:up"]], ["size", ["size:mini", "size:big"]],
+  ["speed", ["speed:0.5", "speed:1", "speed:2", "speed:3", "speed:4"]],
+  ["orbs", ["orb:yellow", "orb:pink", "orb:red", "orb:blue", "orb:green", "orb:black", "orb:dash", "orb:spider"]],
+  ["pads", ["pad:yellow", "pad:pink", "pad:red", "pad:blue", "pad:spider"]],
+  ["hazards", ["spike", "small spike", "saw", "small saw", "big saw"]],
+];
+const PAL_LABEL = { "grav:down": "⇩ normal", "grav:up": "⇧ upside", "speed:0.5": "½x", "spike": "▲", "small spike": "▴", "saw": "⚙", "small saw": "⚙s", "big saw": "⚙L" };
+function buildPalette() {
+  const r = $("palRow"); r.innerHTML = "";
+  for (const [g, list] of PALETTE) {
+    r.appendChild(Object.assign(document.createElement("span"), { className: "pg", textContent: g }));
+    for (const w of list) {
+      const dot = /^(orb|pad):/.test(w), lab = PAL_LABEL[w] || (dot ? (w[0] === "o" ? "●" : "▬") + " " + w.split(":")[1] : STAMP_LABEL(w));
+      const on = ui.tool === "stamp" && ui.stamp === w, b = chip(lab, on, () => { ui.tool = "stamp"; sel = null; pickStamp(w); }, w);
+      b.style.borderColor = STAMP_COL(w); if (!on) b.style.color = STAMP_COL(w); b.dataset.pal = w;
+      r.appendChild(b);
+    }
+  }
 }
 function pickStamp(w) { ui.stamp = w; ui.recent = [w].concat(ui.recent.filter(r => r !== w)).slice(0, 6); buildRows(); save(); }
 function showSelRow() {

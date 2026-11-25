@@ -428,7 +428,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   spec key `"props"` in make.js), `tools/props.js sheet | level`. Test: `node tests/pixelart.js`.
 - **The user's drawings -> levels** (SKETCH.md: reading a drawing into a spec, then making it fair;
   the GDLM 46 lessons).
-- **The whiteboard: draw a level freehand** (DRAW.md: no grid, pens for ground / blocks / spikes / deco / "I jump here" /
+- **The whiteboard: draw a level freehand** (DRAW.md: no grid, pens for ground / blocks / hazards / deco / "I jump here" /
   notes, areas, stamps for orbs, pads, portals and props, deco shown or hidden, the song's beats and drop on the board, ✓ check
   and play; the cell-builder design): `viewer/draw.html`, **inside the viewer as ✏ draw** (key D: the board a see-through layer
   over the viewer's canvas, the viewer draws the level and replays / plays it; DRAW.md "In the viewer", `tests/viewer_draw.js`;

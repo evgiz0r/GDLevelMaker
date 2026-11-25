@@ -3018,6 +3018,9 @@ requestAnimationFrame(frame);
 // viewer drawing the level the sketch becomes (or its 🧩 layout) underneath, with the game look, at the board's camera.
 // ▶ / 🎮 on the board leave draw mode and replay / play that level here; ✏ draw goes back to the drawing.
 const DRAWM = { on: false, fr: null, last: null, lv: null };
+// while drawing, the viewer's own ▶ play and 🎮 you play leave the board first and then run the sketch (one way to play
+// it, never a replay hidden under the board)
+document.addEventListener("click", e => { if (DRAWM.on && e.target.closest && e.target.closest("#play, #youPlay")) drawMode(false); }, true);
 window.BOARDHOST = {
   get claude() { return window.claude || null; },
   view(V, rect, Hb) {   // the board's camera: V {x, y, z} in its canvas' css px; rect = its canvas in the frame
@@ -3033,6 +3036,10 @@ window.BOARDHOST = {
     // the sketch carries its song's beat grid (sk.song.grid): bars and sections show even where no grid file is
     if (song && song.url && song.grid && !(window.GD_BEATS || {})[song.url]) (window.GD_BEATS = window.GD_BEATS || {})[song.url] = song.grid;
     try { load(name, levelStr, saved, song || null); } catch (e) { console.warn("draw: the level did not load", e); return; }
+    // the sketch is the level now: the last level's build stages, sections and variants are not its own (they stayed on
+    // screen over the board and acted on that other level: the user, 2026-11-25 "something buggy with sections")
+    STG.base = STG.data = STG.cur = null; VAR.base = VAR.data = VAR.cur = null; clearTimeout(VAR.poll);
+    stageRender(); varRender();
     t = 0; playing = false; setPlay(); if (typeof summary === "function") summary();
     document.getElementById("pickName").textContent = name;
     if (DRAWM.on && DRAWM.last) BOARDHOST.view(DRAWM.last.V, DRAWM.last.rect, DRAWM.last.Hb); else if (L) draw();
@@ -3052,6 +3059,7 @@ window.BOARDHOST = {
 function drawMode(on) {
   if (on === DRAWM.on) return; DRAWM.on = on;
   const b = document.getElementById("drawBtn"); b.classList.toggle("on", on); b.textContent = on ? "✏ drawing (D: done)" : "✏ draw";
+  for (const id of ["stagebar", "secbar", "varbar"]) { const e = document.getElementById(id); if (on) { e.dataset.drawHid = e.hidden ? "" : "1"; e.hidden = true; } }
   if (on) {
     if (PLAY && PLAY.on) playStop(true); if (marking) setMarking(false); playing = false; setPlay(); syncSong(false);
     const top = cv.getBoundingClientRect().top + scrollY;
