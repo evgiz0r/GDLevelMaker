@@ -1,5 +1,7 @@
 node_modules/
 *.mp3
+# Creative Commons songs we may publish (knowledge/free_songs.md)
+!songs/free/*.mp3
 *.ogg
 local/
 viewer/levels.local.js
