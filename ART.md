@@ -541,5 +541,7 @@ we can do, for bricks, for deco. the best features so far. idk for ice/fire."
 - **Visible play first** (the user, 2026-11-25: "if you dont see a spike the timing is obviously harder"): every rung keeps
   the lane clear (lane.js clutter 0) and hazards in their own value; composition puts its weight at the lane's EDGES and
   thins behind hazards. A taste "readability" part (lane clutter + hazard contrast) is the next step in tools/taste.js.
+- **The background never reads as solid** (Two Moons mark: "solid background is confusing"): no lit-rim squares behind
+  the play, back shapes darker/softer than the path's bodies; gallery picks favour silhouettes and haze over block-like backs.
 - Composition rung 7 (first cut): focal spots at portals and mid-screen, back layers thinned to a quarter between them,
   one set piece + a light gather per spot. Bricks on the play dominate the counts, so decocomp moves little; judge by picture.
