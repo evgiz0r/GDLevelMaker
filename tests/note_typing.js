@@ -21,6 +21,11 @@ let fails = 0; const check = (c, m) => { console.log((c ? "ok   " : "FAIL ") + m
   check(after.playing === before.playing && Math.abs(after.t - before.t) < 1e-6, `the replay stays put while typing (t ${before.t} -> ${after.t}, playing ${after.playing})`);
   check(after.marking === before.marking && after.draw === before.draw && after.picker === before.picker, "mark mode, draw mode and the picker stay as they were");
   check(/more room please/.test(after.text) && / r m$/.test(after.text), "the text itself is typed: " + JSON.stringify(after.text.slice(-24)));
+  // cancel and Escape close the box, also while the replay plays
+  await p.click("#noteCancel"); check(await p.evaluate(() => document.getElementById("noteBox").hidden), "cancel closes the note box");
+  await p.evaluate(() => { playing = true; setPlay(); askNote("again"); }); await p.waitForSelector("#noteText", { state: "visible" });
+  await p.keyboard.type("a b"); await p.keyboard.press("Escape"); await p.waitForTimeout(100);
+  check(await p.evaluate(() => document.getElementById("noteBox").hidden), "Escape closes it while the replay plays");
   await b.close(); srv.kill();
   console.log(fails ? fails + " failed" : "all ok"); process.exit(fails ? 1 : 0);
 })().catch(e => { console.error(e); srv.kill(); process.exit(1); });
