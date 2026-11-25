@@ -905,7 +905,10 @@ or holds longer than needed (over 0.15 s outside ship/wave where a tap finishes)
 - OPEN: re-planning some of our levels from their saved routes flies worse than the saved route by near-wall ticks,
   with or without this change (GDLM 44: 0 -> 636 ticks today, 0 -> 932 before it, presses 15 -> 16 vs 22), and GDLM 68's
   re-plan skips a ship portal at x 14715 and takes ~11 min (cloud), and GDLM 71's re-plan takes over 30 min (also before
-  this change: the commit before it, run side by side, was still going at 40 min). Not the wave planner's (no wave stretch there is off
+  this change: the commit before it, run side by side, was still going at 40 min).
+- OPEN: GDLM 44's ship at block 206 keeps the solver's line in fly() (the easier line came 121 ticks closer to the walls),
+  but its tightest window still went 96 -> 79 ms in the re-plan: a pass after fly() (early / spreadPresses / mergeLegs)
+  moved a press there. Those passes do not check the tightest window yet. Not the wave planner's (no wave stretch there is off
   pattern); the fly()/solveFrom re-plan of the ship stretches. Nothing is saved by flystyle; solutions.js keeps a saved
   route whose re-plan skips.
 
