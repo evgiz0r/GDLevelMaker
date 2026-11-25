@@ -126,6 +126,7 @@
 <script src="../lib/props.js"></script>
 <script src="../lib/sketch.js"></script>
 <script src="../lib/sketchfit.js"></script>
+<script src="../lib/intent.js"></script>
 <script src="draw_songs.js" onerror="window.DRAW_SONGS = {}"></script>
 <script src="../local/beats.local.js" onerror="window.GD_BEATS = {}"></script>
 <script src="song_grids.js"></script>
@@ -146,6 +147,7 @@ const CL = (() => { const c = window.claude || (HOST && HOST.claude); return c &
 
 // ---- pens, stamps, colours ----
 const PENS = [
+  { id: "auto", icon: "✨", label: "draw", tip: "one pen: draw where the player goes (a path) or what is there (a shape). A path becomes bricks and corridors that follow it, a shape snaps to the nearest structure; both come with their presses, so it plays at once" },
   { id: "ground", icon: "⛰", label: "ground", tip: "a surface: blocks under it down to the ground; steep bits become slopes" },
   { id: "platform", icon: "▬", label: "blocks", tip: "blocks along the line wherever it goes: platforms, walls, ceilings" },
   { id: "spikes", icon: "▲", label: "hazards", tip: "a hazard along the line: spikes, and with 🧩 layout on also kill-ground and saws, whatever fits your jumps (under a ceiling they hang)" },
@@ -172,7 +174,7 @@ let store = LS.get("sketches", {}), curId = LS.get("current", null);
 function blank(name) { return { v: 1, id: "s" + Date.now().toString(36), name: name || "sketch " + new Date().toISOString().slice(5, 16).replace("T", " "), speed: 1, song: { url: "/song/custom/343707.mp3", offset: 0 }, items: [], deaths: [], updated: Date.now() }; }
 let sk = store[curId] || null;
 if (!sk) { sk = blank(); store[sk.id] = sk; curId = sk.id; }
-const ui = Object.assign({ tool: "pen", pen: "ground", col: 0, w: 1, front: false, stamp: "orb:yellow", recent: ["orb:yellow", "orb:pink", "portal:ship", "spike", "prop:tree", "prop:cloud"], view: "sketch", deco: true, beats: true, loud: true, guides: false }, LS.get("ui", {}));
+const ui = Object.assign({ tool: "pen", pen: "auto", col: 0, w: 1, front: false, stamp: "orb:yellow", recent: ["orb:yellow", "orb:pink", "portal:ship", "spike", "prop:tree", "prop:cloud"], view: "sketch", deco: true, beats: true, loud: true, guides: false }, LS.get("ui", {}));
 ui.view = "sketch";
 const V = Object.assign({ x: -60, y: -45, z: 0 }, LS.get("view." + sk.id, {}));
 let W = 0, H = 0, DPR = 1, dirty = true, conv = null, convFor = null, sel = null, undo = [], redo = [];
@@ -396,6 +398,7 @@ function penStyle(it) {
   if (it.pen === "ground") return { c: "#7fb0ff", w: 4 };
   if (it.pen === "platform") return { c: "#b9d0ff", w: 6 };
   if (it.pen === "spikes") return { c: "#ff3b6b", w: 3 };
+  if (it.pen === "auto") return { c: "rgba(255,255,255,.35)", w: 2 };
   if (it.pen === "deco") { const c = it.col || [255, 255, 255]; return { c: `rgb(${c})`, w: Math.max(1, (it.w || 7) * V.z), world: true }; }
   return { c: "#ffe14d", w: 3 };
 }
@@ -408,7 +411,8 @@ function drawItem(it) {
       ctx.lineTo(sx(l[0]), sy(0)); ctx.lineTo(sx(f[0]), sy(0)); ctx.closePath(); ctx.fill();
     }
     ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.strokeStyle = st.c; ctx.lineWidth = st.w;
-    if (it.pen === "note") ctx.setLineDash([8, 6]);
+    if (it.pen === "auto" && it.built) for (const o of it.built) drawObj(o, {});   // what the ✨ line became
+    if (it.pen === "note" || it.pen === "auto") ctx.setLineDash([8, 6]);
     path(it.pts); if (it.pts.length === 1) ctx.lineTo(sx(it.pts[0][0]) + 0.1, sy(it.pts[0][1])); ctx.stroke(); ctx.setLineDash([]);
     if (it.pen === "spikes") for (const p of SK.walk(it.pts, 30, 15)) {   // little teeth along it
       let nx = -p.dy, ny = p.dx; if (ny < 0) { nx = -nx; ny = -ny; } if (it.flip) { nx = -nx; ny = -ny; }
@@ -554,7 +558,22 @@ function finishStroke() {
   const it = cur; cur = null; if (!it) return;
   it.pts = SK.simplify(it.pts, 1.2 / V.z).map(p => [p[0], p[1]]);
   if (it.pen === "ground" && it.pts.length > 1 && it.pts[0][0] > it.pts[it.pts.length - 1][0]) it.pts.reverse();
-  snapshot(); sk.items.push(it); changed();
+  snapshot(); sk.items.push(it);
+  if (it.pen === "auto") { autoStroke(it); return; }
+  changed();
+}
+// ✨ one pen (DRAW.md "One pen: path or shape"): the brick set loads the first time it is used (~0.9 MB)
+function bricks(then) {
+  if (window.GD_BRICKS) return then(window.GD_BRICKS);
+  const sc = document.createElement("script"); sc.src = "bricks.js"; sc.onload = () => then(window.GD_BRICKS || []); sc.onerror = () => then([]); document.head.appendChild(sc);
+  msg("✨ loading the bricks…");
+}
+function autoStroke(it) {
+  bricks(B => {
+    let r; try { r = GD.INTENT.apply(sk, it, B); } catch (e) { r = { note: "✨ " + e.message, placed: [] }; }
+    if (!r.placed.length) { const i = sk.items.indexOf(it); if (i < 0) sk.items.push(Object.assign(it, { pen: "note", text: "✨ " + (r.note || "nothing fits") })); }
+    msg("✨ " + r.why + ": " + r.note, 5000); changed();
+  });
 }
 function moveItem(it, dx, dy) { if (it.k === "press" && it.x1 != null) it.x1 = +(it.x1 + dx).toFixed(1); if (it.k === "stroke") it.pts = it.pts.map(p => [+(p[0] + dx).toFixed(1), +(p[1] + dy).toFixed(1)]); else { it.x = +(it.x + dx).toFixed(1); it.y = +(it.y + dy).toFixed(1); } }
 function eraseAt(x, y) { const i = hitItem(x, y, 8 / V.z); if (i >= 0) { sk.items.splice(i, 1); drag.any = true; sel = null; showSelRow(); changed(); } }

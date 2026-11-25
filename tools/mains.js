@@ -4,6 +4,7 @@
 //     ok      the human route clears and takes every portal (the raw solve may be stale: nothing uses it then)
 //     replan  the raw solve still clears, only the human route fails (or is a fallback "humanize"): --replan
 //     resume  the raw solve dies (or skips a portal) on today's physics: --resume from a bit before the trouble
+// node tools/mains.js own <n> "<who>" | free <n>  -- a level another session is solving: shown, never given a job here.
 // node tools/mains.js run [n ...] [--dry]   -- does those jobs one after another (cheap replans first, then resumes),
 //   each a tools/difficulty_solve.js run at heavy priority "urgent" (the user, 2026-11-24: "If we have it failed then
 //   its highest priority"), so a failed main level goes ahead of every other waiting heavy job. One runner at a time
@@ -48,6 +49,10 @@ const fmt = p => p.done ? (p.skip ? "skips " + p.skip : "clears") : "dies " + p.
 function status() {
   const out = [];
   for (let n = 1; n <= 22; n++) { try { out.push(stateOf(n)); } catch (e) { out.push({ n, name: NAMES[n], need: "resume", error: String(e.message).split("\n")[0] }); } }
+  // a level another session owns (local/mains/owned.json: { "22": "the Dash thread" }, edited by hand or `mains.js own`)
+  // is shown but never given a job here: its own solve is running
+  const owned = readJ(path.join(DIR, "owned.json")) || {};
+  for (const s of out) if (owned[s.n] && s.need !== "ok") { s.owner = owned[s.n]; s.need = "owned"; }
   fs.mkdirSync(DIR, { recursive: true });
   fs.writeFileSync(path.join(DIR, "status.json"), JSON.stringify({ at: new Date().toISOString(), levels: out }, null, 1));
   return out;
@@ -64,7 +69,7 @@ function run(only, dry) {
   const done = new Set();
   try {
     for (let round = 0; round < 3; round++) {   // re-check after a pass: physics may have moved again meanwhile
-      const all = status().filter(s => s.need !== "ok" && (!only.length || only.includes(s.n)));
+      const all = status().filter(s => s.need !== "ok" && s.need !== "owned" && (!only.length || only.includes(s.n)));
       const st = all.filter(s => !done.has(s.n + s.need));
       if (!st.length) {
         // what a resume could not fix on this physics is an open physics lead (PHYSICS.md), not a solver gap
@@ -98,6 +103,7 @@ function run(only, dry) {
     // the all-coins routes (DIFFICULTY.md "Coin routes"), after the plain ones and at low priority: a level whose coin route
     // does not clear with every coin gets a resume (from its plain route when it has none); one try per physics commit
     if (!only.length || process.argv.includes("--coins")) coinPass(only);
+    exportRoutes(true);
   } finally { if (!dry) { const r = readJ(path.join(DIR, "runner.json")); if (r && r.pid === process.pid) fs.unlinkSync(path.join(DIR, "runner.json")); } }
 }
 
@@ -147,6 +153,9 @@ function replanAll(ns) {
     env: Object.assign({}, process.env, { GDLM_HEAVY_PRIORITY: prio }), maxBuffer: 64 << 20 });
     return String(r.stdout || "").split("\n").filter(l => l.trim() && !/^heavy|waiting|^ {4}[A-Z]/.test(l)).join("\n"); };
   for (const n of order) {
+    const own = (readJ(path.join(DIR, "owned.json")) || {})[n];
+    if (own) { fs.appendFileSync(out, `=== ${n} ${NAMES[n]}: skipped, owned by ${own}
+`); continue; }
     const prio = FLY.includes(n) ? "normal" : "low";
     const before = fly(n, prio);
     const r = job("replan", ["difficulty_solve.js", String(n), "--replan"], prio);
@@ -154,6 +163,41 @@ function replanAll(ns) {
     job("tight", ["tight.js", String(n), "--fix"], prio);
     fs.appendFileSync(out, `=== ${n} ${NAMES[n]} (${new Date().toISOString()})\n--- before\n${before}\n--- replan: ${String(r.stdout || "").trim().split("\n").filter(l => /^\d+:/.test(l)).pop() || "?"}\n--- after\n${after}\n`);
   }
+  exportRoutes(true);
+}
+
+// `mains.js export [--push]`: the 22 main levels' routes into git, knowledge/mains/routes.json (the user, 2026-11-25: "why
+// dont we put the solutions on git?"). Press timings only -- our solver's output, no RobTop level data: per level its
+// human route (events), the raw solve (raw), the all-coins human route when there is one (coins), a hash of the level text
+// it was solved on and the physics commit. Same format as tools/mains_routes.js (PR #2: `import` replays them on a new PC's
+// own game). --push commits just that file and pushes. run and replan do it at their end.
+function exportRoutes(push) {
+  const crypto = require("crypto"), sha = t => crypto.createHash("sha1").update(t).digest("hex").slice(0, 12);
+  const out = { note: "Human routes (press timings) for RobTop's 22 main levels, made by our solver. No level data: the levels come from the player's own game (tools/mains_routes.js import, SETUP.md).", exported: new Date().toISOString(), levels: [] };
+  for (let n = 1; n <= 22; n++) {
+    const o = readJ(path.join(ROOT, "local", `official_${tag(n)}.json`));
+    if (!o || !o.solution || !o.solution.events) continue;
+    const raw = readJ(path.join(ROOT, "local", "difficulty", tag(n) + ".json")), c = readJ(path.join(ROOT, "local", `official_${tag(n)}_coins.json`));
+    const row = { n, name: NAMES[n], levelSha: sha(o.level), physics: o.physics || null, ok: !!o.solution.ok, kind: o.solution.kind || null, events: o.solution.events };
+    if (raw && raw.events) row.raw = { ok: !!raw.ok, physics: raw.physics || null, events: raw.events };
+    if (c && c.solution && c.solution.events) row.coins = { ok: !!c.solution.ok, kind: c.solution.kind || null, physics: c.physics || null, events: c.solution.events };
+    out.levels.push(row);
+  }
+  const file = path.join(ROOT, "knowledge", "mains", "routes.json");
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  const prev = fs.existsSync(file) ? fs.readFileSync(file, "utf8") : "";
+  const strip = t => t.replace(/"exported":"[^"]*",?/, "");
+  const next = JSON.stringify(out);
+  if (strip(prev) === strip(next)) { log("mains: export: routes unchanged"); return; }
+  fs.writeFileSync(file, next);
+  log(`mains: export: ${out.levels.length} routes -> knowledge/mains/routes.json`);
+  if (!push) return;
+  const git = a => cp.execFileSync("git", a, { windowsHide: true, cwd: ROOT, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+  try {
+    git(["add", "knowledge/mains/routes.json"]);
+    git(["commit", "-m", "knowledge/mains/routes.json: main levels' routes re-exported by tools/mains.js", "--", "knowledge/mains/routes.json"]);
+    for (let i = 0; i < 4; i++) { try { git(["pull", "-q", "--no-edit", "origin", "main"]); git(["push", "-q", "origin", "HEAD:main"]); log("mains: export: pushed"); return; } catch (e) { if (i === 3) throw e; } }
+  } catch (e) { log("mains: export: commit/push failed: " + String(e.message).split("\n")[0]); }
 }
 
 // serve.js calls this after a self-update// serve.js calls this after a self-update: start a detached runner when the update touched route code
@@ -177,5 +221,11 @@ if (require.main === module) {
     const r = runner(); if (r) console.log(`runner working: pid ${r.pid} since ${r.since}`);
   } else if (a[0] === "run") run(nums, a.includes("--dry"));
   else if (a[0] === "replan") replanAll(nums);
+  else if (a[0] === "export") exportRoutes(a.includes("--push"));
+  else if (a[0] === "own" || a[0] === "free") {   // mains.js own <n> "<who>" | free <n>: another session owns a level's solve
+    const f = path.join(DIR, "owned.json"), o = readJ(f) || {};
+    if (a[0] === "own") o[nums[0]] = a.slice(2).join(" ") || "another session"; else delete o[nums[0]];
+    fs.mkdirSync(DIR, { recursive: true }); fs.writeFileSync(f, JSON.stringify(o, null, 1)); console.log(JSON.stringify(o));
+  }
   else { console.log(fs.readFileSync(__filename, "utf8").split("\n").slice(0, 10).join("\n")); process.exit(1); }
 }
