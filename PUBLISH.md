@@ -125,6 +125,16 @@ keys from an older save or backup with `--ids-from <file.dat>`
 with one record that has the ID back. Tested in `tests/install_keeps_id.js`; used 2026-11-24 with
 `CCLocalLevels.before-cleanup.2026-11-24T17-29-33-529Z.dat`.
 
+## Song and length on install (2026-11-25)
+
+A custom song shows "Unknown" in the level's page until the song's info is in the game's own song list
+(CCGameManager.dat, `MDLM_001`): GDLM 72 FROSTBITE used Dot (1290936), a song the user had never picked, and GD showed
+"Unknown" and would not play or upload it. `tools/install.js` now adds every installed level's song to that list (from GD's
+song server getGJSongInfo, local/songs/<id>.json as the fallback; CCGameManager.dat backed up to gdlm_backups first; a
+song already listed is left alone). It also writes the length label k23 from the level's real time (0 Tiny < 10 s,
+1 Short < 30, 2 Medium < 60, 3 Long < 120, 4 XL): lib/gd.js newRecord writes 1, so every level showed "Short".
+Open: GD's key 9 in a song entry (a number that differs per song) is left out; GD has not complained.
+
 ## Install queue: levels go into the save the moment GD closes
 
 install.js refuses while GD runs (GD rewrites the save on exit), so levels used to wait for hours.
