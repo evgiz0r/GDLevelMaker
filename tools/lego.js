@@ -128,6 +128,7 @@ let TARGET = 2.2, MINS = 0.6, SLACK = 0.5;
 // a brick: 2-6 presses, cut in the longest pause between presses that keeps the count in range (the user, 2026-11-25:
 // "not even whole screen length [...] short ones. with like 2-6 clicks"). Within one mode stretch; a stretch with fewer
 // than 2 presses is one brick if it lasts 0.35 s or more.
+const PAUSE_S = 0.6;   // see cutBricks
 function cutBricks(r, inputs, o) {
   const p = r.path, out = [];
   if (!p.length || r.midline) return out;
@@ -142,13 +143,21 @@ function cutBricks(r, inputs, o) {
     // groups of 2-6 presses, split in the longest pause; a brick runs from a little before its first press (0.3 s, or half
     // the pause before) to a little after its last (0.45 s -- the landing --, or half the pause after): long walks
     // between bricks are left out
-    const groups = []; let k = 0;
-    while (k < ps.length) {
-      const left = ps.length - k;
-      if (left <= 6) { groups.push([k, ps.length - 1]); break; }
-      let best = -1, bj = 2;
-      for (let j = 2; j <= 6 && k + j < ps.length; j++) { if (ps.length - (k + j) < 2) break; const g = (ps[k + j] - ps[k + j - 1]) * (j <= 3 ? 1 : j === 4 ? 0.75 : 0.55); if (g > best) { best = g; bj = j; } }   // short bricks preferred
-      groups.push([k, k + bj - 1]); k += bj;
+    // a brick never holds a long empty stretch (Evgeni 2026-11-25 on ToE 586: "the structure itself is like 1/10 of the
+    // window"): presses first split into runs at pauses over PAUSE_S; a lone press is a one-press brick (a single jump
+    // over a gap is a real piece); each longer run is grouped into 2-6 presses as before
+    const runs = []; { let a = 0; for (let j = 1; j <= ps.length; j++) if (j === ps.length || (ps[j] - ps[j - 1]) / TPS > PAUSE_S) { runs.push([a, j - 1]); a = j; } }
+    const groups = [];
+    for (const [ra, rb] of runs) {
+      if (ra === rb) { groups.push([ra, rb]); continue; }
+      let k = ra; const end = rb + 1;
+      while (k < end) {
+        const left = end - k;
+        if (left <= 6) { groups.push([k, end - 1]); break; }
+        let best = -1, bj = 2;
+        for (let j = 2; j <= 6 && k + j < end; j++) { if (end - (k + j) < 2) break; const g = (ps[k + j] - ps[k + j - 1]) * (j <= 3 ? 1 : j === 4 ? 0.75 : 0.55); if (g > best) { best = g; bj = j; } }   // short bricks preferred
+        groups.push([k, k + bj - 1]); k += bj;
+      }
     }
     // auto bricks: 0.8 s or more with no press where the level moves the player itself (pads, gravity / mode / speed
     // portals, or a rise or fall of 3+ blocks) -- the user, 2026-11-25: "sections without clicks but with interesting
@@ -335,7 +344,7 @@ function measure(src, w, r, inputs, i0, i1) {
   // world position (a state inside rotated gameplay steps in its frame's coordinates: GD.worldXY turns it back; the
   // user's "something weird with paths", 2026-11-25). A teleport is a real jump: the page breaks the line there.
   const wxy = s => GD.worldXY ? GD.worldXY(s) : [s.x, s.y], wa = wxy(a)[0] - xa;
-  P.path = []; for (let i = i0; i <= i1; i += step) { const [wx, wy] = wxy(p[i]); P.path.push([r1((wx - wa - xa) / B), r1(wy / B), r2(r.midline ? (p[i].x - xa) / 311.58 : (p[i].tick - a.tick) / TPS),
+  P.path = []; for (let i = i0; i <= i1; i += step) { const [wx, wy] = wxy(p[i]); P.path.push([r2((wx - wa - xa) / B), r2(wy / B), r2(r.midline ? (p[i].x - xa) / 311.58 : (p[i].tick - a.tick) / TPS),
     Math.max(0, MODES.indexOf(p[i].mode)), p[i].grav < 0 ? -1 : 1, vr ? Math.round(vr[i - i0]) : 0, p[i].grounded ? 1 : 0, p[i].mini ? 1 : 0]); }
   P.colors = levelColours(src, r, a);
   // which route the piece was cut from (the solver thread, 2026-11-25): its kind ("human" = lib/natural.js planned it,
