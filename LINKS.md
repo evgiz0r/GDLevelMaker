@@ -40,3 +40,7 @@ phone over the home wifi, and on the phone page from anywhere.
 - Whether claude.ai passes the short hash into the Artifact's frame on the phone. If it does not, the 🔗 open link box
   is the way in. Test it once the page is republished, then write the answer here.
 - The LAN link from the user's phone (never tried). serve.js serves the LAN on purpose: it lets in only private addresses, and only the viewer's files (VIEWER.md "On the home Wi-Fi"). `tools/link.js --md` adds the home Wi-Fi link beside the phone page's.
+
+## View options in a link (2026-11-25)
+`&z=0.5` opens the level zoomed out (0.25-3), `&beats=1` with the beat lines on (`&beats=0` off). `node tools/link.js <level> --zoom 0.5 --beats`.
+Use them whenever a level is shown to the user to look at and mark (CLAUDE.md "Every level you name comes with its link").

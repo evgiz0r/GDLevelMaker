@@ -1,4 +1,5 @@
-// node tools/link.js <level file | wip base | name> [--t 40] [--v 5] [--run <attempt id>] [--md]
+// node tools/link.js <level file | wip base | name> [--t 40] [--v 5] [--run <attempt id>] [--zoom 0.5] [--beats] [--md]
+//   --zoom / --beats: the view the link opens in (zoomed out, beat lines on), for the user to look and mark there
 // Links that open a level at a version, a moment and optionally one of the user's runs (LINKS.md). Every session that
 // names a level in a report gives these (CLAUDE.md). Prints:
 //   phone: <phone page>#<base>--v5--t40          (works anywhere: the Artifact keeps a plain #name; local/phone/url.txt)
@@ -44,7 +45,7 @@ function lanIp() {
 }
 function links(w, o = {}) {
   const L = find(w), v = o.v || L.version, t = o.t != null ? +o.t : 0;
-  const long = "#lv=" + encodeURIComponent(L.file) + (v ? "&v=" + v : "") + (t ? "&t=" + t : "") + (o.run ? "&run=" + encodeURIComponent(o.run) : "");
+  const long = "#lv=" + encodeURIComponent(L.file) + (v ? "&v=" + v : "") + (t ? "&t=" + t : "") + (o.run ? "&run=" + encodeURIComponent(o.run) : "") + (o.z ? "&z=" + o.z : "") + (o.beats ? "&beats=1" : "");
   const short = "#" + L.base + (v ? "--v" + v : "") + (t ? "--t" + t : "") + (o.run ? "--r" + o.run : "");
   let phone = null; try { phone = fs.readFileSync(path.join(ROOT, "local", "phone", "url.txt"), "utf8").trim() + short; } catch (e) {}
   const ip = lanIp();
@@ -53,7 +54,7 @@ function links(w, o = {}) {
 module.exports = { links };
 if (require.main === module) {
   if (!args.length || args[0].startsWith("--")) { console.log(fs.readFileSync(__filename, "utf8").split("\n").filter(l => l.startsWith("//")).join("\n")); process.exit(1); }
-  const r = links(args[0], { t: opt("--t"), v: opt("--v") ? +opt("--v") : 0, run: opt("--run") });
+  const r = links(args[0], { t: opt("--t"), v: opt("--v") ? +opt("--v") : 0, run: opt("--run"), z: opt("--zoom"), beats: args.includes("--beats") });
   if (r.level.unknown) console.log(`(no level file found for ${args[0]}: the links use the name as given)`);
   if (args.includes("--md")) console.log(`[${r.level.base}${r.level.version ? " v" + r.level.version : ""}](${r.phone || r.pc})` + (r.lan ? ` ([home Wi-Fi, full viewer](${r.lan}))` : ""));
   else { if (r.phone) console.log("phone: " + r.phone); console.log("pc:    " + r.pc); if (r.lan) console.log("lan:   " + r.lan); }

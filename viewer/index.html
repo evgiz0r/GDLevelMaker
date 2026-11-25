@@ -2765,7 +2765,7 @@ function writeHash() { const l = ALL[pick.value]; if (!l || !L) return; history.
 // newest; a version that is gone says so.
 function parseLink(s) {
   s = String(s || "").trim(); const i = s.indexOf("#"); if (i >= 0) s = s.slice(i + 1); if (!s) return null;
-  if (/(^|&)lv=/.test(s)) { const h = new URLSearchParams(s); return { file: h.get("lv"), v: +h.get("v") || 0, t: +h.get("t") || 0, run: h.get("run") || "" }; }
+  if (/(^|&)lv=/.test(s)) { const h = new URLSearchParams(s); return { file: h.get("lv"), v: +h.get("v") || 0, t: +h.get("t") || 0, run: h.get("run") || "", z: +h.get("z") || 0, beats: h.get("beats") }; }
   const parts = s.split("--"), out = { base: parts[0], v: 0, t: 0, run: "" };
   for (const p of parts.slice(1)) { let m; if ((m = /^v(\d+)$/.exec(p))) out.v = +m[1]; else if ((m = /^t([\d.]+)$/.exec(p))) out.t = +m[1]; else if ((m = /^r([\w-]+)$/.exec(p))) out.run = m[1]; }
   return /^[\w.-]+$/.test(out.base) ? out : null;
@@ -2786,6 +2786,10 @@ function openLink(s) {
   const l = ALL[i];
   if (q.v && l.version && +l.version !== q.v) notice(`That link was for version ${q.v}; this is version ${l.version} (the newest here).`, 6000);
   const before = L; pick.value = i; pick.wantT = q.t; pick.onchange();
+  // a link may set the view (Evgeni, 2026-11-25: "open in that view i can mark, and its bit zoomed out"): &z=0.5 zooms the
+  // level out, &beats=1 shows the beat lines; ✎ mark works as usual in that view
+  if (q.z) vzSet(q.z);
+  if (q.beats != null) { showBeats = q.beats === "1"; const bb = document.getElementById("beatsBtn"); if (bb) bb.classList.toggle("on", showBeats); }
   // the level may open later (unpacked, fetched, its route replayed): seek once it is the one on screen -- a NEW load of it,
   // not the copy that was showing (a link to the level already open seeked the old one, then the load reset t and the run)
   const want = l.name; let tries = 0;
