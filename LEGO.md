@@ -362,6 +362,20 @@ paths", and "what we could cut from start or the end, like checkpoints where we 
 - Open: the wave routes of the main levels still tap a lot in corridors (Evgeni: "thats obviously not the human path");
   that comes from lib/natural.js's wave controller (step 3b merges legs only within a 15 s budget per level).
 
+## Variants: every brick reversed or upside down (Evgeni 2026-11-25, not built yet)
+
+Evgeni: "all our structures can be reversed with reverse portal, so its double the options in a way (just need to be
+careful of other reverse portals in the path)". A brick played backwards (the player runs -X after a reverse) is the same
+brick mirrored left to right, with the same presses; our sim runs reversed gameplay as frame hd 1 (lib/physics.js "Rotated
+gameplay", PHYSICS.md), so a reversed brick can be checked like any other. Likewise upside down (gravity portal): the brick
+mirrored top to bottom. So each brick gives up to four variants: as is, reversed, upside down, both.
+- The picker treats a variant as a choice of the same brick (votes and difficulty carry over), and checks the variant's
+  join in the sim, never assumes it.
+- Careful (Evgeni): another reverse in the path flips it back, so a reversed stretch needs its own reverse out and no
+  stray reverse inside it; while reversed the camera and the music still run forward, and the level's x runs back over
+  what was built before (no overlap with earlier bricks, the filler must keep the two apart).
+- Open: the main levels' own reversed stretches (Fingerdash, Dash use turns) as a check of how RobTop does it.
+
 ## Open
 
 - Compose does not place fly pieces from the catalogue yet: ship / wave / swing sections still use ship-tunnel /
