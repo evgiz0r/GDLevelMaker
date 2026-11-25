@@ -195,7 +195,7 @@
   <button id="hit">hitboxes</button>
   <button id="cmpBtn" hidden title="a frame of your recording next to the replay (needs tools/serve.js)">compare</button>
   <button id="markBtn" title="pause, then click where something should change (key M)">✎ mark</button>
-  <button id="sound" class="on">click sound</button>
+  <button id="sound" class="on" title="a click on each press of the replay">click sound</button><select id="soundKind" title="what the click sounds like: a mouse button, a mechanical key, or the old beep"><option value="mouse">🖱 mouse</option><option value="keyboard">⌨ keyboard</option><option value="beep">beep</option></select>
   <button id="music" class="on">music</button><label class="btn" id="addSongPc" hidden>add song<input id="songFilePc" type="file" accept="audio/*,.mp3,.ogg,.m4a,.wav" hidden></label>
   <button id="lightBtn" title="light mode: no GD art, no beat lines -- for a slow moment (the PC busy, the phone)">light</button>
   <button id="beatsBtn" class="on" title="beat grid of the level's song (songs on this PC, from tools/beats.js)">beats</button>
@@ -239,6 +239,7 @@
 <script src="../lib/physics.js"></script>
 <script src="../lib/sync.js"></script>
 <script src="../lib/look.js"></script>
+<script src="../lib/clicks.js"></script>
 <script src="../lib/camera.js"></script>
 <script src="../lib/vfx.js"></script>
 <script src="../lib/objects_art.js"></script>
@@ -1786,6 +1787,22 @@ document.getElementById("youPlay").onclick = e => { e.currentTarget.blur(); PLAY
 document.getElementById("practiceBtn").onclick = e => { e.currentTarget.blur(); PLAY.practice = !PLAY.practice; try { localStorage.setItem("gdlm.practice", PLAY.practice ? "1" : "0"); } catch (err) {} playButtons(); };
 
 let actx = null;
+// the click sound (the user, 2026-11-25: "can we do the click sound as a keyboard/mouse click?"): lib/clicks.js's
+// self-made mouse / keyboard samples, a press and its release each their own sound; "beep" is the old square wave
+let CLICK_KIND = "mouse"; try { CLICK_KIND = localStorage.getItem("gdlm.clickKind") || "mouse"; } catch (e) {}
+const CLICKBUF = {};
+function clickSound(type) {
+  if (!sound || MUTED) return;
+  if (CLICK_KIND === "beep" || !GD.CLICKS) { if (type !== "release") beep(); return; }
+  actx = actx || new AudioContext();
+  const key = CLICK_KIND + actx.sampleRate;
+  if (!CLICKBUF[key]) { const S = GD.CLICKS.samples(CLICK_KIND, actx.sampleRate), mk = a => { const b = actx.createBuffer(1, a.length, actx.sampleRate); b.copyToChannel(a, 0); return b; };
+    CLICKBUF[key] = { down: S.down.map(mk), up: S.up.map(mk), n: 0 }; }
+  const B = CLICKBUF[key], src = actx.createBufferSource(), g = actx.createGain();
+  src.buffer = (type === "release" ? B.up : B.down)[B.n++ % 4]; g.gain.value = 0.5;
+  src.connect(g).connect(actx.destination); src.start();
+}
+{ const sk = document.getElementById("soundKind"); sk.value = CLICK_KIND; sk.onchange = () => { CLICK_KIND = sk.value; try { localStorage.setItem("gdlm.clickKind", CLICK_KIND); } catch (e) {} if (!sound && !MUTED) { sound = true; document.getElementById("sound").classList.add("on"); } clickSound("press"); setTimeout(() => clickSound("release"), 90); sk.blur(); }; }
 function beep() {
   if (!sound || MUTED) return;
   actx = actx || new AudioContext();
@@ -2523,8 +2540,8 @@ function frame(now) {
     }
     if (PLAY && PLAY.on) { playFrame(); syncSong(false); draw(); requestAnimationFrame(frame); return; }
     const k = tick();
-    let clicks = 0; for (const c of L.sol.clicks) if (c.type === "press" && c.tick > lastTick && c.tick <= k) clicks++;
-    if (clicks && k - lastTick < P.TPS / 4) beep(); // one beep a frame at most, none after a jump
+    let clicks = 0, ups = 0; for (const c of L.sol.clicks) if (c.tick > lastTick && c.tick <= k) { if (c.type === "press") clicks++; else if (c.type === "release") ups++; }
+    if (k - lastTick < P.TPS / 4) { if (clicks) clickSound("press"); else if (ups) clickSound("release"); } // one click a frame at most, none after a jump
     lastTick = k;
     if (k >= L.path.length - 1) { const et = endTime(); if (et == null || t >= et + END_LEN) { playing = false; setPlay(); } }   // a clear plays its end (endFx)
     syncSong(false);
@@ -2661,7 +2678,7 @@ hdrIcons();
   if (cb && cmpEl) { ctx.appendChild(cb); const sync = () => { cb.hidden = cmpEl.hidden; }; sync(); new MutationObserver(sync).observe(cmpEl, { attributes: true, attributeFilter: ["hidden"] }); }
   const chip = document.getElementById("taskChip"); if (chip) hdr.insertBefore(chip, document.getElementById("viewBtn")); }
 { const menu = document.getElementById("viewMenu"), vb = document.getElementById("viewBtn");
-  const extras = [...document.querySelectorAll("header [data-speed]"), document.getElementById("file").parentElement, ...["lookBtn", "artBtn", "mapBtn", "hit", "cmpBtn", "sound", "music", "addSongPc", "lightBtn", "beatsBtn", "windowsBtn", "legendBtn", "camBtn"].map(id => document.getElementById(id))].filter(Boolean);
+  const extras = [...document.querySelectorAll("header [data-speed]"), document.getElementById("file").parentElement, ...["lookBtn", "artBtn", "mapBtn", "hit", "cmpBtn", "sound", "soundKind", "music", "addSongPc", "lightBtn", "beatsBtn", "windowsBtn", "legendBtn", "camBtn"].map(id => document.getElementById(id))].filter(Boolean);
   for (const e of extras) menu.appendChild(e);
   // the whiteboard (viewer/draw.html, DRAW.md): where this viewer itself is served (the PC, the home Wi-Fi, a file)
   if (location.protocol === "file:" || /^(localhost|127\.|192\.168\.|10\.)/.test(location.hostname)) {
@@ -2924,7 +2941,10 @@ async function shootVideo(job, post) {
     const tt = t0 + i / fps; t = endT != null ? tt : Math.min(tt, end); window.VCLOCK = tt * 1000; drawDt = 1 / fps; draw();
     await post("f" + String(i).padStart(5, "0") + ".jpg", cv.toDataURL("image/jpeg", v.quality || 0.88));
   }
-  await post("done", JSON.stringify({ frames: n, from: t0, to: t1, fps, ms: Math.round(performance.now() - T0), end }));
+  // the presses and releases in video seconds, for tools/video.js --clicks (a click track under the song)
+  const evs = L.ghost && L.ghost.events ? L.ghost.events : (L.sol.clicks || []);
+  const clicks = evs.filter(e => e.type === "press" || e.type === "release").map(e => ({ t: +(e.tick / P.TPS - t0).toFixed(4), type: e.type })).filter(c => c.t >= 0 && c.t <= t1 - t0);
+  await post("done", JSON.stringify({ frames: n, from: t0, to: t1, fps, ms: Math.round(performance.now() - T0), end, clicks }));
 }
 async function shootRun() {
   const job = await (await fetch("/shoot/job/" + SHOOT + ".json", { cache: "no-store" })).json();

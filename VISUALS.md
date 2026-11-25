@@ -196,7 +196,8 @@ takes the options (job.pcts, label, layers, decoOnly).
 
 ## Video (tools/video.js, 2026-11-24)
 
-`node tools/video.js <level> [--run <id | last> | --route] [--from s --to s] [--fps 60] [--size 1280x720] [--vs-rec]`
+`node tools/video.js <level> [--run <id | last> | --route] [--from s --to s] [--fps 60] [--size 1280x720] [--vs-rec] [--clicks mouse|keyboard]`
+`--clicks`: a click on each press and release (lib/clicks.js, self-made samples) mixed under the song, like the click-sound bots players use (2026-11-25).
 -> `local/video/<level>[_run_<id>].mp4`, LOCAL ONLY (GD's art and the song are in it). It renders the viewer's shoot mode
 headless (test=1, hidden) on a virtual clock (`job.video`, `window.VCLOCK`): every frame is exactly 1/fps apart whatever
 the render speed. The camera eases as in the page, the death burst plays, and a run is drawn with the user's own icon. Frames
