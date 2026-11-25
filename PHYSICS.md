@@ -543,6 +543,19 @@ step. `node tools/probe.js result [n]` compares a log with our sim's run of the 
   +1 jumps are the ones made by a held button on landing (GD jumps no sooner than the step after a landing, see
   "Landing buffer"), the 0s are fresh presses. The probe log has the presses: split the jumps by "button already
   down" to settle it.
+- **Clubstep, the user's first attempt from the start (2026-11-25, `node tools/probe.js diff 15`: the attempt's OWN presses
+  replayed in our sim):** the sim dies 1 step and 1.1 unit after the game (game: step 2445, x 3174.4; sim: 2446, 3175.5),
+  so over 10 s the sim follows the game closely. The partings, in order:
+  - step 225 (0.94 s): a fresh press, the game's jump starts one step after the sim's (game vy 11.180 when the sim is
+    already at 10.964). Of the 24 jumps paired: fresh presses 0 x9, +1 x8; held through a landing 0 x5, +1 x1. **So the
+    one-step-late jump is NOT the held-vs-fresh split** (fresh presses are late as often as on time); open what decides it.
+  - step 1121 (4.67 s): the first height gap over 0.5 unit (0.54), from such a late jump.
+  - **step 1285 (5.35 s): the x parting, +1.0 unit in one step.** The cube is upside down, rises into a ceiling (game
+    y 225 = our 135) and the user's press there jumps it off the ceiling (vy -11.18) -- in that same step the game moves
+    x by 6.19 instead of 4 x 1.298 = 5.19 (the camera also jumps). The sim moves on at speed. x stays +1.0 after it
+    (6-9 s: 0.99-1.04), +1.47 by 10 s. So the x drift the stitch thread saw (1.5, 3.3, 6.2 units at its checkpoints)
+    is built of such one-unit steps at ceiling (and likely floor) jumps, not of the speed: between them x is exact.
+  The practice attempts start at a checkpoint and can't be replayed in our sim from there yet (diff refuses them).
 - **Heights:** the game's y is our y + 90 exactly (start: game 105, sim 15), so the death at game y 267.3 is our y 177.3.
 - **GDLM 52 necromancy** (playback, 2026-11-25 18:39 UTC): dies in the game at x 10765 where the sim clears; not studied yet.
 - **GDLM 44 dies in the game at x 6638, y 267** while the sim clears; the first height parting is at step 313
