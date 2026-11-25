@@ -80,10 +80,13 @@ button{font:inherit;color:inherit;cursor:pointer}
 .banner{font-size:.85rem;padding:10px 12px;border-radius:10px;background:var(--wait-soft);color:var(--ink)}
 .saved{font-size:.8rem;color:var(--muted);min-height:1.2em}
 footer{font-size:.8rem;color:var(--muted);line-height:1.5}
-.tbl-wrap{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.tbl-wrap{overflow:auto;max-height:72vh;background:var(--panel);border:1px solid var(--line);border-radius:12px;scrollbar-gutter:stable}
+.wide{width:min(1040px,calc(100vw - 32px));align-self:center}
+.coins{letter-spacing:1px}.coins .c1{color:var(--wait)}.coins .c0{color:var(--muted);opacity:.6}
 table{border-collapse:collapse;font-size:.82rem;font-variant-numeric:tabular-nums;width:100%}
 th,td{padding:7px 9px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line)}
-th{font-weight:600;color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;background:var(--panel);position:sticky;top:0}
+th{font-weight:600;color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;background:var(--panel);position:sticky;top:0;z-index:2}
+th.l{z-index:3}
 tr:last-child td{border-bottom:0}
 td.l,th.l{text-align:left;position:sticky;left:0;background:var(--panel);z-index:1}
 td.l{font-weight:500;max-width:150px;overflow:hidden;text-overflow:ellipsis}
@@ -139,12 +142,12 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
     <div class="list" id="levels"><div class="queue-empty">Levels in progress appear here after Claude's next update.</div></div>
   </section>
 
-  <section aria-labelledby="h-m">
+  <section aria-labelledby="h-m" class="wide">
     <details id="d-mains" open>
       <summary><div class="sum-row"><h2 id="h-m">Main levels</h2><span class="hint" id="m-sum"></span></div></summary>
       <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
         <div class="tbl-wrap"><table id="mtable"><tbody><tr><td class="l dim">The table appears after Claude's next update.</td></tr></tbody></table></div>
-        <div class="legend" id="m-legend">Solve: our solver's raw route on today's physics. Human: the human-like route the viewer plays. Score: log10 of expected attempts from the timing model (higher is harder). Tight: inputs with a window under 60 ms. Real game: how far gdsolver's real-game inputs carry our sim before it dies where the game did not, so this is how well our physics matches the real game on that level.</div>
+        <div class="legend" id="m-legend">Solved: our solver's raw route / the human-like route the viewer plays, on today's physics. Coins: the secret coins (3 per level) our route collects; grey = not collected or no coin route yet. Score: log10 of expected attempts (higher is harder), per minute below. Tight: inputs under 60 ms, tightest window below (red under 34 ms = two frames). Real game: how far gdsolver's real-game inputs carry our sim, i.e. how well our physics matches the game on that level. Scroll inside the table; hover a header for its meaning.</div>
       </div>
     </details>
   </section>
@@ -335,22 +338,32 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
     var m=state && state.mains; if(!m || !m.levels || !m.levels.length) return;
     var t=$("mtable"); t.textContent="";
     var head=el("thead"), hr=el("tr");
-    [["#","l"],["Rating"],["Solve"],["Human"],["Score"],["/min"],["Inputs"],["Tight"],["Min ms"],["Real game"],["Your tries"]].forEach(function(h){ hr.appendChild(el("th",h[1]||null,h[0])); });
+    [["#","l"],["Rating"],["Solved","","sim route / human route"],["Coins","","secret coins our route takes (of 3)"],["Score","","log10 of expected attempts; /min below"],["Inputs"],["Tight","","inputs under 60 ms; tightest window below"],["Real game","","how far gdsolver's real-game inputs carry our sim"],["Your tries"]].forEach(function(h){ var th=el("th",h[1]||null,h[0]); if(h[2]) th.title=h[2]; hr.appendChild(th); });
     head.appendChild(hr); t.appendChild(head);
     var body=el("tbody"), clear=0;
     m.levels.forEach(function(r){
       if(r.route_pct>=100) clear++;
       var tr=el("tr");
-      var nm=td(null,"l"); nm.appendChild(document.createTextNode(r.n+" "+r.name)); if(r.flag){ var f=el("span","sm","⚠ "+r.flag); nm.appendChild(f); } tr.appendChild(nm);
+      var nm=td(null,"l"); nm.appendChild(document.createTextNode(r.n+" "+r.name)); nm.title=r.n+" "+r.name; if(r.flag){ var f=el("span","sm","⚠ "+r.flag); nm.appendChild(f); } tr.appendChild(nm);
       tr.appendChild(td(r.rating,"dim"));
-      tr.appendChild(pctCell(r.solve_pct)); tr.appendChild(pctCell(r.route_pct));
-      var sc=td(r.score==null?"–":r.score.toFixed(2)+(r.scored_complete===false?"*":"")+(r.score_stale?"†":""), r.score==null?"dim":null); tr.appendChild(sc);
-      tr.appendChild(td(r.per_min==null?"–":r.per_min.toFixed(2),"dim"));
+      var sv=td(null); var a=r.solve_pct, b=r.route_pct;
+      if(a>=100 && b>=100) { sv.className="ok"; sv.textContent="✓ both"; }
+      else { sv.appendChild(document.createTextNode((a==null?"–":a>=100?"✓":a+"%")+" / "+(b==null?"–":b>=100?"✓":b+"%"))); sv.className=(a!=null&&a<100)||(b!=null&&b<100)?"bad":"dim"; }
+      tr.appendChild(sv);
+      var co=r.coins, cc=td(null,"coins");
+      if(co && co.total){ var got=co.got==null?null:co.got;
+        for(var k=0;k<co.total;k++){ var on=got!=null&&k<got; cc.appendChild(el("span", on?"c1":"c0", on?"●":"○")); }
+        cc.title=(got==null?"no coin route yet":got+" of "+co.total+" coins")+(co.note?" · "+co.note:"");
+        if(got!=null && co.note) cc.appendChild(el("span","sm",co.note)); }
+      else cc.appendChild(el("span","dim","–"));
+      tr.appendChild(cc);
+      var sc=td(null, r.score==null?"dim":null); sc.appendChild(document.createTextNode(r.score==null?"–":r.score.toFixed(2)+(r.scored_complete===false?"*":"")+(r.score_stale?"†":"")));
+      if(r.per_min!=null) sc.appendChild(el("span","sm",r.per_min.toFixed(2)+"/min")); tr.appendChild(sc);
       tr.appendChild(td(r.inputs==null?"–":String(r.inputs)));
-      tr.appendChild(td(r.tight==null?"–":String(r.tight), r.tight>3?"meh":null));
-      tr.appendChild(td(r.min_ms==null?"–":String(r.min_ms), r.min_ms!=null&&r.min_ms<34?"bad":null));
+      var tg=td(r.tight==null?"–":String(r.tight), r.tight>3?"meh":null);
+      if(r.min_ms!=null) tg.appendChild(el("span", "sm"+(r.min_ms<34?" bad":""), r.min_ms+" ms")); tr.appendChild(tg);
       var rg=td(null); var pc=r.real_plan_pct;
-      if(pc!=null){ var b=el("span","bar"), i=el("i"); i.style.width=Math.max(2,Math.min(100,pc))+"%"; b.appendChild(i); rg.appendChild(b); rg.appendChild(document.createTextNode(pc+"%")); }
+      if(pc!=null){ var bb=el("span","bar"), i=el("i"); i.style.width=Math.max(2,Math.min(100,pc))+"%"; bb.appendChild(i); rg.appendChild(bb); rg.appendChild(document.createTextNode(pc+"%")); }
       else rg.appendChild(document.createTextNode(r.real_plan_block!=null? "block "+r.real_plan_block : "–"));
       tr.appendChild(rg);
       tr.appendChild(td(r.attempts==null?"–":String(r.attempts),"dim"));

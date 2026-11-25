@@ -9,6 +9,7 @@ Data (ArtifactData, collection `board`):
   - `workstreams[]`: `{id, name, state: running|waiting|blocked|idle|done, summary, left, eta_min, eta_at?, eta_basis}`
   - `candidates[]`: `{id, title, area, eta_min, eta_basis, status: open|scheduled|running|done, note?}`
   - `mains`: `{at, note, levels[]}` -- rows from `node tools/board_mains.js --json` (on the PC; `--local <dir>` for a copy of local/)
+    Each row may carry `coins: {total, got, note}` (secret coins our route collects; `got: null` = no coin route yet, from `tools/coins.js status` on the PC).
   - `physics`: `{features[{name, level 1-4, label, evidence, gap?}], missing[{name, used_by?}]}` -- kept in `board/physics.json`;
     update it with PHYSICS.md when a feature is checked or a mismatch closes
   - `levels[]`: `{name, state, status, note, link}` -- our levels in progress, each linking to the phone viewer (`viewer_url` + `#<file base>`)
