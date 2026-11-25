@@ -1,4 +1,4 @@
-// node tools/lego_join.js [--n 30] [--seed 1] [--pair <idA> <idB>] [--max-s 3]   -- the big-lego test (LEGO.md "Joining")
+// node tools/lego_join.js [--n 30] [--seed 1] [--grain piece|brick] [--pair <idA> <idB>] [--max-s 3]   -- the big-lego test (LEGO.md "Joining")
 // Joins two main-level pieces (from local/lego/pieces.json, tools/lego.js mine) into one small level and asks our physics
 // whether it still plays: lead-in -> piece A -> piece B, with a mode / speed portal at the seam when B needs one. Then:
 //   - solved?   the solver (GD.solveAny) finds a clear; else the join is broken and says where it dies;
@@ -80,9 +80,9 @@ function check(A, Bp) {
   return { res, J, events: r.events };
 }
 
-function pool() {
+function pool(grain) {
   const all = JSON.parse(fs.readFileSync(path.join(LOCAL, "lego", "pieces.json"), "utf8"));
-  return all.filter(p => p.src === "official" && p.verified && !p.empty && !p.dupOf && p.smooth !== false && !p.flips && MODE_ID[p.mode] && p.path && p.path.length > 2)
+  return all.filter(p => (p.grain || "piece") === (grain || "piece") && p.src === "official" && p.verified && !p.empty && !p.dupOf && p.smooth !== false && !p.flips && MODE_ID[p.mode] && p.path && p.path.length > 2)
     .map(p => Object.assign(p, { int: Math.round((p.presses / Math.max(0.3, p.s) + (p.hzPer100 || 0) / 100) * 100) / 100 }));
 }
 function pairs(P, n, seed) {
@@ -98,7 +98,7 @@ function pairs(P, n, seed) {
 
 if (require.main === module) {
   const A = process.argv.slice(2), opt = (k, d) => { const i = A.indexOf("--" + k); return i >= 0 ? A[i + 1] : d; };
-  const P = pool(), byId = Object.fromEntries(P.map(p => [p.id, p]));
+  const P = pool(opt("grain", "piece")), byId = Object.fromEntries(P.map(p => [p.id, p]));
   const list = A.includes("--pair") ? [[byId[A[A.indexOf("--pair") + 1]], byId[A[A.indexOf("--pair") + 2]]]] : pairs(P, +opt("n", 30), +opt("seed", 1));
   const dir = path.join(LOCAL, "lego", "joins"); fs.mkdirSync(dir, { recursive: true });
   const rows = [];

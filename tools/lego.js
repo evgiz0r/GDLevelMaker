@@ -120,8 +120,46 @@ function route(s) {
 }
 
 // ---------------------------------------------------------------- cutting
-const TARGET = 2.2, MINS = 0.6;
-function cut(r, inputs, whole) {
+// two sizes: a piece (1-3 s, about a screen) and a brick (~0.8 s: one obstacle or move -- the user, 2026-11-25: "all the
+// structures all full screen? hmm i thought the point is that they are smaller")
+const GRAIN = { piece: { target: 2.2, mins: 0.6, slack: 0.5 }, brick: { target: 0.8, mins: 0.35, slack: 0.3 } };
+let TARGET = 2.2, MINS = 0.6, SLACK = 0.5;
+// a brick: 2-6 presses, cut in the longest pause between presses that keeps the count in range (the user, 2026-11-25:
+// "not even whole screen length [...] short ones. with like 2-6 clicks"). Within one mode stretch; a stretch with fewer
+// than 2 presses is one brick if it lasts 0.35 s or more.
+function cutBricks(r, inputs) {
+  const p = r.path, out = [];
+  if (!p.length || r.midline) return out;
+  const presses = [], idxOf = tk => Math.max(0, Math.min(p.length - 1, tk - p[0].tick));
+  { let h = false; const ev = (inputs.ticks || []); for (const t of ev) { const nh = inputs.held(t); if (nh && !h) presses.push(t); h = nh; } }
+  let a = 0;
+  const spans = [];
+  for (let t = 1; t <= p.length; t++) if (t === p.length || p[t].mode !== p[a].mode || p[t].dead) { spans.push([a, t - 1]); if (t < p.length && p[t].dead) break; a = t; }
+  for (const [i0, i1] of spans) {
+    const ps = presses.filter(t => t >= p[i0].tick && t <= p[i1].tick);
+    if (ps.length < 2) { if ((p[i1].tick - p[i0].tick) / TPS >= 0.35 && ps.length) out.push([i0, i1]); continue; }
+    // groups of 2-6 presses, split in the longest pause; a brick runs from a little before its first press (0.3 s, or half
+    // the pause before) to a little after its last (0.45 s -- the landing --, or half the pause after): long walks
+    // between bricks are left out
+    const groups = []; let k = 0;
+    while (k < ps.length) {
+      const left = ps.length - k;
+      if (left <= 6) { groups.push([k, ps.length - 1]); break; }
+      let best = -1, bj = 2;
+      for (let j = 2; j <= 6 && k + j < ps.length; j++) { if (ps.length - (k + j) < 2) break; const g = (ps[k + j] - ps[k + j - 1]) * (j <= 3 ? 1 : j === 4 ? 0.75 : 0.55); if (g > best) { best = g; bj = j; } }   // short bricks preferred
+      groups.push([k, k + bj - 1]); k += bj;
+    }
+    for (const [g0, g1] of groups) {
+      const prev = g0 ? ps[g0 - 1] : p[i0].tick, next = g1 + 1 < ps.length ? ps[g1 + 1] : p[i1].tick;
+      const t0 = Math.max(p[i0].tick, ps[g0] - Math.min(0.3 * TPS, (ps[g0] - prev) / 2)), t1 = Math.min(p[i1].tick, ps[g1] + Math.min(0.45 * TPS, (next - ps[g1]) / 2));
+      out.push([idxOf(Math.round(t0)), idxOf(Math.round(t1))]);
+    }
+  }
+  return out;
+}
+function cut(r, inputs, whole, grain) {
+  if (grain === "brick") return cutBricks(r, inputs);
+  const G = GRAIN[grain || "piece"]; TARGET = G.target; MINS = G.mins; SLACK = G.slack;
   const p = r.path, spans = [];
   if (!p.length) return spans;
   let a = 0;
@@ -145,7 +183,7 @@ function cut(r, inputs, whole) {
         // target end, snapped to the calmest state within +-0.5 s
         let best = -1, bi = -1;
         for (let j = s; j <= i1; j++) {
-          const dt = secs(s, j); if (dt < D / n - 0.5) continue; if (dt > D / n + 0.5) break;
+          const dt = secs(s, j); if (dt < D / n - SLACK) continue; if (dt > D / n + SLACK) break;
           if (j % 4) continue;
           const c = calm(j); if (c > best) { best = c; bi = j; }
         }
@@ -168,11 +206,15 @@ function windowsOf(src, w, r) {
   const S = require("./solutions.js"), crypto = require("crypto");
   const key = crypto.createHash("sha1").update(JSON.stringify(src.events) + S.physicsCommit() + (S.windowsCommit ? S.windowsCommit() : "")).digest("hex").slice(0, 16);
   const f = path.join(OUTDIR, "windows", (src.windowsKey || src.name.replace(/[^a-z0-9]+/gi, "_")) + ".json");
-  try { const c = JSON.parse(fs.readFileSync(f, "utf8")); if (c.key === key) return c.windows; } catch (e) {}
+  // measured windows are committed in knowledge/lego_windows/ (timing numbers only, no layouts), so the PC does not
+  // measure them again (~40 min for the 22 main levels the first time)
+  for (const g of [f, path.join(ROOT, "knowledge", "lego_windows", path.basename(f))]) try { const c = JSON.parse(fs.readFileSync(g, "utf8")); if (c.key === key) return c.windows; } catch (e) {}
+  if (process.env.LEGO_CACHED_WINDOWS) return [];   // only what is measured already (a quick rebuild while a long one runs)
   const WIN = require("../lib/windows.js");
   const t0 = Date.now();
   const ws = WIN.inputWindows(w, src.events, r.path, {}).map(x => [x.type === "release" ? 1 : 0, x.tick, x.lo, x.hi, x.j]);
   fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, JSON.stringify({ key, windows: ws }));
+  const kf = path.join(ROOT, "knowledge", "lego_windows", path.basename(f)); fs.mkdirSync(path.dirname(kf), { recursive: true }); fs.writeFileSync(kf, JSON.stringify({ key, windows: ws }));
   console.log(`    windows of ${src.name}: ${ws.length} inputs, ${Date.now() - t0} ms`);
   return ws;
 }
@@ -320,10 +362,12 @@ function mine(which, sketchFiles) {
     let R; try { R = route(s); } catch (e) { console.log("  skip", s.name, e.message); continue; }
     const cuts = cut(R.r, R.inputs, s.whole);
     let ws = []; try { ws = windowsOf(s, R.w, R.r); } catch (e) { console.log("  no windows for", s.name, e.message); }
-    for (const [i0, i1] of cuts) { const P = measure(s, R.w, R.r, R.inputs, i0, i1); Object.assign(P, pieceDifficulty(ws, R.r.path[i0].tick, R.r.path[i1].tick)); pieces.push(P); }
+    for (const [i0, i1] of cuts) { const P = measure(s, R.w, R.r, R.inputs, i0, i1); Object.assign(P, pieceDifficulty(ws, R.r.path[i0].tick, R.r.path[i1].tick)); P.grain = "piece"; pieces.push(P); }
+    // bricks: the same route cut finer (not for the library's whole pieces)
+    if (!s.whole) for (const [i0, i1] of cut(R.r, R.inputs, false, "brick")) { const P = measure(s, R.w, R.r, R.inputs, i0, i1); Object.assign(P, pieceDifficulty(ws, R.r.path[i0].tick, R.r.path[i1].tick)); P.grain = "brick"; pieces.push(P); }
     console.log(`  ${s.src.padEnd(8)} ${s.name.padEnd(34)} ${String(cuts.length).padStart(3)} pieces${R.r.dead ? " (route dies at block " + Math.round(R.r.path[R.r.path.length - 1].x / B) + ")" : ""}  ${Date.now() - t0} ms`);
   }
-  pieces.forEach((p, i) => p.id = ({ official: "r", ours: "u", sketch: "s", library: "l" }[p.src] + "-" + p.level.replace(/[^a-z0-9]+/gi, "_").toLowerCase() + "-" + p.x));
+  pieces.forEach((p, i) => p.id = ({ official: "r", ours: "u", sketch: "s", library: "l" }[p.src] + "-" + p.level.replace(/[^a-z0-9]+/gi, "_").toLowerCase() + "-" + p.x + (p.grain === "brick" ? "b" : "")));
   fs.mkdirSync(OUTDIR, { recursive: true });
   const prev = fs.existsSync(path.join(OUTDIR, "pieces.json")) ? JSON.parse(fs.readFileSync(path.join(OUTDIR, "pieces.json"), "utf8")) : [];
   const keep = prev.filter(p => !srcs.some(s => s.src === p.src));   // mining one source keeps the others
@@ -369,14 +413,15 @@ function dedupe(pieces) {
   const reps = {};
   for (const p of pieces) {
     if (!(p.shape || []).length) continue;
-    const C = columns(p), R = reps[p.mode] = reps[p.mode] || [];
+    const C = columns(p), gk = p.mode + "|" + (p.grain || "piece"), R = reps[gk] = reps[gk] || [];
     const f = R.find(r => sameLayout(r.C, C));
     if (f) { p.dupOf = f.p.id; f.p.copies = (f.p.copies || 1) + 1; (f.p.alsoIn = f.p.alsoIn || []).push(p.level + " @" + p.x); }
     else R.push({ p, C });
   }
 }
 // committed: per family / signature, counts by source and parameter ranges; shapes of ours and sketches only
-function writeKnowledge(all) {
+function writeKnowledge(allG) {
+  const bricks = allG.filter(p => p.grain === "brick"), all = allG.filter(p => p.grain !== "brick");
   const fam = {};
   for (const p of all) {
     const k = p.sig, e = fam[k] = fam[k] || { sig: k, family: p.family, mode: p.mode, wrap: p.wrap, n: { official: 0, ours: 0, sketch: 0, library: 0 }, levels: { official: new Set(), ours: new Set(), sketch: new Set(), library: new Set() }, s: [], w: [], presses: [], hold: [], gap: [], yRange: [], hz: [] };
@@ -394,6 +439,9 @@ function writeKnowledge(all) {
   const pub = all.filter(p => p.src !== "official").map(p => { const q = Object.assign({}, p); delete q.cols; if (p.src === "ours") { delete q.shape; delete q.path; } return q; });   // our levels are in the repo: rebuild their shapes with mine
   const out = { made: new Date().toISOString().slice(0, 10), physics: require("./solutions.js").physicsCommit(), note: "LEGO.md. Families and parameters of 1-3 s pieces cut from routes; official pieces as numbers only (no layouts).",
     counts: { official: all.filter(p => p.src === "official").length, ours: all.filter(p => p.src === "ours").length, sketch: all.filter(p => p.src === "sketch").length, library: all.filter(p => p.src === "library").length },
+    bricks: { official: bricks.filter(p => p.src === "official").length, ours: bricks.filter(p => p.src === "ours").length,
+      distinctOfficial: bricks.filter(p => p.src === "official" && !p.dupOf && !p.empty).length,
+      mostRepeated: bricks.filter(p => p.src === "official" && p.copies > 1).sort((a, b) => b.copies - a.copies).slice(0, 12).map(p => ({ sig: p.sig, copies: p.copies, w: p.w, presses: p.presses })) },
     shown: { note: "what the catalogue shows by default: verified, not empty, not a duplicate, smooth when flying", n: all.filter(p => p.verified && !p.empty && !p.dupOf && p.smooth !== false).length,
       empty: all.filter(p => p.empty).length, duplicates: all.filter(p => p.dupOf).length, notSmooth: all.filter(p => p.smooth === false).length }, mix, families, pieces: pub };
   fs.writeFileSync(KNOW, JSON.stringify(out, null, 0).replace(/\},\{"sig"/g, '},\n{"sig"').replace(/\},\{"src"/g, '},\n{"src"'));
