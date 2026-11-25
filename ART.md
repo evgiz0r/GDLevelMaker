@@ -520,3 +520,20 @@ Brave Blue and Project Muse were also compared (local/compare/...):
   not a camera fix. Dropped as a rendered reference.
 - Project Muse is a text / gimmick level that ranked high on motion alone. It is not a look reference.
 For now, Dreamy is the working side-by-side reference.
+
+## Deco options and composition (2026-11-25)
+
+The user: "lets think more about the deco, just evenly putting things is not good enough", then "show me some deco options
+we can do, for bricks, for deco. the best features so far. idk for ice/fire."
+- **`tools/decodemo.js [base] [--shots]`**: one stretch of gameplay (GDLM 50 eclipse, blocks 0-150: cube town + ship
+  corridor) dressed in 7 rungs, each adding one feature (bare, lit edges, texture, inlays, depth, atmosphere, composed),
+  in ice (the kit) and fire (the ice kit's shapes in lava colours plus Hellgate's chains, skulls, ruins, embers). `--shots`
+  renders them with shoot.js and writes the sheet `local/decodemo/index.html` (GD art: PC only). All 14 pass roles.js and
+  channels.js. Fire has no kit of its own yet: if the user picks it, it becomes `tools/themes/fire.js`.
+- **`tools/decocomp.js`**: how deco is ARRANGED (rhythm cv, quiet stretches, peaks, focal share, clumping, set pieces,
+  deco at transitions, following the play); `--ref` the officials' and the corpus' numbers -> knowledge/decocomp_ref.json.
+  Our levels: quiet ~0 (no breathing space), focal 0.25-0.29 (near even, 0.2).
+- **`tools/lane.js`**: the play lane from the route (where the player can be), clutter in it, art at its edges, corridor
+  framing; make.js runs its pass only with spec `"lane": true` (off until the composition model is agreed).
+- Composition rung 7 (first cut): focal spots at portals and mid-screen, back layers thinned to a quarter between them,
+  one set piece + a light gather per spot. Bricks on the play dominate the counts, so decocomp moves little; judge by picture.

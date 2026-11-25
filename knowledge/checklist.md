@@ -23,6 +23,11 @@ shared slot by itself and prints whom it waits for. Don't get around it with `no
 scripts, and build timing or test runs from copies in `local/tmp/`, never another session's level.
 
 ## Fair (the user's playtests: a death must be the player's fault)
+
+- [ ] **No lone hard press among easy ones** (the user, 2026-11-25: "like jogging for 2 miles, and then having to jump
+  2 meters. yes its hard ... but it feels unfair"): no jumping press under 60 ms whose neighbours within 5 s have a
+  median window of 150 ms or more. FROSTBITE's triple spike at 8.2 s (46 ms among ~296 ms) is one. Check:
+  `node tools/balance.js <level>` prints `SPIKE` (DIFFICULTY.md "Balance"). A hard part is a stretch, not one press.
 - [ ] **Fly corridors are smooth: no one-block stair steps in a ship or wave wall** (2026-11-25: GDLM 44's ship died in the real
   game at a stepped roof's corner where our sim passed, PHYSICS.md "probe mod"). Build them with `fly-path` (45-degree slopes
   on both walls), not `ship-tunnel`; the margin our sim gives at a block corner is not to be trusted.
