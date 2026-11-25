@@ -386,6 +386,25 @@ mirrored top to bottom. So each brick gives up to four variants: as is, reversed
   what was built before (no overlap with earlier bricks, the filler must keep the two apart).
 - Open: the main levels' own reversed stretches (Fingerdash, Dash use turns) as a check of how RobTop does it.
 
+## Lego hints in the solver: first measurement (2026-11-25)
+
+Evgeni: "do we plan to somehow use the structures and the info in the solver?" `node tools/lego_solve.js official:N
+[--min 0.85] [--no-full]` matches the catalogue's bricks into a level (its own bricks left out), then solves it with
+tools/presslib.js `solveWithLib` and an empty library, once plain and once with `opts.hints` (inside a matched stretch
+the button follows the matched brick's clicks by x; `lego_match.js hintsFor`), and with the full sweep. Results in
+knowledge/lego_solve.json.
+
+| level | matched | plain | lego hints | full sweep |
+|---|---|---|---|---|
+| 1 Stereo Madness, min 0.85 | 13 bricks, 19% | 52 s, 50 repairs, 45 presses | 56 s, 41 repairs, 63 presses | 110 s |
+| 1 Stereo Madness, min 0.6 | 52 bricks, 72% | 53 s, 50 repairs, 45 presses | 65 s, 34 repairs, 95 presses | - |
+| 2 Back On Track, min 0.85 | 20 bricks, 27% | 96 s, 57 repairs, 50 presses | 95 s, 46 repairs, 67 presses | 78 s |
+
+So far the hints cut repairs (up to a third) but not time, and they add presses: a brick's clicks fire where the level
+needs fewer (the match is by layout, not by the route). Next: take a hinted press only where the sim says it is needed
+(a death within ~1 s without it), and score hints by how often the level's real presses agree (`lego_match.js --test`
+precision 50-75% today). Times are one cloud run each, with another session's job running.
+
 ## Open
 
 - Compose does not place fly pieces from the catalogue yet: ship / wave / swing sections still use ship-tunnel /
