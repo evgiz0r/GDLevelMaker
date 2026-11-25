@@ -28,7 +28,7 @@ GD target is the one the index page lists; the user's Steam game is 2.2081.
 
 | mod | what it gives us | caveats |
 |---|---|---|
-| **GDShare** (HJfod) | export / import a level as a .gmd from buttons in the game. We already write .gmd (`tools/export_gmd.js`), so a level gets in WHILE GD RUNS, no save editing, no install queue | version on the index not checked yet; the save-editing install.js stays for the phone slot (online ID kept) |
+| **GDShare** (HJfod) | export / import a level as a .gmd from buttons in the game (`hjfod.gdshare` 1.6.0 is built for 2.2081; needs geode.node-ids and hjfod.gmd-api, which the in-game installer pulls). We already write .gmd (`tools/export_gmd.js`), so a level gets in WHILE GD RUNS, no save editing, no install queue | the save-editing install.js stays for the phone slot (online ID kept) |
 | **Eclipse Menu** (2.2081) | replay bot (GDR2 macro format), StartPos switcher, show hitboxes, noclip, speedhack, show trajectory, internal recorder | a cheat menu: safe mode while cheats are on (fine for testing). Its bot's file format must be checked before we write macros for it |
 | **GDH** (2.2081) | Replay Engine v4 bot, frame stepper (also backwards), startpos switcher, hitboxes, trajectory, recorder | beta; macro format not documented on the page |
 | **zBot** (2.2081) | replay bot, frame advance, speedhack | free version has a watermark; format undocumented |
@@ -68,7 +68,7 @@ Effort: not measured. A first logger is ~200 lines of C++ plus the toolchain; pl
 
 ## Plan (ranked)
 
-1. **GDShare now** (no code): import our levels in the game while it runs. Check it loads on 2.2081.
+1. **GDShare now** (no code): import our levels in the game while it runs. 1.6.0 supports 2.2081 (checked 2026-11-25).
 2. **The probe mod, logging first**: settles the landing, ship height, orbs and camera at once, and makes every
    recording exact. Then `tools/probe.js` + the fidelity diff. Biggest payoff.
 3. **The probe's playback**: our routes in the real game, tick-exact (USE_CASES 26), the main levels and every
@@ -77,7 +77,7 @@ Effort: not measured. A first logger is ~200 lines of C++ plus the toolchain; pl
    play a route only once we know how to write its file (GDR2: check before relying on it).
 5. **Pathfinder** as a second solver for cube / ship / ball / UFO / wave, to compare routes.
 
-Open: which mods the user installed; GDShare's 2.2081 version; GDR2's layout (does it store positions?);
+Open: which mods the user installed; GDR2's layout (does it store positions?);
 the bindings' names for the tick hook on 2.2081.
 
 Sources: https://geode-sdk.org/mods/eclipse.eclipse-menu, https://geode-sdk.org/mods/tobyadd.gdh,
