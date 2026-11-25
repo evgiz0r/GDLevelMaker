@@ -170,7 +170,7 @@
   <div id="wkList"></div></div></div>
 <div id="picker" hidden><div id="pk" role="dialog" aria-label="choose a level">
   <div id="pkTop"><input id="pkQ" type="search" placeholder="search levels…" autocomplete="off">
-    <button data-f="main" class="on" title="official levels, the levels being worked on and ours">main</button><button data-f="recent">recent</button><button data-f="pinned">★ pinned</button><button data-f="runs" title="every level you played -- here (🎮) or in GD recordings (🎥) -- newest first; opens on your latest run as a ghost">my runs</button><button data-f="wip">in progress</button><button data-f="ours">ours</button><button data-f="official">official</button><button data-f="community">community</button><button data-f="demons" title="the demon list's top 150 and every former Top 1 that is on this PC (local/community, tools/demonlist.js), by list place">demon list</button><button data-f="all">all</button>
+    <button data-f="main" class="on" title="our finished levels and the official ones (work in progress, the lab and experiments have their own tabs)">main</button><button data-f="recent">recent</button><button data-f="pinned">★ pinned</button><button data-f="runs" title="every level you played -- here (🎮) or in GD recordings (🎥) -- newest first; opens on your latest run as a ghost">my runs</button><button data-f="wip">in progress</button><button data-f="lab" title="the section lab's variants, the lab and test levels">lab</button><button data-f="ours">ours</button><button data-f="official">official</button><button data-f="community">community</button><button data-f="demons" title="the demon list's top 150 and every former Top 1 that is on this PC (local/community, tools/demonlist.js), by list place">demon list</button><button data-f="all">all</button>
     <button id="pkClose" title="close (Esc)">✕</button></div>
   <div id="pkList"></div></div></div>
 <header>
@@ -984,6 +984,8 @@ function pkRunLine(run) {
 }
 const pkStore = (k, v) => { try { if (v === undefined) return JSON.parse(localStorage.getItem("gdlm." + k) || "[]"); localStorage.setItem("gdlm." + k, JSON.stringify(v)); } catch (e) { return []; } };
 const pkCat = l => l.wip || (l.session && l.version) ? "wip" : /official/.test(String(l.file)) || l.official != null ? "official" : /community/.test(String(l.file)) ? "community" : "ours";
+// the lab and experiments: the section lab's variants (LAB rN vK), the lab / test / catalogue levels
+const pkLab = l => /^LAB r\d/i.test(String(l.name || "")) || /(^|\/)lab_r\d|_lab(\.|_|$)|test|catalogue|sketch/i.test(String(l.file || ""));
 const pkKey = l => String(l.name || l.file).toLowerCase().replace(/\s+v\d+$/, "").trim();
 // when the level (this version) was made: wip `made` (first put of this content), a pushed level's commit time;
 // officials and community levels have none. Never a re-stamp (wip `updated` is only a fallback for old rows)
@@ -1036,9 +1038,17 @@ function pkRows() {
   const q = document.getElementById("pkQ").value.trim().toLowerCase(), pins = pkStore("pins"), recent = pkStore("recent");
   if (PK.f === "runs") return { rec: [], rest: pkRunRows(q), pins };
   const groups = new Map();
+  // "main" = our finished levels + the official ones (the user, 2026-11-25: "main has too many songs now ... its just spam.
+  // Lets do main for ready levels + official. Rest in the different tabs"): no work in progress of its own (a newer wip of
+  // a main level still sits on its card), no lab variants, parts or experiments
+  const readyKeys = new Set(ALL.filter(l => pkCat(l) === "ours" && !pkLab(l)).map(pkKey));
   ALL.forEach((l, i) => {
     const c = pkCat(l);
-    if (PK.f === "pinned" ? !pins.includes(pkKey(l)) : PK.f === "recent" ? !recent.includes(pkKey(l)) : PK.f === "main" ? c === "community" : PK.f === "demons" ? !l.demon : PK.f !== "all" && c !== PK.f) return;
+    const out = PK.f === "pinned" ? !pins.includes(pkKey(l)) : PK.f === "recent" ? !recent.includes(pkKey(l))
+      : PK.f === "main" ? !(c === "official" || readyKeys.has(pkKey(l)) && !pkLab(l))
+      : PK.f === "lab" ? !pkLab(l) : PK.f === "wip" ? c !== "wip" || pkLab(l)
+      : PK.f === "demons" ? !l.demon : PK.f !== "all" && c !== PK.f;
+    if (out) return;
     if (q && l.demon && (String(l.demon.creator) + " " + l.demon.verifier).toLowerCase().includes(q)) { const k = pkKey(l); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(i); return; }
     if (q && !(String(l.name) + " " + l.file + " " + (l.session || "")).toLowerCase().includes(q)) return;
     const k = pkKey(l); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(i);
@@ -1068,7 +1078,7 @@ function pkRender() {
       `</div><button class="pkPin${pins.includes(r.k) ? " on" : ""}" data-pin="${pkEsc(r.k)}" title="pin">★</button></div>`; };
   el.innerHTML = (rec.length ? `<div class="pkHead">recent</div>` + rec.map((r, n) => card(r, n)).join("") : "") +
     (PK.f === "recent" ? "" : PK.f === "runs" ? `<div class="pkHead">my runs, newest played first · ${rest.length}${PK.runs === null ? " (loading…)" : ""}${PK.runsNote ? " · " + pkEsc(PK.runsNote) : ""}${PK.runsMissing ? ` · ${PK.runsMissing} more not in this list (build stages, levels not on this PC)` : ""}</div>`
-      : `<div class="pkHead">${PK.f === "main" ? "official, in progress and ours" : PK.f === "all" ? "all levels" : PK.f === "demons" ? "demon list (on this PC), by list place; no route: the camera runs through" : PK.f} · ${rest.length}</div>`) + rest.map((r, n) => card(r, n + rec.length)).join("");
+      : `<div class="pkHead">${PK.f === "main" ? "our finished levels and the official ones" : PK.f === "all" ? "all levels" : PK.f === "demons" ? "demon list (on this PC), by list place; no route: the camera runs through" : PK.f} · ${rest.length}</div>`) + rest.map((r, n) => card(r, n + rec.length)).join("");
   el.querySelectorAll(".pkCard").forEach(c => c.onclick = e => { if (e.target.dataset.pin || e.target.dataset.open) return; const r = PK.rows[+c.dataset.n]; pkOpen(r.is[0], r.run); });
   el.querySelectorAll("[data-open]").forEach(b => b.onclick = () => pkOpen(+b.dataset.open));
   el.querySelectorAll("[data-pin]").forEach(b => b.onclick = () => { const p = pkStore("pins"), k = b.dataset.pin; pkStore("pins", p.includes(k) ? p.filter(x => x !== k) : p.concat(k)); pkRender(); });

@@ -156,3 +156,11 @@ these clicks are still open". On a screen 900 px wide or more the level view is 
 bar; the button strip, scrub bar, lab bar and the cards below share its width. The Clicks card is closed by default (its
 title shows the count). Phones keep the old full-width layout.
 
+## The level list's tabs (2026-11-25)
+
+The user: "main has too many songs now ... its just spam. Lets do main for ready levels + official. Rest in the different
+tabs". **main** = our pushed levels that are not lab / test / catalogue / sketch levels (a newer wip of one still sits on
+its card) + the official ones; **in progress** = work in progress that is not the lab; **lab** = the section lab's
+variants (LAB rN vK) and the lab / test levels (`pkLab` in viewer/index.html); ours, official, community, demon list, all
+as before.
+
