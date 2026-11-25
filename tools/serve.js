@@ -82,7 +82,7 @@ const PAGES_ORIGINS = ["https://evgiz0r.github.io"];
 const isLoop = a => a === "::1" || /^127\./.test(a);
 const isLan = a => /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(a);
 const LAN_FILES = /^\/(viewer\/[\w.\/-]*|lib\/[\w.-]+\.js|levels\/[\w.-]+|examples\/[\w.-]+|local\/(beats\.local\.js|marks\.jsonl|official_\d+\.json|(maps|wip|community)\/[\w.\/ -]+))$/;
-const LEGO = { building: false };
+const LEGO = { building: false, error: "" };
 const SERVER = http.createServer((req, res) => {
   const ra = String(req.socket.remoteAddress || "").replace(/^::ffff:/, ""), lan = !isLoop(ra);
   if (lan && !isLan(ra)) { res.writeHead(403); return res.end("this viewer answers only this PC and the home network"); }
@@ -523,16 +523,23 @@ const SERVER = http.createServer((req, res) => {
   // only). Built by tools/lego.js (mine + page, ~20 s) when missing or older than the lego tools or the newest level;
   // meanwhile a "building" page that reloads itself.
   if (p === "/lego") { res.writeHead(302, { Location: "/lego/" }); return res.end(); }
-  if (p === "/lego/" || p === "/lego/pieces.json") {
+  if (p === "/lego/" || p === "/lego/pieces.json" || p === "/lego/pieces_more.json") {
     const dir = path.join(root, "local", "lego", "page"), idx = path.join(dir, "index.html"), mt = f => { try { return fs.statSync(f).mtimeMs; } catch (e) { return 0; } };
-    const newest = Math.max(...["tools/lego.js", "tools/lego_page.js", "tools/lego_page.html"].map(f => mt(path.join(root, f))), ...fs.readdirSync(path.join(root, "levels")).filter(f => /^gdlm_/.test(f)).map(f => mt(path.join(root, "levels", f))));
-    if (mt(idx) < newest && !LEGO.building) {
+    const newest = Math.max(...["tools/lego.js", "tools/lego_page.js", "tools/lego_page.html", "lib/look.js"].map(f => mt(path.join(root, f))), ...fs.readdirSync(path.join(root, "levels")).filter(f => /^gdlm_/.test(f)).map(f => mt(path.join(root, "levels", f))));
+    // stale: older than the newest level, or built by other code than what is here now (the stamp in the page)
+    let stale = mt(idx) < newest;
+    if (!stale && mt(idx)) try { const st = require("./lego_page.js").stamp(); stale = !fs.readFileSync(idx, "utf8").includes("<!--lego-build:" + st + "-->"); } catch (e) {}
+    if (stale && !LEGO.building) {
       LEGO.building = true;
-      const ch = cp.spawn(process.execPath, ["-e", `require(${JSON.stringify(path.join(__dirname, "lego.js"))}).mine(["official","ours","sketches","library"],[]);require(${JSON.stringify(path.join(__dirname, "lego_page.js"))}).build(require(${JSON.stringify(path.join(__dirname, "lego.js"))}).load(),{})`], { cwd: root, stdio: "ignore", windowsHide: true, env: Object.assign({}, process.env, { LEGO_CACHED_WINDOWS: "1" }) });   // only windows already measured (knowledge/lego_windows): the page in seconds, never a 40-min first measure
-      ch.on("exit", () => { LEGO.building = false; });
+      const ch = cp.spawn(process.execPath, ["-e", `require(${JSON.stringify(path.join(__dirname, "lego.js"))}).mine(["official","ours","sketches","library"],[]);require(${JSON.stringify(path.join(__dirname, "lego_page.js"))}).build(require(${JSON.stringify(path.join(__dirname, "lego.js"))}).load(),{})`], { cwd: root, stdio: ["ignore", "ignore", "pipe"], windowsHide: true, env: Object.assign({}, process.env, { LEGO_CACHED_WINDOWS: "1" }) });
+      let err = ""; ch.stderr.on("data", d => { err = (err + d).slice(-3000); });   // only windows already measured (knowledge/lego_windows): the page in seconds, never a 40-min first measure
+      ch.on("exit", code => { LEGO.building = false; LEGO.error = code ? err || ("exit " + code) : ""; });
     }
-    if (LEGO.building || !mt(idx)) { res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" }); return res.end('<meta http-equiv="refresh" content="5"><body style="background:#16123a;color:#eee;font:18px sans-serif;padding:40px">Building the structure catalogue from every level (about 20 s, measured in the cloud) ... this page reloads itself.</body>'); }
-    const f = p.endsWith(".json") ? path.join(dir, "pieces.json") : idx;
+    // a page built before stays visible while a new one builds; with none yet, a page that reloads itself (and says why
+    // the last build failed, if it did)
+    if (!mt(idx)) { if (LEGO.error) { res.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" }); return res.end("The structure catalogue build failed:\n" + LEGO.error); } res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" }); return res.end('<meta http-equiv="refresh" content="5"><body style="background:#16123a;color:#eee;font:18px sans-serif;padding:40px">Building the structure catalogue from every level (about 20 s, measured in the cloud) ... this page reloads itself.</body>'); }
+    const f = p.endsWith(".json") ? path.join(dir, path.basename(p)) : idx;
+    if (!mt(f)) { res.writeHead(404); return res.end(); }
     res.writeHead(200, { "Content-Type": p.endsWith(".json") ? "application/json" : "text/html; charset=utf-8", "Cache-Control": "no-store" });
     return fs.createReadStream(f).pipe(res);
   }

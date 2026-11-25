@@ -122,9 +122,16 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 - [ ] **The shown route clicks where a human would**: early in a wide window (~40% in), never at its
   last safe frame -- the replay, the arrows and the level map all follow it. `node tools/windows.js <level>`
   ("pressed N% in"; lib/natural.js step 4). (the user on GDLM 45's ball: "i would prefer to click way earlier")
+- [ ] **A wave leg is one press** (Evgeni 2026-11-25 on a catalogue brick: "thats obviously not the human path"): no two wave
+  presses under 0.1 s apart in a shown route; 18 of the main levels' 60 wave bricks break it (Deadlocked 13), from
+  lib/natural.js's corridor steering. A brick's layout may be reused, its wave taps are re-planned (LEGO.md "The replay").
 - [ ] **Wave**: zigzag turns wider than ~100 ms apart; no head-on slopes at a portal exit; the exit
   portal over a flat floor, level stretches at the turns (patterns.js wave-zigzag `flat`, `leadGap`).
   (design.md; GDLM 44/46 real-game deaths)
+- [ ] **The wave route follows the corridor's pattern**: one input per leg of the corridor (hold up one slope, let go down
+  the next), tight lines only where the gap asks for them; no small corrections (re-presses under 150 ms) beyond the
+  corridor's turns + 2. score.js route gate WARNs "off the pattern"; `node tools/flystyle.js <level>` per stretch.
+  (the user, 2026-11-25: "these corridors should be just few holds and releases"; PHYSICS.md "The wave like a person")
 - [ ] **Jump marks clear of hazards**: a mark shows the take-off, its centre >= ~1 block in front of the
   hazard's hitbox, never on or touching one. Placed by decorate.js jumpIndicators (INDICATOR.clear);
   `node tools/indicators.js <level> [--fix]`. (the user, hellgate round 2: "indicator inside spike")

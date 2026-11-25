@@ -47,7 +47,7 @@ function levelText(n) {
 // a secret coin without it is a dead end, lib/physics.js), saved beside the plain route as NN.coins.json /
 // official_NN_coins.json; a resume with no coin route yet starts from the plain route (it breaks at the first missed coin)
 const COINS = process.argv.includes("--coins"), SUF = COINS ? ".coins" : "";
-const mkW = L => { const w = mkW(L); if (COINS) w.needCoins = true; return w; };
+const mkW = L => { const w = GD.makeWorld(L.objects, L.header); if (COINS) w.needCoins = true; return w; };
 const partFile = n => path.join(OUT, tag(n) + SUF + ".part.json");
 function checkpointer(n, prefix, physics) {
   return (ev, st) => { fs.mkdirSync(OUT, { recursive: true });
@@ -188,7 +188,11 @@ function toViewer(n, level, res) {
     if (n && (res.ok ? n.path[n.path.length - 1].done : true)) events = n.events; } catch (e) {}
   const kind = events ? "human" : "humanize";   // tools/difficulty.js scores a "human" route as it is
   if (!events) events = require("../lib/difficulty.js").humanize(w, res.events).events;
-  const solution = res.ok ? { ok: true, events, kind } : { ok: false, events, dieX: res.dieX, why: res.why, kind };
+  // stamped with the route planner's commit (tools/solutions.js planCommit) and the date, so a reader (tools/lego.js) can tell
+  // a route planned before a planner change (e.g. the wave planner, 2026-11-25) from a current one
+  let plan = null; try { plan = require("./solutions.js").planCommit() || null; } catch (e) {}
+  const stamp = { plan, at: new Date().toISOString() };
+  const solution = res.ok ? { ok: true, events, kind, ...stamp } : { ok: false, events, dieX: res.dieX, why: res.why, kind, ...stamp };
   fs.writeFileSync(path.join(OUT, "..", `official_${String(n).padStart(2, "0")}${COINS ? "_coins" : ""}.json`),
     JSON.stringify({ n, name: NAMES[n] ? NAMES[n][0] : "level " + n, level, solution, physics: res.physics || null }));
   require("./index_levels.js").buildIndex();

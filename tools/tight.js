@@ -20,7 +20,7 @@ const msOf = ticks => ticks * 1000 / TPS;
 
 function windowsOf(n, w, events, runPath, kind) {
   const S = require("./solutions.js");
-  const key = crypto.createHash("sha1").update(JSON.stringify(events) + S.physicsCommit() + S.windowsCommit()).digest("hex").slice(0, 16);
+  const key = crypto.createHash("sha1").update(JSON.stringify(events) + S.physicsCommit() + (S.windowsCommit ? S.windowsCommit() : "")).digest("hex").slice(0, 16);
   const f = path.join(ROOT, "local", "mains", "windows", `official_${tag(n)}${kind}.json`);
   try { const c = JSON.parse(fs.readFileSync(f, "utf8")); if (c.key === key) return c.windows; } catch (e) {}
   const ws = GD.inputWindows(w, events, runPath, {}).map(x => ({ type: x.type, tick: x.tick, lo: x.lo, hi: x.hi }));
