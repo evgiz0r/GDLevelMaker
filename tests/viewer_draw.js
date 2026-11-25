@@ -12,7 +12,8 @@ let fail = 0; const ok = (c, m) => { console.log((c ? "ok   " : "FAIL ") + m); i
   for (const [w, h, tag] of [[390, 800, "phone"], [1280, 760, "pc"]]) {
     const p = await b.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: 1 });
     await p.route("http://draw.test/**", r => {
-      const f = path.join(ROOT, decodeURIComponent(new URL(r.request().url()).pathname));
+      const u = decodeURIComponent(new URL(r.request().url()).pathname), f = path.join(ROOT, u);
+      if (u.startsWith("/local/")) return r.fulfill({ status: 404, body: "" }); // as on the phone: no PC data, only the repo
       if (!f.startsWith(ROOT) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) return r.fulfill({ status: 404, body: "" });
       r.fulfill({ status: 200, body: fs.readFileSync(f), contentType: TYPES[path.extname(f)] || "application/octet-stream" });
     });
@@ -47,6 +48,18 @@ let fail = 0; const ok = (c, m) => { console.log((c ? "ok   " : "FAIL ") + m); i
     await fr.locator("#playBtn").click(); await p.waitForTimeout(500);
     ok(await p.evaluate(() => PLAY.on && document.getElementById("drawFrame").hidden), tag + ": 🎮 plays it in the viewer");
     await p.keyboard.press("Space"); await p.waitForTimeout(300);
+    // songs: the grid comes from the repo (viewer/song_grids.js, no mp3, no local/), is kept in the sketch, reaches the
+    // viewer with the level; a song file picked on the board lands in the viewer's song store too
+    await p.click("#drawBtn"); await p.waitForTimeout(400);
+    const sg = await frame.evaluate(() => { sk.song = { url: "/song/custom/343707.mp3", offset: 0 }; const g = grid(); changed(); return { g: !!g, kept: !!(sk.song.grid && sk.song.grid.bpm) }; });
+    ok(sg.g && sg.kept, `${tag}: the song's beat grid is known without the mp3 and kept in the sketch (${JSON.stringify(sg)})`);
+    await p.waitForFunction(() => typeof songInfo !== "undefined" && songInfo && /343707/.test(songInfo.url), null, { timeout: 10000 }).catch(() => {});
+    ok(await p.evaluate(() => !!(window.GD_BEATS || {})["/song/custom/343707.mp3"] && Object.keys(window.SONG_GRIDS || {}).length > 50), tag + ": the viewer has the grids from the repo");
+    await frame.locator("#fileIn").setInputFiles({ name: "343707.mp3", mimeType: "audio/mpeg", buffer: Buffer.from("not really a song") });
+    await p.waitForTimeout(600);
+    const kept = await p.evaluate(() => new Promise(ok => { const r = indexedDB.open("gdlm-songs", 1); r.onupgradeneeded = () => r.result.createObjectStore("songs");
+      r.onsuccess = () => { const q = r.result.transaction("songs").objectStore("songs").getAllKeys(); q.onsuccess = () => ok(q.result); q.onerror = () => ok([]); }; r.onerror = () => ok([]); }));
+    ok(kept.includes("343707.mp3"), `${tag}: a song picked on the board is in the viewer's song store (${JSON.stringify(kept)})`);
     ok(!errs.length, tag + ": no page errors" + (errs.length ? " " + errs.slice(0, 3).join(" | ") : ""));
     await p.close();
   }

@@ -231,6 +231,7 @@
 <script src="levels.js"></script>
 <script src="levels.local.js" onerror="window.GD_LEVELS_LOCAL = []"></script>
 <script src="../local/beats.local.js" onerror="window.GD_BEATS = {}"></script>
+<script src="song_grids.js"></script>
 <script>
 "use strict";
 const P = GD.PHYS;
@@ -487,6 +488,10 @@ function load(name, levelStr, saved, info) {
   if (!sol.ok) sol.clicks = (sol.trail || []).filter(e => e.type === "press").map(e => ({ type: "press", tick: e.tick, lo: e.tick, hi: e.tick, ms: 0, act: "" }));
   const path = (pre && pre.key === JSON.stringify(events) ? pre.result : GD.run(world, events)).path;
   PATHCACHE.delete(levelStr);
+  // a level that turns its gameplay (2900, Dash): the sim steps in the turned frame's coordinates (lib/physics.js
+  // frameWorld); the page draws the world, so those states get their world x, y (fx, fy keep the frame's, for play)
+  if (GD.worldXY && path.some(s => s.hd)) for (let k = 0; k < path.length; k++) if (path[k].hd) {
+    const [X, Y] = GD.worldXY(path[k]); path[k] = Object.assign({}, path[k], { x: X, y: Y, fx: path[k].x, fy: path[k].y }); }
   if (saved && saved.ok) sol.clicks = saved.events.map(e => ({ type: e.type, tick: e.tick, lo: e.tick, hi: e.tick, ms: 0 }));
   sol.clicks.forEach(c => { if (c.type === "press") c.act = path[Math.min(c.tick + 1, path.length - 1)].act || c.act; c.x = path[Math.min(c.tick, path.length - 1)].x; });
   // button state at every step, for the hold strip and the button light
@@ -1315,6 +1320,7 @@ function runThrough(LL, ev, want, toEnd, stopX) {
   try {
     let k = LL.path.length - 1; while (k > 0 && LL.path[k].dead) k--;
     const s = structuredClone(LL.path[k]); s.dead = false; s.why = ""; s.killer = null;
+    if (s.fx !== undefined) { s.x = s.fx; s.y = s.fy; delete s.fx; delete s.fy; }   // a turned frame's own coordinates
     const at = new Map(); for (const e of ev) at.set(e.tick, e.type);
     let held = LL.path[k] && ev.filter(e => e.tick <= k).slice(-1).map(e => e.type === "press")[0] || false;
     LL.path.length = k + 1;
@@ -2948,10 +2954,16 @@ window.BOARDHOST = {
   },
   setLevel(name, levelStr, saved, song) {   // the sketch as a level (converted or fitted), with the plan to replay
     DRAWM.lv = { name, levelStr, saved, song };
+    // the sketch carries its song's beat grid (sk.song.grid): bars and sections show even where no grid file is
+    if (song && song.url && song.grid && !(window.GD_BEATS || {})[song.url]) (window.GD_BEATS = window.GD_BEATS || {})[song.url] = song.grid;
     try { load(name, levelStr, saved, song || null); } catch (e) { console.warn("draw: the level did not load", e); return; }
     t = 0; playing = false; setPlay(); if (typeof summary === "function") summary();
     document.getElementById("pickName").textContent = name;
     if (DRAWM.on && DRAWM.last) BOARDHOST.view(DRAWM.last.V, DRAWM.last.rect, DRAWM.last.Hb); else if (L) draw();
+  },
+  addSongFile(f) {   // a song picked on the board: the viewer plays it too (the phone page's add song)
+    if (typeof takeSongFiles === "function") return takeSongFiles([f]);
+    if (typeof keepSong === "function" && songInfo) f.arrayBuffer().then(b => { keepSong(songKeyOf(songInfo), b); delete songLoading[songKeyOf(songInfo)]; syncSong(true); });
   },
   play(kind, x) {   // "replay" from x (the board's view), "you" = 🎮 from the start
     if (!L) return; drawMode(false);

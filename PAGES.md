@@ -36,8 +36,18 @@ running, and the music, GD art, beat lines and official levels appear.
 
 ## Songs from Newgrounds directly
 
-Not tried: a song's file URL needs its Newgrounds page (audio.ngfiles.com/<folder>/<id>_<name>.mp3), and
-whether audio.ngfiles.com sends CORS headers is open. Open item.
+Checked 2026-11-25 on the live site in the user's PC browser:
+- `fetch()` of `audio.ngfiles.com/...mp3` fails (no CORS), so the viewer's Web Audio path (`decodeAudioData`) cannot use it.
+- An `<audio>` element plays it, but Newgrounds serves only a **10 s clip** to a request with another site's referrer.
+  With `<meta name="referrer" content="no-referrer">` the full song plays (Dot: 101.6 s). That sidesteps Newgrounds'
+  clip limit, so it is the user's call, and it may stop working.
+- RobTop's library CDN (`geometrydashfiles.b-cdn.net/music/<id>.ogg`): `fetch()` fails from the Pages origin too.
+
+**Song licenses** (each song's Newgrounds page, "Licensing Terms", 2026-11-25). Creative Commons, so a copy may be
+hosted with a credit line (non-commercial): 1175526 Two Moons ft. Geyser (jamatar, BY-NC-ND), 557117 Golden Haze
+(DetiousMusic, BY-NC-SA), 1086693 Eclipse (Uxvellda, BY), 575768 Thumper (Waterflame, BY-NC-SA), 343707 Infertehno 2
+(SOcollab, BY-NC; third-party samples, "free for web-based games"). Not CC ("contact me" / all rights reserved):
+1290936 Dot (bpi9), 183718, 1289772 (a remix), 619544, 311087, 216300. Ask the user before hosting any song.
 
 ## How it was turned on
 

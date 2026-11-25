@@ -131,8 +131,12 @@ things take" below). The tools below still work one by one.
 4. With the game closed, `node tools/install.js levels/<name>.gdlvl` puts it at the top of
    My Levels (backs the save up first; refuses while GeometryDash.exe runs -- then queue it:
    `node tools/install_queue.js add <file> --by <who>`, the watcher installs it when GD closes). The user plays it
-   and reports. The user's game is GD 2.2081 on Steam (Windows); Geode was installed 2026-11-25, but no tool uses a mod yet (GEODE.md: GDShare would give in-game .gmd import).
-   Or the bot plays it: `node tools/bot.js levels/<name>.gdlvl` presses Space at the solver's
+   and reports. The user's game is GD **2.2091** on Steam (Windows; Steam updated it 2026-10-21 -- older notes say 2.2081) with Geode 6.0.0 (2026-11-25); our probe mod `mods/gdlm-probe` is built with `tools\geode_build.cmd` and installed, not run yet (GEODE.md "Building on this PC": Smart App Control blocks the Geode CLI, so `tools/geode_pack.js` packs).
+   **Or Claude plays it in the real game (2026-11-25):** `node tools/probe.js play save:<GDLM name> --launch` (GD closed; the
+   level must be in the save): the probe mod (GEODE.md "Playback") opens it, presses the saved route on exact ticks, logs every
+   tick and quits without saving; `node tools/probe.js result` says cleared / died where, and game vs sim. GDLM 62 cleared first try.
+   **Blocked since v0.3.0 (2026-11-25): Smart App Control refuses each new unsigned mod build by reputation** (GEODE.md "Playback").
+   The old keyboard bot: `node tools/bot.js levels/<name>.gdlvl` presses Space at the solver's
    click times in the real game (no mod; it syncs to each attempt's start on screen and measures
    its own lag from ground jumps). A clear confirms the sim; a death is where they disagree --
    unless the window there is under ~30 ms (the bot is good to about a frame). Ask the user
@@ -211,6 +215,7 @@ on a long one with modes). Wait for the heavy-job slot comes on top of all of th
 | wip put (solution cached by make) | a few s | wip.js |
 | install into the game (`install.js`, game closed) | not timed yet (publisher: `--time install`) | |
 | a server upload | not timed yet (publisher: `--time upload`) | |
+| build a Geode mod (`tools/geode_build.cmd`, cold) | ~60-95 s | GDLM Probe, 2026-11-25 |
 | git pull + push | ~10 s | 2026-11-23 |
 | edit.js, one edit, the old route still clears (re-plan + checks) | see EDITING.md "Results" | 2026-11-23 |
 | edit.js, an edit that needs a full solve | as "make" above for that level | |
@@ -260,6 +265,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 - `lib/physics.js` -- physics of every mode, triggers + solver (fewest clicks, each in the middle of its window;
   every window is replay-checked tick by tick: `solve` merges near-twin states, which once claimed ticks that die).
   PHYSICS.md: per mode and trigger, its constants, sources, checks and what is open.
+- **Rotated gameplay (2900) and GD's trigger channels** are in lib/physics.js (2026-11-25): a state steps in its frame's coordinates against the level turned into that frame (`frameWorld`); `GD.worldXY(s)` gives the world position and `GD.progressX(s)` how far a run has come (use it, not s.x, for progress in tools); trap portals (`TRAPS`). PHYSICS.md "Rotated gameplay"; `node tests/rotated.js`; `tools/tas_trace.js` (a real-game plan tick by tick, with timing nudges). Gameplay modifiers (2866 flip on head hit, 1813 no auto jump) and the time warp (1935): PHYSICS.md "Gameplay modifiers", `node tests/modifiers.js`; `tools/dyn_near.js` (moving objects and their triggers near an x).
 - `lib/dual.js` -- dual mode (two players, one button; GD 2.2's rules read from the 2.2081 decompile), stepped from
   physics.js's step() only in levels with dual portals. Moving objects (move, move to target, follow, rotate, toggle,
   spawn, multi-trigger, stop/pause/resume) live in physics.js's trigger code. `tools/movers.js`: which levels' triggers
@@ -278,11 +284,12 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   level has an easier way), **`fairness`** (deaths that are not the player's fault: forced input after
   a portal, misleading marks, sloped portal exits, orb chains with nothing to correct; fitted on the
   user's labelled deaths, `fairness fit`; tools/score.js gates on it; DIFFICULTY.md "Fairness").
+- `viewer/song_grids.js` -- every measured song's beat grid as committed numbers (no audio), so beats show on the phone and public site without the mp3 or local/; `node tools/song_grids.js` (tools/beats.js runs it).
 - `lib/sync.js` -- music sync: level time <-> x through speed portals, beat grid <-> level beats,
   press timing windows from a solution, sync scores. See SYNC.md (also where songs come from).
 - **`tools/channels.js` -- deco the GAME draws white**: a colour channel (key 21/22 or the object's default, 1 for 211/693) that neither the header nor an earlier colour trigger defines. score.js gate "channels" (FAIL); ART.md "Colour".
 - **`tools/roles.js` -- colour by role** (the user: "clear contrasts between the different things (ground, spikes, deco)"): block bodies vs the sky, deco in the path's or a hazard's value and hue family, hazards vs sky and path, every 10 blocks; `--shots N` pictures the worst spots. score.js gate "roles" (FAIL); palettes from `tools/decokit.js` rolePalette(hue); ART.md "Colour by role".
-- **Theme kits** (ART.md "Theme kits": icy, hellish, forest, space, ... as more than colours -- spikes, ground, deco, set pieces, palettes per variant, a song brief, the mode mix): `tools/themes/<name>.js` (space first), `node tools/theme.js list | check <name> | song <name> | demo <name> <level> [--shots]`; applied by the scene `tools/scenes/theme.js` (spec "theme": "space" or {name, variant(s) | sections}).
+- **Theme kits** (ART.md "Theme kits": icy, hellish, forest, space, ... as more than colours -- spikes, ground, deco, set pieces, palettes per variant, a song brief, the mode mix): `tools/themes/<name>.js` (space, ice), `node tools/theme.js list | check <name> | song <name> | demo <name> <level> [--shots]`; applied by the scene `tools/scenes/theme.js` (spec "theme": "space" or {name, variant(s) | sections}).
 - **The public viewer** (https://evgiz0r.github.io/GDLevelMaker/, PAGES.md: GitHub Pages, rebuilt on every push; a level goes on it ONLY when the user says so for that level: `knowledge/public_levels.json`, empty for now, our levels only, songs / GD art / official levels only from the user's own serve.js): `tools/pages.js`, `tests/pages_build.js`, `.github/workflows/pages.yml`.
 - **The viewer is where the user steers the work** (VIEWER.md): the Work panel, ✓ ok / redo on build stages with gates (`tools/stages.js waitApproval`), decision cards (`tools/ask.js put/wait`), and the actions feed every user action goes to (`tools/actions.js tail --since <id>`). Ask the user there, not only in chat. **🎮 you play** (key P): the user plays any level or build stage in the viewer, the same sim live (`lib/liveplay.js`), practice checkpoints per section; each attempt is a `play` line in the feed (where they die). A stage with a plan but no route replays the plan at once and shows where it breaks.
 - **Build stages in the viewer** (`tools/stages.js`: a builder puts song / layout / path / deco / final as each is done -> `local/wip/<session>/<base>.stages/`; the viewer shows a stage bar on the level and the stage on the picker's in-progress cards, even before the first wip put). `require("./stages.js").put({session, base, name, stage, levelStr?, data?, note?})`; test: `node tests/stages.js`.
@@ -433,7 +440,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   the buttons are, GD must be windowed, the user's yes before each upload; ONE phone slot,
   ID 152848491, filled with `install.js <lvl> --slot phone`; and the test slot "Claude Lab", `--slot lab --desc "..."`, not uploaded yet; both in `local/phone_ids.json`). **Install queue** `tools/install_queue.js` (add / watch: installs the moment GD closes, reads the save back; PUBLISH.md). `tools/install.js` keeps a shared level's online ID on re-install, so
   Share again updates the same upload (`tests/install_keeps_id.js`).
-- **Geode mods** (GEODE.md: which index mods help -- GDShare import, Eclipse / GDH bots, Pathfinder -- which must NOT be installed because they change gameplay, and our own probe mod `mods/gdlm-probe/` that logs the player's state every tick, read by `tools/probe.js`; playback of routes next).
+- **Geode mods** (GEODE.md: which index mods help -- GDShare import, Eclipse / GDH bots, Pathfinder -- which must NOT be installed because they change gameplay, and our own probe mod `mods/gdlm-probe/` that logs the player's state every tick, read by `tools/probe.js`, built by `tools/geode_build.cmd` + packed by `tools/geode_pack.js` (no Geode CLI: Smart App Control blocks it); playback of routes next).
 - `examples/` -- levels the user made in the game, for reference and as format ground truth.
 
 All the library code runs in both node and the browser (no build step, no dependencies).
@@ -508,6 +515,9 @@ Confirmed:
   (2026-11-23_02-51-50.mkv, 17.6 s and 24.38 s). The sim slid off and lived until then.
 - The wave dies flying head-on into a slope (down into a rising 45-degree floor): GDLM 44's zigzag,
   2026-11-23_03-11-47.mkv ~25 s. The sim had let it ride up the slope.
+- The teleport portal (747) fires on a 25 x 90 box centred 12 units right of the object: the user's hitbox-on Deadlocked
+  practice run (2026-11-24_00-33-07.mkv, 196.33 s) shows the ship leave the exit ~10 units further right than a centred
+  box gives; with it Deadlocked is beaten in the sim (2026-11-25).
 - Flipping gravity halves vertical speed (blue orb and ceiling blue pad in the recording move at
   half the decompile's velocity). The decompile's ringJump alone does not show this.
 
@@ -559,7 +569,6 @@ swing. Each still wants a recording of the user's own play.
 
 Assumed (not yet checked):
 - Object keys 121 = No Touch and 134 = Passable (both make an object not collide).
-- Spider teleport searches a 9-unit strip above/below the cube.
 - Dash orbs: horizontal at the orb's angle while held; the props 586/588 on them are unknown.
 - "Click Between Steps" is OFF in the user's settings: presses land on a frame boundary, not any
   240 Hz step. The solver still allows any step.

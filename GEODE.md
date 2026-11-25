@@ -1,12 +1,13 @@
 # Geode: mods as ground truth from the real game
 
-The user installed Geode (GD's mod loader) on the PC on 2026-11-25. Until then the game was plain GD 2.2081 on
-Steam, and everything we know about the real game came from screen recordings (tools/track.py, framecheck,
+The user installed Geode (GD's mod loader) on the PC on 2026-11-25. Until then the game was plain GD on Steam (2.2091 since Steam's
+2026-10-21 update -- not 2.2081 as older notes say; Geode maps the exe's PE timestamp 1792203143 to 2.2091), and everything we know about the real game came from screen recordings (tools/track.py, framecheck,
 landbuf), a keyboard input logger with a clock fitted afterwards (tools/inputlog.ps1, replay_run.js), gdsolver's
 published plans, and a keyboard bot nobody trusts yet (tools/bot.js). A mod runs INSIDE the game: it can read the
 player's state every physics tick and press the button on an exact tick. That removes most of the guesswork.
 
-Status (2026-11-25): the user OK'd installing the C++ toolchain and building our probe mod. Source: `mods/gdlm-probe/`; reader: `tools/probe.js`. Every mod install and every build needs the
+Status (2026-11-25): the toolchain is installed and GDLM Probe v0.1.0 is built and installed in the game's geode/mods
+(see "Building on this PC"); not run in the game yet. Source: `mods/gdlm-probe/`; reader: `tools/probe.js`. Every mod install and every build needs the
 user's OK first. The phone's GD still has no Geode (PUBLISH.md), so this is a PC-only tool.
 
 ## What it can settle (our open questions)
@@ -24,7 +25,8 @@ user's OK first. The phone's GD still has no Geode (PUBLISH.md), so this is a PC
 
 ## Existing mods (official index, geode-sdk.org/mods), checked 2026-11-25
 
-GD target is the one the index page lists; the user's Steam game is 2.2081.
+GD target is the one the index page lists; the user's Steam game is **2.2091** (checked 2026-11-25), so a mod built
+only for 2.2081 does not load: check each mod's 2.2091 build before relying on it (the rows below were read as 2.2081).
 
 | mod | what it gives us | caveats |
 |---|---|---|
@@ -79,14 +81,74 @@ src/main.cpp), written on a thread when the attempt ends; nothing is written dur
 levels. `node tools/probe.js list | show <n> | presses <n>` reads them.
 Build (on the PC): `cd mods/gdlm-probe && geode build --ninja` (installs into the game when `geode config setup` was done).
 `mod.json`'s "gd" and "geode" fields must match the installed game and loader (check them on the PC before building).
-Next: playback of a route (press on exact ticks), and a sim-vs-game diff per tick (the PHYSICS.md "Fidelity" scoreboard).
+Next: a full sim-vs-game diff per tick (the PHYSICS.md "Fidelity" scoreboard).
+
+## Playback: Claude plays a level in the real game (v0.2.0, 2026-11-25)
+
+- `node tools/probe.js play save:<GDLM name> [--attempts N] [--offset k] [--stay] [--launch]` writes
+  `%LOCALAPPDATA%/GeometryDash/geode/mods/gdlm.probe/play.json` from the level's saved route (local/solutions):
+  `{level, autostart, attempts, quit, offset, presses: [[tick, down, p2]]}`. `--launch` starts GD through Steam (refused
+  while it runs) and waits for `play.finished.json`, then prints `result`.
+- The mod reads play.json once, at the first main menu, renames it `play.taken.json` (one shot), opens the level from
+  Create by name (LocalLevelManager, PlayLayer::scene), presses each route event right before the processCommands call that
+  runs once n == tick + offset ticks are done (n = the log's n; our sim's event at tick t acts in the step t -> t+1, so
+  offset 0 is the same convention), ignores the user's presses meanwhile, and after the attempts (or a complete) writes
+  play.finished.json and exits GD without saving (`--stay`: stays open). Only levels named "GDLM...", so no progress on
+  official or other people's levels. Attempt logs get `"playback":1`.
+- `node tools/probe.js result [n]`: cleared or died (x, y, killer), and heights game vs sim at the same x.
+- **First runs (GDLM 62 low end lullaby, 62 s, 102 presses): CLEARED in the real game twice** (offset 0 and offset 1),
+  73 s each from launch to result. Smart App Control let the unsigned mod DLL load.
+- **Found on the first run:** GD 2.2091's `PlayerObject::m_position` changes only every 4th processCommands (once per
+  60 fps frame) and trails the step by 1-2 ticks, so the log's per-tick x/y are per-frame values; result compares at the
+  same x. Heights then agree to 0.5 unit except around some jumps, where the game's jump runs one tick ahead of ours
+  (offset 0: the first jump, at tick ~1240, game vy 10.532 vs sim 10.748 = one tick of gravity; with offset 1 that jump
+  matches and a later one, tick ~1825, is one tick behind). So the press-to-jump delay is not a constant tick count in
+  this mapping -- likely frame-phase dependent (the 4-tick frame). Open, for the physics session: log the real per-tick
+  position (the player's position before the frame sync, or log at isLastTick only) and settle the press latency.
+- **v0.3.0 (2026-11-25, built, NOT loaded):** logs the per-step physics position too (GameObject's `m_positionX/Y`
+  doubles, as `px, py` at the end of each tick's `p`), and plays a batch: `play.json` `{"entries": [{level, attempts,
+  offset, presses}, ...]}`; after each entry the mod leaves the level (onQuit -> its edit page, EditLevelLayer::init hook)
+  and opens the next, one line per entry in `play.results.jsonl`, `play.finished.json` after the last. `node tools/probe.js
+  play <level> <level> ... | --all-gdlm [--max-seconds s] --launch`, `result --last-batch`; `result` on a v0.3 log prints
+  the x lag, the first parting step, and every jump's start game-minus-sim by the press's place in its 60 fps frame.
+- **Smart App Control blocked v0.3.0's DLL** (Geode log 08:59:25: "Blocked by Windows Smart App Control (4551)";
+  CodeIntegrity 3033/3077). v0.2.0's DLL had loaded with no event. SAC judges each new unsigned file by cloud reputation,
+  so any rebuild of the mod may or may not load. We do not try to get around it (no rebuild-until-it-passes). The ways
+  forward are the user's: turn Smart App Control off (Windows Security > App & browser control; Windows can only turn it
+  back on with a reinstall), or sign the DLL with a trusted code-signing certificate (paid). Until then the installed
+  v0.3.0 shows a load error in Geode and logs nothing.
+- Open: levels not in the save (import a .gmd); official levels in practice mode only.
+
+
+## Building on this PC (2026-11-25)
+
+- Installed: Geode loader **v6.0.0** in the game (`Geode.dll` 6.0.0.0, changelog), GD **2.2091**. Toolchain: CMake 4.4.4,
+  Ninja 1.13.2, LLVM/clang-cl 23.1.6 (winget: 37 / 4 / 82 s), VS 2022 Build Tools + "Desktop development with C++"
+  (MSVC 14.44, SDK 10.0.26100; winget, 219 s), Geode CLI (winget, 4 s).
+- **Smart App Control is ON and blocks the Geode CLI** (`geode.exe` is unsigned; Code Integrity events 3033/3077). Nothing
+  else was blocked (CMake, Ninja, LLVM, GD and Geode.dll run). So no `geode config/sdk/build`: the SDK was set up by hand --
+  `git clone --branch v6.0.0 geode-sdk/geode C:\Users\evgbo\geode-sdk`, the release's `geode-v6.0.0-win.zip` unpacked into
+  `bin/6.0.0/` (what `install-binaries` does), `GEODE_SDK` set for the user -- and the build runs with
+  `-DGEODE_DISABLE_CLI_CALLS=ON`; `tools/geode_pack.js` does the CLI's packaging (zip of mod.json, about.md, `<id>.dll`).
+  With CLI calls off, CMake does NOT check mod.json's "gd"/"geode" against the SDK: keep them right by hand.
+- **Build:** `tools\geode_build.cmd [mod dir] [--install]` (vcvars64 + clang-cl + Ninja, build dir
+  `%USERPROFILE%\geode-build\<mod>`, outside OneDrive). Cold build ~60-95 s (configure fetches the bindings, then compile);
+  output `%USERPROFILE%\geode-build\gdlm-probe\gdlm.probe.geode`. `--install` copies it to the game's geode/mods and refuses
+  while GeometryDash.exe runs.
+- **MSVC cl does not compile Geode 6.0.0's headers** (C3615 constexpr in utils/file.hpp, FileError over asp::fs::Error):
+  use clang-cl. main.cpp built as written (no changes needed for 6.0.0 / bindings 2.2091).
+- The SDK's CMake prints a notice for AI-agent builds: building and using the mod locally is fine; a mod mostly written by
+  an AI is not accepted on the Geode Index. We don't submit it.
+- Open: Smart App Control may still refuse to load our freshly built, unsigned `gdlm.probe.dll` inside GD (no reputation
+  yet). If Geode says the mod failed to load, look in Event Viewer > CodeIntegrity for gdlm.probe.dll.
 
 ## Plan (ranked)
 
-1. **GDShare now** (no code): import our levels in the game while it runs. 1.6.0 supports 2.2081 (checked 2026-11-25).
+1. **GDShare now** (no code): import our levels in the game while it runs. 1.6.0 supports 2.2081 (checked 2026-11-25);
+   the game is 2.2091 -- check for a 2.2091 build first.
 2. **The probe mod, logging first**: settles the landing, ship height, orbs and camera at once, and makes every
    recording exact. Then `tools/probe.js` + the fidelity diff. Biggest payoff.
-3. **The probe's playback**: our routes in the real game, tick-exact (USE_CASES 26), the main levels and every
+3. **The probe's playback** (built, v0.2.0: "Playback" above): our routes in the real game, tick-exact (USE_CASES 26), the main levels and every
    GDLM level before it goes to the user.
 4. **Interim, no C++**: Eclipse Menu's show hitboxes / trajectory / startpos for quick looks; its replay bot to
    play a route only once we know how to write its file (GDR2: check before relying on it).

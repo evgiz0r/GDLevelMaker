@@ -13,7 +13,14 @@ const { replay } = require("../tools/tas.js");
 // GD has no such buffer (the user's GDLM 67 frames + gdsolver's reading of GD's disassembly, PHYSICS.md "Landing
 // buffer"), so those gains were covering a landing the sim makes 4-21 ticks late there -- the open lead, not a ratchet.
 const REACHED = { 1: 328, 2: 493, 3: 909, 4: 415, 5: 175, 6: 303, 7: 210, 8: 333, 9: 382, 10: 167,
-  11: 288, 12: 33, 13: 116, 14: 30, 15: 267, 16: 141, 17: 295, 18: 105, 19: 100, 20: 32, 21: 54, 22: 81 };
+  11: 288, 12: 33, 13: 116, 14: 30, 15: 267, 16: 141, 17: 295, 18: 105, 19: 100, 20: 32, 21: 54, 22: 75 };
+// 2026-11-25 LOWERED 22 81 -> 75: the spider teleport now follows GD's search (lib/physics.js teleport, from gdsolver), which
+// lands the plan's tap at tick 1743 on the id-392 spike row and kills it -- as gdsolver measured GD doing in an unturned
+// frame (step.hpp, lv22 t=1,737). In GD the tap is taken in the ROTATED frame that starts there (rotate gameplay 2900,
+// lv22 t=1,745): the old 81 was reached by a wrong landing. Raise it when rotated gameplay is simulated.
+// 2026-11-25 rotated gameplay is in the sim (PHYSICS.md): the plan turns there now, but our spider tap comes 2-3 ticks before
+// GD's relative to position (two presses moved 3-5 ticks later take it down and back out of the first turned stretch, and
+// on to block 126); earlier taps need today's timing. Raise 22 once that timing is understood.
 let bad = 0;
 for (const [n, want] of Object.entries(REACHED)) {
   const r = replay(+n, 0);

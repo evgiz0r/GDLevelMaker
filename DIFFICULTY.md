@@ -294,8 +294,8 @@ killing object and what the sim thinks it is; `node tools/levelmap.js <level>` d
 
 | level | stop | killed by | cause | owner |
 |---|---|---|---|---|
-| Deadlocked | 59%, block 695 | sideways spike 421 just behind a teleport exit | ship's box overlaps it by ~1.5 units after the teleport; portal width / ship box / spike box unmeasured | physics: wants a hitbox-on recording at ~58.5 s |
-| Dash | 28%, block 220 | slope 1744 turned 90 degrees | the sim treats quarter-turned slopes as walls; the swing should glide up it | physics: "Not simulated yet" |
+| Deadlocked | beaten since 2026-11-25 | (was: sideways spike 421 behind a teleport exit) | the teleport portal's box sits 12 right of the object (the user's hitbox-on video); fixed in lib/objects.js | - |
+| Dash | 9.5%, block 75 (2026-11-25; rotated gameplay is in the sim since the same day: the solver gets through the first turned stretch to x ~3890, block 130, where a red-pad jump meets a ceiling: fixed the same day, it was GD's flip-on-head-hit modifier 2866, PHYSICS.md "Gameplay modifiers"; the real-game plan now goes on to a swing stretch at block 179) | the id-392 spike row under the spider's down-tap | Dash turns its gameplay 90 degrees there (rotate gameplay, id 2900): GD takes the tap in the turned frame, sideways; the sim has no turned frames, and GD's own search kills an unturned tap on that row (gdsolver, lv22 t=1,737/1,745). Before the teleport was made GD's it reached 28% by a wrong landing | physics: rotated gameplay (PHYSICS.md) |
 | Fingerdash | 6%, block 55 | id 1813, nothing visible there | 1755 / 1813 / 1829 / 1859 are GD's lettered helper blocks (OpenGD type 40), imported as 30x30 hazards by the "hitbox = hazard" fallback; Fingerdash has 36, Dash 22 | physics (lib/objects.js) |
 
 With the helper blocks left out, Fingerdash's old clicks get to 6.7% (a saw: those clicks were planned
@@ -581,6 +581,10 @@ whose route fails is the **highest priority** heavy job ("If we have it failed t
 - 2026-11-25, after the no-landing-buffer change (46672ee): 1 ok (Blast Processing), 8 replans, 13 resumes; most raw
   solves now died in the first 2-11% (they leaned on the old buffer). Measured (local/mains/history.jsonl): replans
   5-97 s (Fingerdash 42 min), resumes 29-95 s (Hexagon Force 21 min, Deadlocked 5 min): the whole batch took 84 min.
-  Result: 20/22 clear with a human route; Deadlocked (59%) and Dash (15%) still die at their open physics leads
+  Result: 20/22 clear with a human route (21/22 since the 747 box fix the same night: Deadlocked beaten); Deadlocked (59%) and Dash (15%) still died at their open physics leads
   (PHYSICS.md handoff), which `run` reports and leaves until physics changes. `humanroute.js` still flags 33 ms UFO
   gaps (13, 15, 18) and holds through jumps (16, 21): spots where only an inhuman way was found.
+- Scoring them (`node tools/difficulty.js`, all 22): levels 1-20 took ~16 min (scored_NN.json 01:28-01:44 local), then
+  Fingerdash's new route ran 60+ min without finishing and was killed (it held a heavy slot others waited on). Open:
+  why scoring Fingerdash hangs (its replays fire 256 triggers; the 42 min replan points the same way). Until then score
+  21 and 22 alone at low priority. The heavy lock's estimate for a full run came from one GDLM level (50 s): wrong.

@@ -31,7 +31,7 @@ Tests: `node tests/sketch.js` (the converter), `node tests/draw_page.js [--shots
 - **sketch / level**: the strokes, or what they become as GD objects (drawn like the game, no game art).
   **deco 👁 / ⊘**: every deco (lines and props) shown or hidden, in both views.
 - **♪**: the song and its beat grid. Bar lines, numbered bars, the song's section changes (▲ +10 dB = Ragnarok's drop at
-  bar 18) and a loudness strip. Grids: `viewer/draw_songs.js` (committed numbers, Ragnarok's song 343707 for now; add more
+  bar 18) and a loudness strip. Grids: `viewer/song_grids.js` (every song tools/beats.js measured, committed numbers, no audio: `node tools/song_grids.js`, run by tools/beats.js itself) and `viewer/draw_songs.js` (with the loudness strip, Ragnarok's song 343707 for now; add more
   from `local/beats/<key>.json` the same way) and, on the PC, every grid in `local/beats.local.js`. ▶♪ plays the song with a
   playhead at level speed (the PC serves the mp3). On the phone / in the Claude app the page cannot fetch songs (they are
   never published): pick the mp3 once in ♪, or drop the file on the board; the page keeps it in the browser (IndexedDB)
@@ -98,8 +98,7 @@ synced sketch for the full pass; what the user fixes by hand wins.
 - **Measured** (the user's first real sketch, smwvbb62d, 56 pieces, 15 s at 1x): 12 rounds, ~1 s in node. It reads the
   orb/ceiling part, the spider part and the portals; stops at block 85, the stairs after the spider part (a spider cannot
   climb steps: the user had forgotten a robot portal there).
-- **Open**: one-tap choices on a ✕ (make it 3 spikes / add an orb / keep it, Claude fixes it); pinning a piece the user moved
-  on the level view; orbs that the timing could not use are not reported yet; holds drawn as drags in wave parts; ship
+- **Open**: orbs that the timing could not use are not reported yet; holds drawn as drags in wave parts; ship
   corridors; the solver's fairness / windows on the fitted level; refit only from the edited mark (now it refits all).
 - **Bands** (2026-11-25, the user: "things are off with the spider"): a ship / UFO / wave / swing / ball / spider portal sets
   GD's band (lib/physics.js BAND: 10 / 8 / 9 blocks from the portal's height). The fitter puts such a portal as high as a
@@ -125,7 +124,12 @@ synced sketch for the full pass; what the user fixes by hand wins.
   - tools/web.js ships draw.html, its worker, libs and draw_songs.js beside the viewer. If a page does not allow the frame,
     the viewer says so after 6 s; the standalone page (draw.html) still works.
   - Not yet on the sketch: the section lab, stages and 🔗 links (the sketch level is not in the level list).
-  Then: choices on a ✕, pinning hand fixes.
+- **Choices and 📌 pins** (2026-11-25): every ~ / ✕ in the 🧩 list carries one-tap choices (plain ops on the drawing,
+  `SKETCHFIT.apply`: move / pin / unpin / press / delete / note / lower): "✓ take it" writes the fitter's fix into the drawing,
+  "📌 keep mine" pins the piece, "+ jump before it" adds a mark, "✎ Claude fixes it" leaves a note stroke for the session. A
+  pinned piece (📌 on the board; ⬚ select → 📌 pin; or moved by hand while 🧩 is on, pinned by itself) is never moved,
+  lowered or taken out by the fitter: where it blocks, the fitter stops there with a ✕ (choices: a jump, unpin).
+  The 🧩 list sits at the top of the board (controls only at the top, VIEWER.md).
 
 ## Status and open
 
@@ -135,3 +139,16 @@ synced sketch for the full pass; what the user fixes by hand wins.
 - Open, in order: the cell builder above (path -> spikes / ground cells -> orbs / pads -> ✕ choices); the section lab,
   stages and links on a sketch in the viewer; tracing over an existing level; flying modes (the ground pen means little
   in a ship part: corridor pens); undo across reloads; more songs in draw_songs.js; timing not measured yet.
+
+## Songs on the phone (2026-11-25)
+
+- Picking a song in ♪ copies its beat grid into the sketch (`sk.song.grid`: bpm, t0, bars, sections), so a saved
+  sketch shows its beats on any device, with or without the mp3 and with or without the PC's grid files. Old sketches
+  get it the first time they are drawn. The grid goes to the viewer with the level (BOARDHOST.setLevel).
+- One song for both pages: the board looks in the viewer's song store too (IndexedDB "gdlm-songs", by file name), and a
+  file picked on the board goes to the viewer (BOARDHOST.addSongFile: the phone page's add song, else kept in that store).
+  So on the phone: open a sketch with a song, tap "add song" once (or pick it in ♪), and both the replay and the board's
+  listen play it from then on.
+- Checked headless (tests/viewer_draw.js, with local/ hidden as on the phone), and on the phone build with a real decodable
+  file: "song ✓" in the viewer, "song remembered on this device" on the board. Not checked on a real phone yet.
+

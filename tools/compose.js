@@ -29,6 +29,8 @@
 // `mode`: "ball" = a ball corridor (ball-run: floor and roof spikes, one flip each); "upside" = the
 // cube upside down under a ceiling (gravity portal in and out), its `use` patterns hung from the
 // ceiling (only block/spike patterns). The cube section after any of these starts with a lead-in.
+// `mode`: "spider" = a spider corridor (spider-run: the ball's floor / roof run, a teleport each). A section's
+// "mirror": true runs it mirrored (mirror portal 45 at its start, 46 at the next section without it; GDLM 72).
 // Song-driven sections: `"beats": n` instead of "blocks" (the brief needs a "song"; the grid comes
 // from local/beats like make.js's "b12" columns), so every section starts on a beat of the song --
 // put the boundaries on the song's own section changes (local/beats/<song>.json "sections") and its
@@ -47,7 +49,7 @@
 // structure from the ranked library (tools/structures.js, STRUCTURES.md) as its newest idea, a
 // different one per section, best-ranked first within the brief's difficulty label, skipping what the
 // level already uses; a section names its own with `use: ["s:<id>"]`, or "structures": false for none.
-if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
+if (require.main === module && !process.argv.includes("--dry")) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js); --dry places only, no solve
 const fs = require("fs"), path = require("path");
 const { make, build, slug } = require("./make.js");
 const { PATTERNS, expand, mirrorUp } = require("./patterns.js");
@@ -150,7 +152,7 @@ function compose(brief, tweaks = {}) {
     if (ch / (secs / 60) > 6) console.log(`   NOTE ${ch} mode changes in ${secs.toFixed(0)} s = ${(ch / (secs / 60)).toFixed(1)} a minute: official 1.3-5.2; longer sections with one mode each`);
   }
   const total = lens.reduce((a, n) => a + n, 0);
-  let lastSpeed = brief.speed || "1x", h = 0, prevUpside = false;
+  let lastSpeed = brief.speed || "1x", h = 0, prevUpside = false, lastMirror = false, speedCol = null;
   const extra = structurePicks(brief, tweaks);
   // a library structure named in a brief is used only when the library calls it ready -- which includes the check in
   // context (tools/structures.js check --context): GDLM 64 v2/v3 took pieces by hand that passed alone but made orb
@@ -223,9 +225,23 @@ function compose(brief, tweaks = {}) {
       // first input closed 192 ms after it (fairness gate, GDLM 47's 1x speed + wave portal)
       if (flying) land += 3;
       lastSpeed = speeds[si];
+      speedCol = flying || sec.mode === "upside" ? start + land - 4 : start + pRoom;
     }
+    // a mirror stretch (section "mirror": true; GDLM 72 FROSTBITE, the user: "reverse gameplay"): the mirror portal (45)
+    // where the player passes, on the ground row like the speed portal, a column after it when both change here; the
+    // first section without "mirror" after one puts it back (46). The sim treats it as a screen flip only (lib/objects.js).
+    if (!!sec.mirror !== lastMirror) {
+      const flying = sec.mode && sec.mode !== "upside";
+      const mc = (flying || sec.mode === "upside" ? start + Math.max(1, land) - 1 : start + pRoom) + (speedCol != null ? 1 : 0);
+      objects.push([sec.mirror ? "mirror portal" : "mirror off", mc, 1]);
+      if (flying && speedCol == null) land += 2;
+      lastMirror = !!sec.mirror;
+    }
+    speedCol = null;
     // ball, and the ufo and swing corridors (tools/patterns.js; added for the space level, GDLM 71: "more flying")
-    const RUN = { ball: ["ball-run", { gap: 5, every: 9 }], ufo: ["ufo-run", { gap: 7, every: 7 }], swing: ["swing-run", { gap: 6, every: 8 }] }[sec.mode];
+    // spider (GDLM 72: "a spider section with quick teleport timings"): the ball's floor / roof run, teleports instead of rolls
+    const RUN = { ball: ["ball-run", { gap: 5, every: 9 }], ufo: ["ufo-run", { gap: 7, every: 7 }], swing: ["swing-run", { gap: 6, every: 8 }],
+      spider: ["spider-run", { gap: 5, every: 6 }] }[sec.mode];
     if (RUN) {
       const key = `${si}:0`, t = tweaks[key] || {}, pname = RUN[0];
       // lead 10 for ufo / swing: a swing entered from the ground had to change the button within 183 ms (GDLM 71, fairness)

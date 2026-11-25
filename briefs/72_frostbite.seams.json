@@ -1,0 +1,1453 @@
+{
+ "level": "GDLM 72 FROSTBITE",
+ "brief": "briefs/72_frostbite.json",
+ "song": {
+  "custom": 1290936,
+  "offset": 0,
+  "bpm": 140.022,
+  "t0": 0.0794
+ },
+ "planOk": true,
+ "sections": [
+  {
+   "id": "s0",
+   "name": "frozen entrance",
+   "beats": [
+    1,
+    25
+   ],
+   "t": [
+    0,
+    10.302
+   ],
+   "x": [
+    0,
+    3210
+   ],
+   "in": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      34,
+      78,
+      128
+     ],
+     "ground": [
+      10,
+      20,
+      42
+     ],
+     "line": [
+      170,
+      235,
+      255
+     ]
+    }
+   },
+   "out": {
+    "mode": "ship",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 63.1,
+    "vy": -1,
+    "grounded": false,
+    "scene": {
+     "bg": [
+      34,
+      78,
+      128
+     ],
+     "ground": [
+      10,
+      20,
+      42
+     ],
+     "line": [
+      170,
+      235,
+      255
+     ]
+    }
+   },
+   "builder": {
+    "layout": "frostbite",
+    "deco": "frostbite",
+    "playtest": "frostbite"
+   },
+   "status": {
+    "deco": "planned",
+    "playtest": "planned",
+    "layout": "built"
+   }
+  },
+  {
+   "id": "s1",
+   "name": "into the caves",
+   "beats": [
+    25,
+    45
+   ],
+   "t": [
+    10.302,
+    18.872
+   ],
+   "x": [
+    3210,
+    5880
+   ],
+   "in": {
+    "mode": "ship",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 62.9,
+    "vy": -0.89,
+    "grounded": false,
+    "scene": {
+     "bg": [
+      8,
+      18,
+      46
+     ],
+     "ground": [
+      3,
+      8,
+      22
+     ],
+     "line": [
+      110,
+      210,
+      255
+     ]
+    }
+   },
+   "out": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 45,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      8,
+      18,
+      46
+     ],
+     "ground": [
+      3,
+      8,
+      22
+     ],
+     "line": [
+      110,
+      210,
+      255
+     ]
+    }
+   },
+   "builder": {
+    "layout": "frostbite",
+    "deco": "frostbite",
+    "playtest": "frostbite"
+   },
+   "status": {
+    "deco": "planned",
+    "playtest": "planned",
+    "layout": "built"
+   }
+  },
+  {
+   "id": "s2",
+   "name": "cave ball",
+   "beats": [
+    45,
+    57
+   ],
+   "t": [
+    18.872,
+    24.071
+   ],
+   "x": [
+    5880,
+    7500
+   ],
+   "in": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 45,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      8,
+      18,
+      46
+     ],
+     "ground": [
+      3,
+      8,
+      22
+     ],
+     "line": [
+      110,
+      210,
+      255
+     ]
+    }
+   },
+   "out": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      8,
+      18,
+      46
+     ],
+     "ground": [
+      3,
+      8,
+      22
+     ],
+     "line": [
+      110,
+      210,
+      255
+     ]
+    }
+   },
+   "builder": {
+    "layout": "frostbite",
+    "deco": "frostbite",
+    "playtest": "frostbite"
+   },
+   "status": {
+    "deco": "planned",
+    "playtest": "planned",
+    "layout": "built"
+   }
+  },
+  {
+   "id": "s3",
+   "name": "cave cube",
+   "beats": [
+    57,
+    65
+   ],
+   "t": [
+    24.071,
+    27.441
+   ],
+   "x": [
+    7500,
+    8550
+   ],
+   "in": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      8,
+      18,
+      46
+     ],
+     "ground": [
+      3,
+      8,
+      22
+     ],
+     "line": [
+      110,
+      210,
+      255
+     ]
+    }
+   },
+   "out": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": -1,
+    "mini": false,
+    "dual": false,
+    "y": 17.2,
+    "vy": 1.94,
+    "grounded": false,
+    "scene": {
+     "bg": [
+      8,
+      18,
+      46
+     ],
+     "ground": [
+      3,
+      8,
+      22
+     ],
+     "line": [
+      110,
+      210,
+      255
+     ]
+    }
+   },
+   "builder": {
+    "layout": "frostbite",
+    "deco": "frostbite",
+    "playtest": "frostbite"
+   },
+   "status": {
+    "deco": "planned",
+    "playtest": "planned",
+    "layout": "built"
+   }
+  },
+  {
+   "id": "s4",
+   "name": "mirror upside",
+   "beats": [
+    65,
+    77
+   ],
+   "t": [
+    27.441,
+    32.64
+   ],
+   "x": [
+    8550,
+    10170
+   ],
+   "in": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": -1,
+    "mini": false,
+    "dual": false,
+    "y": 17.2,
+    "vy": 1.94,
+    "grounded": false,
+    "scene": {
+     "bg": [
+      26,
+      12,
+      54
+     ],
+     "ground": [
+      8,
+      3,
+      20
+     ],
+     "line": [
+      140,
+      220,
+      255
+     ]
+    }
+   },
+   "out": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 139.3,
+    "vy": -6.91,
+    "grounded": false,
+    "scene": {
+     "bg": [
+      26,
+      12,
+      54
+     ],
+     "ground": [
+      8,
+      3,
+      20
+     ],
+     "line": [
+      140,
+      220,
+      255
+     ]
+    }
+   },
+   "builder": {
+    "layout": "frostbite",
+    "deco": "frostbite",
+    "playtest": "frostbite"
+   },
+   "status": {
+    "deco": "planned",
+    "playtest": "planned",
+    "layout": "built"
+   }
+  },
+  {
+   "id": "s5",
+   "name": "mirror ship",
+   "beats": [
+    77,
+    89
+   ],
+   "t": [
+    32.64,
+    37.743
+   ],
+   "x": [
+    10170,
+    11760
+   ],
+   "in": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 137.7,
+    "vy": -7.13,
+    "grounded": false,
+    "scene": {
+     "bg": [
+      26,
+      12,
+      54
+     ],
+     "ground": [
+      8,
+      3,
+      20
+     ],
+     "line": [
+      140,
+      220,
+      255
+     ]
+    }
+   },
+   "out": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 50.2,
+    "vy": -2.19,
+    "grounded": false,
+    "scene": {
+     "bg": [
+      26,
+      12,
+      54
+     ],
+     "ground": [
+      8,
+      3,
+      20
+     ],
+     "line": [
+      140,
+      220,
+      255
+     ]
+    }
+   },
+   "builder": {
+    "layout": "frostbite",
+    "deco": "frostbite",
+    "playtest": "frostbite"
+   },
+   "status": {
+    "deco": "planned",
+    "playtest": "planned",
+    "layout": "built"
+   }
+  },
+  {
+   "id": "s6",
+   "name": "reversal wave",
+   "beats": [
+    89,
+    97
+   ],
+   "t": [
+    37.743,
+    41.253
+   ],
+   "x": [
+    11760,
+    13080
+   ],
+   "in": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 49.7,
+    "vy": -2.4,
+    "grounded": false,
+    "scene": {
+     "bg": [
+      26,
+      12,
+      54
+     ],
+     "ground": [
+      8,
+      3,
+      20
+     ],
+     "line": [
+      140,
+      220,
+      255
+     ]
+    }
+   },
+   "out": {
+    "mode": "wave",
+    "speed": "2x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 186,
+    "vy": 6.46,
+    "grounded": false,
+    "scene": {
+     "bg": [
+      26,
+      12,
+      54
+     ],
+     "ground": [
+      8,
+      3,
+      20
+     ],
+     "line": [
+      140,
+      220,
+      255
+     ]
+    }
+   },
+   "builder": {
+    "layout": "frostbite",
+    "deco": "frostbite",
+    "playtest": "frostbite"
+   },
+   "status": {
+    "deco": "planned",
+    "playtest": "planned",
+    "layout": "built"
+   }
+  },
+  {
+   "id": "s7",
+   "name": "crystal wave",
+   "beats": [
+    97,
+    109
+   ],
+   "t": [
+    41.253,
+    46.441
+   ],
+   "x": [
+    13080,
+    15090
+   ],
+   "in": {
+    "mode": "wave",
+    "speed": "2x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 186,
+    "vy": 6.46,
+    "grounded": false,
+    "scene": {
+     "bg": [
+      18,
+      64,
+      102
+     ],
+     "ground": [
+      6,
+      18,
+      36
+     ],
+     "line": [
+      200,
+      245,
+      255
+     ]
+    }
+   },
+   "out": {
+    "mode": "cube",
+    "speed": "2x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      18,
+      64,
+      102
+     ],
+     "ground": [
+      6,
+      18,
+      36
+     ],
+     "line": [
+      200,
+      245,
+      255
+     ]
+    }
+   },
+   "builder": {
+    "layout": "frostbite",
+    "deco": "frostbite",
+    "playtest": "frostbite"
+   },
+   "status": {
+    "deco": "planned",
+    "playtest": "planned",
+    "layout": "built"
+   }
+  },
+  {
+   "id": "s8",
+   "name": "crystal spider",
+   "beats": [
+    109,
+    121
+   ],
+   "t": [
+    46.441,
+    51.552
+   ],
+   "x": [
+    15090,
+    17070
+   ],
+   "in": {
+    "mode": "cube",
+    "speed": "2x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      18,
+      64,
+      102
+     ],
+     "ground": [
+      6,
+      18,
+      36
+     ],
+     "line": [
+      200,
+      245,
+      255
+     ]
+    }
+   },
+   "out": {
+    "mode": "cube",
+    "speed": "2x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      18,
+      64,
+      102
+     ],
+     "ground": [
+      6,
+      18,
+      36
+     ],
+     "line": [
+      200,
+      245,
+      255
+     ]
+    }
+   },
+   "builder": {
+    "layout": "frostbite",
+    "deco": "frostbite",
+    "playtest": "frostbite"
+   },
+   "status": {
+    "deco": "planned",
+    "playtest": "planned",
+    "layout": "built"
+   }
+  },
+  {
+   "id": "s9",
+   "name": "crystal cube",
+   "beats": [
+    121,
+    129
+   ],
+   "t": [
+    51.552,
+    54.969
+   ],
+   "x": [
+    17070,
+    18390
+   ],
+   "in": {
+    "mode": "cube",
+    "speed": "2x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      18,
+      64,
+      102
+     ],
+     "ground": [
+      6,
+      18,
+      36
+     ],
+     "line": [
+      200,
+      245,
+      255
+     ]
+    }
+   },
+   "out": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      18,
+      64,
+      102
+     ],
+     "ground": [
+      6,
+      18,
+      36
+     ],
+     "line": [
+      200,
+      245,
+      255
+     ]
+    }
+   },
+   "builder": {
+    "layout": "frostbite",
+    "deco": "frostbite",
+    "playtest": "frostbite"
+   },
+   "status": {
+    "deco": "planned",
+    "playtest": "planned",
+    "layout": "built"
+   }
+  },
+  {
+   "id": "s10",
+   "name": "the hush",
+   "beats": [
+    129,
+    137
+   ],
+   "t": [
+    54.969,
+    58.436
+   ],
+   "x": [
+    18390,
+    19470
+   ],
+   "in": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      5,
+      10,
+      28
+     ],
+     "ground": [
+      2,
+      4,
+      12
+     ],
+     "line": [
+      110,
+      200,
+      240
+     ]
+    }
+   },
+   "out": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      5,
+      10,
+      28
+     ],
+     "ground": [
+      2,
+      4,
+      12
+     ],
+     "line": [
+      110,
+      200,
+      240
+     ]
+    }
+   },
+   "builder": {
+    "layout": "frostbite",
+    "deco": "frostbite",
+    "playtest": "frostbite"
+   },
+   "status": {
+    "deco": "planned",
+    "playtest": "planned",
+    "layout": "built"
+   }
+  },
+  {
+   "id": "s11",
+   "name": "mirror ball",
+   "beats": [
+    137,
+    149
+   ],
+   "t": [
+    58.436,
+    63.539
+   ],
+   "x": [
+    19470,
+    21060
+   ],
+   "in": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      5,
+      10,
+      28
+     ],
+     "ground": [
+      2,
+      4,
+      12
+     ],
+     "line": [
+      110,
+      200,
+      240
+     ]
+    }
+   },
+   "out": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      5,
+      10,
+      28
+     ],
+     "ground": [
+      2,
+      4,
+      12
+     ],
+     "line": [
+      110,
+      200,
+      240
+     ]
+    }
+   },
+   "builder": {
+    "layout": "frostbite",
+    "deco": "frostbite",
+    "playtest": "frostbite"
+   },
+   "status": {
+    "deco": "planned",
+    "playtest": "planned",
+    "layout": "built"
+   }
+  },
+  {
+   "id": "s12",
+   "name": "descent ufo",
+   "beats": [
+    149,
+    161
+   ],
+   "t": [
+    63.539,
+    68.738
+   ],
+   "x": [
+    21060,
+    22680
+   ],
+   "in": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      5,
+      10,
+      28
+     ],
+     "ground": [
+      2,
+      4,
+      12
+     ],
+     "line": [
+      110,
+      200,
+      240
+     ]
+    }
+   },
+   "out": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      5,
+      10,
+      28
+     ],
+     "ground": [
+      2,
+      4,
+      12
+     ],
+     "line": [
+      110,
+      200,
+      240
+     ]
+    }
+   },
+   "builder": {
+    "layout": "frostbite",
+    "deco": "frostbite",
+    "playtest": "frostbite"
+   },
+   "status": {
+    "deco": "planned",
+    "playtest": "planned",
+    "layout": "built"
+   }
+  },
+  {
+   "id": "s13",
+   "name": "descent ship",
+   "beats": [
+    161,
+    169
+   ],
+   "t": [
+    68.738,
+    72.108
+   ],
+   "x": [
+    22680,
+    23730
+   ],
+   "in": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      5,
+      10,
+      28
+     ],
+     "ground": [
+      2,
+      4,
+      12
+     ],
+     "line": [
+      110,
+      200,
+      240
+     ]
+    }
+   },
+   "out": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 62.6,
+    "vy": -3.67,
+    "grounded": false,
+    "scene": {
+     "bg": [
+      5,
+      10,
+      28
+     ],
+     "ground": [
+      2,
+      4,
+      12
+     ],
+     "line": [
+      110,
+      200,
+      240
+     ]
+    }
+   },
+   "builder": {
+    "layout": "frostbite",
+    "deco": "frostbite",
+    "playtest": "frostbite"
+   },
+   "status": {
+    "deco": "planned",
+    "playtest": "planned",
+    "layout": "built"
+   }
+  },
+  {
+   "id": "s14",
+   "name": "blizzard cube",
+   "beats": [
+    169,
+    177
+   ],
+   "t": [
+    72.108,
+    75.545
+   ],
+   "x": [
+    23730,
+    24810
+   ],
+   "in": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 62.6,
+    "vy": -3.67,
+    "grounded": false,
+    "scene": {
+     "bg": [
+      30,
+      84,
+      124
+     ],
+     "ground": [
+      8,
+      20,
+      40
+     ],
+     "line": [
+      220,
+      248,
+      255
+     ]
+    }
+   },
+   "out": {
+    "mode": "cube",
+    "speed": "2x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      30,
+      84,
+      124
+     ],
+     "ground": [
+      8,
+      20,
+      40
+     ],
+     "line": [
+      220,
+      248,
+      255
+     ]
+    }
+   },
+   "builder": {
+    "layout": "frostbite",
+    "deco": "frostbite",
+    "playtest": "frostbite"
+   },
+   "status": {
+    "deco": "planned",
+    "playtest": "planned",
+    "layout": "built"
+   }
+  },
+  {
+   "id": "s15",
+   "name": "blizzard wave",
+   "beats": [
+    177,
+    189
+   ],
+   "t": [
+    75.545,
+    80.666
+   ],
+   "x": [
+    24810,
+    26790
+   ],
+   "in": {
+    "mode": "cube",
+    "speed": "2x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      30,
+      84,
+      124
+     ],
+     "ground": [
+      8,
+      20,
+      40
+     ],
+     "line": [
+      220,
+      248,
+      255
+     ]
+    }
+   },
+   "out": {
+    "mode": "cube",
+    "speed": "2x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 85.4,
+    "vy": -6.02,
+    "grounded": false,
+    "scene": {
+     "bg": [
+      30,
+      84,
+      124
+     ],
+     "ground": [
+      8,
+      20,
+      40
+     ],
+     "line": [
+      220,
+      248,
+      255
+     ]
+    }
+   },
+   "builder": {
+    "layout": "frostbite",
+    "deco": "frostbite",
+    "playtest": "frostbite"
+   },
+   "status": {
+    "deco": "planned",
+    "playtest": "planned",
+    "layout": "built"
+   }
+  },
+  {
+   "id": "s16",
+   "name": "final jumps",
+   "beats": [
+    189,
+    201
+   ],
+   "t": [
+    80.666,
+    85.865
+   ],
+   "x": [
+    26790,
+    28410
+   ],
+   "in": {
+    "mode": "cube",
+    "speed": "2x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 84,
+    "vy": -6.24,
+    "grounded": false,
+    "scene": {
+     "bg": [
+      30,
+      84,
+      124
+     ],
+     "ground": [
+      8,
+      20,
+      40
+     ],
+     "line": [
+      220,
+      248,
+      255
+     ]
+    }
+   },
+   "out": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      30,
+      84,
+      124
+     ],
+     "ground": [
+      8,
+      20,
+      40
+     ],
+     "line": [
+      220,
+      248,
+      255
+     ]
+    }
+   },
+   "builder": {
+    "layout": "frostbite",
+    "deco": "frostbite",
+    "playtest": "frostbite"
+   },
+   "status": {
+    "deco": "planned",
+    "playtest": "planned",
+    "layout": "built"
+   }
+  },
+  {
+   "id": "s17",
+   "name": "end",
+   "beats": [
+    201,
+    207
+   ],
+   "t": [
+    85.865,
+    87.213
+   ],
+   "x": [
+    28410,
+    28830
+   ],
+   "in": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      30,
+      84,
+      124
+     ],
+     "ground": [
+      8,
+      20,
+      40
+     ],
+     "line": [
+      220,
+      248,
+      255
+     ]
+    }
+   },
+   "out": {
+    "mode": "cube",
+    "speed": "1x",
+    "grav": 1,
+    "mini": false,
+    "dual": false,
+    "y": 15,
+    "vy": 0,
+    "grounded": true,
+    "scene": {
+     "bg": [
+      30,
+      84,
+      124
+     ],
+     "ground": [
+      8,
+      20,
+      40
+     ],
+     "line": [
+      220,
+      248,
+      255
+     ]
+    }
+   },
+   "builder": {
+    "layout": "frostbite",
+    "deco": "frostbite",
+    "playtest": "frostbite"
+   },
+   "status": {
+    "deco": "planned",
+    "playtest": "planned",
+    "layout": "built"
+   }
+  }
+ ]
+}

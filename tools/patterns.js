@@ -286,6 +286,15 @@ def("swing-run", "a swing corridor (band rows 0-7 from a portal on the ground): 
     if (a.exit) { const w = a.w || 32; r.objects.push(["gravity up", w - 1, 1]); for (let rr = 3; rr < (a.gap || 6); rr++) r.objects.push(["block", w - 1, rr]); }
     return r;
   })());
+// The spider (GDLM 72 FROSTBITE: "a spider section with quick teleport timings"): a tap teleports it to the other side at
+// once, so the ball's floor / roof alternation reads for it, closer together (`every` 6). Its gravity is put back in the
+// exit funnel as the swing's is.
+def("spider-run", "a spider corridor (band rows 0-7 from a portal on the ground): a roof `gap` (5) rows up, spikes alternating floor / roof every `every` (6) columns, each one a teleport; portal/exit options", (a) =>
+  (() => {
+    const r = P["ball-run"].fn(Object.assign({ gap: 5, every: 6 }, a, { _mode: "spider" }));
+    if (a.exit) { const w = a.w || 32; r.objects.push(["gravity up", w - 1, 1]); for (let rr = 3; rr < (a.gap || 5); rr++) r.objects.push(["block", w - 1, rr]); }
+    return r;
+  })());
 // The UFO: a tap is a hop, it falls between taps (flappy). A corridor with a solid roof `gap` rows up; pillars from the
 // floor (2 or 3 rows, 2 wide) alternate with hangers from the roof (2 rows), `every` columns apart after `lead`, so
 // the player hops over a pillar, then lets the UFO sink under a hanger.

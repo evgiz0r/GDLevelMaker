@@ -143,6 +143,8 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   (`"triples": "allow"` in a brief = off). A triple = exactly 3 full spikes in a row (4+ is a pit). Sweep 2026-11-24: 4 of 29 levels over it (GDLM 43: 11 triples in 31 s,
   47: 10, 64 v5 and 69: back to back), 39 triples in all; 6 of 81 library structures hold one (triple-spike, robot-triple,
   spider-zaps, spider-steps, pad-launch, red-orb-wall).
+  A 1x triple's window is 45.8 ms in the sim (11 ticks): a brief with triples and minWindowMs 50 fails "timing" on
+  every reseed (GDLM 72 round 1: 8 compose rounds, 21 min, all on it). Harder with triples: minWindowMs 45.
 
 - [ ] **Long enough, with long sections**: 60 s or more (official 78-95 s) and at most ~6 mode changes a
   minute (official 1.3-5.2; ours were 7-17: short snippets). score.js gates "length" and "mode changes";

@@ -33,16 +33,17 @@ function loadPlan(n) {
 // latOf, read off GD). loadPlan's events (already t-1) are the 1-tick case; in ship/UFO the button the
 // body sees is the plan's one tick earlier. Ship plans got further with it (PHYSICS.md).
 const LATE = { ship: 1, ufo: 1 };
-function playLatent(w, ev) {
+function playLatent(w, ev, late) {
+  late = late || LATE;
   const level = [];  // button level per step, by the 1-tick convention
   let held = false, k = 0;
   const sorted = ev.slice().sort((a, b) => a.tick - b.tick);
-  const end = Math.ceil((w.endX / (GD.SPEEDS[0].x * 60) + 5) * GD.PHYS.TPS);
+  const end = GD.maxTicksOf(w);
   for (let t = 0; t <= end; t++) { while (k < sorted.length && sorted[k].tick <= t) held = sorted[k++].type === "press"; level.push(held); }
   const s = GD.startState(w), path = [Object.assign({}, s, { used: s.used.slice() })];
   let prev = false;
   while (!s.dead && !s.done && s.tick < end) {
-    const i = s.tick - (process.env.NOLATE ? 0 : (LATE[s.mode] || 0));
+    const i = s.tick - (process.env.NOLATE ? 0 : (late[s.mode] || 0));
     const h = i >= 0 ? level[i] : false;
     GD.step(w, s, { press: h && !prev, held: h });
     prev = h;
@@ -74,4 +75,4 @@ if (require.main === module) {
     console.log(`${n}: ${res.done ? "CLEARS" : `dies at block ${(res.x / 30).toFixed(1)} tick ${res.tick} (${res.why}${k ? `, id ${k.id} at ${(k.x / 30).toFixed(1)},${(k.y / 30).toFixed(1)}` : ""}) mode ${res.mode}`} -- end block ${(res.w.endX / 30).toFixed(0)}, ${res.ev.filter(e => e.type === "press").length} presses`);
   }
 }
-module.exports = { loadPlan, replay };
+module.exports = { loadPlan, replay, playLatent };

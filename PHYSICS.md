@@ -36,7 +36,7 @@ A plan's tick t is our step t-1 (`tools/tas.js` shifts it). Plans reach, in bloc
 | UFO | flap to 7, gravity 0.086 / 0.129 (see UFO below) | gdsolver | plans only |
 | wave | 1 unit up per unit forward (mini 2); contact half 5 (mini 3), dies on a solid with half 1.5, band clamp 10 (mini 6) | gdsolver + video | video: mini wave trail 2.00:1 |
 | robot | jump 0.5x, gravity 0.9x, hover 67 ticks while held | gdsolver | plans only |
-| spider | half 13.5, teleports to the facing surface | gdsolver | plans only |
+| spider | half 13.5; teleport = GD's spiderTestJumpInternal search (solids in a strip from the centre to 14.5 ahead, a landing up to 10 behind, hazards in +-4 kill, band face / ground when nothing; rests at face +- half, vy 1 the way it went, not grounded) | gdsolver step.hpp spiderTargetGd (2026-11-25; was a guessed +-4.5 strip at +-15) | plans only |
 | swing | flips gravity a tick after a press, vy x0.8, gravity 0.086, limit 8 | gdsolver | plans only |
 
 Swing and the solver (2026-11-23, style's report): the sweep's state key left out the pending flip, so a
@@ -249,9 +249,15 @@ The solver session (official re-solves, human routes, dual / moving objects, lab
   "Main levels kept current"): 20/22 clear again with a human route, as before the change; Deadlocked and Dash still die
   at the same spots (open physics leads below). `tools/mains.js` now keeps them current by itself after physics changes.
 - **Fingerdash (21) viewer route:** its `--replan` took 42 min on 2026-11-25 (budget 10 min per plan pass); the route clears.
-- **Open physics leads (not solver gaps):** Deadlocked -- the teleport-spike stretch (`node tools/stuck.js 20 ...`
-  shows no input sequence survives: a teleport / spike-hitbox question). Dash -- the cube portal stack and the mini
-  route need a ball bounce off moving objects (move-trigger platforms; PHYSICS.md "Moving objects"). Theory of
+- **Deadlocked: BEATEN (2026-11-25).** The teleport-spike stretch at block 695 was the teleport portal's box: the user's
+  hitbox-on practice video (GD claude-rec 2026-11-24_00-33-07.mkv, ~196.33 s) shows the ship come out of the 747 at
+  x 20887 ~10 units further right than the sim's, clear of spike 421. 747's box is now 25 x 90 centred 12 right of the
+  object (gdsolver's 25 x 90, OpenGD's +12 offset); the resume then cleared it (32 min). Its route still has 33 ms gaps
+  (`humanroute.js 20`).
+- **Open physics leads (not solver gaps):** Dash -- ROTATED GAMEPLAY: in the sim since 2026-11-25 (section "Rotated
+  gameplay" above); the route passes the first turned stretch. gdsolver models it (dp/src/dp/frames.hpp, cli --rotgameplay; notes at
+  step.hpp "lv22 t=1,745", "t=1,753", "t=1,813"): the next big physics piece for Dash. (The older note here -- a ball
+  bounce off moving platforms -- was about a later stretch the sim reached only by a wrong spider landing.) Theory of
   Everything 2 -- a UFO release-press gap of 33 ms in the route (`humanroute.js 18`): an inhuman spot, so a physics
   lead if no other route exists.
 - **Labs:** GDLM 67 (`tools/lab67.js`, 19 stations; the user played v2 = commit 29303a4; stations 1-3 notes now predict
@@ -422,10 +428,78 @@ Re-solved with dual (2026-11-24, physics 1d59689, `difficulty_solve --resume`, c
   in Stereo Madness (358-386: 14-18 presses a second), Back On Track (459-510) and Polargeist (342-378: gaps 25-46 ms)
   clear only with inhuman input: the known ship-height mismatches (physics leads, not route bugs).
 
+## Rotated gameplay (id 2900): IN the sim (2026-11-25, first version)
+
+Only Dash (lv22) of the 22 main levels uses it: 20 triggers from block ~71 (before this, Dash stopped at block 75). The
+rules are gdsolver's (github.com/gdsolver/gdsolver, MIT; dp/src/dp/frames.hpp, step.hpp, level_loader.hpp: GD's
+disassembly and their mod's dumps on lv22), not yet our own recordings. Code: lib/physics.js "rotated gameplay";
+test: `node tests/rotated.js`.
+- **Frames.** GD turns the gameplay, not the world. A state is stepped in its FRAME's coordinates (s.hd: 0 = +X, 1 =
+  -X "reverse", 2 = -Y, 3 = +Y), against the level turned into that frame (`frameWorld(w, hd)`, built once per frame and
+  kept on the world: objects moved, mirrored (flipX toggled, rotation negated) and turned a quarter, move-trigger
+  offsets and touch boxes turned too). So every rule stays "x is the travel, y is up". GD's local up is +Y for the two
+  horizontal headings and +X for the two vertical ones (gdsolver: frames 1 and 3 both have up = +X), so 1 and 3 are
+  mirrors, and s.grav / s.vy keep meaning GD's upside-down flag and y speed. `GD.worldXY(s)` = the world position.
+- **Keys** (settled by gdsolver against GD's members): 167 = travel direction (gnddir: 1 up, 2 down, 3 left, 4 right;
+  this, not the rotation, picks the frame), 166 = gravity direction (mvdir, same numbers: upside down when it points
+  along the new frame's up), 169 edit velocity with 583 (velocity mod Y; 169 without 583 = 0), 584 override, 170
+  channel, 171 change channel, 173 target channel, 172 channel only (switch, no turn), 115 ord.
+- **The turn** (PlayerObject::rotateGameplay): the world point carries over; onto the other axis the y speed becomes
+  583 x the travel speed (GD's local sign); a turn that only reverses keeps it (halved if the gravity flips); ground
+  contact and the flying band end (floor = the ground again in a horizontal frame, none in a vertical one).
+- **GD's trigger queue** (checkSpawnObjects): the triggers the player passes sit in per-channel buckets (170), each
+  sorted once (ord, then the channel's axis from the first 2900 that switches to it), and each tick GD walks ONLY the
+  active channel from its cursor, stopping at the first element not passed -- along world x, or world y while the frame
+  is vertical, backwards when the channel's reverse bit (set by a switch whose travel is -X / -Y) is on. So Dash's move,
+  spawn and toggle triggers inside turned stretches fire by their channel, and channel 0's wait. A level with no 2900
+  and no channel keeps the old plain x walk (T.byX): nothing changes for the other levels (tests/tas_progress.js,
+  `mains.js status`: 21/21 still clear). The turn applies at the start of the tick after the crossing (= GD's "after the
+  move, before the button"), so a spider tap on that tick is taken in the new frame.
+- **Progress.** x is not "how far" in such a level, so states carry s.d (distance travelled) and tools use
+  `GD.progressX(s)` (= s.x elsewhere): the sweep's furthest state, difficulty_solve's resume points and dieX.
+  Run length: `GD.maxTicksOf(w)` (3x the usual for a level that turns). The no-skip rule there counts a portal as passed
+  when the player crosses it in its frame within 150 units across (skipsTurned / skipCheckTurned).
+- **Trap portals** (lib/physics.js TRAPS, solveSweep's fallback): Dash's 1x speed portal at x 2745 (beside the cube
+  portal) is not a requirement: at 1x the mini cube meets spikes a move trigger lowers into its lane at x ~3460, at 3x it
+  passes first; gdsolver's real-game plan goes under it. When a strict sweep finds no way, it sweeps again ranking skips
+  last; a route found that way names its skipped portals in `trapSkips` -- check them against a real-game plan, then
+  add them to TRAPS. Cost: a sweep that fails runs twice, and the second (skips allowed) is much wider: Dash from block
+  67 took 44 min in all against ~40 s for the strict one alone (2026-11-25). `noTraps: true` skips it.
+- **Checked so far:** gdsolver's real-game plan (tools/tas.js 22) goes down Dash's first turned stretch and back with
+  GD's own landings (world x 2143.5 after the first tap, the turn back at y 135), but only with two spider presses
+  moved 3-5 ticks later (`tr22`-style nudges): our tap comes ~2-3 ticks before GD's relative to position there, while
+  earlier spider taps in the same plan need today's timing (one tick later dies at block 40 on a saw). OPEN: the spider's
+  input timing vs GD; tas_progress stays at 75 until it is understood.
+  `node tools/tas_trace.js 1740,1790 22 --nudge 1742:3,1744:3,1906:5,1908:5` shows it.
+- **Block ~127 (fixed 2026-11-25):** not the move units or the touch box -- a "flip on head hit" modifier (2866) locked
+  to the player there; see "Gameplay modifiers" below. With it and the time warp at x 4535 the nudged plan goes on to
+  block 179 (x 5366), where it dies in a swing stretch (swing physics, open).
+- **Not modelled yet:** touch-activated 2900s (none in Dash), a 2900 inside a toggled-off group, the dash orb's angle
+  clamp in turned frames (gdsolver --dashframe3), the 2899 options trigger (disables P1 controls; consumed, no effect),
+  moving objects' lock-to-player / move-to-target state across a turn, the camera turning with the gameplay (the viewer
+  draws turned stretches in world coordinates, unturned).
+
+## Gameplay modifiers (2866, 1813) and the time warp (1935): IN the sim (2026-11-25)
+
+From gdsolver's reading of GD's disassembly (GJBaseGameLayer::collisionCheckObjects, PlayerObject::didHitHead) and
+their dumps on Dash; code in lib/physics.js, objects in lib/objects.js; `node tests/modifiers.js`.
+- Touching a modifier sets a per-player counter to 2; PlayerObject::update counts it down every tick (s.fhArm, s.najArm).
+- **2866 flip on head hit:** while armed, a head that reaches a solid flips gravity and the player stands on that
+  ceiling (y = face - half, on the ground at once; GD: Dash t=2,748 -> 2,749). **1813 no auto jump** ("J block"): armed
+  with it, that flip also drops the held button -- no jump off the ceiling until it is released (s.najHold). Fingerdash
+  has 11 1813s and no 2866: nothing changes there. Dash has one of each in group 59 at (3735, 165), which a move trigger
+  locks to the player for 2 s from x 3735: a red pad throws the mini cube into the ceiling at x ~3790 and it lands on
+  it upside down (before this the sim killed it there: block ~127). OPEN (gdsolver): GD flips 42 ticks after arming,
+  where the counter says 2 -- there is a second reader of the arm in collidedWithObjectInternal not modelled.
+- **1935 time warp** (key 120 = the time scale): from the tick after the player's x passes one, the x advance, the y
+  move and the velocity change of each tick shrink by that factor (a scale above 1 does nothing to them: GD speeds the
+  scheduler instead). Dash: 0.2 from x 4535 to 4615 (gdsolver: dx 1.950 -> 0.390, dvy 0.215 -> 0.043). Read off the
+  player's world x, in levels that have one (w.warps); not a channel-queue trigger here (Dash's sit in channel 0).
+
 ## Not in the sim yet (the game has it)
 
 Modes/portals: mirror. Teleport portals (747) are in, unchecked: same x, speed kept, exit height = portal y + key 54 along the portal's turned axis (54 x cos(rotation)), but the full 54 straight up/down when key 55 is set or the portal is turned a quarter (90/-90/270: cos would make it a no-op; Deadlocked's ball part 441-561 passes only so, neither "no move" nor "x moves by 54" does -- "angle mod 90" fits the same cases) (fitted on Deadlocked, 2026-11-23: its -53 degree portal at block 76.5 needs the turned offset to pass under a spike; its -46 degree portal with 55 at 360.8 lands exactly on the gravity + speed portals 224 below; whether GD also moves x is not known; smooth teleport and the 2.2 options 345+ not modelled); first used by Deadlocked at block 77, Fingerdash 205, Dash 435. Triggers: count/pickup items,
-scale, follow, on death, collision blocks, area triggers, gravity trigger, time warp. Others:
+scale, follow, on death, collision blocks, area triggers, gravity trigger. Others:
 keys and user coins (collectables only), start positions (levels always start at x 0), practice
 checkpoints, speed portals touched mid-air at a slant, force blocks, platformer mode, dash orbs'
 unknown props 586/588, spike slopes.

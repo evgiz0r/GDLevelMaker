@@ -56,6 +56,7 @@ swap('<button id="mapBtn" ', '<button id="mapBtn" hidden ');
 swap("<title>", '<meta name="description" content="Geometry Dash levels made by Claude, replayed in the browser">\n<title>');
 fs.writeFileSync(path.join(OUT, "index.html"), html);
 fs.copyFileSync(path.join(ROOT, "viewer", "windows_worker.js"), path.join(OUT, "windows_worker.js"));
+fs.copyFileSync(path.join(ROOT, "viewer", "song_grids.js"), path.join(OUT, "song_grids.js")); // beat grids: numbers only, no audio
 
 // the user's allowlist only (knowledge/public_levels.json); viewer/levels.js lists levels/ and examples/
 global.window = {}; require(path.join(ROOT, "viewer", "levels.js"));
