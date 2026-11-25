@@ -39,6 +39,9 @@ const logs = [
   att({ from: T3, cp: 3, to: END + 1, end: "complete" }),                     // the clear
   { file: "x/n.jsonl", start: { level: "GDLM 02 on the beat", practice: 0, lt: 0, from: -1 }, ticks: [], btn: [], cps: [], end: { n: 5, result: "death" } },
 ];
+// as on GD 2.2091: every checkpoint id reads 0, and the first attempt began in normal mode (switched to practice mid-run)
+for (const l of logs) for (const c of l.cps || []) c.id = 0;
+logs[0].start.practice = 0;
 const S = stitch(logs);
 assert(!S.error, S.error);
 assert.strictEqual(S.complete, true);
@@ -54,7 +57,7 @@ const P = stitch(logs.slice(0, 4), { partial: true });
 assert(!P.error && !P.complete && P.segments.length === 3);
 
 // a checkpoint nobody logged
-assert(/no logged attempt stored it/.test(stitch([att({ from: T1, cp: 9, to: END + 1, end: "complete" })]).error));
+assert(/no earlier logged attempt got there/.test(stitch([att({ from: T1, cp: 9, to: END + 1, end: "complete" })]).error));
 
 // the respawn kept the button held: a press is added at the seam
 const H = stitch([att({ from: 0, to: T1, cps: [[1, T1]] }), att({ from: T1, cp: 1, to: END + 1, end: "complete", hold: 1 })]);

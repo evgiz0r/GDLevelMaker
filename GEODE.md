@@ -145,6 +145,12 @@ The user asked (2026-11-25): "do we have something that can make a run from a pr
   to local/attempts/ (source "stitch") so the viewer shows it as a ghost and `tools/video.js <level> --run <id>` films it.
 - **In the real game:** `node tools/probe.js play save:<GDLM name> --events local/stitched/<file>.json --launch` plays the
   stitched run unbroken in normal mode (GDLM levels only; announce it and get the user's go first, see "Playback").
+- **First real session (Clubstep, 2026-11-25, 41 attempts, cleared in practice from 83.78 s):** v0.4.0 logged only ONE
+  checkpoint: `CheckpointObject::m_uniqueID` reads 0 for every checkpoint on 2.2091, and the mod skipped a checkpoint whose
+  id equalled the last one. Fixed twice: stitch.js matches checkpoints by their tick (an attempt's start level time ->
+  the newest earlier attempt that ran past that tick), so v0.4.0 logs stitch as they are; mod v0.4.1 tells checkpoints
+  apart by pointer and logs a checkpoint's id and `from` as its tick. Also seen: attempt #1 began in normal mode and was
+  switched to practice mid-run, storing the first checkpoints -- stitch.js counts every attempt, not only practice ones.
 - Test: `node tests/stitch.js` (a solved level's route cut at three checkpoints with wasted attempts and junk presses
   stitches back to the route and clears; a held seam; old logs refused).
 - **Not checked in the game yet** (needs v0.4.0 built + installed, then the user plays a level in practice): whether
