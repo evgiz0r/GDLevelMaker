@@ -295,7 +295,7 @@ killing object and what the sim thinks it is; `node tools/levelmap.js <level>` d
 | level | stop | killed by | cause | owner |
 |---|---|---|---|---|
 | Deadlocked | 59%, block 695 | sideways spike 421 just behind a teleport exit | ship's box overlaps it by ~1.5 units after the teleport; portal width / ship box / spike box unmeasured | physics: wants a hitbox-on recording at ~58.5 s |
-| Dash | 28%, block 220 | slope 1744 turned 90 degrees | the sim treats quarter-turned slopes as walls; the swing should glide up it | physics: "Not simulated yet" |
+| Dash | 9.5%, block 75 (2026-11-25) | the id-392 spike row under the spider's down-tap | Dash turns its gameplay 90 degrees there (rotate gameplay, id 2900): GD takes the tap in the turned frame, sideways; the sim has no turned frames, and GD's own search kills an unturned tap on that row (gdsolver, lv22 t=1,737/1,745). Before the teleport was made GD's it reached 28% by a wrong landing | physics: rotated gameplay (PHYSICS.md) |
 | Fingerdash | 6%, block 55 | id 1813, nothing visible there | 1755 / 1813 / 1829 / 1859 are GD's lettered helper blocks (OpenGD type 40), imported as 30x30 hazards by the "hitbox = hazard" fallback; Fingerdash has 36, Dash 22 | physics (lib/objects.js) |
 
 With the helper blocks left out, Fingerdash's old clicks get to 6.7% (a saw: those clicks were planned

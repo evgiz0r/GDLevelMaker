@@ -559,7 +559,6 @@ swing. Each still wants a recording of the user's own play.
 
 Assumed (not yet checked):
 - Object keys 121 = No Touch and 134 = Passable (both make an object not collide).
-- Spider teleport searches a 9-unit strip above/below the cube.
 - Dash orbs: horizontal at the orb's angle while held; the props 586/588 on them are unknown.
 - "Click Between Steps" is OFF in the user's settings: presses land on a frame boundary, not any
   240 Hz step. The solver still allows any step.
@@ -572,7 +571,7 @@ spider orb + pad, the upside-down red-orb dive under a hanging column.
 
 ## Not simulated yet
 
-Mirror and dual portals, teleport portal variants 2902/2064 and the teleport trigger 3022; follow and "move to target" triggers, and a player carried sideways by a moving
+Rotated gameplay (rotate-gameplay trigger 2900: Dash turns its gameplay 90 degrees from block ~75, so Dash cannot get past there; gdsolver's dp/src/dp/frames.hpp models it), mirror and dual portals, teleport portal variants 2902/2064 and the teleport trigger 3022; follow and "move to target" triggers, and a player carried sideways by a moving
 block; speed-dependent ring scaling for ball/UFO; spike slopes (any slope skin that kills is
 treated as a plain slope -- unchecked).
 Simulated but checked only by the plans: mini size (gdsolver's measured values), move/toggle/spawn
