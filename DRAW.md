@@ -206,3 +206,6 @@ put it on the phone viewer and the whiteboard Artifact (both private); serve.js 
 git, never on the public site (tools/pages.js does not copy it). `node tests/intent.js --main` runs with it.
 Open: shapes rarely match a brick (a pillar, steps: built as drawn); bricks are only 1x speed; the corridor is plain (no
 spikes or gates yet: LEGO.md wrappers); presses from bricks are not synced to the song.
+Idea (from the structure-library thread): match a fitted sketch's block columns against the catalogue with
+`tools/lego_match.js` (match / hintsFor, no route needed) to say "this stretch is built like brick X"; it matches exact
+column contents, so it would help shapes that are close to a brick, not new ones. Not tried yet.
