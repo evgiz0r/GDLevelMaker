@@ -178,3 +178,13 @@ one line each (scrolling sideways when long). The sections bar is folded by defa
 under the playhead (and the picked one, with its ✓ ok / redo); ▸ shows every chip, remembered per browser
 (localStorage gdlm.secOpen).
 
+
+## A build stage without its own route borrows one (2026-11-25)
+
+The user, on FROSTBITE's stage bar: "path deco ... if i click them then it either dies and doesnt jump or not shown at
+all". The path stage had only a plan that died at the second spike (its planned taps were not the layout's), and deco /
+final had no plan and no fresh saved route, so they opened as a ghost. Now `stageOpen` (viewer/index.html) with no saved
+route tries, on that stage's own level and without a solve: its own plan, then the nearest stages' routes and plans,
+then the level's saved route (`stageRouteCands`). The first that clears is shown (a notice names whose route it is);
+if none clears, the one that gets furthest, with where it dies. A builder should still put each stage's route
+(`data.events`) with it; this only keeps the bar usable when it didn't. Test: `node tests/stage_borrow.js`.
