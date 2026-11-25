@@ -114,9 +114,9 @@
    "name": "cave cube",
    "beats": 8,
    "use": [
+    "block-spike-block",
     "double",
-    "spike-block",
-    "block-spike-block"
+    "single"
    ],
    "bg": [
     8,
@@ -214,7 +214,14 @@
     140,
     220,
     255
-   ]
+   ],
+   "args": {
+    "wave-zigzag": {
+     "seg": 4,
+     "flat": 2,
+     "gap": 5
+    }
+   }
   },
   {
    "name": "crystal wave",
@@ -240,7 +247,7 @@
    "args": {
     "wave-zigzag": {
      "seg": 3,
-     "gap": 4,
+     "gap": 5,
      "flat": 2
     }
    }

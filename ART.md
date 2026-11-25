@@ -380,6 +380,10 @@ over each section by one move trigger each (B2, a few in front only away from th
 first failed roles (deco in the bodies' value); the deco depths were lifted until `node tools/theme.js check ice` passed
 (far / mid / near 1.35x+ off the navy body). Open: not yet seen in the game; whether GD draws 693 scaled non-uniformly
 as the viewer does.
+**Gotcha for every kit (found on GDLM 72, round 2):** a lock-to-player move (`K.lockX`) on a group shared by all
+sections moves EVERY earlier section's objects of that group again: the first section's mountains rode along the whole
+level. The ice kit gives each section its own parallax groups (470 + 3 * section). The space kit still shares G.piece /
+G.far across sections (GDLM 71): for gd-art to check in its renders.
 
 ## Deco library (2026-11-24; the user: our levels look like "3 squares and poopy" next to real ones)
 
