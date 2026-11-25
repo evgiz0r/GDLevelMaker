@@ -23,7 +23,9 @@ shared slot by itself and prints whom it waits for. Don't get around it with `no
 scripts, and build timing or test runs from copies in `local/tmp/`, never another session's level.
 
 ## Fair (the user's playtests: a death must be the player's fault)
-
+- [ ] **Fly corridors are smooth: no one-block stair steps in a ship or wave wall** (2026-11-25: GDLM 44's ship died in the real
+  game at a stepped roof's corner where our sim passed, PHYSICS.md "probe mod"). Build them with `fly-path` (45-degree slopes
+  on both walls), not `ship-tunnel`; the margin our sim gives at a block corner is not to be trusted.
 - [ ] **`node tools/fairness.js <level>` passes** (also `tools/score.js` gate "fairness"). It
   flags (FAIL): an input forced right after a portal (into a jumping mode: the first input's window
   closes < 250 ms after it; into the wave: the button must change within 300 ms); a jump mark where
