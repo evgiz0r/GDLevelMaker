@@ -111,12 +111,15 @@ Next: a full sim-vs-game diff per tick (the PHYSICS.md "Fidelity" scoreboard).
   and opens the next, one line per entry in `play.results.jsonl`, `play.finished.json` after the last. `node tools/probe.js
   play <level> <level> ... | --all-gdlm [--max-seconds s] --launch`, `result --last-batch`; `result` on a v0.3 log prints
   the x lag, the first parting step, and every jump's start game-minus-sim by the press's place in its 60 fps frame.
-- **Smart App Control blocked v0.3.0's DLL** (Geode log 08:59:25: "Blocked by Windows Smart App Control (4551)";
-  CodeIntegrity 3033/3077). v0.2.0's DLL had loaded with no event. SAC judges each new unsigned file by cloud reputation,
-  so any rebuild of the mod may or may not load. We do not try to get around it (no rebuild-until-it-passes). The ways
-  forward are the user's: turn Smart App Control off (Windows Security > App & browser control; Windows can only turn it
-  back on with a reinstall), or sign the DLL with a trusted code-signing certificate (paid). Until then the installed
-  v0.3.0 shows a load error in Geode and logs nothing.
+- **Smart App Control blocked v0.3.0's DLL** at first (Geode log: "Blocked by Windows Smart App Control (4551)"); the
+  user turned Smart App Control off on 2026-11-25 (16:08 UTC), and since then every build loads.
+- **v0.3.1:** a playback ignores GD's pause-on-unfocus (PlayLayer::pauseGame(true)), so it plays on while the user works in
+  another window. The in-game switch to the next level (onQuit -> EditLevelLayer -> open) stalled twice after a death, so
+  `probe.js play ... --launch` now runs a batch as one GD launch per level (about 15-20 s of start-up each), and stops if
+  the user's own GD is running.
+- **What the logs hold (2026-11-25):** `m_yVelocity` is per step; `m_position` moves once per 60 fps frame; GameObject's
+  `m_positionX/Y` stay 0 on the player (the px, py fields are useless; a true per-step position is still open: try
+  PlayerObject's own fields or read it inside PlayerObject::update). Findings: PHYSICS.md "The probe mod".
 - Open: levels not in the save (import a .gmd); official levels in practice mode only.
 
 
