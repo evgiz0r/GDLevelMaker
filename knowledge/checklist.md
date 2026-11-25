@@ -146,6 +146,9 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   the next), tight lines only where the gap asks for them; no small corrections (re-presses under 150 ms) beyond the
   corridor's turns + 2. score.js route gate WARNs "off the pattern"; `node tools/flystyle.js <level>` per stretch.
   (the user, 2026-11-25: "these corridors should be just few holds and releases"; PHYSICS.md "The wave like a person")
+- [ ] **Jump off an edge before its last tick**: a cube / UFO / robot route does not press with its centre already past
+  the block's end (reads as sliding off the cliff). lib/natural.js `edgeJumps` moves such presses earlier; `GD.edgePresses`
+  lists them. (the user on ToE2 brick 237, 2026-11-25: "some wierd ufo jumps on the clif, he slides?! it shouldnt")
 - [ ] **Jump marks clear of hazards**: a mark shows the take-off, its centre >= ~1 block in front of the
   hazard's hitbox, never on or touching one. Placed by decorate.js jumpIndicators (INDICATOR.clear);
   `node tools/indicators.js <level> [--fix]`. (the user, hellgate round 2: "indicator inside spike")
