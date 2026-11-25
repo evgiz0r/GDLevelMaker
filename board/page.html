@@ -642,6 +642,18 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
     loadFailed=true; renderFresh(); phText("Couldn't load: "+why+". Tap Retry at the top.");
     showBanner("Couldn't load the board's data: "+why+".", true);
   }
+  var playedLoading=false;
+  function loadPlayed(){
+    if(played || playedLoading || !db) return; var ref=db.doc("board/played"); if(!ref || typeof ref.get!=="function") return;
+    playedLoading=true;
+    setTimeout(function(){ ref.get().then(function(s){ playedLoading=false; if(s && s.exists){ played=s.data(); renderPlayed(); } }).catch(function(){ playedLoading=false; }); }, gotLive? 0 : 3000);
+  }
+  // when live updates never connect but a plain read works: read again every minute
+  var poller=null;
+  function startPolling(){
+    if(poller) return;
+    poller=setInterval(function(){ var r=db.doc("board/state"); if(r && r.get) r.get().then(function(s){ if(s){ state=s.exists? s.data():null; renderAll(); } }).catch(function(){}); }, 60000);
+  }
   function gotState(s){
     gotLive=Date.now(); clearTimeout(watchdog); loadFailed=false; $("banner").hidden=true;
     state=s.exists? s.data() : null; if(!state) phText("No data yet: Claude hasn't posted the first update."); renderAll();
@@ -655,7 +667,7 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
       // the live subscription is silent: try one plain read before giving up
       var ref=db.doc("board/state");
       if(ref && typeof ref.get==="function") Promise.race([ref.get(), new Promise(function(_,no){ setTimeout(function(){ no({code:"timeout"}); },8000); })])
-        .then(function(s){ if(s && !gotLive){ gotState(s); showBanner("Showing a one-time read: live updates aren't connected.", true); } })
+        .then(function(s){ if(s && !gotLive){ gotState(s); gotLive=0; startPolling(); loadPlayed(); showBanner("Live updates aren't connected, so the board re-reads its data every minute.", true); } })
         .catch(function(e){ failed(e && e.code==="timeout"? "no answer after 20 s" : "the read failed ("+(e&&e.code||"error")+")"); });
       else failed("no answer after 12 s");
     },12000);
@@ -664,7 +676,9 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
       if(s.metadata && s.metadata.fromCache){ state=s.data(); renderAll(); return; }
       gotState(s);
     }, function(e){ clearTimeout(watchdog); failed("the connection dropped ("+(e&&e.code||"error")+")"); }));
-    unsubs.push(db.doc("board/played").onSnapshot(function(s){ if(s.exists){ played=s.data(); renderPlayed(); } }, function(){}));
+    // "Your levels" is a big document (~340 KB): read it once, after the small live ones answer, never as a live
+    // subscription (a big live document is the likeliest thing to stall the page's whole data connection)
+    loadPlayed();
     unsubs.push(db.doc("board/picks").onSnapshot(function(s){
       if(writing || dirty) return; // don't overwrite a local edit in flight
       var p=s.exists? s.data() : null;
