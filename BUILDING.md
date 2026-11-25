@@ -14,6 +14,17 @@ Theme -> sections (soft differences, cut at strong beats or small breaks in the 
 its path -> deco, the structural objects themed per section first. What exists per step and what is missing: LEGO.md
 "The build pipeline Evgeni set".
 
+What the lego taught so far, for any builder filling a section from it (LEGO.md has the numbers):
+- **Join only bricks whose seams agree** (mode, speed, gravity, y, vy, ground): with that contract 35% of joins are clean,
+  without it 15%. A third of joins still leave a secret way or an open seam: every join gets the hazard filler and is
+  re-checked by the solver (secret way = route more than 2.5 blocks off the bricks' own routes).
+- **Cut bricks at their ✂ cut points** (`P.cuts`: button up, 0.2 s to the next press, on the ground) to fit a section's
+  beats with fewer presses; a slice keeps its route but its join is checked again.
+- **Combine like the main levels**: next brick a different signature (official 16% repeat vs ours 37%), portals entered in
+  the air, a speed change at a portal, 0.4-0.5 s quiet around it, and use the height (official up to 13 blocks, ours 7).
+- **Don't copy a brick's wave taps blindly**: some main-level wave routes tap in corridors (18 of 60 wave bricks have
+  presses under 0.1 s apart, mostly Deadlocked). A wave leg is one press; take the layout, re-plan the presses.
+
 ## 1. Sections first, like a collab
 
 The user: "usually it is easy to make a level in sections, where those section stops are defined... thats how

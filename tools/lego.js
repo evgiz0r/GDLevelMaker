@@ -47,7 +47,7 @@ function officialSources() {
     if (!fs.existsSync(f)) continue;
     const j = JSON.parse(fs.readFileSync(f, "utf8"));
     if (!j.solution || !j.solution.events) continue;
-    out.push({ src: "official", name: `${n} ${j.name}`, level: GD.parseLevel(j.level), events: j.solution.events, windowsKey: "official_" + n });
+    out.push({ src: "official", name: `${n} ${j.name}`, level: GD.parseLevel(j.level), events: j.solution.events, windowsKey: "official_" + n, routeKind: j.solution.kind || "unknown", routeAt: j.solution.at || j.solution.planned || fs.statSync(f).mtime.toISOString().slice(0, 10) });
   }
   return out;
 }
@@ -326,13 +326,19 @@ function measure(src, w, r, inputs, i0, i1) {
   // plus what the page needs to draw the player as the game does (the user, 2026-11-25: "need proper icons in the replays
   // of the structures", "colors and player icons + reverse"): mode (index in MODES), gravity (-1 = upside down: the icon is
   // drawn mirrored), the drawn rotation (lib/look.js visualRot, the viewer's), grounded and mini
-  const vr = r.midline ? null : LOOK.visualRot(p.slice(i0, i1 + 1)), step = Math.max(1, Math.round((i1 - i0) / 240));
+  const vr = r.midline ? null : LOOK.visualRot(p.slice(i0, i1 + 1)), step = Math.max(1, Math.round((i1 - i0) / 120));
   // world position (a state inside rotated gameplay steps in its frame's coordinates: GD.worldXY turns it back; the
   // user's "something weird with paths", 2026-11-25). A teleport is a real jump: the page breaks the line there.
   const wxy = s => GD.worldXY ? GD.worldXY(s) : [s.x, s.y], wa = wxy(a)[0] - xa;
   P.path = []; for (let i = i0; i <= i1; i += step) { const [wx, wy] = wxy(p[i]); P.path.push([r1((wx - wa - xa) / B), r1(wy / B), r2(r.midline ? (p[i].x - xa) / 311.58 : (p[i].tick - a.tick) / TPS),
     Math.max(0, MODES.indexOf(p[i].mode)), p[i].grav < 0 ? -1 : 1, vr ? Math.round(vr[i - i0]) : 0, p[i].grounded ? 1 : 0, p[i].mini ? 1 : 0]); }
   P.colors = levelColours(src, r, a);
+  // which route the piece was cut from (the solver thread, 2026-11-25): its kind ("human" = lib/natural.js planned it,
+  // "humanize" = the raw solve patched, keeps its flying jitter) and when it was planned; jitter = wave presses under
+  // 0.1 s apart (a wave leg is one press: knowledge/checklist.md). The page hides jittery and non-human pieces by default.
+  P.routeKind = src.routeKind || (src.src === "official" ? "unknown" : "ours");
+  if (src.routeAt) P.routeAt = src.routeAt;
+  { const pr = P.clicks.filter(c => c[2]).map(c => c[3]); P.jitter = mode === "wave" ? pr.filter((t, i) => i && t - pr[i - 1] < 0.1).length : 0; }
   // inner cut points (the user, 2026-11-25: "what we could cut from start or the end, like checkpoints where we could
   // take even smaller parts (on demand)"): calm moments between two presses where the brick can be trimmed -- the button
   // up, at least 0.2 s to the next press, and (cube family) on the ground. [x blocks, seconds, presses before it]; a
