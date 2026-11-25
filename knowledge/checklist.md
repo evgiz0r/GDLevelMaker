@@ -163,6 +163,9 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 
 ## Not bland (rated Easy/Normal 2.0-2.1 medians)
 
+- [ ] **The background never reads as solid** (the user's Two Moons mark, 2026-11-25: "solid background is confusing"). Back
+  shapes must not look like blocks you can land on: no block-like squares with lit rims behind the play, lower value and
+  contrast than the path's bodies, softer or no outlines, a different hue or some transparency. `tools/roles.js` (pathDeco).
 - [ ] **The play stays visible: deco never hides the path or a hazard** (the user, 2026-11-25: RobTop's levels are amazing
   for "the visible play"; "if you dont see a spike the timing is obviously harder"). No deco in front of the lane the player
   can be in, none behind a hazard in its value or hue (it must stand out), the richest art at the lane's edges, quiet behind
