@@ -155,6 +155,35 @@ gates, height changes), which become pieces the picker can use anywhere -- his d
 the variety measure. **Not built yet:** the slot picker in compose (steps 1-2), parametric cube pieces from the mined
 official kinds (steps and pits), the variety rule as a gate.
 
+## The catalogue as Evgeni browses it: clean, replayed, voted (2026-11-25)
+
+The user, the same evening: "there are too many empty structures, and some patterns are not smooth", "many duplications like
+this", then "lets have a catalog of strcutures, and i can vote up down ( doesnt mean dont use ). maybe comment. all with
+clicks and physics". What changed (tools/lego.js, tools/lego_page.*, tools/serve.js):
+
+- **Empty** pieces (no hazard, orb, pad or portal, and flat ground or open air) are flagged `empty` and hidden by default:
+  official 7 of 838, ours 87 of 751, sketches 3.
+- **Repeats**: each piece is a row of block columns (what is in each column, in level coordinates); two pieces of one mode
+  are the same layout when, at some shift, 80% of the shorter overlaps and every overlapping column matches (so a chunk cut
+  at a different phase still counts). Shown once with ×N and where else it is. **Ours repeat a lot: 90 of 751 pieces are a
+  layout we already had (12%; GDLM 64 golden hour has one wave corridor 8 times), the official levels 1 of 838.** Same
+  lesson as the signature repeat number, now on exact layouts.
+- **"Not smooth" was mostly the drawing**: ramps were drawn as boxes, so 45-degree corridors (GDLM 47's wave) looked like
+  stairs. Slopes now carry their corner and are drawn as triangles. Real stair walls (a wall height jump of a block or more
+  between two non-slope columns, more than 1 per 10 columns) are flagged `smooth: false` and hidden by default: official
+  50, ours 27, sketches 4, library 0.
+- **Clicks and physics**: each piece carries its route's presses and releases ([x, y, down, seconds]) and the route with
+  its time. The big view replays it at real speed (▶, 1x / 0.5x / 0.25x, ← → steps through pieces, space plays), white
+  dots are presses, rings releases.
+- **Votes**: 👍 / 👎 and a comment per piece. PC page: POST /lego/vote -> local/lego/votes.jsonl (and the actions feed,
+  type "lego-vote"). Phone page: its database, collection `legovotes` (doc id = piece id). `node tools/lego.js votes`
+  merges both (fetch the phone's first: ArtifactData list `legovotes` into local/lego/votes_phone.json), prints them and
+  saves knowledge/lego_votes.json; knowledge/lego.json then carries per signature `vote: {up, down, weight, comments}`,
+  weight = 1 + 0.5 x (ups - downs) within 0.25..3. **A vote is a weight, never a ban** (the user's words).
+- Piece ids are now `r-` official (RobTop), `u-` ours, `s-` sketch, `l-` library + level + block (before, ours and
+  official both began with `o-`).
+- Default view after all this: official 782, ours 559, library 12 (`shown` in knowledge/lego.json).
+
 ## Open
 
 - Compose does not place fly pieces from the catalogue yet: ship / wave / swing sections still use ship-tunnel /

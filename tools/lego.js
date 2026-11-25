@@ -5,6 +5,7 @@
 // node tools/lego.js families [--src official|ours|sketch]   -- the family table: how often, typical parameters
 // node tools/lego.js variety <level.gdlvl>           -- a level's piece sequence by signature: repeats, what is missing
 //                                                      vs the official levels' mix
+// node tools/lego.js votes                          -- Evgeni's 👍 / 👎 / comments (PC page + phone page) -> knowledge/lego_votes.json
 // node tools/lego.js page [--public] [--out f.html]  -- a page of thumbnails, filterable by family / mode / wrapper /
 //                                                      source. Default: everything, local only (official pieces are
 //                                                      RobTop's layouts: local/lego/page.html, opened on the PC or via
@@ -30,7 +31,7 @@ if (require.main === module && /^(mine)$/.test(process.argv[2] || "")) require("
 const fs = require("fs"), path = require("path");
 const { GD, readGdlvl } = require("./io.js");
 const ROOT = path.join(__dirname, ".."), LOCAL = path.join(ROOT, "local"), OUTDIR = path.join(LOCAL, "lego");
-const KNOW = path.join(ROOT, "knowledge", "lego.json");
+const KNOW = path.join(ROOT, "knowledge", "lego.json"), VOTESK = path.join(ROOT, "knowledge", "lego_votes.json");
 const FAMILY = { ship: "fly", wave: "fly", swing: "fly", cube: "jump", robot: "jump", ufo: "jump", ball: "flip", spider: "flip" };
 const TPS = GD.PHYS.TPS, B = 30;
 const r1 = v => Math.round(v * 10) / 10, r2 = v => Math.round(v * 100) / 100;
@@ -177,11 +178,12 @@ function measure(src, w, r, inputs, i0, i1) {
       if (it.x1 <= x0 || it.x0 >= x1) continue;
       const k = it.kind === "hazard" ? "H" : (it.kind === "solid" || it.kind === "slope") ? "S" : null;
       if (!k) continue;
-      if (it.y1 <= lo + 4 && it.y1 > f.y) f = { y: it.y1, k };
-      if (it.y0 >= hi - 4 && (!rf || it.y0 < rf.y)) rf = { y: it.y0, k };
+      const sl = it.kind === "slope" ? 1 : 0;
+      if (it.y1 <= lo + 4 && it.y1 > f.y) f = { y: it.y1, k, sl };
+      if (it.y0 >= hi - 4 && (!rf || it.y0 < rf.y)) rf = { y: it.y0, k, sl };
     }
     if (band && f.k === "G" && band[0] > 0) f = { y: band[0], k: "E" };
-    cols.push({ py: r1(py / B), f: r1(f.y / B), fk: f.k, r: rf ? r1(rf.y / B) : null, rk: rf ? rf.k : null, g: grav });
+    cols.push({ py: r1(py / B), f: r1(f.y / B), fk: f.k, r: rf ? r1(rf.y / B) : null, rk: rf ? rf.k : null, fs: f.sl || 0, rs: rf && rf.sl || 0, g: grav });
   }
   // mechanics in the stretch
   const mech = {}; let flips = 0, portals = [];
@@ -200,7 +202,7 @@ function measure(src, w, r, inputs, i0, i1) {
   const hold = r.midline ? null : r2(heldT / Math.max(1, (i1 - i0) / 4));
   const hazards = items.filter(it => it.kind === "hazard" && it.x0 >= xa && it.x0 < xb).length;
   const pyS = cols.map(c => c.py), yRange = r1(Math.max(...pyS) - Math.min(...pyS));
-  const P = { src: src.src, level: src.name, file: src.file, mode, family: fam, speed: a.sp, x: Math.round(xa / B), w: W,
+  const P = { src: src.src, level: src.name, file: src.file, mode, family: fam, speed: a.sp, x: Math.round(xa / B), xa: r2(xa / B), w: W,
     s: r2(seconds), presses, toggles, hold, flips, hazards, hzPer100: Math.round(hazards / W * 100), mech, portals, yRange, midline: !!r.midline };
   // verified = a route (the solver's, a real clear's or the level's planned one) replayed by our physics goes through the
   // whole piece alive; a sketch's midline is drawn, never played (the user: "lets have structures which are verified by
@@ -211,11 +213,36 @@ function measure(src, w, r, inputs, i0, i1) {
   else Object.assign(P, groundShape(cols, p, i0, i1));
   P.sig = signature(P);
   P.cols = cols;
+  // empty: nothing to react to -- no hazard, orb, pad or portal, and (jump/flip) flat ground or (fly) open air.
+  // The user, 2026-11-25: "there are too many empty structures".
+  P.empty = !hazards && !Object.keys(mech).length && !portals.length && (fam === "fly" ? P.wrap === "open" : P.wrap === "flat" || presses === 0);
+  // smooth (fly only): the walls next to the path change height by slopes, not by block stairs. steps = wall jumps of a
+  // block or more between two columns where neither side is a slope, per 10 columns. The user: "some patterns are not
+  // smooth" / "i wanted smooth play in those corridors".
+  if (fam === "fly") {
+    let st = 0;
+    for (let c = 1; c < cols.length; c++) {
+      const A = cols[c - 1], C = cols[c];
+      if (A.fk === "S" && C.fk === "S" && Math.abs(C.f - A.f) >= 0.9 && !A.fs && !C.fs) st++;
+      if (A.rk === "S" && C.rk === "S" && A.r != null && C.r != null && Math.abs(C.r - A.r) >= 0.9 && !A.rs && !C.rs) st++;
+    }
+    P.steps = r1(st / Math.max(1, W) * 10); P.smooth = P.steps <= 1;
+  }
+  // the clicks: every press and release of the route inside the piece, where it happened (blocks from the piece start)
+  P.clicks = [];
+  if (!r.midline) for (const u of inputs.ticks) if (u >= a.tick && u <= b.tick) {
+    const q = p[Math.max(i0, Math.min(i1, i0 + (u - a.tick)))];
+    P.clicks.push([r1((q.x - xa) / B), r1(q.y / B), inputs.held(u) ? 1 : 0, r2((u - a.tick) / TPS)]);
+  }
   P.shape = items.filter(it => /^(solid|slope|hazard|orb|pad|mode|gravity|speed|size)$/.test(it.kind) && it.x1 > xa - B && it.x0 < xb + B)
-    .slice(0, 900).map(it => [KCODE[it.kind], r1((it.x0 - xa) / B), r1(it.y0 / B), r1((it.x1 - xa) / B), r1(it.y1 / B), it.d.color || ""]);
-  P.path = []; for (let i = i0; i <= i1; i += Math.max(1, Math.round((i1 - i0) / 80))) P.path.push([r1((p[i].x - xa) / B), r1(p[i].y / B)]);
+    .slice(0, 900).map(it => [KCODE[it.kind], r1((it.x0 - xa) / B), r1(it.y0 / B), r1((it.x1 - xa) / B), r1(it.y1 / B), it.d.color || "", it.kind === "slope" ? slopeCorner(it) : ""]);
+  // the route as our physics played it: [x, y, seconds from the piece start] (the page replays it at its real speed)
+  P.path = []; for (let i = i0; i <= i1; i += Math.max(1, Math.round((i1 - i0) / 120))) P.path.push([r1((p[i].x - xa) / B), r1(p[i].y / B), r2(r.midline ? (p[i].x - xa) / 311.58 : (p[i].tick - a.tick) / TPS)]);
   return P;
 }
+// a slope's square corner, so pictures draw the ramp, not a block: "/" floor rising right, "\\" floor falling, "7" a
+// ceiling whose underside goes down to the right, "r" one going up (lib/physics.js: up / ceil / down)
+function slopeCorner(it) { return it.ceil ? (it.down === 1 ? "7" : "r") : (it.up === -1 ? "\\" : "/"); }
 function flyShape(cols, mode) {
   const n = cols.length, near = 8;
   const floorNear = cols.filter(c => c.fk !== "G" && c.fk !== "E" && c.py - c.f <= near || (c.fk === "G" && c.py <= 3)).length / n;
@@ -266,15 +293,57 @@ function mine(which, sketchFiles) {
     for (const [i0, i1] of cuts) pieces.push(measure(s, R.w, R.r, R.inputs, i0, i1));
     console.log(`  ${s.src.padEnd(8)} ${s.name.padEnd(34)} ${String(cuts.length).padStart(3)} pieces${R.r.dead ? " (route dies at block " + Math.round(R.r.path[R.r.path.length - 1].x / B) + ")" : ""}  ${Date.now() - t0} ms`);
   }
-  pieces.forEach((p, i) => p.id = (p.src[0] + "-" + p.level.replace(/[^a-z0-9]+/gi, "_").toLowerCase() + "-" + p.x));
+  pieces.forEach((p, i) => p.id = ({ official: "r", ours: "u", sketch: "s", library: "l" }[p.src] + "-" + p.level.replace(/[^a-z0-9]+/gi, "_").toLowerCase() + "-" + p.x));
   fs.mkdirSync(OUTDIR, { recursive: true });
   const prev = fs.existsSync(path.join(OUTDIR, "pieces.json")) ? JSON.parse(fs.readFileSync(path.join(OUTDIR, "pieces.json"), "utf8")) : [];
   const keep = prev.filter(p => !srcs.some(s => s.src === p.src));   // mining one source keeps the others
   const all = keep.concat(pieces);
+  dedupe(all);
   fs.writeFileSync(path.join(OUTDIR, "pieces.json"), JSON.stringify(all));
   writeKnowledge(all);
   console.log(`${pieces.length} pieces from ${srcs.length} levels -> local/lego/pieces.json (${all.length} in all), knowledge/lego.json`);
   return all;
+}
+// duplicates: the same layout again (a level repeating a chunk, or two levels sharing one), even when the two cuts start
+// at a different phase of it. Each piece becomes a row of columns (what is in each block column, in level coordinates);
+// two pieces of one mode are the same when, at some shift, 80% of the shorter one overlaps and every overlapping column
+// matches. The first keeps `copies` and `alsoIn`, the others get `dupOf`. The user, 2026-11-25: "many duplications like this".
+function columns(p) {
+  const m = new Map(), x0 = p.xa != null ? p.xa : p.x;
+  for (const s of p.shape || []) {
+    const c = Math.floor(x0 + (s[1] + s[3]) / 2 + 1e-3), k = s[0] + Math.round(s[2] * 2) / 2 + (s[6] || "");
+    (m.get(c) || m.set(c, []).get(c)).push(k);
+  }
+  const a = Math.floor(x0 + 1e-3), out = [];
+  for (let c = a; c < a + p.w; c++) out.push((m.get(c) || []).sort().join(","));
+  return out;
+}
+function sameLayout(A, B) {   // column rows
+  const nA = A.length, nB = B.length, need = Math.ceil(0.8 * Math.min(nA, nB));
+  const idx = new Map(); B.forEach((k, j) => { if (k) (idx.get(k) || idx.set(k, []).get(k)).push(j); });
+  const tried = new Set();
+  for (let i = 0; i < nA; i++) {
+    if (!A[i]) continue;
+    for (const j of idx.get(A[i]) || []) {
+      const sh = i - j; if (tried.has(sh)) continue; tried.add(sh);
+      const lo = Math.max(0, sh), hi = Math.min(nA, nB + sh); if (hi - lo < need) continue;
+      let ok = true, full = 0;
+      for (let c = lo; c < hi; c++) { if (A[c] !== B[c - sh]) { ok = false; break; } if (A[c]) full++; }
+      if (ok && full >= (hi - lo) / 2) return true;
+    }
+  }
+  return false;
+}
+function dedupe(pieces) {
+  for (const p of pieces) { delete p.dupOf; delete p.copies; delete p.alsoIn; }
+  const reps = {};
+  for (const p of pieces) {
+    if (!(p.shape || []).length) continue;
+    const C = columns(p), R = reps[p.mode] = reps[p.mode] || [];
+    const f = R.find(r => sameLayout(r.C, C));
+    if (f) { p.dupOf = f.p.id; f.p.copies = (f.p.copies || 1) + 1; (f.p.alsoIn = f.p.alsoIn || []).push(p.level + " @" + p.x); }
+    else R.push({ p, C });
+  }
 }
 // committed: per family / signature, counts by source and parameter ranges; shapes of ours and sketches only
 function writeKnowledge(all) {
@@ -289,10 +358,14 @@ function writeKnowledge(all) {
     officialLevels: e.levels.official.size, oursLevels: e.levels.ours.size,
     seconds: range(e.s), width: range(e.w), presses: range(e.presses), hold: range(e.hold), gap: range(e.gap), yRange: range(e.yRange), hazardsPer100: range(e.hz) }))
     .sort((a, b) => (b.n.official - a.n.official) || (b.n.ours - a.n.ours));
+  const W = sigWeights(readVotes());
+  for (const f of families) if (W[f.sig]) { const e = W[f.sig]; f.vote = { up: e.up, down: e.down, weight: e.weight, comments: e.comments.slice(0, 5) }; }
   const mix = {}; for (const p of all) { const m = mix[p.src] = mix[p.src] || {}; const k = p.family + "/" + p.mode + "/" + p.wrap; m[k] = (m[k] || 0) + 1; }
   const pub = all.filter(p => p.src !== "official").map(p => { const q = Object.assign({}, p); delete q.cols; if (p.src === "ours") { delete q.shape; delete q.path; } return q; });   // our levels are in the repo: rebuild their shapes with mine
   const out = { made: new Date().toISOString().slice(0, 10), physics: require("./solutions.js").physicsCommit(), note: "LEGO.md. Families and parameters of 1-3 s pieces cut from routes; official pieces as numbers only (no layouts).",
-    counts: { official: all.filter(p => p.src === "official").length, ours: all.filter(p => p.src === "ours").length, sketch: all.filter(p => p.src === "sketch").length, library: all.filter(p => p.src === "library").length }, mix, families, pieces: pub };
+    counts: { official: all.filter(p => p.src === "official").length, ours: all.filter(p => p.src === "ours").length, sketch: all.filter(p => p.src === "sketch").length, library: all.filter(p => p.src === "library").length },
+    shown: { note: "what the catalogue shows by default: verified, not empty, not a duplicate, smooth when flying", n: all.filter(p => p.verified && !p.empty && !p.dupOf && p.smooth !== false).length,
+      empty: all.filter(p => p.empty).length, duplicates: all.filter(p => p.dupOf).length, notSmooth: all.filter(p => p.smooth === false).length }, mix, families, pieces: pub };
   fs.writeFileSync(KNOW, JSON.stringify(out, null, 0).replace(/\},\{"sig"/g, '},\n{"sig"').replace(/\},\{"src"/g, '},\n{"src"'));
 }
 function load() { const f = path.join(OUTDIR, "pieces.json"); if (!fs.existsSync(f)) { console.log("no local/lego/pieces.json: run `node tools/lego.js mine official ours sketches` first"); process.exit(1); } return JSON.parse(fs.readFileSync(f, "utf8")); }
@@ -315,7 +388,33 @@ function variety(file) {
   return { pieces: ps.length, repeats: rep, distinct: new Set(ps.map(p => p.sig)).size };
 }
 
-module.exports = { cut, measure, route, signature, FAMILY, mine, load };
+// votes: Evgeni's 👍 / 👎 / comments from the catalogue. PC page -> local/lego/votes.jsonl (tools/serve.js); phone page ->
+// its database (collection "legovotes": fetch with one ArtifactData list into local/lego/votes_phone.json). The newest per
+// piece wins; saved to knowledge/lego_votes.json (committed) and folded into knowledge/lego.json as a weight per signature:
+// 1 + 0.5 x (ups - downs), kept within 0.25..3 -- a preference, never a ban (the user, 2026-11-25).
+function readVotes() {
+  const last = {}, put = v => { if (v && v.id && (!last[v.id] || String(v.at) > String(last[v.id].at))) last[v.id] = v; };
+  try { for (const l of fs.readFileSync(path.join(OUTDIR, "votes.jsonl"), "utf8").split("\n")) if (l.trim()) try { put(JSON.parse(l)); } catch (e) {} } catch (e) {}
+  try { const d = JSON.parse(fs.readFileSync(path.join(OUTDIR, "votes_phone.json"), "utf8")); for (const r of Array.isArray(d) ? d : d.docs || d.documents || []) put(r.data || r); } catch (e) {}
+  try { for (const v of JSON.parse(fs.readFileSync(VOTESK, "utf8")).votes || []) put(v); } catch (e) {}
+  return last;
+}
+function sigWeights(votes) {
+  const w = {};
+  for (const v of Object.values(votes)) { if (!v.sig) continue; const e = w[v.sig] = w[v.sig] || { up: 0, down: 0, comments: [] }; if (v.vote > 0) e.up++; if (v.vote < 0) e.down++; if (v.comment) e.comments.push(v.comment); }
+  for (const e of Object.values(w)) e.weight = Math.max(0.25, Math.min(3, 1 + 0.5 * (e.up - e.down)));
+  return w;
+}
+function votesCmd() {
+  const v = readVotes(), list = Object.values(v).sort((a, b) => String(a.at).localeCompare(String(b.at)));
+  for (const x of list) console.log(`${(x.vote > 0 ? "👍" : x.vote < 0 ? "👎" : "  ")} ${x.id.padEnd(34)} ${x.sig}${x.comment ? "\n     " + x.comment : ""}`);
+  fs.writeFileSync(VOTESK, JSON.stringify({ note: "Evgeni's votes on lego pieces (tools/lego.js votes). A vote is a preference weight, never a ban.", votes: list }, null, 1));
+  const w = sigWeights(v);
+  console.log(`${list.length} votes (${list.filter(x => x.vote > 0).length} up, ${list.filter(x => x.vote < 0).length} down, ${list.filter(x => x.comment).length} with a comment) -> ${path.relative(ROOT, VOTESK)}`);
+  for (const [k, e] of Object.entries(w).sort((a, b) => b[1].weight - a[1].weight)) console.log(`  weight ${e.weight.toFixed(2)}  ${k}`);
+  try { writeKnowledge(load()); } catch (e) {}
+}
+module.exports = { readVotes, sigWeights, cut, measure, route, signature, FAMILY, mine, load, dedupe, columns, sameLayout };
 
 if (require.main === module) {
   const A = process.argv.slice(2), cmd = A[0];
@@ -326,6 +425,7 @@ if (require.main === module) {
     mine(which.length ? which : ["official", "ours", "sketches", "library"], sk);
   } else if (cmd === "families") families(load(), opt("src"));
   else if (cmd === "variety") variety(A[1]);
+  else if (cmd === "votes") votesCmd();
   else if (cmd === "page") require("./lego_page.js").build(load(), { pub: A.includes("--public"), out: opt("out") });
   else console.log(fs.readFileSync(__filename, "utf8").split("\n").filter(l => l.startsWith("// node")).join("\n"));
 }

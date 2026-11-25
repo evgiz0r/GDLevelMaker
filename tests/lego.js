@@ -38,4 +38,17 @@ assert(g1 > g0, "a gate adds blocks");
   assert.equal(p.family, "jump"); assert.equal(p.mode, "cube"); assert(p.sig.startsWith("jump / cube /"));
   assert(p.w > 10 && p.s > 0.6);
 }
+// repeats: the same columns at another phase are one layout; a changed column is not (the user: "many duplications")
+{
+  const row = ["", "S1", "S2", "S3", "S2", "S1", "", "S1", "S2", "S3", "S2", "S1", "", "S1", "S2"];
+  assert(L.sameLayout(row.slice(0, 12), row.slice(6, 15).concat(["S3", "S2", "S1"])), "a repeat cut 6 columns later is the same layout");
+  const other = row.slice(0, 12); other[3] = "H0";
+  assert(!L.sameLayout(row.slice(0, 12), other), "a column that differs is another layout");
+  assert(!L.sameLayout(["", "", "", ""], ["", "", "", ""]), "empty columns never make a repeat");
+}
+// votes: a weight per signature within 0.25..3, never 0 (a vote is not a ban)
+{
+  const w = L.sigWeights({ a: { id: "a", sig: "x", vote: -1 }, b: { id: "b", sig: "x", vote: -1 }, c: { id: "c", sig: "x", vote: -1 }, d: { id: "d", sig: "y", vote: 1, comment: "nice" } });
+  assert.equal(w.x.weight, 0.25); assert.equal(w.y.weight, 1.5); assert.deepEqual(w.y.comments, ["nice"]);
+}
 console.log("lego ok");

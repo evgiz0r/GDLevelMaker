@@ -50,7 +50,19 @@ button{font:600 15px Archivo,sans-serif;background:var(--path);color:#0c0a24;bor
 #big canvas{width:100%;flex:1 1 auto;min-height:200px;background:#0f0c2b;border-radius:8px}
 #big .info{font-size:14px;color:var(--mute);margin-top:10px;overflow-wrap:anywhere}
 #big .info b{color:var(--ink)}
-#big .close{align-self:flex-end;margin-bottom:8px}
+#big .close{margin-left:auto}
+#big .bar1{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+#big .bar1 button{padding:8px 14px}
+button.ghost{background:var(--panel);color:var(--ink);border:1px solid var(--line)}
+button.vote{font-size:20px;background:var(--panel);color:var(--ink);border:1px solid var(--line);padding:6px 14px}
+button.vote.on.up{background:#1f6b3a;border-color:#7dff9c}button.vote.on.down{background:#7a1f33;border-color:#ff9db0}
+#bvote{display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;margin-top:10px}
+#bcom{flex:1 1 260px;min-height:44px;font:15px Archivo,sans-serif;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:8px}
+#bsaved{color:var(--mute);font-size:13px;align-self:center}
+.vt{float:right;font-size:14px}
+.chk{display:flex;gap:12px;flex-wrap:wrap;width:100%}
+.chk label{display:flex;gap:5px;align-items:center}
+.chk input{min-height:0;width:auto;flex:none}
 </style>
 
 <div class="band">
@@ -68,14 +80,23 @@ button{font:600 15px Archivo,sans-serif;background:var(--path);color:#0c0a24;bor
   <select id="fmode"><option value="">every mode</option></select>
   <select id="fwrap"><option value="">every wrapper</option></select>
   <input id="fq" placeholder="search: spikes, gates, blue-orb, level name">
-  <label class="count"><input type="checkbox" id="fun" style="min-height:0;width:auto;flex:none"> show unverified</label>
+  <select id="fvote"><option value="">any vote</option><option value="up">👍 liked</option><option value="down">👎 disliked</option><option value="com">with a comment</option><option value="none">not voted yet</option></select>
   <span class="count" id="count"></span>
+  <div class="chk count"><span>also show:</span>
+    <label title="no route of our physics lives through it"><input type="checkbox" id="fun"> unverified</label>
+    <label title="nothing to react to: no hazard, orb, pad or portal, flat ground or open air"><input type="checkbox" id="femp"> empty</label>
+    <label title="the same layout again (another phase of a repeated chunk, or another level)"><input type="checkbox" id="fdup"> repeats</label>
+    <label title="flying pieces whose walls step in blocks instead of ramps"><input type="checkbox" id="frough"> stair walls</label></div>
 </div>
 <div class="band drawer">
   <div class="grid" id="grid"></div>
   <div class="more"><button id="more" hidden>Show more</button></div>
 </div>
-<div id="big" hidden><button class="close" id="close">Close</button><canvas id="bigc"></canvas><div class="info" id="binfo"></div></div>
+<div id="big" hidden>
+  <div class="bar1"><button id="bplay">▶ play</button><button class="ghost" id="bslow">speed 1x</button><button class="ghost" id="bprev" title="previous (←)">←</button><button class="ghost" id="bnext" title="next (→)">→</button><button class="ghost close" id="close">Close</button></div>
+  <canvas id="bigc"></canvas>
+  <div id="bvote"><button class="vote up" id="bup" title="I like it (a weight, not a rule)">👍</button><button class="vote down" id="bdown" title="not this one so much (still allowed)">👎</button><textarea id="bcom" placeholder="a comment (optional): what is good or off about it"></textarea><button id="bsave">Save</button><span id="bsaved"></span></div>
+  <div class="info" id="binfo"></div></div>
 
 <script>
 {
@@ -97,38 +118,72 @@ const PAGE = 60;
   $("notes").innerHTML = `<p><b>Flat cube is a third of ours (${pct("jump · cube · flat", "ours")}%), and ${pct("jump · cube · flat", "official")}% of the official levels.</b> The official cube is mostly steps (${pct("jump · cube · steps", "official")}%) and pits.</p>
   <p><b>Official ships are spiky corridors with gates</b> (${pct("fly · ship · corridor +spikes +gates", "official")}% of all their pieces); ours fly plain corridors (${pct("fly · ship · corridor", "ours")}%) and never a spiky one with gates.</p>
   <p><b>Fly family</b>: one path, wrapped as open air, a floor path, a roof path or a corridor, then +spikes (hazards are 30%+ of the walls), +gates (narrowings) and +flips (gravity). The same wrappers fit ship, wave and swing.</p>
-  <p>Only <b>verified</b> pieces show by default: a route through them (the solver's, or a real clear) is replayed by our physics and lives. Tap a tray to see it large. The cyan line is that route; on an unverified sketch it is only the drawn corridor's midline.</p>`;
+  <p>By default the drawer shows <b>verified</b> pieces only (a route through them, the solver's or a real clear, is replayed by our physics and lives), and hides <b>empty</b> ones (nothing to react to), <b>repeats</b> (the same layout again, shown once with ×N) and flying pieces with <b>stair walls</b>. The checkboxes bring them back.</p>
+  <p>Tap a tray to see it large: <b>▶ play</b> replays the route at its real speed, white dots are presses, rings releases. <b>👍 / 👎 and a comment</b> are saved for us to read; a vote is a preference weight, never a ban. ← → step through pieces, space plays.</p>`;
 }
 
-// ---- drawing one piece
+// ---- drawing one piece: returns the block -> pixel mapping so the replay can draw on top
 const COL = { S: "#e9e6ff", L: "#c9c2ff", H: "#ff5d78", O: "#ffd84a", P: "#ffd84a", M: "#4fe3ff", G: "#7dff9c", V: "#ffb020", Z: "#ff7de9" };
 function draw(cv, p, big) {
   const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight;
   cv.width = W * dpr; cv.height = H * dpr;
-  const g = cv.getContext("2d"); g.scale(dpr, dpr); g.clearRect(0, 0, W, H);
-  const xs = [p.w], ys = [0];
-  for (const s of p.shape) { ys.push(s[2], s[4]); }
-  for (const q of p.path) ys.push(q[1] / 1 + 0);
+  const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
   const py = p.path.map(q => q[1]);
-  let ylo = Math.max(-0.5, Math.min(...py, 0) - 2), yhi = Math.max(...py, 3) + 3;
-  // keep what is near the path in view
-  const span = Math.max(p.w + 2, (yhi - ylo) * W / H);
+  const ylo = Math.max(-0.5, Math.min(...py, 0) - 2), yhi = Math.max(...py, 3) + 3;
   const z = Math.min(W / (p.w + 2), H / (yhi - ylo + 0.5));
-  const ox = (W - (p.w) * z) / 2, oy = big ? (H + (yhi - ylo) * z) / 2 + ylo * z : H - 4 + ylo * z;
+  const ox = (W - p.w * z) / 2, oy = big ? (H + (yhi - ylo) * z) / 2 + ylo * z : H - 4 + ylo * z;
   const X = x => ox + x * z, Y = y => oy - y * z;
   g.fillStyle = "#2a2466"; g.fillRect(0, Y(0), W, H);   // ground
   // the walls right under and over the route, column by column (the sim culls blocks nobody can touch)
   g.fillStyle = "#3b3480";
   (p.walls || []).forEach(([f, r], c) => { if (f > 0) g.fillRect(X(c), Y(f), z + 0.5, f * z); if (r != null) g.fillRect(X(c), Y(yhi + 2), z + 0.5, (yhi + 2 - r) * z); });
   for (const s of p.shape) {
-    const [k, x0, y0, x1, y1] = s, c = COL[k] || "#888";
+    const [k, x0, y0, x1, y1, , corner] = s, c = COL[k] || "#888";
     if (k === "H") { g.fillStyle = c; g.beginPath(); g.moveTo(X(x0), Y(y0)); g.lineTo(X(x1), Y(y0)); g.lineTo(X((x0 + x1) / 2), Y(y1)); g.closePath(); g.fill(); continue; }
     if (k === "O") { g.strokeStyle = c; g.lineWidth = big ? 3 : 1.5; g.beginPath(); g.arc(X((x0 + x1) / 2), Y((y0 + y1) / 2), Math.max(2, (x1 - x0) * z / 2.6), 0, 7); g.stroke(); continue; }
     if (k === "M" || k === "G" || k === "V" || k === "Z") { g.strokeStyle = c; g.lineWidth = big ? 3 : 1.5; g.beginPath(); g.ellipse(X((x0 + x1) / 2), Y((y0 + y1) / 2), Math.max(1.5, (x1 - x0) * z / 2), Math.max(3, (y1 - y0) * z / 2), 0, 0, 7); g.stroke(); continue; }
+    if (k === "L" && corner) {   // a ramp: the triangle with its square corner where the slope has it
+      const pts = { "/": [[x0, y0], [x1, y0], [x1, y1]], "\\": [[x0, y0], [x1, y0], [x0, y1]], "7": [[x0, y1], [x1, y1], [x1, y0]], "r": [[x0, y1], [x1, y1], [x0, y0]] }[corner];
+      g.fillStyle = c; g.beginPath(); pts.forEach(([a, b], i) => i ? g.lineTo(X(a), Y(b)) : g.moveTo(X(a), Y(b))); g.closePath(); g.fill(); continue;
+    }
     g.fillStyle = c; g.globalAlpha = k === "L" ? .7 : 1; g.fillRect(X(x0), Y(y1), Math.max(1, (x1 - x0) * z), Math.max(1, (y1 - y0) * z)); g.globalAlpha = 1;
   }
   g.strokeStyle = "#4fe3ff"; g.lineWidth = big ? 3 : 2; g.setLineDash(p.midline ? [4, 4] : []); g.beginPath();
   p.path.forEach((q, i) => i ? g.lineTo(X(q[0]), Y(q[1])) : g.moveTo(X(q[0]), Y(q[1]))); g.stroke(); g.setLineDash([]);
+  // the clicks: a filled dot where the button goes down, a ring where it comes up
+  for (const [x, y, down] of p.clicks || []) {
+    g.beginPath(); g.arc(X(x), Y(y), big ? 6 : 3, 0, 7);
+    if (down) { g.fillStyle = "#ffffff"; g.fill(); } else { g.strokeStyle = "#ffffff"; g.lineWidth = big ? 2 : 1.2; g.stroke(); }
+  }
+  return { X, Y, z, W, H };
+}
+
+// ---- votes: the PC page posts to tools/serve.js (local/lego/votes.jsonl); the phone page keeps them in its database
+let VOTES = {}, DB = null;
+const vkey = id => id.replace(/[^A-Za-z0-9_-]/g, "_").slice(0, 120);
+async function loadVotes() {
+  if (location.protocol.startsWith("http") && !PUB) {
+    try { VOTES = await (await fetch("votes.json", { cache: "no-store" })).json(); } catch (e) {}
+    return;
+  }
+  for (let k = 0; k < 15 && !(window.claude && window.claude.use); k++) await new Promise(r => setTimeout(r, 200));
+  if (!window.claude || !window.claude.use) return;
+  const db = await window.claude.use("db"); if (!db) return;
+  DB = db;
+  db.collection("legovotes").onSnapshot(snap => { const v = {}; for (const d of snap.docs) { const b = d.data(); if (b && b.id) v[b.id] = b; } VOTES = v; refreshVotes(); }, () => {});
+}
+async function saveVote(p, vote, comment) {
+  const v = { id: p.id, vote, comment, sig: p.sig, level: p.level, x: p.x };
+  if (DB) { await DB.collection("legovotes").doc(vkey(p.id)).set(Object.assign({ at: new Date().toISOString(), from: "phone" }, v)); }
+  else if (location.protocol.startsWith("http") && !PUB) { const r = await fetch("vote", { method: "POST", body: JSON.stringify(v) }); if (!r.ok) throw new Error(await r.text()); }
+  else throw new Error("votes can be saved on the PC page or the phone page");
+  VOTES[p.id] = Object.assign({}, v, { at: new Date().toISOString() });
+  refreshVotes();
+}
+function vmark(p) { const v = VOTES[p.id]; if (!v) return ""; return (v.vote > 0 ? "👍" : v.vote < 0 ? "👎" : "") + (v.comment ? " 💬" : ""); }
+function refreshVotes() {
+  for (const t of $("grid").querySelectorAll(".tray")) { const p = VIEW[+t.dataset.i], e = t.querySelector(".vt"); if (p && e) e.textContent = vmark(p); }
+  if (CUR) showVote(CUR);
 }
 
 // ---- the drawer
@@ -138,35 +193,88 @@ function meta(p) {
   if (p.gap != null) bits.push(`gap ${p.gap}`);
   if (p.yRange) bits.push(`climbs ${p.yRange}`);
   if (p.hz) bits.push(`${p.hz} hazards/100`);
+  if (p.copies > 1) bits.push(`×${p.copies} in the levels`);
   return bits.join(" · ");
 }
 const io = new IntersectionObserver(es => { for (const e of es) if (e.isIntersecting) { const cv = e.target; draw(cv, VIEW[+cv.dataset.i]); io.unobserve(cv); } }, { rootMargin: "300px" });
 function render(reset) {
   if (reset) { $("grid").innerHTML = ""; shown = 0; }
   const part = VIEW.slice(shown, shown + PAGE);
-  $("grid").insertAdjacentHTML("beforeend", part.map((p, j) => `<div class="tray" tabindex="0" data-i="${shown + j}"><canvas data-i="${shown + j}"></canvas><div class="t"><div><span class="src ${esc(p.src)}">${esc(p.src)}</span>${p.verified ? '<span class="ok" title="a route replayed by our physics goes through it alive">✓ verified</span> ' : `<span class="no" title="${esc(p.why)}">not verified</span> `}<span class="sig">${esc(p.sig)}</span></div><div class="m">${esc(p.level)} at block ${p.x} · ${esc(meta(p))}</div></div></div>`).join(""));
+  $("grid").insertAdjacentHTML("beforeend", part.map((p, j) => `<div class="tray" tabindex="0" data-i="${shown + j}"><canvas data-i="${shown + j}"></canvas><div class="t"><div><span class="vt">${esc(vmark(p))}</span><span class="src ${esc(p.src)}">${esc(p.src)}</span>${p.verified ? '<span class="ok" title="a route replayed by our physics goes through it alive">✓ verified</span> ' : `<span class="no" title="${esc(p.why)}">not verified</span> `}<span class="sig">${esc(p.sig)}</span></div><div class="m">${esc(p.level)} at block ${p.x} · ${esc(meta(p))}</div></div></div>`).join(""));
   shown += part.length;
   for (const cv of $("grid").querySelectorAll("canvas:not([data-o])")) { cv.dataset.o = 1; io.observe(cv); }
   $("more").hidden = shown >= VIEW.length;
-  $("count").textContent = `${VIEW.length} pieces`;
+  const hid = ALL.length - VIEW.length;
+  $("count").textContent = `${VIEW.length} pieces` + (hid ? ` (${hid} hidden)` : "");
 }
 function filter() {
-  const s = $("fsrc").value, f = $("ffam").value, m = $("fmode").value, w = $("fwrap").value, q = $("fq").value.trim().toLowerCase();
-  const un = $("fun").checked;
-  VIEW = ALL.filter(p => (un || p.verified) && (!s || p.src === s) && (!f || p.family === f) && (!m || p.mode === m) && (!w || p.wrap === w) && (!q || (p.sig + " " + p.level + " " + p.mech.join(" ")).toLowerCase().includes(q)));
+  const s = $("fsrc").value, f = $("ffam").value, m = $("fmode").value, w = $("fwrap").value, q = $("fq").value.trim().toLowerCase(), fv = $("fvote").value;
+  const un = $("fun").checked, em = $("femp").checked, du = $("fdup").checked, ro = $("frough").checked;
+  const vok = p => { const v = VOTES[p.id]; return !fv || (fv === "up" ? v && v.vote > 0 : fv === "down" ? v && v.vote < 0 : fv === "com" ? v && v.comment : !v); };
+  VIEW = ALL.filter(p => (un || p.verified) && (em || !p.empty) && (du || !p.dupOf) && (ro || p.smooth) && vok(p) && (!s || p.src === s) && (!f || p.family === f) && (!m || p.mode === m) && (!w || p.wrap === w) && (!q || (p.sig + " " + p.level + " " + p.mech.join(" ")).toLowerCase().includes(q)));
   render(true);
 }
+
+// ---- the big view: the piece, its clicks, and a replay of the route as our physics played it
+let CUR = null, CI = -1, anim = null, speed = 1, t0 = 0, tNow = 0, base = null;
 function open(i) {
-  const p = VIEW[i]; $("big").hidden = false;
-  requestAnimationFrame(() => draw($("bigc"), p, true));
-  $("binfo").innerHTML = `<b>${esc(p.sig)}</b><br>${esc(p.src)} · ${esc(p.level)} at block ${p.x} · ${esc(meta(p))}${p.family === "fly" ? ` · path ${esc(p.pathKind)}, ${p.turns} turns, ${p.gates} gates` : ""}${p.flips ? ` · ${p.flips} gravity flips` : ""}${p.mech.length ? ` · ${esc(p.mech.join(", "))}` : ""}${p.verified ? " · ✓ verified: the route (dotted) is replayed by our physics and clears it" : " · not verified: " + esc(p.why)}`;
+  stop(); CI = i; const p = CUR = VIEW[i]; $("big").hidden = false;
+  requestAnimationFrame(() => { base = draw($("bigc"), p, true); tNow = 0; });
+  const presses = (p.clicks || []).filter(c => c[2]).map(c => c[3].toFixed(2) + " s");
+  $("binfo").innerHTML = `<b>${esc(p.sig)}</b><br>${esc(p.src)} · ${esc(p.level)} at block ${p.x} · ${esc(meta(p))}${p.family === "fly" ? ` · path ${esc(p.pathKind)}, ${p.turns} turns, ${p.gates} gates` : ""}${p.flips ? ` · ${p.flips} gravity flips` : ""}${p.mech.length ? ` · ${esc(p.mech.join(", "))}` : ""}<br>` +
+    (p.verified ? "✓ verified: the cyan line is a route our physics replays alive through it; white dots are presses, rings releases" : "not verified: " + esc(p.why)) +
+    (presses.length ? `<br>presses at ${esc(presses.join(", "))}` : "") + (p.alsoIn && p.alsoIn.length ? `<br>the same layout also in ${esc(p.alsoIn.join(", "))}` : "") + (p.smooth ? "" : `<br>stair walls: ${p.steps} block steps per 10 columns`);
+  $("bplay").disabled = !p.path.length || p.path[p.path.length - 1][2] == null;
+  showVote(p);
 }
+function showVote(p) {
+  const v = VOTES[p.id] || {};
+  $("bup").classList.toggle("on", v.vote > 0); $("bdown").classList.toggle("on", v.vote < 0);
+  if (document.activeElement !== $("bcom")) $("bcom").value = v.comment || "";
+  $("bsaved").textContent = v.at ? "saved " + v.at.slice(0, 16).replace("T", " ") : "";
+}
+async function vote(n) {
+  const p = CUR; if (!p) return; const old = VOTES[p.id] || {};
+  const nv = n === undefined ? (old.vote || 0) : (old.vote === n ? 0 : n);
+  $("bsaved").textContent = "saving ...";
+  try { await saveVote(p, nv, $("bcom").value.trim()); } catch (e) { $("bsaved").textContent = "not saved: " + e.message; }
+}
+function at(p, t) {   // the route's position at t seconds (linear between samples)
+  const P = p.path; if (t <= P[0][2]) return P[0];
+  for (let i = 1; i < P.length; i++) if (P[i][2] >= t) { const a = P[i - 1], b = P[i], u = (t - a[2]) / Math.max(1e-6, b[2] - a[2]); return [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, t]; }
+  return P[P.length - 1];
+}
+function frame(now) {
+  const p = CUR, cv = $("bigc"); if (!p || $("big").hidden) return stop();
+  tNow = (now - t0) / 1000 * speed;
+  const end = p.path[p.path.length - 1][2];
+  if (tNow > end + 0.6) { t0 = now; tNow = 0; }
+  const m = draw(cv, p, true), g = cv.getContext("2d"), q = at(p, Math.min(tNow, end));
+  // the clicks already passed light up
+  for (const c of p.clicks || []) if (c[3] <= tNow && tNow - c[3] < 0.25) { g.strokeStyle = c[2] ? "#ffd84a" : "#ffffff"; g.lineWidth = 3; g.beginPath(); g.arc(m.X(c[0]), m.Y(c[1]), 8 + (tNow - c[3]) * 60, 0, 7); g.stroke(); }
+  const held = (p.clicks || []).filter(c => c[3] <= tNow).slice(-1)[0];
+  const s = p.family === "fly" && p.mode === "wave" ? .6 : 1;
+  g.save(); g.translate(m.X(q[0]), m.Y(q[1])); g.fillStyle = held && held[2] ? "#ffd84a" : "#7dff9c"; g.strokeStyle = "#0c0a24"; g.lineWidth = 2;
+  g.fillRect(-m.z * s / 2, -m.z * s / 2, m.z * s, m.z * s); g.strokeRect(-m.z * s / 2, -m.z * s / 2, m.z * s, m.z * s); g.restore();
+  g.fillStyle = "#f3f1ff"; g.font = "600 14px Archivo,sans-serif"; g.fillText(`${Math.min(tNow, end).toFixed(2)} s` + (held && held[2] ? "  · held" : ""), 10, 20);
+  anim = requestAnimationFrame(frame);
+}
+function play() { if (anim) return stop(); t0 = performance.now() - tNow * 1000 / speed; anim = requestAnimationFrame(frame); $("bplay").textContent = "❚❚ pause"; }
+function stop() { if (anim) cancelAnimationFrame(anim); anim = null; $("bplay").textContent = "▶ play"; }
+$("bplay").onclick = play;
+$("bslow").onclick = () => { speed = speed === 1 ? 0.5 : speed === 0.5 ? 0.25 : 1; $("bslow").textContent = "speed " + speed + "x"; if (anim) t0 = performance.now() - tNow * 1000 / speed; };
+$("bprev").onclick = () => { if (CI > 0) open(CI - 1); };
+$("bnext").onclick = () => { if (CI < VIEW.length - 1) { if (CI + 1 >= shown) render(false); open(CI + 1); } };
+$("bup").onclick = () => vote(1); $("bdown").onclick = () => vote(-1); $("bsave").onclick = () => vote();
 $("grid").addEventListener("click", e => { const t = e.target.closest(".tray"); if (t) open(+t.dataset.i); });
 $("grid").addEventListener("keydown", e => { const t = e.target.closest(".tray"); if (t && e.key === "Enter") open(+t.dataset.i); });
-$("close").onclick = () => { $("big").hidden = true; };
-document.addEventListener("keydown", e => { if (e.key === "Escape") $("big").hidden = true; });
+$("close").onclick = () => { stop(); $("big").hidden = true; CUR = null; };
+document.addEventListener("keydown", e => {
+  if ($("big").hidden || e.target === $("bcom")) return;
+  if (e.key === "Escape") $("close").onclick(); else if (e.key === "ArrowRight") $("bnext").onclick(); else if (e.key === "ArrowLeft") $("bprev").onclick(); else if (e.key === " ") { e.preventDefault(); play(); }
+});
 $("more").onclick = () => render(false);
-for (const id of ["fsrc", "ffam", "fmode", "fwrap", "fun"]) $(id).onchange = filter;
+for (const id of ["fsrc", "ffam", "fmode", "fwrap", "fun", "femp", "fdup", "frough", "fvote"]) $(id).onchange = filter;
 $("fq").oninput = filter;
 fetch("pieces.json").then(r => r.json()).then(d => {
   const first = p => p.src === "sketch" ? 0 : p.src === "library" ? 1 : 2;
@@ -175,6 +283,7 @@ fetch("pieces.json").then(r => r.json()).then(d => {
   $("fmode").insertAdjacentHTML("beforeend", modes.map(m => `<option>${esc(m)}</option>`).join(""));
   $("fwrap").insertAdjacentHTML("beforeend", wraps.map(m => `<option>${esc(m)}</option>`).join(""));
   filter();
+  loadVotes().then(() => { refreshVotes(); if ($("fvote").value) filter(); });
 }).catch(() => { $("count").textContent = "pieces.json did not load"; });
 }
 </script>

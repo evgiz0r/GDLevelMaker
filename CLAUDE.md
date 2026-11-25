@@ -312,7 +312,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 - **Lego: structure research** (LEGO.md: every level cut into 1-3 s pieces -- official, ours, the user's sketches --,
   classified by family (fly: ship/wave/swing paths and corridors; jump; flip) with parameters, the official mix vs ours,
   the variety rule; one path built as ship / wave / swing with wrappers and click- or portal-turns): `tools/lego.js`
-  (`mine`, `families`, `variety <level>`, `page [--public]`), the `fly-path` pattern, `lego-*` structures.
+  (`mine`, `families`, `variety <level>`, `page [--public]`, `votes`: Evgeni's 👍/👎/comments from the PC /lego/ page and the phone page, a weight not a ban), the `fly-path` pattern, `lego-*` structures.
 - **Quality vs the official levels** (QUALITY.md: one scorecard, official 1-10 next to every GDLM level --
   gameplay, flow, look, fairness, soft rules -- with a verdict per metric and the biggest gaps; owner: the
   difficulty session): `node tools/quality.js` (a new level gets a row by itself; `--cached` prints only).

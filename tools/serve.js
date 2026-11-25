@@ -179,6 +179,31 @@ const SERVER = http.createServer((req, res) => {
     });
     return;
   }
+  // POST /lego/vote: a 👍 / 👎 / comment on one structure from the catalogue (tools/lego_page.html) -> local/lego/votes.jsonl
+  // (the newest line per piece wins; `node tools/lego.js votes` merges them with the phone page's and saves
+  // knowledge/lego_votes.json). A vote is a preference weight, never a ban (the user, 2026-11-25).
+  if (req.method === "POST" && p === "/lego/vote") {
+    let body = "";
+    req.on("data", c => { body += c; if (body.length > 2e4) req.destroy(); });
+    req.on("end", () => {
+      try {
+        const v = JSON.parse(body);
+        if (!v || typeof v.id !== "string" || ![-1, 0, 1].includes(v.vote)) throw new Error("not a vote");
+        const line = { id: v.id.slice(0, 120), vote: v.vote, comment: String(v.comment || "").slice(0, 2000), sig: String(v.sig || "").slice(0, 200), level: String(v.level || "").slice(0, 120), x: +v.x || 0, at: new Date().toISOString(), from: "pc" };
+        const test = v.test === true || /^test-/.test(line.id);
+        const vf = path.join(root, "local", "lego", test ? "votes.test.jsonl" : "votes.jsonl");
+        fs.mkdirSync(path.dirname(vf), { recursive: true }); fs.appendFileSync(vf, JSON.stringify(line) + "\n");
+        if (!test) try { require("./actions.js").append({ type: "lego-vote", session: "lego", level: line.level, text: (line.vote > 0 ? "👍 " : line.vote < 0 ? "👎 " : "") + line.sig + (line.comment ? ": " + line.comment : ""), x: line.x }); } catch (e) {}
+        res.writeHead(200, { "Content-Type": "application/json" }); res.end('{"ok":true}');
+      } catch (e) { res.writeHead(400); res.end(String(e.message)); }
+    });
+    return;
+  }
+  if (p === "/lego/votes.json") {
+    const vf = path.join(root, "local", "lego", "votes.jsonl"), last = {};
+    try { for (const l of fs.readFileSync(vf, "utf8").split("\n")) { if (!l.trim()) continue; try { const v = JSON.parse(l); last[v.id] = v; } catch (e) {} } } catch (e) {}
+    res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify(last));
+  }
   if (req.method === "POST" && p === "/marks") {
     let body = "";
     req.on("data", c => { body += c; if (body.length > 1e5) req.destroy(); });

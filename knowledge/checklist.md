@@ -192,6 +192,9 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   square shapes, the theme in the gameplay shapes, no long orb strings as the only mechanic. Not checked by a tool yet.
 - [ ] **No piece kind on repeat**: at most ~25% of the level's 2 s pieces repeat a signature from the 4 before
   (official median 20%, ours 43%); few flat-cube pieces (official 2%, ours 33%). `node tools/lego.js variety <level>` (LEGO.md)
+- **No layout twice** (Evgeni, 2026-11-25: "many duplications like this"): the same block-for-block chunk again is a repeat
+  even at another phase; ours had 90 of 751 pieces (12%) vs official 1 of 838. `node tools/lego.js mine ours` flags `dupOf`
+  (LEGO.md "The catalogue as Evgeni browses it"). Pieces he voted on: `node tools/lego.js votes` (a weight, not a ban).
 - [ ] **Variety**: ~15 kinds of gameplay thing; 4-5 modes and 2-3 speeds; a portal every ~2-3 s;
   ~25 orbs and pads per minute; at least ~90% of the chunks new. `node tools/variety.js <level>`.
   (levels/variety.md)
