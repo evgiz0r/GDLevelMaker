@@ -127,7 +127,7 @@ let TARGET = 2.2, MINS = 0.6, SLACK = 0.5;
 // a brick: 2-6 presses, cut in the longest pause between presses that keeps the count in range (the user, 2026-11-25:
 // "not even whole screen length [...] short ones. with like 2-6 clicks"). Within one mode stretch; a stretch with fewer
 // than 2 presses is one brick if it lasts 0.35 s or more.
-function cutBricks(r, inputs) {
+function cutBricks(r, inputs, o) {
   const p = r.path, out = [];
   if (!p.length || r.midline) return out;
   const presses = [], idxOf = tk => Math.max(0, Math.min(p.length - 1, tk - p[0].tick));
@@ -149,6 +149,17 @@ function cutBricks(r, inputs) {
       for (let j = 2; j <= 6 && k + j < ps.length; j++) { if (ps.length - (k + j) < 2) break; const g = (ps[k + j] - ps[k + j - 1]) * (j <= 3 ? 1 : j === 4 ? 0.75 : 0.55); if (g > best) { best = g; bj = j; } }   // short bricks preferred
       groups.push([k, k + bj - 1]); k += bj;
     }
+    // auto bricks: 0.8 s or more with no press where the level moves the player itself (pads, gravity / mode / speed
+    // portals, or a rise or fall of 3+ blocks) -- the user, 2026-11-25: "sections without clicks but with interesting
+    // patterns of pads portals slopes that create some interesting movement". Marked [i0, i1, "auto"].
+    if (o && o.auto) for (let k = 0; k <= ps.length; k++) {
+      const a = k ? ps[k - 1] + 0.2 * TPS : p[i0].tick, b = k < ps.length ? ps[k] - 0.15 * TPS : p[i1].tick;
+      if ((b - a) / TPS < 0.8) continue;
+      const ia = idxOf(Math.round(a)), ib = idxOf(Math.round(b)), xa = p[ia].x, xb = p[ib].x;
+      const moves = o.items.filter(it => it.x0 >= xa && it.x0 < xb && (it.kind === "pad" || it.kind === "gravity" || it.kind === "mode" || it.kind === "speed")).length;
+      let lo = 1e9, hi = -1e9; for (let i = ia; i <= ib; i++) { lo = Math.min(lo, p[i].y); hi = Math.max(hi, p[i].y); }
+      if (moves || hi - lo >= 3 * B) out.push([ia, ib, "auto"]);
+    }
     for (const [g0, g1] of groups) {
       const prev = g0 ? ps[g0 - 1] : p[i0].tick, next = g1 + 1 < ps.length ? ps[g1 + 1] : p[i1].tick;
       const t0 = Math.max(p[i0].tick, ps[g0] - Math.min(0.3 * TPS, (ps[g0] - prev) / 2)), t1 = Math.min(p[i1].tick, ps[g1] + Math.min(0.45 * TPS, (next - ps[g1]) / 2));
@@ -158,7 +169,7 @@ function cutBricks(r, inputs) {
   return out;
 }
 function cut(r, inputs, whole, grain) {
-  if (grain === "brick") return cutBricks(r, inputs);
+  if (grain === "brick") return cutBricks(r, inputs, whole);
   const G = GRAIN[grain || "piece"]; TARGET = G.target; MINS = G.mins; SLACK = G.slack;
   const p = r.path, spans = [];
   if (!p.length) return spans;
@@ -367,10 +378,10 @@ function mine(which, sketchFiles) {
     let ws = []; try { ws = windowsOf(s, R.w, R.r); } catch (e) { console.log("  no windows for", s.name, e.message); }
     for (const [i0, i1] of cuts) { const P = measure(s, R.w, R.r, R.inputs, i0, i1); Object.assign(P, pieceDifficulty(ws, R.r.path[i0].tick, R.r.path[i1].tick)); P.grain = "piece"; pieces.push(P); }
     // bricks: the same route cut finer (not for the library's whole pieces)
-    if (!s.whole) for (const [i0, i1] of cut(R.r, R.inputs, false, "brick")) { const P = measure(s, R.w, R.r, R.inputs, i0, i1); Object.assign(P, pieceDifficulty(ws, R.r.path[i0].tick, R.r.path[i1].tick)); P.grain = "brick"; pieces.push(P); }
+    if (!s.whole) for (const [i0, i1, kind] of cut(R.r, R.inputs, { auto: true, items: R.w.items }, "brick")) { const P = measure(s, R.w, R.r, R.inputs, i0, i1); Object.assign(P, pieceDifficulty(ws, R.r.path[i0].tick, R.r.path[i1].tick)); P.grain = "brick"; if (kind === "auto") { P.auto = true; P.sig = "auto / " + P.sig; P.empty = false; } pieces.push(P); }
     console.log(`  ${s.src.padEnd(8)} ${s.name.padEnd(34)} ${String(cuts.length).padStart(3)} pieces${R.r.dead ? " (route dies at block " + Math.round(R.r.path[R.r.path.length - 1].x / B) + ")" : ""}  ${Date.now() - t0} ms`);
   }
-  pieces.forEach((p, i) => p.id = ({ official: "r", ours: "u", sketch: "s", library: "l" }[p.src] + "-" + p.level.replace(/[^a-z0-9]+/gi, "_").toLowerCase() + "-" + p.x + (p.grain === "brick" ? "b" : "")));
+  pieces.forEach((p, i) => p.id = ({ official: "r", ours: "u", sketch: "s", library: "l" }[p.src] + "-" + p.level.replace(/[^a-z0-9]+/gi, "_").toLowerCase() + "-" + p.x + (p.grain === "brick" ? (p.auto ? "a" : "b") : "")));
   fs.mkdirSync(OUTDIR, { recursive: true });
   const prev = fs.existsSync(path.join(OUTDIR, "pieces.json")) ? JSON.parse(fs.readFileSync(path.join(OUTDIR, "pieces.json"), "utf8")) : [];
   const keep = prev.filter(p => !srcs.some(s => s.src === p.src));   // mining one source keeps the others

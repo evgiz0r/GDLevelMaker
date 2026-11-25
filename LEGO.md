@@ -303,6 +303,38 @@ time: a usable hint for the solver (seed the search there first, as tools/pressl
 Open: matching that allows a height shift (a brick placed higher), which the fly modes need; feeding the predicted
 presses to the solver and measuring how much faster it gets.
 
+## Joining and connecting: what the test says, and Evgeni's plan (2026-11-25)
+
+`node tools/lego_join.js --grain brick [--n 40] [--seed 7] [--any]` joins two main-level bricks (with 10 blocks of A's own
+level before it as the lead-in, so the player arrives in A's entry state), solves the join and checks it
+(knowledge/lego_joins.json):
+
+| 40 random brick pairs, about as hard, another kind | clear, the bricks' own way | clear by a secret way | broken |
+|---|---|---|---|
+| any pair, one portal at the seam (first run) | 15% | 35% | 50% (6 skipped the portal, 7 hit a block, 5 a spike) |
+| with the seam contract (exit state fits entry state) and portals stacked over the height | 35% | 33% | 33% |
+
+Same-mode joins that meet the contract: 86% clear (6 of 7). So: **joining needs a contract, a connector and a filler**:
+the exit and entry must fit (or a connector makes them fit), a mode seam must be unskippable, and the open space around
+a small brick must be closed or the player flies around it (a third of the joins).
+
+Evgeni's notes for the connecting step (2026-11-25):
+- **Y shift between bricks, sometimes**: a step, a slope, a drop, a pad -- to fit the next brick's entry height.
+- **A portal to fit, more rarely** (the main levels change mode ~7 times a level). Each brick has its mode in and out.
+- **Fluid, not cut off every small structure**: the bricks hang on one path; the floor and roof lines run on across a
+  seam (the community's "connect your structures", CRAFT.md "Structuring"), so the joins are not visible as cuts.
+- **Auto stretches** between sections, no clicks, with interesting movement: falls, pad chains (blue pads in a corridor),
+  gravity portal ping-pong, slopes -- "doesnt have to be a spam, could be much more interesting".
+  Now mined as **auto bricks** (0.8 s+ with no press where pads, portals or a 3+ block rise / fall move the player):
+  220 in the main levels (~10 a level), most of them a yellow pad launch in cube (50), plain falls / rises (31 cube, 26
+  ship), portal pairs; the catalogue shows them as "auto bricks". In all 30 min of main-level routes there are ~600
+  press-free stretches of 0.8 s+, a third of them moved by pads or gravity portals.
+
+Plan: the path of a section first (its height curve, from the beat and the energy), then bricks hung on it where their
+entry / exit fit (the contract), connectors (y shift, portal) where they don't, auto bricks between sections, and the
+filler last (close the open space, wall the portals, continue the outlines), every join checked by the solver
+(clear, no secret way). Not built yet: the connectors and the filler.
+
 ## Open
 
 - Compose does not place fly pieces from the catalogue yet: ship / wave / swing sections still use ship-tunnel /
