@@ -3342,7 +3342,7 @@ window.GD_LEVELS = [
    "physics": "62ec280",
    "solvedAt": "2026-11-25T23:33:44.842Z"
   },
-  "made": "2026-11-25T22:39:10.000Z"
+  "made": "2026-11-25T23:35:43.000Z"
  },
  {
   "name": "cube timings",
@@ -3353,6 +3353,518 @@ window.GD_LEVELS = [
    "id": 233860,
    "offset": 120
   },
-  "made": "2026-11-24T23:19:30.000Z"
+  "solution": {
+   "ok": true,
+   "events": [
+    {
+     "tick": 237,
+     "type": "press"
+    },
+    {
+     "tick": 255,
+     "type": "release"
+    },
+    {
+     "tick": 451,
+     "type": "press"
+    },
+    {
+     "tick": 469,
+     "type": "release"
+    },
+    {
+     "tick": 541,
+     "type": "press"
+    },
+    {
+     "tick": 559,
+     "type": "release"
+    },
+    {
+     "tick": 759,
+     "type": "press"
+    },
+    {
+     "tick": 777,
+     "type": "release"
+    },
+    {
+     "tick": 876,
+     "type": "press"
+    },
+    {
+     "tick": 1042,
+     "type": "release"
+    },
+    {
+     "tick": 1064,
+     "type": "press"
+    },
+    {
+     "tick": 1082,
+     "type": "release"
+    },
+    {
+     "tick": 1259,
+     "type": "press"
+    },
+    {
+     "tick": 1260,
+     "type": "release"
+    },
+    {
+     "tick": 1578,
+     "type": "press"
+    },
+    {
+     "tick": 1596,
+     "type": "release"
+    },
+    {
+     "tick": 1778,
+     "type": "press"
+    },
+    {
+     "tick": 1796,
+     "type": "release"
+    },
+    {
+     "tick": 1873,
+     "type": "press"
+    },
+    {
+     "tick": 1891,
+     "type": "release"
+    },
+    {
+     "tick": 2225,
+     "type": "press"
+    },
+    {
+     "tick": 2243,
+     "type": "release"
+    },
+    {
+     "tick": 2386,
+     "type": "press"
+    },
+    {
+     "tick": 2404,
+     "type": "release"
+    }
+   ],
+   "kind": "human",
+   "plan": "6ca3067",
+   "physics": "46672ee",
+   "solvedAt": "2026-11-24T21:15:53.985Z",
+   "windows": [
+    [
+     0,
+     237,
+     232,
+     242,
+     1
+    ],
+    [
+     0,
+     451,
+     443,
+     458,
+     3
+    ],
+    [
+     0,
+     541,
+     540,
+     544,
+     5
+    ],
+    [
+     0,
+     759,
+     750,
+     772,
+     7
+    ],
+    [
+     0,
+     876,
+     873,
+     878,
+     -1
+    ],
+    [
+     1,
+     1042,
+     1015,
+     1057,
+     -1
+    ],
+    [
+     0,
+     1064,
+     1062,
+     1067,
+     11
+    ],
+    [
+     0,
+     1259,
+     1258,
+     1267,
+     13
+    ],
+    [
+     0,
+     1578,
+     1573,
+     1583,
+     15
+    ],
+    [
+     0,
+     1778,
+     1757,
+     1800,
+     17
+    ],
+    [
+     0,
+     1873,
+     1871,
+     1875,
+     19
+    ],
+    [
+     0,
+     2225,
+     2220,
+     2230,
+     21
+    ],
+    [
+     0,
+     2386,
+     2381,
+     2391,
+     23
+    ]
+   ],
+   "win": "280188c",
+   "checkpoints": [
+    [
+     0,
+     false,
+     {
+      "tick": 0,
+      "x": 0,
+      "y": 15,
+      "vy": 0,
+      "grav": 1,
+      "sp": 1,
+      "mode": "cube",
+      "ceilY": null,
+      "grounded": true
+     }
+    ],
+    [
+     340,
+     false,
+     {
+      "tick": 340,
+      "x": 441.4051445849977,
+      "y": 15,
+      "vy": 0,
+      "grav": 1,
+      "sp": 1,
+      "mode": "cube",
+      "ceilY": null,
+      "grounded": true,
+      "rot": 180,
+      "robotLet": true,
+      "prev": [
+       440.1068941597477,
+       16.285200000000014,
+       177.02633762383383
+      ]
+     }
+    ],
+    [
+     586,
+     false,
+     {
+      "tick": 586,
+      "x": 760.7747491964951,
+      "y": 135,
+      "vy": 0,
+      "grav": -1,
+      "sp": 1,
+      "mode": "cube",
+      "ceilY": null,
+      "grounded": true,
+      "used": [
+       "6d32ed190c71"
+      ],
+      "rot": 270,
+      "robotLet": true,
+      "prev": [
+       759.4764987712451,
+       134.76480000000004,
+       259.83540716368975
+      ],
+      "boost": true,
+      "lflip": true
+     }
+    ],
+    [
+     720,
+     false,
+     {
+      "tick": 720,
+      "x": 934.7403061799937,
+      "y": 64.7403061799937,
+      "vy": 5.77000189,
+      "grav": 1,
+      "sp": 1,
+      "mode": "cube",
+      "ceilY": null,
+      "grounded": true,
+      "onSlope": true,
+      "used": [
+       "3e557d72f84c",
+       "6d32ed190c71"
+      ],
+      "rot": 360,
+      "wasG": true,
+      "robotLet": true,
+      "prev": [
+       933.4420557547437,
+       63.442055754743706,
+       360
+      ],
+      "boost": true,
+      "lflip": true
+     }
+    ],
+    [
+     960,
+     true,
+     {
+      "tick": 960,
+      "x": 1246.3204082399911,
+      "y": 74.19977276474322,
+      "vy": 0,
+      "grav": 1,
+      "sp": 1,
+      "mode": "cube",
+      "ceilY": null,
+      "dashing": true,
+      "used": [
+       "3e557d72f84c",
+       "6d32ed190c71",
+       "96160d8e41fd"
+      ],
+      "buffered": true,
+      "rot": 540,
+      "lb": 1,
+      "prev": [
+       1245.0221578147411,
+       74.19977276474322,
+       540
+      ],
+      "boost": true,
+      "lflip": true
+     }
+    ],
+    [
+     1220,
+     false,
+     {
+      "tick": 1220,
+      "x": 1583.8655188049884,
+      "y": 15,
+      "vy": 0,
+      "grav": 1,
+      "sp": 1,
+      "mode": "cube",
+      "ceilY": null,
+      "grounded": true,
+      "used": [
+       "3e557d72f84c",
+       "6c87f61f6eb9",
+       "6d32ed190c71",
+       "96160d8e41fd"
+      ],
+      "rot": 810,
+      "robotLet": true,
+      "prev": [
+       1582.5672683797384,
+       17.578972764743227,
+       847.192762347241
+      ],
+      "boost": true,
+      "lflip": true
+     }
+    ],
+    [
+     1440,
+     false,
+     {
+      "tick": 1440,
+      "x": 1869.480612359986,
+      "y": 15,
+      "vy": 0,
+      "grav": 1,
+      "sp": 1,
+      "mode": "cube",
+      "ceilY": null,
+      "grounded": true,
+      "used": [
+       "3e557d72f84c",
+       "6c87f61f6eb9",
+       "6d32ed190c71",
+       "80f7437cbd6e",
+       "96160d8e41fd",
+       "f5fe270980f6"
+      ],
+      "rot": 900,
+      "wasG": true,
+      "robotLet": true,
+      "prev": [
+       1868.182361934736,
+       15,
+       900
+      ],
+      "boost": true,
+      "lflip": true
+     }
+    ],
+    [
+     1681,
+     false,
+     {
+      "tick": 1681,
+      "x": 2182.3589648452335,
+      "y": 165,
+      "vy": 0,
+      "grav": -1,
+      "sp": 1,
+      "mode": "cube",
+      "ceilY": null,
+      "grounded": true,
+      "used": [
+       "284c143380a0",
+       "3e557d72f84c",
+       "6c87f61f6eb9",
+       "6d32ed190c71",
+       "80f7437cbd6e",
+       "96160d8e41fd",
+       "f5fe270980f6"
+      ],
+      "rot": 720,
+      "robotLet": true,
+      "prev": [
+       2181.0607144199835,
+       163.7148,
+       722.9736623761662
+      ],
+      "boost": true,
+      "lflip": true
+     }
+    ],
+    [
+     2021,
+     false,
+     {
+      "tick": 2021,
+      "x": 2623.76410943023,
+      "y": 165,
+      "vy": 0,
+      "grav": -1,
+      "sp": 1,
+      "mode": "cube",
+      "ceilY": null,
+      "grounded": true,
+      "used": [
+       "284c143380a0",
+       "3e557d72f84c",
+       "6c87f61f6eb9",
+       "6d32ed190c71",
+       "80f7437cbd6e",
+       "96160d8e41fd",
+       "f1d1419e5921",
+       "f5fe270980f6"
+      ],
+      "rot": 270,
+      "robotLet": true,
+      "prev": [
+       2622.46585900498,
+       164.9685,
+       299.9963362258061
+      ],
+      "boost": true,
+      "lflip": true
+     }
+    ],
+    [
+     2160,
+     false,
+     {
+      "tick": 2160,
+      "x": 2804.2209185399784,
+      "y": 15,
+      "vy": 0,
+      "grav": 1,
+      "sp": 1,
+      "mode": "cube",
+      "ceilY": null,
+      "grounded": true,
+      "used": [
+       "044825d5cd40"
+      ],
+      "rot": 360,
+      "wasG": true,
+      "robotLet": true,
+      "prev": [
+       2802.9226681147284,
+       15,
+       360
+      ],
+      "boost": true,
+      "lflip": true
+     }
+    ],
+    [
+     2400,
+     true,
+     {
+      "tick": 2400,
+      "x": 3115.801020599976,
+      "y": 45.11399999999999,
+      "vy": 8.156,
+      "grav": 1,
+      "sp": 1,
+      "mode": "cube",
+      "ceilY": null,
+      "used": [
+       "044825d5cd40"
+      ],
+      "buffered": true,
+      "rot": 564.297732615036,
+      "lb": 1,
+      "prev": [
+       3114.502770174726,
+       43.27889999999999,
+       562.5621802853906
+      ],
+      "boost": true,
+      "lflip": true
+     }
+    ]
+   ],
+   "stale": true,
+   "replayedOn": "62ec280"
+  },
+  "made": "2026-11-22T15:14:30.000Z"
  }
 ];

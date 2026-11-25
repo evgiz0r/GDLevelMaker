@@ -253,7 +253,11 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   --note "what changed"` after every change.** It goes to `local/wip/<session>/`, and the viewer
   (`node tools/serve.js`, http://localhost:8765/viewer/) lists it under "in progress" with its
   version; the user presses ⟳ refresh to see the newest, before anything is pushed. **Then run
-  the ArtifactData call it prints**, so the phone page shows it too (PHONE.md).
+  the ArtifactData call it prints**, so the phone page shows it too (PHONE.md). Once a copy is overtaken (pushed, or
+  a newer copy elsewhere), take it out of the list: `node tools/wip.js archive <session>/<base>` (or `--superseded [--dry]`
+  for all) MOVES its files to `local/wip_archive/<session>/`, never deletes; the viewer's "in progress" tab already hides
+  wip copies older than the pushed level of the same name. An open viewer tab reloads itself when the PC's checkout moves
+  on (it polls /version), and warns when serve.js can't self-update (dirty checkout, not on main).
 - **Real-game stats go to every owner, at once** (the user: "anytime we have stats about a new level
   from real game, lets send it to physics/difficulty/style and so on for analyzing"). After analysing a
   recording (the physics session owns recordings), add each attempt to `local/real_stats.jsonl` with
