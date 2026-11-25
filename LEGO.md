@@ -386,6 +386,26 @@ mirrored top to bottom. So each brick gives up to four variants: as is, reversed
   what was built before (no overlap with earlier bricks, the filler must keep the two apart).
 - Open: the main levels' own reversed stretches (Fingerdash, Dash use turns) as a check of how RobTop does it.
 
+## The filler: joins from the real entry state, secret ways spiked (2026-11-25 evening)
+
+`node tools/lego_join.js --grain brick --n 40 --seed 7 --fill` (knowledge/lego_joins_filled.json; 5 min in the cloud).
+Two changes to the join test:
+- **No made-up lead-in.** The player starts in brick A's real entry state, taken from the main level's own route at A's
+  start (`entryState`). Every "broken" join of the earlier runs died before the seam, inside the lead-in (13 of 13), so
+  they measured the test, not the join.
+- **The filler.** Solve; where the route leaves the bricks' own routes by more than 2.5 blocks for a block or more (a secret
+  way), put a spike on each block of the way it took, and solve again (up to 6 rounds). Spikes only: blocks would give the
+  cube new floors.
+
+| 40 brick pairs (contract on, seed 7) | clean | secret way | broken |
+|---|---|---|---|
+| before (lead-in, no filler) | 35% | 33% | 33% |
+| real entry state + filler | **93%** (37) | 0% (85 spikes placed in all) | 8% (3: spike 2, block 1) |
+
+Same mode 7 of 7 clean, mode change 30 of 33. Open: the spikes sit where the solver went, not where a designer would put
+them (they still need the look pass: rows on a floor or ceiling, not loose spikes in the air); the seam's open space is
+not filled yet; the y-shift / portal connectors (Evgeni's corridor with the portal) and the dash-orb hold check are next.
+
 ## Lego hints in the solver: first measurement (2026-11-25)
 
 Evgeni: "do we plan to somehow use the structures and the info in the solver?" `node tools/lego_solve.js official:N
