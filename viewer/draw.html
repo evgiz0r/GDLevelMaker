@@ -563,10 +563,15 @@ function finishStroke() {
   changed();
 }
 // ✨ one pen (DRAW.md "One pen: path or shape"): the brick set loads the first time it is used (~0.9 MB)
+// our levels' bricks (bricks.js, in git) and, on Evgeni's private pages only, the main levels' (bricks_main.js: RobTop's
+// layouts, never in git or on the public site; tools/brickset.js --main)
+let BRICKS = null;
 function bricks(then) {
-  if (window.GD_BRICKS) return then(window.GD_BRICKS);
-  const sc = document.createElement("script"); sc.src = "bricks.js"; sc.onload = () => then(window.GD_BRICKS || []); sc.onerror = () => then([]); document.head.appendChild(sc);
+  if (BRICKS) return then(BRICKS);
+  const load = (src, k) => new Promise(ok => { if (window[k]) return ok(); const sc = document.createElement("script"); sc.src = src; sc.onload = sc.onerror = () => ok(); document.head.appendChild(sc); });
   msg("✨ loading the bricks…");
+  Promise.all([load("bricks.js", "GD_BRICKS"), load(location.protocol === "file:" || /\/viewer\//.test(location.pathname) ? "../local/bricks_main.js" : "bricks_main.js", "GD_BRICKS_MAIN")])
+    .then(() => then(BRICKS = (window.GD_BRICKS || []).concat(window.GD_BRICKS_MAIN || [])));
 }
 function autoStroke(it) {
   bricks(B => {
