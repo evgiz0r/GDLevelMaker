@@ -27,7 +27,7 @@ check(t && t.node.kids.length === 1 && Math.abs(t.node.kids[0].x) < 1e-9 && Math
 check(ART.info(12).kids.some(k => k[0] === "portal_03_back_001.png"), "cube portal gets its back half");
 
 // with the game installed: every frame named exists in the sheets
-const GAME = process.env.GD_GAME || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash";
+const GAME = require("../tools/gdpaths.js").GAME;
 const R = path.join(GAME, "Resources");
 if (fs.existsSync(path.join(R, "GJ_GameSheet-uhd.plist"))) {
   const have = {};

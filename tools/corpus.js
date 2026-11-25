@@ -6,8 +6,8 @@
 const fs = require("fs"), path = require("path"), zlib = require("zlib");
 const { GD, unpack, readGdlvl } = require("./io.js");
 
-const OFFICIAL_DIR = process.env.GD_LEVELS || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash/Resources/levels/";
-const SAVE = process.env.GD_SAVE || path.join(process.env.LOCALAPPDATA || "", "GeometryDash", "CCLocalLevels.dat");
+const OFFICIAL_DIR = require("./gdpaths.js").LEVELS;
+const SAVE = process.env.GD_SAVE_FILE || path.join(require("./gdpaths.js").SAVE, "CCLocalLevels.dat");
 const NAMES = ["Stereo Madness", "Back On Track", "Polargeist", "Dry Out", "Base After Base", "Cant Let Go",
   "Jumper", "Time Machine", "Cycles", "xStep", "Clutterfunk", "Theory of Everything", "Electroman Adventures",
   "Clubstep", "Electrodynamix", "Hexagon Force", "Blast Processing", "Theory of Everything 2",

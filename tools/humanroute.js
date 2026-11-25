@@ -10,7 +10,7 @@
 // players do it humanly) unless the level really asks for it. PHYSICS.md "How the route is chosen".
 const fs = require("fs"), path = require("path");
 const { GD, unpack } = require("./io.js");
-const SRC = process.env.GD_LEVELS || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash/Resources/levels/";
+const SRC = require("./gdpaths.js").LEVELS;
 const MAX_CPS = 12, MIN_GAP_MS = 50, TPS = GD.PHYS.TPS, FLY = new Set(["ship", "wave", "swing", "ufo"]);
 const args = process.argv.slice(2), nums = args.filter(a => /^\d+$/.test(a)).map(Number);
 const levels = nums.length ? nums : Array.from({ length: 22 }, (_, i) => i + 1);

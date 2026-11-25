@@ -12,8 +12,8 @@ const root = path.join(__dirname, ".."), port = +(process.argv[2] || 8765);
 const MARKS = path.join(root, "local", "marks.jsonl");
 const types = { ".html": "text/html", ".js": "text/javascript", ".json": "application/json", ".jsonl": "text/plain", ".gdlvl": "text/plain", ".mp3": "audio/mpeg", ".ogg": "audio/ogg", ".png": "image/png", ".jpg": "image/jpeg" };
 // songs are served straight from the user's game install and save folder (never copied into the repo)
-const GAME = process.env.GD_GAME || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash";
-const SAVE = process.env.GD_SAVE || path.join(process.env.LOCALAPPDATA || "", "GeometryDash");
+const GAME = require("./gdpaths.js").GAME;
+const SAVE = require("./gdpaths.js").SAVE;
 const RECS = process.env.GD_RECS || path.join(process.env.USERPROFILE || "", "Videos", "Captures"); // tools/record.sh writes here
 const cp = require("child_process");
 const git = args => cp.execFileSync("git", args, { windowsHide: true, cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
