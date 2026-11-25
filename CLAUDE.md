@@ -131,7 +131,7 @@ things take" below). The tools below still work one by one.
 4. With the game closed, `node tools/install.js levels/<name>.gdlvl` puts it at the top of
    My Levels (backs the save up first; refuses while GeometryDash.exe runs -- then queue it:
    `node tools/install_queue.js add <file> --by <who>`, the watcher installs it when GD closes). The user plays it
-   and reports. The user's game is plain GD 2.2 on Windows, no Geode: there is no in-game import.
+   and reports. The user's game is GD 2.2081 on Steam (Windows); Geode was installed 2026-11-25, but no tool uses a mod yet (GEODE.md: GDShare would give in-game .gmd import).
    Or the bot plays it: `node tools/bot.js levels/<name>.gdlvl` presses Space at the solver's
    click times in the real game (no mod; it syncs to each attempt's start on screen and measures
    its own lag from ground jumps). A clear confirms the sim; a death is where they disagree --
@@ -431,6 +431,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   the buttons are, GD must be windowed, the user's yes before each upload; ONE phone slot,
   ID 152848491, filled with `install.js <lvl> --slot phone`; and the test slot "Claude Lab", `--slot lab --desc "..."`, not uploaded yet; both in `local/phone_ids.json`). **Install queue** `tools/install_queue.js` (add / watch: installs the moment GD closes, reads the save back; PUBLISH.md). `tools/install.js` keeps a shared level's online ID on re-install, so
   Share again updates the same upload (`tests/install_keeps_id.js`).
+- **Geode mods** (GEODE.md: which index mods help -- GDShare import, Eclipse / GDH bots, Pathfinder -- which must NOT be installed because they change gameplay, and our own probe mod that logs the player's state every tick and plays a route tick-exact; research only, 2026-11-25).
 - `examples/` -- levels the user made in the game, for reference and as format ground truth.
 
 All the library code runs in both node and the browser (no build step, no dependencies).
