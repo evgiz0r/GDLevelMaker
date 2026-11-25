@@ -32,6 +32,18 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   game at a stepped roof's corner where our sim passed, PHYSICS.md "probe mod"). Build them with `fly-path` (45-degree slopes
   on both walls), not `ship-tunnel`; the margin our sim gives at a block corner is not to be trusted.
 - [ ] **Brick joins get 3+ flat blocks, and a brick whose own check found a prejump is not used** (2026-11-25, GDLM 44 v3: 1-2 block joins made 5 prejumps and a tap 183 ms after a gravity portal). `tools/brickpick.js` enforces it; score.js "prejumps" / "fairness" check it.
+- [ ] **Balanced sections** (Evgeni 2026-11-25 on Hellgate v4: "this whole section has 2 clicks? we need balanced sections.
+  with somewhat similar cps"): every section's clicks per second near the level's own (none under about half of it,
+  breathers named as breathers). A 3 s ball part with 2 clicks next to 2-click-a-second cube parts reads as a hole.
+- [ ] **No big gaps between pieces** (same review, 4 marks "too big gap"): inside a section the next thing to press comes
+  within about a second; a long flat run-up or an empty landing between two pieces is a gap, not a breather.
+- [ ] **No corridor twice, none too long** (same review: "way too long corridor", "again same corridor", "same corridor
+  x3"): a fly part is a few short ideas (gates, open stretch, a narrowing, a wall to follow), each 2-4 s; never the same
+  corridor recipe twice in a level, even in another mode.
+- [ ] **A long stretch gets a new idea halfway** ("bit too long without variety"): nothing runs over ~4 s with one kind
+  of obstacle; the official levels add a twist (a new hazard, a height change, an orb) every few seconds.
+- [ ] **Every orb has an obvious reason** ("i dont get this orb"): an orb is there to clear something you can see
+  from it; an orb on a ledge with nothing to clear is noise.
 - [ ] **`node tools/fairness.js <level>` passes** (also `tools/score.js` gate "fairness"). It
   flags (FAIL): an input forced right after a portal (into a jumping mode: the first input's window
   closes < 250 ms after it; into the wave: the button must change within 300 ms); a jump mark where

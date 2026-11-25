@@ -27,10 +27,14 @@ const PLAN = [
   // loudest from b121-125 to the end. So the changes sit there and the loud end is fast, not a calm ending.
   [1, 13, "cube", "1x", "intro"], [13, 21, "ball", "1x", "build-up"], [21, 37, "ship", "2x", "the drop"],
   [37, 45, "robot", "1x", "big kick"], [45, 53, "ufo", "1x", ""], [53, 61, "cube", "2x", "drums come in"],
-  [61, 77, "wave", "2x", "gravity flips"], [77, 89, "spider", "1x", ""], [89, 105, "swing", "2x", "louder"],
+  [61, 77, "wave", "2x", ""], [77, 85, "spider", "1x", ""], [85, 105, "swing", "2x", "louder"],
   [105, 121, "mini", "1x", "climax"], [121, 137, "ship", "3x", "the loudest"], [137, 147, "cube", "2x", "the end, still loud"],
 ];
 const FLY = new Set(["ship", "wave", "swing"]);
+// each ground section's floor height in blocks (Evgeni on v4, 23:44: "we still remain almost on the ground every section"):
+// a fly section leaves through its exit portal at any height, so the next section can start up high; ground -> ground
+// steps go up at most one block (a ufo flies up any height). The ball stays on the ground (it can't step up).
+const BASE = [0, 0, null, 3, 4, 4, null, 2, null, 5, null, 2];
 const PORTAL = { cube: "cube portal", mini: "cube portal", ball: "ball portal", ship: "ship portal", robot: "robot portal",
   ufo: "ufo portal", wave: "wave portal", spider: "spider portal", swing: "swing portal" };
 // block column of a beat, through the speed changes
@@ -40,28 +44,33 @@ const objs = [], used = ["slope-down-spike", "orb-ladder-2"], report = [];
 // a portal in a full wall: blocks above and below its 3 rows up to row 9, so nothing flies over or under it
 const gate = (at, names, row) => {
   for (const n of names) objs.push([n, at, row]);
-  for (let r = 0; r < 10; r++) if (r < row - 1 || r > row + 1) objs.push(["block", at, r]);
+  for (let r = 0; r < Math.max(10, row + 10); r++) if (r < row - 1 || r > row + 1) objs.push(["block", at, r]);
 };
+// a section's floor: blocks under its whole width up to its base height
+const floorOf = (b0, b1, sp, B) => { const out = [], w = Math.ceil((b1 - b0) * P * BPS[sp]);
+  for (let c = 1; c < w; c++) for (let r = 0; r < B; r++) out.push(["block", `b${b0}+${c}`, r]); return out; };
 // the floor climbs (Evgeni, 23:00: "move up along the y axis a bit here and there (making the ground higher and higher) so
 // it doesnt feel static on the ground"): in cube / mini / robot / ufo sections each piece stands on a floor 0-4 blocks
 // up, one block higher or lower than the last (a cube steps up a block with a jump; down is a drop), back to the ground
 // before the section ends (the next portal's wall starts at row 3). Ball and spider stay low: a ball or a spider can't
 // step up a block (its flip would take it to a ceiling). Placed by beat like the pieces: "b<b0>+<columns>".
 const CLIMB = [1, 2, 1, 3, 2, 3, 4, 3, 2, 1, 2, 3];
-const rise = (b0, vcol, picks, mode) => {
-  if (!["cube", "mini", "robot", "ufo"].includes(mode)) return null;
+const rise = (b0, vcol, picks, mode, B = 0) => {
+  if (!["cube", "mini", "robot", "ufo"].includes(mode)) { for (const p of picks) p.h = B; return []; }
   const out = []; let h = 0, k = 0;
   picks.forEach((p, i) => {
     const prevEnd = i ? picks[i - 1].col + picks[i - 1].width : p.col - 2;
     let nh = CLIMB[(k++ + b0) % CLIMB.length]; if (nh > h + 1) nh = h + 1;      // up one at most
     h = nh;
     const a = Math.round(prevEnd - vcol), z = Math.round(p.col + p.width - vcol);
-    for (let c = a; c < z; c++) for (let r = 0; r < h; r++) out.push(["block", `b${b0}+${c}`, r]);
-    p.h = h;
+    for (let c = a; c < z; c++) for (let r = B; r < B + h; r++) out.push(["block", `b${b0}+${c}`, r]);
+    p.h = B + h;
   });
   return out;
 };
-const base = { slots: H.slots, grid: { period: P }, offset: OFFSET, used, beatCols: true, deadAir: 1.0 };
+// gaps of 2-4 blocks between pieces and no thin pieces (Evgeni on v4: "the gaps between structures is too long, some of
+// them are way too boring"): minDensity = presses per 10 blocks
+const base = { slots: H.slots, grid: { period: P }, offset: OFFSET, used, beatCols: true, deadAir: 1.0, gap: [2, 4], minDensity: 1.5 };
 
 PLAN.forEach(([b0, b1, mode, sp, kind], i) => {
   const prev = PLAN[i - 1], label = `b${b0}-${b1} ${mode} ${sp}${kind ? " (" + kind + ")" : ""}`;
@@ -73,22 +82,23 @@ PLAN.forEach(([b0, b1, mode, sp, kind], i) => {
     if (PORTAL[mode] !== PORTAL[prev[2]]) names.push(PORTAL[mode]);
     if (sp !== prev[3]) names.push(sp + " speed");
     if (mode === "mini") names.push(101); if (prev[2] === "mini") names.push(99);
-    if (names.length) gate("b" + b0, names, 1);
+    if (names.length) gate("b" + b0, names, BASE[i - 1] + 1);
   }
+  const B = BASE[i];
+  objs.push(...floorOf(b0, b1, sp, B));
   if (mode === "mini") {
     // single spikes timed on the hits (no verified bricks at this size / speed)
     const r = pick(Object.assign({}, base, { mode: "cube", speed: sp, startCol: vcol + 4, fromBeat: b0, toBeat: b1 - 1, max: "Easy", beats: true, fillerOnly: true }));
-    const ps = r.picks.filter(p => p.j), floor = rise(b0, vcol, ps, mode);
+    const ps = r.picks.filter(p => p.j), floor = rise(b0, vcol, ps, mode, B);
     const singles = ps.map(p => ["pattern", "single", "j" + p.beat, p.h || 0]);
     objs.push(...floor, ...singles);
     report.push(`${label}: ${singles.length} spikes on the hits`);
   } else {
     const r = pick(Object.assign({}, base, { mode, speed: sp, startCol: vcol + 4, fromBeat: b0, toBeat: b1 - 0.5, beats: true, usedPenalty: 1.2,
-      filler: mode === "cube", max: sp !== "1x" || kind === "climax" ? "Hard" : "Normal" }));
+      filler: mode === "cube" || mode === "robot", max: sp !== "1x" || kind === "climax" ? "Hard" : "Normal" }));
     for (const p of r.picks) if (!p.j) used.push(p.id);
-    const floor = rise(b0, vcol, r.picks, mode);
-    if (floor) objs.push(...floor, ...r.picks.map(p => p.j ? ["pattern", "single", "j" + p.beat, p.h] : mode === "cube" ? ["pattern", "s:" + p.id, "b" + p.beat, p.h] : ["pattern", "s:" + p.id, "b" + p.beat, p.h, { raw: true }]));
-    else objs.push(...r.objects);
+    const floor = rise(b0, vcol, r.picks, mode, B);
+    objs.push(...floor, ...r.picks.map(p => p.j ? ["pattern", "single", "j" + p.beat, p.h] : mode === "cube" ? ["pattern", "s:" + p.id, "b" + p.beat, p.h] : ["pattern", "s:" + p.id, "b" + p.beat, p.h, { raw: true }]));
     report.push(`${label}: ${r.picks.map(p => p.id).join(", ") || "(none)"} -- ${r.presses} presses, ${Math.round(r.onHit * 100)}% on a hit`);
   }
   // the next section flies: its corridor, sized to fill its bars at its speed, exiting into the one after
@@ -100,18 +110,23 @@ PLAN.forEach(([b0, b1, mode, sp, kind], i) => {
       : fm === "swing" ? [2, 5, 3, 6, 2, 6, 3, 5, 2, 6, 4, 2] : [2, 5, 3, 6, 2, 5, 3, 6, 4, 2, 5, 3];
     const flat = fm === "wave" ? 2 : fm === "swing" ? 5 : 6, lead = 4;
     const rows = [heights[0]]; let w = lead;
-    for (let k = 1; k < heights.length; k++) { const add = Math.abs(heights[k] - rows[rows.length - 1]) + flat; if (w + add + 3 > width) break; rows.push(heights[k]); w += add; }
+    // the corridor sits on this section's floor (Bp) and its last knot leads to the exit portal one row above the next
+    // section's floor (Bn; when that is lower, the player drops after the portal)
+    const Bp = BASE[i], Bn = after ? BASE[i + 2] : 0, L = Math.max(2, Math.min(8, Bn - Bp + 1));
+    for (let k = 1; k < heights.length; k++) { const add = Math.abs(heights[k] - rows[rows.length - 1]) + flat, fin = Math.abs(L - heights[k]) + flat;
+      if (w + add + fin + 3 > width) break; rows.push(heights[k]); w += add; }
+    if (rows[rows.length - 1] !== L) { w += Math.abs(L - rows[rows.length - 1]) + flat; rows.push(L); }
     const tail = Math.max(3, width - w);
     const a = { mode: fm, rows, flat, lead, tail, gap: fm === "wave" ? 4 : 5, spikes: fm === "wave" ? "turns" : "both", every: 5,
       exit: after ? (after[2] === "mini" ? "cube" : after[2]) : undefined };
-    if (fm === "wave") a.turns = "mix";                                   // gravity portals at every other turn
+    // (no gravity-portal turns in the wave: in v4 they forced a button change within 33 ms of the portal -- fairness FAIL)
     if (fm === "ship") a.gates = [2, 4];
     // the entry portal (with the speed) in a wall at row 1, then the corridor from the next column
     const names = [PORTAL[fm]]; if (fsp !== sp) names.push(fsp + " speed"); if (mode === "mini") names.push(99);
-    gate("b" + f0, names, 1);
-    objs.push(["pattern", "fly-path", "b" + f0 + "+1", 0, a]);
+    gate("b" + f0, names, Bp + 1);
+    objs.push(["pattern", "fly-path", "b" + f0 + "+1", Bp, a]);
     // leaving: the exit portal stands in the corridor's end wall; the speed (and size) change in the same column
-    const exitAt = "b" + f0 + "+" + (1 + w + tail), er = rows[rows.length - 1];
+    const exitAt = "b" + f0 + "+" + (1 + w + tail), er = Bp + rows[rows.length - 1];
     if (after && after[3] !== fsp) objs.push([after[3] + " speed", exitAt, er]);
     if (after && after[2] === "mini") objs.push([101, exitAt, er]);
     report.push(`b${f0}-${f1} ${fm} ${fsp}: fly-path ${rows.join("-")}, ${width} blocks`);

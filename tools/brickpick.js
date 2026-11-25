@@ -39,7 +39,8 @@ function pick(o) {
    const weak = o.slots.filter(s => s.kind === "x").map(s => s.t - o.offset);
   const near = (arr, t) => { let m = 1e9; for (const u of arr) { const d = Math.abs(u - t); if (d < m) m = d; } return m; };
   const hitScore = t => { const d = near(strong, t); return d <= 0.025 ? 1 : d <= 0.05 ? 0.5 : near(weak, t) <= 0.025 ? 0.3 : -0.6; };
-  const lib = o.fillerOnly ? [] : bricks(o.mode || "cube", o.max || "Normal", o.speed);   // fillerOnly: single spikes only (mini: no verified bricks at that size)
+  // o.minDensity: leave out bricks with fewer presses per 10 blocks (Evgeni on v4: "some of them are way too boring")
+  const lib = o.fillerOnly ? [] : bricks(o.mode || "cube", o.max || "Normal", o.speed).filter(b => !o.minDensity || 10 * b.dx.length / b.width >= o.minDensity);   // fillerOnly: single spikes only (mini: no verified bricks at that size)
   const used = new Set(o.used || []), picks = [];
   let col = o.startCol != null ? Math.ceil(o.startCol) : Math.round(tOfBeat(o.fromBeat) * v), lastPress = col / v - 0.5, lastTag = null;
   const end = tOfBeat(o.toBeat) * v;
@@ -55,7 +56,10 @@ function pick(o) {
   };
   while (true) {
     let best = null;
-    for (const b of lib) for (let g = 3; g <= 7; g++) {   // >= 3 flat blocks between bricks: shorter joins made prejumps and a tap 183 ms after a portal (GDLM 44 v3)
+    // run-up between bricks: 3-7 blocks by default (shorter joins made prejumps and a tap 183 ms after a portal, GDLM 44
+    // v3); o.gap [min, max] to tighten it (Evgeni on v4: "the gaps between structures is too long")
+    const [g0, g1] = o.gap || [3, 7];
+    for (const b of lib) for (let g = g0; g <= g1; g++) {
       const c = col + g; if (c + b.width > end) continue;
       const r = score(b, c); if (!r) continue;
       const s = r.s - 0.1 * g + 0.05 * b.dx.length;
