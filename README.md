@@ -23,6 +23,8 @@ source column), or "not measured".
 | a level -> difficulty score and a page of where it comes from (cost per press, per mode stretch) | `node tools/difficulty.js <level>`, `node tools/balance.js <level> --html out.html` | 4: 0.87 against the main levels' stars on clean routes | balance: 0.5 s on a 14 s cube level, 30 s on a 40 s level with modes | cloud, GDLM 41 / 45, 2026-11-25 |
 | a level -> taste score (learned from ~330 rated levels) with repetition | `node tools/taste.js score <level>` | 3: a first model, the user's soft rules on top | under 1 s | cloud, GDLM 41 / 45, 2026-11-25 |
 | levels <-> structure bricks: cut into 1-3 s pieces, or which bricks a level is built from | `node tools/lego.js mine`, `node tools/lego.js variety <level>`, `node tools/lego_match.js <level>` | 3 | mine ~20 s for all levels; variety and match under 1 s | LEGO.md; cloud, 2026-11-25 |
+| two or more levels -> side by side (difficulty v1/v2 and curve, taste, modes, windows, brick mix), the one ahead per row, a page | `node tools/compare.js <A> <B> [--thumbs]` (PR #3) | 3: first version | ~20 s for two short cube levels; 149 s for GDLM 70 vs 72 with pictures | COMPARE.md, cloud 2026-11-25 |
+| a level -> thumbnail of its best-looking moment (+ a 3 s gif) | `node tools/thumb.js <level> [--gif]` (PR #3) | 3: first version | 6-10 s in the cloud; PC with GD art not measured | THUMBS.md, cloud 2026-11-25 |
 | a level + a route -> video with the song and an end screen (GD's look; stays local) | `node tools/video.js <level> --route` | 3 | 2.2-4.7x the level's length (Jumper, 90 s: 202-408 s) | CLAUDE.md, 2026-11-25 |
 | a level -> playable in the browser with its music, on PC and phone | `node tools/serve.js`, the phone page (PHONE.md) | 4 | seconds to open | |
 | a drawing or marks in the viewer -> layout edits | the viewer's ✏ draw and ✎ mark, `node tools/sketch.js <id> --fit`, `node tools/markedit.js` | 3 | an edit: 1-5 s in cube or ball, 25-65 s next to a ship stretch | EDITING.md, PHYSICS.md "Incremental solving" |
@@ -33,8 +35,7 @@ source column), or "not measured".
 | the whole project -> set up on another computer, main levels playing | `node tools/setup.js` | 3: tested on a fresh copy; the routes replay on the owner's real levels (21 of 22 clear); not yet tried on a second computer | ~15 s (replays: 14.6 s) | SETUP.md |
 
 **Ideas that would be easy from here** (not built): a level -> a practice copy with start positions at its hard parts
-(difficulty per section exists); a level -> a one-page report card (taste, difficulty, balance and the review issues
-together, as review.js already does in part); a level + another song -> the same level re-synced to the new beats; two
+(difficulty per section exists); a level + another song -> the same level re-synced to the new beats; two
 levels -> one, joined at a seam that fits (the lego seam contract exists); a level -> "explain this jump" notes in the
 viewer from the windows and costs already measured. USE_CASES.md lists every use case and what each still lacks.
 
