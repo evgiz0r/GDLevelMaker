@@ -135,6 +135,27 @@ function coinPass(only) {
   }
 }
 
+// `mains.js replan [n ...]`: the human routes planned again from the saved solves (no new solve), e.g. after the route
+// planner (lib/natural.js) changes, which mains' status does not see when the old routes still clear. Flying levels first
+// (wave: 20 18 17 21 19 22) at normal priority, the rest at low; tools/flystyle.js before and after each (presses, legs
+// under 100 ms, off-pattern stretches), then tools/tight.js --fix. Log: local/mains/replan.txt.
+function replanAll(ns) {
+  const FLY = [20, 18, 17, 21, 19, 22], order = ns.length ? ns : FLY.concat(Array.from({ length: 22 }, (_, i) => i + 1).filter(n => !FLY.includes(n)));
+  const out = path.join(DIR, "replan.txt");
+  fs.mkdirSync(DIR, { recursive: true });
+  const fly = (n, prio) => { const r = cp.spawnSync(process.execPath, [path.join(__dirname, "flystyle.js"), "official:" + n], { windowsHide: true, cwd: ROOT, encoding: "utf8",
+    env: Object.assign({}, process.env, { GDLM_HEAVY_PRIORITY: prio }), maxBuffer: 64 << 20 });
+    return String(r.stdout || "").split("\n").filter(l => l.trim() && !/^heavy|waiting|^ {4}[A-Z]/.test(l)).join("\n"); };
+  for (const n of order) {
+    const prio = FLY.includes(n) ? "normal" : "low";
+    const before = fly(n, prio);
+    const r = job("replan", ["difficulty_solve.js", String(n), "--replan"], prio);
+    const after = fly(n, prio);
+    job("tight", ["tight.js", String(n), "--fix"], prio);
+    fs.appendFileSync(out, `=== ${n} ${NAMES[n]} (${new Date().toISOString()})\n--- before\n${before}\n--- replan: ${String(r.stdout || "").trim().split("\n").filter(l => /^\d+:/.test(l)).pop() || "?"}\n--- after\n${after}\n`);
+  }
+}
+
 // serve.js calls this after a self-update// serve.js calls this after a self-update: start a detached runner when the update touched route code
 function afterUpdate(before, after, git) {
   let changed = "";
@@ -155,5 +176,6 @@ if (require.main === module) {
     else for (const s of st) console.log(`${String(s.n).padStart(2)} ${(s.name || "").padEnd(24)} ${s.need.padEnd(7)} raw ${s.raw ? fmt(s.raw).padEnd(14) : "?".padEnd(14)} route ${s.view ? fmt(s.view).padEnd(14) : "?".padEnd(14)} ${s.kind || ""}${s.part != null ? `  checkpoint at block ${s.part}` : ""}${s.error ? "  " + s.error : ""}`);
     const r = runner(); if (r) console.log(`runner working: pid ${r.pid} since ${r.since}`);
   } else if (a[0] === "run") run(nums, a.includes("--dry"));
+  else if (a[0] === "replan") replanAll(nums);
   else { console.log(fs.readFileSync(__filename, "utf8").split("\n").slice(0, 10).join("\n")); process.exit(1); }
 }
