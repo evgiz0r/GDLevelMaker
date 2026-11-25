@@ -471,20 +471,35 @@ test: `node tests/rotated.js`.
   earlier spider taps in the same plan need today's timing (one tick later dies at block 40 on a saw). OPEN: the spider's
   input timing vs GD; tas_progress stays at 75 until it is understood.
   `node tools/tas_trace.js 1740,1790 22 --nudge 1742:3,1744:3,1906:5,1908:5` shows it.
-- **Where Dash stops now (not a turn):** both the nudged plan and a strict sweep started on it die at x ~3790-3890
-  (block ~127-130): a red pad launches the mini cube into a ceiling (groups 229 / 233) that a touch spawn (x 3787, y 251)
-  lifts by a move of 9 over 0.2 s; in the sim the touch fires at tick 2750 and the ceiling has barely moved when the
-  cube's inner box reaches it. Suspects: the move's units (is 29 = 9 really 9 units?), the touch box, the mini cube's
-  inner box (9x9 here, GD may scale it). Next step there.
+- **Block ~127 (fixed 2026-11-25):** not the move units or the touch box -- a "flip on head hit" modifier (2866) locked
+  to the player there; see "Gameplay modifiers" below. With it and the time warp at x 4535 the nudged plan goes on to
+  block 179 (x 5366), where it dies in a swing stretch (swing physics, open).
 - **Not modelled yet:** touch-activated 2900s (none in Dash), a 2900 inside a toggled-off group, the dash orb's angle
   clamp in turned frames (gdsolver --dashframe3), the 2899 options trigger (disables P1 controls; consumed, no effect),
   moving objects' lock-to-player / move-to-target state across a turn, the camera turning with the gameplay (the viewer
   draws turned stretches in world coordinates, unturned).
 
+## Gameplay modifiers (2866, 1813) and the time warp (1935): IN the sim (2026-11-25)
+
+From gdsolver's reading of GD's disassembly (GJBaseGameLayer::collisionCheckObjects, PlayerObject::didHitHead) and
+their dumps on Dash; code in lib/physics.js, objects in lib/objects.js; `node tests/modifiers.js`.
+- Touching a modifier sets a per-player counter to 2; PlayerObject::update counts it down every tick (s.fhArm, s.najArm).
+- **2866 flip on head hit:** while armed, a head that reaches a solid flips gravity and the player stands on that
+  ceiling (y = face - half, on the ground at once; GD: Dash t=2,748 -> 2,749). **1813 no auto jump** ("J block"): armed
+  with it, that flip also drops the held button -- no jump off the ceiling until it is released (s.najHold). Fingerdash
+  has 11 1813s and no 2866: nothing changes there. Dash has one of each in group 59 at (3735, 165), which a move trigger
+  locks to the player for 2 s from x 3735: a red pad throws the mini cube into the ceiling at x ~3790 and it lands on
+  it upside down (before this the sim killed it there: block ~127). OPEN (gdsolver): GD flips 42 ticks after arming,
+  where the counter says 2 -- there is a second reader of the arm in collidedWithObjectInternal not modelled.
+- **1935 time warp** (key 120 = the time scale): from the tick after the player's x passes one, the x advance, the y
+  move and the velocity change of each tick shrink by that factor (a scale above 1 does nothing to them: GD speeds the
+  scheduler instead). Dash: 0.2 from x 4535 to 4615 (gdsolver: dx 1.950 -> 0.390, dvy 0.215 -> 0.043). Read off the
+  player's world x, in levels that have one (w.warps); not a channel-queue trigger here (Dash's sit in channel 0).
+
 ## Not in the sim yet (the game has it)
 
 Modes/portals: mirror. Teleport portals (747) are in, unchecked: same x, speed kept, exit height = portal y + key 54 along the portal's turned axis (54 x cos(rotation)), but the full 54 straight up/down when key 55 is set or the portal is turned a quarter (90/-90/270: cos would make it a no-op; Deadlocked's ball part 441-561 passes only so, neither "no move" nor "x moves by 54" does -- "angle mod 90" fits the same cases) (fitted on Deadlocked, 2026-11-23: its -53 degree portal at block 76.5 needs the turned offset to pass under a spike; its -46 degree portal with 55 at 360.8 lands exactly on the gravity + speed portals 224 below; whether GD also moves x is not known; smooth teleport and the 2.2 options 345+ not modelled); first used by Deadlocked at block 77, Fingerdash 205, Dash 435. Triggers: count/pickup items,
-scale, follow, on death, collision blocks, area triggers, gravity trigger, time warp. Others:
+scale, follow, on death, collision blocks, area triggers, gravity trigger. Others:
 keys and user coins (collectables only), start positions (levels always start at x 0), practice
 checkpoints, speed portals touched mid-air at a slant, force blocks, platformer mode, dash orbs'
 unknown props 586/588, spike slopes.
