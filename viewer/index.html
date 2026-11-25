@@ -166,7 +166,7 @@
   <button id="play">▶ play</button>
   <button id="restart">⟲</button>
   <select id="runPick" hidden></select><button id="runChip" class="cmpBtn" hidden title="the run you are watching; ▾ your other runs of this level"></button><button id="runClose" class="cmpBtn" hidden title="leave run mode (back to the level)">✕</button><div id="runMenu" class="cmpbar" hidden style="position:absolute;z-index:65;flex-direction:column;align-items:stretch;border:1px solid #6b5bd0;border-radius:8px;max-height:60vh;overflow:auto"></div><button id="runRoute" class="cmpBtn" disabled title="pick a run first">⇄ compare</button>
-  <button id="youPlay" title="play it yourself here: space / click / tap = jump, R = restart, P = back to the replay (practice checkpoints at each section)">🎮 you play</button><button id="practiceBtn" class="on" hidden title="practice: after a death, start again from the last checkpoint (each section / portal)">practice</button>
+  <button id="youPlay" title="play it yourself here: space / click / tap = jump, R = restart, P = back to the replay (practice checkpoints at each section)">🎮 you play</button><button id="drawBtn" title="draw a level here: ground, blocks, spikes, orbs, pads, portals, deco and where you jump; 🧩 layout makes it a level as you draw; ▶ and 🎮 replay and play it in this viewer (key D)">✏ draw</button><button id="practiceBtn" class="on" hidden title="practice: after a death, start again from the last checkpoint (each section / portal)">practice</button>
   <button data-speed="0.25">¼×</button><button data-speed="0.5">½×</button><button data-speed="1" class="on">1×</button>
   <button id="lookBtn" class="on" title="colours, triggers, block skins as in the game (off: the schematic view)">game look</button>
   <button id="artBtn" title="draw objects, background, ground and icon with GD's own sprites from your game install (needs tools/serve.js; VISUALS.md)">GD art</button>
@@ -2457,7 +2457,7 @@ hdrIcons();
   for (const e of extras) menu.appendChild(e);
   // the whiteboard (viewer/draw.html, DRAW.md): where this viewer itself is served (the PC, the home Wi-Fi, a file)
   if (location.protocol === "file:" || /^(localhost|127\.|192\.168\.|10\.)/.test(location.hostname)) {
-    const d = document.createElement("button"); d.textContent = "✏ whiteboard"; d.title = "draw a level freehand: ground, spikes, orbs, portals, deco, where you jump; check and play it (DRAW.md)";
+    const d = document.createElement("button"); d.textContent = "✏ whiteboard page"; d.title = "the whiteboard on its own page (the same board as ✏ draw here)";
     d.onclick = () => { location.href = "draw.html"; }; menu.appendChild(d); }
   vb.onclick = e => { e.stopPropagation(); menu.hidden = !menu.hidden; vb.classList.toggle("on", !menu.hidden); };
   addEventListener("click", e => { if (!menu.hidden && !menu.contains(e.target) && e.target !== vb) { menu.hidden = true; vb.classList.remove("on"); } });
@@ -2930,6 +2930,66 @@ async function mapRender(job) {
 }
 loadMarks();
 requestAnimationFrame(frame);
+
+// ---------- ✏ draw: the whiteboard (viewer/draw.html) as a layer on this canvas (DRAW.md "In the viewer") ----------
+// The board runs in a frame over the canvas with a see-through background: its pens, stamps and marks on top, and this
+// viewer drawing the level the sketch becomes (or its 🧩 layout) underneath, with the game look, at the board's camera.
+// ▶ / 🎮 on the board leave draw mode and replay / play that level here; ✏ draw goes back to the drawing.
+const DRAWM = { on: false, fr: null, last: null, lv: null };
+window.BOARDHOST = {
+  get claude() { return window.claude || null; },
+  view(V, rect, Hb) {   // the board's camera: V {x, y, z} in its canvas' css px; rect = its canvas in the frame
+    DRAWM.last = { V: Object.assign({}, V), rect, Hb };
+    if (!DRAWM.on || !DRAWM.fr) return;
+    const d = DPR(), fr = DRAWM.fr.getBoundingClientRect(), c = cv.getBoundingClientRect();
+    const ox = fr.left + rect.left - c.left, oy = fr.top + rect.top - c.top;
+    MAPCAM = { x: V.x - ox / V.z, y: V.y, scale: V.z * d, groundY: (Hb + oy) * d };
+    if (L) draw();
+  },
+  setLevel(name, levelStr, saved, song) {   // the sketch as a level (converted or fitted), with the plan to replay
+    DRAWM.lv = { name, levelStr, saved, song };
+    try { load(name, levelStr, saved, song || null); } catch (e) { console.warn("draw: the level did not load", e); return; }
+    t = 0; playing = false; setPlay(); if (typeof summary === "function") summary();
+    document.getElementById("pickName").textContent = name;
+    if (DRAWM.on && DRAWM.last) BOARDHOST.view(DRAWM.last.V, DRAWM.last.rect, DRAWM.last.Hb); else if (L) draw();
+  },
+  play(kind, x) {   // "replay" from x (the board's view), "you" = 🎮 from the start
+    if (!L) return; drawMode(false);
+    if (kind === "you") { if (!PLAY.on) playStart(); return; }
+    const i = x == null ? 0 : L.path.findIndex(s => s.x >= x); t = Math.max(0, (i < 0 ? 0 : i) / P.TPS); lastTick = -1;
+    playing = true; setPlay(); syncSong(true);
+  },
+  exit() { drawMode(false); },
+};
+function drawMode(on) {
+  if (on === DRAWM.on) return; DRAWM.on = on;
+  const b = document.getElementById("drawBtn"); b.classList.toggle("on", on); b.textContent = on ? "✏ drawing (D: done)" : "✏ draw";
+  if (on) {
+    if (PLAY && PLAY.on) playStop(true); if (marking) setMarking(false); playing = false; setPlay(); syncSong(false);
+    const top = cv.getBoundingClientRect().top + scrollY;
+    cv.style.height = Math.max(320, innerHeight - Math.max(0, top - scrollY) - 4) + "px"; resize();
+    if (!DRAWM.fr) {
+      const fr = DRAWM.fr = document.createElement("iframe"); fr.id = "drawFrame"; fr.title = "the whiteboard";
+      fr.src = "draw.html?embed=1" + (MUTED ? "&mute=1" : "") + (TESTPAGE ? "&test=1" : ""); fr.setAttribute("allowtransparency", "true");
+      fr.style.cssText = "position:absolute;left:0;border:0;width:100%;z-index:6;background:transparent;color-scheme:normal";
+      document.getElementById("wrap").appendChild(fr);
+      setTimeout(() => { let up = false; try { up = !!fr.contentWindow.DRAW; } catch (e) {}
+        if (!up && DRAWM.on) notice("The board did not open here (this page may not allow it). The whiteboard also works as a page of its own.", 8000); }, 6000);
+    }
+    DRAWM.fr.style.top = cv.offsetTop + "px"; DRAWM.fr.style.height = cv.style.height; DRAWM.fr.hidden = false;
+    if (DRAWM.lv && (!L || L.name !== DRAWM.lv.name)) BOARDHOST.setLevel(DRAWM.lv.name, DRAWM.lv.levelStr, DRAWM.lv.saved, DRAWM.lv.song);
+    if (DRAWM.last) BOARDHOST.view(DRAWM.last.V, DRAWM.last.rect, DRAWM.last.Hb);
+    try { DRAWM.fr.contentWindow.focus(); } catch (e) {}
+  } else {
+    if (DRAWM.fr) DRAWM.fr.hidden = true; MAPCAM = null; cv.style.height = ""; resize();
+    if (DRAWM.lv && L && L.name !== DRAWM.lv.name) BOARDHOST.setLevel(DRAWM.lv.name, DRAWM.lv.levelStr, DRAWM.lv.saved, DRAWM.lv.song);
+    if (L) draw();
+  }
+}
+document.getElementById("drawBtn").onclick = () => drawMode(!DRAWM.on);
+addEventListener("keydown", e => { if (e.key === "d" && !e.ctrlKey && !e.metaKey && !/INPUT|TEXTAREA|SELECT/.test(e.target.tagName) && !(PLAY && PLAY.on)) drawMode(!DRAWM.on); });
+addEventListener("resize", () => { if (DRAWM.on) { DRAWM.on = false; drawMode(true); } });
+if (hashParams().get("draw")) setTimeout(() => drawMode(true), 0);
 // ---------- embedded (viewer/polish.html: before / after side by side) ----------
 // #embed=1 hides the controls; the parent page drives the clock through window.VIEWER.
 if (hashParams().get("embed")) {

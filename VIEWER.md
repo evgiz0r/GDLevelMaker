@@ -20,6 +20,10 @@ tooltip; the least used buttons move into ⋯), two at phone width, and never ov
 timeline. In flying modes the camera centres the corridor when it fits, else follows the player with a block of ceiling
 and floor in view. tests/top_controls.js checks 375, 800 and 1200 px.
 
+**✏ draw: the whiteboard on the level** (2026-11-25, DRAW.md "In the viewer"). ✏ draw (key D) lays the whiteboard over the
+canvas: draw with its pens and stamps, the viewer shows the level it becomes (🧩 layout on) at the board's camera; the board's
+▶ and 🎮 replay and play it here. `node tests/viewer_draw.js`.
+
 **Runs: picked in one place.** A run is picked only from L → "my runs" (each level one sentence: "you died at 40% · 22 min
 ago · video"); a click opens the level already playing it. While a run is open the top bar has one chip, "▶ your run:
 Hexagon Force · died 40% · 22 min ago ▾" (▾: this level's other runs), ✕ to leave run mode, and "⇄ vs solver" (greyed

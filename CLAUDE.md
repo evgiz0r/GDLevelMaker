@@ -422,8 +422,9 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   the GDLM 46 lessons).
 - **The whiteboard: draw a level freehand** (DRAW.md: no grid, pens for ground / blocks / spikes / deco / "I jump here" /
   notes, areas, stamps for orbs, pads, portals and props, deco shown or hidden, the song's beats and drop on the board, ✓ check
-  and play; the cell-builder design): `viewer/draw.html` (⚙ view -> ✏ whiteboard; phone: `tools/draw_web.js`, link in
-  local/phone/draw_url.txt), `lib/sketch.js`, `tools/sketch.js` (a saved sketch from local/sketches/ -> .gdlvl + report).
+  and play; the cell-builder design): `viewer/draw.html`, **inside the viewer as ✏ draw** (key D: the board a see-through layer
+  over the viewer's canvas, the viewer draws the level and replays / plays it; DRAW.md "In the viewer", `tests/viewer_draw.js`;
+  on the phone in the phone viewer, built by tools/web.js; the standalone page: ⚙ view -> ✏ whiteboard page, `tools/draw_web.js`), `lib/sketch.js`, `tools/sketch.js` (a saved sketch from local/sketches/ -> .gdlvl + report).
   **The layout fitter** (sketch -> a layout that plays with the user's own jump marks; the board's 🧩 layout, redone after each
   edit; DRAW.md "The layout fitter"): `lib/sketchfit.js`, `tools/sketch.js <id> --fit`, `tools/sketchshot.js <sketch> [--fit]`
   (a picture of a sketch / its fitted level). Tests: `node tests/sketch.js`, `node tests/sketchfit.js`, `node tests/draw_page.js`.

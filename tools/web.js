@@ -264,7 +264,18 @@ onmessage = e => {
 `);
 // the timing windows' worker (viewer/windows_worker.js: lib URLs come from the page, so the same file works here)
 fs.copyFileSync(path.join(ROOT, "viewer", "windows_worker.js"), path.join(OUT, "windows_worker.js"));
-const files = { "levels.js": "levels.js", "beats.js": "beats.js", "solve_worker.js": "solve_worker.js", "windows_worker.js": "windows_worker.js" };
+// ✏ draw: the whiteboard runs in a frame over the viewer's canvas (DRAW.md "In the viewer"), a page of its own next to
+// index.html (so it keeps its doctype), its libs in lib/, its worker and the committed beat grids; it stores sketches in this
+// page's database (collection "sketches") through the viewer's runtime
+let draw = fs.readFileSync(path.join(ROOT, "viewer", "draw.html"), "utf8").replace(/\r\n/g, "\n");
+const drawLibs = [...draw.matchAll(/<script src="\.\.\/lib\/([\w.]+)"><\/script>/g)].map(m => m[1]);
+for (const f of drawLibs) if (!libs.includes(f)) { fs.copyFileSync(path.join(ROOT, "lib", f), path.join(OUT, "lib", f)); libs.push(f); }
+for (const [x, y] of [['src="../lib/', 'src="lib/'], ['<script src="../local/beats.local.js" onerror="window.GD_BEATS = {}"></script>', '<script src="beats.js"></script>']]) {
+  if (!draw.includes(x)) throw new Error("draw.html changed, update tools/web.js: " + x); draw = draw.split(x).join(y); }
+fs.writeFileSync(path.join(OUT, "draw.html"), draw);
+for (const f of ["draw_worker.js", "draw_songs.js"]) fs.copyFileSync(path.join(ROOT, "viewer", f), path.join(OUT, f));
+const files = { "levels.js": "levels.js", "beats.js": "beats.js", "solve_worker.js": "solve_worker.js", "windows_worker.js": "windows_worker.js",
+  "draw.html": "draw.html", "draw_worker.js": "draw_worker.js", "draw_songs.js": "draw_songs.js" };
 for (const m of maps) files["maps/" + m + "_shapes.jpg"] = "maps/" + m + "_shapes.jpg";
 for (const f of libs) files["lib/" + f] = "lib/" + f;
 fs.writeFileSync(path.join(OUT, "publish.json"), JSON.stringify({ file_path: path.join(OUT, "index.html"), root: OUT, files, capabilities: { db: {} } }, null, 1));
