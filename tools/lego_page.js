@@ -11,7 +11,7 @@ const ROOT = path.join(__dirname, "..");
 // (an mtime check let a build started by older code overwrite the page after newer code had arrived, 2026-11-25)
 function stamp() {
   const h = require("crypto").createHash("sha1");
-  for (const f of ["lego.js", "lego_page.js", "lego_page.html"]) h.update(fs.readFileSync(path.join(__dirname, f)));
+  for (const f of ["lego.js", "lego_page.js", "lego_page.html", "../lib/look.js"]) h.update(fs.readFileSync(path.join(__dirname, f)));
   return h.digest("hex").slice(0, 12);
 }
 function build(all, o = {}) {
@@ -28,12 +28,13 @@ function build(all, o = {}) {
     presses: p.presses, hold: p.hold, gap: p.gap, yRange: p.yRange, hz: p.hzPer100, flips: p.flips, gates: p.gates || 0, spiky: !!p.spiky,
     turns: p.turns, pathKind: p.pathKind, mech: Object.keys(p.mech || {}), midline: p.midline, verified: !!p.verified, why: p.why || "",
     shape: (p.shape || []).slice(0, 500), path: p.path || [], clicks: p.clicks || [], diff: p.diff == null ? null : p.diff, tightMs: p.tightMs == null ? null : p.tightMs, tight: p.tight || 0, speed: p.speed,
-    empty: !!p.empty, smooth: p.smooth !== false, steps: p.steps || 0, dupOf: p.dupOf || "", copies: p.copies || 1, alsoIn: (p.alsoIn || []).slice(0, 12),
+    colors: p.colors || null, cuts: p.cuts || [], empty: !!p.empty, smooth: p.smooth !== false, steps: p.steps || 0, dupOf: p.dupOf || "", copies: p.copies || 1, alsoIn: (p.alsoIn || []).slice(0, 12),
     // solid floor / roof right under / over the route per column, drawn as filled walls (the sim culls inner blocks);
     // spikes are not walls, and a slope column's wall stops under the ramp (the ramp itself is drawn as a triangle)
     walls: (p.cols || []).map(c => [c.fk === "S" ? Math.max(0, c.f - (c.fs ? 1 : 0)) : 0, c.rk === "S" ? c.r + (c.rs ? 1 : 0) : null]) }));
   fs.writeFileSync(path.join(dir, "pieces.json"), "[\n" + pieces.map(p => JSON.stringify(p)).join(",\n") + "\n]\n");
   const html = fs.readFileSync(path.join(__dirname, "lego_page.html"), "utf8")
+    .replace("<script>/*LOOK*/</script>", () => "<script>" + fs.readFileSync(path.join(ROOT, "lib", "look.js"), "utf8").replace(/<\/script/gi, "<\\/script") + "</script>")
     .replace("/*MIX*/null", JSON.stringify({ rows, tot }))
     .replace("/*PUB*/false", o.pub || o.priv ? "true" : "false").replace("/*PRIV*/false", o.priv ? "true" : "false") + `\n<!--lego-build:${stamp()}-->\n`;
   fs.writeFileSync(path.join(dir, "index.html"), html);

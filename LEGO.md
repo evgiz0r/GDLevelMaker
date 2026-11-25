@@ -344,6 +344,24 @@ filler last (close the open space, wall the portals, continue the outlines), eve
   Votes go to its database (`legovotes`). RobTop's layouts are on it, so it is never shared, never made public, and the
   repo and the public site still never carry them (`page --public` is the copy without them).
 
+## The replay: icons, level colours, teleports, cut points (2026-11-25 evening)
+
+Evgeni: "need proper icons in the replays of the structures", "colors and player icons + reverse", "something weird with
+paths", and "what we could cut from start or the end, like checkpoints where we could take even smaller parts".
+- Each route sample is `[x, y, t, mode, gravity, drawn rotation, grounded, mini]`. The page draws the player with
+  lib/look.js `drawPlayer` (the viewer's icons of every mode, mirrored when gravity is reversed, wave pointing along its
+  flight), turned by `visualRot` (moved from the viewer to lib/look.js so both use one copy).
+- `P.colors`: the level's background / ground / line colours where the piece starts (header + colour triggers fired by
+  then, lib/look.js timeline). Blocks are drawn as dark silhouettes on that background.
+- Route samples are world positions (`GD.worldXY`), and a jump of more than 3 blocks between samples (Deadlocked,
+  Fingerdash, Dash teleports: 52 pieces) breaks the line instead of drawing it across the picture.
+- `P.cuts`: calm points inside a brick (button up, at least 0.2 s to the next press, cube family on the ground)
+  `[x, seconds, presses before]`, drawn as dashed ✂ lines. 982 of 1337 bricks have at least one (1939 in all). A slice
+  between two cuts is a smaller brick with the same route; joining one is checked like any join (not built into the
+  picker yet).
+- Open: the wave routes of the main levels still tap a lot in corridors (Evgeni: "thats obviously not the human path");
+  that comes from lib/natural.js's wave controller (step 3b merges legs only within a 15 s budget per level).
+
 ## Open
 
 - Compose does not place fly pieces from the catalogue yet: ship / wave / swing sections still use ship-tunnel /

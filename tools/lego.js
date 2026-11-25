@@ -323,8 +323,51 @@ function measure(src, w, r, inputs, i0, i1) {
   P.shape = items.filter(it => /^(solid|slope|hazard|orb|pad|mode|gravity|speed|size)$/.test(it.kind) && it.x1 > xa - B && it.x0 < xb + B)
     .slice(0, 900).map(it => [KCODE[it.kind], r1((it.x0 - xa) / B), r1(it.y0 / B), r1((it.x1 - xa) / B), r1(it.y1 / B), it.d.color || "", it.kind === "slope" ? slopeCorner(it) : ""]);
   // the route as our physics played it: [x, y, seconds from the piece start] (the page replays it at its real speed)
-  P.path = []; for (let i = i0; i <= i1; i += Math.max(1, Math.round((i1 - i0) / 120))) P.path.push([r1((p[i].x - xa) / B), r1(p[i].y / B), r2(r.midline ? (p[i].x - xa) / 311.58 : (p[i].tick - a.tick) / TPS)]);
+  // plus what the page needs to draw the player as the game does (the user, 2026-11-25: "need proper icons in the replays
+  // of the structures", "colors and player icons + reverse"): mode (index in MODES), gravity (-1 = upside down: the icon is
+  // drawn mirrored), the drawn rotation (lib/look.js visualRot, the viewer's), grounded and mini
+  const vr = r.midline ? null : LOOK.visualRot(p.slice(i0, i1 + 1)), step = Math.max(1, Math.round((i1 - i0) / 240));
+  // world position (a state inside rotated gameplay steps in its frame's coordinates: GD.worldXY turns it back; the
+  // user's "something weird with paths", 2026-11-25). A teleport is a real jump: the page breaks the line there.
+  const wxy = s => GD.worldXY ? GD.worldXY(s) : [s.x, s.y], wa = wxy(a)[0] - xa;
+  P.path = []; for (let i = i0; i <= i1; i += step) { const [wx, wy] = wxy(p[i]); P.path.push([r1((wx - wa - xa) / B), r1(wy / B), r2(r.midline ? (p[i].x - xa) / 311.58 : (p[i].tick - a.tick) / TPS),
+    Math.max(0, MODES.indexOf(p[i].mode)), p[i].grav < 0 ? -1 : 1, vr ? Math.round(vr[i - i0]) : 0, p[i].grounded ? 1 : 0, p[i].mini ? 1 : 0]); }
+  P.colors = levelColours(src, r, a);
+  // inner cut points (the user, 2026-11-25: "what we could cut from start or the end, like checkpoints where we could
+  // take even smaller parts (on demand)"): calm moments between two presses where the brick can be trimmed -- the button
+  // up, at least 0.2 s to the next press, and (cube family) on the ground. [x blocks, seconds, presses before it]; a
+  // slice from one cut to another is a smaller brick with the same route. Joining a slice is checked like any join.
+  P.cuts = [];
+  if (!r.midline) {
+    const pr = P.clicks.filter(c => c[2]);
+    for (let k = 0; k + 1 < pr.length; k++) {
+      const t0 = pr[k][3], t1 = pr[k + 1][3]; if (t1 - t0 < 0.2) continue;
+      let best = null;
+      for (let i = i0; i <= i1; i++) {
+        const ts = (p[i].tick - a.tick) / TPS; if (ts <= t0 + 0.05 || ts >= t1 - 0.05) continue;
+        if (inputs.held(p[i].tick)) continue;
+        if (FAMILY[p[i].mode] !== "fly" && !p[i].grounded) continue;
+        const score = Math.min(ts - t0, t1 - ts); if (!best || score > best.score) best = { i, ts, score };
+      }
+      if (best) P.cuts.push([r1((p[best.i].x - xa) / B), r2(best.ts), k + 1]);
+    }
+  }
   return P;
+}
+// the level's colours where the piece starts (header + colour triggers fired by then, lib/look.js): background, ground,
+// line, and the player's two colours as the level sets them (1005/1006 default to GD's lime and cyan)
+const LOOK = require("../lib/look.js").LOOK, MODES = ["cube", "ship", "ball", "ufo", "wave", "robot", "spider", "swing"];
+function levelColours(src, r, a) {
+  if (!src.level) return null;
+  const P = r.path, TPSr = TPS;
+  if (!r._tl) {
+    const fireAt = x => { if (r.midline) return x / 311.58; let lo = 0, hi = P.length - 1; if (P[hi].x < x) return Infinity;
+      while (lo < hi) { const m = (lo + hi) >> 1; if (P[m].x < x) lo = m + 1; else hi = m; } return (P[lo].tick - P[0].tick) / TPSr; };
+    try { r._tl = LOOK.timeline(src.level, fireAt); } catch (e) { r._tl = null; }
+  }
+  if (!r._tl) return null;
+  const st = LOOK.stateAt(r._tl, r.midline ? a.x / 311.58 : (a.tick - P[0].tick) / TPSr), col = st.col || st, hex = c => c ? "#" + c.slice(0, 3).map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0")).join("") : null;
+  return { bg: hex(col[1000]), ground: hex(col[1001]), line: hex(col[1002]), obj: hex(col[1004]) };
 }
 // a slope's square corner, so pictures draw the ramp, not a block: "/" floor rising right, "\\" floor falling, "7" a
 // ceiling whose underside goes down to the right, "r" one going up (lib/physics.js: up / ceil / down)

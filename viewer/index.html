@@ -2486,29 +2486,8 @@ function drawCube(s) {
 // how the icon turns on screen (the physics' own rot snaps flat on landing, in one step): in the air it
 // turns as the physics turns, on the ground it eases onto the nearest side in ~0.1 s, as in GD; the
 // ship eases to its pitch
-function visualRot(path) {
-  const v = new Float32Array(path.length); let r = 0;
-  const near = (a, b) => b + ((((a - b) % 360) + 540) % 360) - 180; // a, moved by turns of 360 to be closest to b
-  // drawn rotation per mode (VISUALS.md "Player motion"; the sim's own s.rot spins every mode but the ship in
-  // the air, which its hitbox needs, not what the game draws): cube spins in the air and lands square; ship
-  // and swing tilt with their velocity; UFO nearly level, a quarter of the ship's tilt (the user first missed
-  // a tilt, then still noticed half of it; no clean UFO clip measured yet); ball rolls with its distance; robot and spider stay upright (their legs move instead)
-  const tilt = (s, p, k) => p ? -Math.atan2((s.y - p.y), Math.max(0.1, s.x - p.x)) * 180 / Math.PI * k : 0;
-  for (let i = 0; i < path.length; i++) {
-    const s = path[i], p = path[i - 1];
-    // the ship follows its velocity's angle about 67 ms behind (measured: the user's Hexagon Force ship, gain 0.98, lag 4
-    // frames; was 0.12 a tick = ~17 ms; VISUALS.md "Render vs game"); the wave points along its velocity at once
-    if (s.mode === "ship") { r = near(r, s.rot); r += (s.rot - r) * 0.06; }
-    else if (s.mode === "wave") { r = near(r, s.rot); r += (s.rot - r) * 0.12; }
-    else if (s.mode === "swing" || s.mode === "ufo") { const T = tilt(s, p, s.mode === "ufo" ? 0.25 : 1); r = near(r, T); r += (T - r) * 0.12; }
-    else if (s.mode === "robot" || s.mode === "spider") { r = near(r, 0); r += (0 - r) * 0.25; }
-    else if (s.mode === "ball") { if (p) r += (s.grav || 1) * (s.x - p.x) * 180 / (Math.PI * 15); }
-    else if (s.grounded || s.dashing || !p || p.mode !== s.mode) { const T = Math.round(r / 90) * 90; r += (T - r) * 0.12; }
-    else { const d = s.rot - p.rot; if (Math.abs(d) < 30) r += d; }
-    v[i] = r;
-  }
-  return v;
-}
+// the drawn rotation per step: lib/look.js visualRot (one copy, the lego catalogue uses it too)
+function visualRot(path) { return GD.LOOK.visualRot(path); }
 // ---------- loop ----------
 let prev = performance.now(), drawDt = 1 / 60;
 // a hidden tab: stop (the song keeps playing in the background, frames do not); back: carry on from a fresh
