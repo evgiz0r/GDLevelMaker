@@ -528,7 +528,7 @@ const SERVER = http.createServer((req, res) => {
     const newest = Math.max(...["tools/lego.js", "tools/lego_page.js", "tools/lego_page.html"].map(f => mt(path.join(root, f))), ...fs.readdirSync(path.join(root, "levels")).filter(f => /^gdlm_/.test(f)).map(f => mt(path.join(root, "levels", f))));
     if (mt(idx) < newest && !LEGO.building) {
       LEGO.building = true;
-      const ch = cp.spawn(process.execPath, ["-e", `require(${JSON.stringify(path.join(__dirname, "lego.js"))}).mine(["official","ours","sketches","library"],[]);require(${JSON.stringify(path.join(__dirname, "lego_page.js"))}).build(require(${JSON.stringify(path.join(__dirname, "lego.js"))}).load(),{})`], { cwd: root, stdio: "ignore", windowsHide: true });
+      const ch = cp.spawn(process.execPath, ["-e", `require(${JSON.stringify(path.join(__dirname, "lego.js"))}).mine(["official","ours","sketches","library"],[]);require(${JSON.stringify(path.join(__dirname, "lego_page.js"))}).build(require(${JSON.stringify(path.join(__dirname, "lego.js"))}).load(),{})`], { cwd: root, stdio: "ignore", windowsHide: true, env: Object.assign({}, process.env, { LEGO_CACHED_WINDOWS: "1" }) });   // only windows already measured (knowledge/lego_windows): the page in seconds, never a 40-min first measure
       ch.on("exit", () => { LEGO.building = false; });
     }
     if (LEGO.building || !mt(idx)) { res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" }); return res.end('<meta http-equiv="refresh" content="5"><body style="background:#16123a;color:#eee;font:18px sans-serif;padding:40px">Building the structure catalogue from every level (about 20 s, measured in the cloud) ... this page reloads itself.</body>'); }

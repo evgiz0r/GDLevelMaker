@@ -1,4 +1,4 @@
-// node tools/lego_join.js [--n 30] [--seed 1] [--grain piece|brick] [--pair <idA> <idB>] [--max-s 3]   -- the big-lego test (LEGO.md "Joining")
+// node tools/lego_join.js [--n 30] [--seed 1] [--grain piece|brick] [--any] [--pair <idA> <idB>] [--max-s 3]   -- the big-lego test (LEGO.md "Joining")
 // Joins two main-level pieces (from local/lego/pieces.json, tools/lego.js mine) into one small level and asks our physics
 // whether it still plays: lead-in -> piece A -> piece B, with a mode / speed portal at the seam when B needs one. Then:
 //   - solved?   the solver (GD.solveAny) finds a clear; else the join is broken and says where it dies;
@@ -26,8 +26,8 @@ function official(n) {
   return LEVELS[n];
 }
 // the gameplay objects of a piece, moved so the piece starts at x = at (units)
-function objectsOf(p, at) {
-  const L = official(+p.level.split(" ")[0]), x0 = p.xa * B, x1 = x0 + p.w * B, out = [];
+function objectsOf(p, at, pre) {
+  const L = official(+p.level.split(" ")[0]), x0 = p.xa * B - (pre || 0) * B, x1 = p.xa * B + p.w * B, out = [];
   for (const o of L.objects) {
     if (o.x < x0 - 15 || o.x >= x1) continue;
     const d = GD.objInfo(o.id); if (!d || !KEEP.has(d.kind)) continue;
@@ -38,21 +38,26 @@ function objectsOf(p, at) {
 }
 function portal(id, x, y) { return { id, x, y, rot: 0, flipX: false, flipY: false, props: { 1: String(id), 2: String(x), 3: String(y) } }; }
 
+// the lead-in is the 10 blocks of A's own level before it (its own way into A's entry state), played in A's mode
+const PRE = 10;
 function join(A, Bp) {
-  const lead = 8 * B, gap = 0;
+  const lead = (8 + PRE) * B, gap = 0;
   const yA = A.path[0][1] * B, yB = Bp.path[0][1] * B;
-  const objs = [portal(SPEED_ID[A.speed || 1] || 201, lead - 60, Math.max(15, yA)), portal(MODE_ID[A.mode], lead - 30, Math.max(45, yA))];
-  objs.push(...objectsOf(A, lead));
+  const ctx = lead - PRE * B, objs = [portal(SPEED_ID[A.speed || 1] || 201, ctx - 60, 15)];
+  for (let y = 45; y <= Math.max(...A.path.map(q => q[1])) * B + 120; y += 90) objs.push(portal(MODE_ID[A.mode], ctx - 30, y));
+  objs.push(...objectsOf(A, ctx, PRE));
   const bx = lead + A.w * B + gap;
   if ((Bp.speed || 1) !== (A.speed || 1)) objs.push(portal(SPEED_ID[Bp.speed || 1] || 201, bx - 20, Math.max(15, yB)));
-  if (Bp.mode !== A.mode) objs.push(portal(MODE_ID[Bp.mode], bx - 10, Math.max(45, yB)));
+  // a mode seam must not be skippable: portals stacked over the whole height either piece uses (the official levels wall
+  // them in instead; this is the simplest filler). First join run: 2 of 12 broke on "skipped a portal".
+  if (Bp.mode !== A.mode) { const top = Math.max(...A.path.map(q => q[1]), ...Bp.path.map(q => q[1])) * B + 120; for (let y = 45; y <= top; y += 90) objs.push(portal(MODE_ID[Bp.mode], bx - 10, y)); }
   objs.push(...objectsOf(Bp, bx));
   const header = official(+A.level.split(" ")[0]).header;
   return { level: { header, objects: objs }, bx, end: bx + Bp.w * B };
 }
 // the pieces' own route height at x (units, joined coordinates)
 function ownY(A, Bp, bx, x) {
-  const lead = 8 * B, pick = x < bx ? [A, lead] : [Bp, bx], P = pick[0].path, rx = (x - pick[1]) / B;
+  const lead = (8 + PRE) * B, pick = x < bx ? [A, lead] : [Bp, bx], P = pick[0].path, rx = (x - pick[1]) / B;
   for (let i = 1; i < P.length; i++) if (P[i][0] >= rx) return P[i][1] * B;
   return P[P.length - 1][1] * B;
 }
@@ -61,8 +66,8 @@ function check(A, Bp) {
   const t0 = Date.now();
   let r = null; try { r = GD.solveAny(w, { maxStates: 1500000 }); } catch (e) { r = { ok: false, why: e.message }; }
   const res = { a: A.id, b: Bp.id, modes: A.mode + ">" + Bp.mode, modeChange: A.mode !== Bp.mode, sigs: [A.sig, Bp.sig], int: [A.int, Bp.int], dy: r1((Bp.path[0][1] - A.path[A.path.length - 1][1])), ms: Date.now() - t0 };
-  if (!r || !r.ok) { const run = r && r.events ? GD.run(w, r.events) : null; const last = run && run.path[run.path.length - 1]; res.ok = false; res.dieAt = last ? r1((last.x - J.bx) / B) : null; res.why = (r && (r.why || "no clear")) || "no clear"; return res; }
-  const run = GD.run(w, r.events), lead = 8 * B;
+  if (!r || !r.ok) { const run = r && r.events ? GD.run(w, r.events) : null; const last = run && run.path[run.path.length - 1]; res.ok = false; const dx = r && r.dieAt ? r.dieAt.x : last ? last.x : null; res.dieAt = dx == null ? null : r1((dx - J.bx) / B); res.why = (r && (r.why || "no clear")) || "no clear"; return res; }
+  const run = GD.run(w, r.events), lead = (8 + PRE) * B;
   // secret way: the route away from the pieces' own routes
   let off = 0, offMax = 0, from = null;
   for (const s of run.path) { if (s.x < lead || s.x > J.end) continue; const d = Math.abs(s.y - ownY(A, Bp, J.bx, s.x)); if (d > 2.5 * B) { if (from == null) from = s.x; offMax = Math.max(offMax, s.x - from); } else from = null; off = Math.max(off, d); }
@@ -85,12 +90,24 @@ function pool(grain) {
   return all.filter(p => (p.grain || "piece") === (grain || "piece") && p.src === "official" && p.verified && !p.empty && !p.dupOf && p.smooth !== false && !p.flips && MODE_ID[p.mode] && p.path && p.path.length > 2)
     .map(p => Object.assign(p, { int: Math.round((p.presses / Math.max(0.3, p.s) + (p.hzPer100 || 0) / 100) * 100) / 100 }));
 }
+// the seam contract (BUILDING.md): B may follow A when A's exit state fits B's entry -- same gravity; in the same mode,
+// both on the ground at about the same height (within 1 block) or both in the air within 1.5 blocks; a mode change
+// needs only the same gravity (the portal resets the rest). --any: pair without it (the first runs, to see why joins break)
+let CONTRACT = true;
+function fits(A, Bp) {
+  const a = A.exit, b = Bp.entry; if (!a || !b) return true;
+  if (a.grav !== b.grav) return false;
+  if (A.mode !== Bp.mode) return true;
+  if (a.ground !== b.ground) return false;
+  return Math.abs(a.y - b.y) <= (a.ground ? 1 : 1.5);
+}
 function pairs(P, n, seed) {
   const R = rng(seed), out = [];
   for (let k = 0; out.length < n && k < n * 200; k++) {
     const A = P[Math.floor(R() * P.length)], Bp = P[Math.floor(R() * P.length)];
     if (A === Bp || A.sig === Bp.sig || A.level === Bp.level && Math.abs(A.x - Bp.x) < 40) continue;
     const ratio = Bp.int / Math.max(0.05, A.int); if (ratio < 0.8 || ratio > 1.25) continue;
+    if (CONTRACT && !fits(A, Bp)) continue;
     out.push([A, Bp]);
   }
   return out;
@@ -98,6 +115,7 @@ function pairs(P, n, seed) {
 
 if (require.main === module) {
   const A = process.argv.slice(2), opt = (k, d) => { const i = A.indexOf("--" + k); return i >= 0 ? A[i + 1] : d; };
+  if (A.includes("--any")) CONTRACT = false;
   const P = pool(opt("grain", "piece")), byId = Object.fromEntries(P.map(p => [p.id, p]));
   const list = A.includes("--pair") ? [[byId[A[A.indexOf("--pair") + 1]], byId[A[A.indexOf("--pair") + 2]]]] : pairs(P, +opt("n", 30), +opt("seed", 1));
   const dir = path.join(LOCAL, "lego", "joins"); fs.mkdirSync(dir, { recursive: true });
@@ -114,8 +132,11 @@ if (require.main === module) {
     clear: sh(r => r.ok), secret: sh(r => r.ok && r.secret), broken: sh(r => !r.ok), openSeam: sh(r => r.ok && r.openSeam > 0),
     modeChange: { n: rows.filter(r => r.modeChange).length, clear: Math.round(rows.filter(r => r.modeChange && r.ok).length / Math.max(1, rows.filter(r => r.modeChange).length) * 100) },
     sameMode: { n: rows.filter(r => !r.modeChange).length, clear: Math.round(rows.filter(r => !r.modeChange && r.ok).length / Math.max(1, rows.filter(r => !r.modeChange).length) * 100) },
+    causes: rows.reduce((m, r) => { const k = !r.ok ? "broken: " + String(r.why).split(/[:(]/)[0].trim() : r.secret ? "secret way" : "clear"; m[k] = (m[k] || 0) + 1; return m; }, {}),
     rows: rows.map(r => ({ modes: r.modes, ok: r.ok, secret: !!r.secret, dy: r.dy, open: r.openSeam || 0, dieAt: r.dieAt, why: r.why })) };
-  if (!A.includes("--pair")) fs.writeFileSync(path.join(ROOT, "knowledge", "lego_joins.json"), JSON.stringify(sum, null, 1));
+  sum.contract = CONTRACT; sum.grain = opt("grain", "piece");
+  if (!A.includes("--pair")) fs.writeFileSync(path.join(ROOT, "knowledge", "lego_joins" + (CONTRACT ? "" : "_any") + ".json"), JSON.stringify(sum, null, 1));
+  console.log(JSON.stringify(sum.causes));
   console.log(`\n${rows.length} joins: ${sum.clear}% clear (${sum.secret}% by a secret way), ${sum.broken}% broken, ${sum.openSeam}% with open space at the seam; same mode ${sum.sameMode.clear}% of ${sum.sameMode.n}, mode change ${sum.modeChange.clear}% of ${sum.modeChange.n}`);
 }
-module.exports = { join, check, pool, pairs };
+module.exports = { join, check, pool, pairs, fits };

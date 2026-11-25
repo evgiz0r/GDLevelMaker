@@ -256,6 +256,30 @@ decoing, first the actual objects according to the themes of the section". Where
 The main levels' pieces are RobTop's: a level built from them stays on the PC (never pushed or uploaded) until we have pieces
 of our own made the same way -- varied from theirs by the difficulty knobs (LEGO.md "Difficulty knobs").
 
+## Difficulty knobs (2026-11-25)
+
+The user: "we have difficulty of structures? [...] think what parameters they have to make harder or easier. probably dont
+want to copy same structures just with small diff for difficulty". Every piece and brick now has a **difficulty** (log10
+of the expected attempts to get through it in one go, from the timing window of each of its inputs: lib/windows.js +
+lib/difficulty.js hitChance, the model fitted on the user's runs) and its **tightest window**. The windows of the main
+levels' routes are measured once (`windowsOf` in tools/lego.js: 10-60 s a level, Geometrical Dominator 5.5 min,
+Deadlocked 15.5 min in the cloud) and committed as numbers in knowledge/lego_windows/. `node tools/lego.js knobs` ->
+knowledge/lego_knobs.json: per mode, each parameter's rank correlation with the difficulty and with the tightness
+(minus the tightest window), and its median in the easiest and hardest quarter.
+
+What it shows on the main levels' pieces (1-3 s):
+- **The main levels are mostly gentle, with a few tight spots.** Median piece: difficulty 0.01-0.02 (a gimme), tightest
+  window ~170-200 ms; the tightest tenth: 60-125 ms (ship and robot 63 ms, wave 79, ufo 88, cube 104, ball 125).
+  Difficulty lives in a few pieces, which fits "peaks are single pieces, ~40 blocks apart" (Combining rule 7).
+- **More inputs per second** makes every mode harder (corr 0.56-0.72); that is the plain knob, and the one that only
+  makes "the same piece, busier".
+- **The knobs that change the piece's kind** (what the user wants turned instead): wave -- a narrower corridor (gap
+  4.7 -> 4 blocks, tightness corr -0.63) and gates (+0.49); ship -- more climb (+0.46) and more hazards per block
+  (+0.43: spiky walls, not a busier path); ufo -- longer holds (+0.53); robot -- orbs and pads (+0.53); cube and robot --
+  speed (+0.26 / +0.33).
+- So a harder version of a brick is a different brick: a corridor that narrows into a gate, a ship stretch that climbs
+  between spiky walls, an orb added to a robot jump, a speed portal -- not a spike moved by a block.
+
 ## Open
 
 - Compose does not place fly pieces from the catalogue yet: ship / wave / swing sections still use ship-tunnel /
