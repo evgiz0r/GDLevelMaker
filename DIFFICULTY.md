@@ -584,3 +584,7 @@ whose route fails is the **highest priority** heavy job ("If we have it failed t
   Result: 20/22 clear with a human route; Deadlocked (59%) and Dash (15%) still die at their open physics leads
   (PHYSICS.md handoff), which `run` reports and leaves until physics changes. `humanroute.js` still flags 33 ms UFO
   gaps (13, 15, 18) and holds through jumps (16, 21): spots where only an inhuman way was found.
+- Scoring them (`node tools/difficulty.js`, all 22): levels 1-20 took ~16 min (scored_NN.json 01:28-01:44 local), then
+  Fingerdash's new route ran 60+ min without finishing and was killed (it held a heavy slot others waited on). Open:
+  why scoring Fingerdash hangs (its replays fire 256 triggers; the 42 min replan points the same way). Until then score
+  21 and 22 alone at low priority. The heavy lock's estimate for a full run came from one GDLM level (50 s): wrong.
