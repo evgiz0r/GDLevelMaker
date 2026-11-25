@@ -14,7 +14,9 @@
 // normal-mode new-best steps (e.g. "1,15,84": 1%, then +15 to 16%, then +84 to 100%).
 // GS_value: 3 official levels done, 4 online levels done, 5 demons, 6 stars, 42 insane levels. GS_completed: c_<id> done,
 // n_<id> beaten in normal, star_<id> stars taken, demon_<id> demon taken (gddocs; the demon type numbers are the server's
-// key-43 values, unconfirmed in the save -- the raw value is kept as demonType).
+// key-43 values; checked on the user's save 2026-11-25: 3 Easy (Robotic Nightmares), 4 Medium (B), 5 Insane (Supersonic,
+// Necropolis), 6 Extreme (Bloodbath, Acu, Sonic Wave); a Hard demon has NO k76 (0 is the plist default, left out): Nine
+// Circles, Jawbreaker, Future Funk, Deadly Clubstep... -- so a demon with k76 missing is Hard. The raw value stays demonType).
 // Every printed level has --list form: id, name, difficulty, done, attempts, normal %, practice %.
 const fs = require("fs"), path = require("path"), zlib = require("zlib");
 const SAVE = process.env.GD_SAVE_FILE || path.join(process.env.LOCALAPPDATA || "", "GeometryDash", "CCGameManager.dat");
@@ -103,7 +105,7 @@ const DEMON = { 3: "Easy", 4: "Medium", 0: "Hard", 5: "Insane", 6: "Extreme" }; 
 const LEN = ["Tiny", "Short", "Medium", "Long", "XL", "Platformer"];
 const EPIC = ["", "Epic", "Legendary", "Mythic"];
 function tierOf(stars, demon, demonType, auto, k7) {
-  if (demon || stars >= 10) return (DEMON[demonType] || "?") + " Demon";
+  if (demon || stars >= 10) return (DEMON[demonType == null ? 0 : demonType] || "?") + " Demon";   // no k76 = 0 = Hard
   if (auto || stars === 1) return "Auto";
   if (stars) return stars <= 2 ? "Easy" : stars === 3 ? "Normal" : stars <= 5 ? "Hard" : stars <= 7 ? "Harder" : "Insane";
   return "Unrated";
