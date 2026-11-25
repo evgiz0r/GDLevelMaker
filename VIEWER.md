@@ -171,3 +171,24 @@ mouse wheel or a trackpad pinch over the level, the − / 100% / + buttons in it
 view), keys - and =. The page around it stays as it is; the zoom is remembered in this browser (localStorage gdlm.zoom).
 Shots (tools/shoot.js) ignore it.
 
+## Compact bars (2026-11-25)
+
+The user: "The sections/stages take too much space in the ui". The stage bar, the sections bar and the variants bar are
+one line each (scrolling sideways when long). The sections bar is folded by default: "▸ sections · N" plus the section
+under the playhead (and the picked one, with its ✓ ok / redo); ▸ shows every chip, remembered per browser
+(localStorage gdlm.secOpen).
+
+
+## A build stage without its own route borrows one (2026-11-25)
+
+The user, on FROSTBITE's stage bar: "path deco ... if i click them then it either dies and doesnt jump or not shown at
+all". The path stage had only a plan that died at the second spike (its planned taps were not the layout's), and deco /
+final had no plan and no fresh saved route, so they opened as a ghost. Now `stageOpen` (viewer/index.html) with no saved
+route tries, on that stage's own level and without a solve: its own plan, then the nearest stages' routes and plans,
+then the level's saved route (`stageRouteCands`). The first that clears is shown (a notice names whose route it is);
+if none clears, the one that gets furthest, with where it dies. A builder should still put each stage's route
+(`data.events`) with it; this only keeps the bar usable when it didn't. Test: `node tests/stage_borrow.js`.
+Since the same day, `tools/make.js` also puts the checked route on every stage it clears (`stages.route`, after the check
+and on `--look`), and a new layout drops the previous build's final (`stages.drop`): FROSTBITE's next build was a new
+layout whose planned presses (the unrepaired intents, tools/intent.js) die at block 15.9, with no final yet and the
+15-hour-old final of the earlier build still on the bar. Test: `node tests/stage_route.js`.

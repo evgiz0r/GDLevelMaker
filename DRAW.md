@@ -152,3 +152,31 @@ synced sketch for the full pass; what the user fixes by hand wins.
 - Checked headless (tests/viewer_draw.js, with local/ hidden as on the phone), and on the phone build with a real decodable
   file: "song ✓" in the viewer, "song remembered on this device" on the board. Not checked on a real phone yet.
 
+
+## One-tap palette, the hazards pen, draw vs play (2026-11-25)
+
+- The user: "i need accessible in 1 click: all game modes, upside, normal, all orbs, ground spikes, all x speed, all pads,
+  mini, big". A palette row under the tools holds every one of them (modes, gravity, size, speed, orbs, pads, hazards):
+  one tap picks it and the stamp tool. It wraps on a wide screen and scrolls sideways on a phone. Props stay in the stamp
+  tool's list.
+- The user: "When i mark spikes, i actually just mean a hazard ... spikes, ground that kills you, saws". The pen is now
+  "hazards". With 🧩 layout on, once the marks clear the drawing, runs of floor / ceiling spikes take turns: spikes,
+  kill-ground (id 9 at the surface + 2, as in RobTop's pits) and saws half sunk in the surface (89 per two spikes, 98 for
+  one). A run keeps its new kind only if the same presses still clear it (lib/sketchfit.js varyHazards); the list says how
+  many changed, and "▲ spikes only" (op set hazard=spikes) keeps a line as spikes. Pinned lines are never changed.
+- Draw vs play in the viewer: the board used to sit under the last level's stages / sections / variants rows, which still
+  acted on that other level. Now the sketch's level clears them (BOARDHOST.setLevel) and draw mode hides them; the board's own
+  ▶ / 🎮 are gone inside the viewer, and the viewer's ▶ play / 🎮 you play leave the board and run the sketch.
+  tests/viewer_draw.js checks all three; tests/sketchfit.js the hazard mix.
+- No questions after each stroke (the user, 2026-11-25: "i aint going to click every time"): the fitter's changes are
+  already in the level that plays, so its list is a closed badge in the corner ("🧩 ✓ plays · N auto changes"), opened by a
+  tap (remembered); the per-change choices live inside it for when they are wanted. No toast after every stroke. In the
+  viewer with 🧩 on, the user's strokes go faint (0.4) over the fitted level, so a moved orb or lowered ceiling shows where
+  it really is instead of looking like the change did not happen.
+
+## No pen / stamp switch (2026-11-25)
+
+The user: "dont want to swap between those two" (the ✏ and ● tool buttons). Both buttons are gone (hidden, kept for
+keys 1-5): the pen row is always on screen next to the one-tap palette. Tapping a pen (ground, blocks, hazards, deco,
+jump, note) makes the next touch draw; tapping a palette item (portal, orb, pad, speed, size, hazard) makes the next
+tap place it. Whichever was tapped last is lit. Select, erase and pan stay as they were.

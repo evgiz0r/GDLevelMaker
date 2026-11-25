@@ -62,12 +62,12 @@
   #taskBox .row { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
   #taskChip { position:fixed; right:14px; bottom:14px; z-index:55; border-radius:16px; padding:6px 12px; background:#24184f; border:1px solid #6b5bd0; font-size:12px; }
   #taskChip[hidden] { display:none; }
-  #stagebar { display:flex; flex-wrap:wrap; gap:6px; align-items:center; padding:6px 10px; background:#120a2e; border-top:1px solid #2b2060; font-size:13px; }
+  #stagebar { display:flex; flex-wrap:nowrap; overflow-x:auto; white-space:nowrap; scrollbar-width:thin; gap:6px; align-items:center; padding:3px 10px; background:#120a2e; border-top:1px solid #2b2060; font-size:13px; }
   #stagebar button { padding:3px 10px; font-size:12px; }
   #stagebar button.cur { border-color:var(--cube); background:#3b2d78; }
   #stagebar .todo { color:#6b5bd0; padding:3px 6px; }
   #stagebar .sep { color:#6b5bd0; }
-  #varbar { display:flex; flex-wrap:wrap; gap:6px 14px; align-items:center; padding:6px 10px; background:#140b33; border-top:1px solid #2b2060; font-size:13px; }
+  #varbar { display:flex; flex-wrap:nowrap; overflow-x:auto; white-space:nowrap; scrollbar-width:thin; gap:6px 14px; align-items:center; padding:3px 10px; background:#140b33; border-top:1px solid #2b2060; font-size:13px; }
   #labbar { display:flex; flex-wrap:wrap; gap:6px 10px; align-items:center; padding:6px 10px; background:#0f2a2a; border-top:1px solid #1f5a55; font-size:13px; }
   #labbar[hidden] { display:none; }
   #labbar .vname { color:#9ff0e2; }
@@ -137,7 +137,9 @@
   .wkRow .nm { font-weight:600; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   #stagebar .rev { padding:3px 8px; font-size:12px; }
   #stagebar .gate { color:#ffd58a; }
-  #secbar { display:flex; flex-wrap:wrap; gap:6px; align-items:center; padding:4px 10px 6px; background:#120a2e; font-size:12px; }
+  #secbar { display:flex; flex-wrap:nowrap; overflow-x:auto; gap:6px; align-items:center; padding:3px 10px; background:#120a2e; font-size:12px; white-space:nowrap; scrollbar-width:thin; }
+  #secbar > * { flex:none; }
+  #secbar .secT { background:none; border-color:#2b2060; color:var(--dim); }
   #secbar .sec { display:inline-flex; gap:3px; align-items:center; padding:2px 6px; border:1px solid #2b2060; border-radius:6px; cursor:pointer; }
   #secbar .sec.here { border-color:#6b5bd0; }
   #secbar .sec.sel { border-color:var(--cube); background:#2a1f5c; }
@@ -801,7 +803,7 @@ function stageRender() {
 // selected one gets ✓ / redo for the open stage's role and for playtest -- the answer goes to that section only (POST
 // /stages/review with section + role), so one section can be sent back while the others go on. Seams are drawn on the
 // level as dashed lines with the section's name.
-var SEC = { sel: null, here: null };
+var SEC = { sel: null, here: null, open: (() => { try { return localStorage.getItem("gdlm.secOpen") === "1"; } catch (e) { return false; } })() };
 var SEC_ROLE = { layout: "layout", path: "playtest", deco: "deco", final: "deco", song: "layout" };
 // a section without x (a collab part is pinned to song TIME, tools/collab.js) gets it from its t on the level's own timeline
 function secList() {
@@ -826,13 +828,18 @@ function secRender() {
   const pill = (sc, r, letter) => { const st = (sc.status || {})[r] || "planned", rv = (sc.reviews || {})[r];
     return `<span class="role ${esc(st)}" title="${esc(r)}: ${esc(st)}${sc.builder && sc.builder[r] ? " · by " + esc(sc.builder[r]) : ""}${rv && rv.note ? " · " + esc(rv.note) : ""}">${letter}</span>`; };
   const sel = secs.find(c => c.id === SEC.sel);
-  bar.innerHTML = `<span class="muted">sections</span>` + secs.map(sc => `<span class="sec${sc.id === SEC.here ? " here" : ""}${sc.id === SEC.sel ? " sel" : ""}" data-sec="${esc(sc.id)}" title="${esc(sc.id)}: blocks ${Math.round(sc.x[0] / 30)}–${Math.round(sc.x[1] / 30)}${Array.isArray(sc.t) ? ", " + (+sc.t[0]).toFixed(1) + "–" + (+sc.t[1]).toFixed(1) + " s" : ""}">${sc.role ? '<i class="muted">' + esc(sc.role) + '</i> ' : ""}${esc(sc.name || sc.id)} ${pill(sc, "layout", "L")}${pill(sc, "deco", "D")}${pill(sc, "playtest", "P")}${sc.status && sc.status.join ? pill(sc, "join", "J") : ""}</span>`).join("") +
+  // compact by default (the user, 2026-11-25: "The sections/stages take too much space in the ui"): one line with the
+  // section under the playhead (and the picked one); ▸ opens every chip, still on one scrolling line
+  const open = SEC.open, here = secs.find(c => c.id === SEC.here), shown = open ? secs : secs.filter(c => c === here || c === sel);
+  bar.classList.toggle("open", !!open);
+  bar.innerHTML = `<button id="secToggle" class="secT" title="${open ? "fold the sections" : "show every section"}">${open ? "▾" : "▸"} sections · ${secs.length}</button>` + shown.map(sc => `<span class="sec${sc.id === SEC.here ? " here" : ""}${sc.id === SEC.sel ? " sel" : ""}" data-sec="${esc(sc.id)}" title="${esc(sc.id)}: blocks ${Math.round(sc.x[0] / 30)}–${Math.round(sc.x[1] / 30)}${Array.isArray(sc.t) ? ", " + (+sc.t[0]).toFixed(1) + "–" + (+sc.t[1]).toFixed(1) + " s" : ""}">${sc.role ? '<i class="muted">' + esc(sc.role) + '</i> ' : ""}${esc(sc.name || sc.id)} ${pill(sc, "layout", "L")}${pill(sc, "deco", "D")}${pill(sc, "playtest", "P")}${sc.status && sc.status.join ? pill(sc, "join", "J") : ""}</span>`).join("") +
     (sel ? `<span class="sep">|</span><b>${esc(sel.name || sel.id)}</b>` + [...new Set([role, "playtest"])].map(r => ` <span class="muted">${esc(r)}:</span><button data-sr="ok" data-role="${r}" title="this section's ${r} is good">✓ ok</button><button data-sr="redo" data-role="${r}" title="send this section's ${r} back with a note">redo…</button>`).join("") : "");
   // double-click a part: open it alone (its own card: its builder, stages, alternatives)
   bar.querySelectorAll("[data-sec]").forEach(b => b.ondblclick = () => { const f = STG.base && STG.base.file && STG.base.file.replace(/\.gdlvl$/, "_" + b.dataset.sec + ".gdlvl"), i = ALL.findIndex(x => x.file === f);
     if (i >= 0) { pick.value = i; pick.dispatchEvent(new Event("change")); } else notice("This part has no card of its own yet (it appears when its builder builds it)."); });
   bar.querySelectorAll("[data-sec]").forEach(b => b.onclick = () => { SEC.sel = SEC.sel === b.dataset.sec ? null : b.dataset.sec; const sc = secs.find(c => c.id === b.dataset.sec); if (SEC.sel && sc && L) varGo(sc.x[0] + 90); secRender(); });
   bar.querySelectorAll("[data-sr]").forEach(b => b.onclick = () => secReview(sel, b.dataset.role, b.dataset.sr, lit));
+  document.getElementById("secToggle").onclick = () => { SEC.open = !SEC.open; try { localStorage.setItem("gdlm.secOpen", SEC.open ? "1" : "0"); } catch (e) {} secRender(); };
 }
 async function secReview(sc, role, verdict, stage) {
   if (!sc || !STG.base) return;
@@ -889,9 +896,41 @@ function stageOpen(name) {
     if (st.data && typeof st.data.md === "string") document.getElementById("summary").insertAdjacentHTML("beforeend", `<pre class="stageMd" style="white-space:pre-wrap;font-size:12px;max-height:50vh;overflow:auto">${esc(st.data.md)}</pre>`);
   };
   const pending = { ok: false, events: [], pending: true, why: "this stage has no route yet (find the route: the button above)" };
-  // no route yet, but a plan (the layout / path stage: the patterns' intended presses): replay it at once, no solve
-  if (!st.solution && planSaved(st.level, st.data, saved => { if (STG.cur === name && !(PLAY && PLAY.on)) show(saved); })) show(Object.assign({}, pending, { why: "replaying the plan…" }));
-  else show(st.solution || pending);
+  if (st.solution) return show(st.solution);
+  // no saved route: try its own plan, then the routes and plans of the build's other stages and the level's own route
+  // (path / deco / final mostly keep the layout's gameplay), each replayed on THIS stage's level, no solve. The first
+  // that clears wins; none -> the one that gets furthest, with where it dies (FROSTBITE, 2026-11-25: path's own plan
+  // died at the second spike and deco / final had no plan at all, so they "die and don't jump or are not shown")
+  const cands = stageRouteCands(st, base);
+  if (!cands.length) return show(pending);
+  show(Object.assign({}, pending, { why: "replaying the plan…" }));
+  let best = null, i = 0;
+  const next = () => {
+    if (STG.cur !== name) return;
+    const c = cands[i++];
+    if (!c) { show(Object.assign({}, best.saved, { why: (best.saved.why || "dies") + " — no route of its own; the furthest one is " + best.from + "'s" })); return; }
+    planSaved(st.level, c.data, saved => {
+      if (STG.cur !== name || (PLAY && PLAY.on)) return;
+      if (saved.ok) { saved.from = c.from; show(saved); if (c.from !== "its own plan") notice("stage " + esc(name) + ": no route of its own, replaying " + esc(c.from) + " (it clears this stage)", 4000); return; }
+      if (!best || saved.dieX > best.saved.dieX) best = { saved, from: c.from };
+      next();
+    });
+  };
+  next();
+}
+// the routes a stage without its own can borrow: [{from, data: {events} | plan data}], its own plan first, then the
+// nearest stages' routes / plans, then the level's saved route; one copy of each distinct input list
+function stageRouteCands(st, base) {
+  const out = [], seen = new Set(), stages = (STG.data && STG.data.stages) || [], me = stages.indexOf(st);
+  const add = (from, data) => { const ev = data && GD.planEvents && GD.planEvents(data); if (!ev || !ev.length) return; const k = JSON.stringify(ev); if (seen.has(k)) return; seen.add(k); out.push({ from, data }); };
+  add("its own plan", st.data);
+  stages.map((o, j) => ({ o, d: Math.abs(j - me) })).filter(x => x.o !== st).sort((a, b) => a.d - b.d).forEach(({ o }) => {
+    if (o.solution && o.solution.ok && o.solution.events && o.solution.events.length) add("the " + o.stage + " stage's route", { events: o.solution.events });
+    add("the " + o.stage + " stage's plan", o.data);
+  });
+  const bs = base && base.solution;
+  if (bs && bs.ok && bs.events && bs.events.length) add("the level's saved route", { events: bs.events });
+  return out;
 }
 // the song's real hits (tools/hits.js slots {beat, t: song seconds, kind}, put with the song stage as data.hits):
 // kicks, snares and accents as ticks under the presses, in level time (song time - the song's offset)
@@ -1973,7 +2012,11 @@ function draw() {
   for (const ps of s.p2 ? [s, Object.assign({}, s, s.p2)] : [s]) {
   if (s0.ghost && !MAPCAM) { const gx = sx(ps.x); ctx.strokeStyle = "rgba(255,255,255,.35)"; ctx.setLineDash([6, 6]); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, groundY); ctx.stroke(); ctx.setLineDash([]);
     if (L.noRoute || L.planBreak) { ctx.fillStyle = "rgba(255,255,255,.6)"; ctx.font = `${12 * DPR()}px system-ui`;
-      ctx.fillText(L.camKeep ? "camera only: the level at its speed, no player" : L.noRoute ? "no route yet: the camera runs at the level's speed" : "after the death: the camera runs on at the level's speed", gx + 8, 18 * DPR()); } continue; }
+      ctx.fillText(L.camKeep ? "camera only: the level at its speed, no player" : L.noRoute ? "no route yet: the camera runs at the level's speed" : "after the death" + (L.planBreak ? " at block " + (L.planBreak.x / 30).toFixed(1) : "") + ": no route past it, the camera runs on at the level's speed", gx + 8, 18 * DPR()); }
+    // a faint stand-in of the player on the ghost line (the user, 2026-11-25: "the char is not seen"): where a player at
+    // the level's speed would be, not a real run (no physics: it floats at the held height)
+    if (LS && !L.camKeep && !SHOOT) { ctx.globalAlpha = 0.3; try { GD.LOOK.drawPlayer(ctx, view, Object.assign({}, ps, { dead: false }), false, local, (P.SPEEDS[ps.sp] || P.SPEEDS[1]).x, null, true); } catch (e) {} ctx.globalAlpha = 1; }
+    continue; }
   if (MAPCAM || window.SHOOT_DECO_ONLY) {} else if (LS && s.dead && (!SHOOT || window.SHOOT_VIDEO)) {}   // the burst replaces the player; drawn on top of everything below
   else if (LS) { if (s0.lost) ctx.globalAlpha = 0.6; GD.LOOK.drawPlayer(ctx, view, ps, L.held[k], local, (P.SPEEDS[ps.sp] || P.SPEEDS[1]).x, sc ? (L.runKeep || (PLAY && PLAY.on) ? (c, m, st) => GD.ART_LIB.drawIcon(c, m, st, "user") : (c, m, st) => drawClaudeIcon(c, m, st) || GD.ART_LIB.drawIcon(c, m, st)) : null, (L.runKeep || (PLAY && PLAY.on)) && ME && ME.glow === false); ctx.globalAlpha = 1; }
   else if (ps.mode === "ship") drawShip(ps);
@@ -2530,7 +2573,11 @@ hdrIcons();
   // the whiteboard (viewer/draw.html, DRAW.md): where this viewer itself is served (the PC, the home Wi-Fi, a file)
   if (location.protocol === "file:" || /^(localhost|127\.|192\.168\.|10\.)/.test(location.hostname)) {
     const d = document.createElement("button"); d.textContent = "✏ whiteboard page"; d.title = "the whiteboard on its own page (the same board as ✏ draw here)";
-    d.onclick = () => { location.href = "draw.html"; }; menu.appendChild(d); }
+    d.onclick = () => { location.href = "draw.html"; }; menu.appendChild(d);
+    // the structure catalogue (LEGO.md): every 1-3 s piece of the official levels, ours, the sketches and the lego library,
+    // built on the PC by serve.js at /lego/ (official layouts stay on the PC)
+    if (location.protocol !== "file:") { const g = document.createElement("button"); g.textContent = "🧱 structures"; g.title = "the structure catalogue: every 1-3 s piece by family, mode and wrapper (LEGO.md)";
+      g.onclick = () => { location.href = "/lego/"; }; menu.appendChild(g); } }
   vb.onclick = e => { e.stopPropagation(); menu.hidden = !menu.hidden; vb.classList.toggle("on", !menu.hidden); };
   addEventListener("click", e => { if (!menu.hidden && !menu.contains(e.target) && e.target !== vb) { menu.hidden = true; vb.classList.remove("on"); } });
   const tog = (id, k) => { const b = document.getElementById(id); b.classList.toggle("on", VIEW[k]); b.onclick = () => { VIEW[k] = !VIEW[k]; VSET(k, VIEW[k]); b.classList.toggle("on", VIEW[k]); if (L) draw(); }; };
@@ -3018,6 +3065,9 @@ requestAnimationFrame(frame);
 // viewer drawing the level the sketch becomes (or its 🧩 layout) underneath, with the game look, at the board's camera.
 // ▶ / 🎮 on the board leave draw mode and replay / play that level here; ✏ draw goes back to the drawing.
 const DRAWM = { on: false, fr: null, last: null, lv: null };
+// while drawing, the viewer's own ▶ play and 🎮 you play leave the board first and then run the sketch (one way to play
+// it, never a replay hidden under the board)
+document.addEventListener("click", e => { if (DRAWM.on && e.target.closest && e.target.closest("#play, #youPlay")) drawMode(false); }, true);
 window.BOARDHOST = {
   get claude() { return window.claude || null; },
   view(V, rect, Hb) {   // the board's camera: V {x, y, z} in its canvas' css px; rect = its canvas in the frame
@@ -3033,6 +3083,10 @@ window.BOARDHOST = {
     // the sketch carries its song's beat grid (sk.song.grid): bars and sections show even where no grid file is
     if (song && song.url && song.grid && !(window.GD_BEATS || {})[song.url]) (window.GD_BEATS = window.GD_BEATS || {})[song.url] = song.grid;
     try { load(name, levelStr, saved, song || null); } catch (e) { console.warn("draw: the level did not load", e); return; }
+    // the sketch is the level now: the last level's build stages, sections and variants are not its own (they stayed on
+    // screen over the board and acted on that other level: the user, 2026-11-25 "something buggy with sections")
+    STG.base = STG.data = STG.cur = null; VAR.base = VAR.data = VAR.cur = null; clearTimeout(VAR.poll);
+    stageRender(); varRender();
     t = 0; playing = false; setPlay(); if (typeof summary === "function") summary();
     document.getElementById("pickName").textContent = name;
     if (DRAWM.on && DRAWM.last) BOARDHOST.view(DRAWM.last.V, DRAWM.last.rect, DRAWM.last.Hb); else if (L) draw();
@@ -3052,6 +3106,7 @@ window.BOARDHOST = {
 function drawMode(on) {
   if (on === DRAWM.on) return; DRAWM.on = on;
   const b = document.getElementById("drawBtn"); b.classList.toggle("on", on); b.textContent = on ? "✏ drawing (D: done)" : "✏ draw";
+  for (const id of ["stagebar", "secbar", "varbar"]) { const e = document.getElementById(id); if (on) { e.dataset.drawHid = e.hidden ? "" : "1"; e.hidden = true; } }
   if (on) {
     if (PLAY && PLAY.on) playStop(true); if (marking) setMarking(false); playing = false; setPlay(); syncSong(false);
     const top = cv.getBoundingClientRect().top + scrollY;

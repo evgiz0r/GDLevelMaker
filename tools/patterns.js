@@ -349,5 +349,81 @@ function expand(name, col, row, args, extra) {
 
 // the structure library (tools/structures.js, STRUCTURES.md) as patterns named "s:<id>"
 require("./structures.js").register(P);
+
+// The lego path (LEGO.md): ONE path for the flying family -- ship, wave, swing -- wrapped in different ways (the user,
+// 2026-11-25: "ship wave and swing have some similarity in their possible structures. a path, a path with some spikes,
+// corridors. corridors with paths"). Band rows 0-9.
+//   rows   the path's height at each knot (rows above the ground), e.g. [2, 6, 2, 6]
+//   seg    columns per leg for ship / swing (a wave leg is always 45 degrees: |rise| columns); flat: level columns at
+//          each knot (the turn); lead / tail: level columns before the first and after the last knot
+//   wrap   "corridor" (floor + roof) | "floor" (a floor path, open above) | "roof" (a roof path) | "open" (no walls:
+//          only the band; spikes / gates then mark the path)
+//   gap    rows of room around the path (corridor); spikes: "none" | "turns" (one on the far side at each flat turn) |
+//          "floor" / "roof" / "both" (along that wall's level stretches, `every` columns apart)
+//   gates  a list of knot indexes where the room narrows to `gateGap` rows for one column (a pillar from the floor and a
+//          hanger from the roof, the path threading between)
+//   flipAt knot indexes that get a gravity portal (instead of turns: "flip" = every inner knot)
+//   turns  "click" (the player turns the path) | "flip" (a gravity portal at every turn: the same path is flown
+//          holding through -- the user's sketch 11-25 17:06, "portals are on the meeting point so you can hold/release
+//          more for the same path") | "mix" (every other turn); wave and ship only
+def("fly-path", "one path for ship / wave / swing (`mode`), wrapped as corridor / floor / roof / open, with spikes, gates and click- or portal-turns (LEGO.md)", (a) => {
+  const mode = a.mode || "wave", wave = mode === "wave", rows = a.rows || [2, 6, 2, 6], seg = a.seg || 5, flat = a.flat ?? 2;
+  const lead = a.lead ?? 4, tail = a.tail ?? 3, gap = a.gap || (wave ? 4 : 5), wrap = a.wrap || "corridor", o = [];
+  // the path, a row per column
+  const m = [], knots = [];
+  for (let c = 0; c < lead; c++) m.push(rows[0]);
+  rows.forEach((r, i) => {
+    // legs are 45 degrees (|rise| columns, slopes on both walls: smooth for every mode -- the user on a stair-stepped
+    // ship corridor: "i wanted smooth play in those corridors"); `stairs: true` (ship / swing) spreads a leg over `seg`
+    // columns of block steps instead
+    if (i) { const d = r - rows[i - 1], n = wave || !a.stairs ? Math.abs(d) : Math.max(Math.abs(d), seg); for (let k = 1; k <= n; k++) m.push(rows[i - 1] + Math.round(d * k / n)); }
+    knots.push(m.length);
+    if (i < rows.length - 1) for (let k = 0; k < flat; k++) m.push(r);
+  });
+  for (let c = 0; c < tail; c++) m.push(rows[rows.length - 1]);
+  const w = m.length, lo = Math.floor(gap / 2), floorWall = wrap === "corridor" || wrap === "floor", roofWall = wrap === "corridor" || wrap === "roof";
+  const gateAt = new Set((a.gates || []).map(i => knots[Math.min(i, knots.length - 1)] + (flat ? Math.floor(flat / 2) : 0)));
+  const gg = a.gateGap || Math.max(3, gap - 2), every = a.every || 4;
+  for (let c = 0; c < w; c++) {
+    const m0 = m[c], m1 = c + 1 < w ? m[c + 1] : m0;
+    if (m0 !== m1 && Math.abs(m1 - m0) === 1 && !gateAt.has(c)) {
+      // a 45-degree step: slopes on both walls, as wave-zigzag (the wave rides them; ship and swing see a smooth wall)
+      const fl = Math.min(m0, m1) - lo, cl = Math.max(m0, m1) - lo + gap - 1, up = m1 > m0;
+      if (floorWall) { for (let r = 0; r < fl; r++) o.push(["block", c, r]); if (fl >= 0) o.push(["slope", c, fl, up ? {} : { flipX: true }]); }
+      if (roofWall) { if (cl <= 9) o.push(["slope", c, cl, up ? { flipX: true, flipY: true } : { flipY: true }]); for (let r = cl + 1; r < 10; r++) o.push(["block", c, r]); }
+      continue;
+    }
+    // level (or a steeper ship step: blocks)
+    const mm = Math.min(m0, m1), MM = Math.max(m0, m1), gate = gateAt.has(c);
+    const f = gate ? m0 - Math.floor(gg / 2) : mm - lo, roof = gate ? m0 - Math.floor(gg / 2) + gg : MM - lo + gap;
+    if (floorWall || gate) for (let r = 0; r < f; r++) o.push(["block", c, r]);
+    if (roofWall || gate) for (let r = Math.max(roof, 0); r < 10; r++) o.push(["block", c, r]);
+    if (gate || c < lead || c >= w - tail) continue;
+    const k = knots.findIndex(x => c >= x && c < x + flat);
+    if (a.spikes === "turns" && k > 0 && c === knots[k] + Math.floor(flat / 2) && gap >= 4) {
+      const peak = rows[k] > rows[k - 1];
+      if (peak && floorWall) o.push(["spike", c, Math.max(0, f)]); else if (!peak && roofWall && roof - 1 <= 9) o.push(["spike", c, roof - 1, { rot: 180 }]);
+    }
+    if (/floor|both/.test(a.spikes || "") && floorWall && m0 === m1 && c % every === 0 && f >= 0) o.push(["spike", c, f]);
+    if (/roof|both/.test(a.spikes || "") && roofWall && m0 === m1 && c % every === 2 && roof <= 9) o.push(["spike", c, roof - 1, { rot: 180 }]);
+  }
+  // turns by portal: a gravity portal on the path at the turn (the middle of the flat): going up into a peak it turns
+  // the player upside down, so the held button now flies down (and back at the next valley)
+  if ((a.turns === "flip" || a.turns === "mix" || a.flipAt) && mode !== "swing") {
+    let g = 1;
+    rows.forEach((r, i) => {
+      if (i === 0 || i === rows.length - 1) return;
+      if (a.turns === "mix" && i % 2 === 0) return;
+      if (a.flipAt && !a.flipAt.includes(i)) return;   // only at these knots (the user's sketch puts them where he wants)
+      const c = knots[i] + Math.floor(flat / 2);
+      g = -g; o.push([g === -1 ? "gravity down" : "gravity up", c, r]);
+    });
+    if (g === -1) o.push(["gravity up", w - 1, m[w - 1]]);   // leave in normal gravity
+  }
+  const exitRow = m[w - 1];
+  portals(o, mode, a.portalRow ?? Math.min(5, m[0]), exitRow, w, a);
+  return { objects: o, width: w + (a.exit ? 1 : 0), exitRow, path: m, knots };
+});
+
 module.exports = { PATTERNS: P, expand, mirrorUp };
 if (require.main === module) for (const [k, v] of Object.entries(P)) console.log(k.padEnd(18), v.doc);

@@ -309,6 +309,10 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   `check`, `build <id>`, `rank`, `page`), results in `knowledge/structures.json`, a picture page for the
   phone (link in local/phone/structures_url.txt). Every cube-in/cube-out one is the pattern `"s:<id>"`,
   and compose.js puts one in every plain cube section by default (`"structures": false` = off).
+- **Lego: structure research** (LEGO.md: every level cut into 1-3 s pieces -- official, ours, the user's sketches --,
+  classified by family (fly: ship/wave/swing paths and corridors; jump; flip) with parameters, the official mix vs ours,
+  the variety rule; one path built as ship / wave / swing with wrappers and click- or portal-turns): `tools/lego.js`
+  (`mine`, `families`, `variety <level>`, `page [--public]`, `votes`: Evgeni's 👍/👎/comments from the PC /lego/ page and the phone page, a weight not a ban), `tools/lego_seams.js` (how levels combine pieces: portals, rhythm, breathers, variety, height; official vs ours, LEGO.md "Combining"), the `fly-path` pattern, `lego-*` structures.
 - **Quality vs the official levels** (QUALITY.md: one scorecard, official 1-10 next to every GDLM level --
   gameplay, flow, look, fairness, soft rules -- with a verdict per metric and the biggest gaps; owner: the
   difficulty session): `node tools/quality.js` (a new level gets a row by itself; `--cached` prints only).
@@ -429,7 +433,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   spec key `"props"` in make.js), `tools/props.js sheet | level`. Test: `node tests/pixelart.js`.
 - **The user's drawings -> levels** (SKETCH.md: reading a drawing into a spec, then making it fair;
   the GDLM 46 lessons).
-- **The whiteboard: draw a level freehand** (DRAW.md: no grid, pens for ground / blocks / spikes / deco / "I jump here" /
+- **The whiteboard: draw a level freehand** (DRAW.md: no grid, pens for ground / blocks / hazards / deco / "I jump here" /
   notes, areas, stamps for orbs, pads, portals and props, deco shown or hidden, the song's beats and drop on the board, ✓ check
   and play; the cell-builder design): `viewer/draw.html`, **inside the viewer as ✏ draw** (key D: the board a see-through layer
   over the viewer's canvas, the viewer draws the level and replays / plays it; DRAW.md "In the viewer", `tests/viewer_draw.js`;
