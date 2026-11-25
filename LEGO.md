@@ -488,9 +488,10 @@ bricks re-cut, so Evgeni's notes are checked against the new path (a note older 
 
 Community levels (`src: "community"`, ids `c-...`): the solver's raw run is turned into a human route once (lib/natural.js,
 5 min budget, else humanize), cached in local/lego/routes/c<id>.json. Other people's levels: local/, the PC page and the
-private catalogue only -- left out of knowledge/lego.json's shapes and of `page --public`. Queue for the PC, low priority:
-Evgeni's beaten demons first (local/difficulty/user_stats_online.json `--demons --done`, `tools/fetch_level.js`, then
-`GDLM_HEAVY_PRIORITY=low node tools/difficulty_solve.js c<id>`). Our levels: `node tools/lego.js mine ours --level <name>`
+private catalogue only -- left out of knowledge/lego.json's shapes and of `page --public`. Queue for the PC, low priority: `node tools/lego_collect.js [--max N] [--dry]` (fetch -> solve at low priority -> bricks, one
+level at a time, log local/lego/collect.jsonl). Evgeni, same night: "start with easier levels, demos when phyisics gets
+better" -- so non-demons first, the ones he beat, easiest tier first; demons later. (Earlier plan: his beaten demons first (local/difficulty/user_stats_online.json `--demons --done`, `tools/fetch_level.js`, then
+`GDLM_HEAVY_PRIORITY=low node tools/difficulty_solve.js c<id>`), now after the physics improves). Our levels: `node tools/lego.js mine ours --level <name>`
 after a build (not hooked into make.js yet).
 
 ## Open
