@@ -675,10 +675,25 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
   var playedLoading=false, lastErr="";
   // board/played is stored compact ({cols, rows}: a document must stay under 256 KB); older copies have levels[]
   function unpackPlayed(d){ if(d && d.rows && d.cols && !d.levels) d.levels=d.rows.map(function(r){ var o={}; d.cols.forEach(function(c,i){ if(r[i]!=null) o[c]=r[i]; }); return o; }); return d; }
+  // a plain read, with a time limit; if it doesn't answer, one live read (take the first answer, then stop);
+  // either way the section says what happened and offers Retry
+  var playedTries=0;
+  function playedMsg(t, retry){ var e=$("y-sum"); if(!e) return; e.textContent=t; if(retry){ var b=el("button","chip","Retry"); b.type="button"; b.onclick=function(){ playedLoading=false; loadPlayed(); }; e.appendChild(document.createTextNode(" ")); e.appendChild(b); } }
+  function gotPlayed(s, how){ playedLoading=false; if(s && s.exists){ window.__st("played ok ("+how+")"); played=unpackPlayed(s.data()); renderPlayed(); } else { window.__st("played missing"); playedMsg("No levels saved yet."); } }
   function loadPlayed(){
-    if(played || playedLoading || !db) return; var ref=db.doc("board/played"); if(!ref || typeof ref.get!=="function") return;
-    playedLoading=true;
-    setTimeout(function(){ ref.get().then(function(s){ playedLoading=false; if(s && s.exists){ window.__st("played ok"); played=unpackPlayed(s.data()); renderPlayed(); } }).catch(function(e){ playedLoading=false; lastErr="Your levels: "+(e&&e.code||"error"); window.__st("played failed "+(e&&e.code||e)); }); }, gotLive? 0 : 3000);
+    if(played || playedLoading || !db) return; var ref=db.doc("board/played"); if(!ref) return;
+    playedLoading=true; playedTries++; playedMsg("Loading your levels…");
+    setTimeout(function(){
+      var p=typeof ref.get==="function"? ref.get() : Promise.reject({code:"no get"});
+      Promise.race([p, new Promise(function(_,no){ setTimeout(function(){ no({code:"timeout"}); },10000); })]).then(function(s){ gotPlayed(s,"read"); }).catch(function(e){
+        window.__st("played read "+(e&&e.code||e)); lastErr="Your levels: "+(e&&e.code||"error");
+        var done=false, un=null, tm=setTimeout(function(){ if(done) return; done=true; try{ un&&un(); }catch(x){}
+          playedLoading=false; window.__err("Your levels: no answer (read and live)"); playedMsg("Your levels didn't load (no answer).", true); },12000);
+        try{ un=ref.onSnapshot(function(s){ if(done || (s.metadata && s.metadata.fromCache && !s.exists)) return; done=true; clearTimeout(tm); try{ un&&un(); }catch(x){} gotPlayed(s,"live"); },
+          function(e2){ if(done) return; done=true; clearTimeout(tm); playedLoading=false; window.__err("Your levels: "+(e2&&e2.code||e2)); playedMsg("Your levels didn't load ("+(e2&&e2.code||"error")+").", true); }); }
+        catch(x){ done=true; clearTimeout(tm); playedLoading=false; window.__err("Your levels: "+x); playedMsg("Your levels didn't load.", true); }
+      });
+    }, gotLive? 0 : 1500);
   }
   // when live updates never connect but a plain read works: read again every minute
   var poller=null;
