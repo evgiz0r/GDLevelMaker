@@ -188,3 +188,7 @@ route tries, on that stage's own level and without a solve: its own plan, then t
 then the level's saved route (`stageRouteCands`). The first that clears is shown (a notice names whose route it is);
 if none clears, the one that gets furthest, with where it dies. A builder should still put each stage's route
 (`data.events`) with it; this only keeps the bar usable when it didn't. Test: `node tests/stage_borrow.js`.
+Since the same day, `tools/make.js` also puts the checked route on every stage it clears (`stages.route`, after the check
+and on `--look`), and a new layout drops the previous build's final (`stages.drop`): FROSTBITE's next build was a new
+layout whose planned presses (the unrepaired intents, tools/intent.js) die at block 15.9, with no final yet and the
+15-hour-old final of the earlier build still on the bar. Test: `node tests/stage_route.js`.
