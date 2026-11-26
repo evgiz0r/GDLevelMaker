@@ -2,7 +2,7 @@
  "name": "GDLM 73 sunny streets",
  "desc": "A sunny day over a little city: rooftops, clouds and birds, at a quick pace. Made by Claude.",
  "prompt": "Sunny mood, buildings clouds birds. happy colors, good contrasts. rather pacy (the user, 2026-11-26)",
- "notes": "built by tools/planbuild.js from briefs/73_sunny_streets.plan.json: 16 sections on the song's bars, 8 modes, 1x-3x; every portal walled; sunny theme kit",
+ "notes": "built by tools/planbuild.js from briefs/73_sunny_streets.plan.json: 15 sections on the song's bars, 7 modes, 1x-3x; every portal walled; sunny theme kit",
  "out": "specs/73_sunny_streets.json",
  "song": 753562,
  "offset": 0,
@@ -51,7 +51,7 @@
  "sections": [
   {
    "from": 1,
-   "to": 17,
+   "to": 13,
    "mode": "cube",
    "speed": "1x",
    "kind": "intro",
@@ -59,13 +59,13 @@
    "variant": "morning"
   },
   {
-   "from": 17,
+   "from": 13,
    "to": 25,
-   "mode": "ball",
+   "mode": "ufo",
    "speed": "1x",
    "kind": "build-up",
    "base": 0,
-   "variant": "morning"
+   "climb": false
   },
   {
    "from": 25,
@@ -77,20 +77,12 @@
   },
   {
    "from": 37,
-   "to": 53,
+   "to": 61,
    "mode": "cube",
    "speed": "2x",
    "kind": "rooftops",
    "base": 3,
    "variant": "noon"
-  },
-  {
-   "from": 53,
-   "to": 61,
-   "mode": "robot",
-   "speed": "1x",
-   "kind": "",
-   "base": 3
   },
   {
    "from": 61,
@@ -102,7 +94,7 @@
   {
    "from": 69,
    "to": 81,
-   "mode": "ufo",
+   "mode": "robot",
    "speed": "1x",
    "kind": "calmer",
    "base": 2
@@ -121,14 +113,21 @@
    "mode": "swing",
    "speed": "2x",
    "kind": "",
-   "variant": "breeze"
+   "variant": "breeze",
+   "rows": [
+    2,
+    6,
+    4,
+    7,
+    3
+   ]
   },
   {
    "from": 107,
    "to": 121,
-   "mode": "ball",
+   "mode": "mini",
    "speed": "1x",
-   "kind": "",
+   "kind": "small steps",
    "base": 0,
    "variant": "noon"
   },
@@ -139,15 +138,17 @@
    "speed": "1x",
    "kind": "the break",
    "base": 0,
-   "variant": "park"
+   "variant": "park",
+   "tail": 2
   },
   {
    "from": 137,
    "to": 153,
    "mode": "cube",
-   "speed": "1x",
+   "speed": "2x",
    "kind": "drums back",
-   "base": 1
+   "base": 0,
+   "tail": 3
   },
   {
    "from": 153,
@@ -183,5 +184,9 @@
  ],
  "spec": {
   "session": "sunny-level"
- }
+ },
+ "avoid": [
+  "orb-ladder-2",
+  "slope-down-spike"
+ ]
 }

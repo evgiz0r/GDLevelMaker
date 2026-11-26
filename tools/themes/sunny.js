@@ -155,7 +155,7 @@ function dressPlay(objects, x0, x1, o = {}) {
   const isBlock = b => b.id >= 1 && b.id <= 7 || b.id === 83 || b.id === 69;
   const at = new Set(objects.filter(isBlock).map(b => Math.round(b.x / 30 - 0.5) + "," + Math.round(b.y / 30 - 0.5)));
   for (const b of objects) if (b.x >= x0 && b.x < x1) {
-    const k = kindOf(b); if (k !== "solid" && k !== "hazard") continue;
+    const k = kindOf(b); if (k !== "solid" && k !== "hazard" && k !== "slope") continue;   // slopes too: left white they matched the clouds (roles)
     b.props = b.props || {}; b.props[21] = String(k === "hazard" ? CH.hazard : CH.rim);
   }
   out.push(...K.designBlocks(objects, x0, x1, { fill: CH.fill, edge: CH.rim, win: CH.win, windows: 0.45, seed: o.seed || 3 }));

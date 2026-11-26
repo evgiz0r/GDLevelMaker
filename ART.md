@@ -399,6 +399,9 @@ buildings: for flights), `park` (mint sky, trees and low houses, most birds: the
 blocks, cream rims). Header bg art 13 (the flat texture that shows a bright colour as set). Channels 140-156, groups
 540-550, per-section parallax 570 + 4 * section. `node tools/theme.js check sunny`: all five pass (park's mint houses
 first matched the yellow rim: edge~mid). Open: not yet seen in the game; whether the wing sway reads as flapping.
+**Gotcha for every kit (GDLM 73 v1):** a kit that sets key 21 only on `solid` and `hazard` objects leaves SLOPES (kind
+`slope`, 1338 etc.: every fly-path corridor wall) on the default white; on a light sky they matched the white clouds (roles
+FAIL pathDeco, 15 sections). The sunny kit colours slopes with the rim; ice and fire still skip them (dark skies hide it).
 
 ## Deco library (2026-11-24; the user: our levels look like "3 squares and poopy" next to real ones)
 
