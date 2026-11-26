@@ -273,3 +273,17 @@ and signature. Pictures: project files decoart/block_designs_v1.jpg. Open: Evgen
 uses them on structures (a design per structure, a plainer one for small structures, Woofel), and the spike designs share
 the roles and palettes.
 Gotcha: the signature takes channels 973-989; the gallery's first fire palette at 970-979 was overwritten by it.
+
+## Design catalogue: Evgeni votes on blocks, spikes and saws (2026-11-26)
+
+Evgeni: "lets make a catalogue of designs blocks spikes ill comment/vote", in the structure catalogue, but light ("its a bit
+heavy now"). So it is a **Designs** tab in the lego catalogue (private claude.ai page, link in memory): 22 block designs (fire
+beside ice), 10 spike designs + plain, 4 saw designs, one small card each with 👍 / 👎 / 💬 on the card. The tab's code and
+pictures (`designs.js`, `designs.json`, `cards/`) load only when it is opened.
+- Build: `node tools/designs.js cards` (shoot.js frames of levels/gdlm_block_designs.gdlvl with each third design centred ->
+  `tools/design_cards.py` crops; spikes and saws cut from the hazards thread's gallery sheet) then `node tools/designs.js page
+  --out <page folder>`; `tools/lego.js page` adds the tab by itself (not on the public page: GD art in the cards).
+- Votes: the page's database, collection `designvotes`. Fetch them with one ArtifactData `list` into
+  `local/designs/votes_phone.json`, then `node tools/designs.js votes` -> `knowledge/design_votes.json`. Generators pick a
+  design with `require("./designs.js").weight(kind, name)` (3 liked, 1 unvoted, 0.25 disliked: a weight, never a ban).
+- Open: blockdesigns / spikedesign do not call weight() yet (nothing voted); wire it in once votes exist.
