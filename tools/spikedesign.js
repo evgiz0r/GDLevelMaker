@@ -97,7 +97,12 @@ function dress(h, name, ch = CH) {
 // every hazard of a level: designs = [names] (taken in turn, seeded) or "mix" (each kind's designs); returns the new objects
 function dressAll(objects, o = {}) {
   const R = K.rng(o.seed || 1), out = [], ch = o.ch || CH;
-  const pick = k => { const names = Array.isArray(o.designs) ? o.designs.filter(n => D[n] && D[n].kind === k) : Object.keys(D).filter(n => D[n].kind === k); return names[Math.floor(R() * names.length)]; };
+  // Evgeni's votes weight the pick (tools/designs.js: 3 liked, 1 unvoted, 0.25 disliked; never a ban)
+  let W = () => 1; try { const w = require("./designs.js").weight; W = (k, n) => { try { return w(k, n); } catch (e) { return 1; } }; } catch (e) {}
+  if (typeof o.weight === "function") W = o.weight;
+  const pick = k => { const names = Array.isArray(o.designs) ? o.designs.filter(n => D[n] && D[n].kind === k) : Object.keys(D).filter(n => D[n].kind === k);
+    const ws = names.map(n => W(k, n)), tot = ws.reduce((a, b) => a + b, 0); let r = R() * tot;
+    for (let i = 0; i < names.length; i++) { r -= ws[i]; if (r < 0) return names[i]; } return names[names.length - 1]; };
   for (const h of objects) { const k = kindOf(h.id); if (!k) continue; const n = pick(k); if (n) out.push(...dress(h, n, ch)); }
   return out;
 }

@@ -154,7 +154,7 @@ the hazard itself (id, place, scale, hitbox) is never touched. Spikes: glow, hal
 double, crystals; saws: cog, sawcore, sawnest, sawglow. Inner shapes use the fake spike 1889 (spike-shaped decoration).
 Colours by role (line, inner, glow, core, shadow, deep, detail) with the block designs' palettes (tools/blockdesigns.js
 PAL.ice / PAL.fire, the deco-art thread), on channels 933-939 (ice) and 940-946 (fire). Library: `dress(h, name, C)`,
-`dressAll(objects, {designs, seed, ch})` for a whole level, `check(parts)`.
+`dressAll(objects, {designs, seed, ch, weight})` for a whole level (the pick is weighted by Evgeni's votes in the lego catalogue's Designs tab, `tools/designs.js weight()`: liked 3, unvoted 1, disliked 0.25), `check(parts)`.
 
 **Readability rules** (`check()`, `node tools/spikedesign.js check <level>`): a part in front stays inside the hazard (at most
 0.8x its size, centred) and is not on the hazard's own channel (its edge stays visible all round); a part behind may reach

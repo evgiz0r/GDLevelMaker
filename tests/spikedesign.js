@@ -31,6 +31,11 @@ assert(side.rot === 90 && side.x < 300 && Math.abs(side.y - 15) < 1e-6, "inner: 
 // the check catches a part that covers the spike's edge
 const big = SD.dress(spike(), "inner")[0]; big._part = Object.assign({}, big._part, { rel: 1 });
 assert(SD.check([big]).length > 0, "check: a front part at 1x must be flagged");
+// dressAll weights its pick by the design votes (a liked design comes up more often, a disliked one still can)
+{ const many = Array.from({ length: 400 }, (_, i) => spike({ x: 300 + 30 * i }));
+  const count = w => { const n = {}; for (const p of SD.dressAll(many, { seed: 3, designs: ["inner", "glow"], weight: w })) if (p.id === 1889) n.inner = (n.inner || 0) + 1; return n.inner || 0; };
+  const liked = count((k, n) => n === "inner" ? 3 : 1), disliked = count((k, n) => n === "inner" ? 0.25 : 1);
+  assert(liked > 250 && disliked > 0 && disliked < 120, `dressAll weights: liked ${liked}, disliked ${disliked} of 400`); }
 // the gallery
 const b = SD.gallery({});
 assert(b.measures.clears, "gallery dies: " + b.measures.why);
