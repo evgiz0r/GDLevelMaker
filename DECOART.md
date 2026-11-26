@@ -418,3 +418,28 @@ layer line, a top-lit gradient), holders and bridges off the route and not acros
 Test: `node tests/structdeco.js`. CLI: `node tools/structdeco.js <level> --route <route.json> [--spec '<json>']`.
 Open: a palette from a theme kit's variant (today only ice / fire, or rgb by role), indicator colour away from the block
 hue too, a director that picks the per-section looks from the song's sections by itself.
+
+## Design themes (2026-11-26)
+
+Evgeni: "lets set up themes, where we will see the combination of blocks, and then a sample segment with some structures
+spikes and saw. (and holders and indicators)"; "in the theme we might already include [...] background or a set of
+backgrounds. and background deco ( stars/clouds/geometrical stricutures) maybe also few options"; "we dont always have to
+pick from the set of themes we have, we should be able to change or extend on the fly as needed when making a level".
+`tools/designthemes.js`: a theme = palette (blocks, spikes and saws share its roles) + structure design + 3D + spike design +
+saw design + holder style + indicator style + a set of skies + named backdrop options (`tools/backdrops.js`: stars, clouds,
+skyline, mountains, geometry, rings, rays, motes, horizon, rocks). Five presets: hellgate (fire), frost (ice), toxic, void,
+temple (gold); palettes toxic / void / gold added to tools/blockdesigns.js PAL.
+Presets, not a menu: in a spec `"structures": {"theme": "frost"}`, per section `{"from": 120, "theme": "void", "backdrop":
+"b", "sky": 1}`, a theme with fields changed (`{"theme": "frost", "spikes": "glow", "pal": {"extends": "ice", "line": [..]}}`)
+or a whole new one inline (every field given, no theme). The structure deco pass (tools/structdeco.js) applies all of it:
+sky colour triggers at each section start (bg, ground and the middleground 1013 / 1014: left undefined the game draws lilac
+hills), the backdrop, the designs, the hazards' dressing, the holders; make.js takes each section's indicator style and an
+"auto" colour opposite that section's hazards (indstyles applyColour per section: channels 970, then 960-969). The pass now
+runs BEFORE the indicators, so their colour sees the dressed hazards. Channels: blocks 912 / 922 / 933, hazards 943 / 950 /
+957, backdrops 880 + 4 per palette (a spec's ch0 / hazCh0 / bgCh0 lists change them).
+Gallery: deco-art/gdlm_design_themes (`node tools/designthemes.js spec`, specs/lab_design_themes.json, levels/
+gdlm_design_themes.gdlvl): per theme its block combinations (backdrop a, sky 0) then a sample segment (spikes, a step, a held
+island with spikes, a sunk saw, a big structure with a saw on its corner; backdrop b, sky 1). Picture decoart/design_themes.jpg.
+Test: `node tests/structdeco.js`. The art-free render shows the spike / saw dressing only faintly (1889, 503 ...): judge
+those in GD art on the PC or in the game.
+Open: a theme from a theme kit (tools/themes/*) or from the song's mood; the "c" backdrops are not in the gallery yet.

@@ -23,6 +23,13 @@ const PAL = {
     glow: [110, 210, 255], hi: [190, 240, 255], shadow: [8, 16, 40], detail: [240, 252, 255], core: [150, 235, 255] },
   fire: { base: [92, 24, 22], deep: [44, 8, 10], inner: [255, 150, 60], line: [255, 150, 70], inline: [10, 0, 0],
     glow: [255, 110, 30], hi: [255, 205, 120], shadow: [24, 4, 6], detail: [255, 235, 170], core: [255, 170, 60] },
+  // added with the design themes (tools/designthemes.js, 2026-11-26)
+  toxic: { base: [22, 64, 30], deep: [8, 28, 12], inner: [150, 255, 90], line: [140, 255, 80], inline: [2, 10, 4],
+    glow: [90, 255, 60], hi: [200, 255, 160], shadow: [4, 16, 8], detail: [230, 255, 200], core: [170, 255, 90] },
+  void: { base: [48, 24, 86], deep: [20, 8, 42], inner: [210, 120, 255], line: [200, 130, 255], inline: [6, 0, 14],
+    glow: [170, 80, 255], hi: [235, 190, 255], shadow: [12, 4, 26], detail: [250, 230, 255], core: [220, 140, 255] },
+  gold: { base: [96, 66, 20], deep: [46, 30, 8], inner: [255, 220, 120], line: [255, 210, 100], inline: [16, 8, 0],
+    glow: [255, 190, 60], hi: [255, 240, 190], shadow: [26, 16, 4], detail: [255, 250, 220], core: [255, 225, 120] },
 };
 const OPACITY = { glow: 0.55, core: 0.7 }, BLEND = { glow: 1, core: 1, detail: 1 };
 // the channel map for a palette from ch0 (10 channels), and the header definitions for it
