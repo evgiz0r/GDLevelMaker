@@ -13,10 +13,10 @@
 "use strict";
 const K = require("../scenekit.js"), P = require("../../lib/props.js");
 
-const DROP_BEAT = 69;            // the song's drop (343707: bar 17, t 28.2 s) -- only if the level gets there
-const ZONES = [[21, 25], [69, 77], [81, 85]];   // beats that pulse on every beat (red pad moments, the drop)
-
-module.exports = function ({ objects, header, beatX }) {
+// the song's drop and the beats that pulse on every beat: spec "drop" / "pulseZones" (v3 starts the song at 19.3 s, so its
+// drop is b21); the v1-v2 values when the spec has none
+module.exports = function ({ objects, header, beatX, spec = {} }) {
+  const DROP_BEAT = spec.drop ?? 69, ZONES = spec.pulseZones ?? [[21, 25], [69, 77], [81, 85]];
   const out = [], SPEED = 311.58, secs = x => x / SPEED;
   const MODE = { 12: "cube", 13: "ship", 660: "wave", 47: "ball", 111: "ufo" };
   const portals = objects.filter(o => MODE[o.id]).sort((a, b) => a.x - b.x);
@@ -66,13 +66,13 @@ module.exports = function ({ objects, header, beatX }) {
     return hasDrop && sp[0] >= dropX - 30 && m !== "end" ? hot(base) : base;
   };
   // Round 4 (2026-11-25, roles gate: 30/42 sections had deco in the block bodies' value): every dark scenery channel (ruins,
-  // dead trees, backdrop, debris, the brick caps -- what touches the path) is lifted to at least 1.5x the block fill's luminance, in its
+  // dead trees, backdrop, debris, the brick caps -- what touches the path) is lifted to at least 1.6x the block fill's luminance, in its
   // own hue, so the path reads as one dark mass against lava-lit rock (ART.md "Colour by role"; the far layer and the
   // sky stay dark, so it is not the round-1 flash)
   const CT = require("../contrast.js");
   const lift = (rgb, under, want) => { let k = 1, c = rgb; while (CT.ratio(c, under) < want && k < 8) { k += 0.05; c = rgb.map(v => Math.min(255, Math.round(v * k))); } return c; };
   const LIFT = [C.near, C.top, C.horizon, C.far, C.chain, C.skull, 1013, 1014];   // every dark deco channel (top: the brick pattern's caps)
-  const roleFix = p => Object.assign({}, p, Object.fromEntries(LIFT.filter(ch => p[ch]).map(ch => [ch, lift(p[ch], p[C.fill], 1.5)])));
+  const roleFix = p => Object.assign({}, p, Object.fromEntries(LIFT.filter(ch => p[ch]).map(ch => [ch, lift(p[ch], p[C.fill], 1.6)])));
   const pals = S.map(palOf).map(roleFix);
   const defs = {};
   for (const [ch, rgb] of Object.entries(Object.assign({}, PAL.ember, pals[0]))) defs[ch] = { rgb, blend: BLEND.has(+ch) };

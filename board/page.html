@@ -1,0 +1,853 @@
+<title>GD Work Board</title>
+<script>
+// show every script error and each loading step on the page itself (the app hides the console)
+window.__t0=Date.now(); window.__errs=[]; window.__steps=[];
+window.__paint=function(){ var b=document.getElementById("diagbox"); if(!b) return;
+  b.textContent=(window.__errs.length? "Errors:\n"+window.__errs.join("\n")+"\n" : "")+"Steps: "+window.__steps.join(" · "); b.hidden=!window.__errs.length; };
+window.__st=function(m){ window.__steps.push(m+" "+((Date.now()-window.__t0)/1000).toFixed(1)+"s"); window.__paint(); };
+window.__err=function(m){ window.__errs.push(m); window.__paint(); };
+window.addEventListener("error",function(e){ window.__err("error: "+(e.message||e)+(e.lineno? " (line "+e.lineno+")":"")); });
+window.addEventListener("unhandledrejection",function(e){ var r=e.reason; window.__err("rejection: "+(r&&(r.code||r.message)||String(r))); });
+</script>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: one phone-width column; every section is a menu (<details>), closed by default (the user, 2026-11-26). */
+:root{
+  --bg:#F2F4F7; --panel:#FFFFFF; --ink:#152131; --muted:#5B6878; --line:#DDE2EA;
+  --accent:#2563D9; --accent-soft:#E3ECFB;
+  --run:#1E8E5A; --run-soft:#DFF3EA; --wait:#B7791F; --wait-soft:#FBF0DC; --block:#C2413A; --block-soft:#FAE3E1; --idle:#7A8594; --idle-soft:#ECEEF2;
+  --f-head:"Space Grotesk",ui-sans-serif,system-ui,sans-serif;
+  --f-body:"Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0F1620; --panel:#17212D; --ink:#E6ECF3; --muted:#93A1B3; --line:#263242;
+  --accent:#6A9CF5; --accent-soft:#1D2D48;
+  --run:#4CC98C; --run-soft:#163428; --wait:#E3B04F; --wait-soft:#3A2E15; --block:#F07A72; --block-soft:#3D1E1C; --idle:#8F9AAA; --idle-soft:#222C38;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0F1620; --panel:#17212D; --ink:#E6ECF3; --muted:#93A1B3; --line:#263242;
+  --accent:#6A9CF5; --accent-soft:#1D2D48;
+  --run:#4CC98C; --run-soft:#163428; --wait:#E3B04F; --wait-soft:#3A2E15; --block:#F07A72; --block-soft:#3D1E1C; --idle:#8F9AAA; --idle-soft:#222C38;
+  color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45}
+.wrap{max-width:1072px;margin:0 auto;padding-block:18px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:22px}
+header{display:flex;flex-direction:column;gap:6px}
+h1{font-family:var(--f-head);font-size:1.6rem;margin:0;letter-spacing:-.01em}
+h2{font-family:var(--f-head);font-size:1.05rem;margin:0;text-wrap:balance}
+.meta{display:flex;flex-wrap:wrap;gap:6px 14px;color:var(--muted);font-size:.85rem}
+.meta b{color:var(--ink);font-weight:600}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--idle);margin-right:6px;vertical-align:1px}
+.dot.fresh{background:var(--run)} .dot.stale{background:var(--wait)}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-size:.82rem}
+section{display:flex;flex-direction:column;gap:10px}
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.sec-head .hint{color:var(--muted);font-size:.82rem}
+.list{display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.list > * + *{border-top:1px solid var(--line)}
+.ws{padding:12px 14px;display:grid;grid-template-columns:1fr auto;gap:4px 12px}
+.ws .name{font-weight:600;min-width:0}
+.ws .sum,.ws .left{grid-column:1 / -1;font-size:.88rem;color:var(--muted);min-width:0}
+.ws .left b{color:var(--ink);font-weight:500}
+.pill{font-size:.72rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;padding:2px 8px;border-radius:999px;white-space:nowrap;align-self:start}
+.p-running{color:var(--run);background:var(--run-soft)} .p-waiting{color:var(--wait);background:var(--wait-soft)}
+.p-blocked{color:var(--block);background:var(--block-soft)} .p-idle,.p-done{color:var(--idle);background:var(--idle-soft)}
+.p-scheduled{color:var(--accent);background:var(--accent-soft)}
+.done-h{font-size:.85rem;margin:8px 0 0;color:var(--muted);font-weight:600}
+.done-row{display:flex;flex-direction:column;gap:2px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);font-size:.88rem}
+.done-row .dim{font-size:.8rem;color:var(--muted)}
+.p-picked{color:var(--accent);background:var(--accent-soft)} .p-in-progress{color:var(--run);background:var(--run-soft)} .p-done{color:var(--muted);background:var(--line)}
+.mat{letter-spacing:2px;color:var(--accent);white-space:nowrap} .mat .off{color:var(--line)}
+#ftable td.l{white-space:normal;min-width:180px;width:100%} #ftable td.l .dim{font-size:.84rem}
+.eta{grid-column:1 / -1;display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;font-size:.82rem;color:var(--muted)}
+.eta .t{color:var(--ink)}
+.est{font-size:.7rem;color:var(--muted);border:1px dashed var(--line);border-radius:4px;padding:0 5px}
+.queue-empty{padding:16px 14px;color:var(--muted);font-size:.9rem}
+.q{display:grid;grid-template-columns:28px 1fr auto;gap:10px;align-items:center;padding:10px 10px 10px 14px}
+.q .n{font-family:var(--f-mono);color:var(--accent);font-weight:500}
+.q .body{min-width:0;display:flex;flex-direction:column;gap:2px}
+.q .title{font-weight:500}
+.q .sub{font-size:.8rem;color:var(--muted);display:flex;gap:4px 10px;flex-wrap:wrap}
+.moves{display:flex;gap:4px}
+button{font:inherit;color:inherit;cursor:pointer}
+.mv{width:38px;height:38px;border-radius:8px;border:1px solid var(--line);background:var(--bg);display:grid;place-items:center;font-size:1rem}
+.mv:disabled{opacity:.35;cursor:default}
+.mv:focus-visible,.cand:focus-within,.chip:focus-visible,.addbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.total{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:.85rem;color:var(--muted);padding:0 2px}
+.total b{color:var(--ink);font-weight:600}
+.filters{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.chip{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:5px 12px;font-size:.82rem;white-space:nowrap}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.cand{display:grid;grid-template-columns:24px 1fr;gap:12px;padding:12px 14px;align-items:start;cursor:pointer}
+.cand input{width:22px;height:22px;margin:1px 0 0;accent-color:var(--accent);cursor:pointer}
+.cand .body{min-width:0;display:flex;flex-direction:column;gap:3px}
+.cand .title{font-weight:500}
+.cand .note{font-size:.84rem;color:var(--muted)}
+.cand .sub{font-size:.8rem;color:var(--muted);display:flex;gap:4px 10px;flex-wrap:wrap;align-items:center}
+.cand.on{background:var(--accent-soft)}
+.area{font-weight:600;color:var(--ink);opacity:.75}
+.add{display:flex;gap:8px}
+.add input{flex:1;min-width:0;font:inherit;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
+.addbtn{border:0;border-radius:10px;padding:0 16px;background:var(--accent);color:#fff;font-weight:600}
+.addbtn:disabled{opacity:.5}
+.banner{font-size:.85rem;padding:10px 12px;border-radius:10px;background:var(--wait-soft);color:var(--ink)}
+.saved{font-size:.8rem;color:var(--muted);min-height:1.2em}
+footer{font-size:.8rem;color:var(--muted);line-height:1.5}
+.tbl-wrap{overflow:auto;max-height:72vh;background:var(--panel);border:1px solid var(--line);border-radius:12px;scrollbar-gutter:stable}
+.wrap>*{width:100%;max-width:680px;align-self:center;min-width:0}
+.wrap>.wide{max-width:none}
+.banner button{margin-left:8px;font:inherit;font-weight:600;border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:3px 10px;cursor:pointer}
+.coins{letter-spacing:1px}.coins .c1{color:var(--wait)}.coins .c0{color:var(--muted);opacity:.6}
+table{border-collapse:collapse;font-size:.82rem;font-variant-numeric:tabular-nums;width:100%}
+th,td{padding:7px 9px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line)}
+th{font-weight:600;color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;background:var(--panel);position:sticky;top:0;z-index:2}
+th.l{z-index:3}
+tr:last-child td{border-bottom:0}
+td.l,th.l{text-align:left;position:sticky;left:0;background:var(--panel);z-index:1}
+td.l{font-weight:500;max-width:150px;overflow:hidden;text-overflow:ellipsis}
+td .sm{display:block;font-size:.72rem;color:var(--muted);font-weight:400}
+.ok{color:var(--run);font-weight:600} .bad{color:var(--block);font-weight:600} .meh{color:var(--wait);font-weight:600} .dim{color:var(--muted)}
+.bar{display:inline-block;width:46px;height:6px;border-radius:3px;background:var(--idle-soft);vertical-align:middle;margin-right:6px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent)}
+.legend{font-size:.8rem;color:var(--muted);line-height:1.5}
+.feat{padding:11px 14px;display:grid;grid-template-columns:1fr auto;gap:3px 12px}
+.feat .name{font-weight:600;min-width:0}
+.feat .ev,.feat .gap{grid-column:1 / -1;font-size:.84rem;color:var(--muted);min-width:0}
+.feat .gap b{color:var(--block);font-weight:500}
+.lvl{display:flex;gap:3px;align-items:center;align-self:start}
+.lvl i{width:12px;height:8px;border-radius:2px;background:var(--idle-soft)}
+.lvl.l4 i{background:var(--run)} .lvl.l3 i:nth-child(-n+3){background:var(--run)} .lvl.l2 i:nth-child(-n+2){background:var(--wait)} .lvl.l1 i:nth-child(1){background:var(--block)}
+.lvl span{font-size:.72rem;color:var(--muted);margin-left:6px;white-space:nowrap}
+.miss{padding:9px 14px;display:flex;justify-content:space-between;gap:10px;font-size:.88rem;flex-wrap:wrap}
+.miss .u{color:var(--muted);font-size:.8rem}
+details>summary{cursor:pointer;list-style:none}
+details>summary::-webkit-details-marker{display:none}
+.sum-row{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.sum-row h2::after{content:" ▾";color:var(--muted);font-size:.8em}
+details:not([open]) .sum-row h2::after{content:" ▸"}
+.lv{padding:11px 14px;display:grid;grid-template-columns:1fr auto;gap:3px 12px;align-items:start}
+.lv .name{font-weight:600;min-width:0}
+.lv .note{grid-column:1 / -1;font-size:.84rem;color:var(--muted);min-width:0}
+.lv a,.vlink{color:var(--accent);font-weight:600;text-decoration:none}
+.lv a:hover,.vlink:hover{text-decoration:underline}
+.lv .open{grid-column:1 / -1;font-size:.86rem}
+@media (prefers-reduced-motion:no-preference){.cand,.q{transition:background-color .15s}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>GD Work Board</h1>
+    <div class="meta">
+      <span id="fresh"><span class="dot"></span>Loading…</span>
+      <span>Updated about every 10 min while you work, hourly otherwise</span>
+    </div>
+    <div class="meta" style="gap:6px 16px"><a class="vlink" href="https://claude.ai/artifact/7bXiT1gGnJWjESC8fy3oZH" target="_blank" rel="noopener">🎮 Level viewer ↗</a><a class="vlink" href="https://claude.ai/artifact/HNZF2JRKi7XkQ8SawvF4Kr" target="_blank" rel="noopener" title="Bricks of 2-6 clicks, a difficulty per brick, replay with clicks, votes and comments. Our own pieces only.">🧱 Structure catalogue (bricks, difficulty, votes) ↗</a><a class="vlink" href="http://localhost:8765/lego/" target="_blank" rel="noopener" title="With the main levels' bricks (RobTop's layouts stay on your PC). Needs tools/serve.js running.">🧱 + main-level bricks (PC only) ↗</a></div>
+    <div class="meta" id="usage" hidden></div>
+    <div id="banner" class="banner" hidden></div>
+    <pre id="diagbox" hidden style="white-space:pre-wrap;font-size:.75rem;margin:0;padding:8px 10px;border-radius:8px;background:var(--card,#f4f4f6);color:inherit;max-height:30vh;overflow:auto"></pre>
+  </header>
+
+  <section aria-labelledby="h-ws">
+    <details id="d-ws">
+      <summary><div class="sum-row"><h2 id="h-ws">Workstreams</h2><span class="hint" id="ws-count"></span></div></summary>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px"><div class="list" id="ws"><div class="queue-empty ph">Loading…</div></div></div>
+    </details>
+  </section>
+
+
+
+  <section aria-labelledby="h-f" class="wide">
+    <details id="d-feat">
+      <summary><div class="sum-row"><h2 id="h-f">Features</h2><span class="hint" id="f-sum"></span></div></summary>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
+        <div class="tbl-wrap" style="max-height:none"><table id="ftable"><tbody><tr><td class="l dim ph">Loading…</td></tr></tbody></table></div>
+        <div class="legend">Maturity: 5 = used all the time and checked in the real game, 4 = works and is used, 3 = works, first version, 2 = built but barely tried, 1 = started. Times are from measured runs where there are some.</div>
+        <h2 style="font-size:.95rem;margin-top:6px">Ideas</h2>
+        <div class="hint">Tick an idea to pick it; Claude starts picked ones and shows them as in progress, then done.</div>
+        <div class="list" id="fideas"><div class="queue-empty ph">Loading…</div></div>
+        <form class="add" id="faddform">
+          <label for="fidea" hidden>Add a feature idea</label>
+          <input id="fidea" maxlength="160" placeholder="Add a feature idea…" autocomplete="off">
+          <button class="addbtn" id="faddbtn" type="submit" disabled>Add</button>
+        </form>
+        <div class="saved" id="fsaved" aria-live="polite"></div>
+      </div>
+    </details>
+  </section>
+
+  <section aria-labelledby="h-l">
+    <details id="d-levels">
+      <summary><div class="sum-row"><h2 id="h-l">Our levels</h2><span class="hint" id="l-sum"></span></div></summary>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px"><a class="vlink" id="vlink" href="https://claude.ai/artifact/7bXiT1gGnJWjESC8fy3oZH" target="_blank" rel="noopener">Open the level viewer ↗</a>
+        <div class="list" id="levels"><div class="queue-empty ph">Loading…</div></div></div>
+    </details>
+  </section>
+
+  <section aria-labelledby="h-m" class="wide">
+    <details id="d-mains">
+      <summary><div class="sum-row"><h2 id="h-m">Main levels</h2><span class="hint" id="m-sum"></span></div></summary>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
+        <div class="tbl-wrap"><table id="mtable"><tbody><tr><td class="l dim ph">Loading…</td></tr></tbody></table></div>
+        <div class="legend" id="m-legend">Beaten: bot / human = does the solver's raw route, and the human-like route the viewer plays, clear the level in our sim on today's physics. Coins: the secret coins (3 per level) our route collects; grey = not collected or no coin route yet. Score: log10 of expected attempts (higher is harder), per minute below. Tight: inputs under 60 ms, tightest window below (red under 34 ms = two frames). Real game: how far gdsolver's real-game inputs carry our sim, i.e. how well our physics matches the game on that level. Scroll inside the table; hover a header for its meaning.</div>
+      </div>
+    </details>
+  </section>
+
+  <section aria-labelledby="h-y" class="wide">
+    <details id="d-played">
+      <summary><div class="sum-row"><h2 id="h-y">Your levels</h2><span class="hint" id="y-sum"></span></div></summary>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
+        <div class="filters" id="y-filters" role="toolbar" aria-label="Filter your levels by difficulty" style="flex-wrap:wrap"></div>
+        <div class="add"><label for="y-q" hidden>Search your levels</label><input id="y-q" placeholder="Search by name, creator or ID…" autocomplete="off"><button class="addbtn" id="y-all" type="button" title="Queue every level shown by the current filter and search">Queue shown</button></div>
+        <div class="saved" id="y-study"></div>
+        <div class="tbl-wrap"><table id="ytable"><tbody><tr><td class="l dim ph">Loading…</td></tr></tbody></table></div>
+        <div class="legend" id="y-legend">Every level you've finished, from your save (read only, never changed). Tries: lifetime attempts; Best: your normal-mode best %; Practice: your practice best %.</div>
+      </div>
+    </details>
+  </section>
+
+  <section aria-labelledby="h-r" class="wide">
+    <details id="d-latest">
+      <summary><div class="sum-row"><h2 id="h-r">Latest rated</h2><span class="hint" id="r-sum"></span></div></summary>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
+        <div class="filters" id="r-filters" role="toolbar" aria-label="Filter latest rated levels" style="flex-wrap:wrap"></div>
+        <div class="add"><label for="r-q" hidden>Search latest rated</label><input id="r-q" placeholder="Search by name, creator or ID…" autocomplete="off"></div>
+        <div class="tbl-wrap"><table id="rtable"><tbody><tr><td class="l dim ph">Loading…</td></tr></tbody></table></div>
+        <div class="legend">GD's newest star-rated online levels, newest first (the game's Awarded list). Tick a level to queue it for study, like Your levels. Played: your best % if it's in your save.</div>
+      </div>
+    </details>
+  </section>
+
+
+  <section aria-labelledby="h-p">
+    <details id="d-phys">
+      <summary><div class="sum-row"><h2 id="h-p">Physics vs the real game</h2><span class="hint" id="p-sum"></span></div></summary>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px">
+        <div class="legend">Bars: 4 = measured in your own game and matches. 3 = matches real-game input plans. 2 = works, with a known mismatch. 1 = from the decompile or gdsolver, not checked yet.</div>
+        <div class="list" id="feats"><div class="queue-empty ph">Loading…</div></div>
+        <h2 style="font-size:.95rem;margin-top:6px">Missing from the physics</h2>
+        <div class="list" id="missing"><div class="queue-empty ph">Loading…</div></div>
+      </div>
+    </details>
+  </section>
+
+  <section aria-labelledby="h-q">
+    <details id="d-queue">
+      <summary><div class="sum-row"><h2 id="h-q">Your queue</h2><span class="hint" id="q-sum">Top runs first. Claude schedules from this.</span></div></summary>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px"><div class="list" id="queue"><div class="queue-empty">Nothing picked yet. Tick tasks below and they line up here.</div></div>
+        <div class="total" id="total" hidden></div></div>
+    </details>
+    <div class="saved" id="saved" aria-live="polite"></div>
+  </section>
+
+  <section aria-labelledby="h-c">
+    <details id="d-cands">
+      <summary><div class="sum-row"><h2 id="h-c">Next tasks to pick from</h2><span class="hint" id="c-sum">Tick to queue, untick to drop</span></div></summary>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px"><div class="filters" id="filters" role="toolbar" aria-label="Filter by area"></div>
+        <div class="list" id="cands"><div class="queue-empty ph">Loading…</div></div>
+        <form class="add" id="addform">
+          <label for="idea" hidden>Add your own task</label>
+          <input id="idea" maxlength="160" placeholder="Add your own task idea…" autocomplete="off">
+          <button class="addbtn" id="addbtn" type="submit" disabled>Add</button>
+        </form></div>
+    </details>
+  </section>
+
+  <section aria-labelledby="h-done">
+    <details id="d-done">
+      <summary><div class="sum-row"><h2 id="h-done">Done</h2><span class="hint" id="done-sum"></span></div></summary>
+      <div id="donelist" style="display:flex;flex-direction:column;gap:6px;margin-top:10px"></div>
+    </details>
+  </section>
+
+  <footer>Times marked <span class="est">estimate</span> are rough guesses, not measured runs. "Ready ≈" is a clock time in your time zone. Claude reads your queue on each update and starts the top items as slots free up; their state changes to scheduled, then running.</footer>
+</div>
+
+<script>
+(function(){
+  var state = null;            // board/state: written by Claude
+  var picks = {selected:[], ideas:[], study:[], feat_picks:[], feat_ideas:[]}; // board/picks: written by this page
+  var db = null, filter = "All", canWrite = true;
+  var $ = function(id){ return document.getElementById(id); };
+  function el(tag, cls, text){ var e=document.createElement(tag); if(cls) e.className=cls; if(text!=null) e.textContent=text; return e; }
+
+  function fmtDur(min){
+    if(min==null || isNaN(min)) return "not measured";
+    min=Math.round(min);
+    if(min<60) return "~"+min+" min";
+    var h=Math.floor(min/60), m=min%60;
+    return "~"+h+" h"+(m? " "+m+" min":"");
+  }
+  function fmtClock(d){
+    return d.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
+  }
+  function fmtWhen(d){
+    var now=new Date(), same=d.toDateString()===now.toDateString();
+    return same? fmtClock(d) : d.toLocaleDateString([], {weekday:"short"})+" "+fmtClock(d);
+  }
+  function ago(d){
+    var s=(Date.now()-d.getTime())/1000;
+    if(s<90) return "just now";
+    if(s<3600) return Math.round(s/60)+" min ago";
+    if(s<86400) return Math.round(s/3600)+" h ago";
+    return Math.round(s/86400)+" d ago";
+  }
+  function estTag(basis){
+    var s=el("span","est", basis && basis!=="estimate" ? basis : "estimate");
+    return s;
+  }
+
+  // ---- the Done archive (Evgeni, 2026-11-25: finished things stay around too long): an item that is done or archived
+  // leaves the main view a day after its done_at (at once when it has none) and is listed in the collapsed "Done" section
+  var DAY=24*3600e3;
+  function isDone(x){ var st=String(x.status||x.state||"").toLowerCase(); return st==="done"||st==="archived"; }
+  function archived(x){ if(!isDone(x)) return false; if(String(x.state||x.status).toLowerCase()==="archived") return true;
+    var d=x.done_at? new Date(x.done_at).getTime() : 0; return !d || Date.now()-d>DAY; }
+  function live(a){ return (a||[]).filter(function(x){ return !archived(x); }); }
+  function allTasks(){
+    var list=live((state && state.candidates)||[]);
+    var ideas=(picks.ideas||[]).map(function(i){ return {id:i.id, title:i.title, area:"Your idea", eta_min:null, eta_basis:"Claude will estimate", status:"open", mine:true}; });
+    return list.concat(ideas);
+  }
+  function byId(){ var m={}; allTasks().forEach(function(t){ m[t.id]=t; }); return m; }
+
+  function renderFresh(){
+    var f=$("fresh"); f.textContent="";
+    var dot=el("span","dot");
+    if(!state || !state.updated_at){ f.appendChild(dot); f.appendChild(document.createTextNode(loadFailed? "Couldn't load the board's data" : "Loading…")); return; }
+    var d=new Date(state.updated_at);
+    var stale=(Date.now()-d.getTime())>75*60*1000;
+    dot.className="dot "+(stale?"stale":"fresh");
+    f.appendChild(dot);
+    f.appendChild(document.createTextNode("Last updated "));
+    f.appendChild(el("b",null,fmtWhen(d)));
+    f.appendChild(document.createTextNode(" ("+ago(d)+")"));
+  }
+
+  function renderWs(){
+    var box=$("ws"), ws=live((state && state.workstreams)||[]);
+    if(!ws.length) return;
+    box.textContent="";
+    var running=0;
+    ws.forEach(function(w){
+      var st=(w.state||"idle").toLowerCase(); if(st==="running") running++;
+      var row=el("div","ws");
+      row.appendChild(el("div","name",w.name||""));
+      row.appendChild(el("span","pill p-"+st, st));
+      if(w.summary) row.appendChild(el("div","sum",w.summary));
+      if(w.left){ var l=el("div","left"); l.appendChild(el("b",null,"Left: ")); l.appendChild(document.createTextNode(w.left)); row.appendChild(l); }
+      if(st!=="done"){
+        var e=el("div","eta");
+        e.appendChild(el("span","t mono", fmtDur(w.eta_min)+" left"));
+        if(w.eta_at){ var d=new Date(w.eta_at); if(!isNaN(d)) e.appendChild(el("span","t mono","ready ≈ "+fmtWhen(d))); }
+        else if(w.eta_min!=null && state.updated_at){ var d2=new Date(new Date(state.updated_at).getTime()+w.eta_min*60000); e.appendChild(el("span","t mono","ready ≈ "+fmtWhen(d2))); }
+        e.appendChild(estTag(w.eta_basis));
+        row.appendChild(e);
+      }
+      box.appendChild(row);
+    });
+    $("ws-count").textContent=running+" running of "+ws.length;
+  }
+
+  function renderQueue(){
+    var box=$("queue"), m=byId();
+    var sel=(picks.selected||[]).filter(function(id){ return m[id]; });
+    box.textContent="";
+    if(!sel.length){ box.appendChild(el("div","queue-empty","Nothing picked yet. Tick tasks below and they line up here.")); $("total").hidden=true; return; }
+    var sum=0, unknown=0;
+    sel.forEach(function(id,i){
+      var t=m[id];
+      if(t.status!=="done"){ if(t.eta_min!=null) sum+=t.eta_min; else unknown++; }
+      var row=el("div","q");
+      row.appendChild(el("span","n",String(i+1)));
+      var b=el("div","body");
+      b.appendChild(el("span","title",t.title));
+      var sub=el("span","sub");
+      sub.appendChild(el("span","area",t.area||""));
+      sub.appendChild(el("span","mono",fmtDur(t.eta_min)));
+      if(t.status && t.status!=="open") sub.appendChild(el("span","pill p-"+t.status,t.status));
+      b.appendChild(sub); row.appendChild(b);
+      var mv=el("div","moves");
+      var up=el("button","mv","↑"); up.type="button"; up.setAttribute("aria-label","Move "+t.title+" up"); up.disabled=i===0||!canWrite;
+      var dn=el("button","mv","↓"); dn.type="button"; dn.setAttribute("aria-label","Move "+t.title+" down"); dn.disabled=i===sel.length-1||!canWrite;
+      up.onclick=function(){ move(id,-1); }; dn.onclick=function(){ move(id,1); };
+      mv.appendChild(up); mv.appendChild(dn); row.appendChild(mv);
+      box.appendChild(row);
+    });
+    $("q-sum").textContent=sel.length+" picked · top runs first";
+    var tot=$("total"); tot.hidden=false; tot.textContent="";
+    var a=el("span"); a.appendChild(document.createTextNode("Queue total ")); a.appendChild(el("b",null,fmtDur(sum))); if(unknown) a.appendChild(document.createTextNode(" + "+unknown+" not estimated")); tot.appendChild(a);
+    tot.appendChild(el("span",null,"Several run side by side, so wall-clock is shorter"));
+  }
+
+  function renderFilters(){
+    var areas=["All"], seen={};
+    allTasks().forEach(function(t){ var a=t.area||"Other"; if(!seen[a]){ seen[a]=1; areas.push(a); } });
+    if(areas.indexOf(filter)<0) filter="All";
+    var box=$("filters"); box.textContent="";
+    areas.forEach(function(a){
+      var c=el("button","chip",a); c.type="button"; c.setAttribute("aria-pressed", String(a===filter));
+      c.onclick=function(){ filter=a; renderFilters(); renderCands(); };
+      box.appendChild(c);
+    });
+  }
+
+  function renderCands(){
+    var box=$("cands"), tasks=allTasks().filter(function(t){ return filter==="All" || (t.area||"Other")===filter; });
+    if(!tasks.length && !(state && state.candidates)) return;
+    box.textContent="";
+    $("c-sum").textContent=allTasks().length+" tasks · tick to queue";
+    if(!tasks.length){ box.appendChild(el("div","queue-empty","No tasks in this area.")); return; }
+    var selSet={}; (picks.selected||[]).forEach(function(id){ selSet[id]=1; });
+    tasks.forEach(function(t){
+      var on=!!selSet[t.id];
+      var lab=el("label","cand"+(on?" on":""));
+      var cb=document.createElement("input"); cb.type="checkbox"; cb.id="c-"+t.id; cb.checked=on; cb.disabled=!canWrite || t.status==="done";
+      cb.onchange=function(){ toggle(t.id, cb.checked); };
+      lab.appendChild(cb);
+      var b=el("div","body");
+      b.appendChild(el("span","title",t.title));
+      if(t.note) b.appendChild(el("span","note",t.note));
+      var sub=el("span","sub");
+      sub.appendChild(el("span","area",t.area||""));
+      sub.appendChild(el("span","mono",t.eta_min!=null? fmtDur(t.eta_min) : "not estimated"));
+      sub.appendChild(estTag(t.eta_basis));
+      if(t.status && t.status!=="open") sub.appendChild(el("span","pill p-"+t.status,t.status));
+      b.appendChild(sub); lab.appendChild(b);
+      box.appendChild(lab);
+    });
+  }
+
+
+  function td(t,cls){ var c=el("td",cls||null); if(t!=null) c.textContent=t; return c; }
+  function pctCell(v){ if(v==null) return td("–","dim"); return td(v>=100?"✓ 100%":v+"%", v>=100?"ok":"bad"); }
+  function renderMains(){
+    var m=state && state.mains; if(!m || !m.levels || !m.levels.length) return;
+    var t=$("mtable"); t.textContent="";
+    var head=el("thead"), hr=el("tr");
+    [["#","l"],["Rating"],["Beaten: bot / human","","bot = the solver's raw route clears the level in our sim; human = the human-like route the viewer plays clears it"],["Coins","","secret coins our route takes (of 3)"],["Score","","log10 of expected attempts; /min below"],["Inputs"],["Tight","","inputs under 60 ms; tightest window below"],["Real game","","how far gdsolver's real-game inputs carry our sim"],["Your tries"]].forEach(function(h){ var th=el("th",h[1]||null,h[0]); if(h[2]) th.title=h[2]; hr.appendChild(th); });
+    head.appendChild(hr); t.appendChild(head);
+    var body=el("tbody"), clear=0;
+    m.levels.forEach(function(r){
+      if(r.route_pct>=100) clear++;
+      var tr=el("tr");
+      var nm=td(null,"l"); nm.appendChild(document.createTextNode(r.n+" "+r.name)); nm.title=r.n+" "+r.name; if(r.flag){ var f=el("span","sm","⚠ "+r.flag); nm.appendChild(f); } tr.appendChild(nm);
+      tr.appendChild(td(r.rating,"dim"));
+      var sv=td(null); var a=r.solve_pct, b=r.route_pct;
+      if(a>=100 && b>=100) { sv.className="ok"; sv.textContent="✓ / ✓"; }
+      else { sv.appendChild(document.createTextNode((a==null?"–":a>=100?"✓":a+"%")+" / "+(b==null?"–":b>=100?"✓":b+"%"))); sv.className=(a!=null&&a<100)||(b!=null&&b<100)?"bad":"dim"; }
+      tr.appendChild(sv);
+      var co=r.coins, cc=td(null,"coins");
+      if(co && co.total){ var got=co.got==null?null:co.got;
+        for(var k=0;k<co.total;k++){ var on=got!=null&&k<got; cc.appendChild(el("span", on?"c1":"c0", on?"●":"○")); }
+        cc.title=(got==null?"no coin route yet":got+" of "+co.total+" coins")+(co.note?" · "+co.note:"");
+        if(got!=null && co.note) cc.appendChild(el("span","sm",co.note)); }
+      else cc.appendChild(el("span","dim","–"));
+      tr.appendChild(cc);
+      var sc=td(null, r.score==null?"dim":null); sc.appendChild(document.createTextNode(r.score==null?"–":r.score.toFixed(2)+(r.scored_complete===false?"*":"")+(r.score_stale?"†":"")));
+      if(r.per_min!=null) sc.appendChild(el("span","sm",r.per_min.toFixed(2)+"/min")); tr.appendChild(sc);
+      tr.appendChild(td(r.inputs==null?"–":String(r.inputs)));
+      var tg=td(r.tight==null?"–":String(r.tight), r.tight>3?"meh":null);
+      if(r.min_ms!=null) tg.appendChild(el("span", "sm"+(r.min_ms<34?" bad":""), r.min_ms+" ms")); tr.appendChild(tg);
+      var rg=td(null); var pc=r.real_plan_pct;
+      if(pc!=null){ var bb=el("span","bar"), i=el("i"); i.style.width=Math.max(2,Math.min(100,pc))+"%"; bb.appendChild(i); rg.appendChild(bb); rg.appendChild(document.createTextNode(pc+"%")); }
+      else rg.appendChild(document.createTextNode(r.real_plan_block!=null? "block "+r.real_plan_block : "–"));
+      tr.appendChild(rg);
+      tr.appendChild(td(r.attempts==null?"–":String(r.attempts),"dim"));
+      body.appendChild(tr);
+    });
+    t.appendChild(body);
+    var when=m.at? " · solved "+fmtWhen(new Date(m.at)) : "";
+    $("m-sum").textContent=clear+" of "+m.levels.length+" clear"+when;
+    if(m.note) $("m-legend").textContent=m.note;
+  }
+  function renderPhys(){
+    var p=state && state.physics; if(!p) return;
+    var box=$("feats");
+    if(p.features && p.features.length){
+      box.textContent="";
+      var n4=0;
+      p.features.forEach(function(f){
+        if(f.level>=4) n4++;
+        var row=el("div","feat");
+        row.appendChild(el("div","name",f.name));
+        var lv=el("div","lvl l"+(f.level||0)); for(var k=0;k<4;k++) lv.appendChild(el("i")); lv.appendChild(el("span",null,f.label||"")); row.appendChild(lv);
+        if(f.evidence) row.appendChild(el("div","ev",f.evidence));
+        if(f.gap){ var g=el("div","gap"); g.appendChild(el("b",null,"Open: ")); g.appendChild(document.createTextNode(f.gap)); row.appendChild(g); }
+        box.appendChild(row);
+      });
+      $("p-sum").textContent=n4+" of "+p.features.length+" checked in your game";
+    }
+    if(p.missing && p.missing.length){
+      var mb=$("missing"); mb.textContent="";
+      p.missing.forEach(function(x){ var r=el("div","miss"); r.appendChild(el("span",null,x.name)); if(x.used_by) r.appendChild(el("span","u",x.used_by)); mb.appendChild(r); });
+    }
+  }
+
+  function renderUsage(){
+    var u=state && state.usage, box=$("usage"); if(!u){ box.hidden=true; return; }
+    box.textContent=""; box.hidden=false;
+    var cap=u.cap_pct||70;
+    var t=el("span"); t.appendChild(document.createTextNode("Claude usage "));
+    t.appendChild(el("b",null,u.pct==null?"not known":u.pct+"%"));
+    t.appendChild(document.createTextNode(" · tasks stop at "+cap+"%"));
+    if(u.resets_at){ var d=new Date(u.resets_at); if(!isNaN(d)) t.appendChild(document.createTextNode(" · resets "+fmtWhen(d))); }
+    box.appendChild(t);
+    if(u.note) box.appendChild(el("span",null,u.note));
+  }
+  function renderLevels(){
+    var L=state && state.levels; if(!L || !L.length) return; L=live(L);
+    var box=$("levels"); box.textContent="";
+    if(state.viewer_url && /^https:\/\//.test(state.viewer_url)) $("vlink").href=state.viewer_url;
+    L.forEach(function(l){
+      var row=el("div","lv");
+      row.appendChild(el("div","name",l.name||""));
+      var st=(l.state||"idle").toLowerCase(); row.appendChild(el("span","pill p-"+st,l.status||st));
+      if(l.note) row.appendChild(el("div","note",l.note));
+      if(l.link && /^https:\/\//.test(l.link)){ var o=el("div","open"), a=el("a",null,"Open in the viewer ↗"); a.href=l.link; a.target="_blank"; a.rel="noopener"; o.appendChild(a); row.appendChild(o); }
+      box.appendChild(row);
+    });
+    $("l-sum").textContent=L.length+" in progress";
+  }
+  var TIERS=["Unrated","Auto","Easy","Normal","Hard","Harder","Insane","Easy Demon","Medium Demon","Hard Demon","Insane Demon","Extreme Demon","Demon"];
+  var yFilter="All", yShow=200, played=null;
+  function rowDone(r){ return r.done!=null? !!r.done : r.best>=100; }
+  function yMatch(r,q){ return (yFilter==="All" || (yFilter==="Not finished"? !rowDone(r) : yFilter==="Finished"? rowDone(r) : yFilter==="Demons"? /Demon/.test(r.tier||"") : r.tier===yFilter)) && (!q || (r.name||"").toLowerCase().indexOf(q)>=0 || (r.creator||"").toLowerCase().indexOf(q)>=0 || String(r.id)===q); }
+  function tierGroup(t){ return /Demon/.test(t||"")? "Demons" : (t||"Other"); }
+  function renderPlayed(){
+    var P=played; if(!P || !P.levels || !P.levels.length) return;
+    var L=P.levels.slice().sort(function(a,b){ var ta=TIERS.indexOf(a.tier), tb=TIERS.indexOf(b.tier); if(ta!==tb) return tb-ta; return (b.attempts||0)-(a.attempts||0); });
+    var groups=["All"], seen={}, counts={}; counts["Finished"]=L.filter(rowDone).length; counts["Not finished"]=L.length-counts["Finished"]; if(counts["Not finished"]) groups.push("Finished","Not finished");
+    L.forEach(function(r){ var g=tierGroup(r.tier); counts[g]=(counts[g]||0)+1; if(/Demon/.test(r.tier||"")){ counts[r.tier]=(counts[r.tier]||0)+1; } });
+    ["Auto","Easy","Normal","Hard","Harder","Insane","Demons","Easy Demon","Medium Demon","Hard Demon","Insane Demon","Extreme Demon","Unrated"].forEach(function(g){ if(counts[g]) groups.push(g); });
+    if(groups.indexOf(yFilter)<0) yFilter="All";
+    var fb=$("y-filters"); fb.textContent="";
+    groups.forEach(function(g){ var c=el("button","chip",g+(g==="All"?" "+L.length:" "+counts[g])); c.type="button"; c.setAttribute("aria-pressed",String(g===yFilter)); c.onclick=function(){ yFilter=g; yShow=200; renderPlayed(); }; fb.appendChild(c); });
+    var q=($("y-q").value||"").trim().toLowerCase();
+    var show=L.filter(function(r){ return yMatch(r,q); });
+    var total=show.length; show=show.slice(0,yShow);
+    var t=$("ytable"); t.textContent="";
+    var head=el("thead"), hr=el("tr");
+    var sset={}; (picks.study||[]).forEach(function(x){ sset[x]=1; });
+    var th0=el("th","l"); th0.style.width="34px"; th0.title="Queue for study: fetch, cut into structures, score (slowly, low priority)"; th0.textContent="Study"; hr.appendChild(th0);
+    [["Level"],["Difficulty"],["Kind"],["Tries"],["Jumps"],["Best"],["Practice"]].forEach(function(h){ var th=el("th",null,h[0]); if(h[0]==="Level") th.style.textAlign="left"; hr.appendChild(th); });
+    head.appendChild(hr); t.appendChild(head);
+    var body=el("tbody");
+    show.forEach(function(r){
+      var tr=el("tr"), key=(r.kind==="main"?"m":"")+r.id, ck=td(null,"l"), cb=document.createElement("input");
+      cb.type="checkbox"; cb.checked=!!sset[key]; cb.disabled=!canWrite; cb.setAttribute("aria-label","Queue "+(r.name||r.id)+" for study"); cb.style.cssText="width:18px;height:18px;accent-color:var(--accent);cursor:pointer";
+      cb.onchange=function(){ var st=(picks.study||[]).filter(function(x){ return x!==key; }); if(cb.checked) st.push(key); picks.study=st; studyCount(); try{ renderLatest(); }catch(e){} save(); };
+      ck.appendChild(cb); tr.appendChild(ck);
+      var nm=td(null); nm.style.textAlign="left"; nm.style.maxWidth="240px"; nm.style.overflow="hidden"; nm.style.textOverflow="ellipsis";
+      if(r.link && /^https:\/\//.test(r.link)){ var a=el("a",null,r.name); a.href=r.link; a.target="_blank"; a.rel="noopener"; a.style.color="inherit"; nm.appendChild(a); } else nm.appendChild(document.createTextNode(r.name||("ID "+r.id)));
+      nm.title=(r.name||"")+(r.id?" · ID "+r.id:"");
+      if(r.id && r.kind!=="main") nm.appendChild(el("span","sm","ID "+r.id+(r.creator?" · "+r.creator:"")));
+      tr.appendChild(nm);
+      tr.appendChild(td((r.tier||"–")+(r.stars?" · "+r.stars+"★":""), /Demon/.test(r.tier||"")?"bad":"dim"));
+      tr.appendChild(td(r.kind==="main"?"main":"online","dim"));
+      tr.appendChild(td(r.attempts==null?"–":String(r.attempts)));
+      tr.appendChild(td(r.jumps==null?"–":String(r.jumps),"dim"));
+      tr.appendChild(td(r.best==null?"–":(r.best>=100?"✓ 100%":r.best+"%"), r.best>=100?"ok":null));
+      tr.appendChild(td(r.practice==null?"–":r.practice+"%","dim"));
+      body.appendChild(tr);
+    });
+    if(total>show.length){ var mr=el("tr"), mc=el("td","l"); mc.colSpan=8; var mb=el("button","chip","Show more ("+(total-show.length)+" left)"); mb.type="button"; mb.onclick=function(){ yShow+=300; renderPlayed(); }; mc.appendChild(mb); mr.appendChild(mc); body.appendChild(mr); }
+    t.appendChild(body);
+    studyCount();
+    var fin=L.filter(rowDone).length, dem=L.filter(function(r){ return /Demon/.test(r.tier||"") && rowDone(r); }).length;
+    $("y-sum").textContent=(P.totals? (P.totals.officialDone+P.totals.onlineDone)+" finished · "+P.totals.demons+" demons" : fin+" finished · "+dem+" demons")+(P.at?" · from your save "+fmtWhen(new Date(P.at)):"");
+    if(P.note) $("y-legend").textContent=P.note;
+  }
+
+  // ---- latest rated (board/latest: GD's Awarded list, compact {cols, rows}; written by Claude from tools/latest_rated.js) ----
+  var latest=null, rFilter="All", rShow=100, latestLoading=false;
+  function renderLatest(){
+    if(!latest || !latest.levels) return;
+    var mine={}; var P=played; (P&&P.levels||[]).forEach(function(r){ if(r.kind!=="main") mine[String(r.id)]=r; });
+    var L=latest.levels.filter(function(r){ return !r.platformer; });
+    var counts={}, groups=["All","Not played"];
+    L.forEach(function(r){ var g=tierGroup(r.tier); counts[g]=(counts[g]||0)+1; });
+    counts["Not played"]=L.filter(function(r){ return !mine[r.id]; }).length;
+    ["Auto","Easy","Normal","Hard","Harder","Insane","Demons"].forEach(function(g){ if(counts[g]) groups.push(g); });
+    if(groups.indexOf(rFilter)<0) rFilter="All";
+    var fb=$("r-filters"); fb.textContent="";
+    groups.forEach(function(g){ var c=el("button","chip",g+" "+(g==="All"?L.length:counts[g])); c.type="button"; c.setAttribute("aria-pressed",String(g===rFilter)); c.onclick=function(){ rFilter=g; rShow=100; renderLatest(); }; fb.appendChild(c); });
+    var q=($("r-q").value||"").trim().toLowerCase();
+    var show=L.filter(function(r){ return (rFilter==="All" || (rFilter==="Not played"? !mine[r.id] : tierGroup(r.tier)===rFilter)) && (!q || (r.name||"").toLowerCase().indexOf(q)>=0 || (r.creator||"").toLowerCase().indexOf(q)>=0 || String(r.id)===q); });
+    var total=show.length; show=show.slice(0,rShow);
+    var sset={}; (picks.study||[]).forEach(function(x){ sset[x]=1; });
+    var t=$("rtable"); t.textContent=""; var head=el("thead"), hr=el("tr");
+    var th0=el("th","l"); th0.style.width="34px"; th0.textContent="Study"; hr.appendChild(th0);
+    ["Level","Difficulty","Rating","Likes","Length","Played"].forEach(function(h){ var th=el("th",null,h); if(h==="Level") th.style.textAlign="left"; hr.appendChild(th); });
+    head.appendChild(hr); t.appendChild(head); var body=el("tbody");
+    show.forEach(function(r){
+      var tr=el("tr"), key=String(r.id), ck=td(null,"l"), cb=document.createElement("input");
+      cb.type="checkbox"; cb.checked=!!sset[key]; cb.disabled=!canWrite; cb.setAttribute("aria-label","Queue "+(r.name||r.id)+" for study"); cb.style.cssText="width:18px;height:18px;accent-color:var(--accent);cursor:pointer";
+      cb.onchange=function(){ var st=(picks.study||[]).filter(function(x){ return x!==key; }); if(cb.checked) st.push(key); picks.study=st; studyCount(); try{ renderPlayed(); }catch(e){} save(); };
+      ck.appendChild(cb); tr.appendChild(ck);
+      var nm=td(null); nm.style.textAlign="left"; nm.style.maxWidth="240px"; nm.style.overflow="hidden"; nm.style.textOverflow="ellipsis";
+      nm.appendChild(document.createTextNode(r.name||("ID "+r.id))); nm.title=(r.name||"")+" · ID "+r.id+(r.song?" · "+r.song:"");
+      nm.appendChild(el("span","sm","ID "+r.id+(r.creator?" · "+r.creator:""))); tr.appendChild(nm);
+      tr.appendChild(td((r.tier||"–")+(r.stars?" · "+r.stars+"★":""), /Demon/.test(r.tier||"")?"bad":"dim"));
+      tr.appendChild(td(r.rank||"rated", r.rank==="rated"?"dim":null));
+      tr.appendChild(td(r.likes==null?"–":(r.likes>=1000? Math.round(r.likes/100)/10+"k" : String(r.likes)),"dim"));
+      tr.appendChild(td(r.length||"–","dim"));
+      var m=mine[r.id]; tr.appendChild(td(m? (m.best>=100?"✓ 100%":(m.best||0)+"%") : "–", m&&m.best>=100?"ok":"dim"));
+      body.appendChild(tr);
+    });
+    if(total>show.length){ var mr=el("tr"), mc=el("td","l"); mc.colSpan=7; var mb=el("button","chip","Show more ("+(total-show.length)+" left)"); mb.type="button"; mb.onclick=function(){ rShow+=200; renderLatest(); }; mc.appendChild(mb); mr.appendChild(mc); body.appendChild(mr); }
+    t.appendChild(body);
+    var np=L.filter(function(r){ return !mine[r.id]; }).length;
+    $("r-sum").textContent=L.length+" levels · "+np+" not played"+(latest.at?" · list from "+fmtWhen(new Date(latest.at)):"");
+  }
+  function latestMsg(t, retry){ var e=$("r-sum"); if(!e) return; e.textContent=t; if(retry){ var b=el("button","chip","Retry"); b.type="button"; b.onclick=function(){ latestLoading=false; loadLatest(); }; e.appendChild(document.createTextNode(" ")); e.appendChild(b); } }
+  function loadLatest(){
+    if(latest || latestLoading || !db) return; var ref=db.doc("board/latest"); if(!ref) return;
+    latestLoading=true; latestMsg("Loading…");
+    function got(s,how){ latestLoading=false; if(s && s.exists){ window.__st("latest ok ("+how+")"); latest=unpackPlayed(s.data()); renderLatest(); } else { window.__st("latest missing"); latestMsg("No list yet."); var t=$("rtable"); t.textContent=""; var tb=el("tbody"), tr=el("tr"); tr.appendChild(td("No list yet: Claude adds it on the next refresh.","l dim")); tb.appendChild(tr); t.appendChild(tb); } }
+    setTimeout(function(){
+      var p=typeof ref.get==="function"? ref.get() : Promise.reject({code:"no get"});
+      Promise.race([p, new Promise(function(_,no){ setTimeout(function(){ no({code:"timeout"}); },10000); })]).then(function(s){ got(s,"read"); }).catch(function(e){
+        var done=false, un=null, tm=setTimeout(function(){ if(done) return; done=true; try{ un&&un(); }catch(x){} latestLoading=false; window.__err("Latest rated: no answer"); latestMsg("Didn't load (no answer).", true); },12000);
+        try{ un=ref.onSnapshot(function(s){ if(done || (s.metadata && s.metadata.fromCache && !s.exists)) return; done=true; clearTimeout(tm); try{ un&&un(); }catch(x){} got(s,"live"); },
+          function(e2){ if(done) return; done=true; clearTimeout(tm); latestLoading=false; window.__err("Latest rated: "+(e2&&e2.code||e2)); latestMsg("Didn't load ("+(e2&&e2.code||"error")+").", true); }); }
+        catch(x){ done=true; clearTimeout(tm); latestLoading=false; latestMsg("Didn't load.", true); }
+      });
+    }, 2500);
+  }
+  function studyCount(){ var n=(picks.study||[]).length, e=$("y-study"); if(e) e.textContent=n? n+" queued for study (slowly, low priority)" : "Tick levels to queue them for study: fetch, cut into structures, score."; }
+  // ---- features: Claude's flows and ideas (state.features) + the ideas Evgeni adds and picks (picks.feat_*) ----
+  function featIdeas(){
+    var F=state && state.features || {}, seen={}, out=[];
+    (F.ideas||[]).forEach(function(i){ seen[i.id]=1; }); live(F.ideas).forEach(function(i){ out.push(Object.assign({}, i)); });
+    (picks.feat_ideas||[]).forEach(function(i){ if(!seen[i.id]) out.push({id:i.id,title:i.title,status:"idea",mine:true}); });
+    var pk={}; (picks.feat_picks||[]).forEach(function(x){ pk[x]=1; });
+    out.forEach(function(i){ i._on=!!pk[i.id] || i.status==="in progress" || i.status==="done"; if((!i.status || i.status==="idea") && pk[i.id]) i._st="picked"; else i._st=i.status||"idea"; });
+    var rank={"in progress":0,"picked":1,"idea":2,"done":3};
+    return out.sort(function(a,b){ return (rank[a._st]!=null?rank[a._st]:2)-(rank[b._st]!=null?rank[b._st]:2); });
+  }
+  function renderFeatures(){
+    var F=state && state.features; if(!F) return;
+    var t=$("ftable"); t.textContent="";
+    var th=el("thead"), hr=el("tr"); ["Flow","Maturity"].forEach(function(h,i){ var c=el("th",i?null:"l",h); hr.appendChild(c); }); th.appendChild(hr); t.appendChild(th);
+    var tb=el("tbody");
+    (F.flows||[]).forEach(function(f){
+      var r=el("tr"), c=td(null,"l"); c.appendChild(el("div",null,f.name)); if(f.note) c.appendChild(el("div","dim",f.note)); c.appendChild(el("div","dim","⏱ "+(f.time||"not measured"))); r.appendChild(c);
+      var m=td(null), d=el("span","mat"); d.title=f.maturity+" of 5";
+      for(var k=1;k<=5;k++) d.appendChild(el("span",k<=f.maturity?null:"off","●"));
+      m.appendChild(d); r.appendChild(m); tb.appendChild(r);
+    });
+    t.appendChild(tb);
+    var ideas=featIdeas(), box=$("fideas"); box.textContent="";
+    var n={}; ideas.forEach(function(i){ n[i._st]=(n[i._st]||0)+1; });
+    $("f-sum").textContent=(F.flows||[]).length+" flows · "+ideas.length+" ideas"+(n["in progress"]?" · "+n["in progress"]+" in progress":"")+(n.picked?" · "+n.picked+" picked":"");
+    ideas.forEach(function(i){
+      var lab=el("label","cand"+(i._on?" on":""));
+      var cb=document.createElement("input"); cb.type="checkbox"; cb.checked=i._on; cb.disabled=!canWrite || i._st==="in progress" || i._st==="done";
+      cb.onchange=function(){ var s=(picks.feat_picks||[]).filter(function(x){ return x!==i.id; }); if(cb.checked) s.push(i.id); picks.feat_picks=s; renderFeatures(); save(); };
+      lab.appendChild(cb);
+      var b=el("div","body"); b.appendChild(el("span","title",i.title));
+      if(i.note) b.appendChild(el("span","note",i.note));
+      var sub=el("span","sub"); if(i.mine) sub.appendChild(el("span","area","Your idea"));
+      sub.appendChild(el("span","pill p-"+String(i._st||"idea").replace(/ /g,"-"),i._st));
+      b.appendChild(sub); lab.appendChild(b); box.appendChild(lab);
+    });
+  }
+  function renderDone(){
+    if(!state) return;
+    var groups=[["Workstreams",state.workstreams,"name"],["Tasks",state.candidates,"title"],["Feature ideas",state.features&&state.features.ideas,"title"],["Levels",state.levels,"name"]];
+    var box=$("donelist"); box.textContent=""; var n=0;
+    groups.forEach(function(g){
+      var items=(g[1]||[]).filter(archived); if(!items.length) return; n+=items.length;
+      box.appendChild(el("h3","done-h",g[0]+" · "+items.length));
+      items.forEach(function(x){ var r=el("div","done-row"); r.appendChild(el("span","t",x[g[2]]||x.name||x.title||x.id));
+        var w=x.note||x.summary; if(w) r.appendChild(el("span","dim",w)); box.appendChild(r); });
+    });
+    $("done-sum").textContent=n? n+" finished, kept out of the way" : "nothing yet";
+    if(!n) box.appendChild(el("div","queue-empty","Finished items land here a day after they're done."));
+  }
+  // each part renders on its own: one part that fails shows its error and the rest still render
+  var RENDERS={Done:function(){renderDone();},Features:function(){renderFeatures();},Played:function(){renderPlayed();},Levels:function(){renderLevels();},Usage:function(){renderUsage();},Fresh:function(){renderFresh();},Workstreams:function(){renderWs();},Mains:function(){renderMains();},Physics:function(){renderPhys();},Latest:function(){renderLatest();},Queue:function(){renderQueue();},Filters:function(){renderFilters();},Candidates:function(){renderCands();}};
+  var renderErrs={};
+  function renderAll(){ Object.keys(RENDERS).forEach(function(k){ try{ RENDERS[k](); }catch(e){ if(!renderErrs[k]){ renderErrs[k]=1; window.__err("render "+k+": "+(e&&e.message||e)+(e&&e.stack? " @ "+String(e.stack).split("\n").slice(0,2).join(" "):"")); } } }); }
+
+  // ---- writes (one at a time, coalesced) ----
+  var writing=false, dirty=false;
+  function save(){
+    if(!db){ $("saved").textContent="Can't save here: open the board on claude.ai while signed in."; return; }
+    dirty=true; if(writing) return;
+    writing=true; dirty=false;
+    $("saved").textContent="Saving…";
+    var body={selected:picks.selected.slice(), ideas:(picks.ideas||[]).slice(), study:(picks.study||[]).slice(), feat_picks:(picks.feat_picks||[]).slice(), feat_ideas:(picks.feat_ideas||[]).slice(), changed_at:new Date().toISOString()};
+    db.doc("board/picks").set(body).then(function(){
+      $("saved").textContent=$("fsaved").textContent="Saved "+fmtClock(new Date())+". Claude picks it up on the next update.";
+    }).catch(function(e){
+      if(e && e.code==="invalid_argument"){ canWrite=false; renderAll(); $("saved").textContent="This board is read-only for you."; }
+      else $("saved").textContent="Couldn't save ("+(e&&e.code||"error")+"). Try again in a moment.";
+    }).then(function(){ writing=false; if(dirty) save(); });
+  }
+  function toggle(id,on){
+    var s=picks.selected.filter(function(x){ return x!==id; });
+    if(on) s.push(id);
+    picks.selected=s; renderQueue(); renderCands(); save();
+  }
+  function move(id,dir){
+    var s=picks.selected.slice(), i=s.indexOf(id), j=i+dir;
+    if(i<0||j<0||j>=s.length) return;
+    s[i]=s[j]; s[j]=id; picks.selected=s; renderQueue(); save();
+  }
+  $("idea").addEventListener("input",function(){ $("addbtn").disabled=!this.value.trim()||!canWrite; });
+  $("addform").addEventListener("submit",function(ev){
+    ev.preventDefault();
+    var v=$("idea").value.trim(); if(!v) return;
+    var id="idea-"+Date.now().toString(36);
+    picks.ideas=(picks.ideas||[]).concat([{id:id,title:v,added_at:new Date().toISOString()}]);
+    picks.selected=picks.selected.concat([id]);
+    $("idea").value=""; $("addbtn").disabled=true;
+    renderAll(); save();
+  });
+
+  $("fidea").addEventListener("input",function(){ $("faddbtn").disabled=!this.value.trim()||!canWrite; });
+  $("faddform").addEventListener("submit",function(ev){
+    ev.preventDefault();
+    var v=$("fidea").value.trim(); if(!v) return;
+    var id="fidea-"+Date.now().toString(36);
+    picks.feat_ideas=(picks.feat_ideas||[]).concat([{id:id,title:v,added_at:new Date().toISOString()}]);
+    $("fidea").value=""; $("faddbtn").disabled=true;
+    renderFeatures(); save();
+  });
+  $("y-all").addEventListener("click",function(){ if(!canWrite) return; var keys=Array.prototype.map.call(document.querySelectorAll("#ytable tbody input[type=checkbox]"),function(c){ return c; });
+    var st=(picks.study||[]).slice(), have={}; st.forEach(function(x){ have[x]=1; });
+    var P=played, q=($("y-q").value||"").trim().toLowerCase();
+    (P&&P.levels||[]).forEach(function(r){ var ok=yMatch(r,q);
+      var k=(r.kind==="main"?"m":"")+r.id; if(ok && !have[k]){ st.push(k); have[k]=1; } });
+    picks.study=st; renderPlayed(); save(); });
+  $("y-q").addEventListener("input",function(){ yShow=200; renderPlayed(); });
+  $("r-q").addEventListener("input",function(){ rShow=100; renderLatest(); });
+  setInterval(renderFresh, 60000);
+
+  // ---- connect ----
+  // The data comes from three live subscriptions. A subscription can hang (the app's frame kept in the background,
+  // a dropped connection): then the page used to sit on placeholders forever. Now: a 12 s watchdog, a real error with a
+  // Retry button, a one-shot read as a fallback, and a fresh connection whenever the page comes back into view stale.
+  var loadFailed=false, unsubs=[], gotLive=0, watchdog=null, tries=0;
+  function showBanner(t, retry){ var b=$("banner"); b.textContent=t; if(retry){ var r=el("button",null,"Retry"); r.type="button"; r.onclick=function(){ connect(true); }; b.appendChild(r); diag(b); } b.hidden=false; }
+  // what the platform says about this page's permissions, and a way to the Permissions panel
+  function diag(b){
+    window.claude.use("permissions").then(function(pm){
+      if(!pm) return;
+      pm.state().then(function(m){ var keys=Object.keys(m||{}); var line=el("div","dim");
+        line.style.marginTop="6px"; line.style.fontSize=".8rem";
+        line.textContent="Permissions: "+(keys.length? keys.map(function(k){ return k+" "+m[k]; }).join(", ") : "none reported")+(lastErr? " · last error: "+lastErr : "");
+        b.appendChild(line);
+        if(keys.some(function(k){ return m[k]==="denied"||m[k]==="prompt"; })){
+          var a=el("button",null,"Allow data access"); a.type="button";
+          a.onclick=function(){ pm.request(["db","user"]).then(function(){ connect(true); }); }; b.appendChild(a);
+          var mg=el("button",null,"Permissions"); mg.type="button"; mg.onclick=function(){ pm.manage().then(function(){ connect(true); }).catch(function(){}); }; b.appendChild(mg);
+        }
+      }).catch(function(){});
+    }).catch(function(){});
+  }
+  function phText(t){ Array.prototype.forEach.call(document.querySelectorAll(".ph"),function(e){ e.textContent=t; }); }
+  function failed(why){
+    if(state) { showBanner("Live updates stopped ("+why+"). What you see may be out of date.", true); return; }
+    loadFailed=true; renderFresh(); phText("Couldn't load: "+why+". Tap Retry at the top.");
+    showBanner("Couldn't load the board's data: "+why+".", true);
+  }
+  var playedLoading=false, lastErr="";
+  // board/played is stored compact ({cols, rows}: a document must stay under 256 KB); older copies have levels[]
+  function unpackPlayed(d){ if(d && d.rows && d.cols && !d.levels) d.levels=d.rows.map(function(r){ var o={}; d.cols.forEach(function(c,i){ if(r[i]!=null) o[c]=r[i]; }); return o; }); return d; }
+  // a plain read, with a time limit; if it doesn't answer, one live read (take the first answer, then stop);
+  // either way the section says what happened and offers Retry
+  var playedTries=0;
+  function playedMsg(t, retry){ var e=$("y-sum"); if(!e) return; e.textContent=t; if(retry){ var b=el("button","chip","Retry"); b.type="button"; b.onclick=function(){ playedLoading=false; loadPlayed(); }; e.appendChild(document.createTextNode(" ")); e.appendChild(b); } }
+  // one document, read with a time limit, then a one-shot live read if the plain read doesn't answer
+  function getDoc(p, ok, bad){
+    var ref=db.doc(p);
+    var g=typeof ref.get==="function"? ref.get() : Promise.reject({code:"no get"});
+    Promise.race([g, new Promise(function(_,no){ setTimeout(function(){ no({code:"timeout"}); },10000); })]).then(function(s){ ok(s,"read"); }).catch(function(e){
+      window.__st(p+" read "+(e&&e.code||e));
+      var done=false, un=null, tm=setTimeout(function(){ if(done) return; done=true; try{ un&&un(); }catch(x){} bad("no answer"); },12000);
+      try{ un=ref.onSnapshot(function(s){ if(done || (s.metadata && s.metadata.fromCache && !s.exists)) return; done=true; clearTimeout(tm); try{ un&&un(); }catch(x){} ok(s,"live"); },
+        function(e2){ if(done) return; done=true; clearTimeout(tm); bad(e2&&e2.code||String(e2)); }); }
+      catch(x){ done=true; clearTimeout(tm); bad(String(x)); }
+    });
+  }
+  // board/played is split in parts (board/played, board/played_2, ...): each stays small
+  function loadPlayed(){
+    if(played || playedLoading || !db) return;
+    playedLoading=true; playedTries++; playedMsg("Loading your levels…");
+    function fail(why){ playedLoading=false; window.__err("Your levels: "+why); playedMsg("Your levels didn't load ("+why+").", true); }
+    setTimeout(function(){
+      getDoc("board/played", function(s,how){
+        if(!s || !s.exists){ playedLoading=false; window.__st("played missing"); playedMsg("No levels saved yet."); return; }
+        var head=s.data(), n=head.parts||1, rows=(head.rows||[]).slice(), got=1;
+        window.__st("played 1/"+n+" ("+how+")");
+        if(n<=1){ playedLoading=false; played=unpackPlayed(head); renderAll(); return; }
+        var parts=[]; playedMsg("Loading your levels… 1 of "+n);
+        (function next(k){
+          if(k>n){ head.rows=rows.concat.apply(rows, parts); playedLoading=false; played=unpackPlayed(head); window.__st("played ok"); renderAll(); return; }
+          getDoc("board/played_"+k, function(s2){ if(s2 && s2.exists){ parts.push(s2.data().rows||[]); } playedMsg("Loading your levels… "+k+" of "+n); next(k+1); }, function(w){ fail("part "+k+": "+w); });
+        })(2);
+      }, fail);
+    }, gotLive? 0 : 1500);
+  }
+
+  // when live updates never connect but a plain read works: read again every minute
+  var poller=null;
+  function startPolling(){
+    if(poller) return;
+    poller=setInterval(function(){ var r=db.doc("board/state"); if(r && r.get) r.get().then(function(s){ if(s){ state=s.exists? s.data():null; renderAll(); } }).catch(function(){}); }, 60000);
+  }
+  function gotState(s){ window.__st("state "+(s.exists?"ok":"missing"));
+    gotLive=Date.now(); clearTimeout(watchdog); loadFailed=false; $("banner").hidden=true;
+    state=s.exists? s.data() : null; if(!state) phText("No data yet: Claude hasn't posted the first update."); renderAll();
+  }
+  function connect(manual){
+    if(!db) return;
+    tries++; unsubs.forEach(function(u){ try{ if(typeof u==="function") u(); }catch(e){} }); unsubs=[];
+    if(manual){ $("banner").hidden=true; if(!state){ loadFailed=false; renderFresh(); phText("Loading…"); } }
+    clearTimeout(watchdog);
+    watchdog=setTimeout(function(){
+      // the live subscription is silent: try one plain read before giving up
+      var ref=db.doc("board/state");
+      if(ref && typeof ref.get==="function") Promise.race([ref.get(), new Promise(function(_,no){ setTimeout(function(){ no({code:"timeout"}); },8000); })])
+        .then(function(s){ if(s && !gotLive){ gotState(s); gotLive=0; startPolling(); loadPlayed(); showBanner("Live updates aren't connected, so the board re-reads its data every minute.", true); } })
+        .catch(function(e){ failed(e && e.code==="timeout"? "no answer after 20 s" : "the read failed ("+(e&&e.code||"error")+")"); });
+      else failed("no answer after 12 s");
+    },12000);
+    unsubs.push(db.doc("board/state").onSnapshot(function(s){
+      if(s.metadata && s.metadata.fromCache && !s.exists) return; // an empty cache is not an answer: keep waiting for the server
+      if(s.metadata && s.metadata.fromCache){ state=s.data(); renderAll(); return; }
+      gotState(s);
+    }, function(e){ clearTimeout(watchdog); lastErr="state: "+(e&&e.code||"error"); failed("the connection dropped ("+(e&&e.code||"error")+")"); }));
+    // "Your levels" is a big document (~340 KB): read it once, after the small live ones answer, never as a live
+    // subscription (a big live document is the likeliest thing to stall the page's whole data connection)
+    loadPlayed(); loadLatest();
+    unsubs.push(db.doc("board/picks").onSnapshot(function(s){
+      if(!window.__pk){ window.__pk=1; window.__st("picks "+(s.exists?"ok":"missing")); }
+      if(writing || dirty) return; // don't overwrite a local edit in flight
+      var p=s.exists? s.data() : null;
+      picks={selected:(p&&p.selected||[]).slice(), ideas:(p&&p.ideas||[]).slice(), study:(p&&p.study||[]).slice(), feat_picks:(p&&p.feat_picks||[]).slice(), feat_ideas:(p&&p.feat_ideas||[]).slice()};
+      renderAll();
+    }, function(){}));
+  }
+  // back in view after a long time with no live answer: connect again
+  document.addEventListener("visibilitychange",function(){ if(!document.hidden && db && (!state || loadFailed)) connect(true); });
+  window.__st("script start");
+  if(!window.claude || !window.claude.use){ showBanner("Open this board on claude.ai to see live data."); phText("Open this board on claude.ai to see its data."); renderAll(); return; }
+  Promise.race([window.claude.use("db"), new Promise(function(ok){ setTimeout(function(){ ok("timeout"); },12000); })]).then(function(d){
+    if(d==="timeout"){ window.__st("db timeout"); failed("the page's database didn't start"); return; }
+    if(!d){ window.__st("db null"); lastErr="db not granted to this view"; showBanner("This view didn't get access to the board's data (signed out, or the permission is off).", true); phText("Open the board on claude.ai while signed in."); renderAll(); return; }
+    db=d; window.__st("db ready"); connect(false);
+    window.claude.use("user").then(function(u){
+      if(!u || !u.can) return;
+      u.can("data.write").then(function(ok){ if(ok===false){ canWrite=false; renderAll(); } });
+    }).catch(function(){});
+  }).catch(function(e){ failed("the page's database didn't start ("+(e&&e.code||"error")+")"); });
+  renderAll();
+})();
+</script>

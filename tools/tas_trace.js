@@ -13,7 +13,7 @@ const li = args.indexOf("--late"); let late = null;
 if (li >= 0) { late = { ship: 1, ufo: 1 }; for (const p of args[li + 1].split(",")) { const [m, k] = p.split("="); late[m] = +k; } args.splice(li, 2); }
 const [a, b] = (args[0] || "1730,1750").split(",").map(Number);
 const n = +(args[1] || 22);
-const SRC = "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash/Resources/levels/";
+const SRC = require("./gdpaths.js").LEVELS;
 const L = GD.parseLevel(unpack(fs.readFileSync(SRC + n + ".txt", "utf8")));
 const w = GD.makeWorld(L.objects, L.header);
 const ev = T.loadPlan(n).map(e => ({ tick: e.tick + (nudge.get(e.tick) || 0), type: e.type }));

@@ -63,6 +63,10 @@ Link: in `local/phone/url.txt` (shared folder; also in Claude's memory). Not in 
 - Not on the phone: official RobTop levels (`levels.local.js`), recordings and "compare". Links: a published page's address
   keeps only a plain `#name`, so the phone page opens the short form `#<base>--v5--t40` (LINKS.md; `tools/link.js` prints
   it), and its 🔗 open link box takes any pasted link.
+- **Deco options** (2026-11-25): the "deco" button (or #deco) opens deco/index.html over the page: tools/decogallery.js
+  and tools/decodemo.js frames (GD art) as 960 px JPGs, ice and fire side by side. Build: run both with --shots, then
+  `node tools/deco_page.js` (-> local/phone_deco/), then tools/web.js carries it as deco/. GD art: only on this private page
+  (VISUALS.md, the one exception). To add or refresh just the pictures, publish with `files` = the deco/ paths only.
 
 ## Offline snapshot: the PC viewer in one file (2026-11-24)
 
@@ -102,7 +106,7 @@ card: never commit, upload or publish it, because RobTop's art, the official lev
 | a new database, or rows lost | `node tools/wip.js phone` writes rows for every current level; send them (one `batch` with `file_path` entries). |
 | before handling marks | ArtifactData `{action: "list", collection: "marks", out_dir: "<main checkout>/local/phone"}` -- the REAL path of the shared folder (`node -e "console.log(require('fs').realpathSync('local'))"`), not the worktree's `local/` link: ArtifactData refuses paths under `.claude/`. Then `node tools/marks.js` lists them with the rest ("from the phone"). |
 | closing a phone mark | `node tools/marks.js done <id> "reply"` as usual, AND ArtifactData `update` on `marks/<id>` with `{done: true, reply}` so the phone shows it closed. |
-| the viewer code or pushed levels changed | `node tools/web.js --out <scratchpad>/web`, then publish with what `publish.json` says (`file_path`, `root`, `files`, `capabilities: {db: {}, downloads: true}`: downloads lets the ✏ board save .gdlvl / .json) and `url` from `local/phone/url.txt`. From a new conversation, `read` the artifact first. Tell the user the page changed. |
+| the viewer code or pushed levels changed | `node tools/web.js --private --out <scratchpad>/web` (the user's own phone viewer is the private build: it also loads `levels.local.js`, the 22 main levels, and fetches their songs from `songs/`; both are already published next to the page and are kept when a publish leaves them out, so never list them. Without `--private` the page loses the main levels and their music. `--private` is only for that page, never a shared or public one), then publish with what `publish.json` says (`file_path`, `root`, `files`, `capabilities: {db: {}, downloads: true}`: downloads lets the ✏ board save .gdlvl / .json) and `url` from `local/phone/url.txt`. From a new conversation, `read` the artifact first. Tell the user the page changed. |
 
 `tools/web.js` builds the page from `viewer/index.html` by exact text swaps; when the viewer
 changes, a swap that no longer matches stops the build with the text to update ("viewer changed,
@@ -141,6 +145,16 @@ lib/objects*.js it was solved on; older ones are stale and get solved again. The
 then only replays. Without it the phone solved the level itself: GDLM 45 (61 s with ship and wave)
 takes ~5 min to solve on the PC, and the page looked hung on the phone (user, Nov 22).
 
+## Private build: the main levels and their songs (2026-11-25)
+
+Evgeni chose "Yes, private viewer only": his own private phone viewer (the Artifact in local/phone/url.txt,
+readable by only him) also carries RobTop's 22 main levels with their saved routes and the game's own songs, so they
+replay with music on the phone. `levels.local.js` (only the official entries) and `songs/<name>.mp3` (~33 MB) were
+published next to the page once; `node tools/web.js --private` builds a page that loads them, and a republish keeps
+them without listing them (see the table above). Rules: never commit them, never use --private for the public site,
+a shared page or any other Artifact. Checked headless: 22 main levels listed, Stereo Madness loads its route and its
+song decodes.
+
 ## Open
 
 - GD's own art (VISUALS.md) is NOT on the phone page: `tools/web.js` strips `lib/art.js` and its tables,
@@ -150,6 +164,7 @@ takes ~5 min to solve on the PC, and the page looked hung on the phone (user, No
   the user is to try Chrome). If it never does, a song could come another way: a phone-side
   upload into the page's store (the asset store takes no audio) is not possible today.
 
+- A level whose wip row is over 250 KB never reaches the phone's `wip` (wip.js prints "too big" and sends nothing; GDLM 72 FROSTBITE: 662 KB, 2026-11-25): it shows on the phone only after it is pushed and the page is republished with web.js.
 - A session forgetting the ArtifactData call leaves the phone a version behind; nothing checks it.
   A check could compare `local/wip/` versions with the rows (one `list`).
 - Marks made on the desktop viewer are not shown on the phone (they live in `local/marks.jsonl`);

@@ -1,4 +1,5 @@
-// node tools/hits.js <song id | local/songs/x.mp3 | official:N> [--from bar] [--to bar] [--json]
+// node tools/hits.js <song id | local/songs/x.mp3 | official:N> [--from bar] [--to bar] [--json] [--bpm B --t0 S --downbeat 0]
+//   (--bpm / --t0 / --downbeat: a local grid instead of local/beats', for songs whose grid drifts; t0 = a downbeat's second)
 //   -- the song's real hits on its beat grid: for every half-beat, how hard the kick (< 150 Hz),
 //      the snare/clap (150 Hz-4 kHz) and the top (> 5 kHz) hit there, as z-scores over the song.
 //      One line per bar: K = kick, S = snare/clap, x = a lesser hit, . = nothing, upper case +
@@ -7,7 +8,7 @@
 //      ("b1" = the first beat at or after offset 0), so a spec can put "j<beat>" on a hit.
 //   For ultra-synced levels (GDLM 62): put every press on a slot with kind K/S/A, never on '.'.
 //   Light job (decodes one song, ~10 MB); needs the beat grid (node tools/beats.js).
-// node tools/hits.js --level levels/<name>.gdlvl [--skip 27.9-39.2]
+// node tools/hits.js --level levels/<name>.gdlvl [--skip 27.9-39.2] [--bpm B --t0 S --downbeat 0]
 //   -- how well a level's presses sit on the song's hits: from its saved solution (tools/solutions.js),
 //      each press's song time against the nearest K/S/accent slot; the share within +-1 frame (16.7 ms)
 //      and +-2 frames, and the median offset. --skip a-b (song seconds, repeatable): leave out a
@@ -50,10 +51,14 @@ function bandFlux(pcm) {
   return out;
 }
 
-function hits(arg) {
+function hits(arg, grid) {
   const { file, url } = songFile(arg);
-  const b = loadBeats(url);
+  let b = loadBeats(url);
   if (!b || !b.ok) throw new Error("no beat grid for " + url + ": run node tools/beats.js");
+  // a local grid (--bpm / --t0 / --downbeat): a song whose whole-song grid drifts or sits half a beat off in the part a
+  // level uses (343707: the whole-song grid is low confidence, 100 ms drift; its 20-80 s alone is 145.01 BPM, beats at
+  // 0.2736 + n*P, bars from 1.101 s -- the whole-song grid had them half a beat off there). Fit one with beats.js on a cut.
+  if (grid && (grid.bpm || grid.t0 != null)) { const bpm = grid.bpm || b.bpm; b = Object.assign({}, b, { bpm, period: 60 / bpm, t0: grid.t0 ?? b.t0, downbeat: grid.downbeat ?? 0 }); }
   const pcm = decode(file || b.file);
   const env = bandFlux(pcm);
   const centre = N / 2 / HOP;
@@ -86,7 +91,7 @@ if (require.main === module) {
   const opt = (k, d) => { const i = args.indexOf(k); return i >= 0 ? +args[i + 1] : d; };
   if (!args[0]) { console.log("usage: node tools/hits.js <song id | file | official:N> [--from bar] [--to bar] [--json]"); process.exit(1); }
   if (args[0] === "--level") return levelReport(args[1], args);
-  const h = hits(args[0]);
+  const h = hits(args[0], { bpm: opt("--bpm", undefined), t0: opt("--t0", undefined), downbeat: opt("--downbeat", undefined) });
   const out = path.join(__dirname, "..", "local", "hits");
   fs.mkdirSync(out, { recursive: true });
   const key = path.basename(h.song, ".mp3");
@@ -110,7 +115,9 @@ function levelReport(file, args) {
   if (!sol || !sol.ok) throw new Error("no saved solution for " + file + ": run node tools/solutions.js " + file);
   const song = GD.getField(rec, "k45");
   const off = +((/(?:^|,)kA13,([-0-9.]+)/.exec(str.split(";")[0]) || [])[1] || 0);
-  const h = hits(song);
+  const opt = (k) => { const i = args.indexOf(k); return i >= 0 ? +args[i + 1] : undefined; };
+  // the level's own grid when it pins one (spec "grid" -> the --bpm / --t0 it was built on), else the song's
+  const h = hits(song, { bpm: opt("--bpm"), t0: opt("--t0"), downbeat: opt("--downbeat") });
   const skips = [];
   args.forEach((a, i) => { if (a === "--skip") { const [x, y] = args[i + 1].split("-").map(Number); skips.push([x, y]); } });
   const strong = h.slots.filter(s => s.kind !== "." && s.kind !== "x");

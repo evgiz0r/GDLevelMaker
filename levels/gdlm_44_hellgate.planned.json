@@ -1,0 +1,77 @@
+{
+ "made": "tools/onbeat.js",
+ "planned": [
+  {
+   "t": 8.2752,
+   "what": "press on a lesser hit"
+  },
+  {
+   "t": 15.5159,
+   "what": "press on a lesser hit"
+  },
+  {
+   "t": 16.3435,
+   "what": "press on a strong hit"
+  },
+  {
+   "t": 18.2054,
+   "what": "press on a lesser hit"
+  },
+  {
+   "t": 21.9292,
+   "what": "press on a strong hit"
+  },
+  {
+   "t": 22.343,
+   "what": "press on a strong hit"
+  },
+  {
+   "t": 23.1705,
+   "what": "press on a lesser hit"
+  },
+  {
+   "t": 23.5842,
+   "what": "press on a strong hit"
+  },
+  {
+   "t": 24.4118,
+   "what": "press on a lesser hit"
+  },
+  {
+   "t": 43.8584,
+   "what": "press on a lesser hit"
+  },
+  {
+   "t": 45.0997,
+   "what": "press on a lesser hit"
+  },
+  {
+   "t": 47.3754,
+   "what": "press on a strong hit"
+  },
+  {
+   "t": 48.6167,
+   "what": "press on a strong hit"
+  },
+  {
+   "t": 50.0648,
+   "what": "press on a strong hit"
+  },
+  {
+   "t": 57.0987,
+   "what": "press on a strong hit"
+  },
+  {
+   "t": 57.5125,
+   "what": "press on a strong hit"
+  },
+  {
+   "t": 58.34,
+   "what": "press on a strong hit"
+  },
+  {
+   "t": 59.1675,
+   "what": "press on a strong hit"
+  }
+ ]
+}

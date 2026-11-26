@@ -23,7 +23,7 @@ const win = (opt("window", "172,94,1600")).split(",").map(Number), W = win[2], H
 const PX = 3.375 * W / 1920;   // px per unit at this window width (1080p: 3.375, CLAUDE.md "Calibration")
 
 // the level and the attempt line
-const SRC = process.env.GD_LEVELS || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash/Resources/levels/";
+const SRC = require("./gdpaths.js").LEVELS;
 const levelStr = lv.startsWith("official:") ? unpack(fs.readFileSync(SRC + lv.slice(9) + ".txt", "utf8"))
   : /^c\d+$/.test(lv) ? readGdlvl(path.join(ROOT, "local", "community", lv.slice(1) + ".gdlvl")).levelStr : readGdlvl(lv).levelStr;
 const L = GD.parseLevel(levelStr), w = GD.makeWorld(L.objects, L.header);

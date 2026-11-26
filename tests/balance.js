@@ -11,4 +11,7 @@ for (const a of b.inputs) assert(Math.abs(a.lapse + a.timing + a.settle - a.cost
 assert.strictEqual(DF.settleOf(acts[2]), 200 / 300, "late-open windows still count as forced by default (open question)");
 assert.strictEqual(DF.settleOf(acts[2], 300, true), 1, "exempt when asked");
 assert(b.ifOpenExempt < b.score && b.openForced === 1);
+const { cleanFly } = require("../tools/difficulty_fit_v2.js");
+const cf = cleanFly([[33, "ship", 67, 60], [34, "ship", 0, 60], [35, "ship", 60, 60]]);
+assert.strictEqual(cf[1][2], 60, "a lone 0-slack second (glitch) takes its neighbours' median");
 console.log("ok");

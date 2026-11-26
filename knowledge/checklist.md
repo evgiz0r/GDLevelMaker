@@ -31,6 +31,26 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 - [ ] **Fly corridors are smooth: no one-block stair steps in a ship or wave wall** (2026-11-25: GDLM 44's ship died in the real
   game at a stepped roof's corner where our sim passed, PHYSICS.md "probe mod"). Build them with `fly-path` (45-degree slopes
   on both walls), not `ship-tunnel`; the margin our sim gives at a block corner is not to be trusted.
+- [ ] **Brick joins get 3+ flat blocks, and a brick whose own check found a prejump is not used** (2026-11-25, GDLM 44 v3: 1-2 block joins made 5 prejumps and a tap 183 ms after a gravity portal). `tools/brickpick.js` enforces it; score.js "prejumps" / "fairness" check it.
+- [ ] **Room at every portal, counted at 1x and stretched with the speed** (GDLM 73, 2026-11-26, nine rounds): the first
+  input 7 blocks after a ground portal (13 after a flight's exit), the last 1.5 beats before the next portal (3 for ball /
+  spider), no floor step right behind a portal (a forced jump on arrival), a flight's gate open 4 rows (a wave arriving held
+  rose into a 3-row gate's top), no 1x -> 3x jump in one portal. `tools/planbuild.js` does all of it; score.js "fairness".
+- [ ] **Single spikes at speed need air between them** (GDLM 73): at 2x+ at least 0.65 s from one jump to the next (0.5-0.62 s
+  apart made the route take off 2-3 blocks early: prejumps), a double only with 0.6 s free on both sides (else a 25 ms tap).
+  planbuild / brickpick `fillGap`; score.js "prejumps", "timing".
+- [ ] **Balanced sections** (Evgeni 2026-11-25 on Hellgate v4: "this whole section has 2 clicks? we need balanced sections.
+  with somewhat similar cps"): every section's clicks per second near the level's own (none under about half of it,
+  breathers named as breathers). A 3 s ball part with 2 clicks next to 2-click-a-second cube parts reads as a hole.
+- [ ] **No big gaps between pieces** (same review, 4 marks "too big gap"): inside a section the next thing to press comes
+  within about a second; a long flat run-up or an empty landing between two pieces is a gap, not a breather.
+- [ ] **No corridor twice, none too long** (same review: "way too long corridor", "again same corridor", "same corridor
+  x3"): a fly part is a few short ideas (gates, open stretch, a narrowing, a wall to follow), each 2-4 s; never the same
+  corridor recipe twice in a level, even in another mode.
+- [ ] **A long stretch gets a new idea halfway** ("bit too long without variety"): nothing runs over ~4 s with one kind
+  of obstacle; the official levels add a twist (a new hazard, a height change, an orb) every few seconds.
+- [ ] **Every orb has an obvious reason** ("i dont get this orb"): an orb is there to clear something you can see
+  from it; an orb on a ledge with nothing to clear is noise.
 - [ ] **`node tools/fairness.js <level>` passes** (also `tools/score.js` gate "fairness"). It
   flags (FAIL): an input forced right after a portal (into a jumping mode: the first input's window
   closes < 250 ms after it; into the wave: the button must change within 300 ms); a jump mark where
@@ -146,6 +166,9 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   the next), tight lines only where the gap asks for them; no small corrections (re-presses under 150 ms) beyond the
   corridor's turns + 2. score.js route gate WARNs "off the pattern"; `node tools/flystyle.js <level>` per stretch.
   (the user, 2026-11-25: "these corridors should be just few holds and releases"; PHYSICS.md "The wave like a person")
+- [ ] **Jump off an edge before its last tick**: a cube / UFO / robot route does not press with its centre already past
+  the block's end (reads as sliding off the cliff). lib/natural.js `edgeJumps` moves such presses earlier; `GD.edgePresses`
+  lists them. (the user on ToE2 brick 237, 2026-11-25: "some wierd ufo jumps on the clif, he slides?! it shouldnt")
 - [ ] **Jump marks clear of hazards**: a mark shows the take-off, its centre >= ~1 block in front of the
   hazard's hitbox, never on or touching one. Placed by decorate.js jumpIndicators (INDICATOR.clear);
   `node tools/indicators.js <level> [--fix]`. (the user, hellgate round 2: "indicator inside spike")
@@ -166,6 +189,11 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 - [ ] **The background never reads as solid** (the user's Two Moons mark, 2026-11-25: "solid background is confusing"). Back
   shapes must not look like blocks you can land on: no block-like squares with lit rims behind the play, lower value and
   contrast than the path's bodies, softer or no outlines, a different hue or some transparency. `tools/roles.js` (pathDeco).
+- [ ] **Play blocks are a material, not a flat fill** (the user, 2026-11-26: "The blocks are still very timid. No effects. No
+  good texture. All single filled color"). Lit open tops, darker with depth, a surface texture (facets), a feature with light
+  (glowing seams on the beat), an edge and a shadow. `tools/blockart.js` (decoart.js --blocks); DECOART.md "Blocks".
+- [ ] **A section's backdrop is one composed picture** (focal light at a third, values light far -> dark near, nothing in
+  it reads as gameplay): DECOART.md, `tools/decoart.js`.
 - [ ] **The play stays visible: deco never hides the path or a hazard** (the user, 2026-11-25: RobTop's levels are amazing
   for "the visible play"; "if you dont see a spike the timing is obviously harder"). No deco in front of the lane the player
   can be in, none behind a hazard in its value or hue (it must stand out), the richest art at the lane's edges, quiet behind
@@ -258,6 +286,10 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   or for a press that only stops a fall, a roof coming down past the dip), within 3 blocks of the latest
   moment it works. A tunnel floor far below or a step 5+ blocks on is a prejump. `score.js` gate `prejumps`;
   built in by `tools/hitbuild.js` (SYNC.md section 8).
+- [ ] **The level answers the song's impacts, and has no dead stretch in a heavy part** (the user on GDLM 44, 2026-11-25:
+  "in 53-54 there are big drums like we are entering new section, but in the level its nothing"; "2 seconds of nothing"):
+  every impact of strength >= 0.5 gets a section start, portal or speed change within 1 beat, heavier parts may speed up,
+  and 1.5 s with nothing to do sits only where the music is quiet. `node tools/impacts.js --level <level>` (SYNC.md 9).
 - [ ] **Sync loosely**: portals, speed changes and the drop on the music's moments; most clicks free.
   `node tools/sync.js`. (SYNC.md "How much to sync")
 
@@ -273,6 +305,14 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   pieces (>= 12 per 100 blocks) over a floor that is a hazard >= 35% of the columns, neighbouring pillars
   of different heights, rods and chains attached to pieces, <= 20% loose deco. `node tools/craft.js check
   <level>` (score.js gate "craft"); generate with `"craft": true` and the craft structures. (CRAFT.md)
+
+- [ ] **Auto stretches** (AUTO.md; the main levels spend ~10% of their length with no press, 4-15 stretches of ~1-1.5 s,
+  often ending in a mode portal): a level has some, each clears with NO press, and a stray tap there does not kill
+  (clickSafe >= 0.8 in `knowledge/autobricks.json`). Pick them from `tools/autobricks.js`.
+- [ ] **Auto parts are planned from the beat** (Evgeni 2026-11-26: "plan our change of movement ( pad/portal ) , according to
+  the beat"): each change of movement fires on a beat, in motifs (AAAA, BBBB, a mix), and every trigger moves the player.
+  `tools/autobeat.js` builds this way and measures `onBeat` (aim 0.9+). On the song's NOTES, not only beats (Evgeni: "we hit
+  like 1/6 of the notes"): `notesHit` aim 0.5+, every note in loud parts; speed portals follow the music's `speedPlan`.
 
 ## Looks like 2.2, not 1.0 (levels/modern_look.md)
 

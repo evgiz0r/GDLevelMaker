@@ -144,10 +144,16 @@ function draw(cv, p, big) {
   cv.width = W * dpr; cv.height = H * dpr;
   const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
   // the height range from the route inside the piece only (a sample out past its ends must not zoom the picture out)
-  const py = p.path.filter(q => q[0] >= -1 && q[0] <= p.w + 1).map(q => q[1]); if (!py.length) py.push(0);
-  const ylo = Math.max(-0.5, Math.min(...py, 0) - 2), yhi = Math.max(...py, 3) + 3;
-  const z = Math.min(W / (p.w + 2), H / (yhi - ylo + 0.5));
-  const ox = (W - p.w * z) / 2, oy = big ? (H + (yhi - ylo) * z) / 2 + ylo * z : H - 4 + ylo * z;
+  // framed on what happens (Evgeni 2026-11-25: "the buffer to be just much smaller"): from a block before the first press or
+  // object inside the piece to a block after the last, the height from the route and those objects plus a block
+  const pr = (p.clicks || []).map(c => c[0]), inS = (p.shape || []).filter(s => s[3] > 0.05 && s[1] < p.w - 0.05);
+  // Evgeni 2026-11-26: "as tight as possible to the actual lego piece size [...] or at least have a border defining it":
+  // the frame is the brick itself (0..w) and a dashed border marks its two ends
+  const cx0 = 0, cx1 = p.w;
+  const py = p.path.filter(q => q[0] >= cx0 - 0.5 && q[0] <= cx1 + 0.5).map(q => q[1]).concat(inS.filter(s => s[1] < cx1 && s[3] > cx0).map(s => s[4])); if (!py.length) py.push(0);
+  const ylo = Math.max(-0.5, Math.min(...py, 0) - 1), yhi = Math.max(...py, 2) + 1.5, cw = Math.max(4, cx1 - cx0);
+  const z = Math.min(W / (cw + 0.6), H / (yhi - ylo + 0.5));
+  const ox = (W - cw * z) / 2 - cx0 * z, oy = big ? (H + (yhi - ylo) * z) / 2 + ylo * z : H - 4 + ylo * z;
   const X = x => ox + x * z, Y = y => oy - y * z;
   // the level's own colours where the piece starts (background, ground: header + colour triggers), when known
   const LC = p.colors || {}, sky = LC.bg || "#0f0c2b";
@@ -159,7 +165,7 @@ function draw(cv, p, big) {
   g.fillStyle = LC.bg ? "rgba(0,0,0,.55)" : "#3b3480";
   (p.walls || []).forEach(([f, r], c) => { if (f > 0) g.fillRect(X(c), Y(f), z + 0.5, f * z); if (r != null) g.fillRect(X(c), Y(yhi + 2), z + 0.5, (yhi + 2 - r) * z); });
   for (const s of p.shape) {
-    const [k, x0, y0, x1, y1, , corner] = s, c = COL[k] || "#888";
+    const [k, x0, y0, x1, y1, oc, corner] = s, c = (k !== "S" && k !== "L" && k !== "H" && oc) || COL[k] || "#888";   // orbs, pads, portals in their own colour (Evgeni: "need proper colors for orbs and portals")
     // objects past the brick's two ends belong to its neighbours in the level: drawn faint (the brick is cut by time
     // around its presses, so its route runs from end to end and the level's objects carry on past it)
     g.globalAlpha = x1 <= 0.05 || x0 >= p.w - 0.05 ? 0.25 : 1;
@@ -173,6 +179,9 @@ function draw(cv, p, big) {
     g.fillStyle = c; if (k === "L") g.globalAlpha *= .7; g.fillRect(X(x0), Y(y1), Math.max(1, (x1 - x0) * z), Math.max(1, (y1 - y0) * z));
   }
   g.globalAlpha = 1;
+  // the brick's border: where it starts and ends in its level
+  g.save(); g.setLineDash([5, 4]); g.strokeStyle = "rgba(255,255,255,.75)"; g.lineWidth = big ? 2 : 1;
+  g.strokeRect(X(0), Y(yhi) + 1, p.w * z, Y(ylo) - Y(yhi) - 2); g.restore();
   g.strokeStyle = "#4fe3ff"; g.lineWidth = big ? 3 : 2; g.setLineDash(p.midline ? [4, 4] : []); g.beginPath();
   // a jump of more than 3 blocks between two samples is a teleport: the line breaks there instead of crossing the picture
   p.path.forEach((q, i) => i && !jumpAt(p.path, i) ? g.lineTo(X(q[0]), Y(q[1])) : g.moveTo(X(q[0]), Y(q[1]))); g.stroke(); g.setLineDash([]);

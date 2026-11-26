@@ -385,6 +385,24 @@ sections moves EVERY earlier section's objects of that group again: the first se
 level. The ice kit gives each section its own parallax groups (470 + 3 * section). The space kit still shares G.piece /
 G.far across sections (GDLM 71): for gd-art to check in its renders.
 
+**Sunny** (`tools/themes/sunny.js`, 2026-11-26, for GDLM 73 sunny streets from the user's prompt: "Sunny mood, buildings
+clouds birds. happy colors, good contrasts. rather pacy"). The first LIGHT-sky kit: the contrast comes from the play being
+the darkest, most saturated thing on screen (a deep cobalt / berry body, bodyBg 5.6-6.9) with a sunny-yellow (golden:
+cream) rim and a pale roof line on every open top, windows lit on stacks (blocks read as little buildings); hazards on a
+hot pink-red rim (hazardEdge vs pathEdge 2.2-5.7). Behind: a far skyline of pale buildings near the sky's value (never
+reads as solid), a nearer row of pastel houses in three channels (pink / mint / lilac, pitched or flat roofs, soft
+windows that twinkle on the beat), puffy clouds (5 disks + a shaded underside) on two depths drifting left, a sun with
+two blending halo rings and slowly turning rays carried with the player, and flocks of small birds (a "v" of two lines
+per bird, each wing in its own group swaying on the beat = flapping) flying left across the sky. Five variants:
+`morning` (pale blue, low sun), `noon` (bluest, busiest), `breeze` (near-white sky, big clouds and a low cloud bank, no
+buildings: for flights), `park` (mint sky, trees and low houses, most birds: the break), `golden` (warm afternoon, berry
+blocks, cream rims). Header bg art 13 (the flat texture that shows a bright colour as set). Channels 140-156, groups
+540-550, per-section parallax 570 + 4 * section. `node tools/theme.js check sunny`: all five pass (park's mint houses
+first matched the yellow rim: edge~mid). Open: not yet seen in the game; whether the wing sway reads as flapping.
+**Gotcha for every kit (GDLM 73 v1):** a kit that sets key 21 only on `solid` and `hazard` objects leaves SLOPES (kind
+`slope`, 1338 etc.: every fly-path corridor wall) on the default white; on a light sky they matched the white clouds (roles
+FAIL pathDeco, 15 sections). The sunny kit colours slopes with the rim; ice and fire still skip them (dark skies hide it).
+
 ## Deco library (2026-11-24; the user: our levels look like "3 squares and poopy" next to real ones)
 
 Targets: knowledge/levels/modern_look.md "Recipe" (20-50 objects per block, layers B4-B5 ~20% / B1-B3 ~25% / T1 /
@@ -521,6 +539,11 @@ Brave Blue and Project Muse were also compared (local/compare/...):
 - Project Muse is a text / gimmick level that ranked high on motion alone. It is not a look reference.
 For now, Dreamy is the working side-by-side reference.
 
+## Deco as a picture (2026-11-26): DECOART.md
+
+The backdrop painted as one picture first, then built from flat GD shapes (fitted or as clean vector); round 1 on
+GDLM 44's opening. The art-free view now draws 211 / 693 / 497 / 1764 as their shapes.
+
 ## Deco options and composition (2026-11-25)
 
 The user: "lets think more about the deco, just evenly putting things is not good enough", then "show me some deco options
@@ -533,9 +556,18 @@ we can do, for bricks, for deco. the best features so far. idk for ice/fire."
 - **`tools/decogallery.js [--shots]`** (the user: "like firy blocks or spikes, some options of how it might look. background"):
   one small strip, one element changed at a time -- 5 block dressings, 5 hazard treatments (incl. the ice spike 177-179 and
   thorn pit 9 skins), 6 backgrounds -- each in ice and fire; page local/decogallery/index.html (GD art, PC only).
+- **The picks became kits (2026-11-25, the user: "continue with your picks")**: `tools/themes/fire.js` (new: obsidian + lava rim,
+  molten seams, plain spikes with a few sparks, two rock ranges, lava haze, rising embers; chains and rays as quiet extras;
+  variants molten / inferno / ash) and ice's dressPlay gained small icicles under open bottom edges. Use with brief/spec
+  `"theme": "fire"`. Fire demo on Eclipse's play: roles 0/35, white 0, decocomp quiet 0.15, focal 0.36 (officials' p50
+  0.08 / 0.33).
 - **`tools/decocomp.js`**: how deco is ARRANGED (rhythm cv, quiet stretches, peaks, focal share, clumping, set pieces,
   deco at transitions, following the play); `--ref` the officials' and the corpus' numbers -> knowledge/decocomp_ref.json.
-  Our levels: quiet ~0 (no breathing space), focal 0.25-0.29 (near even, 0.2).
+  Our levels: quiet ~0 (no breathing space), focal 0.25-0.29 (near even, 0.2). Reference (2026-11-25, p25/p50/p75):
+  officials quiet 0.02/0.08/0.20, focal 0.30/0.33/0.36, cv 0.56/0.77/1.22, big 0/0/0; 2.2 featured (n=77) quiet
+  0.03/0.12/0.22, focal 0.30/0.35/0.39, cv 0.63/0.94/1.30, big (set pieces per screen) 3/11/28, clump median 4.5 (officials
+  0.5), ~21% on back layers and ~22% in front (officials ~0). So: targets quiet >= 0.1, focal >= 0.33, cv >= 0.8, and set
+  pieces are what separates modern featured levels.
 - **`tools/lane.js`**: the play lane from the route (where the player can be), clutter in it, art at its edges, corridor
   framing; make.js runs its pass only with spec `"lane": true` (off until the composition model is agreed).
 - **Visible play first** (the user, 2026-11-25: "if you dont see a spike the timing is obviously harder"): every rung keeps

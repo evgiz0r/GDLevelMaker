@@ -390,6 +390,87 @@ Good numbers: portals on bar starts 60-76% (luck 25%); orbs R 0.08 (x2 luck); pr
 Asked of others: the style session's `score.js` sync gate warns below 60% of presses on a beat;
 asked them (Nov 22) to grade portals and drops instead, per the user's "not forced" rule.
 
+## 9. Impact points: where the song hits hard, not just its beats (Nov 25 2026)
+
+The user (2026-11-25, on GDLM 44 hellgate): "on some high beats it should enter a different section. the more
+'heavy' it is, the more chances we can increase speed for effect ... in 53-54 there are big drums like we are
+entering new section, but in the level its nothing"; "there are also a lot of dead moments, like transition of
+2 seconds of nothing"; and: not a one-off fix for that drum, but a general reading of the song's events.
+
+`node tools/impacts.js <song | --spec specs/x.json | --level levels/x.gdlvl>` (test: `node tests/impacts.js`).
+Per level beat (b1 = first beat at or after the song offset, as make.js), the boundary just before the beat gets
+four signs, each squashed to 0..1 (x / (x + k)):
+- **rise**: loudness after minus before, averaged over windows of 2, 4 and 8 beats (a real step peaks on its own
+  beat at every width; a slow swell does not), k = 4 dB;
+- **entry**: the same per band (8 log bands, 40 Hz-10 kHz, each floored 40 dB under its own loud level so a
+  silent band "entering" is not +80 dB), the biggest band's jump, low bands weighted 1, others 0.8; k = 8 dB.
+  This is the drum / kick / new-instrument entry even when the overall loudness barely moves;
+- **accent**: the hit on the beat (onset flux, z over the song) against the median of the 8 beats before it:
+  a crash after quiet bars stands out, a steady kick does not; k = 1.5;
+- **change**: Foote novelty (kernels 4 + 8 beats) on the standardised band vectors: a new timbre / section.
+Score = half the strongest single sign + half the weighted sum (0.3 rise, 0.25 entry, 0.25 accent, 0.2 change);
+impacts are the beats that are the best within +-3 beats; strength = score / the song's top. A **break** is the
+mirror (loudness falling). **Heaviness** per bar: percentile in the song of loudness (0.35), low end (0.25), onset
+density (0.2) and kick strength (0.2).
+
+Planner suggestions: section starts from impacts with strength >= 0.5 (and breaks), at least 16 beats apart,
+the strongest first, off-bar-start ones at 0.85; each section with its heaviness, "fast" when it is in the
+song's top quarter (and >= 0.7), "calm" in the bottom quarter, a speed-up candidate where heaviness jumps 0.15+
+into a heavy part. **Everything is in level beats**: a speed portal changes x per beat, never when a beat
+happens, so a spec written in beats stays on the music when a speed change goes in (make.js turns beats into x
+through the portals); x positions written by hand do NOT, which is why "adding a speed-up changes the sync of the
+rest" (the user, 2026-11-25).
+
+`--level` (or `--spec` when its level exists) adds the level side: each impact (strength >= 0.3) with what the
+level does within 1 beat (portal, speed, gravity, orb, pad, colour) or NOTHING -- MISSED when no portal or speed
+change is there -- and the **dead stretches**: 1.5 s+ with no hazard, orb, pad or portal, marked "DEAD in a heavy
+part" (song heaviness >= 0.5) or "breather" (quiet music: fine).
+
+Checked: a made-up song with known events (tests/impacts.js: kick in at b21, a crash at b37, a drum fill at b53,
+louder at b61, a break at b89, loudest from b93) -- all found on their beat, nothing in the quiet intro, the
+offset moves them to the right level beat. A real CC song (557117, 140 BPM): impacts land on 4-bar phrase starts
+(b81, b117, b161, b225, b321), heaviness follows its two drops.
+
+**Infertehno 2** (343707, GDLM 44's song, local grid 145.012 BPM t0 1.101, offset 19.3064; run on the PC 2026-11-25). In
+level beats, the three biggest impacts of the part the level uses are exactly the hand-picked ones: **b21** kick entry
+(1.00, the song's strongest: +8.9 dB loud, +40 dB in the low bands), **b37** (0.78, +4.1 dB) and **b53** (0.82, +4.4 dB:
+the drums the user heard at 53-54). Then b81 (0.49) / **b85** (0.65, +3.1 dB: the user's "louder from b89" starts 4
+beats early in the song), b92 accent, b124 / b128 accents (the "loudest from b121" part; it is a long heavy plateau,
+heaviness 0.6-0.7, more than one step). The whole-song grid (low confidence) puts the same impacts half a beat off,
+so a song with a pinned local grid must be run with it (`--spec` or `--bpm --t0`). GDLM 44 v3 against them: the ship
+portal sits 1.1 beats BEFORE the b21 kick, the cube portal 2 beats before b37, and b53, b85, b124 have nothing
+(MISSED); dead stretches b88-92 (1.6 s), b107-112 and b127-132 (2 s each). Kinds: on this song nearly every impact
+reads as "entry" (instruments come in band by band); the kind label is a hint, the strength is the number to use.
+
+**Every note and the music's speed** (2026-11-26; Evgeni: "we are not catching all the little beats, only some very
+seldom ones ... in auto it feels much more empty if we hit like 1/6 of the notes. especially in the faster sections";
+"we could put a speed portal ... when the music speeds up, and slowering portals when the music speeds down"). The same
+run now also gives:
+- **notes**: every onset, small ones too. Four flux bands (all, low < 150 Hz, mid, top > 4 kHz); a frame that is the
+  highest within +-35 ms and 0.6 SD (of that band over the song) above the band's median over +-0.25 s; bands within 25 ms
+  are one note. Per note: song second, level beat, `strength` (SD), `s` 0..1 (= SD / 5), band, grid place ("1" beat,
+  "1/2", "1/4", "off"). Timing: the flux peak comes when a hit enters the analysis window's right edge, so the note is 2.9
+  frames (34 ms) after the peak frame's centre; planted kicks: median error 0 ms, 90% within 6 ms. Quiet sixteenth hats
+  between kicks: 82% found. A real song (557117, 140 BPM, 2:40): 1272 notes, 434 of them clear (s >= 0.3).
+- **music speed per bar**: notes per beat, each weighted min(1, SD / 2), and the finest grid with notes (q / e / s);
+  **intensity** = 0.6 x its percentile + 0.4 x heaviness, 0..1.
+- **speed portals that follow the music** (`speedPlan`): intensity smoothed over 3 bars, read into 0.5x / 1x / 2x / 3x
+  at the song's own 15 / 60 / 90% quantiles, each speed held at least 4 bars, a change on a bar start, moved to a bar-start
+  impact within 1 bar, two changes at least 2 bars apart. Absolute floors on the quantiles: 0.5x only where the bar has
+  under 2 notes a beat and heaviness under 0.3, 3x only at heaviness 0.6+ (Electrodynamix is busy from its first bar --
+  3+ notes a beat -- and the pure quantiles had opened it at 0.5x). Music doesn't change tempo here (one BPM): "speeds up" = more notes and more weight per beat. In
+  level beats, so a portal moves x, never the beat (section above).
+- `--commit`: `knowledge/song_notes/<song key>.json`, the numbers only (no audio, like viewer/song_grids.js), for cloud
+  sessions and builders (tools/autobeat.js); format in tools/impacts.js compact(). Done (2026-11-26, on the PC): all 22
+  official songs, custom_343707 (local grid), custom_557117. Electrodynamix: 823 notes, 3-5 a beat; Infertehno 2: 2650.
+  `--replan <key|all>` redoes the speed plans from these files with no audio after a rule change.
+
+Open: the song lives only on the PC, so a cloud session cannot run it (Newgrounds is blocked there); the
+thresholds are set on three songs only; impacts are not drawn in the viewer yet (next to the beat lines, batched
+so the user's viewer does not reload while they use it); compose / the section planner do not read impacts by
+themselves yet; a score.js gate for "strong impact, level does nothing" and "dead in a heavy part" once the
+thresholds are checked against the user's notes.
+
 ## Open
 
 - **Presses, more levels**: redone after the physics change (Nov 22, 1503b03) for 2-17. Stereo
@@ -409,7 +490,9 @@ asked them (Nov 22) to grade portals and drops instead, per the user's "not forc
 - make.js / compose.js do not yet read songmap's sections: a spec could say "new section at the
   song's next section change" instead of a beat number.
 - Songs with tempo changes need local grids. Low-confidence songs: custom 343707 (GDLM 44
-  hellgate, 145 BPM, drifts 100 ms), 685746, 850364, 10000912, 10007496, 10010007, and Clubstep.
+  hellgate, 145 BPM, drifts 100 ms; its 20-80 s alone, cut with ffmpeg and run through beats.js: 145.01 BPM, drift 5 ms,
+  high, beats HALF A BEAT off the whole-song grid -- GDLM 44 v3 pins grid {bpm 145.012, t0 1.101} and `tools/hits.js
+  --bpm --t0 --downbeat` takes such a local grid), 685746, 850364, 10000912, 10007496, 10010007, and Clubstep.
 - Beatless or ambient parts: the rule is "follow loudness and sections", but nothing yet places
   objects by loudness; a spec key for it (e.g. density per section) would make that writable.
 - Not felt in the game yet: GDLM 02 (built as a test of "on the beat", not as a style).

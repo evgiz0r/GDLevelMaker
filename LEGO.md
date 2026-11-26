@@ -253,6 +253,25 @@ decoing, first the actual objects according to the themes of the section". Where
 | 5 | the layout gives a defined path | every piece carries its route; a join is solved end to end | -- |
 | 6 | deco: the structural objects themed per section first, then the rest | block skins and deco (`tools/decorate.js`, `tools/scenekit.js`, themes, props), the deco study thread | per-section skins for the pieces' own blocks |
 
+**First level through it: GDLM 44 hellgate v3 (2026-11-25, `tools/hellgate_build.js`).** Song part chosen (Infertehno 2 from
+19.3 s, a local grid: SYNC.md), six sections at the song's bar / drop boundaries, cube and ball sections filled by
+`tools/brickpick.js` from OUR verified structures only (44 is uploaded: no main-level bricks), ship and wave as fly-path
+corridors, then the hell scene. Lessons:
+- **A brick's presses in structures.json are the solver's, mid-window, and miss presses before the picture** (pic.presses
+  starts 2 blocks before the brick; a brick that opens with a jump onto a block has that jump earlier). So "presses on a
+  hit" before solving (58-80%) is not what the solved route does (7% within a frame of a hit). What counts is whether a
+  press's WINDOW holds a hit: `tools/onbeat.js` (41% of cube windows held a strong hit, 22% a lesser one) -- and then the
+  human route must press there: onbeat --write -> <level>.planned.json -> solutions.js (which had ignored a level's
+  planned presses: fixed) -> 20% of presses within a frame of a hit.
+- Next for the picker: score a brick by its press WINDOWS against the hits (from a solve of its test level), not by its
+  mid-window presses; then nudge each placed brick a column either way where a window misses its hit.
+
+**The same builder for any level: `tools/planbuild.js <briefs/NN_name.plan.json>`** (2026-11-26, from hellgate_build.js
+v4): the section plan is data (from / to beat, mode, speed, kind, floor base, theme variant, optional fill shapes, corridor
+rows, brick max) and the builder writes the spec plus the song stage. Changes on the way (GDLM 73): the bricks' density
+floor is per second, not per block (at 2x every verified 2x brick was filtered out and the cube parts were 8 single
+spikes), the filler alternates single / double, the corridor knots rotate per mode so no two corridors share a recipe.
+
 The main levels' pieces are RobTop's: a level built from them stays on the PC (never pushed or uploaded) until we have pieces
 of our own made the same way -- varied from theirs by the difficulty knobs (LEGO.md "Difficulty knobs").
 
@@ -339,6 +358,9 @@ Evgeni's notes for the connecting step (2026-11-25):
   220 in the main levels (~10 a level), most of them a yellow pad launch in cube (50), plain falls / rises (31 cube, 26
   ship), portal pairs; the catalogue shows them as "auto bricks". In all 30 min of main-level routes there are ~600
   press-free stretches of 0.8 s+, a third of them moved by pads or gravity portals.
+  **Our own auto bricks** (AUTO.md, 2026-11-26): `tools/autobricks.js` builds 50 of them (pad launches and stairs,
+  blue-pad / gravity / spider ping-pong, pad into each mode portal ...) placed by the sim and checked with zero presses,
+  each with its entry / exit contract; `lego.js mine library` adds them to the catalogue as auto bricks.
 
 Plan: the path of a section first (its height curve, from the beat and the energy), then bricks hung on it where their
 entry / exit fit (the contract), connectors (y shift, portal) where they don't, auto bricks between sections, and the
@@ -433,6 +455,54 @@ So far the hints cut repairs (up to 40%) but not time, and they add presses: a b
 needs fewer (the match is by layout, not by the route). Next: take a hinted press only where the sim says it is needed
 (a death within ~1 s without it), and score hints by how often the level's real presses agree (`lego_match.js --test`
 precision 50-75% today). Times are one cloud run each, with another session's job running.
+
+## The picker: a section's beats filled from the catalogue (2026-11-25 night)
+
+`node tools/lego_pick.js --sections "cube:15,ship:10,..." (--song id | --bpm N --t0 s | --hits file.json) [--src official|ours|library] [--diff 0.03] [--seed N] --name X`
+-> local/lego/picks/X.json + .gdlvl. Song first: each slot takes the brick whose presses land nearest the beats (or hits),
+near the target difficulty, weighted by Evgeni's votes; then every join is checked in physics (lego_join checkFilled, next
+candidate if it fails); then the whole chain is solved from the first brick's entry state with spike filler, and where it
+breaks that brick is banned and the rest re-picked (up to 8 times). Not yet: energy, sections read from the song (given by hand).
+
+First 60 s run (main-level bricks, cube 15 / ship 10 / cube 20 / wave 15, 150 bpm): 39 bricks, 64% of 113 presses within
+50 ms of a beat, every join ok, whole chain clean with 0 filler spikes. Times: picking 4 min, the final solve 21 min
+(25 min in all; the heavy lock had estimated 4 min from two short runs).
+
+**Smaller bricks (same night).** Bricks are now cut wherever the presses pause for over 0.6 s, and a lone press is a
+one-press brick: Evgeni saw ToE 586 as "the structure itself is like 1/10 of the window" (13 blocks, two pairs 7 blocks apart).
+Main-level bricks: 883 -> 1326, mean 22 -> 12 blocks, 568 with one press. Next day (Evgeni: "as tight as possible to the actual lego piece size [...] or at least have a border"): a brick keeps only
+0.15 s of run-up and ends 0.05 s after the landing (mean 12 -> 10 blocks); the page frames exactly the brick, with a dashed
+border at its two ends, as tall as the route.
+
+**Evgeni's notes leave bricks out.** A brick with a 👎, or with a note and no 👍 (every note so far is a complaint: "wrong
+path", "too many clicks", "too close to spikes"), is not picked; a note on a longer piece of the same level covers the
+bricks under it. It comes back once its route is re-planned after the note (routeAt newer). Before picking, fetch the
+phone notes (ArtifactData list legovotes -> local/lego/votes_phone.json). The first run above was made before this and
+took three noted bricks (Deadlocked 926b / 920b, Blast Processing 211b): with 26 notes, 31 of 1065 main bricks are out.
+
+**Breathers.** Bricks are placed back to back. In a ground mode (cube, ball, robot, spider), when the last brick leaves the
+player on the floor or a platform and the next one starts at the same height, the picker may put 0.25-1.5 s of plain floor
+first (blocks under it when it is up on a platform) if that lands the next presses on the beat. It costs a little per second,
+so it is used only when it helps the beat. Tested: two pairs with a 1 s breather, one on the ground and one up on a platform
+3.5 blocks high, both clear with no filler. `--no-breathers` turns them off. Auto bricks mined from the main levels (pads,
+portals, big drops with no press) are the other breather: never two in a row, at most a fifth of the time. Not yet: a flying
+breather (an open corridor of the right length).
+
+## Collecting bricks as part of every level's analysis (2026-11-25 night)
+
+Evgeni: "do we have a plan to keep collecting structures? part of each level analysys. if its fast enough, just grab". It is:
+cutting one level with its route takes ~0.35 s (`node tools/lego.js mine official --level 18`: ToE2, cached windows). So
+`tools/difficulty_solve.js` cuts every route it saves -- a main level's solve, resume or `--replan`, and a community level's
+solve (`c<id>`) -- into bricks itself (`lego.mineLevel`; `GDLM_LEGO=0` skips it). A level whose route was re-planned gets its
+bricks re-cut, so Evgeni's notes are checked against the new path (a note older than the route lets the brick back in).
+
+Community levels (`src: "community"`, ids `c-...`): the solver's raw run is turned into a human route once (lib/natural.js,
+5 min budget, else humanize), cached in local/lego/routes/c<id>.json. Other people's levels: local/, the PC page and the
+private catalogue only -- left out of knowledge/lego.json's shapes and of `page --public`. Queue for the PC, low priority: `node tools/lego_collect.js [--max N] [--dry]` (fetch -> solve at low priority -> bricks, one
+level at a time, log local/lego/collect.jsonl). Evgeni, same night: "start with easier levels, demos when phyisics gets
+better" -- so non-demons first, the ones he beat, easiest tier first; demons later. (Earlier plan: his beaten demons first (local/difficulty/user_stats_online.json `--demons --done`, `tools/fetch_level.js`, then
+`GDLM_HEAVY_PRIORITY=low node tools/difficulty_solve.js c<id>`), now after the physics improves). Our levels: `node tools/lego.js mine ours --level <name>`
+after a build (not hooked into make.js yet).
 
 ## Open
 

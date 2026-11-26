@@ -666,6 +666,9 @@ function asPattern(st, P) {
     const r = st.build(Object.assign({}, st.args, a || {})), o = [];
     const flat = objs => { for (const e of objs) if (e[0] === "pattern") flat(P[e[1]].fn(e[4] || {}).objects.map(([t, c, rr, x]) => [t, c + e[2], rr + (e[3] || 0), x])); else o.push(e); };
     let off = 0;
+    // raw: the body only, no mode portal, lead-in or exit wall -- a picker chaining several pieces of one non-cube mode
+    // (tools/brickpick.js) frames the section's portals itself
+    if (a && a.raw) { flat(r.objects); return { objects: o.splice(0), width: r.width }; }
     if (st.needs.mode !== "cube") off = 1 + LEADIN[st.needs.mode];
     const body = [];
     flat(r.objects); body.push(...o.splice(0));

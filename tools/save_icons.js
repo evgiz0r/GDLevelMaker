@@ -10,7 +10,7 @@
 // colours, matched against the user's recordings: lib/look.js). Another index comes back as null: the viewer then keeps
 // the default colour for it and says so, rather than guessing a colour.
 const fs = require("fs"), path = require("path"), zlib = require("zlib");
-const SAVE = process.env.GD_SAVE_FILE || path.join(process.env.LOCALAPPDATA || "", "GeometryDash", "CCGameManager.dat");
+const SAVE = process.env.GD_SAVE_FILE || path.join(require("./gdpaths.js").SAVE, "CCGameManager.dat");
 const COLORS = { 0: [125, 255, 0], 3: [0, 255, 255] };
 let CACHE = null;
 function read() {

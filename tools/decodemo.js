@@ -100,7 +100,8 @@ function compose(theme, back, objects, ends) {
     const fly = ends.fly.some(([a, b]) => x >= a && x < b);
     if (!fire) {
       if (fly) out.push(...I.cluster(x, 330, { seed: 100 + i, size: 2.2, n: 5, down: true, ch: CH.far, lit: CH.crystal, z: "B2", groups: [] }));
-      else { out.push(...I.peak(x + 120, 520, 300, { z: "B4", zo: 6, seed: i, groups: [] })); out.push(...I.cluster(x + 60, -10, { seed: 50 + i, size: 1.8, n: 5, ch: CH.mid, lit: CH.crystal, z: "B3", groups: [] })); }
+      // dark and lower: a pale peak sat behind a ceiling spike (PC review, rung 7)
+      else { out.push(...I.peak(x + 120, 520, 220, { z: "B5", zo: 6, ch: CH.mid, lit: CH.far, cap: false, seed: i, groups: [] })); out.push(...I.cluster(x + 60, -10, { seed: 50 + i, size: 1.8, n: 5, ch: CH.mid, lit: CH.crystal, z: "B3", groups: [] })); }
     } else {
       if (fly) for (let k = -2; k <= 2; k++) out.push(...I.crystal(x + k * 40, 330, 26, 120 - Math.abs(k) * 30, { down: true, ch: CH.mid, lit: CH.crystal, z: "B2", groups: [] }));
       else { out.push(...P.put("broken arches", x + 100, 0, { silhouette: CH.far, layer: "B3", zo: -2, scale: 1.6, seed: i }).objects);
@@ -158,15 +159,16 @@ if (require.main === module) {
     require("./heavy.js").claim();
     // every rung has the same gameplay (only deco differs): solve it ONCE and save that route under each rung's key, so
     // shoot.js never solves in the page (it did per rung, slower with more deco: 27 s, 34 s, 208 s, then a 600 s timeout
-    // on fire 5, 2026-11-25)
+    // on fire 5, 2026-11-25 -- mostly leaked headless browsers eating the CPU, tools/headless.js now stops them)
     try {
       const io = require("./io.js"), GDl = require("../lib/gd.js"), S = require("./solutions.js");
       const str0 = io.readGdlvl(path.join(ROOT, rows[0].file)).levelStr, sol = S.solve(GDl.parseLevel(str0), str0);
       if (sol && sol.events) for (const r of rows.slice(1)) { const s = io.readGdlvl(path.join(ROOT, r.file)).levelStr;
-        if (!S.get(s, true)) { const c = { ...sol }; delete c.windows; delete c.checkpoints; S.put(s, c); } }
+        const c = { ...sol }; delete c.checkpoints; S.put(s, c); } // its timing windows go along: the same play, so the page measures none
       console.log(`route: ${sol && sol.ok ? "solved" : "NOT solved"} once (${sol && sol.events ? sol.events.length : 0} inputs), shared by every rung`);
     } catch (e) { console.log("route: could not share one route (" + e.message + "): shoot.js solves each rung"); }
-    for (const r of rows) cp.execFileSync(process.execPath, [path.join(__dirname, "shoot.js"), path.join(ROOT, r.file), "--at", at.join(","), "--out", path.join(OUT, path.basename(r.file, ".gdlvl") + "_shots")], { stdio: "inherit", windowsHide: true });
+    for (const r of rows) try { cp.execFileSync(process.execPath, [path.join(__dirname, "shoot.js"), path.join(ROOT, r.file), "--at", at.join(","), "--out", path.join(OUT, path.basename(r.file, ".gdlvl") + "_shots")], { stdio: "inherit", windowsHide: true }); }
+      catch (e) { console.log(`!! ${r.file}: no frames (${String(e.message).split(/\r?\n/)[0]}); going on with the next rung`); }
     page(rows, at); console.log("sheet: local/decodemo/index.html (http://localhost:8765/local/decodemo/index.html)");
   }
 }

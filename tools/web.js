@@ -8,6 +8,10 @@
 const fs = require("fs"), path = require("path");
 const ROOT = path.join(__dirname, ".."), oi = process.argv.indexOf("--out");
 const OUT = oi > 0 ? path.resolve(process.argv[oi + 1]) : path.join(ROOT, "local", "web");
+// --private: the user's own private phone viewer (PHONE.md "Private build"): it also loads levels.local.js (the main
+// levels, already published next to the page, never in git) and fetches their songs from songs/ on first use.
+// Never for a shared or public page.
+const PRIVATE = process.argv.includes("--private");
 fs.rmSync(OUT, { recursive: true, force: true });
 fs.mkdirSync(path.join(OUT, "lib"), { recursive: true });
 
@@ -26,7 +30,7 @@ swap("<body>\n", ""); swap("</body>\n", ""); swap("</html>\n", "");
 swap('<meta charset="utf-8">\n', ""); swap('<meta name="viewport" content="width=device-width, initial-scale=1">\n', "");
 swap("<title>GD Level Viewer</title>", "<title>GDLM Level Replays</title>");
 swap('src="../lib/', 'src="lib/');
-swap('<script src="levels.local.js" onerror="window.GD_LEVELS_LOCAL = []"></script>', "<script>window.GD_LEVELS_LOCAL = [];</script>");
+if (!PRIVATE) swap('<script src="levels.local.js" onerror="window.GD_LEVELS_LOCAL = []"></script>', "<script>window.GD_LEVELS_LOCAL = [];</script>");
 // no GD art on the published page: RobTop's sprites never leave the user's PC (VISUALS.md "Phone")
 // Level maps: only the art-free shape drawings (tools/levelmap.js <level> --shapes ->
 // local/maps/<name>_shapes.jpg) of our own levels (gdlm_*) go out; the GD-art maps and official
@@ -68,7 +72,17 @@ const SONGBUF = (GD.SONGBUF = GD.SONGBUF || {}); // song key -> decoded AudioBuf
 const songKey = info => decodeURIComponent(String(info.url).split("/").pop()).toLowerCase();
 function audio() { actx = actx || new AudioContext(); return actx; }
 // the player is lib/song.js, shared with the viewer (sample-exact; the replay's clock reads it)
-function songPlayer(info) { const buf = SONGBUF[songKey(info)]; return buf ? GD.songPlayer(buf, audio) : null; }
+${PRIVATE ? `// the private build (--private) carries the main levels' songs next to the page: fetched and decoded on first use
+const PRIV_SONGS = ["stereomadness.mp3","backontrack.mp3","polargeist.mp3","dryout.mp3","baseafterbase.mp3","cantletgo.mp3","jumper.mp3","timemachine.mp3","cycles.mp3","xstep.mp3","clutterfunk.mp3","theoryofeverything.mp3","electroman.mp3","clubstep.mp3","electrodynamix.mp3","hexagonforce.mp3","blastprocessing.mp3","theoryofeverything2.mp3","geometricaldominator.mp3","deadlocked.mp3","fingerdash.mp3","dash.mp3"], privLoading = {};
+async function privSong(key) {
+  if (privLoading[key]) return; privLoading[key] = true;
+  try { const r = await fetch("songs/" + encodeURIComponent(key)); if (!r.ok) throw new Error(r.status);
+    if (!(await addSongBytes(key, await r.arrayBuffer()))) throw new Error("decode");
+  } catch (e) { privLoading[key] = false; return; }
+  if (songInfo && songKey(songInfo) === key && !song) { const was = playing; setSong(songInfo); syncSong(true); playing = was; }
+}
+function songPlayer(info) { const k = songKey(info), buf = SONGBUF[k]; if (!buf && PRIV_SONGS.includes(k)) privSong(k); return buf ? GD.songPlayer(buf, audio) : null; }` :
+`function songPlayer(info) { const buf = SONGBUF[songKey(info)]; return buf ? GD.songPlayer(buf, audio) : null; }`}
 function updateSongBtn() {
   const b = document.getElementById("addSong"); if (!b || !b.firstChild) return;
   const have = songInfo && SONGBUF[songKey(songInfo)];
@@ -92,7 +106,7 @@ function songMsg(text) {
 async function takeSongFiles(files) {
   files = [...(files || [])].filter(f => f && f.size);
   if (!files.length) return;
-  const known = new Set((window.GD_LEVELS || []).filter(l => l.song).map(l => songKey(l.song)));
+  const known = new Set((window.GD_LEVELS || [])${PRIVATE ? ".concat(window.GD_LEVELS_LOCAL || [])" : ""}.filter(l => l.song).map(l => songKey(l.song)));
   const b = document.getElementById("addSong"); b.firstChild.nodeValue = "loading…"; songMsg("");
   let bad = 0, ok = 0, skipped = 0;
   for (const f of files) {
@@ -248,7 +262,28 @@ swap("</style>", `  @media (max-width: 700px) {
     .card { overflow-x:auto; }
   }
 </style>`);
+// deco options (tools/deco_page.js): a "deco" button and #deco open deco/index.html in a frame over the page
+const DECO = path.join(ROOT, "local", "phone_deco"), deco = fs.existsSync(path.join(DECO, "index.html")) ? fs.readdirSync(DECO).filter(f => /\.(html|jpg)$/.test(f)) : [];
+if (deco.length) {
+  fs.mkdirSync(path.join(OUT, "deco"), { recursive: true });
+  for (const f of deco) fs.copyFileSync(path.join(DECO, f), path.join(OUT, "deco", f));
+  swap('<button id="music" class="on">music</button>', '<button id="decoBtn" title="deco options: blocks, spikes, backgrounds in ice and fire">deco</button><button id="music" class="on">music</button>');
+  swap("if (labHash()) return labOpen(labHash()); openLink", "if (labHash()) return labOpen(labHash()); if (location.hash === \"#deco\") return; openLink"); // #deco is not a level link
+}
 html = `<!-- built by tools/web.js from viewer/index.html; do not edit -->\n` + html;
+if (deco.length) html += `\n<script>
+function showDeco() {
+  if (document.querySelector('[data-overlay="deco"]')) return;
+  const o = document.createElement("div"); o.dataset.overlay = "deco";
+  o.style.cssText = "position:fixed;inset:0;z-index:50;background:#0b0820;display:flex;flex-direction:column";
+  o.innerHTML = '<div style="display:flex;gap:8px;align-items:center;padding:6px"><b style="flex:1">Deco options</b><button>✕ close</button></div><iframe src="deco/index.html" style="flex:1;border:0;width:100%"></iframe>';
+  o.querySelector("button").onclick = () => { o.remove(); if (location.hash === "#deco") history.replaceState(null, "", location.pathname + location.search); };
+  document.body.appendChild(o);
+}
+document.getElementById("decoBtn").onclick = showDeco;
+if (location.hash === "#deco") setTimeout(showDeco, 0);
+addEventListener("hashchange", () => { if (location.hash === "#deco") showDeco(); });
+</script>\n`;
 fs.writeFileSync(path.join(OUT, "index.html"), html);
 // the Artifact publish call, ready to use (files map = everything beside index.html)
 // the background solver: the same lib/ files, in a Web Worker (the libs attach to `window`)
@@ -281,5 +316,8 @@ const files = { "levels.js": "levels.js", "beats.js": "beats.js", "solve_worker.
 if (hasBM) files["bricks_main.js"] = "bricks_main.js";
 for (const m of maps) files["maps/" + m + "_shapes.jpg"] = "maps/" + m + "_shapes.jpg";
 for (const f of libs) files["lib/" + f] = "lib/" + f;
+// the deco options page (tools/deco_page.js -> local/phone_deco/): GD art inside, allowed on this private page only
+// (VISUALS.md); carried as deco/ when it exists, opened by the "deco" button or #deco
+for (const f of deco) files["deco/" + f] = "deco/" + f;
 fs.writeFileSync(path.join(OUT, "publish.json"), JSON.stringify({ file_path: path.join(OUT, "index.html"), root: OUT, files, capabilities: { db: {}, downloads: true } }, null, 1));
 console.log(`${OUT}: index.html + ${Object.keys(files).length} files; publish.json has the Artifact call's file_path, root, files and capabilities`);

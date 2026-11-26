@@ -195,7 +195,7 @@
   <button id="hit">hitboxes</button>
   <button id="cmpBtn" hidden title="a frame of your recording next to the replay (needs tools/serve.js)">compare</button>
   <button id="markBtn" title="pause, then click where something should change (key M)">✎ mark</button>
-  <button id="sound" class="on">click sound</button>
+  <button id="sound" class="on" title="a click on each press of the replay">click sound</button><select id="soundKind" title="what the click sounds like: a mouse button, a mechanical key, or the old beep"><option value="mouse">🖱 mouse</option><option value="keyboard">⌨ keyboard</option><option value="beep">beep</option></select>
   <button id="music" class="on">music</button><label class="btn" id="addSongPc" hidden>add song<input id="songFilePc" type="file" accept="audio/*,.mp3,.ogg,.m4a,.wav" hidden></label>
   <button id="lightBtn" title="light mode: no GD art, no beat lines -- for a slow moment (the PC busy, the phone)">light</button>
   <button id="beatsBtn" class="on" title="beat grid of the level's song (songs on this PC, from tools/beats.js)">beats</button>
@@ -239,6 +239,7 @@
 <script src="../lib/physics.js"></script>
 <script src="../lib/sync.js"></script>
 <script src="../lib/look.js"></script>
+<script src="../lib/clicks.js"></script>
 <script src="../lib/camera.js"></script>
 <script src="../lib/vfx.js"></script>
 <script src="../lib/objects_art.js"></script>
@@ -577,7 +578,7 @@ function load(name, levelStr, saved, info) {
     return lo / P.TPS;
   });
   // the song's beat grid, when tools/beats.js has analysed it on this PC
-  const grid = info && (window.GD_BEATS || {})[info.url];
+  const grid = info && (info.grid || (window.GD_BEATS || {})[info.url]);   // a level's own grid (its spec pinned one) first
   L.beats = grid ? { grid, offset: info.offset || 0, tl: GD.SYNC.timeline(world) } : null;
   t = 0; lastTick = -1; playing = false; setPlay();
   summary(); clickTable(); markTable(); if (cmpOn) cmpLoadSetting(); draw();
@@ -1117,11 +1118,16 @@ function pkRows() {
   // Lets do main for ready levels + official. Rest in the different tabs"): no work in progress of its own (a newer wip of
   // a main level still sits on its card), no lab variants, parts or experiments
   const readyKeys = new Set(ALL.filter(l => pkCat(l) === "ours" && !pkLab(l)).map(pkKey));
+  // "in progress" lists work still ahead of what is pushed: a wip copy older than the pushed level of the same name was
+  // overtaken by it (GDLM 44's style v12, polish v7 and a build sat there after v4 was pushed, 2026-11-26); it stays
+  // reachable from the level's card in the other tabs. Old copies' files: node tools/wip.js archive --superseded
+  const pushedWhen = new Map(); ALL.forEach(l => { if (pkCat(l) === "ours") pushedWhen.set(pkKey(l), Math.max(pushedWhen.get(pkKey(l)) || 0, pkWhen(l))); });
+  const overtaken = l => pkCat(l) === "wip" && pkWhen(l) < (pushedWhen.get(pkKey(l)) || 0);
   ALL.forEach((l, i) => {
     const c = pkCat(l);
     const out = PK.f === "pinned" ? !pins.includes(pkKey(l)) : PK.f === "recent" ? !recent.includes(pkKey(l))
       : PK.f === "main" ? !(c === "official" || readyKeys.has(pkKey(l)) && !pkLab(l))
-      : PK.f === "lab" ? !pkLab(l) : PK.f === "wip" ? c !== "wip" || pkLab(l)
+      : PK.f === "lab" ? !pkLab(l) : PK.f === "wip" ? c !== "wip" || pkLab(l) || overtaken(l)
       : PK.f === "demons" ? !l.demon : PK.f !== "all" && c !== PK.f;
     if (out) return;
     if (q && l.demon && (String(l.demon.creator) + " " + l.demon.verifier).toLowerCase().includes(q)) { const k = pkKey(l); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(i); return; }
@@ -1786,6 +1792,22 @@ document.getElementById("youPlay").onclick = e => { e.currentTarget.blur(); PLAY
 document.getElementById("practiceBtn").onclick = e => { e.currentTarget.blur(); PLAY.practice = !PLAY.practice; try { localStorage.setItem("gdlm.practice", PLAY.practice ? "1" : "0"); } catch (err) {} playButtons(); };
 
 let actx = null;
+// the click sound (the user, 2026-11-25: "can we do the click sound as a keyboard/mouse click?"): lib/clicks.js's
+// self-made mouse / keyboard samples, a press and its release each their own sound; "beep" is the old square wave
+let CLICK_KIND = "mouse"; try { CLICK_KIND = localStorage.getItem("gdlm.clickKind") || "mouse"; } catch (e) {}
+const CLICKBUF = {};
+function clickSound(type) {
+  if (!sound || MUTED) return;
+  if (CLICK_KIND === "beep" || !GD.CLICKS) { if (type !== "release") beep(); return; }
+  actx = actx || new AudioContext();
+  const key = CLICK_KIND + actx.sampleRate;
+  if (!CLICKBUF[key]) { const S = GD.CLICKS.samples(CLICK_KIND, actx.sampleRate), mk = a => { const b = actx.createBuffer(1, a.length, actx.sampleRate); b.copyToChannel(a, 0); return b; };
+    CLICKBUF[key] = { down: S.down.map(mk), up: S.up.map(mk), n: 0 }; }
+  const B = CLICKBUF[key], src = actx.createBufferSource(), g = actx.createGain();
+  src.buffer = (type === "release" ? B.up : B.down)[B.n++ % 4]; g.gain.value = 0.5;
+  src.connect(g).connect(actx.destination); src.start();
+}
+{ const sk = document.getElementById("soundKind"); sk.value = CLICK_KIND; sk.onchange = () => { CLICK_KIND = sk.value; try { localStorage.setItem("gdlm.clickKind", CLICK_KIND); } catch (e) {} if (!sound && !MUTED) { sound = true; document.getElementById("sound").classList.add("on"); } clickSound("press"); setTimeout(() => clickSound("release"), 90); sk.blur(); }; }
 function beep() {
   if (!sound || MUTED) return;
   actx = actx || new AudioContext();
@@ -1850,7 +1872,8 @@ function markPick(m) {
   bar.querySelector("#markClose").onclick = () => markPick(null);
 }
 const markBtn = document.getElementById("markBtn");
-function setMarking(on) { marking = on; markBtn.classList.toggle("on", on); cv.classList.toggle("marking", on); if (on) { playing = false; setPlay(); syncSong(); notice("✎ Click the spot in the level that should change (Esc: cancel).", 0); } else { const n = document.getElementById("notice"); if (n && /Click the spot/.test(n.textContent)) n.hidden = true; } }
+function setMarking(on) { if (on && typeof DRAWM !== "undefined" && DRAWM.on) drawMode(false);   // the board covers the level: marks need it closed
+  marking = on; markBtn.classList.toggle("on", on); cv.classList.toggle("marking", on); if (on) { playing = false; setPlay(); syncSong(); notice("✎ Click the spot in the level that should change (Esc: cancel).", 0); } else { const n = document.getElementById("notice"); if (n && /Click the spot/.test(n.textContent)) n.hidden = true; } }
 addEventListener("keydown", e => { if (e.key === "Escape" && marking) setMarking(false); });
 markBtn.onclick = () => setMarking(!marking);
 addEventListener("keydown", e => { if ((e.key === "m" || e.key === "M") && !typing(e)) setMarking(!marking); });
@@ -2037,18 +2060,29 @@ function draw() {
       if (d.kind === "decoration" || d.kind === "trigger" || window.SHOOT_DECO_ONLY) continue;
       const a = GD.LOOK.objAlpha(o, LS.alpha); if (a <= 0.01) continue; ctx.globalAlpha = a; drawObj(o); ctx.globalAlpha = 1; ctx.shadowBlur = 0; }
     res.after();
+    // a teleport portal's exit is the same object's other half (key 54 away): GD draws it with its own sprite (749)
+    const exits = on.filter(o => GD.objInfo(o.id).kind === "teleport" && +(o.props && o.props["54"])).map(o => ({ id: 749, x: o.x, y: o.y + +o.props["54"], rot: o.rot || 0, flipX: !!o.flipX, flipY: !!o.flipY, props: {} }));
+    if (exits.length) try { AR.drawObjects(ctx, exits, LS, local, () => 1, () => false).after(); } catch (e) {}
     if (!AR.drawGround(ctx, view, LS, sc)) GD.LOOK.drawGround(ctx, view, LS);
   } else if (LS) {
     // objects as the game draws them: decoration, then blocks (fills, then outlines), then the rest;
     // the ground goes over anything below it
-    const on = objsNow.filter(o => sx(o.x) > -90 && sx(o.x) < W + 90), blocks = [];
+    // big scaled pieces (a painting's shapes, DECOART.md) reach further than their centre: keep them until their extent leaves
+    const reach = o => { const p = o.props; if (!p) return 90; const s = +(p[32] || 1) * Math.max(+(p[128] || 1), +(p[129] || 1)); return s > 1.5 ? 90 + 30 * s * scale : 90; };
+    const on = objsNow.filter(o => { const r = reach(o); return sx(o.x) > -r && sx(o.x) < W + r; }), blocks = [], front = [];
     for (const o of on) {
       const a = GD.LOOK.objAlpha(o, LS.alpha); if (a <= 0.01) continue;
       if (GD.LOOK.isSkin(o.id)) blocks.push([o, a]);
-      else if (GD.objInfo(o.id).kind === "decoration") { ctx.globalAlpha = a * 0.85; local(o, () => GD.LOOK.drawDeco(ctx, o, LS)); }
+      else if (GD.objInfo(o.id).kind === "decoration") {
+        // deco on a front layer (key 24 >= 5: T1..T4) goes over the blocks, as in the game (a painted block body, DECOART.md)
+        if (o.props && +o.props[24] >= 5) { front.push([o, a]); continue; }
+        ctx.globalAlpha = a * (GD.LOOK.isFlat(o.id) ? 1 : 0.85); local(o, () => GD.LOOK.drawDeco(ctx, o, LS)); }
     }
     ctx.globalAlpha = 1;
     GD.LOOK.drawBlocks(ctx, view, LS, blocks, local);
+    front.sort((p, q) => (+p[0].props[24] - +q[0].props[24]) || ((+p[0].props[25] || 0) - (+q[0].props[25] || 0)));
+    for (const [o, a] of front) { ctx.globalAlpha = a * (GD.LOOK.isFlat(o.id) ? 1 : 0.85); local(o, () => GD.LOOK.drawDeco(ctx, o, LS)); }
+    ctx.globalAlpha = 1;
     for (const o of on) {
       const d = GD.objInfo(o.id); if (GD.LOOK.isSkin(o.id) || d.kind === "decoration" || d.kind === "trigger") continue;
       const a = GD.LOOK.objAlpha(o, LS.alpha); if (a <= 0.01) continue;
@@ -2396,6 +2430,7 @@ function posedNow(s) {
 function drawObj(o) {
   const d = GD.objInfo(o.id);
   if (d.kind === "decoration" || d.kind === "trigger") return;
+  if (d.kind === "teleport") drawTeleExit(o);
   if (LS && d.kind === "hazard" && !d.shape.match(/saw|box/)) return local(o, () => GD.LOOK.drawSpike(ctx, null, LS, o, d, scale));
   if (LS && (d.kind === "solid" || d.kind === "slope" || (d.kind === "hazard" && d.shape === "saw"))) return local(o, () => {
     const c = GD.LOOK.css(LS.col[+(o.props && o.props[21])] || LS.col[1004]), hb = d.hit || { w: 30, h: 30 };
@@ -2442,6 +2477,17 @@ function drawObj(o) {
     }
   });
   if (d.kind === "unknown") { ctx.fillStyle = "#aaa"; ctx.font = "11px system-ui"; ctx.fillText(o.id, sx(o.x) - 12, sy(o.y) + 4); }
+}
+// a teleport portal's exit (GD's orange half, key 54 above the entrance; below when negative): the player comes out
+// there at the same x. Drawn with a dashed link so the pair reads as one portal.
+function drawTeleExit(o) {
+  const off = +(o.props && o.props["54"]) || 0; if (!off) return;
+  ctx.save(); ctx.setLineDash([5, 5]); ctx.strokeStyle = "rgba(255,160,60,.55)"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(sx(o.x), sy(o.y)); ctx.lineTo(sx(o.x), sy(o.y + off)); ctx.stroke(); ctx.restore();
+  local({ x: o.x, y: o.y + off, rot: o.rot }, () => {
+    ctx.shadowColor = "#ffa03c"; ctx.shadowBlur = 12; ctx.strokeStyle = "#ffa03c"; ctx.lineWidth = 3 / scale;
+    ctx.beginPath(); ctx.ellipse(0, 0, 9, 36, 0, 0, 7); ctx.stroke();
+  });
 }
 function drawShip(s) {
   local({ x: s.x, y: s.y, rot: s.rot }, () => {
@@ -2523,8 +2569,8 @@ function frame(now) {
     }
     if (PLAY && PLAY.on) { playFrame(); syncSong(false); draw(); requestAnimationFrame(frame); return; }
     const k = tick();
-    let clicks = 0; for (const c of L.sol.clicks) if (c.type === "press" && c.tick > lastTick && c.tick <= k) clicks++;
-    if (clicks && k - lastTick < P.TPS / 4) beep(); // one beep a frame at most, none after a jump
+    let clicks = 0, ups = 0; for (const c of L.sol.clicks) if (c.tick > lastTick && c.tick <= k) { if (c.type === "press") clicks++; else if (c.type === "release") ups++; }
+    if (k - lastTick < P.TPS / 4) { if (clicks) clickSound("press"); else if (ups) clickSound("release"); } // one click a frame at most, none after a jump
     lastTick = k;
     if (k >= L.path.length - 1) { const et = endTime(); if (et == null || t >= et + END_LEN) { playing = false; setPlay(); } }   // a clear plays its end (endFx)
     syncSong(false);
@@ -2538,7 +2584,28 @@ if (window.GD_PAGES) document.getElementById("ver").textContent = "public viewer
 else if (location.protocol.startsWith("http") && !window.GD_PHONE) fetch("/version", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(v => {
   if (!v || !v.commit) return;
   document.getElementById("ver").textContent = `viewer ${v.note === "up to date" || /^updated/.test(v.note || "") ? "up to date" : "at"}: ${v.commit} -- ${v.subject}` + (v.note && !/^up to date|^updated/.test(v.note) ? ` (${v.note})` : "");
+  verWatch(v);
 }).catch(() => {});
+// A tab left open keeps the level list (levels.js) it loaded: the user opened GDLM 44 in a day-old Chrome tab and saw
+// v3 after v4 was pushed (2026-11-26). So the page asks /version every minute and when it comes back into view; when the
+// PC's checkout moved on it reloads itself (the address keeps the level and the moment) unless the user is playing,
+// then it says so with a reload button. A checkout that cannot update (local changes, not on main) is said out loud too.
+function verWatch(v0) {
+  if (verWatch.on) return; verWatch.on = true;
+  let warned = "";
+  const stuck = v => v.note && /skipped|not on main|failed|off/.test(v.note);
+  const check = () => fetch("/version", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(v => {
+    if (!v || !v.commit) return;
+    if (stuck(v) && warned !== v.note) { warned = v.note; notice(`⚠ the PC's viewer is not updating (${v.note}): levels pushed since ${v.commit} are not shown here yet`, 0); }
+    if (v.commit === v0.commit) return;
+    const busy = (typeof PLAY !== "undefined" && PLAY && PLAY.on) || document.querySelector("textarea:focus, input[type=text]:focus");
+    if (!busy && (document.visibilityState === "visible" || verWatch.hidden)) { try { writeHash(); } catch (e) {} location.reload(); return; }
+    if (busy) notice(`newer levels and code on the PC (${v.commit}: ${String(v.subject || "").replace(/</g, "&lt;")}) <button onclick="location.reload()">⟳ reload</button>`, 0);
+  }).catch(() => {});
+  setInterval(() => { verWatch.hidden = document.visibilityState !== "visible"; check(); }, 60e3);
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") check(); });
+  if (stuck(v0)) { warned = v0.note; notice(`⚠ the PC's viewer is not updating (${v0.note}): levels pushed since ${v0.commit} are not shown here yet`, 0); }
+}
 // ?perf=<id>&secs=8&art=1&beats=1&light=0 (tools/perf.js): play the level in the hash from its t for `secs`
 // seconds with real animation frames and POST the frame and draw times to /perf/<id>
 (() => {
@@ -2661,7 +2728,7 @@ hdrIcons();
   if (cb && cmpEl) { ctx.appendChild(cb); const sync = () => { cb.hidden = cmpEl.hidden; }; sync(); new MutationObserver(sync).observe(cmpEl, { attributes: true, attributeFilter: ["hidden"] }); }
   const chip = document.getElementById("taskChip"); if (chip) hdr.insertBefore(chip, document.getElementById("viewBtn")); }
 { const menu = document.getElementById("viewMenu"), vb = document.getElementById("viewBtn");
-  const extras = [...document.querySelectorAll("header [data-speed]"), document.getElementById("file").parentElement, ...["lookBtn", "artBtn", "mapBtn", "hit", "cmpBtn", "sound", "music", "addSongPc", "lightBtn", "beatsBtn", "windowsBtn", "legendBtn", "camBtn"].map(id => document.getElementById(id))].filter(Boolean);
+  const extras = [...document.querySelectorAll("header [data-speed]"), document.getElementById("file").parentElement, ...["lookBtn", "artBtn", "mapBtn", "hit", "cmpBtn", "sound", "soundKind", "music", "addSongPc", "lightBtn", "beatsBtn", "windowsBtn", "legendBtn", "camBtn"].map(id => document.getElementById(id))].filter(Boolean);
   for (const e of extras) menu.appendChild(e);
   // the whiteboard (viewer/draw.html, DRAW.md): where this viewer itself is served (the PC, the home Wi-Fi, a file)
   if (location.protocol === "file:" || /^(localhost|127\.|192\.168\.|10\.)/.test(location.hostname)) {
@@ -2733,7 +2800,7 @@ function writeHash() { const l = ALL[pick.value]; if (!l || !L) return; history.
 // newest; a version that is gone says so.
 function parseLink(s) {
   s = String(s || "").trim(); const i = s.indexOf("#"); if (i >= 0) s = s.slice(i + 1); if (!s) return null;
-  if (/(^|&)lv=/.test(s)) { const h = new URLSearchParams(s); return { file: h.get("lv"), v: +h.get("v") || 0, t: +h.get("t") || 0, run: h.get("run") || "" }; }
+  if (/(^|&)lv=/.test(s)) { const h = new URLSearchParams(s); return { file: h.get("lv"), v: +h.get("v") || 0, t: +h.get("t") || 0, run: h.get("run") || "", z: +h.get("z") || 0, beats: h.get("beats") }; }
   const parts = s.split("--"), out = { base: parts[0], v: 0, t: 0, run: "" };
   for (const p of parts.slice(1)) { let m; if ((m = /^v(\d+)$/.exec(p))) out.v = +m[1]; else if ((m = /^t([\d.]+)$/.exec(p))) out.t = +m[1]; else if ((m = /^r([\w-]+)$/.exec(p))) out.run = m[1]; }
   return /^[\w.-]+$/.test(out.base) ? out : null;
@@ -2745,7 +2812,9 @@ function linkFind(q) {
   const cand = ALL.map((l, i) => ({ l, i })).filter(c => baseOf(c.l) === q.base || (c.l.name || "").toLowerCase().replace(/\W+/g, "_") === q.base.toLowerCase());
   if (!cand.length) return -1;
   const hit = q.v && cand.find(c => +c.l.version === q.v);
-  return (hit || cand.sort((a, b) => (+b.l.version || 0) - (+a.l.version || 0) || (b.l.wip ? 1 : 0) - (a.l.wip ? 1 : 0))[0]).i;
+  // no version asked: the newest MADE copy (wip versions count per session, so style's v12 from 2026-11-23 outranked the
+  // pushed GDLM 44 v4 of 2026-11-25 on version number and every short link opened it); version only breaks ties
+  return (hit || cand.sort((a, b) => pkWhen(b.l) - pkWhen(a.l) || (+b.l.version || 0) - (+a.l.version || 0) || (b.l.wip ? 1 : 0) - (a.l.wip ? 1 : 0))[0]).i;
 }
 function shortLink() { const l = ALL[pick.value]; if (!l || !L) return ""; const b = String(l.file || "").split(/[\\/]/).pop().replace(/\.(gdlvl|json)$/, "");
   return "#" + b + (l.version ? "--v" + l.version : "") + "--t" + (tick() / P.TPS).toFixed(1) + (L.ghost ? "--r" + L.ghost.row.id : ""); }
@@ -2754,6 +2823,10 @@ function openLink(s) {
   const l = ALL[i];
   if (q.v && l.version && +l.version !== q.v) notice(`That link was for version ${q.v}; this is version ${l.version} (the newest here).`, 6000);
   const before = L; pick.value = i; pick.wantT = q.t; pick.onchange();
+  // a link may set the view (Evgeni, 2026-11-25: "open in that view i can mark, and its bit zoomed out"): &z=0.5 zooms the
+  // level out, &beats=1 shows the beat lines; ✎ mark works as usual in that view
+  if (q.z) vzSet(q.z);
+  if (q.beats != null) { showBeats = q.beats === "1"; const bb = document.getElementById("beatsBtn"); if (bb) bb.classList.toggle("on", showBeats); }
   // the level may open later (unpacked, fetched, its route replayed): seek once it is the one on screen -- a NEW load of it,
   // not the copy that was showing (a link to the level already open seeked the old one, then the load reset t and the run)
   const want = l.name; let tries = 0;
@@ -2924,7 +2997,10 @@ async function shootVideo(job, post) {
     const tt = t0 + i / fps; t = endT != null ? tt : Math.min(tt, end); window.VCLOCK = tt * 1000; drawDt = 1 / fps; draw();
     await post("f" + String(i).padStart(5, "0") + ".jpg", cv.toDataURL("image/jpeg", v.quality || 0.88));
   }
-  await post("done", JSON.stringify({ frames: n, from: t0, to: t1, fps, ms: Math.round(performance.now() - T0), end }));
+  // the presses and releases in video seconds, for tools/video.js --clicks (a click track under the song)
+  const evs = L.ghost && L.ghost.events ? L.ghost.events : (L.sol.clicks || []);
+  const clicks = evs.filter(e => e.type === "press" || e.type === "release").map(e => ({ t: +(e.tick / P.TPS - t0).toFixed(4), type: e.type })).filter(c => c.t >= 0 && c.t <= t1 - t0);
+  await post("done", JSON.stringify({ frames: n, from: t0, to: t1, fps, ms: Math.round(performance.now() - T0), end, clicks }));
 }
 async function shootRun() {
   const job = await (await fetch("/shoot/job/" + SHOOT + ".json", { cache: "no-store" })).json();
@@ -3214,13 +3290,14 @@ function drawMode(on) {
         if (!up && DRAWM.on) notice("The board did not open here (this page may not allow it). The whiteboard also works as a page of its own.", 8000); }, 6000);
     }
     DRAWM.fr.style.top = cv.offsetTop + "px"; DRAWM.fr.style.height = cv.style.height; DRAWM.fr.hidden = false;
-    if (DRAWM.lv && (!L || L.name !== DRAWM.lv.name)) BOARDHOST.setLevel(DRAWM.lv.name, DRAWM.lv.levelStr, DRAWM.lv.saved, DRAWM.lv.song);
+    // opening the board keeps the level on screen (Evgeni, 2026-11-25: "when i move to drawing it switches"): the last
+    // sketch comes back only when nothing else is open; drawing a stroke then shows the sketch, as before
+    if (DRAWM.lv && !L) BOARDHOST.setLevel(DRAWM.lv.name, DRAWM.lv.levelStr, DRAWM.lv.saved, DRAWM.lv.song);
     if (DRAWM.last) BOARDHOST.view(DRAWM.last.V, DRAWM.last.rect, DRAWM.last.Hb);
     try { DRAWM.fr.contentWindow.focus(); } catch (e) {}
   } else {
     if (DRAWM.fr) DRAWM.fr.hidden = true; MAPCAM = null; cv.style.height = ""; resize();
-    if (DRAWM.lv && L && L.name !== DRAWM.lv.name) BOARDHOST.setLevel(DRAWM.lv.name, DRAWM.lv.levelStr, DRAWM.lv.saved, DRAWM.lv.song);
-    if (L) draw();
+    if (L) draw();   // closing the board keeps what is on screen too
   }
 }
 document.getElementById("drawBtn").onclick = () => drawMode(!DRAWM.on);

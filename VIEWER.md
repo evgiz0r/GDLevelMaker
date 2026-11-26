@@ -192,3 +192,13 @@ Since the same day, `tools/make.js` also puts the checked route on every stage i
 and on `--look`), and a new layout drops the previous build's final (`stages.drop`): FROSTBITE's next build was a new
 layout whose planned presses (the unrepaired intents, tools/intent.js) die at block 15.9, with no final yet and the
 15-hour-old final of the earlier build still on the bar. Test: `node tests/stage_route.js`.
+
+## Click sound: mouse or keyboard (2026-11-25)
+
+The user: "can we do the click sound as a keyboard/mouse click?". Next to "click sound" a choice: 🖱 mouse (default),
+⌨ keyboard, or the old beep; remembered per browser (`gdlm.clickKind`). Each press clicks and each release makes its
+softer "up" sound (a held ship press is two sounds, like a real button). The samples are self-made in `lib/clicks.js`
+(seeded noise through a band-pass plus a short decaying tone; four takes each, so fast chains don't sound like one
+sample), no recorded or third-party audio, so they ship on the phone page and the public site too. `?mute=1` silences
+them like every sound. Videos: `node tools/video.js <level> --clicks mouse|keyboard` mixes the same clicks under the song
+(the shoot page hands video.js the presses and releases in its `.done`). Test: `node tests/clicks.js`.

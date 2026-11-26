@@ -18,7 +18,7 @@
 // Politeness: one request at a time, 3 s apart; never parallel. Meta goes to local/songs/<id>.json.
 const fs = require("fs"), path = require("path"), https = require("https"), http = require("http"), qs = require("querystring");
 const ROOT = path.join(__dirname, "..");
-const SAVE = process.env.GD_SAVE || path.join(process.env.LOCALAPPDATA || "", "GeometryDash");
+const SAVE = require("./gdpaths.js").SAVE;
 const CACHE = path.join(ROOT, "local", "songs");
 const LIBRARY_CDN = process.env.GD_MUSIC_CDN || "https://geometrydashfiles.b-cdn.net/music/";
 const PHONE_DIR = process.env.GD_PHONE_SONGS || path.join(process.env.USERPROFILE || "", "OneDrive", "GD songs");
@@ -99,7 +99,7 @@ async function main() {
   }
   if (args.includes("--phone")) {
     const { GD, unpack } = require("./io.js");
-    const OFFICIAL_DIR = path.join(process.env.GD_GAME || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash", "Resources");
+    const OFFICIAL_DIR = path.join(require("./gdpaths.js").GAME, "Resources");
     const NAMES = require("./beats.js").OFFICIAL;
     fs.mkdirSync(PHONE_DIR, { recursive: true });
     const want = new Set();

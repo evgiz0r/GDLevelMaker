@@ -133,7 +133,7 @@ const loadLib = file => { const j = JSON.parse(fs.readFileSync(file, "utf8")); r
 // gdlm: the repo's levels with a saved route that clears (local/solutions, tools/solutions.js)
 // official: RobTop's 22 with our saved human route (local/official_NN.json) -- on the PC only
 // gdsolver: RobTop's 22 with gdsolver's real-game plans where they clear in our sim -- on the PC only
-const OFFICIAL_SRC = process.env.GD_LEVELS || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash/Resources/levels/";
+const OFFICIAL_SRC = require("./gdpaths.js").LEVELS;
 const officialText = n => unpack(fs.readFileSync(path.join(OFFICIAL_SRC, n + ".txt"), "utf8"));
 function loadLevel(spec) {
   const m = /^official:(\d+)$/.exec(spec);

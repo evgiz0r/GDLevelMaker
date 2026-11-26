@@ -5,7 +5,7 @@
 // "closes", the read-back matches the files, an online ID is kept, and the queue is emptied.
 const fs = require("fs"), os = require("os"), path = require("path");
 const { spawn, execFileSync } = require("child_process");
-const save = path.join(process.env.LOCALAPPDATA || "", "GeometryDash", "CCLocalLevels.dat");
+const save = path.join(require("../tools/gdpaths.js").SAVE, "CCLocalLevels.dat");
 const ROOT = path.join(__dirname, ".."), T = path.join(ROOT, "tools", "install_queue.js");
 const lv = ["gdlm_43_climb", "gdlm_44_hellgate"].map(n => path.join(ROOT, "levels", n + ".gdlvl"));
 if (!fs.existsSync(save) || !lv.every(f => fs.existsSync(f))) { console.log("skip: no save or level files"); process.exit(0); }

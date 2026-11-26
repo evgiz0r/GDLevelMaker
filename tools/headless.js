@@ -5,6 +5,8 @@
 const fs = require("fs"), path = require("path"), http = require("http"), cp = require("child_process"), os = require("os");
 const BROWSERS = ["C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe", "C:/Program Files/Microsoft/Edge/Application/msedge.exe",
   "C:/Program Files/Google/Chrome/Application/chrome.exe", "/usr/bin/chromium", "/usr/bin/google-chrome"];
+// a Linux cloud container (Playwright's Chromium): /opt/pw-browsers/chromium-<n>/chrome-linux64/chrome
+try { for (const d of fs.readdirSync("/opt/pw-browsers")) if (/^chromium-\d+$/.test(d)) BROWSERS.push(`/opt/pw-browsers/${d}/chrome-linux64/chrome`); } catch (e) {}
 const up = port => new Promise(res => http.get(`http://localhost:${port}/viewer/`, r => { r.resume(); res(true); }).on("error", () => res(false)));
 async function headless(pagePath, doneFile, opt = {}) {
   // test=1: silent, and nothing it sends counts as the user's (viewer/index.html; CLAUDE.md: experiments are silent)
@@ -19,7 +21,9 @@ async function headless(pagePath, doneFile, opt = {}) {
   const exe = process.env.BROWSER || BROWSERS.find(b => fs.existsSync(b));
   if (!exe) { if (server) server.kill(); throw new Error("no Edge/Chrome found: open " + url + " in a browser (or set BROWSER=path)"); }
   const prof = fs.mkdtempSync(path.join(os.tmpdir(), "gdlm-headless-"));
-  const br = cp.spawn(exe, ["--headless=new", "--mute-audio", "--disable-gpu", "--no-first-run", "--hide-scrollbars", "--force-device-scale-factor=1",
+  // root in a Linux container (cloud sessions): Chrome refuses to start without --no-sandbox
+  const sandbox = process.platform !== "win32" && process.getuid && process.getuid() === 0 ? ["--no-sandbox"] : [];
+  const br = cp.spawn(exe, [...sandbox, "--headless=new", "--mute-audio", "--disable-gpu", "--no-first-run", "--hide-scrollbars", "--force-device-scale-factor=1",
     "--user-data-dir=" + prof, `--window-size=${opt.width || 1920},${opt.height || 1080}`, url], { windowsHide: true, stdio: "ignore" });
   const t0 = Date.now(), limit = opt.timeoutMs || 10 * 60e3;
   // opt.stallMs: give up when the page's folder (where doneFile goes) gets no new file for that long -- a hung page must not
@@ -32,6 +36,14 @@ async function headless(pagePath, doneFile, opt = {}) {
   // kill and let go: on Windows Edge's broker can outlive the kill, and a live child handle kept node
   // running after the PNGs were written (gd-polish, 2026-11-23)
   try { br.kill(); } catch (e) {} br.unref();
+  // ...and it does: Edge's launcher hands off to a broker that kill() never reaches, so every headless run left a browser
+  // behind (14 of them, ~2 h old, one still solving a page, 2026-11-25). On Windows, stop every process of THIS run's own
+  // profile (the temp dir in its command line), nothing else.
+  if (process.platform === "win32") try {
+    cp.execFileSync("powershell", ["-NoProfile", "-Command", `Get-CimInstance Win32_Process -Filter "name='${path.basename(exe)}'" | ` +
+      `Where-Object { $_.CommandLine -like '*${path.basename(prof)}*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }`],
+      { windowsHide: true, stdio: "ignore", timeout: 20000 });
+  } catch (e) { /* best effort */ }
   if (server) { try { server.kill(); } catch (e) {} server.unref(); }
   await new Promise(r => setTimeout(r, 300));
   try { fs.rmSync(prof, { recursive: true, force: true }); } catch (e) {}

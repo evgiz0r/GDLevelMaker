@@ -1,5 +1,5 @@
 // node tools/video.js <level.gdlvl | official:N | c<id>> [--run <attempt id | last>] [--route] [--from s] [--to s]
-//                     [--fps 60|30] [--size 1280x720] [--out file.mp4] [--port 8767] [--vs-rec]
+//                     [--fps 60|30] [--size 1280x720] [--out file.mp4] [--port 8767] [--vs-rec] [--clicks mouse|keyboard]
 // A video of the level playing, as the game draws it, with its song in sync: an mp4 to send to the chat or watch on the
 // phone (the user, 2026-11-24: "a flow that makes a video from replay ... similar to the actual gameplay"). Frames are
 // the viewer's game look with GD's own art from the install (lib/art.js), its camera, trail, colours and death burst,
@@ -9,14 +9,16 @@
 //   (local/attempts/, tools/attempts.js) drawn with the user's own icon, ending ~1 s after the death burst.
 //   --from/--to: a part, in level seconds. Default 1280x720 at 60 fps; it stays under 30 MB (re-encoded at a lower
 //   bitrate when the first pass is bigger).
+//   --clicks mouse|keyboard: a click on every press and release (lib/clicks.js's self-made samples), mixed under the song,
+//   like the click-sound bots players use.
 // Writes local/video/<level>[_run_<id>].mp4 -- LOCAL ONLY: RobTop's art and the song are in it, never commit or upload it.
 // One heavy job (tools/heavy.js; it times itself into local/timings.jsonl).
 const fs = require("fs"), path = require("path"), cp = require("child_process");
 const ROOT = path.join(__dirname, ".."), { headless } = require("./headless.js"), { levelOf } = require("./shoot.js");
 const args = process.argv.slice(2), opt = n => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] : null; };
 if (require.main === module && (!args.length || args[0].startsWith("--"))) { console.log(fs.readFileSync(__filename, "utf8").split("\n").filter(l => l.startsWith("//")).join("\n")); process.exit(1); }
-const GAME = process.env.GD_GAME || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash";
-const SAVE = process.env.GD_SAVE || path.join(process.env.LOCALAPPDATA || "", "GeometryDash");
+const GAME = require("./gdpaths.js").GAME;
+const SAVE = require("./gdpaths.js").SAVE;
 const MAX_MB = 30;
 
 // the level, its saved route and its song file + offset
@@ -24,6 +26,9 @@ function resolve(w) {
   if (/^c\d+$/.test(w)) w = path.join(ROOT, "local", "community", w.slice(1) + ".gdlvl");
   const lv = levelOf(w);
   if (!lv.solution) try { const s = require("./solutions.js").get(lv.levelStr, true); if (s && s.events) lv.solution = s; } catch (e) {}
+  // a level solved elsewhere (cloud build) carries its route only in viewer/levels.js: use it when the level string matches
+  if (!lv.solution) try { const g = {}; new Function("window", fs.readFileSync(path.join(ROOT, "viewer", "levels.js"), "utf8"))(g);
+    const e = (g.GD_LEVELS || []).find(x => x.level === lv.levelStr && x.solution && x.solution.ok); if (e) lv.solution = e.solution; } catch (e) {}
   if (!lv.solution) lv.solution = { ok: false, events: [], why: "not solved: the camera runs at the level's speed", pending: true };   // never solve in the page
   let song = null, m;
   if ((m = /^official:(\d+)$/.exec(w))) {
@@ -119,6 +124,18 @@ if (require.main === module) (async () => {
   enc(null);
   let mb = fs.statSync(out).size / 1048576;
   if (mb > MAX_MB) { const vb = Math.floor(((MAX_MB - 1.5) * 8192) / dur - 160); enc(Math.max(300, vb)); mb = fs.statSync(out).size / 1048576; }
+  // --clicks: the press / release clicks as a WAV, mixed under the song (or alone when there is none); the video is copied
+  const ck = opt("--clicks");
+  if (ck) {
+    const C = require("../lib/clicks.js").CLICKS, sr = 48000, wf = path.join(fdir, "clicks.wav"), tmp = out.replace(/\.mp4$/, ".clicks.mp4");
+    fs.writeFileSync(wf, Buffer.from(C.wav(C.track(C.KINDS.includes(ck) ? ck : "mouse", info.clicks || [], sr, dur), sr)));
+    const a = ["-v", "error", "-y", "-i", out, "-i", wf];
+    if (R.song) a.push("-filter_complex", "[0:a][1:a]amix=inputs=2:duration=first:normalize=0[a]", "-map", "0:v", "-map", "[a]");
+    else a.push("-map", "0:v", "-map", "1:a");
+    a.push("-c:v", "copy", "-c:a", "aac", "-b:a", "160k", "-t", dur.toFixed(3), "-movflags", "+faststart", tmp);
+    const q = ff(a); if (q.status !== 0) console.error("--clicks: ffmpeg failed, the video has no clicks: " + String(q.stderr).slice(0, 300));
+    else { fs.renameSync(tmp, out); mb = fs.statSync(out).size / 1048576; console.log(`clicks: ${(info.clicks || []).length} ${ck} clicks mixed in`); }
+  }
   try { fs.rmSync(fdir, { recursive: true, force: true }); fs.unlinkSync(path.join(dir, id + ".json")); } catch (e) {}
   console.log(`${path.relative(ROOT, out)}: ${dur.toFixed(1)} s at ${fps} fps, ${W}x${H}, ${mb.toFixed(1)} MB` + (R.song ? `, song ${path.basename(R.song.file)} from ${(R.song.offset + (info.from || 0)).toFixed(2)} s` : ", no song found (silent)") +
     (run ? `, your run ${run.id} (${run.result === "clear" ? "clear" : "died " + Math.round(run.pct) + "%"})` : ", the saved route") + `; render ${tRender.toFixed(0)} s, total ${((Date.now() - t0) / 1000).toFixed(0)} s`);

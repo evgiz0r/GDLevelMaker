@@ -11,6 +11,11 @@ of the art is copied into the repo, onto the phone page or into an Artifact. Ren
 (`local/shots/`, `local/catalogue/`) live in the never-committed `local/`. Committed are only facts:
 object id -> frame names, offsets, colour roles, layers.
 
+**One exception (the user approved it on a decision card, 2026-11-25):** rendered pictures (JPGs of shoot.js frames, never
+the sprite sheets themselves) may go on the user's PRIVATE claude.ai pages, the ones only he can open, such as the phone
+viewer's "deco" page (`tools/deco_page.js` -> `tools/web.js`). They still never go into git, onto the public site
+(PAGES.md) or onto a shared page.
+
 "GD art (not found)" in the viewer: the page could not fetch `/gdres/`. Seen 2026-11-23: the user's
 `serve.js` on 8765 had run since before `/gdres/` existed (a node server keeps the code it started with),
 so every sprite was a 404. Check `curl -s -o /dev/null -w "%{http_code}" localhost:8765/gdres/GJ_GameSheet-uhd.plist`;
@@ -196,7 +201,8 @@ takes the options (job.pcts, label, layers, decoOnly).
 
 ## Video (tools/video.js, 2026-11-24)
 
-`node tools/video.js <level> [--run <id | last> | --route] [--from s --to s] [--fps 60] [--size 1280x720] [--vs-rec]`
+`node tools/video.js <level> [--run <id | last> | --route] [--from s --to s] [--fps 60] [--size 1280x720] [--vs-rec] [--clicks mouse|keyboard]`
+`--clicks`: a click on each press and release (lib/clicks.js, self-made samples) mixed under the song, like the click-sound bots players use (2026-11-25).
 -> `local/video/<level>[_run_<id>].mp4`, LOCAL ONLY (GD's art and the song are in it). It renders the viewer's shoot mode
 headless (test=1, hidden) on a virtual clock (`job.video`, `window.VCLOCK`): every frame is exactly 1/fps apart whatever
 the render speed. The camera eases as in the page, the death burst plays, and a run is drawn with the user's own icon. Frames
@@ -222,6 +228,14 @@ re-encoded at the bitrate that fits. `--vs-rec` puts the run's recording beside 
   stretch (`contentY`) when that is above 6 blocks.
 - Open: an art-free version, so a video can be shared publicly; cropping a windowed recording in `--vs-rec`; the progress bar.
 
+
+**Quick low-quality video (2026-11-26, GDLM 44 v4, 71 s level):** `--fps 15 --size 426x240` is watchable and tiny (1.9 MB).
+The page drew 942 frames in 45 s; ffmpeg `-preset veryfast -crf 30` encoded them with the song in 2 s. But the headless run
+(port 8767) drew no frame for 3 min and was given up as hung, while the same job (`viewer/?shoot=<id>&mute=1`) opened in the
+user's serve.js on 8765 rendered fine: open there if the headless one stalls, then encode the frames by hand (song file +
+`-ss <kA13 offset>`). It hung the same on 8765 headless, so it is the headless browser, not the port: open.
+A level solved in a cloud session has its route only in viewer/levels.js; video.js now takes it from there (before, the
+video ran with no route and the player died at once: "it just disappears").
 ## The end (2026-11-25)
 
 The user, on the Jumper video: "no end screen like in the real game, it just falls on the ground". Two causes: a cleared

@@ -1,5 +1,8 @@
 # GDLevelMaker -- instructions for the AI
 
+**New computer, or not the owner's PC? Read SETUP.md first** (`node tools/setup.js`: finds GD, loads the main
+levels with their routes, checks the viewer). Most of this file describes the owner's own setup and workflow.
+
 Claude writes Geometry Dash levels from a description, checks they can be beaten, shows them
 replaying with their clicks, and hands back a file the user imports into their real game.
 The user plays it and tells us what was off. Read this fully first.
@@ -61,7 +64,10 @@ not after it:
 - **Every level you name comes with its link.** The user (2026-11-24): "Can you just paste link and it will open on the
   level we are talking about." A report, message or note that names a level gives `node tools/link.js <level> [--t <s>]
   [--run <id>] --md` (the phone page's link: opens that level, version and moment on the phone from anywhere); the PC and
-  home-wifi links when the user is at the PC. LINKS.md: the two forms, what works where.
+  home-wifi links when the user is at the PC. LINKS.md: the two forms, what works where. **Showing a layout or a level for him to look at: the link opens the view he can mark in, a bit zoomed out** (Evgeni,
+  2026-11-25: "i want to mark points, whenever you show me. open in that view i can mark, and its bit zoomed out"):
+  `node tools/link.js <level> --zoom 0.5 --beats --md` (the viewer's `&z=` and `&beats=1`); a picture (levelmap) only beside it. But when he is already working in the viewer, do not send links (2026-11-25: "stop giving me the link im working
+  here"): name the level and the entry to pick in its list.
 - **Viewer first, always.** The user (2026-11-24): "i want to see in the viewer first always". Every new
   level or version goes to the viewer (in-progress list, and the phone page) first. Never install into GD,
   queue an install or upload until the user has seen it there and says "install" (or "upload") for it. When
@@ -134,7 +140,7 @@ things take" below). The tools below still work one by one.
    and reports. The user's game is GD **2.2091** on Steam (Windows; Steam updated it 2026-10-21 -- older notes say 2.2081) with Geode 6.0.0 (2026-11-25); our probe mod `mods/gdlm-probe` is built with `tools\geode_build.cmd` and installed, and runs (GEODE.md "Building on this PC": Smart App Control blocks the Geode CLI, so `tools/geode_pack.js` packs).
    **Or Claude plays it in the real game (2026-11-25):** `node tools/probe.js play save:<GDLM name> --launch` (GD closed; the
    level must be in the save): the probe mod (GEODE.md "Playback") opens it, presses the saved route on exact ticks, logs every
-   tick and quits without saving; `node tools/probe.js result` says cleared / died where, and game vs sim. GDLM 62 cleared first try.
+   tick and quits without saving; `node tools/probe.js result` says cleared / died where, and game vs sim. GDLM 62 cleared first try. Main levels: `play official:N` / `--mains` (practice mode only, mod v0.5.1); `probe.js table` = one row per run (GEODE.md "Overnight batch 2026-11-26": all 21 die in the game, mostly from GD 2.2's jump snap the sim lacks).
    Smart App Control is OFF on the PC since 2026-11-25 16:08 UTC (the user turned it off: it had blocked unsigned mod builds by reputation), so every build loads.
    The old keyboard bot: `node tools/bot.js levels/<name>.gdlvl` presses Space at the solver's
    click times in the real game (no mod; it syncs to each attempt's start on screen and measures
@@ -213,6 +219,8 @@ on a long one with modes). Wait for the heavy-job slot comes on top of all of th
 | score.js, level with modes, no saved route (`opts.saved:false` or nothing to build on) | ~2 solves + ~1 min fairness: 10-15 min | score.js header |
 | compose.js (brief, repair rounds) | one make + score per round | not timed yet |
 | solve an official level (`difficulty_solve.js`) | minutes to an hour+ (checkpoints every 30 s) | not timed yet: use `--time solve-official` |
+| thumbnail (`thumb.js`, 8 candidates, + gif) | ~6-10 s in the cloud (game look); PC with GD art not measured | THUMBS.md, 2026-11-25 |
+| compare two levels (`compare.js`) | ~10 s for two short cube levels; 149 s for GDLM 70 vs 72 (70-86 s, many modes) | COMPARE.md, 2026-11-25 |
 | render frames (`shoot.js`, 8 frames) | ~10 s; ~1 min with before/after | SHOWCASE.md, POLISH.md |
 | level map (`levelmap.js`), with a saved solution | ~5 s (without one the page solves: minutes) | loop.js, GDLM 41 |
 | polish report (`polish.js --dry`) | 1-3 min | POLISH.md |
@@ -247,7 +255,11 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   --note "what changed"` after every change.** It goes to `local/wip/<session>/`, and the viewer
   (`node tools/serve.js`, http://localhost:8765/viewer/) lists it under "in progress" with its
   version; the user presses ⟳ refresh to see the newest, before anything is pushed. **Then run
-  the ArtifactData call it prints**, so the phone page shows it too (PHONE.md).
+  the ArtifactData call it prints**, so the phone page shows it too (PHONE.md). Once a copy is overtaken (pushed, or
+  a newer copy elsewhere), take it out of the list: `node tools/wip.js archive <session>/<base>` (or `--superseded [--dry]`
+  for all) MOVES its files to `local/wip_archive/<session>/`, never deletes; the viewer's "in progress" tab already hides
+  wip copies older than the pushed level of the same name. An open viewer tab reloads itself when the PC's checkout moves
+  on (it polls /version), and warns when serve.js can't self-update (dirty checkout, not on main).
 - **Real-game stats go to every owner, at once** (the user: "anytime we have stats about a new level
   from real game, lets send it to physics/difficulty/style and so on for analyzing"). After analysing a
   recording (the physics session owns recordings), add each attempt to `local/real_stats.jsonl` with
@@ -266,6 +278,10 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 
 ## Files
 
+- **Setup on any computer** (SETUP.md: the steps an AI agent follows): `tools/setup.js` (find GD, load the main levels,
+  check), `tools/gdpaths.js` (where GD's game, levels and save are; every tool reads GD's files through it -- never hardcode
+  the Steam path), `tools/mains_routes.js` (the main levels' routes in git, `knowledge/mains/routes.json`, written by
+  `mains.js export`: `import` replays them on a new computer's own game). Test: `node tests/setup.js`.
 - `lib/gd.js` -- the format: base64url + gzip layers, the record (plist) and the level string.
 - `lib/objects.js` -- object ids: name, kind, hitbox. `sure:false` = from memory, unconfirmed.
 - `lib/physics.js` -- physics of every mode, triggers + solver (fewest clicks, each in the middle of its window;
@@ -299,31 +315,45 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   press timing windows from a solution, sync scores. See SYNC.md (also where songs come from).
 - **`tools/channels.js` -- deco the GAME draws white**: a colour channel (key 21/22 or the object's default, 1 for 211/693) that neither the header nor an earlier colour trigger defines. score.js gate "channels" (FAIL); ART.md "Colour".
 - **`tools/roles.js` -- colour by role** (the user: "clear contrasts between the different things (ground, spikes, deco)"): block bodies vs the sky, deco in the path's or a hazard's value and hue family, hazards vs sky and path, every 10 blocks; `--shots N` pictures the worst spots. score.js gate "roles" (FAIL); palettes from `tools/decokit.js` rolePalette(hue); ART.md "Colour by role".
-- **Theme kits** (ART.md "Theme kits": icy, hellish, forest, space, ... as more than colours -- spikes, ground, deco, set pieces, palettes per variant, a song brief, the mode mix): `tools/themes/<name>.js` (space, ice), `node tools/theme.js list | check <name> | song <name> | demo <name> <level> [--shots]`; applied by the scene `tools/scenes/theme.js` (spec "theme": "space" or {name, variant(s) | sections}).
+- **Theme kits** (ART.md "Theme kits": icy, hellish, forest, space, ... as more than colours -- spikes, ground, deco, set pieces, palettes per variant, a song brief, the mode mix): `tools/themes/<name>.js` (space, ice, fire, sunny), `node tools/theme.js list | check <name> | song <name> | demo <name> <level> [--shots]`; applied by the scene `tools/scenes/theme.js` (spec "theme": "space" or {name, variant(s) | sections}).
 - **Free songs** (`knowledge/free_songs.md` + `.json`: the Newgrounds songs with a Creative Commons license, 36 of the 86 we use, credit lines; the only songs that may go in git and on the public site, `songs/free/`). Pick a public level's song from it.
-- **The public viewer** (https://evgiz0r.github.io/GDLevelMaker/, PAGES.md: GitHub Pages, rebuilt on every push; a level goes on it ONLY when the user says so for that level: `knowledge/public_levels.json`, empty for now, our levels only, songs / GD art / official levels only from the user's own serve.js): `tools/pages.js`, `tests/pages_build.js`, `.github/workflows/pages.yml`.
+- **The public viewer** (https://evgiz0r.github.io/GDLevelMaker/, PAGES.md: GitHub Pages, rebuilt on every push; a level goes on it ONLY when the user says so for that level: `knowledge/public_levels.json`, empty for now, our levels only, songs / GD art / official levels only from the user's own serve.js): `tools/pages.js`, `tests/pages_build.js`, `.github/workflows/pages.yml`. Candidates ranked (free song, score.js, what is missing): `knowledge/public_shortlist.md`.
 - **The viewer is where the user steers the work** (VIEWER.md): the Work panel, ✓ ok / redo on build stages with gates (`tools/stages.js waitApproval`), decision cards (`tools/ask.js put/wait`), and the actions feed every user action goes to (`tools/actions.js tail --since <id>`). Ask the user there, not only in chat. **🎮 you play** (key P): the user plays any level or build stage in the viewer, the same sim live (`lib/liveplay.js`), practice checkpoints per section; each attempt is a `play` line in the feed (where they die). A stage with a plan but no route replays the plan at once and shows where it breaks.
 - **Build stages in the viewer** (`tools/stages.js`: a builder puts song / layout / path / deco / final as each is done -> `local/wip/<session>/<base>.stages/`; the viewer shows a stage bar on the level and the stage on the picker's in-progress cards, even before the first wip put). `require("./stages.js").put({session, base, name, stage, levelStr?, data?, note?})`; test: `node tests/stages.js`.
-- **Videos and links**: `tools/video.js <level> [--run <id> | --route] [--from s --to s] [--vs-rec]` -- an mp4 of the level
+- **Click sounds** (`lib/clicks.js`: self-made mouse / keyboard press and release samples; the viewer's click sound choice, `video.js --clicks`; VIEWER.md "Click sound").
+- **Level compare** (COMPARE.md): `tools/compare.js <A> <B> [--thumbs] [--html out.html]` -- two or more levels side by side: size,
+  modes, difficulty with its parts, curve and costliest presses, taste with repetition, brick mix and verified-brick cover, the
+  one ahead per row; page `viewer/compare.html` -> local/compare/. Test: `node tests/compare.js`.
+- **Thumbnails** (THUMBS.md): `tools/thumb.js <level> [--gif]` -- the level's best-looking moment (level data every 0.5 s ->
+  8 candidates rendered headless -> picture score) -> local/thumbs/<level>/ (local only with GD's art). Test: `node tests/thumb.js`.
+  `tools/headless.js` also runs in a Linux cloud container (Playwright's Chromium, --no-sandbox as root).
+- **Videos and links**: `tools/video.js <level> [--run <id> | --route] [--from s --to s] [--vs-rec] [--clicks mouse|keyboard]` -- an mp4 of the level
   playing in the game look with its song (local only: GD's art and the song are in it; VISUALS.md "Video"); `tools/link.js`
   -- links that open a level at a version / moment / run on the PC, the phone page and the home wifi (LINKS.md).
 - **Offline snapshot** (PHONE.md "Offline snapshot"): `node tools/snapshot.js [--no-songs]` -> one HTML file with the PC
   viewer, every level, the user's runs, GD's art and the songs, which opens from disk with no network (local only, sent to
   the user by file card); `node tests/snapshot_offline.js` checks it from disk with no network at phone size.
 - **The phone page** (PHONE.md: what is on it, what a session does after `wip.js put`, phone
-  marks, how it was tested, what is open): `tools/web.js` builds it from the viewer.
+  marks, how it was tested, what is open): `tools/web.js` builds it from the viewer. Its "deco" page: `tools/deco_page.js` (the deco options' frames, GD art: this private page only).
 - `tools/` -- node CLIs: `make`, `check`, `roundtrip`, `index_levels`, `serve`, `beats` (beat grid
-  of every song on this PC, ffmpeg + JS), `sync` (how well levels follow their song's beat), `frames` (timing windows with 60 fps presses, as the user's game has them), `press_window` (which press ticks get the player through one spot, from a given position: the human window there), `windows` (every input's timing window in any mode, by moving it and replaying; the work is `lib/windows.js`, a player's window with later inputs re-planned, the one definition the viewer's button strip, score.js and difficulty share; `--strict` the old fixed-inputs rule), `real_stats` (the user's real-game attempts on our levels, local/real_stats.jsonl), `web` (the viewer as a phone page, PHONE.md), `songs` (custom songs by id into local/songs/, as GD gets them; SYNC.md section 6), `songmap` (songs' beat clarity, sections, drops, and how levels follow them; SYNC.md section 7), `hits` (a song's real hits per half-beat -- kick, snare, accent -- and `--level`: the share of a level's presses on one; SYNC.md section 8), `hitlevel` + `hitbuild` (an ultra-synced level built beat-first: the taps fixed on the song's hits, obstacles placed around them by sim replays, the ship's corridor around a hit-timed path; done when the planned inputs alone clear it -- GDLM 62, SYNC.md section 8), `hitroute` (replay a hit plan's taps, windows per tap), `fetch_level` (online levels by ID into local/community/, for measuring only, never committed), `demonlist` (Bloodbath, Pointercrate's top 150 and every former Top 1 -- `knowledge/levels/demonlist_top1.json` -- into local/community/, manifest `local/community/demonlist.json`; look only, no solve), `community` (study rated community levels: list, fetch, measure, modes, comments; see knowledge/README.md), `save_icons` (the user's icons and colours from their GD save, read-only, for the viewer), `community_index` (the community levels on this PC for the viewer's community and demon-list tabs, GET /community/list), `tiercheck` (does each section look like rated Easy/Normal or Hard/Harder sections of its mode; `--tier Easy`), `variety` (kinds of thing, portals, modes, speeds, repeated chunks vs rated levels; knowledge/levels/variety.md), `obstacles` (block structure per mode, obstacle shapes, when new kinds come in; knowledge/levels/obstacles.md), `modern_look` (how 2.2 rated levels are decorated: objects per block, layers, colour, triggers per section; knowledge/levels/modern_look.md), `difficulty` (score vs the official ratings), `rot_video.py` (the player's drawn rotation per frame in a recording, VISUALS.md "Render vs game"), `compare_frames` (our level and a reference side by side at matching spots, 1600x450, labelled with objects per block; `--layers`, `--deco-only`; for judging deco by picture, local/compare/), `portals` (every portal kind with its count and the modes in order, no solve), `tempo` (presses against the song's beat: inputs per beat of the human route, per phrase and in the busy parts, vs the official levels; score.js gate "tempo"; POLISH.md "Soft rules"), `perf` (the viewer's playback speed with real frames, headless: fps, frame and draw times per setup; VISUALS.md "Viewer speed"), `framecheck` (one recorded attempt frame by frame against the sim: the clock K from take-offs, the level start from white ruler bars, path and end gaps; PHYSICS.md "Frames"), `landbuf` (every landing in a recording with the press before it and whether the game jumped, no sim).
+  of every song on this PC, ffmpeg + JS), `sync` (how well levels follow their song's beat), `frames` (timing windows with 60 fps presses, as the user's game has them), `press_window` (which press ticks get the player through one spot, from a given position: the human window there), `windows` (every input's timing window in any mode, by moving it and replaying; the work is `lib/windows.js`, a player's window with later inputs re-planned, the one definition the viewer's button strip, score.js and difficulty share; `--strict` the old fixed-inputs rule), `real_stats` (the user's real-game attempts on our levels, local/real_stats.jsonl), `web` (the viewer as a phone page, PHONE.md), `songs` (custom songs by id into local/songs/, as GD gets them; SYNC.md section 6), `songmap` (songs' beat clarity, sections, drops, and how levels follow them; SYNC.md section 7), `hits` (a song's real hits per half-beat -- kick, snare, accent -- and `--level`: the share of a level's presses on one; SYNC.md section 8), `impacts` (a song's impact points -- drum entries, loudness jumps, big accents, section changes, breaks -- with a strength, heaviness per bar, section / speed-up suggestions in level beats; `--level`: what the level does at each impact and its dead stretches; every note onset, small ones too, the music's speed per bar and speed portals that follow it; `--commit` -> `knowledge/song_notes/<key>.json`, numbers only, for cloud sessions; SYNC.md section 9), `hitlevel` + `hitbuild` (an ultra-synced level built beat-first: the taps fixed on the song's hits, obstacles placed around them by sim replays, the ship's corridor around a hit-timed path; done when the planned inputs alone clear it -- GDLM 62, SYNC.md section 8), `hitroute` (replay a hit plan's taps, windows per tap), `fetch_level` (online levels by ID into local/community/, for measuring only, never committed), `demonlist` (Bloodbath, Pointercrate's top 150 and every former Top 1 -- `knowledge/levels/demonlist_top1.json` -- into local/community/, manifest `local/community/demonlist.json`; look only, no solve), `community` (study rated community levels: list, fetch, measure, modes, comments; see knowledge/README.md), `save_icons` (the user's icons and colours from their GD save, read-only, for the viewer), `community_index` (the community levels on this PC for the viewer's community and demon-list tabs, GET /community/list), `tiercheck` (does each section look like rated Easy/Normal or Hard/Harder sections of its mode; `--tier Easy`), `variety` (kinds of thing, portals, modes, speeds, repeated chunks vs rated levels; knowledge/levels/variety.md), `obstacles` (block structure per mode, obstacle shapes, when new kinds come in; knowledge/levels/obstacles.md), `modern_look` (how 2.2 rated levels are decorated: objects per block, layers, colour, triggers per section; knowledge/levels/modern_look.md), `difficulty` (score vs the official ratings), `rot_video.py` (the player's drawn rotation per frame in a recording, VISUALS.md "Render vs game"), `compare_frames` (our level and a reference side by side at matching spots, 1600x450, labelled with objects per block; `--layers`, `--deco-only`; for judging deco by picture, local/compare/), `portals` (every portal kind with its count and the modes in order, no solve), `tempo` (presses against the song's beat: inputs per beat of the human route, per phrase and in the busy parts, vs the official levels; score.js gate "tempo"; POLISH.md "Soft rules"), `perf` (the viewer's playback speed with real frames, headless: fps, frame and draw times per setup; VISUALS.md "Viewer speed"), `framecheck` (one recorded attempt frame by frame against the sim: the clock K from take-offs, the level start from white ruler bars, path and end gaps; PHYSICS.md "Frames"), `landbuf` (every landing in a recording with the press before it and whether the game jumped, no sim).
 - **Structures: a ranked library of 1-3 s layouts** (STRUCTURES.md: format, how each is checked, the
   ranking rules, results, what is open; owner: the style session): `tools/structures.js` (`list`,
   `check`, `build <id>`, `rank`, `page`), results in `knowledge/structures.json`, a picture page for the
   phone (link in local/phone/structures_url.txt). Every cube-in/cube-out one is the pattern `"s:<id>"`,
   and compose.js puts one in every plain cube section by default (`"structures": false` = off).
+- **Auto bricks: stretches with no click** (AUTO.md: the main levels' auto parts measured -- ~10% of a level, pad launches,
+  blue-pad ping-pong, portal rides --, 50 own bricks built by sim placement with an entry / exit contract, the lab level):
+  `tools/autostudy.js` (-> knowledge/auto_study.json, numbers only), `tools/autobricks.js list | build | show` (->
+  knowledge/autobricks.json, local/structures/lego-auto-*.gdlvl for `lego.js mine library`, levels/lab/auto_lab.gdlvl).
+  Test: `node tests/autobricks.js`. **Beat-first auto levels** (AUTO.md "Beat-first"): `tools/autobeat.js --song <Official> --seed N`
+  (a trigger on each chosen beat where the player is, gaps filled, motifs AAAA / BBBB / a mix; lab levels/lab/auto_beat.gdlvl);
+  test `node tests/autobeat.js`.
 - **Lego: structure research** (LEGO.md: every level cut into 1-3 s pieces -- official, ours, the user's sketches --,
   classified by family (fly: ship/wave/swing paths and corridors; jump; flip) with parameters, the official mix vs ours,
   the variety rule; one path built as ship / wave / swing with wrappers and click- or portal-turns): `tools/lego.js`
-  (`mine`, `families`, `variety <level>`, `page [--public]`, `votes`: Evgeni's 👍/👎/comments from the PC /lego/ page and the phone page, a weight not a ban), `tools/lego_match.js` (the reverse lego: which bricks a level is built from, their clicks as press hints; `hintsFor` -> presslib `solveWithLib({hints})`), `tools/lego_solve.js` (does it speed the solver: plain vs hints vs full, LEGO.md "Lego hints in the solver"), `tools/lego_join.js` (joins checked in physics), `tools/lego_seams.js` (how levels combine pieces: portals, rhythm, breathers, variety, height; official vs ours, LEGO.md "Combining"), the `fly-path` pattern, `lego-*` structures.
-- **How a difficulty score is built** (DIFFICULTY.md "Balance"): `tools/balance.js <level | official:N> ... --html out.html` -- every press's cost (slips + timing + after-portal), the costliest presses, cost per mode stretch, the main levels' ladder; page template `viewer/balance.html`.
+  (`mine`, `families`, `variety <level>`, `page [--public]`, `votes`: Evgeni's 👍/👎/comments from the PC /lego/ page and the phone page, a weight not a ban), `tools/lego_match.js` (the reverse lego: which bricks a level is built from, their clicks as press hints; `hintsFor` -> presslib `solveWithLib({hints})`), `tools/lego_solve.js` (does it speed the solver: plain vs hints vs full, LEGO.md "Lego hints in the solver"), `tools/lego_join.js` (joins checked in physics), every route `difficulty_solve.js` saves is cut into bricks by itself (`lego.mineLevel`, ~0.4 s a level; community levels too, local only), `tools/lego_pick.js` (a section list + song -> bricks on the beats, joins checked, whole chain solved; Evgeni's noted bricks left out; LEGO.md "The picker"), `tools/brickpick.js` (our own verified structures on the song's hits, 3+ block joins; GDLM 44 v3's picker), `tools/onbeat.js` (which presses' windows hold a hit; `--write` = the level's planned.json, so the human route presses on the hits), `tools/lego_seams.js` (how levels combine pieces: portals, rhythm, breathers, variety, height; official vs ours, LEGO.md "Combining"), the `fly-path` pattern, `lego-*` structures.
+- **How a difficulty score is built** (DIFFICULTY.md "Balance"): `tools/balance.js <level | official:N> ... --html out.html` -- every press's cost (slips + timing + after-portal), the costliest presses, cost per mode stretch, the main levels' ladder; page template `viewer/balance.html`. `tools/difficulty_fit_v2.js`: fits the v2 weights (timing spread, flight room, gravity, duals) on the mains vs the user's ranking, stars and attempts (`knowledge/balance_mains_v2.json`, `knowledge/difficulty_rank_user.json`).
 - **Quality vs the official levels** (QUALITY.md: one scorecard, official 1-10 next to every GDLM level --
   gameplay, flow, look, fairness, soft rules -- with a verdict per metric and the biggest gaps; owner: the
   difficulty session): `node tools/quality.js` (a new level gets a row by itself; `--cached` prints only).
@@ -381,6 +411,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 - **`tools/loop.js` -- the whole make/iterate loop in one command** (owner check, ETA, make/compose, score,
   shoot, levelmap, wip; logs under `local/loop/`), `--times` prints the measured time table, `--time <step>
   <cmd>` times any other job into it. Test: `node tests/loop.js`.
+- **The GD Work Board** (board/README.md: Evgeni's control page, local only -- http://localhost:8765/board/, data in local/board/, never an artifact again -- workstreams, main levels, physics vs the game, the task queue he picks; data schema): `tools/board_mains.js` (the main-levels table for it); `tools/board_local.js` (the same board as a local page, http://localhost:8770/ or serve.js /board/, data in local/board/).
 - **`tools/mains.js` -- RobTop's 22 main levels kept solved** (`status`: which route fails and the cheapest fix; `run`: replans then resumes at heavy priority `urgent`; serve.js starts it after a pull that changes physics or route code; DIFFICULTY.md "Main levels kept current").
 - **`tools/flystyle.js` -- how a route flies its ship / wave stretches** (presses a second, legs, near-wall ticks, wave inputs vs the corridor's turns: OFF PATTERN; `--replan` = today's plan beside the saved one). The wave planner in lib/natural.js flies one input per corridor leg (the user: "few holds and releases"); PHYSICS.md "The wave like a person".
 - **`tools/presslib.js` -- the press library: where good players press, learned from clears** (gdsolver's real-game plans,
@@ -440,6 +471,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   local/compare_sections/). **The energy curve, one definition**: `tools/energy.js` (obstacle starts per bar, as a
   percentile in the level; `vsSong` against the song's loudness, `vsSheet` against a vibe sheet's beat energies; test
   `node tests/energy.js`).
+- **Deco as a picture** (DECOART.md: paint a section's backdrop as one picture first -- focal light, values, layers -- then build it from GD's flat shapes; A fit the painting with shapes, B the same scene as clean vector, C fit any picture): `lib/paintfit.js` (the fitter, toGD with base channels + HSV), `tools/paintscene.js` (the painter, scenes), `tools/decoart.js <level> --from --to` (one stretch three ways, for the viewer), `tools/blockart.js` (play blocks as a painted material: lit tops, depth, facets, glowing veins). Test: `node tests/paintfit.js`.
 - **Deco options and composition** (ART.md "Deco options and composition"): `tools/decogallery.js` (one element at a time -- blocks, spikes, backgrounds -- in ice and fire, `--shots` gallery page), `tools/decodemo.js` (one stretch dressed rung by rung, ice / fire, `--shots` sheet), `tools/decocomp.js` (how deco is arranged vs the officials), `tools/lane.js` (the play lane, clutter, edge art, framing; spec `"lane": true`).
 - **`tools/repeat.js` -- gameplay repetition** (repeated play windows, the most used mini-structure, back-to-back loops, same-height corridors -> R 0..1; `--top N` pictures; `--ref` the officials' reference -> knowledge/repeat_ref.json); taste.js applies it as the user's rule on top of the model (TASTE_DATA.md "Repetition").
 - **Taste learned from real levels** (TASTE_DATA.md: the corpus of ~330 rated / unrated / official levels with
@@ -473,6 +505,8 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 - **Practice -> full run** (GEODE.md "Practice -> full run"): `tools/stitch.js` joins the user's real-game practice attempts
   (probe mod v0.4.0 logs checkpoints) into one start-to-end input route, checks it in our sim, `--save` -> viewer ghost and
   `video.js --run`; `probe.js play ... --events <stitched>` plays it unbroken in the game. Test: `node tests/stitch.js`.
+- `levels/archive/` -- every GDLM level but 44, archived 2026-11-25 (Evgeni: "start over, keep only 44"); out of the viewer's list, nothing deleted (its README).
+- `tools/mapbeats.py` (beat and bar lines over a levelmap.js picture). `tools/hellgate_build.js` -- GDLM 44 v3's builder: song part + local grid -> sections -> brickpick / fly-path -> specs/44_hellgate.json (+ .plan.json). **`tools/planbuild.js <briefs/NN.plan.json>`** -- the same builder with the section plan as data, for any level (GDLM 73 sunny streets; LEGO.md "The same builder for any level").
 - `examples/` -- levels the user made in the game, for reference and as format ground truth.
 
 All the library code runs in both node and the browser (no build step, no dependencies).
@@ -550,6 +584,11 @@ Confirmed:
 - The teleport portal (747) fires on a 25 x 90 box centred 12 units right of the object: the user's hitbox-on Deadlocked
   practice run (2026-11-24_00-33-07.mkv, 196.33 s) shows the ship leave the exit ~10 units further right than a centred
   box gives; with it Deadlocked is beaten in the sim (2026-11-25).
+- GD 2.2's jump snap, a 10-unit foot margin on block tops (not 15), x as a 32-bit float, and turned hazards against the
+  spinning player's turned box (2026-11-26, probe mod logs of 21 main levels, each attempt's own presses): with them the sim
+  dies on the game's death step on 14 of the 21 mains and on GDLM 44 / 64; before, on none. The cube remembers the block
+  GD's collision loop meets last (lowest 100-unit section, earliest object), breakable 143 never snaps. PHYSICS.md "Jump
+  snap, foot margin, 32-bit x".
 - Flipping gravity halves vertical speed (blue orb and ceiling blue pad in the recording move at
   half the decompile's velocity). The decompile's ringJump alone does not show this.
 

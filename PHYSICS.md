@@ -4,6 +4,34 @@
 (object ids). CLAUDE.md's Calibration section lists the facts checked in the user's own game;
 this file is the map per mode and per trigger. Last full update 2026-11-22.
 
+## The mismatch queue (ranked, 2026-11-26; owner: the physics thread "Fix physics mismatches with the real game")
+
+Every known place where the sim and GD 2.2091 disagree, most harm first. "Data in hand" = settled from files we already
+have (probe logs, recordings, gdsolver plans, the decompile), no game needed. "Game" = needs a run in the user's GD:
+batched into ONE request to the user (announce first, his go; probe playback, no physics-changing mods). Times are not
+measured unless a basis is given. Work top-down; when one is settled, move it to its mode's section with its source and
+re-run `tests/tas_progress.js`, `tests/mechanics.js`, `tools/mains.js status` (a main route that breaks = top priority).
+
+| # | mismatch | harm | evidence | how to verify | needs |
+|---|---|---|---|---|---|
+| 1 | Ship rides ~0.5 unit low | Stereo Madness 328, Hexagon Force 141, xStep (user's clear dies 25.3% in sim), GDLM 44 died in game at x 6638 | plans + 2 real runs + probe | probe logs of GDLM 44 (per-step vy, per-frame y in the game vs sim through the 2nd ship) -> which step the heights part | data in hand (probe logs on the PC) |
+| 2 | One-step-late jumps | 48 of 94 GDLM 62 jumps start a step (4 ms) after the sim's; Clubstep 8 of 17 fresh presses | probe logs | split jumps by frame phase, press age, landing, input source (playback vs real); read GD's input queue in the decompile | data in hand |
+| 3 | ~~x jumps +1 unit at a ceiling/floor jump~~ SETTLED 2026-11-26: GD's jump snap, in the sim ("Jump snap, foot margin, 32-bit x") | Clubstep step 1285; the stitch drift | probe diff | -- | -- |
+| 4 | Cube lands 4-21 ticks late (2026-11-26: the Stereo Madness, Polargeist and Dry Out plans now CLEAR with the snap + 10 margin; re-check the rest) | Polargeist, Dry Out, Can't Let Go, Jumper, Time Machine, Clutterfunk plans | plans | probe log of a landing-heavy main level vs `tas_why` | data in hand, else game |
+| 5 | Pink orb / pink pad too strong or low | Theory of Everything 1 and 2 (lv12 33, lv18 105), lab 60 launch 0.5-0.63 vs sim 0.72, GDLM 60 33.9% | plans + lab video | probe playback of a pink-orb/pad lab: vy on the touch step | game |
+| 6 | Yellow / pink pad strengths unconfirmed (`sure:false`) | every auto brick (AUTO.md), 50 lab variants | decompile only | probe playback of `levels/lab/auto_lab.gdlvl`: vy on each pad's step | game (same batch as 5) |
+| 7 | Ship entry speed (0.5 vs 0.25 of a falling vy) | Dry Out +64, Can't Let Go +118 blocks in plans, but user runs say no | plans vs user runs disagree | probe playback of GDLM 67 stations 9-10 (pad-thrown ship entries, no input) | game (same batch) |
+| 8 | Rotated gameplay tap timing (spider taps 2-3 ticks early) | Dash (ratchet 22 at 75) | plan | tools/tas_trace.js on lv22 at the turn | data in hand |
+| 9 | Clutterfunk pad on a hanging block not reached | user's clear dies 3.5% in sim | 1 run | probe playback of the route there / tas_why lv11 | data in hand, else game |
+| 10 | Teleport at 45 degrees moves less than the game | lab 60 | lab video | probe playback of a teleport lab | game (same batch) |
+| 11 | Upside-down cube dies hitting the ground hard | GDLM 67 green orb 3 of 4 | lab video | needs the green orb's throw first: probe log of the lab | game (same batch) |
+| 12 | GDLM 52 dies in game at x 10765 | one of our levels | probe playback 2026-11-25 | `probe.js result` on its log | data in hand |
+| 13 | Back On Track ship ~1 block high after a slide | plan 493 | plan | probe after 1 | after 1 |
+| 14 | UFO, robot, spider, swing, green orb mid-air: never checked in the user's game | 3 main routes with 33 ms UFO gaps | gdsolver's model | probe log of any main level with them (the user's own practice runs log too) | game |
+
+Not mismatches but missing (board "missing"): mirror portal, teleport variants 2902/2064/3022, a player carried by a moving
+block (Dash), item/pickup, scale, on-death, collision/area triggers, force blocks, platformer.
+
 ## How physics is checked
 
 | check | what it is | run |
@@ -30,7 +58,7 @@ A plan's tick t is our step t-1 (`tools/tas.js` shifts it). Plans reach, in bloc
 
 | mode | constants (1x) | source | checked by |
 |---|---|---|---|
-| cube | jump 11.18, gravity 0.958/tick*0.9, fall clamp 15, landing snap 15, inner kill box 9 | gdp | video: whole jump arc 1.3 px rms; gravity 0.78 u/frame^2 |
+| cube | jump 11.18, gravity 0.958/tick*0.9, fall clamp 15, foot margin 10 on a block top (before or after the tick's move; was a flat 15), jump snap, inner kill box 9 | gdp, gdsolver's collide.hpp, probe logs | video: whole jump arc 1.3 px rms; gravity 0.78 u/frame^2 |
 | ship | hold +0.108/+0.086, release -0.069/-0.103, switch at 2g (world terms, also upside down), limits +8/-6.4 | gdsolver | video: hold +0.40, release -0.25 u/frame^2 |
 | ball | tap = jump, flip (halves) x0.6; gravity 0.6x0.958 | gdsolver | video: +-0.47 u/frame^2 |
 | UFO | flap to 7, gravity 0.086 / 0.129 (see UFO below) | gdsolver | plans only |
@@ -535,14 +563,57 @@ step. `node tools/probe.js result [n]` compares a log with our sim's run of the 
 - **What is per step:** the player's `m_yVelocity` changes every step (240 Hz), the level time too. Its position
   (`m_position`) changes only once per 60 fps frame, and at a frame's first step it shows the sim's state of the step
   before; GameObject's `m_positionX/Y` doubles stay 0 on the player. So timing is read from vy, positions per frame.
+- **The true per-step position (mod v0.5.0, 2026-11-26):** the player NODE's position (`getPosition()`, logged as
+  `p[8], p[9]`) moves on every step. At log step n it is exactly our sim's state after step n-1 (Stereo Madness: x to
+  0.01 and y to 0.001 for the first 1246 steps), and the game's y is ours + 90. The logged vy at step n is the vy before
+  that step's gravity, so a jump shows vy 11.18 one step before y moves: **compare positions, not vy.** Read this way,
+  the first jump of Stereo Madness (press at 348) starts on the same step in game and sim, y equal to 0.001 all through
+  the arc. `probe.js result` and `probe.js table` use the node position when the log has it.
+- **So "jumps start one step late" (below) was an artifact** of comparing the game's vy at step n with the sim's vy at
+  step n (the game's vy is one step behind). Re-check GDLM 62 / 44 with a v0.5.0 log before using those numbers.
+- **GD 2.2's jump snap (found 2026-11-26, Stereo Madness in practice mode; IN the sim since the same day, see "Jump snap, foot
+  margin, 32-bit x" below):** on some landings on a
+  block the game moves the player's x by exactly +1.0 in that one step (normal speed; the sim lands with no x change).
+  Stereo Madness's first 3324 steps have 6 of them, all landings after a jump from one block to another 120 units
+  ahead and 30 higher (steps 1247, 1352, 3053, 3146, 3235, 3324; x 1618, 1756, 3965, 4087, 4204, 4320), and nothing else
+  moves x off the speed. This is `PlayerObject::checkSnapJumpToObject(GameObject*)` (local/src/GD-2.2081-Decompiled,
+  src/Objects/PlayerObject.cpp ~line 278): when the player lands on an object other than the last one it snapped to, and
+  the two objects are a standard jump apart (normal speed 0.9: 120 ahead / 30 up, 150 ahead / 30 down, 90 ahead / 60 up;
+  other speeds have their own distances, and slow 0.7 / fast 1.1 / 1.3), x moves toward `object.x + m_snapDistance`
+  (`m_snapDistance` = player x - object x at the last snap), at most `maxSnapDistance` (1 unit at 0.7 / 0.9, 2 at 1.1 /
+  1.3); then the object becomes `m_objectSnappedTo`. The decompile's conditions read inverted (it snaps when NO pattern
+  matches) and its x / y names are mixed up: the log says it snaps on the matching patterns.
+  **Settled from the log:** `m_snapDistance` is the player's x minus the block's x at TAKE-OFF (the function runs every
+  step while standing on a block and only re-measures it there). Stereo Madness, take-off offset -> landing offset before
+  the snap -> after: -14.22 -> -17.38 -> -16.38; 3.09 -> -0.07 -> 0.93; -7.47 -> -10.62 -> -9.62; -5.73 -> -8.88 -> -7.88.
+  So a 120-ahead / 30-up jump at normal speed lands 3.15 units behind its take-off offset and the snap moves it the
+  1-unit cap forward. Landings at other offsets (120 / -30, 120 / +-68 slabs, 150 / -38, 180, 210, 300 ...) get no snap.
+  Seen so far only (120, +30) at speed 0.9; the other two patterns and the other speeds are from the decompile. Open:
+  which block counts when the player lands across two (GD takes the one its collision loop meets first). The data:
+  `node tools/probe.js result <the Stereo Madness log>`; any v0.5.0 log has the per-step x. This is likely the "x +1.0
+  in one step" the Clubstep diff found below, and the drift that kills our main-level routes in the game (see the
+  2026-11-26 table in GEODE.md).
 - **Press timing:** a route press made after n steps starts the jump in step n+1 in the game, as in our sim (GDLM 44's
   first press: n 104 -> vy 11.18 at step 105). Positions agree to 0.5 unit for the first 8588 steps of GDLM 62.
-- **But many jumps start one step late in the game:** GDLM 62 (offset 0): of 94 jumps, 39 start on the sim's step, 48
+- **(Artifact, see above) Many jumps start one step late in the game:** GDLM 62 (offset 0): of 94 jumps, 39 start on the sim's step, 48
   one step later, 7 two or three later; the share does not depend on where the step falls in its 60 fps frame (each of
   the 4 frame steps: about half 0, half +1). GDLM 44: 15 of 25 on the sim's step. A likely reading, to check next: the
   +1 jumps are the ones made by a held button on landing (GD jumps no sooner than the step after a landing, see
   "Landing buffer"), the 0s are fresh presses. The probe log has the presses: split the jumps by "button already
   down" to settle it.
+- **Clubstep, the user's first attempt from the start (2026-11-25, `node tools/probe.js diff 15`: the attempt's OWN presses
+  replayed in our sim):** the sim dies 1 step and 1.1 unit after the game (game: step 2445, x 3174.4; sim: 2446, 3175.5),
+  so over 10 s the sim follows the game closely. The partings, in order:
+  - step 225 (0.94 s): a fresh press, the game's jump starts one step after the sim's (game vy 11.180 when the sim is
+    already at 10.964). Of the 24 jumps paired: fresh presses 0 x9, +1 x8; held through a landing 0 x5, +1 x1. **So the
+    one-step-late jump is NOT the held-vs-fresh split** (fresh presses are late as often as on time); open what decides it.
+  - step 1121 (4.67 s): the first height gap over 0.5 unit (0.54), from such a late jump.
+  - **step 1285 (5.35 s): the x parting, +1.0 unit in one step.** The cube is upside down, rises into a ceiling (game
+    y 225 = our 135) and the user's press there jumps it off the ceiling (vy -11.18) -- in that same step the game moves
+    x by 6.19 instead of 4 x 1.298 = 5.19 (the camera also jumps). The sim moves on at speed. x stays +1.0 after it
+    (6-9 s: 0.99-1.04), +1.47 by 10 s. So the x drift the stitch thread saw (1.5, 3.3, 6.2 units at its checkpoints)
+    is built of such one-unit steps at ceiling (and likely floor) jumps, not of the speed: between them x is exact.
+  The practice attempts start at a checkpoint and can't be replayed in our sim from there yet (diff refuses them).
 - **Heights:** the game's y is our y + 90 exactly (start: game 105, sim 15), so the death at game y 267.3 is our y 177.3.
 - **GDLM 52 necromancy** (playback, 2026-11-25 18:39 UTC): dies in the game at x 10765 where the sim clears; not studied yet.
 - **GDLM 44 dies in the game at x 6638, y 267** while the sim clears; the first height parting is at step 313
@@ -553,6 +624,57 @@ step. `node tools/probe.js result [n]` compares a log with our sim's run of the 
   open ship mismatch below (the game's ship rides ~0.5 unit higher than ours). Hellgate v2 replaces all three ship
   tunnels with `fly-path` slope corridors (no stair steps), so the spot is gone; the real-game re-check with the probe
   is still to run on the PC. Not yet settled: the exact ship height gap that made the corner kill.
+
+## Jump snap, foot margin, 32-bit x (2026-11-26): IN the sim, checked step by step in the game
+
+Four changes in `lib/physics.js`, each on by default with an off switch for comparisons (`GDLM_SNAP=0`, `GDLM_LAND=0`,
+`GDLM_F32X=0`, `GDLM_OBB_PLAYER=0`). Measured on the probe mod v0.5.1 logs of the overnight batch (GEODE.md "Overnight batch
+2026-11-26": 21 main levels in practice + 6 GDLM levels, per-step node position) with `node tools/probe.js diff <n>` (THIS
+attempt's own presses; `probe.js result` replays today's saved route, which for Hexagon Force had been re-solved since).
+
+| | before (all four off) | after |
+|---|---|---|
+| main levels: sim dies on the game's death step (within 1-6 units) | 0 of 21 (17-600 units late) | 14 of 21 (BoT, SM, Polargeist, Dry Out, BaB, CLG, Jumper, Time Machine, Cycles, ToE, Electroman, Hexagon, GD, Fingerdash); Deadlocked +17 units |
+| main levels where the sim dies EARLIER than the game | -- | none |
+| GDLM 44 / 64 | 7090 / 4497 (game 6638 / 4104) | 6639 / 4106, same step |
+| gdsolver plans (`tests/tas_progress.js`) | SM 328, BoT 493, Polargeist 909, Dry Out 415 | all four clear; 6, 7, 8, 10, 13, 18, 21 further; 19 lower (below) |
+
+Still parting (mostly ship / ball / wave / UFO stretches, not checked one by one): Deadlocked +17, xStep +204, Clutterfunk +86, Clubstep +354,
+Electrodynamix +247, Blast Processing +255, ToE2 +48, GDLM 72 +120, GDLM 52 +361 units past the game's death.
+
+1. **Jump snap** (`PlayerObject::checkSnapJumpToObject`, decompile PlayerObject.cpp ~278; gdsolver's port in
+   dp/src/dp/collide.hpp agrees). Called for every solid block the CUBE lands on (gdsolver: not for ball, robot, spider or
+   the flying modes), every step it stands there. If the block differs from the remembered one, the remembered one is a
+   plain solid, and the new block sits a standard jump away (per speed: side `dx`, +30; far `dx`, -30; near `dx`, +60,
+   gravity-relative; table `SNAP_PAT`), x moves toward `new block x + m_snapDistance`, at most 1 unit (2 at 2x / 3x).
+   Then the block is remembered and `m_snapDistance` = player x - block x. Seen in the game: side (120, +30) many times,
+   near (90, +60) at Electroman x 795; far and the other speeds only from the decompile.
+   - **Which block, standing across two:** GD's box test counts touching edges, so the cube lands on EVERY block under
+     it (ours set y on the first and then only touched the second: the prototype's "fits no rule" came from that).
+     `GJBaseGameLayer::checkCollisions` gathers the solids section by section (100-unit x sections by the object's x,
+     left to right; inside a section by uniqueID = level-string order, sorted) and collides them LAST FIRST. So the block
+     remembered at take-off is the lowest section / earliest object, and on landing the highest section / latest object
+     is the one compared. Stereo Madness 3195|3225 and 5325|5355 -> 5445|5475 (no snap), Dry Out 6615|6645, Clutterfunk
+     4875|4905: all as in the game. Pure x order and "only the first on a fresh landing" each broke several logs.
+   - **Breakable blocks (143, our "one-way block") are not type Solid**: snapping FROM one never happens (Electroman's
+     column of 143s at 2685 -> 2775, a near pattern the game did not snap). `s.snapNo`.
+   - GD sets the snapped x as a float (`static_cast<float>`), so the sim rounds it with F32X.
+2. **Foot margin 10** (gdsolver's collide.hpp, collidedWithObjectInternal: `fVar30 = 10` for a non-platformer, 15 only
+   while a platformer's size change is pending, 6 for ship / UFO / wave / swing; a foot contact when the feet before OR
+   after the tick's move are within it of the top; vy must not point away). Ours was a flat 15 on the feet after the move:
+   Stereo Madness's cube (x 5895, feet 14.6 under a slab at 5925) landed on it where the game kills it. `LAND`.
+3. **x is a 32-bit float** like GD's CCPoint: the game's per-step x advances 1.2982 / 1.2983 / 1.2984 at normal speed,
+   a float32 sum of 1.29825 matches 250 steps to 0.00005, a double drifts 0.008 in that time and 0.02 over a minute --
+   Electroman's yellow orb at 2565 was missed by 0.01 on it. y is not rounded (no evidence yet). `F32X`.
+4. **A turned hazard is tested against the player's box turned by its spin** (GD's hazard pass: `OBB2D::overlaps1Way` both
+   ways between the object's and the player's oriented boxes; `obbHit2`). Fingerdash's route grazed a -113 degree spike
+   (458 at 1645.7, 156.5) by 1 unit at a corner the spinning cube does not reach; the game passed. Fingerdash plan 54 -> 164
+   with this alone.
+
+Open: plan 19 (Geometrical Dominator) 100 -> 91: its robot tops out 1.6 units under a thin slab (id 468, block 92.5) that the
+old 15 margin let it land on -- the robot jump is checked only by plans. Cycles: the sim lands an upside-down cube on a
+block bottom 2 steps before the game (step 1036; both snap). The y sections (`shouldUseYSection` levels) are not modelled in
+the order. Debug: `GDLM_SNAP=0` etc. above; `node tools/probe.js diff <n>` for a log, `node tools/tas.js <n>` for a plan.
 
 ## Fidelity: measuring the sim against the user's game (goal: "as close as possible")
 
@@ -906,6 +1028,29 @@ or holds longer than needed (over 0.15 s outside ship/wave where a tap finishes)
   with or without this change (GDLM 44: 0 -> 636 ticks today, 0 -> 932 before it, presses 15 -> 16 vs 22), and GDLM 68's
   re-plan skips a ship portal at x 14715 and takes ~11 min (cloud), and GDLM 71's re-plan takes over 30 min (also before
   this change: the commit before it, run side by side, was still going at 40 min).
+- **Evgeni's catalogue comments are the planner's test cases** (knowledge/lego_votes.json, 26 by 2026-11-25, most on routes:
+  wave too close to walls and spikes, "could slide here", too many clicks, UFO "fake" timings in wide areas, "wrong path"):
+  `node tools/flystyle.js --cases [--replan] [--level N]` prints, per comment, the flying stretch it is in, saved route vs
+  today's re-plan (PC only: the main levels are local). Two are sim questions, checked with `--trace <block>-<block>` (tick by
+  tick: mode, y, vertical speed, button, grounded / slid-on-block / on-slope, free space): ToE2 block 237 "ufo jumps on the
+  cliff, he slides?! it shouldnt" and ToE2 block 530 "wave seems sliding, wrong". What the sim does there (read from the
+  code, the levels are not in the cloud): a UFO or ship that meets a block's side is neither pushed nor killed until its
+  9x9 inner box enters the block, so its outer box can overlap a wall while it rises or falls past it (drawn, that looks
+  like sliding up a cliff); it lands on a top only from at most FLY_SNAP (6) below. A wave slides along flat block faces
+  and the band's floor / roof (calibrated on GDLM 44, see Calibration in CLAUDE.md) and along a slope it meets at a glancing
+  angle. Traced (2026-11-25, `--trace`): ToE2 237 is no sim error -- the UFO stands on the cliff while any part of its
+  30-unit box is on it (the cliff ends ~237.3, the box leaves it ~237.8) and the route jumps at 237.54, off the very edge,
+  which reads as sliding. Planner rule from it (built 2026-11-25, lib/natural.js `edgeJumps`): a cube / UFO / robot press made
+  while its centre is already past the support's end moves earlier, 4 ticks at a time up to 48, to the first tick still
+  over the block that clears (later inputs shift with it). `GD.edgePresses(w, events)` lists such presses. Sweep of our
+  archive levels: 3 (GDLM 51 at block 214.5, 61 at 637.5, 64 at 952.4), all a landing on the corner with the jump at
+  once, so there is no earlier standing tick and the pass leaves them. ToE2 237 itself was not caught at first: the UFO
+  walks 0.1 unit off the cliff and flaps in the air a few ticks later, so a UFO press within 12 ticks of walking off
+  (falling, no press between) counts too. Main routes (`node tools/edge_presses.js`, saved routes on 058065f): 65 edge
+  presses, Fingerdash 11, GD 7, ToE2 and Deadlocked 6. They go when the PC re-plans the mains. ToE2 530: the saved route does not slide there (one slide tick in 500-551); it flies parallel to the slope
+  ~45 units above it. The re-plan slides 66 ticks in that stretch: to be judged by Evgeni in the viewer.
+- Mixed flying stretches (ship -> wave -> ship, one span in fly()): the wave planner now takes the stretch's wave part
+  (ToE2 895-924, 31 inputs for 9 turns, was never given to it while it asked for an all-wave stretch).
 - OPEN: GDLM 44's ship at block 206 keeps the solver's line in fly() (the easier line came 121 ticks closer to the walls),
   but its tightest window still went 96 -> 79 ms in the re-plan: a pass after fly() (early / spreadPresses / mergeLegs)
   moved a press there. Those passes do not check the tightest window yet. Not the wave planner's (no wave stretch there is off
