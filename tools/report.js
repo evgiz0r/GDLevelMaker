@@ -5,19 +5,20 @@
 //   Difficulty   lib/difficulty.js on the route: ~attempts and the tier word
 //   Fairness     tools/fairness.js flags on the route (deaths that are not the player's fault); --no-fair skips it (~1 min)
 //   Taste        tools/taste.js: 0-100 against featured levels of the band (static measures)
-//   Layout       five 0-10 sub-scores from tools/judge.js's notes, and their mean:
+//   Layout       six 0-10 sub-scores from tools/judge.js's notes, and their mean:
 //                  balance  how close the sections' clicks per second are (10 * (1 - coefficient of variation))
 //                  flow     10 - 3 per second of gap past judge.js GAP
 //                  variety  10 - 2.5 per "no variety" / "same corridor" note
 //                  pacing   10 - 2 per "long corridor" note
-//                  clarity  10 - 3 per "pointless orb" note
+//                  clarity  10 - 3 per "pointless orb" or "unseen roof" note
+//                  ending   4 with a "flat ending" note, else 10
 //   Deco         not judged yet (a second section, to come: the deco thread's checks)
 //   Top notes    judge.js's five worst, each with its time and block (the marks page pins them).
 //   The scores go into knowledge/measurements.jsonl (tools/measures.js: "layout"), stamped with the level's version.
 if (require.main === module) require("./heavy.js").claim();   // fairness replays the route: one heavy-job slot
 "use strict";
 const fs = require("fs"), path = require("path");
-const RANK = { "pointless orb": 0, "few clicks": 1, "gap": 2, "long corridor": 3, "same corridor": 4, "no variety": 5, "too easy": 6 };
+const RANK = { "unseen roof": -1, "pointless orb": 0, "few clicks": 1, "gap": 2, "long corridor": 3, "same corridor": 4, "no variety": 5, "too easy": 6 };
 
 function report(file, opt = {}) {
   const { readGdlvl, GD } = require("./io.js"), S = require("./solutions.js"), J = require("./judge.js");
@@ -45,8 +46,8 @@ function report(file, opt = {}) {
   const cv = cps.length > 1 ? Math.sqrt(cps.reduce((a, b) => a + (b - mean) ** 2, 0) / cps.length) / Math.max(mean, 1e-9) : 0;
   const gapS = n("gap").reduce((a, g) => a + Math.max(0, (+(/([\d.]+) s with/.exec(g.note) || [0, 0])[1]) - J.GAP), 0);
   const sub = { balance: cl(10 * (1 - Math.min(1, cv))), flow: cl(10 - 3 * gapS), variety: cl(10 - 2.5 * (n("no variety").length + n("same corridor").length)),
-    pacing: cl(10 - 2 * n("long corridor").length), clarity: cl(10 - 3 * n("pointless orb").length) };
-  out.layout = Object.assign({ score: +(Object.values(sub).reduce((a, b) => a + b, 0) / 5).toFixed(1) }, sub);
+    pacing: cl(10 - 2 * n("long corridor").length), clarity: cl(10 - 3 * n("pointless orb").length - 3 * n("unseen roof").length), ending: n("flat ending").length ? 4 : 10 };
+  out.layout = Object.assign({ score: +(Object.values(sub).reduce((a, b) => a + b, 0) / Object.keys(sub).length).toFixed(1) }, sub);
   out.deco = null;   // judged later
   out.notes = j.notes.slice().sort((a, b) => (RANK[a.kind] ?? 9) - (RANK[b.kind] ?? 9) || a.t - b.t).slice(0, 5);
   out.allNotes = j.notes.length;
@@ -62,7 +63,7 @@ function report(file, opt = {}) {
 function text(r) {
   const f = (k, v) => `${k.padEnd(11)}${v}`, d = r.difficulty || {}, fa = r.fairness;
   const L = [`${r.level}: ${r.seconds} s, ${r.presses} presses, ${r.modes.length} modes${r.beaten ? "" : ", NOT beaten on its route"}${r.stale ? " (route from older physics)" : ""}`,
-    f("Layout", `${r.layout.score}/10  balance ${r.layout.balance} · flow ${r.layout.flow} · variety ${r.layout.variety} · pacing ${r.layout.pacing} · clarity ${r.layout.clarity}`),
+    f("Layout", `${r.layout.score}/10  balance ${r.layout.balance} · flow ${r.layout.flow} · variety ${r.layout.variety} · pacing ${r.layout.pacing} · clarity ${r.layout.clarity} · ending ${r.layout.ending}`),
     f("Difficulty", d.error ? "(error) " + d.error : `${d.label} (~${d.attempts} attempts, tightest ${d.tightestMs} ms)`),
     fa ? f("Fairness", fa.error ? "(error) " + fa.error : fa.flags ? `${fa.flags} unfair spot${fa.flags > 1 ? "s" : ""}: ${fa.worst.join(", ")}` : "no unfair spots") : null,
     f("Taste", r.taste.error ? "(error)" : `${r.taste.score}/100`),

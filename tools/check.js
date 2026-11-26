@@ -27,6 +27,18 @@ function report(file, opts) {
       } else console.log("   incremental re-solve not possible (" + inc.fallback + "): solving it whole");
     } catch (e) { console.log("   incremental re-solve failed (" + e.message + "): solving it whole"); }
   }
+  // opts.seed: the pieces' known presses ([{t, hold?}], level seconds; tools/seedsolve.js): replayed, searched only
+  // where they die (a new level built from verified bricks: its joins), the whole level when that fails
+  if (!r && opts && opts.seed && opts.seed.length) {
+    try {
+      const sd = require("./seedsolve.js").solveSeeded(w, opts.seed);
+      if (sd.ok) {
+        const p = GD.run(w, sd.events).path;
+        r = { ok: true, events: sd.events, clicks: sd.events.map(e => ({ type: e.type, tick: e.tick, x: p[Math.min(e.tick, p.length - 1)].x, ms: null })) };
+        console.log(`   seeded: the pieces' presses + ${sd.repairs} local searches in ${(sd.ms / 1000).toFixed(1)} s`);
+      } else console.log(`   seeded solve stopped at block ${(sd.dieX / 30).toFixed(1)} after ${sd.repairs} searches (${(sd.ms / 1000).toFixed(0)} s): solving it whole`);
+    } catch (e) { console.log("   seeded solve failed (" + e.message + "): solving it whole"); }
+  }
   if (!r) r = GD.solveAny(w);
   if (!r.ok) {
     console.log(`   NOT BEATABLE with cube physics: the furthest run dies at x=${r.dieAt.x.toFixed(0)} (block ${(r.dieAt.x / 30).toFixed(1)}, ${(r.dieAt.tick / GD.PHYS.TPS).toFixed(2)} s), hit a ${r.why}${r.killer ? " at x=" + r.killer.x : ""}`);

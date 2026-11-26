@@ -25,7 +25,7 @@
 //   room after the entry portal (default 7, 10 after a flight, at 1x) / beats before the next portal (1.5).
 "use strict";
 const fs = require("fs"), path = require("path");
-const { pick } = require("./brickpick.js");
+const { pick, beatAt } = require("./brickpick.js");
 const ROOT = path.join(__dirname, "..");
 const BPS = { "0.5x": 8.372, "1x": 10.386, "2x": 12.914, "3x": 15.6, "4x": 19.2 };   // blocks per second (lib/physics.js SPEEDS x * 60 / 30)
 const FLY = new Set(["ship", "wave", "swing"]);
@@ -114,7 +114,7 @@ function build(plan) {
         r.presses = r.picks.reduce((n, p) => n + p.presses.length, 0); }
       for (const p of r.picks) if (!p.j) used.push(p.id);
       const floor = rise(b0, vcol, r.picks, mode, B, s.climb ?? sp === "1x");   // at 2x the steps landed 2-3 blocks after spikes (reactive)
-      objs.push(...floor, ...r.picks.map(p => p.j ? ["pattern", p.shape || "single", "j" + p.beat, p.h] : mode === "cube" ? ["pattern", "s:" + p.id, "b" + p.beat, p.h] : ["pattern", "s:" + p.id, "b" + p.beat, p.h, { raw: true }]));
+      objs.push(...floor, ...r.picks.map(p => p.j ? ["pattern", p.shape || "single", "j" + p.beat, p.h] : mode === "cube" ? ["pattern", "s:" + p.id, beatAt(p), p.h] : ["pattern", "s:" + p.id, beatAt(p), p.h, { raw: true }]));
       report.push(`${label}: ${r.picks.map(p => p.shape || p.id).join(", ") || "(none)"} -- ${r.presses} presses, ${Math.round(r.onHit * 100)}% on a hit`);
     }
     const nx = S[i + 1];
