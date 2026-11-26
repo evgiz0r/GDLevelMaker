@@ -99,6 +99,9 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 - [ ] **Presses follow the song's beat**: the human route has about as many inputs per beat as the official levels
   (0.53-0.87 over the level, 0.50+ in its busy phrases; a calm phrase may be sparse). `tools/tempo.js`, score.js "tempo".
   (the user on GDLM 44 hellgate v6: "the cps is very small, compared to beat of the song")
+  And at least the median Easy brick's clicks per second (1.82; rated levels' bricks 1.8-2.15 at every tier,
+  knowledge/brick_tiers.json from `tools/brickstats.js --write`): score.js "tempo" warns below it. Evgeni 2026-11-26: "i want
+  levels not to be so sparse, the beats are decently quick". Sweep: GDLM 70-73 pass (2.0-2.5), most of 41-69 are under.
 - [ ] **Density without timing**: arm the pieces the route never touches -- spike tips under hanging columns
   (3+ rows over the higher pillar beside them) and spike-tipped 1-wide pillars mid-pit, a row under the lower
   landing; never a spike on a top the route lands on. Checked: windows unchanged (CRAFT.md "Density").
@@ -427,6 +430,9 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   saws where a press leaves it). Rapid runs (4+ notes <= 0.14 s apart) get triggers 0.07 s apart. AUTO.md round 8.
 - [ ] **An auto level is built and checked on main's newest physics before it is installed**: GDLM auto beat v4 cleared on
   the morning's physics and fell in the game at 20 s; on the evening's physics it dies there too. `git pull`, rebuild, check.
+- [ ] **Auto layouts read as designed** (Evgeni on v5: "jumpy across screens", "very random", "janky within the block"): no
+  teleports, height inside a camera band except at section changes, phrases echo their call, slopes as moves, the player never
+  sinks into a ledge, spider moves short, every pad on a block. autobeat.js `shape` (AUTO.md round 9).
 - [ ] **Nothing the player should read above the view** (the user on GDLM 72, 2026-11-25: "the sign is offscreen"): for a
   cube on the ground the game shows y -93 .. ~227 (lib/camera.js), so text and set pieces stay under ~210. The signature's
   stage floated 90 units up and put its title at y 232; now 50 (title ~192). 21 of 30 GDLM levels carry the old one until
