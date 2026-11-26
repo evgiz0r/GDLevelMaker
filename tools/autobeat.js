@@ -319,6 +319,10 @@ const KIND = {
   slope(s, st) {
     if (s.grav < 0 || !PADMODES.has(s.mode)) return null;
     if (!s.g) {
+      // OFF until the sim is checked (opts.airSlopes): GDLM auto beat v6 in the game (probe log 2026-11-26) matched the sim
+      // tick for tick for 10 s, then a cube falling onto a rising slope LANDED in the game (vy -> 0, then 3.09) while the sim
+      // threw it up at once (5.77, 7.41); he died 5 s later. Reported to the physics thread.
+      if (!st.airSlopes) return null;
       // in the air coming down: it lands ON a slope on the note (most of an auto is in the air: 40 of 627 notes found the
       // player on the ground) -- a slope down it runs off, or a slope up that throws it on
       if (s.vy > -0.5) return null;
@@ -440,7 +444,7 @@ function build(opts = {}) {
   const lastBeat = Math.min(g.beats - 6, opts.beats != null ? (opts.from || 4) + opts.beats : g.beats - 6);
   if (opts.music === undefined) opts.music = musicOf(song);   // the song's notes when they are measured, else the beat grid
   const plan = opts.music ? notePlan(g, opts.music, opts.from || 4, lastBeat, opts) : triggerBeats(g, opts.from || 4, lastBeat);
-  const st = { objs: [], segs: [], r, lastMode: null };
+  const st = { objs: [], segs: [], r, lastMode: null, airSlopes: !!opts.airSlopes };
   const farX = () => 20000 + (plan.length ? 0 : 0);   // far enough for any song at 3x: replaced by the real end at the end
   const FAR = 400 * B * 4;
   const placed = [];            // per trigger: {beat, tick, kind, label, fired, off}
@@ -659,6 +663,14 @@ function build(opts = {}) {
   const M0 = {};
   // ---- spikes where the path never goes (sparse), kept only if it still clears
   let fin = run(st.objs, st.segs, 1e9, endX + 90);
+  // a wave (or cube) sliding along a ledge the home wall cut short dies at its end ("block edge": the wave dies sliding off a
+  // block's end, PHYSICS.md): carry that ledge on past the wall, up to 3 times
+  for (let k = 0; k < 3 && fin.dead && /edge/.test(fin.why || ""); k++) {
+    const e = fin.p[fin.p.length - 1], sg = st.segs.filter(q => Math.abs(q.x1 - e.x) < 40).sort((a, b) => Math.abs(a.H - e.y) - Math.abs(b.H - e.y))[0];
+    if (!sg) break;
+    for (const q of st.segs) if (q.H === sg.H && q.dir === sg.dir && q.x1 === sg.x1) q.x1 = Math.max(q.x1, wx + 200);
+    fin = run(st.objs, st.segs, 1e9, endX + 90);
+  }
   const spikes = [];
   if (!fin.dead) {
     const p = fin.p, lowAt = new Map();

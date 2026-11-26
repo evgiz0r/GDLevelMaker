@@ -14,11 +14,12 @@
 //   --vs <marks>: his marks ({x, note} in blocks) against the judge's notes: a mark is found by a note of the kind its words
 //   ask for (WORDS below) within 6 blocks of the note's span; prints the misses and the notes he did not make (they may still
 //   be right). Thresholds are named below; change them with his next marks. tests/judge.js: 9 of his 13 v4 marks on today's route (11 on the route before the jump snap).
-//   Not judged yet (his other two v4 marks): "unseen roof" (a corridor entered from above with its top off screen) and
-//   "flat ending" (the last seconds a plain walk to the signature) -- knowledge/checklist.md has both.
+//   unseen roof     the route touches its play band's roof (or a raised band floor) where nothing is drawn ("we fall from the
+//                   top, but there is no indication of top")
+//   flat ending     the last ENDFLAT s a flat walk with nothing to press or ride ("design the last sign/gameplay a bit more")
 "use strict";
 const fs = require("fs"), path = require("path");
-const GAP = 1.2, FLYMAX = 4.0, FEWCPS = 0.5, SAME = 0.75, VARIETY_S = 4.0;
+const GAP = 1.2, FLYMAX = 4.0, FEWCPS = 0.5, SAME = 0.75, VARIETY_S = 4.0, ENDFLAT = 3;
 const FLY = new Set(["ship", "wave", "swing"]);
 
 function judge(file) {
@@ -80,6 +81,19 @@ function judge(file) {
     for (const s of secs) { const m = win.filter(x => x.k >= s.a && x.k <= s.b).map(x => x.ms);
       if (m.length >= 2 && med(m) > 2 * lv) at((s.a + s.b) >> 1, "too easy", `${s.mode}: its presses have ${Math.round(med(m))} ms windows, the level ${Math.round(lv)} ms`, s.a, s.b); }
   }
+  // unseen roof / floor: the route touches its play band's edge (lib/physics.js floorY / ceilY) where no solid stands to
+  // show it (Evgeni on v5, 2026-11-26: "we fall from the top, but there is no indication of top. some secret ways can be
+  // like that"); one note per section
+  const solidNear = (x, y) => solids.some(o => Math.abs(o.x - x) < 45 && Math.abs(o.y - y) < 40);
+  for (const sc of secs) for (let k = sc.a; k <= sc.b; k += 4) { const q = p[k];
+    const roof = isFinite(q.ceilY) && q.y + 20 >= q.ceilY, floor = isFinite(q.floorY) && q.floorY > 0 && q.y - 20 <= q.floorY;
+    if ((roof && !solidNear(q.x, q.ceilY + 15)) || (floor && !solidNear(q.x, q.floorY - 15))) {
+      at(k, "unseen roof", `${q.mode}: the route ${roof ? "hits the band's roof" : "rides the band's floor"} at ${Math.round(roof ? q.ceilY : q.floorY)} with nothing drawn there`); break; } }
+  // flat ending: the last seconds a plain run with nothing to press or ride (Evgeni on v5: "design the last sign/gameplay a
+  // bit more. maybe some auto gameplay which is not just on the ground")
+  { const k1 = p.length - 1, k0 = Math.max(0, k1 - ENDFLAT * TPS), q0 = p[k0];
+    const quiet = !presses.some(t => t >= k0) && p.slice(k0).every(q => q.grounded && Math.abs(q.y - q0.y) < 2 && q.mode === q0.mode);
+    if (quiet && p.length > 2 * ENDFLAT * TPS) at(k0, "flat ending", `the last ${ENDFLAT} s are a flat walk to the end (nothing to press, no auto ride)`, k0, k1); }
   // a route that stops short judges only what it reached: say so first
   const end = p[p.length - 1];
   if (!end.done || end.dead) notes.push({ t: tt(p.length - 1), x: blk(end), y: Math.round(end.y), kind: "route stops", note: "the saved route dies here on today's physics: notes after this are missing (re-solve: node tools/solutions.js <level>)" });

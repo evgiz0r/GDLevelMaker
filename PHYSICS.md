@@ -741,6 +741,23 @@ Still open from these runs:
   the game's box is a bit bigger (world height 2.7-3.35 at that angle). One sample.
 - Deadlocked 3394: the wave and 3x portals now match; the attempt's last 120 steps were not checked beyond the death step.
 
+### The auto beat lab log (2026-11-26, no presses)
+
+Evgeni's real-game run of `levels/lab/auto_beat.gdlvl` (auto thread; log on the PC, local\tmp\autobeat_probe\). With these
+five rules the sim matches it on every tick to the game's death (3793 steps, ~30 pads, portals, slopes, mini, spider):
+- **A mini cube on a slope** sits by its own half (9 + 9 tan(angle/2) over the line, `slopeTop(..., ph)`), and its launch
+  off a 45-degree top is 3.086 at 1x, 0.417 of the full 7.405 (`GDLM_MINI_LAUNCH=old`; 2:1 and other speeds UNMEASURED).
+- **A cube falling onto a falling slope with its foot point before the high end** lands on that end's level, is held two
+  ticks (vy 0), then falls off with gravity and lands on the line (`GDLM_DESC_TOP=0`; ticks 2612-2619).
+- **Over a falling slope's high end the landing margin is a block top's 10**, not 17 (`GDLM_SLOPE_END=old`): a spider
+  15.7 under the end falls on and dies (tick 3786).
+- **A cube on the ground taking a gravity portal keeps that tick's gravity step** (moved down by it, vy halved by the
+  flip): -0.024 at the next frame, then 0.108 up (`GDLM_FLIPGND=old`; tick 2675).
+- **A pad touched on the tick the cube lands on a block is taken first**: the landing never snaps it up (0.55 inside the
+  block's top, then 16 up; `GDLM_PADLAND=old`; tick 3283).
+The auto builder (tools/autobeat.js) places by the sim, so its builds change with these: tests/autobeat.js needs a rebuild
+by the auto thread (Jumper seed 2 and round 9 fail on the new physics).
+
 ## Fidelity: measuring the sim against the user's game (goal: "as close as possible")
 
 The user's standing goal (2026-11-23). Plan: a scoreboard (tools/fidelity.js, not built yet) giving, per

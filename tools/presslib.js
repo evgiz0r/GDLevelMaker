@@ -252,7 +252,7 @@ function solveWithLib(lib, w, theta, opts = {}) {
     for (const secs of [1, 2.5, 6]) {
       let c = Math.max(0, td - Math.round(secs * GD.PHYS.TPS));
       while (c > 0 && !I.calm(w, p[c])) c--;
-      if (c <= back && back) continue; back = c;
+      if (back && c >= back) continue; back = c;   // only a calm point further back than the last try (was "c <= back": it skipped every try after the first)
       // a death inside a flying stretch is searched once to the stretch's end (back in a tap mode), not repaired
       // bit by bit: each repair of a ship part costs a sweep from a calm point before the portal (GDLM 45: 21 repairs,
       // 132 s vs a full sweep's 59 s)

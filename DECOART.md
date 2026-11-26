@@ -132,6 +132,35 @@ gradients, things in front of the player, set pieces, particles, fades, the came
 (1293, gradients), a front layer (thin see-through silhouettes), one big set piece per screen, ember / snow particles,
 fade-ins at section starts, a camera zoom or shake on the drop.
 
+## Round 5 (2026-11-26): not only flat shapes, `tools/decofx.js`
+
+Evgeni: "yes, i want to iterate on looks" after the table above. One pass over a dressed stretch adds what the rated levels
+have and we lacked (each switchable with `--fx`):
+- **glow**: GD's soft glow strip 1293 (15 x 30, solid at the bottom, fading up; flipY the other way) replaces blockart's stacked
+  see-through squares: one gradient inside each open block top (blockart's glowTop channel, opacity 0.75) and a halo rising
+  above it (B1, blending, 0.35). Lay them edge to edge at exact widths (sx 2 = 30 units): an overlap of even 1 unit shows as
+  a bright seam on a blending channel. lib/look.js now draws 1293 as a gradient, so it shows on the phone and in cloud shots.
+- **front**: dark hanging silhouettes (stalactites / icicles: two flipped 693 halves) on T3 with a blended lit edge, hung from
+  y 300 and kept 75 units over the play beneath them (tests/decofx.js checks 55+); a low see-through haze over the ground.
+  Too high (from y 420 down to 200) and they never showed: the cube screen tops out near y 250.
+- **set**: one set piece a screen on B2 (fire: a gate with a glowing core and rays; ice: a crystal cluster). Behind the lane a
+  set piece must stay near the sky's value (ice: opacity 0.85, a mid blue); the first dark version fought with the cube and
+  spikes, the first light one blew out.
+- **motes**: embers rising / snow falling, big and few on T2, small and many on B2, each depth its own move.
+- **fade**: front layer and set pieces fade in (1007); **camera**: zoom 0.85 at the first mode portal and back, a flash on the
+  glow; **scene**: the glow, outline and halo turn hotter / colder at that portal.
+Not yet: real particle objects (2065: their settings string is not known to us and the viewer can't draw them), camera
+shake (the viewer does not model it), a new background per section.
+
+Results: fire +441 objects (26 -> 30 per block), ice +403. Pictures: project files decoart/round5_fx.jpg and
+round5_before_after.jpg. Viewer: deco-art / gdlm_44_hellgate_mix_layered_fx and gdlm_72_frostbite_mix_ice_fx.
+```
+node tools/decofx.js local/decoart/gdlm_44_hellgate_mix_layered.gdlvl --theme fire [--fx glow,front,set,motes,fade,camera,scene]
+node tests/decofx.js
+```
+Lesson: run `node tools/channels.js` on every deco build. A swallowed line left the set pieces' core and rim channels
+undefined, which the game would draw white.
+
 ## Lessons as rules (soft; for the generator)
 
 - **Paint the section's picture before placing deco**: one focal point (light / landmark) at a third of the screen in the
