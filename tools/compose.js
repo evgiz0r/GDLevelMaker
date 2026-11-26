@@ -475,6 +475,8 @@ function compose(brief, tweaks = {}) {
   if (brief.modern !== false) spec.modern = { sections: looks.map(({ bg, ...l }) => l), title: brief._noTitle ? null : brief.name, end: brief._noEnd ? null : "thanks for playing", seed: brief.seed || 3, light: brief.palette === "light", ...(brief.pulses === false ? { pulses: false } : {}) };
   // jump indicators (tools/decorate.js): on jumps that cannot be read in time, and the first jump of
   // each new pattern. Default on; "indicators": false in the brief turns them off.
+  // the structure deco pass (tools/structdeco.js): on unless the brief says "structures": false
+  if (brief.structures !== false) spec.structures = brief.structures || true;
   if (brief.indicators !== false) spec.indicators = Object.assign({ at: firsts }, brief.indicators || {});
   for (const k of ["style", "colours", "art", "speed", "song", "offset", "music", "grid", "snap", "seed"]) if (brief[k] != null) spec[k] = brief[k];
   if (brief.sections[0] && brief.sections[0].bg && !spec.colours) spec.colours = { bg: brief.sections[0].bg, ground: brief.sections[0].ground || brief.sections[0].bg };
@@ -490,7 +492,7 @@ function sectionSpec(spec, range, speed) {
   const objs = spec.objects.slice(i0, i1).map(mv).concat([["block", end - shift + 2, 6]]);
   if (speed && speed !== (spec.speed || "1x")) objs.unshift([speed + " speed", 2, 1]);
   const sub = Object.assign({}, spec, { objects: objs });
-  delete sub.modern; delete sub.signature; delete sub.indicators; delete sub.decoDensity;
+  delete sub.modern; delete sub.signature; delete sub.indicators; delete sub.structures; delete sub.decoDensity;
   return { sub, shift };
 }
 // a section's score, back in the level's columns
@@ -637,7 +639,7 @@ function loop(briefFile, rounds = 8, phase = {}) {
     extra.note = (extra.note || "") + ` [${timing}]`;
     try { STG.put(Object.assign({ session: brief.session || "style", base: slug(brief.name), name: brief.name, stage: st }, extra)); } catch (e) { console.log("   (stage " + st + " not saved: " + e.message + ")"); }
   };
-  const gameplayOnly = spec => { const g = JSON.parse(JSON.stringify(spec)); delete g.scene; delete g.craft; delete g.modern; delete g.indicators; delete g.decoDensity; g.signature = false; g.objects = g.objects.filter(o => !Array.isArray(o) || !["colour", "fade", "zoom"].includes(o[0])); return g; };
+  const gameplayOnly = spec => { const g = JSON.parse(JSON.stringify(spec)); delete g.scene; delete g.craft; delete g.modern; delete g.indicators; delete g.structures; delete g.decoDensity; g.signature = false; g.objects = g.objects.filter(o => !Array.isArray(o) || !["colour", "fade", "zoom"].includes(o[0])); return g; };
   const quiet = fn => { const log0 = console.log; console.log = () => {}; try { return fn(); } finally { console.log = log0; } };
   // a plan's gameplay level, its planned presses and its driven events (the full plan; cache gaps named)
   const planOf = (tweaks, drive = true) => {

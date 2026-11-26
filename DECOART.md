@@ -403,3 +403,18 @@ a cell k cells below its column's surface runs from 1 - 0.13k to 1 - 0.13(k+1) o
 every side): in jagged shapes that came out as blotches. Also fixed: 1293 is 15 units wide, so the designs' top glow
 covered only half of each top edge (sx was len / 30). Hellgate v5; picture decoart/hellgate_shade.jpg.
 Open: steps show where the ramp meets a slope (columns under a slope start lower); other interior textures per theme (ice: cracks / facets, fire: veins), lamps rare on Hellgate (few cells are 2+ deep).
+
+## The structure deco pass: all of it in the deco stage (2026-11-26)
+
+Evgeni: "i want to use the deco knowledge we now gaining later during the deco stage". `tools/structdeco.js` is the one
+place that applies this thread's findings; make.js runs it after the solve (deco only, the route is kept; `--look` too),
+compose and planbuild turn it on by default (`"structures": false` in a brief / plan = off). Spec key `"structures"`:
+`true` (layered, fire palette or ice for an ice theme, chain holders, inside on), or `{design, pal, effects, holders,
+interior}`, or `{sections: [{from, design, pal, effects}], holders}` -- one look per section, a structure takes the look of
+the section its left end is in (never two looks on one structure), more than 3 looks warns. Palettes take channels 912,
+922, 933. Indicators stay in make.js's indicator step (`"indicators": {"style", "colour": "auto"}`).
+What it applies: Structure designs (slopes, notches), 3D effects, the inside of big structures (seams, rivets, lamps, a
+layer line, a top-lit gradient), holders and bridges off the route and not across portals.
+Test: `node tests/structdeco.js`. CLI: `node tools/structdeco.js <level> --route <route.json> [--spec '<json>']`.
+Open: a palette from a theme kit's variant (today only ice / fire, or rgb by role), indicator colour away from the block
+hue too, a director that picks the per-section looks from the song's sections by itself.

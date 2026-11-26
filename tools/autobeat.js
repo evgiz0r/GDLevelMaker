@@ -1,5 +1,5 @@
 // node tools/autobeat.js [--song Electrodynamix] [--seed 1] [--beats N] [--from-beat B] [--out levels/lab/auto_beat.gdlvl]
-//                        [--name "GDLM auto beat"] [--rate R] [--quiet]
+//                        [--name "GDLM auto beat"] [--rate R] [--end-look floating|ground|plain] [--end-dress floating|ice|ground] [--quiet]
 //   -> an AUTO level (no click at all) built BEAT-FIRST on an official song: every change of movement fires on a beat.
 //      Prints each trigger (beat, kind, how far off the beat it fired) and the measures; writes the .gdlvl with the song set.
 //
@@ -860,10 +860,10 @@ function build(opts = {}) {
   // half a screen of pad bounces hit and landed on the beats, then the sign. opts.ending "outro" = the old outro.
   if (opts.ending !== false && opts.ending !== "outro" && !fin.dead) {
     try {
-      const be = require("./beatend.js").beatEnd(levelString(st.objs.filter(q => q.kind !== "end"), st.segs), { period: g.period, t0: g.t0, fromX: wx });
+      const be = require("./beatend.js").beatEnd(levelString(st.objs.filter(q => q.kind !== "end"), st.segs), { period: g.period, t0: g.t0, fromX: wx, look: opts.endLook, debug: opts.endDebug });
       const objs = st.objs.filter(q => q.kind !== "end").concat(be.objects.map(q => Object.assign({ kind: "beatend" }, q)));
       const res = run(objs, st.segs, 1e9, be.endX);
-      if (!res.dead) { st.objs = objs; fin = res; sig = { col: be.signCol, floorY: be.floorY, beat: be.beats, notes: be.notes, secs: +((be.endX - be.startX) / 311.58).toFixed(2) }; }
+      if (!res.dead) { st.objs = objs; fin = res; sig = { col: be.signCol, floorY: be.floorY, beat: be.beats, notes: be.notes, be, dress: opts.endDress, secs: +((be.endX - be.startX) / 311.58).toFixed(2) }; }
       else if (!opts.quiet) console.log("  the beat ending dies (" + res.why + ")");
     } catch (e) { if (!opts.quiet) console.log("  the beat ending failed: " + e.message); }
     if (sig && !opts.quiet) console.log("  beat ending: " + sig.notes.join("; "));
@@ -895,6 +895,23 @@ function build(opts = {}) {
   return { song, g, seed, plan, placed, motifs: motifLog, objs: st.objs, segs: st.segs, fin, lv, endX, measures: M };
 }
 
+// the level must end inside its song (Evgeni, 2026-11-26: the ending and the sign "not after the song ends"): build, and when the
+// run's end (the sign's screen) falls past the song's last beat minus half a second, build again with fewer beats
+function buildInSong(opts) {
+  let b = build(opts);
+  for (let k = 0; k < 3; k++) {
+    const songEnd = b.g.t0 + b.g.beats * b.g.period - 0.5, end = b.fin.p.length / TPS;
+    if (end <= songEnd) break;
+    const from = opts.from || 4, last = opts.beats != null ? from + opts.beats : b.g.beats - 6;
+    const cut = Math.ceil((end - songEnd) / b.g.period) + 1;
+    if (!opts.quiet) console.log(`  ends ${(end - songEnd + 0.5).toFixed(1)} s after the song: again with ${cut} beats less`);
+    opts = Object.assign({}, opts, { beats: last - from - cut });
+    b = build(opts);
+  }
+  b.measures.songLeft = +(b.g.t0 + b.g.beats * b.g.period - b.fin.p.length / TPS).toFixed(1);
+  return b;
+}
+
 function measures(fin, placed, g) {
   const p = fin.p, trig = placed.filter(t => t.kind !== "none");
   let modeCh = 0, rev = 0, maxY = 0, air = 0;
@@ -922,7 +939,11 @@ function write(out, b, name) {
     for (let k = Math.ceil((lastT - 6 - b.g.t0) / b.g.period); b.g.t0 + k * b.g.period < lastT + 4; k++) beats.push(b.g.t0 + k * b.g.period);
     // the sign's beat triggers sit at the x the player reaches on each beat (from the run, not a 1x guess)
     const p = b.fin.p, xAt = t => { const i = Math.max(0, Math.round(t * TPS)); return i < p.length ? p[i].x : p[p.length - 1].x + (i - p.length + 1) * 311.58 / TPS; };
-    const header = sg.header(lvl.header, { col: b.lv.sig.col, floorY: fy });
+    let header = sg.header(lvl.header, { col: b.lv.sig.col, floorY: fy });
+    if (b.lv.sig.be) {   // the ending dressed (tools/beatend.js endDeco): no plain blocks under the sign
+      const d = require("./beatend.js").endDeco({ header, objects: lvl.objects }, b.lv.sig.be, { dress: b.lv.sig.dress });
+      header = d.header; lvl.objects.push(...d.objects);
+    }
     const so = sg.signature({ col: b.lv.sig.col, floorY: fy, period: b.g.period, beats: b.lv.sig.beat ? beats : undefined, xOfT: xAt, tOfX: x => { let i = p.findIndex(s => s.x >= x); if (i < 0) i = p.length - 1; return i / TPS; } });
     desc = sg.describe(desc);
     const rec = GD.newRecord(name, desc);
@@ -941,11 +962,11 @@ if (require.main === module) {
   const a = process.argv.slice(2), opt = k => { const i = a.indexOf(k); return i >= 0 ? a[i + 1] : null; };
   const t0 = Date.now();
   const notes = opt("--notes") ? JSON.parse(fs.readFileSync(opt("--notes"), "utf8")) : a.includes("--beats-only") ? null : undefined;
-  const b = build({ music: notes, minGap: opt("--min-gap") ? +opt("--min-gap") : undefined, rate: opt("--rate") ? +opt("--rate") : undefined, song: opt("--song") || "Electrodynamix", seed: +(opt("--seed") || 1), beats: opt("--beats") != null ? +opt("--beats") : null, from: opt("--from-beat") != null ? +opt("--from-beat") : 2, quiet: a.includes("--quiet") });
+  const b = buildInSong({ endLook: opt("--end-look") || undefined, endDress: opt("--end-dress") || undefined, music: notes, minGap: opt("--min-gap") ? +opt("--min-gap") : undefined, rate: opt("--rate") ? +opt("--rate") : undefined, song: opt("--song") || "Electrodynamix", seed: +(opt("--seed") || 1), beats: opt("--beats") != null ? +opt("--beats") : null, from: opt("--from-beat") != null ? +opt("--from-beat") : 2, quiet: a.includes("--quiet") });
   const out = path.resolve(opt("--out") || path.join(ROOT, "levels", "lab", "auto_beat.gdlvl"));
   write(out, b, opt("--name") || "GDLM auto beat");
   console.log("motifs (blocks of AAAA, BBBB, a mix):\n  " + b.motifs.join("\n  "));
   console.log(JSON.stringify(b.measures));
   console.log(`${b.measures.clears ? "CLEARS with no press" : "DIES: " + b.fin.why} -> ${path.relative(ROOT, out)} (${((Date.now() - t0) / 1000).toFixed(1)} s)`);
 }
-module.exports = { build, write, triggerBeats, notePlan, musicOf, loadGrid, strays, run, clips };
+module.exports = { build, buildInSong, write, triggerBeats, notePlan, musicOf, loadGrid, strays, run, clips };

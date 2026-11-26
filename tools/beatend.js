@@ -61,16 +61,16 @@ function beatEnd(levelStr, o = {}) {
   let tl = groundedAfter(r.path, Math.round(tb * TPS));
   if (tl < 0) throw new Error("no landing after the portal column");
   // bounces: pad on a beat, ledge tuned so the cube lands on a later beat
-  const bounces = o.bounces || 2;
+  const bounces = o.bounces || 2, look = o.look || "floating";
   let floorTop = 0;
   const pads = [{ id: 35, name: "yellow" }, { id: 140, name: "pink" }];
   for (let k = 0; k < bounces; k++) {
-    const tPad = beatAfter(tl / TPS + 2 / TPS);
+    const tPad = beatAfter(tl / TPS + (look === "ground" ? 0.1 : 2 / TPS));   // ground: a pad right at the landing is touched in the air
     // each pad kind: placed where the cube is on the beat (fixed by the launch tick), then the beats on its way down; the
     // landing ledge's top is the feet there. Pick the pad and beat whose ledge comes closest to the target height: a block
     // up on the first bounces, back to the ground on the last, so the sign stays in view (a 5-block staircase put its title
     // above the screen, 2026-11-26)
-    const target = k === bounces - 1 ? 0 : floorTop === 0 ? 30 : 0;
+    const target = look === "ground" || k === bounces - 1 ? 0 : floorTop === 0 ? 30 : 0;
     const vx = 311.58 * 1.0;
     let pick = null;
     for (const pad of pads) {
@@ -84,11 +84,18 @@ function beatEnd(levelStr, o = {}) {
         if (Math.abs(err) * TPS <= 1) break;
         xp -= err * vx;
       }
+      if (o.debug) console.log("  pad", pad.name, "launch", launch, "dead", rr && rr.dead, rr && rr.why);
       if (launch < 0 || rr.dead) continue;
       for (let m = 1; m <= 6; m++) {
         const tb2 = tPad + m * P, i = Math.round(tb2 * TPS);
         if (i >= rr.path.length) break;
         const s = rr.path[i];
+        if (look === "ground") {               // no ledge: the cube comes down on the ground where it will; cost = off the beat
+          const tg = groundedAfter(rr.path, launch + 2); if (tg < 0) break;
+          const off = Math.abs(tg / TPS - tb2) * 1000;
+          if (off < 120 && (!pick || off < pick.cost)) pick = { pad, xp, rr, launch, tLand: tb2, feet: 0, cost: off, ground: true };
+          continue;
+        }
         if (s.vy >= 0) continue;               // still rising
         const f = s.y - 15;
         if (f < -0.5) break;
@@ -101,33 +108,71 @@ function beatEnd(levelStr, o = {}) {
     add.push({ id: pad.id, x: xp, y: floorTop + 2 });
     used.push(tPad);
     if (tLand < 0) { notes.push(`bounce ${k + 1}: no beat on the way down above the ground`); r = runOf(strOf(), o.events, xp + 60 * B); tl = groundedAfter(r.path, launch + 2); continue; }
-    add.push(...ledge(arc, Math.round(tLand * TPS), feet));
+    if (!pick.ground && feet > 0.5) add.push(...ledge(arc, Math.round(tLand * TPS), feet, look));
     r = runOf(strOf(), o.events, xp + 60 * B);
     if (r.dead) throw new Error(`bounce ${k + 1}: the ledge kills (${r.why})`);
     tl = groundedAfter(r.path, launch + 2);
     floorTop = feet;
     used.push(tl / TPS);
-    notes.push(`bounce ${k + 1}: ${pad.name} pad on beat ${((tPad - t0) / P).toFixed(2)}, lands ${((tl / TPS - tLand) * 1000).toFixed(0)} ms off beat ${((tLand - t0) / P).toFixed(2)} on a ledge at y ${feet.toFixed(1)}`);
+    notes.push(`bounce ${k + 1}: ${pad.name} pad on beat ${((tPad - t0) / P).toFixed(2)}, lands ${((tl / TPS - tLand) * 1000).toFixed(0)} ms off beat ${((tLand - t0) / P).toFixed(2)} ${feet > 0.5 ? "on a ledge at y " + feet.toFixed(1) : "on the ground"}`);
   }
   // 3. the signature: the stage starts 2 blocks after the last landing (the cube runs on under it), the level ends past it
   const xl = X(r.path[Math.max(0, tl)]);
   const signCol = Math.ceil(xl / B) + 2;
   const endX = require("./signature.js").extent(signCol).x1;   // nothing past the sign: it stays on the last screen (signature.js extent)
   // the ledge the cube stands on runs on to the end, so it never drops in front of the sign
-  for (let x = Math.floor(xl / B) * B + 15; x < endX - 15; x += B) if (floorTop > 0) add.push({ id: 1, x, y: floorTop - 15 });
+  // (on the grid of the last ledge's blocks, so ledge and run-on are one slab and dress as one)
+  const lastLedge = add.filter(q => q.id === 1 && Math.abs(q.y - (floorTop - 15)) < 0.01), gx = lastLedge.length ? lastLedge[lastLedge.length - 1].x : Math.floor(xl / B) * B + 15;
+  for (let x = gx + B; x < endX - 15; x += B) if (floorTop > 0) add.push({ id: 1, x, y: floorTop - 15 });
   const fin = runOf(strOf(), o.events, endX);
   if (fin.dead) throw new Error("the ending dies: " + fin.why);
-  return { objects: add, signCol, floorY: floorTop, endX, beats: used, notes, startX: xb };
+  return { objects: add, signCol, floorY: floorTop, endX, beats: used, notes, startX: xb, look };
 }
 // a ledge whose top is the cube's feet at tick i: from where the cube is then, 6 blocks on (a pad a beat later is still on it)
-function ledge(path, i, top) {
+// look "plain": a column down to the ground (the old ending: Evgeni, 2026-11-26, "not to have the basic blocks on the bottom
+// there"); "floating" (default): one row floating at that height, dressed and hung by endDeco
+function ledge(path, i, top, look) {
   const s = path[i], x0 = X(s) - 8, out = [];
-  // a column of blocks under the top down to the ground, 4 blocks wide
-  for (let c = 0; c < 6; c++) for (let y = top - 15; y > -15; y -= B) out.push({ id: 1, x: x0 + 15 + c * B, y });
+  for (let c = 0; c < 6; c++) for (let y = top - 15; y > -15; y -= B) { out.push({ id: 1, x: x0 + 15 + c * B, y }); if (look !== "plain") break; }
   return out;
 }
 
-module.exports = { beatEnd, beatTimes };
+// The ending's look (deco only, no gameplay): its blocks dressed by the structure deco pass (tools/structdeco.js: a design along
+// the whole slab, 3D, holders), and a little of tools/decofx.js around the sign. Called by a builder after beatEnd, with the
+// level's parsed {header, objects}; returns {header, objects} to add. Looks (AUTO.md "The beat ending: looks"):
+//   floating  slabs in the level's palette, layered + depth, hung on chains, embers / snow motes over the ending
+//   ground    no blocks at all: every bounce lands on the ground, motes only
+//   plain     nothing (the old columns of plain blocks)
+const DRESS = {
+  floating: { design: "layered", effects: ["depth"], holders: "chain", fx: ["motes"] },
+  ice: { design: "nested frames", pal: "ice", effects: ["bevel"], holders: "rope", fx: ["motes"] },
+  ground: { fx: ["motes"] },
+};
+function endDeco(level, be, o = {}) {
+  const look = o.dress || be.look, d = DRESS[look];
+  if (!d) return { header: level.header, objects: [] };
+  const theme = o.theme || d.pal || "fire", x0 = be.startX - 60, x1 = be.endX;
+  let header = level.header; const out = [];
+  const mine = level.objects.filter(q => q.x >= x0 && q.x <= x1 && q.id === 1);
+  if (d.design && mine.length) {
+    // the slabs sit at the heights the beats asked for, off the 30-unit grid the structure pass works on: dress each height on
+    // the grid and move its deco back by the same offset (one pass for all put the design a row under the blocks)
+    const byY = new Map(); for (const q of mine) { const k = q.y.toFixed(2) + "|" + ((((q.x - 15) % B) + B) % B).toFixed(1); if (!byY.has(k)) byY.set(k, []); byY.get(k).push(q); }
+    for (const grp of byY.values()) {
+      const dy = (((grp[0].y - 15) % B) + B) % B, dx = (((grp[0].x - 15) % B) + B) % B;
+      const moved = grp.map(q => Object.assign({}, q, { x: q.x - dx, y: q.y - dy }));
+      const r = require("./structdeco.js").pass({ header, objects: moved }, [], { design: d.design, pal: d.pal || theme, effects: d.effects, holders: d.holders, interior: true });
+      header = r.header; out.push(...r.objects.map(q => Object.assign(q, { x: q.x + dx, y: q.y + dy })));
+    }
+  }
+  if (d.fx) {
+    const K = require("./scenekit.js"), r = require("./decofx.js").fx(level, x0, x1, { theme, fx: d.fx });
+    header = K.channels(header, r.channels); out.push(...r.objects.filter(q => q.x <= x1));
+  }
+  return { header, objects: out };
+}
+
+module.exports = { beatEnd, beatTimes, endDeco, DRESS };
 
 if (require.main === module) {
   const a = process.argv.slice(2), opt = k => { const i = a.indexOf(k); return i >= 0 ? a[i + 1] : null; };

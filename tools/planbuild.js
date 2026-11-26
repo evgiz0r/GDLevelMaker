@@ -161,7 +161,7 @@ function build(plan) {
 
   const endBeat = plan.end || S[S.length - 1].to, endCol = Math.round(colOf(endBeat));
   const spec = Object.assign({
-    name: plan.name, desc: plan.desc, notes: plan.notes, style: plan.style, indicators: {}, signature: true,
+    name: plan.name, desc: plan.desc, notes: plan.notes, style: plan.style, indicators: {}, signature: true, structures: plan.structures ?? true,
     song: { custom: plan.song }, offset, grid: { bpm: plan.bpm, t0: plan.t0 },
     drop: plan.drop, pulseZones: plan.pulseZones, colours: plan.colours,
   }, plan.theme ? { scene: "tools/scenes/theme.js",
