@@ -235,6 +235,8 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   for "the visible play"; "if you dont see a spike the timing is obviously harder"). No deco in front of the lane the player
   can be in, none behind a hazard in its value or hue (it must stand out), the richest art at the lane's edges, quiet behind
   the hazards. `node tools/lane.js <level>` (clutter = 0), `tools/roles.js` (pathDeco, hazards), `tools/readability.js --gate`.
+  Nothing hazard-shaped that is not a hazard near the lane (icicles or thorns under a ceiling over the lane read as spikes:
+  the ice kit, 2026-11-26), and no big flat shape filling the screen behind the play (a lone peak or volcano reads as a wall).
 - [ ] **Motion and colour on every screen, not only at the start** (Eclipse v2-v4, 2026-11-25): one calm pulse a beat, a drift and a
   spin per section, 10+ colour channels a screen; triggers placed along x, since the measures (decostudy, taste) count by x.
   `node tools/taste.js score <level>` (dsMotion, dsChannels). Warm light behind the path: cool rims (`tools/roles.js`).
