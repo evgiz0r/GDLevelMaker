@@ -400,3 +400,22 @@ flashes everywhere so the run reads, and the background / ground channels turned
 84 s, 3133 objects hidden, 4449 effect objects, the run identical with and without the effects, clears. v2: falling shapes (the effects thread's FX.fall) in section 6. Open: a painted backdrop per section (DECOART.md) instead of a plain colour; most triggers show only in
 GD (lock to camera and scale-on-locked unchecked there).
 
+
+## Auto clone: a solved level that plays itself (tools/autoclose.js, 2026-11-26)
+Evgeni: "once we have a solved level, we can make an 'auto' clone. without adding anything visible, if we can. with triggers
+hidden pads clicking the player". GD has no trigger that presses the button, so each press of the saved route becomes the
+hidden object closest to it in effect (all in one group at alpha 0 from the first tick; alpha keeps collision):
+- ball / swing press, wave and ship press AND release: a gravity portal (a released flipped wave rises like a held one; a ship
+  only roughly, 0.25 vs 0.39 a tick). The icon draws flipped while upside down: visible on the ship, slight on the wave.
+- spider press: a spider pad (the same teleport).
+- cube / robot / UFO press: a pink (10.4 up; a cube jump is 11.18), yellow (16) or red (20) pad under the feet, on a surface or
+  floating in the air (a pad fires on touch, it needs no ground when nobody sees it). A pink jump is lower and shorter, so where
+  none lands (icy part's 4-block spike pit) a SECOND pad later in the same arc gives back the reach. Also tried from the
+  player's spot a little before / after the press (a press that lands a jump on a ledge's edge).
+- releases elsewhere are taps: ignored.
+The search: per press, every object over a range of x (and the pad kinds), each run with no press from a checkpoint; it must
+live to the NEXT press (the next object acts there; requiring more threw away every good one), the closest to the original
+path wins, the best 8 kept for backtracking. Results: icy part v3 (25 s, cube + wave) clears (levels/lab/icy_part_v3_auto.gdlvl), 8 presses -> 6 pink pads, one
+pink + pink in the air, 2 gravity portals, no backtracking, 3 s. Hellgate (82 s, cube / ball / UFO / ship / wave) first runs: to
+48 s, stuck at 47.2 s where a cube jump over a spike right after a ledge needs the exact jump: every pad kind, spot and second pad dies there.
+Not checked in the game: whether a hidden pad or portal still shows its flash or particles.
