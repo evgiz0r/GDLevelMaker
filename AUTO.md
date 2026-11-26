@@ -85,6 +85,19 @@ Measures per brick: `effects` (distinct columns touched), `rate`, `reverse` (sha
 `modeChanges`, `modesSeen`, `speedsSeen`, `skipped` (moves a lenient family left out because they could not be placed
 or killed). A stacked portal wall goes every 2 rows from under the roof to row 1 (a mini player slipped through every 3).
 
+## Outro: the auto ending (2026-11-26)
+
+Evgeni: "i wanted to add some auto gameplay in the end, so its not just flat on the ground near our sign ... it could be
+a signature we iterate on". `tools/autobricks.js` family `outro` (seeds 1-6, ~6.5 s, ~70 columns): walls 24 rows high
+turn ANY arrival into a plain cube (cube portal, normal gravity, normal size, 1x), it lands, two pads and two mode
+changes, a BIG UP (20-26 rows, off the screen) onto a high path, a 2x stretch up there, and a BIG DOWN to the ground in
+front of the signature. Checked from six arrivals (cube, ship high, wave, ball mini 2x, UFO, robot on a ledge): all clear
+with no press. **make.js: spec `"outro": true | <seed>`** puts it 3 columns after the last gameplay object; the
+signature then goes 3 columns after the outro. Off by default (no existing level changes); lab `levels/lab/auto_outros.gdlvl`
+(all six after different arrivals), wip `auto-bricks/gdlm_outro_test` (a short level with outro 2 and the signature).
+Open: the saved natural route still taps a few times inside the outro (harmless: lib/natural.js does not know it is auto);
+sync the big falls to the song's last bars; the outro's look (frame the high path).
+
 Asked next: study the community auto levels Evgeni played (sync, long varied motions; study only, local), and an
 **auto ending** -- a signature outro of auto gameplay into our end sign, iterated across levels.
 
