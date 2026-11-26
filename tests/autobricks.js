@@ -20,5 +20,11 @@ for (const [f, v] of A.variants(pick)) {
 }
 const lab = A.labObjects(built), s = A.simOf(lab.objs, { mode: "cube", grav: 1, speed: "1x" }, lab.width + 6);
 ok(!s.dead, `the lab of ${built.length} bricks in a row clears with no press`);
+// the outro clears with no press after different arrivals (a ship, a ball mini at 2x)
+for (const [name, pre] of [["ship", [{ t: "ship portal", c: -8, r: 1 }]], ["ball mini 2x", [{ t: "ball portal", c: -8, r: 1 }, { t: "mini portal", c: -7, r: 1 }, { t: "2x speed", c: -6, r: 1 }]]]) {
+  const o = A.outro(2), objs = pre.concat(o.entries(0).map(([t, c, r, e]) => Object.assign({ t, c, r }, e || {})));
+  const so = A.simOf(objs, { mode: "cube", grav: 1, speed: "1x" }, o.width + 3);
+  ok(!so.dead, `outro 2 after a ${name} clears with no press`);
+}
 console.log(bad ? `${bad} failed` : "all ok");
 process.exit(bad ? 1 : 0);

@@ -2067,11 +2067,13 @@ function draw() {
   } else if (LS) {
     // objects as the game draws them: decoration, then blocks (fills, then outlines), then the rest;
     // the ground goes over anything below it
-    const on = objsNow.filter(o => sx(o.x) > -90 && sx(o.x) < W + 90), blocks = [];
+    // big scaled pieces (a painting's shapes, DECOART.md) reach further than their centre: keep them until their extent leaves
+    const reach = o => { const p = o.props; if (!p) return 90; const s = +(p[32] || 1) * Math.max(+(p[128] || 1), +(p[129] || 1)); return s > 1.5 ? 90 + 30 * s * scale : 90; };
+    const on = objsNow.filter(o => { const r = reach(o); return sx(o.x) > -r && sx(o.x) < W + r; }), blocks = [];
     for (const o of on) {
       const a = GD.LOOK.objAlpha(o, LS.alpha); if (a <= 0.01) continue;
       if (GD.LOOK.isSkin(o.id)) blocks.push([o, a]);
-      else if (GD.objInfo(o.id).kind === "decoration") { ctx.globalAlpha = a * 0.85; local(o, () => GD.LOOK.drawDeco(ctx, o, LS)); }
+      else if (GD.objInfo(o.id).kind === "decoration") { ctx.globalAlpha = a * (GD.LOOK.isFlat(o.id) ? 1 : 0.85); local(o, () => GD.LOOK.drawDeco(ctx, o, LS)); }
     }
     ctx.globalAlpha = 1;
     GD.LOOK.drawBlocks(ctx, view, LS, blocks, local);

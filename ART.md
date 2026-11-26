@@ -521,6 +521,11 @@ Brave Blue and Project Muse were also compared (local/compare/...):
 - Project Muse is a text / gimmick level that ranked high on motion alone. It is not a look reference.
 For now, Dreamy is the working side-by-side reference.
 
+## Deco as a picture (2026-11-26): DECOART.md
+
+The backdrop painted as one picture first, then built from flat GD shapes (fitted or as clean vector); round 1 on
+GDLM 44's opening. The art-free view now draws 211 / 693 / 497 / 1764 as their shapes.
+
 ## Deco options and composition (2026-11-25)
 
 The user: "lets think more about the deco, just evenly putting things is not good enough", then "show me some deco options
