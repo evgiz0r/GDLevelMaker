@@ -22,13 +22,13 @@
 if (require.main === module && /^(build)$/.test(process.argv[2] || "")) require("./heavy.js").claim();
 const fs = require("fs"), path = require("path");
 const { GD, writeGdlvl } = require("./io.js");
-const { TYPES } = require("./make.js");
+const TYPESOF = () => require("./make.js").TYPES;   // lazily: make.js requires this file for its outro (a cycle)
 const study = require("./autostudy.js");
 const ROOT = path.join(__dirname, ".."), OUT = path.join(ROOT, "knowledge", "autobricks.json");
 const TPS = GD.PHYS.TPS, B = 30, RUNIN = 10, FAR = 400;
 const SPEEDK = { "0.5x": 1, "1x": 0, "2x": 2, "3x": 3, "4x": 4 }, SPEEDNAME = ["0.5x", "1x", "2x", "3x", "4x"];
 const MODE_PORTAL = { ship: "ship portal", ball: "ball portal", ufo: "ufo portal", wave: "wave portal", robot: "robot portal", spider: "spider portal", swing: "swing portal", cube: "cube portal" };
-const idOf = t => typeof t === "number" ? t : TYPES[t] || ({ "spider pad": 3005, "mini portal": 101, "normal size": 99 })[t];
+const idOf = t => typeof t === "number" ? t : TYPESOF()[t] || ({ "spider pad": 3005, "mini portal": 101, "normal size": 99 })[t];
 
 // ---------------------------------------------------------------- the level a brick is tested in
 // objs: {t, c, r, flipY?, rot?} with c = column from the brick's start (col 0 = RUNIN), r = row (0 = on the ground)
@@ -470,6 +470,41 @@ F("long", { doc: "round 4: the never-twice mix with room between effects, long p
     .concat([{ id: "long-run", args: { seed: 41, effects: 50, cols: 1200 }, doc: "50 effects with big falls up and down: the round 4 lab" }]),
   script: longScript });
 
+// ---------------------------------------------------------------- the auto ending (outro)
+// Evgeni (2026-11-26): "i wanted to add some auto gameplay in the end, so its not just flat on the ground near our sign
+// ... it could be a signature we iterate on". The outro starts with walls that bring ANY arrival to a plain cube
+// (cube portal, normal gravity, normal size, 1x, stacked 24 rows high so a player arriving anywhere goes through them),
+// lets it land, then a short round-4 run: a few never-twice effects, one BIG UP off the screen onto a high path, and a
+// BIG DOWN that lands on the ground in front of the signature. make.js: spec "outro": true | {seed} (AUTO.md "Outro").
+function outroScript(a) {
+  const R = rng(a.seed), pick = arr => arr[R() * arr.length | 0];
+  const out = [{ roof: true, h: 24, n: a.cols + 80 }];
+  for (const w of ["cube portal", "gravity up", "normal size", "1x speed"]) out.push({ wall: w, gap: 0, force: true, strict: true });
+  out.push({ walk: 8 }, { ceil: 7 + (R() * 3 | 0), strict: true });
+  const modes = MODES.filter(m => m !== "cube"), m1 = pick(modes), m2 = pick(modes.filter(m => m !== m1));
+  const pads = ["yellow", "pink", "red", "blue", "spider"], p1 = pick(pads), p2 = pick(pads.filter(p => p !== p1));
+  const T = 20 + (R() * 7 | 0), h = 4 + (R() * 2 | 0);
+  out.push({ pad: p1, gap: 1 }, { gwall: "flip", gap: 3 }, { wall: MODE_PORTAL[m1], gap: 2 }, { pad: p2, gap: 1 },
+    { wall: "cube portal", gap: 2, force: true }, { ceil: T }, { gwall: "down", gap: 1, force: true }, { floor: T - h, n: 26 },
+    { wall: MODE_PORTAL[m2], gap: 3 }, { gwall: "up", gap: 3, force: true }, { wall: "2x speed", gap: 2 },
+    { wall: "cube portal", gap: 2, force: true, strict: true }, { gwall: "up", gap: 0, force: true, strict: true },
+    { endfloor: true, gap: 3, strict: true }, { wall: "1x speed", gap: 2, force: true, strict: true }, { ceil: 12, strict: true }, { walk: 3 });
+  return out;
+}
+F("outro", { doc: "the auto ending before our signature: any arrival -> a plain cube, a few effects, a big fall up off the screen onto a high path, a big fall down in front of the sign",
+  lenient: true, noRepeat: true, sparseHazards: true,
+  variants: [1, 2, 3, 4, 5, 6].map(seed => ({ id: `outro-${seed}`, args: { seed, cols: 140 }, doc: `the auto ending, seed ${seed}` })),
+  script: outroScript });
+// the outro for a level: its objects as make.js spec entries from column `col` (the brick's own col 0 -> col), its width;
+// from the built bricks (knowledge/autobricks.json) when that variant is there, else built now
+function outro(seed = 1) {
+  let b = null;
+  try { b = JSON.parse(fs.readFileSync(OUT, "utf8")).bricks.find(x => x.id === "outro-" + seed && x.ok); } catch (e) {}
+  if (!b) { const f = FAM.find(x => x.id === "outro"), v = { id: "outro-" + seed, args: { seed, cols: 140 } }; b = buildBrick(f, v); }
+  if (!b.ok) throw new Error("outro " + seed + " does not clear: " + b.why);
+  return { width: b.width, secs: b.secs, entries: col => b.objects.filter(([t]) => t !== 211).map(([t, c, r, e]) => [idOf(t), col + c, r, e || undefined].filter(x => x !== undefined)) };
+}
+
 // ---------------------------------------------------------------- round 3: never the same thing twice
 // Evgeni (2026-11-26, on jank round 1): "its way too repetivive, in such auto we dont want even like 2 of the same. we said
 // more game modes. we said to change heights. and fall. this is just one corridor with poop". So a section is a string of
@@ -581,7 +616,7 @@ function main() {
   const good = bricks.filter(b => b.ok);
   console.log(`\n  ${good.length} of ${bricks.length} bricks clear with no click (${((Date.now() - t0) / 1000).toFixed(1)} s) -> ${path.relative(ROOT, OUT)}`);
   // the lab level: every good brick in a row, verified as one run with zero presses
-  const lab = labObjects(good.filter(b => !["jank", "chambers", "mix", "long"].includes(b.family)), true), a = { mode: "cube", grav: 1, speed: "1x" };
+  const lab = labObjects(good.filter(b => !["jank", "chambers", "mix", "long", "outro"].includes(b.family)), true), a = { mode: "cube", grav: 1, speed: "1x" };
   const s = simOf(lab.objs, a, lab.width + 6);
   console.log(`  lab: ${good.length} bricks, ${lab.width} columns: ${s.dead ? "DIES at col " + colOf(s.end.x) + " (" + (s.why || "") + ")" : "clears with no click (" + (s.end.tick / TPS).toFixed(1) + " s)"}`);
   const labFile = path.join(ROOT, "levels", "lab", "auto_lab.gdlvl");
@@ -598,4 +633,4 @@ function main() {
   if (jl) { const f = path.join(ROOT, "levels", "lab", "auto_jank.gdlvl"); writeLevel(f, "GDLM auto jank", jl.objects.map(([t, c, r, e]) => Object.assign({ t, c, r }, e || {})), a); console.log("  -> " + path.relative(ROOT, f) + ` (${jl.secs} s, ${jl.effects} effects, ${jl.rate}/s)`); }
 }
 if (require.main === module) main();
-module.exports = { FAM, buildBrick, variants, simOf, levelOf, labObjects, place };
+module.exports = { FAM, buildBrick, variants, simOf, levelOf, labObjects, place, outro };
