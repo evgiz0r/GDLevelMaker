@@ -416,6 +416,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   shoot, levelmap, wip; logs under `local/loop/`), `--times` prints the measured time table, `--time <step>
   <cmd>` times any other job into it. Test: `node tests/loop.js`.
 - **The GD Work Board** (board/README.md: Evgeni's control page, local only -- http://localhost:8765/board/, data in local/board/, never an artifact again -- workstreams, main levels, physics vs the game, the task queue he picks; data schema): `tools/board_mains.js` (the main-levels table for it); `tools/board_local.js` (the same board as a local page, http://localhost:8770/ or serve.js /board/, data in local/board/).
+- **The Claude workboard** (workboard/README.md: a private claude.ai artifact, link in local/workboard/url.txt -- features, structure stats, the GD video catalog, collapsed topics, a saved comment on every row; separate from the local GD Work Board): `workboard/board.html`, `tools/workboard_data.js` (-> local/workboard/data.json, then republish). Read the user's comments with ArtifactData `list` on collection `comments`.
 - **`tools/mains.js` -- RobTop's 22 main levels kept solved** (`status`: which route fails and the cheapest fix; `run`: replans then resumes at heavy priority `urgent`; serve.js starts it after a pull that changes physics or route code; DIFFICULTY.md "Main levels kept current").
 - **`tools/flystyle.js` -- how a route flies its ship / wave stretches** (presses a second, legs, near-wall ticks, wave inputs vs the corridor's turns: OFF PATTERN; `--replan` = today's plan beside the saved one). The wave planner in lib/natural.js flies one input per corridor leg (the user: "few holds and releases"); PHYSICS.md "The wave like a person".
 - **`tools/presslib.js` -- the press library: where good players press, learned from clears** (gdsolver's real-game plans,
@@ -510,6 +511,14 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   (probe mod v0.4.0 logs checkpoints) into one start-to-end input route, checks it in our sim, `--save` -> viewer ghost and
   `video.js --run`; `probe.js play ... --events <stitched>` plays it unbroken in the game. Test: `node tests/stitch.js`.
 - `levels/archive/` -- every GDLM level but 44, archived 2026-11-25 (Evgeni: "start over, keep only 44"); out of the viewer's list, nothing deleted (its README).
+- **`tools/judge.js` -- the judge: Evgeni-style notes pinned to spots** (few clicks in a section, gaps, a corridor too long or
+  shaped like an earlier one, no variety, an orb with no reason, too easy), from a level's saved route; `--vs <marks.json>` compares
+  them with his marks (tests/judge.js: 11 of his 13 v4 Hellgate marks, `knowledge/judge/`). Run it on every build before he sees it.
+- **`tools/report.js <level>` -- the judge report** (Evgeni, 2026-11-26: "not too big, with scores"): one short card --
+  Layout 0-10 (balance, flow, variety, pacing, clarity from judge.js), difficulty, unfair spots, taste, deco (later), the top 5
+  notes; `--geo <map>.geo.json` (levelmap.js writes it beside each map) pins the notes on the level map. Run it on every build.
+- **`tools/pieces.js <spec>` -- the pieces a spec is built from**, with their spans and the gaps between them; `--out` +
+  `levelmap.js <level> --pieces <out>` draws a bracket per piece on the level map (where pieces join).
 - `tools/mapbeats.py` (beat and bar lines over a levelmap.js picture). `tools/hellgate_build.js` -- GDLM 44 v3's builder: song part + local grid -> sections -> brickpick / fly-path -> specs/44_hellgate.json (+ .plan.json). **`tools/planbuild.js <briefs/NN.plan.json>`** -- the same builder with the section plan as data, for any level (GDLM 73 sunny streets; LEGO.md "The same builder for any level").
 - `examples/` -- levels the user made in the game, for reference and as format ground truth.
 
@@ -597,6 +606,11 @@ Confirmed:
   landing goes the next tick at full speed (no gravity on its first tick); the cube (and wave) sits on a slope at
   x + 15 tan(angle/2), is held at the top a tick, then launched (7.405 on 45 degrees). With them GDLM 62's 62 s run and
   Clubstep's first attempt match the game at every frame. Yellow pad: vy 16.000 in cube and ship ("auto play area" run).
+- From the user's ToE / ToE2 / Hexagon Force / Deadlocked runs (2026-11-26, probe logs; the log's p[8], p[9] are the
+  per-tick position, p[7] the speed factor): speed portals 2x / 3x are 51 / 65 wide (not 34), the orb flag outlives a
+  release by a tick, turned portals touch by their turned box, a -53 degree teleport moves the full key 54, a ship slides a
+  ceiling slope and is launched off its low end, ship -> UFO keeps a quarter of vy. PHYSICS.md "The user's ToE / ToE2 /
+  Hexagon Force / Deadlocked runs".
 - Flipping gravity halves vertical speed (blue orb and ceiling blue pad in the recording move at
   half the decompile's velocity). The decompile's ringJump alone does not show this.
 

@@ -131,6 +131,17 @@ const SERVER = http.createServer((req, res) => {
     let rows = []; try { rows = require("./community_index.js").list(); } catch (e) {}
     res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify(rows));
   }
+  // POST /community/fetch?id=N: download one online level by ID into local/community/ (tools/fetch_level.js, GD's own
+  // server, the game's download request), so a board or viewer link to a level this PC has no copy of still opens it.
+  // This PC only; other people's levels stay in local/ (Evgeni, 2026-11-26: "i want it to open in the viewer")
+  if (p === "/community/fetch" && req.method === "POST" && !lan) {
+    const id = new URL(req.url, "http://x").searchParams.get("id") || "";
+    if (!/^\d{1,10}$/.test(id)) { res.writeHead(400, { "Content-Type": "text/plain" }); return res.end("bad id"); }
+    require("./fetch_level.js").fetchOne(id, path.join(root, "local", "community"))
+      .then(r => { res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); res.end(JSON.stringify({ ok: true, id, name: r.name || null, file: "local/community/" + id + ".gdlvl", skipped: !!r.skipped })); })
+      .catch(e => { res.writeHead(502, { "Content-Type": "application/json" }); res.end(JSON.stringify({ ok: false, error: String(e.message || e) })); });
+    return;
+  }
   // GET /attempts/index: every level with attempts, one small row each, newest played first (the "my runs" tab)
   if (p === "/attempts/index" && req.method === "GET") {
     res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify(require("./attempts.js").index()));
@@ -271,7 +282,7 @@ const SERVER = http.createServer((req, res) => {
       res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); res.end(d);
     });
   }
-  const sp = req.method === "POST" && /^\/shoot\/([\w\-]+)\/(\d+\.png|f\d+\.jpg|done)$/.exec(p);
+  const sp = req.method === "POST" && /^\/shoot\/([\w\-]+)\/(\d+\.png|f\d+\.jpg|geo\.json|done)$/.exec(p);
   if (sp) {
     const chunks = [];
     req.on("data", c => chunks.push(c));

@@ -597,6 +597,17 @@ Mains for scale: Clubstep 3.51, Electrodynamix 2.65, ToE 2 2.35, Hexagon Force 2
 
 ### Calibration on the user's own beaten demons (2026-11-26)
 
+**THE RULE (Evgeni, 2026-11-26): his attempt counts are a loose bound, not a target.** "i wouldnt correlate attempts
+directly to difficulty. could fluke somewhere. and depends on my skill, how much i tried ect. there is some correlation,
+that if i 1 attempt it its not that difficult, or the opposite if i barely passing in practice, it cant be that easy."
+So: no fitting the score to his attempts. Use them only as bounds -- very few attempts => the level is not hard; very
+many, or barely passing in practice => not easy -- and flag a level whose score breaks a bound.
+`node tools/difficulty_density.js` (default) does that check: <= 5 attempts with a score in the top quarter, or 500+
+attempts with a score in the bottom quarter, over the mains and community levels he beat (routes that skip a portal left
+out). 2026-11-26, 40 levels, quartiles 0.84 / 2.09: one outlier, **demon park** (570 attempts, score 0.83: scored too
+easy). Nothing at <= 5 attempts in this set. ("Barely passing in practice" is not in the save data yet.)
+The fits below (`--fit`) are kept as a record only.
+
 His save lists 60 beaten demons with lifetime attempts (`local/difficulty/user_stats_online.json`, tools/save_stats.js
 --demons). 20 old ones (1.x-2.0, cube / ship / ball / UFO, few specials; screened with tools/portals.js) were fetched,
 solved and scored as above: all 20 beaten in the sim (16 s - 57 min a solve; Platinum Adventure took 57 min), 3 routes

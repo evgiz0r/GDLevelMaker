@@ -1,4 +1,4 @@
-// node tools/levelmap.js <level> [--shapes] [--rows N] [--scale px-per-unit] [--brief briefs/NN.json] [--name n] [--port 8767]
+// node tools/levelmap.js <level> [--shapes] [--pieces <pieces.json>] [--rows N] [--scale px-per-unit] [--brief briefs/NN.json] [--name n] [--port 8767]
 //
 // The whole level as ONE picture with its intended path: the level cut into stacked rows (phone-
 // friendly), drawn as GD draws it (GD art; --shapes for the shape drawing), each part at the moment the
@@ -11,6 +11,7 @@
 // page solves it. Writes local/maps/<name>.png (full) and <name>.jpg (phone: <= 1600 px wide, ~1 MB),
 // both never committed (GD art is RobTop's; official levels are RobTop's). The viewer's "level map"
 // button opens local/maps/<file name>.jpg. Shapes maps (--shapes) are art-free: <name>_shapes.*
+// --pieces: a bracket per piece and where it joins the next ([{x0, x1, name}] in blocks, from tools/pieces.js).
 // VISUALS.md "Level map".
 if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const fs = require("fs"), path = require("path"), cp = require("child_process");
@@ -53,7 +54,8 @@ if (!args[0] || args[0].startsWith("--")) { console.log(fs.readFileSync(__filena
   const id = "m" + Date.now().toString(36), dir = path.join(ROOT, "local", "shoot");
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, id + ".json"), JSON.stringify({ level: lv, times: [0], map: true, ghost: false, art: !shapes,
-    rows: +(opt("--rows") || 0) || null, scale: +(opt("--scale") || 0) || null, sections }));
+    rows: +(opt("--rows") || 0) || null, scale: +(opt("--scale") || 0) || null, sections,
+    pieces: opt("--pieces") ? JSON.parse(fs.readFileSync(opt("--pieces"), "utf8")) : null }));
   const r = await headless(`viewer/?shoot=${id}`, path.join(dir, id, ".done"), { port: +(opt("--port") || 8767), timeoutMs: 15 * 60e3 });
   const src = path.join(dir, id, "000.png");
   if (!fs.existsSync(src)) { console.log("no map made" + (r.ok ? "" : " (timed out)")); process.exit(1); }
@@ -65,6 +67,8 @@ if (!args[0] || args[0].startsWith("--")) { console.log(fs.readFileSync(__filena
   const png = path.join(out, safe + ".png"), jpg = path.join(out, safe + ".jpg");
   fs.copyFileSync(src, png);
   try { cp.execFileSync("ffmpeg", ["-v", "error", "-y", "-i", png, "-vf", "scale='min(1600,iw)':-2", "-q:v", "3", jpg], { windowsHide: true }); } catch (e) { console.log("(ffmpeg missing: no phone .jpg)"); }
+  // the picture's geometry (block x -> pixel): <name>.geo.json beside it (tools/report.js pins notes with it)
+  try { fs.copyFileSync(path.join(dir, id, "geo.json"), path.join(out, safe + ".geo.json")); } catch (e) {}
   try { fs.rmSync(path.join(dir, id), { recursive: true, force: true }); fs.unlinkSync(path.join(dir, id + ".json")); } catch (e) {}
   const mb = f => fs.existsSync(f) ? (fs.statSync(f).size / 1e6).toFixed(1) + " MB" : "-";
   console.log(`map of ${lv.name} in ${r.seconds.toFixed(0)} s:\n  ${path.relative(ROOT, png)} (${mb(png)})\n  ${path.relative(ROOT, jpg)} (${mb(jpg)}, phone)`);

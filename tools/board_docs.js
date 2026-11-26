@@ -1,7 +1,7 @@
 // node tools/board_docs.js [--stats local/difficulty/user_stats_online.json] [--latest local/community/latest_rated.json] [--out <dir>]
 // Builds the work board's two big docs, compact ({cols, rows}: a db document must stay under 256 KB), from the PC's files:
 //   <dir>/played.json, played_2.json, ...  -- board/played (+ board/played_N): every level with attempts or finished (col done), totals, a note (from save_stats.js)
-//   <dir>/latest.json  -- board/latest: GD's recently rated list (from latest_rated.js), as it is
+//   <dir>/latest.json  -- board/latest: GD's recently rated list (from latest_rated.js), plus here[]: ids with a copy in local/community
 // --out defaults to local/board/, where the local work board reads them (board/README.md). Local data only: never commit the outputs.
 const fs = require("fs"), path = require("path");
 const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : d; };
@@ -12,9 +12,26 @@ const OUT = path.resolve(arg("--out", path.join(ROOT, "local", "board")));
 fs.mkdirSync(OUT, { recursive: true });
 
 const d = JSON.parse(fs.readFileSync(STATS, "utf8"));
-const cols = ["id", "name", "creator", "kind", "tier", "stars", "attempts", "jumps", "best", "practice", "done"];
+// here: 1 when local/community/<id>.gdlvl exists, so the board links the level to the PC viewer (else to GDBrowser)
+const COMMDIR = arg("--community", path.join(ROOT, "local", "community"));
+const HERE = new Set(fs.existsSync(COMMDIR) ? fs.readdirSync(COMMDIR).map(f => (/^(\d+)\.gdlvl$/.exec(f) || [])[1]).filter(Boolean).map(Number) : []);
+// sim: how far OUR solver got on the level (Evgeni, 2026-11-26: "how do i know if you passed it or not"): 100 = our sim
+// clears it, N = it died at N% of the level, null = never tried. Community levels from local/difficulty/c<id>.json
+// (difficulty_solve.js: ok, dieX, endX, why), main levels from local/mains/status.json (the human route, tools/mains.js).
+// sim_why: what killed it; sim_at: when it was solved.
+const DIFFDIR = arg("--difficulty", path.join(ROOT, "local", "difficulty"));
+const MAINS = arg("--mains", path.join(ROOT, "local", "mains", "status.json"));
+const SIM = {};
+try { for (const f of fs.readdirSync(DIFFDIR)) { const m = /^c(\d+)\.json$/.exec(f); if (!m) continue;
+  try { const c = JSON.parse(fs.readFileSync(path.join(DIFFDIR, f), "utf8"));
+    SIM[m[1]] = { sim: c.ok ? 100 : c.dieX != null && c.endX ? Math.max(0, Math.min(99, Math.floor(100 * c.dieX / c.endX))) : 0, why: c.ok ? null : c.why || null, at: c.solvedAt || null };
+  } catch (e) {} } } catch (e) {}
+try { const st = JSON.parse(fs.readFileSync(MAINS, "utf8"));
+  for (const l of st.levels || []) { const v = l.view || l.raw; if (v) SIM["m" + l.n] = { sim: v.done ? 100 : Math.floor(v.pct), why: l.need || null, at: st.at || null }; } } catch (e) {}
+const simOf = l => SIM[(l.kind === "main" ? "m" : "") + l.id] || {};
+const cols = ["id", "name", "creator", "kind", "tier", "stars", "attempts", "jumps", "best", "practice", "done", "here", "sim", "sim_why", "sim_at"];
 const L = d.levels.filter(l => (l.attempts || 0) > 0 || l.done);
-const rows = L.map(l => cols.map(c => c === "done" ? (l.done ? 1 : 0) : (l[c] === undefined ? null : l[c])));
+const rows = L.map(l => cols.map(c => c === "done" ? (l.done ? 1 : 0) : c === "here" ? (l.kind !== "main" && HERE.has(+l.id) ? 1 : 0) : c === "sim" ? (simOf(l).sim ?? null) : c === "sim_why" ? (simOf(l).why ?? null) : c === "sim_at" ? (simOf(l).at ?? null) : (l[c] === undefined ? null : l[c])));
 const t = d.totals, nd = L.filter(l => l.done).length;
 const note = `Every level you've played, from your save (read only, never changed): ${nd} finished and ${L.length - nd} not finished yet. ` +
   `Your save counts ${t.officialDone + t.onlineDone} finished and ${t.demons} demons in all; some finished ones have no per-level stats in the save, so they can't be listed. ` +
@@ -33,7 +50,10 @@ for (let k = 1; k <= parts; k++) {
 console.log("played:", L.length, "levels,", nd, "finished, in", parts, "parts");
 
 if (fs.existsSync(LATEST)) {
-  const lr = fs.readFileSync(LATEST, "utf8");
+  const ld = JSON.parse(fs.readFileSync(LATEST, "utf8")), ic = ld.cols.indexOf("id");
+  ld.here = ld.rows.map(r => +r[ic]).filter(id => HERE.has(id));
+  ld.sim = {}; for (const r of ld.rows) { const s = SIM[String(r[ic])]; if (s) ld.sim[r[ic]] = s; }
+  const lr = JSON.stringify(ld);
   fs.writeFileSync(path.join(OUT, "latest.json"), lr);
   console.log("latest:", JSON.parse(lr).rows.length, "levels,", Math.round(lr.length / 1024), "KB");
 }

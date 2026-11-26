@@ -1,4 +1,4 @@
-// node tools/difficulty_density.js [--sigma 13] [--no-mains] [--json]
+// node tools/difficulty_density.js [--fit] [--sigma 13] [--no-mains] [--json]   (default: the bounds check; --fit: the old fits)
 //   -- does the difficulty score need density and length terms? Fits the user's attempts on the levels he beat
 //   against what the sim measured, with leave-one-out:
 //     base:     log10(attempts) = a + b * score                       (score = lib/difficulty.js logAttempts)
@@ -67,6 +67,20 @@ const models = {
   "score + inputs/min + minutes": r => [1, r.score, r.ipm, r.min],
   "inputs/min + minutes (no score)": r => [1, r.ipm, r.min],
 };
+// THE RULE (Evgeni, 2026-11-26): "i wouldnt correlate attempts directly to difficulty. could fluke somewhere. and depends
+// on my skill, how much i tried" -- but very few attempts means not hard, and barely passing means not easy. So his
+// attempts are a loose BOUND, not a target: the default is the bounds check below; the fits only with --fit.
+if (!args.includes("--fit")) {
+  const sc = rows.map(r => r.score).sort((a, b) => a - b), q = p => sc[Math.min(sc.length - 1, Math.floor(p * sc.length))];
+  const q1 = q(0.25), q3 = q(0.75);
+  const out = rows.filter(r => (r.att <= 5 && r.score >= q3) || (r.att >= 500 && r.score <= q1));
+  if (args.includes("--json")) { console.log(JSON.stringify({ n: rows.length, q1, q3, outliers: out })); return; }
+  console.log(`${rows.length} levels the user beat; score quartiles ${q1.toFixed(2)} / ${q3.toFixed(2)}`);
+  console.log(`bounds: <= 5 attempts but score in the top quarter, or 500+ attempts but score in the bottom quarter`);
+  for (const r of out) console.log(`  ${r.name.padEnd(26)} ${String(r.att).padStart(5)} attempts, score ${r.score.toFixed(2)} -> ${r.att <= 5 ? "scored too hard?" : "scored too easy?"}`);
+  if (!out.length) console.log("  none");
+  return;
+}
 const res = {}; for (const [k, f] of Object.entries(models)) res[k] = evaluate(f);
 if (args.includes("--json")) { console.log(JSON.stringify({ n: rows.length, rows, res })); return; }
 console.log(`${rows.length} levels the user beat (${rows.filter(r => r.k[0] === "m").length} mains, ${rows.filter(r => r.k[0] === "c").length} community), sigma ${sigma}`);

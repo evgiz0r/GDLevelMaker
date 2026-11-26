@@ -2818,8 +2818,27 @@ function linkFind(q) {
 }
 function shortLink() { const l = ALL[pick.value]; if (!l || !L) return ""; const b = String(l.file || "").split(/[\\/]/).pop().replace(/\.(gdlvl|json)$/, "");
   return "#" + b + (l.version ? "--v" + l.version : "") + "--t" + (tick() / P.TPS).toFixed(1) + (L.ghost ? "--r" + L.ghost.row.id : ""); }
+// a link to an online level by ID that the PC's serve.js can download (local/community/<id>.gdlvl): the id match, or null
+function commFetchable(q) {
+  if (!q || q.fetched || !location.protocol.startsWith("http") || window.GD_PAGES || window.GD_PHONE) return null;
+  return /^local\/community\/(\d+)\.gdlvl$/.exec(q.file || "") || /^(\d{3,10})$/.exec(q.base || "");
+}
 function openLink(s) {
-  const q = parseLink(s), i = linkFind(q); if (i < 0) { if (q) notice("No level here for that link (" + esc(q.file || q.base) + ")."); return false; }
+  const q = parseLink(s), i = linkFind(q);
+  // a link to an online level this PC has no copy of (the work board links every level you played): download it, then open
+  const cid = i < 0 && commFetchable(q);
+  if (cid) {
+    notice(`Downloading level ${cid[1]} from GD's server…`, 0);
+    fetch("/community/fetch?id=" + cid[1], { method: "POST" }).then(r => r.json()).then(async r => {
+      if (!r.ok) return notice(`Could not download level ${cid[1]}: ${esc(r.error || "?")}`);
+      await loadWip(true); const n = document.getElementById("notice"); if (n) n.hidden = true;
+      const again = parseLink(s); again.file = r.file; again.fetched = true;
+      const j = linkFind(again); if (j < 0) return notice("Downloaded, but it is not in the list: press ⟳ refresh.");
+      pick.value = j; pick.wantT = again.t; pick.onchange();
+    }).catch(e => notice(`Could not download level ${cid[1]}: ${esc(e.message)}`));
+    return true;
+  }
+  if (i < 0) { if (q) notice("No level here for that link (" + esc(q.file || q.base) + ")."); return false; }
   const l = ALL[i];
   if (q.v && l.version && +l.version !== q.v) notice(`That link was for version ${q.v}; this is version ${l.version} (the newest here).`, 6000);
   const before = L; pick.value = i; pick.wantT = q.t; pick.onchange();
@@ -2936,7 +2955,7 @@ setInterval(() => { if (L && !playing) writeHash(); }, 1000);
   if (hashParams().get("embed")) return; // the parent page loads the level (viewer/polish.html)
   await loadWip(false); meLoad();
   if (labHash()) labOpen(labHash());
-  else if (location.hash.length > 1 && !hashParams().get("embed") && linkFind(parseLink(location.hash)) >= 0) openLink(location.hash);
+  else if (location.hash.length > 1 && !hashParams().get("embed") && (linkFind(parseLink(location.hash)) >= 0 || commFetchable(parseLink(location.hash)))) openLink(location.hash);
   else if (ALL.length) { pick.value = 0; pick.onchange(); }
   else if (window.GD_PAGES) {   // the public site with no level published yet (knowledge/public_levels.json is opt-in)
     document.getElementById("summary").innerHTML = "<b>First levels coming soon.</b><br><span class='muted'>Geometry Dash levels made by Claude will appear here once one is good enough to share.</span>";
@@ -3030,7 +3049,7 @@ async function shootRun() {
   // spots as % of the level (tools/compare_frames.js): the moment the run passes that share of the level's length
   if (job.pcts) job.times = job.pcts.map(pc => { const x = L.world.endX * pc / 100; let k = L.path.findIndex(q => q.x >= x); if (k < 0) k = L.path.length - 1; return k / P.TPS; });
   const post = (name, url) => fetch("/shoot/" + SHOOT + "/" + name, { method: "POST", body: url });
-  if (job.map) { await post("000.png", await mapRender(job)); return post("done", "1"); }
+  if (job.map) { await post("000.png", await mapRender(job)); if (window.MAPGEO) await post("geo.json", JSON.stringify(window.MAPGEO)); return post("done", "1"); }
   if (job.video) return shootVideo(job, post);
   for (let i = 0; i < job.times.length; i++) {
     t = Math.max(0, Math.min(job.times[i], (L.path.length - 1) / P.TPS)); playing = false;
@@ -3099,12 +3118,14 @@ async function mapRender(job) {
   let minY = 0, maxY = 120;
   for (const o of L.level.objects) { if (GD.objInfo(o.id).kind === "trigger") continue; if (o.y < minY) minY = o.y; if (o.y > maxY) maxY = o.y; }
   for (const p of path) if (p.y > maxY) maxY = p.y;
-  maxY = Math.min(maxY + 60, Math.max(minY, 0) + 30 * 30); minY = Math.max(minY - 30, -600);
+  maxY = Math.min(maxY + 60, Math.max(minY, 0) + 30 * 150);   // levels that climb by sections reach far above the floor minY = Math.max(minY - 30, -600);
   const rows = job.rows || Math.max(1, Math.ceil(endX * S / 2400)), rowU = Math.ceil(endX / rows / 30) * 30;
   const GROUND = 45, camY0 = Math.min(0, minY);
   const rowW = Math.round(rowU * S), sceneH = Math.round((maxY - camY0 + GROUND) * S);
   const HEAD = 70, TOP = 40, BOT = 32, GAP = 14, rowH = TOP + sceneH + BOT;
   const out = document.createElement("canvas"); out.width = rowW + 20; out.height = HEAD + rows * (rowH + GAP);
+  // where each block lands on the picture (tools/levelmap.js writes it beside the map: pins from tools/report.js, the marks page)
+  window.MAPGEO = { rows, rowU, S, HEAD, TOP, rowH, GAP, sceneH, GROUND, camY0, width: out.width, height: out.height };
   const X = out.getContext("2d"); X.fillStyle = "#0d0b18"; X.fillRect(0, 0, out.width, out.height);
   // the scene, chunk by chunk
   const CH = 600;
@@ -3185,6 +3206,18 @@ async function mapRender(job) {
   // section names
   X.font = "bold 15px system-ui"; X.textAlign = "left";
   for (const sc of job.sections || []) { const x = sc.from * 30, r = rowOf(x); X.fillStyle = "#9fd"; X.fillText("▸ " + sc.name, mx(x) + 3, HEAD + r * (rowH + GAP) + TOP + 16); }
+  // pieces (tools/pieces.js): a bracket along the bottom of the scene per piece, its ends where it joins the next
+  const PCOL = ["#ffb347", "#6fd3ff", "#c7f464", "#ff7ab6"];
+  X.font = "bold 12px system-ui"; X.textAlign = "left";
+  (job.pieces || []).forEach((pc, i) => {
+    const a = pc.x0 * 30, b = pc.x1 * 30, col = PCOL[i % PCOL.length];
+    for (let r = rowOf(a); r <= rowOf(Math.max(a, b - 1)); r++) {
+      const y0 = HEAD + r * (rowH + GAP) + TOP, yb = y0 + sceneH - 6 - (i % 2) * 10, xa = 10 + (Math.max(a, r * rowU) - r * rowU) * S, xb = 10 + (Math.min(b, (r + 1) * rowU) - r * rowU) * S;
+      X.fillStyle = col; X.globalAlpha = 0.10; X.fillRect(xa, y0, xb - xa, sceneH); X.globalAlpha = 1;
+      X.strokeStyle = col; X.lineWidth = 3; X.beginPath(); X.moveTo(xa, yb - 8); X.lineTo(xa, yb); X.lineTo(xb, yb); X.lineTo(xb, yb - 8); X.stroke();
+      if (r === rowOf(a)) { X.fillStyle = "rgba(0,0,0,.7)"; const lb = `${i + 1} ${pc.name}`; X.fillRect(xa + 2, yb - 24, X.measureText(lb).width + 6, 15); X.fillStyle = col; X.fillText(lb, xa + 5, yb - 12); }
+    }
+  });
   // seconds and % ticks under each row
   X.font = "11px system-ui"; X.textAlign = "center";
   const total = lastK / P.TPS;

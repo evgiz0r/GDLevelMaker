@@ -66,7 +66,7 @@ module.exports = { rulesOf };
 if (require.main === module) {
   const args = process.argv.slice(2), fast = args.includes("--fast");
   let files = args.filter(a => a.endsWith(".gdlvl"));
-  if (args.includes("all")) files = fs.readdirSync(path.join(ROOT, "levels")).filter(f => /^gdlm_\d+/.test(f)).map(f => path.join(ROOT, "levels", f));
+  if (args.includes("all")) files = fs.readdirSync(path.join(ROOT, "levels")).filter(f => /^gdlm_\d+.*\.gdlvl$/.test(f)).map(f => path.join(ROOT, "levels", f));
   if (!files.length) { console.log(fs.readFileSync(__filename, "utf8").split("\n").filter(l => l.startsWith("//")).join("\n")); process.exit(1); }
   const res = files.map(f => rulesOf(f, { fast }));
   if (args.includes("--json")) { console.log(JSON.stringify(res, null, 1)); process.exit(0); }
