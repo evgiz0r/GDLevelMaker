@@ -102,6 +102,65 @@ the block with its corner triangles and a dim rim. ~1050 objects on blocks 0-88 
 gdlm_44_hellgate_mix_layered. Open: spikes dressed the same way, cut corners / pillars in front (structure), fewer
 objects (one 3D square per cell is wasteful inside a mass), the GD-art render.
 
+Ice twin (2026-11-26, Evgeni: "give me some of the best looks of firy and icy"): `paintscene.js` scene `frozen` (night
+sky, moon, aurora ribbons, moonlit snowy ranges, an ice spire landmark) and `--blocks layered-ice`, on GDLM 72 Frostbite
+blocks 0-88: `decoart.js levels/archive/gdlm_72_frostbite.gdlvl --from 0 --to 88 --scene frozen --variants mix --blocks
+layered-ice --tag _ice`. Viewer: deco-art / gdlm_72_frostbite_mix_ice. The best looks of each theme are listed in
+`local/decoart/best.json` ({group, png, caption, level}); `tools/deco_page.js` puts them first on the phone page's deco page.
+
+## Why it still looks bland: the fire / ice looks vs rated levels (measured 2026-11-26)
+
+Evgeni: "it looks bland compared to real levels". `node tools/modern_look.js <level>` and `node tools/decocomp.js <level>`
+on the two best looks (hellgate_mix_layered, frostbite_mix_ice), against knowledge/levels/modern_look.md and
+knowledge/decocomp_ref.json (featured 2.2, median):
+
+| | ours (fire / ice) | rated 2.2 | gap? |
+|---|---|---|---|
+| objects per block | 26 / 16 | 32-46 | a bit thin |
+| colour channels, HSV share | 82, 38-50% | 54-179, 40-43% | fine |
+| front layers (T2+) | 0% / 0.8% | 17-26% (featured22 median 22%) | **none** |
+| big set pieces per screen | 0 | 11 | **none** |
+| deco kinds | 85% flat squares + triangles, disks | gradients 6-9%, particles, dots + pulsing rings, 3D outlines, clouds / grass / animated water, pixel art | **one kind** |
+| particles | 0 | 56-153 emitters / min | **none** |
+| alpha / toggle (fade in, show, hide) | 7 / min | 186-574 / min | **almost none** |
+| camera (zoom, offset, rotate, shake) | 0 | 44-107 / min | **none** |
+| shaders (blur, hue, lens, glitch) | 0 | 14-44 / min | **none** |
+| scene changes | one scene for the stretch | a new scene / palette / frame at each portal | **none** |
+
+So colour and amount are near the rated levels; what is missing is everything that is not a flat shape: soft glow and
+gradients, things in front of the player, set pieces, particles, fades, the camera and shaders. Next: real glow sprites
+(1293, gradients), a front layer (thin see-through silhouettes), one big set piece per screen, ember / snow particles,
+fade-ins at section starts, a camera zoom or shake on the drop.
+
+## Round 5 (2026-11-26): not only flat shapes, `tools/decofx.js`
+
+Evgeni: "yes, i want to iterate on looks" after the table above. One pass over a dressed stretch adds what the rated levels
+have and we lacked (each switchable with `--fx`):
+- **glow**: GD's soft glow strip 1293 (15 x 30, solid at the bottom, fading up; flipY the other way) replaces blockart's stacked
+  see-through squares: one gradient inside each open block top (blockart's glowTop channel, opacity 0.75) and a halo rising
+  above it (B1, blending, 0.35). Lay them edge to edge at exact widths (sx 2 = 30 units): an overlap of even 1 unit shows as
+  a bright seam on a blending channel. lib/look.js now draws 1293 as a gradient, so it shows on the phone and in cloud shots.
+- **front**: dark hanging silhouettes (stalactites / icicles: two flipped 693 halves) on T3 with a blended lit edge, hung from
+  y 300 and kept 75 units over the play beneath them (tests/decofx.js checks 55+); a low see-through haze over the ground.
+  Too high (from y 420 down to 200) and they never showed: the cube screen tops out near y 250.
+- **set**: one set piece a screen on B2 (fire: a gate with a glowing core and rays; ice: a crystal cluster). Behind the lane a
+  set piece must stay near the sky's value (ice: opacity 0.85, a mid blue); the first dark version fought with the cube and
+  spikes, the first light one blew out.
+- **motes**: embers rising / snow falling, big and few on T2, small and many on B2, each depth its own move.
+- **fade**: front layer and set pieces fade in (1007); **camera**: zoom 0.85 at the first mode portal and back, a flash on the
+  glow; **scene**: the glow, outline and halo turn hotter / colder at that portal.
+Not yet: real particle objects (2065: their settings string is not known to us and the viewer can't draw them), camera
+shake (the viewer does not model it), a new background per section.
+
+Results: fire +441 objects (26 -> 30 per block), ice +403. Pictures: project files decoart/round5_fx.jpg and
+round5_before_after.jpg. Viewer: deco-art / gdlm_44_hellgate_mix_layered_fx and gdlm_72_frostbite_mix_ice_fx.
+```
+node tools/decofx.js local/decoart/gdlm_44_hellgate_mix_layered.gdlvl --theme fire [--fx glow,front,set,motes,fade,camera,scene]
+node tests/decofx.js
+```
+Lesson: run `node tools/channels.js` on every deco build. A swallowed line left the set pieces' core and rim channels
+undefined, which the game would draw white.
+
 ## Lessons as rules (soft; for the generator)
 
 - **Paint the section's picture before placing deco**: one focal point (light / landmark) at a third of the screen in the

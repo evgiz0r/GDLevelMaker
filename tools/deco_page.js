@@ -28,6 +28,19 @@ figcaption{font-size:12px;opacity:.8;padding:2px 0}.none{aspect-ratio:16/9;displ
 .lab{font-weight:600}</style>
 <h1>Deco options</h1><p>Same play, dressed differently. Ice on the left, fire on the right.</p>`;
 
+// the best looks now, first (local/decoart/best.json: [{group: "fire"|"ice"|..., png, caption, level?}], written by hand or a
+// deco session after each round; DECOART.md): what to look at before the older options below
+const best = readJ(path.join(L, "decoart", "best.json")) || [];
+if (best.length) {
+  h += `<h2>Best looks now</h2><p>The newest and strongest of each theme. Open the level in the viewer to mark spots.</p>`;
+  for (const g of [...new Set(best.map(b => b.group))]) {
+    h += `<h3>${esc(g)}</h3><div class=row>`;
+    best.filter(b => b.group === g).forEach((b, i) => { const f = path.isAbsolute(b.png) ? b.png : path.join(ROOT, b.png);
+      h += `<figure>${img(jpg(f, `best_${g}_${i}.jpg`), b.caption)}<figcaption>${esc(b.caption)}${b.level ? ` · in the viewer: <b>${esc(b.level)}</b>` : ""}</figcaption></figure>`; });
+    h += `</div>`;
+  }
+  h += `<h2>Earlier options (2026-11-25)</h2>`;
+}
 const gal = readJ(path.join(L, "decogallery", "options.json")) || [];
 if (gal.length) {
   h += `<h2>Element by element</h2>`;

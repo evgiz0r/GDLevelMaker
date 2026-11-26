@@ -203,8 +203,40 @@ claude sign on every level we make".
 
 Lab v4 (`levels/lab/auto_beat.gdlvl`, Geometrical Dominator, seed 1): 106 s with the outro, 664 triggers (7 a second, was
 4.4), 72% of the notes (was 50%), 96% within a frame, speed 1x / 2x / 3x, 120 yellow + 99 red pads, 300 flips, 8 saws, clears
-with no press. Build 9 s. Open: pads on short catch ledges sometimes look like they float (their ledge is cut by the next
+with no press. Build 9 s. **v4 died in the game at ~20 s** (Evgeni: "falls down with the ship"): it was built on physics from before the same day's probe-log fixes (speed portal widths, ship -> UFO speed, ...); on today's physics the same file dies at 20.3 s in the swing. v5 = the same seed rebuilt on today's physics, clears. Lesson: rebuild (and re-check with `node -e` sim or tests) after any lib/physics.js change before installing; the heavy lock's "behind main" warning was the hint. Open: pads on short catch ledges sometimes look like they float (their ledge is cut by the next
 step); the rapid flips in a ship make small wiggles; strays are checked only before the home wall.
+
+### Evgeni on v5 in GD (2026-11-26 evening) -- what round 9 is for
+
+"the auto is not bad ... a bit too jumpy across screens at times (in the gd camera). some inside the ground play. no slopes
+at all, a slope could count as a jump in a way as it has a similar effect. the beats are somewhat ok (not perfect, still some
+feel missing). it feels very random ... how to make it slightly more attractive layout even before the deco. the spike blocks
+around the game seem also very random, they are not coherent and not fluid with the path - but blocking the path better is
+lower priority for now. for spider portals - only to very small distance. the cameras of what you think and happens in gd dont
+match exactly i think". Plan (proposed to him): shape first per phrase (a silhouette that repeats with variation), a height
+band the camera can hold, slopes as a kind, spider only where floor and roof are close, hazards that follow the path's
+contour, and a camera check against his own run.
+
+Round 9 built (the coordinator relayed his go; his answer on "inside the ground": "does junky movement somewhat within the
+block. seems fine with hitboxes, its not terrible, just janky"), `opts.shape` (default on; `false` = round 8):
+- **Echo**: phrases of 16 beats in pairs, call and response; a response note wants what the call placed on the same 16th.
+  Response notes matching their call: 51% (28% before).
+- **Camera band**: within a batch the path never climbs more than 14 rows over the band's floor (`opts.bandRows`); the band
+  follows the path down; a new batch (a section change) may move it up, and only there may a roof sit 14-25 rows up.
+  Teleports are out of the batches and the fallbacks. 1 s windows with more than 10 rows of height change: 30 -> 7; highest
+  point 58 -> 23 blocks.
+- **Slopes** (1338, flipped for down): on the ground a ledge ends on the note in a slope 1-2 rows up or down; in the air,
+  coming down, the player lands ON a slope on the note (the level is 87% in the air: only 40 of 627 notes found the player on
+  the ground). Accents are a slope or a step, half and half. 10 slopes in v6.
+- **Not inside the blocks**: `clips()` -- a candidate whose path sinks more than 4 units into a ledge or roof row is refused;
+  the final run's clip ticks: 32 -> 0.
+- **Spider** moves at most 4 rows from where the trigger finds it.
+- **Pads on something**: 11 of 190 pads hung in the air (on a slope's row, past a ledge cut later); each now gets a block.
+Lab v6: 106 s, 633 triggers, 69% of notes, clears with no press, 56 saws (the hazards that follow the path are next).
+**v6 in the game** (Evgeni died at 15.8 s; probe log, PC local/tmp/autobeat_probe/): game and sim agree tick for tick, x and y,
+for 10.3 s through ~30 pads, portals, mode changes and ground slopes -- then a cube falling onto a RISING slope lands in the game
+(vy -> 0, then 3.09) but is thrown up at once in the sim (5.77, 7.41). Air landings on slopes are off (`opts.airSlopes`) until
+the physics thread has looked; v7 has ground slopes only (fewer: the player is on the ground at ~6% of notes).
 
 ## The community auto levels (2026-11-26, `node tools/autostudy.js --community`, PC run)
 

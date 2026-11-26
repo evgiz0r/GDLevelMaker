@@ -266,17 +266,24 @@ swap("</style>", `  @media (max-width: 700px) {
 const DECO = path.join(ROOT, "local", "phone_deco"), deco = fs.existsSync(path.join(DECO, "index.html")) ? fs.readdirSync(DECO).filter(f => /\.(html|jpg)$/.test(f)) : [];
 if (deco.length) {
   fs.mkdirSync(path.join(OUT, "deco"), { recursive: true });
-  for (const f of deco) fs.copyFileSync(path.join(DECO, f), path.join(OUT, "deco", f));
+  for (const f of deco) if (f.endsWith(".jpg")) fs.copyFileSync(path.join(DECO, f), path.join(OUT, "deco", f));
   swap('<button id="music" class="on">music</button>', '<button id="decoBtn" title="deco options: blocks, spikes, backgrounds in ice and fire">deco</button><button id="music" class="on">music</button>');
   swap("if (labHash()) return labOpen(labHash()); openLink", "if (labHash()) return labOpen(labHash()); if (location.hash === \"#deco\") return; openLink"); // #deco is not a level link
 }
 html = `<!-- built by tools/web.js from viewer/index.html; do not edit -->\n` + html;
-if (deco.length) html += `\n<script>
+// the deco page goes INTO the overlay (no nested frame: an HTML page inside the Artifact's frame showed a "weird page",
+// Evgeni 2026-11-26); its pictures stay files under deco/
+if (deco.length) {
+  const dh = fs.readFileSync(path.join(DECO, "index.html"), "utf8"), css = (dh.match(/<style>([\s\S]*?)<\/style>/) || ["", ""])[1];
+  const body = dh.replace(/^[\s\S]*?<\/style>/, "").replace(/src="(?!https?:|data:|deco\/)([^"]+)"/g, 'src="deco/$1"');
+  const scoped = css.replace(/(^|})\s*([^{}@]+)\{/g, (m, b, sel) => b + sel.split(",").map(x => "#decoBody " + x.trim().replace(/^body$/, "")).join(",") + "{");
+  html += `\n<style>${scoped}</style><template id="decoTpl">${body}</template>\n<script>
 function showDeco() {
   if (document.querySelector('[data-overlay="deco"]')) return;
   const o = document.createElement("div"); o.dataset.overlay = "deco";
-  o.style.cssText = "position:fixed;inset:0;z-index:50;background:#0b0820;display:flex;flex-direction:column";
-  o.innerHTML = '<div style="display:flex;gap:8px;align-items:center;padding:6px"><b style="flex:1">Deco options</b><button>✕ close</button></div><iframe src="deco/index.html" style="flex:1;border:0;width:100%"></iframe>';
+  o.style.cssText = "position:fixed;inset:0;z-index:50;background:#0b0820;color:#ddd;display:flex;flex-direction:column";
+  o.innerHTML = '<div style="display:flex;gap:8px;align-items:center;padding:6px"><b style="flex:1">Deco options</b><button>✕ close</button></div><div id="decoBody" style="flex:1;overflow:auto;padding:0 12px 24px;font:14px system-ui"></div>';
+  o.querySelector("#decoBody").appendChild(document.getElementById("decoTpl").content.cloneNode(true));
   o.querySelector("button").onclick = () => { o.remove(); if (location.hash === "#deco") history.replaceState(null, "", location.pathname + location.search); };
   document.body.appendChild(o);
 }
@@ -284,6 +291,7 @@ document.getElementById("decoBtn").onclick = showDeco;
 if (location.hash === "#deco") setTimeout(showDeco, 0);
 addEventListener("hashchange", () => { if (location.hash === "#deco") showDeco(); });
 </script>\n`;
+}
 fs.writeFileSync(path.join(OUT, "index.html"), html);
 // the Artifact publish call, ready to use (files map = everything beside index.html)
 // the background solver: the same lib/ files, in a Web Worker (the libs attach to `window`)
@@ -318,6 +326,6 @@ for (const m of maps) files["maps/" + m + "_shapes.jpg"] = "maps/" + m + "_shape
 for (const f of libs) files["lib/" + f] = "lib/" + f;
 // the deco options page (tools/deco_page.js -> local/phone_deco/): GD art inside, allowed on this private page only
 // (VISUALS.md); carried as deco/ when it exists, opened by the "deco" button or #deco
-for (const f of deco) files["deco/" + f] = "deco/" + f;
+for (const f of deco) if (f.endsWith(".jpg")) files["deco/" + f] = "deco/" + f;   // the page itself is inlined
 fs.writeFileSync(path.join(OUT, "publish.json"), JSON.stringify({ file_path: path.join(OUT, "index.html"), root: OUT, files, capabilities: { db: {}, downloads: true } }, null, 1));
 console.log(`${OUT}: index.html + ${Object.keys(files).length} files; publish.json has the Artifact call's file_path, root, files and capabilities`);

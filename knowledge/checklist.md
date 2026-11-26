@@ -99,6 +99,12 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 - [ ] **Presses follow the song's beat**: the human route has about as many inputs per beat as the official levels
   (0.53-0.87 over the level, 0.50+ in its busy phrases; a calm phrase may be sparse). `tools/tempo.js`, score.js "tempo".
   (the user on GDLM 44 hellgate v6: "the cps is very small, compared to beat of the song")
+  And at least the median Easy brick's clicks per second (1.82; rated levels' bricks 1.8-2.15 at every tier,
+  knowledge/brick_tiers.json from `tools/brickstats.js --write`): score.js "tempo" warns below it. Evgeni 2026-11-26: "i want
+  levels not to be so sparse, the beats are decently quick". Sweep: GDLM 70-73 pass (2.0-2.5), most of 41-69 are under.
+- [ ] **No near-empty stretch inside the level**: the calmest 10% of 4 s windows keep 0.5+ clicks/s, no 2.5 s+ stretch without a
+  press, under 20% of its bricks clickless, its bricks' median clicks/s within 85% of the target tier's. `tools/density.js`,
+  score.js "density" (the whole-level number above can pass while one stretch is empty).
 - [ ] **Density without timing**: arm the pieces the route never touches -- spike tips under hanging columns
   (3+ rows over the higher pillar beside them) and spike-tipped 1-wide pillars mid-pit, a row under the lower
   landing; never a spike on a top the route lands on. Checked: windows unchanged (CRAFT.md "Density").
@@ -210,6 +216,7 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   contrast than the path's bodies, softer or no outlines, a different hue or some transparency. `tools/roles.js` (pathDeco).
 - [ ] **Play blocks are a material, not a flat fill** (the user, 2026-11-26: "The blocks are still very timid. No effects. No
 - [ ] **Block design in layers** (Evgeni, 2026-11-26, with 8 tutorials): outline + inline, a 2-3 colour base with low-opacity texture, details small = high contrast, glow sparingly (top light, bottom dark, black lines in front of glow), 3D lines all one direction and darker. DECOART.md "Block design". Check: `tools/blockart.js` (by eye for now).
+- [ ] **Not only flat shapes** (Evgeni, 2026-11-26: "bland compared to real levels"): rated 2.2 levels put ~22% of deco in front (T2+), ~11 big set pieces a screen, gradients / soft glow, particles, fades (alpha ~190/min), camera moves and shaders, and a new scene per section. Check: `node tools/modern_look.js <level>` + `node tools/decocomp.js <level>` vs DECOART.md "Why it still looks bland". Add them with `tools/decofx.js`.
   good texture. All single filled color"). Lit open tops, darker with depth, a surface texture (facets), a feature with light
   (glowing seams on the beat), an edge and a shadow. `tools/blockart.js` (decoart.js --blocks); DECOART.md "Blocks".
 - [ ] **A section's backdrop is one composed picture** (focal light at a third, values light far -> dark near, nothing in
@@ -424,6 +431,11 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   pair. BUILDING.md section 5.
 - [ ] **Auto levels: no secret way** -- a press anywhere dies or is back on the auto path within 5 s (autobeat.js strays();
   saws where a press leaves it). Rapid runs (4+ notes <= 0.14 s apart) get triggers 0.07 s apart. AUTO.md round 8.
+- [ ] **An auto level is built and checked on main's newest physics before it is installed**: GDLM auto beat v4 cleared on
+  the morning's physics and fell in the game at 20 s; on the evening's physics it dies there too. `git pull`, rebuild, check.
+- [ ] **Auto layouts read as designed** (Evgeni on v5: "jumpy across screens", "very random", "janky within the block"): no
+  teleports, height inside a camera band except at section changes, phrases echo their call, slopes as moves, the player never
+  sinks into a ledge, spider moves short, every pad on a block. autobeat.js `shape` (AUTO.md round 9).
 - [ ] **Nothing the player should read above the view** (the user on GDLM 72, 2026-11-25: "the sign is offscreen"): for a
   cube on the ground the game shows y -93 .. ~227 (lib/camera.js), so text and set pieces stay under ~210. The signature's
   stage floated 90 units up and put its title at y 232; now 50 (title ~192). 21 of 30 GDLM levels carry the old one until
