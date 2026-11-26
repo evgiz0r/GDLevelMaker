@@ -530,6 +530,17 @@ function variants() {
 }
 variants();
 
+// ---------------------------------------------------------------- generated bricks (tools/brickgen.js, BRICKGEN.md)
+// Our own bricks made presses-first and judged against the official ones (knowledge/brickgen.json): each one is a plain
+// object list in this file's coordinates, so it is checked, ranked and placed like any structure ("s:g-ship-normal-1").
+try {
+  const G = JSON.parse(fs.readFileSync(path.join(ROOT, "knowledge", "brickgen.json"), "utf8")).bricks || [];
+  for (const b of G) S(b.id, { mode: b.mode, tier: b.tier, generated: true,
+    tags: [b.mode, "generated", ...(b.judge && b.judge.sig ? b.judge.sig.split(" / ").slice(2) : [])],
+    doc: `generated ${b.mode} brick: ${b.judge ? b.judge.sig : ""}, ${b.verify.presses} presses, tightest ${b.verify.minMs} ms (planned route), judge ${b.judge ? b.judge.score : "?"}`,
+    build: () => ({ objects: b.objects, width: b.width }) });
+} catch (e) { if (e.code !== "ENOENT") console.log("structures: knowledge/brickgen.json: " + e.message); }
+
 // ---------------------------------------------------------------- checks
 function check(st, args, opts = {}) {
   const { GD } = require("./io.js");

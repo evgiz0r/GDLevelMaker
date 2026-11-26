@@ -347,6 +347,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   `check`, `build <id>`, `rank`, `page`), results in `knowledge/structures.json`, a picture page for the
   phone (link in local/phone/structures_url.txt). Every cube-in/cube-out one is the pattern `"s:<id>"`,
   and compose.js puts one in every plain cube section by default (`"structures": false` = off).
+- **Our own bricks, generated presses-first** (BRICKGEN.md; Evgeni 2026-11-26: RobTop's structures are decent, our hand-made library pieces are not, so the official bricks are the JUDGE): `tools/brickgen.js gen | list | show | build | lab` -- a rhythm of 2-6 presses -> the sim's path in the open band -> walls / platforms / ledges built around it, spikes kept only while the plan clears -> verified (plan clears, no press dies, player windows, no secret way: skip / stray tap / the solver's fewest presses) -> judged by tools/lego.js measure() against the official family numbers (knowledge/lego.json) and the tier stats -> knowledge/brickgen.json, registered as structures `g-<mode>-<tier>-<n>` (brickpick / compose / `structures.js check` see them). Ship, wave, ball, ufo so far.
 - **Auto bricks: stretches with no click** (AUTO.md: the main levels' auto parts measured -- ~10% of a level, pad launches,
   blue-pad ping-pong, portal rides --, 50 own bricks built by sim placement with an entry / exit contract, the lab level):
   `tools/autostudy.js` (-> knowledge/auto_study.json, numbers only), `tools/autobricks.js list | build | show` (->

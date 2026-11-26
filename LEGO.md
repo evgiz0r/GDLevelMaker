@@ -506,6 +506,8 @@ after a build (not hooked into make.js yet).
 
 ## Open
 
+- **Generated bricks** (2026-11-26, BRICKGEN.md): our own ship / wave / ball / ufo bricks made presses-first and judged against the official family numbers here; cube, robot, spider next.
+
 - Compose does not place fly pieces from the catalogue yet: ship / wave / swing sections still use ship-tunnel /
   wave-zigzag / swing-run. Next: a section's path drawn as knots (from the song: rises on builds, drops on drops), then
   wrapped per section with the variety rule picking a wrapper the level has not used lately.
