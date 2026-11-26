@@ -137,9 +137,10 @@ things take" below). The tools below still work one by one.
    For the phone: the same viewer as the user's private Artifact (PHONE.md): pushed levels,
    every session's work in progress live, marks from the phone. Republish it when the viewer or
    the pushed levels change (`node tools/web.js --out <scratchpad>/web`, link in local/phone/url.txt).
-4. With the game closed, `node tools/install.js levels/<name>.gdlvl` puts it at the top of
-   My Levels (backs the save up first; refuses while GeometryDash.exe runs -- then queue it:
-   `node tools/install_queue.js add <file> --by <who>`, the watcher installs it when GD closes). The user plays it
+4. `node tools/install.js levels/<name>.gdlvl` puts it at the top of My Levels (backs the save up first). With the game
+   closed it writes the save; **with GD running it goes through the probe mod's install inbox** (mod v0.6.0+, on a menu
+   only, keeps the online ID, GD saves it; GEODE.md "Install into a running GD", `node tools/hotinstall.js status|results`);
+   mod not loaded -> it queues it (`tools/install_queue.js`, installed when GD closes). The user plays it
    and reports. The user's game is GD **2.2091** on Steam (Windows; Steam updated it 2026-10-21 -- older notes say 2.2081) with Geode 6.0.0 (2026-11-25); our probe mod `mods/gdlm-probe` is built with `tools\geode_build.cmd` and installed, and runs (GEODE.md "Building on this PC": Smart App Control blocks the Geode CLI, so `tools/geode_pack.js` packs).
    **Or Claude plays it in the real game (2026-11-25):** `node tools/probe.js play save:<GDLM name> --launch` (GD closed; the
    level must be in the save): the probe mod (GEODE.md "Playback") opens it, presses the saved route on exact ticks, logs every
@@ -513,7 +514,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   the buttons are, GD must be windowed, the user's yes before each upload; ONE phone slot,
   ID 152848491, filled with `install.js <lvl> --slot phone`; and the test slot "Claude Lab", `--slot lab --desc "..."`, not uploaded yet; both in `local/phone_ids.json`). **Install queue** `tools/install_queue.js` (add / watch: installs the moment GD closes, reads the save back; PUBLISH.md). `tools/install.js` keeps a shared level's online ID on re-install, so
   Share again updates the same upload (`tests/install_keeps_id.js`).
-- **Geode mods** (GEODE.md: which index mods help -- GDShare import, Eclipse / GDH bots, Pathfinder -- which must NOT be installed because they change gameplay, and our own probe mod `mods/gdlm-probe/` that logs the player's state every tick, read by `tools/probe.js`, built by `tools/geode_build.cmd` + packed by `tools/geode_pack.js` (no Geode CLI: Smart App Control blocks it); playback of routes next).
+- **Geode mods** (GEODE.md: which index mods help -- GDShare import, Eclipse / GDH bots, Pathfinder -- which must NOT be installed because they change gameplay, and our own probe mod `mods/gdlm-probe/` that logs the player's state every tick, read by `tools/probe.js`, built by `tools/geode_build.cmd` + packed by `tools/geode_pack.js` (no Geode CLI: Smart App Control blocks it); playback of routes next; the install inbox, v0.6.0: `tools/hotinstall.js` + install.js with GD running, test `node tests/install_hot.js`, GEODE.md "Install into a running GD").
 - **Practice -> full run** (GEODE.md "Practice -> full run"): `tools/stitch.js` joins the user's real-game practice attempts
   (probe mod v0.4.0 logs checkpoints) into one start-to-end input route, checks it in our sim, `--save` -> viewer ghost and
   `video.js --run`; `probe.js play ... --events <stitched>` plays it unbroken in the game. Test: `node tests/stitch.js`.
