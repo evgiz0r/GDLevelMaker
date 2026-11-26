@@ -8,7 +8,12 @@
 // place, so re-installing after an edit updates it instead of piling up copies; a level already
 // shared online keeps its online ID (k1/k16/k60), so Share again updates that upload (PUBLISH.md).
 //
-// The game must be CLOSED: it rewrites this file when it exits, wiping anything put in meanwhile.
+// With the game CLOSED it writes the save itself. With GD RUNNING (it rewrites the save when it exits, wiping anything
+// put in meanwhile) it hands each level to the probe mod's install inbox instead (tools/hotinstall.js, mod v0.6.0+,
+// GEODE.md "Install into a running GD"): the mod adds it to My Levels on a menu (never during play), keeps the online ID,
+// lets GD save, and answers; install.js waits --wait <s> (default 20) and reads the save back. While the user is in a
+// level the request waits until they leave it. Mod not loaded / older: the level goes to the install queue
+// (tools/install_queue.js). --slot still needs GD closed (or the queue).
 // Every run first copies the save to GeometryDash\gdlm_backups\ (restore = copy it back).
 // --dry writes nothing to the save: it builds the new save in memory and checks it decodes.
 //
@@ -134,7 +139,7 @@ function songInfo(id) {
     (info.artistId ? `<k>3</k><i>${info.artistId}</i>` : "") + (info.mb ? `<k>5</k><r>${info.mb}</r>` : "") + (info.url ? `<k>10</k><s>${esc(info.url)}</s>` : "") + "</d>";
 }
 // adds the missing songs to CCGameManager.dat next to the level save (backed up first); returns what it did
-function addSongs(ids, levelSave, dry) {
+function addSongs(ids, levelSave, dry, { mp3Only = false } = {}) {
   const gm = path.join(path.dirname(levelSave), "CCGameManager.dat");
   if (!ids.length || !fs.existsSync(gm)) return [];
   const out = [], add = [];
@@ -147,6 +152,7 @@ function addSongs(ids, levelSave, dry) {
     if (!dry) fs.copyFileSync(src, mp3);
     out.push(`song ${id}: mp3 copied into GD's folder`);
   }
+  if (mp3Only) return out;   // GD runs: CCGameManager.dat is its to write; the mod asks GD for the song's info
   const xml = decodeSave(fs.readFileSync(gm)), tag = "<k>MDLM_001</k><d>", at = xml.indexOf(tag);
   if (at < 0) return out.concat(["no song list (MDLM_001) in CCGameManager.dat: songs not added"]);
   for (const id of ids) {
@@ -163,6 +169,60 @@ function addSongs(ids, levelSave, dry) {
   return out;
 }
 
+// the record's inner dict as it goes into the save: the spec's short description, the length label
+function prepare(f) {
+  const rec = unpack(fs.readFileSync(f, "utf8"));
+  let inner = rec.match(/<plist[^>]*><dict>([\s\S]*)<\/dict><\/plist>/)[1];
+  const name = nameOf(inner);
+  const sd = specDesc(name);
+  if (sd) inner = setDesc(inner, sd);   // the spec's short description wins over an old one in the file
+  const len = lengthCode(f);
+  if (len) { inner = setLength(inner, len.code); console.log(`length: ${["Tiny", "Short", "Medium", "Long", "XL"][len.code]} (${len.secs.toFixed(0)} s)`); }
+  return { name, inner };
+}
+const levelString = inner => (inner.match(/<k>k4<\/k><s>([^<]*)<\/s>/) || [])[1] || "";
+
+// GD runs: the probe mod's install inbox (tools/hotinstall.js), else the install queue. Returns the exit code:
+// 0 installed, 3 not installed now (queued, or waiting in the inbox), 5 the mod refused one.
+function hot(files, save, args, H = require("./hotinstall.js")) {
+  if (args.includes("--slot")) { console.log("Geometry Dash is running: --slot needs it closed (or: node tools/install_queue.js add ...)."); return 3; }
+  const ready = H.modReady();
+  if (!ready.ok) {
+    console.log(`Geometry Dash is running and the install inbox is not available (${ready.why}).`);
+    const r = require("child_process").spawnSync(process.execPath, [path.join(__dirname, "install_queue.js"), "add", ...files, "--by", "install.js"], { windowsHide: true, encoding: "utf8" });
+    process.stdout.write(r.stdout || ""); process.stderr.write(r.stderr || "");
+    console.log("queued: the install queue's watcher installs it when GD closes (node tools/install_queue.js watch).");
+    return 3;
+  }
+  // the save as GD last wrote it: backed up first, as for a closed-game install
+  const bdir = path.join(path.dirname(save), "gdlm_backups"); fs.mkdirSync(bdir, { recursive: true });
+  const backup = path.join(bdir, `CCLocalLevels.${new Date().toISOString().replace(/[:.]/g, "-")}.dat`);
+  if (fs.existsSync(save)) fs.copyFileSync(save, backup);
+  console.log(`GD is running with the probe mod ${ready.status.version}: installing through its inbox. backup: ${backup}`);
+  const reqs = files.map(f => { const p = prepare(f); return { ...p, file: f, id: H.request(p.name, p.inner) }; });
+  // the mp3 is a plain file in GD's folder (safe while it runs); the song's info is asked by the mod
+  try { for (const l of addSongs(songIds(reqs.map(r => r.inner)), save, false, { mp3Only: true })) console.log(l); } catch (e) { console.log("songs: " + e.message); }
+  const wi = args.indexOf("--wait"), wait = (wi >= 0 ? +args[wi + 1] : 20) * 1000;
+  const res = H.waitResults(reqs.map(r => r.id), { wait });
+  let code = 0, xml = null;
+  for (const r of reqs) {
+    const a = res[r.id];
+    if (!a) { console.log(`"${r.name}": waiting in GD's inbox (GD is in a level or the editor?): it goes in when the user is back on a menu. Check: node tools/hotinstall.js results`); code = Math.max(code, 3); continue; }
+    if (a.status !== "installed") { console.log(`"${r.name}": NOT installed: ${a.why}`); code = 5; continue; }
+    let check = "; GD saves it when it exits";
+    if (a.saved) {
+      try {
+        xml = xml || decodeSave(fs.readFileSync(save));
+        const it = splitLevels(xml).items.find(it => nameOf(it.inner) === r.name);
+        check = !it ? "; !! not found in the saved file" : levelString(it.inner) === levelString(r.inner) ? "; read back from the save: same level data" : "; !! the saved level data differs";
+      } catch (e) { check = "; read-back failed: " + e.message; }
+    }
+    console.log(`"${r.name}": ${a.replaced ? `replaced (position ${a.position})` : "added at the top"} of My Levels` +
+      (a.online_id > 0 ? `, kept online ID ${a.online_id}` : "") + `, song ${a.song}${check}`);
+  }
+  return code;
+}
+
 function main() {
   const args = process.argv.slice(2);
   const dry = args.includes("--dry");
@@ -170,7 +230,7 @@ function main() {
   const save = si >= 0 ? args[si + 1] : path.join(require("./gdpaths.js").SAVE, "CCLocalLevels.dat");
   const files = args.filter((a, n) => a.endsWith(".gdlvl") && args[n - 1] !== "--save");
   if (!files.length) { console.log("usage: node tools/install.js <level.gdlvl> [...] [--save path] [--dry]"); process.exit(1); }
-  if (!dry && si < 0 && gameRunning()) { console.log("Geometry Dash is running. Close it first (it overwrites the save on exit)."); process.exit(3); }
+  if (!dry && si < 0 && gameRunning()) process.exit(hot(files, save, args));
 
   const buf = fs.readFileSync(save);
   const xml = decodeSave(buf);
@@ -235,13 +295,7 @@ function main() {
 
   const installed = [];
   for (const f of slotName ? [] : files) {
-    const rec = unpack(fs.readFileSync(f, "utf8"));
-    let inner = rec.match(/<plist[^>]*><dict>([\s\S]*)<\/dict><\/plist>/)[1];
-    const name = nameOf(inner);
-    const sd = specDesc(name);
-    if (sd) inner = setDesc(inner, sd);   // the spec's short description wins over an old one in the file
-    const len = lengthCode(f);
-    if (len) { inner = setLength(inner, len.code); console.log(`length: ${["Tiny", "Short", "Medium", "Long", "XL"][len.code]} (${len.secs.toFixed(0)} s)`); }
+    const { name, inner } = prepare(f);
     installed.push(inner);
     const at = parts.items.findIndex(it => nameOf(it.inner) === name);
     if (at >= 0) {
@@ -265,6 +319,9 @@ function main() {
   fs.copyFileSync(save, backup);
   fs.writeFileSync(save, enc);
   console.log(`written. backup: ${backup}`);
+  // a request still waiting in the running-game inbox for one of these levels is older than what was just written
+  // (only for the game's own save: a --save copy is a test)
+  if (si < 0) try { const gone = require("./hotinstall.js").dropPending(installed.map(nameOf).concat(slotDone ? [slotDone.entry.name] : [])); if (gone.length) console.log(`dropped older inbox requests: ${gone.join(", ")}`); } catch (e) {}
   try { for (const l of addSongs(songIdsNow, save, false)) console.log(l); } catch (e) { console.log("songs: " + e.message); }
   if (slotDone) {
     const { ids, slot, entry: e } = slotDone;
@@ -275,4 +332,4 @@ function main() {
   }
 }
 if (require.main === module) main();
-module.exports = { decodeSave, splitLevels, nameOf, entry, gameRunning, lengthCode, songInfo, addSongs };
+module.exports = { decodeSave, splitLevels, nameOf, entry, gameRunning, lengthCode, songInfo, addSongs, prepare, hot };
