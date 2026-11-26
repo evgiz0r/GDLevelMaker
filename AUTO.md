@@ -371,9 +371,8 @@ around, or appearing shapes to the beat, or something falling ...) what we need 
 `node tools/fxlevel.js [--song Electrodynamix] [--seed 1]` -> `levels/lab/fx_level.gdlvl`: the autobeat level, every
 non-trigger object but the sign in one group at alpha 0 from the first tick (collision stays), back to alpha 1 on the last
 screen; per section of `sections.js` one theme of `tools/effects.js` (THEMES in the tool: ring, ring + zoom + flash, clouds,
-checkerboard, dancers, hit lines + zoom, chase + flashes, fast checkerboard, screen frame + clouds), the path glow and contact
+checkerboard, dancers, falling shapes (FX.fall) + hit lines, chase + flashes, fast checkerboard, screen frame + clouds), the path glow and contact
 flashes everywhere so the run reads, and the background / ground channels turned to the section's colour at each cut. v1:
-84 s, 3133 objects hidden, 4449 effect objects, the run identical with and without the effects, clears. Open: "something
-falling" has no effect yet; a painted backdrop per section (DECOART.md) instead of a plain colour; most triggers show only in
+84 s, 3133 objects hidden, 4449 effect objects, the run identical with and without the effects, clears. v2: falling shapes (the effects thread's FX.fall) in section 6. Open: a painted backdrop per section (DECOART.md) instead of a plain colour; most triggers show only in
 GD (lock to camera and scale-on-locked unchecked there).
 

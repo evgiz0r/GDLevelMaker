@@ -26,7 +26,7 @@ const THEMES = [
   { name: "break: clouds", hue: 200, fx: ["clouds"] },
   { name: "break: checkerboard", hue: 180, fx: ["fadeBlocks"] },
   { name: "entry: dancers", hue: 30, fx: ["dancers"] },
-  { name: "entry: hit lines", hue: 220, fx: ["hitLines", "zoomPunch"] },
+  { name: "entry: falling shapes + hit lines", hue: 220, fx: ["fall", "hitLines"] },
   { name: "the 3x part: chase + flashes", hue: 330, fx: ["chase", "beatFlash"] },
   { name: "entry: checkerboard fast", hue: 50, fx: ["fadeBlocks"], opts: { fadeBlocks: { every: 0.5 } } },
   { name: "last break: screen frame", hue: 250, fx: ["screenFrame", "clouds"] },
