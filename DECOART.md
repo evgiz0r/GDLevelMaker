@@ -46,12 +46,22 @@ Sheet: project files `decoart/round1_sheet.png` (art-free shapes render: kit / f
 - Not checked: the GD-art render on the PC and the real game (z order inside one layer = object order? 497's edge soft or
   hard? 30 channels fine?).
 
+## Round 2 (2026-11-26): the mix, Evgeni's pick
+
+`tools/decoart.js ... --variants mix`: only the sky, the sun's glow and the clouds are painted and fitted (400 shapes,
+rmse 1.5, 10 s); the sun's disk, the ranges and the gate go on top as clean vector shapes (one B5 group, lock 0.9), the near
+ridge as before. The first mix fitted the sun's disk too and its edge came out ragged: a focal shape with a hard edge is
+vector, only soft light is fitted. In the viewer: deco-art / gdlm_44_hellgate_mix. Sheet: project files
+`decoart/round2_mix.png`. Next: a picture per section of the full level (flying sections need a taller picture).
+
 ## Lessons as rules (soft; for the generator)
 
 - **Paint the section's picture before placing deco**: one focal point (light / landmark) at a third of the screen in the
   section's middle, values from light far to dark near, the play band against a mid value.
 - **Nothing in the backdrop reads as gameplay**: no small dark triangles near the floor, no black outlines, landmarks a
   value lighter than the play's black.
+- **Hard edges are vector, soft light is fitted**: a disk, a ridge, a tower drawn as exact shapes; glow, haze and
+  clouds fitted (round 2).
 - **Fit the picture to the view**: cube parts show ~8 blocks above the ground; flying parts need their own picture height.
 
 ## How to run

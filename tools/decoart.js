@@ -8,6 +8,7 @@
 //           silhouettes as clean vector shapes;
 //   vector  approach B: the same picture straight as clean vector shapes (bands, disks, ridges of squares + right
 //           triangles);
+//   mix     A's painted sky (sky, sun glow, clouds fitted) under B's vector ranges and landmark (round 2, Evgeni's pick);
 //   image   approach C (with --image): any picture -- the user's drawing, a generated image -- fitted as the back.
 // Both picture variants replace the stretch's back layers (B5 / B4 / B3 deco) and keep the play's own dressing. The back
 // spans y -30..270 (what a cube part shows: ~8 blocks over the ground) and is locked to the player's x at 0.9 (it drifts slowly: far away), the near layer at 0.75 (parallax).
@@ -50,7 +51,7 @@ function place(L, shapes, layerName, gdLayer, k) {
   L.header = K.channels(L.header, g.channels);
   return g;
 }
-const BACK = new Set(["sky", "sun", "clouds", "far"]);
+const BACK = new Set(["sky", "sun", "sundisk", "clouds", "far"]), SKY = new Set(["sky", "sun", "clouds"]);
 const pick = (sc, names) => Object.assign({}, sc, { layers: sc.layers.filter(l => names(l.name)) });
 
 for (const v of variants) {
@@ -71,10 +72,13 @@ for (const v of variants) {
         target = { w: wb, h: H, rgb: new Float32Array(wb * H * 3) };
         for (let y = 0; y < H; y++) for (let x = 0; x < wb; x++) { const sx = Math.min(im.w - 1, Math.floor(x * im.w / wb)), sy = Math.min(im.h - 1, Math.floor(y * im.h / H));
           for (let c = 0; c < 3; c++) target.rgb[3 * (y * wb + x) + c] = im.rgba[4 * (sy * im.w + sx) + c]; } }
-      else target = { w: wb, h: H, rgb: PS.raster(pick(scB, n => BACK.has(n))) };
+      // mix: only the sky, the sun's glow and the clouds are painted and fitted; the ranges and the landmark go on top as
+      // clean vector shapes (Evgeni's pick after round 1: B's silhouettes, A's soft light)
+      else target = { w: wb, h: H, rgb: PS.raster(pick(scB, n => v === "mix" ? SKY.has(n) : BACK.has(n))) };
       const t0 = Date.now(), f = PF.fit(target, { shapes: nShapes, seed });
       // the fit's own background colour becomes one big square at the back of the picture
       back = [{ k: "rect", x: wb / 2, y: H / 2, w: wb + 4, h: H + 4, rot: 0, c: f.bg, a: 1 }].concat(f.shapes);
+      if (v === "mix") back = back.concat(PS.vector(pick(scB, n => BACK.has(n) && !SKY.has(n))));
       PS.toPng(path.join(OUT, name + "_target.png"), target.rgb, wb, H);
       note = `fit ${f.shapes.length} shapes, rmse ${f.error.toFixed(1)}, ${((Date.now() - t0) / 1000).toFixed(0)} s; `;
     }

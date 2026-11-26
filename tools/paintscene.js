@@ -40,8 +40,8 @@ const SCENES = {
     L.push({ name: "sky", items: [{ t: "grad", stops: [[0, top], [0.45, mid], [ground / h * 0.86, hor], [1, hor]] }] });
     L.push({ name: "sun", items: [
       { t: "glow", x: sun.x, y: sun.y, r: h * 0.75, c: [255, 120, 50], a: 0.55 },
-      { t: "glow", x: sun.x, y: sun.y, r: h * 0.3, c: [255, 200, 120], a: 0.55 },
-      { t: "disk", x: sun.x, y: sun.y, r: h * 0.11, c: [255, 226, 170], a: 1, blur: 1 }] });
+      { t: "glow", x: sun.x, y: sun.y, r: h * 0.3, c: [255, 200, 120], a: 0.55 }] });
+    L.push({ name: "sundisk", items: [{ t: "disk", x: sun.x, y: sun.y, r: h * 0.11, c: [255, 226, 170], a: 1, blur: 1 }] });
     const clouds = [];
     for (let i = 0; i < 9; i++) { const y = h * (0.1 + R() * 0.32), x = R() * w, rx = w * (0.08 + R() * 0.14), ry = h * (0.012 + R() * 0.02);
       const lit = mix([60, 12, 28], [255, 150, 80], Math.max(0, 1 - Math.hypot(x - sun.x, (y - sun.y) * 2) / (w * 0.4)));
