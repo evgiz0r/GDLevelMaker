@@ -27,6 +27,10 @@ for (let i = 1; i < p.length; i++) if (p[i].vy > p[i - 1].vy + 5 && p[i - 1].gro
   pads++; const beat = (i / 240 - b.g.t0) / b.g.period; assert.ok(Math.abs(beat - Math.round(beat)) * b.g.period < 0.017, "a pad off its beat at " + (i / 240).toFixed(2) + " s");
 }
 assert.ok(pads >= 10, "pads: " + pads);
+// the falling shapes: one drop per beat, each its own group
+{ const { GD: G } = require("../tools/io.js"); const w0 = G.makeWorld(b.level.objects, b.level.header), p0 = G.run(w0, []).path;
+  const c = FX.context({ path: p0, grid: b.g, notes: [] }), objs = FX.fall(c, { t0: 10, t1: 14 });
+  assert.ok(objs.filter(o => o.id === 901).length >= 12, "fall: too few moves"); }
 // every effect documented
 for (const k of Object.keys(FX.doc)) assert.strictEqual(typeof FX[k], "function", k);
 console.log(`ok effects: gallery ${b.measures.secs} s, ${b.measures.triggers} triggers, ${b.measures.groups} groups, ${pads} launches on the beat, run unchanged`);

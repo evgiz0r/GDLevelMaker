@@ -46,6 +46,7 @@ run (`ctx.xAt`), so pads, falls and speed portals are taken into account. `ctx.b
 | `pathGlow` | alpha | glow dots along the player's own path, lit as it passes, fading behind | every, rgb, linger |
 | `clouds` | lock to player (x and y), move | clouds around the player, following it, bobbing on the beats | n, rgb, opacity |
 | `ring` | lock to player, rotate, scale | a circle with orbiting dots around the player, turning, swelling on every beat, bigger on strong notes | r, dots, swell, spin, rgb |
+| `fall` | move (exp in), rotate, alpha | shapes drop from the top on the beats (or notes), land ON the beat with a small bounce, fade (Evgeni: "something falling") | every, minS, rgb, size, spin |
 | `beatFlash` | colour 899 | the background flashes on the beats and settles back | every, rgb, back, ch |
 | `pulseFlash` | **pulse 1006 (untested)** | the same flash with pulse triggers | every, rgb, ch |
 | `zoomPunch` | zoom 1913 | the camera punches in on the strongest notes | to, minS |
