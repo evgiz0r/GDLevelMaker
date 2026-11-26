@@ -14,6 +14,14 @@ Theme -> sections (soft differences, cut at strong beats or small breaks in the 
 its path -> deco, the structural objects themed per section first. What exists per step and what is missing: LEGO.md
 "The build pipeline Evgeni set".
 
+**The deco stage uses everything the deco work learned** (Evgeni, 2026-11-26: "i want to use the deco knowledge we now
+gaining later during the deco stage"): make.js runs the structure deco pass after the solve (spec `"structures"`,
+tools/structdeco.js; on by default in compose and planbuild): a design per whole structure (slopes too), one look per
+section and 2-3 a level, 3D, the inside of big structures (panels, a layer line, a top-lit gradient), holders for islands
+off the route; the jump indicators in one style and a colour away from the hazards (`"indicators": {"style", "colour":
+"auto"}`). A new deco finding goes into that pass (or the tool it calls), not into one level's copy. DECOART.md "The
+structure deco pass".
+
 What the lego taught so far, for any builder filling a section from it (LEGO.md has the numbers):
 - **Join only bricks whose seams agree** (mode, speed, gravity, y, vy, ground): with that contract 35% of joins are clean,
   without it 15%. A third of joins still leave a secret way or an open seam: every join gets the hazard filler and is

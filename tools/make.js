@@ -17,6 +17,9 @@
 // }
 // type is a name from TYPES below or a raw object id number.
 //
+// "structures": true | {design, pal, effects, holders, interior, sections: [{from, design, pal, effects}]} -- the structure
+//                          deco pass after the solve (tools/structdeco.js: designs that follow whole structures, one look per
+//                          section, 3D, the inside of big ones, holders for islands); deco only, the solve is kept
 // Style (see STYLE.md; tools/patterns.js, tools/decorate.js):
 //   extra may also hold "group": n (fade/move target) and "ch": n (colour channel).
 //   ["pattern", name, col, row, {args}, {extra for every object}]   a named chunk
@@ -594,7 +597,7 @@ function make(specFile, specObj) {
       console.log(`   ${ind.length} jump indicators (object ${iid}): ` + ind.map(o => `${(o.x / 30).toFixed(0)} ${o.why}`).join("; "));
     } else console.log(`   ${ind.length} jump indicators planned (arrow object id not known yet): ` + ind.map(o => `${(o.x / 30).toFixed(0)} ${o.why}`).join("; "));
   }
-  if (r.ok) { lanePass(level, r.events, spec); writeGdlvl(out, rec, level); }
+  if (r.ok) { lanePass(level, r.events, spec); require("./structdeco.js").apply(level, r.events, spec); writeGdlvl(out, rec, level); }  // the structure deco pass (tools/structdeco.js)
   if (ctx.grid && r.ok) beatReport(objects, header, r, ctx);
   if (r.ok) { // the user's fairness rule: no prejumps (see tools/sightread.js)
     const s = sightread(level);
@@ -655,6 +658,7 @@ function lookOnly(out, rec, level, spec) {
   } catch (e) { console.log("   --look: could not place the jump indicators again (" + e.message + "), keeping the old ones"); }
   if (!placed) level.objects.push(...old.level.objects.filter(o => o.props && (o.props[57] === IG || (o.id === 1007 && o.props[51] === IG))));
   lanePass(level, sol.events, spec || {});
+  require("./structdeco.js").apply(level, sol.events, spec || {});
   const q = GD.run(GD.makeWorld(level.objects, level.header), sol.events);
   if (!(q.done || (q.end && !q.dead))) { console.log("   --look: the saved plan no longer clears it, solving"); return false; }
   writeGdlvl(out, rec, level);
