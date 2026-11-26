@@ -174,7 +174,7 @@ at. On the beat about as often as chance. "Big falls in 0 s" of 29-31 blocks are
 
 ## Open
 
-- **Not checked in the real game.** Yellow / pink pad strengths are `sure: false` in lib/objects.js; spider pads and blue
+- **Partly checked in the real game.** The yellow pad is confirmed (vy 16.000, probe log 2026-11-26); the pink pad is `sure: false` in lib/objects.js; spider pads and blue
   pads on a cube are from the decompile. The lab is the thing to try in GD (with Evgeni's go) or with the probe mod.
 - Entry only from the ground at row 0, 1x (plus the speed-launch ones). Next: entries on a ledge, upside down, and in
   flying modes (a ship gliding through gravity portals, a wave flipped by portals = the "auto wave"), 2x/3x versions of
