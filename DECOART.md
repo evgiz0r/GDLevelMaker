@@ -255,6 +255,21 @@ spikes beside its edges), one big set piece per screen with a quiet stretch afte
 Gotcha: `shoot.js` on a level with no saved route draws a ghost camera, far off the play (the first v1 frames showed the
 lane at the top of the picture); `wip.js put` first (it solves and saves the route), then shoot.
 
-ID ranges kept apart (2026-11-26): decoart 700-799 channels; blockart 900-911; decofx channels 950-957, groups 1201-1215
+ID ranges kept apart (2026-11-26): decoart 700-799 channels; blockart 900-911; block designs gallery 912-932; decofx channels 950-957; the signature 973-989, groups 1201-1215
 (set pieces 1210 + n); theme kits 80-117 channels, 450-529 groups; tools/effects.js (EFFECTS.md) channels 800-849, groups
 2001-3999. A new deco tool takes a free range and adds it here.
+
+## Block designs: single blocks with something inside (2026-11-26)
+
+Evgeni: "and similar stuff for singular blocks" (next to the hazards thread's spike designs), and "one of the designs could
+be just an interesting drawing". `tools/blockdesigns.js` is a library of 22 designs for ONE block (`node tools/blockdesigns.js
+list`): outline, layered, inner base (swapped colours), inner diamond, nested frames, corner brackets, bevel, glow core,
+facets, vein, dots, split, 3D, double glow, window, cross, and six drawings (snowflake and moon from shapes; flame, eye,
+skull, key as small pixel maps, `pixels()`: one row a string, runs merged). Each is `draw(cx, cy, C)` with C a role ->
+channel map (base, deep, inner, line, inline, glow, hi, shadow, detail, core), so any palette fits (PAL.ice, PAL.fire);
+the play block stays and keeps its hitbox. Gallery: `node tools/blockdesigns.js spec` -> specs/lab_block_designs.json,
+`make.js` it (scene tools/scenes/blockgallery.js): every design in fire (row 5) and ice (row 2), numbered, no click, outro
+and signature. Pictures: project files decoart/block_designs_v1.jpg. Open: Evgeni's marks pick the keepers, then blockart
+uses them on structures (a design per structure, a plainer one for small structures, Woofel), and the spike designs share
+the roles and palettes.
+Gotcha: the signature takes channels 973-989; the gallery's first fire palette at 970-979 was overwritten by it.
