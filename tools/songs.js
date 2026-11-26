@@ -129,5 +129,5 @@ async function main() {
   }
   if (!infoOnly) console.log(`${got}/${ids.length} songs on this PC; ${(bytes / 1e6).toFixed(1)} MB downloaded. Next: node tools/beats.js`);
 }
-module.exports = { songFile, songInfo, usedSongs, CACHE };
+module.exports = { songFile, songInfo, fetchSong, usedSongs, CACHE };
 if (require.main === module) main();

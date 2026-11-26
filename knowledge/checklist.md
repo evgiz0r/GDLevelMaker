@@ -418,6 +418,14 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   section, ~5 s of empty run (the user, 2026-11-25: "leaves way too much space ... should end almost instantly")
 - [ ] **The signature ends every GDLM level** (robot + human): make.js adds it by default; opt out
   only with `"signature": false`.
+- [ ] **Every level ends with the latest end screen: the auto outro + the signature** (Evgeni, 2026-11-26: "from now-on
+  everywhere, we add the latest end screen claude sign on every level we make"). make.js: `"outro": <seed>` (autobricks.js)
+  then the signature; any other builder (autobeat.js, planbuild, hellgate_build, lab levels meant to be played) adds the same
+  pair. BUILDING.md section 5.
+- [ ] **Auto levels: no secret way** -- a press anywhere dies or is back on the auto path within 5 s (autobeat.js strays();
+  saws where a press leaves it). Rapid runs (4+ notes <= 0.14 s apart) get triggers 0.07 s apart. AUTO.md round 8.
+- [ ] **An auto level is built and checked on main's newest physics before it is installed**: GDLM auto beat v4 cleared on
+  the morning's physics and fell in the game at 20 s; on the evening's physics it dies there too. `git pull`, rebuild, check.
 - [ ] **Nothing the player should read above the view** (the user on GDLM 72, 2026-11-25: "the sign is offscreen"): for a
   cube on the ground the game shows y -93 .. ~227 (lib/camera.js), so text and set pieces stay under ~210. The signature's
   stage floated 90 units up and put its title at y 232; now 50 (title ~192). 21 of 30 GDLM levels carry the old one until

@@ -91,6 +91,9 @@ not after it:
   blocks (beat-first for synced levels), a playable layout at once, stages shown as they happen, alternatives
   shown, reuse, measured times, and a retro in BUILDS.md. Read it before any build; change it when a build
   teaches something.
+- **Every level ends with the latest end screen: the auto outro + the Claude signature.** Evgeni (2026-11-26): "from now-on
+  everywhere, we add the latest end screen claude sign on every level we make". make.js `"outro": <seed>` + its signature;
+  other builders add the same pair (BUILDING.md section 5).
 - **Process rules go in the repo, never only in a message.** The user (2026-11-24): "never just for one session
   if its a big repeatable process". A rule, a process step or a lesson that one session was told applies to
   every session and every future build: write it in CLAUDE.md, BUILDING.md or the topic's doc in the same round.
@@ -347,7 +350,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   blue-pad ping-pong, portal rides --, 50 own bricks built by sim placement with an entry / exit contract, the lab level):
   `tools/autostudy.js` (-> knowledge/auto_study.json, numbers only), `tools/autobricks.js list | build | show` (->
   knowledge/autobricks.json, local/structures/lego-auto-*.gdlvl for `lego.js mine library`, levels/lab/auto_lab.gdlvl).
-  Test: `node tests/autobricks.js`. **Beat-first auto levels** (AUTO.md "Beat-first"): `tools/autobeat.js --song <Official> --seed N`
+  Test: `node tests/autobricks.js`. **Beat-first auto levels** (AUTO.md "Beat-first", round 8: rapid runs, own speed bursts, no secret way via stray presses + saws, outro + signature): `tools/autobeat.js --song <Official> --seed N`
   (a trigger on each chosen beat where the player is, gaps filled, motifs AAAA / BBBB / a mix; lab levels/lab/auto_beat.gdlvl);
   test `node tests/autobeat.js`.
 - **Lego: structure research** (LEGO.md: every level cut into 1-3 s pieces -- official, ours, the user's sketches --,
@@ -603,6 +606,11 @@ Confirmed:
   landing goes the next tick at full speed (no gravity on its first tick); the cube (and wave) sits on a slope at
   x + 15 tan(angle/2), is held at the top a tick, then launched (7.405 on 45 degrees). With them GDLM 62's 62 s run and
   Clubstep's first attempt match the game at every frame. Yellow pad: vy 16.000 in cube and ship ("auto play area" run).
+- From the user's ToE / ToE2 / Hexagon Force / Deadlocked runs (2026-11-26, probe logs; the log's p[8], p[9] are the
+  per-tick position, p[7] the speed factor): speed portals 2x / 3x are 51 / 65 wide (not 34), the orb flag outlives a
+  release by a tick, turned portals touch by their turned box, a -53 degree teleport moves the full key 54, a ship slides a
+  ceiling slope and is launched off its low end, ship -> UFO keeps a quarter of vy. PHYSICS.md "The user's ToE / ToE2 /
+  Hexagon Force / Deadlocked runs".
 - Flipping gravity halves vertical speed (blue orb and ceiling blue pad in the recording move at
   half the decompile's velocity). The decompile's ringJump alone does not show this.
 
