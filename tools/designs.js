@@ -1,5 +1,8 @@
 // node tools/designs.js cards                -- shoot the block design gallery with each third design centred, then cut one
 //                                              picture card per design (tools/design_cards.py) -> local/designs/cards/
+// node tools/designs.js cards --more          -- the wide cards: every structure design / 3D effect on the whole connector
+//                                              sheet (stitched frames of the structure gallery) and each indicator style
+//                                              (tools/design_strips.py) -> local/designs/cards/
 // node tools/designs.js page [--out <dir>]   -- the "Designs" tab of the lego catalogue: designs.json + designs.js + cards/
 //                                              into the catalogue's page folder (default local/lego/page_private); the
 //                                              catalogue loads it only when the tab is opened (tools/lego_page.html)
@@ -25,7 +28,38 @@ function list() {
     const kind = d.kind || (/^(cog|saw)/.test(name) ? "saw" : "spike");
     out.push({ id: kind + ":" + name, kind, name, card: `cards/${kind}-${keyOf(name)}.jpg`, note: short(d.src) });
   }
+  const SD = require("./structdesign.js"), IS = require("./indstyles.js");
+  for (const c of structCopies()) out.push({ id: "structure:" + c.label, kind: "structure", name: c.label, card: `cards/structure-${keyOf(c.label)}.jpg`,
+    note: c.label === "extend" ? "a T, a ring and a frame, each beside its extended copy" : short((c.label.startsWith("3D: ") ? SD.EFFECTS[c.label.slice(4)] : SD.DESIGNS[c.design]).note) + (c.pal ? " · " + c.pal : "") });
+  for (const [name, st] of Object.entries(IS.STYLES)) out.push({ id: "indicator:" + name, kind: "indicator", name, card: `cards/indicator-${keyOf(name)}.jpg`, note: short(st.note) });
   return out;
+}
+const structCopies = () => require("./structdesign.js").spec().copies;
+// camera of the shots: the screen's left edge in level units at time t (measured on the gallery shots, 1x speed)
+const camLeft = t => 262.6 + 311.7 * (t - 1.5), tAt = left => 1.5 + (left - 262.6) / 311.7, SCREEN = 1920 / 3.375;
+function moreCards() {
+  const run = (cmd, a) => { const r = cp.spawnSync(cmd, a, { cwd: ROOT, stdio: "inherit", windowsHide: true }); if (r.status) throw new Error(cmd + " failed"); };
+  const strips = [], times = [];
+  for (const c of structCopies()) {
+    const x0 = c.c0 * 30 - 20, x1 = (c.c1 + 1) * 30 + 20, n = Math.ceil((x1 - x0) / SCREEN), ts = [];
+    for (let k = 0; k < n; k++) ts.push(tAt(x0 + k * SCREEN).toFixed(3));
+    times.push(...ts);
+    strips.push({ card: `cards/structure-${keyOf(c.label)}.jpg`, ts, px0: 0, px1: (x1 - x0) * 3.375, y0: 120, y1: 600 });
+  }
+  const dir = path.join(ROOT, "local", "shots", "struct_cards");
+  fs.rmSync(dir, { recursive: true, force: true });
+  run(process.execPath, ["tools/shoot.js", "levels/gdlm_structure_designs.gdlvl", "--at", times.join(","), "--out", "local/shots/struct_cards"]);
+  const file = t => path.join(dir, "t" + (+t).toFixed(2).padStart(6, "0") + ".png");
+  for (const s of strips) s.files = s.ts.map(file);
+  // indicators: a frame with the first mark of each style's stretch
+  const IS = require("./indstyles.js"), spec = IS.spec(), ind = [], it = [];
+  spec.labels.filter(l => l[1] !== "none").forEach(([c, name]) => { const t = 1.5 + ((c + 3 + 5) * 30 - 547) / 311.7; it.push(t.toFixed(2)); ind.push({ name, t: t.toFixed(2) }); });
+  const idir = path.join(ROOT, "local", "shots", "ind_cards"); fs.rmSync(idir, { recursive: true, force: true });
+  run(process.execPath, ["tools/shoot.js", "levels/gdlm_indicator_styles.gdlvl", "--at", it.join(","), "--out", "local/shots/ind_cards"]);
+  const indicators = ind.map(o => ({ card: `cards/indicator-${keyOf(o.name)}.jpg`, file: path.join(idir, "t" + (+o.t).toFixed(2).padStart(6, "0") + ".png"), x0: 60 }));
+  fs.mkdirSync(DIR, { recursive: true });
+  fs.writeFileSync(path.join(DIR, "strips_plan.json"), JSON.stringify({ strips, indicators }, null, 1));
+  run(process.platform === "win32" ? "python" : "python3", ["tools/design_strips.py"]);
 }
 
 function cards() {
@@ -74,7 +108,7 @@ function weight(kind, name) { const v = load().find(x => x.id === kind + ":" + n
 module.exports = { list, weight, page, keyOf };
 if (require.main === module) {
   const [cmd] = process.argv.slice(2), opt = n => { const i = process.argv.indexOf(n); return i > 0 ? process.argv[i + 1] : null; };
-  if (cmd === "cards") cards();
+  if (cmd === "cards") process.argv.includes("--more") ? moreCards() : cards();
   else if (cmd === "page") page(opt("--out"));
   else if (cmd === "votes") votes();
   else if (cmd === "list") for (const d of list()) console.log(d.id.padEnd(26), d.card);

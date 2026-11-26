@@ -9,7 +9,10 @@ window.initDesigns = async function (root) {
   #designs .dgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin:8px 0 18px}
   #designs .dc{background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
   #designs .dc img{display:block;width:100%;aspect-ratio:2/1;object-fit:cover;background:#0f0c2b}
-  #designs .dc.k-spike img,#designs .dc.k-saw img{aspect-ratio:auto}
+  #designs .dc.k-spike img,#designs .dc.k-saw img,#designs .dc.k-indicator img{aspect-ratio:auto}
+  #designs .dc.k-structure{grid-column:1/-1}
+  #designs .dc .wide{overflow-x:auto;background:#0f0c2b;-webkit-overflow-scrolling:touch}
+  #designs .dc .wide img{width:auto;height:130px;max-width:none;aspect-ratio:auto}
   #designs .dc .dt{padding:6px 8px;font-size:13px;line-height:1.3}
   #designs .dc .dn{font-weight:700}
   #designs .dc .dm{color:var(--mute);font-size:12px}
@@ -25,11 +28,13 @@ window.initDesigns = async function (root) {
   try { L = await (await fetch("designs.json")).json(); } catch (e) { root.querySelector("#dgroups").textContent = "designs.json did not load"; return; }
   let VOTES = {}, DB = null;
   const vkey = id => id.replace(/[^A-Za-z0-9_-]/g, "_").slice(0, 120);
-  const GROUPS = [["block", "Blocks", "one block, fire left, ice right"], ["spike", "Spikes", "ice standing, fire hanging"], ["saw", "Saws", ""]];
+  const GROUPS = [["block", "Blocks", "one block, fire left, ice right"], ["structure", "Structures", "one design on every join, slopes too · scroll sideways"],
+    ["spike", "Spikes", "ice standing, fire hanging"], ["saw", "Saws", ""], ["indicator", "Indicators", "jump marks, apart from blocks"]];
   const open = {}; try { Object.assign(open, JSON.parse(localStorage.getItem("designs-open") || "{}")); } catch (e) {}
   function card(d) {
     const v = VOTES[d.id] || {};
-    return `<div class="dc k-${d.kind}" data-id="${esc(d.id)}"><img loading="lazy" decoding="async" src="${esc(d.card)}" alt="${esc(d.name)}">
+    const img = `<img loading="lazy" decoding="async" src="${esc(d.card)}" alt="${esc(d.name)}">`;
+    return `<div class="dc k-${d.kind}" data-id="${esc(d.id)}">${d.kind === "structure" ? `<div class="wide">${img}</div>` : img}
       <div class="dt"><span class="dn">${d.n ? d.n + " " : ""}${esc(d.name)}</span>${d.note ? `<div class="dm">${esc(d.note)}</div>` : ""}</div>
       <div class="dv"><button class="up${v.vote > 0 ? " on" : ""}" title="I like it">👍</button><button class="down${v.vote < 0 ? " on" : ""}" title="not so much">👎</button>
       <button class="com" title="a comment">💬${v.comment ? "•" : ""}</button><span class="ds">${v.at ? "saved" : ""}</span>

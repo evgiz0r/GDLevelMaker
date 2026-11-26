@@ -350,3 +350,8 @@ Found on the way (natural plan, lib/natural.js, not fixed here): with spikes 7 b
 one press through 3 jumps (ticks 160-579) and naturalPlan keeps the hold, so empty jumps get indicators (marks at blocks 8 and
 17 for spikes at 14 and 21). The hold-to-taps step finds no split that finishes. Repro: the 7-block version of
 specs/lab_indicators.json (`per = 4, gap = 7` in tools/indstyles.js spec); the gallery uses 9 blocks.
+
+Catalogue (2026-11-26, Evgeni: "i cant see in the catalogue those bigger structures"): the Designs tab now has
+Structures (one wide card per design / 3D effect: the whole connector sheet with slopes, stitched from gallery frames,
+scrolls sideways) and Indicators (one card per style), voted like the rest. `node tools/designs.js cards --more`
+(tools/design_strips.py), then `designs.js page` and republish the catalogue with the new files.
