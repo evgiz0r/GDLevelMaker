@@ -520,3 +520,7 @@ after a build (not hooked into make.js yet).
   library pieces show there after `node tools/structures.js build lego-...` for each.
 - Official pieces are shown only on the PC page (local/lego/page/index.html): RobTop's layouts stay local. The phone
   page has ours, the sketches and the official numbers.
+
+## Clicks per second
+
+Every brick carries `cps` (presses / its seconds) and `cpsPeak` (1 / the shortest gap between two presses), from tools/lego.js; the catalogue shows both and sorts by them (most / fewest clicks per second), next to difficulty (the timing windows). Measured 2026-11-26 over 3398 bricks: median 1.68 cps; official by mode (median / 90th pct) cube 1.89 / 2.54, ship 1.76 / 2.56, ball 2.06 / 3.09, UFO 2.38 / 3.57, robot 1.76 / 2.74, spider 2.36 / 3.03, wave 3.03 / 7.69 (wave counts holds and releases); ours median 1.12 vs official 1.91 (calmer).
