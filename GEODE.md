@@ -124,9 +124,73 @@ After a stopped run, check `play.json` is not left waiting in the mod's folder (
   the user's own GD is running.
 - **What the logs hold (2026-11-25):** `m_yVelocity` is per step; `m_position` moves once per 60 fps frame; GameObject's
   `m_positionX/Y` stay 0 on the player (the px, py fields are useless; a true per-step position is still open: try
-  PlayerObject's own fields or read it inside PlayerObject::update). Findings: PHYSICS.md "The probe mod".
-- Open: levels not in the save (import a .gmd); official levels in practice mode only.
+  PlayerObject's own fields or read it inside PlayerObject::update). **Settled in v0.5.0: the node position (`getPosition()`) is per step.** Findings: PHYSICS.md "The probe mod".
+- Open: levels not in the save (import a .gmd). Main levels: done in v0.5.0 (`official:N`, practice mode only; "Overnight batch 2026-11-26" below).
 
+
+## Overnight batch 2026-11-26: every main level and our GDLM levels in the real game (mod v0.5.1)
+
+The user said yes (2026-11-26, before going to sleep) to GD launching while they slept. 21 main levels (all with a saved
+route; Dash has none) and the GDLM levels in the save with a saved route, one GD launch each, muted, quit without saving
+(CCGameManager.dat / CCLocalLevels.dat kept their 02:42 time all night).
+- **Mod v0.5.0 / v0.5.1** (`mods/gdlm-probe`): a play.json entry may be `{"official": N}`: the mod opens main level N
+  (GameLevelManager::getMainLevel) and plays it in **practice mode only** (togglePracticeMode before the level's first
+  reset, which GD runs inside PlayLayer::init: v0.5.0 toggled after it, so attempt 1 ran unplayed in normal mode and the
+  played attempt 2 could respawn at an auto checkpoint -- Back On Track from x 570. v0.5.1 fixed it; an attempt that
+  starts from a checkpoint or not in practice is never played). Playback mutes FMOD's music and effects (engine only).
+  **The true per-step position:** `p[8], p[9]` are now the player node's `getPosition()`, which moves every 240 Hz step:
+  at log step n it equals our sim's state after step n-1 (x to 0.01). The checkCollisions hook (`cc`) never fired.
+- `node tools/probe.js play --mains --launch` (or `official:N ...`), then `node tools/probe.js table [--stats]`
+  (one row per playback since the batch began; `--stats` adds them to local/real_stats.jsonl with `source: "probe"`).
+  Measured: 12-54 s per main level from launch to result (they all die early), ~12 min for the 21.
+- **Result: every main level dies in the game, where our sim clears its route.** In 17 of 21 the first parting is a
+  +1.0 x step at a landing: GD 2.2's jump snap (PHYSICS.md "The probe mod"), which our sim lacks. With the snap added
+  (prototype, `GDLM_SNAP=1`, branch `probe-jump-snap`, not on main) our sim's run of the same route dies within 2-11
+  units of the game's death on 8 levels (Dry Out, Base After Base, Can't Let Go, Jumper, Cycles, Theory of Everything,
+  Clubstep, Hexagon Force), x stays exact much longer (Stereo Madness 17.5 s instead of 5.2 s; Polargeist, Time Machine,
+  xStep, ToE, Blast Processing, Deadlocked, Fingerdash: no x gap at all before the game's death). So the saved main
+  routes are sim-only until the snap is in physics and they are re-solved. The other early partings (y first: Geometrical
+  Dominator at 0.8 s, Deadlocked 3.5 s, Electrodynamix 4.7 s, Back On Track / Polargeist / Time Machine 3.5-3.7 units) are
+  the next calibration targets, found with `probe.js result <log>`.
+
+| level (practice) | real game | sim today | first parting today | sim with the snap (GDLM_SNAP=1) | first parting with it |
+|---|---|---|---|---|---|
+| Stereo Madness | died x 5900 (18.9 s) | clears | x at x 1618 (5.2 s, dx 1.0); y at x 1797 (5.8 s, dy -0.5) | dies x 16860 | x at x 5456 (17.5 s, dx -0.8); y at x 5896 (18.9 s, dy -14.6) |
+| Back On Track | died x 15531 (49.8 s) | clears | x at x 1176 (3.8 s, dx 1.0); y at x 1428 (4.6 s, dy 3.6) | dies x 11208 | x at x 8656 (27.7 s, dx -0.7); y at x 4999 (16.0 s, dy 3.5) |
+| Polargeist | died x 8332 (26.7 s) | clears | x at x 1705 (5.5 s, dx 1.0); y at x 2748 (8.8 s, dy 3.6) | dies x 17837 | no x gap > 0.5; y at x 7618 (24.4 s, dy -0.5) |
+| Dry Out | died x 9693 (31.1 s) | clears | x at x 1088 (3.5 s, dx 1.0); y at x 1280 (4.1 s, dy -0.5) | dies x 9696 | x at x 3293 (10.6 s, dx -0.9); y at x 3591 (11.5 s, dy 0.5) |
+| Base After Base | died x 7657 (24.6 s) | clears | x at x 2410 (7.7 s, dx 1.0); y at x 2458 (7.9 s, dy -0.5) | dies x 7662 | x at x 1820 (5.8 s, dx -1.0); y at x 2278 (7.3 s, dy 0.5) |
+| Cant Let Go | died x 8328 (26.7 s) | clears | x at x 641 (2.1 s, dx 1.0); y at x 800 (2.6 s, dy -0.5) | dies x 8333 | x at x 4368 (14.0 s, dx -0.9); y at x 4228 (13.6 s, dy -0.5) |
+| Jumper | died x 5419 (17.4 s) | clears | x at x 734 (2.4 s, dx 1.0); y at x 897 (2.9 s, dy -0.5) | dies x 5425 | x at x 3540 (11.3 s, dx 1.1); y at x 3837 (12.3 s, dy 0.5) |
+| Time Machine | died x 4525 (14.5 s) | clears | x at x 4311 (13.8 s, dx 1.1); y at x 3408 (10.9 s, dy 3.7) | dies x 10246 | no x gap > 0.5; y at x 3408 (10.9 s, dy 3.7) |
+| Cycles | died x 13735 (44.1 s) | clears | x at x 1346 (4.3 s, dx 1.0); y at x 1242 (4.0 s, dy -0.5) | dies x 13738 | x at x 1346 (4.3 s, dx 1.0); y at x 1242 (4.0 s, dy -0.5) |
+| xStep | died x 4709 (15.1 s) | clears | x at x 1336 (4.3 s, dx -0.7); y at x 1436 (4.6 s, dy 0.5) | dies x 5667 | no x gap > 0.5; y at x 2066 (6.6 s, dy 2.5) |
+| Clutterfunk | died x 11132 (35.7 s) | clears | x at x 1497 (4.8 s, dx 1.0); y at x 2120 (6.8 s, dy 0.5) | dies x 12082 | x at x 1742 (5.6 s, dx 1.0); y at x 2128 (6.8 s, dy 0.5) |
+| Theory of Everything | died x 10134 (32.5 s) | clears | x at x 9193 (29.5 s, dx 1.1); y at x 4348 (14.0 s, dy -0.5) | dies x 10137 | no x gap > 0.5; y at x 4348 (14.0 s, dy -0.5) |
+| Electroman Adventures | died x 6983 (22.4 s) | clears | x at x 796 (2.6 s, dx 1.0); y at x 927 (3.0 s, dy -0.5) | dies x 3494 | x at x 2751 (8.8 s, dx -1.0); y at x 2533 (8.1 s, dy 3.5) |
+| Clubstep | died x 3991 (12.8 s) | clears | x at x 1668 (5.4 s, dx 1.0); y at x 2938 (9.4 s, dy -0.5) | dies x 3993 | x at x 1358 (4.4 s, dx -1.0); y at x 2196 (7.0 s, dy -0.5) |
+| Electrodynamix | died x 5064 (14.5 s) | clears | x at x 2342 (7.5 s, dx 0.6); y at x 1472 (4.7 s, dy -3.8) | dies x 12064 | x at x 2342 (7.5 s, dx 0.6); y at x 1472 (4.7 s, dy -3.8) |
+| Hexagon Force | died x 4912 (14.9 s) | clears | x at x 1061 (3.4 s, dx 1.0); y at x 2307 (7.4 s, dy 0.5) | dies x 4923 | x at x 3548 (11.4 s, dx 0.7); y at x 3743 (11.9 s, dy 0.5) |
+| Blast Processing | died x 4824 (15.5 s) | clears | x at x 1771 (5.7 s, dx 1.0); y at x 2528 (8.1 s, dy 0.5) | dies x 5269 | no x gap > 0.5; no y gap > 0.5 |
+| Theory of Everything 2 | died x 3713 (11.7 s) | clears | x at x 3344 (10.7 s, dx 0.7); y at x 3349 (10.8 s, dy 0.9) | dies x 10288 | x at x 3344 (10.7 s, dx 0.7); y at x 3349 (10.8 s, dy 0.9) |
+| Geometrical Dominator | died x 2141 (6.9 s) | clears | x at x 1233 (4.0 s, dx 1.0); y at x 257 (0.8 s, dy -1.0) | dies x 12646 | x at x 1233 (4.0 s, dx 1.0); y at x 257 (0.8 s, dy -1.0) |
+| Deadlocked | died x 2451 (7.9 s) | clears | no x gap > 0.5; y at x 1096 (3.5 s, dy -2.0) | dies x 12508 | no x gap > 0.5; y at x 1096 (3.5 s, dy -2.0) |
+| Fingerdash | died x 2994 (9.6 s) | clears | x at x 1522 (4.9 s, dx 1.0); y at x 2299 (7.4 s, dy -0.5) | dies x 1629 | no x gap > 0.5; no y gap > 0.5 |
+
+Our GDLM levels in the save with a saved route (normal mode; the save's copies, which may be older than levels/ -- Hellgate is v1 there):
+
+| level | real game | sim today | first parting today | sim with the snap | first parting with it |
+|---|---|---|---|---|---|
+| GDLM 72 FROSTBITE | died x 23247 (70.6 s) | clears | x at x 11148 (35.8 s, dx -0.5); y at x 8552 (27.4 s, dy 0.5) | dies x 16976 | x at x 1734 (5.6 s, dx -1.0); y at x 1859 (6.0 s, dy 0.5) |
+| GDLM 44 hellgate | died x 6638 (21.3 s) | clears | x at x 402 (1.3 s, dx 1.0); y at x 1074 (3.5 s, dy -0.5) | dies x 6640 | no x gap > 0.5; y at x 1848 (5.9 s, dy -5.8) |
+| GDLM 68 camera lab | died x 1371 (4.4 s) | clears | no x gap > 0.5; y at x 893 (2.9 s, dy 0.5) | dies x 19376 | x at x 995 (3.2 s, dx -1.0); y at x 893 (2.9 s, dy 0.5) |
+| GDLM 64 golden hour v5 | died x 4104 (13.2 s) | clears | x at x 2293 (7.4 s, dx 1.0); y at x 3057 (9.8 s, dy -0.5) | dies x 5338 | x at x 2426 (7.8 s, dx -1.0); y at x 3051 (9.8 s, dy 0.6) |
+| GDLM 52 necromancy | died x 10765 (34.6 s) | clears | no x gap > 0.5; y at x 1036 (3.3 s, dy -1.0) | dies x 15897 | x at x 6120 (19.6 s, dx -0.7); y at x 1036 (3.3 s, dy -1.0) |
+| GDLM 62 low end lullaby | cleared | clears | x at x 11148 (35.8 s, dx -0.5); y at x 13428 (43.1 s, dy 0.5) | clears | x at x 11148 (35.8 s, dx -0.5); y at x 13428 (43.1 s, dy 0.5) |
+
+- GDLM 62 clears in the game again (3 of 3 runs now). FROSTBITE shares its opening, so both part at the same ship step (x 11148, -0.5 unit): a ship-x mismatch, not the snap; FROSTBITE then dies at x 23247 on a spike, sim clears.
+- The save's Hellgate dies at x 6638 as on 2026-11-25; with the snap our sim dies at 6640: the snap explains that death. Camera lab dies at 1371 (4.4 s) with no x gap: a y parting at 893 (+0.5), open. Necromancy (x 10765) parts in y at 3.3 s (-1.0), open.
+- GDLM colour test has no saved route (skipped).
 
 ## Practice -> full run (v0.4.0, 2026-11-25; USE_CASES 11)
 

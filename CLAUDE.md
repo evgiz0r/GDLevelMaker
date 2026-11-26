@@ -140,7 +140,7 @@ things take" below). The tools below still work one by one.
    and reports. The user's game is GD **2.2091** on Steam (Windows; Steam updated it 2026-10-21 -- older notes say 2.2081) with Geode 6.0.0 (2026-11-25); our probe mod `mods/gdlm-probe` is built with `tools\geode_build.cmd` and installed, and runs (GEODE.md "Building on this PC": Smart App Control blocks the Geode CLI, so `tools/geode_pack.js` packs).
    **Or Claude plays it in the real game (2026-11-25):** `node tools/probe.js play save:<GDLM name> --launch` (GD closed; the
    level must be in the save): the probe mod (GEODE.md "Playback") opens it, presses the saved route on exact ticks, logs every
-   tick and quits without saving; `node tools/probe.js result` says cleared / died where, and game vs sim. GDLM 62 cleared first try.
+   tick and quits without saving; `node tools/probe.js result` says cleared / died where, and game vs sim. GDLM 62 cleared first try. Main levels: `play official:N` / `--mains` (practice mode only, mod v0.5.1); `probe.js table` = one row per run (GEODE.md "Overnight batch 2026-11-26": all 21 die in the game, mostly from GD 2.2's jump snap the sim lacks).
    Smart App Control is OFF on the PC since 2026-11-25 16:08 UTC (the user turned it off: it had blocked unsigned mod builds by reputation), so every build loads.
    The old keyboard bot: `node tools/bot.js levels/<name>.gdlvl` presses Space at the solver's
    click times in the real game (no mod; it syncs to each attempt's start on screen and measures
