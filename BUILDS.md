@@ -212,3 +212,16 @@ The stage times are also in local/timings.jsonl.
 - **Next:** ball section is the weak spot (pointless orb, 2 gaps of ~1.9 s, unseen roof); climbs mostly lost (slopes need
   room the 1-3 block gaps rarely give); mode share by tier and an upside-down stretch; the new piece families from the
   "Generate our own structures" thread.
+
+## GDLM 44 hellgate v8 / v9, 2026-11-26 (Evgeni on v7: "we still start in the middle of the music; the structure are super unbalanced ... still too much cube. almost no reverse. no proper transtions ... some places just nothing for few seconds"; "the judge seems to be too nice"; "sections have to be cut by the transitions of the level")
+
+- **v8:** the song from its first beat; pieces balanced (brickpick `window` 120 ms+, `cpsBand` 1.2-3, `winSpread`); an
+  upside-down section built whole (patterns.js `ud:<id>`, a ceiling, one portal in, one out; flat pieces only -- a climbing
+  piece died flipped); rests (`rest` beats); portals taken on the move (a spike before a gate out of the cube, a 2-row drop
+  out of a flight); single spikes at a fixed lead, not "jN" (it slid a spike onto the next piece); no new hazards from 2
+  blocks before a portal to 8 after (hazards.js `avoid`). Four builds died first (1-7 min each); the good one 7 min.
+- **Judge:** checks for each of his notes (judge.js: uneven piece, too much cube, no reverse, walked portal, abrupt switch,
+  no rests; report.js balance / modes / transitions / rests, the total pulled down by any weak axis): v7 6.6 -> 2.7, v8 5.5.
+  v8's remaining tight spots were all at portals.
+- **v9:** tools/songplan.js -- the sections cut at the song's transitions (tools/sections.js) and the mode by type; 75 s.
+  Thin: the drop and ball sections (few ship / ball pieces in the library; the "Generate our own structures" thread).
