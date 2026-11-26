@@ -9,7 +9,7 @@
 //   vector  approach B: the same picture straight as clean vector shapes (bands, disks, ridges of squares + right
 //           triangles);
 //   mix     A's painted sky (sky, sun glow, clouds fitted) under B's vector ranges and landmark (round 2, Evgeni's pick);
-//   --blocks rock|ice|off: the play blocks as a painted material (tools/blockart.js; default rock for mix)
+//   --blocks rock|ice|layered|layered-ice|off: (layered = DECOART.md "Block design") the play blocks as a painted material (tools/blockart.js; default rock for mix)
 //   image   approach C (with --image): any picture -- the user's drawing, a generated image -- fitted as the back.
 // Both picture variants replace the stretch's back layers (B5 / B4 / B3 deco) and keep the play's own dressing. The back
 // spans y -30..270 (what a cube part shows: ~8 blocks over the ground) and is locked to the player's x at 0.9 (it drifts slowly: far away), the near layer at 0.75 (parallax).
@@ -24,6 +24,7 @@ const file = args[0];
 if (!file || file.startsWith("--")) { console.log(fs.readFileSync(__filename, "utf8").split("\n").slice(0, 16).join("\n")); process.exit(1); }
 const B0 = +opt("--from", 0), B1 = +opt("--to", 88), X1 = B1 * 30, SPEED = 311.58;
 const sceneName = opt("--scene", "hellgate"), nShapes = +opt("--shapes", 500), seed = +opt("--seed", 3);
+const TAG = opt("--tag", "");
 const OUT = opt("--out", path.join(__dirname, "..", "local", "decoart"));
 const variants = opt("--variants", "kit,fit,vector" + (opt("--image") ? ",image" : "")).split(",");
 fs.mkdirSync(OUT, { recursive: true });
@@ -56,7 +57,7 @@ const BACK = new Set(["sky", "sun", "sundisk", "clouds", "far"]), SKY = new Set(
 const pick = (sc, names) => Object.assign({}, sc, { layers: sc.layers.filter(l => names(l.name)) });
 
 for (const v of variants) {
-  const R = cut(), L = R.level, base = path.basename(file, ".gdlvl"), name = `${base}_${v}`;
+  const R = cut(), L = R.level, base = path.basename(file, ".gdlvl"), name = `${base}_${v}${TAG}`;
   let note = "";
   if (v !== "kit") {
     const removed = stripBack(L);
@@ -89,12 +90,13 @@ for (const v of variants) {
     note += `removed ${removed} back-layer deco, back ${gb.objects.length} objects (${Object.keys(gb.channels).length} channels), near ${gn.objects.length}`;
     // the play blocks as a painted material (tools/blockart.js): --blocks rock|ice|off (default rock for the mix)
     const bl = opt("--blocks", v === "mix" ? "rock" : "off");
-    if (bl !== "off") { const BA = require("./blockart.js"), pal = bl === "ice" ? BA.PAL.ice : BA.PAL.lava;
-      const r = BA.rock(L, B0 * 30, X1, { seed, pal, secs, veinGroup: 532 });   // 532: the fire kit's seam group, pulsed on the beat
+    if (bl !== "off") { const BA = require("./blockart.js"), lay = bl.startsWith("layered"), ice = bl.endsWith("ice");
+      const r = lay ? BA.layered(L, B0 * 30, X1, { seed, pal: ice ? BA.LPAL.ice : BA.LPAL.lava, secs })
+        : BA.rock(L, B0 * 30, X1, { seed, pal: ice ? BA.PAL.ice : BA.PAL.lava, secs, veinGroup: 532 });   // 532: the fire kit's seam group, pulsed on the beat
       L.objects.push(...r.objects); L.header = K.channels(L.header, r.channels);
       note += `; blocks ${bl}: ${r.objects.length} objects (removed ${r.removed} flat ones)`; }
   }
-  io.GD.setField(R.rec, "k2", "s", `${R.name} art ${v}`);
+  io.GD.setField(R.rec, "k2", "s", `${R.name} art ${v}${TAG.replace(/_/g, " ")}`);
   const out = path.join(OUT, name + ".gdlvl");
   io.writeGdlvl(out, R.rec, L);
   console.log(`${v}: ${out} (${L.objects.length} objects) ${note}`);

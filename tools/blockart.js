@@ -86,4 +86,79 @@ function rock(level, x0, x1, o = {}) {
   return { objects: out, channels, removed, CH };
 }
 
-module.exports = { rock, PAL };
+
+// --- layered: the block built the way GD creators teach it (DECOART.md "Block design", Evgeni's six steps) ---
+// base   2-3 colours of one palette in patches (a hue-shifted variant, a darker one), the top row lighter
+// texture a low-opacity brick pattern + a few big low-contrast blended squares (break up flat space)
+// line   a bright outline on every open edge, and a black INLINE a fixed distance inside it, corners closed
+// light  a low-opacity blending glow under the top edge, a dark glow over the bottom edge; the black inline is in
+//        front of the glow (the tutorials: lines behind glow are wasted)
+// detail small bright bits (high contrast = small) in some inner cells
+// 3D     one direction for every edge (up-right, d units), darker than the base, behind the block (B1), with the
+//        corner triangles that close the extrusion and a dim rim on its outer top edge
+const LPAL = {
+  lava: { a: [74, 20, 24], b: [70, 18, 52], c: [38, 9, 13], line: [255, 140, 50], inline: [0, 0, 0], glowTop: [255, 100, 30],
+    glowBot: [0, 0, 0], tex: [0, 0, 0], big: [255, 90, 40], detail: [255, 215, 140], d3: [26, 5, 9], d3rim: [140, 45, 25] },
+  ice: { a: [40, 80, 130], b: [60, 60, 140], c: [18, 34, 70], line: [180, 240, 255], inline: [0, 0, 10], glowTop: [120, 210, 255],
+    glowBot: [0, 0, 10], tex: [0, 0, 10], big: [120, 200, 255], detail: [235, 250, 255], d3: [10, 18, 40], d3rim: [80, 140, 200] },
+};
+function layered(level, x0, x1, o = {}) {
+  const R = K.rng(o.seed || 5), pal = o.pal || LPAL.lava, ch0 = o.ch0 || 900, out = [], d = o.depth3d ?? 8;
+  const names = ["a", "b", "c", "line", "inline", "glowTop", "glowBot", "tex", "big", "detail", "d3", "d3rim"];
+  const CH = {}; names.forEach((n, i) => CH[n] = ch0 + i);
+  const op = { glowTop: 0.32, glowBot: 0.45, tex: 0.2, big: 0.1 }, blend = { glowTop: 1, big: 1, detail: 1 };
+  const channels = {}; for (const n of names) channels[CH[n]] = Object.assign({ rgb: pal[n] }, op[n] != null ? { opacity: op[n] } : {}, blend[n] ? { blend: true } : {});
+  const T1 = "5", old = new Set([211, 1753, 1293]);
+  const before = level.objects.length;
+  level.objects = level.objects.filter(b => !(old.has(b.id) && b.x >= x0 - 15 && b.x < x1 + 15 && b.props && String(b.props[24]) === T1));
+  const removed = before - level.objects.length;
+  const cells = new Map();
+  for (const b of level.objects) if (isBlock(b)) cells.set(Math.round(b.x / 30 - 0.5) + "," + Math.round(b.y / 30 - 0.5), b);
+  const has = (c, r) => cells.has(c + "," + r);
+  const mine = [...cells.entries()].filter(([, b]) => b.x >= x0 && b.x < x1);
+  // colour patches: a coarse value noise over 3x2-cell blocks picks a / b / c
+  const pn = new Map(), patch = (c, r) => { const k = Math.floor(c / 3) + "," + Math.floor(r / 2); if (!pn.has(k)) pn.set(k, R()); return pn.get(k); };
+  const strip = (x, y, w, h, ch, zo, z = "T1", extra = {}) => out.push(K.obj(211, x, y, Object.assign({ ch, z, zo, sx: w / 30, sy: h / 30 }, extra)));
+  const LW = 2.4, IW = 1.8, IN = 6;   // outline width, inline width, inline distance from the edge
+  for (const [key, b] of mine) {
+    const [c, r] = key.split(",").map(Number), X = c * 30, Y = r * 30, cx = X + 15, cy = Y + 15;
+    const open = { up: !has(c, r + 1), down: !has(c, r - 1) && r > 0, left: !has(c - 1, r), right: !has(c + 1, r) };
+    // base
+    const p = patch(c, r), base = p < 0.55 ? "a" : p < 0.82 ? "b" : "c", v = (open.up ? 1.25 : 1) * (0.92 + R() * 0.16);
+    out.push(K.obj(211, cx, cy, { ch: CH[base], z: "T1", zo: 4, hsv: `0a1a${v.toFixed(2)}a0a0` }));
+    // texture: bricks (two rows per cell, the joints staggered)
+    strip(cx, Y + 15, 30, 1.2, CH.tex, 5);
+    const j = (r % 2) ? 7 : 22; strip(X + j, Y + 22.5, 1.2, 15, CH.tex, 5); strip(X + (j + 15) % 30, Y + 7.5, 1.2, 15, CH.tex, 5);
+    if (R() < 0.12) out.push(K.obj(211, cx + (R() - 0.5) * 10, cy + (R() - 0.5) * 10, { ch: CH.big, z: "T1", zo: 5, s: 0.8 + R() * 0.6, rot: 45 }));
+    // light: glow inside the top edge, dark inside the bottom edge
+    if (open.up) { strip(cx, Y + 30 - 6, 30, 12, CH.glowTop, 6); strip(cx, Y + 30 - 3, 30, 6, CH.glowTop, 6); }
+    if (open.down) strip(cx, Y + 6, 30, 12, CH.glowBot, 6);
+    // outline (bright) on open edges
+    if (open.up) strip(cx, Y + 30 - LW / 2, 30, LW, CH.line, 8);
+    if (open.down) strip(cx, Y + LW / 2, 30, LW, CH.line, 8);
+    if (open.left) strip(X + LW / 2, cy, LW, 30, CH.line, 8);
+    if (open.right) strip(X + 30 - LW / 2, cy, LW, 30, CH.line, 8);
+    // inline (black, in front of the glow): runs along each open edge IN units inside, stops at the inline of a crossing edge
+    const xa = X + (open.left ? IN : 0), xb = X + 30 - (open.right ? IN : 0), ya = Y + (open.down ? IN : 0), yb = Y + 30 - (open.up ? IN : 0);
+    if (open.up) strip((xa + xb) / 2, Y + 30 - IN, xb - xa + IW, IW, CH.inline, 9);
+    if (open.down) strip((xa + xb) / 2, Y + IN, xb - xa + IW, IW, CH.inline, 9);
+    if (open.left) strip(X + IN, (ya + yb) / 2, IW, yb - ya + IW, CH.inline, 9);
+    if (open.right) strip(X + 30 - IN, (ya + yb) / 2, IW, yb - ya + IW, CH.inline, 9);
+    // details: small and bright, only in some inner cells
+    if (!open.up && !open.left && !open.right && R() < 0.14) {
+      const dx = cx + (R() - 0.5) * 12, dy = cy + (R() - 0.5) * 12;
+      if (R() < 0.5) out.push(K.obj(1764, dx, dy, { ch: CH.detail, z: "T1", zo: 10, s: 0.35 }));
+      else { strip(dx, dy, 6, 2, CH.detail, 10); strip(dx + 4, dy + 2, 2, 6, CH.detail, 10); }
+    }
+    // 3D: the cell moved by (d, d) behind the block, and the two corner triangles of the sweep
+    out.push(K.obj(211, cx + d, cy + d, { ch: CH.d3, z: "B1", zo: 1 }));
+    if (open.up && !has(c + 1, r + 1)) strip(cx + d, Y + 30 + d - 0.8, 30, 1.6, CH.d3rim, 2, "B1");
+    if (open.up && open.left) out.push(K.obj(693, X + d / 2, Y + 30 + d / 2, { ch: CH.d3, z: "B1", zo: 1, sx: d / 30, sy: d / 30 }));
+    if (open.right && (open.down || r === 0)) out.push(K.obj(693, X + 30 + d / 2, Y + d / 2, { ch: CH.d3, z: "B1", zo: 1, sx: d / 30, sy: d / 30, rot: 180 }));
+  }
+  if (o.secs) { for (const [k, b] of mine) { const [c, r] = k.split(",").map(Number); if (!has(c, r + 1) && R() < 0.3) out.push(K.obj(1764, b.x + (R() - 0.5) * 24, b.y + 22 + R() * 30, { ch: CH.detail, z: "B1", zo: 2, s: 0.2 + R() * 0.2, groups: [o.emberGroup || 1111] })); }
+    out.push(K.move(x0 + 20, o.emberGroup || 1111, 0, 120, o.secs, 0)); }
+  return { objects: out, channels, removed, CH };
+}
+
+module.exports = { rock, layered, PAL, LPAL };

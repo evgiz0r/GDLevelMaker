@@ -93,6 +93,15 @@ Evgeni sent six steps with 8 tutorial videos (their auto-caption transcripts: pr
    the 3D; outlines on the 3D too.
 Plus: decorate the spikes the same way (outline, inner line, glow), and particles rising from open tops.
 
+Round 4 (2026-11-26): `blockart.layered()` (`decoart.js ... --blocks layered [--tag _layered]`) builds the blocks by these
+steps: base in 3 colours by 3x2-cell patches (top row lighter), a brick texture at 20% opacity and a few big blended
+diamonds at 10%, a bright outline on every open edge with a black inline 6 units inside (in front of the glow), glow
+under top edges and a dark band over bottom edges, small bright bits in some inner cells, 3D up-right (8 units) behind
+the block with its corner triangles and a dim rim. ~1050 objects on blocks 0-88 (~12 per cell). Sheet: project files
+`decoart/round4_layered_blocks.png` (top: round 3 rock, bottom: layered). In the viewer: deco-art /
+gdlm_44_hellgate_mix_layered. Open: spikes dressed the same way, cut corners / pillars in front (structure), fewer
+objects (one 3D square per cell is wasteful inside a mass), the GD-art render.
+
 ## Lessons as rules (soft; for the generator)
 
 - **Paint the section's picture before placing deco**: one focal point (light / landmark) at a third of the screen in the
