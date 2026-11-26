@@ -550,6 +550,19 @@ function make(specFile, specObj) {
   } catch (e) { /* no base: solve whole */ }
   writeGdlvl(out, rec, level);
   let r = report(out, { base, seed: spec.seedPresses });   // spec.seedPresses: the pieces' presses (tools/seedsolve.js)
+  // spec.hazardsAlong: {tier, seed} -- guards and pits along the solved route (lib/hazards.js hazardsAlongPath, HAZARDS.md:
+  // rated levels frame the lane, ~45% of hazards 1-3 blocks off the path; a brick-built level's are nearly all threats). Each
+  // new piece is replayed against the route and dropped where it would kill, so the route still clears and no re-solve is needed.
+  if (spec.hazardsAlong && r.ok) try {
+    const HZ = require("../lib/hazards.js"), wH = GD.makeWorld(level.objects, header), pth = GD.run(wH, r.events).path;
+    const opt = spec.hazardsAlong === true ? {} : spec.hazardsAlong;
+    const res = HZ.hazardsAlongPath(pth, level.objects, { tier: opt.tier || "normal", seed: opt.seed || 1, verify: { header, events: r.events } });
+    const add = res.objects.map(o => ({ rot: 0, flipX: false, flipY: false, props: {}, ...o }));
+    const q = GD.run(GD.makeWorld(level.objects.concat(add), header), r.events), e = q.path[q.path.length - 1];
+    if (e.done && !e.dead) { level.objects.push(...add); writeGdlvl(out, rec, level);
+      console.log(`   hazards along the route: +${add.length} (${JSON.stringify(res.notes)})`); }
+    else console.log(`   hazards along the route: left out (the route dies at block ${(e.x / 30).toFixed(1)} with them)`);
+  } catch (err) { console.log("   hazards along the route: skipped (" + err.message + ")"); }
   if (spec.indicators && r.ok) {
     // jump indicators come from the solved run, so they go in after the first check (no hitbox:
     // the solution does not change); then the file is written again. Without the arrow's id yet,

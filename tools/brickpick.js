@@ -128,7 +128,7 @@ function pickSection(o) {
         if (ts.length && ts[0] - st.lastPress > (o.deadAir || 1.8)) x -= 2;
         if (st.lastTag && tag === st.lastTag) x -= tag === "single" ? (o.singleRun ?? 0.8) : 1;   // singles back to back: a spike train
         const used = new Set(st.used); if (id !== "single") used.add(id);
-        next.push({ col: pk.col + width, lastPress: ts.length ? ts[ts.length - 1] : st.lastPress, lastTag: tag, used, picks: st.picks.concat([pk]), s: st.s + x, cps: st.cps.concat([cps]) });
+        next.push({ col: Math.ceil(pk.col + width - 1e-6),   /* whole columns after a filler spike (its column is a hit time): the floor and the bricks share one grid (v7 died on a 0.3-column offset) */ lastPress: ts.length ? ts[ts.length - 1] : st.lastPress, lastTag: tag, used, picks: st.picks.concat([pk]), s: st.s + x, cps: st.cps.concat([cps]) });
         grew = true;
       };
       for (const b of lib) for (let g = g0; g <= g1; g++) {

@@ -464,3 +464,7 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 - [ ] Put the level in the viewer: `node tools/wip.js put <level> --session <name> --note "..."`.
 - [ ] Read the user's marks (`node tools/marks.js`), and after their playtest copy their words into
   `knowledge/critiques.md`. A new lesson goes into the right doc and onto this list.
+- [ ] **Not mostly cube, and some of it upside down** (Evgeni 2026-11-26 on Hellgate v6: "why is variety so biased to cube?
+  and almost no reverse if at all"): no mode over ~40% of a level's time, and at least one upside-down (gravity) stretch.
+  The cause was the library (52 cube pieces vs 2-12 per other mode at 1x), so the fix is more verified pieces per mode
+  plus a mode-share target in the picker; to come as a score.js check.
