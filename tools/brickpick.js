@@ -117,7 +117,7 @@ function pickSection(o) {
   // (knowledge/brick_tiers.json). In the chain, a piece's window far from the chain's mean costs (o.winSpread, default 1.5)
   const pcps = b => b.dx.length / (b.width / v);
   const lib = o.fillerOnly ? [] : bricks(o.mode || "cube", o.max || "Normal", o.speed).filter(b => b.dx.length && (!o.minDensity || 10 * b.dx.length / b.width >= o.minDensity)
-    && (!o.filter || o.filter(b)) && (!o.window || (b.win >= o.window[0] && b.win <= (o.window[1] || 1e9))) && (!o.cpsBand || (pcps(b) >= o.cpsBand[0] && pcps(b) <= o.cpsBand[1])));
+    && (!o.filter || o.filter(b)) && (!o.exclude || !o.exclude.test(b.id)) && (!o.window || (b.win >= o.window[0] && b.win <= (o.window[1] || 1e9))) && (!o.cpsBand || (pcps(b) >= o.cpsBand[0] && pcps(b) <= o.cpsBand[1])));
   const used0 = new Set(o.used || []), [g0, g1] = o.gap || [2, 4], end = tOfBeat(o.toBeat) * v, BEAM = o.beam || 60;
   const col0 = o.startCol != null ? Math.ceil(o.startCol) : Math.round(tOfBeat(o.fromBeat) * v);
   let beam = [{ col: col0, lastPress: col0 / v - 0.5, lastTag: null, used: used0, picks: [], s: 0, cps: [], wins: [] }], done = [];
