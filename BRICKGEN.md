@@ -38,6 +38,13 @@ Why the method made it (our reading):
   and dedupe only compared bricks of the same kind. The family numbers (p10-p90) cannot tell a varied brick from a dull
   one.
 
+Evgeni, 2026-11-26 20:48: "the whole point of different structures is different structure... if all the game play of all
+20 structures is on 2 axes. then its almost the same. the patterns around the level have to be more irregular, not just
+up down. that applies to all modes". So a set of bricks is judged by its spread over MANY dimensions at once: move types
+and their order, the silhouette (floor and roof outline), the hazard layout around the path, mechanics (orbs, pads,
+portals, gravity), the rhythm (gaps between presses), and the path's vertical shape (not only up-down zigzags). A set
+whose bricks differ only in size or height is rejected.
+
 The next method: see "Rethink" in the thread and below once agreed.
 
 ## How a brick is made (first batch, retired)
