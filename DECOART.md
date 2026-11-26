@@ -220,3 +220,37 @@ blending, so paintings (and the kits' triangles) show on the phone page and in c
 - Fit weights: more detail at the focal point, less behind the play band (a readability weight).
 - C with real pictures: Evgeni's own drawings or generated images as targets.
 - Into the pipeline: theme.js / compose call decoart per section (spec "picture": {scene, approach}).
+
+## Round 6 (2026-11-26): a small icy part, almost no gameplay -- where it stands against rated levels
+
+Evgeni: "lets make a small part with icy deco, really like almost no gameplay. but decent amount of spikes bricks and deco,
+in some coherent not too random way. and see where we compare". `tools/icypart.js` builds it as one structure repeated in
+five bays of 32 columns (a one-block ice walkway, a pit with spikes ending each bay, a hanging ice mass with a row of
+icicle spikes that arches up over each jump; bay 3 a double spike, bay 4 a wider pit with a lip spike), then the ice kit
+(variant caves), `decoart.js --scene frozen --variants mix --blocks layered-ice` and `decofx.js --theme ice`. 17 s of play
+and 5-7 taps, then the outro and the signature. Three versions (specs/74_icy_part*.json, wip deco-art/gdlm_74_icy_part*_fx):
+v1 icicles high (row 6), v2 a low tunnel (row 3) everywhere, v3 the two alternating bay by bay.
+
+| measure | v1 high | v2 low | v3 mixed | rated (featured 2.2 median / range) |
+|---|---|---|---|---|
+| hazards: threat / guard / fill % | 9 / 6 / 86 | 11 / 89 / 0 | 9 / 35 / 56 | 14-23 / 39-50 / 31-43 |
+| guard above / below the lane % | 3 / 3 | 86 / 3 | 32 / 3 | 10-23 / 22-30 |
+| hazards near the player per s | 1.2 | | 3.4 | 6-11 |
+| hazards per obstacle | 1.2 | 1.3 | 1.2 | 2.2-3.3 |
+| deco rhythm cv (even = low) | 0.25 | 0.27 | 0.30 | 0.94 |
+| quiet / peak segments | 0.05 / 0 | 0.05 / 0 | 0.05 / 0 | 0.12 / 0.16 |
+| focal (densest 4 blocks of a screen) | 0.23 | 0.23 | 0.23 | 0.35 |
+| big pieces (9+ blocks^2) per screen | 0 | 0 | 0 | 11 |
+| front (T2+) share | 1.8% | 1.4% | 1.6% | 22% |
+| objects per block | 37 | | 41 | 32-46 |
+
+What it says: amount and colour are at the rated levels now, and spikes in one repeated structure read as designed. Still
+off: (1) the hazards: rated levels keep spikes close to the lane on both sides (guard below 22-30%: spikes beside and
+under the path, a hazard floor) and 2-3 per obstacle; ours sit far (v1), or all overhead (v2); v3 is near on guard but
+has no hazard floor and too few near the player. (2) the deco is spread evenly: no quiet stretches, no big moments, no
+focal spot per screen (cv 0.3 vs 0.94). (3) almost nothing in front of the player, and no big set pieces by decocomp's
+measure (our diamonds are 4 blocks^2 after scale). Next: a hazard floor (spike rows in the pits under the walkway, low
+spikes beside its edges), one big set piece per screen with a quiet stretch after it, and a T2/T3 front frame.
+
+Gotcha: `shoot.js` on a level with no saved route draws a ghost camera, far off the play (the first v1 frames showed the
+lane at the top of the picture); `wip.js put` first (it solves and saves the route), then shoot.
