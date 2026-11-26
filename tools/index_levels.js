@@ -4,11 +4,8 @@ const fs = require("fs");
 const path = require("path");
 const { readGdlvl, GD } = require("./io.js");
 
-// official songs by level number (files in the game's Resources folder)
-const OFFICIAL_SONGS = ["StereoMadness", "BackOnTrack", "Polargeist", "DryOut", "BaseAfterBase", "CantLetGo",
-  "Jumper", "TimeMachine", "Cycles", "xStep", "Clutterfunk", "TheoryOfEverything", "Electroman", "Clubstep",
-  "Electrodynamix", "HexagonForce", "BlastProcessing", "TheoryOfEverything2", "GeometricalDominator",
-  "Deadlocked", "Fingerdash", "Dash"];
+// official songs by level number (files in the game's Resources folder): one list, in lib/gd.js
+const OFFICIAL_SONGS = GD.OFFICIAL_SONGS;
 // kA13 in the level header = where in the song the level starts, in seconds
 // The saved route for the viewer: today's (tools/solutions.js), else an older one (solved on earlier
 // physics) that still replays to the end on today's physics -- one run, cheap. get() alone drops every

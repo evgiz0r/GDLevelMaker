@@ -2654,7 +2654,15 @@ async function commOpen(l) {
     const rec = GD.parseRecord(await gunzipB64(await (await fetch("/" + l.file, { cache: "no-store" })).text()));
     l.level = await gunzipB64(GD.getField(rec, "k4"));
     const header = l.level.split(";")[0], off = +((/(?:^|,)kA13,([-0-9.]+)/.exec(header) || [])[1] || 0), custom = GD.getField(rec, "k45");
-    l.song = custom && custom !== "0" ? { url: "/song/custom/" + custom + ".mp3", id: +custom, offset: off } : null;
+    // its song: a custom one (the PC fetches it the way GD does when it has no copy: serve.js POST /song/fetch), else
+    // the official song k8 (Evgeni, 2026-11-26: "cant hear song" -- a level on Stereo Madness's song had none)
+    if (custom && custom !== "0") {
+      try { await fetch("/song/fetch?id=" + encodeURIComponent(custom), { method: "POST" }); } catch (e) {}
+      l.song = { url: "/song/custom/" + custom + ".mp3", id: +custom, offset: off };
+    } else {
+      const name = GD.OFFICIAL_SONGS[+(GD.getField(rec, "k8") || 0)];
+      l.song = name ? { url: "/song/official/" + name + ".mp3", official: +(GD.getField(rec, "k8") || 0), offset: off } : null;
+    }
     if (!l.name || /^\d+$/.test(l.name)) l.name = GD.getField(rec, "k2") || l.name;
     return true;
   } catch (e) { notice("Could not open " + esc(l.name) + ": " + esc(e.message)); return false; }
