@@ -144,6 +144,11 @@ function judge(file, opt = {}) {
     if ((before != null && (k - before) / TPS < 0.15) || (after != null && (after - k) / TPS < 0.25))
       at(k, "abrupt switch", `${p[k - 1].mode} -> ${p[k].mode}: ${before != null ? Math.round((k - before) / TPS * 1000) + " ms after the last press" : ""}${after != null ? ", " + Math.round((after - k) / TPS * 1000) + " ms to the next" : ""} (official: ~0.37 s quiet before, ~0.48 s after)`); }
   let walked = 0; for (const k of changes) { const q = p[Math.max(0, k - 2)]; if (q.grounded && !held[k - 1] && !held[Math.max(0, k - 30)]) { walked++; at(k, "walked portal", `${p[k - 1].mode} -> ${p[k].mode} walked into on the ground (official portals: 93% taken on the move)`); } }
+  // the start: Evgeni (2026-11-26) "by default not make levels starting on the default ground, but immediately on some
+  // height on top of blocks": a cube still on the default ground a second in (tools/startramp.js builds the opening)
+  // (grounded on it at any tick from 0.5 s to 1.5 s)
+  { let k = -1; for (let i = TPS >> 1; i <= Math.min(1.5 * TPS, gameEnd); i++) { const q = p[i]; if (q.mode === "cube" && q.grav > 0 && q.grounded && q.y <= 16) { k = i; break; } }
+    if (k >= 0) at(k, "ground start", "the level opens on the default ground: start up on blocks of the level's design (tools/startramp.js)"); }
   // rests: breathers of REST s or more with the button up and nothing pressed (the mains ~11 a minute)
   let rests = 0; { let run = 0; for (let k = 0; k <= gameEnd; k++) { if (held[k]) { if (run >= REST * TPS) rests++; run = 0; } else run++; } }
   const restsPerMin = rests / ((gameEnd + 1) / TPS / 60);
