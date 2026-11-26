@@ -225,3 +225,9 @@ The stage times are also in local/timings.jsonl.
   v8's remaining tight spots were all at portals.
 - **v9:** tools/songplan.js -- the sections cut at the song's transitions (tools/sections.js) and the mode by type; 75 s.
   Thin: the drop and ball sections (few ship / ball pieces in the library; the "Generate our own structures" thread).
+- **v9 -> v10:** the uneven pieces were the JOINS, not the pieces or the hazard placer (v9 without hazardsAlong judged 1.5,
+  with 1.4): pieces 0.3 s apart ran together at 4-5 clicks/s or cut a window to 42 ms. brickpick `minJoin` 0.5 s and 2-4
+  block gaps: v10's tightest press 108 ms (v9 46 ms), Normal ~4 attempts (v9 Harder ~68). Judge 1.7 now for the other
+  reasons: 1.08 clicks/s over the level, the quiet first 41 s (calm sections, one kind of obstacle, a UFO with 4 clicks in
+  9.5 s), long flying stretches (6-8 s), unseen band roofs. The library is the limit: Evgeni calls our pieces poor and the
+  first generated batch garbage (g-* left out, `exclude`).
