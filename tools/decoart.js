@@ -9,6 +9,7 @@
 //   vector  approach B: the same picture straight as clean vector shapes (bands, disks, ridges of squares + right
 //           triangles);
 //   mix     A's painted sky (sky, sun glow, clouds fitted) under B's vector ranges and landmark (round 2, Evgeni's pick);
+//   --blocks rock|ice|off: the play blocks as a painted material (tools/blockart.js; default rock for mix)
 //   image   approach C (with --image): any picture -- the user's drawing, a generated image -- fitted as the back.
 // Both picture variants replace the stretch's back layers (B5 / B4 / B3 deco) and keep the play's own dressing. The back
 // spans y -30..270 (what a cube part shows: ~8 blocks over the ground) and is locked to the player's x at 0.9 (it drifts slowly: far away), the near layer at 0.75 (parallax).
@@ -86,6 +87,12 @@ for (const v of variants) {
     const gb = place(L, back, "back", -5, 6), gn = place(L, near, "near", -3, 4);
     PS.toPng(path.join(OUT, name + "_back.png"), PF.render(PF.fromGD(gb.objects, Object.assign({}, gb.channels), { x0: X0 + B0 * 30, y0: TOP, upp: UPP }), wb, H, [0, 0, 0]), wb, H);
     note += `removed ${removed} back-layer deco, back ${gb.objects.length} objects (${Object.keys(gb.channels).length} channels), near ${gn.objects.length}`;
+    // the play blocks as a painted material (tools/blockart.js): --blocks rock|ice|off (default rock for the mix)
+    const bl = opt("--blocks", v === "mix" ? "rock" : "off");
+    if (bl !== "off") { const BA = require("./blockart.js"), pal = bl === "ice" ? BA.PAL.ice : BA.PAL.lava;
+      const r = BA.rock(L, B0 * 30, X1, { seed, pal, secs, veinGroup: 532 });   // 532: the fire kit's seam group, pulsed on the beat
+      L.objects.push(...r.objects); L.header = K.channels(L.header, r.channels);
+      note += `; blocks ${bl}: ${r.objects.length} objects (removed ${r.removed} flat ones)`; }
   }
   io.GD.setField(R.rec, "k2", "s", `${R.name} art ${v}`);
   const out = path.join(OUT, name + ".gdlvl");

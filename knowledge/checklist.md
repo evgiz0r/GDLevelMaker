@@ -189,6 +189,11 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 - [ ] **The background never reads as solid** (the user's Two Moons mark, 2026-11-25: "solid background is confusing"). Back
   shapes must not look like blocks you can land on: no block-like squares with lit rims behind the play, lower value and
   contrast than the path's bodies, softer or no outlines, a different hue or some transparency. `tools/roles.js` (pathDeco).
+- [ ] **Play blocks are a material, not a flat fill** (the user, 2026-11-26: "The blocks are still very timid. No effects. No
+  good texture. All single filled color"). Lit open tops, darker with depth, a surface texture (facets), a feature with light
+  (glowing seams on the beat), an edge and a shadow. `tools/blockart.js` (decoart.js --blocks); DECOART.md "Blocks".
+- [ ] **A section's backdrop is one composed picture** (focal light at a third, values light far -> dark near, nothing in
+  it reads as gameplay): DECOART.md, `tools/decoart.js`.
 - [ ] **The play stays visible: deco never hides the path or a hazard** (the user, 2026-11-25: RobTop's levels are amazing
   for "the visible play"; "if you dont see a spike the timing is obviously harder"). No deco in front of the lane the player
   can be in, none behind a hazard in its value or hue (it must stand out), the richest art at the lane's edges, quiet behind

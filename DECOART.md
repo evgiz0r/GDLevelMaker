@@ -54,6 +54,21 @@ ridge as before. The first mix fitted the sun's disk too and its edge came out r
 vector, only soft light is fitted. In the viewer: deco-art / gdlm_44_hellgate_mix. Sheet: project files
 `decoart/round2_mix.png`. Next: a picture per section of the full level (flying sections need a taller picture).
 
+## Round 3 (2026-11-26): the blocks, `tools/blockart.js`
+
+Evgeni on round 2: "The blocks are still very timid. No effects. No good texture. All single filled color. Very basic."
+`blockart.rock(level, x0, x1, {pal})` dresses every play block of the stretch (T1, in front of the skins, deco only) and
+replaces designBlocks' flat fill / edge lines / glow there: a body square per cell lit from the top and darker with depth
+(value noise per cell), 1-2 turned see-through triangles per cell (a faceted rock surface), glowing veins walking down from
+open tops (blending channel + soft glow, in the fire kit's seam group 532, so they flash with its beat pulses), a hot rim
+and glow on open tops, dim side lines, a dark band under open bottoms, a see-through shadow down-left (B1), embers drifting
+up. Palettes `lava` and `ice`. ~540 objects on blocks 0-88 (299 flat ones removed). First cut: veins too thick and many,
+body as bright as the sky -> thinner veins, 30% of tops, darker body (top [92,28,26], deep after ~2 cells).
+The art-free viewer now draws front-layer deco (key 24 >= T1) OVER the blocks, as the game does (it drew all deco
+under them, which hid any painted block body).
+Open: in GD art and in the game (does 211 on T1 cover the skin as in our render?); a facet pattern less grid-like;
+slopes and spikes dressed the same way; a per-theme set (ice veins = cracks with frost).
+
 ## Lessons as rules (soft; for the generator)
 
 - **Paint the section's picture before placing deco**: one focal point (light / landmark) at a third of the screen in the
