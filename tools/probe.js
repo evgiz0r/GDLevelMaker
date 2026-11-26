@@ -14,7 +14,7 @@
 //            in PRACTICE MODE only (no progress). Playback is muted (mod v0.5.0+).
 //        node tools/probe.js result [file|index] | --last-batch the last playback attempt (or the one given, or the whole batch):
 //            cleared or where it died, and the first ticks where the game and our sim differ
-//        node tools/probe.js table [--since <ms>]   one markdown row per playback attempt (default: since the last batch
+//        node tools/probe.js table [--since <ms>] [--stats]   (--stats: also into local/real_stats.jsonl, source "probe") one markdown row per playback attempt (default: since the last batch
 //            began): real result, our sim, the first x / y parting on per-step positions (mod v0.5.0+)
 //        node tools/probe.js diff <file|index> [--level <level | official:N>]  replay THIS attempt's own presses in our
 //            sim (attempts from the level start only) and show where game and sim part: x first, then y / vy, and every
@@ -246,8 +246,8 @@ function printSteps(c) {
 }
 
 // one markdown row per playback attempt since a time (default: the last batch): for GEODE.md's table
-function table(dir, since) {
-  const rows = [];
+function table(dir, since, stats) {
+  const rows = [], add = [];
   for (const f of files(dir)) {
     const r = read(f), st = r.start || {};
     if (!st.playback || st.wall_ms < since) continue;
@@ -257,8 +257,25 @@ function table(dir, since) {
     const sim = R.run.done ? "clears" : `dies x ${R.run.end.x.toFixed(0)}`;
     const part = (o, key) => o ? `${key} at x ${o.q.x.toFixed(0)} (${(o.t.n / 240).toFixed(1)} s, d${key} ${(key === "x" ? o.dx : o.dy).toFixed(1)})` : `no ${key} gap > 0.5`;
     rows.push(`| ${st.level}${st.practice ? " (practice)" : ""} | ${res} | ${sim} | ${c ? part(c.px, "x") + "; " + part(c.py, "y") : "older log: no per-step position"} |`);
+    // real_stats line (CLAUDE.md "Real-game stats go to every owner"): source "probe" = our route played by the mod
+    const P = R.run.path, endX = P[P.length - 1].x, done = !!(r.end && r.end.result === "complete");
+    const gx = r.death ? r.death.x : c ? c.gend.x : null;
+    const agree = done === !!R.run.done && (!c || (!c.px && !c.py));
+    add.push({ level: st.level, version: null, video: "probe:" + path.basename(f), t: +(r.ticks.length / 240).toFixed(2), attempt: st.attempt,
+      result: done ? "beaten" : "death", pct: gx != null && endX ? +(100 * gx / endX).toFixed(1) : null, x: gx != null ? Math.round(gx) : null,
+      mode: c ? c.gend.mode : null, cause: r.death ? `probe playback of our saved route; killer ${r.death.obj}` : "probe playback of our saved route",
+      sim: agree ? "agrees" : `mismatch: sim ${R.run.done ? "clears" : "dies x " + Math.round(R.run.end.x)}` + (c && c.px ? `; x parts at ${Math.round(c.px.q.x)} (${c.px.dx.toFixed(1)})` : "") +
+        (c && c.py ? `; y parts at ${Math.round(c.py.q.x)} (${c.py.dy.toFixed(1)})` : "") + (c ? `; at the game's end the sim is at x ${c.send.x.toFixed(0)} y ${c.send.y.toFixed(0)}` : ""),
+      source: "probe", practice: !!st.practice });
   }
   console.log(["| level | real game | our sim | first parting (game - sim, per step) |", "|---|---|---|---|"].concat(rows).join("\n"));
+  if (stats && add.length) {
+    const file = path.join(__dirname, "..", "local", "real_stats.jsonl");
+    const have = fs.existsSync(file) ? fs.readFileSync(file, "utf8") : "";
+    const fresh = add.filter((o) => !have.includes(`"${o.video}"`));
+    for (const o of fresh) { o.added = new Date().toISOString(); fs.appendFileSync(file, JSON.stringify(o) + "\n"); }
+    console.log(`real_stats: added ${fresh.length} (${add.length - fresh.length} already there) to ${file}`);
+  }
 }
 
 // per-step comparison (probe v0.3+ logs). Measured on GD 2.2091 (2026-11-25): the player's vy (m_yVelocity) changes every
@@ -395,7 +412,7 @@ function main() {
   } else if (cmd === "table") {
     let since = Number(opt("--since", 0));
     if (!since) { try { since = JSON.parse(fs.readFileSync(path.join(path.dirname(dir), "play.batch.json"), "utf8")).since; } catch {} }
-    table(dir, since || 0);
+    table(dir, since || 0, a.includes("--stats"));
   } else if (cmd === "result" && a.includes("--last-batch")) {
     batch(dir);
   } else if (cmd === "result") {

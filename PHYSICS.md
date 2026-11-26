@@ -581,8 +581,14 @@ step. `node tools/probe.js result [n]` compares a log with our sim's run of the 
   other speeds have their own distances, and slow 0.7 / fast 1.1 / 1.3), x moves toward `object.x + m_snapDistance`
   (`m_snapDistance` = player x - object x at the last snap), at most `maxSnapDistance` (1 unit at 0.7 / 0.9, 2 at 1.1 /
   1.3); then the object becomes `m_objectSnappedTo`. The decompile's conditions read inverted (it snaps when NO pattern
-  matches) and its x / y names are mixed up: the log says it snaps on the matching patterns. Open for the physics
-  session: which object counts when the player overlaps two blocks, and the sign rule (all 6 seen are +1.0). The data:
+  matches) and its x / y names are mixed up: the log says it snaps on the matching patterns.
+  **Settled from the log:** `m_snapDistance` is the player's x minus the block's x at TAKE-OFF (the function runs every
+  step while standing on a block and only re-measures it there). Stereo Madness, take-off offset -> landing offset before
+  the snap -> after: -14.22 -> -17.38 -> -16.38; 3.09 -> -0.07 -> 0.93; -7.47 -> -10.62 -> -9.62; -5.73 -> -8.88 -> -7.88.
+  So a 120-ahead / 30-up jump at normal speed lands 3.15 units behind its take-off offset and the snap moves it the
+  1-unit cap forward. Landings at other offsets (120 / -30, 120 / +-68 slabs, 150 / -38, 180, 210, 300 ...) get no snap.
+  Seen so far only (120, +30) at speed 0.9; the other two patterns and the other speeds are from the decompile. Open:
+  which block counts when the player lands across two (GD takes the one its collision loop meets first). The data:
   `node tools/probe.js result <the Stereo Madness log>`; any v0.5.0 log has the per-step x. This is likely the "x +1.0
   in one step" the Clubstep diff found below, and the drift that kills our main-level routes in the game (see the
   2026-11-26 table in GEODE.md).
