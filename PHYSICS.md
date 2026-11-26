@@ -232,6 +232,22 @@ air and released before the landing does NOTHING, however close to the landing.
 
 ## Upside-down cube and the ground (2026-11-24): in the sim since 2026-11-26 (vy < -4 kills; the cut is a guess)
 
+The robot too (2026-11-26): the auto lab v12 probe log, tick 4742, a flipped robot at vy -7.27 dies touching the ground with
+no object, where the sim had it land; lib/physics.js now applies the same cut to the robot. Ball, spider, UFO: not seen.
+
+The released ship upside down (2026-11-26, auto lab v13 probe log, tick 17297): after a gravity portal a flipped ship at
+vy -1.22 pulls 0.069 a tick (0.8, the falling factor), not 0.103 (1.2): the falling threshold is mirrored upside down, as for
+the UFO. **That is GD 2.2's level setting "Fix Gravity Bug"**, not a general rule: with it, PlayerObject::playerIsFallingBugged
+tests -2g < vy upside down instead of 2g < vy (gdsolver dp/upd.hpp fallingBugged, PlayerObject +0x561; their mklevel.py
+saw the same 0.069 vs 0.103 split between a rig with the kA31..kA45 flags and the official levels). Six logs of levels
+without the flag (Evgeni's ToE2, Hexagon Force, Deadlocked runs, the auto play area; ~2000 released flipped-ship ticks,
+both sizes) all pull 1.2 below 2g; the v10 / v13 lab levels carry our DEFAULT_HEADER with the flags on and pull 0.8.
+So the world gets `fixGrav` from the header and only then the ship (held or released) and the UFO mirror the threshold
+(`GDLM_FIXGRAV=0|1` forces it; `GDLM_SHIP_FLIP=old`, `GDLM_UFO_FLIP=old` turn the mirror off). The KEY is ASSUMED to be
+kA32 (GD's level-string docs, from memory): every other kA flag our header writes would fit these logs as well. To pin it,
+a lab pair of one flipped-ship station with only kA32 differing. Ungated, the mirror broke ToE2 attempts 1-2 (the sim
+died at 3224 and 8401 instead of 4069 and 8403).
+
 GDLM 67's green orb station (18-58-15.mkv) throws the cube down with gravity flipped; it then meets the flat floor head
 first. The game: attempts 58.2, 98.4 and 158.3 burst on the floor (no hazard near, frames 68.45-68.70 and framecheck's
 paths: 58.2 died the frame its box reached the ground line, falling ~5.4 units a frame); attempt 114.13 came down slower
@@ -760,7 +776,7 @@ by the auto thread (Jumper seed 2 and round 9 fail on the new physics).
 
 Lab v10 log (2026-11-26, `/mnt/project-files/auto_bricks/probe/`, auto thread; UFO stretch with flips, mini and pads): with
 these four UFO rules the sim matches every tick to the game's spike death (881 steps):
-- **A flipped UFO's gravity switch is the mirror of the upright one** (0.086 while player-frame vy <= +2g, 0.129 above), not
+- **(Only with "Fix Gravity Bug" on, see "Upside-down cube and the ground" below the robot note.) A flipped UFO's gravity switch is the mirror of the upright one** (0.086 while player-frame vy <= +2g, 0.129 above), not
   GD's world-frame ship rule: from rest after a UFO + gravity-up portal pair the game pulls 0.086 a tick, the old rule 0.129
   (`GDLM_UFO_FLIP=old`; ticks 345-360).
 - **A UFO's yellow pad leaves no boost; its red pad keeps it** (corrected by the v11 log below): yellow 16 is 8.000 the next tick

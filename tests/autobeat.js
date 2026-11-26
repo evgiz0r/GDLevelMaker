@@ -27,7 +27,7 @@ for (const [song, seed, music] of [["Electrodynamix", 8, null], ["Jumper", 2, nu
 }
 // round 9 (shape): no teleports, the path inside a camera band, slopes in, no sinking into ledges
 {
-  const b = ab.build({ song: "GeometricalDominator", seed: 1, beats: 160, from: 2, quiet: true });
+  const b = ab.build({ song: "GeometricalDominator", seed: 1, beats: 160, from: 2, quiet: true, sections: false });
   const m = b.measures;
   ok(m.clears, "round 9 build clears");
   ok(!m.byKind.tele, `no teleports (${m.byKind.tele || 0})`);
@@ -35,6 +35,16 @@ for (const [song, seed, music] of [["Electrodynamix", 8, null], ["Jumper", 2, nu
   ok((m.byKind.slope || 0) >= 1, `slopes as a move (ground slopes only while air landings are off) (${m.byKind.slope || 0})`);
   ok(m.clipTicks <= 30, `no play inside the blocks: ${m.clipTicks} ticks`);
   ok(m.hazards && m.hazards.placed > 50 && m.hazards.threats > 0, `hazards follow the path (lib/hazards.js): ${JSON.stringify(m.hazards)}`);
+}
+// sections by character (tools/sections.js): a whole song, each batch typed by its transition; a drop gets the big pads
+{
+  const b = ab.build({ song: "CantLetGo", seed: 3, quiet: true });
+  const m = b.measures, log = b.motifs.join("\n");
+  ok(m.clears, "sections build clears");
+  ok(/drop/.test(log) && /break/.test(log) && /entry/.test(log), "drop, break and entry sections are typed: " + log.split("\n").filter(l => / s: /.test(l)).map(l => l.split(",")[0]).join(" | "));
+  ok(/drop[^\n]*low=red/.test(log), "the drop has red pads on the low notes");
+  ok(m.clipTicks <= 30, `no play inside the blocks: ${m.clipTicks} ticks`);
+  ok(/beat ending/.test(m.ending), "the beat ending: " + m.ending);
 }
 console.log(bad ? bad + " failed" : "all ok");
 process.exit(bad ? 1 : 0);

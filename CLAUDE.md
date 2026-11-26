@@ -353,7 +353,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   knowledge/autobricks.json, local/structures/lego-auto-*.gdlvl for `lego.js mine library`, levels/lab/auto_lab.gdlvl).
   Test: `node tests/autobricks.js`. **Beat-first auto levels** (AUTO.md "Beat-first", round 8: rapid runs, own speed bursts, no secret way via stray presses + saws, outro + signature): `tools/autobeat.js --song <Official> --seed N`
   (a trigger on each chosen beat where the player is, gaps filled, motifs AAAA / BBBB / a mix; lab levels/lab/auto_beat.gdlvl);
-  test `node tests/autobeat.js`.
+  test `node tests/autobeat.js`. **Sections by character** (`tools/sections.js <song>`: drop / break / build / entry / groove from the measured song; autobeat's batches follow it) and **the short beat ending** (`tools/beatend.js`: pad bounces hit and landed on the beats, then the sign; AUTO.md).
 - **Lego: structure research** (LEGO.md: every level cut into 1-3 s pieces -- official, ours, the user's sketches --,
   classified by family (fly: ship/wave/swing paths and corridors; jump; flip) with parameters, the official mix vs ours,
   the variety rule; one path built as ship / wave / swing with wrappers and click- or portal-turns): `tools/lego.js`
