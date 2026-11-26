@@ -456,10 +456,14 @@ run now also gives:
   **intensity** = 0.6 x its percentile + 0.4 x heaviness, 0..1.
 - **speed portals that follow the music** (`speedPlan`): intensity smoothed over 3 bars, read into 0.5x / 1x / 2x / 3x
   at the song's own 15 / 60 / 90% quantiles, each speed held at least 4 bars, a change on a bar start, moved to a bar-start
-  impact within 2 bars. Music doesn't change tempo here (one BPM): "speeds up" = more notes and more weight per beat. In
+  impact within 1 bar, two changes at least 2 bars apart. Absolute floors on the quantiles: 0.5x only where the bar has
+  under 2 notes a beat and heaviness under 0.3, 3x only at heaviness 0.6+ (Electrodynamix is busy from its first bar --
+  3+ notes a beat -- and the pure quantiles had opened it at 0.5x). Music doesn't change tempo here (one BPM): "speeds up" = more notes and more weight per beat. In
   level beats, so a portal moves x, never the beat (section above).
 - `--commit`: `knowledge/song_notes/<song key>.json`, the numbers only (no audio, like viewer/song_grids.js), for cloud
-  sessions and builders (tools/autobeat.js); format in tools/impacts.js compact(). Done: custom_557117.
+  sessions and builders (tools/autobeat.js); format in tools/impacts.js compact(). Done (2026-11-26, on the PC): all 22
+  official songs, custom_343707 (local grid), custom_557117. Electrodynamix: 823 notes, 3-5 a beat; Infertehno 2: 2650.
+  `--replan <key|all>` redoes the speed plans from these files with no audio after a rule change.
 
 Open: the song lives only on the PC, so a cloud session cannot run it (Newgrounds is blocked there); the
 thresholds are set on three songs only; impacts are not drawn in the viewer yet (next to the beat lines, batched

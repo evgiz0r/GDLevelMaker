@@ -13,6 +13,7 @@
 //   "NOTHING", and the dead stretches (no hazard / orb / pad / portal for 1.5 s+) with the song's heaviness there.
 //   NOTES: every onset, small ones too (hats, ghost notes, melody), with strength, band and grid place; MUSIC SPEED per bar
 //   (weighted notes per beat, finest grid in use) and SPEED PORTALS that follow it (0.5x when it calms .. 3x at its busiest).
+//   --replan <key | all>: the speed plan again from committed knowledge/song_notes files (no audio needed).
 //   --commit (no offset): also knowledge/song_notes/<song key>.json, the numbers only (notes, bars, impacts, speed plan),
 //   committed so cloud sessions and builders have them without the audio (format at compact() below).
 //   Writes local/impacts/<song key>[_off<offset>].json (made from the song: never committed). Light job (one decode).
@@ -234,7 +235,14 @@ function speedPlan(bars, imp, opts = {}) {
   const sm = drive.map((_, i) => { const s = drive.slice(Math.max(0, i - 1), i + 2); return s.reduce((a, c) => a + c, 0) / s.length; });
   const sorted = sm.slice().sort((a, b) => a - b), q = x => sorted[Math.min(sorted.length - 1, Math.floor(x * sorted.length))];
   const cut = [q(0.15), q(0.6), q(0.9)];
-  const lvl = sm.map(v => v < cut[0] ? 0 : v < cut[1] ? 1 : v < cut[2] ? 2 : 3);
+  // the song's own quantiles, with absolute floors: a song that is busy all through (Electrodynamix: 3+ notes a beat from
+  // its first bar) gets no 0.5x; 0.5x only where it is really calm, 3x only where it is also heavy
+  const lvl = sm.map((v, i) => {
+    let l = v < cut[0] ? 0 : v < cut[1] ? 1 : v < cut[2] ? 2 : 3;
+    if (l === 0 && !(full[i].speed < 2 && full[i].heavy < 0.3)) l = 1;
+    if (l === 3 && full[i].heavy < 0.6) l = 2;
+    return l;
+  });
   // runs of at least `hold` bars: the shortest short run joins the neighbour whose level is closest (then the longer
   // one), and again, until every run holds (no portal ping-pong)
   const hold = opts.hold || 4;
@@ -248,13 +256,22 @@ function speedPlan(bars, imp, opts = {}) {
     const out = []; for (const r of merged) { const m = out[out.length - 1]; if (m && m.l === r.l) m.to = r.to; else out.push(r); } merged = out;
   }
   const NAME = ["0.5x", "1x", "2x", "3x"];
-  return merged.map((r, i) => {
+  const plan = merged.map((r, i) => {
     let beat = full[r.from].beat, why = i ? (r.l > merged[i - 1].l ? "the music speeds up" : "the music calms") : "start";
-    const near = i ? imp.filter(m => m.strength >= 0.4 && !m.inBar && Math.abs(m.beat - beat) <= 8).sort((a, b) => b.strength - a.strength)[0] : null;
+    const near = i ? imp.filter(m => m.strength >= 0.4 && !m.inBar && Math.abs(m.beat - beat) <= 4).sort((a, b) => b.strength - a.strength)[0] : null;
     if (near) { beat = near.beat; why += ", on the b" + near.beat + " impact"; }
     const span = full.slice(r.from, r.to);
-    return { beat, speed: NAME[r.l], why, notesPerBeat: r2(span.reduce((s, b) => s + b.speed, 0) / span.length), heavy: r2(span.reduce((s, b) => s + b.heavy, 0) / span.length) };
+    return { beat, l: r.l, speed: NAME[r.l], why, notesPerBeat: r2(span.reduce((s, b) => s + b.speed, 0) / span.length), heavy: r2(span.reduce((s, b) => s + b.heavy, 0) / span.length) };
   });
+  // a change at least 2 bars after the one before (a snap can pull two together): the later speed wins, same speeds merge
+  const out = [];
+  for (const x of plan) {
+    const prev = out[out.length - 1];
+    if (prev && x.beat < prev.beat + 8) { if (out.length > 1) { Object.assign(prev, { l: x.l, speed: x.speed, why: x.why }); } else continue; }
+    else out.push(x);
+    while (out.length > 1 && out[out.length - 1].l === out[out.length - 2].l) out.pop();
+  }
+  return out.map(({ l, ...x }) => x);
 }
 
 // ---------------- planner suggestions ----------------
@@ -350,6 +367,16 @@ function writeNotes(res, key) {
   fs.writeFileSync(f, "{" + Object.entries(c).map(([k, v]) => JSON.stringify(k) + ":" + JSON.stringify(v)).join(",\n") + "}\n");
   return f;
 }
+// the speed plan again from a committed file (no audio): after a change to speedPlan's rules, `--replan <key|all>`
+function replanNotes(c) {
+  const bars = c.bars.map((b, i) => ({ beat: b[1], beats: i + 1 < c.bars.length ? c.bars[i + 1][1] - b[1] : 4, heavy: b[2], speed: b[3], intensity: b[4] }));
+  const p = pctl(bars.map(b => b.speed)); bars.forEach((b, i) => b.speedPct = p[i]);
+  const starts = new Set(bars.filter(b => b.beats === 4).map(b => b.beat));
+  const imp = c.impacts.map(i => ({ beat: i[1], strength: i[2], inBar: starts.has(i[1]) ? 0 : 1 }));
+  const bt = b => r2(c.t0 + (Math.ceil(-c.t0 / c.period - 1e-9) + b - 1) * c.period);
+  c.speedPlan = speedPlan(bars, imp).map(x => [bt(x.beat), x.beat, x.speed, x.why]);
+  return c;
+}
 function loadNotes(key) { const f = path.join(ROOT, "knowledge", "song_notes", key + ".json"); return fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, "utf8")) : null; }
 
 // ---------------- CLI ----------------
@@ -370,6 +397,15 @@ function run(args) {
     const custom = GD.getField(R.rec, "k45");
     songArg = custom && custom !== "0" ? custom : "official:" + (+(GD.getField(R.rec, "k8") || 0) + 1);
     offset = +((/(?:^|,)kA13,([-0-9.]+)/.exec(levelStr.split(";")[0]) || [])[1] || 0);
+  }
+  if (opt("--replan")) {
+    const dir = path.join(ROOT, "knowledge", "song_notes"), k = opt("--replan");
+    for (const f of fs.readdirSync(dir).filter(f => f.endsWith(".json") && (k === "all" || f === k + ".json"))) {
+      const c = replanNotes(JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")));
+      fs.writeFileSync(path.join(dir, f), "{" + Object.entries(c).map(([a, v]) => JSON.stringify(a) + ":" + JSON.stringify(v)).join(",\n") + "}\n");
+      console.log(f.padEnd(34), c.speedPlan.map(x => "b" + x[1] + " " + x[2]).join(", "));
+    }
+    return;
   }
   if (!songArg) { console.log(fs.readFileSync(__filename, "utf8").split("\n").filter(l => l.startsWith("//")).join("\n")); process.exit(1); }
   const { file, url } = songFile(songArg);
@@ -435,4 +471,4 @@ function print(res, topN) {
 }
 
 if (require.main === module) run(process.argv.slice(2));
-module.exports = { impacts, frameFeatures, suggest, levelSide, run, noteOnsets, speedPlan, compact, writeNotes, loadNotes };
+module.exports = { impacts, frameFeatures, suggest, levelSide, run, noteOnsets, speedPlan, compact, writeNotes, loadNotes, replanNotes };
