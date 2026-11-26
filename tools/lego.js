@@ -603,14 +603,23 @@ function families(all, src) {
     console.log(k.padEnd(48) + `${String(r.official).padStart(4)} ${String(Math.round(r.official / Math.max(1, tot.official) * 100)).padStart(3)}%  ${String(r.ours).padStart(4)} ${String(Math.round(r.ours / Math.max(1, tot.ours) * 100)).padStart(3)}%  ${String(r.sketch).padStart(4)}`);
 }
 // a level's sequence of pieces: the same signature back to back or within 4 pieces = a repeat
+// The variety rule, measured 2026-11-26 over the lego catalogue (levels with 8+ pieces): repeat share p10 / median / p90
+// official (21 levels) 0.08 / 0.17 / 0.44, community (19) median 0.17, ours (25) 0.25 / 0.53 / 0.76.
+// score.js "brick variety" warns over the officials' p90.
+const VARIETY_REF = { median: 0.17, p90: 0.44 };
+function varietyOf(level, events, name) {
+  const s = { src: "ours", name: name || "level", level, events };
+  const R = route(s), ps = cut(R.r, R.inputs).map(([a, b]) => measure(s, R.w, R.r, R.inputs, a, b));
+  let rep = 0; const rows = [];
+  ps.forEach((p, i) => { const back = ps.slice(Math.max(0, i - 4), i).findIndex(q => q.sig === p.sig); if (back >= 0) rep++; rows.push({ x: p.x, s: p.s, sig: p.sig, repeat: back >= 0 }); });
+  return { pieces: ps.length, repeats: rep, share: ps.length ? rep / ps.length : 0, distinct: new Set(ps.map(p => p.sig)).size, rows };
+}
 function variety(file) {
   const L = readGdlvl(file), S = require("./solutions.js"), sol = S.get(L.levelStr, true);
-  const s = { src: "ours", name: path.basename(file), level: GD.parseLevel(L.levelStr), events: sol && sol.events };
-  const R = route(s), ps = cut(R.r, R.inputs).map(([a, b]) => measure(s, R.w, R.r, R.inputs, a, b));
-  let rep = 0;
-  ps.forEach((p, i) => { const back = ps.slice(Math.max(0, i - 4), i).findIndex(q => q.sig === p.sig); if (back >= 0) rep++; console.log(`${String(p.x).padStart(5)}  ${p.s.toFixed(1)}s  ${back >= 0 ? "REPEAT " : "       "}${p.sig}`); });
-  console.log(`${ps.length} pieces, ${rep} repeat a signature from the 4 before (${Math.round(rep / Math.max(1, ps.length) * 100)}%), ${new Set(ps.map(p => p.sig)).size} distinct`);
-  return { pieces: ps.length, repeats: rep, distinct: new Set(ps.map(p => p.sig)).size };
+  const v = varietyOf(GD.parseLevel(L.levelStr), sol && sol.events, path.basename(file));
+  for (const p of v.rows) console.log(`${String(p.x).padStart(5)}  ${p.s.toFixed(1)}s  ${p.repeat ? "REPEAT " : "       "}${p.sig}`);
+  console.log(`${v.pieces} pieces, ${v.repeats} repeat a signature from the 4 before (${Math.round(v.share * 100)}%; official levels median ${Math.round(VARIETY_REF.median * 100)}%, p90 ${Math.round(VARIETY_REF.p90 * 100)}%), ${v.distinct} distinct`);
+  return v;
 }
 
 // votes: Evgeni's 👍 / 👎 / comments from the catalogue. PC page -> local/lego/votes.jsonl (tools/serve.js); phone page ->
@@ -680,7 +689,7 @@ function knobs(all) {
 }
 // one level's grab, quietly safe to call from a solver: never throws
 function mineLevel(src, key) { try { const t0 = Date.now(), r = mine([src], [], [String(key)]); if (r) console.log(`lego: ${src} ${key} cut into bricks in ${Date.now() - t0} ms`); return r; } catch (e) { console.log("lego: could not cut " + key + ": " + e.message); return null; } }
-module.exports = { mineLevel, communitySources, knobs, officialSources, ourSources, heldAt, readVotes, sigWeights, cut, measure, route, signature, FAMILY, mine, load, dedupe, columns, sameLayout };
+module.exports = { varietyOf, VARIETY_REF, mineLevel, communitySources, knobs, officialSources, ourSources, heldAt, readVotes, sigWeights, cut, measure, route, signature, FAMILY, mine, load, dedupe, columns, sameLayout };
 
 if (require.main === module) {
   const A = process.argv.slice(2), cmd = A[0];

@@ -212,6 +212,19 @@ function scoreLevel0(level, brief, opts = {}) {
     } catch (e) { /* deadair.js missing */ }
   }
 
+  // brick variety (LEGO.md "Open": the variety rule as a gate, WARN first): the route cut into lego pieces; a piece whose
+  // signature is one of the 4 before it repeats. Official levels: median 17%, p90 44% of pieces repeat; ours 53%.
+  // tools/lego.js varietyOf. WARN over the officials' p90 (soft: brief.accept.variety with a reason).
+  if (r.ok) {
+    try {
+      const LG = require("./lego.js"), v = LG.varietyOf(level, (natural() || r).events, opts.file);
+      if (v.pieces >= 8) {
+        const over = v.share > LG.VARIETY_REF.p90, top = {}; for (const p of v.rows) if (p.repeat) top[p.sig] = (top[p.sig] || 0) + 1;
+        const worst = Object.entries(top).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, n]) => `${k} x${n}`).join(", ");
+        gate("brick variety", over && !(brief.accept && brief.accept.variety) ? "WARN" : "PASS", `${Math.round(v.share * 100)}% of ${v.pieces} pieces repeat one of the 4 before (official levels: median 17%, p90 44%), ${v.distinct} distinct`, over ? "most repeated: " + worst : "");
+      }
+    } catch (e) { /* lego.js cut failed */ }
+  }
   // presses vs the song's tempo (the user on GDLM 44 hellgate v6: "Still the cps is very small, compared to beat of the
   // song"): inputs per beat of the human route, over the level and in its busy phrases, against the official levels
   // (0.53-0.87 per beat; busy parts p10 0.50). tools/tempo.js (polish). WARN; needs the song's beat grid and the file.
