@@ -432,6 +432,7 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   pair. BUILDING.md section 5.
 - [ ] **Auto levels: no secret way** -- a press anywhere dies or is back on the auto path within 5 s (autobeat.js strays();
   saws where a press leaves it). Rapid runs (4+ notes <= 0.14 s apart) get triggers 0.07 s apart. AUTO.md round 8.
+- [ ] **After a physics change, republish the phone page before a level built on it goes there** (PHONE.md): the page replays with its own copy of lib/physics.js (auto beat v8 died on the phone at 11 s, 2026-11-26).
 - [ ] **An auto level is built and checked on main's newest physics before it is installed**: GDLM auto beat v4 cleared on
   the morning's physics and fell in the game at 20 s; on the evening's physics it dies there too. `git pull`, rebuild, check.
 - [ ] **Auto layouts read as designed** (Evgeni on v5: "jumpy across screens", "very random", "janky within the block"): no
