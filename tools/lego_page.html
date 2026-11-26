@@ -147,10 +147,12 @@ function draw(cv, p, big) {
   // framed on what happens (Evgeni 2026-11-25: "the buffer to be just much smaller"): from a block before the first press or
   // object inside the piece to a block after the last, the height from the route and those objects plus a block
   const pr = (p.clicks || []).map(c => c[0]), inS = (p.shape || []).filter(s => s[3] > 0.05 && s[1] < p.w - 0.05);
-  const cx0 = Math.max(0, Math.min(p.w, ...pr, ...inS.map(s => s[1])) - 1), cx1 = Math.min(p.w, Math.max(0, ...pr, ...inS.map(s => s[3])) + 1.5);
+  // Evgeni 2026-11-26: "as tight as possible to the actual lego piece size [...] or at least have a border defining it":
+  // the frame is the brick itself (0..w) and a dashed border marks its two ends
+  const cx0 = 0, cx1 = p.w;
   const py = p.path.filter(q => q[0] >= cx0 - 0.5 && q[0] <= cx1 + 0.5).map(q => q[1]).concat(inS.filter(s => s[1] < cx1 && s[3] > cx0).map(s => s[4])); if (!py.length) py.push(0);
   const ylo = Math.max(-0.5, Math.min(...py, 0) - 1), yhi = Math.max(...py, 2) + 1.5, cw = Math.max(4, cx1 - cx0);
-  const z = Math.min(W / (cw + 1), H / (yhi - ylo + 0.5));
+  const z = Math.min(W / (cw + 0.6), H / (yhi - ylo + 0.5));
   const ox = (W - cw * z) / 2 - cx0 * z, oy = big ? (H + (yhi - ylo) * z) / 2 + ylo * z : H - 4 + ylo * z;
   const X = x => ox + x * z, Y = y => oy - y * z;
   // the level's own colours where the piece starts (background, ground: header + colour triggers), when known
@@ -177,6 +179,9 @@ function draw(cv, p, big) {
     g.fillStyle = c; if (k === "L") g.globalAlpha *= .7; g.fillRect(X(x0), Y(y1), Math.max(1, (x1 - x0) * z), Math.max(1, (y1 - y0) * z));
   }
   g.globalAlpha = 1;
+  // the brick's border: where it starts and ends in its level
+  g.save(); g.setLineDash([5, 4]); g.strokeStyle = "rgba(255,255,255,.75)"; g.lineWidth = big ? 2 : 1;
+  g.strokeRect(X(0), Y(yhi) + 1, p.w * z, Y(ylo) - Y(yhi) - 2); g.restore();
   g.strokeStyle = "#4fe3ff"; g.lineWidth = big ? 3 : 2; g.setLineDash(p.midline ? [4, 4] : []); g.beginPath();
   // a jump of more than 3 blocks between two samples is a teleport: the line breaks there instead of crossing the picture
   p.path.forEach((q, i) => i && !jumpAt(p.path, i) ? g.lineTo(X(q[0]), Y(q[1])) : g.moveTo(X(q[0]), Y(q[1]))); g.stroke(); g.setLineDash([]);
