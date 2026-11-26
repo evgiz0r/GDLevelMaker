@@ -756,7 +756,19 @@ function build(opts = {}) {
   // every level we make"): the auto outro (tools/autobricks.js outro: any arrival -> plain cube, a big fall up and down), then
   // the signature (tools/signature.js) -- the same pair make.js puts on every GDLM level ("outro": <seed> + the signature)
   let sig = null;
-  if (opts.ending !== false && !fin.dead) {
+  // the beat ending (tools/beatend.js, default since 2026-11-26: Evgeni found the outro "too big ... doesnt match the beat"):
+  // half a screen of pad bounces hit and landed on the beats, then the sign. opts.ending "outro" = the old outro.
+  if (opts.ending !== false && opts.ending !== "outro" && !fin.dead) {
+    try {
+      const be = require("./beatend.js").beatEnd(levelString(st.objs.filter(q => q.kind !== "end"), st.segs), { period: g.period, t0: g.t0, fromX: wx });
+      const objs = st.objs.filter(q => q.kind !== "end").concat(be.objects.map(q => Object.assign({ kind: "beatend" }, q)));
+      const res = run(objs, st.segs, 1e9, be.endX);
+      if (!res.dead) { st.objs = objs; fin = res; sig = { col: be.signCol, floorY: be.floorY, beat: be.beats, notes: be.notes, secs: +((be.endX - be.startX) / 311.58).toFixed(2) }; }
+      else if (!opts.quiet) console.log("  the beat ending dies (" + res.why + ")");
+    } catch (e) { if (!opts.quiet) console.log("  the beat ending failed: " + e.message); }
+    if (sig && !opts.quiet) console.log("  beat ending: " + sig.notes.join("; "));
+  }
+  if (!sig && opts.ending !== false && !fin.dead) {
     const o = require("./autobricks.js").outro(opts.outro || (seed % 6) + 1);
     const col = Math.ceil((wx + 160) / B) + 3;
     const outroObjs = o.entries(col).map(([id, c, rr, e]) => ({ id, x: c * B + 15, y: rr * B + 15 + ((e && e.dy) || 0), flipY: !!(e && e.flipY), flipX: !!(e && e.flipX), rot: (e && e.rot) || 0, kind: "outro" }));
@@ -769,7 +781,7 @@ function build(opts = {}) {
   }
   const lv = { str: levelString(st.objs, st.segs), sig };
   const M = Object.assign(measures(fin, placed, g), M0);
-  M.ending = sig ? (sig.outro ? `outro ${sig.outro} s + signature` : "signature") : "none";
+  M.ending = sig ? (sig.beat ? `beat ending ${sig.secs} s + signature` : sig.outro ? `outro ${sig.outro} s + signature` : "signature") : "none";
   if (opts.music) {   // how many of the song's notes a trigger lands on (Evgeni: "we hit like 1/6 of the notes")
     const tt = placed.filter(t => t.kind !== "none").map(t => t.tick / TPS), lo = tt[0] - 0.01, hi = tt[tt.length - 1] + 0.01;
     const strong = opts.music.notes.filter(n => n.t >= lo && n.t <= hi && n.strength >= 0.3);
@@ -805,8 +817,13 @@ function write(out, b, name) {
   let str = b.lv.str;
   if (b.lv.sig) {   // the signature: its colours in the header, its objects after the outro, the level clipped 5 blocks after it
     const sg = require("./signature.js"), lvl = GD.parseLevel(str);
-    const header = sg.header(lvl.header, { col: b.lv.sig.col, floorY: 0 });
-    const so = sg.signature({ col: b.lv.sig.col, floorY: 0, period: b.g.period });
+    const fy = b.lv.sig.floorY || 0, xOfT = t => t * 311.58, tOfX = x => x / 311.58;   // the ending runs at 1x
+    const lastT = b.fin.p.length / TPS, beats = [];
+    for (let k = Math.ceil((lastT - 6 - b.g.t0) / b.g.period); b.g.t0 + k * b.g.period < lastT + 4; k++) beats.push(b.g.t0 + k * b.g.period);
+    // the sign's beat triggers sit at the x the player reaches on each beat (from the run, not a 1x guess)
+    const p = b.fin.p, xAt = t => { const i = Math.round(t * TPS); return i < p.length ? p[i].x : p[p.length - 1].x + (i - p.length + 1) * 311.58 / TPS; };
+    const header = sg.header(lvl.header, { col: b.lv.sig.col, floorY: fy });
+    const so = sg.signature({ col: b.lv.sig.col, floorY: fy, period: b.g.period, beats: b.lv.sig.beat ? beats : undefined, xOfT: xAt, tOfX: x => { let i = p.findIndex(s => s.x >= x); if (i < 0) i = p.length - 1; return i / TPS; } });
     desc = sg.describe(desc);
     const rec = GD.newRecord(name, desc);
     if (b.g.k45) GD.setField(rec, "k45", "i", b.g.k45); else GD.setField(rec, "k8", "i", String(b.g.k8));

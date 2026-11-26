@@ -314,3 +314,19 @@ clearly one band leads each bar. Can't Let Go: 2.52 strong notes/s (Geometrical 
 beats (GD: 39% / 83%), lead share 0.66 (the highest; GD 0.55). Back On Track and Deadlocked have fewer notes but a looser grid.
 Built: `node tools/autobeat.js --song CantLetGo --seed 3 --name "GDLM auto beat 2" --out levels/lab/auto_beat_2.gdlvl` --
 90.7 s, 378 triggers, 98% on the beat, notes hit 0.67, 7 modes (swing new to the auto labs: not yet checked in the game), clears.
+
+Auto beat 2 v1 in the game (2026-11-26): died at 34% (tick 7213). Two sim fixes from its probe log: a cube standing on the
+ground keeps the launch tick's gravity step when a pad fires (0.048 down), which made it graze a yellow pad later that the sim
+missed by 0.03; and a flipped player sunk more than 0.7 into the ground dies at any speed (a flipped spider on the ground took
+a robot portal, the robot's taller box sank 1.07 in). With both, the sim dies on the game's tick. v2: same song and seed,
+rebuilt on that physics, the same path as v1 to tick 5641, clears, and the new beat ending (tools/beatend.js).
+
+### The beat ending (tools/beatend.js, 2026-11-26)
+Evgeni on the old outro: "too big, way too much without anything happening and it doesnt match the beat ... something small
+half screen of auto gameplay, that matches the beat ... with the sign there". From the level's end: a portal column on a beat
+(any arrival -> plain cube), then 2 pad bounces: each pad fires on a beat (its x fixed by the launch tick in the sim) and each
+landing is on a later beat (the landing ledge's top is the feet's height on that beat, so the cube comes down on it; the pad
+and beat are picked to keep the ledges low). The cube then runs under the floating sign, which bobs on the beats, and the level
+ends 5 blocks after it. Measured: launches and landings within 2 ms of the beats on Can't Let Go, 4-5 ms on Geometrical
+Dominator. autobeat uses it by default (`opts.ending: "outro"` = the old one). Open: make.js and the other builders still use
+the old outro; the Geometrical Dominator ending climbs to ~4 blocks (no low-ledge beat there).
