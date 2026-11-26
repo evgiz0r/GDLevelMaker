@@ -343,6 +343,8 @@ bracket (line v with a dot). Spec: `"indicators": {"style": "caret"}` (make.js e
 `[[column, style], ...]` changes it by x, "none" = no marks there. Gallery: deco-art/gdlm_indicator_styles
 (`node tools/indstyles.js spec`, specs/lab_indicators.json); picture /mnt/project-files/decoart/indicator_styles.jpg.
 Test: `node tests/indstyles.js`. Rule: one style for the whole level (checklist "One block design and one spike design").
+No house default (Evgeni: "each level is unique, can balance colors design whatever needed"): each level's plan picks its
+indicator style and colour with the rest of its look; the chevron is only what a spec without a style gets.
 
 Found on the way (natural plan, lib/natural.js, not fixed here): with spikes 7 blocks apart on a flat run the solver holds
 one press through 3 jumps (ticks 160-579) and naturalPlan keeps the hold, so empty jumps get indicators (marks at blocks 8 and
