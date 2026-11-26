@@ -578,6 +578,8 @@ function make(specFile, specObj) {
       console.log(`   hazards along the route: +${add.length} (${JSON.stringify(res.notes)})`); }
     else console.log(`   hazards along the route: left out (the route dies at block ${(e.x / 30).toFixed(1)} with them)`);
   } catch (err) { console.log("   hazards along the route: skipped (" + err.message + ")"); }
+  // the structure deco pass (tools/structdeco.js), before the indicators so their colour sees the dressed hazards
+  if (r.ok) { require("./structdeco.js").apply(level, r.events, spec); writeGdlvl(out, rec, level); }
   if (spec.indicators && r.ok) {
     // jump indicators come from the solved run, so they go in after the first check (no hitbox:
     // the solution does not change); then the file is written again. Without the arrow's id yet,
@@ -589,15 +591,15 @@ function make(specFile, specObj) {
     try { const n = require("../lib/natural.js").naturalPlan(wI, r, level.objects); if (n && n.path[n.path.length - 1].done) plan = { ok: true, events: n.events }; } catch (e) {}
     const ind = deco.jumpIndicators(wI, plan, iid || 0, GD, spec.indicators);
     if (iid) {
-      { const IS = require("./indstyles.js"), c = IS.applyColour(level.objects, level.header, spec.indicators);
+      { const IS = require("./indstyles.js"); spec.indicators = require("./structdeco.js").indicators(spec); const c = IS.applyColour(level.objects, level.header, spec.indicators);
       if (c.ch) { level.header = c.header; console.log(`   indicator colour rgb(${c.rgb}) on channel ${c.ch}: ${c.why}`); }
-      level.objects.push(...IS.expand(ind, c.ch ? Object.assign({}, spec.indicators, { ch: c.ch, style: spec.indicators.style || "chevron" }) : spec.indicators).map(o => { const c = Object.assign({}, o); delete c.why; return c; })); }  // the style's pieces and colour (tools/indstyles.js)
+      level.objects.push(...IS.expand(ind, c.ch ? Object.assign({}, spec.indicators, { ch: c.ch, chAt: c.chAt, style: spec.indicators.style || "chevron" }) : spec.indicators).map(o => { const c = Object.assign({}, o); delete c.why; return c; })); }  // the style's pieces and colour (tools/indstyles.js)
       if (ind.length) level.objects.push(deco.indicatorFade(spec.indicators));  // soft: faded group
       writeGdlvl(out, rec, level);
       console.log(`   ${ind.length} jump indicators (object ${iid}): ` + ind.map(o => `${(o.x / 30).toFixed(0)} ${o.why}`).join("; "));
     } else console.log(`   ${ind.length} jump indicators planned (arrow object id not known yet): ` + ind.map(o => `${(o.x / 30).toFixed(0)} ${o.why}`).join("; "));
   }
-  if (r.ok) { lanePass(level, r.events, spec); require("./structdeco.js").apply(level, r.events, spec); writeGdlvl(out, rec, level); }  // the structure deco pass (tools/structdeco.js)
+  if (r.ok) { lanePass(level, r.events, spec); writeGdlvl(out, rec, level); }
   if (ctx.grid && r.ok) beatReport(objects, header, r, ctx);
   if (r.ok) { // the user's fairness rule: no prejumps (see tools/sightread.js)
     const s = sightread(level);
@@ -644,21 +646,21 @@ function lookOnly(out, rec, level, spec) {
   // since the last build), else the last build's (group 990 and the alpha trigger that fades them)
   const IG = String(deco.INDICATOR.group);
   let placed = false;
+  require("./structdeco.js").apply(level, sol.events, spec || {});
   if (spec && spec.indicators) try {
     const wI = GD.makeWorld(level.objects, level.header);
     let plan = { ok: true, events: sol.events };
     const n = require("../lib/natural.js").naturalPlan(wI, plan, level.objects); if (n && n.path[n.path.length - 1].done) plan = { ok: true, events: n.events };
     const ind = deco.jumpIndicators(wI, plan, spec.indicators.id || deco.INDICATOR.id, GD, spec.indicators);
-    { const IS = require("./indstyles.js"), c = IS.applyColour(level.objects, level.header, spec.indicators);
+    { const IS = require("./indstyles.js"); spec.indicators = require("./structdeco.js").indicators(spec); const c = IS.applyColour(level.objects, level.header, spec.indicators);
       if (c.ch) { level.header = c.header; console.log(`   indicator colour rgb(${c.rgb}) on channel ${c.ch}: ${c.why}`); }
-      level.objects.push(...IS.expand(ind, c.ch ? Object.assign({}, spec.indicators, { ch: c.ch, style: spec.indicators.style || "chevron" }) : spec.indicators).map(o => { const c = Object.assign({}, o); delete c.why; return c; })); }  // the style's pieces and colour (tools/indstyles.js)
+      level.objects.push(...IS.expand(ind, c.ch ? Object.assign({}, spec.indicators, { ch: c.ch, chAt: c.chAt, style: spec.indicators.style || "chevron" }) : spec.indicators).map(o => { const c = Object.assign({}, o); delete c.why; return c; })); }  // the style's pieces and colour (tools/indstyles.js)
     if (ind.length) level.objects.push(deco.indicatorFade(spec.indicators));
     console.log(`   --look: ${ind.length} jump indicators placed again from the saved route`);
     placed = true;
   } catch (e) { console.log("   --look: could not place the jump indicators again (" + e.message + "), keeping the old ones"); }
   if (!placed) level.objects.push(...old.level.objects.filter(o => o.props && (o.props[57] === IG || (o.id === 1007 && o.props[51] === IG))));
   lanePass(level, sol.events, spec || {});
-  require("./structdeco.js").apply(level, sol.events, spec || {});
   const q = GD.run(GD.makeWorld(level.objects, level.header), sol.events);
   if (!(q.done || (q.end && !q.dead))) { console.log("   --look: the saved plan no longer clears it, solving"); return false; }
   writeGdlvl(out, rec, level);

@@ -53,7 +53,7 @@ function expand(marks, opts = {}) {
     if (name === "none") continue;   // a stretch with no marks (the gallery's outro)
     const st = STYLES[name]; if (!st) throw new Error("no indicator style " + name);
     const down = ((m.rot - (opts.rot ?? IND.rot)) % 360 + 360) % 360 < 90;   // jumpIndicators adds 180 upside down
-    const k = (opts.scale ?? IND.scale) / IND.scale, ch = opts.ch ?? IND.ch, g = opts.group ?? IND.group;
+    const k = (opts.scale ?? IND.scale) / IND.scale, ch = opts.chAt ? opts.chAt(m.x) : (opts.ch ?? IND.ch), g = opts.group ?? IND.group;
     st.draw((id, dx, dy, o = {}) => {
       const p = K.obj(id, m.x + dx * k, m.y + (down ? dy : -dy) * k, { ch, z: "T2", zo: 20, groups: [g],
         s: o.s != null ? o.s * k : undefined, sx: o.sx != null ? o.sx * k : undefined, sy: o.sy != null ? o.sy * k : undefined,
@@ -106,10 +106,20 @@ function colourFor(objects, header) {
   return { rgb: hsvRgb(h, 0.5, 1), hazardHue: Math.round(hh), why: `hazards at hue ${Math.round(hh)}: the opposite hue ${Math.round(h)}, soft` };
 }
 // put the colour channel in the header and the marks on it (the pieces carry opts.ch, so call before expand, or pass ch)
+// opts.colour: "auto", [r, g, b], or per section [[column, "auto" | [r, g, b]], ...] (design themes: each section's marks
+// opposite ITS hazards); sections take channels 970, then 960-969. Returns chAt(x) for expand().
+const CHS = [CH, 960, 961, 962, 963, 964, 965, 966, 967, 968, 969];
 function applyColour(objects, header, opts = {}) {
   if (!opts.colour) return { header, ch: null };
-  const c = opts.colour === "auto" ? colourFor(objects, header) : { rgb: opts.colour, why: "given" };
-  return { header: K.channels(header, { [CH]: { rgb: c.rgb } }), ch: CH, rgb: c.rgb, why: c.why };
+  const per = Array.isArray(opts.colour) && Array.isArray(opts.colour[0]) ? opts.colour : [[0, opts.colour]];
+  const xs = per.map(p => p[0] * 30), why = [], rgbs = [];
+  per.forEach(([c0, col], i) => {
+    const x0 = xs[i], x1 = i + 1 < xs.length ? xs[i + 1] : Infinity;
+    const c = col === "auto" ? colourFor(objects.filter(o => o.x >= x0 && o.x < x1), header) : { rgb: col, why: "given" };
+    header = K.channels(header, { [CHS[i]]: { rgb: c.rgb } }); rgbs.push(c.rgb); why.push(per.length > 1 ? `from ${c0}: ${c.why}` : c.why);
+  });
+  const chAt = x => { let k = 0; xs.forEach((x0, i) => { if (x >= x0 - 1) k = i; }); return CHS[k]; };
+  return { header, ch: CH, chAt, rgb: rgbs[0], why: why.join("; ") };
 }
 
 module.exports = { STYLES, expand, styleAt, spec, colourFor, applyColour, CH };

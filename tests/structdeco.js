@@ -27,3 +27,17 @@ assert(r.notes.some(n => /WARN 4 structure looks/.test(n)), "more than 3 looks w
 const a = SD.pass(level, null, { holders: false }, {}).objects.length, b = SD.pass(level, null, { holders: false, interior: false }, {}).objects.length;
 assert(b < a, "interior: false draws less");
 console.log("structdeco: ok");
+// design themes: a preset, a preset with fields changed, a whole new one; hazards dressed; sky + backdrop drawn
+{
+  const DT = require("../tools/designthemes.js");
+  const t = DT.resolve({ theme: "frost", spikes: "glow", pal: { extends: "ice", line: [255, 0, 0] } });
+  assert(t.design === "inner base" && t.spikes === "glow" && t.pal.line[0] === 255 && t.pal.base, "a theme changed on the fly");
+  const lv = { header: level.header, objects: level.objects.concat([{ id: 8, x: 12 * 30 + 15, y: 15, rot: 0, flipX: false, flipY: false, props: {} }]) };
+  const r2 = SD.pass(lv, null, { sections: [{ from: 0, theme: "frost" }, { from: 30, theme: { pal: "gold", design: "outline", spikes: "core", backdrops: { a: ["stars"] }, skies: [{ bg: [1, 2, 3], ground: [0, 0, 0] }] } }], holders: false }, {});
+  assert(r2.notes.some(n => /hazards: 1 dressed/.test(n)), "the spike dressed in its section's design");
+  assert(r2.notes.some(n => /backdrops: 2 skies/.test(n)), "both sections set their sky");
+  assert(r2.objects.some(o => o.id === 899 && o.props[23] === "1013"), "the middleground coloured with the sky");
+  const si = SD.indicators({ indicators: {}, structures: { sections: [{ from: 0, theme: "void" }] } });
+  assert(si.style[0][1] === "pointer" && si.colour[0][1] === "auto", "the theme's indicator style");
+  console.log("structdeco themes: ok");
+}
