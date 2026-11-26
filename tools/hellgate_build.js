@@ -60,7 +60,7 @@ const CLIMB = [0, 1, 0, 1, 1, 0, 1, 0];
 // tier": rated bricks click ~1.8-2.15 a second at every tier, ours 1.2): a 2 clicks/s target, 1-3 block joins, cube pieces
 // of 2+ presses per 10 blocks, the new dense ship / wave pieces (lego-*-rapid)
 // exclude: Evgeni (2026-11-26) on the first generated bricks (tools/brickgen.js, g-*): "garbage" -- left out until better ones come
-const base = { exclude: /^g-/, slots: H.slots, grid: { period: P }, offset: OFFSET, beatCols: true, deadAir: 1.0, gap: [1, 3], beats: true, speed: "1x", targetCps: 2, fillGap: 0.25 };
+const base = { exclude: /^g-/, minJoin: 0.5, slots: H.slots, grid: { period: P }, offset: OFFSET, beatCols: true, deadAir: 1.0, gap: [2, 4], beats: true, speed: "1x", targetCps: 2, fillGap: 0.25 };
 
 let E = 0, prev = null, prevUd = false;
 // the ceiling of an upside-down section: its bottom 3 rows from row C up

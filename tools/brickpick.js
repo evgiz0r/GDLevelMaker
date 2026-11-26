@@ -142,7 +142,9 @@ function pickSection(o) {
       };
       for (const b of lib) for (let g = g0; g <= g1; g++) {
         const c = st.col + g; if (c + b.width > end) continue;
-        const ts = b.dx.map(d => (c + d) / v); if (ts[0] - st.lastPress < 0.3) continue;
+        // o.minJoin: seconds from the last piece's last press to this one's first (default 0.3); GDLM 44 v9: joins at 0.3 s
+        // ran two pieces into one at 4-5 clicks a second, or cut a window to 42 ms -- the judge's "uneven piece"
+        const ts = b.dx.map(d => (c + d) / v); if (ts[0] - st.lastPress < (o.minJoin ?? 0.3)) continue;
         // a piece with a portal is verified from a flat run-in: the cube on the ground when it gets there (GDLM 44 v7e: a
         // spike jumped 2 blocks before red-orb-wall~ud's gravity portal flipped it mid-arc, and no solve got through)
         if (b.portal && (g < 3 || c / v - st.lastPress < 0.6)) continue;

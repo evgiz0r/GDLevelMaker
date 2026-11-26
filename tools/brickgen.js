@@ -355,7 +355,7 @@ function verify(b) {
   //  - skip: leave out one planned press -- still clears = the brick has a way with fewer clicks;
   //  - extra: one stray tap at least 0.25 s from every planned press (so not just an early / late press), the planned
   //    presses kept -- still clears = a second route through it.
-  let secret = 0;
+  let secret = 0, skip = 0, stray = 0;   // skip: a planned press left out still clears; stray: an extra tap still clears
   const xa = (h.exitCol != null ? h.exitCol + 3 : h.s1 + 6) * B;   // through the test's exit portals: a ball left floating dies after the brick
   const alive = rr => !rr.path.some(q => q.dead && q.x < xa) && rr.path[rr.path.length - 1].x >= xa;
   // wave: leave out one press with its release (one up-leg) -- still clears = the corridor can be slid or held through
@@ -369,16 +369,16 @@ function verify(b) {
   }
   if (b.mode === "ball" || b.mode === "ufo") {
     const presses = ev.filter(e => e.type === "press").map(e => e.tick), t0 = entry(b.mode).tick, tEnd = r.path.find(q => q.x >= x1).tick;
-    for (const p of presses) if (alive(GD.run(h.w, ev.filter(e => !(e.tick >= p && e.tick <= p + 12))))) secret++;
+    for (const p of presses) if (alive(GD.run(h.w, ev.filter(e => !(e.tick >= p && e.tick <= p + 12))))) { secret++; skip++; }
     // (ufo: an extra flap in open air is the mode's freedom, like a ship's; only the skip counts)
     if (b.mode === "ball") for (let t = t0 + 12; t < Math.min(tEnd - 24, presses[presses.length - 1]); t += 12) {   // after the last press the next brick decides
       if (presses.some(p => Math.abs(p - t) < 0.25 * TPS)) continue;
       const ev2 = ev.concat([{ tick: t, type: "press" }, { tick: t + 10, type: "release" }]).sort((a, c) => a.tick - c.tick);
-      if (alive(GD.run(h.w, ev2))) secret++;
+      if (alive(GD.run(h.w, ev2))) { secret++; stray++; }
     }
   }
   const pr = b.events.filter(e => e.type === "press" || b.mode === "wave"), secs = (Math.max(...r.path.filter(q => q.x <= x1).map(q => q.tick)) - entry(b.mode).tick) / TPS;
-  return { ok: true, minMs, windows: inside.map(w => w.ms), presses: b.events.filter(e => e.type === "press").length, secs: +secs.toFixed(2), cps: +(pr.length / Math.max(0.3, secs)).toFixed(2), secret, h, r };
+  return { ok: true, minMs, windows: inside.map(w => w.ms), presses: b.events.filter(e => e.type === "press").length, secs: +secs.toFixed(2), cps: +(pr.length / Math.max(0.3, secs)).toFixed(2), secret, skip, stray, h, r };
 }
 
 // the solver's fewest presses inside the brick (lib/physics.js solve on the test level), null when it finds none
@@ -548,7 +548,7 @@ function lab(mode, bricks) {
   return f;
 }
 
-module.exports = { lab, gen, verify, judge, load, asStructures, textmap, testLevel, GEN, play, entry };
+module.exports = { fewest, keepIfClears, harness, absEvents, lab, gen, verify, judge, load, asStructures, textmap, testLevel, GEN, play, entry };
 
 if (require.main === module) {
   const argv = process.argv.slice(2), cmd = argv[0], arg = k => { const i = argv.indexOf("--" + k); return i >= 0 ? argv[i + 1] : null; };
