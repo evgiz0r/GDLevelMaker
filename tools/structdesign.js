@@ -181,10 +181,10 @@ function motifCells(S) {
 }
 const topGlow = (st, p, C, h = 12) => {
   edges(st.S, "N", h).forEach(q => p.out.push(K.obj(1293, p.X0 + (q[0] + q[2]) / 2, p.Y0 + (q[1] + q[3]) / 2,
-    { ch: C.glow, z: "T1", zo: 6, sx: (q[2] - q[0]) / 30, sy: h / 30, flipY: true })));
+    { ch: C.glow, z: "T1", zo: 6, sx: (q[2] - q[0]) / 15, sy: h / 30, flipY: true })));
   // up a floor slope: the glow turned with the slant, bright side out
   for (const s of hyps(st.S)) if (s.up) p.out.push(K.obj(1293, p.X0 + s.mx + s.nx * h / 2, p.Y0 + s.my + s.ny * h / 2,
-    { ch: C.glow, z: "T1", zo: 6, sx: (30 * Math.SQRT2 - h) / 30, sy: h / 30, flipY: true, rot: s.rot }));
+    { ch: C.glow, z: "T1", zo: 6, sx: (30 * Math.SQRT2 - h) / 15, sy: h / 30, flipY: true, rot: s.rot }));
 };
 const MOTIFS = {
   // above every body layer (the fills go up to zo 8)
@@ -259,9 +259,42 @@ const erode = S => { const E = new Set(); for (const [c, r] of cellsOf(S)) { let
   if (ok) E.add(key(c, r)); } return E; };
 const PW = 3, PH = 2, TRIM = 9, SW = 1.4;
 const plate = (c, r) => { const row = Math.floor(r / PH); return Math.floor((c + (row % 2 ? 1 : 0) + 1000 * PW) / PW) + "," + row; };
+// SHADE (Evgeni: "can we have small gradients in colors? or maybe some layers along the structure"), for big structures:
+//   a layer      one more thin dim line following the whole outline at inset RING (inside the design's own layers)
+//   a gradient   inside that line the body darkens downward, as if lit from above: a cell k cells below the top of its
+//                column (the structure's surface above it) runs from SV(k) at its top to SV(k + 1) at its bottom -- a solid
+//                fill of SV(k) with a 1293 gradient of SV(k + 1) over it, solid at the bottom -- so the rows join into one
+//                smooth ramp, down to SVMIN
+// A first try darkened by erosion levels (cells k blocks from every side): in Hellgate's jagged shapes it came out as dark
+// blotches, so the ramp follows only the height below the surface.
+const RING = 12, SV = k => Math.max(0.45, 1 - 0.13 * k);
+function shade(st, p, C, o = {}) {
+  const S = st.S, v = x => `0a1a${x.toFixed(3)}a0a0`, I = RING + 1.2;
+  region(S, RING).forEach(q => p.rect(q, "line", 8, { hsv: "0a1a0.3a0a0" })); tris(S, RING).forEach(t => p.tri(t, "line", 8, { hsv: "0a1a0.3a0a0" }));
+  region(S, I).forEach(q => p.rect(q, "base", 8)); tris(S, I).forEach(t => p.tri(t, "base", 8));
+  for (const q of region(S, I)) {
+    // split the piece into cell rows; each row's k from the column at its middle (pieces are merged along rows first)
+    for (let r = Math.floor(q[1] / 30); r * 30 < q[3]; r++) {
+      const y0 = Math.max(q[1], r * 30), y1 = Math.min(q[3], r * 30 + 30); if (y1 - y0 < 0.5) continue;
+      // columns inside the piece with the same k share one strip
+      let c = Math.floor(q[0] / 30), x = q[0];
+      while (x < q[2] - 0.5) {
+        const depth = cc => { let k = 0; while (S.has(key(cc, r + k + 1))) k++; return k; };
+        const k = depth(c); let c2 = c; while ((c2 + 1) * 30 < q[2] && depth(c2 + 1) === k) c2++;
+        const x1 = Math.min(q[2], (c2 + 1) * 30), seg = [x, y0, x1, y1];
+        {
+          p.rect(seg, "base", 9, { hsv: v(SV(k)) });
+          p.out.push(K.obj(1293, p.X0 + (x + x1) / 2, p.Y0 + (y0 + y1) / 2, { ch: C.base, z: "T1", zo: 10, sx: (x1 - x) / 15, sy: (y1 - y0) / 30, hsv: v(SV(k + 1)), groups: o.groups }));
+        }
+        x = x1; c = c2 + 1;
+      }
+    }
+  }
+}
 function interior(st, p, C, o = {}) {
   const S = st.S, S1 = erode(S); if (S1.size < (o.minCore || 3)) return 0;
   const n0 = p.out.length, sq = (c, r) => isSq(S, c, r);
+  if (o.shade !== false) shade(st, p, C, o);
   // a seam end: runs on when the cells past it on both sides are body, else stops TRIM short of the side
   const H = [], V = [], ends = [];
   for (const [c, r] of cellsOf(S)) {

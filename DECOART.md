@@ -396,4 +396,10 @@ inside (2+ blocks from every side). The plates are fixed to the level grid, so s
 First try, dropped: the panels only in a recessed core (the body inset by 4): in jagged shapes (slopes, steps) the core
 came out as random dark holes. Texture the whole body instead.
 Hellgate: wip deco-art/gdlm_44_hellgate_held v2; picture decoart/hellgate_inside.jpg (left v1, right v2).
-Open: other interior textures per theme (ice: cracks / facets, fire: veins), lamps rare on Hellgate (few cells are 2+ deep).
+Then (Evgeni: "more decent, can we have small gradients in colors? or maybe some layers along the structure"): `shade()`,
+in the same pass: one more thin dim line along the whole outline at inset 12 (a layer), and inside it a top-lit gradient --
+a cell k cells below its column's surface runs from 1 - 0.13k to 1 - 0.13(k+1) of the body colour (a solid fill and a
+1293 gradient over it), so rows join into one ramp, down to 0.45. A first try darkened by erosion levels (k blocks from
+every side): in jagged shapes that came out as blotches. Also fixed: 1293 is 15 units wide, so the designs' top glow
+covered only half of each top edge (sx was len / 30). Hellgate v5; picture decoart/hellgate_shade.jpg.
+Open: steps show where the ramp meets a slope (columns under a slope start lower); other interior textures per theme (ice: cracks / facets, fire: veins), lamps rare on Hellgate (few cells are 2+ deep).
