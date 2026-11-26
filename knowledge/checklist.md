@@ -462,6 +462,8 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 - [ ] Read the user's marks (`node tools/marks.js`), and after their playtest copy their words into
   `knowledge/critiques.md`. A new lesson goes into the right doc and onto this list.
 - [ ] **Not mostly cube, and some of it upside down** (Evgeni 2026-11-26 on Hellgate v6: "why is variety so biased to cube?
-  and almost no reverse if at all"): no mode over ~40% of a level's time, and at least one upside-down (gravity) stretch.
+  and almost no reverse if at all"): cube's share by tier as the mains measure it along their routes (2026-11-26: 69-87% in
+  the easy mains, ~24-50% in the harder ones; average 57% cube, 20% ship, 9% ball, 6% ufo, 4% wave, 1-2% robot / spider /
+  swing), and ~15-25% of the time upside down (mains: 17%). No mirror portals for now (Evgeni).
   The cause was the library (52 cube pieces vs 2-12 per other mode at 1x), so the fix is more verified pieces per mode
   plus a mode-share target in the picker; to come as a score.js check.
