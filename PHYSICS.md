@@ -758,6 +758,21 @@ five rules the sim matches it on every tick to the game's death (3793 steps, ~30
 The auto builder (tools/autobeat.js) places by the sim, so its builds change with these: tests/autobeat.js needs a rebuild
 by the auto thread (Jumper seed 2 and round 9 fail on the new physics).
 
+Lab v10 log (2026-11-26, `/mnt/project-files/auto_bricks/probe/`, auto thread; UFO stretch with flips, mini and pads): with
+these four UFO rules the sim matches every tick to the game's spike death (881 steps):
+- **A flipped UFO's gravity switch is the mirror of the upright one** (0.086 while player-frame vy <= +2g, 0.129 above), not
+  GD's world-frame ship rule: from rest after a UFO + gravity-up portal pair the game pulls 0.086 a tick, the old rule 0.129
+  (`GDLM_UFO_FLIP=old`; ticks 345-360).
+- **A boosted UFO is still held to its cap going up in world terms**: a yellow pad's 16 is 8.000 the next tick (mini 12.8 ->
+  9.412), while a flipped UFO's red pad -9.6 (down in the world) keeps its speed (`GDLM_UFO_PADCAP=old`; ticks 432, 851, 388).
+  Ship pads keep their boost (not measured here).
+- **A mini player that grows into the band's floor or roof stops dead** there (vy 0, not only speed into it):
+  `GDLM_GROW_STOP=old`; tick 682.
+- **A flipped UFO whose 9x9 kill box meets a block with its centre within 4.5 under the block's top is set on that top**
+  (lifted 11.3, vy 0) and lives: `GDLM_FLY_LIFT=old`; tick 807. ONE sample (a mini UFO): which modes, sizes and faces get
+  it is open.
+None of the four moves the 21 main logs, Evgeni's ToE / ToE2 / Hexagon / Deadlocked runs or the tas ratchet.
+
 ## Fidelity: measuring the sim against the user's game (goal: "as close as possible")
 
 The user's standing goal (2026-11-23). Plan: a scoreboard (tools/fidelity.js, not built yet) giving, per
