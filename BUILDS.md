@@ -177,3 +177,19 @@ The stage times are also in local/timings.jsonl.
 - slowest step: make (the whole-level solve every round); a section-only rebuild would have saved most of it (collab.js does that, planbuild does not yet)
 - change made: every fix is in tools/planbuild.js (defaults) or brickpick (fillGap), the two rules in knowledge/checklist.md ("Room at every portal", "Single spikes at speed"); ball parts dropped from this plan (their bricks leave the ball under a roof that ends); the 3x flight became 2x
 
+
+## GDLM 44 hellgate v6, 2026-11-26 (tools/hellgate_build.js, Evgeni: "iterate on hellgate, always taking the improved data and methods")
+
+- **Plan:** 7 sections at 1x (cube, ship, cube, wave, ball, ship, cube: 6 mode changes, v5 had 11), every one filled by
+  `brickpick.js pickSection` (beam search over the whole section), the height carried through each mode's band, `"outro": 2`
+  + signature, the pieces' presses as `seedPresses`.
+- **Times:** the seeded solve 5-6 min (v5's full solve 30 min); v6b's whole make 13 min. v6a's make took 55 min while a second
+  make of the same level ran beside it (my mistake: the first was not dead when its shell was) -- check `ps` before re-running.
+- **Result (v6b):** beaten, 67 presses, 1.39 clicks/s (v5 ~1.0), judge layout 7/10 (v5 3.8), taste 73 (v5 55), Hard ~7
+  attempts. NOT READY: 3 prejumps, a 50 ms first tap, 2 switches (ship->cube tap 246 ms after the portal; cube->wave button
+  change within 133 ms), arrows over hazards, the outro's portal wall read as skips.
+- **Found:** "b<beat>" puts a column's centre on the beat, so every brick picked by beat sat half a block (48 ms) early --
+  fixed for every builder (`brickpick.beatAt`). presslib's and seedsolve's repair skipped every calm point after the first (fixed).
+- **Next (v7):** more run-up after portals (fairness switches), a calm first second, fly sections in 3 shorter pieces (judge:
+  "long corridor" 6.6 s), denser fly / ball pieces, guards around the lane (HAZARDS.md: ours 43% threats / 40% guards / 17% fill,
+  rated ~17 / 45 / 38; `lib/hazards.js hazardsAlongPath`), the 72 mirror / upside-down cube variants now in structures.json.

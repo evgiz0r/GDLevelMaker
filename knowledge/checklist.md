@@ -211,6 +211,12 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 
 ## Not bland (rated Easy/Normal 2.0-2.1 medians)
 
+- [ ] **Hazards follow the path** (Evgeni 2026-11-26 on the auto levels' saws: "random, not following the path"): of the
+  level's hazards 8-40% threats (within a block of the route), 25%+ guards (1-3 blocks: the lane's frame, shuts secret
+  ways), at most 60% fill; half or more of the jumps over something; 2+ hazards near the path a second (official
+  17 / 45 / 38%, 71-83% of jumps). Check: score.js gate "hazards" (`node tools/hazards.js level <lvl>`); place them with
+  lib/hazards.js `hazardsAlongPath`. HAZARDS.md.
+
 - [ ] **The background never reads as solid** (the user's Two Moons mark, 2026-11-25: "solid background is confusing"). Back
   shapes must not look like blocks you can land on: no block-like squares with lit rims behind the play, lower value and
   contrast than the path's bodies, softer or no outlines, a different hue or some transparency. `tools/roles.js` (pathDeco).
