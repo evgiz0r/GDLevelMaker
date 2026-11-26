@@ -365,6 +365,23 @@ the wall at the right edge of a ~569-unit screen, so only the last ~229 units ar
 past the sign's centre. Now nothing lies past the sign's right edge (`signature.js` `extent(col)` / `clipEnd`), in beatend,
 autobeat, fxgallery and make.js (blocks too; `spec.endRun` still allows deco past it). Auto beat 2 v5.
 
+### The beat ending: looks, and inside the song (2026-11-26)
+Evgeni: "lets somehow improve the signature ... not to have the basic blocks on the bottom there (and not after the song
+ends)". Two changes, both in the tools, so every autobeat level gets them:
+- **No plain blocks.** The landing ledges were columns of plain blocks down to the ground. `beatEnd(..., {look})`:
+  `floating` (default) = each ledge is one row floating at the beat's height, and the slab under the sign joins the last ledge;
+  `ground` = no blocks at all, every bounce lands on the ground (landings ~30 ms off the beat instead of ~2 ms: the ledge
+  height was what tuned them); `plain` = the old columns. `endDeco(level, be, {dress})` then dresses them (deco only):
+  `floating` = the structure deco pass (tools/structdeco.js: layered design, depth, chain holders) in the fire palette +
+  embers; `ice` = nested frames, bevel, ropes, snow; `ground` = motes only. Gotcha: the slabs sit off the 30-unit grid the
+  structure pass assumes, so each height is dressed on the grid and moved back (one pass for all drew the design a row low).
+  autobeat: `--end-look`, `--end-dress`. Demos (30 beats of Golden Haze, same level, three endings):
+  `levels/lab/auto_ending_a.gdlvl` (floating, fire), `_b` (floating, ice), `_c` (ground).
+- **Inside the song.** autobeat's `buildInSong` builds, and when the run's end (the sign's screen) is past the song's last
+  beat minus 0.5 s, builds again with fewer beats. Auto beat 3 (Hexagon Force, whole song) had ended 3.7 s after the music;
+  now 3.6 s before it. `measures.songLeft` = seconds of song left at the end.
+Open: the sign's own plinth is still a plain dark bar; make.js's ending is not changed yet.
+
 ### Sections by character (tools/sections.js, 2026-11-26)
 Evgeni: "sections have to be cut by the transitions of the level". The batches were already cut at the song's transitions,
 but each batch's kinds and icons were a dice roll. Now each batch is typed from the measured song (heaviness, loudness, which

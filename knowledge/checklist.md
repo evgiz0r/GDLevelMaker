@@ -43,6 +43,9 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 - [ ] **The ending is designed, not a flat walk to the signature** (same review: "design the last sign/gameplay a bit more.
   maybe some auto gameplay which is not just on the ground"): the last seconds get a set piece -- e.g. an auto (no-click)
   ride on pads / portals that climbs or flies -- leading into the signature. Checked: `tools/judge.js` "flat ending"; make.js `"outro": <seed>` builds one (AUTO.md).
+- [ ] **No plain blocks in the ending, and it ends inside the song** (Evgeni 2026-11-26: "not to have the basic blocks on the
+  bottom there (and not after the song ends)"): the ending's ledges float and are dressed (beatend.js `endDeco`), and the sign's
+  screen comes before the music stops (autobeat `buildInSong`, `measures.songLeft` >= 0). AUTO.md "The beat ending: looks".
 - [ ] **Raised sections fit the mode's play band** (found building Hellgate v5, 2026-11-26): ship, ufo, wave, swing (10 blocks),
   ball (8) and spider (9) play in a band centred on their portal (lib/physics.js portal(); floor = portal y - band/2, snapped,
   never under 0). At ground level the band starts at 0, so pieces fit; up high a portal at floor+1 puts the band's roof only
