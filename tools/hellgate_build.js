@@ -46,7 +46,10 @@ const gate = (b, names, row) => { for (const n of names) objs.push([n, "b" + b, 
 // only its top 3 rows: under them the fire ground deco shows (v6's first build filled every row: 22.7k objects)
 const fill = (c0, c1, h) => { for (let c = Math.round(c0); c < Math.round(c1); c++) for (let r = Math.max(0, h - 3); r < h; r++) objs.push(["block", c, r]); };
 const CLIMB = [0, 1, 0, 1, 1, 0, 1, 0];
-const base = { slots: H.slots, grid: { period: P }, offset: OFFSET, beatCols: true, deadAir: 1.0, gap: [2, 4], beats: true, speed: "1x" };
+// v6b (Evgeni, 2026-11-26: "i want levels not to be so sparse, the beats are decently quick"; LEGO.md "Clicks and timing by
+// tier": rated bricks click ~1.8-2.15 a second at every tier, ours 1.2): a 2 clicks/s target, 1-3 block joins, cube pieces
+// of 2+ presses per 10 blocks, the new dense ship / wave pieces (lego-*-rapid)
+const base = { slots: H.slots, grid: { period: P }, offset: OFFSET, beatCols: true, deadAir: 1.0, gap: [1, 3], beats: true, speed: "1x", targetCps: 2, fillGap: 0.25 };
 
 let E = 0, prev = null;   // E: the floor height (rows) the player arrives on; prev: the last section's mode
 PLAN.forEach(([b0, b1, mode, kind, climb], i) => {
@@ -57,7 +60,7 @@ PLAN.forEach(([b0, b1, mode, kind, climb], i) => {
   if (banded) F = bandFloor(entry, mode);
   const lead = fly ? 6 : banded ? 4 : 1;
   const r = pickSection(Object.assign({}, base, { mode, used, startCol: col(b0) + lead, fromBeat: b0, toBeat: b1 - 0.5,
-    filler: mode === "cube", minDensity: mode === "cube" ? 1.5 : 0, max: "Hard", beam: 60 }));
+    filler: mode === "cube", minDensity: mode === "cube" ? 1.5 : 0, usedPenalty: mode === "cube" ? 6 : 1.5, singleRun: 1.2, max: "Hard", beam: 60 }));
   for (const p of r.picks) if (!p.j) used.push(p.id);
   // heights: a ground section walks up `climb` blocks, a block at a time, piece by piece (CLIMB wiggles it)
   let h = F, top = F;

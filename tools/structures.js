@@ -449,6 +449,12 @@ lego("lego-ship-corridor", "ship", "the same two hills as a ship corridor (5-col
 lego("lego-ship-spiky-gates", "ship", "the ship hills with spikes on both walls and a gate (a 4-row squeeze) at each hilltop: the official levels' most common ship piece", { gap: 5, seg: 5, flat: 3, spikes: "both", every: 5, gates: [1, 3], gateGap: 4 }, ["spikes", "gates"]);
 lego("lego-ship-floor", "ship", "the ship hills as a floor path only (open above), spikes on the level stretches", { gap: 5, seg: 5, flat: 3, wrap: "floor", spikes: "floor", every: 4 }, ["spikes"]);
 lego("lego-ship-flip", "ship", "the ship hills with gravity portals at the hilltops: the ship flies upside down between them", { gap: 5, seg: 5, flat: 3, turns: "mix" }, ["gravity", "gravity portal"]);
+// denser fly pieces (2026-11-26: a typical brick is ~2 clicks a second at every tier, our fly pieces ~1; Evgeni: "i want
+// levels not to be so sparse, the beats are decently quick"): short legs, a turn every few blocks
+lego("lego-wave-rapid", "wave", "small wave zigzags of 2-3 rows, a turn every 3-4 blocks: quick clicks for fast beats", { rows: [2, 4, 2, 5, 3, 5, 2, 4, 2], gap: 5, flat: 1 }, ["dense"]);
+lego("lego-wave-rapid-teeth", "wave", "the small wave zigzags with a spike at each turn", { rows: [3, 5, 2, 4, 2, 5, 3, 5, 3], gap: 5, flat: 1, spikes: "turns" }, ["dense"]);
+lego("lego-ship-rapid", "ship", "small ship hills on 3-column legs: a tap or short hold every couple of blocks", { rows: [2, 4, 2, 5, 3, 5, 2], gap: 5, seg: 3, flat: 1 }, ["dense"]);
+lego("lego-ship-rapid-spikes", "ship", "the small ship hills with spikes on both walls", { rows: [3, 5, 2, 4, 2, 5, 3], gap: 5, seg: 3, flat: 1, spikes: "both", every: 4 }, ["dense", "spikes"]);
 lego("lego-swing-corridor", "swing", "the same two hills as a swing corridor (6 rows of room)", { gap: 6, seg: 6, flat: 2 });
 lego("lego-swing-gates", "swing", "the swing hills with a gate at each hilltop", { gap: 6, seg: 6, flat: 3, gates: [1, 3], gateGap: 4 }, ["gates"]);
 

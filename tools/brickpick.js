@@ -100,6 +100,7 @@ function pick(o) {
 //     repeat   4 for a brick already in the level or section (o.used), 1 for the same first tag as the last brick
 //     run-up   0.15 per block of run-up (short joins), dead air 2 (a first press over o.deadAir s after the last)
 //     tail     0.4 per block left empty before the section's end (filled to its end)
+//   target   o.targetCps: 2 x the share a piece falls under it (LEGO.md: a typical brick is ~2 clicks a second at every tier)
 //   o.beam (default 60) chains kept per step; same options as pick() otherwise (gap, minDensity, filler, beats, startCol,
 //   beatCols, max, mode, speed). Returns what pick() returns, plus cps (presses a second per pick) and cv (their spread).
 function pickSection(o) {
@@ -123,8 +124,9 @@ function pickSection(o) {
         const cps = ts.length / ((width + gap) / v);
         let x = s - 0.15 * gap;
         if (meanCps) x -= 1.5 * Math.abs(cps - meanCps) / meanCps;
+        if (o.targetCps) x -= 2 * Math.max(0, o.targetCps - cps) / o.targetCps;   // under the tier's click density (Evgeni: "not so sparse")
         if (ts.length && ts[0] - st.lastPress > (o.deadAir || 1.8)) x -= 2;
-        if (st.lastTag && tag === st.lastTag) x -= tag === "single" ? 0.5 : 1;
+        if (st.lastTag && tag === st.lastTag) x -= tag === "single" ? (o.singleRun ?? 0.8) : 1;   // singles back to back: a spike train
         const used = new Set(st.used); if (id !== "single") used.add(id);
         next.push({ col: pk.col + width, lastPress: ts.length ? ts[ts.length - 1] : st.lastPress, lastTag: tag, used, picks: st.picks.concat([pk]), s: st.s + x, cps: st.cps.concat([cps]) });
         grew = true;

@@ -217,6 +217,7 @@ on a long one with modes). Wait for the heavy-job slot comes on top of all of th
 | make, an existing level after a one-spot edit (incremental) | 1-5 s in cube or ball; an edit inside or just before a ship stretch 25-65 s (the stretch is re-planned) | PHYSICS.md "Incremental solving", cloud 2026-11-23 |
 | cut or join of solved levels (section cache) | 0.5-10 s (full: 1-70 s) | PHYSICS.md "Incremental solving" |
 | make (= the solve), 40-100 s level with ship / wave / ball | ~2 min since the state-copy fix (was 5-7 min); 13 min for GDLM 44 v2 with no saved route (cloud, 2026-11-25) | GDLM 45 106 s, GDLM 61 124 s (cloud, 2026-11-23); before: PHONE.md, SHOWCASE.md |
+| make, a level built from verified bricks with `seedPresses` (tools/seedsolve.js) | the solve ~6 min (GDLM 44 v6, 58 s, 5 modes: 28 local searches); the whole make 55 min -- the rest after the solve (natural plan for indicators, sightread, saving the route) | cloud, 2026-11-26 |
 | score.js, every gate, short cube level | 10-20 s | loop.js, GDLM 02 / 41 |
 | score.js, level with modes, saved route current (checks the route, no solve) | ~1.5 min (GDLM 45, 40 s level: 89 s) | difficulty session, 2026-11-24 |
 | score.js, level with modes, no saved route (`opts.saved:false` or nothing to build on) | ~2 solves + ~1 min fairness: 10-15 min | score.js header |
