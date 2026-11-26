@@ -31,11 +31,12 @@ const ST = JSON.parse(fs.readFileSync(path.join(ROOT, "knowledge", "structures.j
 // entries b126 / b130, b137. v8 (Evgeni on v7: "still too much cube. almost no reverse. ... some places just nothing for few
 // seconds"): cube 44% (the mains' harder levels: 24-50%), an upside-down cube section (~ud pieces), 6 mode changes in 60 s,
 // rests (opts.rest, beats with nothing to press) before the kick and inside the long sections
-const PLAN = [
-  [1, 17, "cube", "intro", 2], [17, 37, "ball", "quiet build", 0, { rest: [[32, 37]] }], [37, 65, "ship", "the kick"],
-  [65, 81, "wave", "the big entry"], [81, 105, "cube", "upside down", 0, { ud: true, rest: [[95, 99]] }],
-  [105, 115, "ufo", "speeds up"], [115, 145, "cube", "the end", 3, { rest: [[129, 132]] }],
-];
+// v9 (Evgeni, 2026-11-26: "sections have to be cut by the transitions of the level"): the plan comes from the song --
+// tools/songplan.js cuts it at its transitions (tools/sections.js) and gives each section a mode and feel by its type
+const SP = require("./songplan.js").plan(343707, { to: 75, from: OFFSET });
+const PLAN = SP.sections.map(x => [x.b0, x.b1, x.mode === "cube-ud" ? "cube" : x.mode, x.type, x.mode === "cube" ? 2 : 0,
+  Object.assign({ type: x.type }, x.mode === "cube-ud" ? { ud: true } : {}, x.rest ? { rest: x.rest } : {})]);
+
 const FLY = new Set(["ship", "wave", "swing", "ufo"]), BAND = { ship: 300, ufo: 300, wave: 300, swing: 300, ball: 240, spider: 270 };
 const PORTAL = { cube: "cube portal", ball: "ball portal", ship: "ship portal", robot: "robot portal", ufo: "ufo portal", wave: "wave portal", spider: "spider portal", swing: "swing portal" };
 // lib/physics.js portal(): a banded mode plays in BAND units centred on its portal, the floor snapped down to a block
@@ -98,7 +99,7 @@ PLAN.forEach(([b0, b1, mode, kind, climb, opt = {}], i) => {
   const r = { picks: [], presses: 0, onHit: 0, cps: [], cv: 0, tail: 0 };
   for (const [fb, tb, sc] of segs) {
     const q = pickSection(Object.assign({}, base, { mode, used, startCol: sc, fromBeat: fb, toBeat: tb, prefer: opt.prefer, filter: ud ? flippable : null,
-      window: [120], cpsBand: [1.2, 3.0], filler: mode === "cube", minDensity: opt.prefer ? 1.0 : mode === "cube" || mode === "ball" ? 1.5 : 0,
+      window: [120], cpsBand: [1.2, 3.0], targetCps: opt.type === "break" ? 1.6 : opt.type === "drop" ? 2.3 : 2, filler: mode === "cube", minDensity: opt.prefer ? 1.0 : mode === "cube" || mode === "ball" ? 1.5 : 0,
       gap: opt.prefer ? [1, 4] : base.gap, preferBonus: 8, usedPenalty: mode === "cube" ? 6 : 3, singleWidth: 6, singleRun: 1.2, max: "Hard", beam: 60 }));
     for (const p of q.picks) if (!p.j) used.push(p.id);
     r.picks.push(...q.picks); r.presses += q.presses; r.onHit += q.onHit * q.presses; r.cps.push(...q.cps); r.tail = q.tail; r.cv = Math.max(r.cv, q.cv);
@@ -142,7 +143,7 @@ PLAN.forEach(([b0, b1, mode, kind, climb, opt = {}], i) => {
   prev = mode; prevUd = ud;
 });
 
-const variant = { intro: "molten", "quiet build": "molten", "the kick": "inferno", "the big entry": "inferno", "upside down": "ash", "speeds up": "inferno", "the end": "ash" };
+const variant = { break: "molten", build: "molten", drop: "inferno", entry: "inferno", groove: "ash" };
 const spec = {
   name: "GDLM 44 hellgate",
   desc: "Down through the gates of hell. Made by Claude.",
@@ -151,11 +152,11 @@ const spec = {
   scene: "tools/scenes/theme.js",
   theme: { name: "fire", sections: PLAN.map(([b0, , m, kind]) => ({ from: Math.max(0, Math.round(col(b0)) - 2), variant: variant[kind] || (FLY.has(m) ? "inferno" : "molten") })) },
   song: { custom: 343707 }, offset: OFFSET, grid: { bpm: BPM, t0: T0 },
-  drop: 37, pulseZones: [[37, 65], [65, 81], [121, 145]],
+  drop: (PLAN.find(x => x[3] === "drop") || PLAN[0])[0], pulseZones: PLAN.filter(x => x[3] !== "break").map(x => [x[0], x[1]]),
   colours: { bg: [30, 6, 6], ground: [12, 0, 0], ground2: [12, 0, 0], line: [170, 60, 20] },
   seedPresses: seeds.map(s => ({ t: +s.t.toFixed(4) })),
   objects: objs,
 };
 console.log(report.join("\n"));
-console.log(`~${Math.round(col(145))} blocks + the outro, ${(144 * P).toFixed(1)} s of gameplay; heights ${heights.join(", ")}`);
+console.log(`~${Math.round(col(PLAN[PLAN.length - 1][1]))} blocks + the outro, ${((PLAN[PLAN.length - 1][1] - 1) * P).toFixed(1)} s of gameplay; heights ${heights.join(", ")}`);
 if (!process.argv.includes("--dry")) { fs.writeFileSync(path.join(ROOT, "specs", "44_hellgate.json"), JSON.stringify(spec, null, 1) + "\n"); console.log("-> specs/44_hellgate.json"); }
