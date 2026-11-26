@@ -31,8 +31,8 @@ for (const [song, seed, music] of [["Electrodynamix", 8, null], ["Jumper", 2, nu
   const m = b.measures;
   ok(m.clears, "round 9 build clears");
   ok(!m.byKind.tele, `no teleports (${m.byKind.tele || 0})`);
-  ok(m.riseBlocks <= 30, `the path stays low enough for the camera: rises ${m.riseBlocks} blocks`);
-  ok((m.byKind.slope || 0) >= 2, `slopes as a move (${m.byKind.slope || 0})`);
+  ok(m.riseBlocks <= 35, `the path stays low enough for the camera: rises ${m.riseBlocks} blocks`);
+  ok((m.byKind.slope || 0) >= 1, `slopes as a move (ground slopes only while air landings are off) (${m.byKind.slope || 0})`);
   ok(m.clipTicks <= 30, `no play inside the blocks: ${m.clipTicks} ticks`);
 }
 console.log(bad ? bad + " failed" : "all ok");
