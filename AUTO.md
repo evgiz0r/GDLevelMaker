@@ -351,3 +351,9 @@ Auto beat 2 v3 is built with it (and the beat ending).
 The effects thread's toolkit (EFFECTS.md): `tools/effects.js` puts music-synced effects (lights, dancing blocks, glows along
 the path, clouds and a pulsing ring locked to the player, contact flashes at pads and landings, hidden pads) on any auto
 level's zero-press run: `FX.context({path, grid, notes})`, then `FX.<effect>(ctx, {t0, t1})`. Gallery: `levels/lab/fx_gallery.gdlvl`.
+
+Checked against RobTop (2026-11-26, Evgeni asked how many sections Electrodynamix has): `node tools/sections.js Electrodynamix`
+gives 9 sections, cuts at 7.6 / 22.7 / 29.8 / 37.4 / 45.4 / 53.0 / 67.6 / 73.8 s. The official level changes mode or speed at
+7.6 (2x), 22.7, 29.4, 37.8, 43.6, 47.3, 52.4, 52.9 (3x), 56.6, 60.4, 64.1, 67.9, 75.5: 7 of our 8 cuts are within 0.5 s of
+one of his, the 8th (73.8) is 1.7 s before his last ship. He adds ~4 s mode swaps inside the loud middle (43-68 s), which
+the song typer does not cut: inside a long drop/entry section, change mode every 2 bars or so.
