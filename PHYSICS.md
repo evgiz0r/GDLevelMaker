@@ -232,6 +232,9 @@ air and released before the landing does NOTHING, however close to the landing.
 
 ## Upside-down cube and the ground (2026-11-24): in the sim since 2026-11-26 (vy < -4 kills; the cut is a guess)
 
+The robot too (2026-11-26): the auto lab v12 probe log, tick 4742, a flipped robot at vy -7.27 dies touching the ground with
+no object, where the sim had it land; lib/physics.js now applies the same cut to the robot. Ball, spider, UFO: not seen.
+
 GDLM 67's green orb station (18-58-15.mkv) throws the cube down with gravity flipped; it then meets the flat floor head
 first. The game: attempts 58.2, 98.4 and 158.3 burst on the floor (no hazard near, frames 68.45-68.70 and framecheck's
 paths: 58.2 died the frame its box reached the ground line, falling ~5.4 units a frame); attempt 114.13 came down slower

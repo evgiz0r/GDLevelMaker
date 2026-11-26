@@ -295,3 +295,6 @@ v11 (physics 6a00a0d): Evgeni died at 3% in GD on v10 -- the sim pulled a flippe
 lab log"). Rebuilt on the fix: clears, 525 hazards, 3 saws, 23 leaks open.
 v12 (physics 74a3768): Evgeni's v11 run died at 3% -- a mini UFO climbs a slope later in the game, and a flipped cube dies
 landing hard (vy < -4) on a block top. Rebuilt: clears, 837 hazards (180 leak blocks), 13 saws, 37 leaks open.
+v13: Evgeni's v12 run reached 16% (tick 4742, 19.8 s) and died where a flipped robot hits the ground at vy -7.3 (no
+object); the sim had it land. The sim now kills a flipped robot there too, the same rule as the cube. Rebuilt: the path is
+identical to v12 up to that spot (tick 4696), 1074 hazards, 9 saws, clears. Probe log in the project files (auto_bricks/probe).
