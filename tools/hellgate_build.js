@@ -66,7 +66,7 @@ const floorOf = (b0, b1, sp, B) => { const out = [], w = Math.ceil((b1 - b0) * P
 // step up a block (its flip would take it to a ceiling). Placed by beat like the pieces: "b<b0>+<columns>".
 const CLIMB = [1, 2, 1, 3, 2, 3, 4, 3, 2, 1, 2, 3];
 const rise = (b0, vcol, picks, mode, B = 0, D = 0, F = B) => {   // F: the floor's own top under the section (pieces stand on columns from F)
-  if (!["cube", "mini", "robot"].includes(mode)) { for (const p of picks) p.h = B; rise.end = B; return []; }
+  if (!["cube", "robot"].includes(mode)) { for (const p of picks) p.h = B; rise.end = B; return []; }   // (mini stays level: v5 died at 48 s where a mini cube met a block step)
   const out = []; let h = 0, k = 0;
   picks.forEach((p, i) => {
     const prevEnd = i ? picks[i - 1].col + picks[i - 1].width : p.col - 2;
@@ -103,7 +103,7 @@ PLAN.forEach(([b0, b1, mode, sp, kind], i) => {
   // low over a raised floor (v5's first build: the ufo entered 9 blocks up, its band roof 5 blocks over the floor, and its
   // orb-over-a-wall piece needed 6 -- dead at 18 s). So the player drops a few blocks after such a portal.
   const BANDU = { ball: 240, spider: 270, ufo: 300 }, prevEnd = i ? ACT[i - 1] : 0;
-  const B = BANDU[mode] && i ? Math.max(0, Math.floor(((prevEnd + 1) * 30 + 15 - BANDU[mode] / 2) / 30)) : prevEnd, D = END[i] - B, climbs = ["cube", "mini", "robot"].includes(mode), F = climbs ? Math.min(B, END[i]) : B;
+  const B = BANDU[mode] && i ? Math.max(0, Math.floor(((prevEnd + 1) * 30 + 15 - BANDU[mode] / 2) / 30)) : prevEnd, D = END[i] - B, climbs = ["cube", "robot"].includes(mode), F = climbs ? Math.min(B, END[i]) : B;
   ACT[i] = B;
   objs.push(...floorOf(b0, b1, sp, F));
   if (mode === "mini") {
