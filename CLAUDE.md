@@ -347,13 +347,17 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   `check`, `build <id>`, `rank`, `page`), results in `knowledge/structures.json`, a picture page for the
   phone (link in local/phone/structures_url.txt). Every cube-in/cube-out one is the pattern `"s:<id>"`,
   and compose.js puts one in every plain cube section by default (`"structures": false` = off).
+- **Visual effects synced to the music** (EFFECTS.md: Evgeni "i want to gain the controls"; alpha / toggle / move / lock to
+  player or camera / rotate / scale / colour, pulse labelled untested; trigger keys checked on rated 2.2 levels): `tools/effects.js`
+  (each effect a function `(ctx, {t0, t1, ...})`; `node tools/effects.js` lists them), the labelled gallery `tools/fxgallery.js`
+  -> `levels/lab/fx_gallery.gdlvl` (auto, Electrodynamix; most of it shows only in GD). Test: `node tests/effects.js`.
 - **Auto bricks: stretches with no click** (AUTO.md: the main levels' auto parts measured -- ~10% of a level, pad launches,
   blue-pad ping-pong, portal rides --, 50 own bricks built by sim placement with an entry / exit contract, the lab level):
   `tools/autostudy.js` (-> knowledge/auto_study.json, numbers only), `tools/autobricks.js list | build | show` (->
   knowledge/autobricks.json, local/structures/lego-auto-*.gdlvl for `lego.js mine library`, levels/lab/auto_lab.gdlvl).
   Test: `node tests/autobricks.js`. **Beat-first auto levels** (AUTO.md "Beat-first", round 8: rapid runs, own speed bursts, no secret way via stray presses + saws, outro + signature): `tools/autobeat.js --song <Official> --seed N`
   (a trigger on each chosen beat where the player is, gaps filled, motifs AAAA / BBBB / a mix; lab levels/lab/auto_beat.gdlvl);
-  test `node tests/autobeat.js`.
+  test `node tests/autobeat.js`. **Sections by character** (`tools/sections.js <song>`: drop / break / build / entry / groove from the measured song; autobeat's batches follow it) and **the short beat ending** (`tools/beatend.js`: pad bounces hit and landed on the beats, then the sign; AUTO.md).
 - **Lego: structure research** (LEGO.md: every level cut into 1-3 s pieces -- official, ours, the user's sketches --,
   classified by family (fly: ship/wave/swing paths and corridors; jump; flip) with parameters, the official mix vs ours,
   the variety rule; one path built as ship / wave / swing with wrappers and click- or portal-turns): `tools/lego.js`
@@ -517,12 +521,13 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   shaped like an earlier one, no variety, an orb with no reason, too easy), from a level's saved route; `--vs <marks.json>` compares
   them with his marks (tests/judge.js: 11 of his 13 v4 Hellgate marks, `knowledge/judge/`). Run it on every build before he sees it.
 - **`tools/report.js <level>` -- the judge report** (Evgeni, 2026-11-26: "not too big, with scores"): one short card --
-  Layout 0-10 (balance, flow, variety, pacing, clarity from judge.js), difficulty, unfair spots, taste, deco (later), the top 5
+  Layout 0-10 (balance of sections and pieces, modes -- cube share and upside down --, transitions, rests, flow, variety, pacing, clarity, ending; made stricter 2026-11-26 after Evgeni: "the judge seems to be too nice"), difficulty, unfair spots, taste, deco (later), the top 5
   notes; `--geo <map>.geo.json` (levelmap.js writes it beside each map) pins the notes on the level map. Run it on every build.
 - **Hazards: spikes, saws and pits against the player's path** (HAZARDS.md: the study of 21 mains + 127 community levels -- roles threat / guard / fill, jumps over something, lane frames, dressing -- the rules, the generator, what is open): `lib/hazards.js` (`hazardStats`, `hazardsAlongPath(path, objects, opts)`: hazards that follow a planned path and block leaks), `tools/hazards.js level | study [--write]` (-> knowledge/hazards_ref.json; score.js gate "hazards", WARN), `tools/hazards_try.js <level> [--map a b]` (strip a level's hazards and place new ones). Test: `node tests/hazards.js`.
 - **`tools/density.js <level>` -- is a level sparse inside** (Evgeni 2026-11-26: "i want levels not to be so sparse"): its route cut into bricks against the tier's rated bricks (knowledge/brick_tiers.json), the calmest 4 s windows, the longest stretch with no press; score.js gate "density" (WARN). Test: `node tests/density.js`.
 - **`tools/pieces.js <spec>` -- the pieces a spec is built from**, with their spans and the gaps between them; `--out` +
   `levelmap.js <level> --pieces <out>` draws a bracket per piece on the level map (where pieces join).
+- **`tools/songplan.js <song> [--to s]` -- a level's section plan from its song**: cut at the song's transitions (tools/sections.js), a mode per section by its type (break / drop / entry / groove), rests, one upside-down section, cube under ~50% (GDLM 44 v9).
 - `tools/mapbeats.py` (beat and bar lines over a levelmap.js picture). `tools/hellgate_build.js` -- GDLM 44 v3's builder: song part + local grid -> sections -> brickpick / fly-path -> specs/44_hellgate.json (+ .plan.json). **`tools/planbuild.js <briefs/NN.plan.json>`** -- the same builder with the section plan as data, for any level (GDLM 73 sunny streets; LEGO.md "The same builder for any level").
 - `examples/` -- levels the user made in the game, for reference and as format ground truth.
 
@@ -655,7 +660,7 @@ Open mismatches the plans show (not understood yet, do not paper over them):
   "fixed" (Polargeist, Dry Out, Can't Let Go, Jumper, Time Machine, Clutterfunk) show our cube landing 4-21 ticks late
   there: open. And a cube that landed on the ground jumps no sooner than the tick after (a held bounce every 104
   ticks, as GD and the user's video). PHYSICS.md "Landing buffer", "Frames: the video as the reference".
-- OPEN: an upside-down cube hitting the ground hard dies in the game (GDLM 67's green orb, 3 of 4), a soft touch does
+- In the sim since 2026-11-26 (a cut at vy -4, a guess; the auto lab v11 log gave an exact -13.6 death): an upside-down cube hitting the ground hard dies in the game (GDLM 67's green orb, 3 of 4), a soft touch does
   not; the sim never kills it. Needs the green orb's throw calibrated first. PHYSICS.md "Upside-down cube and the ground".
 
 Modes beyond cube/ship come from gdsolver's measured model and the gdp decompile, checked only

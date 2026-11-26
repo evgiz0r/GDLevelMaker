@@ -99,6 +99,7 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   presses) and no empty screen -- no hazard, orb, pad or structure in view for 1+ s (official levels: 1 in ten).
   A calm is short and deliberate, with deco, and accepted in the brief. `tools/deadair.js`, score.js "dead air";
   craftlevel fills a short section with its own chunks. (the user on GDLM 61 v3, 38-46 s: "very big breaks with nothing")
+- [ ] **The song offset sits on a beat** when the builder counts beat 1 from the level start: a hair past one makes every `"bN"` a beat late (GDLM 44 v5-v6). make.js prints `!! offset ... past a beat`; SYNC.md "bN".
 - [ ] **Presses follow the song's beat**: the human route has about as many inputs per beat as the official levels
   (0.53-0.87 over the level, 0.50+ in its busy phrases; a calm phrase may be sparse). `tools/tempo.js`, score.js "tempo".
   (the user on GDLM 44 hellgate v6: "the cps is very small, compared to beat of the song")
@@ -235,6 +236,8 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   for "the visible play"; "if you dont see a spike the timing is obviously harder"). No deco in front of the lane the player
   can be in, none behind a hazard in its value or hue (it must stand out), the richest art at the lane's edges, quiet behind
   the hazards. `node tools/lane.js <level>` (clutter = 0), `tools/roles.js` (pathDeco, hazards), `tools/readability.js --gate`.
+  Nothing hazard-shaped that is not a hazard near the lane (icicles or thorns under a ceiling over the lane read as spikes:
+  the ice kit, 2026-11-26), and no big flat shape filling the screen behind the play (a lone peak or volcano reads as a wall).
 - [ ] **Motion and colour on every screen, not only at the start** (Eclipse v2-v4, 2026-11-25): one calm pulse a beat, a drift and a
   spin per section, 10+ colour channels a screen; triggers placed along x, since the measures (decostudy, taste) count by x.
   `node tools/taste.js score <level>` (dsMotion, dsChannels). Warm light behind the path: cool rims (`tools/roles.js`).
@@ -441,6 +444,7 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   pair. BUILDING.md section 5.
 - [ ] **Auto levels: no secret way** -- a press anywhere dies or is back on the auto path within 5 s (autobeat.js strays();
   saws where a press leaves it). Rapid runs (4+ notes <= 0.14 s apart) get triggers 0.07 s apart. AUTO.md round 8.
+- [ ] **Before telling the user to install, check the copy on the PC is the new version** (size or hash of the file he installs from): a failed copy step left v11 there, and he died on the same tick three times on a level we had already fixed (auto beat, 2026-11-26). A real-game run byte-identical to an earlier one means the same level is still in GD.
 - [ ] **After a physics change, republish the phone page before a level built on it goes there** (PHONE.md): the page replays with its own copy of lib/physics.js (auto beat v8 died on the phone at 11 s, 2026-11-26).
 - [ ] **An auto level is built and checked on main's newest physics before it is installed**: GDLM auto beat v4 cleared on
   the morning's physics and fell in the game at 20 s; on the evening's physics it dies there too. `git pull`, rebuild, check.
@@ -471,3 +475,15 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   The cause was the library (52 cube pieces vs 2-12 per other mode at 1x), so the fix is more verified pieces per mode
   plus a mode-share target in the picker; to come as a score.js check.
 - **Spikes close to the lane on both sides, deco with a rhythm** (Evgeni 2026-11-26, the icy part, DECOART.md round 6): rated levels keep ~45% of hazards guarding the lane (above and below), 2-3 per obstacle, and deco with quiet stretches and big moments (cv ~0.9); `node tools/hazards.js level <lvl>`, `node tools/decocomp.js <lvl>`.
+
+- [ ] **Balanced pieces** (Evgeni on GDLM 44 v7: "some have like 2 cps without frame windows, and some seem mega hard ... pick
+  balanced structures, with similar cps and frame windows"): every piece's tightest window and clicks a second inside the
+  tier's band (Normal / Hard: window 120 ms+, 1.2-3 clicks/s; rated bricks: knowledge/brick_tiers.json), and close to each
+  other within a section. brickpick.js pickSection `window`, `cpsBand`, `winSpread`.
+- [ ] **Rests on purpose** (the same note: "some places just nothing for few seconds"): 1.5-2 s with nothing to press at
+  quiet moments of the song (before a drop, inside a long section) -- the mains have ~11 breathers a minute (LEGO.md
+  "Combining"). Not dead air by accident: a planned rest is listed in the builder's plan (hellgate_build.js `rest`).
+- [ ] **A real upside-down stretch** ("almost no reverse"): ~15-25% of the time upside down; the ~ud variants flip back within
+  1-2 s, so a section is built upside down as a whole (patterns.js `ud:<id>`, a ceiling, one portal in and one out).
+- [ ] **Portals taken on the move** ("no proper transitions"): a jump into the portal out of the cube, a drop out of a flight
+  (official 93% on the move, ours 46% walking in; LEGO.md "Combining").

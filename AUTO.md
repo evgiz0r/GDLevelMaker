@@ -291,3 +291,63 @@ triangle where leak blocks meet a lane piece (t 12 s), lone hanging spikes under
 flight (lane.fly.belowHaz 28 vs rated <20); 15 leaks are still open.
 v10 (hazards fd0639c): leaks met by a lane piece count as shut, pieces 2-3 wide, floor side half as often: fly belowHaz
 28 -> 19%, 496 hazards, 10 saws, the triangles and lone hanging spikes gone. Still off: guardAbove 27.5% (rated 10-23).
+v11 (physics 6a00a0d): Evgeni died at 3% in GD on v10 -- the sim pulled a flipped UFO 1.5x too hard (PHYSICS.md "The auto beat
+lab log"). Rebuilt on the fix: clears, 525 hazards, 3 saws, 23 leaks open.
+v12 (physics 74a3768): Evgeni's v11 run died at 3% -- a mini UFO climbs a slope later in the game, and a flipped cube dies
+landing hard (vy < -4) on a block top. Rebuilt: clears, 837 hazards (180 leak blocks), 13 saws, 37 leaks open.
+v13: Evgeni's v12 run reached 16% (tick 4742, 19.8 s) and died where a flipped robot hits the ground at vy -7.3 (no
+object); the sim had it land. The sim now kills a flipped robot there too, the same rule as the cube. Rebuilt: the path is
+identical to v12 up to that spot (tick 4696), 1074 hazards, 9 saws, clears. Probe log in the project files (auto_bricks/probe).
+v14: Evgeni's v13 run reached 68% (tick 17990, 75 s): after a gravity portal the released ship, upside down, pulled 0.069 a
+tick (the 0.8 factor) where the sim used 1.2, so it rose 31 units too high into a spike row. The sim now mirrors the ship's
+threshold upside down like the UFO's (GDLM_SHIP_FLIP=old = before); with it the sim matches the log to the death tick.
+Rebuilt: the same path as v13 up to there, clears.
+
+**v14 cleared in Evgeni's real game (2026-11-26)**: the first auto beat lab to pass, after five probe-log rounds (v10 flipped
+UFO, v11 mini UFO slope + flipped cube ground, v12 never installed, v12 flipped robot ground, v13 flipped ship / "Fix
+Gravity Bug"). Each death was a sim mismatch, never a level fault the sim saw.
+
+### Auto beat 2: a song where the sync shows (2026-11-26)
+Evgeni: "take a song that has a clearer, bit less cps beat, with clearer mixes of instruments; would make the visual sync more
+apparent". `node tools/songclarity.js` ranks the officials by strong notes a second, the share on the beat / half beat and how
+clearly one band leads each bar. Can't Let Go: 2.52 strong notes/s (Geometrical Dominator 3.11), 62% on the beat and 99% on half
+beats (GD: 39% / 83%), lead share 0.66 (the highest; GD 0.55). Back On Track and Deadlocked have fewer notes but a looser grid.
+Built: `node tools/autobeat.js --song CantLetGo --seed 3 --name "GDLM auto beat 2" --out levels/lab/auto_beat_2.gdlvl` --
+90.7 s, 378 triggers, 98% on the beat, notes hit 0.67, 7 modes (swing new to the auto labs: not yet checked in the game), clears.
+
+Auto beat 2 v1 in the game (2026-11-26): died at 34% (tick 7213). Two sim fixes from its probe log: a cube standing on the
+ground keeps the launch tick's gravity step when a pad fires (0.048 down), which made it graze a yellow pad later that the sim
+missed by 0.03; and a flipped player sunk more than 0.7 into the ground dies at any speed (a flipped spider on the ground took
+a robot portal, the robot's taller box sank 1.07 in). With both, the sim dies on the game's tick. v2: same song and seed,
+rebuilt on that physics, the same path as v1 to tick 5641, clears, and the new beat ending (tools/beatend.js).
+
+v3 died at 16% (tick 3540): a flipped mini robot thrown down by a flipped yellow pad touched the ground at vy -1.94 and the
+game killed it; the sim's cut was -4. A flipped robot now dies at any speed into the ground (PHYSICS.md). v4: rebuilt on that,
+the same path as v3 to 14.5 s, clears.
+
+### The beat ending (tools/beatend.js, 2026-11-26)
+Evgeni on the old outro: "too big, way too much without anything happening and it doesnt match the beat ... something small
+half screen of auto gameplay, that matches the beat ... with the sign there". From the level's end: a portal column on a beat
+(any arrival -> plain cube), then 2 pad bounces: each pad fires on a beat (its x fixed by the launch tick in the sim) and each
+landing is on a later beat (the landing ledge's top is the feet's height on that beat, so the cube comes down on it; the pad
+and beat are picked to keep the ledges low). The cube then runs under the floating sign, which bobs on the beats, and the level
+ends 5 blocks after it. Measured: launches and landings within 2 ms of the beats on Can't Let Go, 4-5 ms on Geometrical
+Dominator. autobeat uses it by default (`opts.ending: "outro"` = the old one). Open: make.js and the other builders still use
+the old outro; the Geometrical Dominator ending climbs to ~4 blocks (no low-ledge beat there).
+
+### Sections by character (tools/sections.js, 2026-11-26)
+Evgeni: "sections have to be cut by the transitions of the level". The batches were already cut at the song's transitions,
+but each batch's kinds and icons were a dice roll. Now each batch is typed from the measured song (heaviness, loudness, which
+band leads, the transition at its start; `node tools/sections.js <song>` prints them) and gets content by type:
+drop = red pads on the low notes, yellow on the mid, blue on the top, robot / ball; break = a flight (ship, ufo) with gravity,
+mini and icon portals; build = stairs, slopes and pink pads climbing; entry = the batch before goes on and the band that came in
+gets a new kind; groove = the batch before goes on with one new icon. Can't Let Go: break 0-7 s, build 7-17, entry 17-24,
+drop 24-31, entries to 72, break to the end. Swing is left out of flights until the game has checked it. Full songs clip
+into ledges less with it (GD seed 1: 18 ticks vs 26; Can't Let Go: 0). `opts.sections: false` = the old roll.
+Auto beat 2 v3 is built with it (and the beat ending).
+
+## Visual effects for auto levels (2026-11-26)
+
+The effects thread's toolkit (EFFECTS.md): `tools/effects.js` puts music-synced effects (lights, dancing blocks, glows along
+the path, clouds and a pulsing ring locked to the player, contact flashes at pads and landings, hidden pads) on any auto
+level's zero-press run: `FX.context({path, grid, notes})`, then `FX.<effect>(ctx, {t0, t1})`. Gallery: `levels/lab/fx_gallery.gdlvl`.

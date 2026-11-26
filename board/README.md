@@ -84,6 +84,15 @@ where our solver died (hover: what killed it, when), – not tried. "Your best" 
 it from local/difficulty/c<id>.json (community, difficulty_solve.js) and local/mains/status.json (main levels' human
 route): cols `sim`, `sim_why`, `sim_at` in board/played; `sim: {id: {sim, why, at}}` in board/latest.
 
+## Ending sign (2026-11-26)
+
+The "Ending sign" section shows pictures of the level ending with the Claude sign (tools/beatend.js): the sign on its own and
+in our auto levels, each on its own song's beat. `node tools/sign_board.js` (on the PC, GD's art) renders them into
+`local/board/img/` (served at `/img/<name>.png` by tools/board_local.js and serve.js /board/) and writes `state.sign`:
+`[{id, title, img, note, link}]`. Evgeni writes a note under any picture: the page saves it to
+`picks.sign_notes[id] = {text, at, title}`; `node tools/sign_board.js --notes` prints them. Each note is a soft rule for the
+ending (CLAUDE.md), applied in tools/beatend.js.
+
 ## Open
 
 - The phone: Evgeni wants to view the board from his phone too (2026-11-26: "will deal with that later"). Not built:
