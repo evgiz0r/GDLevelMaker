@@ -1,4 +1,8 @@
 // node tools/autostudy.js [--min 0.8] [--level 9,18] [--out knowledge/auto_study.json]
+// node tools/autostudy.js --community <id,id,...|all-auto>  -- whole AUTO levels (rated Auto, played with no press) from
+//   local/community/<id>.gdlvl: zero-press run, effects per second, mode / speed / size changes, upside-down share, the
+//   longest falls, how often the same effect comes twice, how many effects land on the song's beat (local/beats, needs
+//   tools/songs.js + tools/beats.js for the song) -> knowledge/auto_community.json (numbers only; the levels stay local)
 //   How the 22 main levels build their AUTO parts: every stretch of 0.8 s+ on their saved route with no press where the
 //   level itself moves the player (pads, gravity / mode / speed portals, slopes, a rise or fall of 3+ blocks). For each:
 //   what moves the player (in order), how long, how far up and down, how many turns, the mode and speed, and whether a
@@ -90,7 +94,59 @@ function stretches(w, p, events) {
   return out;
 }
 
+// ---------------------------------------------------------------- whole auto levels from the community
+function measureAuto(w, p, beats, offset) {
+  const ev = [], seen = new Set();
+  for (const s of p) for (const u of s.used || []) if (!seen.has(u)) {
+    seen.add(u); const it = w.items.find(t => t.i === u);
+    if (it && it.kind !== "coin") ev.push({ t: s.tick / TPS, col: Math.round(it.o.x / B), name: /gravity/.test(it.d.name || "") ? "gravity" : it.d.name || String(it.o.id), kind: it.kind });
+  }
+  // one effect per column (a stacked wall is one)
+  const eff = []; for (const e of ev) if (!eff.length || eff[eff.length - 1].col !== e.col) eff.push(e);
+  const secs = p[p.length - 1].tick / TPS;
+  // falls: the longest runs of one vertical direction (blocks, seconds)
+  const falls = []; let a = 0;
+  for (let i = 1; i < p.length; i++) { const d = Math.sign(p[i].y - p[i - 1].y), d0 = Math.sign(p[a + 1 < p.length ? a + 1 : a].y - p[a].y); if (d !== d0 || i === p.length - 1) { const dy = (p[i - 1].y - p[a].y) / B; if (Math.abs(dy) >= 3) falls.push({ dy: +dy.toFixed(1), secs: +((p[i - 1].tick - p[a].tick) / TPS).toFixed(2), grav: p[a].grav }); a = i - 1; } }
+  falls.sort((x, y) => Math.abs(y.dy) - Math.abs(x.dy));
+  const ch = k => p.filter((q, i) => i && q[k] !== p[i - 1][k]).length;
+  const kinds = {}; for (const e of eff) kinds[e.name] = (kinds[e.name] || 0) + 1;
+  const out = { secs: +secs.toFixed(1), effects: eff.length, rate: +(eff.length / secs).toFixed(2), modeChanges: ch("mode"), speedChanges: ch("sp"), sizeChanges: ch("mini"),
+    reverse: +(p.filter(q => q.grav < 0).length / p.length).toFixed(2), repeats: +(eff.filter((e, i) => i && e.name === eff[i - 1].name).length / Math.max(1, eff.length - 1)).toFixed(2),
+    rise: +((Math.max(...p.map(q => q.y)) - Math.min(...p.map(q => q.y))) / B).toFixed(1), bigFalls: falls.filter(f => Math.abs(f.dy) >= 8).length, longestFall: falls[0] || null,
+    gapMedian: (() => { const g = eff.slice(1).map((e, i) => e.t - eff[i].t).sort((x, y) => x - y); return g.length ? +g[g.length >> 1].toFixed(2) : null; })(),
+    kinds: Object.entries(kinds).sort((x, y) => y[1] - x[1]).slice(0, 10) };
+  if (beats && beats.period) {
+    const P = beats.period, err = t => { const st = t + (offset || 0) - beats.t0, ph = ((st / P) % 1 + 1) % 1; return Math.min(ph, 1 - ph) * P * 1000; };
+    const ms = eff.map(e => err(e.t));
+    out.onBeat = +(ms.filter(m => m <= 50).length / Math.max(1, ms.length)).toFixed(2);   // chance alone: 100 ms / period
+    out.onHalf = +(eff.map(e => { const st = e.t + (offset || 0) - beats.t0, ph = ((st / (P / 2)) % 1 + 1) % 1; return Math.min(ph, 1 - ph) * P / 2 * 1000; }).filter(m => m <= 40).length / Math.max(1, eff.length)).toFixed(2);
+    out.chance = +(0.1 / P).toFixed(2); out.bpm = beats.bpm;
+  }
+  return out;
+}
+function community(ids) {
+  const { readGdlvl } = require("./io.js"), dir = path.join(ROOT, "local", "community"), res = [];
+  let beatsOf = () => null; try { const BT = require("./beats.js"); beatsOf = id => id ? BT.loadBeats("custom_" + id) : null; } catch (e) {}
+  if (ids[0] === "all-auto") ids = fs.readdirSync(dir).filter(f => /^\d+\.gdlvl$/.test(f)).map(f => f.replace(".gdlvl", ""));
+  for (const id of ids) {
+    const f = path.join(dir, id + ".gdlvl"); if (!fs.existsSync(f)) { console.log(`  ${id}: not in local/community (node tools/fetch_level.js ${id})`); continue; }
+    const L = readGdlvl(f), w = GD.makeWorld(L.level.objects, L.level.header), r = GD.run(w, []);
+    if (r.dead && (r.end.x / w.endX) < 0.9 && ids.length > 1 && process.argv.includes("--only-auto")) continue;
+    const song = GD.getField(L.rec, "k45"), off = +((/(^|,)kA13,([-0-9.]+)/.exec(L.level.header) || [])[2] || 0);
+    const m = measureAuto(w, r.path, beatsOf(song), off);
+    m.id = id; m.name = L.name; m.song = song || null; m.auto = !r.dead; if (r.dead) m.diesAt = +(100 * r.end.x / w.endX).toFixed(0);
+    res.push(m);
+    console.log(`  ${id} ${L.name.padEnd(24)} ${m.auto ? "auto " : "dies " + m.diesAt + "%"} ${m.secs}s  ${m.rate} eff/s (gap ${m.gapMedian}s)  modes ${m.modeChanges} speed ${m.speedChanges} size ${m.sizeChanges}  rev ${m.reverse}  repeats ${m.repeats}  rise ${m.rise}  big falls ${m.bigFalls}${m.longestFall ? " (longest " + m.longestFall.dy + " in " + m.longestFall.secs + "s)" : ""}${m.onBeat != null ? "  on beat " + m.onBeat + " (chance " + m.chance + ")" : "  (no beat grid)"}`);
+  }
+  const OUTC = path.join(ROOT, "knowledge", "auto_community.json");
+  let old = []; try { old = JSON.parse(fs.readFileSync(OUTC, "utf8")).levels || []; } catch (e) {}
+  const all = old.filter(o => !res.some(r => r.id === o.id)).concat(res);
+  fs.writeFileSync(OUTC, JSON.stringify({ v: 1, at: new Date().toISOString().slice(0, 10), note: "whole community auto levels, numbers only (tools/autostudy.js --community, AUTO.md)", levels: all }, null, 0).replace(/\},\{"secs"/g, "},\n{\"secs\""));
+  console.log("  -> " + path.relative(ROOT, OUTC));
+}
+
 function main() {
+  if (process.argv.includes("--community")) return community(arg("--community", "all-auto").split(","));
   const all = [];
   for (let n = 1; n <= 22; n++) {
     if (ONLY && !ONLY.has(n)) continue;
@@ -134,4 +190,4 @@ function main() {
   console.log("\n  -> " + path.relative(ROOT, OUT));
 }
 if (require.main === module) main();
-module.exports = { describe, family, clickSafe, stretches };
+module.exports = { describe, family, clickSafe, stretches, measureAuto };
