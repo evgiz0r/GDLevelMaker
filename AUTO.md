@@ -302,3 +302,15 @@ v14: Evgeni's v13 run reached 68% (tick 17990, 75 s): after a gravity portal the
 tick (the 0.8 factor) where the sim used 1.2, so it rose 31 units too high into a spike row. The sim now mirrors the ship's
 threshold upside down like the UFO's (GDLM_SHIP_FLIP=old = before); with it the sim matches the log to the death tick.
 Rebuilt: the same path as v13 up to there, clears.
+
+**v14 cleared in Evgeni's real game (2026-11-26)**: the first auto beat lab to pass, after five probe-log rounds (v10 flipped
+UFO, v11 mini UFO slope + flipped cube ground, v12 never installed, v12 flipped robot ground, v13 flipped ship / "Fix
+Gravity Bug"). Each death was a sim mismatch, never a level fault the sim saw.
+
+### Auto beat 2: a song where the sync shows (2026-11-26)
+Evgeni: "take a song that has a clearer, bit less cps beat, with clearer mixes of instruments; would make the visual sync more
+apparent". `node tools/songclarity.js` ranks the officials by strong notes a second, the share on the beat / half beat and how
+clearly one band leads each bar. Can't Let Go: 2.52 strong notes/s (Geometrical Dominator 3.11), 62% on the beat and 99% on half
+beats (GD: 39% / 83%), lead share 0.66 (the highest; GD 0.55). Back On Track and Deadlocked have fewer notes but a looser grid.
+Built: `node tools/autobeat.js --song CantLetGo --seed 3 --name "GDLM auto beat 2" --out levels/lab/auto_beat_2.gdlvl` --
+90.7 s, 378 triggers, 98% on the beat, notes hit 0.67, 7 modes (swing new to the auto labs: not yet checked in the game), clears.
