@@ -1,4 +1,4 @@
-// node tools/seedsolve.js <level.gdlvl> <seed.json>   -- solve a level from its pieces' known presses
+// node tools/seedsolve.js <level.gdlvl> <seed.json> [--out route.json]   -- solve a level from its pieces' known presses
 //   (Evgeni on v5's 30-min solve, 2026-11-26: "what does it do there exactly?" -- the solver searched the whole level as if
 //   nothing were known, though every brick was verified with its own route). A builder that places verified bricks knows
 //   roughly when each press comes (tools/brickpick.js picks[].presses, level seconds): this replays them, and where the
@@ -71,6 +71,7 @@ if (require.main === module) {
   const L = require("./io.js").readGdlvl(f), w = GD.makeWorld(L.level.objects, L.level.header);
   const r = solveSeeded(w, JSON.parse(require("fs").readFileSync(sf, "utf8")));
   console.log(`${f}: ${r.ok ? "beaten" : "not beaten (dies at block " + (r.dieX / 30).toFixed(1) + ")"}, ${r.repairs} repairs, ${(r.ms / 1000).toFixed(1)} s`);
+  const oi = process.argv.indexOf("--out"); if (oi > 0 && r.events) require("fs").writeFileSync(process.argv[oi + 1], JSON.stringify({ ok: r.ok, events: r.events }));
   for (const l of r.log) console.log("  " + l);
 }
 module.exports = { solveSeeded, seedEvents };

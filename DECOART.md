@@ -361,3 +361,26 @@ of that level"): `"indicators": {"colour": "auto"}` puts the marks on their own 
 opposite the hazards' (their channels plus the spike-design dressing within a block of them, weighted by saturation);
 white or grey hazards give a soft cyan; `[r, g, b]` sets it. On our levels: Hellgate (hazards hue 21) -> soft blue, Icy part
 (hazards hue 196) -> soft orange. Open: keep it away from the block design's hue too.
+
+## Connected structures: holders for islands (2026-11-26)
+
+Evgeni: "connect structures slightly better visually, making a level look like an extended one and not a set of island
+structures"; "structures should in general connect, unless something else happens on the level ( bigger space, transition )";
+"if we have "island" structures, it is common to add something soft like chain/rope/holder/soft extender to one of his
+upper/bottom layer. as if something is holding it ( from either top or bottom ) [...] usually to place those on the
+edges/middle of the structures ( like 2 ropes holding a brick, or from the other side a brick floating on top of two ropes )".
+
+Measured first (`tools/islands.js`, gameplay solids per 25-block window): RobTop's pieces have MORE islands than ours
+(cube/jump pieces 5.3 a screen, 15% of solid cells floating; flip 5.0 / 32%; fly 3.9 / 0%) vs Hellgate v10 3 / 15%, Sunny
+streets 2 / 0%, Icy part 3 / 67%. So the gameplay stays islands; the joining is VISUAL, in deco behind the play.
+
+`tools/connect.js`: a floating island gets two holders near its ends (one in the middle of a 1-wide one), hanging up to the
+top of the view or a structure above (a high island, row 4+) or standing on them down to the ground or a structure below;
+two islands at one height 1-4 blocks apart get a rope across. Never where the route passes (`--route`, the player's box and a
+block round it), never across a portal or a gap over 4 blocks. Styles: rope, chain (diamond links), rod (with end plates),
+gdchain (GD's hanging chain 41: shows with GD's art only). Thin, on B1, in the design's line colour a bit darker.
+Gallery: deco-art/gdlm_holders (`node tools/connect.js spec`, specs/lab_holders.json); picture decoart/holders.jpg.
+Test: `node tests/connect.js`. Also `tools/seedsolve.js --out route.json` writes the route it finds (to get a level's route
+without a whole make).
+Open: Hellgate with holders (needs its route), holders in make.js / the theme kits as a spec key, a check that counts
+islands without holders.
