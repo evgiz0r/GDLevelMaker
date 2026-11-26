@@ -217,6 +217,23 @@ match exactly i think". Plan (proposed to him): shape first per phrase (a silhou
 band the camera can hold, slopes as a kind, spider only where floor and roof are close, hazards that follow the path's
 contour, and a camera check against his own run.
 
+Round 9 built (the coordinator relayed his go; his answer on "inside the ground": "does junky movement somewhat within the
+block. seems fine with hitboxes, its not terrible, just janky"), `opts.shape` (default on; `false` = round 8):
+- **Echo**: phrases of 16 beats in pairs, call and response; a response note wants what the call placed on the same 16th.
+  Response notes matching their call: 51% (28% before).
+- **Camera band**: within a batch the path never climbs more than 14 rows over the band's floor (`opts.bandRows`); the band
+  follows the path down; a new batch (a section change) may move it up, and only there may a roof sit 14-25 rows up.
+  Teleports are out of the batches and the fallbacks. 1 s windows with more than 10 rows of height change: 30 -> 7; highest
+  point 58 -> 23 blocks.
+- **Slopes** (1338, flipped for down): on the ground a ledge ends on the note in a slope 1-2 rows up or down; in the air,
+  coming down, the player lands ON a slope on the note (the level is 87% in the air: only 40 of 627 notes found the player on
+  the ground). Accents are a slope or a step, half and half. 10 slopes in v6.
+- **Not inside the blocks**: `clips()` -- a candidate whose path sinks more than 4 units into a ledge or roof row is refused;
+  the final run's clip ticks: 32 -> 0.
+- **Spider** moves at most 4 rows from where the trigger finds it.
+- **Pads on something**: 11 of 190 pads hung in the air (on a slope's row, past a ledge cut later); each now gets a block.
+Lab v6: 106 s, 633 triggers, 69% of notes, clears with no press, 56 saws (the hazards that follow the path are next).
+
 ## The community auto levels (2026-11-26, `node tools/autostudy.js --community`, PC run)
 
 Evgeni's save has 12 Auto-rated levels (knowledge/auto_community.json, numbers only). Six are art / quiz / story levels with

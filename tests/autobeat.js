@@ -25,5 +25,15 @@ for (const [song, seed, music] of [["Electrodynamix", 8, null], ["Jumper", 2, nu
   ok(close > 50, `rapid runs: ${close} notes closer than 0.17 s to the last`);
   ok(p.some(x => x.burst === "up") && p.some(x => x.burst === "back"), "a speed burst up and back on a long rapid run");
 }
+// round 9 (shape): no teleports, the path inside a camera band, slopes in, no sinking into ledges
+{
+  const b = ab.build({ song: "GeometricalDominator", seed: 1, beats: 160, from: 2, quiet: true });
+  const m = b.measures;
+  ok(m.clears, "round 9 build clears");
+  ok(!m.byKind.tele, `no teleports (${m.byKind.tele || 0})`);
+  ok(m.riseBlocks <= 30, `the path stays low enough for the camera: rises ${m.riseBlocks} blocks`);
+  ok((m.byKind.slope || 0) >= 2, `slopes as a move (${m.byKind.slope || 0})`);
+  ok(m.clipTicks <= 30, `no play inside the blocks: ${m.clipTicks} ticks`);
+}
 console.log(bad ? bad + " failed" : "all ok");
 process.exit(bad ? 1 : 0);

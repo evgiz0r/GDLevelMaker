@@ -30,6 +30,8 @@
 // 7. No secret way: strays() presses (tap and hold) every 30 ticks; a press that neither dies nor is back on the auto run
 //    within 5 s gets a saw where it leaves the path.
 // 8. The ending every level gets: the auto outro (autobricks.js) + the signature (signature.js), as make.js does.
+// 9. Round 9 (opts.shape, default on; AUTO.md): echo phrases, a camera band, slopes, no sinking into blocks, short spider
+//    moves, no teleports, a block under every pad.
 "use strict";
 if (require.main === module) require("./heavy.js").claim();
 const fs = require("fs"), path = require("path");
@@ -37,6 +39,7 @@ const { GD, writeGdlvl } = require("./io.js");
 const ROOT = path.join(__dirname, "..");
 const TPS = GD.PHYS.TPS, B = 30;
 const ID = {
+  slope: 1338,
   block: 1, spike: 8, deco: 211,
   yellow: 35, pink: 140, red: 1332, blue: 67,
   gravDown: 11, gravUp: 10, mini: 101, normalSize: 99, tele: 747,
@@ -46,12 +49,12 @@ const ID = {
 const SPNAME = { 0: "0.5x", 1: "1x", 2: "2x", 3: "3x", 4: "4x" };
 const MODES = ["cube", "ship", "ball", "ufo", "wave", "robot", "spider", "swing"];
 const PADMODES = new Set(["cube", "ball", "robot", "spider", "ufo"]);
-const KINDS = ["yellow", "pink", "red", "blue", "grav", "fall", "step", "mode", "mini", "tele"];   // speed: from the music (notePlan), or not at all
+const KINDS = ["yellow", "pink", "red", "blue", "grav", "fall", "step", "slope", "mode", "mini"];   // round 9: teleports out (Evgeni: "too jumpy across screens"), slopes in   // speed: from the music (notePlan), or not at all
 // when the motif's kinds do not fit (often: a player in the air can't take a pad), these in turn -- a gravity flip first,
 // mode portals and teleports last (as fallbacks they made a third of the triggers: mode spam)
-const FALLBACK = ["yellow", "red", "grav", "blue", "pink", "step", "fall", "mini", "mode", "tele"];
+const FALLBACK = ["yellow", "red", "slope", "grav", "blue", "pink", "step", "fall", "mini", "mode"];
 const KW = { yellow: 5, pink: 2, red: 4, blue: 3,   // yellow / red up from 3 / 2 (Evgeni, 2026-11-26: "more pads, yellow red")
-  grav: 3, fall: 3, mode: 3, speed: 1, mini: 1, tele: 0.8, step: 2.5 };
+  grav: 3, fall: 3, mode: 3, speed: 1, mini: 1, tele: 0.8, step: 2.5, slope: 3 };
 const LOOK = 36;          // ticks after the next trigger beat the player must still be alive at
 const SKY = 1500;         // the far decoration's height: the sky (300 over the highest object) is out of the way
 
@@ -242,6 +245,20 @@ const same = (a, b) => a && b && Math.abs(a.y - b.y) < 0.01 && Math.abs(a.vy - b
 // the first tick from `from` where two runs part
 function diverge(p, q, from) { for (let t = Math.max(0, from); t < Math.min(p.length, q.length); t++) if (!same(p[t], q[t])) return t; return -1; }
 const half = s => s.mini ? 9 : 15;
+const REJ = { band: 0, spider: 0, clip: 0 };   // round 9's rejections, for the measures
+// does the player's drawn box sink into a ledge / roof row by more than `depth` units, ticks a..b (round 9)
+function clips(p, segs, a, b, depth = 4) {
+  for (let t = a; t <= b && t < p.length; t++) {
+    const s = p[t], h = half(s);
+    for (const sg of segs) {
+      if (s.x + h < sg.x0 || s.x - h > sg.x1) continue;
+      const lo = sg.dir > 0 ? sg.H - B : sg.H, hi = lo + B;
+      const ox = Math.min(s.x + h, sg.x1) - Math.max(s.x - h, sg.x0), oy = Math.min(s.y + h, hi) - Math.max(s.y - h, lo);
+      if (ox > depth && oy > depth) return true;
+    }
+  }
+  return false;
+}
 
 // ---------------------------------------------------------------- the kinds: where each goes, given the state on the beat
 // each returns null (cannot go here) or { tune: fn(dx) -> {objs, segs}, dx0, label }
@@ -295,6 +312,38 @@ const KIND = {
     return {
       label: "step " + (s.grav > 0 ? "down" : "up"), dx0: 15, cut: sg,
       tune: dx => ({ objs: [], cutAt: s.x + dx, segs: H === 0 ? [] : [{ H, dir: s.grav, x0: s.x + dx, x1: s.x + dx + 240, tag: "step" }] }),
+    };
+  },
+  // a SLOPE (Evgeni, 2026-11-26: "no slopes at all, a slope could count as a jump in a way as it has a similar effect"): the
+  // ledge (or the ground) ends on the note in a 45-degree slope, 1 or 2 rows up or down, and goes on from its other end
+  slope(s, st) {
+    if (s.grav < 0 || !PADMODES.has(s.mode)) return null;
+    if (!s.g) {
+      // in the air coming down: it lands ON a slope on the note (most of an auto is in the air: 40 of 627 notes found the
+      // player on the ground) -- a slope down it runs off, or a slope up that throws it on
+      if (s.vy > -0.5) return null;
+      // the slope's row holds the player's foot at the note, and it sits so that its surface is right under the foot there
+      const foot = s.y - half(s), H = Math.ceil(foot / B) * B;
+      if (H < 2 * B) return null;
+      const up = st.r() < 0.5;
+      return { label: "land on a slope " + (up ? "up" : "down"), dx0: up ? -(foot - H + B) : -(H - foot), tune: dx => {
+        const x0 = s.x + dx;
+        return { objs: [{ id: ID.slope, x: x0 + 15, y: H - 15, flipX: !up, kind: "slope" }],
+          segs: [{ H: up ? H : H - B, dir: 1, x0: x0 + B, x1: x0 + B + 240, tag: "slope" }] };
+      } };
+    }
+    const sg = segUnder(st.segs, s), H = sg ? sg.H : surfaceOf(s);
+    if (!sg && H !== 0) return null;
+    const rows = st.r() < 0.7 ? 1 : 2, up = H === 0 || H >= 7 * B ? H < 7 * B : st.r() < 0.5;
+    if (!up && H - rows * B < 0) return null;
+    const H2 = H + (up ? 1 : -1) * rows * B;
+    return {
+      label: "slope " + (up ? "up" : "down") + (rows > 1 ? " 2" : ""), dx0: 16, cut: sg,
+      tune: dx => {
+        const x0 = Math.round((s.x + dx) / 3) * 3, objs = [];
+        for (let k = 0; k < rows; k++) objs.push({ id: ID.slope, x: x0 + 15 + k * B, y: up ? H + 15 + k * B : H - 15 - k * B, flipX: !up, kind: "slope" });
+        return { objs, cutAt: sg ? x0 : null, segs: H2 === 0 ? [] : [{ H: H2, dir: 1, x0: x0 + rows * B, x1: x0 + rows * B + 240, tag: "slope" }] };
+      },
     };
   },
   mode(s, st) {
@@ -384,6 +433,7 @@ function blockSpot(leak, P, idxOfX) {
 
 // ---------------------------------------------------------------- the builder
 function build(opts = {}) {
+  REJ.band = REJ.spider = REJ.clip = 0;
   const song = opts.song || "Electrodynamix", seed = opts.seed || 1, r = rng(seed);
   const g = loadGrid(song);
   const tickOf = b => Math.round((g.t0 + b * g.period) * TPS);
@@ -416,15 +466,27 @@ function build(opts = {}) {
         // a batch of portals only may fly (ship, wave, swing too)
         const lands = [low, mid, top].some(k => ["yellow", "pink", "red", "blue", "step", "fall"].includes(k));
         const ic = MODES.filter(m => !(batch && batch.icons.includes(m)) && (!lands || PADMODES.has(m))).sort(() => r() - 0.5).slice(0, 2);
-        if (fly) ic[0] = ["ship", "wave", "swing"][Math.floor(r() * 3)];
+        if (fly) { ic[0] = ["ship", "wave", "swing"][Math.floor(r() * 3)]; if (ic[1] === ic[0]) ic[1] = MODES.find(m => m !== ic[0] && !(batch && batch.icons.includes(m))); }
         // the batch's RAPID kind, for the very close notes of a fast run: flips (the player wiggles up and down), the two
         // icons in turn, or blue pads (bouncing floor <-> roof) when it lands
         const rapid = fly ? (r() < 0.6 ? "grav" : "mode") : (r() < 0.5 ? "grav" : r() < 0.6 ? "blue" : "mode");
         batch = { low, mid, top, icons: ic, t: p.t, first: true, fly, rapid };
         motifLog.push(`${p.t.toFixed(1)} s: low=${low} mid=${mid} top=${top} rapid=${rapid} icons=${ic.join("/")}`);
       }
+      // ECHO (round 9, Evgeni: "it feels very random"): phrases of 16 beats come in pairs, call and response; a note of the
+      // response wants what the call did on the same 16th of its phrase, so a repeated bar of music draws a repeated shape
+      if (opts.shape !== false && !p.newBatch) {
+        const ph = Math.floor((p.beat - (opts.from || 4)) / 16), pos = Math.round(((p.beat - (opts.from || 4)) % 16) * 4);
+        if (ph % 2 === 1) {
+          for (let q = placed.length - 1; q >= 0 && q > placed.length - 200; q--) {
+            const e = placed[q], eph = Math.floor((e.beat - (opts.from || 4)) / 16);
+            if (eph < ph - 1) break;
+            if (eph === ph - 1 && Math.round(((e.beat - (opts.from || 4)) % 16) * 4) === pos && e.kind !== "none" && e.kind !== "speed") return { want: e.kind, others: [batch.low, batch.mid, batch.top].filter(k => k !== e.kind), batch, echo: true };
+          }
+        }
+      }
       if (p.rapid && !p.accent) return { want: batch.rapid, others: ["grav", "mode", "blue"].filter(k => k !== batch.rapid), batch, rapid: true };
-      const want = p.accent ? "step" : batch[p.band] || batch.low;
+      const want = p.accent ? (opts.shape !== false && r() < 0.5 ? "slope" : "step") : batch[p.band] || batch.low;
       return { want, others: [batch.low, batch.mid, batch.top].filter(k => k !== want), batch };
     }
     if (i === 0 || p.newBlock || posInBlock >= 12) {
@@ -471,7 +533,9 @@ function build(opts = {}) {
         }
         if (s.g || s.grav > 0) { phaseY = null; continue; }
         if (phaseY == null) phaseY = s.y;
-        const rise = segs.riseFor || (segs.riseFor = (r() < 0.25 ? 14 + Math.floor(r() * 12) : 3 + Math.floor(r() * 6)) * B);
+        // round 9 (the camera band): a big rise (14-25 rows) only where a new batch starts -- a section change on a strong hit
+        const bigOK = opts.shape === false || (plan[i] && plan[i].newBatch);
+        const rise = segs.riseFor || (segs.riseFor = (bigOK && r() < 0.5 ? 14 + Math.floor(r() * 12) : 3 + Math.floor(r() * (opts.shape === false ? 6 : 4))) * B);
         if (s.vy > 0 && (s.y - phaseY >= rise || s.y > SKY + 200)) {
           const H = Math.ceil((s.y + half(s) + 1) / B) * B;
           fix = { H, dir: -1, x0: Math.floor((s.x - 20) / B) * B, x1: Math.ceil(nextLead(i, p, Math.min(upto, p.length - 1)) / B) * B, tag: "roof" };
@@ -521,7 +585,7 @@ function build(opts = {}) {
       for (let it = 0; it < 4; it++) {
         const c = k.tune(dx);
         const segs = cloneSegs(st.segs).concat(c.segs);
-        if (c.cutAt != null) { const sg = segs.find(q => q.x0 === k.cut.x0 && q.H === k.cut.H && q.dir === k.cut.dir); sg.x1 = c.cutAt; }
+        if (c.cutAt != null && k.cut) { const sg = segs.find(q => q.x0 === k.cut.x0 && q.H === k.cut.H && q.dir === k.cut.dir); sg.x1 = c.cutAt; }
         const objs = st.objs.concat(c.objs);
         const res = run(objs, segs, tb + 90, FAR, { base, at: tb - 61 });
         const f = diverge(res.p, base.p, tb - 60);
@@ -535,7 +599,7 @@ function build(opts = {}) {
       if (!got || Math.abs(got.err) > 8) continue;
       // fill the gap and play to the next trigger
       const segs = cloneSegs(st.segs).concat(got.c.segs);
-      if (got.c.cutAt != null) { const sg = segs.find(q => q.x0 === k.cut.x0 && q.H === k.cut.H && q.dir === k.cut.dir); sg.x1 = got.c.cutAt; }
+      if (got.c.cutAt != null && k.cut) { const sg = segs.find(q => q.x0 === k.cut.x0 && q.H === k.cut.H && q.dir === k.cut.dir); sg.x1 = got.c.cutAt; }
       const objs = st.objs.concat(got.c.objs);
       const res = fillGap(objs, segs, i, tb);
       if (res.dead || res.done) continue;
@@ -548,21 +612,34 @@ function build(opts = {}) {
         if (dy < Math.min(B, 0.25 * (t1 - tb)) && dvy < 2) continue; }
       const end = res.p[res.p.length - 1];
       if (end.y > SKY + 300) continue;
+      if (opts.shape !== false) {
+        const t1 = Math.min(i + 1 < plan.length ? tickOf(plan[i + 1].beat) : tb + 120, res.p.length - 1);
+        // the CAMERA BAND: within a batch the path never climbs more than 12 rows over the band's floor (the GD camera shows
+        // ~10 blocks); it may come down (the band follows it down), and a new batch may move it up: big rises belong to section changes
+        if (!plan[i].newBatch && st.band != null) { let out = false; for (let t = tb; t <= t1 && !out; t++) if (res.p[t].y > st.band + (opts.bandRows || 14) * B) out = true; if (out) { REJ.band++; continue; } }
+        // SPIDER only across short gaps (Evgeni: "for spider portals - only to very small distance"): 4 rows at most
+        if (s.mode === "spider" || res.p[Math.min(tb + 2, t1)].mode === "spider") { let mx = 0; for (let t = tb; t <= t1; t++) mx = Math.max(mx, Math.abs(res.p[t].y - s.y)); if (mx > 4 * B) { REJ.spider++; continue; } }
+        // NOT INSIDE THE BLOCKS (Evgeni: "does janky movement somewhat within the block ... fine with hitboxes"): the player's
+        // drawn box may touch a ledge or roof but not sink into it by more than 4 units
+        if (clips(res.p, segs, tb, t1)) { REJ.clip++; continue; }
+      }
       best = { kind, label: k.label, err: got.err, objs, segs, res };
       break;
     }
     if (!best) {
       // nothing fits: a beat with no trigger, if the run lives on; else back one trigger
       const segs = cloneSegs(st.segs), res = fillGap(st.objs.slice(), segs, i, tb);
-      if (!res.dead && !res.done) { history[i] = { objs: st.objs, segs: st.segs, base, want: { want, others }, lastMode: st.lastMode, modeRun: st.modeRun }; st.segs = segs; base = res; placed.push({ beat: plan[i].beat, kind: "none" }); continue; }
+      if (!res.dead && !res.done) { history[i] = { objs: st.objs, segs: st.segs, base, want: { want, others }, lastMode: st.lastMode, modeRun: st.modeRun, band: st.band }; st.segs = segs; base = res; placed.push({ beat: plan[i].beat, kind: "none" }); continue; }
       if (i === 0) throw new Error("no trigger fits the first beat");
       const h = history[i - 1];
       tried[i - 1].add(placed[placed.length - 1].kind); tried[i].clear();
-      st.objs = h.objs; st.segs = h.segs; base = h.base; st.lastMode = h.lastMode; st.modeRun = h.modeRun; placed.pop(); history.length = i - 1;
+      st.objs = h.objs; st.segs = h.segs; base = h.base; st.lastMode = h.lastMode; st.modeRun = h.modeRun; st.band = h.band; placed.pop(); history.length = i - 1;
       i -= 2; continue;
     }
-    history[i] = { objs: st.objs, segs: st.segs, base, want: { want, others }, lastMode: st.lastMode, modeRun: st.modeRun };
+    history[i] = { objs: st.objs, segs: st.segs, base, want: { want, others }, lastMode: st.lastMode, modeRun: st.modeRun, band: st.band };
     st.objs = best.objs; st.segs = best.segs; base = best.res;
+    if (opts.shape !== false && st.band != null && !plan[i].newBatch) { const t1 = Math.min(i + 1 < plan.length ? tickOf(plan[i + 1].beat) : tb + 120, base.p.length - 1); let lo = 1e9; for (let t = tb; t <= t1; t++) lo = Math.min(lo, base.p[t].y); st.band = Math.min(st.band, Math.max(0, Math.floor((lo - 30) / B) * B)); }
+    if (opts.shape !== false && (st.band == null || plan[i].newBatch)) { const t1 = Math.min(i + 1 < plan.length ? tickOf(plan[i + 1].beat) : tb + 120, base.p.length - 1); let lo = 1e9; for (let t = tb; t <= t1; t++) lo = Math.min(lo, base.p[t].y); st.band = Math.max(0, Math.floor((lo - 30) / B) * B); }
     if (best.kind === "mode" && batch) batch.first = false;   // the batch's own icon is in: until then each trigger tries it first
     if (best.kind === "mode") { st.lastMode = s.mode; st.modeRun = (st.modeRun || 0) + 1; } else st.modeRun = 0;
     placed.push({ beat: plan[i].beat, tick: tb, kind: best.kind, want, label: best.label, err: best.err, energy: plan[i].energy });
@@ -602,6 +679,26 @@ function build(opts = {}) {
     let objs = st.objs.concat(spikes), res = run(objs, st.segs, 1e9, endX + 90);
     if (res.dead) { objs = st.objs; res = fin; spikes.length = 0; }
     st.objs = objs; fin = res;
+  }
+  // ---- every pad on something (v5 in the picture: 11 of 190 pads hung in the air -- on a slope's row, past a ledge cut
+  // later, ...): an unsupported pad gets a block under it, kept while the run still clears
+  if (!fin.dead) {
+    const added = [];
+    for (const o of st.objs.filter(q => ["yellow", "pink", "red", "blue"].includes(q.kind))) {
+      const H = o.flipY ? o.y + 15 : o.y - 15, dir = o.flipY ? -1 : 1;
+      if ((H === 0 && dir > 0) || st.segs.some(sg => sg.dir === dir && Math.abs(sg.H - H) < 1 && sg.x0 <= o.x + 5 && sg.x1 >= o.x - 5)) continue;
+      const x0 = Math.floor((o.x - 15) / B) * B;
+      added.push({ H, dir, x0, x1: Math.max(x0 + B, Math.ceil((o.x + 15) / B) * B), tag: "padfoot" });
+    }
+    if (added.length) {
+      let keep = added.slice();
+      for (let tries = 0; tries < 8 && keep.length; tries++) {
+        const res = run(st.objs, st.segs.concat(keep), 1e9, endX + 90);
+        if (!res.dead) { st.segs = st.segs.concat(keep); fin = res; break; }
+        const dx = res.p[res.p.length - 1].x; keep = keep.filter(q => q.x1 < dx - 120 || q.x0 > dx + 120);
+      }
+      M0.padFeet = (st.segs.filter(q => q.tag === "padfoot").length) + "/" + added.length;
+    }
   }
   // ---- no secret way (strays / blockSpot above): up to opts.blockPasses (4) passes of saws on the leaks, each kept only
   // while the auto run still clears (a pass that kills drops its saws near the death and tries again)
@@ -649,6 +746,8 @@ function build(opts = {}) {
     M.notesHit = +(strong.filter(hit).length / Math.max(1, strong.length)).toFixed(2);
     M.perSec = +(tt.length / Math.max(1, hi - lo)).toFixed(1);
     M.speedChanges = placed.filter(t => t.kind === "speed").length;
+  }
+  if (opts.shape !== false) { M.rejected = Object.assign({}, REJ); M.clipTicks = 0; for (let t = 0; t < fin.p.length; t += 2) if (clips(fin.p, st.segs, t, t)) M.clipTicks++; M.clipTicks *= 2;
   }
   return { song, g, seed, plan, placed, motifs: motifLog, objs: st.objs, segs: st.segs, fin, lv, endX, measures: M };
 }
@@ -701,4 +800,4 @@ if (require.main === module) {
   console.log(JSON.stringify(b.measures));
   console.log(`${b.measures.clears ? "CLEARS with no press" : "DIES: " + b.fin.why} -> ${path.relative(ROOT, out)} (${((Date.now() - t0) / 1000).toFixed(1)} s)`);
 }
-module.exports = { build, write, triggerBeats, notePlan, musicOf, loadGrid, strays, run };
+module.exports = { build, write, triggerBeats, notePlan, musicOf, loadGrid, strays, run, clips };
