@@ -190,6 +190,7 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   shapes must not look like blocks you can land on: no block-like squares with lit rims behind the play, lower value and
   contrast than the path's bodies, softer or no outlines, a different hue or some transparency. `tools/roles.js` (pathDeco).
 - [ ] **Play blocks are a material, not a flat fill** (the user, 2026-11-26: "The blocks are still very timid. No effects. No
+- [ ] **Block design in layers** (Evgeni, 2026-11-26, with 8 tutorials): outline + inline, a 2-3 colour base with low-opacity texture, details small = high contrast, glow sparingly (top light, bottom dark, black lines in front of glow), 3D lines all one direction and darker. DECOART.md "Block design". Check: `tools/blockart.js` (by eye for now).
   good texture. All single filled color"). Lit open tops, darker with depth, a surface texture (facets), a feature with light
   (glowing seams on the beat), an edge and a shadow. `tools/blockart.js` (decoart.js --blocks); DECOART.md "Blocks".
 - [ ] **A section's backdrop is one composed picture** (focal light at a third, values light far -> dark near, nothing in
@@ -313,6 +314,8 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   the beat"): each change of movement fires on a beat, in motifs (AAAA, BBBB, a mix), and every trigger moves the player.
   `tools/autobeat.js` builds this way and measures `onBeat` (aim 0.9+). On the song's NOTES, not only beats (Evgeni: "we hit
   like 1/6 of the notes"): `notesHit` aim 0.5+, every note in loud parts; speed portals follow the music's `speedPlan`.
+  The same music keeps the same auto vibe: each band of notes (low / mid / top) has its own kind for a batch, rerolled at
+  the song's transitions; the song's hits are staircase steps; the ground under an auto stretch varies.
 
 ## Looks like 2.2, not 1.0 (levels/modern_look.md)
 
