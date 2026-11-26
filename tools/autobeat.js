@@ -1,5 +1,5 @@
 // node tools/autobeat.js [--song Electrodynamix] [--seed 1] [--beats N] [--from-beat B] [--out levels/lab/auto_beat.gdlvl]
-//                        [--name "GDLM auto beat"] [--quiet]
+//                        [--name "GDLM auto beat"] [--rate R] [--quiet]
 //   -> an AUTO level (no click at all) built BEAT-FIRST on an official song: every change of movement fires on a beat.
 //      Prints each trigger (beat, kind, how far off the beat it fired) and the measures; writes the .gdlvl with the song set.
 //
@@ -125,6 +125,7 @@ function notePlan(g, music, fromBeat, uptoBeat, o = {}) {
     if (last && n.t - last.t < (ru ? rapidGap : minGap)) { if (n.strength > last.strength + 0.2 && (out.length < 2 || n.t - out[out.length - 2].t >= minGap)) Object.assign(last, { t: n.t, strength: n.strength, beat: (n.t - g.t0) / g.period }); continue; }
     out.push({ t: n.t, strength: n.strength, band: n.band || "low", beat: +((n.t - g.t0) / g.period).toFixed(3), energy: I });
   }
+  if (o.rate) thin(out, g, inten, o);
   // the song's hits (accents, drops, entries): a staircase step there (Evgeni: "bit more staircases as a hit in the song")
   for (const im of music.impacts || []) {
     const at = out.find(p => Math.abs(p.t - im.t) <= 0.06);
@@ -175,6 +176,45 @@ function notePlan(g, music, fromBeat, uptoBeat, o = {}) {
     }
   }
   return bursts(out, o);
+}
+// A CALMER LEVEL (Evgeni, 2026-11-26, after auto beat 2 at ~4.2 triggers a second: "something with less beats per second, like
+// 3 times less maybe. but not something too repetetive, it can have some faster sections"): o.rate = the mean triggers a
+// second wanted. Each bar gets a share of them by its loudness (a quiet bar ~0.3x the mean, the loudest ~3x: the contrast
+// is what keeps it from feeling the same all through), filled with its strongest notes, on-beat ones first; outside the
+// loudest bars notes stay o.calmGap (0.3 s) apart and rapid runs are dropped, inside them a rapid run keeps up to 6 notes.
+function thin(out, g, inten, o) {
+  const bar = 4 * g.period, calmGap = o.calmGap || 0.3;
+  if (!out.length) return out;
+  const tA = out[0].t, tB = out[out.length - 1].t + 1e-6, nb = Math.max(1, Math.ceil((tB - tA) / bar));
+  const I = []; for (let b = 0; b < nb; b++) I.push(inten(tA + (b + 0.5) * bar));
+  const sorted = I.slice().sort((a, c) => a - c), rank = v => sorted.findIndex(x => x >= v) / Math.max(1, sorted.length - 1);
+  const w = I.map(v => 0.3 + 2.7 * Math.pow(rank(v), 2.2)), mw = w.reduce((a, c) => a + c, 0) / nb;
+  const fast = I.map(v => rank(v) >= 0.85);   // the loudest ~15% of bars: the faster sections
+  const keep = new Set();
+  for (let b = 0; b < nb; b++) {
+    const inBar = out.filter(p => p.t >= tA + b * bar && p.t < tA + (b + 1) * bar);
+    const quota = Math.max(1, Math.round(o.rate * bar * w[b] / mw));
+    const score = p => p.strength + (Math.abs(p.beat - Math.round(p.beat)) < 0.08 ? 0.35 : Math.abs(p.beat * 2 - Math.round(p.beat * 2)) < 0.16 ? 0.12 : 0);
+    let runLeft = {};
+    const pick = [];
+    for (const p of inBar.slice().sort((a, c) => score(c) - score(a))) {
+      if (pick.length >= quota) break;
+      const ru = fast[b] && p.rapid;
+      if (ru) { const k = p.rapid.id; runLeft[k] = (runLeft[k] == null ? 6 : runLeft[k]); if (runLeft[k] <= 0) continue; }
+      const gap = ru ? 0.07 : fast[b] ? 0.17 : calmGap;
+      if (pick.some(q => Math.abs(q.t - p.t) < gap) || [...keep].some(q => Math.abs(q.t - p.t) < gap)) continue;
+      if (ru) runLeft[p.rapid.id]--;
+      pick.push(p);
+    }
+    pick.forEach(p => { if (!fast[b]) delete p.rapid; keep.add(p); });
+  }
+  const kept = out.filter(p => keep.has(p));
+  // a rapid run cut to a few notes: renumber first / last / len so bursts() and the kinds see the run as it now is
+  const byRun = {}; kept.forEach(p => { if (p.rapid) (byRun[p.rapid.id] = byRun[p.rapid.id] || []).push(p); });
+  for (const k in byRun) { const r = byRun[k]; if (r.length < 3) { r.forEach(p => delete p.rapid); continue; }
+    r.forEach((p, i) => p.rapid = { id: +k, len: r.length, first: i === 0, last: i === r.length - 1 }); }
+  out.length = 0; out.push(...kept);
+  return out;
 }
 // OUR OWN speed changes on top of the song's plan (Evgeni, 2026-11-26: "do we have speed of the song, in order to insert our own
 // speed ups and slow downs?"): a long rapid run (o.burstLen, 10+ notes, a second or more of 1/16s) goes one speed up for its
@@ -885,7 +925,7 @@ if (require.main === module) {
   const a = process.argv.slice(2), opt = k => { const i = a.indexOf(k); return i >= 0 ? a[i + 1] : null; };
   const t0 = Date.now();
   const notes = opt("--notes") ? JSON.parse(fs.readFileSync(opt("--notes"), "utf8")) : a.includes("--beats-only") ? null : undefined;
-  const b = build({ music: notes, minGap: opt("--min-gap") ? +opt("--min-gap") : undefined, song: opt("--song") || "Electrodynamix", seed: +(opt("--seed") || 1), beats: opt("--beats") != null ? +opt("--beats") : null, from: opt("--from-beat") != null ? +opt("--from-beat") : 2, quiet: a.includes("--quiet") });
+  const b = build({ music: notes, minGap: opt("--min-gap") ? +opt("--min-gap") : undefined, rate: opt("--rate") ? +opt("--rate") : undefined, song: opt("--song") || "Electrodynamix", seed: +(opt("--seed") || 1), beats: opt("--beats") != null ? +opt("--beats") : null, from: opt("--from-beat") != null ? +opt("--from-beat") : 2, quiet: a.includes("--quiet") });
   const out = path.resolve(opt("--out") || path.join(ROOT, "levels", "lab", "auto_beat.gdlvl"));
   write(out, b, opt("--name") || "GDLM auto beat");
   console.log("motifs (blocks of AAAA, BBBB, a mix):\n  " + b.motifs.join("\n  "));

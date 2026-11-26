@@ -325,6 +325,18 @@ v3 died at 16% (tick 3540): a flipped mini robot thrown down by a flipped yellow
 game killed it; the sim's cut was -4. A flipped robot now dies at any speed into the ground (PHYSICS.md). v4: rebuilt on that,
 the same path as v3 to 14.5 s, clears.
 
+### Auto beat 3: a calmer level, about a third of the triggers (2026-11-26)
+Evgeni after auto beat 2 (4.2 triggers a second): "something with less beats per second, like 3 times less maybe. but not
+something too repetetive, it can have some faster sections". `--rate R` (notePlan's thin()): R triggers a second on average,
+shared out by bar loudness (the quietest bars ~0.3x the mean, the loudest ~3x, so the level breathes and speeds up), each bar
+filled with its strongest notes with on-beat ones first, 0.3 s apart in calm bars, 0.17 s and rapid runs of up to 6 notes only
+in the loudest ~15% of bars. Measured at R 1.4 (default plan -> thinned): Hexagon Force 4.57 -> 1.43 a second (88-90% of them
+on a beat), Electroman 5.45 -> 1.48, Can't Let Go 4.80 -> 1.39. Electroman came out half gravity flips on every seed tried (1-12),
+so Hexagon Force: seeds 1-8 compared by kind mix and modes, seed 4 has the evenest mix (yellow 39, grav 40, mode 21, 5 modes).
+Built: `node tools/autobeat.js --song HexagonForce --seed 4 --rate 1.4 --name "GDLM auto beat 3" --out levels/lab/auto_beat_3.gdlvl`
+-- 92.5 s, 125 triggers (1.4 a second, auto beat 2: 4.2), 95% on the beat, cube / spider / robot / ball / UFO, 0.5x-2x, clears.
+Open: the gravity-flip share on some songs (Electroman ~45%: the batches pick grav as their low kind too often).
+
 ### The beat ending (tools/beatend.js, 2026-11-26)
 Evgeni on the old outro: "too big, way too much without anything happening and it doesnt match the beat ... something small
 half screen of auto gameplay, that matches the beat ... with the sign there". From the level's end: a portal column on a beat
