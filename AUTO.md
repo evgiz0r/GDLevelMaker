@@ -233,6 +233,10 @@ block. seems fine with hitboxes, its not terrible, just janky"), `opts.shape` (d
 - **Spider** moves at most 4 rows from where the trigger finds it.
 - **Pads on something**: 11 of 190 pads hung in the air (on a slope's row, past a ledge cut later); each now gets a block.
 Lab v6: 106 s, 633 triggers, 69% of notes, clears with no press, 56 saws (the hazards that follow the path are next).
+**v6 in the game** (Evgeni died at 15.8 s; probe log, PC local/tmp/autobeat_probe/): game and sim agree tick for tick, x and y,
+for 10.3 s through ~30 pads, portals, mode changes and ground slopes -- then a cube falling onto a RISING slope lands in the game
+(vy -> 0, then 3.09) but is thrown up at once in the sim (5.77, 7.41). Air landings on slopes are off (`opts.airSlopes`) until
+the physics thread has looked; v7 has ground slopes only (fewer: the player is on the ground at ~6% of notes).
 
 ## The community auto levels (2026-11-26, `node tools/autostudy.js --community`, PC run)
 
