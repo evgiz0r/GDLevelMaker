@@ -206,6 +206,17 @@ Lab v4 (`levels/lab/auto_beat.gdlvl`, Geometrical Dominator, seed 1): 106 s with
 with no press. Build 9 s. **v4 died in the game at ~20 s** (Evgeni: "falls down with the ship"): it was built on physics from before the same day's probe-log fixes (speed portal widths, ship -> UFO speed, ...); on today's physics the same file dies at 20.3 s in the swing. v5 = the same seed rebuilt on today's physics, clears. Lesson: rebuild (and re-check with `node -e` sim or tests) after any lib/physics.js change before installing; the heavy lock's "behind main" warning was the hint. Open: pads on short catch ledges sometimes look like they float (their ledge is cut by the next
 step); the rapid flips in a ship make small wiggles; strays are checked only before the home wall.
 
+### Evgeni on v5 in GD (2026-11-26 evening) -- what round 9 is for
+
+"the auto is not bad ... a bit too jumpy across screens at times (in the gd camera). some inside the ground play. no slopes
+at all, a slope could count as a jump in a way as it has a similar effect. the beats are somewhat ok (not perfect, still some
+feel missing). it feels very random ... how to make it slightly more attractive layout even before the deco. the spike blocks
+around the game seem also very random, they are not coherent and not fluid with the path - but blocking the path better is
+lower priority for now. for spider portals - only to very small distance. the cameras of what you think and happens in gd dont
+match exactly i think". Plan (proposed to him): shape first per phrase (a silhouette that repeats with variation), a height
+band the camera can hold, slopes as a kind, spider only where floor and roof are close, hazards that follow the path's
+contour, and a camera check against his own run.
+
 ## The community auto levels (2026-11-26, `node tools/autostudy.js --community`, PC run)
 
 Evgeni's save has 12 Auto-rated levels (knowledge/auto_community.json, numbers only). Six are art / quiz / story levels with
