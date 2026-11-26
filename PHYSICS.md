@@ -20,12 +20,12 @@ re-run `tests/tas_progress.js`, `tests/mechanics.js`, `tools/mains.js status` (a
 | 4 | Cube lands 4-21 ticks late (2026-11-26: the Stereo Madness, Polargeist and Dry Out plans now CLEAR with the snap + 10 margin; re-check the rest) | Polargeist, Dry Out, Can't Let Go, Jumper, Time Machine, Clutterfunk plans | plans | probe log of a landing-heavy main level vs `tas_why` | data in hand, else game |
 | 4b | ~~**Slopes**~~ FIXED 2026-11-26 (GDLM 52's climb matches the game to 0.05 units through the top and the launch; Fingerdash's plan 295 -> 300; see "Landing jump and slopes from the probe logs"). Still unmeasured: the launch at other speeds, from a 2:1 slope in our logs, and from ship/ball | every slope | probe log | done | done |
 | 4c | Slopes in other modes and frames: a mini ship against a 22-degree slope turned 90 degrees (Bloodbath 10565740 dies at block 85.5) and an upside-down dual wave sliding on the floor into a slope, put under it below the ground (Problematic 7116121, block ~321); from the demons thread, DIFFICULTY.md "Community demons" | 2 community demons | community solves | probe log of a slope lab (ship, wave, upside down, turned) | needs the game |
-| 5 | Pink orb / pink pad too strong or low | Theory of Everything 1 and 2 (lv12 33, lv18 105), lab 60 launch 0.5-0.63 vs sim 0.72, GDLM 60 33.9% | plans + lab video | probe playback of a pink-orb/pad lab: vy on the touch step | game |
+| 5 | Pink orb / pink pad too strong or low (2026-11-26: ToE's first parting is NOT the orb but a flipped cube pushed onto a block, see "The user's ToE / ToE2 / Hexagon Force / Deadlocked runs") | Theory of Everything 1 and 2 (lv12 33, lv18 105), lab 60 launch 0.5-0.63 vs sim 0.72, GDLM 60 33.9% | plans + lab video | probe playback of a pink-orb/pad lab: vy on the touch step | game |
 | 6 | Pink pad strength unconfirmed (`sure:false`). **Yellow pad CONFIRMED 2026-11-26**: the user's "auto play area" run (probe log, 51 cube + 18 ship pad launches) gives vy 16.000 exactly, as the sim | pink-pad auto bricks | decompile only | probe playback of `levels/lab/auto_lab.gdlvl`: vy on each pink pad's step | game (same batch as 5) |
-| 7 | Ship entry speed (0.5 vs 0.25 of a falling vy) | Dry Out +64, Can't Let Go +118 blocks in plans, but user runs say no | plans vs user runs disagree | probe playback of GDLM 67 stations 9-10 (pad-thrown ship entries, no input) | game (same batch) |
+| 7 | Ship entry speed (0.5 vs 0.25 of a falling vy) (2026-11-26: ship -> UFO is 0.25, measured; cube -> ship still open) | Dry Out +64, Can't Let Go +118 blocks in plans, but user runs say no | plans vs user runs disagree | probe playback of GDLM 67 stations 9-10 (pad-thrown ship entries, no input) | game (same batch) |
 | 8 | Rotated gameplay tap timing (spider taps 2-3 ticks early) | Dash (ratchet 22 at 75) | plan | tools/tas_trace.js on lv22 at the turn | data in hand |
 | 9 | Clutterfunk pad on a hanging block not reached | user's clear dies 3.5% in sim | 1 run | probe playback of the route there / tas_why lv11 | data in hand, else game |
-| 10 | Teleport at 45 degrees moves less than the game | lab 60 | lab video | probe playback of a teleport lab | game (same batch) |
+| 10 | Teleport at 45 degrees moves less than the game (2026-11-26: a portal at -53 degrees moves the FULL key 54, Deadlocked probe log; in the sim) | lab 60 | lab video | probe playback of a teleport lab | game (same batch) |
 | 11 | Upside-down cube dies hitting the ground hard | GDLM 67 green orb 3 of 4 | lab video | needs the green orb's throw first: probe log of the lab | game (same batch) |
 | 12 | GDLM 52 dies in game at x 10765 | one of our levels | probe playback 2026-11-25 | `probe.js result` on its log | data in hand |
 | 13 | Back On Track ship ~1 block high after a slide | plan 493 | plan | probe after 1 | after 1 |
@@ -706,6 +706,40 @@ jump's 11.180 shows one tick before our 10.964 although both start on the same s
   treats a flipped 1338). Data: the logs are in GD's save folder (`%LOCALAPPDATA%/GeometryDash/geode/mods/gdlm.probe/attempts`),
   including ~120 of the user's own attempts on community levels (Sunrise Stroll, Altaria, Brillo III, chillblain
   grace...) to check once those levels are fetched.
+
+### The user's ToE / ToE2 / Hexagon Force / Deadlocked runs (2026-11-26, second batch)
+
+Evgeni played the four on the PC (probe mod logging, 20 attempts; logs local only). Per-tick positions are in the log:
+`p[8], p[9]` are the player's x, y on EVERY tick (p[0], p[1] change once a frame) and `p[7]` is the speed factor
+(0.7 / 0.9 / 1.1 / 1.3 = 0.5x / 1x / 2x / 3x), so a speed change shows on its exact tick. What they fixed, each behind a
+switch for measuring:
+- **Speed portals have their own widths** (lib/objects.js): 2x 51, 3x 65 (both measured to the tick: ToE2 2575, Hexagon
+  2730, Deadlocked 3393), 0.5x 31-34 (ToE2 3460; OpenGD's 35 is too wide), 1x 33 and 4x 69 from OpenGD, unmeasured. The old
+  common 34x44 box changed speed 6-15 units late.
+- **The orb flag outlives a release by one tick** (`RING_KEEP`, `GDLM_RING_KEEP=0` = old): Deadlocked 2669 takes a blue orb
+  the tick after the button came up, with the plain box. (A turned-square test for the spinning cube fitted that orb but
+  took the one at 1850 a tick early: rejected.)
+- **Turned portals touch by their turned box** (`touchingP`, `GDLM_PORTAL_OBB=0`): Deadlocked 858, a cube portal at 53
+  degrees. **A teleport turned -53 degrees moves the player by the full key 54** (169), not 169 cos 53 (`GDLM_TP_COS=1` =
+  old): Deadlocked 1745-1749.
+- **The ship under a ceiling slope** (`slopeBottom(..., gd)`, `GDLM_CEILSLOPE=old`): it slides 15 / cos(angle) under the
+  line (the floor's foot rule, mirrored) with vy 0, is held level with the low end on the tick its point passes it, and the
+  tick after is launched down: vy -3.729 off a 2:1 slope at 2x (Hexagon Force 3010-3079; other slopes / speeds scaled like
+  the floor launch, UNMEASURED). The block that carries on from the low end does not push it down meanwhile.
+- **Ship -> UFO keeps a quarter of vy** (`GDLM_FLY2FLY=old`): ToE2 3452, 2.195 -> 0.549 (GD halves leaving one flying mode
+  and again entering the next). Other flying pairs UNMEASURED.
+
+Result: Deadlocked's attempt matches the game to its death (3511 steps); both Hexagon Force attempts and ToE2's
+8,400-step attempt die on the game's death step; on the 21 main playback logs Electrodynamix and Deadlocked now die on the
+game's step, none got worse; the plan ratchet rose (15: 267 -> 360, 17: 300 -> 311).
+
+Still open from these runs:
+- **ToE 1309** (queue 5 was the guess; it is not the pink orb): after a blue pad the upside-down cube rises with a 30x16
+  block (66, top y 70) under its head side; the game pushes it ONTO the block (y = 70 + 15, on the ground, vy 0) where the
+  sim's inner box dies. The cube's bottom was 11.4 under the block top, more than the 10-unit foot margin.
+- **ToE2 3929**: a UFO dies on a tiny turned spike piece (720, -35 degrees) whose 2.4x3.2 box (OpenGD) misses it by 0.7;
+  the game's box is a bit bigger (world height 2.7-3.35 at that angle). One sample.
+- Deadlocked 3394: the wave and 3x portals now match; the attempt's last 120 steps were not checked beyond the death step.
 
 ## Fidelity: measuring the sim against the user's game (goal: "as close as possible")
 

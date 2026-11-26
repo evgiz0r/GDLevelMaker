@@ -172,6 +172,40 @@ Lab v3 (`levels/lab/auto_beat.gdlvl`, Geometrical Dominator, seed 1): 101 s, 414
 93% within a frame, 6 batches, 49 stair steps, all modes, speed 1x / 2x with the music, clears with no press.
 Open: teleport-heavy batches look jumpy; the fly batches often fall back to gravity flips.
 
+### Rapid runs, pads, bursts, no secret way, the ending (2026-11-26, round 8)
+
+Evgeni on v3: "i still feel like we are missing some of the notes ... in those rapid drum/piano (if you can detect them), we
+should do very rapid pattern. like very very close, it gives that jiggery effect of the song. Lets try adding more pads, yellow
+red ... do we have speed of the song, in order to insert our own speed ups and slow downs? ... how to block the path, so that
+the auto is the path i take (and not some secret way that i fly away) ... from now-on everywhere, we add the latest end screen
+claude sign on every level we make".
+- **He was right about the notes.** Measured on v3 (Geometrical Dominator, 814 notes with strength >= 0.3): 407 kept, 270
+  dropped only because the next note came under 0.17 s (the old minimum gap), 123 merged into a louder note within 0.05 s, 14
+  too weak. The song is 1/16 notes (101 ms) almost throughout: 81 RAPID RUNS (4+ notes each <= 0.14 s apart) hold 553 notes.
+- **Rapid runs**: inside one, notes may be 0.07 s apart (`opts.rapidGap`). Each batch has a RAPID kind for them -- gravity
+  flips (the player wiggles), the two icons in turn, or blue pads -- and on a landing batch every other note of a run is a
+  yellow or red pad where the player comes down onto something. Accents in a run stay stair steps.
+- **More yellow / red pads**: KW yellow 5 (was 3), red 4 (was 2); every landing batch has a yellow or red pad on one band;
+  the fallback order starts with yellow, red. v3 had 54 yellow + red pads, v4 219.
+- **The song's speed, and our own on top**: the song's speed is measured per bar (tools/impacts.js: weighted notes per beat,
+  the finest grid in use, intensity) and its speedPlan follows it. On top of that, `bursts()` adds OUR OWN: one speed up for
+  a long rapid run (10+ notes) and back after it, one speed down for a hole of 1.2 s+ with no note and back, at most every
+  8 s, never within 3 s of the song's own speed change (`opts.bursts: false` = off). v4: 6 bursts (2x / 3x).
+- **No secret way**: `strays()` presses at every 30 ticks of the zero-press run, a tap and a 0.2 s hold, and follows each for
+  5 s: fine when it dies or is back in the auto run's exact state. At 1.5 s 137 of 1550 presses were not back; at 5 s 25. A
+  press still off the path gets a saw (89) where it first strays 1.5 blocks off it (never within 45 units of the auto path),
+  kept while the auto run clears; then checked again. v4: 8 saws, 5 of 1550 presses left, all within ~1 block of the path
+  (moving alongside it, not flying away). Most presses come back by themselves: the next portal or pad is where both runs
+  end up.
+- **The ending**: every autobeat level ends with the auto outro (autobricks.js `outro`, seed = level seed % 6 + 1) and the
+  signature (signature.js, header colours, description line) -- the same pair make.js gives every GDLM level. The rule is
+  now in BUILDING.md and the checklist for every builder.
+
+Lab v4 (`levels/lab/auto_beat.gdlvl`, Geometrical Dominator, seed 1): 106 s with the outro, 664 triggers (7 a second, was
+4.4), 72% of the notes (was 50%), 96% within a frame, speed 1x / 2x / 3x, 120 yellow + 99 red pads, 300 flips, 8 saws, clears
+with no press. Build 9 s. Open: pads on short catch ledges sometimes look like they float (their ledge is cut by the next
+step); the rapid flips in a ship make small wiggles; strays are checked only before the home wall.
+
 ## The community auto levels (2026-11-26, `node tools/autostudy.js --community`, PC run)
 
 Evgeni's save has 12 Auto-rated levels (knowledge/auto_community.json, numbers only). Six are art / quiz / story levels with

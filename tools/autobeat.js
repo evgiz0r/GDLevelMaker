@@ -23,6 +23,13 @@
 //    where nothing works backtracks one trigger.
 // 5. Back home at the end (a wall of cube / normal gravity / normal size / 1x portals), sparse spikes where the path never
 //    goes, and a last zero-press run from the start must clear.
+// 6. Round 8 (AUTO.md "Rapid runs, pads, bursts, no secret way, the ending"): notes in a RAPID RUN (4+ notes each <= 0.14 s
+//    apart) are kept 0.07 s apart (--min-gap is the gap elsewhere) and take the batch's rapid kind (flips, icon toggles, blue
+//    pads; every other one a yellow / red pad where it can land); our own speed BURSTS: one speed up for a 10+ note run, one
+//    down for a 1.2 s+ hole, at most every 8 s, never near the song's own speed change.
+// 7. No secret way: strays() presses (tap and hold) every 30 ticks; a press that neither dies nor is back on the auto run
+//    within 5 s gets a saw where it leaves the path.
+// 8. The ending every level gets: the auto outro (autobricks.js) + the signature (signature.js), as make.js does.
 "use strict";
 if (require.main === module) require("./heavy.js").claim();
 const fs = require("fs"), path = require("path");
@@ -42,8 +49,9 @@ const PADMODES = new Set(["cube", "ball", "robot", "spider", "ufo"]);
 const KINDS = ["yellow", "pink", "red", "blue", "grav", "fall", "step", "mode", "mini", "tele"];   // speed: from the music (notePlan), or not at all
 // when the motif's kinds do not fit (often: a player in the air can't take a pad), these in turn -- a gravity flip first,
 // mode portals and teleports last (as fallbacks they made a third of the triggers: mode spam)
-const FALLBACK = ["grav", "blue", "yellow", "pink", "red", "step", "fall", "mini", "mode", "tele"];
-const KW = { yellow: 3, pink: 2, red: 2, blue: 3, grav: 3, fall: 3, mode: 3, speed: 1, mini: 1, tele: 0.8, step: 2.5 };
+const FALLBACK = ["yellow", "red", "grav", "blue", "pink", "step", "fall", "mini", "mode", "tele"];
+const KW = { yellow: 5, pink: 2, red: 4, blue: 3,   // yellow / red up from 3 / 2 (Evgeni, 2026-11-26: "more pads, yellow red")
+  grav: 3, fall: 3, mode: 3, speed: 1, mini: 1, tele: 0.8, step: 2.5 };
 const LOOK = 36;          // ticks after the next trigger beat the player must still be alive at
 const SKY = 1500;         // the far decoration's height: the sky (300 over the highest object) is out of the way
 
@@ -91,12 +99,24 @@ function notePlan(g, music, fromBeat, uptoBeat, o = {}) {
     if (last && n.t - last.t < 0.05) { if (n.strength > last.strength) Object.assign(last, n); continue; }
     merged.push(Object.assign({}, n));
   }
+  // RAPID RUNS (Evgeni, 2026-11-26: "in those rapid drum/piano ... we should do very rapid pattern. like very very close, it
+  // gives that jiggery effect of the song"): 4+ kept notes each at most 0.14 s from the last (1/16 notes up to ~107 bpm, 1/8
+  // up to ~214). Inside one the notes may be o.rapidGap (0.07 s) apart instead of minGap; measured on Geometrical
+  // Dominator: 270 of the 407 skipped strong notes were skipped only for the 0.17 s gap, 553 notes sit in 81 such runs.
+  const kept = merged.filter(n => n.strength >= Math.min(0.5, 0.65 - 0.9 * inten(n.t)));
+  const runOf = new Map(); let runs = 0;
+  for (let i = 0, j; i < kept.length; i = j) {
+    for (j = i + 1; j < kept.length && kept[j].t - kept[j - 1].t <= 0.14; j++);
+    if (j - i >= 4) { runs++; for (let k = i; k < j; k++) runOf.set(kept[k], { id: runs, len: j - i, first: k === i, last: k === j - 1 }); }
+  }
+  const rapidGap = o.rapidGap || 0.07;
   const out = [];
   for (const n of merged) {
     const I = inten(n.t), need = Math.min(0.5, 0.65 - 0.9 * I);   // intensity 0.7+: every note; else at least the stronger half (a calm intro was 4 s of nothing)
     if (n.strength < need) continue;
-    const last = out[out.length - 1];
-    if (last && n.t - last.t < minGap) { if (n.strength > last.strength + 0.2 && (out.length < 2 || n.t - out[out.length - 2].t >= minGap)) Object.assign(last, { t: n.t, strength: n.strength, beat: (n.t - g.t0) / g.period }); continue; }
+    const last = out[out.length - 1], ru = o.rapid !== false && runOf.get(n);
+    if (ru && last && n.t - last.t >= rapidGap) { out.push({ t: n.t, strength: n.strength, band: n.band || "low", beat: +((n.t - g.t0) / g.period).toFixed(3), energy: I, rapid: ru }); continue; }
+    if (last && n.t - last.t < (ru ? rapidGap : minGap)) { if (n.strength > last.strength + 0.2 && (out.length < 2 || n.t - out[out.length - 2].t >= minGap)) Object.assign(last, { t: n.t, strength: n.strength, beat: (n.t - g.t0) / g.period }); continue; }
     out.push({ t: n.t, strength: n.strength, band: n.band || "low", beat: +((n.t - g.t0) / g.period).toFixed(3), energy: I });
   }
   // the song's hits (accents, drops, entries): a staircase step there (Evgeni: "bit more staircases as a hit in the song")
@@ -123,7 +143,7 @@ function notePlan(g, music, fromBeat, uptoBeat, o = {}) {
       const at = out.find(p => p.t >= t - 0.01 && !p.speedTo);
       if (at) { at.speedTo = sp; at.newBlock = true; cur = sp; }
     }
-    return out;
+    return bursts(out, o);
   }
   // else: speed per 4 beats from the intensity, with hysteresis (3 bars)
   const SPEEDS = [[0.12, "0.5x"], [0.45, "1x"], [0.8, "2x"], [2, "3x"]];
@@ -138,6 +158,33 @@ function notePlan(g, music, fromBeat, uptoBeat, o = {}) {
       const at = out.find(p => p.beat >= b - 4);
       if (at && !at.speedTo) { at.speedTo = w; at.newBlock = true; cur = w; }
       cand = null; held = 0;
+    }
+  }
+  return bursts(out, o);
+}
+// OUR OWN speed changes on top of the song's plan (Evgeni, 2026-11-26: "do we have speed of the song, in order to insert our own
+// speed ups and slow downs?"): a long rapid run (o.burstLen, 10+ notes, a second or more of 1/16s) goes one speed up for its
+// length and back after it -- a burst, at most every 8 s, never within 3 s of the song's own speed change. And a long
+// stretch with no note kept (a held chord, a break: 1.2 s+) slows one step for it.
+const UP = { "0.5x": "1x", "1x": "2x", "2x": "3x", "3x": "4x", "4x": "4x" }, DOWN = { "0.5x": "0.5x", "1x": "0.5x", "2x": "1x", "3x": "2x", "4x": "3x" };
+function bursts(out, o = {}) {
+  if (o.bursts === false) return out;
+  const len = o.burstLen || 10;
+  let cur = "1x", lastB = -1e9;
+  const songAt = out.filter(p => p.speedTo).map(p => p.t);
+  const nearSong = t => songAt.some(u => Math.abs(u - t) < 3);
+  for (let i = 0; i < out.length; i++) {
+    const p = out[i];
+    if (p.speedTo) { cur = p.speedTo; continue; }
+    if (p.rapid && p.rapid.first && p.rapid.len >= len && p.t - lastB >= 8 && !nearSong(p.t) && UP[cur] !== cur) {
+      let j = i + 1; while (j < out.length && out[j].rapid && out[j].rapid.id === p.rapid.id) j++;
+      if (j < out.length && !out[j].speedTo) {
+        p.speedTo = UP[cur]; p.burst = "up"; out[j].speedTo = cur; out[j].burst = "back"; lastB = p.t; i = j; continue;
+      }
+    }
+    const nx = out[i + 1];
+    if (nx && nx.t - p.t >= 1.2 && !nearSong(p.t) && p.t - lastB >= 8 && DOWN[cur] !== cur && i + 2 < out.length && !out[i + 2].speedTo && !nx.speedTo) {
+      p.speedTo = DOWN[cur]; p.burst = "slow"; nx.speedTo = cur; nx.burst = "back"; lastB = p.t; i++;
     }
   }
   return out;
@@ -163,7 +210,7 @@ function levelString(objs, segs, extra = []) {
   // the trigger objects first, the ledges' blocks after: an appended trigger keeps every earlier object's index, so a run
   // can go on from a saved state of the run before (s.used holds world indices)
   const parts = [];
-  for (const o of objs.concat(extra)) parts.push(`1,${o.id},2,${o.x.toFixed(2)},3,${o.y}` + (o.flipY ? ",5,1" : "") + (o.off ? ",54," + o.off : ""));
+  for (const o of objs.concat(extra)) parts.push(`1,${o.id},2,${o.x.toFixed(2)},3,${o.y}` + (o.flipY ? ",5,1" : "") + (o.flipX ? ",4,1" : "") + (o.rot ? ",6," + o.rot : "") + (o.off ? ",54," + o.off : ""));
   for (const sg of segs) {
     const y = sg.dir > 0 ? sg.H - 15 : sg.H + 15;
     for (let x = sg.x0 + 15; x < sg.x1 - 15 + 0.01; x += 30) parts.push(`1,1,2,${x.toFixed(2)},3,${y}`);
@@ -285,6 +332,56 @@ function kindAt(kind, s, st) {
   return KIND[kind](s, st);
 }
 
+// ---------------------------------------------------------------- no secret way: a press anywhere dies or comes back
+// Evgeni (2026-11-26): "how to block the path, so that the auto is the path i take (and not some secret way that i fly away
+// ...) basically anything besides our path should be blocked". An auto level can still be pressed: a press may jump over a
+// portal and leave the level's path for good. strays() presses at every `every` ticks of the zero-press run -- a tap (one
+// tick) and a hold (`hold` ticks) -- and follows the run for `follow` ticks (5 s: at 1.5 s 137 of 1550 presses on Geometrical Dominator were not back yet, at 5 s 7): it is fine when it dies or is back in the auto
+// run's exact state; else it is a LEAK, with the stray's path. block() puts a saw (89, r 21.6) on each leak where it first
+// strays 2 blocks off the auto path, never within 45 units of the auto path, and keeps it only while the auto run clears.
+const SAW = 89;
+function strays(objs, segs, fin, o = {}) {
+  const every = o.every || 30, follow = o.follow || 1200, hold = o.hold || 48, upto = o.uptoX || Infinity;
+  const str = levelString(objs, segs, [{ id: ID.deco, x: (o.farX || 1e5), y: SKY }]), lv = GD.parseLevel(str), w = GD.makeWorld(lv.objects, lv.header);
+  const P = fin.p, leaks = [];
+  let checked = 0;
+  for (let t0 = every; t0 < P.length - 2; t0 += every) {
+    if (P[t0].x > upto) break;
+    const ck = Math.floor(t0 / CK) * CK;
+    if (!fin.cks.has(ck) && ck > 0) continue;
+    for (const len of [1, hold]) {
+      const s = ck > 0 ? structuredClone(fin.cks.get(ck)) : GD.startState(w);
+      while (s.tick < t0) GD.step(w, s, { press: false, held: false });
+      const path = [];
+      let fate = "leak";
+      for (let k = 0; k < follow; k++) {
+        const down = k < len;
+        GD.step(w, s, { press: k === 0, held: down });
+        if (s.dead) { fate = "dies"; break; }
+        if (s.done) { fate = "end"; break; }
+        const a = P[s.tick];
+        if (!a) { fate = "end"; break; }
+        if (!down && same(snap(s), a)) { fate = k === 0 ? "nothing" : "back"; break; }
+        path.push({ t: s.tick, x: s.x, y: s.y });
+      }
+      checked++;
+      if (fate === "leak") leaks.push({ t0, len, path });
+    }
+  }
+  return { checked, leaks };
+}
+// where to block a leak: the first point of its path 1.5+ blocks from the auto run at that x, with 45 units clear of it
+function blockSpot(leak, P, idxOfX) {
+  for (const q of leak.path) {
+    const i = idxOfX(q.x); if (i < 0) continue;
+    if (Math.abs(P[i].y - q.y) < 45) continue;
+    let ok = true;
+    for (let j = Math.max(0, i - 40); j < Math.min(P.length, i + 40) && ok; j++) if (Math.abs(P[j].x - q.x) < 45 && Math.abs(P[j].y - q.y) < 45) ok = false;
+    if (ok) return { id: SAW, x: +q.x.toFixed(1), y: Math.round(q.y), kind: "block" };
+  }
+  return null;
+}
+
 // ---------------------------------------------------------------- the builder
 function build(opts = {}) {
   const song = opts.song || "Electrodynamix", seed = opts.seed || 1, r = rng(seed);
@@ -312,15 +409,21 @@ function build(opts = {}) {
         // now and then a FLIGHT batch: portals only, so the icons can be ship / wave / swing too
         const fly = batch && !batch.fly && r() < 0.4, landK = ["yellow", "pink", "red", "blue", "step", "fall"];
         const pk = not => pick(fly ? not.concat(landK) : not);
-        const low = pk(used.concat("tele")), mid = pk([low, ...used]), top = pk([low, mid]);
+        let low = pk(used.concat("tele")), mid = pk([low, ...used]), top = pk([low, mid]);
+        // a landing batch always has a yellow or red pad on one band (Evgeni, 2026-11-26: "more pads, yellow red")
+        if (!fly && ![low, mid, top].some(k => k === "yellow" || k === "red")) { const pad = r() < 0.55 ? "yellow" : "red"; if (r() < 0.5) mid = pad; else top = pad; }
         // icons that the batch's kinds work in: pads, stairs and falls want a mode that lands (cube, ball, robot, spider, ufo);
         // a batch of portals only may fly (ship, wave, swing too)
         const lands = [low, mid, top].some(k => ["yellow", "pink", "red", "blue", "step", "fall"].includes(k));
         const ic = MODES.filter(m => !(batch && batch.icons.includes(m)) && (!lands || PADMODES.has(m))).sort(() => r() - 0.5).slice(0, 2);
         if (fly) ic[0] = ["ship", "wave", "swing"][Math.floor(r() * 3)];
-        batch = { low, mid, top, icons: ic, t: p.t, first: true, fly };
-        motifLog.push(`${p.t.toFixed(1)} s: low=${low} mid=${mid} top=${top} icons=${ic.join("/")}`);
+        // the batch's RAPID kind, for the very close notes of a fast run: flips (the player wiggles up and down), the two
+        // icons in turn, or blue pads (bouncing floor <-> roof) when it lands
+        const rapid = fly ? (r() < 0.6 ? "grav" : "mode") : (r() < 0.5 ? "grav" : r() < 0.6 ? "blue" : "mode");
+        batch = { low, mid, top, icons: ic, t: p.t, first: true, fly, rapid };
+        motifLog.push(`${p.t.toFixed(1)} s: low=${low} mid=${mid} top=${top} rapid=${rapid} icons=${ic.join("/")}`);
       }
+      if (p.rapid && !p.accent) return { want: batch.rapid, others: ["grav", "mode", "blue"].filter(k => k !== batch.rapid), batch, rapid: true };
       const want = p.accent ? "step" : batch[p.band] || batch.low;
       return { want, others: [batch.low, batch.mid, batch.top].filter(k => k !== want), batch };
     }
@@ -403,11 +506,14 @@ function build(opts = {}) {
     st.icons = bt ? bt.icons : null;
     // a new batch starts in its own icon: a mode portal first (unless the music's speed changes right here)
     st.modeTo = !st.speedTo && bt && bt.first && base.p[tb] && base.p[tb].mode !== bt.icons[0] ? bt.icons[0] : null;
-    const order = st.speedTo ? ["speed"] : st.modeTo ? ["mode", want, ...FALLBACK] : [want, ...others.filter(k => k !== want), ...FALLBACK.filter(k => k !== want && !others.includes(k))];
+    let order = st.speedTo ? ["speed"] : st.modeTo ? ["mode", want, ...FALLBACK] : [want, ...others.filter(k => k !== want), ...FALLBACK.filter(k => k !== want && !others.includes(k))];
+    // in a rapid run on a landing batch every other note is a yellow or red pad where the player comes down onto something
+    // (flip, pad, flip, pad: the jiggle) -- the pads say no by themselves where it cannot land
+    if (plan[i].rapid && bt && !bt.fly && !st.speedTo && !st.modeTo && (i % 2 === 1)) { const pd = r() < 0.55 ? "yellow" : "red"; order = [pd, pd === "yellow" ? "red" : "yellow", ...order.filter(k => k !== "yellow" && k !== "red")]; }
     let best = null;
     for (const kind of order) {
       if (tried[i].has(kind)) continue;
-      if (kind === "mode" && st.modeRun >= 3) continue;
+      if (kind === "mode" && st.modeRun >= 3 && !plan[i].rapid) continue;   // a rapid run may toggle the icons note after note
       const k = kindAt(kind, s, st);
       if (!k) continue;
       // tune dx so it fires on the beat tick
@@ -473,6 +579,7 @@ function build(opts = {}) {
   st.objs = st.objs.concat(homeObjs);
   const endX = wx + 160 + 10 * 30 * 3;
   st.objs.push({ id: ID.deco, x: endX, y: 15, kind: "end" });
+  const M0 = {};
   // ---- spikes where the path never goes (sparse), kept only if it still clears
   let fin = run(st.objs, st.segs, 1e9, endX + 90);
   const spikes = [];
@@ -496,8 +603,45 @@ function build(opts = {}) {
     if (res.dead) { objs = st.objs; res = fin; spikes.length = 0; }
     st.objs = objs; fin = res;
   }
-  const lv = { str: levelString(st.objs, st.segs) };
-  const M = measures(fin, placed, g);
+  // ---- no secret way (strays / blockSpot above): up to opts.blockPasses (4) passes of saws on the leaks, each kept only
+  // while the auto run still clears (a pass that kills drops its saws near the death and tries again)
+  if (opts.block !== false && !fin.dead) {
+    const idxOfX = x => { let lo = 0, hi = fin.p.length - 1; while (lo < hi) { const m = (lo + hi) >> 1; if (fin.p[m].x < x) lo = m + 1; else hi = m; } return lo; };
+    let saws = 0; M0.blockPasses = [];
+    for (let pass = 0; pass < (opts.blockPasses || 4); pass++) {
+      const sr = strays(st.objs, st.segs, fin, { uptoX: wx - 60, farX: endX + 90 });
+      M0.blockPasses.push(sr.leaks.length + "/" + sr.checked);
+      if (!sr.leaks.length) break;
+      let add = [];
+      for (const lk of sr.leaks) { const sp = blockSpot(lk, fin.p, idxOfX); if (sp && !add.some(q => Math.abs(q.x - sp.x) < 40 && Math.abs(q.y - sp.y) < 40) && !st.objs.some(q => q.kind === "block" && Math.abs(q.x - sp.x) < 40 && Math.abs(q.y - sp.y) < 40)) add.push(sp); }
+      if (!add.length) break;
+      for (let tries = 0; tries < 6 && add.length; tries++) {
+        const res = run(st.objs.concat(add), st.segs, 1e9, endX + 90);
+        if (!res.dead) { st.objs = st.objs.concat(add); fin = res; saws += add.length; add = []; break; }
+        const dx = res.p[res.p.length - 1].x; add = add.filter(q => Math.abs(q.x - dx) > 240);
+      }
+    }
+    M0.saws = saws;
+    if (!opts.quiet) console.log(`  no secret way: ${saws} saws, leaks per pass ${M0.blockPasses.join(", ")}`);
+  }
+  // ---- the ending every level gets (Evgeni, 2026-11-26: "from now-on everywhere, we add the latest end screen claude sign on
+  // every level we make"): the auto outro (tools/autobricks.js outro: any arrival -> plain cube, a big fall up and down), then
+  // the signature (tools/signature.js) -- the same pair make.js puts on every GDLM level ("outro": <seed> + the signature)
+  let sig = null;
+  if (opts.ending !== false && !fin.dead) {
+    const o = require("./autobricks.js").outro(opts.outro || (seed % 6) + 1);
+    const col = Math.ceil((wx + 160) / B) + 3;
+    const outroObjs = o.entries(col).map(([id, c, rr, e]) => ({ id, x: c * B + 15, y: rr * B + 15 + ((e && e.dy) || 0), flipY: !!(e && e.flipY), flipX: !!(e && e.flipX), rot: (e && e.rot) || 0, kind: "outro" }));
+    const objs = st.objs.filter(q => q.kind !== "end").concat(outroObjs);
+    const lastX = Math.max(...outroObjs.map(q => q.x));
+    const res = run(objs, st.segs, 1e9, lastX + 400);
+    if (!res.dead) { st.objs = objs; fin = res; sig = { col: Math.ceil(lastX / B) + 3, outro: o.secs }; }
+    else if (!opts.quiet) console.log("  the outro dies (" + res.why + "): ending without it");
+    if (!sig) sig = { col: Math.ceil(endX / B) + 3 };
+  }
+  const lv = { str: levelString(st.objs, st.segs), sig };
+  const M = Object.assign(measures(fin, placed, g), M0);
+  M.ending = sig ? (sig.outro ? `outro ${sig.outro} s + signature` : "signature") : "none";
   if (opts.music) {   // how many of the song's notes a trigger lands on (Evgeni: "we hit like 1/6 of the notes")
     const tt = placed.filter(t => t.kind !== "none").map(t => t.tick / TPS), lo = tt[0] - 0.01, hi = tt[tt.length - 1] + 0.01;
     const strong = opts.music.notes.filter(n => n.t >= lo && n.t <= hi && n.strength >= 0.3);
@@ -527,10 +671,23 @@ function measures(fin, placed, g) {
 }
 
 function write(out, b, name) {
-  const rec = GD.newRecord(name, `auto, beat-first: every trigger on a beat of ${b.song} (tools/autobeat.js, AUTO.md)`);
+  let desc = `auto, beat-first: every trigger on a note of ${b.song} (tools/autobeat.js, AUTO.md)`;
+  let str = b.lv.str;
+  if (b.lv.sig) {   // the signature: its colours in the header, its objects after the outro, the level clipped 5 blocks after it
+    const sg = require("./signature.js"), lvl = GD.parseLevel(str);
+    const header = sg.header(lvl.header, { col: b.lv.sig.col, floorY: 0 });
+    const so = sg.signature({ col: b.lv.sig.col, floorY: 0, period: b.g.period });
+    desc = sg.describe(desc);
+    const rec = GD.newRecord(name, desc);
+    if (b.g.k45) GD.setField(rec, "k45", "i", b.g.k45); else GD.setField(rec, "k8", "i", String(b.g.k8));
+    fs.mkdirSync(path.dirname(out), { recursive: true });
+    writeGdlvl(out, rec, { header, objects: lvl.objects.concat(so) });
+    return;
+  }
+  const rec = GD.newRecord(name, desc);
   if (b.g.k45) GD.setField(rec, "k45", "i", b.g.k45); else GD.setField(rec, "k8", "i", String(b.g.k8));
   fs.mkdirSync(path.dirname(out), { recursive: true });
-  writeGdlvl(out, rec, GD.parseLevel(b.lv.str));
+  writeGdlvl(out, rec, GD.parseLevel(str));
 }
 
 if (require.main === module) {
@@ -544,4 +701,4 @@ if (require.main === module) {
   console.log(JSON.stringify(b.measures));
   console.log(`${b.measures.clears ? "CLEARS with no press" : "DIES: " + b.fin.why} -> ${path.relative(ROOT, out)} (${((Date.now() - t0) / 1000).toFixed(1)} s)`);
 }
-module.exports = { build, write, triggerBeats, notePlan, musicOf, loadGrid };
+module.exports = { build, write, triggerBeats, notePlan, musicOf, loadGrid, strays, run };

@@ -32,8 +32,7 @@ function resolve(w) {
   if (!lv.solution) lv.solution = { ok: false, events: [], why: "not solved: the camera runs at the level's speed", pending: true };   // never solve in the page
   let song = null, m;
   if ((m = /^official:(\d+)$/.exec(w))) {
-    const src = fs.readFileSync(path.join(__dirname, "index_levels.js"), "utf8"), arr = /OFFICIAL_SONGS = (\[[^\]]+\])/.exec(src);
-    const names = arr ? eval(arr[1]) : [];   // the list in index_levels.js, read as data
+    const names = require("../lib/gd.js").OFFICIAL_SONGS;   // one list, in lib/gd.js
     if (names[+m[1] - 1]) song = { file: path.join(GAME, "Resources", names[+m[1] - 1] + ".mp3"), offset: 0 };
   } else if (/\.gdlvl$/.test(w)) {
     const L = require("./io.js").readGdlvl(w), s = require("./index_levels.js").songOf(L.rec, L.level.header);
