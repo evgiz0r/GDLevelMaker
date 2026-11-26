@@ -2,7 +2,7 @@
 // design and 3D effect, in ice or fire, a label over each. Channels 912-931 as the single-block gallery, 932 the labels.
 "use strict";
 const K = require("../scenekit.js"), B = require("../blockdesigns.js"), D = require("../structdesign.js");
-const SOLID = new Set([1, 2, 3, 4, 5, 6, 7]);
+const SOLID = new Set([1, 2, 3, 4, 5, 6, 7, 1338]);
 module.exports = function ({ objects, header, spec }) {
   const pal = { ice: B.channels(B.PAL.ice, 912), fire: B.channels(B.PAL.fire, 922) };
   header = K.channels(header, Object.assign({}, pal.ice.defs, pal.fire.defs, { 932: { rgb: [200, 215, 240] } }));

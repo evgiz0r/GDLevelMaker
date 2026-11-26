@@ -311,3 +311,23 @@ effects for the blocks".
   wip deco-art/gdlm_structure_designs; picture /mnt/project-files/decoart/structure_designs_v2.jpg. Test: `node tests/structdesign.js`.
 - Open: wire `dress()` into make.js / the theme kits as a spec key (blocks of a level dressed per structure), the votes of
   this round, a design that varies along long runs (every Nth block), slopes.
+
+## One look per section, and slopes (2026-11-26)
+
+**Rule (Evgeni):** "we usually dont want to mix multiple spike or blocks near each other ( maybe one day ). but for different
+sections and different vibes we surely would want to change. but probably not too much according to the director of the level".
+So a level's design plan picks ONE block design (+ its 3D effect) and ONE spike design per section; it changes only where a
+section's vibe changes, and the plan keeps the number of looks small (2-3 a level; going back to an earlier look is free).
+Jump indicators are not part of it: one indicator style for the whole level, never in a block's or spike's colours
+("stylish indicator, maybe regardless of the designs ( dont want to confuse blocks and indicators imo )").
+To do when dress() is wired into make.js: the spec key carries the plan per section, and a check warns on two designs
+inside one section or more looks than the plan allows.
+
+**Slopes** (Evgeni: "you have also triangle shape ( half of the block , 2 ways )?"): tools/structdesign.js treats a 1338
+half block as a cell of kind br / bl / tr / tl (the corner of its right angle: as placed, flipX, flipY, both; a turn of 90
+moves it clockwise). It joins its neighbours only along its two legs. Every layer insets its slant by d (a smaller 693 under
+the same flips), so outline, inline and base turn up the slope; where a slant runs on past a block's corner (a ramp of two
+slopes), a small triangle fills that corner so no step shows. The glow and bevel follow the slant (lit facing up, shadow
+facing down); depth shifts the triangles too. Connector sheet: slopes alone, peak, ramp up, ramp down, hill, a hanging
+arch. Gallery: deco-art/gdlm_structure_designs v4. Viewer fix: the art-free look drew slopes over front-layer deco; it now
+draws them with the blocks (T1+ deco covers them, as in the game).

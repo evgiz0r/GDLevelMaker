@@ -20,6 +20,11 @@
 //                                   U, stairs (diagonal touches), a bridge: a design that looks right on it looks right anywhere
 //   EFFECTS                      -> 3D for the blocks: depth (pushed back up-right), bevel (lit top-left, dark bottom-right
 //                                   inside the edge), long depth, depth + bevel
+// SLOPES (Evgeni: "you have also triangle shape ( half of the block , 2 ways )?"): a 1338 half block is a cell of kind
+// br (as placed: rising to the right), bl (flipX: rising to the left), tr / tl (flipY: hanging from a ceiling); the name is
+// the corner of its right angle. It joins its neighbours only along its two legs; every layer insets its slanted side
+// by d too (a smaller 693 triangle), so outline, inline and base turn up the slope; glow and bevel follow the slant.
+// Map letters: '/' br, '\\' bl, '7' tr, 'r' tl.
 // Layers: like the single designs (base T1 zo 4, inside 5-6, inline 7, outline 8); depth and shadow behind on B1.
 "use strict";
 const K = require("./scenekit.js"), B = require("./blockdesigns.js");
@@ -27,17 +32,30 @@ const LW = 2.4, IW = 1.8;
 
 // ---- the shape ----
 const key = (c, r) => c + "," + r;
+// slope kinds: the right angle's corner. GD flips first, then turns clockwise by rot
+const ROTCW = { br: "bl", bl: "tl", tl: "tr", tr: "br" }, CHAR = { "/": "br", "\\": "bl", "7": "tr", "r": "tl" };
+function slopeKind(b) { let k = (b.flipY ? "t" : "b") + (b.flipX ? "l" : "r"); for (let n = Math.round((((b.rot || 0) % 360) + 360) % 360 / 90); n > 0; n--) k = ROTCW[k]; return k; }
+const kindOf = (S, c, r) => (S.kind && S.kind.get(key(c, r))) || "#";
+const OPP = { N: "S", S: "N", E: "W", W: "E" };
+// does cell (c, r) close its `side` with a full edge? a square always, a slope along its two legs
+const presents = (S, c, r, side) => { if (!S.has(key(c, r))) return false; const k = kindOf(S, c, r);
+  return k === "#" || side === (k[0] === "b" ? "S" : "N") || side === (k[1] === "r" ? "E" : "W"); };
+// does cell (c, r) fill the area at its corner `corner` (br, bl, tr, tl)? a square, or a slope's right angle
+const covers = (S, c, r, corner) => S.has(key(c, r)) && (kindOf(S, c, r) === "#" || kindOf(S, c, r) === corner);
+const isSq = (S, c, r) => S.has(key(c, r)) && kindOf(S, c, r) === "#";
 // blocks (centres) -> structures: cells on the blocks' own grid, joined when they share a side or a corner
 function structures(blocks) {
   if (!blocks.length) return [];
   const ox = ((blocks[0].x - 15) % 30 + 30) % 30, oy = ((blocks[0].y - 15) % 30 + 30) % 30, all = new Map();
-  for (const b of blocks) { const c = Math.round((b.x - 15 - ox) / 30), r = Math.round((b.y - 15 - oy) / 30); all.set(key(c, r), [c, r]); }
+  const kinds = new Map();
+  for (const b of blocks) { const c = Math.round((b.x - 15 - ox) / 30), r = Math.round((b.y - 15 - oy) / 30); all.set(key(c, r), [c, r]); if (b.id === 1338) kinds.set(key(c, r), slopeKind(b)); }
   const seen = new Set(), out = [];
   for (const [k0] of all) {
     if (seen.has(k0)) continue;
     const S = new Set(), st = [k0]; seen.add(k0);
     while (st.length) { const k = st.pop(); S.add(k); const [c, r] = all.get(k);
       for (let dc = -1; dc <= 1; dc++) for (let dr = -1; dr <= 1; dr++) { const n = key(c + dc, r + dr); if (all.has(n) && !seen.has(n)) { seen.add(n); st.push(n); } } }
+    S.kind = new Map([...kinds].filter(([k]) => S.has(k)));
     out.push({ S, ox, oy });
   }
   return out;
@@ -61,24 +79,65 @@ function merge(R) {
 function region(S, d) {
   const R = [];
   for (const [c, r] of cellsOf(S)) {
-    const n = has(S, c, r + 1), s = has(S, c, r - 1), e = has(S, c + 1, r), w = has(S, c - 1, r);
+    if (kindOf(S, c, r) !== "#") continue;   // slopes: tris()
+    const n = presents(S, c, r + 1, "S"), s = presents(S, c, r - 1, "N"), e = presents(S, c + 1, r, "W"), w = presents(S, c - 1, r, "E");
     const X = [0, d, 30 - d, 30];
+    // a corner piece: both sides and the diagonal fill the area round that corner point
+    const cor = (dx, dy) => { const h = dy > 0 ? "b" : "t", v = dx > 0 ? "l" : "r";   // the corner of each neighbour that touches ours
+      return covers(S, c + dx, r + dy, h + v) && covers(S, c + dx, r, (dy > 0 ? "t" : "b") + v) && covers(S, c, r + dy, h + (dx > 0 ? "r" : "l")); };
     // sub-cell (i, j): i 0 left .. 2 right, j 0 bottom .. 2 top
-    const inc = [[w && s && has(S, c - 1, r - 1), s, e && s && has(S, c + 1, r - 1)], [w, true, e], [w && n && has(S, c - 1, r + 1), n, e && n && has(S, c + 1, r + 1)]];
+    const inc = [[w && s && cor(-1, -1), s, e && s && cor(1, -1)], [w, true, e], [w && n && cor(-1, 1), n, e && n && cor(1, 1)]];
     for (let j = 0; j < 3; j++) for (let i = 0; i < 3; i++)
       if (inc[j][i] && X[i + 1] > X[i] && X[j + 1] > X[j]) R.push([c * 30 + X[i], r * 30 + X[j], c * 30 + X[i + 1], r * 30 + X[j + 1]]);
   }
   return merge(R);
 }
-// the open sides as strips w wide inside the edge (side: "N" "S" "E" "W")
+// the slopes inset by d: one right triangle per slope cell {x, y (centre), L (leg), flipX, flipY, kind}; a leg that
+// meets a neighbour is not inset (the layer runs on into the neighbour), the slanted side always is
+function tris(S, d) {
+  const out = [];
+  for (const [c, r] of cellsOf(S)) {
+    const k = kindOf(S, c, r); if (k === "#") continue;
+    const H = k[0] === "b" ? "S" : "N", V = k[1] === "r" ? "E" : "W";
+    const dH = presents(S, c, r + (H === "N" ? 1 : -1), OPP[H]) ? 0 : d, dV = presents(S, c + (V === "E" ? 1 : -1), r, OPP[V]) ? 0 : d;
+    const L = 30 - dH - dV - d * Math.SQRT2; if (L < 0.6) continue;
+    let cx = 30 - dV - L / 2, cy = dH + L / 2;   // worked out for br, then mirrored
+    if (k[1] === "l") cx = 30 - cx; if (k[0] === "t") cy = 30 - cy;
+    out.push({ x: c * 30 + cx, y: r * 30 + cy, L, flipX: k[1] === "l", flipY: k[0] === "t", kind: k });
+  }
+  // where a slant runs on past a square's corner (a ramp's slope meeting the block under the next slope), the square's
+  // corner piece is out (region) but the part of it under the slant is in: a small triangle there, so no step shows
+  if (d > 0) for (const [c, r] of cellsOf(S)) {
+    if (kindOf(S, c, r) !== "#") continue;
+    for (const [sx, sy] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) {
+      const ex = presents(S, c + sx, r, sx > 0 ? "W" : "E"), ey = presents(S, c, r + sy, sy > 0 ? "S" : "N");
+      const tx = (sy > 0 ? "b" : "t") + (sx > 0 ? "l" : "r");   // the diagonal's corner that touches ours
+      if (!ex || !ey || covers(S, c + sx, r + sy, tx)) continue;
+      const slantX = kindOf(S, c + sx, r) !== "#" && !covers(S, c + sx, r, (sy > 0 ? "t" : "b") + (sx > 0 ? "l" : "r"));
+      const slantY = kindOf(S, c, r + sy) !== "#" && !covers(S, c, r + sy, (sy > 0 ? "b" : "t") + (sx > 0 ? "r" : "l"));
+      if (!slantX && !slantY) continue;
+      const X = c * 30 + (sx > 0 ? 30 : 0), Y = r * 30 + (sy > 0 ? 30 : 0), L = d * (2 - Math.SQRT2), k = (sy > 0 ? "b" : "t") + (sx > 0 ? "l" : "r");
+      out.push({ x: X - sx * d + sx * L / 2, y: Y - sy * d + sy * L / 2, L, flipX: k[1] === "l", flipY: k[0] === "t", kind: k });
+    }
+  }
+  return out;
+}
+// the slanted sides: per slope its middle point, the inward normal, the turn of a strip along it and where it faces
+function hyps(S) {
+  return cellsOf(S).filter(([c, r]) => kindOf(S, c, r) !== "#").map(([c, r]) => { const k = kindOf(S, c, r);
+    const nx = (k[1] === "r" ? 1 : -1) / Math.SQRT2, ny = (k[0] === "b" ? -1 : 1) / Math.SQRT2;
+    return { c, r, kind: k, mx: c * 30 + 15, my: r * 30 + 15, nx, ny, rot: k === "br" || k === "tl" ? -45 : 45, up: k[0] === "b", left: k[1] === "r" }; });
+}
+// the open sides as strips w wide inside the edge (side: "N" "S" "E" "W"); a slope's open legs count, its slant does not (hyps)
 function edges(S, side, w) {
   const R = [];
   for (const [c, r] of cellsOf(S)) {
-    const x = c * 30, y = r * 30;
-    if (side === "N" && !has(S, c, r + 1)) R.push([x, y + 30 - w, x + 30, y + 30]);
-    if (side === "S" && !has(S, c, r - 1)) R.push([x, y, x + 30, y + w]);
-    if (side === "E" && !has(S, c + 1, r)) R.push([x + 30 - w, y, x + 30, y + 30]);
-    if (side === "W" && !has(S, c - 1, r)) R.push([x, y, x + w, y + 30]);
+    const x = c * 30, y = r * 30, k = kindOf(S, c, r);
+    const mine = sd => k === "#" || sd === (k[0] === "b" ? "S" : "N") || sd === (k[1] === "r" ? "E" : "W");
+    if (side === "N" && mine("N") && !presents(S, c, r + 1, "S")) R.push([x, y + 30 - w, x + 30, y + 30]);
+    if (side === "S" && mine("S") && !presents(S, c, r - 1, "N")) R.push([x, y, x + 30, y + w]);
+    if (side === "E" && mine("E") && !presents(S, c + 1, r, "W")) R.push([x + 30 - w, y, x + 30, y + 30]);
+    if (side === "W" && mine("W") && !presents(S, c - 1, r, "E")) R.push([x, y, x + w, y + 30]);
   }
   return merge(R);
 }
@@ -86,7 +145,9 @@ function edges(S, side, w) {
 function corners(S) {
   const out = [];
   for (const [c, r] of cellsOf(S)) for (const [sx, sy] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) {
-    const hx = has(S, c + sx, r), hy = has(S, c, r + sy), hd = has(S, c + sx, r + sy);
+    if (kindOf(S, c, r) !== "#") continue;
+    const hx = presents(S, c + sx, r, sx > 0 ? "W" : "E"), hy = presents(S, c, r + sy, sy > 0 ? "S" : "N");
+    const hd = covers(S, c + sx, r + sy, (sy > 0 ? "b" : "t") + (sx > 0 ? "l" : "r"));
     const x = c * 30 + (sx > 0 ? 30 : 0), y = r * 30 + (sy > 0 ? 30 : 0);
     if (!hx && !hy) out.push({ x, y, dx: -sx, dy: -sy, inner: false });
     else if (hx && hy && !hd) out.push({ x, y, dx: sx, dy: sy, inner: true });   // a notch: the open quarter is diagonal
@@ -100,18 +161,30 @@ function painter(st, C, o = {}) {
   // every piece grows by a hair (0.3 units) so pieces that meet overlap: abutting squares show a seam in the game's render
   const rect = (q, role, zo, extra = {}) => out.push(K.obj(211, X0 + (q[0] + q[2]) / 2, Y0 + (q[1] + q[3]) / 2,
     Object.assign({ ch: C[role], z: "T1", zo, sx: (q[2] - q[0] + 0.3) / 30, sy: (q[3] - q[1] + 0.3) / 30, groups: o.groups }, extra)));
-  const fill = (d, role, zo, extra) => region(st.S, d).forEach(q => rect(q, role, zo, extra));
-  return { out, rect, fill, X0, Y0 };
+  // a slope's layer: the 693 right triangle (its right angle at the bottom right as placed), mirrored like the slope
+  const tri = (t, role, zo, extra = {}, dx = 0, dy = 0) => out.push(K.obj(693, X0 + t.x + dx, Y0 + t.y + dy,
+    Object.assign({ ch: C[role], z: "T1", zo, s: (t.L + 0.3) / 30, flipX: t.flipX, flipY: t.flipY, groups: o.groups }, extra)));
+  const fill = (d, role, zo, extra) => { region(st.S, d).forEach(q => rect(q, role, zo, extra)); tris(st.S, d).forEach(t => tri(t, role, zo, extra)); };
+  // a strip along a slope's slant, from inset a to inset b
+  const slant = (h, a, b, role, zo, extra = {}) => { const m = (a + b) / 2;
+    out.push(K.obj(211, X0 + h.mx + h.nx * m, Y0 + h.my + h.ny * m, Object.assign({ ch: C[role], z: "T1", zo, sx: Math.max(0.1, 30 * Math.SQRT2 - 2 * b - 2 * LW) / 30, sy: (b - a) / 30, rot: h.rot, groups: o.groups }, extra))); };
+  return { out, rect, tri, fill, slant, X0, Y0 };
 }
 // cells for a motif: the inside cells (blocks on all four sides), else every third block of a thin shape
 function motifCells(S) {
   const cs = cellsOf(S).sort((a, b) => b[1] - a[1] || a[0] - b[0]);
-  const inside = cs.filter(([c, r]) => has(S, c + 1, r) && has(S, c - 1, r) && has(S, c, r + 1) && has(S, c, r - 1));
+  const inside = cs.filter(([c, r]) => isSq(S, c, r) && isSq(S, c + 1, r) && isSq(S, c - 1, r) && isSq(S, c, r + 1) && isSq(S, c, r - 1));
   if (inside.length) return inside.filter((_, i) => i % 2 === 0);
-  return cs.length < 3 ? cs.slice(0, 1) : cs.filter((_, i) => i % 3 === 1);
+  const sq = cs.filter(([c, r]) => isSq(S, c, r));
+  return sq.length < 3 ? sq.slice(0, 1) : sq.filter((_, i) => i % 3 === 1);
 }
-const topGlow = (st, p, C, h = 12) => edges(st.S, "N", h).forEach(q => p.out.push(K.obj(1293, p.X0 + (q[0] + q[2]) / 2, p.Y0 + (q[1] + q[3]) / 2,
-  { ch: C.glow, z: "T1", zo: 6, sx: (q[2] - q[0]) / 30 * 2 / 2, sy: h / 30, flipY: true })));
+const topGlow = (st, p, C, h = 12) => {
+  edges(st.S, "N", h).forEach(q => p.out.push(K.obj(1293, p.X0 + (q[0] + q[2]) / 2, p.Y0 + (q[1] + q[3]) / 2,
+    { ch: C.glow, z: "T1", zo: 6, sx: (q[2] - q[0]) / 30, sy: h / 30, flipY: true })));
+  // up a floor slope: the glow turned with the slant, bright side out
+  for (const s of hyps(st.S)) if (s.up) p.out.push(K.obj(1293, p.X0 + s.mx + s.nx * h / 2, p.Y0 + s.my + s.ny * h / 2,
+    { ch: C.glow, z: "T1", zo: 6, sx: (30 * Math.SQRT2 - h) / 30, sy: h / 30, flipY: true, rot: s.rot }));
+};
 const MOTIFS = {
   // above every body layer (the fills go up to zo 8)
   diamond: (k, cx, cy) => { k.put(211, cx, cy, "deep", 9, { s: 0.55, rot: 45 }); k.put(211, cx, cy, "hi", 10, { s: 0.3, rot: 45 }); },
@@ -152,6 +225,7 @@ function depth(st, p, C, d, v) {
   const face = { z: "B1", hsv: `0a1a${v}a0a0` }, rim = { z: "B1", hsv: "0a1a0.45a0a0" };
   region(st.S, 0).forEach(q => p.rect([q[0] + d, q[1] + d, q[2] + d, q[3] + d], "line", 0, rim));
   region(st.S, LW * 0.6).forEach(q => p.rect([q[0] + d, q[1] + d, q[2] + d, q[3] + d], "base", 1, face));
+  tris(st.S, 0).forEach(t => p.tri(t, "line", 0, rim, d, d)); tris(st.S, LW * 0.6).forEach(t => p.tri(t, "base", 1, face, d, d));
   for (const k of corners(st.S)) if (!k.inner && ((k.dx > 0 && k.dy < 0) || (k.dx < 0 && k.dy > 0)))
     p.out.push(K.obj(693, p.X0 + k.x + d / 2, p.Y0 + k.y + d / 2, { ch: C.base, z: "B1", zo: 1, sx: d / 30, sy: d / 30, rot: k.dx > 0 ? 0 : 180, hsv: `0a1a${v}a0a0` }));
 }
@@ -161,7 +235,9 @@ const EFFECTS = {
     edges(st.S, "N", LW + w).forEach(q => p.rect([q[0], q[1], q[2], q[3] - LW], "hi", 7, { hsv: "0a1a0.8a0a0" }));
     edges(st.S, "W", LW + w).forEach(q => p.rect([q[0] + LW, q[1], q[2], q[3]], "hi", 7, { hsv: "0a1a0.6a0a0" }));
     edges(st.S, "S", LW + w).forEach(q => p.rect([q[0], q[1] + LW, q[2], q[3]], "shadow", 7));
-    edges(st.S, "E", LW + w).forEach(q => p.rect([q[0], q[1], q[2] - LW, q[3]], "shadow", 7)); } },
+    edges(st.S, "E", LW + w).forEach(q => p.rect([q[0], q[1], q[2] - LW, q[3]], "shadow", 7));
+    // a slant facing up is lit (more when it also faces left), one facing down is in shadow
+    for (const h of hyps(st.S)) p.slant(h, LW, LW + w, h.up ? "hi" : "shadow", 7, h.up ? { hsv: h.left ? "0a1a0.8a0a0" : "0a1a0.6a0a0" } : {}); } },
   "long depth": { note: "a deep side face (twice as far back), darker: a heavy, solid look", draw(st, p, C) { depth(st, p, C, 14, 0.35); } },
   "depth + bevel": { note: "both", draw(st, p, C) { EFFECTS.depth.draw(st, p, C); EFFECTS.bevel.draw(st, p, C); } },
 };
@@ -183,6 +259,9 @@ const SHEET = [
   ["T", ["###", ".#.", ".#."]], ["plus", [".#.", "###", ".#."]], ["2x2", ["##", "##"]], ["3x3", ["###", "###", "###"]],
   ["ring", ["####", "#..#", "#..#", "####"]], ["U", ["#.#", "#.#", "###"]], ["stairs", ["..#", ".##", "##."]],
   ["bridge", ["##...##", "#######", "##...##"]],
+  // half blocks (slopes), both ways, on the floor and hanging
+  ["slopes alone", ["/.\\"]], ["peak", ["/\\", "##"]], ["ramp up", ["./##", "/###"]], ["ramp down", ["##\\.", "###\\"]],
+  ["hill", ["./\\.", "/##\\"]], ["arch", ["####", "r..7"]],
 ];
 // stretch a map to w x h (never smaller), 9-slice style: the first and last line stay (corners, caps, ends); the inside
 // lines that repeat (a ring's sides, a frame's gap) share the extra copies evenly, else the middle inside line grows.
@@ -203,7 +282,7 @@ function extend(rows, w, h, o = {}) {
 function lay(maps, c0, r0, gap = 2) {
   const cells = [], spans = []; let c = c0;
   for (const [name, rows] of maps) { const W = rows[0].length;
-    rows.forEach((row, i) => [...row].forEach((ch, j) => { if (ch === "#") cells.push([c + j, r0 + rows.length - 1 - i]); }));
+    rows.forEach((row, i) => [...row].forEach((ch, j) => { if (ch === "#" || CHAR[ch]) cells.push([c + j, r0 + rows.length - 1 - i, CHAR[ch] || "#"]); }));
     spans.push({ name, c0: c, c1: c + W }); c += W + gap; }
   return { cells, spans, end: c };
 }
@@ -213,7 +292,7 @@ function spec() {
   const objects = ["// every structure design and 3D effect on the connector sheet; flat run, no click"], copies = [];
   let c = 12;
   const add = (label, design, effects, pal, maps) => { const L = lay(maps || SHEET, c, 2, 1);
-    for (const [x, y] of L.cells) objects.push(["block", x, y]);
+    for (const [x, y, k] of L.cells) objects.push(k === "#" ? ["block", x, y] : ["slope", x, y, { flipX: k[1] === "l", flipY: k[0] === "t" }]);
     copies.push({ label, design, effects, pal, c0: c, c1: L.end - 1 }); c = L.end + 5; };
   Object.keys(DESIGNS).forEach((d, i) => add(d, d, [], i % 2 ? "fire" : "ice"));
   Object.keys(EFFECTS).forEach((e, i) => add("3D: " + e, "layered", [e], i % 2 ? "ice" : "fire"));
@@ -226,11 +305,11 @@ function spec() {
   };
 }
 
-module.exports = { DESIGNS, EFFECTS, SHEET, structures, region, edges, corners, dress, extend, lay, spec };
+module.exports = { DESIGNS, EFFECTS, SHEET, structures, region, tris, hyps, slopeKind, edges, corners, dress, extend, lay, spec };
 if (require.main === module) {
   const a = process.argv.slice(2);
   if (a[0] === "list") { for (const [n, d] of Object.entries(DESIGNS)) console.log("design  " + n.padEnd(16) + d.note); for (const [n, d] of Object.entries(EFFECTS)) console.log("3D      " + n.padEnd(16) + d.note); }
-  else if (a[0] === "sheet") { const L = lay(SHEET, 0, 0, 1), H = 5; for (let r = H - 1; r >= 0; r--) { let s = ""; for (let x = 0; x < L.end; x++) s += L.cells.some(q => q[0] === x && q[1] === r) ? "#" : "."; console.log(s); } }
+  else if (a[0] === "sheet") { const L = lay(SHEET, 0, 0, 1), H = 5; for (let r = H - 1; r >= 0; r--) { let s = ""; for (let x = 0; x < L.end; x++) { const q = L.cells.find(q => q[0] === x && q[1] === r); s += q ? (Object.keys(CHAR).find(k => CHAR[k] === q[2]) || "#") : "."; }; console.log(s); } }
   else if (a[0] === "spec") { const out = a.includes("--out") ? a[a.indexOf("--out") + 1] : "specs/lab_struct_designs.json";
     require("fs").writeFileSync(out, JSON.stringify(spec(), null, 1) + "\n"); console.log("wrote " + out); }
   else console.log(require("fs").readFileSync(__filename, "utf8").split("\n").filter(l => l.startsWith("//")).join("\n"));

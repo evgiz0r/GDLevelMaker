@@ -2080,11 +2080,13 @@ function draw() {
     }
     ctx.globalAlpha = 1;
     GD.LOOK.drawBlocks(ctx, view, LS, blocks, local);
+    // slopes are play blocks too: front-layer deco (T1..) covers them as in the game (a dressed slope, tools/structdesign.js)
+    for (const o of on) if (GD.objInfo(o.id).kind === "slope") { const a = GD.LOOK.objAlpha(o, LS.alpha); if (a > 0.01) { ctx.globalAlpha = a; drawObj(o); ctx.globalAlpha = 1; ctx.shadowBlur = 0; } }
     front.sort((p, q) => (+p[0].props[24] - +q[0].props[24]) || ((+p[0].props[25] || 0) - (+q[0].props[25] || 0)));
     for (const [o, a] of front) { ctx.globalAlpha = a * (GD.LOOK.isFlat(o.id) ? 1 : 0.85); local(o, () => GD.LOOK.drawDeco(ctx, o, LS)); }
     ctx.globalAlpha = 1;
     for (const o of on) {
-      const d = GD.objInfo(o.id); if (GD.LOOK.isSkin(o.id) || d.kind === "decoration" || d.kind === "trigger") continue;
+      const d = GD.objInfo(o.id); if (GD.LOOK.isSkin(o.id) || d.kind === "decoration" || d.kind === "trigger" || d.kind === "slope") continue;
       const a = GD.LOOK.objAlpha(o, LS.alpha); if (a <= 0.01) continue;
       ctx.globalAlpha = a; drawObj(o); ctx.globalAlpha = 1; ctx.shadowBlur = 0;
     }
