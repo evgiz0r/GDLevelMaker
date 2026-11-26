@@ -9,7 +9,10 @@
 //        hold = the jump button was down as the attempt began
 //   {"t":"cp", n, id, lt, x, y, via}          a practice checkpoint stored (id = its tick, lt = the level time it restores to)
 //   {"t":"cpdel", n, id}  /  {"t":"cpclear", n}   a checkpoint removed (the delete key) / all removed
-//   {"t":"tick", n, step, lt, p:[x,y,vy,mode,up,ground,size,speed,px,py], p2:[...] (dual only), cam:[x,y]}
+//   {"t":"tick", n, step, lt, p:[x,y,vy,mode,up,ground,size,speed,nx,ny], p2:[...] (dual only), cam:[x,y], cc:[x,y]}
+//        x, y = PlayerObject::m_position (moves once per 60 fps frame); nx, ny = the node's position (CCNode, v0.5.0+;
+//        was GameObject's m_positionX/Y, always 0); cc = the player's m_position as GJBaseGameLayer::checkCollisions saw
+//        it in this step (v0.5.0+, absent when it did not run)
 //   {"t":"btn", n, down, button, p1}          a press / release made after n ticks: it acts in tick n+1
 //   {"t":"death", n, obj, ox, oy, x, y}       obj = the id of what killed (-1 unknown)
 //   {"t":"end", n, result}                    result: death | complete | reset | quit
@@ -25,7 +28,11 @@
 // before the processCommands call that runs once n == T + offset ticks are done -- the same n as the log's btn
 // lines, so a logged attempt played back gives the same log. The user's own presses are ignored during playback.
 // After `attempts` attempts (or a complete) it stops and writes play.finished.json; quit exits GD WITHOUT saving
-// (the save stays as it was). Playback runs only for levels whose name starts with "GDLM".
+// (the save stays as it was). Playback runs only for levels whose name starts with "GDLM", or for a main level
+// given by its id ("official": N, v0.5.0): opened with GameLevelManager::getMainLevel and played in PRACTICE MODE only
+// (togglePracticeMode right after PlayLayer::init; an attempt not in practice mode is never played), so no progress.
+// "mute" (default true): the playback sets FMOD's music and effects volume to 0 (the engine only; GameManager's saved
+// volumes are untouched, and quit does not save anyway).
 //
 // Rule from CLAUDE.md "Never slow the user's game": nothing here does I/O during the user's play. Ticks go into a
 // string in memory; the file is written on a background thread when the attempt ends (at once for playback).
@@ -68,13 +75,15 @@ struct Play {
     bool done = false;
     bool inject = false;      // true while we call handleButton ourselves
     std::string level;
-    bool autostart = false, quit = false;
+    int official = 0;         // a main level's id (practice mode only), 0 = a GDLM level from Create
+    bool autostart = false, quit = false, mute = true;
     int attempts = 1, offset = 0, started = 0;
     size_t idx = 0;
     std::vector<std::array<int, 3>> presses;
 };
 struct Entry {
     std::string level;
+    int official = 0;
     int attempts = 1, offset = 0;
     std::vector<std::array<int, 3>> presses;
 };
@@ -83,6 +92,13 @@ std::vector<Entry> g_entries;  // the batch; g_play holds the current one
 size_t g_entry = 0;
 bool g_openNext = false;       // the next entry opens when the level's edit page shows
 bool g_menuSeen = false;
+bool g_ccSeen = false;         // checkCollisions ran for player 1 in this step
+float g_ccX = 0.f, g_ccY = 0.f;
+
+void applyMute() {
+    if (!g_play.loaded || g_play.done || !g_play.mute) return;
+    if (auto* fm = FMODAudioEngine::sharedEngine()) { fm->setBackgroundMusicVolume(0.f); fm->setEffectsVolume(0.f); }
+}
 
 long long wallMs() {
     using namespace std::chrono;
@@ -124,7 +140,7 @@ void appendPlayer(std::string& out, PlayerObject* p) {
     std::snprintf(b, sizeof b, "[%.4f,%.4f,%.5f,\"%s\",%d,%d,%.3f,%.4f,%.4f,%.4f]",
         p->m_position.x, p->m_position.y, p->m_yVelocity, modeOf(p),
         p->m_isUpsideDown ? 1 : 0, p->m_isOnGround ? 1 : 0, p->m_vehicleSize, p->m_playerSpeed,
-        p->m_positionX, p->m_positionY);
+        p->getPositionX(), p->getPositionY());
     out += b;
 }
 
@@ -164,8 +180,8 @@ void finishPlayback(std::string const& result) {
     if (g_entry + 1 < g_entries.size()) {
         // the next level: leave this one (to its edit page), open the next from there
         auto const& e = g_entries[++g_entry];
-        g_play.level = e.level; g_play.attempts = e.attempts; g_play.offset = e.offset; g_play.presses = e.presses;
-        g_play.started = 0; g_play.idx = 0; g_play.done = false;
+        g_play.level = e.level; g_play.official = e.official; g_play.attempts = e.attempts; g_play.offset = e.offset;
+        g_play.presses = e.presses; g_play.started = 0; g_play.idx = 0; g_play.done = false;
         g_openNext = true;
         Loader::get()->queueInMainThread([] { if (auto* pl = PlayLayer::get()) pl->onQuit(); });
         return;
@@ -213,10 +229,13 @@ void loadPlay() {
     g_play.level = j["level"].asString().unwrapOr("");
     g_play.autostart = j["autostart"].asBool().unwrapOr(false);
     g_play.quit = j["quit"].asBool().unwrapOr(false);
+    g_play.mute = j["mute"].asBool().unwrapOr(true);
     // one entry at the top level, or a batch: "entries": [{level, attempts, offset, presses}, ...]
     auto readEntry = [](matjson::Value& v) {
         Entry e;
         e.level = v["level"].asString().unwrapOr("");
+        e.official = static_cast<int>(v["official"].asInt().unwrapOr(0));
+        if (e.official < 1 || e.official > 22) e.official = 0;
         e.attempts = static_cast<int>(v["attempts"].asInt().unwrapOr(1));
         e.offset = static_cast<int>(v["offset"].asInt().unwrapOr(0));
         if (v["presses"].isArray()) {
@@ -232,23 +251,39 @@ void loadPlay() {
     if (j["entries"].isArray()) {
         for (auto& v : j["entries"]) {
             auto e = readEntry(v);
-            if (e.level.rfind("GDLM", 0) == 0) g_entries.push_back(std::move(e));
+            if (e.official || e.level.rfind("GDLM", 0) == 0) g_entries.push_back(std::move(e));
         }
     } else {
         auto e = readEntry(j);
-        if (e.level.rfind("GDLM", 0) == 0) g_entries.push_back(std::move(e));
+        if (e.official || e.level.rfind("GDLM", 0) == 0) g_entries.push_back(std::move(e));
     }
     g_play.loaded = !g_entries.empty();
     if (g_play.loaded) {
         auto const& e = g_entries[0];
-        g_play.level = e.level; g_play.attempts = e.attempts; g_play.offset = e.offset; g_play.presses = e.presses;
+        g_play.level = e.level; g_play.official = e.official; g_play.attempts = e.attempts; g_play.offset = e.offset;
+        g_play.presses = e.presses;
     }
     std::error_code ec2;
     std::filesystem::remove(saveDir() / "play.results.jsonl", ec2);
-    log::info("gdlm probe: play.json with {} GDLM entries", g_entries.size());
+    log::info("gdlm probe: play.json with {} entries", g_entries.size());
+    applyMute();
 }
 
 void openPlayLevel() {
+    if (g_play.official) {
+        auto* lvl = GameLevelManager::get()->getMainLevel(g_play.official, false);
+        if (lvl) {
+            g_play.level = std::string(lvl->m_levelName);
+            log::info("gdlm probe: opening main level {} '{}' (practice)", g_play.official, g_play.level);
+            auto* scene = PlayLayer::scene(lvl, false);
+            CCDirector::get()->replaceScene(CCTransitionFade::create(0.5f, scene));
+            return;
+        }
+        log::warn("gdlm probe: no main level {}", g_play.official);
+        g_play.started = 0;
+        finishPlayback("missing");
+        return;
+    }
     auto* llm = LocalLevelManager::get();
     if (!llm || !llm->m_localLevels) return;
     for (auto* lvl : CCArrayExt<GJGameLevel*>(llm->m_localLevels)) {
@@ -291,7 +326,22 @@ void logCheckpoint(CheckpointObject* cp, char const* via) {
 void begin(PlayLayer* pl) {
     if (g_att.active) flush("reset");
     g_play.active = false;
-    if (g_play.loaded && !g_play.done && pl && pl->m_level && std::string(pl->m_level->m_levelName) == g_play.level) {
+    bool target = g_play.loaded && !g_play.done && pl && pl->m_level && std::string(pl->m_level->m_levelName) == g_play.level;
+    // a main level: only its own id, and only in practice mode (no progress, whatever happens to the save)
+    // (PlayLayer::init runs a reset of its own before our init hook turns practice on: that one is skipped)
+    static int s_noPractice = 0;
+    // and never an attempt that starts from a checkpoint (a practice respawn): the route is from the level's start
+    if (target && (lastCheckpoint(pl) || pl->m_gameState.m_levelTime > 0.0001 ||
+                   (g_play.official && (pl->m_level->m_levelID.value() != g_play.official || !pl->m_isPracticeMode)))) {
+        target = false;
+        if (++s_noPractice > 3) {
+            log::warn("gdlm probe: main level {} not in practice mode: not played", g_play.official);
+            g_play.started = g_play.attempts;
+            Loader::get()->queueInMainThread([] { finishPlayback("nopractice"); });
+        }
+    }
+    if (target) {
+        applyMute();
         g_play.active = true;
         g_play.idx = 0;
         g_play.started++;
@@ -336,6 +386,7 @@ class $modify(ProbeBase, GJBaseGameLayer) {
                 g_play.inject = false;
             }
         }
+        g_ccSeen = false;
         GJBaseGameLayer::processCommands(dt, isHalfTick, isLastTick);
         if (!ours) return;
         if (!g_att.active || g_att.dead) return;
@@ -347,14 +398,22 @@ class $modify(ProbeBase, GJBaseGameLayer) {
         o += b;
         appendPlayer(o, m_player1);
         if (m_gameState.m_isDualMode && m_player2) { o += ",\"p2\":"; appendPlayer(o, m_player2); }
-        std::snprintf(b, sizeof b, ",\"cam\":[%.3f,%.3f]}\n",
+        std::snprintf(b, sizeof b, ",\"cam\":[%.3f,%.3f]",
             m_gameState.m_cameraPosition.x, m_gameState.m_cameraPosition.y);
         o += b;
+        if (g_ccSeen) { std::snprintf(b, sizeof b, ",\"cc\":[%.4f,%.4f]", g_ccX, g_ccY); o += b; }
+        o += "}\n";
         // a checkpoint stored where the storeCheckpoint hook did not see it (an inlined call): caught on the next tick
         if (pl->m_isPracticeMode && pl->m_checkpointArray && pl->m_checkpointArray->count() > 0) {
             auto* cp = static_cast<CheckpointObject*>(pl->m_checkpointArray->lastObject());
             if (cp && cp != g_att.lastCp) logCheckpoint(cp, "tick");
         }
+    }
+
+    // the player's position as the collision check of this step sees it (the per-step position, if m_position is per frame)
+    int checkCollisions(PlayerObject* p, float dt, bool ignoreDamage) {
+        if (g_att.active && p && p == m_player1 && !g_ccSeen) { g_ccSeen = true; g_ccX = p->m_position.x; g_ccY = p->m_position.y; }
+        return GJBaseGameLayer::checkCollisions(p, dt, ignoreDamage);
     }
 
     void handleButton(bool down, int button, bool isPlayer1) {
@@ -372,7 +431,24 @@ class $modify(ProbeBase, GJBaseGameLayer) {
 };
 
 class $modify(ProbePlay, PlayLayer) {
+    bool init(GJGameLevel* level, bool dontCreateObjects) {
+        if (!PlayLayer::init(level, dontCreateObjects)) return false;
+        // a main-level playback runs in practice mode only (no progress)
+        if (g_play.loaded && !g_play.done && g_play.official && level && level->m_levelID.value() == g_play.official) {
+            if (!m_isPracticeMode) this->togglePracticeMode(true);
+            applyMute();
+        }
+        return true;
+    }
+
     void resetLevel() {
+        // GD's first attempt starts inside PlayLayer::init (its resetLevel runs before our init hook's code): a main
+        // level's practice mode has to be on before that first reset, or attempt 1 runs in normal mode unplayed
+        if (g_play.loaded && !g_play.done && g_play.official && m_level && m_level->m_levelID.value() == g_play.official &&
+            !m_isPracticeMode) {
+            this->togglePracticeMode(true);
+            applyMute();
+        }
         PlayLayer::resetLevel();
         begin(this);
     }
