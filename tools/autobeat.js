@@ -663,6 +663,14 @@ function build(opts = {}) {
   const M0 = {};
   // ---- spikes where the path never goes (sparse), kept only if it still clears
   let fin = run(st.objs, st.segs, 1e9, endX + 90);
+  // a wave (or cube) sliding along a ledge the home wall cut short dies at its end ("block edge": the wave dies sliding off a
+  // block's end, PHYSICS.md): carry that ledge on past the wall, up to 3 times
+  for (let k = 0; k < 3 && fin.dead && /edge/.test(fin.why || ""); k++) {
+    const e = fin.p[fin.p.length - 1], sg = st.segs.filter(q => Math.abs(q.x1 - e.x) < 40).sort((a, b) => Math.abs(a.H - e.y) - Math.abs(b.H - e.y))[0];
+    if (!sg) break;
+    for (const q of st.segs) if (q.H === sg.H && q.dir === sg.dir && q.x1 === sg.x1) q.x1 = Math.max(q.x1, wx + 200);
+    fin = run(st.objs, st.segs, 1e9, endX + 90);
+  }
   const spikes = [];
   if (!fin.dead) {
     const p = fin.p, lowAt = new Map();
