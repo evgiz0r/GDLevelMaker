@@ -121,10 +121,57 @@ the leaks shut by a piece already there (leak spikes 74 -> 54, each now on a blo
 leaks 15 of 1550 as before, saws 7 -> 10. Still off: guards above the path 27.5% (rated 10-23: leaks blocked above),
 arcs with a hazard 41-52% (rated 60-85), density.
 
+## Dressing one hazard: spike and saw designs (2026-11-26)
+
+Evgeni: "do we have designs of singular spikes? like a spike inside a smaller spike? there are basically infinite way to
+create interesting spike with something inside (more smaller stuff, glow, layers)". Study: `node tools/spikestudy.js
+[--era 2.2] [--write]` -- for every spike and saw in the 127 community levels + the mains, everything centred inside its box
+(deco, a second hazard; editor helpers left out), in the hazard's own frame (rotation and flips undone): id, offset, scale
+against the hazard, z layer / order, channels. Numbers in `knowledge/spike_designs.json`.
+
+| era | hazards dressed | a smaller part inside (< 0.85x, centred) | 2+ parts (layered) | hazard on its own channel |
+|---|---|---|---|---|
+| 1.x | 41% | 0% | 6% | 0% |
+| 2.0-2.1 | 87% | 7% | 70% | 54% |
+| 2.2 | 81% | 23% | 59% | 57% |
+
+- The parts most levels use: glow behind (lit square 211: 69 levels, gradients 1011 / 503 / 1012 / 504: 59 / 52 / 37 / 35, on a
+  glow channel 87-99% of the time), low deco spikes 20 / 21 at the foot (39 / 25), a glow ball 1764 at half size (28, mostly
+  behind), the lit triangle 693/694 (26); saws: 211 at half size behind (55), cogwheels 85-87 (24-30), round glow 50 (29),
+  empty frame 1888 as a rotate centre (39).
+- **"A spike inside a spike" is a 2.2 thing and every level invents its own**: no inner design recurs across levels (Mission S
+  nests its saws in 3-6 copies of itself at 0.5-0.9 with lit squares at the hub; Free the Boys rings its pit spikes with fade
+  rings and spirals; Avarinth puts circles 3637 inside saws). What recurs is the recipe: a smaller copy or shape, centred,
+  on a channel of its own, in front.
+- 35 levels put copies of a spike turned 90 / 180 / 270 on the same spot (spike stars and bursts); 16 put a same-size copy
+  on another channel (a colour layer).
+- GD's spike and saw sprites have an opaque black body: anything behind shows only outside the outline (glows, halos, a
+  fan, cog teeth), anything meant to be "inside" must be in front (z order above the hazard's 2 on T1).
+
+**The designs: `tools/spikedesign.js`** (14 so far, `list` prints them with the measured source of each). A design is a function
+of the hazard -> decoration objects placed in its own frame, so the same design works standing, hanging and side-turned;
+the hazard itself (id, place, scale, hitbox) is never touched. Spikes: glow, halo, inner, nested, core, ring, layers, crown,
+double, crystals; saws: cog, sawcore, sawnest, sawglow. Inner shapes use the fake spike 1889 (spike-shaped decoration).
+Colours by role (line, inner, glow, core, shadow, deep, detail) with the block designs' palettes (tools/blockdesigns.js
+PAL.ice / PAL.fire, the deco-art thread), on channels 933-939 (ice) and 940-946 (fire). Library: `dress(h, name, C)`,
+`dressAll(objects, {designs, seed, ch})` for a whole level, `check(parts)`.
+
+**Readability rules** (`check()`, `node tools/spikedesign.js check <level>`): a part in front stays inside the hazard (at most
+0.8x its size, centred) and is not on the hazard's own channel (its edge stays visible all round); a part behind may reach
+1.4x (glow, halo, cog teeth) but no further, so the outline the player reads is where the hitbox is; every part is
+decoration.
+
+**The gallery: `levels/gdlm_spike_designs.gdlvl`** (`node tools/spikedesign.js gallery`): auto (no click), 0.5x speed, zoom 0.7,
+one stop per design with an ice spike standing on a shelf, a fire spike hanging under it and a saw above (saw designs in
+turn), plain ones first; the run is checked to be the same with and without the designs, then the beat ending and the
+signature. Checked in GD art in the cloud (pictures in local/shots/spike_gallery/, see VISUALS.md "GD art in the cloud").
+Test: `node tests/spikedesign.js`. Not seen in the game yet. Open: which ones Evgeni keeps; drawn spikes (blockdesigns'
+`pixels()`); a design per theme kit; dressAll in the generators (hazardsAlongPath's output, autobeat, the theme kits).
+
 ## Open
 
 - Density (above), ceiling guards over cube jumps, side-turned spikes on walls, stacks.
-- Dressing (R5) in the generator / decorate.js; colour channels per hazard role.
+- Dressing (R5): the designs exist (above); not yet applied by the generators; colour channels per hazard role.
 - The rated Easy-Normal tier has one level with a path: solve a few more (tools/difficulty_solve.js level <id>, low).
 - Rhythm against the beat: obstacles every 0.5-0.6 s is measured; whether threats land on beats is not (lib/sync.js).
 - Moving hazards (2.2 levels move them with triggers): measured where they start.

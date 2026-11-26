@@ -1,0 +1,612 @@
+{
+ "generated": "2026-11-26",
+ "levels": 127,
+ "era": {
+  "2.2": {
+   "levels": 20,
+   "hazards": 9109,
+   "dressedPct": 81,
+   "innerPct": 23.4,
+   "layeredPct": 59.3,
+   "ownChannelPct": 57.2
+  },
+  "?": {
+   "levels": 36,
+   "hazards": 38858,
+   "dressedPct": 59.3,
+   "innerPct": 1.1,
+   "layeredPct": 30.5,
+   "ownChannelPct": 23.1
+  },
+  "2.0-2.1": {
+   "levels": 63,
+   "hazards": 36590,
+   "dressedPct": 86.8,
+   "innerPct": 7.4,
+   "layeredPct": 69.6,
+   "ownChannelPct": 53.9
+  },
+  "1.x": {
+   "levels": 6,
+   "hazards": 4615,
+   "dressedPct": 41,
+   "innerPct": 0,
+   "layeredPct": 5.9,
+   "ownChannelPct": 0
+  }
+ },
+ "parts": [
+  {
+   "part": "spike:same",
+   "name": "same hazard",
+   "levels": 82,
+   "n": 111453,
+   "scale": 1,
+   "dy": 0,
+   "behindPct": 3,
+   "frontPct": 25,
+   "ownChPct": 61,
+   "hsvPct": 0,
+   "noTouchPct": 1
+  },
+  {
+   "part": "spike:211",
+   "name": "211 decoration 211",
+   "levels": 69,
+   "n": 9020,
+   "scale": 1,
+   "dy": 0.3,
+   "behindPct": 27,
+   "frontPct": 40,
+   "ownChPct": 99,
+   "hsvPct": 25,
+   "noTouchPct": 0
+  },
+  {
+   "part": "spike:1011",
+   "name": "1011 decoration 1011",
+   "levels": 59,
+   "n": 18696,
+   "scale": 1,
+   "dy": 0.6,
+   "behindPct": 12,
+   "frontPct": 18,
+   "ownChPct": 92,
+   "hsvPct": 24,
+   "noTouchPct": 0
+  },
+  {
+   "part": "saw:211",
+   "name": "211 decoration 211",
+   "levels": 55,
+   "n": 5207,
+   "scale": 0.57,
+   "dy": 0,
+   "behindPct": 55,
+   "frontPct": 35,
+   "ownChPct": 100,
+   "hsvPct": 29,
+   "noTouchPct": 0
+  },
+  {
+   "part": "spike:503",
+   "name": "503 decoration 503",
+   "levels": 52,
+   "n": 13217,
+   "scale": 1,
+   "dy": 0.4,
+   "behindPct": 7,
+   "frontPct": 25,
+   "ownChPct": 87,
+   "hsvPct": 23,
+   "noTouchPct": 0
+  },
+  {
+   "part": "saw:1011",
+   "name": "1011 decoration 1011",
+   "levels": 52,
+   "n": 1113,
+   "scale": 1,
+   "dy": 0,
+   "behindPct": 12,
+   "frontPct": 36,
+   "ownChPct": 98,
+   "hsvPct": 52,
+   "noTouchPct": 0
+  },
+  {
+   "part": "saw:1888",
+   "name": "1888 decoration 1888",
+   "levels": 39,
+   "n": 5109,
+   "scale": 1.64,
+   "dy": 0,
+   "behindPct": 4,
+   "frontPct": 75,
+   "ownChPct": 96,
+   "hsvPct": 58,
+   "noTouchPct": 0
+  },
+  {
+   "part": "spike:20",
+   "name": "20 decoration 20",
+   "levels": 39,
+   "n": 909,
+   "scale": 1,
+   "dy": 0.6,
+   "behindPct": 3,
+   "frontPct": 17,
+   "ownChPct": 65,
+   "hsvPct": 8,
+   "noTouchPct": 3
+  },
+  {
+   "part": "spike:1012",
+   "name": "1012 decoration 1012",
+   "levels": 37,
+   "n": 5714,
+   "scale": 1,
+   "dy": 0.14,
+   "behindPct": 4,
+   "frontPct": 11,
+   "ownChPct": 68,
+   "hsvPct": 43,
+   "noTouchPct": 0
+  },
+  {
+   "part": "spike:504",
+   "name": "504 decoration 504",
+   "levels": 35,
+   "n": 1389,
+   "scale": 1,
+   "dy": 0.1,
+   "behindPct": 14,
+   "frontPct": 21,
+   "ownChPct": 92,
+   "hsvPct": 25,
+   "noTouchPct": 0
+  },
+  {
+   "part": "spike:507",
+   "name": "507 decoration 507",
+   "levels": 34,
+   "n": 3133,
+   "scale": 1,
+   "dy": 0.07,
+   "behindPct": 22,
+   "frontPct": 11,
+   "ownChPct": 87,
+   "hsvPct": 6,
+   "noTouchPct": 0
+  },
+  {
+   "part": "saw:503",
+   "name": "503 decoration 503",
+   "levels": 33,
+   "n": 535,
+   "scale": 1,
+   "dy": 0,
+   "behindPct": 27,
+   "frontPct": 34,
+   "ownChPct": 94,
+   "hsvPct": 41,
+   "noTouchPct": 0
+  },
+  {
+   "part": "spike:1888",
+   "name": "1888 decoration 1888",
+   "levels": 30,
+   "n": 3138,
+   "scale": 1,
+   "dy": -0.01,
+   "behindPct": 6,
+   "frontPct": 57,
+   "ownChPct": 96,
+   "hsvPct": 15,
+   "noTouchPct": 0
+  },
+  {
+   "part": "saw:86",
+   "name": "86 decoration 86",
+   "levels": 30,
+   "n": 636,
+   "scale": 1,
+   "dy": 0,
+   "behindPct": 8,
+   "frontPct": 6,
+   "ownChPct": 33,
+   "hsvPct": 3,
+   "noTouchPct": 0
+  },
+  {
+   "part": "spike:41",
+   "name": "41 decoration 41",
+   "levels": 29,
+   "n": 275,
+   "scale": 1,
+   "dy": -0.33,
+   "behindPct": 3,
+   "frontPct": 0,
+   "ownChPct": 48,
+   "hsvPct": 9,
+   "noTouchPct": 0
+  },
+  {
+   "part": "saw:50",
+   "name": "50 decoration 50",
+   "levels": 29,
+   "n": 1262,
+   "scale": 1,
+   "dy": 0,
+   "behindPct": 6,
+   "frontPct": 10,
+   "ownChPct": 42,
+   "hsvPct": 1,
+   "noTouchPct": 0
+  },
+  {
+   "part": "saw:87",
+   "name": "87 decoration 87",
+   "levels": 29,
+   "n": 348,
+   "scale": 1,
+   "dy": 0,
+   "behindPct": 3,
+   "frontPct": 5,
+   "ownChPct": 45,
+   "hsvPct": 1,
+   "noTouchPct": 0
+  },
+  {
+   "part": "spike:1764",
+   "name": "1764 decoration 1764",
+   "levels": 28,
+   "n": 1500,
+   "scale": 0.5,
+   "dy": 0.05,
+   "behindPct": 69,
+   "frontPct": 17,
+   "ownChPct": 58,
+   "hsvPct": 36,
+   "noTouchPct": 0
+  },
+  {
+   "part": "spike:579",
+   "name": "579 decoration 579",
+   "levels": 27,
+   "n": 902,
+   "scale": 1,
+   "dy": 0.1,
+   "behindPct": 19,
+   "frontPct": 42,
+   "ownChPct": 99,
+   "hsvPct": 24,
+   "noTouchPct": 0
+  },
+  {
+   "part": "spike:haz:216",
+   "name": "hazard 216 hazard 216",
+   "levels": 27,
+   "n": 1257,
+   "scale": 1,
+   "dy": 0,
+   "behindPct": 2,
+   "frontPct": 7,
+   "ownChPct": 25,
+   "hsvPct": 4,
+   "noTouchPct": 4
+  },
+  {
+   "part": "saw:same",
+   "name": "same hazard",
+   "levels": 26,
+   "n": 21120,
+   "scale": 1,
+   "dy": 0,
+   "behindPct": 64,
+   "frontPct": 2,
+   "ownChPct": 99,
+   "hsvPct": 63,
+   "noTouchPct": 2
+  },
+  {
+   "part": "spike:110",
+   "name": "110 decoration 110",
+   "levels": 26,
+   "n": 311,
+   "scale": 1,
+   "dy": 0.8,
+   "behindPct": 4,
+   "frontPct": 7,
+   "ownChPct": 97,
+   "hsvPct": 6,
+   "noTouchPct": 0
+  },
+  {
+   "part": "spike:694",
+   "name": "694 decoration 694",
+   "levels": 26,
+   "n": 1204,
+   "scale": 0.5,
+   "dy": 0,
+   "behindPct": 32,
+   "frontPct": 62,
+   "ownChPct": 100,
+   "hsvPct": 18,
+   "noTouchPct": 0
+  },
+  {
+   "part": "spike:693",
+   "name": "693 decoration 693",
+   "levels": 26,
+   "n": 674,
+   "scale": 1,
+   "dy": 0.13,
+   "behindPct": 24,
+   "frontPct": 34,
+   "ownChPct": 99,
+   "hsvPct": 27,
+   "noTouchPct": 0
+  },
+  {
+   "part": "saw:1012",
+   "name": "1012 decoration 1012",
+   "levels": 25,
+   "n": 1700,
+   "scale": 1,
+   "dy": 0,
+   "behindPct": 2,
+   "frontPct": 9,
+   "ownChPct": 62,
+   "hsvPct": 34,
+   "noTouchPct": 0
+  },
+  {
+   "part": "spike:21",
+   "name": "21 decoration 21",
+   "levels": 25,
+   "n": 529,
+   "scale": 1,
+   "dy": 0.27,
+   "behindPct": 0,
+   "frontPct": 4,
+   "ownChPct": 52,
+   "hsvPct": 2,
+   "noTouchPct": 0
+  },
+  {
+   "part": "spike:48",
+   "name": "48 decoration 48",
+   "levels": 24,
+   "n": 696,
+   "scale": 1,
+   "dy": 0.87,
+   "behindPct": 1,
+   "frontPct": 1,
+   "ownChPct": 27,
+   "hsvPct": 1,
+   "noTouchPct": 0
+  },
+  {
+   "part": "spike:18",
+   "name": "18 decoration 18",
+   "levels": 24,
+   "n": 13161,
+   "scale": 1.27,
+   "dy": 0.68,
+   "behindPct": 0,
+   "frontPct": 1,
+   "ownChPct": 99,
+   "hsvPct": 0,
+   "noTouchPct": 0
+  },
+  {
+   "part": "spike:19",
+   "name": "19 decoration 19",
+   "levels": 24,
+   "n": 296,
+   "scale": 1,
+   "dy": 0.87,
+   "behindPct": 1,
+   "frontPct": 8,
+   "ownChPct": 85,
+   "hsvPct": 4,
+   "noTouchPct": 0
+  },
+  {
+   "part": "saw:85",
+   "name": "85 decoration 85",
+   "levels": 24,
+   "n": 394,
+   "scale": 1,
+   "dy": 0,
+   "behindPct": 2,
+   "frontPct": 2,
+   "ownChPct": 40,
+   "hsvPct": 2,
+   "noTouchPct": 2
+  }
+ ],
+ "designs": [
+  {
+   "kind": "spike",
+   "design": "1011@1^",
+   "levels": 35,
+   "n": 1786
+  },
+  {
+   "kind": "spike",
+   "design": "same@1",
+   "levels": 34,
+   "n": 1616
+  },
+  {
+   "kind": "spike",
+   "design": "same@1^",
+   "levels": 24,
+   "n": 451
+  },
+  {
+   "kind": "spike",
+   "design": "20@1^",
+   "levels": 22,
+   "n": 180
+  },
+  {
+   "kind": "spike",
+   "design": "503@1^",
+   "levels": 21,
+   "n": 827
+  },
+  {
+   "kind": "spike",
+   "design": "211@1^",
+   "levels": 16,
+   "n": 351
+  },
+  {
+   "kind": "spike",
+   "design": "same@1v",
+   "levels": 16,
+   "n": 298
+  },
+  {
+   "kind": "spike",
+   "design": "48@1^",
+   "levels": 15,
+   "n": 471
+  },
+  {
+   "kind": "saw",
+   "design": "86@1",
+   "levels": 14,
+   "n": 244
+  },
+  {
+   "kind": "spike",
+   "design": "haz:8@1^",
+   "levels": 13,
+   "n": 506
+  },
+  {
+   "kind": "spike",
+   "design": "49@1^",
+   "levels": 13,
+   "n": 383
+  },
+  {
+   "kind": "spike",
+   "design": "21@1^",
+   "levels": 12,
+   "n": 134
+  },
+  {
+   "kind": "saw",
+   "design": "50@1",
+   "levels": 12,
+   "n": 71
+  },
+  {
+   "kind": "saw",
+   "design": "87@1",
+   "levels": 12,
+   "n": 69
+  },
+  {
+   "kind": "saw",
+   "design": "85@1",
+   "levels": 12,
+   "n": 47
+  },
+  {
+   "kind": "spike",
+   "design": "1011@1^+1011@1^",
+   "levels": 11,
+   "n": 113
+  },
+  {
+   "kind": "spike",
+   "design": "1012@1^",
+   "levels": 11,
+   "n": 67
+  },
+  {
+   "kind": "spike",
+   "design": "same@1+same@1",
+   "levels": 10,
+   "n": 336
+  },
+  {
+   "kind": "spike",
+   "design": "1011@1^+503@1^",
+   "levels": 10,
+   "n": 168
+  },
+  {
+   "kind": "spike",
+   "design": "18@1^",
+   "levels": 10,
+   "n": 144
+  },
+  {
+   "kind": "saw",
+   "design": "same@1",
+   "levels": 10,
+   "n": 134
+  },
+  {
+   "kind": "spike",
+   "design": "1011@1^+211@1^",
+   "levels": 10,
+   "n": 124
+  },
+  {
+   "kind": "spike",
+   "design": "211@1",
+   "levels": 10,
+   "n": 62
+  },
+  {
+   "kind": "spike",
+   "design": "19@1^",
+   "levels": 10,
+   "n": 46
+  },
+  {
+   "kind": "spike",
+   "design": "same@1^+same@1^",
+   "levels": 10,
+   "n": 39
+  },
+  {
+   "kind": "spike",
+   "design": "211@1v",
+   "levels": 10,
+   "n": 38
+  },
+  {
+   "kind": "saw",
+   "design": "211@1",
+   "levels": 9,
+   "n": 39
+  },
+  {
+   "kind": "spike",
+   "design": "haz:9@1^",
+   "levels": 9,
+   "n": 34
+  },
+  {
+   "kind": "spike",
+   "design": "157@1^",
+   "levels": 8,
+   "n": 3764
+  },
+  {
+   "kind": "spike",
+   "design": "503@1^+503@1^",
+   "levels": 8,
+   "n": 639
+  }
+ ]
+}
