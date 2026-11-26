@@ -12,7 +12,8 @@
 //   busy     = phrases with e >= 0.5. The level's number: the median inputs per beat over its busy phrases.
 // WARN when the whole level's inputs per beat is under the official levels' range (REF.all), when the busy parts' median
 // is under the officials' 10th percentile (REF.p10; measured with `node tools/tempo.js official`), or when two or more
-// busy phrases have under 2 inputs in 8 beats. --phrases prints every phrase (time, mode-free count, energy).
+// busy phrases have under 2 inputs in 8 beats, or when its clicks per second are under the median Easy brick of rated
+// levels (knowledge/brick_tiers.json, tools/brickstats.js). --phrases prints every phrase (time, mode-free count, energy).
 // Static + humanize replays: about a second a level. POLISH.md "Soft rules from the user's notes".
 "use strict";
 const fs = require("fs"), path = require("path");
@@ -51,6 +52,12 @@ function analyse(level, t) {
   if (busy.length && busyMed < REF.p10) flags.push(`busy parts: ${busyMed.toFixed(2)} inputs per beat (official levels: median ${REF.median}, 10th percentile ${REF.p10})`);
   const empty = busy.filter(p => p.perBeat < REF.floor);   // one is normal (ToE has one), two or more is a pattern
   if (empty.length >= 2) flags.push(`${empty.length} busy phrases with under 2 inputs in 8 beats: ${empty.map(p => p.t0.toFixed(1) + "-" + p.t1.toFixed(1) + " s").join(", ")}`);
+  // clicks per second vs the lego bricks of rated levels (tools/brickstats.js -> knowledge/brick_tiers.json): a level
+  // calmer than the median Easy brick reads as sparse (Evgeni 2026-11-26: "i want levels not to be so sparse, the beats
+  // are decently quick"; our own bricks: median 1.19 CPS vs Easy 1.82 .. Demon 2.15)
+  const cps = song.length / (c.end - off);
+  try { const BT = JSON.parse(fs.readFileSync(path.join(ROOT, "knowledge", "brick_tiers.json"), "utf8")).tiers, easy = BT.Easy && BT.Easy.cps.median;
+    if (easy && cps < easy) flags.push(`${cps.toFixed(2)} clicks per second, under the median Easy brick (${easy}; rated levels' bricks: ${["Easy", "Hard", "Insane", "Demon"].filter(k => BT[k]).map(k => k + " " + BT[k].cps.median).join(", ")})`); } catch (e) {}
   return { bpm: g.bpm, perBeat: +all.toFixed(2), busyPerBeat: +busyMed.toFixed(2), cps: +(song.length / (c.end - off)).toFixed(2), phrases, flags };
 }
 function check(src) {

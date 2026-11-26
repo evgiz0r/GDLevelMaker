@@ -108,6 +108,30 @@ blocks 0-88: `decoart.js levels/archive/gdlm_72_frostbite.gdlvl --from 0 --to 88
 layered-ice --tag _ice`. Viewer: deco-art / gdlm_72_frostbite_mix_ice. The best looks of each theme are listed in
 `local/decoart/best.json` ({group, png, caption, level}); `tools/deco_page.js` puts them first on the phone page's deco page.
 
+## Why it still looks bland: the fire / ice looks vs rated levels (measured 2026-11-26)
+
+Evgeni: "it looks bland compared to real levels". `node tools/modern_look.js <level>` and `node tools/decocomp.js <level>`
+on the two best looks (hellgate_mix_layered, frostbite_mix_ice), against knowledge/levels/modern_look.md and
+knowledge/decocomp_ref.json (featured 2.2, median):
+
+| | ours (fire / ice) | rated 2.2 | gap? |
+|---|---|---|---|
+| objects per block | 26 / 16 | 32-46 | a bit thin |
+| colour channels, HSV share | 82, 38-50% | 54-179, 40-43% | fine |
+| front layers (T2+) | 0% / 0.8% | 17-26% (featured22 median 22%) | **none** |
+| big set pieces per screen | 0 | 11 | **none** |
+| deco kinds | 85% flat squares + triangles, disks | gradients 6-9%, particles, dots + pulsing rings, 3D outlines, clouds / grass / animated water, pixel art | **one kind** |
+| particles | 0 | 56-153 emitters / min | **none** |
+| alpha / toggle (fade in, show, hide) | 7 / min | 186-574 / min | **almost none** |
+| camera (zoom, offset, rotate, shake) | 0 | 44-107 / min | **none** |
+| shaders (blur, hue, lens, glitch) | 0 | 14-44 / min | **none** |
+| scene changes | one scene for the stretch | a new scene / palette / frame at each portal | **none** |
+
+So colour and amount are near the rated levels; what is missing is everything that is not a flat shape: soft glow and
+gradients, things in front of the player, set pieces, particles, fades, the camera and shaders. Next: real glow sprites
+(1293, gradients), a front layer (thin see-through silhouettes), one big set piece per screen, ember / snow particles,
+fade-ins at section starts, a camera zoom or shake on the drop.
+
 ## Lessons as rules (soft; for the generator)
 
 - **Paint the section's picture before placing deco**: one focal point (light / landmark) at a third of the screen in the
