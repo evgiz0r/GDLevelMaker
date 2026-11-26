@@ -97,7 +97,7 @@ function rock(level, x0, x1, o = {}) {
 // 3D     one direction for every edge (up-right, d units), darker than the base, behind the block (B1), with the
 //        corner triangles that close the extrusion and a dim rim on its outer top edge
 const LPAL = {
-  lava: { a: [74, 20, 24], b: [70, 18, 52], c: [38, 9, 13], line: [255, 140, 50], inline: [0, 0, 0], glowTop: [255, 100, 30],
+  lava: { a: [74, 20, 24], b: [62, 26, 30], c: [38, 9, 13], line: [255, 140, 50], inline: [0, 0, 0], glowTop: [255, 100, 30],
     glowBot: [0, 0, 0], tex: [0, 0, 0], big: [255, 90, 40], detail: [255, 215, 140], d3: [26, 5, 9], d3rim: [140, 45, 25] },
   ice: { a: [40, 80, 130], b: [60, 60, 140], c: [18, 34, 70], line: [180, 240, 255], inline: [0, 0, 10], glowTop: [120, 210, 255],
     glowBot: [0, 0, 10], tex: [0, 0, 10], big: [120, 200, 255], detail: [235, 250, 255], d3: [10, 18, 40], d3rim: [80, 140, 200] },
@@ -112,20 +112,32 @@ function layered(level, x0, x1, o = {}) {
   const before = level.objects.length;
   level.objects = level.objects.filter(b => !(old.has(b.id) && b.x >= x0 - 15 && b.x < x1 + 15 && b.props && String(b.props[24]) === T1));
   const removed = before - level.objects.length;
-  const cells = new Map();
-  for (const b of level.objects) if (isBlock(b)) cells.set(Math.round(b.x / 30 - 0.5) + "," + Math.round(b.y / 30 - 0.5), b);
-  const has = (c, r) => cells.has(c + "," + r);
+  // cells keyed by grid step, but drawn at each block's REAL centre: levels built on the beat put blocks off the 30-unit grid
+  // (GDLM 44: x = 8.9, 9.4, 20.2 mod 30 by structure), and snapping them shifted the dressing off its block (Evgeni: "the
+  // structures are not exactly coherent in the corners")
+  const cells = new Map(), key = b => Math.round((b.x - 15) / 30) + "," + Math.round((b.y - 15) / 30);
+  for (const b of level.objects) if (isBlock(b)) cells.set(key(b), b);
+  const has = (c, r) => r < 0 || cells.has(c + "," + r);            // the ground counts as filled below row 0
   const mine = [...cells.entries()].filter(([, b]) => b.x >= x0 && b.x < x1);
-  // colour patches: a coarse value noise over 3x2-cell blocks picks a / b / c
-  const pn = new Map(), patch = (c, r) => { const k = Math.floor(c / 3) + "," + Math.floor(r / 2); if (!pn.has(k)) pn.set(k, R()); return pn.get(k); };
+  // one base colour per structure (connected cells), a small value jitter per cell: no patch rectangles across a body
+  const comp = new Map(); let nComp = 0;
+  for (const [k] of mine) { if (comp.has(k)) continue; const pick = R(), base = pick < 0.55 ? "a" : pick < 0.82 ? "b" : "c", st = [k]; comp.set(k, base); nComp++;
+    while (st.length) { const [c, r] = st.pop().split(",").map(Number);
+      for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const q = (c + dc) + "," + (r + dr); if (cells.has(q) && !comp.has(q)) { comp.set(q, base); st.push(q); } } } }
   const strip = (x, y, w, h, ch, zo, z = "T1", extra = {}) => out.push(K.obj(211, x, y, Object.assign({ ch, z, zo, sx: w / 30, sy: h / 30 }, extra)));
   const LW = 2.4, IW = 1.8, IN = 6;   // outline width, inline width, inline distance from the edge
-  for (const [key, b] of mine) {
-    const [c, r] = key.split(",").map(Number), X = c * 30, Y = r * 30, cx = X + 15, cy = Y + 15;
-    const open = { up: !has(c, r + 1), down: !has(c, r - 1) && r > 0, left: !has(c - 1, r), right: !has(c + 1, r) };
+  for (const [k, b] of mine) {
+    const [c, r] = k.split(",").map(Number), cx = b.x, cy = b.y, X = cx - 15, Y = cy - 15;
+    const open = { up: !has(c, r + 1), down: !has(c, r - 1), left: !has(c - 1, r), right: !has(c + 1, r) };
+    // corners: at each end of an open edge the outline / inline either turns (convex: the next side is open too), runs on
+    // into the neighbour's edge (straight), or meets a wall rising from the neighbour (concave)
+    const endH = (dc, dr) => !has(c + dc, r) ? "convex" : has(c + dc, r + dr) ? "concave" : "straight";   // for a top (dr 1) / bottom (dr -1) edge, end toward dc
+    const endV = (dc, dr) => !has(c, r + dr) ? "convex" : has(c + dc, r + dr) ? "concave" : "straight";   // for a left (dc -1) / right (dc 1) edge, end toward dr
+    const inAt = (e, edge, sign) => edge + sign * (e === "convex" ? IN : e === "concave" ? -IN : 0);
+    const outAt = (e, edge, sign) => edge + sign * (e === "concave" ? -LW : 0);
     // base
-    const p = patch(c, r), base = p < 0.55 ? "a" : p < 0.82 ? "b" : "c", v = (open.up ? 1.25 : 1) * (0.92 + R() * 0.16);
-    out.push(K.obj(211, cx, cy, { ch: CH[base], z: "T1", zo: 4, hsv: `0a1a${v.toFixed(2)}a0a0` }));
+    const v = (open.up ? 1.2 : 1) * (0.95 + R() * 0.1);
+    out.push(K.obj(211, cx, cy, { ch: CH[comp.get(k)], z: "T1", zo: 4, hsv: `0a1a${v.toFixed(2)}a0a0` }));
     // texture: bricks (two rows per cell, the joints staggered)
     strip(cx, Y + 15, 30, 1.2, CH.tex, 5);
     const j = (r % 2) ? 7 : 22; strip(X + j, Y + 22.5, 1.2, 15, CH.tex, 5); strip(X + (j + 15) % 30, Y + 7.5, 1.2, 15, CH.tex, 5);
@@ -133,17 +145,19 @@ function layered(level, x0, x1, o = {}) {
     // light: glow inside the top edge, dark inside the bottom edge
     if (open.up) { strip(cx, Y + 30 - 6, 30, 12, CH.glowTop, 6); strip(cx, Y + 30 - 3, 30, 6, CH.glowTop, 6); }
     if (open.down) strip(cx, Y + 6, 30, 12, CH.glowBot, 6);
-    // outline (bright) on open edges
-    if (open.up) strip(cx, Y + 30 - LW / 2, 30, LW, CH.line, 8);
-    if (open.down) strip(cx, Y + LW / 2, 30, LW, CH.line, 8);
-    if (open.left) strip(X + LW / 2, cy, LW, 30, CH.line, 8);
-    if (open.right) strip(X + 30 - LW / 2, cy, LW, 30, CH.line, 8);
-    // inline (black, in front of the glow): runs along each open edge IN units inside, stops at the inline of a crossing edge
-    const xa = X + (open.left ? IN : 0), xb = X + 30 - (open.right ? IN : 0), ya = Y + (open.down ? IN : 0), yb = Y + 30 - (open.up ? IN : 0);
-    if (open.up) strip((xa + xb) / 2, Y + 30 - IN, xb - xa + IW, IW, CH.inline, 9);
-    if (open.down) strip((xa + xb) / 2, Y + IN, xb - xa + IW, IW, CH.inline, 9);
-    if (open.left) strip(X + IN, (ya + yb) / 2, IW, yb - ya + IW, CH.inline, 9);
-    if (open.right) strip(X + 30 - IN, (ya + yb) / 2, IW, yb - ya + IW, CH.inline, 9);
+    // the black inline one z-order BELOW the bright outline (Woofel: inner outlines under the outlines), above the glow
+    const segH = (y, a, b2) => strip((a + b2) / 2, y, b2 - a + IW, IW, CH.inline, 7);
+    const segV = (x, a, b2) => strip(x, (a + b2) / 2, IW, b2 - a + IW, CH.inline, 7);
+    if (open.up) segH(Y + 30 - IN, inAt(endH(-1, 1), X, 1), inAt(endH(1, 1), X + 30, -1));
+    if (open.down) segH(Y + IN, inAt(endH(-1, -1), X, 1), inAt(endH(1, -1), X + 30, -1));
+    if (open.left) segV(X + IN, inAt(endV(-1, -1), Y, 1), inAt(endV(-1, 1), Y + 30, -1));
+    if (open.right) segV(X + 30 - IN, inAt(endV(1, -1), Y, 1), inAt(endV(1, 1), Y + 30, -1));
+    // outline (bright) on open edges, closing the notch at concave corners
+    const oH = (y, a, b2) => strip((a + b2) / 2, y, b2 - a, LW, CH.line, 8), oV = (x, a, b2) => strip(x, (a + b2) / 2, LW, b2 - a, CH.line, 8);
+    if (open.up) oH(Y + 30 - LW / 2, outAt(endH(-1, 1), X, 1), outAt(endH(1, 1), X + 30, -1));
+    if (open.down) oH(Y + LW / 2, outAt(endH(-1, -1), X, 1), outAt(endH(1, -1), X + 30, -1));
+    if (open.left) oV(X + LW / 2, outAt(endV(-1, -1), Y, 1), outAt(endV(-1, 1), Y + 30, -1));
+    if (open.right) oV(X + 30 - LW / 2, outAt(endV(1, -1), Y, 1), outAt(endV(1, 1), Y + 30, -1));
     // details: small and bright, only in some inner cells
     if (!open.up && !open.left && !open.right && R() < 0.14) {
       const dx = cx + (R() - 0.5) * 12, dy = cy + (R() - 0.5) * 12;

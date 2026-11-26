@@ -37,21 +37,21 @@ function fx(level, x0, x1, o = {}) {
   const cells = new Map(), top = new Map();
   for (const b of level.objects) {
     if (b.x == null || b.x < x0 - 300 || b.x > x1 + 300) continue;
-    if (isBlock(b)) cells.set(Math.round(b.x / 30 - 0.5) + "," + Math.round(b.y / 30 - 0.5), b);
+    if (isBlock(b)) cells.set(Math.round((b.x - 15) / 30) + "," + Math.round((b.y - 15) / 30), b);   // drawn at the real centre (off-grid blocks)
     const k = O.objInfo(b.id).kind;
     if (k && k !== "decoration" && k !== "trigger") { const c = Math.floor(b.x / 30); top.set(c, Math.max(top.get(c) ?? -1e9, b.y + 15)); }
   }
   const playTop = (x, span = 3) => { let m = 0; const c = Math.floor(x / 30); for (let d = -span; d <= span; d++) m = Math.max(m, top.get(c + d) ?? 0); return m; };
   const has = (c, r) => cells.has(c + "," + r);
-  const mine = [...cells.entries()].filter(([, b]) => b.x >= x0 && b.x < x1).map(([k]) => k.split(",").map(Number));
+  const mine = [...cells.entries()].filter(([, b]) => b.x >= x0 && b.x < x1).map(([k, b]) => k.split(",").map(Number).concat([b]));
 
   if (want.has("glow")) {
     // swap blockart's stacked glow squares (211 on the glowTop channel) for one soft gradient per open top
     const before = level.objects.length;
     level.objects = level.objects.filter(b => !(b.id === 211 && b.props && b.props[21] === String(glowCh) && b.x >= x0 - 15 && b.x < x1 + 15));
     let n = 0;
-    for (const [c, r] of mine) if (!has(c, r + 1)) {
-      const X = c * 30, Y = r * 30;
+    for (const [c, r, b] of mine) if (!has(c, r + 1)) {
+      const X = b.x - 15, Y = b.y - 15;
       out.push(K.obj(1293, X + 15, Y + 30 - 10, { ch: glowCh, z: "T1", zo: 6, sx: 2, sy: 0.67, flipY: true }));       // inside: bright at the top edge
       out.push(K.obj(1293, X + 15, Y + 30 + 14, { ch: CH.halo, z: "B1", zo: 0, sx: 2, sy: 0.95 }));                    // above: light rising off it
       n++;
