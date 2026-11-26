@@ -10,7 +10,8 @@ if (!fs.existsSync(lvl)) { fs.mkdirSync(path.dirname(lvl), { recursive: true });
   fs.writeFileSync(lvl, cp.execFileSync("git", ["show", "179005a:levels/gdlm_44_hellgate.gdlvl"], { cwd: ROOT, windowsHide: true })); }
 const { readGdlvl } = require("../tools/io.js"), S = require("../tools/solutions.js");
 const sol = S.get(readGdlvl(lvl).levelStr, true);
-if (!sol || !sol.events || !sol.ok) { console.log("judge: SKIP (no current route for v4: node tools/solutions.js local/tmp/v4_commit.gdlvl --fresh)"); process.exit(0); }
+const { GD } = require("../tools/io.js"), L4 = readGdlvl(lvl), end = sol && sol.events ? GD.run(GD.makeWorld(L4.level.objects, L4.level.header), sol.events).path.slice(-1)[0] : null;
+if (!sol || !sol.events || !sol.ok || !end || !end.done || end.dead) { console.log("judge: SKIP (v4 has no route that finishes on today's physics: node tools/solutions.js local/tmp/v4_commit.gdlvl --fresh)"); process.exit(0); }
 const out = cp.execFileSync("node", [path.join(ROOT, "tools", "judge.js"), lvl, "--vs", path.join(ROOT, "knowledge", "judge", "hellgate_v4_marks.json")], { encoding: "utf8", windowsHide: true });
 const m = /(\d+)\/(\d+) marks found/.exec(out), found = m ? +m[1] : 0;
 if (found < MIN) { console.log(out); console.log(`judge: FAIL ${found} of Evgeni's marks found, want ${MIN}+`); process.exit(1); }

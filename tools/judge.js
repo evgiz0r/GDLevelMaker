@@ -80,6 +80,9 @@ function judge(file) {
     for (const s of secs) { const m = win.filter(x => x.k >= s.a && x.k <= s.b).map(x => x.ms);
       if (m.length >= 2 && med(m) > 2 * lv) at((s.a + s.b) >> 1, "too easy", `${s.mode}: its presses have ${Math.round(med(m))} ms windows, the level ${Math.round(lv)} ms`, s.a, s.b); }
   }
+  // a route that stops short judges only what it reached: say so first
+  const end = p[p.length - 1];
+  if (!end.done || end.dead) notes.push({ t: tt(p.length - 1), x: blk(end), y: Math.round(end.y), kind: "route stops", note: "the saved route dies here on today's physics: notes after this are missing (re-solve: node tools/solutions.js <level>)" });
   notes.sort((a, b) => a.t - b.t);
   return { file, levelCps: +levelCps.toFixed(2), sections: secs.map(s => ({ mode: s.mode, sp: s.sp, t0: tt(s.a), dur: +s.dur.toFixed(1), clicks: s.n })), notes };
 }
