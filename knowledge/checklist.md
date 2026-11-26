@@ -32,6 +32,13 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   game at a stepped roof's corner where our sim passed, PHYSICS.md "probe mod"). Build them with `fly-path` (45-degree slopes
   on both walls), not `ship-tunnel`; the margin our sim gives at a block corner is not to be trusted.
 - [ ] **Brick joins get 3+ flat blocks, and a brick whose own check found a prejump is not used** (2026-11-25, GDLM 44 v3: 1-2 block joins made 5 prejumps and a tap 183 ms after a gravity portal). `tools/brickpick.js` enforces it; score.js "prejumps" / "fairness" check it.
+- [ ] **Room at every portal, counted at 1x and stretched with the speed** (GDLM 73, 2026-11-26, nine rounds): the first
+  input 7 blocks after a ground portal (13 after a flight's exit), the last 1.5 beats before the next portal (3 for ball /
+  spider), no floor step right behind a portal (a forced jump on arrival), a flight's gate open 4 rows (a wave arriving held
+  rose into a 3-row gate's top), no 1x -> 3x jump in one portal. `tools/planbuild.js` does all of it; score.js "fairness".
+- [ ] **Single spikes at speed need air between them** (GDLM 73): at 2x+ at least 0.65 s from one jump to the next (0.5-0.62 s
+  apart made the route take off 2-3 blocks early: prejumps), a double only with 0.6 s free on both sides (else a 25 ms tap).
+  planbuild / brickpick `fillGap`; score.js "prejumps", "timing".
 - [ ] **Balanced sections** (Evgeni 2026-11-25 on Hellgate v4: "this whole section has 2 clicks? we need balanced sections.
   with somewhat similar cps"): every section's clicks per second near the level's own (none under about half of it,
   breathers named as breathers). A 3 s ball part with 2 clicks next to 2-click-a-second cube parts reads as a hole.

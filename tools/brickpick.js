@@ -68,7 +68,7 @@ function pick(o) {
     // the filler: one spike placed by make.js's "j<beat>" so its jump is pressed ON the next strong hit (a brick that
     // fits no hits loses to it; two in a row cost 0.5 each, so it does not become a spike train)
     if (o.filler !== false) for (const t of strong.slice().sort((a, b) => a - b)) {
-      const c0 = t * v; if (c0 < col + 1 || t - lastPress < 0.3 || c0 + 4 > end) continue;
+      const c0 = t * v; if (c0 < col + 1 || t - lastPress < (o.fillGap ?? 0.3) || c0 + 4 > end) continue;   // o.fillGap: more room at speed (planbuild, GDLM 73)
       const s = 1 - 0.1 * (c0 - col) - (lastTag === "single" ? 0.5 : 0);
       if (!best || s > best.s) best = { b: { id: "single", tags: ["single"], width: 4, label: "Easy", dx: [0], j: true }, c: c0, s, ts: [t] };
       break;

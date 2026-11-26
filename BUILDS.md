@@ -170,3 +170,10 @@ The stage times are also in local/timings.jsonl.
 - result: not ready (channels), 1 round(s), variants: 2 section(s)
 - change made: v2 with compose's varied corridors (vary, 7442948): repetition R 0.65 -> 0.25 (repeats 0.45 -> 0.20, near 0.27 -> 0.07, motifs 11 -> 4, loops 5 -> 3; tools/repeat.js). Stopped before score: the user paused FROSTBITE (2026-11-25, starting over from GDLM 44 hellgate); v2 kept in local/frostbite/, levels/ keeps v1
 
+## GDLM 73 sunny streets, 2026-11-26 (tools/planbuild.js, the user's prompt "Sunny mood, buildings clouds birds. happy colors, good contrasts. rather pacy")
+- song: Walking In Style (753562, G4lvatron, CC BY: may go public), 160 BPM, 76.5 s, chosen as the top match for the new sunny kit's song brief (`theme.js song sunny`); hits by tools/hits.js
+- stages: song (planbuild, seconds), then make.js's layout / path / deco / final each round; make 7.5-13 min a round on this PC with other sessions' jobs (heavy slot waits up to 34 min on top: an overdue tight.js 21 --fix held a slot 90+ min, still working)
+- rounds: 9 to READY (100 presses, tightest 67 ms, Normal 0.79). v1 died in the first ship (corridor knots rotated to start at 5), v2 in the ufo (2nd brick lifted out of reach), then gates one by one: fairness at 6 switches (4 blocks of room after portals), white slopes = clouds (roles), the wave falling under a raised corridor (route), 2-block joins at 2x and ball flips at gates (prejumps), a 3-row flight gate, a step behind a portal, 1x -> 3x in one portal, back-to-back 2x spikes (prejumps)
+- slowest step: make (the whole-level solve every round); a section-only rebuild would have saved most of it (collab.js does that, planbuild does not yet)
+- change made: every fix is in tools/planbuild.js (defaults) or brickpick (fillGap), the two rules in knowledge/checklist.md ("Room at every portal", "Single spikes at speed"); ball parts dropped from this plan (their bricks leave the ball under a roof that ends); the 3x flight became 2x
+

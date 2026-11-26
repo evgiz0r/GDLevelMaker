@@ -51,7 +51,7 @@ this page is the readable copy. Checked 2026-11-25, song by song, from each page
 | [725417](https://www.newgrounds.com/audio/listen/725417) | Hydra | F-777 | BY |  |  |
 | [730246](https://www.newgrounds.com/audio/listen/730246) | Nirmiti | Xtrullor | BY |  |  |
 | [743197](https://www.newgrounds.com/audio/listen/743197) | Time Shaper | DJ-Zyzyx | BY-NC-SA |  |  |
-| [753562](https://www.newgrounds.com/audio/listen/753562) | Walking In Style | G4lvatron | BY |  |  |
+| [753562](https://www.newgrounds.com/audio/listen/753562) | Walking In Style | G4lvatron | BY | GDLM 73 sunny streets |  |
 | [763723](https://www.newgrounds.com/audio/listen/763723) | Mainspring | Waterflame | BY-NC-SA |  |  |
 | [785100](https://www.newgrounds.com/audio/listen/785100) | Fantasy (ft. Reichuu) | CLOUDunderscore | BY-NC-SA |  |  |
 

@@ -91,18 +91,27 @@ function build(plan) {
       const r = pick(Object.assign({}, base, { mode: "cube", speed: sp, startCol: vcol + lead, fromBeat: b0, toBeat: b1 - Math.max(1, tailBeats), max: "Easy", beats: true, fillerOnly: true }));
       // a mini jump is short: spikes on back-to-back beats left a 42 ms tap (GDLM 73); keep them s.minGap s apart (0.6)
       const ps = []; for (const p of r.picks.filter(p => p.j)) if (!ps.length || (p.beat - ps[ps.length - 1].beat) * P >= (s.minGap ?? 0.6)) ps.push(p);
-      const floor = rise(b0, vcol, ps, mode, B);
+      const floor = rise(b0, vcol, ps, mode, B, s.climb ?? false);   // mini: a flat floor (a step after a spike left a 54 ms tap, GDLM 73)
       objs.push(...floor, ...ps.map(p => ["pattern", "single", "j" + p.beat, p.h || 0]));
       report.push(`${label}: ${ps.length} spikes on the hits`);
     } else {
       // minDensity is presses per 10 blocks: the same presses per second spread over more blocks at a faster speed (2x
       // bricks were all filtered out by the 1x floor, GDLM 73's first cut: 8 single spikes per 2x section)
-      const r = pick(Object.assign({}, base, { mode, speed: sp, startCol: vcol + lead, fromBeat: b0, toBeat: b1 - tailBeats, beats: true, usedPenalty: s.usedPenalty ?? 4,   // 1.2 let one 2x brick run twice back to back (GDLM 73) gap: s.gap || (sp === "1x" ? [2, 4] : [3, 5]),   // 3+ flat blocks between bricks at speed (checklist)
+      const r = pick(Object.assign({}, base, { mode, speed: sp, startCol: vcol + lead, fromBeat: b0, toBeat: b1 - tailBeats, beats: true, usedPenalty: s.usedPenalty ?? 4, fillGap: s.minGap ?? (sp === "1x" ? 0.35 : 0.65),   // 1.2 let one 2x brick run twice back to back (GDLM 73) gap: s.gap || (sp === "1x" ? [2, 4] : [3, 5]),   // 3+ flat blocks between bricks at speed (checklist)
         minDensity: s.minDensity ?? base.minDensity * BPS["1x"] / BPS[sp] * 0.9,
         filler: mode === "cube" || mode === "robot", max: s.max || (sp !== "1x" ? "Hard" : "Normal") }));
       // the filler's shape: a rotation (default single / double) so a run of filler is not one spike over and over
       const fill = s.fill || (mode === "cube" ? ["single", "double", "single", "single", "double"] : ["single"]); let fk = i;
-      for (const p of r.picks) if (p.j) p.shape = fill[fk++ % fill.length];
+      // a double needs room: only where the presses before and after are 0.6 s+ away (a double 2 columns after a single at
+      // 2x left a 25 ms tap, GDLM 73 v6)
+      const pr = r.picks.flatMap(p => p.presses);
+      for (const p of r.picks) if (p.j) { const t = p.presses[0], room = pr.every(u => u === t || Math.abs(u - t) >= 0.6);
+        p.shape = fill[fk++ % fill.length]; if (p.shape !== "single" && !room) p.shape = "single"; }
+      // filler spikes on back-to-back beats: at 2x a jump lasts about a beat at 160 BPM, so the route jumped early to land
+      // between them (prejumps, GDLM 73 v7). Keep each filler s.minGap s after the press before it (0.65 at 2x+: 0.5-0.62 s still prejumped; 0.35 at 1x)
+      { const gapMin = s.minGap ?? (sp === "1x" ? 0.35 : 0.65); let last = -1e9; r.picks = r.picks.filter(p => {
+        if (p.j && p.presses[0] - last < gapMin) return false; last = p.presses[p.presses.length - 1]; return true; });
+        r.presses = r.picks.reduce((n, p) => n + p.presses.length, 0); }
       for (const p of r.picks) if (!p.j) used.push(p.id);
       const floor = rise(b0, vcol, r.picks, mode, B, s.climb ?? sp === "1x");   // at 2x the steps landed 2-3 blocks after spikes (reactive)
       objs.push(...floor, ...r.picks.map(p => p.j ? ["pattern", p.shape || "single", "j" + p.beat, p.h] : mode === "cube" ? ["pattern", "s:" + p.id, "b" + p.beat, p.h] : ["pattern", "s:" + p.id, "b" + p.beat, p.h, { raw: true }]));
