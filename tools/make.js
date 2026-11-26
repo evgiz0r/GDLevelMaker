@@ -562,7 +562,9 @@ function make(specFile, specObj) {
   if (spec.hazardsAlong && r.ok) try {
     const HZ = require("../lib/hazards.js"), wH = GD.makeWorld(level.objects, header), pth = GD.run(wH, r.events).path;
     const opt = spec.hazardsAlong === true ? {} : spec.hazardsAlong;
-    const res = HZ.hazardsAlongPath(pth, level.objects, { tier: opt.tier || "normal", seed: opt.seed || 1, verify: { header, events: r.events } });
+    // nothing new from 2 blocks before a mode / gravity portal to 8 after it: the transition keeps its quiet
+    const avoid = level.objects.filter(o => { const k = (GD.objInfo(o.id) || {}).kind; return k === "mode" || k === "gravity"; }).map(o => [o.x - 60, o.x + 240]);
+    const res = HZ.hazardsAlongPath(pth, level.objects, { tier: opt.tier || "normal", seed: opt.seed || 1, avoid, verify: { header, events: r.events } });
     const add = res.objects.map(o => ({ rot: 0, flipX: false, flipY: false, props: {}, ...o }));
     const q = GD.run(GD.makeWorld(level.objects.concat(add), header), r.events), e = q.path[q.path.length - 1];
     if (e.done && !e.dead) { level.objects.push(...add); writeGdlvl(out, rec, level);
