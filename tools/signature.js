@@ -158,12 +158,23 @@ function signature(opts = {}) {
   }
   return out;
 }
+// Where the level must end so the sign is still on screen at the end (Evgeni, 2026-11-26: "the end screen has to include our
+// sign, it extends bit too much so our signature goes away"). GD ends a level at its FURTHEST object (any kind) and puts the
+// end wall ~340 units past it; the camera stops with the wall at the screen's right edge, and a 16:9 screen is ~569 units
+// (19 blocks) wide, so the last view shows only the last ~229 units before the furthest object. The sign is ~7 blocks wide
+// (text ~117 units each side of its centre at col + 3 blocks), so nothing may lie past its right edge: extent(col).x1.
+// Not measured in a recording yet (the end wall's 340 and the stop are from memory); the user's report fits it (the old end,
+// 7.5 blocks past the sign's centre, showed the sign leaving the screen).
+const TEXT_HALF = 117;
+function extent(col) { const cx = (col || 0) * 30 + 90; return { x0: cx - TEXT_HALF, x1: cx + TEXT_HALF, cx }; }
+// drop every object past the sign's right edge (blocks, deco, triggers: GD counts them all); returns the kept objects
+function clipEnd(objects, col) { const x1 = extent(col).x1; return objects.filter(o => !(o.x > x1)); }
 // the record's description (k3) gets the line once
 function describe(desc) {
   desc = String(desc || "").trim();
   return desc.includes(SIGN) ? desc : (desc ? desc + " -- " : "") + SIGN;
 }
-module.exports = { signature, header, describe, channelsOf, colours, SIGN, PAIR };
+module.exports = { signature, header, describe, extent, clipEnd, TEXT_HALF, channelsOf, colours, SIGN, PAIR };
 
 // node tools/signature.js <level.gdlvl> [--out file]  -- add the signature to a copy of a level (end of
 // the level, on the ground, beats from local/beats when the song has them) -> local/tmp/<name>_sig.gdlvl,

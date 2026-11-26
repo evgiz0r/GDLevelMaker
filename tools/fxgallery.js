@@ -100,7 +100,7 @@ function build(o = {}) {
   const sign = sg.signature({ col: be.signCol, floorY: be.floorY || 0, period: g.period, beats: be.beats, xOfT: xAt, tOfX });
   const str = levelStr(header, all.concat(fx));
   const lvl = GD.parseLevel(str);
-  lvl.objects = lvl.objects.concat(sign);
+  lvl.objects = sg.clipEnd(lvl.objects.concat(sign), be.signCol);   // nothing past the sign: it stays on the last screen
   const measures = {
     secs: +(p.length / TPS).toFixed(1), pads: play.length, fxObjects: fx.length,
     triggers: fx.filter(q => [901, 1007, 1346, 2067, 1049, 899, 1006, 1913].includes(q.id)).length,

@@ -112,9 +112,9 @@ function beatEnd(levelStr, o = {}) {
   // 3. the signature: the stage starts 2 blocks after the last landing (the cube runs on under it), the level ends past it
   const xl = X(r.path[Math.max(0, tl)]);
   const signCol = Math.ceil(xl / B) + 2;
-  const endX = signCol * B + 6 * B + 5 * B;
+  const endX = require("./signature.js").extent(signCol).x1;   // nothing past the sign: it stays on the last screen (signature.js extent)
   // the ledge the cube stands on runs on to the end, so it never drops in front of the sign
-  for (let x = Math.floor(xl / B) * B + 15; x < endX; x += B) if (floorTop > 0) add.push({ id: 1, x, y: floorTop - 15 });
+  for (let x = Math.floor(xl / B) * B + 15; x < endX - 15; x += B) if (floorTop > 0) add.push({ id: 1, x, y: floorTop - 15 });
   const fin = runOf(strOf(), o.events, endX);
   if (fin.dead) throw new Error("the ending dies: " + fin.why);
   return { objects: add, signCol, floorY: floorTop, endX, beats: used, notes, startX: xb };

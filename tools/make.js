@@ -423,6 +423,7 @@ function build(spec, specFile = "spec", opts = {}) {   // opts.placementsOnly: s
   // The signature (tools/signature.js): robot + human, "Made by Claude (and some humans)", after the end.
   // On by default for every "GDLM ..." level (the user approved it for all, 2026-11-23); a spec opts out
   // with "signature": false. Its column: spec.signature.col, a scene's, else 3 blocks after the last gameplay object.
+  let signCol = null;
   const signed = spec.signature !== false && (spec.signature || /^GDLM /.test(spec.name || ""));
   if (signed) {
     const sig = require("./signature.js"), secs = (spec.modern && spec.modern.sections) || [];
@@ -445,6 +446,7 @@ function build(spec, specFile = "spec", opts = {}) {   // opts.placementsOnly: s
       Object.assign(sopts, { beats, period: ctx.grid.period, xOfT, tOfX });
     }
     objects.push(...sig.signature(sopts));
+    signCol = col;
   }
   if (spec.style && spec.style !== "classic") deco.skinBlocks(objects); // e.g. "hell": outlined blocks, no ground decoration
   if (spec.style === "classic") {
@@ -463,12 +465,14 @@ function build(spec, specFile = "spec", opts = {}) {   // opts.placementsOnly: s
   // (median of 16); 281 rated community levels: 0.9 s from the last hazard/orb/pad. With the sign 3 blocks
   // after the last gameplay object (7 wide) this ends ~1.5 s after the last input at 1x.
   // spec.endRun: blocks of run after the sign (default 5); "signature": false levels are not clipped.
-  if (signed) {
-    const sigEnd = Math.max(...objects.filter(o => o.props && String(o.props[57] || "").split(".").some(g => +g >= 960 && +g <= 964)).map(o => o.x), 0);
-    const limit = (sigEnd || 0) + (spec.endRun ?? 5) * 30;
-    if (sigEnd) for (let i = objects.length - 1; i >= 0; i--) {
+  if (signed && signCol != null) {
+    // 2026-11-26 (Evgeni: "the end screen has to include our sign, it extends bit too much so our signature goes away"):
+    // nothing past the sign's right edge, blocks included (signature.js extent: the last screen shows ~229 units before the
+    // furthest object). spec.endRun: blocks allowed past it (default 0; deco / triggers only, as before).
+    const limit = require("./signature.js").extent(signCol).x1 + (spec.endRun || 0) * 30;
+    for (let i = objects.length - 1; i >= 0; i--) {
       const k = GD.objInfo(objects[i].id).kind;
-      if (objects[i].x > limit && (k === "decoration" || k === "trigger")) objects.splice(i, 1);
+      if (objects[i].x > limit && (spec.endRun ? (k === "decoration" || k === "trigger") : true)) objects.splice(i, 1);
     }
   }
   // colour by ROLE (the user: "clear contrasts between the different things (ground, spikes, deco)"; gd-art's tools/roles.js):
