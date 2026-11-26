@@ -234,6 +234,10 @@ air and released before the landing does NOTHING, however close to the landing.
 
 The robot too (2026-11-26): the auto lab v12 probe log, tick 4742, a flipped robot at vy -7.27 dies touching the ground with
 no object, where the sim had it land; lib/physics.js now applies the same cut to the robot. Ball, spider, UFO: not seen.
+A flipped robot dies at ANY speed into the ground (2026-11-26, auto beat 2 v3's probe log, tick 3540): a flipped mini robot,
+thrown down by a flipped yellow pad, comes down at vy -1.94 and the game kills it (no object); the sim at the -4 cut had it touch
+and turn. The cube's soft touch in GDLM 67 (~-1.7) lived, so the robot has no cut (GDLM_FLIP_ROBOT=old = the cut). The game's
+path and the sim's match at every logged row up to that tick. A slow flipped cube between -1.7 and -4: not seen.
 
 The released ship upside down (2026-11-26, auto lab v13 probe log, tick 17297): after a gravity portal a flipped ship at
 vy -1.22 pulls 0.069 a tick (0.8, the falling factor), not 0.103 (1.2): the falling threshold is mirrored upside down, as for

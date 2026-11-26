@@ -321,6 +321,10 @@ missed by 0.03; and a flipped player sunk more than 0.7 into the ground dies at 
 a robot portal, the robot's taller box sank 1.07 in). With both, the sim dies on the game's tick. v2: same song and seed,
 rebuilt on that physics, the same path as v1 to tick 5641, clears, and the new beat ending (tools/beatend.js).
 
+v3 died at 16% (tick 3540): a flipped mini robot thrown down by a flipped yellow pad touched the ground at vy -1.94 and the
+game killed it; the sim's cut was -4. A flipped robot now dies at any speed into the ground (PHYSICS.md). v4: rebuilt on that,
+the same path as v3 to 14.5 s, clears.
+
 ### The beat ending (tools/beatend.js, 2026-11-26)
 Evgeni on the old outro: "too big, way too much without anything happening and it doesnt match the beat ... something small
 half screen of auto gameplay, that matches the beat ... with the sign there". From the level's end: a portal column on a beat
