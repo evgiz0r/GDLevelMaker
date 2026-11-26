@@ -69,6 +69,30 @@ under them, which hid any painted block body).
 Open: in GD art and in the game (does 211 on T1 cover the skin as in our render?); a facet pattern less grid-like;
 slopes and spikes dressed the same way; a per-theme set (ice veins = cracks with frost).
 
+## Block design: what GD creators teach (Evgeni's six steps, 2026-11-26)
+
+Evgeni sent six steps with 8 tutorial videos (their auto-caption transcripts: project files
+`decoart/block_design_transcripts.md`, not in git). What the videos agree on, as rules for `tools/blockart.js`:
+
+1. **Structure first** (one tutor: "up to 50 percent of how your block is going to look"). Not plain squares: random
+   rectangles, slopes, half blocks, a step up then down; keep it simple rather than exaggerated. Spikes are part of the
+   structure's shape. For us the play blocks are fixed by the layout, so structure means the DRESSING's outline: extra
+   non-solid pieces, cut corners, pillars in front, a cap on top -- never changing the hitboxes.
+2. **Outline, then an inline.** A solid outline around the whole mass, then a second line a fixed distance inside it
+   (often black), corner pieces at the corners ("don't forget about the corner pieces"). Line rule: the thinner the line,
+   the more it must contrast with what is behind it.
+3. **Base fill + texture.** Fill with 2-3 colours from one palette with value steps and a little hue shift (one tutor:
+   base hue, +90 / -90 hue for the variants), not monochrome. Break up flat space with low-opacity patterns, bricks,
+   default blocks on blending colours ("remove continuity").
+4. **Details: small = high contrast, big = low contrast.** Connectors, crystals, mechanical bits; "the more the detail
+   contrasts with the block design, the smaller it should be". Don't fill every cell; details fit the structure.
+5. **Light sparingly.** Low-opacity blending glow on top edges, low-opacity black glow at the bottom (shadow); one
+   highlight, not glow everywhere ("don't spam the glow"). Black inner outlines go IN FRONT of the glow, or not at all.
+   A drop shadow from one light direction (black, ~30% opacity, never stacked twice).
+6. **3D, one direction.** 3D lines from every edge in exactly the same direction, darker than the base; a dark base under
+   the 3D; outlines on the 3D too.
+Plus: decorate the spikes the same way (outline, inner line, glow), and particles rising from open tops.
+
 ## Lessons as rules (soft; for the generator)
 
 - **Paint the section's picture before placing deco**: one focal point (light / landmark) at a third of the screen in the
