@@ -475,3 +475,15 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   The cause was the library (52 cube pieces vs 2-12 per other mode at 1x), so the fix is more verified pieces per mode
   plus a mode-share target in the picker; to come as a score.js check.
 - **Spikes close to the lane on both sides, deco with a rhythm** (Evgeni 2026-11-26, the icy part, DECOART.md round 6): rated levels keep ~45% of hazards guarding the lane (above and below), 2-3 per obstacle, and deco with quiet stretches and big moments (cv ~0.9); `node tools/hazards.js level <lvl>`, `node tools/decocomp.js <lvl>`.
+
+- [ ] **Balanced pieces** (Evgeni on GDLM 44 v7: "some have like 2 cps without frame windows, and some seem mega hard ... pick
+  balanced structures, with similar cps and frame windows"): every piece's tightest window and clicks a second inside the
+  tier's band (Normal / Hard: window 120 ms+, 1.2-3 clicks/s; rated bricks: knowledge/brick_tiers.json), and close to each
+  other within a section. brickpick.js pickSection `window`, `cpsBand`, `winSpread`.
+- [ ] **Rests on purpose** (the same note: "some places just nothing for few seconds"): 1.5-2 s with nothing to press at
+  quiet moments of the song (before a drop, inside a long section) -- the mains have ~11 breathers a minute (LEGO.md
+  "Combining"). Not dead air by accident: a planned rest is listed in the builder's plan (hellgate_build.js `rest`).
+- [ ] **A real upside-down stretch** ("almost no reverse"): ~15-25% of the time upside down; the ~ud variants flip back within
+  1-2 s, so a section is built upside down as a whole (patterns.js `ud:<id>`, a ceiling, one portal in and one out).
+- [ ] **Portals taken on the move** ("no proper transitions"): a jump into the portal out of the cube, a drop out of a flight
+  (official 93% on the move, ours 46% walking in; LEGO.md "Combining").

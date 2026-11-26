@@ -17,12 +17,24 @@
 //   unseen roof     the route touches its play band's roof (or a raised band floor) where nothing is drawn ("we fall from the
 //                   top, but there is no indication of top")
 //   flat ending     the last ENDFLAT s a flat walk with nothing to press or ride ("design the last sign/gameplay a bit more")
+//   (v8, Evgeni on GDLM 44 v7 -- it scored 6.6, he: "the judge seems to be too nice")
+//   uneven piece    a piece (presses split at PAUSE s with the button up) far tighter (UNEVEN_WIN x the typical piece's
+//                   window, under 150 ms) or busier (UNEVEN_CPS x) than the rest ("some seem mega hard")
+//   too much cube   over CUBE_MAX of the play is cube (75% for an Easy tier: opt.tier) ("still too much cube")
+//   no reverse      under REVERSE_MIN of the play upside down ("almost no reverse"; the mains ~17%)
+//   walked portal   a mode change walked into on the ground (official: 7%) ("no proper transitions")
+//   abrupt switch   a press under 0.15 s before a mode change or under 0.25 s after it (official p20)
+//   no rests        under RESTS_MIN breathers (REST s with nothing pressed) a minute ("some places just nothing for few
+//                   seconds"; the mains ~11)
+//   stats: the pieces' clicks/s spread (cpsCv) and window spread (winSd, sd of ln ms), cube / upside-down share, rests a
+//   minute -- report.js turns them into the balance, modes, transitions and rests sub-scores. v7: layout 2.7 (was 6.6).
 "use strict";
 const fs = require("fs"), path = require("path");
 const GAP = 1.2, FLYMAX = 4.0, FEWCPS = 0.5, SAME = 0.75, VARIETY_S = 4.0, ENDFLAT = 3;
+const PAUSE = 0.6, UNEVEN_WIN = 0.55, UNEVEN_CPS = 1.6, CUBE_MAX = 0.5, REVERSE_MIN = 0.15, REST = 1.0, RESTS_MIN = 4;
 const FLY = new Set(["ship", "wave", "swing"]), BANDED = new Set(["ship", "ufo", "wave", "swing", "ball", "spider"]);
 
-function judge(file) {
+function judge(file, opt = {}) {
   const { readGdlvl, GD } = require("./io.js"), S = require("./solutions.js"), O = require("../lib/objects.js");
   const L = readGdlvl(file), sol = S.get(L.levelStr, true);
   if (!sol || !sol.events) throw new Error("no saved route for " + file + ": node tools/solutions.js " + file);
@@ -97,11 +109,55 @@ function judge(file) {
   { const k1 = p.length - 1, k0 = Math.max(0, k1 - ENDFLAT * TPS), q0 = p[k0];
     const quiet = !presses.some(t => t >= k0) && p.slice(k0).every(q => q.grounded && Math.abs(q.y - q0.y) < 2 && q.mode === q0.mode);
     if (quiet && p.length > 2 * ENDFLAT * TPS) at(k0, "flat ending", `the last ${ENDFLAT} s are a flat walk to the end (nothing to press, no auto ride)`, k0, k1); }
+  // ---- v8 checks (Evgeni on GDLM 44 v7, 2026-11-26, after it scored 6.6: "the structure are super unbalanced, some have like 2
+  // cps without frame windows, and some seem mega hard. still too much cube. almost no reverse. no proper transitions. ...
+  // some places just nothing for few seconds"; "the judge seems to be too nice")
+  const held = new Array(p.length).fill(false); { let h = false, ei = 0; const ev = sol.events.slice().sort((a, b) => a.tick - b.tick);
+    for (let k = 0; k < p.length; k++) { while (ei < ev.length && ev[ei].tick <= k) { h = ev[ei].type === "press"; ei++; } held[k] = h; } }
+  const gameEnd = (() => { let k = p.length - 1; while (k > 0 && !presses.some(t => t >= k)) k--; return Math.min(p.length - 1, presses.length ? presses[presses.length - 1] + TPS : p.length - 1); })();
+  // pieces: presses grouped by pauses of PAUSE s with the button up (as LEGO.md cuts bricks); each piece's clicks a second and
+  // its tightest window. A piece far tighter or busier than the level's typical piece is "uneven"
+  const win = sol.windows ? sol.windows.filter(x => x[0] === 0).map(x => ({ k: x[1], ms: (x[3] - x[2]) / 0.24 })) : [];
+  const pieces = []; { let cur = null;
+    // a new piece after PAUSE s with the button up (a held ship / wave stretch is still the same piece)
+    const upFor = (a, b) => { let run = 0, best = 0; for (let k = a; k < b; k++) { run = held[k] ? 0 : run + 1; if (run > best) best = run; } return best / TPS; };
+    for (const t of presses) { if (cur && upFor(cur.b, t) < PAUSE) { cur.b = t; cur.n++; }
+      else { if (cur) pieces.push(cur); cur = { a: t, b: t, n: 1 }; } }
+    if (cur) pieces.push(cur); }
+  for (const pc of pieces) { pc.cps = pc.n >= 2 ? pc.n / ((pc.b - pc.a) / TPS + 0.25) : null; const ws = win.filter(x => x.k >= pc.a - 2 && x.k <= pc.b + 2).map(x => x.ms); pc.win = ws.length ? Math.min(...ws) : null; }
+  const pcs = pieces.filter(pc => pc.n >= 2), medCps = med(pcs.map(pc => pc.cps)), medWin = med(pieces.filter(pc => pc.win).map(pc => pc.win));
+  for (const pc of pcs) {
+    if (pc.win && medWin && pc.win < UNEVEN_WIN * medWin && pc.win < 150) at(pc.a, "uneven piece", `a piece ${Math.round(pc.win)} ms tight, the level's typical piece ${Math.round(medWin)} ms (unbalanced: one far harder than the rest)`, pc.a, pc.b);
+    else if (pc.cps > UNEVEN_CPS * medCps) at(pc.a, "uneven piece", `a piece at ${pc.cps.toFixed(1)} clicks/s, the level's typical piece ${medCps.toFixed(1)}`, pc.a, pc.b); }
+  // mode share and upside down over the played part (the outro left out): the mains average 57% cube, 69-87% in the easy
+  // ones and 24-50% in the harder ones, 17% upside down (tools/modeshare.js, knowledge/levels/variety.md "Mode share")
+  const share = {}; let up = 0; for (let k = 0; k <= gameEnd; k++) { share[p[k].mode] = (share[p[k].mode] || 0) + 1; if (p[k].grav < 0) up++; }
+  const cubeShare = (share.cube || 0) / (gameEnd + 1), upShare = up / (gameEnd + 1);
+  const cubeMax = /easy|auto/i.test(opt.tier || "") ? 0.75 : CUBE_MAX;
+  if (cubeShare > cubeMax) at(0, "too much cube", `${Math.round(cubeShare * 100)}% of the play is cube (want ${Math.round(cubeMax * 100)}% or less: the harder mains 24-50%)`);
+  if (upShare < REVERSE_MIN) at(0, "no reverse", `${Math.round(upShare * 100)}% of the play upside down (the mains ~17%; want ${Math.round(REVERSE_MIN * 100)}%+)`);
+  // transitions: a mode change taken walking on the ground (official: 7%, LEGO.md "Combining": portals are entered mid-jump,
+  // off an orb or pad, or flying in)
+  const changes = []; for (let k = 1; k <= gameEnd; k++) if (p[k].mode !== p[k - 1].mode) changes.push(k);
+  // and an abrupt one: the last press before it under 0.15 s, or the first after it under 0.25 s (official p20: 0.15 / 0.25 s)
+  for (const k of changes) { const before = presses.filter(t => t < k).pop(), after = presses.find(t => t >= k);
+    if ((before != null && (k - before) / TPS < 0.15) || (after != null && (after - k) / TPS < 0.25))
+      at(k, "abrupt switch", `${p[k - 1].mode} -> ${p[k].mode}: ${before != null ? Math.round((k - before) / TPS * 1000) + " ms after the last press" : ""}${after != null ? ", " + Math.round((after - k) / TPS * 1000) + " ms to the next" : ""} (official: ~0.37 s quiet before, ~0.48 s after)`); }
+  let walked = 0; for (const k of changes) { const q = p[Math.max(0, k - 2)]; if (q.grounded && !held[k - 1] && !held[Math.max(0, k - 30)]) { walked++; at(k, "walked portal", `${p[k - 1].mode} -> ${p[k].mode} walked into on the ground (official portals: 93% taken on the move)`); } }
+  // rests: breathers of REST s or more with the button up and nothing pressed (the mains ~11 a minute)
+  let rests = 0; { let run = 0; for (let k = 0; k <= gameEnd; k++) { if (held[k]) { if (run >= REST * TPS) rests++; run = 0; } else run++; } }
+  const restsPerMin = rests / ((gameEnd + 1) / TPS / 60);
+  if (restsPerMin < RESTS_MIN) at(0, "no rests", `${restsPerMin.toFixed(1)} breathers a minute (${REST} s+ with nothing to press; the mains ~11)`);
+  // the spread of the pieces: clicks a second (coefficient of variation) and tightest windows (sd of ln ms) -- report.js balance
+  const sd = a => { const m = a.reduce((x, y) => x + y, 0) / Math.max(1, a.length); return Math.sqrt(a.reduce((x, y) => x + (y - m) ** 2, 0) / Math.max(1, a.length)); };
+  const cpsCv = pcs.length > 1 ? sd(pcs.map(pc => pc.cps)) / (pcs.reduce((a, pc) => a + pc.cps, 0) / pcs.length) : 0;
+  const winSd = sd(pieces.filter(pc => pc.win).map(pc => Math.log(pc.win)));
+  const stats = { cpsCv: +cpsCv.toFixed(2), winSd: +winSd.toFixed(2), cubeShare: +cubeShare.toFixed(2), upShare: +upShare.toFixed(2), changes: changes.length, walked, restsPerMin: +restsPerMin.toFixed(1), pieces: pcs.length, medCps: +(medCps || 0).toFixed(2), medWin: Math.round(medWin || 0) };
   // a route that stops short judges only what it reached: say so first
   const end = p[p.length - 1];
   if (!end.done || end.dead) notes.push({ t: tt(p.length - 1), x: blk(end), y: Math.round(end.y), kind: "route stops", note: "the saved route dies here on today's physics: notes after this are missing (re-solve: node tools/solutions.js <level>)" });
   notes.sort((a, b) => a.t - b.t);
-  return { file, levelCps: +levelCps.toFixed(2), sections: secs.map(s => ({ mode: s.mode, sp: s.sp, t0: tt(s.a), dur: +s.dur.toFixed(1), clicks: s.n })), notes };
+  return { file, levelCps: +levelCps.toFixed(2), stats, sections: secs.map(s => ({ mode: s.mode, sp: s.sp, t0: tt(s.a), dur: +s.dur.toFixed(1), clicks: s.n })), notes };
 }
 // how alike two corridors are: each floor as its run of plateaus (heights held 3+ columns), compared in order (longest
 // common run / the longer list). Width-free, so the same recipe at another speed or flat length still matches (v4's ship,

@@ -545,6 +545,16 @@ function expand(name, col, row, args, extra) {
 
 // the structure library (tools/structures.js, STRUCTURES.md) as patterns named "s:<id>"
 require("./structures.js").register(P);
+// "ud:<id>": the same structure upside down, with NO portals (a stretch that is already upside down, under a ceiling): rows
+// mirrored about the player's row (place it with row = the row the player runs on, just under the ceiling), every object
+// flipY. Only plain cube structures (no nested patterns). GDLM 44 v8 (Evgeni on v7: "almost no reverse"): the ~ud variants
+// flip in and out within 1-2 s, so a level built from them is barely upside down.
+for (const name of Object.keys(P)) if (name.startsWith("s:") && !/~ud$/.test(name)) {
+  const base = P[name];
+  P["ud:" + name.slice(2)] = { doc: "upside down (no portals): " + (base.doc || ""), fn: a => { const r = base.fn(a || {});
+    if (r.objects.some(e => e[0] === "pattern")) throw new Error("ud:" + name.slice(2) + ": a nested pattern can not be flipped");
+    return Object.assign({}, r, { objects: r.objects.map(([t, c, rr, e]) => { const x = Object.assign({}, e || {}); x.flipY = !x.flipY; return [t, c, -rr, x]; }) }); } };
+}
 
 // The lego path (LEGO.md): ONE path for the flying family -- ship, wave, swing -- wrapped in different ways (the user,
 // 2026-11-25: "ship wave and swing have some similarity in their possible structures. a path, a path with some spikes,
