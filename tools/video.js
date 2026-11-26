@@ -26,6 +26,9 @@ function resolve(w) {
   if (/^c\d+$/.test(w)) w = path.join(ROOT, "local", "community", w.slice(1) + ".gdlvl");
   const lv = levelOf(w);
   if (!lv.solution) try { const s = require("./solutions.js").get(lv.levelStr, true); if (s && s.events) lv.solution = s; } catch (e) {}
+  // a level solved elsewhere (cloud build) carries its route only in viewer/levels.js: use it when the level string matches
+  if (!lv.solution) try { const g = {}; new Function("window", fs.readFileSync(path.join(ROOT, "viewer", "levels.js"), "utf8"))(g);
+    const e = (g.GD_LEVELS || []).find(x => x.level === lv.levelStr && x.solution && x.solution.ok); if (e) lv.solution = e.solution; } catch (e) {}
   if (!lv.solution) lv.solution = { ok: false, events: [], why: "not solved: the camera runs at the level's speed", pending: true };   // never solve in the page
   let song = null, m;
   if ((m = /^official:(\d+)$/.exec(w))) {
