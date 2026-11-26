@@ -98,8 +98,11 @@ strays() returns), `opts.verify: {header, events}` (replay; the new piece neares
    ~50 / 80 / 100% of the arc's columns by tier, centred at the apex; skipped where the level already has a hazard under it
    or the surface is 3+ blocks down;
 2. lane pieces in flying stretches on the path's contour (±2 columns) 2-3 blocks off it, at local minima of the gap or
-   every 2 x spikeEvery + 4 columns, 1-3 columns wide;
-3. leaks blocked where they leave the path by the wall distance, a run of 3 on that line;
+   every 2 x spikeEvery + 4 columns, 2-3 columns wide (a lone hanging spike under one block read as a stray); the floor side
+   half as often as the ceiling side (rated flying lanes: a hazard below on 1-20% of blocks, median 9);
+3. leaks blocked where they leave the path by the wall distance, a run of 3 on that line, each spike held by a block on its
+   far side; a leak with a hazard already on that line within 2.5 blocks counts as shut (`notes.leaksShut`) -- piling
+   more spikes beside a lane piece stacked them into a triangle;
 4. pit floors: low pit spikes (id 9, y 2, as the mains) under arcs that start and end 2+ blocks up.
 
 **How it was checked**: strip a main level's own hazards and place new ones on the same path
@@ -111,6 +114,12 @@ hazard under 67-88% -> 60-84%. **Open**: density is about half RobTop's (2.2-2.8
 On the auto beat lab level (levels/lab/auto_beat.gdlvl v8, its own hazards stripped): threat / guard / fill
 6 / 2 / 93 -> 19 / 53 / 28, jumps with a hazard under 3 -> 45%, the no-press run still clears. In the viewer and the phone
 page as in-progress `hazards/gdlm_auto_beat_path_hazards` (2026-11-26). Not seen by Evgeni yet.
+
+**Round 2 (2026-11-26, the auto thread's notes on lab v9)**: the three fixes above. Auto lab rebuilt with them
+(`node tools/autobeat.js --song GeometricalDominator --seed 3`): lane.fly.belowHaz 27.7 -> 19.2% (rated 0.9-19.8), 42 of
+the leaks shut by a piece already there (leak spikes 74 -> 54, each now on a block), the no-press run still clears, open
+leaks 15 of 1550 as before, saws 7 -> 10. Still off: guards above the path 27.5% (rated 10-23: leaks blocked above),
+arcs with a hazard 41-52% (rated 60-85), density.
 
 ## Open
 
