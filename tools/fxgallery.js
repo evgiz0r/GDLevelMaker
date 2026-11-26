@@ -28,18 +28,18 @@ function run(header, objs, farX) {
 
 // the demos, in song beats (16 beats each), with what they show
 const PLAN = [
-  { b: [3, 8], title: "EFFECTS GALLERY", sub: "every effect on the beat - tools/effects.js" },
-  { b: [8, 24], title: "1  ALPHA", sub: "fadeBlocks: halves trade places on each beat", fx: "fadeBlocks" },
-  { b: [24, 40], title: "2  TOGGLE", sub: "chase: one group on at a time", fx: "chase" },
-  { b: [40, 56], title: "3  MOVE", sub: "dancers: blocks hop in a wave", fx: "dancers" },
-  { b: [56, 72], title: "4  LOCK TO CAMERA", sub: "screenFrame: a structure that rides the screen", fx: "screenFrame" },
-  { b: [72, 88], title: "5  CONTACT FLASH", sub: "contactFlash: rings where you touch down", fx: "contactFlash", pads: 2, hideFrom: 80 },
-  { b: [80, 88], title: "5b  HIDDEN PADS", sub: "the pads are invisible now - they still work", label2: true },
-  { b: [88, 104], title: "6  HIT LINES + ZOOM", sub: "hitLines on strong notes, zoomPunch on the biggest", fx: "hitLines", also: ["zoomPunch"] },
-  { b: [104, 120], title: "7  PATH GLOW + CLOUDS", sub: "pathGlow behind you, clouds lock to you", fx: "pathGlow", also: ["clouds"], pads: 4 },
-  { b: [120, 136], title: "8  DANCING CIRCLE", sub: "ring: lock + rotate + scale on the beat", fx: "ring", pads: 4 },
-  { b: [136, 144], title: "9a  COLOUR FLASH", sub: "beatFlash: colour trigger 899", fx: "beatFlash" },
-  { b: [144, 152], title: "9b  PULSE FLASH  (untested)", sub: "pulseFlash: pulse trigger 1006", fx: "pulseFlash" },
+  { b: [3, 8], hue: 265, title: "EFFECTS GALLERY", sub: "every effect on the beat - tools/effects.js" },
+  { b: [8, 24], hue: 200, title: "1  ALPHA", sub: "fadeBlocks: halves trade places on each beat", fx: "fadeBlocks" },
+  { b: [24, 40], hue: 40, title: "2  TOGGLE", sub: "chase: one group on at a time", fx: "chase" },
+  { b: [40, 56], hue: 320, title: "3  MOVE", sub: "dancers: blocks hop in a wave", fx: "dancers" },
+  { b: [56, 72], hue: 170, title: "4  LOCK TO CAMERA", sub: "screenFrame: a structure that rides the screen", fx: "screenFrame" },
+  { b: [72, 88], hue: 30, title: "5  CONTACT FLASH", sub: "contactFlash: rings where you touch down", fx: "contactFlash", pads: 2, hideFrom: 80 },
+  { b: [80, 88], hue: 30, title: "5b  HIDDEN PADS", sub: "the pads are invisible now - they still work", label2: true },
+  { b: [88, 104], hue: 220, title: "6  HIT LINES + ZOOM", sub: "hitLines on strong notes, zoomPunch on the biggest", fx: "hitLines", also: ["zoomPunch"] },
+  { b: [104, 120], hue: 190, title: "7  PATH GLOW + CLOUDS", sub: "pathGlow behind you, clouds lock to you", fx: "pathGlow", also: ["clouds"], pads: 4 },
+  { b: [120, 136], hue: 290, title: "8  DANCING CIRCLE", sub: "ring: lock + rotate + scale on the beat", fx: "ring", pads: 4 },
+  { b: [136, 144], hue: 250, title: "9a  COLOUR FLASH", sub: "beatFlash: colour trigger 899", fx: "beatFlash" },
+  { b: [144, 152], hue: 250, title: "9b  PULSE FLASH  (untested)", sub: "pulseFlash: pulse trigger 1006", fx: "pulseFlash" },
 ];
 const END_BEAT = 152;
 
@@ -77,6 +77,7 @@ function build(o = {}) {
   if (play.some(q => q.props)) ctx.hideAtStart(hidePads);   // the hidden pads: alpha 0 from the first tick, they still work
   for (const s of PLAN) {
     const t0 = tb(s.b[0]), t1 = tb(s.b[1]);
+    ctx.setHue(s.hue ?? 265);
     fx.push(...FX.label(ctx, { t0, t1: s.label2 ? t1 : s.hideFrom != null ? tb(s.hideFrom) : t1, text: s.title, sub: s.sub, y: 205 }));
     if (s.fx) fx.push(...FX[s.fx](ctx, { t0, t1 }));
     for (const a of s.also || []) fx.push(...FX[a](ctx, { t0, t1 }));

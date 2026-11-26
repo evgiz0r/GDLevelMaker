@@ -60,7 +60,8 @@ beat tick: all within 2 ms) where a demo wants movement. 16 beats a demo, each l
 intro, 1 ALPHA (fadeBlocks), 2 TOGGLE (chase), 3 MOVE (dancers), 4 LOCK TO CAMERA (screenFrame), 5 CONTACT FLASH,
 5b HIDDEN PADS, 6 HIT LINES + ZOOM, 7 PATH GLOW + CLOUDS, 8 DANCING CIRCLE (ring), 9a COLOUR FLASH (899),
 9b PULSE FLASH (1006, untested), then the beat ending (tools/beatend.js) and the Claude signature.
-v1: 823 effect triggers, 108 groups, the zero-press run identical with and without the effects.
+v1: 823 effect triggers, 108 groups, the zero-press run identical with and without the effects. v2 (the quality pass
+below): 816 triggers, a hue per demo.
 
 **The viewer is not the test.** lib/vfx.js draws alpha, move, lock to player, rotate, toggle and colour, but not the
 scale trigger, lock to camera, or text in the cloud render; most of the gallery only shows in GD. GD is the real test:
@@ -75,6 +76,25 @@ scale trigger, lock to camera, or text in the cloud render; most of the gallery 
   900-911, decoart 700-799 and groups 1101-1111).
 - The screen: at 1x on the ground about 7.5 blocks show above the ground, 6.5 behind and 12 ahead of the player; keep
   screen-locked pieces inside x0 - 150 .. x0 + 350, y 0 .. 215 (x0 = the player's x when the lock starts).
+
+## How rated levels move (the numbers the defaults follow)
+
+Evgeni on v1 (2026-11-26): "the quality is still lacking but i see its infinite control pretty much over the view". So v2
+measured the same 8 rated 2.2 levels (scratch study over local/community, median and p10-p90 per trigger) and retuned:
+- **Easing** (move, 16k): none 25%, exponential out (12) 16%, back out (18) 11%, ease in-out (1) 9%, sine in-out (13) 9%,
+  sine out (15) 5%. Scale and rotate the same top three. v1 used plain ease in / out (2, 3): rare there. Now hits are
+  exponential out, settling is sine in-out, accents back out (`FX.E`).
+- **Move**: 0.35 s (p10 0 .. p90 1.4), about a block (31 units; the p90 of 600 is screen-wide slides). v1 hopped 24-38
+  units; now 15 (24 on a bar's first beat, with a 12 degree back-out wobble).
+- **Rotate**: 15 degrees in 0.33 s typical; big spins are the p90 (240 degrees).
+- **Scale**: by 1.25 in 0.25 s (p90 1 s). v1's ring swelled 1.3-1.6; now 1.15 (1.32 on the strongest notes).
+- **Alpha**: in almost at once (median 0.04 s), out over up to 0.5 s; mostly to 0 or 1. Now every flash comes in at once
+  and fades out over 0.3-0.4 s.
+- **Pulse**: fade in 0, hold 0, fade out 0.2 (p90 0.7). The colour flash now does the same.
+- **Density**: 35 motion triggers per screen (p10 15, p90 57). The gallery's sections run 8-50, the dancers ~80.
+- **Colour**: v1 used pure white and full colours. Now each effect takes its colours from one hue (`FX.palette(hue)`:
+  accent, warm, cool, a near-white tinted by the hue, soft, deep, bg), blending channels for glows, 0.35-0.85 opacity,
+  and smaller shapes (dots 0.6-1.3, glow strips 1293 instead of dots on the dancers). The gallery gives each demo a hue.
 
 ## Trigger keys
 
@@ -93,7 +113,9 @@ Checked on 8 rated 2.2 levels from the PC's local/community (2026-11-26), counte
 
 ## Open
 
-- Evgeni's look in the game: which effects read well, which are too much, what each should become.
+- Evgeni on v1: "the control is nice", "the quality is still lacking". v2 = the numbers above; his look at v2 in the game.
+- Quality beyond the numbers: composition (where effects sit against the path, framing, restraint per section), shapes
+  that look good in GD art (needs GD-art pictures from the PC: tools/shoot.js), with the deco-art thread's taste rules.
 - Not checked in GD yet: lock to camera (141 / 142), scale with a centre group while the group is locked to the player,
   rotate about a centre that is itself moving, text locked to the screen, the 236 circle's look (a ring or a disk?).
 - More effects: spawn-loops (one spawn trigger repeating a pattern without a trigger per beat), particles (2065),
