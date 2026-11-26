@@ -563,9 +563,32 @@ step. `node tools/probe.js result [n]` compares a log with our sim's run of the 
 - **What is per step:** the player's `m_yVelocity` changes every step (240 Hz), the level time too. Its position
   (`m_position`) changes only once per 60 fps frame, and at a frame's first step it shows the sim's state of the step
   before; GameObject's `m_positionX/Y` doubles stay 0 on the player. So timing is read from vy, positions per frame.
+- **The true per-step position (mod v0.5.0, 2026-11-26):** the player NODE's position (`getPosition()`, logged as
+  `p[8], p[9]`) moves on every step. At log step n it is exactly our sim's state after step n-1 (Stereo Madness: x to
+  0.01 and y to 0.001 for the first 1246 steps), and the game's y is ours + 90. The logged vy at step n is the vy before
+  that step's gravity, so a jump shows vy 11.18 one step before y moves: **compare positions, not vy.** Read this way,
+  the first jump of Stereo Madness (press at 348) starts on the same step in game and sim, y equal to 0.001 all through
+  the arc. `probe.js result` and `probe.js table` use the node position when the log has it.
+- **So "jumps start one step late" (below) was an artifact** of comparing the game's vy at step n with the sim's vy at
+  step n (the game's vy is one step behind). Re-check GDLM 62 / 44 with a v0.5.0 log before using those numbers.
+- **GD 2.2's jump snap is missing from our sim (2026-11-26, Stereo Madness in practice mode):** on some landings on a
+  block the game moves the player's x by exactly +1.0 in that one step (normal speed; the sim lands with no x change).
+  Stereo Madness's first 3324 steps have 6 of them, all landings after a jump from one block to another 120 units
+  ahead and 30 higher (steps 1247, 1352, 3053, 3146, 3235, 3324; x 1618, 1756, 3965, 4087, 4204, 4320), and nothing else
+  moves x off the speed. This is `PlayerObject::checkSnapJumpToObject(GameObject*)` (local/src/GD-2.2081-Decompiled,
+  src/Objects/PlayerObject.cpp ~line 278): when the player lands on an object other than the last one it snapped to, and
+  the two objects are a standard jump apart (normal speed 0.9: 120 ahead / 30 up, 150 ahead / 30 down, 90 ahead / 60 up;
+  other speeds have their own distances, and slow 0.7 / fast 1.1 / 1.3), x moves toward `object.x + m_snapDistance`
+  (`m_snapDistance` = player x - object x at the last snap), at most `maxSnapDistance` (1 unit at 0.7 / 0.9, 2 at 1.1 /
+  1.3); then the object becomes `m_objectSnappedTo`. The decompile's conditions read inverted (it snaps when NO pattern
+  matches) and its x / y names are mixed up: the log says it snaps on the matching patterns. Open for the physics
+  session: which object counts when the player overlaps two blocks, and the sign rule (all 6 seen are +1.0). The data:
+  `node tools/probe.js result <the Stereo Madness log>`; any v0.5.0 log has the per-step x. This is likely the "x +1.0
+  in one step" the Clubstep diff found below, and the drift that kills our main-level routes in the game (see the
+  2026-11-26 table in GEODE.md).
 - **Press timing:** a route press made after n steps starts the jump in step n+1 in the game, as in our sim (GDLM 44's
   first press: n 104 -> vy 11.18 at step 105). Positions agree to 0.5 unit for the first 8588 steps of GDLM 62.
-- **But many jumps start one step late in the game:** GDLM 62 (offset 0): of 94 jumps, 39 start on the sim's step, 48
+- **(Artifact, see above) Many jumps start one step late in the game:** GDLM 62 (offset 0): of 94 jumps, 39 start on the sim's step, 48
   one step later, 7 two or three later; the share does not depend on where the step falls in its 60 fps frame (each of
   the 4 frame steps: about half 0, half +1). GDLM 44: 15 of 25 on the sim's step. A likely reading, to check next: the
   +1 jumps are the ones made by a held button on landing (GD jumps no sooner than the step after a landing, see
