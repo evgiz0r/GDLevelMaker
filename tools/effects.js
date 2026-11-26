@@ -234,6 +234,23 @@ FX.ring = (c, o) => {
   return out;
 };
 
+doc.fall = "MOVE + ROTATE + ALPHA: shapes drop from the top of the screen on the beats, land with a small bounce on the ground and fade: {every, minS (use notes instead of beats), rgb, size, spin}";
+FX.fall = (c, o) => {
+  const out = [], R = K.rng(o.seed || 11), P = c.grid.period, ch = c.channel(o.rgb || c.pal.accent, { opacity: 0.9 });
+  const times = o.minS != null ? c.notes(o.t0, o.t1 - 0.6, o.minS, 0.15).map(n => n.t) : c.beats(o.t0, o.t1 - 0.6, o.every ?? 1);
+  const ids = [211, 1764, 236];
+  for (const t of times) {
+    const g = c.hideAtStart(c.group()), x = c.xAt(t), top = 240, floor = (o.floor ?? 0) + 10, drop = top - floor;
+    const px = x + 120 + R() * 220, id = ids[Math.floor(R() * ids.length)], s = (o.size ?? 0.5) * (id === 1764 ? 3 : 1) * (0.7 + R() * 0.6);
+    const fallT = Math.min(0.45, P * 0.9);   // it lands ON the next beat: starts a fall time early
+    const xs = c.xAt(Math.max(o.t0, t - fallT));
+    out.push(D(id, px, top, { ch, z: "B1", s, groups: [g] }));
+    out.push(T.alpha(xs, g, 1, 0.05), T.move(xs, g, 0, -drop, fallT, 11), T.rotate(xs, g, (o.spin ?? 90) * (R() < 0.5 ? -1 : 1), fallT, { ease: 11 }));
+    out.push(T.move(x, g, 0, 10, 0.12, E.hit), T.move(c.xAt(t + 0.12), g, 0, -10, 0.18, 14), T.alpha(c.xAt(t + 0.3), g, 0, 0.4));
+  }
+  return out;
+};
+
 doc.beatFlash = "COLOUR 899: the background flashes towards a colour on the beats and settles back: {every, rgb, back, ch (default 1000 = background)}";
 FX.beatFlash = (c, o) => {
   const out = [], ch = o.ch ?? 1000, back = o.back || c.pal.bg, hit = o.rgb || c.pal.deep;

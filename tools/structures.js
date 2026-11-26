@@ -534,7 +534,8 @@ variants();
 // Our own bricks made presses-first and judged against the official ones (knowledge/brickgen.json): each one is a plain
 // object list in this file's coordinates, so it is checked, ranked and placed like any structure ("s:g-ship-normal-1").
 try {
-  const G = JSON.parse(fs.readFileSync(path.join(ROOT, "knowledge", "brickgen.json"), "utf8")).bricks || [];
+  const GJ = JSON.parse(fs.readFileSync(path.join(ROOT, "knowledge", "brickgen.json"), "utf8"));
+  const G = GJ.retired ? [] : GJ.bricks || [];   // retired: Evgeni's verdict on the first batch (BRICKGEN.md "Verdict")
   for (const b of G) S(b.id, { mode: b.mode, tier: b.tier, generated: true,
     tags: [b.mode, "generated", ...(b.judge && b.judge.sig ? b.judge.sig.split(" / ").slice(2) : [])],
     doc: `generated ${b.mode} brick: ${b.judge ? b.judge.sig : ""}, ${b.verify.presses} presses, tightest ${b.verify.minMs} ms (planned route), judge ${b.judge ? b.judge.score : "?"}`,

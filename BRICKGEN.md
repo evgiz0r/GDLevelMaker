@@ -20,7 +20,121 @@ node tools/make.js specs/lab_brickgen_ship.json # -> levels/gdlm_lab_brickgen_sh
 node tools/structures.js check g-ship-normal-1  # the full gates on one (beatable, prejumps, fairness, skips ...)
 ```
 
-## How a brick is made
+## Verdict on the first batch (Evgeni, 2026-11-26 20:46 UTC): "all to the garbage"
+
+His mark on the ball lab: "0 height variance in the whole gameplay. this cant be the way, these structures are almost the
+same. structures have to be just more varied, this is not it. these could be generated like from 5 lines of code. no
+height variance, no orbs, no pads, no gameplay in the middle, no small movements. i call these structures - 1 structure.
+this is not variance". The batch is retired: knowledge/brickgen.json carries `retired`, structures.js no longer registers
+it, its entries are out of structures.json, and the lab levels moved to levels/archive/.
+
+Why the method made it (our reading):
+- **One move per mode.** Each mode had a single generator (flap, flip or hold) with scenery built around it, so every
+  brick of a mode is the same idea at other sizes.
+- **No mechanics.** No orbs, pads, portals or gravity changes inside a brick, so there was nothing to do between presses.
+- **Flat.** Entry and exit were always at the floor, and ball platforms had 2 heights per side, so the height range was
+  close to 0. His Two Moons marks (2026-11-25) said the same: "no heights change. all on 2 levels".
+- **The judge rewarded sameness.** "How common the kind is" pulled every brick to the mode's one most common signature,
+  and dedupe only compared bricks of the same kind. The family numbers (p10-p90) cannot tell a varied brick from a dull
+  one.
+
+Evgeni, 2026-11-26 20:48: "the whole point of different structures is different structure... if all the game play of all
+20 structures is on 2 axes. then its almost the same. the patterns around the level have to be more irregular, not just
+up down. that applies to all modes". So a set of bricks is judged by its spread over MANY dimensions at once: move types
+and their order, the silhouette (floor and roof outline), the hazard layout around the path, mechanics (orbs, pads,
+portals, gravity), the rhythm (gaps between presses), and the path's vertical shape (not only up-down zigzags). A set
+whose bricks differ only in size or height is rejected.
+
+The next method: see "Rethink" in the thread and below once agreed.
+
+## Movement study (2026-11-26, `node tools/movestudy.js [--write]`)
+
+Evgeni: "patterns of movement i mean". The study reads each brick's path (tools/lego.js pieces, staged from the PC's
+local/lego/pieces.json; 1527 official and 872 community bricks, our 732 library pieces, the retired batch). It cuts the
+path into legs at its turns (0.4-block hysteresis) and measures 11 axes per brick:
+- height range and net change;
+- legs per second;
+- median leg height;
+- how irregular the leg heights and lengths are (coefficient of variation);
+- dwell (time with vertical speed under 1 block/s);
+- distinct rest heights;
+- grounded share;
+- gravity flips;
+- mechanics touched.
+
+A set's **variety** is the median distance from each brick to its nearest other brick, in units of the official p10-p90
+spread, over random sets of 20 (a lab's size). It also counts how many of the 11 axes the set really uses: an axis counts
+when the set's own spread is at least 30% of the official one. Numbers in `knowledge/move_study.json` (no layouts).
+
+| mode | set | nearest | axes used | legs / s | leg height | height range | flips | mechanics |
+|---|---|---|---|---|---|---|---|---|
+| cube | official | 0.20 | 11 | 4.0 | 2.1 | 3.3 | 0 | 1 |
+| cube | ours (library) | 0.11 | 9 | 2.1 | 2.1 | 3.1 | 0 | 0 |
+| ship | official | 0.13 | 9 | 2.5 | 2.0 | 2.2 | 0 | 0 |
+| ship | generated (retired) | 0.12 | 8 | 1.6 | 3.5 | 5.2 | 0 | 0 |
+| ball | official | 0.20 | 11 | 3.3 | 2.3 | 3.3 | 2 | 1 |
+| ball | ours | 0.03 | 7 | 1.2 | 4.0 | 4.0 | 0 | 0 |
+| ball | generated (retired) | 0.04 | 4 | 1.7 | 3.0 | 4.0 | 5 | 0 |
+| ufo | official | 0.15 | 10 | 3.4 | 1.7 | 2.7 | 0 | 0 |
+| ufo | generated (retired) | 0.12 | 2 | 3.0 | 2.2 | 3.2 | 0 | 0 |
+| wave | official | 0.08 | 8 | 4.5 | 3.5 | 4.2 | 0 | 0 |
+| wave | generated (retired) | 0.06 | 6 | 2.5 | 4.2 | 7.2 | 0 | 0 |
+
+What it says:
+- **The metric reproduces his verdict.** The retired ball set is 0.04 against the official 0.20 and uses 4 of 11 axes;
+  the ufo set uses 2.
+- **RobTop's movement is small and frequent.** It has 1.5-2x more legs per second than ours in every mode (cube 4.0 vs
+  2.1, ball 3.3 vs 1.2, wave 4.5 vs 2.5), with smaller legs (ship 2.0 vs 3.5 blocks) and less total height (ship 2.2 vs
+  5.2). That is his "no small movements".
+- Official ball bricks flip gravity about 2 times and touch a mechanic (an orb or a pad), and both vary from brick to
+  brick. Ours never touched a mechanic.
+- Our hand-made library is less varied than the official one in every mode except ufo.
+
+How the next generator uses it:
+- A new set is accepted only when its variety (nearest) and axes used reach the official set's for the mode.
+- Each brick's numbers must sit inside the official p10-p90 on every axis.
+
+## Round 2: move sequences (2026-11-26, `tools/brickgen2.js`, ball first)
+
+A brick is now a chain of 2-7 **moves**, each placed by the sim where the ball really is (like autobricks.js does for
+auto parts), not a rhythm with walls drawn round it afterwards:
+- **flip**: a press, and a platform on the other side 3-5 rows away, starting where the ball lands;
+- **drop**: the platform ends and the ball falls (no click) onto a lower one 1-3 rows down;
+- **pad**: a yellow pad bounces it onto a platform a row up or 1-2 down;
+- **bluepad**: a blue pad flips it with no click;
+- **orb / blueorb**: a yellow or blue orb where the ball is in the air (off a ledge's end) or rolling, with its press.
+
+Every resting height stays within 4.5 blocks (the official ball bricks span 1.8-5.4). After the moves, spikes fill the
+pits on the ground, under the band ceiling, and on the platforms where the ball is far, kept only while the plan clears.
+Then three gates:
+1. **verify** (tools/brickgen.js): the plan clears, also entered up to 3 ticks early or late; no press means death; the
+   windows are measured. If leaving out one planned press still clears, the brick has a **secret way** and is dropped.
+   A stray extra tap that still clears is a looser brick, not a shortcut. It is counted (`verify.stray`), and the set
+   prefers tight bricks.
+2. **movement** (tools/movestudy.js describe on the sim path): the brick may be outside the official p10-p90, with a
+   tenth of the spread as slack, on at most 2 of the 11 axes.
+3. **the set**: it starts from the brick that is inside on the most axes. Each next brick is the candidate **farthest**
+   from those already kept (max-min distance in official spreads). The solver's fewest presses are checked as each brick
+   is taken.
+
+`node tools/brickgen2.js nearest --pieces local/lego/pieces.json` names each brick's closest official brick by movement.
+That is a level and a column only; the official pieces stay local.
+
+First run (ball, 1500 candidates, 2 min 20 s):
+- 20 kept, using every move: flip 23, blueorb 16, orb 10, bluepad 8, pad 4, drop 3.
+- **Variety of the set: nearest 0.16 on 10 axes. The official set of 20 is 0.20 on 11.** Round 1 was 0.04 on 4.
+- Closest official bricks: Theory of Everything 1 and 2, Cycles, Blast Processing, Geometrical Dominator, at distances
+  0.12-0.28.
+- Lab: `specs/lab_brickgen2_ball.json` -> `levels/gdlm_lab_brickgen2_ball.gdlvl`.
+
+Still short of the official bricks:
+- Fewer clicks a second (about 1 against the official 2) and more time grounded.
+- Every brick gets a full row of hanging spikes under the band ceiling, which reads as one look.
+- Ship, wave, ufo, cube, robot and spider are not in round 2 yet.
+- `tools/rules.js` on the lab finds 15 orbs off the centre of the spike group under them (Evgeni's symmetry rule). The
+  spike fill should centre the pit on the orb.
+
+## How a brick is made (first batch, retired)
 
 1. **Presses first.** Each brick gets a rhythm of 2-6 presses on a 0.1 s grid, about 2 clicks a second. LEGO.md measures
    that rate at every tier. The ship is steered: each hold's length is picked from 0.05-0.6 s to bring the ship nearest a
