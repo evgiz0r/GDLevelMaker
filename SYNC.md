@@ -442,6 +442,29 @@ portal sits 1.1 beats BEFORE the b21 kick, the cube portal 2 beats before b37, a
 (MISSED); dead stretches b88-92 (1.6 s), b107-112 and b127-132 (2 s each). Kinds: on this song nearly every impact
 reads as "entry" (instruments come in band by band); the kind label is a hint, the strength is the number to use.
 
+**Every note and the music's speed** (2026-11-26; Evgeni: "we are not catching all the little beats, only some very
+seldom ones ... in auto it feels much more empty if we hit like 1/6 of the notes. especially in the faster sections";
+"we could put a speed portal ... when the music speeds up, and slowering portals when the music speeds down"). The same
+run now also gives:
+- **notes**: every onset, small ones too. Four flux bands (all, low < 150 Hz, mid, top > 4 kHz); a frame that is the
+  highest within +-35 ms and 0.6 SD (of that band over the song) above the band's median over +-0.25 s; bands within 25 ms
+  are one note. Per note: song second, level beat, `strength` (SD), `s` 0..1 (= SD / 5), band, grid place ("1" beat,
+  "1/2", "1/4", "off"). Timing: the flux peak comes when a hit enters the analysis window's right edge, so the note is 2.9
+  frames (34 ms) after the peak frame's centre; planted kicks: median error 0 ms, 90% within 6 ms. Quiet sixteenth hats
+  between kicks: 82% found. A real song (557117, 140 BPM, 2:40): 1272 notes, 434 of them clear (s >= 0.3).
+- **music speed per bar**: notes per beat, each weighted min(1, SD / 2), and the finest grid with notes (q / e / s);
+  **intensity** = 0.6 x its percentile + 0.4 x heaviness, 0..1.
+- **speed portals that follow the music** (`speedPlan`): intensity smoothed over 3 bars, read into 0.5x / 1x / 2x / 3x
+  at the song's own 15 / 60 / 90% quantiles, each speed held at least 4 bars, a change on a bar start, moved to a bar-start
+  impact within 1 bar, two changes at least 2 bars apart. Absolute floors on the quantiles: 0.5x only where the bar has
+  under 2 notes a beat and heaviness under 0.3, 3x only at heaviness 0.6+ (Electrodynamix is busy from its first bar --
+  3+ notes a beat -- and the pure quantiles had opened it at 0.5x). Music doesn't change tempo here (one BPM): "speeds up" = more notes and more weight per beat. In
+  level beats, so a portal moves x, never the beat (section above).
+- `--commit`: `knowledge/song_notes/<song key>.json`, the numbers only (no audio, like viewer/song_grids.js), for cloud
+  sessions and builders (tools/autobeat.js); format in tools/impacts.js compact(). Done (2026-11-26, on the PC): all 22
+  official songs, custom_343707 (local grid), custom_557117. Electrodynamix: 823 notes, 3-5 a beat; Infertehno 2: 2650.
+  `--replan <key|all>` redoes the speed plans from these files with no audio after a rule change.
+
 Open: the song lives only on the PC, so a cloud session cannot run it (Newgrounds is blocked there); the
 thresholds are set on three songs only; impacts are not drawn in the viewer yet (next to the beat lines, batched
 so the user's viewer does not reload while they use it); compose / the section planner do not read impacts by

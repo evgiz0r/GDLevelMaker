@@ -11,6 +11,11 @@
 //   --level also lists every strong impact with what the level does within 2 beats (portal, speed, colour change; +-N =
 //   that many beats off; MISSED = no portal or speed change within 1 beat) or
 //   "NOTHING", and the dead stretches (no hazard / orb / pad / portal for 1.5 s+) with the song's heaviness there.
+//   NOTES: every onset, small ones too (hats, ghost notes, melody), with strength, band and grid place; MUSIC SPEED per bar
+//   (weighted notes per beat, finest grid in use) and SPEED PORTALS that follow it (0.5x when it calms .. 3x at its busiest).
+//   --replan <key | all>: the speed plan again from committed knowledge/song_notes files (no audio needed).
+//   --commit (no offset): also knowledge/song_notes/<song key>.json, the numbers only (notes, bars, impacts, speed plan),
+//   committed so cloud sessions and builders have them without the audio (format at compact() below).
 //   Writes local/impacts/<song key>[_off<offset>].json (made from the song: never committed). Light job (one decode).
 //   Method, the Infertehno 2 check and what is open: SYNC.md section 9.
 const fs = require("fs"), path = require("path");
@@ -22,7 +27,8 @@ const ROOT = path.join(__dirname, "..");
 function songFile(arg) {
   if (/^\d+$/.test(String(arg))) return { file: path.join(ROOT, "local", "songs", arg + ".mp3"), url: "/song/custom/" + arg + ".mp3" };
   const m = /^official:(\d+)$/.exec(arg);
-  if (m) return { file: null, url: "/song/official/" + OFFICIAL[+m[1] - 1] + ".mp3" };
+  if (m) { const f = path.join(require("./gdpaths.js").GAME, "Resources", OFFICIAL[+m[1] - 1] + ".mp3");
+    return { file: fs.existsSync(f) ? f : null, url: "/song/official/" + OFFICIAL[+m[1] - 1] + ".mp3" }; }
   return { file: arg, url: "/song/custom/" + path.basename(arg) };
 }
 
@@ -36,7 +42,7 @@ function frameFeatures(pcm) {
   const edges = BANDS.map(bin), lowHi = bin(150), midHi = bin(4000);
   const F = Math.max(0, Math.floor((pcm.length - N) / HOP));
   const loud = new Float64Array(F), band = BANDS.slice(1).map(() => new Float64Array(F));
-  const flux = new Float64Array(F), fluxLow = new Float64Array(F), fluxMid = new Float64Array(F);
+  const flux = new Float64Array(F), fluxLow = new Float64Array(F), fluxMid = new Float64Array(F), fluxHigh = new Float64Array(F);
   const re = new Float64Array(N), im = new Float64Array(N);
   let prev = new Float64Array(N / 2), cur = new Float64Array(N / 2);
   for (let f = 0; f < F; f++) {
@@ -46,15 +52,15 @@ function frameFeatures(pcm) {
     fft(re, im);
     for (let k = 0; k < N / 2; k++) cur[k] = re[k] * re[k] + im[k] * im[k];
     for (let b = 0; b < band.length; b++) { let s = 0; for (let k = edges[b]; k < edges[b + 1]; k++) s += cur[k]; band[b][f] = 10 * Math.log10(s / (edges[b + 1] - edges[b]) + 1e-10); }
-    let a = 0, l = 0, m = 0;
+    let a = 0, l = 0, m = 0, h = 0;
     if (f) for (let k = 1; k < N / 2; k++) {
       const d = Math.log1p(1000 * cur[k]) - Math.log1p(1000 * prev[k]);
-      if (d > 0) { a += d; if (k < lowHi) l += d; else if (k < midHi) m += d; }
+      if (d > 0) { a += d; if (k < lowHi) l += d; else if (k < midHi) m += d; else h += d; }
     }
-    flux[f] = a / (N / 2); fluxLow[f] = l / lowHi; fluxMid[f] = m / (midHi - lowHi);
+    flux[f] = a / (N / 2); fluxLow[f] = l / lowHi; fluxMid[f] = m / (midHi - lowHi); fluxHigh[f] = h / (N / 2 - midHi);
     const t = prev; prev = cur; cur = t;
   }
-  return { F, loud, band, flux, fluxLow, fluxMid };
+  return { F, loud, band, flux, fluxLow, fluxMid, fluxHigh };
 }
 
 // ---------------- helpers ----------------
@@ -156,7 +162,116 @@ function impacts(pcm, grid, offset = 0, opts = {}) {
   // smooth heaviness over 2 bars each side for section-level reading
   const hv = bars.map((_, i) => { const s = bars.slice(Math.max(0, i - 1), i + 2).map(x => x.heavy); return s.reduce((a, c) => a + c, 0) / s.length; });
   bars.forEach((x, i) => x.heavySmooth = r2(hv[i]));
-  return { grid: { period: P, bpm: r2(60 / P), t0: grid.t0, downbeat: grid.downbeat || 0 }, offset, beats: n, impacts: imp, breaks, bars, suggest: suggest(imp, breaks, bars, n, opts) };
+  const notes = noteOnsets(ff, beatT, P, dur, offset);
+  musicSpeed(notes, bars, imp, n, opts);
+  return { grid: { period: P, bpm: r2(60 / P), t0: grid.t0, downbeat: grid.downbeat || 0 }, offset, beats: n, impacts: imp, breaks, bars,
+    suggest: suggest(imp, breaks, bars, n, opts), speedPlan: speedPlan(bars, imp, opts), notes };
+}
+
+// ---------------- every note: onsets of any size ----------------
+// Evgeni (2026-11-26): "we are not catching all the little beats, only some very seldom ones compared to whats really
+// happening". Every onset in four flux bands (all, low < 150 Hz, mid 150 Hz-4 kHz, high > 4 kHz): a frame that is the
+// highest within +-35 ms and stands 0.6 SD (of that band, over the song) over the band's local median (+-0.25 s). Onsets of
+// different bands within 25 ms are one note. Each note: song second, level beat (fractional), strength (SD over the local
+// median, of its strongest band), bands, and its grid place: "1" on the beat, "1/2" the and, "1/4" a sixteenth, "off".
+// The flux peak comes when a hit enters the right edge of the analysis window, so the note is LAG frames after the peak
+// frame's centre (measured on the test song's planted kicks: the peak centre sat 34 ms before them; median error now ~0, p10-p90 +-6 ms).
+const LAG = 2.9;
+function noteOnsets(ff, beatT, P, dur, offset) {
+  const raw = [];
+  const W = Math.round(0.25 * FPS), G = Math.round(0.035 * FPS);
+  for (const [name, x] of [["all", ff.flux], ["low", ff.fluxLow], ["mid", ff.fluxMid], ["top", ff.fluxHigh]]) {
+    let m = 0; for (let f = 0; f < ff.F; f++) m += x[f]; m /= ff.F || 1;
+    let sd = 0; for (let f = 0; f < ff.F; f++) sd += (x[f] - m) ** 2; sd = Math.sqrt(sd / (ff.F || 1)) || 1;
+    // local median by a sorted window every 4 frames (fast enough: a 3-minute song is ~16k frames)
+    const med = new Float64Array(ff.F);
+    for (let f = 0; f < ff.F; f += 4) { const w = Array.from(x.subarray(Math.max(0, f - W), Math.min(ff.F, f + W + 1))).sort((a, b) => a - b); const v = w[w.length >> 1]; for (let k = f; k < Math.min(ff.F, f + 4); k++) med[k] = v; }
+    for (let f = 1; f < ff.F - 1; f++) {
+      const v = x[f], z = (v - med[f]) / sd; if (z < 0.6) continue;
+      let best = true; for (let d = -G; d <= G && best; d++) if (d && x[f + d] > v) best = false;
+      if (best) raw.push({ t: (f + CENTRE + LAG) / FPS, z, band: name });
+    }
+  }
+  raw.sort((a, b) => a.t - b.t);
+  const notes = [];
+  for (const o of raw) {
+    const last = notes[notes.length - 1];
+    if (last && o.t - last.t <= 0.025) { if (o.band !== "all") last.bands.add(o.band); if (o.z > last.z) { last.z = o.z; if (o.band !== "all") last.main = o.band; } continue; }
+    notes.push({ t: o.t, z: o.z, bands: new Set(o.band === "all" ? [] : [o.band]), main: o.band === "all" ? null : o.band });
+  }
+  const b1 = beatT(1);
+  return notes.filter(o => o.t >= offset - 0.01 && o.t < dur - 0.05).map(o => {
+    const beat = (o.t - b1) / P + 1, frac = beat - Math.floor(beat), q = Math.round(frac * 4) % 4, err = Math.abs(frac * 4 - Math.round(frac * 4)) / 4 * P;
+    const place = err > 0.04 ? "off" : q === 0 ? "1" : q === 2 ? "1/2" : "1/4";
+    const bands = [...o.bands]; if (!bands.length) bands.push("mid");
+    return { t: +o.t.toFixed(3), level_t: +(o.t - offset).toFixed(3), beat: +beat.toFixed(2), strength: r2(o.z), s: r2(Math.min(1, o.z / 5)), band: o.main || bands[0], bands, place };
+  });
+}
+
+// ---------------- music speed ----------------
+// How busy the music is per bar: notes per beat (each note weighted by its strength, capped at 1: a ghost note counts
+// little), and the finest grid that carries notes there (quarters / eighths / sixteenths). bar.speed = the weighted
+// notes per beat; bar.speedPct = its percentile in the song; bar.grain = "1/4" | "1/8" | "1/16".
+function musicSpeed(notes, bars, imp, n) {
+  for (const bar of bars) {
+    const inBar = notes.filter(o => o.beat >= bar.beat && o.beat < bar.beat + bar.beats);
+    const w = inBar.reduce((s, o) => s + Math.min(1, o.strength / 2), 0);
+    bar.notes = inBar.length;
+    bar.speed = r2(w / bar.beats);
+    const on = q => inBar.filter(o => o.place === q && o.strength >= 1).length;
+    bar.grain = on("1/4") >= bar.beats ? "1/16" : on("1/2") >= bar.beats / 2 ? "1/8" : "1/4";
+  }
+  const p = pctl(bars.map(b => b.speed)); bars.forEach((b, i) => b.speedPct = r2(p[i]));
+}
+// Speed portals that follow the music: each bar's "drive" = 0.6 music speed percentile + 0.4 heaviness, smoothed over
+// 3 bars, read into 4 levels (0.5x calm, 1x, 2x busy, 3x the busiest) by the song's own quantiles; a level holds at least
+// 4 bars (no portal ping-pong), a change sits on a bar start, moved to an impact on a bar start within 2 bars when there is one. Speeds
+// are portal NAMES; "1x" is GD's normal. A level that starts faster (kA4) shifts them all.
+function speedPlan(bars, imp, opts = {}) {
+  const full = bars.filter(b => b.beats === 4);
+  if (full.length < 8) return [];
+  for (const b of bars) b.intensity = r2(0.6 * (b.speedPct || 0) + 0.4 * b.heavy);
+  const drive = full.map(b => b.intensity);
+  const sm = drive.map((_, i) => { const s = drive.slice(Math.max(0, i - 1), i + 2); return s.reduce((a, c) => a + c, 0) / s.length; });
+  const sorted = sm.slice().sort((a, b) => a - b), q = x => sorted[Math.min(sorted.length - 1, Math.floor(x * sorted.length))];
+  const cut = [q(0.15), q(0.6), q(0.9)];
+  // the song's own quantiles, with absolute floors: a song that is busy all through (Electrodynamix: 3+ notes a beat from
+  // its first bar) gets no 0.5x; 0.5x only where it is really calm, 3x only where it is also heavy
+  const lvl = sm.map((v, i) => {
+    let l = v < cut[0] ? 0 : v < cut[1] ? 1 : v < cut[2] ? 2 : 3;
+    if (l === 0 && !(full[i].speed < 2 && full[i].heavy < 0.3)) l = 1;
+    if (l === 3 && full[i].heavy < 0.6) l = 2;
+    return l;
+  });
+  // runs of at least `hold` bars: the shortest short run joins the neighbour whose level is closest (then the longer
+  // one), and again, until every run holds (no portal ping-pong)
+  const hold = opts.hold || 4;
+  let merged = [];
+  for (let i = 0; i < lvl.length;) { let j = i; while (j < lvl.length && lvl[j] === lvl[i]) j++; merged.push({ from: i, to: j, l: lvl[i] }); i = j; }
+  for (;;) {
+    let k = -1; merged.forEach((r, i) => { if (r.to - r.from < hold && (k < 0 || r.to - r.from < merged[k].to - merged[k].from)) k = i; });
+    if (k < 0 || merged.length < 2) break;
+    const nb = [merged[k - 1], merged[k + 1]].filter(Boolean).sort((a, b) => Math.abs(a.l - merged[k].l) - Math.abs(b.l - merged[k].l) || (b.to - b.from) - (a.to - a.from))[0];
+    nb.from = Math.min(nb.from, merged[k].from); nb.to = Math.max(nb.to, merged[k].to); merged.splice(k, 1);
+    const out = []; for (const r of merged) { const m = out[out.length - 1]; if (m && m.l === r.l) m.to = r.to; else out.push(r); } merged = out;
+  }
+  const NAME = ["0.5x", "1x", "2x", "3x"];
+  const plan = merged.map((r, i) => {
+    let beat = full[r.from].beat, why = i ? (r.l > merged[i - 1].l ? "the music speeds up" : "the music calms") : "start";
+    const near = i ? imp.filter(m => m.strength >= 0.4 && !m.inBar && Math.abs(m.beat - beat) <= 4).sort((a, b) => b.strength - a.strength)[0] : null;
+    if (near) { beat = near.beat; why += ", on the b" + near.beat + " impact"; }
+    const span = full.slice(r.from, r.to);
+    return { beat, l: r.l, speed: NAME[r.l], why, notesPerBeat: r2(span.reduce((s, b) => s + b.speed, 0) / span.length), heavy: r2(span.reduce((s, b) => s + b.heavy, 0) / span.length) };
+  });
+  // a change at least 2 bars after the one before (a snap can pull two together): the later speed wins, same speeds merge
+  const out = [];
+  for (const x of plan) {
+    const prev = out[out.length - 1];
+    if (prev && x.beat < prev.beat + 8) { if (out.length > 1) { Object.assign(prev, { l: x.l, speed: x.speed, why: x.why }); } else continue; }
+    else out.push(x);
+    while (out.length > 1 && out[out.length - 1].l === out[out.length - 2].l) out.pop();
+  }
+  return out.map(({ l, ...x }) => x);
 }
 
 // ---------------- planner suggestions ----------------
@@ -226,6 +341,44 @@ function levelSide(levelStr, res) {
   return { endBeat: r2(endBeat), atImpact, dead };
 }
 
+// ---------------- committed numbers (no audio): knowledge/song_notes/<key>.json ----------------
+// For the cloud and the auto / level builders: the song's own analysis (offset 0, song seconds), numbers only, like
+// viewer/song_grids.js. Format (arrays to keep it small):
+//   {song, key, bpm, period, t0, downbeat, beats, made, version,
+//    notes:   [[t, s, band]]               t song s, s strength 0..1 (SD over the local median / 5), band "low"|"mid"|"top"
+//    bars:    [[t, beat, heavy, speed, intensity, grain]]  beat = song beat (b1 = first beat at or after 0); intensity 0..1
+//    impacts: [[t, beat, strength, kind]]  breaks: [[t, beat, strength]]
+//    speedPlan: [[t, beat, "1x", why]]}
+// A level with an offset: level beat = song beat - (the song beat at the offset) + 1; or rerun with --offset / --spec.
+const NOTES_VERSION = 1;
+function compact(res, key) {
+  const bt = b => r2(res.grid.t0 + (Math.ceil(-res.grid.t0 / res.grid.period - 1e-9) + b - 1) * res.grid.period);
+  return { song: res.song, key: key || path.basename(res.song, path.extname(res.song)), bpm: res.grid.bpm, period: +res.grid.period.toFixed(6), t0: res.grid.t0,
+    downbeat: res.grid.downbeat, beats: res.beats, made: new Date().toISOString().slice(0, 10), version: NOTES_VERSION,
+    notes: res.notes.map(o => [o.t, o.s, o.band]),
+    bars: res.bars.map(b => [bt(b.beat), b.beat, b.heavy, b.speed, b.intensity, b.grain]),
+    impacts: res.impacts.map(i => [i.t, i.beat, i.strength, i.kind]), breaks: res.breaks.map(b => [b.t, b.beat, b.strength]),
+    speedPlan: res.speedPlan.map(x => [bt(x.beat), x.beat, x.speed, x.why]) };
+}
+function writeNotes(res, key) {
+  const dir = path.join(ROOT, "knowledge", "song_notes"); fs.mkdirSync(dir, { recursive: true });
+  const f = path.join(dir, key + ".json");
+  const c = compact(res, key);
+  fs.writeFileSync(f, "{" + Object.entries(c).map(([k, v]) => JSON.stringify(k) + ":" + JSON.stringify(v)).join(",\n") + "}\n");
+  return f;
+}
+// the speed plan again from a committed file (no audio): after a change to speedPlan's rules, `--replan <key|all>`
+function replanNotes(c) {
+  const bars = c.bars.map((b, i) => ({ beat: b[1], beats: i + 1 < c.bars.length ? c.bars[i + 1][1] - b[1] : 4, heavy: b[2], speed: b[3], intensity: b[4] }));
+  const p = pctl(bars.map(b => b.speed)); bars.forEach((b, i) => b.speedPct = p[i]);
+  const starts = new Set(bars.filter(b => b.beats === 4).map(b => b.beat));
+  const imp = c.impacts.map(i => ({ beat: i[1], strength: i[2], inBar: starts.has(i[1]) ? 0 : 1 }));
+  const bt = b => r2(c.t0 + (Math.ceil(-c.t0 / c.period - 1e-9) + b - 1) * c.period);
+  c.speedPlan = speedPlan(bars, imp).map(x => [bt(x.beat), x.beat, x.speed, x.why]);
+  return c;
+}
+function loadNotes(key) { const f = path.join(ROOT, "knowledge", "song_notes", key + ".json"); return fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, "utf8")) : null; }
+
 // ---------------- CLI ----------------
 function run(args) {
   const opt = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : d; };
@@ -244,6 +397,15 @@ function run(args) {
     const custom = GD.getField(R.rec, "k45");
     songArg = custom && custom !== "0" ? custom : "official:" + (+(GD.getField(R.rec, "k8") || 0) + 1);
     offset = +((/(?:^|,)kA13,([-0-9.]+)/.exec(levelStr.split(";")[0]) || [])[1] || 0);
+  }
+  if (opt("--replan")) {
+    const dir = path.join(ROOT, "knowledge", "song_notes"), k = opt("--replan");
+    for (const f of fs.readdirSync(dir).filter(f => f.endsWith(".json") && (k === "all" || f === k + ".json"))) {
+      const c = replanNotes(JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")));
+      fs.writeFileSync(path.join(dir, f), "{" + Object.entries(c).map(([a, v]) => JSON.stringify(a) + ":" + JSON.stringify(v)).join(",\n") + "}\n");
+      console.log(f.padEnd(34), c.speedPlan.map(x => "b" + x[1] + " " + x[2]).join(", "));
+    }
+    return;
   }
   if (!songArg) { console.log(fs.readFileSync(__filename, "utf8").split("\n").filter(l => l.startsWith("//")).join("\n")); process.exit(1); }
   const { file, url } = songFile(songArg);
@@ -264,6 +426,11 @@ function run(args) {
   const out = path.join(ROOT, "local", "impacts"); fs.mkdirSync(out, { recursive: true });
   const key = path.basename(url, ".mp3") + (offset ? "_off" + offset : "");
   fs.writeFileSync(path.join(out, key + ".json"), JSON.stringify(res, null, 1));
+  if (args.includes("--commit")) {
+    if (offset) throw new Error("--commit writes the song's own analysis: run it without an offset (no --spec / --level / --offset)");
+    const k = require("./beats.js").keyOfUrl ? require("./beats.js").keyOfUrl(url) : null;
+    console.log("-> " + path.relative(ROOT, writeNotes(res, k || path.basename(url, ".mp3"))) + " (commit it: numbers only, no audio)");
+  }
   if (args.includes("--json")) { console.log(JSON.stringify(res, null, 1)); return res; }
   print(res, +opt("--top", 25));
   console.log(`-> local/impacts/${key}.json`);
@@ -282,6 +449,14 @@ function print(res, topN) {
     const row = res.bars.slice(i, i + 8);
     console.log(`  b${String(row[0].beat).padEnd(4)} ` + row.map(x => (x.heavy * 9 | 0) + "").join(" ") + "   " + row.map(x => "▁▂▃▄▅▆▇█"[Math.min(7, x.heavy * 8 | 0)]).join(""));
   }
+  console.log(`\nNOTES: ${res.notes.length} onsets (${res.notes.filter(o => o.strength >= 1.5).length} clear, the rest small: hats, ghost notes, melody); per bar below.`);
+  console.log("MUSIC SPEED per bar (weighted notes per beat; grain = the finest grid with notes), 8 bars a line:");
+  for (let i = 0; i < res.bars.length; i += 8) {
+    const row = res.bars.slice(i, i + 8);
+    console.log(`  b${String(row[0].beat).padEnd(4)} ` + row.map(x => x.speed.toFixed(1).padStart(4)).join("") + "   " + row.map(x => ({ "1/4": "q", "1/8": "e", "1/16": "s" })[x.grain]).join(""));
+  }
+  console.log("SPEED PORTALS that follow the music:");
+  for (const s of res.speedPlan) console.log(`  b${String(s.beat).padEnd(4)} ${s.speed.padEnd(4)} ${s.notesPerBeat.toFixed(1)} notes/beat, heavy ${s.heavy.toFixed(2)}  (${s.why})`);
   console.log("\nSUGGESTED SECTIONS (for the planner):");
   for (const s of res.suggest.sections) console.log(`  b${String(s.from).padEnd(4)}-b${String(s.to).padEnd(4)} heavy ${s.heavy.toFixed(2)}  ${s.why.padEnd(6)} ${s.speed}${s.speedUp ? "  << speed-up candidate" : ""}${s.calmer ? "  (calmer)" : ""}${s.mode ? "  -- " + s.mode : ""}`);
   console.log("  " + res.suggest.note);
@@ -296,4 +471,4 @@ function print(res, topN) {
 }
 
 if (require.main === module) run(process.argv.slice(2));
-module.exports = { impacts, frameFeatures, suggest, levelSide, run };
+module.exports = { impacts, frameFeatures, suggest, levelSide, run, noteOnsets, speedPlan, compact, writeNotes, loadNotes, replanNotes };
