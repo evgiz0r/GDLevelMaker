@@ -287,3 +287,27 @@ pictures (`designs.js`, `designs.json`, `cards/`) load only when it is opened.
   `local/designs/votes_phone.json`, then `node tools/designs.js votes` -> `knowledge/design_votes.json`. Generators pick a
   design with `require("./designs.js").weight(kind, name)` (3 liked, 1 unvoted, 0.25 disliked: a weight, never a ban).
 - Open: blockdesigns / spikedesign do not call weight() yet (nothing voted); wire it in once votes exist.
+
+## Structure designs: one design on every join, 3D effects, extending (2026-11-26)
+
+Evgeni, after voting (10 liked, vein down; "those that i voted down are meh rest are good"): "extending to bigger
+structures. i think in GD they make some 1 mega structure that contains all possible connectors corners and 3 in a row
+[...] to have that second layering proper on any connection of any structure", "and ability to extend structures", "3d
+effects for the blocks".
+- `tools/structdesign.js`: a design is a stack of layers, each the STRUCTURE's shape inset by d (a cell cut 3 x 3 at d and
+  30 - d; a side piece in when that neighbour is a block, a corner piece when both sides and the diagonal are; pieces
+  merged, each grown 0.3 units so merged pieces do not show a seam). So outline, inline and inner base run round the whole
+  shape, turn at outer corners, notch at inner corners, and nothing is drawn where blocks meet (a row of three is one piece).
+  Designs (the liked singles): outline, layered, inner base, nested frames, corner brackets (L pieces at outer corners, small
+  ones in inner corners), inner diamond and drawn (motifs in the inside blocks, else every third block of a thin shape).
+- 3D effects on any design: depth (the body darkened, pushed up-right on B1 with a dim rim and 693 triangles at the two
+  outer corners), bevel (lit top / left, dark bottom / right inside the outline), long depth (twice as far, darker),
+  depth + bevel. The palette's shadow role is invisible on a dark sky: the side face is the body with HSV value 0.5.
+- The connector sheet `SHEET` (single, row of 3, column, L, T, plus, 2x2, 3x3, ring with a hole, U, stairs, bridge): the
+  test card for a design; `node tools/structdesign.js sheet` prints it.
+- `extend(rows, w, h, {cols, rows})`: 9-slice: first and last line stay, the repeated inside lines grow (a ring's sides, a
+  frame's gap), or the lines named (a T grows its arms with cols [0, 2]).
+- Gallery: `levels/gdlm_structure_designs.gdlvl` (spec `node tools/structdesign.js spec`, scene tools/scenes/structgallery.js),
+  wip deco-art/gdlm_structure_designs; picture /mnt/project-files/decoart/structure_designs_v2.jpg. Test: `node tests/structdesign.js`.
+- Open: wire `dress()` into make.js / the theme kits as a spec key (blocks of a level dressed per structure), the votes of
+  this round, a design that varies along long runs (every Nth block), slopes.
