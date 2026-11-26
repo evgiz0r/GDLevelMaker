@@ -36,17 +36,28 @@ function character(music, t0, t1, prev) {
   return { t0, t1, type, dH: +dH.toFixed(2), lead, entering: entering || (type === "entry" ? lead : null), heavy: +heavy.toFixed(2), inten: +inten.toFixed(2), share,
     impact: im ? im.kind : null, rising: +(b - a).toFixed(2) };
 }
-module.exports = { character };
+// the song's notes as character() reads them (knowledge/song_notes via tools/impacts.js), and the cuts: drops, entries and
+// changes at least 6 s apart, a strong impact after 16 s without one -- one definition for every builder (autobeat's
+// batches, tools/songplan.js for real levels)
+function load(song) {
+  const j = require("./impacts.js").loadNotes(/^\d+$/.test(String(song)) ? "custom_" + song : "official_" + song);
+  const music = { notes: j.notes.map(([t, s, band]) => ({ t, strength: s, band })), bars: j.bars.map(b => ({ t: b[0], heavy: b[2], intensity: b[4] })),
+    impacts: j.impacts.map(([t, beat, strength, kind]) => ({ t, beat, strength, kind })) };
+  return { j, music, end: j.notes[j.notes.length - 1][0] };
+}
+function cuts(music, end) {
+  const c = [0]; for (const im of music.impacts) { const gap = im.t - c[c.length - 1]; if ((/drop|entry|change/.test(im.kind) && gap >= 6) || (im.strength >= 0.5 && gap > 16)) c.push(im.t); }
+  c.push(end); return c;
+}
+// the typed sections between the cuts
+function sections(song) { const { j, music, end } = load(song), cs = cuts(music, end), out = []; let prev = null;
+  for (let i = 0; i + 1 < cs.length; i++) { prev = character(music, cs[i], cs[i + 1], prev); out.push(prev); }
+  return { notes: j, music, cuts: cs, sections: out }; }
+module.exports = { character, load, cuts, sections };
 
 if (require.main === module) {
   const song = process.argv[2] || "CantLetGo";
-  const j = require("./impacts.js").loadNotes(/^\d+$/.test(song) ? "custom_" + song : "official_" + song);
-  const music = { notes: j.notes.map(([t, s, band]) => ({ t, strength: s, band })), bars: j.bars.map(b => ({ t: b[0], heavy: b[2], intensity: b[4] })),
-    impacts: j.impacts.map(([t, beat, strength, kind]) => ({ t, beat, strength, kind })) };
-  // cut at the transitions, at least 6 s apart (as autobeat's batches)
-  const cuts = [0]; for (const im of music.impacts) { const gap = im.t - cuts[cuts.length - 1]; if ((/drop|entry|change/.test(im.kind) && gap >= 6) || (im.strength >= 0.5 && gap > 16)) cuts.push(im.t); }
-  const end = j.notes[j.notes.length - 1][0]; cuts.push(end);
-  let prev = null;
-  for (let i = 0; i + 1 < cuts.length; i++) { const c = character(music, cuts[i], cuts[i + 1], prev); prev = c;
+  const { sections: secs } = sections(song);
+  for (const c of secs) {
     console.log(`${c.t0.toFixed(1).padStart(5)}-${c.t1.toFixed(1).padEnd(5)} ${c.type.padEnd(6)} lead ${c.lead.padEnd(3)} ${c.entering ? "in:" + c.entering : "     "} heavy ${c.heavy} loud ${c.inten} rising ${c.rising} ${c.impact || ""}`); }
 }
