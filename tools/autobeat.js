@@ -179,21 +179,34 @@ function notePlan(g, music, fromBeat, uptoBeat, o = {}) {
 }
 // A CALMER LEVEL (Evgeni, 2026-11-26, after auto beat 2 at ~4.2 triggers a second: "something with less beats per second, like
 // 3 times less maybe. but not something too repetetive, it can have some faster sections"): o.rate = the mean triggers a
-// second wanted. Each bar gets a share of them by its loudness (a quiet bar ~0.3x the mean, the loudest ~3x: the contrast
-// is what keeps it from feeling the same all through), filled with its strongest notes, on-beat ones first; outside the
-// loudest bars notes stay o.calmGap (0.3 s) apart and rapid runs are dropped, inside them a rapid run keeps up to 6 notes.
+// second wanted. Each bar gets a share of them by its loudness (weights o.rateLow 0.15 .. o.rateHigh 4.5 from the quietest
+// to the loudest bar: the contrast is what keeps it from feeling the same all through; Evgeni on auto beat 3: "slower on the
+// slow sections, and faster in the fast sections"), filled with its strongest notes, on-beat ones first; outside the loudest
+// o.fastShare (25%) of bars notes stay o.calmGap (0.35 s) apart and rapid runs are dropped, inside them o.fastGap (0.12 s)
+// and a rapid run keeps up to 6 notes. Busy bars that run out of notes push the shares of the others up to keep the mean.
 function thin(out, g, inten, o) {
-  const bar = 4 * g.period, calmGap = o.calmGap || 0.3;
+  const bar = 4 * g.period, calmGap = o.calmGap || 0.35;
   if (!out.length) return out;
   const tA = out[0].t, tB = out[out.length - 1].t + 1e-6, nb = Math.max(1, Math.ceil((tB - tA) / bar));
   const I = []; for (let b = 0; b < nb; b++) I.push(inten(tA + (b + 0.5) * bar));
   const sorted = I.slice().sort((a, c) => a - c), rank = v => sorted.findIndex(x => x >= v) / Math.max(1, sorted.length - 1);
-  const w = I.map(v => 0.3 + 2.7 * Math.pow(rank(v), 2.2)), mw = w.reduce((a, c) => a + c, 0) / nb;
-  const fast = I.map(v => rank(v) >= 0.85);   // the loudest ~15% of bars: the faster sections
+  const lo = o.rateLow != null ? o.rateLow : 0.15, hi = o.rateHigh != null ? o.rateHigh : 4.5;   // quietest / loudest bar's weight before normalising
+  const w = I.map(v => lo + (hi - lo) * Math.pow(rank(v), 2.2)), mw = w.reduce((a, c) => a + c, 0) / nb;
+  const fast = I.map(v => rank(v) >= 1 - (o.fastShare || 0.25));   // the loudest ~25% of bars: the faster sections
+  // the busy bars run out of notes (or of gap) before their share: scale every share up until the mean is reached
+  const span = tB - tA;
+  let keep = null;
+  for (let k = 1, it = 0; it < 6; it++) {
+    keep = pickAll(k);
+    const got = keep.size / span;
+    if (got >= o.rate * 0.95 || got <= 0) break;
+    k *= Math.min(2, o.rate / got);
+  }
+  function pickAll(k) {
   const keep = new Set();
   for (let b = 0; b < nb; b++) {
     const inBar = out.filter(p => p.t >= tA + b * bar && p.t < tA + (b + 1) * bar);
-    const quota = Math.max(1, Math.round(o.rate * bar * w[b] / mw));
+    const quota = Math.max(1, Math.round(k * o.rate * bar * w[b] / mw));
     const score = p => p.strength + (Math.abs(p.beat - Math.round(p.beat)) < 0.08 ? 0.35 : Math.abs(p.beat * 2 - Math.round(p.beat * 2)) < 0.16 ? 0.12 : 0);
     let runLeft = {};
     const pick = [];
@@ -201,13 +214,16 @@ function thin(out, g, inten, o) {
       if (pick.length >= quota) break;
       const ru = fast[b] && p.rapid;
       if (ru) { const k = p.rapid.id; runLeft[k] = (runLeft[k] == null ? 6 : runLeft[k]); if (runLeft[k] <= 0) continue; }
-      const gap = ru ? 0.07 : fast[b] ? 0.17 : calmGap;
+      const gap = ru ? 0.07 : fast[b] ? (o.fastGap || 0.12) : calmGap;
       if (pick.some(q => Math.abs(q.t - p.t) < gap) || [...keep].some(q => Math.abs(q.t - p.t) < gap)) continue;
       if (ru) runLeft[p.rapid.id]--;
       pick.push(p);
     }
-    pick.forEach(p => { if (!fast[b]) delete p.rapid; keep.add(p); });
+    pick.forEach(p => keep.add(p));
   }
+  return keep;
+  }
+  out.forEach(p => { const b = Math.floor((p.t - tA) / bar); if (keep.has(p) && !fast[b]) delete p.rapid; });
   const kept = out.filter(p => keep.has(p));
   // a rapid run cut to a few notes: renumber first / last / len so bursts() and the kinds see the run as it now is
   const byRun = {}; kept.forEach(p => { if (p.rapid) (byRun[p.rapid.id] = byRun[p.rapid.id] || []).push(p); });

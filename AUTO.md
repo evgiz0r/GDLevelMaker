@@ -337,6 +337,18 @@ Built: `node tools/autobeat.js --song HexagonForce --seed 4 --rate 1.4 --name "G
 -- 92.5 s, 125 triggers (1.4 a second, auto beat 2: 4.2), 95% on the beat, cube / spider / robot / ball / UFO, 0.5x-2x, clears.
 Open: the gravity-flip share on some songs (Electroman ~45%: the batches pick grav as their low kind too often).
 
+### Auto beat 4: twice the pace, more contrast, a Newgrounds song (2026-11-26)
+Evgeni on auto beat 3: "bit too slow for me for now. need like twice the beats overall. Can be slower on the slow sections,
+and faster in the fast sections. Lets hear some non robtop song. that has slow and fast paced sections". thin() now weights
+bars 0.15 .. 4.5 (was 0.3 .. 3), treats the loudest 25% as fast (0.12 s apart, short rapid runs), keeps calm bars 0.35 s
+apart, and scales every share up when the busy bars run out of notes, so the mean is reached. Songs with notes measured: the
+4 custom ones (Eclipse 1086693 and Two Moons 1175526 were measured in the cloud from songs/free/ for this, `impacts.js <id>
+--bpm --t0 --commit`). Plan per 8 s at rate 2.8: Golden Haze (557117, DetiousMusic) 0.5 .. 5 and back, alternating; Infertehno
+2 a calm 40 s then busy; Eclipse and Two Moons flatter. So Golden Haze, cut at its section change at 102.9 s (`--beats 238`).
+Built: `node tools/autobeat.js --song 557117 --seed 4 --rate 2.8 --beats 238 --name "GDLM auto beat 4" --out
+levels/lab/auto_beat_4.gdlvl` -- 107 s, 248 triggers (2.5 a second placed; auto beat 3: 1.4), per 8 s from 0.5 to 4.9, all
+7 modes, 0.5x-3x, gravity flips a third, clears. Placement saturates near 2.5 a second on this song (rate 3.1 gave 2.4).
+
 ### The beat ending (tools/beatend.js, 2026-11-26)
 Evgeni on the old outro: "too big, way too much without anything happening and it doesnt match the beat ... something small
 half screen of auto gameplay, that matches the beat ... with the sign there". From the level's end: a portal column on a beat
