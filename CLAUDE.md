@@ -338,7 +338,9 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   blue-pad ping-pong, portal rides --, 50 own bricks built by sim placement with an entry / exit contract, the lab level):
   `tools/autostudy.js` (-> knowledge/auto_study.json, numbers only), `tools/autobricks.js list | build | show` (->
   knowledge/autobricks.json, local/structures/lego-auto-*.gdlvl for `lego.js mine library`, levels/lab/auto_lab.gdlvl).
-  Test: `node tests/autobricks.js`.
+  Test: `node tests/autobricks.js`. **Beat-first auto levels** (AUTO.md "Beat-first"): `tools/autobeat.js --song <Official> --seed N`
+  (a trigger on each chosen beat where the player is, gaps filled, motifs AAAA / BBBB / a mix; lab levels/lab/auto_beat.gdlvl);
+  test `node tests/autobeat.js`.
 - **Lego: structure research** (LEGO.md: every level cut into 1-3 s pieces -- official, ours, the user's sketches --,
   classified by family (fly: ship/wave/swing paths and corridors; jump; flip) with parameters, the official mix vs ours,
   the variety rule; one path built as ship / wave / swing with wrappers and click- or portal-turns): `tools/lego.js`

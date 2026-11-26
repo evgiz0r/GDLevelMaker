@@ -101,6 +101,41 @@ sync the big falls to the song's last bars; the outro's look (frame the high pat
 Asked next: study the community auto levels Evgeni played (sync, long varied motions; study only, local), and an
 **auto ending** -- a signature outro of auto gameplay into our end sign, iterated across levels.
 
+## Beat-first (2026-11-26, round 5): `tools/autobeat.js`
+
+Evgeni, after round 4: "its terrible ... we dont treat this as an artistic level ... we should plan our change of movement
+( pad/portal ) , according to the beat ... if we place trigger by trigger, and follow the path and place the next one ...
+you need to fill the gap, and play to the next. stacking some motifs ... few of these in a row, and then few of these, and
+then a combination of few of these". So the whole level is now built from the SONG, not from bricks:
+- **Trigger beats** from the song's grid (viewer/song_grids.js): every 2 beats, every beat while the song is loud, every 4 in
+  a breakdown (its loudness sections). A big section change starts a new motif block.
+- **Motifs:** phrases of 4 triggers in blocks of 3 -- AAAA, BBBB, then a mix (ABAB, AABB, ABBA, ABAC, AABA). A letter is a
+  kind: yellow / pink / red / blue pad, gravity portal, fall (the ledge ends), mode portal, speed, size, teleport (747,
+  UNCHECKED in GD). Each block has a mode change at least every other block and a fall where one fits.
+- **Trigger by trigger:** the zero-press sim gives the player's state ON the beat tick; the trigger goes at its x, tuned by
+  replays until the run changes on that very tick. A pad needs a surface: the ground, a ledge, or -- falling -- a ledge put
+  under the player so it lands on the pad on the beat. A mode portal on flat ground comes with a gravity flip (alone it
+  moves nothing). A trigger must MOVE the player (a row of height change before the next beat), else another kind.
+- **The gap:** a player falling up gets a roof 3-9 rows up, a quarter of the time 14-26 (a big fall off the screen); one
+  falling down a ledge on the way 45% of the time; a ledge it stands on runs on to the trigger after next. A kind that does
+  not fit gives way to the motif's other letters, then any kind; a beat where nothing works backtracks one trigger.
+- **Home:** a wall of cube / normal gravity / normal size / 1x portals, sparse ground spikes where the path never goes.
+- Measures: `onBeat` (share within a frame), `meanOffMs`, `asWanted` (the motif's kind used), modes, reverse, rise.
+
+Lab: `levels/lab/auto_beat.gdlvl` ("GDLM auto beat", Electrodynamix, seed 8): 84 s, 76 triggers all on their beat (0 ms
+off), 25 mode changes through all 8 modes, upside down 50%, rise 32 blocks, clears with no press. Build: ~12 s.
+`node tools/autobeat.js --song <Official> --seed N [--beats N]`; test `node tests/autobeat.js` (~2 s).
+Open: Evgeni's look at it; size and speed triggers rarely pass the "moves the player" rule; teleports and spider pads
+unchecked in GD; deco that frames the path; a custom song (needs a grid in song_grids.js).
+
+## The community auto levels (2026-11-26, `node tools/autostudy.js --community`, PC run)
+
+Evgeni's save has 12 Auto-rated levels (knowledge/auto_community.json, numbers only). Six are art / quiz / story levels with
+almost no effects (useless as references). Three are real auto gameplay -- auto play area (3150), destructive auto, Amethyst
+-- at 1.7-2.4 effects/s (one every 0.3-0.4 s), upside down 18-35%; all three die in our sim (70%, 19%, 6%), likely triggers or
+teleports we don't model; Interstice dies at 10% in the sim though the save shows it done: a sim bug, the first one to look
+at. On the beat about as often as chance. "Big falls in 0 s" of 29-31 blocks are teleports.
+
 ## Where they go
 
 - **The lego catalogue**: `build` writes each brick's test level to `local/structures/lego-auto-<id>.gdlvl`;

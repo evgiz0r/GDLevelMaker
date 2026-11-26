@@ -297,6 +297,9 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 - [ ] **Auto stretches** (AUTO.md; the main levels spend ~10% of their length with no press, 4-15 stretches of ~1-1.5 s,
   often ending in a mode portal): a level has some, each clears with NO press, and a stray tap there does not kill
   (clickSafe >= 0.8 in `knowledge/autobricks.json`). Pick them from `tools/autobricks.js`.
+- [ ] **Auto parts are planned from the beat** (Evgeni 2026-11-26: "plan our change of movement ( pad/portal ) , according to
+  the beat"): each change of movement fires on a beat, in motifs (AAAA, BBBB, a mix), and every trigger moves the player.
+  `tools/autobeat.js` builds this way and measures `onBeat` (aim 0.9+).
 
 ## Looks like 2.2, not 1.0 (levels/modern_look.md)
 
