@@ -65,6 +65,29 @@ roof, a blue pad back), `pad-portal` (a pad up into each mode portal: the auto m
 the state (mode, gravity or height). Top: `pad-stairs-down`, `pad-stairs-zigzag` (1.0), `pad-stairs-up3`,
 `pad-stairs-up-pink` (0.92), `pingpong-h6-n5-g1` (0.91). Bottom: a lone pink pad, two gravity portals 2 apart (0.27).
 
+## Rounds with Evgeni (2026-11-26)
+
+Each round is a family in tools/autobricks.js and a lab level in levels/lab/ (wip `auto-bricks/...`):
+1. **jank** (`auto_jank`): gapless gravity-portal walls (the "reverse portal wave": portals stacked over the corridor's
+   height, `gwall`), blue / spider pad runs with no gap, 5.5 effects/s. Evgeni: "way too repetitive ... we dont want even
+   like 2 of the same ... one corridor with poop". **Rule: never the same effect twice in a row** (`noRepeat`; measured
+   as `repeats`).
+2. **chambers** (`auto_chambers`): rooms of different heights, modes, mini, speed, reverse half the time -- still built
+   from runs of one motif, so it fails the rule above.
+3. **mix** (`auto_mix`): single effects, each different from the last two, the mode every 1-3 effects, low and tall
+   rooms in turn, ledges, speed and size: 26 s, 3.5 effects/s, 32 mode changes, 0 repeats, upside down 35%.
+4. **long** (`auto_long`): Evgeni: "motions can be long ... not mega spammy ... falls up, that fall a lot, and start a
+   new auto path from there ... off the screen". Room between effects (gaps 0-5, plain stretches), BIG UP (the roof jumps
+   to 18-28 rows, a flip, the player falls up off the screen, a floor appears a few rows under that roof and the path goes
+   on up there: `ceil`, `floor`) and BIG DOWN (normal gravity, `endfloor`: the high floor ends, a fall to the ground):
+   31 s, 2.3 effects/s, 24 mode changes, 1 repeat, rise 21 blocks, upside down 47%.
+Measures per brick: `effects` (distinct columns touched), `rate`, `reverse` (share of time upside down), `repeats`,
+`modeChanges`, `modesSeen`, `speedsSeen`, `skipped` (moves a lenient family left out because they could not be placed
+or killed). A stacked portal wall goes every 2 rows from under the roof to row 1 (a mini player slipped through every 3).
+
+Asked next: study the community auto levels Evgeni played (sync, long varied motions; study only, local), and an
+**auto ending** -- a signature outro of auto gameplay into our end sign, iterated across levels.
+
 ## Where they go
 
 - **The lego catalogue**: `build` writes each brick's test level to `local/structures/lego-auto-<id>.gdlvl`;
