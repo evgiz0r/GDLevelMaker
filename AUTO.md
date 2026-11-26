@@ -291,3 +291,5 @@ triangle where leak blocks meet a lane piece (t 12 s), lone hanging spikes under
 flight (lane.fly.belowHaz 28 vs rated <20); 15 leaks are still open.
 v10 (hazards fd0639c): leaks met by a lane piece count as shut, pieces 2-3 wide, floor side half as often: fly belowHaz
 28 -> 19%, 496 hazards, 10 saws, the triangles and lone hanging spikes gone. Still off: guardAbove 27.5% (rated 10-23).
+v11 (physics 6a00a0d): Evgeni died at 3% in GD on v10 -- the sim pulled a flipped UFO 1.5x too hard (PHYSICS.md "The auto beat
+lab log"). Rebuilt on the fix: clears, 525 hazards, 3 saws, 23 leaks open.
