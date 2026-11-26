@@ -48,6 +48,9 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   never under 0). At ground level the band starts at 0, so pieces fit; up high a portal at floor+1 puts the band's roof only
   ~5 blocks over the floor -- a piece taller than that dies on an unseen ceiling. Put the section's floor (or a corridor's
   base) on the band's floor; the climbing comes from ground sections (a cube steps up any height).
+- [ ] **Pieces don't repeat back to back**: under 44% of the route's lego pieces share a signature with one of the 4
+  before (official levels median 17%, p90 44%; our older levels 53%). `node tools/lego.js variety <level>`, score.js
+  "brick variety".
 - [ ] **Pieces of one section are close in clicks per second** (Evgeni 2026-11-26: "pick somewhat same balance, and probably
   close cps"): a picker scores a section's pieces against the section's CPS target, not each piece alone. `tools/pieces.js`
   shows every piece's span on the level map (`levelmap.js --pieces`).

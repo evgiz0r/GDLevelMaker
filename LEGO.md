@@ -509,7 +509,9 @@ after a build (not hooked into make.js yet).
 - Compose does not place fly pieces from the catalogue yet: ship / wave / swing sections still use ship-tunnel /
   wave-zigzag / swing-run. Next: a section's path drawn as knots (from the song: rises on builds, drops on drops), then
   wrapped per section with the variety rule picking a wrapper the level has not used lately.
-- The variety rule as a score.js gate (WARN first) and in compose's picker.
+- The variety rule: a score.js gate since 2026-11-26 ("brick variety", WARN when over 44% of a level's pieces repeat a
+  signature from the 4 before; official median 17%, p90 44%; ours 53% median, GDLM 44 33%, GDLM 73 37%). Still open: in
+  compose's / brickpick's picker as a ranking penalty.
 - Cube pieces mined from official levels are classified, but not yet turned into parametric pieces (steps and pits are
   the official cube's bread and butter: pillarRun / pitRun in structures.js are close).
 - Pieces of the user's sketches: their routes come from the drawn midline; once the layout fitter (lib/sketchfit.js)
