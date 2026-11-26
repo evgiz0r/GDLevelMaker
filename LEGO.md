@@ -266,6 +266,12 @@ corridors, then the hell scene. Lessons:
 - Next for the picker: score a brick by its press WINDOWS against the hits (from a solve of its test level), not by its
   mid-window presses; then nudge each placed brick a column either way where a window misses its hit.
 
+**The same builder for any level: `tools/planbuild.js <briefs/NN_name.plan.json>`** (2026-11-26, from hellgate_build.js
+v4): the section plan is data (from / to beat, mode, speed, kind, floor base, theme variant, optional fill shapes, corridor
+rows, brick max) and the builder writes the spec plus the song stage. Changes on the way (GDLM 73): the bricks' density
+floor is per second, not per block (at 2x every verified 2x brick was filtered out and the cube parts were 8 single
+spikes), the filler alternates single / double, the corridor knots rotate per mode so no two corridors share a recipe.
+
 The main levels' pieces are RobTop's: a level built from them stays on the PC (never pushed or uploaded) until we have pieces
 of our own made the same way -- varied from theirs by the difficulty knobs (LEGO.md "Difficulty knobs").
 
