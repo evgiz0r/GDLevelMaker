@@ -10,7 +10,7 @@
 //                  balance  how close the sections' and the pieces' clicks a second and the pieces' tightest windows are,
 //                           minus 0.75 per "uneven piece" (3 at most)
 //                  modes    cube over 50% of the play, under 15% upside down
-//                  transitions  10 - 2 per "walked portal" - 1.5 per "abrupt switch"
+//                  transitions  10 - 2 per "walked portal" - 1.5 per "abrupt switch" - 2 for a "ground start"
 //                  rests    breathers a minute against 8 (the mains ~11)
 //                  flow     10 - 3 per second of gap past 2 s (a shorter one is a rest)
 //                  variety  10 - 2.5 per "no variety" / "same corridor" note
@@ -23,7 +23,7 @@
 if (require.main === module) require("./heavy.js").claim();   // fairness replays the route: one heavy-job slot
 "use strict";
 const fs = require("fs"), path = require("path");
-const RANK = { "uneven piece": -4, "too much cube": -3, "no reverse": -3, "walked portal": -2, "abrupt switch": -2, "no rests": -2, "unseen roof": -1, "pointless orb": 0, "few clicks": 1, "gap": 2, "long corridor": 3, "same corridor": 4, "no variety": 5, "too easy": 6 };
+const RANK = { "uneven piece": -4, "too much cube": -3, "no reverse": -3, "walked portal": -2, "abrupt switch": -2, "ground start": -2, "no rests": -2, "unseen roof": -1, "pointless orb": 0, "few clicks": 1, "gap": 2, "long corridor": 3, "same corridor": 4, "no variety": 5, "too easy": 6 };
 
 function report(file, opt = {}) {
   const { readGdlvl, GD } = require("./io.js"), S = require("./solutions.js"), J = require("./judge.js");
@@ -59,7 +59,7 @@ function report(file, opt = {}) {
   const st = j.stats || {};
   const sub = { balance: cl(10 * (1 - Math.min(1, (cv + (st.cpsCv || 0) + 0.8 * (st.winSd || 0)) / 2)) - Math.min(3, 0.75 * n("uneven piece").length)),
     modes: cl(10 - (st.cubeShare > 0.5 ? 25 * (st.cubeShare - 0.5) + 2 : 0) - (n("no reverse").length ? 6 * (1 - Math.min(1, (st.upShare || 0) / 0.15)) + 2 : 0)),
-    transitions: cl(10 - 2 * n("walked portal").length - 1.5 * n("abrupt switch").length),
+    transitions: cl(10 - 2 * n("walked portal").length - 1.5 * n("abrupt switch").length - 2 * n("ground start").length),
     rests: cl(10 * Math.min(1, (st.restsPerMin || 0) / 8)), flow: cl(10 - 3 * gapS), variety: cl(10 - 2.5 * (n("no variety").length + n("same corridor").length)),
     pacing: cl(10 - 2 * n("long corridor").length), clarity: cl(10 - 3 * n("pointless orb").length - 3 * n("unseen roof").length), ending: n("flat ending").length ? 4 : 10 };
   const vals = Object.values(sub), meanSub = vals.reduce((a, b) => a + b, 0) / vals.length;

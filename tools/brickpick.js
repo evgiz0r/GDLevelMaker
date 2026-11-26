@@ -163,14 +163,16 @@ function pickSection(o) {
           const sw = o.singleWidth || 4;
           push({ id: "single", col: c0, beat: +(t / P + 1).toFixed(3), width: sw, presses: [t], onHit: 1, label: "Easy", j: true }, [t], sw, g, "single", "single", 1 - (g > g1 ? 0.15 * (g - g1) : 0));
           if (++k >= 2) break; } }
-      if (!grew) done.push(Object.assign({}, st, { s: st.s - 0.4 * Math.max(0, end - st.col - 3) }));
+      if (!grew) done.push(Object.assign({}, st, { s: st.s - (o.tailCost ?? 0.4) * Math.max(0, end - st.col - 3) }));
     }
     next.sort((a, b) => b.s - a.s);
     // keep the best chain per (column, last brick): no beam full of near twins
     const seen = new Set(); beam = [];
     for (const n of next) { const k = Math.round(n.col) + "|" + (n.picks[n.picks.length - 1] || {}).id; if (seen.has(k)) continue; seen.add(k); beam.push(n); if (beam.length >= BEAM) break; }
   }
-  done.push(...beam.map(st => Object.assign({}, st, { s: st.s - 0.4 * Math.max(0, end - st.col - 3) })));
+  // o.tailCost: per empty column left at the section's end (default 0.4; Evgeni on GDLM 44 v11: "less to no deadspace" --
+  // its ball / UFO sections ended 11-14 blocks empty because a second use of a piece cost more than the empty tail)
+  done.push(...beam.map(st => Object.assign({}, st, { s: st.s - (o.tailCost ?? 0.4) * Math.max(0, end - st.col - 3) })));
   done.sort((a, b) => b.s - a.s);
   const best = done[0], picks = best.picks;
   const n = picks.reduce((a, p) => a + p.presses.length, 0), h = picks.reduce((a, p) => a + p.onHit, 0);

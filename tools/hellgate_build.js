@@ -62,7 +62,10 @@ const CLIMB = [0, 1, 0, 1, 1, 0, 1, 0];
 // exclude: Evgeni (2026-11-26) on the first generated bricks (tools/brickgen.js, g-*): "garbage" -- left out until better ones come
 const base = { exclude: /^g-/, minJoin: 0.5, slots: H.slots, grid: { period: P }, offset: OFFSET, beatCols: true, deadAir: 1.0, gap: [2, 4], beats: true, speed: "1x", targetCps: 2, fillGap: 0.25 };
 
-let E = 0, prev = null, prevUd = false;
+// the start: up on blocks at once (Evgeni 2026-11-26, tools/startramp.js), not on the default ground
+const SR = require("./startramp.js");
+let E = SR.START_ROWS, prev = null, prevUd = false;
+objs.push(...SR.ramp(SR.START_ROWS));
 // the ceiling of an upside-down section: its bottom 3 rows from row C up
 const fillCeil = (c0, c1, C) => { for (let c = Math.round(c0); c < Math.round(c1); c++) for (let r = C; r < C + 3; r++) objs.push(["block", "b1+" + (c + 0.5), r]); };
 // pieces that flip (patterns.js "ud:<id>"): plain cube structures, not already about gravity
@@ -97,6 +100,7 @@ PLAN.forEach(([b0, b1, mode, kind, climb, opt = {}], i) => {
   for (const [ra, rb] of rests) { segs.push([from, ra, start]); from = rb; start = col(rb); }
   // the last beats before the next gate stay free: 1.5, 2.5 in a flight (it lines up with the 3-row gate)
   segs.push([from, b1 - (fly ? 2.5 : 1.5), start]);
+  const c1 = col(b0) + (prev ? 1 : SR.floorFrom(SR.START_ROWS));   // the first section's floor starts after the ramp
   const r = { picks: [], presses: 0, onHit: 0, cps: [], cv: 0, tail: 0 };
   for (const [fb, tb, sc] of segs) {
     const q = pickSection(Object.assign({}, base, { mode, used, startCol: sc, fromBeat: fb, toBeat: tb, prefer: opt.prefer, filter: ud ? flippable : null,
@@ -112,7 +116,7 @@ PLAN.forEach(([b0, b1, mode, kind, climb, opt = {}], i) => {
     if (!banded && !ud) { const goal = F + Math.round((climb || 0) * (k + 1) / r.picks.length), wig = k === r.picks.length - 1 ? 0 : CLIMB[(k + i) % CLIMB.length];
       // a step up needs its own jump: only where the run-up before the piece has room for it (v7: a step right before
       // double-rhythm's spikes left 2 blocks to land and jump again -- the seeded and the full solve both died there)
-      const a = k ? r.picks[k - 1].col + r.picks[k - 1].width : col(b0) + 1, nh = Math.min(h + 1, Math.max(F, goal + wig));
+      const a = k ? r.picks[k - 1].col + r.picks[k - 1].width : c1, nh = Math.min(h + 1, Math.max(F, goal + wig));
       // so the step is a 45-degree slope the cube walks up (no press), at the run-up's first column, 2 blocks clear of the
       // piece's first press
       // (v7d: a slope right after a spike and 1 block before red-orb-wall~ud's gravity portal stopped the solve: the slope's
@@ -124,9 +128,9 @@ PLAN.forEach(([b0, b1, mode, kind, climb, opt = {}], i) => {
     seeds.push(...p.presses.map(t => ({ t })));
   });
   // the floor: under the section to F, and under each ground piece (and the run-up before it) to its own height
-  fill(col(b0) + 1, col(b1), F, b0);
+  fill(c1, col(b1), F, b0);
   if (ud) fillCeil(col(b0) + 1, col(b1), C);
-  if (!banded && !ud) r.picks.forEach((p, k) => { const a = k ? r.picks[k - 1].col + r.picks[k - 1].width : col(b0) + 1;
+  if (!banded && !ud) r.picks.forEach((p, k) => { const a = k ? r.picks[k - 1].col + r.picks[k - 1].width : c1;
     if (p.step != null) { fill(a, p.step + 1, p.h - 1, b0); objs.push(["slope", "b1+" + (p.step + 0.5), p.h - 1, {}]); fill(p.step + 1, p.col + p.width, p.h, b0); }
     else if (p.h > F) fill(a, p.col + p.width, p.h, b0); });
   const lastH = r.picks.length ? r.picks[r.picks.length - 1].h : F;

@@ -150,6 +150,10 @@ model from gd-showcase's tools/storyboard.js once it lands (richer: moments, pla
 
 ## 2. Design first: the presses come before the blocks
 
+- **The level opens up on blocks, not on the default ground** (Evgeni, 2026-11-26, the default from now on): a ramp
+  from column 1 to the first section's floor, 3 rows up (`tools/startramp.js`: `ramp(rows)`, `floorFrom(rows)`), and the
+  first structure starts from there. hellgate_build.js and planbuild.js do it; a new builder calls the same helper.
+  judge.js notes a "ground start".
 - A section's gameplay is built from its **planned presses** (the intended route), with each pattern's input
   timing from the intent cache (local/intent/). The timing plan (difficulty curve -> a target window per press)
   is set here; later fixes are small knob turns (spacing, gap, orb position), never a search.
