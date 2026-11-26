@@ -15,3 +15,14 @@ assert.strictEqual(S.styleAt({ style: [[0, "caret"], [10, "halo"]] }, 400), "hal
 assert.strictEqual(S.expand([mark(30, true)], { style: [[0, "none"]] }).length, 0);
 assert.strictEqual(S.expand([mark(30, true)], {})[0].id, I.id);   // no style: the old single chevron, unchanged
 console.log("indstyles: ok");
+// colour "auto": opposite the hazards' hue; white hazards -> a soft cyan; the channel goes in the header
+{
+  const K = require("../tools/scenekit.js"), hdr = K.channels("kS38,|,kA4,0", { 5: { rgb: [255, 40, 40] } });
+  const red = S.colourFor([{ id: 8, x: 100, y: 15, props: { 21: "5" } }], hdr);
+  assert(red.hazardHue < 15 || red.hazardHue > 345, "red hazards"); assert(red.rgb[2] > red.rgb[0], "a blue-ish mark");
+  assert.strictEqual(S.colourFor([{ id: 8, x: 100, y: 15, props: {} }], hdr).hazardHue, null);
+  const c = S.applyColour([{ id: 8, x: 100, y: 15, props: { 21: "5" } }], hdr, { colour: "auto" });
+  assert.strictEqual(c.ch, S.CH); assert(c.header.includes("_6_" + S.CH));
+  assert.strictEqual(S.applyColour([], hdr, {}).ch, null);
+  console.log("indstyles colour: ok");
+}
