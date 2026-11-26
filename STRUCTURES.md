@@ -1,5 +1,7 @@
 # Structures -- a ranked library of short layouts
 
+**2026-11-26: new pieces are generated** (BRICKGEN.md, `tools/brickgen.js`): Evgeni finds our hand-made pieces poor and RobTop's decent, so generated bricks (`g-<mode>-<tier>-<n>`, registered here from knowledge/brickgen.json) are judged against the official bricks and replace these as they beat them.
+
 The user (2026-11-23): "Lets start adding more variety. More structures. Lets consider a structure list
 of many simple layouts and maybe rank them. By layout I mean like 1-3 seconds of play." Our levels were
 mostly flat cube on the ground: only GDLM 45 and 47 had an upside-down part, and none used blue/green

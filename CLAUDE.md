@@ -347,6 +347,11 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   `check`, `build <id>`, `rank`, `page`), results in `knowledge/structures.json`, a picture page for the
   phone (link in local/phone/structures_url.txt). Every cube-in/cube-out one is the pattern `"s:<id>"`,
   and compose.js puts one in every plain cube section by default (`"structures": false` = off).
+- **Visual effects synced to the music** (EFFECTS.md: Evgeni "i want to gain the controls"; alpha / toggle / move / lock to
+  player or camera / rotate / scale / colour, pulse labelled untested; trigger keys checked on rated 2.2 levels): `tools/effects.js`
+  (each effect a function `(ctx, {t0, t1, ...})`; `node tools/effects.js` lists them), the labelled gallery `tools/fxgallery.js`
+  -> `levels/lab/fx_gallery.gdlvl` (auto, Electrodynamix; most of it shows only in GD). Test: `node tests/effects.js`.
+- **Our own bricks, generated presses-first** (BRICKGEN.md; Evgeni 2026-11-26: RobTop's structures are decent, our hand-made library pieces are not, so the official bricks are the JUDGE): `tools/brickgen.js gen | list | show | build | lab` -- a rhythm of 2-6 presses -> the sim's path in the open band -> walls / platforms / ledges built around it, spikes kept only while the plan clears -> verified (plan clears, no press dies, player windows, no secret way: skip / stray tap / the solver's fewest presses) -> judged by tools/lego.js measure() against the official family numbers (knowledge/lego.json) and the tier stats -> knowledge/brickgen.json, registered as structures `g-<mode>-<tier>-<n>` (brickpick / compose / `structures.js check` see them). Ship, wave, ball, ufo so far.
 - **Auto bricks: stretches with no click** (AUTO.md: the main levels' auto parts measured -- ~10% of a level, pad launches,
   blue-pad ping-pong, portal rides --, 50 own bricks built by sim placement with an entry / exit contract, the lab level):
   `tools/autostudy.js` (-> knowledge/auto_study.json, numbers only), `tools/autobricks.js list | build | show` (->
@@ -525,6 +530,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   `levelmap.js <level> --pieces <out>` draws a bracket per piece on the level map (where pieces join).
 - **`tools/songplan.js <song> [--to s]` -- a level's section plan from its song**: cut at the song's transitions (tools/sections.js), a mode per section by its type (break / drop / entry / groove), rests, one upside-down section, cube under ~50% (GDLM 44 v9).
 - `tools/mapbeats.py` (beat and bar lines over a levelmap.js picture). `tools/hellgate_build.js` -- GDLM 44 v3's builder: song part + local grid -> sections -> brickpick / fly-path -> specs/44_hellgate.json (+ .plan.json). **`tools/planbuild.js <briefs/NN.plan.json>`** -- the same builder with the section plan as data, for any level (GDLM 73 sunny streets; LEGO.md "The same builder for any level").
+- **Outside sources** (knowledge/external_sources.md): level databases and dumps, creation tools, record and tier lists (Pointercrate, AREDL, GDDL), other AI level makers, with APIs, terms and how each helps.
 - `examples/` -- levels the user made in the game, for reference and as format ground truth.
 
 All the library code runs in both node and the browser (no build step, no dependencies).

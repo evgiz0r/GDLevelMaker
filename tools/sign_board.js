@@ -6,6 +6,7 @@
 //   session to run it. Evgeni, 2026-11-26: "lets add the sign into the workboard, with a screenshot. and ill comment from there
 //   if i want to improve. the pure one, and some of the endings in level as it mighty be different and has to match the
 //   specific beat".
+if (require.main === module && !process.argv.includes("--notes")) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const fs = require("fs"), path = require("path"), cp = require("child_process");
 const { GD, readGdlvl } = require("./io.js");
 const ROOT = path.join(__dirname, ".."), DIR = path.join(ROOT, "local", "board"), IMG = path.join(DIR, "img");
@@ -67,7 +68,7 @@ items.push({ id: "auto1", title: "In GDLM auto beat (Geometrical Dominator)", fi
 const state = readJson(path.join(DIR, "state.json"), {});
 const sign = [];
 for (const it of items) {
-  let f; try { f = it.file(); } catch (e) { console.log(it.id + ": " + e.message); continue; }
+  let f; try { f = it.file(); } catch (e) { console.log(it.id + ": " + (process.env.DEBUG ? e.stack : e.message)); continue; }
   const imgs = argv.includes("--no-shots") ? [] : shots(f, it.id);
   imgs.forEach((img, i) => sign.push({ id: it.id + "_" + (i + 1), title: it.title + (i === 0 ? " -- the bounces" : " -- the sign"), img, note: i === 0 ? it.note : "", link: null }));
   console.log(`${it.id}: ${path.relative(ROOT, f)} -> ${imgs.join(", ")}`);

@@ -1,0 +1,1008 @@
+{
+ "name": "GDLM lab brickgen ship",
+ "description": "Generated ship bricks (tools/brickgen.js), best first",
+ "speed": "1x",
+ "style": "classic",
+ "indicators": false,
+ "objects": [
+  [
+   "ship portal",
+   8,
+   1
+  ],
+  [
+   "pattern",
+   "s:g-ship-normal-1",
+   17,
+   0,
+   {
+    "raw": true
+   }
+  ],
+  [
+   "cube portal",
+   34,
+   1
+  ],
+  [
+   "cube portal",
+   34,
+   4
+  ],
+  [
+   "cube portal",
+   34,
+   7
+  ],
+  [
+   "block",
+   34,
+   9
+  ],
+  [
+   "ship portal",
+   48,
+   1
+  ],
+  [
+   "pattern",
+   "s:g-ship-normal-2",
+   57,
+   0,
+   {
+    "raw": true
+   }
+  ],
+  [
+   "cube portal",
+   88,
+   1
+  ],
+  [
+   "cube portal",
+   88,
+   4
+  ],
+  [
+   "cube portal",
+   88,
+   7
+  ],
+  [
+   "block",
+   88,
+   9
+  ],
+  [
+   "ship portal",
+   102,
+   1
+  ],
+  [
+   "pattern",
+   "s:g-ship-normal-3",
+   111,
+   0,
+   {
+    "raw": true
+   }
+  ],
+  [
+   "cube portal",
+   130,
+   1
+  ],
+  [
+   "cube portal",
+   130,
+   4
+  ],
+  [
+   "cube portal",
+   130,
+   7
+  ],
+  [
+   "block",
+   130,
+   9
+  ],
+  [
+   "ship portal",
+   144,
+   1
+  ],
+  [
+   "pattern",
+   "s:g-ship-normal-4",
+   153,
+   0,
+   {
+    "raw": true
+   }
+  ],
+  [
+   "cube portal",
+   178,
+   1
+  ],
+  [
+   "cube portal",
+   178,
+   4
+  ],
+  [
+   "cube portal",
+   178,
+   7
+  ],
+  [
+   "block",
+   178,
+   9
+  ],
+  [
+   "ship portal",
+   192,
+   1
+  ],
+  [
+   "pattern",
+   "s:g-ship-normal-5",
+   201,
+   0,
+   {
+    "raw": true
+   }
+  ],
+  [
+   "cube portal",
+   237,
+   1
+  ],
+  [
+   "cube portal",
+   237,
+   4
+  ],
+  [
+   "cube portal",
+   237,
+   7
+  ],
+  [
+   "block",
+   237,
+   9
+  ],
+  [
+   "ship portal",
+   251,
+   1
+  ],
+  [
+   "pattern",
+   "s:g-ship-normal-6",
+   260,
+   0,
+   {
+    "raw": true
+   }
+  ],
+  [
+   "cube portal",
+   283,
+   1
+  ],
+  [
+   "cube portal",
+   283,
+   4
+  ],
+  [
+   "cube portal",
+   283,
+   7
+  ],
+  [
+   "block",
+   283,
+   9
+  ],
+  [
+   "ship portal",
+   297,
+   1
+  ],
+  [
+   "pattern",
+   "s:g-ship-normal-7",
+   306,
+   0,
+   {
+    "raw": true
+   }
+  ],
+  [
+   "cube portal",
+   332,
+   1
+  ],
+  [
+   "cube portal",
+   332,
+   4
+  ],
+  [
+   "cube portal",
+   332,
+   7
+  ],
+  [
+   "block",
+   332,
+   9
+  ],
+  [
+   "ship portal",
+   346,
+   1
+  ],
+  [
+   "pattern",
+   "s:g-ship-normal-8",
+   355,
+   0,
+   {
+    "raw": true
+   }
+  ],
+  [
+   "cube portal",
+   383,
+   1
+  ],
+  [
+   "cube portal",
+   383,
+   4
+  ],
+  [
+   "cube portal",
+   383,
+   7
+  ],
+  [
+   "block",
+   383,
+   9
+  ],
+  [
+   "ship portal",
+   397,
+   1
+  ],
+  [
+   "pattern",
+   "s:g-ship-normal-9",
+   406,
+   0,
+   {
+    "raw": true
+   }
+  ],
+  [
+   "cube portal",
+   442,
+   1
+  ],
+  [
+   "cube portal",
+   442,
+   4
+  ],
+  [
+   "cube portal",
+   442,
+   7
+  ],
+  [
+   "block",
+   442,
+   9
+  ],
+  [
+   "ship portal",
+   456,
+   1
+  ],
+  [
+   "pattern",
+   "s:g-ship-normal-10",
+   465,
+   0,
+   {
+    "raw": true
+   }
+  ],
+  [
+   "cube portal",
+   504,
+   1
+  ],
+  [
+   "cube portal",
+   504,
+   4
+  ],
+  [
+   "cube portal",
+   504,
+   7
+  ],
+  [
+   "block",
+   504,
+   9
+  ],
+  [
+   "ship portal",
+   518,
+   1
+  ],
+  [
+   "pattern",
+   "s:g-ship-hard-1",
+   527,
+   0,
+   {
+    "raw": true
+   }
+  ],
+  [
+   "cube portal",
+   560,
+   1
+  ],
+  [
+   "cube portal",
+   560,
+   4
+  ],
+  [
+   "cube portal",
+   560,
+   7
+  ],
+  [
+   "block",
+   560,
+   9
+  ],
+  [
+   "ship portal",
+   574,
+   1
+  ],
+  [
+   "pattern",
+   "s:g-ship-hard-2",
+   583,
+   0,
+   {
+    "raw": true
+   }
+  ],
+  [
+   "cube portal",
+   625,
+   1
+  ],
+  [
+   "cube portal",
+   625,
+   4
+  ],
+  [
+   "cube portal",
+   625,
+   7
+  ],
+  [
+   "block",
+   625,
+   9
+  ],
+  [
+   "ship portal",
+   639,
+   1
+  ],
+  [
+   "pattern",
+   "s:g-ship-hard-3",
+   648,
+   0,
+   {
+    "raw": true
+   }
+  ],
+  [
+   "cube portal",
+   672,
+   1
+  ],
+  [
+   "cube portal",
+   672,
+   4
+  ],
+  [
+   "cube portal",
+   672,
+   7
+  ],
+  [
+   "block",
+   672,
+   9
+  ],
+  [
+   "ship portal",
+   686,
+   1
+  ],
+  [
+   "pattern",
+   "s:g-ship-hard-4",
+   695,
+   0,
+   {
+    "raw": true
+   }
+  ],
+  [
+   "cube portal",
+   724,
+   1
+  ],
+  [
+   "cube portal",
+   724,
+   4
+  ],
+  [
+   "cube portal",
+   724,
+   7
+  ],
+  [
+   "block",
+   724,
+   9
+  ],
+  [
+   "ship portal",
+   738,
+   1
+  ],
+  [
+   "pattern",
+   "s:g-ship-hard-5",
+   747,
+   0,
+   {
+    "raw": true
+   }
+  ],
+  [
+   "cube portal",
+   782,
+   1
+  ],
+  [
+   "cube portal",
+   782,
+   4
+  ],
+  [
+   "cube portal",
+   782,
+   7
+  ],
+  [
+   "block",
+   782,
+   9
+  ],
+  [
+   "ship portal",
+   796,
+   1
+  ],
+  [
+   "pattern",
+   "s:g-ship-hard-6",
+   805,
+   0,
+   {
+    "raw": true
+   }
+  ],
+  [
+   "cube portal",
+   848,
+   1
+  ],
+  [
+   "cube portal",
+   848,
+   4
+  ],
+  [
+   "cube portal",
+   848,
+   7
+  ],
+  [
+   "block",
+   848,
+   9
+  ],
+  [
+   "ship portal",
+   862,
+   1
+  ],
+  [
+   "pattern",
+   "s:g-ship-hard-7",
+   871,
+   0,
+   {
+    "raw": true
+   }
+  ],
+  [
+   "cube portal",
+   901,
+   1
+  ],
+  [
+   "cube portal",
+   901,
+   4
+  ],
+  [
+   "cube portal",
+   901,
+   7
+  ],
+  [
+   "block",
+   901,
+   9
+  ],
+  [
+   "ship portal",
+   915,
+   1
+  ],
+  [
+   "pattern",
+   "s:g-ship-hard-8",
+   924,
+   0,
+   {
+    "raw": true
+   }
+  ],
+  [
+   "cube portal",
+   950,
+   1
+  ],
+  [
+   "cube portal",
+   950,
+   4
+  ],
+  [
+   "cube portal",
+   950,
+   7
+  ],
+  [
+   "block",
+   950,
+   9
+  ],
+  [
+   "ship portal",
+   964,
+   1
+  ],
+  [
+   "pattern",
+   "s:g-ship-hard-9",
+   973,
+   0,
+   {
+    "raw": true
+   }
+  ],
+  [
+   "cube portal",
+   988,
+   1
+  ],
+  [
+   "cube portal",
+   988,
+   4
+  ],
+  [
+   "cube portal",
+   988,
+   7
+  ],
+  [
+   "block",
+   988,
+   9
+  ],
+  [
+   "ship portal",
+   1002,
+   1
+  ],
+  [
+   "pattern",
+   "s:g-ship-hard-10",
+   1011,
+   0,
+   {
+    "raw": true
+   }
+  ],
+  [
+   "cube portal",
+   1039,
+   1
+  ],
+  [
+   "cube portal",
+   1039,
+   4
+  ],
+  [
+   "cube portal",
+   1039,
+   7
+  ],
+  [
+   "block",
+   1039,
+   9
+  ]
+ ],
+ "seedPresses": [
+  {
+   "t": 1.8875,
+   "hold": 0.3
+  },
+  {
+   "t": 2.2875,
+   "hold": 0.05
+  },
+  {
+   "t": 5.6388,
+   "hold": 0.35
+  },
+  {
+   "t": 6.0388,
+   "hold": 0.05
+  },
+  {
+   "t": 6.6388,
+   "hold": 0.2
+  },
+  {
+   "t": 7.2388,
+   "hold": 0.4
+  },
+  {
+   "t": 11.0381,
+   "hold": 0.25
+  },
+  {
+   "t": 11.3381,
+   "hold": 0.15
+  },
+  {
+   "t": 14.8821,
+   "hold": 0.35
+  },
+  {
+   "t": 15.2821,
+   "hold": 0.05
+  },
+  {
+   "t": 15.6821,
+   "hold": 0.05
+  },
+  {
+   "t": 15.9821,
+   "hold": 0.2
+  },
+  {
+   "t": 19.5037,
+   "hold": 0.2
+  },
+  {
+   "t": 19.9037,
+   "hold": 0.2
+  },
+  {
+   "t": 20.4037,
+   "hold": 0.25
+  },
+  {
+   "t": 21.1037,
+   "hold": 0.2
+  },
+  {
+   "t": 21.6037,
+   "hold": 0.15
+  },
+  {
+   "t": 25.2844,
+   "hold": 0.35
+  },
+  {
+   "t": 25.7844,
+   "hold": 0.05
+  },
+  {
+   "t": 26.2844,
+   "hold": 0.15
+  },
+  {
+   "t": 29.7134,
+   "hold": 0.25
+  },
+  {
+   "t": 30.3134,
+   "hold": 0.25
+  },
+  {
+   "t": 30.8134,
+   "hold": 0.1
+  },
+  {
+   "t": 34.4313,
+   "hold": 0.2
+  },
+  {
+   "t": 34.9313,
+   "hold": 0.35
+  },
+  {
+   "t": 35.5313,
+   "hold": 0.05
+  },
+  {
+   "t": 35.8313,
+   "hold": 0.05
+  },
+  {
+   "t": 39.3418,
+   "hold": 0.25
+  },
+  {
+   "t": 39.6418,
+   "hold": 0.1
+  },
+  {
+   "t": 40.2418,
+   "hold": 0.25
+  },
+  {
+   "t": 40.7418,
+   "hold": 0.15
+  },
+  {
+   "t": 41.3418,
+   "hold": 0.3
+  },
+  {
+   "t": 45.1225,
+   "hold": 0.25
+  },
+  {
+   "t": 45.5225,
+   "hold": 0.15
+  },
+  {
+   "t": 46.1225,
+   "hold": 0.35
+  },
+  {
+   "t": 46.6225,
+   "hold": 0.05
+  },
+  {
+   "t": 47.2225,
+   "hold": 0.4
+  },
+  {
+   "t": 50.8921,
+   "hold": 0.3
+  },
+  {
+   "t": 51.5921,
+   "hold": 0.1
+  },
+  {
+   "t": 51.8921,
+   "hold": 0.3
+  },
+  {
+   "t": 52.4921,
+   "hold": 0.05
+  },
+  {
+   "t": 52.7921,
+   "hold": 0.2
+  },
+  {
+   "t": 56.2839,
+   "hold": 0.25
+  },
+  {
+   "t": 56.5839,
+   "hold": 0.1
+  },
+  {
+   "t": 57.2839,
+   "hold": 0.35
+  },
+  {
+   "t": 57.8839,
+   "hold": 0.25
+  },
+  {
+   "t": 58.5839,
+   "hold": 0.25
+  },
+  {
+   "t": 59.1839,
+   "hold": 0.15
+  },
+  {
+   "t": 62.5424,
+   "hold": 0.25
+  },
+  {
+   "t": 63.0424,
+   "hold": 0.15
+  },
+  {
+   "t": 63.5424,
+   "hold": 0.25
+  },
+  {
+   "t": 63.8424,
+   "hold": 0.05
+  },
+  {
+   "t": 67.0677,
+   "hold": 0.3
+  },
+  {
+   "t": 67.6677,
+   "hold": 0.05
+  },
+  {
+   "t": 67.9677,
+   "hold": 0.3
+  },
+  {
+   "t": 68.5677,
+   "hold": 0.15
+  },
+  {
+   "t": 72.0744,
+   "hold": 0.25
+  },
+  {
+   "t": 72.3744,
+   "hold": 0.05
+  },
+  {
+   "t": 72.8744,
+   "hold": 0.25
+  },
+  {
+   "t": 73.4744,
+   "hold": 0.25
+  },
+  {
+   "t": 74.0744,
+   "hold": 0.2
+  },
+  {
+   "t": 77.6589,
+   "hold": 0.35
+  },
+  {
+   "t": 78.3589,
+   "hold": 0.15
+  },
+  {
+   "t": 78.9589,
+   "hold": 0.2
+  },
+  {
+   "t": 79.5589,
+   "hold": 0.25
+  },
+  {
+   "t": 79.8589,
+   "hold": 0.25
+  },
+  {
+   "t": 80.4589,
+   "hold": 0.25
+  },
+  {
+   "t": 84.2136,
+   "hold": 0.35
+  },
+  {
+   "t": 84.9136,
+   "hold": 0.1
+  },
+  {
+   "t": 85.5136,
+   "hold": 0.4
+  },
+  {
+   "t": 89.1166,
+   "hold": 0.3
+  },
+  {
+   "t": 89.8166,
+   "hold": 0.2
+  },
+  {
+   "t": 90.3166,
+   "hold": 0.15
+  },
+  {
+   "t": 93.8345,
+   "hold": 0.25
+  },
+  {
+   "t": 94.1345,
+   "hold": 0.05
+  },
+  {
+   "t": 97.4933,
+   "hold": 0.25
+  },
+  {
+   "t": 97.7933,
+   "hold": 0.1
+  },
+  {
+   "t": 98.1933,
+   "hold": 0.15
+  },
+  {
+   "t": 98.7933,
+   "hold": 0.35
+  }
+ ],
+ "outro": 1
+}

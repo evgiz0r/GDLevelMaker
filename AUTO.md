@@ -321,6 +321,10 @@ missed by 0.03; and a flipped player sunk more than 0.7 into the ground dies at 
 a robot portal, the robot's taller box sank 1.07 in). With both, the sim dies on the game's tick. v2: same song and seed,
 rebuilt on that physics, the same path as v1 to tick 5641, clears, and the new beat ending (tools/beatend.js).
 
+v3 died at 16% (tick 3540): a flipped mini robot thrown down by a flipped yellow pad touched the ground at vy -1.94 and the
+game killed it; the sim's cut was -4. A flipped robot now dies at any speed into the ground (PHYSICS.md). v4: rebuilt on that,
+the same path as v3 to 14.5 s, clears.
+
 ### The beat ending (tools/beatend.js, 2026-11-26)
 Evgeni on the old outro: "too big, way too much without anything happening and it doesnt match the beat ... something small
 half screen of auto gameplay, that matches the beat ... with the sign there". From the level's end: a portal column on a beat
@@ -341,3 +345,15 @@ gets a new kind; groove = the batch before goes on with one new icon. Can't Let 
 drop 24-31, entries to 72, break to the end. Swing is left out of flights until the game has checked it. Full songs clip
 into ledges less with it (GD seed 1: 18 ticks vs 26; Can't Let Go: 0). `opts.sections: false` = the old roll.
 Auto beat 2 v3 is built with it (and the beat ending).
+
+## Visual effects for auto levels (2026-11-26)
+
+The effects thread's toolkit (EFFECTS.md): `tools/effects.js` puts music-synced effects (lights, dancing blocks, glows along
+the path, clouds and a pulsing ring locked to the player, contact flashes at pads and landings, hidden pads) on any auto
+level's zero-press run: `FX.context({path, grid, notes})`, then `FX.<effect>(ctx, {t0, t1})`. Gallery: `levels/lab/fx_gallery.gdlvl`.
+
+Checked against RobTop (2026-11-26, Evgeni asked how many sections Electrodynamix has): `node tools/sections.js Electrodynamix`
+gives 9 sections, cuts at 7.6 / 22.7 / 29.8 / 37.4 / 45.4 / 53.0 / 67.6 / 73.8 s. The official level changes mode or speed at
+7.6 (2x), 22.7, 29.4, 37.8, 43.6, 47.3, 52.4, 52.9 (3x), 56.6, 60.4, 64.1, 67.9, 75.5: 7 of our 8 cuts are within 0.5 s of
+one of his, the 8th (73.8) is 1.7 s before his last ship. He adds ~4 s mode swaps inside the loud middle (43-68 s), which
+the song typer does not cut: inside a long drop/entry section, change mode every 2 bars or so.

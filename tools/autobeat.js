@@ -865,7 +865,7 @@ function write(out, b, name) {
     const lastT = b.fin.p.length / TPS, beats = [];
     for (let k = Math.ceil((lastT - 6 - b.g.t0) / b.g.period); b.g.t0 + k * b.g.period < lastT + 4; k++) beats.push(b.g.t0 + k * b.g.period);
     // the sign's beat triggers sit at the x the player reaches on each beat (from the run, not a 1x guess)
-    const p = b.fin.p, xAt = t => { const i = Math.round(t * TPS); return i < p.length ? p[i].x : p[p.length - 1].x + (i - p.length + 1) * 311.58 / TPS; };
+    const p = b.fin.p, xAt = t => { const i = Math.max(0, Math.round(t * TPS)); return i < p.length ? p[i].x : p[p.length - 1].x + (i - p.length + 1) * 311.58 / TPS; };
     const header = sg.header(lvl.header, { col: b.lv.sig.col, floorY: fy });
     const so = sg.signature({ col: b.lv.sig.col, floorY: fy, period: b.g.period, beats: b.lv.sig.beat ? beats : undefined, xOfT: xAt, tOfX: x => { let i = p.findIndex(s => s.x >= x); if (i < 0) i = p.length - 1; return i / TPS; } });
     desc = sg.describe(desc);
