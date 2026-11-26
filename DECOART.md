@@ -255,7 +255,7 @@ spikes beside its edges), one big set piece per screen with a quiet stretch afte
 Gotcha: `shoot.js` on a level with no saved route draws a ghost camera, far off the play (the first v1 frames showed the
 lane at the top of the picture); `wip.js put` first (it solves and saves the route), then shoot.
 
-ID ranges kept apart (2026-11-26): decoart 700-799 channels; blockart 900-911; block designs gallery 912-932; decofx channels 950-957; the signature 973-989, groups 1201-1215
+ID ranges kept apart (2026-11-26): decoart 700-799 channels; blockart 900-911; block designs gallery 912-932; spike designs (tools/spikedesign.js) 933-946; decofx channels 950-957; the signature 973-989, groups 1201-1215
 (set pieces 1210 + n); theme kits 80-117 channels, 450-529 groups; tools/effects.js (EFFECTS.md) channels 800-849, groups
 2001-3999. A new deco tool takes a free range and adds it here.
 
