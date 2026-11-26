@@ -13,7 +13,8 @@ const fs = require("fs"), path = require("path"), { spawnSync } = require("child
 const ROOT = path.join(__dirname, ".."), LOCAL = path.join(ROOT, "local");
 const A = process.argv.slice(2), opt = (k, d) => { const i = A.indexOf("--" + k); return i >= 0 ? A[i + 1] : d; };
 const TIERS = ["Auto", "Easy", "Normal", "Hard", "Harder", "Insane", "?"];
-const want = (opt("tiers") || "Auto,Easy,Normal,Hard,Harder,Insane").split(",");
+// Auto levels left out by default: no presses, and the first two each used the whole 45 min without a clear (2026-11-26)
+const want = (opt("tiers") || "Easy,Normal,Hard,Harder,Insane").split(",");
 const LOG = path.join(LOCAL, "lego", "collect.jsonl");
 const FIRST = new Set(String(opt("first") || "").split(",").filter(Boolean).map(Number));
 
@@ -25,9 +26,12 @@ function tried() {
 function queue() {
   const cat = JSON.parse(fs.readFileSync(path.join(LOCAL, "difficulty", "user_stats_online.json"), "utf8"));
   const T = tried();
-  return cat.levels.filter(l => l.kind === "online" && !l.demon && !String(l.tier).endsWith("Demon") && want.includes(l.tier) &&
+  // --first ids that are not in his save (the board's "Latest rated" study ticks) are fetched by id all the same
+  const known = new Set(cat.levels.map(l => l.id)), extra = [...FIRST].filter(id => !known.has(id) && !T.has(id) &&
+    !fs.existsSync(path.join(LOCAL, "difficulty", "c" + id + ".json"))).map(id => ({ id, kind: "online", name: "(study tick)", tier: "?", done: false, demon: false }));
+  return extra.concat(cat.levels.filter(l => l.kind === "online" && !l.demon && !String(l.tier).endsWith("Demon") && want.includes(l.tier) &&
       !T.has(l.id) && !fs.existsSync(path.join(LOCAL, "difficulty", "c" + l.id + ".json")))
-    .sort((a, b) => (FIRST.has(b.id) - FIRST.has(a.id)) || (b.done - a.done) || (TIERS.indexOf(a.tier) - TIERS.indexOf(b.tier)) || ((b.attempts || 0) - (a.attempts || 0)));
+    .sort((a, b) => (FIRST.has(b.id) - FIRST.has(a.id)) || (b.done - a.done) || (TIERS.indexOf(a.tier) - TIERS.indexOf(b.tier)) || ((b.attempts || 0) - (a.attempts || 0))));
 }
 
 if (require.main === module) {
@@ -45,8 +49,11 @@ if (require.main === module) {
     const out = (r.stdout || "") + (r.stderr || ""), last = out.trim().split("\n").filter(s => /^c\d+:|lego:/.test(s));
     row.result = r.error && r.error.code === "ETIMEDOUT" ? `stopped after ${mins} min (checkpoint kept)` : last.join(" | ") || "exit " + r.status;
     row.min = Math.round((Date.now() - t0) / 6000) / 10;
+    try { const part = JSON.parse(fs.readFileSync(path.join(LOCAL, "difficulty", "c" + l.id + ".part.json"), "utf8")), lv = require("./io.js").readGdlvl(file);
+      const w = require("./io.js").GD.makeWorld(lv.level ? lv.level.objects : require("./io.js").GD.parseLevel(lv.levelStr).objects);
+      row.reached = Math.round(100 * part.x / w.endX) + "%"; } catch (e) {}
     fs.appendFileSync(LOG, JSON.stringify(row) + "\n");
-    console.log(`${l.id} ${l.name}: ${row.result} (${row.min} min)`);
+    console.log(`${l.id} ${l.name}: ${row.result} (${row.min} min${row.reached ? ", got to " + row.reached : ""})`);
   }
 }
 module.exports = { queue };
