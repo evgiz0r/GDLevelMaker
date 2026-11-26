@@ -99,6 +99,9 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 - [ ] **Presses follow the song's beat**: the human route has about as many inputs per beat as the official levels
   (0.53-0.87 over the level, 0.50+ in its busy phrases; a calm phrase may be sparse). `tools/tempo.js`, score.js "tempo".
   (the user on GDLM 44 hellgate v6: "the cps is very small, compared to beat of the song")
+  And at least the median Easy brick's clicks per second (1.82; rated levels' bricks 1.8-2.15 at every tier,
+  knowledge/brick_tiers.json from `tools/brickstats.js --write`): score.js "tempo" warns below it. Evgeni 2026-11-26: "i want
+  levels not to be so sparse, the beats are decently quick". Sweep: GDLM 70-73 pass (2.0-2.5), most of 41-69 are under.
 - [ ] **Density without timing**: arm the pieces the route never touches -- spike tips under hanging columns
   (3+ rows over the higher pillar beside them) and spike-tipped 1-wide pillars mid-pit, a row under the lower
   landing; never a spike on a top the route lands on. Checked: windows unchanged (CRAFT.md "Density").

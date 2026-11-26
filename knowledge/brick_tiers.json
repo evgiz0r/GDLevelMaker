@@ -1,0 +1,179 @@
+{
+ "at": "2026-11-26T16:59:34.619Z",
+ "bricks": 4297,
+ "tiers": {
+  "Auto": {
+   "bricks": 74,
+   "levels": 2,
+   "noClick": 1,
+   "cps": {
+    "p10": null,
+    "median": null,
+    "p90": null
+   },
+   "tightMs": {
+    "median": null,
+    "p10": null,
+    "under50": null
+   },
+   "modes": {}
+  },
+  "Easy": {
+   "bricks": 240,
+   "levels": 6,
+   "noClick": 0.13,
+   "cps": {
+    "p10": 0.92,
+    "median": 1.82,
+    "p90": 2.41
+   },
+   "tightMs": {
+    "median": 221,
+    "p10": 142,
+    "under50": 0.02
+   },
+   "modes": {
+    "cube": 0.72,
+    "ship": 0.26,
+    "robot": 0.02
+   }
+  },
+  "Normal": {
+   "bricks": 205,
+   "levels": 2,
+   "noClick": 0.08,
+   "cps": {
+    "p10": 1.16,
+    "median": 1.96,
+    "p90": 2.41
+   },
+   "tightMs": {
+    "median": 238,
+    "p10": 150,
+    "under50": 0
+   },
+   "modes": {
+    "cube": 0.83,
+    "ship": 0.17
+   }
+  },
+  "Hard": {
+   "bricks": 285,
+   "levels": 5,
+   "noClick": 0.31,
+   "cps": {
+    "p10": 1.12,
+    "median": 1.96,
+    "p90": 2.35
+   },
+   "tightMs": {
+    "median": 221,
+    "p10": 108,
+    "under50": 0
+   },
+   "modes": {
+    "cube": 0.79,
+    "ship": 0.15,
+    "robot": 0.06
+   }
+  },
+  "Harder": {
+   "bricks": 884,
+   "levels": 17,
+   "noClick": 0.14,
+   "cps": {
+    "p10": 1.1,
+    "median": 1.89,
+    "p90": 2.74
+   },
+   "tightMs": {
+    "median": 208,
+    "p10": 100,
+    "under50": 0.01
+   },
+   "modes": {
+    "cube": 0.44,
+    "ship": 0.26,
+    "wave": 0.08,
+    "robot": 0.08,
+    "ball": 0.08,
+    "ufo": 0.04,
+    "spider": 0.01,
+    "swing": 0.01
+   }
+  },
+  "Insane": {
+   "bricks": 1225,
+   "levels": 18,
+   "noClick": 0.06,
+   "cps": {
+    "p10": 1.23,
+    "median": 2.03,
+    "p90": 3.23
+   },
+   "tightMs": {
+    "median": 200,
+    "p10": 88,
+    "under50": 0.02
+   },
+   "modes": {
+    "cube": 0.43,
+    "ship": 0.25,
+    "ball": 0.17,
+    "ufo": 0.08,
+    "robot": 0.03,
+    "wave": 0.02,
+    "spider": 0.02,
+    "swing": 0.01
+   }
+  },
+  "Demon": {
+   "bricks": 643,
+   "levels": 28,
+   "noClick": 0.07,
+   "cps": {
+    "p10": 1.32,
+    "median": 2.15,
+    "p90": 3.57
+   },
+   "tightMs": {
+    "median": 179,
+    "p10": 67,
+    "under50": 0.05
+   },
+   "modes": {
+    "cube": 0.42,
+    "ship": 0.21,
+    "ball": 0.13,
+    "wave": 0.13,
+    "ufo": 0.08,
+    "robot": 0.02
+   }
+  },
+  "ours": {
+   "bricks": 732,
+   "levels": 28,
+   "noClick": 0.14,
+   "cps": {
+    "p10": 0.58,
+    "median": 1.19,
+    "p90": 2
+   },
+   "tightMs": {
+    "median": 242,
+    "p10": 133,
+    "under50": 0.01
+   },
+   "modes": {
+    "cube": 0.61,
+    "ship": 0.15,
+    "wave": 0.1,
+    "ball": 0.06,
+    "ufo": 0.04,
+    "swing": 0.02,
+    "robot": 0.01,
+    "spider": 0
+   }
+  }
+ }
+}

@@ -532,6 +532,7 @@ By the level's tier (2026-11-26, bricks with 1+ click; official by in-game tier)
 (2026-11-26: the community batch cleared 4 of 28 levels, so most of its time gave no bricks.) A community level our solver does not beat still gives bricks: tools/lego.js communitySources takes the furthest of its saved run (`c<id>.json`, dieX) and its checkpoint (`c<id>.part.json`), raw solver inputs (no human route: that needs a clear), `routeKind: "partial"`, if it gets 20+ blocks in; mine() keeps only bricks and pieces ending 3 blocks before the replay's death. difficulty_solve cuts every community level after its solve; lego_collect also cuts after a solve it stopped at the time limit. Re-cut every level already tried: `node tools/lego.js mine community`. Checked on a test copy of GDLM 73 cut to 60% of its route: 49 pieces, all ending by block 535 (death at 550).
 
 ### Clicks and timing by tier, all 4298 bricks (2026-11-26, after the community re-cut)
+Numbers in code: `node tools/brickstats.js [--write]` (-> knowledge/brick_tiers.json); tools/tempo.js (score.js "tempo") warns when a level clicks less than the median Easy brick.
 
 | tier | bricks (levels) | no-click | cps p10 / median / p90 | tightest window median / p10 | main modes |
 |---|---|---|---|---|---|
