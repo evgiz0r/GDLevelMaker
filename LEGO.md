@@ -464,8 +464,9 @@ First 60 s run (main-level bricks, cube 15 / ship 10 / cube 20 / wave 15, 150 bp
 
 **Smaller bricks (same night).** Bricks are now cut wherever the presses pause for over 0.6 s, and a lone press is a
 one-press brick: Evgeni saw ToE 586 as "the structure itself is like 1/10 of the window" (13 blocks, two pairs 7 blocks apart).
-Main-level bricks: 883 -> 1326, mean 22 -> 12 blocks, 568 with one press. The page frames each picture on the presses and
-objects (a block of space), as tall as the route.
+Main-level bricks: 883 -> 1326, mean 22 -> 12 blocks, 568 with one press. Next day (Evgeni: "as tight as possible to the actual lego piece size [...] or at least have a border"): a brick keeps only
+0.15 s of run-up and ends 0.05 s after the landing (mean 12 -> 10 blocks); the page frames exactly the brick, with a dashed
+border at its two ends, as tall as the route.
 
 **Evgeni's notes leave bricks out.** A brick with a 👎, or with a note and no 👍 (every note so far is a complaint: "wrong
 path", "too many clicks", "too close to spikes"), is not picked; a note on a longer piece of the same level covers the

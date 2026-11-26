@@ -210,7 +210,12 @@ function cutBricks(r, inputs, o) {
     }
     for (const [g0, g1] of groups) {
       const prev = g0 ? ps[g0 - 1] : p[i0].tick, next = g1 + 1 < ps.length ? ps[g1 + 1] : p[i1].tick;
-      const t0 = Math.max(p[i0].tick, ps[g0] - Math.min(0.3 * TPS, (ps[g0] - prev) / 2)), t1 = Math.min(p[i1].tick, ps[g1] + Math.min(0.45 * TPS, (next - ps[g1]) / 2));
+      // the border hugs the structure (Evgeni 2026-11-26, SM 104: "does that apply here or the real structure border is
+      // different"): 0.15 s of run-up before the first press, and the end at the landing after the last one (0.05 s after
+      // touching down), at most 0.45 s later -- no walking on past it
+      const t0 = Math.max(p[i0].tick, ps[g0] - Math.min(0.15 * TPS, (ps[g0] - prev) / 2));
+      let t1 = Math.min(p[i1].tick, ps[g1] + Math.min(0.45 * TPS, (next - ps[g1]) / 2));
+      { let air = false; for (let k = idxOf(ps[g1] + 4); k < p.length && p[k].tick <= t1; k++) { if (!p[k].grounded) air = true; else if (air) { t1 = Math.min(t1, p[k].tick + 0.05 * TPS); break; } } }
       out.push([idxOf(Math.round(t0)), idxOf(Math.round(t1))]);
     }
   }
