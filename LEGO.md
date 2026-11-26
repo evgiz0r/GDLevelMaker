@@ -531,6 +531,21 @@ By the level's tier (2026-11-26, bricks with 1+ click; official by in-game tier)
 
 (2026-11-26: the community batch cleared 4 of 28 levels, so most of its time gave no bricks.) A community level our solver does not beat still gives bricks: tools/lego.js communitySources takes the furthest of its saved run (`c<id>.json`, dieX) and its checkpoint (`c<id>.part.json`), raw solver inputs (no human route: that needs a clear), `routeKind: "partial"`, if it gets 20+ blocks in; mine() keeps only bricks and pieces ending 3 blocks before the replay's death. difficulty_solve cuts every community level after its solve; lego_collect also cuts after a solve it stopped at the time limit. Re-cut every level already tried: `node tools/lego.js mine community`. Checked on a test copy of GDLM 73 cut to 60% of its route: 49 pieces, all ending by block 535 (death at 550).
 
+## The section picker: a beam search over a whole section (2026-11-26, GDLM 44 v6)
+
+`tools/brickpick.js` `pickSection(o)` replaces `pick()`'s greedy one-brick-at-a-time choice for whole sections (Evgeni on
+v4/v5: gaps too long, boring pieces, pieces of one section should be "somewhat same balance, and probably close cps"). It
+keeps the 60 best chains of brick x run-up (2-4 blocks) per step, one per (column, last brick), and scores a chain by its
+presses on the song's hits (as `pick()`), minus 1.5 x a piece's CPS distance from the chain's mean so far, 4 for a brick
+already used in the level, 1 for the same first tag twice, 0.15 per run-up block, 2 for dead air, and 0.4 per block left
+empty before the section's end. Against `pick()` on Hellgate's sections (same hits): cube 69% -> 82% and 81% -> 85% of
+presses on a hit, CPS spread 0.11-0.13, tails under 3 blocks; flying sections identical (only 12 ship / 9 wave bricks).
+Each run takes 10-260 ms. Open: ball sections score lower (only 4 ball bricks, the tail penalty takes the dense one); the
+library at 2x / 3x is nearly empty (5 cube bricks), so fast sections still need new bricks before a level can use them.
+
+Its picks' presses (level seconds) are the seed of the solve: `tools/seedsolve.js` replays them and searches only where
+they die (spec key `seedPresses`, make.js / check.js try it before a full solve).
+
 ### Clicks and timing by tier, all 4298 bricks (2026-11-26, after the community re-cut)
 Numbers in code: `node tools/brickstats.js [--write]` (-> knowledge/brick_tiers.json); tools/tempo.js (score.js "tempo") warns when a level clicks less than the median Easy brick.
 
