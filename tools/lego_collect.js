@@ -7,7 +7,8 @@
 // the route into bricks by itself: lego.mineLevel) -> next. One level at a time; each solve waits for the heavy-job slot like
 // any other job, so the user's game and other sessions come first. A level already solved or tried is skipped
 // (local/lego/collect.jsonl: one line per try, with how long it took and how it ended). --minutes M: give up a solve after M
-// minutes (default 45; its checkpoint is kept, so a later run carries on). Never launches GD; other people's levels stay in local/.
+// minutes (default 45). The exact solver before the sweep saves no checkpoint (two Auto levels lost 45 min each to it,
+// 2026-11-26), so it is capped at 300k states (--max-states) and the checkpointed sweep starts sooner. Never launches GD; other people's levels stay in local/.
 "use strict";
 const fs = require("fs"), path = require("path"), { spawnSync } = require("child_process");
 const ROOT = path.join(__dirname, ".."), LOCAL = path.join(ROOT, "local");
@@ -44,7 +45,7 @@ if (require.main === module) {
     const t0 = Date.now(), file = path.join(LOCAL, "community", l.id + ".gdlvl"), row = { id: l.id, name: l.name, tier: l.tier, at: new Date().toISOString() };
     if (!fs.existsSync(file)) spawnSync(process.execPath, [path.join(__dirname, "fetch_level.js"), String(l.id)], { stdio: "inherit", windowsHide: true });
     if (!fs.existsSync(file)) { row.result = "fetch failed"; fs.appendFileSync(LOG, JSON.stringify(row) + "\n"); continue; }
-    const r = spawnSync(process.execPath, [path.join(__dirname, "difficulty_solve.js"), "c" + l.id, "--no-traps"], { encoding: "utf8", windowsHide: true,
+    const r = spawnSync(process.execPath, [path.join(__dirname, "difficulty_solve.js"), "c" + l.id, "--no-traps", "--max-states", "300000"], { encoding: "utf8", windowsHide: true,
       timeout: mins * 60e3, env: { ...process.env, GDLM_HEAVY_PRIORITY: "low" } });
     const out = (r.stdout || "") + (r.stderr || ""), last = out.trim().split("\n").filter(s => /^c\d+:|lego:/.test(s));
     row.result = r.error && r.error.code === "ETIMEDOUT" ? `stopped after ${mins} min (checkpoint kept)` : last.join(" | ") || "exit " + r.status;

@@ -15,6 +15,8 @@
 //   resume point is the old one, so a change that opens a better route earlier is not seen; run
 //   a full solve (no --resume) now and then. `all ... --resume` passes it on.
 // node tools/difficulty_solve.js <n> --resume ... --fine  -- the resumed sweep merges states finer (y 1/4, vy 0.05; slower).
+// ... --max-states N  -- cap the exact (cube-only) solver before the sweep (default 3M states; it saves no checkpoint, so a
+//   community batch caps it: tools/lego_collect.js uses 300k and gets to the checkpointed sweep sooner).
 // ... --no-traps  -- no second, skips-allowed sweep when the strict one finds no way (lib/physics.js solveSweep: trap portals;
 //   that retry took Dash's resume from minutes to 2 h on 2026-11-25). Use it while a level still dies on physics.
 // node tools/difficulty_solve.js <n> --replan  -- only the viewer's route again (natural plan + humanCost) from
@@ -88,7 +90,7 @@ function solveOfficial(n, opts) {
   const L = GD.parseLevel(level);
   const w = mkW(L);
   const t0 = Date.now(), physics = physicsCommit();   // read at the start: a physics commit landing mid-solve must not stamp this run
-  const ck = { onCheckpoint: opts.sweep ? null : checkpointer(n, [], physics) };
+  const ck = { onCheckpoint: opts.sweep ? null : checkpointer(n, [], physics), ...(opts.maxStates ? { maxStates: opts.maxStates } : {}) };
   const r = opts.sweep ? GD.solveSweep(w) : GD.solveAny(w, ck);
   if (!opts.sweep && fs.existsSync(partFile(n))) fs.unlinkSync(partFile(n));
   const res = {
@@ -229,7 +231,7 @@ if (require.main === module) {
       toViewer(n, level, r); const v = JSON.parse(fs.readFileSync(path.join(OUT, "..", `official_${tag(n)}${COINS ? "_coins" : ""}.json`), "utf8"));
       console.log(`${n}: viewer route re-planned: ${r.events.filter(e => e.type === "press").length} raw presses -> ${v.solution.events.filter(e => e.type === "press").length}`); return;
     }
-    const fi = args.indexOf("--from"), o = { sweep: args.includes("--sweep"), fresh: args.includes("--fresh"), fine: args.includes("--fine"), noTraps: args.includes("--no-traps"), from: fi < 0 ? null : +args[fi + 1] };
+    const fi = args.indexOf("--from"), o = { sweep: args.includes("--sweep"), fresh: args.includes("--fresh"), fine: args.includes("--fine"), noTraps: args.includes("--no-traps"), maxStates: args.includes("--max-states") ? +args[args.indexOf("--max-states") + 1] : null, from: fi < 0 ? null : +args[fi + 1] };
     const r = args.includes("--resume") || fi >= 0 ? resumeOfficial(n, o) : solveOfficial(n, o);
     console.log(`${n}: ${r.ok ? "beaten" : "stops at block " + (r.dieX / 30).toFixed(1) + " (" + r.why + ")"}, ${r.events.length} events, ${r.secs.toFixed(0)} s, physics ${r.physics}` +
       (r.resumedFrom != null ? `, resumed from block ${(r.resumedFrom / 30).toFixed(1)}` : r.resumedOver !== undefined ? ", old inputs still hold" : ""));
