@@ -64,6 +64,10 @@ const base = { exclude: /^g-/, minJoin: 0.5, slots: H.slots, grid: { period: P }
 
 // the start: up on blocks at once (Evgeni 2026-11-26, tools/startramp.js), not on the default ground
 const SR = require("./startramp.js");
+// v12 (Evgeni on v11: "much better cps? ... less to no deadspace in the middle? different sections will have somewhat
+// different vibes?"): a click target per section type -- calm breaks, a denser build, the drop the densest -- and sections
+// filled to their end (brickpick tailCost; a repeat of a ball / UFO piece costs less than an empty tail: 4 ball, 3 UFO pieces)
+const VIBE = { break: 1.7, groove: 2.1, entry: 2.2, build: 2.3, drop: 2.6 };
 let E = SR.START_ROWS, prev = null, prevUd = false;
 objs.push(...SR.ramp(SR.START_ROWS));
 // the ceiling of an upside-down section: its bottom 3 rows from row C up
@@ -91,7 +95,10 @@ PLAN.forEach(([b0, b1, mode, kind, climb, opt = {}], i) => {
   // v7: run-up after a portal (v6b's switches: a tap 246 ms after ship -> cube, a button change 133 ms after cube -> wave) and
   // a calm first second (v6b: a 50 ms tap at block 0); the last 1.5 beats before the next gate stay free
   // v8: 6 blocks into the upside-down section (it falls up 3 rows first; v8c: a 33 ms press at its entry)
-  const lead = !prev ? 8 : fly || ud ? 6 : banded ? 5 : 4;
+  // v12b: the first piece clear of the start ramp's launch (v12: the ramp's top throws the cube ~3 blocks, it landed on
+  // pillar-pair's spike at block 7 and needed a 54 ms tap on the ramp); a cube after a ball / UFO 6 (v12: a 42 ms single
+  // 1 s after ball -> cube)
+  const lead = !prev ? 12 : fly || ud ? 6 : banded ? 5 : BAND[prev] ? 6 : 4;
   // balanced pieces (Evgeni on v7: "some have like 2 cps without frame windows, and some seem mega hard ... we need to pick
   // balanced structures, with similar cps and frame windows"): every piece's tightest window 120 ms or more and 1.2-2.7
   // clicks a second (rated Normal / Hard bricks: p10-p90 1.1-2.4, window p10 108-150), windows close within the section
@@ -104,8 +111,8 @@ PLAN.forEach(([b0, b1, mode, kind, climb, opt = {}], i) => {
   const r = { picks: [], presses: 0, onHit: 0, cps: [], cv: 0, tail: 0 };
   for (const [fb, tb, sc] of segs) {
     const q = pickSection(Object.assign({}, base, { mode, used, startCol: sc, fromBeat: fb, toBeat: tb, prefer: opt.prefer, filter: ud ? flippable : null,
-      window: [120], cpsBand: [1.2, 3.0], targetCps: opt.type === "break" ? 1.6 : opt.type === "drop" ? 2.3 : 2, filler: mode === "cube", minDensity: opt.prefer ? 1.0 : mode === "cube" || mode === "ball" ? 1.5 : 0,
-      gap: opt.prefer ? [1, 4] : base.gap, preferBonus: 8, usedPenalty: mode === "cube" ? 6 : 3, singleWidth: 6, singleRun: 1.2, max: "Hard", beam: 60 }));
+      window: [120], cpsBand: [1.2, 3.0], targetCps: VIBE[opt.type] || 2, tailCost: 1.5, filler: mode === "cube", minDensity: opt.prefer ? 1.0 : mode === "cube" || mode === "ball" ? 1.5 : 0,
+      gap: opt.prefer ? [1, 4] : base.gap, preferBonus: 8, usedPenalty: mode === "cube" ? 6 : mode === "ball" || mode === "ufo" ? 1 : 2, singleWidth: 6, singleRun: 1.2, max: "Hard", beam: 60 }));
     for (const p of q.picks) if (!p.j) used.push(p.id);
     r.picks.push(...q.picks); r.presses += q.presses; r.onHit += q.onHit * q.presses; r.cps.push(...q.cps); r.tail = q.tail; r.cv = Math.max(r.cv, q.cv);
   }

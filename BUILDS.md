@@ -231,3 +231,10 @@ The stage times are also in local/timings.jsonl.
   reasons: 1.08 clicks/s over the level, the quiet first 41 s (calm sections, one kind of obstacle, a UFO with 4 clicks in
   9.5 s), long flying stretches (6-8 s), unseen band roofs. The library is the limit: Evgeni calls our pieces poor and the
   first generated batch garbage (g-* left out, `exclude`).
+- **v11 -> v12b (2026-11-26):** v11 opened up on blocks (tools/startramp.js, Evgeni's new default) and judged 0: 1.14
+  clicks/s, ball / UFO sections ending 11-14 blocks empty (a repeated piece cost more than the empty tail). v12: brickpick
+  `tailCost` 1.5, repeats cheap in ball / UFO, a click target per section type (break 1.7 .. drop 2.6): 1.42 clicks/s, the
+  4-6 s dead stretches gone, judge 2.5. The ramp's top throws the cube ~3 blocks: v12 needed a 54 ms tap on the ramp, so
+  the first piece starts 12 blocks in (v12b). v12b judged 0 again: the solver's human route HOLDS the button 4.5 s through
+  block-hops / pillar-pair / pillar-hop (cube bunny-hops every landing), so the opening counts as one press -- cube pieces
+  that can be held through are weak pieces. Still open: ball / UFO library (4 / 3 pieces), long flights, outro walked portals.
