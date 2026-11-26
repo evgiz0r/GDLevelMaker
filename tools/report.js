@@ -5,9 +5,14 @@
 //   Difficulty   lib/difficulty.js on the route: ~attempts and the tier word
 //   Fairness     tools/fairness.js flags on the route (deaths that are not the player's fault); --no-fair skips it (~1 min)
 //   Taste        tools/taste.js: 0-100 against featured levels of the band (static measures)
-//   Layout       six 0-10 sub-scores from tools/judge.js's notes, and their mean:
-//                  balance  how close the sections' clicks per second are (10 * (1 - coefficient of variation))
-//                  flow     10 - 3 per second of gap past judge.js GAP
+//   Layout       nine 0-10 sub-scores from tools/judge.js's notes and stats; the total is their mean minus 0.2 per point
+//                any of them falls under 6 (GDLM 44 v7: 2.7, it was 6.6 before the v8 checks):
+//                  balance  how close the sections' and the pieces' clicks a second and the pieces' tightest windows are,
+//                           minus 0.75 per "uneven piece" (3 at most)
+//                  modes    cube over 50% of the play, under 15% upside down
+//                  transitions  10 - 2 per "walked portal" - 1.5 per "abrupt switch"
+//                  rests    breathers a minute against 8 (the mains ~11)
+//                  flow     10 - 3 per second of gap past 2 s (a shorter one is a rest)
 //                  variety  10 - 2.5 per "no variety" / "same corridor" note
 //                  pacing   10 - 2 per "long corridor" note
 //                  clarity  10 - 3 per "pointless orb" or "unseen roof" note
@@ -18,7 +23,7 @@
 if (require.main === module) require("./heavy.js").claim();   // fairness replays the route: one heavy-job slot
 "use strict";
 const fs = require("fs"), path = require("path");
-const RANK = { "unseen roof": -1, "pointless orb": 0, "few clicks": 1, "gap": 2, "long corridor": 3, "same corridor": 4, "no variety": 5, "too easy": 6 };
+const RANK = { "uneven piece": -4, "too much cube": -3, "no reverse": -3, "walked portal": -2, "abrupt switch": -2, "no rests": -2, "unseen roof": -1, "pointless orb": 0, "few clicks": 1, "gap": 2, "long corridor": 3, "same corridor": 4, "no variety": 5, "too easy": 6 };
 
 function report(file, opt = {}) {
   const { readGdlvl, GD } = require("./io.js"), S = require("./solutions.js"), J = require("./judge.js");
@@ -44,10 +49,21 @@ function report(file, opt = {}) {
   const n = k => j.notes.filter(x => x.kind === k), cl = v => Math.max(0, Math.min(10, +v.toFixed(1)));
   const cps = j.sections.filter(s => s.dur >= 2).map(s => s.clicks / s.dur), mean = cps.reduce((a, b) => a + b, 0) / Math.max(1, cps.length);
   const cv = cps.length > 1 ? Math.sqrt(cps.reduce((a, b) => a + (b - mean) ** 2, 0) / cps.length) / Math.max(mean, 1e-9) : 0;
-  const gapS = n("gap").reduce((a, g) => a + Math.max(0, (+(/([\d.]+) s with/.exec(g.note) || [0, 0])[1]) - J.GAP), 0);
-  const sub = { balance: cl(10 * (1 - Math.min(1, cv))), flow: cl(10 - 3 * gapS), variety: cl(10 - 2.5 * (n("no variety").length + n("same corridor").length)),
+  // a gap up to REST_MAX s is a rest (Evgeni on v7: "some places just nothing for few seconds"), counted by the rests
+  // sub-score; flow loses 3 a second past it
+  const REST_MAX = 2.0, gapS = n("gap").reduce((a, g) => a + Math.max(0, (+(/([\d.]+) s with/.exec(g.note) || [0, 0])[1]) - REST_MAX), 0);
+  // v8 (Evgeni, 2026-11-26, after v7 scored 6.6: "the judge seems to be too nice"): balance is the spread of the PIECES too
+  // (clicks a second and tightest windows), minus 0.75 per uneven piece (3 at most); modes: cube over its share, too little upside down;
+  // transitions: walked-in and abrupt portals; rests: breathers a minute. The total is the mean minus 0.2 per point any
+  // sub-score falls under 6 (one bad axis pulls the level down, as it does when he plays it)
+  const st = j.stats || {};
+  const sub = { balance: cl(10 * (1 - Math.min(1, (cv + (st.cpsCv || 0) + 0.8 * (st.winSd || 0)) / 2)) - Math.min(3, 0.75 * n("uneven piece").length)),
+    modes: cl(10 - (st.cubeShare > 0.5 ? 25 * (st.cubeShare - 0.5) + 2 : 0) - (n("no reverse").length ? 6 * (1 - Math.min(1, (st.upShare || 0) / 0.15)) + 2 : 0)),
+    transitions: cl(10 - 2 * n("walked portal").length - 1.5 * n("abrupt switch").length),
+    rests: cl(10 * Math.min(1, (st.restsPerMin || 0) / 8)), flow: cl(10 - 3 * gapS), variety: cl(10 - 2.5 * (n("no variety").length + n("same corridor").length)),
     pacing: cl(10 - 2 * n("long corridor").length), clarity: cl(10 - 3 * n("pointless orb").length - 3 * n("unseen roof").length), ending: n("flat ending").length ? 4 : 10 };
-  out.layout = Object.assign({ score: +(Object.values(sub).reduce((a, b) => a + b, 0) / Object.keys(sub).length).toFixed(1) }, sub);
+  const vals = Object.values(sub), meanSub = vals.reduce((a, b) => a + b, 0) / vals.length;
+  out.layout = Object.assign({ score: cl(meanSub - 0.2 * vals.reduce((a, v) => a + Math.max(0, 6 - v), 0)) }, sub);
   out.deco = null;   // judged later
   out.notes = j.notes.slice().sort((a, b) => (RANK[a.kind] ?? 9) - (RANK[b.kind] ?? 9) || a.t - b.t).slice(0, 5);
   out.allNotes = j.notes.length;
@@ -63,7 +79,7 @@ function report(file, opt = {}) {
 function text(r) {
   const f = (k, v) => `${k.padEnd(11)}${v}`, d = r.difficulty || {}, fa = r.fairness;
   const L = [`${r.level}: ${r.seconds} s, ${r.presses} presses, ${r.modes.length} modes${r.beaten ? "" : ", NOT beaten on its route"}${r.stale ? " (route from older physics)" : ""}`,
-    f("Layout", `${r.layout.score}/10  balance ${r.layout.balance} · flow ${r.layout.flow} · variety ${r.layout.variety} · pacing ${r.layout.pacing} · clarity ${r.layout.clarity} · ending ${r.layout.ending}`),
+    f("Layout", `${r.layout.score}/10  balance ${r.layout.balance} · modes ${r.layout.modes} · transitions ${r.layout.transitions} · rests ${r.layout.rests} · flow ${r.layout.flow} · variety ${r.layout.variety} · pacing ${r.layout.pacing} · clarity ${r.layout.clarity} · ending ${r.layout.ending}`),
     f("Difficulty", d.error ? "(error) " + d.error : `${d.label} (~${d.attempts} attempts, tightest ${d.tightestMs} ms)`),
     fa ? f("Fairness", fa.error ? "(error) " + fa.error : fa.flags ? `${fa.flags} unfair spot${fa.flags > 1 ? "s" : ""}: ${fa.worst.join(", ")}` : "no unfair spots") : null,
     f("Taste", r.taste.error ? "(error)" : `${r.taste.score}/100`),

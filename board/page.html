@@ -188,6 +188,15 @@ a.lvlink:hover{color:var(--accent)}
     </details>
   </section>
 
+  <section aria-labelledby="h-sg" class="wide">
+    <details id="d-sign">
+      <summary><div class="sum-row"><h2 id="h-sg">Ending sign</h2><span class="hint" id="sg-sum"></span></div></summary>
+      <div style="display:flex;flex-direction:column;gap:12px;margin-top:10px">
+        <div class="hint">The short beat ending with the Claude sign: on its own, and at the end of levels (each fits its own song's beat). Write a note under any picture; Claude reads them.</div>
+        <div class="list" id="sign"><div class="queue-empty ph">No pictures yet.</div></div></div>
+    </details>
+  </section>
+
   <section aria-labelledby="h-m" class="wide">
     <details id="d-mains">
       <summary><div class="sum-row"><h2 id="h-m">Main levels</h2><span class="hint" id="m-sum"></span></div></summary>
@@ -531,6 +540,25 @@ a.lvlink:hover{color:var(--accent)}
     });
     $("l-sum").textContent=L.length+" in progress";
   }
+  // the ending sign (state.sign: [{id, title, img, note, link}], written by tools/sign_board.js); Evgeni's notes -> picks.sign_notes
+  function renderSign(){
+    var S=state && state.sign; if(!S || !S.length) return;
+    var box=$("sign"); box.textContent="";
+    picks.sign_notes=picks.sign_notes||{};
+    S.forEach(function(it){
+      var row=el("div","lv");
+      row.appendChild(el("div","name",it.title||it.id));
+      if(it.img && /^[\w.-]+\.(png|jpg|gif)$/.test(it.img)){ var im=document.createElement("img"); im.src="img/"+it.img; im.alt=it.title||it.id; im.loading="lazy"; im.style.cssText="width:100%;border-radius:6px;display:block;margin:6px 0"; row.appendChild(im); }
+      if(it.note) row.appendChild(el("div","note",it.note));
+      if(okHref(it.link)){ var o=el("div","open"), a=el("a",null,"Open in the viewer ↗"); a.href=it.link; a.target="_blank"; a.rel="noopener"; o.appendChild(a); row.appendChild(o); }
+      var cur=picks.sign_notes[it.id]||{}, ta=document.createElement("textarea"); ta.rows=2; ta.placeholder="Your note on this one"; ta.value=cur.text||""; ta.style.cssText="width:100%;box-sizing:border-box;margin-top:6px;font:inherit";
+      var b=el("button",null,"Save note"), ok=el("span","hint",cur.at? "saved "+fmtWhen(new Date(cur.at)) : "");
+      b.onclick=function(){ picks.sign_notes=picks.sign_notes||{}; picks.sign_notes[it.id]={text:ta.value, at:new Date().toISOString(), title:it.title||it.id}; ok.textContent="saved"; save(); };
+      row.appendChild(ta); var r2=el("div",null); r2.style.cssText="display:flex;gap:8px;align-items:center;margin-top:4px"; r2.appendChild(b); r2.appendChild(ok); row.appendChild(r2);
+      box.appendChild(row);
+    });
+    $("sg-sum").textContent=S.length+" pictures";
+  }
   var TIERS=["Unrated","Auto","Easy","Normal","Hard","Harder","Insane","Easy Demon","Medium Demon","Hard Demon","Insane Demon","Extreme Demon","Demon"];
   var yFilter="All", yShow=200, played=null;
   function rowDone(r){ return r.done!=null? !!r.done : r.best>=100; }
@@ -693,7 +721,7 @@ a.lvlink:hover{color:var(--accent)}
     if(!n) box.appendChild(el("div","queue-empty","Finished items land here a day after they're done."));
   }
   // each part renders on its own: one part that fails shows its error and the rest still render
-  var RENDERS={Done:function(){renderDone();},Features:function(){renderFeatures();},Played:function(){renderPlayed();},Levels:function(){renderLevels();},Usage:function(){renderUsage();},Fresh:function(){renderFresh();},Workstreams:function(){renderWs();},Mains:function(){renderMains();},Physics:function(){renderPhys();},Latest:function(){renderLatest();},Queue:function(){renderQueue();},Filters:function(){renderFilters();},Candidates:function(){renderCands();}};
+  var RENDERS={Done:function(){renderDone();},Features:function(){renderFeatures();},Played:function(){renderPlayed();},Levels:function(){renderLevels();},Sign:function(){renderSign();},Usage:function(){renderUsage();},Fresh:function(){renderFresh();},Workstreams:function(){renderWs();},Mains:function(){renderMains();},Physics:function(){renderPhys();},Latest:function(){renderLatest();},Queue:function(){renderQueue();},Filters:function(){renderFilters();},Candidates:function(){renderCands();}};
   var renderErrs={};
   function renderAll(){ Object.keys(RENDERS).forEach(function(k){ try{ RENDERS[k](); }catch(e){ if(!renderErrs[k]){ renderErrs[k]=1; window.__err("render "+k+": "+(e&&e.message||e)+(e&&e.stack? " @ "+String(e.stack).split("\n").slice(0,2).join(" "):"")); } } }); }
 
