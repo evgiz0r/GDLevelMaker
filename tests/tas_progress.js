@@ -17,7 +17,8 @@ const { replay } = require("../tools/tas.js");
 // robot tops out 1.6 units under a thin slab (id 468, block 92.5) the old flat 15 margin let it land on -- the robot's jump
 // is checked only by plans, never in a probe log. Raise 19 when the robot is calibrated.
 const REACHED = { 1: "clear", 2: "clear", 3: "clear", 4: "clear", 5: 176, 6: 490, 7: 231, 8: 363, 9: 382, 10: 320,
-  11: 295, 12: 33, 13: 184, 14: 30, 15: 267, 16: 141, 17: 295, 18: 123, 19: 91, 20: 32, 21: 475, 22: 75 };
+  11: 295, 12: 33, 13: 184, 14: 30, 15: 267, 16: 141, 17: 300, 18: 123, 19: 91, 20: 32, 21: 475, 22: 75 };
+// 17 295 -> 300 (2026-11-26): the wave sits on a slope at x + 15 tan(angle/2) (PHYSICS.md "Landing jump and slopes")
 // 2026-11-25 LOWERED 22 81 -> 75: the spider teleport now follows GD's search (lib/physics.js teleport, from gdsolver), which
 // lands the plan's tap at tick 1743 on the id-392 spike row and kills it -- as gdsolver measured GD doing in an unturned
 // frame (step.hpp, lv22 t=1,737). In GD the tap is taken in the ROTATED frame that starts there (rotate gameplay 2900,

@@ -242,14 +242,19 @@ for (const hold of [true, false]) {
   const L = jumps(-99, 0).land;
   check("landing: a tap released in the air 14 ticks before landing does not jump", jumps(L - 14, 6).n === 1, `${jumps(L - 14, 6).n} jumps (landing tick ${L})`);
   check("landing: a press held through the landing jumps", jumps(L - 14, 30).n === 2, `${jumps(L - 14, 30).n} jumps`);
-  check("landing: a press still down on the tick before the cube may jump still jumps (GD reads the level a tick late)", jumps(L - 3, 5).n === 2 && jumps(L - 3, 4).n === 1, `${jumps(L - 3, 5).n} / ${jumps(L - 3, 4).n} jumps`);
+  // the cube may jump the tick after its landing tick L (probe logs 2026-11-26, PHYSICS.md "Landing buffer"); GD reads the
+  // button's level a tick late, so a press still down ON the landing tick jumps, one let go the tick before does not
+  check("landing: a press still down on the landing tick still jumps (GD reads the level a tick late)", jumps(L - 3, 4).n === 2 && jumps(L - 3, 3).n === 1, `${jumps(L - 3, 4).n} / ${jumps(L - 3, 3).n} jumps`);
 }
-// a held cube bounces on the ground every 104 ticks (GD: jump, land 103 ticks later, jump the tick after; gdsolver's
-// rig and the user's GDLM 67 held bounce, 104-105 ticks a hop)
+// a held cube bounces on the ground: the first (fresh) jump lands 102 ticks later and the held one goes the tick after the
+// landing (103); every held jump's first tick moves at the full jump speed (no gravity yet), so it flies a tick longer:
+// 105 a hop. GD 2.2091's probe logs (2026-11-26): fresh jumps land after 102 ticks (GDLM 62, 32 jumps, positions exact),
+// held-through-landing jumps go on the tick after the landing with that first full-speed tick (GDLM 62 step 11750,
+// Clubstep 1110). The user's GDLM 67 held bounce: 104-105 ticks a hop. (gdsolver's rig said 104: replaced.)
 {
   const w = GD.makeWorld([{ id: 1, x: 9000, y: 15 }]);
   const s = GD.startState(w), jumps = [];
   for (let t = 0; t < 400; t++) { GD.step(w, s, { press: t === 60, held: t >= 60 }); if (s.act === "jump") jumps.push(t); }
-  check("held bounce: a jump every 104 ticks", jumps.length >= 3 && jumps[1] - jumps[0] === 104 && jumps[2] - jumps[1] === 104, jumps.join(" "));
+  check("held bounce: 103 ticks to the first re-jump, then 105 a hop", jumps.length >= 4 && jumps[1] - jumps[0] === 103 && jumps[2] - jumps[1] === 105 && jumps[3] - jumps[2] === 105, jumps.join(" "));
 }
 process.exit(bad ? 1 : 0);

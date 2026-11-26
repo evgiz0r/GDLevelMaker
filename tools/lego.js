@@ -397,6 +397,10 @@ function measure(src, w, r, inputs, i0, i1) {
   P.routeKind = src.routeKind || (src.src === "official" ? "unknown" : "ours");
   if (src.routeAt) P.routeAt = src.routeAt;
   if (src.src === "official") P.routePlan = src.routePlan || "";   // the planner commit (difficulty_solve.js); "" = planned before the 2026-11-25 wave planner
+  // clicks per second (Evgeni 2026-11-26: "do we have cps for the blocks?"): cps = presses over the brick's seconds;
+  // cpsPeak = the fastest two presses in a row (1 / shortest gap), the burst a player must hit
+  { const pr = P.clicks.filter(c => c[2]).map(c => c[3]); P.cps = P.s > 0 ? r2(pr.length / P.s) : 0;
+    let g = Infinity; for (let i = 1; i < pr.length; i++) g = Math.min(g, pr[i] - pr[i - 1]); P.cpsPeak = g < Infinity && g > 0 ? r2(1 / g) : 0; }
   { const pr = P.clicks.filter(c => c[2]).map(c => c[3]); P.jitter = FAMILY[mode] === "fly" ? pr.filter((t, i) => i && t - pr[i - 1] < 0.1).length : 0; }
   // inner cut points (the user, 2026-11-25: "what we could cut from start or the end, like checkpoints where we could
   // take even smaller parts (on demand)"): calm moments between two presses where the brick can be trimmed -- the button

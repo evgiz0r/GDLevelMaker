@@ -14,12 +14,14 @@ re-run `tests/tas_progress.js`, `tests/mechanics.js`, `tools/mains.js status` (a
 
 | # | mismatch | harm | evidence | how to verify | needs |
 |---|---|---|---|---|---|
-| 1 | Ship rides ~0.5 unit low | Stereo Madness 328, Hexagon Force 141, xStep (user's clear dies 25.3% in sim), GDLM 44 died in game at x 6638 | plans + 2 real runs + probe | probe logs of GDLM 44 (per-step vy, per-frame y in the game vs sim through the 2nd ship) -> which step the heights part | data in hand (probe logs on the PC) |
-| 2 | One-step-late jumps | 48 of 94 GDLM 62 jumps start a step (4 ms) after the sim's; Clubstep 8 of 17 fresh presses | probe logs | split jumps by frame phase, press age, landing, input source (playback vs real); read GD's input queue in the decompile | data in hand |
+| ~~1~~ | ~~Ship rides ~0.5 unit low~~ FIXED 2026-11-26 by the jump snap and 32-bit x ("Jump snap, foot margin, 32-bit x"): Stereo Madness and Back On Track's plans now clear; most likely the "ship offset" was the x drift and missing stair snaps putting the ship a unit off (not proven per spot) | | | | |
+| ~~2~~ | ~~One-step-late jumps~~ NOT A MISMATCH: the probe logs vy before the step's gravity; fresh jumps agree exactly (39 of 39). The real one was a jump on a button held through a landing (fixed, see "Landing jump and slopes from the probe logs") | | | | |
 | 3 | ~~x jumps +1 unit at a ceiling/floor jump~~ SETTLED 2026-11-26: GD's jump snap, in the sim ("Jump snap, foot margin, 32-bit x") | Clubstep step 1285; the stitch drift | probe diff | -- | -- |
 | 4 | Cube lands 4-21 ticks late (2026-11-26: the Stereo Madness, Polargeist and Dry Out plans now CLEAR with the snap + 10 margin; re-check the rest) | Polargeist, Dry Out, Can't Let Go, Jumper, Time Machine, Clutterfunk plans | plans | probe log of a landing-heavy main level vs `tas_why` | data in hand, else game |
+| 4b | ~~**Slopes**~~ FIXED 2026-11-26 (GDLM 52's climb matches the game to 0.05 units through the top and the launch; Fingerdash's plan 295 -> 300; see "Landing jump and slopes from the probe logs"). Still unmeasured: the launch at other speeds, from a 2:1 slope in our logs, and from ship/ball | every slope | probe log | done | done |
+| 4c | Slopes in other modes and frames: a mini ship against a 22-degree slope turned 90 degrees (Bloodbath 10565740 dies at block 85.5) and an upside-down dual wave sliding on the floor into a slope, put under it below the ground (Problematic 7116121, block ~321); from the demons thread, DIFFICULTY.md "Community demons" | 2 community demons | community solves | probe log of a slope lab (ship, wave, upside down, turned) | needs the game |
 | 5 | Pink orb / pink pad too strong or low | Theory of Everything 1 and 2 (lv12 33, lv18 105), lab 60 launch 0.5-0.63 vs sim 0.72, GDLM 60 33.9% | plans + lab video | probe playback of a pink-orb/pad lab: vy on the touch step | game |
-| 6 | Yellow / pink pad strengths unconfirmed (`sure:false`) | every auto brick (AUTO.md), 50 lab variants | decompile only | probe playback of `levels/lab/auto_lab.gdlvl`: vy on each pad's step | game (same batch as 5) |
+| 6 | Pink pad strength unconfirmed (`sure:false`). **Yellow pad CONFIRMED 2026-11-26**: the user's "auto play area" run (probe log, 51 cube + 18 ship pad launches) gives vy 16.000 exactly, as the sim | pink-pad auto bricks | decompile only | probe playback of `levels/lab/auto_lab.gdlvl`: vy on each pink pad's step | game (same batch as 5) |
 | 7 | Ship entry speed (0.5 vs 0.25 of a falling vy) | Dry Out +64, Can't Let Go +118 blocks in plans, but user runs say no | plans vs user runs disagree | probe playback of GDLM 67 stations 9-10 (pad-thrown ship entries, no input) | game (same batch) |
 | 8 | Rotated gameplay tap timing (spider taps 2-3 ticks early) | Dash (ratchet 22 at 75) | plan | tools/tas_trace.js on lv22 at the turn | data in hand |
 | 9 | Clutterfunk pad on a hanging block not reached | user's clear dies 3.5% in sim | 1 run | probe playback of the route there / tas_why lv11 | data in hand, else game |
@@ -50,9 +52,9 @@ GD-2.2081-Decompiled, gdsolver/gdsolver (MIT; measured constants, notes in `dp/s
 OpenGD (2.1 hitboxes, via `tools/import_opengd.js`). Plans: copy gdsolver's `data/solution_lv*_dp.txt`
 to `local/gdsolver/` (shared local folder, never committed).
 
-A plan's tick t is our step t-1 (`tools/tas.js` shifts it). Plans reach, in blocks (2026-11-22):
-1: 328, 2: 493, 3: 909, 4: 415, 5: 175, 6: 303, 7: 210, 8: 333, 9: 382, 10: 167, 11: 288, 12: 33,
-13: 116, 14: 30, 15: 267, 16: 141, 17: 295, 18: 105, 19: 100, 20: 32, 21: 54, 22: 81.
+A plan's tick t is our step t-1 (`tools/tas.js` shifts it). Plans reach, in blocks (2026-11-26, after the probe-log
+fixes): 1-4 clear, 5: 176, 6: 490, 7: 231, 8: 363, 9: 382, 10: 320, 11: 295, 12: 33, 13: 142, 14: 30, 15: 267, 16: 141,
+17: 295, 18: 123, 19: 100, 20: 32, 21: 54, 22: 75 (tests/tas_progress.js keeps them).
 
 ## Modes
 
@@ -675,6 +677,35 @@ Open: plan 19 (Geometrical Dominator) 100 -> 91: its robot tops out 1.6 units un
 old 15 margin let it land on -- the robot jump is checked only by plans. Cycles: the sim lands an upside-down cube on a
 block bottom 2 steps before the game (step 1036; both snap). The y sections (`shouldUseYSection` levels) are not modelled in
 the order. Debug: `GDLM_SNAP=0` etc. above; `node tools/probe.js diff <n>` for a log, `node tools/tas.js <n>` for a plan.
+
+## Landing jump and slopes from the probe logs (2026-11-26; the physics thread)
+
+On top of "Jump snap, foot margin, 32-bit x" above. How to compare one step at a time: `node tools/probe_frames.js <log>
+<level> steps <from> <to>` (game and sim side by side; `jumps`: every cube jump fresh / held). **Game tick n's position =
+our `path[n-1]`** (positions change once a 60 fps frame); the logged vy is read before that step's gravity, so a fresh
+jump's 11.180 shows one tick before our 10.964 although both start on the same step: compare POSITIONS, not vy.
+- **A jump on a button held through the landing** goes the tick after the landing tick, and its first tick moves at the
+  full jump speed (no gravity yet): GDLM 62 step 11750, Clubstep 1110 match to 0.001 only so. A fresh press keeps gravity
+  on its first tick (39 of 39 fresh jumps exact). This replaces the "wait a tick after a ground landing" rule (EXP_LW,
+  `GDLM_LANDJUMP=old` for measuring): a held cube bounces 103 ticks to its first re-jump, then 105 a hop.
+- **Slopes**: the cube's foot sits on the slope at x + 15 tan(angle / 2) (6.213 on a 45-degree slope, 3.541 on a 2:1;
+  gdsolver's slopes.hpp, the same as GD's line under the centre + half / cos(angle)); it rides until that point passes the
+  slope's top; that tick GD holds it at the top with speed 0, and the tick after it launches like a pad (one tick of
+  gravity from 0, then vy 7.405 on a 45-degree slope, 3.999 on a 2:1, at 1x; other slopes and speeds interpolated,
+  UNMEASURED). GDLM 52 steps 805-837 match to 0.05 units; `GDLM_SLOPE=old` = the old corner rule. Cube and wave only (the
+  launch: cube only): the wave gains in gdsolver's Fingerdash plan (295 -> 300, tried mode by mode) and in GDLM 44's wave
+  log (parting 1425 -> 1545); for the ball it closed Hexagon Force's ball part (block 221), and ship / UFO / robot / spider
+  change nothing in the plans, so they keep the corner rule until a probe log shows them on a slope.
+- **Yellow pad** 16.000 in cube and ship (the user's "auto play area" run): `sure` in lib/objects.js.
+- With the jump snap above plus these two: GDLM 62's whole 62 s playback matches the game in x and y at every frame,
+  Clubstep's first attempt (2445 steps) with no parting at all, GDLM 44's runs in x to the end; the 21 main-level playback
+  logs die on the same steps as without them (no level worse).
+- Still parting: GDLM 52 at step 5049 (0.5 unit low on a fall, cube), GDLM 44 v1 at 1545 (wave on a slope; the sim then
+  dies at 1528-1548 where the game lives: the game's wave flies up through two flipped 1338 slopes at x 1987 y 195 and
+  x 2017 y 165 that the sim holds solid -- check that local/tmp/h44v1.gdlvl is really the version played, then how GD
+  treats a flipped 1338). Data: the logs are in GD's save folder (`%LOCALAPPDATA%/GeometryDash/geode/mods/gdlm.probe/attempts`),
+  including ~120 of the user's own attempts on community levels (Sunrise Stroll, Altaria, Brillo III, chillblain
+  grace...) to check once those levels are fetched.
 
 ## Fidelity: measuring the sim against the user's game (goal: "as close as possible")
 
