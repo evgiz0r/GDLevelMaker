@@ -345,3 +345,9 @@ gets a new kind; groove = the batch before goes on with one new icon. Can't Let 
 drop 24-31, entries to 72, break to the end. Swing is left out of flights until the game has checked it. Full songs clip
 into ledges less with it (GD seed 1: 18 ticks vs 26; Can't Let Go: 0). `opts.sections: false` = the old roll.
 Auto beat 2 v3 is built with it (and the beat ending).
+
+## Visual effects for auto levels (2026-11-26)
+
+The effects thread's toolkit (EFFECTS.md): `tools/effects.js` puts music-synced effects (lights, dancing blocks, glows along
+the path, clouds and a pulsing ring locked to the player, contact flashes at pads and landings, hidden pads) on any auto
+level's zero-press run: `FX.context({path, grid, notes})`, then `FX.<effect>(ctx, {t0, t1})`. Gallery: `levels/lab/fx_gallery.gdlvl`.
