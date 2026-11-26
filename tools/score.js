@@ -233,6 +233,15 @@ function scoreLevel0(level, brief, opts = {}) {
     } catch (e) { /* density.js missing */ }
   }
 
+  // hazards that follow the path (Evgeni 2026-11-26: auto levels' saws "look random and don't follow the path"): the role
+  // mix of the level's hazards around its own route -- threat (within a block), guard (1-3 blocks: the lane's frame,
+  // shuts secret ways), fill -- and jumps with something under them, against rated levels. tools/hazards.js, HAZARDS.md. WARN.
+  if (r.ok) {
+    try {
+      const q = require("./hazards.js").check(level, (natural() || r).events);
+      gate("hazards", q.flags.length ? "WARN" : "PASS", q.summary, q.flags.join("; "));
+    } catch (e) { /* hazards.js missing */ }
+  }
   // few triple spikes (the user, 2026-11-24: "lets do less triple spikes for now"): at most one per 15 s, never two within
   // 4 s (tools/triples.js; knowledge/checklist.md "Few triple spikes"). WARN: soft, a level may keep one with a reason.
   try {
