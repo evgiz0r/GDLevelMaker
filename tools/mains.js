@@ -5,7 +5,7 @@
 //     replan  the raw solve still clears, only the human route fails (or is a fallback "humanize"): --replan
 //     resume  the raw solve dies (or skips a portal) on today's physics: --resume from a bit before the trouble
 // node tools/mains.js own <n> "<who>" | free <n>  -- a level another session is solving: shown, never given a job here.
-// node tools/mains.js run [n ...] [--dry]   -- does those jobs one after another (cheap replans first, then resumes),
+// node tools/mains.js run [n ...] [--dry] [--priority low]   -- does those jobs one after another (cheap replans first, then resumes),
 //   each a tools/difficulty_solve.js run at heavy priority "urgent" (the user, 2026-11-24: "If we have it failed then
 //   its highest priority"), so a failed main level goes ahead of every other waiting heavy job. One runner at a time
 //   (local/mains/runner.json); log local/mains/log.txt; each finished job: local/mains/history.jsonl.
@@ -61,6 +61,9 @@ const runner = () => { const r = readJ(path.join(DIR, "runner.json")); if (!r) r
   try { process.kill(r.pid, 0); return r; } catch (e) { return null; } };
 const log = s => { const line = `${new Date().toISOString()} ${s}`; console.log(s); fs.mkdirSync(DIR, { recursive: true }); fs.appendFileSync(path.join(DIR, "log.txt"), line + "\n"); };
 
+// the resumes' heavy priority: urgent by default (a failed main level goes first); --priority low for a batch re-solve
+// after a physics change that breaks every route at once (2026-11-26, the jump snap: 21 levels, hours of solving)
+const RUN_PRIO = (() => { const i = process.argv.indexOf("--priority"); return i > 0 ? process.argv[i + 1] : "urgent"; })();
 function run(only, dry) {
   const other = runner();
   if (other && other.pid !== process.pid) { console.log(`mains: a runner already works (pid ${other.pid}, since ${other.since}); it re-checks every level before it ends`); return; }
@@ -86,7 +89,7 @@ function run(only, dry) {
         const args = [path.join(__dirname, "difficulty_solve.js"), String(s.n), "--" + s.need];
         log(`mains: ${s.n} ${s.name}: ${s.need} (raw ${s.raw ? fmt(s.raw) : "?"}, route ${s.view ? fmt(s.view) : "?"})`);
         const r = cp.spawnSync(process.execPath, ["--max-old-space-size=3000"].concat(args), { windowsHide: true, cwd: ROOT, encoding: "utf8",
-          env: Object.assign({}, process.env, { GDLM_HEAVY_PRIORITY: "urgent" }), maxBuffer: 64 << 20 });
+          env: Object.assign({}, process.env, { GDLM_HEAVY_PRIORITY: RUN_PRIO }), maxBuffer: 64 << 20 });
         const lastLine = String(r.stdout || "").trim().split("\n").filter(l => /^\d+:/.test(l)).pop() || String(r.stderr || "").trim().split("\n").pop();
         let after = null; try { after = stateOf(s.n); } catch (e) {}
         const rec = { at: new Date().toISOString(), n: s.n, name: s.name, job: s.need, secs: Math.round((Date.now() - t0) / 1000), code: r.status,
