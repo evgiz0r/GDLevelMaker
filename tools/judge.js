@@ -37,7 +37,7 @@ function judge(file) {
   for (const s of secs) { s.dur = (s.b - s.a) / TPS; s.n = presses.filter(t => t >= s.a && t <= s.b).length; s.cps = s.n / Math.max(s.dur, 0.01); }
   const P_ = k => p[Math.max(0, Math.min(k, p.length - 1))];
   // a note pins a moment and, for a stretch, its span (x0..x1 in blocks): a mark anywhere on the span is the same note
-  const notes = [], at = (k, kind, note, a, b) => notes.push(Object.assign({ t: tt(k), x: blk(P_(k)), kind, note }, a != null ? { x0: blk(P_(a)), x1: blk(P_(b)) } : {}));
+  const notes = [], at = (k, kind, note, a, b) => notes.push(Object.assign({ t: tt(k), x: blk(P_(k)), y: Math.round(GD.worldXY ? GD.worldXY(P_(k)).y : P_(k).y), kind, note }, a != null ? { x0: blk(P_(a)), x1: blk(P_(b)) } : {}));
   const med = a => { const b = a.slice().sort((x, y) => x - y); return b.length ? b[b.length >> 1] : 0; };
   const levelCps = presses.length / (p.length / TPS);
   // few clicks
@@ -117,4 +117,4 @@ if (require.main === module) {
     console.log(`  ${hit}/${marks.length} marks found; ${extra.length} notes he did not make`);
   }
 }
-module.exports = { judge, similar };
+module.exports = { judge, similar, GAP };

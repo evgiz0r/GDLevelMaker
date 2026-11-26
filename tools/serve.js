@@ -271,7 +271,7 @@ const SERVER = http.createServer((req, res) => {
       res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); res.end(d);
     });
   }
-  const sp = req.method === "POST" && /^\/shoot\/([\w\-]+)\/(\d+\.png|f\d+\.jpg|done)$/.exec(p);
+  const sp = req.method === "POST" && /^\/shoot\/([\w\-]+)\/(\d+\.png|f\d+\.jpg|geo\.json|done)$/.exec(p);
   if (sp) {
     const chunks = [];
     req.on("data", c => chunks.push(c));

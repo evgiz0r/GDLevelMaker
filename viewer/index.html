@@ -3030,7 +3030,7 @@ async function shootRun() {
   // spots as % of the level (tools/compare_frames.js): the moment the run passes that share of the level's length
   if (job.pcts) job.times = job.pcts.map(pc => { const x = L.world.endX * pc / 100; let k = L.path.findIndex(q => q.x >= x); if (k < 0) k = L.path.length - 1; return k / P.TPS; });
   const post = (name, url) => fetch("/shoot/" + SHOOT + "/" + name, { method: "POST", body: url });
-  if (job.map) { await post("000.png", await mapRender(job)); return post("done", "1"); }
+  if (job.map) { await post("000.png", await mapRender(job)); if (window.MAPGEO) await post("geo.json", JSON.stringify(window.MAPGEO)); return post("done", "1"); }
   if (job.video) return shootVideo(job, post);
   for (let i = 0; i < job.times.length; i++) {
     t = Math.max(0, Math.min(job.times[i], (L.path.length - 1) / P.TPS)); playing = false;
@@ -3105,6 +3105,8 @@ async function mapRender(job) {
   const rowW = Math.round(rowU * S), sceneH = Math.round((maxY - camY0 + GROUND) * S);
   const HEAD = 70, TOP = 40, BOT = 32, GAP = 14, rowH = TOP + sceneH + BOT;
   const out = document.createElement("canvas"); out.width = rowW + 20; out.height = HEAD + rows * (rowH + GAP);
+  // where each block lands on the picture (tools/levelmap.js writes it beside the map: pins from tools/report.js, the marks page)
+  window.MAPGEO = { rows, rowU, S, HEAD, TOP, rowH, GAP, sceneH, GROUND, camY0, width: out.width, height: out.height };
   const X = out.getContext("2d"); X.fillStyle = "#0d0b18"; X.fillRect(0, 0, out.width, out.height);
   // the scene, chunk by chunk
   const CH = 600;

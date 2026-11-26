@@ -67,6 +67,8 @@ if (!args[0] || args[0].startsWith("--")) { console.log(fs.readFileSync(__filena
   const png = path.join(out, safe + ".png"), jpg = path.join(out, safe + ".jpg");
   fs.copyFileSync(src, png);
   try { cp.execFileSync("ffmpeg", ["-v", "error", "-y", "-i", png, "-vf", "scale='min(1600,iw)':-2", "-q:v", "3", jpg], { windowsHide: true }); } catch (e) { console.log("(ffmpeg missing: no phone .jpg)"); }
+  // the picture's geometry (block x -> pixel): <name>.geo.json beside it (tools/report.js pins notes with it)
+  try { fs.copyFileSync(path.join(dir, id, "geo.json"), path.join(out, safe + ".geo.json")); } catch (e) {}
   try { fs.rmSync(path.join(dir, id), { recursive: true, force: true }); fs.unlinkSync(path.join(dir, id + ".json")); } catch (e) {}
   const mb = f => fs.existsSync(f) ? (fs.statSync(f).size / 1e6).toFixed(1) + " MB" : "-";
   console.log(`map of ${lv.name} in ${r.seconds.toFixed(0)} s:\n  ${path.relative(ROOT, png)} (${mb(png)})\n  ${path.relative(ROOT, jpg)} (${mb(jpg)}, phone)`);
