@@ -150,6 +150,28 @@ Lab v2 (`levels/lab/auto_beat.gdlvl`, Electrodynamix, seed 7): 85 s, 284 trigger
 upside down 54%, rise 58 blocks, clears with no press. Open: Evgeni's look; ship gravity flips at 3+ a second make small
 wiggles (on the notes but little motion); speed portals in real levels (not only autos) are the compose / picker threads'.
 
+### Batches: the same music gets the same auto vibe (2026-11-26, round 7)
+
+Evgeni: "usually its intresting the the same beats, music, has the same auto vibe. we can assign some specific notes ( drums ,
+piano , high , low ) as different combinations of portals/speed/icon. and reroll after some seconds, on a transition in the
+song starting a new batch. we should use more variations of ground - spikes, bit more staircases as a hit in the song. lets
+try with a song that has bit more notes per second". Now:
+- A BATCH maps each band of notes to one kind -- low (kick / bass), mid (snare / keys), top (hats / high) -- and has two
+  icons (modes). A note fires its band's kind, so a repeated beat repeats its movement. A new batch rerolls all three and the
+  icons at the song's transitions (impacts.js drop / entry / change, a speed-plan change), at least 6 s apart, or after 16 s
+  at the next strong hit. A batch starts with a portal into its first icon. Pads, stairs and falls need a mode that lands
+  (cube, ball, robot, spider, UFO); 40% of batches are FLIGHT batches (portals only) whose icon is a ship, wave or swing.
+- The song's hits (impacts with strength >= 0.5) are staircase steps: `step` (the ledge ends on the note and goes on 1-2 rows
+  lower, or higher under a roof), or, in the air coming down, `land on a stair` (a ledge under the player, landed on the note).
+  A batch with steps puts ledges under most falls (85%) so there is something to step off.
+- The ground varies every 24 columns: spike runs with gaps, every other column, a long run, small pillars with a spike.
+- The busiest songs by notes a second (knowledge/song_notes, s >= 0.3): Geometrical Dominator 8.2, Dash 8.0, Back On Track
+  7.9, Clutterfunk / Time Machine 7.4; Electrodynamix 6.0.
+
+Lab v3 (`levels/lab/auto_beat.gdlvl`, Geometrical Dominator, seed 1): 101 s, 414 triggers (4.4 a second), 50% of the notes,
+93% within a frame, 6 batches, 49 stair steps, all modes, speed 1x / 2x with the music, clears with no press.
+Open: teleport-heavy batches look jumpy; the fly batches often fall back to gravity flips.
+
 ## The community auto levels (2026-11-26, `node tools/autostudy.js --community`, PC run)
 
 Evgeni's save has 12 Auto-rated levels (knowledge/auto_community.json, numbers only). Six are art / quiz / story levels with

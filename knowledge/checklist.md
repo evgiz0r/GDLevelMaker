@@ -314,6 +314,8 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   the beat"): each change of movement fires on a beat, in motifs (AAAA, BBBB, a mix), and every trigger moves the player.
   `tools/autobeat.js` builds this way and measures `onBeat` (aim 0.9+). On the song's NOTES, not only beats (Evgeni: "we hit
   like 1/6 of the notes"): `notesHit` aim 0.5+, every note in loud parts; speed portals follow the music's `speedPlan`.
+  The same music keeps the same auto vibe: each band of notes (low / mid / top) has its own kind for a batch, rerolled at
+  the song's transitions; the song's hits are staircase steps; the ground under an auto stretch varies.
 
 ## Looks like 2.2, not 1.0 (levels/modern_look.md)
 
