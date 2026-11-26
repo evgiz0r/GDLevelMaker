@@ -89,3 +89,12 @@ is the test.
 - Quiet stretches up to ~6 s.
 - Per mode, the section recipe is in `modes_low_tier.md`. Check a level with
   `node tools/tiercheck.js` and `node tools/variety.js`.
+
+## Mode share (time), the 22 main levels vs ours (tools/modeshare.js, 2026-11-26)
+
+Share of play time along each saved route (240 ticks a second; past a stale route, the layout's portals, which miss orb/pad
+gravity flips). Main-level mean: cube 57%, ship 20%, ball 9%, UFO 6%, wave 4%, robot 2%, spider 1%, swing 1%; upside down
+17% (15-36% from Dry Out on), mirrored 4% (only Time Machine 39, Cycles 17, ToE 16, Electroman 13, Clutterfunk 3).
+Even the late levels stay 35-50% cube with 3-4 modes doing most of the time (Dash: cube 34, swing 22, ship 13).
+Ours on 2026-11-26: Hellgate (layout only) cube 32%, spread over all 8 modes, 0% upside down; Sunny Streets cube 57%, 7% upside
+down. Lesson for the generator: fewer modes per level, cube as the home mode, and use upside-down gravity (~15-20%).

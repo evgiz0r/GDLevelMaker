@@ -97,6 +97,13 @@ if (require.main === module) {
     if (a.includes("--shots")) {
       require("./heavy.js").claim();
       const at = []; r.sections.forEach((s, i) => { const t1 = i + 1 < r.sections.length ? r.sections[i + 1].t : s.t + 6; for (const f of [0.25, 0.5, 0.8]) at.push(+(s.t + (t1 - s.t) * f).toFixed(2)); });
+      // the demo keeps the level's gameplay, so it gets the source's saved route (else one solve): without a route shoot.js
+      // draws the viewer's ghost camera, whose dashed line ran through every kit frame (2026-11-26)
+      try { const io = require("./io.js"), S = require("./solutions.js"), GDl = require("../lib/gd.js");
+        const src = io.readGdlvl(a[2]).levelStr, dst = io.readGdlvl(r.out).levelStr;
+        const sol = S.get(src, true) || S.solve(GDl.parseLevel(src), src);
+        if (sol && sol.events) { const c = { ...sol }; delete c.checkpoints; S.put(dst, c); console.log(`route: ${sol.ok ? "beaten" : "not beaten"}, ${sol.events.length} inputs, shared with the demo`); }
+      } catch (e) { console.log("route: none shared (" + e.message + "): the frames show the ghost camera"); }
       const dir = r.out.replace(/\.gdlvl$/, "_shots");
       cp.execFileSync(process.execPath, [path.join(__dirname, "shoot.js"), r.out, "--at", at.join(","), "--out", dir], { stdio: "inherit", windowsHide: true });
       console.log("frames in", dir);

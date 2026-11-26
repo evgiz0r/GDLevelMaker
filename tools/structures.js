@@ -449,6 +449,12 @@ lego("lego-ship-corridor", "ship", "the same two hills as a ship corridor (5-col
 lego("lego-ship-spiky-gates", "ship", "the ship hills with spikes on both walls and a gate (a 4-row squeeze) at each hilltop: the official levels' most common ship piece", { gap: 5, seg: 5, flat: 3, spikes: "both", every: 5, gates: [1, 3], gateGap: 4 }, ["spikes", "gates"]);
 lego("lego-ship-floor", "ship", "the ship hills as a floor path only (open above), spikes on the level stretches", { gap: 5, seg: 5, flat: 3, wrap: "floor", spikes: "floor", every: 4 }, ["spikes"]);
 lego("lego-ship-flip", "ship", "the ship hills with gravity portals at the hilltops: the ship flies upside down between them", { gap: 5, seg: 5, flat: 3, turns: "mix" }, ["gravity", "gravity portal"]);
+// denser fly pieces (2026-11-26: a typical brick is ~2 clicks a second at every tier, our fly pieces ~1; Evgeni: "i want
+// levels not to be so sparse, the beats are decently quick"): short legs, a turn every few blocks
+lego("lego-wave-rapid", "wave", "small wave zigzags of 2-3 rows, a turn every 3-4 blocks: quick clicks for fast beats", { rows: [2, 4, 2, 5, 3, 5, 2, 4, 2], gap: 5, flat: 1 }, ["dense"]);
+lego("lego-wave-rapid-teeth", "wave", "the small wave zigzags with a spike at each turn", { rows: [3, 5, 2, 4, 2, 5, 3, 5, 3], gap: 5, flat: 1, spikes: "turns" }, ["dense"]);
+lego("lego-ship-rapid", "ship", "small ship hills on 3-column legs: a tap or short hold every couple of blocks", { rows: [2, 4, 2, 5, 3, 5, 2], gap: 5, seg: 3, flat: 1 }, ["dense"]);
+lego("lego-ship-rapid-spikes", "ship", "the small ship hills with spikes on both walls", { rows: [3, 5, 2, 4, 2, 5, 3], gap: 5, seg: 3, flat: 1, spikes: "both", every: 4 }, ["dense", "spikes"]);
 lego("lego-swing-corridor", "swing", "the same two hills as a swing corridor (6 rows of room)", { gap: 6, seg: 6, flat: 2 });
 lego("lego-swing-gates", "swing", "the swing hills with a gate at each hilltop", { gap: 6, seg: 6, flat: 3, gates: [1, 3], gateGap: 4 }, ["gates"]);
 
@@ -491,6 +497,38 @@ function testSpec(st, args, ctx) {
   return { spec: { name: "structure " + st.id, speed: st.needs.speed, style: "classic", indicators: false, signature: false, objects: objs },
     s0, s1: s0 + r.width, width: r.width, exitCol };
 }
+
+// ---------------------------------------------------------------- variants
+// Every plain cube-on-the-ground structure also comes mirrored and upside down (Evgeni 2026-11-25: "reversed/upside-down
+// variants"; 2026-11-26 "continue"): new layouts from verified shapes without designing them, each one checked like any
+// other (check builds, solves and gates it; a variant that fails is simply not ready). Ids: "<id>~mirror", "<id>~ud".
+//   mirror: columns reversed (col -> width-1-col), slopes / pads / rotations turned with flipX and -rot; same needs/leaves.
+//   ud:     a yellow gravity portal, the body upside down under a ceiling (row -> H-1-row, flipY), a blue portal back to the
+//           floor after it: self-contained, so it chains like the original (needs and leaves stay the cube on the ground).
+// Only structures made of plain objects (no nested "pattern" entries) whose build needs no args beyond its defaults.
+function variants() {
+  const base = LIB.filter(st => st.needs.mode === "cube" && st.leaves.mode === "cube" && st.needs.grav === 1 && st.leaves.grav === 1 &&
+    !st.needs.mini && !st.leaves.mini && !st.variantOf && !(st.tags || []).some(t => /gravity|ceiling/.test(t)));
+  for (const st of base) {
+    let probe; try { probe = st.build(Object.assign({}, st.args)); } catch (e) { continue; }
+    if (!probe || probe.objects.some(e => e[0] === "pattern" || e[0] === "colour" || e[0] === "fade" || e[0] === "zoom")) continue;
+    const tags = (st.tags || []).filter(t => t !== "variant");
+    S(st.id + "~mirror", { mode: "cube", tags: [...tags, "variant", "mirror"], tier: st.tier, variantOf: st.id, doc: "mirrored: " + st.doc, args: st.args,
+      needs: st.needs, leaves: st.leaves,
+      build: a => { const r = st.build(a);
+        return { width: r.width, exitRow: r.exitRow, objects: r.objects.map(([t, c, row, x]) => { const e = Object.assign({}, x || {});
+          e.flipX = !e.flipX; if (e.rot) e.rot = -e.rot; return [t, r.width - 1 - c, row, e]; }) }; } });
+    S(st.id + "~ud", { mode: "cube", tags: [...tags, "variant", "upside down", "gravity", "gravity portal", "ceiling run"], tier: st.tier, variantOf: st.id,
+      doc: "upside down: " + st.doc, args: st.args, needs: st.needs, leaves: st.leaves,
+      build: a => { const r = st.build(a), top = Math.max(0, ...r.objects.map(e => e[2])), H = Math.max(5, top + 3), L = 3, o = [];
+        o.push(["gravity down", 0, 1]);
+        o.push(...blocks(0, L + r.width + 2, H, H + 1));
+        for (const [t, c, row, x] of r.objects) { const e = Object.assign({}, x || {}); e.flipY = !e.flipY; o.push([t, L + c, H - 1 - row, e]); }
+        o.push(["gravity up", L + r.width + 1, H - 2]);
+        return { width: L + r.width + 3, objects: o }; } });
+  }
+}
+variants();
 
 // ---------------------------------------------------------------- checks
 function check(st, args, opts = {}) {
@@ -561,7 +599,7 @@ function usageTables() {
 }
 function rank(results) {
   const U = usageTables();
-  const keyOf = r => { const ks = [r.mode !== "cube" ? r.mode : null, ...r.tags].filter(k => k && KEY[k]); return ks.length ? ks : ["spikes"]; };
+  const keyOf = r => { const ks = [r.mode !== "cube" ? r.mode : null, ...(r.tags || [])].filter(k => k && KEY[k]); return ks.length ? ks : ["spikes"]; };
   for (const r of results) {
     const ks = keyOf(r);
     // the rarest of its mechanics decides (a blue-orb ceiling run is as common as blue orbs, not as spikes)
@@ -749,7 +787,7 @@ if (require.main === module) {
     }
   } else if (cmd === "rank") {
     const res = rank(Object.values(load().structures));
-    res.forEach((r, i) => console.log(String(r.rank.ready ? i + 1 : "-").padStart(3), String(r.score).padStart(3), r.id.padEnd(20), r.mode.padEnd(7),
+    res.forEach((r, i) => console.log(String(r.rank.ready ? i + 1 : "-").padStart(3), String(r.score).padStart(3), r.id.padEnd(20), String(r.mode || "?").padEnd(7),
       `var ${r.rank.variety} use ${r.rank.usage} fair ${r.rank.fairness} read ${r.rank.readability}`, r.rank.ready ? "" : `NOT READY (${r.rank.fails} fail)`));
   } else if (cmd === "page") {
     const oi = rest.indexOf("--out"), out = oi >= 0 ? rest[oi + 1] : path.join(ROOT, "local", "structures", "structures.html");

@@ -284,3 +284,15 @@ Locked 149415501, ClockWood 150286303 (beaten), NOT A MONOCHROME LVL 149575037 (
 Gang Vibes 147433579 (completed), "A level" 148448631, Eden and Ash 146165333, Accelerate 140155559 (beaten).
 Measure them as Spooky Dash: the beaten / completed ones are the target band, the one left early a
 counter-example (what made the user stop at 25%).
+
+## Variants: mirrored and upside down (2026-11-26)
+
+Every plain cube-on-the-ground structure (no nested patterns, no gravity / ceiling tags) also exists as `<id>~mirror`
+(columns reversed, flipX, -rot) and `<id>~ud` (a yellow gravity portal, the body upside down under a ceiling at
+max(5, top+3) rows, a blue portal back down: self-contained, so it chains like the original). `tools/structures.js`
+`variants()` makes them; `check` treats them like any other structure, so only the ones that pass are ready.
+First run (`check <all ~ ids> --fast`, ~2 min in the cloud): 72 variants, 62 beaten, **42 ready** (27 mirrored, 15 upside
+down) beside 89 ready originals. Mirrors that fail are mostly climbs that turn into walls (stairs-up~mirror dies);
+upside-down ones mostly fail prejumps (the drop to the ceiling hides what comes). Variants rank low on variety when the
+original is used a lot (same tags); the picker sees them through knowledge/structures.json like the rest.
+Fixed with it: `rank` crashed on two context-only entries with no tags / mode (pit-run-twin-armed, upside-pit-run-armed).

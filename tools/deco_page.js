@@ -28,6 +28,19 @@ figcaption{font-size:12px;opacity:.8;padding:2px 0}.none{aspect-ratio:16/9;displ
 .lab{font-weight:600}</style>
 <h1>Deco options</h1><p>Same play, dressed differently. Ice on the left, fire on the right.</p>`;
 
+// the best looks now, first (local/decoart/best.json: [{group: "fire"|"ice"|..., png, caption, level?}], written by hand or a
+// deco session after each round; DECOART.md): what to look at before the older options below
+const best = readJ(path.join(L, "decoart", "best.json")) || [];
+if (best.length) {
+  h += `<h2>Best looks now</h2><p>The newest and strongest of each theme. Open the level in the viewer to mark spots.</p>`;
+  for (const g of [...new Set(best.map(b => b.group))]) {
+    h += `<h3>${esc(g)}</h3><div class=row>`;
+    best.filter(b => b.group === g).forEach((b, i) => { const f = path.isAbsolute(b.png) ? b.png : path.join(ROOT, b.png);
+      h += `<figure>${img(jpg(f, `best_${g}_${i}.jpg`), b.caption)}<figcaption>${esc(b.caption)}${b.level ? ` · in the viewer: <b>${esc(b.level)}</b>` : ""}</figcaption></figure>`; });
+    h += `</div>`;
+  }
+  h += `<h2>Earlier options (2026-11-25)</h2>`;
+}
 const gal = readJ(path.join(L, "decogallery", "options.json")) || [];
 if (gal.length) {
   h += `<h2>Element by element</h2>`;
@@ -39,6 +52,19 @@ if (gal.length) {
         h += `<figure>${img(jpg(shotsOf(r.file)[0], `g_${el}_${th}_${k}.jpg`), r.label)}<figcaption><span class=lab>${esc(el)} ${k}</span> · ${esc(th)}: ${esc(r.label)}</figcaption></figure>`; }
       h += `</div>`;
     }
+  }
+}
+// theme kits (tools/theme.js demo <kit> <level> --shots -> local/themes/<kit>_demo_<level>_shots/): ~6 frames each, spread
+const KITS = path.join(L, "themes");
+const kits = fs.existsSync(KITS) ? fs.readdirSync(KITS).filter(d => /^(\w+?)_demo_.+_shots$/.test(d) && fs.statSync(path.join(KITS, d)).isDirectory()) : [];
+if (kits.length) {
+  h += `<h2>Theme kits (tools/themes/)</h2>`;
+  for (const d of kits.sort()) {
+    const kit = /^(\w+?)_demo_/.exec(d)[1], all = fs.readdirSync(path.join(KITS, d)).filter(f => f.endsWith(".png")).sort();
+    const pick = all.length <= 6 ? all : Array.from({ length: 6 }, (_, i) => all[Math.round(i * (all.length - 1) / 5)]);
+    h += `<h3>${esc(kit)}</h3><div class=row>`;
+    pick.forEach((f, i) => { h += `<figure>${img(jpg(path.join(KITS, d, f), `k_${kit}_${i}.jpg`), kit)}<figcaption>${esc(kit)}, ${esc(f.replace(/^t0*|\.png$/g, ""))} s</figcaption></figure>`; });
+    h += `</div>`;
   }
 }
 const demo = readJ(path.join(L, "decodemo", "options.json")) || [];

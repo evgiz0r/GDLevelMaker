@@ -102,6 +102,86 @@ the block with its corner triangles and a dim rim. ~1050 objects on blocks 0-88 
 gdlm_44_hellgate_mix_layered. Open: spikes dressed the same way, cut corners / pillars in front (structure), fewer
 objects (one 3D square per cell is wasteful inside a mass), the GD-art render.
 
+Ice twin (2026-11-26, Evgeni: "give me some of the best looks of firy and icy"): `paintscene.js` scene `frozen` (night
+sky, moon, aurora ribbons, moonlit snowy ranges, an ice spire landmark) and `--blocks layered-ice`, on GDLM 72 Frostbite
+blocks 0-88: `decoart.js levels/archive/gdlm_72_frostbite.gdlvl --from 0 --to 88 --scene frozen --variants mix --blocks
+layered-ice --tag _ice`. Viewer: deco-art / gdlm_72_frostbite_mix_ice. The best looks of each theme are listed in
+`local/decoart/best.json` ({group, png, caption, level}); `tools/deco_page.js` puts them first on the phone page's deco page.
+
+## Why it still looks bland: the fire / ice looks vs rated levels (measured 2026-11-26)
+
+Evgeni: "it looks bland compared to real levels". `node tools/modern_look.js <level>` and `node tools/decocomp.js <level>`
+on the two best looks (hellgate_mix_layered, frostbite_mix_ice), against knowledge/levels/modern_look.md and
+knowledge/decocomp_ref.json (featured 2.2, median):
+
+| | ours (fire / ice) | rated 2.2 | gap? |
+|---|---|---|---|
+| objects per block | 26 / 16 | 32-46 | a bit thin |
+| colour channels, HSV share | 82, 38-50% | 54-179, 40-43% | fine |
+| front layers (T2+) | 0% / 0.8% | 17-26% (featured22 median 22%) | **none** |
+| big set pieces per screen | 0 | 11 | **none** |
+| deco kinds | 85% flat squares + triangles, disks | gradients 6-9%, particles, dots + pulsing rings, 3D outlines, clouds / grass / animated water, pixel art | **one kind** |
+| particles | 0 | 56-153 emitters / min | **none** |
+| alpha / toggle (fade in, show, hide) | 7 / min | 186-574 / min | **almost none** |
+| camera (zoom, offset, rotate, shake) | 0 | 44-107 / min | **none** |
+| shaders (blur, hue, lens, glitch) | 0 | 14-44 / min | **none** |
+| scene changes | one scene for the stretch | a new scene / palette / frame at each portal | **none** |
+
+So colour and amount are near the rated levels; what is missing is everything that is not a flat shape: soft glow and
+gradients, things in front of the player, set pieces, particles, fades, the camera and shaders. Next: real glow sprites
+(1293, gradients), a front layer (thin see-through silhouettes), one big set piece per screen, ember / snow particles,
+fade-ins at section starts, a camera zoom or shake on the drop.
+
+## Round 5 (2026-11-26): not only flat shapes, `tools/decofx.js`
+
+Evgeni: "yes, i want to iterate on looks" after the table above. One pass over a dressed stretch adds what the rated levels
+have and we lacked (each switchable with `--fx`):
+- **glow**: GD's soft glow strip 1293 (15 x 30, solid at the bottom, fading up; flipY the other way) replaces blockart's stacked
+  see-through squares: one gradient inside each open block top (blockart's glowTop channel, opacity 0.75) and a halo rising
+  above it (B1, blending, 0.35). Lay them edge to edge at exact widths (sx 2 = 30 units): an overlap of even 1 unit shows as
+  a bright seam on a blending channel. lib/look.js now draws 1293 as a gradient, so it shows on the phone and in cloud shots.
+- **front**: dark hanging silhouettes (stalactites / icicles: two flipped 693 halves) on T3 with a blended lit edge, hung from
+  y 300 and kept 75 units over the play beneath them (tests/decofx.js checks 55+); a low see-through haze over the ground.
+  Too high (from y 420 down to 200) and they never showed: the cube screen tops out near y 250.
+- **set**: one set piece a screen on B2 (fire: a gate with a glowing core and rays; ice: a crystal cluster). Behind the lane a
+  set piece must stay near the sky's value (ice: opacity 0.85, a mid blue); the first dark version fought with the cube and
+  spikes, the first light one blew out.
+- **motes**: embers rising / snow falling, big and few on T2, small and many on B2, each depth its own move.
+- **fade**: front layer and set pieces fade in (1007); **camera**: zoom 0.85 at the first mode portal and back, a flash on the
+  glow; **scene**: the glow, outline and halo turn hotter / colder at that portal.
+Not yet: real particle objects (2065: their settings string is not known to us and the viewer can't draw them), camera
+shake (the viewer does not model it), a new background per section.
+
+Results: fire +441 objects (26 -> 30 per block), ice +403. Pictures: project files decoart/round5_fx.jpg and
+round5_before_after.jpg. Viewer: deco-art / gdlm_44_hellgate_mix_layered_fx and gdlm_72_frostbite_mix_ice_fx.
+```
+node tools/decofx.js local/decoart/gdlm_44_hellgate_mix_layered.gdlvl --theme fire [--fx glow,front,set,motes,fade,camera,scene]
+node tests/decofx.js
+```
+Lesson: run `node tools/channels.js` on every deco build. A swallowed line left the set pieces' core and rim channels
+undefined, which the game would draw white.
+
+## Round 5b (2026-11-26): corners and layers, and the Woofel video
+
+Evgeni: "the structures are not exactly coherent in the corners, the layers are not proper on the blocks", with Woofel's
+"Building with Woofel 2: block design and coloring" (https://youtu.be/Xbt003ZWuQM; notes in project files
+decoart/block_design_transcripts.md, not in git).
+- **The cause:** our beat-first levels put blocks off the 30-unit grid (GDLM 44: x mod 30 = 8.9, 9.4, 20.2 by structure).
+  blockart snapped each block to the grid, so its dressing sat up to 11 units off the block, and two structures with
+  different offsets got doubled outlines. Now every piece is drawn from the block's real centre (cells are still keyed by
+  grid step for the neighbour tests). decofx's glow too. **Rule: never place dressing at `c * 30`; use the block's x, y.**
+- **Corners:** at each end of an open edge the line turns (convex: shortened by the inset), runs on (straight), or meets a
+  wall rising from the neighbour (concave: the inline runs 6 units on into the wall, the outline 2.4 to close the notch).
+- **Layers:** the black inline sits one z-order under the bright outline (Woofel: inner outlines under the outlines), over
+  the glow. One base colour per structure (connected cells) with a small value jitter, instead of 3x2 patches that showed
+  as rectangles across a body; the lava "b" colour is a dark red now, not purple.
+- Woofel's other points, still open for us: outline colour between primary and highlight (not pure); a second, smaller
+  glow on T2 over the outlines, desaturated; 3D glow as sheared tiny glow; a secondary block design for small structures
+  (same families, plainer); detail scaled to block size; an inner base with inverted colours; lighting balanced with
+  shadows below.
+Test: `node tests/decofx.js` (off-grid L shape: bases on the real centres, inner-corner inline, z-orders).
+Pictures: project files decoart/round5b_corners.jpg.
+
 ## Lessons as rules (soft; for the generator)
 
 - **Paint the section's picture before placing deco**: one focal point (light / landmark) at a third of the screen in the
@@ -140,3 +220,37 @@ blending, so paintings (and the kits' triangles) show on the phone page and in c
 - Fit weights: more detail at the focal point, less behind the play band (a readability weight).
 - C with real pictures: Evgeni's own drawings or generated images as targets.
 - Into the pipeline: theme.js / compose call decoart per section (spec "picture": {scene, approach}).
+
+## Round 6 (2026-11-26): a small icy part, almost no gameplay -- where it stands against rated levels
+
+Evgeni: "lets make a small part with icy deco, really like almost no gameplay. but decent amount of spikes bricks and deco,
+in some coherent not too random way. and see where we compare". `tools/icypart.js` builds it as one structure repeated in
+five bays of 32 columns (a one-block ice walkway, a pit with spikes ending each bay, a hanging ice mass with a row of
+icicle spikes that arches up over each jump; bay 3 a double spike, bay 4 a wider pit with a lip spike), then the ice kit
+(variant caves), `decoart.js --scene frozen --variants mix --blocks layered-ice` and `decofx.js --theme ice`. 17 s of play
+and 5-7 taps, then the outro and the signature. Three versions (specs/74_icy_part*.json, wip deco-art/gdlm_74_icy_part*_fx):
+v1 icicles high (row 6), v2 a low tunnel (row 3) everywhere, v3 the two alternating bay by bay.
+
+| measure | v1 high | v2 low | v3 mixed | rated (featured 2.2 median / range) |
+|---|---|---|---|---|
+| hazards: threat / guard / fill % | 9 / 6 / 86 | 11 / 89 / 0 | 9 / 35 / 56 | 14-23 / 39-50 / 31-43 |
+| guard above / below the lane % | 3 / 3 | 86 / 3 | 32 / 3 | 10-23 / 22-30 |
+| hazards near the player per s | 1.2 | | 3.4 | 6-11 |
+| hazards per obstacle | 1.2 | 1.3 | 1.2 | 2.2-3.3 |
+| deco rhythm cv (even = low) | 0.25 | 0.27 | 0.30 | 0.94 |
+| quiet / peak segments | 0.05 / 0 | 0.05 / 0 | 0.05 / 0 | 0.12 / 0.16 |
+| focal (densest 4 blocks of a screen) | 0.23 | 0.23 | 0.23 | 0.35 |
+| big pieces (9+ blocks^2) per screen | 0 | 0 | 0 | 11 |
+| front (T2+) share | 1.8% | 1.4% | 1.6% | 22% |
+| objects per block | 37 | | 41 | 32-46 |
+
+What it says: amount and colour are at the rated levels now, and spikes in one repeated structure read as designed. Still
+off: (1) the hazards: rated levels keep spikes close to the lane on both sides (guard below 22-30%: spikes beside and
+under the path, a hazard floor) and 2-3 per obstacle; ours sit far (v1), or all overhead (v2); v3 is near on guard but
+has no hazard floor and too few near the player. (2) the deco is spread evenly: no quiet stretches, no big moments, no
+focal spot per screen (cv 0.3 vs 0.94). (3) almost nothing in front of the player, and no big set pieces by decocomp's
+measure (our diamonds are 4 blocks^2 after scale). Next: a hazard floor (spike rows in the pits under the walkway, low
+spikes beside its edges), one big set piece per screen with a quiet stretch after it, and a T2/T3 front frame.
+
+Gotcha: `shoot.js` on a level with no saved route draws a ghost camera, far off the play (the first v1 frames showed the
+lane at the top of the picture); `wip.js put` first (it solves and saves the route), then shoot.

@@ -203,8 +203,44 @@ claude sign on every level we make".
 
 Lab v4 (`levels/lab/auto_beat.gdlvl`, Geometrical Dominator, seed 1): 106 s with the outro, 664 triggers (7 a second, was
 4.4), 72% of the notes (was 50%), 96% within a frame, speed 1x / 2x / 3x, 120 yellow + 99 red pads, 300 flips, 8 saws, clears
-with no press. Build 9 s. Open: pads on short catch ledges sometimes look like they float (their ledge is cut by the next
+with no press. Build 9 s. **v4 died in the game at ~20 s** (Evgeni: "falls down with the ship"): it was built on physics from before the same day's probe-log fixes (speed portal widths, ship -> UFO speed, ...); on today's physics the same file dies at 20.3 s in the swing. v5 = the same seed rebuilt on today's physics, clears. Lesson: rebuild (and re-check with `node -e` sim or tests) after any lib/physics.js change before installing; the heavy lock's "behind main" warning was the hint. Open: pads on short catch ledges sometimes look like they float (their ledge is cut by the next
 step); the rapid flips in a ship make small wiggles; strays are checked only before the home wall.
+
+### Evgeni on v5 in GD (2026-11-26 evening) -- what round 9 is for
+
+"the auto is not bad ... a bit too jumpy across screens at times (in the gd camera). some inside the ground play. no slopes
+at all, a slope could count as a jump in a way as it has a similar effect. the beats are somewhat ok (not perfect, still some
+feel missing). it feels very random ... how to make it slightly more attractive layout even before the deco. the spike blocks
+around the game seem also very random, they are not coherent and not fluid with the path - but blocking the path better is
+lower priority for now. for spider portals - only to very small distance. the cameras of what you think and happens in gd dont
+match exactly i think". Plan (proposed to him): shape first per phrase (a silhouette that repeats with variation), a height
+band the camera can hold, slopes as a kind, spider only where floor and roof are close, hazards that follow the path's
+contour, and a camera check against his own run.
+
+Round 9 built (the coordinator relayed his go; his answer on "inside the ground": "does junky movement somewhat within the
+block. seems fine with hitboxes, its not terrible, just janky"), `opts.shape` (default on; `false` = round 8):
+- **Echo**: phrases of 16 beats in pairs, call and response; a response note wants what the call placed on the same 16th.
+  Response notes matching their call: 51% (28% before).
+- **Camera band**: within a batch the path never climbs more than 14 rows over the band's floor (`opts.bandRows`); the band
+  follows the path down; a new batch (a section change) may move it up, and only there may a roof sit 14-25 rows up.
+  Teleports are out of the batches and the fallbacks. 1 s windows with more than 10 rows of height change: 30 -> 7; highest
+  point 58 -> 23 blocks.
+- **Slopes** (1338, flipped for down): on the ground a ledge ends on the note in a slope 1-2 rows up or down; in the air,
+  coming down, the player lands ON a slope on the note (the level is 87% in the air: only 40 of 627 notes found the player on
+  the ground). Accents are a slope or a step, half and half. 10 slopes in v6.
+- **Not inside the blocks**: `clips()` -- a candidate whose path sinks more than 4 units into a ledge or roof row is refused;
+  the final run's clip ticks: 32 -> 0.
+- **Spider** moves at most 4 rows from where the trigger finds it.
+- **Pads on something**: 11 of 190 pads hung in the air (on a slope's row, past a ledge cut later); each now gets a block.
+Lab v6: 106 s, 633 triggers, 69% of notes, clears with no press, 56 saws (the hazards that follow the path are next).
+**v6 in the game** (Evgeni died at 15.8 s; probe log, PC local/tmp/autobeat_probe/): game and sim agree tick for tick, x and y,
+for 10.3 s through ~30 pads, portals, mode changes and ground slopes -- then a cube falling onto a RISING slope lands in the game
+(vy -> 0, then 3.09) but is thrown up at once in the sim (5.77, 7.41). Air landings on slopes are off (`opts.airSlopes`) until
+the physics thread has looked; v7 has ground slopes only (fewer: the player is on the ground at ~6% of notes).
+The physics thread then matched the whole log (fc2c09f: the air landing was a MINI cube on a slope, slope ends, ground flips,
+pad on landing; PHYSICS.md "The auto beat lab log"); normal-size air landings on slopes are still unchecked, so they stay off.
+v8 = seed 3 rebuilt on that physics (v7 no longer cleared on it). The builder now also carries a ledge on past the home wall
+when the final run dies sliding off its end (Jumper seed 2's wave).
 
 ## The community auto levels (2026-11-26, `node tools/autostudy.js --community`, PC run)
 
@@ -241,3 +277,21 @@ at. On the beat about as often as chance. "Big falls in 0 s" of 29-31 blocks are
 - Secret ways with presses (jumping over a pad) are not checked; stray taps that KILL are (`clickSafe`).
 - Deco: none yet; the auto stretches in the main levels are often framed (a corridor, arrows) -- the deco step should
   frame the flight path.
+
+## Round 10: hazards that follow the path (2026-11-26, lab v9)
+
+Evgeni (round 9 note): "the spike blocks around the game seem also very random, they are not coherent and not fluid with the
+path". The hazard study (HAZARDS.md, lib/hazards.js `hazardsAlongPath`) now places them: autobeat.js runs strays() on the bare
+level, passes its leaks as `opts.leaks`, adds the result (kept only while the no-press run clears), and only then the old saw
+passes for leaks still open. `opts.hazards: false` = the old sparse ground spikes. Lab v9 (Geometrical Dominator, seed 3):
+472 hazards (53 under jumps, 126 lane blocks + 145 spikes, 74 leak blocks, 74 pit spikes, none dropped); leaks 79 -> 33 -> 15
+of 1550 strays, saws 75 -> 7. `tools/hazards.js level`: arcs with a hazard 3% -> 45% (rated 60-85), hazards near the path
+0.18 -> 2.3 a second (rated 6-11), gap between obstacles 2.0 -> 0.7 s (rated 0.5-0.6). Open: hanging spikes stacked in a
+triangle where leak blocks meet a lane piece (t 12 s), lone hanging spikes under a single block, too many guards above in
+flight (lane.fly.belowHaz 28 vs rated <20); 15 leaks are still open.
+v10 (hazards fd0639c): leaks met by a lane piece count as shut, pieces 2-3 wide, floor side half as often: fly belowHaz
+28 -> 19%, 496 hazards, 10 saws, the triangles and lone hanging spikes gone. Still off: guardAbove 27.5% (rated 10-23).
+v11 (physics 6a00a0d): Evgeni died at 3% in GD on v10 -- the sim pulled a flipped UFO 1.5x too hard (PHYSICS.md "The auto beat
+lab log"). Rebuilt on the fix: clears, 525 hazards, 3 saws, 23 leaks open.
+v12 (physics 74a3768): Evgeni's v11 run died at 3% -- a mini UFO climbs a slope later in the game, and a flipped cube dies
+landing hard (vy < -4) on a block top. Rebuilt: clears, 837 hazards (180 leak blocks), 13 saws, 37 leaks open.

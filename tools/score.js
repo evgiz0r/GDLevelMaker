@@ -212,6 +212,19 @@ function scoreLevel0(level, brief, opts = {}) {
     } catch (e) { /* deadair.js missing */ }
   }
 
+  // brick variety (LEGO.md "Open": the variety rule as a gate, WARN first): the route cut into lego pieces; a piece whose
+  // signature is one of the 4 before it repeats. Official levels: median 17%, p90 44% of pieces repeat; ours 53%.
+  // tools/lego.js varietyOf. WARN over the officials' p90 (soft: brief.accept.variety with a reason).
+  if (r.ok) {
+    try {
+      const LG = require("./lego.js"), v = LG.varietyOf(level, (natural() || r).events, opts.file);
+      if (v.pieces >= 8) {
+        const over = v.share > LG.VARIETY_REF.p90, top = {}; for (const p of v.rows) if (p.repeat) top[p.sig] = (top[p.sig] || 0) + 1;
+        const worst = Object.entries(top).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, n]) => `${k} x${n}`).join(", ");
+        gate("brick variety", over && !(brief.accept && brief.accept.variety) ? "WARN" : "PASS", `${Math.round(v.share * 100)}% of ${v.pieces} pieces repeat one of the 4 before (official levels: median 17%, p90 44%), ${v.distinct} distinct`, over ? "most repeated: " + worst : "");
+      }
+    } catch (e) { /* lego.js cut failed */ }
+  }
   // presses vs the song's tempo (the user on GDLM 44 hellgate v6: "Still the cps is very small, compared to beat of the
   // song"): inputs per beat of the human route, over the level and in its busy phrases, against the official levels
   // (0.53-0.87 per beat; busy parts p10 0.50). tools/tempo.js (polish). WARN; needs the song's beat grid and the file.
@@ -222,7 +235,26 @@ function scoreLevel0(level, brief, opts = {}) {
       if (!q.error) gate("tempo", q.flags.length ? "WARN" : "PASS", `${q.perBeat.toFixed(2)} inputs per beat (busy parts ${q.busyPerBeat.toFixed(2)}) at ${q.bpm.toFixed(0)} bpm; official levels 0.53-0.87`, q.flags.join("; "));
     } catch (e) { /* no beat grid / tempo.js missing */ }
   }
+  // density vs the target tier (Evgeni 2026-11-26: "i want levels not to be so sparse, the beats are decently quick"):
+  // the route cut into lego bricks, clicks per second against rated bricks of the tier (knowledge/brick_tiers.json),
+  // no-click share, the longest stretch with no press. tools/density.js. WARN (soft: brief.accept.density with a reason).
+  if (r.ok) {
+    try {
+      const D = require("./density.js"), tier = want.label || (diff ? GD.difficultyLabel(diff.logAttempts) : null);
+      const q = D.check(level, (natural() || r).events, tier);
+      gate("density", q.flags.length ? "WARN" : "PASS", `clicks/s median ${q.median.toFixed(2)}, calm end ${q.p10.toFixed(2)} (${q.tier}: ${q.ref.median} / ${q.ref.p10}); no-click ${Math.round(100 * q.noClick)}%; longest gap ${q.gap.toFixed(1)} s`, q.flags.join("; "));
+    } catch (e) { /* density.js missing */ }
+  }
 
+  // hazards that follow the path (Evgeni 2026-11-26: auto levels' saws "look random and don't follow the path"): the role
+  // mix of the level's hazards around its own route -- threat (within a block), guard (1-3 blocks: the lane's frame,
+  // shuts secret ways), fill -- and jumps with something under them, against rated levels. tools/hazards.js, HAZARDS.md. WARN.
+  if (r.ok) {
+    try {
+      const q = require("./hazards.js").check(level, (natural() || r).events);
+      gate("hazards", q.flags.length ? "WARN" : "PASS", q.summary, q.flags.join("; "));
+    } catch (e) { /* hazards.js missing */ }
+  }
   // few triple spikes (the user, 2026-11-24: "lets do less triple spikes for now"): at most one per 15 s, never two within
   // 4 s (tools/triples.js; knowledge/checklist.md "Few triple spikes"). WARN: soft, a level may keep one with a reason.
   try {

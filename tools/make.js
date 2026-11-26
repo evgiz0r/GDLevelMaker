@@ -311,6 +311,12 @@ function build(spec, specFile = "spec", opts = {}) {   // opts.placementsOnly: s
   // middleground (kA25: 0 none, 1.. the hill bands) and ground line (kA17)
   if (spec.art) for (const [k, v] of [["kA25", spec.art.mg], ["kA17", spec.art.line]]) if (v != null) header = header.replace(new RegExp(k + ",\\d+"), k + "," + v);
   const ctx = { grid: song ? gridOf(spec, song) : null, offset: spec.offset || 0, kA4, snap: spec.snap || 0, placements: [] };
+  // beat 1 is the first beat AT OR AFTER the song offset: an offset a hair past a beat (GDLM 44 v5-v6: 0.07 ms) makes beat 1
+  // the NEXT beat, ~a beat later than a builder counting from the level start meant (SYNC.md "bN")
+  if (ctx.grid && ctx.offset) {
+    const f = ((ctx.offset - ctx.grid.t0) / ctx.grid.period) % 1;
+    if (f > 1e-9 && f < 0.02) console.log("!! offset " + ctx.offset + " is " + (f * ctx.grid.period * 1000).toFixed(2) + " ms past a beat: beat 1 is the NEXT beat, " + ((1 - f) * ctx.grid.period).toFixed(3) + " s into the level. Put the offset on the beat (t0 + k*period) if beat 1 should be the level start.");
+  }
   const music = musicPlan(spec, ctx, song);
 
   // speed portals first, in order along the level, each one updating the timeline
@@ -549,7 +555,20 @@ function make(specFile, specObj) {
     if (sol && sol.ok && sol.events && sol.events.length) base = { level: old.level, levelStr: old.levelStr, events: sol.events };
   } catch (e) { /* no base: solve whole */ }
   writeGdlvl(out, rec, level);
-  let r = report(out, { base });
+  let r = report(out, { base, seed: spec.seedPresses });   // spec.seedPresses: the pieces' presses (tools/seedsolve.js)
+  // spec.hazardsAlong: {tier, seed} -- guards and pits along the solved route (lib/hazards.js hazardsAlongPath, HAZARDS.md:
+  // rated levels frame the lane, ~45% of hazards 1-3 blocks off the path; a brick-built level's are nearly all threats). Each
+  // new piece is replayed against the route and dropped where it would kill, so the route still clears and no re-solve is needed.
+  if (spec.hazardsAlong && r.ok) try {
+    const HZ = require("../lib/hazards.js"), wH = GD.makeWorld(level.objects, header), pth = GD.run(wH, r.events).path;
+    const opt = spec.hazardsAlong === true ? {} : spec.hazardsAlong;
+    const res = HZ.hazardsAlongPath(pth, level.objects, { tier: opt.tier || "normal", seed: opt.seed || 1, verify: { header, events: r.events } });
+    const add = res.objects.map(o => ({ rot: 0, flipX: false, flipY: false, props: {}, ...o }));
+    const q = GD.run(GD.makeWorld(level.objects.concat(add), header), r.events), e = q.path[q.path.length - 1];
+    if (e.done && !e.dead) { level.objects.push(...add); writeGdlvl(out, rec, level);
+      console.log(`   hazards along the route: +${add.length} (${JSON.stringify(res.notes)})`); }
+    else console.log(`   hazards along the route: left out (the route dies at block ${(e.x / 30).toFixed(1)} with them)`);
+  } catch (err) { console.log("   hazards along the route: skipped (" + err.message + ")"); }
   if (spec.indicators && r.ok) {
     // jump indicators come from the solved run, so they go in after the first check (no hitbox:
     // the solution does not change); then the file is written again. Without the arrow's id yet,
