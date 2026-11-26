@@ -53,6 +53,14 @@ function handle(req, res, prefix) {
     res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
     res.end(html); return true;
   }
+  // pictures the board shows (the ending sign's shots, tools/sign_board.js): local/board/img/<name>.png|jpg|gif
+  const im = rest.match(/^\/img\/([\w.-]{1,80}\.(png|jpg|gif))$/);
+  if (im && req.method === "GET") {
+    const f = path.join(DIR, "img", im[1]);
+    if (!fs.existsSync(f)) { res.writeHead(404); res.end("no " + im[1]); return true; }
+    res.writeHead(200, { "Content-Type": im[2] === "png" ? "image/png" : im[2] === "gif" ? "image/gif" : "image/jpeg", "Cache-Control": "no-store" });
+    res.end(fs.readFileSync(f)); return true;
+  }
   const m = rest.match(/^\/db\/([\w-]{1,40})$/);
   if (!m) { if (!prefix) { res.writeHead(404); res.end("not found"); return true; } return false; }
   const f = path.join(DIR, m[1] + ".json");
