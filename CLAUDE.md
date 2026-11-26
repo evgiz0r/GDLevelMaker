@@ -525,6 +525,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   `levelmap.js <level> --pieces <out>` draws a bracket per piece on the level map (where pieces join).
 - **`tools/songplan.js <song> [--to s]` -- a level's section plan from its song**: cut at the song's transitions (tools/sections.js), a mode per section by its type (break / drop / entry / groove), rests, one upside-down section, cube under ~50% (GDLM 44 v9).
 - `tools/mapbeats.py` (beat and bar lines over a levelmap.js picture). `tools/hellgate_build.js` -- GDLM 44 v3's builder: song part + local grid -> sections -> brickpick / fly-path -> specs/44_hellgate.json (+ .plan.json). **`tools/planbuild.js <briefs/NN.plan.json>`** -- the same builder with the section plan as data, for any level (GDLM 73 sunny streets; LEGO.md "The same builder for any level").
+- **Outside sources** (knowledge/external_sources.md): level databases and dumps, creation tools, record and tier lists (Pointercrate, AREDL, GDDL), other AI level makers, with APIs, terms and how each helps.
 - `examples/` -- levels the user made in the game, for reference and as format ground truth.
 
 All the library code runs in both node and the browser (no build step, no dependencies).
