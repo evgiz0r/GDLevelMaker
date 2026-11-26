@@ -203,7 +203,7 @@ claude sign on every level we make".
 
 Lab v4 (`levels/lab/auto_beat.gdlvl`, Geometrical Dominator, seed 1): 106 s with the outro, 664 triggers (7 a second, was
 4.4), 72% of the notes (was 50%), 96% within a frame, speed 1x / 2x / 3x, 120 yellow + 99 red pads, 300 flips, 8 saws, clears
-with no press. Build 9 s. Open: pads on short catch ledges sometimes look like they float (their ledge is cut by the next
+with no press. Build 9 s. **v4 died in the game at ~20 s** (Evgeni: "falls down with the ship"): it was built on physics from before the same day's probe-log fixes (speed portal widths, ship -> UFO speed, ...); on today's physics the same file dies at 20.3 s in the swing. v5 = the same seed rebuilt on today's physics, clears. Lesson: rebuild (and re-check with `node -e` sim or tests) after any lib/physics.js change before installing; the heavy lock's "behind main" warning was the hint. Open: pads on short catch ledges sometimes look like they float (their ledge is cut by the next
 step); the rapid flips in a ship make small wiggles; strays are checked only before the home wall.
 
 ## The community auto levels (2026-11-26, `node tools/autostudy.js --community`, PC run)
