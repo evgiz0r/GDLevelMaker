@@ -470,3 +470,4 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   swing), and ~15-25% of the time upside down (mains: 17%). No mirror portals for now (Evgeni).
   The cause was the library (52 cube pieces vs 2-12 per other mode at 1x), so the fix is more verified pieces per mode
   plus a mode-share target in the picker; to come as a score.js check.
+- **Spikes close to the lane on both sides, deco with a rhythm** (Evgeni 2026-11-26, the icy part, DECOART.md round 6): rated levels keep ~45% of hazards guarding the lane (above and below), 2-3 per obstacle, and deco with quiet stretches and big moments (cv ~0.9); `node tools/hazards.js level <lvl>`, `node tools/decocomp.js <lvl>`.
