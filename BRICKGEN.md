@@ -47,6 +47,53 @@ whose bricks differ only in size or height is rejected.
 
 The next method: see "Rethink" in the thread and below once agreed.
 
+## Movement study (2026-11-26, `node tools/movestudy.js [--write]`)
+
+Evgeni: "patterns of movement i mean". The study reads each brick's path (tools/lego.js pieces, staged from the PC's
+local/lego/pieces.json; 1527 official and 872 community bricks, our 732 library pieces, the retired batch). It cuts the
+path into legs at its turns (0.4-block hysteresis) and measures 11 axes per brick:
+- height range and net change;
+- legs per second;
+- median leg height;
+- how irregular the leg heights and lengths are (coefficient of variation);
+- dwell (time with vertical speed under 1 block/s);
+- distinct rest heights;
+- grounded share;
+- gravity flips;
+- mechanics touched.
+
+A set's **variety** is the median distance from each brick to its nearest other brick, in units of the official p10-p90
+spread, over random sets of 20 (a lab's size). It also counts how many of the 11 axes the set really uses: an axis counts
+when the set's own spread is at least 30% of the official one. Numbers in `knowledge/move_study.json` (no layouts).
+
+| mode | set | nearest | axes used | legs / s | leg height | height range | flips | mechanics |
+|---|---|---|---|---|---|---|---|---|
+| cube | official | 0.20 | 11 | 4.0 | 2.1 | 3.3 | 0 | 1 |
+| cube | ours (library) | 0.11 | 9 | 2.1 | 2.1 | 3.1 | 0 | 0 |
+| ship | official | 0.13 | 9 | 2.5 | 2.0 | 2.2 | 0 | 0 |
+| ship | generated (retired) | 0.12 | 8 | 1.6 | 3.5 | 5.2 | 0 | 0 |
+| ball | official | 0.20 | 11 | 3.3 | 2.3 | 3.3 | 2 | 1 |
+| ball | ours | 0.03 | 7 | 1.2 | 4.0 | 4.0 | 0 | 0 |
+| ball | generated (retired) | 0.04 | 4 | 1.7 | 3.0 | 4.0 | 5 | 0 |
+| ufo | official | 0.15 | 10 | 3.4 | 1.7 | 2.7 | 0 | 0 |
+| ufo | generated (retired) | 0.12 | 2 | 3.0 | 2.2 | 3.2 | 0 | 0 |
+| wave | official | 0.08 | 8 | 4.5 | 3.5 | 4.2 | 0 | 0 |
+| wave | generated (retired) | 0.06 | 6 | 2.5 | 4.2 | 7.2 | 0 | 0 |
+
+What it says:
+- **The metric reproduces his verdict.** The retired ball set is 0.04 against the official 0.20 and uses 4 of 11 axes;
+  the ufo set uses 2.
+- **RobTop's movement is small and frequent.** It has 1.5-2x more legs per second than ours in every mode (cube 4.0 vs
+  2.1, ball 3.3 vs 1.2, wave 4.5 vs 2.5), with smaller legs (ship 2.0 vs 3.5 blocks) and less total height (ship 2.2 vs
+  5.2). That is his "no small movements".
+- Official ball bricks flip gravity about 2 times and touch a mechanic (an orb or a pad), and both vary from brick to
+  brick. Ours never touched a mechanic.
+- Our hand-made library is less varied than the official one in every mode except ufo.
+
+How the next generator uses it:
+- A new set is accepted only when its variety (nearest) and axes used reach the official set's for the mode.
+- Each brick's numbers must sit inside the official p10-p90 on every axis.
+
 ## How a brick is made (first batch, retired)
 
 1. **Presses first.** Each brick gets a rhythm of 2-6 presses on a 0.1 s grid, about 2 clicks a second. LEGO.md measures
