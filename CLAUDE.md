@@ -517,6 +517,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 - **`tools/report.js <level>` -- the judge report** (Evgeni, 2026-11-26: "not too big, with scores"): one short card --
   Layout 0-10 (balance, flow, variety, pacing, clarity from judge.js), difficulty, unfair spots, taste, deco (later), the top 5
   notes; `--geo <map>.geo.json` (levelmap.js writes it beside each map) pins the notes on the level map. Run it on every build.
+- **`tools/density.js <level>` -- is a level sparse inside** (Evgeni 2026-11-26: "i want levels not to be so sparse"): its route cut into bricks against the tier's rated bricks (knowledge/brick_tiers.json), the calmest 4 s windows, the longest stretch with no press; score.js gate "density" (WARN). Test: `node tests/density.js`.
 - **`tools/pieces.js <spec>` -- the pieces a spec is built from**, with their spans and the gaps between them; `--out` +
   `levelmap.js <level> --pieces <out>` draws a bracket per piece on the level map (where pieces join).
 - `tools/mapbeats.py` (beat and bar lines over a levelmap.js picture). `tools/hellgate_build.js` -- GDLM 44 v3's builder: song part + local grid -> sections -> brickpick / fly-path -> specs/44_hellgate.json (+ .plan.json). **`tools/planbuild.js <briefs/NN.plan.json>`** -- the same builder with the section plan as data, for any level (GDLM 73 sunny streets; LEGO.md "The same builder for any level").

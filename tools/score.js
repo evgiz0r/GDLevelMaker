@@ -222,6 +222,16 @@ function scoreLevel0(level, brief, opts = {}) {
       if (!q.error) gate("tempo", q.flags.length ? "WARN" : "PASS", `${q.perBeat.toFixed(2)} inputs per beat (busy parts ${q.busyPerBeat.toFixed(2)}) at ${q.bpm.toFixed(0)} bpm; official levels 0.53-0.87`, q.flags.join("; "));
     } catch (e) { /* no beat grid / tempo.js missing */ }
   }
+  // density vs the target tier (Evgeni 2026-11-26: "i want levels not to be so sparse, the beats are decently quick"):
+  // the route cut into lego bricks, clicks per second against rated bricks of the tier (knowledge/brick_tiers.json),
+  // no-click share, the longest stretch with no press. tools/density.js. WARN (soft: brief.accept.density with a reason).
+  if (r.ok) {
+    try {
+      const D = require("./density.js"), tier = want.label || (diff ? GD.difficultyLabel(diff.logAttempts) : null);
+      const q = D.check(level, (natural() || r).events, tier);
+      gate("density", q.flags.length ? "WARN" : "PASS", `clicks/s median ${q.median.toFixed(2)}, calm end ${q.p10.toFixed(2)} (${q.tier}: ${q.ref.median} / ${q.ref.p10}); no-click ${Math.round(100 * q.noClick)}%; longest gap ${q.gap.toFixed(1)} s`, q.flags.join("; "));
+    } catch (e) { /* density.js missing */ }
+  }
 
   // few triple spikes (the user, 2026-11-24: "lets do less triple spikes for now"): at most one per 15 s, never two within
   // 4 s (tools/triples.js; knowledge/checklist.md "Few triple spikes"). WARN: soft, a level may keep one with a reason.
