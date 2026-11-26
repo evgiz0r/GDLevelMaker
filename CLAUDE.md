@@ -655,7 +655,7 @@ Open mismatches the plans show (not understood yet, do not paper over them):
   "fixed" (Polargeist, Dry Out, Can't Let Go, Jumper, Time Machine, Clutterfunk) show our cube landing 4-21 ticks late
   there: open. And a cube that landed on the ground jumps no sooner than the tick after (a held bounce every 104
   ticks, as GD and the user's video). PHYSICS.md "Landing buffer", "Frames: the video as the reference".
-- OPEN: an upside-down cube hitting the ground hard dies in the game (GDLM 67's green orb, 3 of 4), a soft touch does
+- In the sim since 2026-11-26 (a cut at vy -4, a guess; the auto lab v11 log gave an exact -13.6 death): an upside-down cube hitting the ground hard dies in the game (GDLM 67's green orb, 3 of 4), a soft touch does
   not; the sim never kills it. Needs the green orb's throw calibrated first. PHYSICS.md "Upside-down cube and the ground".
 
 Modes beyond cube/ship come from gdsolver's measured model and the gdp decompile, checked only

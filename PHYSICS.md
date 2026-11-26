@@ -230,7 +230,7 @@ air and released before the landing does NOTHING, however close to the landing.
   a tap released 14 ticks before landing does not jump; a press held through does; one released on the first grounded
   tick still does.
 
-## Upside-down cube and the ground (2026-11-24): OPEN, not in the sim
+## Upside-down cube and the ground (2026-11-24): in the sim since 2026-11-26 (vy < -4 kills; the cut is a guess)
 
 GDLM 67's green orb station (18-58-15.mkv) throws the cube down with gravity flipped; it then meets the flat floor head
 first. The game: attempts 58.2, 98.4 and 158.3 burst on the floor (no hazard near, frames 68.45-68.70 and framecheck's
@@ -763,15 +763,25 @@ these four UFO rules the sim matches every tick to the game's spike death (881 s
 - **A flipped UFO's gravity switch is the mirror of the upright one** (0.086 while player-frame vy <= +2g, 0.129 above), not
   GD's world-frame ship rule: from rest after a UFO + gravity-up portal pair the game pulls 0.086 a tick, the old rule 0.129
   (`GDLM_UFO_FLIP=old`; ticks 345-360).
-- **A boosted UFO is still held to its cap going up in world terms**: a yellow pad's 16 is 8.000 the next tick (mini 12.8 ->
-  9.412), while a flipped UFO's red pad -9.6 (down in the world) keeps its speed (`GDLM_UFO_PADCAP=old`; ticks 432, 851, 388).
-  Ship pads keep their boost (not measured here).
+- **A UFO's yellow pad leaves no boost; its red pad keeps it** (corrected by the v11 log below): yellow 16 is 8.000 the next tick
+  (mini 12.8 -> 9.412, the UFO's cap), a flipped red pad's -9.6 and a mini red pad's 12.544 keep their speed
+  (`GDLM_UFO_PADCAP=old`; v10 ticks 432, 851, 388; v11 tick 851). Pink pads and ship pads not measured here.
 - **A mini player that grows into the band's floor or roof stops dead** there (vy 0, not only speed into it):
   `GDLM_GROW_STOP=old`; tick 682.
 - **A flipped UFO whose 9x9 kill box meets a block with its centre within 4.5 under the block's top is set on that top**
   (lifted 11.3, vy 0) and lives: `GDLM_FLY_LIFT=old`; tick 807. ONE sample (a mini UFO): which modes, sizes and faces get
   it is open.
 None of the four moves the 21 main logs, Evgeni's ToE / ToE2 / Hexagon / Deadlocked runs or the tas ratchet.
+
+Lab v11 log (2026-11-26, same folder, 1057 steps): now matches every tick to the game's death, with:
+- **A UFO rides a floor slope as the cube does**: GD's foot rule with its own half (a mini UFO's centre 9 + 9 tan(22.5) over a
+  45-degree line, so it starts climbing ~5 units later than the old corner rule), held a tick at the top, then launched --
+  5.554 for a mini UFO at 1x on 45 degrees (0.750 of the cube's 7.405); a normal UFO's launch is UNMEASURED (the cube's is
+  used). On the launch tick, and when a pad launches a UFO sitting on a block, it keeps that tick's gravity step (0.023 under
+  the top) instead of the block's snap (`GDLM_UFO_SLOPE=old`, `GDLM_PADLAND=old`; ticks 736-760, 851).
+- **An upside-down cube that hits the ground hard dies** (no object): a flipped mini cube at vy -13.6, tick 1057. The cut is
+  vy < -4, a guess inside GDLM 67's band (~-6 dies, ~-1.7 lives; section "Upside-down cube and the ground")
+  (`GDLM_FLIP_GROUND=old`).
 
 ## Fidelity: measuring the sim against the user's game (goal: "as close as possible")
 
