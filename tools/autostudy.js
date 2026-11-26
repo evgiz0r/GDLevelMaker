@@ -36,7 +36,7 @@ function describe(w, p, ia, ib) {
     for (const u of s.used || []) if (!seen.has(u)) {
       seen.add(u);
       const it = w.items.find(t => t.i === u);
-      if (it && it.kind !== "coin") movers.push({ kind: it.kind, name: it.d.name || String(it.o.id) });
+      if (it && it.kind !== "coin") movers.push({ kind: it.kind, name: it.d.name || String(it.o.id), x: it.o.x });
     }
   }
   if (slopeT > 0.25 * TPS) movers.push({ kind: "slope", name: "slope ride" });
