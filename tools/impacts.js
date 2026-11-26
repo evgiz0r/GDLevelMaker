@@ -26,7 +26,8 @@ const ROOT = path.join(__dirname, "..");
 function songFile(arg) {
   if (/^\d+$/.test(String(arg))) return { file: path.join(ROOT, "local", "songs", arg + ".mp3"), url: "/song/custom/" + arg + ".mp3" };
   const m = /^official:(\d+)$/.exec(arg);
-  if (m) return { file: null, url: "/song/official/" + OFFICIAL[+m[1] - 1] + ".mp3" };
+  if (m) { const f = path.join(require("./gdpaths.js").GAME, "Resources", OFFICIAL[+m[1] - 1] + ".mp3");
+    return { file: fs.existsSync(f) ? f : null, url: "/song/official/" + OFFICIAL[+m[1] - 1] + ".mp3" }; }
   return { file: arg, url: "/song/custom/" + path.basename(arg) };
 }
 
