@@ -84,18 +84,21 @@ function pass(level, events, opts, spec) {
     out.push(...SD.dress(groups[i], s.design, pals.get(palKey(s.pal)).C, { effects: [].concat(s.effects || []), interior: o.interior })); });
   // skies and backdrops: a section with a theme gets its sky (colour triggers at its start, unless a theme kit owns the
   // colours) and its backdrop option drawn over its span, on 4 channels per palette (880, 884, 888 ...)
-  const BD = require("./backdrops.js"), bg0 = o.bgCh0 || [880, 884, 888, 892, 896], bgs = new Map(); let nb = 0, ns = 0;
+  const BD = require("./backdrops.js"), bg0 = o.bgCh0 || [880, 884, 888, 892, 896], bgs = new Map(), warned = new Set(); let nb = 0, ns = 0;
   const end = Math.max(...level.objects.map(b => b.x)) + 300;
   o.secs.forEach((s, i) => {
     const x0 = s.from * 30, x1 = i + 1 < o.secs.length ? o.secs[i + 1].from * 30 : end;
-    const skies = s.skies || [], sky = skies.length ? skies[(s.sky != null ? s.sky : i) % skies.length] : null;
+    const skies = s.skies || [], sky0 = skies.length ? skies[(s.sky != null ? s.sky : i) % skies.length] : null;
+    // lifted until the blocks stand out of it (backdrops.fit); what still fails the contrast rules is a warning
+    const P = typeof s.pal === "string" ? B.PAL[s.pal] : s.pal, sky = sky0 && P ? BD.fit(P, sky0) : sky0;
+    if (sky && P) for (const w of BD.check(P, sky)) if (!warned.has(w)) { warned.add(w); notes.push(`!! contrast (section ${s.from}): ${w}`); }
     // the middleground (1013 / 1014) too: left undefined the game draws lilac hills (fire kit's note)
     if (sky && o.skies) { const mg = sky.mid || sky.bg.map((v, k) => Math.round((v + sky.ground[k]) / 2)), xt = Math.max(0, x0 - 60);
       out.push(K.colour(xt, 1000, sky.bg, 0.6), K.colour(xt, 1001, sky.ground, 0.6), K.colour(xt, 1013, mg, 0.6), K.colour(xt, 1014, sky.ground, 0.6)); ns++;
       if (i === 0) header = K.channels(header, { 1000: { rgb: sky.bg }, 1001: { rgb: sky.ground }, 1013: { rgb: mg }, 1014: { rgb: sky.ground } }); }
     if (!o.backdrops || !s.backdrops) return;
     const opt = s.backdrop || Object.keys(s.backdrops)[0], names = Array.isArray(opt) ? opt : s.backdrops[opt]; if (!names) return;
-    const P = typeof s.pal === "string" ? B.PAL[s.pal] : s.pal, key = palKey(s.pal) + JSON.stringify(sky && sky.bg);
+    const key = palKey(s.pal) + JSON.stringify(sky && sky.bg);
     if (!bgs.has(key)) { if (bgs.size >= bg0.length) return; const cols = BD.colours(P, sky || { bg: [20, 20, 30] }), b = bg0[bgs.size];
       const C = { far: b, mid: b + 1, light: b + 2, glow: b + 3 };
       header = K.channels(header, { [C.far]: { rgb: cols.far }, [C.mid]: { rgb: cols.mid }, [C.light]: { rgb: cols.light }, [C.glow]: { rgb: cols.glow, blend: true, opacity: 0.35 } });

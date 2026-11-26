@@ -438,8 +438,19 @@ hills), the backdrop, the designs, the hazards' dressing, the holders; make.js t
 runs BEFORE the indicators, so their colour sees the dressed hazards. Channels: blocks 912 / 922 / 933, hazards 943 / 950 /
 957, backdrops 880 + 4 per palette (a spec's ch0 / hazCh0 / bgCh0 lists change them).
 Gallery: deco-art/gdlm_design_themes (`node tools/designthemes.js spec`, specs/lab_design_themes.json, levels/
-gdlm_design_themes.gdlvl): per theme its block combinations (backdrop a, sky 0) then a sample segment (spikes, a step, a held
-island with spikes, a sunk saw, a big structure with a saw on its corner; backdrop b, sky 1). Picture decoart/design_themes.jpg.
+gdlm_design_themes.gdlvl): ONE scene per theme (Evgeni 2026-11-27: "i dont want 2 pictures, just 1 full scene with pieces";
+"the part should have variaty ( some big structures, hanging , stuff, some slopes, connecting structures")): `SCENE` in
+designthemes.js, a text map -- a slope ramp platform with a spike, a hanging T with a hanging spike, three held islands with
+spikes, a big roofed structure with a saw on its corner, a held ring, a sunk saw, a hill, a double spike; sky 0, backdrop a.
+Catalogue: the lego catalogue's Themes tab, one strip per theme (`node tools/designs.js cards --themes`: the scene shot a
+screen at a time and joined).
+Contrast (Evgeni 2026-11-27: "the background and the blocks look too alike, they should have some contrast to the blocks
+and hazards"): the old skies were dark versions of the blocks' own hue and the backdrops were mixed toward the block colour.
+Now: each theme's skies are in another hue (40-176 degrees from the blocks), the backdrop pieces stay in the SKY's hue a few
+steps lighter (`backdrops.colours`), and the pass lifts every sky (same hue, brighter) until the block body stands out at a
+luminance ratio of 1.6 (`backdrops.fit`). `backdrops.check(pal, sky)`: block/sky and block/backdrop ratio >= 1.5 (or >= 1.25
+with hue >= 60 apart), hazard line vs sky >= 2; the pass prints a `!! contrast` note when a section fails, tests/structdeco.js
+checks every preset. Our blocks' bodies are dark, so the sky goes mid-tone (blocks read as dark masses with lit rims).
 Test: `node tests/structdeco.js`. The art-free render shows the spike / saw dressing only faintly (1889, 503 ...): judge
 those in GD art on the PC or in the game.
-Open: a theme from a theme kit (tools/themes/*) or from the song's mood; the "c" backdrops are not in the gallery yet.
+Open: a theme from a theme kit (tools/themes/*) or from the song's mood; backdrops b and c are not in the gallery (only a); the scene's seams between shots move a little when the camera rises.
