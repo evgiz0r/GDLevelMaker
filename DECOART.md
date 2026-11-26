@@ -102,6 +102,12 @@ the block with its corner triangles and a dim rim. ~1050 objects on blocks 0-88 
 gdlm_44_hellgate_mix_layered. Open: spikes dressed the same way, cut corners / pillars in front (structure), fewer
 objects (one 3D square per cell is wasteful inside a mass), the GD-art render.
 
+Ice twin (2026-11-26, Evgeni: "give me some of the best looks of firy and icy"): `paintscene.js` scene `frozen` (night
+sky, moon, aurora ribbons, moonlit snowy ranges, an ice spire landmark) and `--blocks layered-ice`, on GDLM 72 Frostbite
+blocks 0-88: `decoart.js levels/archive/gdlm_72_frostbite.gdlvl --from 0 --to 88 --scene frozen --variants mix --blocks
+layered-ice --tag _ice`. Viewer: deco-art / gdlm_72_frostbite_mix_ice. The best looks of each theme are listed in
+`local/decoart/best.json` ({group, png, caption, level}); `tools/deco_page.js` puts them first on the phone page's deco page.
+
 ## Lessons as rules (soft; for the generator)
 
 - **Paint the section's picture before placing deco**: one focal point (light / landmark) at a third of the screen in the
