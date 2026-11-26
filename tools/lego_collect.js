@@ -1,4 +1,5 @@
-// node tools/lego_collect.js [--max N] [--tiers Easy,Normal,Hard] [--minutes M] [--dry]
+// node tools/lego_collect.js [--max N] [--tiers Easy,Normal,Hard] [--minutes M] [--first id,id,...] [--dry]
+// --first: these levels go first (Evgeni's Study ticks on the work board), then the rest of the queue.
 // Keeps the lego catalogue growing from community levels (Evgeni 2026-11-25: "keep collecting structures [...] part of each
 // level analysis"; "start with easier levels, demons when physics gets better"). From his save's catalogue
 // (local/difficulty/user_stats_online.json, tools/save_stats.js), online levels that are NOT demons, the ones he beat first,
@@ -14,6 +15,7 @@ const A = process.argv.slice(2), opt = (k, d) => { const i = A.indexOf("--" + k)
 const TIERS = ["Auto", "Easy", "Normal", "Hard", "Harder", "Insane", "?"];
 const want = (opt("tiers") || "Auto,Easy,Normal,Hard,Harder,Insane").split(",");
 const LOG = path.join(LOCAL, "lego", "collect.jsonl");
+const FIRST = new Set(String(opt("first") || "").split(",").filter(Boolean).map(Number));
 
 function tried() {
   const s = new Set();
@@ -25,7 +27,7 @@ function queue() {
   const T = tried();
   return cat.levels.filter(l => l.kind === "online" && !l.demon && !String(l.tier).endsWith("Demon") && want.includes(l.tier) &&
       !T.has(l.id) && !fs.existsSync(path.join(LOCAL, "difficulty", "c" + l.id + ".json")))
-    .sort((a, b) => (b.done - a.done) || (TIERS.indexOf(a.tier) - TIERS.indexOf(b.tier)) || ((b.attempts || 0) - (a.attempts || 0)));
+    .sort((a, b) => (FIRST.has(b.id) - FIRST.has(a.id)) || (b.done - a.done) || (TIERS.indexOf(a.tier) - TIERS.indexOf(b.tier)) || ((b.attempts || 0) - (a.attempts || 0)));
 }
 
 if (require.main === module) {
