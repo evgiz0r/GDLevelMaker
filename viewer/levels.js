@@ -3877,9 +3877,11 @@ window.GD_LEVELS = [
       "boost": true
      }
     ]
-   ]
+   ],
+   "stale": true,
+   "replayedOn": "627cb2a"
   },
-  "made": "2026-11-26T20:16:13.791Z"
+  "made": "2026-11-26T20:21:49.000Z"
  },
  {
   "name": "GDLM 73 sunny streets",
