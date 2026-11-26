@@ -32,6 +32,8 @@
 // 8. The ending every level gets: the auto outro (autobricks.js) + the signature (signature.js), as make.js does.
 // 9. Round 9 (opts.shape, default on; AUTO.md): echo phrases, a camera band, slopes, no sinking into blocks, short spider
 //    moves, no teleports, a block under every pad.
+// 10. Round 10 (opts.hazards, default on): hazards that follow the path, from lib/hazards.js (HAZARDS.md), the stray presses'
+//    leaks blocked on the same lane line; saws only for leaks still open after it.
 "use strict";
 if (require.main === module) require("./heavy.js").claim();
 const fs = require("fs"), path = require("path");
@@ -672,7 +674,8 @@ function build(opts = {}) {
     fin = run(st.objs, st.segs, 1e9, endX + 90);
   }
   const spikes = [];
-  if (!fin.dead) {
+  // (the old sparse ground spikes; since round 10 lib/hazards.js places hazards along the path, below: opts.hazards false = the old way)
+  if (!fin.dead && opts.hazards === false) {
     const p = fin.p, lowAt = new Map();
     for (const s of p) { const c = Math.floor(s.x / B); lowAt.set(c, Math.min(lowAt.get(c) ?? 1e9, s.y)); }
     const blocked = new Set();
@@ -711,6 +714,22 @@ function build(opts = {}) {
       }
       M0.padFeet = (st.segs.filter(q => q.tag === "padfoot").length) + "/" + added.length;
     }
+  }
+  // ---- hazards that follow the path (round 10; Evgeni: "the spike blocks around the game seem also very random, they are not
+  // coherent and not fluid with the path"): lib/hazards.js hazardsAlongPath, fitted on the main levels and rated community
+  // levels (HAZARDS.md) -- spikes under air arcs, lane pieces on the path's contour 2-3 blocks off in flying stretches, pit
+  // floors, and each stray press's leak blocked on that same line. The saws below only take the leaks still open after it.
+  if (opts.hazards !== false && !fin.dead) {
+    Object.assign(GD, require("../lib/hazards.js"));
+    const sr = strays(st.objs, st.segs, fin, { uptoX: wx - 60, farX: endX + 90 });
+    const lv0 = GD.parseLevel(levelString(st.objs, st.segs)), w0 = GD.makeWorld(lv0.objects, lv0.header), q0 = GD.run(w0, []);
+    const hz = GD.hazardsAlongPath(q0.path, lv0.objects, { tier: opts.tier || "normal", seed, leaks: sr.leaks.map(l => ({ path: l.path })),
+      verify: { header: lv0.header, events: [] } });
+    const add = hz.objects.map(o => ({ id: o.id, x: o.x, y: o.y, flipY: !!o.flipY, kind: "haz" }));
+    const res = add.length ? run(st.objs.concat(add), st.segs, 1e9, endX + 90) : fin;
+    if (!res.dead) { st.objs = st.objs.concat(add); fin = res; }
+    M0.hazards = Object.assign({ placed: res.dead ? 0 : add.length, leaksBefore: sr.leaks.length + "/" + sr.checked }, hz.notes);
+    if (!opts.quiet) console.log(`  hazards along the path: ${M0.hazards.placed} (threats ${hz.notes.threats}, walls ${hz.notes.walls}+${hz.notes.wallSpikes} spikes, leak blocks ${hz.notes.leakBlocks}, pits ${hz.notes.pits}, dropped ${hz.notes.dropped})` + (res.dead ? " -- the run died with them: left out" : ""));
   }
   // ---- no secret way (strays / blockSpot above): up to opts.blockPasses (4) passes of saws on the leaks, each kept only
   // while the auto run still clears (a pass that kills drops its saws near the death and tries again)

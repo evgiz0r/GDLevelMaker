@@ -20,7 +20,7 @@
 "use strict";
 const fs = require("fs"), path = require("path");
 const GAP = 1.2, FLYMAX = 4.0, FEWCPS = 0.5, SAME = 0.75, VARIETY_S = 4.0, ENDFLAT = 3;
-const FLY = new Set(["ship", "wave", "swing"]);
+const FLY = new Set(["ship", "wave", "swing"]), BANDED = new Set(["ship", "ufo", "wave", "swing", "ball", "spider"]);
 
 function judge(file) {
   const { readGdlvl, GD } = require("./io.js"), S = require("./solutions.js"), O = require("../lib/objects.js");
@@ -42,12 +42,14 @@ function judge(file) {
   const med = a => { const b = a.slice().sort((x, y) => x - y); return b.length ? b[b.length >> 1] : 0; };
   const levelCps = presses.length / (p.length / TPS);
   // few clicks
-  for (const s of secs) if (s.dur >= 2 && s.cps < FEWCPS * levelCps)
+  for (const s of secs) if (s.dur >= 2 && s.cps < FEWCPS * levelCps && !(s.n === 0 && s.b >= p.length - 1))   // (the auto outro at the end: no clicks by design)
     at((s.a + s.b) >> 1, "few clicks", `${s.mode} ${s.sp}: ${s.n} click${s.n === 1 ? "" : "s"} in ${s.dur.toFixed(1)} s (${s.cps.toFixed(1)}/s; the level ${levelCps.toFixed(1)}/s)`, s.a, s.b);
   // gaps on the ground (from a section's start or a press to the next press)
   for (const s of secs) { if (FLY.has(s.mode)) continue;
     const ts = [s.a, ...presses.filter(t => t > s.a && t <= s.b), s.b];
-    for (let i = 1; i < ts.length; i++) if ((ts[i] - ts[i - 1]) / TPS > GAP) at((ts[i - 1] + ts[i]) >> 1, "gap", `${((ts[i] - ts[i - 1]) / TPS).toFixed(1)} s with nothing to press (${s.mode})`, ts[i - 1], ts[i]); }
+    // an auto ride (pads or orbs touched on the way, make.js "outro") is not a gap: something is happening
+    const rides = (a, b) => { for (let k = a; k < b; k++) if ((p[k].used || []).length && (!p[k - 1] || (p[k - 1].used || []).length !== p[k].used.length)) return true; return false; };
+    for (let i = 1; i < ts.length; i++) if ((ts[i] - ts[i - 1]) / TPS > GAP && !rides(ts[i - 1], ts[i])) at((ts[i - 1] + ts[i]) >> 1, "gap", `${((ts[i] - ts[i - 1]) / TPS).toFixed(1)} s with nothing to press (${s.mode})`, ts[i - 1], ts[i]); }
   // flying stretches: too long, and the same wall shape as an earlier one
   // a corridor's shape = its floor, block by block: the top of the highest solid under the route (from the start's)
   const solids = L.level.objects.filter(o => (O.objInfo(o.id) || {}).kind === "solid");
@@ -85,7 +87,8 @@ function judge(file) {
   // show it (Evgeni on v5, 2026-11-26: "we fall from the top, but there is no indication of top. some secret ways can be
   // like that"); one note per section
   const solidNear = (x, y) => solids.some(o => Math.abs(o.x - x) < 45 && Math.abs(o.y - y) < 40);
-  for (const sc of secs) for (let k = sc.a; k <= sc.b; k += 4) { const q = p[k];
+  // (only the banded modes play in a band: a cube or robot keeps the last band's numbers but does not use them)
+  for (const sc of secs) for (let k = sc.a; k <= sc.b; k += 4) { const q = p[k]; if (!BANDED.has(q.mode)) continue;
     const roof = isFinite(q.ceilY) && q.y + 20 >= q.ceilY, floor = isFinite(q.floorY) && q.floorY > 0 && q.y - 20 <= q.floorY;
     if ((roof && !solidNear(q.x, q.ceilY + 15)) || (floor && !solidNear(q.x, q.floorY - 15))) {
       at(k, "unseen roof", `${q.mode}: the route ${roof ? "hits the band's roof" : "rides the band's floor"} at ${Math.round(roof ? q.ceilY : q.floorY)} with nothing drawn there`); break; } }

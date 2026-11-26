@@ -562,3 +562,5 @@ Numbers in code: `node tools/brickstats.js [--write]` (-> knowledge/brick_tiers.
 | ours | 732 (28) | 14% | 0.58 / 1.19 / 2.00 | 242 / 133 ms | cube 61%, ship 15%, wave 10% |
 
 Tiers differ by precision (p10 window 142 -> 67 ms) and mode mix (cube ~80% up to Hard, ~43% from Harder), hardly by cps (median 1.8 -> 2.15; only the busy p90 grows). Ours: calmer than Easy (median 1.19) with the widest windows, so too much empty run between clicks. Official + community: 61% of bricks at 1.5-2.5 cps, 3% above 4 (wave holds); 49% of tightest windows 150-250 ms, 6% under 75 ms. Caveats: Normal is 2 levels; Hard's no-click share is mostly one community level; partial routes cover only a level's start.
+
+**Brick difficulty: use `tightMs`, not `diff`** (2026-11-26). 89% of official bricks and 80% of ours carry a measured tightest window; their summed `diff` (-log10 hit chance per press) is ~0.01 on most, since a press with a 150+ ms window costs almost nothing, so `diff` cannot order bricks. The catalogue's easiest / hardest sort now goes by `tightMs` (diff only breaks ties). A picker that scores difficulty should do the same.

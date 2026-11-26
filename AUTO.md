@@ -277,3 +277,17 @@ at. On the beat about as often as chance. "Big falls in 0 s" of 29-31 blocks are
 - Secret ways with presses (jumping over a pad) are not checked; stray taps that KILL are (`clickSafe`).
 - Deco: none yet; the auto stretches in the main levels are often framed (a corridor, arrows) -- the deco step should
   frame the flight path.
+
+## Round 10: hazards that follow the path (2026-11-26, lab v9)
+
+Evgeni (round 9 note): "the spike blocks around the game seem also very random, they are not coherent and not fluid with the
+path". The hazard study (HAZARDS.md, lib/hazards.js `hazardsAlongPath`) now places them: autobeat.js runs strays() on the bare
+level, passes its leaks as `opts.leaks`, adds the result (kept only while the no-press run clears), and only then the old saw
+passes for leaks still open. `opts.hazards: false` = the old sparse ground spikes. Lab v9 (Geometrical Dominator, seed 3):
+472 hazards (53 under jumps, 126 lane blocks + 145 spikes, 74 leak blocks, 74 pit spikes, none dropped); leaks 79 -> 33 -> 15
+of 1550 strays, saws 75 -> 7. `tools/hazards.js level`: arcs with a hazard 3% -> 45% (rated 60-85), hazards near the path
+0.18 -> 2.3 a second (rated 6-11), gap between obstacles 2.0 -> 0.7 s (rated 0.5-0.6). Open: hanging spikes stacked in a
+triangle where leak blocks meet a lane piece (t 12 s), lone hanging spikes under a single block, too many guards above in
+flight (lane.fly.belowHaz 28 vs rated <20); 15 leaks are still open.
+v10 (hazards fd0639c): leaks met by a lane piece count as shut, pieces 2-3 wide, floor side half as often: fly belowHaz
+28 -> 19%, 496 hazards, 10 saws, the triangles and lone hanging spikes gone. Still off: guardAbove 27.5% (rated 10-23).

@@ -34,6 +34,7 @@ for (const [song, seed, music] of [["Electrodynamix", 8, null], ["Jumper", 2, nu
   ok(m.riseBlocks <= 35, `the path stays low enough for the camera: rises ${m.riseBlocks} blocks`);
   ok((m.byKind.slope || 0) >= 1, `slopes as a move (ground slopes only while air landings are off) (${m.byKind.slope || 0})`);
   ok(m.clipTicks <= 30, `no play inside the blocks: ${m.clipTicks} ticks`);
+  ok(m.hazards && m.hazards.placed > 50 && m.hazards.threats > 0, `hazards follow the path (lib/hazards.js): ${JSON.stringify(m.hazards)}`);
 }
 console.log(bad ? bad + " failed" : "all ok");
 process.exit(bad ? 1 : 0);

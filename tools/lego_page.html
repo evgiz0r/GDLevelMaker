@@ -260,7 +260,10 @@ function filter() {
   VIEW = ALL.filter(p => gOk(p) && (ours || p.src === "official") && (un || p.verified) && (em || !p.empty) && (du || !p.dupOf) && (ro || p.smooth) && (ji || (!p.jitter && (!p.routeKind || p.routeKind === "human" || p.routeKind === "ours"))) && vok(p) && (!s || p.src === s) && (!f || p.family === f) && (!m || p.mode === m) && (!w || p.wrap === w) && (!q || (p.sig + " " + p.level + " " + p.mech.join(" ")).toLowerCase().includes(q)));
   const so = $("fsort").value;
   if (so === "cps" || so === "cpsl") VIEW.sort((a, b) => so === "cps" ? (cpsOf(b) ?? -1) - (cpsOf(a) ?? -1) : (cpsOf(a) ?? 99) - (cpsOf(b) ?? 99));
-  else if (so) VIEW.sort((a, b) => so === "easy" ? (a.diff ?? 99) - (b.diff ?? 99) : (b.diff ?? -1) - (a.diff ?? -1));
+  // by the tightest window (2026-11-26: the summed "diff" is ~0.01 on most bricks, a wide-window press costs ~nothing, so it
+  // could not order them; the tightest window separates the tiers: p10 142 ms Easy .. 67 ms Demon); diff breaks ties
+  else if (so) { const tw = p => p.tightMs != null ? p.tightMs : null;
+    VIEW.sort((a, b) => so === "easy" ? ((tw(b) ?? -1) - (tw(a) ?? -1)) || ((a.diff ?? 99) - (b.diff ?? 99)) : ((tw(a) ?? 1e9) - (tw(b) ?? 1e9)) || ((b.diff ?? -1) - (a.diff ?? -1))); }
   render(true);
 }
 

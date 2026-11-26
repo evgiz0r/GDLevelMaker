@@ -161,6 +161,27 @@ node tests/decofx.js
 Lesson: run `node tools/channels.js` on every deco build. A swallowed line left the set pieces' core and rim channels
 undefined, which the game would draw white.
 
+## Round 5b (2026-11-26): corners and layers, and the Woofel video
+
+Evgeni: "the structures are not exactly coherent in the corners, the layers are not proper on the blocks", with Woofel's
+"Building with Woofel 2: block design and coloring" (https://youtu.be/Xbt003ZWuQM; notes in project files
+decoart/block_design_transcripts.md, not in git).
+- **The cause:** our beat-first levels put blocks off the 30-unit grid (GDLM 44: x mod 30 = 8.9, 9.4, 20.2 by structure).
+  blockart snapped each block to the grid, so its dressing sat up to 11 units off the block, and two structures with
+  different offsets got doubled outlines. Now every piece is drawn from the block's real centre (cells are still keyed by
+  grid step for the neighbour tests). decofx's glow too. **Rule: never place dressing at `c * 30`; use the block's x, y.**
+- **Corners:** at each end of an open edge the line turns (convex: shortened by the inset), runs on (straight), or meets a
+  wall rising from the neighbour (concave: the inline runs 6 units on into the wall, the outline 2.4 to close the notch).
+- **Layers:** the black inline sits one z-order under the bright outline (Woofel: inner outlines under the outlines), over
+  the glow. One base colour per structure (connected cells) with a small value jitter, instead of 3x2 patches that showed
+  as rectangles across a body; the lava "b" colour is a dark red now, not purple.
+- Woofel's other points, still open for us: outline colour between primary and highlight (not pure); a second, smaller
+  glow on T2 over the outlines, desaturated; 3D glow as sheared tiny glow; a secondary block design for small structures
+  (same families, plainer); detail scaled to block size; an inner base with inverted colours; lighting balanced with
+  shadows below.
+Test: `node tests/decofx.js` (off-grid L shape: bases on the real centres, inner-corner inline, z-orders).
+Pictures: project files decoart/round5b_corners.jpg.
+
 ## Lessons as rules (soft; for the generator)
 
 - **Paint the section's picture before placing deco**: one focal point (light / landmark) at a third of the screen in the
