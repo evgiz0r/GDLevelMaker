@@ -208,6 +208,9 @@ parts. The official levels agree (above). So:
 - `"bN"`: where the cube's centre is on level beat N (beat 1 = the first beat at or after the
   level start, `kA13`). Orbs, pads and portals placed there are hit on the beat, as the
   official levels do it. `"b16.5"` is the half-beat; `"b16+2"` is two blocks later.
+  **Gotcha:** an offset a hair past a beat makes beat 1 the NEXT beat (GDLM 44 v5-v6: offset 20.9615 was 0.07 ms past
+  beat 48, so every `"bN"` sat one beat, 4.3 blocks, later than its builder counted, and a floor placed by column sat 0.3
+  block off the bricks). Put the offset exactly on a beat (`t0 + k * period`); make.js warns (`!! offset ... past a beat`).
 - `"jN"`: a spike placed so that the jump over it is pressed on beat N. It starts from the
   one-spike jump lead (below). Then make.js solves the level, finds the press that clears each
   jN group (all objects with the same jN) and slides the group until that press's window is

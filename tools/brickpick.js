@@ -29,7 +29,7 @@ function bricks(mode, max, speed) {
   const all = Object.values(JSON.parse(fs.readFileSync(path.join(__dirname, "..", "knowledge", "structures.json"), "utf8")).structures);
   return all.filter(s => s.ok && s.needs.mode === mode && s.leaves.mode === mode && s.needs.speed === (speed || "1x") && (s.needs.grav ?? 1) === 1
     && (s.leaves.grav ?? 1) === 1 && !s.needs.mini && !s.tags.some(t => /speed|teleport|mini/.test(t)) && s.pic && s.pic.presses && !(s.notes && ((mode === "cube" && s.notes.prejumps) || s.notes.timing || s.notes.fairness)) && (TIER[s.label] ?? 1) <= (TIER[max] ?? 1))
-    .map(s => ({ id: s.id, tags: s.tags, width: s.width, label: s.label,
+    .map(s => ({ id: s.id, tags: s.tags, width: s.width, label: s.label, portal: s.tags.some(t => /portal/.test(t)),
       // press offsets in blocks from the brick's first column (pic.x0 is 2 blocks before it)
       dx: s.pic.presses.map(p => (p[0] - (s.pic.x0 + 60)) / 30) }));
 }
@@ -134,6 +134,9 @@ function pickSection(o) {
       for (const b of lib) for (let g = g0; g <= g1; g++) {
         const c = st.col + g; if (c + b.width > end) continue;
         const ts = b.dx.map(d => (c + d) / v); if (ts[0] - st.lastPress < 0.3) continue;
+        // a piece with a portal is verified from a flat run-in: the cube on the ground when it gets there (GDLM 44 v7e: a
+        // spike jumped 2 blocks before red-orb-wall~ud's gravity portal flipped it mid-arc, and no solve got through)
+        if (b.portal && (g < 3 || c / v - st.lastPress < 0.6)) continue;
         let s = ts.reduce((a, t) => a + hitScore(t), 0) + 0.05 * ts.length;
         if (st.used.has(b.id)) s -= o.usedPenalty ?? 4;
         push({ id: b.id, col: c, beat: +(c / v / P + 1).toFixed(3), width: b.width, presses: ts.map(t => +t.toFixed(3)), onHit: ts.filter(t => hitScore(t) >= 0.5).length, label: b.label },

@@ -18,7 +18,11 @@
 const fs = require("fs"), path = require("path");
 const { pickSection, beatAt } = require("./brickpick.js");
 const ROOT = path.join(__dirname, "..");
-const OFFSET = 20.9615, BPM = 145.012, T0 = 1.101, P = 60 / BPM, BPS = 10.386;   // blocks a second at 1x
+const BPM = 145.012, T0 = 1.101, P = 60 / BPM, BPS = 10.386;   // blocks a second at 1x
+// the song starts exactly on the grid's beat 48 after t0 (a 4-bar phrase; v5/v6 used 20.9615, 0.07 ms past it, and make.js's
+// lib/sync.js beatToTime counts beat 1 as the first beat AT OR AFTER the start -- so every "b<beat>" landed one beat later
+// than the picker planned: presses a beat off the hits, a floor by column 4.3 blocks off the bricks)
+const OFFSET = +(T0 + 48 * P).toFixed(6);
 const H = JSON.parse(fs.readFileSync(path.join(ROOT, "local", "hits", "343707.json"), "utf8"));
 if (Math.abs(H.t0 - T0) > 1e-3) throw new Error("local/hits/343707.json is on another grid: run node tools/hits.js 343707 --bpm 145.012 --t0 1.101 --downbeat 0");
 const ST = JSON.parse(fs.readFileSync(path.join(ROOT, "knowledge", "structures.json"), "utf8")).structures;
@@ -44,7 +48,9 @@ const gate = (b, names, row) => { for (const n of names) objs.push([n, "b" + b, 
   for (let r = 0; r < row + 11; r++) if (r < row - 1 || r > row + 1) objs.push(["block", "b" + b, r]); };
 // the floor by absolute column (the whole level is 1x, so a column is a column; bricks sit on whole columns, beatAt())
 // only its top 3 rows: under them the fire ground deco shows (v6's first build filled every row: 22.7k objects)
-const fill = (c0, c1, h) => { for (let c = Math.round(c0); c < Math.round(c1); c++) for (let r = Math.max(0, h - 3); r < h; r++) objs.push(["block", c, r]); };
+// placed through beat 1 like the bricks ("b1+<c + 0.5>", as brickpick.beatAt): make.js's beat -> x carries the song grid's
+// small offset (0.3 of a block here), so a floor by plain column sat 0.3 off every brick (v7 died on that lip at 51.6 s)
+const fill = (c0, c1, h) => { for (let c = Math.round(c0); c < Math.round(c1); c++) for (let r = Math.max(0, h - 3); r < h; r++) objs.push(["block", "b1+" + (c + 0.5), r]); };
 const CLIMB = [0, 1, 0, 1, 1, 0, 1, 0];
 // v6b (Evgeni, 2026-11-26: "i want levels not to be so sparse, the beats are decently quick"; LEGO.md "Clicks and timing by
 // tier": rated bricks click ~1.8-2.15 a second at every tier, ours 1.2): a 2 clicks/s target, 1-3 block joins, cube pieces
@@ -68,13 +74,24 @@ PLAN.forEach(([b0, b1, mode, kind, climb], i) => {
   let h = F, top = F;
   r.picks.forEach((p, k) => {
     if (!banded) { const goal = F + Math.round((climb || 0) * (k + 1) / r.picks.length), wig = k === r.picks.length - 1 ? 0 : CLIMB[(k + i) % CLIMB.length];
-      h = Math.min(h + 1, Math.max(F, goal + wig)); }
+      // a step up needs its own jump: only where the run-up before the piece has room for it (v7: a step right before
+      // double-rhythm's spikes left 2 blocks to land and jump again -- the seeded and the full solve both died there)
+      const a = k ? r.picks[k - 1].col + r.picks[k - 1].width : col(b0) + 1, nh = Math.min(h + 1, Math.max(F, goal + wig));
+      // so the step is a 45-degree slope the cube walks up (no press), at the run-up's first column, 2 blocks clear of the
+      // piece's first press
+      // (v7d: a slope right after a spike and 1 block before red-orb-wall~ud's gravity portal stopped the solve: the slope's
+      // top throws the cube up a little) -- a block clear of the last piece, 3 before this one
+      const st = Math.round(a) + 1;
+      if (nh > h && p.col - st >= 3 && (p.presses.length ? p.presses[0] * BPS : p.col + p.width) - (st + 1) >= 2) { h = nh; p.step = st; }
+      else if (nh < h) h = nh; }
     p.h = h; top = Math.max(top, h);
     seeds.push(...p.presses.map(t => ({ t })));
   });
   // the floor: under the section to F, and under each ground piece (and the run-up before it) to its own height
   fill(col(b0) + 1, col(b1), F, b0);
-  if (!banded) r.picks.forEach((p, k) => { const a = k ? r.picks[k - 1].col + r.picks[k - 1].width : col(b0) + 1; if (p.h > F) fill(a, p.col + p.width, p.h, b0); });
+  if (!banded) r.picks.forEach((p, k) => { const a = k ? r.picks[k - 1].col + r.picks[k - 1].width : col(b0) + 1;
+    if (p.step != null) { fill(a, p.step + 1, p.h - 1, b0); objs.push(["slope", "b1+" + (p.step + 0.5), p.h - 1, {}]); fill(p.step + 1, p.col + p.width, p.h, b0); }
+    else if (p.h > F) fill(a, p.col + p.width, p.h, b0); });
   const lastH = r.picks.length ? r.picks[r.picks.length - 1].h : F;
   if (!banded && lastH > F) fill(r.picks[r.picks.length - 1].col + r.picks[r.picks.length - 1].width, col(b1), lastH, b0);
   for (const p of r.picks) objs.push(p.j ? ["pattern", "single", "j" + p.beat, p.h] : mode === "cube" ? ["pattern", "s:" + p.id, beatAt(p), p.h] : ["pattern", "s:" + p.id, beatAt(p), p.h, { raw: true }]);

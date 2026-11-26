@@ -311,6 +311,12 @@ function build(spec, specFile = "spec", opts = {}) {   // opts.placementsOnly: s
   // middleground (kA25: 0 none, 1.. the hill bands) and ground line (kA17)
   if (spec.art) for (const [k, v] of [["kA25", spec.art.mg], ["kA17", spec.art.line]]) if (v != null) header = header.replace(new RegExp(k + ",\\d+"), k + "," + v);
   const ctx = { grid: song ? gridOf(spec, song) : null, offset: spec.offset || 0, kA4, snap: spec.snap || 0, placements: [] };
+  // beat 1 is the first beat AT OR AFTER the song offset: an offset a hair past a beat (GDLM 44 v5-v6: 0.07 ms) makes beat 1
+  // the NEXT beat, ~a beat later than a builder counting from the level start meant (SYNC.md "bN")
+  if (ctx.grid && ctx.offset) {
+    const f = ((ctx.offset - ctx.grid.t0) / ctx.grid.period) % 1;
+    if (f > 1e-9 && f < 0.02) console.log("!! offset " + ctx.offset + " is " + (f * ctx.grid.period * 1000).toFixed(2) + " ms past a beat: beat 1 is the NEXT beat, " + ((1 - f) * ctx.grid.period).toFixed(3) + " s into the level. Put the offset on the beat (t0 + k*period) if beat 1 should be the level start.");
+  }
   const music = musicPlan(spec, ctx, song);
 
   // speed portals first, in order along the level, each one updating the timeline
