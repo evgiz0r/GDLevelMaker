@@ -39,10 +39,10 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   section's floor on its own, so every portal dropped it back down. `tools/judge.js` "flat level" (to come).
 - [ ] **No unseen roof** (Evgeni 2026-11-26 on Hellgate v4's ship entry: "we fall from the top, but there is no indication of
   top. some secret ways can be like that"): when the player comes into a corridor from above, or a stretch's ceiling is off
-  screen, its roof must show (a visible top edge or deco line); an open sky above a corridor reads as a way over it.
+  screen, its roof must show (a visible top edge or deco line); an open sky above a corridor reads as a way over it. Checked: `tools/judge.js` "unseen roof" (the route at its band's roof or a raised band floor with no solid there).
 - [ ] **The ending is designed, not a flat walk to the signature** (same review: "design the last sign/gameplay a bit more.
   maybe some auto gameplay which is not just on the ground"): the last seconds get a set piece -- e.g. an auto (no-click)
-  ride on pads / portals that climbs or flies -- leading into the signature.
+  ride on pads / portals that climbs or flies -- leading into the signature. Checked: `tools/judge.js` "flat ending"; make.js `"outro": <seed>` builds one (AUTO.md).
 - [ ] **Raised sections fit the mode's play band** (found building Hellgate v5, 2026-11-26): ship, ufo, wave, swing (10 blocks),
   ball (8) and spider (9) play in a band centred on their portal (lib/physics.js portal(); floor = portal y - band/2, snapped,
   never under 0). At ground level the band starts at 0, so pieces fit; up high a portal at floor+1 puts the band's roof only
@@ -216,7 +216,7 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   contrast than the path's bodies, softer or no outlines, a different hue or some transparency. `tools/roles.js` (pathDeco).
 - [ ] **Play blocks are a material, not a flat fill** (the user, 2026-11-26: "The blocks are still very timid. No effects. No
 - [ ] **Block design in layers** (Evgeni, 2026-11-26, with 8 tutorials): outline + inline, a 2-3 colour base with low-opacity texture, details small = high contrast, glow sparingly (top light, bottom dark, black lines in front of glow), 3D lines all one direction and darker. DECOART.md "Block design". Check: `tools/blockart.js` (by eye for now).
-- [ ] **Not only flat shapes** (Evgeni, 2026-11-26: "bland compared to real levels"): rated 2.2 levels put ~22% of deco in front (T2+), ~11 big set pieces a screen, gradients / soft glow, particles, fades (alpha ~190/min), camera moves and shaders, and a new scene per section. Check: `node tools/modern_look.js <level>` + `node tools/decocomp.js <level>` vs DECOART.md "Why it still looks bland".
+- [ ] **Not only flat shapes** (Evgeni, 2026-11-26: "bland compared to real levels"): rated 2.2 levels put ~22% of deco in front (T2+), ~11 big set pieces a screen, gradients / soft glow, particles, fades (alpha ~190/min), camera moves and shaders, and a new scene per section. Check: `node tools/modern_look.js <level>` + `node tools/decocomp.js <level>` vs DECOART.md "Why it still looks bland". Add them with `tools/decofx.js`.
   good texture. All single filled color"). Lit open tops, darker with depth, a surface texture (facets), a feature with light
   (glowing seams on the beat), an edge and a shadow. `tools/blockart.js` (decoart.js --blocks); DECOART.md "Blocks".
 - [ ] **A section's backdrop is one composed picture** (focal light at a third, values light far -> dark near, nothing in

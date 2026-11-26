@@ -549,7 +549,7 @@ function make(specFile, specObj) {
     if (sol && sol.ok && sol.events && sol.events.length) base = { level: old.level, levelStr: old.levelStr, events: sol.events };
   } catch (e) { /* no base: solve whole */ }
   writeGdlvl(out, rec, level);
-  let r = report(out, { base });
+  let r = report(out, { base, seed: spec.seedPresses });   // spec.seedPresses: the pieces' presses (tools/seedsolve.js)
   if (spec.indicators && r.ok) {
     // jump indicators come from the solved run, so they go in after the first check (no hitbox:
     // the solution does not change); then the file is written again. Without the arrow's id yet,
