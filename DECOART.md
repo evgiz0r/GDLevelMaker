@@ -382,5 +382,18 @@ gdchain (GD's hanging chain 41: shows with GD's art only). Thin, on B1, in the d
 Gallery: deco-art/gdlm_holders (`node tools/connect.js spec`, specs/lab_holders.json); picture decoart/holders.jpg.
 Test: `node tests/connect.js`. Also `tools/seedsolve.js --out route.json` writes the route it finds (to get a level's route
 without a whole make).
-Open: Hellgate with holders (needs its route), holders in make.js / the theme kits as a spec key, a check that counts
-islands without holders.
+Hellgate with holders: wip deco-art/gdlm_44_hellgate_held (v1: 12 stand, 8 hang, 3 bridges; before: _islands).
+Open: holders in make.js / the theme kits as a spec key, a check that counts islands without holders.
+
+## The inside of big structures (2026-11-26)
+
+Evgeni, on Hellgate with holders: "the big ones feel very empty inside". The design layers sit within ~15 units of the edge,
+so a body 3+ blocks thick was one flat colour. `interior()` in tools/structdesign.js, on by default in `dress()` for every
+design (`interior: false` = off), dresses the whole body of a structure that has a core (3+ cells whose 8 neighbours are
+blocks): panel seams in a brick pattern (plates 3 x 2, every other row shifted), dark with a faint lit lip, stopped 9 units
+short of an open side; rivets where seams meet; a lamp (a lit slot with light fading up and down) in one of ~5 plates deep
+inside (2+ blocks from every side). The plates are fixed to the level grid, so structures side by side line up.
+First try, dropped: the panels only in a recessed core (the body inset by 4): in jagged shapes (slopes, steps) the core
+came out as random dark holes. Texture the whole body instead.
+Hellgate: wip deco-art/gdlm_44_hellgate_held v2; picture decoart/hellgate_inside.jpg (left v1, right v2).
+Open: other interior textures per theme (ice: cracks / facets, fire: veins), lamps rare on Hellgate (few cells are 2+ deep).

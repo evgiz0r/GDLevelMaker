@@ -1,6 +1,7 @@
 // node tools/structdesign.js list                    the structure designs and the 3D effects
 // node tools/structdesign.js spec [--out specs/lab_struct_designs.json]   the gallery (then: node tools/make.js <it>)
 // node tools/structdesign.js sheet                   print the connector sheet (every join a structure can have)
+// interior(st, p, C, o): the inside of big structures (panels, rivets, lamps), on in dress() unless o.interior === false
 //
 // BLOCK DESIGNS ON WHOLE STRUCTURES (DECOART.md "Structure designs"; Evgeni 2026-11-26: "extending to bigger structures. i
 // think in GD they make some 1 mega structure that contains all possible connectors corners and 3 in a row [...] the point
@@ -241,11 +242,62 @@ const EFFECTS = {
   "long depth": { note: "a deep side face (twice as far back), darker: a heavy, solid look", draw(st, p, C) { depth(st, p, C, 14, 0.35); } },
   "depth + bevel": { note: "both", draw(st, p, C) { EFFECTS.depth.draw(st, p, C); EFFECTS.bevel.draw(st, p, C); } },
 };
+// ---- the inside of big structures ----
+// Evgeni (2026-11-26, Hellgate with holders): "the big ones feel very empty inside". A design's layers sit near the
+// edge (the deepest at ~15 units), so a structure 3+ blocks thick kept a flat body in the middle. INTERIOR, on by default
+// in dress() for any design (o.interior: false = off), dresses the whole body of a BIG structure (one with a core: 3+
+// cells whose 8 neighbours are all blocks, erode()); thin bars and small pieces stay as the design draws them:
+//   panels   seams in a brick pattern (plates 3 x 2 blocks, every other row shifted by one), dark with a faint lit lip,
+//            over the whole body and stopped 9 units short of an open side (inside the design's own layers); fixed to
+//            the level grid, so structures side by side line up. A first try put the panels in a recessed core only:
+//            that read as random dark holes in jagged shapes (slopes, steps), so the texture covers the whole body
+//   rivets   a small lit dot where a vertical seam meets a horizontal one
+//   lamps    a few soft lights deep inside (cells 2+ blocks from every side), one per ~5 plates: a lit slot with light
+//            fading up and down from it (two 1293 gradients) on the design's glow channel
+const erode = S => { const E = new Set(); for (const [c, r] of cellsOf(S)) { let ok = true;
+  for (let dc = -1; dc <= 1 && ok; dc++) for (let dr = -1; dr <= 1; dr++) if (!isSq(S, c + dc, r + dr)) { ok = false; break; }
+  if (ok) E.add(key(c, r)); } return E; };
+const PW = 3, PH = 2, TRIM = 9, SW = 1.4;
+const plate = (c, r) => { const row = Math.floor(r / PH); return Math.floor((c + (row % 2 ? 1 : 0) + 1000 * PW) / PW) + "," + row; };
+function interior(st, p, C, o = {}) {
+  const S = st.S, S1 = erode(S); if (S1.size < (o.minCore || 3)) return 0;
+  const n0 = p.out.length, sq = (c, r) => isSq(S, c, r);
+  // a seam end: runs on when the cells past it on both sides are body, else stops TRIM short of the side
+  const H = [], V = [], ends = [];
+  for (const [c, r] of cellsOf(S)) {
+    if (!sq(c, r)) continue;
+    if (sq(c, r + 1) && plate(c, r) !== plate(c, r + 1)) { const y = r * 30 + 30;
+      H.push([c * 30 + (sq(c - 1, r) && sq(c - 1, r + 1) ? 0 : TRIM), y - SW / 2, c * 30 + 30 - (sq(c + 1, r) && sq(c + 1, r + 1) ? 0 : TRIM), y + SW / 2]); }
+    if (sq(c + 1, r) && plate(c, r) !== plate(c + 1, r)) { const x = c * 30 + 30;
+      V.push([x - SW / 2, r * 30 + (sq(c, r - 1) && sq(c + 1, r - 1) ? 0 : TRIM), x + SW / 2, r * 30 + 30 - (sq(c, r + 1) && sq(c + 1, r + 1) ? 0 : TRIM)]);
+      ends.push([x, r * 30], [x, r * 30 + 30]); }
+  }
+  const HM = merge(H), VM = merge(V);
+  HM.forEach(q => { p.rect(q, "inline", 11, { hsv: "0a1a1a0a0" }); p.rect([q[0], q[1] - 1, q[2], q[1]], "hi", 11, { hsv: "0a1a0.3a0a0" }); });
+  VM.forEach(q => { p.rect(q, "inline", 11); p.rect([q[2], q[1], q[2] + 1, q[3]], "hi", 11, { hsv: "0a1a0.22a0a0" }); });
+  const onH = (x, y) => HM.some(q => Math.abs(y - (q[1] + q[3]) / 2) < 0.1 && x > q[0] + 1 && x < q[2] - 1);
+  const done = new Set();
+  for (const [x, y] of ends) { const k = x + "," + y; if (done.has(k) || !onH(x, y)) continue; done.add(k);
+    p.rect([x - 1.7, y - 1.7, x + 1.7, y + 1.7], "hi", 12, { hsv: "0a1a0.65a0a0" }); }
+  // lamps: one cell per plate deep inside, every 5th plate
+  const S2 = erode(S1), seen = new Map();
+  for (const [c, r] of cellsOf(S2).sort((a, b) => a[0] - b[0] || a[1] - b[1])) { const pl = plate(c, r); if (!seen.has(pl)) seen.set(pl, [c, r]); }
+  let i = 0;
+  for (const [c, r] of seen.values()) {
+    if ((i++ + (o.seed || 0)) % 5) continue;
+    const cx = c * 30 + 15, cy = r * 30 + 15;
+    for (const up of [true, false]) p.out.push(K.obj(1293, p.X0 + cx, p.Y0 + cy + (up ? 5 : -5), { ch: C.glow, z: "T1", zo: 12, sx: 0.6, sy: 8 / 30, flipY: !up, groups: o.groups }));
+    p.rect([cx - 8, cy - 1.2, cx + 8, cy + 1.2], "core", 13);
+  }
+  return p.out.length - n0;
+}
+
 function dress(blocks, design, C, o = {}) {
   const out = [];
   for (const st of structures(blocks)) {
     const p = painter(st, C, o);
     DESIGNS[design].draw(st, p, C);
+    if (o.interior !== false) interior(st, p, C, o);
     for (const e of [].concat(o.effects || [])) EFFECTS[e].draw(st, p, C);
     out.push(...p.out);
   }
@@ -305,7 +357,7 @@ function spec() {
   };
 }
 
-module.exports = { DESIGNS, EFFECTS, SHEET, structures, region, tris, hyps, slopeKind, edges, corners, dress, extend, lay, spec };
+module.exports = { DESIGNS, EFFECTS, SHEET, interior, erode, structures, region, tris, hyps, slopeKind, edges, corners, dress, extend, lay, spec };
 if (require.main === module) {
   const a = process.argv.slice(2);
   if (a[0] === "list") { for (const [n, d] of Object.entries(DESIGNS)) console.log("design  " + n.padEnd(16) + d.note); for (const [n, d] of Object.entries(EFFECTS)) console.log("3D      " + n.padEnd(16) + d.note); }
