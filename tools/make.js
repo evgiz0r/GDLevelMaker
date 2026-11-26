@@ -299,7 +299,7 @@ function checkDesc(desc, name) {
   if (m) console.log(`   WARN description reads like an internal note ("${m[0]}"): it is shown to players; notes go in "notes"`);
 }
 
-function build(spec, specFile = "spec") {
+function build(spec, specFile = "spec", opts = {}) {   // opts.placementsOnly: stop after placing (tools/pieces.js: each piece's span, no solve)
   spec = Object.assign({}, spec, { objects: spec.objects.filter(e => Array.isArray(e)) });   // a string entry is a comment
   const song = songOf(spec);
   const kA4 = spec.speed ? SPEED_NAMES[spec.speed] : 0;
@@ -342,9 +342,12 @@ function build(spec, specFile = "spec") {
     else if (type === "fade") { const a = entry[2]; objects.push(deco.fadeTrigger(col, a.group, a.to ?? 0, a.secs ?? 0.2)); }
     else if (type === "zoom") { const a = entry[2] || {}; objects.push(deco.zoomTrigger(col, a.to ?? 0.7, a.secs ?? 0.5)); }
     else objects.push(toObj([type, col, row, entry[3]], specFile));
+    // each piece's span in blocks, so pictures can show where pieces meet (tools/pieces.js)
+    if (type === "pattern" && objects.length > start) { const xs = objects.slice(start).map(o => o.x); Object.assign(ctx.placements[ctx.placements.length - 1], { x0: Math.min(...xs) / 30 - 0.5, x1: Math.max(...xs) / 30 + 0.5, n: objects.length - start }); }
     const jm = /^j(-?\d+(?:\.\d+)?)/.exec(String(entry[colAt(entry)]));
     if (jm) { if (!jGroups.has(jm[1])) jGroups.set(jm[1], []); for (let i = start; i < objects.length; i++) jGroups.get(jm[1]).push(i); }
   }
+  if (opts.placementsOnly) return { ctx, objects, header };
 
   if (ctx.grid && jGroups.size) {
     // jumps closer together than a jump lasts cannot all be pressed on their beats

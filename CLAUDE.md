@@ -490,6 +490,11 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   (probe mod v0.4.0 logs checkpoints) into one start-to-end input route, checks it in our sim, `--save` -> viewer ghost and
   `video.js --run`; `probe.js play ... --events <stitched>` plays it unbroken in the game. Test: `node tests/stitch.js`.
 - `levels/archive/` -- every GDLM level but 44, archived 2026-11-25 (Evgeni: "start over, keep only 44"); out of the viewer's list, nothing deleted (its README).
+- **`tools/judge.js` -- the judge: Evgeni-style notes pinned to spots** (few clicks in a section, gaps, a corridor too long or
+  shaped like an earlier one, no variety, an orb with no reason, too easy), from a level's saved route; `--vs <marks.json>` compares
+  them with his marks (tests/judge.js: 11 of his 13 v4 Hellgate marks, `knowledge/judge/`). Run it on every build before he sees it.
+- **`tools/pieces.js <spec>` -- the pieces a spec is built from**, with their spans and the gaps between them; `--out` +
+  `levelmap.js <level> --pieces <out>` draws a bracket per piece on the level map (where pieces join).
 - `tools/mapbeats.py` (beat and bar lines over a levelmap.js picture). `tools/hellgate_build.js` -- GDLM 44 v3's builder: song part + local grid -> sections -> brickpick / fly-path -> specs/44_hellgate.json (+ .plan.json).
 - `examples/` -- levels the user made in the game, for reference and as format ground truth.
 

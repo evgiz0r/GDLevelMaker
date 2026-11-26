@@ -3091,7 +3091,7 @@ async function mapRender(job) {
   let minY = 0, maxY = 120;
   for (const o of L.level.objects) { if (GD.objInfo(o.id).kind === "trigger") continue; if (o.y < minY) minY = o.y; if (o.y > maxY) maxY = o.y; }
   for (const p of path) if (p.y > maxY) maxY = p.y;
-  maxY = Math.min(maxY + 60, Math.max(minY, 0) + 30 * 30); minY = Math.max(minY - 30, -600);
+  maxY = Math.min(maxY + 60, Math.max(minY, 0) + 30 * 150);   // levels that climb by sections reach far above the floor minY = Math.max(minY - 30, -600);
   const rows = job.rows || Math.max(1, Math.ceil(endX * S / 2400)), rowU = Math.ceil(endX / rows / 30) * 30;
   const GROUND = 45, camY0 = Math.min(0, minY);
   const rowW = Math.round(rowU * S), sceneH = Math.round((maxY - camY0 + GROUND) * S);
@@ -3177,6 +3177,18 @@ async function mapRender(job) {
   // section names
   X.font = "bold 15px system-ui"; X.textAlign = "left";
   for (const sc of job.sections || []) { const x = sc.from * 30, r = rowOf(x); X.fillStyle = "#9fd"; X.fillText("▸ " + sc.name, mx(x) + 3, HEAD + r * (rowH + GAP) + TOP + 16); }
+  // pieces (tools/pieces.js): a bracket along the bottom of the scene per piece, its ends where it joins the next
+  const PCOL = ["#ffb347", "#6fd3ff", "#c7f464", "#ff7ab6"];
+  X.font = "bold 12px system-ui"; X.textAlign = "left";
+  (job.pieces || []).forEach((pc, i) => {
+    const a = pc.x0 * 30, b = pc.x1 * 30, col = PCOL[i % PCOL.length];
+    for (let r = rowOf(a); r <= rowOf(Math.max(a, b - 1)); r++) {
+      const y0 = HEAD + r * (rowH + GAP) + TOP, yb = y0 + sceneH - 6 - (i % 2) * 10, xa = 10 + (Math.max(a, r * rowU) - r * rowU) * S, xb = 10 + (Math.min(b, (r + 1) * rowU) - r * rowU) * S;
+      X.fillStyle = col; X.globalAlpha = 0.10; X.fillRect(xa, y0, xb - xa, sceneH); X.globalAlpha = 1;
+      X.strokeStyle = col; X.lineWidth = 3; X.beginPath(); X.moveTo(xa, yb - 8); X.lineTo(xa, yb); X.lineTo(xb, yb); X.lineTo(xb, yb - 8); X.stroke();
+      if (r === rowOf(a)) { X.fillStyle = "rgba(0,0,0,.7)"; const lb = `${i + 1} ${pc.name}`; X.fillRect(xa + 2, yb - 24, X.measureText(lb).width + 6, 15); X.fillStyle = col; X.fillText(lb, xa + 5, yb - 12); }
+    }
+  });
   // seconds and % ticks under each row
   X.font = "11px system-ui"; X.textAlign = "center";
   const total = lastK / P.TPS;

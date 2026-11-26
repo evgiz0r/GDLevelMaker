@@ -32,6 +32,20 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   game at a stepped roof's corner where our sim passed, PHYSICS.md "probe mod"). Build them with `fly-path` (45-degree slopes
   on both walls), not `ship-tunnel`; the margin our sim gives at a block corner is not to be trusted.
 - [ ] **Brick joins get 3+ flat blocks, and a brick whose own check found a prejump is not used** (2026-11-25, GDLM 44 v3: 1-2 block joins made 5 prejumps and a tap 183 ms after a gravity portal). `tools/brickpick.js` enforces it; score.js "prejumps" / "fairness" check it.
+- [ ] **Height carries over between sections, never resets** (Evgeni 2026-11-26: "its not that each section just 5, its
+  that between sections we always reset"; "we could make a level that just goes up in y by the sections"). Each section
+  starts at the height the last one ended on; fly sections exit higher (or lower) than they came in; a level may climb far
+  above the floor (the game, the sim and the camera handle it; the level map shows up to 150 blocks). Hellgate v4 set each
+  section's floor on its own, so every portal dropped it back down. `tools/judge.js` "flat level" (to come).
+- [ ] **No unseen roof** (Evgeni 2026-11-26 on Hellgate v4's ship entry: "we fall from the top, but there is no indication of
+  top. some secret ways can be like that"): when the player comes into a corridor from above, or a stretch's ceiling is off
+  screen, its roof must show (a visible top edge or deco line); an open sky above a corridor reads as a way over it.
+- [ ] **The ending is designed, not a flat walk to the signature** (same review: "design the last sign/gameplay a bit more.
+  maybe some auto gameplay which is not just on the ground"): the last seconds get a set piece -- e.g. an auto (no-click)
+  ride on pads / portals that climbs or flies -- leading into the signature.
+- [ ] **Pieces of one section are close in clicks per second** (Evgeni 2026-11-26: "pick somewhat same balance, and probably
+  close cps"): a picker scores a section's pieces against the section's CPS target, not each piece alone. `tools/pieces.js`
+  shows every piece's span on the level map (`levelmap.js --pieces`).
 - [ ] **Balanced sections** (Evgeni 2026-11-25 on Hellgate v4: "this whole section has 2 clicks? we need balanced sections.
   with somewhat similar cps"): every section's clicks per second near the level's own (none under about half of it,
   breathers named as breathers). A 3 s ball part with 2 clicks next to 2-click-a-second cube parts reads as a hole.
