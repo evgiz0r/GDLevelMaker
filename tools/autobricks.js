@@ -561,6 +561,7 @@ function writeLevel(file, name, objs, a) {
   // the run-out: a block far on (the level ends 3 blocks after it), so the player walks on past the brick
   fs.mkdirSync(path.dirname(file), { recursive: true });
   writeGdlvl(file, GD.newRecord(name, "auto bricks: no clicks (tools/autobricks.js, AUTO.md)"), level);
+  if (/[\\/]levels[\\/]/.test(path.resolve(file))) require("./planned.js").writeAuto(file, "tools/autobricks.js: no clicks");   // the labs: wip put replays them at once
 }
 // every good brick in a row: each one's own test (cube on the ground, 1x) with a portal back to the cube and a calm
 // stretch between, so the lab clears with no click at all

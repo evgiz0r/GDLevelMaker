@@ -191,6 +191,11 @@ at once and the PC hung (0.2 GB free), so the rule is now a lock every heavy too
   or over 3 h with none, shows `!! overdue` in `node tools/heavy.js` and the waiting lines. A session that sees one checks
   whether it still makes progress (its output file, CPU time) and tells the user (pid, command, how long, stuck or just
   big); it stops another session's job only on the user's own yes. A long batch job writes each result as it finishes.
+- **Runaways: over 10x the estimate** (2026-11-26: a `wip put` estimated "a few s" took 26 min and nobody saw it): a running
+  job shows `!!! runaway (Nx its estimate)` in `node tools/heavy.js`, `/heavy/status` and the viewer's Work panel; a finished
+  one gets `runaway: true` in local/timings.jsonl and a loud line as it ends; `node tools/jobtime.js runaways [hours]` lists
+  them. A session that sees one tells the user the same day and fixes the tool or its estimate's key (the first sweep found
+  22 in 24 h, most of them `difficulty_solve` runs whose key has no level, so one level's time is used for another's).
 - **A new heavy tool adds the line** `if (require.main === module) require("./heavy.js").claim();` after
   its header (tests/heavy.js checks the main ones). Never run heavy work outside a tool that claims it
   (`node -e` solves, scratch scripts); `GDLM_HEAVY=off` only when the user says so.
@@ -229,7 +234,8 @@ on a long one with modes). Wait for the heavy-job slot comes on top of all of th
 | level map (`levelmap.js`), with a saved solution | ~5 s (without one the page solves: minutes) | loop.js, GDLM 41 |
 | polish report (`polish.js --dry`) | 1-3 min | POLISH.md |
 | readability check | ~8 min for a 12 s level | POLISH.md |
-| wip put (solution cached by make) | a few s | wip.js |
+| wip put (never solves: writes at once) | 0.2-1 s | tests/wip.js, 2026-11-27 |
+| wip solve (put's background solve, only when no saved route is current) | as "make" for that level (an auto level: one zero-press run, seconds); key `wip :solve` | not measured on a real level yet |
 | install into the game (`install.js`, game closed) | not timed yet (publisher: `--time install`) | |
 | a server upload | not timed yet (publisher: `--time upload`) | |
 | video of a whole official level (`video.js official:N --route`, 1280x720 60 fps) | ~2.2-4.7x the level's length, the more other jobs run (Jumper 90 s with its 4.5 s end screen: 202 s and 346 s, ~27 MB; first run 408 s) | timings.jsonl, 2026-11-25 |
@@ -259,7 +265,12 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   --note "what changed"` after every change.** It goes to `local/wip/<session>/`, and the viewer
   (`node tools/serve.js`, http://localhost:8765/viewer/) lists it under "in progress" with its
   version; the user presses ⟳ refresh to see the newest, before anything is pushed. **Then run
-  the ArtifactData call it prints**, so the phone page shows it too (PHONE.md). Once a copy is overtaken (pushed, or
+  the ArtifactData call it prints**, so the phone page shows it too (PHONE.md). **`put` never waits on a solve** (2026-11-26:
+  a put solved an autobeat level inline for 26 min): it writes at once with the route at hand -- `--plan`, the saved route,
+  the build's planned presses (`<level>.planned.json`, `{auto: true}` for an auto level: tools/planned.js `writeAuto`), or
+  none (a ghost) -- and runs the solve after as its own background heavy job (`wip.js solve`, log in
+  local/logs/wip_solve/), which fills the entry in; `--wait` solves first, `--no-solve` never. A builder that knows its
+  presses writes them beside the level (hitbuild, autobeat, autobricks, autoclose do). Test: `node tests/wip.js`. Once a copy is overtaken (pushed, or
   a newer copy elsewhere), take it out of the list: `node tools/wip.js archive <session>/<base>` (or `--superseded [--dry]`
   for all) MOVES its files to `local/wip_archive/<session>/`, never deletes; the viewer's "in progress" tab already hides
   wip copies older than the pushed level of the same name. An open viewer tab reloads itself when the PC's checkout moves

@@ -33,13 +33,15 @@ function plannedFor(name, levelFile) {
 }
 // the plan as INPUTS: [{tick, type}] at 240 Hz -- every press, with the plan's own releases where it has them ("release"
 // entries: a ship's schedule) and a 14-tick tap (0.06 s, tools/hitbuild.js's) after every other press. null when the
-// level has no plan with releases or presses. tools/solutions.js uses it as the route when it clears the level as-is.
+// level has no plan with releases or presses; [] for an auto level ({auto: true} in its .planned.json: tools/autobeat.js,
+// autobricks.js, autoclose.js write one), whose route is no press. tools/solutions.js uses it as the route when it clears the level as-is.
 function plannedEvents(name, levelFile) {
   const slug = stageSlug(levelFile) || slugOf(name), TAP = Math.round(0.06 * 240);
   let raw = null;
   const side = levelFile ? levelFile.replace(/\.gdlvl$/, ".planned.json") : null;
   for (const f of [side, path.join(ROOT, "levels", slug + ".planned.json")].filter(Boolean))
-    if (!raw && fs.existsSync(f)) try { const j = JSON.parse(fs.readFileSync(f, "utf8")); raw = Array.isArray(j) ? j : j.planned; } catch (e) {}
+    if (!raw && fs.existsSync(f)) try { const j = JSON.parse(fs.readFileSync(f, "utf8")); if (j && j.auto === true) return [];   // an auto level: the plan is no press at all
+      raw = Array.isArray(j) ? j : j.planned; } catch (e) {}
   if (!raw || !raw.length) return null;
   const items = raw.map(e => typeof e === "number" ? { t: e, what: "press" } : e).filter(e => isFinite(+e.t))
     .map(e => ({ tick: Math.round(+e.t * 240), rel: /release/i.test(e.what || "") })).sort((p, q) => p.tick - q.tick);
@@ -52,7 +54,12 @@ function plannedEvents(name, levelFile) {
   }
   return ev.sort((p, q) => p.tick - q.tick || (p.type === "release" ? -1 : 1));
 }
-module.exports = { plannedFor, plannedEvents, slugOf };
+// a builder that knows its level is AUTO (no press clears it) says so beside the level, so `wip.js put` replays it at once
+// and no solve searches for presses that are not there (tools/autobeat.js, autobricks.js, autoclose.js)
+function writeAuto(levelFile, note) {
+  fs.writeFileSync(String(levelFile).replace(/\.gdlvl$/, ".planned.json"), JSON.stringify({ auto: true, planned: [], note: note || "an auto level: no press" }) + "\n");
+}
+module.exports = { plannedFor, plannedEvents, slugOf, writeAuto };
 if (require.main === module) {
   const name = process.argv[2];
   if (!name) { console.log(fs.readFileSync(__filename, "utf8").split("\n").slice(0, 3).join("\n")); process.exit(1); }

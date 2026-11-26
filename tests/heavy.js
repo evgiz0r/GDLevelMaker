@@ -100,7 +100,10 @@ fs.rmSync(dir, { recursive: true, force: true });
 // 4
 for (const t of ["make", "compose", "score", "solutions", "shoot", "levelmap", "difficulty_solve", "windows", "fairness", "polish", "structures", "tas", "intent", "rules", "reactive"])
   assert(/require\("\.\/heavy\.js"\)\.claim\(\)/.test(fs.readFileSync(path.join(__dirname, "..", "tools", t + ".js"), "utf8")), t + ".js claims the lock");
-assert(/heavy\.js"\)\.claim\(\)/.test(fs.readFileSync(path.join(__dirname, "..", "tools", "wip.js"), "utf8")), "wip.js put claims the lock");
+// wip.js: put never waits on the lock (it writes at once); its background solve (solveJob) claims it
+{ const w = fs.readFileSync(path.join(__dirname, "..", "tools", "wip.js"), "utf8"), put = w.slice(w.indexOf('args[0] === "put"'), w.indexOf('args[0] === "solve"'));
+  assert(/function solveJob[\s\S]{0,300}heavy\.js"\)\.claim\(/.test(w), "wip.js solve claims the lock");
+  assert(!/heavy\.js"\)\.claim\(/.test(put), "wip.js put does not wait on the lock"); }
 // 6 (throwaway repos: an origin, a clone that falls behind, another clone that pushes)
 {
   const g = (cwd, ...a) => cp.execFileSync("git", a, { windowsHide: true, cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
