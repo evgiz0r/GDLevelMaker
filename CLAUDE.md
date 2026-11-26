@@ -603,6 +603,11 @@ Confirmed:
   landing goes the next tick at full speed (no gravity on its first tick); the cube (and wave) sits on a slope at
   x + 15 tan(angle/2), is held at the top a tick, then launched (7.405 on 45 degrees). With them GDLM 62's 62 s run and
   Clubstep's first attempt match the game at every frame. Yellow pad: vy 16.000 in cube and ship ("auto play area" run).
+- From the user's ToE / ToE2 / Hexagon Force / Deadlocked runs (2026-11-26, probe logs; the log's p[8], p[9] are the
+  per-tick position, p[7] the speed factor): speed portals 2x / 3x are 51 / 65 wide (not 34), the orb flag outlives a
+  release by a tick, turned portals touch by their turned box, a -53 degree teleport moves the full key 54, a ship slides a
+  ceiling slope and is launched off its low end, ship -> UFO keeps a quarter of vy. PHYSICS.md "The user's ToE / ToE2 /
+  Hexagon Force / Deadlocked runs".
 - Flipping gravity halves vertical speed (blue orb and ceiling blue pad in the recording move at
   half the decompile's velocity). The decompile's ringJump alone does not show this.
 
