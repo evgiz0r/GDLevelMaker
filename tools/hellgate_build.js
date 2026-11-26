@@ -58,9 +58,11 @@ PLAN.forEach(([b0, b1, mode, kind, climb], i) => {
   let F = E, entry = E + 1;
   if (prev) gate(b0, [PORTAL[mode]], entry);
   if (banded) F = bandFloor(entry, mode);
-  const lead = fly ? 6 : banded ? 4 : 1;
-  const r = pickSection(Object.assign({}, base, { mode, used, startCol: col(b0) + lead, fromBeat: b0, toBeat: b1 - 0.5,
-    filler: mode === "cube", minDensity: mode === "cube" ? 1.5 : 0, usedPenalty: mode === "cube" ? 6 : 1.5, singleRun: 1.2, max: "Hard", beam: 60 }));
+  // v7: run-up after a portal (v6b's switches: a tap 246 ms after ship -> cube, a button change 133 ms after cube -> wave) and
+  // a calm first second (v6b: a 50 ms tap at block 0); the last 1.5 beats before the next gate stay free
+  const lead = !prev ? 8 : fly ? 6 : banded ? 5 : 4;
+  const r = pickSection(Object.assign({}, base, { mode, used, startCol: col(b0) + lead, fromBeat: b0, toBeat: b1 - 1.5,
+    filler: mode === "cube", minDensity: mode === "cube" || mode === "ball" ? 1.5 : 0, usedPenalty: mode === "cube" ? 6 : 1.5, singleRun: 1.2, max: "Hard", beam: 60 }));
   for (const p of r.picks) if (!p.j) used.push(p.id);
   // heights: a ground section walks up `climb` blocks, a block at a time, piece by piece (CLIMB wiggles it)
   let h = F, top = F;
@@ -88,8 +90,8 @@ const variant = { intro: "molten", "the drop": "inferno", "big kick, drums": "mo
 const spec = {
   name: "GDLM 44 hellgate",
   desc: "Down through the gates of hell. Made by Claude.",
-  notes: "v6 by tools/hellgate_build.js: 7 sections at 1x on the song's phrases, every one from verified bricks (pickSection beam search), the height through each mode's band, an auto ending",
-  style: "hell", indicators: {}, signature: true, outro: 2,
+  notes: "v7 by tools/hellgate_build.js (run-up after portals, guards along the route): 7 sections at 1x on the song's phrases, every one from verified bricks (pickSection beam search), the height through each mode's band, an auto ending",
+  style: "hell", indicators: {}, signature: true, outro: 2, hazardsAlong: { tier: "normal", seed: 7 },
   scene: "tools/scenes/theme.js",
   theme: { name: "fire", sections: PLAN.map(([b0, , m, kind]) => ({ from: Math.max(0, Math.round(col(b0)) - 2), variant: variant[kind] || (FLY.has(m) ? "inferno" : "molten") })) },
   song: { custom: 343707 }, offset: OFFSET, grid: { bpm: BPM, t0: T0 },
