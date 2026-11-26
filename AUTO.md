@@ -289,3 +289,5 @@ of 1550 strays, saws 75 -> 7. `tools/hazards.js level`: arcs with a hazard 3% ->
 0.18 -> 2.3 a second (rated 6-11), gap between obstacles 2.0 -> 0.7 s (rated 0.5-0.6). Open: hanging spikes stacked in a
 triangle where leak blocks meet a lane piece (t 12 s), lone hanging spikes under a single block, too many guards above in
 flight (lane.fly.belowHaz 28 vs rated <20); 15 leaks are still open.
+v10 (hazards fd0639c): leaks met by a lane piece count as shut, pieces 2-3 wide, floor side half as often: fly belowHaz
+28 -> 19%, 496 hazards, 10 saws, the triangles and lone hanging spikes gone. Still off: guardAbove 27.5% (rated 10-23).
