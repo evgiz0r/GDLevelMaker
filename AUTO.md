@@ -335,6 +335,12 @@ ends 5 blocks after it. Measured: launches and landings within 2 ms of the beats
 Dominator. autobeat uses it by default (`opts.ending: "outro"` = the old one). Open: make.js and the other builders still use
 the old outro; the Geometrical Dominator ending climbs to ~4 blocks (no low-ledge beat there).
 
+The end on the last screen (2026-11-26, Evgeni: "the end screen has to include our sign, it extends bit too much so our
+signature goes away"): GD ends a level at its furthest object (any kind) with the wall ~340 past it, and the camera stops with
+the wall at the right edge of a ~569-unit screen, so only the last ~229 units are on the final view. The ending ran 7.5 blocks
+past the sign's centre. Now nothing lies past the sign's right edge (`signature.js` `extent(col)` / `clipEnd`), in beatend,
+autobeat, fxgallery and make.js (blocks too; `spec.endRun` still allows deco past it). Auto beat 2 v5.
+
 ### Sections by character (tools/sections.js, 2026-11-26)
 Evgeni: "sections have to be cut by the transitions of the level". The batches were already cut at the song's transitions,
 but each batch's kinds and icons were a dice roll. Now each batch is typed from the measured song (heaviness, loudness, which

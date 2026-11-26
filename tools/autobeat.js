@@ -872,7 +872,7 @@ function write(out, b, name) {
     const rec = GD.newRecord(name, desc);
     if (b.g.k45) GD.setField(rec, "k45", "i", b.g.k45); else GD.setField(rec, "k8", "i", String(b.g.k8));
     fs.mkdirSync(path.dirname(out), { recursive: true });
-    writeGdlvl(out, rec, { header, objects: lvl.objects.concat(so) });
+    writeGdlvl(out, rec, { header, objects: sg.clipEnd(lvl.objects.concat(so), b.lv.sig.col) });   // the sign on the last screen
     return;
   }
   const rec = GD.newRecord(name, desc);
