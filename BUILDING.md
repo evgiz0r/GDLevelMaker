@@ -201,6 +201,11 @@ model from gd-showcase's tools/storyboard.js once it lands (richer: moments, pla
 - Every level has a song, test labs included: recordings line the user's inputs up with the song's audio
   (tools/audiolog.ps1, replay_run.js); a level with no song falls back to the progress bar.
 - Viewer first: nothing is installed or uploaded until the user has seen it there and says so.
+- **Every level ends with the latest end screen** (Evgeni, 2026-11-26: "from now-on everywhere, we add the latest end screen
+  claude sign on every level we make"): the auto outro (tools/autobricks.js `outro(seed)`, make.js spec `"outro": <seed>`)
+  and then the signature (tools/signature.js: header colours, objects, description line; make.js adds it to every "GDLM"
+  name). A builder that writes levels without make.js adds the same pair itself (tools/autobeat.js does). When the sign
+  changes, it changes in those two files, so every builder picks it up.
 
 ## 6. Reverse: decompile a real level, rebuild it from its spec, diff (tools/recompile.js)
 
