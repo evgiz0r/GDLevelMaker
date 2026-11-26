@@ -27,6 +27,11 @@ The user: "what songs can we put in git that [are] free ... those can be publish
 player. `checkDir` allows exactly those files (byte-equal to songs/free/); any other audio is still refused. Every other
 song: "add song" as before. The list and rules: knowledge/free_songs.md.
 
+## Candidates
+
+`knowledge/public_shortlist.md` (2026-11-26): every free-song level of ours scored with score.js, ranked, with what each one
+lacks. Re-run it when a level changes or a new one is built on a free song. Nothing on it is public until the user names it.
+
 ## On the user's own PC
 
 With `tools/serve.js` running (http://localhost:8765), the public page fetches from it: the songs (music in
