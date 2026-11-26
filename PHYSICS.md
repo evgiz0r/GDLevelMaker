@@ -235,6 +235,10 @@ air and released before the landing does NOTHING, however close to the landing.
 The robot too (2026-11-26): the auto lab v12 probe log, tick 4742, a flipped robot at vy -7.27 dies touching the ground with
 no object, where the sim had it land; lib/physics.js now applies the same cut to the robot. Ball, spider, UFO: not seen.
 
+The released ship upside down (2026-11-26, auto lab v13 probe log, tick 17297): after a gravity portal a flipped ship at
+vy -1.22 pulls 0.069 a tick (0.8, the falling factor), not 0.103 (1.2): the falling threshold is mirrored upside down, as for
+the UFO. lib/physics.js does that for a released ship (GDLM_SHIP_FLIP=old = the world-frame rule). Not yet run on the mains.
+
 GDLM 67's green orb station (18-58-15.mkv) throws the cube down with gravity flipped; it then meets the flat floor head
 first. The game: attempts 58.2, 98.4 and 158.3 burst on the floor (no hazard near, frames 68.45-68.70 and framecheck's
 paths: 58.2 died the frame its box reached the ground line, falling ~5.4 units a frame); attempt 114.13 came down slower

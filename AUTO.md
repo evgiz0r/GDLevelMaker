@@ -298,3 +298,7 @@ landing hard (vy < -4) on a block top. Rebuilt: clears, 837 hazards (180 leak bl
 v13: Evgeni's v12 run reached 16% (tick 4742, 19.8 s) and died where a flipped robot hits the ground at vy -7.3 (no
 object); the sim had it land. The sim now kills a flipped robot there too, the same rule as the cube. Rebuilt: the path is
 identical to v12 up to that spot (tick 4696), 1074 hazards, 9 saws, clears. Probe log in the project files (auto_bricks/probe).
+v14: Evgeni's v13 run reached 68% (tick 17990, 75 s): after a gravity portal the released ship, upside down, pulled 0.069 a
+tick (the 0.8 factor) where the sim used 1.2, so it rose 31 units too high into a spike row. The sim now mirrors the ship's
+threshold upside down like the UFO's (GDLM_SHIP_FLIP=old = before); with it the sim matches the log to the death tick.
+Rebuilt: the same path as v13 up to there, clears.
