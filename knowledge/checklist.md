@@ -215,6 +215,9 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 
 ## Not bland (rated Easy/Normal 2.0-2.1 medians)
 
+- [ ] **A single hazard can carry a design** (Evgeni 2026-11-26: "a spike inside a smaller spike ... glow, layers"): 81-87% of
+  2.0-2.2 rated hazards carry deco, 59-70% two or more parts; dress them with tools/spikedesign.js (inside parts in front,
+  at most 0.8x, on their own channel; glows behind at most 1.4x: `node tools/spikedesign.js check <level>`).
 - [ ] **Hazards follow the path** (Evgeni 2026-11-26 on the auto levels' saws: "random, not following the path"): of the
   level's hazards 8-40% threats (within a block of the route), 25%+ guards (1-3 blocks: the lane's frame, shuts secret
   ways), at most 60% fill; half or more of the jumps over something; 2+ hazards near the path a second (official

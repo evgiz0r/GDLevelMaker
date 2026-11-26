@@ -129,6 +129,16 @@ user's viewer (main checkout) had no beat lines at all; the phone build reads th
   Try: `node tools/signature.js <level>` -> local/tmp/<name>_sig.gdlvl (replaces an older signature),
   then `node tools/shoot.js` on it.
 
+## GD art in the cloud (2026-11-26)
+
+A cloud session linked to the PC can render in GD art for its OWN checks: stage the sheets from the game's Resources folder
+(the remote-devices tool, the folder is connected) -- GJ_GameSheet, 02, 03, 04, GJ_GameSheetGlow, PixelSheet_01,
+FireSheet_01, GJ_ParticleSheet (-uhd .png + .plist), game_bg_01_001-uhd.png, groundSquare_01_001-uhd.png and the 8 icon
+sheets in icons/ (player_01, ship_01, player_ball_01, dart_01, bird_01, spider_01, robot_01, swing_01; lib/art.js gives up
+without them) -- ~35 MB, into /mnt/user-data/uploads/Resources/, then `GD_GAME=/mnt/user-data/uploads node tools/shoot.js ...`.
+Without the icons the page quietly falls back to the game look (lib/look.js: deco as faint circles), which looks like a
+broken design. The pictures stay in the container's local/ (this file's rule); never into git or an artifact.
+
 ## Player motion and icons (soft rule: match the game, checked against a recording)
 
 Each mode is drawn with its own icon: GD art -- the user's icon sheets (/gdres/icons); robot and spider built
