@@ -61,9 +61,20 @@ function communitySources(only) {
     const id = f.slice(1, -5);
     if (only && !only(id)) continue;
     let res; try { res = JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")); } catch (e) { continue; }
-    if (!res.ok || !res.events) continue;
     const lf = path.join(LOCAL, "community", id + ".gdlvl"); if (!fs.existsSync(lf)) continue;
     const L = readGdlvl(lf), level = L.level || GD.parseLevel(L.levelStr), cf = path.join(OUTDIR, "routes", "c" + id + ".json");
+    const name0 = (L.name || (L.record && L.record.k2) || "").replace(/\s+/g, " ").trim();
+    // a level our solver does not clear still gives bricks from the part its route gets through alive (Evgeni's batch,
+    // 2026-11-26: 4 of 28 levels cleared, the rest gave nothing): the furthest of the saved run and its checkpoint, the
+    // raw solver inputs (no human route: that needs a full clear); mine() keeps only bricks ending 3 blocks before the death
+    if (!res.ok) {
+      let ev = res.events && res.events.length ? res.events : null, far = res.dieX || 0;
+      try { const pt = JSON.parse(fs.readFileSync(path.join(dir, "c" + id + ".part.json"), "utf8")); if (pt.events && (pt.x || 0) > far) { ev = pt.events; far = pt.x; } } catch (e) {}
+      if (!ev || far < 20 * B) continue;
+      out.push({ src: "community", name: `c${id}${name0 ? " " + name0 : ""}`, level, events: ev, partial: true, windowsKey: "community_" + id, routeKind: "partial", routePlan: "", routeAt: res.solvedAt || "" });
+      continue;
+    }
+    if (!res.events) continue;
     let r = null; try { r = JSON.parse(fs.readFileSync(cf, "utf8")); if (r.solvedAt !== res.solvedAt) r = null; } catch (e) {}
     if (!r) {
       let events = null, kind = "humanize";
@@ -494,10 +505,13 @@ function mine(which, sketchFiles, only) {
     const t0 = Date.now();
     let R; try { R = route(s); } catch (e) { console.log("  skip", s.name, e.message); continue; }
     const cuts = s.auto ? [[Math.max(0, R.r.path.findIndex(q => q.x >= s.x0)), (i => i < 0 ? R.r.path.length - 1 : i)(R.r.path.findIndex(q => q.x >= s.x1))]] : cut(R.r, R.inputs, s.whole);
+    // a partial route (a level we do not clear): only what ends 3 blocks before its death is a verified piece
+    const okEnd = s.partial && R.r.dead ? R.r.path[R.r.path.length - 1].x - 3 * B : Infinity;
+    if (s.partial) { const live = c => R.r.path[c[1]].x <= okEnd; cuts.splice(0, cuts.length, ...cuts.filter(live)); }
     let ws = []; try { ws = windowsOf(s, R.w, R.r); } catch (e) { console.log("  no windows for", s.name, e.message); }
     for (const [i0, i1] of cuts) { const P = measure(s, R.w, R.r, R.inputs, i0, i1); Object.assign(P, pieceDifficulty(ws, R.r.path[i0].tick, R.r.path[i1].tick)); P.grain = "piece"; if (P.jitter && P.jitter < 3 && !P.tight) P.jitter = 0; if (s.auto) { P.auto = true; P.grain = "brick"; P.sig = "auto / " + P.sig; P.empty = false; } pieces.push(P); }
     // bricks: the same route cut finer (not for the library's whole pieces)
-    if (!s.whole) for (const [i0, i1, kind] of cut(R.r, R.inputs, { auto: true, items: R.w.items }, "brick")) { const P = measure(s, R.w, R.r, R.inputs, i0, i1); Object.assign(P, pieceDifficulty(ws, R.r.path[i0].tick, R.r.path[i1].tick)); P.grain = "brick"; if (P.jitter && P.jitter < 3 && !P.tight) P.jitter = 0; if (kind === "auto") { P.auto = true; P.sig = "auto / " + P.sig; P.empty = false; } pieces.push(P); }
+    if (!s.whole) for (const [i0, i1, kind] of cut(R.r, R.inputs, { auto: true, items: R.w.items }, "brick").filter(c => R.r.path[c[1]].x <= okEnd)) { const P = measure(s, R.w, R.r, R.inputs, i0, i1); Object.assign(P, pieceDifficulty(ws, R.r.path[i0].tick, R.r.path[i1].tick)); P.grain = "brick"; if (P.jitter && P.jitter < 3 && !P.tight) P.jitter = 0; if (kind === "auto") { P.auto = true; P.sig = "auto / " + P.sig; P.empty = false; } pieces.push(P); }
     console.log(`  ${s.src.padEnd(8)} ${s.name.padEnd(34)} ${String(cuts.length).padStart(3)} pieces${R.r.dead ? " (route dies at block " + Math.round(R.r.path[R.r.path.length - 1].x / B) + ")" : ""}  ${Date.now() - t0} ms`);
   }
   pieces.forEach((p, i) => p.id = ({ official: "r", ours: "u", sketch: "s", library: "l", community: "c" }[p.src] + "-" + p.level.replace(/[^a-z0-9]+/gi, "_").toLowerCase() + "-" + p.x + (p.grain === "brick" ? (p.auto ? "a" : "b") : "")));
