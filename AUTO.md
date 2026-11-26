@@ -330,3 +330,14 @@ and beat are picked to keep the ledges low). The cube then runs under the floati
 ends 5 blocks after it. Measured: launches and landings within 2 ms of the beats on Can't Let Go, 4-5 ms on Geometrical
 Dominator. autobeat uses it by default (`opts.ending: "outro"` = the old one). Open: make.js and the other builders still use
 the old outro; the Geometrical Dominator ending climbs to ~4 blocks (no low-ledge beat there).
+
+### Sections by character (tools/sections.js, 2026-11-26)
+Evgeni: "sections have to be cut by the transitions of the level". The batches were already cut at the song's transitions,
+but each batch's kinds and icons were a dice roll. Now each batch is typed from the measured song (heaviness, loudness, which
+band leads, the transition at its start; `node tools/sections.js <song>` prints them) and gets content by type:
+drop = red pads on the low notes, yellow on the mid, blue on the top, robot / ball; break = a flight (ship, ufo) with gravity,
+mini and icon portals; build = stairs, slopes and pink pads climbing; entry = the batch before goes on and the band that came in
+gets a new kind; groove = the batch before goes on with one new icon. Can't Let Go: break 0-7 s, build 7-17, entry 17-24,
+drop 24-31, entries to 72, break to the end. Swing is left out of flights until the game has checked it. Full songs clip
+into ledges less with it (GD seed 1: 18 ticks vs 26; Can't Let Go: 0). `opts.sections: false` = the old roll.
+Auto beat 2 v3 is built with it (and the beat ending).

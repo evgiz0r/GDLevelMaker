@@ -92,6 +92,7 @@ function musicOf(song) {
   return {
     key, notes: j.notes.map(([t, s, band]) => ({ t, strength: s, band })),
     intensity: (j.bars || []).map(b => ({ t: b[0], value: b[4] })), speedPlan: j.speedPlan || [],
+    bars: (j.bars || []).map(b => ({ t: b[0], heavy: b[2], intensity: b[4] })),
     impacts: (j.impacts || []).map(([t, beat, strength, kind]) => ({ t, beat, strength, kind })),
   };
 }
@@ -140,6 +141,14 @@ function notePlan(g, music, fromBeat, uptoBeat, o = {}) {
     const isTrans = trans.some(t => Math.abs(t - p.t) <= 0.12) || (p.accent && p.t - lastB > 16);
     if (p === out[0] || (isTrans && p.t - lastB >= 6)) { p.newBatch = true; lastB = p.t; }
   }
+  // each batch's CHARACTER (tools/sections.js): drop, break, build, entry, groove -- what kind of transition starts it and what
+  // the section is, from heaviness, loudness and which band leads (Evgeni, 2026-11-26: "sections have to be cut by the
+  // transitions of the level"); wantAt picks the batch's kinds and icons from it
+  if (music.bars && music.bars.length) {
+    const starts = out.filter(p => p.newBatch); let prev = null;
+    starts.forEach((p, i) => { const t1 = i + 1 < starts.length ? starts[i + 1].t : t1Song(); p.section = require("./sections.js").character(music, p.t, t1, prev); prev = p.section; });
+  }
+  function t1Song() { return out.length ? out[out.length - 1].t + 0.5 : t1; }
   // the music's own speed plan (tools/impacts.js speedPlan) when it has one
   if (music.speedPlan && music.speedPlan.length) {
     let cur = "1x";
@@ -437,6 +446,38 @@ function blockSpot(leak, P, idxOfX) {
   return null;
 }
 
+// ---------------------------------------------------------------- a batch from its section's character (AUTO.md "Sections by character")
+// drop: the heavy part -- big pads (red on the low notes, yellow on the mid), blue pads on the top, punchy landing icons;
+// break: the calm part -- a flight (ship / swing / ufo), gentle kinds (gravity, mini, icons);
+// build: rising -- stairs and slopes climbing, pink pads on the top;
+// entry: an instrument comes in -- the batch before goes on, and the band that came in gets a new, visible kind;
+// groove: more of the same -- the batch before goes on with one new icon.
+const LANDK = ["yellow", "pink", "red", "blue", "step", "fall"];
+function sectionBatch(c, prev, r, t) {
+  const pickOf = arr => arr[Math.floor(r() * arr.length)];
+  const landIcons = ["cube", "ball", "robot", "spider", "ufo"];
+  let low, mid, top, icons, fly = false, rapid;
+  const fresh = (not, from) => pickOf(from.filter(k => !not.includes(k))) || from[0];
+  if (c.type === "drop") { low = "red"; mid = "yellow"; top = "blue"; icons = ["robot", "ball"].sort(() => r() - 0.5); rapid = "blue"; }
+  else if (c.type === "break") { fly = true; low = "grav"; mid = "mini"; top = "mode"; icons = ["ship", "ufo"]; rapid = "grav"; }   // swing: not yet checked in the game
+  else if (c.type === "build") { low = "step"; mid = c.lead === "top" ? "pink" : "slope"; top = mid === "pink" ? "slope" : "pink"; icons = [pickOf(["cube", "ufo"]), pickOf(["ball", "robot"])]; rapid = "mode"; }
+  else if (prev && (c.type === "entry" || c.type === "groove")) {
+    ({ low, mid, top, fly, rapid } = prev); icons = prev.icons.slice();
+    const band = c.type === "entry" ? (c.entering || c.lead) : null;
+    if (band) {   // the band that came in gets a new kind, one the batch does not use yet; pads when it lands
+      const pool = fly ? ["grav", "mode", "mini", "slope"] : ["yellow", "red", "pink", "blue", "step", "grav", "mode"];
+      const k = fresh([low, mid, top], pool); if (band === "low") low = k; else if (band === "mid") mid = k; else top = k;
+    }
+    // one new icon (the second one), of the kind the batch can use
+    const can = fly ? ["ship", "ufo", "wave"] : landIcons;
+    icons[1] = fresh(icons, can);
+  } else { low = "yellow"; mid = "grav"; top = "mode"; icons = ["cube", "ufo"]; rapid = "grav"; }
+  const lands = [low, mid, top].some(k => LANDK.includes(k));
+  if (lands) { fly = false; icons = icons.map((m, i) => landIcons.includes(m) ? m : (i === 0 ? "cube" : fresh(icons, landIcons))); }
+  if (!fly && ![low, mid, top].some(k => k === "yellow" || k === "red")) top = "yellow";
+  return { low, mid, top, icons, t, first: true, fly, rapid, section: c.type };
+}
+
 // ---------------------------------------------------------------- the builder
 function build(opts = {}) {
   REJ.band = REJ.spider = REJ.clip = 0;
@@ -461,6 +502,8 @@ function build(opts = {}) {
     if (opts.music && p.band) {
       // the batch: a kind for each band (low = kick / bass, mid = snare / keys, top = hats / high notes), two icons (modes)
       if (!batch || p.newBatch) {
+        if (opts.sections !== false && p.section) { batch = sectionBatch(p.section, batch, r, p.t); motifLog.push(`${p.t.toFixed(1)} s: ${p.section.type}${p.section.entering ? " (" + p.section.entering + " in)" : ""}, lead ${p.section.lead}: low=${batch.low} mid=${batch.mid} top=${batch.top} rapid=${batch.rapid} icons=${batch.icons.join("/")}`); }
+        else {
         const used = batch ? [batch.low, batch.mid, batch.top] : [];
         // now and then a FLIGHT batch: portals only, so the icons can be ship / wave / swing too
         const fly = batch && !batch.fly && r() < 0.4, landK = ["yellow", "pink", "red", "blue", "step", "fall"];
@@ -478,6 +521,7 @@ function build(opts = {}) {
         const rapid = fly ? (r() < 0.6 ? "grav" : "mode") : (r() < 0.5 ? "grav" : r() < 0.6 ? "blue" : "mode");
         batch = { low, mid, top, icons: ic, t: p.t, first: true, fly, rapid };
         motifLog.push(`${p.t.toFixed(1)} s: low=${low} mid=${mid} top=${top} rapid=${rapid} icons=${ic.join("/")}`);
+        }
       }
       // ECHO (round 9, Evgeni: "it feels very random"): phrases of 16 beats come in pairs, call and response; a note of the
       // response wants what the call did on the same 16th of its phrase, so a repeated bar of music draws a repeated shape
