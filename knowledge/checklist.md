@@ -294,6 +294,10 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   of different heights, rods and chains attached to pieces, <= 20% loose deco. `node tools/craft.js check
   <level>` (score.js gate "craft"); generate with `"craft": true` and the craft structures. (CRAFT.md)
 
+- [ ] **Auto stretches** (AUTO.md; the main levels spend ~10% of their length with no press, 4-15 stretches of ~1-1.5 s,
+  often ending in a mode portal): a level has some, each clears with NO press, and a stray tap there does not kill
+  (clickSafe >= 0.8 in `knowledge/autobricks.json`). Pick them from `tools/autobricks.js`.
+
 ## Looks like 2.2, not 1.0 (levels/modern_look.md)
 
 - [ ] **No white deco by accident** (the user, 2026-11-24, after GDLM 67 in the real game: "our deco being pure white within the game is still expected?"): every deco object's colour channel -- its key 21/22, or its default (channel 1 for 211 / 693) -- is defined in the header or by a colour trigger before it; otherwise GD draws it WHITE. `node tools/channels.js <level>`, score.js gate "channels" (FAIL).

@@ -1,0 +1,320 @@
+// node tools/autobricks.js list                       -- the families and their variants
+// node tools/autobricks.js build [id|family ...]      -- build + verify each variant (zero presses) -> knowledge/autobricks.json,
+//                                                       each brick's test level -> local/structures/lego-auto-<id>.gdlvl
+//                                                       (tools/lego.js mine library picks them up), and one lab level
+//                                                       with every good brick in a row -> levels/lab/auto_lab.gdlvl
+// node tools/autobricks.js show <id>                  -- one brick: its contract, measures and a text map
+//
+// AUTO bricks: stretches with NO click where the level moves the player -- pads, gravity / mode / speed portals, spider
+// pads, platforms to land on (the user, 2026-11-26: "i want to start developing those auto structures"; 2026-11-25:
+// "sections without clicks but with interesting patterns of pads portals slopes that create some interesting movement").
+// AUTO.md: what one is, the study of the main levels' auto parts (tools/autostudy.js), how these are built and checked,
+// the contract, what is open.
+//
+// How a brick is built: a family is a SCRIPT of moves (put a pad, a portal, a platform where the player comes down ...).
+// Each move is placed where the sim says the player is after the moves before it (zero presses), so every pad is touched
+// and every platform is landed on by construction. Then hazards are filled in where the player never goes (spikes under
+// the flight, hanging spikes over it), each one kept only if the zero-press run still clears. Shapes are generic GD
+// vocabulary, nothing copied from a level.
+// The checks: zero presses clear it; the exit state (mode, gravity, speed, height, grounded) is the contract's "leaves";
+// a stray tap every 0.1 s (each alone) -> clickSafe; its motion (movers, turns, rise) vs the main levels' auto parts.
+"use strict";
+if (require.main === module && /^(build)$/.test(process.argv[2] || "")) require("./heavy.js").claim();
+const fs = require("fs"), path = require("path");
+const { GD, writeGdlvl } = require("./io.js");
+const { TYPES } = require("./make.js");
+const study = require("./autostudy.js");
+const ROOT = path.join(__dirname, ".."), OUT = path.join(ROOT, "knowledge", "autobricks.json");
+const TPS = GD.PHYS.TPS, B = 30, RUNIN = 10, FAR = 400;
+const SPEEDK = { "0.5x": 1, "1x": 0, "2x": 2, "3x": 3, "4x": 4 }, SPEEDNAME = ["0.5x", "1x", "2x", "3x", "4x"];
+const MODE_PORTAL = { ship: "ship portal", ball: "ball portal", ufo: "ufo portal", wave: "wave portal", robot: "robot portal", spider: "spider portal", swing: "swing portal", cube: "cube portal" };
+const idOf = t => typeof t === "number" ? t : TYPES[t] || ({ "spider pad": 3005, "mini portal": 101, "normal size": 99 })[t];
+
+// ---------------------------------------------------------------- the level a brick is tested in
+// objs: {t, c, r, flipY?, rot?} with c = column from the brick's start (col 0 = RUNIN), r = row (0 = on the ground)
+function levelOf(objs, a) {
+  const header = GD.DEFAULT_HEADER.replace(/(^|,)kA4,\d+/, "$1kA4," + SPEEDK[a.speed || "1x"]);
+  const all = [], put = (t, c, r, o = {}) => all.push({ id: idOf(t), x: (c + RUNIN) * B + 15, y: r * B + 15, flipY: !!o.flipY, rot: o.rot || 0 });
+  if (a.mode && a.mode !== "cube") put(MODE_PORTAL[a.mode], -RUNIN + 3, 1);
+  if (a.grav === -1) put("gravity down", -RUNIN + 4, 1);
+  for (const o of objs) { if (!idOf(o.t)) throw new Error("unknown object " + o.t); put(o.t, o.c, o.r, o); }
+  put(211, FAR, 30);   // a far decoration: the sim keeps running past the brick (the world ends 3 blocks after the last object)
+  const str = header + ";" + all.map(o => `1,${o.id},2,${o.x},3,${o.y}` + (o.flipY ? ",5,1" : "") + (o.rot ? ",6," + o.rot : "")).join(";") + ";";
+  return { level: GD.parseLevel(str), str };
+}
+function simOf(objs, a, upto) {
+  const { level } = levelOf(objs, a), w = GD.makeWorld(level.objects, level.header);
+  const s = GD.startState(w), p = [structuredClone(s)];
+  const lim = upto != null ? (upto + RUNIN) * B : FAR * B;
+  while (!s.dead && !s.done && s.x < lim && s.tick < 60 * TPS) { GD.step(w, s, { press: false, held: false }); p.push(structuredClone(s)); }
+  return { w, p, dead: s.dead, why: s.why, end: s };
+}
+const colOf = x => Math.floor(x / B) - RUNIN;
+const settled = (p, i) => i >= 2 && p[i].grounded && p[i - 1].grounded && p[i - 2].grounded;
+
+// ---------------------------------------------------------------- moves
+// cur = { i: path index the next move is placed after }
+const MOVES = {
+  // a pad on the surface the player runs on, `gap` columns after it is settled there
+  pad(objs, a, m, ctx) {
+    const { p } = ctx.sim; let i = ctx.i;
+    while (i < p.length && !(settled(p, i) && colOf(p[i].x) >= ctx.minCol)) i++;
+    if (i >= p.length) return "never settles for the " + m.pad + " pad";
+    const s = p[i], c = colOf(s.x) + 1 + (m.gap || 0);
+    if (s.grav > 0) objs.push({ t: m.pad + " pad", c, r: Math.round((s.y - 15) / B) });
+    else objs.push({ t: m.pad + " pad", c, r: Math.round((s.y + 15) / B) - 1, flipY: true });
+    return { col: c };
+  },
+  // a portal in the player's way `gap` columns on, centred on where it is there
+  portal(objs, a, m, ctx) {
+    const { p } = ctx.sim; let i = ctx.i;
+    const want = Math.max(ctx.minCol, colOf(p[i].x) + (m.gap || 1));
+    while (i < p.length && colOf(p[i].x) < want) i++;
+    if (i >= p.length) return "nowhere to put the " + m.portal;
+    if (m.when === "rising" || m.when === "falling") {   // wait until the player rises / falls (after a pad)
+      while (i < p.length && !((m.when === "rising" ? 1 : -1) * p[i].vy * p[i].grav > 1)) i++;
+      if (i >= p.length) return "never " + m.when + " for the " + m.portal;
+    }
+    const s = p[i], c = colOf(s.x) + (m.when ? 1 : 0);
+    objs.push({ t: m.portal, c, r: Math.max(1, Math.round((s.y - 15) / B)) });
+    return { col: c };
+  },
+  // a platform where the player comes down onto height h (grav 1: its top at row h; upside down: its underside at row h)
+  land(objs, a, m, ctx) {
+    const { p } = ctx.sim; let i = ctx.i + 1;
+    const h = m.land != null ? m.land : m.h, y = h * B;
+    for (; i < p.length; i++) {
+      const s = p[i], q = p[i - 1];
+      if (s.grav > 0 && s.vy < 0 && q.y - 15 >= y && s.y - 15 < y + 6) break;
+      if (s.grav < 0 && s.vy > 0 && q.y + 15 <= y && s.y + 15 > y - 6) break;
+    }
+    if (i >= p.length) return "never comes down at height " + h;
+    const c0 = colOf(p[i].x) - 1, row = p[i].grav > 0 ? h - 1 : h;
+    for (let c = c0; c < c0 + (m.len || 3); c++) for (let r = row; r >= (p[i].grav > 0 && m.solid ? 0 : row); r--) objs.push({ t: "block", c, r });
+    return { col: c0 + (m.len || 3) - 1 };
+  },
+  // a long ceiling (or floor) at row h over the next n columns
+  roof(objs, a, m, ctx) { const c0 = Math.max(ctx.minCol, 0) + (m.from || 0); for (let c = c0; c < c0 + (m.n || 150); c++) objs.push({ t: "block", c, r: m.h, roof: true }); return { col: ctx.minCol - 1 }; },
+  // walk n columns on (a pause in the moves)
+  walk(objs, a, m, ctx) { return { col: Math.max(ctx.minCol - 1, colOf(ctx.sim.p[ctx.i].x)) + m.walk }; },
+};
+
+// run a family's script: place each move from a fresh sim of what is placed so far
+function place(fam, a) {
+  const objs = []; let minCol = 0, sim = simOf(objs, a), i = 0, j = 0;
+  for (const m of fam.script(a)) {
+    const kind = Object.keys(MOVES).find(k => k in m);
+    const ctx = { sim, i, minCol };
+    const r = MOVES[kind](objs, a, m, ctx);
+    if (typeof r === "string") return { error: r };
+    minCol = r.col + 1;
+    // with a roof, the run is judged only under it (past its end an upside-down player falls into the sky)
+    const roofEnd = Math.max(-1, ...objs.filter(o => o.roof).map(o => o.c));
+    sim = simOf(objs, a, roofEnd > 0 ? roofEnd - 2 : undefined);
+    if (sim.dead) return { error: `dies after move ${j + 1} (${kind}): ${sim.why || ""} at col ${colOf(sim.end.x)}`, objs };
+    // the next move starts from where this one was put
+    i = sim.p.findIndex(s => colOf(s.x) >= r.col); if (i < 0) return { error: "the player never gets past move " + (j + 1) };
+    j++;
+  }
+  return { objs, sim, lastCol: minCol - 1 };
+}
+// the exit: after the last move, the first calm point -- settled on a surface, or flying in its new mode -- that is
+// at least `tail` columns on
+function exitOf(sim, lastCol) {
+  const p = sim.p; let i = p.findIndex(s => colOf(s.x) >= lastCol + 1);
+  if (i < 0) return null;
+  const flying = s => /ship|ufo|wave|swing/.test(s.mode);
+  while (i < p.length && !(settled(p, i) || (flying(p[i]) && p[i].tick - p[Math.max(0, i - 48)].tick >= 48 && Math.abs(p[i].vy) < 4))) i++;
+  if (i >= p.length) return null;
+  return i;
+}
+// hazards where the player never goes: spikes on the ground under the flight, hanging spikes under a roof over it,
+// each kept only if the zero-press run still clears
+function fillHazards(objs, a, startCol, endCol) {
+  const sim = simOf(objs, a, endCol + 4), p = sim.p, occ = new Set(objs.map(o => o.c + ":" + o.r));
+  const lowAt = {}, highAt = {};
+  for (const s of p) { const c = colOf(s.x); if (c < startCol || c > endCol) continue; lowAt[c] = Math.min(lowAt[c] ?? 1e9, s.y); highAt[c] = Math.max(highAt[c] ?? -1e9, s.y); }
+  // also the columns next to each (the player's box is a block wide)
+  const near = (c, f, v) => [c - 1, c, c + 1].every(k => lowAt[k] === undefined || f(k));
+  const roofs = {}; for (const o of objs) if (o.t === "block") (roofs[o.c] = roofs[o.c] || []).push(o.r);
+  const cand = [];
+  for (let c = startCol + 1; c < endCol; c++) {
+    if (lowAt[c] === undefined) continue;
+    // ground spike: the column is empty at rows 0-1 and the player stays 2.5+ blocks over the ground around it
+    if (!occ.has(c + ":0") && !occ.has(c + ":1") && near(c, k => lowAt[k] >= 2.5 * B + 15)) cand.push({ t: "spike", c, r: 0 });
+    // hanging spike: under the lowest roof block over the player, when the player stays 2.5 blocks under it
+    const rs = (roofs[c] || []).filter(r => r * B > highAt[c]).sort((x, y) => x - y);
+    if (rs.length && !occ.has(c + ":" + (rs[0] - 1)) && near(c, k => highAt[k] === undefined || highAt[k] + 15 <= (rs[0] - 2.5) * B)) cand.push({ t: "spike", c, r: rs[0] - 1, rot: 180 });
+  }
+  let kept = 0;
+  // in batches: all at once, then halves on a death (most of them are fine)
+  const tryAdd = list => {
+    if (!list.length) return;
+    const t = objs.concat(list), s = simOf(t, a, endCol + 4);
+    if (!s.dead) { objs.push(...list); kept += list.length; return; }
+    if (list.length === 1) return;
+    tryAdd(list.slice(0, list.length >> 1)); tryAdd(list.slice(list.length >> 1));
+  };
+  tryAdd(cand);
+  return kept;
+}
+
+// ---------------------------------------------------------------- one brick: build + verify + measure
+function buildBrick(fam, v) {
+  const a = Object.assign({ mode: "cube", grav: 1, speed: "1x" }, fam.args, v.args);
+  const pl = place(fam, a);
+  if (pl.error) return { id: v.id, family: fam.id, ok: false, why: pl.error };
+  let { objs, sim } = pl;
+  let ie = exitOf(sim, pl.lastCol);
+  if (ie == null) return { id: v.id, family: fam.id, ok: false, why: "no calm exit after the last move" };
+  let endCol = colOf(sim.p[ie].x) + 1;
+  // a roof runs on only to the exit (+1: the next brick's own roof, or the open sky, takes over)
+  for (let k = objs.length - 1; k >= 0; k--) if (objs[k].roof && objs[k].c > endCol + 1) objs.splice(k, 1);
+  // a landing platform runs on to the exit (the next brick's floor)
+  const ex = sim.p[ie];
+  if (ex.grounded && ex.grav > 0 && ex.y > 30) { const r = Math.round((ex.y - 15) / B) - 1; for (let c = colOf(ex.x); c <= endCol + 1; c++) if (!objs.some(o => o.c === c && o.r === r)) objs.push({ t: "block", c, r }); }
+  if (ex.grounded && ex.grav < 0) { const r = Math.round((ex.y + 15) / B); for (let c = colOf(ex.x); c <= endCol + 1; c++) if (!objs.some(o => o.c === c && o.r === r)) objs.push({ t: "block", c, r }); }
+  const hazards = fam.hazards === false ? 0 : fillHazards(objs, a, 0, endCol);
+  sim = simOf(objs, a, endCol + 3);
+  if (sim.dead) return { id: v.id, family: fam.id, ok: false, why: "dies after the hazard fill: " + sim.why + " at col " + colOf(sim.end.x) };
+  ie = exitOf(sim, pl.lastCol); if (ie == null) return { id: v.id, family: fam.id, ok: false, why: "no exit after the fill" };
+  const p = sim.p, i0 = Math.max(0, p.findIndex(s => colOf(s.x) >= 0) - 12), i1 = ie, s1 = p[i1];
+  const d = study.describe(sim.w, p, i0, i1);
+  const width = colOf(s1.x) + 1;
+  // the contract: what it needs and what it leaves (height as the row the player's feet are on / its centre row flying)
+  const rowOf = s => s.grounded ? (s.grav > 0 ? Math.round((s.y - 15) / B) : Math.round((s.y + 15) / B)) : +((s.y - 15) / B).toFixed(1);
+  const res = {
+    id: v.id, family: fam.id, doc: v.doc || fam.doc, ok: true, runin: RUNIN,
+    needs: { mode: a.mode, grav: a.grav, speed: a.speed, mini: false, row: 0, grounded: true },
+    leaves: { mode: s1.mode, grav: s1.grav, speed: SPEEDNAME[s1.sp], mini: !!s1.mini, row: rowOf(s1), grounded: !!s1.grounded, vy: s1.grounded ? 0 : +s1.vy.toFixed(1) },
+    width, secs: d.secs, movers: d.movers.map(m => m.name), nMovers: d.movers.length, turns: d.turns, rise: d.rise, dy: d.dy, gravFlips: d.gravFlips,
+    hazards, clickSafe: study.clickSafe(sim.w, p, i0, i1),
+    objects: objs.map(o => [o.t, o.c, o.r].concat(o.flipY || o.rot ? [Object.assign({}, o.flipY ? { flipY: true } : {}, o.rot ? { rot: o.rot } : {})] : [])),
+    path: p.filter((s, k) => k >= i0 - 24 && k <= i1 + 24 && k % 6 === 0).map(s => [+((s.x / B) - RUNIN).toFixed(2), +((s.y - 15) / B).toFixed(2), s.mode[0], s.grav]),
+  };
+  res.interest = interest(res);
+  return res;
+}
+// how much the brick moves the player, against the main levels' auto parts (knowledge/auto_study.json medians: ~1-1.5 s,
+// 4-5 blocks of rise, 2-4 turns, 1-4 movers): 0..1
+function interest(b) {
+  const c = (v, lo, hi) => Math.max(0, Math.min(1, (v - lo) / (hi - lo)));
+  return +(0.3 * c(b.nMovers, 0, 4) + 0.25 * c(b.turns, 0, 5) + 0.2 * c(b.rise, 1, 6) + 0.15 * c(b.secs, 0.5, 2) + 0.1 * (b.leaves.mode !== b.needs.mode || b.leaves.grav !== b.needs.grav || b.leaves.row !== b.needs.row ? 1 : 0)).toFixed(2);
+}
+
+// ---------------------------------------------------------------- the families
+const FAM = [];
+const F = (id, o) => FAM.push(Object.assign({ id, args: {} }, o));
+const range = (n, f) => Array.from({ length: n }, (_, i) => f(i));
+
+F("launch", { doc: "a pad throws the cube over a spike pit onto a ledge",
+  variants: [].concat(...["yellow", "red", "pink"].map(pad => (pad === "pink" ? [1] : pad === "red" ? [3, 4, 6] : [2, 3, 4]).map(h => ({ id: `launch-${pad}-${h}`, args: { pad, h }, doc: `a ${pad} pad throws the cube onto a ${h}-high ledge over spikes` })))),
+  script: a => [{ walk: 1 }, { pad: a.pad }, { land: a.h, len: 4 }] });
+F("pad-stairs", { doc: "pads one after another, each throwing the cube onto a higher (or lower) ledge",
+  variants: [
+    { id: "pad-stairs-up3", args: { pad: "yellow", hs: [2, 4, 6] }, doc: "three yellow pads, each onto a ledge 2 higher" },
+    { id: "pad-stairs-up-pink", args: { pad: "pink", hs: [1, 2, 3, 4] }, doc: "four pink pads up a staircase of single steps" },
+    { id: "pad-stairs-down", args: { pad: "yellow", hs: [5, 3, 1] }, doc: "a red pad up high, then yellow pads hopping down ledge to ledge", first: "red", h0: 6 },
+    { id: "pad-stairs-zigzag", args: { pad: "yellow", hs: [3, 1, 4, 2] }, doc: "yellow pads hopping up and down between ledges" },
+  ].map(v => Object.assign(v, { args: Object.assign({}, v.args, v.first ? { first: v.first, h0: v.h0 } : {}) })),
+  script: a => [{ walk: 1 }].concat(a.first ? [{ pad: a.first }, { land: a.h0, len: 2 }] : [], ...a.hs.map(h => [{ pad: a.pad, gap: 0 }, { land: h, len: 2 }])) });
+F("pingpong", { doc: "blue pads on floor and roof bounce the cube up and down a spiked corridor",
+  variants: [].concat(...[4, 5, 6].map(H => [3, 5].map(n => [0, 1].map(gap => ({ id: `pingpong-h${H}-n${n}-g${gap}`, args: { H, n, gap }, doc: `${n} blue pads in a ${H}-high corridor, ${gap ? "a step" : "no step"} between bounces` }))).flat())),
+  script: a => [{ roof: true, h: a.H }, { walk: 1 }].concat(range(a.n, () => ({ pad: "blue", gap: a.gap }))).concat([{ walk: 1 }]) });
+F("grav-pingpong", { doc: "gravity portals flip the cube between floor and roof in a spiked corridor",
+  variants: [].concat(...[5, 7].map(H => [2, 4].map(n => [2, 4].map(gap => ({ id: `gravpp-h${H}-n${n}-g${gap}`, args: { H, n, gap }, doc: `${n} gravity portals, yellow and blue in turn, ${gap} blocks apart, in a ${H}-high corridor` }))).flat())),
+  script: a => [{ roof: true, h: a.H }, { walk: 1 }].concat(range(a.n, k => ({ portal: k % 2 ? "gravity up" : "gravity down", gap: a.gap }))).concat([{ walk: 1 }]) });
+F("spider-zigzag", { doc: "spider pads snap the cube between floor and roof",
+  variants: [4, 6].map(H => [3, 5].map(n => ({ id: `spider-zz-h${H}-n${n}`, args: { H, n }, doc: `${n} spider pads in a ${H}-high corridor` }))).flat(),
+  script: a => [{ roof: true, h: a.H }, { walk: 1 }].concat(range(a.n, () => ({ pad: "spider", gap: 1 }))).concat([{ walk: 1 }]) });
+F("pad-flip", { doc: "a yellow pad throws the cube up into a gravity portal: it lands on a roof, and a blue pad there drops it back",
+  variants: [6, 8].map(H => ({ id: `pad-flip-h${H}`, args: { H }, doc: `a pad and a gravity portal onto a ${H}-high roof, a blue pad back down` })),
+  script: a => [{ roof: true, h: a.H }, { walk: 1 }, { pad: "yellow" }, { portal: "gravity down", gap: 2, when: "rising" }, { pad: "blue", gap: 2 }, { walk: 1 }] });
+F("pad-portal", { doc: "a pad throws the cube into a mode portal: it comes out flying (or rolling) in the new mode",
+  variants: ["ship", "ufo", "wave", "ball", "robot", "spider", "swing"].map(m => ({ id: `pad-into-${m}`, args: { into: m }, doc: `a yellow pad up into a ${m} portal` })),
+  hazards: false,
+  script: a => [{ walk: 1 }, { pad: "yellow" }, { portal: MODE_PORTAL[a.into], gap: 2, when: "rising" }, { walk: 2 }] });
+F("speed-launch", { doc: "a speed portal, then a pad launch at the new speed onto a ledge",
+  variants: [["2x", 4], ["0.5x", 3], ["3x", 4]].map(([sp, h]) => ({ id: `speed-${sp}-launch`, args: { sp, h }, doc: `a ${sp} speed portal, a yellow pad onto a ${h}-high ledge` })),
+  script: a => [{ portal: a.sp + " speed", gap: 1 }, { walk: 2 }, { pad: "yellow" }, { land: a.h, len: 4 }] });
+F("ball-pingpong", { doc: "the ball rolls through gravity portals and blue pads between floor and roof",
+  variants: [5, 7].map(H => ({ id: `ball-pp-h${H}`, args: { mode: "ball", H }, doc: `the ball flipped 4 times by portals and pads in a ${H}-high corridor` })),
+  script: a => [{ roof: true, h: a.H }, { walk: 1 }, { portal: "gravity down", gap: 2 }, { pad: "blue", gap: 1 }, { portal: "gravity down", gap: 2 }, { pad: "blue", gap: 1 }, { walk: 1 }] });
+F("drop-chain", { doc: "a red pad up to a high ledge, then the cube walks off ledge after ledge down",
+  variants: [{ id: "drop-chain-3", args: { hs: [5, 3, 1] }, doc: "a red pad onto a 6-high ledge, then three drops" }],
+  script: a => [{ walk: 1 }, { pad: "red" }, { land: 6, len: 3 }].concat(...a.hs.map(h => [{ land: h, len: 3 }])) });
+
+function variants(filter) {
+  const out = [];
+  for (const f of FAM) for (const v of f.variants) if (!filter.length || filter.includes(v.id) || filter.includes(f.id)) out.push([f, v]);
+  return out;
+}
+
+// ---------------------------------------------------------------- outputs
+function writeLevel(file, name, objs, a) {
+  const { str } = levelOf(objs.filter(o => o.t !== 211), a);
+  const level = GD.parseLevel(str.replace(/;1,211,[^;]*;/, ";"));
+  // the run-out: a block far on (the level ends 3 blocks after it), so the player walks on past the brick
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  writeGdlvl(file, GD.newRecord(name, "auto bricks: no clicks (tools/autobricks.js, AUTO.md)"), level);
+}
+// every good brick in a row: each one's own test (cube on the ground, 1x) with a portal back to the cube and a calm
+// stretch between, so the lab clears with no click at all
+function labObjects(good) {
+  const objs = []; let col = 0;
+  for (const b of good) {
+    if (b.needs.mode !== "cube") { objs.push({ t: MODE_PORTAL[b.needs.mode], c: col, r: 1 }); col += 4; }
+    if (b.needs.speed !== "1x") { objs.push({ t: b.needs.speed + " speed", c: col, r: 1 }); col += 2; }
+    for (const [t, c, r, e] of b.objects) objs.push(Object.assign({ t, c: col + c, r }, e || {}));
+    col += b.width + 1;
+    // back to the cube, normal gravity, 1x, on the ground: a wall of portals over the height (the brick may leave anywhere)
+    const back = [];
+    if (b.leaves.mode !== "cube") back.push("cube portal");
+    if (b.leaves.grav !== 1) back.push("gravity up");
+    if (b.leaves.speed !== "1x") back.push("1x speed");
+    if (b.leaves.mini) back.push("normal size");
+    for (const t of back) { for (const r of [1, 4, 7, 10]) objs.push({ t, c: col, r }); col += 2; }
+    col += 8;
+  }
+  return { objs, width: col };
+}
+
+function main() {
+  const cmd = process.argv[2] || "list", args = process.argv.slice(3).filter(x => !x.startsWith("--"));
+  if (cmd === "list") {
+    for (const f of FAM) { console.log(`${f.id.padEnd(16)} ${f.doc}`); for (const v of f.variants) console.log(`    ${v.id.padEnd(24)} ${v.doc}`); }
+    return;
+  }
+  if (cmd === "show") {
+    const j = JSON.parse(fs.readFileSync(OUT, "utf8")), b = j.bricks.find(x => x.id === args[0]);
+    if (!b) { console.log("no brick " + args[0]); return; }
+    console.log(JSON.stringify(Object.assign({}, b, { objects: b.objects.length + " objects", path: b.path.length + " samples" }), null, 1));
+    return;
+  }
+  if (cmd !== "build") { console.log("usage: node tools/autobricks.js list | build [id|family ...] | show <id>"); return; }
+  const list = variants(args), res = [];
+  const t0 = Date.now();
+  for (const [f, v] of list) {
+    let b; try { b = buildBrick(f, v); } catch (e) { b = { id: v.id, family: f.id, ok: false, why: "error: " + e.message }; }
+    res.push(b);
+    if (b.ok) console.log(`  ok   ${b.id.padEnd(24)} ${b.secs}s ${String(b.width).padStart(3)} cols  ${b.needs.mode}->${b.leaves.mode}${b.leaves.grav < 0 ? " (upside down)" : ""} row ${b.leaves.row}  movers ${b.nMovers} turns ${b.turns} rise ${b.rise}  hazards ${b.hazards}  clickSafe ${b.clickSafe}  interest ${b.interest}`);
+    else console.log(`  FAIL ${b.id.padEnd(24)} ${b.why}`);
+    if (b.ok) writeLevel(path.join(ROOT, "local", "structures", "lego-auto-" + b.id + ".gdlvl"), "auto " + b.id, b.objects.map(([t, c, r, e]) => Object.assign({ t, c, r }, e || {})), { mode: b.needs.mode, grav: b.needs.grav, speed: b.needs.speed });
+  }
+  // keep earlier results of bricks not rebuilt this time
+  let old = []; try { old = JSON.parse(fs.readFileSync(OUT, "utf8")).bricks || []; } catch (e) {}
+  const ids = new Set(res.map(b => b.id)), live = new Set(FAM.flatMap(f => f.variants.map(v => v.id)));
+  const bricks = old.filter(b => !ids.has(b.id) && live.has(b.id)).concat(res).sort((x, y) => (y.ok - x.ok) || (y.interest || 0) - (x.interest || 0));
+  fs.writeFileSync(OUT, JSON.stringify({ v: 1, at: new Date().toISOString().slice(0, 10), note: "auto (no-click) bricks: tools/autobricks.js, AUTO.md", bricks }, null, 0).replace(/\},\{"id"/g, "},\n{\"id\""));
+  const good = bricks.filter(b => b.ok);
+  console.log(`\n  ${good.length} of ${bricks.length} bricks clear with no click (${((Date.now() - t0) / 1000).toFixed(1)} s) -> ${path.relative(ROOT, OUT)}`);
+  // the lab level: every good brick in a row, verified as one run with zero presses
+  const lab = labObjects(good), a = { mode: "cube", grav: 1, speed: "1x" };
+  const s = simOf(lab.objs, a, lab.width + 6);
+  console.log(`  lab: ${good.length} bricks, ${lab.width} columns: ${s.dead ? "DIES at col " + colOf(s.end.x) + " (" + (s.why || "") + ")" : "clears with no click (" + (s.end.tick / TPS).toFixed(1) + " s)"}`);
+  const labFile = path.join(ROOT, "levels", "lab", "auto_lab.gdlvl");
+  writeLevel(labFile, "GDLM auto lab", lab.objs, a);
+  console.log("  -> " + path.relative(ROOT, labFile));
+}
+if (require.main === module) main();
+module.exports = { FAM, buildBrick, variants, simOf, levelOf, labObjects };

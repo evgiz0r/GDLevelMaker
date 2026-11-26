@@ -352,6 +352,9 @@ Evgeni's notes for the connecting step (2026-11-25):
   220 in the main levels (~10 a level), most of them a yellow pad launch in cube (50), plain falls / rises (31 cube, 26
   ship), portal pairs; the catalogue shows them as "auto bricks". In all 30 min of main-level routes there are ~600
   press-free stretches of 0.8 s+, a third of them moved by pads or gravity portals.
+  **Our own auto bricks** (AUTO.md, 2026-11-26): `tools/autobricks.js` builds 50 of them (pad launches and stairs,
+  blue-pad / gravity / spider ping-pong, pad into each mode portal ...) placed by the sim and checked with zero presses,
+  each with its entry / exit contract; `lego.js mine library` adds them to the catalogue as auto bricks.
 
 Plan: the path of a section first (its height curve, from the beat and the energy), then bricks hung on it where their
 entry / exit fit (the contract), connectors (y shift, portal) where they don't, auto bricks between sections, and the

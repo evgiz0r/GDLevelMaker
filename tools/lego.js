@@ -95,6 +95,14 @@ function librarySources() {
   if (!fs.existsSync(dir)) return out;
   for (const f of fs.readdirSync(dir).filter(f => /^(lego|sk\d+)-.*\.gdlvl$/.test(f)).sort()) {
     const L = readGdlvl(path.join(dir, f)), level = GD.parseLevel(L.levelStr);
+    // auto bricks (tools/autobricks.js, AUTO.md): built and checked to clear with NO press, so their route is the empty one
+    if (/^lego-auto-/.test(f)) {
+      const id = f.replace(/^lego-auto-|\.gdlvl$/g, ""), b = autoBricks().find(x => x.id === id);
+      if (!b || !b.ok) continue;
+      // the brick's own columns in its test level (tools/autobricks.js: RUNIN columns of run-in before it)
+      out.push({ src: "library", name: f.replace(/\.gdlvl$/, ""), file: "tools/autobricks.js " + id, level, events: [], whole: true, auto: true, x0: (b.runin || 10) * B - 15, x1: ((b.runin || 10) + b.width) * B });
+      continue;
+    }
     // verified by the solver: the saved route, else solve it now (cached in local/solutions for next time)
     let sol = S.get(L.levelStr, true);
     if (!sol || !sol.ok) try { sol = S.solve(level, L.levelStr); } catch (e) { sol = null; }
@@ -102,6 +110,8 @@ function librarySources() {
   }
   return out;
 }
+let AUTOB = null;
+function autoBricks() { if (!AUTOB) try { AUTOB = JSON.parse(fs.readFileSync(path.join(ROOT, "knowledge", "autobricks.json"), "utf8")).bricks; } catch (e) { AUTOB = []; } return AUTOB; }
 function sketchSources(files) {
   const SK = require("../lib/sketch.js"), out = [];
   const dir = path.join(LOCAL, "sketches");
@@ -474,9 +484,9 @@ function mine(which, sketchFiles, only) {
   for (const s of srcs) {
     const t0 = Date.now();
     let R; try { R = route(s); } catch (e) { console.log("  skip", s.name, e.message); continue; }
-    const cuts = cut(R.r, R.inputs, s.whole);
+    const cuts = s.auto ? [[Math.max(0, R.r.path.findIndex(q => q.x >= s.x0)), (i => i < 0 ? R.r.path.length - 1 : i)(R.r.path.findIndex(q => q.x >= s.x1))]] : cut(R.r, R.inputs, s.whole);
     let ws = []; try { ws = windowsOf(s, R.w, R.r); } catch (e) { console.log("  no windows for", s.name, e.message); }
-    for (const [i0, i1] of cuts) { const P = measure(s, R.w, R.r, R.inputs, i0, i1); Object.assign(P, pieceDifficulty(ws, R.r.path[i0].tick, R.r.path[i1].tick)); P.grain = "piece"; if (P.jitter && P.jitter < 3 && !P.tight) P.jitter = 0; pieces.push(P); }
+    for (const [i0, i1] of cuts) { const P = measure(s, R.w, R.r, R.inputs, i0, i1); Object.assign(P, pieceDifficulty(ws, R.r.path[i0].tick, R.r.path[i1].tick)); P.grain = "piece"; if (P.jitter && P.jitter < 3 && !P.tight) P.jitter = 0; if (s.auto) { P.auto = true; P.grain = "brick"; P.sig = "auto / " + P.sig; P.empty = false; } pieces.push(P); }
     // bricks: the same route cut finer (not for the library's whole pieces)
     if (!s.whole) for (const [i0, i1, kind] of cut(R.r, R.inputs, { auto: true, items: R.w.items }, "brick")) { const P = measure(s, R.w, R.r, R.inputs, i0, i1); Object.assign(P, pieceDifficulty(ws, R.r.path[i0].tick, R.r.path[i1].tick)); P.grain = "brick"; if (P.jitter && P.jitter < 3 && !P.tight) P.jitter = 0; if (kind === "auto") { P.auto = true; P.sig = "auto / " + P.sig; P.empty = false; } pieces.push(P); }
     console.log(`  ${s.src.padEnd(8)} ${s.name.padEnd(34)} ${String(cuts.length).padStart(3)} pieces${R.r.dead ? " (route dies at block " + Math.round(R.r.path[R.r.path.length - 1].x / B) + ")" : ""}  ${Date.now() - t0} ms`);
