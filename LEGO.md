@@ -266,6 +266,12 @@ corridors, then the hell scene. Lessons:
 - Next for the picker: score a brick by its press WINDOWS against the hits (from a solve of its test level), not by its
   mid-window presses; then nudge each placed brick a column either way where a window misses its hit.
 
+**The same builder for any level: `tools/planbuild.js <briefs/NN_name.plan.json>`** (2026-11-26, from hellgate_build.js
+v4): the section plan is data (from / to beat, mode, speed, kind, floor base, theme variant, optional fill shapes, corridor
+rows, brick max) and the builder writes the spec plus the song stage. Changes on the way (GDLM 73): the bricks' density
+floor is per second, not per block (at 2x every verified 2x brick was filtered out and the cube parts were 8 single
+spikes), the filler alternates single / double, the corridor knots rotate per mode so no two corridors share a recipe.
+
 The main levels' pieces are RobTop's: a level built from them stays on the PC (never pushed or uploaded) until we have pieces
 of our own made the same way -- varied from theirs by the difficulty knobs (LEGO.md "Difficulty knobs").
 
@@ -352,6 +358,9 @@ Evgeni's notes for the connecting step (2026-11-25):
   220 in the main levels (~10 a level), most of them a yellow pad launch in cube (50), plain falls / rises (31 cube, 26
   ship), portal pairs; the catalogue shows them as "auto bricks". In all 30 min of main-level routes there are ~600
   press-free stretches of 0.8 s+, a third of them moved by pads or gravity portals.
+  **Our own auto bricks** (AUTO.md, 2026-11-26): `tools/autobricks.js` builds 50 of them (pad launches and stairs,
+  blue-pad / gravity / spider ping-pong, pad into each mode portal ...) placed by the sim and checked with zero presses,
+  each with its entry / exit contract; `lego.js mine library` adds them to the catalogue as auto bricks.
 
 Plan: the path of a section first (its height curve, from the beat and the energy), then bricks hung on it where their
 entry / exit fit (the contract), connectors (y shift, portal) where they don't, auto bricks between sections, and the
@@ -461,8 +470,9 @@ First 60 s run (main-level bricks, cube 15 / ship 10 / cube 20 / wave 15, 150 bp
 
 **Smaller bricks (same night).** Bricks are now cut wherever the presses pause for over 0.6 s, and a lone press is a
 one-press brick: Evgeni saw ToE 586 as "the structure itself is like 1/10 of the window" (13 blocks, two pairs 7 blocks apart).
-Main-level bricks: 883 -> 1326, mean 22 -> 12 blocks, 568 with one press. The page frames each picture on the presses and
-objects (a block of space), as tall as the route.
+Main-level bricks: 883 -> 1326, mean 22 -> 12 blocks, 568 with one press. Next day (Evgeni: "as tight as possible to the actual lego piece size [...] or at least have a border"): a brick keeps only
+0.15 s of run-up and ends 0.05 s after the landing (mean 12 -> 10 blocks); the page frames exactly the brick, with a dashed
+border at its two ends, as tall as the route.
 
 **Evgeni's notes leave bricks out.** A brick with a 👎, or with a note and no 👍 (every note so far is a complaint: "wrong
 path", "too many clicks", "too close to spikes"), is not picked; a note on a longer piece of the same level covers the
@@ -510,3 +520,9 @@ after a build (not hooked into make.js yet).
   library pieces show there after `node tools/structures.js build lego-...` for each.
 - Official pieces are shown only on the PC page (local/lego/page/index.html): RobTop's layouts stay local. The phone
   page has ours, the sketches and the official numbers.
+
+## Clicks per second
+
+Every brick carries `cps` (presses / its seconds) and `cpsPeak` (1 / the shortest gap between two presses), from tools/lego.js; the catalogue shows both and sorts by them (most / fewest clicks per second), next to difficulty (the timing windows). Measured 2026-11-26 over 3398 bricks: median 1.68 cps; official by mode (median / 90th pct) cube 1.89 / 2.54, ship 1.76 / 2.56, ball 2.06 / 3.09, UFO 2.38 / 3.57, robot 1.76 / 2.74, spider 2.36 / 3.03, wave 3.03 / 7.69 (wave counts holds and releases); ours median 1.12 vs official 1.91 (calmer).
+
+By the level's tier (2026-11-26, bricks with 1+ click; official by in-game tier): median cps Easy 1.85, Normal 1.96, Hard 1.98, Harder 1.96, Insane 1.92, Demon 2.25; 90th pct 2.41 / 2.41 / 2.36 / 2.86 / 2.86 / 4.17; ours 1.19 / 2.00. So a typical brick clicks at the same rate at every tier: harder levels differ in tight windows and a few dense bursts, not in average cps. Our bricks are sparser than even Easy. Open: the brick `diff` is ~0.01 almost everywhere (not informative); use `tightMs` (tightest window) per brick instead, and measure it for every brick.

@@ -95,6 +95,14 @@ function librarySources() {
   if (!fs.existsSync(dir)) return out;
   for (const f of fs.readdirSync(dir).filter(f => /^(lego|sk\d+)-.*\.gdlvl$/.test(f)).sort()) {
     const L = readGdlvl(path.join(dir, f)), level = GD.parseLevel(L.levelStr);
+    // auto bricks (tools/autobricks.js, AUTO.md): built and checked to clear with NO press, so their route is the empty one
+    if (/^lego-auto-/.test(f)) {
+      const id = f.replace(/^lego-auto-|\.gdlvl$/g, ""), b = autoBricks().find(x => x.id === id);
+      if (!b || !b.ok) continue;
+      // the brick's own columns in its test level (tools/autobricks.js: RUNIN columns of run-in before it)
+      out.push({ src: "library", name: f.replace(/\.gdlvl$/, ""), file: "tools/autobricks.js " + id, level, events: [], whole: true, auto: true, x0: (b.runin || 10) * B - 15, x1: ((b.runin || 10) + b.width) * B });
+      continue;
+    }
     // verified by the solver: the saved route, else solve it now (cached in local/solutions for next time)
     let sol = S.get(L.levelStr, true);
     if (!sol || !sol.ok) try { sol = S.solve(level, L.levelStr); } catch (e) { sol = null; }
@@ -102,6 +110,8 @@ function librarySources() {
   }
   return out;
 }
+let AUTOB = null;
+function autoBricks() { if (!AUTOB) try { AUTOB = JSON.parse(fs.readFileSync(path.join(ROOT, "knowledge", "autobricks.json"), "utf8")).bricks; } catch (e) { AUTOB = []; } return AUTOB; }
 function sketchSources(files) {
   const SK = require("../lib/sketch.js"), out = [];
   const dir = path.join(LOCAL, "sketches");
@@ -200,7 +210,12 @@ function cutBricks(r, inputs, o) {
     }
     for (const [g0, g1] of groups) {
       const prev = g0 ? ps[g0 - 1] : p[i0].tick, next = g1 + 1 < ps.length ? ps[g1 + 1] : p[i1].tick;
-      const t0 = Math.max(p[i0].tick, ps[g0] - Math.min(0.3 * TPS, (ps[g0] - prev) / 2)), t1 = Math.min(p[i1].tick, ps[g1] + Math.min(0.45 * TPS, (next - ps[g1]) / 2));
+      // the border hugs the structure (Evgeni 2026-11-26, SM 104: "does that apply here or the real structure border is
+      // different"): 0.15 s of run-up before the first press, and the end at the landing after the last one (0.05 s after
+      // touching down), at most 0.45 s later -- no walking on past it
+      const t0 = Math.max(p[i0].tick, ps[g0] - Math.min(0.15 * TPS, (ps[g0] - prev) / 2));
+      let t1 = Math.min(p[i1].tick, ps[g1] + Math.min(0.45 * TPS, (next - ps[g1]) / 2));
+      { let air = false; for (let k = idxOf(ps[g1] + 4); k < p.length && p[k].tick <= t1; k++) { if (!p[k].grounded) air = true; else if (air) { t1 = Math.min(t1, p[k].tick + 0.05 * TPS); break; } } }
       out.push([idxOf(Math.round(t0)), idxOf(Math.round(t1))]);
     }
   }
@@ -382,6 +397,10 @@ function measure(src, w, r, inputs, i0, i1) {
   P.routeKind = src.routeKind || (src.src === "official" ? "unknown" : "ours");
   if (src.routeAt) P.routeAt = src.routeAt;
   if (src.src === "official") P.routePlan = src.routePlan || "";   // the planner commit (difficulty_solve.js); "" = planned before the 2026-11-25 wave planner
+  // clicks per second (Evgeni 2026-11-26: "do we have cps for the blocks?"): cps = presses over the brick's seconds;
+  // cpsPeak = the fastest two presses in a row (1 / shortest gap), the burst a player must hit
+  { const pr = P.clicks.filter(c => c[2]).map(c => c[3]); P.cps = P.s > 0 ? r2(pr.length / P.s) : 0;
+    let g = Infinity; for (let i = 1; i < pr.length; i++) g = Math.min(g, pr[i] - pr[i - 1]); P.cpsPeak = g < Infinity && g > 0 ? r2(1 / g) : 0; }
   { const pr = P.clicks.filter(c => c[2]).map(c => c[3]); P.jitter = FAMILY[mode] === "fly" ? pr.filter((t, i) => i && t - pr[i - 1] < 0.1).length : 0; }
   // inner cut points (the user, 2026-11-25: "what we could cut from start or the end, like checkpoints where we could
   // take even smaller parts (on demand)"): calm moments between two presses where the brick can be trimmed -- the button
@@ -474,9 +493,9 @@ function mine(which, sketchFiles, only) {
   for (const s of srcs) {
     const t0 = Date.now();
     let R; try { R = route(s); } catch (e) { console.log("  skip", s.name, e.message); continue; }
-    const cuts = cut(R.r, R.inputs, s.whole);
+    const cuts = s.auto ? [[Math.max(0, R.r.path.findIndex(q => q.x >= s.x0)), (i => i < 0 ? R.r.path.length - 1 : i)(R.r.path.findIndex(q => q.x >= s.x1))]] : cut(R.r, R.inputs, s.whole);
     let ws = []; try { ws = windowsOf(s, R.w, R.r); } catch (e) { console.log("  no windows for", s.name, e.message); }
-    for (const [i0, i1] of cuts) { const P = measure(s, R.w, R.r, R.inputs, i0, i1); Object.assign(P, pieceDifficulty(ws, R.r.path[i0].tick, R.r.path[i1].tick)); P.grain = "piece"; if (P.jitter && P.jitter < 3 && !P.tight) P.jitter = 0; pieces.push(P); }
+    for (const [i0, i1] of cuts) { const P = measure(s, R.w, R.r, R.inputs, i0, i1); Object.assign(P, pieceDifficulty(ws, R.r.path[i0].tick, R.r.path[i1].tick)); P.grain = "piece"; if (P.jitter && P.jitter < 3 && !P.tight) P.jitter = 0; if (s.auto) { P.auto = true; P.grain = "brick"; P.sig = "auto / " + P.sig; P.empty = false; } pieces.push(P); }
     // bricks: the same route cut finer (not for the library's whole pieces)
     if (!s.whole) for (const [i0, i1, kind] of cut(R.r, R.inputs, { auto: true, items: R.w.items }, "brick")) { const P = measure(s, R.w, R.r, R.inputs, i0, i1); Object.assign(P, pieceDifficulty(ws, R.r.path[i0].tick, R.r.path[i1].tick)); P.grain = "brick"; if (P.jitter && P.jitter < 3 && !P.tight) P.jitter = 0; if (kind === "auto") { P.auto = true; P.sig = "auto / " + P.sig; P.empty = false; } pieces.push(P); }
     console.log(`  ${s.src.padEnd(8)} ${s.name.padEnd(34)} ${String(cuts.length).padStart(3)} pieces${R.r.dead ? " (route dies at block " + Math.round(R.r.path[R.r.path.length - 1].x / B) + ")" : ""}  ${Date.now() - t0} ms`);
@@ -538,7 +557,7 @@ function writeKnowledge(allG) {
   const bricks = allG.filter(p => p.grain === "brick"), all = allG.filter(p => p.grain !== "brick");
   const fam = {};
   for (const p of all) {
-    const k = p.sig, e = fam[k] = fam[k] || { sig: k, family: p.family, mode: p.mode, wrap: p.wrap, n: { official: 0, ours: 0, sketch: 0, library: 0 }, levels: { official: new Set(), ours: new Set(), sketch: new Set(), library: new Set() }, s: [], w: [], presses: [], hold: [], gap: [], yRange: [], hz: [] };
+    const k = p.sig, e = fam[k] = fam[k] || { sig: k, family: p.family, mode: p.mode, wrap: p.wrap, n: { official: 0, ours: 0, sketch: 0, library: 0, community: 0 }, levels: { official: new Set(), ours: new Set(), sketch: new Set(), library: new Set(), community: new Set() }, s: [], w: [], presses: [], hold: [], gap: [], yRange: [], hz: [] };
     e.n[p.src]++; e.levels[p.src].add(p.level);
     e.s.push(p.s); e.w.push(p.w); e.presses.push(p.presses); if (p.hold != null) e.hold.push(p.hold); if (p.gap != null) e.gap.push(p.gap); e.yRange.push(p.yRange); e.hz.push(p.hzPer100);
   }

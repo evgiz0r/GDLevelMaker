@@ -1,0 +1,192 @@
+{
+ "name": "GDLM 73 sunny streets",
+ "desc": "A sunny day over a little city: rooftops, clouds and birds, at a quick pace. Made by Claude.",
+ "prompt": "Sunny mood, buildings clouds birds. happy colors, good contrasts. rather pacy (the user, 2026-11-26)",
+ "notes": "built by tools/planbuild.js from briefs/73_sunny_streets.plan.json: 15 sections on the song's bars, 7 modes, 1x-3x; every portal walled; sunny theme kit",
+ "out": "specs/73_sunny_streets.json",
+ "song": 753562,
+ "offset": 0,
+ "bpm": 160.007,
+ "t0": 0.2483,
+ "end": 203,
+ "songNotes": "753562 Walking In Style (G4lvatron, CC BY): 160 BPM, high-confidence grid (drift 4 ms), 76.5 s, bars from b1. tools/impacts.js: entry b9, the big hit b25, accents b33-49, calmer b65-88, busy b89-119, a break b120-152 (drums back at b136/142), the loudest b153-200, the end b201.",
+ "theme": "sunny",
+ "drop": 25,
+ "pulseZones": [
+  [
+   25,
+   61
+  ],
+  [
+   81,
+   121
+  ],
+  [
+   153,
+   201
+  ]
+ ],
+ "colours": {
+  "bg": [
+   150,
+   210,
+   255
+  ],
+  "ground": [
+   70,
+   175,
+   95
+  ],
+  "ground2": [
+   70,
+   175,
+   95
+  ],
+  "line": [
+   255,
+   248,
+   215
+  ]
+ },
+ "sections": [
+  {
+   "from": 1,
+   "to": 13,
+   "mode": "cube",
+   "speed": "1x",
+   "kind": "intro",
+   "base": 0,
+   "variant": "morning"
+  },
+  {
+   "from": 13,
+   "to": 25,
+   "mode": "ufo",
+   "speed": "1x",
+   "kind": "build-up",
+   "base": 0,
+   "climb": false
+  },
+  {
+   "from": 25,
+   "to": 37,
+   "mode": "ship",
+   "speed": "2x",
+   "kind": "the drop",
+   "variant": "breeze"
+  },
+  {
+   "from": 37,
+   "to": 61,
+   "mode": "cube",
+   "speed": "2x",
+   "kind": "rooftops",
+   "base": 3,
+   "variant": "noon"
+  },
+  {
+   "from": 61,
+   "to": 69,
+   "mode": "wave",
+   "speed": "2x",
+   "kind": ""
+  },
+  {
+   "from": 69,
+   "to": 81,
+   "mode": "robot",
+   "speed": "1x",
+   "kind": "calmer",
+   "base": 2
+  },
+  {
+   "from": 81,
+   "to": 97,
+   "mode": "cube",
+   "speed": "2x",
+   "kind": "busy again",
+   "base": 2
+  },
+  {
+   "from": 97,
+   "to": 107,
+   "mode": "swing",
+   "speed": "2x",
+   "kind": "",
+   "variant": "breeze",
+   "rows": [
+    2,
+    6,
+    4,
+    7,
+    3
+   ]
+  },
+  {
+   "from": 107,
+   "to": 121,
+   "mode": "mini",
+   "speed": "1x",
+   "kind": "small steps",
+   "base": 0,
+   "variant": "noon"
+  },
+  {
+   "from": 121,
+   "to": 137,
+   "mode": "spider",
+   "speed": "1x",
+   "kind": "the break",
+   "base": 0,
+   "variant": "park",
+   "tail": 2
+  },
+  {
+   "from": 137,
+   "to": 153,
+   "mode": "cube",
+   "speed": "2x",
+   "kind": "drums back",
+   "base": 0,
+   "tail": 3
+  },
+  {
+   "from": 153,
+   "to": 165,
+   "mode": "ship",
+   "speed": "2x",
+   "kind": "the loudest",
+   "variant": "golden"
+  },
+  {
+   "from": 165,
+   "to": 181,
+   "mode": "cube",
+   "speed": "2x",
+   "kind": "finale",
+   "base": 3
+  },
+  {
+   "from": 181,
+   "to": 189,
+   "mode": "wave",
+   "speed": "2x",
+   "kind": ""
+  },
+  {
+   "from": 189,
+   "to": 203,
+   "mode": "cube",
+   "speed": "2x",
+   "kind": "the end",
+   "base": 2
+  }
+ ],
+ "spec": {
+  "session": "sunny-level"
+ },
+ "avoid": [
+  "orb-ladder-2",
+  "slope-down-spike"
+ ]
+}

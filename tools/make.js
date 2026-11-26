@@ -405,6 +405,15 @@ function build(spec, specFile = "spec", opts = {}) {   // opts.placementsOnly: s
     objects.push(...kit.parallax(secs, Object.assign({ speed }, spec.modern.light ? { value: [0.95, 1] } : {})));  // light palette: no darkened layers
     if (ctx.grid && spec.modern.pulses !== false) objects.push(...kit.beatPulses(secs, ctx.grid, { speed, songOffset: spec.offset || 0, xOfT: t => GD.SYNC.xOfT(tl, t) }));
   }
+  // The auto ending (tools/autobricks.js outro, AUTO.md "Outro"): "outro": true | <seed> | {seed} -- a no-click run
+  // after the last gameplay object (any arrival -> plain cube, effects, a big fall up and down), before the signature
+  if (spec.outro) {
+    const seed = typeof spec.outro === "number" ? spec.outro : spec.outro.seed || 1;
+    const col = Math.ceil(Math.max(...objects.filter(o => !["decoration", "trigger"].includes(GD.objInfo(o.id).kind)).map(o => o.x)) / 30) + 3;
+    const o = require("./autobricks.js").outro(seed);
+    for (const e of o.entries(col)) objects.push(toObj(e, specFile));
+    console.log(`   outro ${seed}: ${o.width} columns (${o.secs} s, no click) from column ${col}`);
+  }
   // The signature (tools/signature.js): robot + human, "Made by Claude (and some humans)", after the end.
   // On by default for every "GDLM ..." level (the user approved it for all, 2026-11-23); a spec opts out
   // with "signature": false. Its column: spec.signature.col, a scene's, else 3 blocks after the last gameplay object.
@@ -686,9 +695,10 @@ function beatReport(objects, header, r, ctx) {
          sections and loudness here, not the beat lines.`);
 }
 
+// exported before the CLI runs: tools/autobricks.js (the outro) requires this file back while make() is running
+module.exports = { make, build, slug, TYPES, songOf, gridOf, checkDesc, putStages };
 if (require.main === module) {
   const specs = process.argv.slice(2).filter(a => a !== "--look" && a !== "--full");
   if (!specs.length) { console.log("usage: node tools/make.js specs/<name>.json [...]"); process.exit(1); }
   for (const s of specs) make(s);
 }
-module.exports = { make, build, slug, TYPES, songOf, gridOf, checkDesc, putStages };

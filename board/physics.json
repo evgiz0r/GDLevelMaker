@@ -1,4 +1,5 @@
 {"features":[
+{"name":"Yellow pad","level":4,"label":"your game","evidence":"vy 16.000 in cube and ship in your auto play area run (probe log)."},
 {"name":"Cube jump and gravity","level":4,"label":"your game","evidence":"Jump arc within 1.3 px of your recording; gravity 0.778 vs 0.78 measured."},
 {"name":"Spike and orb hitboxes","level":4,"label":"your game","evidence":"Spike 6x12 and orb 36x36 seen in a hitbox-on frame."},
 {"name":"Yellow, blue and red orbs, gravity flip","level":4,"label":"your game","evidence":"Red-orb dive bottoms out 124 units vs 122 in your video; a flip halves speed, as recorded."},
@@ -7,8 +8,8 @@
 {"name":"Ball","level":3,"label":"video + plans","evidence":"Gravity 0.464 vs 0.47 in your Clutterfunk video; real plans pass Cycles and xStep parts.","gap":"Cycles plan grazes a turned spike by 0.8 unit at block 382."},
 {"name":"Mini size","level":3,"label":"plans","evidence":"Clutterfunk's real plan passes its mini part; mini turn rate seen on video."},
 {"name":"Slopes","level":3,"label":"plans + lab","evidence":"45-degree slope shape seen; quarter-turned slopes behaved in the GDLM 60 lab.","gap":"Spike slopes are treated as plain slopes."},
-{"name":"Ship","level":2,"label":"known gap","evidence":"Hold and release acceleration match your video (0.389 / -0.248 vs 0.40 / -0.25).","gap":"Hovers ~0.5 unit low (Stereo Madness, Hexagon Force); Back On Track ends ~1 block high."},
-{"name":"Landing","level":2,"label":"known gap","evidence":"No landing buffer, as your GDLM 67 frames and the game's code show.","gap":"Real plans show our cube landing 4-21 ticks late in 6 levels."},
+{"name":"Ship","level":3,"label":"plans","evidence":"Hold and release match your video; since the probe-log fixes the real-game plans of Stereo Madness and Back On Track clear.","gap":"Hexagon Force grazes a saw after a ceiling slope (slope rule)."},
+{"name":"Landing and x","level":4,"label":"your game","evidence":"Probe logs: GDLM 62's whole run matches the game every frame (stair snap, float x, held landing jump).","gap":"Slopes: GD sits the cube lower on a slope (GDLM 52)."},
 {"name":"Pink orb","level":2,"label":"known gap","evidence":"Value matches gdsolver.","gap":"Lab launch 0.5-0.63 of a jump vs sim 0.72; Theory of Everything 1 and 2 ~30 units low."},
 {"name":"Teleport portals","level":2,"label":"known gap","evidence":"Deadlocked's turned portals pass with the current rule.","gap":"Your lab showed the full offset at 45 degrees; the sim moves less."},
 {"name":"Dash orbs","level":2,"label":"lab","evidence":"Straight horizontal dash while held, seen in the lab.","gap":"Props 586/588 unknown."},

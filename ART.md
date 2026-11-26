@@ -385,6 +385,24 @@ sections moves EVERY earlier section's objects of that group again: the first se
 level. The ice kit gives each section its own parallax groups (470 + 3 * section). The space kit still shares G.piece /
 G.far across sections (GDLM 71): for gd-art to check in its renders.
 
+**Sunny** (`tools/themes/sunny.js`, 2026-11-26, for GDLM 73 sunny streets from the user's prompt: "Sunny mood, buildings
+clouds birds. happy colors, good contrasts. rather pacy"). The first LIGHT-sky kit: the contrast comes from the play being
+the darkest, most saturated thing on screen (a deep cobalt / berry body, bodyBg 5.6-6.9) with a sunny-yellow (golden:
+cream) rim and a pale roof line on every open top, windows lit on stacks (blocks read as little buildings); hazards on a
+hot pink-red rim (hazardEdge vs pathEdge 2.2-5.7). Behind: a far skyline of pale buildings near the sky's value (never
+reads as solid), a nearer row of pastel houses in three channels (pink / mint / lilac, pitched or flat roofs, soft
+windows that twinkle on the beat), puffy clouds (5 disks + a shaded underside) on two depths drifting left, a sun with
+two blending halo rings and slowly turning rays carried with the player, and flocks of small birds (a "v" of two lines
+per bird, each wing in its own group swaying on the beat = flapping) flying left across the sky. Five variants:
+`morning` (pale blue, low sun), `noon` (bluest, busiest), `breeze` (near-white sky, big clouds and a low cloud bank, no
+buildings: for flights), `park` (mint sky, trees and low houses, most birds: the break), `golden` (warm afternoon, berry
+blocks, cream rims). Header bg art 13 (the flat texture that shows a bright colour as set). Channels 140-156, groups
+540-550, per-section parallax 570 + 4 * section. `node tools/theme.js check sunny`: all five pass (park's mint houses
+first matched the yellow rim: edge~mid). Open: not yet seen in the game; whether the wing sway reads as flapping.
+**Gotcha for every kit (GDLM 73 v1):** a kit that sets key 21 only on `solid` and `hazard` objects leaves SLOPES (kind
+`slope`, 1338 etc.: every fly-path corridor wall) on the default white; on a light sky they matched the white clouds (roles
+FAIL pathDeco, 15 sections). The sunny kit colours slopes with the rim; ice and fire still skip them (dark skies hide it).
+
 ## Deco library (2026-11-24; the user: our levels look like "3 squares and poopy" next to real ones)
 
 Targets: knowledge/levels/modern_look.md "Recipe" (20-50 objects per block, layers B4-B5 ~20% / B1-B3 ~25% / T1 /
@@ -520,6 +538,11 @@ Brave Blue and Project Muse were also compared (local/compare/...):
   not a camera fix. Dropped as a rendered reference.
 - Project Muse is a text / gimmick level that ranked high on motion alone. It is not a look reference.
 For now, Dreamy is the working side-by-side reference.
+
+## Deco as a picture (2026-11-26): DECOART.md
+
+The backdrop painted as one picture first, then built from flat GD shapes (fitted or as clean vector); round 1 on
+GDLM 44's opening. The art-free view now draws 211 / 693 / 497 / 1764 as their shapes.
 
 ## Deco options and composition (2026-11-25)
 

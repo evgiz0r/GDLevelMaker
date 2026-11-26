@@ -155,8 +155,9 @@ function scoreLevel0(level, brief, opts = {}) {
   // game is still expected?"; tools/channels.js). Hard: the viewer shows a colour the game will not.
   try {
     const CC = require("./channels.js").check({ header: level.header, objects: level.objects });
-    gate("channels", CC.ok ? "PASS" : "FAIL", CC.ok ? `every deco colour channel is defined (${CC.deco} deco)` : `${CC.undefinedCount} deco on undefined channels: WHITE in the game`,
-      Object.entries(CC.undefined).map(([k, v]) => `${k} x${v}`).join(", "));
+    gate("channels", CC.ok ? "PASS" : "FAIL", CC.ok ? `every deco colour channel is defined (${CC.deco} deco)` : [CC.undefinedCount ? `${CC.undefinedCount} deco on undefined channels: WHITE in the game` : "",
+        CC.shared155.length ? `${CC.shared155.length} key-155 batch(es) shared by objects of different colours: ONE colour in the game (tools/io.js strip155 fixes it)` : ""].filter(Boolean).join("; "),
+      [...Object.entries(CC.undefined).map(([k, v]) => `${k} x${v}`), ...CC.shared155.slice(0, 5)].join(", "));
   } catch (e) { gate("channels", "WARN", "tools/channels.js failed: " + e.message); }
 
   // height and repetition (the user on GDLM 47's upside-down part: "some sections are somewhat boring. all

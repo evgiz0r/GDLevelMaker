@@ -228,6 +228,14 @@ re-encoded at the bitrate that fits. `--vs-rec` puts the run's recording beside 
   stretch (`contentY`) when that is above 6 blocks.
 - Open: an art-free version, so a video can be shared publicly; cropping a windowed recording in `--vs-rec`; the progress bar.
 
+
+**Quick low-quality video (2026-11-26, GDLM 44 v4, 71 s level):** `--fps 15 --size 426x240` is watchable and tiny (1.9 MB).
+The page drew 942 frames in 45 s; ffmpeg `-preset veryfast -crf 30` encoded them with the song in 2 s. But the headless run
+(port 8767) drew no frame for 3 min and was given up as hung, while the same job (`viewer/?shoot=<id>&mute=1`) opened in the
+user's serve.js on 8765 rendered fine: open there if the headless one stalls, then encode the frames by hand (song file +
+`-ss <kA13 offset>`). It hung the same on 8765 headless, so it is the headless browser, not the port: open.
+A level solved in a cloud session has its route only in viewer/levels.js; video.js now takes it from there (before, the
+video ran with no route and the player died at once: "it just disappears").
 ## The end (2026-11-25)
 
 The user, on the Jumper video: "no end screen like in the real game, it just falls on the ground". Two causes: a cleared

@@ -51,6 +51,13 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 - [ ] **Pieces of one section are close in clicks per second** (Evgeni 2026-11-26: "pick somewhat same balance, and probably
   close cps"): a picker scores a section's pieces against the section's CPS target, not each piece alone. `tools/pieces.js`
   shows every piece's span on the level map (`levelmap.js --pieces`).
+- [ ] **Room at every portal, counted at 1x and stretched with the speed** (GDLM 73, 2026-11-26, nine rounds): the first
+  input 7 blocks after a ground portal (13 after a flight's exit), the last 1.5 beats before the next portal (3 for ball /
+  spider), no floor step right behind a portal (a forced jump on arrival), a flight's gate open 4 rows (a wave arriving held
+  rose into a 3-row gate's top), no 1x -> 3x jump in one portal. `tools/planbuild.js` does all of it; score.js "fairness".
+- [ ] **Single spikes at speed need air between them** (GDLM 73): at 2x+ at least 0.65 s from one jump to the next (0.5-0.62 s
+  apart made the route take off 2-3 blocks early: prejumps), a double only with 0.6 s free on both sides (else a 25 ms tap).
+  planbuild / brickpick `fillGap`; score.js "prejumps", "timing".
 - [ ] **Balanced sections** (Evgeni 2026-11-25 on Hellgate v4: "this whole section has 2 clicks? we need balanced sections.
   with somewhat similar cps"): every section's clicks per second near the level's own (none under about half of it,
   breathers named as breathers). A 3 s ball part with 2 clicks next to 2-click-a-second cube parts reads as a hole.
@@ -201,6 +208,12 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 - [ ] **The background never reads as solid** (the user's Two Moons mark, 2026-11-25: "solid background is confusing"). Back
   shapes must not look like blocks you can land on: no block-like squares with lit rims behind the play, lower value and
   contrast than the path's bodies, softer or no outlines, a different hue or some transparency. `tools/roles.js` (pathDeco).
+- [ ] **Play blocks are a material, not a flat fill** (the user, 2026-11-26: "The blocks are still very timid. No effects. No
+- [ ] **Block design in layers** (Evgeni, 2026-11-26, with 8 tutorials): outline + inline, a 2-3 colour base with low-opacity texture, details small = high contrast, glow sparingly (top light, bottom dark, black lines in front of glow), 3D lines all one direction and darker. DECOART.md "Block design". Check: `tools/blockart.js` (by eye for now).
+  good texture. All single filled color"). Lit open tops, darker with depth, a surface texture (facets), a feature with light
+  (glowing seams on the beat), an edge and a shadow. `tools/blockart.js` (decoart.js --blocks); DECOART.md "Blocks".
+- [ ] **A section's backdrop is one composed picture** (focal light at a third, values light far -> dark near, nothing in
+  it reads as gameplay): DECOART.md, `tools/decoart.js`.
 - [ ] **The play stays visible: deco never hides the path or a hazard** (the user, 2026-11-25: RobTop's levels are amazing
   for "the visible play"; "if you dont see a spike the timing is obviously harder"). No deco in front of the lane the player
   can be in, none behind a hazard in its value or hue (it must stand out), the richest art at the lane's edges, quiet behind
@@ -312,6 +325,14 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   pieces (>= 12 per 100 blocks) over a floor that is a hazard >= 35% of the columns, neighbouring pillars
   of different heights, rods and chains attached to pieces, <= 20% loose deco. `node tools/craft.js check
   <level>` (score.js gate "craft"); generate with `"craft": true` and the craft structures. (CRAFT.md)
+
+- [ ] **Auto stretches** (AUTO.md; the main levels spend ~10% of their length with no press, 4-15 stretches of ~1-1.5 s,
+  often ending in a mode portal): a level has some, each clears with NO press, and a stray tap there does not kill
+  (clickSafe >= 0.8 in `knowledge/autobricks.json`). Pick them from `tools/autobricks.js`.
+- [ ] **Auto parts are planned from the beat** (Evgeni 2026-11-26: "plan our change of movement ( pad/portal ) , according to
+  the beat"): each change of movement fires on a beat, in motifs (AAAA, BBBB, a mix), and every trigger moves the player.
+  `tools/autobeat.js` builds this way and measures `onBeat` (aim 0.9+). On the song's NOTES, not only beats (Evgeni: "we hit
+  like 1/6 of the notes"): `notesHit` aim 0.5+, every note in loud parts; speed portals follow the music's `speedPlan`.
 
 ## Looks like 2.2, not 1.0 (levels/modern_look.md)
 
