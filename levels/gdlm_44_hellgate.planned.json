@@ -2,44 +2,20 @@
  "made": "tools/onbeat.js",
  "planned": [
   {
-   "t": 0.8275,
-   "what": "press on a strong hit"
-  },
-  {
    "t": 8.2752,
    "what": "press on a lesser hit"
   },
   {
-   "t": 15.7228,
-   "what": "press on a strong hit"
+   "t": 15.5159,
+   "what": "press on a lesser hit"
   },
   {
    "t": 16.3435,
    "what": "press on a strong hit"
   },
   {
-   "t": 17.5847,
-   "what": "press on a lesser hit"
-  },
-  {
    "t": 18.2054,
    "what": "press on a lesser hit"
-  },
-  {
-   "t": 18.6191,
-   "what": "press on a strong hit"
-  },
-  {
-   "t": 19.0329,
-   "what": "press on a strong hit"
-  },
-  {
-   "t": 19.4467,
-   "what": "press on a strong hit"
-  },
-  {
-   "t": 20.2742,
-   "what": "press on a strong hit"
   },
   {
    "t": 21.9292,
@@ -50,87 +26,35 @@
    "what": "press on a strong hit"
   },
   {
+   "t": 23.1705,
+   "what": "press on a lesser hit"
+  },
+  {
+   "t": 23.5842,
+   "what": "press on a strong hit"
+  },
+  {
    "t": 24.4118,
    "what": "press on a lesser hit"
   },
   {
-   "t": 24.8255,
+   "t": 43.8584,
    "what": "press on a lesser hit"
   },
   {
-   "t": 37.8589,
+   "t": 45.0997,
    "what": "press on a lesser hit"
   },
   {
-   "t": 38.4796,
-   "what": "press on a lesser hit"
-  },
-  {
-   "t": 39.9277,
-   "what": "press on a lesser hit"
-  },
-  {
-   "t": 40.7552,
-   "what": "press on a lesser hit"
-  },
-  {
-   "t": 41.3759,
-   "what": "press on a lesser hit"
-  },
-  {
-   "t": 42.4103,
+   "t": 47.3754,
    "what": "press on a strong hit"
   },
   {
-   "t": 44.2722,
-   "what": "press on a lesser hit"
-  },
-  {
-   "t": 45.3066,
-   "what": "press on a lesser hit"
-  },
-  {
-   "t": 45.7203,
+   "t": 48.6167,
    "what": "press on a strong hit"
   },
   {
-   "t": 46.9616,
-   "what": "press on a strong hit"
-  },
-  {
-   "t": 47.7891,
-   "what": "press on a lesser hit"
-  },
-  {
-   "t": 48.8235,
-   "what": "press on a lesser hit"
-  },
-  {
-   "t": 50.2717,
-   "what": "press on a strong hit"
-  },
-  {
-   "t": 51.513,
-   "what": "press on a strong hit"
-  },
-  {
-   "t": 52.3405,
-   "what": "press on a strong hit"
-  },
-  {
-   "t": 55.0299,
-   "what": "press on a strong hit"
-  },
-  {
-   "t": 55.6506,
-   "what": "press on a strong hit"
-  },
-  {
-   "t": 56.2712,
-   "what": "press on a lesser hit"
-  },
-  {
-   "t": 56.685,
+   "t": 50.0648,
    "what": "press on a strong hit"
   },
   {
@@ -138,8 +62,12 @@
    "what": "press on a strong hit"
   },
   {
-   "t": 57.7194,
-   "what": "press on a lesser hit"
+   "t": 57.5125,
+   "what": "press on a strong hit"
+  },
+  {
+   "t": 58.34,
+   "what": "press on a strong hit"
   },
   {
    "t": 59.1675,

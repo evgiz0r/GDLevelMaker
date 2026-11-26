@@ -131,7 +131,7 @@ function show(r) {
 
 async function watch() {
   const every = +opt("--every", 30) * 1000;
-  const save = opt("--save", path.join(process.env.LOCALAPPDATA || "", "GeometryDash", "CCLocalLevels.dat"));
+  const save = opt("--save", path.join(require("./gdpaths.js").SAVE, "CCLocalLevels.dat"));
   const testRunning = opt("--pretend-running");   // tests: a file whose existence means "GD is running"
   const running = () => testRunning ? fs.existsSync(testRunning) : INST.gameRunning();
   console.log(`${now()} watching: every ${every / 1000} s, installs the queue (${QUEUE}) when GD is closed. Never uploads, never closes GD.`);

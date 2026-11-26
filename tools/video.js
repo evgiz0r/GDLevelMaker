@@ -17,8 +17,8 @@ const fs = require("fs"), path = require("path"), cp = require("child_process");
 const ROOT = path.join(__dirname, ".."), { headless } = require("./headless.js"), { levelOf } = require("./shoot.js");
 const args = process.argv.slice(2), opt = n => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] : null; };
 if (require.main === module && (!args.length || args[0].startsWith("--"))) { console.log(fs.readFileSync(__filename, "utf8").split("\n").filter(l => l.startsWith("//")).join("\n")); process.exit(1); }
-const GAME = process.env.GD_GAME || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash";
-const SAVE = process.env.GD_SAVE || path.join(process.env.LOCALAPPDATA || "", "GeometryDash");
+const GAME = require("./gdpaths.js").GAME;
+const SAVE = require("./gdpaths.js").SAVE;
 const MAX_MB = 30;
 
 // the level, its saved route and its song file + offset
@@ -26,6 +26,9 @@ function resolve(w) {
   if (/^c\d+$/.test(w)) w = path.join(ROOT, "local", "community", w.slice(1) + ".gdlvl");
   const lv = levelOf(w);
   if (!lv.solution) try { const s = require("./solutions.js").get(lv.levelStr, true); if (s && s.events) lv.solution = s; } catch (e) {}
+  // a level solved elsewhere (cloud build) carries its route only in viewer/levels.js: use it when the level string matches
+  if (!lv.solution) try { const g = {}; new Function("window", fs.readFileSync(path.join(ROOT, "viewer", "levels.js"), "utf8"))(g);
+    const e = (g.GD_LEVELS || []).find(x => x.level === lv.levelStr && x.solution && x.solution.ok); if (e) lv.solution = e.solution; } catch (e) {}
   if (!lv.solution) lv.solution = { ok: false, events: [], why: "not solved: the camera runs at the level's speed", pending: true };   // never solve in the page
   let song = null, m;
   if ((m = /^official:(\d+)$/.exec(w))) {

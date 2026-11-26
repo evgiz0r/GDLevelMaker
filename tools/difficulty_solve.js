@@ -27,7 +27,7 @@
 if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const fs = require("fs"), path = require("path"), { execFileSync, execSync } = require("child_process");
 const { GD, unpack, readGdlvl } = require("./io.js");
-const SRC = process.env.GD_LEVELS || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash/Resources/levels/";
+const SRC = require("./gdpaths.js").LEVELS;
 const OUT = path.join(__dirname, "..", "local", "difficulty");
 
 function physicsCommit() {

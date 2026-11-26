@@ -6,7 +6,7 @@ if (require.main === module) require("./heavy.js").claim();   // one heavy job a
 const fs = require("fs");
 const { GD, unpack, readGdlvl } = require("./io.js");
 const [src, a, b, c, d] = process.argv.slice(2);
-const SRC = process.env.GD_LEVELS || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash/Resources/levels/";
+const SRC = require("./gdpaths.js").LEVELS;
 const level = /^\d+$/.test(src) ? unpack(fs.readFileSync(SRC + src + ".txt", "utf8")) : readGdlvl(src).level;
 const L = GD.parseLevel(level), w = GD.makeWorld(L.objects, L.header);
 const x0 = +a, x1 = +b, y0 = c !== undefined ? +c : -1e9, y1 = d !== undefined ? +d : 1e9;

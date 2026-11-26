@@ -19,7 +19,7 @@ Object.assign(GD, require("../lib/sync.js"));
 const { loadBeats, OFFICIAL } = require("./beats.js");
 const S = GD.SYNC;
 const ROOT = path.join(__dirname, "..");
-const GAME = process.env.GD_GAME || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash";
+const GAME = require("./gdpaths.js").GAME;
 const NAMES = ["Stereo Madness", "Back On Track", "Polargeist", "Dry Out", "Base After Base", "Cant Let Go", "Jumper",
   "Time Machine", "Cycles", "xStep", "Clutterfunk", "Theory of Everything", "Electroman Adventures", "Clubstep",
   "Electrodynamix", "Hexagon Force", "Blast Processing", "Theory of Everything 2", "Geometrical Dominator",
@@ -93,7 +93,7 @@ function sources(args) {
     if (fs.existsSync(d)) for (const f of fs.readdirSync(d).sort()) if (f.endsWith(".gdlvl")) out.push(fromFile(path.join(d, f), dir + "/" + f));
   }
   if (args.includes("--save")) {
-    const SAVE = process.env.GD_SAVE || path.join(process.env.LOCALAPPDATA || "", "GeometryDash");
+    const SAVE = require("./gdpaths.js").SAVE;
     const xml = decodeSave(fs.readFileSync(path.join(SAVE, "CCLocalLevels.dat")));
     for (const rec of savedLevels(xml)) {
       const k4 = GD.getField(rec, "k4");

@@ -145,6 +145,16 @@ lib/objects*.js it was solved on; older ones are stale and get solved again. The
 then only replays. Without it the phone solved the level itself: GDLM 45 (61 s with ship and wave)
 takes ~5 min to solve on the PC, and the page looked hung on the phone (user, Nov 22).
 
+## Private build: the main levels and their songs (2026-11-25)
+
+Evgeni chose "Yes, private viewer only": his own private phone viewer (the Artifact in local/phone/url.txt,
+readable by only him) also carries RobTop's 22 main levels with their saved routes and the game's own songs, so they
+replay with music on the phone. `levels.local.js` (only the official entries) and `songs/<name>.mp3` (~33 MB) were
+published next to the page once; `node tools/web.js --private` builds a page that loads them, and a republish keeps
+them without listing them (see the table above). Rules: never commit them, never use --private for the public site,
+a shared page or any other Artifact. Checked headless: 22 main levels listed, Stereo Madness loads its route and its
+song decodes.
+
 ## Open
 
 - GD's own art (VISUALS.md) is NOT on the phone page: `tools/web.js` strips `lib/art.js` and its tables,
@@ -154,6 +164,7 @@ takes ~5 min to solve on the PC, and the page looked hung on the phone (user, No
   the user is to try Chrome). If it never does, a song could come another way: a phone-side
   upload into the page's store (the asset store takes no audio) is not possible today.
 
+- A level whose wip row is over 250 KB never reaches the phone's `wip` (wip.js prints "too big" and sends nothing; GDLM 72 FROSTBITE: 662 KB, 2026-11-25): it shows on the phone only after it is pushed and the page is republished with web.js.
 - A session forgetting the ArtifactData call leaves the phone a version behind; nothing checks it.
   A check could compare `local/wip/` versions with the rows (one `list`).
 - Marks made on the desktop viewer are not shown on the phone (they live in `local/marks.jsonl`);

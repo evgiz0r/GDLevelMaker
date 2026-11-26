@@ -5,7 +5,7 @@
 // whether lib/physics.js models it. Used to decide what to simulate next (PHYSICS.md "Moving objects").
 const fs = require("fs"), path = require("path");
 const { GD, unpack, readGdlvl } = require("./io.js");
-const SRC = process.env.GD_LEVELS || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash/Resources/levels/";
+const SRC = require("./gdpaths.js").LEVELS;
 const args = process.argv.slice(2);
 const levels = args.length ? args.map(a => /\.gdlvl$/.test(a) ? { name: path.basename(a), objects: readGdlvl(a).level.objects }
   : { name: "lv" + a, objects: GD.parseLevel(unpack(fs.readFileSync(path.join(SRC, a + ".txt"), "utf8"))).objects })

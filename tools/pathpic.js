@@ -9,7 +9,7 @@ const a = process.argv.slice(2), opt = (k, d) => { const i = a.indexOf(k); retur
 const routes = a.map((x, i) => a[i - 1] === "--route" ? x : null).filter(Boolean);
 const lv = a[0];
 if (!lv || opt("--from") == null) { console.log(fs.readFileSync(__filename, "utf8").split("\n").filter(l => l.startsWith("//")).join("\n")); process.exit(1); }
-const ROOT = path.join(__dirname, ".."), SRC = process.env.GD_LEVELS || "C:/Program Files (x86)/Steam/steamapps/common/Geometry Dash/Resources/levels/";
+const ROOT = path.join(__dirname, ".."), SRC = require("./gdpaths.js").LEVELS;
 const n = /^\d+$/.test(lv) ? +lv : null;
 if (!routes.length && n) routes.push(path.join(ROOT, "local", `official_${String(n).padStart(2, "0")}.json`));
 const levelStr = n ? unpack(fs.readFileSync(path.join(SRC, n + ".txt"), "utf8")) : readGdlvl(lv).levelStr;

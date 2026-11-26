@@ -6,7 +6,7 @@
 //      lookahead: at the cursor, every brick x a run-up of 1-5 flat blocks is scored by its presses against the hits
 //      (on a K / S / accent within 25 ms: +1, within 50 ms: +0.5, on a lesser hit: +0.3, off: -0.6), minus repeats
 //      (a brick already in the level: -3; the same first tag as the last brick: -1), minus 0.1 per run-up block, and
-//      a recovery rule (a press >= 0.3 s after the last brick's last press). Run-ups are 3-7 blocks and bricks whose own check found a tight timing or
+//      a recovery rule (a press >= 0.3 s after the last brick's last press). Run-ups are 3-7 blocks and bricks whose own check found a tight timing, an unfair spot or (cube: the other modes' prejump check is approximate)
 //      found a prejump are left out (GDLM 44 v3: shorter joins made 5 prejumps and an unfair tap after a portal). Prints the picks as make.js spec objects
 //      (["pattern", "s:<id>", "b<beat>", 0]) and the share of presses on a hit.
 //   Only our own pieces: RobTop's main-level bricks may be studied, never shipped (LEGO.md). Each brick's presses come
@@ -14,16 +14,17 @@
 //   `node tools/hits.js --level <level>`.
 // As a module: pick({ slots, offset, fromBeat, toBeat, grid, speed, mode, used, max, beats, filler, startCol })
 //   (beats: count every grid beat as a hit -- for a quiet intro; filler: false = bricks only, e.g. outside cube;
-//    startCol: start at this column instead of the section's first beat) -> { objects, picks, onHit }.
+//    startCol: start at this column instead of the section's first beat; beatCols: place by "b<beat>" so the
+//    level's speed portals before the section don't shift it -- the section itself must be at 1x) -> { objects, picks, onHit }.
 "use strict";
 const fs = require("fs"), path = require("path");
 const SPEED = { "0.5x": 0.7 * 5.980002 * 60, "1x": 0.9 * 5.77000189 * 60, "2x": 1.1 * 5.870002 * 60 };   // units / s (lib/physics.js SPEEDS x per frame, 60 frames)
 const TIER = { Easy: 0, Normal: 1, Hard: 2, Harder: 3, Insane: 4 };
 
-function bricks(mode, max) {
+function bricks(mode, max, speed) {
   const all = Object.values(JSON.parse(fs.readFileSync(path.join(__dirname, "..", "knowledge", "structures.json"), "utf8")).structures);
-  return all.filter(s => s.ok && s.needs.mode === mode && s.leaves.mode === mode && s.needs.speed === "1x" && (s.needs.grav ?? 1) === 1
-    && (s.leaves.grav ?? 1) === 1 && !s.needs.mini && !s.tags.some(t => /speed|teleport|mini/.test(t)) && s.pic && s.pic.presses && !(s.notes && (s.notes.prejumps || s.notes.timing || s.notes.fairness)) && (TIER[s.label] ?? 1) <= (TIER[max] ?? 1))
+  return all.filter(s => s.ok && s.needs.mode === mode && s.leaves.mode === mode && s.needs.speed === (speed || "1x") && (s.needs.grav ?? 1) === 1
+    && (s.leaves.grav ?? 1) === 1 && !s.needs.mini && !s.tags.some(t => /speed|teleport|mini/.test(t)) && s.pic && s.pic.presses && !(s.notes && ((mode === "cube" && s.notes.prejumps) || s.notes.timing || s.notes.fairness)) && (TIER[s.label] ?? 1) <= (TIER[max] ?? 1))
     .map(s => ({ id: s.id, tags: s.tags, width: s.width, label: s.label,
       // press offsets in blocks from the brick's first column (pic.x0 is 2 blocks before it)
       dx: s.pic.presses.map(p => (p[0] - (s.pic.x0 + 60)) / 30) }));
@@ -38,7 +39,8 @@ function pick(o) {
    const weak = o.slots.filter(s => s.kind === "x").map(s => s.t - o.offset);
   const near = (arr, t) => { let m = 1e9; for (const u of arr) { const d = Math.abs(u - t); if (d < m) m = d; } return m; };
   const hitScore = t => { const d = near(strong, t); return d <= 0.025 ? 1 : d <= 0.05 ? 0.5 : near(weak, t) <= 0.025 ? 0.3 : -0.6; };
-  const lib = bricks(o.mode || "cube", o.max || "Normal");
+  // o.minDensity: leave out bricks with fewer presses per 10 blocks (Evgeni on v4: "some of them are way too boring")
+  const lib = o.fillerOnly ? [] : bricks(o.mode || "cube", o.max || "Normal", o.speed).filter(b => !o.minDensity || 10 * b.dx.length / b.width >= o.minDensity);   // fillerOnly: single spikes only (mini: no verified bricks at that size)
   const used = new Set(o.used || []), picks = [];
   let col = o.startCol != null ? Math.ceil(o.startCol) : Math.round(tOfBeat(o.fromBeat) * v), lastPress = col / v - 0.5, lastTag = null;
   const end = tOfBeat(o.toBeat) * v;
@@ -47,14 +49,17 @@ function pick(o) {
     if (ts[0] - lastPress < 0.3) return null;
     let s = ts.reduce((a, t) => a + hitScore(t), 0);
     // dead air (score.js "dead air": 2 s with nothing to press): a brick whose first press leaves a long gap loses
-    if (ts.length && ts[0] - lastPress > 1.8) s -= 2;
-    if (used.has(b.id)) s -= 3;
+    if (ts.length && ts[0] - lastPress > (o.deadAir || 1.8)) s -= 2;   // o.deadAir: a tighter limit (Evgeni on v3: "2 seconds of nothing")
+    if (used.has(b.id)) s -= o.usedPenalty ?? 3;
     if (lastTag && b.tags[0] === lastTag) s -= 1;
     return { s, ts };
   };
   while (true) {
     let best = null;
-    for (const b of lib) for (let g = 3; g <= 7; g++) {   // >= 3 flat blocks between bricks: shorter joins made prejumps and a tap 183 ms after a portal (GDLM 44 v3)
+    // run-up between bricks: 3-7 blocks by default (shorter joins made prejumps and a tap 183 ms after a portal, GDLM 44
+    // v3); o.gap [min, max] to tighten it (Evgeni on v4: "the gaps between structures is too long")
+    const [g0, g1] = o.gap || [3, 7];
+    for (const b of lib) for (let g = g0; g <= g1; g++) {
       const c = col + g; if (c + b.width > end) continue;
       const r = score(b, c); if (!r) continue;
       const s = r.s - 0.1 * g + 0.05 * b.dx.length;
@@ -79,7 +84,8 @@ function pick(o) {
     used.add(best.b.id); lastTag = best.b.tags[0]; lastPress = best.ts[best.ts.length - 1] ?? lastPress; col = best.c + best.b.width;
   }
   const n = picks.reduce((a, p) => a + p.presses.length, 0), h = picks.reduce((a, p) => a + p.onHit, 0);
-  return { picks, objects: picks.map(p => p.j ? ["pattern", "single", "j" + p.beat, 0] : (o.mode || "cube") === "cube" ? ["pattern", "s:" + p.id, p.col, 0] : ["pattern", "s:" + p.id, p.col, 0, { raw: true }]), presses: n, onHit: n ? h / n : 0, endCol: col };
+  return { picks, objects: picks.map(p => { const at = o.beatCols ? "b" + p.beat : p.col;   // beatCols: by beat (right after speed portals)
+    return p.j ? ["pattern", "single", "j" + p.beat, 0] : (o.mode || "cube") === "cube" ? ["pattern", "s:" + p.id, at, 0] : ["pattern", "s:" + p.id, at, 0, { raw: true }]; }), presses: n, onHit: n ? h / n : 0, endCol: col };
 }
 
 if (require.main === module) {

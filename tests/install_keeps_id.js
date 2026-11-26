@@ -6,7 +6,7 @@
 const fs = require("fs"), os = require("os"), path = require("path"), zlib = require("zlib");
 const { execFileSync } = require("child_process");
 
-const save = path.join(process.env.LOCALAPPDATA || "", "GeometryDash", "CCLocalLevels.dat");
+const save = path.join(require("../tools/gdpaths.js").SAVE, "CCLocalLevels.dat");
 const level = path.join(__dirname, "..", "levels", "gdlm_44_hellgate.gdlvl");
 const NAME = "GDLM 44 hellgate";
 if (!fs.existsSync(save) || !fs.existsSync(level)) { console.log("skip: no save or no level file"); process.exit(0); }

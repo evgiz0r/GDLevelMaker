@@ -1118,11 +1118,16 @@ function pkRows() {
   // Lets do main for ready levels + official. Rest in the different tabs"): no work in progress of its own (a newer wip of
   // a main level still sits on its card), no lab variants, parts or experiments
   const readyKeys = new Set(ALL.filter(l => pkCat(l) === "ours" && !pkLab(l)).map(pkKey));
+  // "in progress" lists work still ahead of what is pushed: a wip copy older than the pushed level of the same name was
+  // overtaken by it (GDLM 44's style v12, polish v7 and a build sat there after v4 was pushed, 2026-11-26); it stays
+  // reachable from the level's card in the other tabs. Old copies' files: node tools/wip.js archive --superseded
+  const pushedWhen = new Map(); ALL.forEach(l => { if (pkCat(l) === "ours") pushedWhen.set(pkKey(l), Math.max(pushedWhen.get(pkKey(l)) || 0, pkWhen(l))); });
+  const overtaken = l => pkCat(l) === "wip" && pkWhen(l) < (pushedWhen.get(pkKey(l)) || 0);
   ALL.forEach((l, i) => {
     const c = pkCat(l);
     const out = PK.f === "pinned" ? !pins.includes(pkKey(l)) : PK.f === "recent" ? !recent.includes(pkKey(l))
       : PK.f === "main" ? !(c === "official" || readyKeys.has(pkKey(l)) && !pkLab(l))
-      : PK.f === "lab" ? !pkLab(l) : PK.f === "wip" ? c !== "wip" || pkLab(l)
+      : PK.f === "lab" ? !pkLab(l) : PK.f === "wip" ? c !== "wip" || pkLab(l) || overtaken(l)
       : PK.f === "demons" ? !l.demon : PK.f !== "all" && c !== PK.f;
     if (out) return;
     if (q && l.demon && (String(l.demon.creator) + " " + l.demon.verifier).toLowerCase().includes(q)) { const k = pkKey(l); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(i); return; }
@@ -1867,7 +1872,8 @@ function markPick(m) {
   bar.querySelector("#markClose").onclick = () => markPick(null);
 }
 const markBtn = document.getElementById("markBtn");
-function setMarking(on) { marking = on; markBtn.classList.toggle("on", on); cv.classList.toggle("marking", on); if (on) { playing = false; setPlay(); syncSong(); notice("✎ Click the spot in the level that should change (Esc: cancel).", 0); } else { const n = document.getElementById("notice"); if (n && /Click the spot/.test(n.textContent)) n.hidden = true; } }
+function setMarking(on) { if (on && typeof DRAWM !== "undefined" && DRAWM.on) drawMode(false);   // the board covers the level: marks need it closed
+  marking = on; markBtn.classList.toggle("on", on); cv.classList.toggle("marking", on); if (on) { playing = false; setPlay(); syncSong(); notice("✎ Click the spot in the level that should change (Esc: cancel).", 0); } else { const n = document.getElementById("notice"); if (n && /Click the spot/.test(n.textContent)) n.hidden = true; } }
 addEventListener("keydown", e => { if (e.key === "Escape" && marking) setMarking(false); });
 markBtn.onclick = () => setMarking(!marking);
 addEventListener("keydown", e => { if ((e.key === "m" || e.key === "M") && !typing(e)) setMarking(!marking); });
@@ -2570,7 +2576,28 @@ if (window.GD_PAGES) document.getElementById("ver").textContent = "public viewer
 else if (location.protocol.startsWith("http") && !window.GD_PHONE) fetch("/version", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(v => {
   if (!v || !v.commit) return;
   document.getElementById("ver").textContent = `viewer ${v.note === "up to date" || /^updated/.test(v.note || "") ? "up to date" : "at"}: ${v.commit} -- ${v.subject}` + (v.note && !/^up to date|^updated/.test(v.note) ? ` (${v.note})` : "");
+  verWatch(v);
 }).catch(() => {});
+// A tab left open keeps the level list (levels.js) it loaded: the user opened GDLM 44 in a day-old Chrome tab and saw
+// v3 after v4 was pushed (2026-11-26). So the page asks /version every minute and when it comes back into view; when the
+// PC's checkout moved on it reloads itself (the address keeps the level and the moment) unless the user is playing,
+// then it says so with a reload button. A checkout that cannot update (local changes, not on main) is said out loud too.
+function verWatch(v0) {
+  if (verWatch.on) return; verWatch.on = true;
+  let warned = "";
+  const stuck = v => v.note && /skipped|not on main|failed|off/.test(v.note);
+  const check = () => fetch("/version", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(v => {
+    if (!v || !v.commit) return;
+    if (stuck(v) && warned !== v.note) { warned = v.note; notice(`⚠ the PC's viewer is not updating (${v.note}): levels pushed since ${v.commit} are not shown here yet`, 0); }
+    if (v.commit === v0.commit) return;
+    const busy = (typeof PLAY !== "undefined" && PLAY && PLAY.on) || document.querySelector("textarea:focus, input[type=text]:focus");
+    if (!busy && (document.visibilityState === "visible" || verWatch.hidden)) { try { writeHash(); } catch (e) {} location.reload(); return; }
+    if (busy) notice(`newer levels and code on the PC (${v.commit}: ${String(v.subject || "").replace(/</g, "&lt;")}) <button onclick="location.reload()">⟳ reload</button>`, 0);
+  }).catch(() => {});
+  setInterval(() => { verWatch.hidden = document.visibilityState !== "visible"; check(); }, 60e3);
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") check(); });
+  if (stuck(v0)) { warned = v0.note; notice(`⚠ the PC's viewer is not updating (${v0.note}): levels pushed since ${v0.commit} are not shown here yet`, 0); }
+}
 // ?perf=<id>&secs=8&art=1&beats=1&light=0 (tools/perf.js): play the level in the hash from its t for `secs`
 // seconds with real animation frames and POST the frame and draw times to /perf/<id>
 (() => {
@@ -2765,7 +2792,7 @@ function writeHash() { const l = ALL[pick.value]; if (!l || !L) return; history.
 // newest; a version that is gone says so.
 function parseLink(s) {
   s = String(s || "").trim(); const i = s.indexOf("#"); if (i >= 0) s = s.slice(i + 1); if (!s) return null;
-  if (/(^|&)lv=/.test(s)) { const h = new URLSearchParams(s); return { file: h.get("lv"), v: +h.get("v") || 0, t: +h.get("t") || 0, run: h.get("run") || "" }; }
+  if (/(^|&)lv=/.test(s)) { const h = new URLSearchParams(s); return { file: h.get("lv"), v: +h.get("v") || 0, t: +h.get("t") || 0, run: h.get("run") || "", z: +h.get("z") || 0, beats: h.get("beats") }; }
   const parts = s.split("--"), out = { base: parts[0], v: 0, t: 0, run: "" };
   for (const p of parts.slice(1)) { let m; if ((m = /^v(\d+)$/.exec(p))) out.v = +m[1]; else if ((m = /^t([\d.]+)$/.exec(p))) out.t = +m[1]; else if ((m = /^r([\w-]+)$/.exec(p))) out.run = m[1]; }
   return /^[\w.-]+$/.test(out.base) ? out : null;
@@ -2777,7 +2804,9 @@ function linkFind(q) {
   const cand = ALL.map((l, i) => ({ l, i })).filter(c => baseOf(c.l) === q.base || (c.l.name || "").toLowerCase().replace(/\W+/g, "_") === q.base.toLowerCase());
   if (!cand.length) return -1;
   const hit = q.v && cand.find(c => +c.l.version === q.v);
-  return (hit || cand.sort((a, b) => (+b.l.version || 0) - (+a.l.version || 0) || (b.l.wip ? 1 : 0) - (a.l.wip ? 1 : 0))[0]).i;
+  // no version asked: the newest MADE copy (wip versions count per session, so style's v12 from 2026-11-23 outranked the
+  // pushed GDLM 44 v4 of 2026-11-25 on version number and every short link opened it); version only breaks ties
+  return (hit || cand.sort((a, b) => pkWhen(b.l) - pkWhen(a.l) || (+b.l.version || 0) - (+a.l.version || 0) || (b.l.wip ? 1 : 0) - (a.l.wip ? 1 : 0))[0]).i;
 }
 function shortLink() { const l = ALL[pick.value]; if (!l || !L) return ""; const b = String(l.file || "").split(/[\\/]/).pop().replace(/\.(gdlvl|json)$/, "");
   return "#" + b + (l.version ? "--v" + l.version : "") + "--t" + (tick() / P.TPS).toFixed(1) + (L.ghost ? "--r" + L.ghost.row.id : ""); }
@@ -2786,6 +2815,10 @@ function openLink(s) {
   const l = ALL[i];
   if (q.v && l.version && +l.version !== q.v) notice(`That link was for version ${q.v}; this is version ${l.version} (the newest here).`, 6000);
   const before = L; pick.value = i; pick.wantT = q.t; pick.onchange();
+  // a link may set the view (Evgeni, 2026-11-25: "open in that view i can mark, and its bit zoomed out"): &z=0.5 zooms the
+  // level out, &beats=1 shows the beat lines; ✎ mark works as usual in that view
+  if (q.z) vzSet(q.z);
+  if (q.beats != null) { showBeats = q.beats === "1"; const bb = document.getElementById("beatsBtn"); if (bb) bb.classList.toggle("on", showBeats); }
   // the level may open later (unpacked, fetched, its route replayed): seek once it is the one on screen -- a NEW load of it,
   // not the copy that was showing (a link to the level already open seeked the old one, then the load reset t and the run)
   const want = l.name; let tries = 0;
@@ -3249,13 +3282,14 @@ function drawMode(on) {
         if (!up && DRAWM.on) notice("The board did not open here (this page may not allow it). The whiteboard also works as a page of its own.", 8000); }, 6000);
     }
     DRAWM.fr.style.top = cv.offsetTop + "px"; DRAWM.fr.style.height = cv.style.height; DRAWM.fr.hidden = false;
-    if (DRAWM.lv && (!L || L.name !== DRAWM.lv.name)) BOARDHOST.setLevel(DRAWM.lv.name, DRAWM.lv.levelStr, DRAWM.lv.saved, DRAWM.lv.song);
+    // opening the board keeps the level on screen (Evgeni, 2026-11-25: "when i move to drawing it switches"): the last
+    // sketch comes back only when nothing else is open; drawing a stroke then shows the sketch, as before
+    if (DRAWM.lv && !L) BOARDHOST.setLevel(DRAWM.lv.name, DRAWM.lv.levelStr, DRAWM.lv.saved, DRAWM.lv.song);
     if (DRAWM.last) BOARDHOST.view(DRAWM.last.V, DRAWM.last.rect, DRAWM.last.Hb);
     try { DRAWM.fr.contentWindow.focus(); } catch (e) {}
   } else {
     if (DRAWM.fr) DRAWM.fr.hidden = true; MAPCAM = null; cv.style.height = ""; resize();
-    if (DRAWM.lv && L && L.name !== DRAWM.lv.name) BOARDHOST.setLevel(DRAWM.lv.name, DRAWM.lv.levelStr, DRAWM.lv.saved, DRAWM.lv.song);
-    if (L) draw();
+    if (L) draw();   // closing the board keeps what is on screen too
   }
 }
 document.getElementById("drawBtn").onclick = () => drawMode(!DRAWM.on);
