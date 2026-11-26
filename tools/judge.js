@@ -13,7 +13,7 @@
 //   too easy        a section whose presses all have far wider windows than the level's ("gameplay too easy compared")
 //   --vs <marks>: his marks ({x, note} in blocks) against the judge's notes: a mark is found by a note of the kind its words
 //   ask for (WORDS below) within 6 blocks of the note's span; prints the misses and the notes he did not make (they may still
-//   be right). Thresholds are named below; change them with his next marks. tests/judge.js: 11 of his 13 v4 marks (2026-11-26).
+//   be right). Thresholds are named below; change them with his next marks. tests/judge.js: 9 of his 13 v4 marks on today's route (11 on the route before the jump snap).
 //   Not judged yet (his other two v4 marks): "unseen roof" (a corridor entered from above with its top off screen) and
 //   "flat ending" (the last seconds a plain walk to the signature) -- knowledge/checklist.md has both.
 "use strict";
