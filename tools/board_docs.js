@@ -1,14 +1,14 @@
-// node tools/board_docs.js [--stats local/difficulty/user_stats_online.json] [--latest local/community/latest_rated.json] --out <dir>
+// node tools/board_docs.js [--stats local/difficulty/user_stats_online.json] [--latest local/community/latest_rated.json] [--out <dir>]
 // Builds the work board's two big docs, compact ({cols, rows}: a db document must stay under 256 KB), from the PC's files:
 //   <dir>/played.json, played_2.json, ...  -- board/played (+ board/played_N): every level with attempts or finished (col done), totals, a note (from save_stats.js)
 //   <dir>/latest.json  -- board/latest: GD's recently rated list (from latest_rated.js), as it is
-// Then write them with ArtifactData set (board/README.md). Local data only: never commit the outputs.
+// --out defaults to local/board/, where the local work board reads them (board/README.md). Local data only: never commit the outputs.
 const fs = require("fs"), path = require("path");
 const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : d; };
 const ROOT = path.join(__dirname, "..");
 const STATS = arg("--stats", path.join(ROOT, "local", "difficulty", "user_stats_online.json"));
 const LATEST = arg("--latest", path.join(ROOT, "local", "community", "latest_rated.json"));
-const OUT = arg("--out"); if (!OUT) { console.error("--out <dir> needed"); process.exit(1); }
+const OUT = path.resolve(arg("--out", path.join(ROOT, "local", "board")));
 fs.mkdirSync(OUT, { recursive: true });
 
 const d = JSON.parse(fs.readFileSync(STATS, "utf8"));
