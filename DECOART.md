@@ -331,3 +331,20 @@ slopes), a small triangle fills that corner so no step shows. The glow and bevel
 facing down); depth shifts the triangles too. Connector sheet: slopes alone, peak, ramp up, ramp down, hill, a hanging
 arch. Gallery: deco-art/gdlm_structure_designs v4. Viewer fix: the art-free look drew slopes over front-layer deco; it now
 draws them with the blocks (T1+ deco covers them, as in the game).
+
+## Indicator styles (2026-11-26)
+
+Evgeni: "and stylish indicator, maybe regardless of the designs ( dont want to confuse blocks and indicators imo )".
+`tools/indstyles.js`: 8 styles, each a few flat pieces round the mark's spot, all in the indicator group (faded soft by its
+alpha trigger) on the indicator's own channel (white 1011), never in a block's or spike's colours, never shaped like a hazard.
+chevron (the old one, the default), double chevron, caret (thin line v), drop (dot + fading line), halo (small dot in a faint
+glow: kept small, a big round mark reads as an orb), spark (four-point star), pointer (small down triangle on a dim disk),
+bracket (line v with a dot). Spec: `"indicators": {"style": "caret"}` (make.js expands every mark, --look too); a list
+`[[column, style], ...]` changes it by x, "none" = no marks there. Gallery: deco-art/gdlm_indicator_styles
+(`node tools/indstyles.js spec`, specs/lab_indicators.json); picture /mnt/project-files/decoart/indicator_styles.jpg.
+Test: `node tests/indstyles.js`. Rule: one style for the whole level (checklist "One block design and one spike design").
+
+Found on the way (natural plan, lib/natural.js, not fixed here): with spikes 7 blocks apart on a flat run the solver holds
+one press through 3 jumps (ticks 160-579) and naturalPlan keeps the hold, so empty jumps get indicators (marks at blocks 8 and
+17 for spikes at 14 and 21). The hold-to-taps step finds no split that finishes. Repro: the 7-block version of
+specs/lab_indicators.json (`per = 4, gap = 7` in tools/indstyles.js spec); the gallery uses 9 blocks.
