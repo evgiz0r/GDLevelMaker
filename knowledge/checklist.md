@@ -216,6 +216,7 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   contrast than the path's bodies, softer or no outlines, a different hue or some transparency. `tools/roles.js` (pathDeco).
 - [ ] **Play blocks are a material, not a flat fill** (the user, 2026-11-26: "The blocks are still very timid. No effects. No
 - [ ] **Block design in layers** (Evgeni, 2026-11-26, with 8 tutorials): outline + inline, a 2-3 colour base with low-opacity texture, details small = high contrast, glow sparingly (top light, bottom dark, black lines in front of glow), 3D lines all one direction and darker. DECOART.md "Block design". Check: `tools/blockart.js` (by eye for now).
+- [ ] **Not only flat shapes** (Evgeni, 2026-11-26: "bland compared to real levels"): rated 2.2 levels put ~22% of deco in front (T2+), ~11 big set pieces a screen, gradients / soft glow, particles, fades (alpha ~190/min), camera moves and shaders, and a new scene per section. Check: `node tools/modern_look.js <level>` + `node tools/decocomp.js <level>` vs DECOART.md "Why it still looks bland".
   good texture. All single filled color"). Lit open tops, darker with depth, a surface texture (facets), a feature with light
   (glowing seams on the beat), an edge and a shadow. `tools/blockart.js` (decoart.js --blocks); DECOART.md "Blocks".
 - [ ] **A section's backdrop is one composed picture** (focal light at a third, values light far -> dark near, nothing in
