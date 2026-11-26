@@ -20,7 +20,27 @@ node tools/make.js specs/lab_brickgen_ship.json # -> levels/gdlm_lab_brickgen_sh
 node tools/structures.js check g-ship-normal-1  # the full gates on one (beatable, prejumps, fairness, skips ...)
 ```
 
-## How a brick is made
+## Verdict on the first batch (Evgeni, 2026-11-26 20:46 UTC): "all to the garbage"
+
+His mark on the ball lab: "0 height variance in the whole gameplay. this cant be the way, these structures are almost the
+same. structures have to be just more varied, this is not it. these could be generated like from 5 lines of code. no
+height variance, no orbs, no pads, no gameplay in the middle, no small movements. i call these structures - 1 structure.
+this is not variance". The batch is retired: knowledge/brickgen.json carries `retired`, structures.js no longer registers
+it, its entries are out of structures.json, and the lab levels moved to levels/archive/.
+
+Why the method made it (our reading):
+- **One move per mode.** Each mode had a single generator (flap, flip or hold) with scenery built around it, so every
+  brick of a mode is the same idea at other sizes.
+- **No mechanics.** No orbs, pads, portals or gravity changes inside a brick, so there was nothing to do between presses.
+- **Flat.** Entry and exit were always at the floor, and ball platforms had 2 heights per side, so the height range was
+  close to 0. His Two Moons marks (2026-11-25) said the same: "no heights change. all on 2 levels".
+- **The judge rewarded sameness.** "How common the kind is" pulled every brick to the mode's one most common signature,
+  and dedupe only compared bricks of the same kind. The family numbers (p10-p90) cannot tell a varied brick from a dull
+  one.
+
+The next method: see "Rethink" in the thread and below once agreed.
+
+## How a brick is made (first batch, retired)
 
 1. **Presses first.** Each brick gets a rhythm of 2-6 presses on a 0.1 s grid, about 2 clicks a second. LEGO.md measures
    that rate at every tier. The ship is steered: each hold's length is picked from 0.05-0.6 s to bring the ship nearest a
