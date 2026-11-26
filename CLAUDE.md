@@ -584,6 +584,11 @@ Confirmed:
 - The teleport portal (747) fires on a 25 x 90 box centred 12 units right of the object: the user's hitbox-on Deadlocked
   practice run (2026-11-24_00-33-07.mkv, 196.33 s) shows the ship leave the exit ~10 units further right than a centred
   box gives; with it Deadlocked is beaten in the sim (2026-11-25).
+- GD 2.2's jump snap, a 10-unit foot margin on block tops (not 15), x as a 32-bit float, and turned hazards against the
+  spinning player's turned box (2026-11-26, probe mod logs of 21 main levels, each attempt's own presses): with them the sim
+  dies on the game's death step on 14 of the 21 mains and on GDLM 44 / 64; before, on none. The cube remembers the block
+  GD's collision loop meets last (lowest 100-unit section, earliest object), breakable 143 never snaps. PHYSICS.md "Jump
+  snap, foot margin, 32-bit x".
 - Flipping gravity halves vertical speed (blue orb and ceiling blue pad in the recording move at
   half the decompile's velocity). The decompile's ringJump alone does not show this.
 

@@ -16,8 +16,8 @@ re-run `tests/tas_progress.js`, `tests/mechanics.js`, `tools/mains.js status` (a
 |---|---|---|---|---|---|
 | 1 | Ship rides ~0.5 unit low | Stereo Madness 328, Hexagon Force 141, xStep (user's clear dies 25.3% in sim), GDLM 44 died in game at x 6638 | plans + 2 real runs + probe | probe logs of GDLM 44 (per-step vy, per-frame y in the game vs sim through the 2nd ship) -> which step the heights part | data in hand (probe logs on the PC) |
 | 2 | One-step-late jumps | 48 of 94 GDLM 62 jumps start a step (4 ms) after the sim's; Clubstep 8 of 17 fresh presses | probe logs | split jumps by frame phase, press age, landing, input source (playback vs real); read GD's input queue in the decompile | data in hand |
-| 3 | x jumps +1 unit at a ceiling/floor jump | Clubstep step 1285; the stitch drift (1.5-6 units per checkpoint) | probe diff | find every such step in the logs, read the decompile's collision push-out on x | data in hand |
-| 4 | Cube lands 4-21 ticks late | Polargeist, Dry Out, Can't Let Go, Jumper, Time Machine, Clutterfunk plans | plans | probe log of a landing-heavy main level vs `tas_why` | data in hand, else game |
+| 3 | ~~x jumps +1 unit at a ceiling/floor jump~~ SETTLED 2026-11-26: GD's jump snap, in the sim ("Jump snap, foot margin, 32-bit x") | Clubstep step 1285; the stitch drift | probe diff | -- | -- |
+| 4 | Cube lands 4-21 ticks late (2026-11-26: the Stereo Madness, Polargeist and Dry Out plans now CLEAR with the snap + 10 margin; re-check the rest) | Polargeist, Dry Out, Can't Let Go, Jumper, Time Machine, Clutterfunk plans | plans | probe log of a landing-heavy main level vs `tas_why` | data in hand, else game |
 | 5 | Pink orb / pink pad too strong or low | Theory of Everything 1 and 2 (lv12 33, lv18 105), lab 60 launch 0.5-0.63 vs sim 0.72, GDLM 60 33.9% | plans + lab video | probe playback of a pink-orb/pad lab: vy on the touch step | game |
 | 6 | Yellow / pink pad strengths unconfirmed (`sure:false`) | every auto brick (AUTO.md), 50 lab variants | decompile only | probe playback of `levels/lab/auto_lab.gdlvl`: vy on each pad's step | game (same batch as 5) |
 | 7 | Ship entry speed (0.5 vs 0.25 of a falling vy) | Dry Out +64, Can't Let Go +118 blocks in plans, but user runs say no | plans vs user runs disagree | probe playback of GDLM 67 stations 9-10 (pad-thrown ship entries, no input) | game (same batch) |
@@ -58,7 +58,7 @@ A plan's tick t is our step t-1 (`tools/tas.js` shifts it). Plans reach, in bloc
 
 | mode | constants (1x) | source | checked by |
 |---|---|---|---|
-| cube | jump 11.18, gravity 0.958/tick*0.9, fall clamp 15, landing snap 15, inner kill box 9 | gdp | video: whole jump arc 1.3 px rms; gravity 0.78 u/frame^2 |
+| cube | jump 11.18, gravity 0.958/tick*0.9, fall clamp 15, foot margin 10 on a block top (before or after the tick's move; was a flat 15), jump snap, inner kill box 9 | gdp, gdsolver's collide.hpp, probe logs | video: whole jump arc 1.3 px rms; gravity 0.78 u/frame^2 |
 | ship | hold +0.108/+0.086, release -0.069/-0.103, switch at 2g (world terms, also upside down), limits +8/-6.4 | gdsolver | video: hold +0.40, release -0.25 u/frame^2 |
 | ball | tap = jump, flip (halves) x0.6; gravity 0.6x0.958 | gdsolver | video: +-0.47 u/frame^2 |
 | UFO | flap to 7, gravity 0.086 / 0.129 (see UFO below) | gdsolver | plans only |
@@ -571,7 +571,8 @@ step. `node tools/probe.js result [n]` compares a log with our sim's run of the 
   the arc. `probe.js result` and `probe.js table` use the node position when the log has it.
 - **So "jumps start one step late" (below) was an artifact** of comparing the game's vy at step n with the sim's vy at
   step n (the game's vy is one step behind). Re-check GDLM 62 / 44 with a v0.5.0 log before using those numbers.
-- **GD 2.2's jump snap is missing from our sim (2026-11-26, Stereo Madness in practice mode):** on some landings on a
+- **GD 2.2's jump snap (found 2026-11-26, Stereo Madness in practice mode; IN the sim since the same day, see "Jump snap, foot
+  margin, 32-bit x" below):** on some landings on a
   block the game moves the player's x by exactly +1.0 in that one step (normal speed; the sim lands with no x change).
   Stereo Madness's first 3324 steps have 6 of them, all landings after a jump from one block to another 120 units
   ahead and 30 higher (steps 1247, 1352, 3053, 3146, 3235, 3324; x 1618, 1756, 3965, 4087, 4204, 4320), and nothing else
@@ -623,6 +624,57 @@ step. `node tools/probe.js result [n]` compares a log with our sim's run of the 
   open ship mismatch below (the game's ship rides ~0.5 unit higher than ours). Hellgate v2 replaces all three ship
   tunnels with `fly-path` slope corridors (no stair steps), so the spot is gone; the real-game re-check with the probe
   is still to run on the PC. Not yet settled: the exact ship height gap that made the corner kill.
+
+## Jump snap, foot margin, 32-bit x (2026-11-26): IN the sim, checked step by step in the game
+
+Four changes in `lib/physics.js`, each on by default with an off switch for comparisons (`GDLM_SNAP=0`, `GDLM_LAND=0`,
+`GDLM_F32X=0`, `GDLM_OBB_PLAYER=0`). Measured on the probe mod v0.5.1 logs of the overnight batch (GEODE.md "Overnight batch
+2026-11-26": 21 main levels in practice + 6 GDLM levels, per-step node position) with `node tools/probe.js diff <n>` (THIS
+attempt's own presses; `probe.js result` replays today's saved route, which for Hexagon Force had been re-solved since).
+
+| | before (all four off) | after |
+|---|---|---|
+| main levels: sim dies on the game's death step (within 1-6 units) | 0 of 21 (17-600 units late) | 14 of 21 (BoT, SM, Polargeist, Dry Out, BaB, CLG, Jumper, Time Machine, Cycles, ToE, Electroman, Hexagon, GD, Fingerdash); Deadlocked +17 units |
+| main levels where the sim dies EARLIER than the game | -- | none |
+| GDLM 44 / 64 | 7090 / 4497 (game 6638 / 4104) | 6639 / 4106, same step |
+| gdsolver plans (`tests/tas_progress.js`) | SM 328, BoT 493, Polargeist 909, Dry Out 415 | all four clear; 6, 7, 8, 10, 13, 18, 21 further; 19 lower (below) |
+
+Still parting (mostly ship / ball / wave / UFO stretches, not checked one by one): Deadlocked +17, xStep +204, Clutterfunk +86, Clubstep +354,
+Electrodynamix +247, Blast Processing +255, ToE2 +48, GDLM 72 +120, GDLM 52 +361 units past the game's death.
+
+1. **Jump snap** (`PlayerObject::checkSnapJumpToObject`, decompile PlayerObject.cpp ~278; gdsolver's port in
+   dp/src/dp/collide.hpp agrees). Called for every solid block the CUBE lands on (gdsolver: not for ball, robot, spider or
+   the flying modes), every step it stands there. If the block differs from the remembered one, the remembered one is a
+   plain solid, and the new block sits a standard jump away (per speed: side `dx`, +30; far `dx`, -30; near `dx`, +60,
+   gravity-relative; table `SNAP_PAT`), x moves toward `new block x + m_snapDistance`, at most 1 unit (2 at 2x / 3x).
+   Then the block is remembered and `m_snapDistance` = player x - block x. Seen in the game: side (120, +30) many times,
+   near (90, +60) at Electroman x 795; far and the other speeds only from the decompile.
+   - **Which block, standing across two:** GD's box test counts touching edges, so the cube lands on EVERY block under
+     it (ours set y on the first and then only touched the second: the prototype's "fits no rule" came from that).
+     `GJBaseGameLayer::checkCollisions` gathers the solids section by section (100-unit x sections by the object's x,
+     left to right; inside a section by uniqueID = level-string order, sorted) and collides them LAST FIRST. So the block
+     remembered at take-off is the lowest section / earliest object, and on landing the highest section / latest object
+     is the one compared. Stereo Madness 3195|3225 and 5325|5355 -> 5445|5475 (no snap), Dry Out 6615|6645, Clutterfunk
+     4875|4905: all as in the game. Pure x order and "only the first on a fresh landing" each broke several logs.
+   - **Breakable blocks (143, our "one-way block") are not type Solid**: snapping FROM one never happens (Electroman's
+     column of 143s at 2685 -> 2775, a near pattern the game did not snap). `s.snapNo`.
+   - GD sets the snapped x as a float (`static_cast<float>`), so the sim rounds it with F32X.
+2. **Foot margin 10** (gdsolver's collide.hpp, collidedWithObjectInternal: `fVar30 = 10` for a non-platformer, 15 only
+   while a platformer's size change is pending, 6 for ship / UFO / wave / swing; a foot contact when the feet before OR
+   after the tick's move are within it of the top; vy must not point away). Ours was a flat 15 on the feet after the move:
+   Stereo Madness's cube (x 5895, feet 14.6 under a slab at 5925) landed on it where the game kills it. `LAND`.
+3. **x is a 32-bit float** like GD's CCPoint: the game's per-step x advances 1.2982 / 1.2983 / 1.2984 at normal speed,
+   a float32 sum of 1.29825 matches 250 steps to 0.00005, a double drifts 0.008 in that time and 0.02 over a minute --
+   Electroman's yellow orb at 2565 was missed by 0.01 on it. y is not rounded (no evidence yet). `F32X`.
+4. **A turned hazard is tested against the player's box turned by its spin** (GD's hazard pass: `OBB2D::overlaps1Way` both
+   ways between the object's and the player's oriented boxes; `obbHit2`). Fingerdash's route grazed a -113 degree spike
+   (458 at 1645.7, 156.5) by 1 unit at a corner the spinning cube does not reach; the game passed. Fingerdash plan 54 -> 164
+   with this alone.
+
+Open: plan 19 (Geometrical Dominator) 100 -> 91: its robot tops out 1.6 units under a thin slab (id 468, block 92.5) that the
+old 15 margin let it land on -- the robot jump is checked only by plans. Cycles: the sim lands an upside-down cube on a
+block bottom 2 steps before the game (step 1036; both snap). The y sections (`shouldUseYSection` levels) are not modelled in
+the order. Debug: `GDLM_SNAP=0` etc. above; `node tools/probe.js diff <n>` for a log, `node tools/tas.js <n>` for a plan.
 
 ## Fidelity: measuring the sim against the user's game (goal: "as close as possible")
 
