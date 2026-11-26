@@ -39,8 +39,11 @@ const ID = {
 const SPNAME = { 0: "0.5x", 1: "1x", 2: "2x", 3: "3x", 4: "4x" };
 const MODES = ["cube", "ship", "ball", "ufo", "wave", "robot", "spider", "swing"];
 const PADMODES = new Set(["cube", "ball", "robot", "spider", "ufo"]);
-const KINDS = ["yellow", "pink", "red", "blue", "grav", "fall", "mode", "speed", "mini", "tele"];
-const KW = { yellow: 3, pink: 2, red: 2, blue: 3, grav: 3, fall: 3, mode: 3, speed: 1, mini: 1, tele: 1.5 };
+const KINDS = ["yellow", "pink", "red", "blue", "grav", "fall", "mode", "mini", "tele"];   // speed: from the music (notePlan), or not at all
+// when the motif's kinds do not fit (often: a player in the air can't take a pad), these in turn -- a gravity flip first,
+// mode portals and teleports last (as fallbacks they made a third of the triggers: mode spam)
+const FALLBACK = ["grav", "blue", "yellow", "pink", "red", "fall", "mini", "mode", "tele"];
+const KW = { yellow: 3, pink: 2, red: 2, blue: 3, grav: 3, fall: 3, mode: 3, speed: 1, mini: 1, tele: 0.8 };
 const LOOK = 36;          // ticks after the next trigger beat the player must still be alive at
 const SKY = 1500;         // the far decoration's height: the sky (300 over the highest object) is out of the way
 
@@ -50,11 +53,77 @@ function rng(seed) { let x = (seed * 2654435761) >>> 0 || 1; return () => ((x = 
 function loadGrid(song) {
   const w = {};
   new Function("window", fs.readFileSync(path.join(ROOT, "viewer", "song_grids.js"), "utf8"))(w);
+  // an official song by name, or a custom (Newgrounds) song by id
+  if (/^\d+$/.test(String(song))) {
+    const g = w.SONG_GRIDS["/song/custom/" + song + ".mp3"] || w.SONG_GRIDS["/song/custom/" + song + ".ogg"];
+    if (!g) throw new Error("no beat grid for custom song " + song);
+    return Object.assign({ k45: String(song) }, g);
+  }
   const g = w.SONG_GRIDS["/song/official/" + song + ".mp3"];
   if (!g) throw new Error("no beat grid for official song " + song);
   const { OFFICIAL } = require("./beats.js");
   const k8 = OFFICIAL.indexOf(song);
   return Object.assign({ k8 }, g);
+}
+// the trigger times from the song's NOTES (Evgeni, 2026-11-26: "we are not catching all the little beats ... it feels much
+// more empty if we hit like 1/6 of the notes. especially in the faster sections"). notes: [{t, strength 0..1}], intensity:
+// [{t, value 0..1}]. Notes closer than `minGap` s merge (the strongest stays); a note is taken when it is strong enough for
+// the music's intensity there (loud parts take almost every note, calm ones only the strong), never closer than minGap.
+// Speed follows the intensity per 4 beats (Evgeni: "a speed portal ... when the music speeds up, and slowering portals when
+// the music speeds down"): 0.5x under 0.12, 1x under 0.45, 2x under 0.8, else 3x, changed only when it holds 3 bars.
+// the song's notes as committed by tools/impacts.js (knowledge/song_notes/<key>.json), in notePlan's shape
+function musicOf(song) {
+  const key = /^\d+$/.test(String(song)) ? "custom_" + song : "official_" + song;
+  const j = require("./impacts.js").loadNotes(key);
+  if (!j) return null;
+  return {
+    key, notes: j.notes.map(([t, s, band]) => ({ t, strength: s, band })),
+    intensity: (j.bars || []).map(b => ({ t: b[0], value: b[4] })), speedPlan: j.speedPlan || [],
+  };
+}
+function notePlan(g, music, fromBeat, uptoBeat, o = {}) {
+  const minGap = o.minGap || 0.17, t0 = g.t0 + fromBeat * g.period, t1 = g.t0 + uptoBeat * g.period;
+  const inten = t => { const a = music.intensity; if (!a || !a.length) return 0.5; let best = a[0]; for (const x of a) if (x.t <= t) best = x; else break; return best.value; };
+  const merged = [];
+  for (const n of music.notes.filter(n => n.t >= t0 && n.t < t1).sort((a, b) => a.t - b.t)) {
+    const last = merged[merged.length - 1];
+    if (last && n.t - last.t < 0.05) { if (n.strength > last.strength) Object.assign(last, n); continue; }
+    merged.push(Object.assign({}, n));
+  }
+  const out = [];
+  for (const n of merged) {
+    const I = inten(n.t), need = Math.min(0.5, 0.65 - 0.9 * I);   // intensity 0.7+: every note; else at least the stronger half (a calm intro was 4 s of nothing)
+    if (n.strength < need) continue;
+    const last = out[out.length - 1];
+    if (last && n.t - last.t < minGap) { if (n.strength > last.strength + 0.2 && (out.length < 2 || n.t - out[out.length - 2].t >= minGap)) Object.assign(last, { t: n.t, strength: n.strength, beat: (n.t - g.t0) / g.period }); continue; }
+    out.push({ t: n.t, strength: n.strength, beat: +((n.t - g.t0) / g.period).toFixed(3), energy: I });
+  }
+  // the music's own speed plan (tools/impacts.js speedPlan) when it has one
+  if (music.speedPlan && music.speedPlan.length) {
+    let cur = "1x";
+    for (const [t, , sp] of music.speedPlan) {
+      if (sp === cur) continue;
+      const at = out.find(p => p.t >= t - 0.01 && !p.speedTo);
+      if (at) { at.speedTo = sp; at.newBlock = true; cur = sp; }
+    }
+    return out;
+  }
+  // else: speed per 4 beats from the intensity, with hysteresis (3 bars)
+  const SPEEDS = [[0.12, "0.5x"], [0.45, "1x"], [0.8, "2x"], [2, "3x"]];
+  const want = I => SPEEDS.find(([lim]) => I < lim)[1];
+  let cur = "1x", cand = null, held = 0;
+  for (let b = Math.floor(fromBeat / 4) * 4; b < uptoBeat; b += 4) {
+    let I = 0, n = 0; for (let k = 0; k < 4; k++) { I += inten(g.t0 + (b + k) * g.period); n++; }
+    const w = want(I / n);
+    if (w === cur) { cand = null; held = 0; continue; }
+    if (w === cand) held++; else { cand = w; held = 1; }
+    if (held >= 3 || (o.quickSpeed && held >= 1)) {
+      const at = out.find(p => p.beat >= b - 4);
+      if (at && !at.speedTo) { at.speedTo = w; at.newBlock = true; cur = w; }
+      cand = null; held = 0;
+    }
+  }
+  return out;
 }
 // the trigger beats: every `step` beats, step from the song's energy (its section changes in loudness)
 function triggerBeats(g, from, upto) {
@@ -74,22 +143,35 @@ function triggerBeats(g, from, upto) {
 
 // ---------------------------------------------------------------- the level and its zero-press run
 function levelString(objs, segs, extra = []) {
+  // the trigger objects first, the ledges' blocks after: an appended trigger keeps every earlier object's index, so a run
+  // can go on from a saved state of the run before (s.used holds world indices)
   const parts = [];
+  for (const o of objs.concat(extra)) parts.push(`1,${o.id},2,${o.x.toFixed(2)},3,${o.y}` + (o.flipY ? ",5,1" : "") + (o.off ? ",54," + o.off : ""));
   for (const sg of segs) {
     const y = sg.dir > 0 ? sg.H - 15 : sg.H + 15;
     for (let x = sg.x0 + 15; x < sg.x1 - 15 + 0.01; x += 30) parts.push(`1,1,2,${x.toFixed(2)},3,${y}`);
     const last = sg.x1 - 15;
     if ((last - sg.x0 - 15) % 30 > 0.01) parts.push(`1,1,2,${last.toFixed(2)},3,${y}`);
   }
-  for (const o of objs.concat(extra)) parts.push(`1,${o.id},2,${o.x.toFixed(2)},3,${o.y}` + (o.flipY ? ",5,1" : "") + (o.off ? ",54," + o.off : ""));
   return GD.DEFAULT_HEADER + ";" + parts.join(";") + ";";
 }
-function run(objs, segs, upto, farX) {
+// from: { base: an earlier run, at: tick } -- go on from base's last saved state at or before `at` (everything the change
+// touches lies ahead of the player there), instead of from the start: the builder's runs stay short on long songs.
+const CK = 120;
+function run(objs, segs, upto, farX, from) {
   const str = levelString(objs, segs, [{ id: ID.deco, x: farX, y: SKY }]);
-  const lv = GD.parseLevel(str), w = GD.makeWorld(lv.objects, lv.header), s = GD.startState(w);
-  const p = [snap(s)];
-  while (!s.dead && !s.done && s.tick < upto) { GD.step(w, s, { press: false, held: false }); p.push(snap(s)); }
-  return { p, dead: s.dead, why: s.why, done: s.done };
+  const lv = GD.parseLevel(str), w = GD.makeWorld(lv.objects, lv.header);
+  let s, p, cks;
+  const ck = from && from.base.cks ? Math.floor(Math.max(0, Math.min(from.at, from.base.p.length - 1)) / CK) * CK : -1;
+  if (ck > 0 && from.base.cks.has(ck)) {
+    s = structuredClone(from.base.cks.get(ck)); p = from.base.p.slice(0, ck + 1);
+    cks = new Map([...from.base.cks].filter(([t]) => t <= ck));
+  } else { s = GD.startState(w); p = [snap(s)]; cks = new Map(); }
+  while (!s.dead && !s.done && s.tick < upto) {
+    GD.step(w, s, { press: false, held: false }); p.push(snap(s));
+    if (s.tick % CK === 0) cks.set(s.tick, structuredClone(s));
+  }
+  return { p, dead: s.dead, why: s.why, done: s.done, cks };
 }
 const snap = s => ({ x: s.x, y: s.y, vy: s.vy, grav: s.grav, mode: s.mode, sp: s.sp, mini: !!s.mini, g: !!s.grounded, dead: s.dead });
 const same = (a, b) => a && b && Math.abs(a.y - b.y) < 0.01 && Math.abs(a.vy - b.vy) < 0.01 && a.grav === b.grav && a.mode === b.mode && a.sp === b.sp && a.mini === b.mini && Math.abs(a.x - b.x) < 0.01;
@@ -142,7 +224,8 @@ const KIND = {
   },
   speed(s, st) {
     const cur = SPNAME[s.sp] || "1x", opts = ["1x", "2x", "2x", "3x", "0.5x"].filter(v => v !== cur);
-    const v = opts[Math.floor(st.r() * opts.length)];
+    if (st.speedTo && st.speedTo === cur) return null;
+    const v = st.speedTo || opts[Math.floor(st.r() * opts.length)];
     return { label: v + " speed", dx0: 22, tune: dx => ({ objs: [{ id: ID[v], x: s.x + dx, y: Math.max(45, s.y), kind: "speed" }], segs: [] }) };
   },
   mini(s) {
@@ -167,7 +250,8 @@ function build(opts = {}) {
   const g = loadGrid(song);
   const tickOf = b => Math.round((g.t0 + b * g.period) * TPS);
   const lastBeat = Math.min(g.beats - 6, opts.beats != null ? (opts.from || 4) + opts.beats : g.beats - 6);
-  const plan = triggerBeats(g, opts.from || 4, lastBeat);
+  if (opts.music === undefined) opts.music = musicOf(song);   // the song's notes when they are measured, else the beat grid
+  const plan = opts.music ? notePlan(g, opts.music, opts.from || 4, lastBeat, opts) : triggerBeats(g, opts.from || 4, lastBeat);
   const st = { objs: [], segs: [], r, lastMode: null };
   const farX = () => 20000 + (plan.length ? 0 : 0);   // far enough for any song at 3x: replaced by the real end at the end
   const FAR = 400 * B * 4;
@@ -181,7 +265,7 @@ function build(opts = {}) {
     const p = plan[i];
     if (i === 0 || p.newBlock || posInBlock >= 12) {
       posInBlock = 0; block++;
-      const A = pick([letters.A, letters.B].filter(Boolean));
+      const A = pick([letters.A, letters.B, "tele"].filter(Boolean));   // never four teleports in a row: they read as the player jumping about
       // a mode change at least every other block (Evgeni: "auto doesnt have to be cube"), a fall in every block where it fits
       let Bk = !Object.values(letters).includes("mode") && A !== "mode" ? "mode" : pick([A]);
       const C = A !== "fall" && Bk !== "fall" && r() < 0.6 ? "fall" : pick([A, Bk]);
@@ -203,8 +287,8 @@ function build(opts = {}) {
   };
   // fill the gap after a candidate: roofs for a player falling up, ledges now and then on the way down, ledges carried on.
   function fillGap(objs, segs, i, from) {
-    const upto = horizon(i);
-    let res = run(objs, segs, upto, FAR);
+    const upto = horizon(i), R = () => run(objs, segs, upto, FAR, { base, at: from - 61 });
+    let res = R();
     for (let round = 0; round < 6; round++) {
       const p = res.p;
       // a player falling up: the roof goes where it has risen by `rise`
@@ -235,11 +319,11 @@ function build(opts = {}) {
         const t1 = Math.min(i + 1 < plan.length ? tickOf(plan[i + 1].beat) : upto, p.length - 1), s = p[t1];
         if (s.g) {
           const sg = segUnder(segs, s), need = nextLead(i, p, t1);
-          if (sg && sg.x1 < need) { sg.x1 = Math.ceil(need / B) * B; res = run(objs, segs, upto, FAR); continue; }
+          if (sg && sg.x1 < need) { sg.x1 = Math.ceil(need / B) * B; res = R(); continue; }
         }
       }
       if (!fix) break;
-      segs.push(fix); res = run(objs, segs, upto, FAR);
+      segs.push(fix); res = R();
     }
     return res;
   }
@@ -248,11 +332,13 @@ function build(opts = {}) {
   const history = [];   // to backtrack: snapshots before each trigger
   for (let i = 0; i < plan.length; i++) {
     const tb = tickOf(plan[i].beat);
-    if (base.p.length <= tb + LOOK) base = run(st.objs, st.segs, horizon(i), FAR);
+    if (base.p.length <= tb + LOOK) base = run(st.objs, st.segs, horizon(i), FAR, { base, at: base.p.length - 2 });
     const s = base.p[tb];
     if (!s || s.dead) throw new Error("the committed run is dead before beat " + plan[i].beat);
     const { want, others } = history.length === i ? wantAt(i) : history[i].want;
-    const order = [want, ...others.filter(k => k !== want), ...KINDS.filter(k => k !== want && !others.includes(k)).sort(() => r() - 0.5)];
+    // the music's speed changes here: the speed portal first (it moves nothing by itself, so no motion rule for it)
+    st.speedTo = plan[i].speedTo || null;
+    const order = st.speedTo ? ["speed"] : [want, ...others.filter(k => k !== want), ...FALLBACK.filter(k => k !== want && !others.includes(k))];
     let best = null;
     for (const kind of order) {
       if (tried[i].has(kind)) continue;
@@ -266,7 +352,7 @@ function build(opts = {}) {
         const segs = cloneSegs(st.segs).concat(c.segs);
         if (c.cutAt != null) { const sg = segs.find(q => q.x0 === k.cut.x0 && q.H === k.cut.H && q.dir === k.cut.dir); sg.x1 = c.cutAt; }
         const objs = st.objs.concat(c.objs);
-        const res = run(objs, segs, tb + 90, FAR);
+        const res = run(objs, segs, tb + 90, FAR, { base, at: tb - 61 });
         const f = diverge(res.p, base.p, tb - 60);
         if (f < 0) break;   // it never changes the run: not this kind here
         const err = f - tb;
@@ -284,9 +370,11 @@ function build(opts = {}) {
       if (res.dead || res.done) continue;
       // it must MOVE the player: a portal that only changes the mode of a player walking on flat ground is no change of
       // movement (seed 4's first try walked half a minute that way)
-      { const t1 = Math.min(i + 1 < plan.length ? tickOf(plan[i + 1].beat) : tb + 120, res.p.length - 1); let dy = 0;
-        for (let t = tb; t <= t1; t++) dy = Math.max(dy, Math.abs(res.p[t].y - s.y));
-        if (dy < B && !(kind === "speed" && !s.g)) continue; }
+      // With notes close together the next trigger comes quickly: then it is enough that the vertical speed turned.
+      if (kind !== "speed") { const t1 = Math.min(i + 1 < plan.length ? tickOf(plan[i + 1].beat) : tb + 120, res.p.length - 1); let dy = 0;
+        for (let t = tb; t <= t1; t++) dy = Math.max(dy, Math.abs(res.p[t].y - base.p[Math.min(t, base.p.length - 1)].y));
+        const tq = Math.min(tb + 10, res.p.length - 1), dvy = Math.abs(res.p[tq].vy - base.p[Math.min(tq, base.p.length - 1)].vy);
+        if (dy < Math.min(B, 0.25 * (t1 - tb)) && dvy < 2) continue; }
       const end = res.p[res.p.length - 1];
       if (end.y > SKY + 300) continue;
       best = { kind, label: k.label, err: got.err, objs, segs, res };
@@ -336,7 +424,16 @@ function build(opts = {}) {
     st.objs = objs; fin = res;
   }
   const lv = { str: levelString(st.objs, st.segs) };
-  return { song, g, seed, plan, placed, motifs: motifLog, objs: st.objs, segs: st.segs, fin, lv, endX, measures: measures(fin, placed, g) };
+  const M = measures(fin, placed, g);
+  if (opts.music) {   // how many of the song's notes a trigger lands on (Evgeni: "we hit like 1/6 of the notes")
+    const tt = placed.filter(t => t.kind !== "none").map(t => t.tick / TPS), lo = tt[0] - 0.01, hi = tt[tt.length - 1] + 0.01;
+    const strong = opts.music.notes.filter(n => n.t >= lo && n.t <= hi && n.strength >= 0.3);
+    const hit = n => tt.some(t => Math.abs(t - n.t) <= 0.03);
+    M.notesHit = +(strong.filter(hit).length / Math.max(1, strong.length)).toFixed(2);
+    M.perSec = +(tt.length / Math.max(1, hi - lo)).toFixed(1);
+    M.speedChanges = placed.filter(t => t.kind === "speed").length;
+  }
+  return { song, g, seed, plan, placed, motifs: motifLog, objs: st.objs, segs: st.segs, fin, lv, endX, measures: M };
 }
 
 function measures(fin, placed, g) {
@@ -358,7 +455,7 @@ function measures(fin, placed, g) {
 
 function write(out, b, name) {
   const rec = GD.newRecord(name, `auto, beat-first: every trigger on a beat of ${b.song} (tools/autobeat.js, AUTO.md)`);
-  GD.setField(rec, "k8", "i", String(b.g.k8));
+  if (b.g.k45) GD.setField(rec, "k45", "i", b.g.k45); else GD.setField(rec, "k8", "i", String(b.g.k8));
   fs.mkdirSync(path.dirname(out), { recursive: true });
   writeGdlvl(out, rec, GD.parseLevel(b.lv.str));
 }
@@ -366,11 +463,12 @@ function write(out, b, name) {
 if (require.main === module) {
   const a = process.argv.slice(2), opt = k => { const i = a.indexOf(k); return i >= 0 ? a[i + 1] : null; };
   const t0 = Date.now();
-  const b = build({ song: opt("--song") || "Electrodynamix", seed: +(opt("--seed") || 1), beats: opt("--beats") != null ? +opt("--beats") : null, from: opt("--from-beat") != null ? +opt("--from-beat") : 4, quiet: a.includes("--quiet") });
+  const notes = opt("--notes") ? JSON.parse(fs.readFileSync(opt("--notes"), "utf8")) : a.includes("--beats-only") ? null : undefined;
+  const b = build({ music: notes, minGap: opt("--min-gap") ? +opt("--min-gap") : undefined, song: opt("--song") || "Electrodynamix", seed: +(opt("--seed") || 1), beats: opt("--beats") != null ? +opt("--beats") : null, from: opt("--from-beat") != null ? +opt("--from-beat") : 2, quiet: a.includes("--quiet") });
   const out = path.resolve(opt("--out") || path.join(ROOT, "levels", "lab", "auto_beat.gdlvl"));
   write(out, b, opt("--name") || "GDLM auto beat");
   console.log("motifs (blocks of AAAA, BBBB, a mix):\n  " + b.motifs.join("\n  "));
   console.log(JSON.stringify(b.measures));
   console.log(`${b.measures.clears ? "CLEARS with no press" : "DIES: " + b.fin.why} -> ${path.relative(ROOT, out)} (${((Date.now() - t0) / 1000).toFixed(1)} s)`);
 }
-module.exports = { build, write, triggerBeats, loadGrid };
+module.exports = { build, write, triggerBeats, notePlan, musicOf, loadGrid };

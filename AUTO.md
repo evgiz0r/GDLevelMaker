@@ -128,6 +128,28 @@ off), 25 mode changes through all 8 modes, upside down 50%, rise 32 blocks, clea
 Open: Evgeni's look at it; size and speed triggers rarely pass the "moves the player" rule; teleports and spider pads
 unchecked in GD; deco that frames the path; a custom song (needs a grid in song_grids.js).
 
+### On the notes, speed from the music (2026-11-26, round 6)
+
+Evgeni on round 5: "we are not catching all the little beats , only some very seldom ones ... it feels much more empty if
+we hit like 1/6 of the notes. especially in the faster sections"; "we could put a speed portal in an auto ( and in real
+levels ... ) when the music speeds up, and slowering portals when the music speeds down". Now:
+- The trigger times are the song's NOTES (`knowledge/song_notes/<key>.json`, every onset with a strength, from
+  tools/impacts.js; read by `musicOf`), not the beat grid: loud parts take every note, the rest at least the stronger half,
+  never two closer than 0.17 s (`--min-gap`). `--beats-only` = the old beat grid.
+- The song's `speedPlan` (impacts.js: speeds up on an impact, calms down) puts a speed portal on the first note of each
+  change; it starts a new motif block. A song with no plan gets one from the notes' intensity per 4 beats.
+- A short gap does not need a whole row of movement: a trigger counts when it turns the vertical speed.
+- When the motif's kinds don't fit, a gravity flip first, mode portals and teleports last (as random fallbacks they made a
+  third of all triggers); never AAAA of teleports.
+- Speed: each candidate replays from a saved state a little before its note, not from the start (CK = 120 ticks, the
+  trigger objects come first in the level so their indices stay): 12 s -> 2-4 s for a song.
+- Measures: `notesHit` (share of the notes with s >= 0.3 that a trigger lands on, +-30 ms), `perSec`, `speedChanges`.
+
+Lab v2 (`levels/lab/auto_beat.gdlvl`, Electrodynamix, seed 7): 85 s, 284 triggers (3.6 a second; round 5 had 76),
+60% of the song's notes hit, 98% within a frame of their note, speed 1x -> 2x -> 1x -> 2x with the music, all 8 modes,
+upside down 54%, rise 58 blocks, clears with no press. Open: Evgeni's look; ship gravity flips at 3+ a second make small
+wiggles (on the notes but little motion); speed portals in real levels (not only autos) are the compose / picker threads'.
+
 ## The community auto levels (2026-11-26, `node tools/autostudy.js --community`, PC run)
 
 Evgeni's save has 12 Auto-rated levels (knowledge/auto_community.json, numbers only). Six are art / quiz / story levels with
