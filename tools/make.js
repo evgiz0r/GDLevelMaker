@@ -586,7 +586,9 @@ function make(specFile, specObj) {
     try { const n = require("../lib/natural.js").naturalPlan(wI, r, level.objects); if (n && n.path[n.path.length - 1].done) plan = { ok: true, events: n.events }; } catch (e) {}
     const ind = deco.jumpIndicators(wI, plan, iid || 0, GD, spec.indicators);
     if (iid) {
-      level.objects.push(...require("./indstyles.js").expand(ind, spec.indicators).map(o => { const c = Object.assign({}, o); delete c.why; return c; }));  // the style's pieces (tools/indstyles.js)
+      { const IS = require("./indstyles.js"), c = IS.applyColour(level.objects, level.header, spec.indicators);
+      if (c.ch) { level.header = c.header; console.log(`   indicator colour rgb(${c.rgb}) on channel ${c.ch}: ${c.why}`); }
+      level.objects.push(...IS.expand(ind, c.ch ? Object.assign({}, spec.indicators, { ch: c.ch, style: spec.indicators.style || "chevron" }) : spec.indicators).map(o => { const c = Object.assign({}, o); delete c.why; return c; })); }  // the style's pieces and colour (tools/indstyles.js)
       if (ind.length) level.objects.push(deco.indicatorFade(spec.indicators));  // soft: faded group
       writeGdlvl(out, rec, level);
       console.log(`   ${ind.length} jump indicators (object ${iid}): ` + ind.map(o => `${(o.x / 30).toFixed(0)} ${o.why}`).join("; "));
@@ -644,7 +646,9 @@ function lookOnly(out, rec, level, spec) {
     let plan = { ok: true, events: sol.events };
     const n = require("../lib/natural.js").naturalPlan(wI, plan, level.objects); if (n && n.path[n.path.length - 1].done) plan = { ok: true, events: n.events };
     const ind = deco.jumpIndicators(wI, plan, spec.indicators.id || deco.INDICATOR.id, GD, spec.indicators);
-    level.objects.push(...require("./indstyles.js").expand(ind, spec.indicators).map(o => { const c = Object.assign({}, o); delete c.why; return c; }));  // the style's pieces (tools/indstyles.js)
+    { const IS = require("./indstyles.js"), c = IS.applyColour(level.objects, level.header, spec.indicators);
+      if (c.ch) { level.header = c.header; console.log(`   indicator colour rgb(${c.rgb}) on channel ${c.ch}: ${c.why}`); }
+      level.objects.push(...IS.expand(ind, c.ch ? Object.assign({}, spec.indicators, { ch: c.ch, style: spec.indicators.style || "chevron" }) : spec.indicators).map(o => { const c = Object.assign({}, o); delete c.why; return c; })); }  // the style's pieces and colour (tools/indstyles.js)
     if (ind.length) level.objects.push(deco.indicatorFade(spec.indicators));
     console.log(`   --look: ${ind.length} jump indicators placed again from the saved route`);
     placed = true;

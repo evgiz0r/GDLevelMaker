@@ -9,6 +9,11 @@
 //   expand(marks, opts)  -> each single mark from decorate.js jumpIndicators replaced by its style's pieces;
 //                           opts.style a name, or [[column, name], ...] (from that column on; the gallery uses it; "none" = no marks)
 // Spec: "indicators": {"style": "caret"} (make.js; id / ch / scale as before).
+//   "colour": "auto" -> a soft colour of its own on channel CH (970), its hue opposite the level's hazard colours (the
+//   hazards' channels and their spike-design dressing within a block), so a mark never reads as part of a spike
+//   (Evgeni: "indicators can also have color ingame, probably something different from the hazard spike design of that
+//   level"); [r, g, b] = that colour. Without it: white (1011).
+//   colourFor(objects, header) -> {rgb, hazardHue, why}; applyColour(objects, header, opts) -> header with channel 970.
 // Pieces point DOWN at the surface for a normal jump; upside down the whole piece set turns over.
 "use strict";
 const K = require("./scenekit.js");
@@ -74,12 +79,40 @@ function spec() {
   return {
     name: "GDLM indicator styles", desc: "Jump indicator styles, apart from block and spike designs (tools/indstyles.js).",
     notes: "Evgeni 2026-11-26: 'stylish indicator, maybe regardless of the designs ( dont want to confuse blocks and indicators imo )'; DECOART.md 'Indicator styles'",
-    colours: { bg: [12, 16, 34], ground: [5, 7, 16] }, indicators: { style: styles }, scene: "tools/scenes/indgallery.js",
+    colours: { bg: [12, 16, 34], ground: [5, 7, 16] }, indicators: { style: styles, colour: "auto" }, scene: "tools/scenes/indgallery.js",
     labels: styles, outro: 76, signature: {}, objects,
   };
 }
 
-module.exports = { STYLES, expand, styleAt, spec };
+// ---- colour: away from the hazards ----
+const CH = 970;
+function rgbHsv([r, g, b]) { r /= 255; g /= 255; b /= 255; const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+  let h = 0; if (d) h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return [((h * 60) + 360) % 360, mx ? d / mx : 0, mx]; }
+function hsvRgb(h, s, v) { const f = n => { const k = (n + h / 60) % 6; return Math.round(255 * (v - v * s * Math.max(0, Math.min(k, 4 - k, 1)))); }; return [f(5), f(3), f(1)]; }
+function colourFor(objects, header) {
+  const GD = Object.assign({}, require("../lib/objects.js")), LOOK = require("../lib/look.js").LOOK || require("../lib/look.js");
+  const col = LOOK.headerColours(header), kind = id => (GD.objInfo ? GD.objInfo(id).kind : "");
+  const haz = objects.filter(o => kind(o.id) === "hazard");
+  // the hazards' own channel, and deco dressing a hazard (spike designs: within 20 units of one)
+  const chans = haz.map(o => +((o.props && o.props[21]) || 1004));
+  const hx = haz.map(o => [o.x, o.y]);
+  for (const o of objects) if (kind(o.id) === "decoration" && o.props && o.props[21] && hx.some(([x, y]) => Math.abs(o.x - x) < 20 && Math.abs(o.y - y) < 20)) chans.push(+o.props[21]);
+  let sx = 0, sy = 0, wsum = 0;
+  for (const ch of chans) { const c = col[ch]; if (!c) continue; const [h, s, v] = rgbHsv(c), w = s * v;
+    sx += Math.cos(h * Math.PI / 180) * w; sy += Math.sin(h * Math.PI / 180) * w; wsum += w; }
+  if (!chans.length || wsum / chans.length < 0.15) return { rgb: hsvRgb(190, 0.45, 1), hazardHue: null, why: "hazards have no colour (white / grey): a soft cyan" };
+  const hh = (Math.atan2(sy, sx) * 180 / Math.PI + 360) % 360, h = (hh + 180) % 360;
+  return { rgb: hsvRgb(h, 0.5, 1), hazardHue: Math.round(hh), why: `hazards at hue ${Math.round(hh)}: the opposite hue ${Math.round(h)}, soft` };
+}
+// put the colour channel in the header and the marks on it (the pieces carry opts.ch, so call before expand, or pass ch)
+function applyColour(objects, header, opts = {}) {
+  if (!opts.colour) return { header, ch: null };
+  const c = opts.colour === "auto" ? colourFor(objects, header) : { rgb: opts.colour, why: "given" };
+  return { header: K.channels(header, { [CH]: { rgb: c.rgb } }), ch: CH, rgb: c.rgb, why: c.why };
+}
+
+module.exports = { STYLES, expand, styleAt, spec, colourFor, applyColour, CH };
 if (require.main === module) {
   const a = process.argv.slice(2);
   if (a[0] === "list") for (const [n, s] of Object.entries(STYLES)) console.log(n.padEnd(16) + s.note);

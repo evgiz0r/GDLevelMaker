@@ -355,3 +355,9 @@ Catalogue (2026-11-26, Evgeni: "i cant see in the catalogue those bigger structu
 Structures (one wide card per design / 3D effect: the whole connector sheet with slopes, stitched from gallery frames,
 scrolls sideways) and Indicators (one card per style), voted like the rest. `node tools/designs.js cards --more`
 (tools/design_strips.py), then `designs.js page` and republish the catalogue with the new files.
+
+Indicator colour (Evgeni: "indicators can also have color ingame, probably something different from the hazard spike design
+of that level"): `"indicators": {"colour": "auto"}` puts the marks on their own channel 970 in a soft colour whose hue is
+opposite the hazards' (their channels plus the spike-design dressing within a block of them, weighted by saturation);
+white or grey hazards give a soft cyan; `[r, g, b]` sets it. On our levels: Hellgate (hazards hue 21) -> soft blue, Icy part
+(hazards hue 196) -> soft orange. Open: keep it away from the block design's hue too.
