@@ -22,24 +22,24 @@ const VARIANTS = {
   molten: { mood: "a dark volcanic land, lava light from below", energy: 0.6,
     bg: [40, 10, 14], ground: [16, 4, 6], line: [255, 120, 40], pathEdge: [255, 110, 30], blockFill: [22, 8, 10],
     crust: [255, 170, 60], glow: [255, 70, 0], hazardEdge: [255, 235, 210], ember: [255, 150, 60],
-    far: [130, 44, 40], farLit: [160, 58, 44], mid: [96, 28, 28], midLit: [126, 40, 32],
+    far: [110, 36, 34], farLit: [134, 48, 38], mid: [80, 24, 24], midLit: [104, 34, 28],
     seam: [255, 120, 20], chain: [90, 30, 30], haze: [200, 40, 10], ray: [255, 120, 60] },
   inferno: { mood: "the drop: hotter, brighter rims, a storm of embers", energy: 1,
     bg: [60, 12, 10], ground: [22, 5, 4], line: [255, 170, 60], pathEdge: [255, 150, 40], blockFill: [26, 8, 8],
     crust: [255, 210, 90], glow: [255, 110, 10], hazardEdge: [255, 245, 225], ember: [255, 190, 80],
-    far: [150, 52, 36], farLit: [184, 70, 40], mid: [110, 32, 24], midLit: [146, 46, 28],
+    far: [128, 42, 32], farLit: [158, 58, 36], mid: [92, 27, 22], midLit: [122, 38, 26],
     seam: [255, 170, 40], chain: [110, 36, 30], haze: [230, 70, 10], ray: [255, 160, 80] },
   ash: { mood: "cooling: grey-red ash, dim embers (the ending)", energy: 0.35,
     bg: [34, 22, 24], ground: [14, 9, 10], line: [220, 120, 90], pathEdge: [230, 110, 70], blockFill: [20, 12, 13],
     crust: [210, 150, 120], glow: [200, 70, 30], hazardEdge: [245, 235, 230], ember: [210, 130, 90],
-    far: [96, 66, 66], farLit: [116, 80, 76], mid: [70, 46, 48], midLit: [90, 58, 56],
+    far: [84, 58, 58], farLit: [102, 70, 68], mid: [62, 41, 43], midLit: [80, 52, 50],
     seam: [220, 110, 50], chain: [70, 48, 48], haze: [140, 60, 40], ray: [220, 140, 110] },
 };
 const BLEND = { [CH.glow]: 0.6, [CH.seam]: 0.9, [CH.haze]: 0.3, [CH.ray]: 0.18 };
 const HEADER = { kA6: "1", kA7: "1", kA25: "0" };
 
 function channelMap(v) {
-  const p = VARIANTS[v] || VARIANTS.molten, m = { 1000: p.bg, 1001: p.ground, 1002: p.line };
+  const p = VARIANTS[v] || VARIANTS.molten, m = { 1000: p.bg, 1001: p.ground, 1002: p.line, 1013: p.blockFill, 1014: p.ground };   // middleground: dark (undefined it drew lilac hills)
   for (const [k, ch] of Object.entries(CH)) m[ch] = p[k === "rim" ? "pathEdge" : k === "hazard" ? "hazardEdge" : k === "fill" ? "blockFill" : k];
   return m;
 }
@@ -101,14 +101,22 @@ function chains(objects, x0, x1, o = {}) {
   return out;
 }
 
+// ridges: ice's peak range in rock colours, lower, with gaps (whole peaks dropped) so it never reads as a solid wall
+// (kit renders 2026-11-26: the molten ranges filled most of the lower screen)
+function ridges(x0, x1, o) {
+  const R = K.rng((o.seed || 1) + 99), all = I.range(x0, x1, o), out = [];
+  for (let i = 0; i + 1 < all.length; i += 2) if (R() > (o.drop ?? 0.4)) out.push(all[i], all[i + 1]);
+  return out;
+}
+
 function dress(ctx, sec) {
   const { objects } = ctx, { x0, x1 } = sec, v = VARIANTS[sec.variant] ? sec.variant : "molten", vv = VARIANTS[v], out = [], seed = (sec.i || 0) * 17 + 5;
   const gF = 550 + 3 * (sec.i || 0), gM = gF + 1, secs = Math.max(1, ctx.tOf(x1) - ctx.tOf(x0)), energy = sec.energy ?? vv.energy;
   out.push(...dressPlay(objects, x0, x1, { seed }));
   out.push(...sparks(objects, x0, x1, { seed, share: 0.25 + energy * 0.3 }));
   // two ranges of rock (ice's peak shapes in rock colours, no snow caps), carried with the player (slow parallax)
-  out.push(...I.range(x0 - 200, x1 + 600, { seed: seed + 1, groups: [gF], z: "B5", hMin: 100, hMax: 210, ch: CH.far, lit: CH.farLit, cap: false }));
-  out.push(...I.range(x0 - 100, x1 + 400, { seed: seed + 2, groups: [gM], z: "B4", zo: 4, hMin: 40, hMax: 90, wMin: 90, wMax: 180, ch: CH.mid, lit: CH.midLit, cap: false }));
+  out.push(...ridges(x0 - 200, x1 + 600, { seed: seed + 1, groups: [gF], z: "B5", hMin: 60, hMax: 140, ch: CH.far, lit: CH.farLit, cap: false, drop: 0.4 }));
+  out.push(...ridges(x0 - 100, x1 + 400, { seed: seed + 2, groups: [gM], z: "B4", zo: 4, hMin: 25, hMax: 60, wMin: 90, wMax: 180, ch: CH.mid, lit: CH.midLit, cap: false, drop: 0.5 }));
   out.push(K.lockX(x0 - 30, gF, secs + 1, 0.9), K.lockX(x0 - 30, gM, secs + 1, 0.75));
   out.push(...K.horizonGlow(x0 - 60, x1 + 60, { ch: CH.haze, y: 0, h: 5, z: "B5", group: G.haze }));
   // embers rising (two sets, carried up and a little back over the section)

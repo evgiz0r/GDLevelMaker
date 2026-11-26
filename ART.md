@@ -552,15 +552,21 @@ we can do, for bricks, for deco. the best features so far. idk for ice/fire."
   corridor) dressed in 7 rungs, each adding one feature (bare, lit edges, texture, inlays, depth, atmosphere, composed),
   in ice (the kit) and fire (the ice kit's shapes in lava colours plus Hellgate's chains, skulls, ruins, embers). `--shots`
   renders them with shoot.js and writes the sheet `local/decodemo/index.html` (GD art: PC only). All 14 pass roles.js and
-  channels.js. Fire has no kit of its own yet: if the user picks it, it becomes `tools/themes/fire.js`.
+  channels.js. Fire's kit is `tools/themes/fire.js` since 2026-11-25 (below).
 - **`tools/decogallery.js [--shots]`** (the user: "like firy blocks or spikes, some options of how it might look. background"):
   one small strip, one element changed at a time -- 5 block dressings, 5 hazard treatments (incl. the ice spike 177-179 and
   thorn pit 9 skins), 6 backgrounds -- each in ice and fire; page local/decogallery/index.html (GD art, PC only).
 - **The picks became kits (2026-11-25, the user: "continue with your picks")**: `tools/themes/fire.js` (new: obsidian + lava rim,
   molten seams, plain spikes with a few sparks, two rock ranges, lava haze, rising embers; chains and rays as quiet extras;
-  variants molten / inferno / ash) and ice's dressPlay gained small icicles under open bottom edges. Use with brief/spec
+  variants molten / inferno / ash); ice's icicles under open bottom edges were tried and removed (below). Use with brief/spec
   `"theme": "fire"`. Fire demo on Eclipse's play: roles 0/35, white 0, decocomp quiet 0.15, focal 0.36 (officials' p50
   0.08 / 0.33).
+- **First kit renders (2026-11-26)** and what changed: the ice kit's icicles under block edges hung inside the lanes beside real
+  ceiling spikes and read as hazards: removed. The fire ranges filled the lower screen: now `ridges()` -- peaks 60-140 /
+  25-60 high, 40-50% of them dropped for gaps, a value step darker (roles 0/35 still). The middleground channels 1013/1014 are
+  set (undefined, the viewer drew lilac hills). The dashed vertical line in every frame was the viewer's ghost camera (no
+  route for the demo level): `theme.js demo --shots` now shares the source level's route. Gallery verdicts: the lone big peak
+  (ice) and volcano (fire) backgrounds read as a wall -- not used; the lit strip under spikes barely shows.
 - **`tools/decocomp.js`**: how deco is ARRANGED (rhythm cv, quiet stretches, peaks, focal share, clumping, set pieces,
   deco at transitions, following the play); `--ref` the officials' and the corpus' numbers -> knowledge/decocomp_ref.json.
   Our levels: quiet ~0 (no breathing space), focal 0.25-0.29 (near even, 0.2). Reference (2026-11-25, p25/p50/p75):
