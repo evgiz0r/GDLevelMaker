@@ -4,6 +4,34 @@
 (object ids). CLAUDE.md's Calibration section lists the facts checked in the user's own game;
 this file is the map per mode and per trigger. Last full update 2026-11-22.
 
+## The mismatch queue (ranked, 2026-11-26; owner: the physics thread "Fix physics mismatches with the real game")
+
+Every known place where the sim and GD 2.2091 disagree, most harm first. "Data in hand" = settled from files we already
+have (probe logs, recordings, gdsolver plans, the decompile), no game needed. "Game" = needs a run in the user's GD:
+batched into ONE request to the user (announce first, his go; probe playback, no physics-changing mods). Times are not
+measured unless a basis is given. Work top-down; when one is settled, move it to its mode's section with its source and
+re-run `tests/tas_progress.js`, `tests/mechanics.js`, `tools/mains.js status` (a main route that breaks = top priority).
+
+| # | mismatch | harm | evidence | how to verify | needs |
+|---|---|---|---|---|---|
+| 1 | Ship rides ~0.5 unit low | Stereo Madness 328, Hexagon Force 141, xStep (user's clear dies 25.3% in sim), GDLM 44 died in game at x 6638 | plans + 2 real runs + probe | probe logs of GDLM 44 (per-step vy, per-frame y in the game vs sim through the 2nd ship) -> which step the heights part | data in hand (probe logs on the PC) |
+| 2 | One-step-late jumps | 48 of 94 GDLM 62 jumps start a step (4 ms) after the sim's; Clubstep 8 of 17 fresh presses | probe logs | split jumps by frame phase, press age, landing, input source (playback vs real); read GD's input queue in the decompile | data in hand |
+| 3 | x jumps +1 unit at a ceiling/floor jump | Clubstep step 1285; the stitch drift (1.5-6 units per checkpoint) | probe diff | find every such step in the logs, read the decompile's collision push-out on x | data in hand |
+| 4 | Cube lands 4-21 ticks late | Polargeist, Dry Out, Can't Let Go, Jumper, Time Machine, Clutterfunk plans | plans | probe log of a landing-heavy main level vs `tas_why` | data in hand, else game |
+| 5 | Pink orb / pink pad too strong or low | Theory of Everything 1 and 2 (lv12 33, lv18 105), lab 60 launch 0.5-0.63 vs sim 0.72, GDLM 60 33.9% | plans + lab video | probe playback of a pink-orb/pad lab: vy on the touch step | game |
+| 6 | Yellow / pink pad strengths unconfirmed (`sure:false`) | every auto brick (AUTO.md), 50 lab variants | decompile only | probe playback of `levels/lab/auto_lab.gdlvl`: vy on each pad's step | game (same batch as 5) |
+| 7 | Ship entry speed (0.5 vs 0.25 of a falling vy) | Dry Out +64, Can't Let Go +118 blocks in plans, but user runs say no | plans vs user runs disagree | probe playback of GDLM 67 stations 9-10 (pad-thrown ship entries, no input) | game (same batch) |
+| 8 | Rotated gameplay tap timing (spider taps 2-3 ticks early) | Dash (ratchet 22 at 75) | plan | tools/tas_trace.js on lv22 at the turn | data in hand |
+| 9 | Clutterfunk pad on a hanging block not reached | user's clear dies 3.5% in sim | 1 run | probe playback of the route there / tas_why lv11 | data in hand, else game |
+| 10 | Teleport at 45 degrees moves less than the game | lab 60 | lab video | probe playback of a teleport lab | game (same batch) |
+| 11 | Upside-down cube dies hitting the ground hard | GDLM 67 green orb 3 of 4 | lab video | needs the green orb's throw first: probe log of the lab | game (same batch) |
+| 12 | GDLM 52 dies in game at x 10765 | one of our levels | probe playback 2026-11-25 | `probe.js result` on its log | data in hand |
+| 13 | Back On Track ship ~1 block high after a slide | plan 493 | plan | probe after 1 | after 1 |
+| 14 | UFO, robot, spider, swing, green orb mid-air: never checked in the user's game | 3 main routes with 33 ms UFO gaps | gdsolver's model | probe log of any main level with them (the user's own practice runs log too) | game |
+
+Not mismatches but missing (board "missing"): mirror portal, teleport variants 2902/2064/3022, a player carried by a moving
+block (Dash), item/pickup, scale, on-death, collision/area triggers, force blocks, platformer.
+
 ## How physics is checked
 
 | check | what it is | run |

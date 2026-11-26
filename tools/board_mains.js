@@ -1,5 +1,5 @@
 // node tools/board_mains.js [--local <dir>] [--json]  -- the main-levels table for the GD Work Board
-//   (https://claude.ai/artifact/NTEEv6GZHJpETBLbfQADFJ, doc board/state field `mains`): per official level the rating,
+//   (local/board/state.json, field `mains`; board/README.md): per official level the rating,
 //   whether the raw solve and the human route clear on today's sim (local/mains/status.json, tools/mains.js), the
 //   difficulty score from the cached scored route (local/difficulty/scored_NN.json, same sum as
 //   `tools/difficulty.js --cached`), inputs, tight inputs, tightest window, the user's attempts (user_stats.json),
