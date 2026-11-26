@@ -39,11 +39,11 @@ const ID = {
 const SPNAME = { 0: "0.5x", 1: "1x", 2: "2x", 3: "3x", 4: "4x" };
 const MODES = ["cube", "ship", "ball", "ufo", "wave", "robot", "spider", "swing"];
 const PADMODES = new Set(["cube", "ball", "robot", "spider", "ufo"]);
-const KINDS = ["yellow", "pink", "red", "blue", "grav", "fall", "mode", "mini", "tele"];   // speed: from the music (notePlan), or not at all
+const KINDS = ["yellow", "pink", "red", "blue", "grav", "fall", "step", "mode", "mini", "tele"];   // speed: from the music (notePlan), or not at all
 // when the motif's kinds do not fit (often: a player in the air can't take a pad), these in turn -- a gravity flip first,
 // mode portals and teleports last (as fallbacks they made a third of the triggers: mode spam)
-const FALLBACK = ["grav", "blue", "yellow", "pink", "red", "fall", "mini", "mode", "tele"];
-const KW = { yellow: 3, pink: 2, red: 2, blue: 3, grav: 3, fall: 3, mode: 3, speed: 1, mini: 1, tele: 0.8 };
+const FALLBACK = ["grav", "blue", "yellow", "pink", "red", "step", "fall", "mini", "mode", "tele"];
+const KW = { yellow: 3, pink: 2, red: 2, blue: 3, grav: 3, fall: 3, mode: 3, speed: 1, mini: 1, tele: 0.8, step: 2.5 };
 const LOOK = 36;          // ticks after the next trigger beat the player must still be alive at
 const SKY = 1500;         // the far decoration's height: the sky (300 over the highest object) is out of the way
 
@@ -79,6 +79,7 @@ function musicOf(song) {
   return {
     key, notes: j.notes.map(([t, s, band]) => ({ t, strength: s, band })),
     intensity: (j.bars || []).map(b => ({ t: b[0], value: b[4] })), speedPlan: j.speedPlan || [],
+    impacts: (j.impacts || []).map(([t, beat, strength, kind]) => ({ t, beat, strength, kind })),
   };
 }
 function notePlan(g, music, fromBeat, uptoBeat, o = {}) {
@@ -96,7 +97,23 @@ function notePlan(g, music, fromBeat, uptoBeat, o = {}) {
     if (n.strength < need) continue;
     const last = out[out.length - 1];
     if (last && n.t - last.t < minGap) { if (n.strength > last.strength + 0.2 && (out.length < 2 || n.t - out[out.length - 2].t >= minGap)) Object.assign(last, { t: n.t, strength: n.strength, beat: (n.t - g.t0) / g.period }); continue; }
-    out.push({ t: n.t, strength: n.strength, beat: +((n.t - g.t0) / g.period).toFixed(3), energy: I });
+    out.push({ t: n.t, strength: n.strength, band: n.band || "low", beat: +((n.t - g.t0) / g.period).toFixed(3), energy: I });
+  }
+  // the song's hits (accents, drops, entries): a staircase step there (Evgeni: "bit more staircases as a hit in the song")
+  for (const im of music.impacts || []) {
+    const at = out.find(p => Math.abs(p.t - im.t) <= 0.06);
+    if (at && im.strength >= 0.5) at.accent = im.kind;
+  }
+  // BATCHES (Evgeni, 2026-11-26: "the same beats, music, has the same auto vibe ... assign some specific notes ( drums ,
+  // piano , high , low ) as different combinations of portals/speed/icon. and reroll after some seconds, on a transition in
+  // the song starting a new batch"): a new batch at the song's transitions -- a drop, a new instrument entering, a section
+  // change, a speed change -- at least 6 s apart; with none for 16 s, at the next strong hit.
+  const trans = (music.impacts || []).filter(im => /drop|entry|change/.test(im.kind)).map(im => im.t)
+    .concat((music.speedPlan || []).map(sp => sp[0])).sort((a, b) => a - b);
+  let lastB = -1e9;
+  for (const p of out) {
+    const isTrans = trans.some(t => Math.abs(t - p.t) <= 0.12) || (p.accent && p.t - lastB > 16);
+    if (p === out[0] || (isTrans && p.t - lastB >= 6)) { p.newBatch = true; lastB = p.t; }
   }
   // the music's own speed plan (tools/impacts.js speedPlan) when it has one
   if (music.speedPlan && music.speedPlan.length) {
@@ -215,9 +232,33 @@ const KIND = {
     if (!sg) return null;
     return { label: s.grav > 0 ? "fall" : "fall up", dx0: 15, cut: sg, tune: dx => ({ objs: [], segs: [], cutAt: s.x + dx }) };
   },
+  // a staircase step: the ledge ends on the note and goes on one (or two) rows lower -- or higher, under a roof upside down
+  step(s, st) {
+    if (!s.g && s.vy * s.grav < -0.5 && PADMODES.has(s.mode)) {
+      // in the air, coming down: the stair it lands on, on the note (then the next hits step down from it)
+      const H = s.grav > 0 ? Math.floor((s.y - half(s) - 2) / B) * B : Math.ceil((s.y + half(s) + 2) / B) * B;
+      if (s.grav > 0 && H < 2 * B) return null;
+      return { label: "land on a stair", dx0: 0, tune: dx => ({ objs: [], segs: [{ H, dir: s.grav, x0: Math.floor((s.x + dx - 40) / B) * B, x1: Math.floor((s.x + dx + 240) / B) * B, tag: "stair" }] }) };
+    }
+    if (!s.g) return null;
+    const sg = segUnder(st.segs, s);
+    if (!sg) return null;
+    const rows = st.r() < 0.75 ? 1 : 2, H = sg.H - s.grav * rows * B;
+    if (s.grav > 0 && H < 0) return null;
+    return {
+      label: "step " + (s.grav > 0 ? "down" : "up"), dx0: 15, cut: sg,
+      tune: dx => ({ objs: [], cutAt: s.x + dx, segs: H === 0 ? [] : [{ H, dir: s.grav, x0: s.x + dx, x1: s.x + dx + 240, tag: "step" }] }),
+    };
+  },
   mode(s, st) {
-    const opts = MODES.filter(m => m !== s.mode && !(st.lastMode && m === st.lastMode));
-    const m = opts[Math.floor(st.r() * opts.length)];
+    // a batch's icons: its first one when the batch starts (st.modeTo), else the other one of the two
+    let m = st.modeTo;
+    if (m && m === s.mode) return null;
+    if (!m) {
+      const icons = (st.icons || []).filter(x => x !== s.mode);
+      const opts = icons.length ? icons : MODES.filter(x => x !== s.mode && !(st.lastMode && x === st.lastMode));
+      m = opts[Math.floor(st.r() * opts.length)];
+    }
     // on the ground a mode portal alone changes no movement: it comes with a gravity flip there (a GD classic)
     const flip = s.g ? [{ id: s.grav > 0 ? ID.gravDown : ID.gravUp, dx: 0 }] : [];
     return { label: m + " portal" + (flip.length ? " + flip" : ""), dx0: 22, tune: dx => ({ objs: [{ id: ID[m], x: s.x + dx, y: Math.max(45, s.y), kind: "mode" }].concat(flip.map(f => ({ id: f.id, x: s.x + dx, y: Math.max(45, s.y), kind: "grav" }))), segs: [] }) };
@@ -261,8 +302,28 @@ function build(opts = {}) {
   const pick = (not) => { const ks = KINDS.filter(k => !not.includes(k)); let tot = ks.reduce((a, k) => a + KW[k], 0), x = r() * tot; for (const k of ks) { x -= KW[k]; if (x <= 0) return k; } return ks[ks.length - 1]; };
   let letters = {}, pattern = "", block = 0, posInBlock = 0;
   const motifLog = [];
+  let batch = null;
   function wantAt(i) {
     const p = plan[i];
+    if (opts.music && p.band) {
+      // the batch: a kind for each band (low = kick / bass, mid = snare / keys, top = hats / high notes), two icons (modes)
+      if (!batch || p.newBatch) {
+        const used = batch ? [batch.low, batch.mid, batch.top] : [];
+        // now and then a FLIGHT batch: portals only, so the icons can be ship / wave / swing too
+        const fly = batch && !batch.fly && r() < 0.4, landK = ["yellow", "pink", "red", "blue", "step", "fall"];
+        const pk = not => pick(fly ? not.concat(landK) : not);
+        const low = pk(used.concat("tele")), mid = pk([low, ...used]), top = pk([low, mid]);
+        // icons that the batch's kinds work in: pads, stairs and falls want a mode that lands (cube, ball, robot, spider, ufo);
+        // a batch of portals only may fly (ship, wave, swing too)
+        const lands = [low, mid, top].some(k => ["yellow", "pink", "red", "blue", "step", "fall"].includes(k));
+        const ic = MODES.filter(m => !(batch && batch.icons.includes(m)) && (!lands || PADMODES.has(m))).sort(() => r() - 0.5).slice(0, 2);
+        if (fly) ic[0] = ["ship", "wave", "swing"][Math.floor(r() * 3)];
+        batch = { low, mid, top, icons: ic, t: p.t, first: true, fly };
+        motifLog.push(`${p.t.toFixed(1)} s: low=${low} mid=${mid} top=${top} icons=${ic.join("/")}`);
+      }
+      const want = p.accent ? "step" : batch[p.band] || batch.low;
+      return { want, others: [batch.low, batch.mid, batch.top].filter(k => k !== want), batch };
+    }
     if (i === 0 || p.newBlock || posInBlock >= 12) {
       posInBlock = 0; block++;
       const A = pick([letters.A, letters.B, "tele"].filter(Boolean));   // never four teleports in a row: they read as the player jumping about
@@ -297,7 +358,7 @@ function build(opts = {}) {
         const s = p[t];
         if (s.grav > 0 && !s.g && s.vy < 0) {
           // falling down from high up: now and then a ledge on the way (a step to fall off later), not always the ground
-          if (segs.ledgeFor == null) segs.ledgeFor = r() < 0.45 ? 2 + Math.floor(r() * 3) : 0;
+          if (segs.ledgeFor == null) segs.ledgeFor = r() < (batch && Object.values(batch).includes("step") ? 0.85 : 0.45) ? 2 + Math.floor(r() * 3) : 0;   // a batch with steps wants ledges to step off
           const bottom = s.y - half(s), H = Math.floor((s.y + 0.5 * s.vy * 0 - half(s)) / B) * B;
           if (segs.ledgeFor && t > from && p[t - 1].vy >= 0 && bottom > (segs.ledgeFor + 2) * B) segs.ledgeAt = Math.floor((bottom - segs.ledgeFor * B) / B) * B;
           if (segs.ledgeAt && bottom <= segs.ledgeAt + 3 && p[t - 1].y - half(s) > segs.ledgeAt + 3) {
@@ -338,7 +399,11 @@ function build(opts = {}) {
     const { want, others } = history.length === i ? wantAt(i) : history[i].want;
     // the music's speed changes here: the speed portal first (it moves nothing by itself, so no motion rule for it)
     st.speedTo = plan[i].speedTo || null;
-    const order = st.speedTo ? ["speed"] : [want, ...others.filter(k => k !== want), ...FALLBACK.filter(k => k !== want && !others.includes(k))];
+    const bt = (history.length === i ? null : null) || batch;
+    st.icons = bt ? bt.icons : null;
+    // a new batch starts in its own icon: a mode portal first (unless the music's speed changes right here)
+    st.modeTo = !st.speedTo && bt && bt.first && base.p[tb] && base.p[tb].mode !== bt.icons[0] ? bt.icons[0] : null;
+    const order = st.speedTo ? ["speed"] : st.modeTo ? ["mode", want, ...FALLBACK] : [want, ...others.filter(k => k !== want), ...FALLBACK.filter(k => k !== want && !others.includes(k))];
     let best = null;
     for (const kind of order) {
       if (tried[i].has(kind)) continue;
@@ -371,7 +436,7 @@ function build(opts = {}) {
       // it must MOVE the player: a portal that only changes the mode of a player walking on flat ground is no change of
       // movement (seed 4's first try walked half a minute that way)
       // With notes close together the next trigger comes quickly: then it is enough that the vertical speed turned.
-      if (kind !== "speed") { const t1 = Math.min(i + 1 < plan.length ? tickOf(plan[i + 1].beat) : tb + 120, res.p.length - 1); let dy = 0;
+      if (kind !== "speed" && !(kind === "mode" && st.modeTo)) { const t1 = Math.min(i + 1 < plan.length ? tickOf(plan[i + 1].beat) : tb + 120, res.p.length - 1); let dy = 0;
         for (let t = tb; t <= t1; t++) dy = Math.max(dy, Math.abs(res.p[t].y - base.p[Math.min(t, base.p.length - 1)].y));
         const tq = Math.min(tb + 10, res.p.length - 1), dvy = Math.abs(res.p[tq].vy - base.p[Math.min(tq, base.p.length - 1)].vy);
         if (dy < Math.min(B, 0.25 * (t1 - tb)) && dvy < 2) continue; }
@@ -392,6 +457,7 @@ function build(opts = {}) {
     }
     history[i] = { objs: st.objs, segs: st.segs, base, want: { want, others }, lastMode: st.lastMode, modeRun: st.modeRun };
     st.objs = best.objs; st.segs = best.segs; base = best.res;
+    if (best.kind === "mode" && batch) batch.first = false;   // the batch's own icon is in: until then each trigger tries it first
     if (best.kind === "mode") { st.lastMode = s.mode; st.modeRun = (st.modeRun || 0) + 1; } else st.modeRun = 0;
     placed.push({ beat: plan[i].beat, tick: tb, kind: best.kind, want, label: best.label, err: best.err, energy: plan[i].energy });
     if (!opts.quiet) process.stdout.write(`  b${String(plan[i].beat).padStart(3)} ${(best.kind === want ? "" : "~").padEnd(1)}${best.label.padEnd(18)} ${best.err >= 0 ? "+" : ""}${(best.err / TPS * 1000).toFixed(0)} ms\n`);
@@ -417,7 +483,14 @@ function build(opts = {}) {
     for (const sg of st.segs) if (sg.dir > 0 && sg.H <= 60) for (let c = Math.floor(sg.x0 / B) - 1; c <= Math.ceil(sg.x1 / B) + 1; c++) blocked.add(c);
     for (let c = 12; c < Math.floor(wx / B) - 2; c++) {
       let low = 1e9; for (let d = -3; d <= 3; d++) low = Math.min(low, lowAt.get(c + d) ?? 1e9);
-      if (low > 150 && low < 1e8 && !blocked.has(c) && (c % 7 < 3)) spikes.push({ id: ID.spike, x: c * B + 15, y: 15, kind: "spike" });
+      // the ground varies (Evgeni: "more variations of ground - spikes"): runs of spikes with gaps, and where the path is
+      // high, small pillars with a spike on top; the pattern changes every 24 columns
+      if (!(low > 150 && low < 1e8 && !blocked.has(c))) continue;
+      const v = Math.floor(c / 24) % 4, k = c % 8;
+      if (v === 0 && k < 3) spikes.push({ id: ID.spike, x: c * B + 15, y: 15, kind: "spike" });
+      else if (v === 1 && k % 2 === 0) spikes.push({ id: ID.spike, x: c * B + 15, y: 15, kind: "spike" });
+      else if (v === 2 && low > 260 && k < 2) { spikes.push({ id: ID.block, x: c * B + 15, y: 15, kind: "pillar" }, { id: ID.block, x: c * B + 15, y: 45, kind: "pillar" }, { id: ID.spike, x: c * B + 15, y: 75, kind: "spike" }); }
+      else if (v === 3 && k < 5) spikes.push({ id: ID.spike, x: c * B + 15, y: 15, kind: "spike" });
     }
     let objs = st.objs.concat(spikes), res = run(objs, st.segs, 1e9, endX + 90);
     if (res.dead) { objs = st.objs; res = fin; spikes.length = 0; }

@@ -40,7 +40,8 @@ ok(c.flipAt && c.jumps === 1, `with 1813 (no auto jump) armed too, the held butt
   for (let t = 0; t < 4000 && !s.done; t++) { const x0 = s.x; GD.step(w, s, NONE); dx.push([x0, s.x - x0]); }
   const full = GD.SPEEDS[1].x * GD.PHYS.DT;
   const before = dx.find(d => d[0] > 200 && d[0] < 290), inW = dx.find(d => d[0] > 400 && d[0] < 500), after = dx.find(d => d[0] > 700);
-  ok(Math.abs(before[1] - full) < 1e-9 && Math.abs(inW[1] - full * 0.2) < 1e-9 && Math.abs(after[1] - full) < 1e-9,
+  // 1e-3, not exact: x is a 32-bit float like GD's (lib/physics.js F32X), so a step at x ~500 rounds to ~3e-5
+  ok(Math.abs(before[1] - full) < 1e-3 && Math.abs(inW[1] - full * 0.2) < 1e-3 && Math.abs(after[1] - full) < 1e-3,
      `x per tick ${before[1].toFixed(3)} -> ${inW[1].toFixed(3)} inside the 0.2 warp -> ${after[1].toFixed(3)} after it`);
   const w2 = GD.makeWorld(objs.slice(0, 1), "kA4,0");
   ok(!w2.warps, "a level without a warp has none (unchanged path)");

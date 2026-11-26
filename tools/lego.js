@@ -61,9 +61,20 @@ function communitySources(only) {
     const id = f.slice(1, -5);
     if (only && !only(id)) continue;
     let res; try { res = JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")); } catch (e) { continue; }
-    if (!res.ok || !res.events) continue;
     const lf = path.join(LOCAL, "community", id + ".gdlvl"); if (!fs.existsSync(lf)) continue;
     const L = readGdlvl(lf), level = L.level || GD.parseLevel(L.levelStr), cf = path.join(OUTDIR, "routes", "c" + id + ".json");
+    const name0 = (L.name || (L.record && L.record.k2) || "").replace(/\s+/g, " ").trim();
+    // a level our solver does not clear still gives bricks from the part its route gets through alive (Evgeni's batch,
+    // 2026-11-26: 4 of 28 levels cleared, the rest gave nothing): the furthest of the saved run and its checkpoint, the
+    // raw solver inputs (no human route: that needs a full clear); mine() keeps only bricks ending 3 blocks before the death
+    if (!res.ok) {
+      let ev = res.events && res.events.length ? res.events : null, far = res.dieX || 0;
+      try { const pt = JSON.parse(fs.readFileSync(path.join(dir, "c" + id + ".part.json"), "utf8")); if (pt.events && (pt.x || 0) > far) { ev = pt.events; far = pt.x; } } catch (e) {}
+      if (!ev || far < 20 * B) continue;
+      out.push({ src: "community", name: `c${id}${name0 ? " " + name0 : ""}`, level, events: ev, partial: true, windowsKey: "community_" + id, routeKind: "partial", routePlan: "", routeAt: res.solvedAt || "" });
+      continue;
+    }
+    if (!res.events) continue;
     let r = null; try { r = JSON.parse(fs.readFileSync(cf, "utf8")); if (r.solvedAt !== res.solvedAt) r = null; } catch (e) {}
     if (!r) {
       let events = null, kind = "humanize";
@@ -397,6 +408,10 @@ function measure(src, w, r, inputs, i0, i1) {
   P.routeKind = src.routeKind || (src.src === "official" ? "unknown" : "ours");
   if (src.routeAt) P.routeAt = src.routeAt;
   if (src.src === "official") P.routePlan = src.routePlan || "";   // the planner commit (difficulty_solve.js); "" = planned before the 2026-11-25 wave planner
+  // clicks per second (Evgeni 2026-11-26: "do we have cps for the blocks?"): cps = presses over the brick's seconds;
+  // cpsPeak = the fastest two presses in a row (1 / shortest gap), the burst a player must hit
+  { const pr = P.clicks.filter(c => c[2]).map(c => c[3]); P.cps = P.s > 0 ? r2(pr.length / P.s) : 0;
+    let g = Infinity; for (let i = 1; i < pr.length; i++) g = Math.min(g, pr[i] - pr[i - 1]); P.cpsPeak = g < Infinity && g > 0 ? r2(1 / g) : 0; }
   { const pr = P.clicks.filter(c => c[2]).map(c => c[3]); P.jitter = FAMILY[mode] === "fly" ? pr.filter((t, i) => i && t - pr[i - 1] < 0.1).length : 0; }
   // inner cut points (the user, 2026-11-25: "what we could cut from start or the end, like checkpoints where we could
   // take even smaller parts (on demand)"): calm moments between two presses where the brick can be trimmed -- the button
@@ -490,10 +505,13 @@ function mine(which, sketchFiles, only) {
     const t0 = Date.now();
     let R; try { R = route(s); } catch (e) { console.log("  skip", s.name, e.message); continue; }
     const cuts = s.auto ? [[Math.max(0, R.r.path.findIndex(q => q.x >= s.x0)), (i => i < 0 ? R.r.path.length - 1 : i)(R.r.path.findIndex(q => q.x >= s.x1))]] : cut(R.r, R.inputs, s.whole);
+    // a partial route (a level we do not clear): only what ends 3 blocks before its death is a verified piece
+    const okEnd = s.partial && R.r.dead ? R.r.path[R.r.path.length - 1].x - 3 * B : Infinity;
+    if (s.partial) { const live = c => R.r.path[c[1]].x <= okEnd; cuts.splice(0, cuts.length, ...cuts.filter(live)); }
     let ws = []; try { ws = windowsOf(s, R.w, R.r); } catch (e) { console.log("  no windows for", s.name, e.message); }
     for (const [i0, i1] of cuts) { const P = measure(s, R.w, R.r, R.inputs, i0, i1); Object.assign(P, pieceDifficulty(ws, R.r.path[i0].tick, R.r.path[i1].tick)); P.grain = "piece"; if (P.jitter && P.jitter < 3 && !P.tight) P.jitter = 0; if (s.auto) { P.auto = true; P.grain = "brick"; P.sig = "auto / " + P.sig; P.empty = false; } pieces.push(P); }
     // bricks: the same route cut finer (not for the library's whole pieces)
-    if (!s.whole) for (const [i0, i1, kind] of cut(R.r, R.inputs, { auto: true, items: R.w.items }, "brick")) { const P = measure(s, R.w, R.r, R.inputs, i0, i1); Object.assign(P, pieceDifficulty(ws, R.r.path[i0].tick, R.r.path[i1].tick)); P.grain = "brick"; if (P.jitter && P.jitter < 3 && !P.tight) P.jitter = 0; if (kind === "auto") { P.auto = true; P.sig = "auto / " + P.sig; P.empty = false; } pieces.push(P); }
+    if (!s.whole) for (const [i0, i1, kind] of cut(R.r, R.inputs, { auto: true, items: R.w.items }, "brick").filter(c => R.r.path[c[1]].x <= okEnd)) { const P = measure(s, R.w, R.r, R.inputs, i0, i1); Object.assign(P, pieceDifficulty(ws, R.r.path[i0].tick, R.r.path[i1].tick)); P.grain = "brick"; if (P.jitter && P.jitter < 3 && !P.tight) P.jitter = 0; if (kind === "auto") { P.auto = true; P.sig = "auto / " + P.sig; P.empty = false; } pieces.push(P); }
     console.log(`  ${s.src.padEnd(8)} ${s.name.padEnd(34)} ${String(cuts.length).padStart(3)} pieces${R.r.dead ? " (route dies at block " + Math.round(R.r.path[R.r.path.length - 1].x / B) + ")" : ""}  ${Date.now() - t0} ms`);
   }
   pieces.forEach((p, i) => p.id = ({ official: "r", ours: "u", sketch: "s", library: "l", community: "c" }[p.src] + "-" + p.level.replace(/[^a-z0-9]+/gi, "_").toLowerCase() + "-" + p.x + (p.grain === "brick" ? (p.auto ? "a" : "b") : "")));
@@ -553,7 +571,7 @@ function writeKnowledge(allG) {
   const bricks = allG.filter(p => p.grain === "brick"), all = allG.filter(p => p.grain !== "brick");
   const fam = {};
   for (const p of all) {
-    const k = p.sig, e = fam[k] = fam[k] || { sig: k, family: p.family, mode: p.mode, wrap: p.wrap, n: { official: 0, ours: 0, sketch: 0, library: 0 }, levels: { official: new Set(), ours: new Set(), sketch: new Set(), library: new Set() }, s: [], w: [], presses: [], hold: [], gap: [], yRange: [], hz: [] };
+    const k = p.sig, e = fam[k] = fam[k] || { sig: k, family: p.family, mode: p.mode, wrap: p.wrap, n: { official: 0, ours: 0, sketch: 0, library: 0, community: 0 }, levels: { official: new Set(), ours: new Set(), sketch: new Set(), library: new Set(), community: new Set() }, s: [], w: [], presses: [], hold: [], gap: [], yRange: [], hz: [] };
     e.n[p.src]++; e.levels[p.src].add(p.level);
     e.s.push(p.s); e.w.push(p.w); e.presses.push(p.presses); if (p.hold != null) e.hold.push(p.hold); if (p.gap != null) e.gap.push(p.gap); e.yRange.push(p.yRange); e.hz.push(p.hzPer100);
   }

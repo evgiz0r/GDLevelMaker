@@ -133,6 +133,10 @@ After a stopped run, check `play.json` is not left waiting in the mod's folder (
 The user said yes (2026-11-26, before going to sleep) to GD launching while they slept. 21 main levels (all with a saved
 route; Dash has none) and the GDLM levels in the save with a saved route, one GD launch each, muted, quit without saving
 (CCGameManager.dat / CCLocalLevels.dat kept their 02:42 time all night).
+- **Follow-up (same day):** the jump snap is in the sim on main, with a 10-unit foot margin, 32-bit x and turned player boxes
+  on turned hazards (PHYSICS.md "Jump snap, foot margin, 32-bit x"). Replaying each attempt's own presses
+  (`probe.js diff`), the sim now dies on the game's death step on 14 of the 21 mains and on GDLM 44 / 64 (before: none);
+  the "snap sim" column below is the PROTOTYPE's. Saved main routes are re-solved by `tools/mains.js run`.
 - **Mod v0.5.0 / v0.5.1** (`mods/gdlm-probe`): a play.json entry may be `{"official": N}`: the mod opens main level N
   (GameLevelManager::getMainLevel) and plays it in **practice mode only** (togglePracticeMode before the level's first
   reset, which GD runs inside PlayLayer::init: v0.5.0 toggled after it, so attempt 1 ran unplayed in normal mode and the

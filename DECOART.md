@@ -54,6 +54,54 @@ ridge as before. The first mix fitted the sun's disk too and its edge came out r
 vector, only soft light is fitted. In the viewer: deco-art / gdlm_44_hellgate_mix. Sheet: project files
 `decoart/round2_mix.png`. Next: a picture per section of the full level (flying sections need a taller picture).
 
+## Round 3 (2026-11-26): the blocks, `tools/blockart.js`
+
+Evgeni on round 2: "The blocks are still very timid. No effects. No good texture. All single filled color. Very basic."
+`blockart.rock(level, x0, x1, {pal})` dresses every play block of the stretch (T1, in front of the skins, deco only) and
+replaces designBlocks' flat fill / edge lines / glow there: a body square per cell lit from the top and darker with depth
+(value noise per cell), 1-2 turned see-through triangles per cell (a faceted rock surface), glowing veins walking down from
+open tops (blending channel + soft glow, in the fire kit's seam group 532, so they flash with its beat pulses), a hot rim
+and glow on open tops, dim side lines, a dark band under open bottoms, a see-through shadow down-left (B1), embers drifting
+up. Palettes `lava` and `ice`. ~540 objects on blocks 0-88 (299 flat ones removed). First cut: veins too thick and many,
+body as bright as the sky -> thinner veins, 30% of tops, darker body (top [92,28,26], deep after ~2 cells).
+The art-free viewer now draws front-layer deco (key 24 >= T1) OVER the blocks, as the game does (it drew all deco
+under them, which hid any painted block body).
+Open: in GD art and in the game (does 211 on T1 cover the skin as in our render?); a facet pattern less grid-like;
+slopes and spikes dressed the same way; a per-theme set (ice veins = cracks with frost).
+
+## Block design: what GD creators teach (Evgeni's six steps, 2026-11-26)
+
+Evgeni sent six steps with 8 tutorial videos (their auto-caption transcripts: project files
+`decoart/block_design_transcripts.md`, not in git). What the videos agree on, as rules for `tools/blockart.js`:
+
+1. **Structure first** (one tutor: "up to 50 percent of how your block is going to look"). Not plain squares: random
+   rectangles, slopes, half blocks, a step up then down; keep it simple rather than exaggerated. Spikes are part of the
+   structure's shape. For us the play blocks are fixed by the layout, so structure means the DRESSING's outline: extra
+   non-solid pieces, cut corners, pillars in front, a cap on top -- never changing the hitboxes.
+2. **Outline, then an inline.** A solid outline around the whole mass, then a second line a fixed distance inside it
+   (often black), corner pieces at the corners ("don't forget about the corner pieces"). Line rule: the thinner the line,
+   the more it must contrast with what is behind it.
+3. **Base fill + texture.** Fill with 2-3 colours from one palette with value steps and a little hue shift (one tutor:
+   base hue, +90 / -90 hue for the variants), not monochrome. Break up flat space with low-opacity patterns, bricks,
+   default blocks on blending colours ("remove continuity").
+4. **Details: small = high contrast, big = low contrast.** Connectors, crystals, mechanical bits; "the more the detail
+   contrasts with the block design, the smaller it should be". Don't fill every cell; details fit the structure.
+5. **Light sparingly.** Low-opacity blending glow on top edges, low-opacity black glow at the bottom (shadow); one
+   highlight, not glow everywhere ("don't spam the glow"). Black inner outlines go IN FRONT of the glow, or not at all.
+   A drop shadow from one light direction (black, ~30% opacity, never stacked twice).
+6. **3D, one direction.** 3D lines from every edge in exactly the same direction, darker than the base; a dark base under
+   the 3D; outlines on the 3D too.
+Plus: decorate the spikes the same way (outline, inner line, glow), and particles rising from open tops.
+
+Round 4 (2026-11-26): `blockart.layered()` (`decoart.js ... --blocks layered [--tag _layered]`) builds the blocks by these
+steps: base in 3 colours by 3x2-cell patches (top row lighter), a brick texture at 20% opacity and a few big blended
+diamonds at 10%, a bright outline on every open edge with a black inline 6 units inside (in front of the glow), glow
+under top edges and a dark band over bottom edges, small bright bits in some inner cells, 3D up-right (8 units) behind
+the block with its corner triangles and a dim rim. ~1050 objects on blocks 0-88 (~12 per cell). Sheet: project files
+`decoart/round4_layered_blocks.png` (top: round 3 rock, bottom: layered). In the viewer: deco-art /
+gdlm_44_hellgate_mix_layered. Open: spikes dressed the same way, cut corners / pillars in front (structure), fewer
+objects (one 3D square per cell is wasteful inside a mass), the GD-art render.
+
 ## Lessons as rules (soft; for the generator)
 
 - **Paint the section's picture before placing deco**: one focal point (light / landmark) at a third of the screen in the

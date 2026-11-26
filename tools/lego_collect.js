@@ -49,6 +49,8 @@ if (require.main === module) {
       timeout: mins * 60e3, env: { ...process.env, GDLM_HEAVY_PRIORITY: "low" } });
     const out = (r.stdout || "") + (r.stderr || ""), last = out.trim().split("\n").filter(s => /^c\d+:|lego:/.test(s));
     row.result = r.error && r.error.code === "ETIMEDOUT" ? `stopped after ${mins} min (checkpoint kept)` : last.join(" | ") || "exit " + r.status;
+    // a solve stopped at the time limit never reached its own brick cut: cut its checkpoint's survived part now
+    if (r.error && r.error.code === "ETIMEDOUT") spawnSync(process.execPath, [path.join(__dirname, "lego.js"), "mine", "community", "--level", "c" + l.id], { stdio: "inherit", windowsHide: true });
     row.min = Math.round((Date.now() - t0) / 6000) / 10;
     try { const part = JSON.parse(fs.readFileSync(path.join(LOCAL, "difficulty", "c" + l.id + ".part.json"), "utf8")), lv = require("./io.js").readGdlvl(file);
       const w = require("./io.js").GD.makeWorld(lv.level ? lv.level.objects : require("./io.js").GD.parseLevel(lv.levelStr).objects);

@@ -36,6 +36,10 @@ if (fs.existsSync(cf)) for (const ln of fs.readFileSync(cf, "utf8").split("\n"))
 for (const r of Object.values(latest)) {
   const k = "c" + r.id;
   if (!att[k] || SKIP.has(k) || r.covers !== "100%") continue;
+  // the user's rule: a route that skips a portal gives no number (tools/skips.js on the cached solve)
+  try { const { readGdlvl } = require("./io.js"), SK = require("./skips.js");
+    const L = readGdlvl(path.join(__dirname, "..", "local", "community", r.id + ".gdlvl")), sol = JSON.parse(fs.readFileSync(path.join(OUT, k + ".json"), "utf8"));
+    if (SK.realSkips(SK.skipsOf(L.level.objects, L.level.header, sol.events)).length) { if (!args.includes("--json")) console.log(`  (left out: ${r.name}, its route skips a portal)`); continue; } } catch (e) {}
   rows.push({ k, name: r.name, score: r.score, ipm: r.inputs / r.secs * 60, min: r.secs / 60, y: Math.log10(att[k].attempts), att: att[k].attempts });
 }
 
