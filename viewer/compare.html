@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Level compare</title>
+<!-- made by tools/compare.js (node tools/compare.js <A> <B> [--html out.html] [--thumbs]); COMPARE.md -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* IDEA a head-to-head card: each level a column with its picture and headline numbers, then the rows with the one ahead marked,
+   then the two pictures of shape: the difficulty curve over the level, and the brick family mix. A = blue, B = orange. */
+:root{color-scheme:light dark;--bg:#ffffff;--ink:#10223a;--mute:#53627a;--line:#dfe6ee;--card:#f4f7fb;--a:#2f7fd8;--b:#e8711c;--c:#2fa36b;--d:#9b59d0;--good:#1f8a4c}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0b1726;--ink:#e8eef6;--mute:#9db0c6;--line:#22344d;--card:#11233a;--a:#5aa6f5;--b:#ff9645;--c:#4fd18f;--d:#c08cf0;--good:#4fd18f}}
+:root[data-theme=dark]{--bg:#0b1726;--ink:#e8eef6;--mute:#9db0c6;--line:#22344d;--card:#11233a;--a:#5aa6f5;--b:#ff9645;--c:#4fd18f;--d:#c08cf0;--good:#4fd18f}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Inter,system-ui,sans-serif;overflow-x:clip}
+h1,h2{font-family:Outfit,Inter,sans-serif;letter-spacing:-.02em;line-height:1.1;margin:0;font-weight:600}
+h1{font-size:clamp(26px,4vw,40px)}h2{font-size:22px;margin:34px 0 12px}
+.wrap{max-width:1180px;margin:0 auto;padding:clamp(18px,3vw,40px) max(16px,4vw)}
+.sub{color:var(--mute);margin-top:6px}
+.verdict{margin:18px 0 0;padding:14px 18px;background:var(--card);border-radius:12px;font-size:17px}
+.verdict p{margin:.25em 0}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-top:22px}
+.card{background:var(--card);border-radius:14px;overflow:hidden;border-top:5px solid var(--k)}
+.card img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;background:#000}
+.card .in{padding:12px 16px 16px}
+.card .nm{font:600 19px Outfit,Inter,sans-serif}
+.card .meta{color:var(--mute);font-size:14px}
+.card .figs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.card .figs b{display:block;font:700 24px Outfit,Inter,sans-serif}
+.card .figs span{font-size:12.5px;color:var(--mute)}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th,td{padding:8px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-weight:600;background:var(--card)}
+tr:last-child td{border-bottom:0}
+td.lab{color:var(--mute);white-space:nowrap}
+td.win{color:var(--good);font-weight:600}
+td.win::before{content:"▲ ";font-size:11px}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;background:var(--k)}
+.chart{position:relative;height:300px;border:1px solid var(--line);border-radius:12px;padding:6px}
+.chart svg{width:100%;height:100%;display:block}
+svg text{font:12px Inter,sans-serif;fill:var(--mute)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:14px;margin:8px 0}
+.mix{display:grid;gap:10px}
+.mix .row{display:grid;grid-template-columns:minmax(90px,200px) 1fr;gap:10px;align-items:center}
+.bar{display:flex;height:22px;border-radius:6px;overflow:hidden;background:var(--line)}
+.bar i{display:block;height:100%;font:600 11.5px Inter;color:#fff;font-style:normal;padding-left:6px;line-height:22px;white-space:nowrap;overflow:hidden}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px}
+.list{font-size:14px}.list div{padding:4px 0;border-bottom:1px dashed var(--line)}
+.note{color:var(--mute);font-size:13.5px;margin-top:30px}
+</style></head><body><div class="wrap" id="app"></div>
+<script>
+const DATA = /*COMPARE_DATA*/null;
+const K = ["var(--a)", "var(--b)", "var(--c)", "var(--d)"];
+const FAM = { jump: "#2f7fd8", fly: "#e8711c", flip: "#2fa36b", other: "#8a94a6" };
+const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+function render(D) {
+  const app = document.getElementById("app"), L = D.levels;
+  let h = `<h1>${L.map(l => esc(l.name)).join(" <span style='color:var(--mute)'>vs</span> ")}</h1>
+  <div class="sub">Compared ${new Date(D.made).toLocaleString()} · difficulty from each level's saved route, taste from ~330 rated levels, pieces from the lego cut</div>`;
+  if (D.verdict && D.verdict.length) h += `<div class="verdict">${D.verdict.map(v => `<p>${esc(v)}</p>`).join("")}</div>`;
+  h += `<div class="cards">` + L.map((l, i) => `<div class="card" style="--k:${K[i % 4]}">${l.thumb ? `<img src="${l.thumb}" alt="${esc(l.name)}">` : ""}
+    <div class="in"><div class="nm"><span class="dot"></span>${esc(l.name)}</div>
+    <div class="meta">${l.size.seconds != null ? l.size.seconds + " s · " : ""}${l.size.objects} objects · ${esc(l.size.modes.join(" › "))}</div>
+    <div class="figs"><div><b>${l.difficulty.none ? "–" : l.difficulty.score.toFixed(2)}</b><span>${l.difficulty.none ? "no route" : esc(l.difficulty.label)}${l.difficulty.rating ? " · rated " + esc(l.difficulty.rating) : ""}</span></div>
+    <div><b>${l.taste.none ? "–" : l.taste.score}</b><span>taste /100</span></div>
+    <div><b>${l.difficulty.none ? "–" : l.difficulty.tightestMs + "<small style='font-size:13px'> ms</small>"}</b><span>tightest window</span></div></div></div></div>`).join("") + `</div>`;
+  h += `<h2>Side by side</h2><div class="tbl"><table><tr><th></th>${L.map((l, i) => `<th style="--k:${K[i % 4]}"><span class="dot"></span>${esc(l.name)}</th>`).join("")}</tr>` +
+    D.rows.map(r => `<tr><td class="lab">${esc(r.label)}</td>${r.values.map((v, i) => `<td class="${r.best && r.best.includes(i) ? "win" : ""}">${esc(v)}</td>`).join("")}</tr>`).join("") + `</table></div>`;
+  h += `<h2>Difficulty along the level</h2><div class="legend">${L.map((l, i) => `<span><span class="dot" style="--k:${K[i % 4]}"></span>${esc(l.name)}</span>`).join("")}<span style="color:var(--mute)">running total of log10 attempts, by share of the level</span></div><div class="chart" id="curve"></div>`;
+  h += `<h2>What they are built from</h2><div class="mix">` + L.map((l, i) => { const f = l.bricks.families || {};
+    return `<div class="row"><div><span class="dot" style="--k:${K[i % 4]}"></span>${esc(l.name)}</div><div class="bar">${Object.entries(f).map(([k, v]) => `<i style="width:${v * 100}%;background:${FAM[k] || FAM.other}">${k} ${Math.round(v * 100)}%</i>`).join("")}</div></div>`; }).join("") + `</div>`;
+  h += `<div class="cols" style="margin-top:18px">` + L.map((l, i) => `<div class="list"><b><span class="dot" style="--k:${K[i % 4]}"></span>${esc(l.name)}</b>
+    <div>${l.bricks.pieces} pieces, ${l.bricks.distinct} kinds, ${Math.round(l.bricks.repeatShare * 100)}% repeat one of the 4 before</div>
+    ${l.bricks.common.map(c => `<div>${esc(c.sig)} <span style="color:var(--mute)">×${c.n}</span></div>`).join("")}
+    ${l.bricks.match && !l.bricks.match.none ? `<div>built from verified bricks: ${Math.round(l.bricks.match.cover * 100)}% (${l.bricks.match.matched})</div>` : ""}</div>`).join("") + `</div>`;
+  h += `<h2>Costliest presses</h2><div class="cols">` + L.map((l, i) => `<div class="list"><b><span class="dot" style="--k:${K[i % 4]}"></span>${esc(l.name)}</b>${l.difficulty.none ? `<div>${esc(l.difficulty.none)}</div>` :
+    l.difficulty.top.map(a => `<div>${a.t.toFixed(1)} s · block ${Math.round(a.block)} · ${esc(a.mode)} ${esc(a.type)} · window ${a.ms} ms · ${Math.round(a.share * 100)}%</div>`).join("") +
+    (l.difficulty.spikes.length ? l.difficulty.spikes.map(k => `<div style="color:var(--b)">lone hard press at ${k.t.toFixed(1)} s: ${k.ms} ms among ~${k.calm} ms</div>`).join("") : "")}</div>`).join("") + `</div>`;
+  h += `<h2>Taste: what moves it most</h2><div class="cols">` + L.map((l, i) => `<div class="list"><b><span class="dot" style="--k:${K[i % 4]}"></span>${esc(l.name)}</b>${l.taste.none ? `<div>${esc(l.taste.none)}</div>` :
+    l.taste.parts.map(p => `<div>${esc(p.f)} <span style="color:${p.contrib >= 0 ? "var(--good)" : "var(--b)"}">${p.contrib >= 0 ? "+" : ""}${p.contrib}</span> <span style="color:var(--mute)">(${esc(p.value)})</span></div>`).join("")}</div>`).join("") + `</div>`;
+  h += `<p class="note">Made by tools/compare.js. Difficulty = log10 of expected attempts (lib/difficulty.js), the ▲ marks the level ahead on rows where more or less is better.</p>`;
+  app.innerHTML = h;
+  drawCurve(document.getElementById("curve"), L);
+}
+function drawCurve(el, L) {
+  const W = 1000, H = 280, P = { l: 40, r: 12, t: 12, b: 26 };
+  const max = Math.max(0.1, ...L.map(l => l.difficulty.curve && l.difficulty.curve.length ? l.difficulty.curve[l.difficulty.curve.length - 1][1] : 0));
+  const X = f => P.l + f * (W - P.l - P.r), Y = v => H - P.b - v / max * (H - P.t - P.b);
+  let s = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">`;
+  for (let k = 0; k <= 4; k++) { const v = max * k / 4; s += `<line x1="${P.l}" x2="${W - P.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="4" y="${Y(v) + 4}">${v.toFixed(1)}</text>`; }
+  for (let k = 0; k <= 4; k++) s += `<text x="${X(k / 4)}" y="${H - 6}" text-anchor="${k === 0 ? "start" : k === 4 ? "end" : "middle"}">${k * 25}%</text>`;
+  L.forEach((l, i) => { const c = l.difficulty.curve; if (!c || !c.length) return;
+    const pts = [[0, 0], ...c].map(([f, v]) => `${X(f).toFixed(1)},${Y(v).toFixed(1)}`).join(" ");
+    s += `<polyline points="${pts}" fill="none" stroke="${K[i % 4]}" stroke-width="3" vector-effect="non-scaling-stroke"/>`; });
+  el.innerHTML = s + `</svg>`;
+}
+if (DATA) render(DATA); else document.getElementById("app").innerHTML = "<h1>Level compare</h1><p>No data: make this page with <code>node tools/compare.js &lt;A&gt; &lt;B&gt; --html out.html</code>.</p>";
+</script></body></html>
