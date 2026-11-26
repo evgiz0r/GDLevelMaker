@@ -553,7 +553,7 @@ function writeKnowledge(allG) {
   const bricks = allG.filter(p => p.grain === "brick"), all = allG.filter(p => p.grain !== "brick");
   const fam = {};
   for (const p of all) {
-    const k = p.sig, e = fam[k] = fam[k] || { sig: k, family: p.family, mode: p.mode, wrap: p.wrap, n: { official: 0, ours: 0, sketch: 0, library: 0 }, levels: { official: new Set(), ours: new Set(), sketch: new Set(), library: new Set() }, s: [], w: [], presses: [], hold: [], gap: [], yRange: [], hz: [] };
+    const k = p.sig, e = fam[k] = fam[k] || { sig: k, family: p.family, mode: p.mode, wrap: p.wrap, n: { official: 0, ours: 0, sketch: 0, library: 0, community: 0 }, levels: { official: new Set(), ours: new Set(), sketch: new Set(), library: new Set(), community: new Set() }, s: [], w: [], presses: [], hold: [], gap: [], yRange: [], hz: [] };
     e.n[p.src]++; e.levels[p.src].add(p.level);
     e.s.push(p.s); e.w.push(p.w); e.presses.push(p.presses); if (p.hold != null) e.hold.push(p.hold); if (p.gap != null) e.gap.push(p.gap); e.yRange.push(p.yRange); e.hz.push(p.hzPer100);
   }
