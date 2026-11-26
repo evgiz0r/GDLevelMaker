@@ -2818,8 +2818,27 @@ function linkFind(q) {
 }
 function shortLink() { const l = ALL[pick.value]; if (!l || !L) return ""; const b = String(l.file || "").split(/[\\/]/).pop().replace(/\.(gdlvl|json)$/, "");
   return "#" + b + (l.version ? "--v" + l.version : "") + "--t" + (tick() / P.TPS).toFixed(1) + (L.ghost ? "--r" + L.ghost.row.id : ""); }
+// a link to an online level by ID that the PC's serve.js can download (local/community/<id>.gdlvl): the id match, or null
+function commFetchable(q) {
+  if (!q || q.fetched || !location.protocol.startsWith("http") || window.GD_PAGES || window.GD_PHONE) return null;
+  return /^local\/community\/(\d+)\.gdlvl$/.exec(q.file || "") || /^(\d{3,10})$/.exec(q.base || "");
+}
 function openLink(s) {
-  const q = parseLink(s), i = linkFind(q); if (i < 0) { if (q) notice("No level here for that link (" + esc(q.file || q.base) + ")."); return false; }
+  const q = parseLink(s), i = linkFind(q);
+  // a link to an online level this PC has no copy of (the work board links every level you played): download it, then open
+  const cid = i < 0 && commFetchable(q);
+  if (cid) {
+    notice(`Downloading level ${cid[1]} from GD's server…`, 0);
+    fetch("/community/fetch?id=" + cid[1], { method: "POST" }).then(r => r.json()).then(async r => {
+      if (!r.ok) return notice(`Could not download level ${cid[1]}: ${esc(r.error || "?")}`);
+      await loadWip(true); const n = document.getElementById("notice"); if (n) n.hidden = true;
+      const again = parseLink(s); again.file = r.file; again.fetched = true;
+      const j = linkFind(again); if (j < 0) return notice("Downloaded, but it is not in the list: press ⟳ refresh.");
+      pick.value = j; pick.wantT = again.t; pick.onchange();
+    }).catch(e => notice(`Could not download level ${cid[1]}: ${esc(e.message)}`));
+    return true;
+  }
+  if (i < 0) { if (q) notice("No level here for that link (" + esc(q.file || q.base) + ")."); return false; }
   const l = ALL[i];
   if (q.v && l.version && +l.version !== q.v) notice(`That link was for version ${q.v}; this is version ${l.version} (the newest here).`, 6000);
   const before = L; pick.value = i; pick.wantT = q.t; pick.onchange();
@@ -2936,7 +2955,7 @@ setInterval(() => { if (L && !playing) writeHash(); }, 1000);
   if (hashParams().get("embed")) return; // the parent page loads the level (viewer/polish.html)
   await loadWip(false); meLoad();
   if (labHash()) labOpen(labHash());
-  else if (location.hash.length > 1 && !hashParams().get("embed") && linkFind(parseLink(location.hash)) >= 0) openLink(location.hash);
+  else if (location.hash.length > 1 && !hashParams().get("embed") && (linkFind(parseLink(location.hash)) >= 0 || commFetchable(parseLink(location.hash)))) openLink(location.hash);
   else if (ALL.length) { pick.value = 0; pick.onchange(); }
   else if (window.GD_PAGES) {   // the public site with no level published yet (knowledge/public_levels.json is opt-in)
     document.getElementById("summary").innerHTML = "<b>First levels coming soon.</b><br><span class='muted'>Geometry Dash levels made by Claude will appear here once one is good enough to share.</span>";
