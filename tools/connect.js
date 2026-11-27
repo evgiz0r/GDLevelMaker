@@ -85,15 +85,10 @@ function connectors(blocks, o = {}) {
     // 2026-11-27: an auto's path brushes most islands' ends, and they floated with no holder); a wide island whose two
     // sides find no clear pair gets one holder at the clearest middle cell
     const tryDir = d => {
-      if (!pair) { const mc = I.c0 + Math.floor((w - 1) / 2);
-        // an even width hangs from its exact middle, on the line between the two middle cells (Evgeni 2026-11-27, hellgate
-        // col 9: "the hanging of a triangle should either be symmetrical or some other kind of hanger coming from the middle")
-        if (w % 2 === 0) { const q = seg(X(I.c0) + w * 15, d); if (q) return [Object.assign(q, { centre: true })]; }
-        for (let k = 0; k < w; k++) for (const c of [mc - k, mc + k + 1]) { if (c < I.c0 || c > I.c1) continue; const q = seg(X(c) + 15, d); if (q) return [q]; }
-        return null; }
       // FROM THE UPPER BLOCK, BOTH SIDES THE SAME HEIGHT (Evgeni 2026-11-27, hellgate kit: "it should hold from the upper
       // block, not from the middle, meaning probably a rope. and something on the other side holding. if one of the sides is
-      // higher it looks wierd"): an island whose top (hanging) / bottom (standing) is not flat is held at the two ends of its
+      // higher it looks wierd"; again 2026-11-27 21:16 on the narrow T, which still hung on a brick pillar from its middle: so this
+      // comes BEFORE the narrow-island middle hold): an island whose top (hanging) / bottom (standing) is not flat is held at the two ends of its
       // outermost row -- the same row both sides -- and marked uneven, so it hangs soft (rope / chain, never brick)
       { const rs = I.cs.map(q => q[1]), rowE = d > 0 ? Math.max(...rs) : Math.min(...rs), cols = I.cs.filter(q => q[1] === rowE).map(q => q[0]);
         const flat = cols.length === w;
@@ -101,6 +96,12 @@ function connectors(blocks, o = {}) {
           if (b - a >= 1) { const L = seg(X(a) + 15, d), R = seg(X(b) + 15, d); if (L && R) return [L, R].map(q => Object.assign(q, { uneven: true })); }
           else { const q = seg(X(a) + 15, d); if (q) return [Object.assign(q, { uneven: true })]; }
           return null; } }
+      if (!pair) { const mc = I.c0 + Math.floor((w - 1) / 2);
+        // an even width hangs from its exact middle, on the line between the two middle cells (Evgeni 2026-11-27, hellgate
+        // col 9: "the hanging of a triangle should either be symmetrical or some other kind of hanger coming from the middle")
+        if (w % 2 === 0) { const q = seg(X(I.c0) + w * 15, d); if (q) return [Object.assign(q, { centre: true })]; }
+        for (let k = 0; k < w; k++) for (const c of [mc - k, mc + k + 1]) { if (c < I.c0 || c > I.c1) continue; const q = seg(X(c) + 15, d); if (q) return [q]; }
+        return null; }
       const half = Math.floor((w - 1) / 2);
       let L = null, R = null;
       for (let k = 0; k <= half && !L; k++) L = seg(k ? X(I.c0 + k) + 15 : xs[0], d);
