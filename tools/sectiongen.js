@@ -321,7 +321,7 @@ function shipStep(st, held) { const falling = st.vy <= 2 * SHIP.g, a = held ? -1
 // (half = the player's half size, m = margin) over the two columns it touches; a forward and a backward pass narrow each
 // edge's range to slopes of a row a column, then a greedy pick near the middle. Where the path rests on the ground (or
 // the map's roof) the floor is the ground (the ceiling the roof): rest = how far the centre sits above a surface.
-function fitCorridor(ys, bands, W, H, gap, TPC, { m = 6, half = 15, rest = half, bandSafe = true } = {}) { const top = H * 30;
+function fitCorridor(ys, bands, W, H, gap, TPC, { m = 6, half = 15, rest = half, bandSafe = true, run = 1 } = {}) { const top = H * 30;
   const N = W + 1, lo = Array(N).fill(0), hi = Array(N).fill(H - gap), ground = Array(N).fill(null), roof = Array(N).fill(false);
   for (let t = 0; t < ys.length; t++) { const c = Math.floor(t / TPC), y = ys[t];
     for (const k of [c, c + 1]) { if (k >= N) continue;
@@ -333,14 +333,23 @@ function fitCorridor(ys, bands, W, H, gap, TPC, { m = 6, half = 15, rest = half,
   for (let k = 0; k < N; k++) { if (ground[k] != null) hi[k] = Math.min(hi[k], ground[k]); if (roof[k]) lo[k] = H - gap; }
   for (let k = 1; k < N; k++) { lo[k] = Math.max(lo[k], lo[k - 1] - 1); hi[k] = Math.min(hi[k], hi[k - 1] + 1); }
   for (let k = N - 2; k >= 0; k--) { lo[k] = Math.max(lo[k], lo[k + 1] - 1); hi[k] = Math.min(hi[k], hi[k + 1] + 1); }
+  // run > 1: gentler slopes, a row every `run` columns at most (Evgeni 2026-11-27 on fly: "a bit too wavy, flying should
+  // have some kind of a smaller degree in the general flight"): the same passes over `run` columns
+  if (run > 1) { for (let k = run; k < N; k++) { lo[k] = Math.max(lo[k], lo[k - run] - 1); hi[k] = Math.min(hi[k], hi[k - run] + 1); }
+    for (let k = N - 1 - run; k >= 0; k--) { lo[k] = Math.max(lo[k], lo[k + run] - 1); hi[k] = Math.min(hi[k], hi[k + run] + 1); } }
   if (lo.some((v, k) => v > hi[k])) return null;   // too steep for the grid: the caller draws again
   // the pick follows the path: the floor half a gap under the path's mean height at that edge, so the tunnel zigzags
   // with the flight instead of running straight around it
   const sum = Array(N).fill(0), cnt = Array(N).fill(0);
   for (let t = 0; t < ys.length; t++) { const c = Math.floor(t / TPC); for (const k of [c, c + 1]) if (k < N) { sum[k] += ys[t]; cnt[k]++; } }
-  const e = []; for (let k = 0; k < N; k++) { const want = cnt[k] ? Math.round(sum[k] / cnt[k] / 30 - gap / 2) : Math.round((lo[k] + hi[k]) / 2); e.push(k ? clamp(want, Math.max(lo[k], e[k - 1] - 1), Math.min(hi[k], e[k - 1] + 1)) : clamp(0, lo[0], hi[0])); }
+  const e = []; let last = -99;
+  for (let k = 0; k < N; k++) { const want = cnt[k] ? Math.round(sum[k] / cnt[k] / 30 - gap / 2) : Math.round((lo[k] + hi[k]) / 2);
+    if (!k) { e.push(clamp(0, lo[0], hi[0])); continue; }
+    const a = Math.max(lo[k], e[k - 1] - 1), b = Math.min(hi[k], e[k - 1] + 1); if (a > b) return null;
+    // a step only `run` columns after the last one, unless the path forces it
+    let v = k - last < run && e[k - 1] >= a && e[k - 1] <= b ? e[k - 1] : clamp(want, a, b); if (v !== e[k - 1]) last = k; e.push(v); }
   return e; }
-function flyPlan(o, W, H, R, mix, style, gap, cap = 4.6, onBeat = w => w) {
+function flyPlan(o, W, H, R, mix, style, gap, cap = 3.2, onBeat = w => w, run = 2) {
   const TPC = 30 / SHIP.X, T = Math.floor(W * TPC), m = 6, top = H * 30;
   const h0 = mix(60, 32), r0 = mix(70, 36);   // base hold and release, ticks (easy: long and slow; harder: quick)
   const next = tour(R, 1, H - 2); let tgt = next(Math.round(H / 2)), band0 = 0, lastMover = -99;
@@ -351,11 +360,17 @@ function flyPlan(o, W, H, R, mix, style, gap, cap = 4.6, onBeat = w => w) {
       held = !held; const base = (held ? h0 * style.holdAt(c) : r0) / style.pace(c);
       left = Math.round(base * (0.75 + R() * 0.5) * (toward ? 1.3 : 0.7));
       // on a beat: this state lasts until the beat nearest its wanted end (at least 8 ticks)
-      left = Math.max(8, Math.round(onBeat(c + left / TPC, c + 8 / TPC) * TPC) - t); ev.push([+c.toFixed(4), held ? "press" : "release"]);   // 4 places: planCheck turns it back into the exact tick
+      left = Math.max(8, Math.round(onBeat(c + left / TPC, c + 8 / TPC) * TPC) - t); 
+      // the cap ahead (gentle flight): the tick this state would pass the steepness cap, played forward; the state ends on
+      // the last beat before it (a little past is fine), so the turns the cap makes fall on beats too
+      { const q = { ...st }; let k = 0; while (k < left && !((held && q.vy > cap) || (!held && q.vy < -cap))) { shipStep(q, held); k++; }
+        if (k < left) { left = k; for (const back of [0, 15, 30, 45, 60]) { const b = Math.round(onBeat(c + (k - back) / TPC, c + 8 / TPC) * TPC) - t;
+          if (b <= k + 14) { left = Math.max(8, b); break; } } } }
+      ev.push([+c.toFixed(4), held ? "press" : "release"]);   // 4 places: planCheck turns it back into the exact tick
       if (Math.abs(tgt - row) < 1) tgt = next(Math.round(row)); }
     // steepness: the corridor's slopes are at most a row a column, so cap the climb and the dive (a forced turn)
     // (with beats: a forced turn waits for a beat if one comes within 6 ticks)
-    if ((held && st.vy > cap) || (!held && st.vy < -cap)) left = Math.min(left, Math.max(0, Math.round(onBeat(c, c) * TPC) - t > 6 ? 0 : Math.round(onBeat(c, c) * TPC) - t));
+    if (left > 15 && ((held && st.vy > cap) || (!held && st.vy < -cap))) left = Math.min(left, Math.max(0, Math.round(onBeat(c, c) * TPC) - t > 6 ? 0 : Math.round(onBeat(c, c) * TPC) - t));
     shipStep(st, held); left--;
     // the floor and the roof of the band are surfaces: slide along them
     const lo = band0 * 30 + 15, hi = Math.min(top, band0 * 30 + 300) - 15;
@@ -364,14 +379,19 @@ function flyPlan(o, W, H, R, mix, style, gap, cap = 4.6, onBeat = w => w) {
     if (H > 10 && c - lastMover > 4 && c > 3 && c < W - 3) { const r = Math.floor(st.y / 30), nb = clamp(r - 5, 0, H - 10);
       if (nb !== band0 && ((st.vy > 0 && st.y > hi - 75) || (st.vy < 0 && st.y < lo + 75))) { movers.push([Math.floor(c), r]); band0 = nb; lastMover = c; } }
     ys.push(st.y); bands.push(band0); }
-  const e = fitCorridor(ys, bands, W, H, gap, TPC, { m, half: 15 }); if (!e) return null;
+  const e = fitCorridor(ys, bands, W, H, gap, TPC, { m, half: 15, run }); if (!e) return null;
   // presses as [press, release] column pairs
   const presses = []; for (let i = 0; i < ev.length; i++) if (ev[i][1] === "press") presses.push([ev[i][0], ev[i + 1] ? ev[i + 1][0] : W]);
   return { e, ys, TPC, presses, movers }; }
 CONCEPT.fly = "a ship corridor fitted around a planned flight of holds and releases: it tours the room, slides the ground and the roof now and then, hazards on the sides";
 GEN.fly = o => { const { R, room, chance, W, H, G, mix, style, onBeat } = ctx(o, 10), gap = room(6, 5);
   // a draw that doesn't fit the grid is drawn again, a little flatter each time (the hardest tier's quick holds need it)
-  let P = null; for (let k = 0; k < 12 && !P; k++) P = flyPlan(o, W, H, R, mix, style, gap, 4.6 - 0.2 * k, onBeat);
+  // the general flight is gentle (Evgeni 2026-11-27: "too wavy ... a smaller degree in the general flight"): climbs and
+  // dives capped at vy 3.2 (was 4.6), the corridor stepping a row every 2 columns at most; the last draws fall back to the
+  // old 1-a-column fit. Measured on 64 draws (60 cols, 10 / 20 rows): mean path angle 19-21 -> 15 degrees, steeper than 30
+  // degrees 20-25% -> 0%, clicks the same, height used 90 -> 79% (10 rows), 70% (20 rows). Feathering at the cap (short
+  // opposite states) kept the height but doubled the clicks: not taken.
+  let P = null; for (let k = 0; k < 14 && !P; k++) P = flyPlan(o, W, H, R, mix, style, gap, (k < 10 ? 3.2 : 4.6) - 0.15 * (k % 10), onBeat, k < 10 ? 2 : 1);
   if (!P) return flyShape(o);
   const { e, ys, TPC } = P, E = x => e[clamp(x, 0, e.length - 1)];
   tunnel(G, W, E, gap, H - 1);

@@ -61,7 +61,12 @@ type, so a builder can make a new one of any length, synced to the song, and so 
   margins, slopes of a row a column at most, hazards only where the path clears them by 8; presses are [press, release]
   column pairs, plus the planned `path` for the board; a draw that doesn't fit the grid is drawn again a little flatter;
   the band's floor and roof count as safe surfaces, so the corridor never has to reach past them: 0 in 180 fall back to
-  the old shape). planCheck maps a plan column to a tick exactly (tick 0 = the first tick at or past
+  the old shape). **Gentle general flight** (Evgeni 2026-11-27: "the flying corridor is a bit too wavy, flying should have
+  some kind of a smaller degree in the general flight"): climbs and dives capped at vy 3.2 (was 4.6), each state played
+  forward to the tick it would pass the cap and ended on the last beat before it, and the corridor steps a row every 2
+  columns at most (`fitCorridor` option `run`). On 64 draws (60 cols, 10 / 20 rows): mean path angle 19-21 -> 15 degrees,
+  steeper than 30 degrees 20-25% -> 0%, clicks the same, height used 90 -> 81% (10 rows), 70 -> 67% (20 rows). Feathering
+  at the cap (short opposite states) kept all the height but doubled the clicks: not taken. planCheck maps a plan column to a tick exactly (tick 0 = the first tick at or past
   the section's start): rounding a column to the nearest tick put presses a tick early and the ship drifted 15 units off.
   Wave (wavePlan): legs from the tier and the style (a quick middle, one ground slide, every turn on a beat when there is
   one), the exact 45-degree path, the same fitter (`fitCorridor`, which now follows the path's own centre so the tunnel
@@ -86,8 +91,8 @@ type, so a builder can make a new one of any length, synced to the song, and so 
   beat columns (a bpm grid: half beats, a bar's first beat strength 1, beats 0.7, half beats 0.35) and `onBeat(want, min)`
   moves each press the style wants to the nearest beat, a strong one counted up to half a beat nearer. The style's
   density sets how far apart the wants are, so the share of beats taken. Measured at 140 / 175 bpm: open cube, ball, ball
-  portals 100% of presses on half beats; fly 80-87% of press and release ends (the rest are forced turns where the
-  climb or dive would be too steep); every plan still clears (tests/sectiongen.js checks both).
+  portals 100% of presses on half beats; fly ~85% of press and release ends (the rest are turns the steepness cap
+  forces with no beat near); every plan still clears (tests/sectiongen.js checks both).
 - **One click style per generation, a small drift inside it** (Evgeni 2026-11-27: "the click pattern/holds/cps differs
   between generations. not consistent across the whole section, some have bit more cps, some have bit less. some hold more
   some hold less"): ctx() gives `style` -- a density (x0.82-1.22) and hold factor (x0.7-1.4) per generation, and
