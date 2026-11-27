@@ -226,7 +226,7 @@ window.initDesigns = async function (root) {
   // gains rows on top. His added sections keep their size in their own doc.
   const SIZE = {};
   async function resize(k, dw, dh) { const q = LPARTS.find(z => z[0] === k); if (!q) return; const id = k.slice(4);
-    const w = Math.max(8, Math.min(120, q[2] + dw)), h = Math.max(4, Math.min(20, q[3] + dh));
+    const w = Math.max(8, Math.min(120, q[2] + dw)), h = Math.max(4, Math.min(30, q[3] + dh));
     if (ADDED[id]) { ADDED[id].w = w; ADDED[id].h = h; await saveSec(id); }
     else { SIZE[k] = { part: k, w, h, at: new Date().toISOString() };
       try { if (!DB) throw new Error("saves on the claude.ai page"); await DB.collection("designsize").doc(k.replace(/[^A-Za-z0-9_-]/g, "_") + "-" + Date.now().toString(36)).set(SIZE[k]); DST.layout = "saved"; }
@@ -467,10 +467,14 @@ window.initDesigns = async function (root) {
     if (!GROUTE[id]) { GROUTE[id] = { state: "asked" };
       try { await DB.collection("genroute").doc(id).set({ gen: gk, key: g.key, seed: g.seed, cols: g.cols, tier: g.tier, map: g.map, mode: g.mode || "", state: "asked", at: new Date().toISOString() }); } catch (e) { GROUTE[id] = null; } }
     if (ping && CM && CM.sendToClaude) { const el = root.querySelector(".gpath"); try { await CM.sendToClaude({ anchor: await CM.anchorFor(el || root), text: "〰 solve the path of " + gk + " (collection genroute)" }); GROUTE[id].pinged = true; } catch (e) { GROUTE[id].pinged = false; } render(); } }
-  const genKey = g => "gen:" + g.key + ":" + g.seed + ":" + g.cols + ":" + g.tier;
+  const genKey = g => "gen:" + g.key + ":" + g.seed + ":" + g.cols + ":" + g.tier + (g.hf && g.hf !== 1 ? ":h" + g.hf : "");
   function generate(f) { const SG = window.SectionGen; if (!SG) return;
     const key = f.querySelector(".gk").value, cols = Math.max(12, Math.min(200, +f.querySelector(".gc").value || 40)), tier = f.querySelector(".gt").value, seed = 1 + Math.floor(Math.random() * 99999);
-    try { const z = SG.make(key, { cols, seed, tier }); GENS = { key, cols, tier, seed, map: z.map, mode: z.mode, concept: z.concept || "" }; askRoute(GENS, false); }
+    // TALLER (Evgeni 2026-11-27: "can we increase the heights of the generations? by like 1.5 for now?"): the type's own
+    // height times the chosen factor (default 1.5)
+    const hf = +((f.querySelector(".gh") || {}).value || 1.5);
+    try { let z = SG.make(key, { cols, seed, tier }); if (hf !== 1) z = SG.make(key, { cols, seed, tier, rows: Math.round(z.map.length * hf) });
+      GENS = { key, cols, tier, seed, hf, map: z.map, mode: z.mode, concept: z.concept || "" }; askRoute(GENS, false); }
     catch (x) { GENS = { key, cols, tier, seed, err: String(x && x.message || x) }; }
     try { localStorage.setItem("designs-gen", JSON.stringify(GENS)); } catch (e) {} render(); }
   function genPanel() { const SG = window.SectionGen; if (!SG) return "";
@@ -479,6 +483,7 @@ window.initDesigns = async function (root) {
       + `<div class="lyh gform"><span class="pens"><select class="gk">${SG.KEYS.map(k => `<option value="${esc(k)}"${k === g.key ? " selected" : ""}>${esc(nm(k))}</option>`).join("")}</select>`
       + `<label>length <input class="gc" type="number" min="12" max="200" value="${g.cols}" style="width:56px"></label>`
       + `<select class="gt">${["easy", "normal", "hard", "harder", "extreme"].map(t => `<option${t === g.tier ? " selected" : ""}>${t}</option>`).join("")}</select>`
+      + `<select class="gh" title="height: the type's own times this">${[1, 1.25, 1.5, 2].map(v => `<option value="${v}"${v === (g.hf || 1.5) ? " selected" : ""}>height ×${v}</option>`).join("")}</select>`
       + `<button class="ggo">🎲 generate</button></span></div>`;
     if (GENS && GENS.err) out += `<div class="lpn" style="color:#ff8a8a">${esc(GENS.err)}</div>`;
     else if (GENS && GENS.map) { const H = GENS.map.length, W = GENS.map[0].length, cs = Math.round(26 * (open["zoom:layout"] || 1)), T = [];
@@ -488,7 +493,7 @@ window.initDesigns = async function (root) {
         + `<div class="wide"><svg class="gtiles" viewBox="0 0 ${W} ${H + 0.25}" style="width:${W * cs}px;height:${(H + 0.25) * cs}px;background:#1a1636;display:block;max-width:none">`
         + `<g class="grid">${Array.from({ length: W + 1 }, (_, c) => `<line x1="${c}" y1="0" x2="${c}" y2="${H}" stroke="#ffffff30" style="stroke-width:1px;vector-effect:non-scaling-stroke" />`).join("")}${Array.from({ length: H + 1 }, (_, r) => `<line x1="0" y1="${r}" x2="${W}" y2="${r}" stroke="#ffffff30" style="stroke-width:1px;vector-effect:non-scaling-stroke" />`).join("")}</g>`
         + `<rect x="0" y="${H}" width="${W}" height="0.25" fill="#7be38a55" />` + T.map(z => TILE(z, H)).join("") + (GR && GR.ok ? ROUTE1(GR, H, W, 0, false) : "") + `</svg></div>`
-        + `<div class="lyh"><button class="gpath" title="the solver's route over this piece (Claude solves it)">〰 path</button><span class="ds">${!GR ? "not asked yet" : GR.state === "done" ? (GR.ok ? `〰 ${GR.presses} presses · ${esc(GR.label || "")}${(GR.tight || [])[0] ? " · tightest " + GR.tight[0].ms + " ms" : ""}` : `<span style="color:#ff8a8a">❌ does not solve (col ${GR.dieCol}): ${esc(GR.why || "")}</span>`) : "asked Claude" + (GR.pinged === false ? " (the app held the ping back: it is solved at Claude's next look)" : "") + " · the path shows here when solved"}</span></div>`
+        + `<div class="lyh"><button class="gpath" title="the solver's route over this piece (Claude solves it)">〰 path</button><button class="guse" title="put this piece in the layout as the ${esc(nm(GENS.key))} section, to see it in the scene and edit it there (the old drawing stays in the history)">✏ use in layout</button><span class="ds">${!GR ? "not asked yet" : GR.state === "done" ? (GR.ok ? `〰 ${GR.presses} presses · ${esc(GR.label || "")}${(GR.tight || [])[0] ? " · tightest " + GR.tight[0].ms + " ms" : ""}` : `<span style="color:#ff8a8a">❌ does not solve (col ${GR.dieCol}): ${esc(GR.why || "")}</span>`) : "asked Claude" + (GR.pinged === false ? " (the app held the ping back: it is solved at Claude's next look)" : "") + " · the path shows here when solved"}</span></div>`
         + `<div class="lnr"><input class="lnote" data-n="${esc(gk)}" placeholder="what's good or wrong in this one ..." value="${esc((NOTES[gk] || {}).note || "")}"><span class="ds lnst" data-n="${esc(gk)}">${esc(NST[gk] || "")}</span></div>${stLine(gk)}`; }
     return out; }
   // 📨 sends EVERYTHING new on the page in one message (marks of every theme, layout notes, drawings), whichever 📨 is
@@ -594,6 +599,16 @@ window.initDesigns = async function (root) {
       if (st) st.textContent = DST.layout; return; }
     if (e.target.closest(".ggo")) { generate(e.target.closest(".gform")); return; }
     if (e.target.closest(".gpath")) { askRoute(GENS, true); return; }
+    // a generated piece into the layout editor (Evgeni 2026-11-27: "i cant see them in the editor (the layout for example
+    // ball corridor)"): it becomes that section's newest drawing, at its size, so it shows in the current scene and can be edited
+    if (e.target.closest(".guse") && GENS && GENS.map) { const H = GENS.map.length, W = GENS.map[0].length, id = "layout:sec:" + GENS.key, T = [];
+      GENS.map.forEach((l, i) => [...l].forEach((ch, c) => { if (ch !== ".") T.push({ c, r: H - 1 - i, t: ch }); }));
+      DRAW[id] = Object.assign(DRAW[id] || {}, { strokes: [], tiles: T }); saveDraw(id);
+      const k = "sec:" + GENS.key, id2 = GENS.key;
+      if (ADDED[id2]) { ADDED[id2].w = W; ADDED[id2].h = H; saveSec(id2); }
+      else { SIZE[k] = { part: k, w: W, h: H, at: new Date().toISOString() };
+        if (DB) DB.collection("designsize").doc(k.replace(/[^A-Za-z0-9_-]/g, "_") + "-" + Date.now().toString(36)).set(SIZE[k]).catch(() => {}); }
+      e.target.closest(".guse").textContent = "✓ in the layout"; render(); return; }
     if (e.target.closest(".lroute")) { open.route = open.route === false; try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} render(); return; }
     const lsz = e.target.closest(".lsz button"); if (lsz) { const [dw, dh] = lsz.dataset.d.split(",").map(Number); await resize(lsz.closest(".lsz").dataset.k, dw, dh); return; }
     if (e.target.closest(".ladd")) { ADDFORM = !ADDFORM; render(); const i = root.querySelector(".lan"); if (i) i.focus(); return; }

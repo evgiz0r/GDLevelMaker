@@ -238,3 +238,10 @@ The stage times are also in local/timings.jsonl.
   the first piece starts 12 blocks in (v12b). v12b judged 0 again: the solver's human route HOLDS the button 4.5 s through
   block-hops / pillar-pair / pillar-hop (cube bunny-hops every landing), so the opening counts as one press -- cube pieces
   that can be held through are weak pieces. Still open: ball / UFO library (4 / 3 pieces), long flights, outro walked portals.
+- **v13 (2026-11-27): the new pipeline, not the lego.** `node tools/typebuild.js briefs/44_hellgate.types.json --run`
+  (the GDLM 76 builder: song sections + feel -> a section type each, generated fresh by tools/sectiongen.js -> joined ->
+  make.js deco with the hellgate design theme, own sky per section -> report). Song from its first beat to the drop's end
+  (52.8 s), 7 sections, the drop a 2x ship. 18 min. Judge 4.1 (v12b: 0): Normal ~3 attempts, tightest 142 ms, height 10,
+  clarity 10, flow 10; weak: transitions 1 (walked portals at the joins: cube -> ball, ball -> ufo, cube -> ship), variety
+  0, the upside-down closecube 2 clicks in 6.4 s, and 9 s of no clicks after the drop (ending 4). tools/hellgate_build.js
+  (the lego builder, v3-v12b) is retired for Hellgate.
