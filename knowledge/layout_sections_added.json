@@ -6,5 +6,13 @@
   "w": 32,
   "h": 10,
   "after": "ball"
+ },
+ {
+  "key": "my-mwz1890c",
+  "name": "swing",
+  "mode": "swing",
+  "w": 32,
+  "h": 12,
+  "after": "my-mwz1637w"
  }
 ]
