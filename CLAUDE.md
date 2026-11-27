@@ -760,6 +760,12 @@ The viewer draws moving objects where they start.
   request), put a button on the thing it is about that sends Claude the request (`comments` capability `sendToClaude`,
   anchored on that card), with a small "asked Claude HH:MM" status. The page never runs the job itself. Example: 🔨 build on
   each theme card (tools/designs_tab.js `ask`).
+- **The Themes tab shows what is being worked on** (Evgeni, 2026-11-27: "add here below themes, things that shows what being
+  worked on, and some rough estimates in minutes. things relevant to the marks in this themes section"): every session working
+  on a theme mark, a board section or a generator note writes it to the lego catalogue's db collection `themework` with
+  ArtifactData (doc per item: {title, about, owner, state: working | queued | waiting | done, est_min, basis, started, done_at,
+  at}) when it starts, and sets state done + done_at when it lands. est_min only from a measured run (basis names it); else
+  leave it out ("not measured"). Rendered by tools/designs_tab.js `workSection`.
 - **Every workbook page has ⟳ refresh + "last refreshed"** (Evgeni, 2026-11-27: "add refresh on every workbook have and last
   refreshed, and some effect when i click refresh"): catalogues, boards, the viewer pages, every artifact we make. Paste
   `tools/snippets/refresh.html` once (lego_page.js does it): a button top-right, "last refreshed HH:MM" beside it, a spin on
