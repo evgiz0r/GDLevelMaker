@@ -15890,7 +15890,7 @@ window.GD_LEVELS = [
     ]
    ]
   },
-  "made": "2026-11-27T11:08:53.462Z"
+  "made": "2026-11-27T10:56:51.000Z"
  },
  {
   "name": "GDLM holders",
@@ -24194,7 +24194,7 @@ window.GD_LEVELS = [
     ]
    ]
   },
-  "made": "2026-11-27T11:08:53.463Z"
+  "made": "2026-11-27T10:25:27.000Z"
  },
  {
   "name": "GDLM spike designs",
