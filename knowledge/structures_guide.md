@@ -83,7 +83,8 @@ masses, heights and hanging parts, then clean them up:
 5. Add the theme's layers, 3D, inside and bars.
 6. Keep it beatable.
 
-Show his drawing beside the result. Drawings come from the catalogue's Themes tab whiteboard (db collection
+Read his edited theme layout back with `node tools/designs.js layout [--apply]` (fetch db collection `designdraw` into
+local/designs/db first). Show his drawing beside the result. Drawings come from the catalogue's Themes tab whiteboard (db collection
 `designdraw`) and the viewer's ✏ draw (DRAW.md).
 
 ## Where to look

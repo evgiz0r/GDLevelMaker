@@ -193,6 +193,26 @@ function marks() {
   fs.writeFileSync(KF, JSON.stringify({ note: "Evgeni's spots on the design theme scenes (tools/designs.js marks); fixed = gone from the page", marks: all }, null, 1));
   console.log(`${rows.length} on the page (${rows.filter(m => m.seen).length} seen), ${all.filter(m => m.fixed).length} fixed -> knowledge/design_marks.json`);
 }
+// Evgeni's edited theme layout (the Themes tab board, collection "designdraw": per part the newest revision's tiles) back
+// into text maps: `node tools/designs.js layout` prints them (fetch the collection first: ArtifactData list designdraw
+// out_dir local/designs/db). --apply writes them into tools/designthemes.js (SCENE / KIT_MAP), then rebuild:
+// node tools/designthemes.js spec && node tools/make.js specs/lab_design_themes.json && node tools/designs.js cards --themes
+function layoutBack() {
+  const dir = path.join(DIR, "db", "designdraw"), DT = require("./designthemes.js"), newest = {};
+  for (const f of fs.existsSync(dir) ? fs.readdirSync(dir) : []) { const d = JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")), x = d.data || d;
+    if (x && /^layout:/.test(x.design) && (!newest[x.design] || String(x.at) > String(newest[x.design].at))) newest[x.design] = x; }
+  const toMap = (tiles, rows, width, dc) => { const g = Array.from({ length: rows }, () => Array(width).fill("."));
+    for (const q of tiles) { const r = rows - 1 - q.r, c = q.c - dc; if (r >= 0 && r < rows && c >= 0 && c < width) g[r][c] = q.t; } return g.map(l => l.join("")); };
+  const out = {};
+  const kit = newest["layout:kit"], play = newest["layout:play"];
+  if (kit && kit.tiles) out.KIT_MAP = toMap(kit.tiles, DT.KIT_MAP.length + 4, Math.max(DT.KIT_MAP[0].length, ...kit.tiles.map(q => q.c - 1)), 2).slice(4);
+  if (play && play.tiles) out.SCENE = toMap(play.tiles, Math.max(DT.SCENE.length, ...play.tiles.map(q => q.r + 1)), Math.max(DT.SCENE[0].length, ...play.tiles.map(q => q.c)), 1);
+  if (!Object.keys(out).length) { console.log("no edited layout (parts still as ours)"); return; }
+  for (const [k, v] of Object.entries(out)) console.log(k + ":\n" + v.map(l => "  " + JSON.stringify(l)).join("\n"));
+  if (process.argv.includes("--apply")) { const f = path.join(__dirname, "designthemes.js"); let src = fs.readFileSync(f, "utf8");
+    for (const [k, v] of Object.entries(out)) src = src.replace(new RegExp(`const ${k} = \\[[\\s\\S]*?\\];`), `const ${k} = [\n${v.map(l => "  " + JSON.stringify(l) + ",").join("\n")}\n];`);
+    fs.writeFileSync(f, src); console.log("written into tools/designthemes.js"); }
+}
 // a design's pick weight for the generators: 1 unvoted, 3 liked, 0.25 disliked (never 0: a vote is not a ban)
 function weight(kind, name) { const v = load().find(x => x.id === kind + ":" + name); return !v || !v.vote ? 1 : v.vote > 0 ? 3 : 0.25; }
 
@@ -203,6 +223,7 @@ if (require.main === module) {
   else if (cmd === "page") page(opt("--out"));
   else if (cmd === "votes") votes();
   else if (cmd === "marks") marks();
+  else if (cmd === "layout") layoutBack();
   else if (cmd === "list") for (const d of list()) console.log(d.id.padEnd(26), d.card);
   else console.log(fs.readFileSync(__filename, "utf8").split("\n").filter(l => l.startsWith("//")).join("\n"));
 }
