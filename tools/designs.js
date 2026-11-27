@@ -7,6 +7,8 @@
 // node tools/designs.js page [--out <dir>]   -- the "Designs" tab of the lego catalogue: designs.json + designs.js + cards/
 //                                              into the catalogue's page folder (default local/lego/page_private); the
 //                                              catalogue loads it only when the tab is opened (tools/lego_page.html)
+// node tools/designs.js marks                -- Evgeni's 📍 spots on the theme scenes (db collection "designmarks" -> local/designs/
+//                                              marks_phone.json) with the scene column / row and what is there -> knowledge/design_marks.json
 // node tools/designs.js votes                -- Evgeni's 👍 / 👎 / comments on designs (the page's database, collection
 //                                              "designvotes": fetch with one ArtifactData list into local/designs/votes_phone.json)
 //                                              -> knowledge/design_votes.json; weight(kind, name) for the generators
@@ -34,10 +36,15 @@ function list() {
     note: c.label === "extend" ? "a T, a ring and a frame, each beside its extended copy" : short((c.label.startsWith("3D: ") ? SD.EFFECTS[c.label.slice(4)] : SD.DESIGNS[c.design]).note) + (c.pal ? " · " + c.pal : "") });
   for (const [name, st] of Object.entries(IS.STYLES)) out.push({ id: "indicator:" + name, kind: "indicator", name, card: `cards/indicator-${keyOf(name)}.jpg`, note: short(st.note) });
   // design themes (tools/designthemes.js): one card each, its blocks beside its sample segment
-  for (const [name, t] of Object.entries(require("./designthemes.js").THEMES)) out.push({ id: "theme:" + name, kind: "theme", name, card: `cards/theme-${keyOf(name)}.jpg`,
-    note: `${t.mood} · ${t.design}, ${[].concat(t.effects).join(", ")} · spikes ${t.spikes}, saws ${t.saws} · ${t.holders} · ${t.indicator}` });
+  // geo: where the card sits in the gallery level, so a spot marked on it (designs_tab.js 📍) maps back to a column / row
+  const DT = require("./designthemes.js"), scenes = DT.spec().scenes;
+  for (const [name, t] of Object.entries(DT.THEMES)) { const q = scenes.find(z => z.name === name) || {};
+    out.push({ id: "theme:" + name, kind: "theme", name, card: `cards/theme-${keyOf(name)}.jpg`,
+      geo: { c0: q.c0, c1: q.c1, sc: q.c0 + 4, hU: THEME_ROWS * 30 + THEME_GROUND, ground: THEME_GROUND },
+      note: `${t.mood} · ${t.design}, ${[].concat(t.effects).join(", ")} · spikes ${t.spikes}, saws ${t.saws} · ${t.holders} · ${t.indicator}` }); }
   return out;
 }
+const THEME_ROWS = 13, THEME_GROUND = 45;   // a theme card shows the scene's bottom 13 rows and the ground under them
 const structCopies = () => require("./structdesign.js").spec().copies;
 // camera of the shots: the screen's left edge in level units at time t (measured on the gallery shots, 1x speed)
 const camLeft = t => 262.6 + 311.7 * (t - 1.5), tAt = left => 1.5 + (left - 262.6) / 311.7, SCREEN = 1920 / 3.375;
@@ -72,7 +79,7 @@ function themeCards() {
   // one row -- cut at the scene's ends (Evgeni 2026-11-27: "just 1 full scene with pieces"; joined shots a screen apart
   // had seams where the camera moved: "it seems like two pictures pasted wrong")
   const run = (cmd, a) => { const r = cp.spawnSync(cmd, a, { cwd: ROOT, stdio: "inherit", windowsHide: true }); if (r.status) throw new Error(cmd + " failed"); };
-  const DT = require("./designthemes.js"), scenes = DT.spec().scenes, S = 0.75, ROWS = 13, GROUND = 45;
+  const DT = require("./designthemes.js"), scenes = DT.spec().scenes, S = 0.75, ROWS = THEME_ROWS, GROUND = THEME_GROUND;
   run(process.execPath, ["tools/levelmap.js", "levels/gdlm_design_themes.gdlvl", "--clean", "--rows", "1", "--scale", String(S), "--name", "design_themes_clean"]);
   const jobs = scenes.map(q => ({ card: path.join(DIR, `cards/theme-${keyOf(q.name)}.jpg`), x0: Math.round(q.c0 * 30 * S), x1: Math.round(q.c1 * 30 * S) }));
   fs.mkdirSync(path.join(DIR, "cards"), { recursive: true });
@@ -128,6 +135,23 @@ function votes() {
   console.log(`${list.length} votes (${list.filter(v => v.vote > 0).length} up, ${list.filter(v => v.vote < 0).length} down, ${list.filter(v => v.comment).length} comments) -> ${path.relative(ROOT, VOTESK)}`);
   for (const v of list) console.log(`  ${v.vote > 0 ? "👍" : v.vote < 0 ? "👎" : "  "} ${v.id}${v.comment ? "  -- " + v.comment : ""}`);
 }
+// Evgeni's spots marked on the theme scenes (designs_tab.js 📍: the page's database, collection "designmarks"; fetch with
+// one ArtifactData list into local/designs/marks_phone.json): each with its theme, the scene's column / row (0 = the scene's
+// first column, row 0 = on the ground) and what the gallery level has there
+function marks() {
+  let rows = [];
+  try { const d = JSON.parse(fs.readFileSync(path.join(DIR, "marks_phone.json"), "utf8")); rows = (Array.isArray(d) ? d : d.docs || d.documents || []).map(r => r.data || r); }
+  catch (e) { console.log("no local/designs/marks_phone.json: fetch the page's db collection designmarks with ArtifactData list first"); return; }
+  const lvl = require("./io.js").readGdlvl(path.join(ROOT, "levels", "gdlm_design_themes.gdlvl")).level.objects, GD = require("./io.js").GD;
+  rows.sort((a, b) => String(a.design).localeCompare(String(b.design)) || a.x - b.x);
+  for (const m of rows) {
+    const near = lvl.filter(o => Math.abs(o.x - m.x) <= 30 && Math.abs(o.y - m.y) <= 30 && GD.objInfo(o.id).kind !== "trigger");
+    const kinds = {}; for (const o of near) { const k = GD.objInfo(o.id).kind || "?"; kinds[k] = (kinds[k] || 0) + 1; }
+    console.log(`${m.design}  scene col ${m.col}, row ${m.row}  (x ${Math.round(m.x)}, y ${Math.round(m.y)})  ${m.note ? "\"" + m.note + "\"" : "(no note)"}  near: ${Object.entries(kinds).map(([k, n]) => n + " " + k).join(", ") || "nothing"}`);
+  }
+  fs.writeFileSync(path.join(ROOT, "knowledge", "design_marks.json"), JSON.stringify({ note: "Evgeni's spots on the design theme scenes (tools/designs.js marks)", marks: rows }, null, 1));
+  console.log(`${rows.length} marks -> knowledge/design_marks.json`);
+}
 // a design's pick weight for the generators: 1 unvoted, 3 liked, 0.25 disliked (never 0: a vote is not a ban)
 function weight(kind, name) { const v = load().find(x => x.id === kind + ":" + name); return !v || !v.vote ? 1 : v.vote > 0 ? 3 : 0.25; }
 
@@ -137,6 +161,7 @@ if (require.main === module) {
   if (cmd === "cards") process.argv.includes("--more") ? moreCards() : cards();
   else if (cmd === "page") page(opt("--out"));
   else if (cmd === "votes") votes();
+  else if (cmd === "marks") marks();
   else if (cmd === "list") for (const d of list()) console.log(d.id.padEnd(26), d.card);
   else console.log(fs.readFileSync(__filename, "utf8").split("\n").filter(l => l.startsWith("//")).join("\n"));
 }
