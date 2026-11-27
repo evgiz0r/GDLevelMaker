@@ -16,6 +16,11 @@ let bad = 0; const check = (ok, what) => { console.log((ok ? "ok   " : "FAIL ") 
   // the recording compare's bar is moved into the header at start (viewer: "Every control lives in the top bar")
   const moved = left.filter(t => !/data-dt=|id="cmp(Rec|T0|Shot)"/.test(t));
   check(moved.length === 0, "the page's HTML has no control under the top bar" + (moved.length ? ": " + moved.join(" ") : ""));
+  // nothing sits on the level itself (Evgeni, 2026-11-27: "UI should be outside the gameplay windows"; the zoom buttons were
+  // in the level's top right corner): #wrap holds the level and the button band only
+  const wrap = (html.match(/<div id="wrap">([\s\S]*?)<div id="cmp"/) || [, ""])[1];
+  const onLevel = [...wrap.matchAll(/<(button|select|input|textarea|label)\b[^>]*>/g)].map(m => m[0]);
+  check(onLevel.length === 0, "no control over the level" + (onLevel.length ? ": " + onLevel.join(" ") : ""));
 }
 // 2. headless
 (async () => {
