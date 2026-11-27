@@ -500,3 +500,12 @@ Open: a theme from a theme kit (tools/themes/*) or from the song's mood; backdro
 theme as well (work on it later)"). Not started. Ideas to try: Claude's warm clay / orange on a cream or deep-ink sky,
 the signature's robot + human motifs as set pieces, soft rounded blocks, the end-screen sign's look carried through.
 
+
+## Theme card animation styles (2026-11-27)
+
+Evgeni: "lets add several animations possible to play, in the dropdown. we will start with - static, nine circles styles".
+Next to a theme card's ▶ there is a style dropdown (tools/designs_tab.js `FXS`). **static** plays the scene as it is.
+**nine circles** draws rings of colour that widen from behind the path on each beat, in alternating hues, with a glow on
+the beat and a flash on each bar. It goes on a canvas over the card, blended as light, at 128 BPM until the gallery has a
+song. These styles are a preview in the page only. The in-game version would be built with the effects toolkit
+(tools/effects.js, EFFECTS.md), which is not done yet. A new style is one entry in `FXS`.

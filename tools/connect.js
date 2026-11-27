@@ -126,6 +126,8 @@ function draw(conns, C, o = {}) {
     const vert = q.x0 === q.x1, len = vert ? q.y1 - q.y0 : q.x1 - q.x0, cx = (q.x0 + q.x1) / 2, cy = (q.y0 + q.y1) / 2, rot = vert ? 0 : 90;
     // the fitting at the structure: a small plate on the attached end(s)
     const ends = q.kind === "hang" ? [[q.x0, q.y0]] : q.kind === "stand" ? [[q.x0, q.y1]] : [[q.x0, q.y0], [q.x1, q.y1]];
+    // a soft holder's shadow line for 3D sections: the same line pushed back, darker
+    if (o.depth && style !== "brick" && vert) put(211, q.x0 + o.depth * 0.5, cy + o.depth * 0.5, { ch: C.line, sx: 0.06, sy: len / 30, hsv: hsv(0.45), zo: 0 });
     if (style === "rope") {
       put(211, cx, cy, { ch: C.line, sx: vert ? 0.07 : len / 30, sy: vert ? len / 30 : 0.07, hsv: hsv(0.8) });
       for (const [x, y] of ends) put(211, x, y, { ch: C.line, s: 0.2, rot: 45, hsv: hsv(1) });
@@ -144,6 +146,11 @@ function draw(conns, C, o = {}) {
       // outline in the line colour, darker than the play blocks so it reads as background, never as something to land
       // on. Its fillets (brickParts) are drawn here only when the caller does not dress them as part of the structure
       const g = q.brick || brickParts([q])[0], { cx, bw } = g, x0 = cx - bw / 2;
+      // its side face when the structures have depth (o.depth units, pushed back up-right like structdesign's depth):
+      // a darker copy of the pillar behind it with a dim rim, so pillar and platform read as one solid material
+      if (o.depth) { const d = o.depth;
+        put(211, cx + d, cy + d, { ch: C.line, sx: (bw + 3) / 30, sy: len / 30, hsv: hsv(0.8), zo: 0 });
+        put(211, cx + d, cy + d, { ch: C.base, sx: bw / 30, sy: len / 30, hsv: hsv(0.5), zo: 1 }); }
       put(211, cx, cy, { ch: C.line, sx: (bw + 3) / 30, sy: len / 30, hsv: hsv(1) });
       put(211, cx, cy, { ch: C.base, sx: bw / 30, sy: len / 30, hsv: hsv(0.9), zo: 3 });
       for (let k = 1, y = q.y0 + 15; y < q.y1 - 2; y += 15, k++) {

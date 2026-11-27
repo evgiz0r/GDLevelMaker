@@ -82,6 +82,13 @@ const D = {
     parts: c => [{ id: 1889, lx: -0.3, ly: -1 + 0.55, s: 0.5, rot: -20, ch: c.glow }, { id: 1889, lx: 0.3, ly: -1 + 0.55, s: 0.5, rot: 20, ch: c.glow },
       { id: 503, lx: 0, ly: -0.35, s: 1.0, ch: c.glow }, { id: 504, lx: 0, ly: -0.85, s: 1.0, ch: c.glow },
       { id: 1889, lx: 0, ly: -1 + 0.6, s: 0.6, front: true, ch: c.inner }, { id: 1764, lx: 0, ly: -0.55, s: 0.8, own: 0.27, front: true, zo: 1, ch: c.line }] },
+  // FIRE (Evgeni 2026-11-27: "i want some firey objects too on the grownd sometims as hazards where spikes are"): the spike
+  // burns -- GD's looped fire 923 (animated in the game) rises behind it from its foot on a blending glow channel, a hot
+  // glow 504 at the foot, a dark ember spike and a lit core in front. The hitbox is still the one spike, and the flame stays
+  // in the spike's block width (0.7x of a 0.97-block flame). Themes put it on some standing spikes (structdeco "fire": N)
+  fire: { kind: "spike", src: "the looped fire 920-924 / fire_b 1936-1939 effects of 2.2 (catalogue.tsv 'effects'), behind the spike like the 1011 / 503 glows",
+    parts: c => [{ id: 923, lx: 0, ly: -1 + 1.28, s: 0.7, ch: c.glow }, { id: 504, lx: 0, ly: -0.85, s: 1.0, ch: c.core },
+      { id: 1889, lx: 0, ly: -1 + 0.6, s: 0.6, front: true, ch: c.deep }, { id: 1764, lx: 0, ly: -0.5, s: 0.7, own: 0.27, front: true, zo: 1, ch: c.core }] },
   crown: { kind: "spike", src: "spikes fanned out behind it (35 levels put copies of a spike turned 90 / 270 on it: a burst); here decoration in the glow colour, so the hitbox is the one spike",
     parts: c => [{ id: 1889, lx: -0.25, ly: -1 + 0.6, s: 0.6, rot: -18, ch: c.glow }, { id: 1889, lx: 0.25, ly: -1 + 0.6, s: 0.6, rot: 18, ch: c.glow }] },
   double: { kind: "spike", src: "a second outline: a bigger copy behind in the inner colour ('same hazard on another channel' in 16 levels)",
@@ -124,7 +131,7 @@ function dressAll(objects, o = {}) {
 // the hazard's own channel, a behind part over 1.4x, any part with a hitbox
 // glows and gradients: see-through (they light the hazard, they do not cover it), so the size rule leaves them be in front
 // a part's drawn width and height at scale 1 (lib/look.js FLAT; 1764's own size is in its `own`)
-const PART_W = { 503: [30, 20], 504: [20, 20], 1889: [30, 30], 21: [30, 14], 1764: [30, 30], 211: [30, 30] };
+const PART_W = { 923: [29, 55], 503: [30, 20], 504: [20, 20], 1889: [30, 30], 21: [30, 14], 1764: [30, 30], 211: [30, 30] };
 const SEE_THROUGH = new Set([211, 1753, 503, 504, 1011, 1012, 1292, 1293, 693, 694, 695, 696]);
 function check(objects, o = {}) {
   const { GD } = require("./io.js"), bad = [];
