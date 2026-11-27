@@ -144,7 +144,7 @@ function ledge(path, i, top, look) {
 //   ground    no blocks at all: every bounce lands on the ground, motes only
 //   plain     nothing (the old columns of plain blocks)
 const DRESS = {
-  floating: { design: "layered", effects: ["depth"], holders: "chain", fx: ["motes"] },
+  floating: { design: "layered", effects: ["bevel"], holders: "chain", fx: ["motes"] },   // bevel, not depth: depth's dark extrusion merges with the slabs' black body (roles pathDeco, GDLM 75)
   ice: { design: "nested frames", pal: "ice", effects: ["bevel"], holders: "rope", fx: ["motes"] },
   ground: { fx: ["motes"] },
 };

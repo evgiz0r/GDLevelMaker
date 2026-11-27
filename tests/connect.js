@@ -17,6 +17,9 @@ assert.strictEqual(C.connectors(B([[10, 2]])).length, 1);
 assert.strictEqual(C.connectors(B([[10, 2], [11, 2]]), { pathCells: new Set(["10,0", "11,0", "10,4", "11,4"]) }).length, 0);
 // the route under it only: it hangs instead
 assert.deepStrictEqual(C.connectors(B([[10, 2], [11, 2]]), { pathCells: new Set(["10,0", "11,0"]) }).map(q => q.kind), ["hang", "hang"]);
+// the route brushing an end (both above and below it there): the holders slide inward to the nearest clear cell (GDLM 75)
+k = C.connectors(B([[10, 2], [11, 2], [12, 2], [13, 2], [14, 2]]), { pathCells: new Set(["10,0", "10,1", "10,3", "10,4", "10,5"]) });
+assert.deepStrictEqual(k.map(q => q.kind), ["stand", "stand"]); assert(k[0].x0 >= 330 && k[0].x0 < 360, "slid one cell in"); assert(k[1].x0 > 420, "right end kept");
 // rope bridges: same height, 3 apart yes; 6 apart, a portal between, or another height: no
 const two = (g, dr = 0) => B([[0, 0], [0, 1], [1 + g, 0], [1 + g, 1 + dr]]);
 assert.strictEqual(C.connectors(two(3)).filter(q => q.kind === "bridge").length, 1);

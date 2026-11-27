@@ -22,8 +22,12 @@
 //   lead-in      Easy/Normal: blocks from each mode portal to the first hazard after it, against
 //                the medians of 63 rated 2.0-2.1 levels (knowledge/levels/modes_low_tier.md): cube 6,
 //                ship 8, wave/robot 3, UFO 2 (Hard and up: 0). WARN under 60% of it.
+//   auto         an AUTO level (the zero-press run clears): that run IS the route every gate judges, and the gates
+//                about the player's inputs (tempo, density, ending, dead air, timing, route, ...) say "not judged"
+//                (2026-11-27, GDLM 75; opts.auto false = off)
 //   skips        the solved run goes through every mode/gravity/speed portal (FAIL) and uses every
-//                orb (WARN): a "secret way" past part of the level means a path should be blocked
+//                orb (WARN): a "secret way" past part of the level means a path should be blocked; a column of one
+//                portal kind (a portal wall: any arrival takes one) counts as one portal
 //   fairness     no death that is not the player's fault (tools/fairness.js: forced input right after
 //                a portal, a mark with no jump, a sloped floor at a portal exit, an orb chain with
 //                nothing to correct, too-fast wave turns: FAIL; a blind two-step opener: WARN).
@@ -71,7 +75,13 @@ function scoreLevel0(level, brief, opts = {}) {
   // solve() returns the saved human route when it is current, re-plans it when only the planner changed, re-solves
   // only from its first broken stretch (lib/incsolve.js) when the physics changed, and solves the whole level only
   // when there is nothing to build on. Its saved timing windows stand in for measuring. opts.saved === false: solve.
-  const saved = opts.saved === false ? null : savedRoute(w, level, opts.levelStr, opts);
+  // an AUTO level (no click at all: tools/autobeat.js, autodeco.js, autoclose.js): when the zero-press run clears, THAT is the
+  // route every gate judges -- the solver would find some press route through it (GDLM 75: 9 presses that skip the ending's
+  // portals), and the input gates (tempo, density, ending, dead air, ...) do not apply (2026-11-27). opts.auto === false: off.
+  const zero = opts.auto === false ? null : GD.run(w, []);
+  const auto = !!(zero && !zero.dead && zero.done);
+  const saved = auto ? { ok: true, events: [], clicks: [], actions: [], saved: true, auto: true }
+    : opts.saved === false ? null : savedRoute(w, level, opts.levelStr, opts);
   const r = saved || GD.solveAny(w);
   gate("beatable", r.ok ? "PASS" : "FAIL", r.ok ? `${r.clicks.filter(c => c.type === "press").length} presses` :
     `dies at block ${(r.dieAt.x / 30).toFixed(1)} (${r.why})`);
@@ -515,7 +525,10 @@ function scoreLevel0(level, brief, opts = {}) {
     };
     const portals = level.objects.filter(o => ["mode", "gravity", "speed"].includes(GD.objInfo(o.id).kind));
     const orbs = level.objects.filter(o => GD.objInfo(o.id).kind === "orb");
-    const missedP = portals.filter(o => !paths.every(p => touchedIn(p, o))), missedO = orbs.filter(o => !paths.some(p => touchedIn(p, o)));
+    // a WALL of one portal kind (autobeat's home wall, beatend.js's portal column: stacked so any arrival takes one) is one
+    // portal: the run touching any of the column covers the rest (GDLM 75, 2026-11-27)
+    const colMates = o => portals.filter(q => q.id === o.id && Math.abs(q.x - o.x) <= 20);
+    const missedP = portals.filter(o => !paths.every(p => colMates(o).some(q => touchedIn(p, q)))), missedO = orbs.filter(o => !paths.some(p => touchedIn(p, o)));
     gate("skips", missedP.length ? "FAIL" : missedO.length ? "WARN" : "PASS",
       missedP.length || missedO.length ? [...missedP, ...missedO].map(o => `${GD.objInfo(o.id).name} at block ${((o.x - 15) / 30).toFixed(0)}`).join("; ") + " not touched by the solved run: block that way past it" : `all ${portals.length} portals and ${orbs.length} orbs on the path`);
   }
@@ -568,6 +581,11 @@ function scoreLevel0(level, brief, opts = {}) {
   // "accept": {"<gate>": "<why this level breaks it>"}; the gate then reads ACCEPT and does not count.
   for (const g of gates) if (brief.accept && brief.accept[g.name] && g.status !== "PASS") { g.note = `accepted: ${brief.accept[g.name]}` + (g.note ? " -- " + g.note : ""); g.status = "ACCEPT"; }
 
+  if (auto) {   // the gates about the player's inputs judge nothing on an auto level
+    const NA = new Set(["tempo", "density", "ending", "dead air", "timing", "player timing", "reactive", "orb buffer", "pointless jumps", "route", "recovery"]);
+    for (const g of gates) if (NA.has(g.name) && g.status !== "PASS") { g.note = `${g.value}${g.note ? "  -- " + g.note : ""}`; g.status = "PASS"; g.value = "auto level (no click): not judged"; }
+    gates.unshift({ name: "auto", status: "PASS", value: "clears with no press: every gate judges the zero-press run", note: "" });
+  }
   const fails = gates.filter(g => g.status === "FAIL").length, warns = gates.filter(g => g.status === "WARN").length;
   return { ok: fails === 0, fails, warns, gates, solution: r, prejumps: bad, tight, chains, difficulty: diff };
 }

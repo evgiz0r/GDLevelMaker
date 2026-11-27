@@ -436,3 +436,28 @@ path wins, the best 8 kept for backtracking. Results: icy part v3 (25 s, cube + 
 pink + pink in the air, 2 gravity portals, no backtracking, 3 s. Hellgate (82 s, cube / ball / UFO / ship / wave) first runs: to
 48 s, stuck at 47.2 s where a cube jump over a spike right after a ledge needs the exact jump: every pad kind, spot and second pad dies there.
 Not checked in the game: whether a hidden pad or portal still shows its flash or particles.
+
+## GDLM 75 held together: a short auto with deco and connected structures (tools/autodeco.js, 2026-11-27)
+
+A ~30 s auto "with some deco and connected structures" (structures held up or joined, not floating loose). One command:
+`node tools/autodeco.js --song 1086693 --seed 8 --rate 2.6 --beats 58 --name "GDLM 75 held together" --session auto-held
+--out levels/gdlm_75_held_together.gdlvl` (~5 s): autobeat (triggers on the song's notes, hazards along the path, beat ending,
+signature) -> the structure deco pass (tools/structdeco.js) with a look per song section (tools/sections.js: drops take the
+second look -- fire layered+bevel, ice nested frames+bevel at the drop) -> chain / rope holders (tools/connect.js) kept off the
+zero-press path -> motes -> a dark sky in the first look's hue -> the zero-press run checked again. Stages song / layout / path /
+deco / final go to the viewer as it builds.
+- **Song:** Eclipse (1086693, Uxvellda, CC BY, `knowledge/free_songs.md`): break, entry, DROP, entry inside its first 27 s
+  (Golden Haze's first 30 s is one calm break: 52 of 64 triggers came out gravity flips). Seeds 1-11 compared by kind mix;
+  seed 8: yellow / blue / grav 10 each, red 7, mini 3, mode 4 (cube / robot / UFO), 0.5x and back, 47 triggers, 100% on the beat.
+- **What the tools learned** (fixed at the source, so every level gets it):
+  - score.js judged autos as clicked levels: the solver found a 9-press route through the auto, then "skips" failed on
+    portals that route jumped past and tempo / density warned on clicks nobody makes. Now an auto is judged on its zero-press
+    run (gate "auto"), the input gates say "not judged", and a column of one portal kind counts as one portal (autobeat's
+    home wall, the beat ending's portal column).
+  - The **depth** 3D effect fails tools/roles.js on plain blocks: its dark extrusion is in the black block body's value
+    (pathDeco on 18 of 29 sections; bevel: 0). autodeco and beatend.js's floating ending now use bevel.
+  - connect.js put holders only at an island's two exact ends: an auto's path brushes most ends, so most islands floated.
+    The holders now slide inward to the nearest clear cell, else one in the middle: 21 -> 31 holders on GDLM 75.
+  - autobeat leaves GD's default magenta sky; the deco palettes need a dark one (autodeco sets the first look's sky).
+Open: the judge (tools/report.js) still reads an auto as a clicked level ("few clicks", presses); the opening is on the default
+ground (startramp would move the auto's path); deco coverage is thin in places (score WARN); Evgeni's look.

@@ -369,6 +369,9 @@ structures"; "structures should in general connect, unless something else happen
 "if we have "island" structures, it is common to add something soft like chain/rope/holder/soft extender to one of his
 upper/bottom layer. as if something is holding it ( from either top or bottom ) [...] usually to place those on the
 edges/middle of the structures ( like 2 ropes holding a brick, or from the other side a brick floating on top of two ropes )".
+2026-11-27 (GDLM 75, an auto): when the route passes an island's end, its holder slides inward to the nearest clear cell (a
+wide one with no clear pair gets one in the middle); before, the island got none (21 -> 31 holders). And the "depth" effect
+fails the roles gate on plain blocks (its dark extrusion merges with the black body): bevel instead (AUTO.md "GDLM 75").
 
 Measured first (`tools/islands.js`, gameplay solids per 25-block window): RobTop's pieces have MORE islands than ours
 (cube/jump pieces 5.3 a screen, 15% of solid cells floating; flip 5.0 / 32%; fly 3.9 / 0%) vs Hellgate v10 3 / 15%, Sunny

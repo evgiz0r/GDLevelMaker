@@ -60,7 +60,20 @@ function connectors(blocks, o = {}) {
     const edge = (x, side) => { const c = Math.floor((x - ox) / 30), rs = I.cs.filter(q => q[0] === c).map(q => q[1]);
       return side > 0 ? Y(Math.max(...rs) + 1) : Y(Math.min(...rs)); };
     // from above (hanging) or below (standing): the side whose lines are all clear; above first when the island is high
-    const tryDir = d => { const segs = []; for (const x of xs) { const y0 = edge(x, d), y1 = run(x, y0, d); if (y1 == null || Math.abs(y1 - y0) < 6) return null; segs.push({ kind: d > 0 ? "hang" : "stand", x0: x, x1: x, y0: Math.min(y0, y1), y1: Math.max(y0, y1) }); } return segs; };
+    const seg = (x, d) => { const y0 = edge(x, d), y1 = run(x, y0, d); return y1 == null || Math.abs(y1 - y0) < 6 ? null : { kind: d > 0 ? "hang" : "stand", x0: x, x1: x, y0: Math.min(y0, y1), y1: Math.max(y0, y1) }; };
+    // the ends first; when the route passes an end, slide inward a cell at a time to the nearest clear spot (GDLM 75,
+    // 2026-11-27: an auto's path brushes most islands' ends, and they floated with no holder); a wide island whose two
+    // sides find no clear pair gets one holder at the clearest middle cell
+    const tryDir = d => {
+      if (w < 2) { const q = seg(xs[0], d); return q ? [q] : null; }
+      const half = Math.floor((w - 1) / 2);
+      let L = null, R = null;
+      for (let k = 0; k <= half && !L; k++) L = seg(k ? X(I.c0 + k) + 15 : xs[0], d);
+      for (let k = 0; k <= half && !R; k++) R = seg(k ? X(I.c1 - k) + 15 : xs[1], d);
+      if (L && R && R.x0 - L.x0 >= 30) return [L, R];
+      for (let k = 0; k <= half; k++) for (const c of [I.c0 + half - k, I.c0 + half + k + 1]) { if (c < I.c0 || c > I.c1) continue; const q = seg(X(c) + 15, d); if (q) return [q]; }
+      return null;
+    };
     const high = I.r0 - ground >= 4, pick = (high ? [1, -1] : [-1, 1]).map(tryDir).find(Boolean);
     if (pick) out.push(...pick);
   }
