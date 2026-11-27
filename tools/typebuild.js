@@ -28,6 +28,7 @@
 const fs = require("fs"), path = require("path");
 const ROOT = path.join(__dirname, "..");
 const SG = require("./sectiongen.js"), LS = require("./layoutsections.js"), SJ = require("../lib/scenejoin.js");
+const APRON = 5, HAZ = new Set(["^", "v", "o", "q", "s"]);   // hazard letters of the section maps (tools/layoutsections.js)
 const BPS = { "0.5x": 8.372, "1x": 10.386, "2x": 12.914, "3x": 15.6, "4x": 19.2 };   // blocks a second (planbuild.js)
 const PORTAL = { cube: "cube portal", ship: "ship portal", wave: "wave portal", ufo: "ufo portal", ball: "ball portal", swing: "swing portal", robot: "robot portal", spider: "spider portal" };
 const SPEEDN = { "0.5x": "0.5x speed", "1x": "1x speed", "2x": "2x speed", "3x": "3x speed", "4x": "4x speed" };
@@ -144,7 +145,11 @@ function build(brief, o = {}) {
     // the portal wall: the last column of the join, across the gap the player can be in there
     if (prev && (mode !== prev.mode || s.speed !== prevSpeed)) portals.push({ c: col + (j ? j.portalAt : 0), row: prev.exitRow, mode: mode !== prev.mode ? mode : null, speed: s.speed !== prevSpeed ? s.speed : null, from: prev.mode });
     const c0 = col + jn;
-    for (const q of cur.T) tiles.push({ t: q.t, c: q.c + c0, r: q.r });
+    // an apron after a mode portal: no hazard in the new section's first APRON columns (a section is generated and
+    // checked entering at its own start, but the portal can leave the player at another row: GDLM 76 v3's swing put a saw
+    // right where the cube came out of the wall, block 592; and no input is forced right after a mode change, fairness.js)
+    const apron = prev && mode !== prev.mode ? APRON : 0;
+    for (const q of cur.T) if (!(q.c < apron && HAZ.has(q.t))) tiles.push({ t: q.t, c: q.c + c0, r: q.r });
     parts.push({ i: s.i, sub: s.sub, seed: best.seed, type: s.type, mode, c0: col, c1: c0 + cur.w, look: s.look, b0: s.b0, b1: s.b1, kind: s.kind, speed: s.speed, t0: s.t0, t1: s.t1, floor: SJ.floorEdge(cur.T, 0, "L") });
     report.push(`s${s.i} b${s.b0}-${s.b1} ${s.kind.padEnd(6)} ${s.mode.padEnd(7)} ${s.speed} ${s.type} (${z.name}, ${s.tier}) cols ${col.toFixed(0)}-${(c0 + cur.w).toFixed(0)} seed ${best.seed}: ` +
       (best.c.ok ? `${best.c.presses} presses, ${best.c.label}` : best.c.ok === null ? "not checked" : "DOES NOT SOLVE ALONE"));
