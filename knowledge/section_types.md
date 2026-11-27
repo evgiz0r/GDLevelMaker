@@ -208,6 +208,10 @@ which the sim does not have yet (PHYSICS.md open).
   overlap, beat columns) scales by the speed ratio, and heights don't. GD's 2x is only ~1.25x faster than 1x (lib/physics.js
   SPEEDS: x per tick 0.9 * 5.77 vs 1.1 * 5.87), 3x ~1.5x, 0.5x ~0.81x; jump height stays nearly the same. Not built yet:
   a `speed` option for GEN that scales those columns.
+- **Ball, spider and ball portals taller than the band** (2026-11-27, Evgeni: "spider and ball still dont generate more
+  than the original height regardless if i am in height x100"): a hidden ball (L) / spider (P) portal on a surface re-bands
+  around it, so the band wanders the map; the ground spikes and ceiling bar follow the band. At 80 cols x 20 rows: 10 of 12
+  solve, 25-75% of the rows (a random walk: more movers or a drift toward unvisited rows is next).
 - **A minimum length per type** (Evgeni: some need room for real play, robot and orbs).
 - Height at 1.5x rows, 60 cols (easy/harder, 2 seeds): wave 93%, fly 76%, ship corridor 80%, staircase 85%, closecube 80%,
   ball 75%, spider 67%, opencube 68%, flappy 60%, orbs 55%. The cube types need their climbs scaled to the taller map.

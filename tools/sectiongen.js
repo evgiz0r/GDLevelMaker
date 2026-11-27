@@ -304,8 +304,18 @@ GEN.ball = o => rollers(o, { mode: "ball", band: 8, travel: ballTravel });
 // and with "ball portals" (some flips made by a gravity portal at the surface's end instead of a click)
 function rollers(o, { mode, band, travel, portals = 0, overlap = null }) { const { R, mix, imix, chance, W, H, G } = ctx(o, 10), BT = Math.min(H, band);   // the band: rows 0..band-1
   const win = mix(2.6, 1.4);   // flip window, columns
-  const S = [{ side: 1, kind: "mass", y: 2, c0: 0, c1: R.int(5, 7) }];   // y: the surface's row (floor side: the row the ball rolls on; ceiling side: the row it hangs in)
+  const S = [{ side: 1, kind: "mass", y: 2, c0: 0, c1: R.int(5, 7), O: 0 }];   // y: the surface's row (floor side: the row the ball rolls on; ceiling side: the row it hangs in), in its band (O = the band's floor row)
+  // TALLER THAN THE BAND (Evgeni 2026-11-27: "spider and ball still dont generate more than the original height regardless
+  // if i am in height x100"): a hidden portal of the mode on a surface (L ball, P spider: the roller runs through it, so it
+  // can't be skipped) re-bands around it (lib/physics.js: floor = its y - band/2), so the band wanders up and down the map;
+  // the next surfaces are built in the new band. The ground spikes and the ceiling bar follow the band.
+  const tall = H > BT + 2, moverCh = mode === "spider" ? "P" : "L"; let O = 0;
   while (S[S.length - 1].c1 < W) {
+    { const p = S[S.length - 1];
+      if (tall && S.length > 1 && p.c1 - p.c0 >= 4 && p.c1 < W - 4 && R.chance(0.6)) {
+        const abs = p.y + O, O2 = clamp(abs - Math.floor(BT / 2), 0, H - 1 - BT), rel = abs - O2;
+        const ok = p.side > 0 ? rel >= 0 && rel <= BT - 4 : rel >= 3 && rel <= BT - 1;
+        if (ok && O2 !== O) { p.mover = { c: Math.min(p.c1 - 1, p.c0 + Math.ceil(win) + 1), O: O2 }; p.y = rel; O = O2; } } }
     // moves of 2-4 rows, under half the band on average (Evgeni 2026-11-27: "in the jumping modes, that the average length
     // of movement is below the half of the full length, just to have less updown from ground to floor"), and the play
     // height wandering over the whole band both ways ("the height of the gameplay is too similar ... more balanced across
@@ -327,7 +337,7 @@ function rollers(o, { mode, band, travel, portals = 0, overlap = null }) { const
     if (byPortal) { p.end = false; p.portal = p.c1 + 1; p.c1 += 3; }
     // the spider: the next piece overlaps this one by `overlap` columns, and that overlap is the click's window
     const c0b = overlap && !byPortal ? Math.max(p.c0 + 2, flip + 1 - overlap()) : c0;
-    S.push({ side, kind, y, c0: c0b, c1: c0b + w, thick: kind === "mid" ? (R.chance(0.7) ? 1 : 2) : 0, end: chance(0.25, 0.5) });
+    S.push({ O, side, kind, y, c0: c0b, c1: c0b + w, thick: kind === "mid" ? (R.chance(0.7) ? 1 : 2) : 0, end: chance(0.25, 0.5) });
   }
   // draw: ground spikes and a row of hanging spikes along the top (the ball band's ceiling holds the ball otherwise, so
   // an early flip must die there, not ride the band edge), then each surface
@@ -338,23 +348,28 @@ function rollers(o, { mode, band, travel, portals = 0, overlap = null }) { const
   // ground (or top), or there are hazards (on both sides)"): spikes stand on the ground, and hang from a ceiling bar laid at
   // the band's top (row BT), in groups of 2-3 with a column between (a ball that lands in the gap rolls into the next
   // group), a saw now and then in place of a group
-  if (H > BT) G.box(0, W - 1, BT, Math.min(H - 1, BT));
-  for (const [row, t] of [[0, "^"], [BT - 1, "v"]]) for (let c = 0; c < W;) {
-    if (R.chance(0.2)) { G.put(c, row, "o"); c += 2; continue; }
-    const n = R.int(2, 3); for (let k = 0; k < n && c + k < W; k++) G.put(c + k, row, t); c += n + 1; }
-  for (const s of S) { const c1 = Math.min(W - 1, s.c1);
-    if (s.side > 0 && s.y === 0) for (let c = s.c0; c <= c1; c++) G.put(c, 0, ".");
-    if (s.side < 0 && s.y === BT - 1) for (let c = s.c0; c <= c1; c++) G.put(c, BT - 1, ".");
+  // the band's floor row per column (it moves at each mover)
+  const Oc = Array(W).fill(0); { let o = 0, i = 0; const ms = S.filter(t => t.mover).map(t => t.mover);
+    for (let c = 0; c < W; c++) { while (i < ms.length && ms[i].c <= c) o = ms[i++].O; Oc[c] = o; } }
+  for (let c = 0; c < W; c++) { if (Oc[c] + BT < H) G.box(c, c, Oc[c] + BT, Oc[c] + BT); if (Oc[c] > 0) G.put(c, Oc[c] - 1, "#"); }
+  for (const [d, t] of [[0, "^"], [BT - 1, "v"]]) for (let c = 0; c < W;) {
+    if (R.chance(0.2)) { G.put(c, Oc[c] + d, "o"); c += 2; continue; }
+    const n = R.int(2, 3); for (let k = 0; k < n && c + k < W; k++) G.put(c + k, Oc[c + k] + d, t); c += n + 1; }
+  for (const s of S) { const c1 = Math.min(W - 1, s.c1), y = s.y + (s.mover ? s.mover.O : s.O);   // its row on the map
+    if (s.side > 0 && s.y === 0) for (let c = s.c0; c <= c1; c++) G.put(c, Oc[c], ".");
+    if (s.side < 0 && s.y === BT - 1) for (let c = s.c0; c <= c1; c++) G.put(c, Oc[c] + BT - 1, ".");
     // and the two columns past a surface at the edges stay clear: a saw there reaches the player rolling off its end
-    if (s.side > 0 ? s.y <= 1 : s.y >= BT - 2) for (let c = c1 + 1; c <= Math.min(W - 1, c1 + 2); c++) for (const row of [0, BT - 1])
-      G.put(c, row, ".");
+    if (s.side > 0 ? s.y <= 1 : s.y >= BT - 2) for (let c = c1 + 1; c <= Math.min(W - 1, c1 + 2); c++) for (const d of [0, BT - 1])
+      G.put(c, Oc[c] + d, ".");
+    s.y = y;
     if (s.side > 0) { if (s.kind === "mass") G.box(s.c0, c1, 0, s.y - 1); else G.box(s.c0, c1, s.y - s.thick, s.y - 1);
       if (s.end && s.c1 < W) G.put(c1, s.y, "^"); }
     else { if (s.kind === "mass") G.box(s.c0, c1, s.y + 1, H - 1); else { G.box(s.c0, c1, s.y + 1, s.y + s.thick); if (chance(0.3, 0.6)) G.put(s.c0 + 1, s.y + s.thick + 1, "^"); }
       if (s.end && s.c1 < W) G.put(c1, s.y, "v"); }
     // the portal stands one column past the surface's end at the player's height: G sends a floor roller up, N brings a
     // ceiling roller down (the hazards under / over it cleared so the player meets the portal, not a spike)
-    if (s.portal && s.portal < W) { const c = s.portal, row = s.y; for (let r = Math.max(0, row - 1); r <= Math.min(BT - 1, row + 1); r++) if (G.rows()[H - 1 - r][c] !== "#") G.put(c, r, ".");
+    if (s.mover) { for (let r = s.y - 1; r <= s.y + 1; r++) if (r >= 0 && r < H && G.rows()[H - 1 - r][s.mover.c] !== "#") G.put(s.mover.c, r, "."); G.put(s.mover.c, s.y, moverCh); }
+    if (s.portal && s.portal < W) { const c = s.portal, row = s.y; for (let r = Math.max(0, row - 1); r <= Math.min(H - 1, row + 1); r++) if (G.rows()[H - 1 - r][c] !== "#") G.put(c, r, ".");
       G.put(c, row, s.side > 0 ? "G" : "N");
       for (const x of [c + 1, c + 2]) if (x < W) G.put(x, row, s.side > 0 ? "^" : "v"); } }
   return { map: G.rows(), mode }; }
