@@ -14,5 +14,5 @@ module.exports = function ({ objects, header, spec }) {
     out.push(...d.draw(cx, 2 * 30 + 15, ice.C), ...d.draw(cx, 5 * 30 + 15, fire.C));
     out.push(K.text(cx, 3.9 * 30, `${i + 1} ${d.name}`, 0.3, { ch: 932, z: "T1" }));
   });
-  return { objects: objects.concat(out), header };
+  return { objects: out, header };   // only the new objects: make.js appends them (returning objects.concat(out) doubled the level)
 };

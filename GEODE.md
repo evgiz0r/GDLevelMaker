@@ -262,9 +262,23 @@ No more closing GD to install: `node tools/install.js <level.gdlvl>` with GD run
 - A closed-game install of the same name drops any older request still pending (`.dropped.json`), so a later GD start can't
   put the older version back.
 - **Test:** `node tests/install_hot.js` (temp folder, a fake mod in a child process: ready check by version and pid, the
-  request's record, the answer, a request left waiting, dropping, queue fallback). The C++ side compiles and links (clang-cl,
-  bindings 2.2091); **not yet run in the game** -- first test install: on a menu, then check My Levels and that the level
-  survives a GD restart.
+  request's record, the answer, a request left waiting, dropping, queue fallback). Throwaway level for a real test:
+  `node tools/hotinstall.js testlevel` -> local/tmp/gdlm_test_install.gdlvl ("GDLM test install", 43 objects, no song).
+- **First real run (v0.6.0, 2026-11-27, GD pid 38680):** status written 01:57:14, request 01:57:20, but the mod took it only
+  at **02:02:12** -- one second before GD shut down (02:02:13, Geode log) -- although the user had been on menus all along (no
+  attempt logs). Then it worked as designed: added at the top, `saved: true`, install.js read the save back ("same level
+  data"), and GD's exit save kept it (CCLocalLevels.dat after exit: "GDLM test install" first of 33, hellgate's online ID
+  152848491 untouched). So building the level, replacing/inserting and saving work; **the once-a-second check did not run on
+  the menus** (a CCScheduler timer on a plain CCObject; why it fired only at the quit is not known -- v0.6.0 logged nothing
+  while waiting). v0.6.1: each menu layer (MenuLayer, CreatorLayer, LevelBrowserLayer, EditLevelLayer) also schedules the
+  check on itself, and probe.status.json carries `ticks`, `tick_ms`, `src` (which timer fired) and `last` (idle / waiting:
+  why / installed) every 5 s, with a log line when it starts and when it waits.
+- **v0.6.1 in the game (2026-11-27, pid 35008): works.** A request left in the inbox while GD was closed went in at the first
+  menu (log: "install inbox running (scheduler)" and "installed" at 02:05:31, 1 s after "All mods up to date!"; replaced in
+  place, saved). Then a live `node tools/install.js local/tmp/gdlm_test_install.gdlvl` with GD on the main menu: replaced,
+  saved and read back in **1.2 s** for the whole command. The mod itself took it **0.4 s** after the request was written (02:05:54.133 -> .563). Evgeni confirmed in the game: "it installed"; it is still there after a GD restart (pid 27768). The `src` was "scheduler" both times, so the director's timer
+  does fire; v0.6.0's 5-minute wait stays unexplained (it logged nothing). If it happens again, `probe.status.json`'s `last`
+  says why. Ticks counted 10 -> 13 between 02:05:43 and 02:05:54 (less than one a second; maybe the user was in a level).
 - Build from a worktree: `set GEODE_BUILD_DIR=%USERPROFILE%\geode-build\gdlm-probe-<name>` before `tools\geode_build.cmd`
   (a build dir of its own; the default one is tied to the main checkout's mod folder). v0.6.0 was built so, cold.
 

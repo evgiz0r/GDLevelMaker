@@ -13,5 +13,5 @@ module.exports = function ({ objects, header, spec }) {
     out.push(...D.dress(mine, cp.design, pal[cp.pal].C, { effects: cp.effects }));
     out.push(K.text((cp.c0 + cp.c1) / 2 * 30, 7.4 * 30, cp.label, 0.45, { ch: 932, z: "T1" }));
   }
-  return { objects: objects.concat(out), header };
+  return { objects: out, header };   // only the new objects: make.js appends them (returning objects.concat(out) doubled the level)
 };

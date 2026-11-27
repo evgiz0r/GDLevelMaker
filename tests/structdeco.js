@@ -39,5 +39,11 @@ console.log("structdeco: ok");
   assert(r2.objects.some(o => o.id === 899 && o.props[23] === "1013"), "the middleground coloured with the sky");
   const si = SD.indicators({ indicators: {}, structures: { sections: [{ from: 0, theme: "void" }] } });
   assert(si.style[0][1] === "pointer" && si.colour[0][1] === "auto", "the theme's indicator style");
+  // every theme's skies, as the pass lifts them, pass the contrast rules (Evgeni 2026-11-27: "the background and the
+  // blocks look too alike")
+  const BD = require("../tools/backdrops.js"), BP = require("../tools/blockdesigns.js").PAL;
+  for (const [n, t] of Object.entries(DT.THEMES)) for (const sky of t.skies) { const f = BD.check(BP[t.pal], BD.fit(BP[t.pal], sky));
+    assert(!f.length, `${n} sky ${sky.bg}: ${f.join("; ")}`); }
+  assert(BD.check(BP.fire, { bg: [92, 24, 22], ground: [10, 2, 2] }).length, "a sky in the blocks' own colour fails");
   console.log("structdeco themes: ok");
 }

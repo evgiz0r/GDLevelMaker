@@ -10,9 +10,10 @@ window.initDesigns = async function (root) {
   #designs .dc{background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
   #designs .dc img{display:block;width:100%;aspect-ratio:2/1;object-fit:cover;background:#0f0c2b}
   #designs .dc.k-spike img,#designs .dc.k-saw img,#designs .dc.k-indicator img{aspect-ratio:auto}
-  #designs .dc.k-structure{grid-column:1/-1}
+  #designs .dc.k-structure,#designs .dc.k-theme{grid-column:1/-1}
   #designs .dc .wide{overflow-x:auto;background:#0f0c2b;-webkit-overflow-scrolling:touch}
   #designs .dc .wide img{width:auto;height:130px;max-width:none;aspect-ratio:auto}
+  #designs .k-theme .wide img{height:220px}
   #designs .dc .dt{padding:6px 8px;font-size:13px;line-height:1.3}
   #designs .dc .dn{font-weight:700}
   #designs .dc .dm{color:var(--mute);font-size:12px}
@@ -26,25 +27,27 @@ window.initDesigns = async function (root) {
   root.innerHTML = `<div class="dbar"><select id="dvf"><option value="">any vote</option><option value="up">👍 liked</option><option value="down">👎 disliked</option><option value="none">not voted yet</option></select><span class="ds" id="dcount"></span></div><div id="dgroups">loading ...</div>`;
   let L = [];
   try { L = await (await fetch("designs.json")).json(); } catch (e) { root.querySelector("#dgroups").textContent = "designs.json did not load"; return; }
-  let VOTES = {}, DB = null;
+  let VOTES = {}, DB = null, MODE = "designs";
+  // the catalogue's Themes tab shows the same cards, only the design themes (Evgeni: "additional tab with themes")
+  window.designsShow = m => { MODE = m === "themes" ? "themes" : "designs"; render(); };
   const vkey = id => id.replace(/[^A-Za-z0-9_-]/g, "_").slice(0, 120);
   const GROUPS = [["block", "Blocks", "one block, fire left, ice right"], ["structure", "Structures", "one design on every join, slopes too · scroll sideways"],
-    ["spike", "Spikes", "ice standing, fire hanging"], ["saw", "Saws", ""], ["indicator", "Indicators", "jump marks, apart from blocks"]];
+    ["spike", "Spikes", "ice standing, fire hanging"], ["saw", "Saws", ""], ["indicator", "Indicators", "jump marks, apart from blocks"], ["theme", "Themes", "one scene per theme: pieces, sky, backdrop, holders · scroll sideways"]];
   const open = {}; try { Object.assign(open, JSON.parse(localStorage.getItem("designs-open") || "{}")); } catch (e) {}
   function card(d) {
     const v = VOTES[d.id] || {};
     const img = `<img loading="lazy" decoding="async" src="${esc(d.card)}" alt="${esc(d.name)}">`;
-    return `<div class="dc k-${d.kind}" data-id="${esc(d.id)}">${d.kind === "structure" ? `<div class="wide">${img}</div>` : img}
+    return `<div class="dc k-${d.kind}" data-id="${esc(d.id)}">${d.kind === "structure" || d.kind === "theme" ? `<div class="wide">${img}</div>` : img}
       <div class="dt"><span class="dn">${d.n ? d.n + " " : ""}${esc(d.name)}</span>${d.note ? `<div class="dm">${esc(d.note)}</div>` : ""}</div>
       <div class="dv"><button class="up${v.vote > 0 ? " on" : ""}" title="I like it">👍</button><button class="down${v.vote < 0 ? " on" : ""}" title="not so much">👎</button>
       <button class="com" title="a comment">💬${v.comment ? "•" : ""}</button><span class="ds">${v.at ? "saved" : ""}</span>
       <textarea hidden placeholder="what is good or off about it">${esc(v.comment || "")}</textarea></div></div>`;
   }
   function render() {
-    const f = root.querySelector("#dvf").value;
+    const f = root.querySelector("#dvf").value, G = GROUPS.filter(([k]) => (MODE === "themes") === (k === "theme"));
     const ok = d => { const v = VOTES[d.id]; return !f || (f === "up" ? v && v.vote > 0 : f === "down" ? v && v.vote < 0 : !v || !v.vote); };
     let n = 0;
-    root.querySelector("#dgroups").innerHTML = GROUPS.map(([k, title, sub]) => {
+    root.querySelector("#dgroups").innerHTML = G.map(([k, title, sub]) => {
       const ds = L.filter(d => d.kind === k && ok(d)); n += ds.length;
       const isOpen = open[k] !== false;
       return `<section data-g="${k}"><h2 class="stitle fold-h" role="button" tabindex="0" aria-expanded="${isOpen}">${isOpen ? "▾" : "▸"} ${title} <span class="ds">${ds.length}${sub ? " · " + sub : ""}</span></h2>

@@ -81,7 +81,7 @@ button.vote.on.up{background:#1f6b3a;border-color:#7dff9c}button.vote.on.down{ba
 
 <div class="band head">
   <h1>Structure lego catalogue</h1>
-  <nav class="tabs"><button class="tab on" data-tab="pieces">Structures</button><button class="tab" data-tab="designs">Designs: blocks, structures, spikes, indicators</button></nav>
+  <nav class="tabs"><button class="tab on" data-tab="pieces">Structures</button><button class="tab" data-tab="designs">Designs: blocks, structures, spikes, indicators</button><button class="tab" data-tab="themes">Themes</button></nav>
 </div>
 <div class="band" id="designs" hidden></div>
 <div class="band filters" id="filters" data-fold="filters">
@@ -391,12 +391,13 @@ Promise.all(["pieces.json", "pieces_more.json"].map(f => fetch(f).then(r => r.ok
   let loaded = null;
   const pieces = [...document.querySelectorAll(".band.filters,.band.drawer,.band.stats")], D = document.getElementById("designs");
   for (const b of document.querySelectorAll(".tab")) b.onclick = () => {
-    const d = b.dataset.tab === "designs";
+    const d = b.dataset.tab === "designs" || b.dataset.tab === "themes";   // Themes: the same cards, only the design themes
     for (const x of document.querySelectorAll(".tab")) x.classList.toggle("on", x === b);
     for (const p of pieces) p.hidden = d;
     D.hidden = !d;
     if (d && !loaded) loaded = new Promise((ok, no) => { const s = document.createElement("script"); s.src = "designs.js"; s.onload = ok; s.onerror = no; document.head.appendChild(s); })
       .then(() => window.initDesigns(D)).catch(() => { D.textContent = "designs.js did not load"; loaded = null; });
+    if (d && loaded) loaded.then(() => window.designsShow && window.designsShow(b.dataset.tab));
   };
 }
 </script>

@@ -3,7 +3,7 @@
 	"gd": { "win": "2.2091" },
 	"id": "gdlm.probe",
 	"name": "GDLM Probe",
-	"version": "v0.6.0",
+	"version": "v0.6.1",
 	"developer": "GDLevelMaker",
 	"description": "Logs the player's state every physics tick and every press to a file, and plays GDLM routes (and main levels, in practice mode) back on exact ticks when GDLevelMaker asks (a play.json command file), and adds GDLM levels to My Levels while the game runs (an install inbox, checked on menus only). For GDLevelMaker's sim checks.",
 	"settings": {

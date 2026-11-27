@@ -380,8 +380,11 @@ function build(spec, specFile = "spec", opts = {}) {   // opts.placementsOnly: s
   if (spec.scene) { // a scene script (tools/scenes/<name>.js, SHOWCASE.md): deco + triggers + header channels
     const scene = require(path.resolve(__dirname, "..", spec.scene));
     const beatX = b => GD.SYNC.xOfT(tl, beatTime(ctx, b));
-    const r = scene({ objects, header, spec, ctx, tl, beatX, xOfT: t => GD.SYNC.xOfT(tl, t), GD });
-    objects.push(...r.objects);
+    const n0 = objects.length, r = scene({ objects, header, spec, ctx, tl, beatX, xOfT: t => GD.SYNC.xOfT(tl, t), GD });
+    // a scene returns only its NEW objects; one that returned objects.concat(out) doubled every play object (5 galleries did)
+    const own = r.objects.length >= n0 && n0 && r.objects[0] === objects[0] ? r.objects.slice(n0) : r.objects;
+    if (own !== r.objects) console.log(`   !! ${spec.scene} returned the level's own objects too: only its ${own.length} new ones kept`);
+    objects.push(...own);
     if (r.header) header = r.header;
     if (r.signature) sceneSig = r.signature;
   }

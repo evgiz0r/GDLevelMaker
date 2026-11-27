@@ -23,19 +23,19 @@ const SDZ = require("./structdesign.js");
 
 const THEMES = {
   hellgate: { mood: "molten rock, hot rims", pal: "fire", design: "layered", effects: ["depth"], spikes: "layers", saws: "cog",
-    holders: "chain", indicator: "caret", skies: [{ bg: [40, 10, 14], ground: [16, 4, 6] }, { bg: [58, 14, 10], ground: [22, 5, 4] }, { bg: [28, 18, 20], ground: [12, 8, 9] }],
+    holders: "chain", indicator: "caret", skies: [{ bg: [84, 36, 96], ground: [29, 12, 33] }, { bg: [60, 40, 110], ground: [21, 14, 38] }, { bg: [96, 40, 70], ground: [33, 14, 24] }],
     backdrops: { a: ["mountains", "horizon", "motes"], b: ["geometry", "rays"], c: ["rocks", "motes"] } },
   frost: { mood: "ice slabs, cold light", pal: "ice", design: "inner base", effects: ["bevel"], spikes: "inner", saws: "sawglow",
-    holders: "rope", indicator: "drop", skies: [{ bg: [12, 24, 52], ground: [4, 10, 24] }, { bg: [24, 44, 80], ground: [8, 18, 36] }, { bg: [8, 12, 30], ground: [2, 4, 14] }],
+    holders: "rope", indicator: "drop", skies: [{ bg: [140, 80, 50], ground: [49, 28, 17] }, { bg: [130, 70, 130], ground: [45, 24, 45] }, { bg: [40, 100, 80], ground: [14, 35, 28] }],
     backdrops: { a: ["mountains", "stars"], b: ["clouds", "motes"], c: ["rings", "stars"] } },
   toxic: { mood: "a chemical plant, green glow", pal: "toxic", design: "nested frames", effects: ["depth"], spikes: "core", saws: "sawnest",
-    holders: "rod", indicator: "spark", skies: [{ bg: [10, 26, 14], ground: [4, 12, 6] }, { bg: [18, 34, 10], ground: [6, 14, 4] }],
+    holders: "rod", indicator: "spark", skies: [{ bg: [100, 50, 80], ground: [35, 17, 28] }, { bg: [80, 40, 110], ground: [28, 14, 38] }, { bg: [50, 50, 110], ground: [17, 17, 38] }],
     backdrops: { a: ["skyline", "motes"], b: ["geometry", "horizon"], c: ["rings", "motes"] } },
   void: { mood: "deep space, violet edges", pal: "void", design: "corner brackets", effects: ["long depth"], spikes: "halo", saws: "sawcore",
-    holders: "gdchain", indicator: "pointer", skies: [{ bg: [16, 8, 32], ground: [6, 2, 14] }, { bg: [6, 4, 16], ground: [2, 1, 8] }, { bg: [30, 10, 44], ground: [10, 3, 18] }],
+    holders: "gdchain", indicator: "pointer", skies: [{ bg: [20, 90, 100], ground: [7, 31, 35] }, { bg: [30, 70, 110], ground: [10, 24, 38] }, { bg: [90, 70, 30], ground: [31, 24, 10] }],
     backdrops: { a: ["stars", "rings"], b: ["geometry", "stars"], c: ["stars", "horizon"] } },
   temple: { mood: "a golden temple, warm and rich", pal: "gold", design: "inner diamond", effects: ["depth + bevel"], spikes: "nested", saws: "cog",
-    holders: "chain", indicator: "double chevron", skies: [{ bg: [36, 22, 8], ground: [14, 8, 2] }, { bg: [52, 34, 12], ground: [20, 12, 4] }],
+    holders: "chain", indicator: "double chevron", skies: [{ bg: [40, 70, 130], ground: [14, 24, 45] }, { bg: [90, 50, 110], ground: [31, 17, 38] }, { bg: [30, 90, 100], ground: [10, 31, 35] }],
     backdrops: { a: ["mountains", "rays"], b: ["geometry", "motes"], c: ["clouds", "rays"] } },
 };
 
@@ -43,32 +43,48 @@ const THEMES = {
 const COMBOS = [["single", ["#"]], ["row", ["###"]], ["L", ["#..", "###"]], ["T", ["###", ".#."]], ["3x3", ["###", "###", "###"]],
   ["hill", ["./\\.", "/##\\"]], ["ramp", ["./##", "/###"]], ["ring", ["####", "#..#", "####"]], ["big", ["#######", "#######", "#######", "#######"]]];
 
-// the sample segment, columns from its start: [kind, col, row, extra]
-const SAMPLE = [
-  ["spike", 3, 0],
-  ["block", 8, 0], ["block", 9, 0], ["block", 10, 0], ["block", 11, 0], ["block", 12, 0], ["spike", 11, 1],
-  ["spike", 17, 0],
-  // a floating island with spikes on top, high enough to run under
-  ...[20, 21, 22, 23, 24].flatMap(c => [["block", c, 5], ["block", c, 6]]), ["spike", 21, 7], ["spike", 23, 7],
-  [1707, 27, 0, { dy: -8 }],   // a small saw sunk in the ground: jump it like a spike
-  // a big structure to land on? no: a big one up high, its saw on the corner
-  ...[31, 32, 33, 34, 35, 36, 37].flatMap(c => [4, 5, 6, 7].map(r => ["block", c, r])), [1706, 31, 4, { dy: -15 }],
-  ["spike", 33, 0], ["spike", 41, 0], ["spike", 42, 0],
+// the scene: one continuous level part per theme with every kind of piece in it (Evgeni 2026-11-27: "just 1 full scene
+// with pieces"; "the part should have variaty ( some big structures, hanging , stuff, some slopes, connecting structures")).
+// Text rows, top row first, row 0 = on the ground: # block, / \\ slopes (7 r on the ceiling side), ^ spike, v hanging spike,
+// o saw / q small saw on a corner, s small saw sunk in a top. The cube runs it UP ON the structures (Evgeni 2026-11-27:
+// "gameplay in these themes to be mostly above ground. with the scene having much more structures, and more connected
+// ones. less open space"): masses down to the ground with pits of spikes between, held islands, ceiling masses with
+// hanging spikes over the low stretch.
+const SCENE = [
+  "....#################...............############.#########..........................##########..",
+  "....#################.......................v..v.q########......................................",
+  "....................................................v...........................................",
+  "................................................................................................",
+  ".............................s.......................................................^..........",
+  "...............^..........######..########\\...^..............^..####..####......./######\\.......",
+  "........../########...##########..###############\\......../#####............#############\\......",
+  "...../#############...##########..######################..######............##############\\.....",
+  "/##################^^^##########^^######################^^######^.^.^.^.^.^.###############\\....",
 ];
+const SAMPLE = [];
+SCENE.forEach((line, i) => { const r = SCENE.length - 1 - i;
+  [...line].forEach((ch, c) => {
+    if (ch === "#" || ch === ":") SAMPLE.push(["block", c, r]);
+    else if (ch === "/" || ch === "\\" || ch === "7" || ch === "r") SAMPLE.push(["slope", c, r, { flipX: ch === "\\" || ch === "r", flipY: ch === "7" || ch === "r" }]);
+    else if (ch === "^") SAMPLE.push(["spike", c, r]);
+    else if (ch === "v") SAMPLE.push(["spike", c, r, { rot: 180 }]);
+    else if (ch === "o") SAMPLE.push([1706, c, r, { dy: -15 }]);
+    else if (ch === "q") SAMPLE.push([1707, c, r, { dy: -15 }]);
+    else if (ch === "s") SAMPLE.push([1707, c, r, { dy: -8 }]);
+  }); });
+const SCENE_W = SCENE[0].length, SCENE_END = Math.max(...SCENE.map(l => l.replace(/\.+$/, "").length)) + 2;   // last piece + 2
 
 function list() { for (const [n, t] of Object.entries(THEMES)) console.log(n.padEnd(10) + `${t.pal} ${t.design}${t.effects.length ? " + " + t.effects.join(", ") : ""}; spikes ${t.spikes}, saws ${t.saws}; ${t.holders}; indicator ${t.indicator}; ${t.skies.length} skies; backdrops ${Object.entries(t.backdrops).map(([k, v]) => k + " " + v.join("+")).join(", ")} -- ${t.mood}`); }
 
 function spec() {
-  const objects = ["// design themes: per theme its block combinations, then a sample segment"], sections = [], labels = [], ind = [];
+  const objects = ["// design themes: one scene per theme with every kind of piece"], sections = [], labels = [], ind = [], scenes = [];
   let c = 14;
   for (const [name, t] of Object.entries(THEMES)) {
+    // one continuous scene per theme: its pieces, sky, backdrop and holders together (Evgeni: "just 1 full scene")
     sections.push({ from: c - 6, theme: name, backdrop: "a", sky: 0 }); labels.push([c - 6, name]); ind.push([c - 6, t.indicator]);
-        const L = SDZ.lay(COMBOS, c, 3, 2);
-    for (const [x, y, k] of L.cells) objects.push(k === "#" ? ["block", x, y] : ["slope", x, y, { flipX: k[1] === "l", flipY: k[0] === "t" }]);
-    c = L.end + 6;
-    sections.push({ from: c - 2, theme: name, backdrop: "b", sky: 1 });
     for (const [kind, dc, r, ex] of SAMPLE) objects.push(ex ? [kind, c + dc, r, ex] : [kind, c + dc, r]);
-    c += 50;
+    scenes.push({ name, c0: c - 4, c1: c + SCENE_END });
+    c += SCENE_W + 24;   // room after the scene, so its picture's last frame stays in this theme
   }
   ind.push([c - 3, "none"]);
   return {
@@ -77,7 +93,7 @@ function spec() {
     colours: { bg: THEMES.hellgate.skies[0].bg, ground: THEMES.hellgate.skies[0].ground },
     structures: { sections, ch0: [700, 710, 720, 730, 740], hazCh0: [750, 757, 764, 771, 778], bgCh0: [880, 884, 888, 892, 896], maxLooks: 10 },
     indicators: { all: true, style: ind, colour: sections.map(s => [s.from, "auto"]) },
-    scene: "tools/scenes/themegallery.js", labels, outro: 76, signature: {}, objects,
+    scene: "tools/scenes/themegallery.js", labels, scenes, outro: 76, signature: {}, objects,
   };
 }
 // a theme entry -> its full combination: a name ("frost"), {theme: "frost", <any field overridden>}, or a whole new one

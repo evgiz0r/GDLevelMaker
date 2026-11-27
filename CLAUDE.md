@@ -138,7 +138,7 @@ things take" below). The tools below still work one by one.
    every session's work in progress live, marks from the phone. Republish it when the viewer or
    the pushed levels change (`node tools/web.js --out <scratchpad>/web`, link in local/phone/url.txt).
 4. `node tools/install.js levels/<name>.gdlvl` puts it at the top of My Levels (backs the save up first). With the game
-   closed it writes the save; **with GD running it goes through the probe mod's install inbox** (mod v0.6.0+, on a menu
+   closed it writes the save; **with GD running it goes through the probe mod's install inbox** (mod v0.6.1+, on a menu
    only, keeps the online ID, GD saves it; GEODE.md "Install into a running GD", `node tools/hotinstall.js status|results`);
    mod not loaded -> it queues it (`tools/install_queue.js`, installed when GD closes). The user plays it
    and reports. The user's game is GD **2.2091** on Steam (Windows; Steam updated it 2026-10-21 -- older notes say 2.2081) with Geode 6.0.0 (2026-11-25); our probe mod `mods/gdlm-probe` is built with `tools\geode_build.cmd` and installed, and runs (GEODE.md "Building on this PC": Smart App Control blocks the Geode CLI, so `tools/geode_pack.js` packs).
