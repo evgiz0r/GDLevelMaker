@@ -332,9 +332,19 @@ window.initDesigns = async function (root) {
   root.addEventListener("pointerdown", e => { const ts = e.target.closest && e.target.closest(".tiles"); if (!ts) return; e.preventDefault();
     ts.setPointerCapture(e.pointerId); const k = ts.dataset.k; LACT = k; const w = ts.closest(".dc"); if (w) w.dataset.id = k;
     HIST.push({ k, tiles: (DRAW[k] || {}).tiles ? JSON.parse(JSON.stringify(DRAW[k].tiles)) : null }); if (HIST.length > 50) HIST.shift();
-    painting = { k, svg: ts, done: new Set(), changed: false }; paint(k, cellOf(ts, e), true); }, true);
+    painting = { k, svg: ts, done: new Set(), changed: false }; const c0 = cellOf(ts, e); paint(k, c0, true);
+    const st = root.querySelector(".lay .pst"); if (st) st.textContent = c0 ? `${TOOL === "erase" ? "erase" : TOOL} at col ${c0[0]}, row ${c0[1]}` : "tap outside the grid"; }, true);
   root.addEventListener("pointermove", e => { if (!painting) return; paint(painting.k, cellOf(painting.svg, e), false); }, true);
-  const endPaint = () => { if (!painting) return; const { k, changed } = painting; painting = null; if (changed) { saveDraw(k); render(); } };
+  let lastPaint = 0;
+  const endPaint = () => { if (!painting) return; const { k, changed } = painting; painting = null; lastPaint = Date.now(); if (changed) { saveDraw(k); render(); } };
+  // a tap also arrives as a click (Evgeni 2026-11-27: "i click nothing happens, im on blocks"): when no pointer stroke
+  // handled it just before (some views never pass pointer events on), the click places or takes away the tile itself
+  root.addEventListener("click", e => { const ts = e.target.closest && e.target.closest(".tiles"); if (!ts || Date.now() - lastPaint < 400) return;
+    const k = ts.dataset.k, cell = cellOf(ts, e); LACT = k; const st = root.querySelector(".lay .pst");
+    if (!cell) { if (st) st.textContent = "tap outside the grid"; return; }
+    HIST.push({ k, tiles: (DRAW[k] || {}).tiles ? JSON.parse(JSON.stringify(DRAW[k].tiles)) : null });
+    painting = { k, svg: ts, done: new Set(), changed: false }; paint(k, cell, true); const ch = painting.changed; painting = null; lastPaint = Date.now();
+    if (ch) { saveDraw(k); render(); } }, true);
   root.addEventListener("pointerup", endPaint, true); root.addEventListener("pointercancel", endPaint, true);
   root.addEventListener("pointerdown", e => { const svg = e.target.closest && e.target.closest(".ink.on:not(.tiles)"); if (!svg) return; e.preventDefault();
     svg.setPointerCapture(e.pointerId); const id = svg.dataset.k || svg.closest(".dc").dataset.id; if (svg.dataset.k) { LACT = id; const w = svg.closest(".dc"); if (w) w.dataset.id = id; }

@@ -86,6 +86,9 @@ function connectors(blocks, o = {}) {
     // sides find no clear pair gets one holder at the clearest middle cell
     const tryDir = d => {
       if (!pair) { const mc = I.c0 + Math.floor((w - 1) / 2);
+        // an even width hangs from its exact middle, on the line between the two middle cells (Evgeni 2026-11-27, hellgate
+        // col 9: "the hanging of a triangle should either be symmetrical or some other kind of hanger coming from the middle")
+        if (w % 2 === 0) { const q = seg(X(I.c0) + w * 15, d); if (q) return [Object.assign(q, { centre: true })]; }
         for (let k = 0; k < w; k++) for (const c of [mc - k, mc + k + 1]) { if (c < I.c0 || c > I.c1) continue; const q = seg(X(c) + 15, d); if (q) return [q]; }
         return null; }
       const half = Math.floor((w - 1) / 2);
@@ -146,7 +149,12 @@ function draw(conns, C, o = {}) {
       for (let k = 1, y = q.y0 + 15; y < q.y1 - 2; y += 15, k++) {
         put(211, cx, y, { ch: C.line, sx: bw / 30, sy: 0.05, hsv: hsv(0.55), zo: 4 });
         for (let xx = x0 + (k % 2 ? 15 : 30); xx < x0 + bw - 2; xx += 30) put(211, xx, y - 7.5, { ch: C.line, sx: 0.05, sy: 0.5, hsv: hsv(0.55), zo: 4 }); }
-      if (!o.filletsDressed) for (const f of g.fillets) put(693, f.x, f.y, { ch: C.base, hsv: hsv(0.9), zo: 3, flipX: f.flipX, flipY: f.flipY });
+      // the fillets in the hanger's own look (Evgeni 2026-11-27, hellgate col 24: "the connecting slopes should be of the
+      // hanger type, not the structure"): the pillar's body and outline, one brick seam across the middle
+      for (const f of g.fillets) { const fl = { flipX: f.flipX, flipY: f.flipY };
+        put(693, f.x, f.y, Object.assign({ ch: C.line, hsv: hsv(1), s: 1.06 }, fl));
+        put(693, f.x + (f.flipX ? -0.9 : 0.9), f.y + (f.flipY ? 0.9 : -0.9), Object.assign({ ch: C.base, hsv: hsv(0.9), zo: 3, s: 0.94 }, fl));
+        put(211, f.x + (f.flipX ? -7.5 : 7.5), f.y, { ch: C.line, sx: 0.5, sy: 0.05, hsv: hsv(0.55), zo: 4 }); }
     } else if (style === "gdchain") {
       const L = 2.32 * 30 * 0.6, n = Math.max(1, Math.ceil(len / L));
       for (let k = 0; k < n; k++) { const t = (k + 0.5) / n; put(41, vert ? q.x0 : q.x0 + len * t, vert ? q.y0 + len * t : q.y0, { ch: C.line, s: 0.6, rot, hsv: hsv(1) }); }
@@ -169,11 +177,15 @@ function brickParts(conns, solid, squares) {
     const ya = at - dir * 15;   // the row the pillar is attached to
     let bw = (q.w || 1) >= 8 ? 60 : 30, cx = G ? (bw === 30 ? G.ox + Math.floor((q.x0 - G.ox) / 30) * 30 + 15 : G.ox + Math.round((q.x0 - G.ox) / 30) * 30) : q.x0;
     if (bw === 60 && !(on(cx - 15, ya) && on(cx + 15, ya))) { bw = 30; cx = G.ox + Math.floor((q.x0 - G.ox) / 30) * 30 + 15; }
+    if (q.centre) { bw = 30; cx = q.x0; }
     return { q, cx, bw, at, dir, ya, on, fillets: [] }; });
   // the cells every pillar takes
   const used = new Set(solid || []), ck = (x, y) => Math.floor(x / 30) + "," + Math.floor(y / 30);
   for (const g of geo) if (g) for (let y = g.q.y0 + 1; y < g.q.y1; y += 30) for (let x = g.cx - g.bw / 2 + 1; x < g.cx + g.bw / 2; x += 30) used.add(ck(x, y));
-  for (const g of geo) if (g) for (const side of [-1, 1]) {
+  // a pillar under the gameplay (standing) gets ONE fillet, on the side toward its structure's middle (Evgeni 2026-11-27,
+  // hellgate col 40: "not all connections of blocks on gameplay need slopes, just 1"); a hanging one keeps both
+  const mid = g => { const G = g.q.cells; if (!G) return g.cx; let s = 0, n = 0; for (const k of G.set) { s += +k.split(",")[0]; n++; } return G.ox + (s / n) * 30 + 15; };
+  for (const g of geo) if (g) for (const side of (g.q.kind === "stand" ? [mid(g) < g.cx ? -1 : 1] : [-1, 1])) {
     const x = g.cx + side * (g.bw / 2 + 15), y = g.at + g.dir * 15;
     // and only on a full square: a fillet on a slope's slant floated off it (hellgate's hanging peak)
     if (!g.on(x, g.ya) || used.has(ck(x, y)) || (squares && !squares.has(ck(x, g.ya)))) continue;

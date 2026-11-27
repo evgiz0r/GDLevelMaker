@@ -48,10 +48,12 @@ change. The detailed write-ups stay in the linked docs.
 - **Fillets:** a 45-degree slope fills the corner where a pillar meets a structure, **only where the structure goes on
   under it.** If there's no room, move the pillar to the side, drop that fillet, or drop both. Source: Evgeni,
   2026-11-27, hellgate col 27.
-- **Fillets are part of the structure,** not of the holder: a slope cell dressed with the structure's own design (edge
-  line, layers, shade), only on a full square, never on a cell that another pillar, fillet or block already takes. A
-  narrow island (under 5 wide) gets one pillar in its middle, not two whose fillets meet. Pillars never go through a
-  spike or saw. Source: Evgeni, 2026-11-27, hellgate cols 43, 52 and 106; tools/connect.js brickParts, structdeco.js.
+- **Fillets belong to the hanger:** they take the pillar's body, outline and brick seam, not the structure's design
+  (Evgeni, 2026-11-27, hellgate col 24: "of the hanger type, not the structure"). They sit only on a full square, never on
+  a cell that another pillar, fillet or block already takes. A pillar under the gameplay (standing) gets one fillet,
+  toward its structure's middle; a hanging one keeps both (col 40). A narrow island (under 5 wide) gets one pillar in its
+  middle, and an even-width one hangs from its exact centre line, so a peak hangs symmetrically (col 9). Pillars never go
+  through a spike or saw. Source: tools/connect.js connectors / brickParts.
 - **Slopes are shaded like the squares beside them** (the top-lit ramp at their height). Source: hellgate col 122,
   structdesign `shade`.
 - **Ledges of grounded structures** count too: a run of 2+ cells with nothing under it stands on a pillar at its free

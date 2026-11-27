@@ -35,9 +35,9 @@ const SECTIONS = [
     G.box(16, 19, 0, 4); G.box(20, 23, 0, 3); G.box(24, 27, 0, 2);
     G.put(21, 4, "^");
     return G.rows(); })() },
-  { key: "opencube", name: "open cube corridor", mode: "cube", note: "a floor with pits and a far ceiling: lots of room, platforms in the middle", map: (() => {
-    const G = grid(32, 12);
-    G.box(0, 31, 11, 11);
+  // fully open on the top (Evgeni 2026-11-27: "on open cube we want it fully open on the top")
+  { key: "opencube", name: "open cube corridor", mode: "cube", note: "a floor with pits, nothing overhead: lots of room, platforms in the middle", map: (() => {
+    const G = grid(32, 8);
     G.box(0, 6, 0, 1); G.box(7, 9, 0, 0, "^"); G.box(10, 17, 0, 1); G.box(18, 20, 0, 0, "^"); G.box(21, 31, 0, 1);
     G.box(12, 15, 5, 5); G.put(14, 6, "^");
     G.box(24, 26, 4, 4); G.put(13, 2, "^"); G.put(28, 2, "^");

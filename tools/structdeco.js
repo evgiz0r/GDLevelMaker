@@ -79,8 +79,7 @@ function pass(level, events, opts, spec) {
     const mine = blocks.filter(b => st.S.has(Math.round((b.x - 15 - st.ox) / 30) + "," + Math.round((b.y - 15 - st.oy) / 30)));
     groups[secOf(x0)].push(...mine);
   }
-  // holders first: a brick pillar's fillets are slope cells of the structure it holds, dressed with it (Evgeni 2026-11-27,
-  // hellgate: the fillets had "no block design inside them" and no edge "like the regular blocks")
+  // holders first, so their pieces are known before the structures are dressed
   let tally = {}, conns = [], brick = [];
   const styleOf = i => (o.holders && o.secs[i].holders) || o.holders;
   if (o.holders) {
@@ -96,7 +95,7 @@ function pass(level, events, opts, spec) {
     const squares = new Set(blocks.filter(b => b.id !== 1338).map(b => Math.floor(b.x / 30) + "," + Math.floor(b.y / 30)));
     CN.brickParts(brick, solid, squares).forEach((g, k) => { brick[k].brick = g;
       const i = secOf(Math.min(brick[k].x0, brick[k].x1));
-      for (const f of g.fillets) groups[i].push({ id: 1338, x: f.x, y: f.y, flipX: f.flipX, flipY: f.flipY, rot: 0, props: {} }); });
+      /* fillets are drawn by connect.js in the hanger's look (Evgeni: "of the hanger type, not the structure") */ });
   }
   const out = [];
   o.secs.forEach((s, i) => { if (!groups[i].length) return;
@@ -133,7 +132,7 @@ function pass(level, events, opts, spec) {
       const parts = SPK.strip(SPK.dress(h, name, C)); nh += parts.length ? 1 : 0; out.push(...parts); } });
   if (nh) notes.push(`hazards: ${nh} dressed (${[...new Set(o.secs.map(s => [s.spikes, s.saws].filter(Boolean).join("/")))].join(", ")})`);
   if (o.holders) o.secs.forEach((s, i) => { const mine = conns.filter(q => secOf(Math.min(q.x0, q.x1)) === i);
-    if (mine.length) out.push(...CN.draw(mine, pals.get(palKey(s.pal)).C, { style: styleOf(i), filletsDressed: true })); });
+    if (mine.length) out.push(...CN.draw(mine, pals.get(palKey(s.pal)).C, { style: styleOf(i) })); });
   notes.unshift(`structures: ${SD.structures(blocks).length} dressed in ${looks.size} look(s) (${o.secs.map(s => `${s.from}: ${s.design}/${typeof s.pal === "string" ? s.pal : "custom"}${[].concat(s.effects || []).length ? "+" + [].concat(s.effects).join("+") : ""}`).join(", ")}), +${out.length} objects; holders ${o.holders ? JSON.stringify(tally) : "off"}`);
   return { objects: out, header, notes };
 }
