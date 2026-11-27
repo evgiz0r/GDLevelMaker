@@ -11,7 +11,8 @@
    "note": "",
    "row": 5,
    "x": 945,
-   "y": 164
+   "y": 164,
+   "fixed": "2026-11-27"
   },
   {
    "at": "2026-11-27T10:32:13.684Z",
@@ -23,7 +24,8 @@
    "note": "",
    "row": 8,
    "x": 1826,
-   "y": 251
+   "y": 251,
+   "fixed": "2026-11-27"
   },
   {
    "at": "2026-11-27T10:35:41.780Z",
@@ -35,7 +37,23 @@
    "note": "",
    "row": 3,
    "x": 3450,
-   "y": 107
+   "y": 107,
+   "fixed": "2026-11-27"
+  },
+  {
+   "at": "2026-11-27T11:44:09.606Z",
+   "col": 96,
+   "design": "theme:hellgate",
+   "fx": 0.7589,
+   "fy": 0.6854,
+   "mid": "mmwywgfsjzxco",
+   "note": "two structures merging should always have some kind of merging beneath the gameplay",
+   "reply": "Seen: which two structures? Asked on the page; waiting.",
+   "row": 3,
+   "seen": true,
+   "sentNote": "two structures merging should always have some kind of merging beneath the gameplay",
+   "x": 3388,
+   "y": 92
   }
  ]
 }
