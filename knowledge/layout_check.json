@@ -2145,7 +2145,7 @@
   "name": "flying corridor",
   "mode": "ship",
   "cols": 36,
-  "ms": 42672,
+  "ms": 37380,
   "route": [
    [
     -0.5,
@@ -2620,6 +2620,7 @@
    "low": false,
    "high": false
   },
+  "skips": [],
   "mapHash": 1020782676,
   "ok": true,
   "presses": 4,
@@ -2643,14 +2644,14 @@
   "attempts": 2,
   "log": 0.22,
   "label": "Easy",
-  "at": "2026-11-27T19:36"
+  "at": "2026-11-27T20:14"
  },
  "wave": {
   "key": "wave",
   "name": "wave corridor",
   "mode": "wave",
   "cols": 41,
-  "ms": 3475,
+  "ms": 3177,
   "route": [
    [
     -0.42,
@@ -3191,6 +3192,7 @@
    "low": true,
    "high": true
   },
+  "skips": [],
   "mapHash": 687906146,
   "ok": true,
   "presses": 6,
@@ -3214,14 +3216,14 @@
   "attempts": 3,
   "log": 0.51,
   "label": "Normal",
-  "at": "2026-11-27T19:36"
+  "at": "2026-11-27T20:14"
  },
  "flappy": {
   "key": "flappy",
   "name": "flappy bird corridors",
   "mode": "ufo",
   "cols": 34,
-  "ms": 15948,
+  "ms": 13755,
   "route": [
    [
     -0.27,
@@ -3676,6 +3678,7 @@
    "low": true,
    "high": true
   },
+  "skips": [],
   "mapHash": 966013109,
   "ok": true,
   "presses": 5,
@@ -3699,7 +3702,7 @@
   "attempts": 1,
   "log": 0.09,
   "label": "Easy",
-  "at": "2026-11-27T19:36"
+  "at": "2026-11-27T20:14"
  },
  "ball": {
   "key": "ball",
