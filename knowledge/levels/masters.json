@@ -1,0 +1,12 @@
+{
+ "about": "The masters reference set (board task gen-masters): the levels the generator's targets come from. The 22 main levels are the main structural targets (closest to what we make). The 4 levels below, from knowledge/levels/top100_gdtoday_2023.json (pre-2.2), were approved by the user on 2026-11-28 for general taste and light structuring only: 'i would use them more for some general taste and slight structuring. the hard demons are a bit far from us though'. So: learn their sync, pacing, mood and how sections change, never copy their density or difficulty. Dropped from the proposal: Change of Scene, CastleMania, B, DeCode, X, Bloodbath.",
+ "status": "approved 2026-11-28",
+ "mains": { "role": "structure targets", "levels": "official 1-22 (local/official_NN.json, routes in knowledge/mains/routes.json)" },
+ "taste": [
+  { "rank": 1, "name": "Death Moon", "creator": "Caustic", "id": 8660411, "user": "beaten", "learn": "music sync: gameplay and effects tied to the song" },
+  { "rank": 3, "name": "Nine Circles", "creator": "Zobros", "id": 4284013, "user": "best 12%", "learn": "a gameplay style with a strong identity: rhythm and repetition done right" },
+  { "rank": 8, "name": "Lonely Travel", "creator": "FunnyGame", "id": 17924880, "user": "best 0%", "learn": "a level as a journey: pacing, calm and intense parts, mood over the length" },
+  { "rank": 17, "name": "Future Funk", "creator": "JonathanGD", "id": 44062068, "user": "best 25%", "learn": "speed and density following the music in a fast level" }
+ ],
+ "open": "no non-demon levels yet: easier-tier structure targets come only from the main levels"
+}
