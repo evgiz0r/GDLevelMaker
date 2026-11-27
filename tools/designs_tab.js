@@ -19,7 +19,11 @@ window.initDesigns = async function (root) {
   #designs .lyh{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:6px 8px;font-size:12px}#designs .lfold{cursor:pointer;color:var(--mute)}
   #designs .lyh button{background:#241d3d;color:#ddd;border:1px solid #444;border-radius:6px;padding:2px 7px;font-size:12px}#designs .lyh .pen.on{outline:2px solid currentColor}
   #designs .ink{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}#designs .ink.on{pointer-events:auto;cursor:crosshair;touch-action:none;outline:2px dashed #ffd84d}
-  #designs .ink polyline{fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+  #designs .board.fs{position:fixed;inset:0;z-index:1000;background:#0f0c2b;overflow:auto}#designs .board.fs .wide{overflow:auto}
+  #designs .lk.blank img{visibility:hidden}#designs .lk.blank{background:#1a1636;background-image:linear-gradient(#ffffff10 1px,transparent 1px),linear-gradient(90deg,#ffffff10 1px,transparent 1px);background-size:20px 20px}
+  #designs .pens{display:flex;flex-wrap:wrap;gap:4px;align-items:center}#designs .pcol{width:22px;height:22px;padding:0!important;border-radius:11px!important}#designs .pcol.on,#designs .pw.on,#designs .perase.on{outline:2px solid #ffd84d}
+  #designs .pany{width:26px;height:24px;padding:0;border:0;background:none}#designs .pw i{display:block;width:16px;background:#ddd;border-radius:2px}
+  #designs .ink polyline{fill:none;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
   #designs .zw{position:relative}#designs .zb{position:absolute;right:6px;top:6px;display:flex;gap:4px}
   #designs .zb button{width:30px;height:30px;border-radius:15px;border:1px solid #555;background:#1b1538cc;color:#fff;font:700 16px/1 system-ui}
   #designs .mk{position:relative;display:inline-block;line-height:0}#designs .mk img{display:block}
@@ -50,7 +54,8 @@ window.initDesigns = async function (root) {
   let VOTES = {}, DB = null, CM = null, CAN_SEND = false, MODE = "designs", MARKS = [], MARKING = null;
   // typed mark notes not yet confirmed by the database: they win over snapshots, so a re-render never drops text
   const PENS = { block: "#ffffff", hazard: "#ff5a5a", note: "#ffd84d" }, PENL = { block: "▭ block", hazard: "▲ hazard", note: "✎ note" };
-  let DRAWING = null, PEN = "block"; const DRAW = {}, DST = {};
+  let DRAWING = null, PEN = "block", PCOL = "#ffffff", PW_ = 4, ERASE = false, FS = null; const DRAW = {}, DST = {}, BG = {};
+  const COLS = ["#ffffff", "#ff5a5a", "#ffd84d", "#5ad1ff", "#7be38a", "#ff9a3c", "#c77dff", "#111111"];
   const PEND = {}, MST = {}; let saveT = null, lastKey = 0, holdT = null;
   // claude.ai refuses a send-to-Claude within ~6 s of a key typed in the page ("Not sent to Claude. Your last key or click
   // may not have been meant for this artifact"), so 📨 waits out the typing with a countdown (Evgeni 2026-11-27)
@@ -106,11 +111,20 @@ window.initDesigns = async function (root) {
     // a whiteboard on it ("where is the white board we wanted for the layout"): ✏ draw, a pen per kind (block, hazard,
     // note), strokes saved as revisions in collection "designdraw" (tools/designs.js drawings renders them)
     const lo = open["layout:" + d.id] !== false, dr = DRAWING === d.id, sk = (DRAW[d.id] || {}).strokes || [];
-    const svg = `<svg class="ink${dr ? " on" : ""}" viewBox="0 0 1000 100" preserveAspectRatio="none">${sk.map(st => `<polyline points="${st.p.map(q => (q[0] * 1000).toFixed(1) + "," + (q[1] * 100).toFixed(2)).join(" ")}" stroke="${PENS[st.k] || "#fff"}" />`).join("")}</svg>`;
-    const layoutUI = d.kind !== "theme" || !d.layout ? "" : `<div class="lyh"><span class="lfold" role="button" data-lf="${esc(d.id)}">${lo ? "▾" : "▸"} layout${sk.length ? ` · ✏ ${sk.length}` : ""}</span>`
-      + (lo ? (dr ? `<span class="pens">${Object.keys(PENS).map(k => `<button class="pen${PEN === k ? " on" : ""}" data-pen="${k}" style="color:${PENS[k]}">${PENL[k]}</button>`).join("")}<button class="pundo">↶</button><button class="pclear">🗑</button><button class="pdone">✓ done</button></span>`
-        : `<button class="pdraw">✏ draw</button>`) + (sk.length && !ms.length ? `<button class="msend" data-label="📨 send to Claude"${CAN_SEND ? "" : " disabled"}>📨 send to Claude</button>` : "") + `<span class="ds pst">${esc(DST[d.id] || "")}</span>` : "") + `</div>`
-      + (lo ? `<div class="wide" data-w="L:${esc(d.id)}"><div class="mk lk" style="--zh:${zh}px"><img loading="lazy" src="${esc(d.layout)}" alt="layout">${svg}</div></div>` : "");
+    // FREE BOARD (Evgeni 2026-11-27: "give me some freer controls, where i free draw for now"): draw over the layout, the
+    // scene or a blank page; any colour, three sizes, an eraser that takes out the strokes it touches, undo, clear and a
+    // full-screen board. A stroke is {c colour, w width, p [[fx, fy] ...] in 0..1 of the picture}.
+    const bg = BG[d.id] || "layout", fs = FS === d.id;
+    const svg = `<svg class="ink${dr ? " on" : ""}" viewBox="0 0 1000 100" preserveAspectRatio="none">${sk.map(st => `<polyline points="${st.p.map(q => (q[0] * 1000).toFixed(1) + "," + (q[1] * 100).toFixed(2)).join(" ")}" stroke="${esc(st.c || PENS[st.k] || "#fff")}" style="stroke-width:${+st.w || 3}px" />`).join("")}</svg>`;
+    const tools = `<span class="pens">${COLS.map(c => `<button class="pcol${PCOL === c && !ERASE ? " on" : ""}" data-c="${c}" style="background:${c}"></button>`).join("")}`
+      + `<input type="color" class="pany" value="${PCOL}" title="any colour">`
+      + [2, 4, 8].map(w => `<button class="pw${PW_ === w ? " on" : ""}" data-w="${w}"><i style="height:${w}px"></i></button>`).join("")
+      + `<button class="perase${ERASE ? " on" : ""}">⌫ eraser</button><button class="pundo">↶</button><button class="pclear">🗑</button>`
+      + `<select class="pbg">${[["layout", "on the layout"], ["scene", "on the scene"], ["blank", "blank page"]].map(([v, t]) => `<option value="${v}"${bg === v ? " selected" : ""}>${t}</option>`).join("")}</select>`
+      + `<button class="pfs">${fs ? "⤡ exit full screen" : "⛶ full screen"}</button><button class="pdone">✓ done</button></span>`;
+    const layoutUI = d.kind !== "theme" || !d.layout ? "" : `<div class="board${fs ? " fs" : ""}"><div class="lyh"><span class="lfold" role="button" data-lf="${esc(d.id)}">${lo ? "▾" : "▸"} layout${sk.length ? ` · ✏ ${sk.length}` : ""}</span>`
+      + (lo ? (dr ? tools : `<button class="pdraw">✏ draw</button>`) + (sk.length && !ms.length ? `<button class="msend" data-label="📨 send to Claude"${CAN_SEND ? "" : " disabled"}>📨 send to Claude</button>` : "") + `<span class="ds pst">${esc(DST[d.id] || "")}</span>` : "") + `</div>`
+      + (lo ? `<div class="wide" data-w="L:${esc(d.id)}"><div class="mk lk${bg === "blank" ? " blank" : ""}" style="--zh:${fs ? "calc(100vh - 120px)" : zh + "px"}"><img loading="lazy" src="${esc(bg === "scene" ? d.card : d.layout)}" alt="layout">${svg}</div></div>` : "") + `</div>`;
     const media = d.kind === "theme" ? layoutUI + `<div class="zw"><div class="wide" data-w="${esc(d.id)}"><div class="mk${MARKING === d.id ? " on" : ""}" style="--zh:${zh}px">${img}${pins}</div></div>`
       + `<div class="zb"><button class="zoom" data-z="-1" title="zoom out">−</button><button class="zoom" data-z="1" title="zoom in">＋</button></div></div>`
       : d.kind === "structure" ? `<div class="wide">${img}</div>` : img;
@@ -166,8 +180,11 @@ window.initDesigns = async function (root) {
     const lf = e.target.closest(".lfold");
     if (lf) { const k = "layout:" + lf.dataset.lf; open[k] = open[k] === false; try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} render(); return; }
     if (e.target.closest(".pdraw")) { DRAWING = e.target.closest(".dc").dataset.id; render(); return; }
-    if (e.target.closest(".pdone")) { DRAWING = null; render(); return; }
-    const pn = e.target.closest(".pen"); if (pn) { PEN = pn.dataset.pen; render(); return; }
+    if (e.target.closest(".pdone")) { DRAWING = null; FS = null; ERASE = false; render(); return; }
+    const pc = e.target.closest(".pcol"); if (pc) { PCOL = pc.dataset.c; ERASE = false; render(); return; }
+    const pw = e.target.closest(".pw"); if (pw) { PW_ = +pw.dataset.w; render(); return; }
+    if (e.target.closest(".perase")) { ERASE = !ERASE; render(); return; }
+    if (e.target.closest(".pfs")) { const id = e.target.closest(".dc").dataset.id; FS = FS === id ? null : id; render(); return; }
     if (e.target.closest(".pundo") || e.target.closest(".pclear")) { const id = e.target.closest(".dc").dataset.id, D0 = DRAW[id] || { strokes: [] };
       DRAW[id] = { strokes: e.target.closest(".pclear") ? [] : D0.strokes.slice(0, -1) }; render(); saveDraw(id); return; }
     const zb = e.target.closest(".zoom");
@@ -217,12 +234,20 @@ window.initDesigns = async function (root) {
   let cur = null;
   const ptOf = (svg, e) => { const r = svg.getBoundingClientRect(); return [+((e.clientX - r.left) / r.width).toFixed(4), +((e.clientY - r.top) / r.height).toFixed(4)]; };
   root.addEventListener("pointerdown", e => { const svg = e.target.closest && e.target.closest(".ink.on"); if (!svg) return; e.preventDefault();
-    svg.setPointerCapture(e.pointerId); const id = svg.closest(".dc").dataset.id; cur = { id, svg, st: { k: PEN, p: [ptOf(svg, e)] } };
-    const pl = document.createElementNS("http://www.w3.org/2000/svg", "polyline"); pl.setAttribute("stroke", PENS[PEN]); svg.appendChild(pl); cur.pl = pl; });
-  root.addEventListener("pointermove", e => { if (!cur) return; const q = ptOf(cur.svg, e), l = cur.st.p[cur.st.p.length - 1];
+    svg.setPointerCapture(e.pointerId); const id = svg.closest(".dc").dataset.id;
+    if (ERASE) { cur = { id, svg, erase: true }; eraseAt(id, svg, e); return; }
+    cur = { id, svg, st: { c: PCOL, w: PW_, p: [ptOf(svg, e)] } };
+    const pl = document.createElementNS("http://www.w3.org/2000/svg", "polyline"); pl.setAttribute("stroke", PCOL); pl.style.strokeWidth = PW_ + "px"; svg.appendChild(pl); cur.pl = pl; });
+  // the eraser takes out every stroke with a point within ~12 px of it
+  function eraseAt(id, svg, e) { const D0 = DRAW[id]; if (!D0 || !D0.strokes.length) return; const r = svg.getBoundingClientRect(), q = ptOf(svg, e);
+    const near = st => st.p.some(z => Math.hypot((z[0] - q[0]) * r.width, (z[1] - q[1]) * r.height) < 12);
+    const keep = D0.strokes.filter(st => !near(st)); if (keep.length === D0.strokes.length) return;
+    DRAW[id] = { strokes: keep }; cur.erased = true; const pls = svg.querySelectorAll("polyline"); D0.strokes.forEach((st, k) => { if (near(st) && pls[k]) pls[k].remove(); }); }
+  root.addEventListener("pointermove", e => { if (!cur) return; if (cur.erase) return eraseAt(cur.id, cur.svg, e); const q = ptOf(cur.svg, e), l = cur.st.p[cur.st.p.length - 1];
     if (Math.abs(q[0] - l[0]) + Math.abs(q[1] - l[1]) < 0.002) return; cur.st.p.push(q);
     cur.pl.setAttribute("points", cur.st.p.map(z => (z[0] * 1000).toFixed(1) + "," + (z[1] * 100).toFixed(2)).join(" ")); });
-  const endStroke = () => { if (!cur) return; const { id, st } = cur; cur = null; if (st.p.length < 2) return;
+  const endStroke = () => { if (!cur) return; const { id, st } = cur, er = cur.erase && cur.erased; cur = null;
+    if (er) { render(); saveDraw(id); return; } if (!st || st.p.length < 2) return;
     (DRAW[id] = DRAW[id] || { strokes: [] }).strokes.push(st); saveDraw(id); };
   root.addEventListener("pointerup", endStroke); root.addEventListener("pointercancel", endStroke);
   // each save a new document (the marks lesson: rewrites never landed); readers take the newest per design
@@ -239,6 +264,8 @@ window.initDesigns = async function (root) {
   root.addEventListener("focusout", e => { if (e.target.closest && e.target.closest("[data-m]")) flushMarks(); });
   root.addEventListener("change", async e => {
     if (e.target.id === "dvf") return render();
+    if (e.target.classList.contains("pany")) { PCOL = e.target.value; ERASE = false; render(); return; }
+    if (e.target.classList.contains("pbg")) { BG[e.target.closest(".dc").dataset.id] = e.target.value; render(); return; }
     const mrow = e.target.closest("[data-m]");
     if (mrow) { PEND[mrow.dataset.m] = e.target.value; await saveMark(mrow.dataset.m); return; }
     if (e.target.tagName !== "TEXTAREA") return;
