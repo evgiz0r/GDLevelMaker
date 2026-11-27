@@ -41,6 +41,8 @@ window.initDesigns = async function (root) {
   let VOTES = {}, DB = null, CM = null, CAN_SEND = false, MODE = "designs", MARKS = [], MARKING = null;
   // typed mark notes not yet confirmed by the database: they win over snapshots, so a re-render never drops text
   const PEND = {}, MST = {}; let saveT = null;
+  // a mark is sent once: 📨 sends only marks never sent, or whose note changed since (no repeats; Evgeni 2026-11-27)
+  const unsent = m => !m.seen && noteOf(m).trim() && m.sentNote !== noteOf(m).trim();
   const noteOf = m => PEND[m.mid] !== undefined ? PEND[m.mid] : (m.note || "");
   async function saveMark(mid) {
     const m = MARKS.find(z => z.mid === mid); if (!m) return;
@@ -76,7 +78,7 @@ window.initDesigns = async function (root) {
       + `<div class="mks">${ms.map((m, i) => `<div data-m="${esc(m.mid)}"><b>${i + 1}</b><input value="${esc(noteOf(m))}" placeholder="what is off here"><button class="mdel" title="remove">✕</button><span class="ds mst">${esc(MST[m.mid] || "")}</span></div>`).join("")}`
       + (seen.length ? `<div class="mseen-h" role="button" data-seen="${esc(d.id)}">${so ? "▾" : "▸"} ✓ ${seen.length} seen by Claude, being fixed</div>`
         + (so ? seen.map(m => `<div class="mseen" data-m="${esc(m.mid)}">✓ <span>${esc(m.note || "")}</span>${m.reply ? `<i>${esc(m.reply)}</i>` : ""}<button class="mdel" title="remove">✕</button></div>`).join("") : "") : "")
-      + (ms.length && CAN_SEND ? `<button class="msend" title="send these notes to Claude in chat">📨 send marks to Claude</button><span class="ds msst"></span>` : "") + `</div>`
+      + (CAN_SEND && ms.some(unsent) ? `<button class="msend" title="send the new notes to Claude">📨 send ${ms.filter(unsent).length} new to Claude</button><span class="ds msst"></span>` : ms.length && CAN_SEND ? `<span class="ds">all sent to Claude</span>` : "") + `</div>`
       : d.kind === "structure" ? `<div class="wide">${img}</div>` : img;
     return `<div class="dc k-${d.kind}" data-id="${esc(d.id)}">${media}
       <div class="dt"><span class="dn">${d.n ? d.n + " " : ""}${esc(d.name)}</span>${d.note ? `<div class="dm">${esc(d.note)}</div>` : ""}</div>
@@ -111,10 +113,12 @@ window.initDesigns = async function (root) {
     if (sh) { const k = "seen:" + sh.dataset.seen; open[k] = !open[k]; try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} render(); return; }
     const snd = e.target.closest(".msend");
     if (snd) { const c = snd.closest(".dc"), id = c.dataset.id, st = c.querySelector(".msst"), d = L.find(x => x.id === id);
-      const ms = MARKS.filter(m => m.design === id && !m.seen).sort((a, b) => a.fx - b.fx);
+      const ms = MARKS.filter(m => m.design === id && unsent(m)).sort((a, b) => a.fx - b.fx);
       const text = `📍 marks on the ${d.name} theme scene (catalogue Themes tab):\n` + ms.map((m, i) => `${i + 1}. col ${m.col}, row ${m.row} (x ${m.x}, y ${m.y}): ${noteOf(m).trim() || "(no note)"}`).join("\n");
       st.textContent = "sending ...";
-      try { const anchor = await CM.anchorFor(c); await CM.sendToClaude({ anchor, text: text.slice(0, 4000) }); st.textContent = "sent: Claude answers in the comment and in chat"; }
+      try { const anchor = await CM.anchorFor(c); await CM.sendToClaude({ anchor, text: text.slice(0, 4000) });
+        for (const m of ms) { PEND[m.mid] = noteOf(m); m.sentNote = noteOf(m).trim(); m.sent = new Date().toISOString(); await saveMark(m.mid); }
+        render(); }
       catch (x) { st.textContent = "not sent: " + (x && (x.code || x.message) || x); }
       return; }
     const h = e.target.closest(".fold-h");

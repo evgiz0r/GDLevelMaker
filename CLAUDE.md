@@ -721,7 +721,7 @@ The viewer draws moving objects where they start.
   page we make (catalogues, viewer, boards, artifacts): a note or comment saves as it is typed (debounced, Enter too) with a
   small "saved" / "not saved: why" -- never a save button, and typed text is never lost to a re-render; a page with a list of
   marks or comments has one **📨 send to Claude** (artifact `comments` capability, `sendToClaude`) so he never has to come to
-  the chat; each mark has states open -> seen (Claude read it: `seen` + `reply`, folded away) -> fixed (deleted from the page,
+  the chat, and it sends only what was never sent (or changed since), so Claude never gets a mark twice; each mark has states open -> seen (Claude read it: `seen` + `reply`, folded away) -> fixed (deleted from the page,
   kept in a log in git), so lists never just grow. Example: tools/designs_tab.js (the catalogue's theme 📍 marks).
 - **No native dialogs in the viewer pages** (alert / confirm / prompt): the app's built-in browser and the phone page's
   frame suppress them, so the button just did nothing. Use the viewer's notice(), askNote(), showMap();
