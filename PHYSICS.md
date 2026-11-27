@@ -1468,22 +1468,34 @@ would, so the next run of either starts from it; use only the levels in git
 - gd-style's intended-route plan: not discussed with this session; ask gd-style how its route ranking should
   apply inside a partial re-solve before changing the sweep's ranking there.
 
-## A portal of the mode you are in moves the band (2026-11-27, UNMEASURED)
+## A portal of the mode you are in moves the band (2026-11-27, measured on the room-mover lab)
 Evgeni: "swing/ship/ufo portals in the middle of the gameplay recenter the screen. people put invisible ones to move
 further in the screens". lib/physics.js now sets the floor and ceiling again around a portal of the player's own mode
 (before: ignored); `GDLM_SAME_PORTAL=old` = the old rule. Lab level `levels/gdlm_lab_room_mover.gdlvl` (a swing climbing
 14 rows with hidden swing portals every 6 columns, tools/swingfit.js) is the real-game check.
 
 **Measured 2026-11-27 (Evgeni's 3 attempts in GD 2.2091, probe logs; copies in local/probe/room_mover/):** #1 died at x 981
-(no press, saw 1707), #2 at x 2088 (saw 1707), #3 cleared (x 5390, 21 inputs). `node tools/bandcheck.js <level> <log>`:
-- The hidden swing portals were mostly NOT touched: on the clear, the player flew 12-75 units past the boxes of the portals
-  at x 915, 1095, 1275, 1455, 1995, 2175 and touched only 165, 1635, 1815, 2355. So the run does not test a re-band directly.
-- **The game kept no band edge at all in the swing.** After the start portal (x 165, y 45: band 0..300 by both rules, player
-  15..285) the player climbed to y 311 before touching any other portal, then to y 525 (both rules: OUT), and after the portal
-  at 1815 (new rule 165..435) it went down to the floor at y 105 (OUT) -- alive every time. Every flat (vy 0) tick was on a block
-  (e.g. y 524 under the blocks at x 1515-1545, y 525), never at a band line.
-- Our sim on the same presses (`probe.js diff`): dies on a saw at x 1498 (new rule) / x 1276 (old rule); the game cleared.
-  x matches throughout; y parts by 0.5 from step 677. The camera followed the player (cam y 80 -> 344).
-- So neither rule is right for this level: GD drew and enforced no floor / ceiling here. Open: what turns the band off (GD
-  2.2's portal "free mode", a level setting, or the swing never having one), checked on rated 2.2 swing levels; until then
-  the band edges in lib/physics.js are a guess for swing.
+(no press, saw 1707), #2 at x 2088 (saw 1707), #3 cleared (x 5390, 21 inputs).
+
+**The band IS re-set at every portal of the mode you are in (the new rule, `GDLM_SAME_PORTAL`), confirmed.** A first reading
+said "no band at all": tools/bandcheck.js compared the log's y (game frame, ground top 90) with the level's y (file frame,
+ground top 0), so every portal looked missed and the player looked 90 units out. Fixed (log y - 90). With it, on the clear
+every hidden portal from x 165 to 1995 is touched, and each stretch stays inside the band of the last portal touched (one
+5-unit dip after x 1815 is already inside the next portal's box at 1995); the old rule (first portal's band kept) is OUT from
+x 1095 on. The camera follows the band (cam y 80 -> 344).
+
+**What killed our sim was the saw test, not the band.** On the clear's presses the sim's path matches the game to the frame and
+died on the saw at (1485, 450) at x 1498: the player's rect is 11.1 from the saw's centre (r 12: a hit), the centre is 29.2
+away. The level's header has kA39 = Fix Radius Collision on: see "Fix Radius Collision" below. With it, all 3 attempts end
+on the game's step (757 / 758, 1610 / 1611, clear).
+
+## Fix Radius Collision (kA39) picks the saw test (2026-11-27, measured)
+GD 2.2's level setting "Fix Radius Collision" (header kA39, LevelSettingsObject +0x1cf) is read by
+GJBaseGameLayer::playerCircleCollision (gdsolver dp/src/dp/object.hpp `hazardHit`): **on**, a saw (any object with a radius)
+hits when the centre distance < half the player's width + radius x scale; **off**, when the player's rect meets the circle.
+Of the mains only Dash (lv22) sets it; **every level we write sets it** (lib/gd.js DEFAULT_HEADER: kA27, kA31-34, kA37-42,
+kA45 = 1), as with Fix Gravity Bug (kA32). lib/physics.js `makeWorld` reads it (`w.fixRadius`); `GDLM_FIXRADIUS=1 / 0` forces
+it. Test: `node tests/fix_radius.js` (the room-mover clear: clears with it, dies at x 1498 without). Effect: a corner pass
+by a saw is ~4-6 units more forgiving in our levels than the rect test said; the mains (no kA39) and Dash's plan (stops at
+block 75, before any saw that differs) are unchanged. Open: gdsolver adds a per-mode margin and a measured player half for
+some modes (`sawRectHalfB`); we use the player's own half and no margin.

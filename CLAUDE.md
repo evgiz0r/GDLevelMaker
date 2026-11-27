@@ -632,6 +632,10 @@ Confirmed:
 - The teleport portal (747) fires on a 25 x 90 box centred 12 units right of the object: the user's hitbox-on Deadlocked
   practice run (2026-11-24_00-33-07.mkv, 196.33 s) shows the ship leave the exit ~10 units further right than a centred
   box gives; with it Deadlocked is beaten in the sim (2026-11-25).
+- Saws by the level's "Fix Radius Collision" (header kA39, on in every level we write, off in the mains but Dash): on = centre
+  distance < half the player + radius, off = the player's rect against the circle. Evgeni's room-mover lab clear
+  (2026-11-27) passes a saw the rect test kills; with it all 3 attempts end on the game's step. The same runs confirm a
+  portal of your own mode re-sets the flying band. PHYSICS.md "Fix Radius Collision"; `node tests/fix_radius.js`.
 - GD 2.2's jump snap, a 10-unit foot margin on block tops (not 15), x as a 32-bit float, and turned hazards against the
   spinning player's turned box (2026-11-26, probe mod logs of 21 main levels, each attempt's own presses): with them the sim
   dies on the game's death step on 14 of the 21 mains and on GDLM 44 / 64; before, on none. The cube remembers the block
