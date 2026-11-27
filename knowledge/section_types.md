@@ -100,9 +100,20 @@ difficulty target (tier: cps and tightest window), and are checked by tools/layo
   --tiers easy,hard` (layoutcheck.js per map); test `node tests/sectiongen.js`.
   First check (seed 1, 30 / 60 / 120 columns, easy and hard): every type solves at every length except the stair path.
   Its lattice solves on some seeds only (2 of 4), with 8-29 ms windows from the 2-up hop, and its gravity pair dies as
-  placed (`{flip: true}`, off by default). Keep his drawn stair path until that is fixed.
+  placed. Rule since (Evgeni 2026-11-27: "never gravity in generating stairpath"): a generated stair path has no gravity portals at all. Keep his drawn stair path until the lattice solves on every seed.
   The tier moves the layout (narrower gaps, shorter runs) but the difficulty model still rates most hard ones Easy. So
   the knob needs a stronger hard end per type, measured against layoutcheck's label.
+- **Measured against his drawings** (Evgeni 2026-11-27: "the generator is bad, i compare the cps, the variaty, height
+  changes, blocks in the middle. unparable. per section we will need to understand how to build a specific generator for
+  that task"): `node tools/sectionstats.js <key> --gen N` scores his drawing and N generated ones on those axes (cps; height
+  changes a second, step size, distinct heights; spread of press gaps and rests, distinct piece shapes; share and count of
+  pieces floating in the middle) and prints generated / his per axis. Each type gets its own generator, tuned until the
+  ratios sit near 1. **Ball, v2:** surfaces on alternate sides (floor and ceiling masses, and pieces floating in the
+  middle), each one starting where a late flip on the one before lands (the ball's travel time across the height step),
+  short / medium / long surfaces, spikes along the ground and under the ball band's ceiling (row 7: the band holds the
+  ball, so an early flip must die there). Against his drawing (8 seeds, 34 columns): cps 1.03, height changes 1.00, step
+  0.92, heights 0.91, press-gap spread 0.59, rest spread 0.64, shapes 0.88, middle pieces 0.63. 16 of 16 solve (34 and 90
+  columns, easy and hard). Open: rhythm spread is still lower than his, and the hard end is still rated Easy.
 - **Orb and pad sets** (Evgeni 2026-11-27, not needed yet: "set of yellow, set of blue (zigzag movement), set of green
   (forward movement but reverse) and a combination of any of those"; board section my-mwz2haf0 "orb gameplay", letters Y B
   E J K). As drawn the solver skips most orbs, so this type needs its orbs placed by the sim, each one the orb you must

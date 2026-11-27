@@ -163,15 +163,37 @@ GEN.flappy = o => { const { R, imix, len, chance, W, H, G } = ctx(o, 12), gh = i
     const jump = imix(1, 3); g = clamp(g + R.pick([-jump, -1, 1, jump]), 2, H - gh - 2); }
   return { map: G.rows(), mode: "ufo" }; };
 
-// BALL. Idea: floors and ceilings at several heights; the ball flips from one to the next. Motif: a floor run, then a
-// ceiling run, a spike pit between. Varies: run length, height step, the pit's width. Harder: shorter runs, wider pits.
-CONCEPT.ball = "floor and ceiling runs in turn at stepping heights over a spike pit; flip from one to the next";
-GEN.ball = o => { const { R, imix, len, W, H, G } = ctx(o, 10); let c = 0, floor = true, f = 2, k = H - 2;
-  G.box(0, W - 1, 0, 0, "^");
-  while (c < W) { const run = Math.min(W - c, len(imix(7, 4), imix(8, 5))), e = c + run - 1;
-    if (floor) { G.box(c, e, 0, f - 1); f = clamp(f + R.pick([-1, 1, 2]), 1, 3); }
-    else { G.box(c, e, k, H - 1); k = clamp(k + R.pick([-1, 1, -2]), H - 3, H - 1); }
-    floor = !floor; c = e + 1 + R.int(imix(1, 2), imix(1, 3)); }
+// BALL (v2, rebuilt 2026-11-27 after Evgeni: "the generator is bad, i compare the cps, the variaty, height changes, blocks
+// in the middle"; measured against his drawing by tools/sectionstats.js). How his ball corridor works: the ball rolls on a
+// SURFACE, flips, flies across to the next surface on the other side, and so on; every surface is either a mass (a floor
+// mass up from the ground, a ceiling mass down from the top) or a PIECE FLOATING IN THE MIDDLE, landed on from above or from
+// below; spike pits under everything, hanging spikes and spikes at surface ends. Built by construction, not by the solver:
+// each surface starts where a flip in the last `win` columns of the one before lands (the ball's travel time across the
+// height difference), so the flip window is the overlap; early flips fly into open space, late ones roll off into a pit.
+// Varies: surface width, kind (mass / middle piece), height step (big and small), a hazard at a surface's end.
+CONCEPT.ball = "flip from surface to surface on the other side: floor and ceiling masses and pieces floating in the middle, at big and small height steps, over spike pits";
+const BALL_G = 1670;   // ball gravity, units/s^2 (Clutterfunk recording: 0.464 units/frame^2 at 60 fps)
+const ballTravel = rows => Math.sqrt(2 * Math.max(0.5, rows) * 30 / BALL_G) * COLS_PER_SEC;   // columns across `rows`
+GEN.ball = o => { const { R, mix, imix, chance, W, H, G } = ctx(o, 10), BT = Math.min(H, 8);   // the ball band: rows 0..7 (its ceiling at 240 units)
+  const win = mix(2.6, 1.4);   // flip window, columns
+  const S = [{ side: 1, kind: "mass", y: 2, c0: 0, c1: R.int(5, 7) }];   // y: the surface's row (floor side: the row the ball rolls on; ceiling side: the row it hangs in)
+  while (S[S.length - 1].c1 < W) {
+    const p = S[S.length - 1], side = -p.side, mid = chance(0.25, 0.4);
+    let y, kind;
+    if (side < 0) { // up to a ceiling-side surface: a ceiling mass hangs from the top, a middle piece floats
+      if (mid && p.y + 3 <= BT - 4) { kind = "mid"; y = R.int(p.y + 3, Math.min(BT - 4, p.y + 6)); } else { kind = "mass"; y = R.int(Math.min(BT - 2, Math.max(p.y + 3, BT - 4)), BT - 2); } }
+    else { if (mid && p.y - 3 >= 3) { kind = "mid"; y = R.int(Math.max(3, p.y - 6), p.y - 3); } else { kind = "mass"; y = R.int(1, Math.min(4, p.y - 3)); } }
+    const d = Math.abs(p.y - y) - 1, flip = p.c1 - (p.end ? 1 : 0), c0 = Math.max(p.c0 + 2, Math.round(flip + ballTravel(d) - win)), w = R.pick([R.int(2, 3), R.int(imix(4, 3), imix(6, 5)), R.int(imix(4, 3), imix(6, 5)), R.int(imix(9, 7), imix(12, 9))]);   // short, medium, long: his rests vary a lot (CV ~1)
+    S.push({ side, kind, y, c0, c1: c0 + w, thick: kind === "mid" ? (R.chance(0.7) ? 1 : 2) : 0, end: chance(0.25, 0.5) });
+  }
+  // draw: ground spikes and a row of hanging spikes along the top (the ball band's ceiling holds the ball otherwise, so
+  // an early flip must die there, not ride the band edge), then each surface
+  G.box(0, W - 1, 0, 0, "^"); G.box(0, W - 1, BT - 1, BT - 1, "v");
+  for (const s of S) { const c1 = Math.min(W - 1, s.c1);
+    if (s.side > 0) { if (s.kind === "mass") G.box(s.c0, c1, 0, s.y - 1); else G.box(s.c0, c1, s.y - s.thick, s.y - 1);
+      if (s.end && s.c1 < W) G.put(c1, s.y, "^"); }
+    else { if (s.kind === "mass") G.box(s.c0, c1, s.y + 1, H - 1); else { G.box(s.c0, c1, s.y + 1, s.y + s.thick); if (chance(0.3, 0.6)) G.put(s.c0 + 1, s.y + s.thick + 1, "^"); }
+      if (s.end && s.c1 < W) G.put(c1, s.y, "v"); } }
   return { map: G.rows(), mode: "ball" }; };
 
 // STAIR PATH (cube, his "strairpath", my-mwz1637w). Idea: a lattice of single blocks; many ways in theory, every wrong one
@@ -179,7 +201,7 @@ GEN.ball = o => { const { R, imix, len, W, H, G } = ctx(o, 10); let c = 0, floor
 // a reverse and a normal portal (G .. N: the middle is played on the blocks' undersides), a bit taller, hazards other than
 // spikes in the middle (small saws there).
 CONCEPT["my-mwz1637w"] = "a lattice of single blocks 3 apart; one way block per column, the rest closed by hazards; a gravity pair plays the middle on the undersides";
-GEN["my-mwz1637w"] = o => { const { R, chance, W, H, G } = ctx(o, 13), gp = o.flip ? gravPair(W, 27) : null; let h = 1, up = false, phase = 0;   // {flip: true}: the gravity pair (dies as placed today, so off by default)
+GEN["my-mwz1637w"] = o => { const { R, chance, W, H, G } = ctx(o, 13), gp = null; let h = 1, up = false, phase = 0;   // never gravity in a generated stair path (Evgeni 2026-11-27: "never gravity in generating stairpath")
   G.box(0, W - 1, 0, 0, "^"); G.box(0, 2, 0, 1);
   for (let c = 4, k = 0; c < W - 3; c += 3, k++) {
     if (gp && phase === 0 && c >= gp[0]) { G.put(c - 2, h + 1, "G"); up = true; phase = 1; h = clamp(h + 3, 3, H - 2); }
