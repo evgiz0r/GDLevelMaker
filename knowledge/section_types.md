@@ -56,7 +56,7 @@ type, so a builder can make a new one of any length, synced to the song, and so 
   late / early margin), the sim's arc of each click places the next surface (tools/sectiongen.js `cubeArc`, `ballTravel`,
   tick-stepped like lib/physics.js), and hazards go where a wrong press lands. The type returns `presses` (columns of the
   player's centre); `require("./tools/layoutcheck.js").planCheck(z)` plays exactly those taps, and `node tests/sectiongen.js`
-  fails any type whose plan dies. The solver is then only the check for secret ways. Done: open cube, ball, ball portals,
+  fails any type whose plan dies. The solver is then only the check for secret ways. Done: open cube, closer cube, orbs, ball, ball portals,
   fly (holds and releases -> `shipStep` path -> the corridor fitted around it: each column edge's floor between the path's
   margins, slopes of a row a column at most, hazards only where the path clears them by 8; presses are [press, release]
   column pairs, plus the planned `path` for the board; a draw that doesn't fit the grid is drawn again a little flatter;
@@ -83,7 +83,21 @@ type, so a builder can make a new one of any length, synced to the song, and so 
   above it), `ufoStep` as lib/physics.js, poles 1-4 wide whose gaps are fitted around the path over their columns (margin
   8, at least the tier's room); taller maps keep the shape-first version with its U portals. 1.8-2.7 taps a second,
   all taps on half beats with a bpm.
-  Not yet: swing, closer cube, staircase, stair path, orbs, spider (its overlap is its window
+  Closer cube (2026-11-27): a press on the rhythm (or beat), its jump played in the page's own cube run (`cubeTry`:
+  floor tops per column, pits, hazard boxes, the 10-unit foot margin), and the hazard under it -- 1-3 spikes or a 2-3
+  wide pit -- picked and placed so the press's measured timing window (`cubeWin`, ticks early + late) is near the tier's
+  (64 ticks easy -> 24 harder) and about centred. Hanging spikes come down a row between jumps (a block at f+4, the spike
+  at f+3): walking passes, a jump there dies, so a stray press or a held button is caught. Taller than 10 rows the
+  corridor climbs (a press lands a row up) and comes down (walk-offs), and the gravity pair is a short 12-column one late;
+  the flipped span is planned upright and drawn mirrored. Measured: every plan clears (60 x 8 / 14, 90 x 20), every press
+  needed, holding the button clears 1 of 8, 1.0-1.4 presses a second, 100% of presses on half beats at 140 / 175 bpm.
+  Orbs (my-mwz2haf0, 2026-11-27): it already built each orb on the arc of the last; now it returns those presses (the jump
+  off the start, a tap as the cube passes each orb, the jump off each landing's end), the plan flies on from where the
+  cube really is (no snap to the orb's centre), and a landing whose side would catch an arc coming in is moved on. With
+  beats each orb takes the tick of its arc nearest a beat, a landing's jump-off goes on a beat. Every plan clears, every
+  press needed, holding clears none; on half beats 94% at 140 bpm, 63-74% at 120 / 175 (a cube orb jump lasts ~0.43 s,
+  two half beats at 140, so an arc can only carry an orb onto some beats).
+  Not yet: swing (the board thread's tools/swingbuild.js), staircase, stair path, spider (its overlap is its window
   already, but no presses returned); fly's gravity pair (the planner flies upright only).
 - **From a beat** (Evgeni 2026-11-27: "i want to be able to generate according to a beat as well, so its not just random
   stats, should be applicable in a level ... in the long run much more efficient than solving"): `make(key, {bpm})` or

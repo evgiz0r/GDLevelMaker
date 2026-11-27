@@ -19,5 +19,7 @@ if (!process.argv.includes("--quick")) { const LC = require("../tools/layoutchec
 { const CPS = 311.58 / 30, hb = CPS * 60 / 140 / 2;
   for (const key of SG.KEYS) { const z = SG.make(key, { cols: 60, seed: 2, tier: "normal", bpm: 140 }); if (!z.presses) continue;
     const cs = z.presses.flatMap(q => Array.isArray(q) ? q : [q]).filter(c => c < 59), on = cs.filter(c => Math.abs(c / hb - Math.round(c / hb)) < 0.02).length;
-    const holds = z.presses.some(q => Array.isArray(q)); ok(on >= (holds ? 0.75 : 1) * cs.length, `beats ${key}: ${on}/${cs.length} presses on half beats`); } }
+    // holds: 3/4 of the ends; orbs (my-mwz2haf0): half (an orb rides the arc of the last one, so a beat is taken only
+    // where an arc can carry an orb); the other tap types: every press
+    const holds = z.presses.some(q => Array.isArray(q)); ok(on >= (holds ? 0.75 : key === "my-mwz2haf0" ? 0.5 : 1) * cs.length, `beats ${key}: ${on}/${cs.length} presses on half beats`); } }
 process.exit(bad ? 1 : 0);
