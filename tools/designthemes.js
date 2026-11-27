@@ -152,7 +152,7 @@ function resolve(e) {
     const B = require("./blockdesigns.js").PAL[e.pal.extends]; out.pal = Object.assign({}, B, e.pal); delete out.pal.extends; }
   return out;
 }
-module.exports = { resolve, THEMES, COMBOS, SAMPLE, SCENE, KIT_MAP, spec, list };
+module.exports = { resolve, THEMES, COMBOS, SAMPLE, SCENE, KIT_MAP, spec, list, sampleOf };
 if (require.main === module) {
   const a = process.argv.slice(2);
   if (a[0] === "list") list();

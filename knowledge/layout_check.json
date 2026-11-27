@@ -1,0 +1,332 @@
+{
+ "entrance": {
+  "key": "entrance",
+  "name": "entrance",
+  "mode": "cube",
+  "cols": 24,
+  "ms": 1419,
+  "ok": true,
+  "presses": 3,
+  "tight": [
+   {
+    "col": 6.9,
+    "ms": 238,
+    "type": "press"
+   },
+   {
+    "col": 18,
+    "ms": 242,
+    "type": "press"
+   },
+   {
+    "col": 12.2,
+    "ms": 325,
+    "type": "press"
+   }
+  ],
+  "attempts": 1,
+  "log": 0.01,
+  "label": "Easy",
+  "at": "2026-11-27T14:01"
+ },
+ "staircase": {
+  "key": "staircase",
+  "name": "basic staircase",
+  "mode": "cube",
+  "cols": 28,
+  "ms": 860,
+  "ok": true,
+  "presses": 5,
+  "tight": [
+   {
+    "col": 5.7,
+    "ms": 8,
+    "type": "press"
+   },
+   {
+    "col": 9.5,
+    "ms": 8,
+    "type": "press"
+   },
+   {
+    "col": 20.5,
+    "ms": 113,
+    "type": "press"
+   }
+  ],
+  "attempts": 16,
+  "log": 1.22,
+  "label": "Hard",
+  "at": "2026-11-27T14:01"
+ },
+ "opencube": {
+  "key": "opencube",
+  "name": "open cube corridor",
+  "mode": "cube",
+  "cols": 32,
+  "ms": 1338,
+  "ok": true,
+  "presses": 4,
+  "tight": [
+   {
+    "col": 26.2,
+    "ms": 221,
+    "type": "press"
+   },
+   {
+    "col": 17,
+    "ms": 250,
+    "type": "press"
+   },
+   {
+    "col": 5.8,
+    "ms": 254,
+    "type": "press"
+   }
+  ],
+  "attempts": 1,
+  "log": 0.01,
+  "label": "Easy",
+  "at": "2026-11-27T14:01"
+ },
+ "closecube": {
+  "key": "closecube",
+  "name": "closer cube corridor",
+  "mode": "cube",
+  "cols": 32,
+  "ms": 1905,
+  "ok": true,
+  "presses": 5,
+  "tight": [
+   {
+    "col": 8.2,
+    "ms": 196,
+    "type": "press"
+   },
+   {
+    "col": 13.4,
+    "ms": 308,
+    "type": "press"
+   },
+   {
+    "col": 24.1,
+    "ms": 342,
+    "type": "press"
+   }
+  ],
+  "attempts": 1,
+  "log": 0.02,
+  "label": "Easy",
+  "at": "2026-11-27T14:01"
+ },
+ "hanging": {
+  "key": "hanging",
+  "name": "hanging structures",
+  "mode": "cube",
+  "cols": 32,
+  "ms": 1482,
+  "ok": true,
+  "presses": 4,
+  "tight": [
+   {
+    "col": 6.7,
+    "ms": 283,
+    "type": "press"
+   },
+   {
+    "col": 2.3,
+    "ms": 329,
+    "type": "press"
+   },
+   {
+    "col": 21,
+    "ms": 346,
+    "type": "press"
+   }
+  ],
+  "attempts": 1,
+  "log": 0.01,
+  "label": "Easy",
+  "at": "2026-11-27T14:01"
+ },
+ "fly": {
+  "key": "fly",
+  "name": "flying corridor",
+  "mode": "ship",
+  "cols": 36,
+  "ms": 42330,
+  "ok": true,
+  "presses": 4,
+  "tight": [
+   {
+    "col": 11.4,
+    "ms": 179,
+    "type": "release"
+   },
+   {
+    "col": 17.2,
+    "ms": 217,
+    "type": "release"
+   },
+   {
+    "col": 2.6,
+    "ms": 238,
+    "type": "release"
+   }
+  ],
+  "attempts": 2,
+  "log": 0.22,
+  "label": "Easy",
+  "at": "2026-11-27T14:01"
+ },
+ "wave": {
+  "key": "wave",
+  "name": "wave corridor",
+  "mode": "wave",
+  "cols": 41,
+  "ms": 3704,
+  "ok": true,
+  "presses": 5,
+  "tight": [
+   {
+    "col": 11.4,
+    "ms": 279,
+    "type": "press"
+   },
+   {
+    "col": 28.5,
+    "ms": 283,
+    "type": "press"
+   },
+   {
+    "col": 15.5,
+    "ms": 292,
+    "type": "release"
+   }
+  ],
+  "attempts": 2,
+  "log": 0.31,
+  "label": "Normal",
+  "at": "2026-11-27T14:01"
+ },
+ "flappy": {
+  "key": "flappy",
+  "name": "flappy bird corridors",
+  "mode": "ufo",
+  "cols": 34,
+  "ms": 19326,
+  "ok": true,
+  "presses": 3,
+  "tight": [
+   {
+    "col": 11,
+    "ms": 225,
+    "type": "press"
+   },
+   {
+    "col": 2.8,
+    "ms": 258,
+    "type": "press"
+   },
+   {
+    "col": 6.1,
+    "ms": 375,
+    "type": "press"
+   }
+  ],
+  "attempts": 1,
+  "log": 0.17,
+  "label": "Easy",
+  "at": "2026-11-27T14:01"
+ },
+ "ball": {
+  "key": "ball",
+  "name": "ball corridors",
+  "mode": "ball",
+  "cols": 34,
+  "ms": 1585,
+  "ok": true,
+  "presses": 4,
+  "tight": [
+   {
+    "col": 11.9,
+    "ms": 196,
+    "type": "press"
+   },
+   {
+    "col": 4.4,
+    "ms": 338,
+    "type": "press"
+   },
+   {
+    "col": 15.2,
+    "ms": 338,
+    "type": "press"
+   }
+  ],
+  "attempts": 1,
+  "log": 0.01,
+  "label": "Easy",
+  "at": "2026-11-27T14:01"
+ },
+ "my-mwz1637w": {
+  "key": "my-mwz1637w",
+  "name": "strairpath",
+  "mode": "cube",
+  "cols": 32,
+  "ms": 1208,
+  "ok": true,
+  "presses": 4,
+  "tight": [
+   {
+    "col": 5.7,
+    "ms": 121,
+    "type": "press"
+   },
+   {
+    "col": 17.7,
+    "ms": 121,
+    "type": "press"
+   },
+   {
+    "col": 26.7,
+    "ms": 121,
+    "type": "press"
+   }
+  ],
+  "attempts": 1,
+  "log": 0.01,
+  "label": "Easy",
+  "at": "2026-11-27T14:01"
+ },
+ "my-mwz1890c": {
+  "key": "my-mwz1890c",
+  "name": "swing",
+  "mode": "swing",
+  "cols": 32,
+  "ms": 15110,
+  "ok": true,
+  "presses": 14,
+  "tight": [
+   {
+    "col": 14.1,
+    "ms": 21,
+    "type": "press"
+   },
+   {
+    "col": 26.4,
+    "ms": 25,
+    "type": "press"
+   },
+   {
+    "col": 9.3,
+    "ms": 38,
+    "type": "press"
+   }
+  ],
+  "attempts": 5,
+  "log": 0.67,
+  "label": "Normal",
+  "at": "2026-11-27T14:01"
+ }
+}
