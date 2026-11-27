@@ -480,14 +480,17 @@ window.initDesigns = async function (root) {
     if (!GROUTE[id]) { GROUTE[id] = { state: "asked" };
       try { await DB.collection("genroute").doc(id).set({ gen: gk, key: g.key, seed: g.seed, cols: g.cols, tier: g.tier, map: g.map, mode: g.mode || "", state: "asked", at: new Date().toISOString() }); } catch (e) { GROUTE[id] = null; } }
     if (ping && CM && CM.sendToClaude) { const el = root.querySelector(".gpath"); try { await CM.sendToClaude({ anchor: await CM.anchorFor(el || root), text: "〰 solve the path of " + gk + " (collection genroute)" }); GROUTE[id].pinged = true; } catch (e) { GROUTE[id].pinged = false; } render(); } }
-  const genKey = g => "gen:" + g.key + ":" + g.seed + ":" + g.cols + ":" + g.tier + (g.hf && g.hf !== 1 ? ":h" + g.hf : "");
+  const genKey = g => "gen:" + g.key + ":" + g.seed + ":" + g.cols + ":" + g.tier + (g.hf && g.hf !== 1 ? ":h" + g.hf : "") + (g.bpm ? ":b" + g.bpm : "");
   function generate(f) { const SG = window.SectionGen; if (!SG) return;
     const key = f.querySelector(".gk").value, cols = Math.max(12, Math.min(200, +f.querySelector(".gc").value || 40)), tier = f.querySelector(".gt").value, seed = 1 + Math.floor(Math.random() * 99999);
     // TALLER (Evgeni 2026-11-27: "can we increase the heights of the generations? by like 1.5 for now?"): the type's own
     // height times the chosen factor (default 1.5)
     const hf = +((f.querySelector(".gh") || {}).value || 1.5);
-    try { let z = SG.make(key, { cols, seed, tier }); if (hf !== 1) z = SG.make(key, { cols, seed, tier, rows: Math.round(z.map.length * hf) });
-      GENS = { key, cols, tier, seed, hf, map: z.map, mode: z.mode, concept: z.concept || "" }; askRoute(GENS, false); }
+    // ON A BEAT (Evgeni 2026-11-27: "i want to be able to generate according to a beat as well, so its not just random
+    // stats, should be applicable in a level"): a bpm puts the planned presses on its half beats (sectiongen ctx onBeat)
+    const bpm = +((f.querySelector(".gb") || {}).value || 0), bo = bpm ? { bpm } : {};
+    try { let z = SG.make(key, { cols, seed, tier, ...bo }); if (hf !== 1) z = SG.make(key, { cols, seed, tier, ...bo, rows: Math.round(z.map.length * hf) });
+      GENS = { key, cols, tier, seed, hf, bpm, map: z.map, mode: z.mode, concept: z.concept || "" }; askRoute(GENS, false); }
     catch (x) { GENS = { key, cols, tier, seed, err: String(x && x.message || x) }; }
     try { localStorage.setItem("designs-gen", JSON.stringify(GENS)); } catch (e) {} render(); }
   function genPanel() { const SG = window.SectionGen; if (!SG) return "";
@@ -497,6 +500,7 @@ window.initDesigns = async function (root) {
       + `<label>length <input class="gc" type="number" min="12" max="200" value="${g.cols}" style="width:56px"></label>`
       + `<select class="gt">${["easy", "normal", "hard", "harder", "extreme"].map(t => `<option${t === g.tier ? " selected" : ""}>${t}</option>`).join("")}</select>`
       + `<select class="gh" title="height: the type's own times this">${[1, 1.25, 1.5, 2].map(v => `<option value="${v}"${v === (g.hf || 1.5) ? " selected" : ""}>height ×${v}</option>`).join("")}</select>`
+      + `<select class="gb" title="beat: the presses land on this bpm's half beats">${[0, 100, 120, 130, 140, 150, 160, 175].map(v => `<option value="${v}"${v === (g.bpm || 0) ? " selected" : ""}>${v ? v + " bpm" : "no beat"}</option>`).join("")}</select>`
       + `<button class="ggo">🎲 generate</button></span></div>`;
     if (GENS && GENS.err) out += `<div class="lpn" style="color:#ff8a8a">${esc(GENS.err)}</div>`;
     else if (GENS && GENS.map) { const H = GENS.map.length, W = GENS.map[0].length, cs = Math.round(26 * (open["zoom:layout"] || 1)), T = [];
