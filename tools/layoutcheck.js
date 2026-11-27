@@ -1,4 +1,4 @@
-// node tools/layoutcheck.js [section ...] [--show]  (--show: the route drawn over each section as text)  -- is every theme-layout section PLAYABLE (Evgeni 2026-11-27: "i want
+// node tools/layoutcheck.js [section ...] [--show] [--skips]  (--skips: can any portal inside be flown around? a solve per portal)  (--show: the route drawn over each section as text)  -- is every theme-layout section PLAYABLE (Evgeni 2026-11-27: "i want
 //   the layout to be also playble, all of those should solve, and have some difficulty score. as thats a proof of the
 //   coherency. if something is way too hard, like the corridors or some jumps, lets try to make somehow easier ( not
 //   forced )"). Each section of tools/layoutsections.js (his edits included) is built alone as a small level: a run-up on
@@ -84,6 +84,16 @@ function check(z) {
     const used = per.map((n, r) => n ? r : -1).filter(r => r >= 0), top = Math.min(H, room) - 1;
     out.spread = { used: +(used.length / H).toFixed(2), even: +(H > 1 ? ent / Math.log(H) : 1).toFixed(2), rows: per,
       low: used.length ? used[0] <= 1 : false, high: used.length ? used[used.length - 1] >= top - 1 : false }; }
+  // SKIPPABLE PORTALS (--skips; Evgeni 2026-11-27: "need to be careful in flying modes, that we cant skip the portal after
+  // us just by flying around it (or the reverse in the way)"): each portal inside the section is turned into a killer of
+  // its own size (three spikes scaled x3 down its middle) and the section solved again: if it still clears, a route
+  // exists that never touches that portal -- a skip. One solve per portal, so only on demand.
+  if (process.argv.includes("--skips")) { const PK = new Set([10, 11, 12, 13, 47, 111, 660, 745, 1331, 1933]), x0 = S.x0 * 30, x1 = x0 + z.map[0].length * 30;
+    out.skips = [];
+    for (const p of level.objects.filter(o => PK.has(o.id) && o.x > x0 + 15 && o.x < x1)) {
+      const objs = level.objects.filter(o => o !== p).concat([-30, 0, 30].map(dy => ({ id: 8, x: p.x, y: p.y + dy, rot: 0, flipX: false, flipY: false, props: { 32: "3" } })));
+      const r2 = GD.solveAny(GD.makeWorld(objs, level.header));
+      if (r2.ok) out.skips.push({ col: +(p.x / 30 - S.x0).toFixed(1), row: +(p.y / 30).toFixed(1), id: p.id }); } }
   out.mapHash = hashMap(z.map);
   return Object.assign(out, { ok: true, presses, tight, attempts: d ? Math.round(10 ** d.logAttempts) : null, log: d ? +d.logAttempts.toFixed(2) : null, label: d ? DF.difficultyLabel(d.logAttempts) : null });
 }
@@ -92,7 +102,7 @@ if (require.main === module) {
   const want = process.argv.slice(2).filter(a => !a.startsWith("--"));
   const out = [];
   for (const z of LS.SECTIONS) { if (want.length && !want.includes(z.key)) continue; const c = check(z); out.push(c);
-    console.log(c.ok ? `${z.key.padEnd(14)} ${z.mode.padEnd(6)} solves: ${c.presses} presses, ${c.label} (~${c.attempts} attempts)${c.tight.length ? ", tightest " + c.tight.map(t => t.ms + " ms (" + t.type + ") at col " + t.col).join(", ") : ""} · moves ${c.move ? c.move.mean + " rows avg, " + Math.round(c.move.share * 100) + "% of " + c.move.room + (c.move.share > 0.5 ? " (OVER half)" : "") : "?"}${c.spread ? " · height: " + Math.round(c.spread.used * 100) + "% of rows, even " + c.spread.even + (c.spread.used < 0.6 || c.spread.even < 0.6 ? " (NARROW)" : "") + (!c.spread.low || !c.spread.high ? " · never at the " + [!c.spread.low && "bottom", !c.spread.high && "top"].filter(Boolean).join(" or ") : "") : ""}  [${(c.ms / 1000).toFixed(0)} s]`
+    console.log(c.ok ? `${z.key.padEnd(14)} ${z.mode.padEnd(6)} solves: ${c.presses} presses, ${c.label} (~${c.attempts} attempts)${c.tight.length ? ", tightest " + c.tight.map(t => t.ms + " ms (" + t.type + ") at col " + t.col).join(", ") : ""} · moves ${c.move ? c.move.mean + " rows avg, " + Math.round(c.move.share * 100) + "% of " + c.move.room + (c.move.share > 0.5 ? " (OVER half)" : "") : "?"}${c.spread ? " · height: " + Math.round(c.spread.used * 100) + "% of rows, even " + c.spread.even + (c.spread.used < 0.6 || c.spread.even < 0.6 ? " (NARROW)" : "") + (!c.spread.low || !c.spread.high ? " · never at the " + [!c.spread.low && "bottom", !c.spread.high && "top"].filter(Boolean).join(" or ") : "") : ""}${c.skips ? (c.skips.length ? " · SKIPPABLE portal(s) at col " + c.skips.map(q => q.col).join(", ") : " · no portal can be skipped") : ""}  [${(c.ms / 1000).toFixed(0)} s]`
       : `${z.key.padEnd(14)} ${z.mode.padEnd(6)} DOES NOT SOLVE: dies at col ${c.dieCol}, row ${c.dieRow}: ${c.why}  [${((c.ms || 0) / 1000).toFixed(0)} s]`); }
   if (process.argv.includes("--show")) for (const c of out) if (c.show) console.log("\n" + c.key + ":\n" + c.show.map(l => "  " + l).join("\n"));
   for (const c of out) delete c.show;
