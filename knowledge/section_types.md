@@ -56,12 +56,17 @@ type, so a builder can make a new one of any length, synced to the song, and so 
   late / early margin), the sim's arc of each click places the next surface (tools/sectiongen.js `cubeArc`, `ballTravel`,
   tick-stepped like lib/physics.js), and hazards go where a wrong press lands. The type returns `presses` (columns of the
   player's centre); `require("./tools/layoutcheck.js").planCheck(z)` plays exactly those taps, and `node tests/sectiongen.js`
-  fails any type whose plan dies. The solver is then only the check for secret ways. Done: open cube, ball, ball portals,
+  fails any type whose plan dies. The solver is then only the check for secret ways. Done: open cube, closer cube, staircase, orbs, spider, ball, ball portals,
   fly (holds and releases -> `shipStep` path -> the corridor fitted around it: each column edge's floor between the path's
   margins, slopes of a row a column at most, hazards only where the path clears them by 8; presses are [press, release]
   column pairs, plus the planned `path` for the board; a draw that doesn't fit the grid is drawn again a little flatter;
   the band's floor and roof count as safe surfaces, so the corridor never has to reach past them: 0 in 180 fall back to
-  the old shape). planCheck maps a plan column to a tick exactly (tick 0 = the first tick at or past
+  the old shape). **Gentle general flight** (Evgeni 2026-11-27: "the flying corridor is a bit too wavy, flying should have
+  some kind of a smaller degree in the general flight"): climbs and dives capped at vy 3.2 (was 4.6), each state played
+  forward to the tick it would pass the cap and ended on the last beat before it, and the corridor steps a row every 2
+  columns at most (`fitCorridor` option `run`). On 64 draws (60 cols, 10 / 20 rows): mean path angle 19-21 -> 15 degrees,
+  steeper than 30 degrees 20-25% -> 0%, clicks the same, height used 90 -> 81% (10 rows), 70 -> 67% (20 rows). Feathering
+  at the cap (short opposite states) kept all the height but doubled the clicks: not taken. planCheck maps a plan column to a tick exactly (tick 0 = the first tick at or past
   the section's start): rounding a column to the nearest tick put presses a tick early and the ship drifted 15 units off.
   Wave (wavePlan): legs from the tier and the style (a quick middle, one ground slide, every turn on a beat when there is
   one), the exact 45-degree path, the same fitter (`fitCorridor`, which now follows the path's own centre so the tunnel
@@ -78,16 +83,56 @@ type, so a builder can make a new one of any length, synced to the song, and so 
   above it), `ufoStep` as lib/physics.js, poles 1-4 wide whose gaps are fitted around the path over their columns (margin
   8, at least the tier's room); taller maps keep the shape-first version with its U portals. 1.8-2.7 taps a second,
   all taps on half beats with a bpm.
-  Not yet: swing, closer cube, staircase, stair path, orbs, spider (its overlap is its window
-  already, but no presses returned); fly's gravity pair (the planner flies upright only).
+  Closer cube (2026-11-27): a press on the rhythm (or beat), its jump played in the page's own cube run (`cubeTry`:
+  floor tops per column, pits, hazard boxes, the 10-unit foot margin), and the hazard under it -- 1-3 spikes or a 2-3
+  wide pit -- picked and placed so the press's measured timing window (`cubeWin`, ticks early + late) is near the tier's
+  (64 ticks easy -> 24 harder) and about centred. Hanging spikes come down a row between jumps (a block at f+4, the spike
+  at f+3): walking passes, a jump there dies, so a stray press or a held button is caught. Taller than 10 rows the
+  corridor climbs (a press lands a row up) and comes down (walk-offs), and the gravity pair is a short 12-column one late;
+  the flipped span is planned upright and drawn mirrored. Measured: every plan clears (60 x 8 / 14, 90 x 20), every press
+  needed, holding the button clears 1 of 8, 1.0-1.4 presses a second, 100% of presses on half beats at 140 / 175 bpm.
+  Orbs (my-mwz2haf0, 2026-11-27): it already built each orb on the arc of the last; now it returns those presses (the jump
+  off the start, a tap as the cube passes each orb, the jump off each landing's end), the plan flies on from where the
+  cube really is (no snap to the orb's centre), and a landing whose side would catch an arc coming in is moved on. With
+  beats each orb takes the tick of its arc nearest a beat, a landing's jump-off goes on a beat. Every plan clears, every
+  press needed, holding clears none; on half beats 94% at 140 bpm, 63-74% at 120 / 175 (a cube orb jump lasts ~0.43 s,
+  two half beats at 140, so an arc can only carry an orb onto some beats).
+  Spider (my-mwz7nxue, 2026-11-27, rebuilt; the rollers-based one is gone): taps on the rhythm (or beat), each with a
+  window of `win` columns (2.4 easy -> 1.0 harder) and its two surfaces built from it: the one left ends where a late tap
+  walks the spider off (its box past the last block), the one teleported to starts where an early tap finds nothing above
+  and flips into the band's spikes; each surface runs to the next tap, on the other side, 2-4 rows on, now and then on the
+  band's floor or roof. Taller than the band: a hidden P on a long surface re-bands. Every plan clears (30-90 cols, 10 to
+  30 rows), holding clears none, 67 of 70 presses needed, 1.3-2.1 taps a second, 100% on half beats at 140 / 175 bpm.
+  Staircase (2026-11-27): each press a jump onto a step a row up, the step's edge placed where the press's measured window
+  is near the tier's (an early press lands short and walks into the step, a late one hits its side), 1-3 chained jumps
+  right off each landing, then a landing walked on the rhythm's gap; now and then a spike or a pit on a landing. At the
+  top a G drops the cube onto a bar along the top and a staircase hanging from it comes down 4-6 rows (planned upright,
+  drawn mirrored), an N at its end drops it to the floor; with no room for that it walks back down. Every plan clears
+  (40-120 cols, 9-20 rows), every press needed, holding clears 1 of 8, 100% on half beats at 140 / 175 bpm.
+  `cubeTry` now starts a run where the cube last landed: a press while still in the air is a miss, so a window's early
+  edge never reaches back past the landing.
+  Not yet: swing (the board thread's tools/swingbuild.js), stair path (a lattice of 1-wide blocks 3 apart: its presses
+  are one per column, so it needs the lattice run in the page physics, or off-grid column spacing, which waits on
+  Evgeni's answer about moving blocks by less than a block); fly's gravity pair (the planner flies upright only).
 - **From a beat** (Evgeni 2026-11-27: "i want to be able to generate according to a beat as well, so its not just random
   stats, should be applicable in a level ... in the long run much more efficient than solving"): `make(key, {bpm})` or
   `{beats: [seconds | {t, s}]}` (a song section's hits with strength, tools/hits.js / impacts.js). ctx() turns them into
   beat columns (a bpm grid: half beats, a bar's first beat strength 1, beats 0.7, half beats 0.35) and `onBeat(want, min)`
   moves each press the style wants to the nearest beat, a strong one counted up to half a beat nearer. The style's
   density sets how far apart the wants are, so the share of beats taken. Measured at 140 / 175 bpm: open cube, ball, ball
-  portals 100% of presses on half beats; fly 80-87% of press and release ends (the rest are forced turns where the
-  climb or dive would be too steep); every plan still clears (tests/sectiongen.js checks both).
+  portals 100% of presses on half beats; fly ~85% of press and release ends (the rest are turns the steepness cap
+  forces with no beat near); every plan still clears (tests/sectiongen.js checks both).
+- **A song's real hits, not only a bpm** (Evgeni 2026-11-27: "i hope we can now/later generate to clicks or around, not just
+  to some bpm. so that the generation process will be able to take into account beats to some extend"): `beats` takes
+  the section's real hits as {t, s}; `node tools/sectionbeats.js <song key> --from <s> [--cols N]` (and
+  `songBeats(key, from, to)`) reads them from the committed knowledge/song_notes/<key>.json -- every note onset with
+  strength >= 0.3, near-twins merged, impacts raised to full strength -- and `node tools/sectiongen.js show <type> --song
+  <key> --from <s>` builds from them; the board's 🎲 does the same in the page. onBeat's strength bonus reaches at least 2
+  columns (~0.2 s): with notes ~10 a second the nearest weak one used to win, now a strong one up to a column nearer does.
+  Measured (60 cols, easy + harder, 3 seeds): Back On Track from 10 s / custom 1086693 from 40 s: open cube, closer cube,
+  staircase, ball, ball portals, spider 100% of presses on a note, flappy 74-100%, wave 64-75%, fly 22-61% of hold ends,
+  orbs 10-57% (sparse hits leave arcs few to take); every plan clears; the notes taken average strength 0.63-0.77 against
+  0.66 for all notes in the stretch.
 - **One click style per generation, a small drift inside it** (Evgeni 2026-11-27: "the click pattern/holds/cps differs
   between generations. not consistent across the whole section, some have bit more cps, some have bit less. some hold more
   some hold less"): ctx() gives `style` -- a density (x0.82-1.22) and hold factor (x0.7-1.4) per generation, and

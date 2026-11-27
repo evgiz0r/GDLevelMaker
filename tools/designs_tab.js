@@ -471,6 +471,8 @@ window.initDesigns = async function (root) {
   // as he types (a note on "gen:<type>:<seed>:<cols>:<tier>") and goes with 📨, so the generator can be fixed from it.
   // Not solver-checked in the page (that is node: tools/sectiongen.js check)
   let GENS = null; try { GENS = JSON.parse(localStorage.getItem("designs-gen") || "null"); } catch (e) {}
+  // the songs' hits for the 🎲 (songbeats.json beside the page), loaded once; the beat list fills in when they come
+  let SONGS = null; fetch("songbeats.json", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(d => { SONGS = d && d.songs || []; if (SONGS.length) render(); }).catch(() => { SONGS = []; });
   // 〰 THE PATH OF A GENERATED PIECE (Evgeni 2026-11-27: "its generated with a path? show it, or give a button to see"): the
   // page can't solve, so every piece he generates is queued in collection "genroute" (doc id = its gen key, state "asked");
   // Claude solves it with tools/genroute.js (the same check as the board's 〰 solver path) and writes the route back into
@@ -480,14 +482,23 @@ window.initDesigns = async function (root) {
     if (!GROUTE[id]) { GROUTE[id] = { state: "asked" };
       try { await DB.collection("genroute").doc(id).set({ gen: gk, key: g.key, seed: g.seed, cols: g.cols, tier: g.tier, map: g.map, mode: g.mode || "", state: "asked", at: new Date().toISOString() }); } catch (e) { GROUTE[id] = null; } }
     if (ping && CM && CM.sendToClaude) { const el = root.querySelector(".gpath"); try { await CM.sendToClaude({ anchor: await CM.anchorFor(el || root), text: "〰 solve the path of " + gk + " (collection genroute)" }); GROUTE[id].pinged = true; } catch (e) { GROUTE[id].pinged = false; } render(); } }
-  const genKey = g => "gen:" + g.key + ":" + g.seed + ":" + g.cols + ":" + g.tier + (g.hf && g.hf !== 1 ? ":h" + g.hf : "");
+  const genKey = g => "gen:" + g.key + ":" + g.seed + ":" + g.cols + ":" + g.tier + (g.hf && g.hf !== 1 ? ":h" + g.hf : "") + (g.bpm ? ":b" + g.bpm : "") + (g.song ? ":s" + g.song + "@" + g.from : "");
   function generate(f) { const SG = window.SectionGen; if (!SG) return;
     const key = f.querySelector(".gk").value, cols = Math.max(12, Math.min(200, +f.querySelector(".gc").value || 40)), tier = f.querySelector(".gt").value, seed = 1 + Math.floor(Math.random() * 99999);
     // TALLER (Evgeni 2026-11-27: "can we increase the heights of the generations? by like 1.5 for now?"): the type's own
     // height times the chosen factor (default 1.5)
     const hf = +((f.querySelector(".gh") || {}).value || 1.5);
-    try { let z = SG.make(key, { cols, seed, tier }); if (hf !== 1) z = SG.make(key, { cols, seed, tier, rows: Math.round(z.map.length * hf) });
-      GENS = { key, cols, tier, seed, hf, map: z.map, mode: z.mode, concept: z.concept || "" }; askRoute(GENS, false); }
+    // ON A BEAT (Evgeni 2026-11-27: "i want to be able to generate according to a beat as well, so its not just random
+    // stats, should be applicable in a level"): a bpm puts the planned presses on its half beats (sectiongen ctx onBeat)
+    // or a SONG's real hits from a start second (songbeats.json, tools/designs.js page): the presses go around its notes,
+    // strong ones pulling harder, not onto a fixed grid
+    const bv = (f.querySelector(".gb") || {}).value || "0", from = Math.max(0, +((f.querySelector(".gfrom") || {}).value || 0));
+    let bpm = 0, song = null, bo = {};
+    if (bv.startsWith("song:")) { song = (SONGS || []).find(q => q.key === bv.slice(5)); if (song) { const secs = cols * 30 / 311.58 + 1;
+      bo = { beats: song.n.filter(x => x[0] >= from && x[0] <= from + secs).map(x => ({ t: x[0] - from, s: x[1] })) }; if (!bo.beats.length) bo = {}; } }
+    else { bpm = +bv; if (bpm) bo = { bpm }; }
+    try { let z = SG.make(key, { cols, seed, tier, ...bo }); if (hf !== 1) z = SG.make(key, { cols, seed, tier, ...bo, rows: Math.round(z.map.length * hf) });
+      GENS = { key, cols, tier, seed, hf, bpm, song: song ? song.key : "", from: song ? from : 0, map: z.map, mode: z.mode, concept: z.concept || "" }; askRoute(GENS, false); }
     catch (x) { GENS = { key, cols, tier, seed, err: String(x && x.message || x) }; }
     try { localStorage.setItem("designs-gen", JSON.stringify(GENS)); } catch (e) {} render(); }
   function genPanel() { const SG = window.SectionGen; if (!SG) return "";
@@ -497,6 +508,9 @@ window.initDesigns = async function (root) {
       + `<label>length <input class="gc" type="number" min="12" max="200" value="${g.cols}" style="width:56px"></label>`
       + `<select class="gt">${["easy", "normal", "hard", "harder", "extreme"].map(t => `<option${t === g.tier ? " selected" : ""}>${t}</option>`).join("")}</select>`
       + `<select class="gh" title="height: the type's own times this">${[1, 1.25, 1.5, 2].map(v => `<option value="${v}"${v === (g.hf || 1.5) ? " selected" : ""}>height ×${v}</option>`).join("")}</select>`
+      + `<select class="gb" title="beat: the presses land on this bpm's half beats, or go around a song's real hits">${[0, 100, 120, 130, 140, 150, 160, 175].map(v => `<option value="${v}"${!g.song && v === (g.bpm || 0) ? " selected" : ""}>${v ? v + " bpm" : "no beat"}</option>`).join("")}`
+      + `${(SONGS || []).length ? `<optgroup label="a song's hits">${SONGS.map(q => `<option value="song:${esc(q.key)}"${g.song === q.key ? " selected" : ""}>♪ ${esc(q.name)} (${q.bpm} bpm)</option>`).join("")}</optgroup>` : ""}</select>`
+      + `<label title="where in the song the section starts">from <input class="gfrom" type="number" min="0" step="0.5" value="${g.from || 0}" style="width:56px">s</label>`
       + `<button class="ggo">🎲 generate</button></span></div>`;
     if (GENS && GENS.err) out += `<div class="lpn" style="color:#ff8a8a">${esc(GENS.err)}</div>`;
     else if (GENS && GENS.map) { const H = GENS.map.length, W = GENS.map[0].length, cs = Math.round(26 * (open["zoom:layout"] || 1)), T = [];

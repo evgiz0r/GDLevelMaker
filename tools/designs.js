@@ -197,6 +197,15 @@ function page(out) {
   const L = list().filter(d => fs.existsSync(path.join(DIR, d.card)));
   for (const d of L) for (const f of [d.card, d.layout, ...Object.values(d.parts || {})]) if (f && fs.existsSync(path.join(DIR, f))) fs.copyFileSync(path.join(DIR, f), path.join(out, f));
   fs.writeFileSync(path.join(out, "designs.json"), JSON.stringify(L));
+  // THE SONGS' HITS for the board's 🎲 (Evgeni 2026-11-27: "generate to clicks or around, not just to some bpm, so that the
+  // generation process will be able to take into account beats to some extend"): every committed song note
+  // (knowledge/song_notes, numbers only) of strength >= 0.3 as [seconds, strength] -> songbeats.json; the page cuts the
+  // section's stretch from a start second and sectiongen's onBeat pulls each planned press to the nearest strong one
+  { const dir = path.join(ROOT, "knowledge", "song_notes"), songs = [];
+    for (const f of fs.existsSync(dir) ? fs.readdirSync(dir).filter(f => f.endsWith(".json")).sort() : []) { try { const d = JSON.parse(fs.readFileSync(path.join(dir, f), "utf8"));
+      const n = (d.notes || []).filter(x => x[1] >= 0.3).map(x => [+x[0].toFixed(3), +x[1].toFixed(2)]);
+      if (n.length) songs.push({ key: d.key || f.replace(/\.json$/, ""), name: (d.key || f).replace(/^official_/, "").replace(/^custom_/, "song ").replace(/\.json$/, ""), bpm: d.bpm, dur: n[n.length - 1][0], n }); } catch (e) {} }
+    fs.writeFileSync(path.join(out, "songbeats.json"), JSON.stringify({ songs })); }
   // the layout sections' solver check (tools/layoutcheck.js): the board draws each route over its section
   try { fs.copyFileSync(path.join(ROOT, "knowledge", "layout_check.json"), path.join(out, "layout_check.json")); } catch (e) {}
   // the tab, with the scene join in front of it (lib/scenejoin.js: the same code node's layoutsections.joined() uses)
