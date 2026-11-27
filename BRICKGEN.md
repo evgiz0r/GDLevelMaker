@@ -94,6 +94,58 @@ How the next generator uses it:
 - A new set is accepted only when its variety (nearest) and axes used reach the official set's for the mode.
 - Each brick's numbers must sit inside the official p10-p90 on every axis.
 
+## Round 3: clicks first (2026-11-27, `tools/clickfirst.js`, one 6-click ball section)
+
+Evgeni on round 2 ("slightly better", but close variants of each other; "whatever we are doing now sounds weird"):
+"we will define the clicks, and build a pattern 'randomly', and close the remaining. once we have a 'patch' chosen, we
+will build the hazards around it, to match the wanted timing". Then: "lets try to do a section with 6 ball clicks. we
+should extract the pattern [...] and evaluate it for variance". So the order is now:
+1. **The plan**: 6 clicks on an irregular rhythm (gaps 0.25-0.95 s). Each click has a kind (flip, yellow orb, blue orb)
+   and a wanted window (tight / normal / loose). A long gap may also get a free move with no click (drop, pad, blue pad).
+2. **The patch**: the sim walks the plan. A surface goes where the ball lands, at a drawn height, and a height is kept
+   only if it brings the ball where the next click needs it: on a surface for a flip, in the air for an orb. The ledge a
+   flip leaves ends just after the press (the late edge), and the surface it flies to starts just before the landing
+   (the early edge), by the window wanted.
+3. **Close the rest**: each click is replayed missed, 0.14 s early, 0.14 s late, and with a stray tap in a long gap. A
+   spike goes where that wrong route lands, never near the plan, until the wrong route dies. Every hazard is a threat
+   to a mistake; there is no filler.
+4. **The pattern**: `extract(path, presses)` turns any ball path into a recipe, one token per event:
+   - F = flip off a surface (a click);
+   - O = yellow orb, B = blue orb;
+   - a = a flip with no click (blue pad);
+   - g = a gravity portal in the air;
+   - p = a pad bounce;
+   - d = a drop off a ledge.
+
+   Each token has its gap since the last event and the height change to where it next rests. Example from Cycles:
+   `d.00-2.5 F.44+1 d.52+0.4 O.10-1 O.38-1 O.39-0.2 F.67-1`. It works on official sections
+   (`node tools/clickfirst.js pattern --pieces local/lego/pieces.json`) and on ours.
+
+   **Variance** is scored two ways:
+   - inside a section (0-1): kinds of event, irregular gaps, irregular sweeps, turns, heights rested at;
+   - between sections: edit distance of the kinds plus gap and height differences in order.
+
+   The kept sections are the farthest apart.
+
+First run, 1200 plans in 3 min 20 s:
+- 26 were built and verified, and 5 were kept.
+- Dropped: orb clicks with no landing that suits the next click (389), a secret way where leaving a click out still
+  clears (354), blue orb (186), flip (153).
+- Variance inside a section (median): ours 0.89, official 0.80 (41 official ball sections of 4-8 clicks).
+- Between sections (median distance to the nearest other): ours 0.49, official 0.41.
+
+  The official set is bigger (41), so its nearest neighbour is naturally closer. That is not a win yet.
+- Window wishes met: 2-3 of 6 clicks per section, using the strict window (the click moved alone, the others kept).
+- Closest official sections: Electroman Adventures, Deadlocked, xStep, Clutterfunk, at distances 0.33-0.51.
+- Lab: `specs/lab_clickfirst_ball.json` -> `levels/gdlm_lab_clickfirst_ball.gdlvl`.
+
+Open:
+- Yield is 2%. Orb clicks fail on the landing deadline. Secret ways come from missed clicks that roll on to a surface
+  the plan uses later, where a spike can't go.
+- Windows: an iteration that moves the edges until each click's window is in its band, rather than one guess.
+- Gravity and mode portals inside the section (the official recipes have g often: Clutterfunk, xStep).
+- Spider next: the same plan, its own moves (teleport up or down, pads, orbs).
+
 ## Round 2: move sequences (2026-11-26, `tools/brickgen2.js`, ball first)
 
 A brick is now a chain of 2-7 **moves**, each placed by the sim where the ball really is (like autobricks.js does for
