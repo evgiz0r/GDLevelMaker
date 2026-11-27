@@ -174,7 +174,20 @@ window.initDesigns = async function (root) {
   // layouts for now"): built here from each section as it stands now, his edits included, so it follows every edit; it is
   // not edited itself. The theme cards are rebuilt from it only on demand ("dont want to burn updating the whole universe").
   const SECS = () => LPARTS.filter(q => q[0].startsWith("sec:"));
-  function sceneTiles() { const out = []; let off = 0; for (const q of SECS()) { for (const z of tilesOf("layout:" + q[0])) out.push({ t: z.t, c: z.c + off, r: z.r }); off += q[2]; } return out; }
+  // Between two sections a short open JOIN (Evgeni 2026-11-27: "our scene doesnt connect well in some places are
+  // blocked"): no ceiling, the floor ramping by 45-degree slopes from where one section ends to where the next begins, so
+  // no section's ceiling or wall ever closes the way in (fly ended at floor 4 straight into the wave's ceiling at 4)
+  const floorAt = (T, c) => { const s = new Set(T.filter(z => z.c === c && /[#\/\\]/.test(z.t)).map(z => z.r)); let f = 0; while (s.has(f)) f++; return f; };
+  function joinTiles(a, b, off, out) { const n = Math.max(3, Math.abs(b - a) + 2), d = Math.sign(b - a), e = x => x >= n ? b : a + d * Math.min(Math.abs(b - a), Math.max(0, x - 1));
+    for (let k = 0; k < n; k++) { const p = e(k), q = e(k + 1), lo = Math.min(p, q);
+      for (let r = 0; r < lo; r++) out.push({ t: "#", c: off + k, r }); if (q > p) out.push({ t: "/", c: off + k, r: p }); if (q < p) out.push({ t: "\\", c: off + k, r: q }); }
+    return n; }
+  function sceneTiles() { const out = []; let off = 0, prev = null;
+    for (const q of SECS()) { const T = tilesOf("layout:" + q[0]);
+      if (prev) off += joinTiles(floorAt(prev.T, prev.w - 1), floorAt(T, 0), off, out);
+      for (const z of T) out.push({ t: z.t, c: z.c + off, r: z.r }); off += q[2]; prev = { T, w: q[2] }; }
+    return out; }
+  const sceneW = () => { let w = 0, prev = null; for (const q of SECS()) { const T = tilesOf("layout:" + q[0]); if (prev) w += Math.max(3, Math.abs(floorAt(T, 0) - floorAt(prev.T, prev.w - 1)) + 2); w += q[2]; prev = { T, w: q[2] }; } return w; };
   let TILE = () => "";
   // ---- ▶ play (Evgeni 2026-11-27: "theme animations, so we might see how it looks in the game if we press play") ----
   let PLAY = null, ASPD = 1;
@@ -194,7 +207,7 @@ window.initDesigns = async function (root) {
   function layoutSection() {
     const t = L.find(d => d.kind === "theme" && d.lparts); if (!t) return "";
     LPARTS = t.lparts;
-    { const S = SECS(); LPARTS = LPARTS.map(q => q[0] !== "play" ? q : ["play", "current scene", S.reduce((a, z) => a + z[2], 0), Math.max(...S.map(z => z[3])), "all", "the sections joined in order; edit a section to change it"]); }
+    { const S = SECS(); LPARTS = LPARTS.map(q => q[0] !== "play" ? q : ["play", "current scene", sceneW(), Math.max(...S.map(z => z[3])), "all", "the sections joined in order; edit a section to change it"]); }
     const isOpen = open.layoutsec !== false, fs = FS === "layout", cs = Math.round(26 * (open["zoom:layout"] || 1));
     // SECTIONS (Evgeni 2026-11-27: "i want the layout to have specific sections ... and each of those can be viewed
     // separately"): one chip per part, each shown or hidden; at first only the first section
