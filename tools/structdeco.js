@@ -138,6 +138,14 @@ function pass(level, events, opts, spec) {
       // FIRE ON THE GROUND, sometimes (Evgeni 2026-11-27): a section's "fire": N burns every Nth standing spike instead
       if (k === "spike" && s.fire && !h.flipY && !((h.rot || 0) % 360) && (fireN = (fireN || 0) + 1) % s.fire === 0) name = "fire";
       const parts = SPK.strip(SPK.dress(h, name, C)); nh += parts.length ? 1 : 0; out.push(...parts); } });
+  // THEME PROPS (tools/themeprops.js; Evgeni 2026-11-27: GD's hellish deco, never plain: tinted, lit, grouped, off the route)
+  if (o.secs.some(s => s.props && s.props.length)) { const TP = require("./themeprops.js"), clear = events ? CN.routeCells(level, events) : new Set();
+    let np = 0, chDone = false;
+    o.secs.forEach((s, i) => { if (!s.props || !s.props.length) return;
+      const P = typeof s.pal === "string" ? B.PAL[s.pal] : s.pal; if (!chDone && P) { header = K.channels(header, TP.channels(P)); chDone = true; }
+      const x0 = s.from * 30, x1 = i + 1 < o.secs.length ? o.secs[i + 1].from * 30 : Infinity, xe = Math.min(x1, Math.max(...level.objects.map(b => b.x)));
+      const objs = TP.place(s.props, level, clear, x0, xe, { seed: i + 3, isHazard: h => !!SPK.kindOf(h.id) }); out.push(...objs); np += objs.length; });
+    notes.push(`props: ${np} objects (${[...new Set(o.secs.flatMap(s => s.props || []))].join(", ")})${events ? "" : " -- WARN no route: nothing kept clear"}`); }
   if (nh) notes.push(`hazards: ${nh} dressed (${[...new Set(o.secs.map(s => [s.spikes, s.saws].filter(Boolean).join("/")))].join(", ")})`);
   if (o.holders) o.secs.forEach((s, i) => { const mine = conns.filter(q => secOf(Math.min(q.x0, q.x1)) === i);
     // 3D HOLDERS (Evgeni 2026-11-27: "the holders are not 3d but the platform is, a bit annoying"): a section whose
