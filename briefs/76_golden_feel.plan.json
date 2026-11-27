@@ -1,0 +1,269 @@
+{
+ "name": "GDLM 76 golden feel",
+ "desc": "Made by Claude.",
+ "notes": "tools/feel.js 557117 --to 75 --tier Normal --plan briefs/76_golden_feel.plan.json --name GDLM 76 golden feel --out specs/76_golden_feel.json --theme sunny",
+ "out": "specs/76_golden_feel.json",
+ "song": 557117,
+ "offset": 0.0224,
+ "bpm": 140.01,
+ "t0": 0.0224,
+ "end": 175,
+ "hits": "local/hits/557117.json",
+ "feelSummary": {
+  "tier": "Normal",
+  "base": "1x",
+  "meanCost": 1.02,
+  "maxCost": 1.2,
+  "minCost": 0.76,
+  "fastShare": 0.17,
+  "speedChanges": 3,
+  "medianStep": 0.16,
+  "twins": 4,
+  "ref": {
+   "mainsMedianStep": 0.21,
+   "mainsFlatShare": 0.25
+  }
+ },
+ "spec": {
+  "outro": 7
+ },
+ "pulseZones": [
+  [
+   81,
+   97
+  ],
+  [
+   161,
+   175
+  ]
+ ],
+ "sections": [
+  {
+   "from": 1,
+   "to": 21,
+   "mode": "cube",
+   "speed": "1x",
+   "kind": "break",
+   "feel": {
+    "speed": "1x",
+    "density": 0.76,
+    "cps": 1.44,
+    "hitWeight": 0.6,
+    "onHitTarget": 0.4,
+    "shape": "dip",
+    "look": "calm",
+    "windowMin": 90,
+    "cost": 0.76,
+    "why": "break"
+   },
+   "rest": [
+    [
+     13,
+     17
+    ]
+   ],
+   "variant": "park"
+  },
+  {
+   "from": 21,
+   "to": 37,
+   "mode": "ball",
+   "speed": "1x",
+   "kind": "break",
+   "feel": {
+    "speed": "1x",
+    "density": 0.94,
+    "cps": 1.78,
+    "hitWeight": 0.6,
+    "onHitTarget": 0.4,
+    "shape": "dip",
+    "look": "calm",
+    "windowMin": 90,
+    "cost": 0.94,
+    "why": "denser than the section before (no twin)"
+   },
+   "variant": "park"
+  },
+  {
+   "from": 37,
+   "to": 49,
+   "mode": "ufo",
+   "speed": "1x",
+   "kind": "entry",
+   "feel": {
+    "speed": "1x",
+    "density": 1.1,
+    "cps": 2.09,
+    "hitWeight": 1,
+    "onHitTarget": 0.6,
+    "shape": "flat",
+    "look": "normal",
+    "windowMin": 90,
+    "cost": 1.1,
+    "why": "denser than the section before (no twin)"
+   },
+   "variant": "morning"
+  },
+  {
+   "from": 49,
+   "to": 61,
+   "mode": "ship",
+   "speed": "1x",
+   "kind": "groove",
+   "feel": {
+    "speed": "1x",
+    "density": 0.97,
+    "cps": 1.84,
+    "hitWeight": 1,
+    "onHitTarget": 0.55,
+    "shape": "front",
+    "look": "normal",
+    "windowMin": 90,
+    "cost": 0.97,
+    "why": "shaped front, unlike the one before"
+   },
+   "variant": "breeze"
+  },
+  {
+   "from": 61,
+   "to": 81,
+   "mode": "ball",
+   "speed": "1x",
+   "kind": "entry",
+   "feel": {
+    "speed": "1x",
+    "density": 1.17,
+    "cps": 2.22,
+    "hitWeight": 1,
+    "onHitTarget": 0.6,
+    "shape": "flat",
+    "look": "normal",
+    "windowMin": 90,
+    "cost": 1.17,
+    "why": "the song speeds up here (impacts.js); (kept at 1x: no ball gameplay at 2x); denser than the section before (no twin)"
+   },
+   "variant": "breeze"
+  },
+  {
+   "from": 81,
+   "to": 97,
+   "mode": "wave",
+   "speed": "2x",
+   "kind": "drop 2x",
+   "feel": {
+    "speed": "2x",
+    "density": 1.07,
+    "cps": 2.04,
+    "hitWeight": 1.6,
+    "onHitTarget": 0.8,
+    "shape": "front",
+    "look": "intense",
+    "windowMin": 90,
+    "cost": 1.2,
+    "why": "a heavy drop: a step faster; fewer clicks at 2x (budget)"
+   },
+   "variant": "breeze"
+  },
+  {
+   "from": 97,
+   "to": 117,
+   "mode": "cube",
+   "speed": "1x",
+   "kind": "entry",
+   "feel": {
+    "speed": "1x",
+    "density": 1.03,
+    "cps": 1.96,
+    "hitWeight": 1,
+    "onHitTarget": 0.6,
+    "shape": "flat",
+    "look": "normal",
+    "windowMin": 90,
+    "cost": 1.03,
+    "why": "entry"
+   },
+   "variant": "noon"
+  },
+  {
+   "from": 117,
+   "to": 131,
+   "mode": "ball",
+   "speed": "1x",
+   "kind": "entry",
+   "feel": {
+    "speed": "1x",
+    "density": 1.04,
+    "cps": 1.97,
+    "hitWeight": 1,
+    "onHitTarget": 0.6,
+    "shape": "front",
+    "look": "normal",
+    "windowMin": 90,
+    "cost": 1.04,
+    "why": "shaped front, unlike the one before"
+   },
+   "variant": "morning"
+  },
+  {
+   "from": 131,
+   "to": 145,
+   "mode": "ufo",
+   "speed": "1x",
+   "kind": "break",
+   "feel": {
+    "speed": "1x",
+    "density": 0.79,
+    "cps": 1.5,
+    "hitWeight": 0.6,
+    "onHitTarget": 0.4,
+    "shape": "dip",
+    "look": "calm",
+    "windowMin": 90,
+    "cost": 0.79,
+    "why": "break"
+   },
+   "variant": "park"
+  },
+  {
+   "from": 145,
+   "to": 161,
+   "mode": "cube",
+   "speed": "1x",
+   "kind": "break",
+   "feel": {
+    "speed": "1x",
+    "density": 0.98,
+    "cps": 1.87,
+    "hitWeight": 0.6,
+    "onHitTarget": 0.4,
+    "shape": "dip",
+    "look": "calm",
+    "windowMin": 90,
+    "cost": 0.98,
+    "why": "denser than the section before (no twin)"
+   },
+   "variant": "park"
+  },
+  {
+   "from": 161,
+   "to": 175,
+   "mode": "ship",
+   "speed": "2x",
+   "kind": "drop 2x",
+   "feel": {
+    "speed": "2x",
+    "density": 1.07,
+    "cps": 2.04,
+    "hitWeight": 1.6,
+    "onHitTarget": 0.8,
+    "shape": "front",
+    "look": "intense",
+    "windowMin": 90,
+    "cost": 1.2,
+    "why": "a heavy drop: a step faster; fewer clicks at 2x (budget)"
+   },
+   "variant": "breeze"
+  }
+ ],
+ "theme": "sunny"
+}
