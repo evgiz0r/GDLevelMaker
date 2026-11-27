@@ -70,7 +70,15 @@ function check(z) {
     if (ys.length) legs.push(Math.abs(ys[ys.length - 1] - a0));
     const big = legs.filter(x => x >= 0.5), room = Math.min(z.map.length, { ball: 8, spider: 9, ship: 10, ufo: 10, wave: 10, swing: 10 }[z.mode] || z.map.length);
     const mean = big.length ? big.reduce((s, x) => s + x, 0) / big.length : 0;
-    out.move = { legs: big.length, mean: +mean.toFixed(2), share: +(mean / room).toFixed(2), room }; }
+    out.move = { legs: big.length, mean: +mean.toFixed(2), share: +(mean / room).toFixed(2), room };
+    // HEIGHT SPREAD (Evgeni 2026-11-27: "if our gameplay height distribution is good across the y in all modes of the level
+    // (using reverse or what not), it will make it a better level than all game focused on small part of y"; flying "should
+    // also be able and hit the ground/floor as part of the path"): which rows of the section's height the player's centre
+    // spends time in. used = share of rows visited at all, even = how evenly (normalised entropy of the time per row, 0..1);
+    // soft target: used >= 0.6 and even >= 0.6. A whole level sums its sections (tools/heightspread.js does that from a route).
+    const H = z.map.length, per = Array(H).fill(0); for (const y of ys) { const r = Math.max(0, Math.min(H - 1, Math.floor(y))); per[r]++; }
+    const tot = per.reduce((a, b) => a + b, 0) || 1, ent = per.reduce((e, n) => n ? e - (n / tot) * Math.log(n / tot) : e, 0);
+    out.spread = { used: +(per.filter(n => n).length / H).toFixed(2), even: +(H > 1 ? ent / Math.log(H) : 1).toFixed(2), rows: per }; }
   out.mapHash = hashMap(z.map);
   return Object.assign(out, { ok: true, presses, tight, attempts: d ? Math.round(10 ** d.logAttempts) : null, log: d ? +d.logAttempts.toFixed(2) : null, label: d ? DF.difficultyLabel(d.logAttempts) : null });
 }
@@ -79,7 +87,7 @@ if (require.main === module) {
   const want = process.argv.slice(2).filter(a => !a.startsWith("--"));
   const out = [];
   for (const z of LS.SECTIONS) { if (want.length && !want.includes(z.key)) continue; const c = check(z); out.push(c);
-    console.log(c.ok ? `${z.key.padEnd(14)} ${z.mode.padEnd(6)} solves: ${c.presses} presses, ${c.label} (~${c.attempts} attempts)${c.tight.length ? ", tightest " + c.tight.map(t => t.ms + " ms (" + t.type + ") at col " + t.col).join(", ") : ""} · moves ${c.move ? c.move.mean + " rows avg, " + Math.round(c.move.share * 100) + "% of " + c.move.room + (c.move.share > 0.5 ? " (OVER half)" : "") : "?"}  [${(c.ms / 1000).toFixed(0)} s]`
+    console.log(c.ok ? `${z.key.padEnd(14)} ${z.mode.padEnd(6)} solves: ${c.presses} presses, ${c.label} (~${c.attempts} attempts)${c.tight.length ? ", tightest " + c.tight.map(t => t.ms + " ms (" + t.type + ") at col " + t.col).join(", ") : ""} · moves ${c.move ? c.move.mean + " rows avg, " + Math.round(c.move.share * 100) + "% of " + c.move.room + (c.move.share > 0.5 ? " (OVER half)" : "") : "?"}${c.spread ? " · height: " + Math.round(c.spread.used * 100) + "% of rows, even " + c.spread.even + (c.spread.used < 0.6 || c.spread.even < 0.6 ? " (NARROW)" : "") : ""}  [${(c.ms / 1000).toFixed(0)} s]`
       : `${z.key.padEnd(14)} ${z.mode.padEnd(6)} DOES NOT SOLVE: dies at col ${c.dieCol}, row ${c.dieRow}: ${c.why}  [${((c.ms || 0) / 1000).toFixed(0)} s]`); }
   if (process.argv.includes("--show")) for (const c of out) if (c.show) console.log("\n" + c.key + ":\n" + c.show.map(l => "  " + l).join("\n"));
   for (const c of out) delete c.show;

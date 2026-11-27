@@ -418,7 +418,7 @@ window.initDesigns = async function (root) {
     // the check's numbers on the section's header line
     const chkLine = k => { const x = k.startsWith("sec:") && chkOf(k); if (!x) return "";
       if (!x.C.ok) return ` · <span style="color:#ff8a8a">❌ does not solve (col ${x.C.dieCol})</span>`;
-      const t = (x.C.tight || [])[0]; return ` · <span style="color:${x.old ? "#999" : "#7be3ff"}">〰 ${x.C.presses} presses · ${esc(x.C.label || "")}${t ? " · tightest " + t.ms + " ms" : ""}${x.old ? " · changed since, route is old" : ""}</span>`; };
+      const t = (x.C.tight || [])[0]; return ` · <span style="color:${x.old ? "#999" : "#7be3ff"}">〰 ${x.C.presses} presses · ${esc(x.C.label || "")}${t ? " · tightest " + t.ms + " ms" : ""}${x.C.spread ? ` · height ${Math.round(x.C.spread.used * 100)}% of rows${x.C.spread.used < 0.6 || x.C.spread.even < 0.6 ? " (narrow)" : ""}` : ""}${x.old ? " · changed since, route is old" : ""}</span>`; };
     // soft markers on the current scene: a faint band over each join, a dashed line and the name where each section starts
     const marks = H => SCENE_SEGS.map(z => z.join ? `<rect x="${z.c0}" y="0" width="${z.w}" height="${H}" fill="#ffffff0d" />`
       : `<line x1="${z.c0}" y1="0" x2="${z.c0}" y2="${H}" stroke="#ffd84d66" stroke-dasharray="0.3 0.3" style="stroke-width:1px;vector-effect:non-scaling-stroke" /><text x="${z.c0 + 0.2}" y="0.7" font-size="0.6" fill="#ffd84daa" style="pointer-events:none">${esc(z.name)}</text>`).join("");
