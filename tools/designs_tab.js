@@ -105,6 +105,8 @@ window.initDesigns = async function (root) {
   }
   root.addEventListener("click", async e => {
     if (Object.keys(PEND).length || (document.activeElement && document.activeElement.closest && document.activeElement.closest("[data-m]"))) flushMarks();
+    const sv = e.target.closest(".msave");
+    if (sv) { const row = sv.closest("[data-m]"); PEND[row.dataset.m] = row.querySelector("input").value; const st = row.querySelector(".mst"); if (st) st.textContent = "saving ..."; await saveMark(row.dataset.m); return; }
     const sh = e.target.closest(".mseen-h");
     if (sh) { const k = "seen:" + sh.dataset.seen; open[k] = !open[k]; try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} render(); return; }
     const snd = e.target.closest(".msend");
@@ -137,7 +139,7 @@ window.initDesigns = async function (root) {
     st.textContent = "saving ...";
     try { await save(id, { vote: cur === n ? 0 : n }); c.outerHTML = card(L.find(x => x.id === id)); } catch (x) { st.textContent = "not saved: " + x.message; }
   });
-  root.addEventListener("keydown", e => { if (e.key === "Enter" && e.target.classList.contains("fold-h")) e.target.click(); });
+  root.addEventListener("keydown", e => { if (e.key === "Enter" && e.target.closest && e.target.closest("[data-m]")) { e.preventDefault(); const row = e.target.closest("[data-m]"); PEND[row.dataset.m] = e.target.value; saveMark(row.dataset.m); return; } if (e.key === "Enter" && e.target.classList.contains("fold-h")) e.target.click(); });
   root.addEventListener("input", e => {
     const mrow = e.target.closest("[data-m]"); if (!mrow) return;
     const mid = mrow.dataset.m; PEND[mid] = e.target.value; MST[mid] = "…"; const st = mrow.querySelector(".mst"); if (st) st.textContent = "…";

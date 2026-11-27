@@ -395,7 +395,7 @@ Promise.all(["pieces.json", "pieces_more.json"].map(f => fetch(f).then(r => r.ok
     for (const x of document.querySelectorAll(".tab")) x.classList.toggle("on", x === b);
     for (const p of pieces) p.hidden = d;
     D.hidden = !d;
-    if (d && !loaded) loaded = new Promise((ok, no) => { const s = document.createElement("script"); s.src = "designs.js"; s.onload = ok; s.onerror = no; document.head.appendChild(s); })
+    if (d && !loaded) loaded = new Promise((ok, no) => { const s = document.createElement("script"); s.src = "designs.js?v=" + Date.now(); /* never a cached old copy */ s.onload = ok; s.onerror = no; document.head.appendChild(s); })
       .then(() => window.initDesigns(D)).catch(() => { D.textContent = "designs.js did not load"; loaded = null; });
     if (d && loaded) loaded.then(() => window.designsShow && window.designsShow(b.dataset.tab));
   };
