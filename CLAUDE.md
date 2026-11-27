@@ -726,6 +726,10 @@ The viewer draws moving objects where they start.
   collapsible, lets put that somewhere as a rule when we make those"; the catalogue was "heavy with stuff. long long info"):
   catalogues, the viewer's panels, boards, report pages. A header that folds its section, remembered per viewer, long
   explanations folded by default, short text on cards. The lego catalogue does it with `data-fold` (tools/lego_page.html).
+- **More than ~4 buttons in a row fold too** (Evgeni, 2026-11-27: "any UI as well over some kind of view. everything under collapsible
+  sections above like 4 buttons"): a control row longer than ~4 sits behind one ▸ label (folded by default, remembered); the
+  one or two main actions (play, build, save, send) stay outside. Cards in a long list (themes) start folded to one line.
+  Example: tools/designs_tab.js `FR()`.
 - **Notes and marks on our pages: autosave, send to Claude, fold what is seen** (Evgeni, 2026-11-27: "dont want \"save mark\",
   send to claude when we have list of comments/marks ... they should apply for future sessions, and other agents"). On every
   page we make (catalogues, viewer, boards, artifacts): a note or comment saves as it is typed (debounced, Enter too) with a

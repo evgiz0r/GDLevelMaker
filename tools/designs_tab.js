@@ -16,7 +16,7 @@ window.initDesigns = async function (root) {
   #designs .dc .wide{overflow-x:auto;background:#0f0c2b;-webkit-overflow-scrolling:touch}
   #designs .dc .wide img{width:auto;height:130px;max-width:none;aspect-ratio:auto}
   #designs .k-theme .wide img{height:var(--zh,220px)}
-  #designs .lyh{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:6px 8px;font-size:12px}#designs .lfold{cursor:pointer;color:var(--mute)}#designs .tfold{cursor:pointer}#designs .tfc{padding:4px 0}
+  #designs .lyh{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:6px 8px;font-size:12px}#designs .lfold{cursor:pointer;color:var(--mute)}#designs .tfold{cursor:pointer}#designs .rfold{cursor:pointer;color:var(--mute);padding:2px 6px;white-space:nowrap}#designs .tfc{padding:4px 0}
   #designs .lyh button{background:#241d3d;color:#ddd;border:1px solid #444;border-radius:6px;padding:2px 7px;font-size:12px}#designs .lyh .pen.on{outline:2px solid currentColor}
   #designs .ink{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}#designs .ink.on{pointer-events:auto;cursor:crosshair;touch-action:none;outline:2px dashed #ffd84d}
   #designs .tiles .grid line{stroke:#ffffff30;stroke-width:1px;vector-effect:non-scaling-stroke}#designs .plr{position:absolute;left:0;top:0;background:#c8ff3c;border:2px solid #10301a;box-sizing:border-box;pointer-events:none;z-index:5}#designs .plr[data-m="1"]{border-radius:40% 70% 70% 40%}#designs .plr[data-m="2"]{border-radius:50%}#designs .zb .aplay,#designs .zb .aspd{min-width:28px}#designs .tiles,#designs .tiles *{pointer-events:auto!important}#designs .tiles{cursor:pointer;display:block;touch-action:none;background:#1a1636;max-width:none}#designs .lay .wide{padding:4px 8px}#designs .ptool.on{outline:2px solid #ffd84d}#designs .tiles .rte,#designs .tiles .rte *{pointer-events:none!important}#designs .lroute.on{outline:2px solid #7be3ff}
@@ -175,7 +175,7 @@ window.initDesigns = async function (root) {
       + (lo ? (dr ? tools : `<button class="pdraw">✏ draw</button>`) + (sk.length && !ms.length ? `<button class="msend" data-label="📨 send to Claude"${CAN_SEND ? "" : " disabled"}>📨 send to Claude</button>` : "") + `<span class="ds pst">${esc(DST[d.id] || "")}</span>` : "") + `</div>`
       + (lo ? `<div class="wide" data-w="L:${esc(d.id)}"><div class="mk lk${bg === "blank" ? " blank" : ""}" style="--zh:${fs ? "calc(100vh - 120px)" : zh + "px"}"><img loading="lazy" src="${esc(bg === "scene" ? d.card : d.layout)}" alt="layout">${svg}</div></div>` : "") + `</div>`;
     const media = d.kind === "theme" ? `<div class="zw"><div class="wide" data-w="${esc(d.id)}"><div class="mk${MARKING === d.id ? " on" : ""}" style="--zh:${zh}px">${img}${pins}</div></div>`
-      + `<div class="zb">${d.anim ? `<button class="aplay" title="play the scene at game speed">${PLAY && PLAY.id === d.id ? "■" : "▶"}</button><button class="aspd" title="speed">${ASPD}x</button><select class="asty" title="animation style">${Object.entries(FXS).map(([k, f]) => `<option value="${k}"${styOf(d.id) === k ? " selected" : ""}>${esc(f.name)}</option>`).join("")}</select><select class="acol" title="number of colours">${[1, 2, 3, 4, 5, 6, 8, 12, 16].map(n => `<option value="${n}"${+(open["acol:" + d.id] || 4) === n ? " selected" : ""}>${n} colour${n > 1 ? "s" : ""}</option>`).join("")}</select>` : ""}<button class="zoom" data-z="-1" title="zoom out">−</button><button class="zoom" data-z="1" title="zoom in">＋</button>`
+      + `<div class="zb">${d.anim ? `<button class="aplay" title="play the scene at game speed">${PLAY && PLAY.id === d.id ? "■" : "▶"}</button>` : ""}${FR("zb:" + d.id, "⚙", `${d.anim ? `<button class="aspd" title="speed">${ASPD}x</button><select class="asty" title="animation style">${Object.entries(FXS).map(([k, f]) => `<option value="${k}"${styOf(d.id) === k ? " selected" : ""}>${esc(f.name)}</option>`).join("")}</select><select class="acol" title="number of colours">${[1, 2, 3, 4, 5, 6, 8, 12, 16].map(n => `<option value="${n}"${+(open["acol:" + d.id] || 4) === n ? " selected" : ""}>${n} colour${n > 1 ? "s" : ""}</option>`).join("")}</select>` : ""}<button class="zoom" data-z="-1" title="zoom out">−</button><button class="zoom" data-z="1" title="zoom in">＋</button>`)}`
       // ACTIONS ARE BUTTONS (Evgeni 2026-11-27: "whenever is some operations i should do, like say build, lets move that
       // as a button for example on the theme"): the button sends Claude the request; the page never runs the job itself
       + `<button class="abuild" title="ask Claude to rebuild this theme's scene from the current layout">🔨 build</button><span class="ds abst">${esc(AST[d.id] || "")}</span></div></div>`
@@ -255,6 +255,11 @@ window.initDesigns = async function (root) {
   const sceneSnap = () => ({ multi: SCENE_SEGS.filter(z => z.key).map(z => ({ k: z.key, tiles: (DRAW[z.key] || {}).tiles ? JSON.parse(JSON.stringify(DRAW[z.key].tiles)) : null })) });
   const sceneW = () => { let w = 0, prev = null; for (const q of SECS()) { const cur = { T: tilesOf("layout:" + q[0]), w: q[2], h: q[3] }; if (prev) w += window.SceneJoin.join(prev, cur).n; w += q[2]; prev = cur; } return w; };
   let TILE = () => "", ROUTE1 = () => "";
+  // MORE THAN 4 BUTTONS FOLD (Evgeni 2026-11-27: "any UI as well over some kind of view. everything under collapsible
+  // sections above like 4 buttons"): a row of controls longer than ~4 sits behind one ▸ label, folded by default,
+  // remembered per viewer (open["rf:<key>"]); the one or two main actions stay outside it
+  const FR = (key, label, html) => { const o = open["rf:" + key] === true;
+    return `<span class="rfold" role="button" tabindex="0" data-rf="${esc(key)}">${o ? "▾" : "▸"} ${label}</span>` + (o ? html : ""); };
   // ---- ▶ play (Evgeni 2026-11-27: "theme animations, so we might see how it looks in the game if we press play") ----
   let PLAY = null, ASPD = 1; const AST = {};
   // send Claude a request for a job (build, rebuild ...): one line, anchored on the card it is about
@@ -377,6 +382,9 @@ window.initDesigns = async function (root) {
         // gravity portals (Evgeni 2026-11-27: "i need also reverse gravity portals in the layouts"): G upside down (yellow),
         // N back to normal (blue); drawn 3 rows tall like the game's portal, centred on its cell
         // a hidden portal of the section's own mode: it moves the band (the room) to its height
+        // 📍 MARKER (Evgeni 2026-11-27: "give me a marker to add to a level, so i put like a marker block ... after its fixed you
+        // can remove the marker"): a "look here" pin with no gameplay (sampleOf ignores it); Claude removes it once fixed
+        case "@": return `<g class="tl"><circle cx="${x + 0.5}" cy="${y + 0.38}" r="0.3" fill="#ff4d6d" stroke="#fff" style="stroke-width:1.5px;vector-effect:non-scaling-stroke" /><path d="M${x + 0.3} ${y + 0.55} L${x + 0.5} ${y + 0.98} L${x + 0.7} ${y + 0.55}Z" fill="#ff4d6d" /></g>`;
         case "W": case "R": case "H": case "U": case "A": case "L": case "P": return `<rect class="tl" x="${x + 0.3}" y="${y - 1}" width="0.4" height="3" rx="0.2" fill="none" stroke="#c77dff" stroke-dasharray="0.2 0.15" style="stroke-width:1.5px;vector-effect:non-scaling-stroke" />`;
         case "G": case "N": return `<rect class="tl" x="${x + 0.25}" y="${y - 1}" width="0.5" height="3" rx="0.25" fill="${q.t === "G" ? "#ffe000" : "#38c8ff"}" fill-opacity="0.85" />`;
         // orbs (Y yellow, B blue, E green) and pads (J yellow, K blue)
@@ -415,7 +423,7 @@ window.initDesigns = async function (root) {
     const marks = H => SCENE_SEGS.map(z => z.join ? `<rect x="${z.c0}" y="0" width="${z.w}" height="${H}" fill="#ffffff0d" />`
       : `<line x1="${z.c0}" y1="0" x2="${z.c0}" y2="${H}" stroke="#ffd84d66" stroke-dasharray="0.3 0.3" style="stroke-width:1px;vector-effect:non-scaling-stroke" /><text x="${z.c0 + 0.2}" y="0.7" font-size="0.6" fill="#ffd84daa" style="pointer-events:none">${esc(z.name)}</text>`).join("");
     const n = LPARTS.filter(q => q[0] !== "play" && (DRAW["layout:" + q[0]] || {}).tiles).length;   // parts he has edited
-    const TOOLS = [["#", "▭ block"], ["/", "◢ slope"], ["\\", "◣ slope"], ["7", "◥ ceiling slope"], ["r", "◤ ceiling slope"], ["^", "▲ spike"], ["v", "▼ hanging spike"], ["o", "⚙ saw"], ["G", "🟡 gravity up"], ["N", "🔵 gravity back"], ["W", "┊ swing room mover"], ["H", "┊ ship room mover"], ["U", "┊ ufo room mover"], ["Y", "◎ yellow orb"], ["B", "◎ blue orb"], ["E", "◎ green orb"], ["J", "▬ yellow pad"], ["K", "▬ blue pad"], ["erase", "⌫ erase"]];
+    const TOOLS = [["#", "▭ block"], ["/", "◢ slope"], ["\\", "◣ slope"], ["7", "◥ ceiling slope"], ["r", "◤ ceiling slope"], ["^", "▲ spike"], ["v", "▼ hanging spike"], ["o", "⚙ saw"], ["G", "🟡 gravity up"], ["N", "🔵 gravity back"], ["W", "┊ swing room mover"], ["H", "┊ ship room mover"], ["U", "┊ ufo room mover"], ["Y", "◎ yellow orb"], ["B", "◎ blue orb"], ["E", "◎ green orb"], ["J", "▬ yellow pad"], ["K", "▬ blue pad"], ["@", "📍 marker"], ["erase", "⌫ erase"]];
     const chips = `<span class="pens">` + LPARTS.map(q => `<button class="lpt${show(q[0]) ? " on" : ""}" data-p="${esc(q[0])}" title="${esc(q[5] || "")}">${show(q[0]) ? "☑" : "☐"} ${esc(q[1])}${q[0] !== "play" && (DRAW["layout:" + q[0]] || {}).tiles ? " ✏" : ""}</button>`).join("")
       + `<button class="lall">all</button><button class="lnone">none</button><button class="ladd">＋ section</button></span>`
       + (ADDFORM ? `<span class="pens laddf"><input class="lan" placeholder="name, e.g. robot stairs" maxlength="40">`
@@ -424,16 +432,17 @@ window.initDesigns = async function (root) {
         + `<label>height <input class="lah" type="number" min="4" max="14" value="10" style="width:46px"></label>`
         + `<label>after <select class="laa">${SECS().map(q => `<option value="${esc(q[0].slice(4))}"${q === SECS()[SECS().length - 1] ? " selected" : ""}>${esc(q[1])}</option>`).join("")}</select></label>`
         + `<button class="lago">add</button><button class="lacancel">cancel</button></span>` : "");
-    const tools = `<span class="pens">` + TOOLS.map(([k, l]) => `<button class="ptool${TOOL === k ? " on" : ""}" data-t="${esc(k)}">${l}</button>`).join("")
-      + `<button class="pundo">↶ undo</button><button class="pclear">🗑 clear shown</button><button class="preset">↺ shown back to ours</button>`
-      + `<button class="lroute${open.route === false ? "" : " on"}" title="the solver's route over each section">〰 solver path</button><button class="zoom" data-z="-1">−</button><button class="zoom" data-z="1">＋</button><button class="pfs">${fs ? "⤡ exit" : "⛶ full screen"}</button>`
+    const curTool = (TOOLS.find(t => t[0] === TOOL) || [, "pick a piece"])[1];
+    const tools = FR("ltools", "pieces · " + esc(curTool), `<span class="pens">` + TOOLS.map(([k, l]) => `<button class="ptool${TOOL === k ? " on" : ""}" data-t="${esc(k)}">${l}</button>`).join("")
+      + `<button class="pundo">↶ undo</button><button class="pclear">🗑 clear shown</button><button class="preset">↺ shown back to ours</button></span>`)
+      + ` ` + FR("lview", "view", `<span class="pens"><button class="lroute${open.route === false ? "" : " on"}" title="the solver's route over each section">〰 solver path</button><button class="zoom" data-z="-1">−</button><button class="zoom" data-z="1">＋</button><button class="pfs">${fs ? "⤡ exit" : "⛶ full screen"}</button></span>`) + ` <span class="pens">`
       // a plain save, no sending (Evgeni: "i need a save there, without sending ... i would need to change a bit before
       // updating"); every edit also saves itself, the button saves the shown parts again and says when
       + `<button class="lsave">💾 save</button>`
       + (n || LPARTS.some(q => noteUnsent(q[0])) ? `<button class="msend" data-label="📨 send to Claude"${CAN_SEND ? "" : " disabled"}>📨 send to Claude</button>` : "") + `<span class="ds pst">${esc(DST.layout || "")}</span></span>`;
     return `<section data-g="layoutsec"><h2 class="stitle fold-h" role="button" tabindex="0" aria-expanded="${isOpen}">${isOpen ? "▾" : "▸"} Theme layout <span class="ds">the same for every theme · one part per kind of play · tap to place${n ? " · ✏ " + n : ""}</span></h2>`
-      + (isOpen ? `<div class="dc lay board${fs ? " fs" : ""}" data-id="${LACT}"><div class="lyh">${chips}</div><div class="lyh">${tools}</div>`
-        + LPARTS.filter(q => show(q[0])).map(q => `<div class="lpn"><b>${esc(q[1])}</b> · ${esc(q[4] || "")} · ${q[2]} x ${q[3]}${q[5] ? " · " + esc(q[5]) : ""}${chkLine(q[0])}${q[0].startsWith("sec:") ? ` <span class="lsz" data-k="${esc(q[0])}"><button data-d="0,1" title="one row taller">⬆ taller</button><button data-d="0,-1" title="one row shorter">⬇ shorter</button><button data-d="2,0" title="two columns wider">➡ wider</button><button data-d="-2,0" title="two columns narrower">⬅ narrower</button></span>` : ""}${ADDED[q[0].slice(4)] ? ` <button class="ldel" data-k="${esc(q[0].slice(4))}">✕ remove</button>` : ""}</div><div class="wide" data-w="L:${esc(q[0])}">${grid(q)}</div>`
+      + (isOpen ? `<div class="dc lay board${fs ? " fs" : ""}" data-id="${LACT}"><div class="lyh">${FR("lsecs", "sections (" + LPARTS.filter(q => show(q[0])).length + " shown)", chips)}</div><div class="lyh">${tools}</div>`
+        + LPARTS.filter(q => show(q[0])).map(q => `<div class="lpn"><b>${esc(q[1])}</b> · ${esc(q[4] || "")} · ${q[2]} x ${q[3]}${q[5] ? " · " + esc(q[5]) : ""}${chkLine(q[0])}${q[0].startsWith("sec:") ? ` ${FR("lsz:" + q[0], "size", `<span class="lsz" data-k="${esc(q[0])}"><button data-d="0,1" title="one row taller">⬆ taller</button><button data-d="0,-1" title="one row shorter">⬇ shorter</button><button data-d="2,0" title="two columns wider">➡ wider</button><button data-d="-2,0" title="two columns narrower">⬅ narrower</button></span>`)}` : ""}${ADDED[q[0].slice(4)] ? ` <button class="ldel" data-k="${esc(q[0].slice(4))}">✕ remove</button>` : ""}</div><div class="wide" data-w="L:${esc(q[0])}">${grid(q)}</div>`
           + `<div class="lnr"><input class="lnote" data-n="${esc(q[0])}" placeholder="your notes on ${esc(q[1])} ..." value="${esc((NOTES[q[0]] || {}).note || "")}"><span class="ds lnst" data-n="${esc(q[0])}">${esc(NST[q[0]] || "")}</span></div>${stLine(q[0])}`).join("")
         + genPanel() + `</div>` : "") + `</section>`;
   }
@@ -609,6 +618,8 @@ window.initDesigns = async function (root) {
     if (zb) { const id0 = zb.closest(".dc").dataset.id, id = id0.startsWith("layout") ? "layout" : id0, k = "zoom:" + id, z = open[k] || 1;
       open[k] = Math.max(0.5, Math.min(3, +(z * (+zb.dataset.z > 0 ? 1.4 : 1 / 1.4)).toFixed(3)));
       try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} render(); return; }
+    const rf = e.target.closest(".rfold");
+    if (rf) { const k = "rf:" + rf.dataset.rf; open[k] = !open[k]; try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} render(); return; }
     const tf = e.target.closest(".tfold");
     if (tf) { const k = "theme:" + tf.dataset.tf; open[k] = !open[k]; if (!open[k] && PLAY && PLAY.id === tf.dataset.tf && typeof stopPlay === "function") stopPlay();
       try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} render(); return; }
