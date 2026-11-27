@@ -114,9 +114,10 @@ difficulty target (tier: cps and tightest window), and are checked by tools/layo
   gameplay recenter the screen. people put invisible ones to move further in the screens". The corridor rides a slow
   swell over the whole map with the quick waves on top (together under ~0.7 rows a column), and an `R` pair (ship portal +
   swing portal, a quarter column apart; board letter R, tools/designthemes.js sampleOf) re-sets the 10-block band around
-  the player each time the swell has moved 3 rows. A swing portal alone does nothing in a swing in the sim (gdsolver's
-  measurement, lib/physics.js enterMode), so the pair changes mode for a moment. 12 of 12 solve (60 / 100 columns). In the
-  game UNCHECKED: the ship tick between the two portals, and whether a lone swing portal re-bands after all.
+  the player each time the swell has moved 3 rows. The pair works under both rules: the old sim rule (a same-mode portal does nothing,
+  gdsolver) and today's (lib/physics.js re-centres on a same-mode portal at a new height, PHYSICS.md "same-mode portal",
+  so a lone hidden W would do too). The real game decides; "GDLM lab room mover" is queued to test it. 12 of 12 solve (60 / 100 columns). In the
+  game UNCHECKED: the ship tick between the two portals. If the lab shows a lone swing portal re-bands, switch R to one W.
 - **Portals on joins:** a wave or fly gravity portal goes where one movement of the path ends and the next begins
   (`joinNear`: in a fly, between two sweeps at least 3 columns long when there are some), at the corridor's middle height,
   never mid-leg.
