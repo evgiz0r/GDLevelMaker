@@ -21,6 +21,10 @@ if (!process.argv.includes("--quick")) { const LC = require("../tools/layoutchec
     const cs = z.presses.flatMap(q => Array.isArray(q) ? q : [q]).filter(c => c < 59), on = cs.filter(c => Math.abs(c / hb - Math.round(c / hb)) < 0.02).length;
     // holds: 3/4 of the ends; orbs (my-mwz2haf0): half (an orb rides the arc of the last one, so a beat is taken only
     // where an arc can carry an orb); the other tap types: every press
+    // the stair path (my-mwz1637w): its lattice fixes where the cube can jump (Evgeni chose to keep it), so its presses go
+    // NEAR the beat: the mean distance to the nearest half beat under 0.8 of a random press's (a quarter of a half beat)
+    if (key === "my-mwz1637w") { const off = cs.reduce((a, c) => a + Math.abs(c / hb - Math.round(c / hb)), 0) / cs.length;
+      ok(off < 0.25 * 0.8, `beats ${key}: presses near the beat, mean ${(off * hb / CPS * 1000).toFixed(0)} ms off (random ${(0.25 * hb / CPS * 1000).toFixed(0)})`); continue; }
     const holds = z.presses.some(q => Array.isArray(q)); ok(on >= (holds ? 0.75 : key === "my-mwz2haf0" ? 0.5 : 1) * cs.length, `beats ${key}: ${on}/${cs.length} presses on half beats`); } }
 // A SONG'S REAL HITS (tools/sectionbeats.js, from the committed knowledge/song_notes): the cube, ball and spider types put
 // every planned press on a note of Back On Track from 20 s, and the plans still clear

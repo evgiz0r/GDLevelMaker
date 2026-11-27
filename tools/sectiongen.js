@@ -179,19 +179,40 @@ function cubeFall(x0, y0, r) { let x = x0, y = y0, vy = 0, n = 0;
 // a cube run through a stretch, in the page's own physics: floor tops T[c] (rows; -9 = a pit), hazard boxes haz (units:
 // {x0, x1, y0, y1}); walks from column c0, presses at column p (null = never), stops at column c1. -> {ok, land} (land:
 // the column where it is back on a floor after the jump)
-function cubeTry(T, haz, c0, p, c1) { if (p != null && p < c0 - 1e-6) return { ok: false, why: "in the air" };   // c0: where it last landed
-  let x = c0 * 30, y = T[Math.floor(c0)] * 30, vy = 0, on = true, jumped = false, land = null, n = 0;
+// GD 2.2's jump snap (lib/physics.js applySnap; 1x: max 1, near 90, far 150, side 120): each grounded tick the cube
+// takes the block it stands on as its reference (several: the lowest 100-unit section, then the leftmost); landing on a
+// new block that sits a stair step from the reference (90 on and 2 up, 120 on and 1 up, 150 on and 1 down) moves x by up
+// to 1 unit so the cube keeps its offset from the block. A stair path of 1-wide blocks snaps on most hops, so over a long
+// section the cube runs a few ticks ahead of its time (the real sim, 2026-11-27: 0.3 columns after 25 hops, a press then
+// came before the landing). With `sn` ({ref, d, off}: the reference block {c, top}, the offset, actual minus timed x)
+// cubeTry follows it and p is the press's TIME as a column (as the plan's presses are played: tick = column * 30 / dx).
+const SNAP1 = { max: 1, near: 90, far: 150, side: 120 };
+function snapStep(sn, T, x, y) { const on = []; for (let c = Math.ceil((x - 45) / 30); c <= Math.floor((x + 15) / 30); c++) if (T[c] != null && T[c] > -9 && Math.abs(T[c] * 30 - y) < 1e-6) on.push(c);
+  if (!on.length) return x; on.sort((a, b) => Math.floor((b * 30 + 15) / 100) - Math.floor((a * 30 + 15) / 100) || b - a);
+  for (const c of on) { const cx = c * 30 + 15;
+    if (sn.ref && sn.ref.c !== c) { const P = SNAP1, dx = cx - (sn.ref.c * 30 + 15), dy = (T[c] - sn.ref.top) * 30, mx = P.max;
+      if ((Math.abs(dx - P.side) <= mx && Math.abs(dy - 30) <= mx) || (Math.abs(dx - P.far) <= mx && Math.abs(dy + 30) <= mx) || (Math.abs(dx - P.near) <= mx && Math.abs(dy - 60) <= mx)) {
+        const tx = cx + sn.d, nx = Math.abs(tx - x) > mx ? x + Math.sign(tx - x) * mx : tx; sn.off += nx - x; x = nx; } }
+    sn.ref = { c, top: T[c] }; sn.d = x - cx; }
+  return x; }
+function cubeTry(T, haz, c0, p, c1, sn0) { const sn = sn0 ? { ref: sn0.ref, d: sn0.d, off: sn0.off } : null, off0 = sn ? sn.off : 0;
+  if (p != null && p * 30 + off0 < c0 * 30 - 1e-6) return { ok: false, why: "in the air" };   // c0: where it last landed
+  let x = c0 * 30, y = 0, vy = 0, on = true, jumped = false, land = null, n = 0, snL = null;
   const sup = () => { let t = -99; for (let c = Math.floor((x - 15) / 30); c <= Math.floor((x + 14.9) / 30); c++) t = Math.max(t, T[c] ?? -99); return t; };
+  y = sup() * 30;   // standing on whatever its box is over (a 1-wide block it has just landed on the edge of)
   while (x < c1 * 30 && n++ < 3000) {
-    if (on && p != null && !jumped && x >= p * 30 - 1e-6) { vy = CUBE.J; on = false; jumped = true; }
+    let jt = false;   // the jump's own tick moves x only (the real sim's arc, 2026-11-27: 2.4 units lower at the top otherwise)
+    if (on && p != null && !jumped && x - (sn ? sn.off : 0) >= p * 30 - 1e-6) { vy = CUBE.J; on = false; jumped = true; jt = !!sn; }
     else if (!on) { vy -= CUBE.g * CUBE.DTS; if (vy < -15) vy = -15; }
-    x += CUBE.X; y += on ? 0 : vy * CUBE.DTS; const t = sup() * 30;
+    x += CUBE.X; y += on || jt ? 0 : vy * CUBE.DTS; const t = sup() * 30;
     if (on && t < y) on = false; if (y < t - 10) return { ok: false, why: "wall" };
-    if (!on && vy <= 0 && y <= t) { y = t; on = true; vy = 0; if (jumped && land == null) land = x / 30; }
+    if (!on && vy <= 0 && y <= t) { y = t; on = true; vy = 0; }
+    if (on && sn) x = snapStep(sn, T, x, y);
+    if (on && jumped && land == null) { land = x / 30; if (sn) snL = { ref: sn.ref, d: sn.d, off: sn.off }; }
     if (y < -60) return { ok: false, why: "pit" };
-    for (const h of haz) if (x + 15 > h.x0 && x - 15 < h.x1 && y + 30 > h.y0 && y < h.y1) return { ok: false, why: "hazard" }; }
+    for (const h of haz) if (h.r ? (x - h.cx) ** 2 + (y + 15 - h.cy) ** 2 < (15 + h.r) ** 2 : x + 15 > h.x0 && x - 15 < h.x1 && y + 30 > h.y0 && y < h.y1) return { ok: false, why: "hazard" }; }
   if (p != null && !jumped) return { ok: false, why: "no jump" };
-  return { ok: true, land }; }
+  return { ok: true, land, sn: snL, end: sn }; }
 // the timing window of a press at p: the run of ticks around it that still clears [c0, c1] -> {e, l} ticks early / late
 function cubeWin(T, haz, c0, p, c1, max = 60) { const t = CUBE.X / 30; if (!cubeTry(T, haz, c0, p, c1).ok) return null;
   let e = 0, l = 0; while (e < max && cubeTry(T, haz, c0, p - (e + 1) * t, c1).ok) e++; while (l < max && cubeTry(T, haz, c0, p + (l + 1) * t, c1).ok) l++;
@@ -798,7 +819,7 @@ CONCEPT["my-mwz1637w"] = "a lattice of single blocks 3 apart; the way climbs, a 
 // The turn (Evgeni: "still no reverse portals on generation" -- the pair is part of the stair path): the top step is a
 // 2-wide block, the gravity portal stands right after it at the player's height, and the next step hangs 3 rows up so the
 // flipped cube meets its underside a block later; the way back down mirrors it with the normal portal.
-GEN["my-mwz1637w"] = o => { const { R, imix, chance, W, H, G } = ctx(o, 13), DU = o.du ?? 5, top = H - 2 - DU, low = DU + 1;
+function stairPath(o) { const { R, mix, imix, chance, W, H, G, onBeat } = ctx(o, 13), ways = [{ c: 0, e: 2, h: 1, up: false }], DU = o.du ?? 5, top = H - 2 - DU, low = DU + 1;
   G.box(0, 2, 0, 1); for (let c = 3; c < W - 3; c += 2) G.put(c, 0, "o");   // saws in the pit, not a spike wall
   let h = 1, up = false, k = 0, run = 0, turn = false, turnHi = R.int(Math.max(2, top - imix(0, 2)), top), turnLo = R.int(low, low + imix(0, 2));
   const lastC = 4 + 3 * Math.floor((W - 7 - 4) / 3);
@@ -809,16 +830,29 @@ GEN["my-mwz1637w"] = o => { const { R, imix, chance, W, H, G } = ctx(o, 13), DU 
   // limits"): after n hops a REST comes with chance 0 / 0 / 0.25 / 0.6 / 0.85 (n = 0..4+): the way block is 3 wide and
   // the next column comes 5 on, not 3 (a run, then the same jump), so the rhythm breaks
   let hops = 0, step = 3, lastWay = lastC;
-  for (let c = 4; c <= lastC; c += step, k++) { step = 3; lastWay = c;
+  // where the cube lands on each way block (ell: its centre's column from the block's own, -0.5 .. 1.5 is on it) and the
+  // spacing that hop needs: a 1-wide block 3 on is in reach only if the press can come early enough (Evgeni chose to keep
+  // the lattice 3 apart: a column goes 1-2 further only where the cube can't land on it otherwise, e.g. after a +2 or on a
+  // -1). Air time of a hop by its height change (columns, GD's arc at 1x, +0.2 for the landing tick):
+  const AIR = { "-2": 5.32, "-1": 4.93, "0": 4.46, "1": 3.85, "2": 2.81 }; let ell = -0.45, prevC = 0, prevW = 2;
+  // PD: the press comes at least this long after the landing (columns; 0.25 = 6 ticks; by tier, 0.4 easy to 0.2 harder), so every hop has a window to press
+  // in and the plan has room for the real game's landing tick (the page lands within ~2 ticks of the sim)
+  const PD = o.pd ?? mix(0.4, 0.2);   // easy waits longer: a wider window
+  for (let c = 4; c <= lastC + 2; c += step, k++) { step = 3;
     if (k > 0) {
-      if (turn) { turn = false; h = up ? Math.min(H - 2, h + DU) : Math.max(1, h - DU); }
+      if (turn) { turn = false; h = up ? Math.min(H - 2, h + DU) : Math.max(1, h - DU); ell = (ways[ways.length - 1].e - prevC) + (o.gOff ?? 1) - 0.41 + 2.9 - (c - prevC); }
       else { // a hop toward the turn: +1 at most 3 times running (measured: a 4th +1 from a 1-wide block lands past the
         // next one), +2 or a step back -1 between, never a flat run
         let hop = run >= 3 || chance(0.15, 0.4) ? (R.chance(0.6) ? 2 : -1) : 1;
         if (hop === -1 && (up ? h + 1 > H - 2 : h - 1 < 1)) hop = 2;
         run = hop === 1 ? run + 1 : 0;
-        h = up ? Math.max(turnLo, h - hop) : Math.min(turnHi, h + hop); } }
-    const mid = c > W / 4 && c < 3 * W / 4;
+        const h0 = h; h = up ? Math.max(turnLo, h - hop) : Math.min(turnHi, h + hop);
+        const L = (AIR[String(clamp(Math.abs(h - h0) * Math.sign(up ? h0 - h : h - h0), -2, 2))] ?? 4.46) + 0.2;
+        while (ell + PD + L - (c - prevC) > 1.3) c++;   // out of reach 3 on: the column goes on until a press PD after the landing lands on it
+        ell = Math.max(-0.3, ell + PD + L - (c - prevC)); } }
+    if (c > lastC + 2) break;
+    lastWay = c;
+    const mid = c > W / 4 && c < 3 * W / 4, way = { c, e: c, h, up }; ways.push(way); prevC = c; prevW = 0;
     // the lattice; the block right over the way block is left out (head room: a jump from a 1-wide block hits it), the
     // others carry a hazard on the face the player would land on
     for (let r = (h % 3) || 3; r < H - 1; r += 3) { if (r === (up ? h - 3 : h + 3)) continue; G.put(c, r, "#"); if (r === h || o.clean) continue;
@@ -826,14 +860,74 @@ GEN["my-mwz1637w"] = o => { const { R, imix, chance, W, H, G } = ctx(o, 13), DU 
       G.put(c, face, mid || chance(0.3, 0.7) ? (R.chance(0.6) ? "s" : "q") : (up ? "v" : "^")); }
     // the last chance to turn back to normal gravity is forced, so the run ends on its feet
     let turned = false;
-    if ((up && (h <= turnLo || c >= lastC - 5)) || (!up && h >= turnHi && c <= lastC - 6)) { turned = true; hops = 0;
-      if (o.wide) G.put(c + 1, h, "#"); G.put(c + (o.gOff ?? 1), up ? h - 1 : h + 1, up ? "N" : "G"); turn = true; up = !up; run = o.turnRun ?? 2;
+    if ((up && (h <= turnLo || c >= lastC - 5)) || (!up && h >= turnHi && c <= lastC - 6)) { turned = true; hops = 0; way.turn = true;
+      // the cube must be on its feet on the block when it meets the portal: if it lands there late (ell), the block is 2
+      // wide and the portal and the next column come a column later
+      const wideT = o.wide || ell > 0.4; if (wideT) { way.e = c + 1; G.put(c + 1, h, "#"); if (!o.wide) step = 4; }
+      G.put(way.e + (o.gOff ?? 1), up ? h - 1 : h + 1, up ? "N" : "G"); turn = true; up = !up; run = o.turnRun ?? 2;
       if (up) turnLo = R.int(low, Math.min(h + DU - 1, low + imix(0, 2))); else turnHi = R.int(Math.max(h - DU + 1, top - imix(0, 2)), top); }
     if (!turned && !turn && k > 0 && c + 5 <= lastC - 6 && R.chance([0, 0, 0.25, 0.6, 0.85][Math.min(4, hops)])) {
-      G.put(c + 1, h, "#"); G.put(c + 2, h, "#"); step = 5; hops = 0; }
+      G.put(c + 1, h, "#"); G.put(c + 2, h, "#"); way.e = c + 2; step = 5; hops = 0; prevW = 2; }
     else if (!turned) hops++; }
   G.box(Math.min(W - 3, lastWay + 5), W - 1, 0, 1);   // the end platform, 5 on from the last way column (rests shift it)
-  return { map: G.rows(), mode: "cube" }; };
+  ways.push({ c: Math.min(W - 3, lastWay + 5), e: W + 6, h: 1, up: false });
+  return { map: G.rows(), mode: "cube", presses: latticePresses(G.rows(), ways, W, H, onBeat, o.gOff ?? 1) }; }
+// a lattice whose presses can't all be planned (rare: 1 in ~12 at 200 columns) is drawn again with a shorter wait, then
+// with the next seeds
+GEN["my-mwz1637w"] = o => { let z; for (let k = 0; k < 6; k++) { const pd = o.pd ?? (k === 1 ? 0.2 : undefined);
+    z = stairPath(Object.assign({}, o, { pd, seed: (o.seed ?? 1) + (k < 2 ? 0 : 1000 * k) })); if (z.presses) return z; }
+  return z; };
+// THE STAIR PATH'S PRESSES (Evgeni 2026-11-27, on how its jumps should follow the beat: "B, but if possible somewhere close
+// to the beats"): the lattice stays 3 apart and its presses are planned from it, one hop at a time in the page's cube run
+// (cubeTry): the cube is on way block A from where the last hop landed, the run from there to the next way block B with
+// every other block and hazard near them as a hazard box (upside down: the stretch mirrored); the press's window is every
+// tick that lands it on B, and the press goes on the beat in there (a sixth of a column in from either end), else its
+// middle. A gravity portal turn needs no press: it flips the cube onto the next block's underside (its landing found by
+// cubeFall over the rows between).
+function latticePresses(map, ways, W, H, onBeat, gOff) { const cell = (c, r) => c < 0 || c >= W || r < 0 || r >= H ? "." : map[H - 1 - r][c];
+  const dt = CUBE.X / 30, N = W + 12;
+  // each hop's stretch, once: floor tops of A and B (local rows), the other blocks and hazards near them as boxes
+  const hop = ways.slice(0, -1).map((A, i) => { const B = ways[i + 1]; if (A.turn) return { A, B };
+    const lr = r => A.up ? H - 1 - r : r, T = Array(N).fill(-9), haz = [], c0 = Math.max(0, A.c - 1), c1 = Math.min(W - 1, B.e + 1);
+    for (let c = A.c; c <= Math.min(A.e, N - 1); c++) T[c] = lr(A.h) + 1; for (let c = B.c; c <= Math.min(B.e, N - 1); c++) T[c] = lr(B.h) + 1;
+    for (let c = c0; c <= c1; c++) for (let r = 0; r < H; r++) { const ch = cell(c, r), q = lr(r);
+      if (ch === "#" && !((c >= A.c && c <= A.e && r === A.h) || (c >= B.c && c <= B.e && r === B.h) || (B.e > W && r <= 1))) haz.push({ x0: c * 30, x1: c * 30 + 30, y0: q * 30, y1: q * 30 + 30 });
+      else if ("^v".includes(ch)) haz.push(spikeBox(c, q)); else if ("sqo".includes(ch)) { const dy = ch === "s" ? -8 : -15;   // as tools/designthemes.js sampleOf: o 1706 r 21.6, q / s 1707 r 12
+        haz.push({ cx: c * 30 + 15, cy: q * 30 + 15 + (A.up ? -dy : dy), r: ch === "o" ? 21.6 : 12 }); } }
+    return { A, B, T, haz, same: lr(B.h) === lr(A.h), end: Math.min(B.e + 1.45, W - 0.5) }; });
+  // a search over the hops: at each, the presses that land on B, the beat in the window first (a sixth of a column in
+  // from its ends), then from its middle outwards; a landing that leaves the next hop no press is undone (a 1-wide
+  // block leaves little time, so where the cube lands decides the next window)
+  const seen = new Set(); let budget = 4000 + 200 * ways.length;
+  // sn: GD's jump snap state (cubeTry): the cube's x runs ahead of the press times by sn.off units, so a press is a time
+  const at = (B, l, T) => { const c = Math.max(B.c, Math.min(B.e, Math.floor(l))); return { c, top: T ? T[c] : 0 }; };
+  const go = (i, land, sn) => { if (i >= hop.length) return []; if (budget-- <= 0) return null;
+    const key = i + ":" + Math.round(land * 20) + ":" + Math.round(sn.off * 2); if (seen.has(key)) return null; seen.add(key);
+    const { A, B, T, haz, same, end } = hop[i];
+    if (A.turn) { const g = A.e + gOff; if (land > g - 0.95) return null;   // it must be on its feet on A when it meets the portal
+      // (the real sim, 2026-11-27: the flip at the portal's column - 0.41, the landing ~0.12 columns after the page's fall)
+      const f0 = cubeFall((g - 0.41) * 30, (Math.abs(B.h - A.h) - 2) * 30, 0), f = f0 == null ? null : f0 + 0.12;
+      return f != null && f >= B.c - 0.5 && f <= B.e + 1.4 ? go(i + 1, f, { ref: at(B, f), d: 0, off: sn.off }) : null; }
+    const s0 = { ref: sn.ref && sn.ref.c >= A.c && sn.ref.c <= A.e ? { c: sn.ref.c, top: T[sn.ref.c] } : at(A, land, T), d: sn.d, off: sn.off }, o30 = sn.off / 30;
+    // a gap of one column at the same height is walked over (the cube's box touches B before it falls): no press
+    if (same && B.c - A.e <= 2 && cubeTry(T, haz, land, null, Math.min(B.c + 0.6, W - 0.5), s0).ok) { const r = go(i + 1, B.c - 0.45, { ref: at(B, B.c), d: 0, off: sn.off }); if (r) return r; }
+    // the end platform (B runs past the section): the jump, or a walk off A, may come down past the section's last column
+    if (B.e > W) { const wk = cubeTry(T, haz, land, null, B.c + 8, s0); if (wk.ok) return [];
+      for (let x = land - o30 + 0.1; x < A.e + 1.5 - o30; x += dt) { const r = cubeTry(T, haz, land, x, B.c + 8, s0); if (r.ok && r.land != null && r.land >= B.c - 0.6) return [+x.toFixed(4)]; } return null; }
+    const ok = []; for (let x = land - o30 + 0.1; x < A.e + 1.5 - o30; x += dt) { const r = cubeTry(T, haz, land, x, end, s0); if (r.ok && r.land != null && r.land >= B.c - 0.4 && r.land <= B.e + 1.3) ok.push([x, r.land, r.sn]); }
+    if (!ok.length) return null;
+    // the order tried: the beat in the window (a sixth of a column in from its ends), then the earliest landings first (a
+    // chain of 1-wide blocks runs out of room when it lands late), the window's middle as the last resort
+    const x0 = ok[0][0], x1 = ok[ok.length - 1][0], mid = (x0 + x1) / 2, bc = onBeat(mid, x0 + 0.16), hasB = bc >= x0 + 0.16 && bc <= x1 - 0.16;
+    const near = w => ok.reduce((a, b) => Math.abs(b[0] - w) < Math.abs(a[0] - w) ? b : a);
+    // near the beat even when it is outside the window (Evgeni: "if possible somewhere close to the beats"): the press
+    // nearest the beat comes first, then the earliest landings
+    const bn = onBeat(mid, x0 - 1), byB = near(hasB ? bc : bn);
+    const order = [byB, ...ok.slice().sort((a, b) => a[1] - b[1]), near(mid)], tried = [];
+    for (const [x, l, s1] of order) { if (tried.some(t => Math.abs(t - l) < 0.08)) continue; tried.push(l); if (tried.length > 6) break;
+      const r = go(i + 1, l, s1); if (r) return [+x.toFixed(4), ...r]; }
+    return null; };
+  return go(0, 0.5, { ref: null, d: 0, off: 0 }) || undefined; }
 
 // SWING (his, my-mwz1890c). Idea: round movement, a big up-and-down corridor whose sides are curves of saws, not blocks.
 // Motif: one wave of the path. Varies: amplitude, period, the corridor's width. Harder: tighter waves, a narrower corridor.

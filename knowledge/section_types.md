@@ -111,9 +111,24 @@ type, so a builder can make a new one of any length, synced to the song, and so 
   (40-120 cols, 9-20 rows), every press needed, holding clears 1 of 8, 100% on half beats at 140 / 175 bpm.
   `cubeTry` now starts a run where the cube last landed: a press while still in the air is a miss, so a window's early
   edge never reaches back past the landing.
-  Not yet: swing (the board thread's tools/swingbuild.js), stair path (a lattice of 1-wide blocks 3 apart: its presses
-  are one per column, so it needs the lattice run in the page physics, or off-grid column spacing, which waits on
-  Evgeni's answer about moving blocks by less than a block); fly's gravity pair (the planner flies upright only).
+  Stair path (my-mwz1637w, 2026-11-27; Evgeni chose "B, but if possible somewhere close to the beats": keep the lattice 3
+  apart, plan its presses from it): the lattice is drawn as before, but a column goes 1-2 further on only where the cube
+  can't land on it with a press PD after its landing (PD 0.4 columns easy -> 0.2 harder, the window to press in; the air
+  time per height change is in the code). `latticePresses` then plans one press per hop with a search over the hops in
+  the page's cube run (`cubeTry` with the hop's other blocks and hazards as boxes, mirrored upside down): the presses
+  that land the cube on the next way block a little inside its ends, the one nearest the beat first, then the earliest
+  landings (a late landing on a 1-wide block leaves the next hop no time), undone when a later hop has none; a gravity
+  turn needs no press, a 1-column gap at the same height is walked. A lattice whose presses can't all be planned (1 in
+  ~12 at 200 columns) is drawn again (shorter wait, then the next seeds). Every plan clears (30-200 cols, 13-20 rows),
+  holding clears none, every press needed, ~1.9 taps a second; the presses sit NEAR the beat, not on it (mean 25-40 ms
+  off at 140 / 175 bpm against 43-54 for a random press), since the lattice fixes where a jump can be.
+  **GD's jump snap is in the page physics now** (cubeTry with `sn`, the real sim's applySnap): landing on a block a stair
+  step from the last one (90 on and 2 up, 120 on and 1 up, 150 on and 1 down, at 1x) moves the cube up to 1 unit so it
+  keeps its offset; on a stair path most hops snap, and without it the cube ran 0.3 columns ahead of the press times
+  after ~25 hops and a press came before its landing (the plan dies late in long sections). With `sn` a press is a
+  time (column = tick * dx / 30, as planCheck plays it), and the jump's own tick moves x only (the page's arc was 2.4
+  units too high). The other cube types do not use `sn` yet (their stairs are short; worth doing if long ones die late).
+  Not yet: swing (the board thread's tools/swingbuild.js); fly's gravity pair (the planner flies upright only).
 - **From a beat** (Evgeni 2026-11-27: "i want to be able to generate according to a beat as well, so its not just random
   stats, should be applicable in a level ... in the long run much more efficient than solving"): `make(key, {bpm})` or
   `{beats: [seconds | {t, s}]}` (a song section's hits with strength, tools/hits.js / impacts.js). ctx() turns them into
