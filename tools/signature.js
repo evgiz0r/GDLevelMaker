@@ -158,6 +158,46 @@ function signature(opts = {}) {
   }
   return out;
 }
+// The quiet sign: the default ending since 2026-11-27 (Evgeni: "cut our signature for now from actual gameplay and make it
+// appear in like the last 5 seconds of the level not bothering the game play with whatever effects"). No stage, no
+// spotlight, no beat bobs / pulses / flashes, no run-on blocks: the pair, the two lines and the badge, smaller (opts.scale,
+// default 0.55), behind the player (B1), fade in once at T - secs and ride with the camera (move 901 lock to camera x + y)
+// to the end. Nothing past the level's own end: the level still ends at its last gameplay object.
+//   objects.push(...sig.overlay({ endX, xOfT, tOfX, secs: 5, camY }))  + header = sig.header(header, {})
+// opts.endX   x of the level's end (its last gameplay object / end marker); the sign shows over the last opts.secs before it
+// opts.cam    the camera at T - secs (lib/camera.js: the level y at the ground line's row; default 0 = a cube near the ground):
+//             the sign hangs in the view's top right, its top 12 units under the view's top (cam + 227 at 16:9)
+// opts.dx     units right of the player where the sign's centre sits when it appears (default 250; the player is 36% across
+//             a 569-unit view, so the right edge is ~364 ahead)
+function overlay(opts = {}) {
+  const { CH, RGB } = channelsOf(opts), sc = opts.scale || 0.55, secs = opts.secs == null ? 5 : opts.secs;
+  const tEnd = opts.tOfX(opts.endX), t0 = Math.max(0.5, tEnd - secs), x0 = opts.xOfT(t0);
+  const cx = x0 + (opts.dx == null ? 250 : opts.dx), base = (opts.cam || 0) + 227 - 12 - 208 * sc;   // 208: the badge's top over the feet
+  const G = (opts.group0 || 960) + 5, out = [], r3 = v => String(+(+v).toFixed(3));
+  const o = (id, x, y, p) => out.push({ id, x: +x.toFixed(2), y: +y.toFixed(2), rot: 0, flipX: false, flipY: false, props: Object.assign({ 155: "1" }, p) });
+  const both = ch => ({ 21: String(ch), 22: String(ch) });
+  const alloc = P.allocator(CH.text, Object.assign({}, CH));
+  const robot = P.put("robot", cx - 27 * sc, base, { alloc, colours: RGB, groups: [G], zo: 4, layer: "B1", scale: sc });
+  const human = P.put("human", cx + 27 * sc, base, { alloc, colours: RGB, groups: [G], zo: 4, layer: "B1", flipX: true, scale: sc });
+  out.push(...robot.objects, ...human.objects);
+  const ty = base + (2.8 * 30 + 26) * sc;
+  const txt = (s, y, scale, ch) => o(914, cx, y, Object.assign(both(ch), { 24: "3", 25: "8", 32: r3(scale * sc), 57: String(G),
+    31: Buffer.from(s).toString("base64").replace(/\+/g, "-").replace(/\//g, "_") }));
+  txt(opts.text || "MADE BY CLAUDE", ty + 20 * sc, 0.62, CH.text);
+  txt(opts.text2 || "(and some humans)", ty, 0.4, 1011);
+  if (opts.badge !== false) {
+    const CI = require("../lib/claude_icons.js"), PA = require("../lib/pixelart.js");
+    const b = PA.toObjects(CI.badge(24), { x: cx, y: ty + (20 + 48) * sc, px: 2.5 * sc, anchor: "center", z: "B1", zo: 10, groups: [G],
+      ch: { outline: CH.outline, body: CH.claude, shade: CH.claude2, mark: CH.claudeRay } });
+    out.push(...b.objects);
+  }
+  // hidden until T - secs (the alpha well before it comes into view), then one calm fade in, locked to the camera to the end
+  const ty2 = base + 300;
+  o(1007, Math.max(15, x0 - 700), ty2, { 36: "1", 51: String(G), 35: "0", 10: "0" });
+  o(1007, x0, ty2 + 30, { 36: "1", 51: String(G), 35: r3(opts.opacity || 0.92), 10: "0.8" });
+  o(901, x0, ty2 + 60, { 36: "1", 51: String(G), 28: "0", 29: "0", 10: r3(secs + 3), 85: "2", 141: "1", 143: "1", 142: "1", 144: "1" });
+  return out;
+}
 // Where the level must end so the sign is still on screen at the end (Evgeni, 2026-11-26: "the end screen has to include our
 // sign, it extends bit too much so our signature goes away"). GD ends a level at its FURTHEST object (any kind) and puts the
 // end wall ~340 units past it; the camera stops with the wall at the screen's right edge, and a 16:9 screen is ~569 units
@@ -174,7 +214,7 @@ function describe(desc) {
   desc = String(desc || "").trim();
   return desc.includes(SIGN) ? desc : (desc ? desc + " -- " : "") + SIGN;
 }
-module.exports = { signature, header, describe, extent, clipEnd, TEXT_HALF, channelsOf, colours, SIGN, PAIR };
+module.exports = { signature, overlay, header, describe, extent, clipEnd, TEXT_HALF, channelsOf, colours, SIGN, PAIR };
 
 // node tools/signature.js <level.gdlvl> [--out file]  -- add the signature to a copy of a level (end of
 // the level, on the ground, beats from local/beats when the song has them) -> local/tmp/<name>_sig.gdlvl,

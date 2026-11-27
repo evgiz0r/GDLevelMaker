@@ -91,9 +91,11 @@ not after it:
   blocks (beat-first for synced levels), a playable layout at once, stages shown as they happen, alternatives
   shown, reuse, measured times, and a retro in BUILDS.md. Read it before any build; change it when a build
   teaches something.
-- **Every level ends with the latest end screen: the auto outro + the Claude signature.** Evgeni (2026-11-26): "from now-on
-  everywhere, we add the latest end screen claude sign on every level we make". make.js `"outro": <seed>` + its signature;
-  other builders add the same pair (BUILDING.md section 5).
+- **Every level ends with the Claude signature, quiet: the last 5 s, out of the gameplay.** Evgeni (2026-11-26): "from now-on
+  everywhere, we add the latest end screen claude sign on every level we make"; (2026-11-27): "cut our signature for now from actual gameplay and make it appear in like the last 5 seconds of the level not bothering the game play with whatever effects". Default in make.js
+  and autobeat: `signature.js overlay` -- no stage, no run-on, no beat effects; it fades in at T - 5 s in the view's top right,
+  behind the player, and rides with the camera to the end. The auto outro (`"outro": <seed>`) and the stage sign
+  (`"signature": {"style": "stage"}`, autobeat `--ending beat|outro`) are options now (BUILDING.md section 5).
 - **Process rules go in the repo, never only in a message.** The user (2026-11-24): "never just for one session
   if its a big repeatable process". A rule, a process step or a lesson that one session was told applies to
   every session and every future build: write it in CLAUDE.md, BUILDING.md or the topic's doc in the same round.
@@ -375,7 +377,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   `tools/autostudy.js` (-> knowledge/auto_study.json, numbers only), `tools/autobricks.js list | build | show` (->
   knowledge/autobricks.json, local/structures/lego-auto-*.gdlvl for `lego.js mine library`, levels/lab/auto_lab.gdlvl).
   Test: `node tests/autobricks.js`. **Beat-first auto levels** (AUTO.md "Beat-first", round 8: rapid runs, own speed bursts, no secret way via stray presses + saws, outro + signature): `tools/autobeat.js --song <Official> --seed N`
-  (a trigger on each chosen beat where the player is, gaps filled, motifs AAAA / BBBB / a mix; `--rate R` = R triggers a second, more in loud bars; lab levels/lab/auto_beat*.gdlvl); **`tools/autodeco.js`** (a short autobeat level with its structures dressed by section and held by chains / ropes, AUTO.md "GDLM 75 held together"); **`tools/autoclose.js <level>`** (an auto clone of a solved level: every press of its saved route -> a hidden pad / gravity portal, AUTO.md "Auto clone");
+  (a trigger on each chosen beat where the player is, gaps filled, motifs AAAA / BBBB / a mix; `--rate R` = R triggers a second, more in loud bars; lab levels/lab/auto_beat*.gdlvl); **`tools/autodeco.js`** (a short autobeat level with its structures dressed by section and held by chains / ropes, AUTO.md "GDLM 75 held together"); **`tools/autocheck.js <level>`** (a finished auto level re-checked on today's physics: clears with no press, stray-press leaks; AUTO.md); **`tools/autoclose.js <level>`** (an auto clone of a solved level: every press of its saved route -> a hidden pad / gravity portal, AUTO.md "Auto clone");
   test `node tests/autobeat.js`. **Sections by character** (`tools/sections.js <song>`: drop / break / build / entry / groove from the measured song; autobeat's batches follow it) and **the short beat ending** (`tools/beatend.js`: pad bounces hit and landed on the beats, then the sign; AUTO.md).
 - **Lego: structure research** (LEGO.md: every level cut into 1-3 s pieces -- official, ours, the user's sketches --,
   classified by family (fly: ship/wave/swing paths and corridors; jump; flip) with parameters, the official mix vs ours,
@@ -545,6 +547,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 - **Hazards: spikes, saws and pits against the player's path** (HAZARDS.md: the study of 21 mains + 127 community levels -- roles threat / guard / fill, jumps over something, lane frames, dressing -- the rules, the generator, what is open): `lib/hazards.js` (`hazardStats`, `hazardsAlongPath(path, objects, opts)`: hazards that follow a planned path and block leaks), `tools/hazards.js level | study [--write]` (-> knowledge/hazards_ref.json; score.js gate "hazards", WARN), `tools/hazards_try.js <level> [--map a b]` (strip a level's hazards and place new ones). Test: `node tests/hazards.js`.
 - **Spike and saw designs: one hazard dressed** (HAZARDS.md "Dressing one hazard"; Evgeni: "a spike inside a smaller spike ... glow, layers"): `tools/spikestudy.js` (what rated levels put inside one spike or saw -> knowledge/spike_designs.json), `tools/spikedesign.js list | gallery | check <level>` (14 designs as functions of the hazard, turning with it, hitbox untouched, readability rules; block-design palettes; gallery `levels/gdlm_spike_designs.gdlvl`). Test: `node tests/spikedesign.js`.
 - **`tools/density.js <level>` -- is a level sparse inside** (Evgeni 2026-11-26: "i want levels not to be so sparse"): its route cut into bricks against the tier's rated bricks (knowledge/brick_tiers.json), the calmest 4 s windows, the longest stretch with no press; score.js gate "density" (WARN). Test: `node tests/density.js`.
+- **`tools/heightspread.js <level>`** -- how gameplay spreads over the height, whole level and per mode, from the saved route (Evgeni: a good spread over y in all modes makes a better level); per section in layoutcheck.
 - **`tools/gdmarks.js <save:<name> | level.gdlvl>`** -- Evgeni's marker blocks placed in the GD editor: a text object whose text starts with "@" ("@ too tight here"); lists each with column, row and %; `--strip out.gdlvl` removes them once fixed. Read his markers before fixing a level he played.
 - **`tools/genroute.js <dir>`** -- the 〰 path of a 🎲 generated piece: the catalogue queues each piece in db collection `genroute` (state asked); fetch, solve (layoutcheck), write the route back, the page draws it (WORKBOOKS.md "genroute").
 - **`tools/orbfit.js <section> [--gap 3] [--write]`** -- re-places a board section's orbs (his kinds, in his order) on the sim's own path so the route takes every one, spaced from each other and the blocks (Evgeni 2026-11-27, "orb gameplay").
@@ -632,6 +635,10 @@ Confirmed:
 - The teleport portal (747) fires on a 25 x 90 box centred 12 units right of the object: the user's hitbox-on Deadlocked
   practice run (2026-11-24_00-33-07.mkv, 196.33 s) shows the ship leave the exit ~10 units further right than a centred
   box gives; with it Deadlocked is beaten in the sim (2026-11-25).
+- Saws by the level's "Fix Radius Collision" (header kA39, on in every level we write, off in the mains but Dash): on = centre
+  distance < half the player + radius, off = the player's rect against the circle. Evgeni's room-mover lab clear
+  (2026-11-27) passes a saw the rect test kills; with it all 3 attempts end on the game's step. The same runs confirm a
+  portal of your own mode re-sets the flying band. PHYSICS.md "Fix Radius Collision"; `node tests/fix_radius.js`.
 - GD 2.2's jump snap, a 10-unit foot margin on block tops (not 15), x as a 32-bit float, and turned hazards against the
   spinning player's turned box (2026-11-26, probe mod logs of 21 main levels, each attempt's own presses): with them the sim
   dies on the game's death step on 14 of the 21 mains and on GDLM 44 / 64; before, on none. The cube remembers the block

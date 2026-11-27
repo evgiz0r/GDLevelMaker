@@ -69,7 +69,17 @@ Each number is relative to the level's own mean, so tiers pool:
 
 ## Results
 
-GDLM 76 golden feel (Golden Haze 557117, 75 s, Normal; briefs/76_golden_feel.plan.json): see "GDLM 76" below once scored.
+**GDLM 76 golden feel, first cut** (Golden Haze 557117, 75 s, Normal, sunny kit; `node tools/feel.js 557117 --to 75 --tier
+Normal --plan briefs/76_golden_feel.plan.json --name "GDLM 76 golden feel" --out specs/76_golden_feel.json --theme sunny`,
+then planbuild + make, in the cloud with hits from the song notes). The plan: 11 sections, 3 speed changes (the two heavy
+drops and the song's speed-up into 2x wave / ship; a 2x ball was kept at 1x for lack of bricks), costs 0.76-1.2 (mean 1.02),
+median neighbour step 0.16, looks park / breeze / morning / golden by energy. The build: beatable (73 presses on the
+solver's fewest-press route), but **not shippable**: tightest window 0 ms (ship / ufo stretches), 7 prejumps, and the cube
+sections came out at 0.2-0.35 presses a second on that route against 1.4-2.0 targets (the planbuild cube bricks let the
+fewest-press route skip; the human route was not measured: make was stopped by the cloud's 30 min limit after the solve,
+before saving the route). make: solve + checks > 28 min for this 75 s, 6-mode level in the cloud. Not pushed as a level.
+What it shows: the feel step plans as asked; whether a build follows it needs the realized-vs-target check below and
+denser bricks per mode.
 
 ## Open
 
@@ -80,4 +90,5 @@ GDLM 76 golden feel (Golden Haze 557117, 75 s, Normal; briefs/76_golden_feel.pla
   (tools/sectiongen.js) could take `feel.cps` / `feel.speed` as their target.
 - hellgate_build.js has its own `VIBE` table (break 1.7 ... drop 2.6): it could read feel.js instead.
 - The upside-down cube (`cube-ud`) is planned by songplan but planbuild builds it upright.
-- A check in score.js / judge.js: the realized clicks a second and on-hit share per section against the feel's targets.
+- A check in score.js / judge.js: the realized clicks a second and on-hit share per section (on the human route) against the
+  feel's targets. GDLM 76's first cut is the case that needs it.

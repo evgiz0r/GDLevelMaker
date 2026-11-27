@@ -1,5 +1,5 @@
 // node tools/autobeat.js [--song Electrodynamix] [--seed 1] [--beats N] [--from-beat B] [--out levels/lab/auto_beat.gdlvl]
-//                        [--name "GDLM auto beat"] [--rate R] [--end-look floating|ground|plain] [--end-dress floating|ice|ground] [--quiet]
+//                        [--name "GDLM auto beat"] [--rate R] [--ending quiet|beat|outro|none] [--end-look floating|ground|plain] [--end-dress floating|ice|ground] [--quiet]
 //   -> an AUTO level (no click at all) built BEAT-FIRST on an official song: every change of movement fires on a beat.
 //      Prints each trigger (beat, kind, how far off the beat it fired) and the measures; writes the .gdlvl with the song set.
 //
@@ -29,7 +29,8 @@
 //    down for a 1.2 s+ hole, at most every 8 s, never near the song's own speed change.
 // 7. No secret way: strays() presses (tap and hold) every 30 ticks; a press that neither dies nor is back on the auto run
 //    within 5 s gets a saw where it leaves the path.
-// 8. The ending every level gets: the auto outro (autobricks.js) + the signature (signature.js), as make.js does.
+// 8. The ending every level gets: since 2026-11-27 the quiet signature (signature.js overlay: no ending gameplay, the sign fades
+//    in over the last 5 s and rides with the camera), as make.js does; --ending beat | outro | none for the older ones.
 // 9. Round 9 (opts.shape, default on; AUTO.md): echo phrases, a camera band, slopes, no sinking into blocks, short spider
 //    moves, no teleports, a block under every pad.
 // 10. Round 10 (opts.hazards, default on): hazards that follow the path, from lib/hazards.js (HAZARDS.md), the stray presses'
@@ -858,7 +859,13 @@ function build(opts = {}) {
   let sig = null;
   // the beat ending (tools/beatend.js, default since 2026-11-26: Evgeni found the outro "too big ... doesnt match the beat"):
   // half a screen of pad bounces hit and landed on the beats, then the sign. opts.ending "outro" = the old outro.
-  if (opts.ending !== false && opts.ending !== "outro" && !fin.dead) {
+  // Since 2026-11-27 the default is the QUIET sign (Evgeni: "cut our signature for now from actual gameplay and make it appear
+  // in like the last 5 seconds of the level not bothering the game play with whatever effects"): no ending gameplay at all,
+  // the sign fades in over the last 5 s of the level's own run and rides with the camera (signature.js overlay).
+  // opts.ending "beat" = the beat ending + its stage, "outro" = the old outro; false = no sign.
+  const ending = opts.ending == null ? "quiet" : opts.ending;
+  if (ending === "quiet" && !fin.dead) sig = { quiet: true };
+  if (ending === "beat" && !fin.dead) {
     try {
       const be = require("./beatend.js").beatEnd(levelString(st.objs.filter(q => q.kind !== "end"), st.segs), { period: g.period, t0: g.t0, fromX: wx, look: opts.endLook, debug: opts.endDebug });
       const objs = st.objs.filter(q => q.kind !== "end").concat(be.objects.map(q => Object.assign({ kind: "beatend" }, q)));
@@ -868,7 +875,7 @@ function build(opts = {}) {
     } catch (e) { if (!opts.quiet) console.log("  the beat ending failed: " + e.message); }
     if (sig && !opts.quiet) console.log("  beat ending: " + sig.notes.join("; "));
   }
-  if (!sig && opts.ending !== false && !fin.dead) {
+  if (!sig && ending !== false && ending !== "quiet" && !fin.dead) {
     const o = require("./autobricks.js").outro(opts.outro || (seed % 6) + 1);
     const col = Math.ceil((wx + 160) / B) + 3;
     const outroObjs = o.entries(col).map(([id, c, rr, e]) => ({ id, x: c * B + 15, y: rr * B + 15 + ((e && e.dy) || 0), flipY: !!(e && e.flipY), flipX: !!(e && e.flipX), rot: (e && e.rot) || 0, kind: "outro" }));
@@ -881,7 +888,7 @@ function build(opts = {}) {
   }
   const lv = { str: levelString(st.objs, st.segs), sig };
   const M = Object.assign(measures(fin, placed, g), M0);
-  M.ending = sig ? (sig.beat ? `beat ending ${sig.secs} s + signature` : sig.outro ? `outro ${sig.outro} s + signature` : "signature") : "none";
+  M.ending = sig ? sig.quiet ? "quiet signature, last 5 s" : (sig.beat ? `beat ending ${sig.secs} s + signature` : sig.outro ? `outro ${sig.outro} s + signature` : "signature") : "none";
   if (opts.music) {   // how many of the song's notes a trigger lands on (Evgeni: "we hit like 1/6 of the notes")
     const tt = placed.filter(t => t.kind !== "none").map(t => t.tick / TPS), lo = tt[0] - 0.01, hi = tt[tt.length - 1] + 0.01;
     const strong = opts.music.notes.filter(n => n.t >= lo && n.t <= hi && n.strength >= 0.3);
@@ -940,6 +947,22 @@ function write(out, b, name) {
     // the sign's beat triggers sit at the x the player reaches on each beat (from the run, not a 1x guess)
     const p = b.fin.p, xAt = t => { const i = Math.max(0, Math.round(t * TPS)); return i < p.length ? p[i].x : p[p.length - 1].x + (i - p.length + 1) * 311.58 / TPS; };
     let header = sg.header(lvl.header, { col: b.lv.sig.col, floorY: fy });
+    if (b.lv.sig.quiet) {   // the quiet sign over the last 5 s of the run, nothing after the level's end
+      const endX = Math.max(...lvl.objects.filter(o => !["trigger"].includes(GD.objInfo(o.id).kind)).map(o => o.x));
+      const tOfX = x => { let i = p.findIndex(s => s.x >= x); if (i < 0) i = p.length - 1; return i / TPS; };
+      // the camera when it appears (lib/camera.js, as the viewer eases it), so the sign hangs in the view's top right
+      const k0 = Math.max(0, Math.round((tOfX(endX) - 5) * TPS)), CAM = require("../lib/camera.js"), w = GD.makeWorld(lvl.objects, lvl.header);
+      let st = GD.startState(w), cam = CAM.want(st);
+      while (!st.dead && !st.done && st.tick < k0) { GD.step(w, st, { press: false, held: false }); cam = CAM.ease(cam, CAM.want(st), 1 / TPS, st); }
+      const so = sg.overlay({ endX, xOfT: xAt, tOfX, secs: 5, cam });
+      desc = sg.describe(desc);
+      const rec = GD.newRecord(name, desc);
+      if (b.g.k45) GD.setField(rec, "k45", "i", b.g.k45); else GD.setField(rec, "k8", "i", String(b.g.k8));
+      fs.mkdirSync(path.dirname(out), { recursive: true });
+      writeGdlvl(out, rec, { header, objects: lvl.objects.concat(so) });
+      if (b.measures && b.measures.clears) require("./planned.js").writeAuto(out, "tools/autobeat.js: clears with no press");
+      return;
+    }
     if (b.lv.sig.be) {   // the ending dressed (tools/beatend.js endDeco): no plain blocks under the sign
       const d = require("./beatend.js").endDeco({ header, objects: lvl.objects }, b.lv.sig.be, { dress: b.lv.sig.dress });
       header = d.header; lvl.objects.push(...d.objects);
@@ -964,7 +987,7 @@ if (require.main === module) {
   const a = process.argv.slice(2), opt = k => { const i = a.indexOf(k); return i >= 0 ? a[i + 1] : null; };
   const t0 = Date.now();
   const notes = opt("--notes") ? JSON.parse(fs.readFileSync(opt("--notes"), "utf8")) : a.includes("--beats-only") ? null : undefined;
-  const b = buildInSong({ endLook: opt("--end-look") || undefined, endDress: opt("--end-dress") || undefined, music: notes, minGap: opt("--min-gap") ? +opt("--min-gap") : undefined, rate: opt("--rate") ? +opt("--rate") : undefined, song: opt("--song") || "Electrodynamix", seed: +(opt("--seed") || 1), beats: opt("--beats") != null ? +opt("--beats") : null, from: opt("--from-beat") != null ? +opt("--from-beat") : 2, quiet: a.includes("--quiet") });
+  const b = buildInSong({ ending: opt("--ending") === "none" ? false : opt("--ending") || undefined, endLook: opt("--end-look") || undefined, endDress: opt("--end-dress") || undefined, music: notes, minGap: opt("--min-gap") ? +opt("--min-gap") : undefined, rate: opt("--rate") ? +opt("--rate") : undefined, song: opt("--song") || "Electrodynamix", seed: +(opt("--seed") || 1), beats: opt("--beats") != null ? +opt("--beats") : null, from: opt("--from-beat") != null ? +opt("--from-beat") : 2, quiet: a.includes("--quiet") });
   const out = path.resolve(opt("--out") || path.join(ROOT, "levels", "lab", "auto_beat.gdlvl"));
   write(out, b, opt("--name") || "GDLM auto beat");
   console.log("motifs (blocks of AAAA, BBBB, a mix):\n  " + b.motifs.join("\n  "));

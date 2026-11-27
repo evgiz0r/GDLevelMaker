@@ -429,7 +429,7 @@ function build(spec, specFile = "spec", opts = {}) {   // opts.placementsOnly: s
   // The signature (tools/signature.js): robot + human, "Made by Claude (and some humans)", after the end.
   // On by default for every "GDLM ..." level (the user approved it for all, 2026-11-23); a spec opts out
   // with "signature": false. Its column: spec.signature.col, a scene's, else 3 blocks after the last gameplay object.
-  let signCol = null;
+  let signCol = null, signEndX = null;
   const signed = spec.signature !== false && (spec.signature || /^GDLM /.test(spec.name || ""));
   if (signed) {
     const sig = require("./signature.js"), secs = (spec.modern && spec.modern.sections) || [];
@@ -445,6 +445,18 @@ function build(spec, specFile = "spec", opts = {}) {   // opts.placementsOnly: s
     if (sceneSig && sceneSig.shirt) sopts.shirt = sceneSig.shirt;
     // its colours go in the header: the editor runs no colour triggers (hellgate v12 showed placeholder colours)
     header = sig.header(header, sopts);
+    // the quiet sign (the default since 2026-11-27, Evgeni: "cut our signature for now from actual gameplay and make it appear
+    // in like the last 5 seconds of the level not bothering the game play with whatever effects"): no stage, no beat effects,
+    // fades in over the last 5 s and rides with the camera; the level ends at its own last gameplay object.
+    // "signature": {"style": "stage"} = the old sign on its stage after the end (with beat bobs when the song has a grid).
+    const style = (spec.signature && spec.signature.style) || "overlay";
+    if (style === "overlay") {
+      const endX = Math.max(...objects.filter(o => !["decoration", "trigger"].includes(GD.objInfo(o.id).kind)).map(o => o.x));
+      const xOfT = t => GD.SYNC.xOfT(tl, t), tOfX = x => GD.SYNC.tOfX(tl, x);
+      objects.push(...sig.overlay(Object.assign({}, sopts, { endX, xOfT, tOfX, secs: (spec.signature && spec.signature.secs) || 5 })));
+      console.log(`   signature: quiet, the last ${(spec.signature && spec.signature.secs) || 5} s (fades in at x ${Math.round(xOfT(tOfX(endX) - ((spec.signature && spec.signature.secs) || 5)))})`);
+      signEndX = endX;
+    } else {
     // bob / flash on the song's beats the player hears while running up to it
     if (ctx.grid) {
       const xOfT = t => GD.SYNC.xOfT(tl, t), tOfX = x => GD.SYNC.tOfX(tl, x), beats = [];
@@ -453,6 +465,7 @@ function build(spec, specFile = "spec", opts = {}) {   // opts.placementsOnly: s
     }
     objects.push(...sig.signature(sopts));
     signCol = col;
+    }
   }
   if (spec.style && spec.style !== "classic") deco.skinBlocks(objects); // e.g. "hell": outlined blocks, no ground decoration
   if (spec.style === "classic") {
@@ -471,6 +484,8 @@ function build(spec, specFile = "spec", opts = {}) {   // opts.placementsOnly: s
   // (median of 16); 281 rated community levels: 0.9 s from the last hazard/orb/pad. With the sign 3 blocks
   // after the last gameplay object (7 wide) this ends ~1.5 s after the last input at 1x.
   // spec.endRun: blocks of run after the sign (default 5); "signature": false levels are not clipped.
+  // the quiet sign: nothing may run on past the last gameplay object (GD ends the level at its furthest object)
+  if (signed && signEndX != null && !spec.endRun) for (let i = objects.length - 1; i >= 0; i--) if (objects[i].x > signEndX + 30) objects.splice(i, 1);
   if (signed && signCol != null) {
     // 2026-11-26 (Evgeni: "the end screen has to include our sign, it extends bit too much so our signature goes away"):
     // nothing past the sign's right edge, blocks included (signature.js extent: the last screen shows ~229 units before the
