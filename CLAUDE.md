@@ -723,6 +723,11 @@ The viewer draws moving objects where they start.
   marks or comments has one **📨 send to Claude** (artifact `comments` capability, `sendToClaude`) so he never has to come to
   the chat, and it sends only what was never sent (or changed since), so Claude never gets a mark twice; each mark has states open -> seen (Claude read it: `seen` + `reply`, folded away) -> fixed (deleted from the page,
   kept in a log in git), so lists never just grow. Example: tools/designs_tab.js (the catalogue's theme 📍 marks).
+- **Pages keep the view across reloads** (Evgeni, 2026-11-27: "when u update my workbook ... my page resets sometimes and i
+  lose what i look at (happens in all workbooks)"). Every republish reloads each open artifact view, so every page we make
+  keeps, per viewer in localStorage (try/catch), the tab, the scroll spot and the folds, and puts them back on load (waiting
+  until lazy content is tall enough). Republish in batches, not after every small change. Example: tools/lego_page.html
+  ("KEEP THE VIEW").
 - **No native dialogs in the viewer pages** (alert / confirm / prompt): the app's built-in browser and the phone page's
   frame suppress them, so the button just did nothing. Use the viewer's notice(), askNote(), showMap();
   `node tests/no_dialogs.js` checks.

@@ -75,7 +75,10 @@ function connectors(blocks, o = {}) {
       return null;
     };
     const high = I.r0 - ground >= 4, pick = (high ? [1, -1] : [-1, 1]).map(tryDir).find(Boolean);
-    if (pick) out.push(...pick);
+    // a wide island also gets one in the middle (Evgeni 2026-11-27: "holders ... on the sides (maybe some in the middle)")
+    if (pick && pick.length === 2 && w >= (o.midFrom ?? 10)) { const d = pick[0].kind === "hang" ? 1 : -1, mc = I.c0 + Math.floor(w / 2);
+      const q = seg(X(mc), d); if (q && Math.abs(q.x0 - pick[0].x0) >= 60 && Math.abs(q.x0 - pick[1].x0) >= 60) pick.push(q); }
+    if (pick) out.push(...pick.map(q => Object.assign(q, { w })));
   }
   // a soft line between two close islands at the same height (a rope bridge), not across a portal or a wide gap
   for (let i = 0; i + 1 < isl.length; i++) {
@@ -90,7 +93,7 @@ function connectors(blocks, o = {}) {
 }
 // the holder's look: soft and thin, behind the play, in the structure's own colours (darker), with a small fitting where
 // it meets the structure. style: rope | chain | rod | gdchain (GD's hanging chain 41, shows with GD's art only)
-const STYLES = ["rope", "chain", "rod", "gdchain"];
+const STYLES = ["rope", "chain", "rod", "gdchain", "brick"];
 function draw(conns, C, o = {}) {
   const style = o.style || "chain", out = [], v = o.value ?? 0.75, put = (id, x, y, p) => out.push(K.obj(id, x, y, Object.assign({ z: "B1", zo: 2 }, p)));
   const hsv = k => `0a1a${(v * k).toFixed(2)}a0a0`;
@@ -109,6 +112,20 @@ function draw(conns, C, o = {}) {
       put(211, cx, cy, { ch: C.base, sx: vert ? 0.15 : len / 30, sy: vert ? len / 30 : 0.15, hsv: hsv(0.6) });
       put(211, cx, cy, { ch: C.line, sx: vert ? 0.04 : len / 30, sy: vert ? len / 30 : 0.04, hsv: hsv(0.9) });
       for (const [x, y] of ends) put(211, x, y, { ch: C.line, sx: vert ? 0.4 : 0.12, sy: vert ? 0.12 : 0.4, hsv: hsv(1) });
+    } else if (style === "brick" && vert) {
+      // BRICK (Evgeni 2026-11-27, hellgate: "large structures should have holders made of bricks on the sides (maybe some
+      // in the middle), a connector of 1 or 2 blocks to the top, with a slope smoothing where structures connect"): a
+      // brick pillar behind the play, 1 block wide (2 under an island 8+ wide), its bricks in rows shifted by half, an
+      // outline in the line colour, and a 45-degree fillet each side where it meets the structure; darker than the
+      // play blocks so it reads as background, never as something to land on
+      const bw = (q.w || 1) >= 8 ? 60 : 30, x0 = q.x0 - bw / 2, at = q.kind === "hang" ? q.y0 : q.y1, dir = q.kind === "hang" ? 1 : -1;
+      put(211, cx, cy, { ch: C.line, sx: (bw + 3) / 30, sy: len / 30, hsv: hsv(1) });
+      put(211, cx, cy, { ch: C.base, sx: bw / 30, sy: len / 30, hsv: hsv(0.9), zo: 3 });
+      for (let k = 1, y = q.y0 + 15; y < q.y1 - 2; y += 15, k++) {
+        put(211, cx, y, { ch: C.line, sx: bw / 30, sy: 0.05, hsv: hsv(0.55), zo: 4 });
+        for (let xx = x0 + (k % 2 ? 15 : 30); xx < x0 + bw - 2; xx += 30) put(211, xx, y - 7.5, { ch: C.line, sx: 0.05, sy: 0.5, hsv: hsv(0.55), zo: 4 }); }
+      // the fillets: a right triangle each side, its right angle in the corner between pillar and structure
+      for (const side of [-1, 1]) put(693, cx + side * (bw / 2 + 15), at + dir * 15, { ch: C.base, hsv: hsv(0.9), zo: 3, flipX: side > 0, flipY: dir < 0 });
     } else if (style === "gdchain") {
       const L = 2.32 * 30 * 0.6, n = Math.max(1, Math.ceil(len / L));
       for (let k = 0; k < n; k++) { const t = (k + 0.5) / n; put(41, vert ? q.x0 : q.x0 + len * t, vert ? q.y0 + len * t : q.y0, { ch: C.line, s: 0.6, rot, hsv: hsv(1) }); }

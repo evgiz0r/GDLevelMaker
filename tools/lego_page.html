@@ -398,6 +398,20 @@ Promise.all(["pieces.json", "pieces_more.json"].map(f => fetch(f).then(r => r.ok
     if (d && !loaded) loaded = new Promise((ok, no) => { const s = document.createElement("script"); s.src = "designs.js?v=" + Date.now(); /* never a cached old copy */ s.onload = ok; s.onerror = no; document.head.appendChild(s); })
       .then(() => window.initDesigns(D)).catch(() => { D.textContent = "designs.js did not load"; loaded = null; });
     if (d && loaded) loaded.then(() => window.designsShow && window.designsShow(b.dataset.tab));
+    keep({ tab: b.dataset.tab });
   };
+  // KEEP THE VIEW across reloads (Evgeni 2026-11-27: "when u update my workbook ... my page resets ... i lose what i look
+  // at"): a republish reloads every open view, so the tab and the scroll spot are kept per viewer and put back on load
+  // (CLAUDE.md "Pages keep the view"). Fresh for 6 h; the scroll is put back once the content is tall enough (lazy tabs).
+  const VK = "lego-view";
+  function keep(patch) { try { const v = Object.assign(JSON.parse(localStorage.getItem(VK) || "{}"), patch, { at: Date.now() }); localStorage.setItem(VK, JSON.stringify(v)); } catch (e) {} }
+  let view = null, restoring = false; try { view = JSON.parse(localStorage.getItem(VK) || "null"); } catch (e) {}
+  if (view && Date.now() - (view.at || 0) < 6 * 3600e3) {
+    const tb = view.tab && document.querySelector(`.tab[data-tab="${view.tab}"]`); if (tb && !tb.classList.contains("on")) tb.click();
+    const y = +view.y || 0, t0 = Date.now();
+    restoring = y > 0;
+    if (y > 0) (function back() { if (document.documentElement.scrollHeight >= y + innerHeight * 0.5 || Date.now() - t0 > 8000) { scrollTo(0, y); restoring = false; } else setTimeout(back, 150); })();
+  }
+  let sT = null; addEventListener("scroll", () => { if (restoring) return; clearTimeout(sT); sT = setTimeout(() => keep({ y: Math.round(scrollY) }), 250); }, { passive: true });
 }
 </script>

@@ -325,12 +325,37 @@ function interior(st, p, C, o = {}) {
   return p.out.length - n0;
 }
 
+// BARS: a long thin structure (no core, so interior() leaves it) read as "a bland rectangle, not much happening in the
+// middle" (Evgeni, 2026-11-27, hellgate's hanging slab). Every run of 5+ squares along a structure's top row gets plates
+// (a seam every 3 cells on the level grid, the same as the panels, with a rivet top and bottom) and a lit vein along its
+// middle, broken at each seam, with a soft glow over it. Pieces and short bars stay as the design draws them.
+function bars(st, p, C, o = {}) {
+  const S = st.S, n0 = p.out.length, sq = (c, r) => isSq(S, c, r);
+  const rows = new Map(); for (const [c, r] of cellsOf(S)) if (sq(c, r) && !sq(c, r + 1)) (rows.get(r) || rows.set(r, []).get(r)).push(c);
+  for (const [r, cs] of rows) { cs.sort((a, b) => a - b);
+    for (let i = 0; i < cs.length;) { let j = i; while (j + 1 < cs.length && cs[j + 1] === cs[j] + 1) j++;
+      const c0 = cs[i], c1 = cs[j]; i = j + 1; if (c1 - c0 + 1 < (o.minBar || 5)) continue;
+      // the bar's whole height under this run (a 2-row slab gets its seams through both rows and the vein in the middle)
+      let hgt = 1; while (hgt < 3 && [...Array(c1 - c0 + 1)].every((_, k) => sq(c0 + k, r - hgt))) hgt++;
+      const y0 = (r - hgt + 1) * 30, Hh = hgt * 30, ym = y0 + Hh / 2, cuts = [];
+      for (let c = c0 + 1; c <= c1; c++) if (((c % PW) + PW) % PW === 0) cuts.push(c * 30);
+      for (const x of cuts) { p.rect([x - SW / 2, y0 + TRIM, x + SW / 2, y0 + Hh - TRIM], "inline", 11);
+        p.rect([x + SW / 2, y0 + TRIM, x + SW / 2 + 1, y0 + Hh - TRIM], "hi", 11, { hsv: "0a1a0.22a0a0" });
+        for (const y of [y0 + TRIM + 2.5, y0 + Hh - TRIM - 2.5]) for (const dx of [-4, 4]) p.rect([x + dx - 1.5, y - 1.5, x + dx + 1.5, y + 1.5], "hi", 12, { hsv: "0a1a0.65a0a0" }); }
+      const xs = [c0 * 30 + TRIM + 3, ...cuts.flatMap(x => [x - 7, x + 7]), c1 * 30 + 30 - TRIM - 3];
+      for (let k = 0; k + 1 < xs.length; k += 2) { const a = xs[k], b = xs[k + 1]; if (b - a < 6) continue;
+        p.rect([a, ym - 1.6, b, ym + 1.6], "core", 13);
+        for (const up of [true, false]) p.out.push(K.obj(1293, p.X0 + (a + b) / 2, p.Y0 + ym + (up ? 4 : -4), { ch: C.glow, z: "T1", zo: 12, sx: (b - a) / 15, sy: 7 / 30, flipY: !up, groups: o.groups })); }
+    } }
+  return p.out.length - n0;
+}
+
 function dress(blocks, design, C, o = {}) {
   const out = [];
   for (const st of structures(blocks)) {
     const p = painter(st, C, o);
     DESIGNS[design].draw(st, p, C);
-    if (o.interior !== false) interior(st, p, C, o);
+    if (o.interior !== false && !interior(st, p, C, o)) bars(st, p, C, o);
     for (const e of [].concat(o.effects || [])) EFFECTS[e].draw(st, p, C);
     out.push(...p.out);
   }
@@ -390,7 +415,7 @@ function spec() {
   };
 }
 
-module.exports = { DESIGNS, EFFECTS, SHEET, interior, erode, structures, region, tris, hyps, slopeKind, edges, corners, dress, extend, lay, spec };
+module.exports = { DESIGNS, EFFECTS, SHEET, interior, bars, erode, structures, region, tris, hyps, slopeKind, edges, corners, dress, extend, lay, spec };
 if (require.main === module) {
   const a = process.argv.slice(2);
   if (a[0] === "list") { for (const [n, d] of Object.entries(DESIGNS)) console.log("design  " + n.padEnd(16) + d.note); for (const [n, d] of Object.entries(EFFECTS)) console.log("3D      " + n.padEnd(16) + d.note); }

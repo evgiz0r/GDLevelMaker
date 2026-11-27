@@ -22,8 +22,8 @@
 const SDZ = require("./structdesign.js");
 
 const THEMES = {
-  hellgate: { mood: "molten rock, hot rims", pal: "fire", design: "layered", effects: ["depth"], spikes: "layers", saws: "cog",
-    holders: "chain", indicator: "caret", skies: [{ bg: [84, 36, 96], ground: [29, 12, 33] }, { bg: [60, 40, 110], ground: [21, 14, 38] }, { bg: [96, 40, 70], ground: [33, 14, 24] }],
+  hellgate: { mood: "molten rock, hot rims", pal: "fire", design: "layered", effects: ["depth"], spikes: "ember", saws: "sawforge",
+    holders: "brick", indicator: "caret", skies: [{ bg: [84, 36, 96], ground: [29, 12, 33] }, { bg: [60, 40, 110], ground: [21, 14, 38] }, { bg: [96, 40, 70], ground: [33, 14, 24] }],
     backdrops: { a: ["mountains", "horizon", "motes"], b: ["geometry", "rays"], c: ["rocks", "motes"] } },
   frost: { mood: "ice slabs, cold light", pal: "ice", design: "inner base", effects: ["bevel"], spikes: "inner", saws: "sawglow",
     holders: "rope", indicator: "drop", skies: [{ bg: [140, 80, 50], ground: [49, 28, 17] }, { bg: [130, 70, 130], ground: [45, 24, 45] }, { bg: [40, 100, 80], ground: [14, 35, 28] }],
