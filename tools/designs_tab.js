@@ -78,7 +78,7 @@ window.initDesigns = async function (root) {
     if (st) st.textContent = NST[k]; }
   // claude.ai refuses a send-to-Claude within ~6 s of a key typed in the page ("Not sent to Claude. Your last key or click
   // may not have been meant for this artifact"), so 📨 waits out the typing with a countdown (Evgeni 2026-11-27)
-  const HOLD = 6500;
+  const HOLD = 8000;
   const unready = () => { for (const b of document.querySelectorAll(".ready")) b.classList.remove("ready"); };
   document.addEventListener("keydown", () => { lastKey = Date.now(); unready(); holdSend(); }, true);
   // a tap anywhere but a send button counts too (the app's hold is on any click in the page)
@@ -421,7 +421,9 @@ window.initDesigns = async function (root) {
       clearTimeout(readyT); const cue = () => { const left = HOLD - (Date.now() - lastKey); if (left > 0) { readyT = setTimeout(cue, left + 100); return; }
         for (const b of document.querySelectorAll("#sendall, .msend")) { b.classList.add("ready"); if (b.id === "sendall") b.textContent = "📨 tap now"; }
         say("ready: tap 📨 now (or write \"comments\" in the chat)"); };
-      lastKey = Math.max(lastKey, Date.now() - HOLD + 1500); cue(); return false; }
+      // the refused tap is itself the app's "last click": the next send is allowed only a full hold after it (the cue lit up
+      // 1.5 s after a refusal and the green tap was refused again, Evgeni 2026-11-27: "that green msg doesnt work still")
+      lastKey = Date.now(); cue(); return false; }
     LAST = new Date().toISOString(); try { if (DB) await DB.collection("designsend").doc("s-" + Date.now().toString(36)).set({ at: LAST }); } catch (x) {}
     for (const q of nts) NST[q[0]] = "sent";
     for (const m of ms) { PEND[m.mid] = noteOf(m); m.sentNote = noteOf(m).trim(); m.sent = new Date().toISOString(); await saveMark(m.mid); }
