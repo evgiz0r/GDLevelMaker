@@ -74,7 +74,11 @@ type, so a builder can make a new one of any length, synced to the song, and so 
   4 of 6: after riding a sloped roof the real ship stays pinned up there ~50 ticks past the release, which the page-side
   `shipStep` doesn't copy, so later spikes it thinks are clear are hit. Needs the ship's slope contact from
   lib/physics.js in the stepper; until then the shape-first version is in use.
-  Not yet: flappy, swing, closer cube, staircase, stair path, orbs, spider (its overlap is its window
+  Flappy (ufo, up to the band's 10 rows): taps on the style's rhythm (quicker while climbing to a higher target, skipped
+  above it), `ufoStep` as lib/physics.js, poles 1-4 wide whose gaps are fitted around the path over their columns (margin
+  8, at least the tier's room); taller maps keep the shape-first version with its U portals. 1.8-2.7 taps a second,
+  all taps on half beats with a bpm.
+  Not yet: swing, closer cube, staircase, stair path, orbs, spider (its overlap is its window
   already, but no presses returned); fly's gravity pair (the planner flies upright only).
 - **From a beat** (Evgeni 2026-11-27: "i want to be able to generate according to a beat as well, so its not just random
   stats, should be applicable in a level ... in the long run much more efficient than solving"): `make(key, {bpm})` or

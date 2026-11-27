@@ -516,7 +516,41 @@ CONCEPT.flappy = "pipe pairs from floor and ceiling; the gap's height walks up a
 // Evgeni 2026-11-27: "flappy bird generates too much of the same poles there should be some variation in width of
 // structures in the gameplays as well, and here as well we want to try and use the extremes": poles 1 to 4 wide, and the
 // gap tours the whole 10-row band (the ufo's), from just over the ground (no lower pole) to the band's roof (no upper one)
-GEN.flappy = o => { const { R, imix, room, len, chance, W, H, G } = ctx(o, 10), gh = room(5, 3), next = tour(R, 1, H - gh); let g = R.int(2, 4);
+// FLAPPY, PRESSES FIRST (2026-11-27): the taps come first, on the style's rhythm (on a beat when there is one), skipped
+// while the ufo is above its height target (tour(): the target walks over the band); the ufo is stepped as lib/physics.js
+// does (a tap sets 7 up, gravity 0.4 x 0.958 falling or slow, 0.6 rising fast, fall capped at 6.4); then the poles: 1-4
+// wide at changing spacing, each pair's gap fitted around the path over the pole's columns (a margin of 8; the gap at
+// least the tier's room), the lower pole left out when the gap reaches the ground, the upper when it reaches the roof.
+// Up to the band's 10 rows; taller maps use the shape-first version (its hidden U portals).
+function ufoStep(st, tap) { if (tap && st.vy < 7) st.vy = 7; const falling = st.vy <= 2 * SHIP.g;
+  st.vy = Math.round((st.vy - (falling ? 0.4 : 0.6) * SHIP.g * SHIP.DTS) * 1000) / 1000; st.vy = clamp(st.vy, SHIP.DOWN, SHIP.UP); st.y += st.vy * SHIP.DTS; }
+GEN.flappy = o => { const { R, imix, room, len, chance, W, H, G, mix, style, onBeat } = ctx(o, 10), gh = room(5, 3);
+  if (H > 10) return flappyShape(o);
+  const TPC = 30 / SHIP.X, T = Math.floor(W * TPC), top = H * 30, m = 8, next = tour(R, 1, H - 2);
+  const gap0 = mix(0.55, 0.32) * COLS_PER_SEC;   // columns between taps: easy slow, harder quick
+  let tgt = next(Math.round(H / 2)), nextTap = onBeat(R.int(2, 3), 1.5); const st = { y: 15, vy: 0 }, ys = [], taps = [];
+  for (let t = 0; t < T; t++) { const c = t / TPC; let tap = false;
+    if (c >= nextTap - 1e-6) { const row = st.y / 30;
+      if (Math.abs(tgt - row) < 1) tgt = next(Math.round(row));
+      if (row < tgt + 0.6 && st.y < top - 75) { tap = true; taps.push(+c.toFixed(4)); }   // above the target: let it fall a beat
+      // climbing to a higher target takes quicker taps (one every 0.55 s can't hold a ufo up)
+      nextTap = onBeat(c + gap0 * (row < tgt - 0.5 ? 0.55 : 1) * (0.8 + R() * 0.4) / style.pace(c), c + 6 / TPC); }
+    ufoStep(st, tap); if (st.y < 15) { st.y = 15; st.vy = 0; } if (st.y > top - 15) { st.y = top - 15; st.vy = 0; }
+    ys.push(st.y); }
+  const yb = Array(W).fill(1e9), yt = Array(W).fill(-1e9);
+  for (let t = 0; t < ys.length; t++) { const c = Math.floor(t / TPC); if (c < W) { yb[c] = Math.min(yb[c], ys[t] - 15); yt[c] = Math.max(yt[c], ys[t] + 15); } }
+  for (let c = 3; c < W - 2;) { const pw = Math.min(W - 2 - c, R.pick([1, 2, 2, 3, 4]));
+    let lo = 1e9, hi = -1e9; for (let x = c - 1; x <= c + pw; x++) { lo = Math.min(lo, yb[x]); hi = Math.max(hi, yt[x]); }
+    let g0 = Math.floor((lo - m) / 30), g1 = Math.ceil((hi + m) / 30);   // the gap's rows [g0, g1)
+    while (g1 - g0 < gh) { if (R.chance(0.5) && g0 > 0) g0--; else if (g1 < H) g1++; else g0--; }
+    g0 = Math.max(0, g0); g1 = Math.min(H, g1);
+    if (g0 > 0) { G.box(c, c + pw - 1, 0, g0 - 1); if (g0 > 1 && yb[c] > (g0 - 1) * 30 + 30 + 8 && chance(0.4, 0.7)) { /* the pole's top is the hazard's place: a spike tip */ G.put(c, g0 - 1, "^"); } }
+    if (g1 < H) G.box(c, c + pw - 1, g1, H - 1);
+    c += pw + len(room(5, 3), room(7, 4)); }
+  // a spike tip replaces the pole's top block, so the gap stays as fitted (the block under it carries it)
+  return { map: G.rows(), mode: "ufo", presses: taps, path: (() => { const p = []; for (let t = 0; t < ys.length; t += 8) p.push([+(t / TPC).toFixed(2), +(ys[t] / 30 - 0.5).toFixed(2)]); return p; })() }; };
+// the shape-first flappy (taller than the band: its hidden U portals)
+const flappyShape = o => { const { R, imix, room, len, chance, W, H, G } = ctx(o, 10), gh = room(5, 3), next = tour(R, 1, H - gh); let g = R.int(2, 4);
   G.box(0, W - 1, 0, 0);
   let bc = 5;   // the band's centre row (taller than 10 rows: hidden ufo portals in the pole gaps move it, bandMovers)
   for (let c = 3; c < W - 2;) { const pw = Math.min(W - 2 - c, R.pick([1, 2, 2, 3, 4]));
