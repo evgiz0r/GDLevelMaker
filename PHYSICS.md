@@ -1472,4 +1472,18 @@ would, so the next run of either starts from it; use only the levels in git
 Evgeni: "swing/ship/ufo portals in the middle of the gameplay recenter the screen. people put invisible ones to move
 further in the screens". lib/physics.js now sets the floor and ceiling again around a portal of the player's own mode
 (before: ignored); `GDLM_SAME_PORTAL=old` = the old rule. Lab level `levels/gdlm_lab_room_mover.gdlvl` (a swing climbing
-14 rows with hidden swing portals every 6 columns, tools/swingfit.js) is the real-game check; result: pending.
+14 rows with hidden swing portals every 6 columns, tools/swingfit.js) is the real-game check.
+
+**Measured 2026-11-27 (Evgeni's 3 attempts in GD 2.2091, probe logs; copies in local/probe/room_mover/):** #1 died at x 981
+(no press, saw 1707), #2 at x 2088 (saw 1707), #3 cleared (x 5390, 21 inputs). `node tools/bandcheck.js <level> <log>`:
+- The hidden swing portals were mostly NOT touched: on the clear, the player flew 12-75 units past the boxes of the portals
+  at x 915, 1095, 1275, 1455, 1995, 2175 and touched only 165, 1635, 1815, 2355. So the run does not test a re-band directly.
+- **The game kept no band edge at all in the swing.** After the start portal (x 165, y 45: band 0..300 by both rules, player
+  15..285) the player climbed to y 311 before touching any other portal, then to y 525 (both rules: OUT), and after the portal
+  at 1815 (new rule 165..435) it went down to the floor at y 105 (OUT) -- alive every time. Every flat (vy 0) tick was on a block
+  (e.g. y 524 under the blocks at x 1515-1545, y 525), never at a band line.
+- Our sim on the same presses (`probe.js diff`): dies on a saw at x 1498 (new rule) / x 1276 (old rule); the game cleared.
+  x matches throughout; y parts by 0.5 from step 677. The camera followed the player (cam y 80 -> 344).
+- So neither rule is right for this level: GD drew and enforced no floor / ceiling here. Open: what turns the band off (GD
+  2.2's portal "free mode", a level setting, or the swing never having one), checked on rated 2.2 swing levels; until then
+  the band edges in lib/physics.js are a guess for swing.
