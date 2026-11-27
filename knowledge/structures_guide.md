@@ -116,3 +116,11 @@ local/designs/db first). Show his drawing beside the result. Drawings come from 
 STRUCTURES.md (library and ranking), LEGO.md (bricks and combining), BRICKGEN.md (generating), DECOART.md (the look:
 designs, holders, inside, themes), HAZARDS.md (hazards and their dressing), CRAFT.md (how RobTop builds and dresses),
 knowledge/checklist.md (every target, with its check).
+
+## Section types (a level's longer stretches)
+
+What each layout section type is (stair path, wave corridor, swing, ...) with its motif, what to vary and how it grows
+longer or shorter to fit the beats, plus where gravity portals go: **knowledge/section_types.md** (Evgeni 2026-11-27: "dont
+need save these copy by copy, but to understand for the future how to make similar according to beats"). The
+clicks-first generator (tools/clickfirst.js, thread "Generate our own structures") builds from it.
+

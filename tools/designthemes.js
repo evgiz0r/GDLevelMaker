@@ -72,6 +72,8 @@ MAP.forEach((line, i) => { const r = MAP.length - 1 - i;
     else if (ch === "o") SAMPLE.push([1706, c, r, { dy: -15 }]);
     else if (ch === "q") SAMPLE.push([1707, c, r, { dy: -15 }]);
     else if (ch === "s") SAMPLE.push([1707, c, r, { dy: -8 }]);
+    else if (ch === "G") SAMPLE.push([11, c, r]);   // gravity portal, upside down (the board's 🟡)
+    else if (ch === "N") SAMPLE.push([10, c, r]);   // gravity portal, back to normal (🔵)
   }); });
   return SAMPLE; }
 const SAMPLE = sampleOf(SCENE);
