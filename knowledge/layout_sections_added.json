@@ -1,0 +1,10 @@
+[
+ {
+  "key": "my-mwz1637w",
+  "name": "strairpath",
+  "mode": "cube",
+  "w": 32,
+  "h": 10,
+  "after": "ball"
+ }
+]

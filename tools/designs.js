@@ -246,10 +246,15 @@ function layoutBack() {
   if (Object.keys(added).length) { const list = Object.values(added).sort((a, b) => a.key < b.key ? -1 : 1).map(({ key, name, mode, w, h, after, deleted }) => ({ key, name, mode, w, h, after, ...(deleted ? { deleted } : {}) }));
     console.log("added sections: " + list.map(z => `${z.name} (${z.mode}${z.deleted ? ", removed" : ""})`).join(", "));
     if (process.argv.includes("--apply")) { fs.writeFileSync(path.join(ROOT, "knowledge", "layout_sections_added.json"), JSON.stringify(list, null, 1) + "\n"); delete require.cache[require.resolve("./layoutsections.js")]; } }
+  // sizes he set on the board (collection "designsize", newest per part; his added sections carry theirs)
+  const zdir = path.join(DIR, "db", "designsize"), size = {};
+  for (const f of fs.existsSync(zdir) ? fs.readdirSync(zdir) : []) { const d = JSON.parse(fs.readFileSync(path.join(zdir, f), "utf8")), x = d.data || d;
+    if (x && x.part && (!size[x.part] || String(x.at) > String(size[x.part].at))) size[x.part] = x; }
+  for (const z of Object.values(added)) size["sec:" + z.key] = z;
   const LS = require("./layoutsections.js"), secs = {};
-  for (const z of LS.SECTIONS) { const e = newest["layout:sec:" + z.key]; if (!e || !e.tiles) continue;
-    const W = Math.max(z.map[0].length, ...e.tiles.map(q => q.c + 1)), H = Math.max(z.map.length, ...e.tiles.map(q => q.r + 1));
-    secs[z.key] = toMap(e.tiles, H, W, 0); console.log(`section ${z.key}:\n` + secs[z.key].map(l => "  " + l).join("\n")); }
+  for (const z of LS.SECTIONS) { const e = newest["layout:sec:" + z.key], sz = size["sec:" + z.key]; if ((!e || !e.tiles) && !sz) continue;
+    const T = (e && e.tiles) || LS.tiles(z), W = sz ? sz.w : Math.max(z.map[0].length, ...T.map(q => q.c + 1)), H = sz ? sz.h : Math.max(z.map.length, ...T.map(q => q.r + 1));
+    secs[z.key] = toMap(T, H, W, 0); console.log(`section ${z.key}:\n` + secs[z.key].map(l => "  " + l).join("\n")); }
   if (Object.keys(secs).length && process.argv.includes("--apply")) { const f = path.join(ROOT, "knowledge", "layout_sections.json");
     const old = fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, "utf8")) : {}; fs.writeFileSync(f, JSON.stringify(Object.assign(old, secs), null, 1) + "\n"); console.log("-> knowledge/layout_sections.json"); }
   if (!Object.keys(out).length) { if (!Object.keys(secs).length) console.log("no edited layout (parts still as ours)"); return; }

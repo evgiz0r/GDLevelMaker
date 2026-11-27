@@ -20,7 +20,7 @@ window.initDesigns = async function (root) {
   #designs .lyh button{background:#241d3d;color:#ddd;border:1px solid #444;border-radius:6px;padding:2px 7px;font-size:12px}#designs .lyh .pen.on{outline:2px solid currentColor}
   #designs .ink{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}#designs .ink.on{pointer-events:auto;cursor:crosshair;touch-action:none;outline:2px dashed #ffd84d}
   #designs .tiles .grid line{stroke:#ffffff30;stroke-width:1px;vector-effect:non-scaling-stroke}#designs .plr{position:absolute;left:0;top:0;background:#c8ff3c;border:2px solid #10301a;box-sizing:border-box;pointer-events:none;z-index:5}#designs .plr[data-m="1"]{border-radius:40% 70% 70% 40%}#designs .plr[data-m="2"]{border-radius:50%}#designs .zb .aplay,#designs .zb .aspd{min-width:28px}#designs .tiles,#designs .tiles *{pointer-events:auto!important}#designs .tiles{cursor:pointer;display:block;touch-action:none;background:#1a1636;max-width:none}#designs .lay .wide{padding:4px 8px}#designs .ptool.on{outline:2px solid #ffd84d}
-  #designs .lnr{display:flex;gap:6px;align-items:center;padding:2px 8px 10px}#designs .lnote{flex:1;min-width:0;background:#0f0c2b;color:inherit;border:1px solid var(--line);border-radius:6px;padding:5px 8px;font:13px system-ui}#designs .lpn{font-size:11px;color:var(--mute);padding:2px 8px}#designs .lay{margin:6px 0 14px}#designs .lpt.on{outline:1px solid #7be38a}
+  #designs .lnr{display:flex;gap:6px;align-items:center;padding:2px 8px 10px}#designs .lnote{flex:1;min-width:0;background:#0f0c2b;color:inherit;border:1px solid var(--line);border-radius:6px;padding:5px 8px;font:13px system-ui}#designs .lpn{font-size:11px;color:var(--mute);padding:2px 8px}#designs .lsz button,#designs .ldel{background:#241d3d;color:#ddd;border:1px solid #444;border-radius:6px;padding:1px 6px;font-size:11px;margin-left:3px}#designs .lay{margin:6px 0 14px}#designs .lpt.on{outline:1px solid #7be38a}
   #designs .board.fs{position:fixed;inset:0;z-index:1000;background:#0f0c2b;overflow:auto}#designs .board.fs .wide{overflow:auto}
   #designs .lk.blank img{visibility:hidden}#designs .lk.blank{background:#1a1636;background-image:linear-gradient(#ffffff10 1px,transparent 1px),linear-gradient(90deg,#ffffff10 1px,transparent 1px);background-size:20px 20px}
   #designs .pens{display:flex;flex-wrap:wrap;gap:4px;align-items:center}#designs .pcol{width:22px;height:22px;padding:0!important;border-radius:11px!important}#designs .pcol.on,#designs .pw.on,#designs .perase.on{outline:2px solid #ffd84d}
@@ -183,6 +183,17 @@ window.initDesigns = async function (root) {
       const q = ["sec:" + z.key, z.name, z.w, z.h, z.mode, "your section"], i = out.findIndex(p => p[0] === "sec:" + z.after);
       if (i >= 0) out.splice(i + 1, 0, q); else out.push(q); }
     return out; }
+  // a section's size, changed on its header line (Evgeni 2026-11-27: "give me controls to make the section bigger on the
+  // y"): collection "designsize", revision docs {part, w, h, at}; rows are counted from the ground, so a taller section
+  // gains rows on top. His added sections keep their size in their own doc.
+  const SIZE = {};
+  async function resize(k, dw, dh) { const q = LPARTS.find(z => z[0] === k); if (!q) return; const id = k.slice(4);
+    const w = Math.max(8, Math.min(120, q[2] + dw)), h = Math.max(4, Math.min(20, q[3] + dh));
+    if (ADDED[id]) { ADDED[id].w = w; ADDED[id].h = h; await saveSec(id); }
+    else { SIZE[k] = { part: k, w, h, at: new Date().toISOString() };
+      try { if (!DB) throw new Error("saves on the claude.ai page"); await DB.collection("designsize").doc(k.replace(/[^A-Za-z0-9_-]/g, "_") + "-" + Date.now().toString(36)).set(SIZE[k]); DST.layout = "saved"; }
+      catch (x) { DST.layout = "not saved: " + (x && (x.code || x.message) || String(x)); } }
+    render(); }
   let LPARTS = [];   // [key, name, w, h, mode, note]: set by layoutSection() from the theme entry
   let LACT = "layout:play", TOOL = "#", painting = null; const HIST = [], HAZ = new Set(["^", "v", "o", "q", "s"]);
   // a part's tiles: Evgeni's edited copy once he changed it, else the layout as built (designs.json tiles0)
@@ -229,7 +240,7 @@ window.initDesigns = async function (root) {
   }
   function layoutSection() {
     const t = L.find(d => d.kind === "theme" && d.lparts); if (!t) return "";
-    LPARTS = withAdded(t.lparts);
+    LPARTS = withAdded(t.lparts).map(q => SIZE[q[0]] ? [q[0], q[1], SIZE[q[0]].w, SIZE[q[0]].h, q[4], q[5]] : q);
     { const S = SECS(); LPARTS = LPARTS.map(q => q[0] !== "play" ? q : ["play", "current scene", sceneW(), Math.max(...S.map(z => z[3])), "all", "the sections joined in order; draw on it and the edit goes to its section (the joins follow)"]); }
     const isOpen = open.layoutsec !== false, fs = FS === "layout", cs = Math.round(26 * (open["zoom:layout"] || 1));
     // SECTIONS (Evgeni 2026-11-27: "i want the layout to have specific sections ... and each of those can be viewed
@@ -274,7 +285,7 @@ window.initDesigns = async function (root) {
       + (n || LPARTS.some(q => noteUnsent(q[0])) ? `<button class="msend" data-label="📨 send to Claude"${CAN_SEND ? "" : " disabled"}>📨 send to Claude</button>` : "") + `<span class="ds pst">${esc(DST.layout || "")}</span></span>`;
     return `<section data-g="layoutsec"><h2 class="stitle fold-h" role="button" tabindex="0" aria-expanded="${isOpen}">${isOpen ? "▾" : "▸"} Theme layout <span class="ds">the same for every theme · one part per kind of play · tap to place${n ? " · ✏ " + n : ""}</span></h2>`
       + (isOpen ? `<div class="dc lay board${fs ? " fs" : ""}" data-id="${LACT}"><div class="lyh">${chips}</div><div class="lyh">${tools}</div>`
-        + LPARTS.filter(q => show(q[0])).map(q => `<div class="lpn"><b>${esc(q[1])}</b> · ${esc(q[4] || "")} · ${q[2]} x ${q[3]}${q[5] ? " · " + esc(q[5]) : ""}${ADDED[q[0].slice(4)] ? ` <button class="ldel" data-k="${esc(q[0].slice(4))}">✕ remove</button>` : ""}</div><div class="wide" data-w="L:${esc(q[0])}">${grid(q)}</div>`
+        + LPARTS.filter(q => show(q[0])).map(q => `<div class="lpn"><b>${esc(q[1])}</b> · ${esc(q[4] || "")} · ${q[2]} x ${q[3]}${q[5] ? " · " + esc(q[5]) : ""}${q[0].startsWith("sec:") ? ` <span class="lsz" data-k="${esc(q[0])}"><button data-d="0,1" title="one row taller">⬆ taller</button><button data-d="0,-1" title="one row shorter">⬇ shorter</button><button data-d="2,0" title="two columns wider">➡ wider</button><button data-d="-2,0" title="two columns narrower">⬅ narrower</button></span>` : ""}${ADDED[q[0].slice(4)] ? ` <button class="ldel" data-k="${esc(q[0].slice(4))}">✕ remove</button>` : ""}</div><div class="wide" data-w="L:${esc(q[0])}">${grid(q)}</div>`
           + `<div class="lnr"><input class="lnote" data-n="${esc(q[0])}" placeholder="your notes on ${esc(q[1])} ..." value="${esc((NOTES[q[0]] || {}).note || "")}"><span class="ds lnst" data-n="${esc(q[0])}">${esc(NST[q[0]] || (noteUnsent(q[0]) ? "not sent yet" : (NOTES[q[0]] || {}).sentNote ? "sent" : ""))}</span></div>`).join("")
         + `</div>` : "") + `</section>`;
   }
@@ -358,6 +369,7 @@ window.initDesigns = async function (root) {
       for (const k of ks) await saveDraw(k);
       DST.layout = ks.every(k => DST[k] === "saved") ? "saved " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + " (" + ks.length + ")" : ks.map(k => DST[k]).find(v => v !== "saved");
       if (st) st.textContent = DST.layout; return; }
+    const lsz = e.target.closest(".lsz button"); if (lsz) { const [dw, dh] = lsz.dataset.d.split(",").map(Number); await resize(lsz.closest(".lsz").dataset.k, dw, dh); return; }
     if (e.target.closest(".ladd")) { ADDFORM = !ADDFORM; render(); const i = root.querySelector(".lan"); if (i) i.focus(); return; }
     if (e.target.closest(".lacancel")) { ADDFORM = false; render(); return; }
     if (e.target.closest(".lago")) { const f = e.target.closest(".laddf"), v = c => f.querySelector(c).value;
@@ -524,6 +536,10 @@ window.initDesigns = async function (root) {
     if (DB) DB.collection("designdraw").onSnapshot(snap => {
       for (const d of snap.docs.map(x => x.data())) if (d && d.design && (!DRAW[d.design] || !DRAW[d.design].at || String(d.at) > String(DRAW[d.design].at))) if (!cur) { DRAW[d.design] = JSON.parse(JSON.stringify(d)); if (DRAW[d.design].tiles) orient(DRAW[d.design].tiles); }   // a plain copy: the db hands back frozen objects, and editing one in place threw (2026-11-27: taps and clear did nothing in the app)
       if (!cur && !(document.activeElement && /INPUT|TEXTAREA/.test(document.activeElement.tagName))) render();
+    }, () => {});
+    if (DB) DB.collection("designsize").onSnapshot(snap => {
+      for (const d of snap.docs.map(x => JSON.parse(JSON.stringify(x.data())))) if (d && d.part && (!SIZE[d.part] || String(d.at) > String(SIZE[d.part].at))) SIZE[d.part] = d;
+      if (!(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) render();
     }, () => {});
     if (DB) DB.collection("designsecs").onSnapshot(snap => {
       for (const d of snap.docs.map(x => JSON.parse(JSON.stringify(x.data())))) if (d && d.key && (!ADDED[d.key] || String(d.at) > String(ADDED[d.key].at || ""))) ADDED[d.key] = d;
