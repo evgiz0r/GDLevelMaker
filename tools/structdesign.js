@@ -222,13 +222,27 @@ const DESIGNS = {
 // 3D for the blocks (an effect on top of any design)
 // the side face is the body darkened (the palette's shadow role nearly vanishes on a dark sky), with a dim rim on its
 // outer edge so it reads as a face, not a smudge; the diagonal joins at the two outer corners are right triangles (693)
+// Evgeni 2026-11-27 (hellgate): "the 3d effect seems a bit off, like we dont have a side, but rather just the opposite and
+// we see a hollow object, the 3d side should also have our theming": the back copy's dim rim read as a second outline
+// floating behind, not as a side. Now the far edge carries the theme's own edge line (the line colour, as wide as the
+// front's, a little dimmer), and at every corner where the side turns, the edge that joins front to back is drawn in the
+// same line colour, so the side reads as a solid face of the same material
 function depth(st, p, C, d, v) {
-  const face = { z: "B1", hsv: `0a1a${v}a0a0` }, rim = { z: "B1", hsv: "0a1a0.45a0a0" };
-  region(st.S, 0).forEach(q => p.rect([q[0] + d, q[1] + d, q[2] + d, q[3] + d], "line", 0, rim));
-  region(st.S, LW * 0.6).forEach(q => p.rect([q[0] + d, q[1] + d, q[2] + d, q[3] + d], "base", 1, face));
-  tris(st.S, 0).forEach(t => p.tri(t, "line", 0, rim, d, d)); tris(st.S, LW * 0.6).forEach(t => p.tri(t, "base", 1, face, d, d));
-  for (const k of corners(st.S)) if (!k.inner && ((k.dx > 0 && k.dy < 0) || (k.dx < 0 && k.dy > 0)))
+  const face = { z: "B1", hsv: `0a1a${v}a0a0` }, rim = { z: "B1", hsv: "0a1a0.8a0a0" };
+  // SOLID SIDE (Evgeni 2026-11-27: "3d of the block itself feels hollow, like the front side is missing"): the back copy
+  // with its own full outline read as an empty frame behind. Now the side is a sweep of the body (copies at a third, two
+  // thirds and the full depth, no outline of their own), and the theme's line runs only along the far top and right
+  // edges, where the side ends
+  for (const k of [d / 3, (2 * d) / 3, d]) {
+    region(st.S, 0).forEach(q => p.rect([q[0] + k, q[1] + k, q[2] + k, q[3] + k], "base", 1, face));
+    tris(st.S, 0).forEach(t => p.tri(t, "base", 1, face, k, k)); }
+  edges(st.S, "N", LW).forEach(q => p.rect([q[0] + d, q[1] + d, q[2] + d, q[3] + d], "line", 0, rim));
+  edges(st.S, "E", LW).forEach(q => p.rect([q[0] + d, q[1] + d, q[2] + d, q[3] + d], "line", 0, rim));
+  for (const k of corners(st.S)) if (!k.inner && ((k.dx > 0 && k.dy < 0) || (k.dx < 0 && k.dy > 0))) {
     p.out.push(K.obj(693, p.X0 + k.x + d / 2, p.Y0 + k.y + d / 2, { ch: C.base, z: "B1", zo: 1, sx: d / 30, sy: d / 30, rot: k.dx > 0 ? 0 : 180, hsv: `0a1a${v}a0a0` }));
+    // the joining edge, front corner to back corner (up-right: turned -45 degrees, GD turns clockwise)
+    p.out.push(K.obj(211, p.X0 + k.x + d / 2, p.Y0 + k.y + d / 2, { ch: C.line, z: "B1", zo: 2, sx: (d * Math.SQRT2 + LW) / 30, sy: LW / 30, rot: 315, hsv: "0a1a0.8a0a0" }));
+  }
 }
 const EFFECTS = {
   depth: { note: "the shape pushed back up-right: a darker side face with a dim rim, joined at the corners", draw(st, p, C) { depth(st, p, C, 7, 0.5); } },
@@ -271,7 +285,12 @@ const RING = 12, SV = k => Math.max(0.45, 1 - 0.13 * k);
 function shade(st, p, C, o = {}) {
   const S = st.S, v = x => `0a1a${x.toFixed(3)}a0a0`, I = RING + 1.2;
   region(S, RING).forEach(q => p.rect(q, "line", 8, { hsv: "0a1a0.3a0a0" })); tris(S, RING).forEach(t => p.tri(t, "line", 8, { hsv: "0a1a0.3a0a0" }));
-  region(S, I).forEach(q => p.rect(q, "base", 8)); tris(S, I).forEach(t => p.tri(t, "base", 8));
+  region(S, I).forEach(q => p.rect(q, "base", 8));
+  // a slope takes the ramp's shade at its height like the squares beside it (Evgeni 2026-11-27, hellgate col 122: "the
+  // slopes have some different themeing than the blocks near them" -- they were the full base colour, lighter than the
+  // shaded squares next to them): the mean of its cell's top and bottom value
+  const kOf = (c, r) => { let k = 0; while (S.has(key(c, r + k + 1))) k++; return k; };
+  tris(S, I).forEach(t => { const k = kOf(Math.floor(t.x / 30), Math.floor(t.y / 30)); p.tri(t, "base", 9, { hsv: v((SV(k) + SV(k + 1)) / 2) }); });
   for (const q of region(S, I)) {
     // split the piece into cell rows; each row's k from the column at its middle (pieces are merged along rows first)
     for (let r = Math.floor(q[1] / 30); r * 30 < q[3]; r++) {

@@ -604,7 +604,10 @@ function make(specFile, specObj) {
   }
   if (r.ok) { lanePass(level, r.events, spec); writeGdlvl(out, rec, level); }
   if (ctx.grid && r.ok) beatReport(objects, header, r, ctx);
-  if (r.ok) { // the user's fairness rule: no prejumps (see tools/sightread.js)
+  // spec "sightread": false skips the prejump check (galleries and labs: on the 123 s design-themes gallery it ran 30+ min
+  // after the solve, 2026-11-27); every real level keeps it
+  if (r.ok && spec.sightread === false) console.log("   prejump check skipped (spec sightread: false)");
+  else if (r.ok) { // the user's fairness rule: no prejumps (see tools/sightread.js)
     const s = sightread(level);
     const bad = s.ok ? s.presses.filter(p => p.flag) : [];
     for (const p of bad) console.log(`   PREJUMP at block ${p.from.toFixed(1)}-${p.to.toFixed(1)}: jump ${p.lead.toFixed(1)} blocks before ${p.cue} at ${p.cueAt.toFixed(1)}`);

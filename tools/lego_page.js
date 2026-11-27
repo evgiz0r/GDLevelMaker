@@ -38,7 +38,7 @@ function build(all, o = {}) {
   const html = fs.readFileSync(path.join(__dirname, "lego_page.html"), "utf8")
     .replace("<script>/*LOOK*/</script>", () => "<script>" + fs.readFileSync(path.join(ROOT, "lib", "look.js"), "utf8").replace(/<\/script/gi, "<\\/script") + "</script>")
     .replace("/*MIX*/null", JSON.stringify({ rows, tot }))
-    .replace("/*PUB*/false", o.pub || o.priv ? "true" : "false").replace("/*PRIV*/false", o.priv ? "true" : "false") + `\n<!--lego-build:${stamp()}-->\n`;
+    .replace("/*PUB*/false", o.pub || o.priv ? "true" : "false").replace("/*PRIV*/false", o.priv ? "true" : "false") + "\n" + fs.readFileSync(path.join(__dirname, "snippets", "refresh.html"), "utf8") + `\n<!--lego-build:${stamp()}-->\n`;
   fs.writeFileSync(path.join(dir, "index.html"), html);
   // the Designs tab (block / spike / saw designs to vote on): its cards carry GD art, so the private page and local ones only
   if (!o.pub) try { require("./designs.js").page(dir); } catch (e) { console.log("designs tab skipped: " + e.message); }

@@ -40,11 +40,56 @@ function list() {
   const DT = require("./designthemes.js"), scenes = DT.spec().scenes;
   for (const [name, t] of Object.entries(DT.THEMES)) { const q = scenes.find(z => z.name === name) || {};
     out.push({ id: "theme:" + name, kind: "theme", name, card: `cards/theme-${keyOf(name)}.jpg`, layout: `cards/layout-${keyOf(name)}.jpg`, parts: { kit: `cards/layoutkit-${keyOf(name)}.jpg`, play: `cards/layoutplay-${keyOf(name)}.jpg` },
+      tiles0: tiles0(),
+      // the board's parts (designs_tab.js): [key, name, w, h, mode, note] -- the pieces, the scene as built, and the layout
+      // sections (tools/layoutsections.js)
+      lparts: [["kit", "pieces", q.scene - 1 - q.c0, THEME_ROWS, "hanging", "every piece once"], ["play", "current scene", q.c1 - q.scene + 1, THEME_ROWS, "cube", "the scene the cards show"]]
+        .concat(require("./layoutsections.js").SECTIONS.map(z => ["sec:" + z.key, z.name, z.map[0].length, z.map.length, z.mode, z.note])),
+      partGeo: { kit: { c0: q.c0, c1: q.scene - 1 }, play: { c0: q.scene - 1, c1: q.c1 }, hU: THEME_ROWS * 30 + THEME_GROUND, ground: THEME_GROUND, sc: q.scene },
       geo: { c0: q.c0, c1: q.c1, sc: q.c0 + 4, hU: THEME_ROWS * 30 + THEME_GROUND, ground: THEME_GROUND },
+      anim: animOf(q.c0, q.c1), cells: cellsOf(q.c0, q.c1), fxcols: fxColsOf(t),
       note: `${t.mood} · ${t.design}, ${[].concat(t.effects).join(", ")} · spikes ${t.spikes}, saws ${t.saws} · ${t.holders} · ${t.indicator}` }); }
   return out;
 }
-const THEME_ROWS = 13, THEME_GROUND = 45;   // a theme card shows the scene's bottom 13 rows and the ground under them
+const THEME_ROWS = 13, THEME_GROUND = 45;
+// the colours of a theme card's animation styles: the theme's own light roles (Evgeni 2026-11-27: "the colors of the
+// effect should match the vibe of the level"), so fire flows in embers, ice in cold blues
+function fxColsOf(t) { try { const P = typeof t.pal === "object" ? t.pal : require("./blockdesigns.js").PAL[t.pal];
+  return ["glow", "inner", "hi", "core"].map(k => P[k]).filter(Boolean); } catch (e) { return null; } }
+// the play blocks of a theme's scene, for the page's "nine circles" style (Evgeni 2026-11-27: "nine circles is when our
+// structure has 4 channels and it does waves, not the background ... some kind of flow on the structures"): one
+// [x, y, column] per block in card units (as animOf), column = its level column, so the page can light them band by band
+let LVL = null;
+function cellsOf(c0, c1) {
+  try {
+    if (!LVL) LVL = require("./io.js").readGdlvl(path.join(ROOT, "levels", "gdlm_design_themes.gdlvl")).level.objects;
+    const SC = 0.75, out = [];
+    for (const b of LVL) { if (!((b.id >= 1 && b.id <= 7) || b.id === 1338)) continue; if (b.x < c0 * 30 || b.x > c1 * 30 || b.y > THEME_ROWS * 30) continue;
+      // 4th: 0 a square; a slope 1338 (unflipped: rises to the right) 1 + flipX + 2 flipY + 4 * quarter turns, so the page
+      // fills the slope's triangle, not its square (Evgeni 2026-11-27: "they are bad on the slopes")
+      const sh = b.id === 1338 ? 1 + (b.flipX ? 1 : 0) + (b.flipY ? 2 : 0) + 4 * ((Math.round((b.rot || 0) / 90) % 4 + 4) % 4) : 0;
+      out.push([+((b.x - c0 * 30) * SC).toFixed(1), +((THEME_ROWS * 30 - b.y) * SC).toFixed(1), Math.floor(b.x / 30), sh]); }
+    return out.length ? out : null;
+  } catch (e) { return null; }
+}
+// ▶ PLAY on a theme card (Evgeni 2026-11-27: "theme animations, so we might see how it looks in the game if we press
+// play (either playing the whole section/scene or static)"): the gallery level's saved route, 60 points a second, in the
+// card's own units (card units = level units x 0.75 from the card's left edge and from the top of its 13 rows), with the
+// player's turn and mode, so the page moves the camera and draws the player at game speed over the picture
+let RUN = null;
+function animOf(c0, c1) {
+  try {
+    if (!RUN) { const io = require("./io.js"), S = require("./solutions.js"), R = io.readGdlvl(path.join(ROOT, "levels", "gdlm_design_themes.gdlvl"));
+      const sol = S.get(R.levelStr, true); RUN = io.GD.run(io.GD.makeWorld(R.level.objects, R.level.header), sol ? sol.events : []).path;
+      RUN.presses = new Set((sol ? sol.events : []).filter(e => e.type === "press").map(e => e.tick)); }
+    const SC = 0.75, pts = [], taps = [];
+    for (let i = 0; i < RUN.length; i += 4) { const s = RUN[i]; if (s.x < c0 * 30 || s.x > c1 * 30) continue;
+      // the frames with a press in them (for the "on the jumps" style: the structures light up where he has to click)
+      for (let k = i; k < i + 4; k++) if (RUN.presses.has(k)) { taps.push(pts.length); break; }
+      pts.push([+((s.x - c0 * 30) * SC).toFixed(1), +((THEME_ROWS * 30 - s.y) * SC).toFixed(1), Math.round(s.rot || 0), s.mode === "cube" ? 0 : s.mode === "ship" ? 1 : 2]); }
+    return pts.length ? { fps: 60, s: SC, pts, taps } : null;
+  } catch (e) { return null; }
+}   // a theme card shows the scene's bottom 13 rows and the ground under them
 const structCopies = () => require("./structdesign.js").spec().copies;
 // camera of the shots: the screen's left edge in level units at time t (measured on the gallery shots, 1x speed)
 const camLeft = t => 262.6 + 311.7 * (t - 1.5), tAt = left => 1.5 + (left - 262.6) / 311.7, SCREEN = 1920 / 3.375;
@@ -74,6 +119,15 @@ function moreCards() {
 }
 
 // theme cards: two frames per theme from the design themes gallery (its blocks, its sample), side by side
+// the shared layout as editable tiles for the Themes tab board (designs_tab.js): t = the text map's character
+// (# block, / \\ slopes, 7 r ceiling slopes, ^ spike, v hanging spike, o q s saws), c from the part's left edge, r rows up
+function tiles0() {
+  const DT = require("./designthemes.js"), out = { kit: [], play: [] };
+  DT.KIT_MAP.forEach((l, i) => [...l].forEach((ch, c) => { if (ch !== ".") out.kit.push({ t: ch, c: c + 2, r: 7 - i }); }));
+  DT.SCENE.forEach((l, i) => [...l].forEach((ch, c) => { if (ch !== ".") out.play.push({ t: ch, c: c + 1, r: DT.SCENE.length - 1 - i }); }));
+  const LS = require("./layoutsections.js"); for (const z of LS.SECTIONS) out["sec:" + z.key] = LS.tiles(z);
+  return out;
+}
 function themeCards() {
   // one picture per theme: its whole scene (tools/designthemes.js SCENE) from ONE fixed camera -- levelmap.js --clean,
   // one row -- cut at the scene's ends (Evgeni 2026-11-27: "just 1 full scene with pieces"; joined shots a screen apart
@@ -139,9 +193,17 @@ function page(out) {
   const L = list().filter(d => fs.existsSync(path.join(DIR, d.card)));
   for (const d of L) for (const f of [d.card, d.layout, ...Object.values(d.parts || {})]) if (f && fs.existsSync(path.join(DIR, f))) fs.copyFileSync(path.join(DIR, f), path.join(out, f));
   fs.writeFileSync(path.join(out, "designs.json"), JSON.stringify(L));
-  fs.copyFileSync(path.join(__dirname, "designs_tab.js"), path.join(out, "designs.js"));
+  // the layout sections' solver check (tools/layoutcheck.js): the board draws each route over its section
+  try { fs.copyFileSync(path.join(ROOT, "knowledge", "layout_check.json"), path.join(out, "layout_check.json")); } catch (e) {}
+  // the tab, with the scene join in front of it (lib/scenejoin.js: the same code node's layoutsections.joined() uses)
+  // + the section generators (tools/sectiongen.js) for the board's 🎲, run in the page: its one need from
+  // layoutsections.js is grid(), shimmed here; the node-only parts sit behind require.main
+  const LSsrc = fs.readFileSync(path.join(__dirname, "layoutsections.js"), "utf8"), gridSrc = LSsrc.slice(LSsrc.indexOf("function grid("), LSsrc.indexOf("\n}\n", LSsrc.indexOf("function grid(")) + 3);
+  const SG = "window.SectionGen = (function () { const module = { exports: {} }; " + gridSrc + "\n const require = n => n === './layoutsections.js' || n === \"./layoutsections.js\" ? { grid, SECTIONS: [] } : {};\n"
+    + fs.readFileSync(path.join(__dirname, "sectiongen.js"), "utf8").replace(/^"use strict";/m, "") + "\n return module.exports; })();\n";
+  fs.writeFileSync(path.join(out, "designs.js"), fs.readFileSync(path.join(__dirname, "..", "lib", "scenejoin.js"), "utf8") + "\n" + SG + fs.readFileSync(path.join(__dirname, "designs_tab.js"), "utf8"));
   console.log(`${L.length} designs -> ${out} (designs.json, designs.js, cards/)`);
-  return { out, files: ["designs.json", "designs.js"].concat(L.flatMap(d => [d.card, d.layout, ...Object.values(d.parts || {})].filter(Boolean))) };
+  return { out, files: ["designs.json", "designs.js", "layout_check.json"].concat(L.flatMap(d => [d.card, d.layout, ...Object.values(d.parts || {})].filter(Boolean))) };
 }
 
 function load() { try { return JSON.parse(fs.readFileSync(VOTESK, "utf8")).votes || []; } catch (e) { return []; } }
@@ -183,6 +245,54 @@ function marks() {
   fs.writeFileSync(KF, JSON.stringify({ note: "Evgeni's spots on the design theme scenes (tools/designs.js marks); fixed = gone from the page", marks: all }, null, 1));
   console.log(`${rows.length} on the page (${rows.filter(m => m.seen).length} seen), ${all.filter(m => m.fixed).length} fixed -> knowledge/design_marks.json`);
 }
+// Evgeni's edited theme layout (the Themes tab board, collection "designdraw": per part the newest revision's tiles) back
+// into text maps: `node tools/designs.js layout` prints them (fetch the collection first: ArtifactData list designdraw
+// out_dir local/designs/db; his added sections: list designsecs into the same out_dir). --apply writes them into tools/designthemes.js (SCENE / KIT_MAP), then rebuild:
+// node tools/designthemes.js spec && node tools/make.js specs/lab_design_themes.json && node tools/designs.js cards --themes
+function layoutBack() {
+  const dir = path.join(DIR, "db", "designdraw"), DT = require("./designthemes.js"), newest = {};
+  for (const f of fs.existsSync(dir) ? fs.readdirSync(dir) : []) { const d = JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")), x = d.data || d;
+    if (x && /^layout:/.test(x.design) && (!newest[x.design] || String(x.at) > String(newest[x.design].at))) newest[x.design] = x; }
+  // spikes point away from what holds them (the board's orient() in designs_tab.js, same rule)
+  const orient = T => { const at = new Map(T.map(q => [q.c + "," + q.r, q.t])), solid = (c, r) => r < 0 || /[#7r\/\\]/.test(at.get(c + "," + r) || "");
+    return T.map(q => q.t === "^" && !solid(q.c, q.r - 1) && solid(q.c, q.r + 1) ? { ...q, t: "v" } : q.t === "v" && solid(q.c, q.r - 1) && !solid(q.c, q.r + 1) ? { ...q, t: "^" } : q); };
+  for (const k in newest) if (newest[k].tiles) newest[k] = { ...newest[k], tiles: orient(newest[k].tiles) };
+  const toMap = (tiles, rows, width, dc) => { const g = Array.from({ length: rows }, () => Array(width).fill("."));
+    for (const q of tiles) { const r = rows - 1 - q.r, c = q.c - dc; if (r >= 0 && r < rows && c >= 0 && c < width) g[r][c] = q.t; } return g.map(l => l.join("")); };
+  const out = {};
+  const kit = newest["layout:kit"], play = newest["layout:play"];
+  // KIT_MAP's first row is r 7 (designthemes.js: r = 7 - i): keep rows from 7 down to his lowest piece (was .slice(4),
+  // which kept r 3..0 -- the wrong end -- so the kit edit came out empty)
+  if (kit && kit.tiles) { const lo = Math.min(7 - (DT.KIT_MAP.length - 1), ...kit.tiles.map(q => q.r));
+    out.KIT_MAP = toMap(kit.tiles, 8, Math.max(DT.KIT_MAP[0].length, ...kit.tiles.map(q => q.c - 1)), 2).slice(0, 8 - lo); }
+  // the current scene is built from the sections now (designs_tab.js sceneTiles), so an old saved "play" edit is not applied
+  if (play && play.tiles && process.argv.includes("--scene")) out.SCENE = toMap(play.tiles, Math.max(DT.SCENE.length, ...play.tiles.map(q => q.r + 1)), Math.max(DT.SCENE[0].length, ...play.tiles.map(q => q.c)), 1);
+  // the sections: his map per key -> knowledge/layout_sections.json (tools/layoutsections.js takes it over its draft)
+  // his added sections (collection "designsecs", newest revision per key) -> knowledge/layout_sections_added.json first, so
+  // layoutsections.js knows them before their drawings are read back below
+  const sdir = path.join(DIR, "db", "designsecs"), added = {};
+  for (const f of fs.existsSync(sdir) ? fs.readdirSync(sdir) : []) { const d = JSON.parse(fs.readFileSync(path.join(sdir, f), "utf8")), x = d.data || d;
+    if (x && x.key && (!added[x.key] || String(x.at) > String(added[x.key].at))) added[x.key] = x; }
+  if (Object.keys(added).length) { const list = Object.values(added).sort((a, b) => a.key < b.key ? -1 : 1).map(({ key, name, mode, w, h, after, deleted }) => ({ key, name, mode, w, h, after, ...(deleted ? { deleted } : {}) }));
+    console.log("added sections: " + list.map(z => `${z.name} (${z.mode}${z.deleted ? ", removed" : ""})`).join(", "));
+    if (process.argv.includes("--apply")) { fs.writeFileSync(path.join(ROOT, "knowledge", "layout_sections_added.json"), JSON.stringify(list, null, 1) + "\n"); delete require.cache[require.resolve("./layoutsections.js")]; } }
+  // sizes he set on the board (collection "designsize", newest per part; his added sections carry theirs)
+  const zdir = path.join(DIR, "db", "designsize"), size = {};
+  for (const f of fs.existsSync(zdir) ? fs.readdirSync(zdir) : []) { const d = JSON.parse(fs.readFileSync(path.join(zdir, f), "utf8")), x = d.data || d;
+    if (x && x.part && (!size[x.part] || String(x.at) > String(size[x.part].at))) size[x.part] = x; }
+  for (const z of Object.values(added)) size["sec:" + z.key] = z;
+  const LS = require("./layoutsections.js"), secs = {};
+  for (const z of LS.SECTIONS) { const e = newest["layout:sec:" + z.key], sz = size["sec:" + z.key]; if ((!e || !e.tiles) && !sz) continue;
+    const T = (e && e.tiles) || LS.tiles(z), W = sz ? sz.w : Math.max(z.map[0].length, ...T.map(q => q.c + 1)), H = sz ? sz.h : Math.max(z.map.length, ...T.map(q => q.r + 1));
+    secs[z.key] = toMap(T, H, W, 0); console.log(`section ${z.key}:\n` + secs[z.key].map(l => "  " + l).join("\n")); }
+  if (Object.keys(secs).length && process.argv.includes("--apply")) { const f = path.join(ROOT, "knowledge", "layout_sections.json");
+    const old = fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, "utf8")) : {}; fs.writeFileSync(f, JSON.stringify(Object.assign(old, secs), null, 1) + "\n"); console.log("-> knowledge/layout_sections.json"); }
+  if (!Object.keys(out).length) { if (!Object.keys(secs).length) console.log("no edited layout (parts still as ours)"); return; }
+  for (const [k, v] of Object.entries(out)) console.log(k + ":\n" + v.map(l => "  " + JSON.stringify(l)).join("\n"));
+  if (process.argv.includes("--apply")) { const f = path.join(__dirname, "designthemes.js"); let src = fs.readFileSync(f, "utf8");
+    for (const [k, v] of Object.entries(out)) src = src.replace(new RegExp(`const ${k} = \\[[\\s\\S]*?\\];`), `const ${k} = [\n${v.map(l => "  " + JSON.stringify(l) + ",").join("\n")}\n];`);
+    fs.writeFileSync(f, src); console.log("written into tools/designthemes.js"); }
+}
 // a design's pick weight for the generators: 1 unvoted, 3 liked, 0.25 disliked (never 0: a vote is not a ban)
 function weight(kind, name) { const v = load().find(x => x.id === kind + ":" + name); return !v || !v.vote ? 1 : v.vote > 0 ? 3 : 0.25; }
 
@@ -193,6 +303,7 @@ if (require.main === module) {
   else if (cmd === "page") page(opt("--out"));
   else if (cmd === "votes") votes();
   else if (cmd === "marks") marks();
+  else if (cmd === "layout") layoutBack();
   else if (cmd === "list") for (const d of list()) console.log(d.id.padEnd(26), d.card);
   else console.log(fs.readFileSync(__filename, "utf8").split("\n").filter(l => l.startsWith("//")).join("\n"));
 }

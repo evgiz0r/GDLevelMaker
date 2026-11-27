@@ -139,6 +139,19 @@ First run, 1200 plans in 3 min 20 s:
 - Closest official sections: Electroman Adventures, Deadlocked, xStep, Clutterfunk, at distances 0.33-0.51.
 - Lab: `specs/lab_clickfirst_ball.json` -> `levels/gdlm_lab_clickfirst_ball.gdlvl`.
 
+Corridors to the beats, with reverse gravity (2026-11-27, Evgeni: "i need also reverse gravity portals in the layouts",
+corridors "shorter, longer" by the beats; the types are in knowledge/section_types.md):
+- `--bpm B`: clicks fall on 1/2, 1, 1.5, 2 or 3 beats apart, any `--clicks N`. In a gap of half a beat or more, a free
+  move may come first: a drop, a pad, a blue pad, or a **gravity portal in the air** (11 when the ball is the right way up,
+  10 when it is upside down). `--set <name>` keeps a set apart (knowledge/clickfirst_<name>.json, ids cf-<name>-n).
+- `node tools/clickfirst.js gen --set corridor --bpm 140 --clicks 10 --n 1500 --keep 4`: 1500 plans in 6.5 min, 23 built
+  and verified, 4 kept. Dropped: orb landings (644), secret ways (457), blue orb (283), fragile (70).
+- Variance inside (median) 0.95 vs official 0.80; between 0.60 vs 0.41. Windows as wanted: 4-5 of 10.
+- Lab `levels/gdlm_lab_clickfirst_corridor.gdlvl`: 4 corridors of 10 clicks, 39 presses, beatable. make.js flags 3
+  prejumps (blocks 38, 93, 329): the hazards that close wrong routes sit too close after a landing. Not fixed yet.
+- Only one of the 4 kept plans has a gravity portal: most plans with one fail verification. Open: make the portal a
+  fixed part of a plan (G ... N) rather than a chance.
+
 Open:
 - Yield is 2%. Orb clicks fail on the landing deadline. Secret ways come from missed clicks that roll on to a surface
   the plan uses later, where a spike can't go.

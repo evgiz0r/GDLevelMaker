@@ -51,7 +51,7 @@ function connectors(blocks, o = {}) {
       if (dir < 0 && r < ground) return 0;
       if (dir > 0 && r > top) return Y(top + 1);
       if (all.has(c + "," + r)) return dir > 0 ? Y(r) : Y(r + 1);
-      if (inPath(x, Y(r) + 15)) return null;
+      if (inPath(x, Y(r) + 15) || (o.hazCells && o.hazCells.has(Math.floor(x / 30) + "," + Math.floor((Y(r) + 15) / 30)))) return null;   // nor through a spike or saw
     }
   };
   for (const I of isl) {
@@ -75,7 +75,8 @@ function connectors(blocks, o = {}) {
     }
     // where: two holders near the ends of a wide island, one in the middle of a narrow one (Evgeni: "on the
     // edges/middle of the structures ( like 2 ropes holding a brick, or from the other side a brick floating on two ropes )")
-    const w = I.c1 - I.c0 + 1, xs = w >= 2 ? [X(I.c0) + 9, X(I.c1 + 1) - 9] : [X(I.c0) + 15];
+    // o.pairFrom: the narrowest island that gets a pair (brick pillars: 5, so a pair's fillets never meet under a narrow one)
+    const w = I.c1 - I.c0 + 1, pair = w >= (o.pairFrom ?? 2), xs = pair ? [X(I.c0) + 9, X(I.c1 + 1) - 9] : [X(I.c0 + Math.floor((w - 1) / 2)) + 15];
     const edge = (x, side) => { const c = Math.floor((x - ox) / 30), rs = I.cs.filter(q => q[0] === c).map(q => q[1]);
       return side > 0 ? Y(Math.max(...rs) + 1) : Y(Math.min(...rs)); };
     // from above (hanging) or below (standing): the side whose lines are all clear; above first when the island is high
@@ -84,7 +85,12 @@ function connectors(blocks, o = {}) {
     // 2026-11-27: an auto's path brushes most islands' ends, and they floated with no holder); a wide island whose two
     // sides find no clear pair gets one holder at the clearest middle cell
     const tryDir = d => {
-      if (w < 2) { const q = seg(xs[0], d); return q ? [q] : null; }
+      if (!pair) { const mc = I.c0 + Math.floor((w - 1) / 2);
+        // an even width hangs from its exact middle, on the line between the two middle cells (Evgeni 2026-11-27, hellgate
+        // col 9: "the hanging of a triangle should either be symmetrical or some other kind of hanger coming from the middle")
+        if (w % 2 === 0) { const q = seg(X(I.c0) + w * 15, d); if (q) return [Object.assign(q, { centre: true })]; }
+        for (let k = 0; k < w; k++) for (const c of [mc - k, mc + k + 1]) { if (c < I.c0 || c > I.c1) continue; const q = seg(X(c) + 15, d); if (q) return [q]; }
+        return null; }
       const half = Math.floor((w - 1) / 2);
       let L = null, R = null;
       for (let k = 0; k <= half && !L; k++) L = seg(k ? X(I.c0 + k) + 15 : xs[0], d);
@@ -120,6 +126,8 @@ function draw(conns, C, o = {}) {
     const vert = q.x0 === q.x1, len = vert ? q.y1 - q.y0 : q.x1 - q.x0, cx = (q.x0 + q.x1) / 2, cy = (q.y0 + q.y1) / 2, rot = vert ? 0 : 90;
     // the fitting at the structure: a small plate on the attached end(s)
     const ends = q.kind === "hang" ? [[q.x0, q.y0]] : q.kind === "stand" ? [[q.x0, q.y1]] : [[q.x0, q.y0], [q.x1, q.y1]];
+    // a soft holder's shadow line for 3D sections: the same line pushed back, darker
+    if (o.depth && style !== "brick" && vert) put(211, q.x0 + o.depth * 0.5, cy + o.depth * 0.5, { ch: C.line, sx: 0.06, sy: len / 30, hsv: hsv(0.45), zo: 0 });
     if (style === "rope") {
       put(211, cx, cy, { ch: C.line, sx: vert ? 0.07 : len / 30, sy: vert ? len / 30 : 0.07, hsv: hsv(0.8) });
       for (const [x, y] of ends) put(211, x, y, { ch: C.line, s: 0.2, rot: 45, hsv: hsv(1) });
@@ -135,30 +143,62 @@ function draw(conns, C, o = {}) {
       // BRICK (Evgeni 2026-11-27, hellgate: "large structures should have holders made of bricks on the sides (maybe some
       // in the middle), a connector of 1 or 2 blocks to the top, with a slope smoothing where structures connect"): a
       // brick pillar behind the play, 1 block wide (2 under an island 8+ wide), its bricks in rows shifted by half, an
-      // outline in the line colour, and a 45-degree fillet each side where it meets the structure; darker than the
-      // play blocks so it reads as background, never as something to land on
-      const at = q.kind === "hang" ? q.y0 : q.y1, dir = q.kind === "hang" ? 1 : -1, G = q.cells;
-      // on the cell grid, so a fillet sits on whole cells; a fillet only where the structure goes on under it at the
-      // attached row (Evgeni 2026-11-27, hellgate col 27: "the slopes go out of the structures ... move to the side, or
-      // have the slope removed from that side ... or no slope at all")
-      const on = (x, y) => !G || G.set.has(Math.floor((x - G.ox) / 30) + "," + Math.floor((y - G.oy) / 30));
-      const ya = at - dir * 15;   // the row the pillar is attached to
-      let bw = (q.w || 1) >= 8 ? 60 : 30, cxs = G ? (bw === 30 ? G.ox + Math.floor((q.x0 - G.ox) / 30) * 30 + 15 : G.ox + Math.round((q.x0 - G.ox) / 30) * 30) : q.x0;
-      if (bw === 60 && !(on(cxs - 15, ya) && on(cxs + 15, ya))) { bw = 30; cxs = G.ox + Math.floor((q.x0 - G.ox) / 30) * 30 + 15; }
-      const cx = cxs, x0 = cx - bw / 2;
+      // outline in the line colour, darker than the play blocks so it reads as background, never as something to land
+      // on. Its fillets (brickParts) are drawn here only when the caller does not dress them as part of the structure
+      const g = q.brick || brickParts([q])[0], { cx, bw } = g, x0 = cx - bw / 2;
+      // its side face when the structures have depth (o.depth units, pushed back up-right like structdesign's depth):
+      // a darker copy of the pillar behind it with a dim rim, so pillar and platform read as one solid material
+      if (o.depth) { const d = o.depth;
+        put(211, cx + d, cy + d, { ch: C.line, sx: (bw + 3) / 30, sy: len / 30, hsv: hsv(0.8), zo: 0 });
+        put(211, cx + d, cy + d, { ch: C.base, sx: bw / 30, sy: len / 30, hsv: hsv(0.5), zo: 1 }); }
       put(211, cx, cy, { ch: C.line, sx: (bw + 3) / 30, sy: len / 30, hsv: hsv(1) });
       put(211, cx, cy, { ch: C.base, sx: bw / 30, sy: len / 30, hsv: hsv(0.9), zo: 3 });
       for (let k = 1, y = q.y0 + 15; y < q.y1 - 2; y += 15, k++) {
         put(211, cx, y, { ch: C.line, sx: bw / 30, sy: 0.05, hsv: hsv(0.55), zo: 4 });
         for (let xx = x0 + (k % 2 ? 15 : 30); xx < x0 + bw - 2; xx += 30) put(211, xx, y - 7.5, { ch: C.line, sx: 0.05, sy: 0.5, hsv: hsv(0.55), zo: 4 }); }
-      // the fillets: a right triangle each side, its right angle in the corner between pillar and structure
-      for (const side of [-1, 1]) if (on(cx + side * (bw / 2 + 15), ya)) put(693, cx + side * (bw / 2 + 15), at + dir * 15, { ch: C.base, hsv: hsv(0.9), zo: 3, flipX: side > 0, flipY: dir < 0 });
+      // the fillets in the hanger's own look (Evgeni 2026-11-27, hellgate col 24: "the connecting slopes should be of the
+      // hanger type, not the structure"): the pillar's body and outline, one brick seam across the middle
+      for (const f of g.fillets) { const fl = { flipX: f.flipX, flipY: f.flipY };
+        put(693, f.x, f.y, Object.assign({ ch: C.line, hsv: hsv(1), s: 1.06 }, fl));
+        put(693, f.x + (f.flipX ? -0.9 : 0.9), f.y + (f.flipY ? 0.9 : -0.9), Object.assign({ ch: C.base, hsv: hsv(0.9), zo: 3, s: 0.94 }, fl));
+        put(211, f.x + (f.flipX ? -7.5 : 7.5), f.y, { ch: C.line, sx: 0.5, sy: 0.05, hsv: hsv(0.55), zo: 4 }); }
     } else if (style === "gdchain") {
       const L = 2.32 * 30 * 0.6, n = Math.max(1, Math.ceil(len / L));
       for (let k = 0; k < n; k++) { const t = (k + 0.5) / n; put(41, vert ? q.x0 : q.x0 + len * t, vert ? q.y0 + len * t : q.y0, { ch: C.line, s: 0.6, rot, hsv: hsv(1) }); }
     }
   }
   return out;
+}
+// brick pillars' geometry for a set of connectors: per connector {cx, bw, fillets: [{x, y, flipX, flipY}]}. On the cell
+// grid, so a fillet sits on whole cells. A fillet only where the structure goes on under it at the attached row
+// (Evgeni 2026-11-27, hellgate col 27: "the slopes go out of the structures ... move to the side, or have the slope
+// removed from that side ... or no slope at all"), never on a cell another pillar, fillet or block already takes
+// (col 106: "two holding structures overlap, structures should usually not overlap in their blocks, they should somehow
+// merge"). A fillet is a 45-degree slope: its right angle in the corner between pillar and structure, so as a slope cell
+// it carries the structure's own design (col 43 / 52: "missing marker on the edge of the slope like the regular blocks",
+// "the triangles ... no block design inside them") -- tools/structdeco.js dresses it with the structure.
+function brickParts(conns, solid, squares) {
+  const geo = conns.map(q => { if (q.x0 !== q.x1) return null;
+    const at = q.kind === "hang" ? q.y0 : q.y1, dir = q.kind === "hang" ? 1 : -1, G = q.cells;
+    const on = (x, y) => !G || G.set.has(Math.floor((x - G.ox) / 30) + "," + Math.floor((y - G.oy) / 30));
+    const ya = at - dir * 15;   // the row the pillar is attached to
+    let bw = (q.w || 1) >= 8 ? 60 : 30, cx = G ? (bw === 30 ? G.ox + Math.floor((q.x0 - G.ox) / 30) * 30 + 15 : G.ox + Math.round((q.x0 - G.ox) / 30) * 30) : q.x0;
+    if (bw === 60 && !(on(cx - 15, ya) && on(cx + 15, ya))) { bw = 30; cx = G.ox + Math.floor((q.x0 - G.ox) / 30) * 30 + 15; }
+    if (q.centre) { bw = 30; cx = q.x0; }
+    return { q, cx, bw, at, dir, ya, on, fillets: [] }; });
+  // the cells every pillar takes
+  const used = new Set(solid || []), ck = (x, y) => Math.floor(x / 30) + "," + Math.floor(y / 30);
+  for (const g of geo) if (g) for (let y = g.q.y0 + 1; y < g.q.y1; y += 30) for (let x = g.cx - g.bw / 2 + 1; x < g.cx + g.bw / 2; x += 30) used.add(ck(x, y));
+  // a pillar under the gameplay (standing) gets ONE fillet, on the side toward its structure's middle (Evgeni 2026-11-27,
+  // hellgate col 40: "not all connections of blocks on gameplay need slopes, just 1"); a hanging one keeps both
+  const mid = g => { const G = g.q.cells; if (!G) return g.cx; let s = 0, n = 0; for (const k of G.set) { s += +k.split(",")[0]; n++; } return G.ox + (s / n) * 30 + 15; };
+  for (const g of geo) if (g) for (const side of (g.q.kind === "stand" ? [mid(g) < g.cx ? -1 : 1] : [-1, 1])) {
+    const x = g.cx + side * (g.bw / 2 + 15), y = g.at + g.dir * 15;
+    // and only on a full square: a fillet on a slope's slant floated off it (hellgate's hanging peak)
+    if (!g.on(x, g.ya) || used.has(ck(x, y)) || (squares && !squares.has(ck(x, g.ya)))) continue;
+    used.add(ck(x, y)); g.fillets.push({ x, y, flipX: side > 0, flipY: g.dir < 0 });
+  }
+  return geo;
 }
 // the cells the route passes through, with a block of margin (level cells: floor(x / 30), floor(y / 30))
 function routeCells(level, events) {
@@ -178,7 +218,7 @@ function spec() {
     notes: "Evgeni 2026-11-26: 'something soft like chain/rope/holder/soft extender [...] as if something is holding it'; DECOART.md 'Connected structures'",
     colours: { bg: [10, 14, 30], ground: [4, 6, 14] }, scene: "tools/scenes/holdgallery.js", copies, outro: 76, signature: {}, objects };
 }
-module.exports = { connectors, draw, routeCells, STYLES, spec };
+module.exports = { connectors, draw, brickParts, routeCells, STYLES, spec };
 if (require.main === module) {
   const a = process.argv.slice(2), opt = n => { const i = a.indexOf(n); return i >= 0 ? a[i + 1] : null; };
   if (a[0] === "spec") { fs.writeFileSync("specs/lab_holders.json", JSON.stringify(spec(), null, 1) + "\n"); console.log("wrote specs/lab_holders.json"); process.exit(0); }

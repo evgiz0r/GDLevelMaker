@@ -466,6 +466,25 @@ Since 2026-11-27 (Evgeni: "if i click new the text is gone", "many marks ... nee
 and a note -> the page's db collection `designmarks` (fx / fy on the picture, level x / y, the scene's column and row);
 `node tools/designs.js marks` (after an ArtifactData list into local/designs/marks_phone.json) prints each with what the
 gallery level has there -> knowledge/design_marks.json.
+The theme layout board (Evgeni 2026-11-27): one shared section above the themes, one part per kind of play
+(tools/layoutsections.js: entrance, basic staircase, open / closer cube corridor, hanging structures, flying, wave, flappy
+bird, ball corridors; plus the pieces and the current scene), each shown alone or together by its chip. Tap to place a
+block, floor or ceiling slope, spike, hanging spike or saw; drag paints, ⌫ erases. Cells are drawn at 26 px with −/＋
+zoom, with no picture under them: the first board lay over a 130 px picture and zoom never reached it ("i cant draw on the
+layout properly, zoom doesnt work"). Every edit saves itself; 💾 save saves the shown parts again and says when, without
+sending ("i need a save there, without sending"); 📨 sends. `node tools/designs.js layout [--apply]` reads the edits back
+(sections -> knowledge/layout_sections.json). Spikes point away from what holds them ("i put spikes on the roof so
+reverse them if needed"): a spike under a block with nothing below hangs, on the board and when applied (orient()). Each
+section has its own note line ("give me place for comments on each of the sections"): saved as typed to collection
+"designnotes" ({part, note, sentNote, at}, newest per part), sent with 📨 when changed. The wave corridor has a quick zigzag
+in the middle (a turn every 2 blocks; "in the middle some different pattern like more cps"). The current scene is the
+sections joined in order, built on the page from each section as it stands, so it follows every edit and is not edited
+itself ("lets make the current scene the combination of the layouts for now"). The current scene takes edits too ("let me also edit the current scene and it will edit the proper section, put some soft marker on where the sections are"): a tap goes to the section under it (tools/designs_tab.js SCENE_SEGS), the joins follow and can't be drawn; a dashed line and the name mark where each section starts, a faint band each join. **＋ section** on the board ("give me option to add one more section"): a name, a mode, a size and the section it follows; saved to collection "designsecs", drawn like the others, 📨 tells Claude; `node tools/designs.js layout --apply` (after listing designsecs and designdraw into local/designs/db) writes knowledge/layout_sections_added.json and its drawing, and tools/layoutsections.js puts it in the joined scene. Between two sections a join (lib/scenejoin.js, one copy for node and the page): the floor ramps by 45-degree slopes, two corridors' ceilings merge into one sloping ceiling at both ends, and a ceiling with nothing on the other side tapers up instead of ending as a wall ("it should merge in the same y locations, where some merging is done on both entrances like regular structures"). The theme cards are rebuilt from it only
+when he asks ("dont want to burn updating the whole universe for single changes"). Next: build the gallery scene from the sections, each with its mode's portal.
+▶ play on a theme card (Evgeni: "theme animations, so we might see how it looks in the game if we press play"): the
+gallery's saved route, 60 points a second in card units (designs.js animOf), moves the camera and a player over the
+picture at 1x, 0.5x or 0.25x. Asked next: several animations to pick per theme, like the backdrop options (effects that
+move: pulses, glows, drifting backdrop); a picture can't show those, so they need rendered clips. Not built yet.
 Contrast (Evgeni 2026-11-27: "the background and the blocks look too alike, they should have some contrast to the blocks
 and hazards"): the old skies were dark versions of the blocks' own hue and the backdrops were mixed toward the block colour.
 Now: each theme's skies are in another hue (40-176 degrees from the blocks), the backdrop pieces stay in the SKY's hue a few
@@ -481,3 +500,14 @@ Open: a theme from a theme kit (tools/themes/*) or from the song's mood; backdro
 theme as well (work on it later)"). Not started. Ideas to try: Claude's warm clay / orange on a cream or deep-ink sky,
 the signature's robot + human motifs as set pieces, soft rounded blocks, the end-screen sign's look carried through.
 
+
+## Theme card animation styles (2026-11-27)
+
+Evgeni: "lets add several animations possible to play, in the dropdown. we will start with - static, nine circles styles".
+Next to a theme card's ▶ there is a style dropdown (tools/designs_tab.js `FXS`). **static** plays the scene as it is.
+**More styles** (Evgeni 2026-11-27: "some rotating movement - some pulsing effects in the cube - smaller/arbitrary slice than a single block * going up and down * beats with the song or when the player has to jump"): rotating (wheel slices round the screen centre), pulse in the blocks (light grows from each block's centre on the beat), slices (3 strips a block, the diagonal flow strip by strip), up and down (a line of light rising and falling through the rows), on the beat (every block flashes, next colour each beat), on the jumps (a ring of light out of every press of the route: an indicator). A colour picker sets 1-8 colours (more than the theme's 4 light roles are blended between them). Each style is one `light(cell, frame)` entry in designs_tab.js FXS. Play stops at the last section's end.
+
+**nine circles** (corrected by Evgeni: "when our structure has 4 channels and it does waves, not the background"): the play blocks are split into 4 colour bands of 2 columns each, and each beat lights the next band, so stripes of colour flow along the structures.
+Its colours are the theme's own light roles (glow, inner, hi, core of its palette; Evgeni: "the colors of the effect should match the vibe of the level"). Slopes light as their triangle, not a square (designs.js cellsOf, the 4th field). The animation ends with the scene. The bands run diagonally (column + row) and move every half beat, faster than the player (Evgeni: "original vibe was ... diagonal"); "nine circles, along" keeps stripes by column, one a beat.
+song. These styles are a preview in the page only. The in-game version would be built with the effects toolkit
+(tools/effects.js, EFFECTS.md), which is not done yet. A new style is one entry in `FXS`.

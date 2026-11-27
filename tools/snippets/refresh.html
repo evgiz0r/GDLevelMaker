@@ -1,0 +1,39 @@
+<!-- ⟳ REFRESH for every workbook page (Evgeni 2026-11-27: "add refresh on every workbook ... and last refreshed, and some
+     effect when i click refresh"; CLAUDE.md Rules). Paste once into a page; it adds a fixed button top-right. Click: the icon
+     spins, the page saves its view (pages keep their own view: tab, scroll, folds), reloads with fresh data, then flashes a
+     "refreshed" toast. "last refreshed HH:MM" stays beside the button. A page may set window.rfBeforeReload (async, false = stay) to send unsent work first. No dependencies; storage wrapped in try/catch. -->
+<style>
+#rf{position:fixed;top:8px;right:10px;z-index:9999;display:flex;align-items:center;gap:6px;font:12px system-ui,sans-serif;color:var(--dim,#8a93a3)}
+#rf button{font:16px/1 system-ui;width:30px;height:30px;border-radius:50%;border:1px solid var(--line,#3a4150);background:var(--panel,#1c212b);color:var(--ink,#e8ecf2);cursor:pointer}
+#rf button:hover{border-color:var(--acc,#6aa7ff)}
+#rf.go button{animation:rfspin .6s linear infinite}
+@keyframes rfspin{to{transform:rotate(360deg)}}
+#rft{position:fixed;top:44px;right:10px;z-index:9999;padding:6px 12px;border-radius:14px;background:var(--acc,#6aa7ff);color:#fff;font:600 12px system-ui;opacity:0;transform:translateY(-6px);transition:.35s;pointer-events:none}
+#rft.on{opacity:1;transform:none}
+body.rfflash{animation:rfflash .7s ease-out}
+@keyframes rfflash{0%{filter:brightness(1.35)}100%{filter:none}}
+</style>
+<div id="rf"><span id="rfl"></span><button id="rfb" title="refresh: fresh data, keeps your place">⟳</button></div><div id="rft">refreshed ✓</div>
+<script>
+(function () {
+  const K = "rf:" + (document.title || location.pathname), hm = t => new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  let s = {}; try { s = JSON.parse(localStorage.getItem(K) || "{}"); } catch (e) {}
+  const now = Date.now(), L = document.getElementById("rfl");
+  const show = () => { L.textContent = "last refreshed " + hm(s.at || now); };
+  if (s.pending && now - s.pending < 30e3) {          // came back from a ⟳ click: the effect
+    s.at = now; delete s.pending;
+    requestAnimationFrame(() => { document.body.classList.add("rfflash"); const t = document.getElementById("rft"); t.classList.add("on"); setTimeout(() => t.classList.remove("on"), 1600); });
+  } else s.at = now;                                  // any load is a refresh too
+  try { localStorage.setItem(K, JSON.stringify(s)); } catch (e) {}
+  show();
+  document.getElementById("rfb").onclick = async () => {
+    document.getElementById("rf").classList.add("go");
+    // a page with unsent notes sends them first (window.rfBeforeReload -> false = the send failed: stay, the page says why)
+    if (typeof window.rfBeforeReload === "function") { let ok = true; try { ok = await window.rfBeforeReload(); } catch (e) { ok = false; }
+      if (ok === false) { document.getElementById("rf").classList.remove("go"); return; } }
+    try { s.pending = Date.now(); localStorage.setItem(K, JSON.stringify(s)); } catch (e) {}
+    try { window.dispatchEvent(new Event("scroll")); } catch (e) {}   // the page's keep-the-view saves the scroll
+    setTimeout(() => location.reload(), 350);         // let the spin show and the view save land
+  };
+})();
+</script>

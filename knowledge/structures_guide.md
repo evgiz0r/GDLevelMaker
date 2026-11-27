@@ -31,6 +31,8 @@ change. The detailed write-ups stay in the linked docs.
   pits between them, not across an empty floor. Source: checklist "Play up on structures".
 - **Joins:** 3+ flat blocks between bricks, no prejump, and similar clicks per second and timing windows within a
   section, with some rests. Source: tools/brickpick.js, tools/lego_join.js, LEGO.md "Combining".
+- **Corridor into corridor:** floor and ceiling both slope from one's exit height to the next one's entry height (45 degrees),
+  so the two merge; a ceiling that has nothing after it slopes up and away, never ends as a cut wall. lib/scenejoin.js.
 - **No structure 3 times.** Two times at most, and corridors that move (top and bottom not parallel).
   Source: tools/repeat.js, score.js "repetition".
 - **Symmetry:** an orb sits over the centre of its spike row, and pairs mirror each other. If the timing wants it off
@@ -48,6 +50,14 @@ change. The detailed write-ups stay in the linked docs.
 - **Fillets:** a 45-degree slope fills the corner where a pillar meets a structure, **only where the structure goes on
   under it.** If there's no room, move the pillar to the side, drop that fillet, or drop both. Source: Evgeni,
   2026-11-27, hellgate col 27.
+- **Fillets belong to the hanger:** they take the pillar's body, outline and brick seam, not the structure's design
+  (Evgeni, 2026-11-27, hellgate col 24: "of the hanger type, not the structure"). They sit only on a full square, never on
+  a cell that another pillar, fillet or block already takes. A pillar under the gameplay (standing) gets one fillet,
+  toward its structure's middle; a hanging one keeps both (col 40). A narrow island (under 5 wide) gets one pillar in its
+  middle, and an even-width one hangs from its exact centre line, so a peak hangs symmetrically (col 9). Pillars never go
+  through a spike or saw. Source: tools/connect.js connectors / brickParts.
+- **Slopes are shaded like the squares beside them** (the top-lit ramp at their height). Source: hellgate col 122,
+  structdesign `shade`.
 - **Ledges of grounded structures** count too: a run of 2+ cells with nothing under it stands on a pillar at its free
   end, the end away from the support. Source: hellgate col 97.
 - **Structures connect** unless the level says otherwise (a bigger space, a transition, a portal). Bridges (a rope or
@@ -60,18 +70,37 @@ change. The detailed write-ups stay in the linked docs.
   fly. Source: tools/designthemes.js, tools/structdeco.js.
 - **A design follows the whole shape,** slopes included: an outline, inlines and lit edges, notched at inner corners.
   Source: tools/structdesign.js.
+- **3D sides are part of the structure:** the side face is the body darkened, its far edge drawn in the theme's edge line,
+  and the edge joining front and back drawn at every corner where the side turns; a dim second outline alone reads as a
+  hollow copy behind (Evgeni, 2026-11-27, hellgate). Source: structdesign `depth`.
 - **Big bodies are not empty:** a structure 3+ blocks thick gets panels, rivets, a few lamps, a layer line and a
   top-lit gradient. Source: structdesign `interior`.
 - **Long thin bars are not bland:** a bar 5+ blocks long gets plates every 3 cells, rivets and a lit vein along its
   middle. Source: structdesign `bars`.
-- **Hazards are designed pieces:** every spike and saw carries 3+ parts. The hellgate spike `ember` has a fanned glow,
+- **Hazards are designed pieces, capped to their block:** every spike and saw carries 3+ parts, and a spike's parts stay
+  inside its cell's width (glows too; spikedesign check "capped to the block", Evgeni 2026-11-27). Every spike and saw carries 3+ parts. The hellgate spike `ember` has a fanned glow,
   an inner spike and a lit core; the saw `sawforge` has a glow, cog teeth and an inner wheel. The hitbox never changes.
   Source: tools/spikedesign.js, HAZARDS.md "Dressing one hazard".
 - **Contrast by role:** block body vs sky at a luminance ratio of 1.5+; the backdrop in the sky's hue, not the blocks';
   hazards clear of both. Source: tools/backdrops.js `fit` / `check`, tools/roles.js.
 - **Indicators** get their own style and colour per level, away from the hazard colours. Source: tools/indstyles.js.
 
-## 5. From a drawing to a structure
+## 5. The layout sections
+
+- A corridor's ceiling is its floor lifted, slope for slope, so the two would fit if pressed together (Evgeni 2026-11-27,
+  wave corridor: "as if we lift the structures it connects perfectly"). tools/layoutsections.js `tunnel()` draws both from one line.
+
+The theme layout is split into one short stretch per kind of play, the same for every theme: entrance, basic staircase,
+open cube corridor, closer cube corridor, hanging structures, flying corridor (ship), wave corridor, flappy bird corridors
+(UFO), ball corridors (structures on several heights). Each has a mode and is edited on its own on the Themes tab board.
+Source: Evgeni, 2026-11-27; tools/layoutsections.js (drafts; his edits in knowledge/layout_sections.json).
+
+- **Section types, any length** (Evgeni 2026-11-27: "understand for the future how to make similar according to beats, or
+  invent new ones ... shorter, longer"): each board section is a type (an idea + a motif repeated with changes, entry /
+  body / exit, 4-32 bars, gravity portals 11 / 10 inside). knowledge/section_types.md has every type. The ball type is
+  built to the beats by tools/clickfirst.js (`--bpm`, any click count, gravity portals as a free move).
+
+## 6. From a drawing to a structure
 
 Evgeni draws loosely ("you will align to be more symmetrical, and connected and layered and so on as needed"). Keep his
 masses, heights and hanging parts, then clean them up:
@@ -83,7 +112,8 @@ masses, heights and hanging parts, then clean them up:
 5. Add the theme's layers, 3D, inside and bars.
 6. Keep it beatable.
 
-Show his drawing beside the result. Drawings come from the catalogue's Themes tab whiteboard (db collection
+Read his edited theme layout back with `node tools/designs.js layout [--apply]` (fetch db collection `designdraw` into
+local/designs/db first). Show his drawing beside the result. Drawings come from the catalogue's Themes tab whiteboard (db collection
 `designdraw`) and the viewer's ✏ draw (DRAW.md).
 
 ## Where to look
@@ -91,3 +121,11 @@ Show his drawing beside the result. Drawings come from the catalogue's Themes ta
 STRUCTURES.md (library and ranking), LEGO.md (bricks and combining), BRICKGEN.md (generating), DECOART.md (the look:
 designs, holders, inside, themes), HAZARDS.md (hazards and their dressing), CRAFT.md (how RobTop builds and dresses),
 knowledge/checklist.md (every target, with its check).
+
+## Section types (a level's longer stretches)
+
+What each layout section type is (stair path, wave corridor, swing, ...) with its motif, what to vary and how it grows
+longer or shorter to fit the beats, plus where gravity portals go: **knowledge/section_types.md** (Evgeni 2026-11-27: "dont
+need save these copy by copy, but to understand for the future how to make similar according to beats"). The
+clicks-first generator (tools/clickfirst.js, thread "Generate our own structures") builds from it.
+
