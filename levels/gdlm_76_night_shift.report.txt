@@ -1,0 +1,12 @@
+GDLM 76 night shift: 60.7 s, 87 presses, 6 modes
+Layout     0.7/10  balance 2.1 · modes 5.2 · transitions 1.5 · rests 10 · flow 1.3 · variety 2.5 · pacing 2 · clarity 7 · height 8.5 · ending 10
+Difficulty Hard (~27 attempts, tightest 8 ms)
+Fairness   1 unfair spot: switch at block 586
+Taste      72/100
+Deco       not judged yet
+Top notes (5 of 23):
+  1. 12.03 s, block 125: uneven piece: a piece 96 ms tight, the level's typical piece 229 ms (unbalanced: one far harder than the rest)
+  2. 40.8 s, block 423.7: uneven piece: a piece 42 ms tight, the level's typical piece 229 ms (unbalanced: one far harder than the rest)
+  3. 0 s, block 0: no reverse: 8% of the play upside down (the mains ~17%; want 15%+)
+  4. 7.27 s, block 75.5: walked portal: cube -> ufo walked into on the ground (official portals: 93% taken on the move)
+  5. 14.49 s, block 150.5: abrupt switch: ufo -> ship: 21 ms after the last press, 379 ms to the next (official: ~0.37 s quiet before, ~0.48 s after)
