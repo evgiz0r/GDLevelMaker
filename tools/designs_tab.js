@@ -154,7 +154,8 @@ window.initDesigns = async function (root) {
     // the pure layout above the scene (Evgeni 2026-11-27: "lets also put the pure layout above (also collapsible)"), with
     // a whiteboard on it ("where is the white board we wanted for the layout"): ✏ draw, a pen per kind (block, hazard,
     // note), strokes saved as revisions in collection "designdraw" (tools/designs.js drawings renders them)
-    const lo = open["layout:" + d.id] !== false, dr = DRAWING === d.id, sk = (DRAW[d.id] || {}).strokes || [];
+    // each theme's layout starts folded (Evgeni 2026-11-27: folding the fire theme's showed the next theme's: "make them all collapsed")
+    const lo = open["layout:" + d.id] === true, dr = DRAWING === d.id, sk = (DRAW[d.id] || {}).strokes || [];
     // FREE BOARD (Evgeni 2026-11-27: "give me some freer controls, where i free draw for now"): draw over the layout, the
     // scene or a blank page; any colour, three sizes, an eraser that takes out the strokes it touches, undo, clear and a
     // full-screen board. A stroke is {c colour, w width, p [[fx, fy] ...] in 0..1 of the picture}.
@@ -544,7 +545,7 @@ window.initDesigns = async function (root) {
     const sv = e.target.closest(".msave");
     if (sv) { const row = sv.closest("[data-m]"); PEND[row.dataset.m] = row.querySelector("input").value; const st = row.querySelector(".mst"); if (st) st.textContent = "saving ..."; await saveMark(row.dataset.m); return; }
     const lf = e.target.closest(".lfold");
-    if (lf) { const k = "layout:" + lf.dataset.lf; open[k] = open[k] === false; try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} render(); return; }
+    if (lf) { const k = "layout:" + lf.dataset.lf; open[k] = open[k] !== true; try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} render(); return; }
     if (e.target.closest(".pdraw")) { DRAWING = e.target.closest(".dc").dataset.id; render(); return; }
     if (e.target.closest(".pdone")) { DRAWING = null; FS = null; ERASE = false; render(); return; }
     const ptl = e.target.closest(".ptool"); if (ptl) { TOOL = ptl.dataset.t; render(); return; }
