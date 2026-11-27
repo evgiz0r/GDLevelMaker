@@ -56,7 +56,7 @@ type, so a builder can make a new one of any length, synced to the song, and so 
 | type | mode | idea | motif | change it by | longer looks like |
 |---|---|---|---|---|---|
 | entrance | cube | up a ramp onto the level's blocks, then a first spike and a small pit | ramp + flat + one hazard | ramp height (3 rows by default, tools/startramp.js) | not used long: an entry only |
-| staircase | cube | climb, then step down | a step up of 1 row, 4 wide | step width 3-5, a spike or saw on some landings | more steps, a flat landing every 3-4 steps |
+| staircase | cube | climb, then step down | a step up of 1 row, ONE JUMP wide (4 cols at 1x, 5 at 2x) | chains of 1-3 such steps, then a landing two jumps wide (spike or saw a jump in); pits, a step back; never odd widths (Evgeni 2026-11-27: "should be a proper jump otherwise its impossible to adjust or predict") | more steps, more hazards on landings |
 | open cube corridor | cube | a floor with pits and nothing overhead; platforms float in the middle | a floor run + a pit (2-3 wide spikes) | pit width, a platform over the pit | the run lengths change, platforms at 2 heights |
 | closer cube corridor | cube | the ceiling comes down to 4 rows over the floor and hangs spikes | a floor spike or pit + a hanging spike, out of step | the gap from floor to ceiling, a block pushed down from the ceiling | the ceiling steps up and down by 1 |
 | hanging structures | cube | structures hang from the top over a floor with spike pits | one hanging mass + a pit under or between | mass width and depth, its hanging spikes | more masses at different heights, holders from the theme |
