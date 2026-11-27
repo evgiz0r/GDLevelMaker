@@ -212,6 +212,9 @@ which the sim does not have yet (PHYSICS.md open).
   than the original height regardless if i am in height x100"): a hidden ball (L) / spider (P) portal on a surface re-bands
   around it, so the band wanders the map; the ground spikes and ceiling bar follow the band. At 80 cols x 20 rows: 10 of 12
   solve, 25-75% of the rows (a random walk: more movers or a drift toward unvisited rows is next).
+- **Cube types and wave at 2x rows** (2026-11-27): closecube's corridor steps a row up or down every 8-14 columns,
+  wandering the map (80x16: 88-89%, was fixed at 5 rows); opencube climbs up to (rows - 2) / 2 platforms (80x16: 73-87%);
+  staircase scales by itself (80x18: 50-82%); wave over 13 rows gets hidden A portals (80x20: 79-92%). All solve.
 - **A minimum length per type** (Evgeni: some need room for real play, robot and orbs).
 - Height at 1.5x rows, 60 cols (easy/harder, 2 seeds): wave 93%, fly 76%, ship corridor 80%, staircase 85%, closecube 80%,
   ball 75%, spider 67%, opencube 68%, flappy 60%, orbs 55%. The cube types need their climbs scaled to the taller map.

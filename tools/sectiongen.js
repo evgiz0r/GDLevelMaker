@@ -166,7 +166,7 @@ GEN.opencube = o => { const { R, imix, len, chance, W, H, G } = ctx(o, 8);
   G.box(0, W - 1, 0, 0); let c = len(5, 7), k = 0;
   while (c < W - 6) {
     if ((k++ % 2 === 1 || chance(0.2, 0.4)) && c + 14 < W) {   // a climb: 2-3 platforms, each 2 rows over the last, spikes under
-      let px = c, py = 2; const n = Math.min(R.int(2, 3), Math.floor((H - 2) / 2)); let end = px;
+      let px = c, py = 2; const n = Math.min(R.int(2, Math.max(3, Math.floor((H - 2) / 2))), Math.floor((H - 2) / 2)); let end = px;   // taller maps: longer climbs
       for (let q = 0; q < n && px + 4 < W - 4; q++) { const pl = R.int(imix(4, 3), 4); G.box(px, px + pl - 1, py, py);
         if (q === n - 1 && pl >= 4 && chance(0.2, 0.6)) G.put(px + 1, py + 1, "^"); end = px + pl; px += pl + R.int(0, 1); py += 2; }
       G.box(c + 1, end + 1, 0, 0, "^");   // the floor under the climb is spikes: the way is over the top
@@ -181,14 +181,21 @@ GEN.opencube = o => { const { R, imix, len, chance, W, H, G } = ctx(o, 8);
 // the ceiling, its hanging spikes now the ones to jump, N back.
 CONCEPT.closecube = "a low ceiling with hanging spikes out of step with floor hazards; a gravity pair flips play onto the ceiling";
 GEN.closecube = o => { const { R, imix, len, chance, W, H, G } = ctx(o, 8), gp = gravPair(W), near = c => gp && (Math.abs(c - gp[0]) < 3 || Math.abs(c - gp[1]) < 3);
-  G.box(0, W - 1, 0, 0); G.box(0, W - 1, 5, H - 1);
-  for (let c = len(5, 7); c < W - 3; c += len(imix(9, 5), imix(10, 7))) { if (near(c)) continue;
-    const flipped = gp && c > gp[0] && c < gp[1], v = c + R.int(3, 4);
+  // taller than 8 rows the corridor steps up and down the map (the board's redrawn closecube: "a stepped corridor that goes
+  // up to the top and back down"; Evgeni: the whole height): its floor f(c) moves a row at a time every 6-10 columns,
+  // wandering from the ground toward the top and back, the ceiling 5 rows over it
+  const f = Array(W + 2).fill(0);
+  if (H > 8) { let h = 0, c = len(6, 9); const hi = H - 6;
+    while (c < W) { const n = len(8, 14); h = clamp(h + (R.chance(h < hi / 2 ? 0.75 : 0.3) ? 1 : -1), 0, hi); for (let x = c; x < W + 2; x++) f[x] = h; c += n; } }
+  const step = c => f[c] !== f[c - 1] || f[c + 1] !== f[c] || f[c + 2] !== f[c];   // near a step: no hazard
+  for (let c = 0; c < W; c++) { G.box(c, c, 0, f[c]); G.box(c, c, f[c] + 5, H - 1); }
+  for (let c = len(5, 7); c < W - 3; c += len(imix(9, 5), imix(10, 7))) { if (near(c) || step(c) || step(c + 1)) continue;
+    const flipped = gp && c > gp[0] && c < gp[1], v = c + R.int(3, 4), b = f[c];
     // upside down the obstacles mirror (Evgeni: floor pits -> ceiling pits): the pit goes in the ceiling, the single
     // spike stands on the floor
-    if (!flipped) { if (chance(0.5, 0.7)) G.box(c, c + 1, 0, 0, "^"); else G.put(c, 1, "^"); if (v < W - 2 && !near(v)) G.put(v, 4, "v"); }
-    else { if (chance(0.5, 0.7)) { G.box(c, c + 1, 5, 5, "."); G.box(c, c + 1, 6, 6, "v"); } else G.put(c, 4, "v"); if (v < W - 2 && !near(v)) G.put(v, 1, "^"); } }
-  if (gp) { G.put(gp[0], 2, "G"); G.put(gp[1], 3, "N"); }
+    if (!flipped) { if (chance(0.5, 0.7)) G.box(c, c + 1, b, b, "^"); else G.put(c, b + 1, "^"); if (v < W - 2 && !near(v) && !step(v)) G.put(v, f[v] + 4, "v"); }
+    else { if (chance(0.5, 0.7)) { G.box(c, c + 1, b + 5, b + 5, "."); G.box(c, c + 1, b + 6, b + 6, "v"); } else G.put(c, b + 4, "v"); if (v < W - 2 && !near(v) && !step(v)) G.put(v, f[v] + 1, "^"); } }
+  if (gp) { G.put(gp[0], f[gp[0]] + 2, "G"); G.put(gp[1], f[gp[1]] + 3, "N"); }
   return { map: G.rows(), mode: "cube" }; };
 
 // HANGING (cube). Idea: masses hang from the top over a spiked floor; jump between and under them. Motif: one hanging
@@ -257,6 +264,9 @@ GEN.wave = o => { const { R, mix, imix, room, W, H, G } = ctx(o, 13), gap = room
     dir = -dir; let to = clamp(L.h() + dir * amp, 1, top); if (to === L.h()) { dir = -dir; to = clamp(L.h() + dir * amp, 1, top); }
     L.leg(to); });
   tunnel(G, W, e, gap, H - 1);
+  // taller than 13 rows the corridor leaves the 10-row band, so there the wave gets hidden A portals after all (only then:
+  // inside one band they did nothing but shift the screen, his note below)
+  if (H > 13) bandMovers(G, W, H, "A", x => e(x) + gap / 2, x => Math.max(e(x), e(x + 1)), x => Math.min(e(x), e(x + 1)) + gap);
   // no hidden band movers inside a wave (Evgeni 2026-11-27: "no need portals inside the wave sections if they reach, it will
   // make the screen go bad"; his room-mover lab run showed GD 2.2091 holding no band at all, PHYSICS.md)
   const gp = gravPair(W, 30);
