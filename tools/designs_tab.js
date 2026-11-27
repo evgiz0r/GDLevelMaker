@@ -19,14 +19,15 @@ window.initDesigns = async function (root) {
   #designs .mk{position:relative;display:inline-block;line-height:0}#designs .mk img{display:block}
   #designs .mk.on{cursor:crosshair;outline:2px dashed #ffd84d}
   #designs .pin{position:absolute;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;background:#ffd84d;color:#000;font:700 11px/20px system-ui;text-align:center;border:2px solid #000;pointer-events:none}
-  #designs .mks{font-size:12px;margin:4px 0}#designs .mks div{display:flex;gap:6px;align-items:center;margin:2px 0}
+  #designs .mks{font-size:12px;margin:4px 0}
+  #designs .mks-b>[data-m]{display:flex;gap:6px;align-items:center;margin:3px 0}#designs .mks-b>[data-m]>b{flex:0 0 auto;width:14px;text-align:right}
   #designs .mks input{flex:1;min-width:0;background:#141024;color:#eee;border:1px solid #444;border-radius:6px;padding:4px 6px}
   #designs .pin.seen{background:#7be38a;opacity:.7}
   #designs .mks-h{display:flex;gap:8px;align-items:center;padding:0 8px 6px}#designs .mfold{cursor:pointer;color:var(--mute)}
-  #designs .mks-b{max-height:150px;overflow:auto;padding:0 8px 6px}
-  #designs .mseen-h{cursor:pointer;color:var(--mute);margin:4px 0}#designs .mks .mseen{color:var(--mute);flex-wrap:wrap}#designs .mseen i{flex-basis:100%;padding-left:16px;color:#9fd6a8}
+  #designs .mks-b{display:block;max-height:180px;overflow:auto;padding:0 8px 6px}
+  #designs .mseen-h{cursor:pointer;color:var(--mute);margin:4px 0}#designs .mks-b>.mseen{display:grid;grid-template-columns:14px 1fr auto;gap:2px 6px;align-items:start;color:var(--mute);padding:4px 0;border-top:1px solid #2a2450}#designs .mseen>span{grid-column:2}#designs .mseen>i{grid-column:2;color:#9fd6a8}#designs .mseen>.mdel{grid-column:3;grid-row:1}
   #designs .msend{margin-top:4px}
-  #designs .mks button{background:#241d3d;color:#ddd;border:1px solid #444;border-radius:6px;padding:2px 7px}
+  #designs .mks button{flex:0 0 auto;background:#241d3d;color:#ddd;border:1px solid #444;border-radius:6px;padding:1px 6px;font-size:11px;line-height:16px}#designs .mks .mst{flex:0 0 auto}
   #designs .dc .dt{padding:6px 8px;font-size:13px;line-height:1.3}
   #designs .dc .dn{font-weight:700}
   #designs .dc .dm{color:var(--mute);font-size:12px}
@@ -66,9 +67,9 @@ window.initDesigns = async function (root) {
     if (PEND[mid] !== undefined) m.note = PEND[mid].trim();
     m.at = new Date().toISOString(); const want = m.note;
     const st = root.querySelector(`[data-m="${mid}"] .mst`);
-    try { if (!DB) throw new Error("saves on the claude.ai page"); await putRev(m);
+    try { if (!DB) throw new Error("saves on the claude.ai page"); try { await putRev(m); } catch (e1) { console.warn("designmarks write failed, retrying", e1); await new Promise(r => setTimeout(r, 1500)); await putRev(m); }
       if (PEND[mid] !== undefined && PEND[mid].trim() === want) delete PEND[mid]; MST[mid] = "saved"; }
-    catch (x) { MST[mid] = "not saved: " + (x && (x.code || x.message) || x); }
+    catch (x) { console.warn("designmarks write failed", x); MST[mid] = "not saved: " + (x && (x.code || x.message) || String(x)); }
     if (st) st.textContent = MST[mid];
   }
   // save every typed note now (before a new pin, a re-render, sending)
