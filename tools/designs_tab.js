@@ -19,7 +19,7 @@ window.initDesigns = async function (root) {
   #designs .lyh{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:6px 8px;font-size:12px}#designs .lfold{cursor:pointer;color:var(--mute)}
   #designs .lyh button{background:#241d3d;color:#ddd;border:1px solid #444;border-radius:6px;padding:2px 7px;font-size:12px}#designs .lyh .pen.on{outline:2px solid currentColor}
   #designs .ink{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}#designs .ink.on{pointer-events:auto;cursor:crosshair;touch-action:none;outline:2px dashed #ffd84d}
-  #designs .tiles .grid line{stroke:#ffffff30;stroke-width:1px;vector-effect:non-scaling-stroke}#designs .plr{position:absolute;left:0;top:0;background:#c8ff3c;border:2px solid #10301a;box-sizing:border-box;pointer-events:none;z-index:5}#designs .plr[data-m="1"]{border-radius:40% 70% 70% 40%}#designs .plr[data-m="2"]{border-radius:50%}#designs .zb .aplay,#designs .zb .aspd{min-width:28px}#designs .tiles{cursor:pointer;display:block;touch-action:none;background:#1a1636;max-width:none}#designs .lay .wide{padding:4px 8px}#designs .ptool.on{outline:2px solid #ffd84d}
+  #designs .tiles .grid line{stroke:#ffffff30;stroke-width:1px;vector-effect:non-scaling-stroke}#designs .plr{position:absolute;left:0;top:0;background:#c8ff3c;border:2px solid #10301a;box-sizing:border-box;pointer-events:none;z-index:5}#designs .plr[data-m="1"]{border-radius:40% 70% 70% 40%}#designs .plr[data-m="2"]{border-radius:50%}#designs .zb .aplay,#designs .zb .aspd{min-width:28px}#designs .tiles,#designs .tiles *{pointer-events:auto!important}#designs .tiles{cursor:pointer;display:block;touch-action:none;background:#1a1636;max-width:none}#designs .lay .wide{padding:4px 8px}#designs .ptool.on{outline:2px solid #ffd84d}
   #designs .lpn{font-size:11px;color:var(--mute);padding:2px 8px}#designs .lay{margin:6px 0 14px}#designs .lpt.on{outline:1px solid #7be38a}
   #designs .board.fs{position:fixed;inset:0;z-index:1000;background:#0f0c2b;overflow:auto}#designs .board.fs .wide{overflow:auto}
   #designs .lk.blank img{visibility:hidden}#designs .lk.blank{background:#1a1636;background-image:linear-gradient(#ffffff10 1px,transparent 1px),linear-gradient(90deg,#ffffff10 1px,transparent 1px);background-size:20px 20px}
@@ -329,8 +329,12 @@ window.initDesigns = async function (root) {
     painting.changed = true; drawTiles(k); }
   function drawTiles(k) { const svg = root.querySelector(`.tiles[data-k="${k}"]`); if (!svg) return; for (const el of svg.querySelectorAll(".tl")) el.remove();
     const tmp = document.createElement("div"); tmp.innerHTML = `<svg>${tilesOf(k).map(z => TILE(z, +svg.dataset.h)).join("")}</svg>`; for (const el of [...tmp.firstChild.childNodes]) svg.appendChild(el); }
-  root.addEventListener("pointerdown", e => { const ts = e.target.closest && e.target.closest(".tiles"); if (!ts) return; e.preventDefault();
-    ts.setPointerCapture(e.pointerId); const k = ts.dataset.k; LACT = k; const w = ts.closest(".dc"); if (w) w.dataset.id = k;
+  // the board's svg under a tap, also when the tap lands on its holder: the claude.ai app can lay its own layer or rules
+  // over svg (Evgeni 2026-11-27: "regardless of what i select ... nothing happens" there, while a plain browser drew)
+  const tilesAt = e => { const t = e.target; if (!t || !t.closest) return null; const s = t.closest(".tiles"); if (s) return s;
+    const w = t.closest(".lay .wide"); return w ? w.querySelector(".tiles") : null; };
+  root.addEventListener("pointerdown", e => { const ts = tilesAt(e); if (!ts) return; e.preventDefault();
+    try { ts.setPointerCapture(e.pointerId); } catch (x) {} const k = ts.dataset.k; LACT = k; const w = ts.closest(".dc"); if (w) w.dataset.id = k;
     HIST.push({ k, tiles: (DRAW[k] || {}).tiles ? JSON.parse(JSON.stringify(DRAW[k].tiles)) : null }); if (HIST.length > 50) HIST.shift();
     painting = { k, svg: ts, done: new Set(), changed: false }; const c0 = cellOf(ts, e); paint(k, c0, true);
     const st = root.querySelector(".lay .pst"); if (st) st.textContent = c0 ? `${TOOL === "erase" ? "erase" : TOOL} at col ${c0[0]}, row ${c0[1]}` : "tap outside the grid"; }, true);
@@ -339,7 +343,7 @@ window.initDesigns = async function (root) {
   const endPaint = () => { if (!painting) return; const { k, changed } = painting; painting = null; lastPaint = Date.now(); if (changed) { saveDraw(k); render(); } };
   // a tap also arrives as a click (Evgeni 2026-11-27: "i click nothing happens, im on blocks"): when no pointer stroke
   // handled it just before (some views never pass pointer events on), the click places or takes away the tile itself
-  root.addEventListener("click", e => { const ts = e.target.closest && e.target.closest(".tiles"); if (!ts || Date.now() - lastPaint < 400) return;
+  root.addEventListener("click", e => { const ts = tilesAt(e); if (!ts || Date.now() - lastPaint < 400) return;
     const k = ts.dataset.k, cell = cellOf(ts, e); LACT = k; const st = root.querySelector(".lay .pst");
     if (!cell) { if (st) st.textContent = "tap outside the grid"; return; }
     HIST.push({ k, tiles: (DRAW[k] || {}).tiles ? JSON.parse(JSON.stringify(DRAW[k].tiles)) : null });
