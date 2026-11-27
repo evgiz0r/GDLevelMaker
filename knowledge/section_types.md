@@ -129,6 +129,13 @@ type, so a builder can make a new one of any length, synced to the song, and so 
   time (column = tick * dx / 30, as planCheck plays it), and the jump's own tick moves x only (the page's arc was 2.4
   units too high). The other cube types do not use `sn` yet (their stairs are short; worth doing if long ones die late).
   Not yet: swing (the board thread's tools/swingbuild.js); fly's gravity pair (the planner flies upright only).
+- **Open idea: mixing variants inside one type** (Evgeni 2026-11-27, for later: "eventually we might want to make the
+  sections of the same kind mixed (for example ball layouts could be mixed in a way). either by generator from the go or
+  by some cutting. currently the sections have defined gameplay, which is also nice. if you overmix gameplay, sometimes it
+  looks too random."). A soft mix: one section of a type may borrow a variant of the same type for a stretch (e.g. a ball
+  section with a portal-ball part), either generated so from the start or cut and joined from two generations, but the
+  section's motif stays clear and leads; a mix is the exception, not every section, and never so many changes that it
+  reads as random. Not built; when it is, measure it like the rest (the motif share per section, the variety score).
 - **From a beat** (Evgeni 2026-11-27: "i want to be able to generate according to a beat as well, so its not just random
   stats, should be applicable in a level ... in the long run much more efficient than solving"): `make(key, {bpm})` or
   `{beats: [seconds | {t, s}]}` (a song section's hits with strength, tools/hits.js / impacts.js). ctx() turns them into
