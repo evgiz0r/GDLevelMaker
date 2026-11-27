@@ -733,6 +733,10 @@ The viewer draws moving objects where they start.
   keeps, per viewer in localStorage (try/catch), the tab, the scroll spot and the folds, and puts them back on load (waiting
   until lazy content is tall enough). Republish in batches, not after every small change. Example: tools/lego_page.html
   ("KEEP THE VIEW").
+- **Every workbook page has ⟳ refresh + "last refreshed"** (Evgeni, 2026-11-27: "add refresh on every workbook have and last
+  refreshed, and some effect when i click refresh"): catalogues, boards, the viewer pages, every artifact we make. Paste
+  `tools/snippets/refresh.html` once (lego_page.js does it): a button top-right, "last refreshed HH:MM" beside it, a spin on
+  click, then the page reloads with fresh data keeping its view and flashes "refreshed ✓". Fetch data with `cache: "no-store"`.
 - **No native dialogs in the viewer pages** (alert / confirm / prompt): the app's built-in browser and the phone page's
   frame suppress them, so the button just did nothing. Use the viewer's notice(), askNote(), showMap();
   `node tests/no_dialogs.js` checks.

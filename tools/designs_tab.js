@@ -52,7 +52,7 @@ window.initDesigns = async function (root) {
   document.head.insertAdjacentHTML("beforeend", `<style>${css}</style>`);
   root.innerHTML = `<div class="dbar"><select id="dvf"><option value="">any vote</option><option value="up">👍 liked</option><option value="down">👎 disliked</option><option value="none">not voted yet</option></select><span class="ds" id="dcount"></span></div><div id="dgroups">loading ...</div>`;
   let L = [];
-  try { L = await (await fetch("designs.json")).json(); } catch (e) { root.querySelector("#dgroups").textContent = "designs.json did not load"; return; }
+  try { L = await (await fetch("designs.json", { cache: "no-store" })).json(); } catch (e) { root.querySelector("#dgroups").textContent = "designs.json did not load"; return; }
   let VOTES = {}, DB = null, CM = null, CAN_SEND = false, MODE = "designs", MARKS = [], MARKING = null;
   // typed mark notes not yet confirmed by the database: they win over snapshots, so a re-render never drops text
   const PENS = { block: "#ffffff", hazard: "#ff5a5a", note: "#ffd84d" }, PENL = { block: "▭ block", hazard: "▲ hazard", note: "✎ note" };
