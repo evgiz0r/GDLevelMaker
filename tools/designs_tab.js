@@ -366,7 +366,7 @@ window.initDesigns = async function (root) {
         // gravity portals (Evgeni 2026-11-27: "i need also reverse gravity portals in the layouts"): G upside down (yellow),
         // N back to normal (blue); drawn 3 rows tall like the game's portal, centred on its cell
         // a hidden portal of the section's own mode: it moves the band (the room) to its height
-        case "W": case "H": case "U": case "A": case "L": case "P": return `<rect class="tl" x="${x + 0.3}" y="${y - 1}" width="0.4" height="3" rx="0.2" fill="none" stroke="#c77dff" stroke-dasharray="0.2 0.15" style="stroke-width:1.5px;vector-effect:non-scaling-stroke" />`;
+        case "W": case "R": case "H": case "U": case "A": case "L": case "P": return `<rect class="tl" x="${x + 0.3}" y="${y - 1}" width="0.4" height="3" rx="0.2" fill="none" stroke="#c77dff" stroke-dasharray="0.2 0.15" style="stroke-width:1.5px;vector-effect:non-scaling-stroke" />`;
         case "G": case "N": return `<rect class="tl" x="${x + 0.25}" y="${y - 1}" width="0.5" height="3" rx="0.25" fill="${q.t === "G" ? "#ffe000" : "#38c8ff"}" fill-opacity="0.85" />`;
         // orbs (Y yellow, B blue, E green) and pads (J yellow, K blue)
         case "Y": case "B": case "E": return `<circle class="tl" cx="${x + 0.5}" cy="${y + 0.5}" r="0.4" fill="none" stroke="${q.t === "Y" ? "#ffe000" : q.t === "B" ? "#38c8ff" : "#40ff60"}" stroke-width="0.14" /><circle class="tl" cx="${x + 0.5}" cy="${y + 0.5}" r="0.18" fill="${q.t === "Y" ? "#ffe000" : q.t === "B" ? "#38c8ff" : "#40ff60"}" />`;
