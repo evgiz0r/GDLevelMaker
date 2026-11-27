@@ -78,7 +78,12 @@ function check(z) {
     // soft target: used >= 0.6 and even >= 0.6. A whole level sums its sections (tools/heightspread.js does that from a route).
     const H = z.map.length, per = Array(H).fill(0); for (const y of ys) { const r = Math.max(0, Math.min(H - 1, Math.floor(y))); per[r]++; }
     const tot = per.reduce((a, b) => a + b, 0) || 1, ent = per.reduce((e, n) => n ? e - (n / tot) * Math.log(n / tot) : e, 0);
-    out.spread = { used: +(per.filter(n => n).length / H).toFixed(2), even: +(H > 1 ? ent / Math.log(H) : 1).toFixed(2), rows: per }; }
+    // EXTREMES (Evgeni 2026-11-27: "all our sections should involve the ground/floor at some of the play. even those fully
+    // blocked (ball / spider ...) we should allow some of the gameplay on the more extremes"): does the route reach the
+    // bottom row and the top rows of its room (the mode's band, or the section) at least once
+    const used = per.map((n, r) => n ? r : -1).filter(r => r >= 0), top = Math.min(H, room) - 1;
+    out.spread = { used: +(used.length / H).toFixed(2), even: +(H > 1 ? ent / Math.log(H) : 1).toFixed(2), rows: per,
+      low: used.length ? used[0] <= 1 : false, high: used.length ? used[used.length - 1] >= top - 1 : false }; }
   out.mapHash = hashMap(z.map);
   return Object.assign(out, { ok: true, presses, tight, attempts: d ? Math.round(10 ** d.logAttempts) : null, log: d ? +d.logAttempts.toFixed(2) : null, label: d ? DF.difficultyLabel(d.logAttempts) : null });
 }
@@ -87,7 +92,7 @@ if (require.main === module) {
   const want = process.argv.slice(2).filter(a => !a.startsWith("--"));
   const out = [];
   for (const z of LS.SECTIONS) { if (want.length && !want.includes(z.key)) continue; const c = check(z); out.push(c);
-    console.log(c.ok ? `${z.key.padEnd(14)} ${z.mode.padEnd(6)} solves: ${c.presses} presses, ${c.label} (~${c.attempts} attempts)${c.tight.length ? ", tightest " + c.tight.map(t => t.ms + " ms (" + t.type + ") at col " + t.col).join(", ") : ""} · moves ${c.move ? c.move.mean + " rows avg, " + Math.round(c.move.share * 100) + "% of " + c.move.room + (c.move.share > 0.5 ? " (OVER half)" : "") : "?"}${c.spread ? " · height: " + Math.round(c.spread.used * 100) + "% of rows, even " + c.spread.even + (c.spread.used < 0.6 || c.spread.even < 0.6 ? " (NARROW)" : "") : ""}  [${(c.ms / 1000).toFixed(0)} s]`
+    console.log(c.ok ? `${z.key.padEnd(14)} ${z.mode.padEnd(6)} solves: ${c.presses} presses, ${c.label} (~${c.attempts} attempts)${c.tight.length ? ", tightest " + c.tight.map(t => t.ms + " ms (" + t.type + ") at col " + t.col).join(", ") : ""} · moves ${c.move ? c.move.mean + " rows avg, " + Math.round(c.move.share * 100) + "% of " + c.move.room + (c.move.share > 0.5 ? " (OVER half)" : "") : "?"}${c.spread ? " · height: " + Math.round(c.spread.used * 100) + "% of rows, even " + c.spread.even + (c.spread.used < 0.6 || c.spread.even < 0.6 ? " (NARROW)" : "") + (!c.spread.low || !c.spread.high ? " · never at the " + [!c.spread.low && "bottom", !c.spread.high && "top"].filter(Boolean).join(" or ") : "") : ""}  [${(c.ms / 1000).toFixed(0)} s]`
       : `${z.key.padEnd(14)} ${z.mode.padEnd(6)} DOES NOT SOLVE: dies at col ${c.dieCol}, row ${c.dieRow}: ${c.why}  [${((c.ms || 0) / 1000).toFixed(0)} s]`); }
   if (process.argv.includes("--show")) for (const c of out) if (c.show) console.log("\n" + c.key + ":\n" + c.show.map(l => "  " + l).join("\n"));
   for (const c of out) delete c.show;
