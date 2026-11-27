@@ -149,8 +149,16 @@ function marks() {
     const kinds = {}; for (const o of near) { const k = GD.objInfo(o.id).kind || "?"; kinds[k] = (kinds[k] || 0) + 1; }
     console.log(`${m.design}  scene col ${m.col}, row ${m.row}  (x ${Math.round(m.x)}, y ${Math.round(m.y)})  ${m.note ? "\"" + m.note + "\"" : "(no note)"}  near: ${Object.entries(kinds).map(([k, n]) => n + " " + k).join(", ") || "nothing"}`);
   }
-  fs.writeFileSync(path.join(ROOT, "knowledge", "design_marks.json"), JSON.stringify({ note: "Evgeni's spots on the design theme scenes (tools/designs.js marks)", marks: rows }, null, 1));
-  console.log(`${rows.length} marks -> knowledge/design_marks.json`);
+  // the log keeps every mark ever made: a mark gone from the page was fixed (Claude deletes a mark once it is done, so the
+  // page's list never just grows; Evgeni 2026-11-27), so it stays here with fixed: true
+  const KF = path.join(ROOT, "knowledge", "design_marks.json"); let old = [];
+  try { old = JSON.parse(fs.readFileSync(KF, "utf8")).marks || []; } catch (e) {}
+  const byId = new Map(old.map(m => [m.mid, m]));
+  for (const m of rows) byId.set(m.mid, Object.assign({}, byId.get(m.mid), m));
+  for (const m of byId.values()) if (!rows.some(r => r.mid === m.mid) && !m.fixed) m.fixed = new Date().toISOString().slice(0, 10);
+  const all = [...byId.values()];
+  fs.writeFileSync(KF, JSON.stringify({ note: "Evgeni's spots on the design theme scenes (tools/designs.js marks); fixed = gone from the page", marks: all }, null, 1));
+  console.log(`${rows.length} on the page (${rows.filter(m => m.seen).length} seen), ${all.filter(m => m.fixed).length} fixed -> knowledge/design_marks.json`);
 }
 // a design's pick weight for the generators: 1 unvoted, 3 liked, 0.25 disliked (never 0: a vote is not a ban)
 function weight(kind, name) { const v = load().find(x => x.id === kind + ":" + name); return !v || !v.vote ? 1 : v.vote > 0 ? 3 : 0.25; }

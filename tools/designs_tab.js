@@ -1,7 +1,8 @@
 // The lego catalogue's "Designs" tab (published as designs.js beside designs.json and cards/; tools/designs.js page).
 // Loaded only when the tab is first opened, so the structures view pays nothing for it. One small card per design (fire
 // beside ice for blocks), 👍 / 👎 and a comment on the card itself (theme scenes also take 📍 marks: a spot + a note,
-// collection "designmarks", read by tools/designs.js marks); votes go to the page's database, collection
+// collection "designmarks", read by tools/designs.js marks; a note saves as it is typed; Claude sets seen + reply on a mark
+// it has read (folded away) and deletes it once fixed; 📨 sends a theme's open marks to Claude as a comment); votes go to the page's database, collection
 // "designvotes" (read back with tools/designs.js votes). Every group is collapsible (the catalogue UI rule, CLAUDE.md).
 window.initDesigns = async function (root) {
   "use strict";
@@ -20,6 +21,9 @@ window.initDesigns = async function (root) {
   #designs .pin{position:absolute;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;background:#ffd84d;color:#000;font:700 11px/20px system-ui;text-align:center;border:2px solid #000;pointer-events:none}
   #designs .mks{font-size:12px;margin:4px 0}#designs .mks div{display:flex;gap:6px;align-items:center;margin:2px 0}
   #designs .mks input{flex:1;min-width:0;background:#141024;color:#eee;border:1px solid #444;border-radius:6px;padding:4px 6px}
+  #designs .pin.seen{background:#7be38a;opacity:.7}
+  #designs .mseen-h{cursor:pointer;color:var(--mute);margin:4px 0}#designs .mks .mseen{color:var(--mute);flex-wrap:wrap}#designs .mseen i{flex-basis:100%;padding-left:16px;color:#9fd6a8}
+  #designs .msend{margin-top:4px}
   #designs .mks button{background:#241d3d;color:#ddd;border:1px solid #444;border-radius:6px;padding:2px 7px}
   #designs .dc .dt{padding:6px 8px;font-size:13px;line-height:1.3}
   #designs .dc .dn{font-weight:700}
@@ -34,7 +38,24 @@ window.initDesigns = async function (root) {
   root.innerHTML = `<div class="dbar"><select id="dvf"><option value="">any vote</option><option value="up">👍 liked</option><option value="down">👎 disliked</option><option value="none">not voted yet</option></select><span class="ds" id="dcount"></span></div><div id="dgroups">loading ...</div>`;
   let L = [];
   try { L = await (await fetch("designs.json")).json(); } catch (e) { root.querySelector("#dgroups").textContent = "designs.json did not load"; return; }
-  let VOTES = {}, DB = null, MODE = "designs", MARKS = [], MARKING = null;
+  let VOTES = {}, DB = null, CM = null, CAN_SEND = false, MODE = "designs", MARKS = [], MARKING = null;
+  // typed mark notes not yet confirmed by the database: they win over snapshots, so a re-render never drops text
+  const PEND = {}, MST = {}; let saveT = null;
+  const noteOf = m => PEND[m.mid] !== undefined ? PEND[m.mid] : (m.note || "");
+  async function saveMark(mid) {
+    const m = MARKS.find(z => z.mid === mid); if (!m) return;
+    if (PEND[mid] !== undefined) m.note = PEND[mid].trim();
+    m.at = new Date().toISOString(); const want = m.note;
+    const st = root.querySelector(`[data-m="${mid}"] .mst`);
+    try { if (!DB) throw new Error("saves on the claude.ai page"); await DB.collection("designmarks").doc(mid).set(Object.assign({}, m));
+      if (PEND[mid] !== undefined && PEND[mid].trim() === want) delete PEND[mid]; MST[mid] = "saved"; }
+    catch (x) { MST[mid] = "not saved: " + (x && (x.code || x.message) || x); }
+    if (st) st.textContent = MST[mid];
+  }
+  // save every typed note now (before a new pin, a re-render, sending)
+  async function flushMarks() { clearTimeout(saveT); const a = document.activeElement;
+    if (a && a.closest && a.closest("[data-m]")) PEND[a.closest("[data-m]").dataset.m] = a.value;
+    await Promise.all(Object.keys(PEND).map(saveMark)); }
   // the catalogue's Themes tab shows the same cards, only the design themes (Evgeni: "additional tab with themes")
   window.designsShow = m => { MODE = m === "themes" ? "themes" : "designs"; render(); };
   const vkey = id => id.replace(/[^A-Za-z0-9_-]/g, "_").slice(0, 120);
@@ -45,10 +66,17 @@ window.initDesigns = async function (root) {
     const v = VOTES[d.id] || {};
     const img = `<img loading="lazy" decoding="async" src="${esc(d.card)}" alt="${esc(d.name)}">`;
     // a theme's scene takes 📍 marks: tap the 📍 button, then a spot on the picture, then type the note
-    const ms = d.kind === "theme" ? MARKS.filter(m => m.design === d.id).sort((a, b) => a.fx - b.fx) : [];
-    const pins = ms.map((m, i) => `<span class="pin" style="left:${(m.fx * 100).toFixed(2)}%;top:${(m.fy * 100).toFixed(2)}%">${i + 1}</span>`).join("");
+    // a mark is open (Evgeni's note), seen (Claude read it: seen + reply) or gone (fixed: Claude deletes it, the log stays in
+    // knowledge/design_marks.json). Seen ones fold away so the list never just grows.
+    const all = d.kind === "theme" ? MARKS.filter(m => m.design === d.id).sort((a, b) => a.fx - b.fx) : [];
+    const ms = all.filter(m => !m.seen), seen = all.filter(m => m.seen), so = open["seen:" + d.id] === true;
+    const pins = ms.map((m, i) => `<span class="pin" style="left:${(m.fx * 100).toFixed(2)}%;top:${(m.fy * 100).toFixed(2)}%">${i + 1}</span>`).join("")
+      + (so ? seen.map(m => `<span class="pin seen" style="left:${(m.fx * 100).toFixed(2)}%;top:${(m.fy * 100).toFixed(2)}%">✓</span>`).join("") : "");
     const media = d.kind === "theme" ? `<div class="wide"><div class="mk${MARKING === d.id ? " on" : ""}">${img}${pins}</div></div>`
-      + `<div class="mks">${ms.map((m, i) => `<div data-m="${esc(m.mid)}"><b>${i + 1}</b><input value="${esc(m.note || "")}" placeholder="what is off here"><button class="mdel" title="remove">✕</button></div>`).join("")}</div>`
+      + `<div class="mks">${ms.map((m, i) => `<div data-m="${esc(m.mid)}"><b>${i + 1}</b><input value="${esc(noteOf(m))}" placeholder="what is off here"><button class="mdel" title="remove">✕</button><span class="ds mst">${esc(MST[m.mid] || "")}</span></div>`).join("")}`
+      + (seen.length ? `<div class="mseen-h" role="button" data-seen="${esc(d.id)}">${so ? "▾" : "▸"} ✓ ${seen.length} seen by Claude, being fixed</div>`
+        + (so ? seen.map(m => `<div class="mseen" data-m="${esc(m.mid)}">✓ <span>${esc(m.note || "")}</span>${m.reply ? `<i>${esc(m.reply)}</i>` : ""}<button class="mdel" title="remove">✕</button></div>`).join("") : "") : "")
+      + (ms.length && CAN_SEND ? `<button class="msend" title="send these notes to Claude in chat">📨 send marks to Claude</button><span class="ds msst"></span>` : "") + `</div>`
       : d.kind === "structure" ? `<div class="wide">${img}</div>` : img;
     return `<div class="dc k-${d.kind}" data-id="${esc(d.id)}">${media}
       <div class="dt"><span class="dn">${d.n ? d.n + " " : ""}${esc(d.name)}</span>${d.note ? `<div class="dm">${esc(d.note)}</div>` : ""}</div>
@@ -76,6 +104,17 @@ window.initDesigns = async function (root) {
     VOTES[id] = v;
   }
   root.addEventListener("click", async e => {
+    if (Object.keys(PEND).length || (document.activeElement && document.activeElement.closest && document.activeElement.closest("[data-m]"))) flushMarks();
+    const sh = e.target.closest(".mseen-h");
+    if (sh) { const k = "seen:" + sh.dataset.seen; open[k] = !open[k]; try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} render(); return; }
+    const snd = e.target.closest(".msend");
+    if (snd) { const c = snd.closest(".dc"), id = c.dataset.id, st = c.querySelector(".msst"), d = L.find(x => x.id === id);
+      const ms = MARKS.filter(m => m.design === id && !m.seen).sort((a, b) => a.fx - b.fx);
+      const text = `📍 marks on the ${d.name} theme scene (catalogue Themes tab):\n` + ms.map((m, i) => `${i + 1}. col ${m.col}, row ${m.row} (x ${m.x}, y ${m.y}): ${noteOf(m).trim() || "(no note)"}`).join("\n");
+      st.textContent = "sending ...";
+      try { const anchor = await CM.anchorFor(c); await CM.sendToClaude({ anchor, text: text.slice(0, 4000) }); st.textContent = "sent: Claude answers in the comment and in chat"; }
+      catch (x) { st.textContent = "not sent: " + (x && (x.code || x.message) || x); }
+      return; }
     const h = e.target.closest(".fold-h");
     if (h) { const k = h.parentNode.dataset.g; open[k] = open[k] === false; try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} render(); return; }
     // 📍 marks on a theme's scene (collection "designmarks"; tools/designs.js marks reads them)
@@ -86,7 +125,7 @@ window.initDesigns = async function (root) {
         col: Math.floor(x / 30) - (g.sc || 0), row: Math.floor(y / 30), note: "", at: new Date().toISOString() };
       MARKS.push(m); MARKING = null; render();
       const inp = root.querySelector(`[data-m="${m.mid}"] input`); if (inp) inp.focus();
-      try { if (DB) await DB.collection("designmarks").doc(m.mid).set(m); } catch (x) {}
+      await saveMark(m.mid);
       return; }
     const del = e.target.closest(".mdel");
     if (del) { const mid = del.parentNode.dataset.m; MARKS = MARKS.filter(m => m.mid !== mid); render(); try { if (DB) await DB.collection("designmarks").doc(mid).delete(); } catch (x) {} return; }
@@ -99,11 +138,16 @@ window.initDesigns = async function (root) {
     try { await save(id, { vote: cur === n ? 0 : n }); c.outerHTML = card(L.find(x => x.id === id)); } catch (x) { st.textContent = "not saved: " + x.message; }
   });
   root.addEventListener("keydown", e => { if (e.key === "Enter" && e.target.classList.contains("fold-h")) e.target.click(); });
+  root.addEventListener("input", e => {
+    const mrow = e.target.closest("[data-m]"); if (!mrow) return;
+    const mid = mrow.dataset.m; PEND[mid] = e.target.value; MST[mid] = "…"; const st = mrow.querySelector(".mst"); if (st) st.textContent = "…";
+    clearTimeout(saveT); saveT = setTimeout(() => saveMark(mid), 700);
+  });
+  root.addEventListener("focusout", e => { if (e.target.closest && e.target.closest("[data-m]")) flushMarks(); });
   root.addEventListener("change", async e => {
     if (e.target.id === "dvf") return render();
     const mrow = e.target.closest("[data-m]");
-    if (mrow) { const m = MARKS.find(z => z.mid === mrow.dataset.m); if (!m) return; m.note = e.target.value.trim(); m.at = new Date().toISOString();
-      try { if (DB) await DB.collection("designmarks").doc(m.mid).set(m); } catch (x) {} return; }
+    if (mrow) { PEND[mrow.dataset.m] = e.target.value; await saveMark(mrow.dataset.m); return; }
     if (e.target.tagName !== "TEXTAREA") return;
     const c = e.target.closest(".dc"), st = c.querySelector(".ds");
     st.textContent = "saving ...";
@@ -118,8 +162,12 @@ window.initDesigns = async function (root) {
       VOTES = v; if (!root.contains(document.activeElement) || document.activeElement.tagName !== "TEXTAREA") render();
     }, () => {});
     if (DB) DB.collection("designmarks").onSnapshot(snap => {
+      const local = MARKS.filter(m => MST[m.mid] !== "saved" && !m.seen);
       MARKS = snap.docs.map(d => d.data()).filter(m => m && m.mid);
+      for (const m of local) if (!MARKS.some(z => z.mid === m.mid)) MARKS.push(m);
       if (!root.contains(document.activeElement) || !/INPUT|TEXTAREA/.test(document.activeElement.tagName)) render();
     }, () => {});
+    if (window.claude && window.claude.use) CM = await window.claude.use("comments");
+    if (CM && CM.canSendToClaude) { CAN_SEND = (await CM.canSendToClaude()) === "available"; if (CAN_SEND && !(document.activeElement && /INPUT|TEXTAREA/.test(document.activeElement.tagName))) render(); }
   } catch (e) {}
 };

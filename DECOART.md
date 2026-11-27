@@ -462,6 +462,7 @@ Each theme's KIT comes first, beside its scene in the same picture (Evgeni 2026-
 of objects/spikes whatever it uses"): `KIT_MAP` -- a single block, a row, an L, a hill, a spike on a block, a hanging spike,
 the two saws and a big block, up out of the cube's lane, held like any island.
 Marks (Evgeni: "give me a tool to mark specific spots in the scene"): a theme card's 📍 button, then a tap on the picture
+Since 2026-11-27 (Evgeni: "if i click new the text is gone", "many marks ... need something like \"uve seen it\" ... and delete after improved", "send marks to chat"): a note saves as it is typed (shown "saved" / "not saved: why"); 📨 sends a theme's open marks to Claude as a comment (the comments capability); Claude sets `seen: true` + `reply` on a mark it has read (the page folds those under "✓ N seen") and deletes it once fixed; `designs.js marks` keeps every mark in knowledge/design_marks.json, the deleted ones with `fixed`.
 and a note -> the page's db collection `designmarks` (fx / fy on the picture, level x / y, the scene's column and row);
 `node tools/designs.js marks` (after an ArtifactData list into local/designs/marks_phone.json) prints each with what the
 gallery level has there -> knowledge/design_marks.json.
