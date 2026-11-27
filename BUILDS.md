@@ -177,3 +177,64 @@ The stage times are also in local/timings.jsonl.
 - slowest step: make (the whole-level solve every round); a section-only rebuild would have saved most of it (collab.js does that, planbuild does not yet)
 - change made: every fix is in tools/planbuild.js (defaults) or brickpick (fillGap), the two rules in knowledge/checklist.md ("Room at every portal", "Single spikes at speed"); ball parts dropped from this plan (their bricks leave the ball under a roof that ends); the 3x flight became 2x
 
+
+## GDLM 44 hellgate v6, 2026-11-26 (tools/hellgate_build.js, Evgeni: "iterate on hellgate, always taking the improved data and methods")
+
+- **Plan:** 7 sections at 1x (cube, ship, cube, wave, ball, ship, cube: 6 mode changes, v5 had 11), every one filled by
+  `brickpick.js pickSection` (beam search over the whole section), the height carried through each mode's band, `"outro": 2`
+  + signature, the pieces' presses as `seedPresses`.
+- **Times:** the seeded solve 5-6 min (v5's full solve 30 min); v6b's whole make 13 min. v6a's make took 55 min while a second
+  make of the same level ran beside it (my mistake: the first was not dead when its shell was) -- check `ps` before re-running.
+- **Result (v6b):** beaten, 67 presses, 1.39 clicks/s (v5 ~1.0), judge layout 7/10 (v5 3.8), taste 73 (v5 55), Hard ~7
+  attempts. NOT READY: 3 prejumps, a 50 ms first tap, 2 switches (ship->cube tap 246 ms after the portal; cube->wave button
+  change within 133 ms), arrows over hazards, the outro's portal wall read as skips.
+- **Found:** "b<beat>" puts a column's centre on the beat, so every brick picked by beat sat half a block (48 ms) early --
+  fixed for every builder (`brickpick.beatAt`). presslib's and seedsolve's repair skipped every calm point after the first (fixed).
+- **Next (v7):** more run-up after portals (fairness switches), a calm first second, fly sections in 3 shorter pieces (judge:
+  "long corridor" 6.6 s), denser fly / ball pieces, guards around the lane (HAZARDS.md: ours 43% threats / 40% guards / 17% fill,
+  rated ~17 / 45 / 38; `lib/hazards.js hazardsAlongPath`), the 72 mirror / upside-down cube variants now in structures.json.
+
+## GDLM 44 hellgate v7, 2026-11-26 (tools/hellgate_build.js)
+
+- **Found:** the song offset (20.9615) sat 0.07 ms past beat 48, so make.js's beat 1 was the NEXT beat: every `"bN"` (bricks,
+  gates) a beat (4.3 blocks) later than the picker counted, and the floor (placed by column) 0.3 block off the bricks. v6 had it
+  too. Fixed by putting the offset on the beat; make.js now warns (`!! offset ... past a beat`, SYNC.md "bN").
+- **Fixed in the builder / picker (general):** a step up between pieces is a walk-up 45-degree slope, a block clear of the last
+  piece and 3 before the next (a plain step before spikes killed the solve); a piece with a portal gets a flat run-in
+  (brickpick: >= 3 blocks and 0.6 s since the last press -- a spike jumped into red-orb-wall~ud's gravity portal killed it);
+  red-orb-wall's library entry was stale (no notes; today: 29 ms, a prejump) -- rechecked, now filtered. The other 20 bricks
+  with no notes rechecked: fine.
+- **Times:** 4 builds died (4-12 min each); the good one 29 min (seeded: 18 local searches, 138 s; then hazards along the route).
+- **Result:** beaten, 63 presses; judge layout 6.6 (balance 5.4, flow 6.1, variety 10, pacing 4, clarity 4, ending 10), Normal
+  ~4 attempts, taste 72. Fixed vs v6b: the switches after portals at blocks 141 / 244, 2 of 3 prejumps. NOT READY (7 fails):
+  a prejump at 227, a 46 ms tap at block 18 and 54 ms at 542, a short climb at 137-155, flying routes near walls, and the
+  outro's portal wall read as skips + a wave->wave switch at 656 (outro 2 itself: every level with it).
+- **Next:** ball section is the weak spot (pointless orb, 2 gaps of ~1.9 s, unseen roof); climbs mostly lost (slopes need
+  room the 1-3 block gaps rarely give); mode share by tier and an upside-down stretch; the new piece families from the
+  "Generate our own structures" thread.
+
+## GDLM 44 hellgate v8 / v9, 2026-11-26 (Evgeni on v7: "we still start in the middle of the music; the structure are super unbalanced ... still too much cube. almost no reverse. no proper transtions ... some places just nothing for few seconds"; "the judge seems to be too nice"; "sections have to be cut by the transitions of the level")
+
+- **v8:** the song from its first beat; pieces balanced (brickpick `window` 120 ms+, `cpsBand` 1.2-3, `winSpread`); an
+  upside-down section built whole (patterns.js `ud:<id>`, a ceiling, one portal in, one out; flat pieces only -- a climbing
+  piece died flipped); rests (`rest` beats); portals taken on the move (a spike before a gate out of the cube, a 2-row drop
+  out of a flight); single spikes at a fixed lead, not "jN" (it slid a spike onto the next piece); no new hazards from 2
+  blocks before a portal to 8 after (hazards.js `avoid`). Four builds died first (1-7 min each); the good one 7 min.
+- **Judge:** checks for each of his notes (judge.js: uneven piece, too much cube, no reverse, walked portal, abrupt switch,
+  no rests; report.js balance / modes / transitions / rests, the total pulled down by any weak axis): v7 6.6 -> 2.7, v8 5.5.
+  v8's remaining tight spots were all at portals.
+- **v9:** tools/songplan.js -- the sections cut at the song's transitions (tools/sections.js) and the mode by type; 75 s.
+  Thin: the drop and ball sections (few ship / ball pieces in the library; the "Generate our own structures" thread).
+- **v9 -> v10:** the uneven pieces were the JOINS, not the pieces or the hazard placer (v9 without hazardsAlong judged 1.5,
+  with 1.4): pieces 0.3 s apart ran together at 4-5 clicks/s or cut a window to 42 ms. brickpick `minJoin` 0.5 s and 2-4
+  block gaps: v10's tightest press 108 ms (v9 46 ms), Normal ~4 attempts (v9 Harder ~68). Judge 1.7 now for the other
+  reasons: 1.08 clicks/s over the level, the quiet first 41 s (calm sections, one kind of obstacle, a UFO with 4 clicks in
+  9.5 s), long flying stretches (6-8 s), unseen band roofs. The library is the limit: Evgeni calls our pieces poor and the
+  first generated batch garbage (g-* left out, `exclude`).
+- **v11 -> v12b (2026-11-26):** v11 opened up on blocks (tools/startramp.js, Evgeni's new default) and judged 0: 1.14
+  clicks/s, ball / UFO sections ending 11-14 blocks empty (a repeated piece cost more than the empty tail). v12: brickpick
+  `tailCost` 1.5, repeats cheap in ball / UFO, a click target per section type (break 1.7 .. drop 2.6): 1.42 clicks/s, the
+  4-6 s dead stretches gone, judge 2.5. The ramp's top throws the cube ~3 blocks: v12 needed a 54 ms tap on the ramp, so
+  the first piece starts 12 blocks in (v12b). v12b judged 0 again: the solver's human route HOLDS the button 4.5 s through
+  block-hops / pillar-pair / pillar-hop (cube bunny-hops every landing), so the opening counts as one press -- cube pieces
+  that can be held through are weak pieces. Still open: ball / UFO library (4 / 3 pieces), long flights, outro walked portals.

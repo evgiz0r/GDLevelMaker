@@ -150,6 +150,98 @@ Lab v2 (`levels/lab/auto_beat.gdlvl`, Electrodynamix, seed 7): 85 s, 284 trigger
 upside down 54%, rise 58 blocks, clears with no press. Open: Evgeni's look; ship gravity flips at 3+ a second make small
 wiggles (on the notes but little motion); speed portals in real levels (not only autos) are the compose / picker threads'.
 
+### Batches: the same music gets the same auto vibe (2026-11-26, round 7)
+
+Evgeni: "usually its intresting the the same beats, music, has the same auto vibe. we can assign some specific notes ( drums ,
+piano , high , low ) as different combinations of portals/speed/icon. and reroll after some seconds, on a transition in the
+song starting a new batch. we should use more variations of ground - spikes, bit more staircases as a hit in the song. lets
+try with a song that has bit more notes per second". Now:
+- A BATCH maps each band of notes to one kind -- low (kick / bass), mid (snare / keys), top (hats / high) -- and has two
+  icons (modes). A note fires its band's kind, so a repeated beat repeats its movement. A new batch rerolls all three and the
+  icons at the song's transitions (impacts.js drop / entry / change, a speed-plan change), at least 6 s apart, or after 16 s
+  at the next strong hit. A batch starts with a portal into its first icon. Pads, stairs and falls need a mode that lands
+  (cube, ball, robot, spider, UFO); 40% of batches are FLIGHT batches (portals only) whose icon is a ship, wave or swing.
+- The song's hits (impacts with strength >= 0.5) are staircase steps: `step` (the ledge ends on the note and goes on 1-2 rows
+  lower, or higher under a roof), or, in the air coming down, `land on a stair` (a ledge under the player, landed on the note).
+  A batch with steps puts ledges under most falls (85%) so there is something to step off.
+- The ground varies every 24 columns: spike runs with gaps, every other column, a long run, small pillars with a spike.
+- The busiest songs by notes a second (knowledge/song_notes, s >= 0.3): Geometrical Dominator 8.2, Dash 8.0, Back On Track
+  7.9, Clutterfunk / Time Machine 7.4; Electrodynamix 6.0.
+
+Lab v3 (`levels/lab/auto_beat.gdlvl`, Geometrical Dominator, seed 1): 101 s, 414 triggers (4.4 a second), 50% of the notes,
+93% within a frame, 6 batches, 49 stair steps, all modes, speed 1x / 2x with the music, clears with no press.
+Open: teleport-heavy batches look jumpy; the fly batches often fall back to gravity flips.
+
+### Rapid runs, pads, bursts, no secret way, the ending (2026-11-26, round 8)
+
+Evgeni on v3: "i still feel like we are missing some of the notes ... in those rapid drum/piano (if you can detect them), we
+should do very rapid pattern. like very very close, it gives that jiggery effect of the song. Lets try adding more pads, yellow
+red ... do we have speed of the song, in order to insert our own speed ups and slow downs? ... how to block the path, so that
+the auto is the path i take (and not some secret way that i fly away) ... from now-on everywhere, we add the latest end screen
+claude sign on every level we make".
+- **He was right about the notes.** Measured on v3 (Geometrical Dominator, 814 notes with strength >= 0.3): 407 kept, 270
+  dropped only because the next note came under 0.17 s (the old minimum gap), 123 merged into a louder note within 0.05 s, 14
+  too weak. The song is 1/16 notes (101 ms) almost throughout: 81 RAPID RUNS (4+ notes each <= 0.14 s apart) hold 553 notes.
+- **Rapid runs**: inside one, notes may be 0.07 s apart (`opts.rapidGap`). Each batch has a RAPID kind for them -- gravity
+  flips (the player wiggles), the two icons in turn, or blue pads -- and on a landing batch every other note of a run is a
+  yellow or red pad where the player comes down onto something. Accents in a run stay stair steps.
+- **More yellow / red pads**: KW yellow 5 (was 3), red 4 (was 2); every landing batch has a yellow or red pad on one band;
+  the fallback order starts with yellow, red. v3 had 54 yellow + red pads, v4 219.
+- **The song's speed, and our own on top**: the song's speed is measured per bar (tools/impacts.js: weighted notes per beat,
+  the finest grid in use, intensity) and its speedPlan follows it. On top of that, `bursts()` adds OUR OWN: one speed up for
+  a long rapid run (10+ notes) and back after it, one speed down for a hole of 1.2 s+ with no note and back, at most every
+  8 s, never within 3 s of the song's own speed change (`opts.bursts: false` = off). v4: 6 bursts (2x / 3x).
+- **No secret way**: `strays()` presses at every 30 ticks of the zero-press run, a tap and a 0.2 s hold, and follows each for
+  5 s: fine when it dies or is back in the auto run's exact state. At 1.5 s 137 of 1550 presses were not back; at 5 s 25. A
+  press still off the path gets a saw (89) where it first strays 1.5 blocks off it (never within 45 units of the auto path),
+  kept while the auto run clears; then checked again. v4: 8 saws, 5 of 1550 presses left, all within ~1 block of the path
+  (moving alongside it, not flying away). Most presses come back by themselves: the next portal or pad is where both runs
+  end up.
+- **The ending**: every autobeat level ends with the auto outro (autobricks.js `outro`, seed = level seed % 6 + 1) and the
+  signature (signature.js, header colours, description line) -- the same pair make.js gives every GDLM level. The rule is
+  now in BUILDING.md and the checklist for every builder.
+
+Lab v4 (`levels/lab/auto_beat.gdlvl`, Geometrical Dominator, seed 1): 106 s with the outro, 664 triggers (7 a second, was
+4.4), 72% of the notes (was 50%), 96% within a frame, speed 1x / 2x / 3x, 120 yellow + 99 red pads, 300 flips, 8 saws, clears
+with no press. Build 9 s. **v4 died in the game at ~20 s** (Evgeni: "falls down with the ship"): it was built on physics from before the same day's probe-log fixes (speed portal widths, ship -> UFO speed, ...); on today's physics the same file dies at 20.3 s in the swing. v5 = the same seed rebuilt on today's physics, clears. Lesson: rebuild (and re-check with `node -e` sim or tests) after any lib/physics.js change before installing; the heavy lock's "behind main" warning was the hint. Open: pads on short catch ledges sometimes look like they float (their ledge is cut by the next
+step); the rapid flips in a ship make small wiggles; strays are checked only before the home wall.
+
+### Evgeni on v5 in GD (2026-11-26 evening) -- what round 9 is for
+
+"the auto is not bad ... a bit too jumpy across screens at times (in the gd camera). some inside the ground play. no slopes
+at all, a slope could count as a jump in a way as it has a similar effect. the beats are somewhat ok (not perfect, still some
+feel missing). it feels very random ... how to make it slightly more attractive layout even before the deco. the spike blocks
+around the game seem also very random, they are not coherent and not fluid with the path - but blocking the path better is
+lower priority for now. for spider portals - only to very small distance. the cameras of what you think and happens in gd dont
+match exactly i think". Plan (proposed to him): shape first per phrase (a silhouette that repeats with variation), a height
+band the camera can hold, slopes as a kind, spider only where floor and roof are close, hazards that follow the path's
+contour, and a camera check against his own run.
+
+Round 9 built (the coordinator relayed his go; his answer on "inside the ground": "does junky movement somewhat within the
+block. seems fine with hitboxes, its not terrible, just janky"), `opts.shape` (default on; `false` = round 8):
+- **Echo**: phrases of 16 beats in pairs, call and response; a response note wants what the call placed on the same 16th.
+  Response notes matching their call: 51% (28% before).
+- **Camera band**: within a batch the path never climbs more than 14 rows over the band's floor (`opts.bandRows`); the band
+  follows the path down; a new batch (a section change) may move it up, and only there may a roof sit 14-25 rows up.
+  Teleports are out of the batches and the fallbacks. 1 s windows with more than 10 rows of height change: 30 -> 7; highest
+  point 58 -> 23 blocks.
+- **Slopes** (1338, flipped for down): on the ground a ledge ends on the note in a slope 1-2 rows up or down; in the air,
+  coming down, the player lands ON a slope on the note (the level is 87% in the air: only 40 of 627 notes found the player on
+  the ground). Accents are a slope or a step, half and half. 10 slopes in v6.
+- **Not inside the blocks**: `clips()` -- a candidate whose path sinks more than 4 units into a ledge or roof row is refused;
+  the final run's clip ticks: 32 -> 0.
+- **Spider** moves at most 4 rows from where the trigger finds it.
+- **Pads on something**: 11 of 190 pads hung in the air (on a slope's row, past a ledge cut later); each now gets a block.
+Lab v6: 106 s, 633 triggers, 69% of notes, clears with no press, 56 saws (the hazards that follow the path are next).
+**v6 in the game** (Evgeni died at 15.8 s; probe log, PC local/tmp/autobeat_probe/): game and sim agree tick for tick, x and y,
+for 10.3 s through ~30 pads, portals, mode changes and ground slopes -- then a cube falling onto a RISING slope lands in the game
+(vy -> 0, then 3.09) but is thrown up at once in the sim (5.77, 7.41). Air landings on slopes are off (`opts.airSlopes`) until
+the physics thread has looked; v7 has ground slopes only (fewer: the player is on the ground at ~6% of notes).
+The physics thread then matched the whole log (fc2c09f: the air landing was a MINI cube on a slope, slope ends, ground flips,
+pad on landing; PHYSICS.md "The auto beat lab log"); normal-size air landings on slopes are still unchecked, so they stay off.
+v8 = seed 3 rebuilt on that physics (v7 no longer cleared on it). The builder now also carries a ledge on past the home wall
+when the final run dies sliding off its end (Jumper seed 2's wave).
+
 ## The community auto levels (2026-11-26, `node tools/autostudy.js --community`, PC run)
 
 Evgeni's save has 12 Auto-rated levels (knowledge/auto_community.json, numbers only). Six are art / quiz / story levels with
@@ -174,7 +266,7 @@ at. On the beat about as often as chance. "Big falls in 0 s" of 29-31 blocks are
 
 ## Open
 
-- **Not checked in the real game.** Yellow / pink pad strengths are `sure: false` in lib/objects.js; spider pads and blue
+- **Partly checked in the real game.** The yellow pad is confirmed (vy 16.000, probe log 2026-11-26); the pink pad is `sure: false` in lib/objects.js; spider pads and blue
   pads on a cube are from the decompile. The lab is the thing to try in GD (with Evgeni's go) or with the probe mod.
 - Entry only from the ground at row 0, 1x (plus the speed-launch ones). Next: entries on a ledge, upside down, and in
   flying modes (a ship gliding through gravity portals, a wave flipped by portals = the "auto wave"), 2x/3x versions of
@@ -185,3 +277,187 @@ at. On the beat about as often as chance. "Big falls in 0 s" of 29-31 blocks are
 - Secret ways with presses (jumping over a pad) are not checked; stray taps that KILL are (`clickSafe`).
 - Deco: none yet; the auto stretches in the main levels are often framed (a corridor, arrows) -- the deco step should
   frame the flight path.
+
+## Round 10: hazards that follow the path (2026-11-26, lab v9)
+
+Evgeni (round 9 note): "the spike blocks around the game seem also very random, they are not coherent and not fluid with the
+path". The hazard study (HAZARDS.md, lib/hazards.js `hazardsAlongPath`) now places them: autobeat.js runs strays() on the bare
+level, passes its leaks as `opts.leaks`, adds the result (kept only while the no-press run clears), and only then the old saw
+passes for leaks still open. `opts.hazards: false` = the old sparse ground spikes. Lab v9 (Geometrical Dominator, seed 3):
+472 hazards (53 under jumps, 126 lane blocks + 145 spikes, 74 leak blocks, 74 pit spikes, none dropped); leaks 79 -> 33 -> 15
+of 1550 strays, saws 75 -> 7. `tools/hazards.js level`: arcs with a hazard 3% -> 45% (rated 60-85), hazards near the path
+0.18 -> 2.3 a second (rated 6-11), gap between obstacles 2.0 -> 0.7 s (rated 0.5-0.6). Open: hanging spikes stacked in a
+triangle where leak blocks meet a lane piece (t 12 s), lone hanging spikes under a single block, too many guards above in
+flight (lane.fly.belowHaz 28 vs rated <20); 15 leaks are still open.
+v10 (hazards fd0639c): leaks met by a lane piece count as shut, pieces 2-3 wide, floor side half as often: fly belowHaz
+28 -> 19%, 496 hazards, 10 saws, the triangles and lone hanging spikes gone. Still off: guardAbove 27.5% (rated 10-23).
+v11 (physics 6a00a0d): Evgeni died at 3% in GD on v10 -- the sim pulled a flipped UFO 1.5x too hard (PHYSICS.md "The auto beat
+lab log"). Rebuilt on the fix: clears, 525 hazards, 3 saws, 23 leaks open.
+v12 (physics 74a3768): Evgeni's v11 run died at 3% -- a mini UFO climbs a slope later in the game, and a flipped cube dies
+landing hard (vy < -4) on a block top. Rebuilt: clears, 837 hazards (180 leak blocks), 13 saws, 37 leaks open.
+v13: Evgeni's v12 run reached 16% (tick 4742, 19.8 s) and died where a flipped robot hits the ground at vy -7.3 (no
+object); the sim had it land. The sim now kills a flipped robot there too, the same rule as the cube. Rebuilt: the path is
+identical to v12 up to that spot (tick 4696), 1074 hazards, 9 saws, clears. Probe log in the project files (auto_bricks/probe).
+v14: Evgeni's v13 run reached 68% (tick 17990, 75 s): after a gravity portal the released ship, upside down, pulled 0.069 a
+tick (the 0.8 factor) where the sim used 1.2, so it rose 31 units too high into a spike row. The sim now mirrors the ship's
+threshold upside down like the UFO's (GDLM_SHIP_FLIP=old = before); with it the sim matches the log to the death tick.
+Rebuilt: the same path as v13 up to there, clears.
+
+**v14 cleared in Evgeni's real game (2026-11-26)**: the first auto beat lab to pass, after five probe-log rounds (v10 flipped
+UFO, v11 mini UFO slope + flipped cube ground, v12 never installed, v12 flipped robot ground, v13 flipped ship / "Fix
+Gravity Bug"). Each death was a sim mismatch, never a level fault the sim saw.
+
+### Auto beat 2: a song where the sync shows (2026-11-26)
+Evgeni: "take a song that has a clearer, bit less cps beat, with clearer mixes of instruments; would make the visual sync more
+apparent". `node tools/songclarity.js` ranks the officials by strong notes a second, the share on the beat / half beat and how
+clearly one band leads each bar. Can't Let Go: 2.52 strong notes/s (Geometrical Dominator 3.11), 62% on the beat and 99% on half
+beats (GD: 39% / 83%), lead share 0.66 (the highest; GD 0.55). Back On Track and Deadlocked have fewer notes but a looser grid.
+Built: `node tools/autobeat.js --song CantLetGo --seed 3 --name "GDLM auto beat 2" --out levels/lab/auto_beat_2.gdlvl` --
+90.7 s, 378 triggers, 98% on the beat, notes hit 0.67, 7 modes (swing new to the auto labs: not yet checked in the game), clears.
+
+Auto beat 2 v1 in the game (2026-11-26): died at 34% (tick 7213). Two sim fixes from its probe log: a cube standing on the
+ground keeps the launch tick's gravity step when a pad fires (0.048 down), which made it graze a yellow pad later that the sim
+missed by 0.03; and a flipped player sunk more than 0.7 into the ground dies at any speed (a flipped spider on the ground took
+a robot portal, the robot's taller box sank 1.07 in). With both, the sim dies on the game's tick. v2: same song and seed,
+rebuilt on that physics, the same path as v1 to tick 5641, clears, and the new beat ending (tools/beatend.js).
+
+v3 died at 16% (tick 3540): a flipped mini robot thrown down by a flipped yellow pad touched the ground at vy -1.94 and the
+game killed it; the sim's cut was -4. A flipped robot now dies at any speed into the ground (PHYSICS.md). v4: rebuilt on that,
+the same path as v3 to 14.5 s, clears.
+
+### Auto beat 3: a calmer level, about a third of the triggers (2026-11-26)
+Evgeni after auto beat 2 (4.2 triggers a second): "something with less beats per second, like 3 times less maybe. but not
+something too repetetive, it can have some faster sections". `--rate R` (notePlan's thin()): R triggers a second on average,
+shared out by bar loudness (the quietest bars ~0.3x the mean, the loudest ~3x, so the level breathes and speeds up), each bar
+filled with its strongest notes with on-beat ones first, 0.3 s apart in calm bars, 0.17 s and rapid runs of up to 6 notes only
+in the loudest ~15% of bars. Measured at R 1.4 (default plan -> thinned): Hexagon Force 4.57 -> 1.43 a second (88-90% of them
+on a beat), Electroman 5.45 -> 1.48, Can't Let Go 4.80 -> 1.39. Electroman came out half gravity flips on every seed tried (1-12),
+so Hexagon Force: seeds 1-8 compared by kind mix and modes, seed 4 has the evenest mix (yellow 39, grav 40, mode 21, 5 modes).
+Built: `node tools/autobeat.js --song HexagonForce --seed 4 --rate 1.4 --name "GDLM auto beat 3" --out levels/lab/auto_beat_3.gdlvl`
+-- 92.5 s, 125 triggers (1.4 a second, auto beat 2: 4.2), 95% on the beat, cube / spider / robot / ball / UFO, 0.5x-2x, clears.
+Open: the gravity-flip share on some songs (Electroman ~45%: the batches pick grav as their low kind too often).
+
+### Auto beat 4: twice the pace, more contrast, a Newgrounds song (2026-11-26)
+Evgeni on auto beat 3: "bit too slow for me for now. need like twice the beats overall. Can be slower on the slow sections,
+and faster in the fast sections. Lets hear some non robtop song. that has slow and fast paced sections". thin() now weights
+bars 0.15 .. 4.5 (was 0.3 .. 3), treats the loudest 25% as fast (0.12 s apart, short rapid runs), keeps calm bars 0.35 s
+apart, and scales every share up when the busy bars run out of notes, so the mean is reached. Songs with notes measured: the
+4 custom ones (Eclipse 1086693 and Two Moons 1175526 were measured in the cloud from songs/free/ for this, `impacts.js <id>
+--bpm --t0 --commit`). Plan per 8 s at rate 2.8: Golden Haze (557117, DetiousMusic) 0.5 .. 5 and back, alternating; Infertehno
+2 a calm 40 s then busy; Eclipse and Two Moons flatter. So Golden Haze, cut at its section change at 102.9 s (`--beats 238`).
+Built: `node tools/autobeat.js --song 557117 --seed 4 --rate 2.8 --beats 238 --name "GDLM auto beat 4" --out
+levels/lab/auto_beat_4.gdlvl` -- 107 s, 248 triggers (2.5 a second placed; auto beat 3: 1.4), per 8 s from 0.5 to 4.9, all
+7 modes, 0.5x-3x, gravity flips a third, clears. Placement saturates near 2.5 a second on this song (rate 3.1 gave 2.4).
+
+### The beat ending (tools/beatend.js, 2026-11-26)
+Evgeni on the old outro: "too big, way too much without anything happening and it doesnt match the beat ... something small
+half screen of auto gameplay, that matches the beat ... with the sign there". From the level's end: a portal column on a beat
+(any arrival -> plain cube), then 2 pad bounces: each pad fires on a beat (its x fixed by the launch tick in the sim) and each
+landing is on a later beat (the landing ledge's top is the feet's height on that beat, so the cube comes down on it; the pad
+and beat are picked to keep the ledges low). The cube then runs under the floating sign, which bobs on the beats, and the level
+ends 5 blocks after it. Measured: launches and landings within 2 ms of the beats on Can't Let Go, 4-5 ms on Geometrical
+Dominator. autobeat uses it by default (`opts.ending: "outro"` = the old one). Open: make.js and the other builders still use
+the old outro; the Geometrical Dominator ending climbs to ~4 blocks (no low-ledge beat there).
+
+The end on the last screen (2026-11-26, Evgeni: "the end screen has to include our sign, it extends bit too much so our
+signature goes away"): GD ends a level at its furthest object (any kind) with the wall ~340 past it, and the camera stops with
+the wall at the right edge of a ~569-unit screen, so only the last ~229 units are on the final view. The ending ran 7.5 blocks
+past the sign's centre. Now nothing lies past the sign's right edge (`signature.js` `extent(col)` / `clipEnd`), in beatend,
+autobeat, fxgallery and make.js (blocks too; `spec.endRun` still allows deco past it). Auto beat 2 v5.
+
+### The beat ending: looks, and inside the song (2026-11-26)
+Evgeni: "lets somehow improve the signature ... not to have the basic blocks on the bottom there (and not after the song
+ends)". Two changes, both in the tools, so every autobeat level gets them:
+- **No plain blocks.** The landing ledges were columns of plain blocks down to the ground. `beatEnd(..., {look})`:
+  `floating` (default) = each ledge is one row floating at the beat's height, and the slab under the sign joins the last ledge;
+  `ground` = no blocks at all, every bounce lands on the ground (landings ~30 ms off the beat instead of ~2 ms: the ledge
+  height was what tuned them); `plain` = the old columns. `endDeco(level, be, {dress})` then dresses them (deco only):
+  `floating` = the structure deco pass (tools/structdeco.js: layered design, depth, chain holders) in the fire palette +
+  embers; `ice` = nested frames, bevel, ropes, snow; `ground` = motes only. Gotcha: the slabs sit off the 30-unit grid the
+  structure pass assumes, so each height is dressed on the grid and moved back (one pass for all drew the design a row low).
+  autobeat: `--end-look`, `--end-dress`. Demos (30 beats of Golden Haze, same level, three endings):
+  `levels/lab/auto_ending_a.gdlvl` (floating, fire), `_b` (floating, ice), `_c` (ground).
+- **Inside the song.** autobeat's `buildInSong` builds, and when the run's end (the sign's screen) is past the song's last
+  beat minus 0.5 s, builds again with fewer beats. Auto beat 3 (Hexagon Force, whole song) had ended 3.7 s after the music;
+  now 3.6 s before it. `measures.songLeft` = seconds of song left at the end.
+Open: the sign's own plinth is still a plain dark bar; make.js's ending is not changed yet.
+
+### Sections by character (tools/sections.js, 2026-11-26)
+Evgeni: "sections have to be cut by the transitions of the level". The batches were already cut at the song's transitions,
+but each batch's kinds and icons were a dice roll. Now each batch is typed from the measured song (heaviness, loudness, which
+band leads, the transition at its start; `node tools/sections.js <song>` prints them) and gets content by type:
+drop = red pads on the low notes, yellow on the mid, blue on the top, robot / ball; break = a flight (ship, ufo) with gravity,
+mini and icon portals; build = stairs, slopes and pink pads climbing; entry = the batch before goes on and the band that came in
+gets a new kind; groove = the batch before goes on with one new icon. Can't Let Go: break 0-7 s, build 7-17, entry 17-24,
+drop 24-31, entries to 72, break to the end. Swing is left out of flights until the game has checked it. Full songs clip
+into ledges less with it (GD seed 1: 18 ticks vs 26; Can't Let Go: 0). `opts.sections: false` = the old roll.
+Auto beat 2 v3 is built with it (and the beat ending).
+
+## Visual effects for auto levels (2026-11-26)
+
+The effects thread's toolkit (EFFECTS.md): `tools/effects.js` puts music-synced effects (lights, dancing blocks, glows along
+the path, clouds and a pulsing ring locked to the player, contact flashes at pads and landings, hidden pads) on any auto
+level's zero-press run: `FX.context({path, grid, notes})`, then `FX.<effect>(ctx, {t0, t1})`. Gallery: `levels/lab/fx_gallery.gdlvl`.
+
+Checked against RobTop (2026-11-26, Evgeni asked how many sections Electrodynamix has): `node tools/sections.js Electrodynamix`
+gives 9 sections, cuts at 7.6 / 22.7 / 29.8 / 37.4 / 45.4 / 53.0 / 67.6 / 73.8 s. The official level changes mode or speed at
+7.6 (2x), 22.7, 29.4, 37.8, 43.6, 47.3, 52.4, 52.9 (3x), 56.6, 60.4, 64.1, 67.9, 75.5: 7 of our 8 cuts are within 0.5 s of
+one of his, the 8th (73.8) is 1.7 s before his last ship. He adds ~4 s mode swaps inside the loud middle (43-68 s), which
+the song typer does not cut: inside a long drop/entry section, change mode every 2 bars or so.
+
+### The fx level: gameplay invisible, a theme per section (tools/fxlevel.js, 2026-11-26)
+Evgeni: "make all gameplay invisible at the start ... then in each of the 9 sections apply some different theme (like circle
+around, or appearing shapes to the beat, or something falling ...) what we need is a background", then "Fully invisible",
+"hidden all the way for now. maybe appear just on the last screen with the signature", "go with the suggested picks".
+`node tools/fxlevel.js [--song Electrodynamix] [--seed 1]` -> `levels/lab/fx_level.gdlvl`: the autobeat level, every
+non-trigger object but the sign in one group at alpha 0 from the first tick (collision stays), back to alpha 1 on the last
+screen; per section of `sections.js` one theme of `tools/effects.js` (THEMES in the tool: ring, ring + zoom + flash, clouds,
+checkerboard, dancers, falling shapes (FX.fall) + hit lines, chase + flashes, fast checkerboard, screen frame + clouds), the path glow and contact
+flashes everywhere so the run reads, and the background / ground channels turned to the section's colour at each cut. v1:
+84 s, 3133 objects hidden, 4449 effect objects, the run identical with and without the effects, clears. v2: falling shapes (the effects thread's FX.fall) in section 6. Open: a painted backdrop per section (DECOART.md) instead of a plain colour; most triggers show only in
+GD (lock to camera and scale-on-locked unchecked there).
+
+
+## Auto clone: a solved level that plays itself (tools/autoclose.js, 2026-11-26)
+Evgeni: "once we have a solved level, we can make an 'auto' clone. without adding anything visible, if we can. with triggers
+hidden pads clicking the player". GD has no trigger that presses the button, so each press of the saved route becomes the
+hidden object closest to it in effect (all in one group at alpha 0 from the first tick; alpha keeps collision):
+- ball / swing press, wave and ship press AND release: a gravity portal (a released flipped wave rises like a held one; a ship
+  only roughly, 0.25 vs 0.39 a tick). The icon draws flipped while upside down: visible on the ship, slight on the wave.
+- spider press: a spider pad (the same teleport).
+- cube / robot / UFO press: a pink (10.4 up; a cube jump is 11.18), yellow (16) or red (20) pad under the feet, on a surface or
+  floating in the air (a pad fires on touch, it needs no ground when nobody sees it). A pink jump is lower and shorter, so where
+  none lands (icy part's 4-block spike pit) a SECOND pad later in the same arc gives back the reach. Also tried from the
+  player's spot a little before / after the press (a press that lands a jump on a ledge's edge).
+- releases elsewhere are taps: ignored.
+The search: per press, every object over a range of x (and the pad kinds), each run with no press from a checkpoint; it must
+live to the NEXT press (the next object acts there; requiring more threw away every good one), the closest to the original
+path wins, the best 8 kept for backtracking. Results: icy part v3 (25 s, cube + wave) clears (levels/lab/icy_part_v3_auto.gdlvl), 8 presses -> 6 pink pads, one
+pink + pink in the air, 2 gravity portals, no backtracking, 3 s. Hellgate (82 s, cube / ball / UFO / ship / wave) first runs: to
+48 s, stuck at 47.2 s where a cube jump over a spike right after a ledge needs the exact jump: every pad kind, spot and second pad dies there.
+Not checked in the game: whether a hidden pad or portal still shows its flash or particles.
+
+## GDLM 75 held together: a short auto with deco and connected structures (tools/autodeco.js, 2026-11-27)
+
+A ~30 s auto "with some deco and connected structures" (structures held up or joined, not floating loose). One command:
+`node tools/autodeco.js --song 1086693 --seed 8 --rate 2.6 --beats 58 --name "GDLM 75 held together" --session auto-held
+--out levels/gdlm_75_held_together.gdlvl` (~5 s): autobeat (triggers on the song's notes, hazards along the path, beat ending,
+signature) -> the structure deco pass (tools/structdeco.js) with a look per song section (tools/sections.js: drops take the
+second look -- fire layered+bevel, ice nested frames+bevel at the drop) -> chain / rope holders (tools/connect.js) kept off the
+zero-press path -> motes -> a dark sky in the first look's hue -> the zero-press run checked again. Stages song / layout / path /
+deco / final go to the viewer as it builds.
+- **Song:** Eclipse (1086693, Uxvellda, CC BY, `knowledge/free_songs.md`): break, entry, DROP, entry inside its first 27 s
+  (Golden Haze's first 30 s is one calm break: 52 of 64 triggers came out gravity flips). Seeds 1-11 compared by kind mix;
+  seed 8: yellow / blue / grav 10 each, red 7, mini 3, mode 4 (cube / robot / UFO), 0.5x and back, 47 triggers, 100% on the beat.
+- **What the tools learned** (fixed at the source, so every level gets it):
+  - score.js judged autos as clicked levels: the solver found a 9-press route through the auto, then "skips" failed on
+    portals that route jumped past and tempo / density warned on clicks nobody makes. Now an auto is judged on its zero-press
+    run (gate "auto"), the input gates say "not judged", and a column of one portal kind counts as one portal (autobeat's
+    home wall, the beat ending's portal column).
+  - The **depth** 3D effect fails tools/roles.js on plain blocks: its dark extrusion is in the black block body's value
+    (pathDeco on 18 of 29 sections; bevel: 0). autodeco and beatend.js's floating ending now use bevel.
+  - connect.js put holders only at an island's two exact ends: an auto's path brushes most ends, so most islands floated.
+    The holders now slide inward to the nearest clear cell, else one in the middle: 21 -> 31 holders on GDLM 75.
+  - autobeat leaves GD's default magenta sky; the deco palettes need a dark one (autodeco sets the first look's sky).
+Open: the judge (tools/report.js) still reads an auto as a clicked level ("few clicks", presses); the opening is on the default
+ground (startramp would move the auto's path); deco coverage is thin in places (score WARN); Evgeni's look.

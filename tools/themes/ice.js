@@ -175,8 +175,8 @@ function dressPlay(objects, x0, x1, o = {}) {
     const c = Math.round(b.x / 30 - 0.5), r = Math.round(b.y / 30 - 0.5);
     if (!at.has(c + "," + (r + 1)) && r < 9) out.push(K.obj(1753, b.x, b.y + 13, { ch: CH.frost, z: "T1", zo: 5, sx: 1, sy: 2.2 }));   // frosted top
     else if (R() < 0.22) out.push(K.obj(1753, b.x + (R() - 0.5) * 10, b.y + (R() - 0.5) * 10, { ch: CH.crack, z: "T1", zo: 3, sx: 0.5 + R() * 0.5, rot: 20 + R() * 70 }));   // a crack
-    // small icicles under an open bottom edge (the user's pick on the deco gallery, blocks 4, 2026-11-25)
-    if (r > 0 && !at.has(c + "," + (r - 1)) && R() < 0.6) out.push(...crystal(b.x + (R() - 0.5) * 10, b.y - 15, 10, 14 + R() * 14, { down: true, ch: CH.rim, lit: CH.frost, z: "T1", zo: 4, groups: [] }));
+    // no icicles under open bottom edges: in the kit renders (2026-11-26) they hung inside the ship / cube / wave lanes
+    // beside real ceiling spikes and read as hazards (checklist: "The play stays visible"). Icicles stay in the background.
   }
   return out;
 }

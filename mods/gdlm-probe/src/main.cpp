@@ -34,6 +34,21 @@
 // "mute" (default true): the playback sets FMOD's music and effects volume to 0 (the engine only; GameManager's saved
 // volumes are untouched, and quit does not save anyway).
 //
+// Install inbox (v0.6.0; v0.6.1 adds menu-layer timers and the inbox state in probe.status.json; GEODE.md "Install into a running GD"): `node tools/install.js <level>` with GD running writes
+//   <mod save dir>/install/<id>.req.json  {"id", "name", "record": "<?xml ...><plist ...><dict>k2 ...</dict></plist>",
+//   "save": true, "wall_ms"}   (the same record a .gdlvl holds, with install.js's description and length label)
+// A scheduler callback once a second checks that folder ONLY on a menu scene: never while a PlayLayer or the editor exists,
+// never during a scene transition, and not while the page (EditLevelLayer) of the level being replaced is open -- a request
+// made mid-attempt waits until the user leaves the level. The level is built by GJGameLevel::dataLoaded from the record (as
+// GD loads its own save); a local level with the same name is replaced at its position, keeping its online ID, version,
+// account and unlisted flag (k1 / k16 / k60 / k79: Share updates the same upload), else it goes in at the top of My Levels.
+// An unknown custom song's info is asked from GD's server (MusicDownloadManager::getSongInfo). With "save", GD's own
+// LocalLevelManager save writes CCLocalLevels.dat at once (a crash cannot lose it; install.js reads it back). The answer:
+//   <id>.result.json  {"id", "status": "installed" | "failed", "why", "name", "position", "replaced", "online_id",
+//   "saved", "song", "version", "wall_ms"}; the request is renamed <id>.taken.json.
+// probe.status.json {"version", "pid", "inbox", "wall_ms"}, written at the first main menu, tells install.js this game
+// has the inbox.
+//
 // Rule from CLAUDE.md "Never slow the user's game": nothing here does I/O during the user's play. Ticks go into a
 // string in memory; the file is written on a background thread when the attempt ends (at once for playback).
 
@@ -42,7 +57,12 @@
 #include <Geode/modify/PlayLayer.hpp>
 #include <Geode/modify/MenuLayer.hpp>
 #include <Geode/modify/EditLevelLayer.hpp>
+#include <Geode/modify/CreatorLayer.hpp>
+#include <Geode/modify/LevelBrowserLayer.hpp>
 
+#include <process.h>
+
+#include <algorithm>
 #include <array>
 #include <chrono>
 #include <cstdio>
@@ -371,6 +391,171 @@ void begin(PlayLayer* pl) {
     g_att.buf += b;
 }
 
+// ---- install inbox (see the header) ----
+std::string readText(std::filesystem::path const& p) {
+    std::ifstream f(p, std::ios::binary);
+    return std::string(std::istreambuf_iterator<char>(f), std::istreambuf_iterator<char>());
+}
+// write then rename, so install.js never reads half a file
+void writeAtomic(std::filesystem::path const& p, std::string const& data) {
+    auto tmp = p; tmp += ".tmp";
+    { std::ofstream f(tmp, std::ios::binary); f << data; }
+    std::error_code ec;
+    std::filesystem::rename(tmp, p, ec);
+}
+std::string modVersion() { return Mod::get()->getVersion().toVString(); }
+
+// the inbox's own state, written into probe.status.json every few seconds on menus (v0.6.1): v0.6.0's check never ran in
+// the game and said nothing, so now the file shows when it last ran, from which timer, and why it waits
+struct InboxState { long long ticks = 0, tickMs = 0, statusMs = 0; std::string src, last = "idle"; };
+InboxState g_ib;
+
+void writeStatus() {
+    g_ib.statusMs = wallMs();
+    writeAtomic(saveDir() / "probe.status.json", fmt::format(
+        "{{\"version\":\"{}\",\"pid\":{},\"inbox\":1,\"wall_ms\":{},\"ticks\":{},\"tick_ms\":{},\"src\":\"{}\",\"last\":\"{}\"}}\n",
+        modVersion(), static_cast<int>(_getpid()), g_ib.statusMs, g_ib.ticks, g_ib.tickMs, esc(g_ib.src), esc(g_ib.last)));
+}
+
+// a menu scene where the level list may change: no level played or edited, no transition running, and not the page of
+// the level being replaced. "" = safe, else why not
+std::string menuWhy(std::string const& name) {
+    if (PlayLayer::get()) return "in a level";
+    if (LevelEditorLayer::get()) return "in the editor";
+    auto* dir = CCDirector::get();
+    auto* scene = dir ? dir->getRunningScene() : nullptr;
+    if (!scene) return "no running scene";
+    if (typeinfo_cast<CCTransitionScene*>(scene)) return "a scene transition";
+    if (auto* el = scene->getChildByType<EditLevelLayer>(0)) {
+        if (el->m_level && std::string(el->m_level->m_levelName) == name) return "that level's page is open";
+    }
+    return "";
+}
+
+struct InstallReq { std::string id, name, record; bool save = true; };
+
+std::string installLevel(InstallReq const& r, matjson::Value& out) {
+    auto* llm = LocalLevelManager::get();
+    if (!llm || !llm->m_localLevels) return "no LocalLevelManager";
+    DS_Dictionary dict;
+    if (!dict.loadRootSubDictFromString(r.record)) return "the record does not parse";
+    auto* lvl = GJGameLevel::createWithCoder(&dict);
+    if (!lvl) return "no level from the record";
+    std::string name = lvl->m_levelName;
+    if (name.empty() || name != r.name) return fmt::format("the record's name '{}' is not '{}'", name, r.name);
+    if (std::string(lvl->m_levelString).empty()) return "the record has no level string";
+    lvl->m_levelType = GJLevelType::Editor;
+    auto* arr = llm->m_localLevels;
+    int at = -1;
+    for (unsigned i = 0; i < arr->count(); i++) {
+        auto* o = static_cast<GJGameLevel*>(arr->objectAtIndex(i));
+        if (o && std::string(o->m_levelName) == name) { at = static_cast<int>(i); break; }
+    }
+    if (at >= 0) {
+        auto* old = static_cast<GJGameLevel*>(arr->objectAtIndex(at));
+        // keep the upload: online ID, upload version, account, unlisted (not "this version is uploaded", k15)
+        if (old->m_levelID.value() > 0 && lvl->m_levelID.value() <= 0) {
+            lvl->m_levelID = old->m_levelID;
+            lvl->m_levelVersion = old->m_levelVersion;
+            lvl->m_accountID = old->m_accountID;
+            lvl->m_unlisted = old->m_unlisted;
+        }
+        lvl->m_isUploaded = false;
+        arr->replaceObjectAtIndex(at, lvl);
+    } else {
+        arr->insertObject(lvl, 0);
+    }
+    std::string song = "none";
+    if (lvl->m_songID > 0) {
+        auto* mdm = MusicDownloadManager::sharedState();
+        if (mdm && mdm->getSongInfoObject(lvl->m_songID)) song = "known";
+        else if (mdm) { mdm->getSongInfo(lvl->m_songID, false); song = "requested"; }
+    }
+    bool saved = false;
+    if (r.save) saved = llm->save(false);
+    out["position"] = at >= 0 ? at + 1 : 1;
+    out["replaced"] = at >= 0;
+    out["online_id"] = static_cast<int>(lvl->m_levelID.value());
+    out["song"] = song;
+    out["saved"] = saved;
+    return "";
+}
+
+void checkInbox() {
+    auto dir = saveDir() / "install";
+    std::error_code ec;
+    if (!std::filesystem::is_directory(dir, ec)) return;
+    std::vector<std::filesystem::path> reqs;
+    for (auto const& e : std::filesystem::directory_iterator(dir, ec)) {
+        auto fn = e.path().filename().string();
+        if (fn.size() > 9 && fn.compare(fn.size() - 9, 9, ".req.json") == 0) reqs.push_back(e.path());
+    }
+    std::sort(reqs.begin(), reqs.end());   // ids start with a time stamp: oldest first
+    for (auto const& p : reqs) {
+        auto res = matjson::parse(readText(p));
+        auto fn = p.filename().string();
+        InstallReq r;
+        r.id = fn.substr(0, fn.size() - 9);
+        matjson::Value out = matjson::Value::object();
+        out["id"] = r.id;
+        out["version"] = modVersion();
+        std::string why;
+        if (!res) why = "the request does not parse";
+        else {
+            auto j = res.unwrap();
+            r.name = j["name"].asString().unwrapOr("");
+            r.record = j["record"].asString().unwrapOr("");
+            r.save = j["save"].asBool().unwrapOr(true);
+            out["name"] = r.name;
+            if (r.name.rfind("GDLM", 0) != 0) why = "only levels named GDLM ... are installed this way";
+            else if (auto w = menuWhy(r.name); !w.empty()) {
+                // in a level, the editor or that level's page: try again later
+                auto last = fmt::format("waiting: {} ({})", r.name, w);
+                if (last != g_ib.last) log::info("gdlm probe: install {}", last);
+                g_ib.last = last;
+                return;
+            }
+            else why = installLevel(r, out);
+        }
+        out["status"] = why.empty() ? "installed" : "failed";
+        if (!why.empty()) out["why"] = why;
+        out["wall_ms"] = wallMs();
+        auto taken = p; taken.replace_filename(r.id + ".taken.json");
+        std::filesystem::rename(p, taken, ec);
+        writeAtomic(dir / (r.id + ".result.json"), out.dump(matjson::NO_INDENTATION) + "\n");
+        log::info("gdlm probe: install '{}': {}", r.name, why.empty() ? "installed" : why);
+        g_ib.last = fmt::format("{} {}", why.empty() ? "installed" : "failed", r.name);
+        writeStatus();
+    }
+}
+
+// called once a second by two kinds of timer (v0.6.1): the director's scheduler, and each menu layer's own schedule (main
+// menu, Create, the level list, a level's page); whichever fires first in a second does the check
+void inboxTick(char const* src) {
+    // only on menus: returns at once while a level is played or edited (no work on the input path)
+    if (PlayLayer::get() || LevelEditorLayer::get()) return;
+    long long now = wallMs();
+    if (now - g_ib.tickMs < 900) return;
+    if (g_ib.ticks == 0) log::info("gdlm probe: install inbox running ({})", src);
+    g_ib.ticks++; g_ib.tickMs = now; g_ib.src = src;
+    if (g_ib.last.rfind("waiting", 0) == 0) g_ib.last = "idle";
+    checkInbox();
+    if (now - g_ib.statusMs >= 5000) writeStatus();
+}
+
+class InboxTimer : public CCObject {
+public:
+    void tick(float) { inboxTick("scheduler"); }
+};
+InboxTimer* g_inbox = nullptr;
+
+void startInbox() {
+    if (g_inbox) return;
+    g_inbox = new InboxTimer();   // lives as long as the game
+    CCDirector::get()->getScheduler()->scheduleSelector(schedule_selector(InboxTimer::tick), g_inbox, 1.f, false);
+    writeStatus();
+}
+
 } // namespace
 
 class $modify(ProbeBase, GJBaseGameLayer) {
@@ -520,17 +705,21 @@ class $modify(ProbeMenu, MenuLayer) {
         if (!g_menuSeen) {
             g_menuSeen = true;
             loadPlay();
+            startInbox();
             if (g_play.loaded && g_play.autostart) {
                 Loader::get()->queueInMainThread([] { openPlayLevel(); });
             }
         }
+        this->schedule(schedule_selector(ProbeMenu::gdlmInbox), 1.f);
         return true;
     }
+    void gdlmInbox(float) { inboxTick("MenuLayer"); }
 };
 
 class $modify(ProbeEdit, EditLevelLayer) {
     bool init(GJGameLevel* level) {
         if (!EditLevelLayer::init(level)) return false;
+        this->schedule(schedule_selector(ProbeEdit::gdlmInbox), 1.f);
         // a batch left the previous level: open the next one
         if (g_openNext) {
             g_openNext = false;
@@ -538,4 +727,24 @@ class $modify(ProbeEdit, EditLevelLayer) {
         }
         return true;
     }
+    void gdlmInbox(float) { inboxTick("EditLevelLayer"); }
+};
+
+// the inbox's menu timers (v0.6.1): Create and the level lists (My Levels) run it too
+class $modify(ProbeCreator, CreatorLayer) {
+    bool init() {
+        if (!CreatorLayer::init()) return false;
+        this->schedule(schedule_selector(ProbeCreator::gdlmInbox), 1.f);
+        return true;
+    }
+    void gdlmInbox(float) { inboxTick("CreatorLayer"); }
+};
+
+class $modify(ProbeBrowser, LevelBrowserLayer) {
+    bool init(GJSearchObject* search) {
+        if (!LevelBrowserLayer::init(search)) return false;
+        this->schedule(schedule_selector(ProbeBrowser::gdlmInbox), 1.f);
+        return true;
+    }
+    void gdlmInbox(float) { inboxTick("LevelBrowserLayer"); }
 };

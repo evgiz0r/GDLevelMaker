@@ -131,6 +131,27 @@ const SERVER = http.createServer((req, res) => {
     let rows = []; try { rows = require("./community_index.js").list(); } catch (e) {}
     res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify(rows));
   }
+  // POST /community/fetch?id=N: download one online level by ID into local/community/ (tools/fetch_level.js, GD's own
+  // server, the game's download request), so a board or viewer link to a level this PC has no copy of still opens it.
+  // This PC only; other people's levels stay in local/ (Evgeni, 2026-11-26: "i want it to open in the viewer")
+  if (p === "/community/fetch" && req.method === "POST" && !lan) {
+    const id = new URL(req.url, "http://x").searchParams.get("id") || "";
+    if (!/^\d{1,10}$/.test(id)) { res.writeHead(400, { "Content-Type": "text/plain" }); return res.end("bad id"); }
+    require("./fetch_level.js").fetchOne(id, path.join(root, "local", "community"))
+      .then(r => { res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); res.end(JSON.stringify({ ok: true, id, name: r.name || null, file: "local/community/" + id + ".gdlvl", skipped: !!r.skipped })); })
+      .catch(e => { res.writeHead(502, { "Content-Type": "application/json" }); res.end(JSON.stringify({ ok: false, error: String(e.message || e) })); });
+    return;
+  }
+  // POST /song/fetch?id=N: get a custom song this PC lacks into local/songs/ (tools/songs.js, the way GD does), so a
+  // downloaded level plays with its song. Already here: answers at once. This PC only.
+  if (p === "/song/fetch" && req.method === "POST" && !lan) {
+    const id = new URL(req.url, "http://x").searchParams.get("id") || "";
+    if (!/^\d{1,10}$/.test(id)) { res.writeHead(400, { "Content-Type": "text/plain" }); return res.end("bad id"); }
+    require("./songs.js").fetchSong(id)
+      .then(r => { res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); res.end(JSON.stringify({ ok: !!r.ok, id, already: !!r.already, why: r.why || null })); })
+      .catch(e => { res.writeHead(502, { "Content-Type": "application/json" }); res.end(JSON.stringify({ ok: false, error: String(e.message || e) })); });
+    return;
+  }
   // GET /attempts/index: every level with attempts, one small row each, newest played first (the "my runs" tab)
   if (p === "/attempts/index" && req.method === "GET") {
     res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify(require("./attempts.js").index()));
@@ -271,7 +292,7 @@ const SERVER = http.createServer((req, res) => {
       res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); res.end(d);
     });
   }
-  const sp = req.method === "POST" && /^\/shoot\/([\w\-]+)\/(\d+\.png|f\d+\.jpg|done)$/.exec(p);
+  const sp = req.method === "POST" && /^\/shoot\/([\w\-]+)\/(\d+\.png|f\d+\.jpg|geo\.json|done)$/.exec(p);
   if (sp) {
     const chunks = [];
     req.on("data", c => chunks.push(c));
@@ -408,7 +429,7 @@ const SERVER = http.createServer((req, res) => {
       const hEta = hs.map(h => H.etaOf(h));
       // the slots ("Go more in parallel", 2026-11-24): 2 while the game is closed and free >= 1.5 GB + one job's memory
       { const fr = H.freeMB(), game = H.gameRunning(), mb = H.jobMB(); out.slots = !game && fr >= H.MIN_FREE_MB + mb ? 2 : 1; out.freeMB = fr; out.game = game; out.jobMB = mb; out.twoSlotsAt = H.MIN_FREE_MB + mb; }
-      out.holders = hs.map((h, i) => ({ lane: !!h.lane, cmd: short(h.cmd), session: h.session, min: Math.round((now - Date.parse(h.start)) / 60000), left: hEta[i] ? hEta[i].left : null, basis: hEta[i] ? hEta[i].basis : null, over: hEta[i] ? hEta[i].over : false }));
+      out.holders = hs.map((h, i) => ({ lane: !!h.lane, cmd: short(h.cmd), session: h.session, min: Math.round((now - Date.parse(h.start)) / 60000), left: hEta[i] ? hEta[i].left : null, basis: hEta[i] ? hEta[i].basis : null, over: hEta[i] ? hEta[i].over : false, runaway: hEta[i] ? !!hEta[i].runaway : false, x: hEta[i] ? hEta[i].x : null }));
       out.waiting = ws.map(w => { const e = est(w.cmd); return { fast: e ? e.secs < H.FAST_SECS : false, cmd: short(w.cmd), session: w.session, prio: w.prio, est: e ? Math.max(1, Math.round(e.secs / 60)) : null, secs: e ? Math.round(e.secs) : null, basis: e ? e.basis : null }; });
       // a sum of measured parts; an unmeasured part makes the sum a lower bound ("at least")
       const sum = (parts) => ({ min: Math.round(parts.reduce((n, x) => n + (x || 0), 0)), unknown: parts.filter(x => x == null).length });
@@ -418,6 +439,7 @@ const SERVER = http.createServer((req, res) => {
         out.mine = { running: false, ahead: wi + hs.length, eta: s.min, unknown: s.unknown, basis: out.waiting[wi].basis }; }
       if (cmdQ) { const e = est(cmdQ), s = sum(out.holders.map(h => h.left)); out.would = { est: e ? Math.max(1, Math.round(e.secs / 60)) : null, secs: e ? Math.round(e.secs) : null, basis: e ? e.basis : null, wait: s.min, unknown: s.unknown }; }
       out.recent = JT.recent(8).map(r => Object.assign(r, { cmd: undefined }));
+      out.runaways = JT.runaways(24, all).map(r => Object.assign(r, { cmd: undefined }));   // over 10x their estimate: the Work panel shows them red
       out.free = H.freeMB ? Math.round(H.freeMB()) : null;
     } catch (e) { out.error = e.message; }
     res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); return res.end(JSON.stringify(out));
@@ -466,6 +488,10 @@ const SERVER = http.createServer((req, res) => {
               // the timing windows measured later (tools/solutions.js cache) for the same inputs: the viewer shows them at once
               let solution = m.solution;
               try { const c = require("./solutions.js").get(L.levelStr, true);
+                // wip put no longer waits on a solve: the background solve's route lands in the cache (and the entry) when done
+                if ((!solution || solution.kind === "plan" || solution.stale) && c && c.ok && require("./solutions.js").fresh(c)) solution = c;
+                const alive = pid => { try { process.kill(pid, 0); return true; } catch (e) { return e.code === "EPERM"; } };
+                if (!solution && m.solving && alive(m.solving.pid)) solution = { ok: false, events: [], pending: true, why: "solving on the PC (started " + String(m.solving.since || "").slice(11, 16) + " UTC" + (m.solving.est ? ", " + m.solving.est : "") + "): the camera runs through it meanwhile" };
                 if (solution && !solution.windows && c && c.windows && JSON.stringify(c.events) === JSON.stringify(solution.events)) solution = Object.assign({}, solution, { windows: c.windows, win: c.win }); } catch (e) {}
               out.push(Object.assign({}, m, { name: m.name, file: "local/wip/" + m.session + "/" + m.file, level: L.levelStr, song: songOf(L.rec, L.level.header), wip: true, solution })); } catch (e) {}
       }

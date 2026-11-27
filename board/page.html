@@ -132,6 +132,8 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
 .lv .name{font-weight:600;min-width:0}
 .lv .note{grid-column:1 / -1;font-size:.84rem;color:var(--muted);min-width:0}
 .lv a,.vlink{color:var(--accent);font-weight:600;text-decoration:none}
+a.lvlink{color:inherit;text-decoration:none;border-bottom:1px dotted var(--accent)}
+a.lvlink:hover{color:var(--accent)}
 .lv a:hover,.vlink:hover{text-decoration:underline}
 .lv .open{grid-column:1 / -1;font-size:.86rem}
 @media (prefers-reduced-motion:no-preference){.cand,.q{transition:background-color .15s}}
@@ -183,6 +185,15 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
       <summary><div class="sum-row"><h2 id="h-l">Our levels</h2><span class="hint" id="l-sum"></span></div></summary>
       <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px"><a class="vlink" id="vlink" href="https://claude.ai/artifact/7bXiT1gGnJWjESC8fy3oZH" target="_blank" rel="noopener">Open the level viewer ↗</a>
         <div class="list" id="levels"><div class="queue-empty ph">Loading…</div></div></div>
+    </details>
+  </section>
+
+  <section aria-labelledby="h-sg" class="wide">
+    <details id="d-sign">
+      <summary><div class="sum-row"><h2 id="h-sg">Ending sign</h2><span class="hint" id="sg-sum"></span></div></summary>
+      <div style="display:flex;flex-direction:column;gap:12px;margin-top:10px">
+        <div class="hint">The short beat ending with the Claude sign: on its own, and at the end of levels (each fits its own song's beat). Write a note under any picture; Claude reads them.</div>
+        <div class="list" id="sign"><div class="queue-empty ph">No pictures yet.</div></div></div>
     </details>
   </section>
 
@@ -423,6 +434,23 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
 
 
   function td(t,cls){ var c=el("td",cls||null); if(t!=null) c.textContent=t; return c; }
+  // level links (2026-11-26, Evgeni: "links in the workboard for the levels"): the PC viewer (serve.js) for our levels,
+  // main levels and every online level (one with no copy on this PC is downloaded by the viewer first)
+  var VIEWER="http://localhost:8765/viewer/";
+  function okHref(h){ return typeof h==="string" && /^(https:\/\/|http:\/\/(localhost|127\.0\.0\.1)(:\d+)?\/)/.test(h); }
+  function vLink(file){ return ((state&&okHref(state.pc_viewer_url))? state.pc_viewer_url : VIEWER)+"#lv="+encodeURIComponent(file); }
+  function mainLink(n){ return vLink("local/official_"+(n<10?"0":"")+n+".json"); }
+  // a level with no copy on this PC opens too: the viewer downloads it first (serve.js POST /community/fetch)
+  function onlineLink(id){ return vLink("local/community/"+id+".gdlvl"); }
+  // "Our sim": how far OUR solver got (Evgeni, 2026-11-26: "how do i know if you passed it or not"); tools/board_docs.js
+  var SIM_TIP="Our solver on this level: ✓ = our sim clears it, N% = it died there, – = not tried yet. Hover a cell for what killed it.";
+  function simCell(s, why, at){
+    if(s==null) return td("–","dim");
+    var c=td(s>=100?"✓ passed":s+"%", s>=100?"ok":"bad");
+    c.title=(s>=100?"Our sim clears it":"Our sim dies at "+s+"%"+(why?" ("+why+")":""))+(at?" · solved "+String(at).slice(0,10):"");
+    return c;
+  }
+  function linkTo(parent, text, href, title){ var a=el("a","lvlink",text); a.href=href; a.target="_blank"; a.rel="noopener"; if(title) a.title=title; parent.appendChild(a); return a; }
   function pctCell(v){ if(v==null) return td("–","dim"); return td(v>=100?"✓ 100%":v+"%", v>=100?"ok":"bad"); }
   function renderMains(){
     var m=state && state.mains; if(!m || !m.levels || !m.levels.length) return;
@@ -434,7 +462,7 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
     m.levels.forEach(function(r){
       if(r.route_pct>=100) clear++;
       var tr=el("tr");
-      var nm=td(null,"l"); nm.appendChild(document.createTextNode(r.n+" "+r.name)); nm.title=r.n+" "+r.name; if(r.flag){ var f=el("span","sm","⚠ "+r.flag); nm.appendChild(f); } tr.appendChild(nm);
+      var nm=td(null,"l"); linkTo(nm, r.n+" "+r.name, mainLink(r.n), "Open in the viewer"); nm.title=r.n+" "+r.name; if(r.flag){ var f=el("span","sm","⚠ "+r.flag); nm.appendChild(f); } tr.appendChild(nm);
       tr.appendChild(td(r.rating,"dim"));
       var sv=td(null); var a=r.solve_pct, b=r.route_pct;
       if(a>=100 && b>=100) { sv.className="ok"; sv.textContent="✓ / ✓"; }
@@ -507,10 +535,29 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
       row.appendChild(el("div","name",l.name||""));
       var st=(l.state||"idle").toLowerCase(); row.appendChild(el("span","pill p-"+st,l.status||st));
       if(l.note) row.appendChild(el("div","note",l.note));
-      if(l.link && /^https:\/\//.test(l.link)){ var o=el("div","open"), a=el("a",null,"Open in the viewer ↗"); a.href=l.link; a.target="_blank"; a.rel="noopener"; o.appendChild(a); row.appendChild(o); }
+      if(okHref(l.link)){ var o=el("div","open"), a=el("a",null,"Open in the viewer ↗"); a.href=l.link; a.target="_blank"; a.rel="noopener"; o.appendChild(a); row.appendChild(o); }
       box.appendChild(row);
     });
     $("l-sum").textContent=L.length+" in progress";
+  }
+  // the ending sign (state.sign: [{id, title, img, note, link}], written by tools/sign_board.js); Evgeni's notes -> picks.sign_notes
+  function renderSign(){
+    var S=state && state.sign; if(!S || !S.length) return;
+    var box=$("sign"); box.textContent="";
+    picks.sign_notes=picks.sign_notes||{};
+    S.forEach(function(it){
+      var row=el("div","lv");
+      row.appendChild(el("div","name",it.title||it.id));
+      if(it.img && /^[\w.-]+\.(png|jpg|gif)$/.test(it.img)){ var im=document.createElement("img"); im.src="img/"+it.img; im.alt=it.title||it.id; im.loading="lazy"; im.style.cssText="width:100%;border-radius:6px;display:block;margin:6px 0"; row.appendChild(im); }
+      if(it.note) row.appendChild(el("div","note",it.note));
+      if(okHref(it.link)){ var o=el("div","open"), a=el("a",null,"Open in the viewer ↗"); a.href=it.link; a.target="_blank"; a.rel="noopener"; o.appendChild(a); row.appendChild(o); }
+      var cur=picks.sign_notes[it.id]||{}, ta=document.createElement("textarea"); ta.rows=2; ta.placeholder="Your note on this one"; ta.value=cur.text||""; ta.style.cssText="width:100%;box-sizing:border-box;margin-top:6px;font:inherit";
+      var b=el("button",null,"Save note"), ok=el("span","hint",cur.at? "saved "+fmtWhen(new Date(cur.at)) : "");
+      b.onclick=function(){ picks.sign_notes=picks.sign_notes||{}; picks.sign_notes[it.id]={text:ta.value, at:new Date().toISOString(), title:it.title||it.id}; ok.textContent="saved"; save(); };
+      row.appendChild(ta); var r2=el("div",null); r2.style.cssText="display:flex;gap:8px;align-items:center;margin-top:4px"; r2.appendChild(b); r2.appendChild(ok); row.appendChild(r2);
+      box.appendChild(row);
+    });
+    $("sg-sum").textContent=S.length+" pictures";
   }
   var TIERS=["Unrated","Auto","Easy","Normal","Hard","Harder","Insane","Easy Demon","Medium Demon","Hard Demon","Insane Demon","Extreme Demon","Demon"];
   var yFilter="All", yShow=200, played=null;
@@ -533,7 +580,7 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
     var head=el("thead"), hr=el("tr");
     var sset={}; (picks.study||[]).forEach(function(x){ sset[x]=1; });
     var th0=el("th","l"); th0.style.width="34px"; th0.title="Queue for study: fetch, cut into structures, score (slowly, low priority)"; th0.textContent="Study"; hr.appendChild(th0);
-    [["Level"],["Difficulty"],["Kind"],["Tries"],["Jumps"],["Best"],["Practice"]].forEach(function(h){ var th=el("th",null,h[0]); if(h[0]==="Level") th.style.textAlign="left"; hr.appendChild(th); });
+    [["Level"],["Difficulty"],["Kind"],["Tries","your attempts"],["Jumps"],["Your best","your normal-mode best %"],["Practice","your practice best %"],["Our sim",SIM_TIP]].forEach(function(h){ var th=el("th",null,h[0]); if(h[1]) th.title=h[1]; if(h[0]==="Level") th.style.textAlign="left"; hr.appendChild(th); });
     head.appendChild(hr); t.appendChild(head);
     var body=el("tbody");
     show.forEach(function(r){
@@ -542,7 +589,8 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
       cb.onchange=function(){ var st=(picks.study||[]).filter(function(x){ return x!==key; }); if(cb.checked) st.push(key); picks.study=st; studyCount(); try{ renderLatest(); }catch(e){} save(); };
       ck.appendChild(cb); tr.appendChild(ck);
       var nm=td(null); nm.style.textAlign="left"; nm.style.maxWidth="240px"; nm.style.overflow="hidden"; nm.style.textOverflow="ellipsis";
-      if(r.link && /^https:\/\//.test(r.link)){ var a=el("a",null,r.name); a.href=r.link; a.target="_blank"; a.rel="noopener"; a.style.color="inherit"; nm.appendChild(a); } else nm.appendChild(document.createTextNode(r.name||("ID "+r.id)));
+      var href=okHref(r.link)? r.link : r.kind==="main"? mainLink(+r.id) : r.id? onlineLink(r.id, r.here) : null;
+      if(href) linkTo(nm, r.name||("ID "+r.id), href, r.kind==="main"||r.here? "Open in the viewer" : "Open in the viewer (it downloads the level first)"); else nm.appendChild(document.createTextNode(r.name||("ID "+r.id)));
       nm.title=(r.name||"")+(r.id?" · ID "+r.id:"");
       if(r.id && r.kind!=="main") nm.appendChild(el("span","sm","ID "+r.id+(r.creator?" · "+r.creator:"")));
       tr.appendChild(nm);
@@ -552,9 +600,10 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
       tr.appendChild(td(r.jumps==null?"–":String(r.jumps),"dim"));
       tr.appendChild(td(r.best==null?"–":(r.best>=100?"✓ 100%":r.best+"%"), r.best>=100?"ok":null));
       tr.appendChild(td(r.practice==null?"–":r.practice+"%","dim"));
+      tr.appendChild(simCell(r.sim, r.sim_why, r.sim_at));
       body.appendChild(tr);
     });
-    if(total>show.length){ var mr=el("tr"), mc=el("td","l"); mc.colSpan=8; var mb=el("button","chip","Show more ("+(total-show.length)+" left)"); mb.type="button"; mb.onclick=function(){ yShow+=300; renderPlayed(); }; mc.appendChild(mb); mr.appendChild(mc); body.appendChild(mr); }
+    if(total>show.length){ var mr=el("tr"), mc=el("td","l"); mc.colSpan=9; var mb=el("button","chip","Show more ("+(total-show.length)+" left)"); mb.type="button"; mb.onclick=function(){ yShow+=300; renderPlayed(); }; mc.appendChild(mb); mr.appendChild(mc); body.appendChild(mr); }
     t.appendChild(body);
     studyCount();
     var fin=L.filter(rowDone).length, dem=L.filter(function(r){ return /Demon/.test(r.tier||"") && rowDone(r); }).length;
@@ -581,7 +630,7 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
     var sset={}; (picks.study||[]).forEach(function(x){ sset[x]=1; });
     var t=$("rtable"); t.textContent=""; var head=el("thead"), hr=el("tr");
     var th0=el("th","l"); th0.style.width="34px"; th0.textContent="Study"; hr.appendChild(th0);
-    ["Level","Difficulty","Rating","Likes","Length","Played"].forEach(function(h){ var th=el("th",null,h); if(h==="Level") th.style.textAlign="left"; hr.appendChild(th); });
+    ["Level","Difficulty","Rating","Likes","Length","Played","Our sim"].forEach(function(h){ var th=el("th",null,h); if(h==="Our sim") th.title=SIM_TIP; if(h==="Level") th.style.textAlign="left"; hr.appendChild(th); });
     head.appendChild(hr); t.appendChild(head); var body=el("tbody");
     show.forEach(function(r){
       var tr=el("tr"), key=String(r.id), ck=td(null,"l"), cb=document.createElement("input");
@@ -589,16 +638,18 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
       cb.onchange=function(){ var st=(picks.study||[]).filter(function(x){ return x!==key; }); if(cb.checked) st.push(key); picks.study=st; studyCount(); try{ renderPlayed(); }catch(e){} save(); };
       ck.appendChild(cb); tr.appendChild(ck);
       var nm=td(null); nm.style.textAlign="left"; nm.style.maxWidth="240px"; nm.style.overflow="hidden"; nm.style.textOverflow="ellipsis";
-      nm.appendChild(document.createTextNode(r.name||("ID "+r.id))); nm.title=(r.name||"")+" · ID "+r.id+(r.song?" · "+r.song:"");
+      var here=!!(latest && latest.here && latest.here.indexOf(+r.id)>=0);
+      linkTo(nm, r.name||("ID "+r.id), onlineLink(r.id), here? "Open in the viewer" : "Open in the viewer (it downloads the level first)"); nm.title=(r.name||"")+" · ID "+r.id+(r.song?" · "+r.song:"");
       nm.appendChild(el("span","sm","ID "+r.id+(r.creator?" · "+r.creator:""))); tr.appendChild(nm);
       tr.appendChild(td((r.tier||"–")+(r.stars?" · "+r.stars+"★":""), /Demon/.test(r.tier||"")?"bad":"dim"));
       tr.appendChild(td(r.rank||"rated", r.rank==="rated"?"dim":null));
       tr.appendChild(td(r.likes==null?"–":(r.likes>=1000? Math.round(r.likes/100)/10+"k" : String(r.likes)),"dim"));
       tr.appendChild(td(r.length||"–","dim"));
       var m=mine[r.id]; tr.appendChild(td(m? (m.best>=100?"✓ 100%":(m.best||0)+"%") : "–", m&&m.best>=100?"ok":"dim"));
+      var sm=latest.sim && latest.sim[r.id]; tr.appendChild(simCell(sm? sm.sim : null, sm&&sm.why, sm&&sm.at));
       body.appendChild(tr);
     });
-    if(total>show.length){ var mr=el("tr"), mc=el("td","l"); mc.colSpan=7; var mb=el("button","chip","Show more ("+(total-show.length)+" left)"); mb.type="button"; mb.onclick=function(){ rShow+=200; renderLatest(); }; mc.appendChild(mb); mr.appendChild(mc); body.appendChild(mr); }
+    if(total>show.length){ var mr=el("tr"), mc=el("td","l"); mc.colSpan=8; var mb=el("button","chip","Show more ("+(total-show.length)+" left)"); mb.type="button"; mb.onclick=function(){ rShow+=200; renderLatest(); }; mc.appendChild(mb); mr.appendChild(mc); body.appendChild(mr); }
     t.appendChild(body);
     var np=L.filter(function(r){ return !mine[r.id]; }).length;
     $("r-sum").textContent=L.length+" levels · "+np+" not played"+(latest.at?" · list from "+fmtWhen(new Date(latest.at)):"");
@@ -670,7 +721,7 @@ details:not([open]) .sum-row h2::after{content:" ▸"}
     if(!n) box.appendChild(el("div","queue-empty","Finished items land here a day after they're done."));
   }
   // each part renders on its own: one part that fails shows its error and the rest still render
-  var RENDERS={Done:function(){renderDone();},Features:function(){renderFeatures();},Played:function(){renderPlayed();},Levels:function(){renderLevels();},Usage:function(){renderUsage();},Fresh:function(){renderFresh();},Workstreams:function(){renderWs();},Mains:function(){renderMains();},Physics:function(){renderPhys();},Latest:function(){renderLatest();},Queue:function(){renderQueue();},Filters:function(){renderFilters();},Candidates:function(){renderCands();}};
+  var RENDERS={Done:function(){renderDone();},Features:function(){renderFeatures();},Played:function(){renderPlayed();},Levels:function(){renderLevels();},Sign:function(){renderSign();},Usage:function(){renderUsage();},Fresh:function(){renderFresh();},Workstreams:function(){renderWs();},Mains:function(){renderMains();},Physics:function(){renderPhys();},Latest:function(){renderLatest();},Queue:function(){renderQueue();},Filters:function(){renderFilters();},Candidates:function(){renderCands();}};
   var renderErrs={};
   function renderAll(){ Object.keys(RENDERS).forEach(function(k){ try{ RENDERS[k](); }catch(e){ if(!renderErrs[k]){ renderErrs[k]=1; window.__err("render "+k+": "+(e&&e.message||e)+(e&&e.stack? " @ "+String(e.stack).split("\n").slice(0,2).join(" "):"")); } } }); }
 

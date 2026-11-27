@@ -1,0 +1,1032 @@
+{
+ "name": "GDLM lab brickgen ball",
+ "description": "Generated ball bricks (tools/brickgen.js), best first",
+ "speed": "1x",
+ "style": "classic",
+ "indicators": false,
+ "objects": [
+  [
+   "ball portal",
+   8,
+   1
+  ],
+  [
+   "pattern",
+   "s:g-ball-normal-1",
+   14,
+   0,
+   {
+    "raw": true
+   }
+  ],
+  [
+   "cube portal",
+   54,
+   1
+  ],
+  [
+   "cube portal",
+   54,
+   4
+  ],
+  [
+   "cube portal",
+   54,
+   7
+  ],
+  [
+   "block",
+   54,
+   9
+  ],
+  [
+   "ball portal",
+   68,
+   1
+  ],
+  [
+   "pattern",
+   "s:g-ball-normal-2",
+   74,
+   0,
+   {
+    "raw": true
+   }
+  ],
+  [
+   "cube portal",
+   110,
+   1
+  ],
+  [
+   "cube portal",
+   110,
+   4
+  ],
+  [
+   "cube portal",
+   110,
+   7
+  ],
+  [
+   "block",
+   110,
+   9
+  ],
+  [
+   "ball portal",
+   124,
+   1
+  ],
+  [
+   "pattern",
+   "s:g-ball-normal-3",
+   130,
+   0,
+   {
+    "raw": true
+   }
+  ],
+  [
+   "cube portal",
+   164,
+   1
+  ],
+  [
+   "cube portal",
+   164,
+   4
+  ],
+  [
+   "cube portal",
+   164,
+   7
+  ],
+  [
+   "block",
+   164,
+   9
+  ],
+  [
+   "ball portal",
+   178,
+   1
+  ],
+  [
+   "pattern",
+   "s:g-ball-normal-4",
+   184,
+   0,
+   {
+    "raw": true
+   }
+  ],
+  [
+   "cube portal",
+   222,
+   1
+  ],
+  [
+   "cube portal",
+   222,
+   4
+  ],
+  [
+   "cube portal",
+   222,
+   7
+  ],
+  [
+   "block",
+   222,
+   9
+  ],
+  [
+   "ball portal",
+   236,
+   1
+  ],
+  [
+   "pattern",
+   "s:g-ball-normal-5",
+   242,
+   0,
+   {
+    "raw": true
+   }
+  ],
+  [
+   "cube portal",
+   264,
+   1
+  ],
+  [
+   "cube portal",
+   264,
+   4
+  ],
+  [
+   "cube portal",
+   264,
+   7
+  ],
+  [
+   "block",
+   264,
+   9
+  ],
+  [
+   "ball portal",
+   278,
+   1
+  ],
+  [
+   "pattern",
+   "s:g-ball-normal-6",
+   284,
+   0,
+   {
+    "raw": true
+   }
+  ],
+  [
+   "cube portal",
+   320,
+   1
+  ],
+  [
+   "cube portal",
+   320,
+   4
+  ],
+  [
+   "cube portal",
+   320,
+   7
+  ],
+  [
+   "block",
+   320,
+   9
+  ],
+  [
+   "ball portal",
+   334,
+   1
+  ],
+  [
+   "pattern",
+   "s:g-ball-normal-7",
+   340,
+   0,
+   {
+    "raw": true
+   }
+  ],
+  [
+   "cube portal",
+   373,
+   1
+  ],
+  [
+   "cube portal",
+   373,
+   4
+  ],
+  [
+   "cube portal",
+   373,
+   7
+  ],
+  [
+   "block",
+   373,
+   9
+  ],
+  [
+   "ball portal",
+   387,
+   1
+  ],
+  [
+   "pattern",
+   "s:g-ball-normal-8",
+   393,
+   0,
+   {
+    "raw": true
+   }
+  ],
+  [
+   "cube portal",
+   432,
+   1
+  ],
+  [
+   "cube portal",
+   432,
+   4
+  ],
+  [
+   "cube portal",
+   432,
+   7
+  ],
+  [
+   "block",
+   432,
+   9
+  ],
+  [
+   "ball portal",
+   446,
+   1
+  ],
+  [
+   "pattern",
+   "s:g-ball-normal-9",
+   452,
+   0,
+   {
+    "raw": true
+   }
+  ],
+  [
+   "cube portal",
+   493,
+   1
+  ],
+  [
+   "cube portal",
+   493,
+   4
+  ],
+  [
+   "cube portal",
+   493,
+   7
+  ],
+  [
+   "block",
+   493,
+   9
+  ],
+  [
+   "ball portal",
+   507,
+   1
+  ],
+  [
+   "pattern",
+   "s:g-ball-normal-10",
+   513,
+   0,
+   {
+    "raw": true
+   }
+  ],
+  [
+   "cube portal",
+   534,
+   1
+  ],
+  [
+   "cube portal",
+   534,
+   4
+  ],
+  [
+   "cube portal",
+   534,
+   7
+  ],
+  [
+   "block",
+   534,
+   9
+  ],
+  [
+   "ball portal",
+   548,
+   1
+  ],
+  [
+   "pattern",
+   "s:g-ball-hard-1",
+   554,
+   0,
+   {
+    "raw": true
+   }
+  ],
+  [
+   "cube portal",
+   576,
+   1
+  ],
+  [
+   "cube portal",
+   576,
+   4
+  ],
+  [
+   "cube portal",
+   576,
+   7
+  ],
+  [
+   "block",
+   576,
+   9
+  ],
+  [
+   "ball portal",
+   590,
+   1
+  ],
+  [
+   "pattern",
+   "s:g-ball-hard-2",
+   596,
+   0,
+   {
+    "raw": true
+   }
+  ],
+  [
+   "cube portal",
+   629,
+   1
+  ],
+  [
+   "cube portal",
+   629,
+   4
+  ],
+  [
+   "cube portal",
+   629,
+   7
+  ],
+  [
+   "block",
+   629,
+   9
+  ],
+  [
+   "ball portal",
+   643,
+   1
+  ],
+  [
+   "pattern",
+   "s:g-ball-hard-3",
+   649,
+   0,
+   {
+    "raw": true
+   }
+  ],
+  [
+   "cube portal",
+   672,
+   1
+  ],
+  [
+   "cube portal",
+   672,
+   4
+  ],
+  [
+   "cube portal",
+   672,
+   7
+  ],
+  [
+   "block",
+   672,
+   9
+  ],
+  [
+   "ball portal",
+   686,
+   1
+  ],
+  [
+   "pattern",
+   "s:g-ball-hard-4",
+   692,
+   0,
+   {
+    "raw": true
+   }
+  ],
+  [
+   "cube portal",
+   726,
+   1
+  ],
+  [
+   "cube portal",
+   726,
+   4
+  ],
+  [
+   "cube portal",
+   726,
+   7
+  ],
+  [
+   "block",
+   726,
+   9
+  ],
+  [
+   "ball portal",
+   740,
+   1
+  ],
+  [
+   "pattern",
+   "s:g-ball-hard-5",
+   746,
+   0,
+   {
+    "raw": true
+   }
+  ],
+  [
+   "cube portal",
+   771,
+   1
+  ],
+  [
+   "cube portal",
+   771,
+   4
+  ],
+  [
+   "cube portal",
+   771,
+   7
+  ],
+  [
+   "block",
+   771,
+   9
+  ],
+  [
+   "ball portal",
+   785,
+   1
+  ],
+  [
+   "pattern",
+   "s:g-ball-hard-6",
+   791,
+   0,
+   {
+    "raw": true
+   }
+  ],
+  [
+   "cube portal",
+   817,
+   1
+  ],
+  [
+   "cube portal",
+   817,
+   4
+  ],
+  [
+   "cube portal",
+   817,
+   7
+  ],
+  [
+   "block",
+   817,
+   9
+  ],
+  [
+   "ball portal",
+   831,
+   1
+  ],
+  [
+   "pattern",
+   "s:g-ball-hard-7",
+   837,
+   0,
+   {
+    "raw": true
+   }
+  ],
+  [
+   "cube portal",
+   862,
+   1
+  ],
+  [
+   "cube portal",
+   862,
+   4
+  ],
+  [
+   "cube portal",
+   862,
+   7
+  ],
+  [
+   "block",
+   862,
+   9
+  ],
+  [
+   "ball portal",
+   876,
+   1
+  ],
+  [
+   "pattern",
+   "s:g-ball-hard-8",
+   882,
+   0,
+   {
+    "raw": true
+   }
+  ],
+  [
+   "cube portal",
+   904,
+   1
+  ],
+  [
+   "cube portal",
+   904,
+   4
+  ],
+  [
+   "cube portal",
+   904,
+   7
+  ],
+  [
+   "block",
+   904,
+   9
+  ],
+  [
+   "ball portal",
+   918,
+   1
+  ],
+  [
+   "pattern",
+   "s:g-ball-hard-9",
+   924,
+   0,
+   {
+    "raw": true
+   }
+  ],
+  [
+   "cube portal",
+   960,
+   1
+  ],
+  [
+   "cube portal",
+   960,
+   4
+  ],
+  [
+   "cube portal",
+   960,
+   7
+  ],
+  [
+   "block",
+   960,
+   9
+  ],
+  [
+   "ball portal",
+   974,
+   1
+  ],
+  [
+   "pattern",
+   "s:g-ball-hard-10",
+   980,
+   0,
+   {
+    "raw": true
+   }
+  ],
+  [
+   "cube portal",
+   1017,
+   1
+  ],
+  [
+   "cube portal",
+   1017,
+   4
+  ],
+  [
+   "cube portal",
+   1017,
+   7
+  ],
+  [
+   "block",
+   1017,
+   9
+  ]
+ ],
+ "seedPresses": [
+  {
+   "t": 1.7,
+   "hold": 0.05
+  },
+  {
+   "t": 2,
+   "hold": 0.05
+  },
+  {
+   "t": 2.6,
+   "hold": 0.05
+  },
+  {
+   "t": 3.1,
+   "hold": 0.05
+  },
+  {
+   "t": 3.6,
+   "hold": 0.05
+  },
+  {
+   "t": 4.2,
+   "hold": 0.05
+  },
+  {
+   "t": 7.277,
+   "hold": 0.05
+  },
+  {
+   "t": 7.577,
+   "hold": 0.05
+  },
+  {
+   "t": 8.177,
+   "hold": 0.05
+  },
+  {
+   "t": 8.877,
+   "hold": 0.05
+  },
+  {
+   "t": 9.577,
+   "hold": 0.05
+  },
+  {
+   "t": 12.7689,
+   "hold": 0.05
+  },
+  {
+   "t": 13.1689,
+   "hold": 0.05
+  },
+  {
+   "t": 13.6689,
+   "hold": 0.05
+  },
+  {
+   "t": 14.1689,
+   "hold": 0.05
+  },
+  {
+   "t": 14.7689,
+   "hold": 0.05
+  },
+  {
+   "t": 17.8682,
+   "hold": 0.05
+  },
+  {
+   "t": 18.2682,
+   "hold": 0.05
+  },
+  {
+   "t": 18.9682,
+   "hold": 0.05
+  },
+  {
+   "t": 19.6682,
+   "hold": 0.05
+  },
+  {
+   "t": 20.3682,
+   "hold": 0.05
+  },
+  {
+   "t": 23.4526,
+   "hold": 0.05
+  },
+  {
+   "t": 23.9526,
+   "hold": 0.05
+  },
+  {
+   "t": 24.4526,
+   "hold": 0.05
+  },
+  {
+   "t": 27.6965,
+   "hold": 0.05
+  },
+  {
+   "t": 28.0965,
+   "hold": 0.05
+  },
+  {
+   "t": 28.3965,
+   "hold": 0.05
+  },
+  {
+   "t": 29.0965,
+   "hold": 0.05
+  },
+  {
+   "t": 29.7965,
+   "hold": 0.05
+  },
+  {
+   "t": 32.9884,
+   "hold": 0.05
+  },
+  {
+   "t": 33.2884,
+   "hold": 0.05
+  },
+  {
+   "t": 33.6884,
+   "hold": 0.05
+  },
+  {
+   "t": 34.2884,
+   "hold": 0.05
+  },
+  {
+   "t": 34.8884,
+   "hold": 0.05
+  },
+  {
+   "t": 38.0914,
+   "hold": 0.05
+  },
+  {
+   "t": 38.6914,
+   "hold": 0.05
+  },
+  {
+   "t": 39.2914,
+   "hold": 0.05
+  },
+  {
+   "t": 39.8914,
+   "hold": 0.05
+  },
+  {
+   "t": 40.5914,
+   "hold": 0.05
+  },
+  {
+   "t": 43.8722,
+   "hold": 0.05
+  },
+  {
+   "t": 44.5722,
+   "hold": 0.05
+  },
+  {
+   "t": 45.2722,
+   "hold": 0.05
+  },
+  {
+   "t": 45.7722,
+   "hold": 0.05
+  },
+  {
+   "t": 46.4722,
+   "hold": 0.05
+  },
+  {
+   "t": 49.7454,
+   "hold": 0.05
+  },
+  {
+   "t": 50.0454,
+   "hold": 0.05
+  },
+  {
+   "t": 50.4454,
+   "hold": 0.05
+  },
+  {
+   "t": 53.4931,
+   "hold": 0.05
+  },
+  {
+   "t": 53.8931,
+   "hold": 0.05
+  },
+  {
+   "t": 54.4931,
+   "hold": 0.05
+  },
+  {
+   "t": 57.737,
+   "hold": 0.05
+  },
+  {
+   "t": 58.137,
+   "hold": 0.05
+  },
+  {
+   "t": 58.737,
+   "hold": 0.05
+  },
+  {
+   "t": 59.037,
+   "hold": 0.05
+  },
+  {
+   "t": 59.537,
+   "hold": 0.05
+  },
+  {
+   "t": 62.74,
+   "hold": 0.05
+  },
+  {
+   "t": 63.24,
+   "hold": 0.05
+  },
+  {
+   "t": 63.74,
+   "hold": 0.05
+  },
+  {
+   "t": 66.7802,
+   "hold": 0.05
+  },
+  {
+   "t": 67.4802,
+   "hold": 0.05
+  },
+  {
+   "t": 67.8802,
+   "hold": 0.05
+  },
+  {
+   "t": 68.1802,
+   "hold": 0.05
+  },
+  {
+   "t": 68.8802,
+   "hold": 0.05
+  },
+  {
+   "t": 72.0795,
+   "hold": 0.05
+  },
+  {
+   "t": 72.5795,
+   "hold": 0.05
+  },
+  {
+   "t": 73.2795,
+   "hold": 0.05
+  },
+  {
+   "t": 76.4122,
+   "hold": 0.05
+  },
+  {
+   "t": 77.0122,
+   "hold": 0.05
+  },
+  {
+   "t": 77.7122,
+   "hold": 0.05
+  },
+  {
+   "t": 80.9413,
+   "hold": 0.05
+  },
+  {
+   "t": 81.6413,
+   "hold": 0.05
+  },
+  {
+   "t": 82.0413,
+   "hold": 0.05
+  },
+  {
+   "t": 85.274,
+   "hold": 0.05
+  },
+  {
+   "t": 85.674,
+   "hold": 0.05
+  },
+  {
+   "t": 86.074,
+   "hold": 0.05
+  },
+  {
+   "t": 89.1179,
+   "hold": 0.05
+  },
+  {
+   "t": 89.5179,
+   "hold": 0.05
+  },
+  {
+   "t": 90.2179,
+   "hold": 0.05
+  },
+  {
+   "t": 90.7179,
+   "hold": 0.05
+  },
+  {
+   "t": 91.4179,
+   "hold": 0.05
+  },
+  {
+   "t": 94.6098,
+   "hold": 0.05
+  },
+  {
+   "t": 95.1098,
+   "hold": 0.05
+  },
+  {
+   "t": 95.8098,
+   "hold": 0.05
+  },
+  {
+   "t": 96.4098,
+   "hold": 0.05
+  },
+  {
+   "t": 96.9098,
+   "hold": 0.05
+  }
+ ],
+ "outro": 1
+}

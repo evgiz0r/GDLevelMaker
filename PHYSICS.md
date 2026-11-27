@@ -14,16 +14,18 @@ re-run `tests/tas_progress.js`, `tests/mechanics.js`, `tools/mains.js status` (a
 
 | # | mismatch | harm | evidence | how to verify | needs |
 |---|---|---|---|---|---|
-| 1 | Ship rides ~0.5 unit low | Stereo Madness 328, Hexagon Force 141, xStep (user's clear dies 25.3% in sim), GDLM 44 died in game at x 6638 | plans + 2 real runs + probe | probe logs of GDLM 44 (per-step vy, per-frame y in the game vs sim through the 2nd ship) -> which step the heights part | data in hand (probe logs on the PC) |
-| 2 | One-step-late jumps | 48 of 94 GDLM 62 jumps start a step (4 ms) after the sim's; Clubstep 8 of 17 fresh presses | probe logs | split jumps by frame phase, press age, landing, input source (playback vs real); read GD's input queue in the decompile | data in hand |
+| ~~1~~ | ~~Ship rides ~0.5 unit low~~ FIXED 2026-11-26 by the jump snap and 32-bit x ("Jump snap, foot margin, 32-bit x"): Stereo Madness and Back On Track's plans now clear; most likely the "ship offset" was the x drift and missing stair snaps putting the ship a unit off (not proven per spot) | | | | |
+| ~~2~~ | ~~One-step-late jumps~~ NOT A MISMATCH: the probe logs vy before the step's gravity; fresh jumps agree exactly (39 of 39). The real one was a jump on a button held through a landing (fixed, see "Landing jump and slopes from the probe logs") | | | | |
 | 3 | ~~x jumps +1 unit at a ceiling/floor jump~~ SETTLED 2026-11-26: GD's jump snap, in the sim ("Jump snap, foot margin, 32-bit x") | Clubstep step 1285; the stitch drift | probe diff | -- | -- |
 | 4 | Cube lands 4-21 ticks late (2026-11-26: the Stereo Madness, Polargeist and Dry Out plans now CLEAR with the snap + 10 margin; re-check the rest) | Polargeist, Dry Out, Can't Let Go, Jumper, Time Machine, Clutterfunk plans | plans | probe log of a landing-heavy main level vs `tas_why` | data in hand, else game |
-| 5 | Pink orb / pink pad too strong or low | Theory of Everything 1 and 2 (lv12 33, lv18 105), lab 60 launch 0.5-0.63 vs sim 0.72, GDLM 60 33.9% | plans + lab video | probe playback of a pink-orb/pad lab: vy on the touch step | game |
-| 6 | Yellow / pink pad strengths unconfirmed (`sure:false`) | every auto brick (AUTO.md), 50 lab variants | decompile only | probe playback of `levels/lab/auto_lab.gdlvl`: vy on each pad's step | game (same batch as 5) |
-| 7 | Ship entry speed (0.5 vs 0.25 of a falling vy) | Dry Out +64, Can't Let Go +118 blocks in plans, but user runs say no | plans vs user runs disagree | probe playback of GDLM 67 stations 9-10 (pad-thrown ship entries, no input) | game (same batch) |
+| 4b | ~~**Slopes**~~ FIXED 2026-11-26 (GDLM 52's climb matches the game to 0.05 units through the top and the launch; Fingerdash's plan 295 -> 300; see "Landing jump and slopes from the probe logs"). Still unmeasured: the launch at other speeds, from a 2:1 slope in our logs, and from ship/ball | every slope | probe log | done | done |
+| 4c | Slopes in other modes and frames: a mini ship against a 22-degree slope turned 90 degrees (Bloodbath 10565740 dies at block 85.5) and an upside-down dual wave sliding on the floor into a slope, put under it below the ground (Problematic 7116121, block ~321); from the demons thread, DIFFICULTY.md "Community demons" | 2 community demons | community solves | probe log of a slope lab (ship, wave, upside down, turned) | needs the game |
+| 5 | Pink orb / pink pad too strong or low (2026-11-26: ToE's first parting is NOT the orb but a flipped cube pushed onto a block, see "The user's ToE / ToE2 / Hexagon Force / Deadlocked runs") | Theory of Everything 1 and 2 (lv12 33, lv18 105), lab 60 launch 0.5-0.63 vs sim 0.72, GDLM 60 33.9% | plans + lab video | probe playback of a pink-orb/pad lab: vy on the touch step | game |
+| 6 | Pink pad strength unconfirmed (`sure:false`). **Yellow pad CONFIRMED 2026-11-26**: the user's "auto play area" run (probe log, 51 cube + 18 ship pad launches) gives vy 16.000 exactly, as the sim | pink-pad auto bricks | decompile only | probe playback of `levels/lab/auto_lab.gdlvl`: vy on each pink pad's step | game (same batch as 5) |
+| 7 | Ship entry speed (0.5 vs 0.25 of a falling vy) (2026-11-26: ship -> UFO is 0.25, measured; cube -> ship still open) | Dry Out +64, Can't Let Go +118 blocks in plans, but user runs say no | plans vs user runs disagree | probe playback of GDLM 67 stations 9-10 (pad-thrown ship entries, no input) | game (same batch) |
 | 8 | Rotated gameplay tap timing (spider taps 2-3 ticks early) | Dash (ratchet 22 at 75) | plan | tools/tas_trace.js on lv22 at the turn | data in hand |
 | 9 | Clutterfunk pad on a hanging block not reached | user's clear dies 3.5% in sim | 1 run | probe playback of the route there / tas_why lv11 | data in hand, else game |
-| 10 | Teleport at 45 degrees moves less than the game | lab 60 | lab video | probe playback of a teleport lab | game (same batch) |
+| 10 | Teleport at 45 degrees moves less than the game (2026-11-26: a portal at -53 degrees moves the FULL key 54, Deadlocked probe log; in the sim) | lab 60 | lab video | probe playback of a teleport lab | game (same batch) |
 | 11 | Upside-down cube dies hitting the ground hard | GDLM 67 green orb 3 of 4 | lab video | needs the green orb's throw first: probe log of the lab | game (same batch) |
 | 12 | GDLM 52 dies in game at x 10765 | one of our levels | probe playback 2026-11-25 | `probe.js result` on its log | data in hand |
 | 13 | Back On Track ship ~1 block high after a slide | plan 493 | plan | probe after 1 | after 1 |
@@ -50,9 +52,9 @@ GD-2.2081-Decompiled, gdsolver/gdsolver (MIT; measured constants, notes in `dp/s
 OpenGD (2.1 hitboxes, via `tools/import_opengd.js`). Plans: copy gdsolver's `data/solution_lv*_dp.txt`
 to `local/gdsolver/` (shared local folder, never committed).
 
-A plan's tick t is our step t-1 (`tools/tas.js` shifts it). Plans reach, in blocks (2026-11-22):
-1: 328, 2: 493, 3: 909, 4: 415, 5: 175, 6: 303, 7: 210, 8: 333, 9: 382, 10: 167, 11: 288, 12: 33,
-13: 116, 14: 30, 15: 267, 16: 141, 17: 295, 18: 105, 19: 100, 20: 32, 21: 54, 22: 81.
+A plan's tick t is our step t-1 (`tools/tas.js` shifts it). Plans reach, in blocks (2026-11-26, after the probe-log
+fixes): 1-4 clear, 5: 176, 6: 490, 7: 231, 8: 363, 9: 382, 10: 320, 11: 295, 12: 33, 13: 142, 14: 30, 15: 267, 16: 141,
+17: 295, 18: 123, 19: 100, 20: 32, 21: 54, 22: 75 (tests/tas_progress.js keeps them).
 
 ## Modes
 
@@ -228,7 +230,27 @@ air and released before the landing does NOTHING, however close to the landing.
   a tap released 14 ticks before landing does not jump; a press held through does; one released on the first grounded
   tick still does.
 
-## Upside-down cube and the ground (2026-11-24): OPEN, not in the sim
+## Upside-down cube and the ground (2026-11-24): in the sim since 2026-11-26 (vy < -4 kills; the cut is a guess)
+
+The robot too (2026-11-26): the auto lab v12 probe log, tick 4742, a flipped robot at vy -7.27 dies touching the ground with
+no object, where the sim had it land; lib/physics.js now applies the same cut to the robot. Ball, spider, UFO: not seen.
+A flipped robot dies at ANY speed into the ground (2026-11-26, auto beat 2 v3's probe log, tick 3540): a flipped mini robot,
+thrown down by a flipped yellow pad, comes down at vy -1.94 and the game kills it (no object); the sim at the -4 cut had it touch
+and turn. The cube's soft touch in GDLM 67 (~-1.7) lived, so the robot has no cut (GDLM_FLIP_ROBOT=old = the cut). The game's
+path and the sim's match at every logged row up to that tick. A slow flipped cube between -1.7 and -4: not seen.
+
+The released ship upside down (2026-11-26, auto lab v13 probe log, tick 17297): after a gravity portal a flipped ship at
+vy -1.22 pulls 0.069 a tick (0.8, the falling factor), not 0.103 (1.2): the falling threshold is mirrored upside down, as for
+the UFO. **That is GD 2.2's level setting "Fix Gravity Bug"**, not a general rule: with it, PlayerObject::playerIsFallingBugged
+tests -2g < vy upside down instead of 2g < vy (gdsolver dp/upd.hpp fallingBugged, PlayerObject +0x561; their mklevel.py
+saw the same 0.069 vs 0.103 split between a rig with the kA31..kA45 flags and the official levels). Six logs of levels
+without the flag (Evgeni's ToE2, Hexagon Force, Deadlocked runs, the auto play area; ~2000 released flipped-ship ticks,
+both sizes) all pull 1.2 below 2g; the v10 / v13 lab levels carry our DEFAULT_HEADER with the flags on and pull 0.8.
+So the world gets `fixGrav` from the header and only then the ship (held or released) and the UFO mirror the threshold
+(`GDLM_FIXGRAV=0|1` forces it; `GDLM_SHIP_FLIP=old`, `GDLM_UFO_FLIP=old` turn the mirror off). The KEY is ASSUMED to be
+kA32 (GD's level-string docs, from memory): every other kA flag our header writes would fit these logs as well. To pin it,
+a lab pair of one flipped-ship station with only kA32 differing. Ungated, the mirror broke ToE2 attempts 1-2 (the sim
+died at 3224 and 8401 instead of 4069 and 8403).
 
 GDLM 67's green orb station (18-58-15.mkv) throws the cube down with gravity flipped; it then meets the flat floor head
 first. The game: attempts 58.2, 98.4 and 158.3 burst on the floor (no hazard near, frames 68.45-68.70 and framecheck's
@@ -675,6 +697,111 @@ Open: plan 19 (Geometrical Dominator) 100 -> 91: its robot tops out 1.6 units un
 old 15 margin let it land on -- the robot jump is checked only by plans. Cycles: the sim lands an upside-down cube on a
 block bottom 2 steps before the game (step 1036; both snap). The y sections (`shouldUseYSection` levels) are not modelled in
 the order. Debug: `GDLM_SNAP=0` etc. above; `node tools/probe.js diff <n>` for a log, `node tools/tas.js <n>` for a plan.
+
+## Landing jump and slopes from the probe logs (2026-11-26; the physics thread)
+
+On top of "Jump snap, foot margin, 32-bit x" above. How to compare one step at a time: `node tools/probe_frames.js <log>
+<level> steps <from> <to>` (game and sim side by side; `jumps`: every cube jump fresh / held). **Game tick n's position =
+our `path[n-1]`** (positions change once a 60 fps frame); the logged vy is read before that step's gravity, so a fresh
+jump's 11.180 shows one tick before our 10.964 although both start on the same step: compare POSITIONS, not vy.
+- **A jump on a button held through the landing** goes the tick after the landing tick, and its first tick moves at the
+  full jump speed (no gravity yet): GDLM 62 step 11750, Clubstep 1110 match to 0.001 only so. A fresh press keeps gravity
+  on its first tick (39 of 39 fresh jumps exact). This replaces the "wait a tick after a ground landing" rule (EXP_LW,
+  `GDLM_LANDJUMP=old` for measuring): a held cube bounces 103 ticks to its first re-jump, then 105 a hop.
+- **Slopes**: the cube's foot sits on the slope at x + 15 tan(angle / 2) (6.213 on a 45-degree slope, 3.541 on a 2:1;
+  gdsolver's slopes.hpp, the same as GD's line under the centre + half / cos(angle)); it rides until that point passes the
+  slope's top; that tick GD holds it at the top with speed 0, and the tick after it launches like a pad (one tick of
+  gravity from 0, then vy 7.405 on a 45-degree slope, 3.999 on a 2:1, at 1x; other slopes and speeds interpolated,
+  UNMEASURED). GDLM 52 steps 805-837 match to 0.05 units; `GDLM_SLOPE=old` = the old corner rule. Cube and wave only (the
+  launch: cube only): the wave gains in gdsolver's Fingerdash plan (295 -> 300, tried mode by mode) and in GDLM 44's wave
+  log (parting 1425 -> 1545); for the ball it closed Hexagon Force's ball part (block 221), and ship / UFO / robot / spider
+  change nothing in the plans, so they keep the corner rule until a probe log shows them on a slope.
+- **Yellow pad** 16.000 in cube and ship (the user's "auto play area" run): `sure` in lib/objects.js.
+- With the jump snap above plus these two: GDLM 62's whole 62 s playback matches the game in x and y at every frame,
+  Clubstep's first attempt (2445 steps) with no parting at all, GDLM 44's runs in x to the end; the 21 main-level playback
+  logs die on the same steps as without them (no level worse).
+- Still parting: GDLM 52 at step 5049 (0.5 unit low on a fall, cube), GDLM 44 v1 at 1545 (wave on a slope; the sim then
+  dies at 1528-1548 where the game lives: the game's wave flies up through two flipped 1338 slopes at x 1987 y 195 and
+  x 2017 y 165 that the sim holds solid -- check that local/tmp/h44v1.gdlvl is really the version played, then how GD
+  treats a flipped 1338). Data: the logs are in GD's save folder (`%LOCALAPPDATA%/GeometryDash/geode/mods/gdlm.probe/attempts`),
+  including ~120 of the user's own attempts on community levels (Sunrise Stroll, Altaria, Brillo III, chillblain
+  grace...) to check once those levels are fetched.
+
+### The user's ToE / ToE2 / Hexagon Force / Deadlocked runs (2026-11-26, second batch)
+
+Evgeni played the four on the PC (probe mod logging, 20 attempts; logs local only). Per-tick positions are in the log:
+`p[8], p[9]` are the player's x, y on EVERY tick (p[0], p[1] change once a frame) and `p[7]` is the speed factor
+(0.7 / 0.9 / 1.1 / 1.3 = 0.5x / 1x / 2x / 3x), so a speed change shows on its exact tick. What they fixed, each behind a
+switch for measuring:
+- **Speed portals have their own widths** (lib/objects.js): 2x 51, 3x 65 (both measured to the tick: ToE2 2575, Hexagon
+  2730, Deadlocked 3393), 0.5x 31-34 (ToE2 3460; OpenGD's 35 is too wide), 1x 33 and 4x 69 from OpenGD, unmeasured. The old
+  common 34x44 box changed speed 6-15 units late.
+- **The orb flag outlives a release by one tick** (`RING_KEEP`, `GDLM_RING_KEEP=0` = old): Deadlocked 2669 takes a blue orb
+  the tick after the button came up, with the plain box. (A turned-square test for the spinning cube fitted that orb but
+  took the one at 1850 a tick early: rejected.)
+- **Turned portals touch by their turned box** (`touchingP`, `GDLM_PORTAL_OBB=0`): Deadlocked 858, a cube portal at 53
+  degrees. **A teleport turned -53 degrees moves the player by the full key 54** (169), not 169 cos 53 (`GDLM_TP_COS=1` =
+  old): Deadlocked 1745-1749.
+- **The ship under a ceiling slope** (`slopeBottom(..., gd)`, `GDLM_CEILSLOPE=old`): it slides 15 / cos(angle) under the
+  line (the floor's foot rule, mirrored) with vy 0, is held level with the low end on the tick its point passes it, and the
+  tick after is launched down: vy -3.729 off a 2:1 slope at 2x (Hexagon Force 3010-3079; other slopes / speeds scaled like
+  the floor launch, UNMEASURED). The block that carries on from the low end does not push it down meanwhile.
+- **Ship -> UFO keeps a quarter of vy** (`GDLM_FLY2FLY=old`): ToE2 3452, 2.195 -> 0.549 (GD halves leaving one flying mode
+  and again entering the next). Other flying pairs UNMEASURED.
+
+Result: Deadlocked's attempt matches the game to its death (3511 steps); both Hexagon Force attempts and ToE2's
+8,400-step attempt die on the game's death step; on the 21 main playback logs Electrodynamix and Deadlocked now die on the
+game's step, none got worse; the plan ratchet rose (15: 267 -> 360, 17: 300 -> 311).
+
+Still open from these runs:
+- **ToE 1309** (queue 5 was the guess; it is not the pink orb): after a blue pad the upside-down cube rises with a 30x16
+  block (66, top y 70) under its head side; the game pushes it ONTO the block (y = 70 + 15, on the ground, vy 0) where the
+  sim's inner box dies. The cube's bottom was 11.4 under the block top, more than the 10-unit foot margin.
+- **ToE2 3929**: a UFO dies on a tiny turned spike piece (720, -35 degrees) whose 2.4x3.2 box (OpenGD) misses it by 0.7;
+  the game's box is a bit bigger (world height 2.7-3.35 at that angle). One sample.
+- Deadlocked 3394: the wave and 3x portals now match; the attempt's last 120 steps were not checked beyond the death step.
+
+### The auto beat lab log (2026-11-26, no presses)
+
+Evgeni's real-game run of `levels/lab/auto_beat.gdlvl` (auto thread; log on the PC, local\tmp\autobeat_probe\). With these
+five rules the sim matches it on every tick to the game's death (3793 steps, ~30 pads, portals, slopes, mini, spider):
+- **A mini cube on a slope** sits by its own half (9 + 9 tan(angle/2) over the line, `slopeTop(..., ph)`), and its launch
+  off a 45-degree top is 3.086 at 1x, 0.417 of the full 7.405 (`GDLM_MINI_LAUNCH=old`; 2:1 and other speeds UNMEASURED).
+- **A cube falling onto a falling slope with its foot point before the high end** lands on that end's level, is held two
+  ticks (vy 0), then falls off with gravity and lands on the line (`GDLM_DESC_TOP=0`; ticks 2612-2619).
+- **Over a falling slope's high end the landing margin is a block top's 10**, not 17 (`GDLM_SLOPE_END=old`): a spider
+  15.7 under the end falls on and dies (tick 3786).
+- **A cube on the ground taking a gravity portal keeps that tick's gravity step** (moved down by it, vy halved by the
+  flip): -0.024 at the next frame, then 0.108 up (`GDLM_FLIPGND=old`; tick 2675).
+- **A pad touched on the tick the cube lands on a block is taken first**: the landing never snaps it up (0.55 inside the
+  block's top, then 16 up; `GDLM_PADLAND=old`; tick 3283).
+The auto builder (tools/autobeat.js) places by the sim, so its builds change with these: tests/autobeat.js needs a rebuild
+by the auto thread (Jumper seed 2 and round 9 fail on the new physics).
+
+Lab v10 log (2026-11-26, `/mnt/project-files/auto_bricks/probe/`, auto thread; UFO stretch with flips, mini and pads): with
+these four UFO rules the sim matches every tick to the game's spike death (881 steps):
+- **(Only with "Fix Gravity Bug" on, see "Upside-down cube and the ground" below the robot note.) A flipped UFO's gravity switch is the mirror of the upright one** (0.086 while player-frame vy <= +2g, 0.129 above), not
+  GD's world-frame ship rule: from rest after a UFO + gravity-up portal pair the game pulls 0.086 a tick, the old rule 0.129
+  (`GDLM_UFO_FLIP=old`; ticks 345-360).
+- **A UFO's yellow pad leaves no boost; its red pad keeps it** (corrected by the v11 log below): yellow 16 is 8.000 the next tick
+  (mini 12.8 -> 9.412, the UFO's cap), a flipped red pad's -9.6 and a mini red pad's 12.544 keep their speed
+  (`GDLM_UFO_PADCAP=old`; v10 ticks 432, 851, 388; v11 tick 851). Pink pads and ship pads not measured here.
+- **A mini player that grows into the band's floor or roof stops dead** there (vy 0, not only speed into it):
+  `GDLM_GROW_STOP=old`; tick 682.
+- **A flipped UFO whose 9x9 kill box meets a block with its centre within 4.5 under the block's top is set on that top**
+  (lifted 11.3, vy 0) and lives: `GDLM_FLY_LIFT=old`; tick 807. ONE sample (a mini UFO): which modes, sizes and faces get
+  it is open.
+None of the four moves the 21 main logs, Evgeni's ToE / ToE2 / Hexagon / Deadlocked runs or the tas ratchet.
+
+Lab v11 log (2026-11-26, same folder, 1057 steps): now matches every tick to the game's death, with:
+- **A UFO rides a floor slope as the cube does**: GD's foot rule with its own half (a mini UFO's centre 9 + 9 tan(22.5) over a
+  45-degree line, so it starts climbing ~5 units later than the old corner rule), held a tick at the top, then launched --
+  5.554 for a mini UFO at 1x on 45 degrees (0.750 of the cube's 7.405); a normal UFO's launch is UNMEASURED (the cube's is
+  used). On the launch tick, and when a pad launches a UFO sitting on a block, it keeps that tick's gravity step (0.023 under
+  the top) instead of the block's snap (`GDLM_UFO_SLOPE=old`, `GDLM_PADLAND=old`; ticks 736-760, 851).
+- **An upside-down cube that hits the ground hard dies** (no object): a flipped mini cube at vy -13.6, tick 1057. The cut is
+  vy < -4, a guess inside GDLM 67's band (~-6 dies, ~-1.7 lives; section "Upside-down cube and the ground")
+  (`GDLM_FLIP_GROUND=old`).
 
 ## Fidelity: measuring the sim against the user's game (goal: "as close as possible")
 

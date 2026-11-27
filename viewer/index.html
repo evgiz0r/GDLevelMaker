@@ -756,9 +756,10 @@ function workRender() {
   h += `<h3>Builds · ${d.wip.length}</h3>` + d.wip.sort((a, b) => (!!b.waiting - !!a.waiting) || String(b.updated || "").localeCompare(String(a.updated || ""))).map(l =>
     `<div class="wkRow" data-file="${esc(l.file)}"><span class="nm">${esc(l.name)}</span><span class="pkBadge">${esc(l.session || "")}</span>${l.stage ? `<span class="pkBadge" style="background:#2b3a66;color:#cfe0ff">stage: ${esc(l.stage)}</span>` : ""}${l.waiting ? `<span class="pkBadge wip">waits for your ✓ on ${esc(l.waiting)}</span>` : ""}<span class="muted">${ago(l.updated || l.made)}</span></div>`).join("");
   const q = d.heavy;
-  h += `<h3>The PC's queue</h3>` + (q && q.slots ? `<div class="muted">${q.slots} slot${q.slots === 1 ? "" : "s"} now${q.game ? " (the game runs: one)" : q.slots === 1 ? " (2 from " + q.twoSlotsAt + " MB free)" : ""} · ${q.freeMB} MB free</div>` : "") + (!q ? "<p class='muted'>not readable</p>" : (q.holders.length ? q.holders.map(x => `<div>▶ ${x.lane ? "⚡ " : ""}<b>${esc(x.cmd.slice(0, 90))}</b> <span class="muted">${esc(x.session)} · ${x.min} min in · ${x.left == null ? "time not measured" : x.over ? "past its estimate (" + esc(x.basis) + ")" : "~" + x.left + " min left (" + esc(x.basis) + ")"}</span></div>`).join("") : "<p class='muted'>nothing running</p>") +
+  h += `<h3>The PC's queue</h3>` + (q && q.slots ? `<div class="muted">${q.slots} slot${q.slots === 1 ? "" : "s"} now${q.game ? " (the game runs: one)" : q.slots === 1 ? " (2 from " + q.twoSlotsAt + " MB free)" : ""} · ${q.freeMB} MB free</div>` : "") + (!q ? "<p class='muted'>not readable</p>" : (q.holders.length ? q.holders.map(x => `<div>▶ ${x.lane ? "⚡ " : ""}<b>${esc(x.cmd.slice(0, 90))}</b> <span class="muted">${esc(x.session)} · ${x.min} min in · ${x.runaway ? `<b style="color:#ff8080">!!! runaway: ${x.x}x its estimate (${esc(x.basis)})</b>` : x.left == null ? "time not measured" : x.over ? "past its estimate (" + esc(x.basis) + ")" : "~" + x.left + " min left (" + esc(x.basis) + ")"}</span></div>`).join("") : "<p class='muted'>nothing running</p>") +
     q.waiting.map((x, i) => `<div class="muted">${i + 1}. ${x.fast ? "⚡ " : ""}${esc(x.cmd.slice(0, 90))} · ${esc(x.session)}${x.prio && x.prio !== "normal" ? " · " + esc(x.prio) : ""} · ${x.est == null ? "not measured" : "~" + (x.secs < 90 ? x.secs + " s" : x.est + " min") + " (" + esc(x.basis) + ")"}</div>`).join("") + (q.free ? `<div class="muted">${q.free} MB free</div>` : "") +
     // estimate vs actual of the last finished jobs, so drift shows (tools/jobtime.js recent)
+    ((q.runaways || []).length ? `<h3 style="color:#ff8080">Runaway jobs (over 10x their estimate, last 24 h)</h3>` + q.runaways.map(r => `<div><b style="color:#ff8080">${esc(r.tool)} ${esc(r.level || "")}</b> <span class="muted">took ${Math.round(r.secs / 60)} min = ${r.x}x its estimate · ${esc(r.session || "")} · ${ago(r.at)}</span></div>`).join("") : "") +
     ((q.recent || []).length ? `<h3>Finished: estimate vs actual</h3>` + q.recent.map(r => { const f = s => s < 90 ? Math.round(s) + " s" : Math.round(s / 60) + " min", off = r.est && (r.secs > 2 * r.est || r.secs < r.est / 2);
       return `<div class="muted">${esc(r.tool)} ${esc(r.level || "")}${(r.flags || []).length ? " " + esc(r.flags.join(" ")) : ""} · took <b>${f(r.secs)}</b>${r.ok === false ? " (failed)" : ""} · estimate ${r.est ? f(r.est) : "none"}${off ? ` <b style="color:#ffb3b3">off ${(r.secs / r.est).toFixed(1)}x</b>` : ""} · ${ago(r.at)}</div>`; }).join("") : ""));
   el.innerHTML = h;
@@ -2069,19 +2070,32 @@ function draw() {
     // the ground goes over anything below it
     // big scaled pieces (a painting's shapes, DECOART.md) reach further than their centre: keep them until their extent leaves
     const reach = o => { const p = o.props; if (!p) return 90; const s = +(p[32] || 1) * Math.max(+(p[128] || 1), +(p[129] || 1)); return s > 1.5 ? 90 + 30 * s * scale : 90; };
-    const on = objsNow.filter(o => { const r = reach(o); return sx(o.x) > -r && sx(o.x) < W + r; }), blocks = [];
+    const on = objsNow.filter(o => { const r = reach(o); return sx(o.x) > -r && sx(o.x) < W + r; }), blocks = [], front = [];
     for (const o of on) {
       const a = GD.LOOK.objAlpha(o, LS.alpha); if (a <= 0.01) continue;
       if (GD.LOOK.isSkin(o.id)) blocks.push([o, a]);
-      else if (GD.objInfo(o.id).kind === "decoration") { ctx.globalAlpha = a * (GD.LOOK.isFlat(o.id) ? 1 : 0.85); local(o, () => GD.LOOK.drawDeco(ctx, o, LS)); }
+      else if (GD.objInfo(o.id).kind === "decoration") {
+        // deco on a front layer (key 24 >= 5: T1..T4) goes over the blocks, as in the game (a painted block body, DECOART.md)
+        if (o.props && +o.props[24] >= 5) { front.push([o, a]); continue; }
+        ctx.globalAlpha = a * (GD.LOOK.isFlat(o.id) ? 1 : 0.85); local(o, () => GD.LOOK.drawDeco(ctx, o, LS)); }
     }
     ctx.globalAlpha = 1;
     GD.LOOK.drawBlocks(ctx, view, LS, blocks, local);
+    // slopes are play blocks too: front-layer deco (T1..) covers them as in the game (a dressed slope, tools/structdesign.js)
+    for (const o of on) if (GD.objInfo(o.id).kind === "slope") { const a = GD.LOOK.objAlpha(o, LS.alpha); if (a > 0.01) { ctx.globalAlpha = a; drawObj(o); ctx.globalAlpha = 1; ctx.shadowBlur = 0; } }
+    front.sort((p, q) => (+p[0].props[24] - +q[0].props[24]) || ((+p[0].props[25] || 0) - (+q[0].props[25] || 0)));
+    // hazards and the rest sit on T1 at order 2 (GD's default for a spike): front deco above that (a later layer, or T1
+    // above order 2: a spike's inner design, HAZARDS.md "Dressing one hazard") is drawn after them, the rest before
+    const overHaz = o => +o.props[24] > 5 || (+o.props[24] === 5 && (+o.props[25] || 0) > 2);
+    for (const [o, a] of front) if (!overHaz(o)) { ctx.globalAlpha = a * (GD.LOOK.isFlat(o.id) ? 1 : 0.85); local(o, () => GD.LOOK.drawDeco(ctx, o, LS)); }
+    ctx.globalAlpha = 1;
     for (const o of on) {
-      const d = GD.objInfo(o.id); if (GD.LOOK.isSkin(o.id) || d.kind === "decoration" || d.kind === "trigger") continue;
+      const d = GD.objInfo(o.id); if (GD.LOOK.isSkin(o.id) || d.kind === "decoration" || d.kind === "trigger" || d.kind === "slope") continue;
       const a = GD.LOOK.objAlpha(o, LS.alpha); if (a <= 0.01) continue;
       ctx.globalAlpha = a; drawObj(o); ctx.globalAlpha = 1; ctx.shadowBlur = 0;
     }
+    for (const [o, a] of front) if (overHaz(o)) { ctx.globalAlpha = a * (GD.LOOK.isFlat(o.id) ? 1 : 0.85); local(o, () => GD.LOOK.drawDeco(ctx, o, LS)); }
+    ctx.globalAlpha = 1;
     GD.LOOK.drawGround(ctx, view, LS);
   } else {
   // ground
@@ -2648,7 +2662,15 @@ async function commOpen(l) {
     const rec = GD.parseRecord(await gunzipB64(await (await fetch("/" + l.file, { cache: "no-store" })).text()));
     l.level = await gunzipB64(GD.getField(rec, "k4"));
     const header = l.level.split(";")[0], off = +((/(?:^|,)kA13,([-0-9.]+)/.exec(header) || [])[1] || 0), custom = GD.getField(rec, "k45");
-    l.song = custom && custom !== "0" ? { url: "/song/custom/" + custom + ".mp3", id: +custom, offset: off } : null;
+    // its song: a custom one (the PC fetches it the way GD does when it has no copy: serve.js POST /song/fetch), else
+    // the official song k8 (Evgeni, 2026-11-26: "cant hear song" -- a level on Stereo Madness's song had none)
+    if (custom && custom !== "0") {
+      try { await fetch("/song/fetch?id=" + encodeURIComponent(custom), { method: "POST" }); } catch (e) {}
+      l.song = { url: "/song/custom/" + custom + ".mp3", id: +custom, offset: off };
+    } else {
+      const name = GD.OFFICIAL_SONGS[+(GD.getField(rec, "k8") || 0)];
+      l.song = name ? { url: "/song/official/" + name + ".mp3", official: +(GD.getField(rec, "k8") || 0), offset: off } : null;
+    }
     if (!l.name || /^\d+$/.test(l.name)) l.name = GD.getField(rec, "k2") || l.name;
     return true;
   } catch (e) { notice("Could not open " + esc(l.name) + ": " + esc(e.message)); return false; }
@@ -2812,8 +2834,27 @@ function linkFind(q) {
 }
 function shortLink() { const l = ALL[pick.value]; if (!l || !L) return ""; const b = String(l.file || "").split(/[\\/]/).pop().replace(/\.(gdlvl|json)$/, "");
   return "#" + b + (l.version ? "--v" + l.version : "") + "--t" + (tick() / P.TPS).toFixed(1) + (L.ghost ? "--r" + L.ghost.row.id : ""); }
+// a link to an online level by ID that the PC's serve.js can download (local/community/<id>.gdlvl): the id match, or null
+function commFetchable(q) {
+  if (!q || q.fetched || !location.protocol.startsWith("http") || window.GD_PAGES || window.GD_PHONE) return null;
+  return /^local\/community\/(\d+)\.gdlvl$/.exec(q.file || "") || /^(\d{3,10})$/.exec(q.base || "");
+}
 function openLink(s) {
-  const q = parseLink(s), i = linkFind(q); if (i < 0) { if (q) notice("No level here for that link (" + esc(q.file || q.base) + ")."); return false; }
+  const q = parseLink(s), i = linkFind(q);
+  // a link to an online level this PC has no copy of (the work board links every level you played): download it, then open
+  const cid = i < 0 && commFetchable(q);
+  if (cid) {
+    notice(`Downloading level ${cid[1]} from GD's server…`, 0);
+    fetch("/community/fetch?id=" + cid[1], { method: "POST" }).then(r => r.json()).then(async r => {
+      if (!r.ok) return notice(`Could not download level ${cid[1]}: ${esc(r.error || "?")}`);
+      await loadWip(true); const n = document.getElementById("notice"); if (n) n.hidden = true;
+      const again = parseLink(s); again.file = r.file; again.fetched = true;
+      const j = linkFind(again); if (j < 0) return notice("Downloaded, but it is not in the list: press ⟳ refresh.");
+      pick.value = j; pick.wantT = again.t; pick.onchange();
+    }).catch(e => notice(`Could not download level ${cid[1]}: ${esc(e.message)}`));
+    return true;
+  }
+  if (i < 0) { if (q) notice("No level here for that link (" + esc(q.file || q.base) + ")."); return false; }
   const l = ALL[i];
   if (q.v && l.version && +l.version !== q.v) notice(`That link was for version ${q.v}; this is version ${l.version} (the newest here).`, 6000);
   const before = L; pick.value = i; pick.wantT = q.t; pick.onchange();
@@ -2930,7 +2971,7 @@ setInterval(() => { if (L && !playing) writeHash(); }, 1000);
   if (hashParams().get("embed")) return; // the parent page loads the level (viewer/polish.html)
   await loadWip(false); meLoad();
   if (labHash()) labOpen(labHash());
-  else if (location.hash.length > 1 && !hashParams().get("embed") && linkFind(parseLink(location.hash)) >= 0) openLink(location.hash);
+  else if (location.hash.length > 1 && !hashParams().get("embed") && (linkFind(parseLink(location.hash)) >= 0 || commFetchable(parseLink(location.hash)))) openLink(location.hash);
   else if (ALL.length) { pick.value = 0; pick.onchange(); }
   else if (window.GD_PAGES) {   // the public site with no level published yet (knowledge/public_levels.json is opt-in)
     document.getElementById("summary").innerHTML = "<b>First levels coming soon.</b><br><span class='muted'>Geometry Dash levels made by Claude will appear here once one is good enough to share.</span>";
@@ -3024,7 +3065,7 @@ async function shootRun() {
   // spots as % of the level (tools/compare_frames.js): the moment the run passes that share of the level's length
   if (job.pcts) job.times = job.pcts.map(pc => { const x = L.world.endX * pc / 100; let k = L.path.findIndex(q => q.x >= x); if (k < 0) k = L.path.length - 1; return k / P.TPS; });
   const post = (name, url) => fetch("/shoot/" + SHOOT + "/" + name, { method: "POST", body: url });
-  if (job.map) { await post("000.png", await mapRender(job)); return post("done", "1"); }
+  if (job.map) { await post("000.png", await mapRender(job)); if (window.MAPGEO) await post("geo.json", JSON.stringify(window.MAPGEO)); return post("done", "1"); }
   if (job.video) return shootVideo(job, post);
   for (let i = 0; i < job.times.length; i++) {
     t = Math.max(0, Math.min(job.times[i], (L.path.length - 1) / P.TPS)); playing = false;
@@ -3093,12 +3134,14 @@ async function mapRender(job) {
   let minY = 0, maxY = 120;
   for (const o of L.level.objects) { if (GD.objInfo(o.id).kind === "trigger") continue; if (o.y < minY) minY = o.y; if (o.y > maxY) maxY = o.y; }
   for (const p of path) if (p.y > maxY) maxY = p.y;
-  maxY = Math.min(maxY + 60, Math.max(minY, 0) + 30 * 30); minY = Math.max(minY - 30, -600);
+  maxY = Math.min(maxY + 60, Math.max(minY, 0) + 30 * 150);   // levels that climb by sections reach far above the floor minY = Math.max(minY - 30, -600);
   const rows = job.rows || Math.max(1, Math.ceil(endX * S / 2400)), rowU = Math.ceil(endX / rows / 30) * 30;
   const GROUND = 45, camY0 = Math.min(0, minY);
   const rowW = Math.round(rowU * S), sceneH = Math.round((maxY - camY0 + GROUND) * S);
   const HEAD = 70, TOP = 40, BOT = 32, GAP = 14, rowH = TOP + sceneH + BOT;
   const out = document.createElement("canvas"); out.width = rowW + 20; out.height = HEAD + rows * (rowH + GAP);
+  // where each block lands on the picture (tools/levelmap.js writes it beside the map: pins from tools/report.js, the marks page)
+  window.MAPGEO = { rows, rowU, S, HEAD, TOP, rowH, GAP, sceneH, GROUND, camY0, width: out.width, height: out.height };
   const X = out.getContext("2d"); X.fillStyle = "#0d0b18"; X.fillRect(0, 0, out.width, out.height);
   // the scene, chunk by chunk
   const CH = 600;
@@ -3179,6 +3222,18 @@ async function mapRender(job) {
   // section names
   X.font = "bold 15px system-ui"; X.textAlign = "left";
   for (const sc of job.sections || []) { const x = sc.from * 30, r = rowOf(x); X.fillStyle = "#9fd"; X.fillText("▸ " + sc.name, mx(x) + 3, HEAD + r * (rowH + GAP) + TOP + 16); }
+  // pieces (tools/pieces.js): a bracket along the bottom of the scene per piece, its ends where it joins the next
+  const PCOL = ["#ffb347", "#6fd3ff", "#c7f464", "#ff7ab6"];
+  X.font = "bold 12px system-ui"; X.textAlign = "left";
+  (job.pieces || []).forEach((pc, i) => {
+    const a = pc.x0 * 30, b = pc.x1 * 30, col = PCOL[i % PCOL.length];
+    for (let r = rowOf(a); r <= rowOf(Math.max(a, b - 1)); r++) {
+      const y0 = HEAD + r * (rowH + GAP) + TOP, yb = y0 + sceneH - 6 - (i % 2) * 10, xa = 10 + (Math.max(a, r * rowU) - r * rowU) * S, xb = 10 + (Math.min(b, (r + 1) * rowU) - r * rowU) * S;
+      X.fillStyle = col; X.globalAlpha = 0.10; X.fillRect(xa, y0, xb - xa, sceneH); X.globalAlpha = 1;
+      X.strokeStyle = col; X.lineWidth = 3; X.beginPath(); X.moveTo(xa, yb - 8); X.lineTo(xa, yb); X.lineTo(xb, yb); X.lineTo(xb, yb - 8); X.stroke();
+      if (r === rowOf(a)) { X.fillStyle = "rgba(0,0,0,.7)"; const lb = `${i + 1} ${pc.name}`; X.fillRect(xa + 2, yb - 24, X.measureText(lb).width + 6, 15); X.fillStyle = col; X.fillText(lb, xa + 5, yb - 12); }
+    }
+  });
   // seconds and % ticks under each row
   X.font = "11px system-ui"; X.textAlign = "center";
   const total = lastK / P.TPS;

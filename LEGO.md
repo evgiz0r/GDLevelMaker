@@ -506,10 +506,14 @@ after a build (not hooked into make.js yet).
 
 ## Open
 
+- **Generated bricks** (2026-11-26, BRICKGEN.md): our own ship / wave / ball / ufo bricks made presses-first and judged against the official family numbers here; cube, robot, spider next.
+
 - Compose does not place fly pieces from the catalogue yet: ship / wave / swing sections still use ship-tunnel /
   wave-zigzag / swing-run. Next: a section's path drawn as knots (from the song: rises on builds, drops on drops), then
   wrapped per section with the variety rule picking a wrapper the level has not used lately.
-- The variety rule as a score.js gate (WARN first) and in compose's picker.
+- The variety rule: a score.js gate since 2026-11-26 ("brick variety", WARN when over 44% of a level's pieces repeat a
+  signature from the 4 before; official median 17%, p90 44%; ours 53% median, GDLM 44 33%, GDLM 73 37%). Still open: in
+  compose's / brickpick's picker as a ranking penalty.
 - Cube pieces mined from official levels are classified, but not yet turned into parametric pieces (steps and pits are
   the official cube's bread and butter: pillarRun / pitRun in structures.js are close).
 - Pieces of the user's sketches: their routes come from the drawn midline; once the layout fitter (lib/sketchfit.js)
@@ -520,3 +524,45 @@ after a build (not hooked into make.js yet).
   library pieces show there after `node tools/structures.js build lego-...` for each.
 - Official pieces are shown only on the PC page (local/lego/page/index.html): RobTop's layouts stay local. The phone
   page has ours, the sketches and the official numbers.
+
+## Clicks per second
+
+Every brick carries `cps` (presses / its seconds) and `cpsPeak` (1 / the shortest gap between two presses), from tools/lego.js; the catalogue shows both and sorts by them (most / fewest clicks per second), next to difficulty (the timing windows). Measured 2026-11-26 over 3398 bricks: median 1.68 cps; official by mode (median / 90th pct) cube 1.89 / 2.54, ship 1.76 / 2.56, ball 2.06 / 3.09, UFO 2.38 / 3.57, robot 1.76 / 2.74, spider 2.36 / 3.03, wave 3.03 / 7.69 (wave counts holds and releases); ours median 1.12 vs official 1.91 (calmer).
+
+By the level's tier (2026-11-26, bricks with 1+ click; official by in-game tier): median cps Easy 1.85, Normal 1.96, Hard 1.98, Harder 1.96, Insane 1.92, Demon 2.25; 90th pct 2.41 / 2.41 / 2.36 / 2.86 / 2.86 / 4.17; ours 1.19 / 2.00. So a typical brick clicks at the same rate at every tier: harder levels differ in tight windows and a few dense bursts, not in average cps. Our bricks are sparser than even Easy. Open: the brick `diff` is ~0.01 almost everywhere (not informative); use `tightMs` (tightest window) per brick instead, and measure it for every brick.
+
+## Bricks from levels we do not clear
+
+(2026-11-26: the community batch cleared 4 of 28 levels, so most of its time gave no bricks.) A community level our solver does not beat still gives bricks: tools/lego.js communitySources takes the furthest of its saved run (`c<id>.json`, dieX) and its checkpoint (`c<id>.part.json`), raw solver inputs (no human route: that needs a clear), `routeKind: "partial"`, if it gets 20+ blocks in; mine() keeps only bricks and pieces ending 3 blocks before the replay's death. difficulty_solve cuts every community level after its solve; lego_collect also cuts after a solve it stopped at the time limit. Re-cut every level already tried: `node tools/lego.js mine community`. Checked on a test copy of GDLM 73 cut to 60% of its route: 49 pieces, all ending by block 535 (death at 550).
+
+## The section picker: a beam search over a whole section (2026-11-26, GDLM 44 v6)
+
+`tools/brickpick.js` `pickSection(o)` replaces `pick()`'s greedy one-brick-at-a-time choice for whole sections (Evgeni on
+v4/v5: gaps too long, boring pieces, pieces of one section should be "somewhat same balance, and probably close cps"). It
+keeps the 60 best chains of brick x run-up (2-4 blocks) per step, one per (column, last brick), and scores a chain by its
+presses on the song's hits (as `pick()`), minus 1.5 x a piece's CPS distance from the chain's mean so far, 4 for a brick
+already used in the level, 1 for the same first tag twice, 0.15 per run-up block, 2 for dead air, and 0.4 per block left
+empty before the section's end. Against `pick()` on Hellgate's sections (same hits): cube 69% -> 82% and 81% -> 85% of
+presses on a hit, CPS spread 0.11-0.13, tails under 3 blocks; flying sections identical (only 12 ship / 9 wave bricks).
+Each run takes 10-260 ms. Open: ball sections score lower (only 4 ball bricks, the tail penalty takes the dense one); the
+library at 2x / 3x is nearly empty (5 cube bricks), so fast sections still need new bricks before a level can use them.
+
+Its picks' presses (level seconds) are the seed of the solve: `tools/seedsolve.js` replays them and searches only where
+they die (spec key `seedPresses`, make.js / check.js try it before a full solve).
+
+### Clicks and timing by tier, all 4298 bricks (2026-11-26, after the community re-cut)
+Numbers in code: `node tools/brickstats.js [--write]` (-> knowledge/brick_tiers.json); tools/tempo.js (score.js "tempo") warns when a level clicks less than the median Easy brick.
+
+| tier | bricks (levels) | no-click | cps p10 / median / p90 | tightest window median / p10 | main modes |
+|---|---|---|---|---|---|
+| Easy | 240 (6) | 13% | 0.92 / 1.82 / 2.41 | 221 / 142 ms | cube 72%, ship 26% |
+| Normal | 205 (2) | 8% | 1.16 / 1.96 / 2.41 | 238 / 150 ms | cube 83%, ship 17% |
+| Hard | 285 (5) | 31% | 1.12 / 1.96 / 2.35 | 221 / 108 ms | cube 79%, ship 15% |
+| Harder | 884 (17) | 14% | 1.10 / 1.89 / 2.74 | 208 / 100 ms | cube 44%, ship 26%, wave 8%, robot 8% |
+| Insane | 1225 (18) | 6% | 1.23 / 2.03 / 3.23 | 200 / 88 ms | cube 43%, ship 25%, ball 17%, UFO 8% |
+| Demon | 643 (28) | 7% | 1.32 / 2.15 / 3.57 | 179 / 67 ms | cube 42%, ship 21%, ball 13%, wave 13% |
+| ours | 732 (28) | 14% | 0.58 / 1.19 / 2.00 | 242 / 133 ms | cube 61%, ship 15%, wave 10% |
+
+Tiers differ by precision (p10 window 142 -> 67 ms) and mode mix (cube ~80% up to Hard, ~43% from Harder), hardly by cps (median 1.8 -> 2.15; only the busy p90 grows). Ours: calmer than Easy (median 1.19) with the widest windows, so too much empty run between clicks. Official + community: 61% of bricks at 1.5-2.5 cps, 3% above 4 (wave holds); 49% of tightest windows 150-250 ms, 6% under 75 ms. Caveats: Normal is 2 levels; Hard's no-click share is mostly one community level; partial routes cover only a level's start.
+
+**Brick difficulty: use `tightMs`, not `diff`** (2026-11-26). 89% of official bricks and 80% of ours carry a measured tightest window; their summed `diff` (-log10 hit chance per press) is ~0.01 on most, since a press with a 150+ ms window costs almost nothing, so `diff` cannot order bricks. The catalogue's easiest / hardest sort now goes by `tightMs` (diff only breaks ties). A picker that scores difficulty should do the same.

@@ -6,7 +6,7 @@
 //   vector(scene)  -> the same items straight as GD shapes (approach B, clean vector: ridges as squares + right
 //                     triangles, glows as stacked see-through disks, the sky as bands),
 // so the two approaches show the same picture in two styles. Pure node, no dependencies.
-// Scenes: hellgate (dusk over the gates of hell), list: node tools/paintscene.js --list
+// Scenes: hellgate (dusk over the gates of hell), frozen (an icy night: moon, aurora, snowy ranges, an ice spire), list: node tools/paintscene.js --list
 "use strict";
 const fs = require("fs"), path = require("path");
 const PF = require("../lib/paintfit.js");
@@ -64,6 +64,39 @@ const SCENES = {
     // (no small spires along the floor: dark triangles by the ground read as spikes -- the first render, 2026-11-26)
     L.push({ name: "near", items: [{ t: "ridge", pts: near, base: h, c: [200, 80, 44], a: 1 }, { t: "ridge", pts: down(near, 1.2), base: h, c: [70, 18, 28], a: 1 },
       { t: "band", y0: ground - h * 0.06, y1: ground + 2, c: [255, 90, 30], a0: 0, a1: 0.3 }] });
+    return { w, h, ground, layers: L, focal: sun };
+  },
+  // A frozen night: deep blue sky to a pale cyan horizon, a white moon with a cold glow, aurora ribbons, snowy ranges lit
+  // by the moon, a far ice spire as the landmark, a frost haze along the floor (the ice twin of hellgate, same layers).
+  frozen(w, h, ground, R, o = {}) {
+    const fx = o.focal ?? 0.62;
+    const top = [6, 10, 34], mid = [22, 52, 104], hor = [120, 200, 235], deep = [8, 16, 40];
+    const sun = { x: w * fx, y: h * 0.24 };
+    const L = [];
+    L.push({ name: "sky", items: [{ t: "grad", stops: [[0, top], [0.45, mid], [ground / h * 0.86, hor], [1, hor]] }] });
+    L.push({ name: "sun", items: [
+      { t: "glow", x: sun.x, y: sun.y, r: h * 0.7, c: [90, 170, 255], a: 0.5 },
+      { t: "glow", x: sun.x, y: sun.y, r: h * 0.28, c: [200, 235, 255], a: 0.55 }] });
+    L.push({ name: "sundisk", items: [{ t: "disk", x: sun.x, y: sun.y, r: h * 0.1, c: [236, 248, 255], a: 1, blur: 1 }] });
+    const clouds = [];
+    for (let i = 0; i < 7; i++) { const y = h * (0.08 + R() * 0.26), x = R() * w, rx = w * (0.1 + R() * 0.16), ry = h * (0.01 + R() * 0.018);
+      const c = R() < 0.5 ? [80, 255, 190] : [120, 200, 255];
+      clouds.push({ t: "ellipse", x, y, rx, ry: ry * 2.2, c, a: 0.18, blur: 3 }, { t: "ellipse", x, y: y + ry * 0.4, rx: rx * 0.8, ry, c, a: 0.35, blur: 1.5 }); }
+    L.push({ name: "clouds", items: clouds });
+    const farther = ridge(-4, w + 4, ground - h * 0.38, h * 0.3, R, 64, [{ x: w * 0.8, w: w * 0.1, h: h * 0.16 }]);
+    const far = ridge(-4, w + 4, ground - h * 0.25, h * 0.34, R, 64, [{ x: w * 0.22, w: w * 0.12, h: h * 0.18 }]);
+    const down = (pts, dy) => pts.map(([x, y]) => [x, y + dy]);
+    L.push({ name: "far", items: [{ t: "ridge", pts: farther, base: h, c: mix(mid, [150, 190, 230], 0.5), a: 1, blur: 0.8 },
+      { t: "ridge", pts: far, base: h, c: [225, 245, 255], a: 1 },                      // snow lit by the moon
+      { t: "ridge", pts: down(far, 1.6), base: h, c: [40, 78, 130], a: 1 },
+      { t: "band", y0: ground - h * 0.16, y1: ground + 2, c: hor, a0: 0, a1: 0.45 }] });
+    // the landmark: one tall ice spire in the haze (a pale mid blue, never dark like the play), at the third of the picture
+    const sx = w * (fx - 0.2), sw = Math.max(5, w * 0.016), sc = mix(mid, [170, 220, 250], 0.35);
+    L[L.length - 1].items.splice(3, 0, { t: "poly", pts: [[sx - sw, ground], [sx - sw, ground - h * 0.52], [sx, ground - h * 0.68], [sx + sw, ground - h * 0.52], [sx + sw, ground]], c: sc, a: 1 },
+      { t: "poly", pts: [[sx + sw * 3 - sw * 0.6, ground], [sx + sw * 3 - sw * 0.6, ground - h * 0.3], [sx + sw * 3, ground - h * 0.38], [sx + sw * 3 + sw * 0.6, ground - h * 0.3], [sx + sw * 3 + sw * 0.6, ground]], c: sc, a: 1 });
+    const near = ridge(-4, w + 4, ground - h * 0.08, h * 0.1, R, 48);
+    L.push({ name: "near", items: [{ t: "ridge", pts: near, base: h, c: [160, 210, 240], a: 1 }, { t: "ridge", pts: down(near, 1.2), base: h, c: [24, 48, 90], a: 1 },
+      { t: "band", y0: ground - h * 0.06, y1: ground + 2, c: [180, 240, 255], a0: 0, a1: 0.3 }] });
     return { w, h, ground, layers: L, focal: sun };
   },
 };

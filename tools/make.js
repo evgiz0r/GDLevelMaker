@@ -17,6 +17,9 @@
 // }
 // type is a name from TYPES below or a raw object id number.
 //
+// "structures": true | {design, pal, effects, holders, interior, sections: [{from, design, pal, effects}]} -- the structure
+//                          deco pass after the solve (tools/structdeco.js: designs that follow whole structures, one look per
+//                          section, 3D, the inside of big ones, holders for islands); deco only, the solve is kept
 // Style (see STYLE.md; tools/patterns.js, tools/decorate.js):
 //   extra may also hold "group": n (fade/move target) and "ch": n (colour channel).
 //   ["pattern", name, col, row, {args}, {extra for every object}]   a named chunk
@@ -299,7 +302,7 @@ function checkDesc(desc, name) {
   if (m) console.log(`   WARN description reads like an internal note ("${m[0]}"): it is shown to players; notes go in "notes"`);
 }
 
-function build(spec, specFile = "spec") {
+function build(spec, specFile = "spec", opts = {}) {   // opts.placementsOnly: stop after placing (tools/pieces.js: each piece's span, no solve)
   spec = Object.assign({}, spec, { objects: spec.objects.filter(e => Array.isArray(e)) });   // a string entry is a comment
   const song = songOf(spec);
   const kA4 = spec.speed ? SPEED_NAMES[spec.speed] : 0;
@@ -311,6 +314,12 @@ function build(spec, specFile = "spec") {
   // middleground (kA25: 0 none, 1.. the hill bands) and ground line (kA17)
   if (spec.art) for (const [k, v] of [["kA25", spec.art.mg], ["kA17", spec.art.line]]) if (v != null) header = header.replace(new RegExp(k + ",\\d+"), k + "," + v);
   const ctx = { grid: song ? gridOf(spec, song) : null, offset: spec.offset || 0, kA4, snap: spec.snap || 0, placements: [] };
+  // beat 1 is the first beat AT OR AFTER the song offset: an offset a hair past a beat (GDLM 44 v5-v6: 0.07 ms) makes beat 1
+  // the NEXT beat, ~a beat later than a builder counting from the level start meant (SYNC.md "bN")
+  if (ctx.grid && ctx.offset) {
+    const f = ((ctx.offset - ctx.grid.t0) / ctx.grid.period) % 1;
+    if (f > 1e-9 && f < 0.02) console.log("!! offset " + ctx.offset + " is " + (f * ctx.grid.period * 1000).toFixed(2) + " ms past a beat: beat 1 is the NEXT beat, " + ((1 - f) * ctx.grid.period).toFixed(3) + " s into the level. Put the offset on the beat (t0 + k*period) if beat 1 should be the level start.");
+  }
   const music = musicPlan(spec, ctx, song);
 
   // speed portals first, in order along the level, each one updating the timeline
@@ -342,9 +351,12 @@ function build(spec, specFile = "spec") {
     else if (type === "fade") { const a = entry[2]; objects.push(deco.fadeTrigger(col, a.group, a.to ?? 0, a.secs ?? 0.2)); }
     else if (type === "zoom") { const a = entry[2] || {}; objects.push(deco.zoomTrigger(col, a.to ?? 0.7, a.secs ?? 0.5)); }
     else objects.push(toObj([type, col, row, entry[3]], specFile));
+    // each piece's span in blocks, so pictures can show where pieces meet (tools/pieces.js)
+    if (type === "pattern" && objects.length > start) { const xs = objects.slice(start).map(o => o.x); Object.assign(ctx.placements[ctx.placements.length - 1], { x0: Math.min(...xs) / 30 - 0.5, x1: Math.max(...xs) / 30 + 0.5, n: objects.length - start }); }
     const jm = /^j(-?\d+(?:\.\d+)?)/.exec(String(entry[colAt(entry)]));
     if (jm) { if (!jGroups.has(jm[1])) jGroups.set(jm[1], []); for (let i = start; i < objects.length; i++) jGroups.get(jm[1]).push(i); }
   }
+  if (opts.placementsOnly) return { ctx, objects, header };
 
   if (ctx.grid && jGroups.size) {
     // jumps closer together than a jump lasts cannot all be pressed on their beats
@@ -368,8 +380,11 @@ function build(spec, specFile = "spec") {
   if (spec.scene) { // a scene script (tools/scenes/<name>.js, SHOWCASE.md): deco + triggers + header channels
     const scene = require(path.resolve(__dirname, "..", spec.scene));
     const beatX = b => GD.SYNC.xOfT(tl, beatTime(ctx, b));
-    const r = scene({ objects, header, spec, ctx, tl, beatX, xOfT: t => GD.SYNC.xOfT(tl, t), GD });
-    objects.push(...r.objects);
+    const n0 = objects.length, r = scene({ objects, header, spec, ctx, tl, beatX, xOfT: t => GD.SYNC.xOfT(tl, t), GD });
+    // a scene returns only its NEW objects; one that returned objects.concat(out) doubled every play object (5 galleries did)
+    const own = r.objects.length >= n0 && n0 && r.objects[0] === objects[0] ? r.objects.slice(n0) : r.objects;
+    if (own !== r.objects) console.log(`   !! ${spec.scene} returned the level's own objects too: only its ${own.length} new ones kept`);
+    objects.push(...own);
     if (r.header) header = r.header;
     if (r.signature) sceneSig = r.signature;
   }
@@ -414,6 +429,7 @@ function build(spec, specFile = "spec") {
   // The signature (tools/signature.js): robot + human, "Made by Claude (and some humans)", after the end.
   // On by default for every "GDLM ..." level (the user approved it for all, 2026-11-23); a spec opts out
   // with "signature": false. Its column: spec.signature.col, a scene's, else 3 blocks after the last gameplay object.
+  let signCol = null;
   const signed = spec.signature !== false && (spec.signature || /^GDLM /.test(spec.name || ""));
   if (signed) {
     const sig = require("./signature.js"), secs = (spec.modern && spec.modern.sections) || [];
@@ -436,6 +452,7 @@ function build(spec, specFile = "spec") {
       Object.assign(sopts, { beats, period: ctx.grid.period, xOfT, tOfX });
     }
     objects.push(...sig.signature(sopts));
+    signCol = col;
   }
   if (spec.style && spec.style !== "classic") deco.skinBlocks(objects); // e.g. "hell": outlined blocks, no ground decoration
   if (spec.style === "classic") {
@@ -454,12 +471,14 @@ function build(spec, specFile = "spec") {
   // (median of 16); 281 rated community levels: 0.9 s from the last hazard/orb/pad. With the sign 3 blocks
   // after the last gameplay object (7 wide) this ends ~1.5 s after the last input at 1x.
   // spec.endRun: blocks of run after the sign (default 5); "signature": false levels are not clipped.
-  if (signed) {
-    const sigEnd = Math.max(...objects.filter(o => o.props && String(o.props[57] || "").split(".").some(g => +g >= 960 && +g <= 964)).map(o => o.x), 0);
-    const limit = (sigEnd || 0) + (spec.endRun ?? 5) * 30;
-    if (sigEnd) for (let i = objects.length - 1; i >= 0; i--) {
+  if (signed && signCol != null) {
+    // 2026-11-26 (Evgeni: "the end screen has to include our sign, it extends bit too much so our signature goes away"):
+    // nothing past the sign's right edge, blocks included (signature.js extent: the last screen shows ~229 units before the
+    // furthest object). spec.endRun: blocks allowed past it (default 0; deco / triggers only, as before).
+    const limit = require("./signature.js").extent(signCol).x1 + (spec.endRun || 0) * 30;
+    for (let i = objects.length - 1; i >= 0; i--) {
       const k = GD.objInfo(objects[i].id).kind;
-      if (objects[i].x > limit && (k === "decoration" || k === "trigger")) objects.splice(i, 1);
+      if (objects[i].x > limit && (spec.endRun ? (k === "decoration" || k === "trigger") : true)) objects.splice(i, 1);
     }
   }
   // colour by ROLE (the user: "clear contrasts between the different things (ground, spikes, deco)"; gd-art's tools/roles.js):
@@ -546,7 +565,24 @@ function make(specFile, specObj) {
     if (sol && sol.ok && sol.events && sol.events.length) base = { level: old.level, levelStr: old.levelStr, events: sol.events };
   } catch (e) { /* no base: solve whole */ }
   writeGdlvl(out, rec, level);
-  let r = report(out, { base });
+  let r = report(out, { base, seed: spec.seedPresses });   // spec.seedPresses: the pieces' presses (tools/seedsolve.js)
+  // spec.hazardsAlong: {tier, seed} -- guards and pits along the solved route (lib/hazards.js hazardsAlongPath, HAZARDS.md:
+  // rated levels frame the lane, ~45% of hazards 1-3 blocks off the path; a brick-built level's are nearly all threats). Each
+  // new piece is replayed against the route and dropped where it would kill, so the route still clears and no re-solve is needed.
+  if (spec.hazardsAlong && r.ok) try {
+    const HZ = require("../lib/hazards.js"), wH = GD.makeWorld(level.objects, header), pth = GD.run(wH, r.events).path;
+    const opt = spec.hazardsAlong === true ? {} : spec.hazardsAlong;
+    // nothing new from 2 blocks before a mode / gravity portal to 8 after it: the transition keeps its quiet
+    const avoid = level.objects.filter(o => { const k = (GD.objInfo(o.id) || {}).kind; return k === "mode" || k === "gravity"; }).map(o => [o.x - 60, o.x + 240]);
+    const res = HZ.hazardsAlongPath(pth, level.objects, { tier: opt.tier || "normal", seed: opt.seed || 1, avoid, verify: { header, events: r.events } });
+    const add = res.objects.map(o => ({ rot: 0, flipX: false, flipY: false, props: {}, ...o }));
+    const q = GD.run(GD.makeWorld(level.objects.concat(add), header), r.events), e = q.path[q.path.length - 1];
+    if (e.done && !e.dead) { level.objects.push(...add); writeGdlvl(out, rec, level);
+      console.log(`   hazards along the route: +${add.length} (${JSON.stringify(res.notes)})`); }
+    else console.log(`   hazards along the route: left out (the route dies at block ${(e.x / 30).toFixed(1)} with them)`);
+  } catch (err) { console.log("   hazards along the route: skipped (" + err.message + ")"); }
+  // the structure deco pass (tools/structdeco.js), before the indicators so their colour sees the dressed hazards
+  if (r.ok) { require("./structdeco.js").apply(level, r.events, spec); writeGdlvl(out, rec, level); }
   if (spec.indicators && r.ok) {
     // jump indicators come from the solved run, so they go in after the first check (no hitbox:
     // the solution does not change); then the file is written again. Without the arrow's id yet,
@@ -558,7 +594,9 @@ function make(specFile, specObj) {
     try { const n = require("../lib/natural.js").naturalPlan(wI, r, level.objects); if (n && n.path[n.path.length - 1].done) plan = { ok: true, events: n.events }; } catch (e) {}
     const ind = deco.jumpIndicators(wI, plan, iid || 0, GD, spec.indicators);
     if (iid) {
-      level.objects.push(...ind.map(o => { const c = Object.assign({}, o); delete c.why; return c; }));
+      { const IS = require("./indstyles.js"); spec.indicators = require("./structdeco.js").indicators(spec); const c = IS.applyColour(level.objects, level.header, spec.indicators);
+      if (c.ch) { level.header = c.header; console.log(`   indicator colour rgb(${c.rgb}) on channel ${c.ch}: ${c.why}`); }
+      level.objects.push(...IS.expand(ind, c.ch ? Object.assign({}, spec.indicators, { ch: c.ch, chAt: c.chAt, style: spec.indicators.style || "chevron" }) : spec.indicators).map(o => { const c = Object.assign({}, o); delete c.why; return c; })); }  // the style's pieces and colour (tools/indstyles.js)
       if (ind.length) level.objects.push(deco.indicatorFade(spec.indicators));  // soft: faded group
       writeGdlvl(out, rec, level);
       console.log(`   ${ind.length} jump indicators (object ${iid}): ` + ind.map(o => `${(o.x / 30).toFixed(0)} ${o.why}`).join("; "));
@@ -611,12 +649,15 @@ function lookOnly(out, rec, level, spec) {
   // since the last build), else the last build's (group 990 and the alpha trigger that fades them)
   const IG = String(deco.INDICATOR.group);
   let placed = false;
+  require("./structdeco.js").apply(level, sol.events, spec || {});
   if (spec && spec.indicators) try {
     const wI = GD.makeWorld(level.objects, level.header);
     let plan = { ok: true, events: sol.events };
     const n = require("../lib/natural.js").naturalPlan(wI, plan, level.objects); if (n && n.path[n.path.length - 1].done) plan = { ok: true, events: n.events };
     const ind = deco.jumpIndicators(wI, plan, spec.indicators.id || deco.INDICATOR.id, GD, spec.indicators);
-    level.objects.push(...ind.map(o => { const c = Object.assign({}, o); delete c.why; return c; }));
+    { const IS = require("./indstyles.js"); spec.indicators = require("./structdeco.js").indicators(spec); const c = IS.applyColour(level.objects, level.header, spec.indicators);
+      if (c.ch) { level.header = c.header; console.log(`   indicator colour rgb(${c.rgb}) on channel ${c.ch}: ${c.why}`); }
+      level.objects.push(...IS.expand(ind, c.ch ? Object.assign({}, spec.indicators, { ch: c.ch, chAt: c.chAt, style: spec.indicators.style || "chevron" }) : spec.indicators).map(o => { const c = Object.assign({}, o); delete c.why; return c; })); }  // the style's pieces and colour (tools/indstyles.js)
     if (ind.length) level.objects.push(deco.indicatorFade(spec.indicators));
     console.log(`   --look: ${ind.length} jump indicators placed again from the saved route`);
     placed = true;

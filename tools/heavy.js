@@ -140,7 +140,8 @@ function etaOf(h) {
   if (!est && !("est" in h)) try { est = require("./jobtime.js").estimate(h.cmd); } catch (e) {}
   if (!est) return null;
   const elapsed = h.start ? (Date.now() - Date.parse(h.start)) / 1000 : 0;
-  return { left: Math.max(1, Math.round((est.secs - elapsed) / 60)), basis: est.basis, over: elapsed > est.secs * 1.2, secs: est.secs };
+  return { left: Math.max(1, Math.round((est.secs - elapsed) / 60)), basis: est.basis, over: elapsed > est.secs * 1.2, secs: est.secs,
+    runaway: require("./jobtime.js").isRunaway(elapsed, est.secs), x: est.secs > 0 ? Math.round(elapsed / est.secs) : null };
 }
 function minutesLeft(h) { const e = etaOf(h); return e ? e.left : null; }
 // a holder far past what it should take: over 3x its measured estimate, or over 3 h with none (the user, 2026-11-25, after
@@ -150,7 +151,8 @@ function overdue(h, e = etaOf(h)) {
   const secs = h.start ? (Date.now() - Date.parse(h.start)) / 1000 : 0;
   return e ? secs > 3 * e.secs && secs > 600 : secs > 3 * 3600;
 }
-const describe = h => { const e = etaOf(h); return `${overdue(h, e) ? "!! overdue " : ""}${(/tools[\\/].*/.exec(h.cmd) || [h.cmd])[0]} (${h.session}, ${h.prio && h.prio !== "normal" ? h.prio + " priority, " : ""}pid ${h.pid}, ${Math.round((Date.now() - Date.parse(h.start)) / 60000)} min in` +
+// a runaway (over 10x its estimate, tools/jobtime.js RUNAWAY) is the loudest: "!!! runaway (Nx its estimate)"
+const describe = h => { const e = etaOf(h); return `${e && e.runaway ? `!!! runaway (${e.x}x its estimate) ` : overdue(h, e) ? "!! overdue " : ""}${(/tools[\\/].*/.exec(h.cmd) || [h.cmd])[0]} (${h.session}, ${h.prio && h.prio !== "normal" ? h.prio + " priority, " : ""}pid ${h.pid}, ${Math.round((Date.now() - Date.parse(h.start)) / 60000)} min in` +
   (!e ? ", time not measured)" : e.over ? `, past its estimate: ${e.basis})` : `, ~${e.left} min left: ${e.basis})`); };
 
 // is the worktree at root behind origin/main? fast-forward when it is clean. Returns
@@ -350,7 +352,8 @@ function claim(label) {
   const rec = ok => { if (recorded || process.env.GDLM_HEAVY_NOREC === "1") return; recorded = true;
     let mb = null; try { mb = Math.round(process.resourceUsage().maxRSS / 1024); } catch (e) {}
     try { const r = JT.record(cmd, t0 + pausedMs, ok, est, { session: sessionName(), mb });
-      if (r.secs > 30) process.stderr.write(`heavy: took ${JT.fmt(r.secs)}${est ? " (estimate " + JT.fmt(est.secs) + ": " + est.basis + ")" : " (no estimate: not measured before)"}\n`); } catch (e) {} };
+      if (r.runaway) process.stderr.write(`\n!!! heavy: RUNAWAY: ${cmd} took ${JT.fmt(r.secs)}, ${Math.round(r.secs / est.secs)}x its estimate ${JT.fmt(est.secs)} (${est.basis}). Tell the user; fix the tool or its estimate (node tools/jobtime.js runaways)\n\n`);
+      else if (r.secs > 30) process.stderr.write(`heavy: took ${JT.fmt(r.secs)}${est ? " (estimate " + JT.fmt(est.secs) + ": " + est.basis + ")" : " (no estimate: not measured before)"}\n`); } catch (e) {} };
   process.on("exit", code => rec(code === 0));
   for (const sig of ["SIGINT", "SIGTERM", "SIGHUP", "SIGBREAK"]) process.on(sig, () => rec(false));
   if (process.env.GDLM_HEAVY_NOSYNC !== "1" && !label) {
@@ -378,6 +381,7 @@ if (require.main === module && /^(pause|resume|yield)$/.test(process.argv[2] || 
   console.log(`${fr} MB free${game ? ", the game runs" : ""}; ${slots} slot(s) now (2 when the game is closed and ${MIN_FREE_MB + mb} MB are free; one job ~${mb} MB); ${hs.length ? hs.length + " heavy job(s): " + hs.map(h => (h.light ? "[light lane] " : h.lane ? "[fast lane] " : "") + describe(h)).join("; ") : "no heavy job running"}  (lock dir ${lockDir()})`);
   const ws = waiters().sort((a, b) => (before(a, b) ? -1 : 1));
   if (ws.length) console.log("waiting, in order: " + ws.map(w => `${(/tools[\\/].*/.exec(w.cmd) || [w.cmd])[0]} (${w.session}, ${w.prio}${isFast(w) ? ", fast" : ""}, ${Math.round((Date.now() - w.since) / 60000)} min)`).join("; "));
+  try { const rs = require("./jobtime.js").runaways(24); if (rs.length) console.log(`!!! ${rs.length} runaway job(s) in the last 24 h (over 10x their estimate)${rs.length > 3 ? ", the last 3" : ""}: ` + rs.slice(-3).map(r => `${r.tool} ${r.level || ""} ${Math.round(r.secs / 60)} min = ${r.x}x (${r.at.slice(5, 16)})`).join("; ") + "  -- node tools/jobtime.js runaways"); } catch (e) {}
   const ps = requests().filter(r => r.kind === "pause");
   if (ps.length) console.log("PAUSED (no slot; node tools/heavy.js resume <pid>): " + ps.map(r => `pid ${r.pid} ${short(r.cmd || "")} (since ${r.at})`).join("; "));
 }

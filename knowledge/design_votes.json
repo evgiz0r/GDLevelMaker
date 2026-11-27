@@ -1,0 +1,82 @@
+{
+ "note": "Evgeni's votes on block / spike / saw designs (tools/designs.js votes). A vote is a weight, never a ban.",
+ "votes": [
+  {
+   "id": "block:corner brackets",
+   "kind": "block",
+   "name": "corner brackets",
+   "vote": 1,
+   "at": "2026-11-26T21:30:47.131Z"
+  },
+  {
+   "id": "block:drawn eye",
+   "kind": "block",
+   "name": "drawn eye",
+   "vote": 1,
+   "at": "2026-11-26T21:31:28.947Z"
+  },
+  {
+   "id": "block:drawn flame",
+   "kind": "block",
+   "name": "drawn flame",
+   "vote": 1,
+   "at": "2026-11-26T21:31:26.779Z"
+  },
+  {
+   "id": "block:drawn key",
+   "kind": "block",
+   "name": "drawn key",
+   "vote": 1,
+   "at": "2026-11-26T21:31:32.067Z"
+  },
+  {
+   "id": "block:drawn skull",
+   "kind": "block",
+   "name": "drawn skull",
+   "vote": 1,
+   "at": "2026-11-26T21:31:30.331Z"
+  },
+  {
+   "id": "block:inner base",
+   "kind": "block",
+   "name": "inner base",
+   "vote": 1,
+   "at": "2026-11-26T21:30:41.155Z"
+  },
+  {
+   "id": "block:inner diamond",
+   "kind": "block",
+   "name": "inner diamond",
+   "vote": 1,
+   "at": "2026-11-26T21:30:44.699Z"
+  },
+  {
+   "id": "block:layered",
+   "kind": "block",
+   "name": "layered",
+   "vote": 1,
+   "at": "2026-11-26T21:30:40.251Z"
+  },
+  {
+   "id": "block:nested frames",
+   "kind": "block",
+   "name": "nested frames",
+   "vote": 1,
+   "at": "2026-11-26T21:30:46.283Z"
+  },
+  {
+   "id": "block:outline",
+   "kind": "block",
+   "name": "outline",
+   "vote": 1,
+   "at": "2026-11-26T21:30:37.675Z"
+  },
+  {
+   "id": "block:vein",
+   "kind": "block",
+   "name": "vein",
+   "vote": -1,
+   "at": "2026-11-26T21:30:50.595Z"
+  }
+ ]
+}

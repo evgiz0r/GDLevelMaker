@@ -67,20 +67,32 @@ button.vote.on.up{background:#1f6b3a;border-color:#7dff9c}button.vote.on.down{ba
 .chk{display:flex;gap:12px;flex-wrap:wrap;width:100%}
 .chk label{display:flex;gap:5px;align-items:center}
 .chk input{min-height:0;width:auto;flex:none}
+/* tabs, and every top-level section folds (Evgeni 2026-11-26: "UI of a top level section to be always collapsible") */
+.tabs{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.tab{background:var(--panel);color:var(--ink);border:1px solid var(--line);min-height:38px;padding:6px 14px}
+.tab.on{background:var(--path);color:#0c0a24;border-color:var(--path)}
+.fold-h{cursor:pointer;user-select:none}
+[data-fold]>.fold-h::before{content:"\25BE  "}
+[data-fold].folded>.fold-h::before{content:"\25B8  "}
+[data-fold].folded>:not(.fold-h){display:none!important}
+.filters .fold-h{font-size:15px;margin:0;flex:0 0 auto}
+.drawer .fold-h{font-size:17px;margin:0}
 </style>
 
 <div class="band head">
   <h1>Structure lego catalogue</h1>
-
+  <nav class="tabs"><button class="tab on" data-tab="pieces">Structures</button><button class="tab" data-tab="designs">Designs: blocks, structures, spikes, indicators</button><button class="tab" data-tab="themes">Themes</button></nav>
 </div>
-<div class="band filters" id="filters">
+<div class="band" id="designs" hidden></div>
+<div class="band filters" id="filters" data-fold="filters">
+  <h2 class="fold-h stitle" role="button" tabindex="0">Filters</h2>
   <select id="fgrain"><option value="brick">bricks (~1 s: one move)</option><option value="auto">auto bricks (no clicks: pads, portals, falls)</option><option value="piece">pieces (1-3 s: a screen)</option></select>
   <select id="fsrc"><option value="">every source</option><option>official</option><option>ours</option><option>sketch</option><option>library</option></select>
   <select id="ffam"><option value="">every family</option><option value="fly">fly: ship, wave, swing</option><option value="jump">jump: cube, robot, ufo</option><option value="flip">flip: ball, spider</option></select>
   <select id="fmode"><option value="">every mode</option></select>
   <select id="fwrap"><option value="">every wrapper</option></select>
   <input id="fq" placeholder="search: spikes, gates, blue-orb, level name">
-  <select id="fsort"><option value="">level order</option><option value="easy">easiest first</option><option value="hard">hardest first</option></select>
+  <select id="fsort"><option value="">level order</option><option value="easy">easiest first</option><option value="hard">hardest first</option><option value="cps">most clicks per second</option><option value="cpsl">fewest clicks per second</option></select>
   <select id="fvote"><option value="">any vote</option><option value="up">👍 liked</option><option value="down">👎 disliked</option><option value="com">with a comment</option><option value="none">not voted yet</option></select>
   <span class="count" id="count"></span>
   <div class="chk count"><span>also show:</span>
@@ -91,12 +103,13 @@ button.vote.on.up{background:#1f6b3a;border-color:#7dff9c}button.vote.on.down{ba
     <label title="flying pieces whose walls step in blocks instead of ramps"><input type="checkbox" id="frough"> stair walls</label>
     <label title="routes that are not a human plan, or flying taps under 0.1 s apart (3+, or with a tight timing)"><input type="checkbox" id="fjit"> jittery routes</label></div>
 </div>
-<div class="band drawer">
+<div class="band drawer" data-fold="drawer">
+  <h2 class="fold-h stitle" role="button" tabindex="0">Pieces</h2>
   <div class="grid" id="grid"></div>
   <div class="more"><button id="more" hidden>Show more</button></div>
 </div>
-<div class="band stats">
-  <h2 class="stitle">About these pieces, and the mix of official vs ours</h2>
+<div class="band stats" data-fold="stats" data-closed>
+  <h2 class="stitle fold-h" role="button" tabindex="0">About these pieces, and the mix of official vs ours</h2>
   <p class="lede" id="lede"></p>
   <div class="top">
     <div class="notes" id="notes"></div>
@@ -225,8 +238,11 @@ function refreshVotes() {
 }
 
 // ---- the drawer
+// clicks per second: stored by lego.js since 2026-11-26; older data -> presses / seconds
+const cpsOf = p => p.cps != null ? p.cps : p.s > 0 && p.presses != null ? p.presses / p.s : null;
 function meta(p) {
   const bits = [`${p.w} blocks`, `${p.s.toFixed(1)} s`, `${p.presses} presses`];
+  if (cpsOf(p) != null) bits.push(`${cpsOf(p).toFixed(1)} cps` + (p.cpsPeak ? ` (peak ${p.cpsPeak.toFixed(1)})` : ""));
   // no measured window = no difficulty (not "0.00"); an easy brick says so; a number from older code says "~"
   if (p.tightMs == null) bits.unshift("difficulty not measured");
   else bits.unshift((p.diff < 0.01 ? "easy timing" : `difficulty ${p.diffStale ? "~" : ""}${p.diff.toFixed(2)}`) + ` (tightest ${p.tightMs} ms)`);
@@ -256,7 +272,11 @@ function filter() {
   const gOk = p => gr === "auto" ? p.auto : (p.grain || "piece") === gr && !p.auto;
   VIEW = ALL.filter(p => gOk(p) && (ours || p.src === "official") && (un || p.verified) && (em || !p.empty) && (du || !p.dupOf) && (ro || p.smooth) && (ji || (!p.jitter && (!p.routeKind || p.routeKind === "human" || p.routeKind === "ours"))) && vok(p) && (!s || p.src === s) && (!f || p.family === f) && (!m || p.mode === m) && (!w || p.wrap === w) && (!q || (p.sig + " " + p.level + " " + p.mech.join(" ")).toLowerCase().includes(q)));
   const so = $("fsort").value;
-  if (so) VIEW.sort((a, b) => so === "easy" ? (a.diff ?? 99) - (b.diff ?? 99) : (b.diff ?? -1) - (a.diff ?? -1));
+  if (so === "cps" || so === "cpsl") VIEW.sort((a, b) => so === "cps" ? (cpsOf(b) ?? -1) - (cpsOf(a) ?? -1) : (cpsOf(a) ?? 99) - (cpsOf(b) ?? 99));
+  // by the tightest window (2026-11-26: the summed "diff" is ~0.01 on most bricks, a wide-window press costs ~nothing, so it
+  // could not order them; the tightest window separates the tiers: p10 142 ms Easy .. 67 ms Demon); diff breaks ties
+  else if (so) { const tw = p => p.tightMs != null ? p.tightMs : null;
+    VIEW.sort((a, b) => so === "easy" ? ((tw(b) ?? -1) - (tw(a) ?? -1)) || ((a.diff ?? 99) - (b.diff ?? 99)) : ((tw(a) ?? 1e9) - (tw(b) ?? 1e9)) || ((b.diff ?? -1) - (a.diff ?? -1))); }
   render(true);
 }
 
@@ -355,5 +375,29 @@ Promise.all(["pieces.json", "pieces_more.json"].map(f => fetch(f).then(r => r.ok
   filter();
   loadVotes().then(() => { refreshVotes(); if ($("fvote").value) filter(); });
 }).catch(() => { $("count").textContent = "pieces.json did not load"; });
+}
+</script>
+<script>
+// every top-level section folds (remembered per viewer); the Designs tab loads designs.js the first time it is opened, so the
+// structures view pays nothing for it (tools/designs.js page writes designs.js, designs.json and cards/ beside this page)
+{
+  const st = (() => { try { return JSON.parse(localStorage.getItem("lego-fold") || "{}"); } catch (e) { return {}; } })();
+  for (const s of document.querySelectorAll("[data-fold]")) {
+    const k = s.dataset.fold, h = s.querySelector(".fold-h");
+    if (st[k] != null ? st[k] : s.hasAttribute("data-closed")) s.classList.add("folded");
+    const t = () => { s.classList.toggle("folded"); st[k] = s.classList.contains("folded"); try { localStorage.setItem("lego-fold", JSON.stringify(st)); } catch (e) {} };
+    h.addEventListener("click", t); h.addEventListener("keydown", e => { if (e.key === "Enter") t(); });
+  }
+  let loaded = null;
+  const pieces = [...document.querySelectorAll(".band.filters,.band.drawer,.band.stats")], D = document.getElementById("designs");
+  for (const b of document.querySelectorAll(".tab")) b.onclick = () => {
+    const d = b.dataset.tab === "designs" || b.dataset.tab === "themes";   // Themes: the same cards, only the design themes
+    for (const x of document.querySelectorAll(".tab")) x.classList.toggle("on", x === b);
+    for (const p of pieces) p.hidden = d;
+    D.hidden = !d;
+    if (d && !loaded) loaded = new Promise((ok, no) => { const s = document.createElement("script"); s.src = "designs.js"; s.onload = ok; s.onerror = no; document.head.appendChild(s); })
+      .then(() => window.initDesigns(D)).catch(() => { D.textContent = "designs.js did not load"; loaded = null; });
+    if (d && loaded) loaded.then(() => window.designsShow && window.designsShow(b.dataset.tab));
+  };
 }
 </script>

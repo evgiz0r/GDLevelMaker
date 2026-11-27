@@ -70,6 +70,29 @@ document is a file `local/board/<name>.json` (`state`, `picks`, `played`, `playe
 split of `played` into parts came from the artifact's database; files have no such limit, but the page still reads the
 parts, so keep writing them as `node tools/board_docs.js` (default `--out local/board`) does.
 
+## Level links and "Our sim" (2026-11-26)
+
+Evgeni: "links in the workboard for the levels", then "i want it to open in the viewer". Every level name on the board
+is a link to the PC viewer (`http://localhost:8765/viewer/#lv=...`, or `state.pc_viewer_url`): our levels
+(`levels[].link`, https or localhost), main levels (`local/official_NN.json`) and every online level
+(`local/community/<id>.gdlvl`). When the PC has no copy, the viewer downloads it first (serve.js
+`POST /community/fetch?id=N` -> tools/fetch_level.js, this PC only; the level stays in local/). `tools/board_docs.js`
+marks the copies: col `here` in board/played, `here[]` (ids) in board/latest.
+
+"Our sim" (he: "how do i know if you passed it or not"): a column in Your levels and Latest rated -- ✓ passed, N%
+where our solver died (hover: what killed it, when), – not tried. "Your best" is his own best %. `board_docs.js` reads
+it from local/difficulty/c<id>.json (community, difficulty_solve.js) and local/mains/status.json (main levels' human
+route): cols `sim`, `sim_why`, `sim_at` in board/played; `sim: {id: {sim, why, at}}` in board/latest.
+
+## Ending sign (2026-11-26)
+
+The "Ending sign" section shows pictures of the level ending with the Claude sign (tools/beatend.js): the sign on its own and
+in our auto levels, each on its own song's beat. `node tools/sign_board.js` (on the PC, GD's art) renders them into
+`local/board/img/` (served at `/img/<name>.png` by tools/board_local.js and serve.js /board/) and writes `state.sign`:
+`[{id, title, img, note, link}]`. Evgeni writes a note under any picture: the page saves it to
+`picks.sign_notes[id] = {text, at, title}`; `node tools/sign_board.js --notes` prints them. Each note is a soft rule for the
+ending (CLAUDE.md), applied in tools/beatend.js.
+
 ## Open
 
 - The phone: Evgeni wants to view the board from his phone too (2026-11-26: "will deal with that later"). Not built:

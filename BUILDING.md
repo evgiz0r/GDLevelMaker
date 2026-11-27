@@ -14,6 +14,14 @@ Theme -> sections (soft differences, cut at strong beats or small breaks in the 
 its path -> deco, the structural objects themed per section first. What exists per step and what is missing: LEGO.md
 "The build pipeline Evgeni set".
 
+**The deco stage uses everything the deco work learned** (Evgeni, 2026-11-26: "i want to use the deco knowledge we now
+gaining later during the deco stage"): make.js runs the structure deco pass after the solve (spec `"structures"`,
+tools/structdeco.js; on by default in compose and planbuild): a design per whole structure (slopes too), one look per
+section and 2-3 a level, 3D, the inside of big structures (panels, a layer line, a top-lit gradient), holders for islands
+off the route; the jump indicators in one style and a colour away from the hazards (`"indicators": {"style", "colour":
+"auto"}`). A new deco finding goes into that pass (or the tool it calls), not into one level's copy. DECOART.md "The
+structure deco pass".
+
 What the lego taught so far, for any builder filling a section from it (LEGO.md has the numbers):
 - **Join only bricks whose seams agree** (mode, speed, gravity, y, vy, ground): with that contract 35% of joins are clean,
   without it 15%. A third of joins still leave a secret way or an open seam: every join gets the hazard filler and is
@@ -142,6 +150,10 @@ model from gd-showcase's tools/storyboard.js once it lands (richer: moments, pla
 
 ## 2. Design first: the presses come before the blocks
 
+- **The level opens up on blocks, not on the default ground** (Evgeni, 2026-11-26, the default from now on): a ramp
+  from column 1 to the first section's floor, 3 rows up (`tools/startramp.js`: `ramp(rows)`, `floorFrom(rows)`), and the
+  first structure starts from there. hellgate_build.js and planbuild.js do it; a new builder calls the same helper.
+  judge.js notes a "ground start".
 - A section's gameplay is built from its **planned presses** (the intended route), with each pattern's input
   timing from the intent cache (local/intent/). The timing plan (difficulty curve -> a target window per press)
   is set here; later fixes are small knob turns (spacing, gap, orb position), never a search.
@@ -201,6 +213,11 @@ model from gd-showcase's tools/storyboard.js once it lands (richer: moments, pla
 - Every level has a song, test labs included: recordings line the user's inputs up with the song's audio
   (tools/audiolog.ps1, replay_run.js); a level with no song falls back to the progress bar.
 - Viewer first: nothing is installed or uploaded until the user has seen it there and says so.
+- **Every level ends with the latest end screen** (Evgeni, 2026-11-26: "from now-on everywhere, we add the latest end screen
+  claude sign on every level we make"): the auto outro (tools/autobricks.js `outro(seed)`, make.js spec `"outro": <seed>`)
+  and then the signature (tools/signature.js: header colours, objects, description line; make.js adds it to every "GDLM"
+  name). A builder that writes levels without make.js adds the same pair itself (tools/autobeat.js does). When the sign
+  changes, it changes in those two files, so every builder picks it up.
 
 ## 6. Reverse: decompile a real level, rebuild it from its spec, diff (tools/recompile.js)
 

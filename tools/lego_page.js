@@ -40,6 +40,8 @@ function build(all, o = {}) {
     .replace("/*MIX*/null", JSON.stringify({ rows, tot }))
     .replace("/*PUB*/false", o.pub || o.priv ? "true" : "false").replace("/*PRIV*/false", o.priv ? "true" : "false") + `\n<!--lego-build:${stamp()}-->\n`;
   fs.writeFileSync(path.join(dir, "index.html"), html);
+  // the Designs tab (block / spike / saw designs to vote on): its cards carry GD art, so the private page and local ones only
+  if (!o.pub) try { require("./designs.js").page(dir); } catch (e) { console.log("designs tab skipped: " + e.message); }
   console.log(`${pieces.length} pieces -> ${path.relative(ROOT, dir)}/index.html${o.pub ? " (public: no official layouts)" : " (local only: official layouts inside)"}`);
   return dir;
 }

@@ -9,7 +9,9 @@ set MOD=%~1
 if "%MOD%"=="" set MOD=%ROOT%\mods\gdlm-probe
 if "%MOD%"=="--install" set MOD=%ROOT%\mods\gdlm-probe
 for %%I in ("%MOD%") do set NAME=%%~nxI
-set BUILD=%USERPROFILE%\geode-build\%NAME%
+rem GEODE_BUILD_DIR: a build folder of its own (from a worktree: the default one is tied to the main checkout's mod folder)
+set BUILD=%GEODE_BUILD_DIR%
+if "%BUILD%"=="" set BUILD=%USERPROFILE%\geode-build\%NAME%
 call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat" >nul
 if not defined GEODE_SDK set GEODE_SDK=%USERPROFILE%\geode-sdk
 set PATH=C:\Program Files\CMake\bin;%LOCALAPPDATA%\Microsoft\WinGet\Links;%PATH%

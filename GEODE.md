@@ -234,6 +234,54 @@ The user asked (2026-11-25): "do we have something that can make a run from a pr
   GD restores a checkpoint from saved state, so a stitched run may still part from the practice run where a respawn
   is not exact (rotation, moving objects): the real-game playback is the final word.
 
+## Install into a running GD (v0.6.0, 2026-11-27; board task `mod-hot-install`)
+
+No more closing GD to install: `node tools/install.js <level.gdlvl>` with GD running hands the level to the probe mod.
+- **The inbox:** `<GD save>/geode/mods/gdlm.probe/install/<id>.req.json` = `{id, name, record, save}`, record = the level's
+  plist record exactly as install.js would put it in the save (spec description + signature, length label k23). Written as
+  .tmp + rename. Answer: `<id>.result.json` `{status: installed | failed, why, position, replaced, online_id, saved, song}`;
+  the request becomes `<id>.taken.json`. `node tools/hotinstall.js results` lists them (and pending ones).
+- **Only on menus** (CLAUDE.md "Never slow the user's game"): a CCScheduler callback once a second returns at once while a
+  PlayLayer or the editor exists; it also waits during a scene transition and while the page (EditLevelLayer) of the level
+  being replaced is open. A request made mid-attempt waits until the user leaves the level (install.js says "waiting in
+  GD's inbox", exit 3, and the mod installs it later). No work in any per-tick hook.
+- **How the level is made:** `DS_Dictionary::loadRootSubDictFromString(record)` + `GJGameLevel::createWithCoder` (what GD
+  does for each k_N of its own save), type Editor. A local level with the same name is replaced at its index in
+  `LocalLevelManager::m_localLevels`, keeping m_levelID / m_levelVersion / m_accountID / m_unlisted (k1/k16/k60/k79, as
+  install.js's keepOnline; m_isUploaded = false, as dropping k15), so Share updates the same upload; else it is inserted at
+  index 0 (top of My Levels). Only names starting "GDLM".
+- **Song:** an unknown custom song's info is asked from GD's server by GD itself (`MusicDownloadManager::getSongInfo(id,
+  false)`); install.js copies the mp3 from local/songs into GD's folder (a plain file). It does NOT edit CCGameManager.dat
+  while GD runs (GD writes it on exit).
+- **Saved at once:** `LocalLevelManager::save(false)` right after (GD's own writer, on the menu), so a crash cannot lose it and
+  install.js reads the save back (same level string as the request) and reports it. Backup of the on-disk save first, as
+  always.
+- **Is the mod there:** the mod writes `probe.status.json` `{version, pid}` at the first main menu; install.js uses the inbox
+  only when its version is >= v0.6.0 and its pid is the running GeometryDash.exe. Otherwise (mod off, older, not yet at the
+  menu) the level goes to the install queue (PUBLISH.md), exit 3. `--slot` still needs GD closed.
+- A closed-game install of the same name drops any older request still pending (`.dropped.json`), so a later GD start can't
+  put the older version back.
+- **Test:** `node tests/install_hot.js` (temp folder, a fake mod in a child process: ready check by version and pid, the
+  request's record, the answer, a request left waiting, dropping, queue fallback). Throwaway level for a real test:
+  `node tools/hotinstall.js testlevel` -> local/tmp/gdlm_test_install.gdlvl ("GDLM test install", 43 objects, no song).
+- **First real run (v0.6.0, 2026-11-27, GD pid 38680):** status written 01:57:14, request 01:57:20, but the mod took it only
+  at **02:02:12** -- one second before GD shut down (02:02:13, Geode log) -- although the user had been on menus all along (no
+  attempt logs). Then it worked as designed: added at the top, `saved: true`, install.js read the save back ("same level
+  data"), and GD's exit save kept it (CCLocalLevels.dat after exit: "GDLM test install" first of 33, hellgate's online ID
+  152848491 untouched). So building the level, replacing/inserting and saving work; **the once-a-second check did not run on
+  the menus** (a CCScheduler timer on a plain CCObject; why it fired only at the quit is not known -- v0.6.0 logged nothing
+  while waiting). v0.6.1: each menu layer (MenuLayer, CreatorLayer, LevelBrowserLayer, EditLevelLayer) also schedules the
+  check on itself, and probe.status.json carries `ticks`, `tick_ms`, `src` (which timer fired) and `last` (idle / waiting:
+  why / installed) every 5 s, with a log line when it starts and when it waits.
+- **v0.6.1 in the game (2026-11-27, pid 35008): works.** A request left in the inbox while GD was closed went in at the first
+  menu (log: "install inbox running (scheduler)" and "installed" at 02:05:31, 1 s after "All mods up to date!"; replaced in
+  place, saved). Then a live `node tools/install.js local/tmp/gdlm_test_install.gdlvl` with GD on the main menu: replaced,
+  saved and read back in **1.2 s** for the whole command. The mod itself took it **0.4 s** after the request was written (02:05:54.133 -> .563). Evgeni confirmed in the game: "it installed"; it is still there after a GD restart (pid 27768). The `src` was "scheduler" both times, so the director's timer
+  does fire; v0.6.0's 5-minute wait stays unexplained (it logged nothing). If it happens again, `probe.status.json`'s `last`
+  says why. Ticks counted 10 -> 13 between 02:05:43 and 02:05:54 (less than one a second; maybe the user was in a level).
+- Build from a worktree: `set GEODE_BUILD_DIR=%USERPROFILE%\geode-build\gdlm-probe-<name>` before `tools\geode_build.cmd`
+  (a build dir of its own; the default one is tied to the main checkout's mod folder). v0.6.0 was built so, cold.
+
 ## Building on this PC (2026-11-25)
 
 - Installed: Geode loader **v6.0.0** in the game (`Geode.dll` 6.0.0.0, changelog), GD **2.2091**. Toolchain: CMake 4.4.4,

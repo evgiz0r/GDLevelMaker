@@ -581,9 +581,9 @@ Mains for scale: Clubstep 3.51, Electrodynamix 2.65, ToE 2 2.35, Hexagon Force 2
   stack of portals of the same kind with different effects (ship + cube, normal + upside-down gravity) scenery (31 of
   them); 16 remain (4-stacks of one kind, 100-190 units off the route's y) and still block a trusted number.
 - **Bloodbath blockers, in order** (a map, not a full solve):
-  1. *Unsimulated feature*: the level header's start mode. Bloodbath starts as a ship (`kA2,1`); lib/physics.js reads
-     only `kA4` (speed), so every level starts as a cube and Bloodbath dies at block 18. Also unread: kA3 mini, kA8 dual,
-     kA11 upside-down. Fix: startState0 from the header (changes the physics stamp: every saved route goes stale).
+  1. *Unsimulated feature, FIXED 2026-11-25*: the level header's start mode. Bloodbath starts as a ship (`kA2,1`); the
+     sim read only `kA4` (speed), so it ran as a cube and died at block 18. Now in (PHYSICS.md "Start settings"); with it
+     the plain level reaches block 85.5 like the copy below. Platinum Adventure and Blue Hell start as a ship too.
   2. With a ship portal put at the start (a copy, `local/tmp/demons/`): dies at block 85.5 (6.6%), a mini ship into a
      22-degree slope turned 90 degrees (id 311), next to a blue pad turned 119 degrees. Every state dies there (the solve
      ends in 4 s), so physics, not the search: turned slopes and the ship on slopes are unchecked (CLAUDE.md "Not
@@ -591,6 +591,45 @@ Mains for scale: Clubstep 3.51, Electrodynamix 2.65, ToE 2 2.35, Hexagon Force 2
      grid in this level.
   No move / toggle / spawn triggers (only colour, pulse, alpha). So what blocks the extreme demons we have looked at
   is object geometry (turned slopes and pads, thin lines) and the header, not triggers.
+- **Problematic's wave spot: a sim gap.** In the dual wave at 2x, player 2 (upside down) slides on the dual band's floor,
+  meets a floor slope at block 325.9 and is seated on the slope's underside at y -5, below the ground (PHYSICS.md "Not in
+  the sim yet", OPEN). The 13/17/33 ms taps at 321-323 thread into that line. Not fixed: what GD does there is unknown.
+
+### Calibration on the user's own beaten demons (2026-11-26)
+
+**THE RULE (Evgeni, 2026-11-26): his attempt counts are a loose bound, not a target.** "i wouldnt correlate attempts
+directly to difficulty. could fluke somewhere. and depends on my skill, how much i tried ect. there is some correlation,
+that if i 1 attempt it its not that difficult, or the opposite if i barely passing in practice, it cant be that easy."
+So: no fitting the score to his attempts. Use them only as bounds -- very few attempts => the level is not hard; very
+many, or barely passing in practice => not easy -- and flag a level whose score breaks a bound.
+`node tools/difficulty_density.js` (default) does that check: <= 5 attempts with a score in the top quarter, or 500+
+attempts with a score in the bottom quarter, over the mains and community levels he beat (routes that skip a portal left
+out). 2026-11-26, 40 levels, quartiles 0.84 / 2.09: one outlier, **demon park** (570 attempts, score 0.83: scored too
+easy). Nothing at <= 5 attempts in this set. ("Barely passing in practice" is not in the save data yet.)
+The fits below (`--fit`) are kept as a record only.
+
+His save lists 60 beaten demons with lifetime attempts (`local/difficulty/user_stats_online.json`, tools/save_stats.js
+--demons). 20 old ones (1.x-2.0, cube / ship / ball / UFO, few specials; screened with tools/portals.js) were fetched,
+solved and scored as above: all 20 beaten in the sim (16 s - 57 min a solve; Platinum Adventure took 57 min), 3 routes
+skip a portal (demon mixed, Super Cycles, Blue Hell: left out). `node tools/difficulty_density.js` fits his attempts
+(log10) with leave-one-out:
+
+| data | score only: rmse / Spearman | + inputs/min + minutes | inputs/min + minutes alone |
+|---|---|---|---|
+| 19 mains + 19 community demons | 0.39 / 0.36 | 0.40 / 0.26 | 0.41 / 0.14 |
+| 19 community demons only | 0.31 / -0.14 | 0.29 / 0.24 | 0.30 / 0.11 |
+
+- **Density and length do not fix it.** Every one of these is 1.0-1.6 min long and 83-150 inputs a minute; neither
+  varies enough to explain 83 vs 1111 attempts. Within the community demons the score does not rank his attempts at all
+  (Spearman -0.14): Electroman Adven v2 1111 attempts at score 1.87, Lights And Thunder 100 at 3.43, invisible clubstep
+  539 at 4.02. So the missing part is not a density term.
+- What it may be instead (open, in order of what to test): (1) **when he played it**: lifetime attempts mix skill growth
+  in -- a demon played early in his GD life costs more (the save has no dates; the order he beat them, if a save field
+  has it, would show it); (2) **long-run consistency**: with windows of 200-300 ms the per-press chance is ~1, so the
+  model gives ~0 cost to the long easy stretches that still kill a real player now and then (the lapse term, fitted on
+  short official levels, may be too small for 150-200 presses); (3) **reading**: these old levels have hidden / fake
+  paths and bad visibility (invisible clubstep), which the timing model cannot see.
+- Scores per level: local/difficulty/community.jsonl and knowledge/measurements.jsonl (`node tools/measures.js latest community`).
 
 ## Open (hand-off)
 

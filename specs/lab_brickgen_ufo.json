@@ -1,0 +1,220 @@
+{
+ "name": "GDLM lab brickgen ufo",
+ "description": "Generated ufo bricks (tools/brickgen.js), best first",
+ "speed": "1x",
+ "style": "classic",
+ "indicators": false,
+ "objects": [
+  [
+   "ufo portal",
+   8,
+   1
+  ],
+  [
+   "pattern",
+   "s:g-ufo-normal-1",
+   13,
+   0,
+   {
+    "raw": true
+   }
+  ],
+  [
+   "cube portal",
+   49,
+   1
+  ],
+  [
+   "cube portal",
+   49,
+   4
+  ],
+  [
+   "cube portal",
+   49,
+   7
+  ],
+  [
+   "block",
+   49,
+   9
+  ],
+  [
+   "ufo portal",
+   63,
+   1
+  ],
+  [
+   "pattern",
+   "s:g-ufo-hard-1",
+   68,
+   0,
+   {
+    "raw": true
+   }
+  ],
+  [
+   "cube portal",
+   92,
+   1
+  ],
+  [
+   "cube portal",
+   92,
+   4
+  ],
+  [
+   "cube portal",
+   92,
+   7
+  ],
+  [
+   "block",
+   92,
+   9
+  ],
+  [
+   "ufo portal",
+   106,
+   1
+  ],
+  [
+   "pattern",
+   "s:g-ufo-normal-2",
+   111,
+   0,
+   {
+    "raw": true
+   }
+  ],
+  [
+   "cube portal",
+   136,
+   1
+  ],
+  [
+   "cube portal",
+   136,
+   4
+  ],
+  [
+   "cube portal",
+   136,
+   7
+  ],
+  [
+   "block",
+   136,
+   9
+  ],
+  [
+   "ufo portal",
+   150,
+   1
+  ],
+  [
+   "pattern",
+   "s:g-ufo-hard-2",
+   155,
+   0,
+   {
+    "raw": true
+   }
+  ],
+  [
+   "cube portal",
+   180,
+   1
+  ],
+  [
+   "cube portal",
+   180,
+   4
+  ],
+  [
+   "cube portal",
+   180,
+   7
+  ],
+  [
+   "block",
+   180,
+   9
+  ]
+ ],
+ "seedPresses": [
+  {
+   "t": 1.5042,
+   "hold": 0.05
+  },
+  {
+   "t": 1.8042,
+   "hold": 0.05
+  },
+  {
+   "t": 2.4042,
+   "hold": 0.05
+  },
+  {
+   "t": 2.7042,
+   "hold": 0.05
+  },
+  {
+   "t": 3.3042,
+   "hold": 0.05
+  },
+  {
+   "t": 3.8042,
+   "hold": 0.05
+  },
+  {
+   "t": 6.6998,
+   "hold": 0.05
+  },
+  {
+   "t": 7.0998,
+   "hold": 0.05
+  },
+  {
+   "t": 7.6998,
+   "hold": 0.05
+  },
+  {
+   "t": 7.9998,
+   "hold": 0.05
+  },
+  {
+   "t": 10.8399,
+   "hold": 0.05
+  },
+  {
+   "t": 11.1399,
+   "hold": 0.05
+  },
+  {
+   "t": 11.7399,
+   "hold": 0.05
+  },
+  {
+   "t": 12.2399,
+   "hold": 0.05
+  },
+  {
+   "t": 15.0764,
+   "hold": 0.05
+  },
+  {
+   "t": 15.3764,
+   "hold": 0.05
+  },
+  {
+   "t": 15.9764,
+   "hold": 0.05
+  },
+  {
+   "t": 16.4764,
+   "hold": 0.05
+  }
+ ],
+ "outro": 1
+}

@@ -32,6 +32,31 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   game at a stepped roof's corner where our sim passed, PHYSICS.md "probe mod"). Build them with `fly-path` (45-degree slopes
   on both walls), not `ship-tunnel`; the margin our sim gives at a block corner is not to be trusted.
 - [ ] **Brick joins get 3+ flat blocks, and a brick whose own check found a prejump is not used** (2026-11-25, GDLM 44 v3: 1-2 block joins made 5 prejumps and a tap 183 ms after a gravity portal). `tools/brickpick.js` enforces it; score.js "prejumps" / "fairness" check it.
+- [ ] **Height carries over between sections, never resets** (Evgeni 2026-11-26: "its not that each section just 5, its
+  that between sections we always reset"; "we could make a level that just goes up in y by the sections"). Each section
+  starts at the height the last one ended on; fly sections exit higher (or lower) than they came in; a level may climb far
+  above the floor (the game, the sim and the camera handle it; the level map shows up to 150 blocks). Hellgate v4 set each
+  section's floor on its own, so every portal dropped it back down. `tools/judge.js` "flat level" (to come).
+- [ ] **No unseen roof** (Evgeni 2026-11-26 on Hellgate v4's ship entry: "we fall from the top, but there is no indication of
+  top. some secret ways can be like that"): when the player comes into a corridor from above, or a stretch's ceiling is off
+  screen, its roof must show (a visible top edge or deco line); an open sky above a corridor reads as a way over it. Checked: `tools/judge.js` "unseen roof" (the route at its band's roof or a raised band floor with no solid there).
+- [ ] **The ending is designed, not a flat walk to the signature** (same review: "design the last sign/gameplay a bit more.
+  maybe some auto gameplay which is not just on the ground"): the last seconds get a set piece -- e.g. an auto (no-click)
+  ride on pads / portals that climbs or flies -- leading into the signature. Checked: `tools/judge.js` "flat ending"; make.js `"outro": <seed>` builds one (AUTO.md).
+- [ ] **No plain blocks in the ending, and it ends inside the song** (Evgeni 2026-11-26: "not to have the basic blocks on the
+  bottom there (and not after the song ends)"): the ending's ledges float and are dressed (beatend.js `endDeco`), and the sign's
+  screen comes before the music stops (autobeat `buildInSong`, `measures.songLeft` >= 0). AUTO.md "The beat ending: looks".
+- [ ] **Raised sections fit the mode's play band** (found building Hellgate v5, 2026-11-26): ship, ufo, wave, swing (10 blocks),
+  ball (8) and spider (9) play in a band centred on their portal (lib/physics.js portal(); floor = portal y - band/2, snapped,
+  never under 0). At ground level the band starts at 0, so pieces fit; up high a portal at floor+1 puts the band's roof only
+  ~5 blocks over the floor -- a piece taller than that dies on an unseen ceiling. Put the section's floor (or a corridor's
+  base) on the band's floor; the climbing comes from ground sections (a cube steps up any height).
+- [ ] **Pieces don't repeat back to back**: under 44% of the route's lego pieces share a signature with one of the 4
+  before (official levels median 17%, p90 44%; our older levels 53%). `node tools/lego.js variety <level>`, score.js
+  "brick variety".
+- [ ] **Pieces of one section are close in clicks per second** (Evgeni 2026-11-26: "pick somewhat same balance, and probably
+  close cps"): a picker scores a section's pieces against the section's CPS target, not each piece alone. `tools/pieces.js`
+  shows every piece's span on the level map (`levelmap.js --pieces`).
 - [ ] **Room at every portal, counted at 1x and stretched with the speed** (GDLM 73, 2026-11-26, nine rounds): the first
   input 7 blocks after a ground portal (13 after a flight's exit), the last 1.5 beats before the next portal (3 for ball /
   spider), no floor step right behind a portal (a forced jump on arrival), a flight's gate open 4 rows (a wave arriving held
@@ -77,9 +102,16 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   presses) and no empty screen -- no hazard, orb, pad or structure in view for 1+ s (official levels: 1 in ten).
   A calm is short and deliberate, with deco, and accepted in the brief. `tools/deadair.js`, score.js "dead air";
   craftlevel fills a short section with its own chunks. (the user on GDLM 61 v3, 38-46 s: "very big breaks with nothing")
+- [ ] **The song offset sits on a beat** when the builder counts beat 1 from the level start: a hair past one makes every `"bN"` a beat late (GDLM 44 v5-v6). make.js prints `!! offset ... past a beat`; SYNC.md "bN".
 - [ ] **Presses follow the song's beat**: the human route has about as many inputs per beat as the official levels
   (0.53-0.87 over the level, 0.50+ in its busy phrases; a calm phrase may be sparse). `tools/tempo.js`, score.js "tempo".
   (the user on GDLM 44 hellgate v6: "the cps is very small, compared to beat of the song")
+  And at least the median Easy brick's clicks per second (1.82; rated levels' bricks 1.8-2.15 at every tier,
+  knowledge/brick_tiers.json from `tools/brickstats.js --write`): score.js "tempo" warns below it. Evgeni 2026-11-26: "i want
+  levels not to be so sparse, the beats are decently quick". Sweep: GDLM 70-73 pass (2.0-2.5), most of 41-69 are under.
+- [ ] **No near-empty stretch inside the level**: the calmest 10% of 4 s windows keep 0.5+ clicks/s, no 2.5 s+ stretch without a
+  press, under 20% of its bricks clickless, its bricks' median clicks/s within 85% of the target tier's. `tools/density.js`,
+  score.js "density" (the whole-level number above can pass while one stretch is empty).
 - [ ] **Density without timing**: arm the pieces the route never touches -- spike tips under hanging columns
   (3+ rows over the higher pillar beside them) and spike-tipped 1-wide pillars mid-pit, a row under the lower
   landing; never a spike on a top the route lands on. Checked: windows unchanged (CRAFT.md "Density").
@@ -186,13 +218,39 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 
 ## Not bland (rated Easy/Normal 2.0-2.1 medians)
 
+- [ ] **A single hazard can carry a design** (Evgeni 2026-11-26: "a spike inside a smaller spike ... glow, layers"): 81-87% of
+  2.0-2.2 rated hazards carry deco, 59-70% two or more parts; dress them with tools/spikedesign.js (inside parts in front,
+  at most 0.8x, on their own channel; glows behind at most 1.4x: `node tools/spikedesign.js check <level>`).
+- [ ] **Hazards follow the path** (Evgeni 2026-11-26 on the auto levels' saws: "random, not following the path"): of the
+  level's hazards 8-40% threats (within a block of the route), 25%+ guards (1-3 blocks: the lane's frame, shuts secret
+  ways), at most 60% fill; half or more of the jumps over something; 2+ hazards near the path a second (official
+  17 / 45 / 38%, 71-83% of jumps). Check: score.js gate "hazards" (`node tools/hazards.js level <lvl>`); place them with
+  lib/hazards.js `hazardsAlongPath`. HAZARDS.md.
+
 - [ ] **The background never reads as solid** (the user's Two Moons mark, 2026-11-25: "solid background is confusing"). Back
   shapes must not look like blocks you can land on: no block-like squares with lit rims behind the play, lower value and
   contrast than the path's bodies, softer or no outlines, a different hue or some transparency. `tools/roles.js` (pathDeco).
+- [ ] **Play blocks are a material, not a flat fill** (the user, 2026-11-26: "The blocks are still very timid. No effects. No
+- [ ] **Block design in layers** (Evgeni, 2026-11-26, with 8 tutorials): outline + inline, a 2-3 colour base with low-opacity texture, details small = high contrast, glow sparingly (top light, bottom dark, black lines in front of glow), 3D lines all one direction and darker. DECOART.md "Block design". Check: `tools/blockart.js` (by eye for now).
+- [ ] **Not only flat shapes** (Evgeni, 2026-11-26: "bland compared to real levels"): rated 2.2 levels put ~22% of deco in front (T2+), ~11 big set pieces a screen, gradients / soft glow, particles, fades (alpha ~190/min), camera moves and shaders, and a new scene per section. Check: `node tools/modern_look.js <level>` + `node tools/decocomp.js <level>` vs DECOART.md "Why it still looks bland". Add them with `tools/decofx.js`.
+- [ ] **One block design and one spike design at a time** (Evgeni, 2026-11-26: "we usually dont want to mix multiple spike or blocks near each other ( maybe one day ). but for different sections and different vibes we surely would want to change. but probably not too much according to the director of the level"): inside a section every block wears the same design (tools/structdesign.js) and every hazard the same spike design (tools/spikedesign.js); a change comes only at a section change with a new vibe, and the level's plan ("director") allows few changes (2-3 looks a level, a return to an earlier look counts as none). Jump indicators keep ONE style for the whole level, apart from the block and spike designs and in a colour away from the hazards' (`"indicators": {"colour": "auto"}`, tools/indstyles.js) (his note: "dont want to confuse blocks and indicators"). DECOART.md "One look per section".
+- [ ] **Structures connect, unless the level says otherwise** (Evgeni, 2026-11-26: "structures should in general connect, unless something else happens on the level ( bigger space, transition )"; "making a level look like an extended one and not a set of island structures"): RobTop's gameplay is islands too (tools/islands.js: 5.3 a screen in cube pieces), so the joining is visual: something soft holds each island (two ropes / chains / rods near its ends, one in the middle of a narrow one, from above or below; Evgeni: "as if something is holding it"), rope bridges between close islands, thin and behind the play, never where the route passes; no join across a portal or a gap over 4 blocks. `node tools/connect.js <level> --route <route.json>`; DECOART.md "Connected structures".
+- [ ] **Big structures are not empty inside** (Evgeni, 2026-11-26: "the big ones feel very empty inside"): a body 3+ blocks thick gets texture over its whole inside (panel seams, rivets, a few lamps, a layer line along the shape, a top-lit gradient), not only layers at its edge; structdesign.js `dress()` does it by default (`interior()`), and make.js's structure deco pass applies it (spec `"structures"`, tools/structdeco.js); DECOART.md "The inside of big structures".
+- [ ] **No "depth" effect on plain blocks; islands held** (2026-11-27, GDLM 75): depth's dark extrusion merges with a block's black body (roles gate FAIL), use bevel; every floating island gets a holder clear of the path (connect.js slides inward from a blocked end). Autos are scored on their zero-press run (score.js gate "auto").
+- [ ] **One design theme per look, changed on the fly** (Evgeni, 2026-11-26): blocks, spikes, saws, holders, indicators, sky and background deco come as one combination (tools/designthemes.js), a section may change any part of it; `"structures": {"theme": ...}` in make.js; DECOART.md "Design themes".
+- [ ] **Background apart from blocks and hazards** (Evgeni, 2026-11-27: "the background and the blocks look too alike"): sky and backdrop in another hue than the blocks, block body vs sky luminance ratio >= 1.5; `backdrops.check` (the structure deco pass notes `!! contrast`), score.js gate "roles" on the whole level.
+- [ ] **Play up on structures, connected, little open space** (Evgeni, 2026-11-27: "gameplay [...] mostly above ground [...] much more structures, and more connected ones. less open space"): the path runs on masses down to the ground, pits of spikes between, held islands, ceilings above; ground play only as a short change. DECOART.md "Design themes"; judge.js notes a "ground start".
+- [ ] **Block dressing follows the real blocks** (Evgeni, 2026-11-26: "not exactly coherent in the corners"): beat-synced blocks sit off the 30 grid, so dressing is drawn from each block's x, y (never `c * 30`); inlines turn at inner corners, outlines meet, inline one z-order under the outline. DECOART.md round 5b; `node tests/decofx.js`.
+  good texture. All single filled color"). Lit open tops, darker with depth, a surface texture (facets), a feature with light
+  (glowing seams on the beat), an edge and a shadow. `tools/blockart.js` (decoart.js --blocks); DECOART.md "Blocks".
+- [ ] **A section's backdrop is one composed picture** (focal light at a third, values light far -> dark near, nothing in
+  it reads as gameplay): DECOART.md, `tools/decoart.js`.
 - [ ] **The play stays visible: deco never hides the path or a hazard** (the user, 2026-11-25: RobTop's levels are amazing
   for "the visible play"; "if you dont see a spike the timing is obviously harder"). No deco in front of the lane the player
   can be in, none behind a hazard in its value or hue (it must stand out), the richest art at the lane's edges, quiet behind
   the hazards. `node tools/lane.js <level>` (clutter = 0), `tools/roles.js` (pathDeco, hazards), `tools/readability.js --gate`.
+  Nothing hazard-shaped that is not a hazard near the lane (icicles or thorns under a ceiling over the lane read as spikes:
+  the ice kit, 2026-11-26), and no big flat shape filling the screen behind the play (a lone peak or volcano reads as a wall).
 - [ ] **Motion and colour on every screen, not only at the start** (Eclipse v2-v4, 2026-11-25): one calm pulse a beat, a drift and a
   spin per section, 10+ colour channels a screen; triggers placed along x, since the measures (decostudy, taste) count by x.
   `node tools/taste.js score <level>` (dsMotion, dsChannels). Warm light behind the path: cool rims (`tools/roles.js`).
@@ -308,6 +366,8 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   the beat"): each change of movement fires on a beat, in motifs (AAAA, BBBB, a mix), and every trigger moves the player.
   `tools/autobeat.js` builds this way and measures `onBeat` (aim 0.9+). On the song's NOTES, not only beats (Evgeni: "we hit
   like 1/6 of the notes"): `notesHit` aim 0.5+, every note in loud parts; speed portals follow the music's `speedPlan`.
+  The same music keeps the same auto vibe: each band of notes (low / mid / top) has its own kind for a batch, rerolled at
+  the song's transitions; the song's hits are staircase steps; the ground under an auto stretch varies.
 
 ## Looks like 2.2, not 1.0 (levels/modern_look.md)
 
@@ -391,6 +451,19 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   section, ~5 s of empty run (the user, 2026-11-25: "leaves way too much space ... should end almost instantly")
 - [ ] **The signature ends every GDLM level** (robot + human): make.js adds it by default; opt out
   only with `"signature": false`.
+- [ ] **Every level ends with the latest end screen: the auto outro + the signature** (Evgeni, 2026-11-26: "from now-on
+  everywhere, we add the latest end screen claude sign on every level we make"). make.js: `"outro": <seed>` (autobricks.js)
+  then the signature; any other builder (autobeat.js, planbuild, hellgate_build, lab levels meant to be played) adds the same
+  pair. BUILDING.md section 5.
+- [ ] **Auto levels: no secret way** -- a press anywhere dies or is back on the auto path within 5 s (autobeat.js strays();
+  saws where a press leaves it). Rapid runs (4+ notes <= 0.14 s apart) get triggers 0.07 s apart. AUTO.md round 8.
+- [ ] **Before telling the user to install, check the copy on the PC is the new version** (size or hash of the file he installs from): a failed copy step left v11 there, and he died on the same tick three times on a level we had already fixed (auto beat, 2026-11-26). A real-game run byte-identical to an earlier one means the same level is still in GD.
+- [ ] **After a physics change, republish the phone page before a level built on it goes there** (PHONE.md): the page replays with its own copy of lib/physics.js (auto beat v8 died on the phone at 11 s, 2026-11-26).
+- [ ] **An auto level is built and checked on main's newest physics before it is installed**: GDLM auto beat v4 cleared on
+  the morning's physics and fell in the game at 20 s; on the evening's physics it dies there too. `git pull`, rebuild, check.
+- [ ] **Auto layouts read as designed** (Evgeni on v5: "jumpy across screens", "very random", "janky within the block"): no
+  teleports, height inside a camera band except at section changes, phrases echo their call, slopes as moves, the player never
+  sinks into a ledge, spider moves short, every pad on a block. autobeat.js `shape` (AUTO.md round 9).
 - [ ] **Nothing the player should read above the view** (the user on GDLM 72, 2026-11-25: "the sign is offscreen"): for a
   cube on the ground the game shows y -93 .. ~227 (lib/camera.js), so text and set pieces stay under ~210. The signature's
   stage floated 90 units up and put its title at y 232; now 50 (title ~192). 21 of 30 GDLM levels carry the old one until
@@ -408,3 +481,25 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 - [ ] Put the level in the viewer: `node tools/wip.js put <level> --session <name> --note "..."`.
 - [ ] Read the user's marks (`node tools/marks.js`), and after their playtest copy their words into
   `knowledge/critiques.md`. A new lesson goes into the right doc and onto this list.
+- [ ] **Not mostly cube, and some of it upside down** (Evgeni 2026-11-26 on Hellgate v6: "why is variety so biased to cube?
+  and almost no reverse if at all"): cube's share by tier as the mains measure it along their routes (2026-11-26: 69-87% in
+  the easy mains, ~24-50% in the harder ones; average 57% cube, 20% ship, 9% ball, 6% ufo, 4% wave, 1-2% robot / spider /
+  swing), and ~15-25% of the time upside down (mains: 17%). No mirror portals for now (Evgeni).
+  The cause was the library (52 cube pieces vs 2-12 per other mode at 1x), so the fix is more verified pieces per mode
+  plus a mode-share target in the picker; to come as a score.js check.
+- **Spikes close to the lane on both sides, deco with a rhythm** (Evgeni 2026-11-26, the icy part, DECOART.md round 6): rated levels keep ~45% of hazards guarding the lane (above and below), 2-3 per obstacle, and deco with quiet stretches and big moments (cv ~0.9); `node tools/hazards.js level <lvl>`, `node tools/decocomp.js <lvl>`.
+
+- [ ] **Balanced pieces** (Evgeni on GDLM 44 v7: "some have like 2 cps without frame windows, and some seem mega hard ... pick
+  balanced structures, with similar cps and frame windows"): every piece's tightest window and clicks a second inside the
+  tier's band (Normal / Hard: window 120 ms+, 1.2-3 clicks/s; rated bricks: knowledge/brick_tiers.json), and close to each
+  other within a section. brickpick.js pickSection `window`, `cpsBand`, `winSpread`.
+- [ ] **Rests on purpose** (the same note: "some places just nothing for few seconds"): 1.5-2 s with nothing to press at
+  quiet moments of the song (before a drop, inside a long section) -- the mains have ~11 breathers a minute (LEGO.md
+  "Combining"). Not dead air by accident: a planned rest is listed in the builder's plan (hellgate_build.js `rest`).
+- [ ] **A real upside-down stretch** ("almost no reverse"): ~15-25% of the time upside down; the ~ud variants flip back within
+  1-2 s, so a section is built upside down as a whole (patterns.js `ud:<id>`, a ceiling, one portal in and one out).
+- [ ] **Portals taken on the move** ("no proper transitions"): a jump into the portal out of the cube, a drop out of a flight
+  (official 93% on the move, ours 46% walking in; LEGO.md "Combining").
+- **Bricks: ours generated, judged by RobTop's** (Evgeni 2026-11-26: "all those [ours] are trash", "robtop structures are decent"): new pieces come from `tools/brickgen.js` (presses first, walls around the flown path, no secret way, the solver's fewest presses = the plan's), scored against the official family numbers; a hand-made library piece gives way when a generated one of its slot scores higher (BRICKGEN.md). A brick set must VARY (Evgeni on the first batch, "all to the garbage": "no height variance, no orbs, no pads, no gameplay in the middle, no small movements [...] 1 structure"): height range and net change, mechanics between presses, no two bricks the same idea; and irregular, not just up-down on 2 axes, in every mode (Evgeni 20:48: "if all the game play of all 20 structures is on 2 axes. then its almost the same"): spread over move types, silhouette, hazard layout, mechanics, rhythm, path shape. Checked in code: `tools/brickgen2.js` gates each brick on its movement (inside the official p10-p90 on all but 2 of tools/movestudy.js's 11 axes) and picks the set for distance; a set's variety (nearest, axes used) is compared with the official set's.
+- The Claude sign is on the last screen: nothing past its right edge (`signature.js` clipEnd; GD shows only ~229 units before the furthest object at the end).
+- **Start up on blocks, not on the default ground** (Evgeni 2026-11-26: "by default not make levels starting on the default ground, but immediately on some height on top of blocks of the level design, and the structure starts from there"): a ramp of 3 slopes from column 1 (`tools/startramp.js`), the first section's floor 3 rows up; hellgate_build.js and planbuild.js do it by default (plan `"start": 0` = the old way). Check: judge.js "ground start" (report.js transitions -2).

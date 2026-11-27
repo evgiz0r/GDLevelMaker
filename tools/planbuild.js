@@ -17,6 +17,7 @@
 //   "colours": {...}, "drop": 25, "pulseZones": [[25, 41]],   // as in a make.js spec
 //   "sections": [ { "from": 1, "to": 17, "mode": "cube", "speed": "1x", "kind": "intro", "base": 0, "variant": "morning",
 //                   "max": "Normal", "rows": [2, 5, 3] }, ... ] }
+//   "start": rows the level opens up on (default 3, tools/startramp.js: a ramp from column 1; 0 = on the default ground)
 //   base = the section's floor in blocks (null for a flying one); rows = a flying corridor's knot heights (else a default
 //   set per mode, rotated per section so no corridor repeats); max = the hardest brick label (default Normal at 1x, Hard
 //   faster); fill = the filler's shapes in rotation (cube default single / double); minDensity = presses per 10 blocks
@@ -25,7 +26,7 @@
 //   room after the entry portal (default 7, 10 after a flight, at 1x) / beats before the next portal (1.5).
 "use strict";
 const fs = require("fs"), path = require("path");
-const { pick } = require("./brickpick.js");
+const { pick, beatAt } = require("./brickpick.js");
 const ROOT = path.join(__dirname, "..");
 const BPS = { "0.5x": 8.372, "1x": 10.386, "2x": 12.914, "3x": 15.6, "4x": 19.2 };   // blocks per second (lib/physics.js SPEEDS x * 60 / 30)
 const FLY = new Set(["ship", "wave", "swing"]);
@@ -40,7 +41,10 @@ function build(plan) {
   const hitsFile = path.join(ROOT, plan.hits || path.join("local", "hits", plan.song + ".json"));
   const H = JSON.parse(fs.readFileSync(hitsFile, "utf8"));
   if (Math.abs(H.t0 - plan.t0) > 1e-3) throw new Error(`${hitsFile} is on another grid (t0 ${H.t0}): node tools/hits.js ${plan.song} --bpm ${plan.bpm} --t0 ${plan.t0} --downbeat 0`);
-  const S = plan.sections.map(s => Object.assign({ base: FLY.has(s.mode) ? null : 0 }, s));
+  // the start: up on blocks at once, not on the default ground (Evgeni 2026-11-26, tools/startramp.js): the first section's
+  // base defaults to START_ROWS (plan "start": rows, 0 = the old ground start), walked up a ramp from column 1
+  const SR = require("./startramp.js"), startRows = plan.start ?? SR.START_ROWS;
+  const S = plan.sections.map((s, i) => Object.assign({ base: FLY.has(s.mode) ? null : i === 0 ? startRows : 0 }, s));
   S.forEach((s, i) => { if (FLY.has(s.mode) && (i === 0 || FLY.has(S[i - 1].mode))) throw new Error(`section ${i} (${s.mode}): a flying section needs a ground section before it`); });
   // ground -> ground: never higher than the section before (its floor would be a step right behind the portal: a forced
   // jump on arrival, GDLM 73's spider -> cube); after a flight any height (the exit portal drops the player there)
@@ -51,8 +55,8 @@ function build(plan) {
     for (const n of names) objs.push([n, at, row]);
     for (let r = 0; r < Math.max(10, row + 10); r++) if (r < row - 1 || r > row + up) objs.push(["block", at, r]);
   };
-  const floorOf = (b0, b1, sp, B) => { const out = [], w = Math.ceil((b1 - b0) * P * BPS[sp]);
-    for (let c = 1; c < w; c++) for (let r = 0; r < B; r++) out.push(["block", `b${b0}+${c}`, r]); return out; };
+  const floorOf = (b0, b1, sp, B, c0 = 1) => { const out = [], w = Math.ceil((b1 - b0) * P * BPS[sp]);
+    for (let c = c0; c < w; c++) for (let r = 0; r < B; r++) out.push(["block", `b${b0}+${c}`, r]); return out; };
   const rise = (b0, vcol, picks, mode, B = 0, climb = true) => {
     if (!climb || !["cube", "mini", "robot", "ufo"].includes(mode)) { for (const p of picks) p.h = B; return []; }
     const out = []; let h = 0, k = 0;
@@ -84,9 +88,10 @@ function build(plan) {
     // room after the portal in and before the portal out (fairness: no input forced right after a switch, checklist:
     // cube ~6 blocks, ~10 after a flight; GDLM 73 v1 started pieces 4 blocks in and failed fairness at 6 switches).
     // Counted at 1x and stretched with the section's speed.
-    const k = BPS[sp] / BPS["1x"], lead = (s.lead ?? (i === 0 ? 4 : FLY.has(prev.mode) ? 13 : 7)) * k;   // after a flight: the cube drops from the exit row first (a 50 ms tap 1 s after GDLM 73 v4's wave exit)
+    const k = BPS[sp] / BPS["1x"], lead = (s.lead ?? (i === 0 ? (B > 0 ? 6 : 4) : FLY.has(prev.mode) ? 13 : 7)) * k;   // after a flight: the cube drops from the exit row first (a 50 ms tap 1 s after GDLM 73 v4's wave exit)
     const nxt = S[i + 1], tailBeats = s.tail ?? (!nxt ? 0.5 : mode === "ball" || mode === "spider" ? 3 : 1.5);   // a ball ended a flip at the gate (prejump, GDLM 73)
-    objs.push(...floorOf(b0, b1, sp, B));
+    if (i === 0 && B > 0) objs.push(...SR.ramp(B, { at: "b" + b0 }));
+    objs.push(...floorOf(b0, b1, sp, B, i === 0 && B > 0 ? SR.floorFrom(B) : 1));
     if (mode === "mini") {
       const r = pick(Object.assign({}, base, { mode: "cube", speed: sp, startCol: vcol + lead, fromBeat: b0, toBeat: b1 - Math.max(1, tailBeats), max: "Easy", beats: true, fillerOnly: true }));
       // a mini jump is short: spikes on back-to-back beats left a 42 ms tap (GDLM 73); keep them s.minGap s apart (0.6)
@@ -114,7 +119,7 @@ function build(plan) {
         r.presses = r.picks.reduce((n, p) => n + p.presses.length, 0); }
       for (const p of r.picks) if (!p.j) used.push(p.id);
       const floor = rise(b0, vcol, r.picks, mode, B, s.climb ?? sp === "1x");   // at 2x the steps landed 2-3 blocks after spikes (reactive)
-      objs.push(...floor, ...r.picks.map(p => p.j ? ["pattern", p.shape || "single", "j" + p.beat, p.h] : mode === "cube" ? ["pattern", "s:" + p.id, "b" + p.beat, p.h] : ["pattern", "s:" + p.id, "b" + p.beat, p.h, { raw: true }]));
+      objs.push(...floor, ...r.picks.map(p => p.j ? ["pattern", p.shape || "single", "j" + p.beat, p.h] : mode === "cube" ? ["pattern", "s:" + p.id, beatAt(p), p.h] : ["pattern", "s:" + p.id, beatAt(p), p.h, { raw: true }]));
       report.push(`${label}: ${r.picks.map(p => p.shape || p.id).join(", ") || "(none)"} -- ${r.presses} presses, ${Math.round(r.onHit * 100)}% on a hit`);
     }
     const nx = S[i + 1];
@@ -156,7 +161,7 @@ function build(plan) {
 
   const endBeat = plan.end || S[S.length - 1].to, endCol = Math.round(colOf(endBeat));
   const spec = Object.assign({
-    name: plan.name, desc: plan.desc, notes: plan.notes, style: plan.style, indicators: {}, signature: true,
+    name: plan.name, desc: plan.desc, notes: plan.notes, style: plan.style, indicators: {}, signature: true, structures: plan.structures ?? true,
     song: { custom: plan.song }, offset, grid: { bpm: plan.bpm, t0: plan.t0 },
     drop: plan.drop, pulseZones: plan.pulseZones, colours: plan.colours,
   }, plan.theme ? { scene: "tools/scenes/theme.js",
