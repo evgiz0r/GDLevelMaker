@@ -222,6 +222,10 @@ function layoutBack() {
   const dir = path.join(DIR, "db", "designdraw"), DT = require("./designthemes.js"), newest = {};
   for (const f of fs.existsSync(dir) ? fs.readdirSync(dir) : []) { const d = JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")), x = d.data || d;
     if (x && /^layout:/.test(x.design) && (!newest[x.design] || String(x.at) > String(newest[x.design].at))) newest[x.design] = x; }
+  // spikes point away from what holds them (the board's orient() in designs_tab.js, same rule)
+  const orient = T => { const at = new Map(T.map(q => [q.c + "," + q.r, q.t])), solid = (c, r) => r < 0 || /[#7r\/\\]/.test(at.get(c + "," + r) || "");
+    return T.map(q => q.t === "^" && !solid(q.c, q.r - 1) && solid(q.c, q.r + 1) ? { ...q, t: "v" } : q.t === "v" && solid(q.c, q.r - 1) && !solid(q.c, q.r + 1) ? { ...q, t: "^" } : q); };
+  for (const k in newest) if (newest[k].tiles) newest[k] = { ...newest[k], tiles: orient(newest[k].tiles) };
   const toMap = (tiles, rows, width, dc) => { const g = Array.from({ length: rows }, () => Array(width).fill("."));
     for (const q of tiles) { const r = rows - 1 - q.r, c = q.c - dc; if (r >= 0 && r < rows && c >= 0 && c < width) g[r][c] = q.t; } return g.map(l => l.join("")); };
   const out = {};

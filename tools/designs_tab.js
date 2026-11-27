@@ -326,7 +326,12 @@ window.initDesigns = async function (root) {
     if (first) painting.mode = TOOL === "erase" || (i >= 0 && D0.tiles[i].t === TOOL) ? "del" : "put";
     const key = cell.join(","); if (painting.done.has(key)) return; painting.done.add(key);
     if (painting.mode === "del") { if (i >= 0) D0.tiles.splice(i, 1); } else { if (i >= 0) D0.tiles.splice(i, 1); D0.tiles.push({ t: TOOL, c: cell[0], r: cell[1] }); }
-    painting.changed = true; drawTiles(k); }
+    orient(D0.tiles); painting.changed = true; drawTiles(k); }
+  // spikes point away from what holds them (Evgeni 2026-11-27: "i put spikes on the roof so reverse them if needed"): a
+  // spike with a block over it and nothing under it hangs (v), one on a block or the ground stands (^). Same rule in
+  // tools/designs.js orient() when his map is applied.
+  function orient(T) { const at = new Map(T.map(q => [q.c + "," + q.r, q.t])), solid = (c, r) => r < 0 || /[#7r\/\\]/.test(at.get(c + "," + r) || "");
+    for (const q of T) if (q.t === "^" && !solid(q.c, q.r - 1) && solid(q.c, q.r + 1)) q.t = "v"; else if (q.t === "v" && solid(q.c, q.r - 1) && !solid(q.c, q.r + 1)) q.t = "^"; }
   function drawTiles(k) { const svg = root.querySelector(`.tiles[data-k="${k}"]`); if (!svg) return; for (const el of svg.querySelectorAll(".tl")) el.remove();
     const tmp = document.createElement("div"); tmp.innerHTML = `<svg>${tilesOf(k).map(z => TILE(z, +svg.dataset.h)).join("")}</svg>`; for (const el of [...tmp.firstChild.childNodes]) svg.appendChild(el); }
   // the board's svg under a tap, also when the tap lands on its holder: the claude.ai app can lay its own layer or rules
@@ -401,7 +406,7 @@ window.initDesigns = async function (root) {
       VOTES = v; if (!root.contains(document.activeElement) || document.activeElement.tagName !== "TEXTAREA") render();
     }, () => {});
     if (DB) DB.collection("designdraw").onSnapshot(snap => {
-      for (const d of snap.docs.map(x => x.data())) if (d && d.design && (!DRAW[d.design] || !DRAW[d.design].at || String(d.at) > String(DRAW[d.design].at))) if (!cur) DRAW[d.design] = JSON.parse(JSON.stringify(d));   // a plain copy: the db hands back frozen objects, and editing one in place threw (2026-11-27: taps and clear did nothing in the app)
+      for (const d of snap.docs.map(x => x.data())) if (d && d.design && (!DRAW[d.design] || !DRAW[d.design].at || String(d.at) > String(DRAW[d.design].at))) if (!cur) { DRAW[d.design] = JSON.parse(JSON.stringify(d)); if (DRAW[d.design].tiles) orient(DRAW[d.design].tiles); }   // a plain copy: the db hands back frozen objects, and editing one in place threw (2026-11-27: taps and clear did nothing in the app)
       if (!cur) render();
     }, () => {});
     if (DB) DB.collection("designmarks").onSnapshot(snap => {

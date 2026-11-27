@@ -473,7 +473,8 @@ block, floor or ceiling slope, spike, hanging spike or saw; drag paints, ⌫ era
 zoom, with no picture under them: the first board lay over a 130 px picture and zoom never reached it ("i cant draw on the
 layout properly, zoom doesnt work"). Every edit saves itself; 💾 save saves the shown parts again and says when, without
 sending ("i need a save there, without sending"); 📨 sends. `node tools/designs.js layout [--apply]` reads the edits back
-(sections -> knowledge/layout_sections.json). Next: build the gallery scene from the sections, each with its mode's portal.
+(sections -> knowledge/layout_sections.json). Spikes point away from what holds them ("i put spikes on the roof so
+reverse them if needed"): a spike under a block with nothing below hangs, on the board and when applied (orient()). Next: build the gallery scene from the sections, each with its mode's portal.
 ▶ play on a theme card (Evgeni: "theme animations, so we might see how it looks in the game if we press play"): the
 gallery's saved route, 60 points a second in card units (designs.js animOf), moves the camera and a player over the
 picture at 1x, 0.5x or 0.25x. Asked next: several animations to pick per theme, like the backdrop options (effects that
