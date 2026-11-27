@@ -23,7 +23,7 @@ const fs = require("fs"), path = require("path"), crypto = require("crypto");
 const { GD, readGdlvl } = require("./io.js");
 Object.assign(GD, require("../lib/natural.js"), require("../lib/difficulty.js"));
 const WIN = require("../lib/windows.js");
-const DIR = path.join(__dirname, "..", "local", "solutions");
+const DIR = process.env.GDLM_SOLUTIONS_DIR || path.join(__dirname, "..", "local", "solutions");   // GDLM_SOLUTIONS_DIR: tests
 
 // key 155 (GD's colour-batch index) is left out of the hash: levels stopped carrying it on 2026-11-24 (tools/io.js
 // strip155) and a level with and without it is the same level (tools/strip155.js moved the saved routes over)
@@ -147,14 +147,14 @@ function solve(level, levelStr, opts) {
   const c = opts.fresh ? null : get(levelStr, true);
   // a fresh cached route stands -- unless the level has a plan and the cached route is not it (a solver route saved
   // before the plan landed: GDLM 62 was scored on a 25-press solver route instead of its 50-input plan)
-  const hasPlan = (opts.name || opts.file) && (() => { try { const pe = require("./planned.js").plannedEvents(opts.name, opts.file); return !!(pe && pe.length); } catch (e) { return false; } })();
+  const hasPlan = (opts.name || opts.file) && (() => { try { const pe = require("./planned.js").plannedEvents(opts.name, opts.file); return Array.isArray(pe); } catch (e) { return false; } })();
   if (fresh(c) && (!hasPlan || c.source === "planned")) return withWindows(level, levelStr, c);
   const w = GD.makeWorld(level.objects, level.header);
   // the level's own planned inputs (a beat-first build's taps and ship schedule, tools/planned.js plannedEvents), when
   // they clear it as-is and skip nothing: that IS the route -- the designer's presses, no solving (GDLM 62, 2026-11-24)
   if (opts.name || opts.file) try {
     const pe = require("./planned.js").plannedEvents(opts.name, opts.file);
-    if (pe && pe.length) { const q = GD.run(w, pe);
+    if (Array.isArray(pe)) { const q = GD.run(w, pe);   // [] = an auto level (no press)
       if (!q.dead && (q.done || q.end.x >= w.endX) && !GD.skipCheck(w, q.path, pe)) {
         const sol = { ok: true, events: pe, kind: "human", source: "planned", plan: planCommit() };
         return withWindows(level, levelStr, put(levelStr, sol, level, w)); } }
@@ -176,6 +176,11 @@ function solve(level, levelStr, opts) {
     const r = require("../lib/incsolve.js").incsolve.refresh(w, c.events, c.checkpoints);
     if (r.ok && !r.kept) return fromRun(level, levelStr, { ok: true, events: r.events, inc: { from: r.from, to: r.to, rejoined: r.rejoined } }, opts);
   } catch (e) { /* solve it whole */ }
+  // no press at all clears it (an auto level from a builder that left no plan): that is the route, no search
+  // (2026-11-26: wip put solved an autobeat level for 26 min)
+  try { const q = GD.run(w, []);
+    if (!q.dead && (q.done || q.end.x >= w.endX) && !GD.skipCheck(w, q.path, [])) return withWindows(level, levelStr, put(levelStr, { ok: true, events: [], kind: "human", source: "auto", plan: planCommit() }, level, w));
+  } catch (e) { /* solve it */ }
   return fromRun(level, levelStr, GD.solveAny(w), opts);
 }
 
@@ -199,7 +204,7 @@ if (require.main === module) {
       const t0 = Date.now(); withWindows(L.level, L.levelStr, c);
       console.log(`${f}: ${(c.windows || []).length} windows measured in ${((Date.now() - t0) / 1000).toFixed(0)} s`); continue;
     }
-    if (!again && fresh(get(L.levelStr, true)) && windowsFresh(get(L.levelStr, true)) && (get(L.levelStr, true).source === "planned" || !require("./planned.js").plannedEvents(L.name, f))) { console.log(`${f}: saved already`); continue; }
+    if (!again && fresh(get(L.levelStr, true)) && windowsFresh(get(L.levelStr, true)) && (get(L.levelStr, true).source === "planned" || !Array.isArray(require("./planned.js").plannedEvents(L.name, f)))) { console.log(`${f}: saved already`); continue; }
     const t0 = Date.now();
     const s = solve(L.level, L.levelStr, { fresh: again, name: L.name, file: f });
     console.log(`${f}: ${s.ok ? "beaten" : "not beaten"}, ${s.events.length} inputs, solved in ${((Date.now() - t0) / 1000).toFixed(0)} s`);

@@ -950,12 +950,14 @@ function write(out, b, name) {
     if (b.g.k45) GD.setField(rec, "k45", "i", b.g.k45); else GD.setField(rec, "k8", "i", String(b.g.k8));
     fs.mkdirSync(path.dirname(out), { recursive: true });
     writeGdlvl(out, rec, { header, objects: sg.clipEnd(lvl.objects.concat(so), b.lv.sig.col) });   // the sign on the last screen
+    if (b.measures && b.measures.clears) require("./planned.js").writeAuto(out, "tools/autobeat.js: clears with no press");   // wip put replays it at once
     return;
   }
   const rec = GD.newRecord(name, desc);
   if (b.g.k45) GD.setField(rec, "k45", "i", b.g.k45); else GD.setField(rec, "k8", "i", String(b.g.k8));
   fs.mkdirSync(path.dirname(out), { recursive: true });
   writeGdlvl(out, rec, GD.parseLevel(str));
+  if (b.measures && b.measures.clears) require("./planned.js").writeAuto(out, "tools/autobeat.js: clears with no press");   // wip put replays it at once
 }
 
 if (require.main === module) {

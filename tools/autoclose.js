@@ -174,6 +174,7 @@ if (require.main === module) {
   for (const k of ["k45", "k8"]) { const m = new RegExp("<k>" + k + "</k><[is]>([^<]*)<").exec(L.record || ""); if (m) GD.setField(rec, k, "i", m[1]); }
   fs.mkdirSync(path.dirname(out), { recursive: true });
   writeGdlvl(out, rec, { header: r.header, objects: r.objects });
+  if (!r.unhandled.length) require("./planned.js").writeAuto(out, "tools/autoclose.js: an auto clone, no press");   // wip put replays it at once
   if (!a.includes("--quiet")) {
     const byKind = {}; for (const p of r.placed) byKind[p.kind] = (byKind[p.kind] || 0) + 1;
     console.log("placed:", JSON.stringify(byKind), "unhandled:", r.unhandled.length, r.unhandled.slice(0, 8).map(u => `${(u.tick / 240).toFixed(2)}s ${u.mode}${u.air ? " in the air" : ""}${u.why ? " " + u.why : ""}`).join("; "));

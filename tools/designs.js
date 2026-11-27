@@ -3,6 +3,7 @@
 // node tools/designs.js cards --more          -- the wide cards: every structure design / 3D effect on the whole connector
 //                                              sheet (stitched frames of the structure gallery) and each indicator style
 //                                              (tools/design_strips.py) -> local/designs/cards/
+// node tools/designs.js cards --themes                -- the design theme cards (tools/designthemes.js gallery shots)
 // node tools/designs.js page [--out <dir>]   -- the "Designs" tab of the lego catalogue: designs.json + designs.js + cards/
 //                                              into the catalogue's page folder (default local/lego/page_private); the
 //                                              catalogue loads it only when the tab is opened (tools/lego_page.html)
@@ -32,6 +33,9 @@ function list() {
   for (const c of structCopies()) out.push({ id: "structure:" + c.label, kind: "structure", name: c.label, card: `cards/structure-${keyOf(c.label)}.jpg`,
     note: c.label === "extend" ? "a T, a ring and a frame, each beside its extended copy" : short((c.label.startsWith("3D: ") ? SD.EFFECTS[c.label.slice(4)] : SD.DESIGNS[c.design]).note) + (c.pal ? " · " + c.pal : "") });
   for (const [name, st] of Object.entries(IS.STYLES)) out.push({ id: "indicator:" + name, kind: "indicator", name, card: `cards/indicator-${keyOf(name)}.jpg`, note: short(st.note) });
+  // design themes (tools/designthemes.js): one card each, its blocks beside its sample segment
+  for (const [name, t] of Object.entries(require("./designthemes.js").THEMES)) out.push({ id: "theme:" + name, kind: "theme", name, card: `cards/theme-${keyOf(name)}.jpg`,
+    note: `${t.mood} · ${t.design}, ${[].concat(t.effects).join(", ")} · spikes ${t.spikes}, saws ${t.saws} · ${t.holders} · ${t.indicator}` });
   return out;
 }
 const structCopies = () => require("./structdesign.js").spec().copies;
@@ -62,7 +66,34 @@ function moreCards() {
   run(process.platform === "win32" ? "python" : "python3", ["tools/design_strips.py"]);
 }
 
+// theme cards: two frames per theme from the design themes gallery (its blocks, its sample), side by side
+function themeCards() {
+  // one picture per theme: its whole scene (tools/designthemes.js SCENE) as consecutive frames a screen apart, joined
+  // into one strip (Evgeni 2026-11-27: "i dont want 2 pictures, just 1 full scene with pieces")
+  const run = (cmd, a) => { const r = cp.spawnSync(cmd, a, { cwd: ROOT, stdio: "inherit", windowsHide: true }); if (r.status) throw new Error(cmd + " failed"); };
+  const DT = require("./designthemes.js"), scenes = DT.spec().scenes, SCREEN = 1920 / 3.375, V = 311.7;
+  const tAt = x => 1.5 + (x - 547) / V;   // the moment x is at the screen's centre (1x speed)
+  const plan = scenes.map(q => { const n = Math.ceil((q.c1 - q.c0) * 30 / SCREEN), x0 = q.c0 * 30 + SCREEN / 2;
+    return { name: q.name, ts: Array.from({ length: n }, (_, i) => tAt(x0 + i * SCREEN).toFixed(3)) }; });
+  const dir = path.join(ROOT, "local", "shots", "theme_cards"); fs.rmSync(dir, { recursive: true, force: true });
+  run(process.execPath, ["tools/shoot.js", "levels/gdlm_design_themes.gdlvl", "--at", plan.flatMap(p => p.ts).join(","), "--out", "local/shots/theme_cards"]);
+  const file = t => path.join(dir, "t" + (+t).toFixed(2).padStart(6, "0") + ".png");
+  const jobs = plan.map(p => ({ card: path.join(DIR, `cards/theme-${keyOf(p.name)}.jpg`), files: p.ts.map(file) }));
+  fs.mkdirSync(path.join(DIR, "cards"), { recursive: true });
+  run(process.platform === "win32" ? "python" : "python3", ["-c", `
+import json,sys
+from PIL import Image
+W,H=640,360
+for p in json.loads(sys.argv[1]):
+    o=Image.new('RGB',(W*len(p['files']),H))
+    for i,f in enumerate(p['files']): o.paste(Image.open(f).resize((W,H)),(i*W,0))
+    o.save(p['card'],quality=80)
+`, JSON.stringify(jobs)]);
+  console.log(`${jobs.length} theme cards -> ${path.join(DIR, "cards")}`);
+}
+
 function cards() {
+  if (process.argv.includes("--themes")) return themeCards();
   const B = require("./blockdesigns.js");
   const t = i => 1.5 + (((14 + 6 * i) * 30 + 15) - 547) / 311.7;   // the level second design i is at the screen's middle (measured on shots)
   const C = [], frames = [];

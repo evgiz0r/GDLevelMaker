@@ -7,14 +7,16 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "gdlm-jobtime-")), FILE = path
 process.env.GDLM_TIMINGS = FILE;
 const JT = require("../tools/jobtime.js");
 let bad = 0; const check = (ok, what) => { console.log((ok ? "ok   " : "FAIL ") + what); if (!ok) bad++; };
-const k = JT.key("node C:\\x\\tools\\make.js specs/62_low_end_lullaby.json --full");
+// a spec with jN columns of its own (the real specs/62 lost its jN columns, 2026-11-26: the test must not depend on it)
+fs.mkdirSync(path.join(tmp, "specs")); const SPEC = path.join(tmp, "specs", "62_low_end_lullaby.json").replace(/\\/g, "/"); fs.writeFileSync(SPEC, JSON.stringify({ objects: [["j12", 0, "spike"]] }));
+const k = JT.key("node C:\\x\\tools\\make.js " + SPEC + " --full");
 check(k.tool === "make" && k.level === "gdlm_62_low_end_lullaby" && k.flags.join() === "--full,jN", "key: tool, the level a spec builds, flags + jN: " + JSON.stringify(k));
 check(JT.estimate("tools/make.js levels/archive/gdlm_41_classic.gdlvl") === null, "no runs: not measured");
 const row = o => fs.appendFileSync(FILE, JSON.stringify(Object.assign({ at: new Date(Date.now() - 3600e3).toISOString(), ok: true }, o)) + "\n");
 row({ step: "make", secs: 1707, level: "gdlm_62_low_end_lullaby" });   // a loop.js row (no flags logged)
-let e = JT.estimate("tools/make.js specs/62_low_end_lullaby.json");
+let e = JT.estimate("tools/make.js " + SPEC);
 check(e && Math.round(e.secs) === 1707 && /this level, loop\.js runs: 28 min/.test(e.basis), "a loop.js run of this level counts, with its basis: " + (e && e.basis));
-check(JT.estimate("tools/make.js specs/62_low_end_lullaby.json --look") === null, "--look is another job: not measured");
+check(JT.estimate("tools/make.js " + SPEC + " --look") === null, "--look is another job: not measured");
 for (const s of [20, 30, 25]) row({ by: "heavy", tool: "score", level: "gdlm_41_classic", flags: [], kb: 3, secs: s });
 e = JT.estimate("tools/score.js levels/archive/gdlm_41_classic.gdlvl");
 check(e && e.secs === 25 && e.n === 3 && e.basis === "last 3 score, this level: 20-30 s", "last 3 of the same key: median and range: " + (e && e.basis));
