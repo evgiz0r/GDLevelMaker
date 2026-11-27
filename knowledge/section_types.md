@@ -127,3 +127,9 @@ BAND: ball 240 = 8 rows, spider 270 = 9, ship / ufo / wave / swing 300 = 10). En
 that line is reachable; the spider's flip lands on the band's roof. Every generator keeps its play inside the band; the
 board draws the line on each such section. A swing "taller than the screen" needs GD 2.2's portal free mode (no band),
 which the sim does not have yet (PHYSICS.md open).
+
+## Ideas for more sections (not drawn yet)
+Evgeni 2026-11-27 ("lets remind ourselves more idea for sections, bit tired designing for now"):
+- **ship orb play**: a ship corridor with orbs in it (yellow / blue / green) that are clicked while flying.
+- **pads**: some pad addition (yellow / blue pads launching the player between platforms; in cube, ball and ufo).
+- **duals**: two players, one button (dual portals; lib/dual.js): mirrored or asymmetric halves.
