@@ -1,0 +1,5 @@
+/* HOVER ON EVERY BUTTON (Evgeni 2026-11-27: "all UI buttons should have some hover effect, in all workbooks forever").
+   Paste once into every page we make (catalogues, boards, viewers, artifacts); tests/hover_rule.js checks the pages. */
+button,.btn,[role=button],select,summary,input[type=button],input[type=submit]{transition:filter .12s,transform .12s,box-shadow .12s,background-color .12s}
+button:hover:not(:disabled),.btn:hover,[role=button]:hover,select:hover,summary:hover,input[type=button]:hover,input[type=submit]:hover{filter:brightness(1.18);box-shadow:0 0 0 2px rgba(120,170,255,.35);cursor:pointer}
+button:active:not(:disabled),.btn:active,[role=button]:active{transform:translateY(1px);filter:brightness(.95)}

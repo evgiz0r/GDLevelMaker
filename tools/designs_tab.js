@@ -155,7 +155,10 @@ window.initDesigns = async function (root) {
     // make them all collapsed"); a tap opens one, and the open ones are remembered per viewer
     if (d.kind === "theme" && open["theme:" + d.id] !== true) {
       return `<div class="dc k-theme tfc" data-id="${esc(d.id)}"><div class="dt tfold" role="button" tabindex="0" data-tf="${esc(d.id)}">▸ <span class="dn">${d.n ? d.n + " " : ""}${esc(d.name)}</span>${d.note ? ` <span class="ds">${esc(d.note)}</span>` : ""}</div></div>`; }
-    const img = `<img loading="lazy" decoding="async" src="${esc(d.card)}" alt="${esc(d.name)}">`;
+    // a theme card shows the picture of its picked sky / background when that variant was rendered (tools/themevariants.js)
+    const pk = d.kind === "theme" ? Object.assign({}, d.pick || {}, PICK[d.name] || {}) : null, vk = pk ? `s${pk.sky || 0}${pk.backdrop || "a"}` : "";
+    const src = pk && (d.variants || []).includes(vk) ? d.card.replace(/\.jpg$/, `-${vk}.jpg`) : d.card;
+    const img = `<img loading="lazy" decoding="async" src="${esc(src)}" alt="${esc(d.name)}">`;
     // a theme's scene takes 📍 marks: tap the 📍 button, then a spot on the picture, then type the note
     // a mark is open (Evgeni's note), seen (Claude read it: seen + reply) or gone (fixed: Claude deletes it, the log stays in
     // knowledge/design_marks.json). Seen ones fold away so the list never just grows.
@@ -598,7 +601,7 @@ window.initDesigns = async function (root) {
       <span class="ds tpst">${esc(PST[d.name] || "")}</span></div>`; }
   async function savePick(d, patch) { PICK[d.name] = Object.assign({}, d.pick || {}, PICK[d.name] || {}, patch); PST[d.name] = "saving ...";
     try { if (!DB) throw new Error("saves on the claude.ai page"); await DB.collection("themepick").doc(d.name).set(Object.assign({ theme: d.name }, PICK[d.name], { at: new Date().toISOString() }));
-      PST[d.name] = "saved -- 🔨 build to see it on the card"; } catch (x) { PST[d.name] = "not saved: " + (x && (x.code || x.message) || x); }
+      PST[d.name] = (d.variants || []).includes(`s${PICK[d.name].sky || 0}${PICK[d.name].backdrop || "a"}`) ? "saved" : "saved -- 🔨 build to see it on the card"; } catch (x) { PST[d.name] = "not saved: " + (x && (x.code || x.message) || x); }
     render(); }
   function render() {
     keepScroll(); try { topSend(); } catch (x) {}
