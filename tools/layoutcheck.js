@@ -123,8 +123,11 @@ function planCheck(z) {
   const S = specOf(z); let level;
   try { level = build(S.spec, "layoutcheck:" + z.key, {}).level; } catch (e) { return { key: z.key, plan: true, ok: false, why: "build failed: " + e.message }; }
   const w = GD.makeWorld(level.objects, level.header), p0 = GD.run(w, []).path, dx = p0[1].x - p0[0].x;
-  const ticks = z.presses.map(c => Math.round(((S.x0 + c) * 30 - p0[0].x) / dx));
-  const r = GD.run(w, ticks), end = r.path[r.path.length - 1];
-  return { key: z.key, plan: true, ok: !!r.done && !r.dead, presses: ticks.length,
+  // a number is a tap (press, release the next tick); a [press, release] pair is a hold (ship, wave, swing)
+  // a plan's tick 0 is the first tick at or past the section's start; a column c is c * 30 / dx ticks on from there
+  const T0 = Math.ceil((S.x0 * 30 - p0[0].x) / dx - 1e-9), tk = c => T0 + Math.round(c * 30 / dx), ev = [];
+  for (const q of z.presses) if (Array.isArray(q)) { const a = tk(q[0]); ev.push({ tick: a, type: "press" }, { tick: Math.max(a + 1, tk(q[1])), type: "release" }); } else ev.push(tk(q));
+  const r = GD.run(w, ev), end = r.path[r.path.length - 1];
+  return { key: z.key, plan: true, ok: !!r.done && !r.dead, presses: z.presses.length,
     dieCol: r.dead ? +(end.x / 30 - S.x0).toFixed(1) : undefined, dieRow: r.dead ? +(end.y / 30).toFixed(1) : undefined, why: r.dead ? r.why : undefined }; }
 module.exports = { specOf, check, hashMap, planCheck };
