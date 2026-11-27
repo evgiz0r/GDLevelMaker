@@ -4,7 +4,7 @@
   "name": "strairpath",
   "mode": "cube",
   "w": 32,
-  "h": 10,
+  "h": 13,
   "after": "ball"
  },
  {
