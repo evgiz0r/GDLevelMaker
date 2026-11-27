@@ -102,9 +102,21 @@ function build(plan) {
     } else {
       // minDensity is presses per 10 blocks: the same presses per second spread over more blocks at a faster speed (2x
       // bricks were all filtered out by the 1x floor, GDLM 73's first cut: 8 single spikes per 2x section)
-      const r = pick(Object.assign({}, base, { mode, speed: sp, startCol: vcol + lead, fromBeat: b0, toBeat: b1 - tailBeats, beats: true, usedPenalty: s.usedPenalty ?? 4, fillGap: s.minGap ?? (sp === "1x" ? 0.35 : 0.65),   // 1.2 let one 2x brick run twice back to back (GDLM 73) gap: s.gap || (sp === "1x" ? [2, 4] : [3, 5]),   // 3+ flat blocks between bricks at speed (checklist)
-        minDensity: s.minDensity ?? base.minDensity * BPS["1x"] / BPS[sp] * 0.9,
-        filler: mode === "cube" || mode === "robot", max: s.max || (sp !== "1x" ? "Hard" : "Normal") }));
+      // s.feel (tools/feel.js, FEEL.md): the section's clicks a second -> the bricks' floor of presses per 10 blocks (75% of
+      // the target, at this speed), how much presses chase the hits, and its shape: two halves, rise = calmer first half,
+      // front = the punch first, dip = calmer second half
+      const F = s.feel, dens0 = s.minDensity ?? (F ? 0.75 * 10 * F.cps / BPS[sp] : base.minDensity * BPS["1x"] / BPS[sp] * 0.9);
+      const popt = (from, to, k, sc) => Object.assign({}, base, { mode, speed: sp, startCol: sc, fromBeat: from, toBeat: to, beats: true, usedPenalty: s.usedPenalty ?? 4, fillGap: s.minGap ?? (sp === "1x" ? 0.35 : 0.65),   // 1.2 let one 2x brick run twice back to back (GDLM 73) gap: s.gap || (sp === "1x" ? [2, 4] : [3, 5]),   // 3+ flat blocks between bricks at speed (checklist)
+        minDensity: dens0 * k, hitWeight: F ? F.hitWeight : 1, used,
+        filler: mode === "cube" || mode === "robot", max: s.max || (sp !== "1x" ? "Hard" : "Normal") });
+      const SH = { rise: [0.8, 1.2], front: [1.2, 0.85], dip: [1, 0.8] }[F && F.shape];
+      let r;
+      if (!SH || b1 - tailBeats - b0 < 8) r = pick(popt(b0, b1 - tailBeats, 1, vcol + lead));
+      else { const mid = Math.round((b0 + b1 - tailBeats) / 2), r1 = pick(popt(b0, mid, SH[0], vcol + lead));
+        for (const p of r1.picks) if (!p.j) used.push(p.id);
+        const r2 = pick(popt(mid, b1 - tailBeats, SH[1], Math.max(r1.endCol, (mid - 1) * P * BPS[sp])));
+        for (const p of r1.picks) if (!p.j) used.splice(used.lastIndexOf(p.id), 1);   // pushed again below with the rest
+        const n = r1.presses + r2.presses; r = { picks: r1.picks.concat(r2.picks), presses: n, onHit: n ? (r1.onHit * r1.presses + r2.onHit * r2.presses) / n : 0 }; }
       // the filler's shape: a rotation (default single / double) so a run of filler is not one spike over and over
       const fill = s.fill || (mode === "cube" ? ["single", "double", "single", "single", "double"] : ["single"]); let fk = i;
       // a double needs room: only where the presses before and after are 0.6 s+ away (a double 2 columns after a single at
@@ -131,7 +143,9 @@ function build(plan) {
       // the corridor starts at the entry's height (knot 2: the portal stands at row 1): a rotation that opened at 5 put the
       // corridor's floor in front of the ship (GDLM 73 v1 died in the first column); only the knots after it rotate
       let heights = H0.slice(rot).concat(H0.slice(0, rot)); if (!nx.rows) heights = [H0[0]].concat(heights[0] === H0[0] ? heights.slice(1) : heights);
-      const flat = fm === "wave" ? 3 : fm === "swing" ? 5 : 6, lead = nx.lead ?? (fm === "ship" ? Math.round(6 * BPS[fsp] / BPS["1x"]) : 8);   // ship: counted at 1x (the 3x ship had 0.38 s); wave / swing 8 (10 made the fairness gate force a button change 33 ms after the portal, GDLM 73 v4); wave flat 3 (2: legs under 100 ms, route gate)   // wave / swing: a button change 33-183 ms after the portal with 4
+      // nx.feel (tools/feel.js): a denser flight has shorter flat legs between its knots (more turns, more inputs); never
+      // under the floor that keeps legs over 100 ms (wave 3)
+      const flat0 = fm === "wave" ? 3 : fm === "swing" ? 5 : 6, flat = nx.feel ? Math.max(fm === "wave" ? 3 : 4, Math.round(flat0 / nx.feel.density)) : flat0, lead = nx.lead ?? (fm === "ship" ? Math.round(6 * BPS[fsp] / BPS["1x"]) : 8);   // ship: counted at 1x (the 3x ship had 0.38 s); wave / swing 8 (10 made the fairness gate force a button change 33 ms after the portal, GDLM 73 v4); wave flat 3 (2: legs under 100 ms, route gate)   // wave / swing: a button change 33-183 ms after the portal with 4
       // every knot keeps its roof inside the band (fly-path draws walls to row 9): with gap 5 a knot over 6 lost its roof
       // and squeezed the peak onto its spike (GDLM 73 v4 died at the second wave's knot 8)
       const fgap = (nx.args || {}).gap ?? 5, top = 9 - fgap + Math.floor(fgap / 2);

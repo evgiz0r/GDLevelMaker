@@ -1,7 +1,7 @@
 # Public viewer shortlist (2026-11-26)
 
 Asked for overnight (2026-11-26, "Shortlist for the morning"): which of our GDLM levels could go on the public viewer
-(https://evgiz0r.github.io/GDLevelMaker/, PAGES.md). **Nothing is published.** `knowledge/public_levels.json` is still
+(https://evgiz0r.github.io/GDWorkbench/, PAGES.md). **Nothing is published.** `knowledge/public_levels.json` is still
 empty, and a level goes on it only when Evgeni names it. The same list is a decision card in the viewer's Work panel.
 
 Keep in mind: on 2026-11-25 Evgeni archived every level except 44 ("not a fan of any current levels"). So this list

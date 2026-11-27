@@ -1,9 +1,11 @@
 # The public viewer (GitHub Pages)
 
 The viewer as a public site, built by `tools/pages.js` on every push to main (`.github/workflows/pages.yml`).
-Status: **live at https://evgiz0r.github.io/GDLevelMaker/** (switched on 2026-11-23 with the user's OK; every push to
+Status: **live at https://evgiz0r.github.io/GDWorkbench/** (switched on 2026-11-23 with the user's OK; every push to
 main rebuilds it). Checked live: our 16 levels load and replay, build commit in the footer, no art button, no
 official levels.
+Since the repo rename (2026-11-27, GDLevelMaker -> GDWorkbench) the site lives at the new address; GitHub does not
+redirect the old `evgiz0r.github.io/GDLevelMaker/` Pages address, so old links to it break. Not re-checked live after the rename.
 
 ## What is on it, what never is
 
@@ -64,5 +66,5 @@ hosted with a credit line (non-commercial): 1175526 Two Moons ft. Geyser (jamata
 
 ## How it was turned on
 
-`gh api -X POST repos/evgiz0r/GDLevelMaker/pages -f build_type=workflow`, then `gh workflow run pages.yml` (later
-pushes rebuild it). The site: https://evgiz0r.github.io/GDLevelMaker/
+`gh api -X POST repos/evgiz0r/GDWorkbench/pages -f build_type=workflow`, then `gh workflow run pages.yml` (later
+pushes rebuild it). The site: https://evgiz0r.github.io/GDWorkbench/

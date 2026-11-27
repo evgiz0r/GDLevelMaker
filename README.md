@@ -1,11 +1,14 @@
-# GDLevelMaker
+# GDWorkbench (was GDLevelMaker)
 
 Geometry Dash levels written by Claude from a description, checked for being beatable by a
 small physics simulation, replayed in a browser viewer with their clicks, and imported into
 the real game to play.
 
-**Watch the levels in your browser: https://evgiz0r.github.io/GDLevelMaker/** (our levels, replayed with their
+**Watch the levels in your browser: https://evgiz0r.github.io/GDWorkbench/** (our levels, replayed with their
 clicks; songs and the game's art are not hosted -- pick a level's song file from your own device to hear it).
+
+Repo: https://github.com/evgiz0r/GDWorkbench (renamed from GDLevelMaker on 2026-11-27; the old URL redirects). The level
+prefix stays "GDLM", and the owner's PC checkout keeps its folder name `GDLevelMaker` (tools and install commands use it).
 
 Unofficial; not affiliated with RobTop Games.
 
@@ -43,7 +46,7 @@ viewer from the windows and costs already measured. USE_CASES.md lists every use
 
 You need your own Geometry Dash (Steam, 2.2) and Node 18+. **[SETUP.md](SETUP.md)** is written so an AI agent can do
 the whole setup itself: open Claude Code (or another coding agent) in this folder and say *"Read SETUP.md and set
-GDLevelMaker up on this computer"*. By hand: `node tools/setup.js`, then `node tools/serve.js`. The main levels, GD's
+GDWorkbench up on this computer"*. By hand: `node tools/setup.js`, then `node tools/serve.js`. The main levels, GD's
 art and songs come from your own game; nothing of RobTop's is in this repo.
 
 ## Try it
