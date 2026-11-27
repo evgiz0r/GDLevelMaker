@@ -147,7 +147,9 @@ GEN.hanging = o => { const { R, imix, room, len, chance, W, H, G } = ctx(o, 12);
 // shorter flats, more hazards. A gravity pair: the held button now flies down.
 CONCEPT.fly = "floor and ceiling rise and fall together in hills; spikes in valleys, saws in the gap; a gravity pair";
 GEN.fly = o => { const { R, imix, room, len, chance, W, H, G } = ctx(o, 12), gap = room(8, 5), hiMax = H - gap - 2;
-  const e = line(W, 1, L => { const to = L.h() <= 2 ? R.int(Math.min(hiMax, 3), hiMax) : R.int(1, Math.max(1, L.h() - 2)); L.run(len(imix(3, 1), imix(4, 2))); L.leg(to); });
+  // the valleys go down to the ground now and then (Evgeni 2026-11-27: "the flying should also be able and hit the
+  // ground/floor as part of the path. keeping more distribution over the heights"): the ship slides along it there
+  const e = line(W, 1, L => { const to = L.h() <= 2 ? R.int(Math.min(hiMax, 3), hiMax) : (R.chance(0.3) ? 0 : R.int(1, Math.max(1, L.h() - 2))); L.run(len(imix(3, 1), imix(4, 2)) + (L.h() === 0 ? 2 : 0)); L.leg(to); });
   tunnel(G, W, e, gap, H - 1);
   const gp = gravPair(W, 30);
   for (let c = 3; c < W - 2; c++) { const a = e(c), b = e(c + 1), p = e(c - 1); if (a !== b || (gp && (Math.abs(c - gp[0]) < 3 || Math.abs(c - gp[1]) < 3))) continue;
@@ -175,11 +177,8 @@ GEN.wave = o => { const { R, mix, imix, room, W, H, G } = ctx(o, 13), gap = room
     dir = -dir; let to = clamp(L.h() + dir * amp, 1, top); if (to === L.h()) { dir = -dir; to = clamp(L.h() + dir * amp, 1, top); }
     L.leg(to); });
   tunnel(G, W, e, gap, H - 1);
-  // the map is taller than a wave's 10-block band: a hidden wave portal (board letter A; lib/physics.js re-centres the band
-  // on a same-mode portal at a new height) moves the band with the corridor whenever its middle is 2 rows off the band's
-  let bc = 5;
-  for (let c = 2; c < W - 2; c++) { const r = Math.round(e(c) + gap / 2); if (Math.abs(r - bc) < 2 || G.rows()[H - 1 - r][c] !== ".") continue;
-    G.put(c, r, "A"); bc = Math.max(0, Math.floor((r * 30 + 15 - 150) / 30)) + 5; }
+  // no hidden band movers inside a wave (Evgeni 2026-11-27: "no need portals inside the wave sections if they reach, it will
+  // make the screen go bad"; his room-mover lab run showed GD 2.2091 holding no band at all, PHYSICS.md)
   const gp = gravPair(W, 30);
   // portals on a TURN (the join of two inputs), never mid-leg (Evgeni 2026-11-27 on a generated wave: "portals in waves
   // should usually be on connecting points of clicks or holds, putting them in the middle of a corridor is big difficulty
@@ -222,12 +221,19 @@ function rollers(o, { mode, band, travel, portals = 0 }) { const { R, mix, imix,
     // the y axis, in both directions"): pieces in the middle, a floor or ceiling mass only at the band's edges
     const p = S[S.length - 1], side = -p.side, step = R.int(2, o.maxStep ?? 4);
     // a floor-side surface sits low enough to flip up from (row <= BT - 4), a ceiling-side one high enough to drop from
-    const y = side < 0 ? clamp(p.y + step, Math.max(3, p.y + 2), BT - 2) : clamp(p.y - step, 1, Math.min(BT - 4, p.y - 2));
+    // and now and then the very edges (Evgeni 2026-11-27: "all our sections should involve the ground/floor at some of the
+    // play. even those fully blocked (ball / spider...)"): a stretch rolled on the ground itself (row 0, its spikes taken
+    // away there) or under the ceiling bar (row BT - 1)
+    const edge = R.chance(0.3);
+    const y = side < 0 ? clamp(p.y + step, Math.max(3, p.y + 2), edge ? BT - 1 : BT - 2) : clamp(p.y - step, edge ? 0 : 1, Math.min(BT - 4, p.y - 2));
     const kind = side < 0 ? (y >= BT - 2 ? "mass" : "mid") : (y <= 1 ? "mass" : "mid");
     // a portal flip happens exactly at the surface's end (no window to leave); travel 0 = the spider's instant crossing
     const byPortal = portals && p.c1 + 2 < W && R.chance(portals);
     const d = Math.abs(p.y - y) - 1, flip = p.c1 - (p.end ? 1 : 0), c0 = Math.max(p.c0 + 2, Math.round(flip + travel(d) - (byPortal ? 0 : travel(d) ? win : -1))), w = R.pick([R.int(2, 3), R.int(imix(4, 3), imix(6, 5)), R.int(imix(4, 3), imix(6, 5)), R.int(imix(9, 7), imix(12, 9))]);   // short, medium, long: his rests vary a lot (CV ~1)
-    if (byPortal) { p.end = false; p.portal = true; }
+    // a portal is the way past an obstacle (Evgeni: "a portals just flip you arround instead of being a way to pass an
+    // obsicle like in the layout i drew"): the surface goes on 3 columns past it with spikes on it, so a player who doesn't
+    // flip there runs into them; the flip is the portal's, and the clicks stay on the other transitions
+    if (byPortal) { p.end = false; p.portal = p.c1 + 1; p.c1 += 3; }
     S.push({ side, kind, y, c0, c1: c0 + w, thick: kind === "mid" ? (R.chance(0.7) ? 1 : 2) : 0, end: chance(0.25, 0.5) });
   }
   // draw: ground spikes and a row of hanging spikes along the top (the ball band's ceiling holds the ball otherwise, so
@@ -244,14 +250,20 @@ function rollers(o, { mode, band, travel, portals = 0 }) { const { R, mix, imix,
     if (R.chance(0.2)) { G.put(c, row, "o"); c += 2; continue; }
     const n = R.int(2, 3); for (let k = 0; k < n && c + k < W; k++) G.put(c + k, row, t); c += n + 1; }
   for (const s of S) { const c1 = Math.min(W - 1, s.c1);
+    if (s.side > 0 && s.y === 0) for (let c = s.c0; c <= c1; c++) G.put(c, 0, ".");
+    if (s.side < 0 && s.y === BT - 1) for (let c = s.c0; c <= c1; c++) G.put(c, BT - 1, ".");
+    // and the two columns past a surface at the edges stay clear: a saw there reaches the player rolling off its end
+    if (s.side > 0 ? s.y <= 1 : s.y >= BT - 2) for (let c = c1 + 1; c <= Math.min(W - 1, c1 + 2); c++) for (const row of [0, BT - 1])
+      G.put(c, row, ".");
     if (s.side > 0) { if (s.kind === "mass") G.box(s.c0, c1, 0, s.y - 1); else G.box(s.c0, c1, s.y - s.thick, s.y - 1);
       if (s.end && s.c1 < W) G.put(c1, s.y, "^"); }
     else { if (s.kind === "mass") G.box(s.c0, c1, s.y + 1, H - 1); else { G.box(s.c0, c1, s.y + 1, s.y + s.thick); if (chance(0.3, 0.6)) G.put(s.c0 + 1, s.y + s.thick + 1, "^"); }
       if (s.end && s.c1 < W) G.put(c1, s.y, "v"); }
     // the portal stands one column past the surface's end at the player's height: G sends a floor roller up, N brings a
     // ceiling roller down (the hazards under / over it cleared so the player meets the portal, not a spike)
-    if (s.portal && s.c1 + 1 < W) { const c = s.c1 + 1, row = s.y; for (let r = Math.max(0, row - 1); r <= Math.min(BT - 1, row + 1); r++) if (G.rows()[H - 1 - r][c] !== "#") G.put(c, r, ".");
-      G.put(c, row, s.side > 0 ? "G" : "N"); } }
+    if (s.portal && s.portal < W) { const c = s.portal, row = s.y; for (let r = Math.max(0, row - 1); r <= Math.min(BT - 1, row + 1); r++) if (G.rows()[H - 1 - r][c] !== "#") G.put(c, r, ".");
+      G.put(c, row, s.side > 0 ? "G" : "N");
+      for (const x of [c + 1, c + 2]) if (x < W) G.put(x, row, s.side > 0 ? "^" : "v"); } }
   return { map: G.rows(), mode }; }
 
 // STAIR PATH (cube, his "strairpath", my-mwz1637w). Idea: a lattice of single blocks a column every 3; many ways in theory,
@@ -303,7 +315,7 @@ GEN["my-mwz1890c"] = o => { const { R, imix, room, len, W, H: HH, G } = ctx(Obje
   if (HH >= 16 && W >= 40) return swingTall(o, { R, imix, room, len, W, H: HH, G });
   const H = Math.min(10, HH); let c = 0;
   while (c < W) { const gap = R.int(room(5, 4), room(6, 5)), A = (H - gap) / 2 * (o.amp ?? R.pick([0.8, 1, 1])), mid = H / 2,
-      P = len(imix(26, 20), imix(34, 26));
+      P = len(room(26, 20), room(34, 26));
     for (let x = 0; x < P && c + x < W; x++) { const y = mid + A * Math.sin(2 * Math.PI * x / P), lo = Math.round(y - gap / 2) - 1, hi = Math.round(y + gap / 2), ch = (c + x) % 2 ? "q" : "o";
       if (lo >= 0) G.put(c + x, lo, ch); if (hi < H) G.put(c + x, hi, ch); }
     c += P; }
@@ -316,7 +328,7 @@ GEN["my-mwz1890c"] = o => { const { R, imix, room, len, W, H: HH, G } = ctx(Obje
 // UNCHECKED (the ship tick between the two portals, and that the pair re-bands like a mode change).
 function swingTall(o, { R, imix, room, len, W, H, G }) {
   // the swell and the waves together stay under ~0.7 rows a column (steeper than that a swing can't follow)
-  const gap = R.int(room(5, 4), room(6, 5)), A = o.amp ?? 1.5, P = len(imix(26, 20), imix(34, 26)),
+  const gap = R.int(room(5, 4), room(6, 5)), A = o.amp ?? 1.5, P = len(room(26, 20), room(34, 26)),
     Pd = Math.max(60, Math.round(W * R.pick([1, 1, 0.75]))), top = H - 5;
   const D = x => 5 + (top - 5) * (1 - Math.cos(2 * Math.PI * x / Pd)) / 2, Y = x => D(x) + A * Math.sin(2 * Math.PI * x / P);
   let bc = 5;
@@ -349,7 +361,7 @@ GEN["my-mwz7nxue"] = o => rollers(o, { mode: "spider", band: 9, travel: () => 0 
 // BALL PORTALS (his my-mwz8kaem). Idea: the ball corridor, but some flips are made for the player by a gravity portal
 // standing at a surface's end (G up, N down), between the clicked ones.
 CONCEPT["my-mwz8kaem"] = "ball surfaces on both sides; some flips are gravity portals at a surface's end, the rest are clicks";
-GEN["my-mwz8kaem"] = o => rollers(o, { mode: "ball", band: 8, travel: ballTravel, portals: 0.45 });
+GEN["my-mwz8kaem"] = o => rollers(o, { mode: "ball", band: 8, travel: ballTravel, portals: 0.3 });
 
 // ORB GAMEPLAY (cube, his my-mwz2haf0). Idea: over a spike floor, the cube goes from orb to orb; sets of one kind (yellow:
 // up, blue: flip and fly the other way, green: flip and launch forward) and mixes. The page can't run the sim, so the
@@ -395,7 +407,14 @@ GEN["my-mwz2haf0"] = o => { const { R, imix, room, chance, W, H, G } = ctx(o, 14
     const c = Math.round(col(spot)), r = Math.round(row(spot));
     if (orbs.some(b => Math.abs(b.c - c) < 3 && Math.abs(b.r - r) < 2)) break;
     orbs.push({ c, r, kind }); cur = apply(spot, kind);
-    lastC = c; if (--left <= 0) { set = R.pick(pool); left = R.int(2, 4); }
+    lastC = c; if (--left <= 0) { set = R.pick(pool); left = R.int(2, 4);
+      // a landing after every set (Evgeni 2026-11-27: "the orb gameplay has only orbs, we want it to land at some parts,
+      // every 2-4 orbs"): a platform where the arc comes down through rows 3-6, the cube runs along it and jumps off its end
+      if (cur.grav > 0) { let q = { ...cur }, n = 0, at = null;
+        while (n++ < 1500 && col(q) < W - 16) { step(q); if (row(q) > top - 1) break; if (q.vy < 0 && row(q) <= 6 && col(q) - lastC >= 2) { at = q; break; } }
+        if (at && row(at) >= 2.5) { const rr = Math.max(3, Math.floor(row(at))), c0 = Math.floor(col(at)), len = R.int(room(5, 3), room(7, 4));
+          G.box(c0, c0 + len, rr - 1, rr - 1); for (let x = c0; x <= c0 + len; x++) G.put(x, rr, ".");
+          cur = { x: (c0 + len) * 30 + 15, y: rr * 30 + 15, vy: J, grav: 1, flipped: false }; lastC = c0 + len - 1; } } }
   }
   // back to normal gravity at the end: a blue orb on the arc if the last one left it reversed
   if (cur.grav < 0) { const cs = candsOf(cur, "B", lastC); if (cs.length) { const sp = cs[0], c = Math.round(col(sp)), r = Math.round(row(sp));
@@ -412,6 +431,9 @@ function make(key, opts = {}) { const g = GEN[key]; if (!g) throw new Error("no 
   const o = {}; for (const k of ["cols", "rows", "seed", "bpm", "beatCols"]) if (opts[k] != null) o[k] = +opts[k];
   if (opts.tier != null) o.tier = isNaN(+opts.tier) ? opts.tier : +opts.tier;
   const r = g(o), z = (LS.SECTIONS || []).find(s => s.key === key);
+  // a section taller than 12 rows asks the builder to zoom out (Evgeni 2026-11-27: "maybe we need to zoom out a bit to allow
+  // bigger gameplay"): camera zoom trigger 1913 at 0.85 over it, back to 1 after
+  if (r.map.length > 12 && r.zoom == null) r.zoom = 0.85;
   return Object.assign({ key, name: (z && z.name) || key, concept: CONCEPT[key], opts: o }, r); }
 
 // how often a level builder should pick a type (1 = as often as any): Evgeni 2026-11-27 on hanging: "low priority on using

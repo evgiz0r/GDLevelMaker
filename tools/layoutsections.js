@@ -113,6 +113,10 @@ try { const add = JSON.parse(require("fs").readFileSync(require("path").join(__d
   for (const z of add.filter(z => !z.deleted)) { const i = SECTIONS.findIndex(q => q.key === z.after);
     const map = ed[z.key] || Array.from({ length: z.h }, () => ".".repeat(z.w));
     SECTIONS.splice(i >= 0 ? i + 1 : SECTIONS.length, 0, { key: z.key, name: z.name, mode: z.mode, note: "his section", map, edited: !!ed[z.key], added: true }); } } catch (e) {}
+// sections he took out (Evgeni 2026-11-27 on "hanging structures": "i think we can remove this, doesnt add gameplay"):
+// knowledge/layout_sections_removed.json lists their keys; their drafts stay in the code above
+try { const rm = new Set(JSON.parse(require("fs").readFileSync(require("path").join(__dirname, "..", "knowledge", "layout_sections_removed.json"), "utf8")));
+  for (let i = SECTIONS.length - 1; i >= 0; i--) if (rm.has(SECTIONS[i].key)) SECTIONS.splice(i, 1); } catch (e) {}
 // as board tiles: {t, c, r} with c from the section's left edge, r rows above the ground
 const tiles = s => { const out = []; s.map.forEach((l, i) => [...l].forEach((ch, c) => { if (ch !== ".") out.push({ t: ch, c, r: s.map.length - 1 - i }); })); return out; };
 // ALL THE SECTIONS JOINED (the board's "current scene", tools/designs_tab.js sceneTiles, the same lib/scenejoin.js): between

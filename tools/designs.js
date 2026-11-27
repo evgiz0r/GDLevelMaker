@@ -141,6 +141,10 @@ function themeCards() {
   const keep = L.level.objects.filter(o => !/^(decoration|trigger)$/.test(io.GD.objInfo(o.id).kind || ""));
   const lay = path.join(ROOT, "local", "designs", "design_themes_layout.gdlvl"); fs.mkdirSync(path.dirname(lay), { recursive: true });
   io.writeGdlvl(lay, L.rec, Object.assign({}, L.level, { objects: keep }));
+  // the same gameplay, so the same route: copy the main level's saved solution to the copy's key, else the map page solves
+  // the copy itself and times out (2026-11-27: 15 min, no cards)
+  { const SO = require("./solutions.js"), copyStr = io.readGdlvl(lay).levelStr, src = SO.get(L.levelStr, true);
+    if (src && copyStr) { const D = path.join(ROOT, "local", "solutions"); fs.mkdirSync(D, { recursive: true }); fs.writeFileSync(path.join(D, SO.keyOf(copyStr) + ".json"), JSON.stringify(src)); } }
   run(process.execPath, ["tools/levelmap.js", lay, "--clean", "--rows", "1", "--scale", String(S), "--name", "design_themes_layout"]);
   const jobs = scenes.map(q => ({ card: path.join(DIR, `cards/theme-${keyOf(q.name)}.jpg`), x0: Math.round(q.c0 * 30 * S), x1: Math.round(q.c1 * 30 * S) }));
   // two parts (Evgeni 2026-11-27: "make it two parts, that i could look both/one of them"): the kit (the pieces, hanging)

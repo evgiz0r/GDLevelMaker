@@ -17,15 +17,16 @@ const T = fs.readFileSync(logF, "utf8").split("\n").filter(Boolean).map(l => JSO
 const P = L.objects.filter(o => o.id === PORTAL).sort((a, b) => a.x - b.x);
 const band = y => { const lo = Math.max(0, Math.floor((y - BANDH / 2) / 30) * 30); return [lo, lo + BANDH]; };
 const first = P.length ? band(P[0].y) : null;
+const GY = 90;   // probe logs are in game y (ground top 90); level objects in file y (ground top 0)
 let lastTouched = null;
 for (let i = 0; i < P.length; i++) {
   const o = P[i], near = T.filter(e => Math.abs(e.p[0] - o.x) <= 20);
   if (!near.length) { console.log(`portal x ${o.x} y ${o.y}: not reached`); continue; }
-  const ys = near.map(e => e.p[1]), lo = Math.min(...ys), hi = Math.max(...ys);
+  const ys = near.map(e => e.p[1] - GY), lo = Math.min(...ys), hi = Math.max(...ys);
   const touch = hi >= o.y - 60 && lo <= o.y + 60;   // box 90 tall + half the player
   if (touch) lastTouched = o;
   const x1 = P[i + 1] ? P[i + 1].x : Infinity, seg = T.filter(e => e.p[3] === MODE && e.p[0] >= o.x && e.p[0] < x1);
-  const sy = seg.map(e => e.p[1]), slo = sy.length ? Math.min(...sy) : NaN, shi = sy.length ? Math.max(...sy) : NaN;
+  const sy = seg.map(e => e.p[1] - GY), slo = sy.length ? Math.min(...sy) : NaN, shi = sy.length ? Math.max(...sy) : NaN;
   const nb = lastTouched ? band(lastTouched.y) : first;
   console.log(`portal x ${o.x} y ${o.y}: player y ${lo.toFixed(0)}..${hi.toFixed(0)} at it -> ${touch ? "TOUCHED" : "missed"} | after it game y ${slo.toFixed(0)}..${shi.toFixed(0)}`
     + ` | new rule (last touched ${lastTouched ? lastTouched.x : "-"}) player ${nb[0] + 15}..${nb[1] - 15}${slo < nb[0] + 15 || shi > nb[1] - 15 ? " OUT" : ""}`

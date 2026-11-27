@@ -40,9 +40,7 @@ pass, indicators, outro, signature) and the judge report (`<level>.report.txt`).
 keeping the same vibe as the orchestrator asked"): a section's look (design theme) follows its kind, 2-3 looks a level;
 inside one look every section gets its own sky and backdrop option; pace follows feel; one calm effect per section (clouds,
 a light chase, a screen frame: tools/scenes/typefx.js over tools/effects.js), never the one before, never pulses or flashes.
-**Height spread** (Evgeni, 2026-11-27: "if our gameplay height distribution is good across the y in all modes ...  it will
-make it a better level"; flights may touch the floor): judge.js notes "narrow heights" under 5 rows p10-p90, report.js
-scores `heights`.
+**Height spread**: judged by report.js `height` (tools/heightspread.js).
 
 What the lego taught so far, for any builder filling a section from it (LEGO.md has the numbers):
 - **Join only bricks whose seams agree** (mode, speed, gravity, y, vy, ground): with that contract 35% of joins are clean,
@@ -235,11 +233,14 @@ model from gd-showcase's tools/storyboard.js once it lands (richer: moments, pla
 - Every level has a song, test labs included: recordings line the user's inputs up with the song's audio
   (tools/audiolog.ps1, replay_run.js); a level with no song falls back to the progress bar.
 - Viewer first: nothing is installed or uploaded until the user has seen it there and says so.
-- **Every level ends with the latest end screen** (Evgeni, 2026-11-26: "from now-on everywhere, we add the latest end screen
-  claude sign on every level we make"): the auto outro (tools/autobricks.js `outro(seed)`, make.js spec `"outro": <seed>`)
-  and then the signature (tools/signature.js: header colours, objects, description line; make.js adds it to every "GDLM"
-  name). A builder that writes levels without make.js adds the same pair itself (tools/autobeat.js does). When the sign
-  changes, it changes in those two files, so every builder picks it up.
+- **Every level ends with the signature, quiet** (Evgeni, 2026-11-26: "from now-on everywhere, we add the latest end screen
+  claude sign on every level we make"; 2026-11-27: "cut our signature for now from actual gameplay and make it appear in like the last 5 seconds of the level not bothering the game play with whatever effects"): tools/signature.js `overlay({endX, xOfT, tOfX, secs: 5, cam})`
+  + `header()` + `describe()`. The sign (pair, two lines, badge, 0.55 size, layer B1) is hidden, fades in once at T - 5 s
+  in the view's top right and is locked to the camera (move 901, keys 141/142) to the end; no stage, no ending gameplay, no
+  bobs / pulses / flashes, and nothing runs past the level's last gameplay object. make.js adds it to every "GDLM" name
+  (`"signature": {"style": "stage"}` = the old stage sign, `"secs"` = another length); autobeat does it itself (`--ending
+  beat | outro | none` = the older endings). The auto outro (`"outro": <seed>`) is optional, no longer part of every level.
+  A builder that writes levels without make.js calls `overlay` itself. When the sign changes, it changes in signature.js.
 
 ## 6. Reverse: decompile a real level, rebuild it from its spec, diff (tools/recompile.js)
 

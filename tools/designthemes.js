@@ -12,6 +12,8 @@
 //   skies       a set of skies ({bg, ground}); a section picks one ("sky": index) or they go in turn
 //   backdrops   named background deco options (tools/backdrops.js pieces: stars, clouds, skyline, mountains, geometry,
 //               rings, rays, motes, horizon, rocks); a section picks one ("backdrop": "b"), else the first
+//   props       GD deco pieces dressed with glow / tint / halo on the structures (tools/themeprops.js: fire, skull, smoke,
+//               lava, chain, flame, thorns); a section's "props": [] = none
 // A level or a section takes a theme by name: the structure deco pass (tools/structdeco.js) reads
 // "structures": {"theme": "frost"} or {"sections": [{"from": 0, "theme": "hellgate"}, {"from": 120, "theme": "void"}]}
 // (any field of the theme can be overridden in the same entry). Evgeni's rule stays: 2-3 looks a level.
@@ -24,7 +26,8 @@ const SDZ = require("./structdesign.js");
 const THEMES = {
   hellgate: { mood: "molten rock, hot rims", pal: "fire", design: "layered", effects: ["depth"], spikes: "ember", fire: 3, saws: "sawforge",
     holders: "brick", indicator: "caret", skies: [{ bg: [84, 36, 96], ground: [29, 12, 33] }, { bg: [60, 40, 110], ground: [21, 14, 38] }, { bg: [96, 40, 70], ground: [33, 14, 24] }],
-    backdrops: { a: ["mountains", "horizon", "motes"], b: ["geometry", "rays"], c: ["rocks", "motes"] } },
+    backdrops: { a: ["mountains", "horizon", "motes"], b: ["geometry", "rays"], c: ["rocks", "motes"] },
+    props: ["fire", "skull", "smoke", "lava", "chain", "flame"] },
   frost: { mood: "ice slabs, cold light", pal: "ice", design: "inner base", effects: ["bevel"], spikes: "inner", saws: "sawglow",
     holders: "rope", indicator: "drop", skies: [{ bg: [140, 80, 50], ground: [49, 28, 17] }, { bg: [130, 70, 130], ground: [45, 24, 45] }, { bg: [40, 100, 80], ground: [14, 35, 28] }],
     backdrops: { a: ["mountains", "stars"], b: ["clouds", "motes"], c: ["rings", "stars"] } },
@@ -167,7 +170,7 @@ function resolve(e) {
     const B = require("./blockdesigns.js").PAL[e.pal.extends]; out.pal = Object.assign({}, B, e.pal); delete out.pal.extends; }
   return out;
 }
-module.exports = { resolve, THEMES, COMBOS, SAMPLE, SCENE, KIT_MAP, spec, list, sampleOf };
+module.exports = { resolve, THEMES, COMBOS, SAMPLE, SCENE, KIT_MAP, spec, list, sampleOf, sceneFor };
 if (require.main === module) {
   const a = process.argv.slice(2);
   if (a[0] === "list") list();

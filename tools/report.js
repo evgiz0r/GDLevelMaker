@@ -17,15 +17,15 @@
 //                  pacing   10 - 2 per "long corridor" note
 //                  clarity  10 - 3 per "pointless orb" or "unseen roof" note
 //                  ending   4 with a "flat ending" note, else 10
-//                  heights  the player's height range over the play (p10-p90 rows, judge.js stats.yRange): 10 at 7 rows
-//                           or more (Evgeni 2026-11-27: gameplay spread over the whole y in all modes; target a guess)
+//                  height   the route's spread over the rows (tools/heightspread.js): cover + evenness vs 0.6, -1.5 never
+//                           at the bottom / top, -1 per mode stuck in <= 3 rows
 //   Deco         not judged yet (a second section, to come: the deco thread's checks)
 //   Top notes    judge.js's five worst, each with its time and block (the marks page pins them).
 //   The scores go into knowledge/measurements.jsonl (tools/measures.js: "layout"), stamped with the level's version.
 if (require.main === module) require("./heavy.js").claim();   // fairness replays the route: one heavy-job slot
 "use strict";
 const fs = require("fs"), path = require("path");
-const RANK = { "uneven piece": -4, "too much cube": -3, "no reverse": -3, "walked portal": -2, "abrupt switch": -2, "ground start": -2, "no rests": -2, "narrow heights": -1, "unseen roof": -1, "pointless orb": 0, "few clicks": 1, "gap": 2, "long corridor": 3, "same corridor": 4, "no variety": 5, "too easy": 6 };
+const RANK = { "uneven piece": -4, "too much cube": -3, "no reverse": -3, "walked portal": -2, "abrupt switch": -2, "ground start": -2, "no rests": -2, "unseen roof": -1, "pointless orb": 0, "few clicks": 1, "gap": 2, "long corridor": 3, "same corridor": 4, "no variety": 5, "too easy": 6 };
 
 function report(file, opt = {}) {
   const { readGdlvl, GD } = require("./io.js"), S = require("./solutions.js"), J = require("./judge.js");
@@ -64,7 +64,7 @@ function report(file, opt = {}) {
     transitions: cl(10 - 2 * n("walked portal").length - 1.5 * n("abrupt switch").length - 2 * n("ground start").length),
     rests: cl(10 * Math.min(1, (st.restsPerMin || 0) / 8)), flow: cl(10 - 3 * gapS), variety: cl(10 - 2.5 * (n("no variety").length + n("same corridor").length)),
     pacing: cl(10 - 2 * n("long corridor").length), clarity: cl(10 - 3 * n("pointless orb").length - 3 * n("unseen roof").length), ending: n("flat ending").length ? 4 : 10,
-    heights: cl(10 * Math.min(1, (st.yRange || 0) / 7)) };
+    height: heightScore(require("./heightspread.js").spreadOf(run.path)) };
   const vals = Object.values(sub), meanSub = vals.reduce((a, b) => a + b, 0) / vals.length;
   out.layout = Object.assign({ score: cl(meanSub - 0.2 * vals.reduce((a, v) => a + Math.max(0, 6 - v), 0)) }, sub);
   out.deco = null;   // judged later
@@ -79,10 +79,19 @@ function report(file, opt = {}) {
   return out;
 }
 
+// height (Evgeni 2026-11-27: "distrubution of height in the gameplay will be part of the scoring"): the route's rows over
+// the 0..12 band -- 10 * the mean of cover and evenness against the 0.6 target, minus 1.5 for never touching the bottom row
+// (rows 0-1) or the top (row >= 9), minus 1 per mode stuck in <= 3 rows over more than 10% of the play
+function heightScore(sp) {
+  const v = sp.level, base = 10 * Math.min(1, (Math.min(1, v.cover / 0.6) + Math.min(1, v.even / 0.6)) / 2);
+  const stuck = Object.values(sp.modes).filter(m => m.hi - m.lo <= 2 && m.share > 0.1).length;
+  return Math.max(0, Math.min(10, +(base - (v.lo > 1 ? 1.5 : 0) - (v.hi < 9 ? 1.5 : 0) - stuck).toFixed(1)));
+}
+
 function text(r) {
   const f = (k, v) => `${k.padEnd(11)}${v}`, d = r.difficulty || {}, fa = r.fairness;
   const L = [`${r.level}: ${r.seconds} s, ${r.presses} presses, ${r.modes.length} modes${r.beaten ? "" : ", NOT beaten on its route"}${r.stale ? " (route from older physics)" : ""}`,
-    f("Layout", `${r.layout.score}/10  balance ${r.layout.balance} · modes ${r.layout.modes} · transitions ${r.layout.transitions} · rests ${r.layout.rests} · flow ${r.layout.flow} · variety ${r.layout.variety} · pacing ${r.layout.pacing} · clarity ${r.layout.clarity} · ending ${r.layout.ending} · heights ${r.layout.heights}`),
+    f("Layout", `${r.layout.score}/10  balance ${r.layout.balance} · modes ${r.layout.modes} · transitions ${r.layout.transitions} · rests ${r.layout.rests} · flow ${r.layout.flow} · variety ${r.layout.variety} · pacing ${r.layout.pacing} · clarity ${r.layout.clarity} · height ${r.layout.height} · ending ${r.layout.ending}`),
     f("Difficulty", d.error ? "(error) " + d.error : `${d.label} (~${d.attempts} attempts, tightest ${d.tightestMs} ms)`),
     fa ? f("Fairness", fa.error ? "(error) " + fa.error : fa.flags ? `${fa.flags} unfair spot${fa.flags > 1 ? "s" : ""}: ${fa.worst.join(", ")}` : "no unfair spots") : null,
     f("Taste", r.taste.error ? "(error)" : `${r.taste.score}/100`),
