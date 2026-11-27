@@ -1,4 +1,4 @@
-// node tools/clickfirst.js gen [--clicks 6] [--n 150] [--keep 5] [--seed 1]  |  pattern [--pieces local/lego/pieces.json]  |  lab
+// node tools/clickfirst.js gen [--clicks 6] [--bpm 140] [--n 150] [--keep 5] [--seed 1]  |  pattern [--pieces local/lego/pieces.json]  |  lab
 //   -- a ball section built CLICKS FIRST (Evgeni 2026-11-27: "we will define the clicks, and build a pattern 'randomly', and
 //      close the remaining. once we have a 'patch' chosen, we will build the hazards around it, to match the wanted timing").
 //      1. the plan: N clicks on an irregular rhythm, each with its kind (a flip off a surface, a yellow orb, a blue orb) and
@@ -20,7 +20,8 @@
 if (require.main === module) require("./heavy.js").claim();   // one heavy job at a time (tools/heavy.js)
 const fs = require("fs"), path = require("path");
 const G = require("./brickgen.js"), G2 = require("./brickgen2.js");
-const ROOT = path.join(__dirname, ".."), OUT = path.join(ROOT, "knowledge", "clickfirst.json");
+const ROOT = path.join(__dirname, "..");
+let OUT = path.join(ROOT, "knowledge", "clickfirst.json");   // --set <name>: knowledge/clickfirst_<name>.json, its lab gdlm_lab_clickfirst_<name>
 const B = 30, TPS = 240, V = 311.58, WMAX = 90;
 const T = s => Math.round(s * TPS);
 function rng(seed) { let s = (seed >>> 0) || 1; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
@@ -36,13 +37,15 @@ const GDlib = () => GDc || (GDc = (() => { const { GD } = require("./io.js"); Ob
 const WIN = { tight: { late: 0.2, early: -0.4, ms: [50, 130] }, normal: { late: 1.0, early: 1, ms: [120, 210] }, loose: { late: 2.2, early: 3, ms: [190, 999] } };
 
 // ---------------------------------------------------------------- 1. the plan
-function plan(r, n) {
-  const clicks = []; let t = 0.25 + 0.05 * rint(r, 0, 4);
-  const GAPS = [0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.6, 0.7, 0.8, 0.95];
+// beat (seconds a beat, optional): the clicks fall on the song's beats (gaps of 1/2 to 3 beats); without it, a free rhythm
+function plan(r, n, beat) {
+  const clicks = []; let t = beat ? beat * rint(r, 1, 2) : 0.25 + 0.05 * rint(r, 0, 4);
+  const GAPS = beat ? [0.5, 1, 1, 1, 1.5, 2, 2, 3].map(m => m * beat) : [0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.6, 0.7, 0.8, 0.95];
   for (let k = 0; k < n; k++) {
-    const gap = k ? pick(r, GAPS) : 0; t += gap;
-    clicks.push({ t: +t.toFixed(2), kind: pick(r, ["flip", "flip", "flip", "orb", "blueorb"]), win: pick(r, ["tight", "normal", "normal", "loose"]),
-      free: gap >= 0.5 && r() < 0.55 ? pick(r, ["drop", "drop", "pad", "bluepad"]) : null });   // a free move before it, in a long gap
+    const gap = k ? pick(r, GAPS.filter(g => g >= 0.25)) : 0; t += gap;
+    clicks.push({ t: +t.toFixed(3), kind: pick(r, ["flip", "flip", "flip", "orb", "blueorb"]), win: pick(r, ["tight", "normal", "normal", "loose"]),
+      // a free move before it, in a long gap: a drop, a pad, a blue pad, or a gravity portal (reverse gravity with no click)
+      free: gap >= 0.5 && r() < 0.6 ? pick(r, ["drop", "drop", "pad", "bluepad", "gportal", "gportal"]) : null });
   }
   return clicks;
 }
@@ -103,8 +106,11 @@ function build(r, P) {
           const ok = move("drop", fRel, shuffle(r, rowsFor(cur.side, cur.row, 1, 3)), cur.side, cur.c1 + 1, [], null, deadline, 0);
           if (ok == null) cur.c1 = save;
         } else {
-          const pc = Math.round(cm) + 1, id = c.free === "pad" ? "yellow pad" : "blue pad", side = c.free === "pad" ? cur.side : -cur.side;
-          const add = [cur.side > 0 ? [id, pc, cur.row] : [id, pc, cur.row - 1, { flipY: true }]];
+          const pc = Math.round(cm) + 1, side = c.free === "pad" ? cur.side : -cur.side;
+          // a gravity portal flips it with no click: the yellow one (11) turns a ball on a floor upside down, the blue one (10)
+          // brings a ball on a roof back; its centre at the ball's height
+          const id = c.free === "pad" ? "yellow pad" : c.free === "bluepad" ? "blue pad" : cur.side > 0 ? "gravity down" : "gravity up";
+          const add = c.free === "gportal" ? [[id, pc, Math.round(((q.y - 15) / B) * 10) / 10]] : [cur.side > 0 ? [id, pc, cur.row] : [id, pc, cur.row - 1, { flipY: true }]];
           cur.c1 = pc + 1;
           const rows = c.free === "pad" ? rowsFor(side, cur.row, -1, 2).filter(x => x !== cur.row) : rowsFor(side, cur.row, 3, 5);
           const ok = move(c.free, fRel, shuffle(r, rows), side, pc + (c.free === "pad" ? 4 : 2), add, null, deadline, 0);
@@ -252,7 +258,7 @@ function gen(opts) {
   const r = rng((opts.seed || 1) * 104729), t0 = Date.now(), why = {}, good = [];
   const no = k => { k = k.replace(/:.*/, "").replace(/click \d+ /, "click "); why[k] = (why[k] || 0) + 1; };
   for (let i = 0; i < opts.n; i++) {
-    const P = plan(r, opts.clicks);
+    const P = plan(r, opts.clicks, opts.beat);
     let b; try { b = build(r, P); } catch (e) { b = { why: "error: " + e.message }; }
     if (b.why) { no(b.why); continue; }
     if (b.args.presses !== opts.clicks) { no("lost a click"); continue; }
@@ -273,7 +279,8 @@ function gen(opts) {
   }
   console.log(`ball, ${opts.clicks} clicks: ${opts.n} plans, ${good.length} built + verified, ${kept.length} kept (${((Date.now() - t0) / 1000).toFixed(0)} s)`);
   console.log(`   dropped: ${Object.entries(why).sort((a, c) => c[1] - a[1]).map(([k, v]) => k + " " + v).join(", ") || "none"}`);
-  kept.forEach((b, k) => { b.id = `cf-ball-${k + 1}`; });
+  const setName = path.basename(OUT, ".json").replace(/^clickfirst_?/, "") || "ball";
+  kept.forEach((b, k) => { b.id = `cf-${setName}-${k + 1}`; });
   const report = summary(kept, opts.pieces);
   fs.writeFileSync(OUT, JSON.stringify({ made: new Date().toISOString(), note: "BRICKGEN.md 'Round 3': ball sections built clicks first (tools/clickfirst.js). plan = the clicks with kind and wanted window; toks = the extracted recipe; objects structure-relative; events ticks from the section's entry.",
     report, sections: kept.map(b => ({ id: b.id, width: b.width, plan: b.plan, args: b.args, verify: b.verify, windowHit: b.windowHit, recipe: b.recipe, inner: b.inner, nearestOfficial: b.nearestOfficial, events: b.events, objects: b.objects })) }, null, 0).replace(/\{"id"/g, "\n{\"id\""));
@@ -311,8 +318,9 @@ function lab() {
     objs.push(["block", ex, 9]);
     base = ex + 14;
   }
-  const spec = { name: "GDLM lab clickfirst ball", description: "Ball sections built clicks first (tools/clickfirst.js)", speed: "1x", style: "classic", indicators: false, objects: objs, seedPresses: seeds, outro: 1 };
-  const f = path.join(ROOT, "specs", "lab_clickfirst_ball.json");
+  const set = path.basename(OUT, ".json").replace(/^clickfirst_?/, ""), tag = set ? "_" + set : "_ball";
+  const spec = { name: "GDLM lab clickfirst " + (set || "ball"), description: "Ball sections built clicks first (tools/clickfirst.js)", speed: "1x", style: "classic", indicators: false, objects: objs, seedPresses: seeds, outro: 1 };
+  const f = path.join(ROOT, "specs", `lab_clickfirst${tag}.json`);
   fs.writeFileSync(f, JSON.stringify(spec, null, 1));
   console.log(`-> ${path.relative(ROOT, f)}: ${L.length} sections; build: node tools/make.js ${path.relative(ROOT, f)}`);
 }
@@ -321,7 +329,8 @@ module.exports = { plan, build, close, extract, recipe, inner, between, tokensOf
 
 if (require.main === module) {
   const argv = process.argv.slice(2), cmd = argv[0], arg = k => { const i = argv.indexOf("--" + k); return i >= 0 ? argv[i + 1] : null; };
-  if (cmd === "gen") gen({ clicks: +(arg("clicks") || 6), n: +(arg("n") || 150), keep: +(arg("keep") || 5), seed: +(arg("seed") || 1), pieces: arg("pieces") });
+  if (arg("set")) OUT = path.join(ROOT, "knowledge", `clickfirst_${arg("set")}.json`);
+  if (cmd === "gen") gen({ beat: arg("bpm") ? 60 / +arg("bpm") : null, clicks: +(arg("clicks") || 6), n: +(arg("n") || 150), keep: +(arg("keep") || 5), seed: +(arg("seed") || 1), pieces: arg("pieces") });
   else if (cmd === "pattern") {
     const off = officialSections(arg("pieces") || path.join(ROOT, "local", "lego", "pieces.json"));
     for (const o of off) console.log(`${(o.level + " @" + o.x).padEnd(34)} ${o.presses} clicks  inner ${inner(o.toks).score}  ${recipe(o.toks)}`);
