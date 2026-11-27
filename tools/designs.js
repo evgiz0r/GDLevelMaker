@@ -170,10 +170,12 @@ function page(out) {
   const L = list().filter(d => fs.existsSync(path.join(DIR, d.card)));
   for (const d of L) for (const f of [d.card, d.layout, ...Object.values(d.parts || {})]) if (f && fs.existsSync(path.join(DIR, f))) fs.copyFileSync(path.join(DIR, f), path.join(out, f));
   fs.writeFileSync(path.join(out, "designs.json"), JSON.stringify(L));
+  // the layout sections' solver check (tools/layoutcheck.js): the board draws each route over its section
+  try { fs.copyFileSync(path.join(ROOT, "knowledge", "layout_check.json"), path.join(out, "layout_check.json")); } catch (e) {}
   // the tab, with the scene join in front of it (lib/scenejoin.js: the same code node's layoutsections.joined() uses)
   fs.writeFileSync(path.join(out, "designs.js"), fs.readFileSync(path.join(__dirname, "..", "lib", "scenejoin.js"), "utf8") + "\n" + fs.readFileSync(path.join(__dirname, "designs_tab.js"), "utf8"));
   console.log(`${L.length} designs -> ${out} (designs.json, designs.js, cards/)`);
-  return { out, files: ["designs.json", "designs.js"].concat(L.flatMap(d => [d.card, d.layout, ...Object.values(d.parts || {})].filter(Boolean))) };
+  return { out, files: ["designs.json", "designs.js", "layout_check.json"].concat(L.flatMap(d => [d.card, d.layout, ...Object.values(d.parts || {})].filter(Boolean))) };
 }
 
 function load() { try { return JSON.parse(fs.readFileSync(VOTESK, "utf8")).votes || []; } catch (e) { return []; } }

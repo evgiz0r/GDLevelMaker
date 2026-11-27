@@ -31,6 +31,9 @@ function specOf(z) {
     x0, x1: x0 + w, end };
 }
 
+// the same hash the page computes from a part's tiles (designs_tab.js hashTiles): sorted "t,c,r" cells
+function hashMap(map) { const cells = []; map.forEach((l, i) => [...l].forEach((ch, c) => { if (ch !== ".") cells.push(ch + "," + c + "," + (map.length - 1 - i)); }));
+  cells.sort(); let h = 0; for (const ch of cells.join(";")) h = (h * 31 + ch.charCodeAt(0)) | 0; return h; }
 function check(z) {
   const t0 = Date.now(), S = specOf(z);
   let level;
@@ -51,6 +54,12 @@ function check(z) {
   for (let t = 0; t < p.length; t += 4) { const c = Math.floor(p[t].x / 30 - S.x0), rr = Math.floor(p[t].y / 30); if (c >= 0 && c < g[0].length && rr >= 0 && rr < H && g[H - 1 - rr][c] === ".") g[H - 1 - rr][c] = "*"; }
   for (const e of ev) if (e.type === "press") { const q = p[Math.min(e.tick, p.length - 1)], c = Math.floor(q.x / 30 - S.x0), rr = Math.floor(q.y / 30); if (c >= 0 && c < g[0].length && rr >= 0 && rr < H) g[H - 1 - rr][c] = "P"; }
   out.show = g.map(l => l.join(""));
+  // the route for the board (designs_tab.js "〰 solver path"): points in section cells (c across, r up from the ground,
+  // the player's centre), every 8 ticks, inside the section only; presses marked; hash of the map it was solved on, so
+  // the board can tell when he has drawn since (then the route is shown as old)
+  out.route = []; for (let t = 0; t < p.length; t += 8) { const c = p[t].x / 30 - S.x0, rr = p[t].y / 30 - 0.5; if (c >= -0.5 && c <= z.map[0].length + 0.5) out.route.push([+c.toFixed(2), +rr.toFixed(2)]); }
+  out.taps = ev.filter(e => e.type === "press" && inSec(e.tick)).map(e => { const q = p[Math.min(e.tick, p.length - 1)]; return [+(q.x / 30 - S.x0).toFixed(2), +(q.y / 30 - 0.5).toFixed(2)]; });
+  out.mapHash = hashMap(z.map);
   return Object.assign(out, { ok: true, presses, tight, attempts: d ? Math.round(10 ** d.logAttempts) : null, log: d ? +d.logAttempts.toFixed(2) : null, label: d ? DF.difficultyLabel(d.logAttempts) : null });
 }
 
@@ -66,4 +75,4 @@ if (require.main === module) {
   for (const c of out) old[c.key] = Object.assign(c, { at: new Date().toISOString().slice(0, 16) });
   fs.writeFileSync(f, JSON.stringify(old, null, 1) + "\n"); console.log("-> knowledge/layout_check.json");
 }
-module.exports = { specOf, check };
+module.exports = { specOf, check, hashMap };

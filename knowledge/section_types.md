@@ -56,6 +56,17 @@ type, so a builder can make a new one of any length, synced to the song, and so 
 - Round sides without hazards (swing) need a round piece on the board and a GD object for it. Not chosen yet. Never guess
   an id: lib/objects.js, ask him in the editor.
 
+## Sections as templates in a level build
+
+Evgeni, 2026-11-27: "besides the option to use the official structures lego, it will be possible to use one of such
+possible sections, as a template ( not copy this exactly ), and create somewhat approriate layout for the specific beat and
+difficulty needed". So a builder (tools/planbuild.js, compose) has two sources for a section: the lego (verified official
+or own bricks joined on the hits, tools/brickpick.js) or a **section type from this page used as a template**: its idea and
+motif, generated fresh at the song section's length, with its presses on that section's beats and its windows / cps at the
+level's tier. Never the board's example pasted as drawn. The generators (tools/sectiongen.js, the "Generate our own
+structures" thread) take `{cols, rows, seed}` today; for this they also need the beats (press times in the section) and a
+difficulty target (tier: cps and tightest window), and are checked by tools/layoutcheck.js (solves, windows, tier).
+
 ## Open
 
 - A section generator: type + length in beats + song section -> a section like these, its motif varied as above. Nothing

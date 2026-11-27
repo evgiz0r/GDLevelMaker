@@ -19,7 +19,7 @@ window.initDesigns = async function (root) {
   #designs .lyh{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:6px 8px;font-size:12px}#designs .lfold{cursor:pointer;color:var(--mute)}
   #designs .lyh button{background:#241d3d;color:#ddd;border:1px solid #444;border-radius:6px;padding:2px 7px;font-size:12px}#designs .lyh .pen.on{outline:2px solid currentColor}
   #designs .ink{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}#designs .ink.on{pointer-events:auto;cursor:crosshair;touch-action:none;outline:2px dashed #ffd84d}
-  #designs .tiles .grid line{stroke:#ffffff30;stroke-width:1px;vector-effect:non-scaling-stroke}#designs .plr{position:absolute;left:0;top:0;background:#c8ff3c;border:2px solid #10301a;box-sizing:border-box;pointer-events:none;z-index:5}#designs .plr[data-m="1"]{border-radius:40% 70% 70% 40%}#designs .plr[data-m="2"]{border-radius:50%}#designs .zb .aplay,#designs .zb .aspd{min-width:28px}#designs .tiles,#designs .tiles *{pointer-events:auto!important}#designs .tiles{cursor:pointer;display:block;touch-action:none;background:#1a1636;max-width:none}#designs .lay .wide{padding:4px 8px}#designs .ptool.on{outline:2px solid #ffd84d}
+  #designs .tiles .grid line{stroke:#ffffff30;stroke-width:1px;vector-effect:non-scaling-stroke}#designs .plr{position:absolute;left:0;top:0;background:#c8ff3c;border:2px solid #10301a;box-sizing:border-box;pointer-events:none;z-index:5}#designs .plr[data-m="1"]{border-radius:40% 70% 70% 40%}#designs .plr[data-m="2"]{border-radius:50%}#designs .zb .aplay,#designs .zb .aspd{min-width:28px}#designs .tiles,#designs .tiles *{pointer-events:auto!important}#designs .tiles{cursor:pointer;display:block;touch-action:none;background:#1a1636;max-width:none}#designs .lay .wide{padding:4px 8px}#designs .ptool.on{outline:2px solid #ffd84d}#designs .tiles .rte,#designs .tiles .rte *{pointer-events:none!important}#designs .lroute.on{outline:2px solid #7be3ff}
   #designs .lnr{display:flex;gap:6px;align-items:center;padding:2px 8px 10px}#designs .lnote{flex:1;min-width:0;background:#0f0c2b;color:inherit;border:1px solid var(--line);border-radius:6px;padding:5px 8px;font:13px system-ui}#designs .lpn{font-size:11px;color:var(--mute);padding:2px 8px}#designs .lsz button,#designs .ldel{background:#241d3d;color:#ddd;border:1px solid #444;border-radius:6px;padding:1px 6px;font-size:11px;margin-left:3px}#designs .lay{margin:6px 0 14px}#designs .lpt.on{outline:1px solid #7be38a}
   #designs .board.fs{position:fixed;inset:0;z-index:1000;background:#0f0c2b;overflow:auto}#designs .board.fs .wide{overflow:auto}
   #designs .lk.blank img{visibility:hidden}#designs .lk.blank{background:#1a1636;background-image:linear-gradient(#ffffff10 1px,transparent 1px),linear-gradient(90deg,#ffffff10 1px,transparent 1px);background-size:20px 20px}
@@ -53,6 +53,12 @@ window.initDesigns = async function (root) {
   root.innerHTML = `<div class="dbar"><select id="dvf"><option value="">any vote</option><option value="up">👍 liked</option><option value="down">👎 disliked</option><option value="none">not voted yet</option></select><span class="ds" id="dcount"></span></div><div id="dgroups">loading ...</div>`;
   let L = [];
   try { L = await (await fetch("designs.json", { cache: "no-store" })).json(); } catch (e) { root.querySelector("#dgroups").textContent = "designs.json did not load"; return; }
+  // THE SOLVER'S PATH (Evgeni 2026-11-27: "add the path of the solver in some soft way on the layout, and add a control to
+  // toggle"): tools/layoutcheck.js solves each section alone and keeps its route, presses and windows
+  // (knowledge/layout_check.json, published as layout_check.json); drawn faint over each section, 〰 turns it off
+  let LCHK = {}; try { LCHK = await (await fetch("layout_check.json", { cache: "no-store" })).json(); } catch (e) {}
+  // the same hash tools/layoutcheck.js hashMap() takes of the map it solved: differs once he drew since -> "old"
+  const hashTiles = T => { const cells = T.map(z => z.t + "," + z.c + "," + z.r).sort(); let h = 0; for (const ch of cells.join(";")) h = (h * 31 + ch.charCodeAt(0)) | 0; return h; };
   let VOTES = {}, DB = null, CM = null, CAN_SEND = false, MODE = "designs", MARKS = [], MARKING = null;
   // typed mark notes not yet confirmed by the database: they win over snapshots, so a re-render never drops text
   const PENS = { block: "#ffffff", hazard: "#ff5a5a", note: "#ffd84d" }, PENL = { block: "▭ block", hazard: "▲ hazard", note: "✎ note" };
@@ -265,7 +271,22 @@ window.initDesigns = async function (root) {
     const grid = q => { const [k, , W, H] = q, key = "layout:" + k;
       return `<svg class="tiles" data-k="${key}" data-w="${W}" data-h="${H}" data-vh="${H + 0.25}" data-g="0" viewBox="0 0 ${W} ${H + 0.25}" style="width:${W * cs}px;height:${(H + 0.25) * cs}px">`
         + `<g class="grid">${Array.from({ length: W + 1 }, (_, c) => `<line x1="${c}" y1="0" x2="${c}" y2="${H}" />`).join("")}${Array.from({ length: H + 1 }, (_, r) => `<line x1="0" y1="${r}" x2="${W}" y2="${r}" />`).join("")}</g>`
-        + `<rect x="0" y="${H}" width="${W}" height="0.25" fill="#7be38a55" />` + (() => { const T = tilesOf(key); return (k === "play" ? marks(H) : "") + T.map(z => tile(z, H)).join(""); })() + `</svg>`; };
+        + `<rect x="0" y="${H}" width="${W}" height="0.25" fill="#7be38a55" />` + (() => { const T = tilesOf(key); return (k === "play" ? marks(H) : "") + T.map(z => tile(z, H)).join("") + routeSvg(k, H, W); })() + `</svg>`; };
+    // the route: a soft line through the player's centre, a dot at each press; dashed and greyer when the section was
+    // changed after it was solved (then it is the old route, until the next check)
+    const routeOne = (C, H, W, dc, old) => { if (!C || !C.ok || !C.route) return "";
+      const P = C.route.filter(z => z[0] >= 0 && z[0] <= W - dc).map(z => (z[0] + dc).toFixed(2) + "," + (H - z[1] - 0.5).toFixed(2)).join(" "), col = old ? "#b0b0c0" : "#7be3ff";
+      return `<g class="rte" style="pointer-events:none"><polyline points="${P}" fill="none" stroke="${col}" stroke-opacity="${old ? 0.35 : 0.55}" stroke-linejoin="round" stroke-linecap="round"${old ? ' stroke-dasharray="4 4"' : ""} style="stroke-width:2.5px;vector-effect:non-scaling-stroke" />`
+        + (C.taps || []).filter(z => z[0] >= 0 && z[0] <= W - dc).map(z => `<circle cx="${(z[0] + dc).toFixed(2)}" cy="${(H - z[1] - 0.5).toFixed(2)}" r="0.22" fill="${old ? "#b0b0c0" : "#ffe36b"}" fill-opacity="0.8" />`).join("") + `</g>`; };
+    const chkOf = k => { const C = LCHK[k.slice(4)]; return C ? { C, old: C.mapHash !== undefined && C.mapHash !== hashTiles(tilesOf("layout:" + k)) } : null; };
+    const routeSvg = (k, H, W) => { if (open.route === false) return "";
+      if (k.startsWith("sec:")) { const x = chkOf(k); return x ? routeOne(x.C, H, W, 0, x.old) : ""; }
+      if (k === "play") return SCENE_SEGS.filter(z => z.key).map(z => { const x = chkOf(z.key.slice(7)); return x ? routeOne(x.C, H, z.c0 + z.w, z.c0, x.old) : ""; }).join("");
+      return ""; };
+    // the check's numbers on the section's header line
+    const chkLine = k => { const x = k.startsWith("sec:") && chkOf(k); if (!x) return "";
+      if (!x.C.ok) return ` · <span style="color:#ff8a8a">❌ does not solve (col ${x.C.dieCol})</span>`;
+      const t = (x.C.tight || [])[0]; return ` · <span style="color:${x.old ? "#999" : "#7be3ff"}">〰 ${x.C.presses} presses · ${esc(x.C.label || "")}${t ? " · tightest " + t.ms + " ms" : ""}${x.old ? " · changed since, route is old" : ""}</span>`; };
     // soft markers on the current scene: a faint band over each join, a dashed line and the name where each section starts
     const marks = H => SCENE_SEGS.map(z => z.join ? `<rect x="${z.c0}" y="0" width="${z.w}" height="${H}" fill="#ffffff0d" />`
       : `<line x1="${z.c0}" y1="0" x2="${z.c0}" y2="${H}" stroke="#ffd84d66" stroke-dasharray="0.3 0.3" style="stroke-width:1px;vector-effect:non-scaling-stroke" /><text x="${z.c0 + 0.2}" y="0.7" font-size="0.6" fill="#ffd84daa" style="pointer-events:none">${esc(z.name)}</text>`).join("");
@@ -281,14 +302,14 @@ window.initDesigns = async function (root) {
         + `<button class="lago">add</button><button class="lacancel">cancel</button></span>` : "");
     const tools = `<span class="pens">` + TOOLS.map(([k, l]) => `<button class="ptool${TOOL === k ? " on" : ""}" data-t="${esc(k)}">${l}</button>`).join("")
       + `<button class="pundo">↶ undo</button><button class="pclear">🗑 clear shown</button><button class="preset">↺ shown back to ours</button>`
-      + `<button class="zoom" data-z="-1">−</button><button class="zoom" data-z="1">＋</button><button class="pfs">${fs ? "⤡ exit" : "⛶ full screen"}</button>`
+      + `<button class="lroute${open.route === false ? "" : " on"}" title="the solver's route over each section">〰 solver path</button><button class="zoom" data-z="-1">−</button><button class="zoom" data-z="1">＋</button><button class="pfs">${fs ? "⤡ exit" : "⛶ full screen"}</button>`
       // a plain save, no sending (Evgeni: "i need a save there, without sending ... i would need to change a bit before
       // updating"); every edit also saves itself, the button saves the shown parts again and says when
       + `<button class="lsave">💾 save</button>`
       + (n || LPARTS.some(q => noteUnsent(q[0])) ? `<button class="msend" data-label="📨 send to Claude"${CAN_SEND ? "" : " disabled"}>📨 send to Claude</button>` : "") + `<span class="ds pst">${esc(DST.layout || "")}</span></span>`;
     return `<section data-g="layoutsec"><h2 class="stitle fold-h" role="button" tabindex="0" aria-expanded="${isOpen}">${isOpen ? "▾" : "▸"} Theme layout <span class="ds">the same for every theme · one part per kind of play · tap to place${n ? " · ✏ " + n : ""}</span></h2>`
       + (isOpen ? `<div class="dc lay board${fs ? " fs" : ""}" data-id="${LACT}"><div class="lyh">${chips}</div><div class="lyh">${tools}</div>`
-        + LPARTS.filter(q => show(q[0])).map(q => `<div class="lpn"><b>${esc(q[1])}</b> · ${esc(q[4] || "")} · ${q[2]} x ${q[3]}${q[5] ? " · " + esc(q[5]) : ""}${q[0].startsWith("sec:") ? ` <span class="lsz" data-k="${esc(q[0])}"><button data-d="0,1" title="one row taller">⬆ taller</button><button data-d="0,-1" title="one row shorter">⬇ shorter</button><button data-d="2,0" title="two columns wider">➡ wider</button><button data-d="-2,0" title="two columns narrower">⬅ narrower</button></span>` : ""}${ADDED[q[0].slice(4)] ? ` <button class="ldel" data-k="${esc(q[0].slice(4))}">✕ remove</button>` : ""}</div><div class="wide" data-w="L:${esc(q[0])}">${grid(q)}</div>`
+        + LPARTS.filter(q => show(q[0])).map(q => `<div class="lpn"><b>${esc(q[1])}</b> · ${esc(q[4] || "")} · ${q[2]} x ${q[3]}${q[5] ? " · " + esc(q[5]) : ""}${chkLine(q[0])}${q[0].startsWith("sec:") ? ` <span class="lsz" data-k="${esc(q[0])}"><button data-d="0,1" title="one row taller">⬆ taller</button><button data-d="0,-1" title="one row shorter">⬇ shorter</button><button data-d="2,0" title="two columns wider">➡ wider</button><button data-d="-2,0" title="two columns narrower">⬅ narrower</button></span>` : ""}${ADDED[q[0].slice(4)] ? ` <button class="ldel" data-k="${esc(q[0].slice(4))}">✕ remove</button>` : ""}</div><div class="wide" data-w="L:${esc(q[0])}">${grid(q)}</div>`
           + `<div class="lnr"><input class="lnote" data-n="${esc(q[0])}" placeholder="your notes on ${esc(q[1])} ..." value="${esc((NOTES[q[0]] || {}).note || "")}"><span class="ds lnst" data-n="${esc(q[0])}">${esc(NST[q[0]] || (noteUnsent(q[0]) ? "not sent yet" : (NOTES[q[0]] || {}).sentNote ? "sent" : ""))}</span></div>`).join("")
         + `</div>` : "") + `</section>`;
   }
@@ -372,6 +393,7 @@ window.initDesigns = async function (root) {
       for (const k of ks) await saveDraw(k);
       DST.layout = ks.every(k => DST[k] === "saved") ? "saved " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + " (" + ks.length + ")" : ks.map(k => DST[k]).find(v => v !== "saved");
       if (st) st.textContent = DST.layout; return; }
+    if (e.target.closest(".lroute")) { open.route = open.route === false; try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} render(); return; }
     const lsz = e.target.closest(".lsz button"); if (lsz) { const [dw, dh] = lsz.dataset.d.split(",").map(Number); await resize(lsz.closest(".lsz").dataset.k, dw, dh); return; }
     if (e.target.closest(".ladd")) { ADDFORM = !ADDFORM; render(); const i = root.querySelector(".lan"); if (i) i.focus(); return; }
     if (e.target.closest(".lacancel")) { ADDFORM = false; render(); return; }
