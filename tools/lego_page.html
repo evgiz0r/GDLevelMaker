@@ -77,6 +77,11 @@ button.vote.on.up{background:#1f6b3a;border-color:#7dff9c}button.vote.on.down{ba
 [data-fold].folded>:not(.fold-h){display:none!important}
 .filters .fold-h{font-size:15px;margin:0;flex:0 0 auto}
 .drawer .fold-h{font-size:17px;margin:0}
+/* HOVER ON EVERY BUTTON (Evgeni 2026-11-27: "all UI buttons should have some hover effect, in all workbooks forever").
+   Paste once into every page we make (catalogues, boards, viewers, artifacts); tests/hover_rule.js checks the pages. */
+button,.btn,[role=button],select,summary,input[type=button],input[type=submit]{transition:filter .12s,transform .12s,box-shadow .12s,background-color .12s}
+button:hover:not(:disabled),.btn:hover,[role=button]:hover,select:hover,summary:hover,input[type=button]:hover,input[type=submit]:hover{filter:brightness(1.18);box-shadow:0 0 0 2px rgba(120,170,255,.35);cursor:pointer}
+button:active:not(:disabled),.btn:active,[role=button]:active{transform:translateY(1px);filter:brightness(.95)}
 </style>
 
 <div class="band head">

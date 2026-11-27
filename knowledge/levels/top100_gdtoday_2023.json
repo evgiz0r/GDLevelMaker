@@ -1,0 +1,26 @@
+{
+ "about": "GD Today's 'Top 100 Greatest Geometry Dash Levels Of All Time', a community vote posted on X by @today_gd on Nov 28-30, 2023, just before GD 2.2 came out: so every level is from 1.x-2.1. The posters say it is not an absolute ranking. Names and creators as the threads credit them. Candidate pool for the masters reference set (board task gen-masters); the user picks from it.",
+ "source": ["https://threadreaderapp.com/thread/1729642699878441209", "https://threadreaderapp.com/thread/1730015756363128978", "https://threadreaderapp.com/thread/1730369198801764508"],
+ "levels": [
+  [1, "Death Moon", "Caustic"], [2, "LIMBO", "MindCap"], [3, "Nine Circles", "Zobros"], [4, "Bloodbath", "Riot"], [5, "White Space", "Xender Game"],
+  [6, "Change of Scene", "bli"], [7, "CastleMania", "Serponge"], [8, "Lonely Travel", "FunnyGame"], [9, "Cataclysm", "Gboy"], [10, "Black Blizzard", "KrmaL"],
+  [11, "Mastergame", "Serponge"], [12, "Well Rested", "cometface"], [13, "HOW", "Spu7nix"], [14, "Artificial Ascent", "ViPriN"], [15, "Nhelv", "SrGuillester"],
+  [16, "Bloodlust", "Knobbelboy"], [17, "Future Funk", "JonathanGD"], [18, "Revolution", "FunnyGame"], [19, "Reanimation", "Terron"], [20, "DeCode", "Rek3dge"],
+  [21, "Windy Landscape", "WOOGI1411"], [22, "La Campanella", "FunnyGame"], [23, "In Silico", "rafer"], [24, "Yatagarasu", "TrusTa"], [25, "Sonic Wave", "Cyclic"],
+  [26, "Cold Sweat", "para"], [27, "-sirius-", "FunnyGame"], [28, "Motion", "TamaN"], [29, "X", "TriAxis"], [30, "Supersonic", "ZenthicAlpha"],
+  [31, "Falling Up", "KrmaL"], [32, "Dream Flower", "Xender Game"], [33, "Killbot", "Lithifusion"], [34, "Sky Tower", "rafer"], [35, "Digital Descent", "ViPriN"],
+  [36, "Lit Fuse", "KrmaL"], [37, "Duelo Maestro", "Nacho21"], [38, "Ocular Miracle", "Davphla"], [39, "PXTTXRN SXXKXR", "Viot"], [40, "STARPUNK", "Ferdefunky"],
+  [41, "Ruta Del Sol", "TroxxP1"], [42, "CraZy III", "DavJT"], [43, "Boom Slayer", null], [44, "Ouroboros", "ViPriN"], [45, "High Life", "Migueword"],
+  [46, "ACU", "neigefeu"], [47, "Retention", "WOOGI1411"], [48, "Acropolis", "Zobros"], [49, "Blade of Justice", "Manix648"], [50, "Psychosis", "Hinds"],
+  [51, "ReTraY", "DiMaViKuLov26"], [52, "Clubstep", "RobTop"], [53, "B", "Motleyorc"], [54, "Future Demoness", "MaJackO"], [55, "Neutra", "Jenkins"],
+  [56, "Save As", "PAHC"], [57, "Zodiac", "RicoLP"], [58, "ISpyWithMyLittleEye", "Voxicat"], [59, "rotd", "Millepatte"], [60, "Deadlocked", "RobTop"],
+  [61, "Edge of Destiny", "CDMusic"], [62, "Magma Bound", "ScorchVx"], [63, "Between Worlds", "xXlocoXx"], [64, "Afterlife", "nasgubb"], [65, "Colorful Overnight", "WOOGI1411"],
+  [66, "Tartarus", "ItzDolphy"], [67, "Triple Six", "Zylenox"], [68, "Sedulous", "Samifying"], [69, "Silent Clubstep", "TheRealSailent"], [70, "Broken Signal", "Grax"],
+  [71, "Theory of Everything 2", "RobTop"], [72, "Unity", "TriAxis"], [73, "A Bizarre Phantasm", "TeamN2"], [74, "ABEL", "Dienid"], [75, "Eternelle Vehemence", "Vrymer"],
+  [76, "Rust", "neigefeu"], [77, "Apollo 11", "nasgubb"], [78, "Planet X", "Arb"], [79, "Plasma Pulse Finale", "xSmokes"], [80, "Demon Park", "m2coL"],
+  [81, "Mashup", "Jayuff"], [82, "Fast as Lightning", "Rabbatical"], [83, "Slaughterhouse", "IcEDCave"], [84, "Mastermind", "Hinds"], [85, "Emerald Realm", "CastriX"],
+  [86, "Idols", "Zafkiel7"], [87, "Requiem", "Lithifusion"], [88, "Crossroads", "mbed"], [89, "SLAM", "rafer"], [90, "Astral Divinity", "Knobbelboy"],
+  [91, "Dreamer", "FunnyGame"], [92, "BEATDEMON", "YoReid"], [93, "ICE Carbon Diablo X", "Roadbose"], [94, "Metropolis", "DesTicY"], [95, "Dark Odyssey", "JonathanGD"],
+  [96, "Kyouki", "Demishio"], [97, "Storming Summit", "IINimbusII"], [98, "Cybernetic Crescent", "ViPriN"], [99, "Freedom08", "Pennutoh"], [100, "The Clouds Give Way", "Subwoofer"]
+ ]
+}

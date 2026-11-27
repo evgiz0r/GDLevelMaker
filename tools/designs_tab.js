@@ -10,6 +10,13 @@ window.initDesigns = async function (root) {
   const GEN_HIDDEN = ["hanging"];
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const css = `
+  #designs .tpick{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin-top:4px}
+  #designs .tpick .tpk{font-size:11px;padding:2px 6px;border-radius:6px;border:1px solid var(--line);opacity:.75;width:auto;min-width:0;height:auto;line-height:1.3;white-space:nowrap}
+  #designs .tpick .tpst{flex-basis:100%}
+  #designs .tpick .tpk.on{opacity:1;outline:2px solid #ffb347}
+  #designs .wlist{margin:6px 0 18px;display:flex;flex-direction:column;gap:6px}
+  #designs .wrow{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+  #designs .wdf{cursor:pointer;font-size:13px;opacity:.8}
   #designs .dgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin:8px 0 18px}
   #designs .dc{background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
   #designs .dc img{display:block;width:100%;aspect-ratio:2/1;object-fit:cover;background:#0f0c2b}
@@ -28,7 +35,7 @@ window.initDesigns = async function (root) {
   #designs .pens{display:flex;flex-wrap:wrap;gap:4px;align-items:center}#designs .pcol{width:22px;height:22px;padding:0!important;border-radius:11px!important}#designs .pcol.on,#designs .pw.on,#designs .perase.on{outline:2px solid #ffd84d}
   #designs .pany{width:26px;height:24px;padding:0;border:0;background:none}#designs .pw i{display:block;width:16px;background:#ddd;border-radius:2px}
   #designs .ink polyline{fill:none;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
-  #designs .zw{position:relative}#sendall.ready,#designs .msend.ready{background:#3ddc84!important;color:#04210f!important;box-shadow:0 0 10px #3ddc84}#designs .cst{font-size:12px;margin:2px 0 8px;padding:3px 8px;border-radius:6px;background:#ffffff10;color:#cfd3ff}#designs .cst-applied{background:#3ddc8422;color:#9ff0c0}#designs .cst-question{background:#ffd84d22;color:#ffe48a}#designs .cst-new{background:#ff8a8a1c;color:#ffb0b0}#designs .cst-sent{color:#aab}#designs .fxc{position:absolute;left:0;top:0;pointer-events:none;mix-blend-mode:screen}#designs .zb{position:absolute;right:6px;top:6px;display:flex;gap:4px}
+  #designs .zw{position:relative}#sendall.ready,#designs .msend.ready{background:#3ddc84!important;color:#04210f!important;box-shadow:0 0 10px #3ddc84}#designs .cst{font-size:12px;margin:2px 0 8px;padding:3px 8px;border-radius:6px;background:#ffffff10;color:#cfd3ff}#designs .cst-applied{background:#3ddc8422;color:#9ff0c0}#designs .cst-question{background:#ffd84d22;color:#ffe48a}#designs .cst-new{background:#ff8a8a1c;color:#ffb0b0}#designs .cst-sent{color:#aab}#designs .fxc{position:absolute;left:0;top:0;pointer-events:none;mix-blend-mode:screen}#designs .zb{position:static;display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:4px;margin:6px 0 2px}#designs .zb select{height:30px;max-width:150px;padding:0 6px}#designs .zb .tpick{flex-basis:100%;justify-content:flex-end}#designs .zb .abuild{width:auto;padding:0 12px;white-space:nowrap}
   #designs .zb button{width:30px;height:30px;border-radius:15px;border:1px solid #555;background:#1b1538cc;color:#fff;font:700 16px/1 system-ui}
   #designs .mk{position:relative;display:inline-block;line-height:0}#designs .mk img{display:block}
   #designs .mk.on{cursor:crosshair;outline:2px dashed #ffd84d}
@@ -68,6 +75,7 @@ window.initDesigns = async function (root) {
   // read | question | passed, reply, at}); each section, note and generated piece shows one line: not sent yet / sent,
   // waiting / read by Claude / ✓ applied + Claude's answer. Newer edits of his than Claude's answer reopen it.
   const CST = {};
+  const WORK = {};   // collection "themework": what Claude is doing about the theme marks (workSection)
   const hm = a => a ? new Date(a).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "";
   function stLine(part) {
     const n = NOTES[part], d = DRAW["layout:" + part], s = CST[part];
@@ -147,7 +155,10 @@ window.initDesigns = async function (root) {
     // make them all collapsed"); a tap opens one, and the open ones are remembered per viewer
     if (d.kind === "theme" && open["theme:" + d.id] !== true) {
       return `<div class="dc k-theme tfc" data-id="${esc(d.id)}"><div class="dt tfold" role="button" tabindex="0" data-tf="${esc(d.id)}">▸ <span class="dn">${d.n ? d.n + " " : ""}${esc(d.name)}</span>${d.note ? ` <span class="ds">${esc(d.note)}</span>` : ""}</div></div>`; }
-    const img = `<img loading="lazy" decoding="async" src="${esc(d.card)}" alt="${esc(d.name)}">`;
+    // a theme card shows the picture of its picked sky / background when that variant was rendered (tools/themevariants.js)
+    const pk = d.kind === "theme" ? Object.assign({}, d.pick || {}, PICK[d.name] || {}) : null, vk = pk ? `s${pk.sky || 0}${pk.backdrop || "a"}` : "";
+    const src = pk && (d.variants || []).includes(vk) ? d.card.replace(/\.jpg$/, `-${vk}.jpg`) : d.card;
+    const img = `<img loading="lazy" decoding="async" src="${esc(src)}" alt="${esc(d.name)}">`;
     // a theme's scene takes 📍 marks: tap the 📍 button, then a spot on the picture, then type the note
     // a mark is open (Evgeni's note), seen (Claude read it: seen + reply) or gone (fixed: Claude deletes it, the log stays in
     // knowledge/design_marks.json). Seen ones fold away so the list never just grows.
@@ -177,7 +188,7 @@ window.initDesigns = async function (root) {
       + (lo ? (dr ? tools : `<button class="pdraw">✏ draw</button>`) + (sk.length && !ms.length ? `<button class="msend" data-label="📨 send to Claude"${CAN_SEND ? "" : " disabled"}>📨 send to Claude</button>` : "") + `<span class="ds pst">${esc(DST[d.id] || "")}</span>` : "") + `</div>`
       + (lo ? `<div class="wide" data-w="L:${esc(d.id)}"><div class="mk lk${bg === "blank" ? " blank" : ""}" style="--zh:${fs ? "calc(100vh - 120px)" : zh + "px"}"><img loading="lazy" src="${esc(bg === "scene" ? d.card : d.layout)}" alt="layout">${svg}</div></div>` : "") + `</div>`;
     const media = d.kind === "theme" ? `<div class="zw"><div class="wide" data-w="${esc(d.id)}"><div class="mk${MARKING === d.id ? " on" : ""}" style="--zh:${zh}px">${img}${pins}</div></div>`
-      + `<div class="zb">${d.anim ? `<button class="aplay" title="play / pause the scene at game speed">${PLAY && PLAY.id === d.id && !PLAY.paused ? "⏸" : "▶"}</button>${PLAY && PLAY.id === d.id ? `<button class="astop" title="stop, back to the start">⏹</button>` : ""}` : ""}${FR("zb:" + d.id, "⚙", `${d.anim ? `<button class="aspd" title="speed">${ASPD}x</button><select class="asty" title="animation style">${Object.entries(FXS).map(([k, f]) => `<option value="${k}"${styOf(d.id) === k ? " selected" : ""}>${esc(f.name)}</option>`).join("")}</select><select class="acol" title="number of colours">${[1, 2, 3, 4, 5, 6, 8, 12, 16].map(n => `<option value="${n}"${+(open["acol:" + d.id] || 4) === n ? " selected" : ""}>${n} colour${n > 1 ? "s" : ""}</option>`).join("")}</select>` : ""}<button class="zoom" data-z="-1" title="zoom out">−</button><button class="zoom" data-z="1" title="zoom in">＋</button>`)}`
+      + `<div class="zb">${d.anim ? `<button class="aplay" title="play / pause the scene at game speed">${PLAY && PLAY.id === d.id && !PLAY.paused ? "⏸" : "▶"}</button>${PLAY && PLAY.id === d.id ? `<button class="astop" title="stop, back to the start">⏹</button>` : ""}` : ""}${FR("zb:" + d.id, "⚙", `${d.anim ? `<button class="aspd" title="speed">${ASPD}x</button><select class="asty" title="animation style">${Object.entries(FXS).map(([k, f]) => `<option value="${k}"${styOf(d.id) === k ? " selected" : ""}>${esc(f.name)}</option>`).join("")}</select><select class="acol" title="number of colours">${[1, 2, 3, 4, 5, 6, 8, 12, 16].map(n => `<option value="${n}"${+(open["acol:" + d.id] || 4) === n ? " selected" : ""}>${n} colour${n > 1 ? "s" : ""}</option>`).join("")}</select>` : ""}<button class="zoom" data-z="-1" title="zoom out">−</button><button class="zoom" data-z="1" title="zoom in">＋</button>${pickRow(d)}`)}`
       // ACTIONS ARE BUTTONS (Evgeni 2026-11-27: "whenever is some operations i should do, like say build, lets move that
       // as a button for example on the theme"): the button sends Claude the request; the page never runs the job itself
       + `<button class="abuild" title="ask Claude to rebuild this theme's scene from the current layout">🔨 build</button><span class="ds abst">${esc(AST[d.id] || "")}</span></div></div>`
@@ -469,14 +480,17 @@ window.initDesigns = async function (root) {
     if (!GROUTE[id]) { GROUTE[id] = { state: "asked" };
       try { await DB.collection("genroute").doc(id).set({ gen: gk, key: g.key, seed: g.seed, cols: g.cols, tier: g.tier, map: g.map, mode: g.mode || "", state: "asked", at: new Date().toISOString() }); } catch (e) { GROUTE[id] = null; } }
     if (ping && CM && CM.sendToClaude) { const el = root.querySelector(".gpath"); try { await CM.sendToClaude({ anchor: await CM.anchorFor(el || root), text: "〰 solve the path of " + gk + " (collection genroute)" }); GROUTE[id].pinged = true; } catch (e) { GROUTE[id].pinged = false; } render(); } }
-  const genKey = g => "gen:" + g.key + ":" + g.seed + ":" + g.cols + ":" + g.tier + (g.hf && g.hf !== 1 ? ":h" + g.hf : "");
+  const genKey = g => "gen:" + g.key + ":" + g.seed + ":" + g.cols + ":" + g.tier + (g.hf && g.hf !== 1 ? ":h" + g.hf : "") + (g.bpm ? ":b" + g.bpm : "");
   function generate(f) { const SG = window.SectionGen; if (!SG) return;
     const key = f.querySelector(".gk").value, cols = Math.max(12, Math.min(200, +f.querySelector(".gc").value || 40)), tier = f.querySelector(".gt").value, seed = 1 + Math.floor(Math.random() * 99999);
     // TALLER (Evgeni 2026-11-27: "can we increase the heights of the generations? by like 1.5 for now?"): the type's own
     // height times the chosen factor (default 1.5)
     const hf = +((f.querySelector(".gh") || {}).value || 1.5);
-    try { let z = SG.make(key, { cols, seed, tier }); if (hf !== 1) z = SG.make(key, { cols, seed, tier, rows: Math.round(z.map.length * hf) });
-      GENS = { key, cols, tier, seed, hf, map: z.map, mode: z.mode, concept: z.concept || "" }; askRoute(GENS, false); }
+    // ON A BEAT (Evgeni 2026-11-27: "i want to be able to generate according to a beat as well, so its not just random
+    // stats, should be applicable in a level"): a bpm puts the planned presses on its half beats (sectiongen ctx onBeat)
+    const bpm = +((f.querySelector(".gb") || {}).value || 0), bo = bpm ? { bpm } : {};
+    try { let z = SG.make(key, { cols, seed, tier, ...bo }); if (hf !== 1) z = SG.make(key, { cols, seed, tier, ...bo, rows: Math.round(z.map.length * hf) });
+      GENS = { key, cols, tier, seed, hf, bpm, map: z.map, mode: z.mode, concept: z.concept || "" }; askRoute(GENS, false); }
     catch (x) { GENS = { key, cols, tier, seed, err: String(x && x.message || x) }; }
     try { localStorage.setItem("designs-gen", JSON.stringify(GENS)); } catch (e) {} render(); }
   function genPanel() { const SG = window.SectionGen; if (!SG) return "";
@@ -486,6 +500,7 @@ window.initDesigns = async function (root) {
       + `<label>length <input class="gc" type="number" min="12" max="200" value="${g.cols}" style="width:56px"></label>`
       + `<select class="gt">${["easy", "normal", "hard", "harder", "extreme"].map(t => `<option${t === g.tier ? " selected" : ""}>${t}</option>`).join("")}</select>`
       + `<select class="gh" title="height: the type's own times this">${[1, 1.25, 1.5, 2].map(v => `<option value="${v}"${v === (g.hf || 1.5) ? " selected" : ""}>height ×${v}</option>`).join("")}</select>`
+      + `<select class="gb" title="beat: the presses land on this bpm's half beats">${[0, 100, 120, 130, 140, 150, 160, 175].map(v => `<option value="${v}"${v === (g.bpm || 0) ? " selected" : ""}>${v ? v + " bpm" : "no beat"}</option>`).join("")}</select>`
       + `<button class="ggo">🎲 generate</button></span></div>`;
     if (GENS && GENS.err) out += `<div class="lpn" style="color:#ff8a8a">${esc(GENS.err)}</div>`;
     else if (GENS && GENS.map) { const H = GENS.map.length, W = GENS.map[0].length, cs = Math.round(26 * (open["zoom:layout"] || 1)), T = [];
@@ -560,6 +575,38 @@ window.initDesigns = async function (root) {
   setInterval(() => { try { topSend(); } catch (x) {} }, 1500);
   // ⟳ tries to send what is new, and reloads either way (nothing is lost: everything is saved in the page's database)
   window.rfBeforeReload = async () => { if (collectNew().n) { try { await sendNew(null, null); } catch (x) {} } return true; };
+  // BEING WORKED ON (Evgeni 2026-11-27: "add here below themes, things that shows what being worked on, and some rough
+  // estimates in minutes. things relevant to the marks in this themes section"). Claude writes collection "themework" with
+  // ArtifactData: {title, about, owner, state: working | queued | waiting | done, est_min, basis, started, done_at, at}.
+  // est_min only from a measured run (basis says which); none = "not measured". Done items stay folded for 24 h.
+  function workSection() {
+    const all = Object.values(WORK).filter(w => w && w.title), now = Date.now(), t = x => { const v = Date.parse(x || ""); return isNaN(v) ? 0 : v; };
+    const live = all.filter(w => w.state !== "done"), done = all.filter(w => w.state === "done" && now - t(w.done_at || w.at) < 864e5);
+    const rank = { working: 0, waiting: 1, queued: 2 };
+    live.sort((a, b) => (rank[a.state] ?? 3) - (rank[b.state] ?? 3) || t(a.started || a.at) - t(b.started || b.at));
+    const hm = ms => new Date(ms).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const eta = w => { if (!w.est_min) return "not measured"; const s = t(w.started); const left = s ? Math.round(w.est_min - (now - s) / 6e4) : w.est_min;
+      return (w.state === "working" && s ? (left > 0 ? `~${left} min left, ready ~${hm(s + w.est_min * 6e4)}` : `over its ~${w.est_min} min`) : `~${w.est_min} min`) + (w.basis ? ` (${esc(w.basis)})` : ""); };
+    const icon = { working: "⚙️", waiting: "⏸ waiting on you", queued: "🕒 next" };
+    const row = w => `<div class="wrow"><b>${esc(w.title)}</b>${w.about ? ` <span class="ds">· ${esc(w.about)}</span>` : ""}<div class="ds">${icon[w.state] || esc(w.state || "")} · ${eta(w)}${w.owner ? " · " + esc(w.owner) : ""}</div></div>`;
+    const isOpen = open.work !== false, dOpen = open.workdone === true;
+    return `<section data-g="work"><h2 class="stitle fold-h" role="button" tabindex="0" aria-expanded="${isOpen}">${isOpen ? "▾" : "▸"} 🛠 Being worked on <span class="ds">${live.length} open${done.length ? " · " + done.length + " done today" : ""} · from your marks and notes here</span></h2>
+      <div class="wlist"${isOpen ? "" : " hidden"}>${live.length ? live.map(row).join("") : `<div class="ds">nothing open right now</div>`}
+      ${done.length ? `<div class="wdone"><span class="wdf" role="button" tabindex="0">${dOpen ? "▾" : "▸"} done (${done.length})</span>${dOpen ? done.map(w => `<div class="wrow ds">✓ ${esc(w.title)}${w.done_at ? " · " + hm(t(w.done_at)) : ""}</div>`).join("") : ""}</div>` : ""}</div></section>`;
+  }
+  // SKY AND BACKGROUND PICK (Evgeni 2026-11-27: "where do i change in the workbook"): chips for the theme's skies and
+  // background sets; a tap saves at once (db collection "themepick", doc = theme name) and shows "saved -- 🔨 build to see it";
+  // the card itself changes after Claude rebuilds it (knowledge/theme_picks.json)
+  const PICK = {}, PST = {};
+  function pickRow(d) { if (d.kind !== "theme" || !d.skies) return "";
+    const p = Object.assign({}, d.pick || {}, PICK[d.name] || {}), on = (a, b) => a === b ? " on" : "";
+    return `<div class="tpick"><span class="ds">sky</span>${d.skies.map((bg, i) => `<button class="tpk${on(p.sky || 0, i)}" data-sky="${i}" title="sky ${i + 1}" style="background:rgb(${bg.join(",")});color:#fff">${i + 1}</button>`).join("")}
+      <span class="ds">background</span>${Object.entries(d.backdrops || {}).map(([k, v]) => `<button class="tpk${on(p.backdrop || "a", k)}" data-bd="${esc(k)}" title="${esc([].concat(v).join(" + "))}">${esc(k)}: ${esc([].concat(v).join(" + "))}</button>`).join("")}
+      <span class="ds tpst">${esc(PST[d.name] || "")}</span></div>`; }
+  async function savePick(d, patch) { PICK[d.name] = Object.assign({}, d.pick || {}, PICK[d.name] || {}, patch); PST[d.name] = "saving ...";
+    try { if (!DB) throw new Error("saves on the claude.ai page"); await DB.collection("themepick").doc(d.name).set(Object.assign({ theme: d.name }, PICK[d.name], { at: new Date().toISOString() }));
+      PST[d.name] = (d.variants || []).includes(`s${PICK[d.name].sky || 0}${PICK[d.name].backdrop || "a"}`) ? "saved" : "saved -- 🔨 build to see it on the card"; } catch (x) { PST[d.name] = "not saved: " + (x && (x.code || x.message) || x); }
+    render(); }
   function render() {
     keepScroll(); try { topSend(); } catch (x) {}
     const f = root.querySelector("#dvf").value, G = GROUPS.filter(([k]) => (MODE === "themes") === (k === "theme"));
@@ -570,7 +617,7 @@ window.initDesigns = async function (root) {
       const isOpen = open[k] !== false;
       return `<section data-g="${k}"><h2 class="stitle fold-h" role="button" tabindex="0" aria-expanded="${isOpen}">${isOpen ? "▾" : "▸"} ${title} <span class="ds">${ds.length}${sub ? " · " + sub : ""}</span></h2>
         <div class="dgrid"${isOpen ? "" : " hidden"}>${ds.map(card).join("")}</div></section>`;
-    }).join("");
+    }).join("") + (MODE === "themes" ? workSection() : "");
     root.querySelector("#dcount").textContent = `${n} designs`;
     putScroll(); if (PLAY && PLAY.paused) requestAnimationFrame(stepPlay);
     if (Date.now() - lastKey < HOLD) holdSend();
@@ -634,7 +681,7 @@ window.initDesigns = async function (root) {
     // ▶ play: the camera and the player along the route at game speed (designs.js animOf); ■ stops, the speed button
     // steps 1x -> 0.5x -> 0.25x
     const ab = e.target.closest(".abuild"); if (ab) { const id = ab.closest(".dc").dataset.id, d = L.find(x => x.id === id) || {};
-      await ask(ab, id, `🔨 build request: rebuild the ${d.name || id} theme (${id}) from the current scene of the theme layout (every section joined), then republish its card.`); return; }
+      await ask(ab, id, `🔨 build request: rebuild the ${d.name || id} theme (${id}) from the current scene of the theme layout (every section joined), with its sky / background pick (db themepick -> knowledge/theme_picks.json), then republish its card.`); return; }
     const ap = e.target.closest(".aplay"); if (ap) { const id = ap.closest(".dc").dataset.id; if (PLAY && PLAY.id === id) { if (PLAY.paused) resumePlay(); else pausePlay(); } else { startPlay(id); render(); } return; }
     if (e.target.closest(".astop")) { stopPlay(); render(); return; }
     const asp = e.target.closest(".aspd"); if (asp) { ASPD = ASPD === 1 ? 0.5 : ASPD === 0.5 ? 0.25 : 1; if (PLAY) { PLAY.t0 = performance.now() - PLAY.i / 60 / ASPD * 1000; } for (const b of root.querySelectorAll(".aspd")) b.textContent = ASPD + "x"; return; }
@@ -653,6 +700,8 @@ window.initDesigns = async function (root) {
     if (sh) { const k = "seen:" + sh.dataset.seen; open[k] = !open[k]; try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} render(); return; }
     const snd = e.target.closest(".msend");
     if (snd) { const c = snd.closest(".dc"); sendNew(c, c.querySelector(".msst") || c.querySelector(".pst")); return; }
+    if (e.target.closest(".wdf")) { open.workdone = open.workdone !== true; try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} render(); return; }
+    const tpk = e.target.closest(".tpk"); if (tpk) { const d = L.find(x => x.id === tpk.closest(".dc").dataset.id); if (d) savePick(d, tpk.dataset.sky != null ? { sky: +tpk.dataset.sky } : { backdrop: tpk.dataset.bd }); return; }
     const h = e.target.closest(".fold-h");
     if (h) { const k = h.parentNode.dataset.g; open[k] = open[k] === false; try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} render(); return; }
     // 📍 marks on a theme's scene (collection "designmarks"; tools/designs.js marks reads them)
@@ -807,6 +856,12 @@ window.initDesigns = async function (root) {
       if (m !== LAST) { LAST = m; try { topSend(); } catch (x) {} if (!(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) render(); } }, () => {});
     if (DB) DB.collection("genroute").onSnapshot(snap => {
       for (const x of snap.docs) { const d = JSON.parse(JSON.stringify(x.data() || {})); const old = GROUTE[x.id]; GROUTE[x.id] = Object.assign({}, d, old && old.pinged != null ? { pinged: old.pinged } : {}); }
+      if (!(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) render(); }, () => {});
+    if (DB) DB.collection("themepick").onSnapshot(snap => {
+      for (const x of snap.docs) { const d = JSON.parse(JSON.stringify(x.data() || {})); if (d.theme) PICK[d.theme] = d; }
+      if (!(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) render(); }, () => {});
+    if (DB) DB.collection("themework").onSnapshot(snap => {
+      for (const x of snap.docs) WORK[x.id] = JSON.parse(JSON.stringify(x.data() || {}));
       if (!(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) render(); }, () => {});
     if (DB) DB.collection("claudestatus").onSnapshot(snap => {
       for (const d of snap.docs.map(x => JSON.parse(JSON.stringify(x.data() || {})))) if (d.part && (!CST[d.part] || String(d.at) > String(CST[d.part].at))) CST[d.part] = d;

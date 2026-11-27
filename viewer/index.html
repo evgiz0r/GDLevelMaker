@@ -34,9 +34,9 @@
   select, button, label.btn { background:#24184f; color:var(--ink); border:1px solid #3b2d78; border-radius:6px; padding:6px 10px; font:inherit; cursor:pointer; }
   button.on { background:#3b2d78; border-color:var(--cube); }
   #wrap { position:relative; }
-  #vz { position:absolute; right:8px; top:8px; z-index:5; display:flex; gap:2px; opacity:.55; }
-  #vz:hover { opacity:1; }
-  #vz button { padding:2px 8px; font-size:12px; min-width:2em; background:#1a1240cc; }
+  /* the level's zoom sits in the top bar, never over the level (Evgeni, 2026-11-27: "UI should be outside the gameplay windows") */
+  #vz { display:inline-flex; gap:2px; }
+  #vz button { padding:6px 8px; min-width:2em; }
   canvas { display:block; width:100%; height:min(60vh, 460px); background:#0e0828; touch-action:none; }
   #scrub { width:100%; margin:0; accent-color:var(--cube); }
   #strip { display:block; width:100%; height:34px; background:#120a2e; cursor:pointer; }
@@ -167,6 +167,11 @@
   .pkOlder { font-size:12px; margin-top:4px; display:flex; gap:6px; flex-wrap:wrap; }
   .pkOlder button { font-size:11px; padding:2px 6px; }
   @media (max-width:700px) { #picker { padding:0; } #pk { max-height:100vh; height:100vh; border-radius:0; } .pkCard { padding:12px 8px; } .pkCard canvas { width:120px; } #pkTop button { padding:10px 12px; } }
+/* HOVER ON EVERY BUTTON (Evgeni 2026-11-27: "all UI buttons should have some hover effect, in all workbooks forever").
+   Paste once into every page we make (catalogues, boards, viewers, artifacts); tests/hover_rule.js checks the pages. */
+button,.btn,[role=button],select,summary,input[type=button],input[type=submit]{transition:filter .12s,transform .12s,box-shadow .12s,background-color .12s}
+button:hover:not(:disabled),.btn:hover,[role=button]:hover,select:hover,summary:hover,input[type=button]:hover,input[type=submit]:hover{filter:brightness(1.18);box-shadow:0 0 0 2px rgba(120,170,255,.35);cursor:pointer}
+button:active:not(:disabled),.btn:active,[role=button]:active{transform:translateY(1px);filter:brightness(.95)}
 </style>
 </head>
 <body>
@@ -203,10 +208,11 @@
   <button id="legendBtn" title="what the marks in the button band mean">band legend</button>
   <button id="camBtn" title="camera only: the level from start to end at its speed, no player (for levels the sim cannot beat)">camera only</button>
   <button id="taskChip" hidden title="what the PC is doing for you (click for details)"></button>
+  <div id="vz" title="zoom the level only (wheel or pinch on the level, keys - and =)"><button id="vzOut">−</button><button id="vzFit" title="back to the game's view (100%)">100%</button><button id="vzIn">+</button></div>
   <button id="viewBtn" title="view options: speed, look, GD art, level map, hitboxes, sounds, beats, the button band's windows and legend (remembered)">⚙ view</button>
   <div id="viewMenu" hidden></div>
 </header>
-<div id="views"><div id="wrap"><canvas id="cv"></canvas><div id="vz" title="zoom the level only (wheel or pinch on the level, keys - and =)"><button id="vzOut">−</button><button id="vzFit" title="back to the game's view (100%)">100%</button><button id="vzIn">+</button></div><canvas id="inbar" title="the button. Middle lane: what the replay presses -- a tap is a short white mark with a dot, a hold a yellow bar with its length. Top lane: each input's timing window, the whole range of moments that still work (cyan for a press, pink for a release): a long window is room, not a long press."></canvas><div id="drop">drop a .gdlvl here</div></div>
+<div id="views"><div id="wrap"><canvas id="cv"></canvas><canvas id="inbar" title="the button. Middle lane: what the replay presses -- a tap is a short white mark with a dot, a hold a yellow bar with its length. Top lane: each input's timing window, the whole range of moments that still work (cyan for a press, pink for a release): a long window is room, not a long press."></canvas><div id="drop">drop a .gdlvl here</div></div>
 <div id="cmp" hidden><div class="cmpbar"><select id="cmpRec"></select>
   <label title="where this level's attempt starts in the video: replay time t shows video second (start + t)">level starts at <input id="cmpT0" type="number" step="0.1" value="0" style="width:5em"> s</label>
   <button data-dt="-1">-1 s</button><button data-dt="-0.1">-0.1</button><button data-dt="0.1">+0.1</button><button data-dt="1">+1 s</button>

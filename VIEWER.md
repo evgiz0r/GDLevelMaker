@@ -167,8 +167,10 @@ as before.
 ## Zoom the level only (2026-11-25)
 
 The user: "how do i zoom out of the level? the big zoom of the whole ui is messy". The level view has its own zoom: the
-mouse wheel or a trackpad pinch over the level, the − / 100% / + buttons in its top right corner (100% = the game's own
-view), keys - and =. The page around it stays as it is; the zoom is remembered in this browser (localStorage gdlm.zoom).
+mouse wheel or a trackpad pinch over the level, the − / 100% / + buttons in the top bar beside ⚙ view (100% = the game's
+own view), keys - and =. Since 2026-11-27 nothing sits on the level (Evgeni: "UI should be outside the gameplay windows", for
+every viewer): the zoom buttons left the level's corner, and the whiteboard's message and fit list are a status row under its
+toolbar (draw.html `#statusRow`, always there so the board never jumps under the pen). `tests/top_controls.js` checks #wrap. The page around it stays as it is; the zoom is remembered in this browser (localStorage gdlm.zoom).
 Shots (tools/shoot.js) ignore it.
 
 ## Compact bars (2026-11-25)

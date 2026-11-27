@@ -115,4 +115,19 @@ if (require.main === module) {
   for (const c of out) old[c.key] = Object.assign(c, { at: new Date().toISOString().slice(0, 16) });
   fs.writeFileSync(f, JSON.stringify(old, null, 1) + "\n"); console.log("-> knowledge/layout_check.json");
 }
-module.exports = { specOf, check, hashMap };
+// PRESSES FIRST (Evgeni 2026-11-27: "our generating solves by design and we just patch the timings and search secret ways
+// with the solver"): a generated section that carries its planned presses (z.presses, columns of the player's centre in
+// the section) is played with exactly those taps; ok = the plan alone clears it, else where it dies. No search.
+function planCheck(z) {
+  if (!z.presses) return { key: z.key, plan: false };
+  const S = specOf(z); let level;
+  try { level = build(S.spec, "layoutcheck:" + z.key, {}).level; } catch (e) { return { key: z.key, plan: true, ok: false, why: "build failed: " + e.message }; }
+  const w = GD.makeWorld(level.objects, level.header), p0 = GD.run(w, []).path, dx = p0[1].x - p0[0].x;
+  // a number is a tap (press, release the next tick); a [press, release] pair is a hold (ship, wave, swing)
+  // a plan's tick 0 is the first tick at or past the section's start; a column c is c * 30 / dx ticks on from there
+  const T0 = Math.ceil((S.x0 * 30 - p0[0].x) / dx - 1e-9), tk = c => T0 + Math.round(c * 30 / dx), ev = [];
+  for (const q of z.presses) if (Array.isArray(q)) { const a = tk(q[0]); ev.push({ tick: a, type: "press" }, { tick: Math.max(a + 1, tk(q[1])), type: "release" }); } else ev.push(tk(q));
+  const r = GD.run(w, ev), end = r.path[r.path.length - 1];
+  return { key: z.key, plan: true, ok: !!r.done && !r.dead, presses: z.presses.length,
+    dieCol: r.dead ? +(end.x / 30 - S.x0).toFixed(1) : undefined, dieRow: r.dead ? +(end.y / 30).toFixed(1) : undefined, why: r.dead ? r.why : undefined }; }
+module.exports = { specOf, check, hashMap, planCheck };

@@ -219,6 +219,9 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   Easy/Normal. (design.md, STYLE.md; GDLM 42; official_01-08.md)
 - [ ] **Even difficulty**: no late spike. Timing per tier: DIFFICULTY.md "Tier ladder" (Easy: no window
   under ~60 ms, almost none under 100 ms). (players_say.md: a late spike makes a rating feel wrong)
+- [ ] **Generated sections clear on their own planned presses, with one click style each** (Evgeni 2026-11-27): a
+  presses-first type's taps alone clear it (layoutcheck `planCheck`, tests/sectiongen.js); cps and holds differ between
+  generations but drift only a little inside one (section_types.md "One click style per generation").
 
 ## Not bland (rated Easy/Normal 2.0-2.1 medians)
 
@@ -522,3 +525,4 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 - **Every section plays the extremes** (Evgeni 2026-11-27): somewhere in each section the path is on the ground / bottom row and somewhere at the top of its room, even in fully closed ball / spider corridors. layoutcheck prints "never at the bottom / top".
 - **"Max N" means a soft distribution, not a cap** (Evgeni 2026-11-27, on "max 3 jumps in a row in stairpath": "when i say max, i mean distribute so that anything more much lower chances. duno dont want to set hard limits on things"): a generator draws run lengths, chain sizes and repeats so values past N become much rarer (falling odds), never forbidden; a check warns on them, it doesn't fail.
 - **Steps are a proper jump apart** (Evgeni 2026-11-27, GDLM 76's staircases: "their distance is too akward ... should be a proper jump otherwise its impossible to adjust or predict"): a cube step one row up is one jump long (3.85 cols at 1x, times the speed) or a landing of two jumps; widths in between put the press at an odd spot. Variety from rhythm (chain lengths, landings, pits), not odd distances. sectiongen staircase follows it (`JW`); the same family: platform gaps in opencube / stair path.
+- **Generators are presses first, never shape first** (Evgeni 2026-11-27: "shape first is not great"): every generator (bricks, section types, autos) picks its clicks and their windows first, builds the path by the sim, the motif around it, hazards where wrong presses land; the planned presses clear it by construction, and the solver only hunts secret ways (skip, stray tap, fewer presses). A shape-first generator that needs a full solve to know if it is beatable is a TODO to convert.
