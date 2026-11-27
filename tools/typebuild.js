@@ -123,7 +123,7 @@ function build(brief, o = {}) {
     let best = null;
     for (let k = 0; k < nSeeds; k++) {
       const seed = s.seed != null ? s.seed + k : seed0 * 100 + s.i * 10 + k;
-      const gen = W => { const z = SG.make(s.type, { cols: Math.max(16, Math.round(W)), seed, tier: s.tier, beatCols });
+      const gen = W => { const z = SG.make(s.type, { cols: Math.max(16, Math.round(W)), seed, tier: s.tier, beatCols, speed: BPS[s.speed] / BPS["1x"] });
         if (s.mode === "cube-ud" && !z.map.some(l => /G/.test(l))) return null; return z; };
       let z = gen(endCol - col - 4); if (!z) continue;
       const cur = { T: tilesOf(z.map), w: z.map[0].length, h: z.map.length };

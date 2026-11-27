@@ -111,21 +111,30 @@ CONCEPT.staircase = "climb a step at a time to a landing, then a gravity portal:
 // staircase hanging from the top (each step a row lower: a jump toward the floor), and an N portal at its last step drops
 // it back to the floor, where the climbing starts again from the ground
 GEN.staircase = o => { const { R, imix, len, chance, W, H, G } = ctx(o, 9), top = H - 4; let h = 0, dir = 1, c = 0, flips = 0, same = 0, lastW = 0;
+  // one cube jump onto a step a row up, in columns: 3.85 at 1x (GD's arc: 89 ticks), longer at a faster speed (o.speed:
+  // its blocks a second over 1x's); 4 columns at 1x, 5 at 2x
+  const JW = Math.round(3.85 * (o.speed || 1) + 0.2);
   const floorH = [];   // the floor's height per column, for the roof below
   while (c < W) {
     // not the same jump over and over (Evgeni 2026-11-27: "straircases have too many straight jumps, shouldnt have so many
     // in a row possible"): step widths 2-7, never 3 alike running; now and then a flat step over a little pit, or a step
     // back against the climb
-    let w = len(imix(6, 4), imix(6, 5)); if (same >= 2 || R.chance(0.3)) w = R.pick([2, 3, 4, 5, 6, 7].filter(x => x !== lastW));
-    same = w === lastW ? same + 1 : 0; lastW = w;
+    // ...but every step is a PROPER JUMP apart (Evgeni 2026-11-27: "their distance is too akward", "should be a proper jump
+    // otherwise its impossible to adjust or predict"): a step one row up is either one jump long (JW: jump on landing,
+    // land on the next; a chain of 2-3 of them) or a landing of two jumps' room (2 JW: walk, then the jump at its edge),
+    // never the in-between widths (2, 5-7) that made the press land at an odd spot. Variety now comes from the rhythm
+    // (chains of 1-3, then a landing) and the pits / steps back below, not from odd widths.
+    let w; if (dir < 0) w = R.pick([JW, 2 * JW]);   // going down: walking off, any proper rhythm
+    else if (same >= R.int(1, 3) || c === 0) { w = 2 * JW; same = 0; } else { w = JW; same++; }
+    lastW = w;
     const end = Math.min(W - 1, c + w - 1); G.box(c, end, 0, h); for (let x = c; x <= end; x++) floorH[x] = h;
-    if (w >= 4 && c > 0 && end < W - 1) { if (chance(0.25, 0.6)) G.put(c + 2, h + 1, "^"); else if (chance(0, 0.3)) G.put(end, h + 1, "s"); }
+    if (w >= 2 * JW && c > 0 && end < W - 1) { if (chance(0.25, 0.6)) G.put(c + JW, h + 1, "^"); else if (chance(0, 0.3)) G.put(end, h + 1, "s"); }   // only on a landing, a jump in from its start
     c = end + 1;
     if (dir > 0 && h >= top) {
       if ((flips === 0 || R.chance(0.5)) && c + 24 < W) { flips++;   // the flip: G on this landing, the hanging staircase
         G.put(end - 1, h + 1, "G"); G.box(end - 2, end + 3, H - 1, H - 1); let ht = H - 1, x = end + 4;
-        while (ht - 1 > 3 && x < W - 8) { const sw = R.int(imix(4, 3), imix(7, 5)), se = Math.min(W - 8, x + sw - 1); G.box(x, se, ht, H - 1);
-          if (sw >= 4 && chance(0.25, 0.6)) G.put(x + 2, ht - 1, "v"); x = se + 1; ht--; }
+        while (ht - 1 > 3 && x < W - 8) { const sw = R.chance(0.6) ? JW : 2 * JW, se = Math.min(W - 8, x + sw - 1); G.box(x, se, ht, H - 1);
+          if (sw >= 2 * JW && chance(0.25, 0.6)) G.put(x + JW, ht - 1, "v"); x = se + 1; ht--; }
         G.box(x, x + 2, ht, H - 1); G.put(x + 1, ht - 1, "N");   // the last step, and back to the floor
         // the floor under the hanging staircase: low, spiked where the cube would fall early
         G.box(end + 1, x + 5, 0, 0); for (let q = end + 3; q < x; q += R.int(3, 5)) G.put(q, 1, "^");
@@ -539,7 +548,7 @@ GEN["my-mwz2haf0"] = o => { const { R, imix, room, chance, W, H, G } = ctx(o, 14
 
 const KEYS = Object.keys(GEN);
 function make(key, opts = {}) { const g = GEN[key]; if (!g) throw new Error("no generator for " + key + " (have " + KEYS.join(", ") + ")");
-  const o = {}; for (const k of ["cols", "rows", "seed", "bpm", "beatCols"]) if (opts[k] != null) o[k] = +opts[k];
+  const o = {}; for (const k of ["cols", "rows", "seed", "bpm", "beatCols", "speed"]) if (opts[k] != null) o[k] = +opts[k];
   if (opts.tier != null) o.tier = isNaN(+opts.tier) ? opts.tier : +opts.tier;
   const r = g(o), z = (LS.SECTIONS || []).find(s => s.key === key);
   // a section taller than 12 rows asks the builder to zoom out (Evgeni 2026-11-27: "maybe we need to zoom out a bit to allow
