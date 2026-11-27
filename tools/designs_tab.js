@@ -77,7 +77,9 @@ window.initDesigns = async function (root) {
   // claude.ai refuses a send-to-Claude within ~6 s of a key typed in the page ("Not sent to Claude. Your last key or click
   // may not have been meant for this artifact"), so 📨 waits out the typing with a countdown (Evgeni 2026-11-27)
   const HOLD = 6500;
-  document.addEventListener("keydown", () => { lastKey = Date.now(); }, true);
+  document.addEventListener("keydown", () => { lastKey = Date.now(); holdSend(); }, true);
+  // a tap anywhere but a send button counts too (the app's hold is on any click in the page)
+  document.addEventListener("pointerdown", e => { if (e.target.closest && e.target.closest(".msend, #sendall, #rfb")) return; lastKey = Date.now(); holdSend(); }, true);
   function holdSend() { clearInterval(holdT); const tick = () => { const left = HOLD - (Date.now() - lastKey);
       for (const b of root.querySelectorAll(".msend")) { b.disabled = left > 0; b.textContent = left > 0 ? `📨 in ${Math.ceil(left / 1000)} s` : b.dataset.label || b.textContent; }
       if (left <= 0) clearInterval(holdT); };
@@ -341,14 +343,15 @@ window.initDesigns = async function (root) {
       + nts.map(q => `💬 note on the theme layout, ${q[1]} (${q[0]}): ${NOTES[q[0]].note.trim()}\n`).join("")
       + fresh.map(k => `✏ drawing on the ${k.startsWith("layout:") ? "theme layout, " + ((LPARTS.find(q => "layout:" + q[0] === k) || [])[1] || k) : k}: edited (${(DRAW[k].tiles || []).length} pieces; the whole map is in collection designdraw)`).join("\n");
     say("sending " + n + " ...");
-    // claude.ai refuses a send within ~6 s of the last key or click in the page (taps on the board count too: Evgeni hit it
-    // 2026-11-27 right after drawing). So: wait out a recent key, and on a refusal wait 6.5 s and try once more by itself
-    const left = HOLD - (Date.now() - lastKey); if (left > 0) { say("sending in " + Math.ceil(left / 1000) + " s ..."); await new Promise(r => setTimeout(r, left)); }
+    // claude.ai refuses a send within ~6 s of the last key or click in the page (taps on the board count too), and the send
+    // must come straight from the click on 📨: a send delayed by a timer is refused as well (Evgeni 2026-11-27, after a
+    // version that waited and retried by itself: "send to claude doesnt send"). So: inside the hold, count down and let him
+    // press again; never send later by itself
+    const left = HOLD - (Date.now() - lastKey); if (left > 0) { holdSend(); say("wait " + Math.ceil(left / 1000) + " s after your last tap or key, then 📨 again"); return false; }
     let sent = false, why = "";
-    for (let a = 0; a < 2 && !sent; a++) {
-      try { const anchor = await CM.anchorFor(anchorEl || root); await CM.sendToClaude({ anchor, text: text.slice(0, 4000) }); sent = true; }
-      catch (x) { why = x && (x.code || x.message) || String(x); if (!a) { say("the app held it back (it waits ~6 s after a key or click): trying again in 7 s ..."); await new Promise(r => setTimeout(r, 7000)); } } }
-    if (!sent) { say("not sent (" + why + "): click outside the page, wait 6 s, then 📨 again"); return false; }
+    try { const anchor = await CM.anchorFor(anchorEl || root); await CM.sendToClaude({ anchor, text: text.slice(0, 4000) }); sent = true; }
+    catch (x) { why = x && (x.code || x.message) || String(x); lastKey = Date.now(); holdSend(); }
+    if (!sent) { say("not sent (" + why + "): wait for the countdown, then 📨 again"); return false; }
     for (const k of fresh) { const at = new Date().toISOString(); DRAW[k].at = at; DRAW[k].sentAt = at;
       try { if (DB) await DB.collection("designdraw").doc(k.replace(/[^A-Za-z0-9_-]/g, "_") + "-" + Date.now().toString(36)).set({ design: k, strokes: DRAW[k].strokes || [], tiles: DRAW[k].tiles || null, at, sentAt: at }); } catch (x) {} }
     for (const z of nss) await saveSec(z.key, true);
