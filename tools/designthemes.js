@@ -61,8 +61,9 @@ const SCENE = [
   "...../#############...##########..######################..######............##############\\.....",
   "/##################^^^##########^^######################^^######^.^.^.^.^.^.###############\\....",
 ];
-const SAMPLE = [];
-SCENE.forEach((line, i) => { const r = SCENE.length - 1 - i;
+// a scene map -> objects (SAMPLE is the default scene's)
+function sampleOf(MAP) { const SAMPLE = [];
+MAP.forEach((line, i) => { const r = MAP.length - 1 - i;
   [...line].forEach((ch, c) => {
     if (ch === "#" || ch === ":") SAMPLE.push(["block", c, r]);
     else if (ch === "/" || ch === "\\" || ch === "7" || ch === "r") SAMPLE.push(["slope", c, r, { flipX: ch === "\\" || ch === "r", flipY: ch === "7" || ch === "r" }]);
@@ -72,6 +73,20 @@ SCENE.forEach((line, i) => { const r = SCENE.length - 1 - i;
     else if (ch === "q") SAMPLE.push([1707, c, r, { dy: -15 }]);
     else if (ch === "s") SAMPLE.push([1707, c, r, { dy: -8 }]);
   }); });
+  return SAMPLE; }
+const SAMPLE = sampleOf(SCENE);
+// ON DEMAND (Evgeni 2026-11-27: "we will update the themes on demand dont want to burn updating the whole universe"): a
+// theme listed in knowledge/theme_scenes.json as "joined" plays the theme layout's sections joined
+// (tools/layoutsections.js joined(): every section, open joins, a mode portal where the mode changes); the others keep
+// SCENE until his 🔨 build on their card asks for it
+const SCENE_OF = (() => { try { return JSON.parse(require("fs").readFileSync(require("path").join(__dirname, "..", "knowledge", "theme_scenes.json"), "utf8")); } catch (e) { return {}; } })();
+const PORTAL = { cube: "cube portal", ship: "ship portal", wave: "wave portal", ufo: "ufo portal", ball: "ball portal" };
+function sceneFor(name) {
+  if (SCENE_OF[name] !== "joined") return { sample: SAMPLE, w: SCENE_W, end: SCENE_END };
+  const j = require("./layoutsections.js").joined(), sample = sampleOf(j.map), w = j.map[0].length;
+  for (const p of j.portals) sample.push([PORTAL[p.mode], p.c, p.r]);
+  sample.push([PORTAL.cube, w + 1, 1]);   // back to the cube for the next theme
+  return { sample, w: w + 3, end: w + 3 }; }
 // the kit: every piece a theme brings, laid out one by one above the cube's lane (rows 4-7), before its scene
 const KIT_MAP = [
   "................................",
@@ -103,9 +118,10 @@ function spec() {
     // 2026-11-27: "i wanted near each theme, the set of objects/spikes whatever it uses")
     for (const [kind, dc, r, ex] of KIT) objects.push(ex ? [kind, c + dc, r, ex] : [kind, c + dc, r]);
     const k0 = c; c += KIT_W;
-    for (const [kind, dc, r, ex] of SAMPLE) objects.push(ex ? [kind, c + dc, r, ex] : [kind, c + dc, r]);
-    scenes.push({ name, c0: k0 - 2, c1: c + SCENE_END, kit: [k0, k0 + KIT_W - 3], scene: c });
-    c += SCENE_W + 24;   // room after the scene, so its picture's last frame stays in this theme
+    const S = sceneFor(name);
+    for (const [kind, dc, r, ex] of S.sample) objects.push(ex ? [kind, c + dc, r, ex] : [kind, c + dc, r]);
+    scenes.push({ name, c0: k0 - 2, c1: c + S.end, kit: [k0, k0 + KIT_W - 3], scene: c });
+    c += S.w + 24;   // room after the scene, so its picture's last frame stays in this theme
   }
   ind.push([c - 3, "none"]);
   return {

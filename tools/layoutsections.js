@@ -102,5 +102,23 @@ try { const ed = JSON.parse(require("fs").readFileSync(require("path").join(__di
   for (const z of SECTIONS) if (ed[z.key]) { z.map = ed[z.key]; z.edited = true; } } catch (e) {}
 // as board tiles: {t, c, r} with c from the section's left edge, r rows above the ground
 const tiles = s => { const out = []; s.map.forEach((l, i) => [...l].forEach((ch, c) => { if (ch !== ".") out.push({ t: ch, c, r: s.map.length - 1 - i }); })); return out; };
-module.exports = { SECTIONS, tiles, grid };
+// ALL THE SECTIONS JOINED (the board's "current scene", tools/designs_tab.js sceneTiles, same rule): between two sections an
+// open join, no ceiling, its floor ramping by 45-degree slopes from one section's exit floor to the next one's entry floor;
+// a mode portal in the join when the mode changes. -> { map (rows, top first), portals: [{c, r, mode}], parts: [{key, c0, c1}] }
+function joined() {
+  const floorAt = (T, c) => { const s = new Set(T.filter(z => z.c === c && /[#\/\\]/.test(z.t)).map(z => z.r)); let f = 0; while (s.has(f)) f++; return f; };
+  const out = [], portals = [], parts = []; let off = 0, prev = null;
+  for (const z of SECTIONS) { const T = tiles(z), w = z.map[0].length;
+    if (prev) { const a = floorAt(prev.T, prev.w - 1), b = floorAt(T, 0), n = Math.max(3, Math.abs(b - a) + 2), d = Math.sign(b - a);
+      const e = x => x >= n ? b : a + d * Math.min(Math.abs(b - a), Math.max(0, x - 1));
+      for (let k = 0; k < n; k++) { const p = e(k), q = e(k + 1), lo = Math.min(p, q);
+        for (let r = 0; r < lo; r++) out.push({ t: "#", c: off + k, r }); if (q > p) out.push({ t: "/", c: off + k, r: p }); if (q < p) out.push({ t: "\\", c: off + k, r: q }); }
+      if (z.mode !== prev.mode) portals.push({ c: off + n - 1, r: b + 1, mode: z.mode });
+      off += n; }
+    for (const q of T) out.push({ t: q.t, c: q.c + off, r: q.r }); parts.push({ key: z.key, c0: off, c1: off + w - 1 }); off += w; prev = { T, w, mode: z.mode }; }
+  const H = Math.max(...SECTIONS.map(z => z.map.length)), g = Array.from({ length: H }, () => Array(off).fill("."));
+  for (const q of out) g[H - 1 - q.r][q.c] = q.t;
+  return { map: g.map(l => l.join("")), portals, parts };
+}
+module.exports = { SECTIONS, tiles, grid, joined };
 if (require.main === module) for (const s of SECTIONS) console.log(`\n${s.key} (${s.name}, ${s.mode}, ${s.map[0].length} x ${s.map.length}): ${s.note}\n` + s.map.map(l => "  " + l).join("\n"));
