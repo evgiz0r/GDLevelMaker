@@ -137,7 +137,10 @@ window.initDesigns = async function (root) {
       + (lo ? (dr ? tools : `<button class="pdraw">✏ draw</button>`) + (sk.length && !ms.length ? `<button class="msend" data-label="📨 send to Claude"${CAN_SEND ? "" : " disabled"}>📨 send to Claude</button>` : "") + `<span class="ds pst">${esc(DST[d.id] || "")}</span>` : "") + `</div>`
       + (lo ? `<div class="wide" data-w="L:${esc(d.id)}"><div class="mk lk${bg === "blank" ? " blank" : ""}" style="--zh:${fs ? "calc(100vh - 120px)" : zh + "px"}"><img loading="lazy" src="${esc(bg === "scene" ? d.card : d.layout)}" alt="layout">${svg}</div></div>` : "") + `</div>`;
     const media = d.kind === "theme" ? `<div class="zw"><div class="wide" data-w="${esc(d.id)}"><div class="mk${MARKING === d.id ? " on" : ""}" style="--zh:${zh}px">${img}${pins}</div></div>`
-      + `<div class="zb">${d.anim ? `<button class="aplay" title="play the scene at game speed">${PLAY && PLAY.id === d.id ? "■" : "▶"}</button><button class="aspd" title="speed">${ASPD}x</button>` : ""}<button class="zoom" data-z="-1" title="zoom out">−</button><button class="zoom" data-z="1" title="zoom in">＋</button></div></div>`
+      + `<div class="zb">${d.anim ? `<button class="aplay" title="play the scene at game speed">${PLAY && PLAY.id === d.id ? "■" : "▶"}</button><button class="aspd" title="speed">${ASPD}x</button>` : ""}<button class="zoom" data-z="-1" title="zoom out">−</button><button class="zoom" data-z="1" title="zoom in">＋</button>`
+      // ACTIONS ARE BUTTONS (Evgeni 2026-11-27: "whenever is some operations i should do, like say build, lets move that
+      // as a button for example on the theme"): the button sends Claude the request; the page never runs the job itself
+      + `<button class="abuild" title="ask Claude to rebuild this theme's scene from the current layout">🔨 build</button><span class="ds abst">${esc(AST[d.id] || "")}</span></div></div>`
       : d.kind === "structure" ? `<div class="wide">${img}</div>` : img;
     // the marks panel sits UNDER the buttons as one folded line (Evgeni 2026-11-27: "mark ui grows too big and pushes the ui
     // to the bottom"); open, it scrolls inside a capped box, so the card never grows past it
@@ -190,7 +193,13 @@ window.initDesigns = async function (root) {
   const sceneW = () => { let w = 0, prev = null; for (const q of SECS()) { const T = tilesOf("layout:" + q[0]); if (prev) w += Math.max(3, Math.abs(floorAt(T, 0) - floorAt(prev.T, prev.w - 1)) + 2); w += q[2]; prev = { T, w: q[2] }; } return w; };
   let TILE = () => "";
   // ---- ▶ play (Evgeni 2026-11-27: "theme animations, so we might see how it looks in the game if we press play") ----
-  let PLAY = null, ASPD = 1;
+  let PLAY = null, ASPD = 1; const AST = {};
+  // send Claude a request for a job (build, rebuild ...): one line, anchored on the card it is about
+  async function ask(el, id, text) { AST[id] = "sending ..."; const st = el.closest(".dc").querySelector(".abst"); if (st) st.textContent = AST[id];
+    try { if (!CM || !CM.sendToClaude) throw new Error("only on the claude.ai page"); const anchor = await CM.anchorFor(el.closest(".dc")); await CM.sendToClaude({ anchor, text });
+      AST[id] = "asked Claude " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); }
+    catch (x) { AST[id] = "not sent (" + (x && (x.code || x.message) || x) + "): wait a few seconds, tap again"; }
+    if (st) st.textContent = AST[id]; }
   function startPlay(id) { stopPlay(); PLAY = { id, t0: performance.now(), i: 0 }; for (const b of root.querySelectorAll(`.dc[data-id="${CSS.escape(id)}"] .aplay`)) b.textContent = "■"; requestAnimationFrame(stepPlay); }
   function stopPlay() { if (!PLAY) return; const id = PLAY.id; PLAY = null; for (const p of root.querySelectorAll(".plr")) p.remove(); for (const b of root.querySelectorAll(`.dc[data-id="${CSS.escape(id)}"] .aplay`)) b.textContent = "▶"; }
   function stepPlay(now) {
@@ -297,6 +306,8 @@ window.initDesigns = async function (root) {
       DRAW[id] = { strokes: e.target.closest(".pclear") ? [] : D0.strokes.slice(0, -1) }; render(); saveDraw(id); return; }
     // ▶ play: the camera and the player along the route at game speed (designs.js animOf); ■ stops, the speed button
     // steps 1x -> 0.5x -> 0.25x
+    const ab = e.target.closest(".abuild"); if (ab) { const id = ab.closest(".dc").dataset.id, d = L.find(x => x.id === id) || {};
+      await ask(ab, id, `🔨 build request: rebuild the ${d.name || id} theme (${id}) from the current scene of the theme layout (every section joined), then republish its card.`); return; }
     const ap = e.target.closest(".aplay"); if (ap) { const id = ap.closest(".dc").dataset.id; if (PLAY && PLAY.id === id) stopPlay(); else startPlay(id); return; }
     const asp = e.target.closest(".aspd"); if (asp) { ASPD = ASPD === 1 ? 0.5 : ASPD === 0.5 ? 0.25 : 1; if (PLAY) { PLAY.t0 = performance.now() - PLAY.i / 60 / ASPD * 1000; } for (const b of root.querySelectorAll(".aspd")) b.textContent = ASPD + "x"; return; }
     const zb = e.target.closest(".zoom");

@@ -23,6 +23,12 @@ workbooks we want to know always on all sessions everywhere") that every session
 | 2 | Buttons that did nothing (alert / confirm / prompt) | The app's frames suppress native dialogs. | Never use them. Use in-page notices. `node tests/no_dialogs.js`. |
 | 1 | A page "loading forever" (2026-11-25) | One renderer threw, and nothing after it ran. | Render each section in its own try/catch, and show a small error box (board/page.html). |
 
+## Patterns that work
+
+- A job he starts (build, apply ...) is a button on the thing it is about. The button sends Claude a one-line request with
+  `CM.sendToClaude({anchor: await CM.anchorFor(card), text})`. The ~6 s hold after typing applies to it too.
+- Notes save as they are typed (revision docs). 📨 sends only what changed since the last send.
+
 ## Limits
 
 - A db document must stay under 256 KiB. Store compact `{cols, rows}` for big tables (board/README.md).

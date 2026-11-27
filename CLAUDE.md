@@ -738,6 +738,11 @@ The viewer draws moving objects where they start.
   external browsers are annoying"): every page for him is a claude.ai artifact (the workbook) and must work there -- never
   point him to localhost or another browser as the way to use something, and don't open the browser pane on his PC to
   test. A page that works in a plain browser but not in the app is a bug in our page.
+- **Jobs he starts are buttons on the page** (Evgeni, 2026-11-27: "whenever is some operations i should do, like say build,
+  lets move that as a button for example on the theme"): when a step waits on his go (build, rebuild, apply, install
+  request), put a button on the thing it is about that sends Claude the request (`comments` capability `sendToClaude`,
+  anchored on that card), with a small "asked Claude HH:MM" status. The page never runs the job itself. Example: 🔨 build on
+  each theme card (tools/designs_tab.js `ask`).
 - **Every workbook page has ⟳ refresh + "last refreshed"** (Evgeni, 2026-11-27: "add refresh on every workbook have and last
   refreshed, and some effect when i click refresh"): catalogues, boards, the viewer pages, every artifact we make. Paste
   `tools/snippets/refresh.html` once (lego_page.js does it): a button top-right, "last refreshed HH:MM" beside it, a spin on
