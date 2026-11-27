@@ -63,7 +63,10 @@ possible sections, as a template ( not copy this exactly ), and create somewhat 
 difficulty needed". So a builder (tools/planbuild.js, compose) has two sources for a section: the lego (verified official
 or own bricks joined on the hits, tools/brickpick.js) or a **section type from this page used as a template**: its idea and
 motif, generated fresh at the song section's length, with its presses on that section's beats and its windows / cps at the
-level's tier. Never the board's example pasted as drawn. The generators (tools/sectiongen.js, the "Generate our own
+level's tier. Never the board's example pasted as drawn, and not the drawing nudged a block or two left or right either (Evgeni,
+2026-11-27: "the template is not building one or two blocks right and left, but lets have a more abstrct concept that might
+create it in various difficulty and length"): a type is an abstract concept -- its idea, its motif and the parameters it
+can change (table above) -- and the generator builds a new layout from that concept at any length and difficulty. The generators (tools/sectiongen.js, the "Generate our own
 structures" thread) take `{cols, rows, seed}` today; for this they also need the beats (press times in the section) and a
 difficulty target (tier: cps and tightest window), and are checked by tools/layoutcheck.js (solves, windows, tier).
 
