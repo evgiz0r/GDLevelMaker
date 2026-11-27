@@ -56,7 +56,7 @@ type, so a builder can make a new one of any length, synced to the song, and so 
   late / early margin), the sim's arc of each click places the next surface (tools/sectiongen.js `cubeArc`, `ballTravel`,
   tick-stepped like lib/physics.js), and hazards go where a wrong press lands. The type returns `presses` (columns of the
   player's centre); `require("./tools/layoutcheck.js").planCheck(z)` plays exactly those taps, and `node tests/sectiongen.js`
-  fails any type whose plan dies. The solver is then only the check for secret ways. Done: open cube, closer cube, orbs, spider, ball, ball portals,
+  fails any type whose plan dies. The solver is then only the check for secret ways. Done: open cube, closer cube, staircase, orbs, spider, ball, ball portals,
   fly (holds and releases -> `shipStep` path -> the corridor fitted around it: each column edge's floor between the path's
   margins, slopes of a row a column at most, hazards only where the path clears them by 8; presses are [press, release]
   column pairs, plus the planned `path` for the board; a draw that doesn't fit the grid is drawn again a little flatter;
@@ -103,8 +103,17 @@ type, so a builder can make a new one of any length, synced to the song, and so 
   and flips into the band's spikes; each surface runs to the next tap, on the other side, 2-4 rows on, now and then on the
   band's floor or roof. Taller than the band: a hidden P on a long surface re-bands. Every plan clears (30-90 cols, 10 to
   30 rows), holding clears none, 67 of 70 presses needed, 1.3-2.1 taps a second, 100% on half beats at 140 / 175 bpm.
-  Not yet: swing (the board thread's tools/swingbuild.js), staircase, stair path; fly's gravity pair (the planner flies
-  upright only).
+  Staircase (2026-11-27): each press a jump onto a step a row up, the step's edge placed where the press's measured window
+  is near the tier's (an early press lands short and walks into the step, a late one hits its side), 1-3 chained jumps
+  right off each landing, then a landing walked on the rhythm's gap; now and then a spike or a pit on a landing. At the
+  top a G drops the cube onto a bar along the top and a staircase hanging from it comes down 4-6 rows (planned upright,
+  drawn mirrored), an N at its end drops it to the floor; with no room for that it walks back down. Every plan clears
+  (40-120 cols, 9-20 rows), every press needed, holding clears 1 of 8, 100% on half beats at 140 / 175 bpm.
+  `cubeTry` now starts a run where the cube last landed: a press while still in the air is a miss, so a window's early
+  edge never reaches back past the landing.
+  Not yet: swing (the board thread's tools/swingbuild.js), stair path (a lattice of 1-wide blocks 3 apart: its presses
+  are one per column, so it needs the lattice run in the page physics, or off-grid column spacing, which waits on
+  Evgeni's answer about moving blocks by less than a block); fly's gravity pair (the planner flies upright only).
 - **From a beat** (Evgeni 2026-11-27: "i want to be able to generate according to a beat as well, so its not just random
   stats, should be applicable in a level ... in the long run much more efficient than solving"): `make(key, {bpm})` or
   `{beats: [seconds | {t, s}]}` (a song section's hits with strength, tools/hits.js / impacts.js). ctx() turns them into

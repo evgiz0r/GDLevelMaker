@@ -134,52 +134,7 @@ GEN.entrance = o => { const { R, imix, len, chance, W, H, G } = ctx(o, 7); let h
 
 // STAIRCASE (cube). Idea: climb, a landing, step down. Motif: a step of one row. Varies: step width, hazards on some
 // landings, a saw at a step's edge (hard), climb height. Harder: narrower steps, more hazards, two rows a step sometimes.
-CONCEPT.staircase = "climb a step at a time to a landing, then a gravity portal: down the steps hanging from the top, upside down, and back; hazards on some landings";
-// and a flip upside down and back (Evgeni 2026-11-27: "lets add a reverse and back play in the basic staircases as well,
-// and inrease the spread as well"): at the top landing a G portal drops the cube onto a ceiling bar, it walks down a
-// staircase hanging from the top (each step a row lower: a jump toward the floor), and an N portal at its last step drops
-// it back to the floor, where the climbing starts again from the ground
-GEN.staircase = o => { const { R, imix, len, chance, W, H, G } = ctx(o, 9), top = H - 4; let h = 0, dir = 1, c = 0, flips = 0, same = 0, lastW = 0;
-  // one cube jump onto a step a row up, in columns: 3.85 at 1x (GD's arc: 89 ticks), longer at a faster speed (o.speed:
-  // its blocks a second over 1x's); 4 columns at 1x, 5 at 2x
-  const JW = Math.round(3.85 * (o.speed || 1) + 0.2);
-  const floorH = [];   // the floor's height per column, for the roof below
-  while (c < W) {
-    // not the same jump over and over (Evgeni 2026-11-27: "straircases have too many straight jumps, shouldnt have so many
-    // in a row possible"): step widths 2-7, never 3 alike running; now and then a flat step over a little pit, or a step
-    // back against the climb
-    // ...but every step is a PROPER JUMP apart (Evgeni 2026-11-27: "their distance is too akward", "should be a proper jump
-    // otherwise its impossible to adjust or predict"): a step one row up is either one jump long (JW: jump on landing,
-    // land on the next; a chain of 2-3 of them) or a landing of two jumps' room (2 JW: walk, then the jump at its edge),
-    // never the in-between widths (2, 5-7) that made the press land at an odd spot. Variety now comes from the rhythm
-    // (chains of 1-3, then a landing) and the pits / steps back below, not from odd widths.
-    let w; if (dir < 0) w = R.pick([JW, 2 * JW]);   // going down: walking off, any proper rhythm
-    else if (same >= R.int(1, 3) || c === 0) { w = 2 * JW; same = 0; } else { w = JW; same++; }
-    lastW = w;
-    const end = Math.min(W - 1, c + w - 1); G.box(c, end, 0, h); for (let x = c; x <= end; x++) floorH[x] = h;
-    if (w >= 2 * JW && c > 0 && end < W - 1) { if (chance(0.25, 0.6)) G.put(c + JW, h + 1, "^"); else if (chance(0, 0.3)) G.put(end, h + 1, "s"); }   // only on a landing, a jump in from its start
-    c = end + 1;
-    if (dir > 0 && h >= top) {
-      if ((flips === 0 || R.chance(0.5)) && c + 24 < W) { flips++;   // the flip: G on this landing, the hanging staircase
-        G.put(end - 1, h + 1, "G"); G.box(end - 2, end + 3, H - 1, H - 1); let ht = H - 1, x = end + 4;
-        while (ht - 1 > 3 && x < W - 8) { const sw = R.chance(0.6) ? JW : 2 * JW, se = Math.min(W - 8, x + sw - 1); G.box(x, se, ht, H - 1);
-          if (sw >= 2 * JW && chance(0.25, 0.6)) G.put(x + JW, ht - 1, "v"); x = se + 1; ht--; }
-        G.box(x, x + 2, ht, H - 1); G.put(x + 1, ht - 1, "N");   // the last step, and back to the floor
-        // the floor under the hanging staircase: low, spiked where the cube would fall early
-        G.box(end + 1, x + 5, 0, 0); for (let q = end + 3; q < x; q += R.int(3, 5)) G.put(q, 1, "^");
-        for (let q = end + 1; q <= x + 5; q++) floorH[q] = H;   // no roof here: the hanging staircase is the roof
-        c = x + 6; h = 0; dir = 1; continue; }
-      dir = -1; const e2 = Math.min(W - 1, c + len(3, 5)); G.box(c, e2, 0, h); for (let x = c; x <= e2; x++) floorH[x] = h; c = e2 + 1; }
-    else if (dir < 0 && h <= 0) dir = 1;
-    if (c > 4 && h > 0 && h < top && R.chance(0.15)) {   // a flat step over a pit (1-2 wide, a spike in it)
-      const pw = R.int(1, 2); for (let x = c; x < Math.min(W, c + pw); x++) { G.put(x, 0, "^"); floorH[x] = 0; } c += pw; continue; }
-    if (c > 4 && h > 1 && h < top && dir > 0 && R.chance(0.12)) { h -= 1; continue; }   // a step back down, then on up
-    h = clamp(h + dir, 0, top); }   // one row a step: two rows left a 4 ms window (tight for any tier)
-  // hazards on the roof (Evgeni: "they still have no hazards on the roof"): a bar along the top where the play is well
-  // below it (5 rows or more), with spikes hanging in groups; gaps in it, and never over the high landings ("the fact we
-  // put a line of blockers shouldnt stop us from reaching that full height")
-  for (let x = 0; x < W; x++) if (floorH[x] != null && floorH[x] + 1 <= H - 6) { G.put(x, H - 1, "#"); if (R.chance(0.35)) G.put(x, H - 2, "v"); }
-  return { map: G.rows(), mode: "cube" }; };
+// (the shape-first staircase it replaced is in git history before 2026-11-27's presses-first commit)
 
 // OPEN CUBE (cube). Idea: a floor with pits, nothing overhead, platforms floating in the middle. Motif: a floor run + a
 // spike pit. Varies: pit width, run length, a platform after the pit at one of two heights, a spike on it.
@@ -222,7 +177,8 @@ function cubeFall(x0, y0, r) { let x = x0, y = y0, vy = 0, n = 0;
 // a cube run through a stretch, in the page's own physics: floor tops T[c] (rows; -9 = a pit), hazard boxes haz (units:
 // {x0, x1, y0, y1}); walks from column c0, presses at column p (null = never), stops at column c1. -> {ok, land} (land:
 // the column where it is back on a floor after the jump)
-function cubeTry(T, haz, c0, p, c1) { let x = c0 * 30, y = T[Math.floor(c0)] * 30, vy = 0, on = true, jumped = false, land = null, n = 0;
+function cubeTry(T, haz, c0, p, c1) { if (p != null && p < c0 - 1e-6) return { ok: false, why: "in the air" };   // c0: where it last landed
+  let x = c0 * 30, y = T[Math.floor(c0)] * 30, vy = 0, on = true, jumped = false, land = null, n = 0;
   const sup = () => { let t = -99; for (let c = Math.floor((x - 15) / 30); c <= Math.floor((x + 14.9) / 30); c++) t = Math.max(t, T[c] ?? -99); return t; };
   while (x < c1 * 30 && n++ < 3000) {
     if (on && p != null && !jumped && x >= p * 30 - 1e-6) { vy = CUBE.J; on = false; jumped = true; }
@@ -349,6 +305,68 @@ GEN.closecube = o => { const { R, mix, W, H, G, style, onBeat } = ctx(o, 8), TPC
     else { if (T[c] >= 0) G.box(c, c, 0, f[c]); else if (f[c] > 0) G.box(c, c, 0, f[c] - 1); G.box(c, c, f[c] + 5, H - 1); } }
   for (const [c, r, ch] of draw) { const [rr, cc] = mir(c, r, ch); G.put(c, rr, cc); }
   if (gp) { G.put(gp[0], f[gp[0]] + 2, "G"); G.put(gp[1], f[gp[1]] + 3, "N"); }
+  return { map: G.rows(), mode: "cube", presses }; };
+
+// STAIRCASE, PRESSES FIRST (2026-11-27). The idea stays: climb a row a jump to a top landing, a G portal drops the cube
+// onto a bar along the top, it goes down a staircase hanging from the top (each step a row nearer the floor), an N at
+// its last step drops it to the floor, and the climb starts again; with no room for that, it walks back down. Now the
+// presses come first, on the rhythm or the beat: each one a jump onto a step a row up whose edge is placed where the
+// press's measured window (cubeWin) is near the tier's and about centred -- an early press lands short and walks into
+// the step, a late one hits its side -- or, now and then, a jump over a spike or a pit on a landing. The hanging part is
+// planned the same way, upright, and drawn mirrored (a row up there is a row down in the map).
+CONCEPT.staircase = "climb a step at a time to a landing, then a gravity portal: down the steps hanging from the top, upside down, and back; hazards on some landings";
+GEN.staircase = o => { const { R, mix, W, H, G, style, onBeat } = ctx(o, 9);
+  // the window to aim for; the top level upright / hanging (the hanging stairs come down 4-6 rows: in tall maps the climb
+  // covers the height, and the way down still fits the section)
+  const target = mix(64, 24), topU = H - 4, topM = Math.min(H - 6, R.int(4, 6));
+  const N = W + 12, f = Array(N).fill(0), T = Array(N).fill(1), mir = Array(N).fill(false), haz = [], draw = [], presses = [], wins = [], portals = [];
+  const setF = (c, h) => { for (let x = c; x < N; x++) { f[x] = h; T[x] = h + 1; } };
+  const gap0 = R.pick([0.4, 0.5, 0.6, 0.7].map(v => v - mix(0, 0.15)));
+  const gapS = c => gap0 * (0.85 + R() * 0.3) * (R.chance(0.12) ? 1.6 + R() * 0.4 : 1) / style.pace(c);
+  let x = onBeat(R.int(4, 6) + 0.5, 3.5), dir = 1, flips = 0, settle = 0, lastStep = -9, hangFrom = null, chain = 0, chainN = 2;
+  while (x < W - 6) { const h = f[Math.floor(x)], m = mir[Math.floor(x)], top = m ? topM : topU;
+    // the turn at the top: upright -> G and the hanging staircase (if there is room), hanging -> N back to the floor
+    // (hanging near the section's end: back down now, whatever the level, so the section ends upright on the floor)
+    if ((h >= top && dir > 0) || (m && x > W - 12)) {
+      if (!m && (flips === 0 || R.chance(0.5)) && x + (topM + 1) * 5.5 + 10 < W) { const g = Math.ceil(Math.max(x - 1.5, settle + 1));
+        flips++; portals.push([g, H - 3, "G"]); for (let c = g; c < N; c++) mir[c] = true; setF(g, 0); hangFrom = g;
+        settle = (cubeFall(0, 30, 0) ?? 1.5) + g; dir = 1; x = onBeat(settle + 1.2, settle + 1); continue; }
+      if (m) { const g = Math.ceil(Math.max(x - 1.5, settle + 1)); portals.push([g, H - 3 - h, "N"]);
+        for (let c = g; c < N; c++) mir[c] = false; setF(g, 0); draw.push(["floor", hangFrom, g]);
+        settle = (cubeFall(0, (H - 3 - h) * 30 - 30, 0) ?? 3) + g; dir = 1; x = onBeat(settle + 1.2, settle + 1); continue; }
+      dir = -1; }
+    if (dir < 0 && h <= 0) dir = 1;
+    // going down (upright, no room to flip): a walk-off a row down between presses
+    if (dir < 0 && x - settle > 3.5) { const c = Math.ceil(x - 2.2); if (c > settle + 1) { setF(c, h - 1); lastStep = c;
+        settle = cubeFall((c + 0.5) * 30, 30, 0) ?? c + 2; x = onBeat(Math.max(x, settle + 1.2), settle + 1); continue; } }
+    const up = dir > 0 && h < top && (chain > 0 || R.chance(mix(0.85, 0.75))), arc = cubeArc(x * 30, 0, 0), a1 = cubeArc(x * 30, 0, 1);
+    if (!arc || arc.land > W - 3) break;
+    const opts = up ? [["up", 1]] : [["sp", 1], ["sp", 2], ["pit", 1], ["pit", 2]], cands = [];
+    for (const [k, n] of opts) for (let off = -1.5; off <= 1.5; off += 0.5) {
+      const T2 = T.slice(), H2 = haz.slice(); let s = Math.round((x + arc.land) / 2 + off - n / 2), keep;
+      if (k === "sp") { for (let i = 0; i < n; i++) H2.push(spikeBox(s + i, h + 1)); keep = () => { for (let i = 0; i < n; i++) draw.push([s + i, h + 1, "^"]); }; }
+      else if (k === "pit") { if (h < 1 && !m) continue; for (let i = 0; i < n; i++) { T2[s + i] = -9; H2.push(spikeBox(s + i, h)); } keep = () => { for (let i = 0; i < n; i++) { T[s + i] = -9; draw.push([s + i, h, "^"]); } }; }
+      else { if (!a1 || a1.up == null) continue; s = Math.ceil(a1.land - 1 + off * 0.4); if (s <= a1.up + 0.6 || s <= x + 1) continue;
+        for (let c = s; c < N; c++) T2[c] = h + 2; keep = () => { setF(s, h + 1); lastStep = s; }; }
+      const c0 = Math.max(x - 2, settle), L = cubeTry(T2, H2, c0, x, arc.land + 2.5); if (!L.ok) continue;
+      const w = cubeWin(T2, H2, c0, x, Math.max(arc.land + 2.5, L.land + 1.5)); if (!w) continue;
+      const tot = w.e + w.l, cen = Math.abs(w.e - w.l) / Math.max(1, tot);
+      cands.push({ sc: Math.abs(tot - target) / target + cen * 0.8 + R() * 0.15, w, keep, land: L.land, H2, up: k === "up" }); }
+    if (!cands.length) { x = onBeat(x + 1, x + 0.5); continue; }
+    cands.sort((a, b) => a.sc - b.sc); const c = cands[0]; c.keep(); haz.splice(0, haz.length, ...c.H2);
+    presses.push(+x.toFixed(4)); wins.push(c.w); settle = c.land;
+    // up-jumps chain (1-3 in a row, a jump right off each landing), then a landing walked on the rhythm's gap
+    if (c.up && chain < chainN) { chain++; x = onBeat(c.land + 0.25 + R() * 0.5, c.land + 0.2); }
+    else { chain = 0; chainN = R.int(1, 3); x = onBeat(x + gapS(x) * COLS_PER_SEC, c.land + 0.6); } }
+  // draw: upright columns blocks from the ground to f (a pit: its spike row on the blocks under it); hanging columns the
+  // same mirrored from the top, over a low floor with spikes where an early fall would land
+  const wr = (c, r) => mir[c] ? H - 1 - r : r, wch = (c, ch) => mir[c] ? (ch === "^" ? "v" : ch === "v" ? "^" : ch) : ch;
+  for (let c = 0; c < W; c++) { const lo = T[c] >= 0 ? f[c] : f[c] - 1; if (lo >= 0) { const a = wr(c, 0), b = wr(c, lo); G.box(c, c, Math.min(a, b), Math.max(a, b)); } }
+  for (const d of draw) if (d[0] === "floor") { const [, a, b] = d; G.box(a, b + 6, 0, 0); for (let q = a + 2; q < b - 1; q += R.int(3, 5)) G.put(q, 1, "^"); }
+  for (const d of draw) if (d[0] !== "floor") { const [c, r, ch] = d; G.put(c, wr(c, r), wch(c, ch)); }
+  for (const [c, r, ch] of portals) G.put(c, r, ch);
+  // hazards on the roof where the upright play is well below it (5 rows or more): a bar with spikes hanging in groups
+  for (let c = 0; c < W; c++) if (!mir[c] && f[c] + 1 <= H - 6 && !portals.some(p => Math.abs(p[0] - c) < 3)) { G.put(c, H - 1, "#"); if (R.chance(0.35)) G.put(c, H - 2, "v"); }
   return { map: G.rows(), mode: "cube", presses }; };
 
 // HANGING (cube). Idea: masses hang from the top over a spiked floor; jump between and under them. Motif: one hanging
