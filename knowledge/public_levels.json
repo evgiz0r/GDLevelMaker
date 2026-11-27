@@ -1,4 +1,4 @@
 {
- "note": "Levels that may go on the public viewer (https://evgiz0r.github.io/GDLevelMaker/, tools/pages.js). Opt-in: a level is added here only when the user says so for that level (2026-11-24: 'all those levels are bad for now. lets publish a real there when we have something decent'). Each entry: the level's file, as levels/<name>.gdlvl or examples/<name>.gdlvl.",
+ "note": "Levels that may go on the public viewer (https://evgiz0r.github.io/GDWorkbench/, tools/pages.js). Opt-in: a level is added here only when the user says so for that level (2026-11-24: 'all those levels are bad for now. lets publish a real there when we have something decent'). Each entry: the level's file, as levels/<name>.gdlvl or examples/<name>.gdlvl.",
  "levels": []
 }

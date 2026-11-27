@@ -57,3 +57,9 @@ unread". The catalogue's theme layout shows one line under every section, note a
 Claude writes the answer as a doc in collection `claudestatus`: `{part: "sec:<key>" | "gen:<key>:<seed>:<cols>:<tier>" |
 "play", state: applied | read | question | passed, reply, at}` (newest `at` per part wins; a later edit of his reopens it).
 Every time Claude handles board items it writes these, and a `designsend` stamp `{at, by: "claude"}`.
+
+**genroute (2026-11-27): a page that can't run a job queues it in the db.** The catalogue can't solve a 🎲 piece in the
+page, so it writes each generated piece to collection `genroute` (doc id = its gen key, `state: "asked"`, with its map);
+〰 path also pings Claude. Claude: ArtifactData list genroute (out_dir) -> `node tools/genroute.js <dir>` -> update each
+doc from the files it writes (state done + route); the page's listener draws it. On every wake in the board thread, check
+for asked docs (a db write is reliable, the ping is not).

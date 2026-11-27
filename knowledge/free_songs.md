@@ -1,7 +1,7 @@
 # Free songs: Newgrounds songs we may publish
 
 The songs here have a **Creative Commons** license on their Newgrounds page, so we may put them in git and play them on
-the public site (https://evgiz0r.github.io/GDLevelMaker/) next to a level, with a credit line. They also work in GD: every
+the public site (https://evgiz0r.github.io/GDWorkbench/) next to a level, with a credit line. They also work in GD: every
 one was fetched through GD's own song server (`tools/songs.js`). The data is `knowledge/free_songs.json` (tools read it);
 this page is the readable copy. Checked 2026-11-25, song by song, from each page's "Licensing Terms".
 

@@ -78,9 +78,14 @@ const SECTIONS = [
   // cps"): the slow zigzag turns every 5-6 blocks, the middle one every 2 (about 2.5x the clicks a second), then slow again.
   // The ceiling is the floor lifted 4 rows, cell for cell ("it should in some way fit, as if we lift the structures it
   // connects perfectly"): tunnel() draws both from one line of edge heights.
-  { key: "wave", name: "wave corridor", mode: "wave", note: "a 45-degree zigzag tunnel, 4 blocks high, its ceiling the floor lifted; a quick zigzag in the middle (a turn every 2 blocks: more clicks a second)", map: (() => {
-    const W = 41, G = grid(W, 10), slow = x => Math.min(5, (k => k < 6 ? k : 12 - k)(x % 12)),
-      e = x => x <= 11 ? slow(x) : x <= 28 ? 1 + ((x - 12) % 4 < 2 ? (x - 12) % 4 : 4 - (x - 12) % 4) : slow(x - 28);   // middle: 1..3..1
+  { key: "wave", name: "wave corridor", mode: "wave", note: "a 45-degree zigzag tunnel, 4 blocks high, its ceiling the floor lifted; legs of every length on one screen (long, quick, short-short-long), and one ground slide where the tunnel runs flat along the floor", map: (() => {
+    // more variety on the screen (Evgeni 2026-11-27: "wave corridors should have a bit more veriaty on the screen, again a
+    // bit more split. and we can add 1 ground slide"): the edge line is a list of legs [length, +1 up / -1 down / 0 flat],
+    // no two neighbours alike, with a quick 2-2-2 run, a 1-1 kink and one flat stretch at height 0 (the wave slides the floor)
+    const LEGS = [[3, 1], [2, -1], [3, 1], [5, -1], [2, 1], [2, -1], [2, 1], [1, -1], [1, 1], [4, 1], [5, -1], [6, 0],
+      [3, 1], [1, -1], [3, 1], [2, -1], [2, 1], [4, -1], [3, 1]];
+    const H = [2]; for (const [n, d] of LEGS) for (let k = 0; k < n; k++) H.push(H[H.length - 1] + d);
+    const W = H.length - 1, G = grid(W, 10), e = x => H[Math.min(x, W)];
     tunnel(G, W, e, 4, 9);
     return G.rows(); })() },
   { key: "flappy", name: "flappy bird corridors", mode: "ufo", note: "pipes from the floor and the ceiling with a 4-block gap at changing heights", map: (() => {
@@ -117,7 +122,7 @@ function joined() {
   const SJ = require("../lib/scenejoin.js"), out = [], portals = [], parts = []; let off = 0, prev = null;
   for (const z of SECTIONS) { const T = tiles(z), w = z.map[0].length, cur = { T, w, h: z.map.length, mode: z.mode };
     if (prev) { const j = SJ.join(prev, cur); for (const q of j.tiles) out.push({ t: q.t, c: q.c + off, r: q.r });
-      if (z.mode !== prev.mode) portals.push({ c: off + j.n - 1, r: j.floor + 1, mode: z.mode });
+      if (j.portal) portals.push({ c: off + j.portal.c, r: j.portal.r, mode: z.mode });
       off += j.n; }
     for (const q of T) out.push({ t: q.t, c: q.c + off, r: q.r }); parts.push({ key: z.key, c0: off, c1: off + w - 1 }); off += w; prev = cur; }
   const H = Math.max(...SECTIONS.map(z => z.map.length)), g = Array.from({ length: H }, () => Array(off).fill("."));
