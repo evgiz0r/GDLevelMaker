@@ -222,3 +222,9 @@ export. Its one sketch (smwvbb62d, newer there) was copied into the phone viewer
 viewer now declares `downloads` too so the board's .gdlvl / .json export works there. Not lost but not carried: songs
 added on the phone to the whiteboard page live in that page's browser storage (add them again in the viewer).
 `tools/draw_web.js` still builds the page for local use; nobody republishes the old Artifact.
+
+## A rough sketch is a brief, not a blueprint (Evgeni, 2026-11-27)
+"ill draw there somewhat a layout of our test theme ... you will align to be more symetricall, and connected and layered
+and so on as needed." When he draws a theme scene or layout, keep its masses, heights and where things hang, then clean
+it up: snap to the grid, make near-symmetric shapes symmetric, join pieces that almost touch into one structure (DECOART.md
+"Connected structures"), add the theme's layers / 3D / holders, and keep it beatable. Show his drawing beside the result.
