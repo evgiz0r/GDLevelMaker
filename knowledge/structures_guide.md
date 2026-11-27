@@ -85,6 +85,9 @@ change. The detailed write-ups stay in the linked docs.
 
 ## 5. The layout sections
 
+- A corridor's ceiling is its floor lifted, slope for slope, so the two would fit if pressed together (Evgeni 2026-11-27,
+  wave corridor: "as if we lift the structures it connects perfectly"). tools/layoutsections.js `tunnel()` draws both from one line.
+
 The theme layout is split into one short stretch per kind of play, the same for every theme: entrance, basic staircase,
 open cube corridor, closer cube corridor, hanging structures, flying corridor (ship), wave corridor, flappy bird corridors
 (UFO), ball corridors (structures on several heights). Each has a mode and is edited on its own on the Themes tab board.
