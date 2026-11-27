@@ -229,9 +229,15 @@ const DESIGNS = {
 // same line colour, so the side reads as a solid face of the same material
 function depth(st, p, C, d, v) {
   const face = { z: "B1", hsv: `0a1a${v}a0a0` }, rim = { z: "B1", hsv: "0a1a0.8a0a0" };
-  region(st.S, 0).forEach(q => p.rect([q[0] + d, q[1] + d, q[2] + d, q[3] + d], "line", 0, rim));
-  region(st.S, LW).forEach(q => p.rect([q[0] + d, q[1] + d, q[2] + d, q[3] + d], "base", 1, face));
-  tris(st.S, 0).forEach(t => p.tri(t, "line", 0, rim, d, d)); tris(st.S, LW).forEach(t => p.tri(t, "base", 1, face, d, d));
+  // SOLID SIDE (Evgeni 2026-11-27: "3d of the block itself feels hollow, like the front side is missing"): the back copy
+  // with its own full outline read as an empty frame behind. Now the side is a sweep of the body (copies at a third, two
+  // thirds and the full depth, no outline of their own), and the theme's line runs only along the far top and right
+  // edges, where the side ends
+  for (const k of [d / 3, (2 * d) / 3, d]) {
+    region(st.S, 0).forEach(q => p.rect([q[0] + k, q[1] + k, q[2] + k, q[3] + k], "base", 1, face));
+    tris(st.S, 0).forEach(t => p.tri(t, "base", 1, face, k, k)); }
+  edges(st.S, "N", LW).forEach(q => p.rect([q[0] + d, q[1] + d, q[2] + d, q[3] + d], "line", 0, rim));
+  edges(st.S, "E", LW).forEach(q => p.rect([q[0] + d, q[1] + d, q[2] + d, q[3] + d], "line", 0, rim));
   for (const k of corners(st.S)) if (!k.inner && ((k.dx > 0 && k.dy < 0) || (k.dx < 0 && k.dy > 0))) {
     p.out.push(K.obj(693, p.X0 + k.x + d / 2, p.Y0 + k.y + d / 2, { ch: C.base, z: "B1", zo: 1, sx: d / 30, sy: d / 30, rot: k.dx > 0 ? 0 : 180, hsv: `0a1a${v}a0a0` }));
     // the joining edge, front corner to back corner (up-right: turned -45 degrees, GD turns clockwise)
