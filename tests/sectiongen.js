@@ -15,4 +15,9 @@ if (!process.argv.includes("--quick")) { const LC = require("../tools/layoutchec
     const z = SG.make(key, { cols, rows, seed: 2, tier }); if (!z.presses) continue;
     console.log = () => {}; let r; try { r = LC.planCheck(z); } finally { console.log = log; }
     ok(r.ok, `plan ${key} ${cols}x${rows || "-"} ${tier}: ${z.presses.length} presses` + (r.ok ? "" : ` die col ${r.dieCol} row ${r.dieRow} (${r.why})`)); } }
+// BEATS: with a bpm, the tap types put every planned press on a half beat; fly at least 3/4 of its press and release ends
+{ const CPS = 311.58 / 30, hb = CPS * 60 / 140 / 2;
+  for (const key of SG.KEYS) { const z = SG.make(key, { cols: 60, seed: 2, tier: "normal", bpm: 140 }); if (!z.presses) continue;
+    const cs = z.presses.flatMap(q => Array.isArray(q) ? q : [q]).filter(c => c < 59), on = cs.filter(c => Math.abs(c / hb - Math.round(c / hb)) < 0.02).length;
+    const holds = z.presses.some(q => Array.isArray(q)); ok(on >= (holds ? 0.75 : 1) * cs.length, `beats ${key}: ${on}/${cs.length} presses on half beats`); } }
 process.exit(bad ? 1 : 0);

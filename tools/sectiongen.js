@@ -52,7 +52,23 @@ function ctx(o, defRows) {
   const Rs = rng(((o.seed ?? 1) * 7919 + 13) >>> 0), dens = 0.82 + Rs() * 0.4, holdF = 0.7 + Rs() * 0.7;
   const amp = 0.06 + Rs() * 0.06, per = 25 + Rs() * 20, ph = Rs() * 6.283, drift = c => 1 + amp * Math.sin(6.283 * c / per + ph);
   const style = { dens: +dens.toFixed(2), hold: +holdF.toFixed(2), pace: c => dens * drift(c), holdAt: c => holdF * drift(c + per / 3) };
-  return { R, d, mix, imix, room, len, chance: (a, b) => R.chance(Math.min(0.95, mix(a, b))), W, H, G: LS.grid(W, H), beatCols, style };
+  // BEATS (Evgeni 2026-11-27: "i want to be able to generate according to a beat as well, so its not just random stats,
+  // should be applicable in a level ... in the long run much more efficient than solving"): o.beats = the song's beats in
+  // the section (seconds from its start: numbers, or {t, s} with s = strength 0..1, e.g. from tools/hits.js or
+  // tools/impacts.js), or o.bpm / o.beatCols = a plain grid of half beats (a bar's first beat 1, the other beats 0.7, the
+  // half beats 0.35). onBeat(want, min): the column for a press the style wants near `want`, no sooner than `min`: the
+  // nearest beat, a strong one counted up to half a beat nearer; no beats -> want. The style's density decides how far
+  // apart the wants are, so it decides the share of beats taken; holds end on beats too.
+  let beats = null;
+  if (Array.isArray(o.beats) && o.beats.length) beats = o.beats.map(b => typeof b === "number" ? { c: b * COLS_PER_SEC, s: 0.7 } : { c: b.t * COLS_PER_SEC, s: b.s ?? 0.7 });
+  else if (beatCols) { beats = []; for (let i = 0; i * beatCols / 2 < W + beatCols; i++) beats.push({ c: i * beatCols / 2, s: i % 8 === 0 ? 1 : i % 2 === 0 ? 0.7 : 0.35 }); }
+  if (beats) beats.sort((a, b) => a.c - b.c);
+  const hb = beats && beats.length > 1 ? Math.max(1, (beats[beats.length - 1].c - beats[0].c) / (beats.length - 1)) : 2;
+  const onBeat = (want, min = -1e9) => { if (!beats) return Math.max(want, min);
+    let best = null, bs = 1e9; for (const b of beats) { if (b.c < min - 1e-6) continue; if (b.c > want + 3 * hb) break;
+      const sc = Math.abs(b.c - want) - b.s * hb * 0.5; if (sc < bs) { bs = sc; best = b.c; } }
+    return best == null ? Math.max(want, min) : best; };
+  return { R, d, mix, imix, room, len, chance: (a, b) => R.chance(Math.min(0.95, mix(a, b))), W, H, G: LS.grid(W, H), beatCols, style, onBeat, beats };
 }
 // a gravity pair (G upside down, N back) in sections long enough to show it: G at ~1/3, N at ~2/3
 const gravPair = (W, min = 24) => W >= min ? [Math.round(W * 0.3), Math.round(W * 0.7)] : null;
@@ -209,13 +225,13 @@ function cubeFall(x0, y0, r) { let x = x0, y = y0, vy = 0, n = 0;
 // spike where the walk-off lands. Rhythm: a gap of 0.45-1 s between clicks (shorter at harder), on half beats with a bpm.
 // Window: the late and early edges, ~1.6 columns each at easy (~150 ms), ~0.6 at harder.
 CONCEPT.opencube = "open sky: jumps from platform to platform at changing heights over spike pits, built from the clicks";
-GEN.opencube = o => { const { R, mix, W, H, G, beatCols, style } = ctx(o, 8), half = beatCols ? beatCols / 2 : 0;
+GEN.opencube = o => { const { R, mix, W, H, G, beatCols, style, onBeat } = ctx(o, 8), half = 0;   // beats: onBeat picks each press
   const late = mix(1.6, 0.6), early = mix(1.6, 0.6), hiRow = H - 2;   // the player's row: 1 (on the ground) .. H - 2
   // one base gap per generation (its click style), each click +-15% around it, a rest (x1.6-2) one click in 8
   const gap0 = R.pick([0.5, 0.6, 0.7, 0.8, 1.0].map(v => v - mix(0, 0.15)));
   const gapS = c => { let g = gap0 * (0.85 + R() * 0.3) * (R.chance(0.12) ? 1.6 + R() * 0.4 : 1) / style.pace(c); if (half) g = Math.max(1, Math.round(g * COLS_PER_SEC / half)) * half / COLS_PER_SEC; return g; };
   const surf = [{ r: 1, c0: 0, c1: null }], presses = [];   // r: the row the player runs in (block under it at r - 1)
-  let x = R.int(4, 6) + 0.5, tgt = null;   // the first click's column; tgt: tall maps head for it
+  let x = onBeat(R.int(4, 6) + 0.5, 3.5), tgt = null;   // the first click's column; tgt: tall maps head for it
   while (x < W - 8) { const s = surf[surf.length - 1];
     // where it lands: a height step drawn first, toward the middle more often, the edges now and then
     // tall maps: head for a far target row (up in 1-2 row steps, down in drops), a new one once reached
@@ -232,7 +248,7 @@ GEN.opencube = o => { const { R, mix, W, H, G, beatCols, style } = ctx(o, 8), ha
     else { surf.push({ r, c0: Math.max(c0, s.c1 + 1), c1: null });
       // a drop a walk-off would also make: a spike where the walk-off lands, if the jump lands further on
       if (r < s.r) { const f = cubeFall((s.c1 + 1) * 30, s.r * 30, r); if (f != null && f >= c0 && f < arc.land - 1.2) G.put(Math.floor(f), r, "^"); } }
-    x = arc.land + gapS(arc.land) * COLS_PER_SEC - 4.46; x = Math.max(x, arc.land + 1);   // the next click: the rhythm's gap after this one
+    x = onBeat(arc.land + gapS(arc.land) * COLS_PER_SEC - 4.46, arc.land + 1);   // the next click: the rhythm's gap after this one
   }
   surf[surf.length - 1].c1 = W - 1;
   // draw: the ground is blocks where the path runs on it, spikes in groups (a saw now and then) where it doesn't
@@ -286,7 +302,101 @@ GEN.hanging = o => { const { R, imix, room, len, chance, W, H, G } = ctx(o, 12);
 // hill height and flat length, spikes in valleys and hanging at the crests, a saw in the open gap. Harder: a narrower gap,
 // shorter flats, more hazards. A gravity pair: the held button now flies down.
 CONCEPT.fly = "floor and ceiling rise and fall together in hills; spikes in valleys, saws in the gap; a gravity pair";
-GEN.fly = o => { const { R, imix, room, len, chance, W, H, G } = ctx(o, 10), gap = room(6, 5), hiMax = H - gap;   // taller than 10: band movers
+// FLY, PRESSES FIRST (Evgeni 2026-11-27: "our generating solves by design and we just patch the timings ... shape first
+// is not great"): the plan is holds and releases (lengths from the tier and the generation's click style: style.holdAt /
+// pace), steered loosely toward height targets that tour the room (tour()); shipPath() steps the ship tick by tick as
+// lib/physics.js does; the corridor is fitted around that path: each column edge's floor height lies between the path's
+// lowest bottom and highest top (a margin each side) over the two columns it touches, slopes of at most a row a column
+// (a forward and a backward pass narrow each edge's range, then a greedy pick near the middle); the ground and the roof
+// are kept where the path slides on them. Hazards on the sides only where the path passes them with room. Taller than the
+// band (10 rows): a hidden ship portal re-bands where the path heads out of the band. Returns presses as [press, release]
+// column pairs (layoutcheck planCheck plays them).
+const SHIP = { X: CUBE.X, g: 0.958199, DTS: 0.225, UP: 8, DOWN: -6.4 };
+// one tick of the ship (upright, released ship falling rule of the world frame: same thing upright)
+function shipStep(st, held) { const falling = st.vy <= 2 * SHIP.g, a = held ? -1 : (falling ? 0.8 : 1.2), bb = held ? (falling ? 0.5 : 0.4) : 0.4;
+  st.vy = Math.round((st.vy - a * SHIP.g * SHIP.DTS * bb) * 1000) / 1000; st.vy = clamp(st.vy, SHIP.DOWN, SHIP.UP); st.y += st.vy * SHIP.DTS; }
+// THE CORRIDOR FITTED AROUND A PLANNED PATH (fly, wave): ys = the player's centre per tick from the section's start,
+// bands = the band's floor row per tick; returns the floor height at each column edge (rows, steps of at most 1), or null
+// when no corridor of `gap` rows holds the path. Each edge's floor lies between the path's lowest bottom and highest top
+// (half = the player's half size, m = margin) over the two columns it touches; a forward and a backward pass narrow each
+// edge's range to slopes of a row a column, then a greedy pick near the middle. Where the path rests on the ground (or
+// the map's roof) the floor is the ground (the ceiling the roof): rest = how far the centre sits above a surface.
+function fitCorridor(ys, bands, W, H, gap, TPC, { m = 6, half = 15, rest = half, bandSafe = true } = {}) { const top = H * 30;
+  const N = W + 1, lo = Array(N).fill(0), hi = Array(N).fill(H - gap), ground = Array(N).fill(null), roof = Array(N).fill(false);
+  for (let t = 0; t < ys.length; t++) { const c = Math.floor(t / TPC), y = ys[t];
+    for (const k of [c, c + 1]) { if (k >= N) continue;
+      // the band's floor and roof are safe surfaces too (the ship slides on them), so the corridor never has to go past
+      // them: a floor at or below the band's floor, a ceiling at or above its roof, is always far enough
+      const bf = bandSafe ? bands[t] : 0, br = bandSafe ? Math.min(H, bf + 10) : H;
+      if (y - rest <= bf * 30 + 0.5) ground[k] = Math.min(ground[k] ?? bf, bf); else hi[k] = Math.min(hi[k], Math.max(bf, Math.floor((y - half - m) / 30)));
+      if (y + rest >= top - 0.5) roof[k] = true; else lo[k] = Math.max(lo[k], Math.min(br, Math.ceil((y + half + m) / 30)) - gap); } }
+  for (let k = 0; k < N; k++) { if (ground[k] != null) hi[k] = Math.min(hi[k], ground[k]); if (roof[k]) lo[k] = H - gap; }
+  for (let k = 1; k < N; k++) { lo[k] = Math.max(lo[k], lo[k - 1] - 1); hi[k] = Math.min(hi[k], hi[k - 1] + 1); }
+  for (let k = N - 2; k >= 0; k--) { lo[k] = Math.max(lo[k], lo[k + 1] - 1); hi[k] = Math.min(hi[k], hi[k + 1] + 1); }
+  if (lo.some((v, k) => v > hi[k])) return null;   // too steep for the grid: the caller draws again
+  // the pick follows the path: the floor half a gap under the path's mean height at that edge, so the tunnel zigzags
+  // with the flight instead of running straight around it
+  const sum = Array(N).fill(0), cnt = Array(N).fill(0);
+  for (let t = 0; t < ys.length; t++) { const c = Math.floor(t / TPC); for (const k of [c, c + 1]) if (k < N) { sum[k] += ys[t]; cnt[k]++; } }
+  const e = []; for (let k = 0; k < N; k++) { const want = cnt[k] ? Math.round(sum[k] / cnt[k] / 30 - gap / 2) : Math.round((lo[k] + hi[k]) / 2); e.push(k ? clamp(want, Math.max(lo[k], e[k - 1] - 1), Math.min(hi[k], e[k - 1] + 1)) : clamp(0, lo[0], hi[0])); }
+  return e; }
+function flyPlan(o, W, H, R, mix, style, gap, cap = 4.6, onBeat = w => w) {
+  const TPC = 30 / SHIP.X, T = Math.floor(W * TPC), m = 6, top = H * 30;
+  const h0 = mix(60, 32), r0 = mix(70, 36);   // base hold and release, ticks (easy: long and slow; harder: quick)
+  const next = tour(R, 1, H - 2); let tgt = next(Math.round(H / 2)), band0 = 0, lastMover = -99;
+  const st = { y: 15, vy: 0 }, ys = [], bands = [], ev = [], movers = []; let held = false, left = 0;
+  for (let t = 0; t < T; t++) { const c = t / TPC, row = st.y / 30;
+    if (left <= 0) { // the next hold or release: its length from the style, longer toward the target, shorter away
+      const toward = (tgt > row + 0.7) === !held;   // the coming state (not held -> press) moves toward the target
+      held = !held; const base = (held ? h0 * style.holdAt(c) : r0) / style.pace(c);
+      left = Math.round(base * (0.75 + R() * 0.5) * (toward ? 1.3 : 0.7));
+      // on a beat: this state lasts until the beat nearest its wanted end (at least 8 ticks)
+      left = Math.max(8, Math.round(onBeat(c + left / TPC, c + 8 / TPC) * TPC) - t); ev.push([+c.toFixed(4), held ? "press" : "release"]);   // 4 places: planCheck turns it back into the exact tick
+      if (Math.abs(tgt - row) < 1) tgt = next(Math.round(row)); }
+    // steepness: the corridor's slopes are at most a row a column, so cap the climb and the dive (a forced turn)
+    // (with beats: a forced turn waits for a beat if one comes within 6 ticks)
+    if ((held && st.vy > cap) || (!held && st.vy < -cap)) left = Math.min(left, Math.max(0, Math.round(onBeat(c, c) * TPC) - t > 6 ? 0 : Math.round(onBeat(c, c) * TPC) - t));
+    shipStep(st, held); left--;
+    // the floor and the roof of the band are surfaces: slide along them
+    const lo = band0 * 30 + 15, hi = Math.min(top, band0 * 30 + 300) - 15;
+    if (st.y < lo) { st.y = lo; st.vy = 0; } if (st.y > hi) { st.y = hi; st.vy = 0; }
+    // taller than the band: a mover re-bands around the ship where it heads out (its column clear of the last one by 4)
+    if (H > 10 && c - lastMover > 4 && c > 3 && c < W - 3) { const r = Math.floor(st.y / 30), nb = clamp(r - 5, 0, H - 10);
+      if (nb !== band0 && ((st.vy > 0 && st.y > hi - 75) || (st.vy < 0 && st.y < lo + 75))) { movers.push([Math.floor(c), r]); band0 = nb; lastMover = c; } }
+    ys.push(st.y); bands.push(band0); }
+  const e = fitCorridor(ys, bands, W, H, gap, TPC, { m, half: 15 }); if (!e) return null;
+  // presses as [press, release] column pairs
+  const presses = []; for (let i = 0; i < ev.length; i++) if (ev[i][1] === "press") presses.push([ev[i][0], ev[i + 1] ? ev[i + 1][0] : W]);
+  return { e, ys, TPC, presses, movers }; }
+CONCEPT.fly = "a ship corridor fitted around a planned flight of holds and releases: it tours the room, slides the ground and the roof now and then, hazards on the sides";
+GEN.fly = o => { const { R, room, chance, W, H, G, mix, style, onBeat } = ctx(o, 10), gap = room(6, 5);
+  // a draw that doesn't fit the grid is drawn again, a little flatter each time (the hardest tier's quick holds need it)
+  let P = null; for (let k = 0; k < 12 && !P; k++) P = flyPlan(o, W, H, R, mix, style, gap, 4.6 - 0.2 * k, onBeat);
+  if (!P) return flyShape(o);
+  const { e, ys, TPC } = P, E = x => e[clamp(x, 0, e.length - 1)];
+  tunnel(G, W, E, gap, H - 1);
+  // the path's lowest bottom and highest top in a column (units)
+  const yb = Array(W).fill(1e9), yt = Array(W).fill(-1e9);
+  for (let t = 0; t < ys.length; t++) { const c = Math.floor(t / TPC); if (c < W) { yb[c] = Math.min(yb[c], ys[t] - 15); yt[c] = Math.max(yt[c], ys[t] + 15); } }
+  // a spike stands in its cell's lower half (hitbox 6 x 12 at the cell's centre): it clears the path when the path's
+  // bottom is 8 above that box (and the mirror for a hanging one); checked on the column and both its neighbours
+  const clearF = (c, r) => [c - 1, c, c + 1].every(x => x < 0 || x >= W || yb[x] > r * 30 + 21 + 8);
+  const clearR = (c, r) => [c - 1, c, c + 1].every(x => x < 0 || x >= W || yt[x] < r * 30 + 9 - 8);
+  let side = R.chance(0.5) ? 1 : -1;
+  for (let c = 3; c < W - 2; c++) { const a = E(c), b = E(c + 1), p = E(c - 1); if (a !== b) continue;
+    let n = 0; while (c + n + 1 < W - 2 && E(c + n + 1) === a && E(c + n + 2) === a) n++;
+    if (n >= 2 && chance(0.5, 0.85)) { const rf = side < 0 && a + gap < H, rr = rf ? a + gap - 1 : a;
+      for (let x = c + 1; x <= c + n - 1; x++) if (rf ? clearR(x, rr) : clearF(x, rr)) G.put(x, rr, rf ? "v" : "^");
+      if (R.chance(0.6)) side = -side; c += n; continue; }
+    if (p > a && chance(0.5, 0.9) && clearF(c, a)) G.put(c, a, "^");
+    else if (p < a && a + gap < H && chance(0.3, 0.8) && clearR(c, a + gap - 1)) G.put(c, a + gap - 1, "v"); }
+  for (const [c, r] of P.movers) { for (let q = E(c); q < E(c) + gap && q < H; q++) if ("^vo".includes(G.rows()[H - 1 - q][c])) G.put(c, q, ".");
+    G.put(c, r, "H"); }
+  // the planned path for the board (as layoutcheck's route: [col, row of the centre - 0.5] every 8 ticks)
+  const path = []; for (let t = 0; t < ys.length; t += 8) path.push([+(t / TPC).toFixed(2), +(ys[t] / 30 - 0.5).toFixed(2)]);
+  return { map: G.rows(), mode: "ship", presses: P.presses, path }; };
+// the shape-first fly (before 2026-11-27), kept as the fallback when no plan fits the grid
+const flyShape = o => { const { R, imix, room, len, chance, W, H, G } = ctx(o, 10), gap = room(6, 5), hiMax = H - gap;   // taller than 10: band movers
   // the valleys go down to the ground now and then (Evgeni 2026-11-27: "the flying should also be able and hit the
   // ground/floor as part of the path. keeping more distribution over the heights"): the ship slides along it there
   // and the whole band (10 rows, the map's height): the corridor tours from the ground to the band's roof (hiMax = no
@@ -320,7 +430,63 @@ GEN.fly = o => { const { R, imix, room, len, chance, W, H, G } = ctx(o, 10), gap
 // slow legs, a quick zigzag in the middle (more clicks a second), slow again. Harder: a narrower tunnel, a longer quick
 // part. A gravity pair in the quick part.
 CONCEPT.wave = "a 45-degree zigzag tunnel; slow legs, a quick middle, slow again; a gravity pair";
-GEN.wave = o => { const { R, mix, imix, room, W, H, G } = ctx(o, 13), gap = room(6, 5), q0 = mix(0.35, 0.2), q1 = mix(0.65, 0.8);
+// WAVE, PRESSES FIRST: the legs are planned (each a length from the tier and the click style, a quick middle, one ground
+// slide, every turn on a beat when there is one), the wave's exact 45-degree path is stepped from them, and the tunnel is
+// fitted around it (fitCorridor). The gravity pair makes two of the turns itself (Evgeni: "portals in waves should usually
+// be on connecting points of clicks or holds"): the portal stands where the wave touches it at that turn. Taller than the
+// band: a hidden A portal re-bands as in fly. Presses as [press, release] column pairs, plus the planned path.
+function wavePlan(W, H, R, mix, style, gap, onBeat, q0, q1) {
+  const hiNear = y => y > Math.min(H * 30, band0 * 30 + 300) - 10 - 45 && Math.min(H * 30, band0 * 30 + 300) < H * 30;   // a portal turn there would overshoot the band
+  const TPC = 30 / CUBE.X, T = Math.floor(W * TPC), DY = CUBE.X, top = H * 30, GR = 10, RF = 10;   // the wave rests 10 above the ground
+  const gp = gravPair(W, 30), slideAt = W >= 30 ? R.int(Math.round(W * 0.3), Math.round(W * 0.6)) : -1;
+  const next = tour(R, 1, H - 2); let tgt = next(Math.round(H / 2)), band0 = 0, lastMover = -99, slid = false, sliding = 0;
+  let y = GR, held = false, grav = 1, left = 0, gpi = 0; const ys = [], bands = [], ev = [], movers = [], portals = [];
+  for (let t = 0; t < T; t++) { const c = t / TPC, row = y / 30;
+    // the way out: down to the ground and along it to the end, as it came in (a wave sliding off a floor block's end at
+    // the exit dies: CLAUDE.md Calibration), with no portal still to come
+    if (!pend && c >= W - ((y / 30 - band0) * (grav > 0 ? 1 : 0) + (band0 ? 99 : 0) + 3) && grav > 0 && band0 === 0) { if (held) { held = false; ev.push([+c.toFixed(4), "release"]); } left = 1e9; }
+    if (left <= 0) {
+      if (!slid && slideAt >= 0 && c >= slideAt && !sliding) { // the ground slide: down to the ground, along it a while
+        if (held) { held = false; ev.push([+c.toFixed(4), "release"]); }
+        sliding = 1; left = Math.round((row + R.int(4, 7)) * TPC); }
+      else { if (sliding) { sliding = 0; slid = true; }
+        const mid = c > W * q0 && c < W * q1;
+        let amp = (mid ? R.pick([1, 1, 2, 2, 3]) : R.pick([1, 2, 3, 3, 4, 5])) / style.pace(c);
+        const up = (held ? 1 : -1) * grav < 0;   // after this turn the wave goes up
+        if (Math.abs(tgt - row) < 1) tgt = next(Math.round(row));
+        if (H > 13 && c > W * 0.65) tgt = 1;   // tall: back down to the first band for the way out
+        if (up !== tgt > row && R.chance(0.6)) amp *= 0.5;   // legs away from the target are short
+        // a gravity portal makes this turn when it is the first turn past its spot
+        if (gp && gpi < 2 && c >= gp[gpi] && !(hiNear(y))) { const pc = Math.round((c * 30 + 17.5 - 15) / 30), xt = pc * 30 + 15 - 12.5 - 5;
+          if (pc < W - 2 && xt >= c * 30) { const wait = Math.ceil((xt - c * 30) / DY); left = wait; pend = { tick: t + wait, pc }; gpi++; } }
+        if (!pend) { held = !held; ev.push([+c.toFixed(4), held ? "press" : "release"]);
+          left = Math.max(4, Math.round(onBeat(c + amp, c + 4 / TPC) * TPC) - t); } } }
+    if (pend && t === pend.tick) { grav = -grav; portals.push([pend.pc, Math.floor(y / 30), grav < 0 ? "G" : "N"]); pend = null;
+      left = Math.max(4, Math.round(onBeat(c + R.pick([1, 2, 2, 3]), c + 4 / TPC) * TPC) - t); }
+    y += (held ? 1 : -1) * grav * DY; left--;
+    const lo = band0 * 30 + GR, hi = Math.min(top, band0 * 30 + 300) - RF; if (y < lo) y = lo; if (y > hi) y = hi;
+    // never ride an invisible band edge (it looks like flying straight in the open, and GD 2.2091 may hold no band for the
+    // wave at all: PHYSICS.md): turn a row before it; the ground and the map's own roof are real surfaces
+    const dirNow = (held ? 1 : -1) * grav; if (!pend && left > 1 && ((dirNow > 0 && hi < top - RF && y > hi - 30) || (dirNow < 0 && band0 > 0 && y < lo + 30))) left = 0;
+    if (H > 13 && c - lastMover > 4 && c > 3 && c < W - 3 && !pend) { const r = Math.floor(y / 30), nb = clamp(r - 5, 0, H - 10);
+      if (nb !== band0 && ((y > hi - 75) || (y < lo + 75))) { movers.push([Math.floor(c), r]); band0 = nb; lastMover = c; } }
+    ys.push(y); bands.push(band0); }
+  if (band0 !== 0 || ys[ys.length - 1] > GR + 0.5) return null;   // didn't get back down to the ground: draw again
+  const e = fitCorridor(ys, bands, W, H, gap, TPC, { m: 8, half: 5, rest: GR, bandSafe: false }); if (!e) return null;
+  const presses = []; for (let i = 0; i < ev.length; i++) if (ev[i][1] === "press") presses.push([ev[i][0], ev[i + 1] ? ev[i + 1][0] : W]);
+  return { e, ys, TPC, presses, movers, portals }; }
+let pend = null;
+CONCEPT.wave = "a 45-degree zigzag tunnel fitted around a planned flight: legs of every size, a quick middle, a ground slide, two turns made by gravity portals";
+GEN.wave = o => { const { R, mix, room, W, H, G, style, onBeat } = ctx(o, 13), gap = room(6, 5), q0 = mix(0.35, 0.2), q1 = mix(0.65, 0.8);
+  let P = null; for (let k = 0; k < 12 && !P; k++) { pend = null; P = wavePlan(W, H, R, mix, style, gap, onBeat, q0, q1); }
+  if (!P) return waveShape(o);
+  const E = x => P.e[clamp(x, 0, P.e.length - 1)]; tunnel(G, W, E, gap, H - 1);
+  for (const [c, r] of P.movers) G.put(c, r, "A");
+  for (const [c, r, t] of P.portals) G.put(c, clamp(r, E(c), E(c) + gap - 1), t);
+  const path = []; for (let t = 0; t < P.ys.length; t += 8) path.push([+(t / P.TPC).toFixed(2), +(P.ys[t] / 30 - 0.5).toFixed(2)]);
+  return { map: G.rows(), mode: "wave", presses: P.presses, path }; };
+// the shape-first wave (before 2026-11-27), the fallback
+const waveShape = o => { const { R, mix, imix, room, W, H, G } = ctx(o, 13), gap = room(6, 5), q0 = mix(0.35, 0.2), q1 = mix(0.65, 0.8);
   // more variety on one screen, legs of every size, short flats between some, and one ground slide (Evgeni 2026-11-27: "wave
   // corridors should have a bit more veriaty on the screen, again a bit more split. and we can add 1 ground slide (where
   // the corridor passes through the ground/floor)"): the floor drops to the ground and the wave slides along it a while
@@ -350,7 +516,41 @@ CONCEPT.flappy = "pipe pairs from floor and ceiling; the gap's height walks up a
 // Evgeni 2026-11-27: "flappy bird generates too much of the same poles there should be some variation in width of
 // structures in the gameplays as well, and here as well we want to try and use the extremes": poles 1 to 4 wide, and the
 // gap tours the whole 10-row band (the ufo's), from just over the ground (no lower pole) to the band's roof (no upper one)
-GEN.flappy = o => { const { R, imix, room, len, chance, W, H, G } = ctx(o, 10), gh = room(5, 3), next = tour(R, 1, H - gh); let g = R.int(2, 4);
+// FLAPPY, PRESSES FIRST (2026-11-27): the taps come first, on the style's rhythm (on a beat when there is one), skipped
+// while the ufo is above its height target (tour(): the target walks over the band); the ufo is stepped as lib/physics.js
+// does (a tap sets 7 up, gravity 0.4 x 0.958 falling or slow, 0.6 rising fast, fall capped at 6.4); then the poles: 1-4
+// wide at changing spacing, each pair's gap fitted around the path over the pole's columns (a margin of 8; the gap at
+// least the tier's room), the lower pole left out when the gap reaches the ground, the upper when it reaches the roof.
+// Up to the band's 10 rows; taller maps use the shape-first version (its hidden U portals).
+function ufoStep(st, tap) { if (tap && st.vy < 7) st.vy = 7; const falling = st.vy <= 2 * SHIP.g;
+  st.vy = Math.round((st.vy - (falling ? 0.4 : 0.6) * SHIP.g * SHIP.DTS) * 1000) / 1000; st.vy = clamp(st.vy, SHIP.DOWN, SHIP.UP); st.y += st.vy * SHIP.DTS; }
+GEN.flappy = o => { const { R, imix, room, len, chance, W, H, G, mix, style, onBeat } = ctx(o, 10), gh = room(5, 3);
+  if (H > 10) return flappyShape(o);
+  const TPC = 30 / SHIP.X, T = Math.floor(W * TPC), top = H * 30, m = 8, next = tour(R, 1, H - 2);
+  const gap0 = mix(0.55, 0.32) * COLS_PER_SEC;   // columns between taps: easy slow, harder quick
+  let tgt = next(Math.round(H / 2)), nextTap = onBeat(R.int(2, 3), 1.5); const st = { y: 15, vy: 0 }, ys = [], taps = [];
+  for (let t = 0; t < T; t++) { const c = t / TPC; let tap = false;
+    if (c >= nextTap - 1e-6) { const row = st.y / 30;
+      if (Math.abs(tgt - row) < 1) tgt = next(Math.round(row));
+      if (row < tgt + 0.6 && st.y < top - 75) { tap = true; taps.push(+c.toFixed(4)); }   // above the target: let it fall a beat
+      // climbing to a higher target takes quicker taps (one every 0.55 s can't hold a ufo up)
+      nextTap = onBeat(c + gap0 * (row < tgt - 0.5 ? 0.55 : 1) * (0.8 + R() * 0.4) / style.pace(c), c + 6 / TPC); }
+    ufoStep(st, tap); if (st.y < 15) { st.y = 15; st.vy = 0; } if (st.y > top - 15) { st.y = top - 15; st.vy = 0; }
+    ys.push(st.y); }
+  const yb = Array(W).fill(1e9), yt = Array(W).fill(-1e9);
+  for (let t = 0; t < ys.length; t++) { const c = Math.floor(t / TPC); if (c < W) { yb[c] = Math.min(yb[c], ys[t] - 15); yt[c] = Math.max(yt[c], ys[t] + 15); } }
+  for (let c = 3; c < W - 2;) { const pw = Math.min(W - 2 - c, R.pick([1, 2, 2, 3, 4]));
+    let lo = 1e9, hi = -1e9; for (let x = c - 1; x <= c + pw; x++) { lo = Math.min(lo, yb[x]); hi = Math.max(hi, yt[x]); }
+    let g0 = Math.floor((lo - m) / 30), g1 = Math.ceil((hi + m) / 30);   // the gap's rows [g0, g1)
+    while (g1 - g0 < gh) { if (R.chance(0.5) && g0 > 0) g0--; else if (g1 < H) g1++; else g0--; }
+    g0 = Math.max(0, g0); g1 = Math.min(H, g1);
+    if (g0 > 0) { G.box(c, c + pw - 1, 0, g0 - 1); if (g0 > 1 && yb[c] > (g0 - 1) * 30 + 30 + 8 && chance(0.4, 0.7)) { /* the pole's top is the hazard's place: a spike tip */ G.put(c, g0 - 1, "^"); } }
+    if (g1 < H) G.box(c, c + pw - 1, g1, H - 1);
+    c += pw + len(room(5, 3), room(7, 4)); }
+  // a spike tip replaces the pole's top block, so the gap stays as fitted (the block under it carries it)
+  return { map: G.rows(), mode: "ufo", presses: taps, path: (() => { const p = []; for (let t = 0; t < ys.length; t += 8) p.push([+(t / TPC).toFixed(2), +(ys[t] / 30 - 0.5).toFixed(2)]); return p; })() }; };
+// the shape-first flappy (taller than the band: its hidden U portals)
+const flappyShape = o => { const { R, imix, room, len, chance, W, H, G } = ctx(o, 10), gh = room(5, 3), next = tour(R, 1, H - gh); let g = R.int(2, 4);
   G.box(0, W - 1, 0, 0);
   let bc = 5;   // the band's centre row (taller than 10 rows: hidden ufo portals in the pole gaps move it, bandMovers)
   for (let c = 3; c < W - 2;) { const pw = Math.min(W - 2 - c, R.pick([1, 2, 2, 3, 4]));
@@ -384,10 +584,10 @@ const ballTravel = (rows, v0 = 3.354) => { let y = 0, vy = v0, n = 0; const h = 
 GEN.ball = o => rollers(o, { mode: "ball", band: 8, travel: ballTravel });
 // the ball's body, shared with the spider (a 9-row band, and it crosses instantly: the spider teleports to the other side)
 // and with "ball portals" (some flips made by a gravity portal at the surface's end instead of a click)
-function rollers(o, { mode, band, travel, portals = 0, overlap = null }) { const { R, mix, imix, chance, W, H, G, style } = ctx(o, 10), BT = Math.min(H, band);   // the band: rows 0..band-1
+function rollers(o, { mode, band, travel, portals = 0, overlap = null }) { const { R, mix, imix, chance, W, H, G, style, onBeat } = ctx(o, 10), BT = Math.min(H, band);   // the band: rows 0..band-1
   const rollBase = R.pick([R.int(2, 3), R.int(imix(4, 3), imix(6, 5)), R.int(imix(4, 3), imix(6, 5))]);   // the ball's roll between presses for this generation
-  const win = mix(2.6, 1.4), late = win / 2, early = win / 2, half = ctx(o, 10).beatCols ? ctx(o, 10).beatCols / 2 : 0;   // flip window, columns: half of it after the planned press, half before
-  const S = [{ side: 1, kind: "mass", y: 2, c0: 0, c1: R.int(5, 7), O: 0 }]; S[0].press = S[0].c1 - late;   // y: the surface's row (floor side: the row the ball rolls on; ceiling side: the row it hangs in), in its band (O = the band's floor row)
+  const win = mix(2.6, 1.4), late = win / 2, early = win / 2;   // flip window, columns: half of it after the planned press, half before
+  const S = [{ side: 1, kind: "mass", y: 2, c0: 0, c1: R.int(5, 7), O: 0 }]; if (travel === ballTravel) { S[0].press = onBeat(S[0].c1 - late, 3); S[0].c1 = Math.max(S[0].c1, Math.ceil(S[0].press + late)); } else S[0].press = S[0].c1 - late;   // y: the surface's row (floor side: the row the ball rolls on; ceiling side: the row it hangs in), in its band (O = the band's floor row)
   // TALLER THAN THE BAND (Evgeni 2026-11-27: "spider and ball still dont generate more than the original height regardless
   // if i am in height x100"): a hidden portal of the mode on a surface (L ball, P spider: the roller runs through it, so it
   // can't be skipped) re-bands around it (lib/physics.js: floor = its y - band/2), so the band wanders up and down the map;
@@ -425,7 +625,7 @@ function rollers(o, { mode, band, travel, portals = 0, overlap = null }) { const
     let c0 = travel === ballTravel && !byPortal ? Math.floor(pr - early + tv) : Math.round(flip + tv - (byPortal ? 0 : tv ? win : -1));
     c0 = Math.max(p.c0 + 2, c0);
     let nextPress = (byPortal ? p.c1 + 1 : pr) + tv + roll;
-    if (half) { const g = nextPress - pr; nextPress = pr + Math.max(Math.ceil((tv + 2) / half), Math.round(g / half)) * half; }
+    if (travel === ballTravel) nextPress = onBeat(nextPress, (byPortal ? p.c1 + 1 : pr) + tv + 2);   // on a beat, after the landing and a roll of 2
     const w = travel !== ballTravel ? roll : Math.max(Math.ceil(nextPress + late) - c0, Math.ceil((byPortal ? p.c1 + 1 : flip) + tv) + 1 - c0, 2);   // the spider: its overlap is the window, width as drawn
     // a portal is the way past an obstacle (Evgeni: "a portals just flip you arround instead of being a way to pass an
     // obsicle like in the layout i drew"): the surface goes on 4 columns past it with spikes on it, so a player who doesn't
@@ -567,6 +767,58 @@ function swingTall(o, { R, imix, room, len, W, H, G }) {
 // (hold: ride the ceiling) or the ceiling (release: ride the floor), then a 45-degree climb or drop of both bars. Varies:
 // run length, which side, the height step. Closed above and below (bars), so the ship can't go round it.
 CONCEPT["my-mwz1s7po"] = "a narrow corridor of two thin bars; obstacle runs on the floor (hold) or the ceiling (release); the bars climb and drop together";
+// PRESSES FIRST (2026-11-27): the corridor is the room; the gameplay is the side ridden, so the plan is the side switches
+// (a hold rides the roof, a release the floor; each ride's length from the tier and the click style, each switch on a
+// beat when there is one); the ship is stepped through the corridor (its floor and roof are surfaces it slides on, slopes
+// included), and the spikes go on the side NOT ridden, only where the planned path clears them by 8: so riding the wrong
+// side, or switching late, runs into them. Taller than the band: hidden H portals as before (bandMovers).
+// NOT REGISTERED YET (2026-11-27): the plan doesn't clear every piece. After riding a sloped roof the real ship stays
+// pinned up there ~50 ticks past the release (cmp: plan 120 vs real 124 three columns on, then 20-30 units apart), which
+// this stepper doesn't copy, so spikes it thinks are clear are not (4-6 of 6 plans clear). Needs lib/physics.js's ship
+// slope contact in shipStep; until then GEN["my-mwz1s7po"] is the shape-first version below, checked by the solver.
+const groundsPlan = o => { const C = ctx(Object.assign({ cols: 56 }, o), 10), { R, imix, room, len, W, H, G, mix, style, onBeat } = C, gap = room(5, 3);
+  // it comes in on the ground (the player enters a section there), so the corridor starts at the ground too
+  const next = tour(R, 0, H - gap);
+  const e = line(W, 0, L => { L.run(len(imix(10, 6), imix(12, 8))); L.leg(next(L.h())); });
+  const fl = x => { const c = Math.floor(x), f = x - c; return (e(c) + (e(c + 1) - e(c)) * f) * 30; };   // the floor's height at column x
+  const TPC = 30 / SHIP.X, T = Math.floor(W * TPC), st = { y: e(0) * 30 + 15, vy: 0 }, ys = [], ev = [], tr = []; let trusted = true;
+  // the climbs and drops: riding the floor into a rising slope (or the roof into a falling one) is a crash, so from ~3.5
+  // columns before each climb to its end the ship rides the roof (held), and the floor (released) for a drop
+  const need = Array(W + 6).fill(0);
+  for (let c = 0; c < W; c++) { const d = Math.sign(e(c + 1) - e(c)); if (!d) continue;
+    for (let x = Math.max(0, c - 4); x <= c + 1; x++) if (!need[x]) need[x] = d; }
+  let held = false, left = Math.round(onBeat(R.int(2, 4), 1.5) * TPC);
+  for (let t = 0; t < T; t++) { const c = t / TPC, nd = need[Math.floor(c + 0.5)];
+    if (nd && (nd > 0) !== held) left = 0;   // a climb or a drop ahead wants the other side now
+    else if (nd && left <= 0) left = 1;      // and holds the side it needs until it is past
+    else if (!nd && left > 1) { // a need coming: switch on the last beat before it (its window has ~2 columns to spare)
+      let ns = -1; for (let x = Math.floor(c + 1); x < Math.min(W, c + left / TPC + 1); x++) if (need[x] && (need[x] > 0) !== held) { ns = x; break; }
+      if (ns >= 0) { const b = onBeat(ns - 0.3, c + 1 / TPC); left = Math.min(left, Math.max(1, Math.round((b <= ns + 1.2 ? b : ns - 0.3) * TPC) - t)); } }
+    if (left <= 0) { held = !held; ev.push([+c.toFixed(4), held ? "press" : "release"]);
+      const ride = mix(3.5, 1.5) * (held ? style.holdAt(c) : 1) / style.pace(c) * (0.7 + R() * 0.6);
+      left = Math.max(30, Math.round(onBeat(c + ride + 2, c + 30 / TPC) * TPC) - t); }   // + the ~2 columns the crossing takes
+    shipStep(st, held); left--;
+    const f = fl(c + 1 / TPC) + 15, r = fl(c + 1 / TPC) + gap * 30 - 15, cc = Math.floor(c + 1 / TPC), flat = e(cc) === e(cc + 1) && e(cc - 1) === e(cc);
+    if (st.y < f || st.y > r) { st.y = clamp(st.y, f, r); st.vy = 0; trusted = flat; }   // touching: on a flat stretch the real ship is here too
+    ys.push(st.y); tr.push(trusted); }
+  // a column is trusted when, at every tick in it, the ship's last surface contact was on a flat stretch (after it rides
+  // a slope the real ship is off the stepper's until it next rests on a flat floor or roof)
+  const yb = Array(W).fill(1e9), yt = Array(W).fill(-1e9), ok = Array(W).fill(true);
+  for (let t = 0; t < ys.length; t++) { const c = Math.floor(t / TPC); if (c < W) { yb[c] = Math.min(yb[c], ys[t] - 15); yt[c] = Math.max(yt[c], ys[t] + 15); if (!tr[t]) ok[c] = false; } }
+  tunnel(G, W, e, gap, H - 1, 2);
+  bandMovers(G, W, H, "H", x => e(x) + gap / 2, x => Math.max(e(x), e(x + 1)), x => Math.min(e(x), e(x + 1)) + gap);
+  // spikes on the side not ridden, in runs, a column clear now and then (flat columns only: a spike never on a slope)
+  // the stepper doesn't copy the ship riding a sloped floor or roof (it drifts up to 25 units off the real one there), so
+  // no spike from a climb's or drop's start to 4 columns past its end, and a 12-unit margin elsewhere
+  const nearSlope = c => { for (let x = c - 4; x <= c; x++) if (x >= 0 && e(x) !== e(x + 1)) return true; return false; };
+  for (let c = 3; c < W - 2; c++) { const b = e(c); if (e(c - 1) !== b || e(c + 1) !== b || nearSlope(c) || !ok[c - 1] || !ok[c] || !ok[c + 1]) continue;
+    const okF = [c - 1, c, c + 1].every(x => yb[x] > b * 30 + 21 + 12), okR = [c - 1, c, c + 1].every(x => yt[x] < (b + gap - 1) * 30 + 9 - 12);
+    if (R.chance(0.15)) continue;
+    if (okF && !okR) G.put(c, b, "^"); else if (okR && !okF) G.put(c, b + gap - 1, "v"); else if (okF && okR && R.chance(0.5)) G.put(c, R.chance(0.5) ? b : b + gap - 1, R.chance(0.5) ? "^" : "v"); }
+  const presses = []; for (let i = 0; i < ev.length; i++) if (ev[i][1] === "press") presses.push([ev[i][0], ev[i + 1] ? ev[i + 1][0] : W]);
+  const path = []; for (let t = 0; t < ys.length; t += 8) path.push([+(t / TPC).toFixed(2), +(ys[t] / 30 - 0.5).toFixed(2)]);
+  return { map: G.rows(), mode: "ship", presses, path }; };
+// the shape-first version (the one in use)
 GEN["my-mwz1s7po"] = o => { const { R, imix, room, len, chance, W, H, G } = ctx(Object.assign({ cols: 56 }, o), 10), gap = room(5, 3);
   // the ship's band is 10 rows: the corridor tours all of it, down to the ground (no lower bar there) and up to the roof
   const next = tour(R, 0, H - gap);
@@ -671,6 +923,7 @@ GEN["my-mwz2haf0"] = o => { const { R, imix, room, chance, W, H, G } = ctx(o, 14
 const KEYS = Object.keys(GEN);
 function make(key, opts = {}) { const g = GEN[key]; if (!g) throw new Error("no generator for " + key + " (have " + KEYS.join(", ") + ")");
   const o = {}; for (const k of ["cols", "rows", "seed", "bpm", "beatCols", "speed"]) if (opts[k] != null) o[k] = +opts[k];
+  if (Array.isArray(opts.beats)) o.beats = opts.beats;   // a song's beats in the section (seconds, or {t, s})
   if (opts.tier != null) o.tier = isNaN(+opts.tier) ? opts.tier : +opts.tier;
   const r = g(o), z = (LS.SECTIONS || []).find(s => s.key === key);
   // a section taller than 12 rows asks the builder to zoom out (Evgeni 2026-11-27: "maybe we need to zoom out a bit to allow
@@ -681,7 +934,7 @@ function make(key, opts = {}) { const g = GEN[key]; if (!g) throw new Error("no 
 // how often a level builder should pick a type (1 = as often as any): Evgeni 2026-11-27 on hanging: "low priority on using
 // such ... considering removing as others contain these feates"
 const PRIORITY = { hanging: 0.2 };
-module.exports = { PRIORITY, GEN, CONCEPT, KEYS, TIERS, make, rng, tunnel };
+module.exports = { PRIORITY, GEN, CONCEPT, KEYS, TIERS, make, rng, tunnel, flyPlan, shipStep, ctx };
 
 if (require.main === module) {
   const a = process.argv.slice(2), arg = k => { const i = a.indexOf("--" + k); return i >= 0 ? a[i + 1] : null; }, cmd = a[0];

@@ -21,11 +21,13 @@ const shotsOf = file => { const d = path.join(ROOT, file.replace(/\.gdlvl$/, "_s
   return fs.existsSync(d) ? fs.readdirSync(d).filter(f => f.endsWith(".png")).sort().map(f => path.join(d, f)) : []; };
 const img = (name, alt) => name ? `<img loading=lazy src="${name}" alt="${esc(alt)}">` : `<div class=none>no frame</div>`;
 
+// HOVER ON EVERY BUTTON: tools/snippets/hover.css below
 let h = `<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width, initial-scale=1"><title>Deco options</title>
 <style>body{background:#0b0820;color:#ddd;font:14px system-ui;margin:12px}h2{margin:18px 0 6px}h3{margin:14px 0 4px;color:#9cf}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px}.row figure{margin:0}img{width:100%;display:block;border-radius:4px}
 figcaption{font-size:12px;opacity:.8;padding:2px 0}.none{aspect-ratio:16/9;display:grid;place-items:center;background:#222;border-radius:4px;opacity:.6}
-.lab{font-weight:600}</style>
+.lab{font-weight:600}
+${fs.readFileSync(path.join(__dirname, "snippets", "hover.css"), "utf8")}</style>
 <h1>Deco options</h1><p>Same play, dressed differently. Ice on the left, fire on the right.</p>`;
 
 // the best looks now, first (local/decoart/best.json: [{group: "fire"|"ice"|..., png, caption, level?}], written by hand or a

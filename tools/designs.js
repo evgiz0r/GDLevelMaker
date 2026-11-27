@@ -39,7 +39,7 @@ function list() {
   // geo: where the card sits in the gallery level, so a spot marked on it (designs_tab.js 📍) maps back to a column / row
   const DT = require("./designthemes.js"), scenes = DT.spec().scenes;
   for (const [name, t] of Object.entries(DT.THEMES)) { const q = scenes.find(z => z.name === name) || {};
-    out.push({ id: "theme:" + name, kind: "theme", name, skies: (t.skies || []).map(k => k.bg), backdrops: t.backdrops || {}, pick: DT.picks()[name] || { sky: 0, backdrop: "a" }, card: `cards/theme-${keyOf(name)}.jpg`, layout: `cards/layout-${keyOf(name)}.jpg`, parts: { kit: `cards/layoutkit-${keyOf(name)}.jpg`, play: `cards/layoutplay-${keyOf(name)}.jpg` },
+    out.push({ id: "theme:" + name, kind: "theme", name, skies: (t.skies || []).map(k => k.bg), backdrops: t.backdrops || {}, pick: DT.picks()[name] || { sky: 0, backdrop: "a" }, variants: (() => { try { return fs.readdirSync(path.join(__dirname, "..", "local", "designs", "cards")).map(f => (f.match(new RegExp("^theme-" + keyOf(name) + "-(s\\d[a-z])\\.jpg$")) || [])[1]).filter(Boolean); } catch (e) { return []; } })(), card: `cards/theme-${keyOf(name)}.jpg`, layout: `cards/layout-${keyOf(name)}.jpg`, parts: { kit: `cards/layoutkit-${keyOf(name)}.jpg`, play: `cards/layoutplay-${keyOf(name)}.jpg` },
       tiles0: tiles0(),
       // the board's parts (designs_tab.js): [key, name, w, h, mode, note] -- the pieces, the scene as built, and the layout
       // sections (tools/layoutsections.js)

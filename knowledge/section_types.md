@@ -56,9 +56,38 @@ type, so a builder can make a new one of any length, synced to the song, and so 
   late / early margin), the sim's arc of each click places the next surface (tools/sectiongen.js `cubeArc`, `ballTravel`,
   tick-stepped like lib/physics.js), and hazards go where a wrong press lands. The type returns `presses` (columns of the
   player's centre); `require("./tools/layoutcheck.js").planCheck(z)` plays exactly those taps, and `node tests/sectiongen.js`
-  fails any type whose plan dies. The solver is then only the check for secret ways. Done: open cube, ball, ball portals.
-  Not yet: fly, ship corridor, wave, flappy, swing, closer cube, staircase, stair path, orbs, spider (its overlap is its
-  window already, but no presses returned).
+  fails any type whose plan dies. The solver is then only the check for secret ways. Done: open cube, ball, ball portals,
+  fly (holds and releases -> `shipStep` path -> the corridor fitted around it: each column edge's floor between the path's
+  margins, slopes of a row a column at most, hazards only where the path clears them by 8; presses are [press, release]
+  column pairs, plus the planned `path` for the board; a draw that doesn't fit the grid is drawn again a little flatter;
+  the band's floor and roof count as safe surfaces, so the corridor never has to reach past them: 0 in 180 fall back to
+  the old shape). planCheck maps a plan column to a tick exactly (tick 0 = the first tick at or past
+  the section's start): rounding a column to the nearest tick put presses a tick early and the ship drifted 15 units off.
+  Wave (wavePlan): legs from the tier and the style (a quick middle, one ground slide, every turn on a beat when there is
+  one), the exact 45-degree path, the same fitter (`fitCorridor`, which now follows the path's own centre so the tunnel
+  zigzags with the flight). The gravity pair makes two turns itself (the portal stands where the wave touches it at that
+  turn). It starts and ends on the ground (a wave sliding off the last floor block into the exit dies), and never rides
+  an invisible band edge (that looked like flying straight in the open for 15 columns, and GD 2.2091 may hold no band for
+  the wave at all): it turns a row before one. 1 in 240 falls back to the old shape; 75-81% of turns on half beats.
+  Flying on the grounds (my-mwz1s7po): tried 2026-11-27 (`groundsPlan`, not registered): the side switches planned, the
+  climbs and drops force the roof / floor side, spikes on the side not ridden. It clears at 56-80 x 10, but with a beat
+  4 of 6: after riding a sloped roof the real ship stays pinned up there ~50 ticks past the release, which the page-side
+  `shipStep` doesn't copy, so later spikes it thinks are clear are hit. Needs the ship's slope contact from
+  lib/physics.js in the stepper; until then the shape-first version is in use.
+  Flappy (ufo, up to the band's 10 rows): taps on the style's rhythm (quicker while climbing to a higher target, skipped
+  above it), `ufoStep` as lib/physics.js, poles 1-4 wide whose gaps are fitted around the path over their columns (margin
+  8, at least the tier's room); taller maps keep the shape-first version with its U portals. 1.8-2.7 taps a second,
+  all taps on half beats with a bpm.
+  Not yet: swing, closer cube, staircase, stair path, orbs, spider (its overlap is its window
+  already, but no presses returned); fly's gravity pair (the planner flies upright only).
+- **From a beat** (Evgeni 2026-11-27: "i want to be able to generate according to a beat as well, so its not just random
+  stats, should be applicable in a level ... in the long run much more efficient than solving"): `make(key, {bpm})` or
+  `{beats: [seconds | {t, s}]}` (a song section's hits with strength, tools/hits.js / impacts.js). ctx() turns them into
+  beat columns (a bpm grid: half beats, a bar's first beat strength 1, beats 0.7, half beats 0.35) and `onBeat(want, min)`
+  moves each press the style wants to the nearest beat, a strong one counted up to half a beat nearer. The style's
+  density sets how far apart the wants are, so the share of beats taken. Measured at 140 / 175 bpm: open cube, ball, ball
+  portals 100% of presses on half beats; fly 80-87% of press and release ends (the rest are forced turns where the
+  climb or dive would be too steep); every plan still clears (tests/sectiongen.js checks both).
 - **One click style per generation, a small drift inside it** (Evgeni 2026-11-27: "the click pattern/holds/cps differs
   between generations. not consistent across the whole section, some have bit more cps, some have bit less. some hold more
   some hold less"): ctx() gives `style` -- a density (x0.82-1.22) and hold factor (x0.7-1.4) per generation, and
