@@ -217,7 +217,7 @@ function marks() {
 }
 // Evgeni's edited theme layout (the Themes tab board, collection "designdraw": per part the newest revision's tiles) back
 // into text maps: `node tools/designs.js layout` prints them (fetch the collection first: ArtifactData list designdraw
-// out_dir local/designs/db). --apply writes them into tools/designthemes.js (SCENE / KIT_MAP), then rebuild:
+// out_dir local/designs/db; his added sections: list designsecs into the same out_dir). --apply writes them into tools/designthemes.js (SCENE / KIT_MAP), then rebuild:
 // node tools/designthemes.js spec && node tools/make.js specs/lab_design_themes.json && node tools/designs.js cards --themes
 function layoutBack() {
   const dir = path.join(DIR, "db", "designdraw"), DT = require("./designthemes.js"), newest = {};
@@ -238,6 +238,14 @@ function layoutBack() {
   // the current scene is built from the sections now (designs_tab.js sceneTiles), so an old saved "play" edit is not applied
   if (play && play.tiles && process.argv.includes("--scene")) out.SCENE = toMap(play.tiles, Math.max(DT.SCENE.length, ...play.tiles.map(q => q.r + 1)), Math.max(DT.SCENE[0].length, ...play.tiles.map(q => q.c)), 1);
   // the sections: his map per key -> knowledge/layout_sections.json (tools/layoutsections.js takes it over its draft)
+  // his added sections (collection "designsecs", newest revision per key) -> knowledge/layout_sections_added.json first, so
+  // layoutsections.js knows them before their drawings are read back below
+  const sdir = path.join(DIR, "db", "designsecs"), added = {};
+  for (const f of fs.existsSync(sdir) ? fs.readdirSync(sdir) : []) { const d = JSON.parse(fs.readFileSync(path.join(sdir, f), "utf8")), x = d.data || d;
+    if (x && x.key && (!added[x.key] || String(x.at) > String(added[x.key].at))) added[x.key] = x; }
+  if (Object.keys(added).length) { const list = Object.values(added).sort((a, b) => a.key < b.key ? -1 : 1).map(({ key, name, mode, w, h, after, deleted }) => ({ key, name, mode, w, h, after, ...(deleted ? { deleted } : {}) }));
+    console.log("added sections: " + list.map(z => `${z.name} (${z.mode}${z.deleted ? ", removed" : ""})`).join(", "));
+    if (process.argv.includes("--apply")) { fs.writeFileSync(path.join(ROOT, "knowledge", "layout_sections_added.json"), JSON.stringify(list, null, 1) + "\n"); delete require.cache[require.resolve("./layoutsections.js")]; } }
   const LS = require("./layoutsections.js"), secs = {};
   for (const z of LS.SECTIONS) { const e = newest["layout:sec:" + z.key]; if (!e || !e.tiles) continue;
     const W = Math.max(z.map[0].length, ...e.tiles.map(q => q.c + 1)), H = Math.max(z.map.length, ...e.tiles.map(q => q.r + 1));

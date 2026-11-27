@@ -100,6 +100,14 @@ const SECTIONS = [
 // his edited maps (tools/designs.js layout --apply) replace the drafts
 try { const ed = JSON.parse(require("fs").readFileSync(require("path").join(__dirname, "..", "knowledge", "layout_sections.json"), "utf8"));
   for (const z of SECTIONS) if (ed[z.key]) { z.map = ed[z.key]; z.edited = true; } } catch (e) {}
+// sections he added on the board (designs_tab.js "＋ section", collection "designsecs"; tools/designs.js layout --apply writes
+// knowledge/layout_sections_added.json): each goes in after the section it follows, its map from layout_sections.json
+// (his drawing) or empty until he draws it
+try { const add = JSON.parse(require("fs").readFileSync(require("path").join(__dirname, "..", "knowledge", "layout_sections_added.json"), "utf8"));
+  const ed = (() => { try { return JSON.parse(require("fs").readFileSync(require("path").join(__dirname, "..", "knowledge", "layout_sections.json"), "utf8")); } catch (e) { return {}; } })();
+  for (const z of add.filter(z => !z.deleted)) { const i = SECTIONS.findIndex(q => q.key === z.after);
+    const map = ed[z.key] || Array.from({ length: z.h }, () => ".".repeat(z.w));
+    SECTIONS.splice(i >= 0 ? i + 1 : SECTIONS.length, 0, { key: z.key, name: z.name, mode: z.mode, note: "his section", map, edited: !!ed[z.key], added: true }); } } catch (e) {}
 // as board tiles: {t, c, r} with c from the section's left edge, r rows above the ground
 const tiles = s => { const out = []; s.map.forEach((l, i) => [...l].forEach((ch, c) => { if (ch !== ".") out.push({ t: ch, c, r: s.map.length - 1 - i }); })); return out; };
 // ALL THE SECTIONS JOINED (the board's "current scene", tools/designs_tab.js sceneTiles, the same lib/scenejoin.js): between

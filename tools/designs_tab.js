@@ -169,6 +169,20 @@ window.initDesigns = async function (root) {
   // themes here", "one extra section of the theme layout", "make it two parts, that i could look both/one of them: the
   // blocks spike hazard layout (just hanging) and the gameplay layout"). A free board: drawing is always on, no draw button
   // ("i tap over the layout nothing happens").
+  // sections he adds himself (Evgeni 2026-11-27: "give me option to add one more section"): collection "designsecs",
+  // revision docs {key, name, mode, w, h, after, at, deleted?, sentAt?}; drawn like the others (tiles in designdraw)
+  const ADDED = {}; let ADDFORM = false;
+  const MODES = ["cube", "ship", "wave", "ufo", "ball", "robot", "spider", "swing"];
+  async function saveSec(k, sent) { const z = ADDED[k]; z.at = new Date().toISOString(); if (sent) z.sentAt = z.at;
+    try { if (!DB) throw new Error("saves on the claude.ai page"); await DB.collection("designsecs").doc(k.replace(/[^A-Za-z0-9_-]/g, "_") + "-" + Date.now().toString(36)).set(JSON.parse(JSON.stringify(z))); DST.layout = "saved"; }
+    catch (x) { DST.layout = "not saved: " + (x && (x.code || x.message) || String(x)); } }
+  // the base parts with his added sections put in after the section each follows
+  function withAdded(base) { const out = base.filter(p => !(ADDED[p[0].slice(4)] || {}).deleted);
+    for (const z of Object.values(ADDED).filter(z => !z.deleted).sort((a, b) => String(a.key) < String(b.key) ? -1 : 1)) {
+      if (out.some(p => p[0] === "sec:" + z.key)) continue;   // already in the repo's list (applied)
+      const q = ["sec:" + z.key, z.name, z.w, z.h, z.mode, "your section"], i = out.findIndex(p => p[0] === "sec:" + z.after);
+      if (i >= 0) out.splice(i + 1, 0, q); else out.push(q); }
+    return out; }
   let LPARTS = [];   // [key, name, w, h, mode, note]: set by layoutSection() from the theme entry
   let LACT = "layout:play", TOOL = "#", painting = null; const HIST = [], HAZ = new Set(["^", "v", "o", "q", "s"]);
   // a part's tiles: Evgeni's edited copy once he changed it, else the layout as built (designs.json tiles0)
@@ -210,7 +224,7 @@ window.initDesigns = async function (root) {
   }
   function layoutSection() {
     const t = L.find(d => d.kind === "theme" && d.lparts); if (!t) return "";
-    LPARTS = t.lparts;
+    LPARTS = withAdded(t.lparts);
     { const S = SECS(); LPARTS = LPARTS.map(q => q[0] !== "play" ? q : ["play", "current scene", sceneW(), Math.max(...S.map(z => z[3])), "all", "the sections joined in order; edit a section to change it"]); }
     const isOpen = open.layoutsec !== false, fs = FS === "layout", cs = Math.round(26 * (open["zoom:layout"] || 1));
     // SECTIONS (Evgeni 2026-11-27: "i want the layout to have specific sections ... and each of those can be viewed
@@ -236,7 +250,13 @@ window.initDesigns = async function (root) {
     const n = LPARTS.filter(q => q[0] !== "play" && (DRAW["layout:" + q[0]] || {}).tiles).length;   // parts he has edited
     const TOOLS = [["#", "▭ block"], ["/", "◢ slope"], ["\\", "◣ slope"], ["7", "◥ ceiling slope"], ["r", "◤ ceiling slope"], ["^", "▲ spike"], ["v", "▼ hanging spike"], ["o", "⚙ saw"], ["erase", "⌫ erase"]];
     const chips = `<span class="pens">` + LPARTS.map(q => `<button class="lpt${show(q[0]) ? " on" : ""}" data-p="${esc(q[0])}" title="${esc(q[5] || "")}">${show(q[0]) ? "☑" : "☐"} ${esc(q[1])}${q[0] !== "play" && (DRAW["layout:" + q[0]] || {}).tiles ? " ✏" : ""}</button>`).join("")
-      + `<button class="lall">all</button><button class="lnone">none</button></span>`;
+      + `<button class="lall">all</button><button class="lnone">none</button><button class="ladd">＋ section</button></span>`
+      + (ADDFORM ? `<span class="pens laddf"><input class="lan" placeholder="name, e.g. robot stairs" maxlength="40">`
+        + `<select class="lam">${MODES.map(m => `<option>${m}</option>`).join("")}</select>`
+        + `<label>width <input class="law" type="number" min="8" max="80" value="32" style="width:52px"></label>`
+        + `<label>height <input class="lah" type="number" min="4" max="14" value="10" style="width:46px"></label>`
+        + `<label>after <select class="laa">${SECS().map(q => `<option value="${esc(q[0].slice(4))}"${q === SECS()[SECS().length - 1] ? " selected" : ""}>${esc(q[1])}</option>`).join("")}</select></label>`
+        + `<button class="lago">add</button><button class="lacancel">cancel</button></span>` : "");
     const tools = `<span class="pens">` + TOOLS.map(([k, l]) => `<button class="ptool${TOOL === k ? " on" : ""}" data-t="${esc(k)}">${l}</button>`).join("")
       + `<button class="pundo">↶ undo</button><button class="pclear">🗑 clear shown</button><button class="preset">↺ shown back to ours</button>`
       + `<button class="zoom" data-z="-1">−</button><button class="zoom" data-z="1">＋</button><button class="pfs">${fs ? "⤡ exit" : "⛶ full screen"}</button>`
@@ -246,7 +266,7 @@ window.initDesigns = async function (root) {
       + (n || LPARTS.some(q => noteUnsent(q[0])) ? `<button class="msend" data-label="📨 send to Claude"${CAN_SEND ? "" : " disabled"}>📨 send to Claude</button>` : "") + `<span class="ds pst">${esc(DST.layout || "")}</span></span>`;
     return `<section data-g="layoutsec"><h2 class="stitle fold-h" role="button" tabindex="0" aria-expanded="${isOpen}">${isOpen ? "▾" : "▸"} Theme layout <span class="ds">the same for every theme · one part per kind of play · tap to place${n ? " · ✏ " + n : ""}</span></h2>`
       + (isOpen ? `<div class="dc lay board${fs ? " fs" : ""}" data-id="${LACT}"><div class="lyh">${chips}</div><div class="lyh">${tools}</div>`
-        + LPARTS.filter(q => show(q[0])).map(q => `<div class="lpn"><b>${esc(q[1])}</b> · ${esc(q[4] || "")} · ${q[2]} x ${q[3]}${q[5] ? " · " + esc(q[5]) : ""}</div><div class="wide" data-w="L:${esc(q[0])}">${grid(q)}</div>`
+        + LPARTS.filter(q => show(q[0])).map(q => `<div class="lpn"><b>${esc(q[1])}</b> · ${esc(q[4] || "")} · ${q[2]} x ${q[3]}${q[5] ? " · " + esc(q[5]) : ""}${ADDED[q[0].slice(4)] ? ` <button class="ldel" data-k="${esc(q[0].slice(4))}">✕ remove</button>` : ""}</div><div class="wide" data-w="L:${esc(q[0])}">${grid(q)}</div>`
           + `<div class="lnr"><input class="lnote" data-n="${esc(q[0])}" placeholder="your notes on ${esc(q[1])} ..." value="${esc((NOTES[q[0]] || {}).note || "")}"><span class="ds lnst" data-n="${esc(q[0])}">${esc(NST[q[0]] || (noteUnsent(q[0]) ? "not sent yet" : (NOTES[q[0]] || {}).sentNote ? "sent" : ""))}</span></div>`).join("")
         + `</div>` : "") + `</section>`;
   }
@@ -260,15 +280,17 @@ window.initDesigns = async function (root) {
     const keys = Object.keys(DRAW).filter(k => k !== "layout:play");
     const fresh = keys.filter(k => DRAW[k] && (DRAW[k].tiles || (DRAW[k].strokes || []).length) && (DRAW[k].sentAt || "") !== (DRAW[k].at || "x"));
     const nts = LPARTS.filter(q => noteUnsent(q[0]));
-    return { ms, fresh, nts, n: ms.length + fresh.length + nts.length };
+    const nss = Object.values(ADDED).filter(z => (z.sentAt || "") !== (z.at || "x"));
+    return { ms, fresh, nts, nss, n: ms.length + fresh.length + nts.length + nss.length };
   }
   async function sendNew(anchorEl, st) {
-    const { ms, fresh, nts, n } = collectNew(), say = t => { if (st) st.textContent = t; const g = document.getElementById("sendall-st"); if (g) g.textContent = t; };
+    const { ms, fresh, nts, nss, n } = collectNew(), say = t => { if (st) st.textContent = t; const g = document.getElementById("sendall-st"); if (g) g.textContent = t; };
     if (!n) { say("nothing new: everything was sent already"); return true; }
     if (!CM || !CM.sendToClaude) { say("not sent: only on the claude.ai page"); return false; }
     const nameOf = id => (L.find(x => x.id === id) || { name: id }).name;
     const byTheme = {}; for (const m of ms) (byTheme[m.design] = byTheme[m.design] || []).push(m);
     const text = Object.keys(byTheme).map(id => `📍 marks on the ${nameOf(id)} theme scene (catalogue Themes tab):\n` + byTheme[id].map((m, i) => `${i + 1}. col ${m.col}, row ${m.row} (x ${m.x}, y ${m.y}): ${noteOf(m).trim() || "(no note)"}`).join("\n") + "\n").join("")
+      + nss.map(z => z.deleted ? `➖ section removed from the theme layout: ${z.name} (sec:${z.key})\n` : `➕ new section on the theme layout: ${z.name} (sec:${z.key}), ${z.mode}, ${z.w} x ${z.h}, after ${z.after}\n`).join("")
       + nts.map(q => `💬 note on the theme layout, ${q[1]} (${q[0]}): ${NOTES[q[0]].note.trim()}\n`).join("")
       + fresh.map(k => `✏ drawing on the ${k.startsWith("layout:") ? "theme layout, " + ((LPARTS.find(q => "layout:" + q[0] === k) || [])[1] || k) : k}: edited (${(DRAW[k].tiles || []).length} pieces; the whole map is in collection designdraw)`).join("\n");
     say("sending " + n + " ...");
@@ -276,6 +298,7 @@ window.initDesigns = async function (root) {
     catch (x) { say("not sent (" + (x && (x.code || x.message) || x) + "): wait a few seconds after typing, then 📨 again"); return false; }
     for (const k of fresh) { const at = new Date().toISOString(); DRAW[k].at = at; DRAW[k].sentAt = at;
       try { if (DB) await DB.collection("designdraw").doc(k.replace(/[^A-Za-z0-9_-]/g, "_") + "-" + Date.now().toString(36)).set({ design: k, strokes: DRAW[k].strokes || [], tiles: DRAW[k].tiles || null, at, sentAt: at }); } catch (x) {} }
+    for (const z of nss) await saveSec(z.key, true);
     for (const q of nts) { NOTES[q[0]].sentNote = NOTES[q[0]].note.trim(); NST[q[0]] = "sent"; await saveNote(q[0]); NST[q[0]] = "sent"; }
     for (const m of ms) { PEND[m.mid] = noteOf(m); m.sentNote = noteOf(m).trim(); m.sent = new Date().toISOString(); await saveMark(m.mid); }
     say("sent " + n + " to Claude " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })); render(); return true;
@@ -327,6 +350,14 @@ window.initDesigns = async function (root) {
       for (const k of ks) await saveDraw(k);
       DST.layout = ks.every(k => DST[k] === "saved") ? "saved " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + " (" + ks.length + ")" : ks.map(k => DST[k]).find(v => v !== "saved");
       if (st) st.textContent = DST.layout; return; }
+    if (e.target.closest(".ladd")) { ADDFORM = !ADDFORM; render(); const i = root.querySelector(".lan"); if (i) i.focus(); return; }
+    if (e.target.closest(".lacancel")) { ADDFORM = false; render(); return; }
+    if (e.target.closest(".lago")) { const f = e.target.closest(".laddf"), v = c => f.querySelector(c).value;
+      const name = v(".lan").trim() || "new section", key = "my-" + Date.now().toString(36);
+      ADDED[key] = { key, name, mode: v(".lam"), w: Math.max(8, Math.min(80, +v(".law") || 32)), h: Math.max(4, Math.min(14, +v(".lah") || 10)), after: v(".laa") };
+      ADDFORM = false; open["lpart:sec:" + key] = true; try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {}
+      await saveSec(key); render(); return; }
+    const ldel = e.target.closest(".ldel"); if (ldel) { const z = ADDED[ldel.dataset.k]; if (z) { z.deleted = true; await saveSec(z.key); render(); } return; }
     const lpt = e.target.closest(".lpt"); if (lpt) { const k = "lpart:" + lpt.dataset.p; open[k] = !lsh(lpt.dataset.p); try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} render(); return; }
     const pc = e.target.closest(".pcol"); if (pc) { PCOL = pc.dataset.c; ERASE = false; render(); return; }
     const pw = e.target.closest(".pw"); if (pw) { PW_ = +pw.dataset.w; render(); return; }
@@ -438,7 +469,8 @@ window.initDesigns = async function (root) {
     try { if (!DB) throw new Error("saves on the claude.ai page"); const at = new Date().toISOString(); await DB.collection("designdraw").doc(id.replace(/[^A-Za-z0-9_-]/g, "_") + "-" + Date.now().toString(36)).set({ design: id, strokes: DRAW[id].strokes || [], tiles: DRAW[id].tiles || null, at }); DRAW[id].at = at; DST[id] = "saved"; }
     catch (x) { DST[id] = "not saved: " + (x && (x.code || x.message) || String(x)); }
     if (st) st.textContent = DST[id]; }
-  root.addEventListener("keydown", e => { if (e.key === "Enter" && e.target.classList && e.target.classList.contains("lnote")) { e.preventDefault(); clearTimeout(noteT); saveNote(e.target.dataset.n); return; }
+  root.addEventListener("keydown", e => { if (e.key === "Enter" && e.target.classList && e.target.classList.contains("lan")) { e.preventDefault(); const b = root.querySelector(".lago"); if (b) b.click(); return; }
+    if (e.key === "Enter" && e.target.classList && e.target.classList.contains("lnote")) { e.preventDefault(); clearTimeout(noteT); saveNote(e.target.dataset.n); return; }
     if (e.key === "Enter" && e.target.closest && e.target.closest("[data-m]")) { e.preventDefault(); const row = e.target.closest("[data-m]"); PEND[row.dataset.m] = e.target.value; saveMark(row.dataset.m); return; } if (e.key === "Enter" && e.target.classList.contains("fold-h")) e.target.click(); });
   root.addEventListener("input", e => {
     if (e.target.classList && e.target.classList.contains("lnote")) { const k = e.target.dataset.n; NOTES[k] = Object.assign(NOTES[k] || {}, { note: e.target.value });
@@ -474,6 +506,10 @@ window.initDesigns = async function (root) {
     if (DB) DB.collection("designdraw").onSnapshot(snap => {
       for (const d of snap.docs.map(x => x.data())) if (d && d.design && (!DRAW[d.design] || !DRAW[d.design].at || String(d.at) > String(DRAW[d.design].at))) if (!cur) { DRAW[d.design] = JSON.parse(JSON.stringify(d)); if (DRAW[d.design].tiles) orient(DRAW[d.design].tiles); }   // a plain copy: the db hands back frozen objects, and editing one in place threw (2026-11-27: taps and clear did nothing in the app)
       if (!cur && !(document.activeElement && /INPUT|TEXTAREA/.test(document.activeElement.tagName))) render();
+    }, () => {});
+    if (DB) DB.collection("designsecs").onSnapshot(snap => {
+      for (const d of snap.docs.map(x => JSON.parse(JSON.stringify(x.data())))) if (d && d.key && (!ADDED[d.key] || String(d.at) > String(ADDED[d.key].at || ""))) ADDED[d.key] = d;
+      if (!(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) render();
     }, () => {});
     if (DB) DB.collection("designnotes").onSnapshot(snap => {
       for (const d of snap.docs.map(x => JSON.parse(JSON.stringify(x.data())))) if (d && d.part && (!NOTES[d.part] || !NOTES[d.part].at || String(d.at) > String(NOTES[d.part].at))) {
