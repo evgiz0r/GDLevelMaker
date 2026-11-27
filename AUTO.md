@@ -383,6 +383,15 @@ ends)". Two changes, both in the tools, so every autobeat level gets them:
 Evgeni picked A ("1 for now", 2026-11-27): it stays the default, and the sign's stage is now dressed as one more slab of the
 same design (deco-only blocks, never in the level; `endDeco(..., {stage: false})` = off). Open: make.js's ending is not changed yet.
 
+### Re-checking finished auto levels (tools/autocheck.js, 2026-11-27)
+`node tools/autocheck.js <level.gdlvl> ...` runs a saved auto level on today's physics: does it clear with no press, and
+how many stray presses (a tap or a 0.2 s hold, every 30 ticks) find a way that neither dies nor rejoins the auto run within
+5 s ("leaks", what autobeat's saws shut). Made when saws switched to GD's Fix Radius Collision (kA39, PHYSICS.md): the labs'
+saws had been checked with the old rect test. Result: auto beat 1-4 and endings A-C give the SAME counts with the new rule
+and with `GDLM_FIXRADIUS=0` (auto beat 30 leaks, 2: 14, 3: 9, 4: 8, endings: 8 each), so the change opened no new way.
+The leaks that remain are old: presses in the last half second under the sign ("to the end", harmless) and a few
+mid-level spots the builder accepted (its "leaks per pass" line). ~1 s per level.
+
 ### Sections by character (tools/sections.js, 2026-11-26)
 Evgeni: "sections have to be cut by the transitions of the level". The batches were already cut at the song's transitions,
 but each batch's kinds and icons were a dice roll. Now each batch is typed from the measured song (heaviness, loudness, which
