@@ -138,7 +138,7 @@ Open: GD's key 9 in a song entry (a number that differs per song) is left out; G
 
 ## Install queue: levels go into the save the moment GD closes
 
-**Since 2026-11-27, with GD running, install.js goes through the probe mod (v0.6.0+) instead:** the mod adds the level to
+**Since 2026-11-27, with GD running, install.js goes through the probe mod (v0.6.1+) instead:** the mod adds the level to
 My Levels on a menu, keeps the online ID, lets GD save, and install.js reads it back (GEODE.md "Install into a running GD").
 The queue is the fallback when the mod is not loaded / older, and for `--slot` while GD runs. The user's "install" is still
 needed for every level (CLAUDE.md "Viewer first, always").

@@ -19,17 +19,17 @@ const save = path.join(dir, "CCLocalLevels.dat"); fs.writeFileSync(save, "not a 
 const quiet = fn => { const w = process.stdout.write; let out = ""; process.stdout.write = s => { out += s; return true; }; try { return [fn(), out]; } finally { process.stdout.write = w; } };
 
 // versions and the ready check
-ok(H.atLeast("v0.6.0") && H.atLeast("v0.10.1") && H.atLeast("1.0.0") && !H.atLeast("v0.5.1") && !H.atLeast(""), "version compare");
+ok(H.atLeast("v0.6.1") && !H.atLeast("v0.6.0") && H.atLeast("v0.10.1") && H.atLeast("1.0.0") && !H.atLeast("v0.5.1") && !H.atLeast(""), "version compare");
 const pd = process.env.GDLM_PROBE_DIR; fs.mkdirSync(pd, { recursive: true });
 ok(!H.modReady({ pids: [42] }).ok, "no status file: not ready");
 fs.writeFileSync(path.join(pd, "probe.status.json"), JSON.stringify({ version: "v0.5.1", pid: 42 }));
-ok(/v0\.6\.0/.test(H.modReady({ pids: [42] }).why), "older mod: not ready");
-fs.writeFileSync(path.join(pd, "probe.status.json"), JSON.stringify({ version: "v0.6.0", pid: 41 }));
+ok(/v0\.6\.1/.test(H.modReady({ pids: [42] }).why), "older mod: not ready");
+fs.writeFileSync(path.join(pd, "probe.status.json"), JSON.stringify({ version: "v0.6.1", pid: 41 }));
 ok(!H.modReady({ pids: [42] }).ok, "status from another GD run: not ready");
-fs.writeFileSync(path.join(pd, "probe.status.json"), JSON.stringify({ version: "v0.6.0", pid: 42 }));
-ok(H.modReady({ pids: [42] }).ok, "mod v0.6.0 in this GD: ready");
+fs.writeFileSync(path.join(pd, "probe.status.json"), JSON.stringify({ version: "v0.6.1", pid: 42 }));
+ok(H.modReady({ pids: [42] }).ok, "mod v0.6.1 in this GD: ready");
 
-const ready = { ...H, modReady: () => ({ ok: true, status: { version: "v0.6.0", pid: 42 } }) };
+const ready = { ...H, modReady: () => ({ ok: true, status: { version: "v0.6.1", pid: 42 } }) };
 
 // a fake mod: answers every request like the real one (name check, installed, not saved)
 const fake = spawn(process.execPath, ["-e", `

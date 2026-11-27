@@ -13,7 +13,7 @@
 const fs = require("fs"), path = require("path");
 const { execFileSync } = require("child_process");
 
-const MIN = [0, 6, 0];
+const MIN = [0, 6, 1];   // v0.6.0 took a request only at the quit once (GEODE.md); v0.6.1 is the one checked in the game
 function probeDir() {
   return process.env.GDLM_PROBE_DIR || path.join(require("./gdpaths.js").SAVE, "geode", "mods", "gdlm.probe");
 }
