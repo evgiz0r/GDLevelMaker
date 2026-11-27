@@ -59,11 +59,15 @@ function line(W, h0, step) { const e = [h0]; let h = h0;
   while (e.length <= W + 1) { const n = e.length; step(api, n); if (e.length === n) e.push(h); }
   return x => e[Math.min(Math.max(0, x), e.length - 1)]; }
 
-// a height tour (Evgeni 2026-11-27: "can we try 100% spread or close in all generations if possible. should be doable
-// hitting the ground here and there", "play over the whole screen is usually rewarded"): each next target lies in the
-// other half of [lo, hi], and every third one (or by chance) is the very edge, so a path visits the floor and the top
-const tour = (R, lo, hi) => { let n = 0; return h => { n++; const m = (lo + hi) / 2, ext = n % 3 === 0 || R.chance(0.3);
-  return h < m ? (ext ? hi : R.int(Math.ceil(m), hi)) : (ext ? lo : R.int(lo, Math.floor(m))); }; };
+// a height wander (Evgeni 2026-11-27: "can we try 100% spread or close in all generations if possible", then, on the ship
+// corridor: "trying to spread in a too forced way. making the gameplay really long to create those patterns ... we should
+// start from the middle, if we want to have chances to cover more ground. it doesnt have to be good every generation"):
+// the path starts in the middle; each next target is a move of 2 to ~half the room either way (toward the far side more
+// often), and only now and then (15%) the very edge. Coverage comes by chance, not by forced climbs.
+const tour = (R, lo, hi) => h => { const m = (lo + hi) / 2, span = hi - lo;
+  if (R.chance(0.15)) return h < m ? hi : lo;
+  const dir = R.chance(h < m ? 0.7 : 0.3) ? 1 : -1, n = R.int(2, Math.max(2, Math.round(span / 2)));
+  return clamp(h + dir * n, lo, hi); };
 // BAND MOVERS for a flying corridor taller than the mode's 10-row band (Evgeni 2026-11-27: "even if i make height x2 some
 // of the modes stay on their height like hardcoded"; "swing/ship/ufo portals in the middle of the gameplay recenter the
 // screen. people put invisible ones to move further in the screens"): a hidden portal of the mode (`ch`: H ship, U ufo,
@@ -204,7 +208,7 @@ GEN.fly = o => { const { R, imix, room, len, chance, W, H, G } = ctx(o, 10), gap
   // and the whole band (10 rows, the map's height): the corridor tours from the ground to the band's roof (hiMax = no
   // ceiling blocks there, the roof is the ceiling), a gap of 6 (5 harder) rows
   const next = tour(R, 0, hiMax);
-  const e = line(W, 1, L => { L.run(len(imix(3, 1), imix(4, 2)) + (L.h() === 0 || L.h() === hiMax ? 2 : 0)); L.leg(next(L.h())); });
+  const e = line(W, Math.round(hiMax / 2), L => { L.run(len(imix(3, 1), imix(4, 2)) + (L.h() === 0 || L.h() === hiMax ? 2 : 0)); L.leg(next(L.h())); });
   tunnel(G, W, e, gap, H - 1);
   const gp = gravPair(W, 30);
   bandMovers(G, W, H, "H", x => e(x) + gap / 2, x => Math.max(e(x), e(x + 1)), x => Math.min(e(x), e(x + 1)) + gap);
@@ -439,7 +443,7 @@ CONCEPT["my-mwz1s7po"] = "a narrow corridor of two thin bars; obstacle runs on t
 GEN["my-mwz1s7po"] = o => { const { R, imix, room, len, chance, W, H, G } = ctx(Object.assign({ cols: 56 }, o), 10), gap = room(5, 3);
   // the ship's band is 10 rows: the corridor tours all of it, down to the ground (no lower bar there) and up to the roof
   const next = tour(R, 0, H - gap);
-  const e = line(W, 2, L => { L.run(len(imix(10, 6), imix(12, 8))); L.leg(next(L.h())); });
+  const e = line(W, Math.round((H - gap) / 2), L => { L.run(len(imix(10, 6), imix(12, 8))); L.leg(next(L.h())); });
   tunnel(G, W, e, gap, H - 1, 2);
   bandMovers(G, W, H, "H", x => e(x) + gap / 2, x => Math.max(e(x), e(x + 1)), x => Math.min(e(x), e(x + 1)) + gap);
   let side = R.chance(0.5) ? 1 : -1;
