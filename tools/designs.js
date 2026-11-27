@@ -140,7 +140,10 @@ function votes() {
 // first column, row 0 = on the ground) and what the gallery level has there
 function marks() {
   let rows = [];
-  try { const d = JSON.parse(fs.readFileSync(path.join(DIR, "marks_phone.json"), "utf8")); rows = (Array.isArray(d) ? d : d.docs || d.documents || []).map(r => r.data || r); }
+  try { const d = JSON.parse(fs.readFileSync(path.join(DIR, "marks_phone.json"), "utf8")); rows = (Array.isArray(d) ? d : d.docs || d.documents || []).map(r => r.data || r);
+    // revisions (designs_tab.js): each mark's newest by `at`; a deleted one is gone from the page (fixed or removed)
+    const by = new Map(); for (const d of rows) { if (!d || !d.mid) continue; const o = by.get(d.mid); if (!o || String(d.at) >= String(o.at)) by.set(d.mid, d); }
+    rows = [...by.values()].filter(d => !d.deleted); }
   catch (e) { console.log("no local/designs/marks_phone.json: fetch the page's db collection designmarks with ArtifactData list first"); return; }
   const lvl = require("./io.js").readGdlvl(path.join(ROOT, "levels", "gdlm_design_themes.gdlvl")).level.objects, GD = require("./io.js").GD;
   rows.sort((a, b) => String(a.design).localeCompare(String(b.design)) || a.x - b.x);

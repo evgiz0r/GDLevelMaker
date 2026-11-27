@@ -44,12 +44,19 @@ window.initDesigns = async function (root) {
   // a mark is sent once: 📨 sends only marks never sent, or whose note changed since (no repeats; Evgeni 2026-11-27)
   const unsent = m => !m.seen && noteOf(m).trim() && m.sentNote !== noteOf(m).trim();
   const noteOf = m => PEND[m.mid] !== undefined ? PEND[m.mid] : (m.note || "");
+  // EVERY SAVE IS A NEW DOCUMENT (a revision: id = mark id + "-" + time, field mid = the mark): rewriting a mark's own
+  // document never landed from the page (2026-11-27: every note stayed "" while creating worked), so nothing is ever
+  // overwritten; a reader takes each mark's newest revision by `at` (rev), `deleted: true` is a removal. Claude's seen /
+  // reply are revisions too. tools/designs.js marks reads it the same way.
+  const putRev = m => DB.collection("designmarks").doc(m.mid + "-" + Date.now().toString(36)).set(Object.assign({}, m, { at: new Date().toISOString() }));
+  const latest = docs => { const by = new Map(); for (const d of docs) { if (!d || !d.mid) continue; const o = by.get(d.mid); if (!o || String(d.at) >= String(o.at)) by.set(d.mid, d); }
+    return [...by.values()].filter(d => !d.deleted); };
   async function saveMark(mid) {
     const m = MARKS.find(z => z.mid === mid); if (!m) return;
     if (PEND[mid] !== undefined) m.note = PEND[mid].trim();
     m.at = new Date().toISOString(); const want = m.note;
     const st = root.querySelector(`[data-m="${mid}"] .mst`);
-    try { if (!DB) throw new Error("saves on the claude.ai page"); await DB.collection("designmarks").doc(mid).set(Object.assign({}, m));
+    try { if (!DB) throw new Error("saves on the claude.ai page"); await putRev(m);
       if (PEND[mid] !== undefined && PEND[mid].trim() === want) delete PEND[mid]; MST[mid] = "saved"; }
     catch (x) { MST[mid] = "not saved: " + (x && (x.code || x.message) || x); }
     if (st) st.textContent = MST[mid];
@@ -134,7 +141,8 @@ window.initDesigns = async function (root) {
       await saveMark(m.mid);
       return; }
     const del = e.target.closest(".mdel");
-    if (del) { const mid = del.parentNode.dataset.m; MARKS = MARKS.filter(m => m.mid !== mid); render(); try { if (DB) await DB.collection("designmarks").doc(mid).delete(); } catch (x) {} return; }
+    if (del) { const mid = del.parentNode.dataset.m, m = MARKS.find(z => z.mid === mid); MARKS = MARKS.filter(z => z.mid !== mid); delete PEND[mid]; render();
+      try { if (DB && m) await putRev(Object.assign({}, m, { deleted: true })); } catch (x) {} return; }
     const b = e.target.closest(".dv button"); if (!b) return;
     if (b.classList.contains("mark")) { const id = b.closest(".dc").dataset.id; MARKING = MARKING === id ? null : id; render(); return; }
     const c = b.closest(".dc"), id = c.dataset.id, st = c.querySelector(".ds");
@@ -169,7 +177,7 @@ window.initDesigns = async function (root) {
     }, () => {});
     if (DB) DB.collection("designmarks").onSnapshot(snap => {
       const local = MARKS.filter(m => MST[m.mid] !== "saved" && !m.seen);
-      MARKS = snap.docs.map(d => d.data()).filter(m => m && m.mid);
+      MARKS = latest(snap.docs.map(d => d.data()));
       for (const m of local) if (!MARKS.some(z => z.mid === m.mid)) MARKS.push(m);
       if (!root.contains(document.activeElement) || !/INPUT|TEXTAREA/.test(document.activeElement.tagName)) render();
     }, () => {});
