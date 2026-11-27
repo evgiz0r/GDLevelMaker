@@ -53,7 +53,7 @@ function place(h, l, size) {
   const hzo = +((h.props || {})[25] || 2);
   const o = K.obj(l.id, x, y, { ch: l.ch, z, zo: l.front ? hzo + 1 + (l.zo || 0) : -2 + (l.zo || 0), s: +(l.s * size).toFixed(3), rot: ((h.rot || 0) + (!!h.flipX !== !!h.flipY ? -1 : 1) * (l.rot || 0) + 360) % 360, flipX, flipY });
   delete o.props[155];
-  o._part = { front: !!l.front, rel: l.s * (l.own || 1), of: h };
+  o._part = { front: !!l.front, rel: l.s * (l.own || 1), of: h, l };
   return o;
 }
 
@@ -61,9 +61,9 @@ function place(h, l, size) {
 // fake spike 1889 / 191 (a spike-shaped decoration, no hitbox) is what makes "a spike inside a spike"
 const D = {
   glow: { kind: "spike", src: "a soft gradient behind the spike on a glow channel: 1011 / 503 on 59 / 52 of 127 levels, the most used dressing (503 here: 1011 drew a square box behind it)",
-    parts: c => [{ id: 503, lx: 0, ly: -0.35, s: 1.25, ch: c.glow }] },
+    parts: c => [{ id: 503, lx: 0, ly: -0.35, s: 1.0, ch: c.glow }] },
   halo: { kind: "spike", src: "a bigger spike shape behind on a blending channel: a lit rim all round (26 levels put the lit triangle 693 on spikes; 693 is a right triangle, so the spike-shaped 1889 here)",
-    parts: c => [{ id: 1889, lx: 0, ly: -1 + 1.35, s: 1.35, ch: c.glow }] },
+    parts: c => [{ id: 1889, lx: 0, ly: -1 + 1.0 + 0.3, s: 1.0, ch: c.glow }] },
   inner: { kind: "spike", src: "a smaller copy of the hazard inside it on its own channel (2.2 levels: Free the Boys, Mission S; 39% of 2.2 hazards have a part under 0.85x)",
     parts: c => [{ id: 1889, lx: 0, ly: -1 + 0.55, s: 0.55, front: true, ch: c.inner }] },
   nested: { kind: "spike", src: "two copies inside, alternating colours (Mission S nests its saws 0.9 / 0.7 / 0.5)",
@@ -73,19 +73,21 @@ const D = {
   ring: { kind: "spike", src: "a lit ring in the spike: a ball in the inner colour with a smaller dark one in it (Free the Boys rings its pit spikes with fade rings 1838; 1838 is a quarter piece)",
     parts: c => [{ id: 1764, lx: 0, ly: -0.42, s: 1.5, own: 0.27, front: true, ch: c.inner }, { id: 1764, lx: 0, ly: -0.42, s: 0.85, own: 0.27, front: true, zo: 1, ch: c.deep }] },
   layers: { kind: "spike", src: "glow + an inner spike + a core: the 2.2 'layered' spike (67% of 2.2 hazards carry 2+ parts)",
-    parts: c => [{ id: 503, lx: 0, ly: -0.35, s: 1.25, ch: c.glow }, { id: 1889, lx: 0, ly: -1 + 0.6, s: 0.6, front: true, ch: c.inner }, { id: 1764, lx: 0, ly: -0.55, s: 0.8, own: 0.27, front: true, zo: 1, ch: c.line }] },
+    parts: c => [{ id: 503, lx: 0, ly: -0.35, s: 1.0, ch: c.glow }, { id: 1889, lx: 0, ly: -1 + 0.6, s: 0.6, front: true, ch: c.inner }, { id: 1764, lx: 0, ly: -0.55, s: 0.8, own: 0.27, front: true, zo: 1, ch: c.line }] },
   // Evgeni 2026-11-27 on hellgate's spikes: "maybe a bit prettier spike, with more effects": the layered spike plus a
   // fanned burst behind and a hot glow at its foot -- four parts, the hitbox still the one spike
   ember: { kind: "spike", src: "layers + crown: glow 503, a fanned pair of spikes behind, an inner spike and a lit core in front, a soft glow at the foot",
-    parts: c => [{ id: 1889, lx: -0.5, ly: -1 + 0.7, s: 0.7, rot: -28, ch: c.glow }, { id: 1889, lx: 0.5, ly: -1 + 0.7, s: 0.7, rot: 28, ch: c.glow },
-      { id: 503, lx: 0, ly: -0.35, s: 1.4, ch: c.glow }, { id: 504, lx: 0, ly: -0.85, s: 1.0, ch: c.glow },
+    // capped to the block (Evgeni 2026-11-27: "the glow is too wide, it goes out of the block"): the burst and glows stay
+    // inside the spike's cell width (check() "capped to the block")
+    parts: c => [{ id: 1889, lx: -0.3, ly: -1 + 0.55, s: 0.5, rot: -20, ch: c.glow }, { id: 1889, lx: 0.3, ly: -1 + 0.55, s: 0.5, rot: 20, ch: c.glow },
+      { id: 503, lx: 0, ly: -0.35, s: 1.0, ch: c.glow }, { id: 504, lx: 0, ly: -0.85, s: 1.0, ch: c.glow },
       { id: 1889, lx: 0, ly: -1 + 0.6, s: 0.6, front: true, ch: c.inner }, { id: 1764, lx: 0, ly: -0.55, s: 0.8, own: 0.27, front: true, zo: 1, ch: c.line }] },
   crown: { kind: "spike", src: "spikes fanned out behind it (35 levels put copies of a spike turned 90 / 270 on it: a burst); here decoration in the glow colour, so the hitbox is the one spike",
-    parts: c => [{ id: 1889, lx: -0.55, ly: -1 + 0.75, s: 0.75, rot: -32, ch: c.glow }, { id: 1889, lx: 0.55, ly: -1 + 0.75, s: 0.75, rot: 32, ch: c.glow }] },
+    parts: c => [{ id: 1889, lx: -0.25, ly: -1 + 0.6, s: 0.6, rot: -18, ch: c.glow }, { id: 1889, lx: 0.25, ly: -1 + 0.6, s: 0.6, rot: 18, ch: c.glow }] },
   double: { kind: "spike", src: "a second outline: a bigger copy behind in the inner colour ('same hazard on another channel' in 16 levels)",
-    parts: c => [{ id: 1889, lx: 0, ly: -1 + 1.25, s: 1.25, ch: c.inner }] },
+    parts: c => [{ id: 1889, lx: 0, ly: -1 + 1.0 + 0.22, s: 1.0, ch: c.inner }] },
   crystals: { kind: "spike", src: "low deco spikes 20 / 21 at its foot: 39 / 25 levels (pit rows)",
-    parts: c => [{ id: 21, lx: -0.75, ly: -0.82, s: 0.45, own: 1.4, ch: c.glow }, { id: 21, lx: 0.75, ly: -0.82, s: 0.45, own: 1.4, flipX: true, ch: c.glow }] },
+    parts: c => [{ id: 21, lx: -0.45, ly: -0.84, s: 0.4, own: 1.4, ch: c.glow }, { id: 21, lx: 0.45, ly: -0.84, s: 0.4, own: 1.4, flipX: true, ch: c.glow }] },
   // saws
   cog: { kind: "saw", src: "a cogwheel 85-87 behind the saw, teeth out past its rim (24-30 levels each), lit in the glow colour", parts: c => [{ id: 86, lx: 0, ly: 0, s: 1.3 / 1.8, own: 1.8, ch: c.glow }] },
   sawcore: { kind: "saw", src: "a glow ball at the hub in front (1764 on 22 levels' saws; 211 at half size behind on 55, hidden by the saw's black body)",
@@ -121,6 +123,8 @@ function dressAll(objects, o = {}) {
 // the readability rules: returns [{x, y, why}] -- a front part bigger than 0.8x or off the hazard's centre, a front part on
 // the hazard's own channel, a behind part over 1.4x, any part with a hitbox
 // glows and gradients: see-through (they light the hazard, they do not cover it), so the size rule leaves them be in front
+// a part's drawn width and height at scale 1 (lib/look.js FLAT; 1764's own size is in its `own`)
+const PART_W = { 503: [30, 20], 504: [20, 20], 1889: [30, 30], 21: [30, 14], 1764: [30, 30], 211: [30, 30] };
 const SEE_THROUGH = new Set([211, 1753, 503, 504, 1011, 1012, 1292, 1293, 693, 694, 695, 696]);
 function check(objects, o = {}) {
   const { GD } = require("./io.js"), bad = [];
@@ -132,6 +136,11 @@ function check(objects, o = {}) {
     if (m.front && d > 0.7 && !SEE_THROUGH.has(p.id)) bad.push({ x: p.x, y: p.y, why: `front part ${p.id} off the hazard's centre (${d.toFixed(2)})` });
     if (m.front && hc && pc === hc && m.rel > 0.5) bad.push({ x: p.x, y: p.y, why: `front part ${p.id} on the hazard's own channel ${hc}: no edge` });
     if (!m.front && m.rel > 1.4) bad.push({ x: p.x, y: p.y, why: `behind part ${p.id} at ${m.rel.toFixed(2)}x: the outline leaves the hitbox` });
+    // CAPPED TO THE BLOCK (Evgeni 2026-11-27, hellgate: "the glow is too wide, it goes out of the block, should be capped
+    // to the block for now"): a spike's parts stay inside its cell's width (its own frame, turned parts by their box)
+    if (kindOf(h.id) === "spike" && m.l && o.cap !== false) { const W = PART_W[p.id] || [30, 30], a = Math.abs((m.l.rot || 0) * Math.PI / 180);
+      const hw = (Math.cos(a) * W[0] + Math.sin(a) * W[1]) / 2 * m.rel, ext = Math.abs(m.l.lx) * 15 + hw;
+      if (ext > 15.5) bad.push({ x: p.x, y: p.y, why: `part ${p.id} reaches ${ext.toFixed(1)} units from the spike's middle: past its block (15)` }); }
   }
   return bad;
 }

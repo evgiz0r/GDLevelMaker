@@ -48,6 +48,12 @@ change. The detailed write-ups stay in the linked docs.
 - **Fillets:** a 45-degree slope fills the corner where a pillar meets a structure, **only where the structure goes on
   under it.** If there's no room, move the pillar to the side, drop that fillet, or drop both. Source: Evgeni,
   2026-11-27, hellgate col 27.
+- **Fillets are part of the structure,** not of the holder: a slope cell dressed with the structure's own design (edge
+  line, layers, shade), only on a full square, never on a cell that another pillar, fillet or block already takes. A
+  narrow island (under 5 wide) gets one pillar in its middle, not two whose fillets meet. Pillars never go through a
+  spike or saw. Source: Evgeni, 2026-11-27, hellgate cols 43, 52 and 106; tools/connect.js brickParts, structdeco.js.
+- **Slopes are shaded like the squares beside them** (the top-lit ramp at their height). Source: hellgate col 122,
+  structdesign `shade`.
 - **Ledges of grounded structures** count too: a run of 2+ cells with nothing under it stands on a pillar at its free
   end, the end away from the support. Source: hellgate col 97.
 - **Structures connect** unless the level says otherwise (a bigger space, a transition, a portal). Bridges (a rope or
@@ -64,14 +70,22 @@ change. The detailed write-ups stay in the linked docs.
   top-lit gradient. Source: structdesign `interior`.
 - **Long thin bars are not bland:** a bar 5+ blocks long gets plates every 3 cells, rivets and a lit vein along its
   middle. Source: structdesign `bars`.
-- **Hazards are designed pieces:** every spike and saw carries 3+ parts. The hellgate spike `ember` has a fanned glow,
+- **Hazards are designed pieces, capped to their block:** every spike and saw carries 3+ parts, and a spike's parts stay
+  inside its cell's width (glows too; spikedesign check "capped to the block", Evgeni 2026-11-27). Every spike and saw carries 3+ parts. The hellgate spike `ember` has a fanned glow,
   an inner spike and a lit core; the saw `sawforge` has a glow, cog teeth and an inner wheel. The hitbox never changes.
   Source: tools/spikedesign.js, HAZARDS.md "Dressing one hazard".
 - **Contrast by role:** block body vs sky at a luminance ratio of 1.5+; the backdrop in the sky's hue, not the blocks';
   hazards clear of both. Source: tools/backdrops.js `fit` / `check`, tools/roles.js.
 - **Indicators** get their own style and colour per level, away from the hazard colours. Source: tools/indstyles.js.
 
-## 5. From a drawing to a structure
+## 5. The layout sections
+
+The theme layout is split into one short stretch per kind of play, the same for every theme: entrance, basic staircase,
+open cube corridor, closer cube corridor, hanging structures, flying corridor (ship), wave corridor, flappy bird corridors
+(UFO), ball corridors (structures on several heights). Each has a mode and is edited on its own on the Themes tab board.
+Source: Evgeni, 2026-11-27; tools/layoutsections.js (drafts; his edits in knowledge/layout_sections.json).
+
+## 6. From a drawing to a structure
 
 Evgeni draws loosely ("you will align to be more symmetrical, and connected and layered and so on as needed"). Keep his
 masses, heights and hanging parts, then clean them up:

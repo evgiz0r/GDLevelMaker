@@ -41,12 +41,32 @@ function list() {
   for (const [name, t] of Object.entries(DT.THEMES)) { const q = scenes.find(z => z.name === name) || {};
     out.push({ id: "theme:" + name, kind: "theme", name, card: `cards/theme-${keyOf(name)}.jpg`, layout: `cards/layout-${keyOf(name)}.jpg`, parts: { kit: `cards/layoutkit-${keyOf(name)}.jpg`, play: `cards/layoutplay-${keyOf(name)}.jpg` },
       tiles0: tiles0(),
+      // the board's parts (designs_tab.js): [key, name, w, h, mode, note] -- the pieces, the scene as built, and the layout
+      // sections (tools/layoutsections.js)
+      lparts: [["kit", "pieces", q.scene - 1 - q.c0, THEME_ROWS, "hanging", "every piece once"], ["play", "current scene", q.c1 - q.scene + 1, THEME_ROWS, "cube", "the scene the cards show"]]
+        .concat(require("./layoutsections.js").SECTIONS.map(z => ["sec:" + z.key, z.name, z.map[0].length, z.map.length, z.mode, z.note])),
       partGeo: { kit: { c0: q.c0, c1: q.scene - 1 }, play: { c0: q.scene - 1, c1: q.c1 }, hU: THEME_ROWS * 30 + THEME_GROUND, ground: THEME_GROUND, sc: q.scene },
       geo: { c0: q.c0, c1: q.c1, sc: q.c0 + 4, hU: THEME_ROWS * 30 + THEME_GROUND, ground: THEME_GROUND },
+      anim: animOf(q.c0, q.c1),
       note: `${t.mood} · ${t.design}, ${[].concat(t.effects).join(", ")} · spikes ${t.spikes}, saws ${t.saws} · ${t.holders} · ${t.indicator}` }); }
   return out;
 }
-const THEME_ROWS = 13, THEME_GROUND = 45;   // a theme card shows the scene's bottom 13 rows and the ground under them
+const THEME_ROWS = 13, THEME_GROUND = 45;
+// ▶ PLAY on a theme card (Evgeni 2026-11-27: "theme animations, so we might see how it looks in the game if we press
+// play (either playing the whole section/scene or static)"): the gallery level's saved route, 60 points a second, in the
+// card's own units (card units = level units x 0.75 from the card's left edge and from the top of its 13 rows), with the
+// player's turn and mode, so the page moves the camera and draws the player at game speed over the picture
+let RUN = null;
+function animOf(c0, c1) {
+  try {
+    if (!RUN) { const io = require("./io.js"), S = require("./solutions.js"), R = io.readGdlvl(path.join(ROOT, "levels", "gdlm_design_themes.gdlvl"));
+      const sol = S.get(R.levelStr, true); RUN = io.GD.run(io.GD.makeWorld(R.level.objects, R.level.header), sol ? sol.events : []).path; }
+    const SC = 0.75, pts = [];
+    for (let i = 0; i < RUN.length; i += 4) { const s = RUN[i]; if (s.x < c0 * 30 || s.x > c1 * 30) continue;
+      pts.push([+((s.x - c0 * 30) * SC).toFixed(1), +((THEME_ROWS * 30 - s.y) * SC).toFixed(1), Math.round(s.rot || 0), s.mode === "cube" ? 0 : s.mode === "ship" ? 1 : 2]); }
+    return pts.length ? { fps: 60, s: SC, pts } : null;
+  } catch (e) { return null; }
+}   // a theme card shows the scene's bottom 13 rows and the ground under them
 const structCopies = () => require("./structdesign.js").spec().copies;
 // camera of the shots: the screen's left edge in level units at time t (measured on the gallery shots, 1x speed)
 const camLeft = t => 262.6 + 311.7 * (t - 1.5), tAt = left => 1.5 + (left - 262.6) / 311.7, SCREEN = 1920 / 3.375;
@@ -82,6 +102,7 @@ function tiles0() {
   const DT = require("./designthemes.js"), out = { kit: [], play: [] };
   DT.KIT_MAP.forEach((l, i) => [...l].forEach((ch, c) => { if (ch !== ".") out.kit.push({ t: ch, c: c + 2, r: 7 - i }); }));
   DT.SCENE.forEach((l, i) => [...l].forEach((ch, c) => { if (ch !== ".") out.play.push({ t: ch, c: c + 1, r: DT.SCENE.length - 1 - i }); }));
+  const LS = require("./layoutsections.js"); for (const z of LS.SECTIONS) out["sec:" + z.key] = LS.tiles(z);
   return out;
 }
 function themeCards() {
@@ -207,7 +228,14 @@ function layoutBack() {
   const kit = newest["layout:kit"], play = newest["layout:play"];
   if (kit && kit.tiles) out.KIT_MAP = toMap(kit.tiles, DT.KIT_MAP.length + 4, Math.max(DT.KIT_MAP[0].length, ...kit.tiles.map(q => q.c - 1)), 2).slice(4);
   if (play && play.tiles) out.SCENE = toMap(play.tiles, Math.max(DT.SCENE.length, ...play.tiles.map(q => q.r + 1)), Math.max(DT.SCENE[0].length, ...play.tiles.map(q => q.c)), 1);
-  if (!Object.keys(out).length) { console.log("no edited layout (parts still as ours)"); return; }
+  // the sections: his map per key -> knowledge/layout_sections.json (tools/layoutsections.js takes it over its draft)
+  const LS = require("./layoutsections.js"), secs = {};
+  for (const z of LS.SECTIONS) { const e = newest["layout:sec:" + z.key]; if (!e || !e.tiles) continue;
+    const W = Math.max(z.map[0].length, ...e.tiles.map(q => q.c + 1)), H = Math.max(z.map.length, ...e.tiles.map(q => q.r + 1));
+    secs[z.key] = toMap(e.tiles, H, W, 0); console.log(`section ${z.key}:\n` + secs[z.key].map(l => "  " + l).join("\n")); }
+  if (Object.keys(secs).length && process.argv.includes("--apply")) { const f = path.join(ROOT, "knowledge", "layout_sections.json");
+    const old = fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, "utf8")) : {}; fs.writeFileSync(f, JSON.stringify(Object.assign(old, secs), null, 1) + "\n"); console.log("-> knowledge/layout_sections.json"); }
+  if (!Object.keys(out).length) { if (!Object.keys(secs).length) console.log("no edited layout (parts still as ours)"); return; }
   for (const [k, v] of Object.entries(out)) console.log(k + ":\n" + v.map(l => "  " + JSON.stringify(l)).join("\n"));
   if (process.argv.includes("--apply")) { const f = path.join(__dirname, "designthemes.js"); let src = fs.readFileSync(f, "utf8");
     for (const [k, v] of Object.entries(out)) src = src.replace(new RegExp(`const ${k} = \\[[\\s\\S]*?\\];`), `const ${k} = [\n${v.map(l => "  " + JSON.stringify(l) + ",").join("\n")}\n];`);

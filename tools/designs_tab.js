@@ -19,7 +19,7 @@ window.initDesigns = async function (root) {
   #designs .lyh{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:6px 8px;font-size:12px}#designs .lfold{cursor:pointer;color:var(--mute)}
   #designs .lyh button{background:#241d3d;color:#ddd;border:1px solid #444;border-radius:6px;padding:2px 7px;font-size:12px}#designs .lyh .pen.on{outline:2px solid currentColor}
   #designs .ink{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}#designs .ink.on{pointer-events:auto;cursor:crosshair;touch-action:none;outline:2px dashed #ffd84d}
-  #designs .tiles .grid line{stroke:#ffffff30;stroke-width:1px;vector-effect:non-scaling-stroke}#designs .tiles{cursor:pointer}#designs .ptool.on{outline:2px solid #ffd84d}
+  #designs .tiles .grid line{stroke:#ffffff30;stroke-width:1px;vector-effect:non-scaling-stroke}#designs .plr{position:absolute;left:0;top:0;background:#c8ff3c;border:2px solid #10301a;box-sizing:border-box;pointer-events:none;z-index:5}#designs .plr[data-m="1"]{border-radius:40% 70% 70% 40%}#designs .plr[data-m="2"]{border-radius:50%}#designs .zb .aplay,#designs .zb .aspd{min-width:28px}#designs .tiles{cursor:pointer;display:block;touch-action:none;background:#1a1636;max-width:none}#designs .lay .wide{padding:4px 8px}#designs .ptool.on{outline:2px solid #ffd84d}
   #designs .lpn{font-size:11px;color:var(--mute);padding:2px 8px}#designs .lay{margin:6px 0 14px}#designs .lpt.on{outline:1px solid #7be38a}
   #designs .board.fs{position:fixed;inset:0;z-index:1000;background:#0f0c2b;overflow:auto}#designs .board.fs .wide{overflow:auto}
   #designs .lk.blank img{visibility:hidden}#designs .lk.blank{background:#1a1636;background-image:linear-gradient(#ffffff10 1px,transparent 1px),linear-gradient(90deg,#ffffff10 1px,transparent 1px);background-size:20px 20px}
@@ -128,7 +128,7 @@ window.initDesigns = async function (root) {
       + (lo ? (dr ? tools : `<button class="pdraw">✏ draw</button>`) + (sk.length && !ms.length ? `<button class="msend" data-label="📨 send to Claude"${CAN_SEND ? "" : " disabled"}>📨 send to Claude</button>` : "") + `<span class="ds pst">${esc(DST[d.id] || "")}</span>` : "") + `</div>`
       + (lo ? `<div class="wide" data-w="L:${esc(d.id)}"><div class="mk lk${bg === "blank" ? " blank" : ""}" style="--zh:${fs ? "calc(100vh - 120px)" : zh + "px"}"><img loading="lazy" src="${esc(bg === "scene" ? d.card : d.layout)}" alt="layout">${svg}</div></div>` : "") + `</div>`;
     const media = d.kind === "theme" ? `<div class="zw"><div class="wide" data-w="${esc(d.id)}"><div class="mk${MARKING === d.id ? " on" : ""}" style="--zh:${zh}px">${img}${pins}</div></div>`
-      + `<div class="zb"><button class="zoom" data-z="-1" title="zoom out">−</button><button class="zoom" data-z="1" title="zoom in">＋</button></div></div>`
+      + `<div class="zb">${d.anim ? `<button class="aplay" title="play the scene at game speed">${PLAY && PLAY.id === d.id ? "■" : "▶"}</button><button class="aspd" title="speed">${ASPD}x</button>` : ""}<button class="zoom" data-z="-1" title="zoom out">−</button><button class="zoom" data-z="1" title="zoom in">＋</button></div></div>`
       : d.kind === "structure" ? `<div class="wide">${img}</div>` : img;
     // the marks panel sits UNDER the buttons as one folded line (Evgeni 2026-11-27: "mark ui grows too big and pushes the ui
     // to the bottom"); open, it scrolls inside a capped box, so the card never grows past it
@@ -157,23 +157,39 @@ window.initDesigns = async function (root) {
   // themes here", "one extra section of the theme layout", "make it two parts, that i could look both/one of them: the
   // blocks spike hazard layout (just hanging) and the gameplay layout"). A free board: drawing is always on, no draw button
   // ("i tap over the layout nothing happens").
-  const LPARTS = [["kit", "pieces"], ["play", "gameplay"]];
+  let LPARTS = [];   // [key, name, w, h, mode, note]: set by layoutSection() from the theme entry
   let LACT = "layout:play", TOOL = "#", painting = null; const HIST = [], HAZ = new Set(["^", "v", "o", "q", "s"]);
   // a part's tiles: Evgeni's edited copy once he changed it, else the layout as built (designs.json tiles0)
-  const tilesOf = k => (DRAW[k] && DRAW[k].tiles) || ((L.find(d => d.tiles0) || {}).tiles0 || {})[k.split(":")[1]] || [];
+  const tilesOf = k => (DRAW[k] && DRAW[k].tiles) || ((L.find(d => d.tiles0) || {}).tiles0 || {})[k.slice(7)] || [];
   let TILE = () => "";
+  // ---- ▶ play (Evgeni 2026-11-27: "theme animations, so we might see how it looks in the game if we press play") ----
+  let PLAY = null, ASPD = 1;
+  function startPlay(id) { stopPlay(); PLAY = { id, t0: performance.now(), i: 0 }; for (const b of root.querySelectorAll(`.dc[data-id="${CSS.escape(id)}"] .aplay`)) b.textContent = "■"; requestAnimationFrame(stepPlay); }
+  function stopPlay() { if (!PLAY) return; const id = PLAY.id; PLAY = null; for (const p of root.querySelectorAll(".plr")) p.remove(); for (const b of root.querySelectorAll(`.dc[data-id="${CSS.escape(id)}"] .aplay`)) b.textContent = "▶"; }
+  function stepPlay(now) {
+    if (!PLAY) return; const d = L.find(x => x.id === PLAY.id), A = d && d.anim; if (!A) return stopPlay();
+    const i = Math.floor((now - PLAY.t0) / 1000 * A.fps * ASPD); PLAY.i = i; if (i >= A.pts.length) return stopPlay();
+    const mk = root.querySelector(`.dc[data-id="${CSS.escape(PLAY.id)}"] .zw .mk`); if (!mk) return requestAnimationFrame(stepPlay);
+    const img = mk.querySelector("img"), f = img && img.naturalHeight ? img.clientHeight / img.naturalHeight : 1, w = mk.closest(".wide");
+    let p = mk.querySelector(".plr"); if (!p) { p = document.createElement("span"); p.className = "plr"; mk.appendChild(p); }
+    const [x, y, rot, mode] = A.pts[i], sz = 30 * A.s * f;
+    p.dataset.m = mode; p.style.width = p.style.height = sz + "px"; p.style.transform = `translate(${x * f - sz / 2}px, ${y * f - sz / 2}px) rotate(${(rot % 360 + 360) % 360}deg)`;
+    if (w) w.scrollLeft = Math.max(0, x * f - w.clientWidth * 0.35);
+    requestAnimationFrame(stepPlay);
+  }
   function layoutSection() {
-    const t = L.find(d => d.kind === "theme" && d.parts); if (!t) return "";
-    const isOpen = open.layoutsec !== false, fs = FS === "layout", z = Math.round(220 * (open["zoom:layout"] || 1)), bg = BG.layout || "layout";
-    const show = q => open["lpart:" + q] !== false;
-    // TAP TO PLACE (Evgeni 2026-11-27: "i dont like the fact i need to hold and not just click on a spot. lets have to draw
-    // bricks or hazards or spikes for now"): a tool, then a tap on a cell places it (a tap on the same thing takes it away),
-    // a drag paints; cells are the level's own grid. Saved per part as {tiles: [{t, c, r}]}: c columns from the part's
-    // left edge, r rows above the ground.
-    const G = t.partGeo, H = G.hU / 30, Gr = G.ground / 30;
-    // tiles in plain layout colours (Evgeni: "the colors themselves are not needed for the layout"): blocks white,
-    // hazards red; the text map's characters as types
-    const tile = q => { const x = q.c, y = H - Gr - q.r - 1, P = pts => `<polygon class="tl" points="${pts.map(z => (x + z[0]) + "," + (y + z[1])).join(" ")}" fill="${HAZ.has(q.t) ? "#ff6b6b" : "#e8e8f0"}" />`;
+    const t = L.find(d => d.kind === "theme" && d.lparts); if (!t) return "";
+    LPARTS = t.lparts;
+    const isOpen = open.layoutsec !== false, fs = FS === "layout", cs = Math.round(26 * (open["zoom:layout"] || 1));
+    // SECTIONS (Evgeni 2026-11-27: "i want the layout to have specific sections ... and each of those can be viewed
+    // separately"): one chip per part, each shown or hidden; at first only the first section
+    const first = (LPARTS.find(q => q[0].startsWith("sec:")) || LPARTS[0])[0];
+    const show = q => open["lpart:" + q] === undefined ? q === first : open["lpart:" + q] !== false;
+    // TAP TO PLACE (Evgeni: "i dont like the fact i need to hold and not just click on a spot"): a tool, then a tap on a
+    // cell places it (a tap on the same thing takes it away), a drag paints. Cells are drawn big (26 px, zoom -/+) and
+    // the grid is the part itself, no picture under it (Evgeni: "i cant draw on the layout properly, zoom doesnt work":
+    // the old grid lay over a 130 px picture and zoom never reached it). Tiles: {t, c, r}, c from the part's left, r rows up
+    const tile = (q, h) => { const x = q.c, y = h - q.r - 1, P = pts => `<polygon class="tl" points="${pts.map(z => (x + z[0]) + "," + (y + z[1])).join(" ")}" fill="${HAZ.has(q.t) ? "#ff6b6b" : "#e8e8f0"}" />`;
       switch (q.t) {
         case "/": return P([[0, 1], [1, 1], [1, 0]]); case "\\": return P([[0, 0], [0, 1], [1, 1]]);
         case "7": return P([[0, 0], [1, 0], [1, 1]]); case "r": return P([[0, 0], [1, 0], [0, 1]]);
@@ -181,20 +197,24 @@ window.initDesigns = async function (root) {
         case "o": case "q": case "s": return `<circle class="tl" cx="${x + 0.5}" cy="${y + 0.5}" r="${q.t === "o" ? 0.48 : 0.36}" fill="#ff6b6b" />`;
         default: return `<rect class="tl" x="${x + 0.03}" y="${y + 0.03}" width="0.94" height="0.94" fill="#e8e8f0" />`; } };
     TILE = tile;
-    const ink = k => { const g = G[k.split(":")[1]], W = g.c1 - g.c0;
-      return `<svg class="ink on tiles" data-k="${k}" data-w="${W}" data-h="${H}" data-g="${Gr}" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">`
-        + `<g class="grid">${Array.from({ length: W + 1 }, (_, c) => `<line x1="${c}" y1="0" x2="${c}" y2="${H - Gr}" />`).join("")}${Array.from({ length: Math.floor(H - Gr) + 1 }, (_, r) => `<line x1="0" y1="${H - Gr - r}" x2="${W}" y2="${H - Gr - r}" />`).join("")}</g>`
-        + tilesOf(k).map(tile).join("") + `</svg>`; };
+    const grid = q => { const [k, , W, H] = q, key = "layout:" + k;
+      return `<svg class="tiles" data-k="${key}" data-w="${W}" data-h="${H}" data-vh="${H + 0.25}" data-g="0" viewBox="0 0 ${W} ${H + 0.25}" style="width:${W * cs}px;height:${(H + 0.25) * cs}px">`
+        + `<g class="grid">${Array.from({ length: W + 1 }, (_, c) => `<line x1="${c}" y1="0" x2="${c}" y2="${H}" />`).join("")}${Array.from({ length: H + 1 }, (_, r) => `<line x1="0" y1="${r}" x2="${W}" y2="${r}" />`).join("")}</g>`
+        + `<rect x="0" y="${H}" width="${W}" height="0.25" fill="#7be38a55" />` + tilesOf(key).map(z => tile(z, H)).join("") + `</svg>`; };
     const n = LPARTS.filter(q => (DRAW["layout:" + q[0]] || {}).tiles).length;   // parts he has edited
-    const TOOLS = [["#", "▭ block"], ["/", "◢ slope"], ["\\", "◣ slope"], ["^", "▲ spike"], ["v", "▼ hanging spike"], ["o", "⚙ saw"], ["erase", "⌫ erase"]];
-    const tools = `<span class="pens">` + LPARTS.map(q => `<button class="lpt${show(q[0]) ? " on" : ""}" data-p="${q[0]}">${show(q[0]) ? "☑" : "☐"} ${q[1]}</button>`).join("")
-      + TOOLS.map(([k, l]) => `<button class="ptool${TOOL === k ? " on" : ""}" data-t="${k}">${l}</button>`).join("")
-      + `<button class="pundo">↶ undo</button><button class="pclear">🗑 clear</button><button class="preset">↺ back to ours</button>`
+    const TOOLS = [["#", "▭ block"], ["/", "◢ slope"], ["\\", "◣ slope"], ["7", "◥ ceiling slope"], ["r", "◤ ceiling slope"], ["^", "▲ spike"], ["v", "▼ hanging spike"], ["o", "⚙ saw"], ["erase", "⌫ erase"]];
+    const chips = `<span class="pens">` + LPARTS.map(q => `<button class="lpt${show(q[0]) ? " on" : ""}" data-p="${esc(q[0])}" title="${esc(q[5] || "")}">${show(q[0]) ? "☑" : "☐"} ${esc(q[1])}${(DRAW["layout:" + q[0]] || {}).tiles ? " ✏" : ""}</button>`).join("")
+      + `<button class="lall">all</button><button class="lnone">none</button></span>`;
+    const tools = `<span class="pens">` + TOOLS.map(([k, l]) => `<button class="ptool${TOOL === k ? " on" : ""}" data-t="${esc(k)}">${l}</button>`).join("")
+      + `<button class="pundo">↶ undo</button><button class="pclear">🗑 clear shown</button><button class="preset">↺ shown back to ours</button>`
       + `<button class="zoom" data-z="-1">−</button><button class="zoom" data-z="1">＋</button><button class="pfs">${fs ? "⤡ exit" : "⛶ full screen"}</button>`
-      + (n ? `<button class="msend" data-label="📨 send to Claude"${CAN_SEND ? "" : " disabled"}>📨 send to Claude</button>` : "") + `<span class="ds pst">${esc(DST[LACT] || "")}</span></span>`;
-    return `<section data-g="layoutsec"><h2 class="stitle fold-h" role="button" tabindex="0" aria-expanded="${isOpen}">${isOpen ? "▾" : "▸"} Theme layout <span class="ds">the same for every theme · draw on it${n ? " · ✏ " + n : ""}</span></h2>`
-      + (isOpen ? `<div class="dc lay board${fs ? " fs" : ""}" data-id="${LACT}"><div class="lyh">${tools}</div>`
-        + LPARTS.filter(q => show(q[0])).map(q => `<div class="lpn">${q[1]}</div><div class="wide" data-w="L:${q[0]}"><div class="mk lk blank" style="--zh:${fs ? "calc((100vh - 140px) / " + LPARTS.filter(x => show(x[0])).length + ")" : z + "px"}"><img src="${esc(t.parts[q[0]])}" alt="${q[1]}">${ink("layout:" + q[0])}</div></div>`).join("")
+      // a plain save, no sending (Evgeni: "i need a save there, without sending ... i would need to change a bit before
+      // updating"); every edit also saves itself, the button saves the shown parts again and says when
+      + `<button class="lsave">💾 save</button>`
+      + (n ? `<button class="msend" data-label="📨 send to Claude"${CAN_SEND ? "" : " disabled"}>📨 send to Claude</button>` : "") + `<span class="ds pst">${esc(DST.layout || "")}</span></span>`;
+    return `<section data-g="layoutsec"><h2 class="stitle fold-h" role="button" tabindex="0" aria-expanded="${isOpen}">${isOpen ? "▾" : "▸"} Theme layout <span class="ds">the same for every theme · one part per kind of play · tap to place${n ? " · ✏ " + n : ""}</span></h2>`
+      + (isOpen ? `<div class="dc lay board${fs ? " fs" : ""}" data-id="${LACT}"><div class="lyh">${chips}</div><div class="lyh">${tools}</div>`
+        + LPARTS.filter(q => show(q[0])).map(q => `<div class="lpn"><b>${esc(q[1])}</b> · ${esc(q[4] || "")} · ${q[2]} x ${q[3]}${q[5] ? " · " + esc(q[5]) : ""}</div><div class="wide" data-w="L:${esc(q[0])}">${grid(q)}</div>`).join("")
         + `</div>` : "") + `</section>`;
   }
   function render() {
@@ -228,16 +248,28 @@ window.initDesigns = async function (root) {
     if (e.target.closest(".pdraw")) { DRAWING = e.target.closest(".dc").dataset.id; render(); return; }
     if (e.target.closest(".pdone")) { DRAWING = null; FS = null; ERASE = false; render(); return; }
     const ptl = e.target.closest(".ptool"); if (ptl) { TOOL = ptl.dataset.t; render(); return; }
-    const lpt = e.target.closest(".lpt"); if (lpt) { const k = "lpart:" + lpt.dataset.p; open[k] = open[k] === false; try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} render(); return; }
+    const lsh = k => { const q = LPARTS.find(z => z[0] === k), first = (LPARTS.find(z => z[0].startsWith("sec:")) || LPARTS[0])[0]; return open["lpart:" + k] === undefined ? k === first : open["lpart:" + k] !== false; };
+    if (e.target.closest(".lall") || e.target.closest(".lnone")) { const on = !!e.target.closest(".lall"); for (const q of LPARTS) open["lpart:" + q[0]] = on; try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} render(); return; }
+    if (e.target.closest(".lsave")) { const st = root.querySelector(".lay .pst"); if (st) st.textContent = "saving ...";
+      const ks = LPARTS.filter(q => lsh(q[0]) && (DRAW["layout:" + q[0]] || {}).tiles).map(q => "layout:" + q[0]);
+      if (!ks.length) { DST.layout = "nothing changed to save"; if (st) st.textContent = DST.layout; return; }
+      for (const k of ks) await saveDraw(k);
+      DST.layout = ks.every(k => DST[k] === "saved") ? "saved " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + " (" + ks.length + ")" : ks.map(k => DST[k]).find(v => v !== "saved");
+      if (st) st.textContent = DST.layout; return; }
+    const lpt = e.target.closest(".lpt"); if (lpt) { const k = "lpart:" + lpt.dataset.p; open[k] = !lsh(lpt.dataset.p); try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} render(); return; }
     const pc = e.target.closest(".pcol"); if (pc) { PCOL = pc.dataset.c; ERASE = false; render(); return; }
     const pw = e.target.closest(".pw"); if (pw) { PW_ = +pw.dataset.w; render(); return; }
     if (e.target.closest(".perase")) { ERASE = !ERASE; render(); return; }
     if (e.target.closest(".pfs")) { const id0 = e.target.closest(".dc").dataset.id, id = id0.startsWith("layout") ? "layout" : id0; FS = FS === id ? null : id; render(); return; }
     if (e.target.closest(".lay") && e.target.closest(".pundo")) { const h = HIST.pop(); if (h) { DRAW[h.k] = Object.assign(DRAW[h.k] || {}, { tiles: h.tiles }); render(); saveDraw(h.k); } return; }
-    if (e.target.closest(".lay") && e.target.closest(".preset")) { for (const q of LPARTS) { const k = "layout:" + q[0]; if ((DRAW[k] || {}).tiles) { HIST.push({ k, tiles: DRAW[k].tiles }); DRAW[k].tiles = null; saveDraw(k); } } render(); return; }
-    if (e.target.closest(".lay") && e.target.closest(".pclear")) { for (const q of LPARTS) { const k = "layout:" + q[0]; if (open["lpart:" + q[0]] === false) continue; HIST.push({ k, tiles: (DRAW[k] || {}).tiles || null }); DRAW[k] = Object.assign(DRAW[k] || {}, { tiles: [] }); saveDraw(k); } render(); return; }
+    if (e.target.closest(".lay") && e.target.closest(".preset")) { for (const q of LPARTS) { const k = "layout:" + q[0]; if ((DRAW[k] || {}).tiles && lsh(q[0])) { HIST.push({ k, tiles: DRAW[k].tiles }); DRAW[k].tiles = null; saveDraw(k); } } render(); return; }
+    if (e.target.closest(".lay") && e.target.closest(".pclear")) { for (const q of LPARTS) { const k = "layout:" + q[0]; if (!lsh(q[0])) continue; HIST.push({ k, tiles: (DRAW[k] || {}).tiles || null }); DRAW[k] = Object.assign(DRAW[k] || {}, { tiles: [] }); saveDraw(k); } render(); return; }
     if (e.target.closest(".pundo") || e.target.closest(".pclear")) { const id = e.target.closest(".dc").dataset.id, D0 = DRAW[id] || { strokes: [] };
       DRAW[id] = { strokes: e.target.closest(".pclear") ? [] : D0.strokes.slice(0, -1) }; render(); saveDraw(id); return; }
+    // ▶ play: the camera and the player along the route at game speed (designs.js animOf); ■ stops, the speed button
+    // steps 1x -> 0.5x -> 0.25x
+    const ap = e.target.closest(".aplay"); if (ap) { const id = ap.closest(".dc").dataset.id; if (PLAY && PLAY.id === id) stopPlay(); else startPlay(id); return; }
+    const asp = e.target.closest(".aspd"); if (asp) { ASPD = ASPD === 1 ? 0.5 : ASPD === 0.5 ? 0.25 : 1; if (PLAY) { PLAY.t0 = performance.now() - PLAY.i / 60 / ASPD * 1000; } for (const b of root.querySelectorAll(".aspd")) b.textContent = ASPD + "x"; return; }
     const zb = e.target.closest(".zoom");
     if (zb) { const id0 = zb.closest(".dc").dataset.id, id = id0.startsWith("layout") ? "layout" : id0, k = "zoom:" + id, z = open[k] || 1;
       open[k] = Math.max(0.5, Math.min(3, +(z * (+zb.dataset.z > 0 ? 1.4 : 1 / 1.4)).toFixed(3)));
@@ -253,7 +285,7 @@ window.initDesigns = async function (root) {
       const fresh = keys.filter(k => DRAW[k] && (DRAW[k].tiles || (DRAW[k].strokes || []).length) && (DRAW[k].sentAt || "") !== (DRAW[k].at || "x"));
       if (!ms.length && !fresh.length) { st.textContent = "nothing new: everything was sent already"; return; }
       const text = (ms.length ? `📍 marks on the ${d.name} theme scene (catalogue Themes tab):\n` + ms.map((m, i) => `${i + 1}. col ${m.col}, row ${m.row} (x ${m.x}, y ${m.y}): ${noteOf(m).trim() || "(no note)"}`).join("\n") + "\n" : "")
-        + fresh.map(k => `✏ drawing on the ${k === "layout:kit" ? "theme layout, pieces" : k === "layout:play" ? "theme layout, gameplay" : k}: edited (${(DRAW[k].tiles || []).length} pieces; the whole map is in collection designdraw)`).join("\n");
+        + fresh.map(k => `✏ drawing on the ${k.startsWith("layout:") ? "theme layout, " + ((LPARTS.find(q => "layout:" + q[0] === k) || [])[1] || k) : k}: edited (${(DRAW[k].tiles || []).length} pieces; the whole map is in collection designdraw)`).join("\n");
       st.textContent = "sending ...";
       try { const anchor = await CM.anchorFor(c); await CM.sendToClaude({ anchor, text: text.slice(0, 4000) });
         for (const k of fresh) DRAW[k].sentAt = DRAW[k].at;
@@ -288,7 +320,7 @@ window.initDesigns = async function (root) {
   const ptOf = (svg, e) => { const r = svg.getBoundingClientRect(); return [+((e.clientX - r.left) / r.width).toFixed(4), +((e.clientY - r.top) / r.height).toFixed(4)]; };
   // tiles: the cell under the pointer; a tap toggles, a drag paints the same action on every cell it crosses
   const cellOf = (svg, e) => { const r = svg.getBoundingClientRect(), W = +svg.dataset.w, H = +svg.dataset.h, g = +svg.dataset.g;
-    const c = Math.floor((e.clientX - r.left) / r.width * W), row = Math.floor(H - g - (e.clientY - r.top) / r.height * H); return c >= 0 && c < W && row >= 0 ? [c, row] : null; };
+    const vh = +(svg.dataset.vh || H), c = Math.floor((e.clientX - r.left) / r.width * W), row = Math.floor(H - g - (e.clientY - r.top) / r.height * vh); return c >= 0 && c < W && row >= 0 && row < H - g ? [c, row] : null; };
   function paint(k, cell, first) { if (!cell) return; const D0 = DRAW[k] = DRAW[k] || {}; if (!D0.tiles) D0.tiles = tilesOf(k).map(q => Object.assign({}, q));
     const i = D0.tiles.findIndex(q => q.c === cell[0] && q.r === cell[1]);
     if (first) painting.mode = TOOL === "erase" || (i >= 0 && D0.tiles[i].t === TOOL) ? "del" : "put";
@@ -296,7 +328,7 @@ window.initDesigns = async function (root) {
     if (painting.mode === "del") { if (i >= 0) D0.tiles.splice(i, 1); } else { if (i >= 0) D0.tiles.splice(i, 1); D0.tiles.push({ t: TOOL, c: cell[0], r: cell[1] }); }
     painting.changed = true; drawTiles(k); }
   function drawTiles(k) { const svg = root.querySelector(`.tiles[data-k="${k}"]`); if (!svg) return; for (const el of svg.querySelectorAll(".tl")) el.remove();
-    const tmp = document.createElement("div"); tmp.innerHTML = `<svg>${tilesOf(k).map(TILE).join("")}</svg>`; for (const el of [...tmp.firstChild.childNodes]) svg.appendChild(el); }
+    const tmp = document.createElement("div"); tmp.innerHTML = `<svg>${tilesOf(k).map(z => TILE(z, +svg.dataset.h)).join("")}</svg>`; for (const el of [...tmp.firstChild.childNodes]) svg.appendChild(el); }
   root.addEventListener("pointerdown", e => { const ts = e.target.closest && e.target.closest(".tiles"); if (!ts) return; e.preventDefault();
     ts.setPointerCapture(e.pointerId); const k = ts.dataset.k; LACT = k; const w = ts.closest(".dc"); if (w) w.dataset.id = k;
     HIST.push({ k, tiles: (DRAW[k] || {}).tiles ? JSON.parse(JSON.stringify(DRAW[k].tiles)) : null }); if (HIST.length > 50) HIST.shift();
@@ -323,7 +355,7 @@ window.initDesigns = async function (root) {
   root.addEventListener("pointerup", endStroke); root.addEventListener("pointercancel", endStroke);
   // each save a new document (the marks lesson: rewrites never landed); readers take the newest per design
   async function saveDraw(id) { const st = root.querySelector(`.dc[data-id="${CSS.escape(id)}"] .pst`) || root.querySelector(".lay .pst");
-    try { if (!DB) throw new Error("saves on the claude.ai page"); await DB.collection("designdraw").doc(id.replace(/[^A-Za-z0-9_-]/g, "_") + "-" + Date.now().toString(36)).set({ design: id, strokes: DRAW[id].strokes || [], tiles: DRAW[id].tiles || null, at: new Date().toISOString() }); DST[id] = "saved"; }
+    try { if (!DB) throw new Error("saves on the claude.ai page"); const at = new Date().toISOString(); await DB.collection("designdraw").doc(id.replace(/[^A-Za-z0-9_-]/g, "_") + "-" + Date.now().toString(36)).set({ design: id, strokes: DRAW[id].strokes || [], tiles: DRAW[id].tiles || null, at }); DRAW[id].at = at; DST[id] = "saved"; }
     catch (x) { DST[id] = "not saved: " + (x && (x.code || x.message) || String(x)); }
     if (st) st.textContent = DST[id]; }
   root.addEventListener("keydown", e => { if (e.key === "Enter" && e.target.closest && e.target.closest("[data-m]")) { e.preventDefault(); const row = e.target.closest("[data-m]"); PEND[row.dataset.m] = e.target.value; saveMark(row.dataset.m); return; } if (e.key === "Enter" && e.target.classList.contains("fold-h")) e.target.click(); });

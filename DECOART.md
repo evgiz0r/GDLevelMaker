@@ -466,6 +466,18 @@ Since 2026-11-27 (Evgeni: "if i click new the text is gone", "many marks ... nee
 and a note -> the page's db collection `designmarks` (fx / fy on the picture, level x / y, the scene's column and row);
 `node tools/designs.js marks` (after an ArtifactData list into local/designs/marks_phone.json) prints each with what the
 gallery level has there -> knowledge/design_marks.json.
+The theme layout board (Evgeni 2026-11-27): one shared section above the themes, one part per kind of play
+(tools/layoutsections.js: entrance, basic staircase, open / closer cube corridor, hanging structures, flying, wave, flappy
+bird, ball corridors; plus the pieces and the current scene), each shown alone or together by its chip. Tap to place a
+block, floor or ceiling slope, spike, hanging spike or saw; drag paints, ⌫ erases. Cells are drawn at 26 px with −/＋
+zoom, with no picture under them: the first board lay over a 130 px picture and zoom never reached it ("i cant draw on the
+layout properly, zoom doesnt work"). Every edit saves itself; 💾 save saves the shown parts again and says when, without
+sending ("i need a save there, without sending"); 📨 sends. `node tools/designs.js layout [--apply]` reads the edits back
+(sections -> knowledge/layout_sections.json). Next: build the gallery scene from the sections, each with its mode's portal.
+▶ play on a theme card (Evgeni: "theme animations, so we might see how it looks in the game if we press play"): the
+gallery's saved route, 60 points a second in card units (designs.js animOf), moves the camera and a player over the
+picture at 1x, 0.5x or 0.25x. Asked next: several animations to pick per theme, like the backdrop options (effects that
+move: pulses, glows, drifting backdrop); a picture can't show those, so they need rendered clips. Not built yet.
 Contrast (Evgeni 2026-11-27: "the background and the blocks look too alike, they should have some contrast to the blocks
 and hazards"): the old skies were dark versions of the blocks' own hue and the backdrops were mixed toward the block colour.
 Now: each theme's skies are in another hue (40-176 degrees from the blocks), the backdrop pieces stay in the SKY's hue a few

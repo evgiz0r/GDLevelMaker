@@ -271,7 +271,12 @@ const RING = 12, SV = k => Math.max(0.45, 1 - 0.13 * k);
 function shade(st, p, C, o = {}) {
   const S = st.S, v = x => `0a1a${x.toFixed(3)}a0a0`, I = RING + 1.2;
   region(S, RING).forEach(q => p.rect(q, "line", 8, { hsv: "0a1a0.3a0a0" })); tris(S, RING).forEach(t => p.tri(t, "line", 8, { hsv: "0a1a0.3a0a0" }));
-  region(S, I).forEach(q => p.rect(q, "base", 8)); tris(S, I).forEach(t => p.tri(t, "base", 8));
+  region(S, I).forEach(q => p.rect(q, "base", 8));
+  // a slope takes the ramp's shade at its height like the squares beside it (Evgeni 2026-11-27, hellgate col 122: "the
+  // slopes have some different themeing than the blocks near them" -- they were the full base colour, lighter than the
+  // shaded squares next to them): the mean of its cell's top and bottom value
+  const kOf = (c, r) => { let k = 0; while (S.has(key(c, r + k + 1))) k++; return k; };
+  tris(S, I).forEach(t => { const k = kOf(Math.floor(t.x / 30), Math.floor(t.y / 30)); p.tri(t, "base", 9, { hsv: v((SV(k) + SV(k + 1)) / 2) }); });
   for (const q of region(S, I)) {
     // split the piece into cell rows; each row's k from the column at its middle (pieces are merged along rows first)
     for (let r = Math.floor(q[1] / 30); r * 30 < q[3]; r++) {

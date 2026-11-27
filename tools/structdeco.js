@@ -79,6 +79,25 @@ function pass(level, events, opts, spec) {
     const mine = blocks.filter(b => st.S.has(Math.round((b.x - 15 - st.ox) / 30) + "," + Math.round((b.y - 15 - st.oy) / 30)));
     groups[secOf(x0)].push(...mine);
   }
+  // holders first: a brick pillar's fillets are slope cells of the structure it holds, dressed with it (Evgeni 2026-11-27,
+  // hellgate: the fillets had "no block design inside them" and no edge "like the regular blocks")
+  let tally = {}, conns = [], brick = [];
+  const styleOf = i => (o.holders && o.secs[i].holders) || o.holders;
+  if (o.holders) {
+    const pathCells = events ? CN.routeCells(level, events) : new Set();
+    if (!events) notes.push("WARN holders without a route: nothing kept clear for the player");
+    const breaks = level.objects.filter(b => PORTAL.has(b.id)).map(b => b.x);
+    const hazCells = new Set(level.objects.filter(h => SPK.kindOf(h.id)).map(h => Math.floor(h.x / 30) + "," + Math.floor(h.y / 30)));
+    const anyBrick = o.secs.some((s, i) => styleOf(i) === "brick");
+    conns = CN.connectors(blocks, { pathCells, breaks, hazCells, pairFrom: anyBrick ? 5 : 2 });
+    for (const q of conns) tally[q.kind] = (tally[q.kind] || 0) + 1;
+    const solid = blocks.map(b => Math.floor(b.x / 30) + "," + Math.floor(b.y / 30));
+    brick = conns.filter(q => styleOf(secOf(Math.min(q.x0, q.x1))) === "brick" && q.x0 === q.x1);
+    const squares = new Set(blocks.filter(b => b.id !== 1338).map(b => Math.floor(b.x / 30) + "," + Math.floor(b.y / 30)));
+    CN.brickParts(brick, solid, squares).forEach((g, k) => { brick[k].brick = g;
+      const i = secOf(Math.min(brick[k].x0, brick[k].x1));
+      for (const f of g.fillets) groups[i].push({ id: 1338, x: f.x, y: f.y, flipX: f.flipX, flipY: f.flipY, rot: 0, props: {} }); });
+  }
   const out = [];
   o.secs.forEach((s, i) => { if (!groups[i].length) return;
     out.push(...SD.dress(groups[i], s.design, pals.get(palKey(s.pal)).C, { effects: [].concat(s.effects || []), interior: o.interior })); });
@@ -113,17 +132,8 @@ function pass(level, events, opts, spec) {
       const name = k === "spike" ? s.spikes : s.saws; if (!name) continue;
       const parts = SPK.strip(SPK.dress(h, name, C)); nh += parts.length ? 1 : 0; out.push(...parts); } });
   if (nh) notes.push(`hazards: ${nh} dressed (${[...new Set(o.secs.map(s => [s.spikes, s.saws].filter(Boolean).join("/")))].join(", ")})`);
-  let tally = {};
-  if (o.holders) {
-    const pathCells = events ? CN.routeCells(level, events) : new Set();
-    if (!events) notes.push("WARN holders without a route: nothing kept clear for the player");
-    const breaks = level.objects.filter(b => PORTAL.has(b.id)).map(b => b.x);
-    const conns = CN.connectors(blocks, { pathCells, breaks });
-    for (const q of conns) tally[q.kind] = (tally[q.kind] || 0) + 1;
-    // each connector in the palette of the section it starts in
-    o.secs.forEach((s, i) => { const mine = conns.filter(q => secOf(Math.min(q.x0, q.x1)) === i);
-      if (mine.length) out.push(...CN.draw(mine, pals.get(palKey(s.pal)).C, { style: (o.holders && s.holders) || o.holders })); });
-  }
+  if (o.holders) o.secs.forEach((s, i) => { const mine = conns.filter(q => secOf(Math.min(q.x0, q.x1)) === i);
+    if (mine.length) out.push(...CN.draw(mine, pals.get(palKey(s.pal)).C, { style: styleOf(i), filletsDressed: true })); });
   notes.unshift(`structures: ${SD.structures(blocks).length} dressed in ${looks.size} look(s) (${o.secs.map(s => `${s.from}: ${s.design}/${typeof s.pal === "string" ? s.pal : "custom"}${[].concat(s.effects || []).length ? "+" + [].concat(s.effects).join("+") : ""}`).join(", ")}), +${out.length} objects; holders ${o.holders ? JSON.stringify(tally) : "off"}`);
   return { objects: out, header, notes };
 }
