@@ -721,7 +721,7 @@ The viewer draws moving objects where they start.
   page we make (catalogues, viewer, boards, artifacts): a note or comment saves as it is typed (debounced, Enter too) with a
   small "saved" / "not saved: why" -- never a save button, and typed text is never lost to a re-render; a page with a list of
   marks or comments has one **📨 send to Claude** (artifact `comments` capability, `sendToClaude`) so he never has to come to
-  the chat, and it sends only what was never sent (or changed since), so Claude never gets a mark twice; each mark has states open -> seen (Claude read it: `seen` + `reply`, folded away) -> fixed (deleted from the page,
+  the chat, and it sends only what was never sent (or changed since), so Claude never gets a mark twice; claude.ai refuses a send within ~6 s of a key typed in the page, so the button counts that down; each mark has states open -> seen (Claude read it: `seen` + `reply`, folded away) -> fixed (deleted from the page,
   kept in a log in git), so lists never just grow. Example: tools/designs_tab.js (the catalogue's theme 📍 marks).
 - **Pages keep the view across reloads** (Evgeni, 2026-11-27: "when u update my workbook ... my page resets sometimes and i
   lose what i look at (happens in all workbooks)"). Every republish reloads each open artifact view, so every page we make

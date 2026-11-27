@@ -42,7 +42,15 @@ window.initDesigns = async function (root) {
   try { L = await (await fetch("designs.json")).json(); } catch (e) { root.querySelector("#dgroups").textContent = "designs.json did not load"; return; }
   let VOTES = {}, DB = null, CM = null, CAN_SEND = false, MODE = "designs", MARKS = [], MARKING = null;
   // typed mark notes not yet confirmed by the database: they win over snapshots, so a re-render never drops text
-  const PEND = {}, MST = {}; let saveT = null;
+  const PEND = {}, MST = {}; let saveT = null, lastKey = 0, holdT = null;
+  // claude.ai refuses a send-to-Claude within ~6 s of a key typed in the page ("Not sent to Claude. Your last key or click
+  // may not have been meant for this artifact"), so 📨 waits out the typing with a countdown (Evgeni 2026-11-27)
+  const HOLD = 6500;
+  function holdSend() { clearInterval(holdT); const tick = () => { const left = HOLD - (Date.now() - lastKey);
+      for (const b of root.querySelectorAll(".msend")) { b.disabled = left > 0; b.textContent = left > 0 ? `📨 in ${Math.ceil(left / 1000)} s` : b.dataset.label || b.textContent; }
+      if (left <= 0) clearInterval(holdT); };
+    for (const b of root.querySelectorAll(".msend")) if (!b.dataset.label) b.dataset.label = b.textContent;
+    tick(); holdT = setInterval(tick, 500); }
   // a mark is sent once: 📨 sends only marks never sent, or whose note changed since (no repeats; Evgeni 2026-11-27)
   const unsent = m => !m.seen && noteOf(m).trim() && m.sentNote !== noteOf(m).trim();
   const noteOf = m => PEND[m.mid] !== undefined ? PEND[m.mid] : (m.note || "");
@@ -90,7 +98,7 @@ window.initDesigns = async function (root) {
     const mo = open["marks:" + d.id] === true, nu = ms.filter(unsent).length;
     const marksUI = d.kind !== "theme" || !(ms.length || seen.length) ? "" : `<div class="mks">`
       + `<div class="mks-h"><span class="mfold" role="button" data-mf="${esc(d.id)}">${mo ? "▾" : "▸"} 📍 ${ms.length} open${seen.length ? ` · ✓ ${seen.length} seen` : ""}</span>`
-      + (CAN_SEND && nu ? `<button class="msend" title="send the new notes to Claude">📨 send ${nu}</button>` : ms.length && CAN_SEND ? `<span class="ds">sent ✓</span>` : "") + `<span class="ds msst"></span></div>`
+      + (CAN_SEND && nu ? `<button class="msend" data-label="📨 send ${nu}" title="send the new notes to Claude">📨 send ${nu}</button>` : ms.length && CAN_SEND ? `<span class="ds">sent ✓</span>` : "") + `<span class="ds msst"></span></div>`
       + (mo ? `<div class="mks-b">` + ms.map((m, i) => `<div data-m="${esc(m.mid)}"><b>${i + 1}</b><input value="${esc(noteOf(m))}" placeholder="what is off here"><button class="mdel" title="remove">✕</button><span class="ds mst">${esc(MST[m.mid] || "")}</span></div>`).join("")
         + (seen.length ? `<div class="mseen-h" role="button" data-seen="${esc(d.id)}">${so ? "▾" : "▸"} ✓ ${seen.length} seen by Claude</div>`
           + (so ? seen.map(m => `<div class="mseen" data-m="${esc(m.mid)}">✓ <span>${esc(m.note || "")}</span>${m.reply ? `<i>${esc(m.reply)}</i>` : ""}<button class="mdel" title="remove">✕</button></div>`).join("") : "") : "")
@@ -112,6 +120,7 @@ window.initDesigns = async function (root) {
         <div class="dgrid"${isOpen ? "" : " hidden"}>${ds.map(card).join("")}</div></section>`;
     }).join("");
     root.querySelector("#dcount").textContent = `${n} designs`;
+    if (Date.now() - lastKey < HOLD) holdSend();
   }
   async function save(id, patch) {
     const d = L.find(x => x.id === id), old = VOTES[id] || {};
@@ -136,7 +145,7 @@ window.initDesigns = async function (root) {
       try { const anchor = await CM.anchorFor(c); await CM.sendToClaude({ anchor, text: text.slice(0, 4000) });
         for (const m of ms) { PEND[m.mid] = noteOf(m); m.sentNote = noteOf(m).trim(); m.sent = new Date().toISOString(); await saveMark(m.mid); }
         render(); }
-      catch (x) { st.textContent = "not sent: " + (x && (x.code || x.message) || x); }
+      catch (x) { st.textContent = "not sent (" + (x && (x.code || x.message) || x) + "): tap outside, wait a few seconds, tap 📨 again"; }
       return; }
     const h = e.target.closest(".fold-h");
     if (h) { const k = h.parentNode.dataset.g; open[k] = open[k] === false; try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} render(); return; }
@@ -164,7 +173,7 @@ window.initDesigns = async function (root) {
   root.addEventListener("keydown", e => { if (e.key === "Enter" && e.target.closest && e.target.closest("[data-m]")) { e.preventDefault(); const row = e.target.closest("[data-m]"); PEND[row.dataset.m] = e.target.value; saveMark(row.dataset.m); return; } if (e.key === "Enter" && e.target.classList.contains("fold-h")) e.target.click(); });
   root.addEventListener("input", e => {
     const mrow = e.target.closest("[data-m]"); if (!mrow) return;
-    const mid = mrow.dataset.m; PEND[mid] = e.target.value; MST[mid] = "…"; const st = mrow.querySelector(".mst"); if (st) st.textContent = "…";
+    const mid = mrow.dataset.m; PEND[mid] = e.target.value; lastKey = Date.now(); holdSend(); MST[mid] = "…"; const st = mrow.querySelector(".mst"); if (st) st.textContent = "…";
     clearTimeout(saveT); saveT = setTimeout(() => saveMark(mid), 700);
   });
   root.addEventListener("focusout", e => { if (e.target.closest && e.target.closest("[data-m]")) flushMarks(); });
