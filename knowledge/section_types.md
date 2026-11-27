@@ -136,6 +136,13 @@ difficulty target (tier: cps and tightest window), and are checked by tools/layo
   orb on the cube's own arc computed in the generator with GD's numbers -- the page can't run the sim --, a flip orb only
   where the flipped arc has a next orb, a blue at the end if the gravity is still reversed, the end platform where the
   last arc comes down). 12/12 solve.
+- **Round 5 (Evgeni's 🎲 notes):** wave: the hidden band portals are gone ("no need portals inside the wave sections if they
+  reach"); fly: valleys go down to the ground now and then, the ship slides along it ("the flying should also be able and hit
+  the ground/floor as part of the path"); ball portals: each portal is the way past spikes (the surface runs 3 columns on
+  past it with spikes, so not flipping there dies), portal flips ~30%; orb gameplay: a landing platform after every set of
+  2-4 orbs where the arc comes down, the cube runs along it and jumps off its end; `make()` returns `zoom: 0.85` for a
+  section over 12 rows (the builder zooms the camera out over it). Height spread over the whole band is the aim for every
+  type (layoutcheck `spread`, tools/heightspread.js, target >= 0.6).
 - **Tier extreme** (Evgeni: "lets increase the cps of harder ... or add 1 more level", "the wave seems a bit too hard for
   harder, too tight"): `extreme` (1.4) goes past harder on pace only (shorter runs, more presses a second); room --
   corridor gaps -- stops at harder's (`room()` in ctx). The wave's gap is now 6 rows (easy) to 5 (harder and extreme); it was 5 to 3 (Evgeni: "still too tight gaps, need bigger gaps, even for harder").
@@ -174,3 +181,8 @@ Evgeni 2026-11-27 ("lets remind ourselves more idea for sections, bit tired desi
 - **dash orbs** (Evgeni 2026-11-27: "we dont use dashes yet, that also adds a hold to the gameplay other than the flying and
   robot"): dash orb stretches (green / pink dash orbs: hold to dash at the orb's angle, release to stop), a hold in a
   jumping mode. The sim has dash orbs (PHYSICS.md; the props 586 / 588 on them unknown); beware dash-orb skips.
+- **wall climbs** (Evgeni 2026-11-27: "going in reverse and forward from walls (climbing a tower for example)"): bouncing
+  between two walls up a tower, the gameplay going backwards and forwards (2.2 reverse: the direction / reverse portals).
+- **turns of the camera and the play** ("camera movement and movement change (for example 90 degree change of gameplay)"):
+  a section that pans or turns the camera, or turns the gameplay 90 degrees (rotated gameplay 2900: lib/physics.js
+  `frameWorld`, PHYSICS.md "Rotated gameplay"; the "Beat Dash with rotated gameplay" thread built a first one).
