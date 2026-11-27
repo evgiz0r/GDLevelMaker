@@ -1,6 +1,7 @@
 // The lego catalogue's "Designs" tab (published as designs.js beside designs.json and cards/; tools/designs.js page).
 // Loaded only when the tab is first opened, so the structures view pays nothing for it. One small card per design (fire
-// beside ice for blocks), 👍 / 👎 and a comment on the card itself; votes go to the page's database, collection
+// beside ice for blocks), 👍 / 👎 and a comment on the card itself (theme scenes also take 📍 marks: a spot + a note,
+// collection "designmarks", read by tools/designs.js marks); votes go to the page's database, collection
 // "designvotes" (read back with tools/designs.js votes). Every group is collapsible (the catalogue UI rule, CLAUDE.md).
 window.initDesigns = async function (root) {
   "use strict";
@@ -14,6 +15,12 @@ window.initDesigns = async function (root) {
   #designs .dc .wide{overflow-x:auto;background:#0f0c2b;-webkit-overflow-scrolling:touch}
   #designs .dc .wide img{width:auto;height:130px;max-width:none;aspect-ratio:auto}
   #designs .k-theme .wide img{height:220px}
+  #designs .mk{position:relative;display:inline-block;line-height:0}#designs .mk img{display:block}
+  #designs .mk.on{cursor:crosshair;outline:2px dashed #ffd84d}
+  #designs .pin{position:absolute;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;background:#ffd84d;color:#000;font:700 11px/20px system-ui;text-align:center;border:2px solid #000;pointer-events:none}
+  #designs .mks{font-size:12px;margin:4px 0}#designs .mks div{display:flex;gap:6px;align-items:center;margin:2px 0}
+  #designs .mks input{flex:1;min-width:0;background:#141024;color:#eee;border:1px solid #444;border-radius:6px;padding:4px 6px}
+  #designs .mks button{background:#241d3d;color:#ddd;border:1px solid #444;border-radius:6px;padding:2px 7px}
   #designs .dc .dt{padding:6px 8px;font-size:13px;line-height:1.3}
   #designs .dc .dn{font-weight:700}
   #designs .dc .dm{color:var(--mute);font-size:12px}
@@ -27,7 +34,7 @@ window.initDesigns = async function (root) {
   root.innerHTML = `<div class="dbar"><select id="dvf"><option value="">any vote</option><option value="up">👍 liked</option><option value="down">👎 disliked</option><option value="none">not voted yet</option></select><span class="ds" id="dcount"></span></div><div id="dgroups">loading ...</div>`;
   let L = [];
   try { L = await (await fetch("designs.json")).json(); } catch (e) { root.querySelector("#dgroups").textContent = "designs.json did not load"; return; }
-  let VOTES = {}, DB = null, MODE = "designs";
+  let VOTES = {}, DB = null, MODE = "designs", MARKS = [], MARKING = null;
   // the catalogue's Themes tab shows the same cards, only the design themes (Evgeni: "additional tab with themes")
   window.designsShow = m => { MODE = m === "themes" ? "themes" : "designs"; render(); };
   const vkey = id => id.replace(/[^A-Za-z0-9_-]/g, "_").slice(0, 120);
@@ -37,10 +44,16 @@ window.initDesigns = async function (root) {
   function card(d) {
     const v = VOTES[d.id] || {};
     const img = `<img loading="lazy" decoding="async" src="${esc(d.card)}" alt="${esc(d.name)}">`;
-    return `<div class="dc k-${d.kind}" data-id="${esc(d.id)}">${d.kind === "structure" || d.kind === "theme" ? `<div class="wide">${img}</div>` : img}
+    // a theme's scene takes 📍 marks: tap the 📍 button, then a spot on the picture, then type the note
+    const ms = d.kind === "theme" ? MARKS.filter(m => m.design === d.id).sort((a, b) => a.fx - b.fx) : [];
+    const pins = ms.map((m, i) => `<span class="pin" style="left:${(m.fx * 100).toFixed(2)}%;top:${(m.fy * 100).toFixed(2)}%">${i + 1}</span>`).join("");
+    const media = d.kind === "theme" ? `<div class="wide"><div class="mk${MARKING === d.id ? " on" : ""}">${img}${pins}</div></div>`
+      + `<div class="mks">${ms.map((m, i) => `<div data-m="${esc(m.mid)}"><b>${i + 1}</b><input value="${esc(m.note || "")}" placeholder="what is off here"><button class="mdel" title="remove">✕</button></div>`).join("")}</div>`
+      : d.kind === "structure" ? `<div class="wide">${img}</div>` : img;
+    return `<div class="dc k-${d.kind}" data-id="${esc(d.id)}">${media}
       <div class="dt"><span class="dn">${d.n ? d.n + " " : ""}${esc(d.name)}</span>${d.note ? `<div class="dm">${esc(d.note)}</div>` : ""}</div>
       <div class="dv"><button class="up${v.vote > 0 ? " on" : ""}" title="I like it">👍</button><button class="down${v.vote < 0 ? " on" : ""}" title="not so much">👎</button>
-      <button class="com" title="a comment">💬${v.comment ? "•" : ""}</button><span class="ds">${v.at ? "saved" : ""}</span>
+      <button class="com" title="a comment">💬${v.comment ? "•" : ""}</button>${d.kind === "theme" ? `<button class="mark${MARKING === d.id ? " on" : ""}" title="mark a spot on the scene">📍</button>` : ""}<span class="ds">${v.at ? "saved" : ""}</span>
       <textarea hidden placeholder="what is good or off about it">${esc(v.comment || "")}</textarea></div></div>`;
   }
   function render() {
@@ -65,7 +78,20 @@ window.initDesigns = async function (root) {
   root.addEventListener("click", async e => {
     const h = e.target.closest(".fold-h");
     if (h) { const k = h.parentNode.dataset.g; open[k] = open[k] === false; try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} render(); return; }
+    // 📍 marks on a theme's scene (collection "designmarks"; tools/designs.js marks reads them)
+    const im = e.target.closest(".mk.on img");
+    if (im) { const d = L.find(x => x.id === MARKING), r = im.getBoundingClientRect(), fx = (e.clientX - r.left) / r.width, fy = (e.clientY - r.top) / r.height, g = d.geo || {};
+      const x = ((g.c0 || 0) + fx * ((g.c1 || 0) - (g.c0 || 0))) * 30, y = (1 - fy) * (g.hU || 435) - (g.ground || 45);
+      const m = { mid: "m" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), design: d.id, fx: +fx.toFixed(4), fy: +fy.toFixed(4), x: Math.round(x), y: Math.round(y),
+        col: Math.floor(x / 30) - (g.sc || 0), row: Math.floor(y / 30), note: "", at: new Date().toISOString() };
+      MARKS.push(m); MARKING = null; render();
+      const inp = root.querySelector(`[data-m="${m.mid}"] input`); if (inp) inp.focus();
+      try { if (DB) await DB.collection("designmarks").doc(m.mid).set(m); } catch (x) {}
+      return; }
+    const del = e.target.closest(".mdel");
+    if (del) { const mid = del.parentNode.dataset.m; MARKS = MARKS.filter(m => m.mid !== mid); render(); try { if (DB) await DB.collection("designmarks").doc(mid).delete(); } catch (x) {} return; }
     const b = e.target.closest(".dv button"); if (!b) return;
+    if (b.classList.contains("mark")) { const id = b.closest(".dc").dataset.id; MARKING = MARKING === id ? null : id; render(); return; }
     const c = b.closest(".dc"), id = c.dataset.id, st = c.querySelector(".ds");
     if (b.classList.contains("com")) { const t = c.querySelector("textarea"); t.hidden = !t.hidden; if (!t.hidden) t.focus(); return; }
     const n = b.classList.contains("up") ? 1 : -1, cur = (VOTES[id] || {}).vote || 0;
@@ -75,6 +101,9 @@ window.initDesigns = async function (root) {
   root.addEventListener("keydown", e => { if (e.key === "Enter" && e.target.classList.contains("fold-h")) e.target.click(); });
   root.addEventListener("change", async e => {
     if (e.target.id === "dvf") return render();
+    const mrow = e.target.closest("[data-m]");
+    if (mrow) { const m = MARKS.find(z => z.mid === mrow.dataset.m); if (!m) return; m.note = e.target.value.trim(); m.at = new Date().toISOString();
+      try { if (DB) await DB.collection("designmarks").doc(m.mid).set(m); } catch (x) {} return; }
     if (e.target.tagName !== "TEXTAREA") return;
     const c = e.target.closest(".dc"), st = c.querySelector(".ds");
     st.textContent = "saving ...";
@@ -87,6 +116,10 @@ window.initDesigns = async function (root) {
     if (DB) DB.collection("designvotes").onSnapshot(snap => {
       const v = {}; for (const d of snap.docs) { const b = d.data(); if (b && b.id) v[b.id] = b; }
       VOTES = v; if (!root.contains(document.activeElement) || document.activeElement.tagName !== "TEXTAREA") render();
+    }, () => {});
+    if (DB) DB.collection("designmarks").onSnapshot(snap => {
+      MARKS = snap.docs.map(d => d.data()).filter(m => m && m.mid);
+      if (!root.contains(document.activeElement) || !/INPUT|TEXTAREA/.test(document.activeElement.tagName)) render();
     }, () => {});
   } catch (e) {}
 };

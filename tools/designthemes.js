@@ -72,6 +72,23 @@ SCENE.forEach((line, i) => { const r = SCENE.length - 1 - i;
     else if (ch === "q") SAMPLE.push([1707, c, r, { dy: -15 }]);
     else if (ch === "s") SAMPLE.push([1707, c, r, { dy: -8 }]);
   }); });
+// the kit: every piece a theme brings, laid out one by one above the cube's lane (rows 4-7), before its scene
+const KIT_MAP = [
+  "................................",
+  "......#..../\\..^.#....o..#####..",
+  "#.###.###./##\\.#.v.q.....#####..",
+  ".........................#####..",
+];
+const KIT = [], KIT_W = KIT_MAP[0].length + 3;
+KIT_MAP.forEach((line, i) => { const r = 7 - i;
+  [...line].forEach((ch, c) => {
+    if (ch === "#") KIT.push(["block", c, r]);
+    else if (ch === "/" || ch === "\\") KIT.push(["slope", c, r, { flipX: ch === "\\" }]);
+    else if (ch === "^") KIT.push(["spike", c, r]);
+    else if (ch === "v") KIT.push(["spike", c, r, { rot: 180 }]);
+    else if (ch === "q") KIT.push([1707, c, r]);
+    else if (ch === "o") KIT.push([1706, c, r]);
+  }); });
 const SCENE_W = SCENE[0].length, SCENE_END = Math.max(...SCENE.map(l => l.replace(/\.+$/, "").length)) + 2;   // last piece + 2
 
 function list() { for (const [n, t] of Object.entries(THEMES)) console.log(n.padEnd(10) + `${t.pal} ${t.design}${t.effects.length ? " + " + t.effects.join(", ") : ""}; spikes ${t.spikes}, saws ${t.saws}; ${t.holders}; indicator ${t.indicator}; ${t.skies.length} skies; backdrops ${Object.entries(t.backdrops).map(([k, v]) => k + " " + v.join("+")).join(", ")} -- ${t.mood}`); }
@@ -82,8 +99,12 @@ function spec() {
   for (const [name, t] of Object.entries(THEMES)) {
     // one continuous scene per theme: its pieces, sky, backdrop and holders together (Evgeni: "just 1 full scene")
     sections.push({ from: c - 6, theme: name, backdrop: "a", sky: 0 }); labels.push([c - 6, name]); ind.push([c - 6, t.indicator]);
+    // the theme's kit first, up out of the cube's way: its pieces one by one, in its own design and colours (Evgeni
+    // 2026-11-27: "i wanted near each theme, the set of objects/spikes whatever it uses")
+    for (const [kind, dc, r, ex] of KIT) objects.push(ex ? [kind, c + dc, r, ex] : [kind, c + dc, r]);
+    const k0 = c; c += KIT_W;
     for (const [kind, dc, r, ex] of SAMPLE) objects.push(ex ? [kind, c + dc, r, ex] : [kind, c + dc, r]);
-    scenes.push({ name, c0: c - 4, c1: c + SCENE_END });
+    scenes.push({ name, c0: k0 - 2, c1: c + SCENE_END, kit: [k0, k0 + KIT_W - 3], scene: c });
     c += SCENE_W + 24;   // room after the scene, so its picture's last frame stays in this theme
   }
   ind.push([c - 3, "none"]);
