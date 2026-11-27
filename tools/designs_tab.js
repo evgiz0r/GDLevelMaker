@@ -59,6 +59,7 @@ window.initDesigns = async function (root) {
   let LCHK = {}; try { LCHK = await (await fetch("layout_check.json", { cache: "no-store" })).json(); } catch (e) {}
   // the same hash tools/layoutcheck.js hashMap() takes of the map it solved: differs once he drew since -> "old"
   const hashTiles = T => { const cells = T.map(z => z.t + "," + z.c + "," + z.r).sort(); let h = 0; for (const ch of cells.join(";")) h = (h * 31 + ch.charCodeAt(0)) | 0; return h; };
+  let LASTC = "";   // the last time Claude read the queue (designsend docs with by: "claude")
   let LAST = "2026-11-27T14:40:00.000Z";   // the last send (collection "designsend"; this default: when the stamp started)
   let VOTES = {}, DB = null, CM = null, CAN_SEND = false, MODE = "designs", MARKS = [], MARKING = null;
   // typed mark notes not yet confirmed by the database: they win over snapshots, so a re-render never drops text
@@ -431,7 +432,8 @@ window.initDesigns = async function (root) {
     if (!b) { b = document.createElement("button"); b.id = "sendall"; b.title = "send everything new to Claude"; b.style.cssText = "width:auto;border-radius:15px;padding:0 10px;font-size:13px";
       const s2 = document.createElement("span"); s2.id = "sendall-st"; rf.prepend(s2); rf.insertBefore(b, document.getElementById("rfb"));
       b.onclick = () => sendNew(null, null); }
-    const n = collectNew().n; if (!b.classList.contains("ready") || !n) { b.classList.remove("ready"); b.textContent = n ? "📨 " + n + " new" : "📨"; } b.disabled = !n; }
+    const n = collectNew().n; if (!b.classList.contains("ready") || !n) { b.classList.remove("ready"); b.textContent = n ? "📨 " + n + " new" : "📨"; } b.disabled = !n;
+    b.title = "send everything new to Claude" + (LASTC ? " · Claude last read the queue " + new Date(LASTC).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""); }
   setInterval(() => { try { topSend(); } catch (x) {} }, 1500);
   // ⟳ tries to send what is new, and reloads either way (nothing is lost: everything is saved in the page's database)
   window.rfBeforeReload = async () => { if (collectNew().n) { try { await sendNew(null, null); } catch (x) {} } return true; };
@@ -655,7 +657,12 @@ window.initDesigns = async function (root) {
       for (const d of snap.docs.map(x => JSON.parse(JSON.stringify(x.data())))) if (d && d.key && (!ADDED[d.key] || String(d.at) > String(ADDED[d.key].at || ""))) ADDED[d.key] = d;
       if (!(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) render();
     }, () => {});
-    if (DB) DB.collection("designsend").onSnapshot(snap => { let m = LAST; snap.forEach(d => { const a = String((d.data() || {}).at || ""); if (a > m) m = a; }); if (m !== LAST) { LAST = m; topSend && topSend(); } });
+    // the last send AND the last time Claude read the queue (Evgeni 2026-11-27: "those 6 new, you really didnt see them? i
+    // sent them"): the old listener used snap.forEach, which the app's snapshot lacks, so after a reload LAST fell back to
+    // its default and everything since 14:40 counted as new again. Claude writes a stamp here too ({at, by: "claude"})
+    // each time it reads the queue, so what Claude has seen stops counting as new without any send
+    if (DB) DB.collection("designsend").onSnapshot(snap => { let m = LAST; for (const d of snap.docs.map(x => JSON.parse(JSON.stringify(x.data() || {})))) { const a = String(d.at || ""); if (a > m) m = a; if (d.by === "claude" && a > LASTC) LASTC = a; }
+      if (m !== LAST) { LAST = m; try { topSend(); } catch (x) {} if (!(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) render(); } }, () => {});
     if (DB) DB.collection("designnotes").onSnapshot(snap => {
       for (const d of snap.docs.map(x => JSON.parse(JSON.stringify(x.data())))) if (d && d.part && (!NOTES[d.part] || !NOTES[d.part].at || String(d.at) > String(NOTES[d.part].at))) {
         const el = document.activeElement; if (el && el.classList && el.classList.contains("lnote") && el.dataset.n === d.part) continue;   // never under his typing
