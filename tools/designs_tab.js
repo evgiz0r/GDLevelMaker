@@ -10,6 +10,9 @@ window.initDesigns = async function (root) {
   const GEN_HIDDEN = ["hanging"];
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const css = `
+  #designs .wlist{margin:6px 0 18px;display:flex;flex-direction:column;gap:6px}
+  #designs .wrow{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+  #designs .wdf{cursor:pointer;font-size:13px;opacity:.8}
   #designs .dgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin:8px 0 18px}
   #designs .dc{background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
   #designs .dc img{display:block;width:100%;aspect-ratio:2/1;object-fit:cover;background:#0f0c2b}
@@ -68,6 +71,7 @@ window.initDesigns = async function (root) {
   // read | question | passed, reply, at}); each section, note and generated piece shows one line: not sent yet / sent,
   // waiting / read by Claude / ✓ applied + Claude's answer. Newer edits of his than Claude's answer reopen it.
   const CST = {};
+  const WORK = {};   // collection "themework": what Claude is doing about the theme marks (workSection)
   const hm = a => a ? new Date(a).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "";
   function stLine(part) {
     const n = NOTES[part], d = DRAW["layout:" + part], s = CST[part];
@@ -560,6 +564,25 @@ window.initDesigns = async function (root) {
   setInterval(() => { try { topSend(); } catch (x) {} }, 1500);
   // ⟳ tries to send what is new, and reloads either way (nothing is lost: everything is saved in the page's database)
   window.rfBeforeReload = async () => { if (collectNew().n) { try { await sendNew(null, null); } catch (x) {} } return true; };
+  // BEING WORKED ON (Evgeni 2026-11-27: "add here below themes, things that shows what being worked on, and some rough
+  // estimates in minutes. things relevant to the marks in this themes section"). Claude writes collection "themework" with
+  // ArtifactData: {title, about, owner, state: working | queued | waiting | done, est_min, basis, started, done_at, at}.
+  // est_min only from a measured run (basis says which); none = "not measured". Done items stay folded for 24 h.
+  function workSection() {
+    const all = Object.values(WORK).filter(w => w && w.title), now = Date.now(), t = x => { const v = Date.parse(x || ""); return isNaN(v) ? 0 : v; };
+    const live = all.filter(w => w.state !== "done"), done = all.filter(w => w.state === "done" && now - t(w.done_at || w.at) < 864e5);
+    const rank = { working: 0, waiting: 1, queued: 2 };
+    live.sort((a, b) => (rank[a.state] ?? 3) - (rank[b.state] ?? 3) || t(a.started || a.at) - t(b.started || b.at));
+    const hm = ms => new Date(ms).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const eta = w => { if (!w.est_min) return "not measured"; const s = t(w.started); const left = s ? Math.round(w.est_min - (now - s) / 6e4) : w.est_min;
+      return (w.state === "working" && s ? (left > 0 ? `~${left} min left, ready ~${hm(s + w.est_min * 6e4)}` : `over its ~${w.est_min} min`) : `~${w.est_min} min`) + (w.basis ? ` (${esc(w.basis)})` : ""); };
+    const icon = { working: "⚙️", waiting: "⏸ waiting on you", queued: "🕒 next" };
+    const row = w => `<div class="wrow"><b>${esc(w.title)}</b>${w.about ? ` <span class="ds">· ${esc(w.about)}</span>` : ""}<div class="ds">${icon[w.state] || esc(w.state || "")} · ${eta(w)}${w.owner ? " · " + esc(w.owner) : ""}</div></div>`;
+    const isOpen = open.work !== false, dOpen = open.workdone === true;
+    return `<section data-g="work"><h2 class="stitle fold-h" role="button" tabindex="0" aria-expanded="${isOpen}">${isOpen ? "▾" : "▸"} 🛠 Being worked on <span class="ds">${live.length} open${done.length ? " · " + done.length + " done today" : ""} · from your marks and notes here</span></h2>
+      <div class="wlist"${isOpen ? "" : " hidden"}>${live.length ? live.map(row).join("") : `<div class="ds">nothing open right now</div>`}
+      ${done.length ? `<div class="wdone"><span class="wdf" role="button" tabindex="0">${dOpen ? "▾" : "▸"} done (${done.length})</span>${dOpen ? done.map(w => `<div class="wrow ds">✓ ${esc(w.title)}${w.done_at ? " · " + hm(t(w.done_at)) : ""}</div>`).join("") : ""}</div>` : ""}</div></section>`;
+  }
   function render() {
     keepScroll(); try { topSend(); } catch (x) {}
     const f = root.querySelector("#dvf").value, G = GROUPS.filter(([k]) => (MODE === "themes") === (k === "theme"));
@@ -570,7 +593,7 @@ window.initDesigns = async function (root) {
       const isOpen = open[k] !== false;
       return `<section data-g="${k}"><h2 class="stitle fold-h" role="button" tabindex="0" aria-expanded="${isOpen}">${isOpen ? "▾" : "▸"} ${title} <span class="ds">${ds.length}${sub ? " · " + sub : ""}</span></h2>
         <div class="dgrid"${isOpen ? "" : " hidden"}>${ds.map(card).join("")}</div></section>`;
-    }).join("");
+    }).join("") + (MODE === "themes" ? workSection() : "");
     root.querySelector("#dcount").textContent = `${n} designs`;
     putScroll(); if (PLAY && PLAY.paused) requestAnimationFrame(stepPlay);
     if (Date.now() - lastKey < HOLD) holdSend();
@@ -653,6 +676,7 @@ window.initDesigns = async function (root) {
     if (sh) { const k = "seen:" + sh.dataset.seen; open[k] = !open[k]; try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} render(); return; }
     const snd = e.target.closest(".msend");
     if (snd) { const c = snd.closest(".dc"); sendNew(c, c.querySelector(".msst") || c.querySelector(".pst")); return; }
+    if (e.target.closest(".wdf")) { open.workdone = open.workdone !== true; try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} render(); return; }
     const h = e.target.closest(".fold-h");
     if (h) { const k = h.parentNode.dataset.g; open[k] = open[k] === false; try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} render(); return; }
     // 📍 marks on a theme's scene (collection "designmarks"; tools/designs.js marks reads them)
@@ -807,6 +831,9 @@ window.initDesigns = async function (root) {
       if (m !== LAST) { LAST = m; try { topSend(); } catch (x) {} if (!(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) render(); } }, () => {});
     if (DB) DB.collection("genroute").onSnapshot(snap => {
       for (const x of snap.docs) { const d = JSON.parse(JSON.stringify(x.data() || {})); const old = GROUTE[x.id]; GROUTE[x.id] = Object.assign({}, d, old && old.pinged != null ? { pinged: old.pinged } : {}); }
+      if (!(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) render(); }, () => {});
+    if (DB) DB.collection("themework").onSnapshot(snap => {
+      for (const x of snap.docs) WORK[x.id] = JSON.parse(JSON.stringify(x.data() || {}));
       if (!(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) render(); }, () => {});
     if (DB) DB.collection("claudestatus").onSnapshot(snap => {
       for (const d of snap.docs.map(x => JSON.parse(JSON.stringify(x.data() || {})))) if (d.part && (!CST[d.part] || String(d.at) > String(CST[d.part].at))) CST[d.part] = d;
