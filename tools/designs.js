@@ -39,7 +39,7 @@ function list() {
   // geo: where the card sits in the gallery level, so a spot marked on it (designs_tab.js 📍) maps back to a column / row
   const DT = require("./designthemes.js"), scenes = DT.spec().scenes;
   for (const [name, t] of Object.entries(DT.THEMES)) { const q = scenes.find(z => z.name === name) || {};
-    out.push({ id: "theme:" + name, kind: "theme", name, card: `cards/theme-${keyOf(name)}.jpg`,
+    out.push({ id: "theme:" + name, kind: "theme", name, card: `cards/theme-${keyOf(name)}.jpg`, layout: `cards/layout-${keyOf(name)}.jpg`,
       geo: { c0: q.c0, c1: q.c1, sc: q.c0 + 4, hU: THEME_ROWS * 30 + THEME_GROUND, ground: THEME_GROUND },
       note: `${t.mood} · ${t.design}, ${[].concat(t.effects).join(", ")} · spikes ${t.spikes}, saws ${t.saws} · ${t.holders} · ${t.indicator}` }); }
   return out;
@@ -81,7 +81,15 @@ function themeCards() {
   const run = (cmd, a) => { const r = cp.spawnSync(cmd, a, { cwd: ROOT, stdio: "inherit", windowsHide: true }); if (r.status) throw new Error(cmd + " failed"); };
   const DT = require("./designthemes.js"), scenes = DT.spec().scenes, S = 0.75, ROWS = THEME_ROWS, GROUND = THEME_GROUND;
   run(process.execPath, ["tools/levelmap.js", "levels/gdlm_design_themes.gdlvl", "--clean", "--rows", "1", "--scale", String(S), "--name", "design_themes_clean"]);
+  // the pure layout beside it (Evgeni 2026-11-27: "lets also put the pure layout above (also collapsible)"): the same
+  // level with its decoration and triggers left out, same camera, cut the same way
+  const io = require("./io.js"), L = io.readGdlvl(path.join(ROOT, "levels", "gdlm_design_themes.gdlvl"));
+  const keep = L.level.objects.filter(o => !/^(decoration|trigger)$/.test(io.GD.objInfo(o.id).kind || ""));
+  const lay = path.join(ROOT, "local", "designs", "design_themes_layout.gdlvl"); fs.mkdirSync(path.dirname(lay), { recursive: true });
+  io.writeGdlvl(lay, L.rec, Object.assign({}, L.level, { objects: keep }));
+  run(process.execPath, ["tools/levelmap.js", lay, "--clean", "--rows", "1", "--scale", String(S), "--name", "design_themes_layout"]);
   const jobs = scenes.map(q => ({ card: path.join(DIR, `cards/theme-${keyOf(q.name)}.jpg`), x0: Math.round(q.c0 * 30 * S), x1: Math.round(q.c1 * 30 * S) }));
+  const ljobs = scenes.map(q => ({ card: path.join(DIR, `cards/layout-${keyOf(q.name)}.jpg`), x0: Math.round(q.c0 * 30 * S), x1: Math.round(q.c1 * 30 * S) }));
   fs.mkdirSync(path.join(DIR, "cards"), { recursive: true });
   run(process.platform === "win32" ? "python" : "python3", ["-c", `
 import json,sys
@@ -91,6 +99,14 @@ im=Image.open(sys.argv[2]).convert('RGB'); h=int(sys.argv[3])
 for p in json.loads(sys.argv[1]):
     im.crop((p['x0'],max(0,im.size[1]-h),p['x1'],im.size[1])).save(p['card'],quality=82)
 `, JSON.stringify(jobs), path.join(ROOT, "local", "maps", "design_themes_clean.png"), String(Math.round((ROWS * 30 + GROUND) * S))]);
+  run(process.platform === "win32" ? "python" : "python3", ["-c", `
+import json,sys
+from PIL import Image
+Image.MAX_IMAGE_PIXELS=None
+im=Image.open(sys.argv[2]).convert('RGB'); h=int(sys.argv[3])
+for p in json.loads(sys.argv[1]):
+    im.crop((p['x0'],max(0,im.size[1]-h),p['x1'],im.size[1])).save(p['card'],quality=82)
+`, JSON.stringify(ljobs), path.join(ROOT, "local", "maps", "design_themes_layout.png"), String(Math.round((ROWS * 30 + GROUND) * S))]);
   console.log(`${jobs.length} theme cards -> ${path.join(DIR, "cards")}`);
 }
 
@@ -117,11 +133,11 @@ function page(out) {
   out = out || path.join(ROOT, "local", "lego", "page_private");
   fs.mkdirSync(path.join(out, "cards"), { recursive: true });
   const L = list().filter(d => fs.existsSync(path.join(DIR, d.card)));
-  for (const d of L) fs.copyFileSync(path.join(DIR, d.card), path.join(out, d.card));
+  for (const d of L) for (const f of [d.card, d.layout]) if (f && fs.existsSync(path.join(DIR, f))) fs.copyFileSync(path.join(DIR, f), path.join(out, f));
   fs.writeFileSync(path.join(out, "designs.json"), JSON.stringify(L));
   fs.copyFileSync(path.join(__dirname, "designs_tab.js"), path.join(out, "designs.js"));
   console.log(`${L.length} designs -> ${out} (designs.json, designs.js, cards/)`);
-  return { out, files: ["designs.json", "designs.js"].concat(L.map(d => d.card)) };
+  return { out, files: ["designs.json", "designs.js"].concat(L.flatMap(d => [d.card, d.layout].filter(Boolean))) };
 }
 
 function load() { try { return JSON.parse(fs.readFileSync(VOTESK, "utf8")).votes || []; } catch (e) { return []; } }

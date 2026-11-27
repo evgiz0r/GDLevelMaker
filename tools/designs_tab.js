@@ -15,7 +15,13 @@ window.initDesigns = async function (root) {
   #designs .dc.k-structure,#designs .dc.k-theme{grid-column:1/-1}
   #designs .dc .wide{overflow-x:auto;background:#0f0c2b;-webkit-overflow-scrolling:touch}
   #designs .dc .wide img{width:auto;height:130px;max-width:none;aspect-ratio:auto}
-  #designs .k-theme .wide img{height:220px}
+  #designs .k-theme .wide img{height:var(--zh,220px)}
+  #designs .lyh{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:6px 8px;font-size:12px}#designs .lfold{cursor:pointer;color:var(--mute)}
+  #designs .lyh button{background:#241d3d;color:#ddd;border:1px solid #444;border-radius:6px;padding:2px 7px;font-size:12px}#designs .lyh .pen.on{outline:2px solid currentColor}
+  #designs .ink{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}#designs .ink.on{pointer-events:auto;cursor:crosshair;touch-action:none;outline:2px dashed #ffd84d}
+  #designs .ink polyline{fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+  #designs .zw{position:relative}#designs .zb{position:absolute;right:6px;top:6px;display:flex;gap:4px}
+  #designs .zb button{width:30px;height:30px;border-radius:15px;border:1px solid #555;background:#1b1538cc;color:#fff;font:700 16px/1 system-ui}
   #designs .mk{position:relative;display:inline-block;line-height:0}#designs .mk img{display:block}
   #designs .mk.on{cursor:crosshair;outline:2px dashed #ffd84d}
   #designs .pin{position:absolute;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;background:#ffd84d;color:#000;font:700 11px/20px system-ui;text-align:center;border:2px solid #000;pointer-events:none}
@@ -43,6 +49,8 @@ window.initDesigns = async function (root) {
   try { L = await (await fetch("designs.json")).json(); } catch (e) { root.querySelector("#dgroups").textContent = "designs.json did not load"; return; }
   let VOTES = {}, DB = null, CM = null, CAN_SEND = false, MODE = "designs", MARKS = [], MARKING = null;
   // typed mark notes not yet confirmed by the database: they win over snapshots, so a re-render never drops text
+  const PENS = { block: "#ffffff", hazard: "#ff5a5a", note: "#ffd84d" }, PENL = { block: "▭ block", hazard: "▲ hazard", note: "✎ note" };
+  let DRAWING = null, PEN = "block"; const DRAW = {}, DST = {};
   const PEND = {}, MST = {}; let saveT = null, lastKey = 0, holdT = null;
   // claude.ai refuses a send-to-Claude within ~6 s of a key typed in the page ("Not sent to Claude. Your last key or click
   // may not have been meant for this artifact"), so 📨 waits out the typing with a countdown (Evgeni 2026-11-27)
@@ -92,7 +100,19 @@ window.initDesigns = async function (root) {
     const ms = all.filter(m => !m.seen), seen = all.filter(m => m.seen), so = open["seen:" + d.id] === true;
     const pins = ms.map((m, i) => `<span class="pin" style="left:${(m.fx * 100).toFixed(2)}%;top:${(m.fy * 100).toFixed(2)}%">${i + 1}</span>`).join("")
       + (so ? seen.map(m => `<span class="pin seen" style="left:${(m.fx * 100).toFixed(2)}%;top:${(m.fy * 100).toFixed(2)}%">✓</span>`).join("") : "");
-    const media = d.kind === "theme" ? `<div class="wide"><div class="mk${MARKING === d.id ? " on" : ""}">${img}${pins}</div></div>`
+    // zoom (Evgeni 2026-11-27: "need some zooming options"): the scene's height, ­/＋ in the card's top corner, kept per viewer
+    const zh = Math.round(220 * (open["zoom:" + d.id] || 1));
+    // the pure layout above the scene (Evgeni 2026-11-27: "lets also put the pure layout above (also collapsible)"), with
+    // a whiteboard on it ("where is the white board we wanted for the layout"): ✏ draw, a pen per kind (block, hazard,
+    // note), strokes saved as revisions in collection "designdraw" (tools/designs.js drawings renders them)
+    const lo = open["layout:" + d.id] !== false, dr = DRAWING === d.id, sk = (DRAW[d.id] || {}).strokes || [];
+    const svg = `<svg class="ink${dr ? " on" : ""}" viewBox="0 0 1000 100" preserveAspectRatio="none">${sk.map(st => `<polyline points="${st.p.map(q => (q[0] * 1000).toFixed(1) + "," + (q[1] * 100).toFixed(2)).join(" ")}" stroke="${PENS[st.k] || "#fff"}" />`).join("")}</svg>`;
+    const layoutUI = d.kind !== "theme" || !d.layout ? "" : `<div class="lyh"><span class="lfold" role="button" data-lf="${esc(d.id)}">${lo ? "▾" : "▸"} layout${sk.length ? ` · ✏ ${sk.length}` : ""}</span>`
+      + (lo ? (dr ? `<span class="pens">${Object.keys(PENS).map(k => `<button class="pen${PEN === k ? " on" : ""}" data-pen="${k}" style="color:${PENS[k]}">${PENL[k]}</button>`).join("")}<button class="pundo">↶</button><button class="pclear">🗑</button><button class="pdone">✓ done</button></span>`
+        : `<button class="pdraw">✏ draw</button>`) + (sk.length && !ms.length ? `<button class="msend" data-label="📨 send to Claude"${CAN_SEND ? "" : " disabled"}>📨 send to Claude</button>` : "") + `<span class="ds pst">${esc(DST[d.id] || "")}</span>` : "") + `</div>`
+      + (lo ? `<div class="wide" data-w="L:${esc(d.id)}"><div class="mk lk" style="--zh:${zh}px"><img loading="lazy" src="${esc(d.layout)}" alt="layout">${svg}</div></div>` : "");
+    const media = d.kind === "theme" ? layoutUI + `<div class="zw"><div class="wide" data-w="${esc(d.id)}"><div class="mk${MARKING === d.id ? " on" : ""}" style="--zh:${zh}px">${img}${pins}</div></div>`
+      + `<div class="zb"><button class="zoom" data-z="-1" title="zoom out">−</button><button class="zoom" data-z="1" title="zoom in">＋</button></div></div>`
       : d.kind === "structure" ? `<div class="wide">${img}</div>` : img;
     // the marks panel sits UNDER the buttons as one folded line (Evgeni 2026-11-27: "mark ui grows too big and pushes the ui
     // to the bottom"); open, it scrolls inside a capped box, so the card never grows past it
@@ -110,7 +130,15 @@ window.initDesigns = async function (root) {
       <button class="com" title="a comment">💬${v.comment ? "•" : ""}</button>${d.kind === "theme" ? `<button class="mark${MARKING === d.id ? " on" : ""}" title="mark a spot on the scene">📍</button>` : ""}<span class="ds">${v.at ? "saved" : ""}</span>
       <textarea hidden placeholder="what is good or off about it">${esc(v.comment || "")}</textarea></div>${marksUI}</div>`;
   }
+  // a re-render rebuilds the scene scrollers: keep where each one was (Evgeni: "when i click mark it puts the scene back
+  // to the start"), as a share of its width so a zoom keeps the same spot in view
+  const SCR = {};
+  function keepScroll() { for (const w of root.querySelectorAll(".wide[data-w]")) { const W = w.scrollWidth - w.clientWidth;
+    SCR[w.dataset.w] = W > 0 ? (w.scrollLeft + w.clientWidth / 2) / w.scrollWidth : SCR[w.dataset.w] || 0; } }
+  function putScroll() { for (const w of root.querySelectorAll(".wide[data-w]")) { const f = SCR[w.dataset.w]; if (f == null) continue;
+    const go = () => { w.scrollLeft = f * w.scrollWidth - w.clientWidth / 2; }; go(); const im = w.querySelector("img"); if (im && !im.complete) im.addEventListener("load", go, { once: true }); } }
   function render() {
+    keepScroll();
     const f = root.querySelector("#dvf").value, G = GROUPS.filter(([k]) => (MODE === "themes") === (k === "theme"));
     const ok = d => { const v = VOTES[d.id]; return !f || (f === "up" ? v && v.vote > 0 : f === "down" ? v && v.vote < 0 : !v || !v.vote); };
     let n = 0;
@@ -121,6 +149,7 @@ window.initDesigns = async function (root) {
         <div class="dgrid"${isOpen ? "" : " hidden"}>${ds.map(card).join("")}</div></section>`;
     }).join("");
     root.querySelector("#dcount").textContent = `${n} designs`;
+    putScroll();
     if (Date.now() - lastKey < HOLD) holdSend();
   }
   async function save(id, patch) {
@@ -134,17 +163,30 @@ window.initDesigns = async function (root) {
     if (Object.keys(PEND).length || (document.activeElement && document.activeElement.closest && document.activeElement.closest("[data-m]"))) flushMarks();
     const sv = e.target.closest(".msave");
     if (sv) { const row = sv.closest("[data-m]"); PEND[row.dataset.m] = row.querySelector("input").value; const st = row.querySelector(".mst"); if (st) st.textContent = "saving ..."; await saveMark(row.dataset.m); return; }
+    const lf = e.target.closest(".lfold");
+    if (lf) { const k = "layout:" + lf.dataset.lf; open[k] = open[k] === false; try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} render(); return; }
+    if (e.target.closest(".pdraw")) { DRAWING = e.target.closest(".dc").dataset.id; render(); return; }
+    if (e.target.closest(".pdone")) { DRAWING = null; render(); return; }
+    const pn = e.target.closest(".pen"); if (pn) { PEN = pn.dataset.pen; render(); return; }
+    if (e.target.closest(".pundo") || e.target.closest(".pclear")) { const id = e.target.closest(".dc").dataset.id, D0 = DRAW[id] || { strokes: [] };
+      DRAW[id] = { strokes: e.target.closest(".pclear") ? [] : D0.strokes.slice(0, -1) }; render(); saveDraw(id); return; }
+    const zb = e.target.closest(".zoom");
+    if (zb) { const id = zb.closest(".dc").dataset.id, k = "zoom:" + id, z = open[k] || 1;
+      open[k] = Math.max(0.5, Math.min(3, +(z * (+zb.dataset.z > 0 ? 1.4 : 1 / 1.4)).toFixed(3)));
+      try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} render(); return; }
     const mf = e.target.closest(".mfold");
     if (mf) { const k = "marks:" + mf.dataset.mf; open[k] = !open[k]; try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} render(); return; }
     const sh = e.target.closest(".mseen-h");
     if (sh) { const k = "seen:" + sh.dataset.seen; open[k] = !open[k]; try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} render(); return; }
     const snd = e.target.closest(".msend");
-    if (snd) { const c = snd.closest(".dc"), id = c.dataset.id, st = c.querySelector(".msst"), d = L.find(x => x.id === id);
+    if (snd) { const c = snd.closest(".dc"), id = c.dataset.id, st = c.querySelector(".msst") || c.querySelector(".pst"), d = L.find(x => x.id === id);
       const ms = MARKS.filter(m => m.design === id && unsent(m)).sort((a, b) => a.fx - b.fx);
-      const text = `📍 marks on the ${d.name} theme scene (catalogue Themes tab):\n` + ms.map((m, i) => `${i + 1}. col ${m.col}, row ${m.row} (x ${m.x}, y ${m.y}): ${noteOf(m).trim() || "(no note)"}`).join("\n");
-      if (!ms.length) { st.textContent = "nothing new: every typed note was sent already"; return; }
+      const text = `📍 marks on the ${d.name} theme scene (catalogue Themes tab):\n` + ms.map((m, i) => `${i + 1}. col ${m.col}, row ${m.row} (x ${m.x}, y ${m.y}): ${noteOf(m).trim() || "(no note)"}`).join("\n") + (inkNew ? `\n✏ layout drawing: ${ink} strokes (collection designdraw)` : "");
+      const ink = ((DRAW[id] || {}).strokes || []).length, inkNew = ink > 0 && (DRAW[id].sentAt || "") !== (DRAW[id].at || "x");
+      if (!ms.length && !inkNew) { st.textContent = "nothing new: every typed note was sent already"; return; }
       st.textContent = "sending ...";
       try { const anchor = await CM.anchorFor(c); await CM.sendToClaude({ anchor, text: text.slice(0, 4000) });
+        if (inkNew) DRAW[id].sentAt = DRAW[id].at;
         for (const m of ms) { PEND[m.mid] = noteOf(m); m.sentNote = noteOf(m).trim(); m.sent = new Date().toISOString(); await saveMark(m.mid); }
         render(); }
       catch (x) { st.textContent = "not sent (" + (x && (x.code || x.message) || x) + "): tap outside, wait a few seconds, tap 📨 again"; }
@@ -172,6 +214,22 @@ window.initDesigns = async function (root) {
     st.textContent = "saving ...";
     try { await save(id, { vote: cur === n ? 0 : n }); c.outerHTML = card(L.find(x => x.id === id)); } catch (x) { st.textContent = "not saved: " + x.message; }
   });
+  let cur = null;
+  const ptOf = (svg, e) => { const r = svg.getBoundingClientRect(); return [+((e.clientX - r.left) / r.width).toFixed(4), +((e.clientY - r.top) / r.height).toFixed(4)]; };
+  root.addEventListener("pointerdown", e => { const svg = e.target.closest && e.target.closest(".ink.on"); if (!svg) return; e.preventDefault();
+    svg.setPointerCapture(e.pointerId); const id = svg.closest(".dc").dataset.id; cur = { id, svg, st: { k: PEN, p: [ptOf(svg, e)] } };
+    const pl = document.createElementNS("http://www.w3.org/2000/svg", "polyline"); pl.setAttribute("stroke", PENS[PEN]); svg.appendChild(pl); cur.pl = pl; });
+  root.addEventListener("pointermove", e => { if (!cur) return; const q = ptOf(cur.svg, e), l = cur.st.p[cur.st.p.length - 1];
+    if (Math.abs(q[0] - l[0]) + Math.abs(q[1] - l[1]) < 0.002) return; cur.st.p.push(q);
+    cur.pl.setAttribute("points", cur.st.p.map(z => (z[0] * 1000).toFixed(1) + "," + (z[1] * 100).toFixed(2)).join(" ")); });
+  const endStroke = () => { if (!cur) return; const { id, st } = cur; cur = null; if (st.p.length < 2) return;
+    (DRAW[id] = DRAW[id] || { strokes: [] }).strokes.push(st); saveDraw(id); };
+  root.addEventListener("pointerup", endStroke); root.addEventListener("pointercancel", endStroke);
+  // each save a new document (the marks lesson: rewrites never landed); readers take the newest per design
+  async function saveDraw(id) { const st = root.querySelector(`.dc[data-id="${CSS.escape(id)}"] .pst`);
+    try { if (!DB) throw new Error("saves on the claude.ai page"); await DB.collection("designdraw").doc(id.replace(/[^A-Za-z0-9_-]/g, "_") + "-" + Date.now().toString(36)).set({ design: id, strokes: DRAW[id].strokes, at: new Date().toISOString() }); DST[id] = "saved"; }
+    catch (x) { DST[id] = "not saved: " + (x && (x.code || x.message) || String(x)); }
+    if (st) st.textContent = DST[id]; }
   root.addEventListener("keydown", e => { if (e.key === "Enter" && e.target.closest && e.target.closest("[data-m]")) { e.preventDefault(); const row = e.target.closest("[data-m]"); PEND[row.dataset.m] = e.target.value; saveMark(row.dataset.m); return; } if (e.key === "Enter" && e.target.classList.contains("fold-h")) e.target.click(); });
   root.addEventListener("input", e => {
     const mrow = e.target.closest("[data-m]"); if (!mrow) return;
@@ -195,6 +253,10 @@ window.initDesigns = async function (root) {
     if (DB) DB.collection("designvotes").onSnapshot(snap => {
       const v = {}; for (const d of snap.docs) { const b = d.data(); if (b && b.id) v[b.id] = b; }
       VOTES = v; if (!root.contains(document.activeElement) || document.activeElement.tagName !== "TEXTAREA") render();
+    }, () => {});
+    if (DB) DB.collection("designdraw").onSnapshot(snap => {
+      for (const d of snap.docs.map(x => x.data())) if (d && d.design && (!DRAW[d.design] || !DRAW[d.design].at || String(d.at) > String(DRAW[d.design].at))) if (!cur && DRAWING !== d.design) DRAW[d.design] = d;
+      if (!cur && !DRAWING) render();
     }, () => {});
     if (DB) DB.collection("designmarks").onSnapshot(snap => {
       const local = MARKS.filter(m => MST[m.mid] !== "saved" && !m.seen);

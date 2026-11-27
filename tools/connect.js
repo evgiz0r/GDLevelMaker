@@ -41,6 +41,8 @@ function connectors(blocks, o = {}) {
     .sort((a, b) => a.c0 - b.c0);
   const ground = Math.round(-oy / 30), top = ground + (o.topRow ?? 11);   // rows: the ground's, the top of the view
   const out = [], crosses = (xa, xb) => breaks.some(b => b > xa && b < xb);
+  // the island's cells ride along (not enumerable: not printed) so draw() can keep a pillar's fillets on the structure
+  const withCells = (q, I) => Object.defineProperty(q, "cells", { value: { set: new Set(I.cs.map(c => c.join(","))), ox, oy }, enumerable: false });
   // a vertical line at x from y0 upward (dir 1) or downward (dir -1) until a solid, the ground or the top: its far end,
   // or null when the route crosses it
   const run = (x, y0, dir) => {
@@ -53,7 +55,24 @@ function connectors(blocks, o = {}) {
     }
   };
   for (const I of isl) {
-    if (I.r0 <= ground || I.r1 >= top) continue;   // on the ground or into the top: held already
+    if (I.r1 >= top) continue;   // into the top: held already
+    if (I.r0 <= ground) {
+      // on the ground, but a ledge of it can still hang in the air (Evgeni 2026-11-27, hellgate col 97: a slab touching a
+      // structure only at a corner, "no holders from the bottom ... connected on the bottom (to the structure on the left,
+      // and to the bottom on the right)"): every overhang -- a run of 2+ cells with nothing under them, above the ground
+      // row -- stands on a pillar at its outer end (the end away from the support), when the route leaves room
+      const has = (c, r) => I.cs.some(q => q[0] === c && q[1] === r), under = new Map();
+      for (const [c, r] of I.cs) if (r > ground && !has(c, r - 1) && (!under.has(c) || under.get(c) > r)) under.set(c, r);
+      const cols = [...under.keys()].sort((a, b) => a - b);
+      for (let i = 0; i < cols.length;) { let j = i; while (j + 1 < cols.length && cols[j + 1] === cols[j] + 1 && under.get(cols[j + 1]) === under.get(cols[i])) j++;
+        const c0 = cols[i], c1 = cols[j], r = under.get(c0); i = j + 1; if (c1 - c0 + 1 < 2) continue;
+        // the supported side: a neighbour column of the run that reaches lower; stand at the other end
+        const lowL = I.cs.some(q => q[0] === c0 - 1 && q[1] < r), lowR = I.cs.some(q => q[0] === c1 + 1 && q[1] < r);
+        const ends = lowL && !lowR ? [c1] : lowR && !lowL ? [c0] : !lowL && !lowR ? [c0, c1] : [];
+        for (const c of ends) { const x = X(c) + 15, y1 = Y(r), y0 = run(x, y1, -1); if (y0 != null && y1 - y0 >= 6) out.push(withCells({ kind: "stand", x0: x, x1: x, y0, y1, w: c1 - c0 + 1 }, I)); }
+      }
+      continue;
+    }
     // where: two holders near the ends of a wide island, one in the middle of a narrow one (Evgeni: "on the
     // edges/middle of the structures ( like 2 ropes holding a brick, or from the other side a brick floating on two ropes )")
     const w = I.c1 - I.c0 + 1, xs = w >= 2 ? [X(I.c0) + 9, X(I.c1 + 1) - 9] : [X(I.c0) + 15];
@@ -78,7 +97,7 @@ function connectors(blocks, o = {}) {
     // a wide island also gets one in the middle (Evgeni 2026-11-27: "holders ... on the sides (maybe some in the middle)")
     if (pick && pick.length === 2 && w >= (o.midFrom ?? 10)) { const d = pick[0].kind === "hang" ? 1 : -1, mc = I.c0 + Math.floor(w / 2);
       const q = seg(X(mc), d); if (q && Math.abs(q.x0 - pick[0].x0) >= 60 && Math.abs(q.x0 - pick[1].x0) >= 60) pick.push(q); }
-    if (pick) out.push(...pick.map(q => Object.assign(q, { w })));
+    if (pick) out.push(...pick.map(q => withCells(Object.assign(q, { w }), I)));
   }
   // a soft line between two close islands at the same height (a rope bridge), not across a portal or a wide gap
   for (let i = 0; i + 1 < isl.length; i++) {
@@ -118,14 +137,22 @@ function draw(conns, C, o = {}) {
       // brick pillar behind the play, 1 block wide (2 under an island 8+ wide), its bricks in rows shifted by half, an
       // outline in the line colour, and a 45-degree fillet each side where it meets the structure; darker than the
       // play blocks so it reads as background, never as something to land on
-      const bw = (q.w || 1) >= 8 ? 60 : 30, x0 = q.x0 - bw / 2, at = q.kind === "hang" ? q.y0 : q.y1, dir = q.kind === "hang" ? 1 : -1;
+      const at = q.kind === "hang" ? q.y0 : q.y1, dir = q.kind === "hang" ? 1 : -1, G = q.cells;
+      // on the cell grid, so a fillet sits on whole cells; a fillet only where the structure goes on under it at the
+      // attached row (Evgeni 2026-11-27, hellgate col 27: "the slopes go out of the structures ... move to the side, or
+      // have the slope removed from that side ... or no slope at all")
+      const on = (x, y) => !G || G.set.has(Math.floor((x - G.ox) / 30) + "," + Math.floor((y - G.oy) / 30));
+      const ya = at - dir * 15;   // the row the pillar is attached to
+      let bw = (q.w || 1) >= 8 ? 60 : 30, cxs = G ? (bw === 30 ? G.ox + Math.floor((q.x0 - G.ox) / 30) * 30 + 15 : G.ox + Math.round((q.x0 - G.ox) / 30) * 30) : q.x0;
+      if (bw === 60 && !(on(cxs - 15, ya) && on(cxs + 15, ya))) { bw = 30; cxs = G.ox + Math.floor((q.x0 - G.ox) / 30) * 30 + 15; }
+      const cx = cxs, x0 = cx - bw / 2;
       put(211, cx, cy, { ch: C.line, sx: (bw + 3) / 30, sy: len / 30, hsv: hsv(1) });
       put(211, cx, cy, { ch: C.base, sx: bw / 30, sy: len / 30, hsv: hsv(0.9), zo: 3 });
       for (let k = 1, y = q.y0 + 15; y < q.y1 - 2; y += 15, k++) {
         put(211, cx, y, { ch: C.line, sx: bw / 30, sy: 0.05, hsv: hsv(0.55), zo: 4 });
         for (let xx = x0 + (k % 2 ? 15 : 30); xx < x0 + bw - 2; xx += 30) put(211, xx, y - 7.5, { ch: C.line, sx: 0.05, sy: 0.5, hsv: hsv(0.55), zo: 4 }); }
       // the fillets: a right triangle each side, its right angle in the corner between pillar and structure
-      for (const side of [-1, 1]) put(693, cx + side * (bw / 2 + 15), at + dir * 15, { ch: C.base, hsv: hsv(0.9), zo: 3, flipX: side > 0, flipY: dir < 0 });
+      for (const side of [-1, 1]) if (on(cx + side * (bw / 2 + 15), ya)) put(693, cx + side * (bw / 2 + 15), at + dir * 15, { ch: C.base, hsv: hsv(0.9), zo: 3, flipX: side > 0, flipY: dir < 0 });
     } else if (style === "gdchain") {
       const L = 2.32 * 30 * 0.6, n = Math.max(1, Math.ceil(len / L));
       for (let k = 0; k < n; k++) { const t = (k + 0.5) / n; put(41, vert ? q.x0 : q.x0 + len * t, vert ? q.y0 + len * t : q.y0, { ch: C.line, s: 0.6, rot, hsv: hsv(1) }); }
