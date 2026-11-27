@@ -47,11 +47,15 @@ function list() {
         .concat(require("./layoutsections.js").SECTIONS.map(z => ["sec:" + z.key, z.name, z.map[0].length, z.map.length, z.mode, z.note])),
       partGeo: { kit: { c0: q.c0, c1: q.scene - 1 }, play: { c0: q.scene - 1, c1: q.c1 }, hU: THEME_ROWS * 30 + THEME_GROUND, ground: THEME_GROUND, sc: q.scene },
       geo: { c0: q.c0, c1: q.c1, sc: q.c0 + 4, hU: THEME_ROWS * 30 + THEME_GROUND, ground: THEME_GROUND },
-      anim: animOf(q.c0, q.c1), cells: cellsOf(q.c0, q.c1),
+      anim: animOf(q.c0, q.c1), cells: cellsOf(q.c0, q.c1), fxcols: fxColsOf(t),
       note: `${t.mood} · ${t.design}, ${[].concat(t.effects).join(", ")} · spikes ${t.spikes}, saws ${t.saws} · ${t.holders} · ${t.indicator}` }); }
   return out;
 }
 const THEME_ROWS = 13, THEME_GROUND = 45;
+// the colours of a theme card's animation styles: the theme's own light roles (Evgeni 2026-11-27: "the colors of the
+// effect should match the vibe of the level"), so fire flows in embers, ice in cold blues
+function fxColsOf(t) { try { const P = typeof t.pal === "object" ? t.pal : require("./blockdesigns.js").PAL[t.pal];
+  return ["glow", "inner", "hi", "core"].map(k => P[k]).filter(Boolean); } catch (e) { return null; } }
 // the play blocks of a theme's scene, for the page's "nine circles" style (Evgeni 2026-11-27: "nine circles is when our
 // structure has 4 channels and it does waves, not the background ... some kind of flow on the structures"): one
 // [x, y, column] per block in card units (as animOf), column = its level column, so the page can light them band by band
@@ -61,7 +65,10 @@ function cellsOf(c0, c1) {
     if (!LVL) LVL = require("./io.js").readGdlvl(path.join(ROOT, "levels", "gdlm_design_themes.gdlvl")).level.objects;
     const SC = 0.75, out = [];
     for (const b of LVL) { if (!((b.id >= 1 && b.id <= 7) || b.id === 1338)) continue; if (b.x < c0 * 30 || b.x > c1 * 30 || b.y > THEME_ROWS * 30) continue;
-      out.push([+((b.x - c0 * 30) * SC).toFixed(1), +((THEME_ROWS * 30 - b.y) * SC).toFixed(1), Math.floor(b.x / 30)]); }
+      // 4th: 0 a square; a slope 1338 (unflipped: rises to the right) 1 + flipX + 2 flipY + 4 * quarter turns, so the page
+      // fills the slope's triangle, not its square (Evgeni 2026-11-27: "they are bad on the slopes")
+      const sh = b.id === 1338 ? 1 + (b.flipX ? 1 : 0) + (b.flipY ? 2 : 0) + 4 * ((Math.round((b.rot || 0) / 90) % 4 + 4) % 4) : 0;
+      out.push([+((b.x - c0 * 30) * SC).toFixed(1), +((THEME_ROWS * 30 - b.y) * SC).toFixed(1), Math.floor(b.x / 30), sh]); }
     return out.length ? out : null;
   } catch (e) { return null; }
 }
@@ -73,11 +80,14 @@ let RUN = null;
 function animOf(c0, c1) {
   try {
     if (!RUN) { const io = require("./io.js"), S = require("./solutions.js"), R = io.readGdlvl(path.join(ROOT, "levels", "gdlm_design_themes.gdlvl"));
-      const sol = S.get(R.levelStr, true); RUN = io.GD.run(io.GD.makeWorld(R.level.objects, R.level.header), sol ? sol.events : []).path; }
-    const SC = 0.75, pts = [];
+      const sol = S.get(R.levelStr, true); RUN = io.GD.run(io.GD.makeWorld(R.level.objects, R.level.header), sol ? sol.events : []).path;
+      RUN.presses = new Set((sol ? sol.events : []).filter(e => e.type === "press").map(e => e.tick)); }
+    const SC = 0.75, pts = [], taps = [];
     for (let i = 0; i < RUN.length; i += 4) { const s = RUN[i]; if (s.x < c0 * 30 || s.x > c1 * 30) continue;
+      // the frames with a press in them (for the "on the jumps" style: the structures light up where he has to click)
+      for (let k = i; k < i + 4; k++) if (RUN.presses.has(k)) { taps.push(pts.length); break; }
       pts.push([+((s.x - c0 * 30) * SC).toFixed(1), +((THEME_ROWS * 30 - s.y) * SC).toFixed(1), Math.round(s.rot || 0), s.mode === "cube" ? 0 : s.mode === "ship" ? 1 : 2]); }
-    return pts.length ? { fps: 60, s: SC, pts } : null;
+    return pts.length ? { fps: 60, s: SC, pts, taps } : null;
   } catch (e) { return null; }
 }   // a theme card shows the scene's bottom 13 rows and the ground under them
 const structCopies = () => require("./structdesign.js").spec().copies;

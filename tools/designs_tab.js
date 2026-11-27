@@ -26,7 +26,7 @@ window.initDesigns = async function (root) {
   #designs .pens{display:flex;flex-wrap:wrap;gap:4px;align-items:center}#designs .pcol{width:22px;height:22px;padding:0!important;border-radius:11px!important}#designs .pcol.on,#designs .pw.on,#designs .perase.on{outline:2px solid #ffd84d}
   #designs .pany{width:26px;height:24px;padding:0;border:0;background:none}#designs .pw i{display:block;width:16px;background:#ddd;border-radius:2px}
   #designs .ink polyline{fill:none;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
-  #designs .zw{position:relative}#sendall.ready,#designs .msend.ready{background:#3ddc84!important;color:#04210f!important;box-shadow:0 0 10px #3ddc84}#designs .fxc{position:absolute;left:0;top:0;pointer-events:none;mix-blend-mode:screen}#designs .zb{position:absolute;right:6px;top:6px;display:flex;gap:4px}
+  #designs .zw{position:relative}#sendall.ready,#designs .msend.ready{background:#3ddc84!important;color:#04210f!important;box-shadow:0 0 10px #3ddc84}#designs .cst{font-size:12px;margin:2px 0 8px;padding:3px 8px;border-radius:6px;background:#ffffff10;color:#cfd3ff}#designs .cst-applied{background:#3ddc8422;color:#9ff0c0}#designs .cst-question{background:#ffd84d22;color:#ffe48a}#designs .cst-new{background:#ff8a8a1c;color:#ffb0b0}#designs .cst-sent{color:#aab}#designs .fxc{position:absolute;left:0;top:0;pointer-events:none;mix-blend-mode:screen}#designs .zb{position:absolute;right:6px;top:6px;display:flex;gap:4px}
   #designs .zb button{width:30px;height:30px;border-radius:15px;border:1px solid #555;background:#1b1538cc;color:#fff;font:700 16px/1 system-ui}
   #designs .mk{position:relative;display:inline-block;line-height:0}#designs .mk img{display:block}
   #designs .mk.on{cursor:crosshair;outline:2px dashed #ffd84d}
@@ -60,6 +60,24 @@ window.initDesigns = async function (root) {
   // the same hash tools/layoutcheck.js hashMap() takes of the map it solved: differs once he drew since -> "old"
   const hashTiles = T => { const cells = T.map(z => z.t + "," + z.c + "," + z.r).sort(); let h = 0; for (const ch of cells.join(";")) h = (h * 31 + ch.charCodeAt(0)) | 0; return h; };
   let LASTC = "";   // the last time Claude read the queue (designsend docs with by: "claude")
+  // WHAT CLAUDE DID WITH EACH THING HE SENT (Evgeni 2026-11-27: "i should be able to understand whether some request already
+  // applied after i sent it. its just not clear to me what is known and if something is lost or unread"): Claude writes a
+  // revision to collection "claudestatus" per part ({part: "sec:ball" | "gen:..." | "theme:hellgate", state: applied |
+  // read | question | passed, reply, at}); each section, note and generated piece shows one line: not sent yet / sent,
+  // waiting / read by Claude / ✓ applied + Claude's answer. Newer edits of his than Claude's answer reopen it.
+  const CST = {};
+  const hm = a => a ? new Date(a).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "";
+  function stLine(part) {
+    const n = NOTES[part], d = DRAW["layout:" + part], s = CST[part];
+    const mineN = n && (n.note || "").trim() ? String(n.at || "") : "", mineD = d && d.by !== "claude" && (d.tiles || (d.strokes || []).length) ? String(d.at || "") : "";
+    const mine = mineN > mineD ? mineN : mineD;
+    if (s && (!mine || String(s.at) >= mine)) { const ic = { applied: "✓", question: "❓", passed: "➜", read: "👀" }[s.state] || "✓";
+      return `<div class="cst cst-${esc(s.state || "applied")}">${ic} Claude ${esc(s.state || "applied")} ${hm(s.at)}${s.reply ? ": " + esc(s.reply) : ""}</div>`; }
+    if (!mine) return "";
+    const unsentNow = (mine === mineN && noteUnsent(part)) || (mine === mineD && String(d.at || "") > LAST && (d.sentAt || "") !== (d.at || "x"));
+    if (unsentNow) return `<div class="cst cst-new">✎ not sent yet (📨 sends it)</div>`;
+    if (LASTC && LASTC >= mine) return `<div class="cst cst-read">👀 Claude read it ${hm(LASTC)}, working on it</div>`;
+    return `<div class="cst cst-sent">📨 sent, waiting for Claude</div>`; }
   let LAST = "2026-11-27T14:40:00.000Z";   // the last send (collection "designsend"; this default: when the stamp started)
   let VOTES = {}, DB = null, CM = null, CAN_SEND = false, MODE = "designs", MARKS = [], MARKING = null;
   // typed mark notes not yet confirmed by the database: they win over snapshots, so a re-render never drops text
@@ -78,7 +96,7 @@ window.initDesigns = async function (root) {
     if (st) st.textContent = NST[k]; }
   // claude.ai refuses a send-to-Claude within ~6 s of a key typed in the page ("Not sent to Claude. Your last key or click
   // may not have been meant for this artifact"), so 📨 waits out the typing with a countdown (Evgeni 2026-11-27)
-  const HOLD = 6500;
+  const HOLD = 8000;
   const unready = () => { for (const b of document.querySelectorAll(".ready")) b.classList.remove("ready"); };
   document.addEventListener("keydown", () => { lastKey = Date.now(); unready(); holdSend(); }, true);
   // a tap anywhere but a send button counts too (the app's hold is on any click in the page)
@@ -152,7 +170,7 @@ window.initDesigns = async function (root) {
       + (lo ? (dr ? tools : `<button class="pdraw">✏ draw</button>`) + (sk.length && !ms.length ? `<button class="msend" data-label="📨 send to Claude"${CAN_SEND ? "" : " disabled"}>📨 send to Claude</button>` : "") + `<span class="ds pst">${esc(DST[d.id] || "")}</span>` : "") + `</div>`
       + (lo ? `<div class="wide" data-w="L:${esc(d.id)}"><div class="mk lk${bg === "blank" ? " blank" : ""}" style="--zh:${fs ? "calc(100vh - 120px)" : zh + "px"}"><img loading="lazy" src="${esc(bg === "scene" ? d.card : d.layout)}" alt="layout">${svg}</div></div>` : "") + `</div>`;
     const media = d.kind === "theme" ? `<div class="zw"><div class="wide" data-w="${esc(d.id)}"><div class="mk${MARKING === d.id ? " on" : ""}" style="--zh:${zh}px">${img}${pins}</div></div>`
-      + `<div class="zb">${d.anim ? `<button class="aplay" title="play the scene at game speed">${PLAY && PLAY.id === d.id ? "■" : "▶"}</button><button class="aspd" title="speed">${ASPD}x</button><select class="asty" title="animation style">${Object.entries(FXS).map(([k, f]) => `<option value="${k}"${styOf(d.id) === k ? " selected" : ""}>${esc(f.name)}</option>`).join("")}</select>` : ""}<button class="zoom" data-z="-1" title="zoom out">−</button><button class="zoom" data-z="1" title="zoom in">＋</button>`
+      + `<div class="zb">${d.anim ? `<button class="aplay" title="play the scene at game speed">${PLAY && PLAY.id === d.id ? "■" : "▶"}</button><button class="aspd" title="speed">${ASPD}x</button><select class="asty" title="animation style">${Object.entries(FXS).map(([k, f]) => `<option value="${k}"${styOf(d.id) === k ? " selected" : ""}>${esc(f.name)}</option>`).join("")}</select><select class="acol" title="number of colours">${[1, 2, 3, 4, 5, 6, 8].map(n => `<option value="${n}"${+(open["acol:" + d.id] || 4) === n ? " selected" : ""}>${n} colour${n > 1 ? "s" : ""}</option>`).join("")}</select>` : ""}<button class="zoom" data-z="-1" title="zoom out">−</button><button class="zoom" data-z="1" title="zoom in">＋</button>`
       // ACTIONS ARE BUTTONS (Evgeni 2026-11-27: "whenever is some operations i should do, like say build, lets move that
       // as a button for example on the theme"): the button sends Claude the request; the page never runs the job itself
       + `<button class="abuild" title="ask Claude to rebuild this theme's scene from the current layout">🔨 build</button><span class="ds abst">${esc(AST[d.id] || "")}</span></div></div>`
@@ -245,23 +263,62 @@ window.initDesigns = async function (root) {
   // as light (screen). A style is f(ctx, w, h, t, beat, P) with t seconds, beat = t in beats (BPM below until the theme
   // gallery has a song), P = the player on the canvas. More styles: one entry here.
   const BPM = 128;
+  // ANIMATION STYLES of the theme cards (Evgeni 2026-11-27: "lets think of some other effects, and obviously we can control
+  // the number of colors - some rotating movement - some pulsing effects in the cube - smaller/arbitrary slice than a single
+  // block * going up and down * beats with the song or when the player has to jump (as some kind of an indicator)").
+  // Every style lights the scene's play blocks (designs.js cellsOf; slopes as their triangle) in the theme's own colours
+  // (designs.js fxColsOf), with N colours from the card's colour picker. A style is light(cell, F) -> [alpha, colour
+  // index] or a list of sub-pieces; F = the frame: b (beats), ph (phase in the beat), N, the screen centre, the player,
+  // the last press. In a level each maps to colour channels + colour / pulse triggers on the beats (EFFECTS.md).
+  const BANDS = (v, N) => ((Math.floor(v) % N) + N) % N;
+  const flow = (v, b, N) => { const n = Math.floor(b), ph = b - n, band = BANDS(v, N), lit = ((n - band) % N + N) % N;
+    return [lit === 0 ? 0.6 * (1 - ph * 0.6) : lit === 1 ? 0.2 * (1 - ph) : 0, band]; };
   const FXS = {
-    static: { name: "static", draw: null },
-    // NINE CIRCLES (Evgeni 2026-11-27: "nine circles is when our structure has 4 channels and it does 'waves', not the
-    // background ... we are not bound to 4 colors, but thats nine circles 'style'. some kind of flow on the structures"):
-    // the play blocks split into 4 colour bands by column; each beat lights the next band, so a wave of colour flows
-    // along the structures. In a level: 4 block channels and a colour trigger per band per beat (EFFECTS.md)
-    nine: { name: "nine circles", draw: (g, w, h, t, b, P, cells, f, sl) => { if (!cells) return;
-      const N = 4, HUES = [350, 30, 200, 280], n = Math.floor(b), ph = b - n, sz = 22.5 * f;
-      for (const [x, y, col] of cells) { const X = x * f - sl; if (X < -sz || X > w + sz) continue;
-        const band = ((Math.floor(col / 2) % N) + N) % N, lit = ((n - band) % N + N) % N, a = lit === 0 ? 0.75 * (1 - ph * 0.6) : lit === 1 ? 0.25 * (1 - ph) : 0.04;
-        if (a < 0.03) continue; g.fillStyle = `hsla(${HUES[band]},95%,58%,${a.toFixed(3)})`; g.fillRect(X - sz / 2, y * f - sz / 2, sz, sz); } } } };
+    static: { name: "static" },
+    // NINE CIRCLES (Evgeni: "when our structure has 4 channels and it does 'waves', not the background"): diagonal bands
+    // (column + row), a band every half beat, faster than the player ("original vibe was ... diagonal")
+    nine: { name: "nine circles", light: ([x, y, col], F) => flow((col + Math.round(y / 22.5)) / 2, F.b * 2, F.N) },
+    nineAlong: { name: "nine circles, along", light: ([x, y, col], F) => flow(col / 2, F.b, F.N) },
+    // ROTATING: the bands are slices of a turning wheel round the screen's centre, a quarter turn a beat
+    rotate: { name: "rotating", light: ([x, y], F) => { const a = Math.atan2(y * F.f - F.cy, x * F.f - F.sl - F.cx) / (2 * Math.PI) + 0.5;
+      return flow(a * F.N * 2, F.b * 2, F.N); } },
+    // PULSE: each block's light grows from its centre on the beat and fades, the colour moving on a beat
+    pulse: { name: "pulse in the blocks", light: ([x, y, col], F) => { const e = Math.pow(1 - F.ph, 2);
+      return { a: 0.55 * e, ci: BANDS(F.n + col / 3, F.N), scale: 0.25 + 0.75 * e }; } },
+    // SLICES: every block cut in 3 strips, the diagonal flow running strip by strip (finer than a block)
+    slices: { name: "slices", light: ([x, y, col], F) => [0, 1, 2].map(k => { const [a, ci] = flow((col * 3 + k + Math.round(y / 22.5) * 3) / 2, F.b * 6, F.N); return { a, ci, part: [k / 3, 1 / 3] }; }) },
+    // UP AND DOWN: a line of light rises and falls through the rows, one row a half beat, rippling along the columns
+    updown: { name: "up and down", light: ([x, y, col], F) => { const row = 13 - y / 22.5, top = 6, h = (Math.sin((F.b * 2 + col * 0.25) * Math.PI / 4) + 1) / 2 * top, d = Math.abs(row - h);
+      return [d < 0.8 ? 0.55 * (1 - d / 0.8) : 0, BANDS(row / 2, F.N)]; } },
+    // ON THE BEAT: every block flashes on each beat, the next colour each beat
+    beat: { name: "on the beat", light: (c, F) => [0.5 * Math.pow(1 - F.ph, 3), BANDS(F.n, F.N)] },
+    // ON THE JUMPS (an indicator): a ring of light runs out of every press the route makes, over the structures nearby
+    jump: { name: "on the jumps", light: ([x, y], F) => { if (!F.tap) return [0, 0]; const d = Math.hypot(x - F.tap[0], y - F.tap[1]) / 22.5, r = F.tapAge * 14, k = Math.abs(d - r);
+      return [k < 1.2 && F.tapAge < 0.6 ? 0.65 * (1 - k / 1.2) * (1 - F.tapAge / 0.6) : 0, BANDS(F.taps, F.N)]; } } };
+  // colours: the theme's light roles; more than it has are made between them, fewer are its first ones
+  function fxPal(cols, N) { const C = cols && cols.length ? cols : [[255, 120, 60], [255, 180, 80], [255, 220, 140], [255, 160, 60]], out = [];
+    for (let i = 0; i < N; i++) { const p = N === 1 ? 0 : i * (C.length - 1) / (N - 1), a = Math.floor(p), t = p - a, A = C[a], B = C[Math.min(C.length - 1, a + 1)];
+      out.push(A.map((v, j) => Math.round(v + (B[j] - v) * t))); } return out; }
+  function fxDraw(st, g, w, h, cells, F, cols) { if (!st.light || !cells) return; const C = fxPal(cols, F.N), sz = 22.5 * F.f;
+    const tri = (X, Y, sh, s) => { const k = sh - 1, fx = k & 1, fy = k & 2, q = k >> 2, hh = s / 2;
+      let P = [[-hh, hh], [hh, hh], [hh, -hh]].map(([u, v]) => [fx ? -u : u, fy ? -v : v]);
+      for (let j = 0; j < q; j++) P = P.map(([u, v]) => [-v, u]);
+      g.beginPath(); P.forEach(([u, v], j) => j ? g.lineTo(X + u, Y + v) : g.moveTo(X + u, Y + v)); g.closePath(); g.fill(); };
+    for (const cell of cells) { const [x, y, , sh] = cell, X = x * F.f - F.sl, Y = y * F.f; if (X < -sz || X > w + sz) continue;
+      let L = st.light(cell, F); if (Array.isArray(L) && typeof L[0] === "number") L = { a: L[0], ci: L[1] };
+      for (const q of [].concat(L)) { if (!q || q.a < 0.03) continue; const c = C[q.ci % C.length]; g.fillStyle = `rgba(${c[0]},${c[1]},${c[2]},${q.a.toFixed(3)})`;
+        const s = sz * (q.scale || 1);
+        if (sh) tri(X, Y, sh, s); else if (q.part) g.fillRect(X - sz / 2 + q.part[0] * sz, Y - sz / 2, q.part[1] * sz, sz); else g.fillRect(X - s / 2, Y - s / 2, s, s); } } }
   const styOf = id => FXS[open["anim:" + id]] ? open["anim:" + id] : "static";
   function startPlay(id) { stopPlay(); PLAY = { id, t0: performance.now(), i: 0 }; for (const b of root.querySelectorAll(`.dc[data-id="${CSS.escape(id)}"] .aplay`)) b.textContent = "■"; requestAnimationFrame(stepPlay); }
   function stopPlay() { if (!PLAY) return; const id = PLAY.id; PLAY = null; for (const p of root.querySelectorAll(".plr, .fxc")) p.remove(); for (const b of root.querySelectorAll(`.dc[data-id="${CSS.escape(id)}"] .aplay`)) b.textContent = "▶"; }
   function stepPlay(now) {
     if (!PLAY) return; const d = L.find(x => x.id === PLAY.id), A = d && d.anim; if (!A) return stopPlay();
-    const i = Math.max(0, Math.floor((now - PLAY.t0) / 1000 * A.fps * ASPD));   // the first frame's rAF time can be before t0 PLAY.i = i; if (i >= A.pts.length) return stopPlay();
+    const i = Math.max(0, Math.floor((now - PLAY.t0) / 1000 * A.fps * ASPD));   // the first frame's rAF time can be before t0
+    // stop at the end of the last section (Evgeni 2026-11-27: "fix the out of bounds, it should stop when reaching the end
+    // of the last section"): the last play block's x, not the card's last route point
+    const endX = d.cells && d.cells.length ? Math.max(...d.cells.map(c => c[0])) + 15 : Infinity;
+    PLAY.i = i; if (i >= A.pts.length || A.pts[i][0] > endX) return stopPlay();   // ends with the scene (was on the comment's line: it never stopped)
     const mk = root.querySelector(`.dc[data-id="${CSS.escape(PLAY.id)}"] .zw .mk`); if (!mk) return requestAnimationFrame(stepPlay);
     const img = mk.querySelector("img"), f = img && img.naturalHeight ? img.clientHeight / img.naturalHeight : 1, w = mk.closest(".wide");
     let p = mk.querySelector(".plr"); if (!p) { p = document.createElement("span"); p.className = "plr"; mk.appendChild(p); }
@@ -269,10 +326,13 @@ window.initDesigns = async function (root) {
     p.dataset.m = mode; p.style.width = p.style.height = sz + "px"; p.style.transform = `translate(${x * f - sz / 2}px, ${y * f - sz / 2}px) rotate(${(rot % 360 + 360) % 360}deg)`;
     if (w) w.scrollLeft = Math.max(0, x * f - w.clientWidth * 0.35);
     const fx = FXS[styOf(PLAY.id)], zw = mk.closest(".zw"); let cv = zw && zw.querySelector(".fxc");
-    if (fx.draw && zw && w) { if (!cv) { cv = document.createElement("canvas"); cv.className = "fxc"; zw.appendChild(cv); }
+    if (fx.light && zw && w) { if (!cv) { cv = document.createElement("canvas"); cv.className = "fxc"; zw.appendChild(cv); }
       const W = w.clientWidth, H = w.clientHeight; if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
       const g = cv.getContext("2d"), t = i / A.fps; g.clearRect(0, 0, W, H);
-      fx.draw(g, W, H, t, t * BPM / 60, { x: x * f - w.scrollLeft, y: y * f }, d.cells, f, w.scrollLeft); }
+      const b = t * BPM / 60, tps = (A.taps || []).filter(k => k <= i), tk = tps.length ? tps[tps.length - 1] : null;
+      const F = { b, n: Math.floor(b), ph: b - Math.floor(b), N: +(open["acol:" + d.id] || 4), f, sl: w.scrollLeft, cx: W / 2, cy: H / 2,
+        tap: tk !== null ? A.pts[tk] : null, tapAge: tk !== null ? (i - tk) / A.fps : 9, taps: tps.length };
+      fxDraw(fx, g, W, H, d.cells, F, d.fxcols); }
     else if (cv) cv.remove();
     requestAnimationFrame(stepPlay);
   }
@@ -306,7 +366,14 @@ window.initDesigns = async function (root) {
     const grid = q => { const [k, , W, H] = q, key = "layout:" + k;
       return `<svg class="tiles" data-k="${key}" data-w="${W}" data-h="${H}" data-vh="${H + 0.25}" data-g="0" viewBox="0 0 ${W} ${H + 0.25}" style="width:${W * cs}px;height:${(H + 0.25) * cs}px">`
         + `<g class="grid">${Array.from({ length: W + 1 }, (_, c) => `<line x1="${c}" y1="0" x2="${c}" y2="${H}" />`).join("")}${Array.from({ length: H + 1 }, (_, r) => `<line x1="0" y1="${r}" x2="${W}" y2="${r}" />`).join("")}</g>`
-        + `<rect x="0" y="${H}" width="${W}" height="0.25" fill="#7be38a55" />` + (() => { const T = tilesOf(key); return (k === "play" ? marks(H) : "") + T.map(z => tile(z, H)).join("") + routeSvg(k, H, W); })() + `</svg>`; };
+        + `<rect x="0" y="${H}" width="${W}" height="0.25" fill="#7be38a55" />` + (() => { const T = tilesOf(key); return (k === "play" ? marks(H) : "") + T.map(z => tile(z, H)).join("") + routeSvg(k, H, W) + bandSvg(q[4], H, W); })() + `</svg>`; };
+    // THE MODE'S BAND (found 2026-11-27 on his spider and ball-portal drawings): a ball / spider / flying portal sets a
+    // floor and a ceiling around the portal (lib/physics.js BAND: ball 8 rows, spider 9, ship / ufo / wave / swing 10);
+    // entered from the ground, nothing above that line can be reached -- the spider's flip lands on the band's roof.
+    // A dashed line and a shade above it on every such section
+    const BANDR = { ball: 8, spider: 9, ship: 10, ufo: 10, wave: 10, swing: 10 };
+    const bandSvg = (mode, H, W) => { const n = BANDR[mode]; if (!n || n >= H) return "";
+      return `<g style="pointer-events:none"><rect x="0" y="0" width="${W}" height="${H - n}" fill="#ff5a5a14" /><line x1="0" y1="${H - n}" x2="${W}" y2="${H - n}" stroke="#ff8a8a" stroke-dasharray="0.3 0.2" style="stroke-width:1.5px;vector-effect:non-scaling-stroke" /><text x="0.2" y="${H - n - 0.2}" font-size="0.55" fill="#ff8a8acc">${esc(mode)} band: ${n} rows from the ground, nothing above is reachable</text></g>`; };
     // the route: a soft line through the player's centre, a dot at each press; dashed and greyer when the section was
     // changed after it was solved (then it is the old route, until the next check)
     const routeOne = (C, H, W, dc, old) => { if (!C || !C.ok || !C.route) return "";
@@ -345,7 +412,7 @@ window.initDesigns = async function (root) {
     return `<section data-g="layoutsec"><h2 class="stitle fold-h" role="button" tabindex="0" aria-expanded="${isOpen}">${isOpen ? "▾" : "▸"} Theme layout <span class="ds">the same for every theme · one part per kind of play · tap to place${n ? " · ✏ " + n : ""}</span></h2>`
       + (isOpen ? `<div class="dc lay board${fs ? " fs" : ""}" data-id="${LACT}"><div class="lyh">${chips}</div><div class="lyh">${tools}</div>`
         + LPARTS.filter(q => show(q[0])).map(q => `<div class="lpn"><b>${esc(q[1])}</b> · ${esc(q[4] || "")} · ${q[2]} x ${q[3]}${q[5] ? " · " + esc(q[5]) : ""}${chkLine(q[0])}${q[0].startsWith("sec:") ? ` <span class="lsz" data-k="${esc(q[0])}"><button data-d="0,1" title="one row taller">⬆ taller</button><button data-d="0,-1" title="one row shorter">⬇ shorter</button><button data-d="2,0" title="two columns wider">➡ wider</button><button data-d="-2,0" title="two columns narrower">⬅ narrower</button></span>` : ""}${ADDED[q[0].slice(4)] ? ` <button class="ldel" data-k="${esc(q[0].slice(4))}">✕ remove</button>` : ""}</div><div class="wide" data-w="L:${esc(q[0])}">${grid(q)}</div>`
-          + `<div class="lnr"><input class="lnote" data-n="${esc(q[0])}" placeholder="your notes on ${esc(q[1])} ..." value="${esc((NOTES[q[0]] || {}).note || "")}"><span class="ds lnst" data-n="${esc(q[0])}">${esc(NST[q[0]] || "")}</span></div>`).join("")
+          + `<div class="lnr"><input class="lnote" data-n="${esc(q[0])}" placeholder="your notes on ${esc(q[1])} ..." value="${esc((NOTES[q[0]] || {}).note || "")}"><span class="ds lnst" data-n="${esc(q[0])}">${esc(NST[q[0]] || "")}</span></div>${stLine(q[0])}`).join("")
         + genPanel() + `</div>` : "") + `</section>`;
   }
   // 🎲 THE GENERATOR (Evgeni 2026-11-27: "i want a button generate below the current that will just make a new one for me to
@@ -375,7 +442,7 @@ window.initDesigns = async function (root) {
         + `<div class="wide"><svg class="gtiles" viewBox="0 0 ${W} ${H + 0.25}" style="width:${W * cs}px;height:${(H + 0.25) * cs}px;background:#1a1636;display:block;max-width:none">`
         + `<g class="grid">${Array.from({ length: W + 1 }, (_, c) => `<line x1="${c}" y1="0" x2="${c}" y2="${H}" stroke="#ffffff30" style="stroke-width:1px;vector-effect:non-scaling-stroke" />`).join("")}${Array.from({ length: H + 1 }, (_, r) => `<line x1="0" y1="${r}" x2="${W}" y2="${r}" stroke="#ffffff30" style="stroke-width:1px;vector-effect:non-scaling-stroke" />`).join("")}</g>`
         + `<rect x="0" y="${H}" width="${W}" height="0.25" fill="#7be38a55" />` + T.map(z => TILE(z, H)).join("") + `</svg></div>`
-        + `<div class="lnr"><input class="lnote" data-n="${esc(gk)}" placeholder="what's good or wrong in this one ..." value="${esc((NOTES[gk] || {}).note || "")}"><span class="ds lnst" data-n="${esc(gk)}">${esc(NST[gk] || "")}</span></div>`; }
+        + `<div class="lnr"><input class="lnote" data-n="${esc(gk)}" placeholder="what's good or wrong in this one ..." value="${esc((NOTES[gk] || {}).note || "")}"><span class="ds lnst" data-n="${esc(gk)}">${esc(NST[gk] || "")}</span></div>${stLine(gk)}`; }
     return out; }
   // 📨 sends EVERYTHING new on the page in one message (marks of every theme, layout notes, drawings), whichever 📨 is
   // pressed: the top one beside ⟳, a card's, or ⟳ itself (Evgeni 2026-11-27: a note typed after a send stayed "not sent
@@ -421,7 +488,9 @@ window.initDesigns = async function (root) {
       clearTimeout(readyT); const cue = () => { const left = HOLD - (Date.now() - lastKey); if (left > 0) { readyT = setTimeout(cue, left + 100); return; }
         for (const b of document.querySelectorAll("#sendall, .msend")) { b.classList.add("ready"); if (b.id === "sendall") b.textContent = "📨 tap now"; }
         say("ready: tap 📨 now (or write \"comments\" in the chat)"); };
-      lastKey = Math.max(lastKey, Date.now() - HOLD + 1500); cue(); return false; }
+      // the refused tap is itself the app's "last click": the next send is allowed only a full hold after it (the cue lit up
+      // 1.5 s after a refusal and the green tap was refused again, Evgeni 2026-11-27: "that green msg doesnt work still")
+      lastKey = Date.now(); cue(); return false; }
     LAST = new Date().toISOString(); try { if (DB) await DB.collection("designsend").doc("s-" + Date.now().toString(36)).set({ at: LAST }); } catch (x) {}
     for (const q of nts) NST[q[0]] = "sent";
     for (const m of ms) { PEND[m.mid] = noteOf(m); m.sentNote = noteOf(m).trim(); m.sent = new Date().toISOString(); await saveMark(m.mid); }
@@ -624,6 +693,8 @@ window.initDesigns = async function (root) {
   root.addEventListener("change", async e => {
     if (e.target.id === "dvf") return render();
     // the animation style: kept per card, starts ▶ at once so the choice is seen
+    if (e.target.classList.contains("acol")) { const id = e.target.closest(".dc").dataset.id; open["acol:" + id] = e.target.value;
+      try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} if (!PLAY || PLAY.id !== id) startPlay(id); return; }
     if (e.target.classList.contains("asty")) { const id = e.target.closest(".dc").dataset.id; open["anim:" + id] = e.target.value;
       try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} if (!PLAY || PLAY.id !== id) startPlay(id); return; }
     if (e.target.classList.contains("pany")) { PCOL = e.target.value; ERASE = false; render(); return; }
@@ -663,6 +734,9 @@ window.initDesigns = async function (root) {
     // each time it reads the queue, so what Claude has seen stops counting as new without any send
     if (DB) DB.collection("designsend").onSnapshot(snap => { let m = LAST; for (const d of snap.docs.map(x => JSON.parse(JSON.stringify(x.data() || {})))) { const a = String(d.at || ""); if (a > m) m = a; if (d.by === "claude" && a > LASTC) LASTC = a; }
       if (m !== LAST) { LAST = m; try { topSend(); } catch (x) {} if (!(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) render(); } }, () => {});
+    if (DB) DB.collection("claudestatus").onSnapshot(snap => {
+      for (const d of snap.docs.map(x => JSON.parse(JSON.stringify(x.data() || {})))) if (d.part && (!CST[d.part] || String(d.at) > String(CST[d.part].at))) CST[d.part] = d;
+      if (!(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) render(); }, () => {});
     if (DB) DB.collection("designnotes").onSnapshot(snap => {
       for (const d of snap.docs.map(x => JSON.parse(JSON.stringify(x.data())))) if (d && d.part && (!NOTES[d.part] || !NOTES[d.part].at || String(d.at) > String(NOTES[d.part].at))) {
         const el = document.activeElement; if (el && el.classList && el.classList.contains("lnote") && el.dataset.n === d.part) continue;   // never under his typing
