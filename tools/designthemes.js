@@ -81,6 +81,11 @@ MAP.forEach((line, i) => { const r = MAP.length - 1 - i;
     else if (ch === "E") SAMPLE.push([1022, c, r]);
     else if (ch === "J") SAMPLE.push([35, c, r, { dy: -13 }]);
     else if (ch === "K") SAMPLE.push([67, c, r, { dy: -13 }]);
+    // R: a swing re-centring pair (Evgeni 2026-11-27: "swing/ship/ufo portals in the middle of the gameplay recenter the
+    // screen. people put invisible ones to move further in the screens"): a ship portal and right after it a swing portal,
+    // so the swing's 10-block band is set again around this row (a swing portal alone does nothing in a swing: gdsolver,
+    // lib/physics.js enterMode); invisible in the level's deco pass
+    else if (ch === "R") { SAMPLE.push([13, c - 0.25, r]); SAMPLE.push([1933, c + 0.25, r]); }
   }); });
   return SAMPLE; }
 const SAMPLE = sampleOf(SCENE);

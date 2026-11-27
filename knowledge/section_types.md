@@ -110,8 +110,13 @@ difficulty target (tier: cps and tightest window), and are checked by tools/layo
   normal / hard).
 - **Swing:** GD holds a swing in a 10-block band set by its portal (lib/physics.js BAND), so a taller swing means filling
   the band: the corridor's middle swings edge to edge (the band edge is the far wall at a peak), waves 20-34 columns.
-  12 of 12 solve. Taller than that ("swing can go even higher than screen") needs the portal's band off (GD 2.2's free
-  mode); not simulated yet, open for the physics session.
+  12 of 12 solve. **Taller (default, 20 rows, 40+ columns):** Evgeni: "swing/ship/ufo portals in the middle of the
+  gameplay recenter the screen. people put invisible ones to move further in the screens". The corridor rides a slow
+  swell over the whole map with the quick waves on top (together under ~0.7 rows a column), and an `R` pair (ship portal +
+  swing portal, a quarter column apart; board letter R, tools/designthemes.js sampleOf) re-sets the 10-block band around
+  the player each time the swell has moved 3 rows. A swing portal alone does nothing in a swing in the sim (gdsolver's
+  measurement, lib/physics.js enterMode), so the pair changes mode for a moment. 12 of 12 solve (60 / 100 columns). In the
+  game UNCHECKED: the ship tick between the two portals, and whether a lone swing portal re-bands after all.
 - **Portals on joins:** a wave or fly gravity portal goes where one movement of the path ends and the next begins
   (`joinNear`: in a fly, between two sweeps at least 3 columns long when there are some), at the corridor's middle height,
   never mid-leg.

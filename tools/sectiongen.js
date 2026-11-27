@@ -276,13 +276,32 @@ CONCEPT["my-mwz1890c"] = "a sine-shaped corridor drawn by two chains of saws; am
 // "exntend the pattern a bit longer", then "swing still not high enough". GD bounds a swing to a 10-block band (lib/physics.js
 // BAND: 300 units, set by the portal), so the height comes from filling the band: the corridor's middle swings from one band
 // edge to the other (the edge is the far wall at a peak), saw chains on the open side only, longer waves.
-GEN["my-mwz1890c"] = o => { const { R, imix, room, len, W, G } = ctx(Object.assign({ cols: 48 }, o), 10), H = Math.min(10, ctx(o, 10).H); let c = 0;
+GEN["my-mwz1890c"] = o => { const { R, imix, room, len, W, H: HH, G } = ctx(Object.assign({ cols: 48 }, o), 20);
+  if (HH >= 16 && W >= 40) return swingTall(o, { R, imix, room, len, W, H: HH, G });
+  const H = Math.min(10, HH); let c = 0;
   while (c < W) { const gap = R.int(room(5, 4), room(6, 5)), A = (H - gap) / 2 * (o.amp ?? R.pick([0.8, 1, 1])), mid = H / 2,
       P = len(imix(26, 20), imix(34, 26));
     for (let x = 0; x < P && c + x < W; x++) { const y = mid + A * Math.sin(2 * Math.PI * x / P), lo = Math.round(y - gap / 2) - 1, hi = Math.round(y + gap / 2), ch = (c + x) % 2 ? "q" : "o";
       if (lo >= 0) G.put(c + x, lo, ch); if (hi < H) G.put(c + x, hi, ch); }
     c += P; }
   return { map: G.rows(), mode: "swing" }; };
+// The tall swing (Evgeni: "even taller swing structures, swing can go even higher than screen", then "swing/ship/ufo
+// portals in the middle of the gameplay recenter the screen. people put invisible ones to move further in the screens"):
+// the corridor rides a slow swell from the bottom of the map to its top and back, the quick swing waves on top of it, and
+// an R pair (ship + swing portal, invisible) sets the 10-block band again around the player each time the swell has moved
+// 3 rows from the band's middle. In the sim (lib/physics.js) a climb over 20 rows through three pairs solves; in the game
+// UNCHECKED (the ship tick between the two portals, and that the pair re-bands like a mode change).
+function swingTall(o, { R, imix, room, len, W, H, G }) {
+  // the swell and the waves together stay under ~0.7 rows a column (steeper than that a swing can't follow)
+  const gap = R.int(room(5, 4), room(6, 5)), A = o.amp ?? 1.5, P = len(imix(26, 20), imix(34, 26)),
+    Pd = Math.max(60, Math.round(W * R.pick([1, 1, 0.75]))), top = H - 5;
+  const D = x => 5 + (top - 5) * (1 - Math.cos(2 * Math.PI * x / Pd)) / 2, Y = x => D(x) + A * Math.sin(2 * Math.PI * x / P);
+  let bc = 5;
+  for (let x = 0; x < W; x++) { const y = Y(x), lo = Math.round(y - gap / 2) - 1, hi = Math.round(y + gap / 2), ch = x % 2 ? "q" : "o";
+    if (lo >= 0) G.put(x, lo, ch); if (hi < H) G.put(x, hi, ch);
+    if (x > 2 && x < W - 2 && Math.abs(D(x) - bc) >= 3) { const r = Math.round(y); G.put(x, r, "R");
+      bc = Math.max(0, Math.floor((r * 30 + 15 - 150) / 30)) + 5; } }
+  return { map: G.rows(), mode: "swing" }; }
 
 // FLYING ON THE GROUNDS (ship, his my-mwz1s7po). Idea: a narrow corridor between two thin bars: "you need to either fully
 // hold or release on the obsicles, and the corridor may change height". Motif: a flat run with obstacle runs on the floor
