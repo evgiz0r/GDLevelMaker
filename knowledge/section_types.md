@@ -88,6 +88,18 @@ difficulty target (tier: cps and tightest window), and are checked by tools/layo
 
 ## Open
 
-- A section generator: type + length in beats + song section -> a section like these, its motif varied as above. Nothing
-  builds one yet. tools/clickfirst.js (clicks first) and the wave's tunnel() are the closest pieces.
+- **Generators: tools/sectiongen.js** (2026-11-27). One per type, built from the concept, not from the drawing:
+  `GEN[key]({cols, rows, seed, tier, bpm | beatCols})` -> `{map, mode}`; `make(key, opts)` adds name and concept.
+  `tier` (easy..harder, or 0..1) moves every parameter of the type toward its hard end; `bpm` snaps motif lengths to half
+  beats (the press inside a motif is not put on its beat yet). Check: `node tools/sectiongen.js check [key] --cols 30,60,120
+  --tiers easy,hard` (layoutcheck.js per map); test `node tests/sectiongen.js`.
+  First check (seed 1, 30 / 60 / 120 columns, easy and hard): every type solves at every length except the stair path.
+  Its lattice solves on some seeds only (2 of 4), with 8-29 ms windows from the 2-up hop, and its gravity pair dies as
+  placed (`{flip: true}`, off by default). Keep his drawn stair path until that is fixed.
+  The tier moves the layout (narrower gaps, shorter runs) but the difficulty model still rates most hard ones Easy. So
+  the knob needs a stronger hard end per type, measured against layoutcheck's label.
+- **Orb and pad sets** (Evgeni 2026-11-27, not needed yet: "set of yellow, set of blue (zigzag movement), set of green
+  (forward movement but reverse) and a combination of any of those"; board section my-mwz2haf0 "orb gameplay", letters Y B
+  E J K). As drawn the solver skips most orbs, so this type needs its orbs placed by the sim, each one the orb you must
+  take: tools/clickfirst.js's build() places orbs that way for the ball, and is the start.
 - Lengths measured on rated levels per type: how long one of these runs before the level changes it.
