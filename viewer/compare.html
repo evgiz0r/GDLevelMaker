@@ -47,6 +47,11 @@ svg text{font:12px Inter,sans-serif;fill:var(--mute)}
 .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px}
 .list{font-size:14px}.list div{padding:4px 0;border-bottom:1px dashed var(--line)}
 .note{color:var(--mute);font-size:13.5px;margin-top:30px}
+/* HOVER ON EVERY BUTTON (Evgeni 2026-11-27: "all UI buttons should have some hover effect, in all workbooks forever").
+   Paste once into every page we make (catalogues, boards, viewers, artifacts); tests/hover_rule.js checks the pages. */
+button,.btn,[role=button],select,summary,input[type=button],input[type=submit]{transition:filter .12s,transform .12s,box-shadow .12s,background-color .12s}
+button:hover:not(:disabled),.btn:hover,[role=button]:hover,select:hover,summary:hover,input[type=button]:hover,input[type=submit]:hover{filter:brightness(1.18);box-shadow:0 0 0 2px rgba(120,170,255,.35);cursor:pointer}
+button:active:not(:disabled),.btn:active,[role=button]:active{transform:translateY(1px);filter:brightness(.95)}
 </style></head><body><div class="wrap" id="app"></div>
 <script>
 const DATA = /*COMPARE_DATA*/null;

@@ -551,6 +551,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 - **`tools/heightspread.js <level>`** -- how gameplay spreads over the height, whole level and per mode, from the saved route (Evgeni: a good spread over y in all modes makes a better level); per section in layoutcheck.
 - **`tools/gdmarks.js <save:<name> | level.gdlvl>`** -- Evgeni's marker blocks placed in the GD editor: a text object whose text starts with "@" ("@ too tight here"); lists each with column, row and %; `--strip out.gdlvl` removes them once fixed. Read his markers before fixing a level he played.
 - **`tools/genroute.js <dir>`** -- the 〰 path of a 🎲 generated piece: the catalogue queues each piece in db collection `genroute` (state asked); fetch, solve (layoutcheck), write the route back, the page draws it (WORKBOOKS.md "genroute").
+- **`tools/swingbuild.js [--seed N] [--bpm B] [--write]`** -- the board's swing section built presses first: a click style per generation (flip spacing, drift, quick doubles), the flips played in the sim over a 36-row swell with R band movers, saws drawn around the path, saws the plan touches taken out; `--bpm` puts the flips on half-beats.
 - **`tools/orbfit.js <section> [--gap 3] [--write]`** -- re-places a board section's orbs (his kinds, in his order) on the sim's own path so the route takes every one, spaced from each other and the blocks (Evgeni 2026-11-27, "orb gameplay").
 - **`tools/startramp.js` -- the level's opening up on blocks** (Evgeni 2026-11-26: not on the default ground): a slope ramp to the first floor, 3 rows by default; every builder uses it, judge.js notes a "ground start".
 - **`tools/pieces.js <spec>` -- the pieces a spec is built from**, with their spans and the gaps between them; `--out` +
@@ -770,6 +771,9 @@ The viewer draws moving objects where they start.
   outside the gameplay windows" -- "for all viewers sessions"): in every viewer, card and page we make, buttons, selects, chips
   and status text go in a row above or below the level / scene picture, never absolutely positioned over it. Only marks the
   user placed (pins, his drawing) and the player may draw on it. Example: tools/designs_tab.js `.zb`.
+- **Every button has a hover effect** (Evgeni, 2026-11-27: "all UI buttons should have some hover effect, in all workbooks
+  forever"): buttons, selects, chips, summaries brighten with a soft ring on hover and dip on press. Paste
+  `tools/snippets/hover.css` once into every page we make; `node tests/hover_rule.js` fails on a page template without it.
 - **Every workbook page has ⟳ refresh + "last refreshed"** (Evgeni, 2026-11-27: "add refresh on every workbook have and last
   refreshed, and some effect when i click refresh"): catalogues, boards, the viewer pages, every artifact we make. Paste
   `tools/snippets/refresh.html` once (lego_page.js does it): a button top-right, "last refreshed HH:MM" beside it, a spin on

@@ -131,7 +131,8 @@ const SCENE_W = SCENE[0].length, SCENE_END = Math.max(...SCENE.map(l => l.replac
 // THE CARD'S SKY AND BACKGROUND (Evgeni 2026-11-27: "and we have backgrounds and background deco? ... where do i change in the
 // workbook"): his pick per theme from the catalogue card's ⚙ (db collection "themepick", written to
 // knowledge/theme_picks.json by Claude before a rebuild): { <theme>: { sky: index, backdrop: "a" | "b" | "c" } }
-function picks() { try { return JSON.parse(require("fs").readFileSync(require("path").join(__dirname, "..", "knowledge", "theme_picks.json"), "utf8")); } catch (e) { return {}; } }
+function picks() { if (process.env.GDLM_THEME_PICK) { const [sky, backdrop] = process.env.GDLM_THEME_PICK.split(","); return new Proxy({}, { get: () => ({ sky: +sky, backdrop }) }); }   // tools/themevariants.js: one combo for every theme
+  try { return JSON.parse(require("fs").readFileSync(require("path").join(__dirname, "..", "knowledge", "theme_picks.json"), "utf8")); } catch (e) { return {}; } }
 function list() { for (const [n, t] of Object.entries(THEMES)) console.log(n.padEnd(10) + `${t.pal} ${t.design}${t.effects.length ? " + " + t.effects.join(", ") : ""}; spikes ${t.spikes}, saws ${t.saws}; ${t.holders}; indicator ${t.indicator}; ${t.skies.length} skies; backdrops ${Object.entries(t.backdrops).map(([k, v]) => k + " " + v.join("+")).join(", ")} -- ${t.mood}`); }
 
 function spec() {
