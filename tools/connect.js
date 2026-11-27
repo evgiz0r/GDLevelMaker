@@ -131,14 +131,17 @@ function connectors(blocks, o = {}) {
 // it meets the structure. style: rope | chain | rod | gdchain (GD's hanging chain 41, shows with GD's art only)
 const STYLES = ["rope", "chain", "rod", "gdchain", "brick"];
 function draw(conns, C, o = {}) {
-  const style = o.style || "chain", out = [], v = o.value ?? 0.75, put = (id, x, y, p) => out.push(K.obj(id, x, y, Object.assign({ z: "B1", zo: 2 }, p)));
+  const style = o.style || "chain", out = [], v = o.value ?? 0.75, put = (id, x, y, p) => out.push(K.obj(id, x, y, Object.assign({ z: "B1", zo: o.zo ?? 2 }, p)));
+  // 3D SOFT HOLDERS (Evgeni 2026-11-27 23:48: "the holder is not 3d so the whole illusion there is wierd"): with depth, a
+  // rope / chain / rod hangs twice -- a darker copy pushed back up-right by the structure's depth, so the back face of the
+  // block hangs from its own chain behind the front one
+  if (o.depth && style !== "brick") out.push(...draw(conns.map(q => Object.assign({}, q, { x0: q.x0 + o.depth, x1: q.x1 + o.depth, y0: q.y0 + o.depth, y1: q.y1 + o.depth })), C, { style, value: v * 0.55, zo: 0 }));
   const hsv = k => `0a1a${(v * k).toFixed(2)}a0a0`;
   for (const q of conns) {
     const vert = q.x0 === q.x1, len = vert ? q.y1 - q.y0 : q.x1 - q.x0, cx = (q.x0 + q.x1) / 2, cy = (q.y0 + q.y1) / 2, rot = vert ? 0 : 90;
     // the fitting at the structure: a small plate on the attached end(s)
     const ends = q.kind === "hang" ? [[q.x0, q.y0]] : q.kind === "stand" ? [[q.x0, q.y1]] : [[q.x0, q.y0], [q.x1, q.y1]];
     // a soft holder's shadow line for 3D sections: the same line pushed back, darker
-    if (o.depth && style !== "brick" && vert) put(211, q.x0 + o.depth * 0.5, cy + o.depth * 0.5, { ch: C.line, sx: 0.06, sy: len / 30, hsv: hsv(0.45), zo: 0 });
     if (style === "rope") {
       put(211, cx, cy, { ch: C.line, sx: vert ? 0.07 : len / 30, sy: vert ? len / 30 : 0.07, hsv: hsv(0.8) });
       for (const [x, y] of ends) put(211, x, y, { ch: C.line, s: 0.2, rot: 45, hsv: hsv(1) });

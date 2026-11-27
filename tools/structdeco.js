@@ -151,7 +151,7 @@ function pass(level, events, opts, spec) {
     // 3D HOLDERS (Evgeni 2026-11-27: "the holders are not 3d but the platform is, a bit annoying"): a section whose
     // structures have depth gives its holders the same side face (connect.js draw depth)
     const fx = [].concat(s.effects || []).join("+"), d = /long depth/.test(fx) ? 14 : /depth/.test(fx) ? 7 : 0;
-    for (const st of new Set(mine.map(styleFor))) out.push(...CN.draw(mine.filter(q => styleFor(q) === st), pals.get(palKey(s.pal)).C, { style: st, depth: 0 })); });   // no 3D on holders (Evgeni 2026-11-27: "no 3d on the holders"; d kept for later)
+    for (const st of new Set(mine.map(styleFor))) out.push(...CN.draw(mine.filter(q => styleFor(q) === st), pals.get(palKey(s.pal)).C, { style: st, depth: d })); });   // 3D again (23:48: "the holder is not 3d so the whole illusion there is wierd"; the 17:58 "no 3d on the holders" was the brick pillars' side face, now a chain twice)
   notes.unshift(`structures: ${SD.structures(blocks).length} dressed in ${looks.size} look(s) (${o.secs.map(s => `${s.from}: ${s.design}/${typeof s.pal === "string" ? s.pal : "custom"}${[].concat(s.effects || []).length ? "+" + [].concat(s.effects).join("+") : ""}`).join(", ")}), +${out.length} objects; holders ${o.holders ? JSON.stringify(tally) : "off"}`);
   return { objects: out, header, notes };
 }

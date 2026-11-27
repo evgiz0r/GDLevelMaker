@@ -10,6 +10,10 @@ window.initDesigns = async function (root) {
   const GEN_HIDDEN = ["hanging"];
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const css = `
+  #designs .tpick{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin-top:4px}
+  #designs .tpick .tpk{font-size:11px;padding:2px 6px;border-radius:6px;border:1px solid var(--line);opacity:.75;width:auto;min-width:0;height:auto;line-height:1.3;white-space:nowrap}
+  #designs .tpick .tpst{flex-basis:100%}
+  #designs .tpick .tpk.on{opacity:1;outline:2px solid #ffb347}
   #designs .wlist{margin:6px 0 18px;display:flex;flex-direction:column;gap:6px}
   #designs .wrow{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 10px}
   #designs .wdf{cursor:pointer;font-size:13px;opacity:.8}
@@ -181,7 +185,7 @@ window.initDesigns = async function (root) {
       + (lo ? (dr ? tools : `<button class="pdraw">✏ draw</button>`) + (sk.length && !ms.length ? `<button class="msend" data-label="📨 send to Claude"${CAN_SEND ? "" : " disabled"}>📨 send to Claude</button>` : "") + `<span class="ds pst">${esc(DST[d.id] || "")}</span>` : "") + `</div>`
       + (lo ? `<div class="wide" data-w="L:${esc(d.id)}"><div class="mk lk${bg === "blank" ? " blank" : ""}" style="--zh:${fs ? "calc(100vh - 120px)" : zh + "px"}"><img loading="lazy" src="${esc(bg === "scene" ? d.card : d.layout)}" alt="layout">${svg}</div></div>` : "") + `</div>`;
     const media = d.kind === "theme" ? `<div class="zw"><div class="wide" data-w="${esc(d.id)}"><div class="mk${MARKING === d.id ? " on" : ""}" style="--zh:${zh}px">${img}${pins}</div></div>`
-      + `<div class="zb">${d.anim ? `<button class="aplay" title="play / pause the scene at game speed">${PLAY && PLAY.id === d.id && !PLAY.paused ? "⏸" : "▶"}</button>${PLAY && PLAY.id === d.id ? `<button class="astop" title="stop, back to the start">⏹</button>` : ""}` : ""}${FR("zb:" + d.id, "⚙", `${d.anim ? `<button class="aspd" title="speed">${ASPD}x</button><select class="asty" title="animation style">${Object.entries(FXS).map(([k, f]) => `<option value="${k}"${styOf(d.id) === k ? " selected" : ""}>${esc(f.name)}</option>`).join("")}</select><select class="acol" title="number of colours">${[1, 2, 3, 4, 5, 6, 8, 12, 16].map(n => `<option value="${n}"${+(open["acol:" + d.id] || 4) === n ? " selected" : ""}>${n} colour${n > 1 ? "s" : ""}</option>`).join("")}</select>` : ""}<button class="zoom" data-z="-1" title="zoom out">−</button><button class="zoom" data-z="1" title="zoom in">＋</button>`)}`
+      + `<div class="zb">${d.anim ? `<button class="aplay" title="play / pause the scene at game speed">${PLAY && PLAY.id === d.id && !PLAY.paused ? "⏸" : "▶"}</button>${PLAY && PLAY.id === d.id ? `<button class="astop" title="stop, back to the start">⏹</button>` : ""}` : ""}${FR("zb:" + d.id, "⚙", `${d.anim ? `<button class="aspd" title="speed">${ASPD}x</button><select class="asty" title="animation style">${Object.entries(FXS).map(([k, f]) => `<option value="${k}"${styOf(d.id) === k ? " selected" : ""}>${esc(f.name)}</option>`).join("")}</select><select class="acol" title="number of colours">${[1, 2, 3, 4, 5, 6, 8, 12, 16].map(n => `<option value="${n}"${+(open["acol:" + d.id] || 4) === n ? " selected" : ""}>${n} colour${n > 1 ? "s" : ""}</option>`).join("")}</select>` : ""}<button class="zoom" data-z="-1" title="zoom out">−</button><button class="zoom" data-z="1" title="zoom in">＋</button>${pickRow(d)}`)}`
       // ACTIONS ARE BUTTONS (Evgeni 2026-11-27: "whenever is some operations i should do, like say build, lets move that
       // as a button for example on the theme"): the button sends Claude the request; the page never runs the job itself
       + `<button class="abuild" title="ask Claude to rebuild this theme's scene from the current layout">🔨 build</button><span class="ds abst">${esc(AST[d.id] || "")}</span></div></div>`
@@ -583,6 +587,19 @@ window.initDesigns = async function (root) {
       <div class="wlist"${isOpen ? "" : " hidden"}>${live.length ? live.map(row).join("") : `<div class="ds">nothing open right now</div>`}
       ${done.length ? `<div class="wdone"><span class="wdf" role="button" tabindex="0">${dOpen ? "▾" : "▸"} done (${done.length})</span>${dOpen ? done.map(w => `<div class="wrow ds">✓ ${esc(w.title)}${w.done_at ? " · " + hm(t(w.done_at)) : ""}</div>`).join("") : ""}</div>` : ""}</div></section>`;
   }
+  // SKY AND BACKGROUND PICK (Evgeni 2026-11-27: "where do i change in the workbook"): chips for the theme's skies and
+  // background sets; a tap saves at once (db collection "themepick", doc = theme name) and shows "saved -- 🔨 build to see it";
+  // the card itself changes after Claude rebuilds it (knowledge/theme_picks.json)
+  const PICK = {}, PST = {};
+  function pickRow(d) { if (d.kind !== "theme" || !d.skies) return "";
+    const p = Object.assign({}, d.pick || {}, PICK[d.name] || {}), on = (a, b) => a === b ? " on" : "";
+    return `<div class="tpick"><span class="ds">sky</span>${d.skies.map((bg, i) => `<button class="tpk${on(p.sky || 0, i)}" data-sky="${i}" title="sky ${i + 1}" style="background:rgb(${bg.join(",")});color:#fff">${i + 1}</button>`).join("")}
+      <span class="ds">background</span>${Object.entries(d.backdrops || {}).map(([k, v]) => `<button class="tpk${on(p.backdrop || "a", k)}" data-bd="${esc(k)}" title="${esc([].concat(v).join(" + "))}">${esc(k)}: ${esc([].concat(v).join(" + "))}</button>`).join("")}
+      <span class="ds tpst">${esc(PST[d.name] || "")}</span></div>`; }
+  async function savePick(d, patch) { PICK[d.name] = Object.assign({}, d.pick || {}, PICK[d.name] || {}, patch); PST[d.name] = "saving ...";
+    try { if (!DB) throw new Error("saves on the claude.ai page"); await DB.collection("themepick").doc(d.name).set(Object.assign({ theme: d.name }, PICK[d.name], { at: new Date().toISOString() }));
+      PST[d.name] = "saved -- 🔨 build to see it on the card"; } catch (x) { PST[d.name] = "not saved: " + (x && (x.code || x.message) || x); }
+    render(); }
   function render() {
     keepScroll(); try { topSend(); } catch (x) {}
     const f = root.querySelector("#dvf").value, G = GROUPS.filter(([k]) => (MODE === "themes") === (k === "theme"));
@@ -657,7 +674,7 @@ window.initDesigns = async function (root) {
     // ▶ play: the camera and the player along the route at game speed (designs.js animOf); ■ stops, the speed button
     // steps 1x -> 0.5x -> 0.25x
     const ab = e.target.closest(".abuild"); if (ab) { const id = ab.closest(".dc").dataset.id, d = L.find(x => x.id === id) || {};
-      await ask(ab, id, `🔨 build request: rebuild the ${d.name || id} theme (${id}) from the current scene of the theme layout (every section joined), then republish its card.`); return; }
+      await ask(ab, id, `🔨 build request: rebuild the ${d.name || id} theme (${id}) from the current scene of the theme layout (every section joined), with its sky / background pick (db themepick -> knowledge/theme_picks.json), then republish its card.`); return; }
     const ap = e.target.closest(".aplay"); if (ap) { const id = ap.closest(".dc").dataset.id; if (PLAY && PLAY.id === id) { if (PLAY.paused) resumePlay(); else pausePlay(); } else { startPlay(id); render(); } return; }
     if (e.target.closest(".astop")) { stopPlay(); render(); return; }
     const asp = e.target.closest(".aspd"); if (asp) { ASPD = ASPD === 1 ? 0.5 : ASPD === 0.5 ? 0.25 : 1; if (PLAY) { PLAY.t0 = performance.now() - PLAY.i / 60 / ASPD * 1000; } for (const b of root.querySelectorAll(".aspd")) b.textContent = ASPD + "x"; return; }
@@ -677,6 +694,7 @@ window.initDesigns = async function (root) {
     const snd = e.target.closest(".msend");
     if (snd) { const c = snd.closest(".dc"); sendNew(c, c.querySelector(".msst") || c.querySelector(".pst")); return; }
     if (e.target.closest(".wdf")) { open.workdone = open.workdone !== true; try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} render(); return; }
+    const tpk = e.target.closest(".tpk"); if (tpk) { const d = L.find(x => x.id === tpk.closest(".dc").dataset.id); if (d) savePick(d, tpk.dataset.sky != null ? { sky: +tpk.dataset.sky } : { backdrop: tpk.dataset.bd }); return; }
     const h = e.target.closest(".fold-h");
     if (h) { const k = h.parentNode.dataset.g; open[k] = open[k] === false; try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} render(); return; }
     // 📍 marks on a theme's scene (collection "designmarks"; tools/designs.js marks reads them)
@@ -831,6 +849,9 @@ window.initDesigns = async function (root) {
       if (m !== LAST) { LAST = m; try { topSend(); } catch (x) {} if (!(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) render(); } }, () => {});
     if (DB) DB.collection("genroute").onSnapshot(snap => {
       for (const x of snap.docs) { const d = JSON.parse(JSON.stringify(x.data() || {})); const old = GROUTE[x.id]; GROUTE[x.id] = Object.assign({}, d, old && old.pinged != null ? { pinged: old.pinged } : {}); }
+      if (!(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) render(); }, () => {});
+    if (DB) DB.collection("themepick").onSnapshot(snap => {
+      for (const x of snap.docs) { const d = JSON.parse(JSON.stringify(x.data() || {})); if (d.theme) PICK[d.theme] = d; }
       if (!(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) render(); }, () => {});
     if (DB) DB.collection("themework").onSnapshot(snap => {
       for (const x of snap.docs) WORK[x.id] = JSON.parse(JSON.stringify(x.data() || {}));
