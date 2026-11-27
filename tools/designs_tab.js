@@ -175,7 +175,7 @@ window.initDesigns = async function (root) {
       + (lo ? (dr ? tools : `<button class="pdraw">✏ draw</button>`) + (sk.length && !ms.length ? `<button class="msend" data-label="📨 send to Claude"${CAN_SEND ? "" : " disabled"}>📨 send to Claude</button>` : "") + `<span class="ds pst">${esc(DST[d.id] || "")}</span>` : "") + `</div>`
       + (lo ? `<div class="wide" data-w="L:${esc(d.id)}"><div class="mk lk${bg === "blank" ? " blank" : ""}" style="--zh:${fs ? "calc(100vh - 120px)" : zh + "px"}"><img loading="lazy" src="${esc(bg === "scene" ? d.card : d.layout)}" alt="layout">${svg}</div></div>` : "") + `</div>`;
     const media = d.kind === "theme" ? `<div class="zw"><div class="wide" data-w="${esc(d.id)}"><div class="mk${MARKING === d.id ? " on" : ""}" style="--zh:${zh}px">${img}${pins}</div></div>`
-      + `<div class="zb">${d.anim ? `<button class="aplay" title="play the scene at game speed">${PLAY && PLAY.id === d.id ? "■" : "▶"}</button>` : ""}${FR("zb:" + d.id, "⚙", `${d.anim ? `<button class="aspd" title="speed">${ASPD}x</button><select class="asty" title="animation style">${Object.entries(FXS).map(([k, f]) => `<option value="${k}"${styOf(d.id) === k ? " selected" : ""}>${esc(f.name)}</option>`).join("")}</select><select class="acol" title="number of colours">${[1, 2, 3, 4, 5, 6, 8, 12, 16].map(n => `<option value="${n}"${+(open["acol:" + d.id] || 4) === n ? " selected" : ""}>${n} colour${n > 1 ? "s" : ""}</option>`).join("")}</select>` : ""}<button class="zoom" data-z="-1" title="zoom out">−</button><button class="zoom" data-z="1" title="zoom in">＋</button>`)}`
+      + `<div class="zb">${d.anim ? `<button class="aplay" title="play / pause the scene at game speed">${PLAY && PLAY.id === d.id && !PLAY.paused ? "⏸" : "▶"}</button>${PLAY && PLAY.id === d.id ? `<button class="astop" title="stop, back to the start">⏹</button>` : ""}` : ""}${FR("zb:" + d.id, "⚙", `${d.anim ? `<button class="aspd" title="speed">${ASPD}x</button><select class="asty" title="animation style">${Object.entries(FXS).map(([k, f]) => `<option value="${k}"${styOf(d.id) === k ? " selected" : ""}>${esc(f.name)}</option>`).join("")}</select><select class="acol" title="number of colours">${[1, 2, 3, 4, 5, 6, 8, 12, 16].map(n => `<option value="${n}"${+(open["acol:" + d.id] || 4) === n ? " selected" : ""}>${n} colour${n > 1 ? "s" : ""}</option>`).join("")}</select>` : ""}<button class="zoom" data-z="-1" title="zoom out">−</button><button class="zoom" data-z="1" title="zoom in">＋</button>`)}`
       // ACTIONS ARE BUTTONS (Evgeni 2026-11-27: "whenever is some operations i should do, like say build, lets move that
       // as a button for example on the theme"): the button sends Claude the request; the page never runs the job itself
       + `<button class="abuild" title="ask Claude to rebuild this theme's scene from the current layout">🔨 build</button><span class="ds abst">${esc(AST[d.id] || "")}</span></div></div>`
@@ -335,11 +335,17 @@ window.initDesigns = async function (root) {
         const s = sz * (q.scale || 1);
         if (sh) tri(X, Y, sh, s); else if (q.part) g.fillRect(X - sz / 2 + q.part[0] * sz, Y - sz / 2, q.part[1] * sz, sz); else g.fillRect(X - s / 2, Y - s / 2, s, s); } } }
   const styOf = id => FXS[open["anim:" + id]] ? open["anim:" + id] : "static";
-  function startPlay(id) { stopPlay(); PLAY = { id, t0: performance.now(), i: 0 }; for (const b of root.querySelectorAll(`.dc[data-id="${CSS.escape(id)}"] .aplay`)) b.textContent = "■"; requestAnimationFrame(stepPlay); }
+  function startPlay(id) { stopPlay(); PLAY = { id, t0: performance.now(), i: 0 }; for (const b of root.querySelectorAll(`.dc[data-id="${CSS.escape(id)}"] .aplay`)) b.textContent = "⏸"; requestAnimationFrame(stepPlay); }
+  // PAUSE (Evgeni 2026-11-27: "i cant pause a theme run i can only restart"): ⏸ holds the frame, ▶ goes on from it, ⏹ resets
+  function pausePlay() { if (!PLAY || PLAY.paused) return; PLAY.paused = true; for (const b of root.querySelectorAll(`.dc[data-id="${CSS.escape(PLAY.id)}"] .aplay`)) b.textContent = "▶"; }
+  function resumePlay() { if (!PLAY || !PLAY.paused) return; const d = L.find(x => x.id === PLAY.id), A = d && d.anim; if (!A) return;
+    PLAY.paused = false; PLAY.t0 = performance.now() - PLAY.i / (A.fps * ASPD) * 1000;
+    for (const b of root.querySelectorAll(`.dc[data-id="${CSS.escape(PLAY.id)}"] .aplay`)) b.textContent = "⏸"; requestAnimationFrame(stepPlay); }
   function stopPlay() { if (!PLAY) return; const id = PLAY.id; PLAY = null; for (const p of root.querySelectorAll(".plr, .fxc")) p.remove(); for (const b of root.querySelectorAll(`.dc[data-id="${CSS.escape(id)}"] .aplay`)) b.textContent = "▶"; }
   function stepPlay(now) {
     if (!PLAY) return; const d = L.find(x => x.id === PLAY.id), A = d && d.anim; if (!A) return stopPlay();
-    const i = Math.max(0, Math.floor((now - PLAY.t0) / 1000 * A.fps * ASPD));   // the first frame's rAF time can be before t0
+    // paused: draw the held frame once (a re-render rebuilt the card) and stop asking for frames
+    const i = PLAY.paused ? PLAY.i : Math.max(0, Math.floor((now - PLAY.t0) / 1000 * A.fps * ASPD));   // the first frame's rAF time can be before t0
     // stop at the end of the last section (Evgeni 2026-11-27: "fix the out of bounds, it should stop when reaching the end
     // of the last section"): the last play block's x, not the card's last route point
     const endX = d.cells && d.cells.length ? Math.max(...d.cells.map(c => c[0])) + 15 : Infinity;
@@ -359,7 +365,7 @@ window.initDesigns = async function (root) {
         tap: tk !== null ? A.pts[tk] : null, tapAge: tk !== null ? (i - tk) / A.fps : 9, taps: tps.length };
       fxDraw(fx, g, W, H, d.cells, F, d.fxcols); }
     else if (cv) cv.remove();
-    requestAnimationFrame(stepPlay);
+    if (!PLAY.paused) requestAnimationFrame(stepPlay);
   }
   function layoutSection() {
     const t = L.find(d => d.kind === "theme" && d.lparts); if (!t) return "";
@@ -559,7 +565,7 @@ window.initDesigns = async function (root) {
         <div class="dgrid"${isOpen ? "" : " hidden"}>${ds.map(card).join("")}</div></section>`;
     }).join("");
     root.querySelector("#dcount").textContent = `${n} designs`;
-    putScroll();
+    putScroll(); if (PLAY && PLAY.paused) requestAnimationFrame(stepPlay);
     if (Date.now() - lastKey < HOLD) holdSend();
   }
   async function save(id, patch) {
@@ -612,7 +618,8 @@ window.initDesigns = async function (root) {
     // steps 1x -> 0.5x -> 0.25x
     const ab = e.target.closest(".abuild"); if (ab) { const id = ab.closest(".dc").dataset.id, d = L.find(x => x.id === id) || {};
       await ask(ab, id, `🔨 build request: rebuild the ${d.name || id} theme (${id}) from the current scene of the theme layout (every section joined), then republish its card.`); return; }
-    const ap = e.target.closest(".aplay"); if (ap) { const id = ap.closest(".dc").dataset.id; if (PLAY && PLAY.id === id) stopPlay(); else startPlay(id); return; }
+    const ap = e.target.closest(".aplay"); if (ap) { const id = ap.closest(".dc").dataset.id; if (PLAY && PLAY.id === id) { if (PLAY.paused) resumePlay(); else pausePlay(); } else { startPlay(id); render(); } return; }
+    if (e.target.closest(".astop")) { stopPlay(); render(); return; }
     const asp = e.target.closest(".aspd"); if (asp) { ASPD = ASPD === 1 ? 0.5 : ASPD === 0.5 ? 0.25 : 1; if (PLAY) { PLAY.t0 = performance.now() - PLAY.i / 60 / ASPD * 1000; } for (const b of root.querySelectorAll(".aspd")) b.textContent = ASPD + "x"; return; }
     const zb = e.target.closest(".zoom");
     if (zb) { const id0 = zb.closest(".dc").dataset.id, id = id0.startsWith("layout") ? "layout" : id0, k = "zoom:" + id, z = open[k] || 1;
