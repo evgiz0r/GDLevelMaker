@@ -6835,7 +6835,7 @@
   "name": "spider corridors",
   "mode": "spider",
   "cols": 38,
-  "ms": 663,
+  "ms": 707,
   "route": [
    [
     -0.19,
@@ -7292,7 +7292,7 @@
     2.95
    ]
   ],
-  "mapHash": -960507388,
+  "mapHash": -422688709,
   "ok": true,
   "presses": 1,
   "tight": [
@@ -7305,6 +7305,6 @@
   "attempts": 1,
   "log": 0.04,
   "label": "Easy",
-  "at": "2026-11-27T16:54"
+  "at": "2026-11-27T17:08"
  }
 }

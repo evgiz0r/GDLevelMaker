@@ -119,3 +119,5 @@ difficulty target (tier: cps and tightest window), and are checked by tools/layo
   E J K). As drawn the solver skips most orbs, so this type needs its orbs placed by the sim, each one the orb you must
   take: tools/clickfirst.js's build() places orbs that way for the ball, and is the start.
 - Lengths measured on rated levels per type: how long one of these runs before the level changes it.
+
+- **No spike walls; spikes stand on something** (Evgeni 2026-11-27, on the 🎲 ball and spider sections: "just blocking like that with a wall of spike is rough, lets place proper hazards, spikes not on the ground is bad"). A route is never closed with a long row of spikes. Use proper hazards instead: spike groups of 1 to 3, saws, or blocks with spikes on them. A spike always stands on the ground or a block, or hangs from a ceiling. It never floats in the air. This holds for the generators and for hand fixes on the board.
