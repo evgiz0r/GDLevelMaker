@@ -85,15 +85,10 @@ function connectors(blocks, o = {}) {
     // 2026-11-27: an auto's path brushes most islands' ends, and they floated with no holder); a wide island whose two
     // sides find no clear pair gets one holder at the clearest middle cell
     const tryDir = d => {
-      if (!pair) { const mc = I.c0 + Math.floor((w - 1) / 2);
-        // an even width hangs from its exact middle, on the line between the two middle cells (Evgeni 2026-11-27, hellgate
-        // col 9: "the hanging of a triangle should either be symmetrical or some other kind of hanger coming from the middle")
-        if (w % 2 === 0) { const q = seg(X(I.c0) + w * 15, d); if (q) return [Object.assign(q, { centre: true })]; }
-        for (let k = 0; k < w; k++) for (const c of [mc - k, mc + k + 1]) { if (c < I.c0 || c > I.c1) continue; const q = seg(X(c) + 15, d); if (q) return [q]; }
-        return null; }
       // FROM THE UPPER BLOCK, BOTH SIDES THE SAME HEIGHT (Evgeni 2026-11-27, hellgate kit: "it should hold from the upper
       // block, not from the middle, meaning probably a rope. and something on the other side holding. if one of the sides is
-      // higher it looks wierd"): an island whose top (hanging) / bottom (standing) is not flat is held at the two ends of its
+      // higher it looks wierd"; again 2026-11-27 21:16 on the narrow T, which still hung on a brick pillar from its middle: so this
+      // comes BEFORE the narrow-island middle hold): an island whose top (hanging) / bottom (standing) is not flat is held at the two ends of its
       // outermost row -- the same row both sides -- and marked uneven, so it hangs soft (rope / chain, never brick)
       { const rs = I.cs.map(q => q[1]), rowE = d > 0 ? Math.max(...rs) : Math.min(...rs), cols = I.cs.filter(q => q[1] === rowE).map(q => q[0]);
         const flat = cols.length === w;
@@ -101,6 +96,12 @@ function connectors(blocks, o = {}) {
           if (b - a >= 1) { const L = seg(X(a) + 15, d), R = seg(X(b) + 15, d); if (L && R) return [L, R].map(q => Object.assign(q, { uneven: true })); }
           else { const q = seg(X(a) + 15, d); if (q) return [Object.assign(q, { uneven: true })]; }
           return null; } }
+      if (!pair) { const mc = I.c0 + Math.floor((w - 1) / 2);
+        // an even width hangs from its exact middle, on the line between the two middle cells (Evgeni 2026-11-27, hellgate
+        // col 9: "the hanging of a triangle should either be symmetrical or some other kind of hanger coming from the middle")
+        if (w % 2 === 0) { const q = seg(X(I.c0) + w * 15, d); if (q) return [Object.assign(q, { centre: true })]; }
+        for (let k = 0; k < w; k++) for (const c of [mc - k, mc + k + 1]) { if (c < I.c0 || c > I.c1) continue; const q = seg(X(c) + 15, d); if (q) return [q]; }
+        return null; }
       const half = Math.floor((w - 1) / 2);
       let L = null, R = null;
       for (let k = 0; k <= half && !L; k++) L = seg(k ? X(I.c0 + k) + 15 : xs[0], d);
@@ -130,14 +131,17 @@ function connectors(blocks, o = {}) {
 // it meets the structure. style: rope | chain | rod | gdchain (GD's hanging chain 41, shows with GD's art only)
 const STYLES = ["rope", "chain", "rod", "gdchain", "brick"];
 function draw(conns, C, o = {}) {
-  const style = o.style || "chain", out = [], v = o.value ?? 0.75, put = (id, x, y, p) => out.push(K.obj(id, x, y, Object.assign({ z: "B1", zo: 2 }, p)));
+  const style = o.style || "chain", out = [], v = o.value ?? 0.75, put = (id, x, y, p) => out.push(K.obj(id, x, y, Object.assign({ z: "B1", zo: o.zo ?? 2 }, p)));
+  // 3D SOFT HOLDERS (Evgeni 2026-11-27 23:48: "the holder is not 3d so the whole illusion there is wierd"): with depth, a
+  // rope / chain / rod hangs twice -- a darker copy pushed back up-right by the structure's depth, so the back face of the
+  // block hangs from its own chain behind the front one
+  if (o.depth && style !== "brick") out.push(...draw(conns.map(q => Object.assign({}, q, { x0: q.x0 + o.depth, x1: q.x1 + o.depth, y0: q.y0 + o.depth, y1: q.y1 + o.depth })), C, { style, value: v * 0.55, zo: 0 }));
   const hsv = k => `0a1a${(v * k).toFixed(2)}a0a0`;
   for (const q of conns) {
     const vert = q.x0 === q.x1, len = vert ? q.y1 - q.y0 : q.x1 - q.x0, cx = (q.x0 + q.x1) / 2, cy = (q.y0 + q.y1) / 2, rot = vert ? 0 : 90;
     // the fitting at the structure: a small plate on the attached end(s)
     const ends = q.kind === "hang" ? [[q.x0, q.y0]] : q.kind === "stand" ? [[q.x0, q.y1]] : [[q.x0, q.y0], [q.x1, q.y1]];
     // a soft holder's shadow line for 3D sections: the same line pushed back, darker
-    if (o.depth && style !== "brick" && vert) put(211, q.x0 + o.depth * 0.5, cy + o.depth * 0.5, { ch: C.line, sx: 0.06, sy: len / 30, hsv: hsv(0.45), zo: 0 });
     if (style === "rope") {
       put(211, cx, cy, { ch: C.line, sx: vert ? 0.07 : len / 30, sy: vert ? len / 30 : 0.07, hsv: hsv(0.8) });
       for (const [x, y] of ends) put(211, x, y, { ch: C.line, s: 0.2, rot: 45, hsv: hsv(1) });

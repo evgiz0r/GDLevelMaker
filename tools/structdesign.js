@@ -227,7 +227,17 @@ const DESIGNS = {
 // floating behind, not as a side. Now the far edge carries the theme's own edge line (the line colour, as wide as the
 // front's, a little dimmer), and at every corner where the side turns, the edge that joins front to back is drawn in the
 // same line colour, so the side reads as a solid face of the same material
+// HANGING LEGS GET NO 3D (Evgeni 2026-11-27, hellgate kit col 24: "no 3d for hanging from bottom piece"): a narrow part
+// (rows 1-2 cells wide) hanging below the structure's lowest wide row is drawn flat; the body keeps its side face
+function bodyOf(S) {
+  const rows = new Map(); for (const k of S) { const r = +k.split(",")[1]; rows.set(r, (rows.get(r) || 0) + 1); }
+  const wide = [...rows].filter(([, n]) => n >= 3).map(([r]) => r); if (!wide.length) return S;
+  const low = Math.min(...wide), legRows = [...rows.keys()].filter(r => r < low);
+  if (!legRows.length || legRows.some(r => rows.get(r) > 2)) return S;
+  const B = new Set([...S].filter(k => +k.split(",")[1] >= low)); B.kind = S.kind; return B;
+}
 function depth(st, p, C, d, v) {
+  st = Object.assign({}, st, { S: bodyOf(st.S) });
   const face = { z: "B1", hsv: `0a1a${v}a0a0` }, rim = { z: "B1", hsv: "0a1a0.8a0a0" };
   // SOLID SIDE (Evgeni 2026-11-27: "3d of the block itself feels hollow, like the front side is missing"): the back copy
   // with its own full outline read as an empty frame behind. Now the side is a sweep of the body (copies at a third, two
@@ -236,6 +246,13 @@ function depth(st, p, C, d, v) {
   for (const k of [d / 3, (2 * d) / 3, d]) {
     region(st.S, 0).forEach(q => p.rect([q[0] + k, q[1] + k, q[2] + k, q[3] + k], "base", 1, face));
     tris(st.S, 0).forEach(t => p.tri(t, "base", 1, face, k, k)); }
+  // LIT SIDES (Evgeni 2026-11-27 23:48: "the 3d feels like it has the front and back, but not the sides"): the sweep alone
+  // came out nearly as dark as the body, so the top and right faces read as a gap between two outlines. Now the top face is
+  // lit (brighter than the body) and the right face is a mid shade, strips stacked along each edge
+  const top = { z: "B1", hsv: `0a1a${Math.min(1.3, v + 0.55).toFixed(2)}a0a0` }, side = { z: "B1", hsv: `0a1a${Math.min(1, v + 0.2).toFixed(2)}a0a0` };
+  for (const k of [d / 3, (2 * d) / 3, d]) {
+    edges(st.S, "E", d / 3 + 0.5).forEach(q => p.rect([q[0] + k, q[1] + k, q[2] + k, q[3] + k], "base", 1, side));
+    edges(st.S, "N", d / 3 + 0.5).forEach(q => p.rect([q[0] + k, q[1] + k, q[2] + k, q[3] + k], "base", 1, top)); }
   edges(st.S, "N", LW).forEach(q => p.rect([q[0] + d, q[1] + d, q[2] + d, q[3] + d], "line", 0, rim));
   edges(st.S, "E", LW).forEach(q => p.rect([q[0] + d, q[1] + d, q[2] + d, q[3] + d], "line", 0, rim));
   for (const k of corners(st.S)) if (!k.inner && ((k.dx > 0 && k.dy < 0) || (k.dx < 0 && k.dy > 0))) {

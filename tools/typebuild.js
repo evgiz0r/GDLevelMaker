@@ -51,7 +51,7 @@ const LOOK_OF = { break: "break", drop: "drop", build: "drop" };   // else the l
 const tilesOf = map => LS.tiles({ map });
 // a join with room around its portal (the judge's "abrupt switch": the mains keep ~0.37 s quiet before a mode change and
 // ~0.48 s after): lib/scenejoin.js's ramp with its first column held LEAD more columns and its last one TAIL more
-const LEAD = 2, TAIL = 4;
+const LEAD = 4, TAIL = 5, SPLIT_S = 5;
 function joinPad(a, b) {
   const j = SJ.join(a, b), first = j.tiles.filter(q => q.c === 0), last = j.tiles.filter(q => q.c === j.n - 1), out = [];
   for (let k = 0; k < LEAD; k++) for (const q of first) if (q.t === "#") out.push({ t: "#", c: k, r: q.r });
@@ -82,7 +82,7 @@ function plan(brief, o = {}) {
   const P = SP.period, secs = FE.sections.map((s, i) => {
     const over = (brief.sections || [])[i] || {}, mode = over.mode || s.mode, speed = over.speed || s.feel.speed;
     return { i, b0: s.b0, b1: s.b1, t0: s.t0, t1: s.t1, kind: s.type, mode, speed, feel: s.feel, secs: (s.b1 - s.b0) * P,
-      type: over.type, seed: over.seed, tier: over.tier || TIER_OF[s.type] || "normal", look: over.look || LOOK_OF[s.type] || "calm" };
+      type: over.type, seed: over.seed, seedB: over.seedB, tier: over.tier || TIER_OF[s.type] || "normal", look: over.look || LOOK_OF[s.type] || "calm" };
   });
   if (brief.maxSections) secs.length = Math.min(secs.length, brief.maxSections);
   // types: the brief's, else by mode + kind: one not used yet in the level, else never the type just used
@@ -93,7 +93,22 @@ function plan(brief, o = {}) {
       s.type = list.find(k => !usedT.has(k)) || list.find(k => k !== last) || list[0]; }
     last = s.type; usedT.add(s.type);
   }
-  return { SP, FE, P, secs };
+  // a section over SPLIT_S seconds is two ideas, not one corridor (the judge on GDLM 76 v1: "long corridor: 6.3 s of one
+  // corridor (want 4 s or less per idea)", "no variety: 7.2 s with one kind of obstacle"): cut at its middle bar, the second
+  // half another type of the same mode, or the same type a tier harder (its peak) when the mode has one type
+  const STEP = { easy: "normal", normal: "hard", hard: "harder", harder: "extreme", extreme: "extreme" };
+  const out = [], usedB = new Set(secs.map(s => s.type));
+  for (const s of secs) {
+    if (s.secs <= (brief.split ?? SPLIT_S) || s.noSplit) { out.push(s); continue; }
+    const mid = s.b0 + Math.max(4, Math.round((s.b1 - s.b0) / 2 / 4) * 4), T = TYPES[s.mode] || TYPES.cube;
+    const alts = [...new Set([...(T[s.kind] || []), ...(T.any || []), ...Object.values(T).flat()])].filter(k => k !== s.type && k !== "entrance" && !(SG.PRIORITY[k] < 1));
+    const b = Object.assign({}, s, { b0: mid, secs: (s.b1 - mid) * P, sub: 1, seed: s.seedB, type: (brief.sections || [])[s.i]?.typeB || alts.find(k => !usedB.has(k)) || alts[0] || s.type });
+    usedB.add(b.type);
+    if (b.type === s.type) b.tier = STEP[s.tier] || s.tier;
+    out.push(Object.assign({}, s, { b1: mid, secs: (mid - s.b0) * P, sub: 0 }), b);
+  }
+  out.forEach((s, k) => { s.si = s.i; s.i = k; });
+  return { SP, FE, P, secs: out };
 }
 
 function build(brief, o = {}) {
@@ -108,7 +123,7 @@ function build(brief, o = {}) {
     let best = null;
     for (let k = 0; k < nSeeds; k++) {
       const seed = s.seed != null ? s.seed + k : seed0 * 100 + s.i * 10 + k;
-      const gen = W => { const z = SG.make(s.type, { cols: Math.max(16, Math.round(W)), seed, tier: s.tier, beatCols });
+      const gen = W => { const z = SG.make(s.type, { cols: Math.max(16, Math.round(W)), seed, tier: s.tier, beatCols, speed: BPS[s.speed] / BPS["1x"] });
         if (s.mode === "cube-ud" && !z.map.some(l => /G/.test(l))) return null; return z; };
       let z = gen(endCol - col - 4); if (!z) continue;
       const cur = { T: tilesOf(z.map), w: z.map[0].length, h: z.map.length };
@@ -130,7 +145,7 @@ function build(brief, o = {}) {
     if (prev && (mode !== prev.mode || s.speed !== prevSpeed)) portals.push({ c: col + (j ? j.portalAt : 0), row: prev.exitRow, mode: mode !== prev.mode ? mode : null, speed: s.speed !== prevSpeed ? s.speed : null, from: prev.mode });
     const c0 = col + jn;
     for (const q of cur.T) tiles.push({ t: q.t, c: q.c + c0, r: q.r });
-    parts.push({ i: s.i, seed: best.seed, type: s.type, mode, c0: col, c1: c0 + cur.w, look: s.look, b0: s.b0, b1: s.b1, kind: s.kind, speed: s.speed, t0: s.t0, t1: s.t1, floor: SJ.floorEdge(cur.T, 0, "L") });
+    parts.push({ i: s.i, sub: s.sub, seed: best.seed, type: s.type, mode, c0: col, c1: c0 + cur.w, look: s.look, b0: s.b0, b1: s.b1, kind: s.kind, speed: s.speed, t0: s.t0, t1: s.t1, floor: SJ.floorEdge(cur.T, 0, "L") });
     report.push(`s${s.i} b${s.b0}-${s.b1} ${s.kind.padEnd(6)} ${s.mode.padEnd(7)} ${s.speed} ${s.type} (${z.name}, ${s.tier}) cols ${col.toFixed(0)}-${(c0 + cur.w).toFixed(0)} seed ${best.seed}: ` +
       (best.c.ok ? `${best.c.presses} presses, ${best.c.label}` : best.c.ok === null ? "not checked" : "DOES NOT SOLVE ALONE"));
     const rt = best.c && best.c.route; col = c0 + cur.w; prev = { cur, mode, exitRow: rt && rt.length ? Math.round(rt[rt.length - 1][1]) : null }; prevSpeed = s.speed;
@@ -144,7 +159,11 @@ function build(brief, o = {}) {
   const extra = [];
   // the wall: every other cell of the column is a block, up to above the band, so no path goes around it
   for (const p of portals) {
-    const c = p.c, run = gapOf(map, c, p.row), top = Math.max(H, run.b + 4) + 2;
+    const c = p.c, run0 = gapOf(map, c, p.row), top = Math.max(H, run0.b + 4) + 2;
+    // arriving on the ground in a jumping mode (cube, robot; a ball cannot climb it): a one-block step under the portals, so it is taken in the air on
+    // a jump, not walked into (the judge's "walked portal": official portals 93% taken on the move; Hellgate thread's run)
+    const ground = (p.from === "cube" || p.from === "robot") && run0.b - run0.a >= 4, run = ground ? { a: run0.a + 1, b: run0.b } : run0;
+    if (ground) extra.push(["block", c, run0.a]);
     for (let r = run.a + 1; r <= Math.max(run.a + 1, run.b - 1); r += 3) { if (p.mode) extra.push([PORTAL[p.mode], c, r]); if (p.speed) extra.push([SPEEDN[p.speed], c - 1, r]); }
     for (let r = 0; r <= top; r++) if ((r < run.a || r > run.b) && (map[H - 1 - r] === undefined || map[H - 1 - r][c] === ".")) extra.push(["block", c, r]);
   }
@@ -155,12 +174,13 @@ function build(brief, o = {}) {
   const looks = brief.looks || { calm: "void", drop: "hellgate", break: "frost" };
   // and inside one look every section gets its own sky and backdrop option (variety between sections, the look's vibe kept)
   const lsecs = [], nLook = {};
-  for (const p of parts) { const th = looks[p.look] || looks.calm, k = nLook[p.look] = (nLook[p.look] ?? -1) + 1;
+  for (const p of parts) { if (p.sub) continue; const th = looks[p.look] || looks.calm, k = nLook[p.look] = (nLook[p.look] ?? -1) + 1;
     lsecs.push(Object.assign({ from: Math.max(0, Math.round(p.c0) - 2) }, typeof th === "string" ? { theme: th } : th,
       { sky: k % 3, backdrop: p.kind === "drop" ? ["b", "c"][k % 2] : ["a", "c", "b"][k % 3] })); }
   // one calm effect per section, never the same as the section before
   const fx = []; let lastFx = null;
-  for (const p of parts) { const list = FX_OF[p.kind] || ["none"], e = list.find(x => x !== lastFx) || "none"; lastFx = e;
+  for (const p of parts) { if (p.sub) { const f = fx[fx.length - 1]; if (f && lastFx !== "none") { f.t1 = +((p.b1 - 1) * P - 0.2).toFixed(2); f.c1 = Math.round(p.c1); } continue; }
+    const list = FX_OF[p.kind] || ["none"], e = list.find(x => x !== lastFx) || "none"; lastFx = e;
     if (e !== "none") fx.push({ effect: e, t0: +((p.b0 - 1) * P + 0.3).toFixed(2), t1: +((p.b1 - 1) * P - 0.2).toFixed(2), hue: { void: 270, hellgate: 15, frost: 195, toxic: 110, temple: 45 }[looks[p.look]] ?? 265, y: (p.floor + 1.5) * 30, c0: Math.round(p.c0), c1: Math.round(p.c1) }); }
   const firstTheme = require("./designthemes.js").resolve(typeof (looks[parts[0].look]) === "string" ? looks[parts[0].look] : looks[parts[0].look]);
   const spec = {
@@ -169,7 +189,8 @@ function build(brief, o = {}) {
     song: { custom: +brief.song }, offset: SP.from, grid: { bpm: 60 / P, t0: SP.t0 },
     colours: { bg: firstTheme.skies[0].bg, ground: firstTheme.skies[0].ground },
     structures: { sections: lsecs }, indicators: { style: brief.indicator || "spark", colour: "auto" },
-    modern: false, scene: "tools/scenes/typefx.js", fx, outro: brief.outro || seed0 % 6 + 1, signature: true, session: brief.session || "typebuild",
+    modern: false, scene: "tools/scenes/typefx.js", fx, outro: brief.outro ?? false,   // the quiet sign over the last 5 s is the ending since 0ce685b; an outro only when the brief asks
+    signature: true, session: brief.session || "typebuild",
     sectionsInfo: parts.map(p => ({ seed: p.seed, type: p.type, mode: p.mode, speed: p.speed, kind: p.kind, look: p.look, from: Math.round(p.c0), to: Math.round(p.c1), beat: p.b0 })),
     objects,
   };

@@ -547,6 +547,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 - **Hazards: spikes, saws and pits against the player's path** (HAZARDS.md: the study of 21 mains + 127 community levels -- roles threat / guard / fill, jumps over something, lane frames, dressing -- the rules, the generator, what is open): `lib/hazards.js` (`hazardStats`, `hazardsAlongPath(path, objects, opts)`: hazards that follow a planned path and block leaks), `tools/hazards.js level | study [--write]` (-> knowledge/hazards_ref.json; score.js gate "hazards", WARN), `tools/hazards_try.js <level> [--map a b]` (strip a level's hazards and place new ones). Test: `node tests/hazards.js`.
 - **Spike and saw designs: one hazard dressed** (HAZARDS.md "Dressing one hazard"; Evgeni: "a spike inside a smaller spike ... glow, layers"): `tools/spikestudy.js` (what rated levels put inside one spike or saw -> knowledge/spike_designs.json), `tools/spikedesign.js list | gallery | check <level>` (14 designs as functions of the hazard, turning with it, hitbox untouched, readability rules; block-design palettes; gallery `levels/gdlm_spike_designs.gdlvl`). Test: `node tests/spikedesign.js`.
 - **`tools/density.js <level>` -- is a level sparse inside** (Evgeni 2026-11-26: "i want levels not to be so sparse"): its route cut into bricks against the tier's rated bricks (knowledge/brick_tiers.json), the calmest 4 s windows, the longest stretch with no press; score.js gate "density" (WARN). Test: `node tests/density.js`.
+- **`tools/genheight.js [key ...] [--cols 80] [--scale 2]`** -- every generated section type's height spread at its default rows vs rows x scale (rows visited, playable share, evenness, solves), ~24 min for all types at 2 seeds.
 - **`tools/heightspread.js <level>`** -- how gameplay spreads over the height, whole level and per mode, from the saved route (Evgeni: a good spread over y in all modes makes a better level); per section in layoutcheck.
 - **`tools/gdmarks.js <save:<name> | level.gdlvl>`** -- Evgeni's marker blocks placed in the GD editor: a text object whose text starts with "@" ("@ too tight here"); lists each with column, row and %; `--strip out.gdlvl` removes them once fixed. Read his markers before fixing a level he played.
 - **`tools/genroute.js <dir>`** -- the 〰 path of a 🎲 generated piece: the catalogue queues each piece in db collection `genroute` (state asked); fetch, solve (layoutcheck), write the route back, the page draws it (WORKBOOKS.md "genroute").
@@ -759,6 +760,16 @@ The viewer draws moving objects where they start.
   request), put a button on the thing it is about that sends Claude the request (`comments` capability `sendToClaude`,
   anchored on that card), with a small "asked Claude HH:MM" status. The page never runs the job itself. Example: 🔨 build on
   each theme card (tools/designs_tab.js `ask`).
+- **The Themes tab shows what is being worked on** (Evgeni, 2026-11-27: "add here below themes, things that shows what being
+  worked on, and some rough estimates in minutes. things relevant to the marks in this themes section"): every session working
+  on a theme mark, a board section or a generator note writes it to the lego catalogue's db collection `themework` with
+  ArtifactData (doc per item: {title, about, owner, state: working | queued | waiting | done, est_min, basis, started, done_at,
+  at}) when it starts, and sets state done + done_at when it lands. est_min only from a measured run (basis names it); else
+  leave it out ("not measured"). Rendered by tools/designs_tab.js `workSection`.
+- **Controls never sit on the gameplay view** (Evgeni, 2026-11-27, of the theme card's buttons drawn over the scene: "UI should be
+  outside the gameplay windows" -- "for all viewers sessions"): in every viewer, card and page we make, buttons, selects, chips
+  and status text go in a row above or below the level / scene picture, never absolutely positioned over it. Only marks the
+  user placed (pins, his drawing) and the player may draw on it. Example: tools/designs_tab.js `.zb`.
 - **Every workbook page has ⟳ refresh + "last refreshed"** (Evgeni, 2026-11-27: "add refresh on every workbook have and last
   refreshed, and some effect when i click refresh"): catalogues, boards, the viewer pages, every artifact we make. Paste
   `tools/snippets/refresh.html` once (lego_page.js does it): a button top-right, "last refreshed HH:MM" beside it, a spin on

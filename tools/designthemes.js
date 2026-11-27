@@ -128,6 +128,10 @@ KIT_MAP.forEach((line, i) => { const r = 7 - i;
   }); });
 const SCENE_W = SCENE[0].length, SCENE_END = Math.max(...SCENE.map(l => l.replace(/\.+$/, "").length)) + 2;   // last piece + 2
 
+// THE CARD'S SKY AND BACKGROUND (Evgeni 2026-11-27: "and we have backgrounds and background deco? ... where do i change in the
+// workbook"): his pick per theme from the catalogue card's ⚙ (db collection "themepick", written to
+// knowledge/theme_picks.json by Claude before a rebuild): { <theme>: { sky: index, backdrop: "a" | "b" | "c" } }
+function picks() { try { return JSON.parse(require("fs").readFileSync(require("path").join(__dirname, "..", "knowledge", "theme_picks.json"), "utf8")); } catch (e) { return {}; } }
 function list() { for (const [n, t] of Object.entries(THEMES)) console.log(n.padEnd(10) + `${t.pal} ${t.design}${t.effects.length ? " + " + t.effects.join(", ") : ""}; spikes ${t.spikes}, saws ${t.saws}; ${t.holders}; indicator ${t.indicator}; ${t.skies.length} skies; backdrops ${Object.entries(t.backdrops).map(([k, v]) => k + " " + v.join("+")).join(", ")} -- ${t.mood}`); }
 
 function spec() {
@@ -135,7 +139,7 @@ function spec() {
   let c = 14;
   for (const [name, t] of Object.entries(THEMES)) {
     // one continuous scene per theme: its pieces, sky, backdrop and holders together (Evgeni: "just 1 full scene")
-    sections.push({ from: c - 6, theme: name, backdrop: "a", sky: 0 }); labels.push([c - 6, name]); ind.push([c - 6, t.indicator]);
+    const pk = picks()[name] || {}; sections.push({ from: c - 6, theme: name, backdrop: pk.backdrop || "a", sky: pk.sky || 0 }); labels.push([c - 6, name]); ind.push([c - 6, t.indicator]);
     // the theme's kit first, up out of the cube's way: its pieces one by one, in its own design and colours (Evgeni
     // 2026-11-27: "i wanted near each theme, the set of objects/spikes whatever it uses")
     for (const [kind, dc, r, ex] of KIT) objects.push(ex ? [kind, c + dc, r, ex] : [kind, c + dc, r]);
@@ -170,7 +174,7 @@ function resolve(e) {
     const B = require("./blockdesigns.js").PAL[e.pal.extends]; out.pal = Object.assign({}, B, e.pal); delete out.pal.extends; }
   return out;
 }
-module.exports = { resolve, THEMES, COMBOS, SAMPLE, SCENE, KIT_MAP, spec, list, sampleOf, sceneFor };
+module.exports = { picks, resolve, THEMES, COMBOS, SAMPLE, SCENE, KIT_MAP, spec, list, sampleOf, sceneFor };
 if (require.main === module) {
   const a = process.argv.slice(2);
   if (a[0] === "list") list();

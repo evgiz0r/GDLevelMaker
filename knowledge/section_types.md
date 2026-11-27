@@ -34,16 +34,45 @@ type, so a builder can make a new one of any length, synced to the song, and so 
 - **A portal sits in the middle of its corridor**, across the band the player flies or runs in, so no path goes around it
   (Evgeni 2026-11-27: "the portal should be not in the middle of the screen but in the middle of the corridors (
   everywhere )"). The solver's route must pass through every portal (tools/layoutcheck.js shows it).
+- **Play over the whole height** (Evgeni 2026-11-27: "can we try 100% spread or close in all generations if possible. should
+  be doable hitting the ground here and there"; "play over the whole screen is usually rewarded"; only the entrance may stay
+  low). Every section touches the ground and the top at some point: a flying corridor tours from the ground to the band's
+  roof (tools/sectiongen.js `tour`), cube types climb or flip to the top (opencube platform climbs, staircase flip onto a
+  hanging staircase), ball / spider surfaces sit on the ground and under the bar now and then, orb landings go at any
+  height. No full-length spike floor or roof: leave stretches to land or slide on ("removing the full ground spikes to allow
+  it when needed. landing/sliding on either ground or roof as additional gameplay"), and a blocker line never runs where the
+  play goes up there. Measured by tools/layoutcheck.js `spread.used` = rows the player visits / rows a player can be in
+  (not solid or hazard all across, inside the mode's band unless the map has band movers); target near 1.
+- **Taller than the band: hidden band movers** (`bandMovers`: a ship H / ufo U / wave A portal at the corridor's middle each
+  time it has moved 3 rows from the band's centre; swing uses R pairs). Every portal inside a section is softly blocked on
+  both sides so it can't be flown round (a spike on the floor and one on the roof in its column when the corridor is 6+
+  rows; Evgeni: "if there is no room in the corridor no need to block"). Check: `node tools/layoutcheck.js <keys> --skips`.
 - **Upside-down stretches get the mirrored obstacles**: if the floor has spike pits, the ceiling the player runs on upside
   down gets pits too (Evgeni on closer cube: "wierd assymery with the spikes on the grown on the bottom but no such on the
   top").
+
+- **Presses first** (Evgeni 2026-11-27: "our generating solves by design and we just patch the timings and search secret
+  ways with the solver? ... shape first is not great"): a type plans its clicks (gap by tier and the beat, its window as a
+  late / early margin), the sim's arc of each click places the next surface (tools/sectiongen.js `cubeArc`, `ballTravel`,
+  tick-stepped like lib/physics.js), and hazards go where a wrong press lands. The type returns `presses` (columns of the
+  player's centre); `require("./tools/layoutcheck.js").planCheck(z)` plays exactly those taps, and `node tests/sectiongen.js`
+  fails any type whose plan dies. The solver is then only the check for secret ways. Done: open cube, ball, ball portals.
+  Not yet: fly, ship corridor, wave, flappy, swing, closer cube, staircase, stair path, orbs, spider (its overlap is its
+  window already, but no presses returned).
+- **One click style per generation, a small drift inside it** (Evgeni 2026-11-27: "the click pattern/holds/cps differs
+  between generations. not consistent across the whole section, some have bit more cps, some have bit less. some hold more
+  some hold less"): ctx() gives `style` -- a density (x0.82-1.22) and hold factor (x0.7-1.4) per generation, and
+  `pace(c)` / `holdAt(c)` drifting +-6-12% over 25-45 columns. A press planner draws ONE base gap per generation, jitters
+  each click +-15% and adds a rest one click in 8; never a fresh pick from the whole range per click (that gave 2x swings
+  between quarters of one section). Measured at 120 cols, normal: open cube 0.8-1.6 cps between generations, ball 1.1-2.0,
+  quarters within one click of each other. Holds (fly, wave, swing) use holdAt when those types go presses-first.
 
 ## The types (the board's examples)
 
 | type | mode | idea | motif | change it by | longer looks like |
 |---|---|---|---|---|---|
 | entrance | cube | up a ramp onto the level's blocks, then a first spike and a small pit | ramp + flat + one hazard | ramp height (3 rows by default, tools/startramp.js) | not used long: an entry only |
-| staircase | cube | climb, then step down | a step up of 1 row, 4 wide | step width 3-5, a spike or saw on some landings | more steps, a flat landing every 3-4 steps |
+| staircase | cube | climb, then step down | a step up of 1 row, ONE JUMP wide (4 cols at 1x, 5 at 2x) | chains of 1-3 such steps, then a landing two jumps wide (spike or saw a jump in); pits, a step back; never odd widths (Evgeni 2026-11-27: "should be a proper jump otherwise its impossible to adjust or predict") | more steps, more hazards on landings |
 | open cube corridor | cube | a floor with pits and nothing overhead; platforms float in the middle | a floor run + a pit (2-3 wide spikes) | pit width, a platform over the pit | the run lengths change, platforms at 2 heights |
 | closer cube corridor | cube | the ceiling comes down to 4 rows over the floor and hangs spikes | a floor spike or pit + a hanging spike, out of step | the gap from floor to ceiling, a block pushed down from the ceiling | the ceiling steps up and down by 1 |
 | hanging structures | cube | structures hang from the top over a floor with spike pits | one hanging mass + a pit under or between | mass width and depth, its hanging spikes | more masses at different heights, holders from the theme |
@@ -173,6 +202,39 @@ that line is reachable; the spider's flip lands on the band's roof. Every genera
 board draws the line on each such section. A swing "taller than the screen" needs GD 2.2's portal free mode (no band),
 which the sim does not have yet (PHYSICS.md open).
 
+**Open from the whole-height round (2026-11-27):**
+- **Holding is a secret way on flat cube runs** (GDLM 76 v1 judge, "Generate a new 1-minute level" thread): entrance,
+  staircase and opencube at normal tier were played as one held press for 6-7 s, since a held cube jumps every flat-run
+  hazard in a row. layoutcheck counts the natural plan's taps, so it doesn't see it. Fix in the generators: a hazard right
+  after a landing at another height, low ceilings over some runs, gaps the held bounce overshoots; and a hold check.
+- **Spider: top and bottom aligned** (Evgeni: "that alignment decides the difficulty in a way as a timing and cps"; "the
+  platforms you jump still dont overlap in possible gameplay"): DONE 2026-11-27, each piece starts before the last ends;
+  the overlap (3 columns easy, ~1 harder, +-1 now and then) is the teleport window. 11 of 12 solve (easy 80 cols seed 2
+  dies on an end spike: open).
+- **Stair path**: runs of jumps broken softly by a rest (a 3-wide way block, the next column 5 on): chance 0 / 0 / 0.25 /
+  0.6 / 0.85 after 0..4+ hops (Evgeni: "max 3 jumps in a row", "when i say max, i mean distribute so that anything more
+  much lower chances ... dont want to set hard limits"). Tall maps turn lower so a flip and back fits. 19 of 20 solve
+  (40-90 cols, 13 and 19 rows; 90x19 harder seed 1 fails on a saw). Still open: blockers along the top, play reaching
+  rows 0-1 and the very top (spread 46-79%), looser timing (Evgeni: "allowing more timing will need blocks not snapped":
+  off-grid x as a per-tile dx, the board would draw it).
+- **"Max" means a soft distribution** (Evgeni 2026-11-27): wherever he says "max N" (jumps in a row, orbs in a run), make
+  longer runs much less likely, not impossible.
+- **Speed (0.5x / 2x / 3x)**: the generators are built for 1x (tools/sectiongen.js COLS_PER_SEC = 311.58 / 30). At
+  another speed every size in columns that comes from time (gap lengths, jump spans, flip windows, ball travel, spider
+  overlap, beat columns) scales by the speed ratio, and heights don't. GD's 2x is only ~1.25x faster than 1x (lib/physics.js
+  SPEEDS: x per tick 0.9 * 5.77 vs 1.1 * 5.87), 3x ~1.5x, 0.5x ~0.81x; jump height stays nearly the same. Not built yet:
+  a `speed` option for GEN that scales those columns.
+- **Ball, spider and ball portals taller than the band** (2026-11-27, Evgeni: "spider and ball still dont generate more
+  than the original height regardless if i am in height x100"): a hidden ball (L) / spider (P) portal on a surface re-bands
+  around it, so the band wanders the map; the ground spikes and ceiling bar follow the band. At 80 cols x 20 rows: 10 of 12
+  solve, 25-75% of the rows (a random walk: more movers or a drift toward unvisited rows is next).
+- **Cube types and wave at 2x rows** (2026-11-27): closecube's corridor steps a row up or down every 8-14 columns,
+  wandering the map (80x16: 88-89%, was fixed at 5 rows); opencube climbs up to (rows - 2) / 2 platforms (80x16: 73-87%);
+  staircase scales by itself (80x18: 50-82%); wave over 13 rows gets hidden A portals (80x20: 79-92%). All solve.
+- **A minimum length per type** (Evgeni: some need room for real play, robot and orbs).
+- Height at 1.5x rows, 60 cols (easy/harder, 2 seeds): wave 93%, fly 76%, ship corridor 80%, staircase 85%, closecube 80%,
+  ball 75%, spider 67%, opencube 68%, flappy 60%, orbs 55%. The cube types need their climbs scaled to the taller map.
+
 ## Ideas for more sections (not drawn yet)
 Evgeni 2026-11-27 ("lets remind ourselves more idea for sections, bit tired designing for now"):
 - **ship orb play**: a ship corridor with orbs in it (yellow / blue / green) that are clicked while flying.
@@ -186,3 +248,6 @@ Evgeni 2026-11-27 ("lets remind ourselves more idea for sections, bit tired desi
 - **turns of the camera and the play** ("camera movement and movement change (for example 90 degree change of gameplay)"):
   a section that pans or turns the camera, or turns the gameplay 90 degrees (rotated gameplay 2900: lib/physics.js
   `frameWorld`, PHYSICS.md "Rotated gameplay"; the "Beat Dash with rotated gameplay" thread built a first one).
+- **Duals from one click pattern** (Evgeni 2026-11-27): generate two sections, top and bottom, from the same clicks, in any
+  modes; then make it a real asymmetric dual by removing some hazards on one side, so the path is forced by both
+  gameplays together. lib/dual.js simulates duals (lab GDLM 63).
