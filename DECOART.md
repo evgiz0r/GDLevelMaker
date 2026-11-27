@@ -511,3 +511,17 @@ Next to a theme card's ▶ there is a style dropdown (tools/designs_tab.js `FXS`
 Its colours are the theme's own light roles (glow, inner, hi, core of its palette; Evgeni: "the colors of the effect should match the vibe of the level"). Slopes light as their triangle, not a square (designs.js cellsOf, the 4th field). The animation ends with the scene. The bands run diagonally (column + row) and move every half beat, faster than the player (Evgeni: "original vibe was ... diagonal"); "nine circles, along" keeps stripes by column, one a beat.
 song. These styles are a preview in the page only. The in-game version would be built with the effects toolkit
 (tools/effects.js, EFFECTS.md), which is not done yet. A new style is one entry in `FXS`.
+
+## Theme props: GD's own deco, dressed (2026-11-27)
+
+Evgeni: "lets find some more decorations around the firy helish theme. and do we have background examples?" and "usually
+the basic blocks are very bland without some kind of effect, glow, hue, screen wrap". `tools/themeprops.js`: GD's hellish
+pieces from the catalogue -- looping fire (920-924, 1936-1939), skulls (1596/1597), smoke (1849/1850), lava tops
+(1591/1593), chains (41, 106, 107, 498, 499), thorns (123-128) -- never placed plain: tinted on the theme's prop channels
+(860-865, from its palette), lit (a big soft circle on a blending channel behind, GD's glow strip 1293 under fire and
+lava), gathered in focal spots about every 16 blocks with one quiet screen in three, kept off the route (connect.js
+routeCells) and off hazards. A theme's `props` list names them (hellgate has fire, skull, smoke, lava, chain, flame); the
+structure deco pass places them per section. **Background examples:** `node tools/themedemo.js <theme>` -> a short lab
+level with the theme's scene once per sky + background option (a, b, c), labelled, props on (`--no-props` to compare).
+Open: GD's art is only on the PC, so the cloud pictures show the props as shapes; his verdict in the viewer / game; the
+animated fire objects' speed; thorns not in hellgate yet (black on dark rock).
