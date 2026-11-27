@@ -4866,7 +4866,7 @@ window.GD_LEVELS = [
     ]
    ]
   },
-  "made": "2026-11-27T05:44:43.362Z"
+  "made": "2026-11-26T23:19:51.000Z"
  },
  {
   "name": "GDLM 73 sunny streets",
@@ -9394,7 +9394,7 @@ window.GD_LEVELS = [
     ]
    ],
    "stale": true,
-   "replayedOn": "537f62d"
+   "replayedOn": "bab2dd3"
   },
   "made": "2026-11-26T04:36:27.000Z"
  },
@@ -10302,9 +10302,9 @@ window.GD_LEVELS = [
     ]
    ],
    "stale": true,
-   "replayedOn": "537f62d"
+   "replayedOn": "bab2dd3"
   },
-  "made": "2026-11-27T05:44:43.363Z"
+  "made": "2026-11-26T18:19:53.000Z"
  },
  {
   "name": "GDLM 74 icy part v2",
@@ -11226,9 +11226,9 @@ window.GD_LEVELS = [
     ]
    ],
    "stale": true,
-   "replayedOn": "537f62d"
+   "replayedOn": "bab2dd3"
   },
-  "made": "2026-11-27T05:44:43.365Z"
+  "made": "2026-11-26T18:19:53.000Z"
  },
  {
   "name": "GDLM 74 icy part v3",
@@ -12149,9 +12149,9 @@ window.GD_LEVELS = [
     ]
    ],
    "stale": true,
-   "replayedOn": "537f62d"
+   "replayedOn": "bab2dd3"
   },
-  "made": "2026-11-27T05:44:43.366Z"
+  "made": "2026-11-26T18:19:53.000Z"
  },
  {
   "name": "GDLM 75 held together",
@@ -12169,11 +12169,9 @@ window.GD_LEVELS = [
    "source": "planned",
    "plan": "5601727",
    "physics": "bab2dd3",
-   "solvedAt": "2026-11-27T00:24:51.638Z",
-   "stale": true,
-   "replayedOn": "537f62d"
+   "solvedAt": "2026-11-27T00:24:51.638Z"
   },
-  "made": "2026-11-27T05:44:43.366Z"
+  "made": "2026-11-27T00:25:08.000Z"
  },
  {
   "name": "GDLM block designs",
@@ -12190,11 +12188,9 @@ window.GD_LEVELS = [
    "kind": "human",
    "plan": "5601727",
    "physics": "bab2dd3",
-   "solvedAt": "2026-11-26T21:12:44.270Z",
-   "stale": true,
-   "replayedOn": "537f62d"
+   "solvedAt": "2026-11-26T21:12:44.270Z"
   },
-  "made": "2026-11-27T05:44:43.368Z"
+  "made": "2026-11-26T21:13:06.000Z"
  },
  {
   "name": "GDLM design themes",
@@ -15335,7 +15331,7 @@ window.GD_LEVELS = [
     ]
    ]
   },
-  "made": "2026-11-27T05:44:43.369Z"
+  "made": "2026-11-27T00:09:14.000Z"
  },
  {
   "name": "GDLM holders",
@@ -15994,7 +15990,7 @@ window.GD_LEVELS = [
     ]
    ]
   },
-  "made": "2026-11-27T05:44:43.369Z"
+  "made": "2026-11-26T22:17:27.000Z"
  },
  {
   "name": "GDLM indicator styles",
@@ -17724,7 +17720,7 @@ window.GD_LEVELS = [
     ]
    ]
   },
-  "made": "2026-11-27T05:44:43.370Z"
+  "made": "2026-11-26T22:10:25.000Z"
  },
  {
   "name": "GDLM lab brickgen2 ball",
@@ -21797,7 +21793,7 @@ window.GD_LEVELS = [
     ]
    ]
   },
-  "made": "2026-11-27T05:44:43.371Z"
+  "made": "2026-11-26T21:05:18.000Z"
  },
  {
   "name": "GDLM spike designs",
@@ -21808,7 +21804,7 @@ window.GD_LEVELS = [
    "official": 14,
    "offset": 0
   },
-  "made": "2026-11-27T05:44:43.371Z"
+  "made": "2026-11-26T21:19:12.000Z"
  },
  {
   "name": "GDLM structure designs",
@@ -24146,7 +24142,7 @@ window.GD_LEVELS = [
     ]
    ]
   },
-  "made": "2026-11-27T05:44:43.372Z"
+  "made": "2026-11-26T21:53:24.000Z"
  },
  {
   "name": "cube timings",
