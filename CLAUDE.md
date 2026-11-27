@@ -716,6 +716,13 @@ The viewer draws moving objects where they start.
   collapsible, lets put that somewhere as a rule when we make those"; the catalogue was "heavy with stuff. long long info"):
   catalogues, the viewer's panels, boards, report pages. A header that folds its section, remembered per viewer, long
   explanations folded by default, short text on cards. The lego catalogue does it with `data-fold` (tools/lego_page.html).
+- **Notes and marks on our pages: autosave, send to Claude, fold what is seen** (Evgeni, 2026-11-27: "dont want \"save mark\",
+  send to claude when we have list of comments/marks ... they should apply for future sessions, and other agents"). On every
+  page we make (catalogues, viewer, boards, artifacts): a note or comment saves as it is typed (debounced, Enter too) with a
+  small "saved" / "not saved: why" -- never a save button, and typed text is never lost to a re-render; a page with a list of
+  marks or comments has one **📨 send to Claude** (artifact `comments` capability, `sendToClaude`) so he never has to come to
+  the chat; each mark has states open -> seen (Claude read it: `seen` + `reply`, folded away) -> fixed (deleted from the page,
+  kept in a log in git), so lists never just grow. Example: tools/designs_tab.js (the catalogue's theme 📍 marks).
 - **No native dialogs in the viewer pages** (alert / confirm / prompt): the app's built-in browser and the phone page's
   frame suppress them, so the button just did nothing. Use the viewer's notice(), askNote(), showMap();
   `node tests/no_dialogs.js` checks.
