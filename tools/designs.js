@@ -173,7 +173,12 @@ function page(out) {
   // the layout sections' solver check (tools/layoutcheck.js): the board draws each route over its section
   try { fs.copyFileSync(path.join(ROOT, "knowledge", "layout_check.json"), path.join(out, "layout_check.json")); } catch (e) {}
   // the tab, with the scene join in front of it (lib/scenejoin.js: the same code node's layoutsections.joined() uses)
-  fs.writeFileSync(path.join(out, "designs.js"), fs.readFileSync(path.join(__dirname, "..", "lib", "scenejoin.js"), "utf8") + "\n" + fs.readFileSync(path.join(__dirname, "designs_tab.js"), "utf8"));
+  // + the section generators (tools/sectiongen.js) for the board's 🎲, run in the page: its one need from
+  // layoutsections.js is grid(), shimmed here; the node-only parts sit behind require.main
+  const LSsrc = fs.readFileSync(path.join(__dirname, "layoutsections.js"), "utf8"), gridSrc = LSsrc.slice(LSsrc.indexOf("function grid("), LSsrc.indexOf("\n}\n", LSsrc.indexOf("function grid(")) + 3);
+  const SG = "window.SectionGen = (function () { const module = { exports: {} }; " + gridSrc + "\n const require = n => n === './layoutsections.js' || n === \"./layoutsections.js\" ? { grid, SECTIONS: [] } : {};\n"
+    + fs.readFileSync(path.join(__dirname, "sectiongen.js"), "utf8").replace(/^"use strict";/m, "") + "\n return module.exports; })();\n";
+  fs.writeFileSync(path.join(out, "designs.js"), fs.readFileSync(path.join(__dirname, "..", "lib", "scenejoin.js"), "utf8") + "\n" + SG + fs.readFileSync(path.join(__dirname, "designs_tab.js"), "utf8"));
   console.log(`${L.length} designs -> ${out} (designs.json, designs.js, cards/)`);
   return { out, files: ["designs.json", "designs.js", "layout_check.json"].concat(L.flatMap(d => [d.card, d.layout, ...Object.values(d.parts || {})].filter(Boolean))) };
 }

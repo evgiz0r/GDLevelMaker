@@ -59,6 +59,7 @@ window.initDesigns = async function (root) {
   let LCHK = {}; try { LCHK = await (await fetch("layout_check.json", { cache: "no-store" })).json(); } catch (e) {}
   // the same hash tools/layoutcheck.js hashMap() takes of the map it solved: differs once he drew since -> "old"
   const hashTiles = T => { const cells = T.map(z => z.t + "," + z.c + "," + z.r).sort(); let h = 0; for (const ch of cells.join(";")) h = (h * 31 + ch.charCodeAt(0)) | 0; return h; };
+  let LAST = "2026-11-27T14:40:00.000Z";   // the last send (collection "designsend"; this default: when the stamp started)
   let VOTES = {}, DB = null, CM = null, CAN_SEND = false, MODE = "designs", MARKS = [], MARKING = null;
   // typed mark notes not yet confirmed by the database: they win over snapshots, so a re-render never drops text
   const PENS = { block: "#ffffff", hazard: "#ff5a5a", note: "#ffd84d" }, PENL = { block: "▭ block", hazard: "▲ hazard", note: "✎ note" };
@@ -80,7 +81,10 @@ window.initDesigns = async function (root) {
   document.addEventListener("keydown", () => { lastKey = Date.now(); holdSend(); }, true);
   // a tap anywhere but a send button counts too (the app's hold is on any click in the page)
   document.addEventListener("pointerdown", e => { if (e.target.closest && e.target.closest(".msend, #sendall, #rfb")) return; lastKey = Date.now(); holdSend(); }, true);
-  function holdSend() { clearInterval(holdT); const tick = () => { const left = HOLD - (Date.now() - lastKey);
+  // the countdown made the buttons annoying (Evgeni 2026-11-27: "something bugged with those new and sends, need to find
+  // something less annoying"): no countdown, no disabled buttons any more; a refused send just says to press again
+  function holdSend() { return;
+    clearInterval(holdT); const tick = () => { const left = HOLD - (Date.now() - lastKey);
       for (const b of root.querySelectorAll(".msend")) { b.disabled = left > 0; b.textContent = left > 0 ? `📨 in ${Math.ceil(left / 1000)} s` : b.dataset.label || b.textContent; }
       if (left <= 0) clearInterval(holdT); };
     for (const b of root.querySelectorAll(".msend")) if (!b.dataset.label) b.dataset.label = b.textContent;
@@ -316,9 +320,38 @@ window.initDesigns = async function (root) {
     return `<section data-g="layoutsec"><h2 class="stitle fold-h" role="button" tabindex="0" aria-expanded="${isOpen}">${isOpen ? "▾" : "▸"} Theme layout <span class="ds">the same for every theme · one part per kind of play · tap to place${n ? " · ✏ " + n : ""}</span></h2>`
       + (isOpen ? `<div class="dc lay board${fs ? " fs" : ""}" data-id="${LACT}"><div class="lyh">${chips}</div><div class="lyh">${tools}</div>`
         + LPARTS.filter(q => show(q[0])).map(q => `<div class="lpn"><b>${esc(q[1])}</b> · ${esc(q[4] || "")} · ${q[2]} x ${q[3]}${q[5] ? " · " + esc(q[5]) : ""}${chkLine(q[0])}${q[0].startsWith("sec:") ? ` <span class="lsz" data-k="${esc(q[0])}"><button data-d="0,1" title="one row taller">⬆ taller</button><button data-d="0,-1" title="one row shorter">⬇ shorter</button><button data-d="2,0" title="two columns wider">➡ wider</button><button data-d="-2,0" title="two columns narrower">⬅ narrower</button></span>` : ""}${ADDED[q[0].slice(4)] ? ` <button class="ldel" data-k="${esc(q[0].slice(4))}">✕ remove</button>` : ""}</div><div class="wide" data-w="L:${esc(q[0])}">${grid(q)}</div>`
-          + `<div class="lnr"><input class="lnote" data-n="${esc(q[0])}" placeholder="your notes on ${esc(q[1])} ..." value="${esc((NOTES[q[0]] || {}).note || "")}"><span class="ds lnst" data-n="${esc(q[0])}">${esc(NST[q[0]] || (noteUnsent(q[0]) ? "not sent yet" : (NOTES[q[0]] || {}).sentNote ? "sent" : ""))}</span></div>`).join("")
-        + `</div>` : "") + `</section>`;
+          + `<div class="lnr"><input class="lnote" data-n="${esc(q[0])}" placeholder="your notes on ${esc(q[1])} ..." value="${esc((NOTES[q[0]] || {}).note || "")}"><span class="ds lnst" data-n="${esc(q[0])}">${esc(NST[q[0]] || "")}</span></div>`).join("")
+        + genPanel() + `</div>` : "") + `</section>`;
   }
+  // 🎲 THE GENERATOR (Evgeni 2026-11-27: "i want a button generate below the current that will just make a new one for me to
+  // see and comment for the generation process"): tools/sectiongen.js runs right in the page (bundled into designs.js as
+  // window.SectionGen), a type + length + difficulty -> a fresh section from the type's concept; his comment on it saves
+  // as he types (a note on "gen:<type>:<seed>:<cols>:<tier>") and goes with 📨, so the generator can be fixed from it.
+  // Not solver-checked in the page (that is node: tools/sectiongen.js check)
+  let GENS = null; try { GENS = JSON.parse(localStorage.getItem("designs-gen") || "null"); } catch (e) {}
+  const genKey = g => "gen:" + g.key + ":" + g.seed + ":" + g.cols + ":" + g.tier;
+  function generate(f) { const SG = window.SectionGen; if (!SG) return;
+    const key = f.querySelector(".gk").value, cols = Math.max(12, Math.min(200, +f.querySelector(".gc").value || 40)), tier = f.querySelector(".gt").value, seed = 1 + Math.floor(Math.random() * 99999);
+    try { const z = SG.make(key, { cols, seed, tier }); GENS = { key, cols, tier, seed, map: z.map, mode: z.mode, concept: z.concept || "" }; }
+    catch (x) { GENS = { key, cols, tier, seed, err: String(x && x.message || x) }; }
+    try { localStorage.setItem("designs-gen", JSON.stringify(GENS)); } catch (e) {} render(); }
+  function genPanel() { const SG = window.SectionGen; if (!SG) return "";
+    const nm = k => ((SECS().find(q => q[0] === "sec:" + k) || [])[1]) || k, g = GENS || { key: SG.KEYS[0], cols: 40, tier: "normal" };
+    let out = `<div class="lpn" style="margin-top:14px"><b>🎲 generator</b> · a new section from a type's concept, any length and difficulty · your comment goes to Claude with 📨</div>`
+      + `<div class="lyh gform"><span class="pens"><select class="gk">${SG.KEYS.map(k => `<option value="${esc(k)}"${k === g.key ? " selected" : ""}>${esc(nm(k))}</option>`).join("")}</select>`
+      + `<label>length <input class="gc" type="number" min="12" max="200" value="${g.cols}" style="width:56px"></label>`
+      + `<select class="gt">${["easy", "normal", "hard", "harder"].map(t => `<option${t === g.tier ? " selected" : ""}>${t}</option>`).join("")}</select>`
+      + `<button class="ggo">🎲 generate</button></span></div>`;
+    if (GENS && GENS.err) out += `<div class="lpn" style="color:#ff8a8a">${esc(GENS.err)}</div>`;
+    else if (GENS && GENS.map) { const H = GENS.map.length, W = GENS.map[0].length, cs = Math.round(26 * (open["zoom:layout"] || 1)), T = [];
+      GENS.map.forEach((l, i) => [...l].forEach((ch, c) => { if (ch !== ".") T.push({ t: ch, c, r: H - 1 - i }); }));
+      const gk = genKey(GENS);
+      out += `<div class="lpn"><b>${esc(nm(GENS.key))}</b> · ${esc(GENS.mode || "")} · ${W} x ${H} · ${esc(GENS.tier)} · seed ${GENS.seed}${GENS.concept ? " · " + esc(GENS.concept) : ""}</div>`
+        + `<div class="wide"><svg class="gtiles" viewBox="0 0 ${W} ${H + 0.25}" style="width:${W * cs}px;height:${(H + 0.25) * cs}px;background:#1a1636;display:block;max-width:none">`
+        + `<g class="grid">${Array.from({ length: W + 1 }, (_, c) => `<line x1="${c}" y1="0" x2="${c}" y2="${H}" stroke="#ffffff30" style="stroke-width:1px;vector-effect:non-scaling-stroke" />`).join("")}${Array.from({ length: H + 1 }, (_, r) => `<line x1="0" y1="${r}" x2="${W}" y2="${r}" stroke="#ffffff30" style="stroke-width:1px;vector-effect:non-scaling-stroke" />`).join("")}</g>`
+        + `<rect x="0" y="${H}" width="${W}" height="0.25" fill="#7be38a55" />` + T.map(z => TILE(z, H)).join("") + `</svg></div>`
+        + `<div class="lnr"><input class="lnote" data-n="${esc(gk)}" placeholder="what's good or wrong in this one ..." value="${esc((NOTES[gk] || {}).note || "")}"><span class="ds lnst" data-n="${esc(gk)}">${esc(NST[gk] || "")}</span></div>`; }
+    return out; }
   // 📨 sends EVERYTHING new on the page in one message (marks of every theme, layout notes, drawings), whichever 📨 is
   // pressed: the top one beside ⟳, a card's, or ⟳ itself (Evgeni 2026-11-27: a note typed after a send stayed "not sent
   // yet" -- he pressed a theme card's 📨, which sent only that card's marks; "maybe it should send new stuff at some button
@@ -327,9 +360,14 @@ window.initDesigns = async function (root) {
   function collectNew() {
     const ms = MARKS.filter(unsent).sort((a, b) => (a.design > b.design ? 1 : a.design < b.design ? -1 : a.fx - b.fx));
     const keys = Object.keys(DRAW).filter(k => k !== "layout:play");
-    const fresh = keys.filter(k => DRAW[k] && (DRAW[k].tiles || (DRAW[k].strokes || []).length) && (DRAW[k].sentAt || "") !== (DRAW[k].at || "x"));
-    const nts = LPARTS.filter(q => noteUnsent(q[0]));
-    const nss = Object.values(ADDED).filter(z => (z.sentAt || "") !== (z.at || "x"));
+    // NEW = changed after the last send (one time stamp, collection "designsend"), not by Claude (Claude's revisions carry
+    // sentAt == at). One stamp instead of a sent flag on every item: the flags went wrong (a drawing Claude had already
+    // applied still showed as new), Evgeni 2026-11-27
+    const after = x => x && String(x.at || "") > LAST && (x.sentAt || "") !== (x.at || "x");
+    const fresh = keys.filter(k => DRAW[k] && (DRAW[k].tiles || (DRAW[k].strokes || []).length) && after(DRAW[k]));
+    const nts = LPARTS.filter(q => noteUnsent(q[0]) && String((NOTES[q[0]] || {}).at || "") > LAST);
+    const nss = Object.values(ADDED).filter(after);
+    for (const k of Object.keys(NOTES)) if (k.startsWith("gen:") && noteUnsent(k) && String(NOTES[k].at || "") > LAST) nts.push([k, "🎲 generated " + k.split(":")[1] + " (seed " + k.split(":")[2] + ", " + k.split(":")[3] + " cols, " + k.split(":")[4] + ")"]);
     return { ms, fresh, nts, nss, n: ms.length + fresh.length + nts.length + nss.length };
   }
   async function sendNew(anchorEl, st) {
@@ -347,15 +385,12 @@ window.initDesigns = async function (root) {
     // must come straight from the click on 📨: a send delayed by a timer is refused as well (Evgeni 2026-11-27, after a
     // version that waited and retried by itself: "send to claude doesnt send"). So: inside the hold, count down and let him
     // press again; never send later by itself
-    const left = HOLD - (Date.now() - lastKey); if (left > 0) { holdSend(); say("wait " + Math.ceil(left / 1000) + " s after your last tap or key, then 📨 again"); return false; }
     let sent = false, why = "";
     try { const anchor = await CM.anchorFor(anchorEl || root); await CM.sendToClaude({ anchor, text: text.slice(0, 4000) }); sent = true; }
     catch (x) { why = x && (x.code || x.message) || String(x); lastKey = Date.now(); holdSend(); }
-    if (!sent) { say("not sent (" + why + "): wait for the countdown, then 📨 again"); return false; }
-    for (const k of fresh) { const at = new Date().toISOString(); DRAW[k].at = at; DRAW[k].sentAt = at;
-      try { if (DB) await DB.collection("designdraw").doc(k.replace(/[^A-Za-z0-9_-]/g, "_") + "-" + Date.now().toString(36)).set({ design: k, strokes: DRAW[k].strokes || [], tiles: DRAW[k].tiles || null, at, sentAt: at }); } catch (x) {} }
-    for (const z of nss) await saveSec(z.key, true);
-    for (const q of nts) { NOTES[q[0]].sentNote = NOTES[q[0]].note.trim(); NST[q[0]] = "sent"; await saveNote(q[0]); NST[q[0]] = "sent"; }
+    if (!sent) { say("the app held it back (it waits a few seconds after a tap or key): press 📨 again"); return false; }
+    LAST = new Date().toISOString(); try { if (DB) await DB.collection("designsend").doc("s-" + Date.now().toString(36)).set({ at: LAST }); } catch (x) {}
+    for (const q of nts) NST[q[0]] = "sent";
     for (const m of ms) { PEND[m.mid] = noteOf(m); m.sentNote = noteOf(m).trim(); m.sent = new Date().toISOString(); await saveMark(m.mid); }
     say("sent " + n + " to Claude " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })); render(); return true;
   }
@@ -366,7 +401,8 @@ window.initDesigns = async function (root) {
       b.onclick = () => sendNew(null, null); }
     const n = collectNew().n; b.textContent = n ? "📨 " + n + " new" : "📨"; b.disabled = !n; }
   setInterval(() => { try { topSend(); } catch (x) {} }, 1500);
-  window.rfBeforeReload = async () => { if (!collectNew().n) return true; return sendNew(null, null); };
+  // ⟳ tries to send what is new, and reloads either way (nothing is lost: everything is saved in the page's database)
+  window.rfBeforeReload = async () => { if (collectNew().n) { try { await sendNew(null, null); } catch (x) {} } return true; };
   function render() {
     keepScroll(); try { topSend(); } catch (x) {}
     const f = root.querySelector("#dvf").value, G = GROUPS.filter(([k]) => (MODE === "themes") === (k === "theme"));
@@ -406,6 +442,7 @@ window.initDesigns = async function (root) {
       for (const k of ks) await saveDraw(k);
       DST.layout = ks.every(k => DST[k] === "saved") ? "saved " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + " (" + ks.length + ")" : ks.map(k => DST[k]).find(v => v !== "saved");
       if (st) st.textContent = DST.layout; return; }
+    if (e.target.closest(".ggo")) { generate(e.target.closest(".gform")); return; }
     if (e.target.closest(".lroute")) { open.route = open.route === false; try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} render(); return; }
     const lsz = e.target.closest(".lsz button"); if (lsz) { const [dw, dh] = lsz.dataset.d.split(",").map(Number); await resize(lsz.closest(".lsz").dataset.k, dw, dh); return; }
     if (e.target.closest(".ladd")) { ADDFORM = !ADDFORM; render(); const i = root.querySelector(".lan"); if (i) i.focus(); return; }
@@ -583,6 +620,7 @@ window.initDesigns = async function (root) {
       for (const d of snap.docs.map(x => JSON.parse(JSON.stringify(x.data())))) if (d && d.key && (!ADDED[d.key] || String(d.at) > String(ADDED[d.key].at || ""))) ADDED[d.key] = d;
       if (!(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) render();
     }, () => {});
+    if (DB) DB.collection("designsend").onSnapshot(snap => { let m = LAST; snap.forEach(d => { const a = String((d.data() || {}).at || ""); if (a > m) m = a; }); if (m !== LAST) { LAST = m; topSend && topSend(); } });
     if (DB) DB.collection("designnotes").onSnapshot(snap => {
       for (const d of snap.docs.map(x => JSON.parse(JSON.stringify(x.data())))) if (d && d.part && (!NOTES[d.part] || !NOTES[d.part].at || String(d.at) > String(NOTES[d.part].at))) {
         const el = document.activeElement; if (el && el.classList && el.classList.contains("lnote") && el.dataset.n === d.part) continue;   // never under his typing

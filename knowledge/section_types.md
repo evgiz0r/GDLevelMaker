@@ -66,6 +66,11 @@ The click-first generator (tools/clickfirst.js: kinds O / B orbs, pads) is the c
 
 ## How to test a section
 
+- **🎲 on the board** (Themes tab, under the sections): pick a type, a length and a difficulty, press 🎲 generate, and a fresh
+  section from tools/sectiongen.js shows at once (it runs in the page). Evgeni's comment on it goes to Claude with 📨 as
+  "🎲 generated <type> (seed, cols, tier)", so it can be rebuilt exactly (`node tools/sectiongen.js show <type> --seed ..
+  --cols .. --tier ..`) and the generator fixed from it.
+
 - Its layout: the board's current scene (Themes tab), with soft markers where each section starts.
 - Its play: the gallery build (🔨 on a theme card, then make.js solves it). A type is right when the solver's route clears
   it with player windows and no secret way (tools/score.js gates).
