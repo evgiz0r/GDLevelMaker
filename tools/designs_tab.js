@@ -246,15 +246,15 @@ window.initDesigns = async function (root) {
   const BPM = 128;
   const FXS = {
     static: { name: "static", draw: null },
-    // the Nine Circles look: rings of colour widen out from behind the path on every beat, alternating hues, a flash on
-    // the bar's first beat; drawn behind nothing (screen blend), so the scene's darks take the colour
-    nine: { name: "nine circles", draw: (g, w, h, t, b, P) => {
-      const cx = w * 0.62, cy = h * 0.5, R = Math.hypot(w, h) * 0.6, ph = b % 1, n = Math.floor(b);
-      for (let k = 0; k < 9; k++) { const r = ((k + ph) / 9) * R, hue = ((n + k) % 2 ? 350 : 200) + k * 4, a = 0.5 * (1 - k / 9) * (1 - ph * 0.4);
-        g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2); g.lineWidth = Math.max(3, R / 30 * (1 - ph * 0.5)); g.strokeStyle = `hsla(${hue},95%,55%,${a.toFixed(3)})`; g.stroke(); }
-      const pulse = Math.max(0, 1 - ph * 3);   // a beat's first third
-      if (pulse) { const gr = g.createRadialGradient(cx, cy, 0, cx, cy, R * 0.5); gr.addColorStop(0, `hsla(${n % 2 ? 350 : 200},100%,60%,${(0.35 * pulse).toFixed(3)})`); gr.addColorStop(1, "hsla(0,0%,0%,0)"); g.fillStyle = gr; g.fillRect(0, 0, w, h); }
-      if (n % 4 === 0 && ph < 0.12) { g.fillStyle = `rgba(255,255,255,${(0.18 * (1 - ph / 0.12)).toFixed(3)})`; g.fillRect(0, 0, w, h); } } } };
+    // NINE CIRCLES (Evgeni 2026-11-27: "nine circles is when our structure has 4 channels and it does 'waves', not the
+    // background ... we are not bound to 4 colors, but thats nine circles 'style'. some kind of flow on the structures"):
+    // the play blocks split into 4 colour bands by column; each beat lights the next band, so a wave of colour flows
+    // along the structures. In a level: 4 block channels and a colour trigger per band per beat (EFFECTS.md)
+    nine: { name: "nine circles", draw: (g, w, h, t, b, P, cells, f, sl) => { if (!cells) return;
+      const N = 4, HUES = [350, 30, 200, 280], n = Math.floor(b), ph = b - n, sz = 22.5 * f;
+      for (const [x, y, col] of cells) { const X = x * f - sl; if (X < -sz || X > w + sz) continue;
+        const band = ((Math.floor(col / 2) % N) + N) % N, lit = ((n - band) % N + N) % N, a = lit === 0 ? 0.75 * (1 - ph * 0.6) : lit === 1 ? 0.25 * (1 - ph) : 0.04;
+        if (a < 0.03) continue; g.fillStyle = `hsla(${HUES[band]},95%,58%,${a.toFixed(3)})`; g.fillRect(X - sz / 2, y * f - sz / 2, sz, sz); } } } };
   const styOf = id => FXS[open["anim:" + id]] ? open["anim:" + id] : "static";
   function startPlay(id) { stopPlay(); PLAY = { id, t0: performance.now(), i: 0 }; for (const b of root.querySelectorAll(`.dc[data-id="${CSS.escape(id)}"] .aplay`)) b.textContent = "■"; requestAnimationFrame(stepPlay); }
   function stopPlay() { if (!PLAY) return; const id = PLAY.id; PLAY = null; for (const p of root.querySelectorAll(".plr, .fxc")) p.remove(); for (const b of root.querySelectorAll(`.dc[data-id="${CSS.escape(id)}"] .aplay`)) b.textContent = "▶"; }
@@ -271,7 +271,7 @@ window.initDesigns = async function (root) {
     if (fx.draw && zw && w) { if (!cv) { cv = document.createElement("canvas"); cv.className = "fxc"; zw.appendChild(cv); }
       const W = w.clientWidth, H = w.clientHeight; if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
       const g = cv.getContext("2d"), t = i / A.fps; g.clearRect(0, 0, W, H);
-      fx.draw(g, W, H, t, t * BPM / 60, { x: x * f - w.scrollLeft, y: y * f }); }
+      fx.draw(g, W, H, t, t * BPM / 60, { x: x * f - w.scrollLeft, y: y * f }, d.cells, f, w.scrollLeft); }
     else if (cv) cv.remove();
     requestAnimationFrame(stepPlay);
   }

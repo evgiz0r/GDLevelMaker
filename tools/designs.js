@@ -47,11 +47,24 @@ function list() {
         .concat(require("./layoutsections.js").SECTIONS.map(z => ["sec:" + z.key, z.name, z.map[0].length, z.map.length, z.mode, z.note])),
       partGeo: { kit: { c0: q.c0, c1: q.scene - 1 }, play: { c0: q.scene - 1, c1: q.c1 }, hU: THEME_ROWS * 30 + THEME_GROUND, ground: THEME_GROUND, sc: q.scene },
       geo: { c0: q.c0, c1: q.c1, sc: q.c0 + 4, hU: THEME_ROWS * 30 + THEME_GROUND, ground: THEME_GROUND },
-      anim: animOf(q.c0, q.c1),
+      anim: animOf(q.c0, q.c1), cells: cellsOf(q.c0, q.c1),
       note: `${t.mood} · ${t.design}, ${[].concat(t.effects).join(", ")} · spikes ${t.spikes}, saws ${t.saws} · ${t.holders} · ${t.indicator}` }); }
   return out;
 }
 const THEME_ROWS = 13, THEME_GROUND = 45;
+// the play blocks of a theme's scene, for the page's "nine circles" style (Evgeni 2026-11-27: "nine circles is when our
+// structure has 4 channels and it does waves, not the background ... some kind of flow on the structures"): one
+// [x, y, column] per block in card units (as animOf), column = its level column, so the page can light them band by band
+let LVL = null;
+function cellsOf(c0, c1) {
+  try {
+    if (!LVL) LVL = require("./io.js").readGdlvl(path.join(ROOT, "levels", "gdlm_design_themes.gdlvl")).level.objects;
+    const SC = 0.75, out = [];
+    for (const b of LVL) { if (!((b.id >= 1 && b.id <= 7) || b.id === 1338)) continue; if (b.x < c0 * 30 || b.x > c1 * 30 || b.y > THEME_ROWS * 30) continue;
+      out.push([+((b.x - c0 * 30) * SC).toFixed(1), +((THEME_ROWS * 30 - b.y) * SC).toFixed(1), Math.floor(b.x / 30)]); }
+    return out.length ? out : null;
+  } catch (e) { return null; }
+}
 // ▶ PLAY on a theme card (Evgeni 2026-11-27: "theme animations, so we might see how it looks in the game if we press
 // play (either playing the whole section/scene or static)"): the gallery level's saved route, 60 points a second, in the
 // card's own units (card units = level units x 0.75 from the card's left edge and from the top of its 13 rows), with the
