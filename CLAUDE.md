@@ -224,7 +224,7 @@ on a long one with modes). Wait for the heavy-job slot comes on top of all of th
 | job | how long | source |
 |---|---|---|
 | make, short cube level (15-20 s) | 15-30 s (the solve itself ~2 s since the state-copy fix) | loop.js, GDLM 02 / 41, 2026-11-23 |
-| make `--look` (decoration only, gameplay unchanged) | ~1 s on a short level; 7-8 min on GDLM 44 (43 s, 11.7k objects: it replays the saved plan to the end) | showcase notes, GDLM 50; cloud, GDLM 44, 2026-11-25 |
+| make `--look` (decoration only, gameplay unchanged) | ~1 s on a short level; 7-8 min on GDLM 44 (43 s, 11.7k objects: it replays the saved plan to the end); if the gameplay DID change it solves again: design themes gallery 7 min (105 s level, 5 modes, 2026-11-27) | showcase notes, GDLM 50; cloud, GDLM 44, 2026-11-25 |
 | make, an existing level after a one-spot edit (incremental) | 1-5 s in cube or ball; an edit inside or just before a ship stretch 25-65 s (the stretch is re-planned) | PHYSICS.md "Incremental solving", cloud 2026-11-23 |
 | cut or join of solved levels (section cache) | 0.5-10 s (full: 1-70 s) | PHYSICS.md "Incremental solving" |
 | make (= the solve), 40-100 s level with ship / wave / ball | ~2 min since the state-copy fix (was 5-7 min); 13 min for GDLM 44 v2 with no saved route (cloud, 2026-11-25) | GDLM 45 106 s, GDLM 61 124 s (cloud, 2026-11-23); before: PHONE.md, SHOWCASE.md |
