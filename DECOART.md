@@ -458,6 +458,14 @@ a scene returns them (with a `!!` note). Galleries built before 2026-11-27 (hold
 indicator styles) still carry the doubled objects until rebuilt.
 Catalogue: the lego catalogue's Themes tab, one picture per theme (`node tools/designs.js cards --themes`: `levelmap.js
 --clean --rows 1`, the scene from one fixed camera, cut at its ends; joined shots had seams where the camera moved).
+Each theme's KIT comes first, beside its scene in the same picture (Evgeni 2026-11-27: "i wanted near each theme, the set
+of objects/spikes whatever it uses"): `KIT_MAP` -- a single block, a row, an L, a hill, a spike on a block, a hanging spike,
+the two saws and a big block, up out of the cube's lane, held like any island.
+Marks (Evgeni: "give me a tool to mark specific spots in the scene"): a theme card's 📍 button, then a tap on the picture
+Since 2026-11-27 (Evgeni: "if i click new the text is gone", "many marks ... need something like \"uve seen it\" ... and delete after improved", "send marks to chat"): a note saves as it is typed (shown "saved" / "not saved: why"); 📨 sends a theme's open marks to Claude as a comment (the comments capability); Claude sets `seen: true` + `reply` on a mark it has read (the page folds those under "✓ N seen") and deletes it once fixed; `designs.js marks` keeps every mark in knowledge/design_marks.json, the deleted ones with `fixed`.
+and a note -> the page's db collection `designmarks` (fx / fy on the picture, level x / y, the scene's column and row);
+`node tools/designs.js marks` (after an ArtifactData list into local/designs/marks_phone.json) prints each with what the
+gallery level has there -> knowledge/design_marks.json.
 Contrast (Evgeni 2026-11-27: "the background and the blocks look too alike, they should have some contrast to the blocks
 and hazards"): the old skies were dark versions of the blocks' own hue and the backdrops were mixed toward the block colour.
 Now: each theme's skies are in another hue (40-176 degrees from the blocks), the backdrop pieces stay in the SKY's hue a few
@@ -468,3 +476,8 @@ checks every preset. Our blocks' bodies are dark, so the sky goes mid-tone (bloc
 Test: `node tests/structdeco.js`. The art-free render shows the spike / saw dressing only faintly (1889, 503 ...): judge
 those in GD art on the PC or in the game.
 Open: a theme from a theme kit (tools/themes/*) or from the song's mood; backdrops b and c are not in the gallery (only a); the scene's seams between shots move a little when the camera rises.
+
+**Next (Evgeni, 2026-11-27): a "claude" design theme**, beside hellgate / frost / toxic / void / temple ("lets have a claude
+theme as well (work on it later)"). Not started. Ideas to try: Claude's warm clay / orange on a cream or deep-ink sky,
+the signature's robot + human motifs as set pieces, soft rounded blocks, the end-screen sign's look carried through.
+

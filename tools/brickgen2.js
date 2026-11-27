@@ -256,7 +256,7 @@ function textmap(b) {
   return rows.join("\n");
 }
 
-module.exports = { gen, genBall, movement, outside, lab, load, textmap, GEN };
+module.exports = { gen, genBall, movement, outside, lab, load, textmap, GEN, renderBall, surfY, ballCtx, spread };
 
 if (require.main === module) {
   const argv = process.argv.slice(2), cmd = argv[0], arg = k => { const i = argv.indexOf("--" + k); return i >= 0 ? argv[i + 1] : null; };

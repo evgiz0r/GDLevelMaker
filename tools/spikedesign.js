@@ -74,6 +74,12 @@ const D = {
     parts: c => [{ id: 1764, lx: 0, ly: -0.42, s: 1.5, own: 0.27, front: true, ch: c.inner }, { id: 1764, lx: 0, ly: -0.42, s: 0.85, own: 0.27, front: true, zo: 1, ch: c.deep }] },
   layers: { kind: "spike", src: "glow + an inner spike + a core: the 2.2 'layered' spike (67% of 2.2 hazards carry 2+ parts)",
     parts: c => [{ id: 503, lx: 0, ly: -0.35, s: 1.25, ch: c.glow }, { id: 1889, lx: 0, ly: -1 + 0.6, s: 0.6, front: true, ch: c.inner }, { id: 1764, lx: 0, ly: -0.55, s: 0.8, own: 0.27, front: true, zo: 1, ch: c.line }] },
+  // Evgeni 2026-11-27 on hellgate's spikes: "maybe a bit prettier spike, with more effects": the layered spike plus a
+  // fanned burst behind and a hot glow at its foot -- four parts, the hitbox still the one spike
+  ember: { kind: "spike", src: "layers + crown: glow 503, a fanned pair of spikes behind, an inner spike and a lit core in front, a soft glow at the foot",
+    parts: c => [{ id: 1889, lx: -0.5, ly: -1 + 0.7, s: 0.7, rot: -28, ch: c.glow }, { id: 1889, lx: 0.5, ly: -1 + 0.7, s: 0.7, rot: 28, ch: c.glow },
+      { id: 503, lx: 0, ly: -0.35, s: 1.4, ch: c.glow }, { id: 504, lx: 0, ly: -0.85, s: 1.0, ch: c.glow },
+      { id: 1889, lx: 0, ly: -1 + 0.6, s: 0.6, front: true, ch: c.inner }, { id: 1764, lx: 0, ly: -0.55, s: 0.8, own: 0.27, front: true, zo: 1, ch: c.line }] },
   crown: { kind: "spike", src: "spikes fanned out behind it (35 levels put copies of a spike turned 90 / 270 on it: a burst); here decoration in the glow colour, so the hitbox is the one spike",
     parts: c => [{ id: 1889, lx: -0.55, ly: -1 + 0.75, s: 0.75, rot: -32, ch: c.glow }, { id: 1889, lx: 0.55, ly: -1 + 0.75, s: 0.75, rot: 32, ch: c.glow }] },
   double: { kind: "spike", src: "a second outline: a bigger copy behind in the inner colour ('same hazard on another channel' in 16 levels)",
@@ -86,6 +92,11 @@ const D = {
     parts: c => [{ id: 1764, lx: 0, ly: 0, s: 0.35 / 0.27, own: 0.27, front: true, ch: c.inner }] },
   sawnest: { kind: "saw", src: "a smaller wheel inside the saw on its own channel (Mission S: rings at 0.5-0.9; Avarinth: circles 3637 inside)",
     parts: c => [{ id: 87, lx: 0, ly: 0, s: 0.55 / 1.25, own: 1.25, front: true, ch: c.inner }, { id: 1764, lx: 0, ly: 0, s: 0.2 / 0.27, own: 0.27, front: true, zo: 1, ch: c.line }] },
+  // Evgeni 2026-11-27 on hellgate's saws: "ugly black circles, bad hazards" -- one dressing was not enough: glow, teeth
+  // and a lit wheel inside, so the saw reads as a machine part of the theme, not a hole
+  sawforge: { kind: "saw", src: "glow 50 behind + a cogwheel 86 past the rim + a smaller wheel 87 and a core in front (the layered 2.2 saw: sawglow + cog + sawnest)",
+    parts: c => [{ id: 50, lx: 0, ly: 0, s: 1.25, ch: c.glow }, { id: 86, lx: 0, ly: 0, s: 1.3 / 1.8, own: 1.8, ch: c.glow },
+      { id: 87, lx: 0, ly: 0, s: 0.6 / 1.25, own: 1.25, front: true, ch: c.inner }, { id: 1764, lx: 0, ly: 0, s: 0.22 / 0.27, own: 0.27, front: true, zo: 1, ch: c.line }] },
   sawglow: { kind: "saw", src: "a round glow 50 behind the saw (29 levels) on a blending channel, a little past its teeth", parts: c => [{ id: 50, lx: 0, ly: 0, s: 1.12, ch: c.glow }] },
 };
 const DESIGNS = D;

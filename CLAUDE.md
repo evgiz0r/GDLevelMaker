@@ -112,6 +112,11 @@ not after it:
 - **Share, don't duplicate.** Results go into the shared `local/` (see below) so no session redoes
   another's work; tell the session that owns an area when you learn something about it.
 
+**Structures in one page: `knowledge/structures_guide.md`** (Evgeni, 2026-11-27: "all of our knowledge of structures and how
+to combine [...] known externally, not just for this session"): what a structure is, how they combine, how they connect
+(holders, fillets, ledges), how one looks, and how a drawing becomes one. Read it before building or dressing structures;
+add a line there whenever a note teaches something about structures.
+
 ## Before making or judging a level: read knowledge/
 
 `knowledge/` is a general GD knowledge base (not the user's personal taste): `design.md` (what
@@ -363,7 +368,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   player or camera / rotate / scale / colour, pulse labelled untested; trigger keys checked on rated 2.2 levels): `tools/effects.js`
   (each effect a function `(ctx, {t0, t1, ...})`; `node tools/effects.js` lists them), the fx level `tools/fxlevel.js` (an auto level with its gameplay invisible and one effect theme per song section, AUTO.md), the labelled gallery `tools/fxgallery.js`
   -> `levels/lab/fx_gallery.gdlvl` (auto, Electrodynamix; most of it shows only in GD). Test: `node tests/effects.js`.
-- **Our own bricks, generated presses-first** (BRICKGEN.md; Evgeni 2026-11-26: RobTop's structures are decent, our hand-made library pieces are not, so the official bricks are the JUDGE): `tools/brickgen.js gen | list | show | build | lab` -- a rhythm of 2-6 presses -> the sim's path in the open band -> walls / platforms / ledges built around it, spikes kept only while the plan clears -> verified (plan clears, no press dies, player windows, no secret way: skip / stray tap / the solver's fewest presses) -> judged by tools/lego.js measure() against the official family numbers (knowledge/lego.json) and the tier stats -> knowledge/brickgen.json, registered as structures `g-<mode>-<tier>-<n>` (brickpick / compose / `structures.js check` see them). First batch RETIRED (Evgeni: "all to the garbage": one idea per mode, flat, no mechanics). **`tools/movestudy.js`**: patterns of movement per brick path (11 axes: legs per second, leg sizes and irregularity, dwell, rests, flips, mechanics ...) and a set's variety vs the official set (knowledge/move_study.json); the next generator must reach the official variety. **Round 2: `tools/brickgen2.js gen | list | show | nearest | lab`** -- a brick is a chain of moves placed by the sim (flip, drop, pad, blue pad, orb, blue orb; ball first), verified as above, gated on movement (inside the official p10-p90 on all but 2 axes) and picked as a set for distance -> knowledge/brickgen2.json, lab levels/gdlm_lab_brickgen2_<mode>.gdlvl; test `node tests/brickgen2.js`.
+- **Our own bricks, generated presses-first** (BRICKGEN.md; Evgeni 2026-11-26: RobTop's structures are decent, our hand-made library pieces are not, so the official bricks are the JUDGE): `tools/brickgen.js gen | list | show | build | lab` -- a rhythm of 2-6 presses -> the sim's path in the open band -> walls / platforms / ledges built around it, spikes kept only while the plan clears -> verified (plan clears, no press dies, player windows, no secret way: skip / stray tap / the solver's fewest presses) -> judged by tools/lego.js measure() against the official family numbers (knowledge/lego.json) and the tier stats -> knowledge/brickgen.json, registered as structures `g-<mode>-<tier>-<n>` (brickpick / compose / `structures.js check` see them). First batch RETIRED (Evgeni: "all to the garbage": one idea per mode, flat, no mechanics). **`tools/movestudy.js`**: patterns of movement per brick path (11 axes: legs per second, leg sizes and irregularity, dwell, rests, flips, mechanics ...) and a set's variety vs the official set (knowledge/move_study.json); the next generator must reach the official variety. **Round 2: `tools/brickgen2.js gen | list | show | nearest | lab`** -- a brick is a chain of moves placed by the sim (flip, drop, pad, blue pad, orb, blue orb; ball first), verified as above, gated on movement (inside the official p10-p90 on all but 2 axes) and picked as a set for distance -> knowledge/brickgen2.json, lab levels/gdlm_lab_brickgen2_<mode>.gdlvl; test `node tests/brickgen2.js`. **Round 3: `tools/clickfirst.js gen | pattern | lab`** -- clicks first (Evgeni 2026-11-27): a plan of clicks with kind + wanted window -> the sim's patch -> spikes where missed / early / late / stray presses land -> the section's gameplay extracted as a recipe (F flip, O / B orb, d drop, p pad, a / g auto flips) with a variance score inside and between sections, also on official sections; knowledge/clickfirst.json, lab levels/gdlm_lab_clickfirst_ball.gdlvl; test `node tests/clickfirst.js`.
 - **Auto bricks: stretches with no click** (AUTO.md: the main levels' auto parts measured -- ~10% of a level, pad launches,
   blue-pad ping-pong, portal rides --, 50 own bricks built by sim placement with an entry / exit contract, the lab level):
   `tools/autostudy.js` (-> knowledge/auto_study.json, numbers only), `tools/autobricks.js list | build | show` (->
@@ -716,6 +721,18 @@ The viewer draws moving objects where they start.
   collapsible, lets put that somewhere as a rule when we make those"; the catalogue was "heavy with stuff. long long info"):
   catalogues, the viewer's panels, boards, report pages. A header that folds its section, remembered per viewer, long
   explanations folded by default, short text on cards. The lego catalogue does it with `data-fold` (tools/lego_page.html).
+- **Notes and marks on our pages: autosave, send to Claude, fold what is seen** (Evgeni, 2026-11-27: "dont want \"save mark\",
+  send to claude when we have list of comments/marks ... they should apply for future sessions, and other agents"). On every
+  page we make (catalogues, viewer, boards, artifacts): a note or comment saves as it is typed (debounced, Enter too) with a
+  small "saved" / "not saved: why" -- never a save button, and typed text is never lost to a re-render; a page with a list of
+  marks or comments has one **📨 send to Claude** (artifact `comments` capability, `sendToClaude`) so he never has to come to
+  the chat, and it sends only what was never sent (or changed since), so Claude never gets a mark twice; claude.ai refuses a send within ~6 s of a key typed in the page, so the button counts that down; each mark has states open -> seen (Claude read it: `seen` + `reply`, folded away) -> fixed (deleted from the page,
+  kept in a log in git), so lists never just grow. Example: tools/designs_tab.js (the catalogue's theme 📍 marks).
+- **Pages keep the view across reloads** (Evgeni, 2026-11-27: "when u update my workbook ... my page resets sometimes and i
+  lose what i look at (happens in all workbooks)"). Every republish reloads each open artifact view, so every page we make
+  keeps, per viewer in localStorage (try/catch), the tab, the scroll spot and the folds, and puts them back on load (waiting
+  until lazy content is tall enough). Republish in batches, not after every small change. Example: tools/lego_page.html
+  ("KEEP THE VIEW").
 - **No native dialogs in the viewer pages** (alert / confirm / prompt): the app's built-in browser and the phone page's
   frame suppress them, so the button just did nothing. Use the viewer's notice(), askNote(), showMap();
   `node tests/no_dialogs.js` checks.

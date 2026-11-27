@@ -154,6 +154,12 @@ function endDeco(level, be, o = {}) {
   const theme = o.theme || d.pal || "fire", x0 = be.startX - 60, x1 = be.endX;
   let header = level.header; const out = [];
   const mine = level.objects.filter(q => q.x >= x0 && q.x <= x1 && q.id === 1);
+  // the sign's stage (signature.js: 6 blocks from its column, top at floorY + 50 + 12) dressed as one more slab of the same
+  // design, deco only: these blocks are never added to the level (Evgeni picked A, 2026-11-27; the stage was a plain dark bar)
+  if (o.stage !== false && be.signCol != null) {
+    const top = (be.floorY || 0) + 62;
+    for (let c = 0; c < 6; c++) mine.push({ id: 1, x: be.signCol * B + 15 + c * B, y: top - 15 });
+  }
   if (d.design && mine.length) {
     // the slabs sit at the heights the beats asked for, off the 30-unit grid the structure pass works on: dress each height on
     // the grid and move its deco back by the same offset (one pass for all put the design a row under the blocks)

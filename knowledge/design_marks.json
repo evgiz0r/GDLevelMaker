@@ -1,0 +1,41 @@
+{
+ "note": "Evgeni's spots on the design theme scenes (tools/designs.js marks); fixed = gone from the page",
+ "marks": [
+  {
+   "at": "2026-11-27T10:33:44.668Z",
+   "col": 15,
+   "design": "theme:hellgate",
+   "fx": 0.1466,
+   "fy": 0.519,
+   "mid": "mmwyufw0q0tue",
+   "note": "",
+   "row": 5,
+   "x": 945,
+   "y": 164
+  },
+  {
+   "at": "2026-11-27T10:32:13.684Z",
+   "col": 44,
+   "design": "theme:hellgate",
+   "fx": 0.3674,
+   "fy": 0.319,
+   "mid": "mmwyudxte4wz0",
+   "note": "",
+   "row": 8,
+   "x": 1826,
+   "y": 251
+  },
+  {
+   "at": "2026-11-27T10:35:41.780Z",
+   "col": 98,
+   "design": "theme:hellgate",
+   "fx": 0.7744,
+   "fy": 0.6509,
+   "mid": "mmwyuiedv9uzs",
+   "note": "",
+   "row": 3,
+   "x": 3450,
+   "y": 107
+  }
+ ]
+}
