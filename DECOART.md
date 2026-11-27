@@ -477,7 +477,10 @@ sending ("i need a save there, without sending"); 📨 sends. `node tools/design
 reverse them if needed"): a spike under a block with nothing below hangs, on the board and when applied (orient()). Each
 section has its own note line ("give me place for comments on each of the sections"): saved as typed to collection
 "designnotes" ({part, note, sentNote, at}, newest per part), sent with 📨 when changed. The wave corridor has a quick zigzag
-in the middle (a turn every 2 blocks; "in the middle some different pattern like more cps"). Next: build the gallery scene from the sections, each with its mode's portal.
+in the middle (a turn every 2 blocks; "in the middle some different pattern like more cps"). The current scene is the
+sections joined in order, built on the page from each section as it stands, so it follows every edit and is not edited
+itself ("lets make the current scene the combination of the layouts for now"). The theme cards are rebuilt from it only
+when he asks ("dont want to burn updating the whole universe for single changes"). Next: build the gallery scene from the sections, each with its mode's portal.
 ▶ play on a theme card (Evgeni: "theme animations, so we might see how it looks in the game if we press play"): the
 gallery's saved route, 60 points a second in card units (designs.js animOf), moves the camera and a player over the
 picture at 1x, 0.5x or 0.25x. Asked next: several animations to pick per theme, like the backdrop options (effects that

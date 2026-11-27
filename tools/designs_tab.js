@@ -169,7 +169,12 @@ window.initDesigns = async function (root) {
   let LPARTS = [];   // [key, name, w, h, mode, note]: set by layoutSection() from the theme entry
   let LACT = "layout:play", TOOL = "#", painting = null; const HIST = [], HAZ = new Set(["^", "v", "o", "q", "s"]);
   // a part's tiles: Evgeni's edited copy once he changed it, else the layout as built (designs.json tiles0)
-  const tilesOf = k => (DRAW[k] && DRAW[k].tiles) || ((L.find(d => d.tiles0) || {}).tiles0 || {})[k.slice(7)] || [];
+  const tilesOf = k => k === "layout:play" ? sceneTiles() : (DRAW[k] && DRAW[k].tiles) || ((L.find(d => d.tiles0) || {}).tiles0 || {})[k.slice(7)] || [];
+  // THE CURRENT SCENE = the sections joined in order (Evgeni 2026-11-27: "lets make the current scene the combination of the
+  // layouts for now"): built here from each section as it stands now, his edits included, so it follows every edit; it is
+  // not edited itself. The theme cards are rebuilt from it only on demand ("dont want to burn updating the whole universe").
+  const SECS = () => LPARTS.filter(q => q[0].startsWith("sec:"));
+  function sceneTiles() { const out = []; let off = 0; for (const q of SECS()) { for (const z of tilesOf("layout:" + q[0])) out.push({ t: z.t, c: z.c + off, r: z.r }); off += q[2]; } return out; }
   let TILE = () => "";
   // ---- ▶ play (Evgeni 2026-11-27: "theme animations, so we might see how it looks in the game if we press play") ----
   let PLAY = null, ASPD = 1;
@@ -189,6 +194,7 @@ window.initDesigns = async function (root) {
   function layoutSection() {
     const t = L.find(d => d.kind === "theme" && d.lparts); if (!t) return "";
     LPARTS = t.lparts;
+    { const S = SECS(); LPARTS = LPARTS.map(q => q[0] !== "play" ? q : ["play", "current scene", S.reduce((a, z) => a + z[2], 0), Math.max(...S.map(z => z[3])), "all", "the sections joined in order; edit a section to change it"]); }
     const isOpen = open.layoutsec !== false, fs = FS === "layout", cs = Math.round(26 * (open["zoom:layout"] || 1));
     // SECTIONS (Evgeni 2026-11-27: "i want the layout to have specific sections ... and each of those can be viewed
     // separately"): one chip per part, each shown or hidden; at first only the first section
@@ -210,9 +216,9 @@ window.initDesigns = async function (root) {
       return `<svg class="tiles" data-k="${key}" data-w="${W}" data-h="${H}" data-vh="${H + 0.25}" data-g="0" viewBox="0 0 ${W} ${H + 0.25}" style="width:${W * cs}px;height:${(H + 0.25) * cs}px">`
         + `<g class="grid">${Array.from({ length: W + 1 }, (_, c) => `<line x1="${c}" y1="0" x2="${c}" y2="${H}" />`).join("")}${Array.from({ length: H + 1 }, (_, r) => `<line x1="0" y1="${r}" x2="${W}" y2="${r}" />`).join("")}</g>`
         + `<rect x="0" y="${H}" width="${W}" height="0.25" fill="#7be38a55" />` + tilesOf(key).map(z => tile(z, H)).join("") + `</svg>`; };
-    const n = LPARTS.filter(q => (DRAW["layout:" + q[0]] || {}).tiles).length;   // parts he has edited
+    const n = LPARTS.filter(q => q[0] !== "play" && (DRAW["layout:" + q[0]] || {}).tiles).length;   // parts he has edited
     const TOOLS = [["#", "▭ block"], ["/", "◢ slope"], ["\\", "◣ slope"], ["7", "◥ ceiling slope"], ["r", "◤ ceiling slope"], ["^", "▲ spike"], ["v", "▼ hanging spike"], ["o", "⚙ saw"], ["erase", "⌫ erase"]];
-    const chips = `<span class="pens">` + LPARTS.map(q => `<button class="lpt${show(q[0]) ? " on" : ""}" data-p="${esc(q[0])}" title="${esc(q[5] || "")}">${show(q[0]) ? "☑" : "☐"} ${esc(q[1])}${(DRAW["layout:" + q[0]] || {}).tiles ? " ✏" : ""}</button>`).join("")
+    const chips = `<span class="pens">` + LPARTS.map(q => `<button class="lpt${show(q[0]) ? " on" : ""}" data-p="${esc(q[0])}" title="${esc(q[5] || "")}">${show(q[0]) ? "☑" : "☐"} ${esc(q[1])}${q[0] !== "play" && (DRAW["layout:" + q[0]] || {}).tiles ? " ✏" : ""}</button>`).join("")
       + `<button class="lall">all</button><button class="lnone">none</button></span>`;
     const tools = `<span class="pens">` + TOOLS.map(([k, l]) => `<button class="ptool${TOOL === k ? " on" : ""}" data-t="${esc(k)}">${l}</button>`).join("")
       + `<button class="pundo">↶ undo</button><button class="pclear">🗑 clear shown</button><button class="preset">↺ shown back to ours</button>`
@@ -291,7 +297,7 @@ window.initDesigns = async function (root) {
     const snd = e.target.closest(".msend");
     if (snd) { const c = snd.closest(".dc"), id = c.dataset.id, st = c.querySelector(".msst") || c.querySelector(".pst"), d = L.find(x => x.id === id) || { name: "shared" };
       const ms = MARKS.filter(m => m.design === id && unsent(m)).sort((a, b) => a.fx - b.fx);
-      const keys = id.startsWith("layout") ? LPARTS.map(q => "layout:" + q[0]) : [id];
+      const keys = id.startsWith("layout") ? LPARTS.filter(q => q[0] !== "play").map(q => "layout:" + q[0]) : [id];
       const fresh = keys.filter(k => DRAW[k] && (DRAW[k].tiles || (DRAW[k].strokes || []).length) && (DRAW[k].sentAt || "") !== (DRAW[k].at || "x"));
       const nts = id.startsWith("layout") ? LPARTS.filter(q => noteUnsent(q[0])) : [];
       if (!ms.length && !fresh.length && !nts.length) { st.textContent = "nothing new: everything was sent already"; return; }
@@ -334,7 +340,8 @@ window.initDesigns = async function (root) {
   // tiles: the cell under the pointer; a tap toggles, a drag paints the same action on every cell it crosses
   const cellOf = (svg, e) => { const r = svg.getBoundingClientRect(), W = +svg.dataset.w, H = +svg.dataset.h, g = +svg.dataset.g;
     const vh = +(svg.dataset.vh || H), c = Math.floor((e.clientX - r.left) / r.width * W), row = Math.floor(H - g - (e.clientY - r.top) / r.height * vh); return c >= 0 && c < W && row >= 0 && row < H - g ? [c, row] : null; };
-  function paint(k, cell, first) { if (!cell) return; const D0 = DRAW[k] = DRAW[k] || {}; if (!D0.tiles) D0.tiles = tilesOf(k).map(q => Object.assign({}, q));
+  function paint(k, cell, first) { if (!cell) return;
+    if (k === "layout:play") { const st = root.querySelector(".lay .pst"); if (st) st.textContent = "the current scene is the sections joined: edit a section to change it"; return; } const D0 = DRAW[k] = DRAW[k] || {}; if (!D0.tiles) D0.tiles = tilesOf(k).map(q => Object.assign({}, q));
     const i = D0.tiles.findIndex(q => q.c === cell[0] && q.r === cell[1]);
     if (first) painting.mode = TOOL === "erase" || (i >= 0 && D0.tiles[i].t === TOOL) ? "del" : "put";
     const key = cell.join(","); if (painting.done.has(key)) return; painting.done.add(key);
