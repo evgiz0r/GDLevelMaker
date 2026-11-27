@@ -380,7 +380,8 @@ ends)". Two changes, both in the tools, so every autobeat level gets them:
 - **Inside the song.** autobeat's `buildInSong` builds, and when the run's end (the sign's screen) is past the song's last
   beat minus 0.5 s, builds again with fewer beats. Auto beat 3 (Hexagon Force, whole song) had ended 3.7 s after the music;
   now 3.6 s before it. `measures.songLeft` = seconds of song left at the end.
-Open: the sign's own plinth is still a plain dark bar; make.js's ending is not changed yet.
+Evgeni picked A ("1 for now", 2026-11-27): it stays the default, and the sign's stage is now dressed as one more slab of the
+same design (deco-only blocks, never in the level; `endDeco(..., {stage: false})` = off). Open: make.js's ending is not changed yet.
 
 ### Sections by character (tools/sections.js, 2026-11-26)
 Evgeni: "sections have to be cut by the transitions of the level". The batches were already cut at the song's transitions,

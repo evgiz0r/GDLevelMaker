@@ -199,8 +199,10 @@ function exportRoutes(push) {
   if (!push) return;
   const git = a => cp.execFileSync("git", a, { windowsHide: true, cwd: ROOT, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
   try {
-    git(["add", "knowledge/mains/routes.json"]);
-    git(["commit", "-m", "knowledge/mains/routes.json: main levels' routes re-exported by tools/mains.js", "--", "knowledge/mains/routes.json"]);
+    // and what the solves wrote beside it (bricks, windows, measurements: numbers only), so the main checkout stays clean
+    const files = ["knowledge/mains/routes.json", "knowledge/lego.json", "knowledge/lego_windows", "knowledge/measurements.jsonl"].filter(f => fs.existsSync(path.join(ROOT, f)));
+    git(["add"].concat(files));
+    git(["commit", "-m", "Main levels' routes and measurements re-exported by tools/mains.js", "--"].concat(files));
     for (let i = 0; i < 4; i++) { try { git(["pull", "-q", "--no-edit", "origin", "main"]); git(["push", "-q", "origin", "HEAD:main"]); log("mains: export: pushed"); return; } catch (e) { if (i === 3) throw e; } }
   } catch (e) { log("mains: export: commit/push failed: " + String(e.message).split("\n")[0]); }
 }
