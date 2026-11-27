@@ -34,6 +34,19 @@ type, so a builder can make a new one of any length, synced to the song, and so 
 - **A portal sits in the middle of its corridor**, across the band the player flies or runs in, so no path goes around it
   (Evgeni 2026-11-27: "the portal should be not in the middle of the screen but in the middle of the corridors (
   everywhere )"). The solver's route must pass through every portal (tools/layoutcheck.js shows it).
+- **Play over the whole height** (Evgeni 2026-11-27: "can we try 100% spread or close in all generations if possible. should
+  be doable hitting the ground here and there"; "play over the whole screen is usually rewarded"; only the entrance may stay
+  low). Every section touches the ground and the top at some point: a flying corridor tours from the ground to the band's
+  roof (tools/sectiongen.js `tour`), cube types climb or flip to the top (opencube platform climbs, staircase flip onto a
+  hanging staircase), ball / spider surfaces sit on the ground and under the bar now and then, orb landings go at any
+  height. No full-length spike floor or roof: leave stretches to land or slide on ("removing the full ground spikes to allow
+  it when needed. landing/sliding on either ground or roof as additional gameplay"), and a blocker line never runs where the
+  play goes up there. Measured by tools/layoutcheck.js `spread.used` = rows the player visits / rows a player can be in
+  (not solid or hazard all across, inside the mode's band unless the map has band movers); target near 1.
+- **Taller than the band: hidden band movers** (`bandMovers`: a ship H / ufo U / wave A portal at the corridor's middle each
+  time it has moved 3 rows from the band's centre; swing uses R pairs). Every portal inside a section is softly blocked on
+  both sides so it can't be flown round (a spike on the floor and one on the roof in its column when the corridor is 6+
+  rows; Evgeni: "if there is no room in the corridor no need to block"). Check: `node tools/layoutcheck.js <keys> --skips`.
 - **Upside-down stretches get the mirrored obstacles**: if the floor has spike pits, the ceiling the player runs on upside
   down gets pits too (Evgeni on closer cube: "wierd assymery with the spikes on the grown on the bottom but no such on the
   top").
@@ -173,6 +186,21 @@ that line is reachable; the spider's flip lands on the band's roof. Every genera
 board draws the line on each such section. A swing "taller than the screen" needs GD 2.2's portal free mode (no band),
 which the sim does not have yet (PHYSICS.md open).
 
+**Open from the whole-height round (2026-11-27):**
+- **Holding is a secret way on flat cube runs** (GDLM 76 v1 judge, "Generate a new 1-minute level" thread): entrance,
+  staircase and opencube at normal tier were played as one held press for 6-7 s, since a held cube jumps every flat-run
+  hazard in a row. layoutcheck counts the natural plan's taps, so it doesn't see it. Fix in the generators: a hazard right
+  after a landing at another height, low ceilings over some runs, gaps the held bounce overshoots; and a hold check.
+- **Spider: top and bottom aligned** (Evgeni: "that alignment decides the difficulty in a way as a timing and cps ... just
+  touch the next section, no overlap in x"): the x offset between a floor piece's end and the ceiling piece's start is the
+  difficulty knob.
+- **Stair path**: blockers along the top too, play up to the full height, looser timing (Evgeni: "block placement is too
+  strict in the straiway. allowing more timing will need blocks not snapped": off-grid x as a per-tile dx, the board draws
+  it); at 19 rows it fails 3 of 4.
+- **A minimum length per type** (Evgeni: some need room for real play, robot and orbs).
+- Height at 1.5x rows, 60 cols (easy/harder, 2 seeds): wave 93%, fly 76%, ship corridor 80%, staircase 85%, closecube 80%,
+  ball 75%, spider 67%, opencube 68%, flappy 60%, orbs 55%. The cube types need their climbs scaled to the taller map.
+
 ## Ideas for more sections (not drawn yet)
 Evgeni 2026-11-27 ("lets remind ourselves more idea for sections, bit tired designing for now"):
 - **ship orb play**: a ship corridor with orbs in it (yellow / blue / green) that are clicked while flying.
@@ -186,3 +214,6 @@ Evgeni 2026-11-27 ("lets remind ourselves more idea for sections, bit tired desi
 - **turns of the camera and the play** ("camera movement and movement change (for example 90 degree change of gameplay)"):
   a section that pans or turns the camera, or turns the gameplay 90 degrees (rotated gameplay 2900: lib/physics.js
   `frameWorld`, PHYSICS.md "Rotated gameplay"; the "Beat Dash with rotated gameplay" thread built a first one).
+- **Duals from one click pattern** (Evgeni 2026-11-27): generate two sections, top and bottom, from the same clicks, in any
+  modes; then make it a real asymmetric dual by removing some hazards on one side, so the path is forced by both
+  gameplays together. lib/dual.js simulates duals (lab GDLM 63).

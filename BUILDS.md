@@ -244,3 +244,10 @@ The stage times are also in local/timings.jsonl.
 - v1: beaten, 88 presses, judge layout 0.3/10, taste 69. Fixes in v2: a section over 5 s split into two ideas, 0.4 s before / 0.5 s after each portal, a step under cube-arrival portals, the quiet sign instead of the auto outro
 - v2: beaten, 87 presses, 6 modes, Hard (~27 attempts), taste 72, judge layout 0.7/10 (height 8.5, rests 10, ending 10; balance 2.1, transitions 1.5, variety 2.5)
 - what is left is mostly in the generators: cube types play as one held press over flat runs (a secret way the section check doesn't see: it counts natural taps); the judge still reads two different types of one mode as one "long corridor"; a portal wall still gets walked into after wave -> cube and ufo -> cube (the step only goes in front of cube/robot arrivals); one 42 ms piece at the ball -> 2x ship seam
+- **v13 (2026-11-27): the new pipeline, not the lego.** `node tools/typebuild.js briefs/44_hellgate.types.json --run`
+  (the GDLM 76 builder: song sections + feel -> a section type each, generated fresh by tools/sectiongen.js -> joined ->
+  make.js deco with the hellgate design theme, own sky per section -> report). Song from its first beat to the drop's end
+  (52.8 s), 7 sections, the drop a 2x ship. 18 min. Judge 4.1 (v12b: 0): Normal ~3 attempts, tightest 142 ms, height 10,
+  clarity 10, flow 10; weak: transitions 1 (walked portals at the joins: cube -> ball, ball -> ufo, cube -> ship), variety
+  0, the upside-down closecube 2 clicks in 6.4 s, and 9 s of no clicks after the drop (ending 4). tools/hellgate_build.js
+  (the lego builder, v3-v12b) is retired for Hellgate.

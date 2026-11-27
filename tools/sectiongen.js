@@ -59,6 +59,24 @@ function line(W, h0, step) { const e = [h0]; let h = h0;
   while (e.length <= W + 1) { const n = e.length; step(api, n); if (e.length === n) e.push(h); }
   return x => e[Math.min(Math.max(0, x), e.length - 1)]; }
 
+// a height tour (Evgeni 2026-11-27: "can we try 100% spread or close in all generations if possible. should be doable
+// hitting the ground here and there", "play over the whole screen is usually rewarded"): each next target lies in the
+// other half of [lo, hi], and every third one (or by chance) is the very edge, so a path visits the floor and the top
+const tour = (R, lo, hi) => { let n = 0; return h => { n++; const m = (lo + hi) / 2, ext = n % 3 === 0 || R.chance(0.3);
+  return h < m ? (ext ? hi : R.int(Math.ceil(m), hi)) : (ext ? lo : R.int(lo, Math.floor(m))); }; };
+// BAND MOVERS for a flying corridor taller than the mode's 10-row band (Evgeni 2026-11-27: "even if i make height x2 some
+// of the modes stay on their height like hardcoded"; "swing/ship/ufo portals in the middle of the gameplay recenter the
+// screen. people put invisible ones to move further in the screens"): a hidden portal of the mode (`ch`: H ship, U ufo,
+// A wave) at the corridor's middle each time that middle has moved 3 rows from the band's centre; physics re-bands on it
+// (lib/physics.js: floor = the portal's y - 150, down to 30 units). Soft blocks beside it (Evgeni: "should be softly blocked
+// along both sides ... if there is no room in the corridor no need to block"): a spike on the floor and one hanging from
+// the ceiling in its column when the corridor is 6 rows or more. mid(x) = the corridor's middle row, lo(x) / hi(x) its
+// floor row and ceiling row (hi = H: no ceiling there).
+function bandMovers(G, W, H, ch, mid, lo, hi) { if (H <= 10) return;
+  let bc = 5;
+  for (let x = 3; x < W - 3; x++) { const m = mid(x); if (Math.abs(m - bc) < 3) continue;
+    const r = Math.round(m); G.put(x, r, ch); bc = Math.max(0, Math.floor((r * 30 + 15 - 150) / 30)) + 5;
+    if (hi(x) - lo(x) >= 6) { G.put(x, lo(x), "^"); if (hi(x) < H) G.put(x, hi(x) - 1, "v"); } } }
 // the join nearest c0 where one movement of the path ends and the next starts (the line changes direction, or a slope
 // meets a flat); with `minLeg`, only joins between two movements at least that long ("exactly at the connecting point of
 // longer sweeps", Evgeni 2026-11-27 on fly portals). A portal goes there, at the corridor's middle height.
@@ -87,28 +105,62 @@ GEN.entrance = o => { const { R, imix, len, chance, W, H, G } = ctx(o, 7); let h
 
 // STAIRCASE (cube). Idea: climb, a landing, step down. Motif: a step of one row. Varies: step width, hazards on some
 // landings, a saw at a step's edge (hard), climb height. Harder: narrower steps, more hazards, two rows a step sometimes.
-CONCEPT.staircase = "climb a step at a time to a landing, then step down; hazards on some landings";
-GEN.staircase = o => { const { imix, len, chance, W, H, G } = ctx(o, 9), top = H - 4; let h = 1, dir = 1, c = 0;
-  while (c < W) { const w = len(imix(6, 4), imix(6, 5)), end = Math.min(W - 1, c + w - 1); G.box(c, end, 0, h);
+CONCEPT.staircase = "climb a step at a time to a landing, then a gravity portal: down the steps hanging from the top, upside down, and back; hazards on some landings";
+// and a flip upside down and back (Evgeni 2026-11-27: "lets add a reverse and back play in the basic staircases as well,
+// and inrease the spread as well"): at the top landing a G portal drops the cube onto a ceiling bar, it walks down a
+// staircase hanging from the top (each step a row lower: a jump toward the floor), and an N portal at its last step drops
+// it back to the floor, where the climbing starts again from the ground
+GEN.staircase = o => { const { R, imix, len, chance, W, H, G } = ctx(o, 9), top = H - 4; let h = 0, dir = 1, c = 0, flips = 0, same = 0, lastW = 0;
+  const floorH = [];   // the floor's height per column, for the roof below
+  while (c < W) {
+    // not the same jump over and over (Evgeni 2026-11-27: "straircases have too many straight jumps, shouldnt have so many
+    // in a row possible"): step widths 2-7, never 3 alike running; now and then a flat step over a little pit, or a step
+    // back against the climb
+    let w = len(imix(6, 4), imix(6, 5)); if (same >= 2 || R.chance(0.3)) w = R.pick([2, 3, 4, 5, 6, 7].filter(x => x !== lastW));
+    same = w === lastW ? same + 1 : 0; lastW = w;
+    const end = Math.min(W - 1, c + w - 1); G.box(c, end, 0, h); for (let x = c; x <= end; x++) floorH[x] = h;
     if (w >= 4 && c > 0 && end < W - 1) { if (chance(0.25, 0.6)) G.put(c + 2, h + 1, "^"); else if (chance(0, 0.3)) G.put(end, h + 1, "s"); }
     c = end + 1;
-    if (dir > 0 && h >= top) { dir = -1; const e2 = Math.min(W - 1, c + len(3, 5)); G.box(c, e2, 0, h); c = e2 + 1; }
-    else if (dir < 0 && h <= 1) dir = 1;
-    h = clamp(h + dir, 1, top); }   // one row a step: two rows left a 4 ms window (tight for any tier)
+    if (dir > 0 && h >= top) {
+      if ((flips === 0 || R.chance(0.5)) && c + 24 < W) { flips++;   // the flip: G on this landing, the hanging staircase
+        G.put(end - 1, h + 1, "G"); G.box(end - 2, end + 3, H - 1, H - 1); let ht = H - 1, x = end + 4;
+        while (ht - 1 > 3 && x < W - 8) { const sw = R.int(imix(4, 3), imix(7, 5)), se = Math.min(W - 8, x + sw - 1); G.box(x, se, ht, H - 1);
+          if (sw >= 4 && chance(0.25, 0.6)) G.put(x + 2, ht - 1, "v"); x = se + 1; ht--; }
+        G.box(x, x + 2, ht, H - 1); G.put(x + 1, ht - 1, "N");   // the last step, and back to the floor
+        // the floor under the hanging staircase: low, spiked where the cube would fall early
+        G.box(end + 1, x + 5, 0, 0); for (let q = end + 3; q < x; q += R.int(3, 5)) G.put(q, 1, "^");
+        for (let q = end + 1; q <= x + 5; q++) floorH[q] = H;   // no roof here: the hanging staircase is the roof
+        c = x + 6; h = 0; dir = 1; continue; }
+      dir = -1; const e2 = Math.min(W - 1, c + len(3, 5)); G.box(c, e2, 0, h); for (let x = c; x <= e2; x++) floorH[x] = h; c = e2 + 1; }
+    else if (dir < 0 && h <= 0) dir = 1;
+    if (c > 4 && h > 0 && h < top && R.chance(0.15)) {   // a flat step over a pit (1-2 wide, a spike in it)
+      const pw = R.int(1, 2); for (let x = c; x < Math.min(W, c + pw); x++) { G.put(x, 0, "^"); floorH[x] = 0; } c += pw; continue; }
+    if (c > 4 && h > 1 && h < top && dir > 0 && R.chance(0.12)) { h -= 1; continue; }   // a step back down, then on up
+    h = clamp(h + dir, 0, top); }   // one row a step: two rows left a 4 ms window (tight for any tier)
+  // hazards on the roof (Evgeni: "they still have no hazards on the roof"): a bar along the top where the play is well
+  // below it (5 rows or more), with spikes hanging in groups; gaps in it, and never over the high landings ("the fact we
+  // put a line of blockers shouldnt stop us from reaching that full height")
+  for (let x = 0; x < W; x++) if (floorH[x] != null && floorH[x] + 1 <= H - 6) { G.put(x, H - 1, "#"); if (R.chance(0.35)) G.put(x, H - 2, "v"); }
   return { map: G.rows(), mode: "cube" }; };
 
 // OPEN CUBE (cube). Idea: a floor with pits, nothing overhead, platforms floating in the middle. Motif: a floor run + a
 // spike pit. Varies: pit width, run length, a platform after the pit at one of two heights, a spike on it.
 CONCEPT.opencube = "a floor with spike pits and open sky; platforms float at two heights";
-GEN.opencube = o => { const { R, imix, len, chance, W, G } = ctx(o, 8);
-  G.box(0, W - 1, 0, 1); let c = len(5, 7);
-  while (c < W - 6) { const pw = imix(2, 4);
-    G.box(c, c + pw - 1, 1, 1, "."); G.box(c, c + pw - 1, 0, 0, "^");
-    const run = len(imix(9, 5), imix(10, 7));
-    if (chance(0.4, 0.6) && c + pw + 5 < W) { const py = R.pick([4, 5]), px = c + pw + R.int(1, 2), pl = R.int(3, 4);
-      G.box(px, px + pl - 1, py, py); if (chance(0.2, 0.6)) G.put(px + 1, py + 1, "^"); }
-    else if (chance(0.3, 0.7)) G.put(c + pw + 3, 2, "^");
-    c += pw + run; }
+GEN.opencube = o => { const { R, imix, len, chance, W, H, G } = ctx(o, 8);
+  // the whole sky (Evgeni 2026-11-27: "100% spread or close in all generations"): the floor is one row (the cube runs at
+  // row 1), and after some pits a climb of floating platforms 2 rows apart (a cube jump's comfortable height) up to the
+  // top of the section, then the drop back to the floor
+  G.box(0, W - 1, 0, 0); let c = len(5, 7), k = 0;
+  while (c < W - 6) {
+    if ((k++ % 2 === 1 || chance(0.2, 0.4)) && c + 14 < W) {   // a climb: 2-3 platforms, each 2 rows over the last, spikes under
+      let px = c, py = 2; const n = Math.min(R.int(2, 3), Math.floor((H - 2) / 2)); let end = px;
+      for (let q = 0; q < n && px + 4 < W - 4; q++) { const pl = R.int(imix(4, 3), 4); G.box(px, px + pl - 1, py, py);
+        if (q === n - 1 && pl >= 4 && chance(0.2, 0.6)) G.put(px + 1, py + 1, "^"); end = px + pl; px += pl + R.int(0, 1); py += 2; }
+      G.box(c + 1, end + 1, 0, 0, "^");   // the floor under the climb is spikes: the way is over the top
+      c = end + 2 + len(imix(6, 4), imix(8, 5)); continue; }
+    const pw = imix(2, 4); G.box(c, c + pw - 1, 0, 0, "^");
+    if (chance(0.3, 0.7)) G.put(c + pw + 3, 1, "^");
+    c += pw + len(imix(9, 5), imix(10, 7)); }
   return { map: G.rows(), mode: "cube" }; };
 
 // CLOSER CUBE (cube). Idea: the ceiling comes down close and hangs spikes, out of step with the floor's. Motif: a floor
@@ -146,16 +198,31 @@ GEN.hanging = o => { const { R, imix, room, len, chance, W, H, G } = ctx(o, 12);
 // hill height and flat length, spikes in valleys and hanging at the crests, a saw in the open gap. Harder: a narrower gap,
 // shorter flats, more hazards. A gravity pair: the held button now flies down.
 CONCEPT.fly = "floor and ceiling rise and fall together in hills; spikes in valleys, saws in the gap; a gravity pair";
-GEN.fly = o => { const { R, imix, room, len, chance, W, H, G } = ctx(o, 12), gap = room(8, 5), hiMax = H - gap - 2;
+GEN.fly = o => { const { R, imix, room, len, chance, W, H, G } = ctx(o, 10), gap = room(6, 5), hiMax = H - gap;   // taller than 10: band movers
   // the valleys go down to the ground now and then (Evgeni 2026-11-27: "the flying should also be able and hit the
   // ground/floor as part of the path. keeping more distribution over the heights"): the ship slides along it there
-  const e = line(W, 1, L => { const to = L.h() <= 2 ? R.int(Math.min(hiMax, 3), hiMax) : (R.chance(0.3) ? 0 : R.int(1, Math.max(1, L.h() - 2))); L.run(len(imix(3, 1), imix(4, 2)) + (L.h() === 0 ? 2 : 0)); L.leg(to); });
+  // and the whole band (10 rows, the map's height): the corridor tours from the ground to the band's roof (hiMax = no
+  // ceiling blocks there, the roof is the ceiling), a gap of 6 (5 harder) rows
+  const next = tour(R, 0, hiMax);
+  const e = line(W, 1, L => { L.run(len(imix(3, 1), imix(4, 2)) + (L.h() === 0 || L.h() === hiMax ? 2 : 0)); L.leg(next(L.h())); });
   tunnel(G, W, e, gap, H - 1);
   const gp = gravPair(W, 30);
-  for (let c = 3; c < W - 2; c++) { const a = e(c), b = e(c + 1), p = e(c - 1); if (a !== b || (gp && (Math.abs(c - gp[0]) < 3 || Math.abs(c - gp[1]) < 3))) continue;
+  bandMovers(G, W, H, "H", x => e(x) + gap / 2, x => Math.max(e(x), e(x + 1)), x => Math.min(e(x), e(x + 1)) + gap);
+  // hazards on the sides, never floating in the middle (Evgeni 2026-11-27 on 🎲 fly 53193: "the placing of the hazards is
+  // too random and unbalanced/unmatched, they should not be so much in the middle, somewhat more to the sides. for ship we
+  // need to cover some of the corridor in spikes otherwise i can just slide"): along each flat stretch, the floor or the
+  // ceiling (taking turns, by chance) spiked for most of its length, so neither can be slid the whole way; a spike in
+  // each valley's floor, one hanging at each crest
+  let side = R.chance(0.5) ? 1 : -1;
+  const near = c => gp && (Math.abs(c - gp[0]) < 3 || Math.abs(c - gp[1]) < 3);
+  for (let c = 3; c < W - 2; c++) { const a = e(c), b = e(c + 1), p = e(c - 1); if (a !== b || near(c)) continue;
+    let n = 0; while (c + n + 1 < W - 2 && e(c + n + 1) === a && e(c + n + 2) === a) n++;   // flat from c to c + n
+    if (n >= 2 && chance(0.5, 0.85)) {   // a spiked stretch on one side, a column or two left clear at its ends
+      const roof = side < 0 && a + gap < H, k0 = c + 1, k1 = c + n - 1;
+      for (let x = k0; x <= k1; x++) if (!near(x)) G.put(x, roof ? a + gap - 1 : a, roof ? "v" : "^");
+      if (R.chance(0.6)) side = -side; c += n; continue; }
     if (p > a && chance(0.5, 0.9)) G.put(c, a, "^");
-    else if (p < a && chance(0.3, 0.8)) G.put(c, a + gap - 1, "v");
-    else if (gap >= 6 && chance(0.03, 0.1)) G.put(c, a + Math.floor(gap / 2), "o"); }
+    else if (p < a && a + gap < H && chance(0.3, 0.8)) G.put(c, a + gap - 1, "v"); }
   if (gp) { const a = joinNear(e, W, gp[0], 3); let b = joinNear(e, W, gp[1], 3); if (b <= a + 4) b = joinNear(e, W, a + 10, 3);
     for (const [c, t] of [[a, "G"], [b, "N"]]) { for (let r = e(c); r < e(c) + gap; r++) if ("^vo".includes(G.rows()[H - 1 - r][c])) G.put(c, r, ".");
       G.put(c, e(c) + Math.floor(gap / 2), t); } }
@@ -189,12 +256,23 @@ GEN.wave = o => { const { R, mix, imix, room, W, H, G } = ctx(o, 13), gap = room
 // FLAPPY (ufo). Idea: pipes from the floor and the ceiling with a gap at changing heights. Motif: one pipe pair. Varies:
 // the gap's height (walks up and down), the spacing, spike tips. Harder: a narrower gap, closer pipes, bigger jumps.
 CONCEPT.flappy = "pipe pairs from floor and ceiling; the gap's height walks up and down";
-GEN.flappy = o => { const { R, imix, room, len, chance, W, H, G } = ctx(o, 12), gh = room(5, 3); let g = R.int(2, 5);
+// Evgeni 2026-11-27: "flappy bird generates too much of the same poles there should be some variation in width of
+// structures in the gameplays as well, and here as well we want to try and use the extremes": poles 1 to 4 wide, and the
+// gap tours the whole 10-row band (the ufo's), from just over the ground (no lower pole) to the band's roof (no upper one)
+GEN.flappy = o => { const { R, imix, room, len, chance, W, H, G } = ctx(o, 10), gh = room(5, 3), next = tour(R, 1, H - gh); let g = R.int(2, 4);
   G.box(0, W - 1, 0, 0);
-  for (let c = 3; c < W - 2; c += len(room(7, 4), room(8, 5))) {
-    G.box(c, c + 1, 0, g - 1); G.box(c, c + 1, g + gh, H - 1); G.put(c, g - 1, "^"); G.put(c + 1, g + gh, "v");
-    if (c + 3 < W - 2 && chance(0.3, 0.6)) G.put(c + 3, 1, "^");
-    const jump = imix(1, 3); g = clamp(g + R.pick([-jump, -1, 1, jump]), 2, H - gh - 2); }
+  let bc = 5;   // the band's centre row (taller than 10 rows: hidden ufo portals in the pole gaps move it, bandMovers)
+  for (let c = 3; c < W - 2;) { const pw = Math.min(W - 2 - c, R.pick([1, 2, 2, 3, 4]));
+    if (g > 1) { G.box(c, c + pw - 1, 0, g - 1); G.put(c, g - 1, "^"); }
+    if (g + gh < H) { G.box(c, c + pw - 1, g + gh, H - 1); G.put(c + pw - 1, g + gh, "v"); }
+    if (c + pw + 2 < W - 2 && g > 2 && chance(0.3, 0.6)) G.put(c + pw + 2, 1, "^");
+    // the next gap: toward the other half of the band, but a ufo climbs only so fast, so far gaps get more room between
+    let g2 = next(g); if (H > 10) g2 = clamp(g2, g - 5, g + 5);
+    // a band mover in this gap (the ufo can't go round it: the poles hold it) set between this gap and the next
+    if (H > 10) { const t = (g + gh / 2 + g2 + gh / 2) / 2; if (Math.abs(t - bc) >= 2) { const r = clamp(Math.round(t), g, g + gh - 1);
+      G.put(c + Math.floor((pw - 1) / 2), r, "U"); bc = Math.max(0, Math.floor((r * 30 + 15 - 150) / 30)) + 5; } }
+    const far = Math.abs(g2 - g);
+    c += pw + len(room(6, 4), room(7, 5)) + Math.max(0, far - imix(3, 4)); g = g2; }
   return { map: G.rows(), mode: "ufo" }; };
 
 // BALL (v2, rebuilt 2026-11-27 after Evgeni: "the generator is bad, i compare the cps, the variaty, height changes, blocks
@@ -314,7 +392,7 @@ CONCEPT["my-mwz1890c"] = "a sine-shaped corridor drawn by two chains of saws; am
 GEN["my-mwz1890c"] = o => { const { R, imix, room, len, W, H: HH, G } = ctx(Object.assign({ cols: 48 }, o), 20);
   if (HH >= 16 && W >= 40) return swingTall(o, { R, imix, room, len, W, H: HH, G });
   const H = Math.min(10, HH); let c = 0;
-  while (c < W) { const gap = R.int(room(5, 4), room(6, 5)), A = (H - gap) / 2 * (o.amp ?? R.pick([0.8, 1, 1])), mid = H / 2,
+  while (c < W) { const gap = R.int(room(5, 4), room(6, 5)), A = (H - 2) / 2 * (o.amp ?? R.pick([0.8, 1, 1])), mid = H / 2,   // the path's middle reaches the ground and the roof (the walls leave the map there)
       P = len(room(26, 20), room(34, 26));
     for (let x = 0; x < P && c + x < W; x++) { const y = mid + A * Math.sin(2 * Math.PI * x / P), lo = Math.round(y - gap / 2) - 1, hi = Math.round(y + gap / 2), ch = (c + x) % 2 ? "q" : "o";
       if (lo >= 0) G.put(c + x, lo, ch); if (hi < H) G.put(c + x, hi, ch); }
@@ -329,7 +407,9 @@ GEN["my-mwz1890c"] = o => { const { R, imix, room, len, W, H: HH, G } = ctx(Obje
 function swingTall(o, { R, imix, room, len, W, H, G }) {
   // the swell and the waves together stay under ~0.7 rows a column (steeper than that a swing can't follow)
   const gap = R.int(room(5, 4), room(6, 5)), A = o.amp ?? 1.5, P = len(room(26, 20), room(34, 26)),
-    Pd = Math.max(60, Math.round(W * R.pick([1, 1, 0.75]))), top = H - 5;
+    Pd = Math.max(60, Math.round(W * R.pick([1, 1, 0.75]))), top = H - 4;
+  // the swell from row 5 to the map's top less 4 (wider than this failed at 60 cols: too steep with the waves; open:
+  // the whole height needs a longer swell, Evgeni "100% spread or close in all generations")
   const D = x => 5 + (top - 5) * (1 - Math.cos(2 * Math.PI * x / Pd)) / 2, Y = x => D(x) + A * Math.sin(2 * Math.PI * x / P);
   let bc = 5;
   for (let x = 0; x < W; x++) { const y = Y(x), lo = Math.round(y - gap / 2) - 1, hi = Math.round(y + gap / 2), ch = x % 2 ? "q" : "o";
@@ -343,9 +423,12 @@ function swingTall(o, { R, imix, room, len, W, H, G }) {
 // (hold: ride the ceiling) or the ceiling (release: ride the floor), then a 45-degree climb or drop of both bars. Varies:
 // run length, which side, the height step. Closed above and below (bars), so the ship can't go round it.
 CONCEPT["my-mwz1s7po"] = "a narrow corridor of two thin bars; obstacle runs on the floor (hold) or the ceiling (release); the bars climb and drop together";
-GEN["my-mwz1s7po"] = o => { const { R, imix, room, len, chance, W, H, G } = ctx(Object.assign({ cols: 56 }, o), 14), gap = room(5, 3);
-  const e = line(W, 2, L => { L.run(len(imix(10, 6), imix(12, 8))); L.leg(clamp(L.h() + R.pick([-3, -2, 2, 3]), 2, H - gap - 3)); });
+GEN["my-mwz1s7po"] = o => { const { R, imix, room, len, chance, W, H, G } = ctx(Object.assign({ cols: 56 }, o), 10), gap = room(5, 3);
+  // the ship's band is 10 rows: the corridor tours all of it, down to the ground (no lower bar there) and up to the roof
+  const next = tour(R, 0, H - gap);
+  const e = line(W, 2, L => { L.run(len(imix(10, 6), imix(12, 8))); L.leg(next(L.h())); });
   tunnel(G, W, e, gap, H - 1, 2);
+  bandMovers(G, W, H, "H", x => e(x) + gap / 2, x => Math.max(e(x), e(x + 1)), x => Math.min(e(x), e(x + 1)) + gap);
   let side = R.chance(0.5) ? 1 : -1;
   for (let c = 4; c < W - 2; c++) { const b = e(c); if (!(e(c - 1) === b && e(c + 1) === b && e(c + 2) === b)) continue;
     if (chance(0.3, 0.55)) { const n = R.int(1, imix(2, 4)); let k = 0;
@@ -394,7 +477,21 @@ GEN["my-mwz2haf0"] = o => { const { R, imix, room, chance, W, H, G } = ctx(o, 14
     q.flipped = kind !== "Y"; return q; };
   // the kinds: sets of 2-4 of one kind; blue and green only past easy; the gravity at the end must be normal
   const pool = o.tier === "easy" || ctx(o, 14).d < 0.2 ? ["Y"] : ["Y", "Y", "B", "E"];
-  let set = R.pick(pool), left = R.int(2, 4), lastC = 5, cur = { ...st }, guard = 0;
+  // a run of orbs is 2-4 long, 5 now and then, never more (Evgeni 2026-11-27: "some sequences seem too long (8 orbs i see),
+  // i think lets max it to 5 (very rare)"): then a landing, or the chain ends
+  const runLen = () => R.chance(0.08) ? 5 : R.int(2, 4);
+  let set = R.pick(pool), left = runLen(), lastC = 5, cur = { ...st }, guard = 0, since = 0;
+  // the landing goes anywhere in the height (Evgeni: "100% spread or close"): on the ground itself (blocks in place of
+  // the spike floor), low or middle, and with the gravity reversed on a ceiling platform up to the top bar; the cube
+  // runs along it and jumps off its end. want: the row to come down to (or up to, reversed)
+  const landAt = want => { const up = cur.grav < 0; let q = { ...cur }, n = 0, at = null;
+    while (n++ < 1500 && col(q) < W - 16) { step(q); const rq = row(q); if (rq > top + 0.5 || rq < 0.5) break;
+      if (col(q) - lastC >= 2 && (up ? q.vy > 0 && rq >= want - 0.5 : q.vy < 0 && rq <= want + 0.5)) { at = q; break; } }
+    if (!at) return false;
+    const rr = up ? Math.min(top, Math.ceil(row(at))) : Math.max(1, Math.floor(row(at))), c0 = Math.floor(col(at)), len = R.int(room(5, 3), room(7, 4));
+    G.box(c0, c0 + len, up ? rr + 1 : rr - 1, up ? rr + 1 : rr - 1); for (let x = c0; x <= c0 + len; x++) G.put(x, rr, ".");
+    cur = { x: (c0 + len) * 30 + 15, y: rr * 30 + 15, vy: up ? -J : J, grav: up ? -1 : 1, flipped: false }; lastC = c0 + len - 1; since = 0; return true; };
+  const wantRow = () => cur.grav < 0 ? top - R.pick([0, 1, 3, 5]) : R.pick([1, 1, 3, 5, 6]);
   const orbs = [];
   while (guard++ < 200) {
     // fly on until a good spot: past the gap (shorter right after a flip: a flipped cube crosses the band in ~3 columns),
@@ -402,19 +499,16 @@ GEN["my-mwz2haf0"] = o => { const { R, imix, room, chance, W, H, G } = ctx(o, 14
     // the lower half, reversed -> normal in the upper half), so the flipped arc has the whole band to cross
     let kind = set; if (cur.grav < 0 && lastC > W - 24 && kind === "Y") kind = R.pick(["B", "E"]);
     const cands = candsOf(cur, kind, lastC).filter(sp => kind === "Y" && sp.grav > 0 || candsOf(apply(sp, kind), kind === "Y" ? "Y" : "B", Math.round(col(sp))).length);
-    if (!cands.length) { if (kind !== "Y" || cur.grav < 0) { if (cur.grav < 0) break; set = "Y"; continue; } break; }
+    if (!cands.length) { if (since && landAt(cur.grav < 0 ? top - 1 : 1)) continue;   // nowhere for an orb: land first
+      if (kind !== "Y" || cur.grav < 0) { if (cur.grav < 0) break; set = "Y"; continue; } break; }
     const spot = cands[R.int(0, Math.min(cands.length - 1, imix(6, 3)))];
     const c = Math.round(col(spot)), r = Math.round(row(spot));
     if (orbs.some(b => Math.abs(b.c - c) < 3 && Math.abs(b.r - r) < 2)) break;
-    orbs.push({ c, r, kind }); cur = apply(spot, kind);
-    lastC = c; if (--left <= 0) { set = R.pick(pool); left = R.int(2, 4);
+    orbs.push({ c, r, kind }); cur = apply(spot, kind); since++;
+    lastC = c; if (--left <= 0 || since >= 5) { set = R.pick(pool); left = runLen();
       // a landing after every set (Evgeni 2026-11-27: "the orb gameplay has only orbs, we want it to land at some parts,
       // every 2-4 orbs"): a platform where the arc comes down through rows 3-6, the cube runs along it and jumps off its end
-      if (cur.grav > 0) { let q = { ...cur }, n = 0, at = null;
-        while (n++ < 1500 && col(q) < W - 16) { step(q); if (row(q) > top - 1) break; if (q.vy < 0 && row(q) <= 6 && col(q) - lastC >= 2) { at = q; break; } }
-        if (at && row(at) >= 2.5) { const rr = Math.max(3, Math.floor(row(at))), c0 = Math.floor(col(at)), len = R.int(room(5, 3), room(7, 4));
-          G.box(c0, c0 + len, rr - 1, rr - 1); for (let x = c0; x <= c0 + len; x++) G.put(x, rr, ".");
-          cur = { x: (c0 + len) * 30 + 15, y: rr * 30 + 15, vy: J, grav: 1, flipped: false }; lastC = c0 + len - 1; } } }
+      if (!landAt(wantRow()) && since >= 5) break; }
   }
   // back to normal gravity at the end: a blue orb on the arc if the last one left it reversed
   if (cur.grav < 0) { const cs = candsOf(cur, "B", lastC); if (cs.length) { const sp = cs[0], c = Math.round(col(sp)), r = Math.round(row(sp));

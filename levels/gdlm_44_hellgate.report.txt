@@ -1,0 +1,12 @@
+GDLM 44 hellgate: 61.7 s, 71 presses, 6 modes
+Layout     4.1/10  balance 5.5 · modes 10 · transitions 1 · rests 10 · flow 10 · variety 0 · pacing 8 · clarity 10 · height 10 · ending 4
+Difficulty Normal (~3 attempts, tightest 142 ms)
+Fairness   no unfair spots
+Taste      74/100
+Deco       not judged yet
+Top notes (5 of 15):
+  1. 11.12 s, block 115.5: walked portal: cube -> ball walked into on the ground (official portals: 93% taken on the move)
+  2. 17.76 s, block 184.4: abrupt switch: ball -> ufo: 708 ms after the last press, 8 ms to the next (official: ~0.37 s quiet before, ~0.48 s after)
+  3. 17.76 s, block 184.4: walked portal: ball -> ufo walked into on the ground (official portals: 93% taken on the move)
+  4. 34.13 s, block 354.5: abrupt switch: ball -> cube: 46 ms after the last press, 3371 ms to the next (official: ~0.37 s quiet before, ~0.48 s after)
+  5. 40.56 s, block 421.5: walked portal: cube -> ship walked into on the ground (official portals: 93% taken on the move)
