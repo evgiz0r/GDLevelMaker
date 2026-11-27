@@ -121,3 +121,9 @@ difficulty target (tier: cps and tightest window), and are checked by tools/layo
 - Lengths measured on rated levels per type: how long one of these runs before the level changes it.
 
 - **No spike walls; spikes stand on something** (Evgeni 2026-11-27, on the 🎲 ball and spider sections: "just blocking like that with a wall of spike is rough, lets place proper hazards, spikes not on the ground is bad"). A route is never closed with a long row of spikes. Use proper hazards instead: spike groups of 1 to 3, saws, or blocks with spikes on them. A spike always stands on the ground or a block, or hangs from a ceiling. It never floats in the air. This holds for the generators and for hand fixes on the board.
+
+**The mode's band (2026-11-27).** A ball, spider or flying portal sets a floor and a ceiling around the portal (lib/physics.js
+BAND: ball 240 = 8 rows, spider 270 = 9, ship / ufo / wave / swing 300 = 10). Entered from the ground, nothing above
+that line is reachable; the spider's flip lands on the band's roof. Every generator keeps its play inside the band; the
+board draws the line on each such section. A swing "taller than the screen" needs GD 2.2's portal free mode (no band),
+which the sim does not have yet (PHYSICS.md open).

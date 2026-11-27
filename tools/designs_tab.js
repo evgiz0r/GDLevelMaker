@@ -337,7 +337,14 @@ window.initDesigns = async function (root) {
     const grid = q => { const [k, , W, H] = q, key = "layout:" + k;
       return `<svg class="tiles" data-k="${key}" data-w="${W}" data-h="${H}" data-vh="${H + 0.25}" data-g="0" viewBox="0 0 ${W} ${H + 0.25}" style="width:${W * cs}px;height:${(H + 0.25) * cs}px">`
         + `<g class="grid">${Array.from({ length: W + 1 }, (_, c) => `<line x1="${c}" y1="0" x2="${c}" y2="${H}" />`).join("")}${Array.from({ length: H + 1 }, (_, r) => `<line x1="0" y1="${r}" x2="${W}" y2="${r}" />`).join("")}</g>`
-        + `<rect x="0" y="${H}" width="${W}" height="0.25" fill="#7be38a55" />` + (() => { const T = tilesOf(key); return (k === "play" ? marks(H) : "") + T.map(z => tile(z, H)).join("") + routeSvg(k, H, W); })() + `</svg>`; };
+        + `<rect x="0" y="${H}" width="${W}" height="0.25" fill="#7be38a55" />` + (() => { const T = tilesOf(key); return (k === "play" ? marks(H) : "") + T.map(z => tile(z, H)).join("") + routeSvg(k, H, W) + bandSvg(q[4], H, W); })() + `</svg>`; };
+    // THE MODE'S BAND (found 2026-11-27 on his spider and ball-portal drawings): a ball / spider / flying portal sets a
+    // floor and a ceiling around the portal (lib/physics.js BAND: ball 8 rows, spider 9, ship / ufo / wave / swing 10);
+    // entered from the ground, nothing above that line can be reached -- the spider's flip lands on the band's roof.
+    // A dashed line and a shade above it on every such section
+    const BANDR = { ball: 8, spider: 9, ship: 10, ufo: 10, wave: 10, swing: 10 };
+    const bandSvg = (mode, H, W) => { const n = BANDR[mode]; if (!n || n >= H) return "";
+      return `<g style="pointer-events:none"><rect x="0" y="0" width="${W}" height="${H - n}" fill="#ff5a5a14" /><line x1="0" y1="${H - n}" x2="${W}" y2="${H - n}" stroke="#ff8a8a" stroke-dasharray="0.3 0.2" style="stroke-width:1.5px;vector-effect:non-scaling-stroke" /><text x="0.2" y="${H - n - 0.2}" font-size="0.55" fill="#ff8a8acc">${esc(mode)} band: ${n} rows from the ground, nothing above is reachable</text></g>`; };
     // the route: a soft line through the player's centre, a dot at each press; dashed and greyer when the section was
     // changed after it was solved (then it is the old route, until the next check)
     const routeOne = (C, H, W, dc, old) => { if (!C || !C.ok || !C.route) return "";
