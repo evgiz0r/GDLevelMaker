@@ -390,6 +390,8 @@ window.initDesigns = async function (root) {
     st.textContent = "saving ...";
     try { await save(c.dataset.id, { comment: e.target.value.trim() }); st.textContent = "saved"; } catch (x) { st.textContent = "not saved: " + x.message; }
   });
+  // any error in the board shows on its status line, so "nothing happens" always says why
+  addEventListener("error", e => { const st = root.querySelector(".lay .pst"); if (st) st.textContent = "error: " + (e.message || e); });
   render();
   for (let k = 0; k < 15 && !(window.claude && window.claude.use); k++) await new Promise(r => setTimeout(r, 200));
   try {
@@ -399,12 +401,12 @@ window.initDesigns = async function (root) {
       VOTES = v; if (!root.contains(document.activeElement) || document.activeElement.tagName !== "TEXTAREA") render();
     }, () => {});
     if (DB) DB.collection("designdraw").onSnapshot(snap => {
-      for (const d of snap.docs.map(x => x.data())) if (d && d.design && (!DRAW[d.design] || !DRAW[d.design].at || String(d.at) > String(DRAW[d.design].at))) if (!cur) DRAW[d.design] = d;
+      for (const d of snap.docs.map(x => x.data())) if (d && d.design && (!DRAW[d.design] || !DRAW[d.design].at || String(d.at) > String(DRAW[d.design].at))) if (!cur) DRAW[d.design] = JSON.parse(JSON.stringify(d));   // a plain copy: the db hands back frozen objects, and editing one in place threw (2026-11-27: taps and clear did nothing in the app)
       if (!cur) render();
     }, () => {});
     if (DB) DB.collection("designmarks").onSnapshot(snap => {
       const local = MARKS.filter(m => MST[m.mid] !== "saved" && !m.seen);
-      MARKS = latest(snap.docs.map(d => d.data()));
+      MARKS = latest(snap.docs.map(d => JSON.parse(JSON.stringify(d.data()))));
       for (const m of local) if (!MARKS.some(z => z.mid === m.mid)) MARKS.push(m);
       if (!root.contains(document.activeElement) || !/INPUT|TEXTAREA/.test(document.activeElement.tagName)) render();
     }, () => {});

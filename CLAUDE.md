@@ -741,6 +741,9 @@ The viewer draws moving objects where they start.
   refreshed, and some effect when i click refresh"): catalogues, boards, the viewer pages, every artifact we make. Paste
   `tools/snippets/refresh.html` once (lego_page.js does it): a button top-right, "last refreshed HH:MM" beside it, a spin on
   click, then the page reloads with fresh data keeping its view and flashes "refreshed ✓". Fetch data with `cache: "no-store"`.
+- **Artifact db data is read-only: copy it before editing** (2026-11-27: the theme board's taps and 🗑 did nothing in the app
+  but worked in a plain browser, because they edited objects from `onSnapshot` in place). Keep `JSON.parse(JSON.stringify(d.data()))`
+  copies, and show any page error on a status line so "nothing happens" says why.
 - **No native dialogs in the viewer pages** (alert / confirm / prompt): the app's built-in browser and the phone page's
   frame suppress them, so the button just did nothing. Use the viewer's notice(), askNote(), showMap();
   `node tests/no_dialogs.js` checks.
