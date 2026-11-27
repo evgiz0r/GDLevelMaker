@@ -88,7 +88,21 @@ function main() {
     for (const r of a.includes("--all") ? res : res.slice(-10)) console.log(`${r.status.padEnd(9)} ${r.name}` + (r.why ? `: ${r.why}` : ` (position ${r.position}${r.replaced ? ", replaced" : ", new"}${r.online_id > 0 ? `, online ID ${r.online_id}` : ""}, saved ${r.saved}, song ${r.song})`) + `  ${new Date(r.wall_ms).toISOString()}`);
     return;
   }
-  console.log("usage: node tools/hotinstall.js status | results [--all]   (installs: node tools/install.js <level.gdlvl> with GD running)");
+  if (a[0] === "testlevel") {
+    // a throwaway level to try the inbox with after a mod change: "GDLM test install", a few blocks and spikes, no song,
+    // nobody's slot; safe to delete in the game afterwards
+    const io = require("./io.js"), GD = io.GD, out = a[1] || path.join(__dirname, "..", "local", "tmp", "gdlm_test_install.gdlvl");
+    const rec = GD.newRecord("GDLM test install", "A throwaway level that tests installing into a running game. Safe to delete.");
+    const objects = [];
+    for (let i = 0; i < 40; i++) objects.push(`1,1,2,${15 + 30 * i},3,15`);
+    for (const bx of [12, 22, 32]) objects.push(`1,8,2,${15 + 30 * bx},3,45`);
+    const level = GD.parseLevel(GD.DEFAULT_HEADER + ";" + objects.join(";") + ";");
+    fs.mkdirSync(path.dirname(out), { recursive: true });
+    io.writeGdlvl(out, rec, level);
+    console.log(`wrote ${out} ("GDLM test install", ${objects.length} objects)`);
+    return;
+  }
+  console.log("usage: node tools/hotinstall.js status | results [--all] | testlevel [out.gdlvl]   (installs: node tools/install.js <level.gdlvl> with GD running)");
 }
 if (require.main === module) main();
 module.exports = { MIN, probeDir, inboxDir, atLeast, gdPids, modReady, recordOf, request, dropPending, readResult, waitResults };

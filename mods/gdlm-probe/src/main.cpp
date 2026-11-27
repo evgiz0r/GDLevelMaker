@@ -34,7 +34,7 @@
 // "mute" (default true): the playback sets FMOD's music and effects volume to 0 (the engine only; GameManager's saved
 // volumes are untouched, and quit does not save anyway).
 //
-// Install inbox (v0.6.0, GEODE.md "Install into a running GD"): `node tools/install.js <level>` with GD running writes
+// Install inbox (v0.6.0; v0.6.1 adds menu-layer timers and the inbox state in probe.status.json; GEODE.md "Install into a running GD"): `node tools/install.js <level>` with GD running writes
 //   <mod save dir>/install/<id>.req.json  {"id", "name", "record": "<?xml ...><plist ...><dict>k2 ...</dict></plist>",
 //   "save": true, "wall_ms"}   (the same record a .gdlvl holds, with install.js's description and length label)
 // A scheduler callback once a second checks that folder ONLY on a menu scene: never while a PlayLayer or the editor exists,
@@ -57,6 +57,8 @@
 #include <Geode/modify/PlayLayer.hpp>
 #include <Geode/modify/MenuLayer.hpp>
 #include <Geode/modify/EditLevelLayer.hpp>
+#include <Geode/modify/CreatorLayer.hpp>
+#include <Geode/modify/LevelBrowserLayer.hpp>
 
 #include <process.h>
 
@@ -403,22 +405,31 @@ void writeAtomic(std::filesystem::path const& p, std::string const& data) {
 }
 std::string modVersion() { return Mod::get()->getVersion().toVString(); }
 
+// the inbox's own state, written into probe.status.json every few seconds on menus (v0.6.1): v0.6.0's check never ran in
+// the game and said nothing, so now the file shows when it last ran, from which timer, and why it waits
+struct InboxState { long long ticks = 0, tickMs = 0, statusMs = 0; std::string src, last = "idle"; };
+InboxState g_ib;
+
 void writeStatus() {
-    writeAtomic(saveDir() / "probe.status.json", fmt::format("{{\"version\":\"{}\",\"pid\":{},\"inbox\":1,\"wall_ms\":{}}}\n",
-        modVersion(), static_cast<int>(_getpid()), wallMs()));
+    g_ib.statusMs = wallMs();
+    writeAtomic(saveDir() / "probe.status.json", fmt::format(
+        "{{\"version\":\"{}\",\"pid\":{},\"inbox\":1,\"wall_ms\":{},\"ticks\":{},\"tick_ms\":{},\"src\":\"{}\",\"last\":\"{}\"}}\n",
+        modVersion(), static_cast<int>(_getpid()), g_ib.statusMs, g_ib.ticks, g_ib.tickMs, esc(g_ib.src), esc(g_ib.last)));
 }
 
 // a menu scene where the level list may change: no level played or edited, no transition running, and not the page of
-// the level being replaced
-bool menuSafe(std::string const& name) {
-    if (PlayLayer::get() || LevelEditorLayer::get()) return false;
+// the level being replaced. "" = safe, else why not
+std::string menuWhy(std::string const& name) {
+    if (PlayLayer::get()) return "in a level";
+    if (LevelEditorLayer::get()) return "in the editor";
     auto* dir = CCDirector::get();
     auto* scene = dir ? dir->getRunningScene() : nullptr;
-    if (!scene || typeinfo_cast<CCTransitionScene*>(scene)) return false;
+    if (!scene) return "no running scene";
+    if (typeinfo_cast<CCTransitionScene*>(scene)) return "a scene transition";
     if (auto* el = scene->getChildByType<EditLevelLayer>(0)) {
-        if (el->m_level && std::string(el->m_level->m_levelName) == name) return false;
+        if (el->m_level && std::string(el->m_level->m_levelName) == name) return "that level's page is open";
     }
-    return true;
+    return "";
 }
 
 struct InstallReq { std::string id, name, record; bool save = true; };
@@ -497,7 +508,13 @@ void checkInbox() {
             r.save = j["save"].asBool().unwrapOr(true);
             out["name"] = r.name;
             if (r.name.rfind("GDLM", 0) != 0) why = "only levels named GDLM ... are installed this way";
-            else if (!menuSafe(r.name)) return;   // in a level, the editor or that level's page: try again later
+            else if (auto w = menuWhy(r.name); !w.empty()) {
+                // in a level, the editor or that level's page: try again later
+                auto last = fmt::format("waiting: {} ({})", r.name, w);
+                if (last != g_ib.last) log::info("gdlm probe: install {}", last);
+                g_ib.last = last;
+                return;
+            }
             else why = installLevel(r, out);
         }
         out["status"] = why.empty() ? "installed" : "failed";
@@ -507,16 +524,28 @@ void checkInbox() {
         std::filesystem::rename(p, taken, ec);
         writeAtomic(dir / (r.id + ".result.json"), out.dump(matjson::NO_INDENTATION) + "\n");
         log::info("gdlm probe: install '{}': {}", r.name, why.empty() ? "installed" : why);
+        g_ib.last = fmt::format("{} {}", why.empty() ? "installed" : "failed", r.name);
+        writeStatus();
     }
+}
+
+// called once a second by two kinds of timer (v0.6.1): the director's scheduler, and each menu layer's own schedule (main
+// menu, Create, the level list, a level's page); whichever fires first in a second does the check
+void inboxTick(char const* src) {
+    // only on menus: returns at once while a level is played or edited (no work on the input path)
+    if (PlayLayer::get() || LevelEditorLayer::get()) return;
+    long long now = wallMs();
+    if (now - g_ib.tickMs < 900) return;
+    if (g_ib.ticks == 0) log::info("gdlm probe: install inbox running ({})", src);
+    g_ib.ticks++; g_ib.tickMs = now; g_ib.src = src;
+    if (g_ib.last.rfind("waiting", 0) == 0) g_ib.last = "idle";
+    checkInbox();
+    if (now - g_ib.statusMs >= 5000) writeStatus();
 }
 
 class InboxTimer : public CCObject {
 public:
-    void tick(float) {
-        // only on menus: returns at once while a level is played or edited (no work on the input path)
-        if (PlayLayer::get() || LevelEditorLayer::get()) return;
-        checkInbox();
-    }
+    void tick(float) { inboxTick("scheduler"); }
 };
 InboxTimer* g_inbox = nullptr;
 
@@ -681,13 +710,16 @@ class $modify(ProbeMenu, MenuLayer) {
                 Loader::get()->queueInMainThread([] { openPlayLevel(); });
             }
         }
+        this->schedule(schedule_selector(ProbeMenu::gdlmInbox), 1.f);
         return true;
     }
+    void gdlmInbox(float) { inboxTick("MenuLayer"); }
 };
 
 class $modify(ProbeEdit, EditLevelLayer) {
     bool init(GJGameLevel* level) {
         if (!EditLevelLayer::init(level)) return false;
+        this->schedule(schedule_selector(ProbeEdit::gdlmInbox), 1.f);
         // a batch left the previous level: open the next one
         if (g_openNext) {
             g_openNext = false;
@@ -695,4 +727,24 @@ class $modify(ProbeEdit, EditLevelLayer) {
         }
         return true;
     }
+    void gdlmInbox(float) { inboxTick("EditLevelLayer"); }
+};
+
+// the inbox's menu timers (v0.6.1): Create and the level lists (My Levels) run it too
+class $modify(ProbeCreator, CreatorLayer) {
+    bool init() {
+        if (!CreatorLayer::init()) return false;
+        this->schedule(schedule_selector(ProbeCreator::gdlmInbox), 1.f);
+        return true;
+    }
+    void gdlmInbox(float) { inboxTick("CreatorLayer"); }
+};
+
+class $modify(ProbeBrowser, LevelBrowserLayer) {
+    bool init(GJSearchObject* search) {
+        if (!LevelBrowserLayer::init(search)) return false;
+        this->schedule(schedule_selector(ProbeBrowser::gdlmInbox), 1.f);
+        return true;
+    }
+    void gdlmInbox(float) { inboxTick("LevelBrowserLayer"); }
 };
