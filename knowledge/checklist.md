@@ -219,6 +219,9 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
   Easy/Normal. (design.md, STYLE.md; GDLM 42; official_01-08.md)
 - [ ] **Even difficulty**: no late spike. Timing per tier: DIFFICULTY.md "Tier ladder" (Easy: no window
   under ~60 ms, almost none under 100 ms). (players_say.md: a late spike makes a rating feel wrong)
+- [ ] **Generated sections clear on their own planned presses, with one click style each** (Evgeni 2026-11-27): a
+  presses-first type's taps alone clear it (layoutcheck `planCheck`, tests/sectiongen.js); cps and holds differ between
+  generations but drift only a little inside one (section_types.md "One click style per generation").
 
 ## Not bland (rated Easy/Normal 2.0-2.1 medians)
 

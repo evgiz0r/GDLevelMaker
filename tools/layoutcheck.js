@@ -115,4 +115,16 @@ if (require.main === module) {
   for (const c of out) old[c.key] = Object.assign(c, { at: new Date().toISOString().slice(0, 16) });
   fs.writeFileSync(f, JSON.stringify(old, null, 1) + "\n"); console.log("-> knowledge/layout_check.json");
 }
-module.exports = { specOf, check, hashMap };
+// PRESSES FIRST (Evgeni 2026-11-27: "our generating solves by design and we just patch the timings and search secret ways
+// with the solver"): a generated section that carries its planned presses (z.presses, columns of the player's centre in
+// the section) is played with exactly those taps; ok = the plan alone clears it, else where it dies. No search.
+function planCheck(z) {
+  if (!z.presses) return { key: z.key, plan: false };
+  const S = specOf(z); let level;
+  try { level = build(S.spec, "layoutcheck:" + z.key, {}).level; } catch (e) { return { key: z.key, plan: true, ok: false, why: "build failed: " + e.message }; }
+  const w = GD.makeWorld(level.objects, level.header), p0 = GD.run(w, []).path, dx = p0[1].x - p0[0].x;
+  const ticks = z.presses.map(c => Math.round(((S.x0 + c) * 30 - p0[0].x) / dx));
+  const r = GD.run(w, ticks), end = r.path[r.path.length - 1];
+  return { key: z.key, plan: true, ok: !!r.done && !r.dead, presses: ticks.length,
+    dieCol: r.dead ? +(end.x / 30 - S.x0).toFixed(1) : undefined, dieRow: r.dead ? +(end.y / 30).toFixed(1) : undefined, why: r.dead ? r.why : undefined }; }
+module.exports = { specOf, check, hashMap, planCheck };
