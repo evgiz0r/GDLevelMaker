@@ -766,6 +766,10 @@ The viewer draws moving objects where they start.
   ArtifactData (doc per item: {title, about, owner, state: working | queued | waiting | done, est_min, basis, started, done_at,
   at}) when it starts, and sets state done + done_at when it lands. est_min only from a measured run (basis names it); else
   leave it out ("not measured"). Rendered by tools/designs_tab.js `workSection`.
+- **Controls never sit on the gameplay view** (Evgeni, 2026-11-27, of the theme card's buttons drawn over the scene: "UI should be
+  outside the gameplay windows" -- "for all viewers sessions"): in every viewer, card and page we make, buttons, selects, chips
+  and status text go in a row above or below the level / scene picture, never absolutely positioned over it. Only marks the
+  user placed (pins, his drawing) and the player may draw on it. Example: tools/designs_tab.js `.zb`.
 - **Every workbook page has ⟳ refresh + "last refreshed"** (Evgeni, 2026-11-27: "add refresh on every workbook have and last
   refreshed, and some effect when i click refresh"): catalogues, boards, the viewer pages, every artifact we make. Paste
   `tools/snippets/refresh.html` once (lego_page.js does it): a button top-right, "last refreshed HH:MM" beside it, a spin on
