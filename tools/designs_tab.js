@@ -26,7 +26,7 @@ window.initDesigns = async function (root) {
   #designs .pens{display:flex;flex-wrap:wrap;gap:4px;align-items:center}#designs .pcol{width:22px;height:22px;padding:0!important;border-radius:11px!important}#designs .pcol.on,#designs .pw.on,#designs .perase.on{outline:2px solid #ffd84d}
   #designs .pany{width:26px;height:24px;padding:0;border:0;background:none}#designs .pw i{display:block;width:16px;background:#ddd;border-radius:2px}
   #designs .ink polyline{fill:none;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
-  #designs .zw{position:relative}#designs .fxc{position:absolute;left:0;top:0;pointer-events:none;mix-blend-mode:screen}#designs .zb{position:absolute;right:6px;top:6px;display:flex;gap:4px}
+  #designs .zw{position:relative}#sendall.ready,#designs .msend.ready{background:#3ddc84!important;color:#04210f!important;box-shadow:0 0 10px #3ddc84}#designs .fxc{position:absolute;left:0;top:0;pointer-events:none;mix-blend-mode:screen}#designs .zb{position:absolute;right:6px;top:6px;display:flex;gap:4px}
   #designs .zb button{width:30px;height:30px;border-radius:15px;border:1px solid #555;background:#1b1538cc;color:#fff;font:700 16px/1 system-ui}
   #designs .mk{position:relative;display:inline-block;line-height:0}#designs .mk img{display:block}
   #designs .mk.on{cursor:crosshair;outline:2px dashed #ffd84d}
@@ -65,7 +65,7 @@ window.initDesigns = async function (root) {
   const PENS = { block: "#ffffff", hazard: "#ff5a5a", note: "#ffd84d" }, PENL = { block: "▭ block", hazard: "▲ hazard", note: "✎ note" };
   let DRAWING = null, PEN = "block", PCOL = "#ffffff", PW_ = 4, ERASE = false, FS = null; const DRAW = {}, DST = {}, BG = {};
   const COLS = ["#ffffff", "#ff5a5a", "#ffd84d", "#5ad1ff", "#7be38a", "#ff9a3c", "#c77dff", "#111111"];
-  const PEND = {}, MST = {}; let saveT = null, lastKey = 0, holdT = null;
+  const PEND = {}, MST = {}; let saveT = null, lastKey = 0, holdT = null, readyT = null;
   // a note per layout section (Evgeni 2026-11-27: "give me place for comments on each of the sections"): typed, saved as it
   // is typed (revision docs in collection "designnotes": {part, note, sentNote, at}), sent with 📨 only when changed
   const NOTES = {}, NST = {}; let noteT = null;
@@ -78,9 +78,10 @@ window.initDesigns = async function (root) {
   // claude.ai refuses a send-to-Claude within ~6 s of a key typed in the page ("Not sent to Claude. Your last key or click
   // may not have been meant for this artifact"), so 📨 waits out the typing with a countdown (Evgeni 2026-11-27)
   const HOLD = 6500;
-  document.addEventListener("keydown", () => { lastKey = Date.now(); holdSend(); }, true);
+  const unready = () => { for (const b of document.querySelectorAll(".ready")) b.classList.remove("ready"); };
+  document.addEventListener("keydown", () => { lastKey = Date.now(); unready(); holdSend(); }, true);
   // a tap anywhere but a send button counts too (the app's hold is on any click in the page)
-  document.addEventListener("pointerdown", e => { if (e.target.closest && e.target.closest(".msend, #sendall, #rfb")) return; lastKey = Date.now(); holdSend(); }, true);
+  document.addEventListener("pointerdown", e => { if (e.target.closest && e.target.closest(".msend, #sendall, #rfb")) return; lastKey = Date.now(); unready(); holdSend(); }, true);
   // the countdown made the buttons annoying (Evgeni 2026-11-27: "something bugged with those new and sends, need to find
   // something less annoying"): no countdown, no disabled buttons any more; a refused send just says to press again
   function holdSend() { return;
@@ -259,7 +260,7 @@ window.initDesigns = async function (root) {
   function stopPlay() { if (!PLAY) return; const id = PLAY.id; PLAY = null; for (const p of root.querySelectorAll(".plr, .fxc")) p.remove(); for (const b of root.querySelectorAll(`.dc[data-id="${CSS.escape(id)}"] .aplay`)) b.textContent = "▶"; }
   function stepPlay(now) {
     if (!PLAY) return; const d = L.find(x => x.id === PLAY.id), A = d && d.anim; if (!A) return stopPlay();
-    const i = Math.floor((now - PLAY.t0) / 1000 * A.fps * ASPD); PLAY.i = i; if (i >= A.pts.length) return stopPlay();
+    const i = Math.max(0, Math.floor((now - PLAY.t0) / 1000 * A.fps * ASPD));   // the first frame's rAF time can be before t0 PLAY.i = i; if (i >= A.pts.length) return stopPlay();
     const mk = root.querySelector(`.dc[data-id="${CSS.escape(PLAY.id)}"] .zw .mk`); if (!mk) return requestAnimationFrame(stepPlay);
     const img = mk.querySelector("img"), f = img && img.naturalHeight ? img.clientHeight / img.naturalHeight : 1, w = mk.closest(".wide");
     let p = mk.querySelector(".plr"); if (!p) { p = document.createElement("span"); p.className = "plr"; mk.appendChild(p); }
@@ -411,7 +412,15 @@ window.initDesigns = async function (root) {
     let sent = false, why = "";
     try { const anchor = await CM.anchorFor(anchorEl || root); await CM.sendToClaude({ anchor, text: text.slice(0, 4000) }); sent = true; }
     catch (x) { why = x && (x.code || x.message) || String(x); lastKey = Date.now(); holdSend(); }
-    if (!sent) { say("the app held it back (it waits a few seconds after a tap or key): press 📨 again"); return false; }
+    // READY CUE (Evgeni 2026-11-27: "happens too much how can we workaround it"): the app's hold can't be skipped, and a
+    // send must come from his tap, so the page only says WHEN a tap will go through: the 📨 buttons light up "tap now" once
+    // the hold since his last key or tap is over (a label change; nothing is sent by itself). And he can always just write
+    // "comments" in the chat: everything is saved in the db, Claude reads what is new since the last send from there.
+    if (!sent) { say("the app holds sends for a few seconds after typing: 📨 lights up when it will go through");
+      clearTimeout(readyT); const cue = () => { const left = HOLD - (Date.now() - lastKey); if (left > 0) { readyT = setTimeout(cue, left + 100); return; }
+        for (const b of document.querySelectorAll("#sendall, .msend")) { b.classList.add("ready"); if (b.id === "sendall") b.textContent = "📨 tap now"; }
+        say("ready: tap 📨 now (or write \"comments\" in the chat)"); };
+      lastKey = Math.max(lastKey, Date.now() - HOLD + 1500); cue(); return false; }
     LAST = new Date().toISOString(); try { if (DB) await DB.collection("designsend").doc("s-" + Date.now().toString(36)).set({ at: LAST }); } catch (x) {}
     for (const q of nts) NST[q[0]] = "sent";
     for (const m of ms) { PEND[m.mid] = noteOf(m); m.sentNote = noteOf(m).trim(); m.sent = new Date().toISOString(); await saveMark(m.mid); }
@@ -422,7 +431,7 @@ window.initDesigns = async function (root) {
     if (!b) { b = document.createElement("button"); b.id = "sendall"; b.title = "send everything new to Claude"; b.style.cssText = "width:auto;border-radius:15px;padding:0 10px;font-size:13px";
       const s2 = document.createElement("span"); s2.id = "sendall-st"; rf.prepend(s2); rf.insertBefore(b, document.getElementById("rfb"));
       b.onclick = () => sendNew(null, null); }
-    const n = collectNew().n; b.textContent = n ? "📨 " + n + " new" : "📨"; b.disabled = !n; }
+    const n = collectNew().n; if (!b.classList.contains("ready") || !n) { b.classList.remove("ready"); b.textContent = n ? "📨 " + n + " new" : "📨"; } b.disabled = !n; }
   setInterval(() => { try { topSend(); } catch (x) {} }, 1500);
   // ⟳ tries to send what is new, and reloads either way (nothing is lost: everything is saved in the page's database)
   window.rfBeforeReload = async () => { if (collectNew().n) { try { await sendNew(null, null); } catch (x) {} } return true; };

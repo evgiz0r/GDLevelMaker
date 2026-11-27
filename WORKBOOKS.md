@@ -46,3 +46,5 @@ workbooks we want to know always on all sessions everywhere") that every session
 - Its logic in node where you can (tests/*.js).
 - Its db code against frozen data: wrap test data in `Object.freeze` deeply, the way the app returns it.
 - Then publish, and ask him what the status line says.
+
+- **The app's send hold, worked around (2026-11-27).** Evgeni: "happens too much how can we workaround it". The hold (no send within about 6 s of a key or tap in the page) can't be skipped, and a send has to come from his own tap. So after a refused send, the page lights the 📨 buttons green with "tap now" once the hold is over: only the label changes, and nothing is sent by itself. The other way in always works: he writes "comments" in the chat, and Claude reads everything new from the page's db since the last `designsend` stamp. tools/designs_tab.js "READY CUE".
