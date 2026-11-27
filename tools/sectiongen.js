@@ -63,7 +63,9 @@ function ctx(o, defRows) {
   if (Array.isArray(o.beats) && o.beats.length) beats = o.beats.map(b => typeof b === "number" ? { c: b * COLS_PER_SEC, s: 0.7 } : { c: b.t * COLS_PER_SEC, s: b.s ?? 0.7 });
   else if (beatCols) { beats = []; for (let i = 0; i * beatCols / 2 < W + beatCols; i++) beats.push({ c: i * beatCols / 2, s: i % 8 === 0 ? 1 : i % 2 === 0 ? 0.7 : 0.35 }); }
   if (beats) beats.sort((a, b) => a.c - b.c);
-  const hb = beats && beats.length > 1 ? Math.max(1, (beats[beats.length - 1].c - beats[0].c) / (beats.length - 1)) : 2;
+  // hb: the strength bonus's reach, at least 2 columns (~0.2 s): a song's notes can come ~10 a second, and with the mean
+  // spacing as the reach the nearest weak note always won; now a strong one up to a column nearer wins
+  const hb = Math.max(2, beats && beats.length > 1 ? (beats[beats.length - 1].c - beats[0].c) / (beats.length - 1) : 2);
   const onBeat = (want, min = -1e9) => { if (!beats) return Math.max(want, min);
     let best = null, bs = 1e9; for (const b of beats) { if (b.c < min - 1e-6) continue; if (b.c > want + 3 * hb) break;
       const sc = Math.abs(b.c - want) - b.s * hb * 0.5; if (sc < bs) { bs = sc; best = b.c; } }
@@ -1002,7 +1004,7 @@ CONCEPT["my-mwz2haf0"] = "over a spike floor the cube flies from orb to orb, eac
 GEN["my-mwz2haf0"] = o => { const { R, imix, room, chance, W, H, G, beats, onBeat } = ctx(o, 14);
   const X = 5.77000189 * 0.9 * 0.25, DTS = 0.225, g = 0.958199024, J = 11.1800318, top = H - 2;
   // the cube jumping off the start platform's end (4 high, to column 6, or to the beat near there)
-  const b0 = beats ? onBeat(6.5, 5.6) : 6.5, e0 = Math.ceil(b0) - 1, st = { x: b0 * 30, y: 4 * 30 + 15, vy: J, grav: 1 };
+  const b0 = beats ? Math.min(onBeat(6.5, 5.6), 12.5) : 6.5, e0 = Math.ceil(b0) - 1, st = { x: b0 * 30, y: 4 * 30 + 15, vy: J, grav: 1 };
   for (let c = 0; c < W; c++) G.put(c, 0, "^"); G.box(0, e0, 0, 3);
   G.box(0, W - 1, H - 1, H - 1); for (let c = 0; c < W; c += 1) if (R.chance(0.85)) G.put(c, H - 2, "v");
   const step = q => { q.vy -= g * DTS * q.grav; if (q.vy * q.grav < -15) q.vy = -15 * q.grav; q.x += X; q.y += q.vy * DTS; };
@@ -1046,7 +1048,8 @@ GEN["my-mwz2haf0"] = o => { const { R, imix, room, chance, W, H, G, beats, onBea
     if (!at) return false;
     const rr = up ? Math.min(top, Math.ceil(row(at))) : Math.max(1, Math.floor(row(at))), c0 = Math.floor(col(at)); let len = R.int(room(5, 3), room(7, 4)), bx = null;
     // with beats the jump off its end goes on a beat: the platform runs to the column that beat is in
-    if (beats) { bx = onBeat(c0 + len + 0.5, c0 + room(4, 2.5) + 0.5); len = Math.ceil(bx) - 1 - c0; }
+    // (not past W - 12: the jump off it must still come down before the end platform; sparse hits fall back to `len`)
+    if (beats) { bx = onBeat(c0 + len + 0.5, c0 + room(4, 2.5) + 0.5); if (bx > W - 12 || bx - c0 > 14) bx = null; else len = Math.ceil(bx) - 1 - c0; }
     G.box(c0, c0 + len, up ? rr + 1 : rr - 1, up ? rr + 1 : rr - 1); for (let x = c0; x <= c0 + len; x++) G.put(x, rr, ".");
     cur = { x: bx != null ? bx * 30 : (c0 + len) * 30 + 15, y: rr * 30 + 15, vy: up ? -J : J, grav: up ? -1 : 1, flipped: false }; lastC = c0 + len - 1; since = 0;
     presses.push(cur.x / 30); return true; };
@@ -1109,18 +1112,20 @@ module.exports = { PRIORITY, GEN, CONCEPT, KEYS, TIERS, make, rng, tunnel, flyPl
 if (require.main === module) {
   const a = process.argv.slice(2), arg = k => { const i = a.indexOf("--" + k); return i >= 0 ? a[i + 1] : null; }, cmd = a[0];
   const pos = []; for (let i = 1; i < a.length; i++) { if (a[i].startsWith("--")) { if (a[i] !== "--show") i++; continue; } pos.push(a[i]); }
-  if (cmd === "show") { const z = make(pos[0], { cols: arg("cols"), rows: arg("rows"), seed: arg("seed"), tier: arg("tier"), bpm: arg("bpm") });
+  // --song <key> --from <s>: the section follows that song's real hits from that second on (tools/sectionbeats.js)
+  const songB = cols => arg("song") ? require("./sectionbeats.js").songBeats(arg("song"), +(arg("from") || 0), +(arg("from") || 0) + (+cols || 32) / COLS_PER_SEC + 1) : undefined;
+  if (cmd === "show") { const z = make(pos[0], { cols: arg("cols"), rows: arg("rows"), seed: arg("seed"), tier: arg("tier"), bpm: arg("bpm"), beats: songB(arg("cols")) });
     console.log(z.key + " (" + z.mode + ", " + z.map[0].length + " x " + z.map.length + "): " + z.concept + "\n" + z.map.join("\n")); }
   else if (cmd === "check") {
     require("./heavy.js").claim();
     const LC = require("./layoutcheck.js"), cols = (arg("cols") || "30,60,120").split(",").map(Number), seeds = (arg("seeds") || "1,2").split(",").map(Number), tiers = (arg("tiers") || "normal").split(",");
     let ok = 0, n = 0;
     for (const key of pos.length ? pos : KEYS) for (const tier of tiers) for (const W of cols) for (const seed of seeds) {
-      const z = make(key, { cols: W, seed, tier, bpm: arg("bpm") }); n++;
+      const z = make(key, { cols: W, seed, tier, bpm: arg("bpm"), beats: songB(W) }); n++;
       const c = LC.check(z); if (c.ok) ok++;
       console.log(`${key.padEnd(13)} ${tier.padEnd(6)} ${String(W).padStart(4)} cols seed ${seed}: ` + (c.ok ? `solves, ${c.presses} presses, ${c.label} (~${c.attempts})${c.tight[0] ? ", tightest " + c.tight[0].ms + " ms" : ""}` : `NO: dies at col ${c.dieCol} row ${c.dieRow}: ${c.why}`) + `  [${(c.ms / 1000).toFixed(0)} s]`);
       if (!c.ok && a.includes("--show")) console.log(z.map.map(l => "   " + l).join("\n"));
     }
     console.log(`${ok} of ${n} solve`);
-  } else console.log("usage: node tools/sectiongen.js show <key> [--cols N] [--tier easy|normal|hard|harder] [--bpm B] | check [key ...] [--cols 30,60,120] [--seeds 1,2] [--tiers easy,hard]\nkeys: " + KEYS.join(", "));
+  } else console.log("usage: node tools/sectiongen.js show <key> [--cols N] [--tier easy|normal|hard|harder] [--bpm B | --song <key> --from <s>] | check [key ...] [--cols 30,60,120] [--seeds 1,2] [--tiers easy,hard]\nkeys: " + KEYS.join(", "));
 }

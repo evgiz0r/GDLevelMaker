@@ -22,4 +22,12 @@ if (!process.argv.includes("--quick")) { const LC = require("../tools/layoutchec
     // holds: 3/4 of the ends; orbs (my-mwz2haf0): half (an orb rides the arc of the last one, so a beat is taken only
     // where an arc can carry an orb); the other tap types: every press
     const holds = z.presses.some(q => Array.isArray(q)); ok(on >= (holds ? 0.75 : key === "my-mwz2haf0" ? 0.5 : 1) * cs.length, `beats ${key}: ${on}/${cs.length} presses on half beats`); } }
+// A SONG'S REAL HITS (tools/sectionbeats.js, from the committed knowledge/song_notes): the cube, ball and spider types put
+// every planned press on a note of Back On Track from 20 s, and the plans still clear
+{ const { songBeats } = require("../tools/sectionbeats.js"), CPS = 311.58 / 30, beats = songBeats("official_BackOnTrack", 20, 20 + 70 / CPS);
+  const LC = require("../tools/layoutcheck.js"), log = console.log;
+  for (const key of ["opencube", "closecube", "staircase", "ball", "my-mwz7nxue"]) { const z = SG.make(key, { cols: 60, seed: 2, tier: "normal", beats });
+    const on = z.presses.filter(c => beats.some(b => Math.abs(b.t * CPS - c) < 0.03)).length;
+    console.log = () => {}; let r; try { r = LC.planCheck(z); } finally { console.log = log; }
+    ok(on === z.presses.length && r.ok, `song hits ${key}: ${on}/${z.presses.length} presses on a note` + (r.ok ? "" : ", plan dies")); } }
 process.exit(bad ? 1 : 0);

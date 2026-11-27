@@ -122,6 +122,17 @@ type, so a builder can make a new one of any length, synced to the song, and so 
   density sets how far apart the wants are, so the share of beats taken. Measured at 140 / 175 bpm: open cube, ball, ball
   portals 100% of presses on half beats; fly ~85% of press and release ends (the rest are turns the steepness cap
   forces with no beat near); every plan still clears (tests/sectiongen.js checks both).
+- **A song's real hits, not only a bpm** (Evgeni 2026-11-27: "i hope we can now/later generate to clicks or around, not just
+  to some bpm. so that the generation process will be able to take into account beats to some extend"): `beats` takes
+  the section's real hits as {t, s}; `node tools/sectionbeats.js <song key> --from <s> [--cols N]` (and
+  `songBeats(key, from, to)`) reads them from the committed knowledge/song_notes/<key>.json -- every note onset with
+  strength >= 0.3, near-twins merged, impacts raised to full strength -- and `node tools/sectiongen.js show <type> --song
+  <key> --from <s>` builds from them; the board's 🎲 does the same in the page. onBeat's strength bonus reaches at least 2
+  columns (~0.2 s): with notes ~10 a second the nearest weak one used to win, now a strong one up to a column nearer does.
+  Measured (60 cols, easy + harder, 3 seeds): Back On Track from 10 s / custom 1086693 from 40 s: open cube, closer cube,
+  staircase, ball, ball portals, spider 100% of presses on a note, flappy 74-100%, wave 64-75%, fly 22-61% of hold ends,
+  orbs 10-57% (sparse hits leave arcs few to take); every plan clears; the notes taken average strength 0.63-0.77 against
+  0.66 for all notes in the stretch.
 - **One click style per generation, a small drift inside it** (Evgeni 2026-11-27: "the click pattern/holds/cps differs
   between generations. not consistent across the whole section, some have bit more cps, some have bit less. some hold more
   some hold less"): ctx() gives `style` -- a density (x0.82-1.22) and hold factor (x0.7-1.4) per generation, and

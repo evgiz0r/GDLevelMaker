@@ -114,7 +114,7 @@ not after it:
 - **Share, don't duplicate.** Results go into the shared `local/` (see below) so no session redoes
   another's work; tell the session that owns an area when you learn something about it.
 
-**Section types: `knowledge/section_types.md`** (the theme board's layouts as types: motif, what to vary, any length by the beats, gravity portals; Evgeni 2026-11-27), built from their concept at any length and tier by **`tools/sectiongen.js`** (`GEN[key]({cols, seed, tier, bpm})` -> a board map; `check` solves them; test `node tests/sectiongen.js`). **Structures in one page: `knowledge/structures_guide.md`** (Evgeni, 2026-11-27: "all of our knowledge of structures and how
+**Section types: `knowledge/section_types.md`** (the theme board's layouts as types: motif, what to vary, any length by the beats, gravity portals; Evgeni 2026-11-27), built from their concept at any length and tier by **`tools/sectiongen.js`** (`GEN[key]({cols, seed, tier, bpm | beats})` -> a board map with its planned presses; `check` solves them; test `node tests/sectiongen.js`; a song's real hits as `beats`: **`tools/sectionbeats.js <song key> --from <s>`** from knowledge/song_notes). **Structures in one page: `knowledge/structures_guide.md`** (Evgeni, 2026-11-27: "all of our knowledge of structures and how
 to combine [...] known externally, not just for this session"): what a structure is, how they combine, how they connect
 (holders, fillets, ledges), how one looks, and how a drawing becomes one. Read it before building or dressing structures;
 add a line there whenever a note teaches something about structures.
