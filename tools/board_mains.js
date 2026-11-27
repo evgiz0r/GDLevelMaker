@@ -41,7 +41,9 @@ for (const n of Object.keys(RATED).map(Number)) {
     inputs = c.actions.length; tight = c.actions.filter(a => a.ms < DF.DIFF.TIGHT).length;
     minMs = Math.round(Math.min(...c.actions.map(a => a.ms)));
   }
-  const pct = r => r ? (r.done ? 100 : r.pct) : null;
+  // a route that reaches the end but skips a portal (tools/skips.js) is not a clear: under 100 (the board counted
+  // Deadlocked as clear on 2026-11-27 while its route skipped a 0.5x speed portal)
+  const pct = r => r ? (r.done && !r.skip ? 100 : Math.min(r.pct, 99)) : null;
   const scoreStale = !!(c && s.physics && c.physics !== s.physics);
   rows.push({ n, name, rating: `${face} ${stars}`, stars,
     solve_pct: pct(s.raw), route_pct: pct(s.view), route_kind: s.kind || null, need: s.need || null, physics: s.physics || null,
