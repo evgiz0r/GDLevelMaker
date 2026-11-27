@@ -80,11 +80,14 @@ let RUN = null;
 function animOf(c0, c1) {
   try {
     if (!RUN) { const io = require("./io.js"), S = require("./solutions.js"), R = io.readGdlvl(path.join(ROOT, "levels", "gdlm_design_themes.gdlvl"));
-      const sol = S.get(R.levelStr, true); RUN = io.GD.run(io.GD.makeWorld(R.level.objects, R.level.header), sol ? sol.events : []).path; }
-    const SC = 0.75, pts = [];
+      const sol = S.get(R.levelStr, true); RUN = io.GD.run(io.GD.makeWorld(R.level.objects, R.level.header), sol ? sol.events : []).path;
+      RUN.presses = new Set((sol ? sol.events : []).filter(e => e.type === "press").map(e => e.tick)); }
+    const SC = 0.75, pts = [], taps = [];
     for (let i = 0; i < RUN.length; i += 4) { const s = RUN[i]; if (s.x < c0 * 30 || s.x > c1 * 30) continue;
+      // the frames with a press in them (for the "on the jumps" style: the structures light up where he has to click)
+      for (let k = i; k < i + 4; k++) if (RUN.presses.has(k)) { taps.push(pts.length); break; }
       pts.push([+((s.x - c0 * 30) * SC).toFixed(1), +((THEME_ROWS * 30 - s.y) * SC).toFixed(1), Math.round(s.rot || 0), s.mode === "cube" ? 0 : s.mode === "ship" ? 1 : 2]); }
-    return pts.length ? { fps: 60, s: SC, pts } : null;
+    return pts.length ? { fps: 60, s: SC, pts, taps } : null;
   } catch (e) { return null; }
 }   // a theme card shows the scene's bottom 13 rows and the ground under them
 const structCopies = () => require("./structdesign.js").spec().copies;

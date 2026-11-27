@@ -170,7 +170,7 @@ window.initDesigns = async function (root) {
       + (lo ? (dr ? tools : `<button class="pdraw">✏ draw</button>`) + (sk.length && !ms.length ? `<button class="msend" data-label="📨 send to Claude"${CAN_SEND ? "" : " disabled"}>📨 send to Claude</button>` : "") + `<span class="ds pst">${esc(DST[d.id] || "")}</span>` : "") + `</div>`
       + (lo ? `<div class="wide" data-w="L:${esc(d.id)}"><div class="mk lk${bg === "blank" ? " blank" : ""}" style="--zh:${fs ? "calc(100vh - 120px)" : zh + "px"}"><img loading="lazy" src="${esc(bg === "scene" ? d.card : d.layout)}" alt="layout">${svg}</div></div>` : "") + `</div>`;
     const media = d.kind === "theme" ? `<div class="zw"><div class="wide" data-w="${esc(d.id)}"><div class="mk${MARKING === d.id ? " on" : ""}" style="--zh:${zh}px">${img}${pins}</div></div>`
-      + `<div class="zb">${d.anim ? `<button class="aplay" title="play the scene at game speed">${PLAY && PLAY.id === d.id ? "■" : "▶"}</button><button class="aspd" title="speed">${ASPD}x</button><select class="asty" title="animation style">${Object.entries(FXS).map(([k, f]) => `<option value="${k}"${styOf(d.id) === k ? " selected" : ""}>${esc(f.name)}</option>`).join("")}</select>` : ""}<button class="zoom" data-z="-1" title="zoom out">−</button><button class="zoom" data-z="1" title="zoom in">＋</button>`
+      + `<div class="zb">${d.anim ? `<button class="aplay" title="play the scene at game speed">${PLAY && PLAY.id === d.id ? "■" : "▶"}</button><button class="aspd" title="speed">${ASPD}x</button><select class="asty" title="animation style">${Object.entries(FXS).map(([k, f]) => `<option value="${k}"${styOf(d.id) === k ? " selected" : ""}>${esc(f.name)}</option>`).join("")}</select><select class="acol" title="number of colours">${[1, 2, 3, 4, 5, 6, 8].map(n => `<option value="${n}"${+(open["acol:" + d.id] || 4) === n ? " selected" : ""}>${n} colour${n > 1 ? "s" : ""}</option>`).join("")}</select>` : ""}<button class="zoom" data-z="-1" title="zoom out">−</button><button class="zoom" data-z="1" title="zoom in">＋</button>`
       // ACTIONS ARE BUTTONS (Evgeni 2026-11-27: "whenever is some operations i should do, like say build, lets move that
       // as a button for example on the theme"): the button sends Claude the request; the page never runs the job itself
       + `<button class="abuild" title="ask Claude to rebuild this theme's scene from the current layout">🔨 build</button><span class="ds abst">${esc(AST[d.id] || "")}</span></div></div>`
@@ -263,36 +263,62 @@ window.initDesigns = async function (root) {
   // as light (screen). A style is f(ctx, w, h, t, beat, P) with t seconds, beat = t in beats (BPM below until the theme
   // gallery has a song), P = the player on the canvas. More styles: one entry here.
   const BPM = 128;
+  // ANIMATION STYLES of the theme cards (Evgeni 2026-11-27: "lets think of some other effects, and obviously we can control
+  // the number of colors - some rotating movement - some pulsing effects in the cube - smaller/arbitrary slice than a single
+  // block * going up and down * beats with the song or when the player has to jump (as some kind of an indicator)").
+  // Every style lights the scene's play blocks (designs.js cellsOf; slopes as their triangle) in the theme's own colours
+  // (designs.js fxColsOf), with N colours from the card's colour picker. A style is light(cell, F) -> [alpha, colour
+  // index] or a list of sub-pieces; F = the frame: b (beats), ph (phase in the beat), N, the screen centre, the player,
+  // the last press. In a level each maps to colour channels + colour / pulse triggers on the beats (EFFECTS.md).
+  const BANDS = (v, N) => ((Math.floor(v) % N) + N) % N;
+  const flow = (v, b, N) => { const n = Math.floor(b), ph = b - n, band = BANDS(v, N), lit = ((n - band) % N + N) % N;
+    return [lit === 0 ? 0.6 * (1 - ph * 0.6) : lit === 1 ? 0.2 * (1 - ph) : 0, band]; };
   const FXS = {
-    static: { name: "static", draw: null },
-    // NINE CIRCLES (Evgeni 2026-11-27: "nine circles is when our structure has 4 channels and it does 'waves', not the
-    // background ... we are not bound to 4 colors, but thats nine circles 'style'. some kind of flow on the structures"):
-    // the play blocks split into 4 colour bands by column; each beat lights the next band, so a wave of colour flows
-    // along the structures. In a level: 4 block channels and a colour trigger per band per beat (EFFECTS.md)
-    nine: { name: "nine circles", draw: (g, w, h, t, b, P, cells, f, sl, cols) => nineDraw(g, w, b, cells, f, sl, cols, true) },
-    nineAlong: { name: "nine circles, along", draw: (g, w, h, t, b, P, cells, f, sl, cols) => nineDraw(g, w, b, cells, f, sl, cols, false) } };
-  // the bands run DIAGONALLY (column + row) and move a band every half beat, faster than the player (Evgeni 2026-11-27:
-  // "bit faster is better not to be close to the player speed ... original vibe was ... diagonal, not to the direction of
-  // the player"); "along" keeps the old stripes by column, one a beat
-  function nineDraw(g, w, b0, cells, f, sl, cols, diag) { if (!cells) return; const b = diag ? b0 * 2 : b0;
-      // the theme's own light colours (designs.js fxColsOf: glow, inner, hi, core), one per band; slopes fill their triangle
-      const C = cols && cols.length ? cols : [[255, 120, 60], [255, 180, 80], [255, 220, 140], [255, 160, 60]], N = 4, n = Math.floor(b), ph = b - n, sz = 22.5 * f;
-      // a slope's triangle: unflipped it rises to the right (corners: bottom left, bottom right, top right)
-      const tri = (X, Y, sh) => { const k = sh - 1, fx = k & 1, fy = k & 2, q = k >> 2, h = sz / 2;
-        let P = [[-h, h], [h, h], [h, -h]].map(([u, v]) => [fx ? -u : u, fy ? -v : v]);
-        for (let j = 0; j < q; j++) P = P.map(([u, v]) => [-v, u]);
-        g.beginPath(); P.forEach(([u, v], j) => j ? g.lineTo(X + u, Y + v) : g.moveTo(X + u, Y + v)); g.closePath(); g.fill(); };
-      for (const [x, y, col, sh] of cells) { const X = x * f - sl; if (X < -sz || X > w + sz) continue;
-        const band = ((Math.floor((diag ? col + Math.round(y / 22.5) : col) / 2) % N) + N) % N, lit = ((n - band) % N + N) % N, a = lit === 0 ? 0.6 * (1 - ph * 0.6) : lit === 1 ? 0.2 * (1 - ph) : 0;
-        if (a < 0.03) continue; const c = C[band % C.length]; g.fillStyle = `rgba(${c[0]},${c[1]},${c[2]},${a.toFixed(3)})`;
-        if (sh) tri(X, y * f, sh); else g.fillRect(X - sz / 2, y * f - sz / 2, sz, sz); } }
+    static: { name: "static" },
+    // NINE CIRCLES (Evgeni: "when our structure has 4 channels and it does 'waves', not the background"): diagonal bands
+    // (column + row), a band every half beat, faster than the player ("original vibe was ... diagonal")
+    nine: { name: "nine circles", light: ([x, y, col], F) => flow((col + Math.round(y / 22.5)) / 2, F.b * 2, F.N) },
+    nineAlong: { name: "nine circles, along", light: ([x, y, col], F) => flow(col / 2, F.b, F.N) },
+    // ROTATING: the bands are slices of a turning wheel round the screen's centre, a quarter turn a beat
+    rotate: { name: "rotating", light: ([x, y], F) => { const a = Math.atan2(y * F.f - F.cy, x * F.f - F.sl - F.cx) / (2 * Math.PI) + 0.5;
+      return flow(a * F.N * 2, F.b * 2, F.N); } },
+    // PULSE: each block's light grows from its centre on the beat and fades, the colour moving on a beat
+    pulse: { name: "pulse in the blocks", light: ([x, y, col], F) => { const e = Math.pow(1 - F.ph, 2);
+      return { a: 0.55 * e, ci: BANDS(F.n + col / 3, F.N), scale: 0.25 + 0.75 * e }; } },
+    // SLICES: every block cut in 3 strips, the diagonal flow running strip by strip (finer than a block)
+    slices: { name: "slices", light: ([x, y, col], F) => [0, 1, 2].map(k => { const [a, ci] = flow((col * 3 + k + Math.round(y / 22.5) * 3) / 2, F.b * 6, F.N); return { a, ci, part: [k / 3, 1 / 3] }; }) },
+    // UP AND DOWN: a line of light rises and falls through the rows, one row a half beat, rippling along the columns
+    updown: { name: "up and down", light: ([x, y, col], F) => { const row = 13 - y / 22.5, top = 6, h = (Math.sin((F.b * 2 + col * 0.25) * Math.PI / 4) + 1) / 2 * top, d = Math.abs(row - h);
+      return [d < 0.8 ? 0.55 * (1 - d / 0.8) : 0, BANDS(row / 2, F.N)]; } },
+    // ON THE BEAT: every block flashes on each beat, the next colour each beat
+    beat: { name: "on the beat", light: (c, F) => [0.5 * Math.pow(1 - F.ph, 3), BANDS(F.n, F.N)] },
+    // ON THE JUMPS (an indicator): a ring of light runs out of every press the route makes, over the structures nearby
+    jump: { name: "on the jumps", light: ([x, y], F) => { if (!F.tap) return [0, 0]; const d = Math.hypot(x - F.tap[0], y - F.tap[1]) / 22.5, r = F.tapAge * 14, k = Math.abs(d - r);
+      return [k < 1.2 && F.tapAge < 0.6 ? 0.65 * (1 - k / 1.2) * (1 - F.tapAge / 0.6) : 0, BANDS(F.taps, F.N)]; } } };
+  // colours: the theme's light roles; more than it has are made between them, fewer are its first ones
+  function fxPal(cols, N) { const C = cols && cols.length ? cols : [[255, 120, 60], [255, 180, 80], [255, 220, 140], [255, 160, 60]], out = [];
+    for (let i = 0; i < N; i++) { const p = N === 1 ? 0 : i * (C.length - 1) / (N - 1), a = Math.floor(p), t = p - a, A = C[a], B = C[Math.min(C.length - 1, a + 1)];
+      out.push(A.map((v, j) => Math.round(v + (B[j] - v) * t))); } return out; }
+  function fxDraw(st, g, w, h, cells, F, cols) { if (!st.light || !cells) return; const C = fxPal(cols, F.N), sz = 22.5 * F.f;
+    const tri = (X, Y, sh, s) => { const k = sh - 1, fx = k & 1, fy = k & 2, q = k >> 2, hh = s / 2;
+      let P = [[-hh, hh], [hh, hh], [hh, -hh]].map(([u, v]) => [fx ? -u : u, fy ? -v : v]);
+      for (let j = 0; j < q; j++) P = P.map(([u, v]) => [-v, u]);
+      g.beginPath(); P.forEach(([u, v], j) => j ? g.lineTo(X + u, Y + v) : g.moveTo(X + u, Y + v)); g.closePath(); g.fill(); };
+    for (const cell of cells) { const [x, y, , sh] = cell, X = x * F.f - F.sl, Y = y * F.f; if (X < -sz || X > w + sz) continue;
+      let L = st.light(cell, F); if (Array.isArray(L) && typeof L[0] === "number") L = { a: L[0], ci: L[1] };
+      for (const q of [].concat(L)) { if (!q || q.a < 0.03) continue; const c = C[q.ci % C.length]; g.fillStyle = `rgba(${c[0]},${c[1]},${c[2]},${q.a.toFixed(3)})`;
+        const s = sz * (q.scale || 1);
+        if (sh) tri(X, Y, sh, s); else if (q.part) g.fillRect(X - sz / 2 + q.part[0] * sz, Y - sz / 2, q.part[1] * sz, sz); else g.fillRect(X - s / 2, Y - s / 2, s, s); } } }
   const styOf = id => FXS[open["anim:" + id]] ? open["anim:" + id] : "static";
   function startPlay(id) { stopPlay(); PLAY = { id, t0: performance.now(), i: 0 }; for (const b of root.querySelectorAll(`.dc[data-id="${CSS.escape(id)}"] .aplay`)) b.textContent = "■"; requestAnimationFrame(stepPlay); }
   function stopPlay() { if (!PLAY) return; const id = PLAY.id; PLAY = null; for (const p of root.querySelectorAll(".plr, .fxc")) p.remove(); for (const b of root.querySelectorAll(`.dc[data-id="${CSS.escape(id)}"] .aplay`)) b.textContent = "▶"; }
   function stepPlay(now) {
     if (!PLAY) return; const d = L.find(x => x.id === PLAY.id), A = d && d.anim; if (!A) return stopPlay();
     const i = Math.max(0, Math.floor((now - PLAY.t0) / 1000 * A.fps * ASPD));   // the first frame's rAF time can be before t0
-    PLAY.i = i; if (i >= A.pts.length) return stopPlay();   // ends with the scene (was on the comment's line: it never stopped)
+    // stop at the end of the last section (Evgeni 2026-11-27: "fix the out of bounds, it should stop when reaching the end
+    // of the last section"): the last play block's x, not the card's last route point
+    const endX = d.cells && d.cells.length ? Math.max(...d.cells.map(c => c[0])) + 15 : Infinity;
+    PLAY.i = i; if (i >= A.pts.length || A.pts[i][0] > endX) return stopPlay();   // ends with the scene (was on the comment's line: it never stopped)
     const mk = root.querySelector(`.dc[data-id="${CSS.escape(PLAY.id)}"] .zw .mk`); if (!mk) return requestAnimationFrame(stepPlay);
     const img = mk.querySelector("img"), f = img && img.naturalHeight ? img.clientHeight / img.naturalHeight : 1, w = mk.closest(".wide");
     let p = mk.querySelector(".plr"); if (!p) { p = document.createElement("span"); p.className = "plr"; mk.appendChild(p); }
@@ -300,10 +326,13 @@ window.initDesigns = async function (root) {
     p.dataset.m = mode; p.style.width = p.style.height = sz + "px"; p.style.transform = `translate(${x * f - sz / 2}px, ${y * f - sz / 2}px) rotate(${(rot % 360 + 360) % 360}deg)`;
     if (w) w.scrollLeft = Math.max(0, x * f - w.clientWidth * 0.35);
     const fx = FXS[styOf(PLAY.id)], zw = mk.closest(".zw"); let cv = zw && zw.querySelector(".fxc");
-    if (fx.draw && zw && w) { if (!cv) { cv = document.createElement("canvas"); cv.className = "fxc"; zw.appendChild(cv); }
+    if (fx.light && zw && w) { if (!cv) { cv = document.createElement("canvas"); cv.className = "fxc"; zw.appendChild(cv); }
       const W = w.clientWidth, H = w.clientHeight; if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
       const g = cv.getContext("2d"), t = i / A.fps; g.clearRect(0, 0, W, H);
-      fx.draw(g, W, H, t, t * BPM / 60, { x: x * f - w.scrollLeft, y: y * f }, d.cells, f, w.scrollLeft, d.fxcols); }
+      const b = t * BPM / 60, tps = (A.taps || []).filter(k => k <= i), tk = tps.length ? tps[tps.length - 1] : null;
+      const F = { b, n: Math.floor(b), ph: b - Math.floor(b), N: +(open["acol:" + d.id] || 4), f, sl: w.scrollLeft, cx: W / 2, cy: H / 2,
+        tap: tk !== null ? A.pts[tk] : null, tapAge: tk !== null ? (i - tk) / A.fps : 9, taps: tps.length };
+      fxDraw(fx, g, W, H, d.cells, F, d.fxcols); }
     else if (cv) cv.remove();
     requestAnimationFrame(stepPlay);
   }
@@ -664,6 +693,8 @@ window.initDesigns = async function (root) {
   root.addEventListener("change", async e => {
     if (e.target.id === "dvf") return render();
     // the animation style: kept per card, starts ▶ at once so the choice is seen
+    if (e.target.classList.contains("acol")) { const id = e.target.closest(".dc").dataset.id; open["acol:" + id] = e.target.value;
+      try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} if (!PLAY || PLAY.id !== id) startPlay(id); return; }
     if (e.target.classList.contains("asty")) { const id = e.target.closest(".dc").dataset.id; open["anim:" + id] = e.target.value;
       try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} if (!PLAY || PLAY.id !== id) startPlay(id); return; }
     if (e.target.classList.contains("pany")) { PCOL = e.target.value; ERASE = false; render(); return; }
