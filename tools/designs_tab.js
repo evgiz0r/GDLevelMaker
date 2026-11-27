@@ -16,7 +16,7 @@ window.initDesigns = async function (root) {
   #designs .dc .wide{overflow-x:auto;background:#0f0c2b;-webkit-overflow-scrolling:touch}
   #designs .dc .wide img{width:auto;height:130px;max-width:none;aspect-ratio:auto}
   #designs .k-theme .wide img{height:var(--zh,220px)}
-  #designs .lyh{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:6px 8px;font-size:12px}#designs .lfold{cursor:pointer;color:var(--mute)}
+  #designs .lyh{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:6px 8px;font-size:12px}#designs .lfold{cursor:pointer;color:var(--mute)}#designs .tfold{cursor:pointer}#designs .tfc{padding:4px 0}
   #designs .lyh button{background:#241d3d;color:#ddd;border:1px solid #444;border-radius:6px;padding:2px 7px;font-size:12px}#designs .lyh .pen.on{outline:2px solid currentColor}
   #designs .ink{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}#designs .ink.on{pointer-events:auto;cursor:crosshair;touch-action:none;outline:2px dashed #ffd84d}
   #designs .tiles .grid line{stroke:#ffffff30;stroke-width:1px;vector-effect:non-scaling-stroke}#designs .plr{position:absolute;left:0;top:0;background:#c8ff3c;border:2px solid #10301a;box-sizing:border-box;pointer-events:none;z-index:5}#designs .plr[data-m="1"]{border-radius:40% 70% 70% 40%}#designs .plr[data-m="2"]{border-radius:50%}#designs .zb .aplay,#designs .zb .aspd{min-width:28px}#designs .tiles,#designs .tiles *{pointer-events:auto!important}#designs .tiles{cursor:pointer;display:block;touch-action:none;background:#1a1636;max-width:none}#designs .lay .wide{padding:4px 8px}#designs .ptool.on{outline:2px solid #ffd84d}#designs .tiles .rte,#designs .tiles .rte *{pointer-events:none!important}#designs .lroute.on{outline:2px solid #7be3ff}
@@ -141,6 +141,10 @@ window.initDesigns = async function (root) {
   const open = {}; try { Object.assign(open, JSON.parse(localStorage.getItem("designs-open") || "{}")); } catch (e) {}
   function card(d) {
     const v = VOTES[d.id] || {};
+    // theme cards start folded, one header line each (Evgeni 2026-11-27: "when i stop the firey it shows the next theme.
+    // make them all collapsed"); a tap opens one, and the open ones are remembered per viewer
+    if (d.kind === "theme" && open["theme:" + d.id] !== true) {
+      return `<div class="dc k-theme tfc" data-id="${esc(d.id)}"><div class="dt tfold" role="button" tabindex="0" data-tf="${esc(d.id)}">▸ <span class="dn">${d.n ? d.n + " " : ""}${esc(d.name)}</span>${d.note ? ` <span class="ds">${esc(d.note)}</span>` : ""}</div></div>`; }
     const img = `<img loading="lazy" decoding="async" src="${esc(d.card)}" alt="${esc(d.name)}">`;
     // a theme's scene takes 📍 marks: tap the 📍 button, then a spot on the picture, then type the note
     // a mark is open (Evgeni's note), seen (Claude read it: seen + reply) or gone (fixed: Claude deletes it, the log stays in
@@ -187,7 +191,7 @@ window.initDesigns = async function (root) {
           + (so ? seen.map(m => `<div class="mseen" data-m="${esc(m.mid)}">✓ <span>${esc(m.note || "")}</span>${m.reply ? `<i>${esc(m.reply)}</i>` : ""}<button class="mdel" title="remove">✕</button></div>`).join("") : "") : "")
         + `</div>` : "") + `</div>`;
     return `<div class="dc k-${d.kind}" data-id="${esc(d.id)}">${media}
-      <div class="dt"><span class="dn">${d.n ? d.n + " " : ""}${esc(d.name)}</span>${d.note ? `<div class="dm">${esc(d.note)}</div>` : ""}</div>
+      <div class="dt${d.kind === "theme" ? " tfold" : ""}"${d.kind === "theme" ? ` role="button" tabindex="0" data-tf="${esc(d.id)}"` : ""}>${d.kind === "theme" ? "▾ " : ""}<span class="dn">${d.n ? d.n + " " : ""}${esc(d.name)}</span>${d.note ? `<div class="dm">${esc(d.note)}</div>` : ""}</div>
       <div class="dv"><button class="up${v.vote > 0 ? " on" : ""}" title="I like it">👍</button><button class="down${v.vote < 0 ? " on" : ""}" title="not so much">👎</button>
       <button class="com" title="a comment">💬${v.comment ? "•" : ""}</button>${d.kind === "theme" ? `<button class="mark${MARKING === d.id ? " on" : ""}" title="mark a spot on the scene">📍</button>` : ""}<span class="ds">${v.at ? "saved" : ""}</span>
       <textarea hidden placeholder="what is good or off about it">${esc(v.comment || "")}</textarea></div>${marksUI}</div>`;
@@ -587,6 +591,9 @@ window.initDesigns = async function (root) {
     const zb = e.target.closest(".zoom");
     if (zb) { const id0 = zb.closest(".dc").dataset.id, id = id0.startsWith("layout") ? "layout" : id0, k = "zoom:" + id, z = open[k] || 1;
       open[k] = Math.max(0.5, Math.min(3, +(z * (+zb.dataset.z > 0 ? 1.4 : 1 / 1.4)).toFixed(3)));
+      try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} render(); return; }
+    const tf = e.target.closest(".tfold");
+    if (tf) { const k = "theme:" + tf.dataset.tf; open[k] = !open[k]; if (!open[k] && PLAY && PLAY.id === tf.dataset.tf && typeof stopPlay === "function") stopPlay();
       try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} render(); return; }
     const mf = e.target.closest(".mfold");
     if (mf) { const k = "marks:" + mf.dataset.mf; open[k] = !open[k]; try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} render(); return; }
