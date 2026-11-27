@@ -87,7 +87,7 @@ function pass(level, events, opts, spec) {
   // and a triangle top too (Evgeni 2026-11-27: "1 block should be by chain, same for triangle top"): a brick pillar whose
   // end meets a slope hangs on a chain instead
   const slopeEnd = q => blocks.some(b => b.id === 1338 && Math.abs(b.x - q.x0) < 16 && (Math.abs(b.y - q.y1) < 31 || Math.abs(b.y - q.y0) < 31));
-  const SMALL_TOP = 2, styleFor = q => { const st = styleOf(secOf(Math.min(q.x0, q.x1))); return st === "brick" && ((q.w || 1) <= SMALL_TOP || slopeEnd(q)) ? "chain" : st; };
+  const SMALL_TOP = 2, styleFor = q => { const st = styleOf(secOf(Math.min(q.x0, q.x1))); return st === "brick" && ((q.w || 1) <= SMALL_TOP || slopeEnd(q) || q.uneven) ? "chain" : st; };   // an uneven top hangs soft (connect.js)
   if (o.holders) {
     const pathCells = events ? CN.routeCells(level, events) : new Set();
     if (!events) notes.push("WARN holders without a route: nothing kept clear for the player");
