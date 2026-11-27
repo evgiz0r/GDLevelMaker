@@ -59,6 +59,18 @@ function check(z) {
   // the board can tell when he has drawn since (then the route is shown as old)
   out.route = []; for (let t = 0; t < p.length; t += 8) { const c = p[t].x / 30 - S.x0, rr = p[t].y / 30 - 0.5; if (c >= -0.5 && c <= z.map[0].length + 0.5) out.route.push([+c.toFixed(2), +rr.toFixed(2)]); }
   out.taps = ev.filter(e => e.type === "press" && inSec(e.tick)).map(e => { const q = p[Math.min(e.tick, p.length - 1)]; return [+(q.x / 30 - S.x0).toFixed(2), +(q.y / 30 - 0.5).toFixed(2)]; });
+  // MOVE SIZE (Evgeni 2026-11-27: "in the 'jumping' modes, the average length of movement is below the half of the full
+  // length, just to have less updown from ground to floor"): the route's vertical legs (turning points of y inside the
+  // section), their mean height in rows and as a share of the room (the mode's band, or the section's height): the soft
+  // target is under 0.5
+  { const ys = []; for (let t = 0; t < p.length; t += 4) { const c = p[t].x / 30 - S.x0; if (c >= 0 && c <= z.map[0].length) ys.push(p[t].y / 30); }
+    const legs = []; let a0 = ys[0], dir = 0;
+    for (let i = 1; i < ys.length; i++) { const d = Math.sign(ys[i] - ys[i - 1]); if (!d) continue;
+      if (dir && d !== dir) { legs.push(Math.abs(ys[i - 1] - a0)); a0 = ys[i - 1]; } dir = d; }
+    if (ys.length) legs.push(Math.abs(ys[ys.length - 1] - a0));
+    const big = legs.filter(x => x >= 0.5), room = Math.min(z.map.length, { ball: 8, spider: 9, ship: 10, ufo: 10, wave: 10, swing: 10 }[z.mode] || z.map.length);
+    const mean = big.length ? big.reduce((s, x) => s + x, 0) / big.length : 0;
+    out.move = { legs: big.length, mean: +mean.toFixed(2), share: +(mean / room).toFixed(2), room }; }
   out.mapHash = hashMap(z.map);
   return Object.assign(out, { ok: true, presses, tight, attempts: d ? Math.round(10 ** d.logAttempts) : null, log: d ? +d.logAttempts.toFixed(2) : null, label: d ? DF.difficultyLabel(d.logAttempts) : null });
 }
@@ -67,7 +79,7 @@ if (require.main === module) {
   const want = process.argv.slice(2).filter(a => !a.startsWith("--"));
   const out = [];
   for (const z of LS.SECTIONS) { if (want.length && !want.includes(z.key)) continue; const c = check(z); out.push(c);
-    console.log(c.ok ? `${z.key.padEnd(14)} ${z.mode.padEnd(6)} solves: ${c.presses} presses, ${c.label} (~${c.attempts} attempts)${c.tight.length ? ", tightest " + c.tight.map(t => t.ms + " ms (" + t.type + ") at col " + t.col).join(", ") : ""}  [${(c.ms / 1000).toFixed(0)} s]`
+    console.log(c.ok ? `${z.key.padEnd(14)} ${z.mode.padEnd(6)} solves: ${c.presses} presses, ${c.label} (~${c.attempts} attempts)${c.tight.length ? ", tightest " + c.tight.map(t => t.ms + " ms (" + t.type + ") at col " + t.col).join(", ") : ""} · moves ${c.move ? c.move.mean + " rows avg, " + Math.round(c.move.share * 100) + "% of " + c.move.room + (c.move.share > 0.5 ? " (OVER half)" : "") : "?"}  [${(c.ms / 1000).toFixed(0)} s]`
       : `${z.key.padEnd(14)} ${z.mode.padEnd(6)} DOES NOT SOLVE: dies at col ${c.dieCol}, row ${c.dieRow}: ${c.why}  [${((c.ms || 0) / 1000).toFixed(0)} s]`); }
   if (process.argv.includes("--show")) for (const c of out) if (c.show) console.log("\n" + c.key + ":\n" + c.show.map(l => "  " + l).join("\n"));
   for (const c of out) delete c.show;

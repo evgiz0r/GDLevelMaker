@@ -74,6 +74,9 @@ MAP.forEach((line, i) => { const r = MAP.length - 1 - i;
     else if (ch === "s") SAMPLE.push([1707, c, r, { dy: -8 }]);
     else if (ch === "G") SAMPLE.push([11, c, r]);   // gravity portal, upside down (the board's 🟡)
     else if (ch === "N") SAMPLE.push([10, c, r]);   // gravity portal, back to normal (🔵)
+    // a portal of the mode you are already in moves the band (Evgeni 2026-11-27: "people put invisible ones to move further
+    // in the screens"; lib/physics.js): W swing, H ship, U ufo, A wave, L ball, P spider
+    else if ("WHUALP".includes(ch)) SAMPLE.push([{ W: 1933, H: 13, U: 111, A: 660, L: 47, P: 1331 }[ch], c, r]);
     // orbs and pads (Evgeni 2026-11-27: sets of yellow / blue / green orbs, "and pads i guess"): Y yellow orb, B blue orb,
     // E green orb, J yellow pad, K blue pad (pads sit on the cell's floor)
     else if (ch === "Y") SAMPLE.push([36, c, r]);

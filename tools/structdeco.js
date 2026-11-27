@@ -84,7 +84,10 @@ function pass(level, events, opts, spec) {
   const styleOf = i => (o.holders && o.secs[i].holders) || o.holders;
   // SMALL TOPS HANG SOFT (Evgeni 2026-11-27, hellgate: "1 block tops, we would usually hold with rope or chain or whatever
   // we have"): a brick pillar is for big structures; an island SMALL_TOP wide or less keeps the soft holder (chain)
-  const SMALL_TOP = 2, styleFor = q => { const st = styleOf(secOf(Math.min(q.x0, q.x1))); return st === "brick" && (q.w || 1) <= SMALL_TOP ? "chain" : st; };
+  // and a triangle top too (Evgeni 2026-11-27: "1 block should be by chain, same for triangle top"): a brick pillar whose
+  // end meets a slope hangs on a chain instead
+  const slopeEnd = q => blocks.some(b => b.id === 1338 && Math.abs(b.x - q.x0) < 16 && (Math.abs(b.y - q.y1) < 31 || Math.abs(b.y - q.y0) < 31));
+  const SMALL_TOP = 2, styleFor = q => { const st = styleOf(secOf(Math.min(q.x0, q.x1))); return st === "brick" && ((q.w || 1) <= SMALL_TOP || slopeEnd(q)) ? "chain" : st; };
   if (o.holders) {
     const pathCells = events ? CN.routeCells(level, events) : new Set();
     if (!events) notes.push("WARN holders without a route: nothing kept clear for the player");
@@ -140,7 +143,7 @@ function pass(level, events, opts, spec) {
     // 3D HOLDERS (Evgeni 2026-11-27: "the holders are not 3d but the platform is, a bit annoying"): a section whose
     // structures have depth gives its holders the same side face (connect.js draw depth)
     const fx = [].concat(s.effects || []).join("+"), d = /long depth/.test(fx) ? 14 : /depth/.test(fx) ? 7 : 0;
-    for (const st of new Set(mine.map(styleFor))) out.push(...CN.draw(mine.filter(q => styleFor(q) === st), pals.get(palKey(s.pal)).C, { style: st, depth: d })); });
+    for (const st of new Set(mine.map(styleFor))) out.push(...CN.draw(mine.filter(q => styleFor(q) === st), pals.get(palKey(s.pal)).C, { style: st, depth: 0 })); });   // no 3D on holders (Evgeni 2026-11-27: "no 3d on the holders"; d kept for later)
   notes.unshift(`structures: ${SD.structures(blocks).length} dressed in ${looks.size} look(s) (${o.secs.map(s => `${s.from}: ${s.design}/${typeof s.pal === "string" ? s.pal : "custom"}${[].concat(s.effects || []).length ? "+" + [].concat(s.effects).join("+") : ""}`).join(", ")}), +${out.length} objects; holders ${o.holders ? JSON.stringify(tally) : "off"}`);
   return { objects: out, header, notes };
 }
