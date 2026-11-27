@@ -506,6 +506,6 @@ the signature's robot + human motifs as set pieces, soft rounded blocks, the end
 Evgeni: "lets add several animations possible to play, in the dropdown. we will start with - static, nine circles styles".
 Next to a theme card's ▶ there is a style dropdown (tools/designs_tab.js `FXS`). **static** plays the scene as it is.
 **nine circles** (corrected by Evgeni: "when our structure has 4 channels and it does waves, not the background"): the play blocks are split into 4 colour bands of 2 columns each, and each beat lights the next band, so stripes of colour flow along the structures.
-Its colours are the theme's own light roles (glow, inner, hi, core of its palette; Evgeni: "the colors of the effect should match the vibe of the level"). Slopes light as their triangle, not a square (designs.js cellsOf, the 4th field). The animation ends with the scene.
+Its colours are the theme's own light roles (glow, inner, hi, core of its palette; Evgeni: "the colors of the effect should match the vibe of the level"). Slopes light as their triangle, not a square (designs.js cellsOf, the 4th field). The animation ends with the scene. The bands run diagonally (column + row) and move every half beat, faster than the player (Evgeni: "original vibe was ... diagonal"); "nine circles, along" keeps stripes by column, one a beat.
 song. These styles are a preview in the page only. The in-game version would be built with the effects toolkit
 (tools/effects.js, EFFECTS.md), which is not done yet. A new style is one entry in `FXS`.
