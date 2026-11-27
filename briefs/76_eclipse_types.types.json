@@ -1,0 +1,53 @@
+{
+ "name": "GDLM 76 night shift",
+ "desc": "A night run through three worlds, every section generated from its type. Made by Claude.",
+ "out": "specs/76_night_shift.json",
+ "song": 1086693,
+ "to": 61,
+ "tier": "Normal",
+ "seed": 7,
+ "maxSections": 9,
+ "looks": {
+  "calm": "void",
+  "drop": "hellgate",
+  "break": "frost"
+ },
+ "indicator": "spark",
+ "session": "typebuild",
+ "sections": [
+  {
+   "type": "entrance",
+   "look": "calm",
+   "seed": 702
+  },
+  {
+   "look": "calm",
+   "seed": 711
+  },
+  {
+   "seed": 721
+  },
+  {
+   "look": "drop",
+   "seed": 731
+  },
+  {
+   "seed": 742
+  },
+  {
+   "seed": 750
+  },
+  {
+   "seed": 761
+  },
+  {
+   "seed": 770
+  },
+  {
+   "mode": "swing",
+   "look": "calm",
+   "tier": "normal",
+   "seed": 782
+  }
+ ]
+}

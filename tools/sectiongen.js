@@ -221,7 +221,11 @@ function rollers(o, { mode, band, travel, portals = 0 }) { const { R, mix, imix,
     // the y axis, in both directions"): pieces in the middle, a floor or ceiling mass only at the band's edges
     const p = S[S.length - 1], side = -p.side, step = R.int(2, o.maxStep ?? 4);
     // a floor-side surface sits low enough to flip up from (row <= BT - 4), a ceiling-side one high enough to drop from
-    const y = side < 0 ? clamp(p.y + step, Math.max(3, p.y + 2), BT - 2) : clamp(p.y - step, 1, Math.min(BT - 4, p.y - 2));
+    // and now and then the very edges (Evgeni 2026-11-27: "all our sections should involve the ground/floor at some of the
+    // play. even those fully blocked (ball / spider...)"): a stretch rolled on the ground itself (row 0, its spikes taken
+    // away there) or under the ceiling bar (row BT - 1)
+    const edge = R.chance(0.3);
+    const y = side < 0 ? clamp(p.y + step, Math.max(3, p.y + 2), edge ? BT - 1 : BT - 2) : clamp(p.y - step, edge ? 0 : 1, Math.min(BT - 4, p.y - 2));
     const kind = side < 0 ? (y >= BT - 2 ? "mass" : "mid") : (y <= 1 ? "mass" : "mid");
     // a portal flip happens exactly at the surface's end (no window to leave); travel 0 = the spider's instant crossing
     const byPortal = portals && p.c1 + 2 < W && R.chance(portals);
@@ -246,6 +250,11 @@ function rollers(o, { mode, band, travel, portals = 0 }) { const { R, mix, imix,
     if (R.chance(0.2)) { G.put(c, row, "o"); c += 2; continue; }
     const n = R.int(2, 3); for (let k = 0; k < n && c + k < W; k++) G.put(c + k, row, t); c += n + 1; }
   for (const s of S) { const c1 = Math.min(W - 1, s.c1);
+    if (s.side > 0 && s.y === 0) for (let c = s.c0; c <= c1; c++) G.put(c, 0, ".");
+    if (s.side < 0 && s.y === BT - 1) for (let c = s.c0; c <= c1; c++) G.put(c, BT - 1, ".");
+    // and the two columns past a surface at the edges stay clear: a saw there reaches the player rolling off its end
+    if (s.side > 0 ? s.y <= 1 : s.y >= BT - 2) for (let c = c1 + 1; c <= Math.min(W - 1, c1 + 2); c++) for (const row of [0, BT - 1])
+      G.put(c, row, ".");
     if (s.side > 0) { if (s.kind === "mass") G.box(s.c0, c1, 0, s.y - 1); else G.box(s.c0, c1, s.y - s.thick, s.y - 1);
       if (s.end && s.c1 < W) G.put(c1, s.y, "^"); }
     else { if (s.kind === "mass") G.box(s.c0, c1, s.y + 1, H - 1); else { G.box(s.c0, c1, s.y + 1, s.y + s.thick); if (chance(0.3, 0.6)) G.put(s.c0 + 1, s.y + s.thick + 1, "^"); }
