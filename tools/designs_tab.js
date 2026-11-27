@@ -99,7 +99,7 @@ window.initDesigns = async function (root) {
     const mo = open["marks:" + d.id] === true, nu = ms.filter(unsent).length;
     const marksUI = d.kind !== "theme" || !(ms.length || seen.length) ? "" : `<div class="mks">`
       + `<div class="mks-h"><span class="mfold" role="button" data-mf="${esc(d.id)}">${mo ? "▾" : "▸"} 📍 ${ms.length} open${seen.length ? ` · ✓ ${seen.length} seen` : ""}</span>`
-      + (CAN_SEND && nu ? `<button class="msend" data-label="📨 send ${nu}" title="send the new notes to Claude">📨 send ${nu}</button>` : ms.length && CAN_SEND ? `<span class="ds">sent ✓</span>` : "") + `<span class="ds msst"></span></div>`
+      + (ms.length ? `<button class="msend" data-label="📨 send to Claude" title="send the notes Claude has not got yet"${CAN_SEND ? "" : " disabled"}>📨 send to Claude</button>` : "") + `<span class="ds msst"></span></div>`
       + (mo ? `<div class="mks-b">` + ms.map((m, i) => `<div data-m="${esc(m.mid)}"><b>${i + 1}</b><input value="${esc(noteOf(m))}" placeholder="what is off here"><button class="mdel" title="remove">✕</button><span class="ds mst">${esc(MST[m.mid] || "")}</span></div>`).join("")
         + (seen.length ? `<div class="mseen-h" role="button" data-seen="${esc(d.id)}">${so ? "▾" : "▸"} ✓ ${seen.length} seen by Claude</div>`
           + (so ? seen.map(m => `<div class="mseen" data-m="${esc(m.mid)}">✓ <span>${esc(m.note || "")}</span>${m.reply ? `<i>${esc(m.reply)}</i>` : ""}<button class="mdel" title="remove">✕</button></div>`).join("") : "") : "")
@@ -142,6 +142,7 @@ window.initDesigns = async function (root) {
     if (snd) { const c = snd.closest(".dc"), id = c.dataset.id, st = c.querySelector(".msst"), d = L.find(x => x.id === id);
       const ms = MARKS.filter(m => m.design === id && unsent(m)).sort((a, b) => a.fx - b.fx);
       const text = `📍 marks on the ${d.name} theme scene (catalogue Themes tab):\n` + ms.map((m, i) => `${i + 1}. col ${m.col}, row ${m.row} (x ${m.x}, y ${m.y}): ${noteOf(m).trim() || "(no note)"}`).join("\n");
+      if (!ms.length) { st.textContent = "nothing new: every typed note was sent already"; return; }
       st.textContent = "sending ...";
       try { const anchor = await CM.anchorFor(c); await CM.sendToClaude({ anchor, text: text.slice(0, 4000) });
         for (const m of ms) { PEND[m.mid] = noteOf(m); m.sentNote = noteOf(m).trim(); m.sent = new Date().toISOString(); await saveMark(m.mid); }
@@ -202,6 +203,7 @@ window.initDesigns = async function (root) {
       if (!root.contains(document.activeElement) || !/INPUT|TEXTAREA/.test(document.activeElement.tagName)) render();
     }, () => {});
     if (window.claude && window.claude.use) CM = await window.claude.use("comments");
-    if (CM && CM.canSendToClaude) { CAN_SEND = (await CM.canSendToClaude()) === "available"; if (CAN_SEND && !(document.activeElement && /INPUT|TEXTAREA/.test(document.activeElement.tagName))) render(); }
+    // the button shows whenever the page can comment; whether a Claude session takes it is checked on the tap
+    CAN_SEND = !!(CM && CM.sendToClaude); if (CAN_SEND && !(document.activeElement && /INPUT|TEXTAREA/.test(document.activeElement.tagName))) render();
   } catch (e) {}
 };
