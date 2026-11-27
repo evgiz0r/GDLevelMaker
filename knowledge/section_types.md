@@ -126,6 +126,16 @@ difficulty target (tier: cps and tightest window), and are checked by tools/layo
   of 2-4 rows (mean ~2.3 in the 8-row band), the height wandering over the band, pieces in the middle and masses only at
   the band edges. Against his drawing: cps 1.09, height changes 1.10, step 0.73, heights 1.13; middle pieces many more
   than his (11x share): open, maybe hold them to the floor or the bar. 12 of 12 solve.
+- **Wave v2** (Evgeni: "a bit more veriaty on the screen, again a bit more split. and we can add 1 ground slide"): legs of
+  every size (1-5 rows), short flats between some, one ground slide (the floor drops to the ground and the wave slides along
+  it 4-7 columns), 13 rows with hidden wave portals (board letter A) moving the 10-block band with the corridor. 12/12 solve.
+- **The three newest board sections** (Evgeni: "dont have the last 3 sections in the generator"): **spider corridors**
+  (the ball's surfaces in a 9-row band, the next surface right where the last ends: the spider teleports), **ball portals**
+  (the ball corridor, ~45% of flips made by a G / N at a surface's end), both via `rollers()` in tools/sectiongen.js, 12/12
+  each; **orb gameplay** (cube over a spike floor, orbs in sets of yellow / blue / green and mixes, easy yellow only, each
+  orb on the cube's own arc computed in the generator with GD's numbers -- the page can't run the sim --, a flip orb only
+  where the flipped arc has a next orb, a blue at the end if the gravity is still reversed, the end platform where the
+  last arc comes down). 12/12 solve.
 - **Tier extreme** (Evgeni: "lets increase the cps of harder ... or add 1 more level", "the wave seems a bit too hard for
   harder, too tight"): `extreme` (1.4) goes past harder on pace only (shorter runs, more presses a second); room --
   corridor gaps -- stops at harder's (`room()` in ctx). The wave's gap is now 6 rows (easy) to 5 (harder and extreme); it was 5 to 3 (Evgeni: "still too tight gaps, need bigger gaps, even for harder").
