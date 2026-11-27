@@ -74,6 +74,13 @@ MAP.forEach((line, i) => { const r = MAP.length - 1 - i;
     else if (ch === "s") SAMPLE.push([1707, c, r, { dy: -8 }]);
     else if (ch === "G") SAMPLE.push([11, c, r]);   // gravity portal, upside down (the board's 🟡)
     else if (ch === "N") SAMPLE.push([10, c, r]);   // gravity portal, back to normal (🔵)
+    // orbs and pads (Evgeni 2026-11-27: sets of yellow / blue / green orbs, "and pads i guess"): Y yellow orb, B blue orb,
+    // E green orb, J yellow pad, K blue pad (pads sit on the cell's floor)
+    else if (ch === "Y") SAMPLE.push([36, c, r]);
+    else if (ch === "B") SAMPLE.push([84, c, r]);
+    else if (ch === "E") SAMPLE.push([1022, c, r]);
+    else if (ch === "J") SAMPLE.push([35, c, r, { dy: -13 }]);
+    else if (ch === "K") SAMPLE.push([67, c, r, { dy: -13 }]);
   }); });
   return SAMPLE; }
 const SAMPLE = sampleOf(SCENE);

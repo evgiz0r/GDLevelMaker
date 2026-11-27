@@ -22,5 +22,13 @@
   "w": 45,
   "h": 14,
   "after": "my-mwz1890c"
+ },
+ {
+  "key": "my-mwz2haf0",
+  "name": "orb gameplay",
+  "mode": "cube",
+  "w": 40,
+  "h": 14,
+  "after": "my-mwz1s7po"
  }
 ]

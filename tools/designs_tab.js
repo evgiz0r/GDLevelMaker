@@ -266,6 +266,9 @@ window.initDesigns = async function (root) {
         // gravity portals (Evgeni 2026-11-27: "i need also reverse gravity portals in the layouts"): G upside down (yellow),
         // N back to normal (blue); drawn 3 rows tall like the game's portal, centred on its cell
         case "G": case "N": return `<rect class="tl" x="${x + 0.25}" y="${y - 1}" width="0.5" height="3" rx="0.25" fill="${q.t === "G" ? "#ffe000" : "#38c8ff"}" fill-opacity="0.85" />`;
+        // orbs (Y yellow, B blue, E green) and pads (J yellow, K blue)
+        case "Y": case "B": case "E": return `<circle class="tl" cx="${x + 0.5}" cy="${y + 0.5}" r="0.4" fill="none" stroke="${q.t === "Y" ? "#ffe000" : q.t === "B" ? "#38c8ff" : "#40ff60"}" stroke-width="0.14" /><circle class="tl" cx="${x + 0.5}" cy="${y + 0.5}" r="0.18" fill="${q.t === "Y" ? "#ffe000" : q.t === "B" ? "#38c8ff" : "#40ff60"}" />`;
+        case "J": case "K": return `<rect class="tl" x="${x + 0.1}" y="${y + 0.8}" width="0.8" height="0.2" rx="0.08" fill="${q.t === "J" ? "#ffe000" : "#38c8ff"}" />`;
         case "o": case "q": case "s": return `<circle class="tl" cx="${x + 0.5}" cy="${y + 0.5}" r="${q.t === "o" ? 0.48 : 0.36}" fill="#ff6b6b" />`;
         default: return `<rect class="tl" x="${x + 0.03}" y="${y + 0.03}" width="0.94" height="0.94" fill="#e8e8f0" />`; } };
     TILE = tile;
@@ -292,7 +295,7 @@ window.initDesigns = async function (root) {
     const marks = H => SCENE_SEGS.map(z => z.join ? `<rect x="${z.c0}" y="0" width="${z.w}" height="${H}" fill="#ffffff0d" />`
       : `<line x1="${z.c0}" y1="0" x2="${z.c0}" y2="${H}" stroke="#ffd84d66" stroke-dasharray="0.3 0.3" style="stroke-width:1px;vector-effect:non-scaling-stroke" /><text x="${z.c0 + 0.2}" y="0.7" font-size="0.6" fill="#ffd84daa" style="pointer-events:none">${esc(z.name)}</text>`).join("");
     const n = LPARTS.filter(q => q[0] !== "play" && (DRAW["layout:" + q[0]] || {}).tiles).length;   // parts he has edited
-    const TOOLS = [["#", "▭ block"], ["/", "◢ slope"], ["\\", "◣ slope"], ["7", "◥ ceiling slope"], ["r", "◤ ceiling slope"], ["^", "▲ spike"], ["v", "▼ hanging spike"], ["o", "⚙ saw"], ["G", "🟡 gravity up"], ["N", "🔵 gravity back"], ["erase", "⌫ erase"]];
+    const TOOLS = [["#", "▭ block"], ["/", "◢ slope"], ["\\", "◣ slope"], ["7", "◥ ceiling slope"], ["r", "◤ ceiling slope"], ["^", "▲ spike"], ["v", "▼ hanging spike"], ["o", "⚙ saw"], ["G", "🟡 gravity up"], ["N", "🔵 gravity back"], ["Y", "◎ yellow orb"], ["B", "◎ blue orb"], ["E", "◎ green orb"], ["J", "▬ yellow pad"], ["K", "▬ blue pad"], ["erase", "⌫ erase"]];
     const chips = `<span class="pens">` + LPARTS.map(q => `<button class="lpt${show(q[0]) ? " on" : ""}" data-p="${esc(q[0])}" title="${esc(q[5] || "")}">${show(q[0]) ? "☑" : "☐"} ${esc(q[1])}${q[0] !== "play" && (DRAW["layout:" + q[0]] || {}).tiles ? " ✏" : ""}</button>`).join("")
       + `<button class="lall">all</button><button class="lnone">none</button><button class="ladd">＋ section</button></span>`
       + (ADDFORM ? `<span class="pens laddf"><input class="lan" placeholder="name, e.g. robot stairs" maxlength="40">`
