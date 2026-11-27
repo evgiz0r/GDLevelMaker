@@ -927,8 +927,47 @@ CONCEPT["my-mwz7nxue"] = "floor and ceiling pieces the spider teleports between;
 // Evgeni 2026-11-27: "in spider we need alignment of top and bottom, that alignment decides the difficulty in a way as a
 // timing and cps", then "the platforms you jump still dont overlap in possible gameplay": each piece starts before the
 // last one ends, the overlap (3 columns easy, 1 at harder, now and then one more or less) is the window to teleport in
-GEN["my-mwz7nxue"] = o => { const { R, mix } = ctx(o, 10), base = mix(3, 1.2);
-  return rollers(o, { mode: "spider", band: 9, travel: () => 0, overlap: () => clamp(Math.round(base + R.pick([-1, 0, 0, 0, 1])), 1, 4) }); };
+// SPIDER, PRESSES FIRST (2026-11-27). The taps come first: one on the rhythm (or the beat), the window `win` columns around
+// it (2.4 easy -> 1.0 harder), and each tap's two surfaces built from it: the one the spider leaves ends where a late tap
+// would walk it off (its box past the last block), the one it teleports to starts where an early tap would find nothing
+// above it and flip into the band's spikes. A surface runs from one tap to the next, on the other side each time, 2-4
+// rows from the last (under half the band on average), now and then on the band's very floor or roof (their hazards
+// cleared there). Taller than the band: a hidden spider portal (P) on a long surface re-bands around it, as in rollers.
+GEN["my-mwz7nxue"] = o => { const { R, mix, W, H, G, style, onBeat } = ctx(o, 10), BT = Math.min(H, 9), tall = H > BT + 2;
+  const win = mix(2.4, 1.0), e = win / 2, l = win / 2;
+  const gap0 = R.pick([0.35, 0.45, 0.55, 0.7].map(v => v - mix(0, 0.1)));
+  const gapS = c => Math.max(win + 1.6, gap0 * (0.85 + R() * 0.3) * (R.chance(0.12) ? 1.6 + R() * 0.4 : 1) / style.pace(c) * COLS_PER_SEC);
+  // a surface: side 1 = floor (y: the row the spider runs in, blocks under it), -1 = ceiling (y: the row it hangs in,
+  // blocks over it); rows in its band (O = the band's floor row); [a, b] its columns
+  const S = [{ side: 1, y: 2, O: 0, a: 0, b: null, mass: true }], presses = []; let O = 0, p = onBeat(R.int(4, 6) + 0.5, 3.5);
+  while (p < W - 3) { const q = S[S.length - 1];
+    q.b = Math.ceil(p + l - 1.5);
+    // tall: a portal on a long surface re-bands around the spider (between its landing window and its leaving one)
+    if (tall && S.length > 1 && q.b - q.a >= 5 && R.chance(0.6)) { const abs = q.y + q.O, O2 = clamp(abs - Math.floor(BT / 2), 0, H - 1 - BT), rel = abs - O2;
+      if (O2 !== O && (q.side > 0 ? rel <= BT - 4 : rel >= 3)) { q.mover = { c: q.a + Math.ceil(e) + 1, O: O2, rel }; O = O2; } }
+    const qy = q.mover ? q.mover.rel : q.y, side = -q.side, step = R.int(2, 4), edge = R.chance(0.3);
+    const y = side < 0 ? clamp(qy + step, Math.max(3, qy + 1), edge ? BT - 1 : BT - 2) : clamp(qy - step, edge ? 0 : 1, Math.min(BT - 4, qy - 1));
+    S.push({ side, y, O, a: Math.floor(p - e + 0.5), b: null, mass: side > 0 ? y <= 1 : y >= BT - 2, thick: R.chance(0.7) ? 1 : 2 });
+    presses.push(+p.toFixed(4));
+    p = onBeat(p + gapS(p), p + win + 1.6); }
+  S[S.length - 1].b = W - 1;
+  // the band's floor per column (it moves at each portal); its bar on top, the ground under it; saws and spike groups
+  // along its floor and roof
+  const Oc = Array(W).fill(0); { let o = 0, i = 0; const ms = S.filter(t => t.mover).map(t => t.mover);
+    for (let c = 0; c < W; c++) { while (i < ms.length && ms[i].c <= c) o = ms[i++].O; Oc[c] = o; } }
+  for (let c = 0; c < W; c++) { if (Oc[c] + BT < H) G.box(c, c, Oc[c] + BT, Oc[c] + BT); if (Oc[c] > 0) G.put(c, Oc[c] - 1, "#"); }
+  for (const [d, t] of [[0, "^"], [BT - 1, "v"]]) for (let c = 0; c < W;) {
+    if (R.chance(0.2)) { G.put(c, Oc[c] + d, "o"); c += 2; continue; }
+    const n = R.int(2, 3); for (let k = 0; k < n && c + k < W; k++) G.put(c + k, Oc[c + k] + d, t); c += n + 1; }
+  for (const t of S) { const b = Math.min(W - 1, t.b);
+    for (let c = t.a; c <= b; c++) { const y = (t.mover && c >= t.mover.c ? t.mover.rel + t.mover.O : t.y + t.O);
+      // its blocks, and the band's hazard where it runs on the band's edge (and the two columns past an edge's end)
+      if (t.side > 0) { if (t.mass || y - Oc[c] <= 1) G.box(c, c, Math.min(y - 1, Oc[c]), y - 1); else G.box(c, c, y - t.thick, y - 1); if (y === Oc[c]) G.put(c, y, "."); }
+      else { if (t.mass || Oc[c] + BT - 1 - y <= 1) G.box(c, c, y + 1, Math.max(y + 1, Oc[c] + BT)); else G.box(c, c, y + 1, y + t.thick); if (y === Oc[c] + BT - 1) G.put(c, y, "."); } }
+    const y1 = t.mover ? t.mover.rel + t.mover.O : t.y + t.O;
+    if (t.side > 0 ? y1 - Oc[b] <= 1 : Oc[b] + BT - 1 - y1 <= 1) for (let c = b + 1; c <= Math.min(W - 1, b + 2); c++) for (const d of [0, BT - 1]) if (G.rows()[H - 1 - (Oc[c] + d)][c] !== "#") G.put(c, Oc[c] + d, ".");
+    if (t.mover) { const c = t.mover.c, r = t.mover.rel + t.mover.O; for (let rr = r - 1; rr <= r + 1; rr++) if (rr >= 0 && rr < H && G.rows()[H - 1 - rr][c] !== "#") G.put(c, rr, "."); G.put(c, r, "P"); } }
+  return { map: G.rows(), mode: "spider", presses }; };
 
 // BALL PORTALS (his my-mwz8kaem). Idea: the ball corridor, but some flips are made for the player by a gravity portal
 // standing at a surface's end (G up, N down), between the clicked ones.
