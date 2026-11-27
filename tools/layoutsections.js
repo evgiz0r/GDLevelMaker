@@ -20,6 +20,14 @@ function grid(w, h) {
   return { put, box, rows: () => g.map(l => l.join("")) };
 }
 
+// a tunnel whose ceiling is its floor lifted `gap` rows, so the two fit like puzzle pieces: e(x) is the floor's height at
+// the column edge x (steps of 0 or 1 block per column); a column whose edges differ holds a 45-degree slope, the floor's
+// solid under the line ("/" rising, "\\" falling), the ceiling's above the same line lifted ("r" rising, "7" falling)
+function tunnel(G, W, e, gap, top) {
+  for (let c = 0; c < W; c++) { const a = e(c), b = e(c + 1), lo = Math.min(a, b);
+    if (lo > 0) G.box(c, c, 0, lo - 1); if (b > a) G.put(c, a, "/"); if (b < a) G.put(c, b, "\\");
+    G.box(c, c, Math.max(a, b) + gap, top); if (b > a) G.put(c, a + gap, "r"); if (b < a) G.put(c, b + gap, "7"); } }
+
 const SECTIONS = [
   { key: "entrance", name: "entrance", mode: "cube", note: "up a ramp onto blocks (never the bare ground), a first spike, a small pit", map: (() => {
     const G = grid(24, 7);
@@ -67,13 +75,13 @@ const SECTIONS = [
     G.put(10, 6, "o"); G.put(27, 7, "o"); G.put(5, 4, "^"); G.put(30, 1, "^");
     return G.rows(); })() },
   // a fast part in the middle (Evgeni 2026-11-27: "for the wave corridor, in the middle some different pattern like more
-  // cps"): the slow zigzag turns every 5-6 blocks, the middle one every 2 (about 2.5x the clicks a second), then slow again
-  { key: "wave", name: "wave corridor", mode: "wave", note: "a 45-degree zigzag tunnel, 4 blocks high; a quick zigzag in the middle (a turn every 2 blocks: more clicks a second)", map: (() => {
-    const W = 41, G = grid(W, 10), slow = c => { const k = c % 12; return k < 6 ? k : 12 - k; },   // the floor's height: 0..6..0
-      zig = c => c < 12 ? slow(c) : c < 29 ? 1 + ((c - 12) % 4 < 2 ? (c - 12) % 4 : 4 - (c - 12) % 4) : slow(c - 28);   // middle: 1..3..1
-    for (let c = 0; c < W; c++) { const f = Math.min(5, zig(c)), fn = Math.min(5, zig(c + 1)), top = f + 4;
-      if (f) G.box(c, c, 0, f - 1); if (fn > f) G.put(c, f, "/"); if (fn < f && f) G.put(c, f - 1, "\\");
-      G.box(c, c, top, 9); if (fn > f) G.put(c + 1, top, "r"); if (fn < f) G.put(c, top - 1, "7"); }
+  // cps"): the slow zigzag turns every 5-6 blocks, the middle one every 2 (about 2.5x the clicks a second), then slow again.
+  // The ceiling is the floor lifted 4 rows, cell for cell ("it should in some way fit, as if we lift the structures it
+  // connects perfectly"): tunnel() draws both from one line of edge heights.
+  { key: "wave", name: "wave corridor", mode: "wave", note: "a 45-degree zigzag tunnel, 4 blocks high, its ceiling the floor lifted; a quick zigzag in the middle (a turn every 2 blocks: more clicks a second)", map: (() => {
+    const W = 41, G = grid(W, 10), slow = x => Math.min(5, (k => k < 6 ? k : 12 - k)(x % 12)),
+      e = x => x <= 11 ? slow(x) : x <= 28 ? 1 + ((x - 12) % 4 < 2 ? (x - 12) % 4 : 4 - (x - 12) % 4) : slow(x - 28);   // middle: 1..3..1
+    tunnel(G, W, e, 4, 9);
     return G.rows(); })() },
   { key: "flappy", name: "flappy bird corridors", mode: "ufo", note: "pipes from the floor and the ceiling with a 4-block gap at changing heights", map: (() => {
     const G = grid(34, 12);
