@@ -733,6 +733,58 @@ function swingTall(o, { R, imix, room, len, W, H, G }) {
 // (hold: ride the ceiling) or the ceiling (release: ride the floor), then a 45-degree climb or drop of both bars. Varies:
 // run length, which side, the height step. Closed above and below (bars), so the ship can't go round it.
 CONCEPT["my-mwz1s7po"] = "a narrow corridor of two thin bars; obstacle runs on the floor (hold) or the ceiling (release); the bars climb and drop together";
+// PRESSES FIRST (2026-11-27): the corridor is the room; the gameplay is the side ridden, so the plan is the side switches
+// (a hold rides the roof, a release the floor; each ride's length from the tier and the click style, each switch on a
+// beat when there is one); the ship is stepped through the corridor (its floor and roof are surfaces it slides on, slopes
+// included), and the spikes go on the side NOT ridden, only where the planned path clears them by 8: so riding the wrong
+// side, or switching late, runs into them. Taller than the band: hidden H portals as before (bandMovers).
+// NOT REGISTERED YET (2026-11-27): the plan doesn't clear every piece. After riding a sloped roof the real ship stays
+// pinned up there ~50 ticks past the release (cmp: plan 120 vs real 124 three columns on, then 20-30 units apart), which
+// this stepper doesn't copy, so spikes it thinks are clear are not (4-6 of 6 plans clear). Needs lib/physics.js's ship
+// slope contact in shipStep; until then GEN["my-mwz1s7po"] is the shape-first version below, checked by the solver.
+const groundsPlan = o => { const C = ctx(Object.assign({ cols: 56 }, o), 10), { R, imix, room, len, W, H, G, mix, style, onBeat } = C, gap = room(5, 3);
+  // it comes in on the ground (the player enters a section there), so the corridor starts at the ground too
+  const next = tour(R, 0, H - gap);
+  const e = line(W, 0, L => { L.run(len(imix(10, 6), imix(12, 8))); L.leg(next(L.h())); });
+  const fl = x => { const c = Math.floor(x), f = x - c; return (e(c) + (e(c + 1) - e(c)) * f) * 30; };   // the floor's height at column x
+  const TPC = 30 / SHIP.X, T = Math.floor(W * TPC), st = { y: e(0) * 30 + 15, vy: 0 }, ys = [], ev = [], tr = []; let trusted = true;
+  // the climbs and drops: riding the floor into a rising slope (or the roof into a falling one) is a crash, so from ~3.5
+  // columns before each climb to its end the ship rides the roof (held), and the floor (released) for a drop
+  const need = Array(W + 6).fill(0);
+  for (let c = 0; c < W; c++) { const d = Math.sign(e(c + 1) - e(c)); if (!d) continue;
+    for (let x = Math.max(0, c - 4); x <= c + 1; x++) if (!need[x]) need[x] = d; }
+  let held = false, left = Math.round(onBeat(R.int(2, 4), 1.5) * TPC);
+  for (let t = 0; t < T; t++) { const c = t / TPC, nd = need[Math.floor(c + 0.5)];
+    if (nd && (nd > 0) !== held) left = 0;   // a climb or a drop ahead wants the other side now
+    else if (nd && left <= 0) left = 1;      // and holds the side it needs until it is past
+    else if (!nd && left > 1) { // a need coming: switch on the last beat before it (its window has ~2 columns to spare)
+      let ns = -1; for (let x = Math.floor(c + 1); x < Math.min(W, c + left / TPC + 1); x++) if (need[x] && (need[x] > 0) !== held) { ns = x; break; }
+      if (ns >= 0) { const b = onBeat(ns - 0.3, c + 1 / TPC); left = Math.min(left, Math.max(1, Math.round((b <= ns + 1.2 ? b : ns - 0.3) * TPC) - t)); } }
+    if (left <= 0) { held = !held; ev.push([+c.toFixed(4), held ? "press" : "release"]);
+      const ride = mix(3.5, 1.5) * (held ? style.holdAt(c) : 1) / style.pace(c) * (0.7 + R() * 0.6);
+      left = Math.max(30, Math.round(onBeat(c + ride + 2, c + 30 / TPC) * TPC) - t); }   // + the ~2 columns the crossing takes
+    shipStep(st, held); left--;
+    const f = fl(c + 1 / TPC) + 15, r = fl(c + 1 / TPC) + gap * 30 - 15, cc = Math.floor(c + 1 / TPC), flat = e(cc) === e(cc + 1) && e(cc - 1) === e(cc);
+    if (st.y < f || st.y > r) { st.y = clamp(st.y, f, r); st.vy = 0; trusted = flat; }   // touching: on a flat stretch the real ship is here too
+    ys.push(st.y); tr.push(trusted); }
+  // a column is trusted when, at every tick in it, the ship's last surface contact was on a flat stretch (after it rides
+  // a slope the real ship is off the stepper's until it next rests on a flat floor or roof)
+  const yb = Array(W).fill(1e9), yt = Array(W).fill(-1e9), ok = Array(W).fill(true);
+  for (let t = 0; t < ys.length; t++) { const c = Math.floor(t / TPC); if (c < W) { yb[c] = Math.min(yb[c], ys[t] - 15); yt[c] = Math.max(yt[c], ys[t] + 15); if (!tr[t]) ok[c] = false; } }
+  tunnel(G, W, e, gap, H - 1, 2);
+  bandMovers(G, W, H, "H", x => e(x) + gap / 2, x => Math.max(e(x), e(x + 1)), x => Math.min(e(x), e(x + 1)) + gap);
+  // spikes on the side not ridden, in runs, a column clear now and then (flat columns only: a spike never on a slope)
+  // the stepper doesn't copy the ship riding a sloped floor or roof (it drifts up to 25 units off the real one there), so
+  // no spike from a climb's or drop's start to 4 columns past its end, and a 12-unit margin elsewhere
+  const nearSlope = c => { for (let x = c - 4; x <= c; x++) if (x >= 0 && e(x) !== e(x + 1)) return true; return false; };
+  for (let c = 3; c < W - 2; c++) { const b = e(c); if (e(c - 1) !== b || e(c + 1) !== b || nearSlope(c) || !ok[c - 1] || !ok[c] || !ok[c + 1]) continue;
+    const okF = [c - 1, c, c + 1].every(x => yb[x] > b * 30 + 21 + 12), okR = [c - 1, c, c + 1].every(x => yt[x] < (b + gap - 1) * 30 + 9 - 12);
+    if (R.chance(0.15)) continue;
+    if (okF && !okR) G.put(c, b, "^"); else if (okR && !okF) G.put(c, b + gap - 1, "v"); else if (okF && okR && R.chance(0.5)) G.put(c, R.chance(0.5) ? b : b + gap - 1, R.chance(0.5) ? "^" : "v"); }
+  const presses = []; for (let i = 0; i < ev.length; i++) if (ev[i][1] === "press") presses.push([ev[i][0], ev[i + 1] ? ev[i + 1][0] : W]);
+  const path = []; for (let t = 0; t < ys.length; t += 8) path.push([+(t / TPC).toFixed(2), +(ys[t] / 30 - 0.5).toFixed(2)]);
+  return { map: G.rows(), mode: "ship", presses, path }; };
+// the shape-first version (the one in use)
 GEN["my-mwz1s7po"] = o => { const { R, imix, room, len, chance, W, H, G } = ctx(Object.assign({ cols: 56 }, o), 10), gap = room(5, 3);
   // the ship's band is 10 rows: the corridor tours all of it, down to the ground (no lower bar there) and up to the roof
   const next = tour(R, 0, H - gap);

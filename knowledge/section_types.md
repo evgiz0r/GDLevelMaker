@@ -69,7 +69,12 @@ type, so a builder can make a new one of any length, synced to the song, and so 
   turn). It starts and ends on the ground (a wave sliding off the last floor block into the exit dies), and never rides
   an invisible band edge (that looked like flying straight in the open for 15 columns, and GD 2.2091 may hold no band for
   the wave at all): it turns a row before one. 1 in 240 falls back to the old shape; 75-81% of turns on half beats.
-  Not yet: ship corridor, flappy, swing, closer cube, staircase, stair path, orbs, spider (its overlap is its window
+  Flying on the grounds (my-mwz1s7po): tried 2026-11-27 (`groundsPlan`, not registered): the side switches planned, the
+  climbs and drops force the roof / floor side, spikes on the side not ridden. It clears at 56-80 x 10, but with a beat
+  4 of 6: after riding a sloped roof the real ship stays pinned up there ~50 ticks past the release, which the page-side
+  `shipStep` doesn't copy, so later spikes it thinks are clear are hit. Needs the ship's slope contact from
+  lib/physics.js in the stepper; until then the shape-first version is in use.
+  Not yet: flappy, swing, closer cube, staircase, stair path, orbs, spider (its overlap is its window
   already, but no presses returned); fly's gravity pair (the planner flies upright only).
 - **From a beat** (Evgeni 2026-11-27: "i want to be able to generate according to a beat as well, so its not just random
   stats, should be applicable in a level ... in the long run much more efficient than solving"): `make(key, {bpm})` or
