@@ -31,6 +31,12 @@ type, so a builder can make a new one of any length, synced to the song, and so 
   portals in the layouts") turn any type upside down for a while. The mirrored motif repeats there, then an N brings
   gravity back. In a corridor, a flip mid-motif reads well. A flip right before a jump does not: no input may be forced
   right after a portal (DIFFICULTY.md "Fairness").
+- **A portal sits in the middle of its corridor**, across the band the player flies or runs in, so no path goes around it
+  (Evgeni 2026-11-27: "the portal should be not in the middle of the screen but in the middle of the corridors (
+  everywhere )"). The solver's route must pass through every portal (tools/layoutcheck.js shows it).
+- **Upside-down stretches get the mirrored obstacles**: if the floor has spike pits, the ceiling the player runs on upside
+  down gets pits too (Evgeni on closer cube: "wierd assymery with the spikes on the grown on the bottom but no such on the
+  top").
 
 ## The types (the board's examples)
 
