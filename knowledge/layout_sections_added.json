@@ -14,5 +14,13 @@
   "w": 32,
   "h": 13,
   "after": "my-mwz1637w"
+ },
+ {
+  "key": "my-mwz1s7po",
+  "name": "flying on the grounds",
+  "mode": "ship",
+  "w": 45,
+  "h": 14,
+  "after": "my-mwz1890c"
  }
 ]
