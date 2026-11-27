@@ -175,7 +175,7 @@ window.initDesigns = async function (root) {
       + (lo ? (dr ? tools : `<button class="pdraw">✏ draw</button>`) + (sk.length && !ms.length ? `<button class="msend" data-label="📨 send to Claude"${CAN_SEND ? "" : " disabled"}>📨 send to Claude</button>` : "") + `<span class="ds pst">${esc(DST[d.id] || "")}</span>` : "") + `</div>`
       + (lo ? `<div class="wide" data-w="L:${esc(d.id)}"><div class="mk lk${bg === "blank" ? " blank" : ""}" style="--zh:${fs ? "calc(100vh - 120px)" : zh + "px"}"><img loading="lazy" src="${esc(bg === "scene" ? d.card : d.layout)}" alt="layout">${svg}</div></div>` : "") + `</div>`;
     const media = d.kind === "theme" ? `<div class="zw"><div class="wide" data-w="${esc(d.id)}"><div class="mk${MARKING === d.id ? " on" : ""}" style="--zh:${zh}px">${img}${pins}</div></div>`
-      + `<div class="zb">${d.anim ? `<button class="aplay" title="play the scene at game speed">${PLAY && PLAY.id === d.id ? "■" : "▶"}</button><button class="aspd" title="speed">${ASPD}x</button><select class="asty" title="animation style">${Object.entries(FXS).map(([k, f]) => `<option value="${k}"${styOf(d.id) === k ? " selected" : ""}>${esc(f.name)}</option>`).join("")}</select><select class="acol" title="number of colours">${[1, 2, 3, 4, 5, 6, 8].map(n => `<option value="${n}"${+(open["acol:" + d.id] || 4) === n ? " selected" : ""}>${n} colour${n > 1 ? "s" : ""}</option>`).join("")}</select>` : ""}<button class="zoom" data-z="-1" title="zoom out">−</button><button class="zoom" data-z="1" title="zoom in">＋</button>`
+      + `<div class="zb">${d.anim ? `<button class="aplay" title="play the scene at game speed">${PLAY && PLAY.id === d.id ? "■" : "▶"}</button><button class="aspd" title="speed">${ASPD}x</button><select class="asty" title="animation style">${Object.entries(FXS).map(([k, f]) => `<option value="${k}"${styOf(d.id) === k ? " selected" : ""}>${esc(f.name)}</option>`).join("")}</select><select class="acol" title="number of colours">${[1, 2, 3, 4, 5, 6, 8, 12, 16].map(n => `<option value="${n}"${+(open["acol:" + d.id] || 4) === n ? " selected" : ""}>${n} colour${n > 1 ? "s" : ""}</option>`).join("")}</select>` : ""}<button class="zoom" data-z="-1" title="zoom out">−</button><button class="zoom" data-z="1" title="zoom in">＋</button>`
       // ACTIONS ARE BUTTONS (Evgeni 2026-11-27: "whenever is some operations i should do, like say build, lets move that
       // as a button for example on the theme"): the button sends Claude the request; the page never runs the job itself
       + `<button class="abuild" title="ask Claude to rebuild this theme's scene from the current layout">🔨 build</button><span class="ds abst">${esc(AST[d.id] || "")}</span></div></div>`
@@ -247,14 +247,14 @@ window.initDesigns = async function (root) {
   // "let me also edit the current scene and it will edit the proper section, put some soft marker on where the sections are")
   let SCENE_SEGS = [];
   function sceneTiles() { const out = [], segs = []; let off = 0, prev = null;
-    for (const q of SECS()) { const T = tilesOf("layout:" + q[0]), cur = { T, w: q[2], h: q[3] };
+    for (const q of SECS()) { const T = tilesOf("layout:" + q[0]), cur = { T, w: q[2], h: q[3], mode: q[4] };
       if (prev) { const j = window.SceneJoin.join(prev, cur); for (const z of j.tiles) out.push({ t: z.t, c: z.c + off, r: z.r }); segs.push({ join: true, c0: off, w: j.n, name: prev.name + " → " + q[1] }); off += j.n; }
       for (const z of T) out.push({ t: z.t, c: z.c + off, r: z.r }); segs.push({ key: "layout:" + q[0], name: q[1], c0: off, w: q[2], h: q[3] }); off += q[2]; prev = Object.assign(cur, { name: q[1] }); }
     SCENE_SEGS = segs; return out; }
   const segAt = c => SCENE_SEGS.find(z => c >= z.c0 && c < z.c0 + z.w);
   const sceneSnap = () => ({ multi: SCENE_SEGS.filter(z => z.key).map(z => ({ k: z.key, tiles: (DRAW[z.key] || {}).tiles ? JSON.parse(JSON.stringify(DRAW[z.key].tiles)) : null })) });
   const sceneW = () => { let w = 0, prev = null; for (const q of SECS()) { const cur = { T: tilesOf("layout:" + q[0]), w: q[2], h: q[3] }; if (prev) w += window.SceneJoin.join(prev, cur).n; w += q[2]; prev = cur; } return w; };
-  let TILE = () => "";
+  let TILE = () => "", ROUTE1 = () => "";
   // ---- ▶ play (Evgeni 2026-11-27: "theme animations, so we might see how it looks in the game if we press play") ----
   let PLAY = null, ASPD = 1; const AST = {};
   // send Claude a request for a job (build, rebuild ...): one line, anchored on the card it is about
@@ -296,7 +296,12 @@ window.initDesigns = async function (root) {
     pulse: { name: "pulse in the blocks", light: ([x, y, col], F) => { const e = Math.pow(1 - F.ph, 2);
       return { a: 0.55 * e, ci: BANDS(F.n + col / 3, F.N), scale: 0.25 + 0.75 * e }; } },
     // SLICES: every block cut in 3 strips, the diagonal flow running strip by strip (finer than a block)
-    slices: { name: "slices", light: ([x, y, col], F) => { const K = Math.max(3, Math.round(F.N * 3 / 4)); return Array.from({ length: K }, (_, k) => { const [a, ci] = flow((col * K + k + Math.round(y / 22.5) * K) / 2, F.b * 2 * K, F.N); return { a, ci, part: [k / K, 1 / K] }; }); } },
+    // SLICES: thin strips, every strip its own colour of the palette in order, the colours drifting one strip every two beats
+    // with a soft glow wave over them (Evgeni 2026-11-27: "slices is a bit too flashy movement, need slower or more slices
+    // and more colors": it stepped 2K strips a beat with on/off flashes; now 2 strips per colour, a slow drift, no flashes)
+    slices: { name: "slices", light: ([x, y, col], F) => { const K = Math.max(6, F.N * 2), t = F.b / 2;
+      return Array.from({ length: K }, (_, k) => { const pos = col * K + k + Math.round(y / 22.5) * 2;
+        return { a: 0.18 + 0.22 * (0.5 + 0.5 * Math.sin((pos / K - t / 4) * Math.PI * 2 / 3)), ci: BANDS((pos - t) / 2, F.N), part: [k / K, 1 / K] }; }); } },
     // UP AND DOWN: a line of light rises and falls through the rows, one row a half beat, rippling along the columns
     updown: { name: "up and down", light: ([x, y, col], F) => { const row = 13 - y / 22.5, top = 6, h = (Math.sin((F.b * 2 + col * 0.25) * Math.PI / 4) + 1) / 2 * top, d = Math.abs(row - h);
       return [d < 0.8 ? 0.55 * (1 - d / 0.8) : 0, BANDS(row / 2, F.N)]; } },
@@ -307,7 +312,8 @@ window.initDesigns = async function (root) {
       return [k < 1.2 && F.tapAge < 0.6 ? 0.65 * (1 - k / 1.2) * (1 - F.tapAge / 0.6) : 0, BANDS(F.taps, F.N)]; } } };
   // colours: the theme's light roles; more than it has are made between them, fewer are its first ones
   function fxPal(cols, N) { const C = cols && cols.length ? cols : [[255, 120, 60], [255, 180, 80], [255, 220, 140], [255, 160, 60]], out = [];
-    for (let i = 0; i < N; i++) { const p = N === 1 ? 0 : i * (C.length - 1) / (N - 1), a = Math.floor(p), t = p - a, A = C[a], B = C[Math.min(C.length - 1, a + 1)];
+    // round the palette (the last colour blends back into the first), so colours that drift in a cycle never jump
+    for (let i = 0; i < N; i++) { const p = i * C.length / N, a = Math.floor(p), t = p - a, A = C[a % C.length], B = C[(a + 1) % C.length];
       out.push(A.map((v, j) => Math.round(v + (B[j] - v) * t))); } return out; }
   function fxDraw(st, g, w, h, cells, F, cols) { if (!st.light || !cells) return; const C = fxPal(cols, F.N), sz = 22.5 * F.f;
     const tri = (X, Y, sh, s) => { const k = sh - 1, fx = k & 1, fy = k & 2, q = k >> 2, hh = s / 2;
@@ -392,7 +398,7 @@ window.initDesigns = async function (root) {
       return `<g style="pointer-events:none"><rect x="0" y="0" width="${W}" height="${H - n}" fill="#ff5a5a14" /><line x1="0" y1="${H - n}" x2="${W}" y2="${H - n}" stroke="#ff8a8a" stroke-dasharray="0.3 0.2" style="stroke-width:1.5px;vector-effect:non-scaling-stroke" /><text x="0.2" y="${H - n - 0.2}" font-size="0.55" fill="#ff8a8acc">${esc(mode)} band: ${n} rows from the ground, nothing above is reachable</text></g>`; };
     // the route: a soft line through the player's centre, a dot at each press; dashed and greyer when the section was
     // changed after it was solved (then it is the old route, until the next check)
-    const routeOne = (C, H, W, dc, old) => { if (!C || !C.ok || !C.route) return "";
+    const routeOne = ROUTE1 = (C, H, W, dc, old) => { if (!C || !C.ok || !C.route) return "";
       const P = C.route.filter(z => z[0] >= 0 && z[0] <= W - dc).map(z => (z[0] + dc).toFixed(2) + "," + (H - z[1] - 0.5).toFixed(2)).join(" "), col = old ? "#b0b0c0" : "#7be3ff";
       return `<g class="rte" style="pointer-events:none"><polyline points="${P}" fill="none" stroke="${col}" stroke-opacity="${old ? 0.35 : 0.55}" stroke-linejoin="round" stroke-linecap="round"${old ? ' stroke-dasharray="4 4"' : ""} style="stroke-width:2.5px;vector-effect:non-scaling-stroke" />`
         + (C.taps || []).filter(z => z[0] >= 0 && z[0] <= W - dc).map(z => `<circle cx="${(z[0] + dc).toFixed(2)}" cy="${(H - z[1] - 0.5).toFixed(2)}" r="0.22" fill="${old ? "#b0b0c0" : "#ffe36b"}" fill-opacity="0.8" />`).join("") + `</g>`; };
@@ -437,10 +443,19 @@ window.initDesigns = async function (root) {
   // as he types (a note on "gen:<type>:<seed>:<cols>:<tier>") and goes with 📨, so the generator can be fixed from it.
   // Not solver-checked in the page (that is node: tools/sectiongen.js check)
   let GENS = null; try { GENS = JSON.parse(localStorage.getItem("designs-gen") || "null"); } catch (e) {}
+  // 〰 THE PATH OF A GENERATED PIECE (Evgeni 2026-11-27: "its generated with a path? show it, or give a button to see"): the
+  // page can't solve, so every piece he generates is queued in collection "genroute" (doc id = its gen key, state "asked");
+  // Claude solves it with tools/genroute.js (the same check as the board's 〰 solver path) and writes the route back into
+  // that doc, and the page draws it as soon as it lands. 〰 path also pings Claude so it is solved now, not at the next wake.
+  const GROUTE = {}, gid = gk => gk.replace(/[^A-Za-z0-9_\-.~:@+]/g, "_");
+  async function askRoute(g, ping) { if (!DB || !g || !g.map) return; const gk = genKey(g), id = gid(gk);
+    if (!GROUTE[id]) { GROUTE[id] = { state: "asked" };
+      try { await DB.collection("genroute").doc(id).set({ gen: gk, key: g.key, seed: g.seed, cols: g.cols, tier: g.tier, map: g.map, mode: g.mode || "", state: "asked", at: new Date().toISOString() }); } catch (e) { GROUTE[id] = null; } }
+    if (ping && CM && CM.sendToClaude) { const el = root.querySelector(".gpath"); try { await CM.sendToClaude({ anchor: await CM.anchorFor(el || root), text: "〰 solve the path of " + gk + " (collection genroute)" }); GROUTE[id].pinged = true; } catch (e) { GROUTE[id].pinged = false; } render(); } }
   const genKey = g => "gen:" + g.key + ":" + g.seed + ":" + g.cols + ":" + g.tier;
   function generate(f) { const SG = window.SectionGen; if (!SG) return;
     const key = f.querySelector(".gk").value, cols = Math.max(12, Math.min(200, +f.querySelector(".gc").value || 40)), tier = f.querySelector(".gt").value, seed = 1 + Math.floor(Math.random() * 99999);
-    try { const z = SG.make(key, { cols, seed, tier }); GENS = { key, cols, tier, seed, map: z.map, mode: z.mode, concept: z.concept || "" }; }
+    try { const z = SG.make(key, { cols, seed, tier }); GENS = { key, cols, tier, seed, map: z.map, mode: z.mode, concept: z.concept || "" }; askRoute(GENS, false); }
     catch (x) { GENS = { key, cols, tier, seed, err: String(x && x.message || x) }; }
     try { localStorage.setItem("designs-gen", JSON.stringify(GENS)); } catch (e) {} render(); }
   function genPanel() { const SG = window.SectionGen; if (!SG) return "";
@@ -453,11 +468,12 @@ window.initDesigns = async function (root) {
     if (GENS && GENS.err) out += `<div class="lpn" style="color:#ff8a8a">${esc(GENS.err)}</div>`;
     else if (GENS && GENS.map) { const H = GENS.map.length, W = GENS.map[0].length, cs = Math.round(26 * (open["zoom:layout"] || 1)), T = [];
       GENS.map.forEach((l, i) => [...l].forEach((ch, c) => { if (ch !== ".") T.push({ t: ch, c, r: H - 1 - i }); }));
-      const gk = genKey(GENS);
+      const gk = genKey(GENS), GR = GROUTE[gid(gk)];
       out += `<div class="lpn"><b>${esc(nm(GENS.key))}</b> · ${esc(GENS.mode || "")} · ${W} x ${H} · ${esc(GENS.tier)} · seed ${GENS.seed}${GENS.concept ? " · " + esc(GENS.concept) : ""}</div>`
         + `<div class="wide"><svg class="gtiles" viewBox="0 0 ${W} ${H + 0.25}" style="width:${W * cs}px;height:${(H + 0.25) * cs}px;background:#1a1636;display:block;max-width:none">`
         + `<g class="grid">${Array.from({ length: W + 1 }, (_, c) => `<line x1="${c}" y1="0" x2="${c}" y2="${H}" stroke="#ffffff30" style="stroke-width:1px;vector-effect:non-scaling-stroke" />`).join("")}${Array.from({ length: H + 1 }, (_, r) => `<line x1="0" y1="${r}" x2="${W}" y2="${r}" stroke="#ffffff30" style="stroke-width:1px;vector-effect:non-scaling-stroke" />`).join("")}</g>`
-        + `<rect x="0" y="${H}" width="${W}" height="0.25" fill="#7be38a55" />` + T.map(z => TILE(z, H)).join("") + `</svg></div>`
+        + `<rect x="0" y="${H}" width="${W}" height="0.25" fill="#7be38a55" />` + T.map(z => TILE(z, H)).join("") + (GR && GR.ok ? ROUTE1(GR, H, W, 0, false) : "") + `</svg></div>`
+        + `<div class="lyh"><button class="gpath" title="the solver's route over this piece (Claude solves it)">〰 path</button><span class="ds">${!GR ? "not asked yet" : GR.state === "done" ? (GR.ok ? `〰 ${GR.presses} presses · ${esc(GR.label || "")}${(GR.tight || [])[0] ? " · tightest " + GR.tight[0].ms + " ms" : ""}` : `<span style="color:#ff8a8a">❌ does not solve (col ${GR.dieCol}): ${esc(GR.why || "")}</span>`) : "asked Claude" + (GR.pinged === false ? " (the app held the ping back: it is solved at Claude's next look)" : "") + " · the path shows here when solved"}</span></div>`
         + `<div class="lnr"><input class="lnote" data-n="${esc(gk)}" placeholder="what's good or wrong in this one ..." value="${esc((NOTES[gk] || {}).note || "")}"><span class="ds lnst" data-n="${esc(gk)}">${esc(NST[gk] || "")}</span></div>${stLine(gk)}`; }
     return out; }
   // 📨 sends EVERYTHING new on the page in one message (marks of every theme, layout notes, drawings), whichever 📨 is
@@ -562,6 +578,7 @@ window.initDesigns = async function (root) {
       DST.layout = ks.every(k => DST[k] === "saved") ? "saved " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + " (" + ks.length + ")" : ks.map(k => DST[k]).find(v => v !== "saved");
       if (st) st.textContent = DST.layout; return; }
     if (e.target.closest(".ggo")) { generate(e.target.closest(".gform")); return; }
+    if (e.target.closest(".gpath")) { askRoute(GENS, true); return; }
     if (e.target.closest(".lroute")) { open.route = open.route === false; try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} render(); return; }
     const lsz = e.target.closest(".lsz button"); if (lsz) { const [dw, dh] = lsz.dataset.d.split(",").map(Number); await resize(lsz.closest(".lsz").dataset.k, dw, dh); return; }
     if (e.target.closest(".ladd")) { ADDFORM = !ADDFORM; render(); const i = root.querySelector(".lan"); if (i) i.focus(); return; }
@@ -753,6 +770,9 @@ window.initDesigns = async function (root) {
     // each time it reads the queue, so what Claude has seen stops counting as new without any send
     if (DB) DB.collection("designsend").onSnapshot(snap => { let m = LAST; for (const d of snap.docs.map(x => JSON.parse(JSON.stringify(x.data() || {})))) { const a = String(d.at || ""); if (a > m) m = a; if (d.by === "claude" && a > LASTC) LASTC = a; }
       if (m !== LAST) { LAST = m; try { topSend(); } catch (x) {} if (!(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) render(); } }, () => {});
+    if (DB) DB.collection("genroute").onSnapshot(snap => {
+      for (const x of snap.docs) { const d = JSON.parse(JSON.stringify(x.data() || {})); const old = GROUTE[x.id]; GROUTE[x.id] = Object.assign({}, d, old && old.pinged != null ? { pinged: old.pinged } : {}); }
+      if (!(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) render(); }, () => {});
     if (DB) DB.collection("claudestatus").onSnapshot(snap => {
       for (const d of snap.docs.map(x => JSON.parse(JSON.stringify(x.data() || {})))) if (d.part && (!CST[d.part] || String(d.at) > String(CST[d.part].at))) CST[d.part] = d;
       if (!(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) render(); }, () => {});
