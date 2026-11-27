@@ -112,6 +112,11 @@ not after it:
 - **Share, don't duplicate.** Results go into the shared `local/` (see below) so no session redoes
   another's work; tell the session that owns an area when you learn something about it.
 
+**Structures in one page: `knowledge/structures_guide.md`** (Evgeni, 2026-11-27: "all of our knowledge of structures and how
+to combine [...] known externally, not just for this session"): what a structure is, how they combine, how they connect
+(holders, fillets, ledges), how one looks, and how a drawing becomes one. Read it before building or dressing structures;
+add a line there whenever a note teaches something about structures.
+
 ## Before making or judging a level: read knowledge/
 
 `knowledge/` is a general GD knowledge base (not the user's personal taste): `design.md` (what
