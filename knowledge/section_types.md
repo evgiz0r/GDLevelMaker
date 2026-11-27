@@ -51,6 +51,22 @@ type, so a builder can make a new one of any length, synced to the song, and so 
   down gets pits too (Evgeni on closer cube: "wierd assymery with the spikes on the grown on the bottom but no such on the
   top").
 
+- **Presses first** (Evgeni 2026-11-27: "our generating solves by design and we just patch the timings and search secret
+  ways with the solver? ... shape first is not great"): a type plans its clicks (gap by tier and the beat, its window as a
+  late / early margin), the sim's arc of each click places the next surface (tools/sectiongen.js `cubeArc`, `ballTravel`,
+  tick-stepped like lib/physics.js), and hazards go where a wrong press lands. The type returns `presses` (columns of the
+  player's centre); `require("./tools/layoutcheck.js").planCheck(z)` plays exactly those taps, and `node tests/sectiongen.js`
+  fails any type whose plan dies. The solver is then only the check for secret ways. Done: open cube, ball, ball portals.
+  Not yet: fly, ship corridor, wave, flappy, swing, closer cube, staircase, stair path, orbs, spider (its overlap is its
+  window already, but no presses returned).
+- **One click style per generation, a small drift inside it** (Evgeni 2026-11-27: "the click pattern/holds/cps differs
+  between generations. not consistent across the whole section, some have bit more cps, some have bit less. some hold more
+  some hold less"): ctx() gives `style` -- a density (x0.82-1.22) and hold factor (x0.7-1.4) per generation, and
+  `pace(c)` / `holdAt(c)` drifting +-6-12% over 25-45 columns. A press planner draws ONE base gap per generation, jitters
+  each click +-15% and adds a rest one click in 8; never a fresh pick from the whole range per click (that gave 2x swings
+  between quarters of one section). Measured at 120 cols, normal: open cube 0.8-1.6 cps between generations, ball 1.1-2.0,
+  quarters within one click of each other. Holds (fly, wave, swing) use holdAt when those types go presses-first.
+
 ## The types (the board's examples)
 
 | type | mode | idea | motif | change it by | longer looks like |
