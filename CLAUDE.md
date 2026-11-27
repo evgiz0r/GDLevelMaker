@@ -91,9 +91,11 @@ not after it:
   blocks (beat-first for synced levels), a playable layout at once, stages shown as they happen, alternatives
   shown, reuse, measured times, and a retro in BUILDS.md. Read it before any build; change it when a build
   teaches something.
-- **Every level ends with the latest end screen: the auto outro + the Claude signature.** Evgeni (2026-11-26): "from now-on
-  everywhere, we add the latest end screen claude sign on every level we make". make.js `"outro": <seed>` + its signature;
-  other builders add the same pair (BUILDING.md section 5).
+- **Every level ends with the Claude signature, quiet: the last 5 s, out of the gameplay.** Evgeni (2026-11-26): "from now-on
+  everywhere, we add the latest end screen claude sign on every level we make"; (2026-11-27): "cut our signature for now from actual gameplay and make it appear in like the last 5 seconds of the level not bothering the game play with whatever effects". Default in make.js
+  and autobeat: `signature.js overlay` -- no stage, no run-on, no beat effects; it fades in at T - 5 s in the view's top right,
+  behind the player, and rides with the camera to the end. The auto outro (`"outro": <seed>`) and the stage sign
+  (`"signature": {"style": "stage"}`, autobeat `--ending beat|outro`) are options now (BUILDING.md section 5).
 - **Process rules go in the repo, never only in a message.** The user (2026-11-24): "never just for one session
   if its a big repeatable process". A rule, a process step or a lesson that one session was told applies to
   every session and every future build: write it in CLAUDE.md, BUILDING.md or the topic's doc in the same round.

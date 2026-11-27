@@ -380,6 +380,9 @@ ends)". Two changes, both in the tools, so every autobeat level gets them:
 - **Inside the song.** autobeat's `buildInSong` builds, and when the run's end (the sign's screen) is past the song's last
   beat minus 0.5 s, builds again with fewer beats. Auto beat 3 (Hexagon Force, whole song) had ended 3.7 s after the music;
   now 3.6 s before it. `measures.songLeft` = seconds of song left at the end.
+**Superseded 2026-11-27 the same day**: Evgeni asked to cut our signature for now from actual gameplay and make it appear in like the last 5 seconds of the level not bothering the game play with whatever effects -- autobeat's default
+ending is now `quiet` (no ending gameplay, the sign over the last 5 s, signature.js `overlay`); `--ending beat` gives the beat
+ending below, `--ending outro` the outro, `--ending none` no sign. Demo: `levels/lab/auto_ending_quiet.gdlvl`.
 Evgeni picked A ("1 for now", 2026-11-27): it stays the default, and the sign's stage is now dressed as one more slab of the
 same design (deco-only blocks, never in the level; `endDeco(..., {stage: false})` = off). Open: make.js's ending is not changed yet.
 

@@ -40,6 +40,10 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 - [ ] **No unseen roof** (Evgeni 2026-11-26 on Hellgate v4's ship entry: "we fall from the top, but there is no indication of
   top. some secret ways can be like that"): when the player comes into a corridor from above, or a stretch's ceiling is off
   screen, its roof must show (a visible top edge or deco line); an open sky above a corridor reads as a way over it. Checked: `tools/judge.js` "unseen roof" (the route at its band's roof or a raised band floor with no solid there).
+- [ ] **The signature stays out of the gameplay** (Evgeni 2026-11-27: "cut our signature for now from actual gameplay and make it appear in like the last 5 seconds of the level not bothering the game play with whatever effects"): the sign is the quiet overlay
+  (signature.js `overlay`, the default in make.js and autobeat): it shows over the last 5 s, behind the player, no effects, and
+  the level ends at its last gameplay object. The two lines below (designed ending, no plain blocks) apply only to a level
+  that asks for the old stage ending. Checked: tests/autobeat.js "quiet sign".
 - [ ] **The ending is designed, not a flat walk to the signature** (same review: "design the last sign/gameplay a bit more.
   maybe some auto gameplay which is not just on the ground"): the last seconds get a set piece -- e.g. an auto (no-click)
   ride on pads / portals that climbs or flies -- leading into the signature. Checked: `tools/judge.js` "flat ending"; make.js `"outro": <seed>` builds one (AUTO.md).
