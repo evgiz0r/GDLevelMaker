@@ -11,7 +11,7 @@
   "key": "my-mwz1890c",
   "name": "swing",
   "mode": "swing",
-  "w": 32,
+  "w": 62,
   "h": 13,
   "after": "my-mwz1637w"
  },
@@ -19,7 +19,7 @@
   "key": "my-mwz1s7po",
   "name": "flying on the grounds",
   "mode": "ship",
-  "w": 45,
+  "w": 58,
   "h": 14,
   "after": "my-mwz1890c"
  },
@@ -30,5 +30,13 @@
   "w": 64,
   "h": 14,
   "after": "my-mwz1s7po"
+ },
+ {
+  "key": "my-mwz7nxue",
+  "name": "spider corridors",
+  "mode": "spider",
+  "w": 38,
+  "h": 14,
+  "after": "my-mwz2haf0"
  }
 ]

@@ -22,7 +22,7 @@
 const SDZ = require("./structdesign.js");
 
 const THEMES = {
-  hellgate: { mood: "molten rock, hot rims", pal: "fire", design: "layered", effects: ["depth"], spikes: "ember", saws: "sawforge",
+  hellgate: { mood: "molten rock, hot rims", pal: "fire", design: "layered", effects: ["depth"], spikes: "ember", fire: 3, saws: "sawforge",
     holders: "brick", indicator: "caret", skies: [{ bg: [84, 36, 96], ground: [29, 12, 33] }, { bg: [60, 40, 110], ground: [21, 14, 38] }, { bg: [96, 40, 70], ground: [33, 14, 24] }],
     backdrops: { a: ["mountains", "horizon", "motes"], b: ["geometry", "rays"], c: ["rocks", "motes"] } },
   frost: { mood: "ice slabs, cold light", pal: "ice", design: "inner base", effects: ["bevel"], spikes: "inner", saws: "sawglow",
@@ -89,7 +89,7 @@ const SAMPLE = sampleOf(SCENE);
 // (tools/layoutsections.js joined(): every section, open joins, a mode portal where the mode changes); the others keep
 // SCENE until his 🔨 build on their card asks for it
 const SCENE_OF = (() => { try { return JSON.parse(require("fs").readFileSync(require("path").join(__dirname, "..", "knowledge", "theme_scenes.json"), "utf8")); } catch (e) { return {}; } })();
-const PORTAL = { cube: "cube portal", ship: "ship portal", wave: "wave portal", ufo: "ufo portal", ball: "ball portal" };
+const PORTAL = { cube: "cube portal", ship: "ship portal", wave: "wave portal", ufo: "ufo portal", ball: "ball portal", swing: "swing portal", robot: "robot portal", spider: "spider portal" };
 function sceneFor(name) {
   if (SCENE_OF[name] !== "joined") return { sample: SAMPLE, w: SCENE_W, end: SCENE_END };
   const j = require("./layoutsections.js").joined(), sample = sampleOf(j.map), w = j.map[0].length;

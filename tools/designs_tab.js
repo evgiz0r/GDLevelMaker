@@ -26,7 +26,7 @@ window.initDesigns = async function (root) {
   #designs .pens{display:flex;flex-wrap:wrap;gap:4px;align-items:center}#designs .pcol{width:22px;height:22px;padding:0!important;border-radius:11px!important}#designs .pcol.on,#designs .pw.on,#designs .perase.on{outline:2px solid #ffd84d}
   #designs .pany{width:26px;height:24px;padding:0;border:0;background:none}#designs .pw i{display:block;width:16px;background:#ddd;border-radius:2px}
   #designs .ink polyline{fill:none;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
-  #designs .zw{position:relative}#designs .zb{position:absolute;right:6px;top:6px;display:flex;gap:4px}
+  #designs .zw{position:relative}#designs .fxc{position:absolute;left:0;top:0;pointer-events:none;mix-blend-mode:screen}#designs .zb{position:absolute;right:6px;top:6px;display:flex;gap:4px}
   #designs .zb button{width:30px;height:30px;border-radius:15px;border:1px solid #555;background:#1b1538cc;color:#fff;font:700 16px/1 system-ui}
   #designs .mk{position:relative;display:inline-block;line-height:0}#designs .mk img{display:block}
   #designs .mk.on{cursor:crosshair;outline:2px dashed #ffd84d}
@@ -150,7 +150,7 @@ window.initDesigns = async function (root) {
       + (lo ? (dr ? tools : `<button class="pdraw">✏ draw</button>`) + (sk.length && !ms.length ? `<button class="msend" data-label="📨 send to Claude"${CAN_SEND ? "" : " disabled"}>📨 send to Claude</button>` : "") + `<span class="ds pst">${esc(DST[d.id] || "")}</span>` : "") + `</div>`
       + (lo ? `<div class="wide" data-w="L:${esc(d.id)}"><div class="mk lk${bg === "blank" ? " blank" : ""}" style="--zh:${fs ? "calc(100vh - 120px)" : zh + "px"}"><img loading="lazy" src="${esc(bg === "scene" ? d.card : d.layout)}" alt="layout">${svg}</div></div>` : "") + `</div>`;
     const media = d.kind === "theme" ? `<div class="zw"><div class="wide" data-w="${esc(d.id)}"><div class="mk${MARKING === d.id ? " on" : ""}" style="--zh:${zh}px">${img}${pins}</div></div>`
-      + `<div class="zb">${d.anim ? `<button class="aplay" title="play the scene at game speed">${PLAY && PLAY.id === d.id ? "■" : "▶"}</button><button class="aspd" title="speed">${ASPD}x</button>` : ""}<button class="zoom" data-z="-1" title="zoom out">−</button><button class="zoom" data-z="1" title="zoom in">＋</button>`
+      + `<div class="zb">${d.anim ? `<button class="aplay" title="play the scene at game speed">${PLAY && PLAY.id === d.id ? "■" : "▶"}</button><button class="aspd" title="speed">${ASPD}x</button><select class="asty" title="animation style">${Object.entries(FXS).map(([k, f]) => `<option value="${k}"${styOf(d.id) === k ? " selected" : ""}>${esc(f.name)}</option>`).join("")}</select>` : ""}<button class="zoom" data-z="-1" title="zoom out">−</button><button class="zoom" data-z="1" title="zoom in">＋</button>`
       // ACTIONS ARE BUTTONS (Evgeni 2026-11-27: "whenever is some operations i should do, like say build, lets move that
       // as a button for example on the theme"): the button sends Claude the request; the page never runs the job itself
       + `<button class="abuild" title="ask Claude to rebuild this theme's scene from the current layout">🔨 build</button><span class="ds abst">${esc(AST[d.id] || "")}</span></div></div>`
@@ -238,8 +238,25 @@ window.initDesigns = async function (root) {
       AST[id] = "asked Claude " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); }
     catch (x) { AST[id] = "not sent (" + (x && (x.code || x.message) || x) + "): wait a few seconds, tap again"; }
     if (st) st.textContent = AST[id]; }
+  // ANIMATION STYLES (Evgeni 2026-11-27: "lets add several animations possible to play, in the dropdown. we will start with -
+  // static, nine circles styles"): drawn by the page over the scene while ▶ plays, on a canvas the size of the view, blended
+  // as light (screen). A style is f(ctx, w, h, t, beat, P) with t seconds, beat = t in beats (BPM below until the theme
+  // gallery has a song), P = the player on the canvas. More styles: one entry here.
+  const BPM = 128;
+  const FXS = {
+    static: { name: "static", draw: null },
+    // the Nine Circles look: rings of colour widen out from behind the path on every beat, alternating hues, a flash on
+    // the bar's first beat; drawn behind nothing (screen blend), so the scene's darks take the colour
+    nine: { name: "nine circles", draw: (g, w, h, t, b, P) => {
+      const cx = w * 0.62, cy = h * 0.5, R = Math.hypot(w, h) * 0.6, ph = b % 1, n = Math.floor(b);
+      for (let k = 0; k < 9; k++) { const r = ((k + ph) / 9) * R, hue = ((n + k) % 2 ? 350 : 200) + k * 4, a = 0.5 * (1 - k / 9) * (1 - ph * 0.4);
+        g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2); g.lineWidth = Math.max(3, R / 30 * (1 - ph * 0.5)); g.strokeStyle = `hsla(${hue},95%,55%,${a.toFixed(3)})`; g.stroke(); }
+      const pulse = Math.max(0, 1 - ph * 3);   // a beat's first third
+      if (pulse) { const gr = g.createRadialGradient(cx, cy, 0, cx, cy, R * 0.5); gr.addColorStop(0, `hsla(${n % 2 ? 350 : 200},100%,60%,${(0.35 * pulse).toFixed(3)})`); gr.addColorStop(1, "hsla(0,0%,0%,0)"); g.fillStyle = gr; g.fillRect(0, 0, w, h); }
+      if (n % 4 === 0 && ph < 0.12) { g.fillStyle = `rgba(255,255,255,${(0.18 * (1 - ph / 0.12)).toFixed(3)})`; g.fillRect(0, 0, w, h); } } } };
+  const styOf = id => FXS[open["anim:" + id]] ? open["anim:" + id] : "static";
   function startPlay(id) { stopPlay(); PLAY = { id, t0: performance.now(), i: 0 }; for (const b of root.querySelectorAll(`.dc[data-id="${CSS.escape(id)}"] .aplay`)) b.textContent = "■"; requestAnimationFrame(stepPlay); }
-  function stopPlay() { if (!PLAY) return; const id = PLAY.id; PLAY = null; for (const p of root.querySelectorAll(".plr")) p.remove(); for (const b of root.querySelectorAll(`.dc[data-id="${CSS.escape(id)}"] .aplay`)) b.textContent = "▶"; }
+  function stopPlay() { if (!PLAY) return; const id = PLAY.id; PLAY = null; for (const p of root.querySelectorAll(".plr, .fxc")) p.remove(); for (const b of root.querySelectorAll(`.dc[data-id="${CSS.escape(id)}"] .aplay`)) b.textContent = "▶"; }
   function stepPlay(now) {
     if (!PLAY) return; const d = L.find(x => x.id === PLAY.id), A = d && d.anim; if (!A) return stopPlay();
     const i = Math.floor((now - PLAY.t0) / 1000 * A.fps * ASPD); PLAY.i = i; if (i >= A.pts.length) return stopPlay();
@@ -249,6 +266,12 @@ window.initDesigns = async function (root) {
     const [x, y, rot, mode] = A.pts[i], sz = 30 * A.s * f;
     p.dataset.m = mode; p.style.width = p.style.height = sz + "px"; p.style.transform = `translate(${x * f - sz / 2}px, ${y * f - sz / 2}px) rotate(${(rot % 360 + 360) % 360}deg)`;
     if (w) w.scrollLeft = Math.max(0, x * f - w.clientWidth * 0.35);
+    const fx = FXS[styOf(PLAY.id)], zw = mk.closest(".zw"); let cv = zw && zw.querySelector(".fxc");
+    if (fx.draw && zw && w) { if (!cv) { cv = document.createElement("canvas"); cv.className = "fxc"; zw.appendChild(cv); }
+      const W = w.clientWidth, H = w.clientHeight; if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+      const g = cv.getContext("2d"), t = i / A.fps; g.clearRect(0, 0, W, H);
+      fx.draw(g, W, H, t, t * BPM / 60, { x: x * f - w.scrollLeft, y: y * f }); }
+    else if (cv) cv.remove();
     requestAnimationFrame(stepPlay);
   }
   function layoutSection() {
@@ -589,6 +612,9 @@ window.initDesigns = async function (root) {
   root.addEventListener("focusout", e => { if (e.target.closest && e.target.closest("[data-m]")) flushMarks(); });
   root.addEventListener("change", async e => {
     if (e.target.id === "dvf") return render();
+    // the animation style: kept per card, starts ▶ at once so the choice is seen
+    if (e.target.classList.contains("asty")) { const id = e.target.closest(".dc").dataset.id; open["anim:" + id] = e.target.value;
+      try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} if (!PLAY || PLAY.id !== id) startPlay(id); return; }
     if (e.target.classList.contains("pany")) { PCOL = e.target.value; ERASE = false; render(); return; }
     if (e.target.classList.contains("pbg")) { const id0 = e.target.closest(".dc").dataset.id; BG[id0.startsWith("layout") ? "layout" : id0] = e.target.value; render(); return; }
     const mrow = e.target.closest("[data-m]");
