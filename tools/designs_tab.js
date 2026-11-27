@@ -251,17 +251,25 @@ window.initDesigns = async function (root) {
     // background ... we are not bound to 4 colors, but thats nine circles 'style'. some kind of flow on the structures"):
     // the play blocks split into 4 colour bands by column; each beat lights the next band, so a wave of colour flows
     // along the structures. In a level: 4 block channels and a colour trigger per band per beat (EFFECTS.md)
-    nine: { name: "nine circles", draw: (g, w, h, t, b, P, cells, f, sl) => { if (!cells) return;
-      const N = 4, HUES = [350, 30, 200, 280], n = Math.floor(b), ph = b - n, sz = 22.5 * f;
-      for (const [x, y, col] of cells) { const X = x * f - sl; if (X < -sz || X > w + sz) continue;
-        const band = ((Math.floor(col / 2) % N) + N) % N, lit = ((n - band) % N + N) % N, a = lit === 0 ? 0.75 * (1 - ph * 0.6) : lit === 1 ? 0.25 * (1 - ph) : 0.04;
-        if (a < 0.03) continue; g.fillStyle = `hsla(${HUES[band]},95%,58%,${a.toFixed(3)})`; g.fillRect(X - sz / 2, y * f - sz / 2, sz, sz); } } } };
+    nine: { name: "nine circles", draw: (g, w, h, t, b, P, cells, f, sl, cols) => { if (!cells) return;
+      // the theme's own light colours (designs.js fxColsOf: glow, inner, hi, core), one per band; slopes fill their triangle
+      const C = cols && cols.length ? cols : [[255, 120, 60], [255, 180, 80], [255, 220, 140], [255, 160, 60]], N = 4, n = Math.floor(b), ph = b - n, sz = 22.5 * f;
+      // a slope's triangle: unflipped it rises to the right (corners: bottom left, bottom right, top right)
+      const tri = (X, Y, sh) => { const k = sh - 1, fx = k & 1, fy = k & 2, q = k >> 2, h = sz / 2;
+        let P = [[-h, h], [h, h], [h, -h]].map(([u, v]) => [fx ? -u : u, fy ? -v : v]);
+        for (let j = 0; j < q; j++) P = P.map(([u, v]) => [-v, u]);
+        g.beginPath(); P.forEach(([u, v], j) => j ? g.lineTo(X + u, Y + v) : g.moveTo(X + u, Y + v)); g.closePath(); g.fill(); };
+      for (const [x, y, col, sh] of cells) { const X = x * f - sl; if (X < -sz || X > w + sz) continue;
+        const band = ((Math.floor(col / 2) % N) + N) % N, lit = ((n - band) % N + N) % N, a = lit === 0 ? 0.6 * (1 - ph * 0.6) : lit === 1 ? 0.2 * (1 - ph) : 0;
+        if (a < 0.03) continue; const c = C[band % C.length]; g.fillStyle = `rgba(${c[0]},${c[1]},${c[2]},${a.toFixed(3)})`;
+        if (sh) tri(X, y * f, sh); else g.fillRect(X - sz / 2, y * f - sz / 2, sz, sz); } } } };
   const styOf = id => FXS[open["anim:" + id]] ? open["anim:" + id] : "static";
   function startPlay(id) { stopPlay(); PLAY = { id, t0: performance.now(), i: 0 }; for (const b of root.querySelectorAll(`.dc[data-id="${CSS.escape(id)}"] .aplay`)) b.textContent = "■"; requestAnimationFrame(stepPlay); }
   function stopPlay() { if (!PLAY) return; const id = PLAY.id; PLAY = null; for (const p of root.querySelectorAll(".plr, .fxc")) p.remove(); for (const b of root.querySelectorAll(`.dc[data-id="${CSS.escape(id)}"] .aplay`)) b.textContent = "▶"; }
   function stepPlay(now) {
     if (!PLAY) return; const d = L.find(x => x.id === PLAY.id), A = d && d.anim; if (!A) return stopPlay();
-    const i = Math.max(0, Math.floor((now - PLAY.t0) / 1000 * A.fps * ASPD));   // the first frame's rAF time can be before t0 PLAY.i = i; if (i >= A.pts.length) return stopPlay();
+    const i = Math.max(0, Math.floor((now - PLAY.t0) / 1000 * A.fps * ASPD));   // the first frame's rAF time can be before t0
+    PLAY.i = i; if (i >= A.pts.length) return stopPlay();   // ends with the scene (was on the comment's line: it never stopped)
     const mk = root.querySelector(`.dc[data-id="${CSS.escape(PLAY.id)}"] .zw .mk`); if (!mk) return requestAnimationFrame(stepPlay);
     const img = mk.querySelector("img"), f = img && img.naturalHeight ? img.clientHeight / img.naturalHeight : 1, w = mk.closest(".wide");
     let p = mk.querySelector(".plr"); if (!p) { p = document.createElement("span"); p.className = "plr"; mk.appendChild(p); }
@@ -272,7 +280,7 @@ window.initDesigns = async function (root) {
     if (fx.draw && zw && w) { if (!cv) { cv = document.createElement("canvas"); cv.className = "fxc"; zw.appendChild(cv); }
       const W = w.clientWidth, H = w.clientHeight; if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
       const g = cv.getContext("2d"), t = i / A.fps; g.clearRect(0, 0, W, H);
-      fx.draw(g, W, H, t, t * BPM / 60, { x: x * f - w.scrollLeft, y: y * f }, d.cells, f, w.scrollLeft); }
+      fx.draw(g, W, H, t, t * BPM / 60, { x: x * f - w.scrollLeft, y: y * f }, d.cells, f, w.scrollLeft, d.fxcols); }
     else if (cv) cv.remove();
     requestAnimationFrame(stepPlay);
   }
