@@ -1,9 +1,9 @@
-# Setting GDLevelMaker up on your own computer
+# Setting GDWorkbench up on your own computer
 
 Written so that **an AI coding agent can do the whole setup by itself** (Claude Code, or any agent that can run
 commands). A person can follow it too. If you are a human with an agent, open it in this folder and say:
 
-> Read SETUP.md and set GDLevelMaker up on this computer, at least so the main levels play in the viewer.
+> Read SETUP.md and set GDWorkbench up on this computer, at least so the main levels play in the viewer.
 
 You need your **own copy of Geometry Dash** (Steam, GD 2.2). Nothing of RobTop's is in this repo: the main levels,
 GD's art and the main songs are read from your game folder, and anything made from them stays in `local/`, which git
