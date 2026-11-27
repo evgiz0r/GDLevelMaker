@@ -29,18 +29,21 @@ const LS = require("./layoutsections.js");
 function rng(seed) { let s = ((seed >>> 0) * 2654435761) >>> 0 || 1; const f = () => { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; };
   f.int = (a, b) => a + Math.floor(f() * (b - a + 1)); f.pick = a => a[Math.floor(f() * a.length)]; f.chance = p => f() < p; return f; }
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-const TIERS = { easy: 0, normal: 0.35, hard: 0.7, harder: 1 };
+// extreme (Evgeni 2026-11-27: "lets increase the cps of harder ... or add 1 more level"; and "the wave seems a bit too hard
+// for harder, too tight"): past harder only the pace grows (shorter runs, more presses a second); room -- corridor gaps,
+// platform sizes -- stops at harder's, through room() below
+const TIERS = { easy: 0, normal: 0.35, hard: 0.7, harder: 1, extreme: 1.4 };
 const COLS_PER_SEC = 311.58 / 30;
 
 // the shared context every generator gets: the random, d (0 easy .. 1 harder), mix(easy, hard) -> the value at this tier,
 // len(lo, hi) -> a motif length snapped to half beats when a tempo is given, chance(easyP, hardP)
 function ctx(o, defRows) {
-  const R = rng(o.seed ?? 1), d = typeof o.tier === "number" ? clamp(o.tier, 0, 1) : (TIERS[o.tier] ?? 0.2);
+  const R = rng(o.seed ?? 1), d = typeof o.tier === "number" ? clamp(o.tier, 0, 1.4) : (TIERS[o.tier] ?? 0.2);
   const beatCols = o.beatCols || (o.bpm ? COLS_PER_SEC * 60 / o.bpm : 0);
-  const mix = (a, b) => a + (b - a) * d, imix = (a, b) => Math.round(mix(a, b));
+  const mix = (a, b) => a + (b - a) * d, imix = (a, b) => Math.round(mix(a, b)), room = (a, b) => Math.round(a + (b - a) * Math.min(1, d));
   const len = (lo, hi) => { let n = R.int(Math.min(lo, hi), Math.max(lo, hi)); if (beatCols) { const h = beatCols / 2; n = Math.max(2, Math.round(Math.round(n / h) * h)); } return n; };
   const W = o.cols || 32, H = o.rows || defRows;
-  return { R, d, mix, imix, len, chance: (a, b) => R.chance(mix(a, b)), W, H, G: LS.grid(W, H), beatCols };
+  return { R, d, mix, imix, room, len, chance: (a, b) => R.chance(Math.min(0.95, mix(a, b))), W, H, G: LS.grid(W, H), beatCols };
 }
 // a gravity pair (G upside down, N back) in sections long enough to show it: G at ~1/3, N at ~2/3
 const gravPair = (W, min = 24) => W >= min ? [Math.round(W * 0.3), Math.round(W * 0.7)] : null;
@@ -55,6 +58,16 @@ function line(W, h0, step) { const e = [h0]; let h = h0;
   const api = { h: () => h, run: n => { for (let k = 0; k < n; k++) e.push(h); }, leg: to => { while (h !== to) { h += Math.sign(to - h); e.push(h); } } };
   while (e.length <= W + 1) { const n = e.length; step(api, n); if (e.length === n) e.push(h); }
   return x => e[Math.min(Math.max(0, x), e.length - 1)]; }
+
+// the join nearest c0 where one movement of the path ends and the next starts (the line changes direction, or a slope
+// meets a flat); with `minLeg`, only joins between two movements at least that long ("exactly at the connecting point of
+// longer sweeps", Evgeni 2026-11-27 on fly portals). A portal goes there, at the corridor's middle height.
+function joinNear(e, W, c0, minLeg = 1) {
+  const dir = c => Math.sign(e(c + 1) - e(c)), legLen = (c, step) => { let n = 0; const d = dir(step > 0 ? c : c - 1);
+    for (let x = c; x > 0 && x < W - 1 && dir(step > 0 ? x : x - 1) === d && n < 40; x += step) n++; return n; };
+  const isJoin = c => c > 2 && c < W - 3 && dir(c - 1) !== dir(c) && legLen(c, -1) >= minLeg && legLen(c, 1) >= minLeg;
+  for (let d = 0; d < W; d++) for (const c of [c0 + d, c0 - d]) if (isJoin(c)) return c;
+  return minLeg > 1 ? joinNear(e, W, c0, 1) : c0; }
 
 const GEN = {}, CONCEPT = {};
 
@@ -116,20 +129,24 @@ GEN.closecube = o => { const { R, imix, len, chance, W, H, G } = ctx(o, 8), gp =
 // HANGING (cube). Idea: masses hang from the top over a spiked floor; jump between and under them. Motif: one hanging
 // mass + a pit. Varies: mass width, how low it hangs, its hanging spikes, the gap to the next.
 CONCEPT.hanging = "masses hang from the top over a floor with spike pits; their width and depth change";
-GEN.hanging = o => { const { R, imix, len, chance, W, H, G } = ctx(o, 12); let c = 2;
+GEN.hanging = o => { const { R, imix, room, len, chance, W, H, G } = ctx(o, 12); let c = 2;
   G.box(0, W - 1, 0, 1);
   while (c < W - 4) { const w = R.int(3, 7), low = R.int(imix(8, 6), imix(9, 7)), e = Math.min(W - 2, c + w - 1);
     G.box(c, e, low, H - 1); if (w >= 5) G.box(c + 1, e - 1, low - 1, low - 1);
     if (chance(0.5, 0.9)) G.put(c, low - 1, "v"); if (e - c >= 3 && chance(0.4, 0.9)) G.put(e, low - 1, "v");
-    const pit = c + w + 1; if (pit < W - 3) G.box(pit, pit + imix(1, 3) - 1, 2, 2, "^");   // on the floor's top: a jump each
-    c += w + len(imix(5, 3), imix(6, 4)); }
+    // never three spikes in a row (Evgeni 2026-11-27 on a generated one: "i dont like triple spikes ... pretty bland"):
+    // one or two spikes on the floor's top, or an open pit with a saw in it
+    const pit = c + w + 1, n = R.int(1, room(1, 2));
+    if (pit < W - 3) { if (R.chance(0.4)) { for (let x = pit; x < pit + n + 1; x++) { G.put(x, 0, "."); G.put(x, 1, "."); } G.put(pit, 0, "o"); }
+      else G.box(pit, pit + n - 1, 2, 2, "^"); }
+    c += w + len(room(5, 3), room(6, 4)); }
   return { map: G.rows(), mode: "cube" }; };
 
 // FLYING (ship). Idea: a floor and a ceiling that rise and fall together. Motif: a hill (leg up, flat, leg down). Varies:
 // hill height and flat length, spikes in valleys and hanging at the crests, a saw in the open gap. Harder: a narrower gap,
 // shorter flats, more hazards. A gravity pair: the held button now flies down.
 CONCEPT.fly = "floor and ceiling rise and fall together in hills; spikes in valleys, saws in the gap; a gravity pair";
-GEN.fly = o => { const { R, imix, len, chance, W, H, G } = ctx(o, 12), gap = imix(8, 5), hiMax = H - gap - 2;
+GEN.fly = o => { const { R, imix, room, len, chance, W, H, G } = ctx(o, 12), gap = room(8, 5), hiMax = H - gap - 2;
   const e = line(W, 1, L => { const to = L.h() <= 2 ? R.int(Math.min(hiMax, 3), hiMax) : R.int(1, Math.max(1, L.h() - 2)); L.run(len(imix(3, 1), imix(4, 2))); L.leg(to); });
   tunnel(G, W, e, gap, H - 1);
   const gp = gravPair(W, 30);
@@ -137,27 +154,32 @@ GEN.fly = o => { const { R, imix, len, chance, W, H, G } = ctx(o, 12), gap = imi
     if (p > a && chance(0.5, 0.9)) G.put(c, a, "^");
     else if (p < a && chance(0.3, 0.8)) G.put(c, a + gap - 1, "v");
     else if (gap >= 6 && chance(0.03, 0.1)) G.put(c, a + Math.floor(gap / 2), "o"); }
-  if (gp) { G.put(gp[0], e(gp[0]) + Math.floor(gap / 2), "G"); G.put(gp[1], e(gp[1]) + Math.floor(gap / 2), "N"); }
+  if (gp) { const a = joinNear(e, W, gp[0], 3); let b = joinNear(e, W, gp[1], 3); if (b <= a + 4) b = joinNear(e, W, a + 10, 3);
+    for (const [c, t] of [[a, "G"], [b, "N"]]) { for (let r = e(c); r < e(c) + gap; r++) if ("^vo".includes(G.rows()[H - 1 - r][c])) G.put(c, r, ".");
+      G.put(c, e(c) + Math.floor(gap / 2), t); } }
   return { map: G.rows(), mode: "ship" }; };
 
 // WAVE. Idea: a 45-degree zigzag tunnel, its ceiling the floor lifted. Motif: one leg up + one down. Varies: leg length;
 // slow legs, a quick zigzag in the middle (more clicks a second), slow again. Harder: a narrower tunnel, a longer quick
 // part. A gravity pair in the quick part.
 CONCEPT.wave = "a 45-degree zigzag tunnel; slow legs, a quick middle, slow again; a gravity pair";
-GEN.wave = o => { const { R, mix, imix, W, H, G } = ctx(o, 10), gap = imix(5, 3), q0 = mix(0.35, 0.2), q1 = mix(0.65, 0.8);
+GEN.wave = o => { const { R, mix, imix, room, W, H, G } = ctx(o, 10), gap = room(6, 5), q0 = mix(0.35, 0.2), q1 = mix(0.65, 0.8);
   const e = line(W, 1, (L, x) => { const mid = x > W * q0 && x < W * q1, amp = mid ? R.int(1, 2) : R.int(3, Math.max(3, Math.min(5, H - gap - 2)));
     L.leg(L.h() > 1 ? 1 : Math.min(H - gap - 1, 1 + amp)); });
   tunnel(G, W, e, gap, H - 1);
   const gp = gravPair(W, 30);
-  if (gp) { G.put(gp[0], e(gp[0]) + Math.floor(gap / 2), "G"); G.put(gp[1], e(gp[1]) + Math.floor(gap / 2), "N"); }
+  // portals on a TURN (the join of two inputs), never mid-leg (Evgeni 2026-11-27 on a generated wave: "portals in waves
+  // should usually be on connecting points of clicks or holds, putting them in the middle of a corridor is big difficulty
+  // spike"): the nearest column where the line changes direction, at the corridor's middle height there
+  if (gp) { const a = joinNear(e, W, gp[0]), b = joinNear(e, W, gp[1]); G.put(a, e(a) + Math.floor(gap / 2), "G"); if (b !== a) G.put(b, e(b) + Math.floor(gap / 2), "N"); }
   return { map: G.rows(), mode: "wave" }; };
 
 // FLAPPY (ufo). Idea: pipes from the floor and the ceiling with a gap at changing heights. Motif: one pipe pair. Varies:
 // the gap's height (walks up and down), the spacing, spike tips. Harder: a narrower gap, closer pipes, bigger jumps.
 CONCEPT.flappy = "pipe pairs from floor and ceiling; the gap's height walks up and down";
-GEN.flappy = o => { const { R, imix, len, chance, W, H, G } = ctx(o, 12), gh = imix(5, 3); let g = R.int(2, 5);
+GEN.flappy = o => { const { R, imix, room, len, chance, W, H, G } = ctx(o, 12), gh = room(5, 3); let g = R.int(2, 5);
   G.box(0, W - 1, 0, 0);
-  for (let c = 3; c < W - 2; c += len(imix(7, 4), imix(8, 5))) {
+  for (let c = 3; c < W - 2; c += len(room(7, 4), room(8, 5))) {
     G.box(c, c + 1, 0, g - 1); G.box(c, c + 1, g + gh, H - 1); G.put(c, g - 1, "^"); G.put(c + 1, g + gh, "v");
     if (c + 3 < W - 2 && chance(0.3, 0.6)) G.put(c + 3, 1, "^");
     const jump = imix(1, 3); g = clamp(g + R.pick([-jump, -1, 1, jump]), 2, H - gh - 2); }
@@ -171,7 +193,7 @@ GEN.flappy = o => { const { R, imix, len, chance, W, H, G } = ctx(o, 12), gh = i
 // each surface starts where a flip in the last `win` columns of the one before lands (the ball's travel time across the
 // height difference), so the flip window is the overlap; early flips fly into open space, late ones roll off into a pit.
 // Varies: surface width, kind (mass / middle piece), height step (big and small), a hazard at a surface's end.
-CONCEPT.ball = "flip from surface to surface on the other side: floor and ceiling masses and pieces floating in the middle, at big and small height steps, over spike pits";
+CONCEPT.ball = "flip from surface to surface on the other side: floor and ceiling masses and pieces floating in the middle, at big and small height steps, over saw pits";
 const BALL_G = 1670;   // ball gravity, units/s^2 (Clutterfunk recording: 0.464 units/frame^2 at 60 fps)
 const ballTravel = rows => Math.sqrt(2 * Math.max(0.5, rows) * 30 / BALL_G) * COLS_PER_SEC;   // columns across `rows`
 GEN.ball = o => { const { R, mix, imix, chance, W, H, G } = ctx(o, 10), BT = Math.min(H, 8);   // the ball band: rows 0..7 (its ceiling at 240 units)
@@ -188,7 +210,17 @@ GEN.ball = o => { const { R, mix, imix, chance, W, H, G } = ctx(o, 10), BT = Mat
   }
   // draw: ground spikes and a row of hanging spikes along the top (the ball band's ceiling holds the ball otherwise, so
   // an early flip must die there, not ride the band edge), then each surface
-  G.box(0, W - 1, 0, 0, "^"); G.box(0, W - 1, BT - 1, BT - 1, "v");
+  // no walls of spikes and no floating spikes (Evgeni 2026-11-27 on 🎲 ball: "just blocking like that with a wall of spike
+  // is rough, lets place proper hazards, spikes not on the ground is bad"): saws along the pits and under the band's
+  // ceiling, a saw every 2 columns (their round edge covers the gap), short spike groups only on blocks
+  // and then (Evgeni, on 🎲 ball seed 52432: "still the blockers of spikes not on correct height, either spikes are on the
+  // ground (or top), or there are hazards (on both sides)"): spikes stand on the ground, and hang from a ceiling bar laid at
+  // the band's top (row BT), in groups of 2-3 with a column between (a ball that lands in the gap rolls into the next
+  // group), a saw now and then in place of a group
+  if (H > BT) G.box(0, W - 1, BT, Math.min(H - 1, BT));
+  for (const [row, t] of [[0, "^"], [BT - 1, "v"]]) for (let c = 0; c < W;) {
+    if (R.chance(0.2)) { G.put(c, row, "o"); c += 2; continue; }
+    const n = R.int(2, 3); for (let k = 0; k < n && c + k < W; k++) G.put(c + k, row, t); c += n + 1; }
   for (const s of S) { const c1 = Math.min(W - 1, s.c1);
     if (s.side > 0) { if (s.kind === "mass") G.box(s.c0, c1, 0, s.y - 1); else G.box(s.c0, c1, s.y - s.thick, s.y - 1);
       if (s.end && s.c1 < W) G.put(c1, s.y, "^"); }
@@ -196,30 +228,55 @@ GEN.ball = o => { const { R, mix, imix, chance, W, H, G } = ctx(o, 10), BT = Mat
       if (s.end && s.c1 < W) G.put(c1, s.y, "v"); } }
   return { map: G.rows(), mode: "ball" }; };
 
-// STAIR PATH (cube, his "strairpath", my-mwz1637w). Idea: a lattice of single blocks; many ways in theory, every wrong one
-// closed by a hazard. Motif: a column of blocks 3 rows apart; the next column's way block 1 up, 1 down or 2 up. His notes:
-// a reverse and a normal portal (G .. N: the middle is played on the blocks' undersides), a bit taller, hazards other than
-// spikes in the middle (small saws there).
-CONCEPT["my-mwz1637w"] = "a lattice of single blocks 3 apart; one way block per column, the rest closed by hazards; a gravity pair plays the middle on the undersides";
-GEN["my-mwz1637w"] = o => { const { R, chance, W, H, G } = ctx(o, 13), gp = null; let h = 1, up = false, phase = 0;   // never gravity in a generated stair path (Evgeni 2026-11-27: "never gravity in generating stairpath")
-  G.box(0, W - 1, 0, 0, "^"); G.box(0, 2, 0, 1);
-  for (let c = 4, k = 0; c < W - 3; c += 3, k++) {
-    if (gp && phase === 0 && c >= gp[0]) { G.put(c - 2, h + 1, "G"); up = true; phase = 1; h = clamp(h + 3, 3, H - 2); }
-    else if (gp && phase === 1 && c >= gp[1]) { G.put(c - 2, h - 1, "N"); up = false; phase = 2; h = clamp(h - 3, 1, H - 4); }
-    else h = up ? clamp(h + R.pick([-1, -1, 1, -2]), 3, H - 2) : clamp(h + (k === 0 ? 1 : R.pick([1, 1, -1, 2])), 1, H - 4);   // open: the 2-up hop leaves 8-29 ms windows
-    const mid = gp ? c > gp[0] - 3 && c < gp[1] + 3 : c > W / 3 && c < 2 * W / 3;
-    for (let r = (h % 3) || 3; r < H - 1; r += 3) { G.put(c, r, "#"); if (r === h) continue;
-      const face = up ? r - 1 : r + 1; if (face <= 0 || face >= H) continue;
-      G.put(c, face, mid ? (chance(0.6, 0.9) ? "s" : "q") : (up ? "v" : "^")); } }
-  G.box(W - 3, W - 1, 0, up ? 1 : Math.max(1, h));
+// STAIR PATH (cube, his "strairpath", my-mwz1637w). Idea: a lattice of single blocks a column every 3; many ways in theory,
+// every wrong one closed by a hazard. Motif: the next column's way block a hop up. His drawing and notes: a reverse and a
+// normal portal ("still no reverse portals on generation"), a bit taller, saws instead of spikes in the middle, no long
+// runs at one height ("sometimes we have too many in a row of the same height"). So the way CLIMBS (a hop of +1, +2 at
+// the hard end) to near the top, a G there flips the player onto the blocks' undersides, the way climbs again (mirrored:
+// towards the ground), an N near the bottom flips back; repeat. A cube can't step DOWN a lattice (a jump hits the block
+// above, a walk-off falls short of the next column), which is why the flat runs came: the flips are the way down.
+// Harder: lower turn points (more flips per length), more +2 hops, saws everywhere.
+CONCEPT["my-mwz1637w"] = "a lattice of single blocks 3 apart; the way climbs, a gravity portal flips play onto the undersides and it climbs back down, then flips back; wrong blocks carry hazards";
+// The turn (Evgeni: "still no reverse portals on generation" -- the pair is part of the stair path): the top step is a
+// 2-wide block, the gravity portal stands right after it at the player's height, and the next step hangs 3 rows up so the
+// flipped cube meets its underside a block later; the way back down mirrors it with the normal portal.
+GEN["my-mwz1637w"] = o => { const { R, imix, chance, W, H, G } = ctx(o, 13), DU = o.du ?? 5, top = H - 2 - DU, low = DU + 1;
+  G.box(0, 2, 0, 1); for (let c = 3; c < W - 3; c += 2) G.put(c, 0, "o");   // saws in the pit, not a spike wall
+  let h = 1, up = false, k = 0, run = 0, turn = false, turnHi = R.int(Math.max(2, top - imix(0, 2)), top), turnLo = R.int(low, low + imix(0, 2));
+  const lastC = 4 + 3 * Math.floor((W - 7 - 4) / 3);
+  for (let c = 4; c <= lastC; c += 3, k++) {
+    if (k > 0) {
+      if (turn) { turn = false; h = up ? Math.min(H - 2, h + DU) : Math.max(1, h - DU); }
+      else { // a hop toward the turn: +1 at most 3 times running (measured: a 4th +1 from a 1-wide block lands past the
+        // next one), +2 or a step back -1 between, never a flat run
+        let hop = run >= 3 || chance(0.15, 0.4) ? (R.chance(0.6) ? 2 : -1) : 1;
+        if (hop === -1 && (up ? h + 1 > H - 2 : h - 1 < 1)) hop = 2;
+        run = hop === 1 ? run + 1 : 0;
+        h = up ? Math.max(turnLo, h - hop) : Math.min(turnHi, h + hop); } }
+    const mid = c > W / 4 && c < 3 * W / 4;
+    // the lattice; the block right over the way block is left out (head room: a jump from a 1-wide block hits it), the
+    // others carry a hazard on the face the player would land on
+    for (let r = (h % 3) || 3; r < H - 1; r += 3) { if (r === (up ? h - 3 : h + 3)) continue; G.put(c, r, "#"); if (r === h || o.clean) continue;
+      const face = up ? r - 1 : r + 1; if (face <= 0 || face >= H - 1) continue;
+      G.put(c, face, mid || chance(0.3, 0.7) ? (R.chance(0.6) ? "s" : "q") : (up ? "v" : "^")); }
+    // the last chance to turn back to normal gravity is forced, so the run ends on its feet
+    if ((up && (h <= turnLo || c === lastC - 3)) || (!up && h >= turnHi && c <= lastC - 6)) {
+      if (o.wide) G.put(c + 1, h, "#"); G.put(c + (o.gOff ?? 1), up ? h - 1 : h + 1, up ? "N" : "G"); turn = true; up = !up; run = o.turnRun ?? 2;
+      if (up) turnLo = R.int(low, Math.min(h + DU - 1, low + imix(0, 2))); else turnHi = R.int(Math.max(h - DU + 1, top - imix(0, 2)), top); } }
+  G.box(W - 3, W - 1, 0, 1);
   return { map: G.rows(), mode: "cube" }; };
 
 // SWING (his, my-mwz1890c). Idea: round movement, a big up-and-down corridor whose sides are curves of saws, not blocks.
 // Motif: one wave of the path. Varies: amplitude, period, the corridor's width. Harder: tighter waves, a narrower corridor.
 CONCEPT["my-mwz1890c"] = "a sine-shaped corridor drawn by two chains of saws; amplitude, period and width change wave to wave";
-GEN["my-mwz1890c"] = o => { const { R, imix, len, W, H, G } = ctx(o, 13), mid = (H - 1) / 2; let c = 0;
-  while (c < W) { const P = len(imix(20, 14), imix(22, 17)), A = R.int(2, Math.max(2, Math.floor(H / 2) - 3)), gap = R.int(imix(7, 5), imix(7, 6));
-    for (let x = 0; x < P && c + x < W; x++) { const y = mid + A * Math.sin(2 * Math.PI * x / P), lo = Math.round(y - gap / 2), hi = Math.round(y + gap / 2), ch = (c + x) % 2 ? "q" : "o";
+// Evgeni 2026-11-27 on a generated one: "swing should swing more, like double the height possible", and on his drawing
+// "exntend the pattern a bit longer", then "swing still not high enough". GD bounds a swing to a 10-block band (lib/physics.js
+// BAND: 300 units, set by the portal), so the height comes from filling the band: the corridor's middle swings from one band
+// edge to the other (the edge is the far wall at a peak), saw chains on the open side only, longer waves.
+GEN["my-mwz1890c"] = o => { const { R, imix, room, len, W, G } = ctx(Object.assign({ cols: 48 }, o), 10), H = Math.min(10, ctx(o, 10).H); let c = 0;
+  while (c < W) { const gap = R.int(room(5, 4), room(6, 5)), A = (H - gap) / 2 * (o.amp ?? R.pick([0.8, 1, 1])), mid = H / 2,
+      P = len(imix(26, 20), imix(34, 26));
+    for (let x = 0; x < P && c + x < W; x++) { const y = mid + A * Math.sin(2 * Math.PI * x / P), lo = Math.round(y - gap / 2) - 1, hi = Math.round(y + gap / 2), ch = (c + x) % 2 ? "q" : "o";
       if (lo >= 0) G.put(c + x, lo, ch); if (hi < H) G.put(c + x, hi, ch); }
     c += P; }
   return { map: G.rows(), mode: "swing" }; };
@@ -229,7 +286,7 @@ GEN["my-mwz1890c"] = o => { const { R, imix, len, W, H, G } = ctx(o, 13), mid = 
 // (hold: ride the ceiling) or the ceiling (release: ride the floor), then a 45-degree climb or drop of both bars. Varies:
 // run length, which side, the height step. Closed above and below (bars), so the ship can't go round it.
 CONCEPT["my-mwz1s7po"] = "a narrow corridor of two thin bars; obstacle runs on the floor (hold) or the ceiling (release); the bars climb and drop together";
-GEN["my-mwz1s7po"] = o => { const { R, imix, len, chance, W, H, G } = ctx(o, 14), gap = imix(5, 3);
+GEN["my-mwz1s7po"] = o => { const { R, imix, room, len, chance, W, H, G } = ctx(Object.assign({ cols: 56 }, o), 14), gap = room(5, 3);
   const e = line(W, 2, L => { L.run(len(imix(10, 6), imix(12, 8))); L.leg(clamp(L.h() + R.pick([-3, -2, 2, 3]), 2, H - gap - 3)); });
   tunnel(G, W, e, gap, H - 1, 2);
   let side = R.chance(0.5) ? 1 : -1;
@@ -246,7 +303,10 @@ function make(key, opts = {}) { const g = GEN[key]; if (!g) throw new Error("no 
   const r = g(o), z = (LS.SECTIONS || []).find(s => s.key === key);
   return Object.assign({ key, name: (z && z.name) || key, concept: CONCEPT[key], opts: o }, r); }
 
-module.exports = { GEN, CONCEPT, KEYS, TIERS, make, rng, tunnel };
+// how often a level builder should pick a type (1 = as often as any): Evgeni 2026-11-27 on hanging: "low priority on using
+// such ... considering removing as others contain these feates"
+const PRIORITY = { hanging: 0.2 };
+module.exports = { PRIORITY, GEN, CONCEPT, KEYS, TIERS, make, rng, tunnel };
 
 if (require.main === module) {
   const a = process.argv.slice(2), arg = k => { const i = a.indexOf("--" + k); return i >= 0 ? a[i + 1] : null; }, cmd = a[0];

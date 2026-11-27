@@ -100,7 +100,24 @@ difficulty target (tier: cps and tightest window), and are checked by tools/layo
   --tiers easy,hard` (layoutcheck.js per map); test `node tests/sectiongen.js`.
   First check (seed 1, 30 / 60 / 120 columns, easy and hard): every type solves at every length except the stair path.
   Its lattice solves on some seeds only (2 of 4), with 8-29 ms windows from the 2-up hop, and its gravity pair dies as
-  placed. Rule since (Evgeni 2026-11-27: "never gravity in generating stairpath"): a generated stair path has no gravity portals at all. Keep his drawn stair path until the lattice solves on every seed.
+  placed. ~~Rule: no gravity portals in a generated stair path~~ -- a misreading: "never gravity in generating stairpath" was
+  a complaint, and "still no reverse portals on generation" confirmed it. **Stair path v3:** the gravity pair is on by
+  default. The way hops +1 (never more than three times running: measured, a fourth +1 from a 1-wide block lands past the
+  next one), +2 or -1 back, never flat. At the top step the gravity portal stands right after the block at the player's
+  height, the next step hangs 5 rows up (the flipped cube meets its underside a block later), it climbs back down on the
+  undersides and the normal portal turns it back (forced at the last chance, so it ends on its feet). 1 pair in 40
+  columns, 2 in 80 (more on harder: lower turn). 12 of 12 solve (40 / 80 cols, easy / harder) and 12 of 12 (30 / 60,
+  normal / hard).
+- **Swing:** GD holds a swing in a 10-block band set by its portal (lib/physics.js BAND), so a taller swing means filling
+  the band: the corridor's middle swings edge to edge (the band edge is the far wall at a peak), waves 20-34 columns.
+  12 of 12 solve. Taller than that ("swing can go even higher than screen") needs the portal's band off (GD 2.2's free
+  mode); not simulated yet, open for the physics session.
+- **Portals on joins:** a wave or fly gravity portal goes where one movement of the path ends and the next begins
+  (`joinNear`: in a fly, between two sweeps at least 3 columns long when there are some), at the corridor's middle height,
+  never mid-leg.
+- **Tier extreme** (Evgeni: "lets increase the cps of harder ... or add 1 more level", "the wave seems a bit too hard for
+  harder, too tight"): `extreme` (1.4) goes past harder on pace only (shorter runs, more presses a second); room --
+  corridor gaps -- stops at harder's (`room()` in ctx). The wave's gap is now 6 rows (easy) to 5 (harder and extreme); it was 5 to 3 (Evgeni: "still too tight gaps, need bigger gaps, even for harder").
   The tier moves the layout (narrower gaps, shorter runs) but the difficulty model still rates most hard ones Easy. So
   the knob needs a stronger hard end per type, measured against layoutcheck's label.
 - **Measured against his drawings** (Evgeni 2026-11-27: "the generator is bad, i compare the cps, the variaty, height
