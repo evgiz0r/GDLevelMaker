@@ -231,8 +231,12 @@ function layoutBack() {
     for (const q of tiles) { const r = rows - 1 - q.r, c = q.c - dc; if (r >= 0 && r < rows && c >= 0 && c < width) g[r][c] = q.t; } return g.map(l => l.join("")); };
   const out = {};
   const kit = newest["layout:kit"], play = newest["layout:play"];
-  if (kit && kit.tiles) out.KIT_MAP = toMap(kit.tiles, DT.KIT_MAP.length + 4, Math.max(DT.KIT_MAP[0].length, ...kit.tiles.map(q => q.c - 1)), 2).slice(4);
-  if (play && play.tiles) out.SCENE = toMap(play.tiles, Math.max(DT.SCENE.length, ...play.tiles.map(q => q.r + 1)), Math.max(DT.SCENE[0].length, ...play.tiles.map(q => q.c)), 1);
+  // KIT_MAP's first row is r 7 (designthemes.js: r = 7 - i): keep rows from 7 down to his lowest piece (was .slice(4),
+  // which kept r 3..0 -- the wrong end -- so the kit edit came out empty)
+  if (kit && kit.tiles) { const lo = Math.min(7 - (DT.KIT_MAP.length - 1), ...kit.tiles.map(q => q.r));
+    out.KIT_MAP = toMap(kit.tiles, 8, Math.max(DT.KIT_MAP[0].length, ...kit.tiles.map(q => q.c - 1)), 2).slice(0, 8 - lo); }
+  // the current scene is built from the sections now (designs_tab.js sceneTiles), so an old saved "play" edit is not applied
+  if (play && play.tiles && process.argv.includes("--scene")) out.SCENE = toMap(play.tiles, Math.max(DT.SCENE.length, ...play.tiles.map(q => q.r + 1)), Math.max(DT.SCENE[0].length, ...play.tiles.map(q => q.c)), 1);
   // the sections: his map per key -> knowledge/layout_sections.json (tools/layoutsections.js takes it over its draft)
   const LS = require("./layoutsections.js"), secs = {};
   for (const z of LS.SECTIONS) { const e = newest["layout:sec:" + z.key]; if (!e || !e.tiles) continue;

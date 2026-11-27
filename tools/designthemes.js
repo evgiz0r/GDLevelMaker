@@ -90,9 +90,11 @@ function sceneFor(name) {
 // the kit: every piece a theme brings, laid out one by one above the cube's lane (rows 4-7), before its scene
 const KIT_MAP = [
   "................................",
-  "......#..../\\..^.#....o..#####..",
+  "...#..#..../\\..^.#....o..#####..",
   "#.###.###./##\\.#.v.q.....#####..",
-  ".........................#####..",
+  ".........................#######",
+  ".........................#......",
+  ".........................#......",
 ];
 const KIT = [], KIT_W = KIT_MAP[0].length + 3;
 KIT_MAP.forEach((line, i) => { const r = 7 - i;
