@@ -40,6 +40,8 @@ function list() {
   const DT = require("./designthemes.js"), scenes = DT.spec().scenes;
   for (const [name, t] of Object.entries(DT.THEMES)) { const q = scenes.find(z => z.name === name) || {};
     out.push({ id: "theme:" + name, kind: "theme", name, card: `cards/theme-${keyOf(name)}.jpg`, layout: `cards/layout-${keyOf(name)}.jpg`, parts: { kit: `cards/layoutkit-${keyOf(name)}.jpg`, play: `cards/layoutplay-${keyOf(name)}.jpg` },
+      tiles0: tiles0(),
+      partGeo: { kit: { c0: q.c0, c1: q.scene - 1 }, play: { c0: q.scene - 1, c1: q.c1 }, hU: THEME_ROWS * 30 + THEME_GROUND, ground: THEME_GROUND, sc: q.scene },
       geo: { c0: q.c0, c1: q.c1, sc: q.c0 + 4, hU: THEME_ROWS * 30 + THEME_GROUND, ground: THEME_GROUND },
       note: `${t.mood} · ${t.design}, ${[].concat(t.effects).join(", ")} · spikes ${t.spikes}, saws ${t.saws} · ${t.holders} · ${t.indicator}` }); }
   return out;
@@ -74,6 +76,14 @@ function moreCards() {
 }
 
 // theme cards: two frames per theme from the design themes gallery (its blocks, its sample), side by side
+// the shared layout as editable tiles for the Themes tab board (designs_tab.js): t = the text map's character
+// (# block, / \\ slopes, 7 r ceiling slopes, ^ spike, v hanging spike, o q s saws), c from the part's left edge, r rows up
+function tiles0() {
+  const DT = require("./designthemes.js"), out = { kit: [], play: [] };
+  DT.KIT_MAP.forEach((l, i) => [...l].forEach((ch, c) => { if (ch !== ".") out.kit.push({ t: ch, c: c + 2, r: 7 - i }); }));
+  DT.SCENE.forEach((l, i) => [...l].forEach((ch, c) => { if (ch !== ".") out.play.push({ t: ch, c: c + 1, r: DT.SCENE.length - 1 - i }); }));
+  return out;
+}
 function themeCards() {
   // one picture per theme: its whole scene (tools/designthemes.js SCENE) from ONE fixed camera -- levelmap.js --clean,
   // one row -- cut at the scene's ends (Evgeni 2026-11-27: "just 1 full scene with pieces"; joined shots a screen apart

@@ -19,6 +19,7 @@ window.initDesigns = async function (root) {
   #designs .lyh{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:6px 8px;font-size:12px}#designs .lfold{cursor:pointer;color:var(--mute)}
   #designs .lyh button{background:#241d3d;color:#ddd;border:1px solid #444;border-radius:6px;padding:2px 7px;font-size:12px}#designs .lyh .pen.on{outline:2px solid currentColor}
   #designs .ink{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}#designs .ink.on{pointer-events:auto;cursor:crosshair;touch-action:none;outline:2px dashed #ffd84d}
+  #designs .tiles .grid line{stroke:#ffffff30;stroke-width:1px;vector-effect:non-scaling-stroke}#designs .tiles{cursor:pointer}#designs .ptool.on{outline:2px solid #ffd84d}
   #designs .lpn{font-size:11px;color:var(--mute);padding:2px 8px}#designs .lay{margin:6px 0 14px}#designs .lpt.on{outline:1px solid #7be38a}
   #designs .board.fs{position:fixed;inset:0;z-index:1000;background:#0f0c2b;overflow:auto}#designs .board.fs .wide{overflow:auto}
   #designs .lk.blank img{visibility:hidden}#designs .lk.blank{background:#1a1636;background-image:linear-gradient(#ffffff10 1px,transparent 1px),linear-gradient(90deg,#ffffff10 1px,transparent 1px);background-size:20px 20px}
@@ -157,23 +158,43 @@ window.initDesigns = async function (root) {
   // blocks spike hazard layout (just hanging) and the gameplay layout"). A free board: drawing is always on, no draw button
   // ("i tap over the layout nothing happens").
   const LPARTS = [["kit", "pieces"], ["play", "gameplay"]];
-  let LACT = "layout:play";
+  let LACT = "layout:play", TOOL = "#", painting = null; const HIST = [], HAZ = new Set(["^", "v", "o", "q", "s"]);
+  // a part's tiles: Evgeni's edited copy once he changed it, else the layout as built (designs.json tiles0)
+  const tilesOf = k => (DRAW[k] && DRAW[k].tiles) || ((L.find(d => d.tiles0) || {}).tiles0 || {})[k.split(":")[1]] || [];
+  let TILE = () => "";
   function layoutSection() {
     const t = L.find(d => d.kind === "theme" && d.parts); if (!t) return "";
     const isOpen = open.layoutsec !== false, fs = FS === "layout", z = Math.round(220 * (open["zoom:layout"] || 1)), bg = BG.layout || "layout";
     const show = q => open["lpart:" + q] !== false;
-    const ink = k => `<svg class="ink on" data-k="${k}" viewBox="0 0 1000 100" preserveAspectRatio="none">${((DRAW[k] || {}).strokes || []).map(st => `<polyline points="${st.p.map(q => (q[0] * 1000).toFixed(1) + "," + (q[1] * 100).toFixed(2)).join(" ")}" stroke="${esc(st.c || "#fff")}" style="stroke-width:${+st.w || 3}px" />`).join("")}</svg>`;
-    const n = LPARTS.reduce((a, q) => a + (((DRAW["layout:" + q[0]] || {}).strokes || []).length), 0);
+    // TAP TO PLACE (Evgeni 2026-11-27: "i dont like the fact i need to hold and not just click on a spot. lets have to draw
+    // bricks or hazards or spikes for now"): a tool, then a tap on a cell places it (a tap on the same thing takes it away),
+    // a drag paints; cells are the level's own grid. Saved per part as {tiles: [{t, c, r}]}: c columns from the part's
+    // left edge, r rows above the ground.
+    const G = t.partGeo, H = G.hU / 30, Gr = G.ground / 30;
+    // tiles in plain layout colours (Evgeni: "the colors themselves are not needed for the layout"): blocks white,
+    // hazards red; the text map's characters as types
+    const tile = q => { const x = q.c, y = H - Gr - q.r - 1, P = pts => `<polygon class="tl" points="${pts.map(z => (x + z[0]) + "," + (y + z[1])).join(" ")}" fill="${HAZ.has(q.t) ? "#ff6b6b" : "#e8e8f0"}" />`;
+      switch (q.t) {
+        case "/": return P([[0, 1], [1, 1], [1, 0]]); case "\\": return P([[0, 0], [0, 1], [1, 1]]);
+        case "7": return P([[0, 0], [1, 0], [1, 1]]); case "r": return P([[0, 0], [1, 0], [0, 1]]);
+        case "^": return P([[0.1, 1], [0.5, 0.1], [0.9, 1]]); case "v": return P([[0.1, 0], [0.5, 0.9], [0.9, 0]]);
+        case "o": case "q": case "s": return `<circle class="tl" cx="${x + 0.5}" cy="${y + 0.5}" r="${q.t === "o" ? 0.48 : 0.36}" fill="#ff6b6b" />`;
+        default: return `<rect class="tl" x="${x + 0.03}" y="${y + 0.03}" width="0.94" height="0.94" fill="#e8e8f0" />`; } };
+    TILE = tile;
+    const ink = k => { const g = G[k.split(":")[1]], W = g.c1 - g.c0;
+      return `<svg class="ink on tiles" data-k="${k}" data-w="${W}" data-h="${H}" data-g="${Gr}" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">`
+        + `<g class="grid">${Array.from({ length: W + 1 }, (_, c) => `<line x1="${c}" y1="0" x2="${c}" y2="${H - Gr}" />`).join("")}${Array.from({ length: Math.floor(H - Gr) + 1 }, (_, r) => `<line x1="0" y1="${H - Gr - r}" x2="${W}" y2="${H - Gr - r}" />`).join("")}</g>`
+        + tilesOf(k).map(tile).join("") + `</svg>`; };
+    const n = LPARTS.filter(q => (DRAW["layout:" + q[0]] || {}).tiles).length;   // parts he has edited
+    const TOOLS = [["#", "▭ block"], ["/", "◢ slope"], ["\\", "◣ slope"], ["^", "▲ spike"], ["v", "▼ hanging spike"], ["o", "⚙ saw"], ["erase", "⌫ erase"]];
     const tools = `<span class="pens">` + LPARTS.map(q => `<button class="lpt${show(q[0]) ? " on" : ""}" data-p="${q[0]}">${show(q[0]) ? "☑" : "☐"} ${q[1]}</button>`).join("")
-      + COLS.map(c => `<button class="pcol${PCOL === c && !ERASE ? " on" : ""}" data-c="${c}" style="background:${c}"></button>`).join("")
-      + `<input type="color" class="pany" value="${PCOL}" title="any colour">` + [2, 4, 8].map(w => `<button class="pw${PW_ === w ? " on" : ""}" data-w="${w}"><i style="height:${w}px"></i></button>`).join("")
-      + `<button class="perase${ERASE ? " on" : ""}">⌫ eraser</button><button class="pundo">↶</button><button class="pclear">🗑</button>`
-      + `<select class="pbg"><option value="layout"${bg === "layout" ? " selected" : ""}>on the layout</option><option value="blank"${bg === "blank" ? " selected" : ""}>blank page</option></select>`
+      + TOOLS.map(([k, l]) => `<button class="ptool${TOOL === k ? " on" : ""}" data-t="${k}">${l}</button>`).join("")
+      + `<button class="pundo">↶ undo</button><button class="pclear">🗑 clear</button><button class="preset">↺ back to ours</button>`
       + `<button class="zoom" data-z="-1">−</button><button class="zoom" data-z="1">＋</button><button class="pfs">${fs ? "⤡ exit" : "⛶ full screen"}</button>`
       + (n ? `<button class="msend" data-label="📨 send to Claude"${CAN_SEND ? "" : " disabled"}>📨 send to Claude</button>` : "") + `<span class="ds pst">${esc(DST[LACT] || "")}</span></span>`;
     return `<section data-g="layoutsec"><h2 class="stitle fold-h" role="button" tabindex="0" aria-expanded="${isOpen}">${isOpen ? "▾" : "▸"} Theme layout <span class="ds">the same for every theme · draw on it${n ? " · ✏ " + n : ""}</span></h2>`
       + (isOpen ? `<div class="dc lay board${fs ? " fs" : ""}" data-id="${LACT}"><div class="lyh">${tools}</div>`
-        + LPARTS.filter(q => show(q[0])).map(q => `<div class="lpn">${q[1]}</div><div class="wide" data-w="L:${q[0]}"><div class="mk lk${bg === "blank" ? " blank" : ""}" style="--zh:${fs ? "calc((100vh - 140px) / " + LPARTS.filter(x => show(x[0])).length + ")" : z + "px"}"><img src="${esc(t.parts[q[0]])}" alt="${q[1]}">${ink("layout:" + q[0])}</div></div>`).join("")
+        + LPARTS.filter(q => show(q[0])).map(q => `<div class="lpn">${q[1]}</div><div class="wide" data-w="L:${q[0]}"><div class="mk lk blank" style="--zh:${fs ? "calc((100vh - 140px) / " + LPARTS.filter(x => show(x[0])).length + ")" : z + "px"}"><img src="${esc(t.parts[q[0]])}" alt="${q[1]}">${ink("layout:" + q[0])}</div></div>`).join("")
         + `</div>` : "") + `</section>`;
   }
   function render() {
@@ -206,11 +227,15 @@ window.initDesigns = async function (root) {
     if (lf) { const k = "layout:" + lf.dataset.lf; open[k] = open[k] === false; try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} render(); return; }
     if (e.target.closest(".pdraw")) { DRAWING = e.target.closest(".dc").dataset.id; render(); return; }
     if (e.target.closest(".pdone")) { DRAWING = null; FS = null; ERASE = false; render(); return; }
+    const ptl = e.target.closest(".ptool"); if (ptl) { TOOL = ptl.dataset.t; render(); return; }
     const lpt = e.target.closest(".lpt"); if (lpt) { const k = "lpart:" + lpt.dataset.p; open[k] = open[k] === false; try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} render(); return; }
     const pc = e.target.closest(".pcol"); if (pc) { PCOL = pc.dataset.c; ERASE = false; render(); return; }
     const pw = e.target.closest(".pw"); if (pw) { PW_ = +pw.dataset.w; render(); return; }
     if (e.target.closest(".perase")) { ERASE = !ERASE; render(); return; }
     if (e.target.closest(".pfs")) { const id0 = e.target.closest(".dc").dataset.id, id = id0.startsWith("layout") ? "layout" : id0; FS = FS === id ? null : id; render(); return; }
+    if (e.target.closest(".lay") && e.target.closest(".pundo")) { const h = HIST.pop(); if (h) { DRAW[h.k] = Object.assign(DRAW[h.k] || {}, { tiles: h.tiles }); render(); saveDraw(h.k); } return; }
+    if (e.target.closest(".lay") && e.target.closest(".preset")) { for (const q of LPARTS) { const k = "layout:" + q[0]; if ((DRAW[k] || {}).tiles) { HIST.push({ k, tiles: DRAW[k].tiles }); DRAW[k].tiles = null; saveDraw(k); } } render(); return; }
+    if (e.target.closest(".lay") && e.target.closest(".pclear")) { for (const q of LPARTS) { const k = "layout:" + q[0]; if (open["lpart:" + q[0]] === false) continue; HIST.push({ k, tiles: (DRAW[k] || {}).tiles || null }); DRAW[k] = Object.assign(DRAW[k] || {}, { tiles: [] }); saveDraw(k); } render(); return; }
     if (e.target.closest(".pundo") || e.target.closest(".pclear")) { const id = e.target.closest(".dc").dataset.id, D0 = DRAW[id] || { strokes: [] };
       DRAW[id] = { strokes: e.target.closest(".pclear") ? [] : D0.strokes.slice(0, -1) }; render(); saveDraw(id); return; }
     const zb = e.target.closest(".zoom");
@@ -225,10 +250,10 @@ window.initDesigns = async function (root) {
     if (snd) { const c = snd.closest(".dc"), id = c.dataset.id, st = c.querySelector(".msst") || c.querySelector(".pst"), d = L.find(x => x.id === id) || { name: "shared" };
       const ms = MARKS.filter(m => m.design === id && unsent(m)).sort((a, b) => a.fx - b.fx);
       const keys = id.startsWith("layout") ? LPARTS.map(q => "layout:" + q[0]) : [id];
-      const fresh = keys.filter(k => ((DRAW[k] || {}).strokes || []).length && (DRAW[k].sentAt || "") !== (DRAW[k].at || "x"));
+      const fresh = keys.filter(k => DRAW[k] && (DRAW[k].tiles || (DRAW[k].strokes || []).length) && (DRAW[k].sentAt || "") !== (DRAW[k].at || "x"));
       if (!ms.length && !fresh.length) { st.textContent = "nothing new: everything was sent already"; return; }
       const text = (ms.length ? `📍 marks on the ${d.name} theme scene (catalogue Themes tab):\n` + ms.map((m, i) => `${i + 1}. col ${m.col}, row ${m.row} (x ${m.x}, y ${m.y}): ${noteOf(m).trim() || "(no note)"}`).join("\n") + "\n" : "")
-        + fresh.map(k => `✏ drawing on the ${k === "layout:kit" ? "theme layout, pieces" : k === "layout:play" ? "theme layout, gameplay" : k}: ${DRAW[k].strokes.length} strokes (collection designdraw)`).join("\n");
+        + fresh.map(k => `✏ drawing on the ${k === "layout:kit" ? "theme layout, pieces" : k === "layout:play" ? "theme layout, gameplay" : k}: edited (${(DRAW[k].tiles || []).length} pieces; the whole map is in collection designdraw)`).join("\n");
       st.textContent = "sending ...";
       try { const anchor = await CM.anchorFor(c); await CM.sendToClaude({ anchor, text: text.slice(0, 4000) });
         for (const k of fresh) DRAW[k].sentAt = DRAW[k].at;
@@ -261,7 +286,25 @@ window.initDesigns = async function (root) {
   });
   let cur = null;
   const ptOf = (svg, e) => { const r = svg.getBoundingClientRect(); return [+((e.clientX - r.left) / r.width).toFixed(4), +((e.clientY - r.top) / r.height).toFixed(4)]; };
-  root.addEventListener("pointerdown", e => { const svg = e.target.closest && e.target.closest(".ink.on"); if (!svg) return; e.preventDefault();
+  // tiles: the cell under the pointer; a tap toggles, a drag paints the same action on every cell it crosses
+  const cellOf = (svg, e) => { const r = svg.getBoundingClientRect(), W = +svg.dataset.w, H = +svg.dataset.h, g = +svg.dataset.g;
+    const c = Math.floor((e.clientX - r.left) / r.width * W), row = Math.floor(H - g - (e.clientY - r.top) / r.height * H); return c >= 0 && c < W && row >= 0 ? [c, row] : null; };
+  function paint(k, cell, first) { if (!cell) return; const D0 = DRAW[k] = DRAW[k] || {}; if (!D0.tiles) D0.tiles = tilesOf(k).map(q => Object.assign({}, q));
+    const i = D0.tiles.findIndex(q => q.c === cell[0] && q.r === cell[1]);
+    if (first) painting.mode = TOOL === "erase" || (i >= 0 && D0.tiles[i].t === TOOL) ? "del" : "put";
+    const key = cell.join(","); if (painting.done.has(key)) return; painting.done.add(key);
+    if (painting.mode === "del") { if (i >= 0) D0.tiles.splice(i, 1); } else { if (i >= 0) D0.tiles.splice(i, 1); D0.tiles.push({ t: TOOL, c: cell[0], r: cell[1] }); }
+    painting.changed = true; drawTiles(k); }
+  function drawTiles(k) { const svg = root.querySelector(`.tiles[data-k="${k}"]`); if (!svg) return; for (const el of svg.querySelectorAll(".tl")) el.remove();
+    const tmp = document.createElement("div"); tmp.innerHTML = `<svg>${tilesOf(k).map(TILE).join("")}</svg>`; for (const el of [...tmp.firstChild.childNodes]) svg.appendChild(el); }
+  root.addEventListener("pointerdown", e => { const ts = e.target.closest && e.target.closest(".tiles"); if (!ts) return; e.preventDefault();
+    ts.setPointerCapture(e.pointerId); const k = ts.dataset.k; LACT = k; const w = ts.closest(".dc"); if (w) w.dataset.id = k;
+    HIST.push({ k, tiles: (DRAW[k] || {}).tiles ? JSON.parse(JSON.stringify(DRAW[k].tiles)) : null }); if (HIST.length > 50) HIST.shift();
+    painting = { k, svg: ts, done: new Set(), changed: false }; paint(k, cellOf(ts, e), true); }, true);
+  root.addEventListener("pointermove", e => { if (!painting) return; paint(painting.k, cellOf(painting.svg, e), false); }, true);
+  const endPaint = () => { if (!painting) return; const { k, changed } = painting; painting = null; if (changed) { saveDraw(k); render(); } };
+  root.addEventListener("pointerup", endPaint, true); root.addEventListener("pointercancel", endPaint, true);
+  root.addEventListener("pointerdown", e => { const svg = e.target.closest && e.target.closest(".ink.on:not(.tiles)"); if (!svg) return; e.preventDefault();
     svg.setPointerCapture(e.pointerId); const id = svg.dataset.k || svg.closest(".dc").dataset.id; if (svg.dataset.k) { LACT = id; const w = svg.closest(".dc"); if (w) w.dataset.id = id; }
     if (ERASE) { cur = { id, svg, erase: true }; eraseAt(id, svg, e); return; }
     cur = { id, svg, st: { c: PCOL, w: PW_, p: [ptOf(svg, e)] } };
@@ -280,7 +323,7 @@ window.initDesigns = async function (root) {
   root.addEventListener("pointerup", endStroke); root.addEventListener("pointercancel", endStroke);
   // each save a new document (the marks lesson: rewrites never landed); readers take the newest per design
   async function saveDraw(id) { const st = root.querySelector(`.dc[data-id="${CSS.escape(id)}"] .pst`) || root.querySelector(".lay .pst");
-    try { if (!DB) throw new Error("saves on the claude.ai page"); await DB.collection("designdraw").doc(id.replace(/[^A-Za-z0-9_-]/g, "_") + "-" + Date.now().toString(36)).set({ design: id, strokes: DRAW[id].strokes, at: new Date().toISOString() }); DST[id] = "saved"; }
+    try { if (!DB) throw new Error("saves on the claude.ai page"); await DB.collection("designdraw").doc(id.replace(/[^A-Za-z0-9_-]/g, "_") + "-" + Date.now().toString(36)).set({ design: id, strokes: DRAW[id].strokes || [], tiles: DRAW[id].tiles || null, at: new Date().toISOString() }); DST[id] = "saved"; }
     catch (x) { DST[id] = "not saved: " + (x && (x.code || x.message) || String(x)); }
     if (st) st.textContent = DST[id]; }
   root.addEventListener("keydown", e => { if (e.key === "Enter" && e.target.closest && e.target.closest("[data-m]")) { e.preventDefault(); const row = e.target.closest("[data-m]"); PEND[row.dataset.m] = e.target.value; saveMark(row.dataset.m); return; } if (e.key === "Enter" && e.target.classList.contains("fold-h")) e.target.click(); });
