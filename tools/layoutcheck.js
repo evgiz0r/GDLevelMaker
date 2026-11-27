@@ -82,7 +82,12 @@ function check(z) {
     // blocked (ball / spider ...) we should allow some of the gameplay on the more extremes"): does the route reach the
     // bottom row and the top rows of its room (the mode's band, or the section) at least once
     const used = per.map((n, r) => n ? r : -1).filter(r => r >= 0), top = Math.min(H, room) - 1;
-    out.spread = { used: +(used.length / H).toFixed(2), even: +(H > 1 ? ent / Math.log(H) : 1).toFixed(2), rows: per,
+    // the rows a player can be in at all: not solid or hazard all the way across, and inside the mode's band (a band
+    // mode never leaves its 10 rows unless a hidden same-mode portal moves the band: W H U A L P R in the map); `used`
+    // is the share of those (Evgeni 2026-11-27: "can we try 100% spread or close in all generations")
+    const movers = z.map.some(l => /[WHUALPR]/.test(l)), cap = movers ? H : Math.min(H, room);
+    const open = [...Array(cap).keys()].filter(r => [...z.map[H - 1 - r]].some(ch => !"#/\\7r^vosq".includes(ch))).length || H;
+    out.spread = { used: +Math.min(1, used.length / open).toFixed(2), playable: open, even: +(H > 1 ? ent / Math.log(H) : 1).toFixed(2), rows: per,
       low: used.length ? used[0] <= 1 : false, high: used.length ? used[used.length - 1] >= top - 1 : false }; }
   out.mapHash = hashMap(z.map);
   return Object.assign(out, { ok: true, presses, tight, attempts: d ? Math.round(10 ** d.logAttempts) : null, log: d ? +d.logAttempts.toFixed(2) : null, label: d ? DF.difficultyLabel(d.logAttempts) : null });
