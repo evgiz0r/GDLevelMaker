@@ -115,6 +115,11 @@ difficulty target (tier: cps and tightest window), and are checked by tools/layo
 - **Portals on joins:** a wave or fly gravity portal goes where one movement of the path ends and the next begins
   (`joinNear`: in a fly, between two sweeps at least 3 columns long when there are some), at the corridor's middle height,
   never mid-leg.
+- **Ball v3** (Evgeni: "the height of the gameplay is too similar ... more balanced across the y axis, in both
+  directions"; "in the jumping modes, that the average length of movement is below the half of the full length"): moves
+  of 2-4 rows (mean ~2.3 in the 8-row band), the height wandering over the band, pieces in the middle and masses only at
+  the band edges. Against his drawing: cps 1.09, height changes 1.10, step 0.73, heights 1.13; middle pieces many more
+  than his (11x share): open, maybe hold them to the floor or the bar. 12 of 12 solve.
 - **Tier extreme** (Evgeni: "lets increase the cps of harder ... or add 1 more level", "the wave seems a bit too hard for
   harder, too tight"): `extreme` (1.4) goes past harder on pace only (shorter runs, more presses a second); room --
   corridor gaps -- stops at harder's (`room()` in ctx). The wave's gap is now 6 rows (easy) to 5 (harder and extreme); it was 5 to 3 (Evgeni: "still too tight gaps, need bigger gaps, even for harder").

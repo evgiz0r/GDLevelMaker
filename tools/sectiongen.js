@@ -200,11 +200,14 @@ GEN.ball = o => { const { R, mix, imix, chance, W, H, G } = ctx(o, 10), BT = Mat
   const win = mix(2.6, 1.4);   // flip window, columns
   const S = [{ side: 1, kind: "mass", y: 2, c0: 0, c1: R.int(5, 7) }];   // y: the surface's row (floor side: the row the ball rolls on; ceiling side: the row it hangs in)
   while (S[S.length - 1].c1 < W) {
-    const p = S[S.length - 1], side = -p.side, mid = chance(0.25, 0.4);
-    let y, kind;
-    if (side < 0) { // up to a ceiling-side surface: a ceiling mass hangs from the top, a middle piece floats
-      if (mid && p.y + 3 <= BT - 4) { kind = "mid"; y = R.int(p.y + 3, Math.min(BT - 4, p.y + 6)); } else { kind = "mass"; y = R.int(Math.min(BT - 2, Math.max(p.y + 3, BT - 4)), BT - 2); } }
-    else { if (mid && p.y - 3 >= 3) { kind = "mid"; y = R.int(Math.max(3, p.y - 6), p.y - 3); } else { kind = "mass"; y = R.int(1, Math.min(4, p.y - 3)); } }
+    // moves of 2-4 rows, under half the band on average (Evgeni 2026-11-27: "in the jumping modes, that the average length
+    // of movement is below the half of the full length, just to have less updown from ground to floor"), and the play
+    // height wandering over the whole band both ways ("the height of the gameplay is too similar ... more balanced across
+    // the y axis, in both directions"): pieces in the middle, a floor or ceiling mass only at the band's edges
+    const p = S[S.length - 1], side = -p.side, step = R.int(2, o.maxStep ?? 4);
+    // a floor-side surface sits low enough to flip up from (row <= BT - 4), a ceiling-side one high enough to drop from
+    const y = side < 0 ? clamp(p.y + step, Math.max(3, p.y + 2), BT - 2) : clamp(p.y - step, 1, Math.min(BT - 4, p.y - 2));
+    const kind = side < 0 ? (y >= BT - 2 ? "mass" : "mid") : (y <= 1 ? "mass" : "mid");
     const d = Math.abs(p.y - y) - 1, flip = p.c1 - (p.end ? 1 : 0), c0 = Math.max(p.c0 + 2, Math.round(flip + ballTravel(d) - win)), w = R.pick([R.int(2, 3), R.int(imix(4, 3), imix(6, 5)), R.int(imix(4, 3), imix(6, 5)), R.int(imix(9, 7), imix(12, 9))]);   // short, medium, long: his rests vary a lot (CV ~1)
     S.push({ side, kind, y, c0, c1: c0 + w, thick: kind === "mid" ? (R.chance(0.7) ? 1 : 2) : 0, end: chance(0.25, 0.5) });
   }
