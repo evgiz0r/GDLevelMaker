@@ -39,7 +39,7 @@ function list() {
   // geo: where the card sits in the gallery level, so a spot marked on it (designs_tab.js 📍) maps back to a column / row
   const DT = require("./designthemes.js"), scenes = DT.spec().scenes;
   for (const [name, t] of Object.entries(DT.THEMES)) { const q = scenes.find(z => z.name === name) || {};
-    out.push({ id: "theme:" + name, kind: "theme", name, card: `cards/theme-${keyOf(name)}.jpg`, layout: `cards/layout-${keyOf(name)}.jpg`,
+    out.push({ id: "theme:" + name, kind: "theme", name, card: `cards/theme-${keyOf(name)}.jpg`, layout: `cards/layout-${keyOf(name)}.jpg`, parts: { kit: `cards/layoutkit-${keyOf(name)}.jpg`, play: `cards/layoutplay-${keyOf(name)}.jpg` },
       geo: { c0: q.c0, c1: q.c1, sc: q.c0 + 4, hU: THEME_ROWS * 30 + THEME_GROUND, ground: THEME_GROUND },
       note: `${t.mood} · ${t.design}, ${[].concat(t.effects).join(", ")} · spikes ${t.spikes}, saws ${t.saws} · ${t.holders} · ${t.indicator}` }); }
   return out;
@@ -89,7 +89,11 @@ function themeCards() {
   io.writeGdlvl(lay, L.rec, Object.assign({}, L.level, { objects: keep }));
   run(process.execPath, ["tools/levelmap.js", lay, "--clean", "--rows", "1", "--scale", String(S), "--name", "design_themes_layout"]);
   const jobs = scenes.map(q => ({ card: path.join(DIR, `cards/theme-${keyOf(q.name)}.jpg`), x0: Math.round(q.c0 * 30 * S), x1: Math.round(q.c1 * 30 * S) }));
-  const ljobs = scenes.map(q => ({ card: path.join(DIR, `cards/layout-${keyOf(q.name)}.jpg`), x0: Math.round(q.c0 * 30 * S), x1: Math.round(q.c1 * 30 * S) }));
+  // two parts (Evgeni 2026-11-27: "make it two parts, that i could look both/one of them"): the kit (the pieces, hanging)
+  // and the gameplay layout
+  const ljobs = scenes.flatMap(q => [{ card: path.join(DIR, `cards/layout-${keyOf(q.name)}.jpg`), x0: Math.round(q.c0 * 30 * S), x1: Math.round(q.c1 * 30 * S) },
+    { card: path.join(DIR, `cards/layoutkit-${keyOf(q.name)}.jpg`), x0: Math.round(q.c0 * 30 * S), x1: Math.round((q.scene - 1) * 30 * S) },
+    { card: path.join(DIR, `cards/layoutplay-${keyOf(q.name)}.jpg`), x0: Math.round((q.scene - 1) * 30 * S), x1: Math.round(q.c1 * 30 * S) }]);
   fs.mkdirSync(path.join(DIR, "cards"), { recursive: true });
   run(process.platform === "win32" ? "python" : "python3", ["-c", `
 import json,sys
@@ -133,11 +137,11 @@ function page(out) {
   out = out || path.join(ROOT, "local", "lego", "page_private");
   fs.mkdirSync(path.join(out, "cards"), { recursive: true });
   const L = list().filter(d => fs.existsSync(path.join(DIR, d.card)));
-  for (const d of L) for (const f of [d.card, d.layout]) if (f && fs.existsSync(path.join(DIR, f))) fs.copyFileSync(path.join(DIR, f), path.join(out, f));
+  for (const d of L) for (const f of [d.card, d.layout, ...Object.values(d.parts || {})]) if (f && fs.existsSync(path.join(DIR, f))) fs.copyFileSync(path.join(DIR, f), path.join(out, f));
   fs.writeFileSync(path.join(out, "designs.json"), JSON.stringify(L));
   fs.copyFileSync(path.join(__dirname, "designs_tab.js"), path.join(out, "designs.js"));
   console.log(`${L.length} designs -> ${out} (designs.json, designs.js, cards/)`);
-  return { out, files: ["designs.json", "designs.js"].concat(L.flatMap(d => [d.card, d.layout].filter(Boolean))) };
+  return { out, files: ["designs.json", "designs.js"].concat(L.flatMap(d => [d.card, d.layout, ...Object.values(d.parts || {})].filter(Boolean))) };
 }
 
 function load() { try { return JSON.parse(fs.readFileSync(VOTESK, "utf8")).votes || []; } catch (e) { return []; } }

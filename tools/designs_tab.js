@@ -19,6 +19,7 @@ window.initDesigns = async function (root) {
   #designs .lyh{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:6px 8px;font-size:12px}#designs .lfold{cursor:pointer;color:var(--mute)}
   #designs .lyh button{background:#241d3d;color:#ddd;border:1px solid #444;border-radius:6px;padding:2px 7px;font-size:12px}#designs .lyh .pen.on{outline:2px solid currentColor}
   #designs .ink{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}#designs .ink.on{pointer-events:auto;cursor:crosshair;touch-action:none;outline:2px dashed #ffd84d}
+  #designs .lpn{font-size:11px;color:var(--mute);padding:2px 8px}#designs .lay{margin:6px 0 14px}#designs .lpt.on{outline:1px solid #7be38a}
   #designs .board.fs{position:fixed;inset:0;z-index:1000;background:#0f0c2b;overflow:auto}#designs .board.fs .wide{overflow:auto}
   #designs .lk.blank img{visibility:hidden}#designs .lk.blank{background:#1a1636;background-image:linear-gradient(#ffffff10 1px,transparent 1px),linear-gradient(90deg,#ffffff10 1px,transparent 1px);background-size:20px 20px}
   #designs .pens{display:flex;flex-wrap:wrap;gap:4px;align-items:center}#designs .pcol{width:22px;height:22px;padding:0!important;border-radius:11px!important}#designs .pcol.on,#designs .pw.on,#designs .perase.on{outline:2px solid #ffd84d}
@@ -125,7 +126,7 @@ window.initDesigns = async function (root) {
     const layoutUI = d.kind !== "theme" || !d.layout ? "" : `<div class="board${fs ? " fs" : ""}"><div class="lyh"><span class="lfold" role="button" data-lf="${esc(d.id)}">${lo ? "▾" : "▸"} layout${sk.length ? ` · ✏ ${sk.length}` : ""}</span>`
       + (lo ? (dr ? tools : `<button class="pdraw">✏ draw</button>`) + (sk.length && !ms.length ? `<button class="msend" data-label="📨 send to Claude"${CAN_SEND ? "" : " disabled"}>📨 send to Claude</button>` : "") + `<span class="ds pst">${esc(DST[d.id] || "")}</span>` : "") + `</div>`
       + (lo ? `<div class="wide" data-w="L:${esc(d.id)}"><div class="mk lk${bg === "blank" ? " blank" : ""}" style="--zh:${fs ? "calc(100vh - 120px)" : zh + "px"}"><img loading="lazy" src="${esc(bg === "scene" ? d.card : d.layout)}" alt="layout">${svg}</div></div>` : "") + `</div>`;
-    const media = d.kind === "theme" ? layoutUI + `<div class="zw"><div class="wide" data-w="${esc(d.id)}"><div class="mk${MARKING === d.id ? " on" : ""}" style="--zh:${zh}px">${img}${pins}</div></div>`
+    const media = d.kind === "theme" ? `<div class="zw"><div class="wide" data-w="${esc(d.id)}"><div class="mk${MARKING === d.id ? " on" : ""}" style="--zh:${zh}px">${img}${pins}</div></div>`
       + `<div class="zb"><button class="zoom" data-z="-1" title="zoom out">−</button><button class="zoom" data-z="1" title="zoom in">＋</button></div></div>`
       : d.kind === "structure" ? `<div class="wide">${img}</div>` : img;
     // the marks panel sits UNDER the buttons as one folded line (Evgeni 2026-11-27: "mark ui grows too big and pushes the ui
@@ -151,12 +152,36 @@ window.initDesigns = async function (root) {
     SCR[w.dataset.w] = W > 0 ? (w.scrollLeft + w.clientWidth / 2) / w.scrollWidth : SCR[w.dataset.w] || 0; } }
   function putScroll() { for (const w of root.querySelectorAll(".wide[data-w]")) { const f = SCR[w.dataset.w]; if (f == null) continue;
     const go = () => { w.scrollLeft = f * w.scrollWidth - w.clientWidth / 2; }; go(); const im = w.querySelector("img"); if (im && !im.complete) im.addEventListener("load", go, { once: true }); } }
+  // THE THEME LAYOUT, one for all themes (Evgeni 2026-11-27: "dont put the layout for every theme [...] one for all the
+  // themes here", "one extra section of the theme layout", "make it two parts, that i could look both/one of them: the
+  // blocks spike hazard layout (just hanging) and the gameplay layout"). A free board: drawing is always on, no draw button
+  // ("i tap over the layout nothing happens").
+  const LPARTS = [["kit", "pieces"], ["play", "gameplay"]];
+  let LACT = "layout:play";
+  function layoutSection() {
+    const t = L.find(d => d.kind === "theme" && d.parts); if (!t) return "";
+    const isOpen = open.layoutsec !== false, fs = FS === "layout", z = Math.round(220 * (open["zoom:layout"] || 1)), bg = BG.layout || "layout";
+    const show = q => open["lpart:" + q] !== false;
+    const ink = k => `<svg class="ink on" data-k="${k}" viewBox="0 0 1000 100" preserveAspectRatio="none">${((DRAW[k] || {}).strokes || []).map(st => `<polyline points="${st.p.map(q => (q[0] * 1000).toFixed(1) + "," + (q[1] * 100).toFixed(2)).join(" ")}" stroke="${esc(st.c || "#fff")}" style="stroke-width:${+st.w || 3}px" />`).join("")}</svg>`;
+    const n = LPARTS.reduce((a, q) => a + (((DRAW["layout:" + q[0]] || {}).strokes || []).length), 0);
+    const tools = `<span class="pens">` + LPARTS.map(q => `<button class="lpt${show(q[0]) ? " on" : ""}" data-p="${q[0]}">${show(q[0]) ? "☑" : "☐"} ${q[1]}</button>`).join("")
+      + COLS.map(c => `<button class="pcol${PCOL === c && !ERASE ? " on" : ""}" data-c="${c}" style="background:${c}"></button>`).join("")
+      + `<input type="color" class="pany" value="${PCOL}" title="any colour">` + [2, 4, 8].map(w => `<button class="pw${PW_ === w ? " on" : ""}" data-w="${w}"><i style="height:${w}px"></i></button>`).join("")
+      + `<button class="perase${ERASE ? " on" : ""}">⌫ eraser</button><button class="pundo">↶</button><button class="pclear">🗑</button>`
+      + `<select class="pbg"><option value="layout"${bg === "layout" ? " selected" : ""}>on the layout</option><option value="blank"${bg === "blank" ? " selected" : ""}>blank page</option></select>`
+      + `<button class="zoom" data-z="-1">−</button><button class="zoom" data-z="1">＋</button><button class="pfs">${fs ? "⤡ exit" : "⛶ full screen"}</button>`
+      + (n ? `<button class="msend" data-label="📨 send to Claude"${CAN_SEND ? "" : " disabled"}>📨 send to Claude</button>` : "") + `<span class="ds pst">${esc(DST[LACT] || "")}</span></span>`;
+    return `<section data-g="layoutsec"><h2 class="stitle fold-h" role="button" tabindex="0" aria-expanded="${isOpen}">${isOpen ? "▾" : "▸"} Theme layout <span class="ds">the same for every theme · draw on it${n ? " · ✏ " + n : ""}</span></h2>`
+      + (isOpen ? `<div class="dc lay board${fs ? " fs" : ""}" data-id="${LACT}"><div class="lyh">${tools}</div>`
+        + LPARTS.filter(q => show(q[0])).map(q => `<div class="lpn">${q[1]}</div><div class="wide" data-w="L:${q[0]}"><div class="mk lk${bg === "blank" ? " blank" : ""}" style="--zh:${fs ? "calc((100vh - 140px) / " + LPARTS.filter(x => show(x[0])).length + ")" : z + "px"}"><img src="${esc(t.parts[q[0]])}" alt="${q[1]}">${ink("layout:" + q[0])}</div></div>`).join("")
+        + `</div>` : "") + `</section>`;
+  }
   function render() {
     keepScroll();
     const f = root.querySelector("#dvf").value, G = GROUPS.filter(([k]) => (MODE === "themes") === (k === "theme"));
     const ok = d => { const v = VOTES[d.id]; return !f || (f === "up" ? v && v.vote > 0 : f === "down" ? v && v.vote < 0 : !v || !v.vote); };
     let n = 0;
-    root.querySelector("#dgroups").innerHTML = G.map(([k, title, sub]) => {
+    root.querySelector("#dgroups").innerHTML = (MODE === "themes" ? layoutSection() : "") + G.map(([k, title, sub]) => {
       const ds = L.filter(d => d.kind === k && ok(d)); n += ds.length;
       const isOpen = open[k] !== false;
       return `<section data-g="${k}"><h2 class="stitle fold-h" role="button" tabindex="0" aria-expanded="${isOpen}">${isOpen ? "▾" : "▸"} ${title} <span class="ds">${ds.length}${sub ? " · " + sub : ""}</span></h2>
@@ -181,14 +206,15 @@ window.initDesigns = async function (root) {
     if (lf) { const k = "layout:" + lf.dataset.lf; open[k] = open[k] === false; try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} render(); return; }
     if (e.target.closest(".pdraw")) { DRAWING = e.target.closest(".dc").dataset.id; render(); return; }
     if (e.target.closest(".pdone")) { DRAWING = null; FS = null; ERASE = false; render(); return; }
+    const lpt = e.target.closest(".lpt"); if (lpt) { const k = "lpart:" + lpt.dataset.p; open[k] = open[k] === false; try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} render(); return; }
     const pc = e.target.closest(".pcol"); if (pc) { PCOL = pc.dataset.c; ERASE = false; render(); return; }
     const pw = e.target.closest(".pw"); if (pw) { PW_ = +pw.dataset.w; render(); return; }
     if (e.target.closest(".perase")) { ERASE = !ERASE; render(); return; }
-    if (e.target.closest(".pfs")) { const id = e.target.closest(".dc").dataset.id; FS = FS === id ? null : id; render(); return; }
+    if (e.target.closest(".pfs")) { const id0 = e.target.closest(".dc").dataset.id, id = id0.startsWith("layout") ? "layout" : id0; FS = FS === id ? null : id; render(); return; }
     if (e.target.closest(".pundo") || e.target.closest(".pclear")) { const id = e.target.closest(".dc").dataset.id, D0 = DRAW[id] || { strokes: [] };
       DRAW[id] = { strokes: e.target.closest(".pclear") ? [] : D0.strokes.slice(0, -1) }; render(); saveDraw(id); return; }
     const zb = e.target.closest(".zoom");
-    if (zb) { const id = zb.closest(".dc").dataset.id, k = "zoom:" + id, z = open[k] || 1;
+    if (zb) { const id0 = zb.closest(".dc").dataset.id, id = id0.startsWith("layout") ? "layout" : id0, k = "zoom:" + id, z = open[k] || 1;
       open[k] = Math.max(0.5, Math.min(3, +(z * (+zb.dataset.z > 0 ? 1.4 : 1 / 1.4)).toFixed(3)));
       try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} render(); return; }
     const mf = e.target.closest(".mfold");
@@ -196,14 +222,16 @@ window.initDesigns = async function (root) {
     const sh = e.target.closest(".mseen-h");
     if (sh) { const k = "seen:" + sh.dataset.seen; open[k] = !open[k]; try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} render(); return; }
     const snd = e.target.closest(".msend");
-    if (snd) { const c = snd.closest(".dc"), id = c.dataset.id, st = c.querySelector(".msst") || c.querySelector(".pst"), d = L.find(x => x.id === id);
+    if (snd) { const c = snd.closest(".dc"), id = c.dataset.id, st = c.querySelector(".msst") || c.querySelector(".pst"), d = L.find(x => x.id === id) || { name: "shared" };
       const ms = MARKS.filter(m => m.design === id && unsent(m)).sort((a, b) => a.fx - b.fx);
-      const text = `📍 marks on the ${d.name} theme scene (catalogue Themes tab):\n` + ms.map((m, i) => `${i + 1}. col ${m.col}, row ${m.row} (x ${m.x}, y ${m.y}): ${noteOf(m).trim() || "(no note)"}`).join("\n") + (inkNew ? `\n✏ layout drawing: ${ink} strokes (collection designdraw)` : "");
-      const ink = ((DRAW[id] || {}).strokes || []).length, inkNew = ink > 0 && (DRAW[id].sentAt || "") !== (DRAW[id].at || "x");
-      if (!ms.length && !inkNew) { st.textContent = "nothing new: every typed note was sent already"; return; }
+      const keys = id.startsWith("layout") ? LPARTS.map(q => "layout:" + q[0]) : [id];
+      const fresh = keys.filter(k => ((DRAW[k] || {}).strokes || []).length && (DRAW[k].sentAt || "") !== (DRAW[k].at || "x"));
+      if (!ms.length && !fresh.length) { st.textContent = "nothing new: everything was sent already"; return; }
+      const text = (ms.length ? `📍 marks on the ${d.name} theme scene (catalogue Themes tab):\n` + ms.map((m, i) => `${i + 1}. col ${m.col}, row ${m.row} (x ${m.x}, y ${m.y}): ${noteOf(m).trim() || "(no note)"}`).join("\n") + "\n" : "")
+        + fresh.map(k => `✏ drawing on the ${k === "layout:kit" ? "theme layout, pieces" : k === "layout:play" ? "theme layout, gameplay" : k}: ${DRAW[k].strokes.length} strokes (collection designdraw)`).join("\n");
       st.textContent = "sending ...";
       try { const anchor = await CM.anchorFor(c); await CM.sendToClaude({ anchor, text: text.slice(0, 4000) });
-        if (inkNew) DRAW[id].sentAt = DRAW[id].at;
+        for (const k of fresh) DRAW[k].sentAt = DRAW[k].at;
         for (const m of ms) { PEND[m.mid] = noteOf(m); m.sentNote = noteOf(m).trim(); m.sent = new Date().toISOString(); await saveMark(m.mid); }
         render(); }
       catch (x) { st.textContent = "not sent (" + (x && (x.code || x.message) || x) + "): tap outside, wait a few seconds, tap 📨 again"; }
@@ -234,7 +262,7 @@ window.initDesigns = async function (root) {
   let cur = null;
   const ptOf = (svg, e) => { const r = svg.getBoundingClientRect(); return [+((e.clientX - r.left) / r.width).toFixed(4), +((e.clientY - r.top) / r.height).toFixed(4)]; };
   root.addEventListener("pointerdown", e => { const svg = e.target.closest && e.target.closest(".ink.on"); if (!svg) return; e.preventDefault();
-    svg.setPointerCapture(e.pointerId); const id = svg.closest(".dc").dataset.id;
+    svg.setPointerCapture(e.pointerId); const id = svg.dataset.k || svg.closest(".dc").dataset.id; if (svg.dataset.k) { LACT = id; const w = svg.closest(".dc"); if (w) w.dataset.id = id; }
     if (ERASE) { cur = { id, svg, erase: true }; eraseAt(id, svg, e); return; }
     cur = { id, svg, st: { c: PCOL, w: PW_, p: [ptOf(svg, e)] } };
     const pl = document.createElementNS("http://www.w3.org/2000/svg", "polyline"); pl.setAttribute("stroke", PCOL); pl.style.strokeWidth = PW_ + "px"; svg.appendChild(pl); cur.pl = pl; });
@@ -251,7 +279,7 @@ window.initDesigns = async function (root) {
     (DRAW[id] = DRAW[id] || { strokes: [] }).strokes.push(st); saveDraw(id); };
   root.addEventListener("pointerup", endStroke); root.addEventListener("pointercancel", endStroke);
   // each save a new document (the marks lesson: rewrites never landed); readers take the newest per design
-  async function saveDraw(id) { const st = root.querySelector(`.dc[data-id="${CSS.escape(id)}"] .pst`);
+  async function saveDraw(id) { const st = root.querySelector(`.dc[data-id="${CSS.escape(id)}"] .pst`) || root.querySelector(".lay .pst");
     try { if (!DB) throw new Error("saves on the claude.ai page"); await DB.collection("designdraw").doc(id.replace(/[^A-Za-z0-9_-]/g, "_") + "-" + Date.now().toString(36)).set({ design: id, strokes: DRAW[id].strokes, at: new Date().toISOString() }); DST[id] = "saved"; }
     catch (x) { DST[id] = "not saved: " + (x && (x.code || x.message) || String(x)); }
     if (st) st.textContent = DST[id]; }
@@ -265,7 +293,7 @@ window.initDesigns = async function (root) {
   root.addEventListener("change", async e => {
     if (e.target.id === "dvf") return render();
     if (e.target.classList.contains("pany")) { PCOL = e.target.value; ERASE = false; render(); return; }
-    if (e.target.classList.contains("pbg")) { BG[e.target.closest(".dc").dataset.id] = e.target.value; render(); return; }
+    if (e.target.classList.contains("pbg")) { const id0 = e.target.closest(".dc").dataset.id; BG[id0.startsWith("layout") ? "layout" : id0] = e.target.value; render(); return; }
     const mrow = e.target.closest("[data-m]");
     if (mrow) { PEND[mrow.dataset.m] = e.target.value; await saveMark(mrow.dataset.m); return; }
     if (e.target.tagName !== "TEXTAREA") return;
@@ -282,8 +310,8 @@ window.initDesigns = async function (root) {
       VOTES = v; if (!root.contains(document.activeElement) || document.activeElement.tagName !== "TEXTAREA") render();
     }, () => {});
     if (DB) DB.collection("designdraw").onSnapshot(snap => {
-      for (const d of snap.docs.map(x => x.data())) if (d && d.design && (!DRAW[d.design] || !DRAW[d.design].at || String(d.at) > String(DRAW[d.design].at))) if (!cur && DRAWING !== d.design) DRAW[d.design] = d;
-      if (!cur && !DRAWING) render();
+      for (const d of snap.docs.map(x => x.data())) if (d && d.design && (!DRAW[d.design] || !DRAW[d.design].at || String(d.at) > String(DRAW[d.design].at))) if (!cur) DRAW[d.design] = d;
+      if (!cur) render();
     }, () => {});
     if (DB) DB.collection("designmarks").onSnapshot(snap => {
       const local = MARKS.filter(m => MST[m.mid] !== "saved" && !m.seen);
