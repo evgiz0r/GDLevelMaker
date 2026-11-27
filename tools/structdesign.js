@@ -222,13 +222,21 @@ const DESIGNS = {
 // 3D for the blocks (an effect on top of any design)
 // the side face is the body darkened (the palette's shadow role nearly vanishes on a dark sky), with a dim rim on its
 // outer edge so it reads as a face, not a smudge; the diagonal joins at the two outer corners are right triangles (693)
+// Evgeni 2026-11-27 (hellgate): "the 3d effect seems a bit off, like we dont have a side, but rather just the opposite and
+// we see a hollow object, the 3d side should also have our theming": the back copy's dim rim read as a second outline
+// floating behind, not as a side. Now the far edge carries the theme's own edge line (the line colour, as wide as the
+// front's, a little dimmer), and at every corner where the side turns, the edge that joins front to back is drawn in the
+// same line colour, so the side reads as a solid face of the same material
 function depth(st, p, C, d, v) {
-  const face = { z: "B1", hsv: `0a1a${v}a0a0` }, rim = { z: "B1", hsv: "0a1a0.45a0a0" };
+  const face = { z: "B1", hsv: `0a1a${v}a0a0` }, rim = { z: "B1", hsv: "0a1a0.8a0a0" };
   region(st.S, 0).forEach(q => p.rect([q[0] + d, q[1] + d, q[2] + d, q[3] + d], "line", 0, rim));
-  region(st.S, LW * 0.6).forEach(q => p.rect([q[0] + d, q[1] + d, q[2] + d, q[3] + d], "base", 1, face));
-  tris(st.S, 0).forEach(t => p.tri(t, "line", 0, rim, d, d)); tris(st.S, LW * 0.6).forEach(t => p.tri(t, "base", 1, face, d, d));
-  for (const k of corners(st.S)) if (!k.inner && ((k.dx > 0 && k.dy < 0) || (k.dx < 0 && k.dy > 0)))
+  region(st.S, LW).forEach(q => p.rect([q[0] + d, q[1] + d, q[2] + d, q[3] + d], "base", 1, face));
+  tris(st.S, 0).forEach(t => p.tri(t, "line", 0, rim, d, d)); tris(st.S, LW).forEach(t => p.tri(t, "base", 1, face, d, d));
+  for (const k of corners(st.S)) if (!k.inner && ((k.dx > 0 && k.dy < 0) || (k.dx < 0 && k.dy > 0))) {
     p.out.push(K.obj(693, p.X0 + k.x + d / 2, p.Y0 + k.y + d / 2, { ch: C.base, z: "B1", zo: 1, sx: d / 30, sy: d / 30, rot: k.dx > 0 ? 0 : 180, hsv: `0a1a${v}a0a0` }));
+    // the joining edge, front corner to back corner (up-right: turned -45 degrees, GD turns clockwise)
+    p.out.push(K.obj(211, p.X0 + k.x + d / 2, p.Y0 + k.y + d / 2, { ch: C.line, z: "B1", zo: 2, sx: (d * Math.SQRT2 + LW) / 30, sy: LW / 30, rot: 315, hsv: "0a1a0.8a0a0" }));
+  }
 }
 const EFFECTS = {
   depth: { note: "the shape pushed back up-right: a darker side face with a dim rim, joined at the corners", draw(st, p, C) { depth(st, p, C, 7, 0.5); } },

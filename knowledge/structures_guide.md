@@ -66,6 +66,9 @@ change. The detailed write-ups stay in the linked docs.
   fly. Source: tools/designthemes.js, tools/structdeco.js.
 - **A design follows the whole shape,** slopes included: an outline, inlines and lit edges, notched at inner corners.
   Source: tools/structdesign.js.
+- **3D sides are part of the structure:** the side face is the body darkened, its far edge drawn in the theme's edge line,
+  and the edge joining front and back drawn at every corner where the side turns; a dim second outline alone reads as a
+  hollow copy behind (Evgeni, 2026-11-27, hellgate). Source: structdesign `depth`.
 - **Big bodies are not empty:** a structure 3+ blocks thick gets panels, rivets, a few lamps, a layer line and a
   top-lit gradient. Source: structdesign `interior`.
 - **Long thin bars are not bland:** a bar 5+ blocks long gets plates every 3 cells, rivets and a lit vein along its
