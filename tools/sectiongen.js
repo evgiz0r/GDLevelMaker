@@ -315,6 +315,31 @@ const SHIP = { X: CUBE.X, g: 0.958199, DTS: 0.225, UP: 8, DOWN: -6.4 };
 // one tick of the ship (upright, released ship falling rule of the world frame: same thing upright)
 function shipStep(st, held) { const falling = st.vy <= 2 * SHIP.g, a = held ? -1 : (falling ? 0.8 : 1.2), bb = held ? (falling ? 0.5 : 0.4) : 0.4;
   st.vy = Math.round((st.vy - a * SHIP.g * SHIP.DTS * bb) * 1000) / 1000; st.vy = clamp(st.vy, SHIP.DOWN, SHIP.UP); st.y += st.vy * SHIP.DTS; }
+// THE CORRIDOR FITTED AROUND A PLANNED PATH (fly, wave): ys = the player's centre per tick from the section's start,
+// bands = the band's floor row per tick; returns the floor height at each column edge (rows, steps of at most 1), or null
+// when no corridor of `gap` rows holds the path. Each edge's floor lies between the path's lowest bottom and highest top
+// (half = the player's half size, m = margin) over the two columns it touches; a forward and a backward pass narrow each
+// edge's range to slopes of a row a column, then a greedy pick near the middle. Where the path rests on the ground (or
+// the map's roof) the floor is the ground (the ceiling the roof): rest = how far the centre sits above a surface.
+function fitCorridor(ys, bands, W, H, gap, TPC, { m = 6, half = 15, rest = half, bandSafe = true } = {}) { const top = H * 30;
+  const N = W + 1, lo = Array(N).fill(0), hi = Array(N).fill(H - gap), ground = Array(N).fill(null), roof = Array(N).fill(false);
+  for (let t = 0; t < ys.length; t++) { const c = Math.floor(t / TPC), y = ys[t];
+    for (const k of [c, c + 1]) { if (k >= N) continue;
+      // the band's floor and roof are safe surfaces too (the ship slides on them), so the corridor never has to go past
+      // them: a floor at or below the band's floor, a ceiling at or above its roof, is always far enough
+      const bf = bandSafe ? bands[t] : 0, br = bandSafe ? Math.min(H, bf + 10) : H;
+      if (y - rest <= bf * 30 + 0.5) ground[k] = Math.min(ground[k] ?? bf, bf); else hi[k] = Math.min(hi[k], Math.max(bf, Math.floor((y - half - m) / 30)));
+      if (y + rest >= top - 0.5) roof[k] = true; else lo[k] = Math.max(lo[k], Math.min(br, Math.ceil((y + half + m) / 30)) - gap); } }
+  for (let k = 0; k < N; k++) { if (ground[k] != null) hi[k] = Math.min(hi[k], ground[k]); if (roof[k]) lo[k] = H - gap; }
+  for (let k = 1; k < N; k++) { lo[k] = Math.max(lo[k], lo[k - 1] - 1); hi[k] = Math.min(hi[k], hi[k - 1] + 1); }
+  for (let k = N - 2; k >= 0; k--) { lo[k] = Math.max(lo[k], lo[k + 1] - 1); hi[k] = Math.min(hi[k], hi[k + 1] + 1); }
+  if (lo.some((v, k) => v > hi[k])) return null;   // too steep for the grid: the caller draws again
+  // the pick follows the path: the floor half a gap under the path's mean height at that edge, so the tunnel zigzags
+  // with the flight instead of running straight around it
+  const sum = Array(N).fill(0), cnt = Array(N).fill(0);
+  for (let t = 0; t < ys.length; t++) { const c = Math.floor(t / TPC); for (const k of [c, c + 1]) if (k < N) { sum[k] += ys[t]; cnt[k]++; } }
+  const e = []; for (let k = 0; k < N; k++) { const want = cnt[k] ? Math.round(sum[k] / cnt[k] / 30 - gap / 2) : Math.round((lo[k] + hi[k]) / 2); e.push(k ? clamp(want, Math.max(lo[k], e[k - 1] - 1), Math.min(hi[k], e[k - 1] + 1)) : clamp(0, lo[0], hi[0])); }
+  return e; }
 function flyPlan(o, W, H, R, mix, style, gap, cap = 4.6, onBeat = w => w) {
   const TPC = 30 / SHIP.X, T = Math.floor(W * TPC), m = 6, top = H * 30;
   const h0 = mix(60, 32), r0 = mix(70, 36);   // base hold and release, ticks (easy: long and slow; harder: quick)
@@ -339,20 +364,7 @@ function flyPlan(o, W, H, R, mix, style, gap, cap = 4.6, onBeat = w => w) {
     if (H > 10 && c - lastMover > 4 && c > 3 && c < W - 3) { const r = Math.floor(st.y / 30), nb = clamp(r - 5, 0, H - 10);
       if (nb !== band0 && ((st.vy > 0 && st.y > hi - 75) || (st.vy < 0 && st.y < lo + 75))) { movers.push([Math.floor(c), r]); band0 = nb; lastMover = c; } }
     ys.push(st.y); bands.push(band0); }
-  // the corridor: floor height at each column edge k, from the ticks of columns k-1 and k
-  const N = W + 1, lo = Array(N).fill(0), hi = Array(N).fill(H - gap), ground = Array(N).fill(false), roof = Array(N).fill(false);
-  for (let t = 0; t < ys.length; t++) { const c = Math.floor(t / TPC), y = ys[t];
-    for (const k of [c, c + 1]) { if (k >= N) continue;
-      // the band's floor and roof are safe surfaces too (the ship slides on them), so the corridor never has to go past
-      // them: a floor at or below the band's floor, a ceiling at or above its roof, is always far enough
-      const bf = bands[t], br = Math.min(H, bf + 10);
-      if (y - 15 <= 0.5) ground[k] = true; else hi[k] = Math.min(hi[k], Math.max(bf, Math.floor((y - 15 - m) / 30)));
-      if (y + 15 >= top - 0.5) roof[k] = true; else lo[k] = Math.max(lo[k], Math.min(br, Math.ceil((y + 15 + m) / 30)) - gap); } }
-  for (let k = 0; k < N; k++) { if (ground[k]) hi[k] = 0; if (roof[k]) lo[k] = H - gap; }
-  for (let k = 1; k < N; k++) { lo[k] = Math.max(lo[k], lo[k - 1] - 1); hi[k] = Math.min(hi[k], hi[k - 1] + 1); }
-  for (let k = N - 2; k >= 0; k--) { lo[k] = Math.max(lo[k], lo[k + 1] - 1); hi[k] = Math.min(hi[k], hi[k + 1] + 1); }
-  if (lo.some((v, k) => v > hi[k])) return null;   // too steep for the grid: the caller draws again
-  const e = []; for (let k = 0; k < N; k++) { const want = Math.round((lo[k] + hi[k]) / 2); e.push(k ? clamp(want, Math.max(lo[k], e[k - 1] - 1), Math.min(hi[k], e[k - 1] + 1)) : clamp(0, lo[0], hi[0])); }
+  const e = fitCorridor(ys, bands, W, H, gap, TPC, { m, half: 15 }); if (!e) return null;
   // presses as [press, release] column pairs
   const presses = []; for (let i = 0; i < ev.length; i++) if (ev[i][1] === "press") presses.push([ev[i][0], ev[i + 1] ? ev[i + 1][0] : W]);
   return { e, ys, TPC, presses, movers }; }
@@ -418,7 +430,63 @@ const flyShape = o => { const { R, imix, room, len, chance, W, H, G } = ctx(o, 1
 // slow legs, a quick zigzag in the middle (more clicks a second), slow again. Harder: a narrower tunnel, a longer quick
 // part. A gravity pair in the quick part.
 CONCEPT.wave = "a 45-degree zigzag tunnel; slow legs, a quick middle, slow again; a gravity pair";
-GEN.wave = o => { const { R, mix, imix, room, W, H, G } = ctx(o, 13), gap = room(6, 5), q0 = mix(0.35, 0.2), q1 = mix(0.65, 0.8);
+// WAVE, PRESSES FIRST: the legs are planned (each a length from the tier and the click style, a quick middle, one ground
+// slide, every turn on a beat when there is one), the wave's exact 45-degree path is stepped from them, and the tunnel is
+// fitted around it (fitCorridor). The gravity pair makes two of the turns itself (Evgeni: "portals in waves should usually
+// be on connecting points of clicks or holds"): the portal stands where the wave touches it at that turn. Taller than the
+// band: a hidden A portal re-bands as in fly. Presses as [press, release] column pairs, plus the planned path.
+function wavePlan(W, H, R, mix, style, gap, onBeat, q0, q1) {
+  const hiNear = y => y > Math.min(H * 30, band0 * 30 + 300) - 10 - 45 && Math.min(H * 30, band0 * 30 + 300) < H * 30;   // a portal turn there would overshoot the band
+  const TPC = 30 / CUBE.X, T = Math.floor(W * TPC), DY = CUBE.X, top = H * 30, GR = 10, RF = 10;   // the wave rests 10 above the ground
+  const gp = gravPair(W, 30), slideAt = W >= 30 ? R.int(Math.round(W * 0.3), Math.round(W * 0.6)) : -1;
+  const next = tour(R, 1, H - 2); let tgt = next(Math.round(H / 2)), band0 = 0, lastMover = -99, slid = false, sliding = 0;
+  let y = GR, held = false, grav = 1, left = 0, gpi = 0; const ys = [], bands = [], ev = [], movers = [], portals = [];
+  for (let t = 0; t < T; t++) { const c = t / TPC, row = y / 30;
+    // the way out: down to the ground and along it to the end, as it came in (a wave sliding off a floor block's end at
+    // the exit dies: CLAUDE.md Calibration), with no portal still to come
+    if (!pend && c >= W - ((y / 30 - band0) * (grav > 0 ? 1 : 0) + (band0 ? 99 : 0) + 3) && grav > 0 && band0 === 0) { if (held) { held = false; ev.push([+c.toFixed(4), "release"]); } left = 1e9; }
+    if (left <= 0) {
+      if (!slid && slideAt >= 0 && c >= slideAt && !sliding) { // the ground slide: down to the ground, along it a while
+        if (held) { held = false; ev.push([+c.toFixed(4), "release"]); }
+        sliding = 1; left = Math.round((row + R.int(4, 7)) * TPC); }
+      else { if (sliding) { sliding = 0; slid = true; }
+        const mid = c > W * q0 && c < W * q1;
+        let amp = (mid ? R.pick([1, 1, 2, 2, 3]) : R.pick([1, 2, 3, 3, 4, 5])) / style.pace(c);
+        const up = (held ? 1 : -1) * grav < 0;   // after this turn the wave goes up
+        if (Math.abs(tgt - row) < 1) tgt = next(Math.round(row));
+        if (H > 13 && c > W * 0.65) tgt = 1;   // tall: back down to the first band for the way out
+        if (up !== tgt > row && R.chance(0.6)) amp *= 0.5;   // legs away from the target are short
+        // a gravity portal makes this turn when it is the first turn past its spot
+        if (gp && gpi < 2 && c >= gp[gpi] && !(hiNear(y))) { const pc = Math.round((c * 30 + 17.5 - 15) / 30), xt = pc * 30 + 15 - 12.5 - 5;
+          if (pc < W - 2 && xt >= c * 30) { const wait = Math.ceil((xt - c * 30) / DY); left = wait; pend = { tick: t + wait, pc }; gpi++; } }
+        if (!pend) { held = !held; ev.push([+c.toFixed(4), held ? "press" : "release"]);
+          left = Math.max(4, Math.round(onBeat(c + amp, c + 4 / TPC) * TPC) - t); } } }
+    if (pend && t === pend.tick) { grav = -grav; portals.push([pend.pc, Math.floor(y / 30), grav < 0 ? "G" : "N"]); pend = null;
+      left = Math.max(4, Math.round(onBeat(c + R.pick([1, 2, 2, 3]), c + 4 / TPC) * TPC) - t); }
+    y += (held ? 1 : -1) * grav * DY; left--;
+    const lo = band0 * 30 + GR, hi = Math.min(top, band0 * 30 + 300) - RF; if (y < lo) y = lo; if (y > hi) y = hi;
+    // never ride an invisible band edge (it looks like flying straight in the open, and GD 2.2091 may hold no band for the
+    // wave at all: PHYSICS.md): turn a row before it; the ground and the map's own roof are real surfaces
+    const dirNow = (held ? 1 : -1) * grav; if (!pend && left > 1 && ((dirNow > 0 && hi < top - RF && y > hi - 30) || (dirNow < 0 && band0 > 0 && y < lo + 30))) left = 0;
+    if (H > 13 && c - lastMover > 4 && c > 3 && c < W - 3 && !pend) { const r = Math.floor(y / 30), nb = clamp(r - 5, 0, H - 10);
+      if (nb !== band0 && ((y > hi - 75) || (y < lo + 75))) { movers.push([Math.floor(c), r]); band0 = nb; lastMover = c; } }
+    ys.push(y); bands.push(band0); }
+  if (band0 !== 0 || ys[ys.length - 1] > GR + 0.5) return null;   // didn't get back down to the ground: draw again
+  const e = fitCorridor(ys, bands, W, H, gap, TPC, { m: 8, half: 5, rest: GR, bandSafe: false }); if (!e) return null;
+  const presses = []; for (let i = 0; i < ev.length; i++) if (ev[i][1] === "press") presses.push([ev[i][0], ev[i + 1] ? ev[i + 1][0] : W]);
+  return { e, ys, TPC, presses, movers, portals }; }
+let pend = null;
+CONCEPT.wave = "a 45-degree zigzag tunnel fitted around a planned flight: legs of every size, a quick middle, a ground slide, two turns made by gravity portals";
+GEN.wave = o => { const { R, mix, room, W, H, G, style, onBeat } = ctx(o, 13), gap = room(6, 5), q0 = mix(0.35, 0.2), q1 = mix(0.65, 0.8);
+  let P = null; for (let k = 0; k < 12 && !P; k++) { pend = null; P = wavePlan(W, H, R, mix, style, gap, onBeat, q0, q1); }
+  if (!P) return waveShape(o);
+  const E = x => P.e[clamp(x, 0, P.e.length - 1)]; tunnel(G, W, E, gap, H - 1);
+  for (const [c, r] of P.movers) G.put(c, r, "A");
+  for (const [c, r, t] of P.portals) G.put(c, clamp(r, E(c), E(c) + gap - 1), t);
+  const path = []; for (let t = 0; t < P.ys.length; t += 8) path.push([+(t / P.TPC).toFixed(2), +(P.ys[t] / 30 - 0.5).toFixed(2)]);
+  return { map: G.rows(), mode: "wave", presses: P.presses, path }; };
+// the shape-first wave (before 2026-11-27), the fallback
+const waveShape = o => { const { R, mix, imix, room, W, H, G } = ctx(o, 13), gap = room(6, 5), q0 = mix(0.35, 0.2), q1 = mix(0.65, 0.8);
   // more variety on one screen, legs of every size, short flats between some, and one ground slide (Evgeni 2026-11-27: "wave
   // corridors should have a bit more veriaty on the screen, again a bit more split. and we can add 1 ground slide (where
   // the corridor passes through the ground/floor)"): the floor drops to the ground and the wave slides along it a while

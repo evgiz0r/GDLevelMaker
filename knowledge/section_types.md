@@ -63,8 +63,14 @@ type, so a builder can make a new one of any length, synced to the song, and so 
   the band's floor and roof count as safe surfaces, so the corridor never has to reach past them: 0 in 180 fall back to
   the old shape). planCheck maps a plan column to a tick exactly (tick 0 = the first tick at or past
   the section's start): rounding a column to the nearest tick put presses a tick early and the ship drifted 15 units off.
-  Not yet: ship corridor, wave, flappy, swing, closer cube, staircase, stair path, orbs, spider (its overlap is its
-  window already, but no presses returned); fly's gravity pair (the planner flies upright only).
+  Wave (wavePlan): legs from the tier and the style (a quick middle, one ground slide, every turn on a beat when there is
+  one), the exact 45-degree path, the same fitter (`fitCorridor`, which now follows the path's own centre so the tunnel
+  zigzags with the flight). The gravity pair makes two turns itself (the portal stands where the wave touches it at that
+  turn). It starts and ends on the ground (a wave sliding off the last floor block into the exit dies), and never rides
+  an invisible band edge (that looked like flying straight in the open for 15 columns, and GD 2.2091 may hold no band for
+  the wave at all): it turns a row before one. 1 in 240 falls back to the old shape; 75-81% of turns on half beats.
+  Not yet: ship corridor, flappy, swing, closer cube, staircase, stair path, orbs, spider (its overlap is its window
+  already, but no presses returned); fly's gravity pair (the planner flies upright only).
 - **From a beat** (Evgeni 2026-11-27: "i want to be able to generate according to a beat as well, so its not just random
   stats, should be applicable in a level ... in the long run much more efficient than solving"): `make(key, {bpm})` or
   `{beats: [seconds | {t, s}]}` (a song section's hits with strength, tools/hits.js / impacts.js). ctx() turns them into
