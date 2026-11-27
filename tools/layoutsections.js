@@ -66,9 +66,12 @@ const SECTIONS = [
       G.box(c, c, top, 11); if (fn > f) G.put(c + 1, top, "r"); if (fn < f) G.put(c, top - 1, "7"); }
     G.put(10, 6, "o"); G.put(27, 7, "o"); G.put(5, 4, "^"); G.put(30, 1, "^");
     return G.rows(); })() },
-  { key: "wave", name: "wave corridor", mode: "wave", note: "a 45-degree zigzag tunnel, 4 blocks high", map: (() => {
-    const G = grid(32, 10), zig = c => { const k = c % 12; return k < 6 ? k : 12 - k; };   // the floor's height: 0..6..0
-    for (let c = 0; c < 32; c++) { const f = Math.min(5, zig(c)), fn = Math.min(5, zig(c + 1)), top = f + 4;
+  // a fast part in the middle (Evgeni 2026-11-27: "for the wave corridor, in the middle some different pattern like more
+  // cps"): the slow zigzag turns every 5-6 blocks, the middle one every 2 (about 2.5x the clicks a second), then slow again
+  { key: "wave", name: "wave corridor", mode: "wave", note: "a 45-degree zigzag tunnel, 4 blocks high; a quick zigzag in the middle (a turn every 2 blocks: more clicks a second)", map: (() => {
+    const W = 41, G = grid(W, 10), slow = c => { const k = c % 12; return k < 6 ? k : 12 - k; },   // the floor's height: 0..6..0
+      zig = c => c < 12 ? slow(c) : c < 29 ? 1 + ((c - 12) % 4 < 2 ? (c - 12) % 4 : 4 - (c - 12) % 4) : slow(c - 28);   // middle: 1..3..1
+    for (let c = 0; c < W; c++) { const f = Math.min(5, zig(c)), fn = Math.min(5, zig(c + 1)), top = f + 4;
       if (f) G.box(c, c, 0, f - 1); if (fn > f) G.put(c, f, "/"); if (fn < f && f) G.put(c, f - 1, "\\");
       G.box(c, c, top, 9); if (fn > f) G.put(c + 1, top, "r"); if (fn < f) G.put(c, top - 1, "7"); }
     return G.rows(); })() },

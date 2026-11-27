@@ -20,7 +20,7 @@ window.initDesigns = async function (root) {
   #designs .lyh button{background:#241d3d;color:#ddd;border:1px solid #444;border-radius:6px;padding:2px 7px;font-size:12px}#designs .lyh .pen.on{outline:2px solid currentColor}
   #designs .ink{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}#designs .ink.on{pointer-events:auto;cursor:crosshair;touch-action:none;outline:2px dashed #ffd84d}
   #designs .tiles .grid line{stroke:#ffffff30;stroke-width:1px;vector-effect:non-scaling-stroke}#designs .plr{position:absolute;left:0;top:0;background:#c8ff3c;border:2px solid #10301a;box-sizing:border-box;pointer-events:none;z-index:5}#designs .plr[data-m="1"]{border-radius:40% 70% 70% 40%}#designs .plr[data-m="2"]{border-radius:50%}#designs .zb .aplay,#designs .zb .aspd{min-width:28px}#designs .tiles,#designs .tiles *{pointer-events:auto!important}#designs .tiles{cursor:pointer;display:block;touch-action:none;background:#1a1636;max-width:none}#designs .lay .wide{padding:4px 8px}#designs .ptool.on{outline:2px solid #ffd84d}
-  #designs .lpn{font-size:11px;color:var(--mute);padding:2px 8px}#designs .lay{margin:6px 0 14px}#designs .lpt.on{outline:1px solid #7be38a}
+  #designs .lnr{display:flex;gap:6px;align-items:center;padding:2px 8px 10px}#designs .lnote{flex:1;min-width:0;background:#0f0c2b;color:inherit;border:1px solid var(--line);border-radius:6px;padding:5px 8px;font:13px system-ui}#designs .lpn{font-size:11px;color:var(--mute);padding:2px 8px}#designs .lay{margin:6px 0 14px}#designs .lpt.on{outline:1px solid #7be38a}
   #designs .board.fs{position:fixed;inset:0;z-index:1000;background:#0f0c2b;overflow:auto}#designs .board.fs .wide{overflow:auto}
   #designs .lk.blank img{visibility:hidden}#designs .lk.blank{background:#1a1636;background-image:linear-gradient(#ffffff10 1px,transparent 1px),linear-gradient(90deg,#ffffff10 1px,transparent 1px);background-size:20px 20px}
   #designs .pens{display:flex;flex-wrap:wrap;gap:4px;align-items:center}#designs .pcol{width:22px;height:22px;padding:0!important;border-radius:11px!important}#designs .pcol.on,#designs .pw.on,#designs .perase.on{outline:2px solid #ffd84d}
@@ -59,6 +59,15 @@ window.initDesigns = async function (root) {
   let DRAWING = null, PEN = "block", PCOL = "#ffffff", PW_ = 4, ERASE = false, FS = null; const DRAW = {}, DST = {}, BG = {};
   const COLS = ["#ffffff", "#ff5a5a", "#ffd84d", "#5ad1ff", "#7be38a", "#ff9a3c", "#c77dff", "#111111"];
   const PEND = {}, MST = {}; let saveT = null, lastKey = 0, holdT = null;
+  // a note per layout section (Evgeni 2026-11-27: "give me place for comments on each of the sections"): typed, saved as it
+  // is typed (revision docs in collection "designnotes": {part, note, sentNote, at}), sent with 📨 only when changed
+  const NOTES = {}, NST = {}; let noteT = null;
+  const noteUnsent = k => { const n = NOTES[k]; return !!(n && (n.note || "").trim() && (n.note || "").trim() !== (n.sentNote || "")); };
+  async function saveNote(k) { const n = NOTES[k]; if (!n) return; const st = root.querySelector(`.lnst[data-n="${CSS.escape(k)}"]`);
+    try { if (!DB) throw new Error("saves on the claude.ai page"); n.at = new Date().toISOString();
+      await DB.collection("designnotes").doc(k.replace(/[^A-Za-z0-9_-]/g, "_") + "-" + Date.now().toString(36)).set({ part: k, note: n.note || "", sentNote: n.sentNote || "", at: n.at }); NST[k] = "saved"; }
+    catch (x) { NST[k] = "not saved: " + (x && (x.code || x.message) || x); }
+    if (st) st.textContent = NST[k]; }
   // claude.ai refuses a send-to-Claude within ~6 s of a key typed in the page ("Not sent to Claude. Your last key or click
   // may not have been meant for this artifact"), so 📨 waits out the typing with a countdown (Evgeni 2026-11-27)
   const HOLD = 6500;
@@ -211,10 +220,11 @@ window.initDesigns = async function (root) {
       // a plain save, no sending (Evgeni: "i need a save there, without sending ... i would need to change a bit before
       // updating"); every edit also saves itself, the button saves the shown parts again and says when
       + `<button class="lsave">💾 save</button>`
-      + (n ? `<button class="msend" data-label="📨 send to Claude"${CAN_SEND ? "" : " disabled"}>📨 send to Claude</button>` : "") + `<span class="ds pst">${esc(DST.layout || "")}</span></span>`;
+      + (n || LPARTS.some(q => noteUnsent(q[0])) ? `<button class="msend" data-label="📨 send to Claude"${CAN_SEND ? "" : " disabled"}>📨 send to Claude</button>` : "") + `<span class="ds pst">${esc(DST.layout || "")}</span></span>`;
     return `<section data-g="layoutsec"><h2 class="stitle fold-h" role="button" tabindex="0" aria-expanded="${isOpen}">${isOpen ? "▾" : "▸"} Theme layout <span class="ds">the same for every theme · one part per kind of play · tap to place${n ? " · ✏ " + n : ""}</span></h2>`
       + (isOpen ? `<div class="dc lay board${fs ? " fs" : ""}" data-id="${LACT}"><div class="lyh">${chips}</div><div class="lyh">${tools}</div>`
-        + LPARTS.filter(q => show(q[0])).map(q => `<div class="lpn"><b>${esc(q[1])}</b> · ${esc(q[4] || "")} · ${q[2]} x ${q[3]}${q[5] ? " · " + esc(q[5]) : ""}</div><div class="wide" data-w="L:${esc(q[0])}">${grid(q)}</div>`).join("")
+        + LPARTS.filter(q => show(q[0])).map(q => `<div class="lpn"><b>${esc(q[1])}</b> · ${esc(q[4] || "")} · ${q[2]} x ${q[3]}${q[5] ? " · " + esc(q[5]) : ""}</div><div class="wide" data-w="L:${esc(q[0])}">${grid(q)}</div>`
+          + `<div class="lnr"><input class="lnote" data-n="${esc(q[0])}" placeholder="your notes on ${esc(q[1])} ..." value="${esc((NOTES[q[0]] || {}).note || "")}"><span class="ds lnst" data-n="${esc(q[0])}">${esc(NST[q[0]] || (noteUnsent(q[0]) ? "not sent yet" : (NOTES[q[0]] || {}).sentNote ? "sent" : ""))}</span></div>`).join("")
         + `</div>` : "") + `</section>`;
   }
   function render() {
@@ -283,12 +293,15 @@ window.initDesigns = async function (root) {
       const ms = MARKS.filter(m => m.design === id && unsent(m)).sort((a, b) => a.fx - b.fx);
       const keys = id.startsWith("layout") ? LPARTS.map(q => "layout:" + q[0]) : [id];
       const fresh = keys.filter(k => DRAW[k] && (DRAW[k].tiles || (DRAW[k].strokes || []).length) && (DRAW[k].sentAt || "") !== (DRAW[k].at || "x"));
-      if (!ms.length && !fresh.length) { st.textContent = "nothing new: everything was sent already"; return; }
+      const nts = id.startsWith("layout") ? LPARTS.filter(q => noteUnsent(q[0])) : [];
+      if (!ms.length && !fresh.length && !nts.length) { st.textContent = "nothing new: everything was sent already"; return; }
       const text = (ms.length ? `📍 marks on the ${d.name} theme scene (catalogue Themes tab):\n` + ms.map((m, i) => `${i + 1}. col ${m.col}, row ${m.row} (x ${m.x}, y ${m.y}): ${noteOf(m).trim() || "(no note)"}`).join("\n") + "\n" : "")
+        + nts.map(q => `💬 note on the theme layout, ${q[1]} (${q[0]}): ${NOTES[q[0]].note.trim()}\n`).join("")
         + fresh.map(k => `✏ drawing on the ${k.startsWith("layout:") ? "theme layout, " + ((LPARTS.find(q => "layout:" + q[0] === k) || [])[1] || k) : k}: edited (${(DRAW[k].tiles || []).length} pieces; the whole map is in collection designdraw)`).join("\n");
       st.textContent = "sending ...";
       try { const anchor = await CM.anchorFor(c); await CM.sendToClaude({ anchor, text: text.slice(0, 4000) });
         for (const k of fresh) DRAW[k].sentAt = DRAW[k].at;
+        for (const q of nts) { NOTES[q[0]].sentNote = NOTES[q[0]].note.trim(); NST[q[0]] = "sent"; await saveNote(q[0]); NST[q[0]] = "sent"; }
         for (const m of ms) { PEND[m.mid] = noteOf(m); m.sentNote = noteOf(m).trim(); m.sent = new Date().toISOString(); await saveMark(m.mid); }
         render(); }
       catch (x) { st.textContent = "not sent (" + (x && (x.code || x.message) || x) + "): tap outside, wait a few seconds, tap 📨 again"; }
@@ -377,12 +390,17 @@ window.initDesigns = async function (root) {
     try { if (!DB) throw new Error("saves on the claude.ai page"); const at = new Date().toISOString(); await DB.collection("designdraw").doc(id.replace(/[^A-Za-z0-9_-]/g, "_") + "-" + Date.now().toString(36)).set({ design: id, strokes: DRAW[id].strokes || [], tiles: DRAW[id].tiles || null, at }); DRAW[id].at = at; DST[id] = "saved"; }
     catch (x) { DST[id] = "not saved: " + (x && (x.code || x.message) || String(x)); }
     if (st) st.textContent = DST[id]; }
-  root.addEventListener("keydown", e => { if (e.key === "Enter" && e.target.closest && e.target.closest("[data-m]")) { e.preventDefault(); const row = e.target.closest("[data-m]"); PEND[row.dataset.m] = e.target.value; saveMark(row.dataset.m); return; } if (e.key === "Enter" && e.target.classList.contains("fold-h")) e.target.click(); });
+  root.addEventListener("keydown", e => { if (e.key === "Enter" && e.target.classList && e.target.classList.contains("lnote")) { e.preventDefault(); clearTimeout(noteT); saveNote(e.target.dataset.n); return; }
+    if (e.key === "Enter" && e.target.closest && e.target.closest("[data-m]")) { e.preventDefault(); const row = e.target.closest("[data-m]"); PEND[row.dataset.m] = e.target.value; saveMark(row.dataset.m); return; } if (e.key === "Enter" && e.target.classList.contains("fold-h")) e.target.click(); });
   root.addEventListener("input", e => {
+    if (e.target.classList && e.target.classList.contains("lnote")) { const k = e.target.dataset.n; NOTES[k] = Object.assign(NOTES[k] || {}, { note: e.target.value });
+      lastKey = Date.now(); holdSend(); NST[k] = "…"; const st = root.querySelector(`.lnst[data-n="${CSS.escape(k)}"]`); if (st) st.textContent = "…";
+      clearTimeout(noteT); noteT = setTimeout(() => saveNote(k), 700); return; }
     const mrow = e.target.closest("[data-m]"); if (!mrow) return;
     const mid = mrow.dataset.m; PEND[mid] = e.target.value; lastKey = Date.now(); holdSend(); MST[mid] = "…"; const st = mrow.querySelector(".mst"); if (st) st.textContent = "…";
     clearTimeout(saveT); saveT = setTimeout(() => saveMark(mid), 700);
   });
+  root.addEventListener("focusout", e => { if (e.target.classList && e.target.classList.contains("lnote")) { clearTimeout(noteT); const k = e.target.dataset.n; if (NST[k] === "…") saveNote(k); return; } });
   root.addEventListener("focusout", e => { if (e.target.closest && e.target.closest("[data-m]")) flushMarks(); });
   root.addEventListener("change", async e => {
     if (e.target.id === "dvf") return render();
@@ -407,7 +425,13 @@ window.initDesigns = async function (root) {
     }, () => {});
     if (DB) DB.collection("designdraw").onSnapshot(snap => {
       for (const d of snap.docs.map(x => x.data())) if (d && d.design && (!DRAW[d.design] || !DRAW[d.design].at || String(d.at) > String(DRAW[d.design].at))) if (!cur) { DRAW[d.design] = JSON.parse(JSON.stringify(d)); if (DRAW[d.design].tiles) orient(DRAW[d.design].tiles); }   // a plain copy: the db hands back frozen objects, and editing one in place threw (2026-11-27: taps and clear did nothing in the app)
-      if (!cur) render();
+      if (!cur && !(document.activeElement && /INPUT|TEXTAREA/.test(document.activeElement.tagName))) render();
+    }, () => {});
+    if (DB) DB.collection("designnotes").onSnapshot(snap => {
+      for (const d of snap.docs.map(x => JSON.parse(JSON.stringify(x.data())))) if (d && d.part && (!NOTES[d.part] || !NOTES[d.part].at || String(d.at) > String(NOTES[d.part].at))) {
+        const el = document.activeElement; if (el && el.classList && el.classList.contains("lnote") && el.dataset.n === d.part) continue;   // never under his typing
+        NOTES[d.part] = d; }
+      if (!(document.activeElement && /INPUT|TEXTAREA/.test(document.activeElement.tagName))) render();
     }, () => {});
     if (DB) DB.collection("designmarks").onSnapshot(snap => {
       const local = MARKS.filter(m => MST[m.mid] !== "saved" && !m.seen);

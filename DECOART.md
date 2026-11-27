@@ -474,7 +474,10 @@ zoom, with no picture under them: the first board lay over a 130 px picture and 
 layout properly, zoom doesnt work"). Every edit saves itself; 💾 save saves the shown parts again and says when, without
 sending ("i need a save there, without sending"); 📨 sends. `node tools/designs.js layout [--apply]` reads the edits back
 (sections -> knowledge/layout_sections.json). Spikes point away from what holds them ("i put spikes on the roof so
-reverse them if needed"): a spike under a block with nothing below hangs, on the board and when applied (orient()). Next: build the gallery scene from the sections, each with its mode's portal.
+reverse them if needed"): a spike under a block with nothing below hangs, on the board and when applied (orient()). Each
+section has its own note line ("give me place for comments on each of the sections"): saved as typed to collection
+"designnotes" ({part, note, sentNote, at}, newest per part), sent with 📨 when changed. The wave corridor has a quick zigzag
+in the middle (a turn every 2 blocks; "in the middle some different pattern like more cps"). Next: build the gallery scene from the sections, each with its mode's portal.
 ▶ play on a theme card (Evgeni: "theme animations, so we might see how it looks in the game if we press play"): the
 gallery's saved route, 60 points a second in card units (designs.js animOf), moves the camera and a player over the
 picture at 1x, 0.5x or 0.25x. Asked next: several animations to pick per theme, like the backdrop options (effects that
