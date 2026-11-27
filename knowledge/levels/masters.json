@@ -8,5 +8,17 @@
   { "rank": 8, "name": "Lonely Travel", "creator": "FunnyGame", "id": 17924880, "user": "best 0%", "learn": "a level as a journey: pacing, calm and intense parts, mood over the length" },
   { "rank": 17, "name": "Future Funk", "creator": "JonathanGD", "id": 44062068, "user": "best 25%", "learn": "speed and density following the music in a fast level" }
  ],
- "open": "no non-demon levels yet: easier-tier structure targets come only from the main levels"
+ "close": {
+  "role": "structure targets one step above the mains, closer to what we make than the demons (the user, 2026-11-28: 'maybe if there are even insane and harder levels its better'). Picked by signals (Epic rating, likes, the GD Today vote), not by eye: check them in the viewer. All pre-2.2 by id; copies in local/community/ (never committed)",
+  "approved": "2026-11-28",
+  "levels": [
+   { "name": "SLAM", "creator": "rafer", "id": 43908596, "tier": "Harder 7", "signal": "Epic, GD Today top 100 #89", "note": "the server says last saved in 2.2: may have been updated after the vote" },
+   { "name": "Unity", "creator": "TriAxis", "id": 12057578, "tier": "Insane 8", "signal": "Featured, GD Today top 100 #72", "user": "best 7%" },
+   { "name": "Shock", "creator": "Danolex", "id": 28225110, "tier": "Harder 6", "signal": "Epic, 2.9M likes", "user": "best 51%" },
+   { "name": "Sunshine", "creator": "Unzor", "id": 56199846, "tier": "Harder 7", "signal": "Epic, 2.3M likes" },
+   { "name": "dinosaur", "creator": "alkali", "id": 29519341, "tier": "Insane 8", "signal": "Epic, 2.0M likes" },
+   { "name": "Ghoul", "creator": "DesTicY", "id": 44121158, "tier": "Insane 8", "signal": "Epic, 1.3M likes" }
+  ]
+ },
+ "open": "Easy-Hard structure targets come only from the main levels (knowledge/levels/good_low_tier.md has candidates)"
 }
