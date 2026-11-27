@@ -54,6 +54,16 @@ type, so a builder can make a new one of any length, synced to the song, and so 
 | stair path (his) | cube | a lattice of single blocks: many paths in theory, every wrong one blocked by a hazard | a column of blocks 3 apart; each hop up 2 or down 1 | which block of each column stays clear | more columns; the clear route climbs and falls |
 | swing (his) | swing | round movement: a big up-and-down corridor whose sides are curves, not slopes or blocks | one wave of the path (3 rows up and down, about 18 columns) | amplitude, period, the gap | waves of changing size. Ship can use it too (Evgeni: "the swing ( and the ship in a way, can do big up and down patterns )") |
 
+## Orb and pad sets (a mechanic any type can use)
+
+Evgeni, 2026-11-27 (remember it, not built yet: "its a bit harder creating timings with those, but probably not that needed
+at the moment"): beside blocks and hazards, a section can be built from orbs (and pads). Sets that work:
+- **a set of yellow orbs**: a chain of jumps in the air;
+- **a set of blue orbs**: gravity flips back and forth, a zigzag movement;
+- **a set of green orbs**: forward movement, but flipping gravity each time;
+- **a mix of those**: harder to time.
+The click-first generator (tools/clickfirst.js: kinds O / B orbs, pads) is the closest piece; timings come from the sim.
+
 ## How to test a section
 
 - Its layout: the board's current scene (Themes tab), with soft markers where each section starts.
