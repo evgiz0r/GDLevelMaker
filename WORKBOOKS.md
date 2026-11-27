@@ -13,6 +13,7 @@ workbooks we want to know always on all sessions everywhere") that every session
 
 | # | What he saw | Why | Fix / rule |
 |---|---|---|---|
+| 10 | A note typed after a send stayed "not sent yet" after 📨 and ⟳ (2026-11-27) | Each card's 📨 sent only that card's things, so pressing a theme card's 📨 skipped the layout notes. Drawings' sent state lived only in memory, so after a refresh they showed as new again. | One send for everything new on the page, whichever 📨 is pressed: a top 📨 "N new" beside ⟳, and ⟳ sends first (`window.rfBeforeReload` in tools/snippets/refresh.html; false = stay and show why). Save the sent state in the db too (a revision with `sentAt`). tools/designs_tab.js `sendNew`. |
 | 9 | Taps on the theme board and 🗑 clear did nothing in the app. A plain browser worked. (2026-11-27) | Data from `db` (`onSnapshot`, `get`) comes back **frozen**. The page edited those objects in place (`splice`, `Object.assign`), which threw. | Always keep a copy: `JSON.parse(JSON.stringify(d.data()))`. Show page errors on a status line (`addEventListener("error", ...)`), so "nothing happens" says why. tools/designs_tab.js. |
 | 8 | "it just hovers with the selection and doesnt do anything" (2026-11-27) | claude.ai's **comment mode** catches every click to start a comment. He can't remove the toggle, only turn it off. | First ask whether comment mode is on. A board also takes taps on its holder div, not only on the svg (`tilesAt` in designs_tab.js). |
 | 7 | A republish reset his tab and scroll ("i lose what i look at", 2026-11-27) | Every publish reloads every open view. | Keep the view in localStorage (tab, scroll, folds). Republish in batches. CLAUDE.md "Pages keep the view". |
@@ -27,7 +28,8 @@ workbooks we want to know always on all sessions everywhere") that every session
 
 - A job he starts (build, apply ...) is a button on the thing it is about. The button sends Claude a one-line request with
   `CM.sendToClaude({anchor: await CM.anchorFor(card), text})`. The ~6 s hold after typing applies to it too.
-- Notes save as they are typed (revision docs). 📨 sends only what changed since the last send.
+- Notes save as they are typed (revision docs). 📨 sends only what changed since the last send, for the whole page at once,
+  and ⟳ refresh sends it first. Keep the sent state in the db, never only in memory.
 
 ## Limits
 

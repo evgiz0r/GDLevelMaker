@@ -255,8 +255,46 @@ window.initDesigns = async function (root) {
           + `<div class="lnr"><input class="lnote" data-n="${esc(q[0])}" placeholder="your notes on ${esc(q[1])} ..." value="${esc((NOTES[q[0]] || {}).note || "")}"><span class="ds lnst" data-n="${esc(q[0])}">${esc(NST[q[0]] || (noteUnsent(q[0]) ? "not sent yet" : (NOTES[q[0]] || {}).sentNote ? "sent" : ""))}</span></div>`).join("")
         + `</div>` : "") + `</section>`;
   }
+  // 📨 sends EVERYTHING new on the page in one message (marks of every theme, layout notes, drawings), whichever 📨 is
+  // pressed: the top one beside ⟳, a card's, or ⟳ itself (Evgeni 2026-11-27: a note typed after a send stayed "not sent
+  // yet" -- he pressed a theme card's 📨, which sent only that card's marks; "maybe it should send new stuff at some button
+  // near refresh, or do it when i click refresh"). A drawing's sent state is saved too (a revision with sentAt), so a
+  // refresh doesn't show it as new again.
+  function collectNew() {
+    const ms = MARKS.filter(unsent).sort((a, b) => (a.design > b.design ? 1 : a.design < b.design ? -1 : a.fx - b.fx));
+    const keys = Object.keys(DRAW).filter(k => k !== "layout:play");
+    const fresh = keys.filter(k => DRAW[k] && (DRAW[k].tiles || (DRAW[k].strokes || []).length) && (DRAW[k].sentAt || "") !== (DRAW[k].at || "x"));
+    const nts = LPARTS.filter(q => noteUnsent(q[0]));
+    return { ms, fresh, nts, n: ms.length + fresh.length + nts.length };
+  }
+  async function sendNew(anchorEl, st) {
+    const { ms, fresh, nts, n } = collectNew(), say = t => { if (st) st.textContent = t; const g = document.getElementById("sendall-st"); if (g) g.textContent = t; };
+    if (!n) { say("nothing new: everything was sent already"); return true; }
+    if (!CM || !CM.sendToClaude) { say("not sent: only on the claude.ai page"); return false; }
+    const nameOf = id => (L.find(x => x.id === id) || { name: id }).name;
+    const byTheme = {}; for (const m of ms) (byTheme[m.design] = byTheme[m.design] || []).push(m);
+    const text = Object.keys(byTheme).map(id => `📍 marks on the ${nameOf(id)} theme scene (catalogue Themes tab):\n` + byTheme[id].map((m, i) => `${i + 1}. col ${m.col}, row ${m.row} (x ${m.x}, y ${m.y}): ${noteOf(m).trim() || "(no note)"}`).join("\n") + "\n").join("")
+      + nts.map(q => `💬 note on the theme layout, ${q[1]} (${q[0]}): ${NOTES[q[0]].note.trim()}\n`).join("")
+      + fresh.map(k => `✏ drawing on the ${k.startsWith("layout:") ? "theme layout, " + ((LPARTS.find(q => "layout:" + q[0] === k) || [])[1] || k) : k}: edited (${(DRAW[k].tiles || []).length} pieces; the whole map is in collection designdraw)`).join("\n");
+    say("sending " + n + " ...");
+    try { const anchor = await CM.anchorFor(anchorEl || root); await CM.sendToClaude({ anchor, text: text.slice(0, 4000) }); }
+    catch (x) { say("not sent (" + (x && (x.code || x.message) || x) + "): wait a few seconds after typing, then 📨 again"); return false; }
+    for (const k of fresh) { const at = new Date().toISOString(); DRAW[k].at = at; DRAW[k].sentAt = at;
+      try { if (DB) await DB.collection("designdraw").doc(k.replace(/[^A-Za-z0-9_-]/g, "_") + "-" + Date.now().toString(36)).set({ design: k, strokes: DRAW[k].strokes || [], tiles: DRAW[k].tiles || null, at, sentAt: at }); } catch (x) {} }
+    for (const q of nts) { NOTES[q[0]].sentNote = NOTES[q[0]].note.trim(); NST[q[0]] = "sent"; await saveNote(q[0]); NST[q[0]] = "sent"; }
+    for (const m of ms) { PEND[m.mid] = noteOf(m); m.sentNote = noteOf(m).trim(); m.sent = new Date().toISOString(); await saveMark(m.mid); }
+    say("sent " + n + " to Claude " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })); render(); return true;
+  }
+  // the top 📨 beside ⟳ (tools/snippets/refresh.html calls window.rfBeforeReload before it reloads)
+  function topSend() { const rf = document.getElementById("rf"); if (!rf) return; let b = document.getElementById("sendall");
+    if (!b) { b = document.createElement("button"); b.id = "sendall"; b.title = "send everything new to Claude"; b.style.cssText = "width:auto;border-radius:15px;padding:0 10px;font-size:13px";
+      const s2 = document.createElement("span"); s2.id = "sendall-st"; rf.prepend(s2); rf.insertBefore(b, document.getElementById("rfb"));
+      b.onclick = () => sendNew(null, null); }
+    const n = collectNew().n; b.textContent = n ? "📨 " + n + " new" : "📨"; b.disabled = !n; }
+  setInterval(() => { try { topSend(); } catch (x) {} }, 1500);
+  window.rfBeforeReload = async () => { if (!collectNew().n) return true; return sendNew(null, null); };
   function render() {
-    keepScroll();
+    keepScroll(); try { topSend(); } catch (x) {}
     const f = root.querySelector("#dvf").value, G = GROUPS.filter(([k]) => (MODE === "themes") === (k === "theme"));
     const ok = d => { const v = VOTES[d.id]; return !f || (f === "up" ? v && v.vote > 0 : f === "down" ? v && v.vote < 0 : !v || !v.vote); };
     let n = 0;
@@ -319,23 +357,7 @@ window.initDesigns = async function (root) {
     const sh = e.target.closest(".mseen-h");
     if (sh) { const k = "seen:" + sh.dataset.seen; open[k] = !open[k]; try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} render(); return; }
     const snd = e.target.closest(".msend");
-    if (snd) { const c = snd.closest(".dc"), id = c.dataset.id, st = c.querySelector(".msst") || c.querySelector(".pst"), d = L.find(x => x.id === id) || { name: "shared" };
-      const ms = MARKS.filter(m => m.design === id && unsent(m)).sort((a, b) => a.fx - b.fx);
-      const keys = id.startsWith("layout") ? LPARTS.filter(q => q[0] !== "play").map(q => "layout:" + q[0]) : [id];
-      const fresh = keys.filter(k => DRAW[k] && (DRAW[k].tiles || (DRAW[k].strokes || []).length) && (DRAW[k].sentAt || "") !== (DRAW[k].at || "x"));
-      const nts = id.startsWith("layout") ? LPARTS.filter(q => noteUnsent(q[0])) : [];
-      if (!ms.length && !fresh.length && !nts.length) { st.textContent = "nothing new: everything was sent already"; return; }
-      const text = (ms.length ? `📍 marks on the ${d.name} theme scene (catalogue Themes tab):\n` + ms.map((m, i) => `${i + 1}. col ${m.col}, row ${m.row} (x ${m.x}, y ${m.y}): ${noteOf(m).trim() || "(no note)"}`).join("\n") + "\n" : "")
-        + nts.map(q => `💬 note on the theme layout, ${q[1]} (${q[0]}): ${NOTES[q[0]].note.trim()}\n`).join("")
-        + fresh.map(k => `✏ drawing on the ${k.startsWith("layout:") ? "theme layout, " + ((LPARTS.find(q => "layout:" + q[0] === k) || [])[1] || k) : k}: edited (${(DRAW[k].tiles || []).length} pieces; the whole map is in collection designdraw)`).join("\n");
-      st.textContent = "sending ...";
-      try { const anchor = await CM.anchorFor(c); await CM.sendToClaude({ anchor, text: text.slice(0, 4000) });
-        for (const k of fresh) DRAW[k].sentAt = DRAW[k].at;
-        for (const q of nts) { NOTES[q[0]].sentNote = NOTES[q[0]].note.trim(); NST[q[0]] = "sent"; await saveNote(q[0]); NST[q[0]] = "sent"; }
-        for (const m of ms) { PEND[m.mid] = noteOf(m); m.sentNote = noteOf(m).trim(); m.sent = new Date().toISOString(); await saveMark(m.mid); }
-        render(); }
-      catch (x) { st.textContent = "not sent (" + (x && (x.code || x.message) || x) + "): tap outside, wait a few seconds, tap 📨 again"; }
-      return; }
+    if (snd) { const c = snd.closest(".dc"); sendNew(c, c.querySelector(".msst") || c.querySelector(".pst")); return; }
     const h = e.target.closest(".fold-h");
     if (h) { const k = h.parentNode.dataset.g; open[k] = open[k] === false; try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} render(); return; }
     // 📍 marks on a theme's scene (collection "designmarks"; tools/designs.js marks reads them)
