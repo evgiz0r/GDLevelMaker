@@ -289,7 +289,7 @@ const ballTravel = rows => Math.sqrt(2 * Math.max(0.5, rows) * 30 / BALL_G) * CO
 GEN.ball = o => rollers(o, { mode: "ball", band: 8, travel: ballTravel });
 // the ball's body, shared with the spider (a 9-row band, and it crosses instantly: the spider teleports to the other side)
 // and with "ball portals" (some flips made by a gravity portal at the surface's end instead of a click)
-function rollers(o, { mode, band, travel, portals = 0 }) { const { R, mix, imix, chance, W, H, G } = ctx(o, 10), BT = Math.min(H, band);   // the band: rows 0..band-1
+function rollers(o, { mode, band, travel, portals = 0, overlap = null }) { const { R, mix, imix, chance, W, H, G } = ctx(o, 10), BT = Math.min(H, band);   // the band: rows 0..band-1
   const win = mix(2.6, 1.4);   // flip window, columns
   const S = [{ side: 1, kind: "mass", y: 2, c0: 0, c1: R.int(5, 7) }];   // y: the surface's row (floor side: the row the ball rolls on; ceiling side: the row it hangs in)
   while (S[S.length - 1].c1 < W) {
@@ -312,7 +312,9 @@ function rollers(o, { mode, band, travel, portals = 0 }) { const { R, mix, imix,
     // obsicle like in the layout i drew"): the surface goes on 3 columns past it with spikes on it, so a player who doesn't
     // flip there runs into them; the flip is the portal's, and the clicks stay on the other transitions
     if (byPortal) { p.end = false; p.portal = p.c1 + 1; p.c1 += 3; }
-    S.push({ side, kind, y, c0, c1: c0 + w, thick: kind === "mid" ? (R.chance(0.7) ? 1 : 2) : 0, end: chance(0.25, 0.5) });
+    // the spider: the next piece overlaps this one by `overlap` columns, and that overlap is the click's window
+    const c0b = overlap && !byPortal ? Math.max(p.c0 + 2, flip + 1 - overlap()) : c0;
+    S.push({ side, kind, y, c0: c0b, c1: c0b + w, thick: kind === "mid" ? (R.chance(0.7) ? 1 : 2) : 0, end: chance(0.25, 0.5) });
   }
   // draw: ground spikes and a row of hanging spikes along the top (the ball band's ceiling holds the ball otherwise, so
   // an early flip must die there, not ride the band edge), then each surface
@@ -360,7 +362,14 @@ GEN["my-mwz1637w"] = o => { const { R, imix, chance, W, H, G } = ctx(o, 13), DU 
   G.box(0, 2, 0, 1); for (let c = 3; c < W - 3; c += 2) G.put(c, 0, "o");   // saws in the pit, not a spike wall
   let h = 1, up = false, k = 0, run = 0, turn = false, turnHi = R.int(Math.max(2, top - imix(0, 2)), top), turnLo = R.int(low, low + imix(0, 2));
   const lastC = 4 + 3 * Math.floor((W - 7 - 4) / 3);
-  for (let c = 4; c <= lastC; c += 3, k++) {
+  // a tall map in a short section: turn lower, so at least one flip and back fits (about half the columns for the climb)
+  turnHi = Math.max(2, Math.min(turnHi, 1 + Math.round((lastC - 4) / 3 * 0.5)));
+  // runs of jumps: about 3 at most, softly (Evgeni 2026-11-27: "stairpath has still like 9 jumps in a row sometimes. max 3
+  // jumps in a row", "when i say max, i mean distribute so that anything more much lower chances ... dont want to set hard
+  // limits"): after n hops a REST comes with chance 0 / 0 / 0.25 / 0.6 / 0.85 (n = 0..4+): the way block is 3 wide and
+  // the next column comes 5 on, not 3 (a run, then the same jump), so the rhythm breaks
+  let hops = 0, step = 3, lastWay = lastC;
+  for (let c = 4; c <= lastC; c += step, k++) { step = 3; lastWay = c;
     if (k > 0) {
       if (turn) { turn = false; h = up ? Math.min(H - 2, h + DU) : Math.max(1, h - DU); }
       else { // a hop toward the turn: +1 at most 3 times running (measured: a 4th +1 from a 1-wide block lands past the
@@ -376,10 +385,14 @@ GEN["my-mwz1637w"] = o => { const { R, imix, chance, W, H, G } = ctx(o, 13), DU 
       const face = up ? r - 1 : r + 1; if (face <= 0 || face >= H - 1) continue;
       G.put(c, face, mid || chance(0.3, 0.7) ? (R.chance(0.6) ? "s" : "q") : (up ? "v" : "^")); }
     // the last chance to turn back to normal gravity is forced, so the run ends on its feet
-    if ((up && (h <= turnLo || c === lastC - 3)) || (!up && h >= turnHi && c <= lastC - 6)) {
+    let turned = false;
+    if ((up && (h <= turnLo || c >= lastC - 5)) || (!up && h >= turnHi && c <= lastC - 6)) { turned = true; hops = 0;
       if (o.wide) G.put(c + 1, h, "#"); G.put(c + (o.gOff ?? 1), up ? h - 1 : h + 1, up ? "N" : "G"); turn = true; up = !up; run = o.turnRun ?? 2;
-      if (up) turnLo = R.int(low, Math.min(h + DU - 1, low + imix(0, 2))); else turnHi = R.int(Math.max(h - DU + 1, top - imix(0, 2)), top); } }
-  G.box(W - 3, W - 1, 0, 1);
+      if (up) turnLo = R.int(low, Math.min(h + DU - 1, low + imix(0, 2))); else turnHi = R.int(Math.max(h - DU + 1, top - imix(0, 2)), top); }
+    if (!turned && !turn && k > 0 && c + 5 <= lastC - 6 && R.chance([0, 0, 0.25, 0.6, 0.85][Math.min(4, hops)])) {
+      G.put(c + 1, h, "#"); G.put(c + 2, h, "#"); step = 5; hops = 0; }
+    else if (!turned) hops++; }
+  G.box(Math.min(W - 3, lastWay + 5), W - 1, 0, 1);   // the end platform, 5 on from the last way column (rests shift it)
   return { map: G.rows(), mode: "cube" }; };
 
 // SWING (his, my-mwz1890c). Idea: round movement, a big up-and-down corridor whose sides are curves of saws, not blocks.
@@ -439,7 +452,11 @@ GEN["my-mwz1s7po"] = o => { const { R, imix, room, len, chance, W, H, G } = ctx(
 // SPIDER CORRIDORS (his my-mwz7nxue). Idea: the ball's surfaces, but the spider teleports across at once, so the next
 // surface may start right where the last one ends; a 9-row band (270 units).
 CONCEPT["my-mwz7nxue"] = "floor and ceiling pieces the spider teleports between; the next one starts right where the last ends, at changing heights";
-GEN["my-mwz7nxue"] = o => rollers(o, { mode: "spider", band: 9, travel: () => 0 });
+// Evgeni 2026-11-27: "in spider we need alignment of top and bottom, that alignment decides the difficulty in a way as a
+// timing and cps", then "the platforms you jump still dont overlap in possible gameplay": each piece starts before the
+// last one ends, the overlap (3 columns easy, 1 at harder, now and then one more or less) is the window to teleport in
+GEN["my-mwz7nxue"] = o => { const { R, mix } = ctx(o, 10), base = mix(3, 1.2);
+  return rollers(o, { mode: "spider", band: 9, travel: () => 0, overlap: () => clamp(Math.round(base + R.pick([-1, 0, 0, 0, 1])), 1, 4) }); };
 
 // BALL PORTALS (his my-mwz8kaem). Idea: the ball corridor, but some flips are made for the player by a gravity portal
 // standing at a surface's end (G up, N down), between the clicked ones.

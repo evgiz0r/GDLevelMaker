@@ -191,12 +191,23 @@ which the sim does not have yet (PHYSICS.md open).
   staircase and opencube at normal tier were played as one held press for 6-7 s, since a held cube jumps every flat-run
   hazard in a row. layoutcheck counts the natural plan's taps, so it doesn't see it. Fix in the generators: a hazard right
   after a landing at another height, low ceilings over some runs, gaps the held bounce overshoots; and a hold check.
-- **Spider: top and bottom aligned** (Evgeni: "that alignment decides the difficulty in a way as a timing and cps ... just
-  touch the next section, no overlap in x"): the x offset between a floor piece's end and the ceiling piece's start is the
-  difficulty knob.
-- **Stair path**: blockers along the top too, play up to the full height, looser timing (Evgeni: "block placement is too
-  strict in the straiway. allowing more timing will need blocks not snapped": off-grid x as a per-tile dx, the board draws
-  it); at 19 rows it fails 3 of 4.
+- **Spider: top and bottom aligned** (Evgeni: "that alignment decides the difficulty in a way as a timing and cps"; "the
+  platforms you jump still dont overlap in possible gameplay"): DONE 2026-11-27, each piece starts before the last ends;
+  the overlap (3 columns easy, ~1 harder, +-1 now and then) is the teleport window. 11 of 12 solve (easy 80 cols seed 2
+  dies on an end spike: open).
+- **Stair path**: runs of jumps broken softly by a rest (a 3-wide way block, the next column 5 on): chance 0 / 0 / 0.25 /
+  0.6 / 0.85 after 0..4+ hops (Evgeni: "max 3 jumps in a row", "when i say max, i mean distribute so that anything more
+  much lower chances ... dont want to set hard limits"). Tall maps turn lower so a flip and back fits. 19 of 20 solve
+  (40-90 cols, 13 and 19 rows; 90x19 harder seed 1 fails on a saw). Still open: blockers along the top, play reaching
+  rows 0-1 and the very top (spread 46-79%), looser timing (Evgeni: "allowing more timing will need blocks not snapped":
+  off-grid x as a per-tile dx, the board would draw it).
+- **"Max" means a soft distribution** (Evgeni 2026-11-27): wherever he says "max N" (jumps in a row, orbs in a run), make
+  longer runs much less likely, not impossible.
+- **Speed (0.5x / 2x / 3x)**: the generators are built for 1x (tools/sectiongen.js COLS_PER_SEC = 311.58 / 30). At
+  another speed every size in columns that comes from time (gap lengths, jump spans, flip windows, ball travel, spider
+  overlap, beat columns) scales by the speed ratio, and heights don't. GD's 2x is only ~1.25x faster than 1x (lib/physics.js
+  SPEEDS: x per tick 0.9 * 5.77 vs 1.1 * 5.87), 3x ~1.5x, 0.5x ~0.81x; jump height stays nearly the same. Not built yet:
+  a `speed` option for GEN that scales those columns.
 - **A minimum length per type** (Evgeni: some need room for real play, robot and orbs).
 - Height at 1.5x rows, 60 cols (easy/harder, 2 seeds): wave 93%, fly 76%, ship corridor 80%, staircase 85%, closecube 80%,
   ball 75%, spider 67%, opencube 68%, flappy 60%, orbs 55%. The cube types need their climbs scaled to the taller map.
