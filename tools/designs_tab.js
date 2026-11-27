@@ -26,7 +26,7 @@ window.initDesigns = async function (root) {
   #designs .pens{display:flex;flex-wrap:wrap;gap:4px;align-items:center}#designs .pcol{width:22px;height:22px;padding:0!important;border-radius:11px!important}#designs .pcol.on,#designs .pw.on,#designs .perase.on{outline:2px solid #ffd84d}
   #designs .pany{width:26px;height:24px;padding:0;border:0;background:none}#designs .pw i{display:block;width:16px;background:#ddd;border-radius:2px}
   #designs .ink polyline{fill:none;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
-  #designs .zw{position:relative}#sendall.ready,#designs .msend.ready{background:#3ddc84!important;color:#04210f!important;box-shadow:0 0 10px #3ddc84}#designs .fxc{position:absolute;left:0;top:0;pointer-events:none;mix-blend-mode:screen}#designs .zb{position:absolute;right:6px;top:6px;display:flex;gap:4px}
+  #designs .zw{position:relative}#sendall.ready,#designs .msend.ready{background:#3ddc84!important;color:#04210f!important;box-shadow:0 0 10px #3ddc84}#designs .cst{font-size:12px;margin:2px 0 8px;padding:3px 8px;border-radius:6px;background:#ffffff10;color:#cfd3ff}#designs .cst-applied{background:#3ddc8422;color:#9ff0c0}#designs .cst-question{background:#ffd84d22;color:#ffe48a}#designs .cst-new{background:#ff8a8a1c;color:#ffb0b0}#designs .cst-sent{color:#aab}#designs .fxc{position:absolute;left:0;top:0;pointer-events:none;mix-blend-mode:screen}#designs .zb{position:absolute;right:6px;top:6px;display:flex;gap:4px}
   #designs .zb button{width:30px;height:30px;border-radius:15px;border:1px solid #555;background:#1b1538cc;color:#fff;font:700 16px/1 system-ui}
   #designs .mk{position:relative;display:inline-block;line-height:0}#designs .mk img{display:block}
   #designs .mk.on{cursor:crosshair;outline:2px dashed #ffd84d}
@@ -60,6 +60,24 @@ window.initDesigns = async function (root) {
   // the same hash tools/layoutcheck.js hashMap() takes of the map it solved: differs once he drew since -> "old"
   const hashTiles = T => { const cells = T.map(z => z.t + "," + z.c + "," + z.r).sort(); let h = 0; for (const ch of cells.join(";")) h = (h * 31 + ch.charCodeAt(0)) | 0; return h; };
   let LASTC = "";   // the last time Claude read the queue (designsend docs with by: "claude")
+  // WHAT CLAUDE DID WITH EACH THING HE SENT (Evgeni 2026-11-27: "i should be able to understand whether some request already
+  // applied after i sent it. its just not clear to me what is known and if something is lost or unread"): Claude writes a
+  // revision to collection "claudestatus" per part ({part: "sec:ball" | "gen:..." | "theme:hellgate", state: applied |
+  // read | question | passed, reply, at}); each section, note and generated piece shows one line: not sent yet / sent,
+  // waiting / read by Claude / ✓ applied + Claude's answer. Newer edits of his than Claude's answer reopen it.
+  const CST = {};
+  const hm = a => a ? new Date(a).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "";
+  function stLine(part) {
+    const n = NOTES[part], d = DRAW["layout:" + part], s = CST[part];
+    const mineN = n && (n.note || "").trim() ? String(n.at || "") : "", mineD = d && d.by !== "claude" && (d.tiles || (d.strokes || []).length) ? String(d.at || "") : "";
+    const mine = mineN > mineD ? mineN : mineD;
+    if (s && (!mine || String(s.at) >= mine)) { const ic = { applied: "✓", question: "❓", passed: "➜", read: "👀" }[s.state] || "✓";
+      return `<div class="cst cst-${esc(s.state || "applied")}">${ic} Claude ${esc(s.state || "applied")} ${hm(s.at)}${s.reply ? ": " + esc(s.reply) : ""}</div>`; }
+    if (!mine) return "";
+    const unsentNow = (mine === mineN && noteUnsent(part)) || (mine === mineD && String(d.at || "") > LAST && (d.sentAt || "") !== (d.at || "x"));
+    if (unsentNow) return `<div class="cst cst-new">✎ not sent yet (📨 sends it)</div>`;
+    if (LASTC && LASTC >= mine) return `<div class="cst cst-read">👀 Claude read it ${hm(LASTC)}, working on it</div>`;
+    return `<div class="cst cst-sent">📨 sent, waiting for Claude</div>`; }
   let LAST = "2026-11-27T14:40:00.000Z";   // the last send (collection "designsend"; this default: when the stamp started)
   let VOTES = {}, DB = null, CM = null, CAN_SEND = false, MODE = "designs", MARKS = [], MARKING = null;
   // typed mark notes not yet confirmed by the database: they win over snapshots, so a re-render never drops text
@@ -358,7 +376,7 @@ window.initDesigns = async function (root) {
     return `<section data-g="layoutsec"><h2 class="stitle fold-h" role="button" tabindex="0" aria-expanded="${isOpen}">${isOpen ? "▾" : "▸"} Theme layout <span class="ds">the same for every theme · one part per kind of play · tap to place${n ? " · ✏ " + n : ""}</span></h2>`
       + (isOpen ? `<div class="dc lay board${fs ? " fs" : ""}" data-id="${LACT}"><div class="lyh">${chips}</div><div class="lyh">${tools}</div>`
         + LPARTS.filter(q => show(q[0])).map(q => `<div class="lpn"><b>${esc(q[1])}</b> · ${esc(q[4] || "")} · ${q[2]} x ${q[3]}${q[5] ? " · " + esc(q[5]) : ""}${chkLine(q[0])}${q[0].startsWith("sec:") ? ` <span class="lsz" data-k="${esc(q[0])}"><button data-d="0,1" title="one row taller">⬆ taller</button><button data-d="0,-1" title="one row shorter">⬇ shorter</button><button data-d="2,0" title="two columns wider">➡ wider</button><button data-d="-2,0" title="two columns narrower">⬅ narrower</button></span>` : ""}${ADDED[q[0].slice(4)] ? ` <button class="ldel" data-k="${esc(q[0].slice(4))}">✕ remove</button>` : ""}</div><div class="wide" data-w="L:${esc(q[0])}">${grid(q)}</div>`
-          + `<div class="lnr"><input class="lnote" data-n="${esc(q[0])}" placeholder="your notes on ${esc(q[1])} ..." value="${esc((NOTES[q[0]] || {}).note || "")}"><span class="ds lnst" data-n="${esc(q[0])}">${esc(NST[q[0]] || "")}</span></div>`).join("")
+          + `<div class="lnr"><input class="lnote" data-n="${esc(q[0])}" placeholder="your notes on ${esc(q[1])} ..." value="${esc((NOTES[q[0]] || {}).note || "")}"><span class="ds lnst" data-n="${esc(q[0])}">${esc(NST[q[0]] || "")}</span></div>${stLine(q[0])}`).join("")
         + genPanel() + `</div>` : "") + `</section>`;
   }
   // 🎲 THE GENERATOR (Evgeni 2026-11-27: "i want a button generate below the current that will just make a new one for me to
@@ -388,7 +406,7 @@ window.initDesigns = async function (root) {
         + `<div class="wide"><svg class="gtiles" viewBox="0 0 ${W} ${H + 0.25}" style="width:${W * cs}px;height:${(H + 0.25) * cs}px;background:#1a1636;display:block;max-width:none">`
         + `<g class="grid">${Array.from({ length: W + 1 }, (_, c) => `<line x1="${c}" y1="0" x2="${c}" y2="${H}" stroke="#ffffff30" style="stroke-width:1px;vector-effect:non-scaling-stroke" />`).join("")}${Array.from({ length: H + 1 }, (_, r) => `<line x1="0" y1="${r}" x2="${W}" y2="${r}" stroke="#ffffff30" style="stroke-width:1px;vector-effect:non-scaling-stroke" />`).join("")}</g>`
         + `<rect x="0" y="${H}" width="${W}" height="0.25" fill="#7be38a55" />` + T.map(z => TILE(z, H)).join("") + `</svg></div>`
-        + `<div class="lnr"><input class="lnote" data-n="${esc(gk)}" placeholder="what's good or wrong in this one ..." value="${esc((NOTES[gk] || {}).note || "")}"><span class="ds lnst" data-n="${esc(gk)}">${esc(NST[gk] || "")}</span></div>`; }
+        + `<div class="lnr"><input class="lnote" data-n="${esc(gk)}" placeholder="what's good or wrong in this one ..." value="${esc((NOTES[gk] || {}).note || "")}"><span class="ds lnst" data-n="${esc(gk)}">${esc(NST[gk] || "")}</span></div>${stLine(gk)}`; }
     return out; }
   // 📨 sends EVERYTHING new on the page in one message (marks of every theme, layout notes, drawings), whichever 📨 is
   // pressed: the top one beside ⟳, a card's, or ⟳ itself (Evgeni 2026-11-27: a note typed after a send stayed "not sent
@@ -678,6 +696,9 @@ window.initDesigns = async function (root) {
     // each time it reads the queue, so what Claude has seen stops counting as new without any send
     if (DB) DB.collection("designsend").onSnapshot(snap => { let m = LAST; for (const d of snap.docs.map(x => JSON.parse(JSON.stringify(x.data() || {})))) { const a = String(d.at || ""); if (a > m) m = a; if (d.by === "claude" && a > LASTC) LASTC = a; }
       if (m !== LAST) { LAST = m; try { topSend(); } catch (x) {} if (!(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) render(); } }, () => {});
+    if (DB) DB.collection("claudestatus").onSnapshot(snap => {
+      for (const d of snap.docs.map(x => JSON.parse(JSON.stringify(x.data() || {})))) if (d.part && (!CST[d.part] || String(d.at) > String(CST[d.part].at))) CST[d.part] = d;
+      if (!(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) render(); }, () => {});
     if (DB) DB.collection("designnotes").onSnapshot(snap => {
       for (const d of snap.docs.map(x => JSON.parse(JSON.stringify(x.data())))) if (d && d.part && (!NOTES[d.part] || !NOTES[d.part].at || String(d.at) > String(NOTES[d.part].at))) {
         const el = document.activeElement; if (el && el.classList && el.classList.contains("lnote") && el.dataset.n === d.part) continue;   // never under his typing

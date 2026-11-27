@@ -49,3 +49,11 @@ workbooks we want to know always on all sessions everywhere") that every session
 
 - **The app's send hold, worked around (2026-11-27).** Evgeni: "happens too much how can we workaround it". The hold (no send within about 6 s of a key or tap in the page) can't be skipped, and a send has to come from his own tap. So after a refused send, the page lights the 📨 buttons green with "tap now" once the hold is over: only the label changes, and nothing is sent by itself. The other way in always works: he writes "comments" in the chat, and Claude reads everything new from the page's db since the last `designsend` stamp. tools/designs_tab.js "READY CUE".
 - **A db snapshot has `.docs` but no `.forEach` (2026-11-27).** The catalogue's last-send listener used `snap.forEach`, which threw without a word. After every reload LAST went back to its default, so notes Claude had already received counted as "new" again (Evgeni: "those 6 new, you really didnt see them?"). Use `snap.docs.map(...)`. Claude also writes `{at, by: "claude"}` to `designsend` each time it reads the queue, which counts as a send.
+
+## Claude's answer on each thing he sent (2026-11-27)
+Evgeni: "i should be able to understand whether some request already applied after i sent it ... if something is lost or
+unread". The catalogue's theme layout shows one line under every section, note and generated piece: ✎ not sent yet /
+📨 sent, waiting for Claude / 👀 Claude read it / ✓ applied, ❓ question, ➜ passed on (+ Claude's one-line answer).
+Claude writes the answer as a doc in collection `claudestatus`: `{part: "sec:<key>" | "gen:<key>:<seed>:<cols>:<tier>" |
+"play", state: applied | read | question | passed, reply, at}` (newest `at` per part wins; a later edit of his reopens it).
+Every time Claude handles board items it writes these, and a `designsend` stamp `{at, by: "claude"}`.
