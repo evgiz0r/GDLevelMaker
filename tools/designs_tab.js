@@ -22,6 +22,8 @@ window.initDesigns = async function (root) {
   #designs .mks{font-size:12px;margin:4px 0}#designs .mks div{display:flex;gap:6px;align-items:center;margin:2px 0}
   #designs .mks input{flex:1;min-width:0;background:#141024;color:#eee;border:1px solid #444;border-radius:6px;padding:4px 6px}
   #designs .pin.seen{background:#7be38a;opacity:.7}
+  #designs .mks-h{display:flex;gap:8px;align-items:center;padding:0 8px 6px}#designs .mfold{cursor:pointer;color:var(--mute)}
+  #designs .mks-b{max-height:150px;overflow:auto;padding:0 8px 6px}
   #designs .mseen-h{cursor:pointer;color:var(--mute);margin:4px 0}#designs .mks .mseen{color:var(--mute);flex-wrap:wrap}#designs .mseen i{flex-basis:100%;padding-left:16px;color:#9fd6a8}
   #designs .msend{margin-top:4px}
   #designs .mks button{background:#241d3d;color:#ddd;border:1px solid #444;border-radius:6px;padding:2px 7px}
@@ -82,16 +84,22 @@ window.initDesigns = async function (root) {
     const pins = ms.map((m, i) => `<span class="pin" style="left:${(m.fx * 100).toFixed(2)}%;top:${(m.fy * 100).toFixed(2)}%">${i + 1}</span>`).join("")
       + (so ? seen.map(m => `<span class="pin seen" style="left:${(m.fx * 100).toFixed(2)}%;top:${(m.fy * 100).toFixed(2)}%">✓</span>`).join("") : "");
     const media = d.kind === "theme" ? `<div class="wide"><div class="mk${MARKING === d.id ? " on" : ""}">${img}${pins}</div></div>`
-      + `<div class="mks">${ms.map((m, i) => `<div data-m="${esc(m.mid)}"><b>${i + 1}</b><input value="${esc(noteOf(m))}" placeholder="what is off here"><button class="mdel" title="remove">✕</button><span class="ds mst">${esc(MST[m.mid] || "")}</span></div>`).join("")}`
-      + (seen.length ? `<div class="mseen-h" role="button" data-seen="${esc(d.id)}">${so ? "▾" : "▸"} ✓ ${seen.length} seen by Claude, being fixed</div>`
-        + (so ? seen.map(m => `<div class="mseen" data-m="${esc(m.mid)}">✓ <span>${esc(m.note || "")}</span>${m.reply ? `<i>${esc(m.reply)}</i>` : ""}<button class="mdel" title="remove">✕</button></div>`).join("") : "") : "")
-      + (CAN_SEND && ms.some(unsent) ? `<button class="msend" title="send the new notes to Claude">📨 send ${ms.filter(unsent).length} new to Claude</button><span class="ds msst"></span>` : ms.length && CAN_SEND ? `<span class="ds">all sent to Claude</span>` : "") + `</div>`
       : d.kind === "structure" ? `<div class="wide">${img}</div>` : img;
+    // the marks panel sits UNDER the buttons as one folded line (Evgeni 2026-11-27: "mark ui grows too big and pushes the ui
+    // to the bottom"); open, it scrolls inside a capped box, so the card never grows past it
+    const mo = open["marks:" + d.id] === true, nu = ms.filter(unsent).length;
+    const marksUI = d.kind !== "theme" || !(ms.length || seen.length) ? "" : `<div class="mks">`
+      + `<div class="mks-h"><span class="mfold" role="button" data-mf="${esc(d.id)}">${mo ? "▾" : "▸"} 📍 ${ms.length} open${seen.length ? ` · ✓ ${seen.length} seen` : ""}</span>`
+      + (CAN_SEND && nu ? `<button class="msend" title="send the new notes to Claude">📨 send ${nu}</button>` : ms.length && CAN_SEND ? `<span class="ds">sent ✓</span>` : "") + `<span class="ds msst"></span></div>`
+      + (mo ? `<div class="mks-b">` + ms.map((m, i) => `<div data-m="${esc(m.mid)}"><b>${i + 1}</b><input value="${esc(noteOf(m))}" placeholder="what is off here"><button class="mdel" title="remove">✕</button><span class="ds mst">${esc(MST[m.mid] || "")}</span></div>`).join("")
+        + (seen.length ? `<div class="mseen-h" role="button" data-seen="${esc(d.id)}">${so ? "▾" : "▸"} ✓ ${seen.length} seen by Claude</div>`
+          + (so ? seen.map(m => `<div class="mseen" data-m="${esc(m.mid)}">✓ <span>${esc(m.note || "")}</span>${m.reply ? `<i>${esc(m.reply)}</i>` : ""}<button class="mdel" title="remove">✕</button></div>`).join("") : "") : "")
+        + `</div>` : "") + `</div>`;
     return `<div class="dc k-${d.kind}" data-id="${esc(d.id)}">${media}
       <div class="dt"><span class="dn">${d.n ? d.n + " " : ""}${esc(d.name)}</span>${d.note ? `<div class="dm">${esc(d.note)}</div>` : ""}</div>
       <div class="dv"><button class="up${v.vote > 0 ? " on" : ""}" title="I like it">👍</button><button class="down${v.vote < 0 ? " on" : ""}" title="not so much">👎</button>
       <button class="com" title="a comment">💬${v.comment ? "•" : ""}</button>${d.kind === "theme" ? `<button class="mark${MARKING === d.id ? " on" : ""}" title="mark a spot on the scene">📍</button>` : ""}<span class="ds">${v.at ? "saved" : ""}</span>
-      <textarea hidden placeholder="what is good or off about it">${esc(v.comment || "")}</textarea></div></div>`;
+      <textarea hidden placeholder="what is good or off about it">${esc(v.comment || "")}</textarea></div>${marksUI}</div>`;
   }
   function render() {
     const f = root.querySelector("#dvf").value, G = GROUPS.filter(([k]) => (MODE === "themes") === (k === "theme"));
@@ -116,6 +124,8 @@ window.initDesigns = async function (root) {
     if (Object.keys(PEND).length || (document.activeElement && document.activeElement.closest && document.activeElement.closest("[data-m]"))) flushMarks();
     const sv = e.target.closest(".msave");
     if (sv) { const row = sv.closest("[data-m]"); PEND[row.dataset.m] = row.querySelector("input").value; const st = row.querySelector(".mst"); if (st) st.textContent = "saving ..."; await saveMark(row.dataset.m); return; }
+    const mf = e.target.closest(".mfold");
+    if (mf) { const k = "marks:" + mf.dataset.mf; open[k] = !open[k]; try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} render(); return; }
     const sh = e.target.closest(".mseen-h");
     if (sh) { const k = "seen:" + sh.dataset.seen; open[k] = !open[k]; try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} render(); return; }
     const snd = e.target.closest(".msend");
@@ -136,7 +146,7 @@ window.initDesigns = async function (root) {
       const x = ((g.c0 || 0) + fx * ((g.c1 || 0) - (g.c0 || 0))) * 30, y = (1 - fy) * (g.hU || 435) - (g.ground || 45);
       const m = { mid: "m" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), design: d.id, fx: +fx.toFixed(4), fy: +fy.toFixed(4), x: Math.round(x), y: Math.round(y),
         col: Math.floor(x / 30) - (g.sc || 0), row: Math.floor(y / 30), note: "", at: new Date().toISOString() };
-      MARKS.push(m); MARKING = null; render();
+      MARKS.push(m); MARKING = null; open["marks:" + d.id] = true; render();
       const inp = root.querySelector(`[data-m="${m.mid}"] input`); if (inp) inp.focus();
       await saveMark(m.mid);
       return; }
