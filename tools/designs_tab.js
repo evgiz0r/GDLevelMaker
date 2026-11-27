@@ -6,6 +6,8 @@
 // "designvotes" (read back with tools/designs.js votes). Every group is collapsible (the catalogue UI rule, CLAUDE.md).
 window.initDesigns = async function (root) {
   "use strict";
+  // generator types taken out of the 🎲 list (Evgeni 2026-11-27: "remove hanging section"; its board section too: knowledge/layout_sections_removed.json)
+  const GEN_HIDDEN = ["hanging"];
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const css = `
   #designs .dgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin:8px 0 18px}
@@ -480,7 +482,7 @@ window.initDesigns = async function (root) {
   function genPanel() { const SG = window.SectionGen; if (!SG) return "";
     const nm = k => ((SECS().find(q => q[0] === "sec:" + k) || [])[1]) || k, g = GENS || { key: SG.KEYS[0], cols: 40, tier: "normal" };
     let out = `<div class="lpn" style="margin-top:14px"><b>🎲 generator</b> · a new section from a type's concept, any length and difficulty · your comment goes to Claude with 📨</div>`
-      + `<div class="lyh gform"><span class="pens"><select class="gk">${SG.KEYS.map(k => `<option value="${esc(k)}"${k === g.key ? " selected" : ""}>${esc(nm(k))}</option>`).join("")}</select>`
+      + `<div class="lyh gform"><span class="pens"><select class="gk">${SG.KEYS.filter(k => !GEN_HIDDEN.includes(k)).map(k => `<option value="${esc(k)}"${k === g.key ? " selected" : ""}>${esc(nm(k))}</option>`).join("")}</select>`
       + `<label>length <input class="gc" type="number" min="12" max="200" value="${g.cols}" style="width:56px"></label>`
       + `<select class="gt">${["easy", "normal", "hard", "harder", "extreme"].map(t => `<option${t === g.tier ? " selected" : ""}>${t}</option>`).join("")}</select>`
       + `<select class="gh" title="height: the type's own times this">${[1, 1.25, 1.5, 2].map(v => `<option value="${v}"${v === (g.hf || 1.5) ? " selected" : ""}>height ×${v}</option>`).join("")}</select>`
