@@ -545,6 +545,8 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 - **Hazards: spikes, saws and pits against the player's path** (HAZARDS.md: the study of 21 mains + 127 community levels -- roles threat / guard / fill, jumps over something, lane frames, dressing -- the rules, the generator, what is open): `lib/hazards.js` (`hazardStats`, `hazardsAlongPath(path, objects, opts)`: hazards that follow a planned path and block leaks), `tools/hazards.js level | study [--write]` (-> knowledge/hazards_ref.json; score.js gate "hazards", WARN), `tools/hazards_try.js <level> [--map a b]` (strip a level's hazards and place new ones). Test: `node tests/hazards.js`.
 - **Spike and saw designs: one hazard dressed** (HAZARDS.md "Dressing one hazard"; Evgeni: "a spike inside a smaller spike ... glow, layers"): `tools/spikestudy.js` (what rated levels put inside one spike or saw -> knowledge/spike_designs.json), `tools/spikedesign.js list | gallery | check <level>` (14 designs as functions of the hazard, turning with it, hitbox untouched, readability rules; block-design palettes; gallery `levels/gdlm_spike_designs.gdlvl`). Test: `node tests/spikedesign.js`.
 - **`tools/density.js <level>` -- is a level sparse inside** (Evgeni 2026-11-26: "i want levels not to be so sparse"): its route cut into bricks against the tier's rated bricks (knowledge/brick_tiers.json), the calmest 4 s windows, the longest stretch with no press; score.js gate "density" (WARN). Test: `node tests/density.js`.
+- **`tools/gdmarks.js <save:<name> | level.gdlvl>`** -- Evgeni's marker blocks placed in the GD editor: a text object whose text starts with "@" ("@ too tight here"); lists each with column, row and %; `--strip out.gdlvl` removes them once fixed. Read his markers before fixing a level he played.
+- **`tools/genroute.js <dir>`** -- the 〰 path of a 🎲 generated piece: the catalogue queues each piece in db collection `genroute` (state asked); fetch, solve (layoutcheck), write the route back, the page draws it (WORKBOOKS.md "genroute").
 - **`tools/orbfit.js <section> [--gap 3] [--write]`** -- re-places a board section's orbs (his kinds, in his order) on the sim's own path so the route takes every one, spaced from each other and the blocks (Evgeni 2026-11-27, "orb gameplay").
 - **`tools/startramp.js` -- the level's opening up on blocks** (Evgeni 2026-11-26: not on the default ground): a slope ramp to the first floor, 3 rows by default; every builder uses it, judge.js notes a "ground start".
 - **`tools/pieces.js <spec>` -- the pieces a spec is built from**, with their spans and the gaps between them; `--out` +
@@ -724,6 +726,10 @@ The viewer draws moving objects where they start.
   collapsible, lets put that somewhere as a rule when we make those"; the catalogue was "heavy with stuff. long long info"):
   catalogues, the viewer's panels, boards, report pages. A header that folds its section, remembered per viewer, long
   explanations folded by default, short text on cards. The lego catalogue does it with `data-fold` (tools/lego_page.html).
+- **More than ~4 buttons in a row fold too** (Evgeni, 2026-11-27: "any UI as well over some kind of view. everything under collapsible
+  sections above like 4 buttons"): a control row longer than ~4 sits behind one ▸ label (folded by default, remembered); the
+  one or two main actions (play, build, save, send) stay outside. Cards in a long list (themes) start folded to one line.
+  Example: tools/designs_tab.js `FR()`.
 - **Notes and marks on our pages: autosave, send to Claude, fold what is seen** (Evgeni, 2026-11-27: "dont want \"save mark\",
   send to claude when we have list of comments/marks ... they should apply for future sessions, and other agents"). On every
   page we make (catalogues, viewer, boards, artifacts): a note or comment saves as it is typed (debounced, Enter too) with a
