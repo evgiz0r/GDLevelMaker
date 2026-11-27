@@ -440,8 +440,19 @@ runs BEFORE the indicators, so their colour sees the dressed hazards. Channels: 
 Gallery: deco-art/gdlm_design_themes (`node tools/designthemes.js spec`, specs/lab_design_themes.json, levels/
 gdlm_design_themes.gdlvl): ONE scene per theme (Evgeni 2026-11-27: "i dont want 2 pictures, just 1 full scene with pieces";
 "the part should have variaty ( some big structures, hanging , stuff, some slopes, connecting structures")): `SCENE` in
-designthemes.js, a text map -- a slope ramp platform with a spike, a hanging T with a hanging spike, three held islands with
-spikes, a big roofed structure with a saw on its corner, a held ring, a sunk saw, a hill, a double spike; sky 0, backdrop a.
+designthemes.js, a text map. Since Evgeni 2026-11-27 ("i want the gameplay in these themes to be mostly above ground. with
+the scene having much more structures, and more connected ones. less open space. the spikes are normal. i dont see the pieces
+making the theme") the cube runs UP ON masses that reach the ground (heights 1-4, slope ramps, a step up), with pits of
+spikes between them, two held islands over a spike floor, ceiling masses with hanging spikes and a small saw on a corner,
+spikes and a sunk saw on the tops. Ceiling rule: a ceiling's bottom stays above the jump peak there (path top + 2 rows +
+the cube). Sky 0, backdrop a.
+"The spikes are normal" was the picture, not the level: the art-free render drew deco behind or under the spikes and did not
+know 1889 / 503 / 1011, so the inner spike designs never showed in a cloud picture. lib/look.js now draws them (FLAT) and
+the viewer draws front deco above a hazard's order (T1 order > 2) after the hazards.
+Bug found on the way: a scene script (tools/scenes/*) that returned `objects.concat(out)` doubled every play object (the five
+gallery scenes of this thread did); scenes return only their new objects, and make.js now drops the level's own objects if
+a scene returns them (with a `!!` note). Galleries built before 2026-11-27 (holders, structure designs, block designs,
+indicator styles) still carry the doubled objects until rebuilt.
 Catalogue: the lego catalogue's Themes tab, one strip per theme (`node tools/designs.js cards --themes`: the scene shot a
 screen at a time and joined).
 Contrast (Evgeni 2026-11-27: "the background and the blocks look too alike, they should have some contrast to the blocks

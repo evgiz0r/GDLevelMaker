@@ -73,7 +73,7 @@ function themeCards() {
   const run = (cmd, a) => { const r = cp.spawnSync(cmd, a, { cwd: ROOT, stdio: "inherit", windowsHide: true }); if (r.status) throw new Error(cmd + " failed"); };
   const DT = require("./designthemes.js"), scenes = DT.spec().scenes, SCREEN = 1920 / 3.375, V = 311.7;
   const tAt = x => 1.5 + (x - 547) / V;   // the moment x is at the screen's centre (1x speed)
-  const plan = scenes.map(q => { const n = Math.ceil((q.c1 - q.c0) * 30 / SCREEN), x0 = q.c0 * 30 + SCREEN / 2;
+  const plan = scenes.map(q => { const n = Math.max(1, Math.round((q.c1 - q.c0) * 30 / SCREEN)), x0 = q.c0 * 30 + SCREEN / 2;
     return { name: q.name, ts: Array.from({ length: n }, (_, i) => tAt(x0 + i * SCREEN).toFixed(3)) }; });
   const dir = path.join(ROOT, "local", "shots", "theme_cards"); fs.rmSync(dir, { recursive: true, force: true });
   run(process.execPath, ["tools/shoot.js", "levels/gdlm_design_themes.gdlvl", "--at", plan.flatMap(p => p.ts).join(","), "--out", "local/shots/theme_cards"]);

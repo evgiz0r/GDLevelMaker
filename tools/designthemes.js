@@ -46,15 +46,20 @@ const COMBOS = [["single", ["#"]], ["row", ["###"]], ["L", ["#..", "###"]], ["T"
 // the scene: one continuous level part per theme with every kind of piece in it (Evgeni 2026-11-27: "just 1 full scene
 // with pieces"; "the part should have variaty ( some big structures, hanging , stuff, some slopes, connecting structures")).
 // Text rows, top row first, row 0 = on the ground: # block, / \\ slopes (7 r on the ceiling side), ^ spike, v hanging spike,
-// o saw on a corner, s small saw sunk in the ground. The cube runs it on the ground and on the slopes.
+// o saw / q small saw on a corner, s small saw sunk in a top. The cube runs it UP ON the structures (Evgeni 2026-11-27:
+// "gameplay in these themes to be mostly above ground. with the scene having much more structures, and more connected
+// ones. less open space"): masses down to the ground with pits of spikes between, held islands, ceiling masses with
+// hanging spikes over the low stretch.
 const SCENE = [
-  "...................#######......................./#####\\.........####............................",
-  ".....................###.........................#######.........#..#............................",
-  "......................v.......^.......^.....^....#######.........####............................",
-  "..............................####...####...####.o...............................................",
-  ".................................................................................................",
-  "............^.........................................................^..........................",
-  "...^......./########\\.......^..........^......................s......./###\\......^^............",
+  "....#################...............############.#########..........................##########..",
+  "....#################.......................v..v.q########......................................",
+  "....................................................v...........................................",
+  "................................................................................................",
+  ".............................s.......................................................^..........",
+  "...............^..........######..########\\...^..............^..####..####......./######\\.......",
+  "........../########...##########..###############\\......../#####............#############\\......",
+  "...../#############...##########..######################..######............##############\\.....",
+  "/##################^^^##########^^######################^^######^.^.^.^.^.^.###############\\....",
 ];
 const SAMPLE = [];
 SCENE.forEach((line, i) => { const r = SCENE.length - 1 - i;
@@ -64,6 +69,7 @@ SCENE.forEach((line, i) => { const r = SCENE.length - 1 - i;
     else if (ch === "^") SAMPLE.push(["spike", c, r]);
     else if (ch === "v") SAMPLE.push(["spike", c, r, { rot: 180 }]);
     else if (ch === "o") SAMPLE.push([1706, c, r, { dy: -15 }]);
+    else if (ch === "q") SAMPLE.push([1707, c, r, { dy: -15 }]);
     else if (ch === "s") SAMPLE.push([1707, c, r, { dy: -8 }]);
   }); });
 const SCENE_W = SCENE[0].length, SCENE_END = Math.max(...SCENE.map(l => l.replace(/\.+$/, "").length)) + 2;   // last piece + 2
@@ -78,7 +84,7 @@ function spec() {
     sections.push({ from: c - 6, theme: name, backdrop: "a", sky: 0 }); labels.push([c - 6, name]); ind.push([c - 6, t.indicator]);
     for (const [kind, dc, r, ex] of SAMPLE) objects.push(ex ? [kind, c + dc, r, ex] : [kind, c + dc, r]);
     scenes.push({ name, c0: c - 4, c1: c + SCENE_END });
-    c += SCENE_W + 10;
+    c += SCENE_W + 24;   // room after the scene, so its picture's last frame stays in this theme
   }
   ind.push([c - 3, "none"]);
   return {
