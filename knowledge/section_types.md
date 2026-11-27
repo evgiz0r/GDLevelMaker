@@ -150,3 +150,6 @@ Evgeni 2026-11-27 ("lets remind ourselves more idea for sections, bit tired desi
 - **ship orb play**: a ship corridor with orbs in it (yellow / blue / green) that are clicked while flying.
 - **pads**: some pad addition (yellow / blue pads launching the player between platforms; in cube, ball and ufo).
 - **duals**: two players, one button (dual portals; lib/dual.js): mirrored or asymmetric halves.
+- **dash orbs** (Evgeni 2026-11-27: "we dont use dashes yet, that also adds a hold to the gameplay other than the flying and
+  robot"): dash orb stretches (green / pink dash orbs: hold to dash at the orb's angle, release to stop), a hold in a
+  jumping mode. The sim has dash orbs (PHYSICS.md; the props 586 / 588 on them unknown); beware dash-orb skips.

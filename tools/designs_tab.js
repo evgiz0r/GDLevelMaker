@@ -75,7 +75,7 @@ window.initDesigns = async function (root) {
       return `<div class="cst cst-${esc(s.state || "applied")}">${ic} Claude ${esc(s.state || "applied")} ${hm(s.at)}${s.reply ? ": " + esc(s.reply) : ""}</div>`; }
     if (!mine) return "";
     const unsentNow = (mine === mineN && noteUnsent(part)) || (mine === mineD && String(d.at || "") > LAST && (d.sentAt || "") !== (d.at || "x"));
-    if (unsentNow) return `<div class="cst cst-new">✎ not sent yet (📨 sends it)</div>`;
+    if (unsentNow) return `<div class="cst cst-new">✎ saved, Claude hasn't read it yet (it reads it on its next wake; 📨 or a word in chat wakes it)</div>`;
     if (LASTC && LASTC >= mine) return `<div class="cst cst-read">👀 Claude read it ${hm(LASTC)}, working on it</div>`;
     return `<div class="cst cst-sent">📨 sent, waiting for Claude</div>`; }
   let LAST = "2026-11-27T14:40:00.000Z";   // the last send (collection "designsend"; this default: when the stamp started)
@@ -277,16 +277,21 @@ window.initDesigns = async function (root) {
     static: { name: "static" },
     // NINE CIRCLES (Evgeni: "when our structure has 4 channels and it does 'waves', not the background"): diagonal bands
     // (column + row), a band every half beat, faster than the player ("original vibe was ... diagonal")
-    nine: { name: "nine circles", light: ([x, y, col], F) => flow((col + Math.round(y / 22.5)) / 2, F.b * 2, F.N) },
-    nineAlong: { name: "nine circles, along", light: ([x, y, col], F) => flow(col / 2, F.b, F.N) },
-    // ROTATING: the bands are slices of a turning wheel round the screen's centre, a quarter turn a beat
-    rotate: { name: "rotating", light: ([x, y], F) => { const a = Math.atan2(y * F.f - F.cy, x * F.f - F.sl - F.cx) / (2 * Math.PI) + 0.5;
-      return flow(a * F.N * 2, F.b * 2, F.N); } },
+    // MORE COLOURS = THINNER SLICES (Evgeni 2026-11-27: "when we mean 8 colors, we want the slices smaller. not just
+    // increasing the number of colors"): one turn of the pattern keeps its length, so N colours make bands 8 / N columns
+    // wide, and a "fine" style cuts each block into strips (N / 4 of them) so a band can be thinner than a block
+    nine: { name: "nine circles", fine: true, light: ([x, y, col], F) => flow((col + Math.round(y / 22.5)) * F.N / 8, F.b * 2, F.N) },
+    nineAlong: { name: "nine circles, along", fine: true, light: ([x, y, col], F) => flow(col * F.N / 8, F.b, F.N) },
+    // ROTATING (Evgeni 2026-11-27: "should be many small rotating structures not 1"): the scene cut into 4 x 4 block
+    // tiles, each a little wheel turning round its own centre, neighbours turning the other way
+    rotate: { name: "rotating", fine: true, light: ([x, y], F) => { const T = 90, i = Math.floor(x / T), j = Math.floor(y / T), dir = (i + j) % 2 ? 1 : -1;
+      const a = Math.atan2(y - (j + 0.5) * T, x - (i + 0.5) * T) / (2 * Math.PI) + 0.5;
+      return flow(a * F.N + (i + j) * 0.5, F.b * 2 * dir, F.N); } },
     // PULSE: each block's light grows from its centre on the beat and fades, the colour moving on a beat
     pulse: { name: "pulse in the blocks", light: ([x, y, col], F) => { const e = Math.pow(1 - F.ph, 2);
       return { a: 0.55 * e, ci: BANDS(F.n + col / 3, F.N), scale: 0.25 + 0.75 * e }; } },
     // SLICES: every block cut in 3 strips, the diagonal flow running strip by strip (finer than a block)
-    slices: { name: "slices", light: ([x, y, col], F) => [0, 1, 2].map(k => { const [a, ci] = flow((col * 3 + k + Math.round(y / 22.5) * 3) / 2, F.b * 6, F.N); return { a, ci, part: [k / 3, 1 / 3] }; }) },
+    slices: { name: "slices", light: ([x, y, col], F) => { const K = Math.max(3, Math.round(F.N * 3 / 4)); return Array.from({ length: K }, (_, k) => { const [a, ci] = flow((col * K + k + Math.round(y / 22.5) * K) / 2, F.b * 2 * K, F.N); return { a, ci, part: [k / K, 1 / K] }; }); } },
     // UP AND DOWN: a line of light rises and falls through the rows, one row a half beat, rippling along the columns
     updown: { name: "up and down", light: ([x, y, col], F) => { const row = 13 - y / 22.5, top = 6, h = (Math.sin((F.b * 2 + col * 0.25) * Math.PI / 4) + 1) / 2 * top, d = Math.abs(row - h);
       return [d < 0.8 ? 0.55 * (1 - d / 0.8) : 0, BANDS(row / 2, F.N)]; } },
@@ -304,8 +309,12 @@ window.initDesigns = async function (root) {
       let P = [[-hh, hh], [hh, hh], [hh, -hh]].map(([u, v]) => [fx ? -u : u, fy ? -v : v]);
       for (let j = 0; j < q; j++) P = P.map(([u, v]) => [-v, u]);
       g.beginPath(); P.forEach(([u, v], j) => j ? g.lineTo(X + u, Y + v) : g.moveTo(X + u, Y + v)); g.closePath(); g.fill(); };
-    for (const cell of cells) { const [x, y, , sh] = cell, X = x * F.f - F.sl, Y = y * F.f; if (X < -sz || X > w + sz) continue;
-      let L = st.light(cell, F); if (Array.isArray(L) && typeof L[0] === "number") L = { a: L[0], ci: L[1] };
+    const K = st.fine ? Math.max(1, Math.round(F.N / 4)) : 1;   // strips a block for a fine style (thinner than a block)
+    for (const cell of cells) { const [x, y, col, sh] = cell, X = x * F.f - F.sl, Y = y * F.f; if (X < -sz || X > w + sz) continue;
+      let L;
+      if (K > 1 && !sh) L = Array.from({ length: K }, (_, k) => { const o = (k + 0.5) / K - 0.5, q = st.light([x + o * 22.5, y, col + o, sh], F), r = Array.isArray(q) ? { a: q[0], ci: q[1] } : q; return Object.assign({}, r, { part: [k / K, 1 / K] }); });
+      else L = st.light(cell, F);
+      if (Array.isArray(L) && typeof L[0] === "number") L = { a: L[0], ci: L[1] };
       for (const q of [].concat(L)) { if (!q || q.a < 0.03) continue; const c = C[q.ci % C.length]; g.fillStyle = `rgba(${c[0]},${c[1]},${c[2]},${q.a.toFixed(3)})`;
         const s = sz * (q.scale || 1);
         if (sh) tri(X, Y, sh, s); else if (q.part) g.fillRect(X - sz / 2 + q.part[0] * sz, Y - sz / 2, q.part[1] * sz, sz); else g.fillRect(X - s / 2, Y - s / 2, s, s); } } }
@@ -356,6 +365,8 @@ window.initDesigns = async function (root) {
         case "^": return P([[0.1, 1], [0.5, 0.1], [0.9, 1]]); case "v": return P([[0.1, 0], [0.5, 0.9], [0.9, 0]]);
         // gravity portals (Evgeni 2026-11-27: "i need also reverse gravity portals in the layouts"): G upside down (yellow),
         // N back to normal (blue); drawn 3 rows tall like the game's portal, centred on its cell
+        // a hidden portal of the section's own mode: it moves the band (the room) to its height
+        case "W": case "H": case "U": case "A": case "L": case "P": return `<rect class="tl" x="${x + 0.3}" y="${y - 1}" width="0.4" height="3" rx="0.2" fill="none" stroke="#c77dff" stroke-dasharray="0.2 0.15" style="stroke-width:1.5px;vector-effect:non-scaling-stroke" />`;
         case "G": case "N": return `<rect class="tl" x="${x + 0.25}" y="${y - 1}" width="0.5" height="3" rx="0.25" fill="${q.t === "G" ? "#ffe000" : "#38c8ff"}" fill-opacity="0.85" />`;
         // orbs (Y yellow, B blue, E green) and pads (J yellow, K blue)
         case "Y": case "B": case "E": return `<circle class="tl" cx="${x + 0.5}" cy="${y + 0.5}" r="0.4" fill="none" stroke="${q.t === "Y" ? "#ffe000" : q.t === "B" ? "#38c8ff" : "#40ff60"}" stroke-width="0.14" /><circle class="tl" cx="${x + 0.5}" cy="${y + 0.5}" r="0.18" fill="${q.t === "Y" ? "#ffe000" : q.t === "B" ? "#38c8ff" : "#40ff60"}" />`;
@@ -393,7 +404,7 @@ window.initDesigns = async function (root) {
     const marks = H => SCENE_SEGS.map(z => z.join ? `<rect x="${z.c0}" y="0" width="${z.w}" height="${H}" fill="#ffffff0d" />`
       : `<line x1="${z.c0}" y1="0" x2="${z.c0}" y2="${H}" stroke="#ffd84d66" stroke-dasharray="0.3 0.3" style="stroke-width:1px;vector-effect:non-scaling-stroke" /><text x="${z.c0 + 0.2}" y="0.7" font-size="0.6" fill="#ffd84daa" style="pointer-events:none">${esc(z.name)}</text>`).join("");
     const n = LPARTS.filter(q => q[0] !== "play" && (DRAW["layout:" + q[0]] || {}).tiles).length;   // parts he has edited
-    const TOOLS = [["#", "▭ block"], ["/", "◢ slope"], ["\\", "◣ slope"], ["7", "◥ ceiling slope"], ["r", "◤ ceiling slope"], ["^", "▲ spike"], ["v", "▼ hanging spike"], ["o", "⚙ saw"], ["G", "🟡 gravity up"], ["N", "🔵 gravity back"], ["Y", "◎ yellow orb"], ["B", "◎ blue orb"], ["E", "◎ green orb"], ["J", "▬ yellow pad"], ["K", "▬ blue pad"], ["erase", "⌫ erase"]];
+    const TOOLS = [["#", "▭ block"], ["/", "◢ slope"], ["\\", "◣ slope"], ["7", "◥ ceiling slope"], ["r", "◤ ceiling slope"], ["^", "▲ spike"], ["v", "▼ hanging spike"], ["o", "⚙ saw"], ["G", "🟡 gravity up"], ["N", "🔵 gravity back"], ["W", "┊ swing room mover"], ["H", "┊ ship room mover"], ["U", "┊ ufo room mover"], ["Y", "◎ yellow orb"], ["B", "◎ blue orb"], ["E", "◎ green orb"], ["J", "▬ yellow pad"], ["K", "▬ blue pad"], ["erase", "⌫ erase"]];
     const chips = `<span class="pens">` + LPARTS.map(q => `<button class="lpt${show(q[0]) ? " on" : ""}" data-p="${esc(q[0])}" title="${esc(q[5] || "")}">${show(q[0]) ? "☑" : "☐"} ${esc(q[1])}${q[0] !== "play" && (DRAW["layout:" + q[0]] || {}).tiles ? " ✏" : ""}</button>`).join("")
       + `<button class="lall">all</button><button class="lnone">none</button><button class="ladd">＋ section</button></span>`
       + (ADDFORM ? `<span class="pens laddf"><input class="lan" placeholder="name, e.g. robot stairs" maxlength="40">`
@@ -432,7 +443,7 @@ window.initDesigns = async function (root) {
     let out = `<div class="lpn" style="margin-top:14px"><b>🎲 generator</b> · a new section from a type's concept, any length and difficulty · your comment goes to Claude with 📨</div>`
       + `<div class="lyh gform"><span class="pens"><select class="gk">${SG.KEYS.map(k => `<option value="${esc(k)}"${k === g.key ? " selected" : ""}>${esc(nm(k))}</option>`).join("")}</select>`
       + `<label>length <input class="gc" type="number" min="12" max="200" value="${g.cols}" style="width:56px"></label>`
-      + `<select class="gt">${["easy", "normal", "hard", "harder"].map(t => `<option${t === g.tier ? " selected" : ""}>${t}</option>`).join("")}</select>`
+      + `<select class="gt">${["easy", "normal", "hard", "harder", "extreme"].map(t => `<option${t === g.tier ? " selected" : ""}>${t}</option>`).join("")}</select>`
       + `<button class="ggo">🎲 generate</button></span></div>`;
     if (GENS && GENS.err) out += `<div class="lpn" style="color:#ff8a8a">${esc(GENS.err)}</div>`;
     else if (GENS && GENS.map) { const H = GENS.map.length, W = GENS.map[0].length, cs = Math.round(26 * (open["zoom:layout"] || 1)), T = [];
@@ -484,10 +495,10 @@ window.initDesigns = async function (root) {
     // send must come from his tap, so the page only says WHEN a tap will go through: the 📨 buttons light up "tap now" once
     // the hold since his last key or tap is over (a label change; nothing is sent by itself). And he can always just write
     // "comments" in the chat: everything is saved in the db, Claude reads what is new since the last send from there.
-    if (!sent) { say("the app holds sends for a few seconds after typing: 📨 lights up when it will go through");
+    if (!sent) { say("saved ✓ — the app didn't pass the wake-up on, but Claude reads everything saved whenever it wakes; a word in the chat wakes it now");
       clearTimeout(readyT); const cue = () => { const left = HOLD - (Date.now() - lastKey); if (left > 0) { readyT = setTimeout(cue, left + 100); return; }
         for (const b of document.querySelectorAll("#sendall, .msend")) { b.classList.add("ready"); if (b.id === "sendall") b.textContent = "📨 tap now"; }
-        say("ready: tap 📨 now (or write \"comments\" in the chat)"); };
+        say("saved ✓ — tap 📨 again to wake Claude, or write any word in the chat"); };
       // the refused tap is itself the app's "last click": the next send is allowed only a full hold after it (the cue lit up
       // 1.5 s after a refusal and the green tap was refused again, Evgeni 2026-11-27: "that green msg doesnt work still")
       lastKey = Date.now(); cue(); return false; }

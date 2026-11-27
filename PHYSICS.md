@@ -1467,3 +1467,9 @@ would, so the next run of either starts from it; use only the levels in git
   (f0d483d).
 - gd-style's intended-route plan: not discussed with this session; ask gd-style how its route ranking should
   apply inside a partial re-solve before changing the sweep's ranking there.
+
+## A portal of the mode you are in moves the band (2026-11-27, UNMEASURED)
+Evgeni: "swing/ship/ufo portals in the middle of the gameplay recenter the screen. people put invisible ones to move
+further in the screens". lib/physics.js now sets the floor and ceiling again around a portal of the player's own mode
+(before: ignored); `GDLM_SAME_PORTAL=old` = the old rule. Lab level `levels/gdlm_lab_room_mover.gdlvl` (a swing climbing
+14 rows with hidden swing portals every 6 columns, tools/swingfit.js) is the real-game check; result: pending.
