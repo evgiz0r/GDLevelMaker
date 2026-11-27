@@ -95,6 +95,11 @@ open cube corridor, closer cube corridor, hanging structures, flying corridor (s
 (UFO), ball corridors (structures on several heights). Each has a mode and is edited on its own on the Themes tab board.
 Source: Evgeni, 2026-11-27; tools/layoutsections.js (drafts; his edits in knowledge/layout_sections.json).
 
+- **Section types, any length** (Evgeni 2026-11-27: "understand for the future how to make similar according to beats, or
+  invent new ones ... shorter, longer"): each board section is a type (an idea + a motif repeated with changes, entry /
+  body / exit, 4-32 bars, gravity portals 11 / 10 inside). knowledge/section_types.md has every type. The ball type is
+  built to the beats by tools/clickfirst.js (`--bpm`, any click count, gravity portals as a free move).
+
 ## 6. From a drawing to a structure
 
 Evgeni draws loosely ("you will align to be more symmetrical, and connected and layered and so on as needed"). Keep his
