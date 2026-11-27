@@ -194,11 +194,16 @@ window.initDesigns = async function (root) {
   // Between two sections a JOIN (lib/scenejoin.js, the same code as tools/layoutsections.js joined()): the floor ramps by
   // 45-degree slopes; two corridors' ceilings merge into one sloping ceiling, a lone ceiling tapers up (Evgeni 2026-11-27:
   // "our scene doesnt connect well in some places are blocked"; then on fly -> wave: "it should merge in the same y locations")
-  function sceneTiles() { const out = []; let off = 0, prev = null;
+  // SCENE_SEGS: where each section and join sits in the scene, so a tap on the scene edits its section (Evgeni 2026-11-27:
+  // "let me also edit the current scene and it will edit the proper section, put some soft marker on where the sections are")
+  let SCENE_SEGS = [];
+  function sceneTiles() { const out = [], segs = []; let off = 0, prev = null;
     for (const q of SECS()) { const T = tilesOf("layout:" + q[0]), cur = { T, w: q[2], h: q[3] };
-      if (prev) { const j = window.SceneJoin.join(prev, cur); for (const z of j.tiles) out.push({ t: z.t, c: z.c + off, r: z.r }); off += j.n; }
-      for (const z of T) out.push({ t: z.t, c: z.c + off, r: z.r }); off += q[2]; prev = cur; }
-    return out; }
+      if (prev) { const j = window.SceneJoin.join(prev, cur); for (const z of j.tiles) out.push({ t: z.t, c: z.c + off, r: z.r }); segs.push({ join: true, c0: off, w: j.n, name: prev.name + " → " + q[1] }); off += j.n; }
+      for (const z of T) out.push({ t: z.t, c: z.c + off, r: z.r }); segs.push({ key: "layout:" + q[0], name: q[1], c0: off, w: q[2], h: q[3] }); off += q[2]; prev = Object.assign(cur, { name: q[1] }); }
+    SCENE_SEGS = segs; return out; }
+  const segAt = c => SCENE_SEGS.find(z => c >= z.c0 && c < z.c0 + z.w);
+  const sceneSnap = () => ({ multi: SCENE_SEGS.filter(z => z.key).map(z => ({ k: z.key, tiles: (DRAW[z.key] || {}).tiles ? JSON.parse(JSON.stringify(DRAW[z.key].tiles)) : null })) });
   const sceneW = () => { let w = 0, prev = null; for (const q of SECS()) { const cur = { T: tilesOf("layout:" + q[0]), w: q[2], h: q[3] }; if (prev) w += window.SceneJoin.join(prev, cur).n; w += q[2]; prev = cur; } return w; };
   let TILE = () => "";
   // ---- ▶ play (Evgeni 2026-11-27: "theme animations, so we might see how it looks in the game if we press play") ----
@@ -225,7 +230,7 @@ window.initDesigns = async function (root) {
   function layoutSection() {
     const t = L.find(d => d.kind === "theme" && d.lparts); if (!t) return "";
     LPARTS = withAdded(t.lparts);
-    { const S = SECS(); LPARTS = LPARTS.map(q => q[0] !== "play" ? q : ["play", "current scene", sceneW(), Math.max(...S.map(z => z[3])), "all", "the sections joined in order; edit a section to change it"]); }
+    { const S = SECS(); LPARTS = LPARTS.map(q => q[0] !== "play" ? q : ["play", "current scene", sceneW(), Math.max(...S.map(z => z[3])), "all", "the sections joined in order; draw on it and the edit goes to its section (the joins follow)"]); }
     const isOpen = open.layoutsec !== false, fs = FS === "layout", cs = Math.round(26 * (open["zoom:layout"] || 1));
     // SECTIONS (Evgeni 2026-11-27: "i want the layout to have specific sections ... and each of those can be viewed
     // separately"): one chip per part, each shown or hidden; at first only the first section
@@ -246,7 +251,10 @@ window.initDesigns = async function (root) {
     const grid = q => { const [k, , W, H] = q, key = "layout:" + k;
       return `<svg class="tiles" data-k="${key}" data-w="${W}" data-h="${H}" data-vh="${H + 0.25}" data-g="0" viewBox="0 0 ${W} ${H + 0.25}" style="width:${W * cs}px;height:${(H + 0.25) * cs}px">`
         + `<g class="grid">${Array.from({ length: W + 1 }, (_, c) => `<line x1="${c}" y1="0" x2="${c}" y2="${H}" />`).join("")}${Array.from({ length: H + 1 }, (_, r) => `<line x1="0" y1="${r}" x2="${W}" y2="${r}" />`).join("")}</g>`
-        + `<rect x="0" y="${H}" width="${W}" height="0.25" fill="#7be38a55" />` + tilesOf(key).map(z => tile(z, H)).join("") + `</svg>`; };
+        + `<rect x="0" y="${H}" width="${W}" height="0.25" fill="#7be38a55" />` + (() => { const T = tilesOf(key); return (k === "play" ? marks(H) : "") + T.map(z => tile(z, H)).join(""); })() + `</svg>`; };
+    // soft markers on the current scene: a faint band over each join, a dashed line and the name where each section starts
+    const marks = H => SCENE_SEGS.map(z => z.join ? `<rect x="${z.c0}" y="0" width="${z.w}" height="${H}" fill="#ffffff0d" />`
+      : `<line x1="${z.c0}" y1="0" x2="${z.c0}" y2="${H}" stroke="#ffd84d66" stroke-dasharray="0.3 0.3" style="stroke-width:1px;vector-effect:non-scaling-stroke" /><text x="${z.c0 + 0.2}" y="0.7" font-size="0.6" fill="#ffd84daa" style="pointer-events:none">${esc(z.name)}</text>`).join("");
     const n = LPARTS.filter(q => q[0] !== "play" && (DRAW["layout:" + q[0]] || {}).tiles).length;   // parts he has edited
     const TOOLS = [["#", "▭ block"], ["/", "◢ slope"], ["\\", "◣ slope"], ["7", "◥ ceiling slope"], ["r", "◤ ceiling slope"], ["^", "▲ spike"], ["v", "▼ hanging spike"], ["o", "⚙ saw"], ["erase", "⌫ erase"]];
     const chips = `<span class="pens">` + LPARTS.map(q => `<button class="lpt${show(q[0]) ? " on" : ""}" data-p="${esc(q[0])}" title="${esc(q[5] || "")}">${show(q[0]) ? "☑" : "☐"} ${esc(q[1])}${q[0] !== "play" && (DRAW["layout:" + q[0]] || {}).tiles ? " ✏" : ""}</button>`).join("")
@@ -363,9 +371,9 @@ window.initDesigns = async function (root) {
     const pw = e.target.closest(".pw"); if (pw) { PW_ = +pw.dataset.w; render(); return; }
     if (e.target.closest(".perase")) { ERASE = !ERASE; render(); return; }
     if (e.target.closest(".pfs")) { const id0 = e.target.closest(".dc").dataset.id, id = id0.startsWith("layout") ? "layout" : id0; FS = FS === id ? null : id; render(); return; }
-    if (e.target.closest(".lay") && e.target.closest(".pundo")) { const h = HIST.pop(); if (h) { DRAW[h.k] = Object.assign(DRAW[h.k] || {}, { tiles: h.tiles }); render(); saveDraw(h.k); } return; }
-    if (e.target.closest(".lay") && e.target.closest(".preset")) { for (const q of LPARTS) { const k = "layout:" + q[0]; if ((DRAW[k] || {}).tiles && lsh(q[0])) { HIST.push({ k, tiles: DRAW[k].tiles }); DRAW[k].tiles = null; saveDraw(k); } } render(); return; }
-    if (e.target.closest(".lay") && e.target.closest(".pclear")) { for (const q of LPARTS) { const k = "layout:" + q[0]; if (!lsh(q[0])) continue; HIST.push({ k, tiles: (DRAW[k] || {}).tiles || null }); DRAW[k] = Object.assign(DRAW[k] || {}, { tiles: [] }); saveDraw(k); } render(); return; }
+    if (e.target.closest(".lay") && e.target.closest(".pundo")) { const h = HIST.pop(); if (h) { for (const x of h.multi || [h]) { const was = JSON.stringify((DRAW[x.k] || {}).tiles || null); if (was === JSON.stringify(x.tiles)) continue; DRAW[x.k] = Object.assign(DRAW[x.k] || {}, { tiles: x.tiles }); saveDraw(x.k); } render(); } return; }
+    if (e.target.closest(".lay") && e.target.closest(".preset")) { for (const q of LPARTS) { const k = "layout:" + q[0]; if (q[0] !== "play" && (DRAW[k] || {}).tiles && lsh(q[0])) { HIST.push({ k, tiles: DRAW[k].tiles }); DRAW[k].tiles = null; saveDraw(k); } } render(); return; }
+    if (e.target.closest(".lay") && e.target.closest(".pclear")) { for (const q of LPARTS) { const k = "layout:" + q[0]; if (!lsh(q[0]) || q[0] === "play") continue; HIST.push({ k, tiles: (DRAW[k] || {}).tiles || null }); DRAW[k] = Object.assign(DRAW[k] || {}, { tiles: [] }); saveDraw(k); } render(); return; }
     if (e.target.closest(".pundo") || e.target.closest(".pclear")) { const id = e.target.closest(".dc").dataset.id, D0 = DRAW[id] || { strokes: [] };
       DRAW[id] = { strokes: e.target.closest(".pclear") ? [] : D0.strokes.slice(0, -1) }; render(); saveDraw(id); return; }
     // ▶ play: the camera and the player along the route at game speed (designs.js animOf); ■ stops, the speed button
@@ -413,7 +421,15 @@ window.initDesigns = async function (root) {
   const cellOf = (svg, e) => { const r = svg.getBoundingClientRect(), W = +svg.dataset.w, H = +svg.dataset.h, g = +svg.dataset.g;
     const vh = +(svg.dataset.vh || H), c = Math.floor((e.clientX - r.left) / r.width * W), row = Math.floor(H - g - (e.clientY - r.top) / r.height * vh); return c >= 0 && c < W && row >= 0 && row < H - g ? [c, row] : null; };
   function paint(k, cell, first) { if (!cell) return;
-    if (k === "layout:play") { const st = root.querySelector(".lay .pst"); if (st) st.textContent = "the current scene is the sections joined: edit a section to change it"; return; } const D0 = DRAW[k] = DRAW[k] || {}; if (!D0.tiles) D0.tiles = tilesOf(k).map(q => Object.assign({}, q));
+    if (k === "layout:play") { const st = root.querySelector(".lay .pst"), z = segAt(cell[0]);
+      if (!z || z.join) { if (st) st.textContent = z ? `this is the join ${z.name}: it follows the sections around it` : "outside the scene"; return; }
+      if (cell[1] >= z.h) { if (st) st.textContent = `${z.name} is ${z.h} rows high`; return; }
+      const done = painting.done, key = k + ":" + cell.join(","); if (!first && done.has(key)) return;
+      const inner = { ...painting, done: new Set(first ? [] : [...done].filter(x => x.startsWith(z.key + "|")).map(x => x.slice(z.key.length + 1))) };
+      const outer = painting; painting = inner; paint(z.key, [cell[0] - z.c0, cell[1]], first); outer.mode = inner.mode; outer.changed = outer.changed || inner.changed;
+      for (const x of inner.done) done.add(z.key + "|" + x); painting = outer; (painting.touched = painting.touched || new Set()).add(z.key);
+      if (first) painting.mode = inner.mode; drawTiles(k); if (st) st.textContent = `${z.name}: col ${cell[0] - z.c0}, row ${cell[1]}`; return; }
+    const D0 = DRAW[k] = DRAW[k] || {}; if (!D0.tiles) D0.tiles = tilesOf(k).map(q => Object.assign({}, q));
     const i = D0.tiles.findIndex(q => q.c === cell[0] && q.r === cell[1]);
     if (first) painting.mode = TOOL === "erase" || (i >= 0 && D0.tiles[i].t === TOOL) ? "del" : "put";
     const key = cell.join(","); if (painting.done.has(key)) return; painting.done.add(key);
@@ -432,20 +448,22 @@ window.initDesigns = async function (root) {
     const w = t.closest(".lay .wide"); return w ? w.querySelector(".tiles") : null; };
   root.addEventListener("pointerdown", e => { const ts = tilesAt(e); if (!ts) return; e.preventDefault();
     try { ts.setPointerCapture(e.pointerId); } catch (x) {} const k = ts.dataset.k; LACT = k; const w = ts.closest(".dc"); if (w) w.dataset.id = k;
-    HIST.push({ k, tiles: (DRAW[k] || {}).tiles ? JSON.parse(JSON.stringify(DRAW[k].tiles)) : null }); if (HIST.length > 50) HIST.shift();
+    HIST.push(k === "layout:play" ? sceneSnap() : { k, tiles: (DRAW[k] || {}).tiles ? JSON.parse(JSON.stringify(DRAW[k].tiles)) : null }); if (HIST.length > 50) HIST.shift();
     painting = { k, svg: ts, done: new Set(), changed: false }; const c0 = cellOf(ts, e); paint(k, c0, true);
     const st = root.querySelector(".lay .pst"); if (st) st.textContent = c0 ? `${TOOL === "erase" ? "erase" : TOOL} at col ${c0[0]}, row ${c0[1]}` : "tap outside the grid"; }, true);
   root.addEventListener("pointermove", e => { if (!painting) return; paint(painting.k, cellOf(painting.svg, e), false); }, true);
   let lastPaint = 0;
-  const endPaint = () => { if (!painting) return; const { k, changed } = painting; painting = null; lastPaint = Date.now(); if (changed) { saveDraw(k); render(); } };
+  // a stroke on the current scene saves the sections it touched
+  const saveStroke = p => { for (const k of p.k === "layout:play" ? [...(p.touched || [])] : [p.k]) saveDraw(k); };
+  const endPaint = () => { if (!painting) return; const p = painting; painting = null; lastPaint = Date.now(); if (p.changed) { saveStroke(p); render(); } };
   // a tap also arrives as a click (Evgeni 2026-11-27: "i click nothing happens, im on blocks"): when no pointer stroke
   // handled it just before (some views never pass pointer events on), the click places or takes away the tile itself
   root.addEventListener("click", e => { const ts = tilesAt(e); if (!ts || Date.now() - lastPaint < 400) return;
     const k = ts.dataset.k, cell = cellOf(ts, e); LACT = k; const st = root.querySelector(".lay .pst");
     if (!cell) { if (st) st.textContent = "tap outside the grid"; return; }
-    HIST.push({ k, tiles: (DRAW[k] || {}).tiles ? JSON.parse(JSON.stringify(DRAW[k].tiles)) : null });
-    painting = { k, svg: ts, done: new Set(), changed: false }; paint(k, cell, true); const ch = painting.changed; painting = null; lastPaint = Date.now();
-    if (ch) { saveDraw(k); render(); } }, true);
+    HIST.push(k === "layout:play" ? sceneSnap() : { k, tiles: (DRAW[k] || {}).tiles ? JSON.parse(JSON.stringify(DRAW[k].tiles)) : null });
+    painting = { k, svg: ts, done: new Set(), changed: false }; paint(k, cell, true); const p = painting; painting = null; lastPaint = Date.now();
+    if (p.changed) { saveStroke(p); render(); } }, true);
   root.addEventListener("pointerup", endPaint, true); root.addEventListener("pointercancel", endPaint, true);
   root.addEventListener("pointerdown", e => { const svg = e.target.closest && e.target.closest(".ink.on:not(.tiles)"); if (!svg) return; e.preventDefault();
     svg.setPointerCapture(e.pointerId); const id = svg.dataset.k || svg.closest(".dc").dataset.id; if (svg.dataset.k) { LACT = id; const w = svg.closest(".dc"); if (w) w.dataset.id = id; }
