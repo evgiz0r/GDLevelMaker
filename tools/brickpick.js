@@ -51,7 +51,8 @@ function pick(o) {
   const score = (b, c) => {
     const ts = b.dx.map(d => (c + d) / v);
     if (ts[0] - lastPress < 0.3) return null;
-    let s = ts.reduce((a, t) => a + hitScore(t), 0);
+    // o.hitWeight: how much a section's presses chase the song's hits (tools/feel.js: a drop 1.6 "more beatful", a break 0.6)
+    let s = ts.reduce((a, t) => a + hitScore(t), 0) * (o.hitWeight ?? 1);
     // dead air (score.js "dead air": 2 s with nothing to press): a brick whose first press leaves a long gap loses
     if (ts.length && ts[0] - lastPress > (o.deadAir || 1.8)) s -= 2;   // o.deadAir: a tighter limit (Evgeni on v3: "2 seconds of nothing")
     if (used.has(b.id)) s -= o.usedPenalty ?? 3;
@@ -148,7 +149,7 @@ function pickSection(o) {
         // a piece with a portal is verified from a flat run-in: the cube on the ground when it gets there (GDLM 44 v7e: a
         // spike jumped 2 blocks before red-orb-wall~ud's gravity portal flipped it mid-arc, and no solve got through)
         if (b.portal && (g < 3 || c / v - st.lastPress < 0.6)) continue;
-        let s = ts.reduce((a, t) => a + hitScore(t), 0) + 0.05 * ts.length;
+        let s = ts.reduce((a, t) => a + hitScore(t), 0) * (o.hitWeight ?? 1) + 0.05 * ts.length;   // o.hitWeight: tools/feel.js
         if (st.used.has(b.id)) s -= o.usedPenalty ?? 4;
         push({ id: b.id, col: c, beat: +(c / v / P + 1).toFixed(3), width: b.width, presses: ts.map(t => +t.toFixed(3)), onHit: ts.filter(t => hitScore(t) >= 0.5).length, label: b.label, win: b.win },
           ts, b.width, g, b.tags[0], b.id, s, b.win);

@@ -163,10 +163,23 @@ GEN.fly = o => { const { R, imix, room, len, chance, W, H, G } = ctx(o, 12), gap
 // slow legs, a quick zigzag in the middle (more clicks a second), slow again. Harder: a narrower tunnel, a longer quick
 // part. A gravity pair in the quick part.
 CONCEPT.wave = "a 45-degree zigzag tunnel; slow legs, a quick middle, slow again; a gravity pair";
-GEN.wave = o => { const { R, mix, imix, room, W, H, G } = ctx(o, 10), gap = room(6, 5), q0 = mix(0.35, 0.2), q1 = mix(0.65, 0.8);
-  const e = line(W, 1, (L, x) => { const mid = x > W * q0 && x < W * q1, amp = mid ? R.int(1, 2) : R.int(3, Math.max(3, Math.min(5, H - gap - 2)));
-    L.leg(L.h() > 1 ? 1 : Math.min(H - gap - 1, 1 + amp)); });
+GEN.wave = o => { const { R, mix, imix, room, W, H, G } = ctx(o, 13), gap = room(6, 5), q0 = mix(0.35, 0.2), q1 = mix(0.65, 0.8);
+  // more variety on one screen, legs of every size, short flats between some, and one ground slide (Evgeni 2026-11-27: "wave
+  // corridors should have a bit more veriaty on the screen, again a bit more split. and we can add 1 ground slide (where
+  // the corridor passes through the ground/floor)"): the floor drops to the ground and the wave slides along it a while
+  const top = H - gap - 1, slideAt = W >= 30 ? R.int(Math.round(W * 0.3), Math.round(W * 0.6)) : -1; let slid = false, k = 0, dir = -1;
+  const e = line(W, 1, (L, x) => { const mid = x > W * q0 && x < W * q1;
+    if (!slid && slideAt >= 0 && x >= slideAt) { slid = true; L.leg(0); L.run(R.int(4, 7)); return; }
+    if (k++ % 2 === 0 && R.chance(0.25)) { L.run(R.int(1, 3)); return; }
+    const amp = mid ? R.pick([1, 1, 2, 2, 3]) : R.pick([1, 2, 3, 3, 4, 5]);
+    dir = -dir; let to = clamp(L.h() + dir * amp, 1, top); if (to === L.h()) { dir = -dir; to = clamp(L.h() + dir * amp, 1, top); }
+    L.leg(to); });
   tunnel(G, W, e, gap, H - 1);
+  // the map is taller than a wave's 10-block band: a hidden wave portal (board letter A; lib/physics.js re-centres the band
+  // on a same-mode portal at a new height) moves the band with the corridor whenever its middle is 2 rows off the band's
+  let bc = 5;
+  for (let c = 2; c < W - 2; c++) { const r = Math.round(e(c) + gap / 2); if (Math.abs(r - bc) < 2 || G.rows()[H - 1 - r][c] !== ".") continue;
+    G.put(c, r, "A"); bc = Math.max(0, Math.floor((r * 30 + 15 - 150) / 30)) + 5; }
   const gp = gravPair(W, 30);
   // portals on a TURN (the join of two inputs), never mid-leg (Evgeni 2026-11-27 on a generated wave: "portals in waves
   // should usually be on connecting points of clicks or holds, putting them in the middle of a corridor is big difficulty
