@@ -129,3 +129,4 @@ longer or shorter to fit the beats, plus where gravity portals go: **knowledge/s
 need save these copy by copy, but to understand for the future how to make similar according to beats"). The
 clicks-first generator (tools/clickfirst.js, thread "Generate our own structures") builds from it.
 
+- **A leg hanging below a structure is drawn flat** (Evgeni 2026-11-27, hellgate kit: "no 3d for hanging from bottom piece"): a narrow part (1-2 cells wide) below the structure's lowest wide row gets no 3D side face; the body keeps it (tools/structdesign.js `bodyOf`). Holders hang from the upper block, for every width (tools/connect.js).
