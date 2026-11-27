@@ -68,27 +68,22 @@ function moreCards() {
 
 // theme cards: two frames per theme from the design themes gallery (its blocks, its sample), side by side
 function themeCards() {
-  // one picture per theme: its whole scene (tools/designthemes.js SCENE) as consecutive frames a screen apart, joined
-  // into one strip (Evgeni 2026-11-27: "i dont want 2 pictures, just 1 full scene with pieces")
+  // one picture per theme: its whole scene (tools/designthemes.js SCENE) from ONE fixed camera -- levelmap.js --clean,
+  // one row -- cut at the scene's ends (Evgeni 2026-11-27: "just 1 full scene with pieces"; joined shots a screen apart
+  // had seams where the camera moved: "it seems like two pictures pasted wrong")
   const run = (cmd, a) => { const r = cp.spawnSync(cmd, a, { cwd: ROOT, stdio: "inherit", windowsHide: true }); if (r.status) throw new Error(cmd + " failed"); };
-  const DT = require("./designthemes.js"), scenes = DT.spec().scenes, SCREEN = 1920 / 3.375, V = 311.7;
-  const tAt = x => 1.5 + (x - 547) / V;   // the moment x is at the screen's centre (1x speed)
-  const plan = scenes.map(q => { const n = Math.max(1, Math.round((q.c1 - q.c0) * 30 / SCREEN)), x0 = q.c0 * 30 + SCREEN / 2;
-    return { name: q.name, ts: Array.from({ length: n }, (_, i) => tAt(x0 + i * SCREEN).toFixed(3)) }; });
-  const dir = path.join(ROOT, "local", "shots", "theme_cards"); fs.rmSync(dir, { recursive: true, force: true });
-  run(process.execPath, ["tools/shoot.js", "levels/gdlm_design_themes.gdlvl", "--at", plan.flatMap(p => p.ts).join(","), "--out", "local/shots/theme_cards"]);
-  const file = t => path.join(dir, "t" + (+t).toFixed(2).padStart(6, "0") + ".png");
-  const jobs = plan.map(p => ({ card: path.join(DIR, `cards/theme-${keyOf(p.name)}.jpg`), files: p.ts.map(file) }));
+  const DT = require("./designthemes.js"), scenes = DT.spec().scenes, S = 0.75, ROWS = 13, GROUND = 45;
+  run(process.execPath, ["tools/levelmap.js", "levels/gdlm_design_themes.gdlvl", "--clean", "--rows", "1", "--scale", String(S), "--name", "design_themes_clean"]);
+  const jobs = scenes.map(q => ({ card: path.join(DIR, `cards/theme-${keyOf(q.name)}.jpg`), x0: Math.round(q.c0 * 30 * S), x1: Math.round(q.c1 * 30 * S) }));
   fs.mkdirSync(path.join(DIR, "cards"), { recursive: true });
   run(process.platform === "win32" ? "python" : "python3", ["-c", `
 import json,sys
 from PIL import Image
-W,H=640,360
+Image.MAX_IMAGE_PIXELS=None
+im=Image.open(sys.argv[2]).convert('RGB'); h=int(sys.argv[3])
 for p in json.loads(sys.argv[1]):
-    o=Image.new('RGB',(W*len(p['files']),H))
-    for i,f in enumerate(p['files']): o.paste(Image.open(f).resize((W,H)),(i*W,0))
-    o.save(p['card'],quality=80)
-`, JSON.stringify(jobs)]);
+    im.crop((p['x0'],max(0,im.size[1]-h),p['x1'],im.size[1])).save(p['card'],quality=82)
+`, JSON.stringify(jobs), path.join(ROOT, "local", "maps", "design_themes_clean.png"), String(Math.round((ROWS * 30 + GROUND) * S))]);
   console.log(`${jobs.length} theme cards -> ${path.join(DIR, "cards")}`);
 }
 

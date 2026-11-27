@@ -456,8 +456,8 @@ Bug found on the way: a scene script (tools/scenes/*) that returned `objects.con
 gallery scenes of this thread did); scenes return only their new objects, and make.js now drops the level's own objects if
 a scene returns them (with a `!!` note). Galleries built before 2026-11-27 (holders, structure designs, block designs,
 indicator styles) still carry the doubled objects until rebuilt.
-Catalogue: the lego catalogue's Themes tab, one strip per theme (`node tools/designs.js cards --themes`: the scene shot a
-screen at a time and joined).
+Catalogue: the lego catalogue's Themes tab, one picture per theme (`node tools/designs.js cards --themes`: `levelmap.js
+--clean --rows 1`, the scene from one fixed camera, cut at its ends; joined shots had seams where the camera moved).
 Contrast (Evgeni 2026-11-27: "the background and the blocks look too alike, they should have some contrast to the blocks
 and hazards"): the old skies were dark versions of the blocks' own hue and the backdrops were mixed toward the block colour.
 Now: each theme's skies are in another hue (40-176 degrees from the blocks), the backdrop pieces stay in the SKY's hue a few
