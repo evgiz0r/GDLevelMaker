@@ -29,6 +29,21 @@ off the route; the jump indicators in one style and a colour away from the hazar
 "auto"}`). A new deco finding goes into that pass (or the tool it calls), not into one level's copy. DECOART.md "The
 structure deco pass".
 
+**The second source: section types, one command end to end** (Evgeni, 2026-11-27: "lets use the generation of sections
+for now, not the lego"; "when i mean to generate i mean the whole process, orchistator -> sections -> layout -> deco ->
+judge"): `node tools/typebuild.js briefs/NN_x.types.json --run`. songplan + feel cut and type the song's sections, each
+section is generated fresh from a section type (tools/sectiongen.js, knowledge/section_types.md) at its length, speed and a
+tier by its kind, checked alone (tools/layoutcheck.js; the brief pins the seeds once picked), joined with room around each
+portal (0.2 s before, 0.4 s after) and a portal wall across the run the player is in, then make.js (solve, structure deco
+pass, indicators, outro, signature) and the judge report (`<level>.report.txt`). GDLM 76 was the first.
+**Variety between sections, the vibe kept** (Evgeni, 2026-11-27: "i want veriaty between sections, in colors/pacing/effects.
+keeping the same vibe as the orchestrator asked"): a section's look (design theme) follows its kind, 2-3 looks a level;
+inside one look every section gets its own sky and backdrop option; pace follows feel; one calm effect per section (clouds,
+a light chase, a screen frame: tools/scenes/typefx.js over tools/effects.js), never the one before, never pulses or flashes.
+**Height spread** (Evgeni, 2026-11-27: "if our gameplay height distribution is good across the y in all modes ...  it will
+make it a better level"; flights may touch the floor): judge.js notes "narrow heights" under 5 rows p10-p90, report.js
+scores `heights`.
+
 What the lego taught so far, for any builder filling a section from it (LEGO.md has the numbers):
 - **Join only bricks whose seams agree** (mode, speed, gravity, y, vy, ground): with that contract 35% of joins are clean,
   without it 15%. A third of joins still leave a secret way or an open seam: every join gets the hazard filler and is

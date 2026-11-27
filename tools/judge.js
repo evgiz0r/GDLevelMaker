@@ -157,7 +157,17 @@ function judge(file, opt = {}) {
   const sd = a => { const m = a.reduce((x, y) => x + y, 0) / Math.max(1, a.length); return Math.sqrt(a.reduce((x, y) => x + (y - m) ** 2, 0) / Math.max(1, a.length)); };
   const cpsCv = pcs.length > 1 ? sd(pcs.map(pc => pc.cps)) / (pcs.reduce((a, pc) => a + pc.cps, 0) / pcs.length) : 0;
   const winSd = sd(pieces.filter(pc => pc.win).map(pc => Math.log(pc.win)));
-  const stats = { cpsCv: +cpsCv.toFixed(2), winSd: +winSd.toFixed(2), cubeShare: +cubeShare.toFixed(2), upShare: +upShare.toFixed(2), changes: changes.length, walked, restsPerMin: +restsPerMin.toFixed(1), pieces: pcs.length, medCps: +(medCps || 0).toFixed(2), medWin: Math.round(medWin || 0) };
+  // HEIGHTS (Evgeni 2026-11-27: "if our gameplay height distribution is good across the y in all modes of the level ( using
+  // reverse or what not ), it will make it a better level than all game focused on small part of y"; "the flying should also
+  // be able and hit the ground/floor as part of the path"): the player's height over the play, in rows above the ground --
+  // its p10-p90 range and the rows it spends 3%+ of the time in. Under HEIGHT_MIN rows of range: a "narrow heights" note.
+  // The target is a GUESS until measured on the mains (open: run this on their routes on the PC).
+  const HEIGHT_MIN = 5, ys = []; for (let k = 0; k <= gameEnd; k += 4) ys.push(p[k].y / 30);
+  ys.sort((a, b) => a - b); const yq = q => ys.length ? ys[Math.min(ys.length - 1, Math.floor(q * ys.length))] : 0;
+  const yRange = yq(0.9) - yq(0.1), rowsH = {}; for (const y of ys) rowsH[Math.floor(y)] = (rowsH[Math.floor(y)] || 0) + 1;
+  const yRows = Object.values(rowsH).filter(v => v >= 0.03 * ys.length).length;
+  if (yRange < HEIGHT_MIN) at(0, "narrow heights", `the play stays in ${yRange.toFixed(1)} rows (p10-p90, ${yRows} rows used): spread it over the height in every mode (floors, ceilings, upside down, flights touching the floor)`);
+  const stats = { yRange: +yRange.toFixed(1), yRows, cpsCv: +cpsCv.toFixed(2), winSd: +winSd.toFixed(2), cubeShare: +cubeShare.toFixed(2), upShare: +upShare.toFixed(2), changes: changes.length, walked, restsPerMin: +restsPerMin.toFixed(1), pieces: pcs.length, medCps: +(medCps || 0).toFixed(2), medWin: Math.round(medWin || 0) };
   // a route that stops short judges only what it reached: say so first
   const end = p[p.length - 1];
   if (!end.done || end.dead) notes.push({ t: tt(p.length - 1), x: blk(end), y: Math.round(end.y), kind: "route stops", note: "the saved route dies here on today's physics: notes after this are missing (re-solve: node tools/solutions.js <level>)" });
