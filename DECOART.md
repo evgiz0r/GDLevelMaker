@@ -476,3 +476,8 @@ checks every preset. Our blocks' bodies are dark, so the sky goes mid-tone (bloc
 Test: `node tests/structdeco.js`. The art-free render shows the spike / saw dressing only faintly (1889, 503 ...): judge
 those in GD art on the PC or in the game.
 Open: a theme from a theme kit (tools/themes/*) or from the song's mood; backdrops b and c are not in the gallery (only a); the scene's seams between shots move a little when the camera rises.
+
+**Next (Evgeni, 2026-11-27): a "claude" design theme**, beside hellgate / frost / toxic / void / temple ("lets have a claude
+theme as well (work on it later)"). Not started. Ideas to try: Claude's warm clay / orange on a cream or deep-ink sky,
+the signature's robot + human motifs as set pieces, soft rounded blocks, the end-screen sign's look carried through.
+
