@@ -44,7 +44,17 @@ for (const [song, seed, music] of [["Electrodynamix", 8, null], ["Jumper", 2, nu
   ok(/drop/.test(log) && /break/.test(log) && /entry/.test(log), "drop, break and entry sections are typed: " + log.split("\n").filter(l => / s: /.test(l)).map(l => l.split(",")[0]).join(" | "));
   ok(/drop[^\n]*low=red/.test(log), "the drop has red pads on the low notes");
   ok(m.clipTicks <= 30, `no play inside the blocks: ${m.clipTicks} ticks`);
-  ok(/beat ending/.test(m.ending), "the beat ending: " + m.ending);
+  ok(/quiet signature/.test(m.ending), "the default ending is the quiet sign (2026-11-27): " + m.ending);
+  // the sign itself: hidden at first, one fade in, locked to the camera, nothing past the level's last gameplay object
+  const fs = require("fs"), path = require("path"), { readGdlvl, GD } = require("../tools/io.js");
+  const out = path.join(__dirname, "..", "local", "tmp", "test_quiet_sign.gdlvl");
+  ab.write(out, b, "GDLM test quiet sign");
+  const lv = readGdlvl(out).level, G = "965", inG = o => String((o.props || {})[57] || "").split(".").includes(G);
+  const trig = lv.objects.filter(o => +(o.props || {})[51] === +G);
+  ok(trig.some(o => o.id === 1007 && o.props[35] === "0") && trig.some(o => o.id === 901 && o.props[141] === "1"), "the sign is hidden, then locked to the camera");
+  ok(!lv.objects.some(o => [1006].includes(o.id) && o.x > Math.max(...lv.objects.map(q => q.x)) - 2500), "no pulses near the end");
+  const play = lv.objects.filter(o => !["decoration", "trigger"].includes(GD.objInfo(o.id).kind));
+  ok(Math.max(...lv.objects.filter(inG).map(o => o.x)) < Math.max(...play.map(o => o.x)), "the sign lies inside the level, before its end");
 }
 console.log(bad ? bad + " failed" : "all ok");
 process.exit(bad ? 1 : 0);
