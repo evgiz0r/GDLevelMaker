@@ -177,20 +177,15 @@ window.initDesigns = async function (root) {
   // layouts for now"): built here from each section as it stands now, his edits included, so it follows every edit; it is
   // not edited itself. The theme cards are rebuilt from it only on demand ("dont want to burn updating the whole universe").
   const SECS = () => LPARTS.filter(q => q[0].startsWith("sec:"));
-  // Between two sections a short open JOIN (Evgeni 2026-11-27: "our scene doesnt connect well in some places are
-  // blocked"): no ceiling, the floor ramping by 45-degree slopes from where one section ends to where the next begins, so
-  // no section's ceiling or wall ever closes the way in (fly ended at floor 4 straight into the wave's ceiling at 4)
-  const floorAt = (T, c) => { const s = new Set(T.filter(z => z.c === c && /[#\/\\]/.test(z.t)).map(z => z.r)); let f = 0; while (s.has(f)) f++; return f; };
-  function joinTiles(a, b, off, out) { const n = Math.max(3, Math.abs(b - a) + 2), d = Math.sign(b - a), e = x => x >= n ? b : a + d * Math.min(Math.abs(b - a), Math.max(0, x - 1));
-    for (let k = 0; k < n; k++) { const p = e(k), q = e(k + 1), lo = Math.min(p, q);
-      for (let r = 0; r < lo; r++) out.push({ t: "#", c: off + k, r }); if (q > p) out.push({ t: "/", c: off + k, r: p }); if (q < p) out.push({ t: "\\", c: off + k, r: q }); }
-    return n; }
+  // Between two sections a JOIN (lib/scenejoin.js, the same code as tools/layoutsections.js joined()): the floor ramps by
+  // 45-degree slopes; two corridors' ceilings merge into one sloping ceiling, a lone ceiling tapers up (Evgeni 2026-11-27:
+  // "our scene doesnt connect well in some places are blocked"; then on fly -> wave: "it should merge in the same y locations")
   function sceneTiles() { const out = []; let off = 0, prev = null;
-    for (const q of SECS()) { const T = tilesOf("layout:" + q[0]);
-      if (prev) off += joinTiles(floorAt(prev.T, prev.w - 1), floorAt(T, 0), off, out);
-      for (const z of T) out.push({ t: z.t, c: z.c + off, r: z.r }); off += q[2]; prev = { T, w: q[2] }; }
+    for (const q of SECS()) { const T = tilesOf("layout:" + q[0]), cur = { T, w: q[2], h: q[3] };
+      if (prev) { const j = window.SceneJoin.join(prev, cur); for (const z of j.tiles) out.push({ t: z.t, c: z.c + off, r: z.r }); off += j.n; }
+      for (const z of T) out.push({ t: z.t, c: z.c + off, r: z.r }); off += q[2]; prev = cur; }
     return out; }
-  const sceneW = () => { let w = 0, prev = null; for (const q of SECS()) { const T = tilesOf("layout:" + q[0]); if (prev) w += Math.max(3, Math.abs(floorAt(T, 0) - floorAt(prev.T, prev.w - 1)) + 2); w += q[2]; prev = { T, w: q[2] }; } return w; };
+  const sceneW = () => { let w = 0, prev = null; for (const q of SECS()) { const cur = { T: tilesOf("layout:" + q[0]), w: q[2], h: q[3] }; if (prev) w += window.SceneJoin.join(prev, cur).n; w += q[2]; prev = cur; } return w; };
   let TILE = () => "";
   // ---- ▶ play (Evgeni 2026-11-27: "theme animations, so we might see how it looks in the game if we press play") ----
   let PLAY = null, ASPD = 1; const AST = {};

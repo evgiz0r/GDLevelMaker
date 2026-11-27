@@ -31,6 +31,8 @@ change. The detailed write-ups stay in the linked docs.
   pits between them, not across an empty floor. Source: checklist "Play up on structures".
 - **Joins:** 3+ flat blocks between bricks, no prejump, and similar clicks per second and timing windows within a
   section, with some rests. Source: tools/brickpick.js, tools/lego_join.js, LEGO.md "Combining".
+- **Corridor into corridor:** floor and ceiling both slope from one's exit height to the next one's entry height (45 degrees),
+  so the two merge; a ceiling that has nothing after it slopes up and away, never ends as a cut wall. lib/scenejoin.js.
 - **No structure 3 times.** Two times at most, and corridors that move (top and bottom not parallel).
   Source: tools/repeat.js, score.js "repetition".
 - **Symmetry:** an orb sits over the centre of its spike row, and pairs mirror each other. If the timing wants it off

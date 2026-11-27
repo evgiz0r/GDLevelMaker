@@ -170,7 +170,8 @@ function page(out) {
   const L = list().filter(d => fs.existsSync(path.join(DIR, d.card)));
   for (const d of L) for (const f of [d.card, d.layout, ...Object.values(d.parts || {})]) if (f && fs.existsSync(path.join(DIR, f))) fs.copyFileSync(path.join(DIR, f), path.join(out, f));
   fs.writeFileSync(path.join(out, "designs.json"), JSON.stringify(L));
-  fs.copyFileSync(path.join(__dirname, "designs_tab.js"), path.join(out, "designs.js"));
+  // the tab, with the scene join in front of it (lib/scenejoin.js: the same code node's layoutsections.joined() uses)
+  fs.writeFileSync(path.join(out, "designs.js"), fs.readFileSync(path.join(__dirname, "..", "lib", "scenejoin.js"), "utf8") + "\n" + fs.readFileSync(path.join(__dirname, "designs_tab.js"), "utf8"));
   console.log(`${L.length} designs -> ${out} (designs.json, designs.js, cards/)`);
   return { out, files: ["designs.json", "designs.js"].concat(L.flatMap(d => [d.card, d.layout, ...Object.values(d.parts || {})].filter(Boolean))) };
 }

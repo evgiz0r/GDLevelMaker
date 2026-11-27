@@ -479,7 +479,7 @@ section has its own note line ("give me place for comments on each of the sectio
 "designnotes" ({part, note, sentNote, at}, newest per part), sent with 📨 when changed. The wave corridor has a quick zigzag
 in the middle (a turn every 2 blocks; "in the middle some different pattern like more cps"). The current scene is the
 sections joined in order, built on the page from each section as it stands, so it follows every edit and is not edited
-itself ("lets make the current scene the combination of the layouts for now"). The theme cards are rebuilt from it only
+itself ("lets make the current scene the combination of the layouts for now"). Between two sections a join (lib/scenejoin.js, one copy for node and the page): the floor ramps by 45-degree slopes, two corridors' ceilings merge into one sloping ceiling at both ends, and a ceiling with nothing on the other side tapers up instead of ending as a wall ("it should merge in the same y locations, where some merging is done on both entrances like regular structures"). The theme cards are rebuilt from it only
 when he asks ("dont want to burn updating the whole universe for single changes"). Next: build the gallery scene from the sections, each with its mode's portal.
 ▶ play on a theme card (Evgeni: "theme animations, so we might see how it looks in the game if we press play"): the
 gallery's saved route, 60 points a second in card units (designs.js animOf), moves the camera and a player over the
