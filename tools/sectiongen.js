@@ -159,7 +159,7 @@ GEN.staircase = o => { const { R, imix, len, chance, W, H, G } = ctx(o, 9), top 
 // OPEN CUBE (cube). Idea: a floor with pits, nothing overhead, platforms floating in the middle. Motif: a floor run + a
 // spike pit. Varies: pit width, run length, a platform after the pit at one of two heights, a spike on it.
 CONCEPT.opencube = "a floor with spike pits and open sky; platforms float at two heights";
-GEN.opencube = o => { const { R, imix, len, chance, W, H, G } = ctx(o, 8);
+const opencubeShape = o => { const { R, imix, len, chance, W, H, G } = ctx(o, 8);
   // the whole sky (Evgeni 2026-11-27: "100% spread or close in all generations"): the floor is one row (the cube runs at
   // row 1), and after some pits a climb of floating platforms 2 rows apart (a cube jump's comfortable height) up to the
   // top of the section, then the drop back to the floor
@@ -175,6 +175,63 @@ GEN.opencube = o => { const { R, imix, len, chance, W, H, G } = ctx(o, 8);
     if (chance(0.3, 0.7)) G.put(c + pw + 3, 1, "^");
     c += pw + len(imix(9, 5), imix(10, 7)); }
   return { map: G.rows(), mode: "cube" }; };
+
+// ---------------------------------------------------------------------------------------------------------------------
+// PRESSES FIRST (Evgeni 2026-11-27: "our generating solves by design and we just patch the timings and search secret ways
+// with the solver?", "shape first is not great"). A type picks its clicks and their windows first (rhythm by tier and the
+// beat), a small copy of the game's cube physics (the same numbers as lib/physics.js at 1x: no sim needed, so it runs in
+// the page too) plays them, and the shape is built around that path: the surface a click leaves ends a little after it
+// (the late edge of the window), the one it lands on starts a little before the landing (the early edge). The planned
+// presses clear the piece by construction; the solver then only looks for secret ways. Returned as `presses` (columns).
+const CUBE = { X: 5.77000189 * 0.9 * 0.25, DTS: 0.225, g: 0.958199024, J: 11.1800318 };
+// a cube jump from (x, y) in units: the first column (in cols, fractional) where it comes down to row `r` (its bottom at
+// r * 30), the column where it first rises past r (null if never), and its highest row
+function cubeArc(x0, y0, r) { let x = x0, y = y0, vy = CUBE.J, up = null, n = 0, top = y0;
+  while (n++ < 2000) { vy -= CUBE.g * CUBE.DTS; if (vy < -15) vy = -15; x += CUBE.X; y += vy * CUBE.DTS; top = Math.max(top, y);
+    if (up == null && vy > 0 && y >= r * 30) up = x / 30; if (vy < 0 && y <= r * 30) return { land: x / 30, up, top: top / 30 }; }
+  return null; }
+// a cube walking off an edge at x0: the column where it falls to row r
+function cubeFall(x0, y0, r) { let x = x0, y = y0, vy = 0, n = 0;
+  while (n++ < 2000) { vy -= CUBE.g * CUBE.DTS; if (vy < -15) vy = -15; x += CUBE.X; y += vy * CUBE.DTS; if (y <= r * 30) return x / 30; } return null; }
+
+// OPEN CUBE, presses first. The idea stays: open sky, platforms at changing heights over spike pits. Now: each click is a
+// jump whose landing height is drawn first (up 1-2 rows, the same, down 1-3), the arc found, the platform put where it comes
+// down. Same-height jumps with no gap get a spike to jump (so the click is needed); drops a walk-off would also reach get a
+// spike where the walk-off lands. Rhythm: a gap of 0.45-1 s between clicks (shorter at harder), on half beats with a bpm.
+// Window: the late and early edges, ~1.6 columns each at easy (~150 ms), ~0.6 at harder.
+CONCEPT.opencube = "open sky: jumps from platform to platform at changing heights over spike pits, built from the clicks";
+GEN.opencube = o => { const { R, mix, W, H, G, beatCols } = ctx(o, 8), half = beatCols ? beatCols / 2 : 0;
+  const late = mix(1.6, 0.6), early = mix(1.6, 0.6), hiRow = H - 2;   // the player's row: 1 (on the ground) .. H - 2
+  const gapS = () => { let g = R.pick([0.5, 0.6, 0.7, 0.8, 1.0].map(v => v - mix(0, 0.15))); if (half) g = Math.max(1, Math.round(g * COLS_PER_SEC / half)) * half / COLS_PER_SEC; return g; };
+  const surf = [{ r: 1, c0: 0, c1: null }], presses = [];   // r: the row the player runs in (block under it at r - 1)
+  let x = R.int(4, 6) + 0.5, tgt = null;   // the first click's column; tgt: tall maps head for it
+  while (x < W - 8) { const s = surf[surf.length - 1];
+    // where it lands: a height step drawn first, toward the middle more often, the edges now and then
+    // tall maps: head for a far target row (up in 1-2 row steps, down in drops), a new one once reached
+    let dh = R.pick([2, 1, 1, 0, -1, -1, -2, -3]);
+    if (H > 10) { if (tgt == null || Math.abs(tgt - s.r) < 2) tgt = s.r < H / 2 ? R.int(Math.ceil(H * 0.6), hiRow) : R.int(1, Math.floor(H * 0.35));
+      if (R.chance(0.8)) dh = tgt > s.r ? R.pick([1, 2, 2]) : -R.pick([1, 2, 3]); } if (s.r + dh < 1 || s.r + dh > hiRow) dh = clamp(-dh, -3, 2); const r = clamp(s.r + dh, 1, hiRow);
+    const arc = cubeArc(x * 30, (s.r) * 30, r); if (!arc || arc.land > W - 3) break;
+    if (r > s.r && (arc.up == null || arc.top < r + 0.1)) { x += 1; continue; }   // out of a jump's reach: draw again
+    let e = early; if (arc.up != null) e = Math.min(e, arc.land - arc.up - 0.6);   // an up-landing: the platform's side must be under the arc
+    s.c1 = Math.floor(x + late); presses.push(+x.toFixed(2));
+    const c0 = Math.ceil(arc.land - Math.max(0.3, e));
+    if (r === s.r && c0 <= s.c1 + 1) {   // no gap: one floor, a spike to jump where the arc is high
+      const sp = Math.round(x + 2); G.put(sp, r, "^"); s.c1 = null; }
+    else { surf.push({ r, c0: Math.max(c0, s.c1 + 1), c1: null });
+      // a drop a walk-off would also make: a spike where the walk-off lands, if the jump lands further on
+      if (r < s.r) { const f = cubeFall((s.c1 + 1) * 30, s.r * 30, r); if (f != null && f >= c0 && f < arc.land - 1.2) G.put(Math.floor(f), r, "^"); } }
+    x = arc.land + gapS() * COLS_PER_SEC - 4.46; x = Math.max(x, arc.land + 1);   // the next click: the rhythm's gap after this one
+  }
+  surf[surf.length - 1].c1 = W - 1;
+  // draw: the ground is blocks where the path runs on it, spikes in groups (a saw now and then) where it doesn't
+  const onGround = Array(W).fill(false);
+  surf.forEach((t, i) => { const c1 = t.c1 == null ? (surf[i + 1] ? surf[i + 1].c0 - 1 : W - 1) : t.c1;
+    if (t.r <= 1) for (let c = t.c0; c <= c1; c++) onGround[c] = true;
+    else if (t.r <= 3 || R.chance(0.4)) G.box(t.c0, c1, 0, t.r - 1); else G.box(t.c0, c1, t.r - 1, t.r - 1); });
+  for (let c = 0; c < W; c++) if (onGround[c]) G.put(c, 0, G.rows()[H - 1][c] === "." ? "#" : G.rows()[H - 1][c]);
+  for (let c = 0; c < W; c++) if (!onGround[c] && G.rows()[H - 1][c] === ".") G.put(c, 0, R.chance(0.08) ? "o" : "^");
+  return { map: G.rows(), mode: "cube", presses }; };
 
 // CLOSER CUBE (cube). Idea: the ceiling comes down close and hangs spikes, out of step with the floor's. Motif: a floor
 // hazard + a hanging spike a few columns on. Varies: spacing, pit or spike. A gravity pair (his note): G puts the player on
