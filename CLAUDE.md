@@ -299,6 +299,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 
 ## Files
 
+- **WORKBOOKS.md** -- the claude.ai workbook pages: every bug found in the app, the limits, how to test.
 - **Setup on any computer** (SETUP.md: the steps an AI agent follows): `tools/setup.js` (find GD, load the main levels,
   check), `tools/gdpaths.js` (where GD's game, levels and save are; every tool reads GD's files through it -- never hardcode
   the Steam path), `tools/mains_routes.js` (the main levels' routes in git, `knowledge/mains/routes.json`, written by
@@ -741,9 +742,9 @@ The viewer draws moving objects where they start.
   refreshed, and some effect when i click refresh"): catalogues, boards, the viewer pages, every artifact we make. Paste
   `tools/snippets/refresh.html` once (lego_page.js does it): a button top-right, "last refreshed HH:MM" beside it, a spin on
   click, then the page reloads with fresh data keeping its view and flashes "refreshed ✓". Fetch data with `cache: "no-store"`.
-- **Artifact db data is read-only: copy it before editing** (2026-11-27: the theme board's taps and 🗑 did nothing in the app
-  but worked in a plain browser, because they edited objects from `onSnapshot` in place). Keep `JSON.parse(JSON.stringify(d.data()))`
-  copies, and show any page error on a status line so "nothing happens" says why.
+- **WORKBOOKS.md: every bug and quirk of pages in the claude.ai app** (Evgeni, 2026-11-27: "whatever knowledge of bugs we
+  gain working with workbooks we want to know always on all sessions everywhere"). Read it before building or changing any
+  workbook page; a new bug goes in as a row there in the same commit as its fix (e.g. db data comes back frozen: copy it).
 - **No native dialogs in the viewer pages** (alert / confirm / prompt): the app's built-in browser and the phone page's
   frame suppress them, so the button just did nothing. Use the viewer's notice(), askNote(), showMap();
   `node tests/no_dialogs.js` checks.
