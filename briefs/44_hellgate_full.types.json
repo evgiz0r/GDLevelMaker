@@ -1,0 +1,14 @@
+{
+ "name": "GDLM 44 hellgate gameplay full",
+ "desc": "Hellgate's gameplay part to the auto (song 1.1 - 180.7 s; the stitch cuts it at 178.47 where the auto lead-in starts), for the full stitch (tools/hellgate_full.js).",
+ "out": "specs/44_hellgate_gameplay_full.json",
+ "song": 343707,
+ "to": 180.7,
+ "tier": "Normal",
+ "seed": 44,
+ "looks": { "calm": "hellgate", "drop": "hellgate", "break": "hellgate" },
+ "indicator": "spark",
+ "session": "hellgate-full",
+ "signature": false,
+ "sections": []
+}

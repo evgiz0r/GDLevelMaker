@@ -1,4 +1,4 @@
-// node tools/typebuild.js <briefs/NN_name.types.json> [--run] [--dry] [--seeds 6] [--map]  -- a level built from SECTION TYPES, not the lego
+// node tools/typebuild.js <briefs/NN_name.types.json> [--run] [--dry] [--seeds 6] [--jobs N: check a section's seeds N at a time] [--map]  -- a level built from SECTION TYPES, not the lego
 //   --run = the whole flow, one command: plan -> sections -> layout -> make (solve + deco) -> judge report
 //
 // Evgeni (2026-11-27): "lets generate a new level, 1 minute, using all our generation knowlege. lets use the generation of
@@ -135,6 +135,19 @@ function plan(brief, o = {}) {
   return { SP, FE, P, secs: out };
 }
 
+// a section map's check, kept for the run: the second (portals on the beat) pass mostly makes the same maps again
+const MEMO = new Map(), memoKey = z => z.key + "|" + z.speedName + "|" + z.map.length + "x" + z.map[0].length + "|" + require("./layoutcheck.js").hashMap(z.map) + "|" + JSON.stringify(z.offsets || {}).length;
+// many section checks at once in child processes (tools/lc_batch.js)
+function checkMany(zs, jobs) {
+  if (!zs.length) return [];
+  const os = require("os"), dir = fs.mkdtempSync(path.join(os.tmpdir(), "lcb-")), fin = path.join(dir, "in.json"), fout = path.join(dir, "out.json");
+  fs.writeFileSync(fin, JSON.stringify(zs));
+  const r = require("child_process").spawnSync(process.execPath, [path.join(__dirname, "lc_batch.js"), fin, fout, "--jobs", String(jobs)], { stdio: ["ignore", "inherit", "inherit"], windowsHide: true });
+  let out = null; try { out = JSON.parse(fs.readFileSync(fout, "utf8")); } catch (e) { /* fall back below */ }
+  fs.rmSync(dir, { recursive: true, force: true });
+  return out || zs.map(z => require("./layoutcheck.js").check(z));
+}
+
 function build(brief, o = {}) {
   const { SP, P, secs } = plan(brief, o);
   const LC = require("./layoutcheck.js"), nSeeds = o.seeds || 6, seed0 = brief.seed || 7;
@@ -157,24 +170,35 @@ function build(brief, o = {}) {
     const beatCols = P * BPS[s.speed];
     let best = null, tier = s.tier;
     const floor = CPS_FLOOR[s.tier] || 1.2, cpsOf = c => c.ok ? c.presses / Math.max(1, s.secs) : 0;
+    const preZ = new Map();
     for (let k = 0; k < nSeeds; k++) {
       // dead time (Evgeni, GDLM 78: "way too much dead time"): after 3 seeds under the tier's clicks a second, a tier harder
       if (k === 3 && best && best.c.ok && cpsOf(best.c) < floor * 0.7 && STEP[tier] !== tier) { console.log(`   s${s.i}: ${cpsOf(best.c).toFixed(1)} presses/s, under ${floor}: trying ${STEP[tier]}`); tier = STEP[tier]; }
-      const seed = s.seed != null ? s.seed + k : seed0 * 100 + s.i * 10 + k;
-      const gen = W => { const z = SG.make(s.type, { cols: Math.max(16, Math.round(W)), seed, tier, beatCols, speed: BPS[s.speed] / BPS["1x"] });
+      const seedOf = kk => s.seed != null ? s.seed + kk : seed0 * 100 + s.i * 10 + kk, seed = seedOf(k);
+      const gen = (W, seed, kk = k) => { const z = SG.make(s.type, { cols: Math.max(16, Math.round(W)), seed, tier, beatCols, speed: BPS[s.speed] / BPS["1x"] });
         if (s.mode === "cube-ud" && !z.map.some(l => /G/.test(l))) {   // upside down needs a G portal inside: another flipping type
           for (const k2 of ["my-mwz1637w", "staircase", "closecube"]) { if (k2 === s.type) continue;
             const z2 = SG.make(k2, { cols: Math.max(16, Math.round(W)), seed, tier, beatCols, speed: BPS[s.speed] / BPS["1x"] });
             if (z2.map.some(l => /G/.test(l))) { s.type = k2; return z2; } }
-          return k > 1 ? z : null; }   // none flips at this length: the plain cube after a few tries
+          return kk > 1 ? z : null; }   // none flips at this length: the plain cube after a few tries
         if (z && (s.mode === "ship" || s.mode === "wave")) z.map = closeBelow(z.map);
         return z; };
-      let z = gen(endCol - col - 4); if (!z) continue;
-      const cur = { T: tilesOf(z.map), w: z.map[0].length, h: z.map.length };
-      const jn = prev ? joinPad(prev.cur, cur).n : 0;
-      z = gen(endCol - col - jn); if (!z) continue;
+      const genBoth = (sd, kk = k) => { let z = gen(endCol - col - 4, sd, kk); if (!z) return null;
+        const cur = { T: tilesOf(z.map), w: z.map[0].length, h: z.map.length };
+        const jn = prev ? joinPad(prev.cur, cur).n : 0;
+        z = gen(endCol - col - jn, sd, kk); if (z) z.speedName = s.speed; return z; };
+      // --jobs N: the seeds of a batch (0-2, then 3-5 after the tier step) generated in order, as one at a time would, and
+      // checked in parallel (tools/lc_batch.js); the choice below reads them in order, so the result is the same
+      if (o.jobs > 1 && !o.dry && (k === 0 || k === 3)) {
+        const ks = []; for (let kk = k; kk < Math.min(nSeeds, k + 3); kk++) ks.push(kk);
+        const zs = ks.map(kk => genBoth(seedOf(kk), kk)); ks.forEach((kk, i) => preZ.set(kk, zs[i]));
+        const live = ks.filter((kk, i) => zs[i] && !MEMO.has(memoKey(zs[i]))), res = checkMany(live.map(kk => preZ.get(kk)), o.jobs);
+        live.forEach((kk, i) => MEMO.set(memoKey(preZ.get(kk)), res[i]));
+      }
+      const z = preZ.has(k) ? preZ.get(k) : genBoth(seed); if (!z) continue;
       if (o.dry) { best = { z, c: { ok: null, presses: 0 }, seed }; break; }
-      z.speedName = s.speed; const c = LC.check(z);   // checked at its own speed, not 1x
+      const mk = memoKey(z); if (!MEMO.has(mk)) MEMO.set(mk, LC.check(z));
+      const c = MEMO.get(mk);   // checked at its own speed, not 1x (the same map twice -- the beat-alignment pass -- is checked once)
       // a seed whose own solve flies over or under its structure is a secret way (Evgeni 2026-11-28): scored down by the share
       const around = c.ok ? OU.outsideMap(z.map, c.route) : 0;
       // lazy slides (Evgeni on GDLM 78 v9: the ship could hold / let go and slide past the gameplay): 8 a skipped press
@@ -263,7 +287,7 @@ function build(brief, o = {}) {
     colours: { bg: firstTheme.skies[0].bg, ground: firstTheme.skies[0].ground },
     structures: { sections: lsecs }, indicators: { style: brief.indicator || "spark", colour: "auto" },
     modern: false, scene: "tools/scenes/typefx.js", fx, moments, outro: brief.outro ?? false,   // the quiet sign over the last 5 s is the ending since 0ce685b; an outro only when the brief asks
-    signature: true, session: brief.session || "typebuild",
+    signature: brief.signature ?? true, session: brief.session || "typebuild",
     sectionsInfo: parts.map(p => ({ seed: p.seed, type: p.type, mode: p.mode, speed: p.speed, kind: p.kind, look: p.look, from: Math.round(p.c0), to: Math.round(p.c1), beat: p.b0 })),
     objects,
   };
@@ -276,13 +300,13 @@ if (require.main === module) {
   const a = process.argv.slice(2), opt = k => { const i = a.indexOf(k); return i >= 0 ? a[i + 1] : null; };
   if (!a[0]) { console.log(fs.readFileSync(__filename, "utf8").split("\n").filter(l => l.startsWith("//")).join("\n")); process.exit(1); }
   const brief = JSON.parse(fs.readFileSync(a[0], "utf8"));
-  let r = build(brief, { dry: a.includes("--dry"), seeds: +(opt("--seeds") || 6), briefFile: a[0] });
+  let r = build(brief, { dry: a.includes("--dry"), seeds: +(opt("--seeds") || 6), jobs: +(opt("--jobs") || 1), briefFile: a[0] });
   // the portals on the beat: a second pass with each section's lead set from the first pass's joins (a hair early: 0.5 column)
   const off = (r.aligned || []).filter(q => Math.abs(q.late + 0.5) > 1);
   if (off.length && !a.includes("--dry") && !a.includes("--no-align")) {
     console.log(`portals off the beat by ${off.map(q => q.late).join(", ")} columns: a second pass with the leads set`);
     const pre = {}; for (const q of r.aligned) pre[q.si] = Math.max(0, q.pre + q.late + 0.5);
-    r = build(brief, { dry: false, seeds: +(opt("--seeds") || 6), briefFile: a[0], pre });
+    r = build(brief, { dry: false, seeds: +(opt("--seeds") || 6), jobs: +(opt("--jobs") || 1), briefFile: a[0], pre });
     console.log(`after: ${r.aligned.map(q => q.late).join(", ")} columns from the beat`); }
   r.report.forEach(l => console.log(l));
   if (a.includes("--map")) console.log(r.map.join("\n"));
