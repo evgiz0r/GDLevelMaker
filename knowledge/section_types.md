@@ -469,4 +469,6 @@ Evgeni 2026-11-27 ("lets remind ourselves more idea for sections, bit tired desi
   portals 68% -> 14% (6 seeds, 48 cols). gencheck flag `shortflip` (over 30% of a piece's flips under 3 rows).
 - Next, one at a time (Evgeni 2026-11-28: "with pads, with orbs, with portals, with dashes ... control how much ... not all
   at once"): `make(key, {extras: {pads, orbs, portals, dashes}})`, each 0..1 (0 = none, 1 = as many as the type can take),
-  pads first.
+  pads first. **Pads are in** for the cube types (`withPads`: a planned jump made by a yellow pad where the cube takes off,
+  kept only when the plan still clears and the pad is needed; amount 1 = up to ~60% of the taps tried; 4 seeds at 1:
+  opencube 3, staircase 6, entrance 4, closecube 0 -- its low ceilings take no pad launch). `r.pads` = how many.

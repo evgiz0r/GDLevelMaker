@@ -1479,6 +1479,19 @@ function tracePath(z) { const map = z.map, H = map.length, W = map[0].length, mo
 // its replay on a surface) under a planned jump (the plan's replay is a row or more above there), the first such spot
 // that keeps the plan clearing; one is enough, holding dies there. r.forced = [[col, row, char, what it stops]].
 // The same for a planned tap that can be left out (gencheck "unforced"): the run without it gets the spike or the low block.
+// PADS: a planned jump made by a yellow pad (J) where the cube takes off instead of a tap; up to `amount` of the taps
+// (0..1, each tried once, kept only when the whole plan still clears and the pad is needed: without it the run dies)
+function withPads(key, r, LC, amount, seed) { const Rp = rng(((seed) * 7907 + 13) >>> 0), H = r.map.length, W = r.map[0].length;
+  const q = (z, o) => { const log = console.log; console.log = () => {}; try { return LC.planCheck(Object.assign({ key }, z), o); } finally { console.log = log; } };
+  let path = q(r, { every: 2 }).path, n = 0;
+  for (let i = 0; i < r.presses.length; i++) { const c = r.presses[i]; if (Array.isArray(c) || c < 3 || c > W - 6 || Rp() > amount * 0.6) continue;
+    const pt = path.find(p => p[0] >= c); if (!pt || Math.abs(pt[1] - Math.round(pt[1])) > 0.1) continue;
+    const row = Math.round(pt[1]), cell = Math.floor(c + 0.2), li = H - 1 - row; if (li < 0 || r.map[li][cell] !== ".") continue;
+    const m = r.map.slice(); m[li] = m[li].slice(0, cell) + "J" + m[li].slice(cell + 1);
+    const ps = r.presses.filter((_, k) => k !== i), z = Object.assign({}, r, { map: m, presses: ps });
+    if (!q(z, {}).ok || q(Object.assign({}, r, { presses: ps }), {}).ok) continue;
+    r.map = m; r.presses = ps; i--; n++; path = q(r, { every: 2 }).path; }
+  if (n) { const c = q(r, {}); if (c.path) r.path = c.path; r.pads = n; } }
 function unhold(key, r, LC, drop = -1, drop2 = -1) { const q = (z, o) => { const log = console.log; console.log = () => {}; try { return LC.planCheck(Object.assign({ key }, z), o); } finally { console.log = log; } };
   // drop {from: a, hold}: the plan up to column a, then the button held (or let go) to the end: a slide from there
   const SL = 8, slideOf = z => { const a = drop.from, ps = [];
@@ -1554,6 +1567,9 @@ function make(key, opts = {}) { const g = GEN[key]; if (!g) throw new Error("no 
     // ball / spider (Evgeni 2026-11-28, played in GD: "if you can just not click and it passes you to the next clicks then
     // thats a skip"): a flip and its flip back left out together must die too
     if (["ball", "spider"].includes(r.mode)) for (let i = 0; i + 1 < r.presses.length; i++) unhold(key, r, LC, i, i + 1); }
+  // EXTRAS (Evgeni 2026-11-28: "with pads, with orbs, with portals, with dashes ... control how much ... not all at once"):
+  // opts.extras = {pads: 0..1, ...}; pads first, in the cube types
+  if (LC && r.presses && r.planOk && r.mode === "cube" && opts.extras && opts.extras.pads > 0) withPads(key, r, LC, +opts.extras.pads, o.seed ?? 1);
   if (LC && r.presses && r.planOk && r.mode === "cube" && opts.force !== false) { unhold(key, r, LC);
     // every planned tap needed (one replay a tap, ~0.3 s each)
     // a tap nothing can force (the run without it falls off a ledge's end to where the jump went) comes out of the plan:
