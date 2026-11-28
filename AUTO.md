@@ -523,3 +523,21 @@ closes on them". `node tools/hellgate_auto.js [--seed 4]` -> `levels/gdlm_44_hel
 - Measured: 86 triggers, 35% of the strong notes hit, 2.8 a second, modes cube / ufo / ball / ship, 55 dodges, clears with no
   press; tools/autocheck.js: 8 stray-press leaks (2 holds at 26 s, the rest in the last half second). Test `node tests/hellgate_auto.js`.
 - Not checked in GD: the creatures' lock to the player's y, fireball flights, the whole piece (viewer only so far).
+
+## Calm auto (autobeat `calm`, tools/autojank.js, 2026-11-28)
+
+Evgeni on Hellgate's auto (v1, seed 4): "its a bit junky in the auto as it jumps". `tools/autojank.js <level>` measures it from
+the zero-press run: legs/s (turns), hops/s (up-down legs under 1.5 rows: the twitchy look), flips/s (gravity flips), mean leg
+height and 1 s windows with an 8+ row swing. `opts.calm` (`--calm [gap]` in hellgate_auto.js) = no rapid runs, notes at
+least `gap` s apart (0.3 by default), loudest bars at most 2.5x the mean share.
+
+| Hellgate auto 180.7-215.4 s | legs/s | hops/s | flips/s | mean leg | swing>8 | triggers | notes hit |
+|---|---|---|---|---|---|---|---|
+| v1 (seed 4, rate 3) | 1.91 | 0.69 | 1.17 | 2.7 rows | 4/154 | 86 | 0.37 |
+| calm (seed 5, rate 3, calm 0.22) | 1.87 | 0.26 | 0.23 | 4.3 rows | 23/153 | 72 | 0.31 |
+
+Tried and dropped: swapping the landing batches' gravity flips / icon toggles for pads -- flips went to 0 but pads made more
+turns (legs 1.9 -> 2.4). Lower rate alone (2.2 / 1.6) cut flips to 0.7 / 0.44 but kept the hops. Open: which numbers match
+"not junky" is a guess until Evgeni compares the two in the viewer; then put a threshold into autocheck.js.
+
+Shots fly 1.1 s (Evgeni 2026-11-28: "i want the shots to be slower, they are too fast now"; was 0.5): hellgate_auto `--flight`, the chase kit's default too. Shots that would launch before 0.4 s are left out.

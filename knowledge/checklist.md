@@ -556,3 +556,5 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 
 - Living scenery (dragons, zombies) stays a dark silhouette behind the play, 35+ units off the route, never in the play blocks' colours, and only where it is in view (tools/livescene.js check: FAKE HAZARD, IN THE WAY, HIDDEN, CROWDING).
 - A main's route with a window under 17 ms or a double tap under 80 ms is a route bug, not difficulty: lib/difficulty.js routeBugsOf (not scored, listed on the board; re-plan it). (Evgeni 2026-11-28)
+
+- [ ] **Auto that does not twitch** (Evgeni 2026-11-28 on Hellgate's auto: "a bit junky in the auto as it jumps"): small up-down hops and gravity flips a second low (`node tools/autojank.js <level>`; Hellgate calm: 0.26 hops/s, 0.23 flips/s). Autobeat `calm`. Not a gate yet: threshold waits on his compare.
