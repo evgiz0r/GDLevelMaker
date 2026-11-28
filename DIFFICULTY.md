@@ -434,6 +434,20 @@ So a long easy level read harder than a short hard one. Now:
 - **Still off**: ToE reads too hard (his 11th, ours 17th: its UFO seconds at ~30 units of slack); xStep too easy for him
   (13th vs 8th); Polargeist just under Stereo Madness (his 3rd vs 2nd).
 
+### Route bugs are not difficulty (2026-11-28)
+
+Evgeni, of the board's 8 ms tightest windows: "those are 'bugs' in the human way. those 8ms timings too obviously". A
+window of 2 ticks is under one 60 fps frame; no main asks that of a player. Our route put a press in a bad spot (Hexagon
+Force's 56.98 s ball press, Deadlocked's 48.57 s cube tap and 86.65 s ball tap) or clicked twice (Deadlocked 48.57 /
+48.60 s, 33 ms apart; ToE 2, Dash, Clubstep, Electrodynamix: taps 63-67 ms after a tap). `routeBugsOf(acts)` in
+lib/difficulty.js marks them: a jumping press under BUG_MS 17 ms keeps its slip but no timing cost; a jumping tap under
+DOUBLE_MS 80 ms after the press before it is no press at all. scoreV2, the fit and the board use it (the board's tightest /
+tight now count jumping presses only, the bugs listed apart). Effect at the same weights: Deadlocked 4.60 -> 2.61,
+Hexagon 3.24 -> 2.36; the fit drops 0.901 -> 0.880, because those bugs were standing in for what the score cannot see yet
+(Deadlocked's 3x waves: the flight-room re-measure above). His step-ups still hold. Still to do on the PC: re-plan the
+routes at those spots (`difficulty_solve.js N --replan`), and check why Stereo Madness, Base After Base and Cant Let Go
+all have the same 70.8 ms (17-tick) tightest jump -- likely a measuring quirk (later presses kept fixed), not the levels.
+
 ### Why each main level is hard: Evgeni's reasons (2026-11-28)
 
 The features a score must see; each line says whether v2 sees it.

@@ -555,3 +555,4 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 - **The portal on the big beat, a hair early; no long click gap at a change; no lazy slide** (Evgeni on GDLM 78 v9): `node tools/slides.js <level>` (hold / let go skips 3+ presses = a secret way), report.js "dead transition" / "late portal" / "lazy slide".
 
 - Living scenery (dragons, zombies) stays a dark silhouette behind the play, 35+ units off the route, never in the play blocks' colours, and only where it is in view (tools/livescene.js check: FAKE HAZARD, IN THE WAY, HIDDEN, CROWDING).
+- A main's route with a window under 17 ms or a double tap under 80 ms is a route bug, not difficulty: lib/difficulty.js routeBugsOf (not scored, listed on the board; re-plan it). (Evgeni 2026-11-28)
