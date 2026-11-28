@@ -77,7 +77,11 @@ window.initDesigns = async function (root) {
   const CST = {};
   const WORK = {};   // collection "themework": what Claude is doing about the theme marks (workSection)
   const hm = a => a ? new Date(a).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "";
-  function stLine(part) {
+  // the status line sits in a wrapper the listeners refresh in place (patchSt), so it shows even while the cursor is in a
+  // box (a full render waits for the focus to leave -- the status of a note he was looking at never appeared, 2026-11-28)
+  const stLine = part => `<div class="stw" data-st="${esc(part)}">${stLine0(part)}</div>`;
+  const patchSt = () => { for (const el of root.querySelectorAll(".stw")) { const h = stLine0(el.dataset.st); if (el.innerHTML !== h) el.innerHTML = h; } };
+  function stLine0(part) {
     const n = NOTES[part], d = DRAW["layout:" + part], s = CST[part];
     const mineN = n && (n.note || "").trim() ? String(n.at || "") : "", mineD = d && d.by !== "claude" && (d.tiles || (d.strokes || []).length) ? String(d.at || "") : "";
     const mine = mineN > mineD ? mineN : mineD;
@@ -103,7 +107,7 @@ window.initDesigns = async function (root) {
     try { if (!DB) throw new Error("saves on the claude.ai page"); n.at = new Date().toISOString();
       await DB.collection("designnotes").doc(k.replace(/[^A-Za-z0-9_-]/g, "_") + "-" + Date.now().toString(36)).set({ part: k, note: n.note || "", sentNote: n.sentNote || "", at: n.at }); NST[k] = "saved"; }
     catch (x) { NST[k] = "not saved: " + (x && (x.code || x.message) || x); }
-    if (st) st.textContent = NST[k]; }
+    if (st) st.textContent = NST[k]; try { patchSt(); } catch (x) {} }
   // claude.ai refuses a send-to-Claude within ~6 s of a key typed in the page ("Not sent to Claude. Your last key or click
   // may not have been meant for this artifact"), so 📨 waits out the typing with a countdown (Evgeni 2026-11-27)
   const HOLD = 8000;
@@ -914,7 +918,7 @@ window.initDesigns = async function (root) {
     // its default and everything since 14:40 counted as new again. Claude writes a stamp here too ({at, by: "claude"})
     // each time it reads the queue, so what Claude has seen stops counting as new without any send
     if (DB) DB.collection("designsend").onSnapshot(snap => { let m = LAST; for (const d of snap.docs.map(x => JSON.parse(JSON.stringify(x.data() || {})))) { const a = String(d.at || ""); if (a > m) m = a; if (d.by === "claude" && a > LASTC) LASTC = a; }
-      if (m !== LAST) { LAST = m; try { topSend(); } catch (x) {} if (!(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) render(); } }, () => {});
+      if (m !== LAST) { LAST = m; try { topSend(); patchSt(); } catch (x) {} if (!(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) render(); } }, () => {});
     if (DB) DB.collection("genroute").onSnapshot(snap => {
       for (const x of snap.docs) { const d = JSON.parse(JSON.stringify(x.data() || {})); const old = GROUTE[x.id]; GROUTE[x.id] = Object.assign({}, d, old && old.pinged != null ? { pinged: old.pinged } : {}); }
       if (!(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) render(); }, () => {});
@@ -929,7 +933,7 @@ window.initDesigns = async function (root) {
       if (!(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) render(); }, () => {});
     if (DB) DB.collection("claudestatus").onSnapshot(snap => {
       for (const d of snap.docs.map(x => JSON.parse(JSON.stringify(x.data() || {})))) if (d.part && (!CST[d.part] || String(d.at) > String(CST[d.part].at))) CST[d.part] = d;
-      if (!(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) render(); }, () => {});
+      patchSt(); if (!(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) render(); }, () => {});
     if (DB) DB.collection("designnotes").onSnapshot(snap => {
       for (const d of snap.docs.map(x => JSON.parse(JSON.stringify(x.data())))) if (d && d.part && (!NOTES[d.part] || !NOTES[d.part].at || String(d.at) > String(NOTES[d.part].at))) {
         const el = document.activeElement; if (el && el.classList && el.classList.contains("lnote") && el.dataset.n === d.part) continue;   // never under his typing
