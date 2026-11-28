@@ -46,7 +46,7 @@ lets the player out at the previous section's exit height, so the first 5 column
 v3's first rebuild died on a swing saw right at the portal's mouth). A seed whose own solve flies over or under its corridor
 is scored down (`outside.outsideMap`), and the finished level runs tools/skips.js (every portal taken) and tools/outside.js
 (no stretch flown around a structure) into its report. A cube-ud section needs a flipping type: when its type has no G at
-that length, typebuild tries the stair path, the staircase, the closer cube, then plays it upright.
+that length, typebuild tries the stair path, the staircase, the closer cube, then plays it upright. Since GDLM 78 (2026-11-28): the portal wall sits 2 columns into the join's flat (a floor stepping down right before it forced an early jump); two flying sections of one mode in a row get a portal of that mode between them, which sets the band again (the second swing had kept the first one's band and flown over its saws); arriving in a flying mode, the wall opens only onto the next section's way in; and each section is checked at its own speed.
 
 What the lego taught so far, for any builder filling a section from it (LEGO.md has the numbers):
 - **Join only bricks whose seams agree** (mode, speed, gravity, y, vy, ground): with that contract 35% of joins are clean,

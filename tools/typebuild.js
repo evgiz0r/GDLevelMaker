@@ -52,13 +52,16 @@ const LOOK_OF = { break: "break", drop: "drop", build: "drop" };   // else the l
 const tilesOf = map => LS.tiles({ map });
 // a join with room around its portal (the judge's "abrupt switch": the mains keep ~0.37 s quiet before a mode change and
 // ~0.48 s after): lib/scenejoin.js's ramp with its first column held LEAD more columns and its last one TAIL more
-const LEAD = 4, TAIL = 5, SPLIT_S = 5;
+const LEAD = 4, TAIL = 5, SPLIT_S = 5, BANDED = new Set(["ship", "ufo", "wave", "swing"]);
 function joinPad(a, b) {
   const j = SJ.join(a, b), first = j.tiles.filter(q => q.c === 0), last = j.tiles.filter(q => q.c === j.n - 1), out = [];
   for (let k = 0; k < LEAD; k++) for (const q of first) if (q.t === "#") out.push({ t: "#", c: k, r: q.r });
   for (const q of j.tiles) out.push({ t: q.t, c: q.c + LEAD, r: q.r });
   for (let k = 0; k < TAIL; k++) for (const q of last) if (q.t === "#") out.push({ t: "#", c: LEAD + j.n + k, r: q.r });
-  return { n: LEAD + j.n + TAIL, tiles: out, floor: j.floor, portalAt: LEAD + j.n - 1 };
+  // the portal wall 2 columns into the flat tail, not on the join's last column: a join that steps the floor down right
+  // before the wall left the cube no room to drop into the wall's opening, so it had to jump 4 blocks early (GDLM 78
+  // block 61: a prejump and an "abrupt switch")
+  return { n: LEAD + j.n + TAIL, tiles: out, floor: j.floor, portalAt: LEAD + j.n - 1 + Math.min(2, TAIL - 2) };
 }
 // the empty run of a column (rows from the ground) the player passes through: bounded by something on both sides first
 function runsOf(map, c) {
@@ -151,7 +154,11 @@ function build(brief, o = {}) {
     let jn = 0, j = null;
     if (prev) { j = joinPad(prev.cur, cur); jn = j.n; for (const q of j.tiles) tiles.push({ t: q.t, c: q.c + col, r: q.r }); }
     // the portal wall: the last column of the join, across the gap the player can be in there
-    if (prev && (mode !== prev.mode || s.speed !== prevSpeed)) portals.push({ c: col + (j ? j.portalAt : 0), row: prev.exitRow, mode: mode !== prev.mode ? mode : null, speed: s.speed !== prevSpeed ? s.speed : null, from: prev.mode });
+    // two sections of one flying mode in a row get a portal of that mode too: it sets the flying band again around the player
+    // (a portal of your own mode re-bands, CLAUDE.md Calibration), so the second one is played in the band it was checked in
+    // (GDLM 78: the second swing inherited the first one's band, flew over its saws and missed its band movers)
+    const reband = prev && mode === prev.mode && BANDED.has(mode);
+    if (prev && (mode !== prev.mode || s.speed !== prevSpeed || reband)) portals.push({ c: col + (j ? j.portalAt : 0), row: prev.exitRow, mode: mode !== prev.mode || reband ? mode : null, speed: s.speed !== prevSpeed ? s.speed : null, from: prev.mode, next: col + (j ? j.n : 0) + 1 });
     const c0 = col + jn;
     // an apron after a mode portal: no hazard in the new section's first APRON columns (a section is generated and
     // checked entering at its own start, but the portal can leave the player at another row: GDLM 76 v3's swing put a saw
@@ -172,7 +179,12 @@ function build(brief, o = {}) {
   const extra = [];
   // the wall: every other cell of the column is a block, up to above the band, so no path goes around it
   for (const p of portals) {
-    const c = p.c, run0 = gapOf(map, c, p.row), top = Math.max(H, run0.b + 4) + 2;
+    const c = p.c; let run0 = gapOf(map, c, p.row);
+    // arriving in a flying mode, the wall opens only onto the next section's way in (its first column's run): an open stretch before
+    // the wall left the whole height open, and GDLM 78's ship came through high and flew over the next corridor's roof
+    if (p.next != null && BANDED.has(p.from)) { const nr = gapOf(map, Math.floor(p.next), p.row), a = Math.max(run0.a, nr.a), b = Math.min(run0.b, nr.b);
+      run0 = b - a >= 2 ? { a, b } : { a: Math.max(run0.a, nr.a - 1), b: Math.min(run0.b, Math.max(nr.b, nr.a + 2)) }; }
+    const top = Math.max(H, run0.b + 4) + 2;
     // arriving on the ground in a jumping mode (cube, robot; a ball cannot climb it): a one-block step under the portals, so it is taken in the air on
     // a jump, not walked into (the judge's "walked portal": official portals 93% taken on the move; Hellgate thread's run)
     const ground = (p.from === "cube" || p.from === "robot") && run0.b - run0.a >= 4, run = ground ? { a: run0.a + 1, b: run0.b } : run0;

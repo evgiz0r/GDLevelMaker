@@ -1001,7 +1001,9 @@ CONCEPT["my-mwz1890c"] = "a sine-shaped corridor drawn by two chains of saws; am
 // BAND: 300 units, set by the portal), so the height comes from filling the band: the corridor's middle swings from one band
 // edge to the other (the edge is the far wall at a peak), saw chains on the open side only, longer waves.
 GEN["my-mwz1890c"] = o => { const { R, imix, room, len, W, H: HH, G } = ctx(Object.assign({ cols: 48 }, o), 20);
-  if (HH >= 16 && W >= 40) return swingTall(o, { R, imix, room, len, W, H: HH, G });
+  // the tall swell from 24 columns on (was 40: GDLM 78's 36-47 column hard swing fell to the plain sine below, which died on
+  // its first descent at 1x and 2x every seed; the swell solves there)
+  if (HH >= 16 && W >= 24) return swingTall(o, { R, imix, room, len, W, H: HH, G });
   const H = Math.min(10, HH); let c = 0;
   while (c < W) { const gap = R.int(room(5, 4), room(6, 5)), A = (H - 2) / 2 * (o.amp ?? R.pick([0.8, 1, 1])), mid = H / 2,   // the path's middle reaches the ground and the roof (the walls leave the map there)
       P = len(room(26, 20), room(34, 26));
@@ -1017,14 +1019,20 @@ GEN["my-mwz1890c"] = o => { const { R, imix, room, len, W, H: HH, G } = ctx(Obje
 // UNCHECKED (the ship tick between the two portals, and that the pair re-bands like a mode change).
 function swingTall(o, { R, imix, room, len, W, H, G }) {
   // the swell and the waves together stay under ~0.7 rows a column (steeper than that a swing can't follow)
-  const gap = R.int(room(5, 4), room(6, 5)), A = o.amp ?? 1.5, P = len(room(26, 20), room(34, 26)),
-    Pd = Math.max(60, Math.round(W * R.pick([1, 1, 0.75]))), top = H - 4;
+  // the corridor at least 5 rows: 4 (hard) could not be flown at all, at 1x or 2x, once it was closed above and below
+  const gap = Math.max(5, R.int(room(5, 4), room(6, 5))), A = o.amp ?? 1.5, P = len(room(26, 20), room(34, 26)),
+    Pd = Math.max(60, Math.round(W * R.pick([1, 1, 0.75]))), top = H - 2 - Math.ceil(gap / 2 + A);   // the upper saw chain stays inside the map (H - 4 cut it off at the swell's top: GDLM 78's swing flew over the open top)
   // the swell from row 5 to the map's top less 4 (wider than this failed at 60 cols: too steep with the waves; open:
   // the whole height needs a longer swell, Evgeni "100% spread or close in all generations")
-  const D = x => 5 + (top - 5) * (1 - Math.cos(2 * Math.PI * x / Pd)) / 2, Y = x => D(x) + A * Math.sin(2 * Math.PI * x / P);
+  const b0 = Math.min(5, Math.ceil(gap / 2)), D = x => b0 + (top - b0) * (1 - Math.cos(2 * Math.PI * x / Pd)) / 2,   // b0: the corridor starts on the ground, where the player comes in (row 5 left a hard corridor's lower chain over the entry)
+    Y = x => D(x) + A * Math.sin(2 * Math.PI * x / P);
   let bc = 5;
   for (let x = 0; x < W; x++) { const y = Y(x), lo = Math.round(y - gap / 2) - 1, hi = Math.round(y + gap / 2), ch = x % 2 ? "q" : "o";
     if (lo >= 0) G.put(x, lo, ch); if (hi < H) G.put(x, hi, ch);
+    // curtains: every 8 columns from the 16th (room to swing up into the corridor first), saws from the lower chain down to the ground and from the upper one up to the
+    // map's top, so the corridor can't be flown under or over (GDLM 78: the swing rode the ground under the lower chain and
+    // the band's top over the upper one, a secret way in the level and in its own check)
+    if (x >= 16 && x < W - 2 && x % 8 === 0) { for (let r = lo - 1; r >= 0; r--) G.put(x, r, "q"); for (let r = hi + 1; r < H; r++) G.put(x, r, "q"); }
     if (x > 2 && x < W - 2 && Math.abs(D(x) - bc) >= 3) { const r = Math.round(y); G.put(x, r, "R");
       bc = Math.max(0, Math.floor((r * 30 + 15 - 150) / 30)) + 5; } }
   return { map: G.rows(), mode: "swing" }; }
