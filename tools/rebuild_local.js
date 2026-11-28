@@ -52,7 +52,7 @@ const ITEMS = [
   { id: "videos", what: "videos of the main levels played on their routes, with the song", source: "game",
     check: () => ({ ok: count("video", /\.mp4$/) > 0, detail: count("video", /\.mp4$/) + " videos" }), needs: ["ffmpeg", "chromium"], after: ["mains"],
     run: { fn: videos, show: "node tools/video.js official:N --route   (N = 1..21, one at a time)" },
-    time: "2.2-4.7x each level's length (Jumper 90 s: 202-408 s; CLAUDE.md)", heavy: true },
+    time: "2.2-4.7x each level's length (Jumper 90 s: 202-408 s on the PC; Stereo Madness 89 s: 202 s on a fresh clone in the cloud, 2026-11-28)", heavy: true },
   { id: "community", what: "rated community levels (taste corpus, demon list); the learned numbers are in git", source: "network",
     check: () => ({ ok: count("community", /\.gdlvl$/) > 0, detail: count("community", /\.gdlvl$/) + " levels" }),
     run: node("tools/taste.js", "fetch"), time: "10+ min of rate-limit waits for ~330 levels (taste.js)" },
