@@ -111,8 +111,10 @@ user's viewer (main checkout) had no beat lines at all; the phone build reads th
   "level map" button opens the .jpg. GD-art maps and official levels stay local; `_shapes` maps are
   art-free (for the phone page, gd-sync). Drawn by the viewer's map mode (`mapRender`, `MAPCAM`).
 
-- **Signature, quiet (the default since 2026-11-27): `signature.js overlay`** -- Evgeni: "cut our signature for now from actual gameplay and make it appear in like the last 5 seconds of the level not bothering the game play with whatever effects". The pair, the two lines
-  and the badge at 0.55 size on layer B1, hidden (alpha 0) until T - 5 s, one 0.8 s fade to 0.92, locked to the camera (901
+- **Signature, quiet (the default since 2026-11-27): `signature.js overlay`** -- Evgeni: "cut our signature for now from actual gameplay and make it appear in like the last 5 seconds of the level not bothering the game play with whatever effects". v2 (Evgeni (2026-11-28): "tune down the joke of the signature. so its made by humans, but with claude, and somehow a wand a human holds" -- "its like its empowering the human, not replacing"): one
+  human holding a wand (a thin rod from the hand) tipped with the Claude spark badge, a few still sparkles, "MADE BY HUMANS" over
+  "with Claude", at 0.7 size on layer B1; the description line "Made by humans, with Claude" (describe() replaces the old
+  "Made by Claude (and some humans)"). It is hidden (alpha 0) until T - 5 s, one 0.8 s fade to 0.92, locked to the camera (901
   keys 141/142, 143/144 = 1) to the end, placed in the view's top right (its top 12 units under the view's top; autobeat finds
   the camera with lib/camera.js, make.js assumes a cube near the ground). No stage, spotlight or beat triggers. The viewer
   (lib/vfx.js) follows a camera-x lock as the player's x, with GD art on; the schematic view leaves it where it starts. Not

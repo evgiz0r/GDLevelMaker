@@ -49,6 +49,8 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 - [ ] **No unseen roof** (Evgeni 2026-11-26 on Hellgate v4's ship entry: "we fall from the top, but there is no indication of
   top. some secret ways can be like that"): when the player comes into a corridor from above, or a stretch's ceiling is off
   screen, its roof must show (a visible top edge or deco line); an open sky above a corridor reads as a way over it. Checked: `tools/judge.js` "unseen roof" (the route at its band's roof or a raised band floor with no solid there).
+- [ ] **The sign credits the humans, Claude as their tool** (Evgeni 2026-11-28: "its like its empowering the human, not
+  replacing"): a human with a Claude wand, "Made by humans, with Claude" -- never a robot taking the credit. signature.js overlay.
 - [ ] **The signature stays out of the gameplay** (Evgeni 2026-11-27: "cut our signature for now from actual gameplay and make it appear in like the last 5 seconds of the level not bothering the game play with whatever effects"): the sign is the quiet overlay
   (signature.js `overlay`, the default in make.js and autobeat): it shows over the last 5 s, behind the player, no effects, and
   the level ends at its last gameplay object. The two lines below (designed ending, no plain blocks) apply only to a level

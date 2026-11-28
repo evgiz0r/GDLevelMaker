@@ -101,7 +101,7 @@ not after it:
 - **Every level ends with the Claude signature, quiet: the last 5 s, out of the gameplay.** Evgeni (2026-11-26): "from now-on
   everywhere, we add the latest end screen claude sign on every level we make"; (2026-11-27): "cut our signature for now from actual gameplay and make it appear in like the last 5 seconds of the level not bothering the game play with whatever effects". Default in make.js
   and autobeat: `signature.js overlay` -- no stage, no run-on, no beat effects; it fades in at T - 5 s in the view's top right,
-  behind the player, and rides with the camera to the end. The auto outro (`"outro": <seed>`) and the stage sign
+  behind the player, and rides with the camera to the end. What it shows (2026-11-28): "tune down the joke of the signature. so its made by humans, but with claude, and somehow a wand a human holds" -- "its like its empowering the human, not replacing": one human holding a wand tipped with the Claude spark, "MADE BY HUMANS" / "with Claude" (the description line: "Made by humans, with Claude"). The auto outro (`"outro": <seed>`) and the stage sign
   (`"signature": {"style": "stage"}`, autobeat `--ending beat|outro`) are options now (BUILDING.md section 5).
 - **Process rules go in the repo, never only in a message.** The user (2026-11-24): "never just for one session
   if its a big repeatable process". A rule, a process step or a lesson that one session was told applies to
@@ -491,7 +491,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   <level.gdlvl | save:<name> | official:N> [--at 2,5] [--rec <video> --t0 <s>]` -> PNGs in `local/shots/`.
   **The whole level as one picture with its path:** `node tools/levelmap.js <level> [--brief briefs/NN.json]`
   -> `local/maps/<name>.jpg` (viewer: "level map").
-  **Every level ends with the signature** (robot + human, "Made by Claude (and some humans)"):
+  **Every level ends with the signature** (a human with a Claude wand, "Made by humans, with Claude"; quiet, the last 5 s):
   `tools/signature.js` (signature() objects, describe() for the description).
 - **Deco catalogue** (knowledge/objects/README.md): `tools/catalogue.js index | sheets | usage` --
   every id with its picture on contact sheets (`local/catalogue/`, or browse `viewer/catalogue.html`),

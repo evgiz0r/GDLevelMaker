@@ -269,7 +269,7 @@ model from gd-showcase's tools/storyboard.js once it lands (richer: moments, pla
 - Viewer first: nothing is installed or uploaded until the user has seen it there and says so.
 - **Every level ends with the signature, quiet** (Evgeni, 2026-11-26: "from now-on everywhere, we add the latest end screen
   claude sign on every level we make"; 2026-11-27: "cut our signature for now from actual gameplay and make it appear in like the last 5 seconds of the level not bothering the game play with whatever effects"): tools/signature.js `overlay({endX, xOfT, tOfX, secs: 5, cam})`
-  + `header()` + `describe()`. The sign (pair, two lines, badge, 0.55 size, layer B1) is hidden, fades in once at T - 5 s
+  + `header()` + `describe()`. The sign (one human holding a wand tipped with the Claude spark, "MADE BY HUMANS" / "with Claude", 0.7 size, layer B1; Evgeni (2026-11-28): "tune down the joke of the signature. so its made by humans, but with claude, and somehow a wand a human holds" -- "its like its empowering the human, not replacing") is hidden, fades in once at T - 5 s
   in the view's top right and is locked to the camera (move 901, keys 141/142) to the end; no stage, no ending gameplay, no
   bobs / pulses / flashes, and nothing runs past the level's last gameplay object. make.js adds it to every "GDLM" name
   (`"signature": {"style": "stage"}` = the old stage sign, `"secs"` = another length); autobeat does it itself (`--ending
