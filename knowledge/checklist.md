@@ -546,3 +546,4 @@ scripts, and build timing or test runs from copies in `local/tmp/`, never anothe
 - **Sections cut at the drop** (Evgeni, Hellgate: "on the drops we didnt have a transition, it was the middle of a section"): tools/sections.js cuts finds drops as loudness jumps (two bars after vs two before, +0.2 to 0.4+) and keeps the strongest cuts first, so a weak entry a few seconds earlier never pushes the drop into a section's middle. `node tests/sections_drops.js`.
 
 - **A cube piece the held button clears is a bug** (Evgeni 2026-11-28, gencheck): every planned tap is needed; make() forces it with a spike / low block or drops the tap. Check: `node tools/gencheck.js <type> --seeds 8` (lazy, unforced = 0).
+- **Ball / spider: not clicking must never carry you to the next click** (Evgeni 2026-11-28): every flip and flip-back pair needed; make() blocks the skip. Check: `node tools/gencheck.js ball my-mwz7nxue --seeds 8` (unforced).
