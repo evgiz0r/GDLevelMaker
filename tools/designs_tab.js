@@ -615,7 +615,9 @@ window.initDesigns = async function (root) {
       // 1.5 s after a refusal and the green tap was refused again, Evgeni 2026-11-27: "that green msg doesnt work still")
       lastKey = Date.now(); cue(); return false; }
     LAST = new Date().toISOString(); try { if (DB) await DB.collection("designsend").doc("s-" + Date.now().toString(36)).set({ at: LAST }); } catch (x) {}
-    for (const q of nts) NST[q[0]] = "sent";
+    // a sent note keeps its sent text (sentNote), so it reads "sent" after a reload, not "saved, not read" (Evgeni
+    // 2026-11-28: "even when tab turns green its still not sent to claude ... its just saved")
+    for (const q of nts) { const n = NOTES[q[0]]; if (n) { n.sentNote = (n.note || "").trim(); await saveNote(q[0]); } NST[q[0]] = "sent ✓"; }
     const now = new Date().toISOString();
     for (const m of ms) { PEND[m.mid] = noteOf(m); SENTM[m.mid] = { sentNote: noteOf(m).trim(), sent: now }; Object.assign(m, SENTM[m.mid]); }
     for (const m of ms) await saveMark(m.mid);
