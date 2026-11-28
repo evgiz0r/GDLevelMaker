@@ -513,6 +513,23 @@ window.initDesigns = async function (root) {
     return `<g class="plan" style="pointer-events:none">${out.join("")}</g>`; };
   const PLANTXT = g => { if (!g) return ""; const n = (g.presses || []).length;
     return g.path ? `<span style="color:#ffb35c">planned path · ${n} presses (solved by design)</span> · ` : n ? `<span style="color:#ffe36b">${n} planned presses (ticks; this type has no drawn path yet)</span> · ` : `<span style="color:#999">no plan: an older shape-first type</span> · `; };
+  // ⭐ HOW GOOD IS EACH GENERATOR (Evgeni 2026-11-28: "give me some controller on each of the generators, ill put a scale of
+  // how good i think it is. if something is very low it should be used very rarely"): a 0-10 slider per type, saved as it
+  // is let go (db collection "genrating", doc = type key {key, score, at}); Claude copies them to knowledge/gen_ratings.json
+  // (tools/genrating.js) and level builds pick types by (score/10)^2 -- unrated counts as 5, a 0-1 is almost never used
+  const RATE = {}, RST = {}, RW = s => Math.max(0.02, Math.pow((s == null ? 5 : s) / 10, 2));
+  const rateTxt = k => { const r = RATE[k]; return (r ? "" : "not rated · ") + "used " + (x => x >= 0.3 ? x.toFixed(1) : x.toFixed(2))(RW(r && r.score) / RW(5)) + "× as often as an unrated type" + (RST[k] ? " · " + RST[k] : ""); };
+  async function saveRate(k, v) { RATE[k] = { key: k, score: v, at: new Date().toISOString() }; RST[k] = "saving …"; const st = root.querySelector(`.grst[data-k="${CSS.escape(k)}"]`); if (st) st.textContent = rateTxt(k);
+    try { if (!DB) throw new Error("saves on the claude.ai page"); await DB.collection("genrating").doc(k.replace(/[^A-Za-z0-9_-]/g, "_")).set(RATE[k]); RST[k] = "saved"; }
+    catch (x) { RST[k] = "not saved: " + (x && x.message || x); }
+    const st2 = root.querySelector(`.grst[data-k="${CSS.escape(k)}"]`); if (st2) st2.textContent = rateTxt(k); }
+  function ratePanel(SG, nm) {
+    const rows = SG.KEYS.filter(k => !GEN_HIDDEN.includes(k)).map(k => { const r = RATE[k], v = r ? r.score : 5;
+      return `<div class="lyh" style="padding:2px 8px"><span style="min-width:150px;display:inline-block">${esc(nm(k))}</span>`
+        + `<input class="grate" data-k="${esc(k)}" type="range" min="0" max="10" step="1" value="${v}" style="flex:0 0 160px;width:160px;max-width:160px;padding:0;margin:0${r ? "" : ";opacity:.55"}">`
+        + `<b class="grv" data-k="${esc(k)}" style="min-width:22px;display:inline-block;text-align:right">${r ? v : "–"}</b>`
+        + `<span class="ds grst" data-k="${esc(k)}">${esc(rateTxt(k))}</span></div>`; }).join("");
+    return `<div class="lyh">` + FR("grate", "⭐ how good is each generator (0-10: low ones are used rarely in levels)", `<div style="width:100%">${rows}</div>`) + `</div>`; }
   function genPanel() { const SG = window.SectionGen; if (!SG) return "";
     const nm = k => ((SECS().find(q => q[0] === "sec:" + k) || [])[1]) || k, g = GENS || { key: SG.KEYS[0], cols: 40, tier: "normal" };
     let out = `<div class="lpn" style="margin-top:14px"><b>🎲 generator</b> · a new section from a type's concept, any length and difficulty · your comment goes to Claude with 📨</div>`
@@ -523,7 +540,7 @@ window.initDesigns = async function (root) {
       + `<select class="gb" title="beat: the presses land on this bpm's half beats, or go around a song's real hits">${[0, 100, 120, 130, 140, 150, 160, 175].map(v => `<option value="${v}"${!g.song && v === (g.bpm || 0) ? " selected" : ""}>${v ? v + " bpm" : "no beat"}</option>`).join("")}`
       + `${(SONGS || []).length ? `<optgroup label="a song's hits">${SONGS.map(q => `<option value="song:${esc(q.key)}"${g.song === q.key ? " selected" : ""}>♪ ${esc(q.name)} (${q.bpm} bpm)</option>`).join("")}</optgroup>` : ""}</select>`
       + `<label title="where in the song the section starts">from <input class="gfrom" type="number" min="0" step="0.5" value="${g.from || 0}" style="width:56px">s</label>`
-      + `<button class="ggo">🎲 generate</button></span></div>`;
+      + `<button class="ggo">🎲 generate</button></span></div>` + ratePanel(SG, nm);
     if (GENS && GENS.err) out += `<div class="lpn" style="color:#ff8a8a">${esc(GENS.err)}</div>`;
     else if (GENS && GENS.map) { const H = GENS.map.length, W = GENS.map[0].length, cs = Math.round(26 * (open["zoom:layout"] || 1)), T = [];
       GENS.map.forEach((l, i) => [...l].forEach((ch, c) => { if (ch !== ".") T.push({ t: ch, c, r: H - 1 - i }); }));
@@ -824,6 +841,7 @@ window.initDesigns = async function (root) {
     if (e.key === "Enter" && e.target.classList && e.target.classList.contains("lnote")) { e.preventDefault(); clearTimeout(noteT); saveNote(e.target.dataset.n); return; }
     if (e.key === "Enter" && e.target.closest && e.target.closest("[data-m]")) { e.preventDefault(); const row = e.target.closest("[data-m]"); PEND[row.dataset.m] = e.target.value; saveMark(row.dataset.m); return; } if (e.key === "Enter" && e.target.classList.contains("fold-h")) e.target.click(); });
   root.addEventListener("input", e => {
+    if (e.target.classList && e.target.classList.contains("grate")) { const k = e.target.dataset.k, b = root.querySelector(`.grv[data-k="${CSS.escape(k)}"]`); if (b) b.textContent = e.target.value; return; }
     if (e.target.classList && e.target.classList.contains("lnote")) { const k = e.target.dataset.n; NOTES[k] = Object.assign(NOTES[k] || {}, { note: e.target.value });
       lastKey = Date.now(); holdSend(); NST[k] = "…"; const st = root.querySelector(`.lnst[data-n="${CSS.escape(k)}"]`); if (st) st.textContent = "…";
       clearTimeout(noteT); noteT = setTimeout(() => saveNote(k), 700); return; }
@@ -835,6 +853,7 @@ window.initDesigns = async function (root) {
   root.addEventListener("focusout", e => { if (e.target.closest && e.target.closest("[data-m]")) flushMarks(); });
   root.addEventListener("change", async e => {
     if (e.target.id === "dvf") return render();
+    if (e.target.classList.contains("grate")) { e.target.style.opacity = 1; saveRate(e.target.dataset.k, +e.target.value); return; }
     // the animation style: kept per card, starts ▶ at once so the choice is seen
     if (e.target.classList.contains("acol")) { const id = e.target.closest(".dc").dataset.id; open["acol:" + id] = e.target.value;
       try { localStorage.setItem("designs-open", JSON.stringify(open)); } catch (x) {} if (!PLAY || PLAY.id !== id) startPlay(id); return; }
@@ -879,6 +898,9 @@ window.initDesigns = async function (root) {
       if (m !== LAST) { LAST = m; try { topSend(); } catch (x) {} if (!(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) render(); } }, () => {});
     if (DB) DB.collection("genroute").onSnapshot(snap => {
       for (const x of snap.docs) { const d = JSON.parse(JSON.stringify(x.data() || {})); const old = GROUTE[x.id]; GROUTE[x.id] = Object.assign({}, d, old && old.pinged != null ? { pinged: old.pinged } : {}); }
+      if (!(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) render(); }, () => {});
+    if (DB) DB.collection("genrating").onSnapshot(snap => {
+      for (const x of snap.docs) { const d = JSON.parse(JSON.stringify(x.data() || {})); if (d.key && typeof d.score === "number" && (!RATE[d.key] || String(d.at) >= String(RATE[d.key].at))) RATE[d.key] = d; }
       if (!(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) render(); }, () => {});
     if (DB) DB.collection("themepick").onSnapshot(snap => {
       for (const x of snap.docs) { const d = JSON.parse(JSON.stringify(x.data() || {})); if (d.theme) PICK[d.theme] = d; }
