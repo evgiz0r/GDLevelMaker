@@ -238,6 +238,12 @@ re-encoded at the bitrate that fits. `--vs-rec` puts the run's recording beside 
 - **Two bugs found by it, fixed**: the death burst asked for one more redraw chain per drawn frame, so frames after a death
   took ~30 s each (a render held the heavy slot 60 min); headless renders now give up after 3-4 min with no new frame
   (`stallMs` in tools/headless.js).
+- **A stall mid-way on the PC** (Hellgate ending v2, 2026-11-28): headless Edge stopped at frame ~365 of 1410 twice (3-min
+  stall), while the same page in headless Edge with a debugger port attached finished in 33 s; in the cloud's Chromium it
+  never stalls (21-29 s). Cause not pinned down; the two likely ones are now closed: tools/headless.js passes the no-throttle
+  flags Playwright uses (background timers, renderer backgrounding, occlusion, Edge sleeping tabs / efficiency mode), and the
+  page's frame POSTs time out after 20 s and retry 4 times. A page error now ends the job with its reason (`.done` carries
+  `error`, video.js prints it). Not yet re-run on the PC: if it stalls again, the next step is CDP (`--remote-debugging-port`).
 - **No-route camera follows the level** (2026-11-24, art's Brave Blue): a level with no route runs as a ghost with its height
   held, so a level built high up (Brave Blue's playfield ~50 blocks up, moved there by triggers) showed only sky in the
   viewer and in compare_frames. The ghost's camera now looks at the median height of the level's objects in each 600-unit

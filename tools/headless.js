@@ -24,6 +24,9 @@ async function headless(pagePath, doneFile, opt = {}) {
   // root in a Linux container (cloud sessions): Chrome refuses to start without --no-sandbox
   const sandbox = process.platform !== "win32" && process.getuid && process.getuid() === 0 ? ["--no-sandbox"] : [];
   const br = cp.spawn(exe, [...sandbox, "--headless=new", "--mute-audio", "--disable-gpu", "--no-first-run", "--hide-scrollbars", "--force-device-scale-factor=1",
+    // never throttle the hidden page: Edge stalled a video render mid-way without them (2026-11-28); Playwright passes the same
+    "--disable-background-timer-throttling", "--disable-renderer-backgrounding", "--disable-backgrounding-occluded-windows",
+    "--disable-ipc-flooding-protection", "--disable-features=CalculateNativeWinOcclusion,IntensiveWakeUpThrottling,msEdgeSleepingTabs,msEfficiencyMode",
     "--user-data-dir=" + prof, `--window-size=${opt.width || 1920},${opt.height || 1080}`, url], { windowsHide: true, stdio: "ignore" });
   const t0 = Date.now(), limit = opt.timeoutMs || 10 * 60e3;
   // opt.stallMs: give up when the page's folder (where doneFile goes) gets no new file for that long -- a hung page must not
