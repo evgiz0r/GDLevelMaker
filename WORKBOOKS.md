@@ -78,6 +78,9 @@ Since 2026-11-28 every piece is queued (with its planned `presses`), and genrout
 replayed in real physics (layoutcheck planCheck). The page draws that line instead of the generator's own sketch, which
 can be ~1 row off (Evgeni saw it cross saws). The feedback box under a piece is per GENERATOR: designnotes part
 `genT:<type>` (Evgeni: "the comment should be for the generator, not the specific generation").
+Generator EXTRAS (pads, orbs, ...; 2026-11-28) need the sim, so a 🎲 piece with extras goes to genroute with
+`extras, rows, bpm, beats`; tools/genroute.js makes it again in node (sectiongen.make with them) and writes `xmap` (the map
+with the extras) and `xcount`; the page draws `xmap` once it is back and says "waiting" until then.
 
 **A db snapshot replaces your objects mid-loop (2026-11-28).** The catalogue's 📨 saved each sent mark in a loop; the first
 save's db snapshot rebuilt the MARKS list, so the "sent" stamps set on the old objects were lost for every later mark and
