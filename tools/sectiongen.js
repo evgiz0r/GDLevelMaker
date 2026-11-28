@@ -838,7 +838,10 @@ function rollers(o, { mode, band, travel, portals = 0, overlap = null }) { const
   for (let c = 0; c < W; c++) { if (Oc[c] + BT < H) G.box(c, c, Oc[c] + BT, tall ? H - 1 : Oc[c] + BT); if (Oc[c] > 0) G.box(c, c, tall ? 0 : Oc[c] - 1, Oc[c] - 1); }
   for (const [d, t] of [[0, "^"], [BT - 1, "v"]]) for (let c = 0; c < W;) {
     if (R.chance(0.2)) { G.put(c, Oc[c] + d, "o"); c += 2; continue; }
-    const n = R.int(2, 3); for (let k = 0; k < n && c + k < W; k++) G.put(c + k, Oc[c + k] + d, t); c += n + 1; }
+    // the column between two groups holds a half-buried saw (2026-11-28, tools/secretways.js: a spider landed in that
+    // gap on the bare ground and tapped up from it, 5 presses for a 9-press plan; a ball can flip off it the same way)
+    const n = R.int(2, 3); for (let k = 0; k < n && c + k < W; k++) G.put(c + k, Oc[c + k] + d, t);
+    if (c + n < W) G.put(c + n, Oc[c + n] + d, "o"); c += n + 1; }
   for (const s of S) { const c1 = Math.min(W - 1, s.c1), y = s.y + (s.mover ? s.mover.O : s.O);   // its row on the map
     // a surface on the band's edge rolls where the edge hazards are: clear them under it, by its row on the map against
     // each column's band (a surface with a mover spans two bands; its s.y is in the new one)
@@ -1139,7 +1142,10 @@ GEN["my-mwz7nxue"] = o => { const { R, mix, W, H, G, style, onBeat, entry } = ct
   for (let c = 0; c < W; c++) { if (Oc[c] + BT < H) G.box(c, c, Oc[c] + BT, tall ? H - 1 : Oc[c] + BT); if (Oc[c] > 0) G.box(c, c, tall ? 0 : Oc[c] - 1, Oc[c] - 1); }
   for (const [d, t] of [[0, "^"], [BT - 1, "v"]]) for (let c = 0; c < W;) {
     if (R.chance(0.2)) { G.put(c, Oc[c] + d, "o"); c += 2; continue; }
-    const n = R.int(2, 3); for (let k = 0; k < n && c + k < W; k++) G.put(c + k, Oc[c + k] + d, t); c += n + 1; }
+    // the column between two groups holds a half-buried saw (2026-11-28, tools/secretways.js: a spider landed in that
+    // gap on the bare ground and tapped up from it, 5 presses for a 9-press plan; a ball can flip off it the same way)
+    const n = R.int(2, 3); for (let k = 0; k < n && c + k < W; k++) G.put(c + k, Oc[c + k] + d, t);
+    if (c + n < W) G.put(c + n, Oc[c + n] + d, "o"); c += n + 1; }
   for (const t of S) { const b = Math.min(W - 1, t.b);
     for (let c = t.a; c <= b; c++) { const y = (t.mover && c >= t.mover.c ? t.mover.rel + t.mover.O : t.y + t.O);
       // its blocks, and the band's hazard where it runs on the band's edge (and the two columns past an edge's end)

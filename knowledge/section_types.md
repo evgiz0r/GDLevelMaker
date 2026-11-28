@@ -374,6 +374,12 @@ which the sim does not have yet (PHYSICS.md open).
   (no floor or ceiling at its exit, e.g. the tall swing's saw corridor 14 rows up) gets a descent in the join from its exit
   corridor's middle to the mouth, 1.5 columns a row, with a band mover of its mode (R swing, H ship, U ufo, A wave) every 3
   rows. The theme gallery clears again with it (107 presses).
+- **Secret ways and skips** (2026-11-28, Evgeni: "be careful for secret ways and skipping the structures (in wave for
+  example)"): `node tools/secretways.js` solves each generated section and compares the solver's route with the plan (SKIP:
+  over a quarter of its route 3+ rows off the plan, or outside the map). First sweep, 44 sections at 60 cols: one real skip,
+  the spider landing on bare ground in the column between two ground spike groups and tapping up from it (5 presses for a
+  9-press plan); that column now holds a half-buried saw (ball, ball portals, spider: 0 of 18 flagged after). Fly, wave and
+  flappy are often flown with far fewer presses on the same path (LOOSE: the corridor roomier than the plan's rhythm).
 - **A minimum length per type** (Evgeni: some need room for real play, robot and orbs).
 - Height at 1.5x rows, 60 cols (easy/harder, 2 seeds): wave 93%, fly 76%, ship corridor 80%, staircase 85%, closecube 80%,
   ball 75%, spider 67%, opencube 68%, flappy 60%, orbs 55%. The cube types need their climbs scaled to the taller map.
