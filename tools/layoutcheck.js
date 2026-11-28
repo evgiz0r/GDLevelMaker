@@ -17,6 +17,8 @@ const PORTAL = { cube: "cube portal", ship: "ship portal", wave: "wave portal", 
 const RUN = 8;   // run-up columns before the section's join
 
 // one section -> a spec: run-up, portal, entry join, the section, exit join, a flat end
+// at the speed it will be played at (z.speedName, "2x" ...: GDLM 78's 2x swing was checked at 1x and solved there, then
+// died at 2x in the level, and the level's solve flew over its saws)
 function specOf(z) {
   const T = LS.tiles(z), w = z.map[0].length, h = z.map.length, flat = { T: [], w: 1, h };
   // the join in front as a level's join is (lib/scenejoin.js): the cube rides its ramp and meets the section's mode portal
@@ -29,7 +31,7 @@ function specOf(z) {
   put(mapOf(a.tiles, a.n), RUN); put(z.map, x0); put(mapOf(b.tiles, b.n), x0 + w);
   const end = x0 + w + b.n;
   if (z.mode !== "cube") objects.unshift(a.portal ? [PORTAL[z.mode], RUN + a.portal.c, a.portal.r] : [PORTAL[z.mode], RUN - 3, 1]);
-  return { spec: { name: "GDLM layout check " + z.key, desc: "Layout check", objects, endCol: end + 12, structures: false, outro: false },
+  return { spec: { name: "GDLM layout check " + z.key, desc: "Layout check", objects, speed: z.speedName || "1x", endCol: end + 12, structures: false, outro: false },
     x0, x1: x0 + w, end };
 }
 
