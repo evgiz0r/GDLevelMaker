@@ -48,11 +48,13 @@ function load() {
     const jump = [], flyN = acts.filter(a => FLY.has(a.mode)).length;
     let settle = 0;
     const flyMs = {};   // flying presses' windows by mode (scored only by w.FLYT: the wave's are not "fake", 2026-11-28)
+    DF.routeBugsOf(acts);   // the route's 8 ms spots and jitter double taps are not the level's (lib/difficulty.js)
     for (const a of acts) {
       if (FLY.has(a.mode)) { (flyMs[a.mode] = flyMs[a.mode] || []).push(a.ms); continue; }
+      if (a.routeBug === "double") continue;
       const opensBefore = a.afterSwitchMs !== null && a.afterSwitchMs !== undefined && a.ms > a.afterSwitchMs + 1;
       if (!(opensBefore || DF.lateOpenOf(a))) settle += lg(DF.settleOf(a));
-      jump.push(a.ms);
+      jump.push(a.routeBug === "tiny" ? 1e4 : a.ms);   // a tiny-window bug keeps its slip, no timing
     }
     // the dual count splits into plain and asymmetric from the cost at the assumed 0.05 / 0.10
     const c1 = lg(1 - 0.05), c2 = lg(1 - 0.10), nAsym = m.asymPresses != null ? m.asymPresses : Math.max(0, Math.round((m.dual - m.dualPresses * c1) / (c2 - c1)));
