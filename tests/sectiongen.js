@@ -44,7 +44,7 @@ if (!process.argv.includes("--quick")) { const LC = require("../tools/layoutchec
     console.log = () => {}; let S, level; try { S = LC.specOf(z); level = build(S.spec, "test", {}).level; } finally { console.log = log; }
     const w = GD.makeWorld(level.objects, level.header), p0 = GD.run(w, []).path, dx = p0[1].x - p0[0].x, T0 = Math.ceil((S.x0 * 30 - p0[0].x) / dx - 1e-9);
     const real = GD.run(w, z.presses.map(q => T0 + Math.round((Array.isArray(q) ? q[0] : q) * 30 / dx))).path.map(q => [q.x / 30 - S.x0, q.y / 30 - 0.5]);
-    let mx = 0; for (const [c, y] of z.path) { if (c < 2) continue; const near = real.filter(q => Math.abs(q[0] - c) < 0.3); if (!near.length) continue;
+    let mx = 0; for (const [c, y] of z.path) { if (c < 3) continue; const near = real.filter(q => Math.abs(q[0] - c) < 0.3); if (!near.length) continue;   // (c < 3: the first columns hang on the join in front, off a slope the player comes in still moving)
       const ys = near.map(q => q[1]); if (Math.max(...ys) - Math.min(...ys) > 1) continue;
       const b = near.reduce((a, q) => Math.abs(q[0] - c) < Math.abs(a[0] - c) ? q : a); mx = Math.max(mx, Math.abs(b[1] - y)); }
     const end = z.path[z.path.length - 1][0];

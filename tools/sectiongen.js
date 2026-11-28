@@ -1206,9 +1206,17 @@ GEN["my-mwz2haf0"] = o => { const { R, imix, room, chance, W, H, G, beats, onBea
     // with beats the jump off its end goes on a beat: the platform runs to the column that beat is in
     // (not past W - 12: the jump off it must still come down before the end platform; sparse hits fall back to `len`)
     if (beats) { bx = onBeat(c0 + len + 0.5, c0 + room(4, 2.5) + 0.5); if (bx > W - 12 || bx - c0 > 14) bx = null; else len = Math.ceil(bx) - 1 - c0; }
+    // reversed: the jump off its end must reach a flip orb, or the cube rides the ceiling into the spikes (Evgeni
+    // 2026-11-28: "some of the orb generations end on the floor death")
+    if (up) { const nx = { x: bx != null ? bx * 30 : (c0 + len) * 30 + 15, y: rr * 30 + 15, vy: -J, grav: -1, flipped: false };
+      if (!candsOf(nx, "B", c0 + len - 1).some(sp => candsOf(apply(sp, "B"), "Y", Math.round(col(sp))).length)) return false; }
     G.box(c0, c0 + len, up ? rr + 1 : rr - 1, up ? rr + 1 : rr - 1); for (let x = c0; x <= c0 + len; x++) G.put(x, rr, ".");
     cur = { x: bx != null ? bx * 30 : (c0 + len) * 30 + 15, y: rr * 30 + 15, vy: up ? -J : J, grav: up ? -1 : 1, flipped: false }; lastC = c0 + len - 1; since = 0;
-    presses.push(cur.x / 30); return true; };
+    presses.push(cur.x / 30);
+    // a ceiling landing: the hanging spikes just past its end sit where the jump off it still passes (the cube leaves at
+    // the top row and drops ~0.3 of a row in its first column), so the spikes under that first stretch of the arc go
+    if (up) { let q = { ...cur }; for (let k = 0; k < 400 && row(q) > top - 1.6; k++) { step(q); const cc = Math.floor(col(q) + 0.5); for (let x = cc - 1; x <= cc + 1; x++) if (x > c0 + len && x < W) G.put(x, H - 2, "."); } }
+    return true; };
   const wantRow = () => cur.grav < 0 ? top - R.pick([0, 1, 3, 5]) : R.pick([1, 1, 3, 5, 6]);
   const orbs = [];
   while (guard++ < 200) {
