@@ -1,0 +1,13 @@
+GDLM 78 two moons rising: 66.7 s, 82 presses, 7 modes
+Layout     2.4/10  balance 0.9 · modes 10 · transitions 0 · rests 10 · flow 4.9 · variety 5 · pacing 4 · clarity 4 · height 10 · ending 10
+Difficulty Insane (~735 attempts, tightest 8 ms)
+Fairness   5 unfair spots: chain at block 286, switch at block 619, switch at block 620
+Taste      71/100
+Deco       not judged yet
+Top notes (5 of 29):
+  1. 20.1 s, block 221.8: uneven piece: a piece at 5.2 clicks/s, the level's typical piece 2.7
+  2. 25.82 s, block 281.2: uneven piece: a piece 79 ms tight, the level's typical piece 233 ms (unbalanced: one far harder than the rest)
+  3. 55.2 s, block 586.3: uneven piece: a piece 100 ms tight, the level's typical piece 233 ms (unbalanced: one far harder than the rest)
+  4. 58.47 s, block 620.5: uneven piece: a piece 108 ms tight, the level's typical piece 233 ms (unbalanced: one far harder than the rest)
+  5. 62.1 s, block 667.4: uneven piece: a piece 83 ms tight, the level's typical piece 233 ms (unbalanced: one far harder than the rest)
+Secret ways: GDLM 78 two moons rising: takes all 44 portals (6 passed that change nothing, are another lane, a stack of cancelling portals or lie over 2 blocks off the route), 0 of 5 orbs/pads untouched; GDLM 78 two moons rising: the route stays inside the structures
