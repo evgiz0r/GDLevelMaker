@@ -539,3 +539,5 @@ least `gap` s apart (0.3 by default), loudest bars at most 2.5x the mean share.
 Tried and dropped: swapping the landing batches' gravity flips / icon toggles for pads -- flips went to 0 but pads made more
 turns (legs 1.9 -> 2.4). Lower rate alone (2.2 / 1.6) cut flips to 0.7 / 0.44 but kept the hops. Open: which numbers match
 "not junky" is a guess until Evgeni compares the two in the viewer; then put a threshold into autocheck.js.
+
+Shots fly 1.1 s (Evgeni 2026-11-28: "i want the shots to be slower, they are too fast now"; was 0.5): hellgate_auto `--flight`, the chase kit's default too. Shots that would launch before 0.4 s are left out.

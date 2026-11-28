@@ -74,16 +74,16 @@ function chaseObjects(file, b, D, o = {}) {
   out.push(FXT.lockPlayer(ctx.xAt(lt(CUT.deco) - 1) - 1, dr.group, lt(CUT.end) - lt(CUT.deco) + 1, { x: false, y: true, modY: MODY }));
   const lift = (t, t0) => MODY * (yAt(t) - yAt(t0));
   // the shots: the dodges that moved the player most, at least 0.45 s apart, landing a beat after the dodge (where the
-  // player would have been then); demons throw in the raw part, the dragons spit from the decorated part on
+  // player would have been then), flying o.flight s (1.1: Evgeni 2026-11-28 "i want the shots to be slower", was 0.5); demons throw in the raw part, the dragons spit from the decorated part on
   const pick = [], gap = o.shotGap || 0.45, max = o.shots || 40;
   for (const d of D.slice().sort((a, c) => c.miss - a.miss)) {
     if (pick.length >= max) break;
-    if (d.t + b.g.period >= lt(CUT.end) - 0.2 || pick.some(q => Math.abs(q.t - d.t) < gap)) continue;
+    if (d.t + b.g.period >= lt(CUT.end) - 0.2 || d.t + b.g.period - (o.flight || 1.1) < 0.4 || pick.some(q => Math.abs(q.t - d.t) < gap)) continue;
     pick.push(d);
   }
   pick.sort((a, c) => a.t - c.t);
   pick.forEach((d, i) => {
-    const t = d.t + b.g.period, fl = 0.5, sky = d.t >= lt(CUT.deco) - 1 && i % 3 !== 2;
+    const t = d.t + b.g.period, fl = o.flight || 1.1, sky = d.t >= lt(CUT.deco) - 1 && i % 3 !== 2;
     const tl = t - fl, m = sky ? dr.mouth(i % 2, tl) : null;
     const from = sky ? { x: m.x, y: m.y + lift(tl, lt(CUT.deco) - 1) } : { x: ctx.xAt(tl) + ch.demons[i % ch.demons.length].dx + 20, y: 60 + lift(tl, 0.3) };
     out.push(...shots.attack(ctx, { t, from, at: d.at, flight: fl, size: sky ? 1 : 0.8 }));
@@ -136,7 +136,7 @@ function build(o) {
 if (require.main === module) {
   const a = process.argv.slice(2), opt = k => { const i = a.indexOf(k); return i >= 0 ? a[i + 1] : null; };
   const o = { seed: +(opt("--seed") || 4), rate: opt("--rate") ? +opt("--rate") : 3, name: opt("--name") || "GDLM 44 hellgate auto",
-    session: opt("--session"), bandRows: opt("--band-rows") ? +opt("--band-rows") : undefined, calm: a.includes("--calm") ? (+(opt("--calm") || 0) || true) : undefined, out: path.resolve(opt("--out") || path.join(ROOT, "levels", "gdlm_44_hellgate_auto.gdlvl")), quiet: a.includes("--quiet") };
+    session: opt("--session"), bandRows: opt("--band-rows") ? +opt("--band-rows") : undefined, flight: opt("--flight") ? +opt("--flight") : undefined, calm: a.includes("--calm") ? (+(opt("--calm") || 0) || true) : undefined, out: path.resolve(opt("--out") || path.join(ROOT, "levels", "gdlm_44_hellgate_auto.gdlvl")), quiet: a.includes("--quiet") };
   const res = build(o);
   console.log(JSON.stringify(res.M));
   console.log(`${res.clears ? "CLEARS with no press" : "DIES after the deco"} -> ${path.relative(ROOT, o.out)} (${res.M.buildSecs} s)`);
