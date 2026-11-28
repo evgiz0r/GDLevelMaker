@@ -521,17 +521,20 @@ window.initDesigns = async function (root) {
   // (tools/genrating.js) and level builds pick types by (score/10)^2 -- unrated counts as 5, a 0-1 is almost never used
   const RATE = {}, RST = {}, RW = s => Math.max(0.02, Math.pow((s == null ? 5 : s) / 10, 2));
   const rateTxt = k => { const r = RATE[k]; return (r ? "" : "not rated · ") + "used " + (x => x >= 0.3 ? x.toFixed(1) : x.toFixed(2))(RW(r && r.score) / RW(5)) + "× as often as an unrated type" + (RST[k] ? " · " + RST[k] : ""); };
-  async function saveRate(k, v) { RATE[k] = { key: k, score: v, at: new Date().toISOString() }; RST[k] = "saving …"; const st = root.querySelector(`.grst[data-k="${CSS.escape(k)}"]`); if (st) st.textContent = rateTxt(k);
+  async function saveRate(k, v) { RATE[k] = { key: k, score: v, at: new Date().toISOString() }; RST[k] = "saving …"; root.querySelectorAll(`.grst[data-k="${CSS.escape(k)}"]`).forEach(st => st.textContent = rateTxt(k));
     try { if (!DB) throw new Error("saves on the claude.ai page"); await DB.collection("genrating").doc(k.replace(/[^A-Za-z0-9_-]/g, "_")).set(RATE[k]); RST[k] = "saved"; }
     catch (x) { RST[k] = "not saved: " + (x && x.message || x); }
-    const st2 = root.querySelector(`.grst[data-k="${CSS.escape(k)}"]`); if (st2) st2.textContent = rateTxt(k); }
+    root.querySelectorAll(`.grst[data-k="${CSS.escape(k)}"]`).forEach(st => st.textContent = rateTxt(k)); }
   function ratePanel(SG, nm) {
-    const rows = SG.KEYS.filter(k => !GEN_HIDDEN.includes(k)).map(k => { const r = RATE[k], v = r ? r.score : 5;
-      return `<div class="lyh" style="padding:2px 8px"><span style="min-width:150px;display:inline-block">${esc(nm(k))}</span>`
+    const rows = SG.KEYS.filter(k => !GEN_HIDDEN.includes(k)).map(k => rateRow(k, nm(k))).join("");
+    return `<div class="lyh">` + FR("grate", "⭐ how good is each generator (0-10: low ones are used rarely in levels)", `<div style="width:100%">${rows}</div>`) + `</div>`; }
+  // one type's slider, also shown right under a generated piece (Evgeni 2026-11-28: "when i watch a layout, i could open
+  // that layout specific score and adjust without seeing all")
+  function rateRow(k, label) { const r = RATE[k], v = r ? r.score : 5;
+      return `<div class="lyh" style="padding:2px 8px"><span style="min-width:150px;display:inline-block">${esc(label)}</span>`
         + `<input class="grate" data-k="${esc(k)}" type="range" min="0" max="10" step="1" value="${v}" style="flex:0 0 160px;width:160px;max-width:160px;padding:0;margin:0${r ? "" : ";opacity:.55"}">`
         + `<b class="grv" data-k="${esc(k)}" style="min-width:22px;display:inline-block;text-align:right">${r ? v : "–"}</b>`
-        + `<span class="ds grst" data-k="${esc(k)}">${esc(rateTxt(k))}</span></div>`; }).join("");
-    return `<div class="lyh">` + FR("grate", "⭐ how good is each generator (0-10: low ones are used rarely in levels)", `<div style="width:100%">${rows}</div>`) + `</div>`; }
+        + `<span class="ds grst" data-k="${esc(k)}">${esc(rateTxt(k))}</span></div>`; }
   function genPanel() { const SG = window.SectionGen; if (!SG) return "";
     const nm = k => ((SECS().find(q => q[0] === "sec:" + k) || [])[1]) || k, g = GENS || { key: SG.KEYS[0], cols: 40, tier: "normal" };
     let out = `<div class="lpn" style="margin-top:14px"><b>🎲 generator</b> · a new section from a type's concept, any length and difficulty · your comment goes to Claude with 📨</div>`
@@ -552,7 +555,8 @@ window.initDesigns = async function (root) {
         + `<g class="grid">${Array.from({ length: W + 1 }, (_, c) => `<line x1="${c}" y1="0" x2="${c}" y2="${H}" stroke="#ffffff30" style="stroke-width:1px;vector-effect:non-scaling-stroke" />`).join("")}${Array.from({ length: H + 1 }, (_, r) => `<line x1="0" y1="${r}" x2="${W}" y2="${r}" stroke="#ffffff30" style="stroke-width:1px;vector-effect:non-scaling-stroke" />`).join("")}</g>`
         + `<rect x="0" y="${H}" width="${W}" height="0.25" fill="#7be38a55" />` + T.map(z => TILE(z, H)).join("") + PLANSVG(GENS, H, W) + (GR && GR.ok ? ROUTE1(GR, H, W, 0, false) : "") + `</svg></div>`
         + `<div class="lyh"><button class="gplan${open.gplan === false ? "" : " on"}" title="show or hide the planned path (solved by design, drawn at once)">〰 path</button><button class="gpath" title="the planned path is drawn at once (solved by design); this asks Claude to also solve it, to look for secret ways">〰 solver check</button><button class="guse" title="put this piece in the layout as the ${esc(nm(GENS.key))} section, to see it in the scene and edit it there (the old drawing stays in the history)">✏ use in layout</button><span class="ds">${PLANTXT(GENS)}${!GR ? "solver check not asked yet" : GR.state === "done" ? (GR.ok ? `〰 ${GR.presses} presses · ${esc(GR.label || "")}${(GR.tight || [])[0] ? " · tightest " + GR.tight[0].ms + " ms" : ""}` : `<span style="color:#ff8a8a">❌ does not solve (col ${GR.dieCol}): ${esc(GR.why || "")}</span>`) : "asked Claude" + (GR.pinged === false ? " (the app held the ping back: it is solved at Claude's next look)" : "") + " · the path shows here when solved"}</span></div>`
-        + `<div class="lnr"><input class="lnote" data-n="${esc(gk)}" placeholder="what's good or wrong in this one ..." value="${esc((NOTES[gk] || {}).note || "")}"><span class="ds lnst" data-n="${esc(gk)}">${esc(NST[gk] || "")}</span></div>${stLine(gk)}`; }
+        + rateRow(GENS.key, "⭐ " + nm(GENS.key) + " generator")
+        + `<div class="lnr"><input class="lnote" data-n="${esc(gk)}" placeholder="feedback on this piece or its generator: saves as you type, Claude reads it (no need to send) ..." value="${esc((NOTES[gk] || {}).note || "")}"><span class="ds lnst" data-n="${esc(gk)}">${esc(NST[gk] || "")}</span></div>${stLine(gk)}`; }
     return out; }
   // 📨 sends EVERYTHING new on the page in one message (marks of every theme, layout notes, drawings), whichever 📨 is
   // pressed: the top one beside ⟳, a card's, or ⟳ itself (Evgeni 2026-11-27: a note typed after a send stayed "not sent
@@ -843,7 +847,7 @@ window.initDesigns = async function (root) {
     if (e.key === "Enter" && e.target.classList && e.target.classList.contains("lnote")) { e.preventDefault(); clearTimeout(noteT); saveNote(e.target.dataset.n); return; }
     if (e.key === "Enter" && e.target.closest && e.target.closest("[data-m]")) { e.preventDefault(); const row = e.target.closest("[data-m]"); PEND[row.dataset.m] = e.target.value; saveMark(row.dataset.m); return; } if (e.key === "Enter" && e.target.classList.contains("fold-h")) e.target.click(); });
   root.addEventListener("input", e => {
-    if (e.target.classList && e.target.classList.contains("grate")) { const k = e.target.dataset.k, b = root.querySelector(`.grv[data-k="${CSS.escape(k)}"]`); if (b) b.textContent = e.target.value; return; }
+    if (e.target.classList && e.target.classList.contains("grate")) { const k = e.target.dataset.k; root.querySelectorAll(`.grv[data-k="${CSS.escape(k)}"]`).forEach(b => b.textContent = e.target.value); root.querySelectorAll(`.grate[data-k="${CSS.escape(k)}"]`).forEach(i => { if (i !== e.target) { i.value = e.target.value; i.style.opacity = 1; } }); return; }
     if (e.target.classList && e.target.classList.contains("lnote")) { const k = e.target.dataset.n; NOTES[k] = Object.assign(NOTES[k] || {}, { note: e.target.value });
       lastKey = Date.now(); holdSend(); NST[k] = "…"; const st = root.querySelector(`.lnst[data-n="${CSS.escape(k)}"]`); if (st) st.textContent = "…";
       clearTimeout(noteT); noteT = setTimeout(() => saveNote(k), 700); return; }
