@@ -1423,7 +1423,9 @@ function make(key, opts = {}) { const g = GEN[key]; if (!g) throw new Error("no 
   // (layoutcheck planCheck: the type in a level's join, ~1 s), else the planner's own (fast, up to ~1 row off the real one
   // in ball / spider / flappy). The entrance always replays: its ramp launch is not in tracePath.
   if (r.presses && (opts.replay || key === "entrance")) { const LC = require("./layoutcheck.js"), log = console.log; console.log = () => {};
-    try { const c = LC.planCheck(Object.assign({ key }, r)); if (c.path && c.path.length) { r.path = c.path; r.pathFrom = "replay"; r.planOk = c.ok; } } finally { console.log = log; } }
+    // in the browser (the catalogue's 🎲) require gives {}: no replay there, keep the traced path
+    if (LC && typeof LC.planCheck === "function") try { const c = LC.planCheck(Object.assign({ key }, r)); if (c.path && c.path.length) { r.path = c.path; r.pathFrom = "replay"; r.planOk = c.ok; } } finally { console.log = log; }
+    console.log = log; }
   if (!r.path && r.presses && ["cube", "ball", "spider"].includes(r.mode)) r.path = tracePath(r);
   return Object.assign({ key, name: (z && z.name) || key, concept: CONCEPT[key], opts: o }, r); }
 

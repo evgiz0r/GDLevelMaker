@@ -14,6 +14,10 @@ function solveDoc(d) {
   const c = LC.check(z), out = { state: "done", solvedAt: new Date().toISOString(), ok: !!c.ok };
   if (c.ok) Object.assign(out, { presses: c.presses, label: c.label || "", tight: c.tight || [], route: c.route || [], taps: c.taps || [] });
   else Object.assign(out, { dieCol: c.dieCol, why: c.why || "" });
+  // the REAL replay of the piece's planned presses (Evgeni 2026-11-28: "solver path through spikes, we dont replay once
+  // with real physics?"): the page draws this line instead of the generator's own sketch of the path
+  if (Array.isArray(d.presses) && d.presses.length) { try { const r = LC.planCheck(Object.assign({}, z, { presses: d.presses }));
+    out.real = { ok: !!r.ok, path: r.path || [], dieCol: r.dieCol, why: r.why || "" }; } catch (e) { out.real = { ok: false, path: [], why: "replay failed: " + e.message }; } }
   return out;
 }
 
