@@ -15,6 +15,21 @@ is clicked to go there. Overlays (the level picker, the work panel, the note box
 **compare** sits in the top bar, greyed with "pick a run first" until a run is loaded. `node tests/top_controls.js` fails on
 any control outside the top bar (the page's HTML, and headless on a level with runs, a build with stages and one of ours).
 
+**Marks: tap or draw on the level, no mode (2026-11-28).** Evgeni: "i need to be able to mark things on a level ... when i
+click edit its always the same level, its not a new 'mode' ... no big flashes no big jumps". So: a tap on the level pins a note
+at that spot and moment, a drag draws a line on it (the replay pauses where it is; the level, the camera and the song stay). The
+note is typed in the **marks bar**, one row of fixed height above the level (part picker ◀ ▶ · 📍 n · time · block · the note ·
+kind · 🗑 · ✓), saved as it is typed (no save button), Enter / ✓ closes it, an empty pin is dropped. A tap on a pin or its line
+opens that mark. **📨 send** sends every mark that is new or changed since its last send: in the claude.ai app as one comment to
+Claude (the page's `comments` capability, `sendToClaude`, anchored on the bar), on the PC it only stamps them sent (sessions
+read local/marks.jsonl). Each mark: {id, level, file, version, t, x, y, note, kind?, stroke?: [[x, y] level units], part?,
+sentSig, sentAt, rev}; on the phone page every save is its own db doc `<id>-<time>` (WORKBOOKS.md row 4), folded by id oldest
+`rev` first (the page, tools/marks.js). **Parts**: the bar's picker cuts the level at its mode / speed / gravity portals and
+build sections (at least 4 s apart, long stretches every ~10 s); a part plays in a loop and the marks list shows its marks only.
+Calm rules that came with it: notices sit under the level (a notice above it pushed the level down), ▶ play / ❚❚ pause keep one
+width (the top bar re-wrapped), ✏ draw keeps the canvas size, and the page never reloads itself for new code while a mark is open
+or within 3 minutes of a touch on the level. `node tests/note_typing.js`. The old ✎ mark button now only pauses and says how.
+
 **One row over the level.** The controls are one row from 800 px up (labels give way to their icons, the text stays as the
 tooltip; the least used buttons move into ⋯), two at phone width, and never over the level; the clock is under the
 timeline. In flying modes the camera centres the corridor when it fits, else follows the player with a block of ceiling

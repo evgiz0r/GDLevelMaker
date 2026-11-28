@@ -886,14 +886,17 @@ CONCEPT["my-mwz1637w"] = "a lattice of single blocks 3 apart; the way climbs, a 
 // The turn (Evgeni: "still no reverse portals on generation" -- the pair is part of the stair path): the top step is a
 // 2-wide block, the gravity portal stands right after it at the player's height, and the next step hangs 3 rows up so the
 // flipped cube meets its underside a block later; the way back down mirrors it with the normal portal.
-function stairPath(o) { const { R, mix, imix, chance, W, H, G, onBeat, entry } = ctx(o, 13), ways = [{ c: 0, e: 2, h: 1, up: false }], DU = o.du ?? 5, top = H - 2 - DU, low = DU + 1;
-  G.box(0, 2, 0, 1); for (let c = 3; c < W - 3; c += 2) G.put(c, 0, "o");   // saws in the pit, not a spike wall
+function stairPath(o) { const { R, mix, imix, chance, W, H, G, onBeat, entry } = ctx(o, 13), ways = [{ c: 0, e: 3, h: 1, up: false }], DU = o.du ?? 5, top = H - 2 - DU, low = DU + 1;
+  // THE FIRST JUMP IS FROM THE PLATFORM (Evgeni 2026-11-28, GDLM 78: "in the stairpath first jump, there is an akward
+  // whole, the first jump should be from the platform"): the entry platform is 4 wide (cols 0-3, no 1-column hole after
+  // it that the cube rolled over onto a first block at its own height), and the first way column is a real hop from its end
+  G.box(0, 3, 0, 1); for (let c = 5; c < W - 3; c += 2) G.put(c, 0, "o");   // saws in the pit, not a spike wall
   let h = 1, up = false, k = 0, run = 0, turn = false, turnHi = R.int(Math.max(2, top - imix(0, 2)), top), turnLo = R.int(low, low + imix(0, 2));
   const lastC = 4 + 3 * Math.floor((W - 7 - 4) / 3);
   // a tall map in a short section: turn lower, so at least one flip and back fits (about half the columns for the climb)
   turnHi = Math.max(2, Math.min(turnHi, 1 + Math.round((lastC - 4) / 3 * 0.5)));
   // it comes in at a random height, below the first turn so a climb still comes first
-  { const h0 = entry(1, Math.max(1, turnHi - 2)); h = h0; ways[0].h = h0; G.box(0, 2, 0, h0); }
+  { const h0 = entry(1, Math.max(1, turnHi - 2)); h = h0; ways[0].h = h0; G.box(0, 3, 0, h0); }
   // runs of jumps: about 3 at most, softly (Evgeni 2026-11-27: "stairpath has still like 9 jumps in a row sometimes. max 3
   // jumps in a row", "when i say max, i mean distribute so that anything more much lower chances ... dont want to set hard
   // limits"): after n hops a REST comes with chance 0 / 0 / 0.25 / 0.6 / 0.85 (n = 0..4+): the way block is 3 wide and
@@ -903,12 +906,13 @@ function stairPath(o) { const { R, mix, imix, chance, W, H, G, onBeat, entry } =
   // spacing that hop needs: a 1-wide block 3 on is in reach only if the press can come early enough (Evgeni chose to keep
   // the lattice 3 apart: a column goes 1-2 further only where the cube can't land on it otherwise, e.g. after a +2 or on a
   // -1). Air time of a hop by its height change (columns, GD's arc at 1x, +0.2 for the landing tick):
-  const AIR = { "-2": 5.32, "-1": 4.93, "0": 4.46, "1": 3.85, "2": 2.81 }; let ell = -0.45, prevC = 0, prevW = 2;
+  const AIR = { "-2": 5.32, "-1": 4.93, "0": 4.46, "1": 3.85, "2": 2.81 }; let prevC = 3, prevW = 2;
   // PD: the press comes at least this long after the landing (columns; 0.25 = 6 ticks; by tier, 0.4 easy to 0.2 harder), so every hop has a window to press
   // in and the plan has room for the real game's landing tick (the page lands within ~2 ticks of the sim)
   const PD = o.pd ?? mix(0.4, 0.2);   // easy waits longer: a wider window
-  for (let c = 4; c <= lastC + 2; c += step, k++) { step = 3;
-    if (k > 0) {
+  let ell = -PD;   // on the platform the cube can press anywhere: the plan presses at its last column
+  for (let c = 6; c <= lastC + 2; c += step, k++) { step = 3;
+    {
       if (turn) { turn = false; h = up ? Math.min(H - 2, h + DU) : Math.max(1, h - DU); ell = (ways[ways.length - 1].e - prevC) + (o.gOff ?? 1) - 0.41 + 2.9 - (c - prevC); }
       else { // a hop toward the turn: +1 at most 3 times running (measured: a 4th +1 from a 1-wide block lands past the
         // next one), +2 or a step back -1 between, never a flat run

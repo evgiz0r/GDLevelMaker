@@ -181,12 +181,13 @@ swap(`  if (location.protocol.startsWith("http")) {
     try { const r = await fetch("../local/marks.jsonl", { cache: "no-store" }); if (r.ok) lines = (await r.text()).split("\\n").filter(Boolean).map(l => JSON.parse(l)); } catch (e) {}
   }`,
 `  const db = await phoneDb();
-  if (db) try { lines = (await db.collection("marks").get()).docs.map(d => Object.assign({}, d.data())); } catch (e) {}`);
+  // every save is its own revision doc (WORKBOOKS.md row 4): fold them oldest first; db data comes back frozen (row 9)
+  if (db) try { lines = (await db.collection("marks").get()).docs.map(d => JSON.parse(JSON.stringify(d.data()))).sort((a, b) => String(a.rev || a.made || "").localeCompare(String(b.rev || b.made || ""))); } catch (e) {}`);
 swap(`    const r = await fetch("/marks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(m) });
     if (!r.ok) throw new Error(r.status);`,
 `    const db = await phoneDb(); if (!db) throw new Error("no database");
-    const ref = db.collection("marks").doc(m.id);
-    if (m.note != null) await ref.set(Object.assign({ from: "phone" }, m)); else await ref.update(m);`);
+    // a new revision doc per save (rewriting one doc did not land reliably in the app: WORKBOOKS.md row 4); readers fold by id
+    await db.collection("marks").doc(m.id + "-" + Date.now().toString(36)).set(Object.assign({ from: "phone" }, JSON.parse(JSON.stringify(m))));`);
 // prompt() does not work inside an Artifact: an in-page box instead
 // the mark's note box and the async click handler are the viewer's own now (no prompt anywhere)
 // a published page's address keeps only a plain #name: the short link form (#<base>--v5--t40, LINKS.md) opens from the
@@ -327,5 +328,5 @@ for (const f of libs) files["lib/" + f] = "lib/" + f;
 // the deco options page (tools/deco_page.js -> local/phone_deco/): GD art inside, allowed on this private page only
 // (VISUALS.md); carried as deco/ when it exists, opened by the "deco" button or #deco
 for (const f of deco) if (f.endsWith(".jpg")) files["deco/" + f] = "deco/" + f;   // the page itself is inlined
-fs.writeFileSync(path.join(OUT, "publish.json"), JSON.stringify({ file_path: path.join(OUT, "index.html"), root: OUT, files, capabilities: { db: {}, downloads: true } }, null, 1));
+fs.writeFileSync(path.join(OUT, "publish.json"), JSON.stringify({ file_path: path.join(OUT, "index.html"), root: OUT, files, capabilities: { db: {}, downloads: true, comments: {} } }, null, 1));
 console.log(`${OUT}: index.html + ${Object.keys(files).length} files; publish.json has the Artifact call's file_path, root, files and capabilities`);
