@@ -55,5 +55,5 @@ if (!process.argv.includes("--quick")) { const LC = require("../tools/layoutchec
 for (const key of SG.KEYS) { const hs = new Set(); let pr = false;
   for (let seed = 1; seed <= 12; seed++) { const z = SG.make(key, { cols: 60, rows: 20, seed, tier: "normal" }), H = z.map.length; if (z.presses) pr = true;
     let f = 0; while (f < H && "#/\\".includes(z.map[H - 1 - f][0])) f++; hs.add(f); }
-  if (pr && key !== "flappy") ok(hs.size >= 4, `entry ${key}: ${hs.size} heights over 12 seeds (${[...hs].sort((a, b) => a - b).join(" ")})`); }
+  if (pr && key !== "flappy" && key !== "entrance") ok(hs.size >= 4, `entry ${key}: ${hs.size} heights over 12 seeds (${[...hs].sort((a, b) => a - b).join(" ")})`); }   // the entrance starts the level: always from the ground
 process.exit(bad ? 1 : 0);

@@ -136,6 +136,9 @@ function planCheck(z) {
   const T0 = Math.ceil((S.x0 * 30 - p0[0].x) / dx - 1e-9), tk = c => T0 + Math.round(c * 30 / dx), ev = [];
   for (const q of z.presses) if (Array.isArray(q)) { const a = tk(q[0]); ev.push({ tick: a, type: "press" }, { tick: Math.max(a + 1, tk(q[1])), type: "release" }); } else ev.push(tk(q));
   const r = GD.run(w, ev), end = r.path[r.path.length - 1];
-  return { key: z.key, plan: true, ok: !!r.done && !r.dead, presses: z.presses.length,
+  // the REAL path of the plan (the catalogue's 〰 line, Evgeni 2026-11-28: "we dont replay once with real physics?"): the
+  // replay's centre in section cells (c across, r up from the ground), every 8 ticks, inside the section
+  const path = []; for (let t = 0; t < r.path.length; t += 8) { const c = r.path[t].x / 30 - S.x0; if (c >= -0.5 && c <= z.map[0].length + 0.5) path.push([+c.toFixed(2), +(r.path[t].y / 30 - 0.5).toFixed(2)]); }
+  return { key: z.key, plan: true, ok: !!r.done && !r.dead, presses: z.presses.length, path,
     dieCol: r.dead ? +(end.x / 30 - S.x0).toFixed(1) : undefined, dieRow: r.dead ? +(end.y / 30).toFixed(1) : undefined, why: r.dead ? r.why : undefined }; }
 module.exports = { specOf, check, hashMap, planCheck };

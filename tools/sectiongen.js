@@ -143,7 +143,36 @@ const GEN = {}, CONCEPT = {};
 // ENTRANCE (cube). Idea: up a ramp onto the level's blocks, then a first hazard. Motif: a flat run + one hazard (a spike,
 // a pit, a step). Varies: run length, which hazard, the floor's height. Harder: shorter runs, wider pits, double spikes.
 CONCEPT.entrance = "up a ramp onto blocks, then flat runs each with one hazard (spike, pit, step)";
-GEN.entrance = o => { const { R, imix, len, chance, W, H, G } = ctx(o, 7); let h = 3;
+// ENTRANCE, CLICKS FIRST (Evgeni 2026-11-28: "all generations should be somewhat based on clicks"): up the ramp, then the
+// taps come first (0.3-0.55 s after the last landing by tier and the click style, on a beat when there is one, the first after the
+// ramp's launch has settled), and each tap's obstacle is built from its arc: a spike (two at harder, now and then) under
+// the arc's middle on a flat run, a pit as wide as the arc leaves room for, or a step up a row where it comes down. Every
+// hop is run in the page's cube physics (cubeTry) and kept only with a window of `minWin` ticks each side; a run with no
+// obstacle that fits stays flat (a rest). The shape-first entrance is entranceShape (o.shape).
+function entrancePlan(o) { const { R, mix, chance, W, H, G, style, onBeat } = ctx(o, 7), T = Array(W + 12).fill(3), haz = [], taps = [], minWin = Math.round(mix(10, 4));
+  for (let k = 0; k < 3; k++) { G.put(k, k, "/"); G.box(k + 1, k + 1, 0, k); T[k] = k; }
+  let h = 3, land = 8, next = 9;
+  while (true) { const want = next + mix(0.55, 0.3) * (0.85 + R() * 0.3) / style.pace(next) * COLS_PER_SEC, p = onBeat(want, land + 0.8);
+    if (p > W - 9) break;
+    const kinds = R.chance(0.08) ? ["rest"] : [R.pick(["spike", "spike", "pit", "step"]), "spike", "pit", "step"];
+    let done = null;
+    for (const kind of kinds) { if (kind === "rest") break;
+      const T2 = T.slice(), haz2 = haz.slice(), h2 = kind === "step" ? Math.min(H - 3, h + 1) : h; if (h2 === h && kind === "step") continue;
+      const arc = cubeArc(p * 30, h * 30, h2); if (!arc) continue; const L = arc.land;
+      if (kind === "spike") { const mid = Math.floor((p + L) / 2 + 0.5), two = chance(0, 0.4) && L - p > 3.5;
+        for (const c of two ? [mid - 1, mid] : [mid]) haz2.push(Object.assign(spikeBox(c, h), { c, r: h })); }
+      else if (kind === "pit") { const a = Math.ceil(p + 0.7), b = Math.floor(L - 0.7); if (b < a) continue; for (let c = a; c <= b; c++) T2[c] = -9; }
+      else { const s0 = Math.floor(L - 0.2); if (arc.up == null || arc.up + 0.55 > s0) continue; for (let c = s0; c < T2.length; c++) T2[c] = h2; }
+      const r = cubeTry(T2, haz2, land, p, Math.min(W, L + 3)); if (!r.ok) continue;
+      const w = cubeWin(T2, haz2, land, p, Math.min(W, L + 3), minWin); if (!w || w.e < minWin || w.l < minWin) continue;
+      done = { T2, haz2, h2, land: r.land }; break; }
+    if (done) { T.splice(0, T.length, ...done.T2); haz.splice(0, haz.length, ...done.haz2); h = done.h2; land = done.land; taps.push(+p.toFixed(4)); next = land; }
+    else next = p + 2; }
+  for (let c = 3; c < W; c++) if (T[c] > 0) G.box(c, c, 0, T[c] - 1); else if (T[c] === -9) G.put(c, 0, "^");
+  for (const z of haz) G.put(z.c, z.r, "^");
+  return { map: G.rows(), mode: "cube", presses: taps }; }
+GEN.entrance = o => o.shape ? entranceShape(o) : entrancePlan(o);
+function entranceShape(o) { const { R, imix, len, chance, W, H, G } = ctx(o, 7); let h = 3;
   for (let k = 0; k < 3; k++) { G.put(k, k, "/"); G.box(k + 1, k + 1, 0, k); }
   let c = 3;
   while (c < W) { const run = len(imix(8, 5), imix(10, 6)), end = Math.min(W - 1, c + run - 1); G.box(c, end, 0, h - 1);
@@ -1009,7 +1038,50 @@ CONCEPT["my-mwz1890c"] = "a sine-shaped corridor drawn by two chains of saws; am
 // "exntend the pattern a bit longer", then "swing still not high enough". GD bounds a swing to a 10-block band (lib/physics.js
 // BAND: 300 units, set by the portal), so the height comes from filling the band: the corridor's middle swings from one band
 // edge to the other (the edge is the far wall at a peak), saw chains on the open side only, longer waves.
-GEN["my-mwz1890c"] = o => { const { R, imix, room, len, W, H: HH, G } = ctx(Object.assign({ cols: 48 }, o), 20);
+// SWING, CLICKS FIRST (Evgeni 2026-11-28 on GDLM 78: "the swing is way too hard, too tight, way much higher cps needed",
+// "many wierd dual portals, that dont do much besides confusing", and "all generations should be somewhat based on
+// clicks"). The flips come first: a flip at most every `gMax` and at least every `gMin` (by tier: easy 0.46-0.92 s apart,
+// harder 0.29-0.58 s; the generation's click style stretches them), steered loosely toward height targets that tour the
+// band (tour()), each one on a beat when there is one; the swing is stepped tick by tick as lib/physics.js does (a press
+// flips gravity the tick after, keeping 80% of the speed; gravity 0.4 x 0.958; |vy| <= 8). One band, no movers: the map is
+// the 10 rows the entry portal's band gives. Then the corridor is drawn around that path: a saw every column, under the
+// path's lowest point near the column and over its highest by the saw's reach plus a margin, at least `gap` rows apart,
+// smoothed to a row a column (only ever widened); a curtain every 8 columns closes the room under and over the corridor.
+const SWING = { g: 0.958199 * 0.4, DTS: 0.225, MAX: 8 };
+function swingPlan(o, C) { const { R, mix, room, W, G, style, onBeat, entry } = C, TPC = 30 / CUBE.X, T = Math.floor(W * TPC);
+  const e = entry(0, 3), bandLo = Math.max(0, Math.floor(((e + 1) * 30 + 15 - 150) / 30)), H = bandLo + 10;
+  const gMin = mix(110, 70), gMax = mix(220, 140), gap = o.gap ?? room(6, 5), m = 7, RK = 15 + 21.6;
+  const next = tour(R, bandLo + 2, H - 3); let tgt = next(e + 3);
+  const st = { y: e * 30 + 15, vy: 0, grav: 1, pend: false }, ys = [], taps = []; let last = -1e9, want = null;
+  const lo = bandLo * 30 + 15, hi = H * 30 - 15;
+  for (let t = 0; t < T; t++) { const c = t / TPC, row = (st.y - 15) / 30, since = t - last, k = 1 / style.pace(c);
+    if (want == null && c > 1.5 && c < W - 3) { const up = st.grav === -1;
+      if ((since >= gMin * k && (up ? row > tgt : row < tgt)) || since >= gMax * k || (since >= gMin * k * 0.5 && (up ? st.y > hi - 40 : st.y < lo + 40))) {
+        want = Math.round(onBeat(c, c) * TPC); } }   // the next beat (no beats: now)
+    let press = false; if (want != null && t >= want) { press = true; want = null; last = t; taps.push(+c.toFixed(4)); if (Math.abs(tgt - row) < 1.5 || R.chance(0.3)) tgt = next(Math.round(row)); }
+    if (st.pend) { st.pend = false; st.grav = -st.grav; st.vy *= 0.8; } if (press) st.pend = true;
+    st.vy = clamp(Math.round((st.vy - SWING.g * SWING.DTS * st.grav) * 1000) / 1000, -SWING.MAX, SWING.MAX); st.y += st.vy * SWING.DTS;
+    const fl = c < 2 ? e * 30 + 15 : lo; if (st.y < fl) { st.y = fl; st.vy = 0; } if (st.y > hi) { st.y = hi; st.vy = 0; }
+    ys.push(st.y); }
+  // the corridor around the path: per column, the lowest and highest centre within the saw's reach of its centre
+  const loR = [], hiR = []; for (let c = 0; c < W; c++) { let a = 1e9, b = -1e9; const cx = c * 30 + 15;
+    for (let t = Math.max(0, Math.floor((cx - RK - 15) / 30 * TPC)); t < Math.min(T, Math.ceil((cx + RK + 15) / 30 * TPC)); t++) { a = Math.min(a, ys[t]); b = Math.max(b, ys[t]); }
+    if (a > b) { a = b = ys[Math.min(T - 1, Math.round(c * TPC))]; }
+    let l = Math.floor((a - RK - m) / 30), h = Math.ceil((b + RK + m) / 30); while (h - l - 1 < gap) { if (l > bandLo - 1) l--; else h++; if (h - l - 1 < gap && h < H) h++; }
+    loR.push(l); hiR.push(h); }
+  for (let it = 0; it < 3; it++) for (let c = 1; c < W; c++) { loR[c] = Math.min(loR[c], loR[c - 1] + 1); loR[c - 1] = Math.min(loR[c - 1], loR[c] + 1); hiR[c] = Math.max(hiR[c], hiR[c - 1] - 1); hiR[c - 1] = Math.max(hiR[c - 1], hiR[c] - 1); }
+  G.box(0, 1, 0, e - 1);   // the entry floor (the join ramps to it)
+  for (let c = 0; c < W; c++) { const ch = c % 2 ? "q" : "o", l = loR[c], h = hiR[c];
+    if (c >= 2 && l >= bandLo) G.put(c, l, ch); if (h < H) G.put(c, h, ch);
+    if (c >= 12 && c < W - 2 && c % 8 === 0) { for (let r = l - 1; r >= bandLo; r--) G.put(c, r, "q"); for (let r = h + 1; r < H; r++) G.put(c, r, "q"); } }
+  return { map: G.rows(), mode: "swing", presses: taps, path: ys.filter((_, t) => t % 8 === 0).map((y, i) => [+(i * 8 / TPC).toFixed(2), +(y / 30 - 0.5).toFixed(2)]) }; }
+GEN["my-mwz1890c"] = o => { if (o.shape) return swingShape(o);
+  for (let k = 0; k < 6; k++) {
+    const pre = ctx(Object.assign({ cols: 48 }, o, { seed: (o.seed ?? 1) + 1000 * k }), 10), e = pre.entry(0, 3), H = Math.max(0, Math.floor(((e + 1) * 30 + 15 - 150) / 30)) + 10;
+    const z = swingPlan(o, Object.assign({}, pre, { G: LS.grid(pre.W, H) })); if (z && (!o.verify || o.verify(z))) return z; }
+  return swingShape(o); };
+// the shape-first swing (before 2026-11-28), kept for o.shape and as the last fallback
+function swingShape(o) { const { R, imix, room, len, W, H: HH, G } = ctx(Object.assign({ cols: 48 }, o), 20);
   // the tall swell from 24 columns on (was 40: GDLM 78's 36-47 column hard swing fell to the plain sine below, which died on
   // its first descent at 1x and 2x every seed; the swell solves there)
   if (HH >= 16 && W >= 24) return swingTall(o, { R, imix, room, len, W, H: HH, G });
@@ -1356,6 +1428,11 @@ function make(key, opts = {}) { const g = GEN[key]; if (!g) throw new Error("no 
   // a section taller than 12 rows asks the builder to zoom out (Evgeni 2026-11-27: "maybe we need to zoom out a bit to allow
   // bigger gameplay"): camera zoom trigger 1913 at 0.85 over it, back to 1 after
   if (r.map.length > 12 && r.zoom == null) r.zoom = 0.85;
+  // the drawn path: opts.replay (the catalogue) = the REAL replay of the planned presses in lib/physics.js
+  // (layoutcheck planCheck: the type in a level's join, ~1 s), else the planner's own (fast, up to ~1 row off the real one
+  // in ball / spider / flappy). The entrance always replays: its ramp launch is not in tracePath.
+  if (r.presses && (opts.replay || key === "entrance")) { const LC = require("./layoutcheck.js"), log = console.log; console.log = () => {};
+    try { const c = LC.planCheck(Object.assign({ key }, r)); if (c.path && c.path.length) { r.path = c.path; r.pathFrom = "replay"; r.planOk = c.ok; } } finally { console.log = log; } }
   if (!r.path && r.presses && ["cube", "ball", "spider"].includes(r.mode)) r.path = tracePath(r);
   return Object.assign({ key, name: (z && z.name) || key, concept: CONCEPT[key], opts: o }, r); }
 
