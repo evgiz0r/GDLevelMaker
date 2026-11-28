@@ -187,10 +187,10 @@ function workSec() {
 }
 function mainsSec() {
   const m = D.mains || {}; if (!m.rows) return sec("mains", "Main levels", "no data", `<div class="note">${esc(m.error || "")}</div>`);
-  const rows = m.rows.map(r => `<tr><td class="num">${r.n}</td><td>${esc(r.name)} ${pin("main:" + r.n, r.name)}</td><td>${esc(r.rating)}</td><td class="num">${r.route_pct}%</td><td>${r.need === "ok" ? tag("ok", "ok") : tag(r.need, "bad")}</td><td class="num">${r.min_ms ?? ""} ms</td><td class="num">${r.tight ?? ""}</td><td class="num">${r.score ?? ""}</td><td>${r.flag ? tag(r.flag, "warn") : ""}</td><td class="num">${r.attempts ?? ""}</td></tr>`).join("");
+  const rows = m.rows.map(r => `<tr><td class="num">${r.n}</td><td>${esc(r.name)} ${pin("main:" + r.n, r.name)}</td><td>${esc(r.rating)}</td><td class="num">${r.route_pct}%</td><td>${r.need === "ok" ? tag("ok", "ok") : tag(r.need, "bad")}</td><td class="num">${r.min_ms ?? ""} ms</td><td class="num">${r.tight ?? ""}</td><td class="num" title="${r.score_parts ? "presses " + r.score_parts.presses + " + flight " + r.score_parts.flight : ""}">${r.score ?? ""}${r.est_stars != null ? ` <span class="note">≈${r.est_stars}★ ${esc(r.label || "")}</span>` : ""}</td><td>${r.flag ? tag(r.flag, "warn") : ""}</td><td class="num">${r.attempts ?? ""}</td></tr>`).join("");
   return sec("mains", "Main levels", `${m.rows.filter(r => r.route_pct >= 100).length} of ${m.rows.length} clear · PC status ${hm(m.at)}`,
     `<div class="scroll"><table><thead><tr><th>#</th><th>level</th><th>rating</th><th>route</th><th>state</th><th>tightest</th><th>tight</th><th>score</th><th>flag</th><th>your tries</th></tr></thead><tbody>${rows}</tbody></table></div>
-    <div class="note">route = how far the human route gets today; tight = presses under 50 ms; score = difficulty from the scored route (scored before the latest physics changes).</div>`);
+    <div class="note">route = how far the human route gets today; tight = presses under 50 ms; score = difficulty (v2, 2026-11-28: jump timing, how open each flown second is, wave windows, gravity, duals; fitted on the mains vs your ranking and stars) with about how many stars it reads as; hover for presses vs flight.</div>`);
 }
 // any rows of objects from the stats report become a table
 const anyTable = rows => { if (!Array.isArray(rows) || !rows.length || typeof rows[0] !== "object") return `<pre class="scroll">${esc(JSON.stringify(rows, null, 1))}</pre>`;
