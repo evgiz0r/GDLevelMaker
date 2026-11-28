@@ -93,7 +93,7 @@ function chaseObjects(file, b, D, o = {}) {
 
 function build(o) {
   const t0 = Date.now();
-  const b = AB.buildInSong({ song: SONG, seed: o.seed, rate: o.rate, offset: OFFSET, from: FROM_BEAT, beats: BEATS, ending: false, bandRows: o.bandRows, quiet: o.quiet });
+  const b = AB.buildInSong({ song: SONG, seed: o.seed, rate: o.rate, offset: OFFSET, from: FROM_BEAT, beats: BEATS, ending: false, bandRows: o.bandRows, calm: o.calm, quiet: o.quiet });
   if (!b.measures.clears) throw new Error("autobeat: the auto run dies (" + b.fin.why + ")");
   stage(o, "song", null, `Hellgate ${CUT.raw}-${CUT.end} s: ${b.measures.triggers} notes chosen`, { song: SONG });
   AB.write(o.out, b, o.name);
@@ -136,7 +136,7 @@ function build(o) {
 if (require.main === module) {
   const a = process.argv.slice(2), opt = k => { const i = a.indexOf(k); return i >= 0 ? a[i + 1] : null; };
   const o = { seed: +(opt("--seed") || 4), rate: opt("--rate") ? +opt("--rate") : 3, name: opt("--name") || "GDLM 44 hellgate auto",
-    session: opt("--session"), out: path.resolve(opt("--out") || path.join(ROOT, "levels", "gdlm_44_hellgate_auto.gdlvl")), quiet: a.includes("--quiet") };
+    session: opt("--session"), bandRows: opt("--band-rows") ? +opt("--band-rows") : undefined, calm: a.includes("--calm") ? (+(opt("--calm") || 0) || true) : undefined, out: path.resolve(opt("--out") || path.join(ROOT, "levels", "gdlm_44_hellgate_auto.gdlvl")), quiet: a.includes("--quiet") };
   const res = build(o);
   console.log(JSON.stringify(res.M));
   console.log(`${res.clears ? "CLEARS with no press" : "DIES after the deco"} -> ${path.relative(ROOT, o.out)} (${res.M.buildSecs} s)`);
