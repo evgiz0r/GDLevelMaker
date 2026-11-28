@@ -54,6 +54,12 @@ run (`ctx.xAt`), so pads, falls and speed portals are taken into account. `ctx.b
 Hidden gameplay: alpha never changes collision, so a pad (or block) at alpha 0 still works. The gallery's demo 5b hides
 its pads that way (group 3990, set to alpha 0 from the first tick); only the contact flashes show where they are.
 
+## Moments (2026-11-28)
+One event on one strong beat at a section change, planned by the orchestrator (tools/moments.js, BUILDING.md "Transition
+moments"): `gateShut`, `riseReveal`, `slabsFall`, `cameraBreath` ({t, y, size, hue}), and `skyTurn` (sky and ground change on the
+beat). Their triggers carry group 991 so the judge can tell them from the section effects' beat triggers. Not yet seen in the
+real game: the camera offset (1916) easing key 30 and the moves' bounce are from the trigger table, unchecked.
+
 ## The gallery level (`node tools/fxgallery.js`)
 
 Electrodynamix, 76 s, no click. Flat ground; 15 yellow pads on beats (each moved by replays until the launch is on the
@@ -111,6 +117,12 @@ Checked on 8 rated 2.2 levels from the PC's local/community (2026-11-26), counte
 - alpha 1007: 35 opacity. toggle 1049: 56 on. spawn 1268: 63 delay.
 - pulse 1006: 7-9 rgb, 45 / 46 / 47 fade in / hold / fade out, 52 group (1) or channel (0), 48 HSV mode, 210 (on 87% of
   them, meaning unknown).
+
+## Used in
+
+- `tools/hellgate_ending.js` (HELLGATE.md): a whole animation from these triggers -- a stage locked to the player's x,
+  pieces that fly in and land ON a beat (move, exponential in 11, started `secs` before the beat), a ring turned about a
+  centre object that rides with the stage, alpha chases, colour 899 on the sky. Pattern for any no-gameplay scene.
 
 ## Open
 

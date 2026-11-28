@@ -10,6 +10,7 @@
 //   --rec, --t0 a recording in ~/Videos/Captures and the video second where this attempt starts:
 //               each frame becomes render | game side by side (VISUALS.md "Facts" for how to find t0)
 //   --shapes    the shape drawing instead of GD art; --hitboxes overlays hitboxes
+//   --trail     the route on each frame (2 s behind solid, 2 s ahead dashed, a dot per press); --label time / block / %
 //   --input     the viewer's button strip under the ground: presses, holds, each input's timing window
 //   --solve     solve in the page when there is no saved route (default for big levels: a ghost camera at the level's speed)
 // Uses a saved solution when there is one (tools/solutions.js); otherwise the page solves the level.
@@ -51,7 +52,7 @@ if (require.main === module) (async () => {
   else { const step = +(opt("--every") || 2); times = []; for (let s = 0; s <= lenS && times.length < 30; s += step) times.push(+s.toFixed(2)); }
   const id = "j" + Date.now().toString(36);
   const dir = path.join(ROOT, "local", "shoot"); fs.mkdirSync(dir, { recursive: true });
-  const job = { level: lv, times, art: !args.includes("--shapes"), hitboxes: args.includes("--hitboxes"), input: args.includes("--input"), followObjects: !!lv.ghostFollow, rec: opt("--rec"), t0: +(opt("--t0") || 0) };
+  const job = { level: lv, times, art: !args.includes("--shapes"), hitboxes: args.includes("--hitboxes"), input: args.includes("--input"), trail: args.includes("--trail"), label: args.includes("--label") ? lv.name : undefined, followObjects: !!lv.ghostFollow, rec: opt("--rec"), t0: +(opt("--t0") || 0) };
   fs.writeFileSync(path.join(dir, id + ".json"), JSON.stringify(job));
   if (!lv.solution) console.log("(no saved solution: the page solves it, which can take a while for long levels)");
   const r = await headless(`viewer/?shoot=${id}`, path.join(dir, id, ".done"), { port: +(opt("--port") || 8767) });

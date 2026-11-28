@@ -105,6 +105,7 @@ if (require.main === module) (async () => {
   const fdir = path.join(dir, id);
   let info = {}; try { info = JSON.parse(fs.readFileSync(path.join(fdir, ".done"), "utf8")); } catch (e) {}
   const frames = fs.existsSync(fdir) ? fs.readdirSync(fdir).filter(f => /^f\d+\.jpg$/.test(f)).length : 0;
+  if (info.error) { console.error("the shoot page failed: " + info.error); process.exit(1); }
   if (!r.ok || !frames) { console.error(`no frames (${r.ok ? "page finished" : r.stalled ? "no new frame for 3 min: the page hung" : "page timed out"}): open viewer/?shoot=${id} to see why`); process.exit(1); }
   const tRender = (Date.now() - t0) / 1000;
   const safe = s => String(s).replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "_") || "level";

@@ -134,7 +134,9 @@ function planCheck(z, opts = {}) {
   // a number is a tap (press, release the next tick); a [press, release] pair is a hold (ship, wave, swing)
   // a plan's tick 0 is the first tick at or past the section's start; a column c is c * 30 / dx ticks on from there
   const T0 = Math.ceil((S.x0 * 30 - p0[0].x) / dx - 1e-9), tk = c => T0 + Math.round(c * 30 / dx), ev = [];
-  for (const q of z.presses) if (Array.isArray(q)) { const a = tk(q[0]); ev.push({ tick: a, type: "press" }, { tick: Math.max(a + 1, tk(q[1])), type: "release" }); } else ev.push(tk(q));
+  // opts.hold: the button held from the section's start to past its end instead of the plan (gencheck's "lazy")
+  if (opts.hold) ev.push({ tick: T0, type: "press" }, { tick: tk(z.map[0].length + 2), type: "release" });
+  else for (const q of z.presses) if (Array.isArray(q)) { const a = tk(q[0]); ev.push({ tick: a, type: "press" }, { tick: Math.max(a + 1, tk(q[1])), type: "release" }); } else ev.push(tk(q));
   const r = GD.run(w, ev), end = r.path[r.path.length - 1];
   // the REAL path of the plan (the catalogue's 〰 line, Evgeni 2026-11-28: "we dont replay once with real physics?"): the
   // replay's centre in section cells (c across, r up from the ground), every 8 ticks, inside the section

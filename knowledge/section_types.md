@@ -442,3 +442,20 @@ Evgeni 2026-11-27 ("lets remind ourselves more idea for sections, bit tired desi
   grid; spikes, saws, orbs and pads may move to centre a press's window or to sit where a wrong press lands.
 - Flying on the grounds (my-mwz1s7po) is presses first: its holds are replayed in lib/physics.js through the bare corridor
   and the spikes go against that real path (the old stepper drifted after sloped floors); the browser keeps the shape-first one.
+- **Every cube press needed** (gencheck "lazy" / "unforced", 2026-11-28): in node make() replays the button held all the
+  way and each plan minus one tap; where that still clears, a spike goes where that run touches a surface under a planned
+  jump, or a low block two rows up where it hops while the plan walks (`r.forced`). A tap nothing can force (it only
+  replaces a fall off a ledge's end) leaves the plan (`r.dropped`): that stretch is a fall. Measured: entrance lazy 75% -> 0,
+  closecube 88% -> 0, staircase 38% -> 0, opencube unforced 75% -> 0 (8 seeds, 40 cols, normal).
+- Tall wave pieces head home when the columns left get short for the rows to come down (4 of 6 tall extreme pieces had no
+  plan; now 6 of 6, using rows 0-17 of 26).
+- **Ball / spider skips** (Evgeni 2026-11-28, played in GD: "if you can just not click and it passes you to the next
+  clicks then thats a skip"): make() also leaves out each flip and each flip + flip back pair and blocks the run that
+  still clears (a spike where it touches down, a hanging one under a roof, a saw in the open). Flying modes the same for
+  held / no press / each hold. gencheck after (8 seeds, 40 cols, normal): spider and orbs clean, ball unforced 25% (one
+  flip at the way out), fly unforced 75% / wave 88% (one input near the exit each), slideable 0.
+- **Open, slowly: "where" and "distribution" controls** (Evgeni 2026-11-28: "some kind of positioning, or distribution of
+  something ... for the section designer also to control a bit over where things happen, but slowly"). Wanted over time:
+  anchors (a jump at column X or beat Y), where the dense / hard part sits in the section, how orbs, portals and hazards
+  spread. Hooks today: `entry` (the entry row), `beats` / `bpm` (where presses go), `tier`. Add new ones as plain options of
+  `make()` passed through `ctx`, one at a time, each with a gencheck line.

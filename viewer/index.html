@@ -2168,9 +2168,10 @@ function draw() {
   // the game look: colours and zoom at this moment (zoom 0.7 = see more, everything smaller)
   LS = look ? GD.LOOK.stateAt(L.look, k / P.TPS) : null;
   let objsNow;
-  // GD art: every visual trigger (lib/vfx.js) -- spawn-fired colours, pulses, alpha, moves incl. the
+  // every visual trigger (lib/vfx.js), in the GD-art look AND the art-free game look (before 2026-11-28 only with GD art, so
+  // cloud renders showed no camera / player locks: tools/artlab.js) -- spawn-fired colours, pulses, alpha, moves incl. the
   // parallax ones locked to the player, rotations, toggles, camera offset; objects posed by it
-  if (LS && artOn() && GD.VFX) {
+  if (LS && GD.VFX) {
     if (!L.vfx) { L.vfx = GD.VFX.build(L.level, L.path, L.look); L.vfxDyn = new Set(L.vfx.dynamic); }
     const V = L.vfx;
     LS = GD.VFX.stateAt(V, k / P.TPS, LS);
@@ -3145,7 +3146,8 @@ document.getElementById("linkBtn").onclick = async () => {
 };
 setInterval(() => { if (L && !playing) writeHash(); }, 1000);
 (async () => {
-  if (SHOOT) return shootRun();
+  // a page error ends the job at once with its reason (tools/video.js prints it) instead of a silent 3-min stall
+  if (SHOOT) return shootRun().catch(e => { try { (window.SHOOT_POST || ((n, b) => fetch("/shoot/" + SHOOT + "/" + n, { method: "POST", body: b })))("done", JSON.stringify({ error: String(e && e.stack || e).slice(0, 600) })); } catch (x) {} });
   if (hashParams().get("embed")) return; // the parent page loads the level (viewer/polish.html)
   await loadWip(false); meLoad();
   if (labHash()) labOpen(labHash());
@@ -3179,6 +3181,17 @@ function shootLayers() {
   ctx.globalAlpha = 1; ctx.font = `bold ${12 * DPR()}px system-ui`; let lx = 8;
   for (const n of Object.keys(LAYER_COL)) { ctx.fillStyle = LAYER_COL[n]; ctx.fillRect(lx, H - 22, 14, 14); ctx.fillStyle = "#fff"; ctx.fillText(n, lx + 18, H - 10); lx += 52; }
   ctx.restore();
+}
+// the route drawn on a shot (tools/shoot.js --trail, for the visual judge): 2 s behind the player solid, 2 s ahead dashed,
+// a dot per press -- so a picture shows where the run goes through (or around) a structure
+function shootTrail() {
+  const k = tick(), a = Math.max(0, k - 2 * P.TPS), b = Math.min(L.path.length - 1, k + 2 * P.TPS), d = DPR();
+  const seg = (i0, i1, dash, col) => { ctx.save(); ctx.setLineDash(dash); ctx.strokeStyle = col; ctx.lineWidth = 3 * d; ctx.beginPath();
+    for (let i = i0; i <= i1; i += 2) { const q = L.path[i]; if (!q) continue; const X = sx(q.x), Y = sy(q.y); i === i0 ? ctx.moveTo(X, Y) : ctx.lineTo(X, Y); } ctx.stroke(); ctx.restore(); };
+  seg(a, k, [], "rgba(255,235,60,.85)"); seg(k, b, [10 * d, 8 * d], "rgba(255,255,255,.8)");
+  const ev = (L.solution && L.solution.events) || [];
+  ctx.fillStyle = "rgba(255,60,200,.95)";
+  for (const e of ev) { const tk = typeof e === "number" ? e : e.tick; if (typeof e !== "number" && e.type !== "press") continue; if (tk < a || tk > b) continue; const q = L.path[tk]; if (!q) continue; ctx.beginPath(); ctx.arc(sx(q.x), sy(q.y), 6 * d, 0, 7); ctx.fill(); }
 }
 function shootLabel(job, i) {
   const v = shootView(), k = tick(), pct = Math.round(L.path[k].x / Math.max(1, L.world.endX) * 100);
@@ -3242,7 +3255,17 @@ async function shootRun() {
   }
   // spots as % of the level (tools/compare_frames.js): the moment the run passes that share of the level's length
   if (job.pcts) job.times = job.pcts.map(pc => { const x = L.world.endX * pc / 100; let k = L.path.findIndex(q => q.x >= x); if (k < 0) k = L.path.length - 1; return k / P.TPS; });
-  const post = (name, url) => fetch("/shoot/" + SHOOT + "/" + name, { method: "POST", body: url });
+  // each POST with a 20 s timeout and 4 tries: one fetch that never answered hung a whole video render on the PC
+  // (Hellgate ending v2, 2026-11-28: stalled at frame ~365 twice, the same page under a debugger finished)
+  const post = async (name, url) => {
+    for (let k = 0; ; k++) {
+      const ac = new AbortController(), to = setTimeout(() => ac.abort(), 20000);
+      try { const r = await fetch("/shoot/" + SHOOT + "/" + name, { method: "POST", body: url, signal: ac.signal }); clearTimeout(to); if (r.ok || k >= 3) return r; }
+      catch (e) { clearTimeout(to); if (k >= 3) throw e; }
+      await new Promise(r => setTimeout(r, 500 * (k + 1)));
+    }
+  };
+  window.SHOOT_POST = post;
   if (job.map) { await post("000.png", await mapRender(job)); if (window.MAPGEO) await post("geo.json", JSON.stringify(window.MAPGEO)); return post("done", "1"); }
   if (job.video) return shootVideo(job, post);
   for (let i = 0; i < job.times.length; i++) {
@@ -3250,6 +3273,7 @@ async function shootRun() {
     // draw until every lazily loaded picture (background, ground, tinted frames) is in
     for (let k = 0; k < 6; k++) { draw(); await new Promise(r => setTimeout(r, k < 2 ? 150 : 60)); }
     if (job.layers) shootLayers();
+    if (job.trail) shootTrail();
     if (job.label) shootLabel(job, i);
     let url = cv.toDataURL("image/png");
     if (job.rec) {

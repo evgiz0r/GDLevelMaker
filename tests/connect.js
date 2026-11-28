@@ -30,3 +30,10 @@ assert.strictEqual(C.connectors(two(3, 1)).filter(q => q.kind === "bridge").leng
 const pal = { base: 1, line: 2 };
 for (const st of C.STYLES) { const o = C.draw(C.connectors(B([[10, 2], [11, 2]])), pal, { style: st }); assert(o.length && o.every(x => x.props[24] === "3"), st); }
 console.log("connect: ok");
+// no loose ends (Evgeni 2026-11-28, hellgate card col 8: "the connection of the ropes to structures is not complete"):
+// every style's drawn holder reaches each attached end and tucks into the structure
+{ const conns = [{ kind: "hang", x0: 315, x1: 315, y0: 90, y1: 300 }, { kind: "stand", x0: 315, x1: 315, y0: 0, y1: 60 },
+    { kind: "bridge", x0: 60, x1: 150, y0: 80, y1: 80 }, { kind: "hang", x0: 315, x1: 315, y0: 90, y1: 104 }];
+  for (const style of ["rope", "chain", "rod", "gdchain", "brick"]) { const l = C.looseEnds(conns, { style });
+    assert.deepStrictEqual(l, [], style + " leaves loose ends: " + JSON.stringify(l)); } }
+console.log("ok: no loose holder ends");
