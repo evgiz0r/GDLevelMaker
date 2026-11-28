@@ -1188,6 +1188,56 @@ GEN["my-mwz2haf0"] = o => { const { R, imix, room, chance, W, H, G, beats, onBea
   return { map: G.rows(), mode: "cube", presses: presses.map(v => +v.toFixed(4)).sort((a, b) => a - b) }; };
 
 const KEYS = Object.keys(GEN);
+// THE PLANNED PATH FOR THE TAP TYPES (the board thread, 2026-11-27, on Evgeni's "can we draw the path? now we dont need to
+// solve it right?"): fly, wave and flappy return `path` from their own planner; the cube, ball and spider types return
+// only presses, so their path is traced here from the map and the presses in the page's physics: [column of the
+// player's centre, its bottom row] every 8 ticks, as the others sample it. Blocks (# and the slope tiles as blocks), the
+// gravity portals G / N, the orbs Y / B / E; hazards are not looked at (the plan misses them by construction) and the
+// band movers L / P change nothing the path shows. The trace stops where the player would hit a block's side or fall
+// out. Not the solver: a check against the real sim is in tests/sectiongen.js ("path").
+function tracePath(z) { const map = z.map, H = map.length, W = map[0].length, mode = z.mode;
+  const cell = (c, r) => c < 0 || c >= W || r < 0 || r >= H ? "." : map[H - 1 - r][c], solid = (c, r) => "#:/\\7r".includes(cell(c, r)) && cell(c, r) !== ".";
+  const orbs = [], portals = []; for (let c = 0; c < W; c++) for (let r = 0; r < H; r++) { const ch = cell(c, r);
+    if ("YBE".includes(ch)) orbs.push({ c, r, ch, used: false }); else if (ch === "G" || ch === "N") portals.push({ c, r, ch, done: false }); }
+  const TPC = 30 / CUBE.X, taps = new Set((z.presses || []).map(q => Math.round((Array.isArray(q) ? q[0] : q) * TPC)));
+  const gAcc = mode === "cube" ? CUBE.g : 0.958199 * 0.6;
+  let x = 0, g = 1, vy = 0, on = true, y = 15; { let r = 0; while (r < H && !solid(0, r)) r++; if (r >= H) r = 0; while (r < H && solid(0, r)) r++; y = r * 30 + 15; }   // on the lowest block at the start
+  const span = () => [Math.floor((x - 14.9) / 30), Math.floor((x + 14.9) / 30)];
+  const out = []; let ref = null;
+  for (let t = 0; t < W * TPC + 2; t++) { let still = false;
+    if (taps.has(t)) { const orb = orbs.find(o => !o.used && Math.abs(o.c * 30 + 15 - x) < 33 && Math.abs(o.r * 30 + 15 - y) < 33);
+      if (orb) { orb.used = true; on = false;
+        if (orb.ch === "Y") vy = g * CUBE.J; else if (orb.ch === "B") { vy = g * CUBE.J * 0.8; g = -g; vy *= 0.5; } else { g = -g; vy = g * CUBE.J; } }
+      else if (on && mode === "cube") { vy = g * CUBE.J; on = false; still = true; }
+      else if (on && mode === "ball") { g = -g; vy = -g * 3.354; on = false; }   // towards the new side
+      else if (on && mode === "spider") { const [a, b] = span(); let r = Math.floor((y - 15) / 30) + (g > 0 ? 1 : -1), hit = null;   // to the first surface the other way
+        for (; r >= 0 && r < H; r += g > 0 ? 1 : -1) { let s = false; for (let c = a; c <= b; c++) if (solid(c, r)) s = true; if (s) { hit = r; break; } }
+        if (hit != null) { g = -g; y = g > 0 ? (hit + 1) * 30 + 15 : hit * 30 - 15; vy = 0; } } }
+    if (!on) { vy -= g * gAcc * CUBE.DTS; if (Math.abs(vy) > 15) vy = 15 * Math.sign(vy); }
+    x += CUBE.X; if (!still && !on) y += vy * CUBE.DTS;
+    for (const p of portals) if (!p.done && x / 30 >= p.c - 0.41 && Math.abs(p.r * 30 + 15 - y) < 60) { p.done = true;
+      const ng = p.ch === "G" ? -1 : 1; if (ng !== g) { g = ng; vy *= 0.5; on = false; } }
+    // support under the feet (over the head upside down): land on it falling, walk off it when it ends
+    const [a, b] = span(); let sup = null; const feet = y - g * 15;
+    for (let c = a; c <= b; c++) for (let r = 0; r < H; r++) if (solid(c, r)) { const top = g > 0 ? (r + 1) * 30 : r * 30;
+      if (g > 0 ? top <= feet + 10 && top >= feet - 0.01 : top >= feet - 10 && top <= feet + 0.01) sup = sup == null ? top : g > 0 ? Math.max(sup, top) : Math.min(sup, top); }
+    // (rising into a block's top corner with the feet under 10 below its top lands on it too, as in the real sim)
+    if (sup != null && (on || vy * g <= 0 || (sup - feet) * g > 0.01)) { y = sup + g * 15; vy = 0; on = true;
+      // GD's jump snap (cubeTry's snapStep, here on the map): a block a stair step from the last one moves x by up to 1
+      if (mode === "cube") { const f = y - g * 15, rr = g > 0 ? f / 30 - 1 : f / 30, on2 = [];
+        for (let c = Math.ceil((x - 45) / 30); c <= Math.floor((x + 15) / 30); c++) if (Number.isInteger(Math.round(rr)) && solid(c, Math.round(rr))) on2.push(c);
+        on2.sort((p, q) => Math.floor((q * 30 + 15) / 100) - Math.floor((p * 30 + 15) / 100) || q - p);
+        for (const c of on2) { const cx = c * 30 + 15, r0 = Math.round(rr);
+          if (ref && (ref.c !== c || ref.r !== r0)) { const P = SNAP1, ddx = cx - (ref.c * 30 + 15), ddy = (r0 - ref.r) * 30 * g, mx = P.max;
+            if ((Math.abs(ddx - P.side) <= mx && Math.abs(ddy - 30) <= mx) || (Math.abs(ddx - P.far) <= mx && Math.abs(ddy + 30) <= mx) || (Math.abs(ddx - P.near) <= mx && Math.abs(ddy - 60) <= mx)) {
+              const tx = cx + ref.d; x = Math.abs(tx - x) > mx ? x + Math.sign(tx - x) * mx : tx; } }
+          ref = { c, r: r0, d: x - cx }; } } }
+    else if (on) on = false;
+    // a block's side or a head hit: the run ends there
+    let bump = false; for (let c = a; c <= b; c++) for (let r = Math.floor((y - 14) / 30); r <= Math.floor((y + 14) / 30); r++) if (solid(c, r)) bump = true;
+    if (t % 8 === 0) out.push([+(x / 30).toFixed(2), +(y / 30 - 0.5).toFixed(2)]);
+    if (bump || y < -60 || y > H * 30 + 60) break; }
+  return out; }
 function make(key, opts = {}) { const g = GEN[key]; if (!g) throw new Error("no generator for " + key + " (have " + KEYS.join(", ") + ")");
   const o = {}; for (const k of ["cols", "rows", "seed", "bpm", "beatCols", "speed"]) if (opts[k] != null) o[k] = +opts[k];
   if (Array.isArray(opts.beats)) o.beats = opts.beats;   // a song's beats in the section (seconds, or {t, s})
@@ -1196,6 +1246,7 @@ function make(key, opts = {}) { const g = GEN[key]; if (!g) throw new Error("no 
   // a section taller than 12 rows asks the builder to zoom out (Evgeni 2026-11-27: "maybe we need to zoom out a bit to allow
   // bigger gameplay"): camera zoom trigger 1913 at 0.85 over it, back to 1 after
   if (r.map.length > 12 && r.zoom == null) r.zoom = 0.85;
+  if (!r.path && r.presses && ["cube", "ball", "spider"].includes(r.mode)) r.path = tracePath(r);
   return Object.assign({ key, name: (z && z.name) || key, concept: CONCEPT[key], opts: o }, r); }
 
 // how often a level builder should pick a type (1 = as often as any): Evgeni 2026-11-27 on hanging: "low priority on using

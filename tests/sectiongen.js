@@ -34,4 +34,19 @@ if (!process.argv.includes("--quick")) { const LC = require("../tools/layoutchec
     const on = z.presses.filter(c => beats.some(b => Math.abs(b.t * CPS - c) < 0.03)).length;
     console.log = () => {}; let r; try { r = LC.planCheck(z); } finally { console.log = log; }
     ok(on === z.presses.length && r.ok, `song hits ${key}: ${on}/${z.presses.length} presses on a note` + (r.ok ? "" : ", plan dies")); } }
+// PATH: every presses-first type returns its planned path ([column, bottom row] every 8 ticks); the tap types' path is
+// traced in the page (sectiongen tracePath): it reaches the section's end and stays within 0.35 rows of the real sim's
+// run of the same presses (points next to a jump of a row or more in the sim's path, e.g. a spider's teleport, skipped)
+if (!process.argv.includes("--quick")) { const LC = require("../tools/layoutcheck.js"), { GD } = require("../tools/io.js"), { build } = require("../tools/make.js"), log = console.log;
+  for (const key of SG.KEYS) for (const rows of [undefined, 20]) { const z = SG.make(key, { cols: 60, rows, seed: 1, tier: "normal" }); if (!z.presses) continue;
+    if (!z.path || !z.path.length) { ok(false, `path ${key}: none`); continue; }
+    if (!["cube", "ball", "spider"].includes(z.mode)) { ok(z.path.length > 10, `path ${key}: from its planner, ${z.path.length} points`); continue; }
+    console.log = () => {}; let S, level; try { S = LC.specOf(z); level = build(S.spec, "test", {}).level; } finally { console.log = log; }
+    const w = GD.makeWorld(level.objects, level.header), p0 = GD.run(w, []).path, dx = p0[1].x - p0[0].x, T0 = Math.ceil((S.x0 * 30 - p0[0].x) / dx - 1e-9);
+    const real = GD.run(w, z.presses.map(q => T0 + Math.round((Array.isArray(q) ? q[0] : q) * 30 / dx))).path.map(q => [q.x / 30 - S.x0, q.y / 30 - 0.5]);
+    let mx = 0; for (const [c, y] of z.path) { if (c < 2) continue; const near = real.filter(q => Math.abs(q[0] - c) < 0.3); if (!near.length) continue;
+      const ys = near.map(q => q[1]); if (Math.max(...ys) - Math.min(...ys) > 1) continue;
+      const b = near.reduce((a, q) => Math.abs(q[0] - c) < Math.abs(a[0] - c) ? q : a); mx = Math.max(mx, Math.abs(b[1] - y)); }
+    const end = z.path[z.path.length - 1][0];
+    ok(end >= 59 && mx < 0.35, `path ${key} 60x${rows || "-"}: traced to column ${end.toFixed(1)}, ${mx.toFixed(2)} rows from the sim at most`); } }
 process.exit(bad ? 1 : 0);

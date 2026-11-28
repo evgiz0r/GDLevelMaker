@@ -129,6 +129,12 @@ type, so a builder can make a new one of any length, synced to the song, and so 
   time (column = tick * dx / 30, as planCheck plays it), and the jump's own tick moves x only (the page's arc was 2.4
   units too high). The other cube types do not use `sn` yet (their stairs are short; worth doing if long ones die late).
   Not yet: swing (the board thread's tools/swingbuild.js); fly's gravity pair (the planner flies upright only).
+- **The planned path, for every presses-first type** (the board's 🎲 draws it with no solve, 2026-11-28): fly, wave
+  and flappy return `path` from their planner; the cube, ball and spider types (open / closer cube, staircase, stair
+  path, orbs, ball, ball portals, spider) get it from `tracePath` in `make()`: the presses played over the map in the
+  page's physics (blocks, G / N, orbs Y / B / E, GD's jump snap, a rising cube landing on a top corner within 10 units),
+  [column, bottom row] every 8 ticks. tests/sectiongen.js "path": it reaches the end and is within 0.25 rows of the real
+  sim at most (60 columns, 13 and 20 rows).
 - **Open idea: mixing variants inside one type** (Evgeni 2026-11-27, for later: "eventually we might want to make the
   sections of the same kind mixed (for example ball layouts could be mixed in a way). either by generator from the go or
   by some cutting. currently the sections have defined gameplay, which is also nice. if you overmix gameplay, sometimes it
