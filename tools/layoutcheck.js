@@ -11,7 +11,7 @@ const { GD } = require("./io.js");
 const DF = require("../lib/difficulty.js");
 const SJ = require("../lib/scenejoin.js");
 const LS = require("./layoutsections.js");
-const { sampleOf } = require("./designthemes.js");
+const { sampleOf, withOffsets } = require("./designthemes.js");
 const { build } = require("./make.js");
 const PORTAL = { cube: "cube portal", ship: "ship portal", wave: "wave portal", ufo: "ufo portal", ball: "ball portal", robot: "robot portal", spider: "spider portal", swing: "swing portal" };
 const RUN = 8;   // run-up columns before the section's join
@@ -25,10 +25,10 @@ function specOf(z) {
   // in the join's gated last column (was: the portal before the join, so a ball rode a tall entry's ramp and died there)
   const a = SJ.join(Object.assign({ mode: "cube" }, flat), { T, w, h, mode: z.mode }), b = SJ.join({ T, w, h }, flat), x0 = RUN + a.n;
   const objects = [];
-  const put = (map, dc) => { for (const [kind, c, r, ex] of sampleOf(map)) objects.push(ex ? [kind, c + dc, r, ex] : [kind, c + dc, r]); };
+  const put = (map, dc, offs) => { for (const [kind, c, r, ex] of withOffsets(sampleOf(map), offs)) objects.push(ex ? [kind, c + dc, r, ex] : [kind, c + dc, r]); };
   // the joins as text maps too, so sampleOf turns their tiles into the same objects
   const mapOf = (tiles, n) => { const g = Array.from({ length: h }, () => Array(n).fill(".")); for (const q of tiles) if (q.r < h && q.c >= 0 && q.c < n) g[h - 1 - q.r][q.c] = q.t; return g.map(l => l.join("")); };
-  put(mapOf(a.tiles, a.n), RUN); put(z.map, x0); put(mapOf(b.tiles, b.n), x0 + w);
+  put(mapOf(a.tiles, a.n), RUN); put(z.map, x0, z.offsets); put(mapOf(b.tiles, b.n), x0 + w);
   // join tiles that lie on the section itself (the wave's slide-safe D cells, lib/scenejoin.js): in its empty cells
   const on = [...a.tiles.filter(q => q.c >= a.n).map(q => ({ t: q.t, c: q.c - a.n, r: q.r })), ...b.tiles.filter(q => q.c < 0).map(q => ({ t: q.t, c: w + q.c, r: q.r }))]
     .filter(q => q.c >= 0 && q.c < w && q.r < h && z.map[h - 1 - q.r][q.c] === ".");

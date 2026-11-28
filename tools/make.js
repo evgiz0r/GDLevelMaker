@@ -37,6 +37,7 @@
 //   "craft": true | {rods, underRods, chains, lanterns, skipCols}   the craft pass (CRAFT.md): rods on
 //                          pillar tops, chains holding floating pieces and orbs (tools/craftkit.js)
 //   extra "dy": n          shift an object n units up from its row centre (the low pit spikes 9/61 sit at -13)
+//   extra "dx": n          shift it n units right (sub-block offsets of a generated section: tools/sectiongen.js z.offsets)
 //   "decoDensity": [[fromCol, share], ...]   classic style: share of free columns with ground
 //                          decoration from that column on (default 0.25; compose.js sets it per section)
 //   "indicators": {"id": N, "rot": n, "at": [cols], "all": false}   a small arrow pointing down over
@@ -100,7 +101,7 @@ function toObj([type, col, row, extra], specFile) {
   if (e.group != null) props[57] = String(e.group);
   if (e.ch != null) props[21] = String(e.ch);
   if (e.props) Object.assign(props, e.props);   // raw object keys, e.g. a text object's 31
-  return { id, x: +(col * 30 + 15).toFixed(3), y: row * 30 + 15 + (e.dy || 0), rot: e.rot || 0, flipX: !!e.flipX, flipY: !!e.flipY, props };
+  return { id, x: +(col * 30 + 15 + (e.dx || 0)).toFixed(3), y: row * 30 + 15 + (e.dy || 0), rot: e.rot || 0, flipX: !!e.flipX, flipY: !!e.flipY, props };
 }
 
 // how far ahead of the press a lone ground spike sits when the press is in the middle of its
