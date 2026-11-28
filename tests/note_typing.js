@@ -26,16 +26,24 @@ let fails = 0; const check = (c, m) => { console.log((c ? "ok   " : "FAIL ") + m
   await p.evaluate(() => { playing = true; setPlay(); askNote("again"); }); await p.waitForSelector("#noteText", { state: "visible" });
   await p.keyboard.type("a b"); await p.keyboard.press("Escape"); await p.waitForTimeout(100);
   check(await p.evaluate(() => document.getElementById("noteBox").hidden), "Escape closes it while the replay plays");
-  // a note pinned at a spot (the mark flow): after save the box is gone from the screen, not just flagged hidden (its
-  // display:block kept it up with dead buttons: the user, 2026-11-25 "cancel doesnt work after i save mark")
+  // the marks bar (CALM MARKS, 2026-11-28: no mark mode, no box over the level): a tap on the level pins a note, the note is
+  // typed in the bar above the level; the replay keys typed there do nothing, the level does not move, Enter closes it
   await p.route("**/marks", r => r.request().method() === "POST" ? r.fulfill({ status: 200, body: "{}" }) : r.continue());
-  const gone = () => p.evaluate(() => getComputedStyle(document.getElementById("noteBox")).display === "none");
-  await p.keyboard.press("m"); const bb = await (await p.$("#cv")).boundingBox(); await p.mouse.click(bb.x + bb.width / 2, bb.y + bb.height / 2);
-  await p.waitForSelector("#noteText", { state: "visible" }); await p.type("#noteText", "test-note"); await p.click("#noteSave"); await p.waitForTimeout(200);
-  check(await gone(), "a pinned mark box is off the screen after save");
-  await p.keyboard.press("m"); await p.mouse.click(bb.x + bb.width / 3, bb.y + bb.height / 2);
-  check(await p.evaluate(() => !document.getElementById("noteBox").hidden), "the next mark opens its box (nothing invisible over the level)");
-  await p.click("#noteCancel"); await p.waitForTimeout(100); check(await gone(), "and cancel closes it");
+  const bb = await (await p.$("#cv")).boundingBox();
+  await p.evaluate(() => { playing = true; setPlay(); }); await p.waitForTimeout(300);
+  await p.mouse.click(bb.x + bb.width / 2, bb.y + bb.height / 2); await p.waitForTimeout(100);
+  const m0 = await p.evaluate(() => ({ t, playing, edit: !!MK.edit, focus: document.activeElement && document.activeElement.id, top: document.getElementById("cv").getBoundingClientRect().top }));
+  check(m0.edit && !m0.playing && m0.focus === "mkNote", "a tap on the level pauses where it is and opens the note in the marks bar");
+  await p.keyboard.type("test-note r m p d l f 1 2 "); await p.waitForTimeout(900);
+  const m1 = await p.evaluate(() => ({ t, playing, draw: !!(typeof DRAWM !== "undefined" && DRAWM.on), picker: document.getElementById("picker").hidden, note: MK.edit && MK.edit.note, st: document.getElementById("mkSt").textContent, top: document.getElementById("cv").getBoundingClientRect().top }));
+  check(Math.abs(m1.t - m0.t) < 1e-6 && !m1.playing && !m1.draw && m1.picker, "typing the note leaves the replay, draw mode and the picker alone");
+  check(m1.top === m0.top, `the level does not move while a note is typed (top ${m0.top} -> ${m1.top})`);
+  check(/^test-note r m/.test(m1.note || "") && /saved/.test(m1.st), "the note is kept and saved as it is typed: " + JSON.stringify(m1.st));
+  await p.keyboard.press("Enter"); await p.waitForTimeout(100);
+  check(await p.evaluate(() => !MK.edit && levelMarks().some(m => m.note.startsWith("test-note"))), "Enter closes the note, the mark stays");
+  const n0 = await p.evaluate(() => levelMarks().length);
+  await p.mouse.click(bb.x + bb.width / 3, bb.y + bb.height / 3); await p.keyboard.press("Escape"); await p.waitForTimeout(100);
+  check(await p.evaluate(n => !MK.edit && levelMarks().length === n, n0), "an empty pin closed with Escape is dropped");
   await b.close(); srv.kill();
   console.log(fails ? fails + " failed" : "all ok"); process.exit(fails ? 1 : 0);
 })().catch(e => { console.error(e); srv.kill(); process.exit(1); });
