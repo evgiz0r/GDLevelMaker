@@ -8,6 +8,7 @@
 //   kit.chasers(ctx, { t0, t1, behind, n, beat: {t0, period} })  -> { objects, group, demons }   running demons locked to the
 //        player's x from t0 to t1 (level seconds), `behind` units behind (the lead one; default 125), legs and bob on the beat.
 //        demons[i] = { group, dx, arms } so a caller can move them (crash into a gate, reach, fall back).
+//        runTo: the legs stop at this level second (default t1); z: layers per demon (default ["B1", "B2"]).
 //   kit.dragons(ctx, { t0, t1, n, y })                         -> { objects, groups, mouth(i, t) }   dragons flying with the
 //        player in the sky (default y 235 = top of the art), flapping; mouth(i, t) = the world point of dragon i's mouth at t.
 //   kit.attack(ctx, { t, at: {x, y}, from: {x, y}, flight, size }) -> objects   a fireball from `from` (world, at launch
@@ -60,17 +61,17 @@ function kit(o = {}) {
 
   kitObj.chasers = (ctx, p) => {
     const out = [], ALL = grp(), n = p.n ?? 3, behind = p.behind ?? 125, t0 = p.t0, t1 = p.t1, x0 = ctx.xAt(t0);
-    const per = p.beat ? p.beat.period : 0.4138, bt0 = p.beat ? p.beat.t0 : t0;
+    const per = p.beat ? p.beat.period : 0.4138, bt0 = p.beat ? p.beat.t0 : t0, runTo = p.runTo ?? t1;   // legs move until runTo
     const specs = [{ dx: -behind, h: 72 }, { dx: -behind - 42, h: 58 }, { dx: -behind - 78, h: 64 }].slice(0, n);
     const demons = [];
     specs.forEach((sp, i) => {
-      const gD = grp(), z = i === 0 ? "B1" : "B2";
+      const gD = grp(), z = p.z ? p.z[i] || p.z[0] : i === 0 ? "B1" : "B2";
       const d = demon(x0 + sp.dx, sp.h, [gD, ALL], z);
       out.push(...d.objects);
       demons.push({ group: gD, dx: sp.dx, h: sp.h, arm: d.arm, legs: d.legs, hip: d.hip });
       // running: legs swing on every half beat, the body bobs, the arms claw on the beats
       let k = Math.ceil((t0 - bt0) / (per / 2)), flip = i % 2;
-      for (let t = bt0 + k * per / 2; t < t1; t += per / 2, flip ^= 1) {
+      for (let t = bt0 + k * per / 2; t < runTo; t += per / 2, flip ^= 1) {
         const a = flip ? 46 : -46, x = ctx.xAt(t), dt = per / 2 * 0.9;
         out.push(T.rotate(x, d.legs[0], a, dt, { centre: d.hip, ease: E.settle }), T.rotate(x, d.legs[1], -a, dt, { centre: d.hip, ease: E.settle }));
         out.push(T.move(x, gD, 0, flip ? 5 : -5, dt, E.settle));
