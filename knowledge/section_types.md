@@ -47,6 +47,17 @@ type, so a builder can make a new one of any length, synced to the song, and so 
   time it has moved 3 rows from the band's centre; swing uses R pairs). Every portal inside a section is softly blocked on
   both sides so it can't be flown round (a spike on the floor and one on the roof in its column when the corridor is 6+
   rows; Evgeni: "if there is no room in the corridor no need to block"). Check: `node tools/layoutcheck.js <keys> --skips`.
+- **Ball, ball portals and spider in tall maps climb** (Evgeni 2026-11-28: "make the height of the ball/spider ( or others
+  with the same ) to be able and have increased height"; tools/sectiongen.js `climber`). Their band portal (L / P) can
+  only centre the band on the player, and the floor / ceiling flips alternate up and down, so the band random-walked and
+  used 5-9 of 20 rows. Now the band has a target (drawn like `tour`: from the middle, by chance, not forced); while it is
+  off by 2+ rows the flip toward it steps 3-4 rows (to the band's edge if need be) and the flip back 2 (spider 1), and a
+  band portal goes in only when it moves the band toward the target. Outside the band the map is solid (a player who
+  skipped a band portal rolled the open ground under the raised band: 2 presses for a 17-press plan). Default heights
+  unchanged. Measured (`node tools/genheight.js ball my-mwz7nxue my-mwz8kaem --seeds 1,2,3,4,5,6`, 80 cols, 20 rows,
+  normal): rows visited ball 6.0 -> 9.8, spider 7.2 -> 9.3, ball portals 6.5 -> 8.5 (13/20 best); 30 rows x 120 cols up to
+  21. Plans clear 80/80 (90 cols, 20 / 30 rows, easy / harder, seeds 1-10). Open: the bottom two rows are rarely visited
+  (the band starts on the ground and the first target usually lies above).
 - **Upside-down stretches get the mirrored obstacles**: if the floor has spike pits, the ceiling the player runs on upside
   down gets pits too (Evgeni on closer cube: "wierd assymery with the spikes on the grown on the bottom but no such on the
   top").
@@ -111,9 +122,53 @@ type, so a builder can make a new one of any length, synced to the song, and so 
   (40-120 cols, 9-20 rows), every press needed, holding clears 1 of 8, 100% on half beats at 140 / 175 bpm.
   `cubeTry` now starts a run where the cube last landed: a press while still in the air is a miss, so a window's early
   edge never reaches back past the landing.
-  Not yet: swing (the board thread's tools/swingbuild.js), stair path (a lattice of 1-wide blocks 3 apart: its presses
-  are one per column, so it needs the lattice run in the page physics, or off-grid column spacing, which waits on
-  Evgeni's answer about moving blocks by less than a block); fly's gravity pair (the planner flies upright only).
+  Stair path (my-mwz1637w, 2026-11-27; Evgeni chose "B, but if possible somewhere close to the beats": keep the lattice 3
+  apart, plan its presses from it): the lattice is drawn as before, but a column goes 1-2 further on only where the cube
+  can't land on it with a press PD after its landing (PD 0.4 columns easy -> 0.2 harder, the window to press in; the air
+  time per height change is in the code). `latticePresses` then plans one press per hop with a search over the hops in
+  the page's cube run (`cubeTry` with the hop's other blocks and hazards as boxes, mirrored upside down): the presses
+  that land the cube on the next way block a little inside its ends, the one nearest the beat first, then the earliest
+  landings (a late landing on a 1-wide block leaves the next hop no time), undone when a later hop has none; a gravity
+  turn needs no press, a 1-column gap at the same height is walked. A lattice whose presses can't all be planned (1 in
+  ~12 at 200 columns) is drawn again (shorter wait, then the next seeds). Every plan clears (30-200 cols, 13-20 rows),
+  holding clears none, every press needed, ~1.9 taps a second; the presses sit NEAR the beat, not on it (mean 25-40 ms
+  off at 140 / 175 bpm against 43-54 for a random press), since the lattice fixes where a jump can be.
+  **GD's jump snap is in the page physics now** (cubeTry with `sn`, the real sim's applySnap): landing on a block a stair
+  step from the last one (90 on and 2 up, 120 on and 1 up, 150 on and 1 down, at 1x) moves the cube up to 1 unit so it
+  keeps its offset; on a stair path most hops snap, and without it the cube ran 0.3 columns ahead of the press times
+  after ~25 hops and a press came before its landing (the plan dies late in long sections). With `sn` a press is a
+  time (column = tick * dx / 30, as planCheck plays it), and the jump's own tick moves x only (the page's arc was 2.4
+  units too high). The other cube types do not use `sn` yet (their stairs are short; worth doing if long ones die late).
+  Not yet: swing (the board thread's tools/swingbuild.js); fly's gravity pair (the planner flies upright only).
+- **The planned path, for every presses-first type** (the board's 🎲 draws it with no solve, 2026-11-28): fly, wave
+  and flappy return `path` from their planner; the cube, ball and spider types (open / closer cube, staircase, stair
+  path, orbs, ball, ball portals, spider) get it from `tracePath` in `make()`: the presses played over the map in the
+  page's physics (blocks, G / N, orbs Y / B / E, GD's jump snap, a rising cube landing on a top corner within 10 units),
+  [column, bottom row] every 8 ticks. tests/sectiongen.js "path": it reaches the end and is within 0.25 rows of the real
+  sim at most (60 columns, 13 and 20 rows).
+- **A random entry height** (Evgeni 2026-11-28: "lets make the initial spot in the generation random, so that the
+  entrance is not always at the same place. could be at any height (for the non starting cube)"): ctx's `entry(lo, hi)`
+  draws the row a section comes in at from its own seeded stream (`o.entry` sets it), and every presses-first type starts
+  there with its floor run up from the ground at column 0, so the join before it ramps to it: open / closer cube,
+  staircase and stair path (below the first turn, so a climb still comes first), orbs (the start platform), ball, ball
+  portals, spider (taller maps any height, in the band the join's portal sets: 3 rows under the entry; short maps 2-3),
+  fly and wave (the corridor's floor at column 0, flat for its first column; the planner holds the ship on it, then lets
+  it down at the corridor's slope; short maps up to row 4 so the band stays at the ground), flappy (a pillar over the
+  first 3 columns, up to row 4). Over 12 seeds a 20-row map comes in at 5-10 heights (tests/sectiongen.js "entry"); every
+  plan still clears (30-200 cols). Not moved: the entrance (it starts the level), swing (the board thread's), the
+  shape-first fallbacks and flying on the grounds.
+  Two joins changed with it: lib/scenejoin.js ends a climb 4 columns before a mode portal (a cube leaving a 45-degree
+  slope is launched up for ~3 columns and met the portal still rising: a ship planned from rest flew 1-3 rows off its
+  plan), and tools/layoutcheck.js's planCheck now builds the join in front as a level does, the mode portal in its gated
+  last column (it stood before the join, so a ball rode a tall ramp and died there). tracePath knows the ball's and the
+  spider's band edges (within 0.1 rows of the sim).
+- **Open idea: mixing variants inside one type** (Evgeni 2026-11-27, for later: "eventually we might want to make the
+  sections of the same kind mixed (for example ball layouts could be mixed in a way). either by generator from the go or
+  by some cutting. currently the sections have defined gameplay, which is also nice. if you overmix gameplay, sometimes it
+  looks too random."). A soft mix: one section of a type may borrow a variant of the same type for a stretch (e.g. a ball
+  section with a portal-ball part), either generated so from the start or cut and joined from two generations, but the
+  section's motif stays clear and leads; a mix is the exception, not every section, and never so many changes that it
+  reads as random. Not built; when it is, measure it like the rest (the motif share per section, the variety score).
 - **From a beat** (Evgeni 2026-11-27: "i want to be able to generate according to a beat as well, so its not just random
   stats, should be applicable in a level ... in the long run much more efficient than solving"): `make(key, {bpm})` or
   `{beats: [seconds | {t, s}]}` (a song section's hits with strength, tools/hits.js / impacts.js). ctx() turns them into

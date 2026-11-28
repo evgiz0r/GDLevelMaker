@@ -501,6 +501,25 @@ theme as well (work on it later)"). Not started. Ideas to try: Claude's warm cla
 the signature's robot + human motifs as set pieces, soft rounded blocks, the end-screen sign's look carried through.
 
 
+### Fire backgrounds, concepts first (2026-11-28)
+
+Evgeni (00:00): "post some possible decos, lets remember that this is a firy theme. but we want it decently contrasted from the
+blocks and hazards" -- "i mean even pictures". Six concept pictures (`node tools/bgconcepts.js`, SVG, not GD objects) behind
+the hellgate blocks and spikes: A ash and smoke, B volcano at dusk, C lava sea, D burnt city, E obsidian shards, F bright
+inferno sky. **He liked D, F, B, A.** Lessons: the fire reads from embers, smoke and one glowing focal point (a crater, ember
+windows), not from a red / orange sky; C's lava band behind the play hid the spikes (the same "background hides blocks"
+note), so hot bands stay below the playfield; F (blocks as dark silhouettes on a bright sky) needs dark spikes, the orange
+ones vanish. Not built yet: he said not to redo the theme backgrounds for now; build D / F / B / A as hellgate backdrop
+options (tools/backdrops.js pieces) when he says.
+
+**Backgrounds move with the level** (Evgeni, 2026-11-28: "background deco ( and effects ) may change in transitions. its common to
+change the background as you go ... we can also play with it during the section ( dimming or getting lighter slow depending on
+the music, or beating on the beat"; "about the extra deco items and movement, i guess we are more into the art, and how it fits
+into the level"). So: a section change may swap the backdrop (one of the theme's options) and its effects; inside a section
+the backdrop's channels may dim or lighten slowly with the song's loudness (tools/impacts.js heaviness per bar) and may beat
+on strong hits, with colour / alpha fades on the backdrop channels only (EFFECTS.md; not pulse triggers, still untrusted,
+and never the blocks or hazards). Extra moving deco pieces are second to the art itself and how it sits in the level.
+
 ## Theme card animation styles (2026-11-27)
 
 Evgeni: "lets add several animations possible to play, in the dropdown. we will start with - static, nine circles styles".
