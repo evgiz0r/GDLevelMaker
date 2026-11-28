@@ -34,6 +34,16 @@ re-run `tests/tas_progress.js`, `tests/mechanics.js`, `tools/mains.js status` (a
 Not mismatches but missing (board "missing"): mirror portal, teleport variants 2902/2064/3022, a player carried by a moving
 block (Dash), item/pickup, scale, on-death, collision/area triggers, force blocks, platformer.
 
+**The lab for this queue: GDLM 77 missing physics lab** (`tools/lab77.js` -> `specs/77_missing_physics_lab.json`, built
+2026-11-27, kept for when we get to these rows). 19 stations, one question each, for the probe mod to play (the sim's
+route on exact ticks, the game logged every tick): mirror portal (missing), pink pad in cube / ball / ship (6), pink orb
+(5), ship entry rising / falling (7), UFO / robot / spider / swing (14), ball and ship up a 45-degree slope (4c), teleport
+turned 0 / 45 / 90 (10), a block that lifts the cube (missing), the green orb throw into the ground upside down (11, last:
+it may kill). Each station's note says what the sim predicts; `node tools/lab77.js --check` prints the sim's numbers per
+station. Run: install it (with the user's yes), `node tools/probe.js play save:"GDLM 77 missing physics lab" --launch`,
+then `probe.js result` and `tools/probe_frames.js` against the sim. Left out on purpose: teleport 2902 / 2064 / 3022
+(unknown ids, never guessed) and turned slopes (a lab of their own).
+
 ## How physics is checked
 
 | check | what it is | run |
