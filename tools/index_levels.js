@@ -48,7 +48,7 @@ function buildIndex() {
     const d = path.join(root, dir);
     if (!fs.existsSync(d)) continue;
     for (const f of fs.readdirSync(d).sort()) {
-      if (!f.endsWith(".gdlvl")) continue;
+      if (!f.endsWith(".gdlvl") || /^gdlm_tmp_/.test(f)) continue;   // gdlm_tmp_* are a test's scratch levels (.gitignore): never in the viewer
       const file = path.join(d, f);
       const L = readGdlvl(file);
       // the saved solution (tools/solutions.js), so the viewer and the phone replay it instead of solving
