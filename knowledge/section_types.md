@@ -459,3 +459,8 @@ Evgeni 2026-11-27 ("lets remind ourselves more idea for sections, bit tired desi
   anchors (a jump at column X or beat Y), where the dense / hard part sits in the section, how orbs, portals and hazards
   spread. Hooks today: `entry` (the entry row), `beats` / `bpm` (where presses go), `tier`. Add new ones as plain options of
   `make()` passed through `ctx`, one at a time, each with a gencheck line.
+- **No long ship slide** (Evgeni 2026-11-28: "the ship has a lot of places it could slide, as these are slopes, need to
+  block full sliding"): for ship pieces make() also plays, from every 6th column, the plan then the button held (or let go)
+  to the end, and blocks any such run that gets more than 8 columns on. Measured by `node tools/genslides.js <types>`
+  (6 seeds, 40 cols): fly 33 of 60 slides -> 0; flying on the grounds 38 -> 26 (open: it rides its floor and roof by
+  design and its slopes leave no cell for a spike; it needs shorter rides by construction). Level side: tools/slides.js.
