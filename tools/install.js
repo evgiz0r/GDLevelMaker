@@ -332,4 +332,4 @@ function main() {
   }
 }
 if (require.main === module) main();
-module.exports = { decodeSave, splitLevels, nameOf, entry, gameRunning, lengthCode, songInfo, addSongs, prepare, hot };
+module.exports = { decodeSave, encodeSave, splitLevels, joinLevels, levelNames, nameOf, entry, gameRunning, lengthCode, songInfo, addSongs, prepare, hot };
