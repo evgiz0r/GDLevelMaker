@@ -1026,10 +1026,14 @@ function swingTall(o, { R, imix, room, len, W, H, G }) {
   // the swell and the waves together stay under ~0.7 rows a column (steeper than that a swing can't follow)
   // the corridor at least 5 rows: 4 (hard) could not be flown at all, at 1x or 2x, once it was closed above and below
   const gap = Math.max(5, R.int(room(5, 4), room(6, 5))), A = o.amp ?? 1.5, P = len(room(26, 20), room(34, 26)),
-    Pd = Math.max(60, Math.round(W * R.pick([1, 1, 0.75]))), top = H - 2 - Math.ceil(gap / 2 + A);   // the upper saw chain stays inside the map (H - 4 cut it off at the swell's top: GDLM 78's swing flew over the open top)
+    Pd = W >= 120 ? Math.round(W / 2) : W,   // whole swells: it leaves at the height it came in (GDLM 78's first swing left near the top, so the next one was flown over)
+     top = H - 2 - Math.ceil(gap / 2 + A);   // the upper saw chain stays inside the map (H - 4 cut it off at the swell's top: GDLM 78's swing flew over the open top)
   // the swell from row 5 to the map's top less 4 (wider than this failed at 60 cols: too steep with the waves; open:
   // the whole height needs a longer swell, Evgeni "100% spread or close in all generations")
-  const b0 = Math.min(5, Math.ceil(gap / 2)), D = x => b0 + (top - b0) * (1 - Math.cos(2 * Math.PI * x / Pd)) / 2,   // b0: the corridor starts on the ground, where the player comes in (row 5 left a hard corridor's lower chain over the entry)
+  const low = Math.ceil(gap / 2), b0 = o.entry != null ? Math.max(low, Math.min(top, Math.round(o.entry))) : Math.min(5, low),
+    // o.entry (typebuild: where the swing before this one left the player): the swell starts there and swings to the far side
+    far = b0 > (low + top) / 2 ? low : top,
+    D = x => b0 + (far - b0) * Math.min(1, Pd / 60) * (1 - Math.cos(2 * Math.PI * x / Pd)) / 2,   // a short swell lower: under 60 columns the full height is too steep to follow   // b0: the corridor starts on the ground, where the player comes in (row 5 left a hard corridor's lower chain over the entry)
     Y = x => D(x) + A * Math.sin(2 * Math.PI * x / P);
   let bc = 5;
   for (let x = 0; x < W; x++) { const y = Y(x), lo = Math.round(y - gap / 2) - 1, hi = Math.round(y + gap / 2), ch = x % 2 ? "q" : "o";
