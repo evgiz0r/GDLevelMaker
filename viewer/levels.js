@@ -3390,7 +3390,7 @@ window.GD_LEVELS = [
    "physics": "df2a908",
    "solvedAt": "2026-11-28T13:24:45.981Z"
   },
-  "made": "2026-11-28T13:23:57.100Z"
+  "made": "2026-11-28T13:25:05.000Z"
  },
  {
   "name": "GDLM 44 hellgate ending",
