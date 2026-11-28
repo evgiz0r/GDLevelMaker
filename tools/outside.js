@@ -23,13 +23,22 @@ function outside(objects, header, events, o = {}) {
   const corridor = c => { const set = rows.get(c); if (!set) return false; const rs = [...set].sort((a, b) => a - b);
     let below = -1;   // the ground counts as a floor at row -1
     for (const r of rs) { if (r - below - 1 >= 2 && below >= -1 && rs.some(q => q < r) || (r - below - 1 >= 2 && below === -1 && r >= 2)) return true; below = r; } return false; };
+  // per column the corridor's ROOF top (the highest filled row with an open run of 2+ rows under it and something -- or
+  // the ground -- under that) and its FLOOR bottom (the lowest filled row with an open run of 2+ rows over it and something
+  // over that): over a ground pillar with open sky, or under a pipe hanging over open ground down to the floor (flappy,
+  // GDLM 78 block 516), is the way, not a skip
+  const sides = new Map(), sideOf = c => { if (sides.has(c)) return sides.get(c); const set = rows.get(c); let roof = -Infinity, floor = Infinity;
+    if (set) { const rs = [...set].sort((a, b) => a - b);
+      for (let i = 0; i < rs.length; i++) { const under = i ? rs[i - 1] : -1; if (rs[i] - under - 1 >= 2) { let j = i; while (j + 1 < rs.length && rs[j + 1] === rs[j] + 1) j++; roof = Math.max(roof, (rs[j] + 1) * 30); } }
+      for (let i = rs.length - 1; i >= 0; i--) { if (i + 1 < rs.length && rs[i + 1] - rs[i] - 1 >= 2) { let j = i; while (j > 0 && rs[j - 1] === rs[j] - 1) j--; floor = Math.min(floor, rs[j] * 30); } } }
+    const v = { roof, floor }; sides.set(c, v); return v; };
   const R = o.reach || 5, near = x => { const c = Math.floor(x / 30); let top = -Infinity, bot = Infinity, n = 0, cor = 0;
-    for (let k = c - R; k <= c + R; k++) { const e = cols.get(k); if (e) { top = Math.max(top, e.top); bot = Math.min(bot, e.bot); n++; } if (corridor(k)) cor++; }
+    for (let k = c - R; k <= c + R; k++) { const e = sideOf(k); if (e.roof > -Infinity || e.floor < Infinity) { top = Math.max(top, e.roof); bot = Math.min(bot, e.floor); n++; } if (corridor(k)) cor++; }
     return n && cor >= 3 ? { top, bot } : null; };   // at least 3 corridor columns around
   const out = []; let cur = null; const MIN = o.min || 0.4, dt = 1 / 240;
   for (const p of P) {
     const wxy = GD.worldXY ? GD.worldXY(p) : [p.x, p.y], xy = { x: wxy[0], y: wxy[1] }, e = near(xy.x);   // worldXY gives [x, y]
-    const off = e && ((xy.y - 15 > e.top + 15) || (xy.y + 15 < e.bot - 15 && xy.y > 30)) ? (xy.y > e.top ? "above" : "below") : null;
+    const off = e && ((e.top > -Infinity && xy.y - 15 > e.top + 15) || (e.bot < Infinity && xy.y + 15 < e.bot - 15 && xy.y > 30)) ? (xy.y > e.top ? "above" : "below") : null;
     if (off && cur && cur.side === off) { cur.x1 = xy.x; cur.n++; }
     else { if (cur && cur.n * dt * (o.stride || 1) >= MIN) out.push(cur); cur = off ? { side: off, x0: xy.x, x1: xy.x, n: 1, mode: p.mode, t0: p.t != null ? p.t : null } : null; }
   }
@@ -50,12 +59,15 @@ const FILLED = /[#^vosq\/\\7r]/;
 function outsideMap(map, route, R = 5) {
   const H = map.length, W = map[0].length, filled = (c, r) => c >= 0 && c < W && r >= 0 && r < H && FILLED.test(map[H - 1 - r][c]);
   const colInfo = []; for (let c = 0; c < W; c++) { let top = -1, bot = H, cor = false, below = -1;
-    for (let r = 0; r < H; r++) if (filled(c, r)) { if (r - below - 1 >= 2 && (below >= 0 || r >= 2)) cor = true; top = Math.max(top, r); bot = Math.min(bot, r); below = r; }
+    const rs = []; for (let r = 0; r < H; r++) if (filled(c, r)) { if (r - below - 1 >= 2 && (below >= 0 || r >= 2)) cor = true; rs.push(r); below = r; }
+    // roof top / floor bottom as in outside(): a ground pillar's top or a hanging pipe's foot is not a corridor side
+    for (let i = 0; i < rs.length; i++) if (rs[i] - (i ? rs[i - 1] : -1) - 1 >= 2) { let j = i; while (j + 1 < rs.length && rs[j + 1] === rs[j] + 1) j++; top = Math.max(top, rs[j]); }
+    for (let i = rs.length - 2; i >= 0; i--) if (rs[i + 1] - rs[i] - 1 >= 2) { let j = i; while (j > 0 && rs[j - 1] === rs[j] - 1) j--; bot = Math.min(bot, rs[j]); }
     colInfo.push({ top, bot, cor }); }
   let off = 0, n = 0;
   for (const [c, r] of route || []) { const ci = Math.round(c); let top = -1, bot = H, cors = 0;
-    for (let k = ci - R; k <= ci + R; k++) { const e = colInfo[k]; if (!e) continue; if (e.top >= 0) { top = Math.max(top, e.top); bot = Math.min(bot, e.bot); } if (e.cor) cors++; }
-    n++; if (cors >= 3 && top >= 0 && (r > top + 1 || (r < bot - 1 && r > 1))) off++; }
+    for (let k = ci - R; k <= ci + R; k++) { const e = colInfo[k]; if (!e) continue; if (e.top >= 0) top = Math.max(top, e.top); if (e.bot < H) bot = Math.min(bot, e.bot); if (e.cor) cors++; }
+    n++; if (cors >= 3 && ((top >= 0 && r > top + 1) || (bot < H && r < bot - 1 && r > 1))) off++; }
   return n ? off / n : 0;
 }
 module.exports = { outside, outsideMap, file };
