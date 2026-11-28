@@ -107,6 +107,8 @@ function demonShapes() {
   return S;
 }
 // hand shapes -> GD objects, one group per part; o: upp, x0, y0 (where the frame's top-left goes), layer, ch0, groups {part: g}, all
+// STABLE API: tools/hellgate_ending.js (v3, PR 4) uses demonObjects(o) and its part names head, horn, jaw, eyes, glow.
+// Tell the ending thread before changing the signature or the names.
 function demonObjects(o) {
   const S = demonShapes(), out = { objects: [], channels: {} };
   const parts = [...new Set(S.map(s => s.part))];
