@@ -200,7 +200,7 @@ function parts(ctx, songT, o = {}) {
   // THE DEMON (v3 story): behind the doorway's dark, behind the rune seal, in front of the city
   const VOID = hid(g()), chVoid = ch(COL.void);
   out.push(D(211, C.x, C.y / 2, { ch: chVoid, z: "B3", zo: -90, sx: 2 * (RA - 8) / 30, sy: C.y / 30, groups: [VOID, ALL] }));
-  out.push(D(497, C.x, C.y, { ch: chVoid, z: "B3", zo: -90, s: 2 * (RA - 8) / 120, groups: [VOID, ALL] }));   // 497: a 120-unit disk
+  out.push(D(497, C.x, C.y, { ch: chVoid, z: "B3", zo: -90, s: 2 * (RA - 8) / 50, groups: [VOID, ALL] }));   // 497: a 50-unit disk
   const DEM = g(), dFace = hid(g()), dJaw = hid(g()), dEyes = hid(g()), dGlow = hid(g());
   const dm = require("./artlab.js").demonObjects({ upp: 0.5, x0: C.x - 75, y0: 178, layer: -1, ch0: 870, all: DEM, zo0: -60,
     groups: { head: dFace, horn: dFace, jaw: dJaw, eyes: dEyes, glow: dGlow } });
