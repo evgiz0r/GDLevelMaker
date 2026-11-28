@@ -5,7 +5,8 @@
 //   workbook reads its whole queue on EVERY wake, sent or not, with this tool.
 //   <dir>: an ArtifactData `list` out_dir with the page's note collections (designnotes, designmarks, designsecs, designdraw,
 //   genrating ...) and its answers (claudestatus). The newest revision per part (`part`, or `design` + `mid` for marks) is the
-//   note; it is OPEN when it is not empty and no claudestatus doc for that part, and no "<mid>-claudeseen" doc, is newer.
+//   note; it is OPEN when it is not empty and no claudestatus doc for that part, and no "<mid>-claudeseen" doc, is newer,
+//   and it is not deleted (fixed) or seen with a reply to its own text.
 //   Prints the open ones, oldest first; exit 1 when any is open. Steps: WORKBOOKS.md "Reading the queue".
 "use strict";
 const fs = require("fs"), path = require("path");
@@ -30,6 +31,8 @@ function open(db, o = {}) {
     const text = String(d.note || d.text || d.comment || "").trim(); if (!text && !o.all) continue;
     if (o.since && d.at < o.since) continue;
     if (d.mid && (seen.get(d.mid) || "") >= d.at) continue;
+    // a mark answered on itself: deleted (fixed), or seen with a reply to this same text
+    if (d.deleted || (d.seen && d.reply && (!d.sentNote || d.sentNote === d.note))) continue;
     const nk = norm(k), answered = ans.some(a => (a.at || "") >= d.at && a.part && (norm(a.part) === nk || nk.startsWith(norm(a.part) + ":") || norm(a.part).startsWith(nk)));
     if (answered) continue;
     out.push({ part: k, coll: d.coll, at: d.at, sent: !!(d.sentNote && d.sentNote === d.note) || !!d.sent, note: text });
