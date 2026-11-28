@@ -130,6 +130,20 @@ function demonObjects(o) {
   return out;
 }
 
+// the SVG dragon (art/src/dragon_body.svg + dragon_wing.svg via tools/svg2gd.js) -> GD objects with its wing as a part.
+// o: upp (0.7 = 9 blocks long), x0, y0 (frame top-left), layer, ch0 (8 channels from it), all (group), wing (group), hinge
+// (group of an invisible 211 at the wing root, the centre for a rotate trigger: flap = rotate wing +-34 deg about it).
+// ~173 body + 31 wing objects. Faces left (flies right to left); flipX it yourself by mirroring x around the frame.
+async function dragonObjects(o) {
+  const SV = require("./svg2gd.js"), upp = o.upp || 0.7, ch0 = o.ch0 || 850, z = o.layer ?? -1;
+  const vb = await SV.svgShapes(path.join(ROOT, "art", "src", "dragon_body.svg")), vw = await SV.svgShapes(path.join(ROOT, "art", "src", "dragon_wing.svg"));
+  const g = a => a.filter(Boolean);
+  const body = PF.toGD(vb.shapes, { upp, x0: o.x0, y0: o.y0, layer: z, ch0, k: 6, groups: g([o.all]), zo0: -40 });
+  const wing = PF.toGD(vw.shapes, { upp, x0: o.x0, y0: o.y0, layer: z, ch0: ch0 + 8, k: 3, groups: g([o.all, o.wing]), zo0: 40 });
+  const hinge = { id: 211, x: o.x0 + 160 * upp, y: o.y0 - 112 * upp, props: { 32: "0.01", 57: g([o.all, o.hinge]).join(".") } };
+  return { objects: [...body.objects, ...wing.objects, hinge], channels: { ...body.channels, ...wing.channels }, counts: { body: body.objects.length, wing: wing.objects.length } };
+}
+
 // ------------------------------------------------------------------ commands
 function cmdConvert(file, outDir) {
   fs.mkdirSync(outDir, { recursive: true });
@@ -289,4 +303,4 @@ if (require.main === module) {
   else if (cmd === "level") cmdLevel(path.resolve(opt("--out", path.join(ROOT, "levels", "lab", "gdlm_art_lab.gdlvl"))), opt("--src", path.join(ROOT, "local", "artlab"))).then(r => console.log(JSON.stringify(r, null, 1)));
   else { console.log(fs.readFileSync(__filename, "utf8").split("\n").filter(l => l.startsWith("//")).join("\n")); process.exit(1); }
 }
-module.exports = { sprite, fitSprite, drawBack, demonShapes, demonObjects };
+module.exports = { sprite, fitSprite, drawBack, demonShapes, demonObjects, dragonObjects };
