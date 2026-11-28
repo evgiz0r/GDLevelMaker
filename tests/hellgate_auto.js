@@ -12,3 +12,10 @@ assert.ok(s.mode === "cube" && s.sp === 1 && s.grav === 1 && !s.mini && s.onGrou
 assert.ok(/(^|,)kA13,178\.47(,|$)/.test(readGdlvl(out).level.header), "kA13 = 178.47");
 assert.ok(r.D.length >= 20, "dodges found: " + r.D.length);
 console.log(`ok: ${r.M.triggers} triggers, ${r.D.length} dodges, seam x ${s.x}`);
+// calm (Evgeni: "a bit junky in the auto as it jumps"): fewer small hops and gravity flips than the default build
+const { jank } = require("../tools/autojank.js"), outC = out.replace(".gdlvl", "_calm.gdlvl");
+const c = HA.build({ seed: 5, rate: 3, calm: 0.22, name: "GDLM test hellgate auto calm", out: outC, quiet: true });
+assert.ok(c.clears && c.M.samePath && c.M.seam.mode === "cube" && c.M.seam.onGround, "calm build clears and keeps the seam");
+const j0 = jank(readGdlvl(out).level, { from: 2.2 }), j1 = jank(readGdlvl(outC).level, { from: 2.2 });
+assert.ok(j1.hopsPerS < j0.hopsPerS * 0.6 && j1.flipsPerS < j0.flipsPerS * 0.5, `calm: hops ${j0.hopsPerS} -> ${j1.hopsPerS}, flips ${j0.flipsPerS} -> ${j1.flipsPerS}`);
+console.log(`ok calm: hops/s ${j0.hopsPerS} -> ${j1.hopsPerS}, flips/s ${j0.flipsPerS} -> ${j1.flipsPerS}`);

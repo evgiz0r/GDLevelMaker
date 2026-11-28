@@ -548,6 +548,12 @@ function sectionBatch(c, prev, r, t) {
   return { low, mid, top, icons, t, first: true, fly, rapid, section: c.type };
 }
 
+// CALM (Evgeni on Hellgate's auto, 2026-11-28: "its a bit junky in the auto as it jumps"): opts.calm = no rapid runs, notes at
+// least opts.calm s apart (0.3 when just true; 0.17 without calm) and the loudest bars at most 2.5x the mean share (not 4.5x).
+// Measured by tools/autojank.js on Hellgate's auto (seed 5, calm 0.22): small hops 0.69 -> 0.26 a second, gravity flips
+// 1.17 -> 0.23, the same turns a second in longer arcs (2.7 -> 4.3 rows). Swapping the batches' flips for pads was tried and
+// dropped: flips went to 0 but the pads made more turns (1.9 -> 2.4 a second).
+
 // ---------------------------------------------------------------- the builder
 function build(opts = {}) {
   REJ.band = REJ.spider = REJ.clip = 0;
@@ -560,6 +566,7 @@ function build(opts = {}) {
   const lastBeat = Math.min(g.beats - 6, opts.beats != null ? (opts.from || 4) + opts.beats : g.beats - 6);
   if (opts.music === undefined) opts.music = musicOf(song);   // the song's notes when they are measured, else the beat grid
   if (off && opts.music && !opts.music.offset) opts.music = shiftMusic(opts.music, off);
+  if (opts.calm) { if (opts.rapid === undefined) opts.rapid = false; if (opts.minGap === undefined) opts.minGap = +opts.calm > 0.1 ? +opts.calm : 0.3; if (opts.rateHigh === undefined) opts.rateHigh = 2.5; }
   const plan = opts.music ? notePlan(g, opts.music, opts.from || 4, lastBeat, opts) : triggerBeats(g, opts.from || 4, lastBeat);
   const st = { objs: [], segs: [], r, lastMode: null, airSlopes: !!opts.airSlopes };
   const farX = () => 20000 + (plan.length ? 0 : 0);   // far enough for any song at 3x: replaced by the real end at the end
