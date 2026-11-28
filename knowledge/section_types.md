@@ -477,3 +477,7 @@ Evgeni 2026-11-27 ("lets remind ourselves more idea for sections, bit tired desi
   (held past the whole boost) 35% easy to 50% harder, else short / middle; the next platform where the replayed arc comes
   down through a row within 4 of the last; spike floor under it. 60 cols: 5-7 jumps, all plans clear. The browser 🎲 has no
   replay, so it gets a plain floor there.
+- **Flappy reverse** (Evgeni 2026-11-28: "need revesre in flappy"): `reverse: true` (else 40% of seeds): the piece turned
+  upside down under a ceiling row, a 6-column run-in with a gravity portal on the ground; 8 of 8 seeds clear on their own
+  seed. gencheck: robot platforms shows `outside` 75% -- its route flies over floating platforms with open sky above by
+  design (his drawing), not a skip.

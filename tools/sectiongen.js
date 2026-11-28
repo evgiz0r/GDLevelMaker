@@ -747,7 +747,18 @@ CONCEPT.flappy = "pipe pairs from floor and ceiling; the gap's height walks up a
 // Up to the band's 10 rows; taller maps use the shape-first version (its hidden U portals).
 function ufoStep(st, tap) { if (tap && st.vy < 7) st.vy = 7; const falling = st.vy <= 2 * SHIP.g;
   st.vy = Math.round((st.vy - (falling ? 0.4 : 0.6) * SHIP.g * SHIP.DTS) * 1000) / 1000; st.vy = clamp(st.vy, SHIP.DOWN, SHIP.UP); st.y += st.vy * SHIP.DTS; }
-GEN.flappy = o => { const { R, imix, room, len, chance, W, H, G, mix, style, onBeat, entry } = ctx(o, 10), gh = room(5, 3);
+// REVERSE (Evgeni 2026-11-28, on the catalogue: "need revesre in flappy"): o.reverse true / false, else 40% of seeds. The
+// piece is made 6 columns shorter and turned upside down (rows mirrored, ^ <-> v), a ceiling row over it, and in front of
+// it a gravity portal on the ground the ufo flies through, so it plays the mirrored plan hanging from the roof; make()'s
+// replay keeps only seeds whose plan clears that way.
+GEN.flappy = o => { const W0 = o.cols ?? 48, rev = o.reverse != null ? !!o.reverse : rng(((o.seed ?? 1) * 6151 + 3) >>> 0)() < 0.4;
+  const PF = 6; if (!rev || W0 < 20 || (o.rows ?? 10) > 10) return flappyUp(o);
+  const z = flappyUp(Object.assign({}, o, { cols: W0 - PF, entry: 0 })), H = z.map.length, sw = { "^": "v", "v": "^" };
+  const body = z.map.slice().reverse().map(l => [...l].map(ch => sw[ch] || ch).join(""));
+  const map = ["#".repeat(W0)].concat(body.map((l, i) => (i === H - 2 ? ".G" + ".".repeat(PF - 2) : i === H - 1 ? "#".repeat(PF) : ".".repeat(PF)) + l));
+  return { map, mode: "ufo", presses: z.presses.map(c => +(c + PF).toFixed(4)), reverse: true,
+    path: (z.path || []).map(([c, r]) => [+(c + PF).toFixed(2), +(H - 1 - r).toFixed(2)]) }; };
+function flappyUp(o) { const { R, imix, room, len, chance, W, H, G, mix, style, onBeat, entry } = ctx(o, 10), gh = room(5, 3);
   // taller than the band (Evgeni 2026-11-28: "try to extend the generators to use full height when possible"): GD keeps a
   // ufo in a 10-row band, so where the planned path comes within 2 rows of the band's edge a U (a ufo portal in a ufo: the
   // band set again around it, lib/physics.js) goes on the path itself, in the gap the poles are fitted around
@@ -782,7 +793,7 @@ GEN.flappy = o => { const { R, imix, room, len, chance, W, H, G, mix, style, onB
     c += pw + len(room(5, 3), room(7, 4)); }
   for (const v of movers) G.put(v.c, v.r, "U");
   // a spike tip replaces the pole's top block, so the gap stays as fitted (the block under it carries it)
-  return { map: G.rows(), mode: "ufo", presses: taps, path: (() => { const p = []; for (let t = 0; t < ys.length; t += 8) p.push([+(t / TPC).toFixed(2), +(ys[t] / 30 - 0.5).toFixed(2)]); return p; })() }; };
+  return { map: G.rows(), mode: "ufo", presses: taps, path: (() => { const p = []; for (let t = 0; t < ys.length; t += 8) p.push([+(t / TPC).toFixed(2), +(ys[t] / 30 - 0.5).toFixed(2)]); return p; })() }; }
 // the shape-first flappy (taller than the band: its hidden U portals)
 const flappyShape = o => { const { R, imix, room, len, chance, W, H, G } = ctx(o, 10), gh = room(5, 3), next = tour(R, 1, H - gh); let g = R.int(2, 4);
   G.box(0, W - 1, 0, 0);
@@ -1569,6 +1580,7 @@ function unhold(key, r, LC, drop = -1, drop2 = -1) { const q = (z, o) => { const
 function make(key, opts = {}) { const g = GEN[key]; if (!g) throw new Error("no generator for " + key + " (have " + KEYS.join(", ") + ")");
   const o = {}; for (const k of ["cols", "rows", "seed", "bpm", "beatCols", "speed", "entry", "gap"]) if (opts[k] != null) o[k] = +opts[k];
   if (Array.isArray(opts.beats)) o.beats = opts.beats;   // a song's beats in the section (seconds, or {t, s})
+  if (opts.reverse != null) o.reverse = opts.reverse === true || opts.reverse === "true" || opts.reverse === 1;   // upside down (flappy so far)
   if (opts.tier != null) o.tier = isNaN(+opts.tier) ? opts.tier : +opts.tier;
   // NEVER A DYING PIECE (Evgeni 2026-11-28: "any failing generation of physics is obviously a bug"): in node every
   // presses-first piece is replayed in lib/physics.js (layoutcheck planCheck, inside its joins, ~0.3-1 s) and, if its plan
