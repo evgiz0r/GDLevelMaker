@@ -129,8 +129,12 @@ window.initDesigns = async function (root) {
   const putRev = m => DB.collection("designmarks").doc(m.mid + "-" + Date.now().toString(36)).set(Object.assign({}, m, { at: new Date().toISOString() }));
   const latest = docs => { const by = new Map(); for (const d of docs) { if (!d || !d.mid) continue; const o = by.get(d.mid); if (!o || String(d.at) >= String(o.at)) by.set(d.mid, d); }
     return [...by.values()].filter(d => !d.deleted); };
+  // SENT STAMPS by mark id (Evgeni 2026-11-28: "it says sending 4, but it drops only to 3 new"): the first mark's save
+  // brings a db snapshot that REPLACES the MARKS list, so the stamps set on the old objects were lost for every mark after
+  // the first and they were sent again and again. The stamp now lives here and is put on whatever object is current.
+  const SENTM = {};
   async function saveMark(mid) {
-    const m = MARKS.find(z => z.mid === mid); if (!m) return;
+    const m = MARKS.find(z => z.mid === mid); if (!m) return; if (SENTM[mid]) Object.assign(m, SENTM[mid]);
     if (PEND[mid] !== undefined) m.note = PEND[mid].trim();
     m.at = new Date().toISOString(); const want = m.note;
     const st = root.querySelector(`[data-m="${mid}"] .mst`);
@@ -608,7 +612,9 @@ window.initDesigns = async function (root) {
       lastKey = Date.now(); cue(); return false; }
     LAST = new Date().toISOString(); try { if (DB) await DB.collection("designsend").doc("s-" + Date.now().toString(36)).set({ at: LAST }); } catch (x) {}
     for (const q of nts) NST[q[0]] = "sent";
-    for (const m of ms) { PEND[m.mid] = noteOf(m); m.sentNote = noteOf(m).trim(); m.sent = new Date().toISOString(); await saveMark(m.mid); }
+    const now = new Date().toISOString();
+    for (const m of ms) { PEND[m.mid] = noteOf(m); SENTM[m.mid] = { sentNote: noteOf(m).trim(), sent: now }; Object.assign(m, SENTM[m.mid]); }
+    for (const m of ms) await saveMark(m.mid);
     say("sent " + n + " to Claude " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })); render(); return true;
   }
   // the top 📨 beside ⟳ (tools/snippets/refresh.html calls window.rfBeforeReload before it reloads)
@@ -927,6 +933,7 @@ window.initDesigns = async function (root) {
     if (DB) DB.collection("designmarks").onSnapshot(snap => {
       const local = MARKS.filter(m => MST[m.mid] !== "saved" && !m.seen);
       MARKS = latest(snap.docs.map(d => JSON.parse(JSON.stringify(d.data()))));
+      for (const m of MARKS) if (SENTM[m.mid] && !(m.sent >= SENTM[m.mid].sent)) Object.assign(m, SENTM[m.mid]);
       for (const m of local) if (!MARKS.some(z => z.mid === m.mid)) MARKS.push(m);
       if (!root.contains(document.activeElement) || !/INPUT|TEXTAREA/.test(document.activeElement.tagName)) render();
     }, () => {});
