@@ -554,6 +554,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 - **`tools/judge.js` -- the judge: Evgeni-style notes pinned to spots** (few clicks in a section, gaps, a corridor too long or
   shaped like an earlier one, no variety, an orb with no reason, too easy), from a level's saved route; `--vs <marks.json>` compares
   them with his marks (tests/judge.js: 11 of his 13 v4 Hellgate marks, `knowledge/judge/`). Run it on every build before he sees it.
+- **Visual judge trial** (knowledge/visual_judge.md): `tools/shoot.js --trail --label` (the route drawn on each frame) + `tools/contactsheet.py` (3x3 sheets) -> a vision model's review; GDLM 78: Haiku and Sonnet each found 3 of Evgeni's 7 picture-visible notes, missed the path bug and indicators; Haiku ~$0.001 a review.
 - **`tools/report.js <level>` -- the judge report** (Evgeni, 2026-11-26: "not too big, with scores"): one short card --
   Layout 0-10 (balance of sections and pieces, modes -- cube share and upside down --, transitions, rests, flow, variety, pacing, clarity, ending; made stricter 2026-11-26 after Evgeni: "the judge seems to be too nice"), difficulty, unfair spots, taste, deco (later), the top 5
   notes; `--geo <map>.geo.json` (levelmap.js writes it beside each map) pins the notes on the level map. Run it on every build.
