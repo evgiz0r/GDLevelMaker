@@ -27,7 +27,7 @@
 "use strict";
 const fs = require("fs"), path = require("path");
 const ROOT = path.join(__dirname, "..");
-const SG = require("./sectiongen.js"), LS = require("./layoutsections.js"), SJ = require("../lib/scenejoin.js");
+const OU = require("./outside.js"), SG = require("./sectiongen.js"), LS = require("./layoutsections.js"), SJ = require("../lib/scenejoin.js");
 const APRON = 5, HAZ = new Set(["^", "v", "o", "q", "s"]);   // hazard letters of the section maps (tools/layoutsections.js)
 const BPS = { "0.5x": 8.372, "1x": 10.386, "2x": 12.914, "3x": 15.6, "4x": 19.2 };   // blocks a second (planbuild.js)
 const PORTAL = { cube: "cube portal", ship: "ship portal", wave: "wave portal", ufo: "ufo portal", ball: "ball portal", swing: "swing portal", robot: "robot portal", spider: "spider portal" };
@@ -36,9 +36,9 @@ const FLY = new Set(["ship", "wave", "swing", "ufo"]);
 // which types a mode can take, by the song section's kind (first = preferred); cube-ud = a cube type with its gravity pair
 const TYPES = {
   cube: { break: ["staircase", "opencube", "my-mwz1637w"], build: ["my-mwz1637w", "staircase", "closecube"], groove: ["closecube", "opencube", "staircase"],
-    entry: ["opencube", "closecube"], drop: ["closecube", "my-mwz1637w"] },
+    entry: ["opencube", "my-mwz2haf0", "closecube"], drop: ["closecube", "my-mwz1637w", "my-mwz2haf0"] },
   "cube-ud": { any: ["closecube", "my-mwz1637w"] },
-  ship: { drop: ["fly", "my-mwz1s7po"], any: ["my-mwz1s7po", "fly"] }, wave: { any: ["wave"] }, ufo: { any: ["flappy"] }, ball: { any: ["ball"] },
+  ship: { drop: ["fly", "my-mwz1s7po"], any: ["my-mwz1s7po", "fly"] }, wave: { any: ["wave"] }, ufo: { any: ["flappy"] }, ball: { any: ["ball", "my-mwz8kaem"] }, spider: { any: ["my-mwz7nxue"] },
   swing: { any: ["my-mwz1890c"] },
 };
 // the generators' presses a second run under the ~2 cps the levels need (Evgeni: "not so sparse"; the first GDLM 76 pass at
@@ -125,14 +125,22 @@ function build(brief, o = {}) {
     for (let k = 0; k < nSeeds; k++) {
       const seed = s.seed != null ? s.seed + k : seed0 * 100 + s.i * 10 + k;
       const gen = W => { const z = SG.make(s.type, { cols: Math.max(16, Math.round(W)), seed, tier: s.tier, beatCols, speed: BPS[s.speed] / BPS["1x"] });
-        if (s.mode === "cube-ud" && !z.map.some(l => /G/.test(l))) return null; return z; };
+        if (s.mode === "cube-ud" && !z.map.some(l => /G/.test(l))) {   // upside down needs a G portal inside: another flipping type
+          for (const k2 of ["my-mwz1637w", "staircase", "closecube"]) { if (k2 === s.type) continue;
+            const z2 = SG.make(k2, { cols: Math.max(16, Math.round(W)), seed, tier: s.tier, beatCols, speed: BPS[s.speed] / BPS["1x"] });
+            if (z2.map.some(l => /G/.test(l))) { s.type = k2; return z2; } }
+          return k > 1 ? z : null; }   // none flips at this length: the plain cube after a few tries
+        return z; };
       let z = gen(endCol - col - 4); if (!z) continue;
       const cur = { T: tilesOf(z.map), w: z.map[0].length, h: z.map.length };
       const jn = prev ? joinPad(prev.cur, cur).n : 0;
       z = gen(endCol - col - jn); if (!z) continue;
       if (o.dry) { best = { z, c: { ok: null, presses: 0 }, seed }; break; }
       const c = LC.check(z);
-      const score = c.ok ? 100 + c.presses - (c.tight && c.tight[0] && c.tight[0].ms < 60 ? 50 : 0) : -1;
+      // a seed whose own solve flies over or under its structure is a secret way (Evgeni 2026-11-28): scored down by the share
+      const around = c.ok ? OU.outsideMap(z.map, c.route) : 0;
+      const score = c.ok ? 100 + c.presses - (c.tight && c.tight[0] && c.tight[0].ms < 60 ? 50 : 0) - Math.round(around * 300) : -1;
+      if (around > 0.05) console.log(`   s${s.i} seed ${seed}: the solve flies around the structure for ${Math.round(around * 100)}% of the way`);
       console.log(`   s${s.i} ${s.type} seed ${seed}: ` + (c.ok ? `solves, ${c.presses} presses, ${c.label}${c.tight[0] ? ", tightest " + c.tight[0].ms + " ms" : ""}` : `no (${c.why} at col ${c.dieCol})`));
       if (!best || score > best.score) best = { z, c, seed, score };
       if (c.ok && (s.seed != null || k >= 2) && best.score >= 100) break;
@@ -226,7 +234,10 @@ if (require.main === module) {
     const lv = "levels/" + require("./make.js").slug(brief.name) + ".gdlvl";
     if (m.status !== 0 || !fs.existsSync(path.join(ROOT, lv))) { console.log("!! make did not finish: no judge report"); process.exit(1); }
     const rep = run(["tools/report.js", lv], "judge");
-    fs.writeFileSync(path.join(ROOT, lv.replace(/\.gdlvl$/, ".report.txt")), rep.stdout || "");
+    // secret ways (Evgeni 2026-11-28: "be careful for secret ways and skipping the structures ( in wave for example )"):
+    // a portal the route never takes (tools/skips.js), a stretch flown over or under a corridor (tools/outside.js)
+    const sk = run(["tools/skips.js", lv], "skipped portals"), ou = run(["tools/outside.js", lv], "flown around");
+    fs.writeFileSync(path.join(ROOT, lv.replace(/\.gdlvl$/, ".report.txt")), (rep.stdout || "") + "Secret ways: " + (sk.stdout || "").trim() + "; " + (ou.stdout || "").trim() + "\n");
     console.log("\n-> " + lv + " + " + lv.replace(/\.gdlvl$/, ".report.txt"));
   }
 }

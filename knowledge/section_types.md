@@ -108,6 +108,10 @@ type, so a builder can make a new one of any length, synced to the song, and so 
   beats each orb takes the tick of its arc nearest a beat, a landing's jump-off goes on a beat. Every plan clears, every
   press needed, holding clears none; on half beats 94% at 140 bpm, 63-74% at 120 / 175 (a cube orb jump lasts ~0.43 s,
   two half beats at 140, so an arc can only carry an orb onto some beats).
+  A landing reversed on the ceiling is taken only when the jump off its end reaches a flip orb (Evgeni 2026-11-28: "some
+  of the orb generations end on the floor death": a ceiling landing near the top bar left an arc too shallow for any orb,
+  the plan ended reversed and the cube rode back into the hanging spikes; 6 of 144 plans). 192/192 and 144/144 at 140 bpm
+  clear now (30-120 columns, 14-24 rows).
   Spider (my-mwz7nxue, 2026-11-27, rebuilt; the rollers-based one is gone): taps on the rhythm (or beat), each with a
   window of `win` columns (2.4 easy -> 1.0 harder) and its two surfaces built from it: the one left ends where a late tap
   walks the spider off (its box past the last block), the one teleported to starts where an early tap finds nothing above
@@ -157,9 +161,10 @@ type, so a builder can make a new one of any length, synced to the song, and so 
   first 3 columns, up to row 4). Over 12 seeds a 20-row map comes in at 5-10 heights (tests/sectiongen.js "entry"); every
   plan still clears (30-200 cols). Not moved: the entrance (it starts the level), swing (the board thread's), the
   shape-first fallbacks and flying on the grounds.
-  Two joins changed with it: lib/scenejoin.js ends a climb 4 columns before a mode portal (a cube leaving a 45-degree
-  slope is launched up for ~3 columns and met the portal still rising: a ship planned from rest flew 1-3 rows off its
-  plan), and tools/layoutcheck.js's planCheck now builds the join in front as a level does, the mode portal in its gated
+  Two joins changed with it: lib/scenejoin.js ends a climb 4 columns before a portal into a flying mode (ship, wave,
+  ufo, swing: a cube leaving a 45-degree slope is launched up for ~3 columns and met the portal still rising: a ship
+  planned from rest flew 1-3 rows off its plan; into ball / spider / robot / cube it is the plain ramp again, since the
+  longer joins moved the theme gallery's layout and it stopped clearing, 2026-11-28), and tools/layoutcheck.js's planCheck now builds the join in front as a level does, the mode portal in its gated
   last column (it stood before the join, so a ball rode a tall ramp and died there). tracePath knows the ball's and the
   spider's band edges (within 0.1 rows of the sim).
 - **Open idea: mixing variants inside one type** (Evgeni 2026-11-27, for later: "eventually we might want to make the
@@ -360,6 +365,15 @@ which the sim does not have yet (PHYSICS.md open).
 - **Cube types and wave at 2x rows** (2026-11-27): closecube's corridor steps a row up or down every 8-14 columns,
   wandering the map (80x16: 88-89%, was fixed at 5 rows); opencube climbs up to (rows - 2) / 2 platforms (80x16: 73-87%);
   staircase scales by itself (80x18: 50-82%); wave over 13 rows gets hidden A portals (80x20: 79-92%). All solve.
+- **Flappy taller than 10 rows, presses first** (2026-11-28, Evgeni: "try to extend the generators to use full height when
+  possible"): the taps' tour now spans the whole map; where the planned path comes within 2 rows of the ufo's 10-row band
+  edge a U (ufo portal in a ufo, the band set again) goes on the path itself, so the poles' gap holds it. 24/24 plans clear
+  at 14, 20 and 24 rows (40 and 80 cols); the path spans 8-12 rows at 14, up to 17 at 20, up to 21 at 24 (80 cols). The old
+  shape-first version is `shape: true`.
+- **Out of a flying section into a gated portal** (2026-11-28, lib/scenejoin.js): a section that ends flying in the open
+  (no floor or ceiling at its exit, e.g. the tall swing's saw corridor 14 rows up) gets a descent in the join from its exit
+  corridor's middle to the mouth, 1.5 columns a row, with a band mover of its mode (R swing, H ship, U ufo, A wave) every 3
+  rows. The theme gallery clears again with it (107 presses).
 - **A minimum length per type** (Evgeni: some need room for real play, robot and orbs).
 - Height at 1.5x rows, 60 cols (easy/harder, 2 seeds): wave 93%, fly 76%, ship corridor 80%, staircase 85%, closecube 80%,
   ball 75%, spider 67%, opencube 68%, flappy 60%, orbs 55%. The cube types need their climbs scaled to the taller map.
