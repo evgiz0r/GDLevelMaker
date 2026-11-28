@@ -136,7 +136,7 @@ function build(brief, o = {}) {
       const jn = prev ? joinPad(prev.cur, cur).n : 0;
       z = gen(endCol - col - jn); if (!z) continue;
       if (o.dry) { best = { z, c: { ok: null, presses: 0 }, seed }; break; }
-      const c = LC.check(z);
+      z.speedName = s.speed; const c = LC.check(z);   // checked at its own speed, not 1x
       // a seed whose own solve flies over or under its structure is a secret way (Evgeni 2026-11-28): scored down by the share
       const around = c.ok ? OU.outsideMap(z.map, c.route) : 0;
       const score = c.ok ? 100 + c.presses - (c.tight && c.tight[0] && c.tight[0].ms < 60 ? 50 : 0) - Math.round(around * 300) : -1;
