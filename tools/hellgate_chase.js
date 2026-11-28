@@ -11,7 +11,8 @@
 //        runTo: the legs stop at this level second (default t1); z: layers per demon (default ["B1", "B2"]).
 //   kit.dragons(ctx, { t0, t1, n, y })                         -> { objects, groups, mouth(i, t) }   dragons flying with the
 //        player in the sky (default y 235 = top of the art), flapping; mouth(i, t) = the world point of dragon i's mouth at t.
-//   kit.attack(ctx, { t, at: {x, y}, from: {x, y}, flight, size }) -> objects   a fireball from `from` (world, at launch
+//   kit.attack(ctx, { t, at: {x, y}, from: {x, y}, flight, size }) -> objects   (flight default 1.1 s: Evgeni 2026-11-28, 0.5 was
+//        "too fast") a fireball from `from` (world, at launch
 //        t - flight) to `at` (world) landing at t, bursting there. Aim `at` where the run WOULD have been without its dodge.
 //   kit.header(h)  -> h with the kit's colour channels (call once, after everything is built); kit({ tint: rgb => rgb }) recolours them
 //   ctx: tools/effects.js FX.context (xAt(t), path); groups g0.. and channels ch0.. are the kit's (the auto part and the ending
@@ -110,7 +111,7 @@ function kit(o = {}) {
   };
 
   kitObj.attack = (ctx, p) => {
-    const out = [], fl = p.flight ?? 0.5, tl = p.t - fl, s = p.size ?? 1, gF = grp(), gB = grp();
+    const out = [], fl = p.flight ?? 1.1, tl = p.t - fl, s = p.size ?? 1, gF = grp(), gB = grp();
     const from = p.from, at = p.at, Z = p.z || "T1";   // p.z: a background shot (livescene.js) flies behind the play
     out.push(D(1764, from.x, from.y, { ch: C.fire, z: Z, zo: 1, s: 1.1 * s, groups: [gF] }));
     out.push(D(497, from.x, from.y, { ch: C.core, z: Z, zo: 2, s: 0.12 * s, groups: [gF] }));

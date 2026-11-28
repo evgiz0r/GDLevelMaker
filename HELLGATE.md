@@ -54,6 +54,11 @@ slot keeps the uploaded version until he says to update it.
   big hit): the doors slam shut over the player, a hot seam, one sky flash, the stage thuds -> the gate dims into black, the
   quiet sign. Move / rotate / alpha / colour only, all locked to the player's x (move 58) so the stage stays on the screen;
   603 objects, 351 triggers, 61 groups. Test: `node tests/hellgate_ending.js`.
+  **v5, the dodges and slower fire** (Evgeni on v4's video: "but its withou the jumpts"; "i want the shots to be slower, they
+  are too fast now"): every shot (7, on the strong notes k4-27) now lands where the player is, and a pink pad (140) 35 units
+  before it hops him 55 units up, at the top of the hop as it lands -- the "auto gameplay that avoids those things" of his
+  script; still no press. Shots fly 1.1 s (were 0.45-0.55; the kit's default is 1.1 now, for the auto part too).
+  Test: the player is >40 units up at every landing.
   **v4, the chase** (Evgeni: "we are running, and some demons are chasing us. shooting at us, throwing fire or whatever,
   dragons above flying. we avoid by some auto gameplay that avoid those things. and then on the beat we pass the gate, and
   it closes on them"). Script, beat by beat (k = beat from 215.43 s, 0.414 s each): k0 three demons burst in from the left

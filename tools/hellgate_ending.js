@@ -58,6 +58,15 @@ const COL = {
   soul: [255, 210, 190], eyeR: [255, 60, 20], ash: [120, 110, 115],
 };
 
+// the fire (Evgeni's script: "we avoid by some auto gameplay"): a shot on the strong notes, at most one per 1.9 beats;
+// v5: each shot lands where the player is, and a pink pad under him (PAD_LEAD units before) hops him over it, at the top of
+// the hop when it lands. Shots fly FLIGHT s (Evgeni on v4: "i want the shots to be slower, they are too fast now": 0.45-0.55 -> 1.1)
+const FLIGHT = 1.1, PAD = 140, PAD_LEAD = 35;    // pink pad: a 55-unit hop, 0.4 s in the air, top ~35 units past the pad
+function fireTimes() {
+  const ts = []; let lastF = -9;
+  for (const [t, st] of NOTES.notes) if (t >= beatS(4) && t < beatS(27) && st >= 0.8 && t - lastF > NOTES.period * 1.9) { lastF = t; ts.push(t); }
+  return ts;
+}
 let kitHeader = h => h;   // the chase kit's colour channels (850+), set by parts(), into the header by build()
 // The show: songT(s) = level seconds of song second s; ctx from FX.context on the level's run.
 function parts(ctx, songT, o = {}) {
@@ -319,15 +328,16 @@ function parts(ctx, songT, o = {}) {
   for (const gd of dr.groups) out.push(FX.T.alpha(xs(214.0), gd, 0, 0), FX.T.move(xs(214.0), gd, -300, 80, 0),
     FX.T.alpha(xs(beatS(2)), gd, 1, 0.3), FX.T.move(xs(beatS(2)), gd, 300, -80, 1.8, FX.E.sineOut));     // they swoop in from the top left
   dr.groups.forEach((gd, i) => out.push(FX.T.move(xs(SLAM + 0.3 + i * 0.2), gd, 420, 160, 1.2, 11)));   // and climb away after the slam
-  // fire: the dragons breathe it down and the lead demon hurls it, on the strong notes -- each lands just behind the player
-  let fires = 0, lastF = -9, fi = 0;
-  for (const [t, st] of NOTES.notes) if (t >= beatS(4) && t < beatS(27) && st >= 0.8 && t - lastF > NOTES.period * 1.9) {
-    lastF = t; fires++;
-    const lt = songT(t), who = fi++ % 3, fl = who < 2 ? 0.55 : 0.45;
+  // fire: the dragons breathe it down and the lead demon hurls it, on the strong notes -- each lands where the player is,
+  // and the pad build() put there hops him over it
+  let fires = 0, fi = 0;
+  for (const t of fireTimes()) {
+    fires++;
+    const lt = songT(t), who = fi++ % 3, fl = FLIGHT;
     const from = who < 2 ? dr.mouth(who, lt - fl) : { x: ctx.xAt(lt - fl) - 125 + 30, y: 55 };
-    out.push(...kit.attack(ctx, { t: lt, flight: fl, from, at: { x: ctx.xAt(lt) - 30 - R() * 50, y: 6 }, size: who < 2 ? 1 : 0.8 }));
+    out.push(...kit.attack(ctx, { t: lt, flight: fl, from, at: { x: ctx.xAt(lt), y: 6 }, size: who < 2 ? 1 : 0.8 }));
   }
-  log.push(`CHASE 3 demons running ${beatS(0).toFixed(2)}-${SLAM} s, 2 dragons ${(215).toFixed(1)}-${(SLAM + 1.8).toFixed(2)} s, ${fires} fireballs landing just behind the player on strong notes; the bars come down on the demons at ${SLAM} s`);
+  log.push(`CHASE 3 demons running ${beatS(0).toFixed(2)}-${SLAM} s, 2 dragons ${(215).toFixed(1)}-${(SLAM + 1.8).toFixed(2)} s, ${fires} fireballs (${FLIGHT} s flights) the player hops over on pads; the bars come down on the demons at ${SLAM} s`);
 
   // ash falls through F
   const chAsh = ch(COL.ash, { opacity: 0.8 });
@@ -385,6 +395,9 @@ function build(o = {}) {
     1013: { rgb: [44, 16, 44] }, 1014: { rgb: [30, 10, 30] } });   // the middleground hills: hellgate dark, not GD's default lavender
   const endX = (songTo - from) * 311.58;          // flat ground at 1x; the level ends after the song is silent
   const end = [{ id: 1764, x: endX, y: 1500, rot: 0, props: {} }];
+  // the dodges: a pink pad under each shot's landing (x from the flat run, 1x: the path before any pad is the same)
+  const flat = runOf(header, end).path, xFlat = t => flat[Math.min(flat.length - 1, Math.round(t * TPS))].x;
+  for (const t of fireTimes()) end.push({ id: PAD, x: +(xFlat(songT(t)) - PAD_LEAD).toFixed(2), y: 2, rot: 0, props: {} });
   const base = runOf(header, end);
   if (base.dead) throw new Error("the empty run dies: " + base.why);
   const ctx = FX.context({ path: base.path, grid: { t0: NOTES.t0 - from, period: NOTES.period } });
@@ -403,7 +416,7 @@ function build(o = {}) {
   return { header, objects: objs, measures, log: show.log };
 }
 
-module.exports = { build, parts, beatS, SLAM };
+module.exports = { build, parts, beatS, SLAM, fireTimes, FLIGHT };
 
 if (require.main === module) {
   const a = process.argv.slice(2), opt = k => { const i = a.indexOf(k); return i >= 0 ? a[i + 1] : null; };
@@ -417,5 +430,5 @@ if (require.main === module) {
   if (r.measures.clears) require("./planned.js").writeAuto(out, "tools/hellgate_ending.js: no gameplay, clears with no press");
   if (!a.includes("--quiet")) console.log(r.log.join("\n"));
   console.log(JSON.stringify(r.measures));
-  console.log(`${r.measures.clears && !r.measures.showChangesRun ? "CLEARS, the show leaves the run unchanged" : "PROBLEM"} -> ${path.relative(ROOT, out)}`);
+  console.log(`${r.measures.clears && !r.measures.showChangesRun ? "CLEARS with no press (pads hop the player over the fire), the show leaves the run unchanged" : "PROBLEM"} -> ${path.relative(ROOT, out)}`);
 }
