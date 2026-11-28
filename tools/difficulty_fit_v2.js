@@ -46,27 +46,34 @@ function load() {
     if (!fs.existsSync(f)) { console.error(`no ${path.relative(R, f)}: run tools/difficulty.js on the PC`); continue; }
     const acts = JSON.parse(fs.readFileSync(f, "utf8")).actions;
     const jump = [], flyN = acts.filter(a => FLY.has(a.mode)).length;
-    let fixed = 0;
+    let settle = 0;
+    const flyMs = {};   // flying presses' windows by mode (scored only by w.FLYT: the wave's are not "fake", 2026-11-28)
     for (const a of acts) {
-      fixed += lg(1 - D.LAPSE);
-      if (FLY.has(a.mode)) continue;
+      if (FLY.has(a.mode)) { (flyMs[a.mode] = flyMs[a.mode] || []).push(a.ms); continue; }
       const opensBefore = a.afterSwitchMs !== null && a.afterSwitchMs !== undefined && a.ms > a.afterSwitchMs + 1;
-      if (!(opensBefore || DF.lateOpenOf(a))) fixed += lg(DF.settleOf(a));
+      if (!(opensBefore || DF.lateOpenOf(a))) settle += lg(DF.settleOf(a));
       jump.push(a.ms);
     }
     // the dual count splits into plain and asymmetric from the cost at the assumed 0.05 / 0.10
     const c1 = lg(1 - 0.05), c2 = lg(1 - 0.10), nAsym = Math.max(0, Math.round((m.dual - m.dualPresses * c1) / (c2 - c1)));
-    out.push({ n: m.n, name: NAME[m.n], fixed, jump, nPress: acts.length, flyN, grav: m.gravPresses, dual: m.dualPresses - nAsym, asym: nAsym,
+    out.push({ n: m.n, name: NAME[m.n], settle, jump, flyMs, seconds: JSON.parse(fs.readFileSync(f, "utf8")).seconds, nPress: acts.length, flyN, grav: m.gravPresses, dual: m.dualPresses - nAsym, asym: nAsym,
       fly: cleanFly(m.flyRaw), flyRaw: m.flyRaw, rank: rank[m.n], stars: STARS[m.n], att: us[m.n] ? us[m.n].attempts : null, v1: m.score, v2: m.v2 });
   }
   return out;
 }
 
+// w.LAPSE: the slip chance per press (default D.LAPSE); w.FLYLAPSE false = flying presses pay no slip (their flight is
+// scored per second by the flight room, and how many presses a route flies with is the route's choice, not the level's)
 function scoreOf(L, w) {
-  let s = L.fixed;
+  const lapse = lg(1 - (w.LAPSE === undefined ? D.LAPSE : w.LAPSE));
+  // w.FLYSEC: slips per flown second instead (route-independent: a route may fly one stretch with 2 or 8 presses)
+  const flySec = L.flySec !== undefined ? L.flySec : (L.flySec = L.flyRaw.reduce((t, f) => t + f[3] / 60, 0));
+  let s = L.settle + lapse * (L.jump.length + (w.FLYLAPSE === false ? 0 : L.flyN) + (w.FLYSEC || 0) * flySec);
   if (w.timing !== false) for (const ms of L.jump) s += lg(erf(ms / 2 / (w.SIGMA * Math.SQRT2)));
   s += L.grav * lg(1 - w.GRAV) + L.dual * lg(1 - w.DUAL) + L.asym * lg(1 - Math.min(0.9, 2 * w.DUAL));
   if (w.FLY) s += flyCost(L.fly, w.FLY);
+  // w.FLYT = {wave: k, ...}: a share k of the timing cost of that flying mode's press windows
+  if (w.FLYT) for (const [mode, k] of Object.entries(w.FLYT)) for (const ms of L.flyMs[mode] || []) s += k * lg(erf(ms / 2 / (w.SIGMA * Math.SQRT2)));
   return s;
 }
 
@@ -81,11 +88,14 @@ function fit(Ls, w) {
   return { rank: rr, stars: rs, att: isNaN(ra) ? null : ra, obj: (2 * rr + rs + (isNaN(ra) ? rs : ra)) / 4, scores: s };
 }
 
-const GRID = { SIGMA: [6, 8, 10, 13, 16, 20, 22, 25, 28, 30, 35], FLY: [3, 4, 6, 8, 10, 12, 14, 16, 18, 20, 24], GRAV: [0, 0.005, 0.01, 0.02, 0.04], DUAL: [0, 0.01, 0.02, 0.05, 0.1] };
+// LAPSE = the slip per jumping press; FLYSEC = slips per flown second (flying presses pay none: 2026-11-28, a route's press
+// count in a flight is its own choice -- Stereo Madness's ship was flown with 90 presses and read harder than Cant Let Go)
+const GRID = { SIGMA: [13, 20, 22, 25, 28, 30, 35], FLY: [8, 12, 14, 16, 18, 20, 24], GRAV: [0, 0.01, 0.02, 0.04], DUAL: [0, 0.01, 0.02, 0.05],
+  LAPSE: [0.0025, 0.005, 0.0075], FLYSEC: [0, 1, 2, 3, 4] };
 function search(Ls) {
   const all = [];
-  for (const SIGMA of GRID.SIGMA) for (const FLY of GRID.FLY) for (const GRAV of GRID.GRAV) for (const DUAL of GRID.DUAL) {
-    const w = { SIGMA, FLY, GRAV, DUAL }; all.push({ w, ...fit(Ls, w) });
+  for (const SIGMA of GRID.SIGMA) for (const FLY of GRID.FLY) for (const GRAV of GRID.GRAV) for (const DUAL of GRID.DUAL) for (const LAPSE of GRID.LAPSE) for (const FLYSEC of GRID.FLYSEC) {
+    const w = { SIGMA, FLY, GRAV, DUAL, LAPSE, FLYLAPSE: false, FLYSEC }; all.push({ w, ...fit(Ls, w) });
   }
   return all.sort((a, b) => b.obj - a.obj);
 }
@@ -113,21 +123,36 @@ if (require.main === module) {
   console.log(`v1 (today's score)        ${fmt(v1)}`);
   console.log(`v2, assumed weights       ${fmt(f0)}   ${JSON.stringify(assumed)}`);
   console.log(`v2, best fit              ${fmt(best)}   ${JSON.stringify(best.w)}`);
+  const lib = fit(Ls, libWeights());
+  console.log(`v2, lib/difficulty.js     ${fmt(lib)}   ${JSON.stringify(libWeights())}`);
   console.log(`\ntop ${top}:`); for (const r of all.slice(0, top)) console.log(`  ${JSON.stringify(r.w).padEnd(48)} ${fmt(r)}`);
   const plateau = all.filter(r => r.obj >= best.obj - 0.01);
   const span = k => { const v = plateau.map(r => r.w[k]); return `${Math.min(...v)}-${Math.max(...v)}`; };
-  console.log(`\nplateau (within 0.01 of the best, ${plateau.length} sets): SIGMA ${span("SIGMA")}  FLY ${span("FLY")}  GRAV ${span("GRAV")}  DUAL ${span("DUAL")}`);
+  console.log(`\nplateau (within 0.01 of the best, ${plateau.length} sets): SIGMA ${span("SIGMA")}  FLY ${span("FLY")}  GRAV ${span("GRAV")}  DUAL ${span("DUAL")}  LAPSE ${span("LAPSE")}  FLYSEC ${span("FLYSEC")}`);
   // ablation: drop one feature at a time from the best set
   console.log(`\nwhat each feature adds (best set minus the feature):`);
   for (const [k, w] of [["timing (window width)", { ...best.w, timing: false }], ["flight room", { ...best.w, FLY: 0 }], ["gravity", { ...best.w, GRAV: 0 }], ["duals", { ...best.w, DUAL: 0 }]]) {
     const r = fit(Ls, w); console.log(`  without ${k.padEnd(22)} ${fmt(r)}  (${(r.obj - best.obj >= 0 ? "+" : "") + (r.obj - best.obj).toFixed(3)})`);
   }
   // the ladder next to his ranking
-  const order = Ls.map((L, i) => ({ L, s: best.scores[i] })).sort((a, b) => a.s - b.s);
-  console.log(`\nladder at the best fit (easiest first)        score  his rank  stars  attempts`);
-  order.forEach((o, i) => console.log(`  ${String(i + 1).padStart(2)}. ${o.L.name.padEnd(26)} ${o.s.toFixed(2).padStart(6)}  ${String(o.L.rank).padStart(8)}  ${String(o.L.stars).padStart(5)}  ${String(o.L.att == null ? "-" : o.L.att).padStart(8)}`));
+  const order = Ls.map((L, i) => ({ L, s: lib.scores[i] })).sort((a, b) => a.s - b.s);
+  console.log(`\nladder at lib/difficulty.js's weights (easiest first)  score  ~stars label    his rank  stars  attempts`);
+  order.forEach((o, i) => console.log(`  ${String(i + 1).padStart(2)}. ${o.L.name.padEnd(26)} ${o.s.toFixed(2).padStart(6)}  ${DF.difficultyStars(o.s).toFixed(1).padStart(5)} ${DF.difficultyLabel(o.s).padEnd(7)} ${String(o.L.rank).padStart(8)}  ${String(o.L.stars).padStart(5)}  ${String(o.L.att == null ? "-" : o.L.att).padStart(8)}`));
+  // his step-ups (2026-11-28): "stereo ... dry out ... cant let ago ... cllutterfunk .. clubstep feel like jumps in difficulty"
+  const STEPS = [1, 4, 6, 11, 14], sc = n => lib.scores[Ls.findIndex(L => L.n === n)];
+  console.log(`his step-ups ${STEPS.map(n => NAME[n] + " " + sc(n).toFixed(2)).join(" < ")}: ${STEPS.every((n, i) => i === 0 || sc(STEPS[i - 1]) < sc(n)) ? "hold" : "BROKEN"}`);
   if (opt("--json")) fs.writeFileSync(opt("--json"), JSON.stringify({ assumed: { w: assumed, ...f0 }, best: { w: best.w, rank: best.rank, stars: best.stars, att: best.att, obj: best.obj },
     v1, plateau: plateau.map(r => ({ w: r.w, obj: r.obj })), levels: Ls.map((L, i) => ({ n: L.n, name: L.name, rank: L.rank, stars: L.stars, att: L.att, v1: L.v1, v2assumed: +f0.scores[i].toFixed(3), v2fit: +best.scores[i].toFixed(3),
       fly: +flyCost(L.fly, best.w.FLY).toFixed(3) })) }, null, 1));
 }
-module.exports = { cleanFly, flyCost, load, fit, scoreOf, spearman, pageData };
+// the weights lib/difficulty.js scores with (DIFF_V2), in this file's terms
+function libWeights() { const V = DF.DIFF_V2; return { SIGMA: V.SIGMA, FLY: V.FLY_SPREAD, GRAV: V.GRAV_PEN, DUAL: V.DUAL_PEN, LAPSE: V.LAPSE, FLYLAPSE: false, FLYSEC: V.FLY_SLIPS, FLYT: { wave: V.WAVE_TIMING } }; }
+// one main level's v2 score at the library's weights, from the cached presses + the PC's flight room (board, quality, ...):
+// {score, stars, label, parts: {presses, flight}} or null when not measured
+let LOADED = null;
+function mainScore(n) {
+  LOADED = LOADED || load(); const L = LOADED.find(x => x.n === +n); if (!L) return null;
+  const w = libWeights(), score = scoreOf(L, w), flight = flyCost(L.fly, w.FLY) + DF.DIFF_V2.FLY_SLIPS * lg(1 - w.LAPSE) * L.fly.reduce((t, f) => t + f[3] / 60, 0);
+  return { score: +score.toFixed(3), stars: +DF.difficultyStars(score).toFixed(1), label: DF.difficultyLabel(score), parts: { presses: +(score - flight).toFixed(3), flight: +flight.toFixed(3) } };
+}
+module.exports = { cleanFly, flyCost, load, fit, scoreOf, spearman, pageData, libWeights, mainScore };

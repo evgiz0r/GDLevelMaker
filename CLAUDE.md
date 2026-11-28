@@ -330,7 +330,8 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   first differing input, joins the cached run once the state is identical); tools/io.js installs it, so every tool that
   loads GD through io.js gets it (the planner's thousands of runs: 17x faster in `tests/runcache.js`). `GDLM_RUNCACHE=0` = off.
 - `lib/difficulty.js` -- difficulty score from a solution: the human route (one tap per jump), per-input
-  timing windows, a timing-error + lapse model fitted on the user's real runs; see DIFFICULTY.md
+  timing windows; the score is v2 since 2026-11-28 (`scoreV2`, `DIFF_V2`: jump timing + slips, flight room per second, wave
+  windows, gravity / duals, fitted on the 21 mains vs his ranking and stars; `logAttemptsV1` the old timing + lapse model fitted on the user's real runs; DIFFICULTY.md "v2 is the score", with his reasons per main level); see DIFFICULTY.md
   (also the tier ladder for making levels, and what is open). Its tools: `difficulty` (score a level,
   or all official levels vs ratings and the user's attempts), `difficulty_solve` (cache an official
   solution, one at a time; `--resume` after a physics change solves only from a bit before where it matters), `difficulty_fit` (refit on the user's runs), `difficulty_community`

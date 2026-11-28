@@ -39,7 +39,7 @@ function costOf(a) {
   const lapse = lg(1 - D.LAPSE), timing = lg(erf(a.ms / 2 / (D.SIGMA * Math.SQRT2))), set = lg(settle);
   return { t: +(a.tick / TPS).toFixed(3), block: +(a.x / 30).toFixed(1), mode: a.mode, type: a.type, ms: Math.round(a.ms),
     afterSwitchMs: a.afterSwitchMs === undefined ? null : a.afterSwitchMs === null ? null : Math.round(a.afterSwitchMs),
-    ...v2Of(a, lateOpen, lapse, lg(erf(a.ms / 2 / (V2.SIGMA * Math.SQRT2))), set),
+    ...v2Of(a, lateOpen, lg(1 - V2.LAPSE), lg(erf(a.ms / 2 / (V2.SIGMA * Math.SQRT2))), set),
     p: +p.toFixed(4), cost: +lg(p).toFixed(4), lateOpen, costIfOpenExempt: +lg(pOpen).toFixed(4), lapse: +lapse.toFixed(4), timing: +timing.toFixed(4), settle: +set.toFixed(4) };
 }
 
@@ -51,7 +51,7 @@ function costOf(a) {
 const FLY = new Set(["ship", "ufo", "wave", "swing"]);
 function v2Of(a, lateOpen, lapse, timing, set) {
   const dual = (a.asym ? lg(1 - DUAL_ASYM_PEN) : a.dual ? lg(1 - DUAL_PEN) : 0) + (a.mirror ? lg(1 - MIRROR_PEN) : 0);
-  if (FLY.has(a.mode)) return { v2: +(lapse + dual).toFixed(4), dual: +dual.toFixed(4) };
+  if (FLY.has(a.mode)) return { v2: +dual.toFixed(4), dual: +dual.toFixed(4) };   // its slips are per flown second (V2.FLY_SLIPS)
   const opensBefore = a.afterSwitchMs !== null && a.afterSwitchMs !== undefined && a.ms > a.afterSwitchMs + 1;
   const grav = a.upside || (a.sinceFlipMs !== null && a.sinceFlipMs !== undefined && a.sinceFlipMs < GRAV_RECENT_MS) ? lg(1 - GRAV_PEN) : 0;
   return { v2: +(lapse + timing + grav + dual + (opensBefore || lateOpen ? 0 : set)).toFixed(4), opensBefore, grav: +grav.toFixed(4), dual: +dual.toFixed(4) };
@@ -66,7 +66,8 @@ const GRAV_RECENT_MS = 1000;
 // attempts; DIFFICULTY.md "Balance: the v2 fit"): the plateau within 0.01 of the best is SIGMA 25-30 ms, FLY_SPREAD 16-20,
 // GRAV_PEN 0-0.01, DUAL_PEN 0-0.01. Picked inside it, on the side of his notes (gravity and duals add "a bit"). The v2
 // SIGMA is the spread that ranks LEVELS best, not the one fitted on his runs (13 ms, the v1 score keeps it).
-const V2 = { SIGMA: 28, FLY_SPREAD: 16, GRAV_PEN: 0.01, DUAL_PEN: 0.01, DUAL_ASYM_PEN: 0.02, MIRROR_PEN: 0.02 };
+// Since 2026-11-28 the weights live in lib/difficulty.js (DIFF_V2, scoreV2: the v2 score is THE score there); refit 2026-11-28.
+const V2 = DF.DIFF_V2;
 const GRAV_PEN = V2.GRAV_PEN;
 // Dual (the user, 2026-11-25: "some people think hexagon force is harder than the demons because the two hard duals"):
 // one button moves two players, so each press in a dual stretch is two things to get right. A press made while dual
@@ -142,7 +143,7 @@ function balance(name, actions, meta) {
 
 function v2Total(inputs, fly, lump = 0) {
   if (fly) { const cl = cleanFly(fly.map(f => [f.t, f.mode, f.slack, f.n]));   // glitch-proof slack, cost at the fitted spread
-    fly.forEach((f, i) => { f.slackClean = cl[i][2]; f.cost = flyCost([cl[i]], V2.FLY_SPREAD); f.p = Math.pow(10, -f.cost); }); }
+    fly.forEach((f, i) => { f.slackClean = cl[i][2]; f.cost = flyCost([cl[i]], V2.FLY_SPREAD) + (cl[i][3] / 60) * V2.FLY_SLIPS * lg(1 - V2.LAPSE); f.p = Math.pow(10, -f.cost); }); }
   const presses = inputs.reduce((s, a) => s + a.v2, 0) + lump, flyTot = fly ? fly.reduce((s, f) => s + f.cost, 0) : null;
   const worstFly = fly && fly.length ? fly.slice().sort((x, y) => y.cost - x.cost).slice(0, 5) : [];
   const grav = inputs.reduce((s, a) => s + (a.grav || 0), 0) + lump;   // lump: gravity + dual of a main measured elsewhere
@@ -190,7 +191,8 @@ function ours(arg) {
   const runPath = GD.run(w, d.events).path, fly = DF.flyRoom(w, runPath), flips = gravOf(d.actions, runPath); mirrorOf(d.actions, w);
   const b = balance(Lv.name || (e && e.name), d.actions, { fly, flips, kind: "gdlm", file: path.relative(R, file).replace(/\\/g, "/"), seconds: d.seconds, complete: d.complete,
     rerouted: d.rerouted || [], chainExtra: d.chainExtra, worstChain: d.worstChain });
-  if (Math.abs(b.score - d.logAttempts) > 0.01) console.error(`!! balance ${b.score} differs from difficulty ${d.logAttempts.toFixed(3)}`);
+  if (Math.abs(b.score - d.logAttemptsV1) > 0.01) console.error(`!! balance ${b.score} differs from difficulty v1 ${d.logAttemptsV1.toFixed(3)}`);
+  if (Math.abs(b.v2.score - d.logAttempts) > 0.02) console.error(`!! balance v2 ${b.v2.score} differs from lib/difficulty.js v2 ${d.logAttempts.toFixed(3)}`);
   return b;
 }
 
@@ -218,8 +220,8 @@ function asV2(b) {
   const n = b.inputs.length, lumpEach = (b.v2.lump || 0) / Math.max(1, n);
   const items = b.inputs.map(a => { const jump = !FLY.has(a.mode);
     const timing = jump ? lg(erf(a.ms / 2 / (V2.SIGMA * Math.SQRT2))) : 0, settle = jump && !(a.opensBefore || a.lateOpen) ? a.settle : 0;
-    const extra = (a.grav || 0) + (a.dual || 0) + lumpEach, cost = a.lapse + timing + settle + extra;
-    return { ...a, kind: "press", timing: +timing.toFixed(4), settle: +settle.toFixed(4), extra: +extra.toFixed(4), cost: +cost.toFixed(4), p: +(10 ** -cost).toFixed(4), v1cost: a.cost }; });
+    const extra = (a.grav || 0) + (a.dual || 0) + lumpEach, slip = jump ? lg(1 - V2.LAPSE) : 0, cost = slip + timing + settle + extra;
+    return { ...a, kind: "press", lapse: +slip.toFixed(4), timing: +timing.toFixed(4), settle: +settle.toFixed(4), extra: +extra.toFixed(4), cost: +cost.toFixed(4), p: +(10 ** -cost).toFixed(4), v1cost: a.cost }; });
   const flys = (b.v2.flyItems || []).map(f => ({ kind: "fly", t: f.t + 0.5, block: null, mode: f.mode, type: "flying", ms: null, slack: f.slack, afterSwitchMs: null,
     lapse: 0, timing: 0, settle: 0, extra: 0, flight: f.cost, cost: f.cost, p: +(10 ** -f.cost).toFixed(4) }));
   const all = [...items, ...flys].sort((x, y) => x.t - y.t), total = all.reduce((s, a) => s + a.cost, 0);
@@ -250,7 +252,7 @@ function main() {
   if (json) fs.writeFileSync(json, JSON.stringify(data));
   if (html) {
     const tpl = fs.readFileSync(path.join(R, "viewer", "balance.html"), "utf8");
-    try { data.fitV2 = require("./difficulty_fit_v2.js").pageData({ SIGMA: V2.SIGMA, FLY: V2.FLY_SPREAD, GRAV: V2.GRAV_PEN, DUAL: V2.DUAL_PEN }); } catch (e) { console.error("no v2 fit on the page:", e.message); }
+    try { data.fitV2 = require("./difficulty_fit_v2.js").pageData({ SIGMA: V2.SIGMA, FLY: V2.FLY_SPREAD, GRAV: V2.GRAV_PEN, DUAL: V2.DUAL_PEN, LAPSE: V2.LAPSE, FLYLAPSE: false, FLYSEC: V2.FLY_SLIPS }); } catch (e) { console.error("no v2 fit on the page:", e.message); }
     const page = { ...data, levels: levels.map(asV2) };
     if (data.fitV2) page.mains = data.fitV2.levels.map(l => ({ n: l.n, name: l.name, rating: `${RATED[l.n][1]} ${l.stars}`, stars: l.stars, score: l.v2, v1: l.v1, his: l.his, complete: true }));
     fs.writeFileSync(html, tpl.replace("/*BALANCE_DATA*/null", JSON.stringify(page)));

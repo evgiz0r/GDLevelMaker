@@ -30,13 +30,18 @@ const st = {}; for (const l of (status && status.levels) || []) st[l.n] = l;
 const rows = [];
 for (const n of Object.keys(RATED).map(Number)) {
   const [name, face, stars] = RATED[n], s = st[n] || {}, c = rd(`difficulty/scored_${String(n).padStart(2, "0")}.json`);
-  let score = null, inputs = null, tight = null, minMs = null, perMin = null, seconds = null;
+  let score = null, inputs = null, tight = null, minMs = null, perMin = null, seconds = null, stars2 = null, label2 = null, parts2 = null, model = null;
   if (c) {
+    // the v2 score (lib/difficulty.js, 2026-11-28): the cached presses + the flight room the PC measured
+    // (knowledge/balance_mains_v2.json); v1 (every press's slip and after-portal cut) only where no flight room is known
     let la = 0;
-    for (const a of c.actions) {
+    const v2 = (() => { try { return require("./difficulty_fit_v2.js").mainScore(n); } catch (e) { return null; } })();
+    if (v2) { la = v2.score; stars2 = v2.stars; label2 = v2.label; parts2 = v2.parts; }
+    else for (const a of c.actions) {
       const k = a.afterSwitchMs != null && a.afterSwitchMs < DF.DIFF.SETTLE ? Math.max(0.02, a.afterSwitchMs / DF.DIFF.SETTLE) : 1;
       la -= Math.log10(Math.max(DF.hitChance(a.ms, DF.DIFF.SIGMA) * k, 1e-9));
     }
+    model = v2 ? "v2" : "v1";
     score = +la.toFixed(2); seconds = +c.seconds.toFixed(1); perMin = +(la / Math.max(c.seconds, 1e-9) * 60).toFixed(2);
     inputs = c.actions.length; tight = c.actions.filter(a => a.ms < DF.DIFF.TIGHT).length;
     minMs = Math.round(Math.min(...c.actions.map(a => a.ms)));
@@ -47,7 +52,7 @@ for (const n of Object.keys(RATED).map(Number)) {
   const scoreStale = !!(c && s.physics && c.physics !== s.physics);
   rows.push({ n, name, rating: `${face} ${stars}`, stars,
     solve_pct: pct(s.raw), route_pct: pct(s.view), route_kind: s.kind || null, need: s.need || null, physics: s.physics || null,
-    score, per_min: perMin, inputs, tight, min_ms: minMs, scored_complete: c ? !!c.complete : null, score_stale: scoreStale,
+    score, score_model: model, est_stars: stars2, label: label2, score_parts: parts2, per_min: perMin, inputs, tight, min_ms: minMs, scored_complete: c ? !!c.complete : null, score_stale: scoreStale,
     scored_at: c ? c.scoredAt : null, attempts: user[n] ? user[n].attempts : null,
     real_plan_block: PLAN[n], real_plan_pct: c && c.complete ? Math.min(100, Math.round(100 * PLAN[n] / c.blocks)) : null, flag: FLAGS[n] || null });
 }
