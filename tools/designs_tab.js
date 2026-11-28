@@ -517,7 +517,11 @@ window.initDesigns = async function (root) {
     for (const c of pr) { if (!(c >= 0 && c <= W)) continue; const y = yAt(c);
       out.push(y != null ? `<circle cx="${c.toFixed(2)}" cy="${(H - y - 0.5).toFixed(2)}" r="0.26" fill="#ffe36b" />` : `<line x1="${c.toFixed(2)}" y1="0" x2="${c.toFixed(2)}" y2="${H}" stroke="#ffe36b" stroke-opacity="0.55" stroke-dasharray="0.3 0.3" style="stroke-width:1.5px;vector-effect:non-scaling-stroke" />`); }
     return `<g class="plan" style="pointer-events:none">${out.join("")}</g>`; };
-  const PLANTXT = g => { if (!g) return ""; const n = (g.presses || []).length;
+  // A FAILED GENERATION SAYS SO (Evgeni 2026-11-28, opencube: "it dies, if the generation failed, it should say it (the
+  // path should reach till the end). any failing generation of physics is obviously a bug"): a planned path that stops
+  // short of the piece's end is shown in red as a failed generation, not as a plan
+  const PLANTXT = g => { if (!g) return ""; const n = (g.presses || []).length, W = g.map ? g.map[0].length : 0, end = g.path && g.path.length ? g.path[g.path.length - 1][0] : null;
+    if (end != null && W && end < W - 1.5) return `<span style="color:#ff8a8a">❌ generation failed: the planned path stops at col ${end.toFixed(0)} of ${W} (a generator bug: tools/gencheck.js lists these as "short")</span> · `;
     return g.path ? `<span style="color:#ffb35c">planned path · ${n} presses (solved by design)</span> · ` : n ? `<span style="color:#ffe36b">${n} planned presses (ticks; this type has no drawn path yet)</span> · ` : `<span style="color:#999">no plan: an older shape-first type</span> · `; };
   // ⭐ HOW GOOD IS EACH GENERATOR (Evgeni 2026-11-28: "give me some controller on each of the generators, ill put a scale of
   // how good i think it is. if something is very low it should be used very rarely"): a 0-10 slider per type, saved as it

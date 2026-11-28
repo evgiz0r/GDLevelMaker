@@ -1,4 +1,4 @@
-// node tools/gencheck.js [type ...] [--seeds 8] [--cols 40] [--tier normal] [--write]
+// node tools/gencheck.js [type ...] [--seeds 8] [--cols 40] [--tier normal] [--hf 2] [--bpm 120] [--write]
 //   -- the AI's own critic of the section generators: every type over many seeds, its problems found without Evgeni
 //
 // Evgeni (2026-11-28, after finding unneeded spider clicks, a path drawn through saws, wave corridors you can slide along
@@ -12,6 +12,7 @@
 //   tight     a planned click's player window is under the tier's floor (TIGHT ms below)
 //   slide     flying modes: share of the section's ticks spent touching the floor or ceiling (sliding) over SLIDE
 //   outside   the replayed route goes around the structures (tools/outside.js outsideMap) over 10% of the time
+//   short     the generator's own drawn path stops before the piece's end (shown as a failed generation on the page)
 //   drawn     the generator's own drawn path is over half a row off the real replay
 //   end       the last 3 columns of the route pass within a block of a hazard (an ending that lands on death)
 // Prints a line per type (share of seeds with each flag, worst example: seed + column) and, with --write,
@@ -62,6 +63,9 @@ function checkPiece(z, tier) {
   // route around the structures
   const route = []; for (let t = 0; t < r.path.length; t += 8) { const c = col(r.path[t]); if (c >= -0.5 && c <= W + 0.5) route.push([c, r.path[t].y / 30 - 0.5]); }
   const out = OU.outsideMap(z.map, route); if (out > 0.1) f.outside = { share: +out.toFixed(2) };
+  // short: the generator's own drawn path stops before the piece's end (Evgeni 2026-11-28: "the path should reach till the
+  // end. any failing generation of physics is obviously a bug")
+  if (z.path && z.path.length && z.path[z.path.length - 1][0] < W - 1.5) f.short = { col: +z.path[z.path.length - 1][0].toFixed(1) };
   // drawn vs real
   if (z.path && z.path.length && z.pathFrom !== "replay") { let worst = 0, at = 0;
     for (const [c, row] of z.path) { const s = inSec.find(q => col(q) >= c); if (!s) continue; const d = Math.abs(s.y / 30 - 0.5 - row); if (d > worst) { worst = d; at = c; } }
@@ -76,10 +80,12 @@ function checkPiece(z, tier) {
 function run(keys, o) {
   const res = {};
   for (const key of keys) { const rows = [];
-    for (let seed = 1; seed <= o.seeds; seed++) { let z; try { z = quiet(() => SG.make(key, { cols: o.cols, seed, tier: o.tier })); } catch (e) { rows.push({ seed, err: e.message }); continue; }
+    for (let seed = 1; seed <= o.seeds; seed++) { let z; try { z = quiet(() => { const bo = o.bpm ? { bpm: o.bpm } : {}; let q = SG.make(key, { cols: o.cols, seed, tier: o.tier, ...bo });
+        // the catalogue's "height xN": the type's own rows times N (designs_tab.js generate)
+        if (o.hf && o.hf !== 1) q = SG.make(key, { cols: o.cols, seed, tier: o.tier, ...bo, rows: Math.round(q.map.length * o.hf) }); return q; }); } catch (e) { rows.push({ seed, err: e.message }); continue; }
       if (!z.presses || !z.presses.length) { rows.push({ seed, noplan: true }); continue; }
       z.key = key; const t = Date.now(); let f; try { f = checkPiece(z, o.tier); } catch (e) { f = { error: { why: e.message } }; } rows.push({ seed, f, ms: Date.now() - t }); }
-    const planned = rows.filter(x => x.f), kinds = ["dies", "lazy", "unforced", "tight", "slide", "outside", "drawn", "end", "error"], sum = {};
+    const planned = rows.filter(x => x.f), kinds = ["dies", "short", "lazy", "unforced", "tight", "slide", "outside", "drawn", "end", "error"], sum = {};
     for (const k of kinds) { const hit = planned.filter(x => x.f[k]); if (hit.length) sum[k] = { share: +(hit.length / planned.length).toFixed(2), example: Object.assign({ seed: hit[0].seed }, hit[0].f[k]) }; }
     res[key] = { pieces: planned.length, noplan: rows.filter(x => x.noplan).length, flags: sum, at: new Date().toISOString().slice(0, 16), opts: o };
     const s = Object.entries(sum).map(([k, v]) => `${k} ${Math.round(v.share * 100)}% (seed ${v.example.seed}${v.example.col != null ? " col " + v.example.col : ""}${v.example.cols ? " cols " + v.example.cols.join(",") : ""}${v.example.ms ? " " + v.example.ms + " ms" : ""}${v.example.share != null ? " " + Math.round(v.example.share * 100) + "%" : ""}${v.example.rows ? " " + v.example.rows + " rows" : ""}${v.example.why ? " " + v.example.why : ""}${v.example.how ? ": " + v.example.how : ""})`);
@@ -89,7 +95,7 @@ function run(keys, o) {
 
 if (require.main === module) {
   const a = process.argv.slice(2), opt = (n, d) => { const i = a.indexOf("--" + n); return i >= 0 ? a[i + 1] : d; };
-  const o = { seeds: +opt("seeds", 8), cols: +opt("cols", 40), tier: opt("tier", "normal") };
+  const o = { seeds: +opt("seeds", 8), cols: +opt("cols", 40), tier: opt("tier", "normal"), hf: +opt("hf", 1), bpm: +opt("bpm", 0) };
   const keys = a.filter((x, i) => !x.startsWith("--") && !(i && a[i - 1].startsWith("--") && a[i - 1] !== "--write"));
   const res = run(keys.length ? keys : SG.KEYS.filter(k => k !== "hanging"), o);
   if (a.includes("--write")) { const F = path.join(__dirname, "..", "knowledge", "gencheck.json"), old = (() => { try { return JSON.parse(fs.readFileSync(F, "utf8")); } catch (e) { return {}; } })();
