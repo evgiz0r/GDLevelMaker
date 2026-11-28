@@ -380,6 +380,14 @@ which the sim does not have yet (PHYSICS.md open).
   the spider landing on bare ground in the column between two ground spike groups and tapping up from it (5 presses for a
   9-press plan); that column now holds a half-buried saw (ball, ball portals, spider: 0 of 18 flagged after). Fly, wave and
   flappy are often flown with far fewer presses on the same path (LOOSE: the corridor roomier than the plan's rhythm).
+  Tightened 2026-11-28: fly and wave gap by tier 6 / 5 / 4 rows (was 6 / 5.5 / 5): the solver now needs 9-12 presses on
+  60-col harder fly (was 8) and 8-10 on harder wave (was 6-9); every plan clears (fly 144/144, wave 90/90). What did not
+  work: making every fly hold / release a real turn of 1-2 rows (under the gentle-angle cap each state ends at the cap,
+  so every seed drew the same zigzag), a 3-row fly gap (still half the plan's presses: a ship hovers through quick taps;
+  the plan's taps at harder are feathering, so the clicks a corridor really asks for come from its turns and its gap),
+  and a tighter flappy gap (the same solver counts, one plan died). Also: a wave draw whose floor slopes at column 0 is
+  drawn again (it died as it came in), a tall fly plan that slides the map's top is drawn again (the roof slopes there
+  caught the ship), and the closer cube steps quicker over 12 rows (mean span of the path 3.7 -> 4.3 rows).
 - **A minimum length per type** (Evgeni: some need room for real play, robot and orbs).
 - Height at 1.5x rows, 60 cols (easy/harder, 2 seeds): wave 93%, fly 76%, ship corridor 80%, staircase 85%, closecube 80%,
   ball 75%, spider 67%, opencube 68%, flappy 60%, orbs 55%. The cube types need their climbs scaled to the taller map.
