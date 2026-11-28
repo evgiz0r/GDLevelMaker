@@ -512,6 +512,14 @@ note), so hot bands stay below the playfield; F (blocks as dark silhouettes on a
 ones vanish. Not built yet: he said not to redo the theme backgrounds for now; build D / F / B / A as hellgate backdrop
 options (tools/backdrops.js pieces) when he says.
 
+**Backgrounds move with the level** (Evgeni, 2026-11-28: "background deco ( and effects ) may change in transitions. its common to
+change the background as you go ... we can also play with it during the section ( dimming or getting lighter slow depending on
+the music, or beating on the beat"; "about the extra deco items and movement, i guess we are more into the art, and how it fits
+into the level"). So: a section change may swap the backdrop (one of the theme's options) and its effects; inside a section
+the backdrop's channels may dim or lighten slowly with the song's loudness (tools/impacts.js heaviness per bar) and may beat
+on strong hits, with colour / alpha fades on the backdrop channels only (EFFECTS.md; not pulse triggers, still untrusted,
+and never the blocks or hazards). Extra moving deco pieces are second to the art itself and how it sits in the level.
+
 ## Theme card animation styles (2026-11-27)
 
 Evgeni: "lets add several animations possible to play, in the dropdown. we will start with - static, nine circles styles".
