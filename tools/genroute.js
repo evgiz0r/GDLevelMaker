@@ -10,6 +10,13 @@ const fs = require("fs"), path = require("path");
 const LC = require("./layoutcheck.js");
 
 function solveDoc(d) {
+  // EXTRAS (pads, orbs, ...: tools/sectiongen.js opts.extras) need the sim, which the page lacks: the piece is made again
+  // here with them (same key, seed, length, tier, rows, beat), and its map goes back as `xmap` for the page to draw
+  let x = null;
+  if (d.extras && Object.keys(d.extras).length) { const SG = require("./sectiongen.js"), log = console.log; console.log = () => {};
+    try { const r = SG.make(d.key, { cols: d.cols, seed: d.seed, tier: d.tier, rows: d.rows || undefined, ...(d.beats ? { beats: d.beats } : d.bpm ? { bpm: d.bpm } : {}), extras: d.extras, replay: true });
+      x = { xmap: r.map, xcount: Object.fromEntries(Object.keys(d.extras).map(k => [k, +(r[k] || 0)])) }; d = Object.assign({}, d, { map: r.map, presses: r.presses || d.presses, mode: r.mode || d.mode }); }
+    catch (e) { x = { xmap: null, xerr: e.message }; } finally { console.log = log; } }
   const z = { key: d.key, name: d.key, mode: d.mode || "cube", map: d.map };
   const c = LC.check(z), out = { state: "done", solvedAt: new Date().toISOString(), ok: !!c.ok };
   if (c.ok) Object.assign(out, { presses: c.presses, label: c.label || "", tight: c.tight || [], route: c.route || [], taps: c.taps || [] });
@@ -18,7 +25,7 @@ function solveDoc(d) {
   // with real physics?"): the page draws this line instead of the generator's own sketch of the path
   if (Array.isArray(d.presses) && d.presses.length) { try { const r = LC.planCheck(Object.assign({}, z, { presses: d.presses }));
     out.real = { ok: !!r.ok, path: r.path || [], dieCol: r.dieCol, why: r.why || "" }; } catch (e) { out.real = { ok: false, path: [], why: "replay failed: " + e.message }; } }
-  return out;
+  return x ? Object.assign(out, x) : out;
 }
 
 if (require.main === module) {
