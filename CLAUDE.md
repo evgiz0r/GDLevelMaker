@@ -154,7 +154,10 @@ things take" below). The tools below still work one by one.
 4. `node tools/install.js levels/<name>.gdlvl` puts it at the top of My Levels (backs the save up first). With the game
    closed it writes the save; **with GD running it goes through the probe mod's install inbox** (mod v0.6.1+, on a menu
    only, keeps the online ID, GD saves it; GEODE.md "Install into a running GD", `node tools/hotinstall.js status|results`);
-   mod not loaded -> it queues it (`tools/install_queue.js`, installed when GD closes). The user plays it
+   mod not loaded -> it queues it (`tools/install_queue.js`, installed when GD closes). **Clearing them out again:**
+   `node tools/uninstall.js --keep "<name>" ... [--dry] [--wait-close]` removes our GDLM levels from My Levels (never a
+   shared one with an online ID, never the user's own; GD closed; save backed up). Evgeni (2026-11-28): keep My Levels
+   clean, "we will install when we need". The user plays it
    and reports. The user's game is GD **2.2091** on Steam (Windows; Steam updated it 2026-10-21 -- older notes say 2.2081) with Geode 6.0.0 (2026-11-25); our probe mod `mods/gdlm-probe` is built with `tools\geode_build.cmd` and installed, and runs (GEODE.md "Building on this PC": Smart App Control blocks the Geode CLI, so `tools/geode_pack.js` packs).
    **Or Claude plays it in the real game (2026-11-25):** `node tools/probe.js play save:<GDLM name> --launch` (GD closed; the
    level must be in the save): the probe mod (GEODE.md "Playback") opens it, presses the saved route on exact ticks, logs every
