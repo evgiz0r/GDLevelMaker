@@ -124,6 +124,29 @@ Checked on 8 rated 2.2 levels from the PC's local/community (2026-11-26), counte
   pieces that fly in and land ON a beat (move, exponential in 11, started `secs` before the beat), a ring turned about a
   centre object that rides with the stage, alpha chases, colour 899 on the sky. Pattern for any no-gameplay scene.
 
+## Camera and player triggers (the cinema lab, 2026-11-28)
+
+Read from 583 rated levels (numbers only); every one of them writes 10 = seconds, 30 = easing, 85 = 2. Easing 30: 0 none,
+1-3 ease (in-out / in / out), 4-6 elastic, 7-9 bounce, 10-12 exponential, 13-15 sine, 16-18 back.
+
+| id | what | keys | helper in tools/effects.js |
+|---|---|---|---|
+| 1913 | zoom | 371 zoom | `T.zoomE(x, to, secs, ease)` |
+| 2015 | camera rotate | 68 degrees; 70 = 1 rotate BY (else TO); 394 snap? | `T.camRotate(x, deg, secs, {ease, add})` |
+| 1916 | camera offset | 28 dx, 29 dy; 101 axis (1 x only, 2 y only) | `T.camOffset(x, dx, dy, secs, ease)` |
+| 1914 | static camera | 71 centre group; 212 / 213 follow (probably) | not yet |
+| 1520 | shake | 75 strength, 10 seconds | `T.shake(x, strength, secs)` |
+| 1612 / 1613 | hide / show player | none | `T.hidePlayer(x)`, `T.showPlayer(x)` |
+| 32 / 33 | ghost trail on / off | none | `T.trailOn(x)`, `T.trailOff(x)` |
+| 2065 | particles | everything packed in key 145 | not yet |
+
+Recipes: a continuous spin = 2015 with 68 360, 70 1, re-fired every T seconds (ease in on the first, out on the last). A
+fake death = hide player + shards and a ring on channel 1005 (the player's colour) moved out + shake + a short zoom punch,
+then show player a second later. "Onto a table" = zoom out + turn + offset over ~1.6 s with the room and table drawn on B4 /
+B3 around the lane. All of it shows only in GD: the viewer and shoot.js draw none of these yet.
+Lab: `node tools/cinemalab.js --make` -> levels/gdlm_cinema_lab.gdlvl (scene tools/scenes/cinema.js); Evgeni's ideas after
+playing a story level. Open: whether the game agrees with these readings (needs his run), static camera, particles.
+
 ## Open
 
 - Evgeni on v1: "the control is nice", "the quality is still lacking". v2 = the numbers above; his look at v2 in the game.
