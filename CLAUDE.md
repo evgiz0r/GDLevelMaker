@@ -101,7 +101,7 @@ not after it:
 - **Every level ends with the Claude signature, quiet: the last 5 s, out of the gameplay.** Evgeni (2026-11-26): "from now-on
   everywhere, we add the latest end screen claude sign on every level we make"; (2026-11-27): "cut our signature for now from actual gameplay and make it appear in like the last 5 seconds of the level not bothering the game play with whatever effects". Default in make.js
   and autobeat: `signature.js overlay` -- no stage, no run-on, no beat effects; it fades in at T - 5 s in the view's top right,
-  behind the player, and rides with the camera to the end. The auto outro (`"outro": <seed>`) and the stage sign
+  behind the player, and rides with the camera to the end. What it shows (2026-11-28): "tune down the joke of the signature. so its made by humans, but with claude, and somehow a wand a human holds" -- "its like its empowering the human, not replacing": one human holding a wand tipped with the Claude spark, "MADE BY HUMANS" / "with Claude" (the description line: "Made by humans, with Claude"). The auto outro (`"outro": <seed>`) and the stage sign
   (`"signature": {"style": "stage"}`, autobeat `--ending beat|outro`) are options now (BUILDING.md section 5).
 - **Process rules go in the repo, never only in a message.** The user (2026-11-24): "never just for one session
   if its a big repeatable process". A rule, a process step or a lesson that one session was told applies to
@@ -116,6 +116,12 @@ not after it:
   while the user plays (loggers, recorders, jobs) stays off the input path: a hook callback only queues (no I/O,
   no lookups), recorders only read, heavy jobs run at idle priority with GD open. A new tool of this kind is
   checked for added input delay before it runs during play.
+- **Anything we keep local-only has an easy local rebuild.** (Evgeni, 2026-11-28: "keep making sure getting those stuff
+  locally for people who clone the repo is not hard".) RobTop's levels, art and songs, other people's levels and anything
+  made from them stay out of git -- so the change that makes something local-only also gives it a row in
+  `tools/rebuild_local.js` (what, from where, one command, measured time) and SETUP.md's table. A cloner runs
+  `node tools/setup.js` then `node tools/rebuild_local.js --quick`; `node tests/rebuild_local.js` checks the rows.
+  Personal data (his recordings, save, marks) is listed as personal: it cannot be rebuilt.
 - **Hand off.** Before a long pause or when your area changes hands, write where you stopped,
   what is open and the good numbers into your area's doc.
 - **Share, don't duplicate.** Results go into the shared `local/` (see below) so no session redoes
@@ -311,9 +317,11 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 
 ## Files
 
+- **PERSONAL.md** -- proposal (not done): what is fitted to Evgeni (difficulty, fairness, judge, votes, soft rules) vs general, and a profile layer so a cloner can use their own.
 - **WORKBOOKS.md** -- the claude.ai workbook pages: every bug found in the app, the limits, how to test.
-- **Setup on any computer** (SETUP.md: the steps an AI agent follows): `tools/setup.js` (find GD, load the main levels,
-  check), `tools/gdpaths.js` (where GD's game, levels and save are; every tool reads GD's files through it -- never hardcode
+- **Setup on any computer** (SETUP.md: the steps an AI agent follows): `tools/setup.js` (find GD, load the main levels
+  with routes, raw solves and coin routes, unshallow a shallow clone, check), **`tools/rebuild_local.js`** (every local-only
+  item, whether this computer has it, one command each, `--quick`; test `node tests/rebuild_local.js`), `tools/gdpaths.js` (where GD's game, levels and save are; every tool reads GD's files through it -- never hardcode
   the Steam path), `tools/mains_routes.js` (the main levels' routes in git, `knowledge/mains/routes.json`, written by
   `mains.js export`: `import` replays them on a new computer's own game). Test: `node tests/setup.js`.
 - `lib/gd.js` -- the format: base64url + gzip layers, the record (plist) and the level string.
@@ -330,7 +338,8 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   first differing input, joins the cached run once the state is identical); tools/io.js installs it, so every tool that
   loads GD through io.js gets it (the planner's thousands of runs: 17x faster in `tests/runcache.js`). `GDLM_RUNCACHE=0` = off.
 - `lib/difficulty.js` -- difficulty score from a solution: the human route (one tap per jump), per-input
-  timing windows, a timing-error + lapse model fitted on the user's real runs; see DIFFICULTY.md
+  timing windows; the score is v2 since 2026-11-28 (`scoreV2`, `DIFF_V2`: jump timing + slips, flight room per second, wave
+  windows, gravity / duals, fitted on the 21 mains vs his ranking and stars; `logAttemptsV1` the old timing + lapse model fitted on the user's real runs; DIFFICULTY.md "v2 is the score", with his reasons per main level); see DIFFICULTY.md
   (also the tier ladder for making levels, and what is open). Its tools: `difficulty` (score a level,
   or all official levels vs ratings and the user's attempts), `difficulty_solve` (cache an official
   solution, one at a time; `--resume` after a physics change solves only from a bit before where it matters), `difficulty_fit` (refit on the user's runs), `difficulty_community`
@@ -490,7 +499,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
   <level.gdlvl | save:<name> | official:N> [--at 2,5] [--rec <video> --t0 <s>]` -> PNGs in `local/shots/`.
   **The whole level as one picture with its path:** `node tools/levelmap.js <level> [--brief briefs/NN.json]`
   -> `local/maps/<name>.jpg` (viewer: "level map").
-  **Every level ends with the signature** (robot + human, "Made by Claude (and some humans)"):
+  **Every level ends with the signature** (a human with a Claude wand, "Made by humans, with Claude"; quiet, the last 5 s):
   `tools/signature.js` (signature() objects, describe() for the description).
 - **Deco catalogue** (knowledge/objects/README.md): `tools/catalogue.js index | sheets | usage` --
   every id with its picture on contact sheets (`local/catalogue/`, or browse `viewer/catalogue.html`),
@@ -554,6 +563,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 - **`tools/judge.js` -- the judge: Evgeni-style notes pinned to spots** (few clicks in a section, gaps, a corridor too long or
   shaped like an earlier one, no variety, an orb with no reason, too easy), from a level's saved route; `--vs <marks.json>` compares
   them with his marks (tests/judge.js: 11 of his 13 v4 Hellgate marks, `knowledge/judge/`). Run it on every build before he sees it.
+- **`tools/visualjudge.js shots | review | put | show <level>` -- the visual judge** (knowledge/visual_judge.md; Evgeni 2026-11-28): a frame at each portal / section change with the route drawn on (`shoot.js --trail`), 2x2 sheets (`tools/contactsheet.py`), a Haiku review stored per level version in knowledge/visual_judge/; report.js shows its notes as warnings, never a gate. Test `node tests/visualjudge.js`. Trial: ~$0.001 a review, finds odd portals, flat structures, clutter; misses path bugs and indicators.
 - **`tools/report.js <level>` -- the judge report** (Evgeni, 2026-11-26: "not too big, with scores"): one short card --
   Layout 0-10 (balance of sections and pieces, modes -- cube share and upside down --, transitions, rests, flow, variety, pacing, clarity, ending; made stricter 2026-11-26 after Evgeni: "the judge seems to be too nice"), difficulty, unfair spots, taste, deco (later), the top 5
   notes; `--geo <map>.geo.json` (levelmap.js writes it beside each map) pins the notes on the level map. Run it on every build.
@@ -572,9 +582,12 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 - **Feel per section (FEEL.md): `tools/feel.js <song> [--tier T] [--plan out.plan.json --theme kit]`** -- speed portal, clicks a second, beat-matching (brickpick `hitWeight`), shape and look per section from the song (drops faster / denser / on the hits, breaks calmer, speed-ups of the music played faster), held in a difficulty budget, neighbours never twins; planbuild reads `section.feel`. The mains measured: `tools/feelstudy.js` -> knowledge/feel_ref.json. Test `node tests/feel.js`.
 - **`tools/songplan.js <song> [--to s]` -- a level's section plan from its song**: cut at the song's transitions (tools/sections.js), a mode per section by its type (break / drop / entry / groove), rests, one upside-down section, cube under ~50% (GDLM 44 v9).
 - **`tools/skippress.js <level> [...]` -- presses you can leave out** (Evgeni 2026-11-28: "if you can just not click and it passes you to the next clicks then thats a skip"): each press dropped (and a flip pair), SKIP when the level still clears; score.js gate "skips" (WARN).
+- **`tools/joincheck.js [--solve]` -- mode changes where the play is** (Evgeni 2026-11-28: "transition more around the middle"): every mode change of the theme layout's joins (lib/scenejoin.js, the same joins typebuild uses), DIP when a flying exit goes down to a ground portal and climbs back, BAND when the next way in lies outside the portal's band; `--solve` solves each flying-exit pair (~30-70 s each). Test `node tests/joincheck.js`.
 - **`tools/outside.js <level.gdlvl>` -- a secret way around the structures** (Evgeni 2026-11-28: "be careful for secret ways and skipping the structures (in wave for example)"): the saved route above or below every corridor around it for 0.4 s+; `outsideMap(map, route)` the same on a section map, which typebuild scores seeds down by; test `node tests/outside.js`.
 - **`tools/gencheck.js [type ...] [--seeds 8] [--write]`** -- the AI's own critic of the section generators (Evgeni 2026-11-28: "catch those stuff somehow by the AI, not just by me"): each type over many seeds, its planned presses replayed in real physics -> no plan at all, dies, lazy (clears with no press / held all the way), slideable (most of it slid), low (hugs the ground in a tall piece), unforced clicks or flip pairs, tight windows, sliding, route outside the structures, drawn path vs real, an ending by a hazard; -> knowledge/gencheck.json. Run after every generator change.
 - **`tools/genrating.js` -- Evgeni's 0-10 rating of each section generator** (2026-11-28: "if something is very low it should be used very rarely"): sliders under the catalogue's 🎲 generator (db `genrating`); before a build copy them in (ArtifactData `list` genrating -> a file -> `node tools/genrating.js set <file>` -> knowledge/gen_ratings.json); typebuild picks types by (score/10)^2, unrated = 5, never a hard ban.
+- **`tools/slides.js <level>` -- lazy slides** (Evgeni 2026-11-28: the ship "could slide ... holding or releaseing completely skipping a lot of gameplay"): from each input of the saved route in a flying mode, hold (or let go) for good; living through 3+ of the route's presses is a secret way. In layoutcheck (`slides`), typebuild's seed score and the judge report.
+- **`tools/moments.js <level>` -- transition moments** (Evgeni 2026-11-28: a strong beat at a section change must make something happen): `plan` = the orchestrator's events on those beats (typebuild, effects gateShut / riseReveal / slabsFall / cameraBreath), `check` = the judge's "flat transition" (report.js); BUILDING.md "Transition moments", who does what and the knobs; test `node tests/moments.js`.
 - **`tools/typebuild.js <briefs/NN.types.json> --run` -- a level from SECTION TYPES in one command** (no lego): song sections + feel -> a type per section generated fresh (tools/sectiongen.js) and checked alone -> joined with portal walls -> make.js (deco pass with a look per section kind, own sky / backdrop per section, one calm effect each via tools/scenes/typefx.js) -> judge report; BUILDING.md section 0 (GDLM 76).
 - **HELLGATE.md -- GDLM 44, the benchmark level** (our first uploaded one; Evgeni 2026-11-28): the target -- the whole song, gameplay to 176 s, ~40 s of auto (visible, then weird), ~16 s of animation to the ending -- the order of work and where it stands.
 - `tools/mapbeats.py` (beat and bar lines over a levelmap.js picture). `tools/hellgate_build.js` -- GDLM 44 v3's builder: song part + local grid -> sections -> brickpick / fly-path -> specs/44_hellgate.json (+ .plan.json). **`tools/planbuild.js <briefs/NN.plan.json>`** -- the same builder with the section plan as data, for any level (GDLM 73 sunny streets; LEGO.md "The same builder for any level").

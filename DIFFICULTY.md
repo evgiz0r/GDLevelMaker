@@ -353,7 +353,7 @@ What it showed first (FROSTBITE 2.66 vs Electrodynamix 2.65, same model):
   presses alone (no flight: RobTop's levels are only on the PC) rank worse (Spearman vs stars 0.57, v1 0.83):
   Clubstep's and ToE 2's difficulty is in their corridors, so the flight part is needed before v2 replaces v1.
   Mains measured on the PC 2026-11-25 (commit 0b7d53d): `knowledge/balance_mains_v2.json` (per level v1, v2, gravity and
-  dual counts, flight room per second = `flyRaw`; numbers only). Fitted below. score.js and the board still use v1.
+  dual counts, flight room per second = `flyRaw`; numbers only). Fitted below. Since 2026-11-28 v2 is the score everywhere (section "v2 is the score").
 - **The v2 fit (2026-11-25, `node tools/difficulty_fit_v2.js`, ~0.2 s, cached numbers)**: a grid over SIGMA, FLY_SPREAD,
   GRAV_PEN, DUAL_PEN (asymmetric = 2x) on 21 mains (Fingerdash not measured), objective = Spearman with the user's rank
   (x2), stars and his attempts. Results (rank / stars / attempts -> objective):
@@ -372,7 +372,7 @@ What it showed first (FROSTBITE 2.66 vs Electrodynamix 2.65, same model):
   his words; add community tier lists and his real deaths before trusting the third decimal.
   The balance page (`tools/balance.js ... --html`) shows the fitted v2 as the score, flight seconds as bars of their own,
   v1 in brackets; a main level measured only on the PC gets its flight and gravity / dual lump from balance_mains_v2.json.
-  NEXT: readability features (below), the survival horizon (1-2 s) for windows, then v2 into score.js / the board.
+  NEXT: readability features (below), the survival horizon (1-2 s) for windows. (v2 into score.js / the board: done 2026-11-28.)
 - **Stats first, rules only name the features** (the user, 2026-11-25: "i dont want it to be too rule based, but rather
   more based on stats. but as humans play it the feeling of difficulty does make some difference, besides the timing
   themselves"). The v2 terms (flight room, gravity, dual, asymmetric dual, mirror, after-portal) are features, not
@@ -403,6 +403,84 @@ What it showed first (FROSTBITE 2.66 vs Electrodynamix 2.65, same model):
   (1.18: its hit-timed ship corridor, flight 0.98 over 13 s).
 - Also open: a press whose window starts well before the portal (the 69 s one opens ~200 ms before it) can be pressed
   before the switch; the rule still counts it as forced.
+
+## v2 is the score (2026-11-28)
+
+Evgeni: "can you explain our scoring, stereo madness 0.9 bigger than cant let go" and "we want to have the difficulty score
+somewhat decent". The board showed v1, which summed a slip and an after-portal cut on EVERY press: Stereo Madness's ship
+was flown with 90 presses, and each first ship press after a portal (a 404 ms window) lost ~0.18 to the after-portal rule.
+So a long easy level read harder than a short hard one. Now:
+
+- **lib/difficulty.js `scoreV2` is THE score**: `GD.difficulty(...).logAttempts` = v2 (`logAttemptsV1` keeps the old one,
+  `opts.v1` returns it), plus `stars` (about how many stars, on the mains' scale) and `v2.parts` (slips, timing, settle,
+  grav, dual, flight). `difficultyLabel(score)` uses the v2 cuts (`label(x, true)` for a v1 number). The weights live in
+  `DIFF_V2`; tools/balance.js, tools/board_mains.js (the boards) and tools/difficulty_fit_v2.js read them from there.
+- **What changed in the model**, all fitted (`node tools/difficulty_fit_v2.js`, ~2 s on the cached numbers):
+  - flying presses pay no slip; each flown second pays FLY_SLIPS (3) slips instead: a route's press count in a flight is
+    the route's choice, not the level's;
+  - a lower slip per jumping press (LAPSE 0.0025, was 0.0075), so length adds less;
+  - the wave's press windows count at half their timing cost (WAVE_TIMING 0.5): the wave turns on the press, there is no
+    float to correct with (his Deadlocked note below);
+  - gravity 0.02 a press (0.01 fits as well; picked on his "reverse gameplay, which is inherently more difficult").
+- **Fit** (21 mains, Fingerdash not measured): Spearman vs his ranking 0.94, stars 0.95, his attempts 0.77 (objective
+  0.901; v1 0.866). His step-ups hold: Stereo Madness 0.30 < Dry Out 0.44 < Cant Let Go 0.56 < Clutterfunk 1.83 <
+  Clubstep 3.62 (the fit tool prints this check). The ladder, easiest first: Back On Track 0.18, Polargeist 0.19, Stereo
+  Madness 0.30, Dry Out 0.44, Base After Base 0.51, Cant Let Go 0.56, Blast Processing 0.81, xStep 0.90, Jumper 1.05, Time
+  Machine 1.18, Geometrical Dominator 1.31, Cycles 1.35, Electroman 1.40, Dash 1.41 (scored on 17 s only), Electrodynamix
+  1.54, Clutterfunk 1.83, ToE 3.06, Hexagon Force 3.24, ToE 2 3.46, Clubstep 3.62, Deadlocked 4.60.
+- **Label cuts** (v2): Easy < 0.25 < Normal < 0.47 < Hard < 0.7 < Harder < 1.45 < Insane < 3.4 < Demon. Stars =
+  8.44 + 9.41 log10(score), least squares on the mains (a reading aid only). Our levels' labels move with this: a brief's
+  `difficulty.label` target is now read on the v2 scale (score.js gate "difficulty").
+- **Still off**: ToE reads too hard (his 11th, ours 17th: its UFO seconds at ~30 units of slack); xStep too easy for him
+  (13th vs 8th); Polargeist just under Stereo Madness (his 3rd vs 2nd).
+
+### Why each main level is hard: Evgeni's reasons (2026-11-28)
+
+The features a score must see; each line says whether v2 sees it.
+- **Stereo Madness vs Back On Track**: "3 triples which are not so easy (not full triples but some timing)"; Back On Track
+  has no such timings. SEEN: Stereo's 71 ms and 88 ms jumps are its costliest presses; Back On Track's tightest is 138 ms.
+- **Dry Out**: "reverse gameplay, which is inherently more difficult, and there is that very awkward staircase in the
+  reverse you need to hold or close to it (you jump although the platform is lower)". SEEN in part: gravity (25 presses).
+  NOT SEEN: an awkward held staircase (a hold that looks wrong) -- a readability feature.
+- **Cant Let Go**: "main difficulty of the ending, its again the reverse, but the timings are much harder than anything
+  before in that dark section". SEEN: 71-96 ms jumps at 76-78 s, gravity. NOT SEEN: "harder than anything before" -- the
+  step from what the level taught (see "first time" below); the dark section (visibility).
+- **Clutterfunk**: overall not easy; "big spikes of difficulty come in the mini flying, which requires much more control
+  and clicks than before. the flying in general is much more tight. and the ending ... as its closer to the endings things
+  are more difficult by human design. and the mini cube is not easy". SEEN: flight 0.82 (mini ship at 35 units of slack
+  at 58-60 s is its worst). NOT SEEN: mini cube as its own cost; "more clicks than before".
+- **Clubstep**: "requires just the next level of flying. with a lot of reverse gameplay and rather specific tight places
+  you need to fly, compared to more free flying before". SEEN: flight 2.47, the largest of all (ship at 28 units, UFO at
+  29), gravity 62 presses.
+- **Deadlocked**: "hard due to the x3 wave sections, they are much tighter than anything before. the level is mega
+  unbalanced where the first wave is like impossible at first, and the ending is pretty brutal with the flying into hard
+  wave spam into tight wave into hard flying, after the flying its somewhat easy in the end". PARTLY SEEN: the wave press
+  windows (71-200 ms) now count half. NOT SEEN: **the flight room misses the waves** -- Deadlocked's last waves read 290
+  units of slack (open) and its first wave 60-240: `corridor()` measures only the vertical gap in the player's own
+  column, blind to speed (3x leaves a third of the time) and to diagonal corridors and spike walls ahead. **Being fixed
+  (2026-11-28):** `flyRoom` now also keeps, per flown second, the speed index `sp` and `clearSlack` (2 x the distance to
+  the nearest hazard in any direction within 150 units, saws by their circle, minus the player's size: what a wave
+  threads between, not only what is above and below it). `flySlack(f, W)` turns them into the score's slack:
+  min(column slack, FLY_CLEAR x clearSlack) x (1x speed / this speed)^FLY_SPEED. Both are 0 (off) in DIFF_V2 until the
+  mains are re-measured on the PC (`node tools/balance.js --write-mains` -> knowledge/balance_mains_v2.json, flyRaw gains
+  [.., sp, clearSlack]) and `tools/difficulty_fit_v2.js` picks them (it prints a CLEAR x SPEED x FLY x wave table once
+  the data has them). Still not seen after that: moving objects (the world's start positions are measured).
+- **Theory of Everything 2**: "somewhat more balanced, nothing being too brutal besides the 80% ship. all sections are
+  somewhat decently difficult, the first cube is bit easier, but it has timings and its not that free". A balanced level:
+  a peak measure would rank it below the unbalanced Deadlocked, as he does.
+- **Hexagon Force**: "2 duals which are mega spike in difficulty as the player needs to watch an additional icon. and the
+  asymmetrical duals are pretty brutal for the first time, the more you need to switch vision between the players the
+  harder it is, with the second dual ball being very hard. the symmetrical duals are bit harder just because they have
+  slightly different physics than the single player". The fit gives duals ~0 beyond their windows (Hexagon is high on
+  timing alone); its dual cost should grow with how different the two players are (modes, how far apart, vision
+  switches), not a flat count -- needs per-press dual data from the PC.
+- **Forgiveness** (all): "some levels are less and less forgiving for additional clicks and timings. as more difficult it
+  can gets you cant just start randomly clicking in places". NOT SEEN: a level where a stray press kills (spam-proof
+  layouts) is harder than one that lets you click anywhere. Feature: the share of free ticks where an extra press dies
+  (tools/skippress.js / the stray-press check already replay these).
+- **First time** (Hexagon's duals, Clutterfunk's mini flying, Cant Let Go's dark section, Deadlocked's 3x wave): a thing
+  "much harder than anything before" is a spike for a new player. Feature: a section's cost against the hardest the level
+  (and the mains before it) showed so far.
 
 ## Fairness: deaths that are not the player's fault
 

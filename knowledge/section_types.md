@@ -449,3 +449,18 @@ Evgeni 2026-11-27 ("lets remind ourselves more idea for sections, bit tired desi
   closecube 88% -> 0, staircase 38% -> 0, opencube unforced 75% -> 0 (8 seeds, 40 cols, normal).
 - Tall wave pieces head home when the columns left get short for the rows to come down (4 of 6 tall extreme pieces had no
   plan; now 6 of 6, using rows 0-17 of 26).
+- **Ball / spider skips** (Evgeni 2026-11-28, played in GD: "if you can just not click and it passes you to the next
+  clicks then thats a skip"): make() also leaves out each flip and each flip + flip back pair and blocks the run that
+  still clears (a spike where it touches down, a hanging one under a roof, a saw in the open). Flying modes the same for
+  held / no press / each hold. gencheck after (8 seeds, 40 cols, normal): spider and orbs clean, ball unforced 25% (one
+  flip at the way out), fly unforced 75% / wave 88% (one input near the exit each), slideable 0.
+- **Open, slowly: "where" and "distribution" controls** (Evgeni 2026-11-28: "some kind of positioning, or distribution of
+  something ... for the section designer also to control a bit over where things happen, but slowly"). Wanted over time:
+  anchors (a jump at column X or beat Y), where the dense / hard part sits in the section, how orbs, portals and hazards
+  spread. Hooks today: `entry` (the entry row), `beats` / `bpm` (where presses go), `tier`. Add new ones as plain options of
+  `make()` passed through `ctx`, one at a time, each with a gencheck line.
+- **No long ship slide** (Evgeni 2026-11-28: "the ship has a lot of places it could slide, as these are slopes, need to
+  block full sliding"): for ship pieces make() also plays, from every 6th column, the plan then the button held (or let go)
+  to the end, and blocks any such run that gets more than 8 columns on. Measured by `node tools/genslides.js <types>`
+  (6 seeds, 40 cols): fly 33 of 60 slides -> 0; flying on the grounds 38 -> 26 (open: it rides its floor and roof by
+  design and its slopes leave no cell for a spike; it needs shorter rides by construction). Level side: tools/slides.js.

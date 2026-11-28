@@ -1,0 +1,50 @@
+{
+ "level": "GDLM 78 two moons rising",
+ "ver": "b3d61110b1",
+ "model": "haiku-5.5",
+ "at": "2026-11-28T12:29Z",
+ "render": "look",
+ "overall": "The look is mostly coherent neon; the main faults are a few flat pale bars, portal clusters with no visible purpose, and crowded or overlapping deco at the ceiling and the end signature.",
+ "notes": [
+  {
+   "t": 6,
+   "cat": "3d",
+   "note": "the pale green bars in the air have no faces or side shading and read as flat, unfinished lines."
+  },
+  {
+   "t": 29,
+   "cat": "portal",
+   "note": "three rings stacked in a tight run (cyan, green, cyan) with no clear purpose between them."
+  },
+  {
+   "t": 37,
+   "cat": "clutter",
+   "note": "a dense row of ceiling saws and spike triangles crowds the top of the path."
+  },
+  {
+   "t": 42,
+   "cat": "clutter",
+   "note": "a faint green outlined box sits behind the ship and reads as a stray fragment."
+  },
+  {
+   "t": 47,
+   "cat": "join",
+   "note": "the spike row ends against a small purple corner stub with white outlines that looks like a broken joint."
+  },
+  {
+   "t": 56,
+   "cat": "contrast",
+   "note": "the dark sawtooth ground blends into the brown background, so its edges are hard to read."
+  },
+  {
+   "t": 60,
+   "cat": "clutter",
+   "note": "the signature text is partly covered by an orange ring and the robot deco."
+  },
+  {
+   "t": 60,
+   "cat": "portal",
+   "note": "a yellow ring sits between two cyan rings in a tight cluster, adding nothing visible."
+  }
+ ]
+}
