@@ -1,4 +1,7 @@
-// node tools/autoclose.js <level.gdlvl> [--out levels/lab/<name>_auto.gdlvl] [--name "..."] [--shown] [--quiet]
+// node tools/autoclose.js <level.gdlvl> [--route <route.json>] [--out levels/lab/<name>_auto.gdlvl] [--name "..."] [--shown] [--quiet]
+//   --viewer: write it as levels/gdlm_auto_<base>.gdlvl (the viewer lists top-level levels/) with its zero-press run saved as
+//     its solution, so the viewer replays it at once (then node tools/index_levels.js)
+//   --route: a route file ({events: [...]} or [...], e.g. levels/gdlm_77_missing_physics_lab.probe.json) instead of the saved solve
 //   -> an AUTO copy of a solved level: the same level, and for every press of its saved route a HIDDEN object that makes the
 //      same move with no click (alpha 0 from the first tick: collision stays, the eye sees nothing). Evgeni, 2026-11-26:
 //      "once we have a solved level, we can make an 'auto' clone. without adding anything visible, if we can. with triggers
@@ -19,7 +22,7 @@ if (require.main === module) require("./heavy.js").claim();   // one heavy job a
 const fs = require("fs"), path = require("path");
 const { GD, readGdlvl, writeGdlvl } = require("./io.js");
 const ROOT = path.join(__dirname, "..");
-const ID = { gravUp: 10, gravDown: 11, pink: 140, yellow: 35, red: 1332, spiderPad: 3005, alpha: 1007 };
+const ID = { bluePad: 67, gravUp: 10, gravDown: 11, pink: 140, yellow: 35, red: 1332, spiderPad: 3005, alpha: 1007 };
 const HIDE_GROUP = 9990, CK = 120;
 const PADM = new Set(["cube", "robot", "ufo"]);
 
@@ -47,11 +50,29 @@ function obj(id, x, y, extra = {}) {
 }
 
 // candidates for one route event, given the auto player's state s on that tick
-function candidates(e, s, wantMode) {
+function candidates(e, s, wantMode, o0, o1) {
   const out = [], m = s.mode, X = s.x;
+  // what the press did in the original run (o0 its tick, o1 a few ticks later): an orb press in any mode is a jump with gravity
+  // kept (-> pads in the air under the player), a blue orb a flip (-> a gravity portal or blue pad)
+  const orbJump = o0 && o1 && o1.grav === o0.grav && o1.mode === o0.mode && (o1.vy - o0.vy) * o0.grav > 3;
+  const orbFlip = o0 && o1 && o1.grav !== o0.grav && o1.mode === o0.mode && PADM.has(m);
+  const padsUnder = (ids, tag) => { const foot = s.grav > 0 ? s.y - half(s) : s.y + half(s), y = s.grav > 0 ? foot + 2 : foot - 2;
+    for (const id of ids) for (let dx = -6; dx <= 30; dx += 2) out.push({ kind: ({ 140: "pink", 35: "yellow", 1332: "red", 67: "blue" })[id] + " pad" + tag, objs: [obj(id, X + dx, y, { flipY: s.grav < 0 })] }); };
+  if (e.type === "press" && orbFlip) { for (let dx = -18; dx <= 30; dx += 2) out.push({ kind: "grav", objs: [obj(s.grav > 0 ? ID.gravDown : ID.gravUp, X + dx, s.y)] }); padsUnder([ID.bluePad], " (blue orb)"); return out; }
+  if (e.type === "press" && orbJump && !PADM.has(m)) { padsUnder([ID.pink, ID.yellow, ID.red], " (orb, " + m + ")"); return out; }
   const grav = () => { for (let dx = -18; dx <= 30; dx += 2) out.push({ kind: "grav", objs: [obj(s.grav > 0 ? ID.gravDown : ID.gravUp, X + dx, s.y)] }); };
   if (e.type === "release") { if (m === "wave" || m === "ship") grav(); return out; }
-  if (m === "wave" || m === "ship" || m === "ball" || m === "swing") { grav(); return out; }
+  if (m === "wave" || m === "ship" || m === "ball" || m === "swing") {
+    grav();
+    // a ball press off a surface pushes away from it; a portal only flips gravity (and halves vy), too slow where the next
+    // spike is close: a hidden blue pad under the ball flips it with a push (brickgen2 / clickfirst ball labs, 2026-11-28)
+    // a ship press where a flip alone is too weak (it rises at 0.25 a tick, held 0.39): a hidden pink / yellow pad under it
+    // kicks it up (GDLM 76's ship, 2026-11-28)
+    if (m === "ship" && e.type === "press") padsUnder([ID.pink, ID.yellow], " (ship)");
+    if (m === "ball" && s.g) { const foot = s.grav > 0 ? s.y - half(s) : s.y + half(s), y = s.grav > 0 ? foot + 2 : foot - 2;
+      for (let dx = -10; dx <= 24; dx += 2) out.push({ kind: "blue pad", objs: [obj(ID.bluePad, X + dx, y, { flipY: s.grav < 0 })] }); }
+    return out;
+  }
   if (m === "spider" || m === "cube" || m === "robot" || m === "ufo") {
     // a pad under the player's feet -- on a surface, or floating in the air (hidden, it needs nothing to stand on: a pad fires
     // on touch): pink 10.4 / yellow 16 / red 20 up for a cube (a jump is 11.18; an orb press in the air takes the nearest)
@@ -86,10 +107,10 @@ function clone(levelStr, events, opts = {}) {
     if (!frame) {
       // pad modes: also from where the player is a little before / after the press (a press that lands a jump on a ledge's
       // edge, after a few pads that each jumped a bit lower than the original, needs its pad earlier, on the last surface)
-      let cands = candidates(e, s);
-      if (PADM.has(s.mode) && e.type === "press") for (const dt of [-24, -16, -8, 6]) {
+      let cands = candidates(e, s, null, P[e.tick], P[e.tick + 6]);
+      if ((PADM.has(s.mode) || s.mode === "ball") && e.type === "press") for (const dt of [-24, -16, -8, 6]) {
         const q = cur.p[e.tick + dt];
-        if (q && !q.dead && q.mode === s.mode) cands = cands.concat(candidates(e, q).filter((c, k) => k % 2 === 0).map(c => Object.assign(c, { kind: c.kind + (dt < 0 ? " early" : " late") })));
+        if (q && !q.dead && q.mode === s.mode) cands = cands.concat(candidates(e, q, null, P[e.tick], P[e.tick + 6]).filter((c, k) => k % 2 === 0).map(c => Object.assign(c, { kind: c.kind + (dt < 0 ? " early" : " late") })));
       }
       if (!cands.length) { if (e.type === "press") unhandled.push({ tick: e.tick, type: e.type, mode: s.mode, air: !s.g }); i++; continue; }
       const scored = [], died = [];
@@ -163,18 +184,21 @@ if (require.main === module) {
   const a = process.argv.slice(2), opt = k => { const i = a.indexOf(k); return i >= 0 ? a[i + 1] : null; };
   const file = a.find(x => /\.gdlvl$/.test(x) && x !== opt("--out"));
   if (!file) { console.log("usage: node tools/autoclose.js <level.gdlvl> [--out file] [--name name] [--shown]"); process.exit(1); }
-  const L = readGdlvl(file), events = routeOf(file, L.levelStr);
+  const L = readGdlvl(file), rf = opt("--route");
+  const events = rf ? (j => Array.isArray(j) ? j : j.events)(JSON.parse(fs.readFileSync(rf, "utf8"))) : routeOf(file, L.levelStr);
   if (!events) { console.log("no saved route for " + file + " (solve it first: node tools/solutions.js " + file + ")"); process.exit(1); }
   const t0 = Date.now();
   const r = clone(L.levelStr, events, { shown: a.includes("--shown") });
   const base = path.basename(file, ".gdlvl");
-  const out = path.resolve(opt("--out") || path.join(ROOT, "levels", "lab", base + "_auto.gdlvl"));
+  const out = path.resolve(opt("--out") || (a.includes("--viewer") ? path.join(ROOT, "levels", "gdlm_auto_" + base.replace(/^gdlm_/, "") + ".gdlvl") : path.join(ROOT, "levels", "lab", base + "_auto.gdlvl")));
   const name = opt("--name") || (GD.getField ? null : null) || ("GDLM auto " + base.replace(/^gdlm_/, "").replace(/_/g, " "));
   const rec = GD.newRecord(name, require("./signature.js").describe("auto clone of " + base + ": every press replaced by a hidden object (tools/autoclose.js)"));
   for (const k of ["k45", "k8"]) { const m = new RegExp("<k>" + k + "</k><[is]>([^<]*)<").exec(L.record || ""); if (m) GD.setField(rec, k, "i", m[1]); }
   fs.mkdirSync(path.dirname(out), { recursive: true });
   writeGdlvl(out, rec, { header: r.header, objects: r.objects });
   if (!r.unhandled.length) require("./planned.js").writeAuto(out, "tools/autoclose.js: an auto clone, no press");   // wip put replays it at once
+  if (r.clears && a.includes("--viewer")) { const W = readGdlvl(out), sols = require("./solutions.js");
+    sols.put(W.levelStr, { ok: true, events: [], kind: "auto", plan: sols.planCommit() }); }
   if (!a.includes("--quiet")) {
     const byKind = {}; for (const p of r.placed) byKind[p.kind] = (byKind[p.kind] || 0) + 1;
     console.log("placed:", JSON.stringify(byKind), "unhandled:", r.unhandled.length, r.unhandled.slice(0, 8).map(u => `${(u.tick / 240).toFixed(2)}s ${u.mode}${u.air ? " in the air" : ""}${u.why ? " " + u.why : ""}`).join("; "));
