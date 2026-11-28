@@ -1,0 +1,251 @@
+<title>GD work board</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;600&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* VOICE work
+   IDEA a night shift desk: one sheet that says what is solved, what is generated well, what is in the works
+   PICTURE the 22 main levels as a ladder of route bars, one per level, red where the route stops
+   COLOUR plum-black ground, white ink, rose for "not there yet", dusk for done, mint for ok
+   TYPE Inter Tight 300 large + Inter
+   LAYOUT laptop: title + four figures across, ladder full width, folding sections below; phone: stacked */
+:root{color-scheme:dark;--bg:#1a0f1f;--panel:#24172b;--line:#3d2c47;--ink:#f6f0f8;--dim:#b7a8c0;--acc:#ff8fa3;--dusk:#8f7aa8;--ok:#7fd6b0;--warn:#ffc66e}
+*{box-sizing:border-box;min-width:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 Inter,system-ui,sans-serif;overflow-x:clip;margin:0}
+.band{padding-block:18px;padding-left:max(4vw,16px,env(safe-area-inset-left,0px));padding-right:max(4vw,16px,env(safe-area-inset-right,0px));max-width:1280px;margin:0 auto}
+h1{font:300 clamp(32px,5vw,48px)/1.05 "Inter Tight",Inter,sans-serif;letter-spacing:-.02em;margin:28px 0 4px}
+.sub{color:var(--dim);font-size:13px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(10em,1fr));gap:10px;margin-top:16px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.kpi b{display:block;font:600 30px/1.1 "Inter Tight",sans-serif;letter-spacing:-.02em}
+.kpi span{color:var(--dim);font-size:13px}
+.ladder{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px 14px;margin-top:14px}
+.rung{display:grid;grid-template-columns:22px 1fr 40px;gap:6px;align-items:center;font-size:13px}
+.rung i{display:block;height:8px;border-radius:4px;background:var(--line);position:relative;overflow:hidden}
+.rung i em{position:absolute;inset:0 auto 0 0;background:var(--ok);border-radius:4px}
+.rung.bad i em{background:var(--acc)}
+.rung .n{color:var(--dim);text-align:right;font-variant-numeric:tabular-nums}
+.rung .p{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.rung .nm{grid-column:2/4;margin-top:-4px;color:var(--dim);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+details.sec{background:var(--panel);border:1px solid var(--line);border-radius:10px;margin:10px 0}
+details.sec>summary{list-style:none;padding:12px 16px;font:600 17px "Inter Tight",sans-serif;display:flex;gap:10px;align-items:baseline;border-radius:10px}
+details.sec>summary::-webkit-details-marker{display:none}
+details.sec>summary::before{content:"▸";color:var(--dim);transition:transform .15s}
+details.sec[open]>summary::before{transform:rotate(90deg)}
+summary .ct{color:var(--dim);font:400 13px Inter,sans-serif;margin-left:auto;text-align:right}
+.inner{padding:0 16px 14px}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{text-align:left;color:var(--dim);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:6px 8px;border-bottom:1px solid color-mix(in srgb,var(--line) 60%,transparent);vertical-align:top}
+td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12px;background:var(--line)}
+.tag.ok{background:color-mix(in srgb,var(--ok) 25%,transparent);color:var(--ok)}
+.tag.bad{background:color-mix(in srgb,var(--acc) 22%,transparent);color:var(--acc)}
+.tag.warn{background:color-mix(in srgb,var(--warn) 22%,transparent);color:var(--warn)}
+.note{color:var(--dim);font-size:13px;margin:6px 0}
+a{color:var(--acc)}
+.lv{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:16px;padding:12px 0;border-bottom:1px solid var(--line)}
+.lv h3{margin:0;font:600 18px "Inter Tight",sans-serif}
+.lv .big{font:300 40px/1 "Inter Tight",sans-serif}
+.parts{display:grid;grid-template-columns:auto 1fr 32px;gap:3px 8px;font-size:12px;align-items:center}
+.parts i{height:6px;border-radius:3px;background:var(--line);position:relative}
+.parts i em{position:absolute;inset:0 auto 0 0;border-radius:3px;background:var(--dusk)}
+.parts i em.lo{background:var(--acc)}
+.work{display:grid;grid-template-columns:repeat(auto-fit,minmax(15em,1fr));gap:12px}
+.work h4{margin:4px 0 6px;font-size:13px;color:var(--dim);font-weight:600}
+.wi{border-left:3px solid var(--dusk);padding:4px 10px;margin-bottom:8px;font-size:13px}
+.wi.waiting{border-color:var(--warn)}.wi.working{border-color:var(--ok)}
+.wi small{display:block;color:var(--dim)}
+button{font:13px Inter,sans-serif;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:4px 10px}
+.pin{padding:2px 7px;font-size:12px}
+.pin.has{border-color:var(--acc)}
+.mk{margin-top:6px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.mk input{flex:1 1 220px;font:16px Inter,sans-serif;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:5px 8px}
+.mk small{color:var(--dim)}
+#err{color:var(--warn);font-size:13px}
+@media(max-width:640px){.lv{grid-template-columns:1fr}.rung .nm{white-space:normal}}
+/* HOVER ON EVERY BUTTON (tools/snippets/hover.css) */
+button,.btn,[role=button],select,summary,input[type=button],input[type=submit]{transition:filter .12s,transform .12s,box-shadow .12s,background-color .12s}
+button:hover:not(:disabled),.btn:hover,[role=button]:hover,select:hover,summary:hover,input[type=button]:hover,input[type=submit]:hover{filter:brightness(1.18);box-shadow:0 0 0 2px rgba(120,170,255,.35);cursor:pointer}
+button:active:not(:disabled),.btn:active,[role=button]:active{transform:translateY(1px);filter:brightness(.95)}
+</style>
+<!-- ⟳ REFRESH for every workbook page (Evgeni 2026-11-27: "add refresh on every workbook ... and last refreshed, and some
+     effect when i click refresh"; CLAUDE.md Rules). Paste once into a page; it adds a fixed button top-right. Click: the icon
+     spins, the page saves its view (pages keep their own view: tab, scroll, folds), reloads with fresh data, then flashes a
+     "refreshed" toast. "last refreshed HH:MM" stays beside the button. A page may set window.rfBeforeReload (async, false = stay) to send unsent work first. No dependencies; storage wrapped in try/catch. -->
+<style>
+#rf{position:fixed;top:8px;right:10px;z-index:9999;display:flex;align-items:center;gap:6px;font:12px system-ui,sans-serif;color:var(--dim,#8a93a3)}
+#rf button{font:16px/1 system-ui;width:30px;height:30px;border-radius:50%;border:1px solid var(--line,#3a4150);background:var(--panel,#1c212b);color:var(--ink,#e8ecf2);cursor:pointer}
+#rf button:hover{border-color:var(--acc,#6aa7ff)}
+#rf.go button{animation:rfspin .6s linear infinite}
+@keyframes rfspin{to{transform:rotate(360deg)}}
+#rft{position:fixed;top:44px;right:10px;z-index:9999;padding:6px 12px;border-radius:14px;background:var(--acc,#6aa7ff);color:#fff;font:600 12px system-ui;opacity:0;transform:translateY(-6px);transition:.35s;pointer-events:none}
+#rft.on{opacity:1;transform:none}
+body.rfflash{animation:rfflash .7s ease-out}
+@keyframes rfflash{0%{filter:brightness(1.35)}100%{filter:none}}
+</style>
+<div id="rf"><span id="rfl"></span><button id="rfb" title="refresh: fresh data, keeps your place">⟳</button></div><div id="rft">refreshed ✓</div>
+<script>
+(function () {
+  const K = "rf:" + (document.title || location.pathname), hm = t => new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  let s = {}; try { s = JSON.parse(localStorage.getItem(K) || "{}"); } catch (e) {}
+  const now = Date.now(), L = document.getElementById("rfl");
+  const show = () => { L.textContent = "last refreshed " + hm(s.at || now); };
+  if (s.pending && now - s.pending < 30e3) {          // came back from a ⟳ click: the effect
+    s.at = now; delete s.pending;
+    requestAnimationFrame(() => { document.body.classList.add("rfflash"); const t = document.getElementById("rft"); t.classList.add("on"); setTimeout(() => t.classList.remove("on"), 1600); });
+  } else s.at = now;                                  // any load is a refresh too
+  try { localStorage.setItem(K, JSON.stringify(s)); } catch (e) {}
+  show();
+  document.getElementById("rfb").onclick = async () => {
+    document.getElementById("rf").classList.add("go");
+    // a page with unsent notes sends them first (window.rfBeforeReload -> false = the send failed: stay, the page says why)
+    if (typeof window.rfBeforeReload === "function") { let ok = true; try { ok = await window.rfBeforeReload(); } catch (e) { ok = false; }
+      if (ok === false) { document.getElementById("rf").classList.remove("go"); return; } }
+    try { s.pending = Date.now(); localStorage.setItem(K, JSON.stringify(s)); } catch (e) {}
+    try { window.dispatchEvent(new Event("scroll")); } catch (e) {}   // the page's keep-the-view saves the scroll
+    setTimeout(() => location.reload(), 350);         // let the spin show and the view save land
+  };
+})();
+</script>
+
+<div class="band">
+  <h1>GD work board</h1>
+  <div class="sub" id="sub">loading data…</div>
+  <div class="kpis" id="kpis"></div>
+  <div class="ladder" id="ladder" aria-label="main levels, how far today's route gets"></div>
+  <div class="note">Main levels: how far the saved human route gets on today's sim. Red = it stops there and needs a re-solve.</div>
+  <div id="err"></div>
+  <div id="secs"></div>
+</div>
+<script>
+{
+const $ = id => document.getElementById(id);
+const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const hm = t => { try { return new Date(t).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }); } catch (e) { return t; } };
+const errs = [];
+const err = (where, e) => { errs.push(where + ": " + (e && e.message || e)); $("err").textContent = errs.join(" · "); };
+addEventListener("error", e => err("page", e.message));
+let D = null, DB = null, CM = null, WORK = [], MARKS = {}, LAST = "", lastKey = 0;
+const FOLD = "b2:folds";
+let folds = {}; try { folds = JSON.parse(localStorage.getItem(FOLD) || "{}"); } catch (e) {}
+const saveFolds = () => { try { localStorage.setItem(FOLD, JSON.stringify(folds)); } catch (e) {} };
+
+// ---- marks: 📍 on any row, autosaved as revision docs (WORKBOOKS.md 4), one 📨 for everything new
+const pin = (item, label) => { const m = MARKS[item]; return `<button class="pin${m && m.note ? " has" : ""}" data-item="${esc(item)}" data-label="${esc(label)}" title="mark this for Claude">📍</button>`; };
+function openMark(btn) {
+  const item = btn.dataset.item, label = btn.dataset.label, host = btn.closest("td,div,li");
+  if (host.querySelector(".mk")) { host.querySelector(".mk").remove(); return; }
+  const m = MARKS[item] || {}, box = document.createElement("div"); box.className = "mk";
+  box.innerHTML = `<input placeholder="note for Claude on ${esc(label)}"><small>${m.note ? (m.sentAt === m.at ? "sent" : "saved") : ""}</small>`;
+  host.appendChild(box); const inp = box.querySelector("input"), st = box.querySelector("small"); inp.value = m.note || ""; inp.focus();
+  let t = null; const save = async () => { const note = inp.value; const rec = { item, label, note, at: new Date().toISOString() };
+    MARKS[item] = rec; btn.classList.toggle("has", !!note.trim());
+    if (!DB) { st.textContent = "not saved: no database in this view"; return; }
+    try { await DB.collection("marks").doc(item.replace(/[^\w-]/g, "_") + "-" + Date.now().toString(36)).set(rec); st.textContent = "saved"; } catch (e) { st.textContent = "not saved: " + (e.code || e.message); } topSend(); };
+  inp.addEventListener("input", () => { st.textContent = "…"; clearTimeout(t); t = setTimeout(save, 700); });
+  inp.addEventListener("keydown", e => { lastKey = Date.now(); if (e.key === "Enter") { clearTimeout(t); save(); } });
+}
+document.addEventListener("click", e => { const b = e.target.closest(".pin"); if (b) openMark(b); });
+document.addEventListener("keydown", () => { lastKey = Date.now(); });
+const unsent = () => Object.values(MARKS).filter(m => m.note && m.note.trim() && String(m.at) > LAST && m.sentAt !== m.at && !m.deleted);
+async function sendNew() {
+  const ms = unsent(), st = $("sendst"); if (!ms.length) { st.textContent = "nothing new"; return true; }
+  if (!CM || !CM.sendToClaude) { st.textContent = "saved; sending works on the claude.ai page"; return false; }
+  const text = "📍 marks on the GD work board:\n" + ms.map((m, i) => `${i + 1}. ${m.label} (${m.item}): ${m.note.trim()}`).join("\n");
+  try { await CM.sendToClaude({ anchor: await CM.anchorFor($("secs")), text: text.slice(0, 4000) }); }
+  catch (e) { st.textContent = "saved ✓, the app held the send (a key or tap in the last ~6 s): press 📨 again"; return false; }
+  LAST = new Date().toISOString(); try { await DB.collection("send").doc("s-" + Date.now().toString(36)).set({ at: LAST }); } catch (e) {}
+  st.textContent = "sent " + ms.length + " " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); topSend(); return true;
+}
+function topSend() { const rf = $("rf"); if (!rf) return; let b = $("sendall");
+  if (!b) { b = document.createElement("button"); b.id = "sendall"; b.style.cssText = "width:auto;border-radius:15px;padding:0 10px;height:30px";
+    const s = document.createElement("span"); s.id = "sendst"; rf.prepend(s); rf.insertBefore(b, $("rfb")); b.onclick = sendNew; }
+  const n = unsent().length; b.textContent = n ? "📨 " + n + " new" : "📨"; b.title = "send new marks to Claude"; }
+window.rfBeforeReload = async () => { if (unsent().length) { try { await sendNew(); } catch (e) {} } return true; };
+
+// ---- sections
+const sec = (id, title, count, body) => `<details class="sec" data-id="${id}"${folds[id] ? " open" : ""}><summary>${esc(title)}<span class="ct">${esc(count)}</span></summary><div class="inner">${body}</div></details>`;
+const tag = (t, k) => `<span class="tag ${k || ""}">${esc(t)}</span>`;
+function kpis() {
+  const m = (D.mains && D.mains.rows) || [], clear = m.filter(r => r.route_pct >= 100).length;
+  const T = D.types || [], tOk = T.filter(t => t.ok).length, lv = (D.levels || [])[0];
+  const g = (D.stats && D.stats.summary) || {};
+  const cells = [[clear + "/" + m.length, "main levels with a clearing route"], [tOk + "/" + T.length, "section types solve on the board"],
+    [g.clear_rate != null ? Math.round(g.clear_rate * 100) + "%" : "…", g.clear_rate != null ? "generated sections clear" : "generation stats: being measured"],
+    [lv ? lv.layout + "/10" : "–", lv ? "layout score, " + lv.name : "no judged level"]];
+  $("kpis").innerHTML = cells.map(c => `<div class="kpi"><b>${esc(c[0])}</b><span>${esc(c[1])}</span></div>`).join("");
+  $("ladder").innerHTML = m.map(r => `<div class="rung${r.route_pct < 100 ? " bad" : ""}" title="${esc(r.name)}: ${esc(r.need)}"><span class="n">${r.n}</span><i><em style="width:${Math.max(2, Math.min(100, r.route_pct))}%"></em></i><span class="p">${r.route_pct}%</span><span class="nm">${esc(r.name)}</span></div>`).join("");
+}
+function workSec() {
+  const G = { working: [], next: [], waiting: [], done: [] }, day = Date.now() - 864e5;
+  for (const w of WORK) { const s = w.state === "queued" ? "next" : w.state; if (s === "done" && !(w.done_at && Date.parse(w.done_at) > day)) continue; (G[s] || G.next).push(w); }
+  const col = (k, h) => `<div><h4>${h} · ${G[k].length}</h4>${G[k].map(w => `<div class="wi ${k}">${esc(w.title)} ${pin("work:" + w.id, w.title)}<small>${esc(w.note || "")}${w.est_min ? " · ~" + esc(w.est_min) + " min (" + esc(w.basis || "measured") + ")" : ""}</small></div>`).join("") || '<div class="note">none</div>'}</div>`;
+  const body = DB ? `<div class="work">${col("working", "Being worked on")}${col("waiting", "Waiting on you")}${col("next", "Next")}${col("done", "Done today")}</div>` : '<div class="note">The work list lives in this page\'s database; it shows on the claude.ai page.</div>';
+  return sec("work", "Now", `${G.working.length} working · ${G.waiting.length} waiting on you`, body);
+}
+function mainsSec() {
+  const m = D.mains || {}; if (!m.rows) return sec("mains", "Main levels", "no data", `<div class="note">${esc(m.error || "")}</div>`);
+  const rows = m.rows.map(r => `<tr><td class="num">${r.n}</td><td>${esc(r.name)} ${pin("main:" + r.n, r.name)}</td><td>${esc(r.rating)}</td><td class="num">${r.route_pct}%</td><td>${r.need === "ok" ? tag("ok", "ok") : tag(r.need, "bad")}</td><td class="num">${r.min_ms ?? ""} ms</td><td class="num">${r.tight ?? ""}</td><td class="num">${r.score ?? ""}</td><td>${r.flag ? tag(r.flag, "warn") : ""}</td><td class="num">${r.attempts ?? ""}</td></tr>`).join("");
+  return sec("mains", "Main levels", `${m.rows.filter(r => r.route_pct >= 100).length} of ${m.rows.length} clear · PC status ${hm(m.at)}`,
+    `<div class="scroll"><table><thead><tr><th>#</th><th>level</th><th>rating</th><th>route</th><th>state</th><th>tightest</th><th>tight</th><th>score</th><th>flag</th><th>your tries</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="note">route = how far the human route gets today; tight = presses under 50 ms; score = difficulty from the scored route (scored before the latest physics changes).</div>`);
+}
+// any rows of objects from the stats report become a table
+const anyTable = rows => { if (!Array.isArray(rows) || !rows.length || typeof rows[0] !== "object") return `<pre class="scroll">${esc(JSON.stringify(rows, null, 1))}</pre>`;
+  const ks = [...new Set(rows.flatMap(r => Object.keys(r)))].filter(k => rows.every(r => r[k] == null || typeof r[k] !== "object"));
+  const f = v => typeof v === "number" ? (Math.abs(v) < 1 && v !== 0 ? Math.round(v * 100) + "%" : +v.toFixed(2)) : esc(v);
+  return `<div class="scroll"><table><thead><tr>${ks.map(k => `<th>${esc(k.replace(/_/g, " "))}</th>`).join("")}</tr></thead><tbody>${rows.map(r => `<tr>${ks.map(k => `<td class="${typeof r[k] === "number" ? "num" : ""}">${f(r[k])}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`; };
+function typesSec() {
+  const T = D.types || [], S = D.stats || {};
+  const rows = T.map(t => `<tr><td>${esc(t.name)} ${pin("type:" + t.key, t.name)}</td><td>${esc(t.mode)}</td><td>${t.ok ? tag("solves", "ok") : tag("fails", "bad")}</td><td>${esc(t.label || "")}</td><td class="num">${t.presses ?? ""}</td><td class="num">${t.tightest ?? ""} ms</td><td class="num">${t.height != null ? Math.round(t.height * 100) + "%" : ""}</td><td class="num">${t.cols}</td></tr>`).join("");
+  const gen = S.types ? `<h4>Generated (many seeds and tiers)</h4>${anyTable(S.types)}` : '<div class="note">Generated-section stats (clear rate, secret ways, height over many seeds) are being measured; they appear here on the next refresh.</div>';
+  return sec("types", "Section types", `${T.filter(t => t.ok).length}/${T.length} solve${S.summary && S.summary.clear_rate != null ? " · generated clear " + Math.round(S.summary.clear_rate * 100) + "%" : ""}`,
+    `<h4>The board's base sections</h4><div class="scroll"><table><thead><tr><th>type</th><th>mode</th><th>check</th><th>tier</th><th>presses</th><th>tightest</th><th>height used</th><th>cols</th></tr></thead><tbody>${rows}</tbody></table></div>${gen}`);
+}
+function joinsSec() {
+  const J = D.stats && D.stats.joins; if (!J) return sec("joins", "Joins between sections", "being measured", '<div class="note">How well sections join (portal walls, abrupt switches, walked portals) comes from the stats report; it appears here on the next refresh.</div>');
+  const body = Array.isArray(J) ? anyTable(J) : (J.rows ? (J.note ? `<div class="note">${esc(J.note)}</div>` : "") + anyTable(J.rows) : anyTable([J]));
+  return sec("joins", "Joins between sections", J.summary || (Array.isArray(J) ? J.length + " rows" : ""), body);
+}
+function levelsSec() {
+  const L = D.levels || [];
+  const body = L.map(l => `<div class="lv"><div><h3>${l.link ? `<a href="${esc(l.link)}">${esc(l.name)}</a>` : esc(l.name)} ${pin("level:" + l.base, l.name)}</h3>
+    <div class="note">${esc(l.seconds)} s · ${esc(l.presses)} presses · ${esc(l.modes)} modes · ${l.at ? "pushed " + hm(l.at) : ""}</div>
+    <div class="big">${esc(l.layout)}<span class="sub">/10 layout</span></div>
+    <div class="note">${esc(l.difficulty)}<br>Fairness: ${esc(l.fairness)}<br>Taste ${esc(l.taste)}</div></div>
+    <div><div class="parts">${l.parts.map(p => `<span>${esc(p[0])}</span><i><em class="${p[1] < 4 ? "lo" : ""}" style="width:${(p[1] || 0) * 10}%"></em></i><span class="num">${esc(p[1])}</span>`).join("")}</div>
+    <details><summary class="note">top notes (${l.notes.length})</summary><ol class="note">${l.notes.map(n => `<li>${esc(n)}</li>`).join("")}</ol></details></div></div>`).join("");
+  return sec("levels", "Our levels", L.map(l => l.name.replace(/^GDLM /, "") + " " + l.layout).join(" · "), body + '<div class="note">Layout parts under 4 in rose. Names open the phone viewer.</div>');
+}
+function marksSec() {
+  const ms = Object.values(MARKS).filter(m => m.note && m.note.trim() && !m.deleted && !m.fixed);
+  if (!ms.length) return "";
+  return sec("marks", "Your marks", ms.length + " open", ms.map(m => `<div class="wi ${m.seen ? "" : "waiting"}">${esc(m.label)}: ${esc(m.note)}<small>${m.seen ? "seen by Claude" + (m.reply ? ": " + esc(m.reply) : "") : m.sentAt === m.at || String(m.at) <= LAST ? "sent" : "not sent yet"}</small></div>`).join(""));
+}
+function render() {
+  if (!D) return;
+  try { kpis(); } catch (e) { err("figures", e); }
+  const parts = [];
+  for (const f of [workSec, mainsSec, typesSec, joinsSec, levelsSec, marksSec]) { try { parts.push(f()); } catch (e) { err(f.name, e); } }
+  if (document.activeElement && document.activeElement.closest && document.activeElement.closest(".mk")) return; // never lose typing
+  $("secs").innerHTML = parts.join("");
+  for (const d of document.querySelectorAll("details.sec")) d.addEventListener("toggle", () => { folds[d.dataset.id] = d.open; saveFolds(); });
+  $("sub").textContent = "data " + hm(D.at) + (D.commit ? " · repo " + D.commit.split(" ")[0] : "") + " · mains from the PC " + hm(D.mains && D.mains.at);
+  topSend();
+}
+// ---- load
+fetch("data.json", { cache: "no-store" }).then(r => r.json()).then(d => { D = d; render(); }).catch(e => { $("sub").textContent = "data did not load"; err("data", e); });
+(async () => {
+  if (!window.claude || !window.claude.use) return;
+  try { CM = await claude.use("comments"); } catch (e) {}
+  try { DB = await claude.use("db"); } catch (e) {}
+  if (!DB) { render(); return; }
+  const copy = x => JSON.parse(JSON.stringify(x));   // db data comes back frozen (WORKBOOKS.md 9)
+  DB.collection("work").onSnapshot(s => { WORK = s.docs.map(d => Object.assign({ id: d.id }, copy(d.data()))); render(); }, e => err("work", e));
+  DB.collection("marks").onSnapshot(s => { const by = {}; for (const d of s.docs) { const m = copy(d.data()); if (!by[m.item] || String(m.at) > String(by[m.item].at)) by[m.item] = m; } MARKS = by; render(); }, e => err("marks", e));
+  DB.collection("send").onSnapshot(s => { LAST = s.docs.map(d => d.data().at).sort().pop() || ""; topSend(); }, e => {});
+})();
+}
+</script>
