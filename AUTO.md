@@ -501,3 +501,25 @@ the level starts at (GD's kA13). The grid's t0 and the song's notes, bars, impac
 (`shiftMusic`); beat numbers (`--from-beat`, `--beats`) stay the song's. The speed plan's changes before the first note set only
 the starting speed (one portal) -- before, every earlier change took one of the first notes (11 speed portals in 12 beats).
 Test in `node tests/autobeat.js`.
+
+## Hellgate's auto part: the chase (tools/hellgate_auto.js, 2026-11-28)
+Evgeni's pick for HELLGATE.md's auto part: "we are running, and some demons are chasing us. shooting at us, throwing fire ...
+dragons above flying. we avoid by some auto gameplay that avoid those things. and then on the beat we pass the gate, and it
+closes on them". `node tools/hellgate_auto.js [--seed 4]` -> `levels/gdlm_44_hellgate_auto.gdlvl` (+ `.dodges.json`), ~5 s:
+- autobeat `--offset 178.47 --from-beat 436 --beats 79` (song 180.5 - 213.2 s, rate 3/s), no ending; the home wall hands over the
+  agreed seam: at 215.4 s a plain 1x cube on the ground (the ending, tools/hellgate_ending.js, carries on from there).
+- 180.7 - 191.4 s raw (plain blocks: "the actual gameplay behind the scenes"); from 191.4 s the structure deco pass in the
+  `hellgate` design theme, its sky for the whole piece.
+- **Dodges**: for each trigger, the level with that one trigger taken out is run a beat past it; where the player would have
+  been then is the dodge's spot (`dodges()`; kept when it is 20+ units from where it really is). A shot lands there a beat
+  after the dodge, so each dodge reads as dodging something. Generic: any auto level can use it.
+- **The chase** from the shared kit tools/hellgate_chase.js (the ending thread's, Art Lab demon + dragon): 3 demons from the
+  start, 2 dragons from 190.4 s, up to 40 fireballs (the biggest dodges, 0.45 s apart; demons throw before 191.4, dragons spit
+  after). The kit locks x only; the player rides 9-12 blocks up for much of the piece, so the creatures also lock to the
+  player's y at 0.85 (`lockPlayer {y}`), and the dragons start 230 units over the player. Groups 4001-4031 (creatures),
+  5001+ (shots), channels 850-889; deco and move / rotate / alpha triggers only, the run unchanged (checked).
+- Seeds 1-4 measured (rise 11.5 - 20 blocks); seed 4 is the default (lowest). `--bandRows 8` broke it (the first gravity flip
+  throws the player to the roof: 592 band rejections, 16 triggers).
+- Measured: 86 triggers, 35% of the strong notes hit, 2.8 a second, modes cube / ufo / ball / ship, 55 dodges, clears with no
+  press; tools/autocheck.js: 8 stray-press leaks (2 holds at 26 s, the rest in the last half second). Test `node tests/hellgate_auto.js`.
+- Not checked in GD: the creatures' lock to the player's y, fireball flights, the whole piece (viewer only so far).

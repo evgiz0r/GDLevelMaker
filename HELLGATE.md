@@ -78,7 +78,10 @@ slot keeps the uploaded version until he says to update it.
 
 - The auto part: thread "Build Hellgate's auto showcase part" (2026-11-28). autobeat now takes `--offset <song s>` (kA13) so the
   piece is built at its place in the song: `node tools/autobeat.js --song 343707 --offset 178.47 --from-beat 436 --beats 84 ...`
-  (2 s lead-in, triggers 180.5 - 215.2 s). Ideas proposed to Evgeni, waiting on his pick.
+  (2 s lead-in). Evgeni picked the chase: built as `node tools/hellgate_auto.js` -> levels/gdlm_44_hellgate_auto.gdlvl
+  (AUTO.md "Hellgate's auto part: the chase"). Seam with the ending, agreed between the two threads: at 215.4 s a plain 1x cube
+  on flat ground; the creatures keep the kit's defaults (lead demon 125 behind, dragons in the sky) so the ending's own kit
+  (groups 4101+) takes over at the same screen spots.
 
 - typebuild's joins (walked portals, abrupt switches) and its cube-ud section: owned by the typebuild thread.
 - How auto and an animation part join gameplay inside one level: the end of the gameplay part has to hand the player to the

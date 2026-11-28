@@ -1,4 +1,4 @@
-// node tools/hellgate_auto.js [--seed N] [--rate R] [--out levels/lab/hellgate_auto.gdlvl] [--session hellgate-auto] [--quiet]
+// node tools/hellgate_auto.js [--seed N (4: the lowest of seeds 1-4, 11.5 blocks)] [--rate R] [--out levels/gdlm_44_hellgate_auto.gdlvl] [--session hellgate-auto] [--quiet]
 //   -> Hellgate's auto part (HELLGATE.md: song 343707 from 180.7 to 215.4 s) as a standalone piece, to be stitched onto
 //      GDLM 44 later: the chase (Evgeni, 2026-11-28: "we are running, and some demons are chasing us. shooting at us,
 //      throwing fire ... dragons above flying. we avoid by some auto gameplay that avoid those things. and then on the beat
@@ -57,9 +57,43 @@ function dodges(file, b, o = {}) {
   return out.filter(d => d.miss >= 20);   // a trigger that hardly moved the player is no dodge
 }
 
+function chaseObjects(file, b, D, o = {}) {
+  const CH = require("./hellgate_chase.js"), FX = require("./effects.js");
+  const ctx = FX.context({ path: b.fin.p, grid: { t0: b.g.t0, period: b.g.period } });
+  const kit = CH.kit({ g0: 4001, ch0: 850 }), shots = CH.kit({ g0: 5001, ch0: 850 });
+  const beat = { t0: b.g.t0, period: b.g.period }, out = [];
+  const ch = kit.chasers(ctx, { t0: 0.3, t1: lt(CUT.end), beat });
+  const yAt0 = t => b.fin.p[Math.min(b.fin.p.length - 1, Math.max(0, Math.round(t * TPS)))].y;
+  const dr = kit.dragons(ctx, { t0: lt(CUT.deco) - 1, t1: lt(CUT.end), y: Math.round(yAt0(lt(CUT.deco) - 1)) + 230 });   // over the player, wherever it is then
+  out.push(...ch.objects, ...dr.objects);
+  // the player rides 9-12 blocks up for much of the piece and the camera follows it, so the creatures follow its height too
+  // (the kit locks x only): lock to the player's y at MODY, demons and dragons alike, from the kit's own start times
+  const MODY = 0.85, yAt = t => b.fin.p[Math.min(b.fin.p.length - 1, Math.max(0, Math.round(t * TPS)))].y;
+  const FXT = FX.T;
+  out.push(FXT.lockPlayer(ctx.xAt(0.3) - 1, ch.group, lt(CUT.end) - 0.3, { x: false, y: true, modY: MODY }));
+  out.push(FXT.lockPlayer(ctx.xAt(lt(CUT.deco) - 1) - 1, dr.group, lt(CUT.end) - lt(CUT.deco) + 1, { x: false, y: true, modY: MODY }));
+  const lift = (t, t0) => MODY * (yAt(t) - yAt(t0));
+  // the shots: the dodges that moved the player most, at least 0.45 s apart, landing a beat after the dodge (where the
+  // player would have been then); demons throw in the raw part, the dragons spit from the decorated part on
+  const pick = [], gap = o.shotGap || 0.45, max = o.shots || 40;
+  for (const d of D.slice().sort((a, c) => c.miss - a.miss)) {
+    if (pick.length >= max) break;
+    if (d.t + b.g.period >= lt(CUT.end) - 0.2 || pick.some(q => Math.abs(q.t - d.t) < gap)) continue;
+    pick.push(d);
+  }
+  pick.sort((a, c) => a.t - c.t);
+  pick.forEach((d, i) => {
+    const t = d.t + b.g.period, fl = 0.5, sky = d.t >= lt(CUT.deco) - 1 && i % 3 !== 2;
+    const tl = t - fl, m = sky ? dr.mouth(i % 2, tl) : null;
+    const from = sky ? { x: m.x, y: m.y + lift(tl, lt(CUT.deco) - 1) } : { x: ctx.xAt(tl) + ch.demons[i % ch.demons.length].dx + 20, y: 60 + lift(tl, 0.3) };
+    out.push(...shots.attack(ctx, { t, from, at: d.at, flight: fl, size: sky ? 1 : 0.8 }));
+  });
+  return { objects: out, attacks: pick.length, header: h => shots.header(kit.header(h)) };
+}
+
 function build(o) {
   const t0 = Date.now();
-  const b = AB.buildInSong({ song: SONG, seed: o.seed, rate: o.rate, offset: OFFSET, from: FROM_BEAT, beats: BEATS, ending: false, quiet: o.quiet });
+  const b = AB.buildInSong({ song: SONG, seed: o.seed, rate: o.rate, offset: OFFSET, from: FROM_BEAT, beats: BEATS, ending: false, bandRows: o.bandRows, quiet: o.quiet });
   if (!b.measures.clears) throw new Error("autobeat: the auto run dies (" + b.fin.why + ")");
   stage(o, "song", null, `Hellgate ${CUT.raw}-${CUT.end} s: ${b.measures.triggers} notes chosen`, { song: SONG });
   AB.write(o.out, b, o.name);
@@ -83,6 +117,12 @@ function build(o) {
   // the dodges: where the shots land
   const D = dodges(o.out, b);
   fs.writeFileSync(o.out.replace(/\.gdlvl$/, ".dodges.json"), JSON.stringify({ song: SONG, offset: OFFSET, cuts: CUT, seam, dodges: D }, null, 1));
+  // the chase (tools/hellgate_chase.js, shared with the ending): demons from the start, dragons from the decorated part, a
+  // fireball for each strong dodge landing where the player would have been. The creatures take groups 4001-4099 (the
+  // ending's kit starts at 4101), the fireballs their own kit at 5001+ (8 groups each); both share channels 850+ (same colours)
+  const chase = chaseObjects(o.out, b, D, o);
+  { const C = readGdlvl(o.out); writeGdlvl(o.out, C.rec, { header: chase.header(C.level.header), objects: C.level.objects.concat(chase.objects) }); }
+  stage(o, "deco", o.out, `the chase: ${chase.attacks} fireballs, demons + dragons, ${chase.objects.length} objects`);
   // deco only: the final file must still clear with no press, on the same path
   const F = readGdlvl(o.out), w = GD.makeWorld(F.level.objects, F.level.header), run = GD.run(w, []);
   const n = Math.min(run.path.length, p.length, Math.round(lt(CUT.end) * TPS) + 1), same = n > 0 && [...Array(n).keys()].every(i => Math.abs(run.path[i].x - p[i].x) < 0.01 && Math.abs(run.path[i].y - p[i].y) < 0.01);
@@ -95,8 +135,8 @@ function build(o) {
 
 if (require.main === module) {
   const a = process.argv.slice(2), opt = k => { const i = a.indexOf(k); return i >= 0 ? a[i + 1] : null; };
-  const o = { seed: +(opt("--seed") || 1), rate: opt("--rate") ? +opt("--rate") : 3, name: opt("--name") || "GDLM 44 hellgate auto",
-    session: opt("--session"), out: path.resolve(opt("--out") || path.join(ROOT, "levels", "lab", "hellgate_auto.gdlvl")), quiet: a.includes("--quiet") };
+  const o = { seed: +(opt("--seed") || 4), rate: opt("--rate") ? +opt("--rate") : 3, name: opt("--name") || "GDLM 44 hellgate auto",
+    session: opt("--session"), out: path.resolve(opt("--out") || path.join(ROOT, "levels", "gdlm_44_hellgate_auto.gdlvl")), quiet: a.includes("--quiet") };
   const res = build(o);
   console.log(JSON.stringify(res.M));
   console.log(`${res.clears ? "CLEARS with no press" : "DIES after the deco"} -> ${path.relative(ROOT, o.out)} (${res.M.buildSecs} s)`);
