@@ -494,3 +494,10 @@ deco / final go to the viewer as it builds.
   - autobeat leaves GD's default magenta sky; the deco palettes need a dark one (autodeco sets the first look's sky).
 Open: the judge (tools/report.js) still reads an auto as a clicked level ("few clicks", presses); the opening is on the default
 ground (startramp would move the auto's path); deco coverage is thin in places (score WARN); Evgeni's look.
+
+## A piece inside a song (autobeat `--offset`, 2026-11-28)
+For Hellgate's auto part (HELLGATE.md, 180.7 - 215.4 s of song 343707): `opts.offset` / `--offset <song s>` = the song second
+the level starts at (GD's kA13). The grid's t0 and the song's notes, bars, impacts and speed plan move to level time
+(`shiftMusic`); beat numbers (`--from-beat`, `--beats`) stay the song's. The speed plan's changes before the first note set only
+the starting speed (one portal) -- before, every earlier change took one of the first notes (11 speed portals in 12 beats).
+Test in `node tests/autobeat.js`.
