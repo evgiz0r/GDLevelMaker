@@ -103,7 +103,7 @@ function plan(brief, o = {}) {
   const P = SP.period, secs = FE.sections.map((s, i) => {
     const over = (brief.sections || [])[i] || {}, mode = over.mode || s.mode, speed = over.speed || s.feel.speed;
     return { i, b0: s.b0, b1: s.b1, t0: s.t0, t1: s.t1, kind: s.type, mode, speed, feel: s.feel, secs: (s.b1 - s.b0) * P,
-      type: over.type, seed: over.seed, seedB: over.seedB, tier: over.tier || TIER_OF[s.type] || "normal", look: over.look || LOOK_OF[s.type] || "calm" };
+      type: over.type, seed: over.seed, seedB: over.seedB, moment: over.moment, tier: over.tier || TIER_OF[s.type] || "normal", look: over.look || LOOK_OF[s.type] || "calm" };
   });
   if (brief.maxSections) secs.length = Math.min(secs.length, brief.maxSections);
   // types: the brief's, else by mode + kind: one not used yet in the level, else never the type just used
@@ -232,6 +232,12 @@ function build(brief, o = {}) {
   for (const p of parts) { if (p.sub) { const f = fx[fx.length - 1]; if (f && lastFx !== "none") { f.t1 = +((p.b1 - 1) * P - 0.2).toFixed(2); f.c1 = Math.round(p.c1); } continue; }
     const list = FX_OF[p.kind] || ["none"], e = list.find(x => x !== lastFx) || "none"; lastFx = e;
     if (e !== "none") fx.push({ effect: e, t0: +((p.b0 - 1) * P + 0.3).toFixed(2), t1: +((p.b1 - 1) * P - 0.2).toFixed(2), hue: { void: 270, hellgate: 15, frost: 195, toxic: 110, temple: 45 }[looks[p.look]] ?? 265, y: (p.floor + 1.5) * 30, c0: Math.round(p.c0), c1: Math.round(p.c1) }); }
+  // transition moments (Evgeni 2026-11-28: a strong beat at a transition must make something happen, "today those feel too
+  // simple or not special at all"): the orchestrator plans them here, tools/scenes/typefx.js realises them, the judge checks
+  const HUE = { void: 270, hellgate: 15, frost: 195, toxic: 110, temple: 45 };
+  const moments = brief.moments === false ? [] : require("./moments.js").plan({ music: require("./sections.js").load(brief.song).music, from: SP.from || 0, P,
+    parts: parts.map(p => Object.assign({}, p, { hue: HUE[looks[p.look]] ?? 265 })), opts: brief.moments || {} });
+  if (moments.length) console.log(`   moments: ${moments.map(m => `${m.effects.join("+")} @${m.t} s (${m.why})`).join("; ")}`);
   const firstTheme = require("./designthemes.js").resolve(typeof (looks[parts[0].look]) === "string" ? looks[parts[0].look] : looks[parts[0].look]);
   const spec = {
     name: brief.name, desc: brief.desc || "Made by Claude.",
@@ -239,7 +245,7 @@ function build(brief, o = {}) {
     song: { custom: +brief.song }, offset: SP.from, grid: { bpm: 60 / P, t0: SP.t0 },
     colours: { bg: firstTheme.skies[0].bg, ground: firstTheme.skies[0].ground },
     structures: { sections: lsecs }, indicators: { style: brief.indicator || "spark", colour: "auto" },
-    modern: false, scene: "tools/scenes/typefx.js", fx, outro: brief.outro ?? false,   // the quiet sign over the last 5 s is the ending since 0ce685b; an outro only when the brief asks
+    modern: false, scene: "tools/scenes/typefx.js", fx, moments, outro: brief.outro ?? false,   // the quiet sign over the last 5 s is the ending since 0ce685b; an outro only when the brief asks
     signature: true, session: brief.session || "typebuild",
     sectionsInfo: parts.map(p => ({ seed: p.seed, type: p.type, mode: p.mode, speed: p.speed, kind: p.kind, look: p.look, from: Math.round(p.c0), to: Math.round(p.c1), beat: p.b0 })),
     objects,
