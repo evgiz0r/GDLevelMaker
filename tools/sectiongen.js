@@ -95,6 +95,20 @@ const tour = (R, lo, hi) => h => { const m = (lo + hi) / 2, span = hi - lo;
   if (R.chance(0.15)) return h < m ? hi : lo;
   const dir = R.chance(h < m ? 0.7 : 0.3) ? 1 : -1, n = R.int(2, Math.max(2, Math.round(span / 2)));
   return clamp(h + dir * n, lo, hi); };
+// CLIMB TARGETS for the band-bound jumping modes (ball, ball portals, spider) in maps taller than their band (Evgeni
+// 2026-11-27: "make the height of the ball/spider ( or others with the same ) to be able and have increased height"). A
+// hidden same-mode portal re-bands around the player (physics: the band is centred on the portal, so it can't be put
+// anywhere else), and the floor / ceiling flips alternate up and down, so the band only random-walked: 5-9 of 20 rows
+// used. Now the band has a target (drawn as tour() does: from the middle, moves of 2 to half the map, the edge now and
+// then -- by chance, not forced); while the band's centre is 2+ rows off it, flips toward it step 3-4 rows and flips away
+// 2, and a band portal is put only when it moves the band toward it. A new target when it is reached. Its own random
+// stream, and only in tall maps, so default-height layouts stay as they were. climber(...).drift(O) = -1, 0 or +1;
+// .step(side, base, drift, minAway) = the row step of a flip to `side` (-1 = up to a ceiling, 1 = down to a floor).
+function climber(seed, H, BT, tall) { if (!tall) return { drift: () => 0, step: (side, base) => base };
+  const Rt = rng(((seed ?? 1) * 104729 + 71) >>> 0), lo = Math.floor(BT / 2), hi = H - 1 - BT + Math.floor(BT / 2), next = tour(Rt, lo, hi);
+  let T = next(lo);
+  return { drift: O => { const m = O + Math.floor(BT / 2); if (Math.abs(T - m) < 2) { T = next(m); if (Math.abs(T - m) < 2) return 0; } return Math.sign(T - m); },
+    step: (side, base, dr, minAway = 2) => !dr ? base : (side < 0) === (dr > 0) ? Rt.int(3, 4) : minAway }; }
 // BAND MOVERS for a flying corridor taller than the mode's 10-row band (Evgeni 2026-11-27: "even if i make height x2 some
 // of the modes stay on their height like hardcoded"; "swing/ship/ufo portals in the middle of the gameplay recenter the
 // screen. people put invisible ones to move further in the screens"): a hidden portal of the mode (`ch`: H ship, U ufo,
@@ -701,23 +715,24 @@ function rollers(o, { mode, band, travel, portals = 0, overlap = null }) { const
   // if i am in height x100"): a hidden portal of the mode on a surface (L ball, P spider: the roller runs through it, so it
   // can't be skipped) re-bands around it (lib/physics.js: floor = its y - band/2), so the band wanders up and down the map;
   // the next surfaces are built in the new band. The ground spikes and the ceiling bar follow the band.
-  const tall = H > BT + 2, moverCh = mode === "spider" ? "P" : "L"; let O = 0;
+  const tall = H > BT + 2, moverCh = mode === "spider" ? "P" : "L", CL = climber(o.seed, H, BT, tall); let O = 0, dr = 0;
   while (S[S.length - 1].c1 < W) {
     { const p = S[S.length - 1];
-      if (tall && S.length > 1 && p.c1 - p.c0 >= 4 && p.c1 < W - 4 && R.chance(0.6)) {
+      if (tall && S.length > 1 && p.c1 - p.c0 >= 4 && p.c1 < W - 4 && (R.chance(0.6) || dr)) {
         const abs = p.y + O, O2 = clamp(abs - Math.floor(BT / 2), 0, H - 1 - BT), rel = abs - O2;
         const ok = p.side > 0 ? rel >= 0 && rel <= BT - 4 : rel >= 3 && rel <= BT - 1;
-        if (ok && O2 !== O) { p.mover = { c: Math.min(p.c1 - 1, p.c0 + Math.ceil(win) + 1), O: O2 }; p.y = rel; O = O2; } } }
+        if (ok && O2 !== O && (!dr || Math.sign(O2 - O) === dr)) { p.mover = { c: Math.min(p.c1 - 1, p.c0 + Math.ceil(win) + 1), O: O2 }; p.y = rel; O = O2; } } }
+    dr = CL.drift(O);
     // moves of 2-4 rows, under half the band on average (Evgeni 2026-11-27: "in the jumping modes, that the average length
     // of movement is below the half of the full length, just to have less updown from ground to floor"), and the play
     // height wandering over the whole band both ways ("the height of the gameplay is too similar ... more balanced across
     // the y axis, in both directions"): pieces in the middle, a floor or ceiling mass only at the band's edges
-    const p = S[S.length - 1], side = -p.side, step = R.int(2, o.maxStep ?? 4);
+    const p = S[S.length - 1], side = -p.side, step = CL.step(side, R.int(2, o.maxStep ?? 4), dr);
     // a floor-side surface sits low enough to flip up from (row <= BT - 4), a ceiling-side one high enough to drop from
     // and now and then the very edges (Evgeni 2026-11-27: "all our sections should involve the ground/floor at some of the
     // play. even those fully blocked (ball / spider...)"): a stretch rolled on the ground itself (row 0, its spikes taken
     // away there) or under the ceiling bar (row BT - 1)
-    const edge = R.chance(0.3);
+    const edge = R.chance(0.3) || (dr && (side < 0) === (dr > 0));   // climbing: the flip toward the target may reach the band's edge, so the next band portal moves it 3 rows
     const y = side < 0 ? clamp(p.y + step, Math.max(3, p.y + 2), edge ? BT - 1 : BT - 2) : clamp(p.y - step, edge ? 0 : 1, Math.min(BT - 4, p.y - 2));
     const kind = side < 0 ? (y >= BT - 2 ? "mass" : "mid") : (y <= 1 ? "mass" : "mid");
     // a portal flip happens exactly at the surface's end (no window to leave); travel 0 = the spider's instant crossing
@@ -758,7 +773,9 @@ function rollers(o, { mode, band, travel, portals = 0, overlap = null }) { const
   // the band's floor row per column (it moves at each mover)
   const Oc = Array(W).fill(0); { let o = 0, i = 0; const ms = S.filter(t => t.mover).map(t => t.mover);
     for (let c = 0; c < W; c++) { while (i < ms.length && ms[i].c <= c) o = ms[i++].O; Oc[c] = o; } }
-  for (let c = 0; c < W; c++) { if (Oc[c] + BT < H) G.box(c, c, Oc[c] + BT, Oc[c] + BT); if (Oc[c] > 0) G.put(c, Oc[c] - 1, "#"); }
+  // tall: the map outside the band is solid (2026-11-27: a player who skipped a band portal stayed in the old band and
+  // rolled the open ground under the raised one, 2 presses for a 17-press plan); default height: the bar and one row
+  for (let c = 0; c < W; c++) { if (Oc[c] + BT < H) G.box(c, c, Oc[c] + BT, tall ? H - 1 : Oc[c] + BT); if (Oc[c] > 0) G.box(c, c, tall ? 0 : Oc[c] - 1, Oc[c] - 1); }
   for (const [d, t] of [[0, "^"], [BT - 1, "v"]]) for (let c = 0; c < W;) {
     if (R.chance(0.2)) { G.put(c, Oc[c] + d, "o"); c += 2; continue; }
     const n = R.int(2, 3); for (let k = 0; k < n && c + k < W; k++) G.put(c + k, Oc[c + k] + d, t); c += n + 1; }
@@ -953,7 +970,7 @@ CONCEPT["my-mwz7nxue"] = "floor and ceiling pieces the spider teleports between;
 // above it and flip into the band's spikes. A surface runs from one tap to the next, on the other side each time, 2-4
 // rows from the last (under half the band on average), now and then on the band's very floor or roof (their hazards
 // cleared there). Taller than the band: a hidden spider portal (P) on a long surface re-bands around it, as in rollers.
-GEN["my-mwz7nxue"] = o => { const { R, mix, W, H, G, style, onBeat } = ctx(o, 10), BT = Math.min(H, 9), tall = H > BT + 2;
+GEN["my-mwz7nxue"] = o => { const { R, mix, W, H, G, style, onBeat } = ctx(o, 10), BT = Math.min(H, 9), tall = H > BT + 2, CL = climber(o.seed, H, BT, tall); let dr = 0;
   const win = mix(2.4, 1.0), e = win / 2, l = win / 2;
   const gap0 = R.pick([0.35, 0.45, 0.55, 0.7].map(v => v - mix(0, 0.1)));
   const gapS = c => Math.max(win + 1.6, gap0 * (0.85 + R() * 0.3) * (R.chance(0.12) ? 1.6 + R() * 0.4 : 1) / style.pace(c) * COLS_PER_SEC);
@@ -963,9 +980,10 @@ GEN["my-mwz7nxue"] = o => { const { R, mix, W, H, G, style, onBeat } = ctx(o, 10
   while (p < W - 3) { const q = S[S.length - 1];
     q.b = Math.ceil(p + l - 1.5);
     // tall: a portal on a long surface re-bands around the spider (between its landing window and its leaving one)
-    if (tall && S.length > 1 && q.b - q.a >= 5 && R.chance(0.6)) { const abs = q.y + q.O, O2 = clamp(abs - Math.floor(BT / 2), 0, H - 1 - BT), rel = abs - O2;
-      if (O2 !== O && (q.side > 0 ? rel <= BT - 4 : rel >= 3)) { q.mover = { c: q.a + Math.ceil(e) + 1, O: O2, rel }; O = O2; } }
-    const qy = q.mover ? q.mover.rel : q.y, side = -q.side, step = R.int(2, 4), edge = R.chance(0.3);
+    if (tall && S.length > 1 && q.b - q.a >= 5 && (R.chance(0.6) || dr)) { const abs = q.y + q.O, O2 = clamp(abs - Math.floor(BT / 2), 0, H - 1 - BT), rel = abs - O2;
+      if (O2 !== O && (!dr || Math.sign(O2 - O) === dr) && (q.side > 0 ? rel <= BT - 4 : rel >= 3)) { q.mover = { c: q.a + Math.ceil(e) + 1, O: O2, rel }; O = O2; } }
+    dr = CL.drift(O);
+    const qy = q.mover ? q.mover.rel : q.y, side = -q.side, step = CL.step(side, R.int(2, 4), dr, 1), edge = R.chance(0.3) || (dr && (side < 0) === (dr > 0));
     const y = side < 0 ? clamp(qy + step, Math.max(3, qy + 1), edge ? BT - 1 : BT - 2) : clamp(qy - step, edge ? 0 : 1, Math.min(BT - 4, qy - 1));
     S.push({ side, y, O, a: Math.floor(p - e + 0.5), b: null, mass: side > 0 ? y <= 1 : y >= BT - 2, thick: R.chance(0.7) ? 1 : 2 });
     presses.push(+p.toFixed(4));
@@ -975,7 +993,9 @@ GEN["my-mwz7nxue"] = o => { const { R, mix, W, H, G, style, onBeat } = ctx(o, 10
   // along its floor and roof
   const Oc = Array(W).fill(0); { let o = 0, i = 0; const ms = S.filter(t => t.mover).map(t => t.mover);
     for (let c = 0; c < W; c++) { while (i < ms.length && ms[i].c <= c) o = ms[i++].O; Oc[c] = o; } }
-  for (let c = 0; c < W; c++) { if (Oc[c] + BT < H) G.box(c, c, Oc[c] + BT, Oc[c] + BT); if (Oc[c] > 0) G.put(c, Oc[c] - 1, "#"); }
+  // tall: the map outside the band is solid (2026-11-27: a player who skipped a band portal stayed in the old band and
+  // rolled the open ground under the raised one, 2 presses for a 17-press plan); default height: the bar and one row
+  for (let c = 0; c < W; c++) { if (Oc[c] + BT < H) G.box(c, c, Oc[c] + BT, tall ? H - 1 : Oc[c] + BT); if (Oc[c] > 0) G.box(c, c, tall ? 0 : Oc[c] - 1, Oc[c] - 1); }
   for (const [d, t] of [[0, "^"], [BT - 1, "v"]]) for (let c = 0; c < W;) {
     if (R.chance(0.2)) { G.put(c, Oc[c] + d, "o"); c += 2; continue; }
     const n = R.int(2, 3); for (let k = 0; k < n && c + k < W; k++) G.put(c + k, Oc[c + k] + d, t); c += n + 1; }
