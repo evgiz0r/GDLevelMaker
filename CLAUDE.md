@@ -318,6 +318,7 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 ## Files
 
 - **PERSONAL.md** -- proposal (not done): what is fitted to Evgeni (difficulty, fairness, judge, votes, soft rules) vs general, and a profile layer so a cloner can use their own.
+- **`showcase/` -- the first-contact page** (Evgeni 2026-11-28: a public page to point people to with Hellgate, and an intro message): draft only, not on Pages until he says so; public rules and how to rebuild in showcase/README.md.
 - **WORKBOOKS.md** -- the claude.ai workbook pages: every bug found in the app, the limits, how to test.
 - **Setup on any computer** (SETUP.md: the steps an AI agent follows): `tools/setup.js` (find GD, load the main levels
   with routes, raw solves and coin routes, unshallow a shallow clone, check), **`tools/rebuild_local.js`** (every local-only
