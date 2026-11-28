@@ -64,3 +64,7 @@ page, so it writes each generated piece to collection `genroute` (doc id = its g
 〰 path also pings Claude. Claude: ArtifactData list genroute (out_dir) -> `node tools/genroute.js <dir>` -> update each
 doc from the files it writes (state done + route); the page's listener draws it. On every wake in the board thread, check
 for asked docs (a db write is reliable, the ping is not).
+Since 2026-11-28 every piece is queued (with its planned `presses`), and genroute.js adds `real`: the planned clicks
+replayed in real physics (layoutcheck planCheck). The page draws that line instead of the generator's own sketch, which
+can be ~1 row off (Evgeni saw it cross saws). The feedback box under a piece is per GENERATOR: designnotes part
+`genT:<type>` (Evgeni: "the comment should be for the generator, not the specific generation").
