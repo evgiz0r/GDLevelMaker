@@ -41,6 +41,12 @@ keeping the same vibe as the orchestrator asked"): a section's look (design them
 inside one look every section gets its own sky and backdrop option; pace follows feel; one calm effect per section (clouds,
 a light chase, a screen frame: tools/scenes/typefx.js over tools/effects.js), never the one before, never pulses or flashes.
 **Height spread**: judged by report.js `height` (tools/heightspread.js).
+**Joins and secret ways** (GDLM 76 v3, 2026-11-28): a section is checked alone entering at its own start, but the portal wall
+lets the player out at the previous section's exit height, so the first 5 columns after a mode portal carry no hazard (APRON;
+v3's first rebuild died on a swing saw right at the portal's mouth). A seed whose own solve flies over or under its corridor
+is scored down (`outside.outsideMap`), and the finished level runs tools/skips.js (every portal taken) and tools/outside.js
+(no stretch flown around a structure) into its report. A cube-ud section needs a flipping type: when its type has no G at
+that length, typebuild tries the stair path, the staircase, the closer cube, then plays it upright.
 
 What the lego taught so far, for any builder filling a section from it (LEGO.md has the numbers):
 - **Join only bricks whose seams agree** (mode, speed, gravity, y, vy, ground): with that contract 35% of joins are clean,

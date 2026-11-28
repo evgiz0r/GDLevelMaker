@@ -1,0 +1,50 @@
+{
+ "name": "GDLM 78 two moons rising",
+ "desc": "Two moons, one long night: climb, fly and flip under both of them. Made by Claude.",
+ "out": "specs/78_two_moons_rising.json",
+ "song": 1175526,
+ "to": 64,
+ "tier": "Normal",
+ "seed": 78,
+ "looks": {
+  "calm": "void",
+  "drop": "toxic",
+  "break": "temple"
+ },
+ "indicator": "caret",
+ "session": "typebuild",
+ "notes": "sections from songplan; overrides: start up on blocks in the cube (entrance), no three waves (one becomes spider, one ship), and a second flipped stretch (ball portals) for more upside-down play",
+ "sections": [
+  {
+   "mode": "cube",
+   "type": "entrance",
+   "look": "calm"
+  },
+  {
+   "mode": "ship"
+  },
+  {},
+  {
+   "mode": "spider",
+   "look": "drop"
+  },
+  {
+   "mode": "cube",
+   "type": "my-mwz2haf0",
+   "typeB": "opencube"
+  },
+  {
+   "type": "my-mwz8kaem"
+  },
+  {},
+  {
+   "mode": "ufo"
+  },
+  {},
+  {
+   "mode": "swing",
+   "look": "calm",
+   "tier": "normal"
+  }
+ ]
+}
