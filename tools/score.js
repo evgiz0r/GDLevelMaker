@@ -255,6 +255,15 @@ function scoreLevel0(level, brief, opts = {}) {
       gate("density", q.flags.length ? "WARN" : "PASS", `clicks/s median ${q.median.toFixed(2)}, calm end ${q.p10.toFixed(2)} (${q.tier}: ${q.ref.median} / ${q.ref.p10}); no-click ${Math.round(100 * q.noClick)}%; longest gap ${q.gap.toFixed(1)} s`, q.flags.join("; "));
     } catch (e) { /* density.js missing */ }
   }
+  // skippable presses (Evgeni 2026-11-28, the ball labs: "if you can just not click and it passes you to the next clicks
+  // then thats a skip needs to be blocked"): the route with one press left out (or a flip pair) still clears. tools/skippress.js. WARN.
+  if (r.ok) {
+    try {
+      const q = require("./skippress.js").skips(level, (natural() || r).events);
+      const sk = q.list.filter(p => p.kind === "SKIP" || p.kind === "SKIP2");
+      gate("skips", sk.length ? "WARN" : "PASS", `${sk.length} of ${q.presses} presses can be left out and the level still clears`, sk.slice(0, 6).map(p => `${p.kind === "SKIP2" ? "pair " : ""}press ${p.press} at ${p.t} s (${p.mode})`).join("; "));
+    } catch (e) { /* skippress.js missing */ }
+  }
 
   // hazards that follow the path (Evgeni 2026-11-26: auto levels' saws "look random and don't follow the path"): the role
   // mix of the level's hazards around its own route -- threat (within a block), guard (1-3 blocks: the lane's frame,

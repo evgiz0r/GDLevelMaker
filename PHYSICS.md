@@ -832,6 +832,14 @@ Lab v11 log (2026-11-26, same folder, 1057 steps): now matches every tick to the
   vy < -4, a guess inside GDLM 67's band (~-6 dies, ~-1.7 lives; section "Upside-down cube and the ground")
   (`GDLM_FLIP_GROUND=old`).
 
+## A cube falling past a slope's foot hits the block (2026-11-28, measured)
+Evgeni's GDLM auto theme hellgate attempts (probe logs, steps 1607-1614 and 4201): a cube falling into a pit beside a rising
+45-degree slope (1338 on a block, foot 13-15 units over the cube's feet, the foot point still short of the slope) is NOT
+caught by the slope in GD: it flies into the side of the block under it and dies. The sim drew the slope's line on below the
+foot and lifted the cube onto it. Now (lib/physics.js, floor slope branch): before a rising slope's foot the slope catches
+only feet within LAND (10) of the foot's level; the sim then dies on the game's step 1614. `GDLM_SLOPE_FOOT=old` = the old
+catch. Also seen, not fixed: at a downhill seam of two flipped slopes (x ~3030) the game loses 1.00 unit of x for good.
+
 ## Fidelity: measuring the sim against the user's game (goal: "as close as possible")
 
 The user's standing goal (2026-11-23). Plan: a scoreboard (tools/fidelity.js, not built yet) giving, per
