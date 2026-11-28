@@ -811,6 +811,10 @@ The viewer draws moving objects where they start.
   refreshed, and some effect when i click refresh"): catalogues, boards, the viewer pages, every artifact we make. Paste
   `tools/snippets/refresh.html` once (lego_page.js does it): a button top-right, "last refreshed HH:MM" beside it, a spin on
   click, then the page reloads with fresh data keeping its view and flashes "refreshed ✓". Fetch data with `cache: "no-store"`.
+- **Every note on a page is read, sent or not** (Evgeni, 2026-11-28: "its in the comments there, why didnt you get it"; his
+  ball / spider notes sat unread 1.5 h, never 📨 sent): on every wake the session that owns a workbook dumps its note
+  collections and runs `node tools/notequeue.js <dump>` (WORKBOOKS.md "Reading the queue"), and answers each open note in
+  claudestatus quoting his words.
 - **WORKBOOKS.md: every bug and quirk of pages in the claude.ai app** (Evgeni, 2026-11-27: "whatever knowledge of bugs we
   gain working with workbooks we want to know always on all sessions everywhere"). Read it before building or changing any
   workbook page; a new bug goes in as a row there in the same commit as its fix (e.g. db data comes back frozen: copy it).

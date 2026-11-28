@@ -59,6 +59,16 @@ Claude writes the answer as a doc in collection `claudestatus`: `{part: "sec:<ke
 "play", state: applied | read | question | passed, reply, at}` (newest `at` per part wins; a later edit of his reopens it).
 Every time Claude handles board items it writes these, and a `designsend` stamp `{at, by: "claude"}`.
 
+**Reading the queue (2026-11-28): every note on a page is Claude's to find, sent or not.** Evgeni's ball and spider notes,
+typed in the 🎲 generator boxes at 11:00, sat unread for 1.5 h: he never pressed 📨, no session listed the db, and an answer
+written for the spider note misread it. He: "its in the comments there, why didnt you get it" -- "bugs in those iterative
+ui issues are not local, always a general thing". So on EVERY wake, the session that owns a workbook dumps the page's note
+collections and its answers with ArtifactData `list` + `out_dir` into one folder (catalogue: designnotes, designmarks,
+designsecs, designdraw, claudestatus) and runs `node tools/notequeue.js <folder>`: the newest revision per part, not empty,
+with no newer claudestatus answer (or `<mid>-claudeseen` for a mark), is open; it says "(never sent)" when 📨 was not pressed.
+Answer each open note in claudestatus quoting his words in a few, so a misread shows. A new page with notes adds its
+collections to that list here.
+
 **genroute (2026-11-27): a page that can't run a job queues it in the db.** The catalogue can't solve a 🎲 piece in the
 page, so it writes each generated piece to collection `genroute` (doc id = its gen key, `state: "asked"`, with its map);
 〰 path also pings Claude. Claude: ArtifactData list genroute (out_dir) -> `node tools/genroute.js <dir>` -> update each
