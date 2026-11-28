@@ -430,3 +430,15 @@ Evgeni 2026-11-27 ("lets remind ourselves more idea for sections, bit tired desi
 - **Duals from one click pattern** (Evgeni 2026-11-27): generate two sections, top and bottom, from the same clicks, in any
   modes; then make it a real asymmetric dual by removing some hazards on one side, so the path is forced by both
   gameplays together. lib/dual.js simulates duals (lab GDLM 63).
+
+## Never a dying piece, sub-block offsets (2026-11-28)
+
+- `sectiongen.make()` replays every presses-first piece in real physics (node: layoutcheck planCheck inside its joins) and,
+  when the plan dies, makes it again from the next seeds (up to 8, `seedUsed`); the replay is the drawn path
+  (`pathFrom: "replay"`). Still dying after 8: `planOk: false`, `planDies {col, row, why}`. `verify: false` skips it (the
+  browser can't replay and keeps the first piece). Evgeni: "any failing generation of physics is obviously a bug".
+- `z.offsets = {"c,r": [dx, dy]}` (units; c, r the section cell from the left and the ground): the cell's objects move by
+  that much (make.js extra `dx` / `dy`; designthemes `withOffsets`, used by layoutcheck and typebuild). Blocks stay on the
+  grid; spikes, saws, orbs and pads may move to centre a press's window or to sit where a wrong press lands.
+- Flying on the grounds (my-mwz1s7po) is presses first: its holds are replayed in lib/physics.js through the bare corridor
+  and the spikes go against that real path (the old stepper drifted after sloped floors); the browser keeps the shape-first one.

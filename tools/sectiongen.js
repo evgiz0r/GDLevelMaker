@@ -1131,10 +1131,10 @@ CONCEPT["my-mwz1s7po"] = "a narrow corridor of two thin bars; obstacle runs on t
 // pinned up there ~50 ticks past the release (cmp: plan 120 vs real 124 three columns on, then 20-30 units apart), which
 // this stepper doesn't copy, so spikes it thinks are clear are not (4-6 of 6 plans clear). Needs lib/physics.js's ship
 // slope contact in shipStep; until then GEN["my-mwz1s7po"] is the shape-first version below, checked by the solver.
-const groundsPlan = o => { const C = ctx(Object.assign({ cols: 56 }, o), 10), { R, imix, room, len, W, H, G, mix, style, onBeat } = C, gap = room(5, 3);
-  // it comes in on the ground (the player enters a section there), so the corridor starts at the ground too
+const groundsPlan = o => { const C = ctx(Object.assign({ cols: 56 }, o), 10), { R, imix, room, len, W, H, G, mix, style, onBeat, beats, entry } = C, gap = room(5, 3);
+  // the corridor starts at the entry height (any row its gap fits; the join before it ramps there)
   const next = tour(R, 0, H - gap);
-  const e = line(W, 0, L => { L.run(len(imix(10, 6), imix(12, 8))); L.leg(next(L.h())); });
+  const e = line(W, entry(0, H - gap), L => { L.run(len(imix(10, 6), imix(12, 8))); L.leg(next(L.h())); });
   const fl = x => { const c = Math.floor(x), f = x - c; return (e(c) + (e(c + 1) - e(c)) * f) * 30; };   // the floor's height at column x
   const TPC = 30 / SHIP.X, T = Math.floor(W * TPC), st = { y: e(0) * 30 + 15, vy: 0 }, ys = [], ev = [], tr = []; let trusted = true;
   // the climbs and drops: riding the floor into a rising slope (or the roof into a falling one) is a crash, so from ~3.5
@@ -1160,21 +1160,39 @@ const groundsPlan = o => { const C = ctx(Object.assign({ cols: 56 }, o), 10), { 
   // a slope the real ship is off the stepper's until it next rests on a flat floor or roof)
   const yb = Array(W).fill(1e9), yt = Array(W).fill(-1e9), ok = Array(W).fill(true);
   for (let t = 0; t < ys.length; t++) { const c = Math.floor(t / TPC); if (c < W) { yb[c] = Math.min(yb[c], ys[t] - 15); yt[c] = Math.max(yt[c], ys[t] + 15); if (!tr[t]) ok[c] = false; } }
-  tunnel(G, W, e, gap, H - 1, 2);
+  tunnel(G, W, e, gap, H - 1, 2); if (e(0) > 0) G.box(0, 0, 0, e(0) - 1);   // the first column's floor from the ground (the join ramps to it)
   bandMovers(G, W, H, "H", x => e(x) + gap / 2, x => Math.max(e(x), e(x + 1)), x => Math.min(e(x), e(x + 1)) + gap);
+  const presses = []; for (let i = 0; i < ev.length; i++) if (ev[i][1] === "press") presses.push([ev[i][0], ev[i + 1] ? ev[i + 1][0] : W]);
+  // THE REAL PATH (2026-11-28): the stepper drifts off the real ship after a sloped floor or roof, so in node the planned
+  // holds are replayed in lib/physics.js through the bare corridor (layoutcheck planCheck, every tick) and the spikes go
+  // against that path; the browser (no layoutcheck) keeps the stepper's path with its trust marks
+  let LC = null; try { LC = require("./layoutcheck.js"); } catch (e) {} const real = !!(LC && typeof LC.planCheck === "function");
+  const pc = (m, every) => { const log = console.log; console.log = () => {}; try { return LC.planCheck({ key: "my-mwz1s7po", map: m, mode: "ship", presses }, { every }); } finally { console.log = log; } };
+  let margin = 12;
+  // with a beat, every switch moves to its nearest half beat (each after the last): the replay below says if it still flies
+  if (real && beats) { let prev = -1e9; for (const q of presses) for (let i = 0; i < 2; i++) { if (q[i] >= W - 0.5) continue; q[i] = prev = +onBeat(q[i], prev + 0.6).toFixed(4); } }
+  if (real) { const c0 = pc(G.rows(), 1); if (!c0.ok) return null; margin = 6; yb.fill(1e9); yt.fill(-1e9); ok.fill(true);
+    for (const [cc, r] of c0.path) { const c = Math.floor(cc), y = (r + 0.5) * 30; if (c >= 0 && c < W) { yb[c] = Math.min(yb[c], y - 15); yt[c] = Math.max(yt[c], y + 15); } } }
   // spikes on the side not ridden, in runs, a column clear now and then (flat columns only: a spike never on a slope)
   // the stepper doesn't copy the ship riding a sloped floor or roof (it drifts up to 25 units off the real one there), so
   // no spike from a climb's or drop's start to 4 columns past its end, and a 12-unit margin elsewhere
-  const nearSlope = c => { for (let x = c - 4; x <= c; x++) if (x >= 0 && e(x) !== e(x + 1)) return true; return false; };
+  const nearSlope = c => { if (real) return false; for (let x = c - 4; x <= c; x++) if (x >= 0 && e(x) !== e(x + 1)) return true; return false; };
+  const placed = [], put = (c, r, ch) => { G.put(c, r, ch); placed.push([c, r]); };
   for (let c = 3; c < W - 2; c++) { const b = e(c); if (e(c - 1) !== b || e(c + 1) !== b || nearSlope(c) || !ok[c - 1] || !ok[c] || !ok[c + 1]) continue;
-    const okF = [c - 1, c, c + 1].every(x => yb[x] > b * 30 + 21 + 12), okR = [c - 1, c, c + 1].every(x => yt[x] < (b + gap - 1) * 30 + 9 - 12);
+    const okF = [c - 1, c, c + 1].every(x => yb[x] > b * 30 + 21 + margin), okR = [c - 1, c, c + 1].every(x => yt[x] < (b + gap - 1) * 30 + 9 - margin);
     if (R.chance(0.15)) continue;
-    if (okF && !okR) G.put(c, b, "^"); else if (okR && !okF) G.put(c, b + gap - 1, "v"); else if (okF && okR && R.chance(0.5)) G.put(c, R.chance(0.5) ? b : b + gap - 1, R.chance(0.5) ? "^" : "v"); }
-  const presses = []; for (let i = 0; i < ev.length; i++) if (ev[i][1] === "press") presses.push([ev[i][0], ev[i + 1] ? ev[i + 1][0] : W]);
-  const path = []; for (let t = 0; t < ys.length; t += 8) path.push([+(t / TPC).toFixed(2), +(ys[t] / 30 - 0.5).toFixed(2)]);
-  return { map: G.rows(), mode: "ship", presses, path }; };
-// the shape-first version (the one in use)
-GEN["my-mwz1s7po"] = o => { const { R, imix, room, len, chance, W, H, G } = ctx(Object.assign({ cols: 56 }, o), 10), gap = room(5, 3);
+    if (okF && !okR) put(c, b, "^"); else if (okR && !okF) put(c, b + gap - 1, "v"); else if (okF && okR && R.chance(0.5)) put(c, R.chance(0.5) ? b : b + gap - 1, R.chance(0.5) ? "^" : "v"); }
+  // the plan must still clear with the spikes in: one it touches comes out (a few rounds), else this seed is no good
+  let realPath = null;
+  if (real) for (let k = 0; ; k++) { const c1 = pc(G.rows(), 8); if (c1.ok) { realPath = c1.path; break; } if (k >= 6) return null;
+    const near = placed.filter(q => q && Math.abs(q[0] + 0.5 - c1.dieCol) <= 1.6); if (!near.length) return null;
+    for (const q of near) { G.put(q[0], q[1], "."); placed[placed.indexOf(q)] = null; } }
+  const path = realPath || []; if (!realPath) for (let t = 0; t < ys.length; t += 8) path.push([+(t / TPC).toFixed(2), +(ys[t] / 30 - 0.5).toFixed(2)]);
+  return { map: G.rows(), mode: "ship", presses, path, pathFrom: realPath ? "replay" : undefined }; };
+// presses first in node (the plan replayed for real, a few seeds), the shape-first version in the browser or as the fallback
+GEN["my-mwz1s7po"] = o => { if (!o.shape) for (let k = 0; k < 6; k++) { const z = groundsPlan(Object.assign({}, o, { seed: (o.seed ?? 1) + 1000 * k })); if (z && (!o.verify || o.verify(z))) return z; }
+  return groundsShape(o); };
+const groundsShape = o => { const { R, imix, room, len, chance, W, H, G } = ctx(Object.assign({ cols: 56 }, o), 10), gap = room(5, 3);
   // the ship's band is 10 rows: the corridor tours all of it, down to the ground (no lower bar there) and up to the roof
   const next = tour(R, 0, H - gap);
   const e = line(W, Math.round((H - gap) / 2), L => { L.run(len(imix(10, 6), imix(12, 8))); L.leg(next(L.h())); });
@@ -1438,14 +1456,27 @@ function make(key, opts = {}) { const g = GEN[key]; if (!g) throw new Error("no 
   const o = {}; for (const k of ["cols", "rows", "seed", "bpm", "beatCols", "speed", "entry", "gap"]) if (opts[k] != null) o[k] = +opts[k];
   if (Array.isArray(opts.beats)) o.beats = opts.beats;   // a song's beats in the section (seconds, or {t, s})
   if (opts.tier != null) o.tier = isNaN(+opts.tier) ? opts.tier : +opts.tier;
-  const r = g(o), z = (LS.SECTIONS || []).find(s => s.key === key);
+  // NEVER A DYING PIECE (Evgeni 2026-11-28: "any failing generation of physics is obviously a bug"): in node every
+  // presses-first piece is replayed in lib/physics.js (layoutcheck planCheck, inside its joins, ~0.3-1 s) and, if its plan
+  // dies, made again from the next seeds (up to 8); the replay becomes the drawn path. opts.verify === false skips it
+  // (the browser has no layoutcheck and keeps the first piece, the planner's path). A piece whose 8 tries all die comes
+  // back with planOk false and planDies {col, row, why}.
+  let LC = null; if (opts.verify !== false) try { LC = require("./layoutcheck.js"); if (typeof LC.planCheck !== "function") LC = null; } catch (e) { LC = null; }
+  let r = null;
+  for (let k = 0; k < (LC ? 8 : 1); k++) { const ok = Object.assign({}, o); if (k) ok.seed = (o.seed ?? 1) + 7919 * k;
+    const q = g(ok); if (!q.presses || !LC) { r = q; break; }
+    const log = console.log; console.log = () => {}; let c; try { c = LC.planCheck(Object.assign({ key }, q)); } finally { console.log = log; }
+    if (c.ok || !r) { r = q; if (c.path && c.path.length) { r.path = c.path; r.pathFrom = "replay"; } r.planOk = !!c.ok; if (k) r.seedUsed = ok.seed;
+      if (!c.ok) r.planDies = { col: c.dieCol, row: c.dieRow, why: c.why }; else delete r.planDies; }
+    if (c.ok) break; }
+  const z = (LS.SECTIONS || []).find(s => s.key === key);
   // a section taller than 12 rows asks the builder to zoom out (Evgeni 2026-11-27: "maybe we need to zoom out a bit to allow
   // bigger gameplay"): camera zoom trigger 1913 at 0.85 over it, back to 1 after
   if (r.map.length > 12 && r.zoom == null) r.zoom = 0.85;
   // the drawn path: opts.replay (the catalogue) = the REAL replay of the planned presses in lib/physics.js
   // (layoutcheck planCheck: the type in a level's join, ~1 s), else the planner's own (fast, up to ~1 row off the real one
   // in ball / spider / flappy). The entrance always replays: its ramp launch is not in tracePath.
-  if (r.presses && (opts.replay || key === "entrance")) { const LC = require("./layoutcheck.js"), log = console.log; console.log = () => {};
+  if (r.presses && !r.pathFrom && (opts.replay || key === "entrance")) { const LC = require("./layoutcheck.js"), log = console.log; console.log = () => {};
     // in the browser (the catalogue's 🎲) require gives {}: no replay there, keep the traced path
     if (LC && typeof LC.planCheck === "function") try { const c = LC.planCheck(Object.assign({ key }, r)); if (c.path && c.path.length) { r.path = c.path; r.pathFrom = "replay"; r.planOk = c.ok; } } finally { console.log = log; }
     console.log = log; }

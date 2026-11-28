@@ -65,6 +65,11 @@ const SCENE = [
   "/##################^^^##########^^######################^^######^.^.^.^.^.^.###############\\....",
 ];
 // a scene map -> objects (SAMPLE is the default scene's)
+// sub-block offsets (a generated section's z.offsets, {"c,r": [dx, dy]} in units, c / r its cell from the left and the
+// ground): every object sampleOf made for that cell moves by them (make.js extra dx / dy)
+function withOffsets(objs, offsets) { if (!offsets || !Object.keys(offsets).length) return objs;
+  return objs.map(o => { const d = offsets[Math.floor(o[1]) + "," + Math.floor(o[2])]; if (!d) return o;
+    const ex = Object.assign({}, o[3] || {}); ex.dx = (ex.dx || 0) + (d[0] || 0); ex.dy = (ex.dy || 0) + (d[1] || 0); return [o[0], o[1], o[2], ex]; }); }
 function sampleOf(MAP) { const SAMPLE = [];
 MAP.forEach((line, i) => { const r = MAP.length - 1 - i;
   [...line].forEach((ch, c) => {
@@ -178,7 +183,7 @@ function resolve(e) {
     const B = require("./blockdesigns.js").PAL[e.pal.extends]; out.pal = Object.assign({}, B, e.pal); delete out.pal.extends; }
   return out;
 }
-module.exports = { picks, resolve, THEMES, COMBOS, SAMPLE, SCENE, KIT_MAP, spec, list, sampleOf, sceneFor };
+module.exports = { picks, resolve, THEMES, COMBOS, SAMPLE, SCENE, KIT_MAP, spec, list, sampleOf, withOffsets, sceneFor };
 if (require.main === module) {
   const a = process.argv.slice(2);
   if (a[0] === "list") list();
