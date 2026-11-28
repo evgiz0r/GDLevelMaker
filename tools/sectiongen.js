@@ -1154,8 +1154,11 @@ const groundsPlan = o => { const C = ctx(Object.assign({ cols: 56 }, o), 10), { 
   const TPC = 30 / SHIP.X, T = Math.floor(W * TPC), st = { y: e(0) * 30 + 15, vy: 0 }, ys = [], ev = [], tr = []; let trusted = true;
   // the climbs and drops: riding the floor into a rising slope (or the roof into a falling one) is a crash, so from ~3.5
   // columns before each climb to its end the ship rides the roof (held), and the floor (released) for a drop
+  // in node the plan is replayed for real (below) and the real ship slides its slopes, so there the climbs need nothing and
+  // the rides are short (Evgeni 2026-11-28: long rides let the whole piece be slid)
+  let LCr = null; try { LCr = require("./layoutcheck.js"); } catch (e) {} const realMode = !!(LCr && typeof LCr.planCheck === "function") && !o.longRides;
   const need = Array(W + 6).fill(0);
-  for (let c = 0; c < W; c++) { const d = Math.sign(e(c + 1) - e(c)); if (!d) continue;
+  if (!realMode) for (let c = 0; c < W; c++) { const d = Math.sign(e(c + 1) - e(c)); if (!d) continue;
     for (let x = Math.max(0, c - 4); x <= c + 1; x++) if (!need[x]) need[x] = d; }
   let held = false, left = Math.round(onBeat(R.int(2, 4), 1.5) * TPC);
   for (let t = 0; t < T; t++) { const c = t / TPC, nd = need[Math.floor(c + 0.5)];
@@ -1165,7 +1168,7 @@ const groundsPlan = o => { const C = ctx(Object.assign({ cols: 56 }, o), 10), { 
       let ns = -1; for (let x = Math.floor(c + 1); x < Math.min(W, c + left / TPC + 1); x++) if (need[x] && (need[x] > 0) !== held) { ns = x; break; }
       if (ns >= 0) { const b = onBeat(ns - 0.3, c + 1 / TPC); left = Math.min(left, Math.max(1, Math.round((b <= ns + 1.2 ? b : ns - 0.3) * TPC) - t)); } }
     if (left <= 0) { held = !held; ev.push([+c.toFixed(4), held ? "press" : "release"]);
-      const ride = mix(3.5, 1.5) * (held ? style.holdAt(c) : 1) / style.pace(c) * (0.7 + R() * 0.6);
+      const ride = (realMode ? mix(2, 1.1) : mix(3.5, 1.5)) * (held ? style.holdAt(c) : 1) / style.pace(c) * (0.7 + R() * 0.6);
       left = Math.max(30, Math.round(onBeat(c + ride + 2, c + 30 / TPC) * TPC) - t); }   // + the ~2 columns the crossing takes
     shipStep(st, held); left--;
     const f = fl(c + 1 / TPC) + 15, r = fl(c + 1 / TPC) + gap * 30 - 15, cc = Math.floor(c + 1 / TPC), flat = e(cc) === e(cc + 1) && e(cc - 1) === e(cc);
@@ -1193,7 +1196,7 @@ const groundsPlan = o => { const C = ctx(Object.assign({ cols: 56 }, o), 10), { 
   // no spike from a climb's or drop's start to 4 columns past its end, and a 12-unit margin elsewhere
   const nearSlope = c => { if (real) return false; for (let x = c - 4; x <= c; x++) if (x >= 0 && e(x) !== e(x + 1)) return true; return false; };
   const placed = [], put = (c, r, ch) => { G.put(c, r, ch); placed.push([c, r]); };
-  for (let c = 3; c < W - 2; c++) { const b = e(c); if (e(c - 1) !== b || e(c + 1) !== b || nearSlope(c) || !ok[c - 1] || !ok[c] || !ok[c + 1]) continue;
+  for (let c = 3; c < W - 4; c++) { const b = e(c); if (e(c - 1) !== b || e(c + 1) !== b || nearSlope(c) || !ok[c - 1] || !ok[c] || !ok[c + 1]) continue;
     const okF = [c - 1, c, c + 1].every(x => yb[x] > b * 30 + 21 + margin), okR = [c - 1, c, c + 1].every(x => yt[x] < (b + gap - 1) * 30 + 9 - margin);
     if (R.chance(0.15)) continue;
     if (okF && !okR) put(c, b, "^"); else if (okR && !okF) put(c, b + gap - 1, "v"); else if (okF && okR && R.chance(0.5)) put(c, R.chance(0.5) ? b : b + gap - 1, R.chance(0.5) ? "^" : "v"); }
@@ -1488,7 +1491,7 @@ function unhold(key, r, LC, drop = -1, drop2 = -1) { const q = (z, o) => { const
   // flying modes: a hazard in the other run's way where it is over a row and a half off the plan's path (on a floor a spike,
   // under a roof a hanging one, in the open a saw)
   if (r.mode !== "cube") { for (let i = 0; i < hp.length; i += 2) { const [c, y] = hp[i], cell = Math.round(c - 0.5), r0 = Math.round(y);
-      if (cell < 3 || cell > W - 3) continue;
+      if (cell < 3 || cell > W - 5) continue;   // not in the last columns: an ending next to a hazard (gencheck "end")
       // riding a sloped floor or roof its centre rounds onto the slope's cell: the open cell next to it then
       for (const row of [r0, r0 - 1, r0 + 1]) { if (row < 0 || row >= H || at(cell, row) !== "." || Math.abs(row - y) > 1.05) continue;
         const near = plan.filter(p => Math.abs(p[0] - (cell + 0.5)) < 0.7); if (!near.length || near.some(p => Math.abs(p[1] - row) < 1.1)) continue;
