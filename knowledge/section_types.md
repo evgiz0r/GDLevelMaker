@@ -47,6 +47,17 @@ type, so a builder can make a new one of any length, synced to the song, and so 
   time it has moved 3 rows from the band's centre; swing uses R pairs). Every portal inside a section is softly blocked on
   both sides so it can't be flown round (a spike on the floor and one on the roof in its column when the corridor is 6+
   rows; Evgeni: "if there is no room in the corridor no need to block"). Check: `node tools/layoutcheck.js <keys> --skips`.
+- **Ball, ball portals and spider in tall maps climb** (Evgeni 2026-11-28: "make the height of the ball/spider ( or others
+  with the same ) to be able and have increased height"; tools/sectiongen.js `climber`). Their band portal (L / P) can
+  only centre the band on the player, and the floor / ceiling flips alternate up and down, so the band random-walked and
+  used 5-9 of 20 rows. Now the band has a target (drawn like `tour`: from the middle, by chance, not forced); while it is
+  off by 2+ rows the flip toward it steps 3-4 rows (to the band's edge if need be) and the flip back 2 (spider 1), and a
+  band portal goes in only when it moves the band toward the target. Outside the band the map is solid (a player who
+  skipped a band portal rolled the open ground under the raised band: 2 presses for a 17-press plan). Default heights
+  unchanged. Measured (`node tools/genheight.js ball my-mwz7nxue my-mwz8kaem --seeds 1,2,3,4,5,6`, 80 cols, 20 rows,
+  normal): rows visited ball 6.0 -> 9.8, spider 7.2 -> 9.3, ball portals 6.5 -> 8.5 (13/20 best); 30 rows x 120 cols up to
+  21. Plans clear 80/80 (90 cols, 20 / 30 rows, easy / harder, seeds 1-10). Open: the bottom two rows are rarely visited
+  (the band starts on the ground and the first target usually lies above).
 - **Upside-down stretches get the mirrored obstacles**: if the floor has spike pits, the ceiling the player runs on upside
   down gets pits too (Evgeni on closer cube: "wierd assymery with the spikes on the grown on the bottom but no such on the
   top").
