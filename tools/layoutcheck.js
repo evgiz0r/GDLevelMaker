@@ -53,6 +53,8 @@ function check(z) {
   let ev = r.events; try { const n = require("../lib/natural.js").naturalPlan(w, r, level.objects); if (n && n.path[n.path.length - 1].done) ev = n.events; } catch (e) {}
   const p = GD.run(w, ev).path, colOf = t => (p[Math.min(t, p.length - 1)] || {}).x / 30 - S.x0, inSec = t => { const c = colOf(t); return c >= -1 && c <= S.x1 - S.x0 + 1; };
   const presses = ev.filter(e => e.type === "press" && inSec(e.tick)).length;
+  // lazy slides (tools/slides.js): holding or letting go from a point of the route skips 3+ of its presses
+  try { out.slides = require("./slides.js").slides(GD, w, ev, p).filter(q => inSec(Math.round(q.t0 * 240))); } catch (e) { out.slides = []; }
   let d = null; try { d = DF.difficulty(w, { ok: true, events: ev }, { raw: true, route: false }); } catch (e) { d = null; }
   let tight = [];
   try { tight = require("../lib/windows.js").inputWindows(w, ev, p, {}).filter(x => inSec(x.tick)).map(x => ({ col: +colOf(x.tick).toFixed(1), ms: Math.round((x.hi - x.lo + 1) / GD.PHYS.TPS * 1000), type: x.type }))
@@ -134,11 +136,23 @@ function planCheck(z, opts = {}) {
   // a number is a tap (press, release the next tick); a [press, release] pair is a hold (ship, wave, swing)
   // a plan's tick 0 is the first tick at or past the section's start; a column c is c * 30 / dx ticks on from there
   const T0 = Math.ceil((S.x0 * 30 - p0[0].x) / dx - 1e-9), tk = c => T0 + Math.round(c * 30 / dx), ev = [];
-  for (const q of z.presses) if (Array.isArray(q)) { const a = tk(q[0]); ev.push({ tick: a, type: "press" }, { tick: Math.max(a + 1, tk(q[1])), type: "release" }); } else ev.push(tk(q));
+  // opts.hold: the button held from the section's start to past its end instead of the plan (gencheck's "lazy")
+  if (opts.hold) ev.push({ tick: T0, type: "press" }, { tick: tk(z.map[0].length + 2), type: "release" });
+  else for (const q of z.presses) if (Array.isArray(q)) { const a = tk(q[0]); ev.push({ tick: a, type: "press" }, { tick: Math.max(a + 1, tk(q[1])), type: "release" }); } else ev.push(tk(q));
   const r = GD.run(w, ev), end = r.path[r.path.length - 1];
   // the REAL path of the plan (the catalogue's 〰 line, Evgeni 2026-11-28: "we dont replay once with real physics?"): the
   // replay's centre in section cells (c across, r up from the ground), every 8 ticks, inside the section
   const path = []; for (let t = 0, ev8 = opts.every || 8; t < r.path.length; t += ev8) { const c = r.path[t].x / 30 - S.x0; if (c >= -0.5 && c <= z.map[0].length + 0.5) path.push([+c.toFixed(2), +(r.path[t].y / 30 - 0.5).toFixed(2)]); }
   return { key: z.key, plan: true, ok: !!r.done && !r.dead, presses: z.presses.length, path,
     dieCol: r.dead ? +(end.x / 30 - S.x0).toFixed(1) : undefined, dieRow: r.dead ? +(end.y / 30).toFixed(1) : undefined, why: r.dead ? r.why : undefined }; }
-module.exports = { specOf, check, hashMap, planCheck };
+// LAZY WAYS (Evgeni on GDLM 78 v9: "the ship has a lot of places it could slide, as these are slopes, need to block full sliding
+// from being possible ( like holding or releaseing completely skipping a lot of gameplay )"): the section run with the button
+// held the whole way, and with no press at all; { hold, release } = how far into the section each gets (0-1, 1 = through it)
+function lazyCheck(z) {
+  const S = specOf(z); let level;
+  try { level = build(S.spec, "layoutcheck:" + z.key, {}).level; } catch (e) { return { hold: 0, release: 0 }; }
+  const w = GD.makeWorld(level.objects, level.header), p0 = GD.run(w, []).path, dx = p0[1].x - p0[0].x, W = S.x1 - S.x0;
+  const T0 = Math.max(0, Math.ceil((S.x0 * 30 - p0[0].x) / dx - 1e-9) - 2), far = p => { const q = p[p.length - 1]; return Math.max(0, Math.min(1, (GD.progressX(q) / 30 - S.x0) / W)); };
+  return { hold: +far(GD.run(w, [{ tick: T0, type: "press" }]).path).toFixed(2), release: +far(p0).toFixed(2) };
+}
+module.exports = { specOf, check, hashMap, planCheck, lazyCheck };
