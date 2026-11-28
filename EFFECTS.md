@@ -54,6 +54,12 @@ run (`ctx.xAt`), so pads, falls and speed portals are taken into account. `ctx.b
 Hidden gameplay: alpha never changes collision, so a pad (or block) at alpha 0 still works. The gallery's demo 5b hides
 its pads that way (group 3990, set to alpha 0 from the first tick); only the contact flashes show where they are.
 
+## Moments (2026-11-28)
+One event on one strong beat at a section change, planned by the orchestrator (tools/moments.js, BUILDING.md "Transition
+moments"): `gateShut`, `riseReveal`, `slabsFall`, `cameraBreath` ({t, y, size, hue}), and `skyTurn` (sky and ground change on the
+beat). Their triggers carry group 991 so the judge can tell them from the section effects' beat triggers. Not yet seen in the
+real game: the camera offset (1916) easing key 30 and the moves' bounce are from the trigger table, unchecked.
+
 ## The gallery level (`node tools/fxgallery.js`)
 
 Electrodynamix, 76 s, no click. Flat ground; 15 yellow pads on beats (each moved by replays until the launch is on the

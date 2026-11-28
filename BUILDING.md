@@ -63,6 +63,34 @@ What the lego taught so far, for any builder filling a section from it (LEGO.md 
   presses under 0.1 s apart, mostly Deadlocked). Take the layout and re-plan the presses for easy timings: an extra press
   or two is fine, a run of tiny taps or a tight window is not (Evgeni; knowledge/checklist.md).
 
+**Who does what, and the knobs** (Evgeni, 2026-11-28: "as much as we have control over the generators/merges/game creation, the
+orchistator would be able to have more control"; on the roles: "maybe its the job of the guy working on the section, so it can redo
+locally"). The **orchestrator** (typebuild's plan: songplan + feel + moments) sets the INTENT per section and per beat: type, tier,
+speed, start / end height and gravity, density (presses a second), and the moments ("big moment at 52.3 s"). The **section
+builder** (sectiongen + its seed loop) realises one section and may redo its own part (other seeds, a tier step) until it meets
+the intent. The **joins builder** (joinPad, portal walls, lib/scenejoin.js) owns the seams. The **judge** (report.js, outside.js,
+skips.js, moments.js check) checks the intent was met and sends a failing part back to its own builder only, never a whole
+rebuild. So every generator and join takes its choices as parameters the orchestrator can set, not hard-coded numbers; a new
+hard-coded choice is a knob not yet exposed.
+
+**Transitions on the beat, short, no lazy slide** (Evgeni on GDLM 78 v9, 2026-11-28: "the transitions are still bit too long without
+clicks"; "on 40.49 there is a big beat, but we still didnt enter the portal ... entering the speed very slightly before the song";
+"the ship has a lot of places it could slide"): the portal wall lands on the song's section change (each section ends its lead
+before it; `typebuild --run` makes a second pass with each lead set from the first pass's join lengths, half a column early); the
+speed portal stands 2 columns before the mode portal, the gravity reset 1 before (the next mode is never entered reversed); joins
+are LEAD 3 + ramp + TAIL 3 with a 3-column hazard-free apron. Seeds whose route can be held or let go through 3+ presses are
+scored down 8 a press (layoutcheck `slides`, tools/slides.js). The judge notes "dead transition" (over 1.6 s with no press around
+a change), "late portal" (more than 0.15 s after its strong beat) and "lazy slide".
+
+**Transition moments** (Evgeni, 2026-11-28: "we have many moments in the game with really strong beat. if its in a transition,
+something should happen"; today's transitions "feel too simple or not special at all"): tools/moments.js `plan` takes the strongest
+song impact or drop within 0.6 s of each section change (strength 0.6+) and gives it an event from tools/effects.js -- a gate
+slamming shut behind the player, the next skyline rising out of the ground, slabs falling to land on the beat, the camera
+pulling back and lifting -- two a moment, rotating, and the level's strongest change gets three. Deco only (moves, alpha, zoom,
+camera offset; no pulse, no flash). Knobs: brief `"moments": false | {min, big, near, kinds, peak, size}`, per section
+`"moment": "none" | [effects]`. The judge (report.js) notes each strong transition beat with nothing on it ("flat transition",
+-1.5 on the transitions sub-score). Test: `node tests/moments.js`.
+
 ## 1. Sections first, like a collab
 
 The user: "usually it is easy to make a level in sections, where those section stops are defined... thats how
