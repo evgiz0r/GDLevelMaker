@@ -255,8 +255,9 @@ function depth(st, p, C, d, v) {
   // LIT IN THE ACCENT, NOT THE BODY (Evgeni 2026-11-28, hellgate: "some objects dont have the 3d", "missing 3d ... looks like
   // a hole"): the faces were the body's own colour a little brighter (fire: 92,24,22 -> ~97,25,23), so against a dark sky
   // they vanished and only the far rim line showed, floating. Now they take the palette's light accent ("inner") dimmed:
-  // the top face clearly lit, the right face a darker step of it -- a warm 3D in fire, a cold one in ice. tools/facecheck.js
-  // measures each face's contrast against the body and the sky behind it
+  // the top face clearly lit, the right face a darker step of it -- a warm 3D in fire, a cold one in ice. The bigger cause
+  // was the viewer's no-art renderer drawing back deco in file order (a B5 backdrop over these B1 faces): fixed, and
+  // tests/zorder_deco.js catches it
   const top = { z: "B1", hsv: `0a1a${(0.55 + 0.1 * v).toFixed(2)}a0a0` }, side = { z: "B1", hsv: `0a1a${(0.3 + 0.1 * v).toFixed(2)}a0a0` };
   for (const k of [d / 3, (2 * d) / 3, d]) {
     edges(st.S, "E", d / 3 + 0.5).forEach(q => p.rect([q[0] + k, q[1] + k, q[2] + k, q[3] + k], "inner", 1, side));

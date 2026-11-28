@@ -2217,7 +2217,10 @@ function draw() {
   if (sc) {
     // GD's own sprites in its z-layers (B layers, glow, then T layers); ids without a known frame are
     // drawn with the shapes below. Triggers and editor-only objects are not drawn (as in the game).
-    const on = objsNow.filter(o => sx(o.x) > -150 && sx(o.x) < W + 150);
+    // a scaled piece (a 3D face strip, a backdrop slab) reaches past its centre: keep it while any of it shows
+    // (Evgeni 2026-11-28, Hellgate card: "some objects don't have the 3D" -- wide face strips were culled by their centre)
+    const reachA = o => { const p = o.props; if (!p) return 150; const s = +(p[32] || 1) * Math.max(+(p[128] || 1), +(p[129] || 1)); return s > 1.5 ? 150 + 15 * s * scale : 150; };
+    const on = objsNow.filter(o => { const r = reachA(o); return sx(o.x) > -r && sx(o.x) < W + r; });
     const skip = o => { const d = GD.objInfo(o.id); if (d.kind === "trigger" || (window.SHOOT_DECO_ONLY && d.kind !== "decoration")) return true; const i = AR.info(o.id); return !!i && /^edit_/.test(i.frame); };
     const res = AR.drawObjects(ctx, on, LS, local, o => GD.LOOK.objAlpha(o, LS.alpha), skip);
     for (const o of res.rest) { const d = GD.objInfo(o.id);
@@ -2235,14 +2238,20 @@ function draw() {
     // big scaled pieces (a painting's shapes, DECOART.md) reach further than their centre: keep them until their extent leaves
     const reach = o => { const p = o.props; if (!p) return 90; const s = +(p[32] || 1) * Math.max(+(p[128] || 1), +(p[129] || 1)); return s > 1.5 ? 90 + 30 * s * scale : 90; };
     const on = objsNow.filter(o => { const r = reach(o); return sx(o.x) > -r && sx(o.x) < W + r; }), blocks = [], front = [];
+    // back deco in its z-layer order (key 24 B5 -5 .. B1 3, then key 25), as the game draws it: drawn in file order, a
+    // B5 backdrop slab added after a structure's B1 3D faces covered them (Evgeni 2026-11-28, Hellgate card: "some objects
+    // don't have the 3D", "missing 3D on the ground, looks like a hole"). No key 24 = 0, between B3 and B2; stable sort.
+    const back = [], zOf = o => +(o.props && o.props[24]) || 0, zoOf = o => +(o.props && o.props[25]) || 0;
     for (const o of on) {
       const a = GD.LOOK.objAlpha(o, LS.alpha); if (a <= 0.01) continue;
       if (GD.LOOK.isSkin(o.id)) blocks.push([o, a]);
       else if (GD.objInfo(o.id).kind === "decoration") {
         // deco on a front layer (key 24 >= 5: T1..T4) goes over the blocks, as in the game (a painted block body, DECOART.md)
         if (o.props && +o.props[24] >= 5) { front.push([o, a]); continue; }
-        ctx.globalAlpha = a * (GD.LOOK.isFlat(o.id) ? 1 : 0.85); local(o, () => GD.LOOK.drawDeco(ctx, o, LS)); }
+        back.push([o, a]); }
     }
+    back.sort((p, q) => zOf(p[0]) - zOf(q[0]) || zoOf(p[0]) - zoOf(q[0]));
+    for (const [o, a] of back) { ctx.globalAlpha = a * (GD.LOOK.isFlat(o.id) ? 1 : 0.85); local(o, () => GD.LOOK.drawDeco(ctx, o, LS)); }
     ctx.globalAlpha = 1;
     GD.LOOK.drawBlocks(ctx, view, LS, blocks, local);
     // slopes are play blocks too: front-layer deco (T1..) covers them as in the game (a dressed slope, tools/structdesign.js)
