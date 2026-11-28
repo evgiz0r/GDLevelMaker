@@ -12,7 +12,7 @@
 //        player in the sky (default y 235 = top of the art), flapping; mouth(i, t) = the world point of dragon i's mouth at t.
 //   kit.attack(ctx, { t, at: {x, y}, from: {x, y}, flight, size }) -> objects   a fireball from `from` (world, at launch
 //        t - flight) to `at` (world) landing at t, bursting there. Aim `at` where the run WOULD have been without its dodge.
-//   kit.header(h)  -> h with the kit's colour channels (call once, after everything is built)
+//   kit.header(h)  -> h with the kit's colour channels (call once, after everything is built); kit({ tint: rgb => rgb }) recolours them
 //   ctx: tools/effects.js FX.context (xAt(t), path); groups g0.. and channels ch0.. are the kit's (the auto part and the ending
 //   pass ranges that do not clash: effects.js 2001-3999 / 800-849, structdeco 912-957).
 //   Art: the demon head is tools/artlab.js demonObjects (hand-built, parts head / horn / jaw / eyes / glow); the dragon is
@@ -110,22 +110,23 @@ function kit(o = {}) {
 
   kitObj.attack = (ctx, p) => {
     const out = [], fl = p.flight ?? 0.5, tl = p.t - fl, s = p.size ?? 1, gF = grp(), gB = grp();
-    const from = p.from, at = p.at;
-    out.push(D(1764, from.x, from.y, { ch: C.fire, z: "T1", zo: 1, s: 1.1 * s, groups: [gF] }));
-    out.push(D(497, from.x, from.y, { ch: C.core, z: "T1", zo: 2, s: 0.12 * s, groups: [gF] }));
+    const from = p.from, at = p.at, Z = p.z || "T1";   // p.z: a background shot (livescene.js) flies behind the play
+    out.push(D(1764, from.x, from.y, { ch: C.fire, z: Z, zo: 1, s: 1.1 * s, groups: [gF] }));
+    out.push(D(497, from.x, from.y, { ch: C.core, z: Z, zo: 2, s: 0.12 * s, groups: [gF] }));
     const ang = Math.atan2(at.y - from.y, at.x - from.x);
-    out.push(D(211, from.x - 14 * s * Math.cos(ang), from.y - 14 * s * Math.sin(ang), { ch: C.fire, z: "T1", zo: 0, sx: 1.0 * s, sy: 0.14 * s, rot: -ang * 180 / Math.PI, groups: [gF] }));
+    out.push(D(211, from.x - 14 * s * Math.cos(ang), from.y - 14 * s * Math.sin(ang), { ch: C.fire, z: Z, zo: 0, sx: 1.0 * s, sy: 0.14 * s, rot: -ang * 180 / Math.PI, groups: [gF] }));
     out.push(T.alpha((ctx.path[0].x || 0) + 3, gF, 0, 0), T.alpha((ctx.path[0].x || 0) + 3, gB, 0, 0));
     out.push(T.alpha(ctx.xAt(tl), gF, 1, 0.05), T.move(ctx.xAt(tl), gF, at.x - from.x, at.y - from.y, fl, 11), T.alpha(ctx.xAt(p.t), gF, 0, 0.08));
     // the burst where it lands: a flash and six sparks thrown up
-    out.push(D(1293, at.x, at.y + 6, { ch: C.burst, z: "T1", zo: 3, sx: 1.4 * s, sy: 1.4 * s, groups: [gB] }));
+    out.push(D(1293, at.x, at.y + 6, { ch: C.burst, z: Z, zo: 3, sx: 1.4 * s, sy: 1.4 * s, groups: [gB] }));
     const sp = [];
-    for (let i = 0; i < 6; i++) { const gS = grp(); sp.push(gS); out.push(D(1764, at.x, at.y + 4, { ch: C.fire, z: "T1", zo: 4, s: 0.3 * s, groups: [gS, gB] })); }
+    for (let i = 0; i < 6; i++) { const gS = grp(); sp.push(gS); out.push(D(1764, at.x, at.y + 4, { ch: C.fire, z: Z, zo: 4, s: 0.3 * s, groups: [gS, gB] })); }
     out.push(T.alpha(ctx.xAt(p.t), gB, 1, 0), T.alpha(ctx.xAt(p.t + 0.08), gB, 0, 0.45));
     sp.forEach((gS, i) => { const a = Math.PI * (0.15 + 0.7 * i / 5); out.push(T.move(ctx.xAt(p.t), gS, 50 * s * Math.cos(a), 45 * s * Math.sin(a), 0.5, E.hit)); });
     return out;
   };
-  kitObj.header = h => K.channels(h, chans);
+  // o.tint(rgb) -> rgb: every kit colour passed through it (tools/livescene.js: dark silhouettes behind the play)
+  kitObj.header = h => K.channels(h, o.tint ? Object.fromEntries(Object.entries(chans).map(([c, d]) => [c, Object.assign({}, d, { rgb: o.tint(d.rgb) })])) : chans);
   kitObj.channels = chans;
   return kitObj;
 }
