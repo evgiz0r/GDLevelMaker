@@ -472,3 +472,8 @@ Evgeni 2026-11-27 ("lets remind ourselves more idea for sections, bit tired desi
   pads first. **Pads are in** for the cube types (`withPads`: a planned jump made by a yellow pad where the cube takes off,
   kept only when the plan still clears and the pad is needed; amount 1 = up to ~60% of the taps tried; 4 seeds at 1:
   opencube 3, staircase 6, entrance 4, closecube 0 -- its low ceilings take no pad launch). `r.pads` = how many.
+- **Robot platforms (my-mwzejbmf) has a generator** (Evgeni 2026-11-27 on the board: "we want some full jumps in some of
+  the platforms"): presses first by real replays (node only) -- each take-off near a platform's end with a hold, a FULL one
+  (held past the whole boost) 35% easy to 50% harder, else short / middle; the next platform where the replayed arc comes
+  down through a row within 4 of the last; spike floor under it. 60 cols: 5-7 jumps, all plans clear. The browser 🎲 has no
+  replay, so it gets a plain floor there.

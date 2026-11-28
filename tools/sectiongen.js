@@ -1418,6 +1418,39 @@ GEN["my-mwz2haf0"] = o => { const { R, imix, room, chance, W, H, G, beats, onBea
   land = Math.min(land, W - 3); G.box(land, W - 1, 0, lr - 1); for (let c = land; c < W; c++) G.put(c, lr, ".");
   return { map: G.rows(), mode: "cube", presses: presses.map(v => +v.toFixed(4)).sort((a, b) => a - b) }; };
 
+// ROBOT PLATFORMS (his my-mwzejbmf, 2026-11-28). Idea: floating platforms over a spike floor, the robot's hold length is
+// the gameplay. Evgeni (2026-11-27, on the board): "we want some full jumps in some of the platforms". PRESSES FIRST, by
+// real replays (node only): each take-off near a platform's end with a hold (a full one -- held past the robot's whole
+// boost -- 35% easy to 50% harder, else a short or a middle one), the jump replayed in lib/physics.js over the map so far,
+// the next platform put where the arc comes down through a row 4 rows or less from the last (a gap of 1+ columns), kept
+// when the replay lands on it. The browser has no replay: no generator there (the board's drawn section).
+CONCEPT["my-mwzejbmf"] = "floating platforms over a spike floor; the robot's hold decides how high and far, some full jumps";
+function robotPlan(o) { let LC = null; try { LC = require("./layoutcheck.js"); } catch (e) {} if (!LC || typeof LC.planCheck !== "function") return null;
+  const { R, mix, imix, W, H, G, onBeat, entry } = ctx(Object.assign({ cols: 48 }, o), 14), key = "my-mwzejbmf";
+  const q = (m, ps) => { const log = console.log; console.log = () => {}; try { return LC.planCheck({ key, map: m, mode: "robot", presses: ps }, { every: 1 }); } finally { console.log = log; } };
+  const e = entry(2, Math.max(2, H - 7)); G.box(0, 0, 0, e - 1); G.box(1, 4, e - 1, e - 1);
+  const presses = [], plats = [{ a: 0, b: 4, h: e }]; let land = 0.5;
+  const withSpikes = () => { const m = G.rows().map(l => [...l]); for (let c = 2; c < W; c++) if (m[H - 1][c] === ".") m[H - 1][c] = "^"; return m.map(l => l.join("")); };
+  for (let k = 0; k < 40; k++) { const cur = plats[plats.length - 1];
+    const p = onBeat(cur.b - 0.2, land + 0.6); if (p > cur.b + 0.6 || p > W - 8) break;
+    // the release on a beat too (a full hold only needs to outlast the boost: ~3 columns)
+    const full = R() < mix(0.35, 0.5), hold = full ? 4 : R.pick([0.3, 0.9, 1.6]), rel = onBeat(p + hold, p + (full ? 3 : 0.25)), ps = presses.concat([[+p.toFixed(4), +rel.toFixed(4)]]);
+    const c = q(withSpikes(), ps), path = c.path.filter(pt => pt[0] > p);
+    // the arc's top, then where it comes down through each row
+    let top = 0; for (let i = 0; i < path.length; i++) if (path[i][1] > path[top][1]) top = i;
+    const rows = []; for (let h = Math.max(2, cur.h - 4); h <= Math.min(H - 4, cur.h + 4); h++) { for (let i = top; i + 1 < path.length; i++) if (path[i][1] >= h && path[i + 1][1] < h) { const x = path[i][0]; if (x > cur.b + 2 && x < W - 3) rows.push({ h, x }); break; } }
+    if (!rows.length) break;
+    const t = R.pick(rows), len = R.int(imix(5, 3), imix(7, 4)), a = Math.floor(t.x - 0.4), b = Math.min(W - 1, a + len - 1);
+    G.box(a, b, t.h - 1, t.h - 1);
+    const c2 = q(withSpikes(), ps), on = c2.path.find(pt => pt[0] >= a && pt[0] <= b + 1 && Math.abs(pt[1] - t.h) < 0.06 && pt[0] > p + 1);
+    if (!on) { G.box(a, b, t.h - 1, t.h - 1, "."); break; }
+    presses.push(ps[ps.length - 1]); plats.push({ a, b, h: t.h }); land = on[0]; }
+  const last = plats[plats.length - 1]; if (plats.length < 3) return null;
+  G.box(last.a, W - 1, last.h - 1, last.h - 1);   // the last one runs out to the end (the join after starts there)
+  const map = withSpikes(), c = q(map, presses); if (!c.ok) return null;
+  return { map, mode: "robot", presses, path: c.path.filter((_, i) => i % 8 === 0), pathFrom: "replay" }; }
+GEN["my-mwzejbmf"] = o => { for (let k = 0; k < 8; k++) { const z = robotPlan(Object.assign({}, o, { seed: (o.seed ?? 1) + 1000 * k })); if (z) return z; }
+  const { W, H, G } = ctx(Object.assign({ cols: 48 }, o), 14); G.box(0, W - 1, 0, 1); return { map: G.rows(), mode: "robot" }; };
 const KEYS = Object.keys(GEN);
 // THE PLANNED PATH FOR THE TAP TYPES (the board thread, 2026-11-27, on Evgeni's "can we draw the path? now we dont need to
 // solve it right?"): fly, wave and flappy return `path` from their own planner; the cube, ball and spider types return
