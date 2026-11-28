@@ -68,7 +68,21 @@ function check({ objects, path, music, from = 0, min = 0.6, near = 0.6 }) {
   }
   return out;
 }
-module.exports = { plan, check, strongBeats, SETS, BIG };
+// the transition itself (Evgeni on GDLM 78 v9: "the transitions are still bit too long without clicks"; "on 40.49 there is a big
+// beat, but we still didnt enter the portal"): per section change, the gap with no press around it and how late the portal comes
+// after the strongest beat just before it. -> [{t, gap, late, beat}]
+function transitions({ objects, path, events, music, from = 0 }) {
+  const TPS = 240, tOfX = x => { let lo = 0, hi = path.length - 1; while (lo < hi) { const m = (lo + hi) >> 1; if (path[m].x >= x) hi = m; else lo = m + 1; } return lo / TPS; };
+  const portals = objects.filter(o => PORTAL.has(o.id)).map(o => tOfX(o.x)).sort((a, b) => a - b), changes = [];
+  for (const t of portals) if (!changes.length || t - changes[changes.length - 1] > 1) changes.push(t);
+  const pr = events.filter(e => e.type === "press").map(e => e.tick / TPS), beats = music ? strongBeats(music) : [];
+  return changes.map(tc => {
+    const before = pr.filter(t => t <= tc).pop(), after = pr.find(t => t > tc);
+    const b = beats.filter(b => b.t - from >= tc - 1.5 && b.t - from <= tc + 0.3 && b.s >= 0.6).sort((a, b) => b.s - a.s)[0];
+    return { t: +tc.toFixed(2), gap: before != null && after != null ? +(after - before).toFixed(2) : null, late: b ? +(tc - (b.t - from)).toFixed(2) : null, beat: b ? +b.s.toFixed(2) : null };
+  });
+}
+module.exports = { plan, check, transitions, strongBeats, SETS, BIG };
 
 if (require.main === module) {
   const a = process.argv.slice(2), f = a.find(x => !x.startsWith("--"));
