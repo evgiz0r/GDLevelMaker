@@ -552,7 +552,7 @@ died at block 18 as a cube. No official or GDLM level sets any of them, so no sa
   the dual band at the start y. Not measured in the game.
 - Not read: kA20 reverse gameplay, kA28 mirror (view only), kA2 values in platformer levels.
 
-## Gameplay modifiers (2866, 1813) and the time warp (1935): IN the sim (2026-11-25)
+## Gameplay modifiers (2866, 1813, D 1755, H 1859) and the time warp (1935): IN the sim (2026-11-25; D / H 2026-11-28)
 
 From gdsolver's reading of GD's disassembly (GJBaseGameLayer::collisionCheckObjects, PlayerObject::didHitHead) and
 their dumps on Dash; code in lib/physics.js, objects in lib/objects.js; `node tests/modifiers.js`.
@@ -564,6 +564,17 @@ their dumps on Dash; code in lib/physics.js, objects in lib/objects.js; `node te
   locks to the player for 2 s from x 3735: a red pad throws the mini cube into the ceiling at x ~3790 and it lands on
   it upside down (before this the sim killed it there: block ~127). OPEN (gdsolver): GD flips 42 ticks after arming,
   where the counter says 2 -- there is a second reader of the arm in collidedWithObjectInternal not modelled.
+- **1755 D block and 1859 H block** (2026-11-28, UNCHECKED in the game; what they do is from GD Creator School: D "let the
+  player safely touch blocks when in the wave gamemode", H "touch the underside of blocks in the Cube/Robot/Spider
+  gamemodes"): armed the same way (s.dArm, s.hArm). With D armed the wave neither dies sliding off a block's end ("block
+  edge") nor flying head-on into a slope (it slides the slope); its tiny kill box inside a block still kills. With H armed
+  a cube / robot / spider whose kill box reaches a block from the head side is set under it (speed toward it dropped)
+  instead of dying -- only where it would have died, so no other run changes. Before this both were decoration. Fingerdash
+  (36) and Dash (22) have letter blocks: their routes can only gain from it (a death skipped), but a D-armed wave now
+  slides a slope it used to pass over head-on: re-check both mains (`node tools/mains.js status`) on the PC. Our joins put
+  D cells at every wave portal (lib/scenejoin.js; knowledge/section_types.md "Where each mode can slide"). The S block
+  (1829, stops dash orbs) is still not simulated. To check in the game: GDLM 77-style station, a wave sliding off a ledge
+  end with and without a D block.
 - **1935 time warp** (key 120 = the time scale): from the tick after the player's x passes one, the x advance, the y
   move and the velocity change of each tick shrink by that factor (a scale above 1 does nothing to them: GD speeds the
   scheduler instead). Dash: 0.2 from x 4535 to 4615 (gdsolver: dx 1.950 -> 0.390, dvy 0.215 -> 0.043). Read off the

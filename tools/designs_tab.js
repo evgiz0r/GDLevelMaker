@@ -409,6 +409,8 @@ window.initDesigns = async function (root) {
         // orbs (Y yellow, B blue, E green) and pads (J yellow, K blue)
         case "Y": case "B": case "E": return `<circle class="tl" cx="${x + 0.5}" cy="${y + 0.5}" r="0.4" fill="none" stroke="${q.t === "Y" ? "#ffe000" : q.t === "B" ? "#38c8ff" : "#40ff60"}" stroke-width="0.14" /><circle class="tl" cx="${x + 0.5}" cy="${y + 0.5}" r="0.18" fill="${q.t === "Y" ? "#ffe000" : q.t === "B" ? "#38c8ff" : "#40ff60"}" />`;
         case "J": case "K": return `<rect class="tl" x="${x + 0.1}" y="${y + 0.8}" width="0.8" height="0.2" rx="0.08" fill="${q.t === "J" ? "#ffe000" : "#38c8ff"}" />`;
+        // D: the wave's slide-safe cell (lib/scenejoin.js puts them at wave portals; GD's invisible D block): a faint dashed square
+        case "D": return `<rect class="tl" x="${x + 0.1}" y="${y + 0.1}" width="0.8" height="0.8" fill="#40ff60" fill-opacity="0.12" stroke="#40ff60" stroke-dasharray="2 2" style="stroke-width:1px;vector-effect:non-scaling-stroke" />`;
         case "o": case "q": case "s": return `<circle class="tl" cx="${x + 0.5}" cy="${y + 0.5}" r="${q.t === "o" ? 0.48 : 0.36}" fill="#ff6b6b" />`;
         default: return `<rect class="tl" x="${x + 0.03}" y="${y + 0.03}" width="0.94" height="0.94" fill="#e8e8f0" />`; } };
     TILE = tile;

@@ -66,7 +66,7 @@ function joinPad(a, b) {
 // the empty run of a column (rows from the ground) the player passes through: bounded by something on both sides first
 function runsOf(map, c) {
   const H = map.length, runs = []; let a = null;
-  for (let r = 0; r <= H; r++) { const ch = r < H ? map[H - 1 - r][c] : "#", empty = ch === "." || "GN".includes(ch);
+  for (let r = 0; r <= H; r++) { const ch = r < H ? map[H - 1 - r][c] : "#", empty = ch === "." || "GND".includes(ch);
     if (empty && a == null) a = r; if (!empty && a != null) { runs.push({ a, b: r - 1, closed: a > 0 && r < H }); a = null; } }
   return runs;
 }
@@ -190,7 +190,7 @@ function build(brief, o = {}) {
     const ground = (p.from === "cube" || p.from === "robot") && run0.b - run0.a >= 4, run = ground ? { a: run0.a + 1, b: run0.b } : run0;
     if (ground) extra.push(["block", c, run0.a]);
     for (let r = run.a + 1; r <= Math.max(run.a + 1, run.b - 1); r += 3) { if (p.mode) extra.push([PORTAL[p.mode], c, r]); if (p.speed) extra.push([SPEEDN[p.speed], c - 1, r]); }
-    for (let r = 0; r <= top; r++) if ((r < run.a || r > run.b) && (map[H - 1 - r] === undefined || map[H - 1 - r][c] === ".")) extra.push(["block", c, r]);
+    for (let r = 0; r <= top; r++) if ((r < run.a || r > run.b) && (map[H - 1 - r] === undefined || ".D".includes(map[H - 1 - r][c]))) extra.push(["block", c, r]);
   }
   const objects = ["// built by tools/typebuild.js from section types (tools/sectiongen.js)"];
   for (const e of require("./designthemes.js").sampleOf(map)) objects.push(e);

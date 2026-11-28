@@ -27,6 +27,22 @@ type, so a builder can make a new one of any length, synced to the song, and so 
 - **Beats:** a motif starts on a beat, and the denser part sits on the song's loud bars (tools/impacts.js). Put portals,
   including gravity portals, on bar starts (SYNC.md).
 - **Hazards say which way is safe.** Spikes and saws close the wrong paths. They never sit on the only path.
+- **Where each mode can slide** (Evgeni 2026-11-28: "should somehow differentiate in general places where we can slide and
+  where we cant (cube/robot/wave...)"; the rules are lib/physics.js's, the measured ones are in CLAUDE.md Calibration):
+
+  | mode | slides / stands on | dies on | safe-maker |
+  |---|---|---|---|
+  | cube, robot | the floor side (tops; ceilings upside down), slopes up and down | its 9x9 kill box in a block: a wall, a head hit from below (a graze of the outer box is fine) | H block (1859): head hits bump |
+  | ball, spider | both sides (it flips), slopes | the kill box in a block (walls) | H block (1859) for the spider |
+  | ship, ufo, swing | floors and ceilings both, ceiling slopes (a ship slides one and is launched off its low end) | head-on into a wall | none needed |
+  | wave | flat tops and bottoms, a slope met at a glancing angle (45 degrees onto flat) | sliding off a block's END (no block of the same face after it), flying head-on into a slope (down into a rising one: 90 degrees), its 3x3 kill box in a block | **D block (1755)**: ends and slopes slide |
+
+  So: a wave must never be left to slide where the surface ends or turns into a slope. Joins (lib/scenejoin.js) do it by
+  themselves: into or out of a wave, every floor top and ceiling bottom from 5 columns before the portal to 4 after
+  (into) or from 4 columns before the join to the portal (out of) gets a "D" cell (3 rows tall in the level, invisible,
+  drawn faint green on the board). Inside a wave section the plan must not slide off an end: give the surface a seam
+  block (the same face goes on) or a D cell. A cube or robot section may ask for a head hit only with an H cell. The D
+  and H blocks are UNCHECKED in the game (PHYSICS.md "Gameplay modifiers").
 - **Gravity portals** (board pieces G 🟡 upside down and N 🔵 back, ids 11 and 10; Evgeni: "i need also reverse gravity
   portals in the layouts") turn any type upside down for a while. The mirrored motif repeats there, then an N brings
   gravity back. In a corridor, a flip mid-motif reads well. A flip right before a jump does not: no input may be forced
