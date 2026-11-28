@@ -116,6 +116,12 @@ not after it:
   while the user plays (loggers, recorders, jobs) stays off the input path: a hook callback only queues (no I/O,
   no lookups), recorders only read, heavy jobs run at idle priority with GD open. A new tool of this kind is
   checked for added input delay before it runs during play.
+- **Anything we keep local-only has an easy local rebuild.** (Evgeni, 2026-11-28: "keep making sure getting those stuff
+  locally for people who clone the repo is not hard".) RobTop's levels, art and songs, other people's levels and anything
+  made from them stay out of git -- so the change that makes something local-only also gives it a row in
+  `tools/rebuild_local.js` (what, from where, one command, measured time) and SETUP.md's table. A cloner runs
+  `node tools/setup.js` then `node tools/rebuild_local.js --quick`; `node tests/rebuild_local.js` checks the rows.
+  Personal data (his recordings, save, marks) is listed as personal: it cannot be rebuilt.
 - **Hand off.** Before a long pause or when your area changes hands, write where you stopped,
   what is open and the good numbers into your area's doc.
 - **Share, don't duplicate.** Results go into the shared `local/` (see below) so no session redoes
@@ -311,9 +317,11 @@ Every session works in its own git worktree, but `local/` (never committed) is O
 
 ## Files
 
+- **PERSONAL.md** -- proposal (not done): what is fitted to Evgeni (difficulty, fairness, judge, votes, soft rules) vs general, and a profile layer so a cloner can use their own.
 - **WORKBOOKS.md** -- the claude.ai workbook pages: every bug found in the app, the limits, how to test.
-- **Setup on any computer** (SETUP.md: the steps an AI agent follows): `tools/setup.js` (find GD, load the main levels,
-  check), `tools/gdpaths.js` (where GD's game, levels and save are; every tool reads GD's files through it -- never hardcode
+- **Setup on any computer** (SETUP.md: the steps an AI agent follows): `tools/setup.js` (find GD, load the main levels
+  with routes, raw solves and coin routes, unshallow a shallow clone, check), **`tools/rebuild_local.js`** (every local-only
+  item, whether this computer has it, one command each, `--quick`; test `node tests/rebuild_local.js`), `tools/gdpaths.js` (where GD's game, levels and save are; every tool reads GD's files through it -- never hardcode
   the Steam path), `tools/mains_routes.js` (the main levels' routes in git, `knowledge/mains/routes.json`, written by
   `mains.js export`: `import` replays them on a new computer's own game). Test: `node tests/setup.js`.
 - `lib/gd.js` -- the format: base64url + gzip layers, the record (plist) and the level string.

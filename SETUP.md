@@ -26,23 +26,29 @@ Stop and tell the user at any step that fails, with the line the script printed.
      app's `Contents` folder (`.../Geometry Dash.app/Contents`). The right folder is the one with `Resources/levels/1.txt`.
    - `warn` lines are optional parts (GD's art in the viewer, songs, the save folder): report them, carry on.
    - It ends with `READY` (exit 0) or `NOT READY` (exit 1). `--json` prints the same as JSON.
-3. **If some main levels did not get a working route**: the script prints the command that fixes them. Two cases:
+   - Clone with git, not a zip: the caches in git are keyed by the commit that last touched the physics. A shallow clone
+     (`--depth 1`) is unshallowed by setup once (`git fetch --unshallow`, ~6 s); without that every cache looks stale.
+3. **Rebuild the rest of `local/`:** `node tools/rebuild_local.js` lists every local-only item (bricks, gdsolver's
+   plans, songs, videos, difficulty scores, ...), whether this computer has it and the one command that rebuilds it;
+   `--quick` rebuilds the fast ones (seconds to a minute), `--run <id ...>` any other. The table below has the times.
+4. **If some main levels did not get a working route** (a `warn` line; the level replays to its death spot): the script
+   prints the command that fixes them. Two cases:
    - *Dies at N%*: the sim changed since the route was saved. `node tools/mains.js run <n ...>` re-solves from a bit
      before the trouble. Minutes to an hour per level; heavy, runs one at a time. Ask the user before starting a long
      batch.
    - *No route in git* (a `warn` line, not a failure): our sim has not beaten that level yet (Dash, 2026-11-25), or the
      routes file is missing. `node tools/difficulty_solve.js all <n ...>` solves from scratch (long: up to an hour+ each).
    The level still shows in the viewer meanwhile: it just has no replay until it is solved.
-4. **Start the viewer:** `node tools/serve.js` (leave it running), then open http://localhost:8765/viewer/ .
+5. **Start the viewer:** `node tools/serve.js` (leave it running), then open http://localhost:8765/viewer/ .
    - Main levels are in the level picker under "official". A link straight to one:
      `http://localhost:8765/viewer/#lv=local/official_01.json` (01 = Stereo Madness ... 22 = Dash).
    - **To verify without a person** (agents): load that link (add `?mute=1` before the `#` so it makes no sound) and
      check the info panel says `Beatable in N clicks`. If it says "Find the route", that level has no route yet
-     (step 3). The page must show no script errors.
+     (step 4). The page must show no script errors.
    - On a computer that is not the project owner's, start it with `node tools/serve.js 8765 --no-update` unless you
      want it to fast-forward its own checkout to `origin/main` every minute (it only does that on branch `main`
      with a clean tree).
-5. **Tell the user** what works: how many main levels replay, whether GD's art and songs were found, the viewer link.
+6. **Tell the user** what works: how many main levels replay, whether GD's art and songs were found, the viewer link.
 
 That is the whole setup. Re-running `node tools/setup.js` is safe: it keeps routes already in `local/` (`--force`
 replaces them with the ones from git).
@@ -50,7 +56,8 @@ replaces them with the ones from git).
 ## Rebuilding local data: what a new computer has, and how long the rest takes
 
 The owner's PC has a lot in `local/` that is not in git. A new computer starts with what git carries and rebuilds the
-rest only when it needs it. Times come from measured runs on the owner's PC (16 GB) or in the cloud. "Not measured"
+rest only when it needs it. `node tools/rebuild_local.js` prints the same list with what this computer has and the
+command for each (the one list: a new local-only kind of data gets a row there). Times come from measured runs on the owner's PC (16 GB) or in the cloud. "Not measured"
 means nobody has timed it yet. Heavy jobs run one or two at a time (`tools/heavy.js`), so a batch adds up.
 
 | what | on a fresh clone | rebuild with | how long | basis |
@@ -62,12 +69,16 @@ means nobody has timed it yet. Heavy jobs run one or two at a time (`tools/heavy
 | Dash (22) | listed without a replay: not beaten in our sim yet (open physics, being worked on) | waits on that physics work | | DIFFICULTY.md, PHYSICS.md |
 | difficulty scores of the main levels | not in git | `node tools/difficulty.js` | levels 1-20: ~16 min; Fingerdash's score hung past 60 min (open) | DIFFICULTY.md, 2026-11-25 |
 | main levels' timing windows (lego) | in git (`knowledge/lego_windows/`) | nothing; re-measure only after a physics change | 0; re-measure 10-60 s a level, Geometrical Dominator 5.5 min, Deadlocked 15.5 min (35-45 min for all) | LEGO.md |
-| bricks cut from levels (lego pieces) | not in git | `node tools/lego.js mine` | ~20 s (~0.3 s a level) with the windows from git | LEGO.md |
+| bricks cut from levels (lego pieces) | not in git | `rebuild_local.js --run lego` (quick: timing windows from git, marked stale where the physics moved) | seconds | |
+| the bricks' timing windows on today's physics | in git, but stale after any physics change | `rebuild_local.js --run lego_windows` (= `node tools/lego.js mine`) | ~40 min+: levels 1-20 in 40 min, Deadlocked alone 22 min, Fingerdash not timed | fresh clone in the cloud, 2026-11-28 |
 | main songs | read from your game's `Resources/` in place | nothing | 0 | |
 | beat grids of the songs | in git (`viewer/song_grids.js`) | nothing | 0 | |
 | custom songs our levels use | GD downloads each one the first time you play the level | or `node tools/songs.js <id>` | the tool waits 3 s between songs; the download itself is not measured | tools/songs.js |
 | community levels (taste corpus, demon list) | not in git (other people's levels); the learned numbers are (`knowledge/taste_model.json`) | `node tools/taste.js fetch`, `tools/fetch_level.js`, `tools/demonlist.js` | rate-limited: 1.2-2.5 s wait per request, so ~330 levels take 10+ min of waits alone; total not measured | the tools' built-in waits |
-| gdsolver's real-game plans | not in git | copy `data/` from github.com/gdsolver/gdsolver into `local/gdsolver/` | seconds | |
+| gdsolver's real-game plans | not in git | `rebuild_local.js --run gdsolver` (clones github.com/gdsolver/gdsolver, copies `data/`) | ~5 s | cloud, 2026-11-28 |
+| main levels' raw solves and all-coins routes | from git, with the routes | `node tools/setup.js` | part of setup | |
+| videos of the main levels | not in git (GD's art + song) | `rebuild_local.js --run videos` (needs ffmpeg + Chrome/Edge) | 2.2-4.7x each level's length | CLAUDE.md |
+| object catalogue sheets (GD's art) | not in git | `rebuild_local.js --run catalogue` | ~1 min | tools/catalogue.js |
 | the owner's recordings, attempts, marks, save stats | personal | cannot be rebuilt | | |
 
 For the main levels the short answer: with the routes in git, a new computer plays all of them after a few seconds of
